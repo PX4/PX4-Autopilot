@@ -217,48 +217,37 @@ void ActuatorEffectivenessHelicopter::setSaturationFlag(float coeff, bool &posit
 	}
 }
 
-bool ActuatorEffectivenessHelicopter::getAllocatedAndUnallocatedControl(control_allocator_status_s &status) const
+void ActuatorEffectivenessHelicopter::getAllocatedAndUnallocatedControl(int matrix_index,
+		control_allocator_status_s &status)
 {
-	status.torque_setpoint_achieved = true;
-	status.thrust_setpoint_achieved = true;
 
 	// Note: the values '-1', '1' and '0' are just to indicate a negative,
 	// positive or no saturation to the rate controller. The actual magnitude is not used.
 	if (_saturation_flags.roll_pos) {
 		status.unallocated_torque[0] = 1.f;
-		status.torque_setpoint_achieved = false;
 
 	} else if (_saturation_flags.roll_neg) {
 		status.unallocated_torque[0] = -1.f;
-		status.torque_setpoint_achieved = false;
 	}
 
 	if (_saturation_flags.pitch_pos) {
 		status.unallocated_torque[1] = 1.f;
-		status.torque_setpoint_achieved = false;
 
 	} else if (_saturation_flags.pitch_neg) {
 		status.unallocated_torque[1] = -1.f;
-		status.torque_setpoint_achieved = false;
 	}
 
 	if (_saturation_flags.yaw_pos) {
 		status.unallocated_torque[2] = 1.f;
-		status.torque_setpoint_achieved = false;
 
 	} else if (_saturation_flags.yaw_neg) {
 		status.unallocated_torque[2] = -1.f;
-		status.torque_setpoint_achieved = false;
 	}
 
 	if (_saturation_flags.thrust_pos) {
 		status.unallocated_thrust[2] = 1.f;
-		status.thrust_setpoint_achieved = false;
 
 	} else if (_saturation_flags.thrust_neg) {
 		status.unallocated_thrust[2] = -1.f;
-		status.thrust_setpoint_achieved = false;
 	}
-
-	return true;
 }

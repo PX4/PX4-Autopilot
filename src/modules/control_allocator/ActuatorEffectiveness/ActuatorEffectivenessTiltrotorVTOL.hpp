@@ -81,6 +81,9 @@ public:
 	const char *name() const override { return "VTOL Tiltrotor"; }
 
 	uint32_t getStoppedMotors() const override { return _stopped_motors; }
+
+	void getAllocatedAndUnallocatedControl(int matrix_index, control_allocator_status_s &status) override;
+
 protected:
 	bool _collective_tilt_updated{true};
 	ActuatorEffectivenessRotors _mc_rotors;
@@ -97,4 +100,11 @@ protected:
 
 	uORB::Subscription _actuator_controls_1_sub{ORB_ID(actuator_controls_1)};
 	uORB::Subscription _actuator_controls_0_sub{ORB_ID(actuator_controls_0)};
+
+	struct YawTiltSaturationFlags {
+		bool tilt_yaw_pos;
+		bool tilt_yaw_neg;
+	};
+
+	YawTiltSaturationFlags _yaw_tilt_saturation_flags{};
 };
