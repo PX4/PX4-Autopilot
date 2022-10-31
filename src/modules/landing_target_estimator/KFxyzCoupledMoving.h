@@ -66,11 +66,11 @@ public:
 	virtual ~KFxyzCoupledMoving() {};
 
 	//Prediction step:
-	void predictState(float dt, matrix::Vector<float, 3> acc) override {};
+	void predictState(float dt, matrix::Vector<float, 3> acc) override;
 	void predictCov(float dt) override;
 
 	// Backwards state prediciton
-	void syncState(float dt, matrix::Vector<float, 3> acc) override {};
+	void syncState(float dt, matrix::Vector<float, 3> acc) override;
 
 	void setH(matrix::Vector<float, 12> h_meas) override;
 
@@ -109,8 +109,8 @@ public:
 	void setH(float h_meas) override {};
 
 	// Decoupled filter
-	void syncState(float dt, float acc) override;
-	void predictState(float dt, float acc) override;
+	void syncState(float dt, float acc) override {};
+	void predictState(float dt, float acc) override {};
 	void setPosition(float pos) override { };
 	void setVelocity(float vel) override { };
 	void setTargetAcc(float acc) override { };

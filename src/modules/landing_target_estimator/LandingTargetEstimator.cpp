@@ -296,19 +296,6 @@ bool LandingTargetEstimator::updateNED(Vector3f vehicle_acc_ned)
 	// Loop over senors (gps_pos, gps_vel, vision, range_z, irlock, uwb)
 	for (int i = 0; i < nb_observations; i++) {
 
-		// Compute the measurement's time delay (difference between state and measurement time on validity)
-		dt_sync = (_last_predict - _target_pos_obs[i].timestamp) / SEC2USEC;
-
-		// TODO: skip measurement if dt_sync > ...
-
-		// TODO: Eventually remove, for now to debug, assume prediction time = measurement time
-		dt_sync = 0.f;
-
-		// Fill the timestamp field of innovation
-		_target_innovations_array[i].timestamp_sample = _target_pos_obs[i].timestamp;
-		_target_innovations_array[i].timestamp =
-			hrt_absolute_time(); // TODO: check if correct hrt_absolute_time() or _last_predict
-
 		// Check if at least one measurement from this sensor was updated
 		if (!_target_pos_obs[i].any_xyz_updated) {
 
@@ -320,75 +307,96 @@ bool LandingTargetEstimator::updateNED(Vector3f vehicle_acc_ned)
 
 		} else {
 
-			// Mark measurements as consumed for the next step.
-			_target_pos_obs[i].any_xyz_updated = false;
+			// Compute the measurement's time delay (difference between state and measurement time on validity)
+			dt_sync = (_last_predict - _target_pos_obs[i].timestamp);
 
-			// Loop over x,y,z directions. Note: even with coupled dynamics we have a sequential update of x,y,z directions separately
-			for (int j = 0; j < nb_update_directions; j++) {
+			// TODO: skip measurement if dt_sync > ...
+			if ((int)dt_sync > measurement_valid_TIMEOUT_US) {
 
-				//If the measurement of this filter (x,y or z) has not been updated:
-				if (!_target_pos_obs[i].updated_xyz(j)) {
+				PX4_INFO("Measurement rejected because too old. Time sync: %.2f [seconds] > timeout: %.2f [seconds]",
+					 (double)(dt_sync / SEC2USEC), (double)(measurement_valid_TIMEOUT_US / SEC2USEC));
 
-					// No measurement Note: .fusion_enabled[j] and .fused[j] = false are already false by default. (set in publishInnovations())
-					PX4_INFO("At least one non-valid observation. x: %d, y: %d, z: %d", _target_pos_obs[i].updated_xyz(0),
-						 _target_pos_obs[i].updated_xyz(1), _target_pos_obs[i].updated_xyz(2));
+			} else {
 
-				} else {
+				// Convert time sync to seconds
+				dt_sync = dt_sync / SEC2USEC;
+				// TODO: Eventually remove, for now to debug, assume prediction time = measurement time
+				dt_sync = 0.f;
+				// Fill the timestamp field of innovation
+				_target_innovations_array[i].timestamp_sample = _target_pos_obs[i].timestamp;
+				_target_innovations_array[i].timestamp =
+					hrt_absolute_time(); // TODO: check if correct hrt_absolute_time() or _last_predict
 
-					int filter_idx = j;
+				// Mark measurements as consumed for the next step.
+				_target_pos_obs[i].any_xyz_updated = false;
 
-					// Sync measurement using the prediction model
-					if (_target_model == TargetModel::FullPoseCoupled) {
-						// For the single filter, update the same estimator for each measurement (since there is only one)
-						filter_idx = xyz;
-						// Move state back to the measurement time of validity. The state synchronized will be used to compute the innovation.
-						_target_estimator[filter_idx]->syncState(dt_sync, vehicle_acc_ned);
+				// Loop over x,y,z directions. Note: even with coupled dynamics we have a sequential update of x,y,z directions separately
+				for (int j = 0; j < nb_update_directions; j++) {
+
+					//If the measurement of this filter (x,y or z) has not been updated:
+					if (!_target_pos_obs[i].updated_xyz(j)) {
+
+						// No measurement Note: .fusion_enabled[j] and .fused[j] = false are already false by default. (set in publishInnovations())
+						PX4_INFO("At least one non-valid observation. x: %d, y: %d, z: %d", _target_pos_obs[i].updated_xyz(0),
+							 _target_pos_obs[i].updated_xyz(1), _target_pos_obs[i].updated_xyz(2));
 
 					} else {
-						_target_estimator[filter_idx]->syncState(dt_sync, vehicle_acc_ned(j));
+
+						int filter_idx = j;
+
+						// Sync measurement using the prediction model
+						if (_target_model == TargetModel::FullPoseCoupled) {
+							// For the single filter, update the same estimator for each measurement (since there is only one)
+							filter_idx = xyz;
+							// Move state back to the measurement time of validity. The state synchronized will be used to compute the innovation.
+							_target_estimator[filter_idx]->syncState(dt_sync, vehicle_acc_ned);
+
+						} else {
+							_target_estimator[filter_idx]->syncState(dt_sync, vehicle_acc_ned(j));
+						}
+
+						//Get the corresponding row of the H matrix.
+						meas_h_row = _target_pos_obs[i].meas_h_xyz.row(j);
+						_target_estimator[filter_idx]->setH(meas_h_row);
+
+						// Compute innovations and fill thet target innovation message
+						_target_innovations_array[i].innovation_variance[j] = _target_estimator[filter_idx]->computeInnovCov(
+									_target_pos_obs[i].meas_unc_xyz(j));
+						_target_innovations_array[i].innovation[j] = _target_estimator[filter_idx]->computeInnov(_target_pos_obs[i].meas_xyz(
+									j));
+
+						// Update step
+						meas_xyz_fused(j) = _target_estimator[filter_idx]->update();
+
+						// Fill the target innovation message
+						_target_innovations_array[i].fusion_enabled[j] = true;
+						_target_innovations_array[i].innovation_rejected[j] = !meas_xyz_fused(j);
+						_target_innovations_array[i].fused[j] = meas_xyz_fused(j);
+
+						_target_innovations_array[i].observation[j] = _target_pos_obs[i].meas_xyz(j);
+						_target_innovations_array[i].observation_variance[j] = _target_pos_obs[i].meas_unc_xyz(j);
+
+						/*	TODO: fill those fields of estimator_aid_source_3d_s
+							uint8 estimator_instance
+							uint32 device_id
+							uint64[3] time_last_fuse
+							float32[3] test_ratio
+						*/
+
+						// Mark measurement as consumed for next iteration
+						_target_pos_obs[i].updated_xyz(j) = false;
+
 					}
-
-					//Get the corresponding row of the H matrix.
-					meas_h_row = _target_pos_obs[i].meas_h_xyz.row(j);
-					_target_estimator[filter_idx]->setH(meas_h_row);
-
-					// Compute innovations and fill thet target innovation message
-					_target_innovations_array[i].innovation_variance[j] = _target_estimator[filter_idx]->computeInnovCov(
-								_target_pos_obs[i].meas_unc_xyz(j));
-					_target_innovations_array[i].innovation[j] = _target_estimator[filter_idx]->computeInnov(_target_pos_obs[i].meas_xyz(
-								j));
-
-					// Update step
-					meas_xyz_fused(j) = _target_estimator[filter_idx]->update();
-
-					// Fill the target innovation message
-					_target_innovations_array[i].fusion_enabled[j] = true;
-					_target_innovations_array[i].innovation_rejected[j] = !meas_xyz_fused(j);
-					_target_innovations_array[i].fused[j] = meas_xyz_fused(j);
-
-					_target_innovations_array[i].observation[j] = _target_pos_obs[i].meas_xyz(j);
-					_target_innovations_array[i].observation_variance[j] = _target_pos_obs[i].meas_unc_xyz(j);
-
-					/*	TODO: fill those fields of estimator_aid_source_3d_s
-						uint8 estimator_instance
-						uint32 device_id
-						uint64[3] time_last_fuse
-						float32[3] test_ratio
-					*/
-
-					// Mark measurement as consumed for next iteration
-					_target_pos_obs[i].updated_xyz(j) = false;
-
 				}
-			}
 
-			// If we have updated all three directions (x,y,z) for one measurement, consider the state updated.
-			if (meas_xyz_fused(0) && meas_xyz_fused(1) && (meas_xyz_fused(2) || _target_model == TargetModel::Horizontal)) {
-				all_directions_fused = true;
-			}
+				// If we have updated all three directions (x,y,z) for one measurement, consider the state updated.
+				if (meas_xyz_fused(0) && meas_xyz_fused(1) && (meas_xyz_fused(2) || _target_model == TargetModel::Horizontal)) {
+					all_directions_fused = true;
+				}
 
-			// Reset meas_xyz_fused to false
-			meas_xyz_fused.setAll(false);
+				// Reset meas_xyz_fused to false
+				meas_xyz_fused.setAll(false);
+			}
 		}
 	}
 
@@ -1150,14 +1158,14 @@ void LandingTargetEstimator::selectTargetEstimator()
 	case TargetModel::FullPoseDecoupled:
 
 		if (_target_mode == TargetMode::Moving) {
-			// tmp_x = new KFxyzDecoupledMoving;
-			// tmp_y = new KFxyzDecoupledMoving;
-			// tmp_z = new KFxyzDecoupledMoving;
+			tmp_x = new KFxyzDecoupledMoving;
+			tmp_y = new KFxyzDecoupledMoving;
+			tmp_z = new KFxyzDecoupledMoving;
 
 		} else {
-			// tmp_x = new KFxyzDecoupledStatic;
-			// tmp_y = new KFxyzDecoupledStatic;
-			// tmp_z = new KFxyzDecoupledStatic;
+			tmp_x = new KFxyzDecoupledStatic;
+			tmp_y = new KFxyzDecoupledStatic;
+			tmp_z = new KFxyzDecoupledStatic;
 		}
 
 		init_failed = (tmp_x == nullptr) || (tmp_y == nullptr) || (tmp_z == nullptr);
@@ -1169,7 +1177,7 @@ void LandingTargetEstimator::selectTargetEstimator()
 		// TODO: single filter (12 states) + theta filter
 
 		if (_target_mode == TargetMode::Moving) {
-			// tmp_x = new KFxyzCoupledMoving;
+			tmp_x = new KFxyzCoupledMoving;
 
 		} else {
 			//tmp_x = new KFPositionCoupledMoving

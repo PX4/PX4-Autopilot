@@ -117,6 +117,9 @@ protected:
 	/* timeout after which the target is not valid if no measurements are seen*/
 	static constexpr uint32_t landing_target_valid_TIMEOUT_US = 2000000;
 
+	/* timeout after which the measurement is not valid*/
+	static constexpr uint32_t measurement_valid_TIMEOUT_US = 2000000;
+
 	uORB::Publication<landing_target_pose_s> _targetPosePub{ORB_ID(landing_target_pose)};
 
 	// publish innovations target_estimator_gps_pos
