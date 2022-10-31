@@ -1406,6 +1406,20 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 	Vector2f local_2D_position{_local_pos.x, _local_pos.y};
 
+	const float takeoff_airspeed = (_param_fw_tko_airspd.get() > FLT_EPSILON) ? _param_fw_tko_airspd.get() :
+				       _param_fw_airspd_min.get();
+
+	float adjusted_min_airspeed = _param_fw_airspd_min.get();
+
+	if (takeoff_airspeed < _param_fw_airspd_min.get()) {
+		// adjust underspeed detection bounds for takeoff airspeed
+		_tecs.set_equivalent_airspeed_min(takeoff_airspeed);
+		adjusted_min_airspeed = takeoff_airspeed;
+	}
+
+	float target_airspeed = adapt_airspeed_setpoint(control_interval, takeoff_airspeed, adjusted_min_airspeed,
+				ground_speed);
+
 	if (_runway_takeoff.runwayTakeoffEnabled()) {
 		if (!_runway_takeoff.isInitialized()) {
 			_runway_takeoff.init(now, _yaw, global_position);
@@ -1420,23 +1434,9 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 			_runway_takeoff.forceSetFlyState();
 		}
 
-		const float takeoff_airspeed = (_param_fw_tko_airspd.get() > FLT_EPSILON) ? _param_fw_tko_airspd.get() :
-					       _param_fw_airspd_min.get();
-
 		_runway_takeoff.update(now, takeoff_airspeed, _airspeed, _current_altitude - _takeoff_ground_alt,
 				       clearance_altitude_amsl - _takeoff_ground_alt,
 				       &_mavlink_log_pub);
-
-		float adjusted_min_airspeed = _param_fw_airspd_min.get();
-
-		if (takeoff_airspeed < _param_fw_airspd_min.get()) {
-			// adjust underspeed detection bounds for takeoff airspeed
-			_tecs.set_equivalent_airspeed_min(takeoff_airspeed);
-			adjusted_min_airspeed = takeoff_airspeed;
-		}
-
-		float target_airspeed = adapt_airspeed_setpoint(control_interval, takeoff_airspeed, adjusted_min_airspeed,
-					ground_speed);
 
 		// yaw control is disabled once in "taking off" state
 		_att_sp.fw_control_yaw_wheel = _runway_takeoff.controlYaw();
@@ -1570,9 +1570,6 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 		if (_launch_detection_state != LAUNCHDETECTION_RES_NONE) {
 			/* Launch has been detected, hence we have to control the plane. */
 
-			float target_airspeed = adapt_airspeed_setpoint(control_interval, _param_fw_airspd_trim.get(),
-						_param_fw_airspd_min.get(), ground_speed);
-
 			if (_param_fw_use_npfg.get()) {
 				_npfg.setAirspeedNom(target_airspeed * _eas2tas);
 				_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
@@ -1588,46 +1585,26 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 				_att_sp.roll_body = _l1_control.get_roll_setpoint();
 			}
 
-			_att_sp.yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
-
 			/* Select throttle: only in LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS we want to use
 			 * full throttle, otherwise we use idle throttle */
-			float takeoff_throttle = _param_fw_thr_max.get();
+			const float max_takeoff_throttle = (_launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS) ?
+							   _param_fw_thr_idle.get() : _param_fw_thr_max.get();
 
-			if (_launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS) {
-				takeoff_throttle = _param_fw_thr_idle.get();
-			}
+			// select maximum pitch: the launchdetector may impose another limit for the pitch
+			// depending on the state of the launch
+			const float takeoff_pitch_max_deg = _launchDetector.getPitchMax(_param_fw_p_lim_max.get());
 
-			if (_current_altitude < clearance_altitude_amsl) {
-				// select maximum pitch: the launchdetector may impose another limit for the pitch
-				// depending on the state of the launch
-				const float takeoff_pitch_max_deg = _launchDetector.getPitchMax(_param_fw_p_lim_max.get());
-
-				tecs_update_pitch_throttle(control_interval,
-							   altitude_setpoint_amsl,
-							   target_airspeed,
-							   radians(_param_fw_p_lim_min.get()),
-							   radians(takeoff_pitch_max_deg),
-							   _param_fw_thr_min.get(),
-							   takeoff_throttle,
-							   true,
-							   radians(_takeoff_pitch_min.get()),
-							   _param_sinkrate_target.get(),
-							   _param_climbrate_target.get());
-
-			} else {
-				tecs_update_pitch_throttle(control_interval,
-							   altitude_setpoint_amsl,
-							   target_airspeed,
-							   radians(_param_fw_p_lim_min.get()),
-							   radians(_param_fw_p_lim_max.get()),
-							   _param_fw_thr_min.get(),
-							   takeoff_throttle,
-							   false,
-							   radians(_param_fw_p_lim_min.get()),
-							   _param_sinkrate_target.get(),
-							   _param_climbrate_target.get());
-			}
+			tecs_update_pitch_throttle(control_interval,
+						   altitude_setpoint_amsl,
+						   target_airspeed,
+						   radians(_param_fw_p_lim_min.get()),
+						   radians(takeoff_pitch_max_deg),
+						   _param_fw_thr_min.get(),
+						   max_takeoff_throttle,
+						   false,
+						   radians(_takeoff_pitch_min.get()),
+						   _param_sinkrate_target.get(),
+						   _param_fw_t_clmb_max.get());
 
 			if (_launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS) {
 				// explicitly set idle throttle until motors are enabled
@@ -1638,6 +1615,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 			}
 
 			_att_sp.pitch_body = get_tecs_pitch();
+			_att_sp.yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
 
 		} else {
 			/* Tell the attitude controller to stop integrating while we are waiting for the launch */
