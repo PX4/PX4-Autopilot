@@ -191,7 +191,10 @@ then
 	ist8308 -X -q start
 	ist8310 -X -q start
 	lis2mdl -X -q start
-	lis3mdl -X -q start
+	if ! lis3mdl -X -q start
+	then
+		lis3mdl -X -q -a 0x1c start
+	fi
 	qmc5883l -X -q start
 	rm3100 -X -q start
 
