@@ -122,18 +122,14 @@ MulticopterRateControl::Run()
 
 	if (_vehicle_angular_velocity_sub.update(&angular_velocity)) {
 
-		// grab corresponding vehicle_angular_acceleration immediately after vehicle_angular_velocity copy
-		vehicle_angular_acceleration_s v_angular_acceleration{};
-		_vehicle_angular_acceleration_sub.copy(&v_angular_acceleration);
-
 		const hrt_abstime now = angular_velocity.timestamp_sample;
 
 		// Guard against too small (< 0.125ms) and too large (> 20ms) dt's.
 		const float dt = math::constrain(((now - _last_run) * 1e-6f), 0.000125f, 0.02f);
 		_last_run = now;
 
-		const Vector3f angular_accel{v_angular_acceleration.xyz};
 		const Vector3f rates{angular_velocity.xyz};
+		const Vector3f angular_accel{angular_velocity.xyz_derivative};
 
 		/* check for updates in other topics */
 		_vehicle_control_mode_sub.update(&_vehicle_control_mode);
