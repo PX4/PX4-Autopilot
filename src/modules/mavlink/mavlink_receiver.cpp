@@ -2451,6 +2451,8 @@ MavlinkReceiver::handle_message_landing_target(mavlink_message_t *msg)
 
 	} else if (landing_target.frame == MAV_FRAME_GLOBAL) {
 
+		// TODO: check if mavros handles this frame
+
 		landing_target_pose_s target_GNSS_report{};
 		target_GNSS_report.timestamp = _mavlink_timesync.sync_stamp(landing_target.time_usec);
 
