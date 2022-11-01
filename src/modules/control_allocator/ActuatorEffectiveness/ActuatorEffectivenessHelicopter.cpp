@@ -61,6 +61,7 @@ ActuatorEffectivenessHelicopter::ActuatorEffectivenessHelicopter(ModuleParams *p
 	}
 
 	_param_handles.yaw_collective_pitch_scale = param_find("CA_HELI_YAW_CP_S");
+	_param_handles.yaw_collective_pitch_offset = param_find("CA_HELI_YAW_CP_O");
 	_param_handles.yaw_throttle_scale = param_find("CA_HELI_YAW_TH_S");
 	_param_handles.yaw_ccw = param_find("CA_HELI_YAW_CCW");
 	_param_handles.spoolup_time = param_find("COM_SPOOLUP_TIME");
@@ -95,6 +96,7 @@ void ActuatorEffectivenessHelicopter::updateParams()
 	}
 
 	param_get(_param_handles.yaw_collective_pitch_scale, &_geometry.yaw_collective_pitch_scale);
+	param_get(_param_handles.yaw_collective_pitch_offset, &_geometry.yaw_collective_pitch_offset);
 	param_get(_param_handles.yaw_throttle_scale, &_geometry.yaw_throttle_scale);
 	param_get(_param_handles.spoolup_time, &_geometry.spoolup_time);
 	int32_t yaw_ccw = 0;
@@ -142,7 +144,7 @@ void ActuatorEffectivenessHelicopter::updateSetpoint(const matrix::Vector<float,
 	actuator_sp(0) = mainMotorEnaged() ? throttle : NAN;
 
 	actuator_sp(1) = control_sp(ControlAxis::YAW) * _geometry.yaw_sign
-			 + fabsf(collective_pitch) * _geometry.yaw_collective_pitch_scale
+			 + fabsf(collective_pitch - _geometry.yaw_collective_pitch_offset) * _geometry.yaw_collective_pitch_scale
 			 + throttle * _geometry.yaw_throttle_scale;
 
 	// Saturation check for yaw

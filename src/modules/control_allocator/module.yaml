@@ -476,7 +476,24 @@ parameters:
               This allows to add a proportional factor of the collective pitch command to the yaw command.
               A negative value is needed when positive thrust of the tail rotor rotates the vehicle opposite to the main rotor turn direction.
 
-              tail_output += CA_HELI_YAW_CP_S * collective_pitch
+              tail_output += CA_HELI_YAW_CP_S * abs(collective_pitch - CA_HELI_YAW_CP_O)
+          type: float
+          decimal: 3
+          increment: 0.1
+          min: -2
+          max: 2
+          default: 0.0
+        CA_HELI_YAW_CP_O:
+          description:
+            short: Offset for yaw compensation based on collective pitch
+            long: |
+              This allows to specify which collective pitch command results in the least amount of rotor drag.
+              This is used to increase the accuracy of the yaw drag torque compensation based on collective pitch
+              by aligning the lowest rotor drag with zero compensation.
+              For symmetric profile blades this is the command that results in exactly 0° collective blade angle.
+              For lift profile blades this is typically a command resulting in slightly negative collective blade angle.
+
+              tail_output += CA_HELI_YAW_CP_S * abs(collective_pitch - CA_HELI_YAW_CP_O)
           type: float
           decimal: 3
           increment: 0.1
