@@ -46,10 +46,10 @@ I2CSPIDriverBase *LIS3MDL::instantiate(const I2CSPIDriverConfig &config, int run
 	device::Device *interface = nullptr;
 
 	if (config.bus_type == BOARD_I2C_BUS) {
-		interface = LIS3MDL_I2C_interface(config.bus, config.bus_frequency);
+		interface = LIS3MDL_I2C_interface(config);
 
 	} else if (config.bus_type == BOARD_SPI_BUS) {
-		interface = LIS3MDL_SPI_interface(config.bus, config.spi_devid, config.bus_frequency, config.spi_mode);
+		interface = LIS3MDL_SPI_interface(config);
 	}
 
 	if (interface == nullptr) {
@@ -90,6 +90,7 @@ void LIS3MDL::print_usage()
 	PRINT_MODULE_USAGE_SUBCATEGORY("magnetometer");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, true);
+	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x1e);
 	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
 	PRINT_MODULE_USAGE_COMMAND("reset");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
@@ -100,6 +101,7 @@ extern "C" int lis3mdl_main(int argc, char *argv[])
 	using ThisDriver = LIS3MDL;
 	int ch;
 	BusCLIArguments cli{true, true};
+	cli.i2c_address = LIS3MDLL_ADDRESS;
 	cli.default_i2c_frequency = 400000;
 	cli.default_spi_frequency = 11 * 1000 * 1000;
 
@@ -117,8 +119,6 @@ extern "C" int lis3mdl_main(int argc, char *argv[])
 		ThisDriver::print_usage();
 		return -1;
 	}
-
-	cli.i2c_address = LIS3MDLL_ADDRESS;
 
 	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_MAG_DEVTYPE_LIS3MDL);
 

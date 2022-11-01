@@ -56,7 +56,7 @@
 class LIS2MDL_I2C : public device::I2C
 {
 public:
-	LIS2MDL_I2C(int bus, int bus_frequency);
+	LIS2MDL_I2C(const I2CSPIDriverConfig &config);
 	virtual ~LIS2MDL_I2C() = default;
 
 	virtual int     read(unsigned address, void *data, unsigned count);
@@ -68,16 +68,16 @@ protected:
 };
 
 device::Device *
-LIS2MDL_I2C_interface(int bus, int bus_frequency);
+LIS2MDL_I2C_interface(const I2CSPIDriverConfig &config);
 
 device::Device *
-LIS2MDL_I2C_interface(int bus, int bus_frequency)
+LIS2MDL_I2C_interface(const I2CSPIDriverConfig &config)
 {
-	return new LIS2MDL_I2C(bus, bus_frequency);
+	return new LIS2MDL_I2C(config);
 }
 
-LIS2MDL_I2C::LIS2MDL_I2C(int bus, int bus_frequency) :
-	I2C(DRV_MAG_DEVTYPE_LIS2MDL, "LIS2MDL_I2C", bus, LIS2MDLL_ADDRESS, bus_frequency)
+LIS2MDL_I2C::LIS2MDL_I2C(const I2CSPIDriverConfig &config) :
+	I2C(config)
 {
 }
 
