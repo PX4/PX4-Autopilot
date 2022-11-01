@@ -344,11 +344,11 @@ void Tailsitter::fill_actuator_outputs()
 
 		/* allow differential thrust if enabled */
 		if (_param_vt_fw_difthr_en.get()) {
-			mc_out[actuator_controls_s::INDEX_ROLL] = fw_in[actuator_controls_s::INDEX_YAW] * _param_vt_fw_difthr_sc.get() ;
+			mc_out[actuator_controls_s::INDEX_ROLL] = fw_in[actuator_controls_s::INDEX_YAW] * _param_vt_fw_difthr_s_y.get() ;
 			mc_out[actuator_controls_s::INDEX_PITCH] = fw_in[actuator_controls_s::INDEX_PITCH];
 			mc_out[actuator_controls_s::INDEX_YAW] = -fw_in[actuator_controls_s::INDEX_ROLL];
 
-			_torque_setpoint_0->xyz[0] = fw_in[actuator_controls_s::INDEX_YAW] * _param_vt_fw_difthr_sc.get() ;
+			_torque_setpoint_0->xyz[0] = fw_in[actuator_controls_s::INDEX_YAW] * _param_vt_fw_difthr_s_y.get() ;
 			_torque_setpoint_0->xyz[1] = fw_in[actuator_controls_s::INDEX_PITCH];
 			_torque_setpoint_0->xyz[2] = -fw_in[actuator_controls_s::INDEX_ROLL];
 		}
