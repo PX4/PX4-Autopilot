@@ -756,12 +756,27 @@ void EKF2::VerifyParams()
 	    || (_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_USE_EXT_VIS_YAW)
 	   ) {
 
-		_param_ekf2_ev_ctrl.set(_param_ekf2_ev_ctrl.get() & ~static_cast<int32_t>(EvCtrl::VEL));
-		_param_ekf2_ev_ctrl.commit();
+		// EKF2_EV_CTRL set VEL bit
+		if ((_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_USE_EXT_VIS_VEL)) {
+			_param_ekf2_ev_ctrl.set(_param_ekf2_ev_ctrl.get() | static_cast<int32_t>(EvCtrl::VEL));
+		}
+
+		// EKF2_EV_CTRL set HPOS/VPOS bits
+		if ((_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_USE_EXT_VIS_POS)) {
+			_param_ekf2_ev_ctrl.set(_param_ekf2_ev_ctrl.get()
+						| static_cast<int32_t>(EvCtrl::HPOS) | static_cast<int32_t>(EvCtrl::VPOS));
+		}
+
+		// EKF2_EV_CTRL set YAW bit
+		if ((_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_USE_EXT_VIS_YAW)) {
+			_param_ekf2_ev_ctrl.set(_param_ekf2_ev_ctrl.get() | static_cast<int32_t>(EvCtrl::YAW));
+		}
 
 		_param_ekf2_aid_mask.set(_param_ekf2_aid_mask.get() & ~(SensorFusionMask::DEPRECATED_USE_EXT_VIS_VEL));
 		_param_ekf2_aid_mask.set(_param_ekf2_aid_mask.get() & ~(SensorFusionMask::DEPRECATED_USE_EXT_VIS_POS));
 		_param_ekf2_aid_mask.set(_param_ekf2_aid_mask.get() & ~(SensorFusionMask::DEPRECATED_USE_EXT_VIS_YAW));
+
+		_param_ekf2_ev_ctrl.commit();
 		_param_ekf2_aid_mask.commit();
 
 		mavlink_log_critical(&_mavlink_log_pub, "EKF2 EV use EKF2_EV_CTRL instead of EKF2_AID_MASK\n");
