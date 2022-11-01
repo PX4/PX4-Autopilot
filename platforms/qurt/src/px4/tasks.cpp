@@ -35,8 +35,11 @@
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/tasks.h>
+#include <px4_platform_common/workqueue.h>
 
+#include <drivers/drv_hrt.h>
 #include <pthread.h>
+#include "hrt_work.h"
 
 #define PX4_TASK_STACK_SIZE 8192
 #define PX4_TASK_MAX_NAME_LENGTH 32
@@ -338,25 +341,25 @@ const char *px4_get_taskname()
 
 }
 
-// static void timer_cb(void *data)
-// {
-// 	px4_sem_t *sem = reinterpret_cast<px4_sem_t *>(data);
+static void timer_cb(void *data)
+{
+	px4_sem_t *sem = reinterpret_cast<px4_sem_t *>(data);
 
-// 	sem_post(sem);
-// }
+	sem_post(sem);
+}
 
 int px4_sem_timedwait(px4_sem_t *sem, const struct timespec *ts)
 {
-	// work_s _hpwork = {};
+	work_s _hpwork = {};
 
-	// struct timespec ts_now;
-	// px4_clock_gettime(CLOCK_MONOTONIC, &ts_now);
+	struct timespec ts_now;
+	px4_clock_gettime(CLOCK_MONOTONIC, &ts_now);
 
-	// hrt_abstime timeout_us = ts_to_abstime((struct timespec *)ts) - ts_to_abstime(&ts_now);
+	hrt_abstime timeout_us = ts_to_abstime((struct timespec *)ts) - ts_to_abstime(&ts_now);
 
-	// hrt_work_queue(&_hpwork, (worker_t)&timer_cb, (void *)sem, timeout_us);
-	// sem_wait(sem);
-	// hrt_work_cancel(&_hpwork);
+	hrt_work_queue(&_hpwork, (worker_t)&timer_cb, (void *)sem, timeout_us);
+	sem_wait(sem);
+	hrt_work_cancel(&_hpwork);
 	return 0;
 }
 
