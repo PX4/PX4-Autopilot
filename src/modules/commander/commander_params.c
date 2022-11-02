@@ -1011,6 +1011,17 @@ PARAM_DEFINE_INT32(COM_ARM_ARSP_EN, 1);
 PARAM_DEFINE_INT32(COM_ARM_SDCARD, 1);
 
 /**
+ * Enable FMU SD card hardfault detection check
+ *
+ * This check detects if there are hardfault files present on the
+ * SD card. If so, and the parameter is enabled, arming is prevented.
+ *
+ * @group Commander
+ * @boolean
+ */
+PARAM_DEFINE_INT32(COM_ARM_HFLT_CHK, 1);
+
+/**
  * Enforced delay between arming and further navigation
  *
  * The minimal time from arming the motors until moving the vehicle is possible is COM_SPOOLUP_TIME seconds.
