@@ -108,7 +108,7 @@ PARAM_DEFINE_FLOAT(VT_B_REV_OUT, 0.0f);
  *
  * Set this to a value greater than 0 to give the motor time to spin down.
  *
- * unit s
+ * @unit s
  * @min 0
  * @max 10
  * @increment 1
@@ -124,6 +124,7 @@ PARAM_DEFINE_FLOAT(VT_B_REV_DEL, 0.0f);
  * Zero will deactivate the slew rate limiting and thus produce an instant throttle
  * rise to the transition throttle VT_F_TRANS_THR.
  *
+ * @unit 1/s
  * @min 0
  * @increment 0.01
  * @decimal 2
