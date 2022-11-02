@@ -35,11 +35,6 @@
 
 using namespace time_literals;
 
-OffboardChecks::OffboardChecks()
-{
-	_offboard_available.set_hysteresis_time_from(true, _param_com_of_loss_t.get() * 1_s);
-}
-
 void OffboardChecks::checkAndReport(const Context &context, Report &reporter)
 {
 	reporter.failsafeFlags().offboard_control_signal_lost = true;
@@ -47,9 +42,10 @@ void OffboardChecks::checkAndReport(const Context &context, Report &reporter)
 	offboard_control_mode_s offboard_control_mode;
 
 	if (_offboard_control_mode_sub.copy(&offboard_control_mode)) {
-		bool offboard_available = offboard_control_mode.position || offboard_control_mode.velocity
-					  || offboard_control_mode.acceleration || offboard_control_mode.attitude || offboard_control_mode.body_rate
-					  || offboard_control_mode.actuator;
+		bool data_is_recent = hrt_absolute_time() < offboard_control_mode.timestamp + _param_com_of_loss_t.get() * 1_s;
+		bool offboard_available = (offboard_control_mode.position || offboard_control_mode.velocity
+					   || offboard_control_mode.acceleration || offboard_control_mode.attitude || offboard_control_mode.body_rate
+					   || offboard_control_mode.actuator) && data_is_recent;
 
 		if (offboard_control_mode.position && reporter.failsafeFlags().local_position_invalid) {
 			offboard_available = false;
@@ -62,9 +58,7 @@ void OffboardChecks::checkAndReport(const Context &context, Report &reporter)
 			offboard_available = false;
 		}
 
-		_offboard_available.set_state_and_update(offboard_available, hrt_absolute_time());
-
 		// This is a mode requirement, no need to report
-		reporter.failsafeFlags().offboard_control_signal_lost = !_offboard_available.get_state();
+		reporter.failsafeFlags().offboard_control_signal_lost = !offboard_available;
 	}
 }
