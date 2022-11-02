@@ -336,14 +336,7 @@ void RTL::set_rtl_item()
 	switch (_rtl_state) {
 	case RTL_STATE_CLIMB: {
 
-			// do not use LOITER_TO_ALT for rotary wing mode as it would then always climb to at least MIS_LTRMIN_ALT,
-			// even if current climb altitude is below (e.g. RTL immediately after take off)
-			if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-				_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-
-			} else {
-				_mission_item.nav_cmd = NAV_CMD_LOITER_TO_ALT;
-			}
+			_mission_item.nav_cmd = NAV_CMD_LOITER_TO_ALT;
 
 			_mission_item.lat = gpos.lat;
 			_mission_item.lon = gpos.lon;
