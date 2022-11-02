@@ -144,21 +144,21 @@ void LoggedTopics::add_default_topics()
 #endif
 
 	// always add the first instance
-	add_topic("estimator_baro_bias", 500);
-	add_topic("estimator_gnss_hgt_bias", 500);
-	add_topic("estimator_rng_hgt_bias", 500);
-	add_topic("estimator_ev_pos_bias", 500);
+	add_topic("estimator_baro_bias", 0);
+	add_topic("estimator_gnss_hgt_bias", 0);
+	add_topic("estimator_rng_hgt_bias", 0);
+	add_topic("estimator_ev_pos_bias", 0);
 	add_topic("estimator_event_flags", 0);
 	add_topic("estimator_gps_status", 1000);
-	add_topic("estimator_innovation_test_ratios", 500);
-	add_topic("estimator_innovation_variances", 500);
+	add_topic("estimator_innovation_test_ratios", 50);
+	add_topic("estimator_innovation_variances", 50);
 	add_topic("estimator_innovations", 500);
-	add_topic("estimator_optical_flow_vel", 200);
+	add_topic("estimator_optical_flow_vel", 0);
 	add_topic("estimator_sensor_bias", 0);
-	add_topic("estimator_states", 1000);
-	add_topic("estimator_status", 200);
+	add_topic("estimator_states", 10);
+	add_topic("estimator_status", 10);
 	add_topic("estimator_status_flags", 0);
-	add_topic("yaw_estimator_status", 1000);
+	add_topic("yaw_estimator_status", 100);
 
 	add_optional_topic_multi("estimator_baro_bias", 500, MAX_ESTIMATOR_INSTANCES);
 	add_optional_topic_multi("estimator_gnss_hgt_bias", 500, MAX_ESTIMATOR_INSTANCES);
@@ -195,11 +195,11 @@ void LoggedTopics::add_default_topics()
 	// TODO: temporary
 	add_topic_multi("estimator_aid_src_airspeed", 10, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_aid_src_aux_vel", 10, MAX_ESTIMATOR_INSTANCES);
-	add_topic_multi("estimator_aid_src_baro_hgt", 10, MAX_ESTIMATOR_INSTANCES);
-	add_topic_multi("estimator_aid_src_ev_hgt", 10, MAX_ESTIMATOR_INSTANCES);
-	add_topic_multi("estimator_aid_src_ev_pos", 10, MAX_ESTIMATOR_INSTANCES);
-	add_topic_multi("estimator_aid_src_ev_vel", 10, MAX_ESTIMATOR_INSTANCES);
-	add_topic_multi("estimator_aid_src_ev_yaw", 10, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_aid_src_baro_hgt", 0, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_aid_src_ev_hgt", 0, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_aid_src_ev_pos", 0, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_aid_src_ev_vel", 0, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_aid_src_ev_yaw", 0, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_aid_src_fake_hgt", 10, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_aid_src_fake_pos", 10, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_aid_src_gnss_hgt", 10, MAX_ESTIMATOR_INSTANCES);
@@ -208,8 +208,8 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("estimator_aid_src_gnss_yaw", 10, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_aid_src_mag", 10, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_aid_src_mag_heading", 10, MAX_ESTIMATOR_INSTANCES);
-	add_topic_multi("estimator_aid_src_optical_flow", 10, MAX_ESTIMATOR_INSTANCES);
-	add_topic_multi("estimator_aid_src_rng_hgt", 10, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_aid_src_optical_flow", 0, MAX_ESTIMATOR_INSTANCES);
+	add_topic_multi("estimator_aid_src_rng_hgt", 0, MAX_ESTIMATOR_INSTANCES);
 	add_topic_multi("estimator_aid_src_sideslip", 10, MAX_ESTIMATOR_INSTANCES);
 
 	// log all raw sensors at minimal rate (at least 1 Hz)
@@ -222,13 +222,13 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("sensor_gnss_relative", 1000, 1);
 	add_optional_topic_multi("sensor_gyro", 1000, 4);
 	add_topic_multi("sensor_mag", 1000, 4);
-	add_topic_multi("sensor_optical_flow", 1000, 2);
+	add_topic_multi("sensor_optical_flow", 10, 2);
 
 	add_topic_multi("vehicle_imu", 500, 4);
 	add_topic_multi("vehicle_imu_status", 1000, 4);
 	add_optional_topic_multi("vehicle_magnetometer", 500, 4);
-	add_topic("vehicle_optical_flow", 500);
-	//add_optional_topic("vehicle_optical_flow_vel", 100);
+	add_topic("vehicle_optical_flow", 10);
+	add_optional_topic("vehicle_optical_flow_vel", 10);
 	add_optional_topic("pps_capture");
 
 	// additional control allocation logging
@@ -340,13 +340,13 @@ void LoggedTopics::add_estimator_replay_topics()
 
 	// current EKF2 subscriptions
 	add_topic("airspeed");
-	add_topic("optical_flow");
 	add_topic("sensor_combined");
 	add_topic("sensor_selection");
 	add_topic("vehicle_air_data");
 	add_topic("vehicle_gps_position");
 	add_topic("vehicle_land_detected");
 	add_topic("vehicle_magnetometer");
+	add_topic("vehicle_optical_flow");
 	add_topic("vehicle_status");
 	add_topic("vehicle_visual_odometry");
 	add_topic_multi("distance_sensor");
@@ -374,7 +374,7 @@ void LoggedTopics::add_vision_and_avoidance_topics()
 	add_topic("vehicle_mocap_odometry", 30);
 	add_topic("vehicle_trajectory_waypoint", 200);
 	add_topic("vehicle_trajectory_waypoint_desired", 200);
-	add_topic("vehicle_visual_odometry", 30);
+	add_topic("vehicle_visual_odometry", 0);
 }
 
 void LoggedTopics::add_raw_imu_gyro_fifo()
