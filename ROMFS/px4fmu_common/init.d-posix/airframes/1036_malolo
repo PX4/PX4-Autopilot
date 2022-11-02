@@ -24,7 +24,6 @@ param set-default FW_RR_P 0.085
 
 param set-default FW_W_EN 1
 
-param set-default MIS_LTRMIN_ALT 30
 param set-default MIS_TAKEOFF_ALT 20
 param set-default MIS_DIST_1WP 2500
 param set-default MIS_DIST_WPS 10000

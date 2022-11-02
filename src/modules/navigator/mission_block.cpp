@@ -732,15 +732,7 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 		break;
 
 	case NAV_CMD_LOITER_TO_ALT:
-
-		// initially use current altitude, and switch to mission item altitude once in loiter position
-		if (_navigator->get_loiter_min_alt() > 0.f) { // ignore _param_loiter_min_alt if smaller than 0
-			sp->alt = math::max(_navigator->get_global_position()->alt,
-					    _navigator->get_home_position()->alt + _navigator->get_loiter_min_alt());
-
-		} else {
-			sp->alt = _navigator->get_global_position()->alt;
-		}
+		sp->alt = _navigator->get_global_position()->alt;
 
 	// FALLTHROUGH
 	case NAV_CMD_LOITER_TIME_LIMIT:

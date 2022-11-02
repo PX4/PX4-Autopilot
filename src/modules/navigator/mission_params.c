@@ -73,21 +73,6 @@ PARAM_DEFINE_FLOAT(MIS_TAKEOFF_ALT, 2.5f);
 PARAM_DEFINE_INT32(MIS_TKO_LAND_REQ, 0);
 
 /**
- * Minimum Loiter altitude
- *
- * This is the minimum altitude the system will always obey. The intent is to stay out of ground effect.
- * set to -1, if there shouldn't be a minimum loiter altitude
- *
- * @unit m
- * @min -1
- * @max 80
- * @decimal 1
- * @increment 0.5
- * @group Mission
- */
-PARAM_DEFINE_FLOAT(MIS_LTRMIN_ALT, -1.0f);
-
-/**
  * Maximal horizontal distance from home to first waypoint
  *
  * Failsafe check to prevent running mission stored from previous flight at a new takeoff location.
@@ -172,3 +157,16 @@ PARAM_DEFINE_FLOAT(MIS_YAW_ERR, 12.0f);
  * @group Mission
  */
 PARAM_DEFINE_FLOAT(MIS_PD_TO, 5.0f);
+
+/**
+ * Landing abort min altitude
+ *
+ * Minimum altitude above landing point that the vehicle will climb to after an aborted landing.
+ * Then vehicle will loiter in this altitude until further command is received.
+ * Only applies to fixed-wing vehicles.
+ *
+ * @unit m
+ * @min 0
+ * @group Mission
+ */
+PARAM_DEFINE_INT32(MIS_LND_ABRT_ALT, 30);

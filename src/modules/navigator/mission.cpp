@@ -1436,15 +1436,14 @@ Mission::cruising_speed_sp_update()
 void
 Mission::do_abort_landing()
 {
-	// Abort FW landing
-	//  first climb out then loiter over intended landing location
+	// Abort FW landing, loiter above landing site in at least MIS_LND_ABRT_ALT
 
 	if (_mission_item.nav_cmd != NAV_CMD_LAND) {
 		return;
 	}
 
 	const float alt_landing = get_absolute_altitude_for_item(_mission_item);
-	const float alt_sp = math::max(alt_landing + _navigator->get_loiter_min_alt(),
+	const float alt_sp = math::max(alt_landing + _navigator->get_landing_abort_min_alt(),
 				       _navigator->get_global_position()->alt);
 
 	// turn current landing waypoint into an indefinite loiter
@@ -1469,10 +1468,10 @@ Mission::do_abort_landing()
 	publish_navigator_mission_item(); // for logging
 	_navigator->set_position_setpoint_triplet_updated();
 
-	mavlink_log_info(_navigator->get_mavlink_log_pub(), "Holding at %d m above landing.\t",
+	mavlink_log_info(_navigator->get_mavlink_log_pub(), "Holding at %d m above landing waypoint.\t",
 			 (int)(alt_sp - alt_landing));
 	events::send<float>(events::ID("mission_holding_above_landing"), events::Log::Info,
-			    "Holding at {1:.0m_v} above landing", alt_sp - alt_landing);
+			    "Holding at {1:.0m_v} above landing waypoint", alt_sp - alt_landing);
 
 	// reset mission index to start of landing
 	if (_land_start_available) {
