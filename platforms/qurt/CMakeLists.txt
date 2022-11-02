@@ -31,7 +31,6 @@
 #
 ############################################################################
 
-#set(module_libraries modules__muorb__slpi)
 get_property(module_libraries GLOBAL PROPERTY PX4_MODULE_LIBRARIES)
 
 QURT_LIB(LIB_NAME px4
