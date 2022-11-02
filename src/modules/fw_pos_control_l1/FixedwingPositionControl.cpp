@@ -1363,7 +1363,7 @@ FixedwingPositionControl::control_auto_loiter(const float control_interval, cons
 	float alt_sp = pos_sp_curr.alt;
 
 	if (_landing_abort_status) {
-		if (pos_sp_curr.alt - _current_altitude  < _param_fw_clmbout_diff.get()) {
+		if (pos_sp_curr.alt - _current_altitude  < kClearanceAltitudeBuffer) {
 			// aborted landing complete, normal loiter over landing point
 			updateLandingAbortStatus(position_controller_landing_status_s::NOT_ABORTED);
 
