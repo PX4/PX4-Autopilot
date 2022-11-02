@@ -54,11 +54,6 @@ void Ekf::initialiseCovariance()
 {
 	P.zero();
 
-	_delta_angle_bias_var_accum.setZero();
-	_delta_vel_bias_var_accum.setZero();
-
-	const float dt = _dt_ekf_avg;
-
 	resetQuatCov();
 
 	// velocity
@@ -80,15 +75,9 @@ void Ekf::initialiseCovariance()
 		P(9,9) = sq(fmaxf(_params.baro_noise, 0.01f));
 	}
 
-	// gyro bias
-	_prev_delta_ang_bias_var(0) = P(10,10) = sq(_params.switch_on_gyro_bias * dt);
-	_prev_delta_ang_bias_var(1) = P(11,11) = P(10,10);
-	_prev_delta_ang_bias_var(2) = P(12,12) = P(10,10);
+	resetGyroBias();
 
-	// accel bias
-	_prev_dvel_bias_var(0) = P(13,13) = sq(_params.switch_on_accel_bias * dt);
-	_prev_dvel_bias_var(1) = P(14,14) = P(13,13);
-	_prev_dvel_bias_var(2) = P(15,15) = P(13,13);
+	resetAccelBias();
 
 	resetMagCov();
 

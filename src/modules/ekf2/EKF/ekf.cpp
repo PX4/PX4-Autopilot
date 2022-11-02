@@ -159,6 +159,18 @@ bool Ekf::update()
 		// TODO: explicitly pop at desired time horizon
 		const imuSample imu_sample_delayed = _imu_buffer.get_oldest();
 
+		// reset accel bias if calibration or sensor changed
+		if (imu_sample_delayed.accel_reset) {
+			ECL_INFO("accel reset (delayed time horizon)");
+			resetAccelBias();
+		}
+
+		// reset gyro bias if calibration or sensor changed
+		if (imu_sample_delayed.gyro_reset) {
+			ECL_INFO("gyro reset (delayed time horizon)");
+			resetGyroBias();
+		}
+
 		// perform state and covariance prediction for the main filter
 		predictCovariance(imu_sample_delayed);
 		predictState(imu_sample_delayed);

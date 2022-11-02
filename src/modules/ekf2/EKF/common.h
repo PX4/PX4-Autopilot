@@ -192,6 +192,8 @@ struct imuSample {
 	float       delta_ang_dt{};           ///< delta angle integration period (sec)
 	float       delta_vel_dt{};           ///< delta velocity integration period (sec)
 	bool        delta_vel_clipping[3] {}; ///< true (per axis) if this sample contained any accelerometer clipping
+	bool        accel_reset{false};       ///< accelerometer calibration or sensor changed
+	bool        gyro_reset{false};        ///< gyroscope calibration or sensor changed
 };
 
 struct gpsSample {
