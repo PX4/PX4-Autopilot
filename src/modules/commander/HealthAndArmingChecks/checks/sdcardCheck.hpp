@@ -46,7 +46,13 @@ public:
 private:
 	bool _sdcard_detected{false};
 
+#ifdef __PX4_NUTTX
+	bool _hardfault_checked_once {false};
+	bool _hardfault_file_present{false};
+#endif
+
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
-					(ParamInt<px4::params::COM_ARM_SDCARD>) _param_com_arm_sdcard
+					(ParamInt<px4::params::COM_ARM_SDCARD>) _param_com_arm_sdcard,
+					(ParamBool<px4::params::COM_ARM_HFLT_CHK>) _param_com_arm_hardfault_check
 				       )
 };
