@@ -35,6 +35,7 @@
 set(QURT_LAYER_SRCS
 	drv_hrt.cpp
 	tasks.cpp
+	px4_qurt_impl.cpp
 	)
 
 add_library(px4_layer
