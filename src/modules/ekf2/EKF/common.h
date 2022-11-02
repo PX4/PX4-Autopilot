@@ -205,6 +205,7 @@ struct gpsSample {
 struct magSample {
 	uint64_t    time_us{};  ///< timestamp of the measurement (uSec)
 	Vector3f    mag{};      ///< NED magnetometer body frame measurements (Gauss)
+	bool        reset{false}; ///< magnetometer changed (different sensor or calibration change)
 };
 
 struct baroSample {
