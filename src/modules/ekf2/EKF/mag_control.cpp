@@ -49,8 +49,28 @@ void Ekf::controlMagFusion()
 		mag_data_ready = _mag_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &mag_sample);
 
 		if (mag_data_ready) {
-			_mag_lpf.update(mag_sample.mag);
-			_mag_counter++;
+
+			// sensor or calibration has changed, clear any mag bias and reset low pass filter
+			if (mag_sample.reset) {
+				// Zero the magnetometer bias states
+				_state.mag_B.zero();
+
+				// Zero the corresponding covariances and set
+				// variances to the values use for initial alignment
+				P.uncorrelateCovarianceSetVariance<3>(19, sq(_params.mag_noise));
+
+				// reset any saved covariance data for re-use when auto-switching between heading and 3-axis fusion
+				_saved_mag_bf_variance.zero();
+
+				_control_status.flags.mag_fault = false;
+
+				_mag_lpf.reset(mag_sample.mag);
+				_mag_counter = 1;
+
+			} else {
+				_mag_lpf.update(mag_sample.mag);
+				_mag_counter++;
+			}
 
 			// if enabled, use knowledge of theoretical magnetic field vector to calculate a synthetic magnetomter Z component value.
 			// this is useful if there is a lot of interference on the sensor measurement.
@@ -134,7 +154,7 @@ void Ekf::controlMagFusion()
 
 		const bool mag_enabled = _control_status.flags.mag_hdg || _control_status.flags.mag_3D;
 
-		if (!mag_enabled_previously && mag_enabled) {
+		if ((!mag_enabled_previously && mag_enabled) || mag_sample.reset) {
 			_mag_yaw_reset_req = true;
 		}
 
