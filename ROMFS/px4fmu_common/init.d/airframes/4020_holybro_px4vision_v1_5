@@ -11,6 +11,10 @@
 
 . ${R}etc/init.d/rc.mc_defaults
 
+# System parameters
+# use FMU motor outputs for less delay in the rate control loop
+param set-default SYS_USE_IO 0
+
 # Commander Parameters
 param set-default COM_OBS_AVOID 1
 param set-default COM_DISARM_LAND 0.5
