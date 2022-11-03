@@ -96,16 +96,14 @@ bool FixedwingLandDetector::_get_landed_state()
 		const float acc_hor = matrix::Vector2f(_acceleration).norm();
 		_xy_accel_filtered = _xy_accel_filtered * 0.8f + acc_hor * 0.18f;
 
-		// make thresholds tighter if airspeed is invalid
+		// make groundspeed threshold tighter if airspeed is invalid
 		const float vel_xy_max_threshold = airspeed_invalid ? 0.7f * _param_lndfw_vel_xy_max.get() :
 						   _param_lndfw_vel_xy_max.get();
-		const float vel_z_max_threshold = airspeed_invalid ? 0.7f * _param_lndfw_vel_z_max.get() :
-						  _param_lndfw_vel_z_max.get();
 
 		// Crude land detector for fixedwing.
 		landDetected = _airspeed_filtered       < _param_lndfw_airspd.get()
 			       && _velocity_xy_filtered < vel_xy_max_threshold
-			       && _velocity_z_filtered  < vel_z_max_threshold
+			       && _velocity_z_filtered  < _param_lndfw_vel_z_max.get()
 			       && _xy_accel_filtered    < _param_lndfw_xyaccel_max.get();
 
 	} else {
