@@ -62,9 +62,6 @@ public:
 	LaunchDetectionResult getLaunchDetected();
 	bool launchDetectionEnabled() { return _param_laun_all_on.get(); }
 
-	/* Returns a maximum pitch in deg. Different launch methods may impose upper pitch limits during launch */
-	float getPitchMax(float pitchMaxDefault);
-
 private:
 	/* holds an index to the launchMethod in the array _launchMethods
 	 * which detected a Launch. If no launchMethod has detected a launch yet the
