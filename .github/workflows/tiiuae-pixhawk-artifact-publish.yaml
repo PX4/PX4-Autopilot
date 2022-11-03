@@ -1,4 +1,4 @@
-name: tiiuae-pixhawk
+name: tiiuae-pixhawk-uae-artifact-publish
 
 on:
   push:
