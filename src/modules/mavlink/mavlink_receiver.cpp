@@ -3128,7 +3128,7 @@ MavlinkReceiver::handle_message_gimbal_device_attitude_status(mavlink_message_t 
 	mavlink_msg_gimbal_device_attitude_status_decode(msg, &gimbal_device_attitude_status_msg);
 
 	gimbal_device_attitude_status_s gimbal_attitude_status{};
-	gimbal_attitude_status.timestamp = static_cast<uint64_t>(gimbal_device_attitude_status_msg.time_boot_ms) * 1000;
+	gimbal_attitude_status.timestamp = hrt_absolute_time();
 	gimbal_attitude_status.target_system = gimbal_device_attitude_status_msg.target_system;
 	gimbal_attitude_status.target_component = gimbal_device_attitude_status_msg.target_component;
 	gimbal_attitude_status.device_flags = gimbal_device_attitude_status_msg.flags;
