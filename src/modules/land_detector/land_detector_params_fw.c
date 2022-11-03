@@ -88,3 +88,17 @@ PARAM_DEFINE_FLOAT(LNDFW_XYACC_MAX, 8.0f);
  * @group Land Detector
  */
 PARAM_DEFINE_FLOAT(LNDFW_AIRSPD_MAX, 6.00f);
+
+/**
+ * Fixed-wing land detection trigger time
+ *
+ * Time the land conditions (speeds and acceleration) have to be satisfied to detect a landing.
+ *
+ * @unit s
+ * @min 0.1
+ * @decimal 1
+ *
+ * @reboot_required true
+ * @group Land Detector
+ */
+PARAM_DEFINE_FLOAT(LNDFW_TRIG_TIME, 2.f);
