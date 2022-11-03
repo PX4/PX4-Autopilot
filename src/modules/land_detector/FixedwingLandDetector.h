@@ -65,8 +65,6 @@ protected:
 
 private:
 
-	/** Time in us that landing conditions have to hold before triggering a land. */
-	static constexpr hrt_abstime LANDED_TRIGGER_TIME_US = 2_s;
 	static constexpr hrt_abstime FLYING_TRIGGER_TIME_US = 0_us;
 
 	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};
@@ -81,7 +79,8 @@ private:
 		(ParamFloat<px4::params::LNDFW_XYACC_MAX>)  _param_lndfw_xyaccel_max,
 		(ParamFloat<px4::params::LNDFW_AIRSPD_MAX>) _param_lndfw_airspd,
 		(ParamFloat<px4::params::LNDFW_VEL_XY_MAX>) _param_lndfw_vel_xy_max,
-		(ParamFloat<px4::params::LNDFW_VEL_Z_MAX>)  _param_lndfw_vel_z_max
+		(ParamFloat<px4::params::LNDFW_VEL_Z_MAX>)  _param_lndfw_vel_z_max,
+		(ParamFloat<px4::params::LNDFW_TRIG_TIME>)  _param_lndfw_trig_time
 	);
 };
 
