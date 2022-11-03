@@ -33,5 +33,4 @@
 
 px4_add_library(launchdetection
 	LaunchDetector.cpp
-	CatapultLaunchMethod.cpp
 )

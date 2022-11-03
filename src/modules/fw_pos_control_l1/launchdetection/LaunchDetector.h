@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,7 +33,7 @@
 
 /**
  * @file LaunchDetector.h
- * Auto Detection for different launch methods (e.g. catapult)
+ * Auto launch detection for catapult/hand-launch vehicles
  *
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
@@ -41,17 +41,26 @@
 #ifndef LAUNCHDETECTOR_H
 #define LAUNCHDETECTOR_H
 
-#include "LaunchMethod.h"
 #include <px4_platform_common/module_params.h>
 
 namespace launchdetection
 {
 
+enum LaunchDetectionResult {
+	LAUNCHDETECTION_RES_NONE = 0, /**< No launch has been detected */
+	LAUNCHDETECTION_RES_DETECTED_ENABLECONTROL = 1, /**< Launch has been detected, the controller should
+							  control the attitude. However any motors should not throttle
+							  up. For instance this is used to have a delay for the motor
+							  when launching a fixed wing aircraft from a bungee */
+	LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS = 2 /**< Launch has been detected, the controller should control
+							attitude and also throttle up the motors. */
+};
+
 class __EXPORT LaunchDetector : public ModuleParams
 {
 public:
-	LaunchDetector(ModuleParams *parent);
-	~LaunchDetector() override;
+	LaunchDetector(ModuleParams *parent) : ModuleParams(parent) {}
+	~LaunchDetector() = default;
 
 	LaunchDetector(const LaunchDetector &) = delete;
 	LaunchDetector operator=(const LaunchDetector &) = delete;
@@ -59,22 +68,20 @@ public:
 	void reset();
 
 	void update(const float dt, float accel_x);
-	LaunchDetectionResult getLaunchDetected();
+	LaunchDetectionResult getLaunchDetected() const;
 	bool launchDetectionEnabled() { return _param_laun_all_on.get(); }
 
 private:
-	/* holds an index to the launchMethod in the array _launchMethods
-	 * which detected a Launch. If no launchMethod has detected a launch yet the
-	 * value is -1. Once one launchMethod has detected a launch only this
-	 * method is checked for further advancing in the state machine
-	 * (e.g. when to power up the motors)
-	 */
-	int _activeLaunchDetectionMethodIndex{-1};
+	float _integrator{0.f};
+	float _motorDelayCounter{0.f};
 
-	LaunchMethod *_launchMethods[1];
+	LaunchDetectionResult state{LAUNCHDETECTION_RES_NONE};
 
 	DEFINE_PARAMETERS(
-		(ParamBool<px4::params::LAUN_ALL_ON>) _param_laun_all_on
+		(ParamBool<px4::params::LAUN_ALL_ON>) _param_laun_all_on,
+		(ParamFloat<px4::params::LAUN_CAT_A>) _param_laun_cat_a,
+		(ParamFloat<px4::params::LAUN_CAT_T>) _param_laun_cat_t,
+		(ParamFloat<px4::params::LAUN_CAT_MDEL>) _param_laun_cat_mdel
 	)
 };
 
