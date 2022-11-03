@@ -617,7 +617,8 @@ FixedwingPositionControl::landing_status_publish()
 void
 FixedwingPositionControl::updateLandingAbortStatus(const uint8_t new_abort_status)
 {
-	if (!_flare_states.flaring) {
+	// prevent automatic aborts if already flaring, but allow manual aborts
+	if (!_flare_states.flaring || new_abort_status == position_controller_landing_status_s::ABORTED_BY_OPERATOR) {
 
 		// only announce changes
 		if (new_abort_status > 0 && _landing_abort_status != new_abort_status) {
