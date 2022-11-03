@@ -55,6 +55,7 @@
 #include <uORB/topics/camera_trigger.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/gimbal_device_attitude_status.h>
 
 class CameraFeedback : public ModuleBase<CameraFeedback>, public ModuleParams, public px4::WorkItem
 {
@@ -81,6 +82,7 @@ private:
 
 	uORB::Subscription	_gpos_sub{ORB_ID(vehicle_global_position)};
 	uORB::Subscription	_att_sub{ORB_ID(vehicle_attitude)};
+	uORB::Subscription	_gimbal_sub{ORB_ID(gimbal_device_attitude_status)};
 
 	uORB::Publication<camera_capture_s>	_capture_pub{ORB_ID(camera_capture)};
 
