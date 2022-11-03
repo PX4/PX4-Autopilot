@@ -67,6 +67,13 @@ int DShot::init()
 	// Getting initial parameter values
 	update_params();
 
+	// We can't advertise in interrupt context later.
+	_esc_status_pub.advertise();
+	esc_status_s &esc_status = _esc_status_pub.get();
+	esc_status = {};
+	_esc_status_pub.update();
+	up_dshot_set_erpm_callback(&DShot::erpm_trampoline, this);
+
 	ScheduleNow();
 
 	return OK;
@@ -435,20 +442,7 @@ bool DShot::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 		_current_command.clear();
 	}
 
-	// We need to copy out the periods from the previous measurements before triggering again.
-	// Otherwise, we can't capture more data in this run.
-	uint32_t periods[4];
-	bool periods_ok = up_dshot_get_periods(periods, 4);
-
 	up_dshot_trigger();
-
-	if (periods_ok) {
-		static unsigned counter = 0;
-
-		if (counter++ % 10 == 0) {
-			printf("periods: % 6ld % 6ld % 6ld % 6ld\n", periods[0], periods[1], periods[2], periods[3]);
-		}
-	}
 
 	return true;
 }
@@ -618,6 +612,30 @@ void DShot::update_params()
 			_mixing_output.minValue(i) = DSHOT_MIN_THROTTLE;
 		}
 	}
+}
+
+void DShot::erpm_trampoline(uint32_t erpms[], size_t num_erpms, void *context)
+{
+	DShot *self = static_cast<DShot *>(context);
+	self->erpm(erpms, num_erpms);
+}
+
+void DShot::erpm(uint32_t erpms[], size_t num_erpms)
+{
+	esc_status_s &esc_status = _esc_status_pub.get();
+	esc_status = {};
+	esc_status.timestamp = hrt_absolute_time();
+	esc_status.counter = _esc_status_counter++;
+	esc_status.esc_count = 4;
+	esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_DSHOT;
+	esc_status.esc_armed_flags = _outputs_on;
+
+	for (unsigned i = 0; i < 4 && i < esc_status_s::CONNECTED_ESC_MAX; ++i) {
+		esc_status.esc[i].timestamp = hrt_absolute_time();
+		esc_status.esc[i].esc_rpm = erpms[i];
+	}
+
+	_esc_status_pub.update();
 }
 
 int DShot::custom_command(int argc, char *argv[])

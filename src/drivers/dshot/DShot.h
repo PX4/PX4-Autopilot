@@ -143,6 +143,9 @@ private:
 
 	void handle_vehicle_commands();
 
+	static void erpm_trampoline(uint32_t erpms[], size_t num_erpms, void *context);
+	void erpm(uint32_t erpms[], size_t num_erpms);
+
 	MixingOutput _mixing_output {PARAM_PREFIX, DIRECT_PWM_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
 	uint32_t _reversible_outputs{};
 
@@ -169,6 +172,9 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Publication<vehicle_command_ack_s> _command_ack_pub{ORB_ID(vehicle_command_ack)};
+
+	uORB::PublicationData<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
+	uint16_t _esc_status_counter{0};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::DSHOT_MIN>)    _param_dshot_min,

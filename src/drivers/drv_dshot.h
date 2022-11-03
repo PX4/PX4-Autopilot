@@ -139,4 +139,6 @@ __EXPORT extern int up_dshot_arm(bool armed);
 
 __EXPORT extern bool up_dshot_get_periods(uint32_t periods[], size_t num_periods);
 
+__EXPORT extern void up_dshot_set_erpm_callback(void(*callback)(uint32_t[], size_t, void *), void *context);
+
 __END_DECLS

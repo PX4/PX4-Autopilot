@@ -109,8 +109,10 @@ static bool enable_bidirectional_dshot = true;
 static uint32_t _dshot_frequency = 0;
 
 static uint32_t _motor_to_capture = 0;
-static uint32_t _periods[4] = {0, 0, 0, 0};
-static bool _periods_ready = false;
+static uint32_t _erpms[4] = {0, 0, 0, 0};
+
+static void(*_erpm_callback)(uint32_t[], size_t, void *) = NULL;
+static void *_erpm_callback_context = NULL;
 
 uint8_t nibbles_from_mapped(uint8_t mapped)
 {
@@ -370,11 +372,6 @@ void do_capture(DMA_HANDLE handle, uint8_t status, void *arg)
 	(void)status;
 	(void)arg;
 
-	if (_periods_ready) {
-		// The periods need to be collected first, so we have to skip it this time.
-		return;
-	}
-
 	if (_motor_to_capture >= 4) {
 		// We only support the first 4 for now.
 		return;
@@ -493,10 +490,13 @@ void process_capture_results(void *arg)
 	}
 
 	// TODO: fix order
-	_periods[_motor_to_capture] = calculate_period();
+	// TODO: convert from period to erpm
+	_erpms[_motor_to_capture] = calculate_period();
 
 	if (_motor_to_capture == 3) {
-		_periods_ready = true;
+		if (_erpm_callback != NULL) {
+			_erpm_callback(_erpms, 4, _erpm_callback_context);
+		}
 	}
 
 	_motor_to_capture = (_motor_to_capture + 1) % 4;
@@ -552,24 +552,10 @@ int up_dshot_arm(bool armed)
 				   IO_TIMER_ALL_MODES_CHANNELS);
 }
 
-bool up_dshot_get_periods(uint32_t periods[], size_t num_periods)
+void up_dshot_set_erpm_callback(void(*callback)(uint32_t[], size_t, void *), void *context)
 {
-	// TODO: hardcoded for now.
-	if (num_periods != 4) {
-		return false;
-	}
-
-	if (!_periods_ready) {
-		return false;
-	}
-
-	for (unsigned i = 0; i < 4; ++i) {
-		periods[i] = _periods[i];
-	}
-
-	_periods_ready = false;
-
-	return true;
+	_erpm_callback = callback;
+	_erpm_callback_context = context;
 }
 
 #endif
