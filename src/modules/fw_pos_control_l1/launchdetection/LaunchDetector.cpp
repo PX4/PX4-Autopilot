@@ -98,25 +98,4 @@ LaunchDetectionResult LaunchDetector::getLaunchDetected()
 	return LAUNCHDETECTION_RES_NONE;
 }
 
-float LaunchDetector::getPitchMax(float pitchMaxDefault)
-{
-	if (!launchDetectionEnabled()) {
-		return pitchMaxDefault;
-	}
-
-	/* if a lauchdetectionmethod is active or only one exists return the pitch limit from this method,
-	 * otherwise use the default limit */
-	if (_activeLaunchDetectionMethodIndex < 0) {
-		if (sizeof(_launchMethods) / sizeof(LaunchMethod *) > 1) {
-			return pitchMaxDefault;
-
-		} else {
-			return _launchMethods[0]->getPitchMax(pitchMaxDefault);
-		}
-
-	} else {
-		return _launchMethods[_activeLaunchDetectionMethodIndex]->getPitchMax(pitchMaxDefault);
-	}
-}
-
 } // namespace launchdetection

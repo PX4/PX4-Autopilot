@@ -1591,15 +1591,11 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 			const float max_takeoff_throttle = (_launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS) ?
 							   _param_fw_thr_idle.get() : _param_fw_thr_max.get();
 
-			// select maximum pitch: the launchdetector may impose another limit for the pitch
-			// depending on the state of the launch
-			const float takeoff_pitch_max_deg = _launchDetector.getPitchMax(_param_fw_p_lim_max.get());
-
 			tecs_update_pitch_throttle(control_interval,
 						   altitude_setpoint_amsl,
 						   target_airspeed,
 						   radians(_param_fw_p_lim_min.get()),
-						   radians(takeoff_pitch_max_deg),
+						   radians(_param_fw_p_lim_max.get()),
 						   _param_fw_thr_min.get(),
 						   max_takeoff_throttle,
 						   false,
