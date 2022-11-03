@@ -280,9 +280,8 @@ void VehicleMagnetometer::UpdateMagCalibration()
 
 							_mag_cal[i].device_id = estimator_sensor_bias.mag_device_id;
 
-							// readd estimated bias that was removed before publishing vehicle_magnetometer
-							_mag_cal[i].offset = _calibration[mag_index].BiasCorrectedSensorOffset(bias) +
-									     _calibration_estimator_bias[mag_index];
+							// readd estimated bias that was removed before publishing vehicle_magnetometer (_calibration_estimator_bias)
+							_mag_cal[i].offset = _calibration[mag_index].BiasCorrectedSensorOffset(bias + _calibration_estimator_bias[mag_index]);
 
 							_mag_cal[i].variance = bias_variance;
 
