@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,12 +32,11 @@
  ****************************************************************************/
 /**
  * @file launchDetection.cpp
- * Auto Detection for different launch methods (e.g. catapult)
+ * Auto launch detection for catapult/hand-launch vehicles
  *
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-#include "CatapultLaunchMethod.h"
 #include "LaunchDetector.h"
 
 #include <px4_platform_common/log.h>
@@ -45,57 +44,63 @@
 namespace launchdetection
 {
 
-LaunchDetector::LaunchDetector(ModuleParams *parent) :
-	ModuleParams(parent)
-{
-	/* init all detectors */
-	_launchMethods[0] = new CatapultLaunchMethod(this);
-}
-
-LaunchDetector::~LaunchDetector()
-{
-	delete _launchMethods[0];
-}
-
-void LaunchDetector::reset()
-{
-	/* Reset all detectors */
-	for (const auto launchMethod : _launchMethods) {
-		launchMethod->reset();
-	}
-
-	/* Reset active launchdetector */
-	_activeLaunchDetectionMethodIndex = -1;
-}
-
 void LaunchDetector::update(const float dt, float accel_x)
 {
-	if (launchDetectionEnabled()) {
-		for (const auto launchMethod : _launchMethods) {
-			launchMethod->update(dt, accel_x);
-		}
-	}
-}
+	switch (state) {
+	case LAUNCHDETECTION_RES_NONE:
 
-LaunchDetectionResult LaunchDetector::getLaunchDetected()
-{
-	if (launchDetectionEnabled()) {
-		if (_activeLaunchDetectionMethodIndex < 0) {
-			/* None of the active _launchmethods has detected a launch, check all _launchmethods */
-			for (unsigned i = 0; i < (sizeof(_launchMethods) / sizeof(_launchMethods[0])); i++) {
-				if (_launchMethods[i]->getLaunchDetected() != LAUNCHDETECTION_RES_NONE) {
-					PX4_INFO("selecting launchmethod %d", i);
-					_activeLaunchDetectionMethodIndex = i; // from now on only check this method
-					return _launchMethods[i]->getLaunchDetected();
+		/* Detect a acceleration that is longer and stronger as the minimum given by the params */
+		if (accel_x > _param_laun_cat_a.get()) {
+			_integrator += dt;
+
+			if (_integrator > _param_laun_cat_t.get()) {
+				if (_param_laun_cat_mdel.get() > 0.0f) {
+					state = LAUNCHDETECTION_RES_DETECTED_ENABLECONTROL;
+					PX4_WARN("Launch detected: enablecontrol, waiting %8.4fs until full throttle",
+						 double(_param_laun_cat_mdel.get()));
+
+				} else {
+					/* No motor delay set: go directly to enablemotors state */
+					state = LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS;
+					PX4_WARN("Launch detected: enablemotors (delay not activated)");
 				}
 			}
 
 		} else {
-			return _launchMethods[_activeLaunchDetectionMethodIndex]->getLaunchDetected();
+			reset();
 		}
-	}
 
-	return LAUNCHDETECTION_RES_NONE;
+		break;
+
+	case LAUNCHDETECTION_RES_DETECTED_ENABLECONTROL:
+		/* Vehicle is currently controlling attitude but not with full throttle. Waiting until delay is
+		 * over to allow full throttle */
+		_motorDelayCounter += dt;
+
+		if (_motorDelayCounter > _param_laun_cat_mdel.get()) {
+			PX4_INFO("Launch detected: state enablemotors");
+			state = LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS;
+		}
+
+		break;
+
+	default:
+		break;
+
+	}
 }
+
+LaunchDetectionResult LaunchDetector::getLaunchDetected() const
+{
+	return state;
+}
+
+void LaunchDetector::reset()
+{
+	_integrator = 0.0f;
+	_motorDelayCounter = 0.0f;
+	state = LAUNCHDETECTION_RES_NONE;
+}
+
 
 } // namespace launchdetection
