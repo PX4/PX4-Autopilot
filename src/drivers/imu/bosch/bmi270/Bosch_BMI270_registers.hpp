@@ -189,7 +189,6 @@ static constexpr size_t SIZE = 1024;
 // 3. Sensortime Frame                 - Frame length: 4 bytes (1 byte header + 3 bytes payload)
 // Payload: Sensortime (content of registers 0x18 – 0x1A), taken when the last byte of the last frame is read.
 
-// mark: remove
 struct DATA {
 	uint8_t Header;
 	uint8_t ACC_X_LSB;
@@ -224,29 +223,11 @@ struct GYRO_DATA {
 };
 static_assert(sizeof(GYRO_DATA) == 7);
 
-struct ACC_AND_GYRO_DATA {
-	uint8_t Header;
-	uint8_t GYR_X_LSB;
-	uint8_t GYR_X_MSB;
-	uint8_t GYR_Y_LSB;
-	uint8_t GYR_Y_MSB;
-	uint8_t GYR_Z_LSB;
-	uint8_t GYR_Z_MSB;
-
-	uint8_t ACC_X_LSB;
-	uint8_t ACC_X_MSB;
-	uint8_t ACC_Y_LSB;
-	uint8_t ACC_Y_MSB;
-	uint8_t ACC_Z_LSB;
-	uint8_t ACC_Z_MSB;
-};
-static_assert(sizeof(ACC_AND_GYRO_DATA) == 13);
 
 enum header : uint8_t {
 	sensor_accel_frame          = 0b10000100,
 	sensor_gyro_frame           = 0b10001000,
 	sensor_accel_and_gyro_frame = 0b10001100,
-	//sensor_data_frame           = 0b10000100,
 	skip_frame                  = 0b01000000,
 	sensor_time_frame           = 0b01000100,
 	FIFO_input_config_frame     = 0b01001000,
