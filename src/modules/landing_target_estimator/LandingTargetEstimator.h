@@ -188,8 +188,7 @@ private:
 		x = 0,
 		y = 1,
 		z = 2,
-		theta = 3,
-		nb_directions = 4
+		nb_directions = 3,
 	};
 
 	/*Each component corresponds to a different measurements (VISION, IrLock, UWB, GPS, GPS velocity). For each measurement, we have observations in the x,y,z directions.*/
@@ -255,7 +254,8 @@ private:
 	bool _estimator_initialized{false};
 
 	matrix::Quaternion<float> _q_att; //Quaternion orientation of the body frame
-	TargetEstimator *_target_estimator[nb_directions] {nullptr, nullptr, nullptr, nullptr};
+	TargetEstimator *_target_estimator[nb_directions] {nullptr, nullptr, nullptr};
+	TargetEstimator *_target_estimator_orientation {nullptr};
 	TargetEstimatorCoupled *_target_estimator_coupled {nullptr};
 	hrt_abstime _last_predict{0}; // timestamp of last filter prediction
 	hrt_abstime _last_update{0}; // timestamp of last filter update (used to check timeout)

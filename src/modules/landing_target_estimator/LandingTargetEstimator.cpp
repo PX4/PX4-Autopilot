@@ -79,10 +79,11 @@ LandingTargetEstimator::LandingTargetEstimator() :
 
 LandingTargetEstimator::~LandingTargetEstimator()
 {
-	for (int i = 0; i < 4; i++) {
+	for (int i = 0; i < 3; i++) {
 		delete _target_estimator[i];
 	}
 
+	delete _target_estimator_orientation;
 	delete _target_estimator_coupled;
 }
 
@@ -237,10 +238,10 @@ void LandingTargetEstimator::initEstimator()
 
 	if (_estimate_orientation) {
 		//TODO: define thse values
-		_target_estimator[theta]->setPosition(0.f);
-		_target_estimator[theta]->setVelocity(0.f);
-		_target_estimator[theta]->setStatePosVar(state_pos_var);
-		_target_estimator[theta]->setStateVelVar(state_vel_var);
+		_target_estimator_orientation->setPosition(0.f);
+		_target_estimator_orientation->setVelocity(0.f);
+		_target_estimator_orientation->setStatePosVar(state_pos_var);
+		_target_estimator_orientation->setStateVelVar(state_vel_var);
 	}
 }
 
@@ -290,8 +291,8 @@ void LandingTargetEstimator::predictionStep(Vector3f vehicle_acc_ned)
 
 	if (_estimate_orientation) {
 		//Orientation (theta) prediction (no input)
-		_target_estimator[theta]->predictState(dt, 0.0);
-		_target_estimator[theta]->predictCov(dt);
+		_target_estimator_orientation->predictState(dt, 0.0);
+		_target_estimator_orientation->predictCov(dt);
 	}
 }
 
@@ -428,11 +429,12 @@ bool LandingTargetEstimator::updateOrientation()
 	bool meas_fused = false;
 
 	if (_target_orientation_obs.updated_theta) {
-		_target_estimator[theta]->setH(_target_orientation_obs.meas_h_theta);
-		_target_estimator_aid_ev_yaw.innovation_variance = _target_estimator[theta]->computeInnovCov(
+		_target_estimator_orientation->setH(_target_orientation_obs.meas_h_theta);
+		_target_estimator_aid_ev_yaw.innovation_variance = _target_estimator_orientation->computeInnovCov(
 					_target_orientation_obs.meas_unc_theta);
-		_target_estimator_aid_ev_yaw.innovation = _target_estimator[theta]->computeInnov(_target_orientation_obs.meas_theta);
-		meas_fused = _target_estimator[theta]->update();
+		_target_estimator_aid_ev_yaw.innovation = _target_estimator_orientation->computeInnov(
+					_target_orientation_obs.meas_theta);
+		meas_fused = _target_estimator_orientation->update();
 
 		// Fill the target innovation field
 		_target_estimator_aid_ev_yaw.fusion_enabled = true;
@@ -547,9 +549,9 @@ void LandingTargetEstimator::publishTarget()
 	}
 
 	// TODO: eventually uncomment
-	// target_pose.theta_rel = _estimate_orientation ? _target_estimator[theta]->getPosition() : 0.f; ;
-	// target_pose.vtheta_abs = _target_estimator[theta]->getVelocity();
-	// target_pose.cov_theta_rel =  _target_estimator[theta]->getPosVar();
+	// target_pose.theta_rel = _estimate_orientation ? _target_estimator_orientation->getPosition() : 0.f; ;
+	// target_pose.vtheta_abs = _target_estimator_orientation->getVelocity();
+	// target_pose.cov_theta_rel =  _target_estimator_orientation->getPosVar();
 
 	if (_local_pos.valid) {
 		target_pose.x_abs = target_pose.x_rel + _local_pos.x;
@@ -1141,7 +1143,7 @@ void LandingTargetEstimator::updateParams()
 		_nb_position_kf = 3;
 
 		if ((_target_estimator[x] == nullptr) || (_target_estimator[y] == nullptr) || (_target_estimator[z] == nullptr)
-		    || (_target_estimator[theta] == nullptr)) {
+		    || (_target_estimator_orientation == nullptr)) {
 			return;
 		}
 
@@ -1282,8 +1284,8 @@ void LandingTargetEstimator::selectTargetEstimator()
 		}
 
 		if (_estimate_orientation) {
-			delete _target_estimator[theta];
-			_target_estimator[theta] = tmp_theta;
+			delete _target_estimator_orientation;
+			_target_estimator_orientation = tmp_theta;
 		}
 	}
 }
