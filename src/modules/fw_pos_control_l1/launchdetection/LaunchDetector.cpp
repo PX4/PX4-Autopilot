@@ -40,29 +40,44 @@
 #include "LaunchDetector.h"
 
 #include <px4_platform_common/log.h>
+#include <systemlib/mavlink_log.h>
+#include <px4_platform_common/events.h>
 
 namespace launchdetection
 {
 
-void LaunchDetector::update(const float dt, float accel_x)
+void LaunchDetector::update(const float dt, float accel_x,  orb_advert_t *mavlink_log_pub)
 {
-	switch (state) {
-	case LAUNCHDETECTION_RES_NONE:
+	switch (_state) {
+	case launch_detection_status_s::STATE_WAITING_FOR_LAUNCH:
+
+		_launchDetectionRunningInfoDelay += dt;
+
+		/* Inform user that launchdetection is running every 4s */
+		if (_launchDetectionRunningInfoDelay >= 4.f) {
+			mavlink_log_info(mavlink_log_pub, "Launch detection running\t");
+			events::send(events::ID("launch_detection_running_info"), events::Log::Info, "Launch detection running");
+			_launchDetectionRunningInfoDelay = 0.f; // reset counter
+		}
 
 		/* Detect a acceleration that is longer and stronger as the minimum given by the params */
 		if (accel_x > _param_laun_cat_a.get()) {
-			_integrator += dt;
+			_launchDetectionDelayCounter += dt;
 
-			if (_integrator > _param_laun_cat_t.get()) {
-				if (_param_laun_cat_mdel.get() > 0.0f) {
-					state = LAUNCHDETECTION_RES_DETECTED_ENABLECONTROL;
-					PX4_WARN("Launch detected: enablecontrol, waiting %8.4fs until full throttle",
-						 double(_param_laun_cat_mdel.get()));
+			if (_launchDetectionDelayCounter > _param_laun_cat_t.get()) {
+				if (_param_laun_cat_mdel.get() > 0.f) {
+					_state = launch_detection_status_s::STATE_LAUNCH_DETECTED_DISABLED_MOTOR;
+					mavlink_log_info(mavlink_log_pub, "Launch detected: enable control, waiting %8.1fs until full throttle\t",
+							 (double)_param_laun_cat_mdel.get());
+					events::send<float>(events::ID("launch_detection_wait_for_throttle"), {events::Log::Warning, events::LogInternal::Info},
+							    "Launch detected: enablecontrol, waiting {1:.1}s until full throttle", (double)_param_laun_cat_mdel.get());
 
 				} else {
 					/* No motor delay set: go directly to enablemotors state */
-					state = LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS;
-					PX4_WARN("Launch detected: enablemotors (delay not activated)");
+					_state = launch_detection_status_s::STATE_FLYING;
+					mavlink_log_info(mavlink_log_pub, "Launch detected: enable motors (no motor delay)\t");
+					events::send(events::ID("launch_detection_no_motor_delay"), {events::Log::Warning, events::LogInternal::Info},
+						     "Launch detected: enable motors (no motor delay)");
 				}
 			}
 
@@ -72,34 +87,39 @@ void LaunchDetector::update(const float dt, float accel_x)
 
 		break;
 
-	case LAUNCHDETECTION_RES_DETECTED_ENABLECONTROL:
-		/* Vehicle is currently controlling attitude but not with full throttle. Waiting until delay is
+	case launch_detection_status_s::STATE_LAUNCH_DETECTED_DISABLED_MOTOR:
+		/* Vehicle is currently controlling attitude but at idle throttle. Waiting until delay is
 		 * over to allow full throttle */
 		_motorDelayCounter += dt;
 
 		if (_motorDelayCounter > _param_laun_cat_mdel.get()) {
-			PX4_INFO("Launch detected: state enablemotors");
-			state = LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS;
+			mavlink_log_info(mavlink_log_pub, "Launch detected: enable motors\t");
+			events::send(events::ID("launch_detection_enable_motors"), {events::Log::Warning, events::LogInternal::Info},
+				     "Launch detected: enable motors");
+			_state = launch_detection_status_s::STATE_FLYING;
 		}
+
+		_launchDetectionRunningInfoDelay = 4.f; // reset counter
 
 		break;
 
 	default:
+		_launchDetectionRunningInfoDelay = 4.f; // reset counter
 		break;
 
 	}
 }
 
-LaunchDetectionResult LaunchDetector::getLaunchDetected() const
+uint LaunchDetector::getLaunchDetected() const
 {
-	return state;
+	return _state;
 }
 
 void LaunchDetector::reset()
 {
-	_integrator = 0.0f;
-	_motorDelayCounter = 0.0f;
-	state = LAUNCHDETECTION_RES_NONE;
+	_launchDetectionDelayCounter = 0.f;
+	_motorDelayCounter = 0.f;
+	_state = launch_detection_status_s::STATE_WAITING_FOR_LAUNCH;
 }
 
 

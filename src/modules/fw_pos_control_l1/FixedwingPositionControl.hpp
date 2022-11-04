@@ -72,6 +72,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/airspeed_validated.h>
+#include <uORB/topics/launch_detection_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/npfg_status.h>
 #include <uORB/topics/parameter_update.h>
@@ -216,6 +217,7 @@ private:
 	uORB::Publication<position_controller_status_s>	_pos_ctrl_status_pub{ORB_ID(position_controller_status)};
 	uORB::Publication<position_controller_landing_status_s>	_pos_ctrl_landing_status_pub{ORB_ID(position_controller_landing_status)};
 	uORB::Publication<tecs_status_s> _tecs_status_pub{ORB_ID(tecs_status)};
+	uORB::Publication<launch_detection_status_s> _launch_detection_status_pub{ORB_ID(launch_detection_status)};
 	uORB::PublicationMulti<orbit_status_s> _orbit_status_pub{ORB_ID(orbit_status)};
 
 	manual_control_setpoint_s _manual_control_setpoint{};
@@ -306,11 +308,6 @@ private:
 
 	// class handling launch detection methods for fixed-wing takeoff
 	LaunchDetector _launchDetector;
-
-	LaunchDetectionResult _launch_detection_state{LAUNCHDETECTION_RES_NONE};
-
-	// [us] logs the last time the launch detection notification was sent (used not to spam notifications during launch detection)
-	hrt_abstime _last_time_launch_detection_notified{0};
 
 	// true if a launch, specifically using the launch detector, has been detected
 	bool _launch_detected{false};

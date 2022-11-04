@@ -66,6 +66,7 @@ FixedwingPositionControl::FixedwingPositionControl(bool vtol) :
 	_pos_ctrl_status_pub.advertise();
 	_pos_ctrl_landing_status_pub.advertise();
 	_tecs_status_pub.advertise();
+	_launch_detection_status_pub.advertise();
 
 	_airspeed_slew_rate_controller.setSlewRate(ASPD_SP_SLEW_RATE);
 
@@ -1530,31 +1531,22 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 	} else {
 		/* Perform launch detection */
 		if (!_skipping_takeoff_detection && _launchDetector.launchDetectionEnabled() &&
-		    _launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS) {
+		    _launchDetector.getLaunchDetected() < launch_detection_status_s::STATE_FLYING) {
 
 			if (_control_mode.flag_armed) {
 				/* Perform launch detection */
 
-				/* Inform user that launchdetection is running every 4s */
-				if ((now - _last_time_launch_detection_notified) > 4_s) {
-					mavlink_log_critical(&_mavlink_log_pub, "Launch detection running\t");
-					events::send(events::ID("fixedwing_position_control_launch_detection"), events::Log::Info, "Launch detection running");
-					_last_time_launch_detection_notified = now;
-				}
-
 				/* Detect launch using body X (forward) acceleration */
-				_launchDetector.update(control_interval, _body_acceleration(0));
-
-				/* update our copy of the launch detection state */
-				_launch_detection_state = _launchDetector.getLaunchDetected();
+				_launchDetector.update(control_interval, _body_acceleration(0), &_mavlink_log_pub);
 			}
 
 		} else	{
 			/* no takeoff detection --> fly */
-			_launch_detection_state = LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS;
+			_launchDetector.forceSetFlyState();
 		}
 
-		if (!_launch_detected && _launch_detection_state != LAUNCHDETECTION_RES_NONE) {
+		if (!_launch_detected && _launchDetector.getLaunchDetected() > launch_detection_status_s::STATE_WAITING_FOR_LAUNCH
+		    && _launchDetector.launchDetectionEnabled()) {
 			_launch_detected = true;
 			_launch_global_position = global_position;
 			_takeoff_ground_alt = _current_altitude;
@@ -1568,7 +1560,8 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 		const Vector2f takeoff_bearing_vector = calculateTakeoffBearingVector(launch_local_position, takeoff_waypoint_local);
 
 		/* Set control values depending on the detection state */
-		if (_launch_detection_state != LAUNCHDETECTION_RES_NONE) {
+		if (_launchDetector.getLaunchDetected() > launch_detection_status_s::STATE_WAITING_FOR_LAUNCH
+		    && _launchDetector.launchDetectionEnabled()) {
 			/* Launch has been detected, hence we have to control the plane. */
 
 			if (_param_fw_use_npfg.get()) {
@@ -1588,7 +1581,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 			/* Select throttle: only in LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS we want to use
 			 * full throttle, otherwise we use idle throttle */
-			const float max_takeoff_throttle = (_launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS) ?
+			const float max_takeoff_throttle = (_launchDetector.getLaunchDetected() < launch_detection_status_s::STATE_FLYING) ?
 							   _param_fw_thr_idle.get() : _param_fw_thr_max.get();
 
 			tecs_update_pitch_throttle(control_interval,
@@ -1603,7 +1596,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 						   _param_sinkrate_target.get(),
 						   _param_fw_t_clmb_max.get());
 
-			if (_launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS) {
+			if (_launchDetector.getLaunchDetected() < launch_detection_status_s::STATE_FLYING) {
 				// explicitly set idle throttle until motors are enabled
 				_att_sp.thrust_body[0] = _param_fw_thr_idle.get();
 
@@ -1626,6 +1619,11 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 		_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_OFF;
 		_att_sp.apply_spoilers = vehicle_attitude_setpoint_s::SPOILERS_OFF;
+
+		launch_detection_status_s launch_detection_status;
+		launch_detection_status.timestamp = now;
+		launch_detection_status.launch_detection_state = _launchDetector.getLaunchDetected();
+		_launch_detection_status_pub.publish(launch_detection_status);
 	}
 
 	_att_sp.roll_body = constrainRollNearGround(_att_sp.roll_body, _current_altitude, _takeoff_ground_alt);
@@ -2260,6 +2258,8 @@ FixedwingPositionControl::Run()
 
 			if (_vehicle_land_detected_sub.update(&vehicle_land_detected)) {
 				_landed = vehicle_land_detected.landed;
+
+				if (_launch_detected) {_landed = false;}
 			}
 		}
 
@@ -2397,8 +2397,6 @@ FixedwingPositionControl::reset_takeoff_state()
 	_runway_takeoff.reset();
 
 	_launchDetector.reset();
-	_launch_detection_state = LAUNCHDETECTION_RES_NONE;
-	_last_time_launch_detection_notified = 0;
 
 	_launch_detected = false;
 
