@@ -76,25 +76,25 @@ static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
 * POSSIBILITY OF SUCH DAMAGE.
 */
 uint8_t maximum_fifo_config_file[] = { 0x5E,
-    0xc8, 0x2e, 0x00, 0x2e, 0x80, 0x2e, 0x1a, 0x00, 0xc8, 0x2e, 0x00, 0x2e, 0xc8, 0x2e, 0x00, 0x2e, 0xc8, 0x2e, 0x00,
-    0x2e, 0xc8, 0x2e, 0x00, 0x2e, 0xc8, 0x2e, 0x00, 0x2e, 0xc8, 0x2e, 0x00, 0x2e, 0x90, 0x32, 0x21, 0x2e, 0x59, 0xf5,
-    0x10, 0x30, 0x21, 0x2e, 0x6a, 0xf5, 0x1a, 0x24, 0x22, 0x00, 0x80, 0x2e, 0x3b, 0x00, 0xc8, 0x2e, 0x44, 0x47, 0x22,
-    0x00, 0x37, 0x00, 0xa4, 0x00, 0xff, 0x0f, 0xd1, 0x00, 0x07, 0xad, 0x80, 0x2e, 0x00, 0xc1, 0x80, 0x2e, 0x00, 0xc1,
-    0x80, 0x2e, 0x00, 0xc1, 0x80, 0x2e, 0x00, 0xc1, 0x80, 0x2e, 0x00, 0xc1, 0x80, 0x2e, 0x00, 0xc1, 0x80, 0x2e, 0x00,
-    0xc1, 0x80, 0x2e, 0x00, 0xc1, 0x80, 0x2e, 0x00, 0xc1, 0x80, 0x2e, 0x00, 0xc1, 0x80, 0x2e, 0x00, 0xc1, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x11, 0x24, 0xfc, 0xf5, 0x80, 0x30, 0x40, 0x42, 0x50, 0x50, 0x00, 0x30, 0x12, 0x24, 0xeb,
-    0x00, 0x03, 0x30, 0x00, 0x2e, 0xc1, 0x86, 0x5a, 0x0e, 0xfb, 0x2f, 0x21, 0x2e, 0xfc, 0xf5, 0x13, 0x24, 0x63, 0xf5,
-    0xe0, 0x3c, 0x48, 0x00, 0x22, 0x30, 0xf7, 0x80, 0xc2, 0x42, 0xe1, 0x7f, 0x3a, 0x25, 0xfc, 0x86, 0xf0, 0x7f, 0x41,
-    0x33, 0x98, 0x2e, 0xc2, 0xc4, 0xd6, 0x6f, 0xf1, 0x30, 0xf1, 0x08, 0xc4, 0x6f, 0x11, 0x24, 0xff, 0x03, 0x12, 0x24,
-    0x00, 0xfc, 0x61, 0x09, 0xa2, 0x08, 0x36, 0xbe, 0x2a, 0xb9, 0x13, 0x24, 0x38, 0x00, 0x64, 0xbb, 0xd1, 0xbe, 0x94,
-    0x0a, 0x71, 0x08, 0xd5, 0x42, 0x21, 0xbd, 0x91, 0xbc, 0xd2, 0x42, 0xc1, 0x42, 0x00, 0xb2, 0xfe, 0x82, 0x05, 0x2f,
-    0x50, 0x30, 0x21, 0x2e, 0x21, 0xf2, 0x00, 0x2e, 0x00, 0x2e, 0xd0, 0x2e, 0xf0, 0x6f, 0x02, 0x30, 0x02, 0x42, 0x20,
-    0x26, 0xe0, 0x6f, 0x02, 0x31, 0x03, 0x40, 0x9a, 0x0a, 0x02, 0x42, 0xf0, 0x37, 0x05, 0x2e, 0x5e, 0xf7, 0x10, 0x08,
-    0x12, 0x24, 0x1e, 0xf2, 0x80, 0x42, 0x83, 0x84, 0xf1, 0x7f, 0x0a, 0x25, 0x13, 0x30, 0x83, 0x42, 0x3b, 0x82, 0xf0,
-    0x6f, 0x00, 0x2e, 0x00, 0x2e, 0xd0, 0x2e, 0x12, 0x40, 0x52, 0x42, 0x00, 0x2e, 0x12, 0x40, 0x52, 0x42, 0x3e, 0x84,
-    0x00, 0x40, 0x40, 0x42, 0x7e, 0x82, 0xe1, 0x7f, 0xf2, 0x7f, 0x98, 0x2e, 0x6a, 0xd6, 0x21, 0x30, 0x23, 0x2e, 0x61,
-    0xf5, 0xeb, 0x2c, 0xe1, 0x6f
-};
+				       0xc8, 0x2e, 0x00, 0x2e, 0x80, 0x2e, 0x1a, 0x00, 0xc8, 0x2e, 0x00, 0x2e, 0xc8, 0x2e, 0x00, 0x2e, 0xc8, 0x2e, 0x00,
+				       0x2e, 0xc8, 0x2e, 0x00, 0x2e, 0xc8, 0x2e, 0x00, 0x2e, 0xc8, 0x2e, 0x00, 0x2e, 0x90, 0x32, 0x21, 0x2e, 0x59, 0xf5,
+				       0x10, 0x30, 0x21, 0x2e, 0x6a, 0xf5, 0x1a, 0x24, 0x22, 0x00, 0x80, 0x2e, 0x3b, 0x00, 0xc8, 0x2e, 0x44, 0x47, 0x22,
+				       0x00, 0x37, 0x00, 0xa4, 0x00, 0xff, 0x0f, 0xd1, 0x00, 0x07, 0xad, 0x80, 0x2e, 0x00, 0xc1, 0x80, 0x2e, 0x00, 0xc1,
+				       0x80, 0x2e, 0x00, 0xc1, 0x80, 0x2e, 0x00, 0xc1, 0x80, 0x2e, 0x00, 0xc1, 0x80, 0x2e, 0x00, 0xc1, 0x80, 0x2e, 0x00,
+				       0xc1, 0x80, 0x2e, 0x00, 0xc1, 0x80, 0x2e, 0x00, 0xc1, 0x80, 0x2e, 0x00, 0xc1, 0x80, 0x2e, 0x00, 0xc1, 0x00, 0x00,
+				       0x00, 0x00, 0x00, 0x00, 0x11, 0x24, 0xfc, 0xf5, 0x80, 0x30, 0x40, 0x42, 0x50, 0x50, 0x00, 0x30, 0x12, 0x24, 0xeb,
+				       0x00, 0x03, 0x30, 0x00, 0x2e, 0xc1, 0x86, 0x5a, 0x0e, 0xfb, 0x2f, 0x21, 0x2e, 0xfc, 0xf5, 0x13, 0x24, 0x63, 0xf5,
+				       0xe0, 0x3c, 0x48, 0x00, 0x22, 0x30, 0xf7, 0x80, 0xc2, 0x42, 0xe1, 0x7f, 0x3a, 0x25, 0xfc, 0x86, 0xf0, 0x7f, 0x41,
+				       0x33, 0x98, 0x2e, 0xc2, 0xc4, 0xd6, 0x6f, 0xf1, 0x30, 0xf1, 0x08, 0xc4, 0x6f, 0x11, 0x24, 0xff, 0x03, 0x12, 0x24,
+				       0x00, 0xfc, 0x61, 0x09, 0xa2, 0x08, 0x36, 0xbe, 0x2a, 0xb9, 0x13, 0x24, 0x38, 0x00, 0x64, 0xbb, 0xd1, 0xbe, 0x94,
+				       0x0a, 0x71, 0x08, 0xd5, 0x42, 0x21, 0xbd, 0x91, 0xbc, 0xd2, 0x42, 0xc1, 0x42, 0x00, 0xb2, 0xfe, 0x82, 0x05, 0x2f,
+				       0x50, 0x30, 0x21, 0x2e, 0x21, 0xf2, 0x00, 0x2e, 0x00, 0x2e, 0xd0, 0x2e, 0xf0, 0x6f, 0x02, 0x30, 0x02, 0x42, 0x20,
+				       0x26, 0xe0, 0x6f, 0x02, 0x31, 0x03, 0x40, 0x9a, 0x0a, 0x02, 0x42, 0xf0, 0x37, 0x05, 0x2e, 0x5e, 0xf7, 0x10, 0x08,
+				       0x12, 0x24, 0x1e, 0xf2, 0x80, 0x42, 0x83, 0x84, 0xf1, 0x7f, 0x0a, 0x25, 0x13, 0x30, 0x83, 0x42, 0x3b, 0x82, 0xf0,
+				       0x6f, 0x00, 0x2e, 0x00, 0x2e, 0xd0, 0x2e, 0x12, 0x40, 0x52, 0x42, 0x00, 0x2e, 0x12, 0x40, 0x52, 0x42, 0x3e, 0x84,
+				       0x00, 0x40, 0x40, 0x42, 0x7e, 0x82, 0xe1, 0x7f, 0xf2, 0x7f, 0x98, 0x2e, 0x6a, 0xd6, 0x21, 0x30, 0x23, 0x2e, 0x61,
+				       0xf5, 0xeb, 0x2c, 0xe1, 0x6f
+				     };
 // end of Bosch microcode copyright
 
 
@@ -149,51 +149,65 @@ bool BMI270::Reset()
 // Debug function that Ardupilot is equipped with
 void BMI270::CheckErrorRegister()
 {
-	#ifdef BMI270_DEBUG
+#ifdef BMI270_DEBUG
 	uint8_t err = RegisterRead(Register::ERR_REG);
 
 	if (err) {
 		if ((err & 1) == 1) {
-		uint8_t status =  RegisterRead(Register::INTERNAL_STATUS);
-		switch (status & 0xF) {
-		case 0:
-			PX4_DEBUG("BMI270: not_init");
-			break;
-		case 2:
-			PX4_DEBUG("BMI270: init_err");
-			break;
-		case 3:
-			PX4_DEBUG("BMI270: drv_err");
-			break;
-		case 4:
-			PX4_DEBUG("BMI270: sns_stop");
-			break;
-		case 5:
-			PX4_DEBUG("BMI270: nvm_error");
-			break;
-		case 6:
-			PX4_DEBUG("BMI270: start_up_error");
-			break;
-		case 7:
-			PX4_DEBUG("BMI270: compat_error");
-			break;
-		case 1: // init ok
-			if ((status>>5 & 1) == 1) {
-			PX4_DEBUG("BMI270: axes_remap_error");
-			} else if ((status>>6 & 1) == 1) {
-			PX4_DEBUG("BMI270: odr_50hz_error");
+			uint8_t status =  RegisterRead(Register::INTERNAL_STATUS);
+
+			switch (status & 0xF) {
+			case 0:
+				PX4_DEBUG("BMI270: not_init");
+				break;
+
+			case 2:
+				PX4_DEBUG("BMI270: init_err");
+				break;
+
+			case 3:
+				PX4_DEBUG("BMI270: drv_err");
+				break;
+
+			case 4:
+				PX4_DEBUG("BMI270: sns_stop");
+				break;
+
+			case 5:
+				PX4_DEBUG("BMI270: nvm_error");
+				break;
+
+			case 6:
+				PX4_DEBUG("BMI270: start_up_error");
+				break;
+
+			case 7:
+				PX4_DEBUG("BMI270: compat_error");
+				break;
+
+			case 1: // init ok
+				if ((status >> 5 & 1) == 1) {
+					PX4_DEBUG("BMI270: axes_remap_error");
+
+				} else if ((status >> 6 & 1) == 1) {
+					PX4_DEBUG("BMI270: odr_50hz_error");
+				}
+
+				break;
 			}
-			break;
-		}
-		} else if ((err>>6 & 1) == 1) {
-		PX4_DEBUG("BMI270: fifo_err");
-		} else if ((err>>7 & 1) == 1) {
-		PX4_DEBUG("BMI270: aux_err");
+
+		} else if ((err >> 6 & 1) == 1) {
+			PX4_DEBUG("BMI270: fifo_err");
+
+		} else if ((err >> 7 & 1) == 1) {
+			PX4_DEBUG("BMI270: aux_err");
+
 		} else {
-		PX4_DEBUG("BMI270: internal error detected %d", err>>1 & 0xF);
+			PX4_DEBUG("BMI270: internal error detected %d", err >> 1 & 0xF);
 		}
 	}
-	#endif
+
+#endif
 
 }
 
@@ -260,7 +274,7 @@ void BMI270::RunImpl()
 
 
 		*/
-		if ((RegisterRead(Register::CHIP_ID) == chip_id) ) {
+		if ((RegisterRead(Register::CHIP_ID) == chip_id)) {
 			PX4_DEBUG("Read from CHIP_ID register and the IDs match");
 
 			// 1. Disable PWR_CONF.adv_power_save and wait for 450us
@@ -277,6 +291,7 @@ void BMI270::RunImpl()
 			//  3. Burst write initialization file to INIT_DATA
 
 			int res = transfer(maximum_fifo_config_file, nullptr, sizeof(maximum_fifo_config_file));
+
 			if (res == PX4_OK) {
 				RegisterWrite(Register::CONFIG1, 1);
 				PX4_DEBUG("Successfully uploaded initialization file onto BMI270");
@@ -292,12 +307,12 @@ void BMI270::RunImpl()
 			uint8_t internal_status = RegisterRead(Register::INTERNAL_STATUS);
 			PX4_DEBUG("Internal status register value: 0x%02hhX", internal_status);
 
-			if ((internal_status & 1) == 1)
-			{
+			if ((internal_status & 1) == 1) {
 				PX4_DEBUG("INTERNAL_STATUS 0x01, ready for configure");
 				// if reset succeeded then configure
 				_state = STATE::CONFIGURE;
 				ScheduleDelayed(10_ms);
+
 			} else {
 
 				PX4_DEBUG("INTERNAL_STATUS check failed, resetting");
@@ -324,6 +339,7 @@ void BMI270::RunImpl()
 	case STATE::CONFIGURE:
 
 		PX4_DEBUG("IMU now in configure state");
+
 		if (Configure()) {
 
 			// if configure succeeded then start reading from FIFO
@@ -357,6 +373,7 @@ void BMI270::RunImpl()
 		}
 
 		break;
+
 	case STATE::FIFO_READ: {
 
 			PX4_DEBUG("reading from FIFO");
@@ -399,8 +416,10 @@ void BMI270::RunImpl()
 			if (fifo_count >= FIFO::SIZE) {
 				FIFOReset();
 				perf_count(_fifo_overflow_perf);
+
 			} else if (fifo_count == 0) {
 				perf_count(_fifo_empty_perf);
+
 			} else {
 
 				uint8_t samples = fifo_count / sizeof(FIFO::DATA);
@@ -497,7 +516,7 @@ void BMI270::SetAccelScaleAndRange()
 void BMI270::SetGyroScale()
 {
 	// data is 16 bits with 2000dps range
-    	const float scale = math::radians(2000.0f) / 32767.0f;
+	const float scale = math::radians(2000.0f) / 32767.0f;
 	_px4_gyro.set_scale(scale);
 
 }
@@ -680,7 +699,8 @@ uint16_t BMI270::FIFOReadCount()
 
 
 // writes a gyro frame into the FIFO buffer the first argument points to
-void BMI270::ProcessGyro(sensor_gyro_fifo_s *gyro, FIFO::GYRO_DATA *gyro_frame) {
+void BMI270::ProcessGyro(sensor_gyro_fifo_s *gyro, FIFO::GYRO_DATA *gyro_frame)
+{
 
 
 	const uint8_t samples = gyro->samples;
@@ -698,7 +718,8 @@ void BMI270::ProcessGyro(sensor_gyro_fifo_s *gyro, FIFO::GYRO_DATA *gyro_frame) 
 }
 
 // writes an accelerometer frame into the FIFO buffer the first argument points to
-void BMI270::ProcessAccel(sensor_accel_fifo_s *accel, FIFO::ACCEL_DATA *accel_frame) {
+void BMI270::ProcessAccel(sensor_accel_fifo_s *accel, FIFO::ACCEL_DATA *accel_frame)
+{
 
 	const uint8_t samples = accel->samples;
 
@@ -719,18 +740,18 @@ bool BMI270::FIFORead(const hrt_abstime &timestamp_sample, uint16_t fifo_bytes)
 {
 
 	uint8_t err = RegisterRead(Register::ERR_REG);
-	if ((err>>6 & 1) == 1) {
+
+	if ((err >> 6 & 1) == 1) {
 		FIFOReset();
 		return false;
 	}
 
 	// don't read more than 8 frames at a time, need to find out why this is the case...
-	if (fifo_bytes > BMI270_MAX_FIFO_SAMPLES*13)
-	{
-	fifo_bytes = BMI270_MAX_FIFO_SAMPLES*13;
+	if (fifo_bytes > BMI270_MAX_FIFO_SAMPLES * 13) {
+		fifo_bytes = BMI270_MAX_FIFO_SAMPLES * 13;
 	}
-	if (fifo_bytes == 0)
-	{
+
+	if (fifo_bytes == 0) {
 		perf_count(_fifo_empty_perf);
 		return false;
 	}
@@ -738,8 +759,7 @@ bool BMI270::FIFORead(const hrt_abstime &timestamp_sample, uint16_t fifo_bytes)
 	FIFOTransferBuffer buffer{};
 
 	// transfers the buffer from the IMU into PX4-land
-	if (transfer((uint8_t *)&buffer, (uint8_t *)&buffer, fifo_bytes) != PX4_OK)
-	{
+	if (transfer((uint8_t *)&buffer, (uint8_t *)&buffer, fifo_bytes) != PX4_OK) {
 		PX4_DEBUG("buffer transfer failed");
 		perf_count(_bad_transfer_perf);
 		return false;
@@ -756,11 +776,10 @@ bool BMI270::FIFORead(const hrt_abstime &timestamp_sample, uint16_t fifo_bytes)
 	uint8_t *data_buffer = (uint8_t *)&buffer.f[0];
 	unsigned fifo_buffer_index = 0; // start of buffer
 
-		while (fifo_buffer_index < fifo_bytes) {
-			// look for header signature (first 6 bits) followed by two bits indicating the status of INT1 and INT2
-			switch (data_buffer[fifo_buffer_index] & 0xFC) {
-			case FIFO::header::sensor_accel_frame:
-			{
+	while (fifo_buffer_index < fifo_bytes) {
+		// look for header signature (first 6 bits) followed by two bits indicating the status of INT1 and INT2
+		switch (data_buffer[fifo_buffer_index] & 0xFC) {
+		case FIFO::header::sensor_accel_frame: {
 
 				// Acceleration sensor data frame
 				// Frame length: 7 bytes (1 byte header + 6 bytes payload)
@@ -770,11 +789,10 @@ bool BMI270::FIFORead(const hrt_abstime &timestamp_sample, uint16_t fifo_bytes)
 				BMI270::ProcessAccel(&accel_buffer, fifo_sample);
 				fifo_buffer_index += 7; // move forward to next record
 
-				}
-				break;
+			}
+			break;
 
-			case FIFO::header::sensor_gyro_frame:
-			{
+		case FIFO::header::sensor_gyro_frame: {
 
 
 
@@ -784,9 +802,9 @@ bool BMI270::FIFORead(const hrt_abstime &timestamp_sample, uint16_t fifo_bytes)
 				fifo_buffer_index += 7; // move forward to next record
 
 			}
-				break;
-			case FIFO::header::sensor_accel_and_gyro_frame:
-				{
+			break;
+
+		case FIFO::header::sensor_accel_and_gyro_frame: {
 
 				FIFO::GYRO_DATA *fifo_sample_gyr = (FIFO::GYRO_DATA *)&data_buffer[fifo_buffer_index];
 				BMI270::ProcessGyro(&gyro_buffer, fifo_sample_gyr);
@@ -796,41 +814,41 @@ bool BMI270::FIFORead(const hrt_abstime &timestamp_sample, uint16_t fifo_bytes)
 
 				fifo_buffer_index += 13; // move forward to next record
 
-				}
-				break;
-
-			case FIFO::header::skip_frame:
-				// Skip Frame
-				// Frame length: 2 bytes (1 byte header + 1 byte payload)
-				PX4_DEBUG("Skip Frame");
-				fifo_buffer_index += 2;
-				break;
-
-			case FIFO::header::sensor_time_frame:
-				// Sensortime Frame
-				// Frame length: 4 bytes (1 byte header + 3 bytes payload)
-				PX4_DEBUG("Sensortime Frame");
-				fifo_buffer_index += 4;
-				break;
-
-			case FIFO::header::FIFO_input_config_frame:
-				// FIFO input config Frame
-				// Frame length: 2 bytes (1 byte header + 1 byte payload)
-				PX4_DEBUG("FIFO input config Frame");
-				fifo_buffer_index += 2;
-				break;
-
-			case FIFO::header::sample_drop_frame:
-				// Sample drop Frame
-				// Frame length: 2 bytes (1 byte header + 1 byte payload)
-				PX4_DEBUG("Sample drop Frame");
-				fifo_buffer_index += 2;
-				break;
-
-			default:
-				fifo_buffer_index++;
-				break;
 			}
+			break;
+
+		case FIFO::header::skip_frame:
+			// Skip Frame
+			// Frame length: 2 bytes (1 byte header + 1 byte payload)
+			PX4_DEBUG("Skip Frame");
+			fifo_buffer_index += 2;
+			break;
+
+		case FIFO::header::sensor_time_frame:
+			// Sensortime Frame
+			// Frame length: 4 bytes (1 byte header + 3 bytes payload)
+			PX4_DEBUG("Sensortime Frame");
+			fifo_buffer_index += 4;
+			break;
+
+		case FIFO::header::FIFO_input_config_frame:
+			// FIFO input config Frame
+			// Frame length: 2 bytes (1 byte header + 1 byte payload)
+			PX4_DEBUG("FIFO input config Frame");
+			fifo_buffer_index += 2;
+			break;
+
+		case FIFO::header::sample_drop_frame:
+			// Sample drop Frame
+			// Frame length: 2 bytes (1 byte header + 1 byte payload)
+			PX4_DEBUG("Sample drop Frame");
+			fifo_buffer_index += 2;
+			break;
+
+		default:
+			fifo_buffer_index++;
+			break;
+		}
 	}
 
 	_px4_accel.set_error_count(perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf) +
