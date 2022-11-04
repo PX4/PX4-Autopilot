@@ -87,6 +87,7 @@ public:
 	// Init: P_0
 	void setStatePosVar(float pos_unc) override { _covariance(0, 0) = pos_unc; };
 	void setStateVelVar(float vel_unc) override { _covariance(1, 1) = vel_unc; };
+	void setStateBiasVar(float bias_unc) override { _covariance(2, 2) = bias_unc; };
 	void setStateAccVar(float acc_unc) override { _covariance(3, 3) = acc_unc; };
 
 	// Retreive output of filter
@@ -114,6 +115,7 @@ public:
 
 	void setStatePosVar(matrix::Vector<float, 3> posVect) override {};
 	void setStateVelVar(matrix::Vector<float, 3> posVect) override {};
+	void setStateBiasVar(matrix::Vector<float, 3> biasVarVect) override {};
 	void setStateAccVar(matrix::Vector<float, 3> posVect) override {};
 	// For orientation filter
 	void setH(float h_meas) override {};

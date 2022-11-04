@@ -86,6 +86,7 @@ public:
 	// Init: P_0 (assume diagonal)
 	void setStatePosVar(matrix::Vector<float, 3> posVect) override { _covariance(0, 0) = posVect(0); _covariance(1, 1) = posVect(1); _covariance(2, 2) = posVect(2);};
 	void setStateVelVar(matrix::Vector<float, 3> velVect) override { _covariance(3, 3) = velVect(0); _covariance(4, 4) = velVect(1); _covariance(5, 5) = velVect(2);};
+	void setStateBiasVar(matrix::Vector<float, 3> biasVarVect) override { _covariance(6, 6) = biasVarVect(0); _covariance(7, 7) = biasVarVect(1); _covariance(8, 8) = biasVarVect(2);};
 
 	// Retreive output of filter
 	matrix::Vector<float, 3> getPositionVect() override {matrix::Vector3f pos_vect(_state(0, 0), _state(1, 0), _state(2, 0)); return pos_vect;};
@@ -113,6 +114,7 @@ public:
 	void setTargetAcc(float acc) override { };
 	void setStatePosVar(float pos_unc) override { };
 	void setStateVelVar(float vel_unc) override { };
+	void setStateBiasVar(float var) override { };
 	void setStateAccVar(float acc_unc) override { };
 	float getPosition() override { return 0.f; };
 	float getVelocity() override { return 0.f; };

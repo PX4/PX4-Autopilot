@@ -50,15 +50,11 @@
 
 /*
 	TODO:
-		- Implement new filters (stationary and moving target) using symforce
 		- Complete the landing target MAVLINK message to include measurement covariance matrix
 		- Get drone's acceleration uncertainty
-		-
 		- Finish measurement processing: Get mission land point lat/lon
-		- Complete landing_target_pose.msg to include theta
 		- Orientation (the precision landing algorithm doesn't take the orientation into consideration yet):
 			- Define initial values
-			- Complete landing_target_pose.msg to include theta
 			- Complete MAVLINK landing target message to include theta
 		- Fill estimator_aid_source_3d_s missing fields (not too important for now)
 */
@@ -202,13 +198,15 @@ void LandingTargetEstimator::initEstimator()
 	PX4_INFO("Vel init %.2f %.2f %.2f", (double)v_rel_init(0), (double)v_rel_init(1), (double)v_rel_init(2));
 	PX4_INFO("Acc init %.2f %.2f %.2f", (double)a_init(0), (double)a_init(1), (double)a_init(2));
 
-	float statePosVar = _param_ltest_pos_unc_in.get();
-	float stateVelVar = _param_ltest_vel_unc_in.get();
-	float stateAccVar = _param_ltest_acc_unc_in.get();
+	float state_pos_var = _param_ltest_pos_unc_in.get();
+	float state_vel_var = _param_ltest_vel_unc_in.get();
+	float state_bias_var = _param_ltest_bias_unc_in.get();
+	float state_acc_var = _param_ltest_acc_unc_in.get();
 
-	Vector3f statePosVarVect(statePosVar, statePosVar, statePosVar);
-	Vector3f stateVelVarVect(stateVelVar, stateVelVar, stateVelVar);
-	Vector3f stateAccVarVect(stateAccVar, stateAccVar, stateAccVar);
+	Vector3f state_pos_var_vect(state_pos_var, state_pos_var, state_pos_var);
+	Vector3f state_vel_var_vect(state_vel_var, state_vel_var, state_vel_var);
+	Vector3f state_bias_var_vect(state_bias_var, state_bias_var, state_bias_var);
+	Vector3f state_acc_var_vect(state_acc_var, state_acc_var, state_acc_var);
 
 	if (_target_model == TargetModel::FullPoseCoupled) {
 
@@ -216,9 +214,10 @@ void LandingTargetEstimator::initEstimator()
 		_target_estimator[xyz]->setVelocity(v_rel_init);
 		_target_estimator[xyz]->setTargetAcc(a_init);
 
-		_target_estimator[xyz]->setStatePosVar(statePosVarVect);
-		_target_estimator[xyz]->setStateVelVar(stateVelVarVect);
-		_target_estimator[xyz]->setStateAccVar(stateAccVarVect);
+		_target_estimator[xyz]->setStatePosVar(state_pos_var_vect);
+		_target_estimator[xyz]->setStateVelVar(state_vel_var_vect);
+		_target_estimator[xyz]->setStateBiasVar(state_bias_var_vect);
+		_target_estimator[xyz]->setStateAccVar(state_acc_var_vect);
 
 	} else {
 
@@ -227,9 +226,10 @@ void LandingTargetEstimator::initEstimator()
 			_target_estimator[i]->setVelocity(v_rel_init(i));
 			_target_estimator[i]->setTargetAcc(a_init(i));
 
-			_target_estimator[i]->setStatePosVar(statePosVarVect(i));
-			_target_estimator[i]->setStateVelVar(stateVelVarVect(i));
-			_target_estimator[i]->setStateAccVar(stateAccVarVect(i));
+			_target_estimator[i]->setStatePosVar(state_pos_var_vect(i));
+			_target_estimator[i]->setStateVelVar(state_vel_var_vect(i));
+			_target_estimator[i]->setStateBiasVar(state_bias_var_vect(i));
+			_target_estimator[i]->setStateAccVar(state_acc_var_vect(i));
 		}
 	}
 
@@ -237,8 +237,8 @@ void LandingTargetEstimator::initEstimator()
 		//TODO: define thse values
 		_target_estimator[theta]->setPosition(0.f);
 		_target_estimator[theta]->setVelocity(0.f);
-		_target_estimator[theta]->setStatePosVar(statePosVar);
-		_target_estimator[theta]->setStateVelVar(stateVelVar);
+		_target_estimator[theta]->setStatePosVar(state_pos_var);
+		_target_estimator[theta]->setStateVelVar(state_vel_var);
 	}
 }
 
@@ -492,25 +492,25 @@ void LandingTargetEstimator::publishTarget()
 
 	if (_target_model == TargetModel::FullPoseCoupled) {
 
-		Vector3f posVect = _target_estimator[xyz]->getPositionVect();
-		target_pose.x_rel = posVect(0);
-		target_pose.y_rel = posVect(1);
-		target_pose.z_rel = posVect(2);
+		Vector3f pos_vect = _target_estimator[xyz]->getPositionVect();
+		target_pose.x_rel = pos_vect(0);
+		target_pose.y_rel = pos_vect(1);
+		target_pose.z_rel = pos_vect(2);
 
-		Vector3f covPosVect = _target_estimator[xyz]->getPosVarVect();
-		target_pose.cov_x_rel = covPosVect(0);
-		target_pose.cov_y_rel = covPosVect(1);
-		target_pose.cov_z_rel = covPosVect(2);
+		Vector3f cov_pos_vect = _target_estimator[xyz]->getPosVarVect();
+		target_pose.cov_x_rel = cov_pos_vect(0);
+		target_pose.cov_y_rel = cov_pos_vect(1);
+		target_pose.cov_z_rel = cov_pos_vect(2);
 
-		Vector3f velVect = _target_estimator[xyz]->getVelocityVect();
-		target_pose.vx_rel = velVect(0);
-		target_pose.vy_rel = velVect(1);
-		target_pose.vz_rel = velVect(2);
+		Vector3f vel_vect = _target_estimator[xyz]->getVelocityVect();
+		target_pose.vx_rel = vel_vect(0);
+		target_pose.vy_rel = vel_vect(1);
+		target_pose.vz_rel = vel_vect(2);
 
-		Vector3f covVelVect = _target_estimator[xyz]->getVelVarVect();
-		target_pose.cov_vx_rel = covVelVect(0);
-		target_pose.cov_vy_rel = covVelVect(1);
-		target_pose.cov_vz_rel = covVelVect(2);
+		Vector3f cov_vel_vect = _target_estimator[xyz]->getVelVarVect();
+		target_pose.cov_vx_rel = cov_vel_vect(0);
+		target_pose.cov_vy_rel = cov_vel_vect(1);
+		target_pose.cov_vz_rel = cov_vel_vect(2);
 
 	} else {
 		// This should eventually be removed
@@ -617,7 +617,11 @@ void LandingTargetEstimator::_update_topics(accInput *input)
 
 	// Minimal requirement: acceleraion (for input) and attitude (to rotate acc in vehicle-carried NED frame)
 	if (!vehicle_attitude_valid || !vehicle_acceleration_valid) {
-		PX4_INFO("Kalman input not available: Attitude: %d, Acc: %d", vehicle_attitude_valid, vehicle_acceleration_valid);
+		// Only print if the estimator has been initialized
+		if (_estimator_initialized) {
+			PX4_INFO("Kalman input not available: Attitude: %d, Acc: %d", vehicle_attitude_valid, vehicle_acceleration_valid);
+		}
+
 		input->acc_ned_valid = false;
 		return;
 
@@ -747,10 +751,8 @@ void LandingTargetEstimator::_update_topics(accInput *input)
 				temp_obs.meas_h_xyz(2, 0) = 1;
 			}
 
-			// The coordinate system is NED (north-east-down)
-			// the uwb_distance msg contains the Position in NED, Vehicle relative to LP
-			// The coordinates "rel_pos_*" are the position of the landing point relative to the vehicle.
-			// To change POV we negate every Axis:
+			// The coordinate system is NED (north-east-down) with the position of the landing point relative to the vehicle.
+			// the uwb_distance msg contains the Position in NED, Vehicle relative to LP. To change POV we negate every Axis:
 			temp_obs.meas_xyz(0) = -uwb_distance.position[0];
 			temp_obs.meas_xyz(1) = -uwb_distance.position[1];
 			temp_obs.meas_xyz(2) = -uwb_distance.position[2];

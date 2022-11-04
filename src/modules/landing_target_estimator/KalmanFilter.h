@@ -112,6 +112,8 @@ public:
 	void setTargetAcc(float acc) override {};
 	void setTargetAccVar(float var) override {};
 	void setBiasVar(float var) override {};
+	void setStateBiasVar(float var) override {};
+	void setStateBiasVar(matrix::Vector<float, 3> biasVarVect) override {};
 
 	//For the single big Kalman filter, we need to work with vectors.
 	void setPosition(matrix::Vector<float, 3> posVect) override {};

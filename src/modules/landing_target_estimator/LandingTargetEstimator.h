@@ -273,6 +273,7 @@ private:
 		(ParamFloat<px4::params::LTEST_MEAS_UNC>) _param_ltest_meas_unc,
 		(ParamFloat<px4::params::LTEST_POS_UNC_IN>) _param_ltest_pos_unc_in,
 		(ParamFloat<px4::params::LTEST_VEL_UNC_IN>) _param_ltest_vel_unc_in,
+		(ParamFloat<px4::params::LTEST_BIA_UNC_IN>) _param_ltest_bias_unc_in,
 		(ParamFloat<px4::params::LTEST_ACC_UNC_IN>) _param_ltest_acc_unc_in,
 		(ParamInt<px4::params::LTEST_MODE>) _param_ltest_mode,
 		(ParamInt<px4::params::LTEST_MODEL>) _param_ltest_model,

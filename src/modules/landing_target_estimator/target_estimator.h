@@ -80,10 +80,12 @@ public:
 	virtual void setStatePosVar(float var);
 	virtual void setStateVelVar(float var);
 	virtual void setStateAccVar(float var);
+	virtual void setStateBiasVar(float var);
 
-	virtual void setStatePosVar(matrix::Vector<float, 3> posVect);
-	virtual void setStateVelVar(matrix::Vector<float, 3> posVect);
-	virtual void setStateAccVar(matrix::Vector<float, 3> posVect);
+	virtual void setStatePosVar(matrix::Vector<float, 3> posVarVect);
+	virtual void setStateVelVar(matrix::Vector<float, 3> velVarVect);
+	virtual void setStateAccVar(matrix::Vector<float, 3> accVarVect);
+	virtual void setStateBiasVar(matrix::Vector<float, 3> biasVarVect);
 
 	// Retreive output of filter
 	virtual float getPosition() { return 0.f; };

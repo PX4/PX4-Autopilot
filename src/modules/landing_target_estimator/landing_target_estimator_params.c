@@ -201,6 +201,19 @@ PARAM_DEFINE_FLOAT(LTEST_POS_UNC_IN, 0.1f);
 PARAM_DEFINE_FLOAT(LTEST_VEL_UNC_IN, 0.1f);
 
 /**
+ * Initial GPS bias uncertainty
+ *
+ * Initial variance of the bias between the GPS on the target and the GPS on the drone
+ *
+ * @unit (m/s)^2
+ * @min 0.001
+ * @decimal 3
+ *
+ * @group Landing target Estimator
+ */
+PARAM_DEFINE_FLOAT(LTEST_BIA_UNC_IN, 0.1f);
+
+/**
  * Initial landing target absolute acceleration uncertainty
  *
  * Initial variance of the relative landing target acceleration in x,y,z directions
