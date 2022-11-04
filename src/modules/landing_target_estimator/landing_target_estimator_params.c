@@ -41,6 +41,14 @@
  */
 
 /**
+ * Landing target estimator module enable
+ *
+ * @boolean
+ * @group Landing target Estimator
+ */
+PARAM_DEFINE_INT32(LTEST_EN, 0);
+
+/**
  * Integer bitmask controlling data fusion and aiding methods.
  *
  * Set bits in the following positions to enable:

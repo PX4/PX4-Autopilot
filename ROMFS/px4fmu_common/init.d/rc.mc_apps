@@ -69,6 +69,15 @@ then
 fi
 
 #
+# Start Landing Target Estimator.
+#
+
+if param greater -s LTEST_EN 0
+then
+	landing_target_estimator start
+fi
+
+#
 # Start Multicopter Position Controller.
 #
 mc_hover_thrust_estimator start
