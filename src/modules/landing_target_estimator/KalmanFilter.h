@@ -104,8 +104,6 @@ public:
 
 
 	/* Unused functions:  */
-	void syncState(float dt, matrix::Vector<float, 3> acc) override {};
-	void predictState(float dt, matrix::Vector<float, 3> acc) override {};
 	void setH(float h_meas) override {};
 	void computeDynamicMatrix(float dt) override {};
 	void computeProcessNoise(float dt) override {};
@@ -113,28 +111,11 @@ public:
 	void setTargetAccVar(float var) override {};
 	void setBiasVar(float var) override {};
 	void setStateBiasVar(float var) override {};
-	void setStateBiasVar(matrix::Vector<float, 3> biasVarVect) override {};
 
-	//For the single big Kalman filter, we need to work with vectors.
-	void setPosition(matrix::Vector<float, 3> posVect) override {};
-	void setVelocity(matrix::Vector<float, 3> velVect) override {};
-	void setTargetAcc(matrix::Vector<float, 3> accVect) override {};
 	void setStateAccVar(float var) override {};
-	void setStatePosVar(matrix::Vector<float, 3> posVect) override {};
-	void setStateVelVar(matrix::Vector<float, 3> posVect) override {};
-	void setStateAccVar(matrix::Vector<float, 3> posVect) override {};
+
 	float getAcceleration() override { return 0.f; };
 	float getAccVar() override { return 0.f; };
-	// Retreive output of single filter
-	matrix::Vector<float, 3> getPositionVect() override {matrix::Vector<float, 3> dummy_vect; return dummy_vect;};
-	matrix::Vector<float, 3> getVelocityVect() override {matrix::Vector<float, 3> dummy_vect; return dummy_vect;};
-	matrix::Vector<float, 3> getAccelerationVect() override {matrix::Vector<float, 3> dummy_vect; return dummy_vect;};
-	matrix::Vector<float, 3> getPosVarVect() override {matrix::Vector<float, 3> dummy_vect; return dummy_vect;};
-	matrix::Vector<float, 3> getVelVarVect() override {matrix::Vector<float, 3> dummy_vect; return dummy_vect;};
-	matrix::Vector<float, 3> getAccVarVect() override {matrix::Vector<float, 3> dummy_vect; return dummy_vect;};
-	void setInputAccVar(matrix::Matrix<float, 3, 3> varVect) override {};
-	void setTargetAccVar(matrix::Matrix<float, 3, 3> varVect) override {};
-	void setBiasVar(matrix::Matrix<float, 3, 3> varVect) override {};
 
 private:
 	matrix::Vector<float, 2> _state; // state
