@@ -40,17 +40,9 @@
  */
 
 /*
- * Catapult launch detection parameters, accessible via MAVLink
+ * Catapult launch detection parameters
  *
  */
-
-/**
- * Launch detection
- *
- * @boolean
- * @group FW Launch detection
- */
-PARAM_DEFINE_INT32(LAUN_ALL_ON, 0);
 
 /**
  * Catapult accelerometer threshold.

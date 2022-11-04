@@ -74,11 +74,6 @@ public:
 	 */
 	uint getLaunchDetected() const;
 
-	/**
-	 * @return Launch detection is enabled
-	 */
-	bool launchDetectionEnabled() { return _param_laun_all_on.get(); }
-
 	void forceSetFlyState() { _state = launch_detection_status_s::STATE_FLYING; }
 
 private:
@@ -100,7 +95,6 @@ private:
 	uint _state{launch_detection_status_s::STATE_WAITING_FOR_LAUNCH};
 
 	DEFINE_PARAMETERS(
-		(ParamBool<px4::params::LAUN_ALL_ON>) _param_laun_all_on,
 		(ParamFloat<px4::params::LAUN_CAT_A>) _param_laun_cat_a,
 		(ParamFloat<px4::params::LAUN_CAT_T>) _param_laun_cat_t,
 		(ParamFloat<px4::params::LAUN_CAT_MDEL>) _param_laun_cat_mdel
