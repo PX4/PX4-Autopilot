@@ -46,13 +46,13 @@
 #include <matrix/Matrix.hpp>
 #include <matrix/Vector.hpp>
 
-#include "target_estimator.h"
+#include "target_estimator_coupled.h"
 
 #pragma once
 
 namespace landing_target_estimator
 {
-class KFxyzCoupledMoving : public TargetEstimator
+class KFxyzCoupledMoving : public TargetEstimatorCoupled
 {
 public:
 	/**
@@ -105,30 +105,6 @@ public:
 	/* Unused functions:  */
 	void computeDynamicMatrix(float dt) override {};
 	void computeProcessNoise(float dt) override {};
-
-	// For orientation filter
-	void setH(float h_meas) override {};
-
-	// Decoupled filter
-	void syncState(float dt, float acc) override {};
-	void predictState(float dt, float acc) override {};
-	void setPosition(float pos) override { };
-	void setVelocity(float vel) override { };
-	void setTargetAcc(float acc) override { };
-	void setStatePosVar(float pos_unc) override { };
-	void setStateVelVar(float vel_unc) override { };
-	void setStateBiasVar(float var) override {};
-	void setStateAccVar(float acc_unc) override { };
-	float getPosition() override { return 0.f; };
-	float getVelocity() override { return 0.f; };
-	float getAcceleration() { return 0.f; };
-	float getPosVar() override { return 0.f; };
-	float getVelVar() override { return 0.f; };
-	float getAccVar() override { return 0.f; };
-
-	void setInputAccVar(float var) override {};
-	void setBiasVar(float var) override {};
-	void setTargetAccVar(float var) override {};
 
 private:
 	matrix::Matrix<float, 12, 1> _state; // state

@@ -32,30 +32,26 @@
  ****************************************************************************/
 
 /**
- * @file target_estimator.cpp
+ * @file target_estimator_coupled.cpp
  * @brief Interface for target estimators
  */
 
 #pragma once
 
-class TargetEstimator
+class TargetEstimatorCoupled
 {
 public:
-	TargetEstimator() = default;
-	virtual ~TargetEstimator() = default;
+	TargetEstimatorCoupled() = default;
+	virtual ~TargetEstimatorCoupled() = default;
 
 	//Prediction step:
-	virtual void predictState(float dt, float acc) = 0;
 	virtual void predictState(float dt, matrix::Vector<float, 3> acc);
 	virtual void predictCov(float dt) {};
 
 	// Backwards state prediciton
-	virtual void syncState(float dt, float acc);
 	virtual void syncState(float dt, matrix::Vector<float, 3> acc) {};
 
-
 	virtual void setH(matrix::Vector<float, 12> h_meas);
-	virtual void setH(float h_meas);
 
 	virtual float computeInnovCov(float measUnc);
 	virtual float computeInnov(float meas);
@@ -67,9 +63,6 @@ public:
 
 	// Init: x_0
 	//TODO: Rename with "Init": setInitPosition
-	virtual void setPosition(float pos);
-	virtual void setVelocity(float vel);
-	virtual void setTargetAcc(float acc);
 
 	//For the coupled Kalman filter, we need to work with vectors.
 	virtual void setPosition(matrix::Vector<float, 3> posVect);
@@ -77,24 +70,10 @@ public:
 	virtual void setTargetAcc(matrix::Vector<float, 3> accVect);
 
 	// Init: P_0
-	virtual void setStatePosVar(float var);
-	virtual void setStateVelVar(float var);
-	virtual void setStateAccVar(float var);
-	virtual void setStateBiasVar(float var);
-
 	virtual void setStatePosVar(matrix::Vector<float, 3> posVarVect);
 	virtual void setStateVelVar(matrix::Vector<float, 3> velVarVect);
 	virtual void setStateAccVar(matrix::Vector<float, 3> accVarVect);
 	virtual void setStateBiasVar(matrix::Vector<float, 3> biasVarVect);
-
-	// Retreive output of filter
-	virtual float getPosition() { return 0.f; };
-	virtual float getVelocity() { return 0.f; };
-	virtual float getAcceleration() { return 0.f; };
-
-	virtual float getPosVar() { return 0.f; };
-	virtual float getVelVar() { return 0.f; };
-	virtual float getAccVar() { return 0.f; };
 
 	// Retreive output of coupled filter
 	virtual matrix::Vector<float, 3> getPositionVect();
@@ -105,12 +84,7 @@ public:
 	virtual matrix::Vector<float, 3> getVelVarVect();
 	virtual matrix::Vector<float, 3> getAccVarVect();
 
-	virtual void setInputAccVar(float var);
 	virtual void setInputAccVar(matrix::Matrix<float, 3, 3> varVect);
-
-	virtual void setTargetAccVar(float var);
 	virtual void setTargetAccVar(matrix::Matrix<float, 3, 3> varVect);
-
-	virtual void setBiasVar(float var);
 	virtual void setBiasVar(matrix::Matrix<float, 3, 3> varVect);
 };

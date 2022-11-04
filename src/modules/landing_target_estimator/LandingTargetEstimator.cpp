@@ -82,6 +82,8 @@ LandingTargetEstimator::~LandingTargetEstimator()
 	for (int i = 0; i < 4; i++) {
 		delete _target_estimator[i];
 	}
+
+	delete _target_estimator_coupled;
 }
 
 void LandingTargetEstimator::update()
@@ -210,14 +212,14 @@ void LandingTargetEstimator::initEstimator()
 
 	if (_target_model == TargetModel::FullPoseCoupled) {
 
-		_target_estimator[xyz]->setPosition(p_init);
-		_target_estimator[xyz]->setVelocity(v_rel_init);
-		_target_estimator[xyz]->setTargetAcc(a_init);
+		_target_estimator_coupled->setPosition(p_init);
+		_target_estimator_coupled->setVelocity(v_rel_init);
+		_target_estimator_coupled->setTargetAcc(a_init);
 
-		_target_estimator[xyz]->setStatePosVar(state_pos_var_vect);
-		_target_estimator[xyz]->setStateVelVar(state_vel_var_vect);
-		_target_estimator[xyz]->setStateBiasVar(state_bias_var_vect);
-		_target_estimator[xyz]->setStateAccVar(state_acc_var_vect);
+		_target_estimator_coupled->setStatePosVar(state_pos_var_vect);
+		_target_estimator_coupled->setStateVelVar(state_vel_var_vect);
+		_target_estimator_coupled->setStateBiasVar(state_bias_var_vect);
+		_target_estimator_coupled->setStateAccVar(state_acc_var_vect);
 
 	} else {
 
@@ -267,12 +269,12 @@ void LandingTargetEstimator::predictionStep(Vector3f vehicle_acc_ned)
 
 	if (_target_model == TargetModel::FullPoseCoupled) {
 
-		if (_target_mode == TargetMode::Moving) {_target_estimator[xyz]->setTargetAccVar(target_acc_cov);}
+		if (_target_mode == TargetMode::Moving) {_target_estimator_coupled->setTargetAccVar(target_acc_cov);}
 
-		_target_estimator[xyz]->setBiasVar(bias_cov);
-		_target_estimator[xyz]->setInputAccVar(input_cov);
-		_target_estimator[xyz]->predictState(dt, vehicle_acc_ned);
-		_target_estimator[xyz]->predictCov(dt);
+		_target_estimator_coupled->setBiasVar(bias_cov);
+		_target_estimator_coupled->setInputAccVar(input_cov);
+		_target_estimator_coupled->predictState(dt, vehicle_acc_ned);
+		_target_estimator_coupled->predictCov(dt);
 
 	} else {
 		for (int i = 0; i < _nb_position_kf; i++) {
@@ -354,31 +356,33 @@ bool LandingTargetEstimator::updateNED(Vector3f vehicle_acc_ned)
 
 					} else {
 
-						int filter_idx = j;
+						//Get the corresponding row of the H matrix.
+						meas_h_row = _target_pos_obs[i].meas_h_xyz.row(j);
 
 						// Sync measurement using the prediction model
 						if (_target_model == TargetModel::FullPoseCoupled) {
-							// For the single filter, update the same estimator for each measurement (since there is only one)
-							filter_idx = xyz;
+
 							// Move state back to the measurement time of validity. The state synchronized will be used to compute the innovation.
-							_target_estimator[filter_idx]->syncState(dt_sync, vehicle_acc_ned);
+							_target_estimator_coupled->syncState(dt_sync, vehicle_acc_ned);
+							_target_estimator_coupled->setH(meas_h_row);
+							// Compute innovations and fill thet target innovation message
+							_target_innovations_array[i].innovation_variance[j] = _target_estimator_coupled->computeInnovCov(
+										_target_pos_obs[i].meas_unc_xyz(j));
+							_target_innovations_array[i].innovation[j] = _target_estimator_coupled->computeInnov(_target_pos_obs[i].meas_xyz(j));
+							// Update step
+							meas_xyz_fused(j) = _target_estimator_coupled->update();
 
 						} else {
-							_target_estimator[filter_idx]->syncState(dt_sync, vehicle_acc_ned(j));
+							// Move state back to the measurement time of validity. The state synchronized will be used to compute the innovation.
+							_target_estimator[j]->syncState(dt_sync, vehicle_acc_ned(j));
+							_target_estimator[j]->setH(meas_h_row);
+							// Compute innovations and fill thet target innovation message
+							_target_innovations_array[i].innovation_variance[j] = _target_estimator[j]->computeInnovCov(
+										_target_pos_obs[i].meas_unc_xyz(j));
+							_target_innovations_array[i].innovation[j] = _target_estimator[j]->computeInnov(_target_pos_obs[i].meas_xyz(j));
+							// Update step
+							meas_xyz_fused(j) = _target_estimator[j]->update();
 						}
-
-						//Get the corresponding row of the H matrix.
-						meas_h_row = _target_pos_obs[i].meas_h_xyz.row(j);
-						_target_estimator[filter_idx]->setH(meas_h_row);
-
-						// Compute innovations and fill thet target innovation message
-						_target_innovations_array[i].innovation_variance[j] = _target_estimator[filter_idx]->computeInnovCov(
-									_target_pos_obs[i].meas_unc_xyz(j));
-						_target_innovations_array[i].innovation[j] = _target_estimator[filter_idx]->computeInnov(_target_pos_obs[i].meas_xyz(
-									j));
-
-						// Update step
-						meas_xyz_fused(j) = _target_estimator[filter_idx]->update();
 
 						// Fill the target innovation message
 						_target_innovations_array[i].fusion_enabled[j] = true;
@@ -397,7 +401,6 @@ bool LandingTargetEstimator::updateNED(Vector3f vehicle_acc_ned)
 
 						// Mark measurement as consumed for next iteration
 						_target_pos_obs[i].updated_xyz(j) = false;
-
 					}
 				}
 
@@ -492,22 +495,22 @@ void LandingTargetEstimator::publishTarget()
 
 	if (_target_model == TargetModel::FullPoseCoupled) {
 
-		Vector3f pos_vect = _target_estimator[xyz]->getPositionVect();
+		Vector3f pos_vect = _target_estimator_coupled->getPositionVect();
 		target_pose.x_rel = pos_vect(0);
 		target_pose.y_rel = pos_vect(1);
 		target_pose.z_rel = pos_vect(2);
 
-		Vector3f cov_pos_vect = _target_estimator[xyz]->getPosVarVect();
+		Vector3f cov_pos_vect = _target_estimator_coupled->getPosVarVect();
 		target_pose.cov_x_rel = cov_pos_vect(0);
 		target_pose.cov_y_rel = cov_pos_vect(1);
 		target_pose.cov_z_rel = cov_pos_vect(2);
 
-		Vector3f vel_vect = _target_estimator[xyz]->getVelocityVect();
+		Vector3f vel_vect = _target_estimator_coupled->getVelocityVect();
 		target_pose.vx_rel = vel_vect(0);
 		target_pose.vy_rel = vel_vect(1);
 		target_pose.vz_rel = vel_vect(2);
 
-		Vector3f cov_vel_vect = _target_estimator[xyz]->getVelVarVect();
+		Vector3f cov_vel_vect = _target_estimator_coupled->getVelVarVect();
 		target_pose.cov_vx_rel = cov_vel_vect(0);
 		target_pose.cov_vy_rel = cov_vel_vect(1);
 		target_pose.cov_vz_rel = cov_vel_vect(2);
@@ -1156,7 +1159,7 @@ void LandingTargetEstimator::updateParams()
 	case TargetModel::FullPoseCoupled:
 		_nb_position_kf = 1;
 
-		if (_target_estimator[xyz] == nullptr) {
+		if (_target_estimator_coupled == nullptr) {
 			return;
 		}
 
@@ -1175,6 +1178,7 @@ void LandingTargetEstimator::selectTargetEstimator()
 	TargetEstimator *tmp_y = nullptr;
 	TargetEstimator *tmp_z = nullptr;
 	TargetEstimator *tmp_theta = nullptr;
+	TargetEstimatorCoupled *tmp_xyz = nullptr;
 
 	bool init_failed = true;
 
@@ -1201,15 +1205,15 @@ void LandingTargetEstimator::selectTargetEstimator()
 	case TargetModel::FullPoseCoupled:
 
 		if (_target_mode == TargetMode::Moving) {
-			tmp_x = new KFxyzCoupledMoving;
+			tmp_xyz = new KFxyzCoupledMoving;
 			PX4_INFO("LTE estimator: Moving target, full pose with x,y,z coupled in one filter.");
 
 		} else {
-			tmp_x = new KFxyzCoupledStatic;
+			tmp_xyz = new KFxyzCoupledStatic;
 			PX4_INFO("LTE estimator: Static target, full pose with x,y,z coupled in one filter.");
 		}
 
-		init_failed = (tmp_x == nullptr);
+		init_failed = (tmp_xyz == nullptr);
 		break;
 
 	case TargetModel::Horizontal:
@@ -1259,8 +1263,8 @@ void LandingTargetEstimator::selectTargetEstimator()
 			break;
 
 		case TargetModel::FullPoseCoupled:
-			delete _target_estimator[xyz];
-			_target_estimator[xyz] = tmp_x;
+			delete _target_estimator_coupled;
+			_target_estimator_coupled = tmp_xyz;
 
 			break;
 
