@@ -82,7 +82,7 @@ extern "C" __EXPORT int tune_control_main(int argc, char *argv[])
 		case 'f':
 			value = (uint16_t)(strtol(myoptarg, nullptr, 0));
 
-			if (value > 0 && value < 22000) {
+			if (value <= 22000) {
 				tune_control.frequency = value;
 
 			} else {
