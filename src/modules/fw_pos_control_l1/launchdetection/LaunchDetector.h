@@ -42,19 +42,10 @@
 #define LAUNCHDETECTOR_H
 
 #include <px4_platform_common/module_params.h>
+#include <uORB/topics/launch_detection_status.h>
 
 namespace launchdetection
 {
-
-enum LaunchDetectionResult {
-	LAUNCHDETECTION_RES_NONE = 0, /**< No launch has been detected */
-	LAUNCHDETECTION_RES_DETECTED_ENABLECONTROL = 1, /**< Launch has been detected, the controller should
-							  control the attitude. However any motors should not throttle
-							  up. For instance this is used to have a delay for the motor
-							  when launching a fixed wing aircraft from a bungee */
-	LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS = 2 /**< Launch has been detected, the controller should control
-							attitude and also throttle up the motors. */
-};
 
 class __EXPORT LaunchDetector : public ModuleParams
 {
@@ -67,15 +58,49 @@ public:
 
 	void reset();
 
-	void update(const float dt, float accel_x);
-	LaunchDetectionResult getLaunchDetected() const;
+	/**
+	 * @brief Updates the state machine based on the current vehicle condition.
+	 *
+	 * @param dt Time step [us]
+	 * @param accel_x Measured acceleration in body x [m/s/s]
+	 * @param mavlink_log_pub
+	 */
+	void update(const float dt, float accel_x,  orb_advert_t *mavlink_log_pub);
+
+	/**
+	 * @brief Get the Launch Detected state
+	 *
+	 * @return uint (aligned with launch_detection_status_s::launch_detection_state)
+	 */
+	uint getLaunchDetected() const;
+
+	/**
+	 * @return Launch detection is enabled
+	 */
 	bool launchDetectionEnabled() { return _param_laun_all_on.get(); }
 
+	void forceSetFlyState() { _state = launch_detection_status_s::STATE_FLYING; }
+
 private:
-	float _integrator{0.f};
+	/**
+	 * Integrator [s]
+	 */
+	float _launchDetectionDelayCounter{0.f};
+
+	/**
+	 * Motor delay counter [s]
+	 */
 	float _motorDelayCounter{0.f};
 
-	LaunchDetectionResult state{LAUNCHDETECTION_RES_NONE};
+	float _launchDetectionRunningInfoDelay{4.f};
+
+	/**
+	 * Current state of the launch detection state machine [launch_detection_status_s::launch_detection_state]
+	 */
+	uint _state{launch_detection_status_s::STATE_WAITING_FOR_LAUNCH};
+
+	// [us] logs the last time the launch detection notification was sent (used not to spam notifications during launch detection)
+	hrt_abstime _last_time_launch_detection_notified{0};
 
 	DEFINE_PARAMETERS(
 		(ParamBool<px4::params::LAUN_ALL_ON>) _param_laun_all_on,
