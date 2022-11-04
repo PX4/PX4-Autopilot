@@ -2468,7 +2468,7 @@ MavlinkReceiver::handle_message_landing_target(mavlink_message_t *msg)
 			*/
 		}
 
-		target_GNSS_report_pub.publish(target_GNSS_report);
+		_target_GNSS_report_pub.publish(target_GNSS_report);
 
 		/*
 		if(landing_target.velocity_valid){
@@ -2482,7 +2482,7 @@ MavlinkReceiver::handle_message_landing_target(mavlink_message_t *msg)
 		}
 
 		if(landing_target.position_valid || landing_target.velocity_valid){
-			target_GNSS_report_pub.publish(target_GNSS_report);
+			_target_GNSS_report_pub.publish(target_GNSS_report);
 		}
 		*/
 
