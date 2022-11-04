@@ -1118,3 +1118,11 @@ PARAM_DEFINE_INT32(FW_LND_ABORT, 3);
  * @group FW TECS
  */
 PARAM_DEFINE_FLOAT(FW_WIND_ARSP_SC, 0.f);
+
+/**
+ * Launch detection
+ *
+ * @boolean
+ * @group FW Launch detection
+ */
+PARAM_DEFINE_INT32(LAUN_ALL_ON, 0);
