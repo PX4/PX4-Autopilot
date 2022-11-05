@@ -46,33 +46,33 @@ public:
 
 	//Prediction step:
 	virtual void predictState(float dt, float acc) = 0;
-	virtual void predictCov(float dt) {};
+	virtual void predictCov(float dt) = 0;
 
 	// Backwards state prediciton
-	virtual void syncState(float dt, float acc);
+	virtual void syncState(float dt, float acc) = 0;
 
-	virtual void setH(matrix::Vector<float, 12> h_meas);
-	virtual void setH(float h_meas);
+	virtual void setH(matrix::Vector<float, 12> h_meas) = 0;
+	virtual void setH(float h_meas) = 0;
 
-	virtual float computeInnovCov(float measUnc);
-	virtual float computeInnov(float meas);
+	virtual float computeInnovCov(float measUnc) = 0;
+	virtual float computeInnov(float meas) = 0;
 
-	virtual bool update() { return true; };
+	virtual bool update() { return true; }
 
-	virtual void computeDynamicMatrix(float dt);
-	virtual void computeProcessNoise(float dt);
+	virtual void computeDynamicMatrix(float dt) = 0;
+	virtual void computeProcessNoise(float dt) = 0;
 
 	// Init: x_0
 	//TODO: Rename with "Init": setInitPosition
-	virtual void setPosition(float pos);
-	virtual void setVelocity(float vel);
-	virtual void setTargetAcc(float acc);
+	virtual void setPosition(float pos) = 0;
+	virtual void setVelocity(float vel) = 0;
+	virtual void setTargetAcc(float acc) = 0;
 
 	// Init: P_0
-	virtual void setStatePosVar(float var);
-	virtual void setStateVelVar(float var);
-	virtual void setStateAccVar(float var);
-	virtual void setStateBiasVar(float var);
+	virtual void setStatePosVar(float var) = 0;
+	virtual void setStateVelVar(float var) = 0;
+	virtual void setStateAccVar(float var) = 0;
+	virtual void setStateBiasVar(float var) = 0;
 
 	// Retreive output of filter
 	virtual float getPosition() { return 0.f; };
@@ -83,7 +83,7 @@ public:
 	virtual float getVelVar() { return 0.f; };
 	virtual float getAccVar() { return 0.f; };
 
-	virtual void setInputAccVar(float var);
-	virtual void setTargetAccVar(float var);
-	virtual void setBiasVar(float var);
+	virtual void setInputAccVar(float var) = 0;
+	virtual void setTargetAccVar(float var) = 0;
+	virtual void setBiasVar(float var) = 0;
 };
