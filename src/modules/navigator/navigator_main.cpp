@@ -1044,7 +1044,6 @@ float Navigator::get_cruising_speed(uint8_t type)
 void Navigator::set_cruising_speed(float speed, uint8_t type)
 {
 
-	printf("setting type: %i with value of %d", type, static_cast<double>(speed));
 	if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 
 		//airspeed or groundspeed (does not differentiate currently)
