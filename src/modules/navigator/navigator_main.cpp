@@ -273,8 +273,8 @@ void Navigator::run()
 					// If no argument for ground speed, use default value.
 					if (cmd.param1 <= 0 || !PX4_ISFINITE(cmd.param1)) {
 						rep->current.cruising_speed = get_cruising_speed();
-						rep->current.vertical_up_speed = get_cruising_speed(); //2
-						rep->current.vertical_down_speed = get_cruising_speed(); //3
+						rep->current.vertical_up_speed = get_cruising_speed(2); //2
+						rep->current.vertical_down_speed = get_cruising_speed(3); //3
 					} else {
 						rep->current.cruising_speed = cmd.param1;
 					}
@@ -555,8 +555,8 @@ void Navigator::run()
 				position_setpoint_triplet_s *rep = get_reposition_triplet();
 				*rep = *(get_position_setpoint_triplet());
 				rep->current.cruising_speed = get_cruising_speed();
-				rep->current.vertical_up_speed = get_cruising_speed(); //2
-				rep->current.vertical_down_speed = get_cruising_speed(); //3
+				rep->current.vertical_up_speed = get_cruising_speed(2); //2
+				rep->current.vertical_down_speed = get_cruising_speed(3); //3
 				rep->current.cruising_throttle = get_cruising_throttle();
 			}
 		}
@@ -919,8 +919,8 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 					rep->current.cruising_throttle = get_cruising_throttle();
 					rep->current.acceptance_radius = get_acceptance_radius();
 					rep->current.cruising_speed = get_cruising_speed();
-					rep->current.vertical_up_speed = get_cruising_speed(); //2
-					rep->current.vertical_down_speed = get_cruising_speed(); //3
+					rep->current.vertical_up_speed = get_cruising_speed(2); //2
+					rep->current.vertical_down_speed = get_cruising_speed(3); //3
 				}
 
 				_geofence_violation_warning_sent = true;
@@ -1043,6 +1043,8 @@ float Navigator::get_cruising_speed(uint8_t type)
 
 void Navigator::set_cruising_speed(float speed, uint8_t type)
 {
+
+	printf("setting type: %i with value of %d", type, static_cast<double>(speed));
 	if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 
 		//airspeed or groundspeed (does not differentiate currently)

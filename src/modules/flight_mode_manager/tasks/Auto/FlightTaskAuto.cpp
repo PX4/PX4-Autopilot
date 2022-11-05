@@ -835,7 +835,7 @@ void FlightTaskAuto::_updateTrajConstraints()
 	} else if (_unsmoothed_velocity_setpoint(2) < 0.f) { // up
 		float z_accel_constraint = _param_mpc_acc_up_max.get();
 
-		float z_vel_constraint = _param_mpc_z_v_auto_up.get();//math::min(_mc_vertical_up_speed, _param_mpc_z_v_auto_up.get());
+		float z_vel_constraint = _param_mpc_z_v_auto_up.get();
 		if(_mc_vertical_up_speed > 0){
 			z_vel_constraint = math::min(_mc_vertical_up_speed, z_vel_constraint);
 		}
@@ -858,7 +858,7 @@ void FlightTaskAuto::_updateTrajConstraints()
 		_position_smoothing.setMaxAccelerationZ(z_accel_constraint);
 
 	} else { // down
-		float z_vel_constraint = _param_mpc_z_v_auto_dn.get();//math::min(_mc_vertical_down_speed, _param_mpc_z_v_auto_dn.get());
+		float z_vel_constraint = _param_mpc_z_v_auto_dn.get();
 
 		if(_mc_vertical_down_speed > 0){
 			z_vel_constraint = math::min(_mc_vertical_down_speed, z_vel_constraint);
