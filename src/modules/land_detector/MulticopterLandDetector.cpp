@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -75,12 +75,10 @@ namespace land_detector
 
 MulticopterLandDetector::MulticopterLandDetector()
 {
-	_paramHandle.landSpeed = param_find("MPC_LAND_SPEED");
 	_paramHandle.minManThrottle = param_find("MPC_MANTHR_MIN");
 	_paramHandle.minThrottle = param_find("MPC_THR_MIN");
 	_paramHandle.useHoverThrustEstimate = param_find("MPC_USE_HTE");
 	_paramHandle.hoverThrottle = param_find("MPC_THR_HOVER");
-	_paramHandle.crawlSpeed = param_find("MPC_LAND_CRWL");
 }
 
 void MulticopterLandDetector::_update_topics()
@@ -119,16 +117,6 @@ void MulticopterLandDetector::_update_params()
 {
 	param_get(_paramHandle.minThrottle, &_params.minThrottle);
 	param_get(_paramHandle.minManThrottle, &_params.minManThrottle);
-	param_get(_paramHandle.landSpeed, &_params.landSpeed);
-	param_get(_paramHandle.crawlSpeed, &_params.crawlSpeed);
-
-	if (_param_lndmc_z_vel_max.get() > _params.landSpeed) {
-		PX4_ERR("LNDMC_Z_VEL_MAX > MPC_LAND_SPEED, updating %.3f -> %.3f",
-			(double)_param_lndmc_z_vel_max.get(), (double)_params.landSpeed);
-
-		_param_lndmc_z_vel_max.set(_params.landSpeed);
-		_param_lndmc_z_vel_max.commit_no_notification();
-	}
 
 	int32_t use_hover_thrust_estimate = 0;
 	param_get(_paramHandle.useHoverThrustEstimate, &use_hover_thrust_estimate);
@@ -158,22 +146,19 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 
 	const bool lpos_available = ((time_now_us - _vehicle_local_position.timestamp) < 1_s);
 
-	// land speed threshold, 90% of MPC_LAND_SPEED
-	const float crawl_speed_threshold = 0.9f * math::max(_params.crawlSpeed, 0.1f);
-
 	if (lpos_available && _vehicle_local_position.v_z_valid) {
-		// Check if we are moving vertically - this might see a spike after arming due to
-		// throttle-up vibration. If accelerating fast the throttle thresholds will still give
-		// an accurate in-air indication.
-		float max_climb_rate = math::min(crawl_speed_threshold * 0.5f, _param_lndmc_z_vel_max.get());
+		// Check if we are moving vertically.
+		// Use wider threshold if currently in "maybe landed" state, as estimation for
+		// vertical speed is often deteriorated when on the ground or due to propeller
+		// up/down throttling.
 
-		if ((time_now_us - _landed_time) < LAND_DETECTOR_LAND_PHASE_TIME_US) {
-			// Widen acceptance thresholds for landed state right after arming
-			// so that motor spool-up and other effects do not trigger false negatives.
-			max_climb_rate = _param_lndmc_z_vel_max.get() * 2.5f;
+		float vertical_velocity_threshold = _param_lndmc_z_vel_max.get();
+
+		if (_landed_hysteresis.get_state()) {
+			vertical_velocity_threshold *= 2.5f;
 		}
 
-		_vertical_movement = (fabsf(_vehicle_local_position.vz) > max_climb_rate);
+		_vertical_movement = (fabsf(_vehicle_local_position.vz) > vertical_velocity_threshold);
 
 	} else {
 		_vertical_movement = true;
@@ -217,7 +202,7 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 		if (_trajectory_setpoint_sub.update(&trajectory_setpoint)) {
 			// Setpoints can be NAN
 			_in_descend = PX4_ISFINITE(trajectory_setpoint.velocity[2])
-				      && (trajectory_setpoint.velocity[2] >= crawl_speed_threshold);
+				      && (trajectory_setpoint.velocity[2] >= 1.1f * _param_lndmc_z_vel_max.get());
 		}
 
 		// ground contact requires commanded descent until landed
@@ -278,21 +263,21 @@ bool MulticopterLandDetector::_get_maybe_landed_state()
 		return false;
 	}
 
+	// Next look if vehicle is not rotating (do not consider yaw)
+	float max_rotation_threshold = math::radians(_param_lndmc_rot_max.get());
 
-	float landThresholdFactor = 1.f;
-
-	// Widen acceptance thresholds for landed state right after landed
-	if ((time_now_us - _landed_time) < LAND_DETECTOR_LAND_PHASE_TIME_US) {
-		landThresholdFactor = 2.5f;
+	// Widen max rotation thresholds if either in landed state, thus making it harder
+	// to trigger a false positive !landed e.g. due to propeller throttling up/down.
+	if (_landed_hysteresis.get_state()) {
+		max_rotation_threshold *= 2.5f;
 	}
 
-	// Next look if all rotation angles are not moving.
-	const float max_rotation_scaled = math::radians(_param_lndmc_rot_max.get()) * landThresholdFactor;
-
-	matrix::Vector2f angular_velocity{_angular_velocity(0), _angular_velocity(1)};
-
-	if (angular_velocity.norm() > max_rotation_scaled) {
+	if (_angular_velocity.xy().norm() > max_rotation_threshold) {
+		_rotational_movement = true;
 		return false;
+
+	} else {
+		_rotational_movement = false;
 	}
 
 	// If vertical velocity is available: ground contact, no thrust, no movement -> landed
@@ -306,14 +291,6 @@ bool MulticopterLandDetector::_get_maybe_landed_state()
 
 bool MulticopterLandDetector::_get_landed_state()
 {
-	// reset the landed_time
-	if (!_maybe_landed_hysteresis.get_state()) {
-		_landed_time = 0;
-
-	} else if (_landed_time == 0) {
-		_landed_time = hrt_absolute_time();
-	}
-
 	// When not armed, consider to be landed
 	if (!_armed) {
 		return true;

@@ -61,7 +61,7 @@
 class LIS2MDL_SPI : public device::SPI
 {
 public:
-	LIS2MDL_SPI(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode);
+	LIS2MDL_SPI(const I2CSPIDriverConfig &config);
 	virtual ~LIS2MDL_SPI() = default;
 
 	virtual int     init();
@@ -70,16 +70,16 @@ public:
 };
 
 device::Device *
-LIS2MDL_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode);
+LIS2MDL_SPI_interface(const I2CSPIDriverConfig &config);
 
 device::Device *
-LIS2MDL_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode)
+LIS2MDL_SPI_interface(const I2CSPIDriverConfig &config)
 {
-	return new LIS2MDL_SPI(bus, devid, bus_frequency, spi_mode);
+	return new LIS2MDL_SPI(config);
 }
 
-LIS2MDL_SPI::LIS2MDL_SPI(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode) :
-	SPI(DRV_MAG_DEVTYPE_LIS2MDL, "LIS2MDL_SPI", bus, devid, spi_mode, bus_frequency)
+LIS2MDL_SPI::LIS2MDL_SPI(const I2CSPIDriverConfig &config) :
+	SPI(config)
 {
 }
 

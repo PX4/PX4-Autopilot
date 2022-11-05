@@ -37,19 +37,17 @@
 
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/offboard_control_mode.h>
-#include <lib/hysteresis/hysteresis.h>
 
 class OffboardChecks : public HealthAndArmingCheckBase
 {
 public:
-	OffboardChecks();
+	OffboardChecks() = default;
 	~OffboardChecks() = default;
 
 	void checkAndReport(const Context &context, Report &reporter) override;
 
 private:
 	uORB::Subscription _offboard_control_mode_sub{ORB_ID(offboard_control_mode)};
-	systemlib::Hysteresis _offboard_available{false};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
 					(ParamFloat<px4::params::COM_OF_LOSS_T>) _param_com_of_loss_t

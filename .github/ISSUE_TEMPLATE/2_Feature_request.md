@@ -5,7 +5,7 @@ labels: feature-request
 
 ---
 
-For general questions please use [PX4 Discuss](http://discuss.px4.io/) or Slack (you can find an invite link on this project README).
+For general questions please use [PX4 Discuss](http://discuss.px4.io/) or Discord (you can find an invite link on this project README).
 
 ## Describe problem solved by the proposed feature
 A clear and concise description of the problem, if any, this feature will solve. E.g. I'm always frustrated when ...

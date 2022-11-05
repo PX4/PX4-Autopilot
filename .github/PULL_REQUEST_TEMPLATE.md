@@ -1,4 +1,4 @@
-Please use [PX4 Discuss](http://discuss.px4.io/) or [Slack](http://slack.px4.io/) to align on pull requests if necessary. You can then open draft pull requests to get early feedback.
+Please use [PX4 Discuss](http://discuss.px4.io/) or [Discord](https://discord.gg/dronecode) to align on pull requests if necessary. You can then open draft pull requests to get early feedback.
 
 ## Describe problem solved by this pull request
 A clear and concise description of the problem this proposed change will solve. Or, what it will improve.

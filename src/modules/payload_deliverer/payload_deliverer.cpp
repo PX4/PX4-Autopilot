@@ -40,55 +40,49 @@ PayloadDeliverer::PayloadDeliverer()
 
 bool PayloadDeliverer::init()
 {
-	ScheduleOnInterval(1_s);
+	ScheduleOnInterval(100_ms);
 
-	// Additionallly to 1Hz scheduling, add cb for vehicle_command message
 	if (!_vehicle_command_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;
 	}
 
-	initialize_gripper();
+	configure_gripper();
 	return true;
 }
 
-bool PayloadDeliverer::initialize_gripper()
+void PayloadDeliverer::configure_gripper()
 {
-	// If gripper instance is invalid, try initializing it
+	// If gripper instance is invalid, and user enabled the gripper, try initializing it
 	if (!_gripper.is_valid() && _param_gripper_enable.get()) {
 		GripperConfig config{};
 		config.type = (GripperConfig::GripperType)_param_gripper_type.get();
 		config.sensor = GripperConfig::GripperSensorType::NONE; // Feedback sensor isn't supported for now
 		config.timeout_us = hrt_abstime(_param_gripper_timeout_s.get() * 1000000ULL);
 		_gripper.init(config);
-	}
 
-	// NOTE: Support for changing gripper sensor type / gripper type configuration when
-	// the parameter change is detected isn't added as we don't have actual use case for that
-	// yet!
+		if (!_gripper.is_valid()) {
+			PX4_DEBUG("Gripper object initialization failed!");
+			return;
 
-	if (!_gripper.is_valid()) {
-		PX4_DEBUG("Gripper object initialization invalid!");
-		return false;
+		} else {
+			// Command the gripper to grab position by default
+			if (!_gripper.grabbed() && !_gripper.grabbing()) {
+				PX4_DEBUG("Gripper intialize: putting to grab position!");
+				send_gripper_vehicle_command(vehicle_command_s::GRIPPER_ACTION_GRAB);
+			}
 
-	} else {
-		_gripper.update();
-
-		// If gripper wasn't commanded to go to grab position, command.
-		if (!_gripper.grabbed() && !_gripper.grabbing()) {
-			PX4_DEBUG("Gripper intialize: putting to grab position!");
-			send_gripper_vehicle_command(vehicle_command_s::GRIPPER_ACTION_GRAB);
+			return;
 		}
-
-		return true;
 	}
 
+	// TODO: Support changing gripper sensor type / gripper type configuration
 }
 
 void PayloadDeliverer::parameter_update()
 {
 	updateParams();
-	initialize_gripper();
+	configure_gripper();
 }
 
 void PayloadDeliverer::Run()
@@ -109,7 +103,6 @@ void PayloadDeliverer::Run()
 		parameter_update();
 	}
 
-	// Update delivery mechanism's state
 	gripper_update(now);
 
 	if (_vehicle_command_sub.update(&vcmd)) {
@@ -124,21 +117,27 @@ void PayloadDeliverer::Run()
 void PayloadDeliverer::gripper_update(const hrt_abstime &now)
 {
 	if (!_gripper.is_valid()) {
-		// Try initializing gripper
-		initialize_gripper();
 		return;
 	}
 
 	_gripper.update();
 
-	// Publish a successful gripper release acknowledgement
+	// Publish a successful gripper release / grab acknowledgement, and set the current gripper
+	// action to GRIPPER_ACTION_NONE to signify we aren't executing any vehicle command now
 	if (_gripper.released_read_once()) {
-		vehicle_command_ack_s vcmd_ack{};
-		vcmd_ack.timestamp = now;
-		vcmd_ack.command = vehicle_command_s::VEHICLE_CMD_DO_GRIPPER;
-		vcmd_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
-		_vehicle_command_ack_pub.publish(vcmd_ack);
-		PX4_DEBUG("Payload Drop Successful Ack Sent!");
+		send_gripper_vehicle_command_ack(now, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED, _cur_vcmd_target_system,
+						 _cur_vcmd_target_component);
+		PX4_DEBUG("Payload Release Successful Ack Sent!");
+
+		_cur_vcmd_gripper_action = GRIPPER_ACTION_NONE;
+
+	} else if (_gripper.grabbed_read_once()) {
+		send_gripper_vehicle_command_ack(now, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED, _cur_vcmd_target_system,
+						 _cur_vcmd_target_component);
+		PX4_DEBUG("Payload Grab Successful Ack Sent!");
+
+		_cur_vcmd_gripper_action = GRIPPER_ACTION_NONE;
+
 	}
 }
 
@@ -151,22 +150,86 @@ void PayloadDeliverer::handle_vehicle_command(const hrt_abstime &now,  const veh
 
 	// Process DO_GRIPPER vehicle command
 	if (vehicle_command->command == vehicle_command_s::VEHICLE_CMD_DO_GRIPPER) {
-		// If we received Gripper command and gripper isn't valid, warn the user
 		if (!_gripper.is_valid()) {
 			PX4_WARN("Gripper instance not valid but DO_GRIPPER vehicle command was received. Gripper won't work!");
+			send_gripper_vehicle_command_ack(now, vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED, vehicle_command->source_system,
+							 vehicle_command->source_component);
 			return;
 		}
 
-		const int32_t gripper_action = *(int32_t *)&vehicle_command->param2; // Convert the action to integer
+		const int32_t gripper_action = (int32_t)roundf(vehicle_command->param2);
 
-		switch (gripper_action) {
-		case vehicle_command_s::GRIPPER_ACTION_GRAB:
-			_gripper.grab();
-			break;
+		// Flag to indicate if we can process the new gripper command
+		bool process_current_gripper_cmd{false};
 
-		case vehicle_command_s::GRIPPER_ACTION_RELEASE:
-			_gripper.release();
-			break;
+		// We are currently in the middle of executing a previous vehicle command. Handle the conflicts
+		if (_cur_vcmd_gripper_action != GRIPPER_ACTION_NONE) {
+
+			if (gripper_action != _cur_vcmd_gripper_action) {
+				// If different action is commanded, cancel the previous vehicle command
+				send_gripper_vehicle_command_ack(now, vehicle_command_ack_s::VEHICLE_CMD_RESULT_CANCELLED, _cur_vcmd_target_system,
+								 _cur_vcmd_target_component);
+
+				// NOTE: Does this make sense when the same entity sends two conflicting commands?
+				// For the previous command, the external entity will received CANCELLED result, but then
+				// would receive IN_PROGRESS for the new command. As the COMMAND_CANCEL isn't defined properly
+				// in MAVLink yet(https://mavlink.io/en/messages/common.html#COMMAND_CANCEL), this can lead to
+				// Ground stations to thinking it's new command has been canceled instead of the previous one!
+
+				process_current_gripper_cmd = true;
+
+			} else {
+				// If same action is commanded, temporarily reject current command (since it's already in progress)
+				send_gripper_vehicle_command_ack(now, vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED,
+								 vehicle_command->source_system, vehicle_command->source_component);
+			}
+
+		} else {
+			// If we aren't processing any gripper commands, always process the new command
+			process_current_gripper_cmd = true;
+
+		}
+
+		// Flag to indicate if we executed the current gripper command
+		bool current_gripper_command_executed{false};
+
+		if (process_current_gripper_cmd) {
+			if ((_gripper.grabbed() && (gripper_action == vehicle_command_s::GRIPPER_ACTION_GRAB)) ||
+			    (_gripper.released() && (gripper_action == vehicle_command_s::GRIPPER_ACTION_RELEASE))) {
+				// First check if we already satisfied the requested command. If so, acknowledge as accepted and don't execute the command
+				send_gripper_vehicle_command_ack(now, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED,
+								 vehicle_command->source_system, vehicle_command->source_component);
+
+			} else {
+				// Check if the gripper action is valid
+				switch (gripper_action) {
+				case vehicle_command_s::GRIPPER_ACTION_GRAB:
+					_gripper.grab();
+					current_gripper_command_executed = true;
+					break;
+
+				case vehicle_command_s::GRIPPER_ACTION_RELEASE:
+					_gripper.release();
+					current_gripper_command_executed = true;
+					break;
+
+				default:
+					// INVALID GRIPPER ACTION. Deny the command.
+					send_gripper_vehicle_command_ack(now, vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED, vehicle_command->source_system,
+									 vehicle_command->source_component);
+				}
+			}
+		}
+
+		// Send acknowledgement for successfully executed gripper commands
+		if (current_gripper_command_executed) {
+			send_gripper_vehicle_command_ack(now, vehicle_command_ack_s::VEHICLE_CMD_RESULT_IN_PROGRESS,
+							 vehicle_command->source_system, vehicle_command->source_component);
+
+			// Cache the last executed vehicle command information for later acknowledgement
+			_cur_vcmd_gripper_action = gripper_action;
+			_cur_vcmd_target_system = vehicle_command->source_system;
+			_cur_vcmd_target_component = vehicle_command->source_component;
 		}
 	}
 }
@@ -176,8 +239,29 @@ bool PayloadDeliverer::send_gripper_vehicle_command(const int32_t gripper_action
 	vehicle_command_s vcmd;
 	vcmd.timestamp = hrt_absolute_time();
 	vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_GRIPPER;
-	*(int32_t *)&vcmd.param2 = gripper_action;
+	vcmd.param2 = gripper_action;
+	// Note: Integer type GRIPPER_ACTION gets formatted into a floating point here.
 	return _vehicle_command_pub.publish(vcmd);
+}
+
+bool PayloadDeliverer::send_gripper_vehicle_command_ack(const hrt_abstime now, const uint8_t command_result,
+		const uint8_t target_system, const uint8_t target_component)
+{
+	vehicle_command_ack_s vcmd_ack{};
+	vcmd_ack.timestamp = now;
+	vcmd_ack.command = vehicle_command_s::VEHICLE_CMD_DO_GRIPPER;
+	vcmd_ack.result = command_result;
+
+	switch (command_result) {
+	case vehicle_command_ack_s::VEHICLE_CMD_RESULT_IN_PROGRESS:
+		// Fill in the progress percentage field for IN_PROGRESS ack message
+		vcmd_ack.result_param1 = UINT8_MAX;
+		break;
+	}
+
+	vcmd_ack.target_system = target_system;
+	vcmd_ack.target_component = target_component;
+	return _vehicle_command_ack_pub.publish(vcmd_ack);
 }
 
 void PayloadDeliverer::gripper_test()

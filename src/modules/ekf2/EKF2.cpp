@@ -145,6 +145,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_ev_pos_y(_params->ev_pos_body(1)),
 	_param_ekf2_ev_pos_z(_params->ev_pos_body(2)),
 	_param_ekf2_arsp_thr(_params->arsp_thr),
+	_param_ekf2_fuse_beta(_params->beta_fusion_enabled),
 	_param_ekf2_tau_vel(_params->vel_Tau),
 	_param_ekf2_tau_pos(_params->pos_Tau),
 	_param_ekf2_gbias_init(_params->switch_on_gyro_bias),
@@ -531,9 +532,6 @@ void EKF2::Run()
 
 			if (_status_sub.copy(&vehicle_status)) {
 				const bool is_fixed_wing = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
-
-				// only fuse synthetic sideslip measurements if conditions are met
-				_ekf.set_fuse_beta_flag(is_fixed_wing && (_param_ekf2_fuse_beta.get() == 1));
 
 				// let the EKF know if the vehicle motion is that of a fixed wing (forward flight only relative to wind)
 				_ekf.set_is_fixed_wing(is_fixed_wing);

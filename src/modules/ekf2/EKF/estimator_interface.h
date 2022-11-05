@@ -132,9 +132,6 @@ public:
 	// set vehicle is fixed wing status
 	void set_is_fixed_wing(bool is_fixed_wing) { _control_status.flags.fixed_wing = is_fixed_wing; }
 
-	// set flag if synthetic sideslip measurement should be fused
-	void set_fuse_beta_flag(bool fuse_beta) { _control_status.flags.fuse_beta = (fuse_beta && _control_status.flags.in_air); }
-
 	// set flag if static pressure rise due to ground effect is expected
 	// use _params.gnd_effect_deadzone to adjust for expected rise in static pressure
 	// flag will clear after GNDEFFECT_TIMEOUT uSec
