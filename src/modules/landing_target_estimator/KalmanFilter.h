@@ -108,6 +108,7 @@ public:
 	void computeDynamicMatrix(float dt) override {};
 	void computeProcessNoise(float dt) override {};
 	void setTargetAcc(float acc) override {};
+	void setBias(float acc) override {};
 	void setTargetAccVar(float var) override {};
 	void setBiasVar(float var) override {};
 	void setStateBiasVar(float var) override {};
@@ -116,6 +117,8 @@ public:
 
 	float getAcceleration() override { return 0.f; };
 	float getAccVar() override { return 0.f; };
+	float getBias() override { return 0.f; };
+	float getBiasVar() override { return 0.f; };
 
 private:
 	matrix::Vector<float, 2> _state; // state

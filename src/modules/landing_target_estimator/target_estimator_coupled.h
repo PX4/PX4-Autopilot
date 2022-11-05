@@ -68,6 +68,7 @@ public:
 	virtual void setPosition(matrix::Vector<float, 3> posVect) = 0;
 	virtual void setVelocity(matrix::Vector<float, 3> velVect) = 0;
 	virtual void setTargetAcc(matrix::Vector<float, 3> accVect) = 0;
+	virtual void setBias(matrix::Vector<float, 3> biasVarVect) = 0;
 
 	// Init: P_0
 	virtual void setStatePosVar(matrix::Vector<float, 3> posVarVect) = 0;
@@ -79,10 +80,12 @@ public:
 	virtual matrix::Vector<float, 3> getPositionVect() = 0;
 	virtual matrix::Vector<float, 3> getVelocityVect() = 0;
 	virtual matrix::Vector<float, 3> getAccelerationVect() = 0;
+	virtual matrix::Vector<float, 3> getBiasVect() = 0;
 
 	virtual matrix::Vector<float, 3> getPosVarVect() = 0;
 	virtual matrix::Vector<float, 3> getVelVarVect() = 0;
 	virtual matrix::Vector<float, 3> getAccVarVect() = 0;
+	virtual matrix::Vector<float, 3> getBiasVarVect() = 0;
 
 	virtual void setInputAccVar(matrix::Matrix<float, 3, 3> varVect) = 0;
 	virtual void setTargetAccVar(matrix::Matrix<float, 3, 3> varVect) = 0;

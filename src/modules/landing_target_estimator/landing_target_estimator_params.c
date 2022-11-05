@@ -160,7 +160,20 @@ PARAM_DEFINE_FLOAT(LTEST_ACC_T_UNC, 1.0f);
  *
  * @group Landing target Estimator
  */
-PARAM_DEFINE_FLOAT(LTEST_BIAS_UNC, 0.5f);
+PARAM_DEFINE_FLOAT(LTEST_BIAS_UNC, 0.1f);
+
+/**
+ * Bias limit
+ *
+ * Maximal bias between drone GPS and landing target GPS.
+ *
+ * @unit m^2
+ * @min 0.01
+ * @decimal 2
+ *
+ * @group Landing target Estimator
+ */
+PARAM_DEFINE_FLOAT(LTEST_BIAS_LIM, 1.f);
 
 /**
  * Landing target measurement uncertainty for Irlock and uwb sensors

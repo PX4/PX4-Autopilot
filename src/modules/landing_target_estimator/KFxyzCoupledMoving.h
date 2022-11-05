@@ -82,6 +82,7 @@ public:
 	// Init: x_0
 	void setPosition(matrix::Vector<float, 3> posVect) override { _state(0, 0) = posVect(0); _state(1, 0) = posVect(1); _state(2, 0) = posVect(2);};
 	void setVelocity(matrix::Vector<float, 3> velVect) override  { _state(3, 0) = velVect(0); _state(4, 0) = velVect(1); _state(5, 0) = velVect(2);};
+	void setBias(matrix::Vector<float, 3> biasVect) override  { _state(6, 0) = biasVect(0); _state(7, 0) = biasVect(1); _state(8, 0) = biasVect(2);};
 	void setTargetAcc(matrix::Vector<float, 3> accVect) override { _state(9, 0) = accVect(0); _state(10, 0) = accVect(1); _state(11, 0) = accVect(2);};
 
 	// Init: P_0 (assume diagonal)
@@ -93,9 +94,11 @@ public:
 	// Retreive output of filter
 	matrix::Vector<float, 3> getPositionVect() override {matrix::Vector3f pos_vect(_state(0, 0), _state(1, 0), _state(2, 0)); return pos_vect;};
 	matrix::Vector<float, 3> getVelocityVect() override {matrix::Vector3f vel_vect(_state(3, 0), _state(4, 0), _state(5, 0)); return vel_vect;};
+	matrix::Vector<float, 3> getBiasVect() override {matrix::Vector3f bias_vect(_state(6, 0), _state(7, 0), _state(8, 0)); return bias_vect;};
 	matrix::Vector<float, 3> getAccelerationVect() override {matrix::Vector3f acc_vect(_state(9, 0), _state(10, 0), _state(11, 0)); return acc_vect;};
 	matrix::Vector<float, 3> getPosVarVect() override {matrix::Vector3f pos_var_vect(_covariance(0, 0), _covariance(1, 1), _covariance(2, 2)); return pos_var_vect;};
 	matrix::Vector<float, 3> getVelVarVect() override {matrix::Vector3f vel_var_vect(_covariance(3, 3), _covariance(4, 4), _covariance(5, 5)); return vel_var_vect;};
+	matrix::Vector<float, 3> getBiasVarVect() override {matrix::Vector3f bias_var_vect(_covariance(6, 6), _covariance(7, 7), _covariance(8, 8)); return bias_var_vect;};
 	matrix::Vector<float, 3> getAccVarVect() override {matrix::Vector3f acc_var_vect(_covariance(9, 9), _covariance(10, 10), _covariance(11, 11)); return acc_var_vect;};
 
 	void setInputAccVar(matrix::Matrix<float, 3, 3> varVect) override {_input_var = varVect;};

@@ -50,6 +50,7 @@
 
 /*
 	TODO:
+		- Stop the target estimator module once disarmed (we have the nav state)
 		- Complete the landing target MAVLINK message to include measurement covariance matrix
 		- Get drone's acceleration uncertainty
 		- Finish measurement processing: Get mission land point lat/lon
@@ -68,6 +69,7 @@ LandingTargetEstimator::LandingTargetEstimator() :
 	ModuleParams(nullptr)
 {
 	_targetPosePub.advertise();
+	_targetEstimatorStatePub.advertise();
 	_target_estimator_aid_gps_pos_pub.advertise();
 	_target_estimator_aid_gps_vel_pub.advertise();
 	_target_estimator_aid_vision_pub.advertise();
@@ -191,15 +193,14 @@ void LandingTargetEstimator::initEstimator()
 
 	v_rel_init(2) = 0.f;
 
-	PX4_INFO("Vehicle z velocity valid:  %.2f ", (double)vehicle_local_position.vz);
-	PX4_INFO("Vehicle z velocity not:  %.2f ", (double)vehicle_local_position.vz);
-
 	// Define initial acceleration of the target in NED frame. Since we have no info on the target, assume no initial acceleration
 	Vector3f a_init{};
+	Vector3f bias_init{};
 
 	PX4_INFO("Pos init %.2f %.2f %.2f", (double)p_init(0), (double)p_init(1), (double)p_init(2));
 	PX4_INFO("Vel init %.2f %.2f %.2f", (double)v_rel_init(0), (double)v_rel_init(1), (double)v_rel_init(2));
 	PX4_INFO("Acc init %.2f %.2f %.2f", (double)a_init(0), (double)a_init(1), (double)a_init(2));
+	PX4_INFO("Bias init %.2f %.2f %.2f", (double)bias_init(0), (double)bias_init(1), (double)bias_init(2));
 
 	float state_pos_var = _param_ltest_pos_unc_in.get();
 	float state_vel_var = _param_ltest_vel_unc_in.get();
@@ -215,6 +216,7 @@ void LandingTargetEstimator::initEstimator()
 
 		_target_estimator_coupled->setPosition(p_init);
 		_target_estimator_coupled->setVelocity(v_rel_init);
+		_target_estimator_coupled->setBias(bias_init);
 		_target_estimator_coupled->setTargetAcc(a_init);
 
 		_target_estimator_coupled->setStatePosVar(state_pos_var_vect);
@@ -227,6 +229,7 @@ void LandingTargetEstimator::initEstimator()
 		for (int i = 0; i < _nb_position_kf; i++) {
 			_target_estimator[i]->setPosition(p_init(i));
 			_target_estimator[i]->setVelocity(v_rel_init(i));
+			_target_estimator[i]->setBias(bias_init(i));
 			_target_estimator[i]->setTargetAcc(a_init(i));
 
 			_target_estimator[i]->setStatePosVar(state_pos_var_vect(i));
@@ -482,40 +485,75 @@ void LandingTargetEstimator::publishInnovations()
 
 void LandingTargetEstimator::publishTarget()
 {
+	target_estimator_state_s target_estimator_state{};
+
 	//TODO: Update target_pose msg to add orientation: target_pose.rel_orientation_valid -- target_pose.theta_rel -- target_pose.cov_theta_rel
 	landing_target_pose_s target_pose{};
 
 	target_pose.timestamp = _last_predict;
+	target_estimator_state.timestamp = _last_predict;
 	target_pose.is_static = (_target_mode == TargetMode::Stationary);
 
 	bool target_valid = (hrt_absolute_time() - _last_update < landing_target_valid_TIMEOUT_US);
 
 	// TODO: have _last_update_pos ; _last_update_vel ; _last_update_orientation
 	target_pose.rel_pos_valid = target_valid;
-	target_pose.rel_vel_valid = target_valid;
+
+	// TODO: eventually set to true, but for testing we don't want to use the target as an external source of velocity in the EKF
+	target_pose.rel_vel_valid = false;
 	// target_pose.rel_orientation_valid = target_valid;
 
 	if (_target_model == TargetModel::FullPoseCoupled) {
 
+		// Fill target pose
 		Vector3f pos_vect = _target_estimator_coupled->getPositionVect();
 		target_pose.x_rel = pos_vect(0);
 		target_pose.y_rel = pos_vect(1);
 		target_pose.z_rel = pos_vect(2);
-
-		Vector3f cov_pos_vect = _target_estimator_coupled->getPosVarVect();
-		target_pose.cov_x_rel = cov_pos_vect(0);
-		target_pose.cov_y_rel = cov_pos_vect(1);
-		target_pose.cov_z_rel = cov_pos_vect(2);
 
 		Vector3f vel_vect = _target_estimator_coupled->getVelocityVect();
 		target_pose.vx_rel = vel_vect(0);
 		target_pose.vy_rel = vel_vect(1);
 		target_pose.vz_rel = vel_vect(2);
 
+		// Fill target estimator state
+		target_estimator_state.x_rel = pos_vect(0);
+		target_estimator_state.y_rel = pos_vect(1);
+		target_estimator_state.z_rel = pos_vect(2);
+
+		Vector3f cov_pos_vect = _target_estimator_coupled->getPosVarVect();
+		target_estimator_state.cov_x_rel = cov_pos_vect(0);
+		target_estimator_state.cov_y_rel = cov_pos_vect(1);
+		target_estimator_state.cov_z_rel = cov_pos_vect(2);
+
+		target_estimator_state.vx_rel = vel_vect(0);
+		target_estimator_state.vy_rel = vel_vect(1);
+		target_estimator_state.vz_rel = vel_vect(2);
+
 		Vector3f cov_vel_vect = _target_estimator_coupled->getVelVarVect();
-		target_pose.cov_vx_rel = cov_vel_vect(0);
-		target_pose.cov_vy_rel = cov_vel_vect(1);
-		target_pose.cov_vz_rel = cov_vel_vect(2);
+		target_estimator_state.cov_vx_rel = cov_vel_vect(0);
+		target_estimator_state.cov_vy_rel = cov_vel_vect(1);
+		target_estimator_state.cov_vz_rel = cov_vel_vect(2);
+
+		Vector3f bias_vect = _target_estimator_coupled->getVelocityVect();
+		target_estimator_state.x_bias = bias_vect(0);
+		target_estimator_state.y_bias = bias_vect(1);
+		target_estimator_state.z_bias = bias_vect(2);
+
+		Vector3f cov_bias_vect = _target_estimator_coupled->getVelVarVect();
+		target_estimator_state.cov_x_bias = cov_bias_vect(0);
+		target_estimator_state.cov_y_bias = cov_bias_vect(1);
+		target_estimator_state.cov_z_bias = cov_bias_vect(2);
+
+		Vector3f acc_target_vect = _target_estimator_coupled->getAccelerationVect();
+		target_estimator_state.ax_target = acc_target_vect(0);
+		target_estimator_state.ay_target = acc_target_vect(1);
+		target_estimator_state.az_target = acc_target_vect(2);
+
+		Vector3f cov_acc_target_vect = _target_estimator_coupled->getAccVarVect();
+		target_estimator_state.cov_ax_target = cov_acc_target_vect(0);
+		target_estimator_state.cov_ay_target = cov_acc_target_vect(1);
+		target_estimator_state.cov_az_target = cov_acc_target_vect(2);
 
 	} else {
 		// This should eventually be removed
@@ -530,22 +568,47 @@ void LandingTargetEstimator::publishTarget()
 			}
 		}
 
+		// Fill target pose
 		target_pose.x_rel = _target_estimator[x]->getPosition();
 		target_pose.y_rel = _target_estimator[y]->getPosition();
 		target_pose.z_rel = _nb_position_kf > 2 ? _target_estimator[z]->getPosition() : rel_z;
-
-		target_pose.cov_x_rel = _target_estimator[x]->getPosVar();
-		target_pose.cov_y_rel = _target_estimator[y]->getPosVar();
-		target_pose.cov_z_rel = _nb_position_kf > 2 ? _target_estimator[z]->getPosVar() : 0.f;
-
 
 		target_pose.vx_rel = _target_estimator[x]->getVelocity();
 		target_pose.vy_rel = _target_estimator[y]->getVelocity();
 		target_pose.vz_rel = _nb_position_kf > 2 ? _target_estimator[z]->getVelocity() : 0.f;
 
-		target_pose.cov_vx_rel = _target_estimator[x]->getVelVar();
-		target_pose.cov_vy_rel = _target_estimator[y]->getVelVar();
-		target_pose.cov_vz_rel = _nb_position_kf > 2 ? _target_estimator[z]->getVelVar() : 0.f;
+		// Fill target estimator state
+		target_estimator_state.x_rel = _target_estimator[x]->getPosition();
+		target_estimator_state.y_rel = _target_estimator[y]->getPosition();
+		target_estimator_state.z_rel = _nb_position_kf > 2 ? _target_estimator[z]->getPosition() : rel_z;
+
+		target_estimator_state.cov_x_rel = _target_estimator[x]->getPosVar();
+		target_estimator_state.cov_y_rel = _target_estimator[y]->getPosVar();
+		target_estimator_state.cov_z_rel = _nb_position_kf > 2 ? _target_estimator[z]->getPosVar() : 0.f;
+
+		target_estimator_state.vx_rel = _target_estimator[x]->getVelocity();
+		target_estimator_state.vy_rel = _target_estimator[y]->getVelocity();
+		target_estimator_state.vz_rel = _nb_position_kf > 2 ? _target_estimator[z]->getVelocity() : 0.f;
+
+		target_estimator_state.cov_vx_rel = _target_estimator[x]->getVelVar();
+		target_estimator_state.cov_vy_rel = _target_estimator[y]->getVelVar();
+		target_estimator_state.cov_vz_rel = _nb_position_kf > 2 ? _target_estimator[z]->getVelVar() : 0.f;
+
+		target_estimator_state.x_bias = _target_estimator[x]->getBias();
+		target_estimator_state.y_bias = _target_estimator[y]->getBias();
+		target_estimator_state.z_bias = _nb_position_kf > 2 ? _target_estimator[z]->getBias() : 0.f;
+
+		target_estimator_state.cov_x_bias = _target_estimator[x]->getBiasVar();
+		target_estimator_state.cov_y_bias = _target_estimator[y]->getBiasVar();
+		target_estimator_state.cov_z_bias = _nb_position_kf > 2 ? _target_estimator[z]->getBiasVar() : 0.f;
+
+		target_estimator_state.ax_target = _target_estimator[x]->getAcceleration();
+		target_estimator_state.ay_target = _target_estimator[y]->getAcceleration();
+		target_estimator_state.az_target = _nb_position_kf > 2 ? _target_estimator[z]->getAcceleration() : 0.f;
+
+		target_estimator_state.cov_ax_target = _target_estimator[x]->getAccVar();
+		target_estimator_state.cov_ay_target = _target_estimator[y]->getAccVar();
+		target_estimator_state.cov_az_target = _nb_position_kf > 2 ? _target_estimator[z]->getAccVar() : 0.f;
 	}
 
 	// TODO: eventually uncomment
@@ -564,6 +627,18 @@ void LandingTargetEstimator::publishTarget()
 	}
 
 	_targetPosePub.publish(target_pose);
+	_targetEstimatorStatePub.publish(target_estimator_state);
+
+	float bias_lim = _param_ltest_bias_lim.get();
+
+	if (_target_model != TargetModel::Horizontal && (fabs(target_estimator_state.x_bias) > bias_lim
+			|| fabs(target_estimator_state.y_bias) > bias_lim || fabs(target_estimator_state.z_bias) > bias_lim)) {
+		PX4_WARN("Bias exceeds limit.");
+		PX4_WARN("Bias exceeds limit: %.2f bias x: %.2f bias y: %.2f bias z: %.2f", (double)bias_lim,
+			 (double)target_estimator_state.x_bias, (double)target_estimator_state.y_bias, (double)target_estimator_state.z_bias);
+		// _estimator_initialized = false;
+	}
+
 }
 
 void LandingTargetEstimator::_check_params(const bool force)
@@ -593,29 +668,51 @@ void LandingTargetEstimator::_update_topics(accInput *input)
 	bool vehicle_local_position_valid = _vehicleLocalPositionSub.update(&vehicle_local_position);
 	bool vehicle_attitude_valid = _attitudeSub.update(&vehicle_attitude);
 	bool vehicle_acceleration_valid = _vehicle_acceleration_sub.update(&vehicle_acceleration);
+	bool pos_sp_triplet_valid = _pos_sp_triplet_sub.update(&pos_sp_triplet);
+
+	// Update nav state
+	if (_vehicle_status_sub.update(&vehicle_status)) {
+		_nave_state = vehicle_status.nav_state;
+	}
+
+	if (!_start_detection && pos_sp_triplet_valid) {
+		_start_detection = (pos_sp_triplet.next.type == position_setpoint_s::SETPOINT_TYPE_LAND);
+
+		if (_start_detection) {
+			PX4_INFO("Set point triplet of next wp when starting detection:  %.2f %.2f %.2f", (double)(pos_sp_triplet.next.lat),
+				 (double)(pos_sp_triplet.next.lon), (double)(pos_sp_triplet.next.alt));
+		}
+	}
 
 	if (_ltest_aid_mask & SensorFusionMask::USE_MISSION_POS) {
-
-		// Update nav state
-		if (_vehicle_status_sub.update(&vehicle_status)) {
-			_nave_state = vehicle_status.nav_state;
-		}
-
 		// Get landing target from mission:
-		if (!_landing_pos.valid && _pos_sp_triplet_sub.update(&pos_sp_triplet)) {
+		if (!_landing_pos.valid && pos_sp_triplet_valid) {
+			// TODO: do we want to start at the land sp or the sp before?
 			if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
-				_landing_pos.lat = (int)(pos_sp_triplet.next.lat * 1e7);
-				_landing_pos.lon = (int)(pos_sp_triplet.next.lon * 1e7);
-				_landing_pos.alt = pos_sp_triplet.next.alt * 1000.f;
+				_landing_pos.lat = (int)(pos_sp_triplet.current.lat * 1e7);
+				_landing_pos.lon = (int)(pos_sp_triplet.current.lon * 1e7);
+				_landing_pos.alt = pos_sp_triplet.current.alt * 1000.f;
 				_landing_pos.valid = (_landing_pos.lat != 0 && _landing_pos.lon != 0);
+
+				// Debug, will eventually be removed
+				PX4_INFO("Landing pos used:  %.2f %.2f %.2f", (double)(pos_sp_triplet.current.lat),
+					 (double)(pos_sp_triplet.current.lon), (double)(pos_sp_triplet.current.alt));
+				PX4_INFO("Landing pos next sp:  %.2f %.2f %.2f", (double)(pos_sp_triplet.next.lat), (double)(pos_sp_triplet.next.lon),
+					 (double)(pos_sp_triplet.next.alt));
 			}
 		}
 	}
 
+	// Init the estimator when landing is the next setpoint
+	if (!_start_detection) {return;};
+
 	// To save stack space, only use x,y,z,valid as global variables (_local_pos is used when the target is published)
 	_local_pos.x = vehicle_local_position.x;
+
 	_local_pos.y = vehicle_local_position.y;
+
 	_local_pos.z = vehicle_local_position.z;
+
 	_local_pos.valid = (vehicle_local_position_valid && vehicle_local_position.xy_valid);
 
 	Dcmf R_att;
@@ -909,8 +1006,9 @@ void LandingTargetEstimator::_update_topics(accInput *input)
 	}
 
 	// TODO: might need to create a class variable with (vehicle_gps_position.timestamp_sample, pos_valid, lat, lon, alt, eph, epv, vel_ned_valid, vel_n, vel_e, vel_d, vel_var).
-	/* Measurement requiering GPS observation*/
-	if (_vehicle_gps_position_sub.update(&vehicle_gps_position)) {
+	/* Measurement requiering GPS observation, only start when landing*/
+	if (_nave_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND
+	    && _vehicle_gps_position_sub.update(&vehicle_gps_position)) {
 
 		/* TARGET GPS SENSOR measures [rx + bx, ry + by, rz + bz] */
 		if ((_target_model == TargetModel::FullPoseDecoupled || _target_model == TargetModel::FullPoseCoupled)
@@ -1171,6 +1269,7 @@ void LandingTargetEstimator::updateParams()
 		return;
 	}
 
+	// TODO: check if this should be above in the function.
 	ModuleParams::updateParams();
 }
 

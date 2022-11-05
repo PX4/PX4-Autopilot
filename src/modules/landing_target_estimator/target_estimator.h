@@ -63,10 +63,10 @@ public:
 	virtual void computeProcessNoise(float dt) = 0;
 
 	// Init: x_0
-	//TODO: Rename with "Init": setInitPosition
 	virtual void setPosition(float pos) = 0;
 	virtual void setVelocity(float vel) = 0;
 	virtual void setTargetAcc(float acc) = 0;
+	virtual void setBias(float bias) = 0;
 
 	// Init: P_0
 	virtual void setStatePosVar(float var) = 0;
@@ -77,10 +77,12 @@ public:
 	// Retreive output of filter
 	virtual float getPosition() { return 0.f; };
 	virtual float getVelocity() { return 0.f; };
+	virtual float getBias() { return 0.f; };
 	virtual float getAcceleration() { return 0.f; };
 
 	virtual float getPosVar() { return 0.f; };
 	virtual float getVelVar() { return 0.f; };
+	virtual float getBiasVar() { return 0.f; };
 	virtual float getAccVar() { return 0.f; };
 
 	virtual void setInputAccVar(float var) = 0;

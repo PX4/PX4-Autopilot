@@ -55,7 +55,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/irlock_report.h>
 #include <uORB/topics/landing_target_pose.h>
-#include <uORB/topics/landing_target_innovations.h>
+#include <uORB/topics/target_estimator_state.h>
 #include <uORB/topics/uwb_distance.h>
 #include <uORB/topics/uwb_grid.h>
 #include <uORB/topics/estimator_sensor_bias.h>
@@ -122,6 +122,7 @@ protected:
 	static constexpr uint32_t measurement_valid_TIMEOUT_US = 2000000;
 
 	uORB::Publication<landing_target_pose_s> _targetPosePub{ORB_ID(landing_target_pose)};
+	uORB::Publication<target_estimator_state_s> _targetEstimatorStatePub{ORB_ID(target_estimator_state)};
 
 	// publish innovations target_estimator_gps_pos
 	uORB::Publication<estimator_aid_source_3d_s> _target_estimator_aid_gps_pos_pub{ORB_ID(target_estimator_aid_gps_pos)};
@@ -139,6 +140,7 @@ protected:
 
 private:
 
+	bool _start_detection = false;
 	uint8_t _nave_state = 0;
 
 	enum class TargetMode {
@@ -269,6 +271,7 @@ private:
 		(ParamFloat<px4::params::LTEST_GPS_T_UNC>) _param_ltest_gps_t_unc,
 		(ParamFloat<px4::params::LTEST_ACC_D_UNC>) _param_ltest_acc_d_unc,
 		(ParamFloat<px4::params::LTEST_ACC_T_UNC>) _param_ltest_acc_t_unc,
+		(ParamFloat<px4::params::LTEST_BIAS_LIM>) _param_ltest_bias_lim,
 		(ParamFloat<px4::params::LTEST_BIAS_UNC>) _param_ltest_bias_unc,
 		(ParamFloat<px4::params::LTEST_MEAS_UNC>) _param_ltest_meas_unc,
 		(ParamFloat<px4::params::LTEST_POS_UNC_IN>) _param_ltest_pos_unc_in,

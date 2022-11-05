@@ -82,6 +82,7 @@ public:
 	// Init: x_0
 	void setPosition(float pos) override { _state(0, 0) = pos; };
 	void setVelocity(float vel) override { _state(1, 0) = vel; };
+	void setBias(float bias) override { _state(2, 0) = bias; };
 	void setTargetAcc(float acc) override { _state(3, 0) = acc; };
 
 	// Init: P_0
@@ -93,10 +94,12 @@ public:
 	// Retreive output of filter
 	float getPosition() override { return _state(0, 0); };
 	float getVelocity() override { return _state(1, 0); };
+	float getBias() override { return _state(2, 0); };
 	float getAcceleration() override { return _state(3, 0); };
 
 	float getPosVar() override { return _covariance(0, 0); };
 	float getVelVar() override { return _covariance(1, 1); };
+	float getBiasVar() override { return _covariance(2, 2); };
 	float getAccVar() override { return _covariance(3, 3); };
 
 	void setInputAccVar(float var) override { _input_var = var;};
