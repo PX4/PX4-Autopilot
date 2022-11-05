@@ -35,6 +35,7 @@
  * @file landing_target_estimator_params.c
  * Landing target estimator algorithm parameters.
  *
+ * @author Jonas Perolini <jonspero@me.com>
  * @author Nicolas de Palezieux (Sunflower Labs) <ndepal@gmail.com>
  * @author Mohammed Kabir <kabir@uasys.io>
  *
@@ -77,8 +78,8 @@ PARAM_DEFINE_INT32(LTEST_AID_MASK, 8);
  *
  * Configure the mode of the landing target. Depending on the mode, the landing target observations are used differently to aid position estimation.
  *
- * Mode Moving:     The landing target may be moving around while in the field of view of the vehicle. Landing target measurements are not used to aid positioning.
- * Mode Stationary: The landing target is stationary. Measured velocity w.r.t. the landing target is used to aid velocity estimation.
+ * Mode Moving:     The landing target may be moving around. Drone's GPS velocity measurements are not used to aid target estimation.
+ * Mode Stationary: The landing target is stationary, therefore the relative velocity between the drone and the target is the velocity of the drone. The drone's GPS velocity can be used to aid target estimation.
  *
  * @min 0
  * @max 1
@@ -91,11 +92,11 @@ PARAM_DEFINE_INT32(LTEST_MODE, 0);
 /**
  * Landing target model
  *
- * Configure the mode of the landing target. Depending on the mode, the landing target observations are used differently to aid position estimation.
+ * Configure the Kalman Filter model used to predict the state of the filter.
  *
- * Mode Full pose:  x,y,z,theta decoupled
- * Mode single filter: [x,y,z] coupled, theta
- * Mode Horizontal: x,y decoupled
+ * Mode Full pos decoupled:  x,y,z,theta decoupled
+ * Mode Full pose coupled: [x,y,z] coupled, theta
+ * Mode Horizontal position: x,y decoupled
  *
  * @min 0
  * @max 2
@@ -110,15 +111,15 @@ PARAM_DEFINE_INT32(LTEST_MODEL, 2);
  * Target GPS position uncertainty
  *
  *
- * @unit (m/s^2)^2
+ * @unit m^2
  * @min 0.01
  * @decimal 2
  *
  * @group Landing target Estimator
  */
-PARAM_DEFINE_FLOAT(LTEST_GPS_T_UNC, 10.0f);
+PARAM_DEFINE_FLOAT(LTEST_GPS_T_UNC, 1.0f);
 
-//TODO: the acc uncertainty should come from the IMUs or the EKF
+//TODO: the acc uncertainty should come from the IMUs eventually
 /**
  * Drone acceleration uncertainty
  *
@@ -131,7 +132,7 @@ PARAM_DEFINE_FLOAT(LTEST_GPS_T_UNC, 10.0f);
  *
  * @group Landing target Estimator
  */
-PARAM_DEFINE_FLOAT(LTEST_ACC_D_UNC, 10.0f);
+PARAM_DEFINE_FLOAT(LTEST_ACC_D_UNC, 1.0f);
 
 /**
  * Target acceleration uncertainty
@@ -145,7 +146,7 @@ PARAM_DEFINE_FLOAT(LTEST_ACC_D_UNC, 10.0f);
  *
  * @group Landing target Estimator
  */
-PARAM_DEFINE_FLOAT(LTEST_ACC_T_UNC, 10.0f);
+PARAM_DEFINE_FLOAT(LTEST_ACC_T_UNC, 1.0f);
 
 /**
  * Bias uncertainty
@@ -153,16 +154,16 @@ PARAM_DEFINE_FLOAT(LTEST_ACC_T_UNC, 10.0f);
  * Variance of GPS bias used for landing target position prediction.
  * Higher values results in tighter following of the measurements and more lenient outlier rejection
  *
- * @unit (m/s^2)^2
+ * @unit m^2
  * @min 0.01
  * @decimal 2
  *
  * @group Landing target Estimator
  */
-PARAM_DEFINE_FLOAT(LTEST_BIAS_UNC, 10.0f);
+PARAM_DEFINE_FLOAT(LTEST_BIAS_UNC, 0.5f);
 
 /**
- * Landing target measurement uncertainty
+ * Landing target measurement uncertainty for Irlock and uwb sensors
  *
  * Variance of the landing target measurement from the driver.
  * Higher values result in less aggressive following of the measurement and a smoother output as well as fewer rejected measurements.
@@ -175,7 +176,7 @@ PARAM_DEFINE_FLOAT(LTEST_BIAS_UNC, 10.0f);
 PARAM_DEFINE_FLOAT(LTEST_MEAS_UNC, 0.005f);
 
 /**
- * Initial landing target - drone relative position uncertainty
+ * Initial landing target and drone relative position uncertainty
  *
  * Initial variance of the relative landing target position in x,y,z direction
  *
@@ -185,10 +186,10 @@ PARAM_DEFINE_FLOAT(LTEST_MEAS_UNC, 0.005f);
  *
  * @group Landing target Estimator
  */
-PARAM_DEFINE_FLOAT(LTEST_POS_UNC_IN, 0.1f);
+PARAM_DEFINE_FLOAT(LTEST_POS_UNC_IN, 0.5f);
 
 /**
- * Initial landing target - drone relative velocity uncertainty
+ * Initial landing target and drone relative velocity uncertainty
  *
  * Initial variance of the relative landing target velocity in x,y,z directions
  *
@@ -198,27 +199,27 @@ PARAM_DEFINE_FLOAT(LTEST_POS_UNC_IN, 0.1f);
  *
  * @group Landing target Estimator
  */
-PARAM_DEFINE_FLOAT(LTEST_VEL_UNC_IN, 0.1f);
+PARAM_DEFINE_FLOAT(LTEST_VEL_UNC_IN, 0.5f);
 
 /**
  * Initial GPS bias uncertainty
  *
  * Initial variance of the bias between the GPS on the target and the GPS on the drone
  *
- * @unit (m/s)^2
+ * @unit m^2
  * @min 0.001
  * @decimal 3
  *
  * @group Landing target Estimator
  */
-PARAM_DEFINE_FLOAT(LTEST_BIA_UNC_IN, 0.1f);
+PARAM_DEFINE_FLOAT(LTEST_BIA_UNC_IN, 1.0f);
 
 /**
  * Initial landing target absolute acceleration uncertainty
  *
  * Initial variance of the relative landing target acceleration in x,y,z directions
  *
- * @unit (m/s)^2
+ * @unit (m/s^2)^2
  * @min 0.001
  * @decimal 3
  *
