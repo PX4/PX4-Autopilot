@@ -121,7 +121,7 @@ MspOsd::MspOsd(const char *device) :
 	strcpy(_device, device);
 
 	// _is_initialized = true;
-	PX4_INFO("MSP OSD prepared to run on %s", _device);
+	PX4_INFO("MSP OSD running on %s", _device);
 }
 
 MspOsd::~MspOsd()
@@ -504,10 +504,10 @@ int MspOsd::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-Msp OSD!
+MSP telemetry streamer
 
 ### Implementation
-Does the things for the DJI Air Unit OSD
+Converts uORB messages to MSP telemetry packets
 
 ### Examples
 CLI usage example:
