@@ -492,7 +492,7 @@ void Navigator::run()
 					set_cruising_speed(cmd.param2,cmd.param1);
 
 				} else {
-					set_cruising_speed();
+					set_cruising_speed(cmd.param2);
 
 					/* if no speed target was given try to set throttle */
 					if (cmd.param3 > FLT_EPSILON) {
