@@ -285,6 +285,7 @@ void Navigator::run()
 						rep->current.cruising_speed = get_cruising_speed();
 						rep->current.vertical_up_speed = get_cruising_speed(2); //2
 						rep->current.vertical_down_speed = get_cruising_speed(3); //3
+
 					} else {
 						rep->current.cruising_speed = cmd.param1;
 					}
@@ -496,7 +497,7 @@ void Navigator::run()
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_CHANGE_SPEED) {
 				if (cmd.param2 > FLT_EPSILON) {
 					// XXX not differentiating ground and airspeed yet
-					set_cruising_speed(cmd.param2,cmd.param1);
+					set_cruising_speed(cmd.param2, cmd.param1);
 
 				} else {
 					set_cruising_speed(cmd.param2);
@@ -1037,12 +1038,15 @@ float Navigator::get_cruising_speed(uint8_t type)
 	/* there are three options: The mission-requested cruise speed, or the current hover / plane speed */
 	if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 
-		if(type==0 || type==1){
+		if (type == 0 || type == 1) {
 			return (_mission_cruising_speed_mc > 0.0f) ? _mission_cruising_speed_mc : -1.0f;
-		} else if (type==2) {
+
+		} else if (type == 2) {
 			return (_mission_vertical_up_speed_mc > 0.0f) ? _mission_vertical_up_speed_mc : -1.0f;
-		} else if (type==3) {
+
+		} else if (type == 3) {
 			return (_mission_vertical_down_speed_mc > 0.0f) ? _mission_vertical_down_speed_mc : -1.0f;
+
 		} else {
 			return -1.0f;
 		}
@@ -1063,11 +1067,13 @@ void Navigator::set_cruising_speed(float speed, uint8_t type)
 	if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 
 		//airspeed or groundspeed (does not differentiate currently)
-		if(type == 0 || type == 1){
+		if (type == 0 || type == 1) {
 			_mission_cruising_speed_mc = speed;
-		} else if(type == 2) {
+
+		} else if (type == 2) {
 			_mission_vertical_up_speed_mc = speed;
-		} else if(type == 3){
+
+		} else if (type == 3) {
 			_mission_vertical_down_speed_mc = speed;
 		}
 

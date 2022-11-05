@@ -812,7 +812,8 @@ void FlightTaskAuto::_updateTrajConstraints()
 		float z_accel_constraint = _param_mpc_acc_up_max.get();
 
 		float z_vel_constraint = _param_mpc_z_v_auto_up.get();
-		if(_mc_vertical_up_speed > 0){
+
+		if (_mc_vertical_up_speed > 0) {
 			z_vel_constraint = math::min(_mc_vertical_up_speed, z_vel_constraint);
 		}
 
@@ -836,7 +837,7 @@ void FlightTaskAuto::_updateTrajConstraints()
 	} else { // down
 		float z_vel_constraint = _param_mpc_z_v_auto_dn.get();
 
-		if(_mc_vertical_down_speed > 0){
+		if (_mc_vertical_down_speed > 0) {
 			z_vel_constraint = math::min(_mc_vertical_down_speed, z_vel_constraint);
 		}
 
