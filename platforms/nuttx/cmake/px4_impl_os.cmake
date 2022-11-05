@@ -69,6 +69,8 @@ function(px4_os_add_flags)
 
 	add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-fno-sized-deallocation>)
 
+	add_compile_options($<$<COMPILE_LANGUAGE:C>:-Wbad-function-cast>)
+
 	add_definitions(
 		-D__PX4_NUTTX
 

@@ -105,6 +105,19 @@ VtolAttitudeControl::init()
 	return true;
 }
 
+void VtolAttitudeControl::vehicle_status_poll()
+{
+	_vehicle_status_sub.copy(&_vehicle_status);
+
+	// abort front transition when RTL is triggered
+	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL
+	    && _nav_state_prev != vehicle_status_s::NAVIGATION_STATE_AUTO_RTL && _vtol_type->get_mode() == mode::TRANSITION_TO_FW) {
+		_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+	}
+
+	_nav_state_prev = _vehicle_status.nav_state;
+}
+
 void VtolAttitudeControl::action_request_poll()
 {
 	while (_action_request_sub.updated()) {
@@ -132,8 +145,6 @@ void VtolAttitudeControl::vehicle_cmd_poll()
 
 	while (_vehicle_cmd_sub.update(&vehicle_command)) {
 		if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION) {
-			vehicle_status_s vehicle_status{};
-			_vehicle_status_sub.copy(&vehicle_status);
 
 			uint8_t result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
@@ -141,10 +152,10 @@ void VtolAttitudeControl::vehicle_cmd_poll()
 
 			// deny transition from MC to FW in Takeoff, Land, RTL and Orbit
 			if (transition_command_param1 == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW &&
-			    (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF
-			     || vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND
-			     || vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL
-			     ||  vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_ORBIT)) {
+			    (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF
+			     || _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND
+			     || _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL
+			     ||  _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_ORBIT)) {
 
 				result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 
@@ -309,6 +320,7 @@ VtolAttitudeControl::Run()
 		_airspeed_validated_sub.update(&_airspeed_validated);
 		_tecs_status_sub.update(&_tecs_status);
 		_land_detected_sub.update(&_land_detected);
+		vehicle_status_poll();
 		action_request_poll();
 		vehicle_cmd_poll();
 

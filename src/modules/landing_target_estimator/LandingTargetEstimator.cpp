@@ -263,8 +263,7 @@ void LandingTargetEstimator::_update_topics()
 			return;
 		}
 
-		if (!PX4_ISFINITE((float)_uwbDistance.position[0]) || !PX4_ISFINITE((float)_uwbDistance.position[1]) ||
-		    !PX4_ISFINITE((float)_uwbDistance.position[2])) {
+		if (!matrix::Vector3f(_uwbDistance.position).isAllFinite()) {
 			PX4_WARN("Position is corrupt!");
 			return;
 		}

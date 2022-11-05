@@ -41,6 +41,8 @@ px4_add_module(
 	INCLUDES
 		${CMAKE_BINARY_DIR}/mavlink
 		${CMAKE_BINARY_DIR}/mavlink/development
+		${CMAKE_BINARY_DIR}/mavlink/common
+		${CMAKE_BINARY_DIR}/mavlink/standard
 	SRCS
 		SimulatorMavlink.cpp
 		SimulatorMavlink.hpp

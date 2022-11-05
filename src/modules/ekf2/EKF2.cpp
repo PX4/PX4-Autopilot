@@ -714,6 +714,9 @@ void EKF2::PublishAidSourceStatus(const hrt_abstime &timestamp)
 	// airspeed
 	PublishAidSourceStatus(_ekf.aid_src_airspeed(), _status_airspeed_pub_last, _estimator_aid_src_airspeed_pub);
 
+	// sideslip
+	PublishAidSourceStatus(_ekf.aid_src_sideslip(), _status_sideslip_pub_last, _estimator_aid_src_sideslip_pub);
+
 	// baro height
 	PublishAidSourceStatus(_ekf.aid_src_baro_hgt(), _status_baro_hgt_pub_last, _estimator_aid_src_baro_hgt_pub);
 
@@ -724,13 +727,17 @@ void EKF2::PublishAidSourceStatus(const hrt_abstime &timestamp)
 	PublishAidSourceStatus(_ekf.aid_src_fake_pos(), _status_fake_pos_pub_last, _estimator_aid_src_fake_pos_pub);
 	PublishAidSourceStatus(_ekf.aid_src_fake_hgt(), _status_fake_hgt_pub_last, _estimator_aid_src_fake_hgt_pub);
 
-	// EV yaw
+	// external vision (EV) hgt/pos/vel/yaw
+	PublishAidSourceStatus(_ekf.aid_src_ev_hgt(), _status_ev_hgt_pub_last, _estimator_aid_src_ev_hgt_pub);
+	PublishAidSourceStatus(_ekf.aid_src_ev_pos(), _status_ev_pos_pub_last, _estimator_aid_src_ev_pos_pub);
+	PublishAidSourceStatus(_ekf.aid_src_ev_vel(), _status_ev_vel_pub_last, _estimator_aid_src_ev_vel_pub);
 	PublishAidSourceStatus(_ekf.aid_src_ev_yaw(), _status_ev_yaw_pub_last, _estimator_aid_src_ev_yaw_pub);
 
-	// GNSS yaw/velocity/position
-	PublishAidSourceStatus(_ekf.aid_src_gnss_yaw(), _status_gnss_yaw_pub_last, _estimator_aid_src_gnss_yaw_pub);
-	PublishAidSourceStatus(_ekf.aid_src_gnss_vel(), _status_gnss_vel_pub_last, _estimator_aid_src_gnss_vel_pub);
+	// GNSS hgt/pos/vel/yaw
+	PublishAidSourceStatus(_ekf.aid_src_gnss_hgt(), _status_gnss_hgt_pub_last, _estimator_aid_src_gnss_hgt_pub);
 	PublishAidSourceStatus(_ekf.aid_src_gnss_pos(), _status_gnss_pos_pub_last, _estimator_aid_src_gnss_pos_pub);
+	PublishAidSourceStatus(_ekf.aid_src_gnss_vel(), _status_gnss_vel_pub_last, _estimator_aid_src_gnss_vel_pub);
+	PublishAidSourceStatus(_ekf.aid_src_gnss_yaw(), _status_gnss_yaw_pub_last, _estimator_aid_src_gnss_yaw_pub);
 
 	// mag heading
 	PublishAidSourceStatus(_ekf.aid_src_mag_heading(), _status_mag_heading_pub_last, _estimator_aid_src_mag_heading_pub);
@@ -740,6 +747,9 @@ void EKF2::PublishAidSourceStatus(const hrt_abstime &timestamp)
 
 	// aux velocity
 	PublishAidSourceStatus(_ekf.aid_src_aux_vel(), _status_aux_vel_pub_last, _estimator_aid_src_aux_vel_pub);
+
+	// optical flow
+	PublishAidSourceStatus(_ekf.aid_src_optical_flow(), _status_optical_flow_pub_last, _estimator_aid_src_optical_flow_pub);
 }
 
 void EKF2::PublishAttitude(const hrt_abstime &timestamp)
@@ -765,7 +775,7 @@ void EKF2::PublishAttitude(const hrt_abstime &timestamp)
 
 void EKF2::PublishBaroBias(const hrt_abstime &timestamp)
 {
-	if (_device_id_baro != 0) {
+	if (_ekf.aid_src_baro_hgt().timestamp_sample != 0) {
 		const BiasEstimator::status &status = _ekf.getBaroBiasEstimatorStatus();
 
 		if (fabsf(status.bias - _last_baro_bias_published) > 0.001f) {
@@ -779,34 +789,40 @@ void EKF2::PublishBaroBias(const hrt_abstime &timestamp)
 
 void EKF2::PublishGnssHgtBias(const hrt_abstime &timestamp)
 {
-	const BiasEstimator::status &status = _ekf.getGpsHgtBiasEstimatorStatus();
+	if (_ekf.get_gps_sample_delayed().time_us != 0) {
+		const BiasEstimator::status &status = _ekf.getGpsHgtBiasEstimatorStatus();
 
-	if (fabsf(status.bias - _last_gnss_hgt_bias_published) > 0.001f) {
-		_estimator_gnss_hgt_bias_pub.publish(fillEstimatorBiasMsg(status, _ekf.get_gps_sample_delayed().time_us, timestamp));
+		if (fabsf(status.bias - _last_gnss_hgt_bias_published) > 0.001f) {
+			_estimator_gnss_hgt_bias_pub.publish(fillEstimatorBiasMsg(status, _ekf.get_gps_sample_delayed().time_us, timestamp));
 
-		_last_gnss_hgt_bias_published = status.bias;
+			_last_gnss_hgt_bias_published = status.bias;
+		}
 	}
 }
 
 void EKF2::PublishRngHgtBias(const hrt_abstime &timestamp)
 {
-	const BiasEstimator::status &status = _ekf.getRngHgtBiasEstimatorStatus();
+	if (_ekf.get_rng_sample_delayed().time_us != 0) {
+		const BiasEstimator::status &status = _ekf.getRngHgtBiasEstimatorStatus();
 
-	if (fabsf(status.bias - _last_rng_hgt_bias_published) > 0.001f) {
-		_estimator_rng_hgt_bias_pub.publish(fillEstimatorBiasMsg(status, _ekf.get_rng_sample_delayed().time_us, timestamp));
+		if (fabsf(status.bias - _last_rng_hgt_bias_published) > 0.001f) {
+			_estimator_rng_hgt_bias_pub.publish(fillEstimatorBiasMsg(status, _ekf.get_rng_sample_delayed().time_us, timestamp));
 
-		_last_rng_hgt_bias_published = status.bias;
+			_last_rng_hgt_bias_published = status.bias;
+		}
 	}
 }
 
 void EKF2::PublishEvHgtBias(const hrt_abstime &timestamp)
 {
-	const BiasEstimator::status &status = _ekf.getEvHgtBiasEstimatorStatus();
+	if (_ekf.get_ev_sample_delayed().time_us != 0) {
+		const BiasEstimator::status &status = _ekf.getEvHgtBiasEstimatorStatus();
 
-	if (fabsf(status.bias - _last_ev_hgt_bias_published) > 0.001f) {
-		_estimator_ev_hgt_bias_pub.publish(fillEstimatorBiasMsg(status, _ekf.get_ev_sample_delayed().time_us, timestamp));
+		if (fabsf(status.bias - _last_ev_hgt_bias_published) > 0.001f) {
+			_estimator_ev_hgt_bias_pub.publish(fillEstimatorBiasMsg(status, _ekf.get_ev_sample_delayed().time_us, timestamp));
 
-		_last_ev_hgt_bias_published = status.bias;
+			_last_ev_hgt_bias_published = status.bias;
+		}
 	}
 }
 
@@ -815,7 +831,7 @@ estimator_bias_s EKF2::fillEstimatorBiasMsg(const BiasEstimator::status &status,
 {
 	estimator_bias_s bias{};
 	bias.timestamp_sample = timestamp_sample_us;
-	bias.baro_device_id = device_id;
+	bias.device_id = device_id;
 	bias.bias = status.bias;
 	bias.bias_var = status.bias_var;
 	bias.innov = status.innov;
@@ -1518,9 +1534,12 @@ void EKF2::PublishWindEstimate(const hrt_abstime &timestamp)
 
 void EKF2::PublishOpticalFlowVel(const hrt_abstime &timestamp)
 {
-	if (_ekf.getFlowCompensated().longerThan(0.f)) {
+	const hrt_abstime timestamp_sample = _ekf.aid_src_optical_flow().timestamp_sample;
+
+	if ((timestamp_sample != 0) && (timestamp_sample > _status_optical_flow_pub_last)) {
+
 		vehicle_optical_flow_vel_s flow_vel{};
-		flow_vel.timestamp_sample = _ekf.get_imu_sample_delayed().time_us;
+		flow_vel.timestamp_sample = _ekf.aid_src_optical_flow().timestamp_sample;
 
 		_ekf.getFlowVelBody().copyTo(flow_vel.vel_body);
 		_ekf.getFlowVelNE().copyTo(flow_vel.vel_ne);
@@ -1645,8 +1664,8 @@ void EKF2::UpdateAuxVelSample(ekf2_timestamps_s &ekf2_timestamps)
 			// velocity of vehicle relative to target has opposite sign to target relative to vehicle
 			auxVelSample auxvel_sample{
 				.time_us = landing_target_pose.timestamp,
-				.vel = Vector3f{-landing_target_pose.vx_rel, -landing_target_pose.vy_rel, NAN},
-				.velVar = Vector3f{landing_target_pose.cov_vx_rel, landing_target_pose.cov_vy_rel, NAN},
+				.vel = Vector2f{-landing_target_pose.vx_rel, -landing_target_pose.vy_rel},
+				.velVar = Vector2f{landing_target_pose.cov_vx_rel, landing_target_pose.cov_vy_rel},
 			};
 			_ekf.setAuxVelData(auxvel_sample);
 		}
@@ -1722,7 +1741,7 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps, vehicle_odo
 		// if error estimates are unavailable, use parameter defined defaults
 
 		// check for valid velocity data
-		if (PX4_ISFINITE(ev_odom.velocity[0]) && PX4_ISFINITE(ev_odom.velocity[1]) && PX4_ISFINITE(ev_odom.velocity[2])) {
+		if (Vector3f(ev_odom.velocity).isAllFinite()) {
 			bool velocity_valid = true;
 
 			switch (ev_odom.velocity_frame) {
@@ -1751,11 +1770,7 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps, vehicle_odo
 				const float evv_noise_var = sq(_param_ekf2_evv_noise.get());
 
 				// velocity measurement error from ev_data or parameters
-				if (!_param_ekf2_ev_noise_md.get() &&
-				    PX4_ISFINITE(ev_odom.velocity_variance[0]) &&
-				    PX4_ISFINITE(ev_odom.velocity_variance[1]) &&
-				    PX4_ISFINITE(ev_odom.velocity_variance[2])) {
-
+				if (!_param_ekf2_ev_noise_md.get() && Vector3f(ev_odom.velocity_variance).isAllFinite()) {
 					ev_data.velVar(0) = fmaxf(evv_noise_var, ev_odom.velocity_variance[0]);
 					ev_data.velVar(1) = fmaxf(evv_noise_var, ev_odom.velocity_variance[1]);
 					ev_data.velVar(2) = fmaxf(evv_noise_var, ev_odom.velocity_variance[2]);
@@ -1769,8 +1784,7 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps, vehicle_odo
 		}
 
 		// check for valid position data
-		if (PX4_ISFINITE(ev_odom.position[0]) && PX4_ISFINITE(ev_odom.position[1]) && PX4_ISFINITE(ev_odom.position[2])) {
-
+		if (Vector3f(ev_odom.position).isAllFinite()) {
 			bool position_valid = true;
 
 			// switch (ev_odom.pose_frame) {
@@ -1795,11 +1809,7 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps, vehicle_odo
 				const float evp_noise_var = sq(_param_ekf2_evp_noise.get());
 
 				// position measurement error from ev_data or parameters
-				if (!_param_ekf2_ev_noise_md.get() &&
-				    PX4_ISFINITE(ev_odom.position_variance[0]) &&
-				    PX4_ISFINITE(ev_odom.position_variance[1]) &&
-				    PX4_ISFINITE(ev_odom.position_variance[2])
-				   ) {
+				if (!_param_ekf2_ev_noise_md.get() && Vector3f(ev_odom.position_variance).isAllFinite()) {
 					ev_data.posVar(0) = fmaxf(evp_noise_var, ev_odom.position_variance[0]);
 					ev_data.posVar(1) = fmaxf(evp_noise_var, ev_odom.position_variance[1]);
 					ev_data.posVar(2) = fmaxf(evp_noise_var, ev_odom.position_variance[2]);
@@ -1813,8 +1823,7 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps, vehicle_odo
 		}
 
 		// check for valid orientation data
-		if ((PX4_ISFINITE(ev_odom.q[0]) && PX4_ISFINITE(ev_odom.q[1])
-		     && PX4_ISFINITE(ev_odom.q[2]) && PX4_ISFINITE(ev_odom.q[3]))
+		if ((Quatf(ev_odom.q).isAllFinite())
 		    && ((fabsf(ev_odom.q[0]) > 0.f) || (fabsf(ev_odom.q[1]) > 0.f)
 			|| (fabsf(ev_odom.q[2]) > 0.f) || (fabsf(ev_odom.q[3]) > 0.f))
 		   ) {
@@ -1877,9 +1886,7 @@ bool EKF2::UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps)
 			.quality = optical_flow.quality,
 		};
 
-		if (PX4_ISFINITE(optical_flow.pixel_flow[0]) &&
-		    PX4_ISFINITE(optical_flow.pixel_flow[1]) &&
-		    flow.dt < 1) {
+		if (Vector2f(optical_flow.pixel_flow).isAllFinite() && flow.dt < 1) {
 
 			// Save sensor limits reported by the optical flow sensor
 			_ekf.set_optical_flow_limits(optical_flow.max_flow_rate, optical_flow.min_ground_distance,

@@ -51,13 +51,13 @@ bool FlightTaskFailsafe::update()
 {
 	bool ret = FlightTask::update();
 
-	if (PX4_ISFINITE(_position(0)) && PX4_ISFINITE(_position(1))) {
+	if (matrix::Vector2f(_position).isAllFinite()) {
 		// stay at current position setpoint
 		_velocity_setpoint(0) = _velocity_setpoint(1) = 0.f;
 		_acceleration_setpoint(0) = _acceleration_setpoint(1) = 0.f;
 
-	} else if (PX4_ISFINITE(_velocity(0)) && PX4_ISFINITE(_velocity(1))) {
-		// don't move along xy
+	} else if (matrix::Vector2f(_velocity).isAllFinite()) {
+		// don't move horizontally
 		_position_setpoint(0) = _position_setpoint(1) = NAN;
 		_acceleration_setpoint(0) = _acceleration_setpoint(1) = NAN;
 	}

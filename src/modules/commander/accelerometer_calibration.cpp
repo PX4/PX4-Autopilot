@@ -558,11 +558,7 @@ int do_accel_calibration_quick(orb_advert_t *mavlink_log_pub)
 
 			calibration::Accelerometer calibration{arp.device_id};
 
-			if (!calibrated || (offset.norm() > CONSTANTS_ONE_G)
-			    || !PX4_ISFINITE(offset(0))
-			    || !PX4_ISFINITE(offset(1))
-			    || !PX4_ISFINITE(offset(2))) {
-
+			if (!calibrated || (offset.norm() > CONSTANTS_ONE_G) || !offset.isAllFinite()) {
 				PX4_ERR("accel %d quick calibrate failed", accel_index);
 
 			} else {

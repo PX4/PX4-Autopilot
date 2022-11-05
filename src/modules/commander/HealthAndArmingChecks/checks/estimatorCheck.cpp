@@ -102,7 +102,7 @@ void EstimatorChecks::checkAndReport(const Context &context, Report &reporter)
 		}
 	}
 
-	if (missing_data) {
+	if (missing_data && _param_sys_mc_est_group.get() == 2) {
 		/* EVENT
 		 */
 		reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
@@ -119,11 +119,11 @@ void EstimatorChecks::checkAndReport(const Context &context, Report &reporter)
 	}
 
 	// set mode requirements
-	const bool condition_gps_position_was_valid = reporter.failsafeFlags().gps_position_valid;
+	const bool condition_gps_position_was_valid = !reporter.failsafeFlags().gps_position_invalid;
 	setModeRequirementFlags(context, pre_flt_fail_innov_heading, pre_flt_fail_innov_vel_horiz, lpos, vehicle_gps_position,
 				reporter.failsafeFlags());
 
-	if (condition_gps_position_was_valid && !reporter.failsafeFlags().gps_position_valid) {
+	if (condition_gps_position_was_valid && reporter.failsafeFlags().gps_position_invalid) {
 		gpsNoLongerValid(context, reporter);
 	}
 }
@@ -131,7 +131,7 @@ void EstimatorChecks::checkAndReport(const Context &context, Report &reporter)
 void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &reporter,
 		const estimator_status_s &estimator_status, NavModes required_groups)
 {
-	if (estimator_status.pre_flt_fail_innov_heading) {
+	if (!context.isArmed() && estimator_status.pre_flt_fail_innov_heading) {
 		/* EVENT
 		 */
 		reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
@@ -142,29 +142,29 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: heading estimate not stable");
 		}
 
-	} else if (estimator_status.pre_flt_fail_innov_vel_horiz) {
+	} else if (!context.isArmed() && estimator_status.pre_flt_fail_innov_vel_horiz) {
 		/* EVENT
 		 */
 		reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
 					    events::ID("check_estimator_hor_vel_not_stable"),
-					    events::Log::Error, "Horizontal velocity estimate not stable");
+					    events::Log::Error, "Horizontal velocity unstable");
 
 		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: horizontal velocity estimate not stable");
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: horizontal velocity unstable");
 		}
 
-	} else if (estimator_status.pre_flt_fail_innov_vel_vert) {
+	} else if (!context.isArmed() && estimator_status.pre_flt_fail_innov_vel_vert) {
 		/* EVENT
 		 */
 		reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
 					    events::ID("check_estimator_vert_vel_not_stable"),
-					    events::Log::Error, "Vertical velocity estimate not stable");
+					    events::Log::Error, "Vertical velocity unstable");
 
 		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: vertical velocity estimate not stable");
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: vertical velocity unstable");
 		}
 
-	} else if (estimator_status.pre_flt_fail_innov_height) {
+	} else if (!context.isArmed() && estimator_status.pre_flt_fail_innov_height) {
 		/* EVENT
 		 */
 		reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
@@ -177,7 +177,9 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 	}
 
 
-	if ((_param_com_arm_mag_str.get() >= 1) && estimator_status.pre_flt_fail_mag_field_disturbed) {
+	if ((_param_com_arm_mag_str.get() >= 1)
+	    && (!context.isArmed() && estimator_status.pre_flt_fail_mag_field_disturbed)) {
+
 		NavModes required_groups_mag = required_groups;
 
 		if (_param_com_arm_mag_str.get() != 1) {
@@ -192,15 +194,15 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 		 */
 		reporter.armingCheckFailure(required_groups_mag, health_component_t::local_position_estimate,
 					    events::ID("check_estimator_mag_interference"),
-					    events::Log::Warning, "Strong magnetic interference detected");
+					    events::Log::Warning, "Strong magnetic interference");
 
 		if (reporter.mavlink_log_pub()) {
-			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Strong magnetic interference detected");
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Strong magnetic interference");
 		}
 	}
 
 	// check vertical position innovation test ratio
-	if (estimator_status.hgt_test_ratio > _param_com_arm_ekf_hgt.get()) {
+	if (!context.isArmed() && (estimator_status.hgt_test_ratio > _param_com_arm_ekf_hgt.get())) {
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
@@ -219,7 +221,7 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 	}
 
 	// check velocity innovation test ratio
-	if (estimator_status.vel_test_ratio > _param_com_arm_ekf_vel.get()) {
+	if (!context.isArmed() && (estimator_status.vel_test_ratio > _param_com_arm_ekf_vel.get())) {
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
@@ -238,7 +240,7 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 	}
 
 	// check horizontal position innovation test ratio
-	if (estimator_status.pos_test_ratio > _param_com_arm_ekf_pos.get()) {
+	if (!context.isArmed() && (estimator_status.pos_test_ratio > _param_com_arm_ekf_pos.get())) {
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
@@ -257,7 +259,7 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 	}
 
 	// check magnetometer innovation test ratio
-	if (estimator_status.mag_test_ratio > _param_com_arm_ekf_yaw.get()) {
+	if (!context.isArmed() && (estimator_status.mag_test_ratio > _param_com_arm_ekf_yaw.get())) {
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
@@ -276,7 +278,7 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 	}
 
 	// If GPS aiding is required, declare fault condition if the required GPS quality checks are failing
-	if (_param_sys_has_gps.get()) {
+	if (!context.isArmed() && _param_sys_has_gps.get()) {
 		const bool ekf_gps_fusion = estimator_status.control_mode_flags & (1 << estimator_status_s::CS_GPS);
 		const bool ekf_gps_check_fail = estimator_status.gps_check_fail_flags > 0;
 
@@ -604,12 +606,11 @@ void EstimatorChecks::checkEstimatorStatusFlags(const Context &context, Report &
 					_time_last_innov_pass = now;
 
 					// if nav status is unconfirmed, confirm yaw angle as passed after 30 seconds or achieving 5 m/s of speed
-					const bool sufficient_time = context.status().takeoff_time != 0
-								     && now - context.status().takeoff_time > 30_s;
+					const bool sufficient_time = (context.status().takeoff_time != 0) && (now > context.status().takeoff_time + 30_s);
 					const bool sufficient_speed = matrix::Vector2f(lpos.vx, lpos.vy).longerThan(5.f);
 
 					// Even if the test already failed, allow it to pass if it did not fail during the last 10 seconds
-					if (now - _time_last_innov_fail > 10_s && (sufficient_time || sufficient_speed)) {
+					if ((now > _time_last_innov_fail + 10_s) && (sufficient_time || sufficient_speed)) {
 						_nav_test_passed = true;
 						_nav_test_failed = false;
 					}
@@ -617,16 +618,16 @@ void EstimatorChecks::checkEstimatorStatusFlags(const Context &context, Report &
 				} else if (innovation_fail) {
 					_time_last_innov_fail = now;
 
-					if (now - _time_last_innov_pass > 2_s) {
+					if (now > _time_last_innov_pass + 2_s) {
 						// if the innovation test has failed continuously, declare the nav as failed
 						_nav_test_failed = true;
 						/* EVENT
 						 * @description
 						 * Land and recalibrate the sensors.
 						 */
-						reporter.armingCheckFailure(NavModes::All, health_component_t::local_position_estimate,
-									    events::ID("check_estimator_nav_failure"),
-									    events::Log::Emergency, "Navigation failure");
+						reporter.healthFailure(NavModes::All, health_component_t::local_position_estimate,
+								       events::ID("check_estimator_nav_failure"),
+								       events::Log::Emergency, "Navigation failure");
 
 						if (reporter.mavlink_log_pub()) {
 							mavlink_log_critical(reporter.mavlink_log_pub(), "Navigation failure! Land and recalibrate sensors\t");
@@ -658,7 +659,7 @@ void EstimatorChecks::gpsNoLongerValid(const Context &context, Report &reporter)
 	PX4_DEBUG("GPS no longer valid");
 
 	// report GPS failure if armed and the global position estimate is still valid
-	if (context.isArmed() && reporter.failsafeFlags().global_position_valid) {
+	if (context.isArmed() && !reporter.failsafeFlags().global_position_invalid) {
 		if (reporter.mavlink_log_pub()) {
 			mavlink_log_warning(reporter.mavlink_log_pub(), "GPS no longer valid\t");
 		}
@@ -670,17 +671,16 @@ void EstimatorChecks::gpsNoLongerValid(const Context &context, Report &reporter)
 
 void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_flt_fail_innov_heading,
 		bool pre_flt_fail_innov_vel_horiz,
-		const vehicle_local_position_s &lpos, const sensor_gps_s &vehicle_gps_position, vehicle_status_flags_s &failsafe_flags)
+		const vehicle_local_position_s &lpos, const sensor_gps_s &vehicle_gps_position, failsafe_flags_s &failsafe_flags)
 {
 	// The following flags correspond to mode requirements, and are reported in the corresponding mode checks
-
-	const hrt_abstime now = hrt_absolute_time();
-
 	vehicle_global_position_s gpos;
 
 	if (!_vehicle_global_position_sub.copy(&gpos)) {
 		gpos = {};
 	}
+
+	const hrt_abstime now = hrt_absolute_time();
 
 	// run position and velocity accuracy checks
 	// Check if quality checking of position accuracy and consistency is to be performed
@@ -706,26 +706,25 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 		}
 	}
 
-	failsafe_flags.global_position_valid =
-		checkPosVelValidity(now, xy_valid, gpos.eph, _param_com_pos_fs_eph.get(), gpos.timestamp,
-				    _last_gpos_fail_time_us, failsafe_flags.global_position_valid);
+	failsafe_flags.global_position_invalid =
+		!checkPosVelValidity(now, xy_valid, gpos.eph, _param_com_pos_fs_eph.get(), gpos.timestamp,
+				     _last_gpos_fail_time_us, !failsafe_flags.global_position_invalid);
 
-	failsafe_flags.local_position_valid =
-		checkPosVelValidity(now, xy_valid, lpos.eph, _param_com_pos_fs_eph.get(), lpos.timestamp,
-				    _last_lpos_fail_time_us, failsafe_flags.local_position_valid);
+	failsafe_flags.local_position_invalid =
+		!checkPosVelValidity(now, xy_valid, lpos.eph, _param_com_pos_fs_eph.get(), lpos.timestamp,
+				     _last_lpos_fail_time_us, !failsafe_flags.local_position_invalid);
 
-	failsafe_flags.local_position_valid_relaxed =
-		checkPosVelValidity(now, xy_valid, lpos.eph, lpos_eph_threshold_relaxed, lpos.timestamp,
-				    _last_lpos_relaxed_fail_time_us, failsafe_flags.local_position_valid);
+	failsafe_flags.local_position_invalid_relaxed =
+		!checkPosVelValidity(now, xy_valid, lpos.eph, lpos_eph_threshold_relaxed, lpos.timestamp,
+				     _last_lpos_relaxed_fail_time_us, !failsafe_flags.local_position_invalid_relaxed);
 
-	failsafe_flags.local_velocity_valid =
-		checkPosVelValidity(now, v_xy_valid, lpos.evh, _param_com_vel_fs_evh.get(), lpos.timestamp,
-				    _last_lvel_fail_time_us, failsafe_flags.local_velocity_valid);
+	failsafe_flags.local_velocity_invalid =
+		!checkPosVelValidity(now, v_xy_valid, lpos.evh, _param_com_vel_fs_evh.get(), lpos.timestamp,
+				     _last_lvel_fail_time_us, !failsafe_flags.local_velocity_invalid);
 
 
 	// altitude
-	failsafe_flags.local_altitude_valid = lpos.z_valid
-					      && (now - lpos.timestamp < (_param_com_pos_fs_delay.get() * 1_s));
+	failsafe_flags.local_altitude_invalid = !lpos.z_valid || (now > lpos.timestamp + (_param_com_pos_fs_delay.get() * 1_s));
 
 
 	// attitude
@@ -740,26 +739,26 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 							&& (fabsf(q(3)) <= 1.f + eps);
 		const bool norm_in_tolerance = fabsf(1.f - q.norm()) <= eps;
 
-		failsafe_flags.attitude_valid = now - attitude.timestamp < 1_s && norm_in_tolerance && no_element_larger_than_one;
+		failsafe_flags.attitude_invalid = (now > attitude.timestamp + 1_s) || !norm_in_tolerance
+						  || !no_element_larger_than_one;
 
 	} else {
-		failsafe_flags.attitude_valid = false;
+		failsafe_flags.attitude_invalid = true;
 	}
 
 	// angular velocity
 	vehicle_angular_velocity_s angular_velocity{};
 	_vehicle_angular_velocity_sub.copy(&angular_velocity);
 	const bool condition_angular_velocity_time_valid = angular_velocity.timestamp != 0
-			&& now < angular_velocity.timestamp + 1_s;
-	const bool condition_angular_velocity_finite = PX4_ISFINITE(angular_velocity.xyz[0])
-			&& PX4_ISFINITE(angular_velocity.xyz[1]) && PX4_ISFINITE(angular_velocity.xyz[2]);
-	const bool angular_velocity_valid = condition_angular_velocity_time_valid
-					    && condition_angular_velocity_finite;
+			&& (now < angular_velocity.timestamp + 1_s);
+	const bool condition_angular_velocity_finite = matrix::Vector3f(angular_velocity.xyz).isAllFinite();
+	const bool angular_velocity_invalid = !condition_angular_velocity_time_valid
+					      || !condition_angular_velocity_finite;
 
-	if (failsafe_flags.angular_velocity_valid && !angular_velocity_valid) {
+	if (!failsafe_flags.angular_velocity_invalid && angular_velocity_invalid) {
 		const char err_str[] {"angular velocity no longer valid"};
 
-		if (!condition_angular_velocity_time_valid) {
+		if (!condition_angular_velocity_time_valid && angular_velocity.timestamp != 0) {
 			PX4_ERR("%s (timeout)", err_str);
 
 		} else if (!condition_angular_velocity_finite) {
@@ -767,12 +766,12 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 		}
 	}
 
-	failsafe_flags.angular_velocity_valid = angular_velocity_valid;
+	failsafe_flags.angular_velocity_invalid = angular_velocity_invalid;
 
 
 	// gps
 	if (vehicle_gps_position.timestamp != 0) {
-		bool time = now - vehicle_gps_position.timestamp < 1_s;
+		bool time = (now < vehicle_gps_position.timestamp + 1_s);
 
 		bool fix = vehicle_gps_position.fix_type >= 2;
 		bool eph = vehicle_gps_position.eph < _param_com_pos_fs_eph.get();
@@ -781,10 +780,10 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 		bool no_jamming = (vehicle_gps_position.jamming_state != sensor_gps_s::JAMMING_STATE_CRITICAL);
 
 		_vehicle_gps_position_valid.set_state_and_update(time && fix && eph && epv && evh && no_jamming, now);
-		failsafe_flags.gps_position_valid = _vehicle_gps_position_valid.get_state();
+		failsafe_flags.gps_position_invalid = !_vehicle_gps_position_valid.get_state();
 
 	} else {
-		failsafe_flags.gps_position_valid = false;
+		failsafe_flags.gps_position_invalid = true;
 	}
 }
 
@@ -794,8 +793,7 @@ bool EstimatorChecks::checkPosVelValidity(const hrt_abstime &now, const bool dat
 		const bool was_valid) const
 {
 	bool valid = was_valid;
-	const bool data_stale = (now - data_timestamp_us > _param_com_pos_fs_delay.get() * 1_s)
-				|| (data_timestamp_us == 0);
+	const bool data_stale = (now > data_timestamp_us + _param_com_pos_fs_delay.get() * 1_s) || (data_timestamp_us == 0);
 	const float req_accuracy = (was_valid ? required_accuracy * 2.5f : required_accuracy);
 	const bool level_check_pass = data_valid && !data_stale && (data_accuracy < req_accuracy);
 
@@ -803,7 +801,7 @@ bool EstimatorChecks::checkPosVelValidity(const hrt_abstime &now, const bool dat
 	if (level_check_pass) {
 		if (!was_valid) {
 			// check if probation period has elapsed
-			if (now - last_fail_time_us > 1_s) {
+			if (now > last_fail_time_us + 1_s) {
 				valid = true;
 			}
 		}

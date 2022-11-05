@@ -72,6 +72,7 @@ TEST(MatrixAssignmentTest, Assignment)
 	}
 
 	EXPECT_TRUE(m_nan.isAllNan());
+	EXPECT_FALSE(m_nan.isAllFinite());
 
 	float data2d[3][3] = {
 		{1, 2, 3},
@@ -87,6 +88,7 @@ TEST(MatrixAssignmentTest, Assignment)
 	}
 
 	EXPECT_FALSE(m2.isAllNan());
+	EXPECT_TRUE(m2.isAllFinite());
 
 	float data_times_2[9] = {2, 4, 6, 8, 10, 12, 14, 16, 18};
 	Matrix3f m3(data_times_2);

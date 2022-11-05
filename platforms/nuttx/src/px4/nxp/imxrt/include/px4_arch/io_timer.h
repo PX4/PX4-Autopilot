@@ -45,7 +45,11 @@
 #pragma once
 __BEGIN_DECLS
 /* configuration limits */
-#define MAX_IO_TIMERS			4
+#ifdef BOARD_NUM_IO_TIMERS
+#define MAX_IO_TIMERS     BOARD_NUM_IO_TIMERS
+#else
+#define MAX_IO_TIMERS     4
+#endif
 #define MAX_TIMER_IO_CHANNELS	16
 
 #define MAX_LED_TIMERS			2
@@ -78,6 +82,7 @@ typedef uint16_t io_timer_channel_allocation_t; /* big enough to hold MAX_TIMER_
  */
 typedef struct io_timers_t {
 	uint32_t  base;                /* Base address of the timer */
+	uint32_t  submodle;            /* Which Submodule */
 	uint32_t  clock_register;      /* SIM_SCGCn */
 	uint32_t  clock_bit;           /* SIM_SCGCn bit pos */
 	uint32_t  vectorno;            /* IRQ number */

@@ -35,7 +35,6 @@
 
 #include <px4_platform_common/events.h>
 #include <lib/systemlib/mavlink_log.h>
-#include <uORB/topics/commander_state.h>
 #include <uORB/topics/vehicle_command.h>
 
 ManualControl::ManualControl() :
@@ -205,7 +204,7 @@ void ManualControl::Run()
 					if (switches.return_switch != _previous_switches.return_switch) {
 						if (switches.return_switch == manual_control_switches_s::SWITCH_POS_ON) {
 							sendActionRequest(action_request_s::ACTION_SWITCH_MODE, action_request_s::SOURCE_RC_SWITCH,
-									  commander_state_s::MAIN_STATE_AUTO_RTL);
+									  vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
 
 						} else if (switches.return_switch == manual_control_switches_s::SWITCH_POS_OFF) {
 							evaluateModeSlot(switches.mode_slot);
@@ -215,7 +214,7 @@ void ManualControl::Run()
 					if (switches.loiter_switch != _previous_switches.loiter_switch) {
 						if (switches.loiter_switch == manual_control_switches_s::SWITCH_POS_ON) {
 							sendActionRequest(action_request_s::ACTION_SWITCH_MODE, action_request_s::SOURCE_RC_SWITCH,
-									  commander_state_s::MAIN_STATE_AUTO_LOITER);
+									  vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
 
 						} else if (switches.loiter_switch == manual_control_switches_s::SWITCH_POS_OFF) {
 							evaluateModeSlot(switches.mode_slot);
@@ -225,7 +224,7 @@ void ManualControl::Run()
 					if (switches.offboard_switch != _previous_switches.offboard_switch) {
 						if (switches.offboard_switch == manual_control_switches_s::SWITCH_POS_ON) {
 							sendActionRequest(action_request_s::ACTION_SWITCH_MODE, action_request_s::SOURCE_RC_SWITCH,
-									  commander_state_s::MAIN_STATE_OFFBOARD);
+									  vehicle_status_s::NAVIGATION_STATE_OFFBOARD);
 
 						} else if (switches.offboard_switch == manual_control_switches_s::SWITCH_POS_OFF) {
 							evaluateModeSlot(switches.mode_slot);
@@ -364,27 +363,33 @@ void ManualControl::evaluateModeSlot(uint8_t mode_slot)
 		break;
 
 	case manual_control_switches_s::MODE_SLOT_1:
-		sendActionRequest(action_request_s::ACTION_SWITCH_MODE, action_request_s::SOURCE_RC_MODE_SLOT, _param_fltmode_1.get());
+		sendActionRequest(action_request_s::ACTION_SWITCH_MODE, action_request_s::SOURCE_RC_MODE_SLOT,
+				  navStateFromParam(_param_fltmode_1.get()));
 		break;
 
 	case manual_control_switches_s::MODE_SLOT_2:
-		sendActionRequest(action_request_s::ACTION_SWITCH_MODE, action_request_s::SOURCE_RC_MODE_SLOT, _param_fltmode_2.get());
+		sendActionRequest(action_request_s::ACTION_SWITCH_MODE, action_request_s::SOURCE_RC_MODE_SLOT,
+				  navStateFromParam(_param_fltmode_2.get()));
 		break;
 
 	case manual_control_switches_s::MODE_SLOT_3:
-		sendActionRequest(action_request_s::ACTION_SWITCH_MODE, action_request_s::SOURCE_RC_MODE_SLOT, _param_fltmode_3.get());
+		sendActionRequest(action_request_s::ACTION_SWITCH_MODE, action_request_s::SOURCE_RC_MODE_SLOT,
+				  navStateFromParam(_param_fltmode_3.get()));
 		break;
 
 	case manual_control_switches_s::MODE_SLOT_4:
-		sendActionRequest(action_request_s::ACTION_SWITCH_MODE, action_request_s::SOURCE_RC_MODE_SLOT, _param_fltmode_4.get());
+		sendActionRequest(action_request_s::ACTION_SWITCH_MODE, action_request_s::SOURCE_RC_MODE_SLOT,
+				  navStateFromParam(_param_fltmode_4.get()));
 		break;
 
 	case manual_control_switches_s::MODE_SLOT_5:
-		sendActionRequest(action_request_s::ACTION_SWITCH_MODE, action_request_s::SOURCE_RC_MODE_SLOT, _param_fltmode_5.get());
+		sendActionRequest(action_request_s::ACTION_SWITCH_MODE, action_request_s::SOURCE_RC_MODE_SLOT,
+				  navStateFromParam(_param_fltmode_5.get()));
 		break;
 
 	case manual_control_switches_s::MODE_SLOT_6:
-		sendActionRequest(action_request_s::ACTION_SWITCH_MODE, action_request_s::SOURCE_RC_MODE_SLOT, _param_fltmode_6.get());
+		sendActionRequest(action_request_s::ACTION_SWITCH_MODE, action_request_s::SOURCE_RC_MODE_SLOT,
+				  navStateFromParam(_param_fltmode_6.get()));
 		break;
 
 	default:
@@ -518,6 +523,28 @@ Module consuming manual_control_inputs publishing one manual_control_setpoint.
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
+}
+
+int8_t ManualControl::navStateFromParam(int32_t param_value)
+{
+	switch(param_value) {
+		case 0: return vehicle_status_s::NAVIGATION_STATE_MANUAL;
+		case 1: return vehicle_status_s::NAVIGATION_STATE_ALTCTL;
+		case 2: return vehicle_status_s::NAVIGATION_STATE_POSCTL;
+		case 3: return vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
+		case 4: return vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
+		case 5: return vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
+		case 6: return vehicle_status_s::NAVIGATION_STATE_ACRO;
+		case 7: return vehicle_status_s::NAVIGATION_STATE_OFFBOARD;
+		case 8: return vehicle_status_s::NAVIGATION_STATE_STAB;
+		case 10: return vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF;
+		case 11: return vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
+		case 12: return vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET;
+		case 13: return vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND;
+		case 14: return vehicle_status_s::NAVIGATION_STATE_ORBIT;
+		case 15: return vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF;
+	}
+	return -1;
 }
 
 extern "C" __EXPORT int manual_control_main(int argc, char *argv[])

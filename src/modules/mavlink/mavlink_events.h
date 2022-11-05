@@ -132,7 +132,7 @@ public:
 private:
 
 	void send_event(const Event &event) const;
-	void send_current_sequence(const hrt_abstime &now);
+	void send_current_sequence(const hrt_abstime &now, bool force_reset = false);
 
 	static constexpr hrt_abstime current_sequence_interval{3_s};
 
@@ -140,6 +140,7 @@ private:
 	uint16_t _latest_sequence;
 	hrt_abstime _last_current_sequence_sent{0};
 	Mavlink &_mavlink;
+	bool _first_event{true};
 };
 
 

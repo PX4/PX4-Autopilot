@@ -121,7 +121,7 @@ public:
 	void set_vehicle_at_rest(bool at_rest) { _control_status.flags.vehicle_at_rest = at_rest; }
 
 	// return true if the attitude is usable
-	bool attitude_valid() const { return PX4_ISFINITE(_output_new.quat_nominal(0)) && _control_status.flags.tilt_align; }
+	bool attitude_valid() const { return _output_new.quat_nominal.isAllFinite() && _control_status.flags.tilt_align; }
 
 	// get vehicle landed status data
 	bool get_in_air_status() const { return _control_status.flags.in_air; }
@@ -341,11 +341,8 @@ protected:
 
 	// innovation consistency check monitoring ratios
 	AlphaFilter<float> _gnss_yaw_signed_test_ratio_lpf{0.1f}; // average signed test ratio used to detect a bias in the state
-	Vector2f _ev_vel_test_ratio{};		// EV velocity innovation consistency check ratios
-	Vector2f _ev_pos_test_ratio{};		// EV position innovation consistency check ratios
-	float _optflow_test_ratio{};		// Optical flow innovation consistency check ratio
+
 	float _hagl_test_ratio{};		// height above terrain measurement innovation consistency check ratio
-	float _beta_test_ratio{};		// sideslip innovation consistency check ratio
 	Vector2f _drag_test_ratio{};		// drag innovation consistency check ratio
 	innovation_fault_status_u _innov_check_fail_status{};
 
@@ -398,8 +395,6 @@ protected:
 
 	// this is the previous status of the filter control modes - used to detect mode transitions
 	filter_control_status_u _control_status_prev{};
-
-	virtual float compensateBaroForDynamicPressure(const float baro_alt_uncompensated) const = 0;
 
 	// these are used to record single frame events for external monitoring and should NOT be used for
 	// state logic becasue they will be cleared externally after being read.

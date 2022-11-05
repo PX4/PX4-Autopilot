@@ -71,25 +71,44 @@
 
 // Currently working elements positions (hardcoded)
 
+/* center col
+
+Speed Power Alt
+Rssi cell_voltage mah
+craft name
+
+*/
+
 // Left
 const uint16_t osd_gps_lat_pos = 2048;
 const uint16_t osd_gps_lon_pos = 2080;
 const uint16_t osd_gps_sats_pos = 2112;
-const uint16_t osd_rssi_value_pos = 2176;
 
 // Center
-const uint16_t osd_home_dir_pos = 2093;
-const uint16_t osd_craft_name_pos = 2543;
+// Top
 const uint16_t osd_disarmed_pos = 2125;
+const uint16_t osd_home_dir_pos = 2093;
+const uint16_t osd_home_dist_pos = 2095;
+
+// Bottom row 1
+const uint16_t osd_gps_speed_pos = 2413;
+const uint16_t osd_power_pos = 2415;
+const uint16_t osd_altitude_pos = 2416;
+
+// Bottom Row 2
+const uint16_t osd_rssi_value_pos = 2445;
+const uint16_t osd_avg_cell_voltage_pos = 2446;
+const uint16_t osd_mah_drawn_pos = 2449;
+
+// Bottom Row 3
+const uint16_t osd_craft_name_pos = 2480;
 
 // Right
 const uint16_t osd_main_batt_voltage_pos = 2073;
 const uint16_t osd_current_draw_pos = 2103;
-const uint16_t osd_mah_drawn_pos = 2138;
-const uint16_t osd_altitude_pos = 2233;
-const uint16_t osd_numerical_vario_pos = 2267;
-const uint16_t osd_gps_speed_pos = 2299;
-const uint16_t osd_home_dist_pos = 2331;
+
+
+const uint16_t osd_numerical_vario_pos = LOCATION_HIDDEN;
 
 MspOsd::MspOsd(const char *device) :
 	ModuleParams(nullptr),
@@ -147,15 +166,18 @@ void MspOsd::SendConfig()
 	msp_osd_config.osd_numerical_vario_pos = enabled(SymbolIndex::NUMERICAL_VARIO) ? osd_numerical_vario_pos :
 			LOCATION_HIDDEN;
 
+	msp_osd_config.osd_power_pos = enabled(SymbolIndex::POWER) ? osd_power_pos : LOCATION_HIDDEN;
+	msp_osd_config.osd_avg_cell_voltage_pos = enabled(SymbolIndex::AVG_CELL_VOLTAGE) ? osd_avg_cell_voltage_pos :
+			LOCATION_HIDDEN;
+
 	// possibly available, but not currently used
 	msp_osd_config.osd_flymode_pos = 			LOCATION_HIDDEN;
 	msp_osd_config.osd_esc_tmp_pos = 			LOCATION_HIDDEN;
 	msp_osd_config.osd_pitch_angle_pos = 			LOCATION_HIDDEN;
 	msp_osd_config.osd_roll_angle_pos = 			LOCATION_HIDDEN;
 	msp_osd_config.osd_crosshairs_pos = 			LOCATION_HIDDEN;
-	msp_osd_config.osd_avg_cell_voltage_pos = 		LOCATION_HIDDEN;
+
 	msp_osd_config.osd_horizon_sidebars_pos = 		LOCATION_HIDDEN;
-	msp_osd_config.osd_power_pos = 				LOCATION_HIDDEN;
 
 	// Not implemented or not available
 	msp_osd_config.osd_artificial_horizon_pos = 		LOCATION_HIDDEN;

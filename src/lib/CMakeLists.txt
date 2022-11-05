@@ -31,6 +31,7 @@
 #
 ############################################################################
 
+add_subdirectory(adsb)
 add_subdirectory(airspeed)
 add_subdirectory(avoidance)
 add_subdirectory(battery)
@@ -65,6 +66,7 @@ add_subdirectory(systemlib)
 add_subdirectory(system_identification)
 add_subdirectory(tecs)
 add_subdirectory(terrain_estimation)
+add_subdirectory(timesync)
 add_subdirectory(tunes)
 add_subdirectory(version)
 add_subdirectory(weather_vane)

@@ -634,15 +634,15 @@ void SimulatorMavlink::handle_message_odometry(const mavlink_message_t *msg)
 	odom.timestamp_sample = hrt_absolute_time(); // _mavlink_timesync.sync_stamp(odom_in.time_usec);
 
 	// position x/y/z (m)
-	if (PX4_ISFINITE(odom_in.x) && PX4_ISFINITE(odom_in.y) && PX4_ISFINITE(odom_in.z)) {
+	matrix::Vector3f odom_in_p(odom_in.x, odom_in.y, odom_in.z);
+
+	if (odom_in_p.isAllFinite()) {
 		// frame_id: Coordinate frame of reference for the pose data.
 		switch (odom_in.frame_id) {
 		case MAV_FRAME_LOCAL_NED:
 			// NED local tangent frame (x: North, y: East, z: Down) with origin fixed relative to earth.
 			odom.pose_frame = vehicle_odometry_s::POSE_FRAME_NED;
-			odom.position[0] = odom_in.x;
-			odom.position[1] = odom_in.y;
-			odom.position[2] = odom_in.z;
+			odom_in_p.copyTo(odom.position);
 			break;
 
 		case MAV_FRAME_LOCAL_ENU:
@@ -656,9 +656,7 @@ void SimulatorMavlink::handle_message_odometry(const mavlink_message_t *msg)
 		case MAV_FRAME_LOCAL_FRD:
 			// FRD local tangent frame (x: Forward, y: Right, z: Down) with origin fixed relative to earth.
 			odom.pose_frame = vehicle_odometry_s::POSE_FRAME_FRD;
-			odom.position[0] = odom_in.x;
-			odom.position[1] = odom_in.y;
-			odom.position[2] = odom_in.z;
+			odom_in_p.copyTo(odom.position);
 			break;
 
 		case MAV_FRAME_LOCAL_FLU:
@@ -701,11 +699,7 @@ void SimulatorMavlink::handle_message_odometry(const mavlink_message_t *msg)
 	}
 
 	// q: the quaternion of the ODOMETRY msg represents a rotation from body frame to a local frame
-	if (PX4_ISFINITE(odom_in.q[0])
-	    && PX4_ISFINITE(odom_in.q[1])
-	    && PX4_ISFINITE(odom_in.q[2])
-	    && PX4_ISFINITE(odom_in.q[3])) {
-
+	if (matrix::Quatf(odom_in.q).isAllFinite()) {
 		odom.q[0] = odom_in.q[0];
 		odom.q[1] = odom_in.q[1];
 		odom.q[2] = odom_in.q[2];
@@ -722,15 +716,15 @@ void SimulatorMavlink::handle_message_odometry(const mavlink_message_t *msg)
 	}
 
 	// velocity vx/vy/vz (m/s)
-	if (PX4_ISFINITE(odom_in.vx) && PX4_ISFINITE(odom_in.vy) && PX4_ISFINITE(odom_in.vz)) {
+	matrix::Vector3f odom_in_v(odom_in.vx, odom_in.vy, odom_in.vz);
+
+	if (odom_in_v.isAllFinite()) {
 		// child_frame_id: Coordinate frame of reference for the velocity in free space (twist) data.
 		switch (odom_in.child_frame_id) {
 		case MAV_FRAME_LOCAL_NED:
 			// NED local tangent frame (x: North, y: East, z: Down) with origin fixed relative to earth.
 			odom.velocity_frame = vehicle_odometry_s::VELOCITY_FRAME_NED;
-			odom.velocity[0] = odom_in.vx;
-			odom.velocity[1] = odom_in.vy;
-			odom.velocity[2] = odom_in.vz;
+			odom_in_v.copyTo(odom.velocity);
 			break;
 
 		case MAV_FRAME_LOCAL_ENU:
@@ -744,9 +738,7 @@ void SimulatorMavlink::handle_message_odometry(const mavlink_message_t *msg)
 		case MAV_FRAME_LOCAL_FRD:
 			// FRD local tangent frame (x: Forward, y: Right, z: Down) with origin fixed relative to earth.
 			odom.velocity_frame = vehicle_odometry_s::VELOCITY_FRAME_FRD;
-			odom.velocity[0] = odom_in.vx;
-			odom.velocity[1] = odom_in.vy;
-			odom.velocity[2] = odom_in.vz;
+			odom_in_v.copyTo(odom.velocity);
 			break;
 
 		case MAV_FRAME_LOCAL_FLU:
@@ -762,9 +754,7 @@ void SimulatorMavlink::handle_message_odometry(const mavlink_message_t *msg)
 		case MAV_FRAME_BODY_FRD:
 			// FRD local tangent frame (x: Forward, y: Right, z: Down) with origin that travels with vehicle.
 			odom.velocity_frame = vehicle_odometry_s::VELOCITY_FRAME_BODY_FRD;
-			odom.velocity[0] = odom_in.vx;
-			odom.velocity[1] = odom_in.vy;
-			odom.velocity[2] = odom_in.vz;
+			odom_in_v.copyTo(odom.velocity);
 			break;
 
 		default:
@@ -862,10 +852,10 @@ void SimulatorMavlink::handle_message_optical_flow(const mavlink_message_t *msg)
 	sensor_optical_flow.integration_timespan_us = flow.integration_time_us;
 	sensor_optical_flow.quality = flow.quality;
 
-	if (PX4_ISFINITE(flow.integrated_xgyro) && PX4_ISFINITE(flow.integrated_ygyro) && PX4_ISFINITE(flow.integrated_zgyro)) {
-		sensor_optical_flow.delta_angle[0] = flow.integrated_xgyro;
-		sensor_optical_flow.delta_angle[1] = flow.integrated_ygyro;
-		sensor_optical_flow.delta_angle[2] = flow.integrated_zgyro;
+	matrix::Vector3f integrated_gyro(flow.integrated_xgyro, flow.integrated_ygyro, flow.integrated_zgyro);
+
+	if (integrated_gyro.isAllFinite()) {
+		integrated_gyro.copyTo(sensor_optical_flow.delta_angle);
 		sensor_optical_flow.delta_angle_available = true;
 	}
 

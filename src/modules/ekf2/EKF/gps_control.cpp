@@ -52,22 +52,52 @@ void Ekf::controlGpsFusion()
 		const gpsSample &gps_sample{_gps_sample_delayed};
 
 		updateGpsYaw(gps_sample);
-		updateGpsVel(gps_sample);
-		updateGpsPos(gps_sample);
 
 		const bool gps_checks_passing = isTimedOut(_last_gps_fail_us, (uint64_t)5e6);
 		const bool gps_checks_failing = isTimedOut(_last_gps_pass_us, (uint64_t)5e6);
 
 		controlGpsYawFusion(gps_sample, gps_checks_passing, gps_checks_failing);
 
+		// GNSS velocity
+		const float vel_var = sq(math::max(gps_sample.sacc, _params.gps_vel_noise));
+		const Vector3f vel_obs_var(vel_var, vel_var, vel_var * sq(1.5f));
+		updateVelocityAidSrcStatus(gps_sample.time_us,
+					   gps_sample.vel,                                             // observation
+					   vel_obs_var,                                                // observation variance
+					   math::max(_params.gps_vel_innov_gate, 1.f),                 // innovation gate
+					   _aid_src_gnss_vel);
+		_aid_src_gnss_vel.fusion_enabled = (_params.gnss_ctrl & GnssCtrl::VEL);
+
+		// GNSS position
+		// relax the upper observation noise limit which prevents bad GPS perturbing the position estimate
+		float pos_noise = math::max(gps_sample.hacc, _params.gps_pos_noise);
+
+		if (!isOtherSourceOfHorizontalAidingThan(_control_status.flags.gps)) {
+			// if we are not using another source of aiding, then we are reliant on the GPS
+			// observations to constrain attitude errors and must limit the observation noise value.
+			if (pos_noise > _params.pos_noaid_noise) {
+				pos_noise = _params.pos_noaid_noise;
+			}
+		}
+
+		const float pos_var = sq(pos_noise);
+		const Vector2f pos_obs_var(pos_var, pos_var);
+		updateHorizontalPositionAidSrcStatus(gps_sample.time_us,
+						     gps_sample.pos,                             // observation
+						     pos_obs_var,                                // observation variance
+						     math::max(_params.gps_pos_innov_gate, 1.f), // innovation gate
+						     _aid_src_gnss_pos);
+		_aid_src_gnss_pos.fusion_enabled = (_params.gnss_ctrl & GnssCtrl::HPOS);
+
 		// update GSF yaw estimator velocity (basic sanity check on GNSS velocity data)
 		if (gps_checks_passing && !gps_checks_failing) {
-			_yawEstimator.setVelocity(_gps_sample_delayed.vel.xy(), _gps_sample_delayed.sacc);
+			_yawEstimator.setVelocity(gps_sample.vel.xy(), gps_sample.sacc);
 		}
 
 		// Determine if we should use GPS aiding for velocity and horizontal position
 		// To start using GPS we need angular alignment completed, the local NED origin set and GPS data that has not failed checks recently
-		const bool mandatory_conditions_passing = _control_status.flags.tilt_align
+		const bool mandatory_conditions_passing = ((_params.gnss_ctrl & GnssCtrl::HPOS) || (_params.gnss_ctrl & GnssCtrl::VEL))
+				&& _control_status.flags.tilt_align
 				&& _control_status.flags.yaw_align
 				&& _NED_origin_initialised;
 
@@ -79,16 +109,11 @@ void Ekf::controlGpsFusion()
 				if (continuing_conditions_passing
 				    || !isOtherSourceOfHorizontalAidingThan(_control_status.flags.gps)) {
 
-					if (_params.gnss_ctrl & GnssCtrl::VEL) {
-						fuseGpsVel();
-					}
-
-					if ((_params.gnss_ctrl & GnssCtrl::HPOS) || (_params.gnss_ctrl & GnssCtrl::VPOS)) {
-						fuseGpsPos();
-					}
+					fuseVelocity(_aid_src_gnss_vel);
+					fuseHorizontalPosition(_aid_src_gnss_pos);
 
 					if (shouldResetGpsFusion()) {
-						const bool was_gps_signal_lost = isTimedOut(_time_prev_gps_us, 1000000);
+						const bool was_gps_signal_lost = isTimedOut(_time_prev_gps_us, 1'000'000);
 
 						/* A reset is not performed when getting GPS back after a significant period of no data
 						 * because the timeout could have been caused by bad GPS.
@@ -98,26 +123,19 @@ void Ekf::controlGpsFusion()
 						    && _control_status.flags.in_air
 						    && !was_gps_signal_lost
 						    && _ekfgsf_yaw_reset_count < _params.EKFGSF_reset_count_limit
-						    && isTimedOut(_ekfgsf_yaw_reset_time, 5000000)) {
+						    && isTimedOut(_ekfgsf_yaw_reset_time, 5'000'000)) {
 							// The minimum time interval between resets to the EKF-GSF estimate is limited to allow the EKF-GSF time
 							// to improve its estimate if the previous reset was not successful.
 							if (resetYawToEKFGSF()) {
 								ECL_WARN("GPS emergency yaw reset");
 							}
-
-						} else {
-							// use GPS velocity data to check and correct yaw angle if a FW vehicle
-							if (_control_status.flags.fixed_wing && _control_status.flags.in_air) {
-								// if flying a fixed wing aircraft, do a complete reset that includes yaw
-								_mag_yaw_reset_req = true;
-							}
-
-							_warning_events.flags.gps_fusion_timout = true;
-							ECL_WARN("GPS fusion timeout - resetting");
 						}
 
-						resetVelocityToGps(_gps_sample_delayed);
-						resetHorizontalPositionToGps(_gps_sample_delayed);
+						ECL_WARN("GPS fusion timeout, resetting velocity and position");
+						_information_events.flags.reset_vel_to_gps = true;
+						_information_events.flags.reset_pos_to_gps = true;
+						resetVelocityTo(gps_sample.vel, vel_obs_var);
+						resetHorizontalPositionTo(gps_sample.pos, pos_obs_var);
 					}
 
 				} else {
@@ -151,7 +169,20 @@ void Ekf::controlGpsFusion()
 					_inhibit_ev_yaw_use = true;
 
 				} else {
-					startGpsFusion(gps_sample);
+					ECL_INFO("starting GPS fusion");
+					_information_events.flags.starting_gps_fusion = true;
+
+					// reset position
+					_information_events.flags.reset_pos_to_gps = true;
+					resetHorizontalPositionTo(gps_sample.pos, pos_obs_var);
+
+					// when already using another velocity source velocity reset is not necessary
+					if (!isHorizontalAidingActive()) {
+						_information_events.flags.reset_vel_to_gps = true;
+						resetVelocityTo(gps_sample.vel, vel_obs_var);
+					}
+
+					_control_status.flags.gps = true;
 				}
 
 			} else if (gps_checks_passing && !_control_status.flags.yaw_align && (_params.mag_fusion_type == MagFuseType::NONE)) {
@@ -159,8 +190,12 @@ void Ekf::controlGpsFusion()
 				if (resetYawToEKFGSF()) {
 					_information_events.flags.yaw_aligned_to_imu_gps = true;
 					ECL_INFO("Yaw aligned using IMU and GPS");
-					resetVelocityToGps(gps_sample);
-					resetHorizontalPositionToGps(gps_sample);
+
+					ECL_INFO("reset velocity and position to GPS");
+					_information_events.flags.reset_vel_to_gps = true;
+					_information_events.flags.reset_pos_to_gps = true;
+					resetVelocityTo(gps_sample.vel, vel_obs_var);
+					resetHorizontalPositionTo(gps_sample.pos, pos_obs_var);
 				}
 			}
 		}

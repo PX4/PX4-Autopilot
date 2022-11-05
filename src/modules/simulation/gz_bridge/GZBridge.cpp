@@ -80,14 +80,14 @@ int GZBridge::init()
 		if (!_model_pose.empty()) {
 			PX4_INFO("Requested Model Position: %s", _model_pose.c_str());
 
-			std::vector<float> model_pose_v;
+			std::vector<double> model_pose_v;
 
 			std::stringstream ss(_model_pose);
 
 			while (ss.good()) {
 				std::string substr;
 				std::getline(ss, substr, ',');
-				model_pose_v.push_back(std::stof(substr));
+				model_pose_v.push_back(std::stod(substr));
 			}
 
 			while (model_pose_v.size() < 6) {

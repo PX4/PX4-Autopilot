@@ -116,7 +116,7 @@ jobs:
         ls -ls *
       # TODO: deploy graph_px4_sitl.json to S3 px4-travis:Firmware/master/
 
-  micrortps_agent:
+  ROS2_msgs:
     runs-on: ubuntu-latest
     container: px4io/px4-dev-base-focal:2021-09-08
     steps:
@@ -124,34 +124,8 @@ jobs:
       with:
         token: ${{ secrets.ACCESS_TOKEN }}
 
-    - name: microRTPS agent
-      run: |
-        make px4_sitl_rtps
-        git clone https://github.com/PX4/micrortps_agent.git
-        cp -R build/px4_sitl_rtps/src/modules/micrortps_bridge/micrortps_agent/* micrortps_agent
-
-  ROS_msgs:
-    runs-on: ubuntu-latest
-    container: px4io/px4-dev-base-focal:2021-09-08
-    steps:
-    - uses: actions/checkout@v1
-      with:
-        token: ${{ secrets.ACCESS_TOKEN }}
-
-    - name: PX4 ROS msgs
+    - name: PX4 ROS2 msgs
       run: |
         git clone https://github.com/PX4/px4_msgs.git
-        python3 msg/tools/uorb_to_ros_msgs.py msg/ px4_msgs/msg/
-
-  ROS2_bridge:
-    runs-on: ubuntu-latest
-    container: px4io/px4-dev-base-focal:2021-09-08
-    steps:
-    - uses: actions/checkout@v1
-      with:
-        token: ${{ secrets.ACCESS_TOKEN }}
-
-    - name: PX4 ROS2 bridge
-      run: |
-        git clone https://github.com/PX4/px4_ros_com.git
-        ./msg/tools/uorb_to_ros_urtps_topics.py -i msg/tools/urtps_bridge_topics.yaml -o px4_ros_com/templates/urtps_bridge_topics.yaml
+        rm px4_msgs/msg/*.msg
+        cp msg/*.msg px4_msgs/msg/

@@ -64,18 +64,13 @@ bool Sticks::checkAndUpdateStickInputs()
 		_positions_expo(3) = math::expo_deadzone(_positions(3), _param_mpc_yaw_expo.get(),    _param_mpc_hold_dz.get());
 
 		// valid stick inputs are required
-		const bool valid_sticks = PX4_ISFINITE(_positions(0))
-					  && PX4_ISFINITE(_positions(1))
-					  && PX4_ISFINITE(_positions(2))
-					  && PX4_ISFINITE(_positions(3));
-
-		_input_available = valid_sticks;
+		_input_available = _positions.isAllFinite();
 
 	} else {
-		vehicle_status_s vehicle_status;
+		failsafe_flags_s failsafe_flags;
 
-		if (_vehicle_status_sub.update(&vehicle_status)) {
-			if (vehicle_status.rc_signal_lost) {
+		if (_failsafe_flags_sub.update(&failsafe_flags)) {
+			if (failsafe_flags.manual_control_signal_lost) {
 				_input_available = false;
 			}
 		}

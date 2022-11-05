@@ -76,6 +76,7 @@ px4_add_module(
 		SagetechMXS.cpp
 		SagetechMXS.hpp
 	DEPENDS
+		adsb
 		px4_work_queue
 	MODULE_CONFIG
 		module.yaml

@@ -1833,6 +1833,11 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 #endif // !CONSTRAINED_FLASH
 		break;
 
+	case MAVLINK_MODE_UAVIONIX:
+		configure_stream_local("UAVIONIX_ADSB_OUT_CFG", 0.1f);
+		configure_stream_local("UAVIONIX_ADSB_OUT_DYNAMIC", 5.0f);
+		break;
+
 	default:
 		ret = -1;
 		break;
@@ -2045,6 +2050,9 @@ Mavlink::task_main(int argc, char *argv[])
 
 					} else if (strcmp(myoptarg, "onboard_low_bandwidth") == 0) {
 						_mode = MAVLINK_MODE_ONBOARD_LOW_BANDWIDTH;
+
+					} else if (strcmp(myoptarg, "uavionix") == 0) {
+						_mode = MAVLINK_MODE_UAVIONIX;
 
 					} else {
 						PX4_ERR("invalid mode");
@@ -2313,9 +2321,12 @@ Mavlink::task_main(int argc, char *argv[])
 		}
 
 
-		// vehicle_command
+		// MAVLINK_MODE_IRIDIUM: handle VEHICLE_CMD_CONTROL_HIGH_LATENCY
 		if (_mode == MAVLINK_MODE_IRIDIUM) {
-			while (_vehicle_command_sub.updated()) {
+			int vehicle_command_updates = 0;
+
+			while (_vehicle_command_sub.updated() && (vehicle_command_updates < vehicle_command_s::ORB_QUEUE_LENGTH)) {
+				vehicle_command_updates++;
 				const unsigned last_generation = _vehicle_command_sub.get_last_generation();
 				vehicle_command_s vehicle_cmd;
 
@@ -3304,7 +3315,7 @@ $ mavlink stream -u 14556 -s HIGHRES_IMU -r 50
 	PRINT_MODULE_USAGE_PARAM_INT('o', 14550, 0, 65536, "Select UDP Network Port (remote)", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('t', "127.0.0.1", nullptr, "Partner IP (broadcasting can be enabled via -p flag)", true);
 #endif
-	PRINT_MODULE_USAGE_PARAM_STRING('m', "normal", "custom|camera|onboard|osd|magic|config|iridium|minimal|extvision|extvisionmin|gimbal",
+	PRINT_MODULE_USAGE_PARAM_STRING('m', "normal", "custom|camera|onboard|osd|magic|config|iridium|minimal|extvision|extvisionmin|gimbal|uavionix",
 					"Mode: sets default streams and rates", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('n', nullptr, "<interface_name>", "wifi/ethernet interface name", true);
 #if defined(CONFIG_NET_IGMP) && defined(CONFIG_NET_ROUTE)

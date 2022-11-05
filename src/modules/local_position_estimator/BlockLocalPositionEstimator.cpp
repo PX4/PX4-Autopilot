@@ -581,9 +581,8 @@ void BlockLocalPositionEstimator::publishLocalPos()
 	}
 
 	// publish local position
-	if (PX4_ISFINITE(_x(X_x)) && PX4_ISFINITE(_x(X_y)) && PX4_ISFINITE(_x(X_z)) &&
-	    PX4_ISFINITE(_x(X_vx)) && PX4_ISFINITE(_x(X_vy))
-	    && PX4_ISFINITE(_x(X_vz))) {
+	if (Vector3f(_x(X_x), _x(X_y), _x(X_z)).isAllFinite() &&
+	    Vector3f(_x(X_vx), _x(X_vy), _x(X_vz)).isAllFinite()) {
 		_pub_lpos.get().timestamp_sample = _timeStamp;
 
 		_pub_lpos.get().xy_valid = _estimatorInitialized & EST_XY;
@@ -644,10 +643,8 @@ void BlockLocalPositionEstimator::publishOdom()
 	const Vector<float, n_x> &xLP = _xLowPass.getState();
 
 	// publish vehicle odometry
-	if (PX4_ISFINITE(_x(X_x)) && PX4_ISFINITE(_x(X_y)) && PX4_ISFINITE(_x(X_z)) &&
-	    PX4_ISFINITE(_x(X_vx)) && PX4_ISFINITE(_x(X_vy))
-	    && PX4_ISFINITE(_x(X_vz))) {
-
+	if (Vector3f(_x(X_x), _x(X_y), _x(X_z)).isAllFinite() &&
+	    Vector3f(_x(X_vx), _x(X_vy), _x(X_vz)).isAllFinite()) {
 		_pub_odom.get().timestamp_sample = _timeStamp;
 		_pub_odom.get().pose_frame = vehicle_odometry_s::POSE_FRAME_NED;
 
@@ -795,8 +792,7 @@ void BlockLocalPositionEstimator::publishGlobalPos()
 	}
 
 	if (PX4_ISFINITE(lat) && PX4_ISFINITE(lon) && PX4_ISFINITE(alt) &&
-	    PX4_ISFINITE(xLP(X_vx)) && PX4_ISFINITE(xLP(X_vy)) &&
-	    PX4_ISFINITE(xLP(X_vz))) {
+	    Vector3f(xLP(X_vx), xLP(X_vy), xLP(X_vz)).isAllFinite()) {
 		_pub_gpos.get().timestamp_sample = _timeStamp;
 		_pub_gpos.get().lat = lat;
 		_pub_gpos.get().lon = lon;

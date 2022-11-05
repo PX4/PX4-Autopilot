@@ -259,11 +259,8 @@ fi
 
 navigator start
 
-# Try to start the micrortps_client with UDP transport if module exists
-if px4-micrortps_client status > /dev/null 2>&1
-then
-	. px4-rc.rtps
-fi
+# Try to start the microdds_client with UDP transport if module exists
+microdds_client start -t udp -p 8888
 
 if param greater -s MNT_MODE_IN -1
 then

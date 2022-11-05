@@ -96,7 +96,7 @@ parameters:
             category: System
             type: float
             default: 0.0
-            unit: m
+            unit: m/s^2
             volatile: true
             num_instances: *max_num_sensor_instances
             instance_start: 0
@@ -107,7 +107,7 @@ parameters:
             category: System
             type: float
             default: 0.0
-            unit: m
+            unit: m/s^2
             volatile: true
             num_instances: *max_num_sensor_instances
             instance_start: 0
@@ -118,7 +118,7 @@ parameters:
             category: System
             type: float
             default: 0.0
-            unit: m
+            unit: m/s^2
             volatile: true
             num_instances: *max_num_sensor_instances
             instance_start: 0
@@ -288,7 +288,7 @@ parameters:
             category: System
             type: float
             default: 0.0
-            unit: m
+            unit: rad/s
             volatile: true
             num_instances: *max_num_sensor_instances
             instance_start: 0
@@ -299,7 +299,7 @@ parameters:
             category: System
             type: float
             default: 0.0
-            unit: m
+            unit: rad/s
             volatile: true
             num_instances: *max_num_sensor_instances
             instance_start: 0
@@ -310,7 +310,7 @@ parameters:
             category: System
             type: float
             default: 0.0
-            unit: m
+            unit: rad/s
             volatile: true
             num_instances: *max_num_sensor_instances
             instance_start: 0
@@ -405,7 +405,7 @@ parameters:
             category: System
             type: float
             default: 0.0
-            unit: m
+            unit: gauss
             volatile: true
             num_instances: *max_num_sensor_instances
             instance_start: 0
@@ -416,7 +416,7 @@ parameters:
             category: System
             type: float
             default: 0.0
-            unit: m
+            unit: gauss
             volatile: true
             num_instances: *max_num_sensor_instances
             instance_start: 0
@@ -427,7 +427,7 @@ parameters:
             category: System
             type: float
             default: 0.0
-            unit: m
+            unit: gauss
             volatile: true
             num_instances: *max_num_sensor_instances
             instance_start: 0

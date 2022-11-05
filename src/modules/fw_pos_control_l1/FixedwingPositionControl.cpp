@@ -231,7 +231,7 @@ FixedwingPositionControl::vehicle_command_poll()
 		if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_GO_AROUND) {
 			// only abort landing before point of no return (horizontal and vertical)
 			if (_control_mode.flag_control_auto_enabled &&
-			    _pos_sp_triplet.current.valid &&
+			    _position_setpoint_current_valid &&
 			    (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND)) {
 
 				updateLandingAbortStatus(position_controller_landing_status_s::ABORTED_BY_OPERATOR);
@@ -683,11 +683,9 @@ FixedwingPositionControl::get_waypoint_heading_distance(float heading, position_
 
 	waypoint_prev = temp_prev;
 	waypoint_prev.alt = _current_altitude;
-	waypoint_prev.valid = true;
 
 	waypoint_next = temp_next;
 	waypoint_next.alt = _current_altitude;
-	waypoint_next.valid = true;
 }
 
 float
@@ -743,7 +741,7 @@ FixedwingPositionControl::updateManualTakeoffStatus()
 }
 
 void
-FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now, bool pos_sp_curr_valid)
+FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now)
 {
 	/* only run position controller in fixed-wing mode and during transitions for VTOL */
 	if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING && !_vehicle_status.in_transition_mode) {
@@ -756,7 +754,7 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now, bool 
 	_skipping_takeoff_detection = false;
 
 	if (((_control_mode.flag_control_auto_enabled && _control_mode.flag_control_position_enabled) ||
-	     _control_mode.flag_control_offboard_enabled) && pos_sp_curr_valid) {
+	     _control_mode.flag_control_offboard_enabled) && _position_setpoint_current_valid) {
 
 		if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
 
@@ -791,12 +789,16 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now, bool 
 			_control_mode_current = FW_POSCTRL_MODE_AUTO;
 		}
 
-	} else if (_control_mode.flag_control_auto_enabled && _control_mode.flag_control_climb_rate_enabled
-		   && pos_sp_curr_valid) {
+	} else if (_control_mode.flag_control_auto_enabled
+		   && _control_mode.flag_control_climb_rate_enabled
+		   && _control_mode.flag_armed // only enter this modes if armed, as pure failsafe modes
+		   && !_control_mode.flag_control_position_enabled) {
 
-		// reset timer the first time we switch into this mode
+		// failsafe modes engaged if position estimate is invalidated
+
 		if (commanded_position_control_mode != FW_POSCTRL_MODE_AUTO_ALTITUDE
 		    && commanded_position_control_mode != FW_POSCTRL_MODE_AUTO_CLIMBRATE) {
+			// reset timer the first time we switch into this mode
 			_time_in_fixed_bank_loiter = now;
 		}
 
@@ -1089,7 +1091,7 @@ FixedwingPositionControl::control_auto_position(const float control_interval, co
 	/* current waypoint (the one currently heading for) */
 	curr_wp = Vector2d(pos_sp_curr.lat, pos_sp_curr.lon);
 
-	if (pos_sp_prev.valid && pos_sp_prev.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
+	if (_position_setpoint_previous_valid && pos_sp_prev.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
 		prev_wp(0) = pos_sp_prev.lat;
 		prev_wp(1) = pos_sp_prev.lon;
 
@@ -1118,7 +1120,7 @@ FixedwingPositionControl::control_auto_position(const float control_interval, co
 	float position_sp_alt = pos_sp_curr.alt;
 
 	// Altitude first order hold (FOH)
-	if (pos_sp_prev.valid && PX4_ISFINITE(pos_sp_prev.alt) &&
+	if (_position_setpoint_previous_valid &&
 	    ((pos_sp_prev.type == position_setpoint_s::SETPOINT_TYPE_POSITION) ||
 	     (pos_sp_prev.type == position_setpoint_s::SETPOINT_TYPE_LOITER))
 	   ) {
@@ -1268,7 +1270,7 @@ FixedwingPositionControl::control_auto_loiter(const float control_interval, cons
 	/* current waypoint (the one currently heading for) */
 	curr_wp = Vector2d(pos_sp_curr.lat, pos_sp_curr.lon);
 
-	if (pos_sp_prev.valid && pos_sp_prev.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
+	if (_position_setpoint_previous_valid && pos_sp_prev.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
 		prev_wp(0) = pos_sp_prev.lat;
 		prev_wp(1) = pos_sp_prev.lon;
 
@@ -1310,7 +1312,7 @@ FixedwingPositionControl::control_auto_loiter(const float control_interval, cons
 
 	const bool in_circle_mode = (_param_fw_use_npfg.get()) ? _npfg.circleMode() : _l1_control.circle_mode();
 
-	if (pos_sp_next.type == position_setpoint_s::SETPOINT_TYPE_LAND && pos_sp_next.valid
+	if (pos_sp_next.type == position_setpoint_s::SETPOINT_TYPE_LAND && _position_setpoint_next_valid
 	    && in_circle_mode && _param_fw_lnd_earlycfg.get()) {
 		// We're in a loiter directly before a landing WP. Enable our landing configuration (flaps,
 		// landing airspeed and potentially tighter altitude control) already such that we don't
@@ -2119,7 +2121,7 @@ FixedwingPositionControl::Run()
 		}
 
 		if (_control_mode.flag_control_offboard_enabled) {
-			vehicle_local_position_setpoint_s trajectory_setpoint;
+			trajectory_setpoint_s trajectory_setpoint;
 
 			if (_trajectory_setpoint_sub.update(&trajectory_setpoint)) {
 				bool valid_setpoint = false;
@@ -2135,35 +2137,36 @@ FixedwingPositionControl::Run()
 				_pos_sp_triplet.current.lon = static_cast<double>(NAN);
 				_pos_sp_triplet.current.alt = NAN;
 
-				if (PX4_ISFINITE(trajectory_setpoint.x) && PX4_ISFINITE(trajectory_setpoint.y) && PX4_ISFINITE(trajectory_setpoint.z)) {
+				if (Vector3f(trajectory_setpoint.position).isAllFinite()) {
 					if (_global_local_proj_ref.isInitialized()) {
 						double lat;
 						double lon;
-						_global_local_proj_ref.reproject(trajectory_setpoint.x, trajectory_setpoint.y, lat, lon);
+						_global_local_proj_ref.reproject(trajectory_setpoint.position[0], trajectory_setpoint.position[1], lat, lon);
 						valid_setpoint = true;
 						_pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 						_pos_sp_triplet.current.lat = lat;
 						_pos_sp_triplet.current.lon = lon;
-						_pos_sp_triplet.current.alt = _global_local_alt0 - trajectory_setpoint.z;
+						_pos_sp_triplet.current.alt = _global_local_alt0 - trajectory_setpoint.position[2];
 					}
 
 				}
 
-				if (PX4_ISFINITE(trajectory_setpoint.vx) && PX4_ISFINITE(trajectory_setpoint.vx)
-				    && PX4_ISFINITE(trajectory_setpoint.vz)) {
+				if (Vector3f(trajectory_setpoint.velocity).isAllFinite()) {
 					valid_setpoint = true;
 					_pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
-					_pos_sp_triplet.current.vx = trajectory_setpoint.vx;
-					_pos_sp_triplet.current.vy = trajectory_setpoint.vy;
-					_pos_sp_triplet.current.vz = trajectory_setpoint.vz;
+					_pos_sp_triplet.current.vx = trajectory_setpoint.velocity[0];
+					_pos_sp_triplet.current.vy = trajectory_setpoint.velocity[1];
+					_pos_sp_triplet.current.vz = trajectory_setpoint.velocity[2];
 
-					if (PX4_ISFINITE(trajectory_setpoint.acceleration[0]) && PX4_ISFINITE(trajectory_setpoint.acceleration[1])
-					    && PX4_ISFINITE(trajectory_setpoint.acceleration[2])) {
-						Vector2f velocity_sp_2d(trajectory_setpoint.vx, trajectory_setpoint.vy);
+					if (Vector3f(trajectory_setpoint.acceleration).isAllFinite()) {
+						Vector2f velocity_sp_2d(trajectory_setpoint.velocity[0], trajectory_setpoint.velocity[1]);
+						Vector2f normalized_velocity_sp_2d = velocity_sp_2d.normalized();
 						Vector2f acceleration_sp_2d(trajectory_setpoint.acceleration[0], trajectory_setpoint.acceleration[1]);
-						Vector2f acceleration_normal = acceleration_sp_2d - acceleration_sp_2d.dot(velocity_sp_2d) *
-									       velocity_sp_2d.normalized();
-						_pos_sp_triplet.current.loiter_radius = velocity_sp_2d.norm() * velocity_sp_2d.norm() / acceleration_normal.norm();
+						Vector2f acceleration_normal = acceleration_sp_2d - acceleration_sp_2d.dot(normalized_velocity_sp_2d) *
+									       normalized_velocity_sp_2d;
+						float direction = -normalized_velocity_sp_2d.cross(acceleration_normal.normalized());
+						_pos_sp_triplet.current.loiter_radius = direction * velocity_sp_2d.norm() * velocity_sp_2d.norm() /
+											acceleration_normal.norm();
 
 					} else {
 						_pos_sp_triplet.current.loiter_radius = NAN;
@@ -2182,6 +2185,19 @@ FixedwingPositionControl::Run()
 
 		} else {
 			if (_pos_sp_triplet_sub.update(&_pos_sp_triplet)) {
+
+				_position_setpoint_previous_valid = PX4_ISFINITE(_pos_sp_triplet.previous.lat)
+								    && PX4_ISFINITE(_pos_sp_triplet.previous.lon)
+								    && PX4_ISFINITE(_pos_sp_triplet.previous.alt);
+
+				_position_setpoint_current_valid = PX4_ISFINITE(_pos_sp_triplet.current.lat)
+								   && PX4_ISFINITE(_pos_sp_triplet.current.lon)
+								   && PX4_ISFINITE(_pos_sp_triplet.current.alt);
+
+				_position_setpoint_next_valid = PX4_ISFINITE(_pos_sp_triplet.next.lat)
+								&& PX4_ISFINITE(_pos_sp_triplet.next.lon)
+								&& PX4_ISFINITE(_pos_sp_triplet.next.alt);
+
 				// reset the altitude foh (first order hold) logic
 				_min_current_sp_distance_xy = FLT_MAX;
 			}
@@ -2213,7 +2229,7 @@ FixedwingPositionControl::Run()
 		Vector2d curr_pos(_current_latitude, _current_longitude);
 		Vector2f ground_speed(_local_pos.vx, _local_pos.vy);
 
-		set_control_mode_current(_local_pos.timestamp, _pos_sp_triplet.current.valid);
+		set_control_mode_current(_local_pos.timestamp);
 
 		update_in_air_states(_local_pos.timestamp);
 
@@ -2562,7 +2578,7 @@ FixedwingPositionControl::initializeAutoLanding(const hrt_abstime &now, const po
 		// set the landing approach entrance location when we have just started the landing and store it
 		// NOTE: the landing approach vector is relative to the land point. ekf resets may cause a local frame
 		// jump, so we reference to the land point, which is globally referenced and will update
-		if (pos_sp_prev.valid) {
+		if (_position_setpoint_previous_valid) {
 			height_above_land_point = pos_sp_prev.alt - pos_sp_curr.alt;
 			local_approach_entrance = _global_local_proj_ref.project(pos_sp_prev.lat, pos_sp_prev.lon);
 

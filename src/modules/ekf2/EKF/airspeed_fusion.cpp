@@ -49,10 +49,10 @@
 
 #include <mathlib/mathlib.h>
 
-void Ekf::updateAirspeed(const airspeedSample &airspeed_sample, estimator_aid_source_1d_s &airspeed) const
+void Ekf::updateAirspeed(const airspeedSample &airspeed_sample, estimator_aid_source1d_s &airspeed) const
 {
 	// reset flags
-	resetEstimatorAidStatusFlags(airspeed);
+	resetEstimatorAidStatus(airspeed);
 
 	// Variance for true airspeed measurement - (m/sec)^2
 	const float R = sq(math::constrain(_params.eas_noise, 0.5f, 5.0f) *
@@ -75,7 +75,7 @@ void Ekf::updateAirspeed(const airspeedSample &airspeed_sample, estimator_aid_so
 	setEstimatorAidStatusTestRatio(airspeed, innov_gate);
 }
 
-void Ekf::fuseAirspeed(estimator_aid_source_1d_s &airspeed)
+void Ekf::fuseAirspeed(estimator_aid_source1d_s &airspeed)
 {
 	if (airspeed.innovation_rejected) {
 		return;

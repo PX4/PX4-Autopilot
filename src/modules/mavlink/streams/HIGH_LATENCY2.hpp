@@ -54,7 +54,7 @@
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/vehicle_status_flags.h>
+#include <uORB/topics/failsafe_flags.h>
 #include <uORB/topics/health_report.h>
 
 #include <px4_platform_common/events.h>
@@ -135,7 +135,7 @@ private:
 			updated |= write_mission_result(&msg);
 			updated |= write_tecs_status(&msg);
 			updated |= write_vehicle_status(&msg);
-			updated |= write_vehicle_status_flags(&msg);
+			updated |= write_failsafe_flags(&msg);
 			updated |= write_wind(&msg);
 
 			if (updated) {
@@ -335,7 +335,7 @@ private:
 		geofence_result_s geofence;
 
 		if (_geofence_sub.update(&geofence)) {
-			if (geofence.geofence_violated) {
+			if (geofence.primary_geofence_breached) {
 				msg->failure_flags |= HL_FAILURE_FLAG_GEOFENCE;
 			}
 
@@ -429,16 +429,8 @@ private:
 				}
 			}
 
-			if (status.rc_signal_lost) {
-				msg->failure_flags |= HL_FAILURE_FLAG_RC_RECEIVER;
-			}
-
 			if (status.failure_detector_status & vehicle_status_s::FAILURE_MOTOR) {
 				msg->failure_flags |= HL_FAILURE_FLAG_ENGINE;
-			}
-
-			if (status.mission_failure) {
-				msg->failure_flags |= HL_FAILURE_FLAG_MISSION;
 			}
 
 			// flight mode
@@ -451,18 +443,27 @@ private:
 		return false;
 	}
 
-	bool write_vehicle_status_flags(mavlink_high_latency2_t *msg)
+	bool write_failsafe_flags(mavlink_high_latency2_t *msg)
 	{
-		vehicle_status_flags_s status_flags;
+		failsafe_flags_s failsafe_flags;
 
-		if (_status_flags_sub.update(&status_flags)) {
-			if (!status_flags.global_position_valid) { //TODO check if there is a better way to get only GPS failure
+		if (_failsafe_flags_sub.update(&failsafe_flags)) {
+			if (failsafe_flags.gps_position_invalid) {
 				msg->failure_flags |= HL_FAILURE_FLAG_GPS;
 			}
 
-			if (status_flags.offboard_control_signal_lost) {
+			if (failsafe_flags.offboard_control_signal_lost) {
 				msg->failure_flags |= HL_FAILURE_FLAG_OFFBOARD_LINK;
 			}
+
+			if (failsafe_flags.mission_failure) {
+				msg->failure_flags |= HL_FAILURE_FLAG_MISSION;
+			}
+
+			if (failsafe_flags.manual_control_signal_lost) {
+				msg->failure_flags |= HL_FAILURE_FLAG_RC_RECEIVER;
+			}
+
 
 			return true;
 		}
@@ -633,7 +634,7 @@ private:
 	uORB::Subscription _gps_sub{ORB_ID(vehicle_gps_position)};
 	uORB::Subscription _mission_result_sub{ORB_ID(mission_result)};
 	uORB::Subscription _status_sub{ORB_ID(vehicle_status)};
-	uORB::Subscription _status_flags_sub{ORB_ID(vehicle_status_flags)};
+	uORB::Subscription _failsafe_flags_sub{ORB_ID(failsafe_flags)};
 	uORB::Subscription _tecs_status_sub{ORB_ID(tecs_status)};
 	uORB::Subscription _wind_sub{ORB_ID(wind)};
 	uORB::Subscription _health_report_sub{ORB_ID(health_report)};

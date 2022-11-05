@@ -242,7 +242,6 @@ TEST(ArmStateMachineTest, ArmingStateTransitionTest)
 	};
 
 	struct vehicle_status_s status {};
-	struct vehicle_status_flags_s status_flags {};
 	struct actuator_armed_s armed {};
 
 	size_t cArmingTransitionTests = sizeof(rgArmingTransitionTests) / sizeof(rgArmingTransitionTests[0]);
@@ -254,7 +253,7 @@ TEST(ArmStateMachineTest, ArmingStateTransitionTest)
 		arm_state_machine.forceArmState(test->current_state.arming_state);
 		status.hil_state = test->hil_state;
 
-		HealthAndArmingChecks health_and_arming_checks(nullptr, status_flags, status);
+		HealthAndArmingChecks health_and_arming_checks(nullptr, status);
 
 		// Attempt transition
 		transition_result_t result = arm_state_machine.arming_state_transition(

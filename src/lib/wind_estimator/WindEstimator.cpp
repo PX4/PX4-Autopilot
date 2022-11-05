@@ -37,6 +37,7 @@
  */
 
 #include "WindEstimator.hpp"
+#include "python/generated/init_wind_using_airspeed.h"
 
 bool
 WindEstimator::initialise(const matrix::Vector3f &velI, const float hor_vel_variance, const float heading_rad,
@@ -44,34 +45,19 @@ WindEstimator::initialise(const matrix::Vector3f &velI, const float hor_vel_vari
 {
 	if (PX4_ISFINITE(tas_meas) && PX4_ISFINITE(tas_variance)) {
 
-		const float cos_heading = cosf(heading_rad);
-		const float sin_heading = sinf(heading_rad);
+		constexpr float initial_heading_var = sq(math::radians(INITIAL_HEADING_ERROR_DEG));
+		constexpr float initial_sideslip_var = sq(math::radians(INITIAL_BETA_ERROR_DEG));
 
-		// initialise wind states assuming zero side slip and horizontal flight
-		_state(INDEX_W_N) = velI(0) - tas_meas * cos_heading;
-		_state(INDEX_W_E) = velI(1) - tas_meas * sin_heading;
+		matrix::SquareMatrix<float, 2> P_wind_init;
+		matrix::Vector2f wind_init;
+
+		sym::InitWindUsingAirspeed(velI, heading_rad, tas_meas, hor_vel_variance, initial_heading_var, initial_sideslip_var,
+					   tas_variance,
+					   &wind_init, &P_wind_init);
+
+		_state.xy() = wind_init;
 		_state(INDEX_TAS_SCALE) = _scale_init;
-
-		constexpr float initial_sideslip_uncertainty = math::radians(INITIAL_BETA_ERROR_DEG);
-		const float initial_wind_var_body_y = sq(tas_meas * sinf(initial_sideslip_uncertainty));
-		constexpr float heading_variance = sq(math::radians(INITIAL_HEADING_ERROR_DEG));
-
-		// rotate wind velocity into earth frame aligned with vehicle yaw
-		const float Wx = _state(INDEX_W_N) * cos_heading + _state(INDEX_W_E) * sin_heading;
-		const float Wy = -_state(INDEX_W_N) * sin_heading + _state(INDEX_W_E) * cos_heading;
-
-		_P(INDEX_W_N, INDEX_W_N) = tas_variance * sq(cos_heading) + heading_variance * sq(-Wx * sin_heading - Wy * cos_heading)
-					   + initial_wind_var_body_y * sq(sin_heading);
-		_P(INDEX_W_N, INDEX_W_E) = tas_variance * sin_heading * cos_heading + heading_variance *
-					   (-Wx * sin_heading - Wy * cos_heading) * (Wx * cos_heading - Wy * sin_heading) -
-					   initial_wind_var_body_y * sin_heading * cos_heading;
-		_P(INDEX_W_E, INDEX_W_N) = _P(INDEX_W_N, INDEX_W_E);
-		_P(INDEX_W_E, INDEX_W_E) = tas_variance * sq(sin_heading) + heading_variance * sq(Wx * cos_heading - Wy * sin_heading) +
-					   initial_wind_var_body_y * sq(cos_heading);
-
-		// Now add the variance due to uncertainty in vehicle velocity that was used to calculate the initial wind speed
-		_P(INDEX_W_N, INDEX_W_N) += hor_vel_variance;
-		_P(INDEX_W_E, INDEX_W_E) += hor_vel_variance;
+		_P.slice<2, 2>(0, 0) = P_wind_init;
 
 	} else {
 		// no airspeed available
@@ -80,10 +66,6 @@ WindEstimator::initialise(const matrix::Vector3f &velI, const float hor_vel_vari
 		_P.setZero();
 		_P(INDEX_W_N, INDEX_W_N) = _P(INDEX_W_E, INDEX_W_E) = sq(INITIAL_WIND_ERROR);
 	}
-
-	// reset the timestamp for measurement rejection
-	_time_rejected_tas = 0;
-	_time_rejected_beta = 0;
 
 	_wind_estimator_reset = true;
 
@@ -143,20 +125,14 @@ WindEstimator::fuse_airspeed(uint64_t time_now, const float true_airspeed, const
 	sym::FuseAirspeed(velI, _state, _P, true_airspeed, _tas_var, FLT_EPSILON,
 			  &H_tas, &K, &_tas_innov_var, &_tas_innov);
 
-	bool reinit_filter = false;
-	bool meas_is_rejected = false;
+	const bool meas_is_rejected = check_if_meas_is_rejected(_tas_innov, _tas_innov_var, _tas_gate);
 
-	// note: _time_rejected_tas and reinit_filter are not used anymore as filter can't get reset due to tas rejection
-	meas_is_rejected = check_if_meas_is_rejected(time_now, _tas_innov, _tas_innov_var, _tas_gate, _time_rejected_tas,
-			   reinit_filter);
+	if (_tas_innov_var < 0.0f) {
+		// re init filter in case of a negative variance, and trigger early return to not fuse measurement
+		_initialised = initialise(velI, hor_vel_variance, matrix::Eulerf(q_att).psi(), true_airspeed, _tas_var);
+		return;
 
-	if (meas_is_rejected || _tas_innov_var < 0.f) {
-		// only reset filter if _tas_innov_var gets unfeasible
-		if (_tas_innov_var < 0.0f) {
-			_initialised = initialise(velI, hor_vel_variance, matrix::Eulerf(q_att).psi(), true_airspeed, _tas_var);
-		}
-
-		// we either did a filter reset or the current measurement was rejected so do not fuse
+	} else if (meas_is_rejected) {
 		return;
 	}
 
@@ -187,71 +163,21 @@ WindEstimator::fuse_beta(uint64_t time_now, const matrix::Vector3f &velI, const 
 
 	_time_last_beta_fuse = time_now;
 
-	const float v_n = velI(0);
-	const float v_e = velI(1);
-	const float v_d = velI(2);
-
-	// compute sideslip observation vector
-	float HB0 = 2.0f * q_att(0);
-	float HB1 = HB0 * q_att(3);
-	float HB2 = 2.0f * q_att(1);
-	float HB3 = HB2 * q_att(2);
-	float HB4 = v_e - _state(INDEX_W_E);
-	float HB5 = HB1 + HB3;
-	float HB6 = v_n - _state(INDEX_W_N);
-	float HB7 = q_att(0) * q_att(0);
-	float HB8 = q_att(3) * q_att(3);
-	float HB9 = HB7 - HB8;
-	float HB10 = q_att(1) * q_att(1);
-	float HB11 = q_att(2) * q_att(2);
-	float HB12 = HB10 - HB11;
-	float HB13 = HB12 + HB9;
-	float HB14 = HB13 * HB6 + HB4 * HB5 + v_d * (-HB0 * q_att(2) + HB2 * q_att(3));
-	float HB15 = 1.0f / HB14;
-	float HB16 = (HB4 * (-HB10 + HB11 + HB9) + HB6 * (-HB1 + HB3) + v_d * (HB0 * q_att(1) + 2.0f * q_att(2) * q_att(3))) /
-		     (HB14 * HB14);
 
 	matrix::Matrix<float, 1, 3> H_beta;
-	H_beta(0, 0) = HB13 * HB16 + HB15 * (HB1 - HB3);
-	H_beta(0, 1) = HB15 * (HB12 - HB7 + HB8) + HB16 * HB5;
-	H_beta(0, 2) = 0;
+	matrix::Matrix<float, 3, 1> K;
 
-	// compute innovation covariance S
-	const matrix::Matrix<float, 1, 1> S = H_beta * _P * H_beta.transpose() + _beta_var;
+	sym::FuseBeta(velI, _state, _P, q_att, _beta_var, FLT_EPSILON,
+		      &H_beta, &K, &_beta_innov_var, &_beta_innov);
 
-	// compute Kalman gain
-	matrix::Matrix<float, 3, 1> K = _P * H_beta.transpose();
-	K /= S(0, 0);
+	const bool meas_is_rejected = check_if_meas_is_rejected(_beta_innov, _beta_innov_var, _beta_gate);
 
-	// compute predicted side slip angle
-	matrix::Vector3f rel_wind(velI(0) - _state(INDEX_W_N), velI(1) - _state(INDEX_W_E), velI(2));
-	matrix::Dcmf R_body_to_earth(q_att);
-	rel_wind = R_body_to_earth.transpose() * rel_wind;
-
-	if (fabsf(rel_wind(0)) < 0.1f) {
+	if (_beta_innov_var < 0.0f) {
+		// re init filter in case of a negative variance, and trigger early return to not fuse measurement
+		_initialised = initialise(velI, hor_vel_variance, matrix::Eulerf(q_att).psi());
 		return;
-	}
 
-	// use small angle approximation, sin(x) = x for small x
-	const float beta_pred = rel_wind(1) / rel_wind(0);
-
-	_beta_innov = 0.0f - beta_pred;
-	_beta_innov_var = S(0, 0);
-
-	bool reinit_filter = false;
-	bool meas_is_rejected = false;
-
-	meas_is_rejected = check_if_meas_is_rejected(time_now, _beta_innov, _beta_innov_var, _beta_gate, _time_rejected_beta,
-			   reinit_filter);
-
-	reinit_filter |= _beta_innov_var < 0.0f;
-
-	if (meas_is_rejected || reinit_filter) {
-		if (reinit_filter) {
-			_initialised = initialise(velI, hor_vel_variance, matrix::Eulerf(q_att).psi());
-		}
-
-		// we either did a filter reset or the current measurement was rejected so do not fuse
+	} else if (meas_is_rejected) {
 		return;
 	}
 
@@ -301,17 +227,7 @@ WindEstimator::run_sanity_checks()
 }
 
 bool
-WindEstimator::check_if_meas_is_rejected(uint64_t time_now, float innov, float innov_var, uint8_t gate_size,
-		uint64_t &time_meas_rejected, bool &reinit_filter)
+WindEstimator::check_if_meas_is_rejected(float innov, float innov_var, uint8_t gate_size)
 {
-	if (innov * innov > gate_size * gate_size * innov_var) {
-		time_meas_rejected = time_meas_rejected == 0 ? time_now : time_meas_rejected;
-
-	} else {
-		time_meas_rejected = 0;
-	}
-
-	reinit_filter = time_now - time_meas_rejected > 5_s && time_meas_rejected != 0;
-
-	return time_meas_rejected != 0;
+	return (innov * innov > gate_size * gate_size * innov_var);
 }
