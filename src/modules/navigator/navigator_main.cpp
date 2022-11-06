@@ -500,7 +500,11 @@ void Navigator::run()
 					set_cruising_speed(cmd.param2, cmd.param1);
 
 				} else {
-					set_cruising_speed(cmd.param2);
+
+					//-1 no change, -2 reset (MAV_CMD_DO_CHANGE_SPEED)
+					if (cmd.param2 <= -2.0f) {
+						set_cruising_speed(NAN, cmd.param1);
+					}
 
 					/* if no speed target was given try to set throttle */
 					if (cmd.param3 > FLT_EPSILON) {
