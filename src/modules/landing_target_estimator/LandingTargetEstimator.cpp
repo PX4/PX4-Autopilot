@@ -633,7 +633,6 @@ void LandingTargetEstimator::publishTarget()
 
 	if (_target_model != TargetModel::Horizontal && (fabs(target_estimator_state.x_bias) > bias_lim
 			|| fabs(target_estimator_state.y_bias) > bias_lim || fabs(target_estimator_state.z_bias) > bias_lim)) {
-		PX4_WARN("Bias exceeds limit.");
 		PX4_WARN("Bias exceeds limit: %.2f bias x: %.2f bias y: %.2f bias z: %.2f", (double)bias_lim,
 			 (double)target_estimator_state.x_bias, (double)target_estimator_state.y_bias, (double)target_estimator_state.z_bias);
 		// _estimator_initialized = false;
@@ -1005,9 +1004,11 @@ void LandingTargetEstimator::_update_topics(accInput *input)
 	/* Measurement requiering GPS observation, only start when landing*/
 	if (_vehicle_gps_position_sub.update(&vehicle_gps_position)) {
 
+		bool target_GNSS_report_valid = _target_GNSS_report_sub.update(&target_GNSS_report);
+
 		/* TARGET GPS SENSOR measures [rx + bx, ry + by, rz + bz] */
 		if ((_target_model == TargetModel::FullPoseDecoupled || _target_model == TargetModel::FullPoseCoupled)
-		    && (((_ltest_aid_mask & SensorFusionMask::USE_TARGET_GPS_POS) && _target_GNSS_report_sub.update(&target_GNSS_report))
+		    && (((_ltest_aid_mask & SensorFusionMask::USE_TARGET_GPS_POS) && target_GNSS_report_valid)
 			|| (_ltest_aid_mask & SensorFusionMask::USE_MISSION_POS))) {
 
 			bool use_gps_measurements = false;
@@ -1024,7 +1025,7 @@ void LandingTargetEstimator::_update_topics(accInput *input)
 			hrt_abstime gps_timestamp = vehicle_gps_position.timestamp_sample;
 
 			// Measurement comes from an actual GPS on the target
-			if ((_ltest_aid_mask & SensorFusionMask::USE_TARGET_GPS_POS)) {
+			if ((_ltest_aid_mask & SensorFusionMask::USE_TARGET_GPS_POS) && target_GNSS_report_valid) {
 
 				use_gps_measurements = true;
 				gps_timestamp = target_GNSS_report.timestamp;
@@ -1056,7 +1057,8 @@ void LandingTargetEstimator::_update_topics(accInput *input)
 					gps_target_epv = gps_target_unc;
 				}
 
-			} else if (_nave_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION && _landing_pos.valid) {
+			} else if ((_ltest_aid_mask & SensorFusionMask::USE_MISSION_POS)
+				   && _nave_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION && _landing_pos.valid) {
 
 				use_gps_measurements = true;
 
