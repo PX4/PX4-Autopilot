@@ -160,7 +160,7 @@ PARAM_DEFINE_FLOAT(LTEST_ACC_T_UNC, 1.0f);
  *
  * @group Landing target Estimator
  */
-PARAM_DEFINE_FLOAT(LTEST_BIAS_UNC, 0.1f);
+PARAM_DEFINE_FLOAT(LTEST_BIAS_UNC, 0.05f);
 
 /**
  * Bias limit

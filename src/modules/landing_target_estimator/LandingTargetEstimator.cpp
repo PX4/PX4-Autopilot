@@ -679,26 +679,22 @@ void LandingTargetEstimator::_update_topics(accInput *input)
 		_start_detection = (pos_sp_triplet.next.type == position_setpoint_s::SETPOINT_TYPE_LAND);
 
 		if (_start_detection) {
-			PX4_INFO("Set point triplet of next wp when starting detection:  %.2f %.2f %.2f", (double)(pos_sp_triplet.next.lat),
-				 (double)(pos_sp_triplet.next.lon), (double)(pos_sp_triplet.next.alt));
-		}
-	}
 
-	if (_ltest_aid_mask & SensorFusionMask::USE_MISSION_POS) {
-		// Get landing target from mission:
-		if (!_landing_pos.valid && pos_sp_triplet_valid) {
-			// TODO: do we want to start at the land sp or the sp before?
-			if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
-				_landing_pos.lat = (int)(pos_sp_triplet.current.lat * 1e7);
-				_landing_pos.lon = (int)(pos_sp_triplet.current.lon * 1e7);
-				_landing_pos.alt = pos_sp_triplet.current.alt * 1000.f;
+			if (_ltest_aid_mask & SensorFusionMask::USE_MISSION_POS) {
+				_landing_pos.lat = (int)(pos_sp_triplet.next.lat * 1e7);
+				_landing_pos.lon = (int)(pos_sp_triplet.next.lon * 1e7);
+				_landing_pos.alt = pos_sp_triplet.next.alt * 1000.f;
 				_landing_pos.valid = (_landing_pos.lat != 0 && _landing_pos.lon != 0);
 
-				// Debug, will eventually be removed
-				PX4_INFO("Landing pos used:  %.2f %.2f %.2f", (double)(pos_sp_triplet.current.lat),
-					 (double)(pos_sp_triplet.current.lon), (double)(pos_sp_triplet.current.alt));
-				PX4_INFO("Landing pos next sp:  %.2f %.2f %.2f", (double)(pos_sp_triplet.next.lat), (double)(pos_sp_triplet.next.lon),
-					 (double)(pos_sp_triplet.next.alt));
+				if (_landing_pos.valid) {
+					PX4_INFO("Landing pos used:  %.2f %.2f %.2f", (double)(pos_sp_triplet.next.lat),
+						 (double)(pos_sp_triplet.next.lon), (double)(pos_sp_triplet.next.alt));
+
+				} else {
+					PX4_INFO("Landing target estimator detection enabled but landing pos not valid:  %.2f %.2f %.2f",
+						 (double)(pos_sp_triplet.next.lat),
+						 (double)(pos_sp_triplet.next.lon), (double)(pos_sp_triplet.next.alt));
+				}
 			}
 		}
 	}
@@ -1007,8 +1003,7 @@ void LandingTargetEstimator::_update_topics(accInput *input)
 
 	// TODO: might need to create a class variable with (vehicle_gps_position.timestamp_sample, pos_valid, lat, lon, alt, eph, epv, vel_ned_valid, vel_n, vel_e, vel_d, vel_var).
 	/* Measurement requiering GPS observation, only start when landing*/
-	if (_nave_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND
-	    && _vehicle_gps_position_sub.update(&vehicle_gps_position)) {
+	if (_vehicle_gps_position_sub.update(&vehicle_gps_position)) {
 
 		/* TARGET GPS SENSOR measures [rx + bx, ry + by, rz + bz] */
 		if ((_target_model == TargetModel::FullPoseDecoupled || _target_model == TargetModel::FullPoseCoupled)
