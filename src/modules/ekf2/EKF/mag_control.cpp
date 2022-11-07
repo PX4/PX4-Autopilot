@@ -65,17 +65,39 @@ void Ekf::controlMagFusion()
 				_control_status.flags.synthetic_mag_z = false;
 			}
 
-			_control_status.flags.mag_field_disturbed = magFieldStrengthDisturbed(mag_sample.mag);
-
-
 			// compute mag heading innovation (for estimator_aid_src_mag_heading logging)
 			const Vector3f mag_observation = mag_sample.mag - _state.mag_B;
 			const Dcmf R_to_earth = updateYawInRotMat(0.f, _R_to_earth);
 			const Vector3f mag_earth_pred = R_to_earth * mag_observation;
 
+			// mag field disturbed
+			if (_params.check_mag_strength) {
+
+				_control_status.flags.mag_field_disturbed = magFieldStrengthDisturbed(mag_observation);
+
+				// mag field NE disturbed
+				if (PX4_ISFINITE(_mag_inclination_gps) && PX4_ISFINITE(_mag_declination_gps) && PX4_ISFINITE(_mag_strength_gps)) {
+
+					// expected mag field from the world magnetic model in earth frame
+					const Vector3f wmm = Dcmf(Eulerf(0, -_mag_inclination_gps, _mag_declination_gps)) * Vector3f(_mag_strength_gps, 0, 0);
+					const float wmm_ne_norm = Vector2f(wmm(0), wmm(1)).norm();
+
+					// norm magnetometer NE components
+					const float mag_ne_norm = Vector2f(mag_earth_pred(0), mag_earth_pred(1)).norm();
+
+					// magnetometer NE strength must be within ~20% of the expected value
+					const float gate_size = wmm_ne_norm * 0.2f;
+					_control_status.flags.mag_field_ne_disturbed = !isMeasuredMatchingExpected(mag_ne_norm, wmm_ne_norm, gate_size);
+				}
+
+			} else {
+				_control_status.flags.mag_field_disturbed = false;
+				_control_status.flags.mag_field_ne_disturbed = false;
+			}
+
 			resetEstimatorAidStatus(_aid_src_mag_heading);
 			_aid_src_mag_heading.timestamp_sample = mag_sample.time_us;
-			_aid_src_mag_heading.observation = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + getMagDeclination();;
+			_aid_src_mag_heading.observation = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + getMagDeclination();
 			_aid_src_mag_heading.innovation = wrap_pi(getEulerYaw(_R_to_earth) - _aid_src_mag_heading.observation);
 
 			// compute magnetometer innovations (for estimator_aid_src_mag logging)
@@ -193,7 +215,7 @@ void Ekf::runOnGroundYawReset()
 
 bool Ekf::canResetMagHeading() const
 {
-	return !_control_status.flags.mag_field_disturbed && (_params.mag_fusion_type != MagFuseType::NONE);
+	return !_control_status.flags.mag_field_ne_disturbed && (_params.mag_fusion_type != MagFuseType::NONE);
 }
 
 void Ekf::runInAirYawReset()
@@ -233,6 +255,8 @@ void Ekf::runInAirYawReset()
 				);
 
 			resetMagCov();
+
+			has_realigned_yaw = true;
 		}
 
 		if (!has_realigned_yaw && canResetMagHeading()) {
@@ -351,23 +375,19 @@ bool Ekf::shouldInhibitMag() const
 			&& !_control_status.flags.ev_pos
 			&& !_control_status.flags.ev_vel;
 
-	return (user_selected && heading_not_required_for_navigation) || _control_status.flags.mag_field_disturbed;
+	return (user_selected && heading_not_required_for_navigation) || _control_status.flags.mag_field_ne_disturbed;
 }
 
 bool Ekf::magFieldStrengthDisturbed(const Vector3f &mag_sample) const
 {
-	if (_params.check_mag_strength
-	    && ((_params.mag_fusion_type <= MagFuseType::MAG_3D) || (_params.mag_fusion_type == MagFuseType::INDOOR && _control_status.flags.gps))) {
+	if (PX4_ISFINITE(_mag_strength_gps)) {
+		constexpr float wmm_gate_size = 0.2f; // +/- Gauss
+		return !isMeasuredMatchingExpected(mag_sample.length(), _mag_strength_gps, wmm_gate_size);
 
-		if (PX4_ISFINITE(_mag_strength_gps)) {
-			constexpr float wmm_gate_size = 0.2f; // +/- Gauss
-			return !isMeasuredMatchingExpected(mag_sample.length(), _mag_strength_gps, wmm_gate_size);
-
-		} else {
-			constexpr float average_earth_mag_field_strength = 0.45f; // Gauss
-			constexpr float average_earth_mag_gate_size = 0.40f; // +/- Gauss
-			return !isMeasuredMatchingExpected(mag_sample.length(), average_earth_mag_field_strength, average_earth_mag_gate_size);
-		}
+	} else {
+		constexpr float average_earth_mag_field_strength = 0.45f; // Gauss
+		constexpr float average_earth_mag_gate_size = 0.40f; // +/- Gauss
+		return !isMeasuredMatchingExpected(mag_sample.length(), average_earth_mag_field_strength, average_earth_mag_gate_size);
 	}
 
 	return false;
