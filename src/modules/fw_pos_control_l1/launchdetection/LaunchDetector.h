@@ -56,6 +56,9 @@ public:
 	LaunchDetector(const LaunchDetector &) = delete;
 	LaunchDetector operator=(const LaunchDetector &) = delete;
 
+	/**
+	 * @brief Reset launch detection state machine.
+	 */
 	void reset();
 
 	/**
@@ -74,6 +77,9 @@ public:
 	 */
 	uint getLaunchDetected() const;
 
+	/**
+	 * @brief Forces state of launch detection state machine to STATE_FLYING.
+	 */
 	void forceSetFlyState() { _state = launch_detection_status_s::STATE_FLYING; }
 
 private:
@@ -87,6 +93,10 @@ private:
 	 */
 	float _motorDelayCounter{0.f};
 
+
+	/**
+	 * Info delay counter [s]
+	 */
 	float _launchDetectionRunningInfoDelay{4.f};
 
 	/**
