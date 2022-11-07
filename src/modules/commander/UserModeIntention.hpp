@@ -37,21 +37,42 @@
 #include "HealthAndArmingChecks/HealthAndArmingChecks.hpp"
 #include <px4_platform_common/module_params.h>
 
+enum class ModeChangeSource {
+	User,           ///< RC or MAVLink
+	ModeExecutor,
+};
+
+class ModeChangeHandler
+{
+public:
+	virtual void onUserIntendedNavStateChange(ModeChangeSource source, uint8_t user_intended_nav_state) = 0;
+
+	/**
+	 * Get the replaced (internal) mode for a given (external) mode
+	 * @param nav_state
+	 * @return nav_state or the mode that nav_state replaces
+	 */
+	virtual uint8_t getReplacedModeIfAny(uint8_t nav_state) = 0;
+};
+
+
 class UserModeIntention : ModuleParams
 {
 public:
 	UserModeIntention(ModuleParams *parent, const vehicle_status_s &vehicle_status,
-			  const HealthAndArmingChecks &health_and_arming_checks);
+			  const HealthAndArmingChecks &health_and_arming_checks, ModeChangeHandler *handler);
 	~UserModeIntention() = default;
 
 	/**
 	 * Change the user intended mode
 	 * @param user_intended_nav_state new mode
+	 * @param source calling reason
 	 * @param allow_fallback allow to fallback to a lower mode if current mode cannot run
 	 * @param force always set if true
 	 * @return true if successfully set (also if unchanged)
 	 */
-	bool change(uint8_t user_intended_nav_state, bool allow_fallback = false, bool force = false);
+	bool change(uint8_t user_intended_nav_state, ModeChangeSource source = ModeChangeSource::User,
+		    bool allow_fallback = false, bool force = false);
 
 	uint8_t get() const { return _user_intented_nav_state; }
 
@@ -72,6 +93,7 @@ private:
 
 	const vehicle_status_s &_vehicle_status;
 	const HealthAndArmingChecks &_health_and_arming_checks;
+	ModeChangeHandler *const _handler{nullptr};
 
 	uint8_t _user_intented_nav_state{vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER}; ///< Current user intended mode
 	uint8_t _nav_state_after_disarming{vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER}; ///< Mode that is switched into after landing/disarming

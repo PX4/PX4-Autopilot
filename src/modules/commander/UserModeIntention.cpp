@@ -35,14 +35,22 @@
 #include "UserModeIntention.hpp"
 
 UserModeIntention::UserModeIntention(ModuleParams *parent, const vehicle_status_s &vehicle_status,
-				     const HealthAndArmingChecks &health_and_arming_checks)
-	: ModuleParams(parent), _vehicle_status(vehicle_status), _health_and_arming_checks(health_and_arming_checks)
+				     const HealthAndArmingChecks &health_and_arming_checks, ModeChangeHandler *handler)
+	: ModuleParams(parent), _vehicle_status(vehicle_status), _health_and_arming_checks(health_and_arming_checks),
+	  _handler(handler)
 {
 }
 
-bool UserModeIntention::change(uint8_t user_intended_nav_state, bool allow_fallback, bool force)
+bool UserModeIntention::change(uint8_t user_intended_nav_state, ModeChangeSource source, bool allow_fallback,
+			       bool force)
 {
 	_ever_had_mode_change = true;
+	_had_mode_change = true;
+
+	if (_handler) {
+		// If a replacement mode is selected, select the internal one instead. The replacement will be selected after.
+		user_intended_nav_state = _handler->getReplacedModeIfAny(user_intended_nav_state);
+	}
 
 	// Always allow mode change while disarmed
 	bool always_allow = force || !isArmed();
@@ -67,6 +75,10 @@ bool UserModeIntention::change(uint8_t user_intended_nav_state, bool allow_fallb
 
 		if (!_health_and_arming_checks.modePreventsArming(user_intended_nav_state)) {
 			_nav_state_after_disarming = user_intended_nav_state;
+		}
+
+		if (_handler) {
+			_handler->onUserIntendedNavStateChange(source, user_intended_nav_state);
 		}
 	}
 

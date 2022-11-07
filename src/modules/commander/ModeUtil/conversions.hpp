@@ -75,9 +75,25 @@ static inline navigation_mode_t navigation_mode(uint8_t nav_state)
 	case vehicle_status_s::NAVIGATION_STATE_ORBIT: return navigation_mode_t::orbit;
 
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF: return navigation_mode_t::auto_vtol_takeoff;
+
+	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL1: return navigation_mode_t::external1;
+
+	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL2: return navigation_mode_t::external2;
+
+	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL3: return navigation_mode_t::external3;
+
+	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL4: return navigation_mode_t::external4;
+
+	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL5: return navigation_mode_t::external5;
+
+	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL6: return navigation_mode_t::external6;
+
+	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL7: return navigation_mode_t::external7;
+
+	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL8: return navigation_mode_t::external8;
 	}
 
-	static_assert(vehicle_status_s::NAVIGATION_STATE_MAX  == 23, "code requires update");
+	static_assert(vehicle_status_s::NAVIGATION_STATE_MAX  == 31, "code requires update");
 
 	return navigation_mode_t::unknown;
 }
@@ -104,7 +120,16 @@ const char *const nav_state_names[vehicle_status_s::NAVIGATION_STATE_MAX] = {
 	"AUTO_LAND",
 	"AUTO_FOLLOW_TARGET",
 	"AUTO_PRECLAND",
-	"ORBIT"
+	"ORBIT",
+	"AUTO_VTOL_TAKEOFF",
+	"EXTERNAL1",
+	"EXTERNAL2",
+	"EXTERNAL3",
+	"EXTERNAL4",
+	"EXTERNAL5",
+	"EXTERNAL6",
+	"EXTERNAL7",
+	"EXTERNAL8",
 };
 
 } // namespace mode_util
