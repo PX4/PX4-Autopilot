@@ -1550,14 +1550,20 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 			_launch_detected = true;
 			_launch_global_position = global_position;
 			_takeoff_ground_alt = _current_altitude;
+			_launch_current_yaw = _yaw;
 		}
 
 		const Vector2f launch_local_position = _global_local_proj_ref.project(_launch_global_position(0),
 						       _launch_global_position(1));
 		const Vector2f takeoff_waypoint_local = _global_local_proj_ref.project(pos_sp_curr.lat, pos_sp_curr.lon);
 
-		// the bearing from launch to the takeoff waypoint is followed until the clearance altitude is exceeded
-		const Vector2f takeoff_bearing_vector = calculateTakeoffBearingVector(launch_local_position, takeoff_waypoint_local);
+		// by default set the takeoff bearing to the takeoff yaw, but override in a mission takeoff with bearing to takeoff WP
+		Vector2f takeoff_bearing_vector = {cosf(_launch_current_yaw), sinf(_launch_current_yaw)};
+
+		if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
+			// the bearing from launch to the takeoff waypoint is followed until the clearance altitude is exceeded
+			takeoff_bearing_vector = calculateTakeoffBearingVector(launch_local_position, takeoff_waypoint_local);
+		}
 
 		/* Set control values depending on the detection state */
 		if (_launchDetector.getLaunchDetected() > launch_detection_status_s::STATE_WAITING_FOR_LAUNCH
@@ -2596,7 +2602,7 @@ FixedwingPositionControl::calculateTakeoffBearingVector(const Vector2f &launch_p
 
 		// takeoff in the direction of the airframe
 		takeoff_bearing_vector(0) = cosf(_yaw);
-		takeoff_bearing_vector(0) = sinf(_yaw);
+		takeoff_bearing_vector(1) = sinf(_yaw);
 	}
 
 	return takeoff_bearing_vector;
