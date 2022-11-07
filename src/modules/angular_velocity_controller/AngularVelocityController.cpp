@@ -218,10 +218,10 @@ AngularVelocityController::Run()
 			// publish rate controller status
 			rate_ctrl_status_s rate_ctrl_status{};
 			Vector3f integral = _control.getIntegral();
-			rate_ctrl_status.timestamp = hrt_absolute_time();
 			rate_ctrl_status.rollspeed_integ = integral(0);
 			rate_ctrl_status.pitchspeed_integ = integral(1);
 			rate_ctrl_status.yawspeed_integ = integral(2);
+			rate_ctrl_status.timestamp = hrt_absolute_time();
 			_rate_ctrl_status_pub.publish(rate_ctrl_status);
 
 			// publish controller output
@@ -238,14 +238,12 @@ void
 AngularVelocityController::publish_angular_acceleration_setpoint()
 {
 	Vector3f angular_accel_sp = _control.getAngularAccelerationSetpoint();
-
 	vehicle_angular_acceleration_setpoint_s v_angular_accel_sp = {};
-	v_angular_accel_sp.timestamp = hrt_absolute_time();
 	v_angular_accel_sp.timestamp_sample = _timestamp_sample;
 	v_angular_accel_sp.xyz[0] = (PX4_ISFINITE(angular_accel_sp(0))) ? angular_accel_sp(0) : 0.0f;
 	v_angular_accel_sp.xyz[1] = (PX4_ISFINITE(angular_accel_sp(1))) ? angular_accel_sp(1) : 0.0f;
 	v_angular_accel_sp.xyz[2] = (PX4_ISFINITE(angular_accel_sp(2))) ? angular_accel_sp(2) : 0.0f;
-
+	v_angular_accel_sp.timestamp = hrt_absolute_time();
 	_vehicle_angular_acceleration_setpoint_pub.publish(v_angular_accel_sp);
 }
 
@@ -253,14 +251,12 @@ void
 AngularVelocityController::publish_torque_setpoint()
 {
 	Vector3f torque_sp = _control.getTorqueSetpoint();
-
 	vehicle_torque_setpoint_s v_torque_sp = {};
-	v_torque_sp.timestamp = hrt_absolute_time();
 	v_torque_sp.timestamp_sample = _timestamp_sample;
 	v_torque_sp.xyz[0] = (PX4_ISFINITE(torque_sp(0))) ? torque_sp(0) : 0.0f;
 	v_torque_sp.xyz[1] = (PX4_ISFINITE(torque_sp(1))) ? torque_sp(1) : 0.0f;
 	v_torque_sp.xyz[2] = (PX4_ISFINITE(torque_sp(2))) ? torque_sp(2) : 0.0f;
-
+	v_torque_sp.timestamp = hrt_absolute_time();
 	_vehicle_torque_setpoint_pub.publish(v_torque_sp);
 }
 
@@ -268,12 +264,11 @@ void
 AngularVelocityController::publish_thrust_setpoint()
 {
 	vehicle_thrust_setpoint_s v_thrust_sp = {};
-	v_thrust_sp.timestamp = hrt_absolute_time();
 	v_thrust_sp.timestamp_sample = _timestamp_sample;
 	v_thrust_sp.xyz[0] = (PX4_ISFINITE(_thrust_sp(0))) ? (_thrust_sp(0)) : 0.0f;
 	v_thrust_sp.xyz[1] = (PX4_ISFINITE(_thrust_sp(1))) ? (_thrust_sp(1)) : 0.0f;
 	v_thrust_sp.xyz[2] = (PX4_ISFINITE(_thrust_sp(2))) ? (_thrust_sp(2)) : 0.0f;
-
+	v_thrust_sp.timestamp = hrt_absolute_time();
 	_vehicle_thrust_setpoint_pub.publish(v_thrust_sp);
 }
 
