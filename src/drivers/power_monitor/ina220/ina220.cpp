@@ -134,7 +134,7 @@ int INA220::write(uint8_t address, uint16_t value)
 int
 INA220::init()
 {
-	int ret = PX4_OK;
+	int ret = PX4_ERROR;
 
 	/* do I2C init (and probe) first */
 	if (I2C::init() != PX4_OK) {
@@ -144,7 +144,6 @@ INA220::init()
 	write(INA220_REG_CONFIGURATION, INA220_RST);
 
 	_cal = INA220_CONST / (_current_lsb * _rshunt);
-	// _cal = _cal << 1; // INA220_REG_CALIBRATION is shifted over one
 
 	if (write(INA220_REG_CALIBRATION, _cal) < 0) {
 		return -3;
