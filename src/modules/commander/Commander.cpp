@@ -1862,14 +1862,14 @@ void Commander::checkForMissionUpdate()
 			}
 		}
 
-		// Transition mode to loiter or auto-mission after takeoff is completed.
+		// handle navigation state auto-switching based on mission_result
 		if (_arm_state_machine.isArmed() && !_vehicle_land_detected.landed
-		    && (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF ||
-			_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF)
 		    && (mission_result.timestamp >= _vehicle_status.nav_state_timestamp)
 		    && mission_result.finished) {
 
-			if ((_param_takeoff_finished_action.get() == 1) && auto_mission_available) {
+			if ((_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF
+			     || _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF)
+			    && (_param_takeoff_finished_action.get() == 1) && auto_mission_available) {
 				_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
 
 			} else {
