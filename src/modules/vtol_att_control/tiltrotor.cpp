@@ -481,9 +481,9 @@ void Tiltrotor::fill_actuator_outputs()
 		_thrust_setpoint_0->xyz[2] = fw_in[actuator_controls_s::INDEX_THROTTLE];
 
 		/* allow differential thrust if enabled */
-		if (_param_vt_fw_difthr_en.get()) {
-			mc_out[actuator_controls_s::INDEX_ROLL] = fw_in[actuator_controls_s::INDEX_YAW] * _param_vt_fw_difthr_sc.get() ;
-			_torque_setpoint_0->xyz[2] = fw_in[actuator_controls_s::INDEX_YAW] * _param_vt_fw_difthr_sc.get() ;
+		if (_param_vt_fw_difthr_en.get() & static_cast<int32_t>(VtFwDifthrEnBits::YAW_BIT)) {
+			mc_out[actuator_controls_s::INDEX_ROLL] = fw_in[actuator_controls_s::INDEX_YAW] * _param_vt_fw_difthr_s_y.get() ;
+			_torque_setpoint_0->xyz[2] = fw_in[actuator_controls_s::INDEX_YAW] * _param_vt_fw_difthr_s_y.get() ;
 		}
 
 	} else {
