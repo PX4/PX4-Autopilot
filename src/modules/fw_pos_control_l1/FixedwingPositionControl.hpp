@@ -315,6 +315,9 @@ private:
 	// [deg] global position of the vehicle at the time launch is detected (using launch detector)
 	Vector2d _launch_global_position{0, 0};
 
+	// [rad] current vehicle yaw at the time the launch is detected
+	float _launch_current_yaw{0.f};
+
 	// class handling runway takeoff for fixed-wing UAVs with steerable wheels
 	RunwayTakeoff _runway_takeoff;
 
