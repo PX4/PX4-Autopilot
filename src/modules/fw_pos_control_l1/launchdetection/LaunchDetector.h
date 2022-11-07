@@ -99,9 +99,6 @@ private:
 	 */
 	uint _state{launch_detection_status_s::STATE_WAITING_FOR_LAUNCH};
 
-	// [us] logs the last time the launch detection notification was sent (used not to spam notifications during launch detection)
-	hrt_abstime _last_time_launch_detection_notified{0};
-
 	DEFINE_PARAMETERS(
 		(ParamBool<px4::params::LAUN_ALL_ON>) _param_laun_all_on,
 		(ParamFloat<px4::params::LAUN_CAT_A>) _param_laun_cat_a,
