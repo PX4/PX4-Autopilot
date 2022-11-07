@@ -40,6 +40,7 @@
 #include "worker_thread.hpp"
 #include "HealthAndArmingChecks/HealthAndArmingChecks.hpp"
 #include "HomePosition.hpp"
+#include "ModeManagement.hpp"
 #include "UserModeIntention.hpp"
 
 #include <lib/controllib/blocks.hpp>
@@ -124,6 +125,7 @@ public:
 
 private:
 	bool isArmed() const { return (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED); }
+	static ModeChangeSource getSourceFromCommand(const vehicle_command_s &cmd);
 
 	void answer_command(const vehicle_command_s &cmd, uint8_t result);
 
@@ -190,6 +192,10 @@ private:
 
 	void checkAndInformReadyForTakeoff();
 
+	void handleCommandsFromModeExecutors();
+
+	void modeManagementUpdate();
+
 	enum class PrearmedMode {
 		DISABLED = 0,
 		SAFETY_BUTTON = 1,
@@ -211,8 +217,13 @@ private:
 	FailureDetector		_failure_detector{this};
 	HealthAndArmingChecks	_health_and_arming_checks{this, _vehicle_status};
 	Safety			_safety{};
-	UserModeIntention	_user_mode_intention{this, _vehicle_status, _health_and_arming_checks};
 	WorkerThread 		_worker_thread{};
+	ModeManagement  	_mode_management{
+#ifndef CONSTRAINED_FLASH
+		_health_and_arming_checks.externalChecks()
+#endif
+	};
+	UserModeIntention	_user_mode_intention {this, _vehicle_status, _health_and_arming_checks, &_mode_management};
 
 	const failsafe_flags_s &_failsafe_flags{_health_and_arming_checks.failsafeFlags()};
 	HomePosition 		_home_position{_failsafe_flags};
@@ -276,6 +287,7 @@ private:
 	uORB::Subscription					_manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription					_system_power_sub{ORB_ID(system_power)};
 	uORB::Subscription					_vehicle_command_sub{ORB_ID(vehicle_command)};
+	uORB::Subscription					_vehicle_command_mode_executor_sub{ORB_ID(vehicle_command_mode_executor)};
 	uORB::Subscription					_vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription					_vtol_vehicle_status_sub{ORB_ID(vtol_vehicle_status)};
 
@@ -295,6 +307,7 @@ private:
 	uORB::Publication<actuator_test_s>			_actuator_test_pub{ORB_ID(actuator_test)};
 	uORB::Publication<failure_detector_status_s>		_failure_detector_status_pub{ORB_ID(failure_detector_status)};
 	uORB::Publication<vehicle_command_ack_s>		_vehicle_command_ack_pub{ORB_ID(vehicle_command_ack)};
+	uORB::Publication<vehicle_command_s>			_vehicle_command_pub{ORB_ID(vehicle_command)};
 	uORB::Publication<vehicle_control_mode_s>		_vehicle_control_mode_pub{ORB_ID(vehicle_control_mode)};
 	uORB::Publication<vehicle_status_s>			_vehicle_status_pub{ORB_ID(vehicle_status)};
 

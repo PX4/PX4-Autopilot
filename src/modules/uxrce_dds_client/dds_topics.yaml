@@ -5,11 +5,23 @@
 #####
 publications:
 
+  - topic: /fmu/out/register_ext_component_reply
+    type: px4_msgs::msg::RegisterExtComponentReply
+
+  - topic: /fmu/out/arming_check_request
+    type: px4_msgs::msg::ArmingCheckRequest
+
+  - topic: /fmu/out/mode_completed
+    type: px4_msgs::msg::ModeCompleted
+
   - topic: /fmu/out/collision_constraints
     type: px4_msgs::msg::CollisionConstraints
 
   - topic: /fmu/out/failsafe_flags
     type: px4_msgs::msg::FailsafeFlags
+
+  - topic: /fmu/out/manual_control_setpoint
+    type: px4_msgs::msg::ManualControlSetpoint
 
   - topic: /fmu/out/position_setpoint_triplet
     type: px4_msgs::msg::PositionSetpointTriplet
@@ -28,6 +40,9 @@ publications:
 
   - topic: /fmu/out/vehicle_control_mode
     type: px4_msgs::msg::VehicleControlMode
+
+  - topic: /fmu/out/vehicle_command_ack
+    type: px4_msgs::msg::VehicleCommandAck
 
   - topic: /fmu/out/vehicle_global_position
     type: px4_msgs::msg::VehicleGlobalPosition
@@ -48,6 +63,20 @@ publications:
     type: px4_msgs::msg::VehicleTrajectoryWaypoint
 
 subscriptions:
+  - topic: /fmu/in/register_ext_component_request
+    type: px4_msgs::msg::RegisterExtComponentRequest
+
+  - topic: /fmu/in/unregister_ext_component
+    type: px4_msgs::msg::UnregisterExtComponent
+
+  - topic: /fmu/in/arming_check_reply
+    type: px4_msgs::msg::ArmingCheckReply
+
+  - topic: /fmu/in/mode_completed
+    type: px4_msgs::msg::ModeCompleted
+
+  - topic: /fmu/in/config_control_setpoints
+    type: px4_msgs::msg::VehicleControlMode
 
   - topic: /fmu/in/offboard_control_mode
     type: px4_msgs::msg::OffboardControlMode
@@ -80,6 +109,9 @@ subscriptions:
     type: px4_msgs::msg::VehicleOdometry
 
   - topic: /fmu/in/vehicle_command
+    type: px4_msgs::msg::VehicleCommand
+
+  - topic: /fmu/in/vehicle_command_mode_executor
     type: px4_msgs::msg::VehicleCommand
 
   - topic: /fmu/in/vehicle_trajectory_bezier

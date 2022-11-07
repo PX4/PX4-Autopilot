@@ -52,6 +52,7 @@ px4_add_module(
 		factory_calibration_storage.cpp
 		gyro_calibration.cpp
 		HomePosition.cpp
+		ModeManagement.cpp
 		UserModeIntention.cpp
 		level_calibration.cpp
 		lm_fit.cpp
