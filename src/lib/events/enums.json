@@ -110,6 +110,38 @@
                         "4194304": {
                             "name": "vtol_takeoff",
                             "description": "VTOL Takeoff"
+                        },
+                        "8388608": {
+                            "name": "external1",
+                            "description": "External 1"
+                        },
+                        "16777216": {
+                            "name": "external2",
+                            "description": "External 2"
+                        },
+                        "33554432": {
+                            "name": "external3",
+                            "description": "External 3"
+                        },
+                        "67108864": {
+                            "name": "external4",
+                            "description": "External 4"
+                        },
+                        "134217728": {
+                            "name": "external5",
+                            "description": "External 5"
+                        },
+                        "268435456": {
+                            "name": "external6",
+                            "description": "External 6"
+                        },
+                        "536870912": {
+                            "name": "external7",
+                            "description": "External 7"
+                        },
+                        "1073741824": {
+                            "name": "external8",
+                            "description": "External 8"
                         }
                     }
                 },
@@ -532,6 +564,38 @@
                             "name": "auto_vtol_takeoff",
                             "description": "Vtol Takeoff"
                         },
+                        "16": {
+                            "name": "external1",
+                            "description": "External 1"
+                        },
+                        "17": {
+                            "name": "external2",
+                            "description": "External 2"
+                        },
+                        "18": {
+                            "name": "external3",
+                            "description": "External 3"
+                        },
+                        "19": {
+                            "name": "external4",
+                            "description": "External 4"
+                        },
+                        "20": {
+                            "name": "external5",
+                            "description": "External 5"
+                        },
+                        "21": {
+                            "name": "external6",
+                            "description": "External 6"
+                        },
+                        "22": {
+                            "name": "external7",
+                            "description": "External 7"
+                        },
+                        "23": {
+                            "name": "external8",
+                            "description": "External 8"
+                        },
                         "255": {
                             "name": "unknown",
                             "description": "[Unknown]"
@@ -705,7 +769,15 @@
                     "19": [134479872],
                     "20": [151257088],
                     "21": [16973824],
-                    "22": [168034304]
+                    "22": [168034304],
+                    "23": [184811520],
+                    "24": [201588736],
+                    "25": [218365952],
+                    "26": [235143168],
+                    "27": [251920384],
+                    "28": [268697600],
+                    "29": [285474816],
+                    "30": [302252032]
                 }
             },
             "supported_protocols": [ "health_and_arming_check" ]

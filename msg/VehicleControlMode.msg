@@ -15,3 +15,8 @@ bool flag_control_altitude_enabled		# true if altitude is controlled
 bool flag_control_climb_rate_enabled		# true if climb rate is controlled
 bool flag_control_termination_enabled		# true if flighttermination is enabled
 bool flag_control_allocation_enabled		# true if control allocation is enabled
+
+# TODO: use dedicated topic for external requests
+uint8 source_id                  # Mode ID (nav_state)
+
+# TOPICS vehicle_control_mode config_control_setpoints

@@ -2357,7 +2357,8 @@ Mavlink::task_main(int argc, char *argv[])
 
 					if (!command_ack.from_external
 					    && command_ack.command < vehicle_command_s::VEHICLE_CMD_PX4_INTERNAL_START
-					    && is_target_known) {
+					    && is_target_known
+					    && command_ack.target_component < vehicle_command_s::COMPONENT_MODE_EXECUTOR_START) {
 
 						mavlink_command_ack_t msg{};
 						msg.result = command_ack.result;
