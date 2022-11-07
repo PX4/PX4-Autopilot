@@ -66,8 +66,8 @@ static const px4_mtd_entry_t base_eeprom = {
 	.npart = 2,
 	.partd = {
 		{
-			.type = MTD_MFT,
-			.path = "/fs/mtd_mft",
+			.type = MTD_MFT_VER,
+			.path = "/fs/mtd_mft_ver",
 			.nblocks = 248
 		},
 		{
