@@ -281,6 +281,7 @@ int GZBridge::task_spawn(int argc, char *argv[])
 			}
 
 #else
+			system_usleep(10000000);
 			return PX4_OK;
 
 #endif // ENABLE_LOCKSTEP_SCHEDULER
@@ -337,7 +338,11 @@ void GZBridge::imuCallback(const ignition::msgs::IMU &imu)
 
 	pthread_mutex_lock(&_mutex);
 
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	const uint64_t time_us = (imu.header().stamp().sec() * 1000000) + (imu.header().stamp().nsec() / 1000);
+#else
+	const uint64_t time_us = hrt_absolute_time();
+#endif
 
 	if (time_us > _world_time_us.load()) {
 		updateClock(imu.header().stamp().sec(), imu.header().stamp().nsec());
@@ -395,7 +400,11 @@ void GZBridge::poseInfoCallback(const ignition::msgs::Pose_V &pose)
 	for (int p = 0; p < pose.pose_size(); p++) {
 		if (pose.pose(p).name() == _model_name) {
 
-			const uint64_t time_us = (pose.header().stamp().sec() * 1000000) + (pose.header().stamp().nsec() / 1000);
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+			const uint64_t time_us = (imu.header().stamp().sec() * 1000000) + (imu.header().stamp().nsec() / 1000);
+#else
+			const uint64_t time_us = hrt_absolute_time();
+#endif
 
 			if (time_us > _world_time_us.load()) {
 				updateClock(pose.header().stamp().sec(), pose.header().stamp().nsec());
