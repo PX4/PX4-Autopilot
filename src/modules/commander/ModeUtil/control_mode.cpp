@@ -42,12 +42,10 @@ static bool stabilization_required(uint8_t vehicle_type)
 	return vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
 }
 
-void getVehicleControlMode(bool armed, uint8_t nav_state, uint8_t vehicle_type,
+void getVehicleControlMode(uint8_t nav_state, uint8_t vehicle_type,
 			   const offboard_control_mode_s &offboard_control_mode,
 			   vehicle_control_mode_s &vehicle_control_mode)
 {
-	vehicle_control_mode.flag_armed = armed;
-
 	switch (nav_state) {
 	case vehicle_status_s::NAVIGATION_STATE_MANUAL:
 		vehicle_control_mode.flag_control_manual_enabled = true;
@@ -162,17 +160,11 @@ void getVehicleControlMode(bool armed, uint8_t nav_state, uint8_t vehicle_type,
 		vehicle_control_mode.flag_control_velocity_enabled = true;
 		break;
 
+	// vehicle_status_s::NAVIGATION_STATE_EXTERNALx: handled in ModeManagement
 	default:
 		break;
 	}
 
-	vehicle_control_mode.flag_multicopter_position_control_enabled =
-		(vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)
-		&& (vehicle_control_mode.flag_control_altitude_enabled
-		    || vehicle_control_mode.flag_control_climb_rate_enabled
-		    || vehicle_control_mode.flag_control_position_enabled
-		    || vehicle_control_mode.flag_control_velocity_enabled
-		    || vehicle_control_mode.flag_control_acceleration_enabled);
 }
 
 } // namespace mode_util

@@ -249,8 +249,8 @@ public:
 	void clearArmingBits(NavModes modes);
 
 	/**
-	 * Clear can_run bits for certain modes. This will prevent mode switching and trigger failsafe if the
-	 * mode is being run.
+	 * Clear can_run bits for certain modes. This will prevent mode switching.
+	 * For failsafe use the mode requirements instead, which then will clear the can_run bits.
 	 * @param modes affected modes
 	 */
 	void clearCanRunBits(NavModes modes);
@@ -259,6 +259,8 @@ public:
 	const ArmingCheckResults &armingCheckResults() const { return _results[_current_result].arming_checks; }
 
 	bool modePreventsArming(uint8_t nav_state) const { return _failsafe_flags.mode_req_prevent_arming & (1u << nav_state); }
+
+	bool addExternalEvent(const event_s &event, NavModes modes);
 private:
 
 	/**
@@ -307,6 +309,7 @@ private:
 	NavModes getModeGroup(uint8_t nav_state) const;
 
 	friend class HealthAndArmingChecks;
+	friend class ExternalChecks;
 	FRIEND_TEST(ReporterTest, basic_no_checks);
 	FRIEND_TEST(ReporterTest, basic_fail_all_modes);
 	FRIEND_TEST(ReporterTest, arming_checks_mode_category);

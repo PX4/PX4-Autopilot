@@ -173,8 +173,10 @@ uint32 command			# Command ID
 uint8 target_system		# System which should execute the command
 uint8 target_component		# Component which should execute the command, 0 for all components
 uint8 source_system		# System sending the command
-uint8 source_component		# Component sending the command
+uint16 source_component	# Component / mode executor sending the command
 uint8 confirmation		# 0: First transmission of this command. 1-255: Confirmation transmissions (e.g. for kill command)
 bool from_external
 
-# TOPICS vehicle_command gimbal_v1_command
+uint16 COMPONENT_MODE_EXECUTOR_START = 1000
+
+# TOPICS vehicle_command gimbal_v1_command vehicle_command_mode_executor

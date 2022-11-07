@@ -68,7 +68,8 @@ MavlinkCommandSender::~MavlinkCommandSender()
 int MavlinkCommandSender::handle_vehicle_command(const vehicle_command_s &command, mavlink_channel_t channel)
 {
 	// commands > uint16 are PX4 internal only
-	if (command.command >= vehicle_command_s::VEHICLE_CMD_PX4_INTERNAL_START) {
+	if (command.command >= vehicle_command_s::VEHICLE_CMD_PX4_INTERNAL_START
+	    || command.source_component >= vehicle_command_s::COMPONENT_MODE_EXECUTOR_START) {
 		return 0;
 	}
 
