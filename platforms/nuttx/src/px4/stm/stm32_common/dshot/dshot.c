@@ -40,6 +40,7 @@
 
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/micro_hal.h>
+#include <px4_platform_common/log.h>
 #include <stm32_dma.h>
 #include <stm32_tim.h>
 #include <px4_arch/dshot.h>
@@ -565,6 +566,12 @@ void up_dshot_set_erpm_callback(void(*callback)(uint32_t[], size_t, void *), voi
 {
 	_erpm_callback = callback;
 	_erpm_callback_context = context;
+}
+
+void print_driver_stats()
+{
+	PX4_INFO("dshot driver stats: %lu read, %lu failed nibble, %lu failed CRC, %lu invalid/zero",
+		 read_ok, read_fail_nibble, read_fail_crc, read_fail_zero);
 }
 
 #endif

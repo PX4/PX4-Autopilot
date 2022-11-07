@@ -738,6 +738,7 @@ int DShot::print_status()
 	PX4_INFO("Outputs on: %s", _outputs_on ? "yes" : "no");
 	perf_print_counter(_cycle_perf);
 	_mixing_output.printStatus();
+	print_driver_stats();
 
 	if (_telemetry) {
 		PX4_INFO("telemetry on: %s", _telemetry_device);
