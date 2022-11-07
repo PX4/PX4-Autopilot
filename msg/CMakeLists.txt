@@ -49,6 +49,8 @@ set(msg_files
 	Airspeed.msg
 	AirspeedValidated.msg
 	AirspeedWind.msg
+	ArmingCheckReply.msg
+	ArmingCheckRequest.msg
 	AutotuneAttitudeControlStatus.msg
 	BatteryStatus.msg
 	ButtonEvent.msg
@@ -160,6 +162,8 @@ set(msg_files
 	RateCtrlStatus.msg
 	RcChannels.msg
 	RcParameterMap.msg
+	RegisterExtComponentReply.msg
+	RegisterExtComponentRequest.msg
 	Rpm.msg
 	RtlTimeEstimate.msg
 	SatelliteInfo.msg
@@ -197,6 +201,7 @@ set(msg_files
 	UavcanParameterValue.msg
 	UlogStream.msg
 	UlogStreamAck.msg
+	UnregisterExtComponent.msg
 	VehicleAcceleration.msg
 	VehicleAirData.msg
 	VehicleAngularAccelerationSetpoint.msg

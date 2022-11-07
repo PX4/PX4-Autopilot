@@ -69,6 +69,7 @@
 #include "checks/vtolCheck.hpp"
 #include "checks/offboardCheck.hpp"
 #include "checks/openDroneIDCheck.hpp"
+#include "checks/externalChecks.hpp"
 
 class HealthAndArmingChecks : public ModuleParams
 {
@@ -100,6 +101,10 @@ public:
 	bool modePreventsArming(uint8_t nav_state) const { return _reporter.modePreventsArming(nav_state); }
 
 	const failsafe_flags_s &failsafeFlags() const { return _failsafe_flags; }
+
+#ifndef CONSTRAINED_FLASH
+	ExternalChecks &externalChecks() { return _external_checks; }
+#endif
 
 protected:
 	void updateParams() override;
@@ -143,8 +148,14 @@ private:
 	RcAndDataLinkChecks _rc_and_data_link_checks;
 	VtolChecks _vtol_checks;
 	OffboardChecks _offboard_checks;
+#ifndef CONSTRAINED_FLASH
+	ExternalChecks _external_checks;
+#endif
 
-	HealthAndArmingCheckBase *_checks[31] = {
+	HealthAndArmingCheckBase *_checks[40] = {
+#ifndef CONSTRAINED_FLASH
+		&_external_checks,
+#endif
 		&_accelerometer_checks,
 		&_airspeed_checks,
 		&_arm_permission_checks,
@@ -161,7 +172,7 @@ private:
 		&_home_position_checks,
 		&_mission_checks,
 		&_offboard_checks, // must be after _estimator_checks
-		&_mode_checks, // must be after _estimator_checks, _home_position_checks, _mission_checks, _offboard_checks
+		&_mode_checks, // must be after _estimator_checks, _home_position_checks, _mission_checks, _offboard_checks, _external_checks
 		&_open_drone_id_checks,
 		&_parachute_checks,
 		&_power_checks,
