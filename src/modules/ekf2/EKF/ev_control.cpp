@@ -41,6 +41,7 @@
 void Ekf::controlExternalVisionFusion()
 {
 	_ev_pos_b_est.predict(_dt_ekf_avg);
+	_ev_hgt_b_est.predict(_dt_ekf_avg);
 
 	// Check for new external vision data
 	extVisionSample ev_sample;

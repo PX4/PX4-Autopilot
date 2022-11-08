@@ -44,8 +44,7 @@ void Ekf::controlEvHeightFusion(const extVisionSample &ev_sample, bool starting_
 	static constexpr const char *AID_SRC_NAME = "EV height";
 
 	HeightBiasEstimator &bias_est = _ev_hgt_b_est;
-
-	bias_est.predict(_dt_ekf_avg);
+	//bias_est.predict(_dt_ekf_avg); // handled by controlExternalVisionFusion()
 
 	// correct position for offset relative to IMU
 	const Vector3f pos_offset_body = _params.ev_pos_body - _params.imu_pos_body;
