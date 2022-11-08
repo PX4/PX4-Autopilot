@@ -87,7 +87,10 @@ void ObstacleAvoidance::injectAvoidanceSetpoints(Vector3f &pos_sp, Vector3f &vel
 
 	if (avoidance_invalid) {
 		PX4_WARN("Obstacle Avoidance system failed, loitering");
-		_publishVehicleCmdDoLoiter();
+		if (_avoidance_failure_mode_change_flag == false){
+			_publishVehicleCmdDoLoiter();
+			_avoidance_failure_mode_change_flag = true;
+		}
 
 		if (!_failsafe_position.isAllFinite()) {
 			// save vehicle position when entering failsafe
