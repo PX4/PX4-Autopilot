@@ -281,9 +281,7 @@ int GZBridge::task_spawn(int argc, char *argv[])
 			}
 
 #else
-			system_usleep(10000000);
 			return PX4_OK;
-
 #endif // ENABLE_LOCKSTEP_SCHEDULER
 
 			//return PX4_OK;
