@@ -45,6 +45,7 @@
 #include <lib/perf/perf_counter.h>
 #include <battery/battery.h>
 #include <drivers/drv_hrt.h>
+#include <uORB/topics/power_monitor.h>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <px4_platform_common/i2c_spi_buses.h>
@@ -132,8 +133,13 @@ using namespace time_literals;
 #define INA220_CONST                          0.04096f  /* is an internal fixed value used to ensure scaling is maintained properly  */
 #define INA220_SHUNT                          0.0005f   /* Shunt is 500 uOhm */
 #define INA220_VSCALE                         0.004f    /* LSB of voltage is 4 mV  */
-
+#define INA220_VSHUNTSCALE		      0.01f  /* LSB of shunt voltage is 10 uV  */
 #define swap16(w)                       __builtin_bswap16((w))
+
+enum PM_CH_TYPE {
+	PM_CH_TYPE_VBATT = 0,
+	PM_CH_TYPE_VREG
+};
 
 class INA220 : public device::I2C, public ModuleParams, public I2CSPIDriver<INA220>
 {
@@ -176,20 +182,29 @@ private:
 	perf_counter_t 		_measure_errors;
 
 	int16_t           _bus_voltage{0};
-	int16_t           _power{0};
-	int16_t           _current{0};
+	int16_t           _bus_power{0};
+	int16_t           _bus_current{0};
 	int16_t           _shunt{0};
 	uint16_t           _cal{0};
 	bool              _mode_triggered{false};
+
+	const PM_CH_TYPE  _ch_type;
 
 	float             _max_current{MAX_CURRENT};
 	float             _rshunt{INA220_SHUNT};
 	uint16_t          _config{INA220_CONFIG};
 	float             _current_lsb{_max_current / DN_MAX};
 	float             _power_lsb{25.0f * _current_lsb};
+	float	   	  _voltage{0};
+	float 		  _current{0};
+	float	          _vshunt{0};
+
 
 	Battery 		  _battery;
+	uORB::PublicationMulti<power_monitor_s>		_pm_pub_topic{ORB_ID(power_monitor)};
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+
+	power_monitor_s 	_pm_status{};
 
 	int read(uint8_t address, int16_t &data);
 	int write(uint8_t address, uint16_t data);

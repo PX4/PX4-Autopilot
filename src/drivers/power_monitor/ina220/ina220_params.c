@@ -54,7 +54,7 @@ PARAM_DEFINE_INT32(SENS_EN_INA220, 0);
 PARAM_DEFINE_INT32(INA220_CONFIG, 8607);
 
 /**
- * INA220 Power Monitor Max Current
+ * INA220 Power Monitor Battery Max Current
  *
  * @group Sensors
  * @min 0.1
@@ -62,10 +62,10 @@ PARAM_DEFINE_INT32(INA220_CONFIG, 8607);
  * @decimal 2
  * @increment 0.1
  */
-PARAM_DEFINE_FLOAT(INA220_CURRENT, 164.0f);
+PARAM_DEFINE_FLOAT(INA220_CUR_BAT, 164.0f);
 
 /**
- * INA220 Power Monitor Shunt
+ * INA220 Power Monitor Battery Shunt
  *
  * @group Sensors
  * @min 0.000000001
@@ -73,4 +73,26 @@ PARAM_DEFINE_FLOAT(INA220_CURRENT, 164.0f);
  * @decimal 10
  * @increment .000000001
  */
-PARAM_DEFINE_FLOAT(INA220_SHUNT, 0.0005f);
+PARAM_DEFINE_FLOAT(INA220_SHUNT_BAT, 0.0005f);
+
+/**
+ * INA220 Power Monitor Regulator Max Current
+ *
+ * @group Sensors
+ * @min 0.1
+ * @max 500.0
+ * @decimal 2
+ * @increment 0.1
+ */
+PARAM_DEFINE_FLOAT(INA220_CUR_REG, 164.0f);
+
+/**
+ * INA220 Power Monitor Regulator Shunt
+ *
+ * @group Sensors
+ * @min 0.000000001
+ * @max 0.1
+ * @decimal 10
+ * @increment .000000001
+ */
+PARAM_DEFINE_FLOAT(INA220_SHUNT_REG, 0.0005f);

@@ -83,6 +83,7 @@ this flag set, the battery must be plugged in before starting the driver.
 	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x41);
 	PRINT_MODULE_USAGE_PARAMS_I2C_KEEP_RUNNING_FLAG();
 	PRINT_MODULE_USAGE_PARAM_INT('t', 1, 1, 2, "battery index for calibration values (1 or 2)", true);
+	PRINT_MODULE_USAGE_PARAM_STRING('T', "VBATT", "VBATT|VREG", "Type", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
@@ -97,10 +98,24 @@ ina220_main(int argc, char *argv[])
 	cli.support_keep_running = true;
 	cli.custom1 = 1;
 
-	while ((ch = cli.getOpt(argc, argv, "t:")) != EOF) {
+	cli.custom2 = PM_CH_TYPE_VBATT;
+	while ((ch = cli.getOpt(argc, argv, "T:")) != EOF) {
 		switch (ch) {
 		case 't': // battery index
 			cli.custom1 = (int)strtol(cli.optArg(), NULL, 0);
+			break;
+		case 'T':
+			if (strcmp(cli.optArg(), "VBATT") == 0) {
+				cli.custom2 = PM_CH_TYPE_VBATT;
+
+			} else if (strcmp(cli.optArg(), "VREG") == 0) {
+				cli.custom2 = PM_CH_TYPE_VREG;
+
+			} else {
+				PX4_ERR("unknown type");
+				return -1;
+			}
+
 			break;
 		}
 	}

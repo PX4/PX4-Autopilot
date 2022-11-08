@@ -51,11 +51,12 @@ INA220::INA220(const I2CSPIDriverConfig &config, int battery_index) :
 	_comms_errors(perf_alloc(PC_COUNT, "ina220_com_err")),
 	_collection_errors(perf_alloc(PC_COUNT, "ina220_collection_err")),
 	_measure_errors(perf_alloc(PC_COUNT, "ina220_measurement_err")),
+	_ch_type((PM_CH_TYPE)config.custom2),
 	_battery(battery_index, this, INA220_SAMPLE_INTERVAL_US, battery_status_s::BATTERY_SOURCE_POWER_MODULE)
 {
 	float fvalue = MAX_CURRENT;
 	_max_current = fvalue;
-	param_t ph = param_find("INA220_CURRENT");
+	param_t ph = (_ch_type == PM_CH_TYPE_VBATT) ? param_find("INA220_CURRENT_BAT") : param_find("INA220_CURRENT_REG");
 
 	if (ph != PARAM_INVALID && param_get(ph, &fvalue) == PX4_OK) {
 		_max_current = fvalue;
@@ -63,7 +64,7 @@ INA220::INA220(const I2CSPIDriverConfig &config, int battery_index) :
 
 	fvalue = INA220_SHUNT;
 	_rshunt = fvalue;
-	ph = param_find("INA220_SHUNT");
+	ph = (_ch_type == PM_CH_TYPE_VBATT) ? param_find("INA220_SHUNT_BAT") : param_find("INA220_SHUNT_REG");
 
 	if (ph != PARAM_INVALID && param_get(ph, &fvalue) == PX4_OK) {
 		_rshunt = fvalue;
@@ -84,11 +85,14 @@ INA220::INA220(const I2CSPIDriverConfig &config, int battery_index) :
 	_current_lsb = _max_current / DN_MAX;
 	_power_lsb = 25 * _current_lsb;
 
-	// We need to publish immediately, to guarantee that the first instance of the driver publishes to uORB instance 0
-	_battery.setConnected(false);
-	_battery.updateVoltage(0.f);
-	_battery.updateCurrent(0.f);
-	_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
+	if (_ch_type == PM_CH_TYPE_VBATT) {
+		// We need to publish immediately, to guarantee that the first instance of the driver publishes to uORB instance 0
+		_battery.setConnected(false);
+		_battery.updateVoltage(0.f);
+		_battery.updateCurrent(0.f);
+		_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
+	}
+
 }
 
 INA220::~INA220()
@@ -224,8 +228,8 @@ INA220::collect()
 	// Note: If the power module is connected backwards, then the values of _power, _current, and _shunt will be negative but otherwise valid.
 	bool success{true};
 	success = success && (read(INA220_REG_BUSVOLTAGE, _bus_voltage) == PX4_OK);
-	// success = success && (read(INA220_REG_POWER, _power) == PX4_OK);
-	success = success && (read(INA220_REG_CURRENT, _current) == PX4_OK);
+	success = success && (read(INA220_REG_POWER, _bus_power) == PX4_OK);
+	success = success && (read(INA220_REG_CURRENT, _bus_current) == PX4_OK);
 	success = success && (read(INA220_REG_SHUNTVOLTAGE, _shunt) == PX4_OK);
 
 	uint16_t unsigned_bus_voltage = _bus_voltage;
@@ -233,13 +237,33 @@ INA220::collect()
 
 	if (!success) {
 		PX4_DEBUG("error reading from sensor");
-		_bus_voltage = _power = _current = _shunt = 0;
+		_bus_voltage = _bus_power = _bus_current = _shunt = 0;
 	}
 
-	_battery.setConnected(success);
-	_battery.updateVoltage(static_cast<float>(_bus_voltage * INA220_VSCALE));
-	_battery.updateCurrent(static_cast<float>(_current * _current_lsb));
-	_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
+	_voltage = static_cast<float>(_bus_voltage * INA220_VSCALE);
+	_current = static_cast<float>(_bus_current * _current_lsb);
+	_vshunt = static_cast<float>(_shunt * INA220_VSHUNTSCALE);
+
+	switch (_ch_type) {
+	case PM_CH_TYPE_VBATT: {
+			_battery.setConnected(success);
+			_battery.updateVoltage(_voltage);
+			_battery.updateCurrent(_current);
+			_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
+		}
+		break;
+
+	case PM_CH_TYPE_VREG: {
+			memset(&_pm_status, 0x00, sizeof(_pm_status));
+			_pm_status.timestamp = hrt_absolute_time();
+			_pm_status.voltage_v = _voltage;
+			_pm_status.current_a = _current;
+			_pm_pub_topic.publish(_pm_status);
+		}
+		break;
+
+	}
+
 
 	perf_end(_sample_perf);
 
@@ -302,10 +326,13 @@ INA220::RunImpl()
 		ScheduleDelayed(INA220_CONVERSION_INTERVAL);
 
 	} else {
-		_battery.setConnected(false);
-		_battery.updateVoltage(0.f);
-		_battery.updateCurrent(0.f);
-		_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
+
+		if (_ch_type == PM_CH_TYPE_VBATT) {
+			_battery.setConnected(false);
+			_battery.updateVoltage(0.f);
+			_battery.updateCurrent(0.f);
+			_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
+		}
 
 		if (init() != PX4_OK) {
 			ScheduleDelayed(INA220_INIT_RETRY_INTERVAL_US);
@@ -322,11 +349,25 @@ INA220::print_status()
 		perf_print_counter(_sample_perf);
 		perf_print_counter(_comms_errors);
 
-		printf("poll interval:  %u \n", _measure_interval);
+		switch (_ch_type) {
+		case PM_CH_TYPE_VBATT:
+			printf("- type: BATT\n");
+			break;
 
-		battery_status_s status = _battery.getBatteryStatus();
-		printf("  - voltage: %9.4f VDC \n", (double) status.voltage_v);
-		printf("  - current: %9.4f ADC \n", (double) status.current_a);
+		case PM_CH_TYPE_VREG:
+			printf("- type: VREG\n");
+			break;
+
+		default:
+			printf("- type: UNKOWN\n");
+			break;
+		}
+
+		printf("  - voltage: %9.4f VDC \n", (double) _voltage);
+		printf("  - current: %9.4f ADC \n", (double) _current);
+		printf("  - shunt: %9.4f mV \n", (double) _vshunt);
+
+		printf("poll interval:  %u \n", _measure_interval);;
 
 	} else {
 		PX4_INFO("Device not initialized. Retrying every %d ms until battery is plugged in.",
