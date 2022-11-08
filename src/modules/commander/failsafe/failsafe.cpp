@@ -469,7 +469,9 @@ FailsafeBase::Action Failsafe::checkModeFallback(const failsafe_flags_s &status_
 		action = fromOffboardLossActParam(_param_com_obl_rc_act.get(), user_intended_mode);
 
 		// for this specific case, user_intended_mode is not modified, we shouldn't check additional fallbacks
-		if (action == Action::Disarm) { return action; }
+		if (action == Action::Disarm) {
+		     return action;
+		}
 	}
 
 	// posctrl
