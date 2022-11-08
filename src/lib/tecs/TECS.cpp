@@ -504,10 +504,6 @@ void TECSControl::_updateThrottleSetpoint(float dt, const SpecificEnergy &se, co
 		// Add the integrator feedback during closed loop operation with an airspeed sensor
 		throttle_setpoint += _throttle_integ_state;
 
-	} else {
-		// when flying without an airspeed sensor, use the predicted throttle only
-		throttle_setpoint = throttle_predicted;
-
 	}
 
 	// ramp in max throttle setting with underspeediness value
