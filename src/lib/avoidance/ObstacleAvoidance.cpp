@@ -86,8 +86,12 @@ void ObstacleAvoidance::injectAvoidanceSetpoints(Vector3f &pos_sp, Vector3f &vel
 	}
 
 	if (avoidance_invalid) {
-		PX4_WARN("Obstacle Avoidance system failed, loitering");
-		_publishVehicleCmdDoLoiter();
+		if (_avoidance_activated) {
+			// Invalid point received: deactivate
+			PX4_WARN("Obstacle Avoidance system failed, loitering");
+			_publishVehicleCmdDoLoiter();
+			_avoidance_activated = false;
+		}
 
 		if (!_failsafe_position.isAllFinite()) {
 			// save vehicle position when entering failsafe
@@ -98,10 +102,15 @@ void ObstacleAvoidance::injectAvoidanceSetpoints(Vector3f &pos_sp, Vector3f &vel
 		vel_sp.setNaN();
 		yaw_sp = NAN;
 		yaw_speed_sp = NAN;
+
+		// Do nothing further - wait until activation
 		return;
 
-	} else {
+	} else if (!_avoidance_activated) {
+		// First setpoint has been received: activate
+		PX4_INFO("Obstacle Avoidance system activated");
 		_failsafe_position.setNaN();
+		_avoidance_activated = true;
 	}
 
 	if (avoidance_point_valid && !wp_msg_timeout) {
