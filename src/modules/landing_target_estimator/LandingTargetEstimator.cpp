@@ -187,11 +187,17 @@ void LandingTargetEstimator::initEstimator()
 
 	// Define initial relative velocity of the target w.r.t. to the drone in NED frame
 	Vector3f v_rel_init;
-	v_rel_init(0) = vehicle_local_position.v_xy_valid ? -vehicle_local_position.vx : 0.f;
-	v_rel_init(1) = vehicle_local_position.v_xy_valid ? -vehicle_local_position.vy : 0.f;
-	// v_rel_init(2) = vehicle_local_position.v_z_valid  ? -vehicle_local_position.vz : 0.f;
 
-	v_rel_init(2) = 0.f;
+	if (_target_pos_obs[uav_gps_vel].updated_xyz(0) && _target_pos_obs[uav_gps_vel].updated_xyz(1)
+	    && _target_pos_obs[uav_gps_vel].updated_xyz(2)) {
+		v_rel_init = _target_pos_obs[uav_gps_vel].meas_xyz;
+
+	} else {
+		v_rel_init(0) = vehicle_local_position.v_xy_valid ? -vehicle_local_position.vx : 0.f;
+		v_rel_init(1) = vehicle_local_position.v_xy_valid ? -vehicle_local_position.vy : 0.f;
+		v_rel_init(2) = vehicle_local_position.v_z_valid  ? -vehicle_local_position.vz : 0.f;
+	}
+
 
 	// Define initial acceleration of the target in NED frame. Since we have no info on the target, assume no initial acceleration
 	Vector3f a_init{};
@@ -334,6 +340,12 @@ bool LandingTargetEstimator::updateNED(Vector3f vehicle_acc_ned)
 				PX4_INFO("Measurement rejected because too old. Time sync: %.2f [seconds] > timeout: %.2f [seconds]",
 					 (double)(dt_sync / SEC2USEC), (double)(measurement_valid_TIMEOUT_US / SEC2USEC));
 
+				// No measurement update, set to false
+				for (int k = 0; k < 3; k++) {
+					_target_innovations_array[i].fusion_enabled[k] = false;
+					_target_innovations_array[i].fused[k] = false;
+				}
+
 			} else {
 
 				// Convert time sync to seconds
@@ -357,6 +369,10 @@ bool LandingTargetEstimator::updateNED(Vector3f vehicle_acc_ned)
 						// No measurement Note: .fusion_enabled[j] and .fused[j] = false are already false by default. (set in publishInnovations())
 						PX4_INFO("At least one non-valid observation. x: %d, y: %d, z: %d", _target_pos_obs[i].updated_xyz(0),
 							 _target_pos_obs[i].updated_xyz(1), _target_pos_obs[i].updated_xyz(2));
+
+						// Set innovations to zero
+						_target_innovations_array[i].fusion_enabled[j] = false;
+						_target_innovations_array[i].fused[j] = false;
 
 					} else {
 
@@ -473,14 +489,6 @@ void LandingTargetEstimator::publishInnovations()
 
 	// Orientation innovation
 	_target_estimator_aid_ev_yaw_pub.publish(_target_estimator_aid_ev_yaw);
-
-	// Reset innovations to zero
-	for (int i = 0; i < nb_observations; i++) {
-		for (int k = 0; k < 3; k++) {
-			_target_innovations_array[i].fusion_enabled[k] = false;
-			_target_innovations_array[i].fused[k] = false;
-		}
-	}
 }
 
 void LandingTargetEstimator::publishTarget()
@@ -629,14 +637,15 @@ void LandingTargetEstimator::publishTarget()
 	_targetPosePub.publish(target_pose);
 	_targetEstimatorStatePub.publish(target_estimator_state);
 
-	float bias_lim = _param_ltest_bias_lim.get();
+	// float bias_lim = _param_ltest_bias_lim.get();
 
-	if (_target_model != TargetModel::Horizontal && (fabs(target_estimator_state.x_bias) > bias_lim
-			|| fabs(target_estimator_state.y_bias) > bias_lim || fabs(target_estimator_state.z_bias) > bias_lim)) {
-		PX4_WARN("Bias exceeds limit: %.2f bias x: %.2f bias y: %.2f bias z: %.2f", (double)bias_lim,
-			 (double)target_estimator_state.x_bias, (double)target_estimator_state.y_bias, (double)target_estimator_state.z_bias);
-		// _estimator_initialized = false;
-	}
+	// if (_target_model != TargetModel::Horizontal && (fabs(target_estimator_state.x_bias) > bias_lim
+	// 		|| fabs(target_estimator_state.y_bias) > bias_lim || fabs(target_estimator_state.z_bias) > bias_lim)) {
+
+	// 	PX4_WARN("Bias exceeds limit: %.2f bias x: %.2f bias y: %.2f bias z: %.2f", (double)bias_lim,
+	// 		 (double)target_estimator_state.x_bias, (double)target_estimator_state.y_bias, (double)target_estimator_state.z_bias);
+	// 	// _estimator_initialized = false;
+	// }
 
 }
 
@@ -1147,9 +1156,9 @@ void LandingTargetEstimator::_update_topics(accInput *input)
 
 				if (_target_mode == TargetMode::Stationary) {
 
-					temp_obs.meas_xyz(0) = vehicle_gps_position.vel_n_m_s;
-					temp_obs.meas_xyz(1) = vehicle_gps_position.vel_e_m_s;
-					temp_obs.meas_xyz(2) = vehicle_gps_position.vel_d_m_s;
+					temp_obs.meas_xyz(0) = -vehicle_gps_position.vel_n_m_s;
+					temp_obs.meas_xyz(1) = -vehicle_gps_position.vel_e_m_s;
+					temp_obs.meas_xyz(2) = -vehicle_gps_position.vel_d_m_s;
 
 					temp_obs.meas_unc_xyz(0) = vehicle_gps_position.s_variance_m_s;
 					temp_obs.meas_unc_xyz(1) = vehicle_gps_position.s_variance_m_s;
