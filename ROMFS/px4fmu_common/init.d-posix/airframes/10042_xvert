@@ -14,7 +14,7 @@ PX4_SIM_MODEL=${PX4_SIM_MODEL:=xvert}
 param set-default VT_ELEV_MC_LOCK 0
 param set-default VT_TYPE 0
 param set-default VT_FW_DIFTHR_EN 1
-param set-default VT_FW_DIFTHR_SC 0.3
+param set-default VT_FW_DIFTHR_S_Y 0.3
 param set-default MPC_MAN_Y_MAX 60
 param set-default MC_PITCH_P 5
 

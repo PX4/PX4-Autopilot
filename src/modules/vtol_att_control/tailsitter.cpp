@@ -343,9 +343,22 @@ void Tailsitter::fill_actuator_outputs()
 		_thrust_setpoint_0->xyz[2] = -fw_in[actuator_controls_s::INDEX_THROTTLE];
 
 		/* allow differential thrust if enabled */
-		if (_param_vt_fw_difthr_en.get()) {
-			mc_out[actuator_controls_s::INDEX_ROLL] = fw_in[actuator_controls_s::INDEX_YAW] * _param_vt_fw_difthr_sc.get() ;
-			_torque_setpoint_0->xyz[0] = fw_in[actuator_controls_s::INDEX_YAW] * _param_vt_fw_difthr_sc.get() ;
+		if (_param_vt_fw_difthr_en.get() & static_cast<int32_t>(VtFwDifthrEnBits::YAW_BIT)) {
+			float yaw_control = fw_in[actuator_controls_s::INDEX_YAW] * _param_vt_fw_difthr_s_y.get();
+			mc_out[actuator_controls_s::INDEX_ROLL] = yaw_control;
+			_torque_setpoint_0->xyz[0] = yaw_control;
+		}
+
+		if (_param_vt_fw_difthr_en.get() & static_cast<int32_t>(VtFwDifthrEnBits::PITCH_BIT)) {
+			float pitch_control = fw_in[actuator_controls_s::INDEX_PITCH] * _param_vt_fw_difthr_s_p.get();
+			mc_out[actuator_controls_s::INDEX_PITCH] = pitch_control;
+			_torque_setpoint_0->xyz[1] = pitch_control;
+		}
+
+		if (_param_vt_fw_difthr_en.get() & static_cast<int32_t>(VtFwDifthrEnBits::ROLL_BIT)) {
+			float roll_control = -fw_in[actuator_controls_s::INDEX_ROLL] * _param_vt_fw_difthr_s_r.get();
+			mc_out[actuator_controls_s::INDEX_YAW] = roll_control;
+			_torque_setpoint_0->xyz[2] = roll_control;
 		}
 
 	} else {

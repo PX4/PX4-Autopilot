@@ -126,6 +126,7 @@ function(px4_os_add_flags)
 
 		-Wno-unknown-warning-option
 		-Wno-cast-align
+		--include=${PX4_SOURCE_DIR}/platforms/qurt/include/qurt_reqs.h
 	)
 
 	# Clear -rdynamic flag which fails for hexagon

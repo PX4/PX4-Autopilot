@@ -12,6 +12,7 @@ bool has_low_throttle
 
 bool vertical_movement
 bool horizontal_movement
+bool rotational_movement
 
 bool close_to_ground_or_skipped_check
 

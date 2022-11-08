@@ -157,7 +157,7 @@ FixedwingAttitudeControl::vehicle_manual_poll(const float yaw_body)
 					Quatf q(Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body));
 					q.copyTo(_att_sp.q_d);
 
-					_att_sp.reset_rate_integrals = false;
+					_att_sp.reset_integral = false;
 
 					_att_sp.timestamp = hrt_absolute_time();
 
@@ -392,8 +392,8 @@ void FixedwingAttitudeControl::Run()
 			const float airspeed = get_airspeed_and_update_scaling();
 
 			/* reset integrals where needed */
-			if (_att_sp.reset_rate_integrals) {
-				_rate_control.resetIntegral();
+			if (_att_sp.reset_integral) {
+				_rates_sp.reset_integral = true;
 			}
 
 			/* Reset integrators if the aircraft is on ground
@@ -403,7 +403,7 @@ void FixedwingAttitudeControl::Run()
 			    || (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 				&& !_vehicle_status.in_transition_mode && !_vehicle_status.is_vtol_tailsitter)) {
 
-				_rate_control.resetIntegral();
+				_rates_sp.reset_integral = true;
 				_wheel_ctrl.reset_integrator();
 			}
 
@@ -605,7 +605,7 @@ void FixedwingAttitudeControl::Run()
 				_actuator_controls.control[actuator_controls_s::INDEX_YAW] = (PX4_ISFINITE(yaw_u)) ? math::constrain(yaw_u + trim_yaw,
 						-1.f, 1.f) : trim_yaw;
 
-				if (!PX4_ISFINITE(roll_u) || !PX4_ISFINITE(pitch_u) || !PX4_ISFINITE(yaw_u)) {
+				if (!PX4_ISFINITE(roll_u) || !PX4_ISFINITE(pitch_u) || !PX4_ISFINITE(yaw_u) || _rates_sp.reset_integral) {
 					_rate_control.resetIntegral();
 				}
 

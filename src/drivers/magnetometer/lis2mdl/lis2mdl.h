@@ -80,8 +80,8 @@
 #define CFG_REG_C_BDU                   (1 << 4) /* avoids reading of incorrect data due to async reads */
 
 /* interface factories */
-extern device::Device *LIS2MDL_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode);
-extern device::Device *LIS2MDL_I2C_interface(int bus, int bus_frequency);
+extern device::Device *LIS2MDL_SPI_interface(const I2CSPIDriverConfig &config);
+extern device::Device *LIS2MDL_I2C_interface(const I2CSPIDriverConfig &config);
 
 #define LIS2MDLL_ADDRESS        0x1e
 

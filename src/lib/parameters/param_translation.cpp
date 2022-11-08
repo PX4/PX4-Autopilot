@@ -250,5 +250,14 @@ bool param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2022-07-18: translate VT_FW_DIFTHR_SC->VT_FW_DIFTHR_S_Y
+	{
+		if (strcmp("VT_FW_DIFTHR_SC", node->name) == 0) {
+			strcpy(node->name, "VT_FW_DIFTHR_S_Y");
+			PX4_INFO("copying %s -> %s", "VT_FW_DIFTHR_SC", "VT_FW_DIFTHR_S_Y");
+			return true;
+		}
+	}
+
 	return false;
 }

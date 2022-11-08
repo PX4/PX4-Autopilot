@@ -296,22 +296,20 @@ MulticopterRateControl::Run()
 void MulticopterRateControl::publishTorqueSetpoint(const Vector3f &torque_sp, const hrt_abstime &timestamp_sample)
 {
 	vehicle_torque_setpoint_s vehicle_torque_setpoint{};
-	vehicle_torque_setpoint.timestamp = hrt_absolute_time();
 	vehicle_torque_setpoint.timestamp_sample = timestamp_sample;
 	vehicle_torque_setpoint.xyz[0] = (PX4_ISFINITE(torque_sp(0))) ? torque_sp(0) : 0.0f;
 	vehicle_torque_setpoint.xyz[1] = (PX4_ISFINITE(torque_sp(1))) ? torque_sp(1) : 0.0f;
 	vehicle_torque_setpoint.xyz[2] = (PX4_ISFINITE(torque_sp(2))) ? torque_sp(2) : 0.0f;
-
+	vehicle_torque_setpoint.timestamp = hrt_absolute_time();
 	_vehicle_torque_setpoint_pub.publish(vehicle_torque_setpoint);
 }
 
 void MulticopterRateControl::publishThrustSetpoint(const hrt_abstime &timestamp_sample)
 {
 	vehicle_thrust_setpoint_s vehicle_thrust_setpoint{};
-	vehicle_thrust_setpoint.timestamp = hrt_absolute_time();
 	vehicle_thrust_setpoint.timestamp_sample = timestamp_sample;
 	_thrust_setpoint.copyTo(vehicle_thrust_setpoint.xyz);
-
+	vehicle_thrust_setpoint.timestamp = hrt_absolute_time();
 	_vehicle_thrust_setpoint_pub.publish(vehicle_thrust_setpoint);
 }
 

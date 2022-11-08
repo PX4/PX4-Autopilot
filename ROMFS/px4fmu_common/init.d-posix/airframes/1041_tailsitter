@@ -70,7 +70,7 @@ param set-default MPC_XY_VEL_D_ACC 0.1
 param set-default NAV_ACC_RAD 5
 
 param set-default VT_FW_DIFTHR_EN 1
-param set-default VT_FW_DIFTHR_SC 0.5
+param set-default VT_FW_DIFTHR_S_Y 0.5
 param set-default VT_F_TRANS_DUR 1.5
 param set-default VT_F_TRANS_THR 0.7
 param set-default VT_TYPE 0

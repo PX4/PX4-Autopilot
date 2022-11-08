@@ -1487,7 +1487,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 		if (_runway_takeoff.resetIntegrators()) {
 			// reset integrals except yaw (which also counts for the wheel controller)
-			_att_sp.reset_rate_integrals = true;
+			_att_sp.reset_integral = true;
 
 			// throttle is open loop anyway during ground roll, no need to wind up the integrator
 			_tecs.resetIntegrals();
@@ -1626,7 +1626,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 		} else {
 			/* Tell the attitude controller to stop integrating while we are waiting for the launch */
-			_att_sp.reset_rate_integrals = true;
+			_att_sp.reset_integral = true;
 
 			/* Set default roll and pitch setpoints during detection phase */
 			_att_sp.roll_body = 0.0f;
@@ -2249,7 +2249,7 @@ FixedwingPositionControl::Run()
 		_npfg.setPeriod(_param_npfg_period.get());
 		_l1_control.set_l1_period(_param_fw_l1_period.get());
 
-		_att_sp.reset_rate_integrals = false;
+		_att_sp.reset_integral = false;
 
 		// by default we don't want yaw to be contoller directly with rudder
 		_att_sp.fw_control_yaw = false;
