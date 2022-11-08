@@ -31,12 +31,13 @@
 #
 ############################################################################
 
-set(module_libraries modules__muorb__slpi)
+get_property(module_libraries GLOBAL PROPERTY PX4_MODULE_LIBRARIES)
 
 QURT_LIB(LIB_NAME px4
 	SOURCES
 		${PX4_SOURCE_DIR}/platforms/qurt/unresolved_symbols.c
 	LINK_LIBS
+		modules__muorb__slpi
 		${module_libraries}
 		px4_layer
 	)

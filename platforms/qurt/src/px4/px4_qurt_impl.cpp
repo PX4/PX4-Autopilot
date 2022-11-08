@@ -30,19 +30,10 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
-// This file is meant to tackle the dependencies found in PX4
-// that have not been implemented in the Hexagon SDK yet.
-
-#pragma once
-
-#include <pthread.h>
-#include <visibility.h>
+#include <px4_platform_common/defines.h>
 
 __BEGIN_DECLS
 
-typedef unsigned long useconds_t;
-int usleep(useconds_t usec);
-int pthread_setname_np(pthread_t __target_thread, const char *__name);
+long PX4_TICKS_PER_SEC = 1000L;
 
 __END_DECLS
