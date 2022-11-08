@@ -67,10 +67,10 @@ void ObstacleAvoidance::injectAvoidanceSetpoints(Vector3f &pos_sp, Vector3f &vel
 	const auto &wp_msg = _sub_vehicle_trajectory_waypoint.get();
 	const auto &bezier_msg = _sub_vehicle_trajectory_bezier.get();
 
-	const bool avoidance_data_timeout =
-		hrt_elapsed_time((hrt_abstime *)&wp_msg.timestamp) > TRAJECTORY_STREAM_TIMEOUT_US &&
-		hrt_elapsed_time((hrt_abstime *)&bezier_msg.timestamp) > hrt_abstime(bezier_msg.control_points[bezier_msg.bezier_order -
-							1].delta * 1e6f);
+	const bool wp_msg_timeout = hrt_elapsed_time((hrt_abstime *)&wp_msg.timestamp) > TRAJECTORY_STREAM_TIMEOUT_US;
+	const bool bezier_msg_timeout = hrt_elapsed_time((hrt_abstime *)&bezier_msg.timestamp) > hrt_abstime(
+						bezier_msg.control_points[bezier_msg.bezier_order - 1].delta * 1e6f);
+	const bool avoidance_data_timeout = wp_msg_timeout && bezier_msg_timeout;
 
 	const bool avoidance_point_valid = wp_msg.waypoints[vehicle_trajectory_waypoint_s::POINT_0].point_valid;
 	const bool avoidance_bezier_valid = bezier_msg.bezier_order > 0;
@@ -104,7 +104,7 @@ void ObstacleAvoidance::injectAvoidanceSetpoints(Vector3f &pos_sp, Vector3f &vel
 		_failsafe_position.setNaN();
 	}
 
-	if (avoidance_point_valid) {
+	if (avoidance_point_valid && !wp_msg_timeout) {
 		const auto &point0 = wp_msg.waypoints[vehicle_trajectory_waypoint_s::POINT_0];
 		pos_sp = Vector3f(point0.position);
 		vel_sp = Vector3f(point0.velocity);
@@ -115,8 +115,7 @@ void ObstacleAvoidance::injectAvoidanceSetpoints(Vector3f &pos_sp, Vector3f &vel
 			yaw_speed_sp = point0.yaw_speed;
 		}
 
-	} else if (avoidance_bezier_valid) {
-
+	} else if (avoidance_bezier_valid && !bezier_msg_timeout) {
 		float yaw = NAN, yaw_speed = NAN;
 		_generateBezierSetpoints(pos_sp, vel_sp, yaw, yaw_speed);
 
