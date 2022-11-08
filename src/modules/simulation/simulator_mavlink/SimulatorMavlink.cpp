@@ -811,8 +811,11 @@ void SimulatorMavlink::handle_message_odometry(const mavlink_message_t *msg)
 	case MAV_ESTIMATOR_TYPE_NAIVE:
 	case MAV_ESTIMATOR_TYPE_VISION:
 	case MAV_ESTIMATOR_TYPE_VIO:
-		odom.timestamp = hrt_absolute_time();
-		_visual_odometry_pub.publish(odom);
+		if (!_vio_blocked) {
+			odom.timestamp = hrt_absolute_time();
+			_visual_odometry_pub.publish(odom);
+		}
+
 		break;
 
 	case MAV_ESTIMATOR_TYPE_MOCAP:
@@ -1432,6 +1435,24 @@ void SimulatorMavlink::check_failure_injections()
 				supported = true;
 				_airspeed_blocked = false;
 			}
+
+		} else if (failure_unit == vehicle_command_s::FAILURE_UNIT_SENSOR_VIO) {
+			handled = true;
+
+			if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF) {
+				PX4_WARN("CMD_INJECT_FAILURE, vio off");
+				supported = true;
+				_vio_blocked = true;
+
+			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_OK) {
+				PX4_INFO("CMD_INJECT_FAILURE, vio ok");
+				supported = true;
+				_vio_blocked = false;
+			}
+		}
+
+		if (!supported) {
+			PX4_WARN("CMD_INJECT_FAILURE, failure sensor/type combination not supported");
 		}
 
 		if (handled) {
