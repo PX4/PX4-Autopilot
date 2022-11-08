@@ -1434,9 +1434,6 @@ bool Ekf::resetYawToEKFGSF()
 		_inhibit_ev_yaw_use = true;
 	}
 
-	_ekfgsf_yaw_reset_time = _imu_sample_delayed.time_us;
-	_ekfgsf_yaw_reset_count++;
-
 	return true;
 }
 
