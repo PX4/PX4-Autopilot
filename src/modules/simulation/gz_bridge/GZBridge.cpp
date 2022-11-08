@@ -336,11 +336,7 @@ void GZBridge::imuCallback(const ignition::msgs::IMU &imu)
 
 	pthread_mutex_lock(&_mutex);
 
-#if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	const uint64_t time_us = (imu.header().stamp().sec() * 1000000) + (imu.header().stamp().nsec() / 1000);
-#else
-	const uint64_t time_us = hrt_absolute_time();
-#endif
 
 	if (time_us > _world_time_us.load()) {
 		updateClock(imu.header().stamp().sec(), imu.header().stamp().nsec());
@@ -356,14 +352,19 @@ void GZBridge::imuCallback(const ignition::msgs::IMU &imu)
 
 	// publish accel
 	sensor_accel_s sensor_accel{};
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	sensor_accel.timestamp_sample = time_us;
+	sensor_accel.timestamp = time_us;
+#else
+	sensor_accel.timestamp_sample = hrt_absolute_time();
+	sensor_accel.timestamp = hrt_absolute_time();
+#endif
 	sensor_accel.device_id = 1310988; // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
 	sensor_accel.x = accel_b.X();
 	sensor_accel.y = accel_b.Y();
 	sensor_accel.z = accel_b.Z();
 	sensor_accel.temperature = NAN;
 	sensor_accel.samples = 1;
-	sensor_accel.timestamp = time_us; // hrt_absolute_time();
 	_sensor_accel_pub.publish(sensor_accel);
 
 
@@ -374,14 +375,19 @@ void GZBridge::imuCallback(const ignition::msgs::IMU &imu)
 
 	// publish gyro
 	sensor_gyro_s sensor_gyro{};
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	sensor_gyro.timestamp_sample = time_us;
+	sensor_gyro.timestamp = time_us;
+#else
+	sensor_gyro.timestamp_sample = hrt_absolute_time();
+	sensor_gyro.timestamp = hrt_absolute_time();
+#endif
 	sensor_gyro.device_id = 1310988; // 1310988: DRV_IMU_DEVTYPE_SIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
 	sensor_gyro.x = gyro_b.X();
 	sensor_gyro.y = gyro_b.Y();
 	sensor_gyro.z = gyro_b.Z();
 	sensor_gyro.temperature = NAN;
 	sensor_gyro.samples = 1;
-	sensor_gyro.timestamp = time_us; // hrt_absolute_time();
 	_sensor_gyro_pub.publish(sensor_gyro);
 
 	pthread_mutex_unlock(&_mutex);
@@ -398,11 +404,7 @@ void GZBridge::poseInfoCallback(const ignition::msgs::Pose_V &pose)
 	for (int p = 0; p < pose.pose_size(); p++) {
 		if (pose.pose(p).name() == _model_name) {
 
-#if defined(ENABLE_LOCKSTEP_SCHEDULER)
-			const uint64_t time_us = (imu.header().stamp().sec() * 1000000) + (imu.header().stamp().nsec() / 1000);
-#else
-			const uint64_t time_us = hrt_absolute_time();
-#endif
+			const uint64_t time_us = (pose.header().stamp().sec() * 1000000) + (pose.header().stamp().nsec() / 1000);
 
 			if (time_us > _world_time_us.load()) {
 				updateClock(pose.header().stamp().sec(), pose.header().stamp().nsec());
@@ -437,7 +439,11 @@ void GZBridge::poseInfoCallback(const ignition::msgs::Pose_V &pose)
 
 			// publish attitude groundtruth
 			vehicle_attitude_s vehicle_attitude_groundtruth{};
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
 			vehicle_attitude_groundtruth.timestamp_sample = time_us;
+#else
+			vehicle_attitude_groundtruth.timestamp_sample = hrt_absolute_time();
+#endif
 			vehicle_attitude_groundtruth.q[0] = q_nb.W();
 			vehicle_attitude_groundtruth.q[1] = q_nb.X();
 			vehicle_attitude_groundtruth.q[2] = q_nb.Y();
@@ -448,8 +454,11 @@ void GZBridge::poseInfoCallback(const ignition::msgs::Pose_V &pose)
 			// publish angular velocity groundtruth
 			const matrix::Eulerf euler{matrix::Quatf(vehicle_attitude_groundtruth.q)};
 			vehicle_angular_velocity_s vehicle_angular_velocity_groundtruth{};
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
 			vehicle_angular_velocity_groundtruth.timestamp_sample = time_us;
-
+#else
+			vehicle_angular_velocity_groundtruth.timestamp_sample = hrt_absolute_time();
+#endif
 			const matrix::Vector3f angular_velocity = (euler - _euler_prev) / dt;
 			_euler_prev = euler;
 			angular_velocity.copyTo(vehicle_angular_velocity_groundtruth.xyz);
@@ -462,8 +471,11 @@ void GZBridge::poseInfoCallback(const ignition::msgs::Pose_V &pose)
 			}
 
 			vehicle_local_position_s local_position_groundtruth{};
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
 			local_position_groundtruth.timestamp_sample = time_us;
-
+#else
+			local_position_groundtruth.timestamp_sample = hrt_absolute_time();
+#endif
 			// position ENU -> NED
 			const matrix::Vector3d position{pose_position.y(), pose_position.x(), -pose_position.z()};
 			const matrix::Vector3d velocity{(position - _position_prev) / dt};
@@ -493,7 +505,11 @@ void GZBridge::poseInfoCallback(const ignition::msgs::Pose_V &pose)
 			if (_pos_ref.isInitialized()) {
 				// publish position groundtruth
 				vehicle_global_position_s global_position_groundtruth{};
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
 				global_position_groundtruth.timestamp_sample = time_us;
+#else
+				global_position_groundtruth.timestamp_sample = hrt_absolute_time();
+#endif
 
 				_pos_ref.reproject(local_position_groundtruth.x, local_position_groundtruth.y,
 						   global_position_groundtruth.lat, global_position_groundtruth.lon);
