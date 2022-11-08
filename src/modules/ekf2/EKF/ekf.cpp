@@ -250,6 +250,27 @@ void Ekf::predictState()
 	_state.quat_nominal = (_state.quat_nominal * dq).normalized();
 	_R_to_earth = Dcmf(_state.quat_nominal);
 
+	// if there's accel clipping (asymmetric railing) then for convenience register in earth frame
+	if (_imu_sample_delayed.delta_vel_clipping[0] || _imu_sample_delayed.delta_vel_clipping[1] || _imu_sample_delayed.delta_vel_clipping[2]) {
+
+		// delta velocity clipping in body fixed frame
+		const Vector3f clipping_bf {
+			_imu_sample_delayed.delta_vel_clipping[0] ? 1.f : 0.f,
+			_imu_sample_delayed.delta_vel_clipping[1] ? 1.f : 0.f,
+			_imu_sample_delayed.delta_vel_clipping[2] ? 1.f : 0.f
+		};
+
+		// delta velocity clipping in earth frame
+		const Vector3f clipping_ef = _R_to_earth * clipping_bf;
+
+		_imu_accel_clipping_NE = fabsf(clipping_ef(0)) > 0.5f || fabsf(clipping_ef(1)) > 0.5f; // north or east
+		_imu_accel_clipping_D = fabsf(clipping_ef(2)) > 0.5f; // down
+
+	} else {
+		_imu_accel_clipping_NE = false; // north or east
+		_imu_accel_clipping_D = false; // down
+	}
+
 	// Calculate an earth frame delta velocity
 	const Vector3f delta_vel_bias_scaled = getAccelBias() * _imu_sample_delayed.delta_vel_dt;
 	const Vector3f corrected_delta_vel = _imu_sample_delayed.delta_vel - delta_vel_bias_scaled;
