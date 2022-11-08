@@ -209,7 +209,6 @@ void Ekf::runInAirYawReset()
 			resetQuatStateYaw(_yawEstimator.getYaw(), _yawEstimator.getYawVar());
 
 			_information_events.flags.yaw_aligned_to_imu_gps = true;
-			_ekfgsf_yaw_reset_time = _imu_sample_delayed.time_us;
 
 			// if world magnetic model (inclination, declination, strength) available then use it to reset mag states
 			if (PX4_ISFINITE(_mag_inclination_gps) && PX4_ISFINITE(_mag_declination_gps) && PX4_ISFINITE(_mag_strength_gps)) {

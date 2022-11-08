@@ -112,25 +112,24 @@ void Ekf::controlGpsFusion()
 					fuseVelocity(_aid_src_gnss_vel);
 					fuseHorizontalPosition(_aid_src_gnss_pos);
 
-					if (shouldResetGpsFusion()) {
-						const bool was_gps_signal_lost = isTimedOut(_time_prev_gps_us, 1'000'000);
+					bool do_vel_pos_reset = shouldResetGpsFusion();
 
-						/* A reset is not performed when getting GPS back after a significant period of no data
-						 * because the timeout could have been caused by bad GPS.
-						 * The total number of resets allowed per boot cycle is limited.
+					if (isYawFailure()
+					    && _control_status.flags.in_air
+					    && isTimedOut(_time_last_hor_vel_fuse, _params.EKFGSF_reset_delay)
+					    && (_time_last_hor_vel_fuse > _time_last_on_ground_us)) {
+						/* A rapid reset to the yaw emergency estimate is performed if horizontal velocity innovation checks continuously
+						 * fails while the difference between the yaw emergency estimator and the yas estimate is large.
+						 * This enables recovery from a bad yaw estimate. A reset is not performed if the fault condition was
+						 * present before flight to prevent triggering due to GPS glitches or other sensor errors.
 						 */
-						if (isYawFailure()
-						    && _control_status.flags.in_air
-						    && !was_gps_signal_lost
-						    && _ekfgsf_yaw_reset_count < _params.EKFGSF_reset_count_limit
-						    && isTimedOut(_ekfgsf_yaw_reset_time, 5'000'000)) {
-							// The minimum time interval between resets to the EKF-GSF estimate is limited to allow the EKF-GSF time
-							// to improve its estimate if the previous reset was not successful.
-							if (resetYawToEKFGSF()) {
-								ECL_WARN("GPS emergency yaw reset");
-							}
+						if (resetYawToEKFGSF()) {
+							ECL_WARN("GPS emergency yaw reset");
+							do_vel_pos_reset = true;
 						}
+					}
 
+					if (do_vel_pos_reset) {
 						ECL_WARN("GPS fusion timeout, resetting velocity and position");
 						_information_events.flags.reset_vel_to_gps = true;
 						_information_events.flags.reset_pos_to_gps = true;
@@ -221,22 +220,12 @@ bool Ekf::shouldResetGpsFusion() const
 	/* We are relying on aiding to constrain drift so after a specified time
 	 * with no aiding we need to do something
 	 */
-	const bool is_reset_required = hasHorizontalAidingTimedOut()
+	const bool has_horizontal_aiding_timed_out = isTimedOut(_time_last_hor_pos_fuse, _params.reset_timeout_max)
+						     && isTimedOut(_time_last_hor_vel_fuse, _params.reset_timeout_max)
+						     && isTimedOut(_aid_src_optical_flow.time_last_fuse, _params.reset_timeout_max);
+
+	const bool is_reset_required = has_horizontal_aiding_timed_out
 				       || isTimedOut(_time_last_hor_pos_fuse, 2 * _params.reset_timeout_max);
-
-	/* Logic controlling the reset of navigation filter yaw to the EKF-GSF estimate to recover from loss of
-	 * navigation casued by a bad yaw estimate.
-
-	 * A rapid reset to the EKF-GSF estimate is performed after a recent takeoff if horizontal velocity
-	 * innovation checks fail. This enables recovery from a bad yaw estimate. After 30 seconds from takeoff,
-	 * different test criteria are used that take longer to trigger and reduce false positives. A reset is
-	 * not performed if the fault condition was present before flight to prevent triggering due to GPS glitches
-	 * or other sensor errors.
-	 */
-	const bool is_recent_takeoff_nav_failure = _control_status.flags.in_air
-			&& isRecent(_time_last_on_ground_us, 30000000)
-			&& isTimedOut(_time_last_hor_vel_fuse, _params.EKFGSF_reset_delay)
-			&& (_time_last_hor_vel_fuse > _time_last_on_ground_us);
 
 	const bool is_inflight_nav_failure = _control_status.flags.in_air
 					     && isTimedOut(_time_last_hor_vel_fuse, _params.reset_timeout_max)
@@ -244,7 +233,7 @@ bool Ekf::shouldResetGpsFusion() const
 					     && (_time_last_hor_vel_fuse > _time_last_on_ground_us)
 					     && (_time_last_hor_pos_fuse > _time_last_on_ground_us);
 
-	return (is_reset_required || is_recent_takeoff_nav_failure || is_inflight_nav_failure);
+	return (is_reset_required || is_inflight_nav_failure);
 }
 
 bool Ekf::isYawFailure() const
