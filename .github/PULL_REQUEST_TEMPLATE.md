@@ -1,17 +1,29 @@
-Please use [PX4 Discuss](http://discuss.px4.io/) or [Discord](https://discord.gg/dronecode) to align on pull requests if necessary. You can then open draft pull requests to get early feedback.
+<!--
 
-## Describe problem solved by this pull request
-A clear and concise description of the problem this proposed change will solve. Or, what it will improve.
-E.g. For this use case I ran into...
+Thank you for your contribution!
 
-## Describe your solution
-A clear and concise description of what you have implemented.
+Get early feedback through
+- Dronecode Discord: https://discord.gg/dronecode
+- PX4 Discuss: http://discuss.px4.io/
+- opening a draft pr and sharing the link
 
-## Describe possible alternatives
-A clear and concise description of alternative solutions or features you've considered.
+-->
 
-## Test data / coverage
-How was it tested? What cases were covered? Logs uploaded to https://review.px4.io/ and screenshots of the important plot parts.
+### Solved Problem
+When ... I found that ...
 
-## Additional context
-Add any other related context or media.
+Fixes #{Github issue ID}
+
+### Solution
+- Add ... for ...
+- Refactor ...
+
+### Alternatives
+We could also ...
+
+### Test coverage
+- Unit/integration test: ...
+- Simulation/hardware testing logs: https://review.px4.io/
+
+### Context
+Related links, screenshot before/after, video
