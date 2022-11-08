@@ -119,7 +119,7 @@ void RcAndDataLinkChecks::checkAndReport(const Context &context, Report &reporte
 					    events::ID("check_rc_dl_no_dllink"),
 					    log_level, "No connection to the ground control station");
 
-		if (reporter.mavlink_log_pub()) {
+		if (gcs_connection_required && reporter.mavlink_log_pub()) {
 			mavlink_log_warning(reporter.mavlink_log_pub(), "Preflight Fail: No connection to the ground control station\t");
 		}
 
