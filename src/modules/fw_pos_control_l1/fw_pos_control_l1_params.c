@@ -709,22 +709,50 @@ PARAM_DEFINE_FLOAT(FW_T_I_GAIN_PIT, 0.1f);
 PARAM_DEFINE_FLOAT(FW_T_VERT_ACC, 7.0f);
 
 /**
- * Complementary filter "omega" parameter for speed
+ * Airspeed measurement standard deviation for airspeed filter.
  *
- * This is the cross-over frequency (in radians/second) of the complementary
- * filter used to fuse longitudinal acceleration and airspeed to obtain an
- * improved airspeed estimate. Increasing this frequency weights the solution
- * more towards use of the airspeed sensor, whilst reducing it weights the
- * solution more towards use of the accelerometer data.
+ * This is the measurement standard deviation for the airspeed used in the airspeed filter in TECS.
  *
- * @unit rad/s
- * @min 1.0
+ * @unit m/s
+ * @min 0.01
  * @max 10.0
- * @decimal 1
- * @increment 0.5
+ * @decimal 2
+ * @increment 0.1
  * @group FW TECS
  */
-PARAM_DEFINE_FLOAT(FW_T_SPD_OMEGA, 2.0f);
+PARAM_DEFINE_FLOAT(FW_T_SPD_STD, 0.2f);
+
+/**
+ * Airspeed rate measurement standard deviation for airspeed filter.
+ *
+ * This is the measurement standard deviation for the airspeed rate used in the airspeed filter in TECS.
+ *
+ * @unit m/s^2
+ * @min 0.01
+ * @max 10.0
+ * @decimal 2
+ * @increment 0.1
+ * @group FW TECS
+ */
+PARAM_DEFINE_FLOAT(FW_T_SPD_DEV_STD, 0.05f);
+
+/**
+ * Process noise standard deviation for the airspeed rate in the airspeed filter.
+ *
+ * This is the process noise standard deviation in the airspeed filter filter defining the noise in the
+ * airspeed rate for the constant airspeed rate model. This is used to define how much the airspeed and
+ * the airspeed rate are filtered. The smaller the value the more the measurements are smoothed with the
+ * drawback for delays.
+ *
+ * @unit m/s^2
+ * @min 0.01
+ * @max 10.0
+ * @decimal 2
+ * @increment 0.1
+ * @group FW TECS
+ */
+PARAM_DEFINE_FLOAT(FW_T_SPD_PRC_STD, 0.2f);
+
 
 /**
  * Roll -> Throttle feedforward
@@ -855,21 +883,6 @@ PARAM_DEFINE_INT32(FW_POS_STK_CONF, 2);
  * @group FW TECS
  */
 PARAM_DEFINE_FLOAT(FW_T_STE_R_TC, 0.4f);
-
-
-/**
- * True airspeed rate first order filter time constant.
- *
- * This filter is applied to the true airspeed rate.
- *
- * @min 0.0
- * @max 2
- * @decimal 2
- * @increment 0.01
- * @group FW TECS
- */
-PARAM_DEFINE_FLOAT(FW_T_TAS_R_TC, 0.2f);
-
 
 /**
  * Specific total energy balance rate feedforward gain.
