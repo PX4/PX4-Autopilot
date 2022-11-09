@@ -1585,8 +1585,6 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 				_att_sp.roll_body = _l1_control.get_roll_setpoint();
 			}
 
-			/* Select throttle: only in LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS we want to use
-			 * full throttle, otherwise we use idle throttle */
 			const float max_takeoff_throttle = (_launchDetector.getLaunchDetected() < launch_detection_status_s::STATE_FLYING) ?
 							   _param_fw_thr_idle.get() : _param_fw_thr_max.get();
 
@@ -2264,8 +2262,6 @@ FixedwingPositionControl::Run()
 
 			if (_vehicle_land_detected_sub.update(&vehicle_land_detected)) {
 				_landed = vehicle_land_detected.landed;
-
-				if (_launch_detected) {_landed = false;}
 			}
 		}
 
