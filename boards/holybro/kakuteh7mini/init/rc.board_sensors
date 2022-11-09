@@ -5,6 +5,6 @@
 board_adc start
 
 # The default IMU is a bmi270
-bmi270 start -s
 
 bmp280 -X start
+bmi270 start -s

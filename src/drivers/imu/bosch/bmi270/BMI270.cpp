@@ -295,7 +295,7 @@ void BMI270::RunImpl()
 			if (res == PX4_OK) {
 				RegisterWrite(Register::CONFIG1, 1);
 				PX4_DEBUG("Successfully uploaded initialization file onto BMI270");
-				ScheduleDelayed(150_ms);
+				px4_mdelay(150);
 				PX4_DEBUG("Preparing to read INTERNAL_STATUS register");
 
 			} else {
