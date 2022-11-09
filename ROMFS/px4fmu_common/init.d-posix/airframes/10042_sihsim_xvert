@@ -49,7 +49,7 @@ param set-default CA_AIRFRAME 4
 
 param set-default CA_ROTOR_COUNT 2
 param set-default CA_ROTOR0_PX 0
-param set-default CA_ROTOR0_PY 2
+param set-default CA_ROTOR0_PY 1
 param set-default CA_ROTOR0_KM 0.05
 param set-default CA_ROTOR1_PX 0
 param set-default CA_ROTOR1_PY -1
