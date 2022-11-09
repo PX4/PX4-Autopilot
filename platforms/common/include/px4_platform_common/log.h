@@ -67,7 +67,6 @@ __END_DECLS
 
 #if defined(__PX4_QURT)
 #include "qurt_log.h"
-#include <px4_platform_common/defines.h>
 /****************************************************************************
  * Messages that should never be filtered or compiled out
  ****************************************************************************/
