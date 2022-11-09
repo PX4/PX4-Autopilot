@@ -1120,9 +1120,13 @@ PARAM_DEFINE_INT32(FW_LND_ABORT, 3);
 PARAM_DEFINE_FLOAT(FW_WIND_ARSP_SC, 0.f);
 
 /**
- * Launch detection
+ * FW Launch detection
+ *
+ * Enables automatic launch detection based on measured acceleration. Use for hand- or catapult-launched vehicles.
+ * Only available for fixed-wing vehicles.
+ * Not compatible with runway takeoff.
  *
  * @boolean
  * @group FW Launch detection
  */
-PARAM_DEFINE_INT32(LAUN_ALL_ON, 0);
+PARAM_DEFINE_INT32(LAUN_DETCN_ON, 0);

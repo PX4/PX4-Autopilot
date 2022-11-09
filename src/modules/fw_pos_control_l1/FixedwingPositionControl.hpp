@@ -878,7 +878,7 @@ private:
 		(ParamFloat<px4::params::FW_TKO_AIRSPD>) _param_fw_tko_airspd,
 
 		(ParamFloat<px4::params::RWTO_PSP>) _param_rwto_psp,
-		(ParamBool<px4::params::LAUN_ALL_ON>) _param_laun_all_on
+		(ParamBool<px4::params::LAUN_DETCN_ON>) _param_laun_detcn_on
 	)
 
 };

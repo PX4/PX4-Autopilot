@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020, 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -266,6 +266,14 @@ bool param_modify_on_import(bson_node_t node)
 			double _param_vt_f_trans_thr = param_find("VT_F_TRANS_THR");
 			node->d = _param_vt_f_trans_thr / node->d;
 			PX4_INFO("copying %s -> %s", "VT_PSHER_RMP_DT", "VT_PSHER_SLEW");
+		}
+	}
+
+	// 2022-11-09: translate LAUN_ALL_ON->LAUN_DETCN_ON
+	{
+		if (strcmp("LAUN_ALL_ON", node->name) == 0) {
+			strcpy(node->name, "LAUN_DETCN_ON");
+			PX4_INFO("copying %s -> %s", "LAUN_ALL_ON", "LAUN_DETCN_ON");
 			return true;
 		}
 	}
