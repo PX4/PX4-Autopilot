@@ -52,28 +52,18 @@ void uORB::AppsProtobufChannel::ReceiveCallback(const char *topic,
 		uint32_t length_in_bytes)
 {
 
-	if(_Debug){
-		PX4_INFO("Got Receive callback for topic %s", topic);
-	}
+	if (_Debug) PX4_INFO("Got Receive callback for topic %s", topic);
 
-	if (_RxHandler) {
-		_RxHandler->process_received_message(topic,
-						     length_in_bytes,
-						     const_cast<uint8_t *>(data));
-
-	} else if (strcmp(topic, "slpi_debug") == 0) {
+	if (strcmp(topic, "slpi_debug") == 0) {
 		PX4_INFO("SLPI: %s", (const char *) data);
-
 	} else if (strcmp(topic, "slpi_error") == 0) {
 		PX4_ERR("SLPI: %s", (const char *) data);
-
 	} else if (IS_MUORB_TEST(topic)) {
 		// Validate the test data received
 		bool test_passed = true;
 
 		if (length_in_bytes != MUORB_TEST_DATA_LEN) {
 			test_passed = false;
-
 		} else {
 			for (uint32_t i = 0; i < length_in_bytes; i++) {
 				if ((uint8_t) i != data[i]) {
@@ -86,64 +76,62 @@ void uORB::AppsProtobufChannel::ReceiveCallback(const char *topic,
 		if (test_passed) { test_flag = true; }
 
 		return;
-
+	} else if (_RxHandler) {
+		_RxHandler->process_received_message(topic,
+						     length_in_bytes,
+						     const_cast<uint8_t *>(data));
 	} else {
-		PX4_INFO("Got received data callback for topic %s", topic);
+		PX4_ERR("Couldn't handle topic %s in receive callback", topic);
 	}
 }
 
 void uORB::AppsProtobufChannel::AdvertiseCallback(const char *topic)
 {
-	if(_Debug){
-		PX4_INFO("Got advertisement callback for topic %s", topic);
-	}
+	if (_Debug) PX4_INFO("Got advertisement callback for topic %s", topic);
 
-	if (_RxHandler) {
-		_RxHandler->process_remote_topic(topic, true);
-
-	} else if (IS_MUORB_TEST(topic)) {
+	if (IS_MUORB_TEST(topic)) {
 		test_flag = true;
 		return;
+	} else if (_RxHandler) {
+		_RxHandler->process_remote_topic(topic, true);
+	} else {
+		PX4_ERR("Couldn't handle topic %s in advertise callback", topic);
 	}
 }
 
 void uORB::AppsProtobufChannel::SubscribeCallback(const char *topic)
 {
-	if(_Debug){
-		PX4_INFO("Got subscription callback for topic %s", topic);
-	}
+	if (_Debug) PX4_INFO("Got subscription callback for topic %s", topic);
 
-	pthread_mutex_lock(&_rx_mutex);
-	_SlpiSubscriberCache[topic]++;
-	pthread_mutex_unlock(&_rx_mutex);
-
-	if (_RxHandler) {
-		_RxHandler->process_add_subscription(topic, 1000);
-
-	} else if (IS_MUORB_TEST(topic)) {
+	if (IS_MUORB_TEST(topic)) {
 		test_flag = true;
 		return;
+	} else if (_RxHandler) {
+		pthread_mutex_lock(&_rx_mutex);
+		_SlpiSubscriberCache[topic]++;
+		pthread_mutex_unlock(&_rx_mutex);
+
+		_RxHandler->process_add_subscription(topic, 1000);
+	} else {
+		PX4_ERR("Couldn't handle topic %s in subscribe callback", topic);
 	}
 }
 
 void uORB::AppsProtobufChannel::UnsubscribeCallback(const char *topic)
 {
-	if(_Debug){
-		PX4_INFO("Got remove subscription callback for topic %s", topic);
-	}
+	if (_Debug) PX4_INFO("Got remove subscription callback for topic %s", topic);
 
-	pthread_mutex_lock(&_rx_mutex);
-	if (_SlpiSubscriberCache[topic]) {
-		_SlpiSubscriberCache[topic]--;
-	}
-	pthread_mutex_unlock(&_rx_mutex);
-
-	if (_RxHandler) {
-		_RxHandler->process_remove_subscription(topic);
-
-	} else if (IS_MUORB_TEST(topic)) {
+	if (IS_MUORB_TEST(topic)) {
 		test_flag = true;
 		return;
+	} else if (_RxHandler) {
+		pthread_mutex_lock(&_rx_mutex);
+		if (_SlpiSubscriberCache[topic]) _SlpiSubscriberCache[topic]--;
+		pthread_mutex_unlock(&_rx_mutex);
+
+		_RxHandler->process_remove_subscription(topic);
+	} else {
+		PX4_ERR("Couldn't handle topic %s in unsubscribe callback", topic);
 	}
 }
 
@@ -182,6 +170,7 @@ bool uORB::AppsProtobufChannel::Test(MUORBTestType test_type)
 		break;
 
 	default:
+		PX4_ERR("Unknown test type %d", test_type);
 		break;
 	}
 
@@ -222,8 +211,7 @@ bool uORB::AppsProtobufChannel::Initialize(bool enable_debug)
 			  };
 
 	if (fc_sensor_initialize(enable_debug, &cb) != 0) {
-		if (enable_debug) { PX4_INFO("Warning: muorb protobuf initalize method failed"); }
-
+		if (enable_debug) PX4_INFO("Warning: muorb protobuf initalize method failed");
 	} else {
 		PX4_INFO("muorb protobuf initalize method succeeded");
 		_Initialized = true;
@@ -235,9 +223,7 @@ bool uORB::AppsProtobufChannel::Initialize(bool enable_debug)
 int16_t uORB::AppsProtobufChannel::topic_advertised(const char *messageName)
 {
 	if (_Initialized) {
-		if (_Debug) {
-			PX4_INFO("Advertising topic %s to remote side", messageName);
-		}
+		if (_Debug) PX4_INFO("Advertising topic %s to remote side", messageName);
 
 		pthread_mutex_lock(&_tx_mutex);
 		int16_t rc = fc_sensor_advertise(messageName);

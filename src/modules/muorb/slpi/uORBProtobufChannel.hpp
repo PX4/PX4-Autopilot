@@ -135,18 +135,13 @@ public:
 	void RemoveRemoteSubscriber(const std::string &messageName)
 	{
 		pthread_mutex_lock(&_rx_mutex);
-
 		if (_AppsSubscriberCache[messageName]) {
 			_AppsSubscriberCache[messageName]--;
 		}
-
 		pthread_mutex_unlock(&_rx_mutex);
 	}
 
-	bool DebugEnabled()
-	{
-		return _debug;
-	}
+	bool DebugEnabled()	{ return _debug; }
 
 private:
 	/**
@@ -159,7 +154,6 @@ private:
 	static pthread_mutex_t                      _rx_mutex;
 	static bool                                 _debug;
 
-private:
 	/**
 	 * Class Members
 	 */
