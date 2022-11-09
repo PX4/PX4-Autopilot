@@ -66,18 +66,18 @@ using math::Utilities::sq;
 using math::Utilities::updateYawInRotMat;
 
 // maximum sensor intervals in usec
-#define BARO_MAX_INTERVAL     (uint64_t)2e5  ///< Maximum allowable time interval between pressure altitude measurements (uSec)
-#define EV_MAX_INTERVAL       (uint64_t)2e5  ///< Maximum allowable time interval between external vision system measurements (uSec)
-#define GNSS_MAX_INTERVAL     (uint64_t)5e5  ///< Maximum allowable time interval between GNSS measurements (uSec)
-#define GNSS_YAW_MAX_INTERVAL (uint64_t)15e5 ///< Maximum allowable time interval between GNSS yaw measurements (uSec)
-#define RNG_MAX_INTERVAL      (uint64_t)2e5  ///< Maximum allowable time interval between range finder  measurements (uSec)
+static constexpr uint64_t BARO_MAX_INTERVAL     = 200e3;  ///< Maximum allowable time interval between pressure altitude measurements (uSec)
+static constexpr uint64_t EV_MAX_INTERVAL       = 200e3;  ///< Maximum allowable time interval between external vision system measurements (uSec)
+static constexpr uint64_t GNSS_MAX_INTERVAL     = 500e3;  ///< Maximum allowable time interval between GNSS measurements (uSec)
+static constexpr uint64_t GNSS_YAW_MAX_INTERVAL = 1500e3; ///< Maximum allowable time interval between GNSS yaw measurements (uSec)
+static constexpr uint64_t RNG_MAX_INTERVAL      = 200e3;  ///< Maximum allowable time interval between range finder  measurements (uSec)
 
 // bad accelerometer detection and mitigation
-#define BADACC_PROBATION  (uint64_t)10e6        ///< Period of time that accel data declared bad must continuously pass checks to be declared good again (uSec)
-#define BADACC_BIAS_PNOISE      4.9f    ///< The delta velocity process noise is set to this when accel data is declared bad (m/sec**2)
+static constexpr uint64_t BADACC_PROBATION = 10e6; ///< Period of time that accel data declared bad must continuously pass checks to be declared good again (uSec)
+static constexpr float BADACC_BIAS_PNOISE = 4.9f;  ///< The delta velocity process noise is set to this when accel data is declared bad (m/sec**2)
 
 // ground effect compensation
-#define GNDEFFECT_TIMEOUT       10E6    ///< Maximum period of time that ground effect protection will be active after it was last turned on (uSec)
+static constexpr uint64_t GNDEFFECT_TIMEOUT = 10e6; ///< Maximum period of time that ground effect protection will be active after it was last turned on (uSec)
 
 enum class VelocityFrame : uint8_t {
 	LOCAL_FRAME_NED = 0,
