@@ -280,7 +280,7 @@ void BMI270::RunImpl()
 			// 1. Disable PWR_CONF.adv_power_save and wait for 450us
 
 			RegisterWrite(Register::PWR_CONF, 0x00);
-			px4_udelay(450);
+			ScheduleDelayed(450_us);
 
 			// 2. Write 0x00 to INIT_CTRL
 
@@ -295,7 +295,7 @@ void BMI270::RunImpl()
 			if (res == PX4_OK) {
 				RegisterWrite(Register::CONFIG1, 1);
 				PX4_DEBUG("Successfully uploaded initialization file onto BMI270");
-				px4_mdelay(150);
+				ScheduleDelayed(150_ms);
 				PX4_DEBUG("Preparing to read INTERNAL_STATUS register");
 
 			} else {
