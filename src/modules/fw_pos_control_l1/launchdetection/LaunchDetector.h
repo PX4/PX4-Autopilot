@@ -47,6 +47,9 @@
 namespace launchdetection
 {
 
+// Info delay threshold (to publish info every kInfoDelay seconds)
+static constexpr float kInfoDelay = 4.f;
+
 class __EXPORT LaunchDetector : public ModuleParams
 {
 public:
@@ -68,7 +71,7 @@ public:
 	 * @param accel_x Measured acceleration in body x [m/s/s]
 	 * @param mavlink_log_pub
 	 */
-	void update(const float dt, float accel_x,  orb_advert_t *mavlink_log_pub);
+	void update(const float dt, const float accel_x,  orb_advert_t *mavlink_log_pub);
 
 	/**
 	 * @brief Get the Launch Detected state
@@ -80,29 +83,23 @@ public:
 	/**
 	 * @brief Forces state of launch detection state machine to STATE_FLYING.
 	 */
-	void forceSetFlyState() { _state = launch_detection_status_s::STATE_FLYING; }
+	void forceSetFlyState() { state_ = launch_detection_status_s::STATE_FLYING; }
 
 private:
 	/**
-	 * Integrator [s]
-	 */
-	float _launchDetectionDelayCounter{0.f};
-
-	/**
 	 * Motor delay counter [s]
 	 */
-	float _motorDelayCounter{0.f};
-
+	float motor_delay_counter_{0.f};
 
 	/**
-	 * Info delay counter [s]
+	 * Info delay counter (to publish info every kInfoDelay seconds) [s]
 	 */
-	float _launchDetectionRunningInfoDelay{4.f};
+	float _info_delay_counter_s_{kInfoDelay};
 
 	/**
 	 * Current state of the launch detection state machine [launch_detection_status_s::launch_detection_state]
 	 */
-	uint _state{launch_detection_status_s::STATE_WAITING_FOR_LAUNCH};
+	uint state_{launch_detection_status_s::STATE_WAITING_FOR_LAUNCH};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::LAUN_CAT_A>) _param_laun_cat_a,
