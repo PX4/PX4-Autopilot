@@ -7,12 +7,21 @@
 
 . ${R}etc/init.d-posix/airframes/1040_standard_vtol
 
+# Package delivery feature setup
+param set-default PD_GRIPPER_EN 1 # Enable Gripper
+param set-default COM_PREARM_MODE 2 # Always enable prearm (allows Servo outputs even when disarmed)
+
+# Channel 9 is used for package delivery release mechanism
+param set-default PWM_MAIN_FUNC9 430
+
+# Disable Airspeed check (since it's unreliable, and prevents from starting a mission)
+param set CBRK_AIRSPD_CHK 162128
+
 # Gimbal
-param set-default PWM_MAIN_FUNC9 420
-param set-default PWM_MAIN_FUNC10 421
-param set-default PWM_MAIN_FUNC11 422
+# param set-default PWM_MAIN_FUNC9 420
+# param set-default PWM_MAIN_FUNC10 421
+# param set-default PWM_MAIN_FUNC11 422
 
-param set-default RC_MAP_AUX1 8
-param set-default RC_MAP_AUX2 9
-param set-default RC_MAP_AUX3 10
-
+# param set-default RC_MAP_AUX1 8
+# param set-default RC_MAP_AUX2 9
+# param set-default RC_MAP_AUX3 10
