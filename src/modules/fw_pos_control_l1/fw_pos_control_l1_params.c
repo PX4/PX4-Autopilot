@@ -477,20 +477,19 @@ PARAM_DEFINE_FLOAT(FW_LND_FL_PMIN, 2.5f);
 PARAM_DEFINE_FLOAT(FW_LND_FL_PMAX, 15.0f);
 
 /**
- * Min. airspeed scaling factor for landing
+ * Landing airspeed
  *
- * Multiplying this factor with the minimum airspeed of the plane
- * gives the target airspeed the landing approach.
- * FW_AIRSPD_MIN * FW_LND_AIRSPD_SC
+ * The calibrated airspeed setpoint during landing.
  *
- * @unit norm
- * @min 1.0
- * @max 1.5
- * @decimal 2
- * @increment 0.01
+ * If set <= 0.0, landing airspeed = FW_AIRSPD_MIN by default.
+ *
+ * @unit m/s
+ * @min -1.0
+ * @decimal 1
+ * @increment 0.1
  * @group FW Auto Landing
  */
-PARAM_DEFINE_FLOAT(FW_LND_AIRSPD_SC, 1.3f);
+PARAM_DEFINE_FLOAT(FW_LND_AIRSPD, -1.f);
 
 /**
  * Altitude time constant factor for landing
