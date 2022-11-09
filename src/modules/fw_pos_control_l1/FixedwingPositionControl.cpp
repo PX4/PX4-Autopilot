@@ -1428,6 +1428,8 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 			_takeoff_ground_alt = _current_altitude;
 
+			_launch_current_yaw = _yaw;
+
 			mavlink_log_info(&_mavlink_log_pub, "Takeoff on runway\t");
 			events::send(events::ID("fixedwing_position_control_takeoff"), events::Log::Info, "Takeoff on runway");
 		}
@@ -1459,8 +1461,13 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 						 _runway_takeoff.getStartPosition()(1));
 		const Vector2f takeoff_waypoint_local = _global_local_proj_ref.project(pos_sp_curr.lat, pos_sp_curr.lon);
 
-		// the bearing from runway start to the takeoff waypoint is followed until the clearance altitude is exceeded
-		const Vector2f takeoff_bearing_vector = calculateTakeoffBearingVector(start_pos_local, takeoff_waypoint_local);
+		// by default set the takeoff bearing to the takeoff yaw, but override in a mission takeoff with bearing to takeoff WP
+		Vector2f takeoff_bearing_vector = {cosf(_launch_current_yaw), sinf(_launch_current_yaw)};
+
+		if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
+			// the bearing from runway start to the takeoff waypoint is followed until the clearance altitude is exceeded
+			takeoff_bearing_vector = calculateTakeoffBearingVector(start_pos_local, takeoff_waypoint_local);
+		}
 
 		if (_param_fw_use_npfg.get()) {
 			_npfg.setAirspeedNom(target_airspeed * _eas2tas);
