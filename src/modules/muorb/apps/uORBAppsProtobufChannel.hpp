@@ -104,7 +104,7 @@ public:
 	 * 	This represents the uORB message name; This message name should be
 	 * 	globally unique.
 	 * @param msgRate
-	 * 	The max rate at which the subscriber can accept the messages.
+	 * 	The max rate at which the subscriber can accept the messages. This value is unused.
 	 * @return
 	 * 	0 = success; This means the messages is successfully sent to the receiver
 	 * 		Note: This does not mean that the receiver as received it.

@@ -51,16 +51,23 @@ void uORB::AppsProtobufChannel::ReceiveCallback(const char *topic,
 		const uint8_t *data,
 		uint32_t length_in_bytes)
 {
-	PX4_INFO("Got Receive callback for topic %s", topic);
 
-	if (strcmp(topic, "slpi_debug") == 0) {
+	if(_Debug){
+		PX4_INFO("Got Receive callback for topic %s", topic);
+	}
+
+	if (_RxHandler) {
+		_RxHandler->process_received_message(topic,
+						     length_in_bytes,
+						     const_cast<uint8_t *>(data));
+
+	} else if (strcmp(topic, "slpi_debug") == 0) {
 		PX4_INFO("SLPI: %s", (const char *) data);
 
 	} else if (strcmp(topic, "slpi_error") == 0) {
 		PX4_ERR("SLPI: %s", (const char *) data);
 
 	} else if (IS_MUORB_TEST(topic)) {
-
 		// Validate the test data received
 		bool test_passed = true;
 
@@ -80,11 +87,6 @@ void uORB::AppsProtobufChannel::ReceiveCallback(const char *topic,
 
 		return;
 
-	} else if (_RxHandler) {
-		_RxHandler->process_received_message(topic,
-						     length_in_bytes,
-						     const_cast<uint8_t *>(data));
-
 	} else {
 		PX4_INFO("Got received data callback for topic %s", topic);
 	}
@@ -92,53 +94,56 @@ void uORB::AppsProtobufChannel::ReceiveCallback(const char *topic,
 
 void uORB::AppsProtobufChannel::AdvertiseCallback(const char *topic)
 {
-	PX4_INFO("Got advertisement callback for topic %s", topic);
+	if(_Debug){
+		PX4_INFO("Got advertisement callback for topic %s", topic);
+	}
 
-	if (IS_MUORB_TEST(topic)) {
+	if (_RxHandler) {
+		_RxHandler->process_remote_topic(topic, true);
+
+	} else if (IS_MUORB_TEST(topic)) {
 		test_flag = true;
 		return;
-
-	} else if (_RxHandler) {
-		_RxHandler->process_remote_topic(topic, true);
 	}
 }
 
 void uORB::AppsProtobufChannel::SubscribeCallback(const char *topic)
 {
-	PX4_INFO("Got subscription callback for topic %s", topic);
+	if(_Debug){
+		PX4_INFO("Got subscription callback for topic %s", topic);
+	}
 
 	pthread_mutex_lock(&_rx_mutex);
 	_SlpiSubscriberCache[topic]++;
 	pthread_mutex_unlock(&_rx_mutex);
 
-	if (IS_MUORB_TEST(topic)) {
+	if (_RxHandler) {
+		_RxHandler->process_add_subscription(topic, 1000);
+
+	} else if (IS_MUORB_TEST(topic)) {
 		test_flag = true;
 		return;
-
-	} else if (_RxHandler) {
-		//FIGURE OUT HZs
-		_RxHandler->process_add_subscription(topic, 1);
 	}
 }
 
 void uORB::AppsProtobufChannel::UnsubscribeCallback(const char *topic)
 {
-	PX4_INFO("Got remove subscription callback for topic %s", topic);
+	if(_Debug){
+		PX4_INFO("Got remove subscription callback for topic %s", topic);
+	}
 
 	pthread_mutex_lock(&_rx_mutex);
-
 	if (_SlpiSubscriberCache[topic]) {
 		_SlpiSubscriberCache[topic]--;
 	}
-
 	pthread_mutex_unlock(&_rx_mutex);
 
-	if (IS_MUORB_TEST(topic)) {
+	if (_RxHandler) {
+		_RxHandler->process_remove_subscription(topic);
+
+	} else if (IS_MUORB_TEST(topic)) {
 		test_flag = true;
 		return;
-
-	} else if (_RxHandler) {
-		_RxHandler->process_remove_subscription(topic);
 	}
 }
 
@@ -162,12 +167,12 @@ bool uORB::AppsProtobufChannel::Test(MUORBTestType test_type)
 		break;
 
 	case SUBSCRIBE_TEST_TYPE:
-		rc = add_subscription(muorb_test_topic_name, 1);
+		rc = add_subscription(muorb_test_topic_name, 1000);
 		PX4_INFO("succesfully did SUBSCRIBE_TEST_TYPE");
 		break;
 
 	case TOPIC_TEST_TYPE:
-		rc = send_message(muorb_test_topic_name, MUORB_TEST_DATA_LEN, test_data);
+		rc = fc_sensor_send_data(muorb_test_topic_name, test_data, MUORB_TEST_DATA_LEN);
 		PX4_INFO("succesfully did TOPIC_TEST_TYPE");
 		break;
 
@@ -230,7 +235,9 @@ bool uORB::AppsProtobufChannel::Initialize(bool enable_debug)
 int16_t uORB::AppsProtobufChannel::topic_advertised(const char *messageName)
 {
 	if (_Initialized) {
-		if (_Debug) { PX4_INFO("Advertising topic %s to remote side", messageName); }
+		if (_Debug) {
+			PX4_INFO("Advertising topic %s to remote side", messageName);
+		}
 
 		pthread_mutex_lock(&_tx_mutex);
 		int16_t rc = fc_sensor_advertise(messageName);
@@ -243,6 +250,7 @@ int16_t uORB::AppsProtobufChannel::topic_advertised(const char *messageName)
 
 int16_t uORB::AppsProtobufChannel::add_subscription(const char *messageName, int msgRateInHz)
 {
+	// This parameter is unused.
 	(void)(msgRateInHz);
 
 	if (_Initialized) {
@@ -275,29 +283,31 @@ int16_t uORB::AppsProtobufChannel::register_handler(uORBCommunicator::IChannelRx
 
 int16_t uORB::AppsProtobufChannel::send_message(const char *messageName, int length, uint8_t *data)
 {
+	// This is done to slow down high rate debug messages.
 	bool enable_debug = false;
-
-	if ((_MessageCounter++ % 100) == 0) { enable_debug = true; }
+	if ((_MessageCounter++ % 100) == 0) {
+		enable_debug = true;
+	}
 
 	if (_Initialized) {
 		pthread_mutex_lock(&_rx_mutex);
 		int has_subscribers = _SlpiSubscriberCache[messageName];
 		pthread_mutex_unlock(&_rx_mutex);
-
 		if (has_subscribers) {
-			if (_Debug && enable_debug) { PX4_INFO("Sending data for topic %s", messageName); }
-
+			if (_Debug && enable_debug) {
+				PX4_INFO("Sending data for topic %s", messageName);
+			}
 			pthread_mutex_lock(&_tx_mutex);
 			int16_t rc = fc_sensor_send_data(messageName, data, length);
 			pthread_mutex_unlock(&_tx_mutex);
 			return rc;
 
 		} else {
-			if (_Debug && enable_debug) { PX4_INFO("No subscribers (yet) in %s for topic %s", __FUNCTION__, messageName); }
-
+			if (_Debug && enable_debug) {
+				PX4_INFO("No subscribers (yet) in %s for topic %s", __FUNCTION__, messageName);
+			}
 			return 0;
 		}
 	}
-
 	return -1;
 }

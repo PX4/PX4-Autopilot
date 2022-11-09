@@ -78,7 +78,7 @@ public:
 	 * 	This represents the uORB message name; This message name should be
 	 * 	globally unique.
 	 * @param msgRate
-	 * 	The max rate at which the subscriber can accept the messages.
+	 * 	The max rate at which the subscriber can accept the messages. This parameter is unused.
 	 * @return
 	 * 	0 = success; This means the messages is successfully sent to the receiver
 	 * 		Note: This does not mean that the receiver as received it.
@@ -205,4 +205,4 @@ extern "C" {
 	int px4muorb_send_topic_data(const char *name, const uint8_t *data, int data_len_in_bytes) __EXPORT;
 }
 
-#endif
+#endif // _uORBProtobufChannel_hpp_
