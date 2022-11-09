@@ -35,6 +35,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <px4_platform_common/defines.h>
 
 __BEGIN_DECLS
 
