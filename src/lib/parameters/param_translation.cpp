@@ -258,7 +258,7 @@ bool param_modify_on_import(bson_node_t node)
 			return true;
 	}
 
-	// 2022-11-08 (stable release v1.13.1): translate VT_F_TRANS_THR/VT_PSHER_RMP_DT -> VT_PSHER_SLEW)
+	// 2022-11-11: translate VT_F_TRANS_THR/VT_PSHER_RMP_DT -> VT_PSHER_SLEW)
 	{
 		if (strcmp("VT_PSHER_RMP_DT", node->name) == 0) {
 			strcpy(node->name, "VT_PSHER_SLEW");
