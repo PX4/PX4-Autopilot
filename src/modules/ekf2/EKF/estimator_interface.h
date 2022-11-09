@@ -357,7 +357,7 @@ protected:
 	uint64_t _time_last_in_air{0};		///< last time we were in air (uSec)
 
 	// data buffer instances
-	static constexpr uint8_t kBufferLengthDefault = 12; // buffer length 12 with default parameters
+	static constexpr uint8_t kBufferLengthDefault = 12;
 	RingBuffer<imuSample> _imu_buffer{kBufferLengthDefault};
 	RingBuffer<outputSample> _output_buffer{kBufferLengthDefault};
 	RingBuffer<outputVert> _output_vert_buffer{kBufferLengthDefault};
