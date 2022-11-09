@@ -5,7 +5,6 @@
 
 . ${R}etc/init.d/rc.fw_defaults
 
-param set-default FW_LND_AIRSPD_SC 1.1
 param set-default FW_LND_ANG 5
 param set-default FW_LND_FL_PMIN 9.5
 param set-default FW_LND_FL_PMAX 20

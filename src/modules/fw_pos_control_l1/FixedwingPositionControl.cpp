@@ -1328,7 +1328,7 @@ FixedwingPositionControl::control_auto_loiter(const float control_interval, cons
 		// landing airspeed and potentially tighter altitude control) already such that we don't
 		// have to do this switch (which can cause significant altitude errors) close to the ground.
 		_tecs.set_height_error_time_constant(_param_fw_thrtc_sc.get() * _param_fw_t_h_error_tc.get());
-		airspeed_sp = _param_fw_lnd_airspd_sc.get() * _param_fw_airspd_min.get();
+		airspeed_sp = (_param_fw_lnd_airspd.get() > FLT_EPSILON) ? _param_fw_lnd_airspd.get() : _param_fw_airspd_min.get();
 		_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_LAND;
 		_att_sp.apply_spoilers = vehicle_attitude_setpoint_s::SPOILERS_LAND;
 
@@ -1655,7 +1655,8 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 	local_land_point = calculateTouchdownPosition(control_interval, local_land_point);
 	const Vector2f landing_approach_vector = calculateLandingApproachVector();
 
-	const float airspeed_land = _param_fw_lnd_airspd_sc.get() * _param_fw_airspd_min.get();
+	const float airspeed_land = (_param_fw_lnd_airspd.get() > FLT_EPSILON) ? _param_fw_lnd_airspd.get() :
+				    _param_fw_airspd_min.get();
 	float adjusted_min_airspeed = _param_fw_airspd_min.get();
 
 	if (airspeed_land < _param_fw_airspd_min.get()) {
