@@ -59,7 +59,7 @@ static bool px4muorb_orb_initialized = false;
 
 int16_t uORB::ProtobufChannel::topic_advertised(const char *messageName)
 {
-	if (_debug) PX4_INFO("Advertising %s on remote side", messageName);
+	if (_debug) { PX4_INFO("Advertising %s on remote side", messageName); }
 
 	if (muorb_func_ptrs.advertise_func_ptr) {
 		pthread_mutex_lock(&_tx_mutex);
@@ -75,7 +75,7 @@ int16_t uORB::ProtobufChannel::topic_advertised(const char *messageName)
 int16_t uORB::ProtobufChannel::add_subscription(const char *messageName, int32_t msgRateInHz)
 {
 	// MsgRateInHz is unused in this function.
-	if (_debug) PX4_INFO("Subscribing to %s on remote side", messageName);
+	if (_debug) { PX4_INFO("Subscribing to %s on remote side", messageName); }
 
 	if (muorb_func_ptrs.subscribe_func_ptr) {
 		pthread_mutex_lock(&_tx_mutex);
@@ -90,7 +90,7 @@ int16_t uORB::ProtobufChannel::add_subscription(const char *messageName, int32_t
 
 int16_t uORB::ProtobufChannel::remove_subscription(const char *messageName)
 {
-	if (_debug) PX4_INFO("Unsubscribing from %s on remote side", messageName);
+	if (_debug) { PX4_INFO("Unsubscribing from %s on remote side", messageName); }
 
 	if (muorb_func_ptrs.unsubscribe_func_ptr) {
 		pthread_mutex_lock(&_tx_mutex);
@@ -124,6 +124,7 @@ int16_t uORB::ProtobufChannel::send_message(const char *messageName, int32_t len
 		if ((_debug) && (is_not_slpi_log)) {
 			PX4_INFO("Got message for topic %s", messageName);
 		}
+
 		std::string temp(messageName);
 		int has_subscribers = 0;
 		pthread_mutex_lock(&_rx_mutex);
@@ -134,14 +135,17 @@ int16_t uORB::ProtobufChannel::send_message(const char *messageName, int32_t len
 			if ((_debug) && (is_not_slpi_log)) {
 				PX4_INFO("Sending message for topic %s", messageName);
 			}
+
 			pthread_mutex_lock(&_tx_mutex);
 			int16_t rc = muorb_func_ptrs.topic_data_func_ptr(messageName, data, length);
 			pthread_mutex_unlock(&_tx_mutex);
 			return rc;
 		}
+
 		if ((_debug) && (is_not_slpi_log)) {
 			PX4_INFO("Skipping message for topic %s", messageName);
 		}
+
 		return 0;
 	}
 
@@ -154,7 +158,7 @@ int16_t uORB::ProtobufChannel::send_message(const char *messageName, int32_t len
 
 static void *test_runner(void *)
 {
-	if (_px4_muorb_debug) PX4_INFO("test_runner called");
+	if (_px4_muorb_debug) { PX4_INFO("test_runner called"); }
 
 	uORB::ProtobufChannel *channel = uORB::ProtobufChannel::GetInstance();
 
@@ -177,6 +181,7 @@ static void *test_runner(void *)
 			for (uint8_t i = 0; i < MUORB_TEST_DATA_LEN; i++) {
 				data[i] = i;
 			}
+
 			(void) muorb_func_ptrs.topic_data_func_ptr(muorb_test_topic_name, data, MUORB_TEST_DATA_LEN);
 		}
 
@@ -201,25 +206,25 @@ int px4muorb_orb_initialize(fc_func_ptrs *func_ptrs, int32_t clock_offset_us)
 		}
 
 		if ((muorb_func_ptrs.advertise_func_ptr == NULL) ||
-			(muorb_func_ptrs.subscribe_func_ptr == NULL) ||
-			(muorb_func_ptrs.unsubscribe_func_ptr == NULL) ||
-			(muorb_func_ptrs.topic_data_func_ptr == NULL) ||
-			(muorb_func_ptrs._config_spi_bus_func_t == NULL) ||
-			(muorb_func_ptrs._spi_transfer_func_t == NULL) ||
-			(muorb_func_ptrs._config_i2c_bus_func_t == NULL) ||
-			(muorb_func_ptrs._set_i2c_address_func_t == NULL) ||
-			(muorb_func_ptrs._i2c_transfer_func_t == NULL) ||
-			(muorb_func_ptrs.open_uart_func_t == NULL) ||
-			(muorb_func_ptrs.write_uart_func_t == NULL) ||
-			(muorb_func_ptrs.read_uart_func_t == NULL) ||
-			(muorb_func_ptrs.register_interrupt_callback == NULL)) {
+		    (muorb_func_ptrs.subscribe_func_ptr == NULL) ||
+		    (muorb_func_ptrs.unsubscribe_func_ptr == NULL) ||
+		    (muorb_func_ptrs.topic_data_func_ptr == NULL) ||
+		    (muorb_func_ptrs._config_spi_bus_func_t == NULL) ||
+		    (muorb_func_ptrs._spi_transfer_func_t == NULL) ||
+		    (muorb_func_ptrs._config_i2c_bus_func_t == NULL) ||
+		    (muorb_func_ptrs._set_i2c_address_func_t == NULL) ||
+		    (muorb_func_ptrs._i2c_transfer_func_t == NULL) ||
+		    (muorb_func_ptrs.open_uart_func_t == NULL) ||
+		    (muorb_func_ptrs.write_uart_func_t == NULL) ||
+		    (muorb_func_ptrs.read_uart_func_t == NULL) ||
+		    (muorb_func_ptrs.register_interrupt_callback == NULL)) {
 			PX4_ERR("NULL function pointers in %s", __FUNCTION__);
 			return -1;
 		}
 
 		px4muorb_orb_initialized = true;
 
-		if (_px4_muorb_debug) PX4_INFO("px4muorb_orb_initialize called");
+		if (_px4_muorb_debug) { PX4_INFO("px4muorb_orb_initialize called"); }
 	}
 
 	return 0;
@@ -232,18 +237,20 @@ void run_test(MUORBTestType test)
 {
 	test_to_run = test;
 	(void) px4_task_spawn_cmd("test_MUORB",
-				 SCHED_DEFAULT,
-				 SCHED_PRIORITY_MAX - 2,
-				 2000,
-				 (px4_main_t)&test_runner,
-				 nullptr);
+				  SCHED_DEFAULT,
+				  SCHED_PRIORITY_MAX - 2,
+				  2000,
+				  (px4_main_t)&test_runner,
+				  nullptr);
 }
 
 int px4muorb_topic_advertised(const char *topic_name)
 {
 	if (IS_MUORB_TEST(topic_name)) {
 		run_test(ADVERTISE_TEST_TYPE);
-		if (_px4_muorb_debug) PX4_INFO("px4muorb_topic_advertised for muorb test called");
+
+		if (_px4_muorb_debug) { PX4_INFO("px4muorb_topic_advertised for muorb test called"); }
+
 		return 0;
 	}
 
@@ -254,9 +261,11 @@ int px4muorb_topic_advertised(const char *topic_name)
 
 		if (rxHandler) {
 			return rxHandler->process_remote_topic(topic_name, true);
+
 		} else {
 			PX4_ERR("Null rx handler in %s", __FUNCTION__);
 		}
+
 	} else {
 		PX4_ERR("Null channel pointer in %s",  __FUNCTION__);
 	}
@@ -268,7 +277,9 @@ int px4muorb_add_subscriber(const char *topic_name)
 {
 	if (IS_MUORB_TEST(topic_name)) {
 		run_test(SUBSCRIBE_TEST_TYPE);
-		if (_px4_muorb_debug) PX4_INFO("px4muorb_add_subscriber for muorb test called");
+
+		if (_px4_muorb_debug) { PX4_INFO("px4muorb_add_subscriber for muorb test called"); }
+
 		return 0;
 	}
 
@@ -281,9 +292,11 @@ int px4muorb_add_subscriber(const char *topic_name)
 			channel->AddRemoteSubscriber(topic_name);
 			// Pick a high message rate of 1000 Hz
 			return rxHandler->process_add_subscription(topic_name, 1000);
+
 		} else {
 			PX4_ERR("Null rx handler in %s", __FUNCTION__);
 		}
+
 	} else {
 		PX4_ERR("Null channel pointer in %s",  __FUNCTION__);
 	}
@@ -295,7 +308,9 @@ int px4muorb_remove_subscriber(const char *topic_name)
 {
 	if (IS_MUORB_TEST(topic_name)) {
 		run_test(UNSUBSCRIBE_TEST_TYPE);
-		if (_px4_muorb_debug) PX4_INFO("px4muorb_remove_subscriber for muorb test called");
+
+		if (_px4_muorb_debug) { PX4_INFO("px4muorb_remove_subscriber for muorb test called"); }
+
 		return 0;
 	}
 
@@ -307,9 +322,11 @@ int px4muorb_remove_subscriber(const char *topic_name)
 		if (rxHandler) {
 			channel->RemoveRemoteSubscriber(topic_name);
 			return rxHandler->process_remove_subscription(topic_name);
+
 		} else {
 			PX4_ERR("Null rx handler in %s", __FUNCTION__);
 		}
+
 	} else {
 		PX4_ERR("Null channel pointer in %s",  __FUNCTION__);
 	}
@@ -326,6 +343,7 @@ int px4muorb_send_topic_data(const char *topic_name, const uint8_t *data,
 
 		if (data_len_in_bytes != MUORB_TEST_DATA_LEN) {
 			test_passed = false;
+
 		} else {
 			for (int i = 0; i < data_len_in_bytes; i++) {
 				if ((uint8_t) i != data[i]) {
@@ -335,9 +353,9 @@ int px4muorb_send_topic_data(const char *topic_name, const uint8_t *data,
 			}
 		}
 
-		if (test_passed) run_test(TOPIC_TEST_TYPE);
+		if (test_passed) { run_test(TOPIC_TEST_TYPE); }
 
-		if (_px4_muorb_debug) PX4_INFO("px4muorb_send_topic_data called");
+		if (_px4_muorb_debug) { PX4_INFO("px4muorb_send_topic_data called"); }
 
 		return 0;
 	}
@@ -351,9 +369,11 @@ int px4muorb_send_topic_data(const char *topic_name, const uint8_t *data,
 			return rxHandler->process_received_message(topic_name,
 					data_len_in_bytes,
 					(uint8_t *) data);
+
 		} else {
 			PX4_ERR("Null rx handler in %s", __FUNCTION__);
 		}
+
 	} else {
 		PX4_ERR("Null channel pointer in %s",  __FUNCTION__);
 	}
