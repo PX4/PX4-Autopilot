@@ -199,6 +199,7 @@ int px4muorb_orb_initialize(fc_func_ptrs *func_ptrs, int32_t clock_offset_us)
 	if (! px4muorb_orb_initialized) {
 		if (func_ptrs != nullptr) {
 			muorb_func_ptrs = *func_ptrs;
+
 		} else {
 			PX4_ERR("NULL top level function pointer in %s", __FUNCTION__);
 			return -1;
