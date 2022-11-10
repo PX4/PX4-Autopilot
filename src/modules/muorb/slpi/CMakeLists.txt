@@ -36,3 +36,4 @@ px4_add_library(modules__muorb__slpi
 	../test/MUORBTest.cpp
 )
 target_include_directories(modules__muorb__slpi PRIVATE ../test)
+target_include_directories(modules__muorb__slpi PRIVATE ${PX4_BINARY_DIR}/platforms/common/uORB)
