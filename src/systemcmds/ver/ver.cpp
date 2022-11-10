@@ -46,7 +46,6 @@
 #include <stdbool.h>
 #include <string.h>
 #include <version/version.h>
-#include <version/version.h>
 
 /* string constants for version commands */
 static const char sz_ver_hw_str[] 	= "hw";
