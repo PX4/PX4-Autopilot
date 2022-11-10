@@ -171,7 +171,7 @@ else
 		param select-backup /fs/microsd/parameters_backup.bson
 	fi
 
-	if ver hwcmp PX4_FMU_V5X PX4_FMU_V6X
+	if ver hwcmp PX4_FMU_V5X PX4_FMU_V6X ARK_FMU_V6X
 	then
 		netman update -i eth0
 	fi
