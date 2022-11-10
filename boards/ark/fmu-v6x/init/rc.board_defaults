@@ -16,6 +16,11 @@ param set-default SENS_EN_INA238 0
 param set-default SENS_EN_INA228 0
 param set-default SENS_EN_INA226 1
 
-param set-default SYS_USE_IO 1
+if ver hwtypecmp ARKV6X001000 ARKV6X001001 ARKV6X001002 ARKV6X001003 ARKV6X001004 ARKV6X001005 ARKV6X001006 ARKV6X001007
+then
+	param set-default SYS_USE_IO 0
+else
+	param set-default SYS_USE_IO 1
+fi
 
 safety_button start
