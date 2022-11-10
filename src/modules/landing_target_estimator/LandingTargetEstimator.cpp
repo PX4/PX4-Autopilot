@@ -952,8 +952,12 @@ void LandingTargetEstimator::_update_topics(accInput *input)
 				H_position(2, 2) = 1;
 
 				// Cholesky decomposition using PX4 matrix:
-				// TODO: make sure this is correct
-				Matrix<float, 3, 3> T =  matrix::cholesky(R_rotated);
+				// TODO: correct
+				// Matrix<float, 3, 3> T =  matrix::cholesky(R_rotated);
+
+				Matrix3f T;
+				T.identity();
+
 
 				// Diagonalize R_rotated:
 				Matrix<float, 3, 3> R_diag =  T * R_rotated;
