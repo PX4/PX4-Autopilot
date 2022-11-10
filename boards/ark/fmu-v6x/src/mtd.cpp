@@ -43,7 +43,6 @@ static const px4_mft_device_t i2c3 = {             // 24LC64T on Base  8K 32 X 2
 	.devid    = PX4_MK_I2C_DEVID(3, 0x51)
 };
 
-
 static const px4_mtd_entry_t fmum_fram = {
 	.device = &spi5,
 	.npart = 2,
