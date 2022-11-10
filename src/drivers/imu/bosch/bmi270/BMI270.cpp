@@ -280,46 +280,8 @@ void BMI270::RunImpl()
 			// 1. Disable PWR_CONF.adv_power_save and wait for 450us
 
 			RegisterWrite(Register::PWR_CONF, 0x00);
+			_state = STATE::MICROCODE_LOAD;
 			ScheduleDelayed(450_us);
-
-			// 2. Write 0x00 to INIT_CTRL
-
-			RegisterWrite(Register::CONFIG1, 0x00);
-			// give it the maximum FIFO config file
-			PX4_DEBUG("attempting to upload initialization file onto BMI270");
-
-			//  3. Burst write initialization file to INIT_DATA
-
-			int res = transfer(maximum_fifo_config_file, nullptr, sizeof(maximum_fifo_config_file));
-
-			if (res == PX4_OK) {
-				RegisterWrite(Register::CONFIG1, 1);
-				PX4_DEBUG("Successfully uploaded initialization file onto BMI270");
-				px4_mdelay(150);
-				PX4_DEBUG("Preparing to read INTERNAL_STATUS register");
-
-			} else {
-				PX4_DEBUG("Failed to upload initialization file onto BMI270, resetting");
-				_state = STATE::RESET;
-				ScheduleDelayed(10_ms);
-			}
-
-			uint8_t internal_status = RegisterRead(Register::INTERNAL_STATUS);
-			PX4_DEBUG("Internal status register value: 0x%02hhX", internal_status);
-
-			if ((internal_status & 1) == 1) {
-				PX4_DEBUG("INTERNAL_STATUS 0x01, ready for configure");
-				// if reset succeeded then configure
-				_state = STATE::CONFIGURE;
-				ScheduleDelayed(10_ms);
-
-			} else {
-
-				PX4_DEBUG("INTERNAL_STATUS check failed, resetting");
-				_state = STATE::RESET;
-				ScheduleDelayed(10_ms);
-
-			};
 
 		} else {
 			// RESET not complete
@@ -335,6 +297,37 @@ void BMI270::RunImpl()
 		}
 
 		break;
+
+	case STATE::MICROCODE_LOAD:
+
+		{
+
+			// 2. Write 0x00 to INIT_CTRL
+
+			RegisterWrite(Register::CONFIG1, 0x00);
+			// give it the maximum FIFO config file
+			PX4_DEBUG("attempting to upload initialization file onto BMI270");
+
+			//  3. Burst write initialization file to INIT_DATA
+
+			int res = transfer(maximum_fifo_config_file, nullptr, sizeof(maximum_fifo_config_file));
+
+			if (res == PX4_OK) {
+				RegisterWrite(Register::CONFIG1, 1);
+				PX4_DEBUG("Successfully uploaded initialization file onto BMI270");
+				PX4_DEBUG("Preparing to read INTERNAL_STATUS register");
+				_state = STATE::CONFIGURE;
+				ScheduleDelayed(150_ms);
+
+
+			} else {
+				PX4_DEBUG("Failed to upload initialization file onto BMI270, resetting");
+				_state = STATE::RESET;
+				ScheduleDelayed(10_ms);
+			}
+
+			break;
+		}
 
 	case STATE::CONFIGURE:
 
@@ -562,6 +555,21 @@ bool BMI270::Configure()
 {
 
 	bool success = false;
+
+	// check internal status first as per datasheet
+	uint8_t internal_status = RegisterRead(Register::INTERNAL_STATUS);
+	PX4_DEBUG("Internal status register value: 0x%02hhX", internal_status);
+
+	if ((internal_status & 1) == 1) {
+		PX4_DEBUG("INTERNAL_STATUS 0x01, ready for configure");
+
+	} else {
+
+		PX4_DEBUG("INTERNAL_STATUS check failed, resetting");
+		_state = STATE::RESET;
+		ScheduleDelayed(10_ms);
+
+	};
 
 
 	// first set and clear all configured register bits

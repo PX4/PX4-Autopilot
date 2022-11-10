@@ -159,8 +159,9 @@ private:
 	bool _data_ready_interrupt_enabled{false};
 
 	enum class STATE : uint8_t {
-		RESET,
 		WAIT_FOR_RESET,
+		RESET,
+		MICROCODE_LOAD,
 		CONFIGURE,
 		FIFO_READ,
 	} _state{STATE::RESET};
