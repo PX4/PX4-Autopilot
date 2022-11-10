@@ -54,8 +54,7 @@
 
 bool
 MissionFeasibilityChecker::checkMissionFeasible(const mission_s &mission,
-		float max_distance_to_1st_waypoint, float max_distance_between_waypoints,
-		bool land_start_req)
+		float max_distance_to_1st_waypoint, float max_distance_between_waypoints)
 {
 	// Reset warning flag
 	_navigator->get_mission_result()->warning = false;
@@ -82,55 +81,28 @@ MissionFeasibilityChecker::checkMissionFeasible(const mission_s &mission,
 
 	const float home_alt = _navigator->get_home_position()->alt;
 
+	// reset for next check
+	_has_takeoff = false;
+	_has_landing = false;
+
 	// check if all mission item commands are supported
 	failed = failed || !checkMissionItemValidity(mission);
 	failed = failed || !checkDistancesBetweenWaypoints(mission, max_distance_between_waypoints);
 	failed = failed || !checkGeofence(mission, home_alt, home_valid);
 	failed = failed || !checkHomePositionAltitude(mission, home_alt, home_alt_valid);
+	failed = failed || !checkTakeoff(mission, home_alt);
 
 	if (_navigator->get_vstatus()->is_vtol) {
-		failed = failed || !checkVTOL(mission, home_alt, false);
+		failed |= (!checkTakeoff(mission, home_alt) || !checkVTOLLanding(mission) || !checkTakeoffLandAvailable());
 
 	} else if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-		failed = failed || !checkRotarywing(mission, home_alt);
+		failed |= (!checkTakeoff(mission, home_alt) || !checkRotaryWingLanding(mission) || !checkTakeoffLandAvailable());
 
-	} else {
-		failed = failed || !checkFixedwing(mission, home_alt, land_start_req);
+	} else if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+		failed |= (!checkTakeoff(mission, home_alt) || !checkFixedWingLanding(mission) || !checkTakeoffLandAvailable());
 	}
 
 	return !failed;
-}
-
-bool
-MissionFeasibilityChecker::checkRotarywing(const mission_s &mission, float home_alt)
-{
-	/*
-	 * Perform check and issue feedback to the user
-	 * Mission is only marked as feasible if takeoff check passes
-	 */
-	return checkTakeoff(mission, home_alt);
-}
-
-bool
-MissionFeasibilityChecker::checkFixedwing(const mission_s &mission, float home_alt, bool land_start_req)
-{
-	/* Perform checks and issue feedback to the user for all checks */
-	bool resTakeoff = checkTakeoff(mission, home_alt);
-	bool resLanding = checkFixedWingLanding(mission, land_start_req);
-
-	/* Mission is only marked as feasible if all checks return true */
-	return (resTakeoff && resLanding);
-}
-
-bool
-MissionFeasibilityChecker::checkVTOL(const mission_s &mission, float home_alt, bool land_start_req)
-{
-	/* Perform checks and issue feedback to the user for all checks */
-	bool resTakeoff = checkTakeoff(mission, home_alt);
-	bool resLanding = checkVTOLLanding(mission, land_start_req);
-
-	/* Mission is only marked as feasible if all checks return true */
-	return (resTakeoff && resLanding);
 }
 
 bool
@@ -327,7 +299,6 @@ MissionFeasibilityChecker::checkMissionItemValidity(const mission_s &mission)
 bool
 MissionFeasibilityChecker::checkTakeoff(const mission_s &mission, float home_alt)
 {
-	bool has_takeoff = false;
 	bool takeoff_first = false;
 	int takeoff_index = -1;
 
@@ -341,7 +312,7 @@ MissionFeasibilityChecker::checkTakeoff(const mission_s &mission, float home_alt
 		}
 
 		// look for a takeoff waypoint
-		if (missionitem.nav_cmd == NAV_CMD_TAKEOFF) {
+		if (missionitem.nav_cmd == NAV_CMD_TAKEOFF || missionitem.nav_cmd == NAV_CMD_VTOL_TAKEOFF) {
 			// make sure that the altitude of the waypoint is at least one meter larger than the acceptance radius
 			// this makes sure that the takeoff waypoint is not reached before we are at least one meter in the air
 
@@ -367,7 +338,7 @@ MissionFeasibilityChecker::checkTakeoff(const mission_s &mission, float home_alt
 			}
 
 			// tell that mission has a takeoff waypoint
-			has_takeoff = true;
+			_has_takeoff = true;
 
 			// tell that a takeoff waypoint is the first "waypoint"
 			// mission item
@@ -427,25 +398,14 @@ MissionFeasibilityChecker::checkTakeoff(const mission_s &mission, float home_alt
 		}
 	}
 
-	if (_navigator->get_takeoff_required() && _navigator->get_land_detected()->landed) {
-		// check for a takeoff waypoint, after the above conditions have been met
-		// MIS_TAKEOFF_REQ param has to be set and the vehicle has to be landed - one can load a mission
-		// while the vehicle is flying and it does not require a takeoff waypoint
-		if (!has_takeoff) {
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: takeoff waypoint required.\t");
-			events::send(events::ID("navigator_mis_takeoff_missing"), {events::Log::Error, events::LogInternal::Info},
-				     "Mission rejected: takeoff waypoint required");
-			return false;
-
-		} else if (!takeoff_first) {
-			// check if the takeoff waypoint is the first waypoint item on the mission
-			// i.e, an item with position/attitude change modification
-			// if it is not, the mission should be rejected
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: takeoff not first waypoint item\t");
-			events::send(events::ID("navigator_mis_takeoff_not_first"), {events::Log::Error, events::LogInternal::Info},
-				     "Mission rejected: takeoff is not the first waypoint item");
-			return false;
-		}
+	if (_has_takeoff && !takeoff_first) {
+		// check if the takeoff waypoint is the first waypoint item on the mission
+		// i.e, an item with position/attitude change modification
+		// if it is not, the mission should be rejected
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: takeoff not first waypoint item\t");
+		events::send(events::ID("navigator_mis_takeoff_not_first"), {events::Log::Error, events::LogInternal::Info},
+			     "Mission rejected: takeoff is not the first waypoint item");
+		return false;
 	}
 
 	// all checks have passed
@@ -453,14 +413,36 @@ MissionFeasibilityChecker::checkTakeoff(const mission_s &mission, float home_alt
 }
 
 bool
-MissionFeasibilityChecker::checkFixedWingLanding(const mission_s &mission, bool land_start_req)
+MissionFeasibilityChecker::checkRotaryWingLanding(const mission_s &mission)
+{
+	// Go through all mission items and search for a landing waypoint.
+	// For MC we currently do not run any checks on the validity of the planned landing.
+
+	for (size_t i = 0; i < mission.count; i++) {
+		struct mission_item_s missionitem;
+		const ssize_t len = sizeof(missionitem);
+
+		if (dm_read((dm_item_t)mission.dataman_id, i, &missionitem, len) != len) {
+			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
+			return false;
+		}
+
+		if (missionitem.nav_cmd == NAV_CMD_LAND) {
+			_has_landing = true;
+		}
+	}
+
+	return true;
+}
+
+bool
+MissionFeasibilityChecker::checkFixedWingLanding(const mission_s &mission)
 {
 	/* Go through all mission items and search for a landing waypoint
 	 * if landing waypoint is found: the previous waypoint is checked to be at a feasible distance and altitude given the landing slope */
 
 	bool landing_valid = false;
 
-	bool land_start_found = false;
 	size_t do_land_start_index = 0;
 	size_t landing_approach_index = 0;
 
@@ -475,14 +457,14 @@ MissionFeasibilityChecker::checkFixedWingLanding(const mission_s &mission, bool 
 
 		// if DO_LAND_START found then require valid landing AFTER
 		if (missionitem.nav_cmd == NAV_CMD_DO_LAND_START) {
-			if (land_start_found) {
+			if (_has_landing) {
 				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: more than one land start.\t");
 				events::send(events::ID("navigator_mis_multiple_land"), {events::Log::Error, events::LogInternal::Info},
 					     "Mission rejected: more than one land start commands");
 				return false;
 
 			} else {
-				land_start_found = true;
+				_has_landing = true;
 				do_land_start_index = i;
 			}
 		}
@@ -615,7 +597,7 @@ MissionFeasibilityChecker::checkFixedWingLanding(const mission_s &mission, bool 
 			}
 
 		} else if (missionitem.nav_cmd == NAV_CMD_RETURN_TO_LAUNCH) {
-			if (land_start_found && do_land_start_index < i) {
+			if (_has_landing && do_land_start_index < i) {
 				mavlink_log_critical(_navigator->get_mavlink_log_pub(),
 						     "Mission rejected: land start item before RTL item not possible.\t");
 				events::send(events::ID("navigator_mis_land_before_rtl"), {events::Log::Error, events::LogInternal::Info},
@@ -625,14 +607,7 @@ MissionFeasibilityChecker::checkFixedWingLanding(const mission_s &mission, bool 
 		}
 	}
 
-	if (land_start_req && !land_start_found) {
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: landing pattern required.\t");
-		events::send(events::ID("navigator_mis_land_missing"), {events::Log::Error, events::LogInternal::Info},
-			     "Mission rejected: landing pattern required");
-		return false;
-	}
-
-	if (land_start_found && (!landing_valid || (do_land_start_index > landing_approach_index))) {
+	if (_has_landing && (!landing_valid || (do_land_start_index > landing_approach_index))) {
 		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: invalid land start.\t");
 		events::send(events::ID("navigator_mis_invalid_land"), {events::Log::Error, events::LogInternal::Info},
 			     "Mission rejected: invalid land start");
@@ -644,12 +619,10 @@ MissionFeasibilityChecker::checkFixedWingLanding(const mission_s &mission, bool 
 }
 
 bool
-MissionFeasibilityChecker::checkVTOLLanding(const mission_s &mission, bool land_start_req)
+MissionFeasibilityChecker::checkVTOLLanding(const mission_s &mission)
 {
-	/* Go through all mission items and search for a landing waypoint
-	 * if landing waypoint is found: the previous waypoint is checked to be at a feasible distance and altitude given the landing slope */
+	// Go through all mission items and search for a landing waypoint, then run some checks on it
 
-	bool land_start_found = false;
 	size_t do_land_start_index = 0;
 	size_t landing_approach_index = 0;
 
@@ -664,14 +637,14 @@ MissionFeasibilityChecker::checkVTOLLanding(const mission_s &mission, bool land_
 
 		// if DO_LAND_START found then require valid landing AFTER
 		if (missionitem.nav_cmd == NAV_CMD_DO_LAND_START) {
-			if (land_start_found) {
+			if (_has_landing) {
 				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: more than one land start.\t");
 				events::send(events::ID("navigator_mis_multi_land"), {events::Log::Error, events::LogInternal::Info},
 					     "Mission rejected: more than one land start commands");
 				return false;
 
 			} else {
-				land_start_found = true;
+				_has_landing = true;
 				do_land_start_index = i;
 			}
 		}
@@ -696,7 +669,7 @@ MissionFeasibilityChecker::checkVTOLLanding(const mission_s &mission, bool land_
 			}
 
 		} else if (missionitem.nav_cmd == NAV_CMD_RETURN_TO_LAUNCH) {
-			if (land_start_found && do_land_start_index < i) {
+			if (_has_landing && do_land_start_index < i) {
 				mavlink_log_critical(_navigator->get_mavlink_log_pub(),
 						     "Mission rejected: land start item before RTL item not possible.\t");
 				events::send(events::ID("navigator_mis_land_before_rtl2"), {events::Log::Error, events::LogInternal::Info},
@@ -706,14 +679,7 @@ MissionFeasibilityChecker::checkVTOLLanding(const mission_s &mission, bool land_
 		}
 	}
 
-	if (land_start_req && !land_start_found) {
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: landing pattern required.\t");
-		events::send(events::ID("navigator_mis_land_missing2"), {events::Log::Error, events::LogInternal::Info},
-			     "Mission rejected: landing pattern required");
-		return false;
-	}
-
-	if (land_start_found && (do_land_start_index > landing_approach_index)) {
+	if (_has_landing && (do_land_start_index > landing_approach_index)) {
 		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: invalid land start.\t");
 		events::send(events::ID("navigator_mis_invalid_land2"), {events::Log::Error, events::LogInternal::Info},
 			     "Mission rejected: invalid land start");
@@ -722,6 +688,74 @@ MissionFeasibilityChecker::checkVTOLLanding(const mission_s &mission, bool land_
 
 	/* No landing waypoints or no waypoints */
 	return true;
+}
+
+bool
+MissionFeasibilityChecker::checkTakeoffLandAvailable()
+{
+	bool result = true;
+
+	switch (_navigator->get_takeoff_land_required()) {
+	case 0:
+		result = true;
+		break;
+
+	case 1:
+		result = _has_takeoff;
+
+		if (!result) {
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: Takeoff waypoint required.\t");
+			events::send(events::ID("navigator_mis_takeoff_missing"), {events::Log::Error, events::LogInternal::Info},
+				     "Mission rejected: Takeoff waypoint required");
+			return false;
+		}
+
+		break;
+
+	case 2:
+		result = _has_landing;
+
+		if (!result) {
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: Landing waypoint/pattern required.\t");
+			events::send(events::ID("navigator_mis_land_missing"), {events::Log::Error, events::LogInternal::Info},
+				     "Mission rejected: Landing waypoint/pattern required");
+		}
+
+		break;
+
+	case 3:
+		result = _has_takeoff && _has_landing;
+
+		if (!result) {
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: Takeoff or Landing item missing.\t");
+			events::send(events::ID("navigator_mis_takeoff_or_land_missing"), {events::Log::Error, events::LogInternal::Info},
+				     "Mission rejected: Takeoff or Landing item missing");
+		}
+
+		break;
+
+	case 4:
+		result = _has_takeoff == _has_landing;
+
+		if (!result && (_has_takeoff)) {
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: Add Landing item or remove Takeoff.\t");
+			events::send(events::ID("navigator_mis_add_land_or_rm_to"), {events::Log::Error, events::LogInternal::Info},
+				     "Mission rejected: Add Landing item or remove Takeoff");
+
+		} else if (!result && (_has_landing)) {
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: Add Takeoff item or remove Landing.\t");
+			events::send(events::ID("navigator_mis_add_to_or_rm_land"), {events::Log::Error, events::LogInternal::Info},
+				     "Mission rejected: Add Takeoff item or remove Landing");
+		}
+
+		break;
+
+	default:
+		result = true;
+		break;
+	}
+
+	return result;
 }
 
 bool
