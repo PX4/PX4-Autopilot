@@ -99,6 +99,8 @@ public:
 	 */
 	static bool item_contains_marker(const mission_item_s &item);
 
+	static float get_absolute_altitude_for_item(const  mission_item_s &mission_item, float home_alt);
+
 	/**
 	 * @brief Set the payload deployment successful flag object
 	 *

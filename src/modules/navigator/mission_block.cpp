@@ -925,8 +925,13 @@ MissionBlock::mission_apply_limitation(mission_item_s &item)
 float
 MissionBlock::get_absolute_altitude_for_item(const mission_item_s &mission_item) const
 {
+	return get_absolute_altitude_for_item(mission_item, _navigator->get_home_position()->alt);
+}
+
+float MissionBlock::get_absolute_altitude_for_item(const mission_item_s &mission_item, float home_alt)
+{
 	if (mission_item.altitude_is_relative) {
-		return mission_item.altitude + _navigator->get_home_position()->alt;
+		return mission_item.altitude + home_alt;
 
 	} else {
 		return mission_item.altitude;
