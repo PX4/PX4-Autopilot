@@ -119,7 +119,7 @@ private:
 
 	uint8_t _takeoff_state{takeoff_status_s::TAKEOFF_STATE_DISARMED};
 
-	hrt_abstime _min_thrust_start{0};	///< timestamp when minimum trust was applied first
+	systemlib::Hysteresis _minimum_thrust_8s_hysteresis{false};
 
 	bool _in_descend{false};		///< vehicle is commanded to desend
 	bool _horizontal_movement{false};	///< vehicle is moving horizontally
