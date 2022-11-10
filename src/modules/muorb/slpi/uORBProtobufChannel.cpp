@@ -197,12 +197,11 @@ int px4muorb_orb_initialize(fc_func_ptrs *func_ptrs, int32_t clock_offset_us)
 	hrt_set_absolute_time_offset(clock_offset_us);
 
 	if (! px4muorb_orb_initialized) {
-		uORB::Manager::initialize();
-		uORB::Manager::get_instance()->set_uorb_communicator(
-			uORB::ProtobufChannel::GetInstance());
-
 		if (func_ptrs != nullptr) {
 			muorb_func_ptrs = *func_ptrs;
+		} else {
+			PX4_ERR("NULL top level function pointer in %s", __FUNCTION__);
+			return -1;
 		}
 
 		if ((muorb_func_ptrs.advertise_func_ptr == NULL) ||
@@ -221,6 +220,10 @@ int px4muorb_orb_initialize(fc_func_ptrs *func_ptrs, int32_t clock_offset_us)
 			PX4_ERR("NULL function pointers in %s", __FUNCTION__);
 			return -1;
 		}
+
+		uORB::Manager::initialize();
+		uORB::Manager::get_instance()->set_uorb_communicator(
+			uORB::ProtobufChannel::GetInstance());
 
 		px4muorb_orb_initialized = true;
 
