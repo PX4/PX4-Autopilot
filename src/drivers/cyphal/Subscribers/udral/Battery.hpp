@@ -110,7 +110,7 @@ public:
 			bat_status.connected = true; // Based on some threshold or an error??
 
 			// Estimate discharged mah from Joule
-			if (_nominal_voltage != NAN) {
+			if (PX4_ISFINITE(_nominal_voltage)) {
 				bat_status.discharged_mah = (source_ts.value.full_energy.joule - source_ts.value.energy.joule)
 							    / (_nominal_voltage * WH_TO_JOULE);
 			}
