@@ -113,7 +113,7 @@ protected:
 
 	// TODO: increase the timeout to at least 4 000 000
 	/* timeout after which filter is reset if target not seen */
-	static constexpr uint32_t landing_target_estimator_TIMEOUT_US = 2000000;
+	static constexpr uint32_t landing_target_estimator_TIMEOUT_US = 4000000;
 
 	/* timeout after which the target is not valid if no measurements are seen*/
 	static constexpr uint32_t landing_target_valid_TIMEOUT_US = 2000000;
@@ -252,7 +252,8 @@ private:
 	globalPos _landing_pos{};
 
 	// keep track of which topics we have received
-	bool _new_sensorReport{false};
+	bool _new_pos_sensor_report{false};
+	bool _new_vel_sensor_report{false};
 	bool _estimator_initialized{false};
 
 	matrix::Quaternion<float> _q_att; //Quaternion orientation of the body frame

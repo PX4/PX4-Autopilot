@@ -121,7 +121,7 @@ void LandingTargetEstimator::update()
 	if (!_estimator_initialized) {
 
 		// Wait for a sensor update to get the initial position of the target
-		if (_new_sensorReport) {
+		if (_new_pos_sensor_report) {
 			initEstimator();
 			PX4_INFO("LTE Estimator properly initialized.");
 			_estimator_initialized = true;
@@ -132,7 +132,7 @@ void LandingTargetEstimator::update()
 	} else {
 
 		// If estimator initialized, and we have at least one measurement: update step
-		if (_new_sensorReport) {
+		if (_new_pos_sensor_report || _new_vel_sensor_report) {
 
 			// If at least one sensor observation was fused in all directions (x,y,z) mark state as updated
 			if (updateNED(input.vehicle_acc_ned)) {
@@ -146,7 +146,9 @@ void LandingTargetEstimator::update()
 		}
 
 		// mark sensor measurements as consumed
-		_new_sensorReport = false;
+		_new_pos_sensor_report = false;
+		_new_vel_sensor_report = false;
+
 
 		// Always publish the target (using the prediction step). The target is set as invalid if: time from the previous update > landing_target_valid_TIMEOUT_US);
 		publishTarget();
@@ -165,20 +167,16 @@ void LandingTargetEstimator::initEstimator()
 	// Define the initial relative position of target w.r.t. the drone in NED frame using the available measurement
 	Vector3f p_init;
 
-	if (_target_pos_obs[target_gps_pos].updated_xyz(0) && _target_pos_obs[target_gps_pos].updated_xyz(1)
-	    && _target_pos_obs[target_gps_pos].updated_xyz(2)) {
+	if ((hrt_absolute_time() - _target_pos_obs[target_gps_pos].timestamp < measurement_valid_TIMEOUT_US)) {
 		p_init = _target_pos_obs[target_gps_pos].meas_xyz;
 
-	} else if (_target_pos_obs[fiducial_marker].updated_xyz(0) && _target_pos_obs[fiducial_marker].updated_xyz(1)
-		   && _target_pos_obs[fiducial_marker].updated_xyz(2)) {
+	} else if (hrt_absolute_time() - _target_pos_obs[fiducial_marker].timestamp < measurement_valid_TIMEOUT_US) {
 		p_init = _target_pos_obs[fiducial_marker].meas_xyz;
 
-	} else if (_target_pos_obs[irlock].updated_xyz(0) && _target_pos_obs[irlock].updated_xyz(1)
-		   && _target_pos_obs[irlock].updated_xyz(2)) {
+	} else if (hrt_absolute_time() - _target_pos_obs[irlock].timestamp < measurement_valid_TIMEOUT_US) {
 		p_init = _target_pos_obs[irlock].meas_xyz;
 
-	} else if (_target_pos_obs[uwb].updated_xyz(0) && _target_pos_obs[uwb].updated_xyz(1)
-		   && _target_pos_obs[uwb].updated_xyz(2)) {
+	} else if (hrt_absolute_time() - _target_pos_obs[uwb].timestamp < measurement_valid_TIMEOUT_US) {
 		p_init = _target_pos_obs[uwb].meas_xyz;
 
 	} else {
@@ -188,16 +186,9 @@ void LandingTargetEstimator::initEstimator()
 	// Define initial relative velocity of the target w.r.t. to the drone in NED frame
 	Vector3f v_rel_init;
 
-	if (_target_pos_obs[uav_gps_vel].updated_xyz(0) && _target_pos_obs[uav_gps_vel].updated_xyz(1)
-	    && _target_pos_obs[uav_gps_vel].updated_xyz(2)) {
+	if (hrt_absolute_time() - _target_pos_obs[uav_gps_vel].timestamp < measurement_valid_TIMEOUT_US) {
 		v_rel_init = _target_pos_obs[uav_gps_vel].meas_xyz;
-
-	} else {
-		v_rel_init(0) = vehicle_local_position.v_xy_valid ? -vehicle_local_position.vx : 0.f;
-		v_rel_init(1) = vehicle_local_position.v_xy_valid ? -vehicle_local_position.vy : 0.f;
-		v_rel_init(2) = vehicle_local_position.v_z_valid  ? -vehicle_local_position.vz : 0.f;
 	}
-
 
 	// Define initial acceleration of the target in NED frame. Since we have no info on the target, assume no initial acceleration
 	Vector3f a_init{};
@@ -367,7 +358,7 @@ bool LandingTargetEstimator::updateNED(Vector3f vehicle_acc_ned)
 					if (!_target_pos_obs[i].updated_xyz(j)) {
 
 						// No measurement Note: .fusion_enabled[j] and .fused[j] = false are already false by default. (set in publishInnovations())
-						PX4_INFO("At least one non-valid observation. x: %d, y: %d, z: %d", _target_pos_obs[i].updated_xyz(0),
+						PX4_INFO("Obs i = %d : at least one non-valid observation. x: %d, y: %d, z: %d", i, _target_pos_obs[i].updated_xyz(0),
 							 _target_pos_obs[i].updated_xyz(1), _target_pos_obs[i].updated_xyz(2));
 
 						// Set innovations to zero
@@ -424,12 +415,17 @@ bool LandingTargetEstimator::updateNED(Vector3f vehicle_acc_ned)
 					}
 				}
 
-				// If we have updated all three directions (x,y,z) for one measurement, consider the state updated.
+				// If we have updated all three directions (x,y,z) for one relative position measurement, consider the state updated.
 				if (meas_xyz_fused(0) && meas_xyz_fused(1) && (meas_xyz_fused(2) || _target_model == TargetModel::Horizontal)) {
-					all_directions_fused = true;
+
+					if (i != uav_gps_vel) {
+						all_directions_fused = true; // Don't consider the state updated if we only have a velocity measurement
+					}
+
 
 				} else {
-					PX4_INFO("At least one direction not fused: . x: %d, y: %d, z: %d", meas_xyz_fused(0), meas_xyz_fused(1),
+					PX4_INFO("Obs i = %d : at least one direction not fused: . x: %d, y: %d, z: %d", i, meas_xyz_fused(0),
+						 meas_xyz_fused(1),
 						 meas_xyz_fused(2));
 				}
 
@@ -823,7 +819,7 @@ void LandingTargetEstimator::_update_topics(accInput *input)
 				temp_obs.meas_unc_xyz(2) = measurement_uncertainty;
 
 				_target_pos_obs[irlock] = temp_obs;
-				_new_sensorReport = true;
+				_new_pos_sensor_report = true;
 			}
 		}
 	}
@@ -874,7 +870,7 @@ void LandingTargetEstimator::_update_topics(accInput *input)
 			temp_obs.meas_unc_xyz(1) = measurement_uncertainty;
 
 			_target_pos_obs[uwb] = temp_obs;
-			_new_sensorReport = true;
+			_new_pos_sensor_report = true;
 		}
 	}
 
@@ -926,7 +922,7 @@ void LandingTargetEstimator::_update_topics(accInput *input)
 			_target_orientation_obs.meas_theta = vision_r_theta;
 			_target_orientation_obs.meas_h_theta = 1;
 
-			_new_sensorReport = true;
+			_new_pos_sensor_report = true;
 		}
 
 		/* RELATIVE POSITION*/
@@ -1008,7 +1004,7 @@ void LandingTargetEstimator::_update_topics(accInput *input)
 				temp_obs.meas_unc_xyz(2) = R_rotated(2, 2);
 			}
 
-			_new_sensorReport = true;
+			_new_pos_sensor_report = true;
 			_target_pos_obs[fiducial_marker] = temp_obs;
 		}
 	}
@@ -1140,7 +1136,7 @@ void LandingTargetEstimator::_update_topics(accInput *input)
 				temp_obs.any_xyz_updated = true;
 				temp_obs.updated_xyz.setAll(true);
 
-				_new_sensorReport = true;
+				_new_pos_sensor_report = true;
 				_target_pos_obs[target_gps_pos] = temp_obs;
 			}
 		}
@@ -1206,7 +1202,7 @@ void LandingTargetEstimator::_update_topics(accInput *input)
 				temp_obs.any_xyz_updated = true;
 				temp_obs.updated_xyz.setAll(true);
 
-				_new_sensorReport = true;
+				_new_vel_sensor_report = true;
 				_target_pos_obs[uav_gps_vel] = temp_obs;
 			}
 		}
