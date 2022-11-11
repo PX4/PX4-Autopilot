@@ -265,23 +265,6 @@ else
 	fi
 
 	#
-	# Check if UAVCAN is enabled, default to it for ESCs.
-	#
-	if param greater -s UAVCAN_ENABLE 0
-	then
-		# Start core UAVCAN module.
-		if ! uavcan start
-		then
-			tune_control play error
-		fi
-	else
-		if param greater -s CYPHAL_ENABLE 0
-		then
-			cyphal start
-		fi
-	fi
-
-	#
 	# Start IO for PWM output or RC input if enabled
 	#
 	if param compare -s SYS_USE_IO 1
@@ -526,6 +509,23 @@ else
 		sh $BOARD_BOOTLOADER_UPGRADE
 	fi
 	unset BOARD_BOOTLOADER_UPGRADE
+
+	#
+	# Check if UAVCAN is enabled, default to it for ESCs.
+	#
+	if param greater -s UAVCAN_ENABLE 0
+	then
+		# Start core UAVCAN module.
+		if ! uavcan start
+		then
+			tune_control play error
+		fi
+	else
+		if param greater -s CYPHAL_ENABLE 0
+		then
+			cyphal start
+		fi
+	fi
 
 #
 # End of autostart.
