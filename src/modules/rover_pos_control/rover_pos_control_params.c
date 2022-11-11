@@ -143,10 +143,11 @@ PARAM_DEFINE_FLOAT(GND_THR_MIN, 0.0f);
  * Control mode for speed
  *
  * This allows the user to choose between closed loop gps speed or open loop cruise throttle speed
+ *
  * @min 0
  * @max 1
- * @value 0 open loop control
- * @value 1 close the loop with gps speed
+ * @value 0 Open loop control using cruise throttle
+ * @value 1 Closed loop control using GPS Velocity
  * @group Rover Position Control
  */
 PARAM_DEFINE_INT32(GND_SP_CTRL_MODE, 1);
@@ -210,11 +211,10 @@ PARAM_DEFINE_FLOAT(GND_SPEED_IMAX, 1.0f);
 /**
  * Speed to throttle scaler
  *
- * This is a gain to map the speed control output to the throttle linearly.
+ * This is a gain to map the speed control output (in somewhat [m/s]) to the throttle
  *
- * @unit %m/s
  * @min 0.005
- * @max 50.0
+ * @max 2.0
  * @decimal 3
  * @increment 0.005
  * @group Rover Position Control
@@ -237,6 +237,7 @@ PARAM_DEFINE_FLOAT(GND_SPEED_TRIM, 3.0f);
 /**
  * Minimum ground speed
  *
+ * Used for calculating saturated speed lower bound for waypoint navigation (position mode)
  *
  * @unit m/s
  * @min 0.0
@@ -248,17 +249,26 @@ PARAM_DEFINE_FLOAT(GND_SPEED_TRIM, 3.0f);
 PARAM_DEFINE_FLOAT(GND_SPEED_MIN, 1.0f);
 
 /**
- * Maximum ground speed
+ * Maximum output of velocity PID controller
  *
+ * Used for limiting output of the speed PID controller (which is somewhat in m/s unit)
  *
- * @unit m/s
+ * Note: We need to figure out what the unit dimension is for the output of the Velocity PID controller,
+ * since we are mapping it directly to throttle, and it will be then *sqrt of thrust (for RPM controlled ESCs),
+ * but we are calculating based off of velocity error.
+ *
+ * Note: What is the role of the I-term? E.g. in Multicopter, the I-term of the Velocity controller accounts for
+ * constant offset force (acceleration) from external source. E.g. Wind.
+ *
+ * What is it for the boat?
+ *
  * @min 0.0
  * @max 40
  * @decimal 1
  * @increment 0.5
  * @group Rover Position Control
  */
-PARAM_DEFINE_FLOAT(GND_SPEED_MAX, 10.0f);
+PARAM_DEFINE_FLOAT(GND_SPEED_PID_MX, 10.0f);
 
 /**
  * Maximum turn angle for Ackerman steering.
@@ -278,8 +288,6 @@ PARAM_DEFINE_FLOAT(GND_MAX_ANG, 0.7854f);
 /**
  * Attitude control P gain
  *
- *
- * @unit rad
  * @min 0.0
  * @max 5.0
  * @decimal 3

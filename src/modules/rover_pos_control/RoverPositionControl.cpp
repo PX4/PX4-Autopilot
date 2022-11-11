@@ -101,7 +101,7 @@ void RoverPositionControl::parameters_update(bool force)
 				   _param_speed_i.get(),
 				   _param_speed_d.get(),
 				   _param_speed_imax.get(),
-				   _param_gndspeed_max.get());
+				   _param_gndspeed_pid_out_max.get());
 		_rate_control.setGains(matrix::Vector3f(0.0, 0.0, _param_rate_p.get()), matrix::Vector3f(0.0, 0.0, _param_rate_i.get()),
 				       matrix::Vector3f(0.0, 0.0, _param_rate_d.get()));
 		_rate_control.setFeedForwardGain(matrix::Vector3f(0.0, 0.0, _param_rate_ff.get()));
@@ -139,6 +139,8 @@ RoverPositionControl::manual_control_setpoint_poll()
 						_reset_yaw_sp = false;
 
 					} else {
+						// TODO: Clarify relationship between RATE_MAX and MAN_Y_MAX.
+						// Currently, in Acro mode we use RATE_MAX as max rate setpoint, and in manual (attitude mode == stabilized), MAN_Y_MAX.
 						const float yaw_rate = math::radians(_param_gnd_man_y_max.get());
 						_att_sp.yaw_sp_move_rate = _manual_control_setpoint.roll * yaw_rate;
 						_manual_yaw_sp = wrap_pi(_manual_yaw_sp + _att_sp.yaw_sp_move_rate * dt);
@@ -147,19 +149,19 @@ RoverPositionControl::manual_control_setpoint_poll()
 					_att_sp.yaw_body = _manual_yaw_sp;
 					_att_sp.thrust_body[0] = _manual_control_setpoint.throttle;
 
+					// Question: What's the point of having yaw_body, but then putting that into Quaternion again?
 					Quatf q(Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body));
 					q.copyTo(_att_sp.q_d);
 
 					_att_sp.timestamp = hrt_absolute_time();
 
-
 					_attitude_sp_pub.publish(_att_sp);
 
 				} else if (_control_mode.flag_control_rates_enabled) {
-					// STABILIZED mode generate the attitude setpoint from manual user inputs
+					// ACRO mode generate the rate setpoint from manual user inputs
 					_rates_sp.roll = 0.0;
 					_rates_sp.pitch = 0.0;
-					_rates_sp.yaw = _manual_control_setpoint.y;
+					_rates_sp.yaw = _manual_control_setpoint.y * _param_rate_max.get();
 					_rates_sp.thrust_body[0] = _manual_control_setpoint.z;
 
 					_rates_sp.timestamp = hrt_absolute_time();
@@ -167,8 +169,9 @@ RoverPositionControl::manual_control_setpoint_poll()
 					_rates_sp_pub.publish(_rates_sp);
 
 				} else {
-					_act_controls.control[actuator_controls_s::INDEX_ROLL] = 0.0f; // Nominally roll: _manual_control_setpoint.roll;
-					_act_controls.control[actuator_controls_s::INDEX_PITCH] = 0.0f; // Nominally pitch: -_manual_control_setpoint.pitch;
+					// MANUAL mode, directly map actuator outputs from Manual control
+					_act_controls.control[actuator_controls_s::INDEX_ROLL] = 0.0f; // Nominally roll: _manual_control_setpoint.y;
+					_act_controls.control[actuator_controls_s::INDEX_PITCH] = 0.0f; // Nominally pitch: -_manual_control_setpoint.x;
 					// Set heading from the manual roll input channel
 					_act_controls.control[actuator_controls_s::INDEX_YAW] =
 						_manual_control_setpoint.roll; // Nominally yaw: _manual_control_setpoint.yaw;
@@ -275,6 +278,12 @@ RoverPositionControl::control_position(const matrix::Vector2d &current_position,
 			    _pos_sp_triplet.current.cruising_speed > 0.1f) {
 				mission_target_speed = _pos_sp_triplet.current.cruising_speed;
 			}
+
+			// Log target speed in global NED frame (since we don't always enforce the heading, it is in the direction we are headed)
+			const Vector3f target_vel_vec = mission_target_speed * ground_speed.unit();
+			_local_pos_setpoint.vx = target_vel_vec(0);
+			_local_pos_setpoint.vy = target_vel_vec(1);
+			_local_pos_setpoint.vz = target_vel_vec(2);
 
 			// Velocity in body frame
 			const Dcmf R_to_body(Quatf(_vehicle_att.q).inversed());
@@ -419,15 +428,25 @@ RoverPositionControl::control_attitude(const vehicle_attitude_s &att, const vehi
 {
 	// quaternion attitude control law, qe is rotation from q to qd
 	const Quatf qe = Quatf(att.q).inversed() * Quatf(att_sp.q_d);
+
+	// Attitude error in Euler angles [rad]
 	const Eulerf euler_sp = qe;
-	// PX4_INFO("Yaw error: %f", double(euler_sp(2)));
+	// PX4_INFO("Yaw error: %f [rad]", double(euler_sp(2)));
 
 	_rates_sp.roll = 0.0;
 	_rates_sp.pitch = 0.0;
-	_rates_sp.yaw = euler_sp(2) / _param_max_turn_angle.get();
+
+	// Apply Attitude P-gain for Yaw control. Euler angle in [rad], rate setpoint in [rad/s]
+	_rates_sp.yaw = euler_sp(2) * _param_att_p.get();
+
+	// PX4_INFO("Yaw rate setpoint in attitude control: %f [rad/s]", (double)_rates_sp.yaw);
+
 	_rates_sp.thrust_body[0] = math::constrain(att_sp.thrust_body[0], 0.0f, 1.0f);
 	_rates_sp.timestamp = hrt_absolute_time();
 	_rates_sp_pub.publish(_rates_sp);
+
+	// Log yaw setpoint for PID tuning debug
+	_local_pos_setpoint.yaw = att_sp.yaw_body;
 }
 
 void
@@ -440,6 +459,8 @@ RoverPositionControl::control_rates(const vehicle_angular_velocity_s &rates, con
 
 	const matrix::Vector3f vehicle_rates(rates.xyz[0], rates.xyz[1], rates.xyz[2]);
 	const matrix::Vector3f rates_setpoint(rates_sp.roll, rates_sp.pitch, rates_sp.yaw);
+
+	// PX4_INFO("Yaw rate setpoint: %f [rad/s]", (double)_rates_sp.yaw);
 
 	const matrix::Vector3f current_velocity(local_pos.vx, local_pos.vy, local_pos.vz);
 	bool lock_integrator = bool(current_velocity.norm() < _param_rate_i_minspeed.get());
@@ -455,6 +476,9 @@ RoverPositionControl::control_rates(const vehicle_angular_velocity_s &rates, con
 	const float control_throttle = rates_sp.thrust_body[0];
 
 	_act_controls.control[actuator_controls_s::INDEX_THROTTLE] =  math::constrain(control_throttle, 0.0f, 1.0f);
+
+	// Log yawrate setpoint for PID tuning
+	_local_pos_setpoint.yawspeed = rates_sp.yaw;
 }
 
 
@@ -489,6 +513,7 @@ RoverPositionControl::Run()
 			/* load local copies */
 			_global_pos_sub.update(&_global_pos);
 
+			// Get the latest position setpoint
 			position_setpoint_triplet_poll();
 
 			if (!_global_local_proj_ref.isInitialized()
@@ -500,7 +525,7 @@ RoverPositionControl::Run()
 				_global_local_alt0 = _local_pos.ref_alt;
 			}
 
-			// Convert Local setpoints to global setpoints
+			// Handle Offboard control: override position setpoint triplet item with trajectory_setpoint data
 			if (_control_mode.flag_control_offboard_enabled) {
 				_trajectory_setpoint_sub.update(&_trajectory_setpoint);
 
@@ -546,6 +571,10 @@ RoverPositionControl::Run()
 					pos_ctrl_status.timestamp = hrt_absolute_time();
 
 					_pos_ctrl_status_pub.publish(pos_ctrl_status);
+
+					// Project position setpoint triplet's global position (lat/lon) into local (x/y/z) position
+					_global_local_proj_ref.project(_pos_sp_triplet.current.lat, _pos_sp_triplet.current.lon, _local_pos_setpoint.x,
+								       _local_pos_setpoint.y);
 				}
 
 			} else if (!_control_mode.flag_control_manual_enabled && _control_mode.flag_control_velocity_enabled) {
@@ -589,6 +618,20 @@ RoverPositionControl::Run()
 			v_torque_sp.xyz[1] = _act_controls.control[actuator_controls_s::INDEX_PITCH];
 			v_torque_sp.xyz[2] = _act_controls.control[actuator_controls_s::INDEX_YAW];
 			_vehicle_torque_setpoint_pub.publish(v_torque_sp);
+
+			// Normalized (When max thrust, magnitude = 1) thrust in North - East frame
+			// const Vector2f normalized_thrust_vec_2d = _act_controls.control[actuator_controls_s::INDEX_THROTTLE] * Vector2f(_local_pos.vx, _local_pos.vy).unit();
+			// normalized_thrust_vec_2d.copyTo(_local_pos_setpoint.thrust);
+
+			// Hack: For now send the throttle setpoint in Acc X value for debugging
+			_local_pos_setpoint.acceleration[0] = _act_controls.control[actuator_controls_s::INDEX_THROTTLE];
+
+			// Note: Since we are populating the local position setpoint struct's data in
+			// rate, attitude and position control, it is not guaranteed that the data
+			// is actually valid / up-to-date. Hence, it should only be used for PID tuning
+
+			// Publish local position setpoint topic (for PID tuning UI graph in QGC)
+			_local_pos_setpoint_pub.publish(_local_pos_setpoint);
 		}
 	}
 }
