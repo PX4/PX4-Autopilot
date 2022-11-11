@@ -265,6 +265,72 @@ if (CONFIG_BUILD_KERNEL)
 		DEPS boot_bins
 	)
 
+	# Build and install the px4 processes
+	foreach(module ${module_libraries})
+		get_target_property(MAIN ${module} MAIN)
+
+		# Don't handle modules that don't have a main (entry) function
+		if (NOT MAIN)
+			continue()
+		endif()
+
+		# Build module.a into module.elf
+		set(BIN px4-${MAIN}.elf)
+		add_executable(${BIN} ${PX4_SOURCE_DIR}/platforms/nuttx/src/px4/common/main.cpp)
+		set_target_properties(${BIN} PROPERTIES OUTPUT_NAME ${BIN})
+		add_dependencies(${BIN} nuttx_crt0 ${module})
+		target_compile_options(${BIN} PRIVATE -Dentry=${MAIN}_main)
+
+		target_link_libraries(${BIN} PRIVATE
+
+			-nostartfiles
+			-nodefaultlibs
+			-nostdlib
+			-nostdinc++
+
+			-fno-exceptions
+			-fno-rtti
+
+			-Wl,--script=${LDSCRIPT}
+			-Wl,--entry=_start
+			-Wl,-r
+			-Wl,-Bstatic
+			-Wl,-Map=${PX4_CONFIG}.map
+			-Wl,--warn-common
+			-Wl,--gc-sections
+
+			-Wl,--start-group
+				px4_layer
+				px4_platform
+				px4_work_queue
+				perf
+				uORB
+				${nuttx_userlibs}
+				${module_libraries}
+			-Wl,--end-group
+
+			m
+			gcc
+		)
+
+		# The individual module deps are FUBAR, so this cannot be done
+		#target_link_libraries(${BIN} PRIVATE ${module})
+		target_link_libraries(${BIN} INTERFACE perf nuttx_c)
+		# Some global deps are also FUBAR, so this must be done
+		target_link_libraries(px4_platform board_bus_info)
+
+		# Install the executable to /bin
+		add_custom_target(${BIN}_install
+			COMMAND mkdir -p ${PX4_BINARY_DIR}/bin
+			COMMAND install -D ${PX4_BINARY_DIR}/${BIN} -t ${PX4_BINARY_DIR}/bin
+			COMMAND mv ${PX4_BINARY_DIR}/bin/${BIN} ${PX4_BINARY_DIR}/bin/${MAIN}
+			COMMAND rm -f ${PX4_BINARY_DIR}/${BIN}
+			DEPENDS ${BIN}
+		)
+
+		list(APPEND px4_bins ${BIN}_install)
+	endforeach()
+
 	# Create the /bin ROMFS
 	make_bin_romfs(
 		BINDIR ${PX4_BINARY_DIR}/bin
@@ -272,7 +338,7 @@ if (CONFIG_BUILD_KERNEL)
 		OUTPREFIX bin
 		LABEL Px4BinVol
 		STRIPPED "y"
-		DEPS nuttx_app_bins
+		DEPS nuttx_app_bins ${px4_bins}
 	)
 
 	add_custom_command(OUTPUT ${PX4_BINARY_OUTPUT}
