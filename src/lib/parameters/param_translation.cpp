@@ -256,9 +256,10 @@ bool param_modify_on_import(bson_node_t node)
 			strcpy(node->name, "VT_FW_DIFTHR_S_Y");
 			PX4_INFO("copying %s -> %s", "VT_FW_DIFTHR_SC", "VT_FW_DIFTHR_S_Y");
 			return true;
+		}
 	}
 
-	// 2022-11-11: translate VT_F_TRANS_THR/VT_PSHER_RMP_DT -> VT_PSHER_SLEW)
+	// 2022-11-11: translate VT_F_TRANS_THR/VT_PSHER_RMP_DT -> VT_PSHER_SLEW
 	{
 		if (strcmp("VT_PSHER_RMP_DT", node->name) == 0) {
 			strcpy(node->name, "VT_PSHER_SLEW");
