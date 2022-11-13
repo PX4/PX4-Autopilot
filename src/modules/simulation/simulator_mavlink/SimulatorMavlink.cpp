@@ -1451,10 +1451,6 @@ void SimulatorMavlink::check_failure_injections()
 			}
 		}
 
-		if (!supported) {
-			PX4_WARN("CMD_INJECT_FAILURE, failure sensor/type combination not supported");
-		}
-
 		if (handled) {
 			vehicle_command_ack_s ack{};
 			ack.command = vehicle_command.command;
