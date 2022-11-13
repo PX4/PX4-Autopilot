@@ -131,7 +131,7 @@ public:
 	{
 		if (_port_id > 0) {
 			reg_udral_service_actuator_common_sp_Vector31_0_1 msg_sp {0};
-			size_t payload_size = reg_udral_service_common_Readiness_0_1_SERIALIZATION_BUFFER_SIZE_BYTES_;
+			size_t payload_size = reg_udral_service_actuator_common_sp_Vector31_0_1_SERIALIZATION_BUFFER_SIZE_BYTES_;
 
 			for (uint8_t i = 0; i < MAX_ACTUATORS; i++) {
 				if (i < num_outputs) {
