@@ -104,7 +104,7 @@ protected:
 	/*
 	 * Update uORB topics.
 	 */
-	void _update_topics(accInput *input);
+	void get_input(accInput *input);
 
 	/*
 	 * Update parameters.
@@ -121,6 +121,9 @@ protected:
 	/* timeout after which the measurement is not valid*/
 	static constexpr uint32_t measurement_valid_TIMEOUT_US = 2000000;
 
+	/* timeout after which the measurement is not considered updated*/
+	static constexpr uint32_t measurement_updated_TIMEOUT_US = 100000;
+
 	uORB::Publication<landing_target_pose_s> _targetPosePub{ORB_ID(landing_target_pose)};
 	uORB::Publication<target_estimator_state_s> _targetEstimatorStatePub{ORB_ID(target_estimator_state)};
 
@@ -130,8 +133,6 @@ protected:
 	uORB::Publication<estimator_aid_source_3d_s> _target_estimator_aid_vision_pub{ORB_ID(target_estimator_aid_vision)};
 	uORB::Publication<estimator_aid_source_3d_s> _target_estimator_aid_irlock_pub{ORB_ID(target_estimator_aid_irlock)};
 	uORB::Publication<estimator_aid_source_3d_s> _target_estimator_aid_uwb_pub{ORB_ID(target_estimator_aid_uwb)};
-
-	estimator_aid_source_3d_s _target_innovations_array[5] {};
 
 	uORB::Publication<estimator_aid_source_1d_s> _target_estimator_aid_ev_yaw_pub{ORB_ID(target_estimator_aid_ev_yaw)};
 	estimator_aid_source_1d_s _target_estimator_aid_ev_yaw;
@@ -165,7 +166,17 @@ private:
 		float meas_h_theta = 0.f;
 	};
 
+	enum ObservationType {
+		target_gps_pos = 0,
+		uav_gps_vel = 1,
+		fiducial_marker = 2,
+		irlock = 3,
+		uwb = 4,
+	};
+
 	struct targetObsPos {
+
+		ObservationType type;
 		hrt_abstime timestamp;
 
 		//TODO: check that all vectors are initialized to zero
@@ -177,15 +188,6 @@ private:
 		matrix::Matrix<float, 3, 12> meas_h_xyz; // Observation matrix where the rows correspond to the x,y,z directions.
 	};
 
-	enum ObservationType {
-		target_gps_pos = 0,
-		uav_gps_vel = 1,
-		fiducial_marker = 2,
-		irlock = 3,
-		uwb = 4,
-		nb_observations = 5
-	};
-
 	enum Directions {
 		x = 0,
 		y = 1,
@@ -194,7 +196,6 @@ private:
 	};
 
 	/*Each component corresponds to a different measurements (VISION, IrLock, UWB, GPS, GPS velocity). For each measurement, we have observations in the x,y,z directions.*/
-	targetObsPos _target_pos_obs[nb_observations] {};
 	targetObsOrientation _target_orientation_obs{};
 
 	TargetMode _target_mode{TargetMode::NotInit};
@@ -215,9 +216,21 @@ private:
 	bool _estimate_orientation;
 
 	void selectTargetEstimator();
-	void initEstimator();
+	void initEstimator(matrix::Vector3f pos_init, matrix::Vector3f vel_rel_init, matrix::Vector3f acc_init,
+			   matrix::Vector3f bias_init);
+	bool update_step(matrix::Vector3f vehicle_acc_ned);
 	void predictionStep(matrix::Vector3f acc);
-	bool updateNED(matrix::Vector3f acc);
+
+	bool processObsIRlock(const irlock_report_s irlock_report, targetObsPos *obs);
+	bool processObsUWB(const uwb_distance_s uwb_distance, targetObsPos *obs);
+	bool processObsVision(const landing_target_pose_s fiducial_marker_pose, targetObsPos *obs);
+	bool processObsVisionOrientation(const landing_target_pose_s fiducial_marker_pose, targetObsOrientation *obs);
+	bool processObsTargetGNSS(const landing_target_pose_s target_GNSS_report, bool target_GNSS_report_valid,
+				  const sensor_gps_s vehicle_gps_position, targetObsPos *obs);
+	bool processObsUavGNSSVel(const landing_target_pose_s target_GNSS_report,  const sensor_gps_s vehicle_gps_position,
+				  targetObsPos *obs);
+
+	bool fuse_meas(const matrix::Vector3f vehicle_acc_ned, const targetObsPos target_pos_obs);
 	bool updateOrientation();
 	void publishTarget();
 	void publishInnovations();
@@ -239,6 +252,9 @@ private:
 		float y = 0.f;
 		float z = 0.f;
 	};
+
+	float _dist_bottom;
+	bool _dist_bottom_valid;
 
 	localPos _local_pos{};
 

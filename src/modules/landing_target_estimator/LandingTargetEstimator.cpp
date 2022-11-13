@@ -97,7 +97,7 @@ void LandingTargetEstimator::update()
 
 	accInput input;
 
-	_update_topics(&input);
+	get_input(&input);
 
 	// No attitude or acceleration: early return;
 	if (!input.acc_ned_valid) {
@@ -117,85 +117,25 @@ void LandingTargetEstimator::update()
 		}
 	}
 
-	/* init estimator */
-	if (!_estimator_initialized) {
-
-		// Wait for a sensor update to get the initial position of the target
-		if (_new_pos_sensor_report) {
-			initEstimator();
-			PX4_INFO("LTE Estimator properly initialized.");
-			_estimator_initialized = true;
-			_last_update = hrt_absolute_time();
-			_last_predict = _last_update;
-		}
-
-	} else {
-
-		// If estimator initialized, and we have at least one measurement: update step
-		if (_new_pos_sensor_report || _new_vel_sensor_report) {
-
-			// If at least one sensor observation was fused in all directions (x,y,z) mark state as updated
-			if (updateNED(input.vehicle_acc_ned)) {
-				_last_update = _last_predict;
-			}
-
-			// Update orientation (Eventually use orientation_updated)
-			if (_estimate_orientation) {
-				updateOrientation();
-			}
-		}
-
-		// mark sensor measurements as consumed
-		_new_pos_sensor_report = false;
-		_new_vel_sensor_report = false;
-
-
-		// Always publish the target (using the prediction step). The target is set as invalid if: time from the previous update > landing_target_valid_TIMEOUT_US);
-		publishTarget();
-		publishInnovations();
+	// This function updates the topics, updates the filter and pulishes innovations
+	if (update_step(input.vehicle_acc_ned)) {
+		_last_update = _last_predict;
 	}
+
+	// 		// Update orientation (Eventually use orientation_updated)
+	// 		if (_estimate_orientation) {
+	// 			updateOrientation();
+	// 		}
+
+	if (_estimator_initialized) {publishTarget();}
 }
 
-void LandingTargetEstimator::initEstimator()
+void LandingTargetEstimator::initEstimator(Vector3f pos_init, Vector3f vel_rel_init, Vector3f a_init,
+		Vector3f bias_init)
 {
-	// TODO: do we want to init the target/UAV GPS bias?
 
-	// This function is only called once, it's better to re-update the vehicle local position once than having it in the stack memory
-	vehicle_local_position_s	vehicle_local_position;
-	_vehicleLocalPositionSub.update(&vehicle_local_position);
-
-	// Define the initial relative position of target w.r.t. the drone in NED frame using the available measurement
-	Vector3f p_init;
-
-	if ((hrt_absolute_time() - _target_pos_obs[target_gps_pos].timestamp < measurement_valid_TIMEOUT_US)) {
-		p_init = _target_pos_obs[target_gps_pos].meas_xyz;
-
-	} else if (hrt_absolute_time() - _target_pos_obs[fiducial_marker].timestamp < measurement_valid_TIMEOUT_US) {
-		p_init = _target_pos_obs[fiducial_marker].meas_xyz;
-
-	} else if (hrt_absolute_time() - _target_pos_obs[irlock].timestamp < measurement_valid_TIMEOUT_US) {
-		p_init = _target_pos_obs[irlock].meas_xyz;
-
-	} else if (hrt_absolute_time() - _target_pos_obs[uwb].timestamp < measurement_valid_TIMEOUT_US) {
-		p_init = _target_pos_obs[uwb].meas_xyz;
-
-	} else {
-		p_init.zero();
-	}
-
-	// Define initial relative velocity of the target w.r.t. to the drone in NED frame
-	Vector3f v_rel_init;
-
-	if (hrt_absolute_time() - _target_pos_obs[uav_gps_vel].timestamp < measurement_valid_TIMEOUT_US) {
-		v_rel_init = _target_pos_obs[uav_gps_vel].meas_xyz;
-	}
-
-	// Define initial acceleration of the target in NED frame. Since we have no info on the target, assume no initial acceleration
-	Vector3f a_init{};
-	Vector3f bias_init{};
-
-	PX4_INFO("Pos init %.2f %.2f %.2f", (double)p_init(0), (double)p_init(1), (double)p_init(2));
-	PX4_INFO("Vel init %.2f %.2f %.2f", (double)v_rel_init(0), (double)v_rel_init(1), (double)v_rel_init(2));
+	PX4_INFO("Pos init %.2f %.2f %.2f", (double)pos_init(0), (double)pos_init(1), (double)pos_init(2));
+	PX4_INFO("Vel init %.2f %.2f %.2f", (double)vel_rel_init(0), (double)vel_rel_init(1), (double)vel_rel_init(2));
 	PX4_INFO("Acc init %.2f %.2f %.2f", (double)a_init(0), (double)a_init(1), (double)a_init(2));
 	PX4_INFO("Bias init %.2f %.2f %.2f", (double)bias_init(0), (double)bias_init(1), (double)bias_init(2));
 
@@ -211,8 +151,8 @@ void LandingTargetEstimator::initEstimator()
 
 	if (_target_model == TargetModel::FullPoseCoupled) {
 
-		_target_estimator_coupled->setPosition(p_init);
-		_target_estimator_coupled->setVelocity(v_rel_init);
+		_target_estimator_coupled->setPosition(pos_init);
+		_target_estimator_coupled->setVelocity(vel_rel_init);
 		_target_estimator_coupled->setBias(bias_init);
 		_target_estimator_coupled->setTargetAcc(a_init);
 
@@ -224,8 +164,8 @@ void LandingTargetEstimator::initEstimator()
 	} else {
 
 		for (int i = 0; i < _nb_position_kf; i++) {
-			_target_estimator[i]->setPosition(p_init(i));
-			_target_estimator[i]->setVelocity(v_rel_init(i));
+			_target_estimator[i]->setPosition(pos_init(i));
+			_target_estimator[i]->setVelocity(vel_rel_init(i));
 			_target_estimator[i]->setBias(bias_init(i));
 			_target_estimator[i]->setTargetAcc(a_init(i));
 
@@ -257,7 +197,7 @@ void LandingTargetEstimator::predictionStep(Vector3f vehicle_acc_ned)
 	float drone_acc_unc = _param_ltest_acc_d_unc.get();
 	SquareMatrix<float, 3> input_cov = diag(Vector3f(drone_acc_unc, drone_acc_unc, drone_acc_unc));
 
-	// Rotate input covariance from body to NED (note _q_att was updated by _update_topics())
+	// Rotate input covariance from body to NED (note _q_att was updated by get_input())
 	Dcmf R_att = Dcm<float>(_q_att);
 	input_cov = R_att * input_cov * R_att.transpose();
 
@@ -296,143 +236,773 @@ void LandingTargetEstimator::predictionStep(Vector3f vehicle_acc_ned)
 	}
 }
 
-bool LandingTargetEstimator::updateNED(Vector3f vehicle_acc_ned)
+
+
+bool LandingTargetEstimator::update_step(Vector3f vehicle_acc_ned)
 {
 
-	Vector<bool, 3> meas_xyz_fused{};
+	sensor_gps_s vehicle_gps_position;
+	landing_target_pose_s target_GNSS_report;
+	landing_target_pose_s fiducial_marker_pose;
+	irlock_report_s irlock_report;
+	uwb_distance_s	uwb_distance;
 
+	targetObsPos obs_target_gps_pos;
+	targetObsPos obs_uav_gps_vel;
+	targetObsPos obs_fiducial_marker;
+	targetObsPos obs_irlock;
+	targetObsPos obs_uwb;
+
+	bool pos_GNSS_valid = false;
+	bool target_GNSS_valid = false;
+	bool uav_gps_vel_valid = false;
+	bool fiducial_marker_valid = false;
+	bool irlock_valid = false;
+	bool uwb_valid = false;
+
+	// update all topics
+	if ((_ltest_aid_mask & SensorFusionMask::USE_IRLOCK_POS) && _dist_bottom_valid) {
+		irlock_valid = _irlockReportSub.update(&irlock_report);
+	}
+
+	if ((_ltest_aid_mask & SensorFusionMask::USE_UWB_POS) && _dist_bottom_valid) {
+		uwb_valid = _uwbDistanceSub.update(&uwb_distance);
+	}
+
+	if (_ltest_aid_mask & SensorFusionMask::USE_EXT_VIS_POS) {
+		fiducial_marker_valid = _fiducial_marker_report_sub.update(&fiducial_marker_pose);
+	}
+
+	// Observations requiering a drone GPS update
+	if ((_target_model == TargetModel::FullPoseDecoupled || _target_model == TargetModel::FullPoseCoupled)
+	    && ((_ltest_aid_mask & SensorFusionMask::USE_TARGET_GPS_POS) || (_ltest_aid_mask & SensorFusionMask::USE_MISSION_POS)
+		|| (_ltest_aid_mask & SensorFusionMask::USE_UAV_GPS_VEL))) {
+
+		_vehicle_gps_position_sub.update(&vehicle_gps_position);
+
+		if ((hrt_absolute_time() - vehicle_gps_position.timestamp < measurement_updated_TIMEOUT_US)) {
+
+			// Target GPS position
+			target_GNSS_valid = _target_GNSS_report_sub.update(&target_GNSS_report);
+
+			if ((((_ltest_aid_mask & SensorFusionMask::USE_TARGET_GPS_POS) && target_GNSS_valid)
+			     || ((_ltest_aid_mask & SensorFusionMask::USE_MISSION_POS)
+				 && _nave_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION && _landing_pos.valid))) {
+
+				pos_GNSS_valid	= true;
+			}
+
+			// UAV GPS velocity
+			if ((vehicle_gps_position.vel_ned_valid && (_ltest_aid_mask & SensorFusionMask::USE_UAV_GPS_VEL)) &&
+			    (_target_mode == TargetMode::Stationary || (_target_mode == TargetMode::Moving && target_GNSS_valid))) {
+
+				uav_gps_vel_valid = true;
+			}
+		}
+	}
+
+
+	// If one pos measurement was updated, return true
+	bool new_pos_sensor = pos_GNSS_valid || fiducial_marker_valid || irlock_valid || uwb_valid;
+	bool new_vel_sensor = uav_gps_vel_valid;
+
+	bool pos_fused = false;
+
+	// If we have a new sensor and the estimator is initialized: fuse available measurements and publish innov.
+	if ((new_pos_sensor || new_vel_sensor) && _estimator_initialized) {
+
+		/*TARGET GPS*/
+		if (pos_GNSS_valid) {
+
+			obs_target_gps_pos.type = target_gps_pos;
+
+			if (processObsTargetGNSS(target_GNSS_report, target_GNSS_valid, vehicle_gps_position, &obs_target_gps_pos)) {
+
+				if (fuse_meas(vehicle_acc_ned, obs_target_gps_pos)) {
+					pos_fused = true;
+				}
+			}
+		}
+
+		/*UAV GPS VELOCITY*/
+		if (uav_gps_vel_valid) {
+
+			obs_uav_gps_vel.type = uav_gps_vel;
+
+			if (processObsUavGNSSVel(target_GNSS_report, vehicle_gps_position, &obs_uav_gps_vel)) {
+
+				if (fuse_meas(vehicle_acc_ned, obs_uav_gps_vel)) {
+					pos_fused = true;
+				}
+			}
+		}
+
+		/*VISION*/
+		if (fiducial_marker_valid) {
+
+			obs_fiducial_marker.type = fiducial_marker;
+
+			if (processObsVision(fiducial_marker_pose, &obs_fiducial_marker)) {
+
+				if (fuse_meas(vehicle_acc_ned, obs_fiducial_marker)) {
+					pos_fused = true;
+				}
+			}
+		}
+
+		/*IRLOCK*/
+		if (irlock_valid) {
+
+			obs_irlock.type = irlock;
+
+			if (processObsIRlock(irlock_report, &obs_irlock)) {
+
+				if (fuse_meas(vehicle_acc_ned, obs_irlock)) {
+					pos_fused = true;
+				}
+			}
+		}
+
+		/*UWB*/
+		if (uwb_valid) {
+
+			obs_uwb.type = uwb;
+
+			if (processObsUWB(uwb_distance, &obs_uwb)) {
+
+				if (fuse_meas(vehicle_acc_ned, obs_uwb)) {
+					pos_fused = true;
+				}
+			}
+		}
+
+		// If at least one position measurement was fused, consider the filter updated
+		return pos_fused;
+
+	} else if (new_pos_sensor && !_estimator_initialized) {
+
+		// TODO: do we want to init the target/UAV GPS bias?
+
+		// Assume null relative acceleration
+		Vector3f pos_init;
+		Vector3f vel_rel_init;
+		Vector3f acc_init;
+		Vector3f bias_init;
+
+		// Define the initial relative position of target w.r.t. the drone in NED frame using the available measurement
+		if ((hrt_absolute_time() - obs_target_gps_pos.timestamp < measurement_valid_TIMEOUT_US)) {
+			pos_init = obs_target_gps_pos.meas_xyz;
+
+		} else if (hrt_absolute_time() - obs_fiducial_marker.timestamp < measurement_valid_TIMEOUT_US) {
+			pos_init = obs_fiducial_marker.meas_xyz;
+
+		} else if (hrt_absolute_time() - obs_irlock.timestamp < measurement_valid_TIMEOUT_US) {
+			pos_init = obs_irlock.meas_xyz;
+
+		} else if (hrt_absolute_time() - obs_uwb.timestamp < measurement_valid_TIMEOUT_US) {
+			pos_init = obs_uwb.meas_xyz;
+
+		} else {
+			pos_init.zero();
+		}
+
+		// Define initial relative velocity of the target w.r.t. to the drone in NED frame
+		if (hrt_absolute_time() - obs_uav_gps_vel.timestamp < measurement_valid_TIMEOUT_US) {
+			vel_rel_init = obs_uav_gps_vel.meas_xyz;
+
+		} else {
+			vel_rel_init.zero();
+		}
+
+		initEstimator(pos_init, vel_rel_init, acc_init, bias_init);
+
+		PX4_INFO("LTE Estimator properly initialized.");
+		_estimator_initialized = true;
+		_last_update = hrt_absolute_time();
+		_last_predict = _last_update;
+	}
+
+	return false;
+}
+
+
+bool LandingTargetEstimator::processObsVisionOrientation(const landing_target_pose_s fiducial_marker_pose,
+		targetObsOrientation *obs)
+{
+
+	// float vision_r_theta_unc = 0.f;
+	// hrt_abstime vision_timestamp = fiducial_marker_pose.timestamp;
+
+	// /* ORIENTATION */
+	// if (!vehicle_local_position_valid) {
+	// 	// don't have the data needed for an update
+	// 	PX4_INFO("Attitude: %d, Local pos: %d", vehicle_attitude_valid, vehicle_local_position_valid);
+
+	// } else if (!PX4_ISFINITE(vision_r_theta)) {
+	// 	PX4_WARN("VISION orientation is corrupt!");
+
+	// } else {
+
+	// 	// TODO: obtain relative orientation using the orientation of the drone.
+	// 	// (vision gives orientation between body and target frame. We can thus use the orientation between the body frame and NED to obtain the orientation between NED and target)
+
+	// 	_target_orientation_obs.timestamp = vision_timestamp;
+	// 	_target_orientation_obs.updated_theta = true;
+	// 	_target_orientation_obs.meas_unc_theta = vision_r_theta_unc;
+	// 	_target_orientation_obs.meas_theta = vision_r_theta;
+	// 	_target_orientation_obs.meas_h_theta = 1;
+
+	// 	_new_pos_sensor_report = true;
+	// }
+
+	return false;
+
+}
+
+bool LandingTargetEstimator::processObsVision(const landing_target_pose_s fiducial_marker_pose, targetObsPos *obs)
+{
+
+	// Assume vision measurement is in NED frame.
+	// Note: (The vision estimate is rotated into the NED navigation frame offboard to avoid sync issues (target detection needs time))
+
+	// Fiducial marker measurements :
+	float vision_r_x = fiducial_marker_pose.x_rel;
+	float vision_r_y = fiducial_marker_pose.y_rel;
+	float vision_r_z = fiducial_marker_pose.z_rel;
+
+	// TODO: complete mavlink message to include covariance matrix rotated in NED.
+	/*
+		SquareMatrix<float, 3> R_rotated = diag(Vector3f(fiducial_marker_pose.cov_x_rel, fiducial_marker_pose.cov_y_rel, fiducial_marker_pose.cov_z_rel));
+		R_rotated(0,1) = fiducial_marker_pose.cov_x_y_rel;
+		R_rotated(0,2) = fiducial_marker_pose.cov_x_z_rel;
+		R_rotated(1,2) = fiducial_marker_pose.cov_y_z_rel;
+		R_rotated(1,0) = R_rotated(0,1);
+		R_rotated(2,0) = R_rotated(0,2);
+		R_rotated(2,1) = R_rotated(1,2);
+	*/
+	float meas_uncertainty = _param_ltest_meas_unc.get();
+	SquareMatrix<float, 3> R_rotated = diag(Vector3f(meas_uncertainty, meas_uncertainty, meas_uncertainty));
+
+
+	/* RELATIVE POSITION*/
+	if (!PX4_ISFINITE(vision_r_x) || !PX4_ISFINITE(vision_r_y) || !PX4_ISFINITE(vision_r_y)) {
+		PX4_WARN("VISION position is corrupt!");
+
+	} else {
+
+		obs->timestamp = fiducial_marker_pose.timestamp;
+
+		obs->any_xyz_updated = true;
+		obs->updated_xyz.setAll(true);
+
+		if (_target_model == TargetModel::FullPoseCoupled) {
+			// Process measurements for sequential update by diagonalizing the measurement covariance matrix
+
+			// Sliced state: [r_x,r_y,r_z]; (real state: [pose,vel,bias,acc] or [pose,vel,bias] but assume vision measurements independent of other measurements)
+			Matrix<float, 3, 3> H_position =  zeros<float, 3, 3>();
+			H_position(0, 0) = 1;
+			H_position(1, 1) = 1;
+			H_position(2, 2) = 1;
+
+			// Cholesky decomposition using PX4 matrix:
+			// TODO: correct
+			// Matrix<float, 3, 3> T =  matrix::cholesky(R_rotated);
+
+			Matrix3f T;
+			T.identity();
+
+
+			// Diagonalize R_rotated:
+			Matrix<float, 3, 3> R_diag =  T * R_rotated;
+
+			obs->meas_unc_xyz(0) = R_diag(0, 0);
+			obs->meas_unc_xyz(1) = R_diag(1, 1);
+			obs->meas_unc_xyz(2) = R_diag(2, 2);
+			//TODO: replace by obs->meas_unc_xyz = R_diag.diag()
+
+			//Transform measurements Z:
+			Vector3f Z(vision_r_x, vision_r_y, vision_r_z);
+			Vector3f Z_transformed = T * Z;
+
+			obs->meas_xyz = Z_transformed;
+
+			//Transform H
+			Matrix<float, 3, 3> H_transformed = T * H_position;
+
+			//Bring H_position back to the full H:
+			//TODO: use slicing functions to insert 3x3 matrix H_transformed into 3x12 matrix meas_h_xyz
+			obs->meas_h_xyz(0, 0) = H_transformed(0, 0);
+			obs->meas_h_xyz(0, 1) = H_transformed(0, 1);
+			obs->meas_h_xyz(0, 2) = H_transformed(0, 2);
+
+			obs->meas_h_xyz(1, 0) = H_transformed(1, 0);
+			obs->meas_h_xyz(1, 1) = H_transformed(1, 1);
+			obs->meas_h_xyz(1, 2) = H_transformed(1, 2);
+
+			obs->meas_h_xyz(2, 0) = H_transformed(2, 0);
+			obs->meas_h_xyz(2, 1) = H_transformed(2, 1);
+			obs->meas_h_xyz(2, 2) = H_transformed(2, 2);
+
+		} else {
+			// Assume noise correlation negligible:
+
+			// State: [r, r_dot, ...]
+			obs->meas_h_xyz(0, 0) = 1;
+			obs->meas_h_xyz(1, 0) = 1;
+			obs->meas_h_xyz(2, 0) = 1;
+
+			obs->meas_xyz(0) = vision_r_x;
+			obs->meas_xyz(1) = vision_r_y;
+			obs->meas_xyz(2) = vision_r_z;
+
+			// Assume off diag elements ~ 0
+			obs->meas_unc_xyz(0) = R_rotated(0, 0);
+			obs->meas_unc_xyz(1) = R_rotated(1, 1);
+			obs->meas_unc_xyz(2) = R_rotated(2, 2);
+		}
+
+		return true;
+	}
+
+	return false;
+}
+
+
+bool LandingTargetEstimator::processObsUavGNSSVel(const landing_target_pose_s target_GNSS_report,
+		const sensor_gps_s vehicle_gps_position, targetObsPos *obs)
+{
+
+	// TODO: convert .s_variance_m_s from accuracy to variance
+
+	if (_target_mode == TargetMode::Stationary) {
+
+		obs->meas_xyz(0) = -vehicle_gps_position.vel_n_m_s;
+		obs->meas_xyz(1) = -vehicle_gps_position.vel_e_m_s;
+		obs->meas_xyz(2) = -vehicle_gps_position.vel_d_m_s;
+
+		obs->meas_unc_xyz(0) = vehicle_gps_position.s_variance_m_s;
+		obs->meas_unc_xyz(1) = vehicle_gps_position.s_variance_m_s;
+		obs->meas_unc_xyz(2) = vehicle_gps_position.s_variance_m_s;
+
+	} else {
+
+		float gps_target_unc = _param_ltest_gps_t_unc.get();
+
+		// If the target is moving, the relative velocity is expressed as the drone verlocity - the target velocity
+		obs->meas_xyz(0) = vehicle_gps_position.vel_n_m_s - target_GNSS_report.vx_rel;
+		obs->meas_xyz(1) = vehicle_gps_position.vel_e_m_s - target_GNSS_report.vy_rel;
+		obs->meas_xyz(2) = vehicle_gps_position.vel_d_m_s - target_GNSS_report.vz_rel;
+
+		float unc = vehicle_gps_position.s_variance_m_s + gps_target_unc;
+		obs->meas_unc_xyz(0) = unc;
+		obs->meas_unc_xyz(1) = unc;
+		obs->meas_unc_xyz(2) = unc;
+
+		// TODO: uncomment once the mavlink message is updated with covariances
+		// obs->meas_unc_xyz(0) = vehicle_gps_position.s_variance_m_s + target_GNSS_report.cov_vx_rel;
+		// obs->meas_unc_xyz(1) = vehicle_gps_position.s_variance_m_s + target_GNSS_report.cov_vy_rel;
+		// obs->meas_unc_xyz(2) = vehicle_gps_position.s_variance_m_s + target_GNSS_report.cov_vx_rel;
+	}
+
+	if (_target_model == TargetModel::FullPoseCoupled) {
+		// State: [rx, ry, rz, rx_dot, ry_dot, rz_dot, ... ]
+		obs->meas_h_xyz(0, 3) = 1; // x direction
+		obs->meas_h_xyz(1, 4) = 1; // y direction
+		obs->meas_h_xyz(2, 5) = 1; // z direction
+
+	} else {
+		// State: [r, r_dot, ...] --> x, y, z directions are the same (decoupled)
+		obs->meas_h_xyz(0, 1) = 1;
+		obs->meas_h_xyz(1, 1) = 1;
+		obs->meas_h_xyz(2, 1) = 1;
+	}
+
+	obs->timestamp = vehicle_gps_position.timestamp_sample;
+
+	obs->any_xyz_updated = true;
+	obs->updated_xyz.setAll(true);
+
+	return true;
+
+}
+
+bool LandingTargetEstimator::processObsTargetGNSS(const landing_target_pose_s target_GNSS_report,
+		bool target_GNSS_report_valid,  const sensor_gps_s vehicle_gps_position, targetObsPos *obs)
+{
+
+	bool use_gps_measurements = false;
+
+	int target_gps_lat;		// 1e-7 deg
+	int target_gps_lon;		// 1e-7 deg
+	float target_gps_alt;	// AMSL [mm]
+
+	// TODO: convert .epv and .eph from accuracy to variance
+	float gps_target_unc = _param_ltest_gps_t_unc.get();
+	float gps_target_eph;
+	float gps_target_epv;
+
+	hrt_abstime gps_timestamp = vehicle_gps_position.timestamp_sample;
+
+	// Measurement comes from an actual GPS on the target
+	if ((_ltest_aid_mask & SensorFusionMask::USE_TARGET_GPS_POS) && target_GNSS_report_valid) {
+
+		use_gps_measurements = true;
+		gps_timestamp = target_GNSS_report.timestamp;
+
+		// If mission mode && landing position valid && fusion mission position
+		if ((_ltest_aid_mask & SensorFusionMask::USE_MISSION_POS)
+		    && _nave_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION && _landing_pos.valid) {
+
+			// Weighted average between the landing point and the target GPS position is performed
+			// TODO once target_GNSS_report.cov_x_rel is available: weighted average
+			target_gps_lat = (int)((target_GNSS_report.lat + _landing_pos.lat) / 2);
+			target_gps_lon = (int)((target_GNSS_report.lon + _landing_pos.lon) / 2);
+			target_gps_alt = (target_GNSS_report.alt + _landing_pos.alt) / 2.f;
+
+			gps_target_eph = gps_target_unc;
+			gps_target_epv = gps_target_unc;
+
+		} else {
+
+			target_gps_lat = target_GNSS_report.lat;
+			target_gps_lon = target_GNSS_report.lon;
+			target_gps_alt = target_GNSS_report.alt;
+
+			// TODO: complete mavlink message to include uncertainties.
+			// gps_target_eph = target_GNSS_report.cov_x_rel;
+			// gps_target_epv = target_GNSS_report.cov_z_rel;
+
+			gps_target_eph = gps_target_unc;
+			gps_target_epv = gps_target_unc;
+		}
+
+	} else if ((_ltest_aid_mask & SensorFusionMask::USE_MISSION_POS)
+		   && _nave_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION && _landing_pos.valid) {
+
+		use_gps_measurements = true;
+
+		// Measurement of the landing target position comes from the mission item only
+		target_gps_lat = _landing_pos.lat;
+		target_gps_lon = _landing_pos.lon;
+		target_gps_alt = _landing_pos.alt;
+
+		gps_target_eph = gps_target_unc;
+		gps_target_epv = gps_target_unc;
+	}
+
+	if (use_gps_measurements) {
+
+		// Obtain GPS relative measurements in NED as target_global - uav_gps_global followed by global2local transformation
+		Vector3f gps_relative_pos;
+		get_vector_to_next_waypoint((vehicle_gps_position.lat / 1.0e7), (vehicle_gps_position.lon / 1.0e7),
+					    (target_gps_lat / 1.0e7), (target_gps_lon / 1.0e7),
+					    &gps_relative_pos(0), &gps_relative_pos(1));
+
+		// Down direction (if the drone is above the target, the relative position is positive)
+		gps_relative_pos(2) = (vehicle_gps_position.alt - target_gps_alt) / 1000.f; // transform mm to m
+
+		// Var(aX - bY) = a^2 Var(X) + b^2Var(Y) - 2ab Cov(X,Y)
+		float gps_unc_horizontal = vehicle_gps_position.eph + gps_target_eph;
+		float gps_unc_vertical = vehicle_gps_position.epv + gps_target_epv;
+
+		// GPS already in NED, no rotation required. STATE: [pose,vel,bias,acc]
+		if (_target_model == TargetModel::FullPoseCoupled) {
+			// State: [rx, ry, rz, r_x_dot, r_y_dot, r_z_dot, bx, by, bz, ... ]
+
+			// x direction H = [1, 0, 0, 0, 0, 0, 1, 0, 0, ...]
+			obs->meas_h_xyz(0, 0) = 1;
+			obs->meas_h_xyz(0, 6) = 1;
+
+			// y direction H = [0, 1, 0, 0, 0, 0, 0, 1, 0, ...]
+			obs->meas_h_xyz(1, 1) = 1;
+			obs->meas_h_xyz(1, 7) = 1;
+
+			// z direction H = [0, 0, 1, 0, 0, 0, 0, 0, 1, ...]
+			obs->meas_h_xyz(2, 2) = 1;
+			obs->meas_h_xyz(2, 8) = 1;
+
+		} else {
+			// State: [r, r_dot, b, ...] --> same for x,y,z directions (decoupled)
+			obs->meas_h_xyz(0, 0) = 1;
+			obs->meas_h_xyz(0, 2) = 1;
+
+			obs->meas_h_xyz(1, 0) = 1;
+			obs->meas_h_xyz(1, 2) = 1;
+
+			obs->meas_h_xyz(2, 0) = 1;
+			obs->meas_h_xyz(2, 2) = 1;
+		}
+
+		obs->timestamp = gps_timestamp;
+
+		obs->meas_xyz = gps_relative_pos;
+
+		obs->meas_unc_xyz(0) = gps_unc_horizontal;
+		obs->meas_unc_xyz(1) = gps_unc_horizontal;
+		obs->meas_unc_xyz(2) = gps_unc_vertical;
+
+		obs->any_xyz_updated = true;
+		obs->updated_xyz.setAll(true);
+
+		return true;
+	}
+
+	return false;
+
+}
+
+bool LandingTargetEstimator::processObsUWB(const uwb_distance_s uwb_distance, targetObsPos *obs)
+{
+
+	if (!PX4_ISFINITE((float)uwb_distance.position[0]) || !PX4_ISFINITE((float)uwb_distance.position[1]) ||
+	    !PX4_ISFINITE((float)uwb_distance.position[2])) {
+		PX4_WARN("UWB position is corrupt!");
+
+	} else {
+
+		obs->timestamp = uwb_distance.timestamp;
+
+		if (_target_model == TargetModel::FullPoseCoupled) {
+			// State: [rx, ry, rz, ... ]
+			obs->meas_h_xyz(0, 0) = 1; // x direction
+			obs->meas_h_xyz(1, 1) = 1; // y direction
+			obs->meas_h_xyz(2, 2) = 1; // z direction
+
+		} else {
+			// State: [r, r_dot, ...] --> x, y, z directions are the same (decoupled)
+			obs->meas_h_xyz(0, 0) = 1;
+			obs->meas_h_xyz(1, 0) = 1;
+			obs->meas_h_xyz(2, 0) = 1;
+		}
+
+		// The coordinate system is NED (north-east-down) with the position of the landing point relative to the vehicle.
+		// the uwb_distance msg contains the Position in NED, Vehicle relative to LP. To change POV we negate every Axis:
+		obs->meas_xyz(0) = -uwb_distance.position[0];
+		obs->meas_xyz(1) = -uwb_distance.position[1];
+		obs->meas_xyz(2) = -uwb_distance.position[2];
+
+		obs->any_xyz_updated = true;
+		obs->updated_xyz.setAll(true);
+
+		float dist_z = _dist_bottom - _param_ltest_sens_pos_z.get();
+
+		float measurement_uncertainty = _param_ltest_meas_unc.get() * dist_z * dist_z;
+
+		obs->meas_unc_xyz(0) = measurement_uncertainty;
+		obs->meas_unc_xyz(1) = measurement_uncertainty;
+
+		return true;
+	}
+
+	return false;
+}
+
+
+bool LandingTargetEstimator::processObsIRlock(const irlock_report_s irlock_report, targetObsPos *obs)
+{
+	if (!PX4_ISFINITE(irlock_report.pos_y) || !PX4_ISFINITE(irlock_report.pos_x)) {
+		PX4_WARN("IRLOCK position is corrupt!");
+
+	} else {
+
+		Vector3f sensor_ray; // ray pointing towards target in body frame
+		sensor_ray(0) = irlock_report.pos_x * _param_ltest_scale_x.get(); // forward
+		sensor_ray(1) = irlock_report.pos_y * _param_ltest_scale_y.get(); // right
+		sensor_ray(2) = 1.0f;
+
+		// rotate unit ray according to sensor orientation
+		Dcmf S_att; //Orientation of the sensor relative to body frame
+		S_att = get_rot_matrix(static_cast<enum Rotation>(_param_ltest_sens_rot.get()));
+		sensor_ray = S_att * sensor_ray;
+
+		// rotate the unit ray into the navigation frame
+		Dcmf R_att = Dcm<float>(_q_att);
+		sensor_ray = R_att * sensor_ray;
+
+		//TODO: rotate measurement uncertainty S_att & R_att
+
+		// z component of measurement safe, use this measurement
+		if (fabsf(sensor_ray(2)) > 1e-6f) {
+
+			float dist_z = _dist_bottom - _param_ltest_sens_pos_z.get();
+
+			// scale the ray s.t. the z component has length of _uncertainty_scale
+			float rel_pos_x = sensor_ray(0) / sensor_ray(2) * dist_z;
+			float rel_pos_y = sensor_ray(1) / sensor_ray(2) * dist_z;
+			float rel_pos_z = dist_z;
+
+			// Adjust relative position according to sensor offset
+			rel_pos_x += _param_ltest_sens_pos_x.get();
+			rel_pos_y += _param_ltest_sens_pos_y.get();
+
+			//TODO: For coupled dynamics: Cholesky decomposition to uncorrelate noise (find matrix T that diagonalizes R) z' = T*z; H' = T*H
+
+			// Fill the observations for the irlock sensor
+			obs->timestamp = irlock_report.timestamp;
+
+			if (_target_model == TargetModel::FullPoseCoupled) {
+				// State: [rx, ry, rz, ... ]
+				obs->meas_h_xyz(0, 0) = 1; // x direction
+				obs->meas_h_xyz(1, 1) = 1; // y direction
+				obs->meas_h_xyz(2, 2) = 1; // z direction
+
+			} else {
+				// State: [r, r_dot, ...] --> x, y, z directions are the same (decoupled)
+				obs->meas_h_xyz(0, 0) = 1;
+				obs->meas_h_xyz(1, 0) = 1;
+				obs->meas_h_xyz(2, 0) = 1;
+			}
+
+			obs->meas_xyz(0) = rel_pos_x;
+			obs->meas_xyz(1) = rel_pos_y;
+			obs->meas_xyz(2) = rel_pos_z;
+
+			obs->any_xyz_updated = true;
+			obs->updated_xyz.setAll(true);
+
+			float measurement_uncertainty = _param_ltest_meas_unc.get() * dist_z * dist_z;
+
+			obs->meas_unc_xyz(0) = measurement_uncertainty;
+			obs->meas_unc_xyz(1) = measurement_uncertainty;
+			obs->meas_unc_xyz(2) = measurement_uncertainty;
+
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool LandingTargetEstimator::fuse_meas(const Vector3f vehicle_acc_ned, const targetObsPos target_pos_obs)
+{
+	estimator_aid_source_3d_s target_innov;
+	Vector<bool, 3> meas_xyz_fused{};
 	bool all_directions_fused = false;
-	float dt_sync;
 	Vector<float, 12> meas_h_row;
 
 	// Number of direction:  x,y,z for all filters excep for the horizontal filter: x,y
 	int nb_update_directions = (_target_model == TargetModel::Horizontal) ? 2 : 3;
 
-	// Loop over senors (gps_pos, gps_vel, vision, range_z, irlock, uwb)
-	for (int i = 0; i < nb_observations; i++) {
+	// Compute the measurement's time delay (difference between state and measurement time on validity)
+	float dt_sync = (_last_predict - target_pos_obs.timestamp);
 
-		// Check if at least one measurement from this sensor was updated
-		if (!_target_pos_obs[i].any_xyz_updated) {
+	// TODO: when using the mission target, the GPS field has no timestamp (maybe only in simulation) once solved: remove && 0
+	if (dt_sync > measurement_valid_TIMEOUT_US && 0) {
 
-			// No measurement update, set to false
-			for (int k = 0; k < 3; k++) {
-				_target_innovations_array[i].fusion_enabled[k] = false;
-				_target_innovations_array[i].fused[k] = false;
-			}
+		PX4_INFO("Measurement rejected because too old. Time sync: %.2f [seconds] > timeout: %.2f [seconds]",
+			 (double)(dt_sync / SEC2USEC), (double)(measurement_valid_TIMEOUT_US / SEC2USEC));
 
-		} else {
+		// No measurement update, set to false
+		for (int k = 0; k < 3; k++) {
+			target_innov.fusion_enabled[k] = false;
+			target_innov.fused[k] = false;
+		}
 
-			// Compute the measurement's time delay (difference between state and measurement time on validity)
-			dt_sync = (_last_predict - _target_pos_obs[i].timestamp);
+	} else {
 
-			// TODO: when using the mission target, the GPS field has no timestamp (maybe only in simulation) once solved: remove && 0
-			if (dt_sync > measurement_valid_TIMEOUT_US && 0) {
+		// Convert time sync to seconds
+		dt_sync = dt_sync / SEC2USEC;
+		// TODO: Eventually remove, for now to debug, assume prediction time = measurement time
+		dt_sync = 0.f;
+		// Fill the timestamp field of innovation
+		target_innov.timestamp_sample = target_pos_obs.timestamp;
+		target_innov.timestamp = hrt_absolute_time(); // TODO: check if correct hrt_absolute_time() or _last_predict
 
-				PX4_INFO("Measurement rejected because too old. Time sync: %.2f [seconds] > timeout: %.2f [seconds]",
-					 (double)(dt_sync / SEC2USEC), (double)(measurement_valid_TIMEOUT_US / SEC2USEC));
+		// Loop over x,y,z directions. Note: even with coupled dynamics we have a sequential update of x,y,z directions separately
+		for (int j = 0; j < nb_update_directions; j++) {
 
-				// No measurement update, set to false
-				for (int k = 0; k < 3; k++) {
-					_target_innovations_array[i].fusion_enabled[k] = false;
-					_target_innovations_array[i].fused[k] = false;
-				}
+			//If the measurement of this filter (x,y or z) has not been updated:
+			if (!target_pos_obs.updated_xyz(j)) {
+
+				// No measurement
+				PX4_INFO("Obs i = %d : at least one non-valid observation. x: %d, y: %d, z: %d", target_pos_obs.type,
+					 target_pos_obs.updated_xyz(0),
+					 target_pos_obs.updated_xyz(1), target_pos_obs.updated_xyz(2));
+
+				// Set innovations to zero
+				target_innov.fusion_enabled[j] = false;
+				target_innov.fused[j] = false;
 
 			} else {
 
-				// Convert time sync to seconds
-				dt_sync = dt_sync / SEC2USEC;
-				// TODO: Eventually remove, for now to debug, assume prediction time = measurement time
-				dt_sync = 0.f;
-				// Fill the timestamp field of innovation
-				_target_innovations_array[i].timestamp_sample = _target_pos_obs[i].timestamp;
-				_target_innovations_array[i].timestamp =
-					hrt_absolute_time(); // TODO: check if correct hrt_absolute_time() or _last_predict
+				//Get the corresponding row of the H matrix.
+				meas_h_row = target_pos_obs.meas_h_xyz.row(j);
 
-				// Mark measurements as consumed for the next step.
-				_target_pos_obs[i].any_xyz_updated = false;
+				// Sync measurement using the prediction model
+				if (_target_model == TargetModel::FullPoseCoupled) {
 
-				// Loop over x,y,z directions. Note: even with coupled dynamics we have a sequential update of x,y,z directions separately
-				for (int j = 0; j < nb_update_directions; j++) {
-
-					//If the measurement of this filter (x,y or z) has not been updated:
-					if (!_target_pos_obs[i].updated_xyz(j)) {
-
-						// No measurement Note: .fusion_enabled[j] and .fused[j] = false are already false by default. (set in publishInnovations())
-						PX4_INFO("Obs i = %d : at least one non-valid observation. x: %d, y: %d, z: %d", i, _target_pos_obs[i].updated_xyz(0),
-							 _target_pos_obs[i].updated_xyz(1), _target_pos_obs[i].updated_xyz(2));
-
-						// Set innovations to zero
-						_target_innovations_array[i].fusion_enabled[j] = false;
-						_target_innovations_array[i].fused[j] = false;
-
-					} else {
-
-						//Get the corresponding row of the H matrix.
-						meas_h_row = _target_pos_obs[i].meas_h_xyz.row(j);
-
-						// Sync measurement using the prediction model
-						if (_target_model == TargetModel::FullPoseCoupled) {
-
-							// Move state back to the measurement time of validity. The state synchronized will be used to compute the innovation.
-							_target_estimator_coupled->syncState(dt_sync, vehicle_acc_ned);
-							_target_estimator_coupled->setH(meas_h_row);
-							// Compute innovations and fill thet target innovation message
-							_target_innovations_array[i].innovation_variance[j] = _target_estimator_coupled->computeInnovCov(
-										_target_pos_obs[i].meas_unc_xyz(j));
-							_target_innovations_array[i].innovation[j] = _target_estimator_coupled->computeInnov(_target_pos_obs[i].meas_xyz(j));
-							// Update step
-							meas_xyz_fused(j) = _target_estimator_coupled->update();
-
-						} else {
-							// Move state back to the measurement time of validity. The state synchronized will be used to compute the innovation.
-							_target_estimator[j]->syncState(dt_sync, vehicle_acc_ned(j));
-							_target_estimator[j]->setH(meas_h_row);
-							// Compute innovations and fill thet target innovation message
-							_target_innovations_array[i].innovation_variance[j] = _target_estimator[j]->computeInnovCov(
-										_target_pos_obs[i].meas_unc_xyz(j));
-							_target_innovations_array[i].innovation[j] = _target_estimator[j]->computeInnov(_target_pos_obs[i].meas_xyz(j));
-							// Update step
-							meas_xyz_fused(j) = _target_estimator[j]->update();
-						}
-
-						// Fill the target innovation message
-						_target_innovations_array[i].fusion_enabled[j] = true;
-						_target_innovations_array[i].innovation_rejected[j] = !meas_xyz_fused(j);
-						_target_innovations_array[i].fused[j] = meas_xyz_fused(j);
-
-						_target_innovations_array[i].observation[j] = _target_pos_obs[i].meas_xyz(j);
-						_target_innovations_array[i].observation_variance[j] = _target_pos_obs[i].meas_unc_xyz(j);
-
-						/*	TODO: fill those fields of estimator_aid_source_3d_s
-							uint8 estimator_instance
-							uint32 device_id
-							uint64[3] time_last_fuse
-							float32[3] test_ratio
-						*/
-
-						// Mark measurement as consumed for next iteration
-						_target_pos_obs[i].updated_xyz(j) = false;
-					}
-				}
-
-				// If we have updated all three directions (x,y,z) for one relative position measurement, consider the state updated.
-				if (meas_xyz_fused(0) && meas_xyz_fused(1) && (meas_xyz_fused(2) || _target_model == TargetModel::Horizontal)) {
-
-					if (i != uav_gps_vel) {
-						all_directions_fused = true; // Don't consider the state updated if we only have a velocity measurement
-					}
-
+					// Move state back to the measurement time of validity. The state synchronized will be used to compute the innovation.
+					_target_estimator_coupled->syncState(dt_sync, vehicle_acc_ned);
+					_target_estimator_coupled->setH(meas_h_row);
+					// Compute innovations and fill thet target innovation message
+					target_innov.innovation_variance[j] = _target_estimator_coupled->computeInnovCov(
+							target_pos_obs.meas_unc_xyz(j));
+					target_innov.innovation[j] = _target_estimator_coupled->computeInnov(target_pos_obs.meas_xyz(j));
+					// Update step
+					meas_xyz_fused(j) = _target_estimator_coupled->update();
 
 				} else {
-					PX4_INFO("Obs i = %d : at least one direction not fused: . x: %d, y: %d, z: %d", i, meas_xyz_fused(0),
-						 meas_xyz_fused(1),
-						 meas_xyz_fused(2));
+					// Move state back to the measurement time of validity. The state synchronized will be used to compute the innovation.
+					_target_estimator[j]->syncState(dt_sync, vehicle_acc_ned(j));
+					_target_estimator[j]->setH(meas_h_row);
+					// Compute innovations and fill thet target innovation message
+					target_innov.innovation_variance[j] = _target_estimator[j]->computeInnovCov(
+							target_pos_obs.meas_unc_xyz(j));
+					target_innov.innovation[j] = _target_estimator[j]->computeInnov(target_pos_obs.meas_xyz(j));
+					// Update step
+					meas_xyz_fused(j) = _target_estimator[j]->update();
 				}
 
-				// Reset meas_xyz_fused to false
-				meas_xyz_fused.setAll(false);
+				// Fill the target innovation message
+				target_innov.fusion_enabled[j] = true;
+				target_innov.innovation_rejected[j] = !meas_xyz_fused(j);
+				target_innov.fused[j] = meas_xyz_fused(j);
+
+				target_innov.observation[j] = target_pos_obs.meas_xyz(j);
+				target_innov.observation_variance[j] = target_pos_obs.meas_unc_xyz(j);
+
+				/*	TODO: fill those fields of estimator_aid_source_3d_s
+					uint8 estimator_instance
+					uint32 device_id
+					uint64[3] time_last_fuse
+					float32[3] test_ratio
+				*/
 			}
 		}
+
+		// If we have updated all three directions (x,y,z) for one relative position measurement, consider the state updated.
+		if (meas_xyz_fused(0) && meas_xyz_fused(1) && (meas_xyz_fused(2) || _target_model == TargetModel::Horizontal)) {
+
+			all_directions_fused = true;
+
+		} else {
+			PX4_INFO("Obs i = %d : at least one direction not fused: . x: %d, y: %d, z: %d", target_pos_obs.type, meas_xyz_fused(0),
+				 meas_xyz_fused(1),
+				 meas_xyz_fused(2));
+		}
+	}
+
+	// Publish innovations
+	switch (target_pos_obs.type) {
+	case target_gps_pos:
+		_target_estimator_aid_gps_pos_pub.publish(target_innov);
+		break;
+
+	case uav_gps_vel:
+		_target_estimator_aid_gps_vel_pub.publish(target_innov);
+		break;
+
+	case fiducial_marker:
+		_target_estimator_aid_vision_pub.publish(target_innov);
+		break;
+
+	case irlock:
+		_target_estimator_aid_irlock_pub.publish(target_innov);
+		break;
+
+	case uwb:
+		_target_estimator_aid_uwb_pub.publish(target_innov);
+		break;
 	}
 
 	return all_directions_fused;
@@ -471,21 +1041,11 @@ bool LandingTargetEstimator::updateOrientation()
 		_target_estimator_aid_ev_yaw.fused = false;
 	}
 
+	// 	_target_estimator_aid_ev_yaw_pub.publish(_target_estimator_aid_ev_yaw);
+
 	return meas_fused;
 }
 
-void LandingTargetEstimator::publishInnovations()
-{
-	// One innov message for each sensor.
-	_target_estimator_aid_gps_pos_pub.publish(_target_innovations_array[target_gps_pos]);
-	_target_estimator_aid_gps_vel_pub.publish(_target_innovations_array[uav_gps_vel]);
-	_target_estimator_aid_vision_pub.publish(_target_innovations_array[fiducial_marker]);
-	_target_estimator_aid_irlock_pub.publish(_target_innovations_array[irlock]);
-	_target_estimator_aid_uwb_pub.publish(_target_innovations_array[uwb]);
-
-	// Orientation innovation
-	_target_estimator_aid_ev_yaw_pub.publish(_target_estimator_aid_ev_yaw);
-}
 
 void LandingTargetEstimator::publishTarget()
 {
@@ -561,15 +1121,11 @@ void LandingTargetEstimator::publishTarget()
 
 	} else {
 		// This should eventually be removed
+
 		float rel_z = 0.f;
 
-		if (_target_model == TargetModel::Horizontal) {
-			if (_target_pos_obs[irlock].updated_xyz(2)) {
-				rel_z = _target_pos_obs[irlock].meas_xyz(2);
-
-			} else if (_target_pos_obs[uwb].updated_xyz(2)) {
-				rel_z = _target_pos_obs[uwb].meas_xyz(2);
-			}
+		if (_dist_bottom_valid) {
+			rel_z = _dist_bottom - _param_ltest_sens_pos_z.get();
 		}
 
 		// Fill target pose
@@ -633,6 +1189,8 @@ void LandingTargetEstimator::publishTarget()
 	_targetPosePub.publish(target_pose);
 	_targetEstimatorStatePub.publish(target_estimator_state);
 
+
+	// TODO: decide what to do with Bias lim
 	// float bias_lim = _param_ltest_bias_lim.get();
 
 	// if (_target_model != TargetModel::Horizontal && (fabs(target_estimator_state.x_bias) > bias_lim
@@ -655,13 +1213,8 @@ void LandingTargetEstimator::_check_params(const bool force)
 	}
 }
 
-void LandingTargetEstimator::_update_topics(accInput *input)
+void LandingTargetEstimator::get_input(accInput *input)
 {
-	sensor_gps_s vehicle_gps_position;
-	landing_target_pose_s target_GNSS_report;
-	landing_target_pose_s fiducial_marker_pose;
-	irlock_report_s irlock_report;
-	uwb_distance_s	uwb_distance;
 	vehicle_attitude_s	vehicle_attitude;
 	vehicle_local_position_s	vehicle_local_position;
 	vehicle_status_s vehicle_status;
@@ -704,15 +1257,12 @@ void LandingTargetEstimator::_update_topics(accInput *input)
 	}
 
 	// Init the estimator when landing is the next setpoint
-	if (!_start_detection) {return;};
+	// if (!_start_detection) {return;};
 
 	// To save stack space, only use x,y,z,valid as global variables (_local_pos is used when the target is published)
 	_local_pos.x = vehicle_local_position.x;
-
 	_local_pos.y = vehicle_local_position.y;
-
 	_local_pos.z = vehicle_local_position.z;
-
 	_local_pos.valid = (vehicle_local_position_valid && vehicle_local_position.xy_valid);
 
 	Dcmf R_att;
@@ -742,470 +1292,6 @@ void LandingTargetEstimator::_update_topics(accInput *input)
 
 		input->vehicle_acc_ned = R_att * (vehicle_acc + gravity_body);
 		input->acc_ned_valid = true;
-	}
-
-	/* IRLOCK SENSOR measures [r_x,r_y,r_z]*/
-	if (((_ltest_aid_mask & SensorFusionMask::USE_IRLOCK_POS)) && _irlockReportSub.update(&irlock_report)) {
-
-		if (!vehicle_local_position_valid || !vehicle_local_position.dist_bottom_valid) {
-			// don't have the data needed for an update
-			PX4_INFO("Local pos: %d, Dist bottom: %d", vehicle_local_position_valid, vehicle_local_position.dist_bottom_valid);
-
-		} else if (!PX4_ISFINITE(irlock_report.pos_y) || !PX4_ISFINITE(irlock_report.pos_x)) {
-			PX4_WARN("IRLOCK position is corrupt!");
-
-		} else {
-
-			Vector3f sensor_ray; // ray pointing towards target in body frame
-			sensor_ray(0) = irlock_report.pos_x * _param_ltest_scale_x.get(); // forward
-			sensor_ray(1) = irlock_report.pos_y * _param_ltest_scale_y.get(); // right
-			sensor_ray(2) = 1.0f;
-
-			// rotate unit ray according to sensor orientation
-			Dcmf S_att; //Orientation of the sensor relative to body frame
-			S_att = get_rot_matrix(static_cast<enum Rotation>(_param_ltest_sens_rot.get()));
-			sensor_ray = S_att * sensor_ray;
-
-			// rotate the unit ray into the navigation frame
-			sensor_ray = R_att * sensor_ray;
-
-			//TODO: rotate measurement uncertainty S_att & R_att
-
-			// z component of measurement safe, use this measurement
-			if (fabsf(sensor_ray(2)) > 1e-6f) {
-
-				float dist_z = vehicle_local_position.dist_bottom - _param_ltest_sens_pos_z.get();
-
-				// scale the ray s.t. the z component has length of _uncertainty_scale
-				float rel_pos_x = sensor_ray(0) / sensor_ray(2) * dist_z;
-				float rel_pos_y = sensor_ray(1) / sensor_ray(2) * dist_z;
-				float rel_pos_z = dist_z;
-
-				// Adjust relative position according to sensor offset
-				rel_pos_x += _param_ltest_sens_pos_x.get();
-				rel_pos_y += _param_ltest_sens_pos_y.get();
-
-				//TODO: For coupled dynamics: Cholesky decomposition to uncorrelate noise (find matrix T that diagonalizes R) z' = T*z; H' = T*H
-
-				// Fill the observations for the irlock sensor
-				targetObsPos temp_obs = {};
-
-				temp_obs.timestamp = irlock_report.timestamp;
-
-				if (_target_model == TargetModel::FullPoseCoupled) {
-					// State: [rx, ry, rz, ... ]
-					temp_obs.meas_h_xyz(0, 0) = 1; // x direction
-					temp_obs.meas_h_xyz(1, 1) = 1; // y direction
-					temp_obs.meas_h_xyz(2, 2) = 1; // z direction
-
-				} else {
-					// State: [r, r_dot, ...] --> x, y, z directions are the same (decoupled)
-					temp_obs.meas_h_xyz(0, 0) = 1;
-					temp_obs.meas_h_xyz(1, 0) = 1;
-					temp_obs.meas_h_xyz(2, 0) = 1;
-				}
-
-				temp_obs.meas_xyz(0) = rel_pos_x;
-				temp_obs.meas_xyz(1) = rel_pos_y;
-				temp_obs.meas_xyz(2) = rel_pos_z;
-
-				temp_obs.any_xyz_updated = true;
-				temp_obs.updated_xyz.setAll(true);
-
-				float measurement_uncertainty = _param_ltest_meas_unc.get() * dist_z * dist_z;
-
-				temp_obs.meas_unc_xyz(0) = measurement_uncertainty;
-				temp_obs.meas_unc_xyz(1) = measurement_uncertainty;
-				temp_obs.meas_unc_xyz(2) = measurement_uncertainty;
-
-				_target_pos_obs[irlock] = temp_obs;
-				_new_pos_sensor_report = true;
-			}
-		}
-	}
-
-	/* UWB SENSOR measures [r_x,r_y,r_z] */
-	if (((_ltest_aid_mask & SensorFusionMask::USE_UWB_POS)) && _uwbDistanceSub.update(&uwb_distance)) {
-		if (!vehicle_local_position_valid) {
-			// don't have the data needed for an update
-			PX4_INFO("Attitude: %d, Local pos: %d", vehicle_attitude_valid, vehicle_local_position_valid);
-
-		} else if (!PX4_ISFINITE((float)uwb_distance.position[0]) || !PX4_ISFINITE((float)uwb_distance.position[1]) ||
-			   !PX4_ISFINITE((float)uwb_distance.position[2])) {
-			PX4_WARN("UWB position is corrupt!");
-
-		} else {
-
-			targetObsPos temp_obs = {};
-
-			temp_obs.timestamp = uwb_distance.timestamp;
-
-			if (_target_model == TargetModel::FullPoseCoupled) {
-				// State: [rx, ry, rz, ... ]
-				temp_obs.meas_h_xyz(0, 0) = 1; // x direction
-				temp_obs.meas_h_xyz(1, 1) = 1; // y direction
-				temp_obs.meas_h_xyz(2, 2) = 1; // z direction
-
-			} else {
-				// State: [r, r_dot, ...] --> x, y, z directions are the same (decoupled)
-				temp_obs.meas_h_xyz(0, 0) = 1;
-				temp_obs.meas_h_xyz(1, 0) = 1;
-				temp_obs.meas_h_xyz(2, 0) = 1;
-			}
-
-			// The coordinate system is NED (north-east-down) with the position of the landing point relative to the vehicle.
-			// the uwb_distance msg contains the Position in NED, Vehicle relative to LP. To change POV we negate every Axis:
-			temp_obs.meas_xyz(0) = -uwb_distance.position[0];
-			temp_obs.meas_xyz(1) = -uwb_distance.position[1];
-			temp_obs.meas_xyz(2) = -uwb_distance.position[2];
-
-			temp_obs.any_xyz_updated = true;
-			temp_obs.updated_xyz.setAll(true);
-
-			float dist_z = vehicle_local_position.dist_bottom - _param_ltest_sens_pos_z.get();
-
-			float measurement_uncertainty = _param_ltest_meas_unc.get() * dist_z * dist_z;
-
-			temp_obs.meas_unc_xyz(0) = measurement_uncertainty;
-			temp_obs.meas_unc_xyz(1) = measurement_uncertainty;
-
-			_target_pos_obs[uwb] = temp_obs;
-			_new_pos_sensor_report = true;
-		}
-	}
-
-	/* VISION SENSOR measures [r_x,r_y,r_z, r_theta]*/
-	if ((_ltest_aid_mask & SensorFusionMask::USE_EXT_VIS_POS)
-	    && _fiducial_marker_report_sub.update(&fiducial_marker_pose)) {
-
-		// Assume vision measurement is in NED frame.
-		// Note: (The vision estimate is rotated into the NED navigation frame offboard to avoid sync issues (target detection needs time))
-
-		// Fiducial marker measurements :
-		float vision_r_x = fiducial_marker_pose.x_rel;
-		float vision_r_y = fiducial_marker_pose.y_rel;
-		float vision_r_z = fiducial_marker_pose.z_rel;
-		float vision_r_theta = 0.f; //TODO: complete MAVLINK message to obtain theta
-
-		// TODO: complete mavlink message to include covariance matrix rotated in NED.
-		/*
-			SquareMatrix<float, 3> R_rotated = diag(Vector3f(fiducial_marker_pose.cov_x_rel, fiducial_marker_pose.cov_y_rel, fiducial_marker_pose.cov_z_rel));
-			R_rotated(0,1) = fiducial_marker_pose.cov_x_y_rel;
-			R_rotated(0,2) = fiducial_marker_pose.cov_x_z_rel;
-			R_rotated(1,2) = fiducial_marker_pose.cov_y_z_rel;
-			R_rotated(1,0) = R_rotated(0,1);
-			R_rotated(2,0) = R_rotated(0,2);
-			R_rotated(2,1) = R_rotated(1,2);
-		*/
-		float meas_uncertainty = _param_ltest_meas_unc.get();
-		SquareMatrix<float, 3> R_rotated = diag(Vector3f(meas_uncertainty, meas_uncertainty, meas_uncertainty));
-
-		float vision_r_theta_unc = 0.f;
-		hrt_abstime vision_timestamp = fiducial_marker_pose.timestamp;
-
-		/* ORIENTATION */
-		if (!vehicle_local_position_valid) {
-			// don't have the data needed for an update
-			PX4_INFO("Attitude: %d, Local pos: %d", vehicle_attitude_valid, vehicle_local_position_valid);
-
-		} else if (!PX4_ISFINITE(vision_r_theta)) {
-			PX4_WARN("VISION orientation is corrupt!");
-
-		} else {
-
-			// TODO: obtain relative orientation using the orientation of the drone.
-			// (vision gives orientation between body and target frame. We can thus use the orientation between the body frame and NED to obtain the orientation between NED and target)
-
-			_target_orientation_obs.timestamp = vision_timestamp;
-			_target_orientation_obs.updated_theta = true;
-			_target_orientation_obs.meas_unc_theta = vision_r_theta_unc;
-			_target_orientation_obs.meas_theta = vision_r_theta;
-			_target_orientation_obs.meas_h_theta = 1;
-
-			_new_pos_sensor_report = true;
-		}
-
-		/* RELATIVE POSITION*/
-		if (!PX4_ISFINITE(vision_r_x) || !PX4_ISFINITE(vision_r_y) || !PX4_ISFINITE(vision_r_y)) {
-			PX4_WARN("VISION position is corrupt!");
-
-		} else {
-
-			targetObsPos temp_obs = {};
-
-			temp_obs.timestamp = vision_timestamp;
-
-			temp_obs.any_xyz_updated = true;
-			temp_obs.updated_xyz.setAll(true);
-
-			if (_target_model == TargetModel::FullPoseCoupled) {
-				// Process measurements for sequential update by diagonalizing the measurement covariance matrix
-
-				// Sliced state: [r_x,r_y,r_z]; (real state: [pose,vel,bias,acc] or [pose,vel,bias] but assume vision measurements independent of other measurements)
-				Matrix<float, 3, 3> H_position =  zeros<float, 3, 3>();
-				H_position(0, 0) = 1;
-				H_position(1, 1) = 1;
-				H_position(2, 2) = 1;
-
-				// Cholesky decomposition using PX4 matrix:
-				// TODO: correct
-				// Matrix<float, 3, 3> T =  matrix::cholesky(R_rotated);
-
-				Matrix3f T;
-				T.identity();
-
-
-				// Diagonalize R_rotated:
-				Matrix<float, 3, 3> R_diag =  T * R_rotated;
-
-				temp_obs.meas_unc_xyz(0) = R_diag(0, 0);
-				temp_obs.meas_unc_xyz(1) = R_diag(1, 1);
-				temp_obs.meas_unc_xyz(2) = R_diag(2, 2);
-				//TODO: replace by temp_obs.meas_unc_xyz = R_diag.diag()
-
-				//Transform measurements Z:
-				Vector3f Z(vision_r_x, vision_r_y, vision_r_z);
-				Vector3f Z_transformed = T * Z;
-
-				temp_obs.meas_xyz = Z_transformed;
-
-				//Transform H
-				Matrix<float, 3, 3> H_transformed = T * H_position;
-
-				//Bring H_position back to the full H:
-				//TODO: use slicing functions to insert 3x3 matrix H_transformed into 3x12 matrix meas_h_xyz
-				temp_obs.meas_h_xyz(0, 0) = H_transformed(0, 0);
-				temp_obs.meas_h_xyz(0, 1) = H_transformed(0, 1);
-				temp_obs.meas_h_xyz(0, 2) = H_transformed(0, 2);
-
-				temp_obs.meas_h_xyz(1, 0) = H_transformed(1, 0);
-				temp_obs.meas_h_xyz(1, 1) = H_transformed(1, 1);
-				temp_obs.meas_h_xyz(1, 2) = H_transformed(1, 2);
-
-				temp_obs.meas_h_xyz(2, 0) = H_transformed(2, 0);
-				temp_obs.meas_h_xyz(2, 1) = H_transformed(2, 1);
-				temp_obs.meas_h_xyz(2, 2) = H_transformed(2, 2);
-
-			} else {
-				// Assume noise correlation negligible:
-
-				// State: [r, r_dot, ...]
-				temp_obs.meas_h_xyz(0, 0) = 1;
-				temp_obs.meas_h_xyz(1, 0) = 1;
-				temp_obs.meas_h_xyz(2, 0) = 1;
-
-				temp_obs.meas_xyz(0) = vision_r_x;
-				temp_obs.meas_xyz(1) = vision_r_y;
-				temp_obs.meas_xyz(2) = vision_r_z;
-
-				// Assume off diag elements ~ 0
-				temp_obs.meas_unc_xyz(0) = R_rotated(0, 0);
-				temp_obs.meas_unc_xyz(1) = R_rotated(1, 1);
-				temp_obs.meas_unc_xyz(2) = R_rotated(2, 2);
-			}
-
-			_new_pos_sensor_report = true;
-			_target_pos_obs[fiducial_marker] = temp_obs;
-		}
-	}
-
-	// TODO: might need to create a class variable with (vehicle_gps_position.timestamp_sample, pos_valid, lat, lon, alt, eph, epv, vel_ned_valid, vel_n, vel_e, vel_d, vel_var).
-	/* Measurement requiering GPS observation, only start when landing*/
-	if (_vehicle_gps_position_sub.update(&vehicle_gps_position)) {
-
-		bool target_GNSS_report_valid = _target_GNSS_report_sub.update(&target_GNSS_report);
-
-		/* TARGET GPS SENSOR measures [rx + bx, ry + by, rz + bz] */
-		if ((_target_model == TargetModel::FullPoseDecoupled || _target_model == TargetModel::FullPoseCoupled)
-		    && (((_ltest_aid_mask & SensorFusionMask::USE_TARGET_GPS_POS) && target_GNSS_report_valid)
-			|| (_ltest_aid_mask & SensorFusionMask::USE_MISSION_POS))) {
-
-			bool use_gps_measurements = false;
-
-			int target_gps_lat;		// 1e-7 deg
-			int target_gps_lon;		// 1e-7 deg
-			float target_gps_alt;	// AMSL [mm]
-
-			// TODO: convert .epv and .eph from accuracy to variance
-			float gps_target_unc = _param_ltest_gps_t_unc.get();
-			float gps_target_eph;
-			float gps_target_epv;
-
-			hrt_abstime gps_timestamp = vehicle_gps_position.timestamp_sample;
-
-			// Measurement comes from an actual GPS on the target
-			if ((_ltest_aid_mask & SensorFusionMask::USE_TARGET_GPS_POS) && target_GNSS_report_valid) {
-
-				use_gps_measurements = true;
-				gps_timestamp = target_GNSS_report.timestamp;
-
-				// If mission mode && landing position valid && fusion mission position
-				if ((_ltest_aid_mask & SensorFusionMask::USE_MISSION_POS)
-				    && _nave_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION && _landing_pos.valid) {
-
-					// Weighted average between the landing point and the target GPS position is performed
-					// TODO once target_GNSS_report.cov_x_rel is available: weighted average
-					target_gps_lat = (int)((target_GNSS_report.lat + _landing_pos.lat) / 2);
-					target_gps_lon = (int)((target_GNSS_report.lon + _landing_pos.lon) / 2);
-					target_gps_alt = (target_GNSS_report.alt + _landing_pos.alt) / 2.f;
-
-					gps_target_eph = gps_target_unc;
-					gps_target_epv = gps_target_unc;
-
-				} else {
-
-					target_gps_lat = target_GNSS_report.lat;
-					target_gps_lon = target_GNSS_report.lon;
-					target_gps_alt = target_GNSS_report.alt;
-
-					// TODO: complete mavlink message to include uncertainties.
-					// gps_target_eph = target_GNSS_report.cov_x_rel;
-					// gps_target_epv = target_GNSS_report.cov_z_rel;
-
-					gps_target_eph = gps_target_unc;
-					gps_target_epv = gps_target_unc;
-				}
-
-			} else if ((_ltest_aid_mask & SensorFusionMask::USE_MISSION_POS)
-				   && _nave_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION && _landing_pos.valid) {
-
-				use_gps_measurements = true;
-
-				// Measurement of the landing target position comes from the mission item only
-				target_gps_lat = _landing_pos.lat;
-				target_gps_lon = _landing_pos.lon;
-				target_gps_alt = _landing_pos.alt;
-
-				gps_target_eph = gps_target_unc;
-				gps_target_epv = gps_target_unc;
-			}
-
-			if (use_gps_measurements) {
-
-				// Obtain GPS relative measurements in NED as target_global - uav_gps_global followed by global2local transformation
-				Vector3f gps_relative_pos;
-				get_vector_to_next_waypoint((vehicle_gps_position.lat / 1.0e7), (vehicle_gps_position.lon / 1.0e7),
-							    (target_gps_lat / 1.0e7), (target_gps_lon / 1.0e7),
-							    &gps_relative_pos(0), &gps_relative_pos(1));
-
-				// Down direction (if the drone is above the target, the relative position is positive)
-				gps_relative_pos(2) = (vehicle_gps_position.alt - target_gps_alt) / 1000.f; // transform mm to m
-
-				// Var(aX - bY) = a^2 Var(X) + b^2Var(Y) - 2ab Cov(X,Y)
-				float gps_unc_horizontal = vehicle_gps_position.eph + gps_target_eph;
-				float gps_unc_vertical = vehicle_gps_position.epv + gps_target_epv;
-
-				// GPS already in NED, no rotation required. STATE: [pose,vel,bias,acc]
-				targetObsPos temp_obs = {};
-
-				if (_target_model == TargetModel::FullPoseCoupled) {
-					// State: [rx, ry, rz, r_x_dot, r_y_dot, r_z_dot, bx, by, bz, ... ]
-
-					// x direction H = [1, 0, 0, 0, 0, 0, 1, 0, 0, ...]
-					temp_obs.meas_h_xyz(0, 0) = 1;
-					temp_obs.meas_h_xyz(0, 6) = 1;
-
-					// y direction H = [0, 1, 0, 0, 0, 0, 0, 1, 0, ...]
-					temp_obs.meas_h_xyz(1, 1) = 1;
-					temp_obs.meas_h_xyz(1, 7) = 1;
-
-					// z direction H = [0, 0, 1, 0, 0, 0, 0, 0, 1, ...]
-					temp_obs.meas_h_xyz(2, 2) = 1;
-					temp_obs.meas_h_xyz(2, 8) = 1;
-
-				} else {
-					// State: [r, r_dot, b, ...] --> same for x,y,z directions (decoupled)
-					temp_obs.meas_h_xyz(0, 0) = 1;
-					temp_obs.meas_h_xyz(0, 2) = 1;
-
-					temp_obs.meas_h_xyz(1, 0) = 1;
-					temp_obs.meas_h_xyz(1, 2) = 1;
-
-					temp_obs.meas_h_xyz(2, 0) = 1;
-					temp_obs.meas_h_xyz(2, 2) = 1;
-				}
-
-				temp_obs.timestamp = gps_timestamp;
-
-				temp_obs.meas_xyz = gps_relative_pos;
-
-				temp_obs.meas_unc_xyz(0) = gps_unc_horizontal;
-				temp_obs.meas_unc_xyz(1) = gps_unc_horizontal;
-				temp_obs.meas_unc_xyz(2) = gps_unc_vertical;
-
-				temp_obs.any_xyz_updated = true;
-				temp_obs.updated_xyz.setAll(true);
-
-				_new_pos_sensor_report = true;
-				_target_pos_obs[target_gps_pos] = temp_obs;
-			}
-		}
-
-		/* UAV GPS SENSOR [r_dotx, r_doty, r_dotz] */
-		if (vehicle_gps_position.vel_ned_valid && (_target_model == TargetModel::FullPoseDecoupled
-				|| _target_model == TargetModel::FullPoseCoupled)
-		    && (_ltest_aid_mask & SensorFusionMask::USE_UAV_GPS_VEL)) {
-
-			if (_target_mode == TargetMode::Stationary || (_target_mode == TargetMode::Moving
-					&& _target_GNSS_report_sub.update(&target_GNSS_report))) {
-
-				// GPS already in NED, no rotation required
-				targetObsPos temp_obs = {};
-
-				// TODO: convert .s_variance_m_s from accuracy to variance
-
-				if (_target_mode == TargetMode::Stationary) {
-
-					temp_obs.meas_xyz(0) = -vehicle_gps_position.vel_n_m_s;
-					temp_obs.meas_xyz(1) = -vehicle_gps_position.vel_e_m_s;
-					temp_obs.meas_xyz(2) = -vehicle_gps_position.vel_d_m_s;
-
-					temp_obs.meas_unc_xyz(0) = vehicle_gps_position.s_variance_m_s;
-					temp_obs.meas_unc_xyz(1) = vehicle_gps_position.s_variance_m_s;
-					temp_obs.meas_unc_xyz(2) = vehicle_gps_position.s_variance_m_s;
-
-				} else {
-
-					float gps_target_unc = _param_ltest_gps_t_unc.get();
-
-					// If the target is moving, the relative velocity is expressed as the drone verlocity - the target velocity
-					temp_obs.meas_xyz(0) = vehicle_gps_position.vel_n_m_s - target_GNSS_report.vx_rel;
-					temp_obs.meas_xyz(1) = vehicle_gps_position.vel_e_m_s - target_GNSS_report.vy_rel;
-					temp_obs.meas_xyz(2) = vehicle_gps_position.vel_d_m_s - target_GNSS_report.vz_rel;
-
-					float unc = vehicle_gps_position.s_variance_m_s + gps_target_unc;
-					temp_obs.meas_unc_xyz(0) = unc;
-					temp_obs.meas_unc_xyz(1) = unc;
-					temp_obs.meas_unc_xyz(2) = unc;
-
-					// TODO: uncomment once the mavlink message is updated with covariances
-					// temp_obs.meas_unc_xyz(0) = vehicle_gps_position.s_variance_m_s + target_GNSS_report.cov_vx_rel;
-					// temp_obs.meas_unc_xyz(1) = vehicle_gps_position.s_variance_m_s + target_GNSS_report.cov_vy_rel;
-					// temp_obs.meas_unc_xyz(2) = vehicle_gps_position.s_variance_m_s + target_GNSS_report.cov_vx_rel;
-				}
-
-				if (_target_model == TargetModel::FullPoseCoupled) {
-					// State: [rx, ry, rz, rx_dot, ry_dot, rz_dot, ... ]
-					temp_obs.meas_h_xyz(0, 3) = 1; // x direction
-					temp_obs.meas_h_xyz(1, 4) = 1; // y direction
-					temp_obs.meas_h_xyz(2, 5) = 1; // z direction
-
-				} else {
-					// State: [r, r_dot, ...] --> x, y, z directions are the same (decoupled)
-					temp_obs.meas_h_xyz(0, 1) = 1;
-					temp_obs.meas_h_xyz(1, 1) = 1;
-					temp_obs.meas_h_xyz(2, 1) = 1;
-				}
-
-				temp_obs.timestamp = vehicle_gps_position.timestamp_sample;
-
-				temp_obs.any_xyz_updated = true;
-				temp_obs.updated_xyz.setAll(true);
-
-				_new_vel_sensor_report = true;
-				_target_pos_obs[uav_gps_vel] = temp_obs;
-			}
-		}
 	}
 }
 
