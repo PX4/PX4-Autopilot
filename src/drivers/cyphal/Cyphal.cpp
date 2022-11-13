@@ -83,6 +83,8 @@ CyphalNode::CyphalNode(uint32_t node_id, size_t capacity, size_t mtu_bytes) :
 	_pub_manager.updateParams();
 
 	_sub_manager.subscribe();
+
+	_mixing_output.mixingOutput().setMaxTopicUpdateRate(1000000 / 100);
 }
 
 CyphalNode::~CyphalNode()
@@ -135,6 +137,7 @@ int CyphalNode::start(uint32_t node_id, uint32_t bitrate)
 	_instance->active_bitrate = bitrate;
 
 	_instance->ScheduleOnInterval(ScheduleIntervalMs * 1000);
+	_instance->_mixing_output.ScheduleNow();
 
 	return PX4_OK;
 }
@@ -393,8 +396,11 @@ bool UavcanMixingInterface::updateOutputs(bool stop_motors, uint16_t outputs[MAX
 	// Hence, the mutex lock in UavcanMixingInterface::Run() is in effect
 
 	/// TODO: Need esc/servo metadata / bitmask(s)
-	_esc_controller.update_outputs(stop_motors, outputs, num_outputs);
-	// _servo_controller.update_outputs(stop_motors, outputs, num_outputs);
+	auto publisher = static_cast<UavcanEscController *>(_pub_manager.getPublisher("esc"));
+
+	if (publisher) {
+		publisher->update_outputs(stop_motors, outputs, num_outputs);
+	}
 
 	return true;
 }

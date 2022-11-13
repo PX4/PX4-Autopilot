@@ -112,6 +112,18 @@ void PublicationManager::updateParams()
 	updateDynamicPublications();
 }
 
+UavcanPublisher *PublicationManager::getPublisher(const char *subject_name)
+{
+	for (auto &dynpub : _dynpublishers) {
+		if (strcmp(dynpub->getSubjectName(), subject_name) == 0) {
+			return dynpub;
+		}
+	}
+
+	return NULL;
+}
+
+
 void PublicationManager::update()
 {
 	for (auto &dynpub : _dynpublishers) {

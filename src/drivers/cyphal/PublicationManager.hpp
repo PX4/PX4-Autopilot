@@ -101,6 +101,8 @@ public:
 	void printInfo();
 	void updateParams();
 
+	UavcanPublisher *getPublisher(const char *subject_name);
+
 private:
 	void updateDynamicPublications();
 
