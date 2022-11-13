@@ -56,11 +56,9 @@ void PublicationManager::updateDynamicPublications()
 
 		for (auto &dynpub : _dynpublishers) {
 			// Check if subscriber has already been created
-			char full_subj_name[200];
-			snprintf(full_subj_name, sizeof(full_subj_name), "%s%s", dynpub->getPrefixName(), dynpub->getSubjectName());
 			const uint8_t instance = dynpub->getInstance();
 
-			if (strcmp(full_subj_name, sub.subject_name) == 0 && instance == sub.instance) {
+			if (strcmp(dynpub->getSubjectName(), sub.subject_name) == 0 && instance == sub.instance) {
 				found_publisher = true;
 				break;
 			}
