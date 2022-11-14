@@ -80,6 +80,7 @@ PARAM_DEFINE_FLOAT(FW_L1_DAMPING, 0.75f);
  *
  * @unit deg/s
  * @min 0
+ * @decimal 0
  * @increment 1
  * @group FW L1 Control
  */
@@ -250,6 +251,8 @@ PARAM_DEFINE_FLOAT(FW_THR_TRIM, 0.6f);
  *
  * @min 0.0
  * @max 1.0
+ * @decimal 2
+ * @increment 0.01
  * @group FW TECS
  */
 PARAM_DEFINE_FLOAT(FW_THR_SLEW_MAX, 0.0f);
