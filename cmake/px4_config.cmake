@@ -98,6 +98,11 @@ if(NOT PX4_CONFIG_FILE)
 endif()
 
 message(STATUS "PX4 config file: ${PX4_CONFIG_FILE}")
+message(STATUS "PX4 board: ${PX4_BOARD}")
+message(STATUS "PX4 board directory: ${PX4_BOARD_DIR}")
+message(STATUS "PX4 board model: ${MODEL}")
+message(STATUS "PX4 board vendor: ${VENDOR}")
+message(STATUS "PX4 board label: ${LABEL}")
 
 include_directories(${PX4_BOARD_DIR}/src)
 
