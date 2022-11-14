@@ -201,7 +201,7 @@ void UxrceddsClient::run()
 		// void uxr_create_session_retries(uxrSession* session, size_t retries);
 		if (!uxr_create_session(&session)) {
 			PX4_ERR("uxr_create_session failed");
-			return;
+			continue;
 		}
 
 		// TODO: uxr_set_status_callback
@@ -242,12 +242,12 @@ void UxrceddsClient::run()
 
 		if (!uxr_run_session_until_all_status(&session, 1000, &participant_req, &request_status, 1)) {
 			PX4_ERR("create entities failed: participant: %i", request_status);
-			return;
+			continue;
 		}
 
 		if (!_pubs->init(&session, reliable_out, reliable_in, best_effort_in, participant_id, _client_namespace)) {
 			PX4_ERR("pubs init failed");
-			return;
+			continue;
 		}
 
 		_connected = true;
