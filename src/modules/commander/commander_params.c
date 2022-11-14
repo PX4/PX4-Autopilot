@@ -224,7 +224,8 @@ PARAM_DEFINE_INT32(COM_RC_ARM_HYST, 1000);
  *
  * @group Commander
  * @unit s
- * @decimal 2
+ * @decimal 1
+ * @increment 0.1
  */
 
 PARAM_DEFINE_FLOAT(COM_DISARM_LAND, 2.0f);
@@ -240,7 +241,8 @@ PARAM_DEFINE_FLOAT(COM_DISARM_LAND, 2.0f);
  *
  * @group Commander
  * @unit s
- * @decimal 2
+ * @decimal 1
+ * @increment 0.1
  */
 PARAM_DEFINE_FLOAT(COM_DISARM_PRFLT, 10.0f);
 
