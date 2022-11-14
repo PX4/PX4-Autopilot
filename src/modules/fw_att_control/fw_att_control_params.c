@@ -616,10 +616,12 @@ PARAM_DEFINE_INT32(FW_BAT_SCALE_EN, 0);
  *
  * @min 45
  * @max 720
- * @unit deg
+ * @decimal 1
+ * @increment 5
+ * @unit deg/s
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_ACRO_X_MAX, 90);
+PARAM_DEFINE_FLOAT(FW_ACRO_X_MAX, 90.f);
 
 /**
  * Acro body y max rate.
@@ -629,10 +631,12 @@ PARAM_DEFINE_FLOAT(FW_ACRO_X_MAX, 90);
  *
  * @min 45
  * @max 720
- * @unit deg
+ * @decimal 1
+ * @increment 5
+ * @unit deg/s
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_ACRO_Y_MAX, 90);
+PARAM_DEFINE_FLOAT(FW_ACRO_Y_MAX, 90.f);
 
 /**
  * Acro body z max rate.
@@ -642,10 +646,12 @@ PARAM_DEFINE_FLOAT(FW_ACRO_Y_MAX, 90);
  *
  * @min 10
  * @max 180
- * @unit deg
+ * @decimal 1
+ * @increment 5
+ * @unit deg/s
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_ACRO_Z_MAX, 45);
+PARAM_DEFINE_FLOAT(FW_ACRO_Z_MAX, 45.f);
 
 /**
 * Roll trim increment at minimum airspeed
