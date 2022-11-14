@@ -190,6 +190,8 @@ PARAM_DEFINE_FLOAT(VT_TRANS_TIMEOUT, 15.0f);
  * @unit s
  * @min 0.0
  * @max 20.0
+ * @increment 0.1
+ * @decimal 1
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_TRANS_MIN_TM, 2.0f);
@@ -199,8 +201,12 @@ PARAM_DEFINE_FLOAT(VT_TRANS_MIN_TM, 2.0f);
  *
  * Minimum altitude for fixed wing flight, when in fixed wing the altitude drops below this altitude
  * the vehicle will transition back to MC mode and enter failsafe RTL
+ *
+ * @unit m
  * @min 0.0
  * @max 200.0
+ * @increment 1
+ * @decimal 1
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_FW_MIN_ALT, 0.0f);
@@ -210,8 +216,12 @@ PARAM_DEFINE_FLOAT(VT_FW_MIN_ALT, 0.0f);
  *
  * Maximum negative altitude error for fixed wing flight. If the altitude drops below this value below the altitude setpoint
  * the vehicle will transition back to MC mode and enter failsafe RTL.
+ *
+ * @unit m
  * @min 0.0
  * @max 200.0
+ * @increment 1
+ * @decimal 1
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_FW_ALT_ERR, 0.0f);
@@ -246,6 +256,8 @@ PARAM_DEFINE_INT32(VT_FW_QC_R, 0);
  * @unit s
  * @min 1.0
  * @max 30.0
+ * @increment 0.5
+ * @decimal 1
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_F_TR_OL_TM, 6.0f);
@@ -318,7 +330,7 @@ PARAM_DEFINE_FLOAT(VT_FW_DIFTHR_S_Y, 0.1f);
  * @unit rad s^2/m
  * @min 0
  * @max 0.2
- * @decimal 1
+ * @decimal 2
  * @increment 0.01
  * @group VTOL Attitude Control
  */
@@ -331,7 +343,7 @@ PARAM_DEFINE_FLOAT(VT_B_DEC_FF, 0.f);
  * @unit rad s/m
  * @min 0
  * @max 0.3
- * @decimal 1
+ * @decimal 2
  * @increment 0.05
  * @group VTOL Attitude Control
  */
@@ -344,8 +356,11 @@ PARAM_DEFINE_FLOAT(VT_B_DEC_I, 0.1f);
  * then the fixed-wing forward actuation can be used to compensate for the missing thrust in forward direction
  * (see VT_FW_TRHUST_EN)
  *
+ * @unit deg
  * @min -10.0
  * @max 45.0
+ * @increment 0.1
+ * @decimal 1
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_PITCH_MIN, -5.0f);
@@ -357,8 +372,11 @@ PARAM_DEFINE_FLOAT(VT_PITCH_MIN, -5.0f);
  * During landing it can be beneficial to allow lower minimum pitch angles as it can avoid the wings
  * generating too much lift and preventing the vehicle from sinking at the desired rate.
  *
+ * @unit deg
  * @min -10.0
  * @max 45.0
+ * @increment 0.1
+ * @decimal 1
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_LND_PITCH_MIN, -5.0f);
@@ -370,7 +388,7 @@ PARAM_DEFINE_FLOAT(VT_LND_PITCH_MIN, -5.0f);
  * @min -1
  * @max 1
  * @decimal 1
- * @increment 0.05
+ * @increment 0.1
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_SPOILER_MC_LD, 0.f);
