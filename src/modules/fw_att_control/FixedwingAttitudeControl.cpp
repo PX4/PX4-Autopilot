@@ -305,10 +305,7 @@ void FixedwingAttitudeControl::Run()
 		float pitchspeed = angular_velocity.xyz[1];
 		float yawspeed = angular_velocity.xyz[2];
 		const Vector3f rates(rollspeed, pitchspeed, yawspeed);
-
-		vehicle_angular_acceleration_s angular_acceleration{};
-		_vehicle_angular_acceleration_sub.copy(&angular_acceleration);
-		const Vector3f angular_accel{angular_acceleration.xyz};
+		const Vector3f angular_accel{angular_velocity.xyz_derivative};
 
 		if (_vehicle_status.is_vtol_tailsitter) {
 			/* vehicle is a tailsitter, we need to modify the estimated attitude for fw mode
