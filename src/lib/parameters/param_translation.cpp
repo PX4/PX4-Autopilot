@@ -259,5 +259,16 @@ bool param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2022-11-11: translate VT_F_TRANS_THR/VT_PSHER_RMP_DT -> VT_PSHER_SLEW
+	{
+		if (strcmp("VT_PSHER_RMP_DT", node->name) == 0) {
+			strcpy(node->name, "VT_PSHER_SLEW");
+			double _param_vt_f_trans_thr = param_find("VT_F_TRANS_THR");
+			node->d = _param_vt_f_trans_thr / node->d;
+			PX4_INFO("copying %s -> %s", "VT_PSHER_RMP_DT", "VT_PSHER_SLEW");
+			return true;
+		}
+	}
+
 	return false;
 }
