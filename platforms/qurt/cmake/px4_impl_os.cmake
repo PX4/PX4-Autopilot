@@ -45,10 +45,6 @@ endif()
 
 include(px4_git)
 
-list(APPEND CMAKE_MODULE_PATH
-	"${PX4_SOURCE_DIR}/platforms/qurt/cmake"
-)
-
 include(Toolchain-qurt)
 include(qurt_reqs)
 
