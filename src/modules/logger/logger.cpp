@@ -750,6 +750,7 @@ void Logger::run()
 					// each message consists of a header followed by an orb data object
 					const size_t msg_size = sizeof(ulog_message_data_s) + sub.get_topic()->o_size_no_padding;
 					const uint16_t write_msg_size = static_cast<uint16_t>(msg_size - ULOG_MSG_HEADER_LEN);
+                    // Note that this assumes a message ID size of 16 bits or less.  orb_id_size_t is currently 16-bits.
 					const uint16_t write_msg_id = sub.msg_id;
 
 					//write one byte after another (necessary because of alignment)
@@ -981,7 +982,7 @@ bool Logger::handle_event_updates(uint32_t &total_bytes)
 
 			size_t msg_size = sizeof(ulog_message_data_s) + _event_subscription.get_topic()->o_size_no_padding;
 			uint16_t write_msg_size = static_cast<uint16_t>(msg_size - ULOG_MSG_HEADER_LEN);
-			uint16_t write_msg_id = _event_subscription.msg_id;
+			uint16_t write_msg_id = _event_subscription.msg_id; // Casting from orb_id_size_t: Assumes uint8 or uint16!
 			//write one byte after another (because of alignment)
 			_msg_buffer[0] = (uint8_t)write_msg_size;
 			_msg_buffer[1] = (uint8_t)(write_msg_size >> 8);
@@ -1808,6 +1809,7 @@ void Logger::write_add_logged_msg(LogType type, LoggerSubscription &subscription
 {
 	ulog_message_add_logged_s msg;
 
+    // This should be obsolete with switch to orb_id_size_t = uint16_t
 	if (subscription.msg_id == MSG_ID_INVALID) {
 		if (_next_topic_id == MSG_ID_INVALID) {
 			// if we land here an uint8 is too small -> switch to uint16

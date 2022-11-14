@@ -68,7 +68,7 @@ namespace px4
 namespace logger
 {
 
-static constexpr uint8_t MSG_ID_INVALID = UINT8_MAX;
+static constexpr orb_id_size_t MSG_ID_INVALID = ORB_TOPICS_COUNT;
 
 struct LoggerSubscription : public uORB::SubscriptionInterval {
 	LoggerSubscription() = default;
@@ -77,7 +77,7 @@ struct LoggerSubscription : public uORB::SubscriptionInterval {
 		uORB::SubscriptionInterval(id, interval_ms * 1000, instance)
 	{}
 
-	uint8_t msg_id{MSG_ID_INVALID};
+	orb_id_size_t msg_id{MSG_ID_INVALID};
 };
 
 class Logger : public ModuleBase<Logger>, public ModuleParams
@@ -326,7 +326,7 @@ private:
 	void adjust_subscription_updates();
 
 	uint8_t						*_msg_buffer{nullptr};
-	int						_msg_buffer_len{0};
+	int						    _msg_buffer_len{0};
 
 	LogFileName					_file_name[(int)LogType::Count];
 
@@ -339,42 +339,42 @@ private:
 	LogMode						_log_mode;
 	const bool					_log_name_timestamp;
 
-	LoggerSubscription	 			*_subscriptions{nullptr}; ///< all subscriptions for full & mission log (in front)
-	int						_num_subscriptions{0};
-	MissionSubscription 				_mission_subscriptions[MAX_MISSION_TOPICS_NUM] {}; ///< additional data for mission subscriptions
-	int						_num_mission_subs{0};
-	LoggerSubscription				_event_subscription; ///< Subscription for the event topic (handled separately)
+	LoggerSubscription	 		*_subscriptions{nullptr}; ///< all subscriptions for full & mission log (in front)
+	int					    	_num_subscriptions{0};
+	MissionSubscription 		_mission_subscriptions[MAX_MISSION_TOPICS_NUM] {}; ///< additional data for mission subscriptions
+	int			    			_num_mission_subs{0};
+	LoggerSubscription			_event_subscription; ///< Subscription for the event topic (handled separately)
 	uint16_t 					_event_sequence_offset{0}; ///< event sequence offset to account for skipped (not logged) messages
 	uint16_t 					_event_sequence_offset_mission{0};
 
-	uint8_t						_excluded_optional_topic_ids[LoggedTopics::MAX_EXCLUDED_OPTIONAL_TOPICS_NUM];
-	int						_num_excluded_optional_topic_ids{0};
+	orb_id_size_t  				_excluded_optional_topic_ids[LoggedTopics::MAX_EXCLUDED_OPTIONAL_TOPICS_NUM];
+	int		    				_num_excluded_optional_topic_ids{0};
 
 	LogWriter					_writer;
 	uint32_t					_log_interval{0};
 	float						_rate_factor{1.0f};
-	const orb_metadata				*_polling_topic_meta{nullptr}; ///< if non-null, poll on this topic instead of sleeping
-	orb_advert_t					_mavlink_log_pub{nullptr};
-	uint8_t						_next_topic_id{0}; ///< Logger's internal id (first topic is 0, then 1, and so on) it will assign to the next subscribed ulog topic, used for ulog_message_add_logged_s
+	const orb_metadata			*_polling_topic_meta{nullptr}; ///< if non-null, poll on this topic instead of sleeping
+	orb_advert_t				_mavlink_log_pub{nullptr};
+	orb_id_size_t				_next_topic_id{0}; ///< Logger's internal id (first topic is 0, then 1, and so on) it will assign to the next subscribed ulog topic, used for ulog_message_add_logged_s
 	char						*_replay_file_name{nullptr};
 	bool						_should_stop_file_log{false}; /**< if true _next_load_print is set and file logging
 											will be stopped after load printing (for the full log) */
-	print_load_s					_load{}; ///< process load data
+	print_load_s				_load{}; ///< process load data
 	hrt_abstime					_next_load_print{0}; ///< timestamp when to print the process load
-	PrintLoadReason					_print_load_reason {PrintLoadReason::Preflight};
+	PrintLoadReason				_print_load_reason {PrintLoadReason::Preflight};
 
 	uORB::PublicationMulti<logger_status_s>		_logger_status_pub[(int)LogType::Count] { ORB_ID(logger_status), ORB_ID(logger_status) };
 
 	hrt_abstime					_logger_status_last {0};
-	int						_lockstep_component{-1};
+	int						    _lockstep_component{-1};
 
 	uint32_t					_message_gaps{0};
 
-	uORB::Subscription				_manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
-	uORB::Subscription				_vehicle_command_sub{ORB_ID(vehicle_command)};
-	uORB::Subscription				_vehicle_status_sub{ORB_ID(vehicle_status)};
-	uORB::SubscriptionInterval			_log_message_sub{ORB_ID(log_message), 20};
-	uORB::SubscriptionInterval			_parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	uORB::Subscription			_manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
+	uORB::Subscription			_vehicle_command_sub{ORB_ID(vehicle_command)};
+	uORB::Subscription			_vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::SubscriptionInterval	_log_message_sub{ORB_ID(log_message), 20};
+	uORB::SubscriptionInterval	_parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::SDLOG_UTC_OFFSET>) _param_sdlog_utc_offset,

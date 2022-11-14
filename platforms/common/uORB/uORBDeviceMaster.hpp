@@ -98,7 +98,7 @@ public:
 			return false;
 		}
 
-		return _node_exists[instance][(uint8_t)id];
+		return _node_exists[instance][(orb_id_size_t)id];
 	}
 
 	/**
