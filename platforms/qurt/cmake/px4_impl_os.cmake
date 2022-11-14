@@ -52,8 +52,6 @@ include_directories(${HEXAGON_SDK_INCLUDES})
 
 add_definitions(-DORB_COMMUNICATOR)
 
-set(CONFIG_PARAM_CLIENT "1")
-
 set(DISABLE_PARAMS_MODULE_SCOPING TRUE)
 
 #=============================================================================
