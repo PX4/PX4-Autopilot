@@ -231,13 +231,14 @@ void Standard::update_transition_state()
 	}
 
 	if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_TO_FW) {
-		if (_param_vt_psher_rmp_dt.get() <= 0.0f) {
+		if (_param_vt_psher_slew.get() <= FLT_EPSILON) {
 			// just set the final target throttle value
 			_pusher_throttle = _param_vt_f_trans_thr.get();
 
 		} else if (_pusher_throttle <= _param_vt_f_trans_thr.get()) {
 			// ramp up throttle to the target throttle value
-			_pusher_throttle = _param_vt_f_trans_thr.get() * time_since_trans_start / _param_vt_psher_rmp_dt.get();
+			_pusher_throttle = math::min(_pusher_throttle +
+						     _param_vt_psher_slew.get() * _dt, _param_vt_f_trans_thr.get());
 		}
 
 		_airspeed_trans_blend_margin = _param_vt_arsp_trans.get() - _param_vt_arsp_blend.get();
@@ -291,9 +292,8 @@ void Standard::update_transition_state()
 
 		if (time_since_trans_start >= _param_vt_b_rev_del.get()) {
 			// Handle throttle reversal for active breaking
-			float thrscale = (time_since_trans_start - _param_vt_b_rev_del.get()) / (_param_vt_psher_rmp_dt.get());
-			thrscale = math::constrain(thrscale, 0.0f, 1.0f);
-			_pusher_throttle = thrscale * _param_vt_b_trans_thr.get();
+			_pusher_throttle = math::constrain((time_since_trans_start - _param_vt_b_rev_del.get())
+							   * _param_vt_psher_slew.get(), 0.0f, _param_vt_b_trans_thr.get());
 		}
 
 		// continually increase mc attitude control as we transition back to mc mode
