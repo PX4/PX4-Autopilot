@@ -161,3 +161,19 @@ PARAM_DEFINE_FLOAT(NAV_TRAFF_A_RADU, 10);
  * @group Mission
  */
 PARAM_DEFINE_INT32(NAV_FORCE_VT, 1);
+
+/**
+ * Minimum Loiter altitude
+ *
+ * This is the minimum altitude above Home the system will always obey in Loiter (Hold) mode if switched into this
+ * mode without specifying an altitude (e.g. through Loiter switch on RC).
+ * Doesn't affect Loiters that are part of Missions or that are entered through a reposition setpoint ("Go to").
+ * Set to a negative value to disable.
+ *
+ * @unit m
+ * @min -1
+ * @decimal 1
+ * @increment 0.5
+ * @group Mission
+ */
+PARAM_DEFINE_FLOAT(NAV_MIN_LTR_ALT, -1.f);
