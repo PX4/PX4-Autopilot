@@ -295,6 +295,7 @@ private:
 
 	bool _gps_blocked{false};
 	bool _airspeed_blocked{false};
+	bool _vio_blocked{false};
 
 	float _last_magx[MAG_COUNT_MAX] {};
 	float _last_magy[MAG_COUNT_MAX] {};
