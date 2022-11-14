@@ -49,46 +49,38 @@ if(NOT PX4_CONFIG_FILE)
 		string(REPLACE "/" ";" config ${filename_stripped})
 		list(LENGTH config config_len)
 
-		if(${config_len} EQUAL 4)
-			list(GET config 0 vendor)
-			list(GET config 1 model_upper)
-			list(GET config 2 model_lower)
-			list(GET config 3 label)
-			set(model ${model_upper}_${model_lower})
-			set(model_dir ${model_upper}/${model_lower})
-		elseif(${config_len} EQUAL 3)
+		if(${config_len} EQUAL 3)
 			list(GET config 0 vendor)
 			list(GET config 1 model)
-			list(GET config 1 model_dir)
 			list(GET config 2 label)
-		endif()
 
-		set(board "${vendor}${model}")
+			set(board "${vendor}${model}")
 
-		# <VENDOR>_<MODEL>_<LABEL> (eg px4_fmu-v2_default)
-		# <VENDOR>_<MODEL>_default (eg px4_fmu-v2) # allow skipping label if "default"
-		if ((${CONFIG} MATCHES "${vendor}_${model}_${label}") OR # match full vendor, model, label
-		    ((${label} STREQUAL "default") AND (${CONFIG} STREQUAL "${vendor}_${model}")) # default label can be omitted
-		)
-			set(PX4_CONFIG_FILE "${PX4_SOURCE_DIR}/boards/${filename}" CACHE FILEPATH "path to PX4 CONFIG file" FORCE)
-			set(PX4_BOARD_DIR "${PX4_SOURCE_DIR}/boards/${vendor}/${model_dir}" CACHE STRING "PX4 board directory" FORCE)
-            set(MODEL "${model}" CACHE STRING "PX4 board model" FORCE)
-            set(VENDOR "${vendor}" CACHE STRING "PX4 board vendor" FORCE)
-            set(LABEL "${label}" CACHE STRING "PX4 board vendor" FORCE)
-			break()
-		endif()
+			# <VENDOR>_<MODEL>_<LABEL> (eg px4_fmu-v2_default)
+			# <VENDOR>_<MODEL>_default (eg px4_fmu-v2) # allow skipping label if "default"
+			if ((${CONFIG} MATCHES "${vendor}_${model}_${label}") OR # match full vendor, model, label
+			    ((${label} STREQUAL "default") AND (${CONFIG} STREQUAL "${vendor}_${model}")) # default label can be omitted
+			)
+				set(PX4_CONFIG_FILE "${PX4_SOURCE_DIR}/boards/${filename}" CACHE FILEPATH "path to PX4 CONFIG file" FORCE)
+				set(PX4_BOARD_DIR "${PX4_SOURCE_DIR}/boards/${vendor}/${model}" CACHE STRING "PX4 board directory" FORCE)
+                set(MODEL "${model}" CACHE STRING "PX4 board model" FORCE)
+                set(VENDOR "${vendor}" CACHE STRING "PX4 board vendor" FORCE)
+                set(LABEL "${label}" CACHE STRING "PX4 board vendor" FORCE)
+				break()
+			endif()
 
-		# <BOARD>_<LABEL> (eg px4_fmu-v2_default)
-		# <BOARD>_default (eg px4_fmu-v2) # allow skipping label if "default"
-		if ((${CONFIG} MATCHES "${board}_${label}") OR # match full board, label
-		    ((${label} STREQUAL "default") AND (${CONFIG} STREQUAL "${board}")) # default label can be omitted
-		)
-			set(PX4_CONFIG_FILE "${PX4_SOURCE_DIR}/boards/${filename}" CACHE FILEPATH "path to PX4 CONFIG file" FORCE)
-			set(PX4_BOARD_DIR "${PX4_SOURCE_DIR}/boards/${vendor}/${model_dir}" CACHE STRING "PX4 board directory" FORCE)
-            set(MODEL "${model}" CACHE STRING "PX4 board model" FORCE)
-            set(VENDOR "${vendor}" CACHE STRING "PX4 board vendor" FORCE)
-            set(LABEL "${label}" CACHE STRING "PX4 board vendor" FORCE)
-			break()
+			# <BOARD>_<LABEL> (eg px4_fmu-v2_default)
+			# <BOARD>_default (eg px4_fmu-v2) # allow skipping label if "default"
+			if ((${CONFIG} MATCHES "${board}_${label}") OR # match full board, label
+			    ((${label} STREQUAL "default") AND (${CONFIG} STREQUAL "${board}")) # default label can be omitted
+			)
+				set(PX4_CONFIG_FILE "${PX4_SOURCE_DIR}/boards/${filename}" CACHE FILEPATH "path to PX4 CONFIG file" FORCE)
+				set(PX4_BOARD_DIR "${PX4_SOURCE_DIR}/boards/${vendor}/${model}" CACHE STRING "PX4 board directory" FORCE)
+                set(MODEL "${model}" CACHE STRING "PX4 board model" FORCE)
+                set(VENDOR "${vendor}" CACHE STRING "PX4 board vendor" FORCE)
+                set(LABEL "${label}" CACHE STRING "PX4 board vendor" FORCE)
+				break()
+			endif()
 		endif()
 	endforeach()
 endif()
@@ -98,11 +90,6 @@ if(NOT PX4_CONFIG_FILE)
 endif()
 
 message(STATUS "PX4 config file: ${PX4_CONFIG_FILE}")
-message(STATUS "PX4 board: ${PX4_BOARD}")
-message(STATUS "PX4 board directory: ${PX4_BOARD_DIR}")
-message(STATUS "PX4 board model: ${MODEL}")
-message(STATUS "PX4 board vendor: ${VENDOR}")
-message(STATUS "PX4 board label: ${LABEL}")
 
 include_directories(${PX4_BOARD_DIR}/src)
 
