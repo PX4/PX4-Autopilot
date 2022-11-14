@@ -530,53 +530,6 @@ void EKF2::Run()
 			_last_time_slip_us = 0;
 		}
 
-		// update all other topics if they have new data
-		if (_status_sub.updated()) {
-			vehicle_status_s vehicle_status;
-
-			if (_status_sub.copy(&vehicle_status)) {
-				const bool is_fixed_wing = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
-
-				// let the EKF know if the vehicle motion is that of a fixed wing (forward flight only relative to wind)
-				_ekf.set_is_fixed_wing(is_fixed_wing);
-
-				_preflt_checker.setVehicleCanObserveHeadingInFlight(vehicle_status.vehicle_type !=
-						vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
-			}
-		}
-
-		if (_vehicle_land_detected_sub.updated()) {
-			vehicle_land_detected_s vehicle_land_detected;
-
-			if (_vehicle_land_detected_sub.copy(&vehicle_land_detected)) {
-
-				_ekf.set_vehicle_at_rest(vehicle_land_detected.at_rest);
-
-				if (vehicle_land_detected.in_ground_effect) {
-					_ekf.set_gnd_effect();
-				}
-
-				const bool was_in_air = _ekf.control_status_flags().in_air;
-				const bool in_air = !vehicle_land_detected.landed;
-
-				if (!was_in_air && in_air) {
-					// takeoff
-					_ekf.set_in_air_status(true);
-
-					// reset learned sensor calibrations on takeoff
-					_accel_cal = {};
-					_gyro_cal = {};
-					_mag_cal = {};
-
-					_preflt_checker.reset();
-
-				} else if (was_in_air && !in_air) {
-					// landed
-					_ekf.set_in_air_status(false);
-				}
-			}
-		}
-
 		// ekf2_timestamps (using 0.1 ms relative timestamps)
 		ekf2_timestamps_s ekf2_timestamps {
 			.timestamp = now,
@@ -595,6 +548,7 @@ void EKF2::Run()
 		UpdateGpsSample(ekf2_timestamps);
 		UpdateMagSample(ekf2_timestamps);
 		UpdateRangeSample(ekf2_timestamps);
+		UpdateSystemFlagsSample(ekf2_timestamps);
 
 		vehicle_odometry_s ev_odom;
 		const bool new_ev_odom = UpdateExtVisionSample(ekf2_timestamps, ev_odom);
@@ -1037,6 +991,11 @@ void EKF2::PublishInnovations(const hrt_abstime &timestamp)
 	_estimator_innovations_pub.publish(innovations);
 
 	// calculate noise filtered velocity innovations which are used for pre-flight checking
+	if (_ekf.control_status_prev_flags().in_air != _ekf.control_status_flags().in_air) {
+		// fully reset on takeoff or landing
+		_preflt_checker.reset();
+	}
+
 	if (!_ekf.control_status_flags().in_air) {
 		// TODO: move to run before publications
 		_preflt_checker.setUsingGpsAiding(_ekf.control_status_flags().gps);
@@ -1048,6 +1007,8 @@ void EKF2::PublishInnovations(const hrt_abstime &timestamp)
 		_preflt_checker.setUsingGpsHgtAiding(_ekf.control_status_flags().gps_hgt);
 		_preflt_checker.setUsingRngHgtAiding(_ekf.control_status_flags().rng_hgt);
 		_preflt_checker.setUsingEvHgtAiding(_ekf.control_status_flags().ev_hgt);
+
+		_preflt_checker.setVehicleCanObserveHeadingInFlight(_ekf.control_status_flags().fixed_wing);
 
 		_preflt_checker.update(_ekf.get_imu_sample_delayed().delta_ang_dt, innovations);
 	}
@@ -2107,9 +2068,50 @@ void EKF2::UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps)
 	}
 }
 
+void EKF2::UpdateSystemFlagsSample(ekf2_timestamps_s &ekf2_timestamps)
+{
+	// EKF system flags
+	if (_status_sub.updated() || _vehicle_land_detected_sub.updated()) {
+
+		systemFlagUpdate flags{};
+		flags.time_us = ekf2_timestamps.timestamp;
+
+		// vehicle_status
+		vehicle_status_s vehicle_status;
+
+		if (_status_sub.copy(&vehicle_status)
+		    && (ekf2_timestamps.timestamp < vehicle_status.timestamp + 3_s)) {
+
+			// initially set in_air from arming_state (will be overridden if land detector is available)
+			flags.in_air = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+
+			// let the EKF know if the vehicle motion is that of a fixed wing (forward flight only relative to wind)
+			flags.is_fixed_wing = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+		}
+
+		// vehicle_land_detected
+		vehicle_land_detected_s vehicle_land_detected;
+
+		if (_vehicle_land_detected_sub.copy(&vehicle_land_detected)
+		    && (ekf2_timestamps.timestamp < vehicle_land_detected.timestamp + 3_s)) {
+
+			flags.at_rest = vehicle_land_detected.at_rest;
+			flags.in_air = !vehicle_land_detected.landed;
+			flags.gnd_effect = vehicle_land_detected.in_ground_effect;
+		}
+
+		_ekf.setSystemFlagData(flags);
+	}
+}
+
 void EKF2::UpdateCalibration(const hrt_abstime &timestamp, InFlightCalibration &cal, const matrix::Vector3f &bias,
 			     const matrix::Vector3f &bias_variance, float bias_limit, bool bias_valid, bool learning_valid)
 {
+	// reset existing cal on takeoff
+	if (!_ekf.control_status_prev_flags().in_air && _ekf.control_status_flags().in_air) {
+		cal = {};
+	}
+
 	// Check if conditions are OK for learning of accelerometer bias values
 	// the EKF is operating in the correct mode and there are no filter faults
 	static constexpr float max_var_allowed = 1e-3f;
