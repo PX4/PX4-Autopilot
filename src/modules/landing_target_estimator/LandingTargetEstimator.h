@@ -267,9 +267,15 @@ private:
 
 	globalPos _landing_pos{};
 
-	// keep track of which topics we have received
-	bool _new_pos_sensor_report{false};
-	bool _new_vel_sensor_report{false};
+	struct localVel {
+		hrt_abstime timestamp;
+		bool valid = false;
+		matrix::Vector3f vel;
+	};
+
+	localVel _vel_rel_init{};
+
+	uint64_t _new_pos_sensor_acquired_time{0};
 	bool _estimator_initialized{false};
 
 	matrix::Quaternion<float> _q_att; //Quaternion orientation of the body frame

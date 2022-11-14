@@ -110,6 +110,7 @@ void LandingTargetEstimator::update()
 		if (hrt_absolute_time() - _last_update > landing_target_estimator_TIMEOUT_US) {
 			PX4_INFO("Lost sight of Marker");
 			_estimator_initialized = false;
+			_new_pos_sensor_acquired_time = 0;
 
 		} else {
 			predictionStep(input.vehicle_acc_ned);
@@ -260,17 +261,38 @@ bool LandingTargetEstimator::update_step(Vector3f vehicle_acc_ned)
 	bool irlock_valid = false;
 	bool uwb_valid = false;
 
-	// update all topics
-	if ((_ltest_aid_mask & SensorFusionMask::USE_IRLOCK_POS) && _dist_bottom_valid) {
-		irlock_valid = _irlockReportSub.update(&irlock_report);
+	// Process data from all topics
+
+	/*IRLOCK*/
+	if ((_ltest_aid_mask & SensorFusionMask::USE_IRLOCK_POS) && _dist_bottom_valid
+	    && _irlockReportSub.update(&irlock_report)) {
+
+		obs_irlock.type = irlock;
+
+		if (processObsIRlock(irlock_report, &obs_irlock)) {
+			irlock_valid = true;
+		}
 	}
 
-	if ((_ltest_aid_mask & SensorFusionMask::USE_UWB_POS) && _dist_bottom_valid) {
-		uwb_valid = _uwbDistanceSub.update(&uwb_distance);
+	/*UWB*/
+	if ((_ltest_aid_mask & SensorFusionMask::USE_UWB_POS) && _dist_bottom_valid && _uwbDistanceSub.update(&uwb_distance)) {
+
+		obs_uwb.type = uwb;
+
+		if (processObsUWB(uwb_distance, &obs_uwb)) {
+			uwb_valid = true;
+		}
 	}
 
-	if (_ltest_aid_mask & SensorFusionMask::USE_EXT_VIS_POS) {
-		fiducial_marker_valid = _fiducial_marker_report_sub.update(&fiducial_marker_pose);
+	/*VISION*/
+	if ((_ltest_aid_mask & SensorFusionMask::USE_EXT_VIS_POS)
+	    && _fiducial_marker_report_sub.update(&fiducial_marker_pose)) {
+
+		obs_fiducial_marker.type = fiducial_marker;
+
+		if (processObsVision(fiducial_marker_pose, &obs_fiducial_marker)) {
+			fiducial_marker_valid = true;
+		}
 	}
 
 	// Observations requiering a drone GPS update
@@ -282,21 +304,29 @@ bool LandingTargetEstimator::update_step(Vector3f vehicle_acc_ned)
 
 		if ((hrt_absolute_time() - vehicle_gps_position.timestamp < measurement_updated_TIMEOUT_US)) {
 
-			// Target GPS position
 			target_GNSS_valid = _target_GNSS_report_sub.update(&target_GNSS_report);
 
+			/*TARGET GPS*/
 			if ((((_ltest_aid_mask & SensorFusionMask::USE_TARGET_GPS_POS) && target_GNSS_valid)
 			     || ((_ltest_aid_mask & SensorFusionMask::USE_MISSION_POS)
 				 && _nave_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION && _landing_pos.valid))) {
 
-				pos_GNSS_valid	= true;
+				obs_target_gps_pos.type = target_gps_pos;
+
+				if (processObsTargetGNSS(target_GNSS_report, target_GNSS_valid, vehicle_gps_position, &obs_target_gps_pos)) {
+					pos_GNSS_valid	= true;
+				}
 			}
 
-			// UAV GPS velocity
+			/*UAV GPS velocity*/
 			if ((vehicle_gps_position.vel_ned_valid && (_ltest_aid_mask & SensorFusionMask::USE_UAV_GPS_VEL)) &&
 			    (_target_mode == TargetMode::Stationary || (_target_mode == TargetMode::Moving && target_GNSS_valid))) {
 
-				uav_gps_vel_valid = true;
+				obs_uav_gps_vel.type = uav_gps_vel;
+
+				if (processObsUavGNSSVel(target_GNSS_report, vehicle_gps_position, &obs_uav_gps_vel)) {
+					uav_gps_vel_valid = true;
+				}
 			}
 		}
 	}
@@ -314,65 +344,40 @@ bool LandingTargetEstimator::update_step(Vector3f vehicle_acc_ned)
 		/*TARGET GPS*/
 		if (pos_GNSS_valid) {
 
-			obs_target_gps_pos.type = target_gps_pos;
-
-			if (processObsTargetGNSS(target_GNSS_report, target_GNSS_valid, vehicle_gps_position, &obs_target_gps_pos)) {
-
-				if (fuse_meas(vehicle_acc_ned, obs_target_gps_pos)) {
-					pos_fused = true;
-				}
+			if (fuse_meas(vehicle_acc_ned, obs_target_gps_pos)) {
+				pos_fused = true;
 			}
 		}
 
 		/*UAV GPS VELOCITY*/
 		if (uav_gps_vel_valid) {
 
-			obs_uav_gps_vel.type = uav_gps_vel;
-
-			if (processObsUavGNSSVel(target_GNSS_report, vehicle_gps_position, &obs_uav_gps_vel)) {
-
-				if (fuse_meas(vehicle_acc_ned, obs_uav_gps_vel)) {
-					pos_fused = true;
-				}
+			if (fuse_meas(vehicle_acc_ned, obs_uav_gps_vel)) {
+				pos_fused = true;
 			}
 		}
 
 		/*VISION*/
 		if (fiducial_marker_valid) {
 
-			obs_fiducial_marker.type = fiducial_marker;
-
-			if (processObsVision(fiducial_marker_pose, &obs_fiducial_marker)) {
-
-				if (fuse_meas(vehicle_acc_ned, obs_fiducial_marker)) {
-					pos_fused = true;
-				}
+			if (fuse_meas(vehicle_acc_ned, obs_fiducial_marker)) {
+				pos_fused = true;
 			}
 		}
 
 		/*IRLOCK*/
 		if (irlock_valid) {
 
-			obs_irlock.type = irlock;
-
-			if (processObsIRlock(irlock_report, &obs_irlock)) {
-
-				if (fuse_meas(vehicle_acc_ned, obs_irlock)) {
-					pos_fused = true;
-				}
+			if (fuse_meas(vehicle_acc_ned, obs_irlock)) {
+				pos_fused = true;
 			}
 		}
 
 		/*UWB*/
 		if (uwb_valid) {
 
-			obs_uwb.type = uwb;
-
-			if (processObsUWB(uwb_distance, &obs_uwb)) {
-
-				if (fuse_meas(vehicle_acc_ned, obs_uwb)) {
-					pos_fused = true;
-				}
+			if (fuse_meas(vehicle_acc_ned, obs_uwb)) {
+				pos_fused = true;
 			}
 		}
 
@@ -381,45 +386,53 @@ bool LandingTargetEstimator::update_step(Vector3f vehicle_acc_ned)
 
 	} else if (new_pos_sensor && !_estimator_initialized) {
 
-		// TODO: do we want to init the target/UAV GPS bias?
+		// Wait 1 second before initilazing the estimator to allow to have a velocity initial estimate.
+		if (!_new_pos_sensor_acquired_time) {
+			// target just became visible. Stop climbing, but give it some margin so we don't stop too apruptly
+			_new_pos_sensor_acquired_time = hrt_absolute_time();
 
-		// Assume null relative acceleration
-		Vector3f pos_init;
-		Vector3f vel_rel_init;
-		Vector3f acc_init;
-		Vector3f bias_init;
+		} else if ((hrt_absolute_time() - _new_pos_sensor_acquired_time) > 1000000) {
 
-		// Define the initial relative position of target w.r.t. the drone in NED frame using the available measurement
-		if ((hrt_absolute_time() - obs_target_gps_pos.timestamp < measurement_valid_TIMEOUT_US)) {
-			pos_init = obs_target_gps_pos.meas_xyz;
+			// TODO: do we want to init the target/UAV GPS bias?
 
-		} else if (hrt_absolute_time() - obs_fiducial_marker.timestamp < measurement_valid_TIMEOUT_US) {
-			pos_init = obs_fiducial_marker.meas_xyz;
+			// Assume null relative acceleration
+			Vector3f pos_init;
+			Vector3f vel_rel_init;
+			Vector3f acc_init;
+			Vector3f bias_init;
 
-		} else if (hrt_absolute_time() - obs_irlock.timestamp < measurement_valid_TIMEOUT_US) {
-			pos_init = obs_irlock.meas_xyz;
+			// Define the initial relative position of target w.r.t. the drone in NED frame using the available measurement
+			if (pos_GNSS_valid) {
+				pos_init = obs_target_gps_pos.meas_xyz;
 
-		} else if (hrt_absolute_time() - obs_uwb.timestamp < measurement_valid_TIMEOUT_US) {
-			pos_init = obs_uwb.meas_xyz;
+			} else if (fiducial_marker_valid) {
+				pos_init = obs_fiducial_marker.meas_xyz;
 
-		} else {
-			pos_init.zero();
+			} else if (irlock_valid) {
+				pos_init = obs_irlock.meas_xyz;
+
+			} else if (uwb_valid) {
+				pos_init = obs_uwb.meas_xyz;
+
+			} else {
+				pos_init.zero();
+			}
+
+			// Define initial relative velocity of the target w.r.t. to the drone in NED frame
+			if (_vel_rel_init.valid && (hrt_absolute_time() - _vel_rel_init.timestamp < measurement_valid_TIMEOUT_US)) {
+				vel_rel_init = _vel_rel_init.vel;
+
+			} else {
+				vel_rel_init.zero();
+			}
+
+			initEstimator(pos_init, vel_rel_init, acc_init, bias_init);
+
+			PX4_INFO("LTE Estimator properly initialized.");
+			_estimator_initialized = true;
+			_last_update = hrt_absolute_time();
+			_last_predict = _last_update;
 		}
-
-		// Define initial relative velocity of the target w.r.t. to the drone in NED frame
-		if (hrt_absolute_time() - obs_uav_gps_vel.timestamp < measurement_valid_TIMEOUT_US) {
-			vel_rel_init = obs_uav_gps_vel.meas_xyz;
-
-		} else {
-			vel_rel_init.zero();
-		}
-
-		initEstimator(pos_init, vel_rel_init, acc_init, bias_init);
-
-		PX4_INFO("LTE Estimator properly initialized.");
-		_estimator_initialized = true;
-		_last_update = hrt_absolute_time();
-		_last_predict = _last_update;
 	}
 
 	return false;
@@ -452,7 +465,6 @@ bool LandingTargetEstimator::processObsVisionOrientation(const landing_target_po
 	// 	_target_orientation_obs.meas_theta = vision_r_theta;
 	// 	_target_orientation_obs.meas_h_theta = 1;
 
-	// 	_new_pos_sensor_report = true;
 	// }
 
 	return false;
@@ -617,10 +629,17 @@ bool LandingTargetEstimator::processObsUavGNSSVel(const landing_target_pose_s ta
 		obs->meas_h_xyz(2, 1) = 1;
 	}
 
-	obs->timestamp = vehicle_gps_position.timestamp_sample;
+	obs->timestamp = vehicle_gps_position.timestamp;
 
 	obs->any_xyz_updated = true;
 	obs->updated_xyz.setAll(true);
+
+	// Keep track of the initial relative velocity
+	_vel_rel_init.timestamp = vehicle_gps_position.timestamp;
+	_vel_rel_init.valid = vehicle_gps_position.vel_ned_valid;
+	_vel_rel_init.vel(0) = -vehicle_gps_position.vel_n_m_s;
+	_vel_rel_init.vel(1) = -vehicle_gps_position.vel_e_m_s;
+	_vel_rel_init.vel(2) = -vehicle_gps_position.vel_d_m_s;
 
 	return true;
 
@@ -641,7 +660,7 @@ bool LandingTargetEstimator::processObsTargetGNSS(const landing_target_pose_s ta
 	float gps_target_eph;
 	float gps_target_epv;
 
-	hrt_abstime gps_timestamp = vehicle_gps_position.timestamp_sample;
+	hrt_abstime gps_timestamp = vehicle_gps_position.timestamp;
 
 	// Measurement comes from an actual GPS on the target
 	if ((_ltest_aid_mask & SensorFusionMask::USE_TARGET_GPS_POS) && target_GNSS_report_valid) {
@@ -709,28 +728,30 @@ bool LandingTargetEstimator::processObsTargetGNSS(const landing_target_pose_s ta
 		if (_target_model == TargetModel::FullPoseCoupled) {
 			// State: [rx, ry, rz, r_x_dot, r_y_dot, r_z_dot, bx, by, bz, ... ]
 
+			// TODO: uncomment bias
+
 			// x direction H = [1, 0, 0, 0, 0, 0, 1, 0, 0, ...]
 			obs->meas_h_xyz(0, 0) = 1;
-			obs->meas_h_xyz(0, 6) = 1;
+			// obs->meas_h_xyz(0, 6) = 1;
 
 			// y direction H = [0, 1, 0, 0, 0, 0, 0, 1, 0, ...]
 			obs->meas_h_xyz(1, 1) = 1;
-			obs->meas_h_xyz(1, 7) = 1;
+			// obs->meas_h_xyz(1, 7) = 1;
 
 			// z direction H = [0, 0, 1, 0, 0, 0, 0, 0, 1, ...]
 			obs->meas_h_xyz(2, 2) = 1;
-			obs->meas_h_xyz(2, 8) = 1;
+			// obs->meas_h_xyz(2, 8) = 1;
 
 		} else {
 			// State: [r, r_dot, b, ...] --> same for x,y,z directions (decoupled)
 			obs->meas_h_xyz(0, 0) = 1;
-			obs->meas_h_xyz(0, 2) = 1;
+			// obs->meas_h_xyz(0, 2) = 1;
 
 			obs->meas_h_xyz(1, 0) = 1;
-			obs->meas_h_xyz(1, 2) = 1;
+			// obs->meas_h_xyz(1, 2) = 1;
 
 			obs->meas_h_xyz(2, 0) = 1;
-			obs->meas_h_xyz(2, 2) = 1;
+			// obs->meas_h_xyz(2, 2) = 1;
 		}
 
 		obs->timestamp = gps_timestamp;
@@ -1199,6 +1220,7 @@ void LandingTargetEstimator::publishTarget()
 	// 	PX4_WARN("Bias exceeds limit: %.2f bias x: %.2f bias y: %.2f bias z: %.2f", (double)bias_lim,
 	// 		 (double)target_estimator_state.x_bias, (double)target_estimator_state.y_bias, (double)target_estimator_state.z_bias);
 	// 	// _estimator_initialized = false;
+	//  // _new_pos_sensor_acquired_time = 0;
 	// }
 
 }
@@ -1264,6 +1286,9 @@ void LandingTargetEstimator::get_input(accInput *input)
 	_local_pos.y = vehicle_local_position.y;
 	_local_pos.z = vehicle_local_position.z;
 	_local_pos.valid = (vehicle_local_position_valid && vehicle_local_position.xy_valid);
+
+	_dist_bottom = vehicle_local_position.dist_bottom;
+	_dist_bottom_valid = vehicle_local_position.dist_bottom_valid;
 
 	Dcmf R_att;
 
