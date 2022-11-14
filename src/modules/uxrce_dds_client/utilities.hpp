@@ -10,8 +10,16 @@
 
 uxrObjectId topic_id_from_orb(ORB_ID orb_id, uint8_t instance = 0)
 {
-	if (orb_id != ORB_ID::INVALID) {
-		uint16_t id = static_cast<uint8_t>(orb_id) + (instance * UINT8_MAX);
+	// Note that the uxrObjectId.id is a uint16_t so we need to cap the ID.
+	// orb_id_size_t is currently uint16_t (MAX = 65535) and a max # of instances as either 4 or 10.
+	// We want to use half of the available id's for writers and half for readers,
+	// so this works as long as orb_id < 3276.
+	// Unfortunately, limits does not appear to be available. So hard-coding for uint16_t.
+	if (orb_id != ORB_ID::INVALID &&
+	    //(orb_id_size_t) orb_id < (std::numeric_limits<orb_id_size_t> / (2*ORB_MULTI_MAX_INSTANCES) )
+	    (orb_id_size_t) orb_id < (65535U / (2U * (uint16_t)ORB_MULTI_MAX_INSTANCES))
+	   ) {
+		uint16_t id = static_cast<orb_id_size_t>(orb_id) + (instance * ORB_TOPICS_COUNT);
 		uxrObjectId topic_id = uxr_object_id(id, UXR_TOPIC_ID);
 		return topic_id;
 	}
@@ -94,8 +102,9 @@ static bool create_data_reader(uxrSession *session, uxrStreamId reliable_out_str
 		return false;
 	}
 
-	uint16_t id = index + 1000;
-
+	// Use the second half of the available ID space.
+	// Add 1 so that we get a nice hex starting number: 0x8000 instead of 0x7fff.
+	uint16_t id = index + (65535U / 2U) + 1;
 
 	uxrObjectId topic_id = uxr_object_id(id, UXR_TOPIC_ID);
 	uint16_t topic_req = uxr_buffer_create_topic_bin(session, reliable_out_stream_id, topic_id, participant_id, topic_name,
