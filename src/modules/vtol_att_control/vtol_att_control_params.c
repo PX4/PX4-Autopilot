@@ -47,7 +47,6 @@
  * @value 2 Standard
  * @min 0
  * @max 2
- * @decimal 0
  * @reboot_required true
  * @group VTOL Attitude Control
  */
