@@ -1033,6 +1033,8 @@ PARAM_DEFINE_INT32(COM_ARM_HFLT_CHK, 1);
  * @group Commander
  * @min 0
  * @max 30
+ * @decimal 1
+ * @increment 0.1
  * @unit s
  */
 PARAM_DEFINE_FLOAT(COM_SPOOLUP_TIME, 1.0f);
