@@ -399,7 +399,7 @@ public:
 
 	static bool has_publisher(ORB_ID orb_id, uint8_t instance)
 	{
-		return (get_instance()->g_has_publisher[static_cast<uint8_t>(orb_id)] & (1 << instance)) != 0;
+		return (get_instance()->g_has_publisher[static_cast<orb_id_size_t>(orb_id)] & (1 << instance)) != 0;
 	}
 
 #ifdef CONFIG_ORB_COMMUNICATOR
@@ -600,13 +600,13 @@ private: //class methods
 	void set_has_publisher(ORB_ID orb_id, uint8_t instance)
 	{
 		static_assert(sizeof(g_has_publisher[0]) * 8 >= ORB_MULTI_MAX_INSTANCES);
-		g_has_publisher[static_cast<uint8_t>(orb_id)] |= (1 << instance);
+		g_has_publisher[static_cast<orb_id_size_t>(orb_id)] |= (1 << instance);
 	}
 
 	void unset_has_publisher(ORB_ID orb_id, uint8_t instance)
 	{
 		static_assert(sizeof(g_has_publisher[0]) * 8 >= ORB_MULTI_MAX_INSTANCES);
-		g_has_publisher[static_cast<uint8_t>(orb_id)] &= ~(1 << instance);
+		g_has_publisher[static_cast<orb_id_size_t>(orb_id)] &= ~(1 << instance);
 	}
 
 	// Global cache for advertised uORB node instances

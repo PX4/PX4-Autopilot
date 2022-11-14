@@ -643,7 +643,7 @@ uORB::DeviceNode::publish(const orb_metadata *meta, orb_advert_t &handle, const 
 	}
 
 	/* check if the orb meta data matches the publication */
-	if (static_cast<uint8_t>(devnode->id()) != meta->o_id) {
+	if (static_cast<orb_id_size_t>(devnode->id()) != meta->o_id) {
 		errno = EINVAL;
 		return PX4_ERROR;
 	}

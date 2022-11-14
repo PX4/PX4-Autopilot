@@ -77,7 +77,7 @@ topic_fields = ["%s %s" % (convert_type(field.type, True), field.name) for field
 constexpr char __orb_@(name_snake_case)_fields[] = "@( ";".join(topic_fields) );";
 
 @[for topic in topics]@
-ORB_DEFINE(@topic, struct @uorb_struct, @(struct_size-padding_end_size), __orb_@(name_snake_case)_fields, static_cast<uint8_t>(ORB_ID::@topic));
+ORB_DEFINE(@topic, struct @uorb_struct, @(struct_size-padding_end_size), __orb_@(name_snake_case)_fields, static_cast<orb_id_size_t>(ORB_ID::@topic));
 @[end for]
 
 void print_message(const orb_metadata *meta, const @uorb_struct& message)

@@ -76,5 +76,5 @@ const struct orb_metadata *get_orb_meta(ORB_ID id)
 		return nullptr;
 	}
 
-	return uorb_topics_list[static_cast<uint8_t>(id)];
+	return uorb_topics_list[static_cast<orb_id_size_t>(id)];
 }
