@@ -285,7 +285,7 @@ public:
 		return !_vertical_velocity_deadreckon_time_exceeded && !_control_status.flags.fake_hgt;
 	}
 
-	bool isTerrainEstimateValid() const { return _hagl_valid; };
+	bool isTerrainEstimateValid() const;
 
 	bool isYawFinalAlignComplete() const
 	{
@@ -450,8 +450,6 @@ private:
 	void updateDeadReckoningStatus();
 	void updateHorizontalDeadReckoningstatus();
 	void updateVerticalDeadReckoningStatus();
-
-	void updateTerrainValidity();
 
 	struct {
 		uint8_t velNE_counter;	///< number of horizontal position reset events (allow to wrap if count exceeds 255)
@@ -630,7 +628,6 @@ private:
 	float _terrain_var{1e4f};		///< variance of terrain position estimate (m**2)
 	uint8_t _terrain_vpos_reset_counter{0};	///< number of times _terrain_vpos has been reset
 	uint64_t _time_last_hagl_fuse{0};		///< last system time that a range sample was fused by the terrain estimator
-	bool _hagl_valid{false};		///< true when the height above ground estimate is valid
 	terrain_fusion_status_u _hagl_sensor_status{}; ///< Struct indicating type of sensor used to estimate height above ground
 
 	// height sensor status
@@ -766,7 +763,6 @@ private:
 	void fuseFlowForTerrain();
 
 	void controlHaglFakeFusion();
-	void resetHaglFake();
 
 	// reset the heading and magnetic field states using the declination and magnetometer measurements
 	// return true if successful
