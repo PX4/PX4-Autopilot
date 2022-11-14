@@ -45,7 +45,14 @@
 
 void Ekf::initHagl()
 {
-	resetHaglFake();
+	stopHaglFlowFusion();
+	stopHaglRngFusion();
+
+	// assume a ground clearance
+	_terrain_vpos = _state.pos(2) + _params.rng_gnd_clearance;
+
+	// use the ground clearance value as our uncertainty
+	_terrain_var = sq(_params.rng_gnd_clearance);
 }
 
 void Ekf::runTerrainEstimator()
@@ -66,8 +73,6 @@ void Ekf::runTerrainEstimator()
 	if (_terrain_vpos - _state.pos(2) < _params.rng_gnd_clearance) {
 		_terrain_vpos = _params.rng_gnd_clearance + _state.pos(2);
 	}
-
-	updateTerrainValidity();
 }
 
 void Ekf::predictHagl()
@@ -306,7 +311,7 @@ void Ekf::stopHaglFlowFusion()
 void Ekf::resetHaglFlow()
 {
 	// TODO: use the flow data
-	_terrain_vpos = fmaxf(0.0f,  _state.pos(2));
+	_terrain_vpos = fmaxf(0.0f, _state.pos(2));
 	_terrain_var = 100.0f;
 	_terrain_vpos_reset_counter++;
 }
@@ -410,27 +415,23 @@ void Ekf::controlHaglFakeFusion()
 	if (!_control_status.flags.in_air
 	    && !_hagl_sensor_status.flags.range_finder
 	    && !_hagl_sensor_status.flags.flow) {
-		resetHaglFake();
+
+		initHagl();
 	}
 }
 
-void Ekf::resetHaglFake()
-{
-	// assume a ground clearance
-	_terrain_vpos = _state.pos(2) + _params.rng_gnd_clearance;
-	// use the ground clearance value as our uncertainty
-	_terrain_var = sq(_params.rng_gnd_clearance);
-	_time_last_hagl_fuse = _imu_sample_delayed.time_us;
-}
-
-void Ekf::updateTerrainValidity()
+bool Ekf::isTerrainEstimateValid() const
 {
 	// we have been fusing range finder measurements in the last 5 seconds
-	const bool recent_range_fusion = isRecent(_time_last_hagl_fuse, (uint64_t)5e6);
+	if (_hagl_sensor_status.flags.range_finder && isRecent(_time_last_hagl_fuse, (uint64_t)5e6)) {
+		return true;
+	}
 
 	// we have been fusing optical flow measurements for terrain estimation within the last 5 seconds
 	// this can only be the case if the main filter does not fuse optical flow
-	const bool recent_flow_for_terrain_fusion = isRecent(_time_last_flow_terrain_fuse, (uint64_t)5e6);
+	if (_hagl_sensor_status.flags.flow && isRecent(_time_last_flow_terrain_fuse, (uint64_t)5e6)) {
+		return true;
+	}
 
-	_hagl_valid = (recent_range_fusion || recent_flow_for_terrain_fusion);
+	return false;
 }
