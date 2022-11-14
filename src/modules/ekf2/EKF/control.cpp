@@ -48,6 +48,22 @@ void Ekf::controlFusionModes()
 	// Store the status to enable change detection
 	_control_status_prev.value = _control_status.value;
 
+	if (_system_flag_buffer) {
+		systemFlagUpdate system_flags_delayed;
+
+		if (_system_flag_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &system_flags_delayed)) {
+
+			set_vehicle_at_rest(system_flags_delayed.at_rest);
+			set_in_air_status(system_flags_delayed.in_air);
+
+			set_is_fixed_wing(system_flags_delayed.is_fixed_wing);
+
+			if (system_flags_delayed.gnd_effect) {
+				set_gnd_effect();
+			}
+		}
+	}
+
 	// monitor the tilt alignment
 	if (!_control_status.flags.tilt_align) {
 		// whilst we are aligning the tilt, monitor the variances

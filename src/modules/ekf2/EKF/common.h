@@ -254,6 +254,14 @@ struct auxVelSample {
 	Vector2f    velVar{};      ///< estimated error variance of the NE velocity (m/sec)**2
 };
 
+struct systemFlagUpdate {
+	uint64_t time_us{};
+	bool at_rest{false};
+	bool in_air{true};
+	bool is_fixed_wing{false};
+	bool gnd_effect{false};
+};
+
 struct stateSample {
 	Quatf    quat_nominal{};        ///< quaternion defining the rotation from body to earth frame
 	Vector3f vel{};                 ///< NED velocity in earth frame in m/s
