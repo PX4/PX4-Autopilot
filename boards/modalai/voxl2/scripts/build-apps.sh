@@ -1,11 +1,11 @@
 #!/bin/bash
 
-echo "*** Starting qurt build ***"
+echo "*** Starting apps processor build ***"
 
 source /home/build-env.sh
 
-make modalai_voxl2_qurt
+make modalai_voxl2
 
 cat build/modalai_voxl2_default/src/lib/version/build_git_version.h
 
-echo "*** End of qurt build ***"
+echo "*** End of apps processor build ***"
