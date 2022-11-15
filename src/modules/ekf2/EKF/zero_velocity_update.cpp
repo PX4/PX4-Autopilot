@@ -45,15 +45,16 @@ void Ekf::controlZeroVelocityUpdate()
 
 	if (zero_velocity_update_data_ready) {
 		const bool continuing_conditions_passing = _control_status.flags.vehicle_at_rest
-				&& _control_status_prev.flags.vehicle_at_rest;
+				&& _control_status_prev.flags.vehicle_at_rest
+				&& !isVerticalVelocityAidingActive(); // otherwise the filter is "too rigid" to follow a position drift
 
 		if (continuing_conditions_passing) {
 			Vector3f vel_obs{0, 0, 0};
 			Vector3f innovation = _state.vel - vel_obs;
 
-			// Set a low variance initially for faster accel bias learning and higher
+			// Set a low variance initially for faster leveling and higher
 			// later to let the states follow the measurements
-			const float obs_var = _NED_origin_initialised ? sq(0.2f) : sq(0.001f);
+			const float obs_var = _control_status.flags.tilt_align ? sq(0.2f) : sq(0.001f);
 			Vector3f innov_var{
 				P(4, 4) + obs_var,
 				P(5, 5) + obs_var,
