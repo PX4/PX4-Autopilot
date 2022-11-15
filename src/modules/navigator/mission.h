@@ -64,6 +64,7 @@
 #include <uORB/topics/navigator_mission_item.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_roi.h>
 #include <uORB/uORB.h>
@@ -208,6 +209,8 @@ private:
 
 	void publish_navigator_mission_item();
 
+	void setCameraTrigger(bool enable);
+
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MIS_DIST_1WP>) _param_mis_dist_1wp,
 		(ParamFloat<px4::params::MIS_DIST_WPS>) _param_mis_dist_wps,
@@ -215,6 +218,9 @@ private:
 	)
 
 	uORB::Publication<navigator_mission_item_s> _navigator_mission_item_pub{ORB_ID::navigator_mission_item};
+
+	uORB::SubscriptionData<vehicle_land_detected_s> _land_detected_sub{ORB_ID(vehicle_land_detected)};	/**< vehicle land detected subscription */
+	uORB::SubscriptionData<vehicle_status_s> _vehicle_status_sub{ORB_ID(vehicle_status)};	/**< vehicle tatus subscription */
 
 	float _landing_loiter_radius{0.f};
 
@@ -232,6 +238,7 @@ private:
 	} _mission_type{MISSION_TYPE_NONE};
 
 	bool _need_mission_reset{false};
+	bool _system_disarmed_while_inactive{false};
 	bool _mission_waypoints_changed{false};
 	bool _mission_changed{false}; /** < true if the mission changed since the mission mode was active */
 
