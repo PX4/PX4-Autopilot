@@ -54,16 +54,98 @@ class MissionFeasibilityChecker: public ModuleParams
 private:
 	Navigator *_navigator{nullptr};
 
-	/* Checks for all airframes */
+	/**
+	 * @brief Check geofence validity (if available)
+	 *
+	 * Check includes:
+	 * - home position is valid if required
+	 * - home position is valid if geofence is set
+	 * - all mission items don't violate set geofence
+	 *
+	 * @param mission Mission struct
+	 * @param home_alt Home altitude [m AMSL]
+	 * @param home_valid Home valid
+	 * @return True if checks passed, False if not
+	 */
 	bool checkGeofence(const mission_s &mission, float home_alt, bool home_valid);
+
+	/**
+	 * @brief Check if Home altitude is valid if waypoints have relative altitude, and that waypoints are above it
+	 *
+	 * @param mission Mission struct
+	 * @param home_alt Home altitude [m AMSL]
+	 * @param home_alt_valid Home altitude valid
+	 * @return True if checks passed, False if not
+	 */
 	bool checkHomePositionAltitude(const mission_s &mission, float home_alt, bool home_alt_valid);
+
+	/**
+	 * @brief Check if all mission items are supported
+	 *
+	 * @param mission Mission struct
+	 * @return True if all set mission items are supported, False if not
+	 */
 	bool checkMissionItemValidity(const mission_s &mission);
+
+	/**
+	 * @brief Check if distance to first waypoint is below threshold
+	 *
+	 * @param mission Mission struct
+	 * @param max_distance Maximally allowed distance to first waypoint [m]
+	 * @return True if distance is below threshold, False if not
+	 */
 	bool checkDistanceToFirstWaypoint(const mission_s &mission, float max_distance);
+
+	/**
+	 * @brief Check if distance between consecutive waypoints is below threshold
+	 *
+	 * @param mission Mission struct
+	 * @param max_distance Maximally allowed distance between consecutive waypoints [m]
+	 * @return True if all distances between waypoints are below threshold, False if not
+	 */
 	bool checkDistancesBetweenWaypoints(const mission_s &mission, float max_distance);
+
+	/**
+	 * @brief Check if mission contains takeoff (safe in _has_takeoff), and if that takeoff is valid
+	 *
+	 * @param mission Mission struct
+	 * @param home_alt Home altitude [m AMSL]
+	 * @return True if the planned takeoff is valid, or no takeoff planned, False otherwise
+	 */
 	bool checkTakeoff(const mission_s &mission, float home_alt);
+
+	/**
+	 * @brief Check if requirement for availability of planned takeoff and/or landing is fullfilled
+	 *
+	 * The requirement is controlled through parameter MIS_TKO_LAND_REQ.
+	 * Only checks for availability of takeoff/landing, not their validity
+	 *
+	 * @return True if check passes, False if not
+	 */
 	bool checkTakeoffLandAvailable();
+
+	/**
+	 * @brief Rotary-wing vehicle: Check if mission contains landing (safe in _has_landing), and if that landing is valid
+	 *
+	 * @param mission Mission struct
+	 * @return True if the planned landing is valid, or no landing planned, False otherwise
+	 */
 	bool checkRotaryWingLanding(const mission_s &mission);
+
+	/**
+	 * @brief Fixed-wing vehicle: Check if mission contains landing (safe in _has_landing), and if that landing is valid
+	 *
+	 * @param mission Mission struct
+	 * @return True if the planned landing is valid, or no landing planned, False otherwise
+	 */
 	bool checkFixedWingLanding(const mission_s &mission);
+
+	/**
+	 * @brief VTOL vehicle: Check if mission contains landing (safe in _has_landing), and if that landing is valid
+	 *
+	 * @param mission Mission struct
+	 * @return True if the planned landing is valid, or no landing planned, False otherwise
+	 */
 	bool checkVTOLLanding(const mission_s &mission);
 
 	bool _has_takeoff{false};
