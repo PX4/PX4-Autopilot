@@ -76,7 +76,7 @@ MissionFeasibilityChecker::checkMissionFeasible(const mission_s &mission,
 		events::send(events::ID("navigator_mis_no_pos_lock"), events::Log::Info, "Not yet ready for mission, no position lock");
 
 	} else {
-		failed = failed || !checkDistanceToFirstWaypoint(mission, max_distance_to_1st_waypoint);
+		failed |= !checkDistanceToFirstWaypoint(mission, max_distance_to_1st_waypoint);
 	}
 
 	const float home_alt = _navigator->get_home_position()->alt;
@@ -85,22 +85,26 @@ MissionFeasibilityChecker::checkMissionFeasible(const mission_s &mission,
 	_has_takeoff = false;
 	_has_landing = false;
 
-	// check if all mission item commands are supported
-	failed = failed || !checkMissionItemValidity(mission);
-	failed = failed || !checkDistancesBetweenWaypoints(mission, max_distance_between_waypoints);
-	failed = failed || !checkGeofence(mission, home_alt, home_valid);
-	failed = failed || !checkHomePositionAltitude(mission, home_alt, home_alt_valid);
-	failed = failed || !checkTakeoff(mission, home_alt);
+	// run generic (for all vehicle types) checks
+	failed |= !checkMissionItemValidity(mission);
+	failed |= !checkDistancesBetweenWaypoints(mission, max_distance_between_waypoints);
+	failed |= !checkGeofence(mission, home_alt, home_valid);
+	failed |= !checkHomePositionAltitude(mission, home_alt, home_alt_valid);
+	failed |= !checkTakeoff(mission, home_alt);
 
+	// run type-specifc landing checks, which also include seting _has_landing that is used in checkTakeoffLandAvailable()
 	if (_navigator->get_vstatus()->is_vtol) {
-		failed |= (!checkTakeoff(mission, home_alt) || !checkVTOLLanding(mission) || !checkTakeoffLandAvailable());
-
-	} else if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-		failed |= (!checkTakeoff(mission, home_alt) || !checkRotaryWingLanding(mission) || !checkTakeoffLandAvailable());
+		failed |= !checkVTOLLanding(mission);
 
 	} else if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
-		failed |= (!checkTakeoff(mission, home_alt) || !checkFixedWingLanding(mission) || !checkTakeoffLandAvailable());
+		failed |= !checkFixedWingLanding(mission);
+
+	} else {
+		// if neither VTOL nor FW, only check if mission has landing but don't check that one for validity
+		_has_landing = hasMissionLanding(mission);
 	}
+
+	failed |= !checkTakeoffLandAvailable();
 
 	return !failed;
 }
@@ -413,10 +417,12 @@ MissionFeasibilityChecker::checkTakeoff(const mission_s &mission, float home_alt
 }
 
 bool
-MissionFeasibilityChecker::checkRotaryWingLanding(const mission_s &mission)
+MissionFeasibilityChecker::hasMissionLanding(const mission_s &mission)
 {
 	// Go through all mission items and search for a landing waypoint.
 	// For MC we currently do not run any checks on the validity of the planned landing.
+
+	bool mission_landing_found = false;
 
 	for (size_t i = 0; i < mission.count; i++) {
 		struct mission_item_s missionitem;
@@ -428,11 +434,11 @@ MissionFeasibilityChecker::checkRotaryWingLanding(const mission_s &mission)
 		}
 
 		if (missionitem.nav_cmd == NAV_CMD_LAND) {
-			_has_landing = true;
+			mission_landing_found = true;
 		}
 	}
 
-	return true;
+	return mission_landing_found;
 }
 
 bool
