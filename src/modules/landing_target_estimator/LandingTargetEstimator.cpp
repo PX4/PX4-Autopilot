@@ -100,6 +100,8 @@ void LandingTargetEstimator::update()
 	get_input(&input);
 
 	// No attitude or acceleration: early return;
+	// Init the estimator when landing is the next setpoint
+	// if (!input.acc_ned_valid || !_start_detection)
 	if (!input.acc_ned_valid) {
 		return;
 	}
@@ -1277,9 +1279,6 @@ void LandingTargetEstimator::get_input(accInput *input)
 			}
 		}
 	}
-
-	// Init the estimator when landing is the next setpoint
-	// if (!_start_detection) {return;};
 
 	// To save stack space, only use x,y,z,valid as global variables (_local_pos is used when the target is published)
 	_local_pos.x = vehicle_local_position.x;
