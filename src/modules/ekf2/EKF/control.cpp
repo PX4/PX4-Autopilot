@@ -47,6 +47,7 @@ void Ekf::controlFusionModes()
 {
 	// Store the status to enable change detection
 	_control_status_prev.value = _control_status.value;
+	_state_reset_count_prev = _state_reset_status.reset_count;
 
 	if (_system_flag_buffer) {
 		systemFlagUpdate system_flags_delayed;

@@ -1340,11 +1340,11 @@ void EKF2::PublishStatus(const hrt_abstime &timestamp)
 	_ekf.get_ekf_soln_status(&status.solution_status_flags);
 
 	// reset counters
-	status.reset_count_vel_ne = _ekf.state_reset_status().velNE_counter;
-	status.reset_count_vel_d = _ekf.state_reset_status().velD_counter;
-	status.reset_count_pos_ne = _ekf.state_reset_status().posNE_counter;
-	status.reset_count_pod_d = _ekf.state_reset_status().posD_counter;
-	status.reset_count_quat = _ekf.state_reset_status().quat_counter;
+	status.reset_count_vel_ne = _ekf.state_reset_status().reset_count.velNE;
+	status.reset_count_vel_d = _ekf.state_reset_status().reset_count.velD;
+	status.reset_count_pos_ne = _ekf.state_reset_status().reset_count.posNE;
+	status.reset_count_pod_d = _ekf.state_reset_status().reset_count.posD;
+	status.reset_count_quat = _ekf.state_reset_status().reset_count.quat;
 
 	status.time_slip = _last_time_slip_us * 1e-6f;
 

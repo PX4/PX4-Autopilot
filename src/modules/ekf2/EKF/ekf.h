@@ -335,43 +335,43 @@ public:
 	const auto &state_reset_status() const { return _state_reset_status; }
 
 	// return the amount the local vertical position changed in the last reset and the number of reset events
-	uint8_t get_posD_reset_count() const { return _state_reset_status.posD_counter; }
+	uint8_t get_posD_reset_count() const { return _state_reset_status.reset_count.posD; }
 	void get_posD_reset(float *delta, uint8_t *counter) const
 	{
 		*delta = _state_reset_status.posD_change;
-		*counter = _state_reset_status.posD_counter;
+		*counter = _state_reset_status.reset_count.posD;
 	}
 
 	// return the amount the local vertical velocity changed in the last reset and the number of reset events
-	uint8_t get_velD_reset_count() const { return _state_reset_status.velD_counter; }
+	uint8_t get_velD_reset_count() const { return _state_reset_status.reset_count.velD; }
 	void get_velD_reset(float *delta, uint8_t *counter) const
 	{
 		*delta = _state_reset_status.velD_change;
-		*counter = _state_reset_status.velD_counter;
+		*counter = _state_reset_status.reset_count.velD;
 	}
 
 	// return the amount the local horizontal position changed in the last reset and the number of reset events
-	uint8_t get_posNE_reset_count() const { return _state_reset_status.posNE_counter; }
+	uint8_t get_posNE_reset_count() const { return _state_reset_status.reset_count.posNE; }
 	void get_posNE_reset(float delta[2], uint8_t *counter) const
 	{
 		_state_reset_status.posNE_change.copyTo(delta);
-		*counter = _state_reset_status.posNE_counter;
+		*counter = _state_reset_status.reset_count.posNE;
 	}
 
 	// return the amount the local horizontal velocity changed in the last reset and the number of reset events
-	uint8_t get_velNE_reset_count() const { return _state_reset_status.velNE_counter; }
+	uint8_t get_velNE_reset_count() const { return _state_reset_status.reset_count.velNE; }
 	void get_velNE_reset(float delta[2], uint8_t *counter) const
 	{
 		_state_reset_status.velNE_change.copyTo(delta);
-		*counter = _state_reset_status.velNE_counter;
+		*counter = _state_reset_status.reset_count.velNE;
 	}
 
 	// return the amount the quaternion has changed in the last reset and the number of reset events
-	uint8_t get_quat_reset_count() const { return _state_reset_status.quat_counter; }
+	uint8_t get_quat_reset_count() const { return _state_reset_status.reset_count.quat; }
 	void get_quat_reset(float delta_quat[4], uint8_t *counter) const
 	{
 		_state_reset_status.quat_change.copyTo(delta_quat);
-		*counter = _state_reset_status.quat_counter;
+		*counter = _state_reset_status.reset_count.quat;
 	}
 
 	// get EKF innovation consistency check status information comprising of:
@@ -451,18 +451,27 @@ private:
 	void updateHorizontalDeadReckoningstatus();
 	void updateVerticalDeadReckoningStatus();
 
-	struct {
-		uint8_t velNE_counter;	///< number of horizontal position reset events (allow to wrap if count exceeds 255)
-		uint8_t velD_counter;	///< number of vertical velocity reset events (allow to wrap if count exceeds 255)
-		uint8_t posNE_counter;	///< number of horizontal position reset events (allow to wrap if count exceeds 255)
-		uint8_t posD_counter;	///< number of vertical position reset events (allow to wrap if count exceeds 255)
-		uint8_t quat_counter;	///< number of quaternion reset events (allow to wrap if count exceeds 255)
+	struct StateResetCounts
+	{
+		uint8_t velNE{0};	///< number of horizontal position reset events (allow to wrap if count exceeds 255)
+		uint8_t velD{0};	///< number of vertical velocity reset events (allow to wrap if count exceeds 255)
+		uint8_t posNE{0};	///< number of horizontal position reset events (allow to wrap if count exceeds 255)
+		uint8_t posD{0};	///< number of vertical position reset events (allow to wrap if count exceeds 255)
+		uint8_t quat{0};	///< number of quaternion reset events (allow to wrap if count exceeds 255)
+	};
+
+	struct StateResets {
 		Vector2f velNE_change;  ///< North East velocity change due to last reset (m)
 		float velD_change;	///< Down velocity change due to last reset (m/sec)
 		Vector2f posNE_change;	///< North, East position change due to last reset (m)
 		float posD_change;	///< Down position change due to last reset (m)
 		Quatf quat_change;	///< quaternion delta due to last reset - multiply pre-reset quaternion by this to get post-reset quaternion
-	} _state_reset_status{};	///< reset event monitoring structure containing velocity, position, height and yaw reset information
+
+		StateResetCounts reset_count{};
+	};
+
+	StateResets _state_reset_status{};	///< reset event monitoring structure containing velocity, position, height and yaw reset information
+	StateResetCounts _state_reset_count_prev{};
 
 	Vector3f _ang_rate_delayed_raw{};	///< uncorrected angular rate vector at fusion time horizon (rad/sec)
 
