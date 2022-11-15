@@ -77,8 +77,16 @@ void Ekf::resetHorizontalVelocityTo(const Vector2f &new_horz_vel, const Vector2f
 
 	_output_new.vel.xy() += delta_horz_vel;
 
-	_state_reset_status.velNE_change = delta_horz_vel;
-	_state_reset_status.velNE_counter++;
+	// record the state change
+	if (_state_reset_status.reset_count.velNE == _state_reset_count_prev.velNE) {
+		_state_reset_status.velNE_change = delta_horz_vel;
+
+	} else {
+		// there's already a reset this update, accumulate total delta
+		_state_reset_status.velNE_change += delta_horz_vel;
+	}
+
+	_state_reset_status.reset_count.velNE++;
 
 	// Reset the timout timer
 	_time_last_hor_vel_fuse = _imu_sample_delayed.time_us;
@@ -101,8 +109,16 @@ void Ekf::resetVerticalVelocityTo(float new_vert_vel, float new_vert_vel_var)
 	_output_new.vel(2) += delta_vert_vel;
 	_output_vert_new.vert_vel += delta_vert_vel;
 
-	_state_reset_status.velD_change = delta_vert_vel;
-	_state_reset_status.velD_counter++;
+	// record the state change
+	if (_state_reset_status.reset_count.velD == _state_reset_count_prev.velD) {
+		_state_reset_status.velD_change = delta_vert_vel;
+
+	} else {
+		// there's already a reset this update, accumulate total delta
+		_state_reset_status.velD_change += delta_vert_vel;
+	}
+
+	_state_reset_status.reset_count.velD++;
 
 	// Reset the timout timer
 	_time_last_ver_vel_fuse = _imu_sample_delayed.time_us;
@@ -151,8 +167,16 @@ void Ekf::resetHorizontalPositionTo(const Vector2f &new_horz_pos, const Vector2f
 
 	_output_new.pos.xy() += delta_horz_pos;
 
-	_state_reset_status.posNE_change = delta_horz_pos;
-	_state_reset_status.posNE_counter++;
+	// record the state change
+	if (_state_reset_status.reset_count.posNE == _state_reset_count_prev.posNE) {
+		_state_reset_status.posNE_change = delta_horz_pos;
+
+	} else {
+		// there's already a reset this update, accumulate total delta
+		_state_reset_status.posNE_change += delta_horz_pos;
+	}
+
+	_state_reset_status.reset_count.posNE++;
 
 	// Reset the timout timer
 	_time_last_hor_pos_fuse = _imu_sample_delayed.time_us;
@@ -180,27 +204,36 @@ void Ekf::resetVerticalPositionTo(const float new_vert_pos, float new_vert_pos_v
 		P.uncorrelateCovarianceSetVariance<1>(9, math::max(sq(0.01f), new_vert_pos_var));
 	}
 
-	// store the reset amount and time to be published
-	_state_reset_status.posD_change = new_vert_pos - old_vert_pos;
-	_state_reset_status.posD_counter++;
+	const float delta_z = new_vert_pos - old_vert_pos;
 
 	// apply the change in height / height rate to our newest height / height rate estimate
 	// which have already been taken out from the output buffer
-	_output_new.pos(2) += _state_reset_status.posD_change;
+	_output_new.pos(2) += delta_z;
 
 	// add the reset amount to the output observer buffered data
 	for (uint8_t i = 0; i < _output_buffer.get_length(); i++) {
-		_output_buffer[i].pos(2) += _state_reset_status.posD_change;
-		_output_vert_buffer[i].vert_vel_integ += _state_reset_status.posD_change;
+		_output_buffer[i].pos(2) += delta_z;
+		_output_vert_buffer[i].vert_vel_integ += delta_z;
 	}
 
 	// add the reset amount to the output observer vertical position state
 	_output_vert_new.vert_vel_integ = _state.pos(2);
 
-	_baro_b_est.setBias(_baro_b_est.getBias() + _state_reset_status.posD_change);
-	_ev_hgt_b_est.setBias(_ev_hgt_b_est.getBias() - _state_reset_status.posD_change);
-	_gps_hgt_b_est.setBias(_gps_hgt_b_est.getBias() + _state_reset_status.posD_change);
-	_rng_hgt_b_est.setBias(_rng_hgt_b_est.getBias() + _state_reset_status.posD_change);
+	// record the state change
+	if (_state_reset_status.reset_count.posD == _state_reset_count_prev.posD) {
+		_state_reset_status.posD_change = delta_z;
+
+	} else {
+		// there's already a reset this update, accumulate total delta
+		_state_reset_status.posD_change += delta_z;
+	}
+
+	_state_reset_status.reset_count.posD++;
+
+	_baro_b_est.setBias(_baro_b_est.getBias() + delta_z);
+	_ev_hgt_b_est.setBias(_ev_hgt_b_est.getBias() - delta_z);
+	_gps_hgt_b_est.setBias(_gps_hgt_b_est.getBias() + delta_z);
+	_rng_hgt_b_est.setBias(_rng_hgt_b_est.getBias() + delta_z);
 
 	// Reset the timout timer
 	_time_last_hgt_fuse = _imu_sample_delayed.time_us;
@@ -1384,9 +1417,6 @@ void Ekf::resetQuatStateYaw(float yaw, float yaw_variance)
 	_state.quat_nominal = quat_after_reset;
 	uncorrelateQuatFromOtherStates();
 
-	// record the state change
-	_state_reset_status.quat_change = q_error;
-
 	// update the yaw angle variance
 	if (yaw_variance > FLT_EPSILON) {
 		increaseQuatYawErrVariance(yaw_variance);
@@ -1394,17 +1424,26 @@ void Ekf::resetQuatStateYaw(float yaw, float yaw_variance)
 
 	// add the reset amount to the output observer buffered data
 	for (uint8_t i = 0; i < _output_buffer.get_length(); i++) {
-		_output_buffer[i].quat_nominal = _state_reset_status.quat_change * _output_buffer[i].quat_nominal;
+		_output_buffer[i].quat_nominal = q_error * _output_buffer[i].quat_nominal;
 	}
 
 	// apply the change in attitude quaternion to our newest quaternion estimate
 	// which was already taken out from the output buffer
-	_output_new.quat_nominal = _state_reset_status.quat_change * _output_new.quat_nominal;
+	_output_new.quat_nominal = q_error * _output_new.quat_nominal;
+
+	// record the state change
+	if (_state_reset_status.reset_count.quat == _state_reset_count_prev.quat) {
+		_state_reset_status.quat_change = q_error;
+
+	} else {
+		// there's already a reset this update, accumulate total delta
+		_state_reset_status.quat_change = q_error * _state_reset_status.quat_change;
+		_state_reset_status.quat_change.normalize();
+	}
+
+	_state_reset_status.reset_count.quat++;
 
 	_last_static_yaw = NAN;
-
-	// capture the reset event
-	_state_reset_status.quat_counter++;
 }
 
 // Resets the main Nav EKf yaw to the estimator from the EKF-GSF yaw estimator
