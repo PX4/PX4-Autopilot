@@ -97,17 +97,13 @@ if(EXISTS "${PX4_BOARD_DIR}/cmake/upload.cmake")
 	include(${PX4_BOARD_DIR}/cmake/upload.cmake)
 endif()
 
+# board defined link libraries
+if(EXISTS "${PX4_BOARD_DIR}/cmake/link_libraries.cmake")
+	include(${PX4_BOARD_DIR}/cmake/link_libraries.cmake)
+endif()
 
 if("${PX4_BOARD}" MATCHES "beaglebone_blue")
 	target_link_libraries(px4 PRIVATE robotics_cape)
-
-elseif("${PX4_BOARD}" MATCHES "modalai_voxl2")
-	# libfc_sensor.so is provided in the Docker build environment
-	target_link_libraries(px4 PRIVATE
-			/home/libfc_sensor.so
-			px4_layer
-			${module_libraries}
-	)
 
 elseif("${PX4_BOARD}" MATCHES "emlid_navio2")
 	target_link_libraries(px4 PRIVATE atomic)

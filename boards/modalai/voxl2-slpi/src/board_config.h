@@ -42,9 +42,10 @@
 #define BOARD_HAS_NO_RESET
 #define BOARD_HAS_NO_BOOTLOADER
 #define ORB_COMMUNICATOR 1
-
-// Define this as empty since there are no I2C buses
-#define BOARD_I2C_BUS_CLOCK_INIT
+/*
+ * I2C buses
+ */
+#define PX4_NUMBER_I2C_BUSES    3
 
 #include <system_config.h>
 #include <px4_platform_common/board_common.h>
