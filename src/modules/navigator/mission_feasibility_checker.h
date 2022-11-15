@@ -125,12 +125,12 @@ private:
 	bool checkTakeoffLandAvailable();
 
 	/**
-	 * @brief Rotary-wing vehicle: Check if mission contains landing (safe in _has_landing), and if that landing is valid
+	 * @brief Check if mission contains landing
 	 *
 	 * @param mission Mission struct
-	 * @return True if the planned landing is valid, or no landing planned, False otherwise
+	 * @return True if mission contains a landing, False if otherwise
 	 */
-	bool checkRotaryWingLanding(const mission_s &mission);
+	bool hasMissionLanding(const mission_s &mission);
 
 	/**
 	 * @brief Fixed-wing vehicle: Check if mission contains landing (safe in _has_landing), and if that landing is valid
