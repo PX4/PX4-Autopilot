@@ -53,11 +53,13 @@
 #define MPFS_DOMAIN_MAX_COUNT                4
 #define MPFS_DOMAIN_REGION_MAX_COUNT        12
 
-#define MPFS_SEL4_HART                1
-#define MPFS_LINUX_HART               3
-
-#define SEL4_BOOTADDRESS              CONFIG_MPFS_HART1_ENTRYPOINT
-#define LINUX_BOOTADDRESS             CONFIG_MPFS_HART3_ENTRYPOINT
+struct mpfs_domain {
+	const char *domain_name;
+	const int *harts;
+	const unsigned n_of_harts;
+	const uintptr_t bootaddress;
+	const bool reset_allowed;
+};
 
 /****************************************************************************
  * Private Data
@@ -70,6 +72,31 @@ static struct sbi_domain_memregion
 	0
 };
 
+static const int linux_harts[] = {1, 3, 4};
+
+#if CONFIG_MPFS_HART2_SBI
+static const int px4_harts[] = {2};
+#endif
+
+static const struct mpfs_domain domains[] = {
+	{
+		.domain_name = "Linux-Ree-Domain",
+		.harts = linux_harts,
+		.n_of_harts = sizeof(linux_harts) / sizeof(linux_harts[0]),
+		.bootaddress = CONFIG_MPFS_HART3_ENTRYPOINT,
+		.reset_allowed = false,
+	},
+#if CONFIG_MPFS_HART2_SBI
+	{
+		.domain_name = "PX4-Ree-Domain",
+		.harts = px4_harts,
+		.n_of_harts = sizeof(px4_harts) / sizeof(px4_harts[0]),
+		.bootaddress = CONFIG_MPFS_HART2_ENTRYPOINT,
+		.reset_allowed = true,
+	},
+#endif
+};
+
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -78,11 +105,7 @@ static struct sbi_domain_memregion
  * Name: mpfs_domains_init
  *
  * Description:
- *   Initializes the domain structures. Hard coded values
- *   Domain 1: (SEL4)
- *        Hart 1, Access (RWX) to all memory
- *   Domain 2: (Linux)
- *        Hart 3 and 4, Access (RWX) to all memory
+ *   Initializes the domain structures from the hard coded domains table
  *
  * Input Parameters:
  *   None
@@ -95,20 +118,9 @@ static struct sbi_domain_memregion
 int board_domains_init(void)
 {
 	int err = -1;
-	int i = 1;
+	unsigned i;
+	unsigned j;
 	struct sbi_domain_memregion *reg;
-
-	const char sel4_domain_name[] = "Sel4-Tee-Domain";
-	const char linux_domain_name[] = "Linux-Ree-Domain";
-
-	/* Hard code Sel4 domain for hart 1 */
-
-	mpfs_domains[0].boot_hartid = MPFS_SEL4_HART;
-	sbi_strncpy(mpfs_domains[0].name,
-		    sel4_domain_name, sizeof(sel4_domain_name));
-	mpfs_domains[0].next_addr = SEL4_BOOTADDRESS;
-	mpfs_domains[0].next_mode = PRV_S;
-	mpfs_domains[0].next_arg1 = 0;
 
 	/* All memory, all access */
 
@@ -118,27 +130,11 @@ int board_domains_init(void)
 				   SBI_DOMAIN_MEMREGION_EXECUTABLE),
 				  &mpfs_regions[0]);
 
-	mpfs_domains[0].regions = mpfs_regions;
-	sbi_hartmask_set_hart(1, &mpfs_masks[0]);
-	mpfs_domains[0].possible_harts = &mpfs_masks[0];
-	mpfs_domains[0].system_reset_allowed = true;
-
-	/* Linux Domain, hart 3,4 */
-
-	mpfs_domains[1].boot_hartid = MPFS_LINUX_HART;
-	sbi_strncpy(mpfs_domains[1].name,
-		    linux_domain_name, sizeof(linux_domain_name));
-	mpfs_domains[1].next_addr = LINUX_BOOTADDRESS;
-	mpfs_domains[1].next_mode = PRV_S;
-	mpfs_domains[1].next_arg1 = 0;
-
-	mpfs_domains[1].regions = mpfs_regions;
-	sbi_hartmask_set_hart(3, &mpfs_masks[1]);
-	sbi_hartmask_set_hart(4, &mpfs_masks[1]);
-	mpfs_domains[1].possible_harts = &mpfs_masks[1];
+	/* Add to root domain */
 
 	sbi_domain_root_add_memregion(&mpfs_regions[0]);
 
+	i = 1;
 	sbi_domain_for_each_memregion(&root, reg) {
 		if ((reg->flags & SBI_DOMAIN_MEMREGION_READABLE) ||
 		    (reg->flags & SBI_DOMAIN_MEMREGION_WRITEABLE) ||
@@ -153,18 +149,35 @@ int board_domains_init(void)
 		sbi_memcpy(&mpfs_regions[i++], reg, sizeof(*reg));
 	}
 
-	err = sbi_domain_register(&mpfs_domains[0], &mpfs_masks[0]);
+	/* Go through the constant configuration list */
 
-	if (err) {
-		sbi_printf("Sel4 Domain Register failed %d\n", err);
-		return err;
-	}
+	for (i = 0; i < sizeof(domains) / sizeof(domains[0]); i++) {
 
-	err = sbi_domain_register(&mpfs_domains[1], &mpfs_masks[1]);
+		/* Set first hart id in the list as boot hart */
+		mpfs_domains[i].boot_hartid = domains[i].harts[0];
+		sbi_strncpy(mpfs_domains[i].name,
+			    domains[i].domain_name, sizeof(mpfs_domains[i].name));
 
-	if (err) {
-		sbi_printf("Linux Domain Register failed %d\n", err);
-		return err;
+		mpfs_domains[i].next_addr = domains[i].bootaddress;
+		mpfs_domains[i].next_mode = PRV_S;
+		mpfs_domains[i].next_arg1 = 0;
+		mpfs_domains[i].regions = mpfs_regions;
+
+		for (j = 0; j < domains[i].n_of_harts; j++) {
+			sbi_hartmask_set_hart(domains[i].harts[j], &mpfs_masks[i]);
+		}
+
+		mpfs_domains[i].possible_harts = &mpfs_masks[i];
+		mpfs_domains[i].system_reset_allowed = domains[i].reset_allowed;
+
+		/* Register the domain */
+
+		err = sbi_domain_register(&mpfs_domains[i], &mpfs_masks[i]);
+
+		if (err) {
+			sbi_printf("%s register failed %d\n", domains[i].domain_name, err);
+			return err;
+		}
 	}
 
 	return 0;
