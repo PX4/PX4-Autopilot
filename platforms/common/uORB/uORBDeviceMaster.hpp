@@ -39,6 +39,7 @@
 #include <uORB/topics/uORBTopics.hpp>
 
 #include <px4_platform_common/posix.h>
+#include <px4_platform_common/px4_config.h>
 
 namespace uORB
 {

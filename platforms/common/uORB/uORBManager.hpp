@@ -40,6 +40,7 @@
 
 #include <uORB/topics/uORBTopics.hpp> // For ORB_ID enum
 #include <stdint.h>
+#include <px4_platform_common/px4_config.h>
 
 #ifdef CONFIG_ORB_COMMUNICATOR
 #include "ORBSet.hpp"
