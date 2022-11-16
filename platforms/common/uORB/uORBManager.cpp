@@ -197,7 +197,7 @@ int	uORB::Manager::orb_ioctl(unsigned int cmd, unsigned long arg)
 		}
 		break;
 
-	case ORBIOCDEVGETINSTApNCE: {
+	case ORBIOCDEVGETINSTANCE: {
 			orbiocdevgetinstance_t *data = (orbiocdevgetinstance_t *)arg;
 			data->instance = uORB::Manager::orb_get_instance(data->handle);
 		}
