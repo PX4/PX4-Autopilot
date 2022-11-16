@@ -166,3 +166,15 @@ PARAM_DEFINE_INT32(MAV_ODOM_LP, 0);
  * @max 250
  */
 PARAM_DEFINE_INT32(MAV_RADIO_TOUT, 5);
+
+/**
+ * Message forwarding for USB MAVLink instance.
+ *
+ * When set, messages are forwarded to the USB MAVLink instance.
+ * This is equivalent to e.g. the MAV_0_FORWARD, for MAVLink instance 0.
+ *
+ * @boolean
+ * @reboot_required true
+ * @group MAVLink
+ */
+PARAM_DEFINE_INT32(MAV_S_FORWARD, 0);

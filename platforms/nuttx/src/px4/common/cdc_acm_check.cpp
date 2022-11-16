@@ -47,6 +47,7 @@ extern int sercon_main(int c, char **argv);
 extern int serdis_main(int c, char **argv);
 __END_DECLS
 
+#include <lib/parameters/param.h>
 #include <px4_platform_common/shutdown.h>
 
 #include <uORB/Subscription.hpp>
@@ -275,11 +276,15 @@ static void mavlink_usb_check(void *arg)
 								// Get the current settings
 								tcgetattr(ttyacm_fd, &uart_config);
 
+								int32_t forward_on = false;
+								param_get(param_find("MAV_S_FORWARD"), &forward_on);
+
 								// cleanup serial port
 								close(ttyacm_fd);
 								ttyacm_fd = -1;
 
-								static const char *mavlink_argv[] {"mavlink", "start", "-d", USB_DEVICE_PATH, nullptr};
+								static const char *mavlink_argv[] = {"mavlink", "start", "-d", USB_DEVICE_PATH, nullptr};
+								static const char *mavlink_argv_with_forwarding[] = {"mavlink", "start", "-d", USB_DEVICE_PATH, "-f", nullptr};
 								static const char *nshterm_argv[] {"nshterm", USB_DEVICE_PATH, nullptr};
 #if defined(CONFIG_SERIAL_PASSTHRU_UBLOX)
 								speed_t baudrate = cfgetspeed(&uart_config);
@@ -295,7 +300,12 @@ static void mavlink_usb_check(void *arg)
 									exec_argv = (char **)nshterm_argv;
 
 								} else if (launch_mavlink) {
-									exec_argv = (char **)mavlink_argv;
+									if (forward_on) {
+										exec_argv = (char **)mavlink_argv_with_forwarding;
+
+									} else {
+										exec_argv = (char **)mavlink_argv;
+									}
 								}
 
 #if defined(CONFIG_SERIAL_PASSTHRU_UBLOX)
