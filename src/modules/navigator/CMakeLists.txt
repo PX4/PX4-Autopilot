@@ -46,6 +46,7 @@ px4_add_module(
 		takeoff.cpp
 		land.cpp
 		precland.cpp
+		precland_mode.cpp
 		mission_feasibility_checker.cpp
 		geofence.cpp
 		vtol_takeoff.cpp

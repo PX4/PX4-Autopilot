@@ -45,6 +45,7 @@
 
 #include "navigator_mode.h"
 #include "mission_block.h"
+#include "precland.h"
 
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/home_position.h>
@@ -118,6 +119,8 @@ private:
 
 	void set_rtl_item();
 
+	void set_prec_land_item();
+
 	void advance_rtl();
 
 	float calculate_return_alt_from_cone_half_angle(float cone_half_angle_deg);
@@ -134,6 +137,8 @@ private:
 	float getHoverLandSpeed();
 
 	RTLState _rtl_state{RTL_STATE_NONE};
+
+	PrecLand _precland;
 
 	struct RTLPosition {
 		double lat;

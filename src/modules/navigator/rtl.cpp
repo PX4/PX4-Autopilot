@@ -69,9 +69,7 @@ RTL::RTL(Navigator *navigator) :
 
 void RTL::on_inactivation()
 {
-	if (_navigator->get_precland()->is_activated()) {
-		_navigator->get_precland()->on_inactivation();
-	}
+
 }
 
 void RTL::on_inactive()
@@ -303,10 +301,8 @@ void RTL::on_active()
 	}
 
 	if (_rtl_state == RTL_STATE_LAND && _param_rtl_pld_md.get() > 0) {
-		_navigator->get_precland()->on_active();
-
-	} else if (_navigator->get_precland()->is_activated()) {
-		_navigator->get_precland()->on_inactivation();
+		// Need to update the position and type on the current setpoint triplet.
+		set_prec_land_item();
 	}
 
 	// Limit rtl time calculation to 1Hz
@@ -566,13 +562,22 @@ void RTL::set_rtl_item()
 			_mission_item.origin = ORIGIN_ONBOARD;
 			_mission_item.land_precision = _param_rtl_pld_md.get();
 
-			if (_mission_item.land_precision == 1) {
-				_navigator->get_precland()->set_mode(PrecLandMode::Opportunistic);
-				_navigator->get_precland()->on_activation();
+			if (_mission_item.land_precision > 0u && _mission_item.land_precision <= 2u) {
+				_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 
-			} else if (_mission_item.land_precision == 2) {
-				_navigator->get_precland()->set_mode(PrecLandMode::Required);
-				_navigator->get_precland()->on_activation();
+				if (_mission_item.land_precision == 1) {
+					_precland.setMode(PrecLand::PrecLandMode::Opportunistic);
+
+				} else if (_mission_item.land_precision == 2) {
+					_precland.setMode(PrecLand::PrecLandMode::Required);
+				}
+
+				PrecLand::LandingPosition2D approximate_landing_pos{
+					.lat = _mission_item.lat,
+					.lon = _mission_item.lon,
+				};
+
+				_precland.initialize(approximate_landing_pos);
 			}
 
 			mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: land at destination\t");
@@ -599,6 +604,29 @@ void RTL::set_rtl_item()
 
 	// Convert mission item to current position setpoint and make it valid.
 	mission_apply_limitation(_mission_item);
+
+	if (mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current)) {
+		_navigator->set_position_setpoint_triplet_updated();
+	}
+}
+
+void RTL::set_prec_land_item()
+{
+	_precland.setAcceptanceRadius(_navigator->get_acceptance_radius());
+	_precland.update();
+	PrecLand::Output prec_land_output{_precland.getOutput()};
+	_mission_item.altitude = prec_land_output.alt;
+	_mission_item.lat = prec_land_output.pos_hor.lat;
+	_mission_item.lon = prec_land_output.pos_hor.lon;
+	_mission_item.nav_cmd = prec_land_output.nav_cmd;
+
+	// Convert mission item to current position setpoint and make it valid.
+	mission_apply_limitation(_mission_item);
+
+	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+
+	pos_sp_triplet->previous.valid = false;
+	pos_sp_triplet->next.valid = false;
 
 	if (mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current)) {
 		_navigator->set_position_setpoint_triplet_updated();

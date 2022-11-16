@@ -176,10 +176,6 @@ Mission::on_inactivation()
 	_navigator->stop_capturing_images();
 	_navigator->release_gimbal_control();
 
-	if (_navigator->get_precland()->is_activated()) {
-		_navigator->get_precland()->on_inactivation();
-	}
-
 	_time_mission_deactivated = hrt_absolute_time();
 
 	/* reset so current mission item gets restarted if mission was paused */
@@ -298,10 +294,25 @@ Mission::on_active()
 	}
 
 	if (_work_item_type == WORK_ITEM_TYPE_PRECISION_LAND) {
-		_navigator->get_precland()->on_active();
+		// Update the position in the setpoint triplet.
+		_precland.setAcceptanceRadius(_navigator->get_acceptance_radius());
+		_precland.update();
+		PrecLand::Output prec_land_output{_precland.getOutput()};
 
-	} else if (_navigator->get_precland()->is_activated()) {
-		_navigator->get_precland()->on_inactivation();
+		_mission_item.altitude = prec_land_output.alt;
+		_mission_item.lat = prec_land_output.pos_hor.lat;
+		_mission_item.lon = prec_land_output.pos_hor.lon;
+		_mission_item.nav_cmd = prec_land_output.nav_cmd;
+
+		mission_apply_limitation(_mission_item);
+
+		position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+		pos_sp_triplet->previous.valid = false;
+		pos_sp_triplet->next.valid = false;
+
+		if (mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current)) {
+			_navigator->set_position_setpoint_triplet_updated();
+		}
 	}
 }
 
@@ -983,13 +994,17 @@ Mission::set_mission_items()
 						new_work_item_type = WORK_ITEM_TYPE_PRECISION_LAND;
 
 						if (_mission_item.land_precision == 1) {
-							_navigator->get_precland()->set_mode(PrecLandMode::Opportunistic);
+							_precland.setMode(PrecLand::PrecLandMode::Opportunistic);
 
 						} else { //_mission_item.land_precision == 2
-							_navigator->get_precland()->set_mode(PrecLandMode::Required);
+							_precland.setMode(PrecLand::PrecLandMode::Required);
 						}
 
-						_navigator->get_precland()->on_activation();
+						PrecLand::LandingPosition2D approximate_landing_pos{
+							.lat = _mission_item.lat,
+							.lon = _mission_item.lon,
+						};
+						_precland.initialize(approximate_landing_pos);
 
 					}
 				}
@@ -1002,13 +1017,17 @@ Mission::set_mission_items()
 						new_work_item_type = WORK_ITEM_TYPE_PRECISION_LAND;
 
 						if (_mission_item.land_precision == 1) {
-							_navigator->get_precland()->set_mode(PrecLandMode::Opportunistic);
+							_precland.setMode(PrecLand::PrecLandMode::Opportunistic);
 
 						} else { //_mission_item.land_precision == 2
-							_navigator->get_precland()->set_mode(PrecLandMode::Required);
+							_precland.setMode(PrecLand::PrecLandMode::Required);
 						}
 
-						_navigator->get_precland()->on_activation();
+						PrecLand::LandingPosition2D approximate_landing_pos{
+							.lat = _mission_item.lat,
+							.lon = _mission_item.lon,
+						};
+						_precland.initialize(approximate_landing_pos);
 
 					}
 

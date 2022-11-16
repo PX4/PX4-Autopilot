@@ -43,45 +43,61 @@
 #include <matrix/math.hpp>
 #include <lib/geo/geo.h>
 #include <px4_platform_common/module_params.h>
+#include <uORB/uORB.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/landing_target_pose.h>
+#include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/vehicle_local_position.h>
 
-#include "navigator_mode.h"
-#include "mission_block.h"
+#include "navigator/navigation.h"
 
-enum class PrecLandState {
-	Start, // Starting state
-	HorizontalApproach, // Positioning over landing target while maintaining altitude
-	DescendAboveTarget, // Stay over landing target while descending
-	FinalApproach, // Final landing approach, even without landing target
-	Search, // Search for landing target
-	Fallback, // Fallback landing method
-	Done // Done landing
-};
-
-enum class PrecLandMode {
-	Opportunistic = 1, // only do precision landing if landing target visible at the beginning
-	Required = 2 // try to find landing target if not visible at the beginning
-};
-
-class PrecLand : public MissionBlock, public ModuleParams
+class PrecLand : public ModuleParams
 {
 public:
-	PrecLand(Navigator *navigator);
-	~PrecLand() override = default;
+	enum class PrecLandMode {
+		Opportunistic = 1, // only do precision landing if landing target visible at the beginning
+		Required = 2 // try to find landing target if not visible at the beginning
+	};
 
-	void on_activation() override;
-	void on_active() override;
-	void on_inactivation() override;
+	struct LandingPosition2D {
+		double lat;
+		double lon;
+	};
 
-	void set_mode(PrecLandMode mode) { _mode = mode; };
+	struct Output {
+		LandingPosition2D pos_hor;
+		float alt;
+		enum NAV_CMD nav_cmd;
+	};
 
-	PrecLandMode get_mode() { return _mode; };
+public:
+	PrecLand();
+	~PrecLand() = default;
 
-	bool is_activated() { return _is_activated; };
+	void initialize(const LandingPosition2D &approximate_landing_pos);
+	void update();
+
+	Output getOutput() {return _output;};
+
+	void setMode(PrecLandMode mode) { _mode = mode; };
+
+	void setAcceptanceRadius(float acceptance_radius) {_acceptance_radius = acceptance_radius;};
+
+	PrecLandMode getMode() { return _mode; };
 
 private:
+	enum class PrecLandState {
+		Start, // Starting state
+		HorizontalApproach, // Positioning over landing target while maintaining altitude
+		DescendAboveTarget, // Stay over landing target while descending
+		FinalApproach, // Final landing approach, even without landing target
+		Search, // Search for landing target
+		Fallback, // Fallback landing method
+		Done // Done landing
+	};
 
+private:
 	void updateParams() override;
 
 	// run the control loop for each state
@@ -91,6 +107,7 @@ private:
 	void run_state_final_approach();
 	void run_state_search();
 	void run_state_fallback();
+	void run_state_done();
 
 	// attempt to switch to a different state. Returns true if state change was successful, false otherwise
 	bool switch_to_state_start();
@@ -107,9 +124,14 @@ private:
 	bool check_state_conditions(PrecLandState state);
 	void slewrate(float &sp_x, float &sp_y);
 
-	landing_target_pose_s _target_pose{}; /**< precision landing target position */
+	LandingPosition2D _approximate_landing_pos{}; /**< Global position in WGS84 at which to find the landing target.*/
+	float _acceptance_radius{};
 
-	uORB::Subscription _target_pose_sub{ORB_ID(landing_target_pose)};
+	uORB::SubscriptionData<landing_target_pose_s> _target_pose_sub{ORB_ID(landing_target_pose)};
+	uORB::SubscriptionData<vehicle_land_detected_s> _land_detected_sub{ORB_ID(vehicle_land_detected)};	/**< vehicle land detected subscription */
+	uORB::SubscriptionData<vehicle_global_position_s> _global_pos_sub{ORB_ID(vehicle_global_position)};	/**< global position subscription */
+	uORB::SubscriptionData<vehicle_local_position_s> _local_pos_sub{ORB_ID(vehicle_local_position)};	/**< local position subscription */
+
 	bool _target_pose_valid{false}; /**< whether we have received a landing target position message */
 	bool _target_pose_updated{false}; /**< wether the landing target position message is updated */
 
@@ -130,7 +152,7 @@ private:
 
 	PrecLandMode _mode{PrecLandMode::Opportunistic};
 
-	bool _is_activated {false}; /**< indicates if precland is activated */
+	Output _output;
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::PLD_BTOUT>) _param_pld_btout,

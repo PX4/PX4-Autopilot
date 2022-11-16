@@ -49,6 +49,7 @@
 #include "mission_block.h"
 #include "mission_feasibility_checker.h"
 #include "navigator_mode.h"
+#include "precland.h"
 
 #include <float.h>
 
@@ -269,6 +270,8 @@ private:
 	bool _need_takeoff{true};					/**< if true, then takeoff must be performed before going to the first waypoint (if needed) */
 
 	hrt_abstime _time_mission_deactivated{0};
+
+	PrecLand _precland;
 
 	enum {
 		MISSION_TYPE_NONE,
