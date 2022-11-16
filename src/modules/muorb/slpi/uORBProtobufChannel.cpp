@@ -40,6 +40,8 @@
 #include <pthread.h>
 #include <px4_platform_common/tasks.h>
 #include <px4_platform_common/log.h>
+#include <lib/parameters/param.h>
+#include <uORB/topics/ping.h>
 
 // Definition of test to run when in muorb test mode
 static MUORBTestType test_to_run;
@@ -53,7 +55,7 @@ std::map<std::string, int> uORB::ProtobufChannel::_AppsSubscriberCache;
 pthread_mutex_t uORB::ProtobufChannel::_rx_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t uORB::ProtobufChannel::_tx_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-bool uORB::ProtobufChannel::_debug = false;
+bool uORB::ProtobufChannel::_debug = true;
 bool _px4_muorb_debug = false;
 static bool px4muorb_orb_initialized = false;
 
@@ -192,6 +194,21 @@ static void *test_runner(void *)
 	return nullptr;
 }
 
+static void *send_uorb(void *)
+{
+	usleep(10000000);
+	struct ping_s req;
+    	orb_advert_t ping_h  = nullptr;
+	ping_h = orb_advertise(ORB_ID(ping), nullptr);
+
+	while (true){
+		orb_publish(ORB_ID(ping), ping_h, &req);
+		PX4_INFO("ping sent");
+		break;
+	}
+	return nullptr;
+}
+
 int px4muorb_orb_initialize(fc_func_ptrs *func_ptrs, int32_t clock_offset_us)
 {
 	hrt_set_absolute_time_offset(clock_offset_us);
@@ -226,6 +243,14 @@ int px4muorb_orb_initialize(fc_func_ptrs *func_ptrs, int32_t clock_offset_us)
 		uORB::Manager::get_instance()->set_uorb_communicator(
 			uORB::ProtobufChannel::GetInstance());
 
+		//param_init();
+		(void) px4_task_spawn_cmd("send_uorb",
+					SCHED_DEFAULT,
+					SCHED_PRIORITY_MAX - 2,
+					2000,
+					(px4_main_t)&send_uorb,
+					nullptr);
+
 		px4muorb_orb_initialized = true;
 
 		if (_px4_muorb_debug) { PX4_INFO("px4muorb_orb_initialize called"); }
@@ -236,6 +261,8 @@ int px4muorb_orb_initialize(fc_func_ptrs *func_ptrs, int32_t clock_offset_us)
 
 #define TEST_STACK_SIZE 8192
 char stack[TEST_STACK_SIZE];
+
+
 
 void run_test(MUORBTestType test)
 {
@@ -264,6 +291,8 @@ int px4muorb_topic_advertised(const char *topic_name)
 		uORBCommunicator::IChannelRxHandler *rxHandler = channel->GetRxHandler();
 
 		if (rxHandler) {
+			PX4_INFO("Inside px4muorb_topic advertsied, %s", topic_name);
+
 			return rxHandler->process_remote_topic(topic_name, true);
 
 		} else {
@@ -295,6 +324,7 @@ int px4muorb_add_subscriber(const char *topic_name)
 		if (rxHandler) {
 			channel->AddRemoteSubscriber(topic_name);
 			// Pick a high message rate of 1000 Hz
+			PX4_INFO("Inside px4muorb_add_subscriber: %s", topic_name);
 			return rxHandler->process_add_subscription(topic_name, 1000);
 
 		} else {
@@ -324,6 +354,7 @@ int px4muorb_remove_subscriber(const char *topic_name)
 		uORBCommunicator::IChannelRxHandler *rxHandler = channel->GetRxHandler();
 
 		if (rxHandler) {
+			PX4_INFO("Inside px4muorb_remove_subscriber: %s", topic_name);
 			channel->RemoveRemoteSubscriber(topic_name);
 			return rxHandler->process_remove_subscription(topic_name);
 
@@ -341,6 +372,7 @@ int px4muorb_remove_subscriber(const char *topic_name)
 int px4muorb_send_topic_data(const char *topic_name, const uint8_t *data,
 			     int data_len_in_bytes)
 {
+	PX4_INFO("INSIDE PX4muorb SEND TOPIC DATA");
 	if (IS_MUORB_TEST(topic_name)) {
 		// Validate the test data received
 		bool test_passed = true;
@@ -370,6 +402,7 @@ int px4muorb_send_topic_data(const char *topic_name, const uint8_t *data,
 		uORBCommunicator::IChannelRxHandler *rxHandler = channel->GetRxHandler();
 
 		if (rxHandler) {
+			PX4_INFO("INSIDE muorb SEND TOPIC DATA");
 			return rxHandler->process_received_message(topic_name,
 					data_len_in_bytes,
 					(uint8_t *) data);
