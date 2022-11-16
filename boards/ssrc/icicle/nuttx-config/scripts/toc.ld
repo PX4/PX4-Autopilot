@@ -1,5 +1,5 @@
 /****************************************************************************
- * boards/risc-v/mpfs/icicle/scripts/memory.ld
+ * boards/risc-v/icicle/mpfs/scripts/ld.script
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -20,9 +20,43 @@
 
 MEMORY
 {
-  kflash  (rx) : ORIGIN = 0xACA00000, LENGTH = 4M /* w/ cache */
-  ksram   (rx) : ORIGIN = 0xAD000000, LENGTH = 2M /* w/ cache */
+  progmem (r) : ORIGIN = 0xACA00000, LENGTH = 6M - 64
+}
 
-  uflash (rwx) : ORIGIN = 0xACE00000, LENGTH = 2M /* w/ cache */
-  usram  (rwx) : ORIGIN = 0xAD200000, LENGTH = 2M /* w/ cache */
+OUTPUT_ARCH("riscv")
+
+EXTERN(_main_toc)
+
+SECTIONS
+{
+    .toc : {
+        /* The ToC */
+        _toc_start = ABSOLUTE(.);
+        KEEP(*(.main_toc));
+        /* Padd the rest */
+        FILL(0xff);
+        . = ALIGN(8);
+        _toc_end = ABSOLUTE(.);
+    } > progmem
+
+    /* Start of the ToC signature, appended directly after ToC */
+    PROVIDE(_toc_signature = ALIGN(4));
+
+    .toc_sig (NOLOAD) : {
+        /* Make a hole for the singature */
+        KEEP(*(.main_toc_sig));
+    } > progmem
+
+    .app (NOLOAD) : {
+        /* The application firmware payload */
+        _app_start = ABSOLUTE(.);
+        *(.firmware)
+        . = ALIGN(4);
+        _app_end = ABSOLUTE(.);
+    } > progmem
+
+    /* Start of the payload signature. This has to be in the end of the
+     * payload and aligned to a 4 byte boundary
+     */
+    PROVIDE(_boot_signature = ALIGN(4));
 }

@@ -35,19 +35,33 @@
 /* (Maximum) size of the signature */
 #define SIGNATURE_SIZE 64
 
+/* ToC area boundaries */
+extern const uintptr_t _toc_start;
+extern const uintptr_t _toc_end;
+
+#define TOC_ADDR &_toc_start
+#define TOC_END ((const void *)&_toc_end)
+
+/* ToC signature */
+extern const uintptr_t _toc_signature;
+
+#define TOCSIG_ADDR ((const void *)&_toc_signature)
+#define TOCSIG_END ((const void *)((const uint8_t *)TOCSIG_ADDR+SIGNATURE_SIZE))
+
 /* Boot image starts at __start and ends at
- * the beginning of signature
+ * the beginning of signature, but for protected/kernel mode we don't know
+ * their locations. Assume binary file start and binary file end ?
 */
+extern const uintptr_t _app_start;
+extern const uintptr_t _app_end;
 
-extern uint32_t  __start;
-extern const int *_boot_signature;
-
-#define BOOT_ADDR &__start
-#define BOOT_END ((const void *)&_boot_signature)
+#define BOOT_ADDR &_app_start
+#define BOOT_END ((const void *)&_app_end)
 
 /* Boot signature start and end are defined by the
  * signature definition below
 */
+extern const uintptr_t _boot_signature;
 
 #define BOOTSIG_ADDR ((const void *)&_boot_signature)
 #define BOOTSIG_END ((const void *)((const uint8_t *)BOOTSIG_ADDR+SIGNATURE_SIZE))
@@ -64,13 +78,19 @@ extern const int *_boot_signature;
 
 /* The table of contents */
 
-IMAGE_MAIN_TOC(4) = {
+IMAGE_MAIN_TOC(6) = {
 	{TOC_START_MAGIC, TOC_VERSION},
 	{
-		{"BOOT", BOOT_ADDR, BOOT_END, 0, 1, 0, 0, TOC_FLAG1_BOOT | TOC_FLAG1_CHECK_SIGNATURE},
+		{"TOC",  TOC_ADDR, TOC_END, 0, 1, 0, 0, TOC_FLAG1_CHECK_SIGNATURE},
+		{"SIG0", TOCSIG_ADDR, TOCSIG_END, 0, 0, 0, 0, 0},
+		{"BOOT", BOOT_ADDR, BOOT_END, 0, 3, 0, 0, TOC_FLAG1_BOOT | TOC_FLAG1_CHECK_SIGNATURE},
 		{"SIG1", BOOTSIG_ADDR, BOOTSIG_END, 0, 0, 0, 0, 0},
-		{"RDCT", RDCT_ADDR, RDCT_END, 0, 3, 0, 0, TOC_FLAG1_RDCT | TOC_FLAG1_CHECK_SIGNATURE},
+		{"RDCT", RDCT_ADDR, RDCT_END, 0, 5, 0, 0, TOC_FLAG1_RDCT | TOC_FLAG1_CHECK_SIGNATURE},
 		{"RDSG", RDCTSIG_ADDR, RDCTSIG_END, 0, 0, 0, 0, 0},
 	},
 	TOC_END_MAGIC
 };
+
+/* Define a signature area, just for sizing the ToC area */
+
+const char _main_toc_sig[SIGNATURE_SIZE] __attribute__((section(".main_toc_sig")));

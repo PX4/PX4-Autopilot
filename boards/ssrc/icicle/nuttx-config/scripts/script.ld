@@ -20,22 +20,42 @@
 
 MEMORY
 {
-  progmem (rx) : ORIGIN = 0xAFB00000, LENGTH = 5M  /* w/ cache */
-  sram   (rwx) : ORIGIN = 0xB0000000, LENGTH = 2M  /* w/ cache */
+  progmem (rx) : ORIGIN = 0xACA00000, LENGTH = 6M  /* w/ cache */
+  sram   (rwx) : ORIGIN = 0xAD000000, LENGTH = 4M  /* w/ cache */
 }
 
 OUTPUT_ARCH("riscv")
 
-ENTRY(_stext)
-
+ENTRY(__start)
 EXTERN(__start)
 EXTERN(_main_toc)
+EXTERN(_main_toc_sig)
+EXTERN(board_get_manifest)
 
 SECTIONS
 {
+    /* Provide dummy relocation symbols for the dummy ToC */
+    PROVIDE(_toc_start = 0);
+    PROVIDE(_toc_end = 0);
+    PROVIDE(_toc_signature = 0);
+    PROVIDE(_app_start = 0);
+    PROVIDE(_app_end = 0);
+    PROVIDE(_boot_signature = 0);
+
+    /* Make a hole for the ToC and signature */
+    .toc (NOLOAD) : {
+        *(.main_toc)
+        *(.main_toc_sig)
+        FILL(0xff);
+        . = ALIGN(8);
+    } > progmem
+
+    .start : {
+        *(.start .start.*)
+    } > progmem
+
     .text : {
         _stext = ABSOLUTE(.);
-        *(.start .start.*)
         /*
         This signature provides the bootloader with a way to delay booting
         */
@@ -43,7 +63,6 @@ SECTIONS
         _bootdelay_signature = ABSOLUTE(.);
         FILL(0x01ecc2925d7d05c5)
         . += 8;
-        *(.main_toc)
         *(.text .text.*)
         *(.fixup)
         *(.gnu.warning)
@@ -103,19 +122,4 @@ SECTIONS
     .debug_line 0 : { *(.debug_line) }
     .debug_pubnames 0 : { *(.debug_pubnames) }
     .debug_aranges 0 : { *(.debug_aranges) }
-    .ramfunc : {
-        _sramfuncs = .;
-        *(.ramfunc  .ramfunc.*)
-        . = ALIGN(4);
-        _eramfuncs = .;
-    } > sram AT > progmem
-
-    _framfuncs = LOADADDR(.ramfunc);
-
-    /* Start of the image signature. This
-     *  has to be in the end of the image
-     */
-     .signature : {
-         _boot_signature = ALIGN(4);
-     } > progmem
 }

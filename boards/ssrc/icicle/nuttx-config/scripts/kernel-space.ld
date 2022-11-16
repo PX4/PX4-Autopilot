@@ -39,15 +39,42 @@ __ksram_start = ORIGIN(ksram);
 __ksram_size = LENGTH(ksram);
 __ksram_end = ORIGIN(ksram) + LENGTH(ksram);
 
-ENTRY(_stext)
-
+ENTRY(__start)
 EXTERN(__start)
+EXTERN(_main_toc)
+EXTERN(_main_toc_sig)
 
 SECTIONS
 {
+    /* Provide dummy relocation symbols for the dummy ToC */
+    PROVIDE(_toc_start = 0);
+    PROVIDE(_toc_end = 0);
+    PROVIDE(_toc_signature = 0);
+    PROVIDE(_app_start = 0);
+    PROVIDE(_app_end = 0);
+    PROVIDE(_boot_signature = 0);
+
+    /* Make a hole for the ToC and signature */
+    toc (NOLOAD) : {
+        *(.main_toc)
+        *(.main_toc_sig)
+        FILL(0xff);
+        . = ALIGN(8);
+    } > kflash
+
+    .start : {
+        *(.start .start.*)
+    } > kflash
+
     .text : {
         _stext = ABSOLUTE(.);
-        *(.start .start.*)
+        /*
+        This signature provides the bootloader with a way to delay booting
+        */
+        . = 0x400;
+        _bootdelay_signature = ABSOLUTE(.);
+        FILL(0x01ecc2925d7d05c5)
+        . += 8;
         *(.text .text.*)
         *(.fixup)
         *(.gnu.warning)
