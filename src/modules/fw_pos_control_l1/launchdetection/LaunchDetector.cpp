@@ -69,14 +69,14 @@ void LaunchDetector::update(const float dt, const float accel_x,  orb_advert_t *
 					state_ = launch_detection_status_s::STATE_LAUNCH_DETECTED_DISABLED_MOTOR;
 					mavlink_log_info(mavlink_log_pub, "Launch detected: enable control, waiting %8.1fs until throttling up\t",
 							 (double)_param_laun_cat_mdel.get());
-					events::send<float>(events::ID("launch_detection_wait_for_throttle"), {events::Log::Warning, events::LogInternal::Info},
+					events::send<float>(events::ID("launch_detection_wait_for_throttle"), {events::Log::Info, events::LogInternal::Info},
 							    "Launch detected: enablecontrol, waiting {1:.1}s until full throttle", (double)_param_laun_cat_mdel.get());
 
 				} else {
 					/* No motor delay set: go directly to enablemotors state */
 					state_ = launch_detection_status_s::STATE_FLYING;
 					mavlink_log_info(mavlink_log_pub, "Launch detected: enable motors (no motor delay)\t");
-					events::send(events::ID("launch_detection_no_motor_delay"), {events::Log::Warning, events::LogInternal::Info},
+					events::send(events::ID("launch_detection_no_motor_delay"), {events::Log::Info, events::LogInternal::Info},
 						     "Launch detected: enable motors (no motor delay)");
 				}
 			}
@@ -94,7 +94,7 @@ void LaunchDetector::update(const float dt, const float accel_x,  orb_advert_t *
 
 		if (motor_delay_counter_ > _param_laun_cat_mdel.get()) {
 			mavlink_log_info(mavlink_log_pub, "Launch detected: enable motors\t");
-			events::send(events::ID("launch_detection_enable_motors"), {events::Log::Warning, events::LogInternal::Info},
+			events::send(events::ID("launch_detection_enable_motors"), {events::Log::Info, events::LogInternal::Info},
 				     "Launch detected: enable motors");
 			state_ = launch_detection_status_s::STATE_FLYING;
 		}
