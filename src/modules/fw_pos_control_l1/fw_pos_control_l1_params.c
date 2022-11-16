@@ -453,7 +453,7 @@ PARAM_DEFINE_INT32(FW_LND_EARLYCFG, 0);
  * Applied once flaring is triggered
  *
  * @unit deg
- * @min 0
+ * @min -5
  * @max 15.0
  * @decimal 1
  * @increment 0.5
@@ -1043,8 +1043,8 @@ PARAM_DEFINE_FLOAT(FW_LND_TD_TIME, -1.0f);
  *
  * @unit m/s
  * @min 0.0
- * @max 1.0
- * @decimal 1
+ * @max 2
+ * @decimal 2
  * @increment 0.1
  * @group FW Auto Landing
  */
