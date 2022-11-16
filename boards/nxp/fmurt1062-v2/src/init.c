@@ -211,7 +211,10 @@ __EXPORT void imxrt_boardinitialize(void)
 
 	board_autoled_initialize();
 
-	/* configure pins */
+	/* configure pins
+	 *
+	 * This includes the PHY Config Pins
+	 */
 
 	const uint32_t gpio[] = PX4_GPIO_INIT_LIST;
 	px4_gpio_init(gpio, arraySize(gpio));
@@ -222,7 +225,12 @@ __EXPORT void imxrt_boardinitialize(void)
 
 	fmurt1062_timer_initialize();
 
+	/* Power up the PHY will issues a reset
+	 * then delay by CSET2 = 0.1 uF (100Ms) so it
+	 * can latch the pins.
+	 */
 	VDD_3V3_ETH_POWER_EN(true);
+	up_mdelay(110);
 }
 
 

@@ -346,6 +346,8 @@
 
 /* Ethernet Pinning */
 
+#define BOARD_PHY_ADDR 18
+
 #define GPIO_ENET2_MDIO      /* GPIO_B0_01 */  (GPIO_ENET2_MDIO_2     | IOMUX_ENET_MDIO_DEFAULT)
 #define GPIO_ENET2_MDC       /* GPIO_B0_00 */  (GPIO_ENET2_MDC_2      | IOMUX_ENET_MDC_DEFAULT)
 #define GPIO_ENET2_RX_EN     /* GPIO_B1_03 */  (GPIO_ENET2_RX_EN_2    | IOMUX_ENET_EN_DEFAULT) /* AKA CRS_DV */
@@ -357,6 +359,7 @@
 #define GPIO_ENET2_RX_DATA01 /* GPIO_B1_02 */  (GPIO_ENET2_RDATA1_2   | IOMUX_ENET_DATA_DEFAULT)
 #define GPIO_ENET2_TX_DATA00 /* GPIO_B0_12 */  (GPIO_ENET2_TDATA0_2   | IOMUX_ENET_DATA_DEFAULT)
 #define GPIO_ENET2_TX_DATA01 /* GPIO_B0_13 */  (GPIO_ENET2_TDATA1_2   | IOMUX_ENET_DATA_DEFAULT)
+
 
 /* Board provides GPIO or other Hardware for signaling to timing analyzer */
 
