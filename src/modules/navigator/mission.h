@@ -77,8 +77,6 @@ public:
 	Mission(Navigator *navigator);
 	~Mission() override = default;
 
-	void onMissionUpdate(bool has_mission_items_changed) override;
-
 	void on_inactive() override;
 	void on_inactivation() override;
 	void on_activation() override;
@@ -86,32 +84,12 @@ public:
 
 	bool set_current_mission_index(uint16_t index);
 
-	bool land_start();
-	bool landing();
-
 	uint16_t get_land_start_index() const { return _land_start_index; }
 	bool get_land_start_available() const { return _land_start_index != _invalid_index; }
-	bool get_mission_finished() const { return _mission_type == MISSION_TYPE_NONE; }
-	bool get_mission_changed() const { return _mission_changed ; }
-	bool get_mission_waypoints_changed() const { return _mission_waypoints_changed ; }
-	double get_landing_start_lat() { return _land_start_pos.lat; }
-	double get_landing_start_lon() { return _land_start_pos.lon; }
-	float get_landing_start_alt() { return _land_start_pos.alt; }
 
-	double get_landing_lat() { return _land_pos.lat; }
-	double get_landing_lon() { return _land_pos.lon; }
-	float get_landing_alt() { return _land_pos.alt; }
-	float get_landing_loiter_rad() { return _landing_loiter_radius; }
-
-	void set_closest_item_as_current();
-
-	/**
-	 * Set a new mission mode and handle the switching between the different modes
-	 *
-	 * For a list of the different modes refer to mission_result.msg
-	 */
-	void set_execution_mode(const uint8_t mode);
 private:
+	void onMissionUpdate(bool has_mission_items_changed) override;
+
 	/**
 	 * Update mission topic
 	 */
@@ -198,7 +176,7 @@ private:
 	/**
 	 * Reset mission
 	 */
-	void reset_mission(struct mission_s &mission);
+	void reset_mission();
 
 	/**
 	 * Returns true if we need to reset the mission (call this only when inactive)
@@ -220,13 +198,13 @@ private:
 	uORB::Publication<navigator_mission_item_s> _navigator_mission_item_pub{ORB_ID::navigator_mission_item};
 
 	uORB::SubscriptionData<vehicle_land_detected_s> _land_detected_sub{ORB_ID(vehicle_land_detected)};	/**< vehicle land detected subscription */
-	uORB::SubscriptionData<vehicle_status_s> _vehicle_status_sub{ORB_ID(vehicle_status)};	/**< vehicle tatus subscription */
-
-	float _landing_loiter_radius{0.f};
+	uORB::SubscriptionData<vehicle_status_s> _vehicle_status_sub{ORB_ID(vehicle_status)};	/**< vehicle status subscription */
+	uORB::SubscriptionData<vehicle_global_position_s> _global_pos_sub{ORB_ID(vehicle_global_position)};	/**< global position subscription */
 
 	bool _is_current_planned_mission_item_valid{false};
 
 	bool _initialized_mission_checked{false};
+	bool _is_mission_valid{false};
 
 	bool _need_takeoff{true};					/**< if true, then takeoff must be performed before going to the first waypoint (if needed) */
 
@@ -239,8 +217,6 @@ private:
 
 	bool _need_mission_reset{false};
 	bool _system_disarmed_while_inactive{false};
-	bool _mission_waypoints_changed{false};
-	bool _mission_changed{false}; /** < true if the mission changed since the mission mode was active */
 
 	// Work Item corresponds to the sub-mode set on the "MAV_CMD_DO_SET_MODE" MAVLink message
 	enum work_item_type {
@@ -252,7 +228,4 @@ private:
 		WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION,
 		WORK_ITEM_TYPE_PRECISION_LAND
 	} _work_item_type{WORK_ITEM_TYPE_DEFAULT};	/**< current type of work to do (sub mission item) */
-
-	uint8_t _mission_execution_mode{mission_result_s::MISSION_EXECUTION_MODE_NORMAL};	/**< the current mode of how the mission is executed,look at mission_result.msg for the definition */
-	bool _execution_mode_changed{false};
 };

@@ -272,25 +272,9 @@ public:
 
 	void set_mission_failure_heading_timeout();
 
-	bool is_planned_mission() const { return _navigation_mode == &_mission; }
-
-	bool on_mission_landing() { return _mission.landing(); }
-
-	bool start_mission_landing() { return _mission.land_start(); }
-
 	bool get_mission_start_land_available() { return _mission.get_land_start_available(); }
 
 	int  get_mission_landing_index() { return _mission.get_land_start_index(); }
-
-	double get_mission_landing_start_lat() { return _mission.get_landing_start_lat(); }
-	double get_mission_landing_start_lon() { return _mission.get_landing_start_lon(); }
-	float  get_mission_landing_start_alt() { return _mission.get_landing_start_alt(); }
-
-	double get_mission_landing_lat() { return _mission.get_landing_lat(); }
-	double get_mission_landing_lon() { return _mission.get_landing_lon(); }
-	float  get_mission_landing_alt() { return _mission.get_landing_alt(); }
-
-	float get_mission_landing_loiter_radius() { return _mission.get_landing_loiter_rad(); }
 
 	// RTL
 	bool in_rtl_state() const { return _vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL; }
