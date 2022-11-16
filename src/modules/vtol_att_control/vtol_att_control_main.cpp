@@ -105,6 +105,18 @@ VtolAttitudeControl::init()
 	return true;
 }
 
+void VtolAttitudeControl::vehicle_control_mode_poll()
+{
+	_vehicle_control_mode_sub.update(&_vehicle_control_mode);
+
+	// enforce back transition when switching to manual control
+	if (!flag_control_manual_enabled_prev && _vehicle_control_mode.flag_control_manual_enabled) {
+		_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+	}
+
+	flag_control_manual_enabled_prev = _vehicle_control_mode.flag_control_manual_enabled;
+}
+
 void VtolAttitudeControl::vehicle_status_poll()
 {
 	_vehicle_status_sub.copy(&_vehicle_status);
@@ -312,7 +324,6 @@ VtolAttitudeControl::Run()
 	if (should_run) {
 		parameters_update();
 
-		_vehicle_control_mode_sub.update(&_vehicle_control_mode);
 		_vehicle_attitude_sub.update(&_vehicle_attitude);
 		_local_pos_sub.update(&_local_pos);
 		_local_pos_sp_sub.update(&_local_pos_sp);
@@ -320,6 +331,7 @@ VtolAttitudeControl::Run()
 		_airspeed_validated_sub.update(&_airspeed_validated);
 		_tecs_status_sub.update(&_tecs_status);
 		_land_detected_sub.update(&_land_detected);
+		vehicle_control_mode_poll();
 		vehicle_status_poll();
 		action_request_poll();
 		vehicle_cmd_poll();

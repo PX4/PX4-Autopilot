@@ -224,12 +224,15 @@ private:
 	bool		_immediate_transition{false};
 
 	uint8_t _nav_state_prev;
+	bool flag_control_manual_enabled_prev{false};
 
 	VtolType	*_vtol_type{nullptr};	// base class for different vtol types
 
 	bool		_initialized{false};
 
 	perf_counter_t	_loop_perf;		// loop performance counter
+
+	void            vehicle_control_mode_poll();
 
 	void		vehicle_status_poll();
 
