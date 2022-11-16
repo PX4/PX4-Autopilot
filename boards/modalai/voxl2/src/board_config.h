@@ -41,7 +41,6 @@
 
 #define BOARD_HAS_NO_RESET
 #define BOARD_HAS_NO_BOOTLOADER
-#define ORB_COMMUNICATOR 1
 
 // Define this as empty since there are no I2C buses
 #define BOARD_I2C_BUS_CLOCK_INIT

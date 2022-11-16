@@ -41,10 +41,10 @@
 #include <uORB/topics/uORBTopics.hpp> // For ORB_ID enum
 #include <stdint.h>
 
-#ifdef ORB_COMMUNICATOR
+#ifdef CONFIG_ORB_COMMUNICATOR
 #include "ORBSet.hpp"
 #include "uORBCommunicator.hpp"
-#endif /* ORB_COMMUNICATOR */
+#endif /* CONFIG_ORB_COMMUNICATOR */
 
 namespace uORB
 {
@@ -159,9 +159,9 @@ typedef enum {
  * uORB Api's.
  */
 class uORB::Manager
-#ifdef ORB_COMMUNICATOR
+#ifdef CONFIG_ORB_COMMUNICATOR
 	: public uORBCommunicator::IChannelRxHandler
-#endif /* ORB_COMMUNICATOR */
+#endif /* CONFIG_ORB_COMMUNICATOR */
 {
 public:
 	// public interfaces for this class.
@@ -464,7 +464,7 @@ public:
 	static bool is_advertised(const void *node_handle);
 #endif
 
-#ifdef ORB_COMMUNICATOR
+#ifdef CONFIG_ORB_COMMUNICATOR
 	/**
 	 * Method to set the uORBCommunicator::IChannel instance.
 	 * @param comm_channel
@@ -485,7 +485,7 @@ public:
 	 * for a given topic
 	 */
 	bool is_remote_subscriber_present(const char *messageName);
-#endif /* ORB_COMMUNICATOR */
+#endif /* CONFIG_ORB_COMMUNICATOR */
 
 private: // class methods
 
@@ -500,14 +500,14 @@ private: // class methods
 private: // data members
 	static Manager *_Instance;
 
-#ifdef ORB_COMMUNICATOR
+#ifdef CONFIG_ORB_COMMUNICATOR
 	// the communicator channel instance.
 	uORBCommunicator::IChannel *_comm_channel{nullptr};
 	static pthread_mutex_t _communicator_mutex;
 
 	ORBSet _remote_subscriber_topics;
 	ORBSet _remote_topics;
-#endif /* ORB_COMMUNICATOR */
+#endif /* CONFIG_ORB_COMMUNICATOR */
 
 	DeviceMaster *_device_master{nullptr};
 
@@ -515,7 +515,7 @@ private: //class methods
 	Manager();
 	virtual ~Manager();
 
-#ifdef ORB_COMMUNICATOR
+#ifdef CONFIG_ORB_COMMUNICATOR
 	/**
 	 * Interface to process a received topic from remote.
 	 * @param topic_name
@@ -571,7 +571,7 @@ private: //class methods
 	 *  otherwise = failure.
 	 */
 	virtual int16_t process_received_message(const char *messageName, int32_t length, uint8_t *data);
-#endif /* ORB_COMMUNICATOR */
+#endif /* CONFIG_ORB_COMMUNICATOR */
 
 #ifdef ORB_USE_PUBLISHER_RULES
 

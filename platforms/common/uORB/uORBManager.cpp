@@ -48,7 +48,7 @@
 #include "uORBUtils.hpp"
 #include "uORBManager.hpp"
 
-#ifdef ORB_COMMUNICATOR
+#ifdef CONFIG_ORB_COMMUNICATOR
 pthread_mutex_t uORB::Manager::_communicator_mutex = PTHREAD_MUTEX_INITIALIZER;
 #endif
 
@@ -262,7 +262,7 @@ int uORB::Manager::orb_exists(const struct orb_metadata *meta, int instance)
 		}
 	}
 
-#ifdef ORB_COMMUNICATOR
+#ifdef CONFIG_ORB_COMMUNICATOR
 
 	/*
 	 * Generate the path to the node and try to open it.
@@ -304,7 +304,7 @@ int uORB::Manager::orb_exists(const struct orb_metadata *meta, int instance)
 		}
 	}
 
-#endif /* ORB_COMMUNICATOR */
+#endif /* CONFIG_ORB_COMMUNICATOR */
 
 	return ret;
 }
@@ -364,10 +364,10 @@ orb_advert_t uORB::Manager::orb_advertise_multi(const struct orb_metadata *meta,
 		return nullptr;
 	}
 
-#ifdef ORB_COMMUNICATOR
+#ifdef CONFIG_ORB_COMMUNICATOR
 	// For remote systems call over and inform them
 	uORB::DeviceNode::topic_advertised(meta);
-#endif /* ORB_COMMUNICATOR */
+#endif /* CONFIG_ORB_COMMUNICATOR */
 
 	/* the advertiser may perform an initial publish to initialise the object */
 	if (data != nullptr) {
@@ -615,18 +615,14 @@ int uORB::Manager::node_open(const struct orb_metadata *meta, bool advertiser, i
 	return fd;
 }
 
-#ifdef ORB_COMMUNICATOR
+#ifdef CONFIG_ORB_COMMUNICATOR
 void uORB::Manager::set_uorb_communicator(uORBCommunicator::IChannel *channel)
 {
 	_comm_channel = channel;
 
-	pthread_mutex_lock(&_communicator_mutex);
-
 	if (_comm_channel != nullptr) {
 		_comm_channel->register_handler(this);
 	}
-
-	pthread_mutex_unlock(&_communicator_mutex);
 }
 
 uORBCommunicator::IChannel *uORB::Manager::get_uorb_communicator()
@@ -640,7 +636,7 @@ uORBCommunicator::IChannel *uORB::Manager::get_uorb_communicator()
 
 int16_t uORB::Manager::process_remote_topic(const char *topic_name, bool isAdvertisement)
 {
-	PX4_DEBUG("entering Manager_process_add_subscription: name: %s", topic_name);
+	PX4_DEBUG("entering process_remote_topic: name: %s", topic_name);
 
 	int16_t rc = 0;
 
@@ -766,7 +762,7 @@ bool uORB::Manager::is_remote_subscriber_present(const char *messageName)
 	return _remote_subscriber_topics.find(messageName);
 }
 
-#endif /* ORB_COMMUNICATOR */
+#endif /* CONFIG_ORB_COMMUNICATOR */
 
 #ifdef ORB_USE_PUBLISHER_RULES
 

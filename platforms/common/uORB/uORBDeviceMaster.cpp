@@ -36,9 +36,9 @@
 #include "uORBManager.hpp"
 #include "uORBUtils.hpp"
 
-#ifdef ORB_COMMUNICATOR
+#ifdef CONFIG_ORB_COMMUNICATOR
 #include "uORBCommunicator.hpp"
-#endif /* ORB_COMMUNICATOR */
+#endif /* CONFIG_ORB_COMMUNICATOR */
 
 #include <px4_platform_common/sem.hpp>
 #include <systemlib/px4_macros.h>
