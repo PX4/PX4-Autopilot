@@ -106,10 +106,6 @@ public:
 				}
 			}
 
-
-			PX4_INFO("Publish %d values %f, %f, %f, %f", num_outputs, (double)msg_sp.value[0], (double)msg_sp.value[1],
-				 (double)msg_sp.value[2], (double)msg_sp.value[3]);
-
 			uint8_t esc_sp_payload_buffer[reg_udral_service_actuator_common_sp_Vector31_0_1_SERIALIZATION_BUFFER_SIZE_BYTES_];
 
 			const CanardTransferMetadata transfer_metadata = {
