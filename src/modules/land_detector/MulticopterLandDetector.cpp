@@ -123,19 +123,14 @@ void MulticopterLandDetector::_update_params()
 	param_get(_paramHandle.landSpeed, &_params.landSpeed);
 	param_get(_paramHandle.crawlSpeed, &_params.crawlSpeed);
 
-	if (_param_lndmc_z_vel_max.get() * 1.2f > _params.crawlSpeed) {
-		PX4_ERR("LNDMC_Z_VEL_MAX > MPC_LAND_CRWL, updating %.3f -> %.3f",
-			(double)_param_lndmc_z_vel_max.get(), (double)(1.2f * _params.crawlSpeed));
+	// 1.2 corresponds to the margin between the default parameters LNDMC_Z_VEL_MAX = MPC_LAND_CRWL / 1.2
+	const float lndmc_upper_threshold = math::min(_params.crawlSpeed, _params.landSpeed) / 1.2f;
 
-		_param_lndmc_z_vel_max.set(1.2f * _params.crawlSpeed);
-		_param_lndmc_z_vel_max.commit_no_notification();
-	}
+	if (_param_lndmc_z_vel_max.get() > lndmc_upper_threshold) {
+		PX4_ERR("LNDMC_Z_VEL_MAX > MPC_LAND_CRWL or MPC_LAND_SPEED, updating %.3f -> %.3f",
+			(double)_param_lndmc_z_vel_max.get(), (double)(lndmc_upper_threshold));
 
-	if (_param_lndmc_z_vel_max.get() * 1.2f > _params.landSpeed) {
-		PX4_ERR("LNDMC_Z_VEL_MAX > MPC_LAND_SPEED, updating %.3f -> %.3f",
-			(double)_param_lndmc_z_vel_max.get(), (double)(1.2f * _params.landSpeed));
-
-		_param_lndmc_z_vel_max.set(_params.landSpeed);
+		_param_lndmc_z_vel_max.set(lndmc_upper_threshold);
 		_param_lndmc_z_vel_max.commit_no_notification();
 	}
 

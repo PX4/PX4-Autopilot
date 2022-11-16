@@ -87,7 +87,6 @@ private:
 	/** Distance above ground below which entering ground contact state is possible when distance to ground is available. */
 	static constexpr float DIST_FROM_GROUND_THRESHOLD = 1.0f;
 
-	/** Handles for interesting (external) parameters. **/
 	struct {
 		param_t minThrottle;
 		param_t hoverThrottle;
