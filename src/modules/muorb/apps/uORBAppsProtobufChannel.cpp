@@ -33,9 +33,7 @@
 
 #include "uORBAppsProtobufChannel.hpp"
 #include <string.h>
-#include <lib/parameters/param.h>
-#include <uORB/topics/ping.h>
-#include <px4_platform_common/tasks.h>
+
 #include "fc_sensor.h"
 
 bool uORB::AppsProtobufChannel::test_flag = false;
@@ -46,7 +44,7 @@ uORBCommunicator::IChannelRxHandler *uORB::AppsProtobufChannel::_RxHandler = nul
 std::map<std::string, int> uORB::AppsProtobufChannel::_SlpiSubscriberCache;
 pthread_mutex_t uORB::AppsProtobufChannel::_tx_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t uORB::AppsProtobufChannel::_rx_mutex = PTHREAD_MUTEX_INITIALIZER;
-bool uORB::AppsProtobufChannel::_Debug = true;
+bool uORB::AppsProtobufChannel::_Debug = false;
 
 
 void uORB::AppsProtobufChannel::ReceiveCallback(const char *topic,
@@ -83,7 +81,6 @@ void uORB::AppsProtobufChannel::ReceiveCallback(const char *topic,
 		return;
 
 	} else if (_RxHandler) {
-		PX4_INFO("Doing the process received message");
 		_RxHandler->process_received_message(topic,
 						     length_in_bytes,
 						     const_cast<uint8_t *>(data));
@@ -220,23 +217,6 @@ bool uORB::AppsProtobufChannel::Test()
 	return true;
 }
 
-static void *receive_uorb(void *)
-{
-	usleep(10000);
-    	int ping_fd   = orb_subscribe(ORB_ID(ping));
-
-	bool updated = false;
-	PX4_INFO("Starting receive loop");
-	while (true) {
-		(void) orb_check(ping_fd, &updated);
-		if(updated){
-			PX4_INFO("RECEIVED PING VALUE FROM SLPI SIDE");
-			break;
-		}
-	}
-	return nullptr;
-}
-
 bool uORB::AppsProtobufChannel::Initialize(bool enable_debug)
 {
 	fc_callbacks cb = {&ReceiveCallback, &AdvertiseCallback,
@@ -251,13 +231,6 @@ bool uORB::AppsProtobufChannel::Initialize(bool enable_debug)
 		_Initialized = true;
 	}
 
-	//param_init();
-	(void) px4_task_spawn_cmd("recv_uorb",
-				SCHED_DEFAULT,
-				SCHED_PRIORITY_MAX - 2,
-				2000,
-				(px4_main_t)&receive_uorb,
-				nullptr);
 	return true;
 }
 
