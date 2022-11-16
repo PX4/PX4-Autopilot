@@ -654,7 +654,7 @@ int16_t uORB::Manager::process_remote_topic(const char *topic_name, bool isAdver
 		if (node) {
 			node->mark_as_advertised();
 			_remote_topics.insert(topic_name);
-			return rc
+			return rc;
 		}
 	}
 

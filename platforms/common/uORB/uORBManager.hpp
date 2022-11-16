@@ -503,6 +503,7 @@ private: // data members
 #ifdef ORB_COMMUNICATOR
 	// the communicator channel instance.
 	uORBCommunicator::IChannel *_comm_channel{nullptr};
+	static pthread_mutex_t _communicator_mutex;
 
 	ORBSet _remote_subscriber_topics;
 	ORBSet _remote_topics;
