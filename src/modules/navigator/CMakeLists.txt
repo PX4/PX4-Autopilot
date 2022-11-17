@@ -52,6 +52,7 @@ px4_add_module(
 		vtol_takeoff.cpp
 	DEPENDS
 		geo
+		adsb
 		geofence_breach_avoidance
 		motion_planning
 		mission_feasibility_checker
