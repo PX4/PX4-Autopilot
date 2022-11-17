@@ -428,7 +428,7 @@ FixedwingPositionControl::get_auto_airspeed_setpoint(const float control_interva
 	float load_factor = 1.0f;
 
 	if (PX4_ISFINITE(_att_sp.roll_body)) {
-		load_factor = 1.0f / sqrtf(cosf(_att_sp.roll_body));
+		load_factor = 1.0f / cosf(_att_sp.roll_body);
 	}
 
 	float weight_ratio = 1.0f;
