@@ -161,3 +161,59 @@ TEST(GnssYawFusionGenerated, SympyVsSymforce)
 
 	EXPECT_NEAR(innov_var_sympy, innov_var_symforce, 1e-5f);
 }
+
+TEST(GnssYawFusionGenerated, SingularityPitch90)
+{
+	// GIVEN: a vertically oriented antenna (antenna vector aligned with the Forward axis)
+	const Quatf q(Eulerf(0.f, -M_PI_F / 2.f, 0.f));
+	const float yaw_offset = M_PI_F;
+
+	Vector24f state_vector{};
+	state_vector(0) = q(0);
+	state_vector(1) = q(1);
+	state_vector(2) = q(2);
+	state_vector(3) = q(3);
+
+	SquareMatrix24f P = createRandomCovarianceMatrix24f();
+	const float R_YAW = sq(0.3f);
+
+	float innov;
+	float innov_var;
+	Vector24f H;
+	sym::ComputeGnssYawInnonInnovVarAndH(state_vector, P, yaw_offset, 0.f, R_YAW, FLT_EPSILON, &innov,
+					     &innov_var, &H);
+	Vector24f K = P * H / innov_var;
+
+	// THEN: the arctan is singular, the attitude isn't observable, so the innovation variance
+	// is almost infinite and the Kalman gain goes to 0
+	EXPECT_GT(innov_var, 1e6f);
+	EXPECT_NEAR(K.abs().max(), 0.f, 1e-6f);
+}
+
+TEST(GnssYawFusionGenerated, SingularityRoll90)
+{
+	// GIVEN: a vertically oriented antenna (antenna vector aligned with the Right axis)
+	const Quatf q(Eulerf(-M_PI_F / 2.f, 0.f, 0.f));
+	const float yaw_offset = M_PI_F / 2.f;
+
+	Vector24f state_vector{};
+	state_vector(0) = q(0);
+	state_vector(1) = q(1);
+	state_vector(2) = q(2);
+	state_vector(3) = q(3);
+
+	SquareMatrix24f P = createRandomCovarianceMatrix24f();
+	const float R_YAW = sq(0.3f);
+
+	float innov;
+	float innov_var;
+	Vector24f H;
+	sym::ComputeGnssYawInnonInnovVarAndH(state_vector, P, yaw_offset, 0.f, R_YAW, FLT_EPSILON, &innov,
+					     &innov_var, &H);
+	Vector24f K = P * H / innov_var;
+
+	// THEN: the arctan is singular, the attitude isn't observable, so the innovation variance
+	// is almost infinite and the Kalman gain goes to 0
+	EXPECT_GT(innov_var, 1e6f);
+	EXPECT_NEAR(K.abs().max(), 0.f, 1e-6f);
+}
