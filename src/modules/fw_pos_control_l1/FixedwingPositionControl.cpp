@@ -189,15 +189,15 @@ FixedwingPositionControl::parameters_update()
 		check_ret = PX4_ERROR;
 	}
 
-	if (_param_fw_airspd_stall.get() > _param_fw_airspd_min.get() * 0.9f) {
-		mavlink_log_critical(&_mavlink_log_pub, "Config invalid: Stall airspeed higher than 0.9 of min\t");
+	if (_param_fw_airspd_stall.get() > _param_fw_airspd_min.get()) {
+		mavlink_log_critical(&_mavlink_log_pub, "Config invalid: FW_AIRSPD_STALL airspeed higher than FW_AIRSPD_MIN\t");
 		/* EVENT
 		 * @description
 		 * - <param>FW_AIRSPD_MIN</param>: {1:.1}
 		 * - <param>FW_AIRSPD_STALL</param>: {2:.1}
 		 */
 		events::send<float, float>(events::ID("fixedwing_position_control_conf_invalid_stall"), events::Log::Error,
-					   "Invalid configuration: Stall airspeed higher than 90% of minimum airspeed",
+					   "Invalid configuration: FW_AIRSPD_STALL higher FW_AIRSPD_MIN",
 					   _param_fw_airspd_min.get(), _param_fw_airspd_stall.get());
 		check_ret = PX4_ERROR;
 	}
