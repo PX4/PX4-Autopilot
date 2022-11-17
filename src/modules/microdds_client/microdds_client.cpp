@@ -33,6 +33,7 @@
 
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/cli.h>
+#include <px4_platform_common/posix.h>
 
 #include "microdds_client.h"
 
