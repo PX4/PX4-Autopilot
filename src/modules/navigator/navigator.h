@@ -55,6 +55,7 @@
 
 #include "GeofenceBreachAvoidance/geofence_breach_avoidance.h"
 
+#include <lib/adsb/AdsbConflict.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
@@ -130,28 +131,13 @@ public:
 	void publish_vehicle_cmd(vehicle_command_s *vcmd);
 
 	/**
-	 * Generate an artificial traffic indication
-	 *
-	 * @param distance Horizontal distance to this vehicle
-	 * @param direction Direction in earth frame from this vehicle in radians
-	 * @param traffic_heading Travel direction of the traffic in earth frame in radians
-	 * @param altitude_diff Altitude difference, positive is up
-	 * @param hor_velocity Horizontal velocity of traffic, in m/s
-	 * @param ver_velocity Vertical velocity of traffic, in m/s
-	 * @param emitter_type, Type of vehicle, as a number
-	 */
-	void fake_traffic(const char *callsign, float distance, float direction, float traffic_heading, float altitude_diff,
-			  float hor_velocity, float ver_velocity, int emitter_type);
-
-	/**
 	 * Check nearby traffic for potential collisions
 	 */
 	void check_traffic();
 
-	/**
-	 * Buffer for air traffic to control the amount of messages sent to a user
-	 */
-	bool buffer_air_traffic(uint32_t icao_address);
+	void take_traffic_conflict_action();
+
+	void run_fake_traffic();
 
 	/**
 	 * Setters
@@ -327,11 +313,6 @@ public:
 
 private:
 
-	struct traffic_buffer_s {
-		uint32_t 	icao_address;
-		hrt_abstime timestamp;
-	};
-
 	int _local_pos_sub{-1};
 	int _mission_sub{-1};
 	int _vehicle_status_sub{-1};
@@ -395,6 +376,7 @@ private:
 	Land		_land;			/**< class for handling land commands */
 	PrecLand	_precland;			/**< class for handling precision land commands */
 	RTL 		_rtl;				/**< class that handles RTL */
+	AdsbConflict 	_adsb_conflict;			/**< class that handles ADSB conflict avoidance */
 
 	NavigatorMode *_navigation_mode{nullptr};	/**< abstract pointer to current navigation mode class */
 	NavigatorMode *_navigation_mode_array[NAVIGATOR_MODE_ARRAY_SIZE] {};	/**< array of navigation modes */
@@ -445,8 +427,9 @@ private:
 		(ParamFloat<px4::params::NAV_MC_ALT_RAD>)   _param_nav_mc_alt_rad,	/**< acceptance rad for multicopter alt */
 		(ParamInt<px4::params::NAV_FORCE_VT>)       _param_nav_force_vt,	/**< acceptance radius for multicopter alt */
 		(ParamInt<px4::params::NAV_TRAFF_AVOID>)    _param_nav_traff_avoid,	/**< avoiding other aircraft is enabled */
-		(ParamFloat<px4::params::NAV_TRAFF_A_RADU>) _param_nav_traff_a_radu,	/**< avoidance Distance Unmanned*/
-		(ParamFloat<px4::params::NAV_TRAFF_A_RADM>) _param_nav_traff_a_radm,	/**< avoidance Distance Manned*/
+		(ParamFloat<px4::params::NAV_TRAFF_A_HOR>)  _param_nav_traff_a_hor_ct,	/**< avoidance Distance Crosstrack*/
+		(ParamFloat<px4::params::NAV_TRAFF_A_VER>)  _param_nav_traff_a_ver,	/**< avoidance Distance Vertical*/
+		(ParamInt<px4::params::NAV_TRAFF_COLL_T>)   _param_nav_traff_collision_time,
 		(ParamFloat<px4::params::NAV_MIN_LTR_ALT>)   _param_min_ltr_alt,	/**< minimum altitude in Loiter mode*/
 
 		// non-navigator parameters: Mission (MIS_*)

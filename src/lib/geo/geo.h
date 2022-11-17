@@ -136,7 +136,7 @@ void get_vector_to_next_waypoint_fast(double lat_now, double lon_now, double lat
 void add_vector_to_global_position(double lat_now, double lon_now, float v_n, float v_e, double *lat_res,
 				   double *lon_res);
 
-int get_distance_to_line(struct crosstrack_error_s *crosstrack_error, double lat_now, double lon_now,
+int get_distance_to_line(struct crosstrack_error_s &crosstrack_error, double lat_now, double lon_now,
 			 double lat_start, double lon_start, double lat_end, double lon_end);
 
 int get_distance_to_arc(struct crosstrack_error_s *crosstrack_error, double lat_now, double lon_now,
