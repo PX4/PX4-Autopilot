@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2022 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,5 +31,17 @@
 #
 ############################################################################
 
-add_subdirectory(adis16448)
-add_subdirectory(adis16470)
+px4_add_module(
+	MODULE drivers__imu__analog_devices__adis16507
+	MAIN adis16507
+	COMPILE_FLAGS
+	SRCS
+		ADIS16507.cpp
+		ADIS16507.hpp
+		adis16507_main.cpp
+		Analog_Devices_ADIS16507_registers.hpp
+	DEPENDS
+		drivers_accelerometer
+		drivers_gyroscope
+		px4_work_queue
+	)
