@@ -125,7 +125,6 @@ public:
 
 #ifdef CONFIG_ORB_COMMUNICATOR
 	static int16_t topic_advertised(const orb_metadata *meta);
-	//static int16_t topic_unadvertised(const orb_metadata *meta);
 
 	/**
 	 * processes a request for add subscription from remote
