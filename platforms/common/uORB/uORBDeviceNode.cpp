@@ -357,7 +357,6 @@ int16_t uORB::DeviceNode::topic_advertised(const orb_metadata *meta)
 
 	return -1;
 }
-
 #endif /* CONFIG_ORB_COMMUNICATOR */
 
 px4_pollevent_t
