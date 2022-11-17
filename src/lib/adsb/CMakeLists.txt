@@ -31,4 +31,8 @@
 #
 ############################################################################
 
-px4_add_library(adsb adsb.cpp)
+px4_add_library(adsb AdsbConflict.cpp)
+
+target_link_libraries(adsb PUBLIC geo)
+
+px4_add_functional_gtest(SRC AdsbConflictTest.cpp LINKLIBS adsb)

@@ -51,6 +51,7 @@
 #include <dataman/dataman.h>
 #include <drivers/drv_hrt.h>
 #include <lib/geo/geo.h>
+#include <lib/adsb/AdsbConflict.h>
 #include <lib/mathlib/mathlib.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
@@ -106,6 +107,10 @@ Navigator::Navigator() :
 
 	// Update the timeout used in mission_block (which can't hold it's own parameters)
 	_mission.set_payload_deployment_timeout(_param_mis_payload_delivery_timeout.get());
+
+	_adsb_conflict.set_conflict_detection_params(_param_nav_traff_a_hor_ct.get(),
+			_param_nav_traff_a_ver.get(),
+			_param_nav_traff_collision_time.get(), _param_nav_traff_avoid.get());
 
 	reset_triplets();
 }
@@ -1202,279 +1207,66 @@ void Navigator::load_fence_from_file(const char *filename)
 	_geofence.loadFromFile(filename);
 }
 
-void Navigator::fake_traffic(const char *callsign, float distance, float direction, float traffic_heading,
-			     float altitude_diff, float hor_velocity, float ver_velocity, int emitter_type)
+void Navigator::take_traffic_conflict_action()
 {
-	double lat{0.0};
-	double lon{0.0};
 
-	waypoint_from_heading_and_distance(get_global_position()->lat, get_global_position()->lon, direction, distance, &lat,
-					   &lon);
-	float alt = get_global_position()->alt + altitude_diff;
+	vehicle_command_s vcmd = {};
 
-	// float vel_n = get_global_position()->vel_n;
-	// float vel_e = get_global_position()->vel_e;
-	// float vel_d = get_global_position()->vel_d;
+	switch (_adsb_conflict._conflict_detection_params.traffic_avoidance_mode) {
 
-	transponder_report_s tr{};
-	tr.timestamp = hrt_absolute_time();
-	tr.icao_address = 1234;
-	tr.lat = lat; // Latitude, expressed as degrees
-	tr.lon = lon; // Longitude, expressed as degrees
-	tr.altitude_type = 0;
-	tr.altitude = alt;
-	tr.heading = traffic_heading; //-atan2(vel_e, vel_n); // Course over ground in radians
-	tr.hor_velocity	= hor_velocity; //sqrtf(vel_e * vel_e + vel_n * vel_n); // The horizontal velocity in m/s
-	tr.ver_velocity = ver_velocity; //-vel_d; // The vertical velocity in m/s, positive is up
-	strncpy(&tr.callsign[0], callsign, sizeof(tr.callsign) - 1);
-	tr.callsign[sizeof(tr.callsign) - 1] = 0;
-	tr.emitter_type = emitter_type; // Type from ADSB_EMITTER_TYPE enum
-	tr.tslc = 2; // Time since last communication in seconds
-	tr.flags = transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS | transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING |
-		   transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY |
-		   transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE |
-		   (transponder_report_s::ADSB_EMITTER_TYPE_UAV & emitter_type ? 0 :
-		    transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN); // Flags to indicate various statuses including valid data fields
-	tr.squawk = 6667;
+	case 2: {
+			_rtl.set_return_alt_min(true);
+			vcmd.command = vehicle_command_s::VEHICLE_CMD_NAV_RETURN_TO_LAUNCH;
+			publish_vehicle_cmd(&vcmd);
+			break;
+		}
 
-#ifndef BOARD_HAS_NO_UUID
-	px4_guid_t px4_guid;
-	board_get_px4_guid(px4_guid);
-	memcpy(tr.uas_id, px4_guid, sizeof(px4_guid_t)); //simulate own GUID
-#else
+	case 3: {
+			vcmd.command = vehicle_command_s::VEHICLE_CMD_NAV_LAND;
+			publish_vehicle_cmd(&vcmd);
+			break;
 
-	for (int i = 0; i < PX4_GUID_BYTE_LENGTH ; i++) {
-		tr.uas_id[i] = 0xe0 + i; //simulate GUID
+		}
+
+	case 4: {
+
+			vcmd.command = vehicle_command_s::VEHICLE_CMD_NAV_LOITER_UNLIM;
+			publish_vehicle_cmd(&vcmd);
+			break;
+
+		}
 	}
 
-#endif /* BOARD_HAS_NO_UUID */
+}
 
-	uORB::Publication<transponder_report_s> tr_pub{ORB_ID(transponder_report)};
-	tr_pub.publish(tr);
+void Navigator::run_fake_traffic()
+{
+
+	_adsb_conflict.run_fake_traffic(get_global_position()->lat, get_global_position()->lon,
+					get_global_position()->alt);
 }
 
 void Navigator::check_traffic()
 {
-	double lat = get_global_position()->lat;
-	double lon = get_global_position()->lon;
-	float alt = get_global_position()->alt;
 
-	// TODO for non-multirotors predicting the future
-	// position as accurately as possible will become relevant
-	// float vel_n = get_global_position()->vel_n;
-	// float vel_e = get_global_position()->vel_e;
-	// float vel_d = get_global_position()->vel_d;
+	if (_traffic_sub.updated()) {
 
-	bool changed = _traffic_sub.updated();
-
-	char uas_id[11]; //GUID of incoming UTM messages
-
-	float NAVTrafficAvoidUnmanned = _param_nav_traff_a_radu.get();
-	float NAVTrafficAvoidManned = _param_nav_traff_a_radm.get();
-	float horizontal_separation = NAVTrafficAvoidManned;
-	float vertical_separation = NAVTrafficAvoidManned;
-
-	while (changed) {
-
-		//vehicle_status_s vs{};
-		transponder_report_s tr{};
-		_traffic_sub.copy(&tr);
+		_traffic_sub.copy(&_adsb_conflict._transponder_report);
 
 		uint16_t required_flags = transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS |
 					  transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING |
 					  transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY | transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE;
 
-		if ((tr.flags & required_flags) != required_flags) {
-			changed = _traffic_sub.updated();
-			continue;
-		}
+		if ((_adsb_conflict._transponder_report.flags & required_flags) == required_flags) {
 
-		//convert UAS_id byte array to char array for User Warning
-		for (int i = 0; i < 5; i++) {
-			snprintf(&uas_id[i * 2], sizeof(uas_id) - i * 2, "%02x", tr.uas_id[PX4_GUID_BYTE_LENGTH - 5 + i]);
-		}
+			_adsb_conflict.detect_traffic_conflict(get_global_position()->lat, get_global_position()->lon,
+							       get_global_position()->alt, _local_pos.vx, _local_pos.vy, _local_pos.vz);
 
-		uint64_t uas_id_int = 0;
-
-		for (int i = 0; i < 8; i++) {
-			uas_id_int |= (uint64_t)(tr.uas_id[PX4_GUID_BYTE_LENGTH - i - 1]) << (i * 8);
-		}
-
-		//Manned/Unmanned Vehicle Seperation Distance
-		if (tr.emitter_type == transponder_report_s::ADSB_EMITTER_TYPE_UAV) {
-			horizontal_separation = NAVTrafficAvoidUnmanned;
-			vertical_separation = NAVTrafficAvoidUnmanned;
-		}
-
-		float d_hor, d_vert;
-		get_distance_to_point_global_wgs84(lat, lon, alt,
-						   tr.lat, tr.lon, tr.altitude, &d_hor, &d_vert);
-
-
-		// predict final altitude (positive is up) in prediction time frame
-		float end_alt = tr.altitude + (d_vert / tr.hor_velocity) * tr.ver_velocity;
-
-		// Predict until the vehicle would have passed this system at its current speed
-		float prediction_distance = d_hor + 1000.0f;
-
-		// If the altitude is not getting close to us, do not calculate
-		// the horizontal separation.
-		// Since commercial flights do most of the time keep flight levels
-		// check for the current and for the predicted flight level.
-		// we also make the implicit assumption that this system is on the lowest
-		// flight level close to ground in the
-		// (end_alt - horizontal_separation < alt) condition. If this system should
-		// ever be used in normal airspace this implementation would anyway be
-		// inappropriate as it should be replaced with a TCAS compliant solution.
-
-		if ((fabsf(alt - tr.altitude) < vertical_separation) || ((end_alt - horizontal_separation) < alt)) {
-
-			double end_lat, end_lon;
-			waypoint_from_heading_and_distance(tr.lat, tr.lon, tr.heading, prediction_distance, &end_lat, &end_lon);
-
-			struct crosstrack_error_s cr;
-
-			if (!get_distance_to_line(&cr, lat, lon, tr.lat, tr.lon, end_lat, end_lon)) {
-
-				if (!cr.past_end && (fabsf(cr.distance) < horizontal_separation)) {
-
-					bool action_needed = buffer_air_traffic(tr.icao_address);
-
-					if (action_needed) {
-						// direction of traffic in human-readable 0..360 degree in earth frame
-						int traffic_direction = math::degrees(tr.heading) + 180;
-						int traffic_seperation = (int)fabsf(cr.distance);
-
-						switch (_param_nav_traff_avoid.get()) {
-
-						case 0: {
-								/* Ignore */
-								PX4_WARN("TRAFFIC %s! dst %d, hdg %d",
-									 tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : uas_id,
-									 traffic_seperation,
-									 traffic_direction);
-								break;
-							}
-
-						case 1: {
-								/* Warn only */
-								mavlink_log_critical(&_mavlink_log_pub, "Warning TRAFFIC %s! dst %d, hdg %d\t",
-										     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : uas_id,
-										     traffic_seperation,
-										     traffic_direction);
-								/* EVENT
-								 * @description
-								 * - ID: {1}
-								 * - Distance: {2m}
-								 * - Direction: {3} degrees
-								 */
-								events::send<uint64_t, int32_t, int16_t>(events::ID("navigator_traffic"), events::Log::Critical, "Traffic alert",
-										uas_id_int, traffic_seperation, traffic_direction);
-								break;
-							}
-
-						case 2: {
-								/* RTL Mode */
-								mavlink_log_critical(&_mavlink_log_pub, "TRAFFIC: %s Returning home! dst %d, hdg %d\t",
-										     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : uas_id,
-										     traffic_seperation,
-										     traffic_direction);
-								/* EVENT
-								 * @description
-								 * - ID: {1}
-								 * - Distance: {2m}
-								 * - Direction: {3} degrees
-								 */
-								events::send<uint64_t, int32_t, int16_t>(events::ID("navigator_traffic_rtl"), events::Log::Critical,
-										"Traffic alert, returning home",
-										uas_id_int, traffic_seperation, traffic_direction);
-
-								// set the return altitude to minimum
-								_rtl.set_return_alt_min(true);
-
-								// ask the commander to execute an RTL
-								vehicle_command_s vcmd = {};
-								vcmd.command = vehicle_command_s::VEHICLE_CMD_NAV_RETURN_TO_LAUNCH;
-								publish_vehicle_cmd(&vcmd);
-								break;
-							}
-
-						case 3: {
-								/* Land Mode */
-								mavlink_log_critical(&_mavlink_log_pub, "TRAFFIC: %s Landing! dst %d, hdg % d\t",
-										     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : uas_id,
-										     traffic_seperation,
-										     traffic_direction);
-								/* EVENT
-								 * @description
-								 * - ID: {1}
-								 * - Distance: {2m}
-								 * - Direction: {3} degrees
-								 */
-								events::send<uint64_t, int32_t, int16_t>(events::ID("navigator_traffic_land"), events::Log::Critical,
-										"Traffic alert, landing",
-										uas_id_int, traffic_seperation, traffic_direction);
-
-								// ask the commander to land
-								vehicle_command_s vcmd = {};
-								vcmd.command = vehicle_command_s::VEHICLE_CMD_NAV_LAND;
-								publish_vehicle_cmd(&vcmd);
-								break;
-
-							}
-
-						case 4: {
-								/* Position hold */
-								mavlink_log_critical(&_mavlink_log_pub, "TRAFFIC: %s Holding position! dst %d, hdg %d\t",
-										     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : uas_id,
-										     traffic_seperation,
-										     traffic_direction);
-								/* EVENT
-								 * @description
-								 * - ID: {1}
-								 * - Distance: {2m}
-								 * - Direction: {3} degrees
-								 */
-								events::send<uint64_t, int32_t, int16_t>(events::ID("navigator_traffic_hold"), events::Log::Critical,
-										"Traffic alert, holding position",
-										uas_id_int, traffic_seperation, traffic_direction);
-
-								// ask the commander to Loiter
-								vehicle_command_s vcmd = {};
-								vcmd.command = vehicle_command_s::VEHICLE_CMD_NAV_LOITER_UNLIM;
-								publish_vehicle_cmd(&vcmd);
-								break;
-
-							}
-						}
-					}
-				}
+			if (_adsb_conflict.handle_traffic_conflict()) {
+				take_traffic_conflict_action();
 			}
 		}
-
-		changed = _traffic_sub.updated();
 	}
-}
-
-bool Navigator::buffer_air_traffic(uint32_t icao_address)
-{
-	bool action_needed = true;
-
-	if (_traffic_buffer.icao_address == icao_address) {
-
-		if (hrt_elapsed_time(&_traffic_buffer.timestamp) > 60_s) {
-			_traffic_buffer.timestamp = hrt_absolute_time();
-
-		} else {
-			action_needed = false;
-		}
-
-	} else {
-		_traffic_buffer.timestamp = hrt_absolute_time();
-		_traffic_buffer.icao_address = icao_address;
-	}
-
-	return action_needed;
 }
 
 bool Navigator::abort_landing()
@@ -1519,12 +1311,9 @@ int Navigator::custom_command(int argc, char *argv[])
 		return 0;
 
 	} else if (!strcmp(argv[0], "fake_traffic")) {
-		get_instance()->fake_traffic("LX007", 500, 1.0f, -1.0f, 100.0f, 90.0f, 0.001f,
-					     transponder_report_s::ADSB_EMITTER_TYPE_LIGHT);
-		get_instance()->fake_traffic("LX55", 1000, 0, 0, 100.0f, 90.0f, 0.001f, transponder_report_s::ADSB_EMITTER_TYPE_SMALL);
-		get_instance()->fake_traffic("LX20", 15000, 1.0f, -1.0f, 280.0f, 90.0f, 0.001f,
-					     transponder_report_s::ADSB_EMITTER_TYPE_LARGE);
-		get_instance()->fake_traffic("UAV", 10, 1.0f, -2.0f, 10.0f, 10.0f, 0.01f, transponder_report_s::ADSB_EMITTER_TYPE_UAV);
+
+		get_instance()->run_fake_traffic();
+
 		return 0;
 	}
 
