@@ -190,3 +190,7 @@ endmenu
 menu "examples"
 source "src/examples/Kconfig"
 endmenu
+
+menu "platforms"
+source "platforms/common/Kconfig"
+endmenu
