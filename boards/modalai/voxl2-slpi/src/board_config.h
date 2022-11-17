@@ -41,7 +41,6 @@
 
 #define BOARD_HAS_NO_RESET
 #define BOARD_HAS_NO_BOOTLOADER
-#define ORB_COMMUNICATOR 1
 /*
  * I2C buses
  */

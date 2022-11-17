@@ -1,0 +1,5 @@
+menuconfig ORB_COMMUNICATOR
+	bool "orb communicator"
+	default n
+	---help---
+		Enable support for the uorb communicator for distributed platforms
