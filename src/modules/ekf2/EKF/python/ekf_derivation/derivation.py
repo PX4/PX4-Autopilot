@@ -387,6 +387,34 @@ def compute_flow_y_innov_var_and_h(
 
     return (innov_var, Hy.T)
 
+def compute_gnss_yaw_innon_innov_var_and_h(
+        state: VState,
+        P: MState,
+        antenna_yaw_offset: sf.Scalar,
+        meas: sf.Scalar,
+        R: sf.Scalar,
+        epsilon: sf.Scalar
+) -> (sf.Scalar, sf.Scalar, VState):
+
+    q_att = sf.V4(state[State.qw], state[State.qx], state[State.qy], state[State.qz])
+    R_to_earth = quat_to_rot(q_att)
+
+    # define antenna vector in body frame
+    ant_vec_bf = sf.V3(sf.cos(antenna_yaw_offset), sf.sin(antenna_yaw_offset), 0)
+
+    # rotate into earth frame
+    ant_vec_ef = R_to_earth * ant_vec_bf
+
+    # Calculate the yaw angle from the projection
+    meas_pred = sf.atan2(ant_vec_ef[1], ant_vec_ef[0], epsilon=epsilon)
+
+    H = sf.V1(meas_pred).jacobian(state)
+    innov_var = (H * P * H.T + R)[0,0]
+
+    innov = meas_pred - meas
+
+    return (innov, innov_var, H.T)
+
 print("Derive EKF2 equations...")
 generate_px4_function(compute_airspeed_innov_and_innov_var, output_names=["innov", "innov_var"])
 generate_px4_function(compute_airspeed_h_and_k, output_names=["H", "K"])
@@ -404,3 +432,4 @@ generate_px4_function(compute_yaw_312_innov_var_and_h_alternate, output_names=["
 generate_px4_function(compute_mag_declination_innov_innov_var_and_h, output_names=["innov", "innov_var", "H"])
 generate_px4_function(compute_flow_xy_innov_var_and_hx, output_names=["innov_var", "H"])
 generate_px4_function(compute_flow_y_innov_var_and_h, output_names=["innov_var", "H"])
+generate_px4_function(compute_gnss_yaw_innon_innov_var_and_h, output_names=["innov", "innov_var", "H"])
