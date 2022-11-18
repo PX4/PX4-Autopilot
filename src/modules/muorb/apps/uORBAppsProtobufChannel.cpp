@@ -33,6 +33,8 @@
 
 #include "uORBAppsProtobufChannel.hpp"
 #include <string.h>
+#include <lib/parameters/param.h>
+#include <px4_platform_common/tasks.h>
 
 #include "fc_sensor.h"
 
@@ -217,6 +219,13 @@ bool uORB::AppsProtobufChannel::Test()
 	return true;
 }
 
+static void *start_param_server(void *)
+{
+ 	usleep(10000000);
+	param_init();
+ 	return nullptr;
+}
+
 bool uORB::AppsProtobufChannel::Initialize(bool enable_debug)
 {
 	fc_callbacks cb = {&ReceiveCallback, &AdvertiseCallback,
@@ -231,6 +240,12 @@ bool uORB::AppsProtobufChannel::Initialize(bool enable_debug)
 		_Initialized = true;
 	}
 
+	(void) px4_task_spawn_cmd("start_param_server",
+				  SCHED_DEFAULT,
+				  SCHED_PRIORITY_MAX - 2,
+				  2000,
+				  (px4_main_t)&start_param_server,
+				  nullptr);
 	return true;
 }
 

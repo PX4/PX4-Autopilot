@@ -40,6 +40,7 @@
 #include <pthread.h>
 #include <px4_platform_common/tasks.h>
 #include <px4_platform_common/log.h>
+#include <lib/parameters/param.h>
 
 // Definition of test to run when in muorb test mode
 static MUORBTestType test_to_run;
@@ -192,6 +193,13 @@ static void *test_runner(void *)
 	return nullptr;
 }
 
+static void *start_param_client(void *)
+{
+	usleep(10000);
+	param_init();
+	return nullptr;
+}
+
 int px4muorb_orb_initialize(fc_func_ptrs *func_ptrs, int32_t clock_offset_us)
 {
 	hrt_set_absolute_time_offset(clock_offset_us);
@@ -225,6 +233,13 @@ int px4muorb_orb_initialize(fc_func_ptrs *func_ptrs, int32_t clock_offset_us)
 		uORB::Manager::initialize();
 		uORB::Manager::get_instance()->set_uorb_communicator(
 			uORB::ProtobufChannel::GetInstance());
+
+		(void) px4_task_spawn_cmd("start_param_client",
+					  SCHED_DEFAULT,
+					  SCHED_PRIORITY_MAX - 2,
+					  2000,
+					  (px4_main_t)&start_param_client,
+					  nullptr);
 
 		px4muorb_orb_initialized = true;
 

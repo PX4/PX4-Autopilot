@@ -194,3 +194,7 @@ endmenu
 menu "platforms"
 source "platforms/common/Kconfig"
 endmenu
+
+menu "libraries"
+source "src/lib/Kconfig"
+endmenu

@@ -83,6 +83,7 @@ if(CONFIG_BOARD_IO)
 	set(board_with_io_arg --board-with-io)
 endif()
 
+if(NOT ${PX4_PLATFORM} STREQUAL "qurt")
 add_custom_command(OUTPUT ${generated_serial_params_file} ${generated_module_params_file}
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${generated_params_dir}
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
@@ -104,6 +105,22 @@ add_custom_command(OUTPUT ${generated_serial_params_file} ${generated_module_par
 		${PX4_SOURCE_DIR}/Tools/module_config/generate_params.py
 	COMMENT "Generating serial_params.c"
 )
+else()
+add_custom_command(OUTPUT ${generated_serial_params_file} ${generated_module_params_file}
+	COMMAND ${CMAKE_COMMAND} -E make_directory ${generated_params_dir}
+	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
+		--params-file ${generated_serial_params_file}
+		--serial-ports ${board_serial_ports} ${added_arguments} ${constrained_flash_arg}
+		--config-files ${module_config_files}
+		#--verbose
+	DEPENDS
+		${module_config_files}
+		${jinja_templates}
+		${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
+		${PX4_SOURCE_DIR}/Tools/module_config/generate_params.py
+	COMMENT "Generating serial_params.c"
+)
+endif()
 
 set(parameters_xml ${PX4_BINARY_DIR}/parameters.xml)
 set(parameters_json ${PX4_BINARY_DIR}/parameters.json)
@@ -150,6 +167,14 @@ add_custom_command(OUTPUT px4_parameters.hpp
 add_custom_target(parameters_header DEPENDS px4_parameters.hpp)
 
 set(SRCS)
+
+if (CONFIG_PARAM_SERVER)
+	list(APPEND SRCS param_server.cpp)
+endif()
+
+if (CONFIG_PARAM_CLIENT)
+	list(APPEND SRCS param_client.cpp)
+endif()
 
 list(APPEND SRCS parameters.cpp)
 

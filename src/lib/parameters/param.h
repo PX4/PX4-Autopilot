@@ -447,6 +447,18 @@ __EXPORT void	param_print_status(void);
 __EXPORT void	param_control_autosave(bool enable);
 
 /**
+ * Set the value of a parameter, but do not update the remote system. This avoids
+ * a set loop between client and server.
+ *
+ * @param param		A handle returned by param_find or passed by param_foreach.
+ * @param val		The value to set; assumed to point to a variable of the parameter type.
+ *			For structures, the pointer is assumed to point to a structure to be copied.
+ * @param notify	Set this to true for the server (to send out a param update) and false on client
+ * @return		Zero if the parameter's value could be set from a scalar, nonzero otherwise.
+ */
+__EXPORT int		param_set_no_remote_update(param_t param, const void *val, bool notify);
+
+/**
  * Parameter value union.
  */
 union param_value_u {

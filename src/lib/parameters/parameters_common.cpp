@@ -48,7 +48,8 @@ static constexpr uint16_t param_info_count = sizeof(px4::parameters) / sizeof(pa
  * @param param			The parameter handle to test.
  * @return			True if the handle is valid.
  */
-static constexpr bool handle_in_range(param_t param) { return (param < param_info_count); }
+//static constexpr bool handle_in_range(param_t param) { return (param < param_info_count); }
+bool handle_in_range(param_t param) { return (param < param_info_count); }
 
 unsigned param_count()
 {
