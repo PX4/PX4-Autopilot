@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>px4_sdk_lib</name>
+  <version>0.0.1</version>
+  <description>Library to interface with PX4 from ROS2</description>
+  <maintainer email="beat-kueng@gmx.net">beat</maintainer>
+  <license>BSD-3-Clause</license>
+
+  <buildtool_depend>eigen3_cmake_module</buildtool_depend>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_export_depend>eigen3_cmake_module</buildtool_export_depend>
+
+  <build_depend>eigen</build_depend>
+  <build_depend>rclcpp</build_depend>
+  <build_depend>px4_msgs</build_depend>
+  <build_export_depend>eigen</build_export_depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
