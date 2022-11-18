@@ -87,12 +87,13 @@ private:
 	/** Distance above ground below which entering ground contact state is possible when distance to ground is available. */
 	static constexpr float DIST_FROM_GROUND_THRESHOLD = 1.0f;
 
-	/** Handles for interesting parameters. **/
 	struct {
 		param_t minThrottle;
 		param_t hoverThrottle;
 		param_t minManThrottle;
 		param_t useHoverThrustEstimate;
+		param_t landSpeed;
+		param_t crawlSpeed;
 	} _paramHandle{};
 
 	struct {
@@ -100,6 +101,8 @@ private:
 		float hoverThrottle;
 		float minManThrottle;
 		bool useHoverThrustEstimate;
+		float landSpeed;
+		float crawlSpeed;
 	} _params{};
 
 	uORB::Subscription _actuator_controls_sub{ORB_ID(actuator_controls_0)};

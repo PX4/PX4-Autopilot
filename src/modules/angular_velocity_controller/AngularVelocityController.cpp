@@ -136,6 +136,7 @@ AngularVelocityController::Run()
 		_last_run = now;
 
 		const Vector3f angular_velocity{vehicle_angular_velocity.xyz};
+		_angular_acceleration = Vector3f(vehicle_angular_velocity.xyz_derivative);
 
 		/* check for updates in other topics */
 		_vehicle_status_sub.update(&_vehicle_status);
@@ -162,13 +163,6 @@ AngularVelocityController::Run()
 					_hover_thrust = hte.hover_thrust;
 				}
 			}
-		}
-
-		// check angular acceleration topic
-		vehicle_angular_acceleration_s vehicle_angular_acceleration;
-
-		if (_vehicle_angular_acceleration_sub.update(&vehicle_angular_acceleration)) {
-			_angular_acceleration = Vector3f(vehicle_angular_acceleration.xyz);
 		}
 
 		// check rates setpoint topic

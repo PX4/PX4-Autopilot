@@ -48,6 +48,10 @@
 #include "uORBUtils.hpp"
 #include "uORBManager.hpp"
 
+#ifdef CONFIG_ORB_COMMUNICATOR
+pthread_mutex_t uORB::Manager::_communicator_mutex = PTHREAD_MUTEX_INITIALIZER;
+#endif
+
 uORB::Manager *uORB::Manager::_Instance = nullptr;
 
 bool uORB::Manager::initialize()
@@ -258,7 +262,7 @@ int uORB::Manager::orb_exists(const struct orb_metadata *meta, int instance)
 		}
 	}
 
-#ifdef ORB_COMMUNICATOR
+#ifdef CONFIG_ORB_COMMUNICATOR
 
 	/*
 	 * Generate the path to the node and try to open it.
@@ -300,7 +304,7 @@ int uORB::Manager::orb_exists(const struct orb_metadata *meta, int instance)
 		}
 	}
 
-#endif /* ORB_COMMUNICATOR */
+#endif /* CONFIG_ORB_COMMUNICATOR */
 
 	return ret;
 }
@@ -360,10 +364,10 @@ orb_advert_t uORB::Manager::orb_advertise_multi(const struct orb_metadata *meta,
 		return nullptr;
 	}
 
-#ifdef ORB_COMMUNICATOR
+#ifdef CONFIG_ORB_COMMUNICATOR
 	// For remote systems call over and inform them
 	uORB::DeviceNode::topic_advertised(meta);
-#endif /* ORB_COMMUNICATOR */
+#endif /* CONFIG_ORB_COMMUNICATOR */
 
 	/* the advertiser may perform an initial publish to initialise the object */
 	if (data != nullptr) {
@@ -611,7 +615,7 @@ int uORB::Manager::node_open(const struct orb_metadata *meta, bool advertiser, i
 	return fd;
 }
 
-#ifdef ORB_COMMUNICATOR
+#ifdef CONFIG_ORB_COMMUNICATOR
 void uORB::Manager::set_uorb_communicator(uORBCommunicator::IChannel *channel)
 {
 	_comm_channel = channel;
@@ -623,18 +627,53 @@ void uORB::Manager::set_uorb_communicator(uORBCommunicator::IChannel *channel)
 
 uORBCommunicator::IChannel *uORB::Manager::get_uorb_communicator()
 {
-	return _comm_channel;
+	pthread_mutex_lock(&_communicator_mutex);
+	uORBCommunicator::IChannel *temp = _comm_channel;
+	pthread_mutex_unlock(&_communicator_mutex);
+
+	return temp;
 }
 
 int16_t uORB::Manager::process_remote_topic(const char *topic_name, bool isAdvertisement)
 {
+	PX4_DEBUG("entering process_remote_topic: name: %s", topic_name);
+
 	int16_t rc = 0;
 
-	if (isAdvertisement) {
+	char nodepath[orb_maxpath];
+	int ret = uORB::Utils::node_mkpath(nodepath, topic_name);
+	DeviceMaster *device_master = get_device_master();
+
+	if (ret == OK && device_master && isAdvertisement) {
+		uORB::DeviceNode *node = device_master->getDeviceNode(nodepath);
+
+		if (node) {
+			node->mark_as_advertised();
+			_remote_topics.insert(topic_name);
+			return rc;
+		}
+	}
+
+	// Didn't find a node so we need to create it via an advertisement
+	const struct orb_metadata *const *topic_list = orb_get_topics();
+	orb_id_t topic_ptr = nullptr;
+
+	for (size_t i = 0; i < orb_topics_count(); i++) {
+		if (strcmp(topic_list[i]->o_name, topic_name) == 0) {
+			topic_ptr = topic_list[i];
+			break;
+		}
+	}
+
+	if (topic_ptr) {
+		PX4_INFO("Advertising remote topic %s", topic_name);
 		_remote_topics.insert(topic_name);
+		orb_advertise(topic_ptr, nullptr);
 
 	} else {
+		PX4_INFO("process_remote_topic meta not found for %s\n", topic_name);
 		_remote_topics.erase(topic_name);
+		rc = -1;
 	}
 
 	return rc;
@@ -723,7 +762,7 @@ bool uORB::Manager::is_remote_subscriber_present(const char *messageName)
 	return _remote_subscriber_topics.find(messageName);
 }
 
-#endif /* ORB_COMMUNICATOR */
+#endif /* CONFIG_ORB_COMMUNICATOR */
 
 #ifdef ORB_USE_PUBLISHER_RULES
 

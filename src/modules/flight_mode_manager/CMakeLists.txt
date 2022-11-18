@@ -71,13 +71,6 @@ set(python_args
 	-f ${files_to_generate}
 )
 
-# add the additional tasks for the python script (if there are any)
-if(flight_tasks_to_add)
-	list(APPEND python_args
-		-s ${flight_tasks_to_add}
-	)
-endif()
-
 # generate the files using the python script and template
 add_custom_command(
 	OUTPUT

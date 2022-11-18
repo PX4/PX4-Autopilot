@@ -33,11 +33,16 @@
 
 get_property(module_libraries GLOBAL PROPERTY PX4_MODULE_LIBRARIES)
 
-QURT_LIB(LIB_NAME px4
-	SOURCES
-		${PX4_SOURCE_DIR}/platforms/qurt/unresolved_symbols.c
-	LINK_LIBS
-		modules__muorb__slpi
-		${module_libraries}
-		px4_layer
+include_directories(
+	${CMAKE_CURRENT_BINARY_DIR}
+	)
+
+add_library(px4 SHARED
+	${PX4_SOURCE_DIR}/platforms/qurt/unresolved_symbols.c
+	)
+
+target_link_libraries(px4
+	modules__muorb__slpi
+	${module_libraries}
+	px4_layer
 	)

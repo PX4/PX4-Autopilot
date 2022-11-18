@@ -181,16 +181,6 @@ PARAM_DEFINE_FLOAT(UART_ESC_T_MINF, 0.15);
 PARAM_DEFINE_INT32(UART_ESC_T_EXPO, 35);
 
 /**
- * UART ESC Turtle Mode Yaw Reversal
- *
- * @group UART ESC
- * @min 0
- * @max 1
- * @decimal 10
- * @increment 1
- */
-PARAM_DEFINE_INT32(UART_ESC_T_YAWR, 0);
-/**
  * UART ESC Turtle Mode Cosphi
  *
  * @group UART ESC
