@@ -425,10 +425,10 @@ FixedwingPositionControl::adapt_airspeed_setpoint(const float control_interval, 
 		}
 	}
 
-	float load_factor = 1.0f;
+	float load_factor_from_bank_angle = 1.0f;
 
 	if (PX4_ISFINITE(_att_sp.roll_body)) {
-		load_factor = 1.0f / cosf(_att_sp.roll_body);
+		load_factor_from_bank_angle = 1.0f / cosf(_att_sp.roll_body);
 	}
 
 	float weight_ratio = 1.0f;
@@ -438,16 +438,18 @@ FixedwingPositionControl::adapt_airspeed_setpoint(const float control_interval, 
 					       MAX_WEIGHT_RATIO);
 	}
 
-	// Adapt min airspeed setpoint based on wind estimate for more stability in higher winds.
-	if (_airspeed_valid && _wind_valid && _param_fw_wind_arsp_sc.get() > FLT_EPSILON) {
-		calibrated_min_airspeed = math::min(calibrated_min_airspeed + _param_fw_wind_arsp_sc.get() * _wind_vel.length(),
-						    _param_fw_airspd_max.get());
-	}
+	// Here we make sure that the set minimum airspeed is automatically adapted to the current load factor.
+	// The minimum airspeed is the controller limit (FW_AIRSPD_MIN, unless either in takeoff or landing) that should
+	// resemble the vehicles stall speed (CAS) with a 1g load plus some safety margin (as no controller tracks perfectly).
+	// Stall speed increases with the square root of the load factor: V_stall ~ sqrt(load_factor).
+	// The load_factor is composed of a term from the bank angle and a term from the weight ratio.
+	calibrated_min_airspeed *= sqrtf(load_factor_from_bank_angle * weight_ratio);
 
-	// Stall speed increases with the square root of the load factor times the weight ratio
-	// Vs ~ sqrt(load_factor * weight_ratio)
-	calibrated_min_airspeed = constrain(_param_fw_airspd_stall.get() * sqrtf(load_factor * weight_ratio),
-					    calibrated_min_airspeed, _param_fw_airspd_max.get());
+	// Aditional option to increase the min airspeed setpoint based on wind estimate for more stability in higher winds.
+	if (_airspeed_valid && _wind_valid && _param_fw_wind_arsp_sc.get() > FLT_EPSILON) {
+		calibrated_min_airspeed = math::min(calibrated_min_airspeed + _param_fw_wind_arsp_sc.get() *
+						    _wind_vel.length(), _param_fw_airspd_max.get());
+	}
 
 	calibrated_airspeed_setpoint = constrain(calibrated_airspeed_setpoint, calibrated_min_airspeed,
 				       _param_fw_airspd_max.get());

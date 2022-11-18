@@ -524,6 +524,10 @@ PARAM_DEFINE_FLOAT(FW_LND_THRTC_SC, 1.0f);
  * The minimal airspeed (calibrated airspeed) the user is able to command.
  * Further, if the airspeed falls below this value, the TECS controller will try to
  * increase airspeed more aggressively.
+ * Has to be set according to the vehicle's stall speed (which should be set in FW_AIRSPD_STALL),
+ * with some margin between the stall speed and minimum airspeed.
+ * This value corresponds to the desired minimum speed with the default load factor (level flight, default weight),
+ * and is automatically adpated to the current load factor (calculated from roll setpoint and WEIGHT_GROSS/WEIGHT_BASE).
  *
  * @unit m/s
  * @min 0.5
@@ -537,7 +541,8 @@ PARAM_DEFINE_FLOAT(FW_AIRSPD_MIN, 10.0f);
 /**
  * Maximum Airspeed (CAS)
  *
- * If the CAS (calibrated airspeed) is above this value, the TECS controller will try to decrease
+ * The maximal airspeed (calibrated airspeed) the user is able to command.
+ * Further, if the airspeed is above this value, the TECS controller will try to decrease
  * airspeed more aggressively.
  *
  * @unit m/s
