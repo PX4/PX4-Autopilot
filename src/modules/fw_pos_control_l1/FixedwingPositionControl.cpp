@@ -403,7 +403,7 @@ FixedwingPositionControl::get_manual_airspeed_setpoint()
 }
 
 float
-FixedwingPositionControl::get_auto_airspeed_setpoint(const float control_interval, float calibrated_airspeed_setpoint,
+FixedwingPositionControl::adapt_airspeed_setpoint(const float control_interval, float calibrated_airspeed_setpoint,
 		float calibrated_min_airspeed, const Vector2f &ground_speed)
 {
 	if (!PX4_ISFINITE(calibrated_airspeed_setpoint) || calibrated_airspeed_setpoint <= FLT_EPSILON) {
@@ -1151,7 +1151,7 @@ FixedwingPositionControl::control_auto_position(const float control_interval, co
 		}
 	}
 
-	float target_airspeed = get_auto_airspeed_setpoint(control_interval, pos_sp_curr.cruising_speed,
+	float target_airspeed = adapt_airspeed_setpoint(control_interval, pos_sp_curr.cruising_speed,
 				_param_fw_airspd_min.get(), ground_speed);
 
 	Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
@@ -1225,7 +1225,7 @@ FixedwingPositionControl::control_auto_velocity(const float control_interval, co
 	Vector2f target_velocity{pos_sp_curr.vx, pos_sp_curr.vy};
 	_target_bearing = wrap_pi(atan2f(target_velocity(1), target_velocity(0)));
 
-	float target_airspeed = get_auto_airspeed_setpoint(control_interval, pos_sp_curr.cruising_speed,
+	float target_airspeed = adapt_airspeed_setpoint(control_interval, pos_sp_curr.cruising_speed,
 				_param_fw_airspd_min.get(), ground_speed);
 
 	if (_param_fw_use_npfg.get()) {
@@ -1327,7 +1327,7 @@ FixedwingPositionControl::control_auto_loiter(const float control_interval, cons
 		_att_sp.apply_spoilers = vehicle_attitude_setpoint_s::SPOILERS_OFF;
 	}
 
-	float target_airspeed = get_auto_airspeed_setpoint(control_interval, airspeed_sp, _param_fw_airspd_min.get(),
+	float target_airspeed = adapt_airspeed_setpoint(control_interval, airspeed_sp, _param_fw_airspd_min.get(),
 				ground_speed);
 
 	Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
@@ -1423,7 +1423,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 			adjusted_min_airspeed = takeoff_airspeed;
 		}
 
-		float target_airspeed = get_auto_airspeed_setpoint(control_interval, takeoff_airspeed, adjusted_min_airspeed,
+		float target_airspeed = adapt_airspeed_setpoint(control_interval, takeoff_airspeed, adjusted_min_airspeed,
 					ground_speed);
 
 		// yaw control is disabled once in "taking off" state
@@ -1557,7 +1557,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 		if (_launch_detection_state != LAUNCHDETECTION_RES_NONE) {
 			/* Launch has been detected, hence we have to control the plane. */
 
-			float target_airspeed = get_auto_airspeed_setpoint(control_interval, _param_fw_airspd_trim.get(),
+			float target_airspeed = adapt_airspeed_setpoint(control_interval, _param_fw_airspd_trim.get(),
 						_param_fw_airspd_min.get(), ground_speed);
 
 			if (_param_fw_use_npfg.get()) {
@@ -1670,7 +1670,7 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 		adjusted_min_airspeed = airspeed_land;
 	}
 
-	float target_airspeed = get_auto_airspeed_setpoint(control_interval, airspeed_land, adjusted_min_airspeed,
+	float target_airspeed = adapt_airspeed_setpoint(control_interval, airspeed_land, adjusted_min_airspeed,
 				ground_speed);
 
 	// calculate the altitude setpoint based on the landing glide slope
@@ -1867,7 +1867,8 @@ FixedwingPositionControl::control_manual_altitude(const float control_interval, 
 {
 	updateManualTakeoffStatus();
 
-	const float calibrated_airspeed_sp = get_manual_airspeed_setpoint();
+	const float calibrated_airspeed_sp = adapt_airspeed_setpoint(control_interval, get_manual_airspeed_setpoint(),
+					     _param_fw_airspd_min.get(), ground_speed);
 	const float height_rate_sp = getManualHeightRateSetpoint();
 
 	// TECS may try to pitch down to gain airspeed if we underspeed, constrain the pitch when underspeeding if we are
@@ -1913,7 +1914,8 @@ FixedwingPositionControl::control_manual_position(const float control_interval, 
 {
 	updateManualTakeoffStatus();
 
-	float calibrated_airspeed_sp = get_manual_airspeed_setpoint();
+	float calibrated_airspeed_sp = adapt_airspeed_setpoint(control_interval, get_manual_airspeed_setpoint(),
+				       _param_fw_airspd_min.get(), ground_speed);
 	const float height_rate_sp = getManualHeightRateSetpoint();
 
 	// TECS may try to pitch down to gain airspeed if we underspeed, constrain the pitch when underspeeding if we are
