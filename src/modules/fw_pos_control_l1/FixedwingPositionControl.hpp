@@ -633,7 +633,7 @@ private:
 	float get_manual_airspeed_setpoint();
 
 	/**
-	 * @brief Returns am adapted calibrated airspeed setpoint
+	 * @brief Returns an adapted calibrated airspeed setpoint
 	 *
 	 * Adjusts the setpoint for wind, accelerated stall, and slew rates.
 	 *
