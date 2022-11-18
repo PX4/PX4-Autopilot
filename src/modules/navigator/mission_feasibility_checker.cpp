@@ -478,6 +478,8 @@ MissionFeasibilityChecker::checkFixedWingLanding(const mission_s &mission)
 		if (missionitem.nav_cmd == NAV_CMD_LAND) {
 			mission_item_s missionitem_previous {};
 
+			_has_landing = true;
+
 			float param_fw_lnd_ang = 0.0f;
 			const param_t param_handle_fw_lnd_ang = param_find("FW_LND_ANG");
 
@@ -657,6 +659,8 @@ MissionFeasibilityChecker::checkVTOLLanding(const mission_s &mission)
 
 		if (missionitem.nav_cmd == NAV_CMD_LAND || missionitem.nav_cmd == NAV_CMD_VTOL_LAND) {
 			mission_item_s missionitem_previous {};
+
+			_has_landing = true;
 
 			if (i > 0) {
 				landing_approach_index = i - 1;
