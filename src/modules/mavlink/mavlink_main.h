@@ -86,7 +86,6 @@
 #include "mavlink_ulog.h"
 
 #define DEFAULT_BAUD_RATE       57600
-#define DEFAULT_DEVICE_NAME     "/dev/ttyS1"
 
 #define HASH_PARAM              "_HASH_CHECK"
 
@@ -195,7 +194,7 @@ public:
 	 */
 	int			get_component_id() const { return mavlink_system.compid; }
 
-	const char *_device_name{DEFAULT_DEVICE_NAME};
+	const char *_device_name{nullptr};
 
 	enum MAVLINK_MODE {
 		MAVLINK_MODE_NORMAL = 0,
@@ -535,7 +534,7 @@ private:
 	px4::atomic_bool	_task_running{false};
 
 	bool			_transmitting_enabled{true};
-	bool			_transmitting_enabled_commanded{false};
+	bool			_transmitting_enabled_commanded{true};
 	bool			_first_heartbeat_sent{false};
 
 	orb_advert_t		_mavlink_log_pub{nullptr};
@@ -687,8 +686,7 @@ private:
 
 	void			mavlink_update_parameters();
 
-	int mavlink_open_uart(const int baudrate = DEFAULT_BAUD_RATE,
-			      const char *uart_name = DEFAULT_DEVICE_NAME,
+	int mavlink_open_uart(const int baudrate, const char *uart_name,
 			      const FLOW_CONTROL_MODE flow_control = FLOW_CONTROL_AUTO);
 
 	static constexpr unsigned RADIO_BUFFER_CRITICAL_LOW_PERCENTAGE = 25;
@@ -747,7 +745,7 @@ private:
 #if defined(MAVLINK_UDP)
 	void find_broadcast_address();
 
-	void init_udp();
+	bool init_udp();
 #endif // MAVLINK_UDP
 
 
