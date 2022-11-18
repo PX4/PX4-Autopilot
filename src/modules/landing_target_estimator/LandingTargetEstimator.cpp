@@ -913,7 +913,8 @@ bool LandingTargetEstimator::fuse_meas(const Vector3f vehicle_acc_ned, const tar
 	// TODO: when using the mission target, the GPS field has no timestamp (maybe only in simulation) once solved: remove && 0
 	if (dt_sync > measurement_valid_TIMEOUT_US) {
 
-		PX4_INFO("Measurement rejected because too old. Time sync: %.2f [seconds] > timeout: %.2f [seconds]",
+		PX4_INFO("Obs i = %d rejected because too old. Time sync: %.2f [seconds] > timeout: %.2f [seconds]",
+			 target_pos_obs.type,
 			 (double)(dt_sync / SEC2USEC), (double)(measurement_valid_TIMEOUT_US / SEC2USEC));
 
 		// No measurement update, set to false
@@ -943,9 +944,9 @@ bool LandingTargetEstimator::fuse_meas(const Vector3f vehicle_acc_ned, const tar
 			if (!target_pos_obs.updated_xyz(j)) {
 
 				// No measurement
-				PX4_INFO("Obs i = %d : at least one non-valid observation. x: %d, y: %d, z: %d", target_pos_obs.type,
-					 target_pos_obs.updated_xyz(0),
-					 target_pos_obs.updated_xyz(1), target_pos_obs.updated_xyz(2));
+				// PX4_INFO("Obs i = %d : at least one non-valid observation. x: %d, y: %d, z: %d", target_pos_obs.type,
+				// 	 target_pos_obs.updated_xyz(0),
+				// 	 target_pos_obs.updated_xyz(1), target_pos_obs.updated_xyz(2));
 
 				// Set innovations to zero
 				target_innov.fusion_enabled[j] = false;
@@ -1004,9 +1005,9 @@ bool LandingTargetEstimator::fuse_meas(const Vector3f vehicle_acc_ned, const tar
 			all_directions_fused = true;
 
 		} else {
-			PX4_INFO("Obs i = %d : at least one direction not fused: . x: %d, y: %d, z: %d", target_pos_obs.type, meas_xyz_fused(0),
-				 meas_xyz_fused(1),
-				 meas_xyz_fused(2));
+			// PX4_INFO("Obs i = %d : at least one direction not fused: . x: %d, y: %d, z: %d", target_pos_obs.type, meas_xyz_fused(0),
+			// 	 meas_xyz_fused(1),
+			// 	 meas_xyz_fused(2));
 		}
 	}
 
