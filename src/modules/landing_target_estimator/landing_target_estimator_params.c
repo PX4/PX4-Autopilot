@@ -71,7 +71,7 @@ PARAM_DEFINE_INT32(LTEST_EN, 0);
  * @bit 5 mission landing position
  * @reboot_required true
  */
-PARAM_DEFINE_INT32(LTEST_AID_MASK, 8);
+PARAM_DEFINE_INT32(LTEST_AID_MASK, 6);
 
 /**
  * Landing target mode
@@ -87,7 +87,7 @@ PARAM_DEFINE_INT32(LTEST_AID_MASK, 8);
  * @value 0 Moving
  * @value 1 Stationary
  */
-PARAM_DEFINE_INT32(LTEST_MODE, 0);
+PARAM_DEFINE_INT32(LTEST_MODE, 1);
 
 /**
  * Landing target model
@@ -105,7 +105,7 @@ PARAM_DEFINE_INT32(LTEST_MODE, 0);
  * @value 1 Full pose coupled
  * @value 2 Horizontal position
  */
-PARAM_DEFINE_INT32(LTEST_MODEL, 2);
+PARAM_DEFINE_INT32(LTEST_MODEL, 1);
 
 /**
  * Target GPS position uncertainty
@@ -186,7 +186,7 @@ PARAM_DEFINE_FLOAT(LTEST_BIAS_LIM, 1.f);
  *
  * @group Landing target Estimator
  */
-PARAM_DEFINE_FLOAT(LTEST_MEAS_UNC, 0.005f);
+PARAM_DEFINE_FLOAT(LTEST_MEAS_UNC, 0.05f);
 
 /**
  * Initial landing target and drone relative position uncertainty

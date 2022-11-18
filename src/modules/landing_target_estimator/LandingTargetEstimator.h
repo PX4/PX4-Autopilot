@@ -111,15 +111,14 @@ protected:
 	 */
 	void updateParams() override;
 
-	// TODO: increase the timeout to at least 4 000 000
 	/* timeout after which filter is reset if target not seen */
-	static constexpr uint32_t landing_target_estimator_TIMEOUT_US = 4000000;
+	static constexpr uint32_t landing_target_estimator_TIMEOUT_US = 3000000;
 
 	/* timeout after which the target is not valid if no measurements are seen*/
 	static constexpr uint32_t landing_target_valid_TIMEOUT_US = 2000000;
 
 	/* timeout after which the measurement is not valid*/
-	static constexpr uint32_t measurement_valid_TIMEOUT_US = 2000000;
+	static constexpr uint32_t measurement_valid_TIMEOUT_US = 1000000;
 
 	/* timeout after which the measurement is not considered updated*/
 	static constexpr uint32_t measurement_updated_TIMEOUT_US = 100000;

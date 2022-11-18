@@ -101,8 +101,7 @@ void LandingTargetEstimator::update()
 
 	// No attitude or acceleration: early return;
 	// Init the estimator when landing is the next setpoint
-	// if (!input.acc_ned_valid || !_start_detection)
-	if (!input.acc_ned_valid) {
+	if (!input.acc_ned_valid || !_start_detection) {
 		return;
 	}
 
@@ -354,9 +353,7 @@ bool LandingTargetEstimator::update_step(Vector3f vehicle_acc_ned)
 		/*UAV GPS VELOCITY*/
 		if (uav_gps_vel_valid) {
 
-			if (fuse_meas(vehicle_acc_ned, obs_uav_gps_vel)) {
-				pos_fused = true;
-			}
+			fuse_meas(vehicle_acc_ned, obs_uav_gps_vel);
 		}
 
 		/*VISION*/
@@ -495,6 +492,10 @@ bool LandingTargetEstimator::processObsVision(const landing_target_pose_s fiduci
 		R_rotated(2,1) = R_rotated(1,2);
 	*/
 	float meas_uncertainty = _param_ltest_meas_unc.get();
+
+	// For now assume that we are at 10m if no distance bottom is valid
+	meas_uncertainty = _dist_bottom_valid ? (meas_uncertainty * _dist_bottom) : (meas_uncertainty * 10);
+
 	SquareMatrix<float, 3> R_rotated = diag(Vector3f(meas_uncertainty, meas_uncertainty, meas_uncertainty));
 
 
@@ -910,7 +911,7 @@ bool LandingTargetEstimator::fuse_meas(const Vector3f vehicle_acc_ned, const tar
 	float dt_sync = (_last_predict - target_pos_obs.timestamp);
 
 	// TODO: when using the mission target, the GPS field has no timestamp (maybe only in simulation) once solved: remove && 0
-	if (dt_sync > measurement_valid_TIMEOUT_US && 0) {
+	if (dt_sync > measurement_valid_TIMEOUT_US) {
 
 		PX4_INFO("Measurement rejected because too old. Time sync: %.2f [seconds] > timeout: %.2f [seconds]",
 			 (double)(dt_sync / SEC2USEC), (double)(measurement_valid_TIMEOUT_US / SEC2USEC));
@@ -925,6 +926,10 @@ bool LandingTargetEstimator::fuse_meas(const Vector3f vehicle_acc_ned, const tar
 
 		// Convert time sync to seconds
 		dt_sync = dt_sync / SEC2USEC;
+
+		// For debug: save the time sync
+		target_innov.test_ratio[0] = dt_sync;
+
 		// TODO: Eventually remove, for now to debug, assume prediction time = measurement time
 		dt_sync = 0.f;
 		// Fill the timestamp field of innovation
