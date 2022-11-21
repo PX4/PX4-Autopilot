@@ -91,16 +91,18 @@ inline static int flash_param_load() { return -1; }
 inline static int flash_param_import() { return -1; }
 #endif
 
-static char *param_default_file = nullptr;
-static char *param_backup_file = nullptr;
-
 // uORB topics needed to keep parameter server and client in sync
 #if defined(CONFIG_PARAM_SERVER)
 #include "param_server.h"
-#endif
-
-#if defined(CONFIG_PARAM_CLIENT)
+static char *param_default_file = (char*) "/data/px4/param/parameters";
+static char *param_backup_file = (char*) "/data/px4/param/backup_parameters";
+#elif defined(CONFIG_PARAM_CLIENT)
 #include "param_client.h"
+static char *param_default_file = (char*) "./param/parameters";
+static char *param_backup_file = (char*) "./param/backup_parameters";
+#else
+static char *param_default_file = nullptr;
+static char *param_backup_file = nullptr;
 #endif
 
 #include <px4_platform_common/workqueue.h>
