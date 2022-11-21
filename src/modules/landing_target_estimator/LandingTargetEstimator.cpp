@@ -108,8 +108,8 @@ void LandingTargetEstimator::update()
 	/* predict */
 	if (_estimator_initialized) {
 
-		if (hrt_absolute_time() - _last_update > landing_target_estimator_TIMEOUT_US) {
-			PX4_INFO("Lost sight of Marker");
+		if (hrt_absolute_time() - _last_update > _ltest_TIMEOUT_US) {
+			PX4_WARN("Timeout");
 			_estimator_initialized = false;
 			_new_pos_sensor_acquired_time = 0;
 
@@ -735,26 +735,26 @@ bool LandingTargetEstimator::processObsTargetGNSS(const landing_target_pose_s ta
 
 			// x direction H = [1, 0, 0, 0, 0, 0, 1, 0, 0, ...]
 			obs->meas_h_xyz(0, 0) = 1;
-			// obs->meas_h_xyz(0, 6) = 1;
+			obs->meas_h_xyz(0, 6) = 1;
 
 			// y direction H = [0, 1, 0, 0, 0, 0, 0, 1, 0, ...]
 			obs->meas_h_xyz(1, 1) = 1;
-			// obs->meas_h_xyz(1, 7) = 1;
+			obs->meas_h_xyz(1, 7) = 1;
 
 			// z direction H = [0, 0, 1, 0, 0, 0, 0, 0, 1, ...]
 			obs->meas_h_xyz(2, 2) = 1;
-			// obs->meas_h_xyz(2, 8) = 1;
+			obs->meas_h_xyz(2, 8) = 1;
 
 		} else {
 			// State: [r, r_dot, b, ...] --> same for x,y,z directions (decoupled)
 			obs->meas_h_xyz(0, 0) = 1;
-			// obs->meas_h_xyz(0, 2) = 1;
+			obs->meas_h_xyz(0, 2) = 1;
 
 			obs->meas_h_xyz(1, 0) = 1;
-			// obs->meas_h_xyz(1, 2) = 1;
+			obs->meas_h_xyz(1, 2) = 1;
 
 			obs->meas_h_xyz(2, 0) = 1;
-			// obs->meas_h_xyz(2, 2) = 1;
+			obs->meas_h_xyz(2, 2) = 1;
 		}
 
 		obs->timestamp = gps_timestamp;
@@ -1356,6 +1356,9 @@ void LandingTargetEstimator::updateParams()
 		_target_mode = param_target_mode;
 		_target_model = param_target_model;
 		selectTargetEstimator();
+
+		// Define LTEST timeout
+		_ltest_TIMEOUT_US = (uint32_t)(_param_ltest_btout.get() * 1e6f);
 	}
 
 	switch (_target_model) {

@@ -111,8 +111,6 @@ protected:
 	 */
 	void updateParams() override;
 
-	/* timeout after which filter is reset if target not seen */
-	static constexpr uint32_t landing_target_estimator_TIMEOUT_US = 3000000;
 
 	/* timeout after which the target is not valid if no measurements are seen*/
 	static constexpr uint32_t landing_target_valid_TIMEOUT_US = 2000000;
@@ -288,8 +286,12 @@ private:
 
 	void _update_state();
 
+	/* timeout after which filter is reset if target not seen */
+	uint32_t _ltest_TIMEOUT_US = 3000000;
+
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::LTEST_AID_MASK>) _param_ltest_aid_mask,
+		(ParamFloat<px4::params::LTEST_BTOUT>) _param_ltest_btout,
 		(ParamFloat<px4::params::LTEST_GPS_T_UNC>) _param_ltest_gps_t_unc,
 		(ParamFloat<px4::params::LTEST_ACC_D_UNC>) _param_ltest_acc_d_unc,
 		(ParamFloat<px4::params::LTEST_ACC_T_UNC>) _param_ltest_acc_t_unc,

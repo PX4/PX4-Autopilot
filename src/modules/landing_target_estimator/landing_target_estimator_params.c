@@ -45,6 +45,7 @@
  * Landing target estimator module enable
  *
  * @boolean
+ *
  * @group Landing target Estimator
  */
 PARAM_DEFINE_INT32(LTEST_EN, 0);
@@ -69,7 +70,10 @@ PARAM_DEFINE_INT32(LTEST_EN, 0);
  * @bit 3 irlock relative position
  * @bit 4 uwb relative position
  * @bit 5 mission landing position
+ *
  * @reboot_required true
+ *
+ * @group Landing target Estimator
  */
 PARAM_DEFINE_INT32(LTEST_AID_MASK, 6);
 
@@ -86,6 +90,8 @@ PARAM_DEFINE_INT32(LTEST_AID_MASK, 6);
  * @group Landing target Estimator
  * @value 0 Moving
  * @value 1 Stationary
+ *
+ * @group Landing target Estimator
  */
 PARAM_DEFINE_INT32(LTEST_MODE, 1);
 
@@ -104,8 +110,26 @@ PARAM_DEFINE_INT32(LTEST_MODE, 1);
  * @value 0 Full pose decoupled
  * @value 1 Full pose coupled
  * @value 2 Horizontal position
+ *
+ * @group Landing target Estimator
  */
 PARAM_DEFINE_INT32(LTEST_MODEL, 1);
+
+
+/**
+ * Landing Target Timeout
+ *
+ * Time after which the landing target is considered lost without any new measurements.
+ *
+ * @unit s
+ * @min 0.0
+ * @max 50
+ * @decimal 1
+ * @increment 0.5
+ *
+ * @group Landing target Estimator
+ */
+PARAM_DEFINE_FLOAT(LTEST_BTOUT, 3.0f);
 
 /**
  * Target GPS position uncertainty
