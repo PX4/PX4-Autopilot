@@ -488,13 +488,13 @@ void FixedwingAttitudeControl::Run()
 			float trim_yaw = _param_trim_yaw.get();
 
 			if (airspeed < _param_fw_airspd_trim.get()) {
-				trim_roll += interpolate(airspeed, _param_fw_airspd_stall.get(), _param_fw_airspd_trim.get(),
+				trim_roll += interpolate(airspeed, _param_fw_airspd_min.get(), _param_fw_airspd_trim.get(),
 							 _param_fw_dtrim_r_vmin.get(),
 							 0.0f);
-				trim_pitch += interpolate(airspeed, _param_fw_airspd_stall.get(), _param_fw_airspd_trim.get(),
+				trim_pitch += interpolate(airspeed, _param_fw_airspd_min.get(), _param_fw_airspd_trim.get(),
 							  _param_fw_dtrim_p_vmin.get(),
 							  0.0f);
-				trim_yaw += interpolate(airspeed, _param_fw_airspd_stall.get(), _param_fw_airspd_trim.get(),
+				trim_yaw += interpolate(airspeed, _param_fw_airspd_min.get(), _param_fw_airspd_trim.get(),
 							_param_fw_dtrim_y_vmin.get(),
 							0.0f);
 
