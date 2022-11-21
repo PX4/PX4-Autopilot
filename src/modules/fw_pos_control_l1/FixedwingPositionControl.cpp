@@ -2740,7 +2740,7 @@ void FixedwingPositionControl::publishLocalPositionSetpoint(const position_setpo
 		}
 
 	} else {
-		current_setpoint = _npfg.getPositionReference();
+		current_setpoint = _npfg.getClosestPoint();
 	}
 
 	local_position_setpoint.x = current_setpoint(0);
