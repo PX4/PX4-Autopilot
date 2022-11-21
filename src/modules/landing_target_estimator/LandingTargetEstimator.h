@@ -35,6 +35,7 @@
  * @file LandingTargetEstimator.h
  * Landing target position estimator. Filter and publish the position of a landing target on the ground as observed by an onboard sensor.
  *
+ * @author Jonas Perolini <jonas.perolini@epfl.ch>
  * @author Nicolas de Palezieux (Sunflower Labs) <ndepal@gmail.com>
  * @author Mohammed Kabir <kabir@uasys.io>
  *
@@ -102,7 +103,7 @@ private:
 protected:
 
 	/*
-	 * Update uORB topics.
+	 * Get drone's acceleration (used as filter input)
 	 */
 	void get_input(accInput *input);
 
@@ -132,13 +133,12 @@ protected:
 	uORB::Publication<estimator_aid_source_3d_s> _target_estimator_aid_uwb_pub{ORB_ID(target_estimator_aid_uwb)};
 
 	uORB::Publication<estimator_aid_source_1d_s> _target_estimator_aid_ev_yaw_pub{ORB_ID(target_estimator_aid_ev_yaw)};
-	estimator_aid_source_1d_s _target_estimator_aid_ev_yaw;
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 private:
 
-	bool _start_detection = false;
+	bool _start_filter = false;
 	uint8_t _nave_state = 0;
 
 	enum class TargetMode {
@@ -153,6 +153,9 @@ private:
 		Horizontal,
 		NotInit
 	};
+
+	TargetMode _target_mode{TargetMode::NotInit};
+	TargetModel _target_model{TargetModel::NotInit};
 
 	struct targetObsOrientation {
 		hrt_abstime timestamp;
@@ -176,9 +179,6 @@ private:
 		ObservationType type;
 		hrt_abstime timestamp;
 
-		//TODO: check that all vectors are initialized to zero
-		// x,y,z
-		bool any_xyz_updated;
 		matrix::Vector<bool, 3> updated_xyz; // Indicates if we have an observation in the x, y or z direction
 		matrix::Vector3f meas_xyz;			// Measurements (meas_x, meas_y, meas_z)
 		matrix::Vector3f meas_unc_xyz;		// Measurements' uncertainties
@@ -192,12 +192,6 @@ private:
 		nb_directions = 3,
 	};
 
-	/*Each component corresponds to a different measurements (VISION, IrLock, UWB, GPS, GPS velocity). For each measurement, we have observations in the x,y,z directions.*/
-	targetObsOrientation _target_orientation_obs{};
-
-	TargetMode _target_mode{TargetMode::NotInit};
-	TargetModel _target_model{TargetModel::NotInit};
-
 	enum SensorFusionMask : uint16_t {
 		// Bit locations for fusion_mode
 		USE_TARGET_GPS_POS  = (1 << 0),    ///< set to true to use target GPS position data
@@ -207,10 +201,6 @@ private:
 		USE_UWB_POS     	= (1 << 4),    ///< set to true to use target relative position from uwb data
 		USE_MISSION_POS     = (1 << 5),    ///< set to true to use the PX4 mission landing position
 	};
-
-	int _ltest_aid_mask{0};
-	int _nb_position_kf; // Number of kalman filter instances for the position estimate (no orientation)
-	bool _estimate_orientation;
 
 	void selectTargetEstimator();
 	void initEstimator(matrix::Vector3f pos_init, matrix::Vector3f vel_rel_init, matrix::Vector3f acc_init,
@@ -228,7 +218,7 @@ private:
 				  targetObsPos *obs);
 
 	bool fuse_meas(const matrix::Vector3f vehicle_acc_ned, const targetObsPos target_pos_obs);
-	bool updateOrientation();
+	bool fuse_orientation(const targetObsOrientation target_pos_obs);
 	void publishTarget();
 	void publishInnovations();
 
@@ -277,8 +267,9 @@ private:
 
 	matrix::Quaternion<float> _q_att; //Quaternion orientation of the body frame
 	TargetEstimator *_target_estimator[nb_directions] {nullptr, nullptr, nullptr};
-	TargetEstimator *_target_estimator_orientation {nullptr};
+	TargetEstimator *_target_estimator_orientation {nullptr}; // TODO: have a separate class for orientation
 	TargetEstimatorCoupled *_target_estimator_coupled {nullptr};
+	int _nb_position_kf; // Number of kalman filter instances for the position estimate (no orientation)
 	hrt_abstime _last_predict{0}; // timestamp of last filter prediction
 	hrt_abstime _last_update{0}; // timestamp of last filter update (used to check timeout)
 
@@ -286,8 +277,14 @@ private:
 
 	void _update_state();
 
-	/* timeout after which filter is reset if target not seen */
-	uint32_t _ltest_TIMEOUT_US = 3000000;
+	/* parameters */
+	uint32_t _ltest_TIMEOUT_US = 3000000; // timeout after which filter is reset if target not seen
+	int _ltest_aid_mask{0};
+	bool _estimate_orientation; // TODO: set as parameter
+	float _target_acc_unc;
+	float _bias_unc;
+	float _meas_unc;
+	float _gps_target_unc;
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::LTEST_AID_MASK>) _param_ltest_aid_mask,
