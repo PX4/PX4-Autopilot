@@ -9,7 +9,7 @@
 
 #if UAVCAN_KINETIS_NUTTX
 # include <nuttx/arch.h>
-# include "arm_arch.h"
+# include "arm_internal.h"
 # include <arch/board/board.h>
 # include <hardware/kinetis_pit.h>
 # include <hardware/kinetis_sim.h>

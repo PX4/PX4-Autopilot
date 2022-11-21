@@ -100,7 +100,7 @@ int px4_shutdown_unlock()
 	return ret;
 }
 
-#if defined(CONFIG_SCHED_WORKQUEUE) || (!defined(CONFIG_BUILD_FLAT) && defined(CONFIG_LIB_USRWORK))
+#if defined(CONFIG_SCHED_WORKQUEUE) || (!defined(CONFIG_BUILD_FLAT) && defined(CONFIG_LIBC_USRWORK))
 
 static struct work_s shutdown_work = {};
 static uint16_t shutdown_counter = 0; ///< count how many times the shutdown worker was executed
