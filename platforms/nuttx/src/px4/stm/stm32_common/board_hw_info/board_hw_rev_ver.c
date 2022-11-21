@@ -468,7 +468,7 @@ int board_determine_hw_info()
 		path = NULL;
 		rvmft = px4_mtd_query("MTD_MFT_REV", NULL, &path);
 
-		if (rvmft == OK && path != NULL && hw_revision == HW_ID_EEPROM) {
+		if (rv == OK && rvmft == OK && path != NULL && hw_revision == HW_ID_EEPROM) {
 
 			mtd_mft_v0_t mtd_mft = {MTD_MFT_v0};
 			rv = board_get_eeprom_hw_info(path, (mtd_mft_t *)&mtd_mft);
