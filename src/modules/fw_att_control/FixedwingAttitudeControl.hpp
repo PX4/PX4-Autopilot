@@ -240,7 +240,9 @@ private:
 
 		(ParamFloat<px4::params::TRIM_PITCH>) _param_trim_pitch,
 		(ParamFloat<px4::params::TRIM_ROLL>) _param_trim_roll,
-		(ParamFloat<px4::params::TRIM_YAW>) _param_trim_yaw
+		(ParamFloat<px4::params::TRIM_YAW>) _param_trim_yaw,
+
+		(ParamFloat<px4::params::FW_MAN_YR_MAX>) _param_fw_man_yr_max
 	)
 
 	ECL_RollController		_roll_ctrl;
