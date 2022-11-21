@@ -57,9 +57,7 @@ void Ekf::updateGpsYaw(const gpsSample &gps_sample)
 		// calculate the observed yaw angle of antenna array, converting a from body to antenna yaw measurement
 		const float measured_hdg = wrap_pi(gps_sample.yaw + _gps_yaw_offset);
 
-		// using magnetic heading process noise
-		// TODO extend interface to use yaw uncertainty provided by GPS if available
-		const float R_YAW = sq(fmaxf(_params.gps_heading_noise, 1.0e-2f));
+		const float R_YAW = sq(fmaxf(gps_sample.yaw_acc, _params.gps_heading_noise));
 
 		float heading_innov;
 		float heading_innov_var;
