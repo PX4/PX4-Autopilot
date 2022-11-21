@@ -41,19 +41,19 @@
 #include <sys/types.h>
 #include <stdint.h>
 #include <stdbool.h>
-typedef uint16_t orb_id_size_t; /* Dealing with the need to change from a uint8_t to uint16_t 
-                                 * Note: There are places in the code that are still assuming that 
+typedef uint16_t orb_id_size_t; /* Dealing with the need to change from a uint8_t to uint16_t
+                                 * Note: There are places in the code that are still assuming that
                                  * this is sized at uint32_t or less */
 
 /**
  * Object metadata.
  */
 struct orb_metadata {
-    const char    *o_name;              /**< unique object name */
-    const uint16_t o_size;              /**< object size */
-    const uint16_t o_size_no_padding;   /**< object size w/o padding at the end (for logger) */
-    const char    *o_fields;            /**< semicolon separated list of fields (with type) */
-    orb_id_size_t  o_id;                /**< ORB_ID enum */
+	const char    *o_name;              /**< unique object name */
+	const uint16_t o_size;              /**< object size */
+	const uint16_t o_size_no_padding;   /**< object size w/o padding at the end (for logger) */
+	const char    *o_fields;            /**< semicolon separated list of fields (with type) */
+	orb_id_size_t  o_id;                /**< ORB_ID enum */
 };
 
 typedef const struct orb_metadata *orb_id_t;

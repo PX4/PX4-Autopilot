@@ -75,7 +75,7 @@ inline bool operator&(SDLogProfileMask a, SDLogProfileMask b)
 class LoggedTopics
 {
 public:
-    // Change MAX_TOPICS_NUM to match those defined in the generated uORBTopics.hpp 
+	// Change MAX_TOPICS_NUM to match those defined in the generated uORBTopics.hpp
 	static constexpr int MAX_TOPICS_NUM = ORB_TOPICS_COUNT; /**< Maximum number of logged topics - was 255 */
 
 	static constexpr int MAX_EXCLUDED_OPTIONAL_TOPICS_NUM = 40;
