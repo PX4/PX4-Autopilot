@@ -75,23 +75,3 @@ int FlightModeManager::_initTask(FlightTaskIndex task_index)
 	_current_task.index = task_index;
 	return 0;
 }
-
-FlightTaskIndex FlightModeManager::switchVehicleCommand(const int command)
-{
-    switch (command) {
-@# loop through all additional tasks
-@[if tasks_add]@
-@[for task in tasks_add]@
-@{
-upperCase = lambda s: s[:].upper() if s else ''
-}@
-	case vehicle_command_s::VEHICLE_CMD_DO_@(upperCase(task)) :
-		return FlightTaskIndex::@(task);
-		break;
-
-@[end for]@
-@[end if]@
-	// ignore all unknown commands
-	default : return FlightTaskIndex::None;
-	}
-}

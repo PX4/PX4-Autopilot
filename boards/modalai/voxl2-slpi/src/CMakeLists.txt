@@ -1,6 +1,6 @@
 ############################################################################
 #
-# Copyright (c) 2022 ModalAI, Inc. All rights reserved.
+#   Copyright (c) 2022 ModalAI, Inc. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,25 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-#
-# Overview:
-# Voxl2 PX4 is built in 2 parts, the part that runs on the
-# application (apps) processor, and the library that is loaded on the DSP.
-#
-############################################################################
 
-include(px4_git)
-
-list(APPEND CMAKE_MODULE_PATH
-	"${PX4_SOURCE_DIR}/platforms/posix/cmake"
-)
-
-# set(DISABLE_PARAMS_MODULE_SCOPING TRUE)
-
-add_definitions(-DORB_COMMUNICATOR)
-
-set(CONFIG_PARAM_SERVER "1")
-
-add_definitions( -D__PX4_LINUX )
-
-include(CMakeParseArguments)
+add_library(drivers_board
+	board_config.h
+	init.c
+    )

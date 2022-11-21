@@ -37,6 +37,7 @@
 
 #include <poll.h>
 #include <termios.h>
+#include <fcntl.h>
 
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/vehicle_attitude.h>

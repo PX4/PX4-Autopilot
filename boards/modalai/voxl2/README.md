@@ -25,10 +25,10 @@ The full instructions are available here:
 - Clone the repo (Don't forget to update and initialize all submodules)
 - In the top level directory
 ```
-px4$ boards/modalai/voxl2/run-docker.sh
-root@9373fa1401b8:/usr/local/workspace# boards/modalai/voxl2/clean.sh
-root@9373fa1401b8:/usr/local/workspace# boards/modalai/voxl2/build-posix.sh
-root@9373fa1401b8:/usr/local/workspace# boards/modalai/voxl2/build-qurt.sh
+px4$ boards/modalai/voxl2/scripts/run-docker.sh
+root@9373fa1401b8:/usr/local/workspace# boards/modalai/voxl2/scripts/clean.sh
+root@9373fa1401b8:/usr/local/workspace# boards/modalai/voxl2/scripts/build-apps.sh
+root@9373fa1401b8:/usr/local/workspace# boards/modalai/voxl2/scripts/build-slpi.sh
 root@9373fa1401b8:/usr/local/workspace# exit
 ```
 
@@ -37,7 +37,7 @@ root@9373fa1401b8:/usr/local/workspace# exit
 Once the DSP and Linux images have been built they can be installed on a VOXL 2
 board using ADB. There is a script to do this.
 ```
-px4$ boards/modalai/voxl2/install-voxl.sh
+px4$ boards/modalai/voxl2/scripts/install-voxl.sh
 ```
 
 ## Running PX4 on VOXL 2
@@ -66,9 +66,16 @@ INFO  [px4] Startup script returned successfully
 pxh>
 ```
 
+## Notes
+
+You cannot cleanly shutdown PX4 with the shutdown command on VOXL 2. You have
+to power cycle the board and restart everything.
+
 ## Tips
 
 Start with a VOXL 2 that only has the system image installed, not the SDK
+
+Run the command ```voxl-px4 -s``` on target to run the self-test
 
 In order to see DSP specific debug messages the mini-dm tool in the Hexagon SDK
 can be used:

@@ -186,7 +186,6 @@ set(msg_files
 	UwbGrid.msg
 	VehicleAcceleration.msg
 	VehicleAirData.msg
-	VehicleAngularAcceleration.msg
 	VehicleAngularAccelerationSetpoint.msg
 	VehicleAngularVelocity.msg
 	VehicleAttitude.msg

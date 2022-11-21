@@ -50,7 +50,6 @@
 #include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
-#include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
@@ -112,9 +111,10 @@ private:
 	 */
 	bool isAnyTaskActive() const { return _current_task.task; }
 
+	void tryApplyCommandIfAny();
+
 	// generated
 	int _initTask(FlightTaskIndex task_index);
-	FlightTaskIndex switchVehicleCommand(const int command);
 
 	/**
 	 * Union with all existing tasks: we use it to make sure that only the memory of the largest existing
@@ -136,6 +136,9 @@ private:
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")}; ///< loop duration performance counter
 	hrt_abstime _time_stamp_last_loop{0}; ///< time stamp of last loop iteration
 
+	vehicle_command_s _current_command{};
+	bool _command_failed{false};
+
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::Subscription _takeoff_status_sub{ORB_ID(takeoff_status)};
@@ -150,7 +153,6 @@ private:
 
 	uORB::Publication<landing_gear_s> _landing_gear_pub{ORB_ID(landing_gear)};
 	uORB::Publication<trajectory_setpoint_s> _trajectory_setpoint_pub{ORB_ID(trajectory_setpoint)};
-	uORB::Publication<vehicle_command_ack_s> _vehicle_command_ack_pub{ORB_ID(vehicle_command_ack)};
 	uORB::Publication<vehicle_constraints_s> _vehicle_constraints_pub{ORB_ID(vehicle_constraints)};
 
 	DEFINE_PARAMETERS(

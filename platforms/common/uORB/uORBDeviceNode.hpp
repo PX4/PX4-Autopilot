@@ -41,6 +41,7 @@
 #include <containers/IntrusiveSortedList.hpp>
 #include <containers/List.hpp>
 #include <px4_platform_common/atomic.h>
+#include <px4_platform_common/px4_config.h>
 
 namespace uORB
 {
@@ -122,9 +123,8 @@ public:
 
 	static int        unadvertise(orb_advert_t handle);
 
-#ifdef ORB_COMMUNICATOR
+#ifdef CONFIG_ORB_COMMUNICATOR
 	static int16_t topic_advertised(const orb_metadata *meta);
-	//static int16_t topic_unadvertised(const orb_metadata *meta);
 
 	/**
 	 * processes a request for add subscription from remote
@@ -145,7 +145,7 @@ public:
 	 * processed the received data message from remote.
 	 */
 	int16_t process_received_message(int32_t length, uint8_t *data);
-#endif /* ORB_COMMUNICATOR */
+#endif /* CONFIG_ORB_COMMUNICATOR */
 
 	/**
 	  * Add the subscriber to the node's list of subscriber.  If there is
