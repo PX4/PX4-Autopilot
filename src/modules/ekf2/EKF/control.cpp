@@ -429,6 +429,8 @@ void Ekf::controlGpsYawFusion(const gpsSample &gps_sample, bool gps_checks_passi
 		return;
 	}
 
+	updateGpsYaw(gps_sample);
+
 	const bool is_new_data_available = PX4_ISFINITE(gps_sample.yaw);
 
 	if (is_new_data_available) {
@@ -447,7 +449,7 @@ void Ekf::controlGpsYawFusion(const gpsSample &gps_sample, bool gps_checks_passi
 
 			if (continuing_conditions_passing) {
 
-				fuseGpsYaw(gps_sample);
+				fuseGpsYaw();
 
 				const bool is_fusion_failing = isTimedOut(_aid_src_gnss_yaw.time_last_fuse, _params.reset_timeout_max);
 

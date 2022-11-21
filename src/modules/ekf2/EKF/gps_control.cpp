@@ -51,8 +51,6 @@ void Ekf::controlGpsFusion()
 
 		const gpsSample &gps_sample{_gps_sample_delayed};
 
-		updateGpsYaw(gps_sample);
-
 		const bool gps_checks_passing = isTimedOut(_last_gps_fail_us, (uint64_t)5e6);
 		const bool gps_checks_failing = isTimedOut(_last_gps_pass_us, (uint64_t)5e6);
 
