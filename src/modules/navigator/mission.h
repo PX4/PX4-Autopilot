@@ -88,6 +88,22 @@ public:
 	bool get_land_start_available() const { return _land_start_index != _invalid_index; }
 
 private:
+	// Work Item corresponds to the sub-mode set on the "MAV_CMD_DO_SET_MODE" MAVLink message
+	enum class WorkItemType {
+		WORK_ITEM_TYPE_DEFAULT,		/**< default mission item */
+		WORK_ITEM_TYPE_TAKEOFF,		/**< takeoff before moving to waypoint */
+		WORK_ITEM_TYPE_MOVE_TO_LAND,	/**< move to land waypoint before descent */
+		WORK_ITEM_TYPE_ALIGN,		/**< align for next waypoint */
+		WORK_ITEM_TYPE_TRANSITON_AFTER_TAKEOFF,
+		WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION,
+		WORK_ITEM_TYPE_PRECISION_LAND
+	} _work_item_type{WorkItemType::WORK_ITEM_TYPE_DEFAULT};	/**< current type of work to do (sub mission item) */
+
+	enum class MissionType {
+		MISSION_TYPE_NONE,
+		MISSION_TYPE_MISSION
+	} _mission_type{MissionType::MISSION_TYPE_NONE};
+
 	void onMissionUpdate(bool has_mission_items_changed) override;
 
 	/**
@@ -164,9 +180,9 @@ private:
 	void set_mission_item_reached();
 
 	/**
-	 * Set the current mission item
+	 * Set the mission result
 	 */
-	void set_current_mission_item();
+	void set_mission_result();
 
 	/**
 	 * Check whether a mission is ready to go
@@ -176,18 +192,24 @@ private:
 	/**
 	 * Reset mission
 	 */
-	void reset_mission();
-
-	/**
-	 * Returns true if we need to reset the mission (call this only when inactive)
-	 */
-	bool need_to_reset_mission();
+	void checkMissionRestart();
 
 	bool position_setpoint_equal(const position_setpoint_s *p1, const position_setpoint_s *p2) const;
 
 	void publish_navigator_mission_item();
 
 	void setCameraTrigger(bool enable);
+
+	void setEndOfMissionSetpoint();
+
+	void setMissionSetpoint(mission_item_s next_mission_items[], size_t &num_found_items);
+
+	WorkItemType handleTakeoff(mission_item_s next_mission_items[], size_t &num_found_items);
+
+	WorkItemType handleLanding(mission_item_s next_mission_items[], size_t &num_found_items);
+
+	WorkItemType handleVtolTransition(mission_item_s next_mission_items[], size_t &num_found_items);
+
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MIS_DIST_1WP>) _param_mis_dist_1wp,
@@ -210,22 +232,6 @@ private:
 
 	hrt_abstime _time_mission_deactivated{0};
 
-	enum {
-		MISSION_TYPE_NONE,
-		MISSION_TYPE_MISSION
-	} _mission_type{MISSION_TYPE_NONE};
-
-	bool _need_mission_reset{false};
+	bool _mission_has_been_activated{false};
 	bool _system_disarmed_while_inactive{false};
-
-	// Work Item corresponds to the sub-mode set on the "MAV_CMD_DO_SET_MODE" MAVLink message
-	enum work_item_type {
-		WORK_ITEM_TYPE_DEFAULT,		/**< default mission item */
-		WORK_ITEM_TYPE_TAKEOFF,		/**< takeoff before moving to waypoint */
-		WORK_ITEM_TYPE_MOVE_TO_LAND,	/**< move to land waypoint before descent */
-		WORK_ITEM_TYPE_ALIGN,		/**< align for next waypoint */
-		WORK_ITEM_TYPE_TRANSITON_AFTER_TAKEOFF,
-		WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION,
-		WORK_ITEM_TYPE_PRECISION_LAND
-	} _work_item_type{WORK_ITEM_TYPE_DEFAULT};	/**< current type of work to do (sub mission item) */
 };
