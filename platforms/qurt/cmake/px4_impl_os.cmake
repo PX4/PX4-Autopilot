@@ -50,7 +50,7 @@ include(qurt_reqs)
 
 include_directories(${HEXAGON_SDK_INCLUDES})
 
-set(DISABLE_PARAMS_MODULE_SCOPING TRUE)
+#set(DISABLE_PARAMS_MODULE_SCOPING TRUE)
 
 #=============================================================================
 #
