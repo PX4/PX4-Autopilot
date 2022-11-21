@@ -49,7 +49,6 @@ add_library(ecl_EKF
 	gnss_height_control.cpp
 	gps_checks.cpp
 	gps_control.cpp
-	gps_fusion.cpp
 	gps_yaw_fusion.cpp
 	height_control.cpp
 	imu_down_sampler.cpp
