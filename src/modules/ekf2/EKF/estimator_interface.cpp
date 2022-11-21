@@ -173,6 +173,13 @@ void EstimatorInterface::setGpsData(const gpsMessage &gps)
 			_gps_yaw_offset = 0.0f;
 		}
 
+		if (PX4_ISFINITE(gps.yaw_accuracy)) {
+			gps_sample_new.yaw_acc = gps.yaw_accuracy;
+
+		} else {
+			gps_sample_new.yaw_acc = 0.f;
+		}
+
 		// Only calculate the relative position if the WGS-84 location of the origin is set
 		if (collect_gps(gps)) {
 			gps_sample_new.pos = _pos_ref.project((gps.lat / 1.0e7), (gps.lon / 1.0e7));

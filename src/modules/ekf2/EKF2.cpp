@@ -1931,6 +1931,7 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 			.alt = vehicle_gps_position.alt,
 			.yaw = vehicle_gps_position.heading,
 			.yaw_offset = vehicle_gps_position.heading_offset,
+			.yaw_accuracy = vehicle_gps_position.heading_accuracy,
 			.fix_type = vehicle_gps_position.fix_type,
 			.eph = vehicle_gps_position.eph,
 			.epv = vehicle_gps_position.epv,
