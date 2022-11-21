@@ -51,7 +51,7 @@
 #include <nuttx/usb/usbdev.h>
 #include <nuttx/usb/usbdev_trace.h>
 
-#include <arm_arch.h>
+#include <arm_internal.h>
 #include <stm32.h>
 #include "board_config.h"
 

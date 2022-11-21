@@ -40,7 +40,7 @@
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
 
-#include "arm_arch.h"
+#include "arm_internal.h"
 #include "hardware/kinetis_sim.h"
 
 #define CHIP_TAG     "Kinetis K??"
