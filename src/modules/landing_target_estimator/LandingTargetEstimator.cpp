@@ -1183,8 +1183,8 @@ void LandingTargetEstimator::publishTarget()
 	// TODO: decide what to do with Bias lim
 	float bias_lim = _param_ltest_bias_lim.get();
 
-	if (_target_model != TargetModel::Horizontal && (fabs(target_estimator_state.x_bias) > bias_lim
-			|| fabs(target_estimator_state.y_bias) > bias_lim || fabs(target_estimator_state.z_bias) > bias_lim)) {
+	if (_target_model != TargetModel::Horizontal && ((float)fabs(target_estimator_state.x_bias) > bias_lim
+			|| (float)fabs(target_estimator_state.y_bias) > bias_lim || (float)fabs(target_estimator_state.z_bias) > bias_lim)) {
 
 		PX4_DEBUG("Bias exceeds limit: %.2f bias x: %.2f bias y: %.2f bias z: %.2f", (double)bias_lim,
 			  (double)target_estimator_state.x_bias, (double)target_estimator_state.y_bias, (double)target_estimator_state.z_bias);
