@@ -190,6 +190,7 @@ void PWMOut::Run()
 	_mixing_output.updateSubscriptions(true);
 
 	perf_end(_cycle_perf);
+	_first_update_cycle = false;
 }
 
 int PWMOut::task_spawn(int argc, char *argv[])
@@ -218,7 +219,7 @@ void PWMOut::update_params()
 	updateParams();
 
 	// Automatically set the PWM rate and disarmed value when a channel is first set to a servo
-	if (!_first_param_update) {
+	if (!_first_update_cycle) {
 		for (size_t i = 0; i < _num_outputs; i++) {
 			if ((previously_set_functions & (1u << i)) == 0 && _mixing_output.functionParamHandle(i) != PARAM_INVALID) {
 				int32_t output_function;
@@ -257,8 +258,6 @@ void PWMOut::update_params()
 			}
 		}
 	}
-
-	_first_param_update = false;
 }
 
 int PWMOut::custom_command(int argc, char *argv[])

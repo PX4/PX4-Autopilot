@@ -177,7 +177,7 @@ private:
 	unsigned		_max_rc_input{0};		///< Maximum receiver channels supported by PX4IO
 	unsigned		_max_transfer{16};		///< Maximum number of I2C transfers supported by PX4IO
 
-	bool			_first_param_update{true};
+	bool			_first_update_cycle{true};
 	uint32_t    		_group_channels[PX4IO_P_SETUP_PWM_RATE_GROUP3 - PX4IO_P_SETUP_PWM_RATE_GROUP0 + 1] {};
 
 	hrt_abstime		_poll_last{0};
@@ -638,7 +638,9 @@ void PX4IO::Run()
 
 	// check at end of cycle (updateSubscriptions() can potentially change to a different WorkQueue thread)
 	_mixing_output.updateSubscriptions(true);
+
 	perf_end(_cycle_perf);
+	_first_update_cycle = false;
 }
 
 void PX4IO::updateTimerRateGroups()
@@ -696,7 +698,7 @@ void PX4IO::update_params()
 	if (!_mixing_output.armed().armed) {
 
 		// Automatically set the PWM rate and disarmed value when a channel is first set to a servo
-		if (!_first_param_update) {
+		if (!_first_update_cycle) {
 			for (size_t i = 0; i < _max_actuators; i++) {
 				if ((previously_set_functions & (1u << i)) == 0 && _mixing_output.functionParamHandle(i) != PARAM_INVALID) {
 					int32_t output_function;
@@ -740,11 +742,7 @@ void PX4IO::update_params()
 		updateTimerRateGroups();
 		updateFailsafe();
 		updateDisarmed();
-		_first_param_update = false;
-		return;
 	}
-
-	_first_param_update = false;
 }
 
 void PX4IO::answer_command(const vehicle_command_s &cmd, uint8_t result)
