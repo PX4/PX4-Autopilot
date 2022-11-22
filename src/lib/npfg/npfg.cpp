@@ -535,6 +535,7 @@ void NPFG::navigateWaypoints(const Vector2f &waypoint_A, const Vector2f &waypoin
 		// single waypoint, fly directly to it
 		unit_path_tangent_ = -vector_A_to_vehicle.normalized();
 		signed_track_error_ = vector_A_to_vehicle.norm();
+		closest_point_on_path_ = waypoint_A;
 		guideToPoint(ground_vel, wind_vel, unit_path_tangent_, signed_track_error_);
 
 	} else if (vector_A_to_B.dot(vector_A_to_vehicle) < 0.0f) {
@@ -545,6 +546,7 @@ void NPFG::navigateWaypoints(const Vector2f &waypoint_A, const Vector2f &waypoin
 		// guidance to the line through A and B
 		unit_path_tangent_ = vector_A_to_B.normalized();
 		signed_track_error_ = unit_path_tangent_.cross(vector_A_to_vehicle);
+		closest_point_on_path_ = waypoint_A + vector_A_to_vehicle.dot(unit_path_tangent_) * unit_path_tangent_;
 		guideToPath(ground_vel, wind_vel, unit_path_tangent_, signed_track_error_, 0.0f);
 
 		const Vector2f bearing_vec_to_point = -vector_A_to_vehicle.normalized();
@@ -560,6 +562,7 @@ void NPFG::navigateWaypoints(const Vector2f &waypoint_A, const Vector2f &waypoin
 
 			unit_path_tangent_ = bearing_vec_to_point;
 			signed_track_error_ = vector_A_to_vehicle.norm();
+			closest_point_on_path_ = waypoint_A;
 			guideToPoint(ground_vel, wind_vel, bearing_vec_to_point, signed_track_error_);
 		}
 
@@ -567,6 +570,7 @@ void NPFG::navigateWaypoints(const Vector2f &waypoint_A, const Vector2f &waypoin
 		// track the line segment between A and B
 		unit_path_tangent_ = vector_A_to_B.normalized();
 		signed_track_error_ = unit_path_tangent_.cross(vector_A_to_vehicle);
+		closest_point_on_path_ = waypoint_A + vector_A_to_vehicle.dot(unit_path_tangent_) * unit_path_tangent_;
 		guideToPath(ground_vel, wind_vel, unit_path_tangent_, signed_track_error_, 0.0f);
 	}
 
@@ -612,6 +616,8 @@ void NPFG::navigateLoiter(const Vector2f &loiter_center, const Vector2f &vehicle
 	// positive in direction of path normal
 	signed_track_error_ = -loiter_direction_multiplier * (dist_to_center - radius);
 
+	closest_point_on_path_ = unit_vec_center_to_closest_pt * radius + loiter_center;
+
 	float path_curvature = loiter_direction_multiplier / radius;
 
 	guideToPath(ground_vel, wind_vel, unit_path_tangent_, signed_track_error_, path_curvature);
@@ -631,6 +637,7 @@ void NPFG::navigatePathTangent(const matrix::Vector2f &vehicle_pos, const matrix
 
 	// closest point to vehicle
 	matrix::Vector2f error_vector = vehicle_pos - position_setpoint;
+	closest_point_on_path_ = position_setpoint;
 	signed_track_error_ = unit_path_tangent_.cross(error_vector);
 
 	guideToPath(ground_vel, wind_vel, unit_path_tangent_, signed_track_error_, curvature);
@@ -645,6 +652,8 @@ void NPFG::navigateHeading(float heading_ref, const Vector2f &ground_vel, const 
 	Vector2f air_vel = ground_vel - wind_vel;
 	unit_path_tangent_ = Vector2f{cosf(heading_ref), sinf(heading_ref)};
 	signed_track_error_ = 0.0f;
+
+	closest_point_on_path_.setNaN();
 
 	// use the guidance law to regulate heading error - ignoring wind or inertial position
 	guideToPath(air_vel, Vector2f{0.0f, 0.0f}, unit_path_tangent_, signed_track_error_, 0.0f);
