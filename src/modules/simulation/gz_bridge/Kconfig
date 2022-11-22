@@ -1,5 +1,6 @@
 menuconfig MODULES_SIMULATION_GZ_BRIDGE
 	bool "gz_bridge"
 	default n
+	depends on PLATFORM_POSIX
 	---help---
 		Enable support for gz_bridge
