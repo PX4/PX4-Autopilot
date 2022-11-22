@@ -94,12 +94,12 @@ inline static int flash_param_import() { return -1; }
 // uORB topics needed to keep parameter server and client in sync
 #if defined(CONFIG_PARAM_SERVER)
 #include "param_server.h"
-static char *param_default_file = (char*) "/data/px4/param/parameters";
-static char *param_backup_file = (char*) "/data/px4/param/backup_parameters";
+static char *param_default_file = (char *) "/data/px4/param/parameters";
+static char *param_backup_file = (char *) "/data/px4/param/backup_parameters";
 #elif defined(CONFIG_PARAM_CLIENT)
 #include "param_client.h"
-static char *param_default_file = (char*) "./param/parameters";
-static char *param_backup_file = (char*) "./param/backup_parameters";
+static char *param_default_file = (char *) "./param/parameters";
+static char *param_backup_file = (char *) "./param/backup_parameters";
 #else
 static char *param_default_file = nullptr;
 static char *param_backup_file = nullptr;
@@ -226,11 +226,11 @@ param_init()
 #endif
 
 #if defined(CONFIG_PARAM_SERVER)
-   	param_server_init();
+	param_server_init();
 #endif
 
 #if defined(CONFIG_PARAM_CLIENT)
-   	param_client_init();
+	param_client_init();
 #endif
 
 }
@@ -283,7 +283,7 @@ void
 param_notify_changes()
 {
 #if !defined(CONFIG_PARAM_CLIENT)
-	parameter_update_s pup{};
+	parameter_update_s pup {};
 	pup.instance = param_instance++;
 	pup.get_count = perf_event_count(param_get_perf);
 	pup.set_count = perf_event_count(param_set_perf);
@@ -300,6 +300,7 @@ param_notify_changes()
 	} else {
 		orb_publish(ORB_ID(parameter_update), param_topic, &pup);
 	}
+
 #endif
 }
 
@@ -801,15 +802,19 @@ out:
 	param_unlock_writer();
 
 #if defined(CONFIG_PARAM_SERVER)
+
 	// If this is the parameter server, make sure that the client is updated
 	// TODO: Handle the possibility that this fails.
-	if (param_changed && remote_update) param_server_set(param, val);
+	if (param_changed && remote_update) { param_server_set(param, val); }
+
 #endif
 
 #if defined(CONFIG_PARAM_CLIENT)
+
 	// If this is the parameter client, make sure that the server is updated
 	// TODO: Handle the possibility that this fails.
-	if (param_changed && remote_update) param_client_set(param, val);
+	if (param_changed && remote_update) { param_client_set(param, val); }
+
 #endif
 
 	/*
@@ -867,8 +872,11 @@ void param_set_used(param_t param)
 	if (handle_in_range(param)) {
 		params_active.set(param, true);
 	}
+
 #if defined(CONFIG_PARAM_CLIENT)
-   	if ( ! param_used(param)) param_client_set_used(param);
+
+	if (! param_used(param)) { param_client_set_used(param); }
+
 #endif
 }
 
@@ -1011,7 +1019,7 @@ static int param_reset_internal(param_t param, bool notify = true)
 	param_unlock_writer();
 
 #if defined(CONFIG_PARAM_SERVER)
-  	param_server_reset(param);
+	param_server_reset(param);
 #endif
 
 	if (s != nullptr && notify) {
@@ -1048,7 +1056,7 @@ param_reset_all_internal(bool auto_save)
 
 	param_unlock_writer();
 #if defined(CONFIG_PARAM_SERVER)
-    	param_server_reset_all();
+	param_server_reset_all();
 #endif
 	param_notify_changes();
 #endif
@@ -1180,7 +1188,7 @@ int param_save_default()
 {
 #if defined(CONFIG_PARAM_CLIENT)
 	PX4_ERR("Cannot save parameters to a file on client side");
-    	return PX4_ERROR;
+	return PX4_ERROR;
 #else
 	PX4_DEBUG("param_save_default");
 	int shutdown_lock_ret = px4_shutdown_lock();
@@ -1196,8 +1204,10 @@ int param_save_default()
 
 	int res = PX4_ERROR;
 	const char *filename = param_get_default_file();
+
 	if (filename) {
 		static constexpr int MAX_ATTEMPTS = 3;
+
 		for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
 			// write parameters to file
 			int fd = ::open(filename, O_WRONLY | O_CREAT | O_TRUNC, PX4_O_MODE_666);
@@ -1224,8 +1234,9 @@ int param_save_default()
 				PX4_ERR("parameter export to %s failed (%d) attempt %d", filename, res, attempt);
 				px4_usleep(10000); // wait at least 10 milliseconds before trying again
 			}
+
 #ifndef CONFIG_PARAM_CLIENT
-    			::syncfs(fd);
+			::syncfs(fd);
 #endif
 		}
 
@@ -1723,6 +1734,7 @@ param_import(int fd)
 	PX4_ERR("Cannot import parameters on client side");
 	return PX4_ERROR;
 #else
+
 	if (fd < 0) {
 		return flash_param_import();
 	}
@@ -1738,6 +1750,7 @@ param_load(int fd)
 	PX4_ERR("Cannot load parameters on client side");
 	return PX4_ERROR;
 #else
+
 	if (fd < 0) {
 		return flash_param_load();
 	}
@@ -1814,6 +1827,7 @@ uint32_t param_hash_check()
 		if (!param_used(param) || param_is_volatile(param)) {
 			continue;
 		}
+
 #if !defined(CONFIG_PARAM_CLIENT)
 		const char *name = param_name(param);
 		const void *val = param_get_value_ptr(param);

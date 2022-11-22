@@ -221,9 +221,9 @@ bool uORB::AppsProtobufChannel::Test()
 
 static void *start_param_server(void *)
 {
- 	usleep(10000000);
+	usleep(10000000);
 	param_init();
- 	return nullptr;
+	return nullptr;
 }
 
 bool uORB::AppsProtobufChannel::Initialize(bool enable_debug)
