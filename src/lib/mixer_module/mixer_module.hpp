@@ -151,10 +151,9 @@ public:
 	 * Check for subscription updates.
 	 * Call this at the very end of Run() if allow_wq_switch
 	 * @param allow_wq_switch if true
-	 * @param limit_callbacks_to_primary set to only register callbacks for primary actuator controls (if used)
 	 * @return true if subscriptions got changed
 	 */
-	bool updateSubscriptions(bool allow_wq_switch = false, bool limit_callbacks_to_primary = false);
+	bool updateSubscriptions(bool allow_wq_switch = false);
 
 	/**
 	 * unregister uORB subscription callbacks

@@ -212,7 +212,7 @@ void MixingOutput::cleanupFunctions()
 	}
 }
 
-bool MixingOutput::updateSubscriptions(bool allow_wq_switch, bool limit_callbacks_to_primary)
+bool MixingOutput::updateSubscriptions(bool allow_wq_switch)
 {
 	if (!_need_function_update || _armed.armed) {
 		return false;

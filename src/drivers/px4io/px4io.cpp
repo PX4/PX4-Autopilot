@@ -633,11 +633,11 @@ void PX4IO::Run()
 		}
 	}
 
-	_mixing_output.updateSubscriptions(true, true);
-
 	// minimal backup scheduling
 	ScheduleDelayed(20_ms);
 
+	// check at end of cycle (updateSubscriptions() can potentially change to a different WorkQueue thread)
+	_mixing_output.updateSubscriptions(true);
 	perf_end(_cycle_perf);
 }
 
