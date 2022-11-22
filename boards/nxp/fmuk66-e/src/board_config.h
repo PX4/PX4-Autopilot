@@ -456,7 +456,7 @@ void board_peripheral_reset(int ms);
  *
  ************************************************************************************/
 
-#if defined(CONFIG_LIB_BOARDCTL) || defined(CONFIG_BOARD_INITIALIZE)
+#if defined(CONFIG_BOARDCTL) || defined(CONFIG_BOARD_INITIALIZE)
 int fmuk66_bringup(void);
 #endif
 
