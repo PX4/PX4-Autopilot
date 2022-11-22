@@ -2733,26 +2733,35 @@ bool FixedwingPositionControl::checkLandingAbortBitMask(const uint8_t automatic_
 
 void FixedwingPositionControl::publishLocalPositionSetpoint(const position_setpoint_s &current_waypoint)
 {
-	if (_global_local_proj_ref.isInitialized()) {
-		Vector2f current_setpoint = _global_local_proj_ref.project(current_waypoint.lat, current_waypoint.lon);
-		vehicle_local_position_setpoint_s local_position_setpoint{};
-		local_position_setpoint.timestamp = hrt_absolute_time();
-		local_position_setpoint.x = current_setpoint(0);
-		local_position_setpoint.y = current_setpoint(1);
-		local_position_setpoint.z = _global_local_alt0 - current_waypoint.alt;
-		local_position_setpoint.yaw = NAN;
-		local_position_setpoint.yawspeed = NAN;
-		local_position_setpoint.vx = NAN;
-		local_position_setpoint.vy = NAN;
-		local_position_setpoint.vz = NAN;
-		local_position_setpoint.acceleration[0] = NAN;
-		local_position_setpoint.acceleration[1] = NAN;
-		local_position_setpoint.acceleration[2] = NAN;
-		local_position_setpoint.thrust[0] = _att_sp.thrust_body[0];
-		local_position_setpoint.thrust[1] = _att_sp.thrust_body[1];
-		local_position_setpoint.thrust[2] = _att_sp.thrust_body[2];
-		_local_pos_sp_pub.publish(local_position_setpoint);
+	vehicle_local_position_setpoint_s local_position_setpoint{};
+	local_position_setpoint.timestamp = hrt_absolute_time();
+
+	Vector2f current_setpoint;
+
+	if (!_param_fw_use_npfg.get()) {
+		if (_global_local_proj_ref.isInitialized()) {
+			current_setpoint = _global_local_proj_ref.project(current_waypoint.lat, current_waypoint.lon);
+		}
+
+	} else {
+		current_setpoint = _npfg.getClosestPoint();
 	}
+
+	local_position_setpoint.x = current_setpoint(0);
+	local_position_setpoint.y = current_setpoint(1);
+	local_position_setpoint.z = _global_local_alt0 - current_waypoint.alt;
+	local_position_setpoint.yaw = NAN;
+	local_position_setpoint.yawspeed = NAN;
+	local_position_setpoint.vx = NAN;
+	local_position_setpoint.vy = NAN;
+	local_position_setpoint.vz = NAN;
+	local_position_setpoint.acceleration[0] = NAN;
+	local_position_setpoint.acceleration[1] = NAN;
+	local_position_setpoint.acceleration[2] = NAN;
+	local_position_setpoint.thrust[0] = _att_sp.thrust_body[0];
+	local_position_setpoint.thrust[1] = _att_sp.thrust_body[1];
+	local_position_setpoint.thrust[2] = _att_sp.thrust_body[2];
+	_local_pos_sp_pub.publish(local_position_setpoint);
 }
 
 void FixedwingPositionControl::publishOrbitStatus(const position_setpoint_s pos_sp)
