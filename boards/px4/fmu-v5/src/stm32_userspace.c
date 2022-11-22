@@ -118,7 +118,7 @@ const struct userspace_s userspace __attribute__((section(".userspace"))) = {
 
 	/* User-space work queue support (declared in include/nuttx/wqueue.h) */
 
-#ifdef CONFIG_LIB_USRWORK
+#ifdef CONFIG_LIBC_USRWORK
 	.work_usrstart    = work_usrstart,
 #endif
 };
