@@ -2170,15 +2170,18 @@ FixedwingPositionControl::Run()
 
 				_position_setpoint_previous_valid = PX4_ISFINITE(_pos_sp_triplet.previous.lat)
 								    && PX4_ISFINITE(_pos_sp_triplet.previous.lon)
-								    && PX4_ISFINITE(_pos_sp_triplet.previous.alt);
+								    && PX4_ISFINITE(_pos_sp_triplet.previous.alt)
+								    && _pos_sp_triplet.previous.valid;
 
 				_position_setpoint_current_valid = PX4_ISFINITE(_pos_sp_triplet.current.lat)
 								   && PX4_ISFINITE(_pos_sp_triplet.current.lon)
-								   && PX4_ISFINITE(_pos_sp_triplet.current.alt);
+								   && PX4_ISFINITE(_pos_sp_triplet.current.alt)
+								   && _pos_sp_triplet.current.valid;
 
 				_position_setpoint_next_valid = PX4_ISFINITE(_pos_sp_triplet.next.lat)
 								&& PX4_ISFINITE(_pos_sp_triplet.next.lon)
-								&& PX4_ISFINITE(_pos_sp_triplet.next.alt);
+								&& PX4_ISFINITE(_pos_sp_triplet.next.alt)
+								&& _pos_sp_triplet.next.valid;
 
 				// reset the altitude foh (first order hold) logic
 				_min_current_sp_distance_xy = FLT_MAX;

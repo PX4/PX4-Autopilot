@@ -549,7 +549,8 @@ void Navigator::run()
 				 * use MAV_CMD_MISSION_START to start the mission there
 				 */
 				uint8_t result{vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED};
-                                if (_mission.get_land_start_available()) {
+
+				if (_mission.get_land_start_available()) {
 					vehicle_command_s vcmd = {};
 					vcmd.command = vehicle_command_s::VEHICLE_CMD_MISSION_START;
 					vcmd.param1 = _mission.get_land_start_index();

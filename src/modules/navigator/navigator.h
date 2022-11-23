@@ -277,6 +277,7 @@ public:
 	int  get_mission_landing_index() { return _mission.get_land_start_index(); }
 
 	// RTL
+
 	bool in_rtl_state() const { return _vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL; }
 
 	bool abort_landing();

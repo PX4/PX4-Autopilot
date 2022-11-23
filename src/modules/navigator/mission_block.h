@@ -127,6 +127,18 @@ public:
 		_payload_deploy_timeout_s = timeout_s;
 	}
 
+	/**
+	 * Copies position from setpoint if valid, otherwise copies current position
+	 */
+	void copy_position_if_valid(struct mission_item_s *const mission_item,
+				    const struct position_setpoint_s *const setpoint) const;
+
+	/**
+	 * Create mission item to align towards next waypoint
+	 */
+	void set_align_mission_item(struct mission_item_s *const mission_item,
+				    const struct mission_item_s *const mission_item_next) const;
+
 protected:
 	/**
 	 * Check if mission item has been reached (for Waypoint based mission items) or Completed (Action based mission items)

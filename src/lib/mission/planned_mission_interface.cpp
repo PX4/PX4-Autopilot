@@ -277,7 +277,7 @@ int PlannedMissionInterface::setMissionIndex(int32_t index)
 	}
 }
 
-int PlannedMissionInterface::setMissionToClosestItem(double lat, double lon, float alt, float home_alt,
+int32_t PlannedMissionInterface::getClosestMissionItemIndex(double lat, double lon, float alt, float home_alt,
 		const vehicle_status_s &vehicle_status)
 {
 	int32_t min_dist_index(-1);
@@ -310,6 +310,14 @@ int PlannedMissionInterface::setMissionToClosestItem(double lat, double lon, flo
 			}
 		}
 	}
+
+	return min_dist_index;
+}
+
+int PlannedMissionInterface::setMissionToClosestItem(double lat, double lon, float alt, float home_alt,
+		const vehicle_status_s &vehicle_status)
+{
+	int32_t min_dist_index(getClosestMissionItemIndex(lat, lon, alt, home_alt, vehicle_status));
 
 	return goToItem(min_dist_index, false);
 }
