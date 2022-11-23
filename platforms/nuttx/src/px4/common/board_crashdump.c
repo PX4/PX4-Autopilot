@@ -232,7 +232,7 @@ static void copy_reverse(stack_word_t *dest, stack_word_t *src, int size)
 
 static uint32_t *__attribute__((noinline)) __sdata_addr(void)
 {
-	return &_sdata;
+	return (uint32_t *)(uint32_t)_sdata;
 }
 
 
