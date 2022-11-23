@@ -15,6 +15,26 @@ serial_config:
             then
                 set MAV_ARGS "${MAV_ARGS} -c"
             fi
+            set USE_REMOTE_IP 0
+            if param greater MAV_${i}_REMOTE_IP0 0
+            then
+                set USE_REMOTE_IP 1
+            fi
+            if param greater MAV_${i}_REMOTE_IP1 0
+            then
+                set USE_REMOTE_IP 1
+            fi
+            if param greater MAV_${i}_REMOTE_IP2 0
+            then
+                set USE_REMOTE_IP 1
+            fi
+            if param greater MAV_${i}_REMOTE_IP3 0
+            then
+                set USE_REMOTE_IP 1
+            fi
+            if [ ${USE_REMOTE_IP} != 0 ]; then
+                set MAV_ARGS "${MAV_ARGS} -i ${i}"
+            fi
         fi
         if param compare MAV_${i}_FORWARD 1
         then
@@ -178,3 +198,63 @@ parameters:
             num_instances: *max_num_config_instances
             default: [2, 2, 2]
             reboot_required: true
+
+        MAV_${i}_REMOTE_IP0:
+            description:
+                short: MAVLink 1st digit of Remote IP Address for instance ${i}
+                long: |
+                    If ethernet enabled and selected as configuration for MAVLink instance ${i},
+                    selected 1st digit of remote ip address will be set and used in MAVLink instance ${i}.
+
+            type: int32
+            min: 0
+            max: 255
+            reboot_required: true
+            num_instances: *max_num_config_instances
+            default: [0, 0, 0]
+            requires_ethernet: true
+
+        MAV_${i}_REMOTE_IP1:
+            description:
+                short: MAVLink 2nd digit of Remote IP Address for instance ${i}
+                long: |
+                    If ethernet enabled and selected as configuration for MAVLink instance ${i},
+                    selected 2nd digit of remote ip address will be set and used in MAVLink instance ${i}.
+
+            type: int32
+            min: 0
+            max: 255
+            reboot_required: true
+            num_instances: *max_num_config_instances
+            default: [0, 0, 0]
+            requires_ethernet: true
+
+        MAV_${i}_REMOTE_IP2:
+            description:
+                short: MAVLink 3rd digit of Remote IP Address for instance ${i}
+                long: |
+                    If ethernet enabled and selected as configuration for MAVLink instance ${i},
+                    selected 3rd digit of remote ip address will be set and used in MAVLink instance ${i}.
+
+            type: int32
+            min: 0
+            max: 255
+            reboot_required: true
+            num_instances: *max_num_config_instances
+            default: [0, 0, 0]
+            requires_ethernet: true
+
+        MAV_${i}_REMOTE_IP3:
+            description:
+                short: MAVLink 4th digit of Remote IP Address for instance ${i}
+                long: |
+                    If ethernet enabled and selected as configuration for MAVLink instance ${i},
+                    selected 4th digit of remote ip address will be set and used in MAVLink instance ${i}.
+
+            type: int32
+            min: 0
+            max: 255
+            reboot_required: true
+            num_instances: *max_num_config_instances
+            default: [0, 0, 0]
+            requires_ethernet: true
