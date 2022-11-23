@@ -1810,7 +1810,7 @@ Mavlink::task_main(int argc, char *argv[])
 	int temp_int_arg;
 #endif
 
-	while ((ch = px4_getopt(argc, argv, "b:r:d:n:u:o:m:t:c:fswxzZp", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "b:r:d:n:u:o:m:t:i:c:fswxzZp", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'b':
 			if (px4_get_parameter_value(myoptarg, _baudrate) != 0) {
@@ -1911,6 +1911,36 @@ Mavlink::task_main(int argc, char *argv[])
 
 			break;
 
+		case 'i': {
+				_src_addr.sin_family = AF_INET;
+				int mav_id = atoi(myoptarg);
+				char tmp_str[32];
+				uint8_t digits[4] = {0, 0, 0, 0};
+
+				for (int i = 0; i < 4; i++) {
+					snprintf(tmp_str, 32, "p:MAV_%d_REMOTE_IP%d", mav_id, i);
+					int ret = px4_get_parameter_value(tmp_str, temp_int_arg);
+
+					if (!ret) {
+						digits[i] = (uint8_t)(temp_int_arg & 0xff);
+
+					} else {
+						PX4_ERR("parse_ip: cant parse %s -> %d", tmp_str, ret);
+					}
+				}
+
+				snprintf(tmp_str, 32, "%d.%d.%d.%d", digits[0], digits[1], digits[2], digits[3]);
+
+				if (inet_aton(tmp_str, &_src_addr.sin_addr)) {
+					PX4_INFO("UDP mavlink remote address: %s", tmp_str);
+					_src_addr_initialized = true;
+
+				} else {
+					PX4_ERR("invalid partner ip '%s'", tmp_str);
+					err_flag = true;
+				}
+			}
+			break;
 #else
 
 		case 'p':
@@ -3210,6 +3240,7 @@ $ mavlink stream -u 14556 -s HIGHRES_IMU -r 50
 	PRINT_MODULE_USAGE_PARAM_FLAG('p', "Enable Broadcast", true);
 	PRINT_MODULE_USAGE_PARAM_INT('u', 14556, 0, 65536, "Select UDP Network Port (local)", true);
 	PRINT_MODULE_USAGE_PARAM_INT('o', 14550, 0, 65536, "Select UDP Network Port (remote)", true);
+	PRINT_MODULE_USAGE_PARAM_INT('i', 0, 0, 3, "Partner IP from MAV_<x>_REMOTE_IPn params, where <x> is the argument value", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('t', "127.0.0.1", nullptr, "Partner IP (broadcasting can be enabled via -p flag)", true);
 #endif
 	PRINT_MODULE_USAGE_PARAM_STRING('m', "normal", "custom|camera|onboard|osd|magic|config|iridium|minimal|extvision|extvisionmin|gimbal|uavionix",
