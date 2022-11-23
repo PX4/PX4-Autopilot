@@ -269,11 +269,29 @@ bool param_modify_on_import(bson_node_t node)
 		}
 	}
 
-	// 2022-11-09: translate LAUN_ALL_ON->LAUN_DETCN_ON
+	// 2022-11-09: translate several fixed-wing launch parameters
 	{
 		if (strcmp("LAUN_ALL_ON", node->name) == 0) {
-			strcpy(node->name, "LAUN_DETCN_ON");
-			PX4_INFO("copying %s -> %s", "LAUN_ALL_ON", "LAUN_DETCN_ON");
+			strcpy(node->name, "FW_LAUN_DETCN_ON");
+			PX4_INFO("copying %s -> %s", "LAUN_ALL_ON", "FW_LAUN_DETCN_ON");
+			return true;
+		}
+
+		if (strcmp("LAUN_CAT_A", node->name) == 0) {
+			strcpy(node->name, "FW_LAUN_AC_THLD");
+			PX4_INFO("copying %s -> %s", "LAUN_CAT_A", "FW_LAUN_AC_THLD");
+			return true;
+		}
+
+		if (strcmp("LAUN_CAT_T", node->name) == 0) {
+			strcpy(node->name, "FW_LAUN_AC_T");
+			PX4_INFO("copying %s -> %s", "LAUN_CAT_T", "FW_LAUN_AC_T");
+			return true;
+		}
+
+		if (strcmp("LAUN_CAT_MDEL", node->name) == 0) {
+			strcpy(node->name, "FW_LAUN_MOT_DEL");
+			PX4_INFO("copying %s -> %s", "LAUN_CAT_MDEL", "FW_LAUN_MOT_DEL");
 			return true;
 		}
 	}

@@ -102,9 +102,9 @@ private:
 	uint state_{launch_detection_status_s::STATE_WAITING_FOR_LAUNCH};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::LAUN_CAT_A>) _param_laun_cat_a,
-		(ParamFloat<px4::params::LAUN_CAT_T>) _param_laun_cat_t,
-		(ParamFloat<px4::params::LAUN_CAT_MDEL>) _param_laun_cat_mdel
+		(ParamFloat<px4::params::FW_LAUN_AC_THLD>) _param_laun_cat_a,
+		(ParamFloat<px4::params::FW_LAUN_AC_T>) _param_laun_cat_t,
+		(ParamFloat<px4::params::FW_LAUN_MOT_DEL>) _param_laun_cat_mdel
 	)
 };
 
