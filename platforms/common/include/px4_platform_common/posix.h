@@ -92,7 +92,7 @@ typedef struct {
 	px4_pollevent_t 	revents;  /* The output event flags */
 
 	/* Required for PX4 compatibility */
-	px4_sem_t   *sem;  	/* Pointer to semaphore used to post output event */
+	px4_sem_t   *arg;  	/* Pointer to semaphore used to post output event */
 	void   *priv;     	/* For use by drivers */
 } px4_pollfd_struct_t;
 
