@@ -39,15 +39,10 @@
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-/*
- * Catapult launch detection parameters
- *
- */
-
 /**
- * Catapult accelerometer threshold.
+ * Trigger acceleration threshold
  *
- * LAUN_CAT_A for LAUN_CAT_T serves as threshold to trigger launch detection.
+ * Launch is detected when acceleration in body forward direction is above FW_LAUN_AC_THLD for FW_LAUN_AC_T seconds.
  *
  * @unit m/s^2
  * @min 0
@@ -55,12 +50,12 @@
  * @increment 0.5
  * @group FW Launch detection
  */
-PARAM_DEFINE_FLOAT(LAUN_CAT_A, 30.0f);
+PARAM_DEFINE_FLOAT(FW_LAUN_AC_THLD, 30.0f);
 
 /**
- * Catapult time threshold.
+ * Trigger time
  *
- * LAUN_CAT_A for LAUN_CAT_T serves as threshold to trigger launch detection.
+ * Launch is detected when acceleration in body forward direction is above FW_LAUN_AC_THLD for FW_LAUN_AC_T seconds.
  *
  * @unit s
  * @min 0.0
@@ -69,7 +64,7 @@ PARAM_DEFINE_FLOAT(LAUN_CAT_A, 30.0f);
  * @increment 0.05
  * @group FW Launch detection
  */
-PARAM_DEFINE_FLOAT(LAUN_CAT_T, 0.05f);
+PARAM_DEFINE_FLOAT(FW_LAUN_AC_T, 0.05f);
 
 /**
  * Motor delay
@@ -84,4 +79,4 @@ PARAM_DEFINE_FLOAT(LAUN_CAT_T, 0.05f);
  * @increment 0.5
  * @group FW Launch detection
  */
-PARAM_DEFINE_FLOAT(LAUN_CAT_MDEL, 0.0f);
+PARAM_DEFINE_FLOAT(FW_LAUN_MOT_DEL, 0.0f);

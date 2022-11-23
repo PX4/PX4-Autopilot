@@ -1537,7 +1537,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 	} else {
 		/* Perform launch detection */
-		if (!_skipping_takeoff_detection && _param_laun_detcn_on.get() &&
+		if (!_skipping_takeoff_detection && _param_fw_laun_detcn_on.get() &&
 		    _launchDetector.getLaunchDetected() < launch_detection_status_s::STATE_FLYING) {
 
 			if (_control_mode.flag_armed) {
@@ -1553,7 +1553,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 		}
 
 		if (!_launch_detected && _launchDetector.getLaunchDetected() > launch_detection_status_s::STATE_WAITING_FOR_LAUNCH
-		    && _param_laun_detcn_on.get()) {
+		    && _param_fw_laun_detcn_on.get()) {
 			_launch_detected = true;
 			_launch_global_position = global_position;
 			_takeoff_ground_alt = _current_altitude;
@@ -1574,7 +1574,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 		/* Set control values depending on the detection state */
 		if (_launchDetector.getLaunchDetected() > launch_detection_status_s::STATE_WAITING_FOR_LAUNCH
-		    && _param_laun_detcn_on.get()) {
+		    && _param_fw_laun_detcn_on.get()) {
 			/* Launch has been detected, hence we have to control the plane. */
 
 			if (_param_fw_use_npfg.get()) {
