@@ -147,6 +147,7 @@ void GyroCalibration::Run()
 			}
 
 			if (_gyro_calibration[gyro].device_id() == sensor_gyro.device_id) {
+				_gyro_calibration[gyro].SensorCorrectionsUpdate();
 				const Vector3f val{Vector3f{sensor_gyro.x, sensor_gyro.y, sensor_gyro.z} - _gyro_calibration[gyro].thermal_offset()};
 				_gyro_mean[gyro].update(val);
 				_gyro_last_update[gyro] = sensor_gyro.timestamp;
