@@ -42,6 +42,8 @@
 #include <px4_platform/board_ctrl.h>
 #include "board_config.h"
 
+#include <libgen.h>
+
 #include <NuttX/kernel_builtin/kernel_builtin_proto.h>
 
 struct kernel_builtin_s {
@@ -114,9 +116,10 @@ static int launch_kernel_builtin(int argc, char **argv)
 {
 	int i;
 	const struct kernel_builtin_s *builtin = NULL;
+	char *name = basename(argv[0]);
 
 	for (i = 0; i < g_n_kernel_builtins; i++) {
-		if (!strcmp(g_kernel_builtins[i].name, argv[0])) {
+		if (!strcmp(g_kernel_builtins[i].name, name)) {
 			builtin = &g_kernel_builtins[i];
 			break;
 		}
