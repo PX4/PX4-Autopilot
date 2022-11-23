@@ -1227,10 +1227,6 @@ int param_save_default()
 				PX4_ERR("parameter export to %s failed (%d) attempt %d", filename, res, attempt);
 				px4_usleep(10000); // wait at least 10 milliseconds before trying again
 			}
-
-#ifndef CONFIG_PARAM_CLIENT
-			::syncfs(fd);
-#endif
 		}
 
 	} else {

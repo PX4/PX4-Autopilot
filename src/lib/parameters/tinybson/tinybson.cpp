@@ -38,6 +38,8 @@
  */
 
 #include <px4_platform_common/posix.h>
+#include <px4_platform_common/px4_config.h>
+
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
@@ -528,7 +530,7 @@ bson_encoder_fini(bson_encoder_t encoder)
 			CODER_KILL(encoder, "write error on document length");
 		}
 
-#ifdef CONFIG_PARAM_SERVER
+#if !defined(CONFIG_PARAM_CLIENT)
 		::fsync(encoder->fd);
 #endif
 
