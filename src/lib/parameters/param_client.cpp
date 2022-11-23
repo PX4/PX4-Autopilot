@@ -179,12 +179,12 @@ void param_client_set(param_t param, const void *val)
 	switch (param_type(param)) {
 	case PARAM_TYPE_INT32:
 		req.int_value = *(int32_t *)val;
-		PX4_INFO("*** Setting %s to %d ***", req.parameter_name, req.int_value);
+		PX4_DEBUG("*** Setting %s to %d ***", req.parameter_name, req.int_value);
 		break;
 
 	case PARAM_TYPE_FLOAT:
 		req.float_value = *(float *)val;
-		PX4_INFO("*** Setting %s to %f ***", req.parameter_name, (double) req.float_value);
+		PX4_DEBUG("*** Setting %s to %f ***", req.parameter_name, (double) req.float_value);
 		break;
 
 	default:
@@ -220,7 +220,7 @@ void param_client_set(param_t param, const void *val)
 
 		// Wait for response
 		bool updated = false;
-		PX4_INFO("Waiting for parameter_server_set_value_response for %s", req.parameter_name);
+		PX4_DEBUG("Waiting for parameter_server_set_value_response for %s", req.parameter_name);
 		usleep(TIMEOUT_WAIT);
 		int count = TIMEOUT_COUNT;
 
@@ -228,7 +228,7 @@ void param_client_set(param_t param, const void *val)
 			(void) orb_check(param_set_value_rsp_fd, &updated);
 
 			if (updated) {
-				PX4_INFO("Got parameter_server_set_value_response for %s", req.parameter_name);
+				PX4_DEBUG("Got parameter_server_set_value_response for %s", req.parameter_name);
 				struct parameter_server_set_value_response_s rsp;
 				orb_copy(ORB_ID(parameter_server_set_value_response), param_set_value_rsp_fd, &rsp);
 				break;

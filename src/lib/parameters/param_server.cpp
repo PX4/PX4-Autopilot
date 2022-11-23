@@ -114,7 +114,7 @@ static int param_sync_thread(int argc, char *argv[])
 
 		} else if (fds[1].revents & POLLIN) {
 			orb_copy(ORB_ID(parameter_server_set_value_request), parameter_server_set_value_fd, &v_req);
-			PX4_INFO("Got parameter_server_set_value_request for %s", v_req.parameter_name);
+			PX4_DEBUG("Got parameter_server_set_value_request for %s", v_req.parameter_name);
 			param_t param = param_find(v_req.parameter_name);
 
 			switch (param_type(param)) {

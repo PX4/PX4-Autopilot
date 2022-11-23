@@ -96,11 +96,10 @@ inline static int flash_param_import() { return -1; }
 #include "param_server.h"
 static char *param_default_file = (char *) "/data/px4/param/parameters";
 static char *param_backup_file = (char *) "/data/px4/param/backup_parameters";
-#elif defined(CONFIG_PARAM_CLIENT)
-#include "param_client.h"
-static char *param_default_file = (char *) "./param/parameters";
-static char *param_backup_file = (char *) "./param/backup_parameters";
 #else
+#if defined(CONFIG_PARAM_CLIENT)
+#include "param_client.h"
+#endif
 static char *param_default_file = nullptr;
 static char *param_backup_file = nullptr;
 #endif
