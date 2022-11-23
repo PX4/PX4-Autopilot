@@ -250,13 +250,14 @@ static uint32_t *__attribute__((noinline)) __ebss_addr(void)
 
 static uint32_t *__attribute__((noinline)) __sdata_addr(void)
 {
-	return &_sdata;
+	return (uint32_t *)(uint32_t)_sdata;
 }
 
 #endif
 
-
-__EXPORT void board_crashdump(uintptr_t currentsp, FAR void *tcb, FAR const char *filename, int lineno)
+__EXPORT void board_crashdump(uintptr_t currentsp, FAR struct tcb_s *rtcb,
+			      FAR const char *filename, int lineno,
+			      FAR const char *msg, FAR void *regs)
 {
 #ifndef BOARD_CRASHDUMP_RESET_ONLY
 	/* We need a chunk of ram to save the complete context in.
@@ -273,8 +274,6 @@ __EXPORT void board_crashdump(uintptr_t currentsp, FAR void *tcb, FAR const char
 #endif
 
 	(void)enter_critical_section();
-
-	struct tcb_s *rtcb = (struct tcb_s *)tcb;
 
 	/* Zero out everything */
 
