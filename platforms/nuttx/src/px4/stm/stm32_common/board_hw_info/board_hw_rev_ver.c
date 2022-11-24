@@ -516,7 +516,7 @@ int board_set_eeprom_hw_info(const char *path, mtd_mft_t *mtd_mft_unk)
 	mtd_mft_v0_t *mtd_mft = (mtd_mft_v0_t *)mtd_mft_unk;
 
 	if (mtd_mft->hw_extended_id < HW_EEPROM_ID_MIN) {
-		printf("hardware version for EEPROM must be greater than %x\n", HW_EEPROM_ID_MIN);
+		printf("hardware version for EEPROM must be greater than %d\n", HW_EEPROM_ID_MIN);
 		return -EINVAL;
 	}
 
