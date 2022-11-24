@@ -84,7 +84,7 @@ static bool create_data_writer(uxrSession *session, uxrStreamId reliable_out_str
 
 static bool create_data_reader(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrStreamId input_stream_id,
 			       uxrObjectId participant_id, uint16_t index, const char *client_namespace, const char *topic_name_simple,
-			       const char *type_name)
+			       const char *type_name, uint16_t queue_depth)
 {
 	// topic
 	char topic_name[TOPIC_NAME_SIZE];
@@ -115,7 +115,7 @@ static bool create_data_reader(uxrSession *session, uxrStreamId reliable_out_str
 		.durability = UXR_DURABILITY_VOLATILE,
 		.reliability = UXR_RELIABILITY_BEST_EFFORT,
 		.history = UXR_HISTORY_KEEP_LAST,
-		.depth = 0,
+		.depth = queue_depth,
 	};
 
 	uint16_t datareader_req = uxr_buffer_create_datareader_bin(session, reliable_out_stream_id, datareader_id,
