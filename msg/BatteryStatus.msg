@@ -12,10 +12,11 @@ float32 time_remaining_s	# predicted time in seconds remaining until battery is 
 float32 temperature			# temperature of the battery. NaN if unknown
 uint8 cell_count			# Number of cells, 0 if unknown
 
+uint8 source				# Battery source
 uint8 BATTERY_SOURCE_POWER_MODULE = 0
 uint8 BATTERY_SOURCE_EXTERNAL = 1
 uint8 BATTERY_SOURCE_ESCS = 2
-uint8 source				# Battery source
+
 uint8 priority				# Zero based priority is the connection on the Power Controller V1..Vn AKA BrickN-1
 uint16 capacity				# actual capacity of the battery
 uint16 cycle_count			# number of discharge cycles the battery has experienced
@@ -33,7 +34,7 @@ float32 max_cell_voltage_delta	# Max difference between individual cell voltages
 bool is_powering_off			# Power off event imminent indication, false if unknown
 bool is_required			# Set if the battery is explicitly required before arming
 
-
+uint8 warning		# Current battery warning
 uint8 BATTERY_WARNING_NONE = 0		# no battery low voltage warning active
 uint8 BATTERY_WARNING_LOW = 1		# warning of low voltage
 uint8 BATTERY_WARNING_CRITICAL = 2	# critical voltage, return / abort immediately
@@ -42,6 +43,7 @@ uint8 BATTERY_WARNING_FAILED = 4	# the battery has failed completely
 uint8 BATTERY_STATE_UNHEALTHY = 6 # Battery is diagnosed to be defective or an error occurred, usage is discouraged / prohibited. Possible causes (faults) are listed in faults field.
 uint8 BATTERY_STATE_CHARGING = 7 # Battery is charging
 
+uint16 faults		# Smart battery supply status/fault flags (bitmask) for health indication
 uint8 BATTERY_FAULT_DEEP_DISCHARGE = 0 # Battery has deep discharged
 uint8 BATTERY_FAULT_SPIKES = 1 # Voltage spikes
 uint8 BATTERY_FAULT_CELL_FAIL= 2 # One or more cells have failed
@@ -55,11 +57,9 @@ uint8 BATTERY_FAULT_HARDWARE_FAILURE = 9 # hardware problem
 uint8 BATTERY_WARNING_OVER_TEMPERATURE = 10 # Over-temperature
 uint8 BATTERY_FAULT_COUNT = 11 # Counter - keep it as last element!
 
-uint16 faults		# Smart battery supply status/fault flags (bitmask) for health indication.
 uint32 custom_faults 	# Bitmask indicating smart battery internal manufacturer faults, those are not user actionable.
-uint8 warning		# Current battery warning
-uint8 mode 		# Battery mode. Note, the normal operation mode
 
+uint8 mode 		# Battery mode. Note, the normal operation mode
 uint8 BATTERY_MODE_UNKNOWN = 0 # Battery does not support a mode, or if it does, is operational
 uint8 BATTERY_MODE_AUTO_DISCHARGING = 1 # Battery is auto discharging (towards storage level)
 uint8 BATTERY_MODE_HOT_SWAP = 2 # Battery in hot-swap mode

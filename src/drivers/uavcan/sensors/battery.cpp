@@ -97,12 +97,10 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 	}
 
 	if (_batt_update_mod[instance] == BatteryDataType::Filter) {
-
 		filterData(msg, instance);
 		return;
 	}
 
-	_battery_status[instance].timestamp = hrt_absolute_time();
 	_battery_status[instance].voltage_v = msg.voltage;
 	_battery_status[instance].voltage_filtered_v = msg.voltage;
 	_battery_status[instance].current_a = msg.current;
@@ -115,18 +113,13 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 	}
 
 	_battery_status[instance].remaining = msg.state_of_charge_pct / 100.0f; // between 0 and 1
-	// _battery_status[instance].scale = msg.; // Power scaling factor, >= 1, or -1 if unknown
 	_battery_status[instance].temperature = msg.temperature + CONSTANTS_ABSOLUTE_NULL_CELSIUS; // Kelvin to Celsius
-	// _battery_status[instance].cell_count = msg.;
 	_battery_status[instance].connected = true;
 	_battery_status[instance].source = msg.status_flags & uavcan::equipment::power::BatteryInfo::STATUS_FLAG_IN_USE;
-	// _battery_status[instance].priority = msg.;
 	_battery_status[instance].capacity = msg.full_charge_capacity_wh;
 	_battery_status[instance].full_charge_capacity_wh = msg.full_charge_capacity_wh;
 	_battery_status[instance].remaining_capacity_wh = msg.remaining_capacity_wh;
-	// _battery_status[instance].cycle_count = msg.;
 	_battery_status[instance].time_remaining_s = NAN;
-	// _battery_status[instance].average_time_to_empty = msg.;
 	_battery_status[instance].serial_number = msg.model_instance_id;
 	_battery_status[instance].id = msg.getSrcNodeID().get();
 
@@ -138,12 +131,9 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 		_battery_status[instance].cell_count = 1;
 	}
 
-	// _battery_status[instance].max_cell_voltage_delta = msg.;
-
-	// _battery_status[instance].is_powering_off = msg.;
-
 	determineWarning(_battery_status[instance].remaining);
 	_battery_status[instance].warning = _warning;
+	_battery_status[instance].timestamp = hrt_absolute_time();
 
 	if (_batt_update_mod[instance] == BatteryDataType::Raw) {
 		publish(msg.getSrcNodeID().get(), &_battery_status[instance]);
