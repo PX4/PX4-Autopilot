@@ -191,8 +191,6 @@ public:
 private:
 	void Run() override;
 
-	orb_advert_t	_mavlink_log_pub{nullptr};
-
 	uORB::SubscriptionCallbackWorkItem _local_pos_sub{this, ORB_ID(vehicle_local_position)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};

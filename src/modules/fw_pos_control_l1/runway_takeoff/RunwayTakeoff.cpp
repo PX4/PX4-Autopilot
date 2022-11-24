@@ -43,7 +43,6 @@
 #include <math.h>
 
 #include "RunwayTakeoff.h"
-#include <systemlib/mavlink_log.h>
 #include <mathlib/mathlib.h>
 #include <px4_platform_common/events.h>
 
@@ -63,7 +62,7 @@ void RunwayTakeoff::init(const hrt_abstime &time_now, const float initial_yaw, c
 }
 
 void RunwayTakeoff::update(const hrt_abstime &time_now, const float takeoff_airspeed, const float calibrated_airspeed,
-			   const float vehicle_altitude, const float clearance_altitude, orb_advert_t *mavlink_log_pub)
+			   const float vehicle_altitude, const float clearance_altitude)
 {
 	switch (takeoff_state_) {
 	case RunwayTakeoffState::THROTTLE_RAMP:
@@ -80,7 +79,6 @@ void RunwayTakeoff::update(const hrt_abstime &time_now, const float takeoff_airs
 			if (calibrated_airspeed > rotation_airspeed) {
 				takeoff_time_ = time_now;
 				takeoff_state_ = RunwayTakeoffState::CLIMBOUT;
-				mavlink_log_info(mavlink_log_pub, "Takeoff airspeed reached, climbout\t");
 				events::send(events::ID("runway_takeoff_reached_airspeed"), events::Log::Info,
 					     "Takeoff airspeed reached, climbout");
 			}
@@ -91,7 +89,6 @@ void RunwayTakeoff::update(const hrt_abstime &time_now, const float takeoff_airs
 	case RunwayTakeoffState::CLIMBOUT:
 		if (vehicle_altitude > clearance_altitude) {
 			takeoff_state_ = RunwayTakeoffState::FLY;
-			mavlink_log_info(mavlink_log_pub, "Reached clearance altitude\t");
 			events::send(events::ID("runway_takeoff_reached_clearance_altitude"), events::Log::Info, "Reached clearance altitude");
 		}
 
