@@ -130,6 +130,7 @@ void LandingTargetEstimator::update()
 			if (!_faulty) {
 				_faulty = true;
 				PX4_WARN("Landing target measurement rejected:%s%s", update_x ? "" : " x", update_y ? "" : " y");
+				mavlink_log_info(&_mavlink_log_pub, "Landing target measurement rejected:%s%s", update_x ? : "": " x", update_y ? "" : " y");
 			}
 
 		} else {

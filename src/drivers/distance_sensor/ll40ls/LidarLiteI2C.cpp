@@ -124,6 +124,8 @@ LidarLiteI2C::probe()
 	uint8_t id_high = 0;
 	uint8_t id_low = 0;
 
+	_retries = 1;
+
 	for (uint8_t i = 0; i < sizeof(addresses); i++) {
 
 		set_device_address(addresses[i]);

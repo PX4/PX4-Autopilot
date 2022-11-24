@@ -147,4 +147,6 @@ private:
 	float	_param_acceleration_hor{0.0f};
 	float	_param_xy_vel_cruise{0.0f};
 
+	orb_advert_t _mavlink_log_pub{nullptr};
+
 };

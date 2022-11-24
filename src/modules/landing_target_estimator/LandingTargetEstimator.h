@@ -184,5 +184,7 @@ private:
 	void _check_params(const bool force);
 
 	void _update_state();
+
+	orb_advert_t _mavlink_log_pub{nullptr};
 };
 } // namespace landing_target_estimator
