@@ -582,8 +582,8 @@ CCASSERT(sizeof(uavcan_LogMessage_t) == PackedSizeMsgLogMessage);
  ****************************************/
 
 typedef enum uavcan_AllocationConsts_t {
-	MAX_REQUEST_PERIOD_MS                 = 1400,
-	MIN_REQUEST_PERIOD_MS                 = 600,
+	MAX_REQUEST_PERIOD_MS                 = 1000,
+	MIN_REQUEST_PERIOD_MS                 = 50,
 	MAX_FOLLOWUP_DELAY_MS                 = 400,
 	MIN_FOLLOWUP_DELAY_MS                 = 0,
 	FOLLOWUP_TIMEOUT_MS                   = 500,
