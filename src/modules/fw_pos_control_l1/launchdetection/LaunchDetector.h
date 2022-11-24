@@ -69,9 +69,8 @@ public:
 	 *
 	 * @param dt Time step [us]
 	 * @param accel_x Measured acceleration in body x [m/s/s]
-	 * @param mavlink_log_pub
 	 */
-	void update(const float dt, const float accel_x,  orb_advert_t *mavlink_log_pub);
+	void update(const float dt, const float accel_x);
 
 	/**
 	 * @brief Get the Launch Detected state
