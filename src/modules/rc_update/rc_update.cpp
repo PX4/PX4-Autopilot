@@ -201,6 +201,21 @@ void RCUpdate::parameters_updated()
 			}
 		}
 	}
+
+	// Center throttle trim when it's set to the minimum to correct for hardcoded QGC RC calibration
+	// See https://github.com/mavlink/qgroundcontrol/commit/0577af2e944a0f53919aeb1367d580f744004b2c
+	const int8_t throttle_channel = _rc.function[rc_channels_s::FUNCTION_THROTTLE];
+
+	if (throttle_channel >= 0 && throttle_channel < RC_MAX_CHAN_COUNT) {
+		const uint16_t throttle_min = _parameters.min[throttle_channel];
+		const uint16_t throttle_trim = _parameters.trim[throttle_channel];
+		const uint16_t throttle_max = _parameters.max[throttle_channel];
+
+		if (throttle_min == throttle_trim) {
+			const uint16_t new_throttle_trim = (throttle_min + throttle_max) / 2;
+			_parameters.trim[throttle_channel] = new_throttle_trim;
+		}
+	}
 }
 
 void RCUpdate::update_rc_functions()
