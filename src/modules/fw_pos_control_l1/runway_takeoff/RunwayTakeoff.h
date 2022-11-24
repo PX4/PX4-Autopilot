@@ -47,7 +47,6 @@
 
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/module_params.h>
-#include <systemlib/mavlink_log.h>
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
 
@@ -84,10 +83,9 @@ public:
 	 * @param calibrated_airspeed Vehicle calibrated airspeed [m/s]
 	 * @param vehicle_altitude Vehicle altitude (AGL) [m]
 	 * @param clearance_altitude Altitude (AGL) above which we have cleared all occlusions in the runway path [m]
-	 * @param mavlink_log_pub
 	 */
 	void update(const hrt_abstime &time_now, const float takeoff_airspeed, const float calibrated_airspeed,
-		    const float vehicle_altitude, const float clearance_altitude, orb_advert_t *mavlink_log_pub);
+		    const float vehicle_altitude, const float clearance_altitude);
 
 	/**
 	 * @return Current takeoff state
