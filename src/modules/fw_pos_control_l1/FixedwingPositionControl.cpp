@@ -149,7 +149,6 @@ FixedwingPositionControl::parameters_update()
 
 	// sanity check parameters
 	if (_param_fw_airspd_max.get() < _param_fw_airspd_min.get()) {
-		mavlink_log_critical(&_mavlink_log_pub, "Config invalid: Airspeed max smaller than min\t");
 		/* EVENT
 		 * @description
 		 * - <param>FW_AIRSPD_MAX</param>: {1:.1}
@@ -162,7 +161,6 @@ FixedwingPositionControl::parameters_update()
 	}
 
 	if (_param_fw_airspd_max.get() < 5.0f || _param_fw_airspd_min.get() > 100.0f) {
-		mavlink_log_critical(&_mavlink_log_pub, "Config invalid: Airspeed max < 5 m/s or min > 100 m/s\t");
 		/* EVENT
 		 * @description
 		 * - <param>FW_AIRSPD_MAX</param>: {1:.1}
@@ -176,7 +174,6 @@ FixedwingPositionControl::parameters_update()
 
 	if (_param_fw_airspd_trim.get() < _param_fw_airspd_min.get() ||
 	    _param_fw_airspd_trim.get() > _param_fw_airspd_max.get()) {
-		mavlink_log_critical(&_mavlink_log_pub, "Config invalid: Airspeed trim out of min or max bounds\t");
 		/* EVENT
 		 * @description
 		 * - <param>FW_AIRSPD_MAX</param>: {1:.1}
@@ -191,7 +188,6 @@ FixedwingPositionControl::parameters_update()
 	}
 
 	if (_param_fw_airspd_stall.get() > _param_fw_airspd_min.get()) {
-		mavlink_log_critical(&_mavlink_log_pub, "Config invalid: FW_AIRSPD_STALL airspeed higher than FW_AIRSPD_MIN\t");
 		/* EVENT
 		 * @description
 		 * - <param>FW_AIRSPD_MIN</param>: {1:.1}
@@ -626,28 +622,24 @@ FixedwingPositionControl::updateLandingAbortStatus(const uint8_t new_abort_statu
 
 			switch (new_abort_status) {
 			case (position_controller_landing_status_s::ABORTED_BY_OPERATOR): {
-					mavlink_log_critical(&_mavlink_log_pub, "Landing aborted by operator\t");
 					events::send(events::ID("fixedwing_position_control_landing_abort_status_operator_abort"), events::Log::Critical,
 						     "Landing aborted by operator");
 					break;
 				}
 
 			case (position_controller_landing_status_s::TERRAIN_NOT_FOUND): {
-					mavlink_log_critical(&_mavlink_log_pub, "Landing aborted: terrain estimate not found\t");
 					events::send(events::ID("fixedwing_position_control_landing_abort_status_terrain_not_found"), events::Log::Critical,
 						     "Landing aborted: terrain measurement not found");
 					break;
 				}
 
 			case (position_controller_landing_status_s::TERRAIN_TIMEOUT): {
-					mavlink_log_critical(&_mavlink_log_pub, "Landing aborted: terrain estimate timed out\t");
 					events::send(events::ID("fixedwing_position_control_landing_abort_status_terrain_timeout"), events::Log::Critical,
 						     "Landing aborted: terrain estimate timed out");
 					break;
 				}
 
 			default: {
-					mavlink_log_critical(&_mavlink_log_pub, "Landing aborted: unknown criterion\t");
 					events::send(events::ID("fixedwing_position_control_landing_abort_status_unknown_criterion"), events::Log::Critical,
 						     "Landing aborted: unknown criterion");
 				}
@@ -813,7 +805,6 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now)
 		    && !_vehicle_status.in_transition_mode) {
 			if (commanded_position_control_mode != FW_POSCTRL_MODE_AUTO_ALTITUDE) {
 				// Need to init because last loop iteration was in a different mode
-				mavlink_log_critical(&_mavlink_log_pub, "Start loiter with fixed bank angle.\t");
 				events::send(events::ID("fixedwing_position_control_fb_loiter"), events::Log::Critical,
 					     "Start loiter with fixed bank angle");
 			}
@@ -822,7 +813,6 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now)
 
 		} else {
 			if (commanded_position_control_mode != FW_POSCTRL_MODE_AUTO_CLIMBRATE && !_vehicle_status.in_transition_mode) {
-				mavlink_log_critical(&_mavlink_log_pub, "Start descending.\t");
 				events::send(events::ID("fixedwing_position_control_descend"), events::Log::Critical, "Start descending");
 			}
 
@@ -1430,7 +1420,6 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 			_launch_current_yaw = _yaw;
 
-			mavlink_log_info(&_mavlink_log_pub, "Takeoff on runway\t");
 			events::send(events::ID("fixedwing_position_control_takeoff"), events::Log::Info, "Takeoff on runway");
 		}
 
@@ -1439,8 +1428,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 		}
 
 		_runway_takeoff.update(now, takeoff_airspeed, _airspeed, _current_altitude - _takeoff_ground_alt,
-				       clearance_altitude_amsl - _takeoff_ground_alt,
-				       &_mavlink_log_pub);
+				       clearance_altitude_amsl - _takeoff_ground_alt);
 
 		// yaw control is disabled once in "taking off" state
 		_att_sp.fw_control_yaw_wheel = _runway_takeoff.controlYaw();
@@ -1544,7 +1532,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 				/* Perform launch detection */
 
 				/* Detect launch using body X (forward) acceleration */
-				_launchDetector.update(control_interval, _body_acceleration(0), &_mavlink_log_pub);
+				_launchDetector.update(control_interval, _body_acceleration(0));
 			}
 
 		} else	{
@@ -1714,7 +1702,6 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 			_flare_states.start_time = now;
 			_flare_states.initial_height_rate_setpoint = _tecs.hgt_rate_setpoint();
 			_flare_states.initial_throttle_setpoint = _att_sp.thrust_body[0];
-			mavlink_log_info(&_mavlink_log_pub, "Landing, flaring\t");
 			events::send(events::ID("fixedwing_position_control_landing_flaring"), events::Log::Info,
 				     "Landing, flaring");
 		}
@@ -2222,7 +2209,6 @@ FixedwingPositionControl::Run()
 				}
 
 				if (!valid_setpoint) {
-					mavlink_log_critical(&_mavlink_log_pub, "Invalid offboard setpoint\t");
 					events::send(events::ID("fixedwing_position_control_invalid_offboard_sp"), events::Log::Error,
 						     "Invalid offboard setpoint");
 
