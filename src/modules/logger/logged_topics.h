@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -187,6 +187,7 @@ private:
 	float _rate_factor{1.0f};
 
 	bool _dynamic_control_allocation{false};
+	bool _do_not_log_position_data{false};
 };
 
 } //namespace logger
