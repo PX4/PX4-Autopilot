@@ -97,6 +97,11 @@ private:
 	float _info_delay_counter_s_{kInfoDelay};
 
 	/**
+	 *  Counter for how long the measured acceleration is above the defined threshold [s]
+	 */
+	float acceleration_detected_counter_{0.f};
+
+	/**
 	 * Current state of the launch detection state machine [launch_detection_status_s::launch_detection_state]
 	 */
 	uint state_{launch_detection_status_s::STATE_WAITING_FOR_LAUNCH};
