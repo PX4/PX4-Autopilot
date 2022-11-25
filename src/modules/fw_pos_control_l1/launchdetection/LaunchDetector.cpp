@@ -51,26 +51,26 @@ void LaunchDetector::update(const float dt, const float accel_x,  orb_advert_t *
 	switch (state_) {
 	case launch_detection_status_s::STATE_WAITING_FOR_LAUNCH:
 
-		_info_delay_counter_s_ += dt;
+		info_delay_counter_s_ += dt;
 
 		/* Inform user that launchdetection is running every kInfoDelay seconds */
-		if (_info_delay_counter_s_ >= kInfoDelay) {
+		if (info_delay_counter_s_ >= kInfoDelay) {
 			mavlink_log_info(mavlink_log_pub, "Launch detection running\t");
 			events::send(events::ID("launch_detection_running_info"), events::Log::Info, "Launch detection running");
-			_info_delay_counter_s_ = 0.f; // reset counter
+			info_delay_counter_s_ = 0.f; // reset counter
 		}
 
 		/* Detect a acceleration that is longer and stronger as the minimum given by the params */
-		if (accel_x > _param_laun_cat_a.get()) {
+		if (accel_x > param_fw_laun_ac_thld_.get()) {
 			acceleration_detected_counter_ += dt;
 
-			if (acceleration_detected_counter_ > _param_laun_cat_t.get()) {
-				if (_param_laun_cat_mdel.get() > 0.f) {
+			if (acceleration_detected_counter_ > param_fw_laun_ac_t_.get()) {
+				if (param_fw_laun_mot_del_.get() > 0.f) {
 					state_ = launch_detection_status_s::STATE_LAUNCH_DETECTED_DISABLED_MOTOR;
 					mavlink_log_info(mavlink_log_pub, "Launch detected: enable control, waiting %8.1fs until throttling up\t",
-							 (double)_param_laun_cat_mdel.get());
+							 (double)param_fw_laun_mot_del_.get());
 					events::send<float>(events::ID("launch_detection_wait_for_throttle"), {events::Log::Info, events::LogInternal::Info},
-							    "Launch detected: enablecontrol, waiting {1:.1}s until full throttle", (double)_param_laun_cat_mdel.get());
+							    "Launch detected: enablecontrol, waiting {1:.1}s until full throttle", (double)param_fw_laun_mot_del_.get());
 
 				} else {
 					/* No motor delay set: go directly to enablemotors state */
@@ -92,19 +92,19 @@ void LaunchDetector::update(const float dt, const float accel_x,  orb_advert_t *
 		 * over to allow full throttle */
 		motor_delay_counter_ += dt;
 
-		if (motor_delay_counter_ > _param_laun_cat_mdel.get()) {
+		if (motor_delay_counter_ > param_fw_laun_mot_del_.get()) {
 			mavlink_log_info(mavlink_log_pub, "Launch detected: enable motors\t");
 			events::send(events::ID("launch_detection_enable_motors"), {events::Log::Info, events::LogInternal::Info},
 				     "Launch detected: enable motors");
 			state_ = launch_detection_status_s::STATE_FLYING;
 		}
 
-		_info_delay_counter_s_ = kInfoDelay; // reset counter
+		info_delay_counter_s_ = kInfoDelay; // reset counter
 
 		break;
 
 	default: // state flying
-		_info_delay_counter_s_ = kInfoDelay; // reset counter
+		info_delay_counter_s_ = kInfoDelay; // reset counter
 		break;
 
 	}
@@ -117,7 +117,7 @@ uint LaunchDetector::getLaunchDetected() const
 
 void LaunchDetector::reset()
 {
-	_info_delay_counter_s_ = 0.f;
+	info_delay_counter_s_ = 0.f;
 	acceleration_detected_counter_ = 0.f;
 	motor_delay_counter_ = 0.f;
 	state_ = launch_detection_status_s::STATE_WAITING_FOR_LAUNCH;
