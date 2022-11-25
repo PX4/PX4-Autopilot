@@ -62,9 +62,9 @@ void LaunchDetector::update(const float dt, const float accel_x,  orb_advert_t *
 
 		/* Detect a acceleration that is longer and stronger as the minimum given by the params */
 		if (accel_x > _param_laun_cat_a.get()) {
-			_info_delay_counter_s_ += dt;
+			acceleration_detected_counter_ += dt;
 
-			if (_info_delay_counter_s_ > _param_laun_cat_t.get()) {
+			if (acceleration_detected_counter_ > _param_laun_cat_t.get()) {
 				if (_param_laun_cat_mdel.get() > 0.f) {
 					state_ = launch_detection_status_s::STATE_LAUNCH_DETECTED_DISABLED_MOTOR;
 					mavlink_log_info(mavlink_log_pub, "Launch detected: enable control, waiting %8.1fs until throttling up\t",
@@ -82,7 +82,7 @@ void LaunchDetector::update(const float dt, const float accel_x,  orb_advert_t *
 			}
 
 		} else {
-			reset();
+			acceleration_detected_counter_ = 0.f;
 		}
 
 		break;
@@ -103,7 +103,7 @@ void LaunchDetector::update(const float dt, const float accel_x,  orb_advert_t *
 
 		break;
 
-	default:
+	default: // state flying
 		_info_delay_counter_s_ = kInfoDelay; // reset counter
 		break;
 
@@ -118,6 +118,7 @@ uint LaunchDetector::getLaunchDetected() const
 void LaunchDetector::reset()
 {
 	_info_delay_counter_s_ = 0.f;
+	acceleration_detected_counter_ = 0.f;
 	motor_delay_counter_ = 0.f;
 	state_ = launch_detection_status_s::STATE_WAITING_FOR_LAUNCH;
 }
