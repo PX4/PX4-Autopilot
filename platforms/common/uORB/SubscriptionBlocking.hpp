@@ -129,7 +129,11 @@ public:
 
 				// Calculate an absolute time in the future
 				struct timespec ts;
+#if defined(CONFIG_ARCH_BOARD_PX4_SITL)
+				px4_clock_gettime(CLOCK_MONOTONIC, &ts);
+#else
 				px4_clock_gettime(CLOCK_REALTIME, &ts);
+#endif
 				uint64_t nsecs = ts.tv_nsec + (timeout_us * 1000);
 				static constexpr unsigned billion = (1000 * 1000 * 1000);
 				ts.tv_sec += nsecs / billion;
