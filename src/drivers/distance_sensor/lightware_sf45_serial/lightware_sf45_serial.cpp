@@ -96,9 +96,10 @@ int SF45LaserSerial::init()
 
 	param_get(param_find("SF45_UPDATE_CFG"), &_update_rate);
 	param_get(param_find("SF45_ORIENT_CFG"), &_orient_cfg);
-	// TODOparam_get(param_find("SF45_YAW_CFG"), &_yaw_cfg);
+	param_get(param_find("SF45_CP_LIMIT"), &_collision_constraint);
+	param_get(param_find("SF45_YAW_CFG"), &_yaw_cfg);
 
-	/* SF45/B (50M 100Hz) */
+	/* SF45/B (50M) */
 	_px4_rangefinder.set_min_distance(0.2f);
 	_px4_rangefinder.set_max_distance(50.0f);
 	_interval = 10000;
@@ -112,7 +113,6 @@ int SF45LaserSerial::measure()
 {
 
 	int rate = (int)_update_rate;
-	//_update_rate = 1; // 50hz
 	_data_output = 0x101; // raw distance + yaw readings
 	_stream_data = 5; // enable constant streaming
 
@@ -671,6 +671,32 @@ void SF45LaserSerial::sf45_process_replies(float *distance_m)
 				raw_yaw = raw_yaw * -1;
 			}
 
+			switch (_yaw_cfg) {
+			case 0:
+				break;
+
+			case 1:
+				if (raw_yaw > 180) {
+					raw_yaw = raw_yaw - 180;
+
+				} else {
+					raw_yaw = raw_yaw + 180; // rotation facing aft
+				}
+
+				break;
+
+			case 2:
+				raw_yaw = raw_yaw + 90; // rotation facing right
+				break;
+
+			case 3:
+				raw_yaw = raw_yaw - 90; // rotation facing left
+				break;
+
+			default:
+				break;
+			}
+
 			scaled_yaw = raw_yaw * SF45_SCALE_FACTOR;
 
 			// Convert to meters for rangefinder update
@@ -688,8 +714,13 @@ void SF45LaserSerial::sf45_process_replies(float *distance_m)
 				_obstacle_map_msg.distances[current_bin] = obstacle_dist_cm;
 
 				// Reduce CP velocity oscillating when when sensor rotates away from close up obstacle
+				if (_obstacle_map_msg.distances[current_bin] > _collision_constraint) {
 
-				_obstacle_map_msg.distances[_previous_bin] = 5000;
+					_obstacle_map_msg.distances[_previous_bin] = 5000; // max distance value of sensor in meters
+
+				} else {
+					_obstacle_map_msg.distances[_previous_bin] = 100; // minimum CP distance value
+				}
 
 			}
 

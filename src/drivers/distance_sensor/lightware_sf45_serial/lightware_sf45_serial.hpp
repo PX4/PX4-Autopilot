@@ -109,6 +109,7 @@ private:
 	uint8_t                         _num_retries{2};
 	int32_t                         _yaw_cfg{0};
 	int32_t                         _orient_cfg{0};
+	int32_t                         _collision_constraint{0};
 	uint16_t                        _previous_bin{0};
 
 	// end of SF45/B data members

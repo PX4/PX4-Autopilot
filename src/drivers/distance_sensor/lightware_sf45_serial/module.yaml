@@ -5,7 +5,7 @@ serial_config:
         name: SENS_EN_SF45
         group: Sensors
         default: TEL1
-      num_instances: 1 
+      num_instances: 1
       supports_networking: false
 
 parameters:
@@ -13,7 +13,7 @@ parameters:
       definitions:
           SF45_UPDATE_CFG:
               description:
-                  short: Update rate in Hz 
+                  short: Update rate in Hz
                   long: |
                       The SF45 sets the update rate in Hz to allow greater resolution
               type: enum
@@ -31,7 +31,7 @@ parameters:
                   11: 2500hz
                   12: 5000hz
               reboot_required: true
-              num_instances: 1 
+              num_instances: 1
               default: 1
 
           SF45_ORIENT_CFG:
@@ -44,7 +44,7 @@ parameters:
                 0: Rotation upward
                 1: Rotation downward
               reboot_required: true
-              num_instances: 1 
+              num_instances: 1
               default: 0
 
           SF45_YAW_CFG:
@@ -56,8 +56,18 @@ parameters:
               values:
                 0: Rotation forward
                 1: Rotation backward
+                2: Rotation right
+                3: Rotation left
               reboot_required: true
-              num_instances: 1 
+              num_instances: 1
               default: 0
 
-
+          SF45_CP_LIMIT:
+              description:
+                  short: Minimum distance to enable collision
+                  long: |
+                      Distances below the minumum will result in an obstacle distance array value of 100
+              type: int32
+              reboot_required: true
+              num_instances: 1
+              default: 5000

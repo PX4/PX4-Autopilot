@@ -87,4 +87,3 @@ struct {
 	uint8_t crc_lo{0};        // crc low byte
 	uint8_t crc_hi{0};       // crc high byte
 } rx_field;
-
