@@ -126,7 +126,7 @@ private:
 			{
 				return new UavcanEscSubscriber(handle, pmgr, 0);
 			},
-			"esc",
+			"udral.esc",
 			0
 		},
 #endif
@@ -136,7 +136,7 @@ private:
 			{
 				return new UavcanGnssSubscriber(handle, pmgr, 0);
 			},
-			"gps",
+			"udral.gps",
 			0
 		},
 #endif
@@ -146,7 +146,7 @@ private:
 			{
 				return new UavcanGnssSubscriber(handle, pmgr, 1);
 			},
-			"gps",
+			"udral.gps",
 			1
 		},
 #endif
@@ -156,7 +156,7 @@ private:
 			{
 				return new UavcanBmsSubscriber(handle, pmgr, 0);
 			},
-			"energy_source",
+			"udral.energy_source",
 			0
 		},
 #endif
@@ -166,7 +166,7 @@ private:
 			{
 				return new UavcanLegacyBatteryInfoSubscriber(handle, pmgr, 0);
 			},
-			"legacy_bms",
+			"udral.legacy_bms",
 			0
 		},
 #endif

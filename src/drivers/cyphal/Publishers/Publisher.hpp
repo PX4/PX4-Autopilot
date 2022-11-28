@@ -79,7 +79,7 @@ public:
 	void updateParam()
 	{
 		char uavcan_param[256];
-		snprintf(uavcan_param, sizeof(uavcan_param), "uavcan.pub.%s.%d.id", _subject_name, _instance);
+		snprintf(uavcan_param, sizeof(uavcan_param), "uavcan.pub.%s%s.%d.id", _prefix_name, _subject_name, _instance);
 
 		// Set _port_id from _uavcan_param
 		uavcan_register_Value_1_0 value;
