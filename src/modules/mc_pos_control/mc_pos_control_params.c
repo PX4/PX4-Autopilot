@@ -307,9 +307,12 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_I_ACC, 0.4f);
 PARAM_DEFINE_FLOAT(MPC_XY_VEL_D_ACC, 0.2f);
 
 /**
- * Default horizontal velocity in mission
+ * Default autonomous horizontal velocity
  *
- * Horizontal velocity used when flying autonomously in e.g. Missions, RTL, Goto.
+ * Default horizontal velocity used when flying autonomously in e.g. Missions, RTL, Goto.
+ * This can be overriden by e.g. mission velocity or MAV_CMD_DO_CHANGE_SPEED.
+ *
+ * Set lower than MPC_XY_VEL_MAX
  *
  * @unit m/s
  * @min 3.0
@@ -351,11 +354,10 @@ PARAM_DEFINE_FLOAT(MPC_XY_ERR_MAX, 2.0f);
 /**
  * Maximum horizontal velocity setpoint in Position mode
  *
- * If velocity setpoint larger than MPC_XY_VEL_MAX is set, then
- * the setpoint will be capped to MPC_XY_VEL_MAX
- *
  * The maximum sideways and backward speed can be set differently
  * using MPC_VEL_MAN_SIDE and MPC_VEL_MAN_BACK, respectively.
+ *
+ * Set lower than MPC_XY_VEL_MAX
  *
  * @unit m/s
  * @min 3.0
@@ -399,8 +401,10 @@ PARAM_DEFINE_FLOAT(MPC_VEL_MAN_BACK, -1.0f);
 /**
  * Maximum horizontal velocity
  *
- * Maximum horizontal velocity in AUTO mode. If higher speeds
- * are commanded in a mission they will be capped to this velocity.
+ * Absolute maximum allowed horizontal velocity in any velocity controlled mode.
+ * If higher speeds are commanded they will be capped to this maximum.
+ *
+ * Set higher than MPC_VEL_MANUAL, MPC_XY_CRUISE
  *
  * @unit m/s
  * @min 0.0
