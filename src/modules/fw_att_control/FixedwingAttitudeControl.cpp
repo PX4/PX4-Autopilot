@@ -446,6 +446,25 @@ void FixedwingAttitudeControl::Run()
 				}
 			}
 
+			// wheel control
+			float wheel_u = 0.f;
+
+			if (_vcontrol_mode.flag_control_manual_enabled) {
+				// always direct control of steering wheel with yaw stick in manual modes
+				wheel_u = _manual_control_setpoint.r;
+
+			} else {
+				// XXX: yaw_sp_move_rate here is an abuse -- used to ferry manual yaw inputs from
+				// position controller during auto modes _manual_control_setpoint.r gets passed
+				// whenever nudging is enabled, otherwise zero
+				wheel_u = wheel_control ? _wheel_ctrl.control_bodyrate(dt, control_input)
+					  + _att_sp.yaw_sp_move_rate : 0.f;
+			}
+
+			_landing_gear_wheel.normalized_wheel_setpoint = PX4_ISFINITE(wheel_u) ? wheel_u : 0.f;
+			_landing_gear_wheel.timestamp = hrt_absolute_time();
+			_landing_gear_wheel_pub.publish(_landing_gear_wheel);
+
 		} else {
 			// full manual
 			_wheel_ctrl.reset_integrator();
