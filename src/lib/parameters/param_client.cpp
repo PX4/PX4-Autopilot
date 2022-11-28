@@ -73,7 +73,7 @@ static int param_sync_thread(int argc, char *argv[])
 	// So, sleep a little bit to give server side a chance to finish initialization
 	// of the muorb. But don't wait too long otherwise a set request from the server
 	// side could be missed.
-	usleep(500);
+	usleep(2000);
 
 	int param_set_req_fd   = orb_subscribe(ORB_ID(parameter_client_set_value_request));
 	int param_reset_req_fd = orb_subscribe(ORB_ID(parameter_client_reset_request));

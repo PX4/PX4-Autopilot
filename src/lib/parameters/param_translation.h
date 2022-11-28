@@ -34,6 +34,5 @@
 #pragma once
 
 #include "tinybson/tinybson.h"
-#include <inttypes.h>
 
 __EXPORT bool param_modify_on_import(bson_node_t node);

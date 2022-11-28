@@ -57,6 +57,8 @@ muorb_main(int argc, char *argv[])
 		// Register the protobuf channel with UORB.
 		uORB::AppsProtobufChannel *channel = uORB::AppsProtobufChannel::GetInstance();
 
+		PX4_INFO("Got muorb start command");
+
 		if (channel && channel->Initialize(enable_debug)) {
 			uORB::Manager::get_instance()->set_uorb_communicator(channel);
 			return OK;
@@ -65,7 +67,13 @@ muorb_main(int argc, char *argv[])
 	} else if (!strcmp(argv[1], "test")) {
 		uORB::AppsProtobufChannel *channel = uORB::AppsProtobufChannel::GetInstance();
 
-		if (channel && channel->Initialize(enable_debug) && channel->Test()) { return OK; }
+		PX4_INFO("Got muorb test command");
+
+		if (channel && channel->Initialize(enable_debug)) {
+			uORB::Manager::get_instance()->set_uorb_communicator(channel);
+
+			if (channel->Test()) { return OK; }
+		}
 
 	} else if (!strcmp(argv[1], "stop")) {
 		if (uORB::AppsProtobufChannel::isInstance() == false) {

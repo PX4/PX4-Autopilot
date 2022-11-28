@@ -219,33 +219,25 @@ bool uORB::AppsProtobufChannel::Test()
 	return true;
 }
 
-static void *start_param_server(void *)
-{
-	usleep(10000000);
-	param_init();
-	return nullptr;
-}
-
 bool uORB::AppsProtobufChannel::Initialize(bool enable_debug)
 {
-	fc_callbacks cb = {&ReceiveCallback, &AdvertiseCallback,
-			   &SubscribeCallback, &UnsubscribeCallback
-			  };
+	if (! _Initialized) {
+		fc_callbacks cb = { &ReceiveCallback, &AdvertiseCallback,
+				    &SubscribeCallback, &UnsubscribeCallback
+				  };
 
-	if (fc_sensor_initialize(enable_debug, &cb) != 0) {
-		if (enable_debug) { PX4_INFO("Warning: muorb protobuf initalize method failed"); }
+		if (fc_sensor_initialize(enable_debug, &cb) != 0) {
+			if (enable_debug) { PX4_INFO("Warning: muorb protobuf initalize method failed"); }
+
+		} else {
+			PX4_INFO("muorb protobuf initalize method succeeded");
+			_Initialized = true;
+		}
 
 	} else {
-		PX4_INFO("muorb protobuf initalize method succeeded");
-		_Initialized = true;
+		PX4_INFO("AppsProtobufChannel already initialized");
 	}
 
-	(void) px4_task_spawn_cmd("start_param_server",
-				  SCHED_DEFAULT,
-				  SCHED_PRIORITY_MAX - 2,
-				  2000,
-				  (px4_main_t)&start_param_server,
-				  nullptr);
 	return true;
 }
 
