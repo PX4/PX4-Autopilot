@@ -227,6 +227,7 @@ private:
 
 	const failsafe_flags_s &_failsafe_flags{_health_and_arming_checks.failsafeFlags()};
 	HomePosition 		_home_position{_failsafe_flags};
+	config_overrides_s   _config_overrides{};
 
 
 	Hysteresis _auto_disarm_landed{false};
