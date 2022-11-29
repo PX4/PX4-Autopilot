@@ -184,6 +184,9 @@ param set-default SDLOG_DIRS_MAX 7
 param set-default TRIG_INTERFACE 3
 
 param set-default SYS_FAILURE_EN 1
+# Enable low-battery actions by default for (automated) testing. Battery sim
+# does not go below 50% by default, but failure injection can trigger failsafes.
+param set-default COM_LOW_BAT_ACT 2
 
 # Adapt timeout parameters if simulation runs faster or slower than realtime.
 if [ -n "$PX4_SIM_SPEED_FACTOR" ]; then
