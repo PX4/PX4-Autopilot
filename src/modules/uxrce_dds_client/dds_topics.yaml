@@ -69,6 +69,9 @@ subscriptions:
   - topic: /fmu/in/unregister_ext_component
     type: px4_msgs::msg::UnregisterExtComponent
 
+  - topic: /fmu/in/config_overrides_request
+    type: px4_msgs::msg::ConfigOverrides
+
   - topic: /fmu/in/arming_check_reply
     type: px4_msgs::msg::ArmingCheckReply
 
