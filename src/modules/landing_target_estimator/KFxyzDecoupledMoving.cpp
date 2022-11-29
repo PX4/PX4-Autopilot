@@ -40,64 +40,25 @@
  */
 
 #include "KFxyzDecoupledMoving.h"
+#include "python_derivation/generated/decoupled_moving/predictCov.h"
+#include "python_derivation/generated/decoupled_moving/computeInnovCov.h"
 
 namespace landing_target_estimator
 {
 
 void KFxyzDecoupledMoving::predictState(float dt, float acc)
 {
-	// Total ops: 12
-
-	// Intermediate terms (1)
 	const float tmp0 = 0.5f * dt * dt;
 
 	_state(0, 0) = _state(0, 0) + _state(1, 0) * dt + _state(3, 0) * tmp0 - tmp0 * acc;
 	_state(1, 0) = _state(1, 0) + _state(3, 0) * dt - acc * dt;
-	// _state(2, 0) = _state(2, 0);
-	// _state(3, 0) = _state(3, 0);
 }
 
 void KFxyzDecoupledMoving::predictCov(float dt)
 {
-	// Total ops: 60
-
-	// Input arrays
-
-	// Intermediate terms (10)
-	const float tmp0 = dt * dt;
-	const float tmp1 = 0.5f * tmp0;
-	const float tmp2 = _covariance(3, 3) * tmp1;
-	const float tmp3 = _covariance(0, 3) + _covariance(1, 3) * dt + tmp2;
-	const float tmp4 = _covariance(0, 1) + _covariance(1, 1) * dt + _covariance(3, 1) * tmp1;
-	const float tmp5 = _covariance(3, 1) * dt;
-	const float tmp6 = _covariance(1, 1) + tmp5;
-	const float tmp7 = _covariance(3, 3) * dt;
-	const float tmp8 = _covariance(1, 3) + tmp7;
-	const float tmp9 = 0.5f * _input_var * dt * dt * dt;
-
-	// Output terms (1)
-	_covariance(0, 0) = _covariance(0, 0) + _covariance(1, 0) * dt + _covariance(3,
-			    0) * tmp1 + 0.25f * _input_var * dt * dt * dt * dt + tmp1 * tmp3 + tmp4 * dt;
-	_covariance(1, 0) = _covariance(1, 0) + _covariance(3, 0) * dt + tmp1 * tmp8 + tmp6 * dt + tmp9;
-	_covariance(2, 0) = _covariance(2, 0) + _covariance(2, 1) * dt + _covariance(2, 3) * tmp1;
-	_covariance(3, 0) = _covariance(3, 0) + tmp2 + tmp5;
-
-	_covariance(1, 1) = _input_var * tmp0 + tmp6 + tmp8 * dt;
-	_covariance(2, 1) = _covariance(2, 1) + _covariance(2, 3) * dt;
-	_covariance(3, 1) = _covariance(3, 1) + tmp7;
-
-	_covariance(2, 2) = _bias_var + _covariance(2, 2);
-	// _covariance(3, 2) = _covariance(3, 2);
-
-	_covariance(3, 3) = _acc_var + _covariance(3, 3);
-
-	// Symmetric matrix:
-	_covariance(0, 1) = _covariance(1, 0);
-	_covariance(0, 2) = _covariance(2, 0);
-	_covariance(1, 2) = _covariance(2, 1);
-	_covariance(0, 3) = _covariance(3, 0);
-	_covariance(1, 3) = _covariance(3, 1);
-	// _covariance(2, 3) = _covariance(3, 2);
+	matrix::Matrix<float, 4, 4> cov_updated;
+	sym::Predictcov(dt, _input_var, _bias_var, _acc_var, _covariance, &cov_updated);
+	_covariance = cov_updated;
 }
 
 
@@ -151,22 +112,9 @@ void KFxyzDecoupledMoving::syncState(float dt, float acc)
 
 float KFxyzDecoupledMoving::computeInnovCov(float meas_unc)
 {
-	// Total ops: 36
-
-	_innov_cov =
-		_meas_matrix(0, 0) *
-		(_covariance(0, 0) * _meas_matrix(0, 0) + _covariance(1, 0) * _meas_matrix(0, 1) +
-		 _covariance(2, 0) * _meas_matrix(0, 2) + _covariance(3, 0) * _meas_matrix(0, 3)) +
-		_meas_matrix(0, 1) *
-		(_covariance(0, 1) * _meas_matrix(0, 0) + _covariance(1, 1) * _meas_matrix(0, 1) +
-		 _covariance(2, 1) * _meas_matrix(0, 2) + _covariance(3, 1) * _meas_matrix(0, 3)) +
-		_meas_matrix(0, 2) *
-		(_covariance(0, 2) * _meas_matrix(0, 0) + _covariance(1, 2) * _meas_matrix(0, 1) +
-		 _covariance(2, 2) * _meas_matrix(0, 2) + _covariance(3, 2) * _meas_matrix(0, 3)) +
-		_meas_matrix(0, 3) *
-		(_covariance(0, 3) * _meas_matrix(0, 0) + _covariance(1, 3) * _meas_matrix(0, 1) +
-		 _covariance(2, 3) * _meas_matrix(0, 2) + _covariance(3, 3) * _meas_matrix(0, 3)) +
-		meas_unc;
+	float innov_cov_updated;
+	sym::Computeinnovcov(meas_unc, _covariance, _meas_matrix, &innov_cov_updated);
+	_innov_cov = innov_cov_updated;
 
 	return _innov_cov;
 }
