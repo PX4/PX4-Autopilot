@@ -338,6 +338,7 @@ void ModeManagement::update(bool armed, uint8_t user_intended_nav_state, bool fa
 	}
 
 	update_request.control_setpoint_update = checkConfigControlSetpointUpdates();
+	checkConfigOverrides();
 }
 
 void ModeManagement::onUserIntendedNavStateChange(ModeChangeSource source, uint8_t user_intended_nav_state)
@@ -446,6 +447,44 @@ void ModeManagement::printStatus() const
 	_mode_executors.printStatus(modeExecutorInCharge());
 }
 
+void ModeManagement::updateActiveConfigOverrides(uint8_t nav_state, config_overrides_s &overrides_in_out)
+{
+	config_overrides_s current_overrides;
+
+	if (_modes.valid(nav_state)) {
+		current_overrides = _modes.mode(nav_state).overrides;
+
+	} else {
+		current_overrides = {};
+	}
+
+	// Apply the overrides from executors on top (executors take precedence)
+	const int executor_in_charge = modeExecutorInCharge();
+
+	if (_mode_executors.valid(executor_in_charge)) {
+		const config_overrides_s &executor_overrides = _mode_executors.executor(executor_in_charge).overrides;
+
+		if (executor_overrides.disable_auto_disarm) {
+			current_overrides.disable_auto_disarm = true;
+		}
+
+		if (executor_overrides.defer_failsafes) {
+			current_overrides.defer_failsafes = true;
+			current_overrides.defer_failsafes_timeout_s = executor_overrides.defer_failsafes_timeout_s;
+		}
+	}
+
+	// Publish if changed or at low rate
+	current_overrides.timestamp = overrides_in_out.timestamp;
+
+	if (memcmp(&overrides_in_out, &current_overrides, sizeof(current_overrides)) != 0
+	    || hrt_elapsed_time(&current_overrides.timestamp) > 500_ms) {
+		current_overrides.timestamp = hrt_absolute_time();
+		_config_overrides_pub.publish(current_overrides);
+		overrides_in_out = current_overrides;
+	}
+}
+
 bool ModeManagement::checkConfigControlSetpointUpdates()
 {
 	bool had_update = false;
@@ -466,6 +505,33 @@ bool ModeManagement::checkConfigControlSetpointUpdates()
 	}
 
 	return had_update;
+}
+
+void ModeManagement::checkConfigOverrides()
+{
+	config_overrides_s override_request;
+	int max_updates = config_overrides_s::ORB_QUEUE_LENGTH;
+
+	while (_config_overrides_request_sub.update(&override_request) && --max_updates >= 0) {
+		switch (override_request.source_type) {
+		case config_overrides_s::SOURCE_TYPE_MODE_EXECUTOR:
+			if (_mode_executors.valid(override_request.source_id)) {
+				ModeExecutors::ModeExecutor &executor = _mode_executors.executor(override_request.source_id);
+				memcpy(&executor.overrides, &override_request, sizeof(executor.overrides));
+				static_assert(sizeof(executor.overrides) == sizeof(override_request), "size mismatch");
+			}
+
+			break;
+
+		case config_overrides_s::SOURCE_TYPE_MODE:
+			if (_modes.valid(override_request.source_id)) {
+				Modes::Mode &mode = _modes.mode(override_request.source_id);
+				memcpy(&mode.overrides, &override_request, sizeof(mode.overrides));
+			}
+
+			break;
+		}
+	}
 }
 
 #endif /* CONSTRAINED_FLASH */
