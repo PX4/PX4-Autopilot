@@ -53,6 +53,7 @@
 #include <lib/perf/perf_counter.h>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/actuator_test.h>
 #include <uORB/topics/esc_status.h>
 #include <drivers/drv_hrt.h>
 #include <lib/mixer_module/mixer_module.hpp>
@@ -75,6 +76,12 @@ public:
 
 	void update() override
 	{
+		actuator_test_s actuator_test;
+
+		if (_actuator_test_sub.update(&actuator_test)) {
+			_actuator_test_timestamp = actuator_test.timestamp;
+		}
+
 		if (_armed_sub.updated()) {
 			actuator_armed_s new_arming;
 			_armed_sub.update(&new_arming);
@@ -143,7 +150,8 @@ private:
 
 	void publish_readiness()
 	{
-		_previous_pub_time = hrt_absolute_time();
+		const hrt_abstime now = hrt_absolute_time();
+		_previous_pub_time = now;
 
 		size_t payload_size = reg_udral_service_common_Readiness_0_1_SERIALIZATION_BUFFER_SIZE_BYTES_;
 
@@ -154,7 +162,7 @@ private:
 
 		reg_udral_service_common_Readiness_0_1 msg_arming {};
 
-		if (_armed.armed) {
+		if (_armed.armed || _actuator_test_timestamp + 100_ms > now) {
 			msg_arming.value = reg_udral_service_common_Readiness_0_1_ENGAGED;
 
 		} else if (_armed.prearmed) {
@@ -195,6 +203,9 @@ private:
 
 	uORB::Subscription _armed_sub{ORB_ID(actuator_armed)};
 	actuator_armed_s _armed {};
+
+	uORB::Subscription _actuator_test_sub{ORB_ID(actuator_test)};
+	uint64_t _actuator_test_timestamp{0};
 
 	CanardTransferID _arming_transfer_id;
 };
