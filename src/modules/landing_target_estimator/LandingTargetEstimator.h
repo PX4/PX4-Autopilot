@@ -208,17 +208,17 @@ private:
 	bool update_step(matrix::Vector3f vehicle_acc_ned);
 	void predictionStep(matrix::Vector3f acc);
 
-	bool processObsIRlock(const irlock_report_s irlock_report, targetObsPos *obs);
-	bool processObsUWB(const uwb_distance_s uwb_distance, targetObsPos *obs);
-	bool processObsVision(const landing_target_pose_s fiducial_marker_pose, targetObsPos *obs);
-	bool processObsVisionOrientation(const landing_target_pose_s fiducial_marker_pose, targetObsOrientation *obs);
-	bool processObsTargetGNSS(const landing_target_pose_s target_GNSS_report, bool target_GNSS_report_valid,
-				  const sensor_gps_s vehicle_gps_position, targetObsPos *obs);
-	bool processObsUavGNSSVel(const landing_target_pose_s target_GNSS_report,  const sensor_gps_s vehicle_gps_position,
-				  targetObsPos *obs);
+	bool processObsIRlock(const irlock_report_s &irlock_report, targetObsPos &obs);
+	bool processObsUWB(const uwb_distance_s &uwb_distance, targetObsPos &obs);
+	bool processObsVision(const landing_target_pose_s &fiducial_marker_pose, targetObsPos &obs);
+	bool processObsVisionOrientation(const landing_target_pose_s &fiducial_marker_pose, targetObsOrientation &obs);
+	bool processObsTargetGNSS(const landing_target_pose_s &target_GNSS_report, bool target_GNSS_report_valid,
+				  const sensor_gps_s &vehicle_gps_position, targetObsPos &obs);
+	bool processObsUavGNSSVel(const landing_target_pose_s &target_GNSS_report,  const sensor_gps_s &vehicle_gps_position,
+				  targetObsPos &obs);
 
-	bool fuse_meas(const matrix::Vector3f vehicle_acc_ned, const targetObsPos target_pos_obs);
-	bool fuse_orientation(const targetObsOrientation target_pos_obs);
+	bool fuse_meas(const matrix::Vector3f vehicle_acc_ned, const targetObsPos &target_pos_obs);
+	bool fuse_orientation(const targetObsOrientation &target_pos_obs);
 	void publishTarget();
 	void publishInnovations();
 

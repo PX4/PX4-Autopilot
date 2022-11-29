@@ -250,7 +250,7 @@ bool LandingTargetEstimator::update_step(Vector3f vehicle_acc_ned)
 
 		obs_irlock.type = irlock;
 
-		if (processObsIRlock(irlock_report, &obs_irlock)) {
+		if (processObsIRlock(irlock_report, obs_irlock)) {
 			irlock_valid = true;
 		}
 	}
@@ -260,7 +260,7 @@ bool LandingTargetEstimator::update_step(Vector3f vehicle_acc_ned)
 
 		obs_uwb.type = uwb;
 
-		if (processObsUWB(uwb_distance, &obs_uwb)) {
+		if (processObsUWB(uwb_distance, obs_uwb)) {
 			uwb_valid = true;
 		}
 	}
@@ -271,12 +271,12 @@ bool LandingTargetEstimator::update_step(Vector3f vehicle_acc_ned)
 
 		obs_fiducial_marker.type = fiducial_marker;
 
-		if (processObsVision(fiducial_marker_pose, &obs_fiducial_marker)) {
+		if (processObsVision(fiducial_marker_pose, obs_fiducial_marker)) {
 			fiducial_marker_valid = true;
 		}
 
 		if (_estimate_orientation) {
-			processObsVisionOrientation(fiducial_marker_pose, &obs_fiducial_marker_orientation);
+			processObsVisionOrientation(fiducial_marker_pose, obs_fiducial_marker_orientation);
 		}
 	}
 
@@ -298,7 +298,7 @@ bool LandingTargetEstimator::update_step(Vector3f vehicle_acc_ned)
 
 				obs_target_gps_pos.type = target_gps_pos;
 
-				if (processObsTargetGNSS(target_GNSS_report, target_GNSS_valid, vehicle_gps_position, &obs_target_gps_pos)) {
+				if (processObsTargetGNSS(target_GNSS_report, target_GNSS_valid, vehicle_gps_position, obs_target_gps_pos)) {
 					pos_GNSS_valid	= true;
 				}
 			}
@@ -309,7 +309,7 @@ bool LandingTargetEstimator::update_step(Vector3f vehicle_acc_ned)
 
 				obs_uav_gps_vel.type = uav_gps_vel;
 
-				if (processObsUavGNSSVel(target_GNSS_report, vehicle_gps_position, &obs_uav_gps_vel)) {
+				if (processObsUavGNSSVel(target_GNSS_report, vehicle_gps_position, obs_uav_gps_vel)) {
 					uav_gps_vel_valid = true;
 				}
 			}
@@ -423,8 +423,8 @@ bool LandingTargetEstimator::update_step(Vector3f vehicle_acc_ned)
 }
 
 
-bool LandingTargetEstimator::processObsVisionOrientation(const landing_target_pose_s fiducial_marker_pose,
-		targetObsOrientation *obs)
+bool LandingTargetEstimator::processObsVisionOrientation(const landing_target_pose_s &fiducial_marker_pose,
+		targetObsOrientation &obs)
 {
 
 	// TODO complete mavlink message to include orientation
@@ -440,18 +440,18 @@ bool LandingTargetEstimator::processObsVisionOrientation(const landing_target_po
 
 		// TODO: obtain relative orientation using the orientation of the drone.
 		// (vision gives orientation between body and target frame. We can thus use the orientation between the body frame and NED to obtain the orientation between NED and target)
-		obs->timestamp = vision_timestamp;
-		obs->updated_theta = true;
-		obs->meas_unc_theta = vision_r_theta_unc;
-		obs->meas_theta = vision_r_theta;
-		obs->meas_h_theta = 1;
+		obs.timestamp = vision_timestamp;
+		obs.updated_theta = true;
+		obs.meas_unc_theta = vision_r_theta_unc;
+		obs.meas_theta = vision_r_theta;
+		obs.meas_h_theta = 1;
 
 	}
 
 	return false;
 }
 
-bool LandingTargetEstimator::processObsVision(const landing_target_pose_s fiducial_marker_pose, targetObsPos *obs)
+bool LandingTargetEstimator::processObsVision(const landing_target_pose_s &fiducial_marker_pose, targetObsPos &obs)
 {
 
 	// Assume vision measurement is in NED frame.
@@ -483,9 +483,9 @@ bool LandingTargetEstimator::processObsVision(const landing_target_pose_s fiduci
 
 	} else {
 
-		obs->timestamp = fiducial_marker_pose.timestamp;
+		obs.timestamp = fiducial_marker_pose.timestamp;
 
-		obs->updated_xyz.setAll(true);
+		obs.updated_xyz.setAll(true);
 
 		Vector3f Z(vision_r_x, vision_r_y, vision_r_z);
 
@@ -509,46 +509,46 @@ bool LandingTargetEstimator::processObsVision(const landing_target_pose_s fiduci
 			// Diagonalize R_rotated:
 			Matrix<float, 3, 3> R_diag =  T * R_rotated;
 
-			obs->meas_unc_xyz(0) = R_diag(0, 0);
-			obs->meas_unc_xyz(1) = R_diag(1, 1);
-			obs->meas_unc_xyz(2) = R_diag(2, 2);
+			obs.meas_unc_xyz(0) = R_diag(0, 0);
+			obs.meas_unc_xyz(1) = R_diag(1, 1);
+			obs.meas_unc_xyz(2) = R_diag(2, 2);
 			//TODO: replace by obs->meas_unc_xyz = R_diag.diag();
 
 			//Transform measurements Z:
 			Vector3f Z_transformed = T * Z;
 
-			obs->meas_xyz = Z_transformed;
+			obs.meas_xyz = Z_transformed;
 
 			//Transform H
 			Matrix<float, 3, 3> H_transformed = T * H_position;
 
 			//Bring H_position back to the full H:
-			obs->meas_h_xyz(0, 0) = H_transformed(0, 0);
-			obs->meas_h_xyz(0, 1) = H_transformed(0, 1);
-			obs->meas_h_xyz(0, 2) = H_transformed(0, 2);
+			obs.meas_h_xyz(0, 0) = H_transformed(0, 0);
+			obs.meas_h_xyz(0, 1) = H_transformed(0, 1);
+			obs.meas_h_xyz(0, 2) = H_transformed(0, 2);
 
-			obs->meas_h_xyz(1, 0) = H_transformed(1, 0);
-			obs->meas_h_xyz(1, 1) = H_transformed(1, 1);
-			obs->meas_h_xyz(1, 2) = H_transformed(1, 2);
+			obs.meas_h_xyz(1, 0) = H_transformed(1, 0);
+			obs.meas_h_xyz(1, 1) = H_transformed(1, 1);
+			obs.meas_h_xyz(1, 2) = H_transformed(1, 2);
 
-			obs->meas_h_xyz(2, 0) = H_transformed(2, 0);
-			obs->meas_h_xyz(2, 1) = H_transformed(2, 1);
-			obs->meas_h_xyz(2, 2) = H_transformed(2, 2);
+			obs.meas_h_xyz(2, 0) = H_transformed(2, 0);
+			obs.meas_h_xyz(2, 1) = H_transformed(2, 1);
+			obs.meas_h_xyz(2, 2) = H_transformed(2, 2);
 
 		} else {
 			// Assume noise correlation negligible:
 
 			// State: [r, r_dot, ...]
-			obs->meas_h_xyz(0, 0) = 1;
-			obs->meas_h_xyz(1, 0) = 1;
-			obs->meas_h_xyz(2, 0) = 1;
+			obs.meas_h_xyz(0, 0) = 1;
+			obs.meas_h_xyz(1, 0) = 1;
+			obs.meas_h_xyz(2, 0) = 1;
 
-			obs->meas_xyz = Z;
+			obs.meas_xyz = Z;
 
 			// Assume off diag elements ~ 0
-			obs->meas_unc_xyz(0) = R_rotated(0, 0);
-			obs->meas_unc_xyz(1) = R_rotated(1, 1);
-			obs->meas_unc_xyz(2) = R_rotated(2, 2);
+			obs.meas_unc_xyz(0) = R_rotated(0, 0);
+			obs.meas_unc_xyz(1) = R_rotated(1, 1);
+			obs.meas_unc_xyz(2) = R_rotated(2, 2);
 		}
 
 		return true;
@@ -558,33 +558,33 @@ bool LandingTargetEstimator::processObsVision(const landing_target_pose_s fiduci
 }
 
 
-bool LandingTargetEstimator::processObsUavGNSSVel(const landing_target_pose_s target_GNSS_report,
-		const sensor_gps_s vehicle_gps_position, targetObsPos *obs)
+bool LandingTargetEstimator::processObsUavGNSSVel(const landing_target_pose_s &target_GNSS_report,
+		const sensor_gps_s &vehicle_gps_position, targetObsPos &obs)
 {
 
 	// TODO: convert .s_variance_m_s from accuracy to variance
 
 	if (_target_mode == TargetMode::Stationary) {
 
-		obs->meas_xyz(0) = -vehicle_gps_position.vel_n_m_s;
-		obs->meas_xyz(1) = -vehicle_gps_position.vel_e_m_s;
-		obs->meas_xyz(2) = -vehicle_gps_position.vel_d_m_s;
+		obs.meas_xyz(0) = -vehicle_gps_position.vel_n_m_s;
+		obs.meas_xyz(1) = -vehicle_gps_position.vel_e_m_s;
+		obs.meas_xyz(2) = -vehicle_gps_position.vel_d_m_s;
 
-		obs->meas_unc_xyz(0) = vehicle_gps_position.s_variance_m_s;
-		obs->meas_unc_xyz(1) = vehicle_gps_position.s_variance_m_s;
-		obs->meas_unc_xyz(2) = vehicle_gps_position.s_variance_m_s;
+		obs.meas_unc_xyz(0) = vehicle_gps_position.s_variance_m_s;
+		obs.meas_unc_xyz(1) = vehicle_gps_position.s_variance_m_s;
+		obs.meas_unc_xyz(2) = vehicle_gps_position.s_variance_m_s;
 
 	} else {
 
 		// If the target is moving, the relative velocity is expressed as the drone verlocity - the target velocity
-		obs->meas_xyz(0) = vehicle_gps_position.vel_n_m_s - target_GNSS_report.vx_rel;
-		obs->meas_xyz(1) = vehicle_gps_position.vel_e_m_s - target_GNSS_report.vy_rel;
-		obs->meas_xyz(2) = vehicle_gps_position.vel_d_m_s - target_GNSS_report.vz_rel;
+		obs.meas_xyz(0) = vehicle_gps_position.vel_n_m_s - target_GNSS_report.vx_rel;
+		obs.meas_xyz(1) = vehicle_gps_position.vel_e_m_s - target_GNSS_report.vy_rel;
+		obs.meas_xyz(2) = vehicle_gps_position.vel_d_m_s - target_GNSS_report.vz_rel;
 
 		float unc = vehicle_gps_position.s_variance_m_s + _gps_target_unc;
-		obs->meas_unc_xyz(0) = unc;
-		obs->meas_unc_xyz(1) = unc;
-		obs->meas_unc_xyz(2) = unc;
+		obs.meas_unc_xyz(0) = unc;
+		obs.meas_unc_xyz(1) = unc;
+		obs.meas_unc_xyz(2) = unc;
 
 		// TODO: uncomment once the mavlink message is updated with covariances
 		// obs->meas_unc_xyz(0) = vehicle_gps_position.s_variance_m_s + target_GNSS_report.cov_vx_rel;
@@ -594,20 +594,20 @@ bool LandingTargetEstimator::processObsUavGNSSVel(const landing_target_pose_s ta
 
 	if (_target_model == TargetModel::FullPoseCoupled) {
 		// State: [rx, ry, rz, rx_dot, ry_dot, rz_dot, ... ]
-		obs->meas_h_xyz(0, 3) = 1; // x direction
-		obs->meas_h_xyz(1, 4) = 1; // y direction
-		obs->meas_h_xyz(2, 5) = 1; // z direction
+		obs.meas_h_xyz(0, 3) = 1; // x direction
+		obs.meas_h_xyz(1, 4) = 1; // y direction
+		obs.meas_h_xyz(2, 5) = 1; // z direction
 
 	} else {
 		// State: [r, r_dot, ...] --> x, y, z directions are the same (decoupled)
-		obs->meas_h_xyz(0, 1) = 1;
-		obs->meas_h_xyz(1, 1) = 1;
-		obs->meas_h_xyz(2, 1) = 1;
+		obs.meas_h_xyz(0, 1) = 1;
+		obs.meas_h_xyz(1, 1) = 1;
+		obs.meas_h_xyz(2, 1) = 1;
 	}
 
-	obs->timestamp = vehicle_gps_position.timestamp;
+	obs.timestamp = vehicle_gps_position.timestamp;
 
-	obs->updated_xyz.setAll(true);
+	obs.updated_xyz.setAll(true);
 
 	// Keep track of the initial relative velocity
 	_vel_rel_init.timestamp = vehicle_gps_position.timestamp;
@@ -620,8 +620,8 @@ bool LandingTargetEstimator::processObsUavGNSSVel(const landing_target_pose_s ta
 
 }
 
-bool LandingTargetEstimator::processObsTargetGNSS(const landing_target_pose_s target_GNSS_report,
-		bool target_GNSS_report_valid,  const sensor_gps_s vehicle_gps_position, targetObsPos *obs)
+bool LandingTargetEstimator::processObsTargetGNSS(const landing_target_pose_s &target_GNSS_report,
+		bool target_GNSS_report_valid,  const sensor_gps_s &vehicle_gps_position, targetObsPos &obs)
 {
 
 	bool use_gps_measurements = false;
@@ -703,38 +703,38 @@ bool LandingTargetEstimator::processObsTargetGNSS(const landing_target_pose_s ta
 			// State: [rx, ry, rz, r_x_dot, r_y_dot, r_z_dot, bx, by, bz, ... ]
 
 			// x direction H = [1, 0, 0, 0, 0, 0, 1, 0, 0, ...]
-			obs->meas_h_xyz(0, 0) = 1;
-			obs->meas_h_xyz(0, 6) = 1;
+			obs.meas_h_xyz(0, 0) = 1;
+			obs.meas_h_xyz(0, 6) = 1;
 
 			// y direction H = [0, 1, 0, 0, 0, 0, 0, 1, 0, ...]
-			obs->meas_h_xyz(1, 1) = 1;
-			obs->meas_h_xyz(1, 7) = 1;
+			obs.meas_h_xyz(1, 1) = 1;
+			obs.meas_h_xyz(1, 7) = 1;
 
 			// z direction H = [0, 0, 1, 0, 0, 0, 0, 0, 1, ...]
-			obs->meas_h_xyz(2, 2) = 1;
-			obs->meas_h_xyz(2, 8) = 1;
+			obs.meas_h_xyz(2, 2) = 1;
+			obs.meas_h_xyz(2, 8) = 1;
 
 		} else {
 			// State: [r, r_dot, b, ...] --> same for x,y,z directions (decoupled)
-			obs->meas_h_xyz(0, 0) = 1;
-			obs->meas_h_xyz(0, 2) = 1;
+			obs.meas_h_xyz(0, 0) = 1;
+			obs.meas_h_xyz(0, 2) = 1;
 
-			obs->meas_h_xyz(1, 0) = 1;
-			obs->meas_h_xyz(1, 2) = 1;
+			obs.meas_h_xyz(1, 0) = 1;
+			obs.meas_h_xyz(1, 2) = 1;
 
-			obs->meas_h_xyz(2, 0) = 1;
-			obs->meas_h_xyz(2, 2) = 1;
+			obs.meas_h_xyz(2, 0) = 1;
+			obs.meas_h_xyz(2, 2) = 1;
 		}
 
-		obs->timestamp = gps_timestamp;
+		obs.timestamp = gps_timestamp;
 
-		obs->meas_xyz = gps_relative_pos;
+		obs.meas_xyz = gps_relative_pos;
 
-		obs->meas_unc_xyz(0) = gps_unc_horizontal;
-		obs->meas_unc_xyz(1) = gps_unc_horizontal;
-		obs->meas_unc_xyz(2) = gps_unc_vertical;
+		obs.meas_unc_xyz(0) = gps_unc_horizontal;
+		obs.meas_unc_xyz(1) = gps_unc_horizontal;
+		obs.meas_unc_xyz(2) = gps_unc_vertical;
 
-		obs->updated_xyz.setAll(true);
+		obs.updated_xyz.setAll(true);
 
 		return true;
 	}
@@ -743,7 +743,7 @@ bool LandingTargetEstimator::processObsTargetGNSS(const landing_target_pose_s ta
 
 }
 
-bool LandingTargetEstimator::processObsUWB(const uwb_distance_s uwb_distance, targetObsPos *obs)
+bool LandingTargetEstimator::processObsUWB(const uwb_distance_s &uwb_distance, targetObsPos &obs)
 {
 
 	if (!PX4_ISFINITE((float)uwb_distance.position[0]) || !PX4_ISFINITE((float)uwb_distance.position[1]) ||
@@ -752,35 +752,35 @@ bool LandingTargetEstimator::processObsUWB(const uwb_distance_s uwb_distance, ta
 
 	} else {
 
-		obs->timestamp = uwb_distance.timestamp;
+		obs.timestamp = uwb_distance.timestamp;
 
 		if (_target_model == TargetModel::FullPoseCoupled) {
 			// State: [rx, ry, rz, ... ]
-			obs->meas_h_xyz(0, 0) = 1; // x direction
-			obs->meas_h_xyz(1, 1) = 1; // y direction
-			obs->meas_h_xyz(2, 2) = 1; // z direction
+			obs.meas_h_xyz(0, 0) = 1; // x direction
+			obs.meas_h_xyz(1, 1) = 1; // y direction
+			obs.meas_h_xyz(2, 2) = 1; // z direction
 
 		} else {
 			// State: [r, r_dot, ...] --> x, y, z directions are the same (decoupled)
-			obs->meas_h_xyz(0, 0) = 1;
-			obs->meas_h_xyz(1, 0) = 1;
-			obs->meas_h_xyz(2, 0) = 1;
+			obs.meas_h_xyz(0, 0) = 1;
+			obs.meas_h_xyz(1, 0) = 1;
+			obs.meas_h_xyz(2, 0) = 1;
 		}
 
 		// The coordinate system is NED (north-east-down) with the position of the landing point relative to the vehicle.
 		// the uwb_distance msg contains the Position in NED, Vehicle relative to LP. To change POV we negate every Axis:
-		obs->meas_xyz(0) = -uwb_distance.position[0];
-		obs->meas_xyz(1) = -uwb_distance.position[1];
-		obs->meas_xyz(2) = -uwb_distance.position[2];
+		obs.meas_xyz(0) = -uwb_distance.position[0];
+		obs.meas_xyz(1) = -uwb_distance.position[1];
+		obs.meas_xyz(2) = -uwb_distance.position[2];
 
-		obs->updated_xyz.setAll(true);
+		obs.updated_xyz.setAll(true);
 
 		float dist_z = _dist_bottom - _param_ltest_sens_pos_z.get();
 
 		float measurement_uncertainty = _meas_unc * dist_z * dist_z;
 
-		obs->meas_unc_xyz(0) = measurement_uncertainty;
-		obs->meas_unc_xyz(1) = measurement_uncertainty;
+		obs.meas_unc_xyz(0) = measurement_uncertainty;
+		obs.meas_unc_xyz(1) = measurement_uncertainty;
 
 		return true;
 	}
@@ -789,7 +789,7 @@ bool LandingTargetEstimator::processObsUWB(const uwb_distance_s uwb_distance, ta
 }
 
 
-bool LandingTargetEstimator::processObsIRlock(const irlock_report_s irlock_report, targetObsPos *obs)
+bool LandingTargetEstimator::processObsIRlock(const irlock_report_s &irlock_report, targetObsPos &obs)
 {
 	if (!PX4_ISFINITE(irlock_report.pos_y) || !PX4_ISFINITE(irlock_report.pos_x)) {
 		PX4_WARN("IRLOCK position is corrupt!");
@@ -829,32 +829,32 @@ bool LandingTargetEstimator::processObsIRlock(const irlock_report_s irlock_repor
 			//TODO: For coupled dynamics: Cholesky decomposition as for vision obs to uncorrelate noise (find matrix T that diagonalizes R) z' = T*z; H' = T*H
 
 			// Fill the observations for the irlock sensor
-			obs->timestamp = irlock_report.timestamp;
+			obs.timestamp = irlock_report.timestamp;
 
 			if (_target_model == TargetModel::FullPoseCoupled) {
 				// State: [rx, ry, rz, ... ]
-				obs->meas_h_xyz(0, 0) = 1; // x direction
-				obs->meas_h_xyz(1, 1) = 1; // y direction
-				obs->meas_h_xyz(2, 2) = 1; // z direction
+				obs.meas_h_xyz(0, 0) = 1; // x direction
+				obs.meas_h_xyz(1, 1) = 1; // y direction
+				obs.meas_h_xyz(2, 2) = 1; // z direction
 
 			} else {
 				// State: [r, r_dot, ...] --> x, y, z directions are the same (decoupled)
-				obs->meas_h_xyz(0, 0) = 1;
-				obs->meas_h_xyz(1, 0) = 1;
-				obs->meas_h_xyz(2, 0) = 1;
+				obs.meas_h_xyz(0, 0) = 1;
+				obs.meas_h_xyz(1, 0) = 1;
+				obs.meas_h_xyz(2, 0) = 1;
 			}
 
-			obs->meas_xyz(0) = rel_pos_x;
-			obs->meas_xyz(1) = rel_pos_y;
-			obs->meas_xyz(2) = rel_pos_z;
+			obs.meas_xyz(0) = rel_pos_x;
+			obs.meas_xyz(1) = rel_pos_y;
+			obs.meas_xyz(2) = rel_pos_z;
 
-			obs->updated_xyz.setAll(true);
+			obs.updated_xyz.setAll(true);
 
 			float measurement_uncertainty = _meas_unc * dist_z * dist_z;
 
-			obs->meas_unc_xyz(0) = measurement_uncertainty;
-			obs->meas_unc_xyz(1) = measurement_uncertainty;
-			obs->meas_unc_xyz(2) = measurement_uncertainty;
+			obs.meas_unc_xyz(0) = measurement_uncertainty;
+			obs.meas_unc_xyz(1) = measurement_uncertainty;
+			obs.meas_unc_xyz(2) = measurement_uncertainty;
 
 			return true;
 		}
@@ -863,7 +863,7 @@ bool LandingTargetEstimator::processObsIRlock(const irlock_report_s irlock_repor
 	return false;
 }
 
-bool LandingTargetEstimator::fuse_meas(const Vector3f vehicle_acc_ned, const targetObsPos target_pos_obs)
+bool LandingTargetEstimator::fuse_meas(const Vector3f vehicle_acc_ned, const targetObsPos &target_pos_obs)
 {
 	estimator_aid_source_3d_s target_innov;
 	Vector<bool, 3> meas_xyz_fused{};
@@ -874,13 +874,13 @@ bool LandingTargetEstimator::fuse_meas(const Vector3f vehicle_acc_ned, const tar
 	int nb_update_directions = (_target_model == TargetModel::Horizontal) ? 2 : 3;
 
 	// Compute the measurement's time delay (difference between state and measurement time on validity)
-	float dt_sync = (_last_predict - target_pos_obs.timestamp);
+	const float dt_sync_us = (_last_predict - target_pos_obs.timestamp);
 
-	if (dt_sync > measurement_valid_TIMEOUT_US) {
+	if (dt_sync_us > measurement_valid_TIMEOUT_US) {
 
 		PX4_INFO("Obs i = %d rejected because too old. Time sync: %.2f [seconds] > timeout: %.2f [seconds]",
 			 target_pos_obs.type,
-			 (double)(dt_sync / SEC2USEC), (double)(measurement_valid_TIMEOUT_US / SEC2USEC));
+			 (double)(dt_sync_us / SEC2USEC), (double)(measurement_valid_TIMEOUT_US / SEC2USEC));
 
 		// No measurement update, set to false
 		for (int k = 0; k < 3; k++) {
@@ -890,14 +890,14 @@ bool LandingTargetEstimator::fuse_meas(const Vector3f vehicle_acc_ned, const tar
 
 	} else {
 
-		// Convert time sync to seconds
-		dt_sync = dt_sync / SEC2USEC;
-
 		// For debug: log the time sync
-		target_innov.test_ratio[0] = dt_sync;
+		target_innov.test_ratio[0] = dt_sync_us / SEC2USEC;
 
 		// TODO: Eventually remove, for now to debug, assume prediction time = measurement time
-		dt_sync = 0.f;
+		const float dt_sync_s = 0.f;
+
+		// Convert time sync to seconds
+		// const float dt_sync_s = dt_sync_us / SEC2USEC;
 
 		// Fill the timestamp field of innovation
 		target_innov.timestamp_sample = target_pos_obs.timestamp;
@@ -927,7 +927,7 @@ bool LandingTargetEstimator::fuse_meas(const Vector3f vehicle_acc_ned, const tar
 				if (_target_model == TargetModel::FullPoseCoupled) {
 
 					// Move state back to the measurement time of validity. The state synchronized with the measurement will be used to compute the innovation.
-					_target_estimator_coupled->syncState(dt_sync, vehicle_acc_ned);
+					_target_estimator_coupled->syncState(dt_sync_s, vehicle_acc_ned);
 					_target_estimator_coupled->setH(meas_h_row);
 					// Compute innovations and fill thet target innovation message
 					target_innov.innovation_variance[j] = _target_estimator_coupled->computeInnovCov(
@@ -938,7 +938,7 @@ bool LandingTargetEstimator::fuse_meas(const Vector3f vehicle_acc_ned, const tar
 
 				} else {
 					// Move state back to the measurement time of validity. The state synchronized with the measurement will be used to compute the innovation.
-					_target_estimator[j]->syncState(dt_sync, vehicle_acc_ned(j));
+					_target_estimator[j]->syncState(dt_sync_s, vehicle_acc_ned(j));
 					_target_estimator[j]->setH(meas_h_row);
 					// Compute innovations and fill thet target innovation message
 					target_innov.innovation_variance[j] = _target_estimator[j]->computeInnovCov(
@@ -1004,7 +1004,7 @@ bool LandingTargetEstimator::fuse_meas(const Vector3f vehicle_acc_ned, const tar
 	return all_directions_fused;
 }
 
-bool LandingTargetEstimator::fuse_orientation(const targetObsOrientation target_orientation_obs)
+bool LandingTargetEstimator::fuse_orientation(const targetObsOrientation &target_orientation_obs)
 {
 	// Update step for orientation
 	bool meas_fused = false;
