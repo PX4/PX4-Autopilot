@@ -2200,8 +2200,10 @@ void Commander::handleAutoDisarm()
 
 			const bool landed_amid_mission = (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION)
 							 && !_mission_result_sub.get().finished;
+			const bool auto_disarm_land_enabled = _param_com_disarm_land.get() > 0 && !landed_amid_mission
+							      && !_config_overrides.disable_auto_disarm;
 
-			if (_param_com_disarm_land.get() > 0 && _have_taken_off_since_arming && !landed_amid_mission) {
+			if (auto_disarm_land_enabled && _have_taken_off_since_arming) {
 				_auto_disarm_landed.set_hysteresis_time_from(false, _param_com_disarm_land.get() * 1_s);
 				_auto_disarm_landed.set_state_and_update(_vehicle_land_detected.landed, hrt_absolute_time());
 
@@ -2253,6 +2255,7 @@ bool Commander::handleModeIntentionAndFailsafe()
 {
 	const uint8_t prev_nav_state = _vehicle_status.nav_state;
 	const FailsafeBase::Action prev_failsafe_action = _failsafe.selectedAction();
+	const uint8_t prev_failsafe_defer_state = _vehicle_status.failsafe_defer_state;
 
 	FailsafeBase::State state{};
 	state.armed = isArmed();
@@ -2303,7 +2306,24 @@ bool Commander::handleModeIntentionAndFailsafe()
 		_vehicle_status.nav_state_timestamp = hrt_absolute_time();
 	}
 
-	return prev_nav_state != _vehicle_status.nav_state || prev_failsafe_action != _failsafe.selectedAction();
+	_mode_management.updateActiveConfigOverrides(_vehicle_status.nav_state, _config_overrides);
+
+	// Apply failsafe deferring & get the current state
+	_failsafe.deferFailsafes(_config_overrides.defer_failsafes, _config_overrides.defer_failsafes_timeout_s);
+
+	if (_failsafe.failsafeDeferred()) {
+		_vehicle_status.failsafe_defer_state = vehicle_status_s::FAILSAFE_DEFER_STATE_WOULD_FAILSAFE;
+
+	} else if (_failsafe.getDeferFailsafes()) {
+		_vehicle_status.failsafe_defer_state = vehicle_status_s::FAILSAFE_DEFER_STATE_ENABLED;
+
+	} else {
+		_vehicle_status.failsafe_defer_state = vehicle_status_s::FAILSAFE_DEFER_STATE_DISABLED;
+	}
+
+	return prev_nav_state != _vehicle_status.nav_state ||
+	       prev_failsafe_action != _failsafe.selectedAction() ||
+	       prev_failsafe_defer_state != _vehicle_status.failsafe_defer_state;
 }
 
 void Commander::checkAndInformReadyForTakeoff()
