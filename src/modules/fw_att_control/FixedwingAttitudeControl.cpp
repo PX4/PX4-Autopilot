@@ -389,20 +389,19 @@ void FixedwingAttitudeControl::Run()
 
 			const float airspeed = get_airspeed_and_update_scaling();
 
-			/* reset integrals where needed */
-			if (_att_sp.reset_integral) {
-				_rates_sp.reset_integral = true;
-			}
-
-			/* Reset integrators if the aircraft is on ground
+			/* Reset integrators if commanded by attitude setpoint, or the aircraft is on ground
 			 * or a multicopter (but not transitioning VTOL or tailsitter)
 			 */
-			if (_landed
+			if (_att_sp.reset_integral
+			    || _landed
 			    || (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 				&& !_vehicle_status.in_transition_mode && !_vehicle_status.is_vtol_tailsitter)) {
 
 				_rates_sp.reset_integral = true;
 				_wheel_ctrl.reset_integrator();
+
+			} else {
+				_rates_sp.reset_integral = false;
 			}
 
 			// update saturation status from control allocation feedback
