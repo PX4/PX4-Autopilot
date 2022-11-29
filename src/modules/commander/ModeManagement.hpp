@@ -40,6 +40,7 @@
 #include <uORB/topics/unregister_ext_component.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/config_overrides.h>
 
 #include "ModeUtil/ui.hpp"
 #include "UserModeIntention.hpp"
@@ -53,6 +54,7 @@ public:
 	static constexpr int MAX_NUM = 5;
 
 	struct ModeExecutor {
+		config_overrides_s overrides{};
 		uint8_t owned_nav_state{};
 		bool valid{false};
 	};
@@ -102,6 +104,7 @@ public:
 		bool unresponsive_reported{false};
 		int arming_check_registration_id{-1};
 		int mode_executor_registration_id{-1};
+		config_overrides_s overrides{};
 		vehicle_control_mode_s config_control_setpoint{};
 	};
 
@@ -152,10 +155,13 @@ public:
 	void printStatus() const;
 
 
+	void updateActiveConfigOverrides(uint8_t nav_state, config_overrides_s &overrides_in_out);
+
 private:
 	bool checkConfigControlSetpointUpdates();
 	void checkNewRegistrations(UpdateRequest &update_request);
 	void checkUnregistrations(uint8_t user_intended_nav_state, UpdateRequest &update_request);
+	void checkConfigOverrides();
 
 	void removeModeExecutor(int mode_executor_id);
 
@@ -163,6 +169,8 @@ private:
 	uORB::Subscription _register_ext_component_request_sub{ORB_ID(register_ext_component_request)};
 	uORB::Subscription _unregister_ext_component_sub{ORB_ID(unregister_ext_component)};
 	uORB::Publication<register_ext_component_reply_s> _register_ext_component_reply_pub{ORB_ID(register_ext_component_reply)};
+	uORB::Publication<config_overrides_s> _config_overrides_pub{ORB_ID(config_overrides)};
+	uORB::Subscription _config_overrides_request_sub{ORB_ID(config_overrides_request)};
 
 	ExternalChecks &_external_checks;
 	ModeExecutors _mode_executors;

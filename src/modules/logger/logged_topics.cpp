@@ -55,6 +55,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("camera_trigger");
 	add_topic("cellular_status", 200);
 	add_topic("commander_state");
+	add_topic("config_overrides");
 	add_topic("cpuload");
 	add_optional_topic("external_ins_attitude");
 	add_optional_topic("external_ins_global_position");
