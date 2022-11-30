@@ -105,7 +105,7 @@ PARAM_DEFINE_INT32(FW_AT_APPLY, 2);
 PARAM_DEFINE_INT32(FW_AT_AXES, 3);
 
 /**
- * Enable auto tuning enable on an RC AUX input channel mapped by RC_MAP_AUXn
+ * Enable auto tuning enable on an RC AUX input
  *
  * Defines the AUXn input (mapped by RC_MAP_AUXn) on which to enable auto tuning.
  *
