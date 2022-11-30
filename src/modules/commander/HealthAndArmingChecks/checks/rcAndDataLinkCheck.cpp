@@ -38,64 +38,39 @@ using namespace time_literals;
 void RcAndDataLinkChecks::checkAndReport(const Context &context, Report &reporter)
 {
 	// RC
-	bool rc_is_optional = true;
+	manual_control_setpoint_s manual_control_setpoint;
 
-	if (_param_com_rc_in_mode.get() == 4) { // RC disabled
-		reporter.failsafeFlags().manual_control_signal_lost = false;
+	if (!_manual_control_setpoint_sub.copy(&manual_control_setpoint)) {
+		manual_control_setpoint = {};
+		reporter.failsafeFlags().manual_control_signal_lost = true;
+	}
+
+	// Check if RC is valid
+	if (!manual_control_setpoint.valid
+	    || hrt_elapsed_time(&manual_control_setpoint.timestamp) > _param_com_rc_loss_t.get() * 1_s) {
+
+		if (!reporter.failsafeFlags().manual_control_signal_lost && _last_valid_manual_control_setpoint > 0) {
+
+			events::send(events::ID("commander_rc_lost"), {events::Log::Critical, events::LogInternal::Info},
+				     "Manual control lost");
+		}
+
+		reporter.failsafeFlags().manual_control_signal_lost = true;
 
 	} else {
+		reporter.setIsPresent(health_component_t::remote_control);
 
-		manual_control_setpoint_s manual_control_setpoint;
-
-		if (!_manual_control_setpoint_sub.copy(&manual_control_setpoint)) {
-			manual_control_setpoint = {};
-			reporter.failsafeFlags().manual_control_signal_lost = true;
+		if (reporter.failsafeFlags().manual_control_signal_lost && _last_valid_manual_control_setpoint > 0) {
+			float elapsed = hrt_elapsed_time(&_last_valid_manual_control_setpoint) * 1e-6f;
+			events::send<float>(events::ID("commander_rc_regained"), events::Log::Info,
+					    "Manual control regained after {1:.1} s", elapsed);
 		}
 
-		// Check if RC is valid
-		if (!manual_control_setpoint.valid
-		    || hrt_elapsed_time(&manual_control_setpoint.timestamp) > _param_com_rc_loss_t.get() * 1_s) {
-
-			if (!reporter.failsafeFlags().manual_control_signal_lost && _last_valid_manual_control_setpoint > 0) {
-
-				events::send(events::ID("commander_rc_lost"), {events::Log::Critical, events::LogInternal::Info},
-					     "Manual control lost");
-			}
-
-			reporter.failsafeFlags().manual_control_signal_lost = true;
-
-		} else {
-			reporter.setIsPresent(health_component_t::remote_control);
-
-			if (reporter.failsafeFlags().manual_control_signal_lost && _last_valid_manual_control_setpoint > 0) {
-				float elapsed = hrt_elapsed_time(&_last_valid_manual_control_setpoint) * 1e-6f;
-				events::send<float>(events::ID("commander_rc_regained"), events::Log::Info,
-						    "Manual control regained after {1:.1} s", elapsed);
-			}
-
-			reporter.failsafeFlags().manual_control_signal_lost = false;
-			_last_valid_manual_control_setpoint = manual_control_setpoint.timestamp;
-		}
-
-
-		if (reporter.failsafeFlags().manual_control_signal_lost) {
-
-			NavModes affected_modes = rc_is_optional ? NavModes::None : NavModes::All;
-			events::LogLevel log_level = rc_is_optional ? events::Log::Info : events::Log::Error;
-			/* EVENT
-			 * @description
-			 * <profile name="dev">
-			 * This check can be configured via <param>COM_RC_IN_MODE</param> parameter.
-			 * </profile>
-			 */
-			reporter.armingCheckFailure(affected_modes, health_component_t::remote_control, events::ID("check_rc_dl_no_rc"),
-						    log_level, "No manual control input");
-
-			if (reporter.mavlink_log_pub()) {
-				mavlink_log_info(reporter.mavlink_log_pub(), "Preflight Fail: No manual control input\t");
-			}
-		}
+		reporter.failsafeFlags().manual_control_signal_lost = false;
+		_last_valid_manual_control_setpoint = manual_control_setpoint.timestamp;
 	}
+
+	// Manual control check is in modeCheck as mode requirement
 
 	// GCS connection
 	reporter.failsafeFlags().gcs_connection_lost = context.status().gcs_connection_lost;
