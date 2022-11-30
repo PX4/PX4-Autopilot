@@ -75,6 +75,7 @@ VtolType::VtolType(VtolAttitudeControl *att_controller) :
 	_airspeed_validated = _attc->get_airspeed();
 	_tecs_status = _attc->get_tecs_status();
 	_land_detected = _attc->get_land_detected();
+	_home_position = _attc->get_home_position();
 }
 
 bool VtolType::init()
@@ -286,11 +287,18 @@ void VtolType::check_quadchute_condition()
 
 float VtolType::pusher_assist()
 {
-	// Altitude above ground is distance sensor altitude if available, otherwise local z-position
-	float dist_to_ground = -_local_pos->z;
+	// Altitude above ground is local z-position or altitude above home or distance sensor altitude depending on what's available
+	float dist_to_ground = 0.f;
 
 	if (_local_pos->dist_bottom_valid) {
 		dist_to_ground = _local_pos->dist_bottom;
+
+	} else if (_home_position->valid_alt) {
+		dist_to_ground = -(_local_pos->z - _home_position->z);
+
+	} else {
+		dist_to_ground = -_local_pos->z;
+
 	}
 
 	// disable pusher assist depending on setting of forward_thrust_enable_mode:

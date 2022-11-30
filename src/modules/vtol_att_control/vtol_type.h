@@ -188,9 +188,10 @@ protected:
 	struct actuator_controls_s			*_actuators_fw_in;			//actuator controls from fw_att_control
 	struct vehicle_local_position_s			*_local_pos;
 	struct vehicle_local_position_setpoint_s	*_local_pos_sp;
-	struct airspeed_validated_s 				*_airspeed_validated;					// airspeed
+	struct airspeed_validated_s 			*_airspeed_validated;					// airspeed
 	struct tecs_status_s				*_tecs_status;
 	struct vehicle_land_detected_s			*_land_detected;
+	struct home_position_s				*_home_position;
 
 	struct vehicle_torque_setpoint_s 		*_torque_setpoint_0;
 	struct vehicle_torque_setpoint_s 		*_torque_setpoint_1;
