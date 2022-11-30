@@ -56,19 +56,23 @@ void getModeRequirements(uint8_t vehicle_type, failsafe_flags_s &flags)
 	flags.mode_req_home_position = 0;
 	flags.mode_req_wind_and_flight_time_compliance = 0;
 	flags.mode_req_prevent_arming = 0;
+	flags.mode_req_manual_control = 0;
 	flags.mode_req_other = 0;
 
 	// NAVIGATION_STATE_MANUAL
+	setRequirement(vehicle_status_s::NAVIGATION_STATE_MANUAL, flags.mode_req_manual_control);
 
 	// NAVIGATION_STATE_ALTCTL
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_ALTCTL, flags.mode_req_angular_velocity);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_ALTCTL, flags.mode_req_attitude);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_ALTCTL, flags.mode_req_local_alt);
+	setRequirement(vehicle_status_s::NAVIGATION_STATE_ALTCTL, flags.mode_req_manual_control);
 
 	// NAVIGATION_STATE_POSCTL
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_POSCTL, flags.mode_req_angular_velocity);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_POSCTL, flags.mode_req_attitude);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_POSCTL, flags.mode_req_local_position_relaxed);
+	setRequirement(vehicle_status_s::NAVIGATION_STATE_POSCTL, flags.mode_req_manual_control);
 
 	if (vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 		setRequirement(vehicle_status_s::NAVIGATION_STATE_POSCTL, flags.mode_req_global_position);
@@ -104,6 +108,7 @@ void getModeRequirements(uint8_t vehicle_type, failsafe_flags_s &flags)
 
 	// NAVIGATION_STATE_ACRO
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_ACRO, flags.mode_req_angular_velocity);
+	setRequirement(vehicle_status_s::NAVIGATION_STATE_ACRO, flags.mode_req_manual_control);
 
 	// NAVIGATION_STATE_DESCEND
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_DESCEND, flags.mode_req_angular_velocity);
@@ -122,6 +127,7 @@ void getModeRequirements(uint8_t vehicle_type, failsafe_flags_s &flags)
 	// NAVIGATION_STATE_STAB
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_STAB, flags.mode_req_angular_velocity);
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_STAB, flags.mode_req_attitude);
+	setRequirement(vehicle_status_s::NAVIGATION_STATE_STAB, flags.mode_req_manual_control);
 
 	// NAVIGATION_STATE_AUTO_TAKEOFF
 	setRequirement(vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF, flags.mode_req_angular_velocity);

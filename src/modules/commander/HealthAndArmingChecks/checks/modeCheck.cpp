@@ -143,6 +143,21 @@ void ModeChecks::checkAndReport(const Context &context, Report &reporter)
 		reporter.clearCanRunBits((NavModes)reporter.failsafeFlags().mode_req_home_position);
 	}
 
+	if (reporter.failsafeFlags().manual_control_signal_lost && reporter.failsafeFlags().mode_req_manual_control != 0) {
+		/* EVENT
+		 * @description
+		 * Connect and enable stick input or use autonomous mode.
+		 * <profile name="dev">
+		 * Sticks can be enabled via <param>COM_RC_IN_MODE</param> parameter.
+		 * </profile>
+		 */
+		reporter.armingCheckFailure((NavModes)reporter.failsafeFlags().mode_req_manual_control,
+					    health_component_t::remote_control,
+					    events::ID("check_modes_manual_control"),
+					    events::Log::Critical, "No manual control input");
+		reporter.clearCanRunBits((NavModes)reporter.failsafeFlags().mode_req_manual_control);
+	}
+
 	if (reporter.failsafeFlags().mode_req_other != 0) {
 		// Here we expect there is already an event reported for the failing check (this is for external modes)
 		reporter.clearCanRunBits((NavModes)reporter.failsafeFlags().mode_req_other);
