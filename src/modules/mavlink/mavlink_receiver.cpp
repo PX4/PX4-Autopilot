@@ -2462,9 +2462,8 @@ MavlinkReceiver::handle_message_landing_target(mavlink_message_t *msg)
 			target_GNSS_report.alt = landing_target.z; // Altitude AMSL
 
 			/*
-			target_GNSS_report.cov_x_rel = landing_target.;
-			target_GNSS_report.cov_y_rel = landing_target.;
-			target_GNSS_report.cov_z_rel = landing_target.;
+			target_GNSS_report.eph = landing_target.;
+			target_GNSS_report.epv = landing_target.;
 			*/
 		}
 
@@ -2472,13 +2471,11 @@ MavlinkReceiver::handle_message_landing_target(mavlink_message_t *msg)
 
 		/*
 		if(landing_target.velocity_valid){
-			target_GNSS_report.vx_rel = landing_target.vx;
-			target_GNSS_report.vx_rel = landing_target.vy;
-			target_GNSS_report.vx_rel = landing_target.vz;
+			target_GNSS_report.vel_n_m_s = landing_target.vx;
+			target_GNSS_report.vel_e_m_s = landing_target.vy;
+			target_GNSS_report.vel_d_m_s = landing_target.vz;
 
-			target_GNSS_report.cov_vx_rel = landing_target.;
-			target_GNSS_report.cov_vy_rel = landing_target.;
-			target_GNSS_report.cov_vz_rel = landing_target.;
+			target_GNSS_report.s_variance_m_s = landing_target.;
 		}
 
 		if(landing_target.position_valid || landing_target.velocity_valid){

@@ -577,19 +577,16 @@ bool LandingTargetEstimator::processObsUavGNSSVel(const landing_target_gnss_s &t
 	} else {
 
 		// If the target is moving, the relative velocity is expressed as the drone verlocity - the target velocity
-		obs.meas_xyz(0) = vehicle_gps_position.vel_n_m_s - target_GNSS_report.vx_rel;
-		obs.meas_xyz(1) = vehicle_gps_position.vel_e_m_s - target_GNSS_report.vy_rel;
-		obs.meas_xyz(2) = vehicle_gps_position.vel_d_m_s - target_GNSS_report.vz_rel;
+		obs.meas_xyz(0) = vehicle_gps_position.vel_n_m_s - target_GNSS_report.vel_n_m_s;
+		obs.meas_xyz(1) = vehicle_gps_position.vel_e_m_s - target_GNSS_report.vel_e_m_s;
+		obs.meas_xyz(2) = vehicle_gps_position.vel_d_m_s - target_GNSS_report.vel_d_m_s;
 
+		// TODO: uncomment once the mavlink message is updated with covariances
+		// float unc = vehicle_gps_position.s_variance_m_s + target_GNSS_report.s_variance_m_s;
 		float unc = vehicle_gps_position.s_variance_m_s + _gps_target_unc;
 		obs.meas_unc_xyz(0) = unc;
 		obs.meas_unc_xyz(1) = unc;
 		obs.meas_unc_xyz(2) = unc;
-
-		// TODO: uncomment once the mavlink message is updated with covariances
-		// obs->meas_unc_xyz(0) = vehicle_gps_position.s_variance_m_s + target_GNSS_report.cov_vx_rel;
-		// obs->meas_unc_xyz(1) = vehicle_gps_position.s_variance_m_s + target_GNSS_report.cov_vy_rel;
-		// obs->meas_unc_xyz(2) = vehicle_gps_position.s_variance_m_s + target_GNSS_report.cov_vx_rel;
 	}
 
 	if (_target_model == TargetModel::FullPoseCoupled) {
@@ -647,7 +644,7 @@ bool LandingTargetEstimator::processObsTargetGNSS(const landing_target_gnss_s &t
 		    && _nave_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION && _landing_pos.valid) {
 
 			// Average between the landing point and the target GPS position is performed
-			// TODO once target_GNSS_report.cov_x_rel is available: weighted average
+			// TODO once target_GNSS_report.epv is available: weighted average
 			target_gps_lat = (int)((target_GNSS_report.lat + _landing_pos.lat) / 2);
 			target_gps_lon = (int)((target_GNSS_report.lon + _landing_pos.lon) / 2);
 			target_gps_alt = (target_GNSS_report.alt + _landing_pos.alt) / 2.f;
@@ -662,8 +659,8 @@ bool LandingTargetEstimator::processObsTargetGNSS(const landing_target_gnss_s &t
 			target_gps_alt = target_GNSS_report.alt;
 
 			// TODO: complete mavlink message to include uncertainties.
-			// gps_target_eph = target_GNSS_report.cov_x_rel;
-			// gps_target_epv = target_GNSS_report.cov_z_rel;
+			// gps_target_eph = target_GNSS_report.eph;
+			// gps_target_epv = target_GNSS_report.epv;
 
 			gps_target_eph = _gps_target_unc;
 			gps_target_epv = _gps_target_unc;
