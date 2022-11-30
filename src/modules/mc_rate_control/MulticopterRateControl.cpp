@@ -54,6 +54,7 @@ MulticopterRateControl::MulticopterRateControl(bool vtol) :
 
 	parameters_updated();
 	_controller_status_pub.advertise();
+	_takeoff_time_set = false;
 }
 
 MulticopterRateControl::~MulticopterRateControl()
@@ -216,6 +217,44 @@ MulticopterRateControl::Run()
 			// run rate controller
 			const Vector3f att_control = _rate_control.update(rates, _rates_setpoint, angular_accel, dt, _maybe_landed || _landed);
 
+			// START add in sine injection for system id here
+			if (_param_mc_inject_en.get()) {
+				if (!_takeoff_time_set && _thrust_setpoint(2) < -0.2f) {
+					_takeoff_time_set = true;
+					_takeoff_time = hrt_absolute_time();
+				} else if (_takeoff_time_set) {
+					float rel_time_now = (float)(hrt_absolute_time() - _takeoff_time) / 1.e6f;
+
+					float time_start = 5.0f;
+					float sine_time = 5.0f;
+					float rest_time = 3.0f;
+
+					if (rel_time_now > time_start) {
+						float time_since_start = rel_time_now - time_start;
+
+						int freq_idx = floor(time_since_start / (sine_time + rest_time));
+
+						if (freq_idx < _param_mc_inject_cnt.get()) {
+							float freq_time = time_since_start - (sine_time + rest_time) * freq_idx;
+							float freq_now = _param_mc_inject_start.get() + _param_mc_inject_inc.get() * freq_idx;
+
+							if (freq_time < sine_time) {
+								float injection = _param_mc_inject_amp.get() * sin(freq_now * M_TWOPI_F * freq_time);
+
+								if (_param_mc_inject_rpy.get() == 0) {
+									att_control(0) += injection;
+								} else if (_param_mc_inject_rpy.get() == 1) {
+									att_control(1) += injection;
+								} else if (_param_mc_inject_rpy.get() == 2) {
+									att_control(2) += injection;
+								}
+							}
+						}
+					}
+				}
+			}
+			// END addition of sine injection
+
 			// publish rate controller status
 			rate_ctrl_status_s rate_ctrl_status{};
 			_rate_control.getRateControlStatus(rate_ctrl_status);
@@ -249,9 +288,15 @@ MulticopterRateControl::Run()
 				}
 			}
 
+<<<<<<< HEAD
 			vehicle_thrust_setpoint.timestamp_sample = angular_velocity.timestamp_sample;
 			vehicle_thrust_setpoint.timestamp = hrt_absolute_time();
 			_vehicle_thrust_setpoint_pub.publish(vehicle_thrust_setpoint);
+=======
+
+			actuators.timestamp = hrt_absolute_time();
+			_actuator_controls_0_pub.publish(actuators);
+>>>>>>> ba69569534... add system id - adding sine injection on roll, pitch, or yaw
 
 			vehicle_torque_setpoint.timestamp_sample = angular_velocity.timestamp_sample;
 			vehicle_torque_setpoint.timestamp = hrt_absolute_time();
