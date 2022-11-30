@@ -56,6 +56,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/irlock_report.h>
 #include <uORB/topics/landing_target_pose.h>
+#include <uORB/topics/landing_target_gnss.h>
 #include <uORB/topics/target_estimator_state.h>
 #include <uORB/topics/uwb_distance.h>
 #include <uORB/topics/uwb_grid.h>
@@ -212,9 +213,9 @@ private:
 	bool processObsUWB(const uwb_distance_s &uwb_distance, targetObsPos &obs);
 	bool processObsVision(const landing_target_pose_s &fiducial_marker_pose, targetObsPos &obs);
 	bool processObsVisionOrientation(const landing_target_pose_s &fiducial_marker_pose, targetObsOrientation &obs);
-	bool processObsTargetGNSS(const landing_target_pose_s &target_GNSS_report, bool target_GNSS_report_valid,
+	bool processObsTargetGNSS(const landing_target_gnss_s &target_GNSS_report, bool target_GNSS_report_valid,
 				  const sensor_gps_s &vehicle_gps_position, targetObsPos &obs);
-	bool processObsUavGNSSVel(const landing_target_pose_s &target_GNSS_report,  const sensor_gps_s &vehicle_gps_position,
+	bool processObsUavGNSSVel(const landing_target_gnss_s &target_GNSS_report,  const sensor_gps_s &vehicle_gps_position,
 				  targetObsPos &obs);
 
 	bool fuse_meas(const matrix::Vector3f vehicle_acc_ned, const targetObsPos &target_pos_obs);
@@ -229,7 +230,7 @@ private:
 	uORB::Subscription _uwbDistanceSub{ORB_ID(uwb_distance)};
 	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
 	uORB::Subscription _fiducial_marker_report_sub{ORB_ID(fiducial_marker_report)};
-	uORB::Subscription _target_GNSS_report_sub{ORB_ID(target_GNSS_report)};
+	uORB::Subscription _landing_target_gnss_sub{ORB_ID(landing_target_gnss)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _pos_sp_triplet_sub{ORB_ID(position_setpoint_triplet)};
 

@@ -81,6 +81,7 @@
 #include <uORB/topics/input_rc.h>
 #include <uORB/topics/irlock_report.h>
 #include <uORB/topics/landing_target_pose.h>
+#include <uORB/topics/landing_target_gnss.h>
 #include <uORB/topics/log_message.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/mavlink_tunnel.h>
@@ -300,7 +301,7 @@ private:
 	uORB::Publication<gimbal_device_attitude_status_s>	_gimbal_device_attitude_status_pub{ORB_ID(gimbal_device_attitude_status)};
 	uORB::Publication<irlock_report_s>			_irlock_report_pub{ORB_ID(irlock_report)};
 	uORB::Publication<landing_target_pose_s>			_fiducial_marker_report_pub{ORB_ID(fiducial_marker_report)};
-	uORB::Publication<landing_target_pose_s>		_target_GNSS_report_pub{ORB_ID(target_GNSS_report)};
+	uORB::Publication<landing_target_gnss_s>		_landing_target_gnss_pub{ORB_ID(landing_target_gnss)};
 	uORB::Publication<landing_target_pose_s>		_landing_target_pose_pub{ORB_ID(landing_target_pose)};
 	uORB::Publication<log_message_s>			_log_message_pub{ORB_ID(log_message)};
 	uORB::Publication<mavlink_tunnel_s>			_mavlink_tunnel_pub{ORB_ID(mavlink_tunnel)};

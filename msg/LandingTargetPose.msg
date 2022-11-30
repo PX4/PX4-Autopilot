@@ -7,10 +7,6 @@ bool is_static			# Flag indicating whether the landing target is static or movin
 bool rel_pos_valid		# Flag showing whether relative position is valid
 bool rel_vel_valid		# Flag showing whether relative velocity is valid
 
-int32 lat			    # Latitude in 1E-7 degrees
-int32 lon			    # Longitude in 1E-7 degrees
-int32 alt	            # Altitude above mean see level (AMSL) in 1E-3 meters , (millimetres)
-
 float32 x_rel			# X/north position of target, relative to vehicle (navigation frame) [meters]
 float32 y_rel			# Y/east position of target, relative to vehicle (navigation frame) [meters]
 float32 z_rel			# Z/down position of target, relative to vehicle (navigation frame) [meters]
@@ -41,4 +37,3 @@ float32 z_abs			# Z/down position of target, relative to origin (navigation fram
 
 # TOPICS landing_target_pose 
 # TOPICS fiducial_marker_report
-# TOPICS target_GNSS_report

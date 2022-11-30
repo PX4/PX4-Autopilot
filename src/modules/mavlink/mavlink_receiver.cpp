@@ -2428,12 +2428,12 @@ MavlinkReceiver::handle_message_landing_target(mavlink_message_t *msg)
 		fiducial_marker_report.z_rel = landing_target.z;
 
 		/*
-		target_GNSS_report.cov_x_rel = landing_target.;
-		target_GNSS_report.cov_y_rel = landing_target.;
-		target_GNSS_report.cov_z_rel = landing_target.;
-		target_GNSS_report.cov_x_y_rel = landing_target.;
-		target_GNSS_report.cov_x_z_rel = landing_target.;
-		target_GNSS_report.cov_y_z_rel = landing_target.;
+		fiducial_marker_report.cov_x_rel = landing_target.;
+		fiducial_marker_report.cov_y_rel = landing_target.;
+		fiducial_marker_report.cov_z_rel = landing_target.;
+		fiducial_marker_report.cov_x_y_rel = landing_target.;
+		fiducial_marker_report.cov_x_z_rel = landing_target.;
+		fiducial_marker_report.cov_y_z_rel = landing_target.;
 		*/
 
 		_fiducial_marker_report_pub.publish(fiducial_marker_report);
@@ -2453,7 +2453,7 @@ MavlinkReceiver::handle_message_landing_target(mavlink_message_t *msg)
 
 		// TODO: check if mavros handles this frame
 
-		landing_target_pose_s target_GNSS_report{};
+		landing_target_gnss_s target_GNSS_report{};
 		target_GNSS_report.timestamp = _mavlink_timesync.sync_stamp(landing_target.time_usec);
 
 		if (landing_target.position_valid) {
@@ -2468,7 +2468,7 @@ MavlinkReceiver::handle_message_landing_target(mavlink_message_t *msg)
 			*/
 		}
 
-		_target_GNSS_report_pub.publish(target_GNSS_report);
+		_landing_target_gnss_pub.publish(target_GNSS_report);
 
 		/*
 		if(landing_target.velocity_valid){

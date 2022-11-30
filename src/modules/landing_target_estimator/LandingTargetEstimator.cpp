@@ -222,7 +222,7 @@ bool LandingTargetEstimator::update_step(Vector3f vehicle_acc_ned)
 {
 
 	sensor_gps_s vehicle_gps_position;
-	landing_target_pose_s target_GNSS_report;
+	landing_target_gnss_s target_GNSS_report;
 	landing_target_pose_s fiducial_marker_pose;
 	irlock_report_s irlock_report;
 	uwb_distance_s	uwb_distance;
@@ -289,7 +289,7 @@ bool LandingTargetEstimator::update_step(Vector3f vehicle_acc_ned)
 
 		if ((hrt_absolute_time() - vehicle_gps_position.timestamp < measurement_updated_TIMEOUT_US)) {
 
-			target_GNSS_valid = _target_GNSS_report_sub.update(&target_GNSS_report);
+			target_GNSS_valid = _landing_target_gnss_sub.update(&target_GNSS_report);
 
 			/*TARGET GPS*/
 			if ((((_ltest_aid_mask & SensorFusionMask::USE_TARGET_GPS_POS) && target_GNSS_valid)
@@ -558,7 +558,7 @@ bool LandingTargetEstimator::processObsVision(const landing_target_pose_s &fiduc
 }
 
 
-bool LandingTargetEstimator::processObsUavGNSSVel(const landing_target_pose_s &target_GNSS_report,
+bool LandingTargetEstimator::processObsUavGNSSVel(const landing_target_gnss_s &target_GNSS_report,
 		const sensor_gps_s &vehicle_gps_position, targetObsPos &obs)
 {
 
@@ -620,7 +620,7 @@ bool LandingTargetEstimator::processObsUavGNSSVel(const landing_target_pose_s &t
 
 }
 
-bool LandingTargetEstimator::processObsTargetGNSS(const landing_target_pose_s &target_GNSS_report,
+bool LandingTargetEstimator::processObsTargetGNSS(const landing_target_gnss_s &target_GNSS_report,
 		bool target_GNSS_report_valid,  const sensor_gps_s &vehicle_gps_position, targetObsPos &obs)
 {
 
