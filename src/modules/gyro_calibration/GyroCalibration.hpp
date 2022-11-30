@@ -39,7 +39,7 @@
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <drivers/drv_hrt.h>
-#include <lib/mathlib/math/WelfordMean.hpp>
+#include <lib/mathlib/math/WelfordMeanVector.hpp>
 #include <lib/perf/perf_counter.h>
 #include <lib/sensor_calibration/Gyroscope.hpp>
 #include <uORB/Subscription.hpp>
@@ -79,10 +79,16 @@ private:
 
 	void Reset()
 	{
-		for (auto &m : _gyro_mean) {
-			m.reset();
+		for (int gyro = 0; gyro < MAX_SENSORS; gyro++) {
+			_gyro_mean[gyro].reset();
+			_gyro_last_update[gyro] = 0;
 		}
+
+		_last_calibration_update = hrt_absolute_time();
 	}
+
+	// return the square of two floating point numbers
+	static constexpr float sq(float var) { return var * var; }
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _vehicle_status_sub{ORB_ID::vehicle_status};
@@ -91,7 +97,8 @@ private:
 	uORB::SubscriptionMultiArray<sensor_gyro_s, MAX_SENSORS>  _sensor_gyro_subs{ORB_ID::sensor_gyro};
 
 	calibration::Gyroscope _gyro_calibration[MAX_SENSORS] {};
-	math::WelfordMean<float, 3> _gyro_mean[MAX_SENSORS] {};
+	math::WelfordMeanVector<float, 3> _gyro_mean[MAX_SENSORS] {};
+	matrix::Vector3f _gyro_cal_variance[MAX_SENSORS] {};
 	float _temperature[MAX_SENSORS] {};
 	hrt_abstime _gyro_last_update[MAX_SENSORS] {};
 
