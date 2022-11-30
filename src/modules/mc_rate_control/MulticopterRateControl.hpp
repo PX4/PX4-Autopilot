@@ -138,6 +138,9 @@ private:
 	float _battery_status_scale{0.0f};
 	matrix::Vector3f _thrust_setpoint{};
 
+	bool _takeoff_time_set;
+	hrt_abstime _takeoff_time;
+
 	float _energy_integration_time{0.0f};
 	float _control_energy[4] {};
 
@@ -182,6 +185,13 @@ private:
 
 		(ParamFloat<px4::params::MC_ROLL_CUTOFF>) _param_mc_roll_cutoff,
 		(ParamFloat<px4::params::MC_PITCH_CUTOFF>) _param_mc_pitch_cutoff,
-		(ParamFloat<px4::params::MC_YAW_CUTOFF>) _param_mc_yaw_cutoff
+		(ParamFloat<px4::params::MC_YAW_CUTOFF>) _param_mc_yaw_cutoff,
+
+		(ParamBool<px4::params::MC_INJECT_EN>) _param_mc_inject_en,
+		(ParamInt<px4::params::MC_INJECT_RPY>) _param_mc_inject_rpy,
+		(ParamInt<px4::params::MC_INJECT_CNT>) _param_mc_inject_cnt,
+		(ParamFloat<px4::params::MC_INJECT_START>) _param_mc_inject_start,
+		(ParamFloat<px4::params::MC_INJECT_INC>) _param_mc_inject_inc,
+		(ParamFloat<px4::params::MC_INJECT_AMP>) _param_mc_inject_amp
 	)
 };
