@@ -39,7 +39,9 @@ include(px4_list_make_absolute)
 #	Like add_library but with PX4 platform dependencies
 #
 function(px4_add_library target)
-	add_library(${target} EXCLUDE_FROM_ALL ${ARGN})
+	add_library(${target} STATIC EXCLUDE_FROM_ALL
+		${ARGN}
+	)
 
 	target_compile_definitions(${target} PRIVATE MODULE_NAME="${target}")
 

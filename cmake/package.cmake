@@ -57,4 +57,7 @@ else()
 endif()
 
 include(CPack)
-include(bloaty)
+
+if(${PX4_PLATFORM} MATCHES "nuttx")
+	include(bloaty)
+endif()
