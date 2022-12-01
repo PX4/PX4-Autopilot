@@ -391,11 +391,11 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 
 
 	CHECK_FAILSAFE(status_flags, wind_limit_exceeded,
-		       ActionOptions(Action::RTL).clearOn(ClearCondition::OnModeChangeOrDisarm));
+		       ActionOptions(Action::RTL).clearOn(ClearCondition::OnModeChangeOrDisarm).cannotBeDeferred());
 	CHECK_FAILSAFE(status_flags, flight_time_limit_exceeded,
-		       ActionOptions(Action::RTL).allowUserTakeover(UserTakeoverAllowed::Never));
+		       ActionOptions(Action::RTL).allowUserTakeover(UserTakeoverAllowed::Never).cannotBeDeferred());
 
-	CHECK_FAILSAFE(status_flags, primary_geofence_breached, fromGfActParam(_param_gf_action.get()));
+	CHECK_FAILSAFE(status_flags, primary_geofence_breached, fromGfActParam(_param_gf_action.get()).cannotBeDeferred());
 
 	// Battery
 	CHECK_FAILSAFE(status_flags, battery_low_remaining_time, ActionOptions(Action::RTL).causedBy(Cause::BatteryLow));
@@ -419,15 +419,15 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 
 	// Failure detector
 	if (_armed_time != 0 && time_us - _armed_time < _param_com_spoolup_time.get() * 1_s) {
-		CHECK_FAILSAFE(status_flags, fd_esc_arming_failure, Action::Disarm);
+		CHECK_FAILSAFE(status_flags, fd_esc_arming_failure, ActionOptions(Action::Disarm).cannotBeDeferred());
 	}
 
 	if (_armed_time != 0 && time_us - _armed_time < (_param_com_lkdown_tko.get() + _param_com_spoolup_time.get()) * 1_s) {
 		// This handles the case where something fails during the early takeoff phase
-		CHECK_FAILSAFE(status_flags, fd_critical_failure, Action::Disarm);
+		CHECK_FAILSAFE(status_flags, fd_critical_failure, ActionOptions(Action::Disarm).cannotBeDeferred());
 
 	} else if (!circuit_breaker_enabled_by_val(_param_cbrk_flightterm.get(), CBRK_FLIGHTTERM_KEY)) {
-		CHECK_FAILSAFE(status_flags, fd_critical_failure, Action::Terminate);
+		CHECK_FAILSAFE(status_flags, fd_critical_failure, ActionOptions(Action::Terminate).cannotBeDeferred());
 
 	} else {
 		CHECK_FAILSAFE(status_flags, fd_critical_failure, Action::Warn);
@@ -442,7 +442,7 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 	Action mode_fallback_action = checkModeFallback(status_flags, state.user_intended_mode);
 	_last_state_mode_fallback = checkFailsafe(_caller_id_mode_fallback, _last_state_mode_fallback,
 				    mode_fallback_action != Action::None,
-				    ActionOptions(mode_fallback_action).allowUserTakeover(UserTakeoverAllowed::Always));
+				    ActionOptions(mode_fallback_action).allowUserTakeover(UserTakeoverAllowed::Always).cannotBeDeferred());
 }
 
 void Failsafe::updateArmingState(const hrt_abstime &time_us, bool armed, const failsafe_flags_s &status_flags)
@@ -494,7 +494,7 @@ FailsafeBase::Action Failsafe::checkModeFallback(const failsafe_flags_s &status_
 
 		break;
 
-	case 1: // Land/Terminate
+	case 1: // Land/Descend
 
 		// PosCtrl -> Land
 		if (user_intended_mode == vehicle_status_s::NAVIGATION_STATE_POSCTL
