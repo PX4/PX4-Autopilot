@@ -39,12 +39,16 @@
 
 #include <cstddef>
 
+using namespace time_literals;
+
 #define CHECK_FAILSAFE(status_flags, flag_name, options) \
 	checkFailsafe((int)offsetof(failsafe_flags_s, flag_name), lastStatusFlags().flag_name, status_flags.flag_name, options)
 
 class FailsafeBase: public ModuleParams
 {
 public:
+	static constexpr hrt_abstime DEFAULT_DEFER_TIMEOUT = 30_s;
+
 	enum class Action : uint8_t {
 		// Actions further down take precedence
 		None,
@@ -149,6 +153,16 @@ public:
 
 	bool userTakeoverActive() const { return _user_takeover_active; }
 
+	/**
+	 * Defer all failsafes that can be deferred. Can be used to avoid triggering failsafes in critical situations.
+	 * @param enabled
+	 * @param timeout_s timeout in seconds, if set to 0, DEFAULT_DEFER_TIMEOUT is used, -1=no timeout
+	 * @return true on success, false if failsafe already active
+	 */
+	bool deferFailsafes(bool enabled, int timeout_s);
+	bool getDeferFailsafes() const { return _defer_failsafes; }
+	bool failsafeDeferred() const { return _failsafe_defer_started != 0; }
+
 protected:
 	enum class UserTakeoverAllowed {
 		Always, ///< allow takeover (immediately)
@@ -162,6 +176,7 @@ protected:
 		ActionOptions &allowUserTakeover(UserTakeoverAllowed allow = UserTakeoverAllowed::Auto) { allow_user_takeover = allow; return *this; }
 		ActionOptions &clearOn(ClearCondition clear_condition_) { clear_condition = clear_condition_; return *this; }
 		ActionOptions &causedBy(Cause cause_) { cause = cause_; return *this; }
+		ActionOptions &cannotBeDeferred() { can_be_deferred = false; return *this; }
 
 		bool valid() const { return id != -1; }
 		void setInvalid() { id = -1; }
@@ -170,6 +185,7 @@ protected:
 		ClearCondition clear_condition{ClearCondition::WhenConditionClears};
 		Cause cause{Cause::Generic};
 		UserTakeoverAllowed allow_user_takeover{UserTakeoverAllowed::Auto};
+		bool can_be_deferred{true};
 
 		bool state_failure{false}; ///< used when the clear_condition isn't set to clear immediately
 		bool activated{false}; ///< true if checkFailsafe was called during current update
@@ -182,6 +198,7 @@ protected:
 		Cause cause{Cause::Generic};
 		uint8_t updated_user_intended_mode{};
 		bool user_takeover{false};
+		bool failsafe_deferred{false};
 	};
 
 	virtual void checkStateAndMode(const hrt_abstime &time_us, const State &state,
@@ -232,7 +249,9 @@ private:
 
 	bool actionAllowsUserTakeover(Action action) const;
 
-	void updateDelay(const hrt_abstime &dt, bool delay_active);
+	void updateStartDelay(const hrt_abstime &dt, bool delay_active);
+
+	void updateFailsafeDeferState(const hrt_abstime &time_us, bool defer);
 
 	static constexpr int max_num_actions{8};
 	ActionOptions _actions[max_num_actions]; ///< currently active actions
@@ -244,6 +263,10 @@ private:
 	Action _selected_action{Action::None};
 	bool _user_takeover_active{false};
 	bool _notification_required{false};
+
+	bool _defer_failsafes{false};
+	hrt_abstime _defer_timeout{0};
+	hrt_abstime _failsafe_defer_started{0};
 
 	hrt_abstime _current_start_delay{0}; ///< _current_delay is set to this value when starting the delay
 	hrt_abstime _current_delay{0}; ///< If > 0, stay in Hold, and take action once delay reaches 0

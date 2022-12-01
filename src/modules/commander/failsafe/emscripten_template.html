@@ -206,6 +206,11 @@
                                 <button onclick="moveRCSticks()">Move RC Sticks (user takeover request)</button>
                             </td>
                         </tr>
+                        <tr style="display:none;"> <!-- hide this by default -->
+                            <td><label for="defer_failsafes">Defer Failsafes:</label></td>
+                            <td><input type="checkbox" id="defer_failsafes" name="defer_failsafes"></td>
+                            <td></td>
+                        </tr>
                     </table>
                 </div>
                 <div class="box"><h3>Parameters</h3>
@@ -322,8 +327,9 @@
           var mission_finished = document.querySelector('input[id="mission_finished"]').checked;
           var intended_nav_state = document.querySelector('select[id="intended_nav_state"]').value;
           var vehicle_type = document.querySelector('select[id="vehicle_type"]').value;
+          var defer_failsafes = document.querySelector('input[id="defer_failsafes"]').checked;
           var updated_user_intended_mode = Module.failsafe_update(armed, vtol_in_transition_mode, mission_finished, user_override_requested, parseInt(intended_nav_state),
-              parseInt(vehicle_type), state);
+              parseInt(vehicle_type), state, defer_failsafes);
           user_override_requested = false;
           var action = Module.selected_action();
           action_str = Module.action_str(action);
