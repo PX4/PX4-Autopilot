@@ -54,7 +54,7 @@
 #define TMR_FREQUENCY   STM32_APB2_TIM1_CLKIN
 #define TMR_REG(o)      (TMR_BASE+(o))
 
-void rgb_led(int r, int g, int b, int freqs)
+void rgb_led(uint8_t r, uint8_t g, uint8_t b, int freqs)
 {
 
 	long fosc = TMR_FREQUENCY;

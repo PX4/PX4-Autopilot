@@ -40,6 +40,8 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/led_control.h>
 
+extern int led_pwm_servo_set(unsigned channel, uint8_t  value);
+
 namespace uavcannode
 {
 
@@ -101,6 +103,21 @@ private:
 				green = uavcan::min<uavcan::uint32_t>(green, 0xFFU);
 				blue  = uavcan::min<uavcan::uint32_t>(blue, 0xFFU);
 
+				// For boards with pwm LEDs, set the output directly
+#if defined(BOARD_HAS_LED_PWM) || defined(BOARD_HAS_UI_LED_PWM)
+#if defined(BOARD_HAS_LED_PWM)
+				led_pwm_servo_set(0, red);
+				led_pwm_servo_set(1, green);
+				led_pwm_servo_set(2, blue);
+#endif
+
+#if defined(BOARD_HAS_UI_LED_PWM)
+				led_pwm_servo_set(3, red);
+				led_pwm_servo_set(4, green);
+				led_pwm_servo_set(5, blue);
+#endif
+#else
+
 				led_control_s led_control{};
 				led_control.num_blinks = 0;
 				led_control.priority = led_control_s::MAX_PRIORITY;
@@ -139,6 +156,7 @@ private:
 
 				led_control.timestamp = hrt_absolute_time();
 				_led_control_pub.publish(led_control);
+#endif
 			}
 		}
 	}

@@ -123,54 +123,58 @@ void UavcanRGBController::periodic_update(const uavcan::TimerEvent &)
 
 	}
 
-	if (_armed_sub.updated()) {
-		publish_lights = true;
+	if ((_param_mode_anti_col.get() > 0) || (_param_mode_strobe.get() > 0) || (_param_mode_nav.get() > 0)
+	    || (_param_mode_land.get() > 0)) {
 
-		actuator_armed_s armed;
+		if (_armed_sub.updated()) {
+			publish_lights = true;
 
-		if (_armed_sub.copy(&armed)) {
+			actuator_armed_s armed;
 
-			/* Determine the current control mode
-			*  If a light's control mode config >= current control mode, the light will be enabled
-			*  Logic must match UAVCAN_LGT_* param values.
-			* @value 0 Always off
-			* @value 1 When autopilot is armed
-			* @value 2 When autopilot is prearmed
-			* @value 3 Always on
-			*/
-			uint8_t control_mode = 0;
+			if (_armed_sub.copy(&armed)) {
 
-			if (armed.armed) {
-				control_mode = 1;
+				/* Determine the current control mode
+				*  If a light's control mode config >= current control mode, the light will be enabled
+				*  Logic must match UAVCAN_LGT_* param values.
+				* @value 0 Always off
+				* @value 1 When autopilot is armed
+				* @value 2 When autopilot is prearmed
+				* @value 3 Always on
+				*/
+				uint8_t control_mode = 0;
 
-			} else if (armed.prearmed) {
-				control_mode = 2;
+				if (armed.armed) {
+					control_mode = 1;
 
-			} else {
-				control_mode = 3;
+				} else if (armed.prearmed) {
+					control_mode = 2;
+
+				} else {
+					control_mode = 3;
+				}
+
+				uavcan::equipment::indication::SingleLightCommand cmd;
+
+				// Beacons
+				cmd.light_id = uavcan::equipment::indication::SingleLightCommand::LIGHT_ID_ANTI_COLLISION;
+				cmd.color = brightness_to_rgb565(_param_mode_anti_col.get() >= control_mode ? 255 : 0);
+				cmds.commands.push_back(cmd);
+
+				// Strobes
+				cmd.light_id = uavcan::equipment::indication::SingleLightCommand::LIGHT_ID_STROBE;
+				cmd.color = brightness_to_rgb565(_param_mode_strobe.get() >= control_mode ? 255 : 0);
+				cmds.commands.push_back(cmd);
+
+				// Nav lights
+				cmd.light_id = uavcan::equipment::indication::SingleLightCommand::LIGHT_ID_RIGHT_OF_WAY;
+				cmd.color = brightness_to_rgb565(_param_mode_nav.get() >= control_mode ? 255 : 0);
+				cmds.commands.push_back(cmd);
+
+				// Landing lights
+				cmd.light_id = uavcan::equipment::indication::SingleLightCommand::LIGHT_ID_LANDING;
+				cmd.color = brightness_to_rgb565(_param_mode_land.get() >= control_mode ? 255 : 0);
+				cmds.commands.push_back(cmd);
 			}
-
-			uavcan::equipment::indication::SingleLightCommand cmd;
-
-			// Beacons
-			cmd.light_id = uavcan::equipment::indication::SingleLightCommand::LIGHT_ID_ANTI_COLLISION;
-			cmd.color = brightness_to_rgb565(_param_mode_anti_col.get() >= control_mode ? 255 : 0);
-			cmds.commands.push_back(cmd);
-
-			// Strobes
-			cmd.light_id = uavcan::equipment::indication::SingleLightCommand::LIGHT_ID_STROBE;
-			cmd.color = brightness_to_rgb565(_param_mode_strobe.get() >= control_mode ? 255 : 0);
-			cmds.commands.push_back(cmd);
-
-			// Nav lights
-			cmd.light_id = uavcan::equipment::indication::SingleLightCommand::LIGHT_ID_RIGHT_OF_WAY;
-			cmd.color = brightness_to_rgb565(_param_mode_nav.get() >= control_mode ? 255 : 0);
-			cmds.commands.push_back(cmd);
-
-			// Landing lights
-			cmd.light_id = uavcan::equipment::indication::SingleLightCommand::LIGHT_ID_LANDING;
-			cmd.color = brightness_to_rgb565(_param_mode_land.get() >= control_mode ? 255 : 0);
-			cmds.commands.push_back(cmd);
 		}
 	}
 
