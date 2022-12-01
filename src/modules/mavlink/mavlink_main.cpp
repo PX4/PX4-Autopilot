@@ -1510,6 +1510,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("GPS_STATUS", 1.0f);
 		configure_stream_local("HOME_POSITION", 0.5f);
 		configure_stream_local("HYGROMETER_SENSOR", 0.1f);
+		configure_stream_local("LANDING_TARGET", 1.0f);
 		configure_stream_local("LOCAL_POSITION_NED", 1.0f);
 		configure_stream_local("NAV_CONTROLLER_OUTPUT", 1.0f);
 		configure_stream_local("OBSTACLE_DISTANCE", 1.0f);
@@ -1716,6 +1717,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("HIGHRES_IMU", 50.0f);
 		configure_stream_local("HOME_POSITION", 0.5f);
 		configure_stream_local("HYGROMETER_SENSOR", 1.0f);
+		configure_stream_local("LANDING_TARGET", 30.0f);
 		configure_stream_local("MAG_CAL_REPORT", 1.0f);
 		configure_stream_local("MANUAL_CONTROL", 5.0f);
 		configure_stream_local("NAV_CONTROLLER_OUTPUT", 10.0f);

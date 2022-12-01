@@ -138,14 +138,21 @@ private:
 		(ParamFloat<px4::params::PLD_FAPPR_ALT>) _param_pld_fappr_alt,
 		(ParamFloat<px4::params::PLD_SRCH_ALT>) _param_pld_srch_alt,
 		(ParamFloat<px4::params::PLD_SRCH_TOUT>) _param_pld_srch_tout,
-		(ParamInt<px4::params::PLD_MAX_SRCH>) _param_pld_max_srch
+		(ParamInt<px4::params::PLD_MAX_SRCH>) _param_pld_max_srch,
+		(ParamFloat<px4::params::PLD_TARGET_YAW>) _param_pld_target_yaw
 	)
 
 	// non-navigator parameters
 	param_t	_handle_param_acceleration_hor{PARAM_INVALID};
 	param_t	_handle_param_xy_vel_cruise{PARAM_INVALID};
+	param_t _handle_param_mpc_land_alt1{PARAM_INVALID};
+	param_t _handle_param_mpc_land_alt2{PARAM_INVALID};
+	param_t _handle_param_mpc_land_alt3{PARAM_INVALID};
 	float	_param_acceleration_hor{0.0f};
 	float	_param_xy_vel_cruise{0.0f};
+	float   _param_mpc_land_alt1{0.0f};
+	float   _param_mpc_land_alt2{0.0f};
+	float   _param_mpc_land_alt3{0.0f};
 
 	orb_advert_t _mavlink_log_pub{nullptr};
 
