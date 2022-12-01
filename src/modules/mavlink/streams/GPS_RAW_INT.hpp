@@ -56,14 +56,15 @@ private:
 	explicit MavlinkStreamGPSRawInt(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
 	uORB::Subscription _sensor_gps_sub{ORB_ID(sensor_gps), 0};
+	struct timespec _last_send_ts {0, 0};
+	time_t _no_gps_send_interval {1};
 
 	bool send() override
 	{
 		sensor_gps_s gps;
+		mavlink_gps_raw_int_t msg{};
 
 		if (_sensor_gps_sub.update(&gps)) {
-			mavlink_gps_raw_int_t msg{};
-
 			msg.time_usec = gps.timestamp;
 			msg.fix_type = gps.fix_type;
 			msg.lat = gps.lat;
@@ -102,6 +103,16 @@ private:
 			mavlink_msg_gps_raw_int_send_struct(_mavlink->get_channel(), &msg);
 
 			return true;
+
+		} else if (!_sensor_gps_sub.advertised()) {
+			struct timespec ts = {};
+			px4_clock_gettime(CLOCK_REALTIME, &ts);
+
+			if (ts.tv_sec - _last_send_ts.tv_sec > _no_gps_send_interval) {
+				msg.fix_type = GPS_FIX_TYPE_NO_GPS;
+				mavlink_msg_gps_raw_int_send_struct(_mavlink->get_channel(), &msg);
+				_last_send_ts = ts;
+			}
 		}
 
 		return false;
