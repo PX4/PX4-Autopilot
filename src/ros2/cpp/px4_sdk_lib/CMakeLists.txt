@@ -22,6 +22,7 @@ set(HEADER_FILES
 		include/px4_sdk/components/health_and_arming_checks.h
 		include/px4_sdk/components/mode.h
 		include/px4_sdk/components/mode_executor.h
+		include/px4_sdk/components/overrides.h
 		include/px4_sdk/components/setpoints.h
 		include/px4_sdk/components/wait_for_fmu.h
 	)
@@ -30,6 +31,7 @@ add_library(px4_sdk_lib
 		src/components/health_and_arming_checks.cpp
 		src/components/mode.cpp
 		src/components/mode_executor.cpp
+		src/components/overrides.cpp
 		src/components/registration.cpp
 		src/components/setpoints.cpp
 		src/components/wait_for_fmu.cpp
@@ -84,6 +86,12 @@ if(BUILD_TESTING)
 	if(TARGET test_mode_executor)
 		target_link_libraries(test_mode_executor ${PROJECT_NAME} integration_utils)
 		target_include_directories(test_mode_executor PRIVATE include)
+	endif()
+
+	ament_add_gtest(test_overrides test/integration/overrides.cpp)
+	if(TARGET test_overrides)
+		target_link_libraries(test_overrides ${PROJECT_NAME} integration_utils)
+		target_include_directories(test_overrides PRIVATE include)
 	endif()
 
 endif()

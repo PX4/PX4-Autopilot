@@ -45,7 +45,7 @@ ModeBase::ModeBase(rclcpp::Node &node, const ModeBase::Settings &settings,
 	: _node(node), _registration(std::make_shared<Registration>(node, topic_namespace_prefix)), _settings(settings),
 	  _health_and_arming_checks(node, std::bind(&ModeBase::checkArmingAndRunConditions, this, std::placeholders::_1),
 				    topic_namespace_prefix),
-	  _setpoint_sender(node, *this, topic_namespace_prefix)
+	  _setpoint_sender(node, *this, topic_namespace_prefix), _config_overrides(node, topic_namespace_prefix)
 {
 	_vehicle_status_sub = _node.create_subscription<px4_msgs::msg::VehicleStatus>(
 				      topic_namespace_prefix + "/fmu/out/vehicle_status", rclcpp::QoS(1).best_effort(),
@@ -77,7 +77,13 @@ bool ModeBase::doRegister()
 	assert(!_registration->registered());
 	_health_and_arming_checks.overrideRegistration(_registration);
 	RegistrationSettings settings = getRegistrationSettings();
-	return _registration->doRegister(settings);
+	bool ret = _registration->doRegister(settings);
+
+	if (ret) {
+		onRegistered();
+	}
+
+	return ret;
 }
 
 RegistrationSettings ModeBase::getRegistrationSettings() const
@@ -177,4 +183,9 @@ void ModeBase::completed(Result result)
 	mode_completed.timestamp = _node.get_clock()->now().nanoseconds() / 1000;
 	_mode_completed_pub->publish(mode_completed);
 	_completed = true;
+}
+
+void ModeBase::onRegistered()
+{
+	_config_overrides.setup(px4_msgs::msg::ConfigOverrides::SOURCE_TYPE_MODE, _registration->modeId());
 }

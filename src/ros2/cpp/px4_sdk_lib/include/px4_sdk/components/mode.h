@@ -40,6 +40,7 @@
 #include <px4_msgs/msg/mode_completed.hpp>
 #include "health_and_arming_checks.h"
 #include "setpoints.h"
+#include "overrides.h"
 
 class Registration;
 struct RegistrationSettings;
@@ -153,10 +154,13 @@ public:
 
 	SetpointSender &setpoints() { return _setpoint_sender; }
 
+	ConfigOverrides &configOverrides() { return _config_overrides; }
+
 private:
 	friend class ModeExecutorBase;
 	void overrideRegistration(const std::shared_ptr<Registration> &registration);
 	RegistrationSettings getRegistrationSettings() const;
+	void onRegistered();
 
 	void unsubscribeVehicleStatus();
 	void vehicleStatusUpdated(const px4_msgs::msg::VehicleStatus::UniquePtr &msg, bool do_not_activate = false);
@@ -183,6 +187,8 @@ private:
 	float _setpoint_update_rate_hz{0.f};
 	rclcpp::TimerBase::SharedPtr _setpoint_update_timer;
 	SetpointSender _setpoint_sender;
+
+	ConfigOverrides _config_overrides;
 };
 
 } /* namespace px4_sdk */

@@ -34,6 +34,7 @@
 #pragma once
 
 #include "mode.h"
+#include "overrides.h"
 
 #include <rclcpp/rclcpp.hpp>
 #include <px4_msgs/msg/vehicle_status.hpp>
@@ -84,6 +85,11 @@ public:
 	 */
 	virtual void onDeactivate(DeactivateReason reason) = 0;
 
+	/**
+	 * Called when failsafes are currently being deferred (see @deferFailsafes), and the FMU wants to trigger
+	 * a failsafe.
+	 */
+	virtual void onFailsafeDeferred() {}
 
 	/**
 	* Send command and wait for ack/nack
@@ -115,6 +121,22 @@ public:
 	int id() const;
 
 	rclcpp::Node &node() { return _node; }
+
+	ConfigOverrides &configOverrides() { return _config_overrides; }
+
+	/**
+	 * Enable/disable deferring failsafes. While enabled (and the executor is in charge),
+	 * most failsafes are prevented from being triggered until the given timeout is exceeded.
+	 * Some failsafes that cannot be prevented:
+	 * - vehicle exceeds attitude limits (can be disabled via parameters)
+	 * - the mode cannot run (some mode requirements are not met, such as no position estimate)
+	 *
+	 * If the executor is in charge, this method will wait for the FMU for acknowledgement (to avoid race conditions)
+	 * @param enabled
+	 * @param timeout_s 0=system default, -1=no timeout
+	 * @return true on success
+	 */
+	bool deferFailsafesSync(bool enabled, int timeout_s = 0);
 
 private:
 
@@ -151,6 +173,8 @@ private:
 		RunCheckCallback _run_check_callback;
 	};
 
+	void onRegistered();
+
 	void callOnActivate();
 	void callOnDeactivate(DeactivateReason reason);
 
@@ -176,6 +200,9 @@ private:
 	bool _is_armed{false};
 	bool _was_never_activated{true};
 	ModeBase::ID_t _prev_nav_state{ModeBase::ID_INVALID};
+	uint8_t _prev_failsafe_defer_state{px4_msgs::msg::VehicleStatus::FAILSAFE_DEFER_STATE_DISABLED};
+
+	ConfigOverrides _config_overrides;
 };
 
 } /* namespace px4_sdk */

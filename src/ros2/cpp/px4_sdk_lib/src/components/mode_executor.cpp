@@ -45,7 +45,8 @@ ModeExecutorBase::ModeExecutorBase(rclcpp::Node &node, const ModeExecutorBase::S
 				   ModeBase &owned_mode, const std::string &topic_namespace_prefix)
 	: _node(node), _settings(settings), _owned_mode(owned_mode),
 	  _registration(std::make_shared<Registration>(node, topic_namespace_prefix)),
-	  _current_scheduled_mode(node, topic_namespace_prefix)
+	  _current_scheduled_mode(node, topic_namespace_prefix),
+	  _config_overrides(node, topic_namespace_prefix)
 {
 	_vehicle_status_sub = _node.create_subscription<px4_msgs::msg::VehicleStatus>(
 				      topic_namespace_prefix + "/fmu/out/vehicle_status", rclcpp::QoS(1).best_effort(),
@@ -75,7 +76,19 @@ bool ModeExecutorBase::doRegister()
 	RegistrationSettings settings = _owned_mode.getRegistrationSettings();
 	settings.register_mode_executor = true;
 	settings.activate_mode_immediately = _settings.activate_immediately;
-	return _registration->doRegister(settings);
+	bool ret = _registration->doRegister(settings);
+
+	if (ret) {
+		_owned_mode.onRegistered();
+		onRegistered();
+	}
+
+	return ret;
+}
+
+void ModeExecutorBase::onRegistered()
+{
+	_config_overrides.setup(px4_msgs::msg::ConfigOverrides::SOURCE_TYPE_MODE_EXECUTOR, _registration->modeExecutorId());
 }
 
 void ModeExecutorBase::callOnActivate()
@@ -297,6 +310,15 @@ void ModeExecutorBase::vehicleStatusUpdated(const px4_msgs::msg::VehicleStatus::
 		callOnActivate();
 	}
 
+
+	if (_is_in_charge && _prev_failsafe_defer_state != msg->failsafe_defer_state
+	    && msg->failsafe_defer_state == px4_msgs::msg::VehicleStatus::FAILSAFE_DEFER_STATE_WOULD_FAILSAFE) {
+		// FMU wants to failsafe, but got deferred -> notify the executor
+		onFailsafeDeferred();
+	}
+
+	_prev_failsafe_defer_state = msg->failsafe_defer_state;
+
 	// Do not activate the mode if we're scheduling another mode. This is only expected to happen for a brief moment,
 	// e.g. when the executor gets activated or right after arming. It thus prevents unnecessary mode activation toggling.
 	bool do_not_activate_mode = (_current_scheduled_mode.active() && _owned_mode.id() != _current_scheduled_mode.modeId())
@@ -307,6 +329,55 @@ void ModeExecutorBase::vehicleStatusUpdated(const px4_msgs::msg::VehicleStatus::
 	_prev_nav_state = current_mode;
 
 	_current_wait_vehicle_status.update(msg);
+}
+
+bool ModeExecutorBase::deferFailsafesSync(bool enabled, int timeout_s)
+{
+	_config_overrides.deferFailsafes(enabled, timeout_s);
+
+	// To avoid race conditions we wait until the FMU sets it if the executor is in charge
+	if (enabled && _is_in_charge && _registration->registered()
+	    && _prev_failsafe_defer_state == px4_msgs::msg::VehicleStatus::FAILSAFE_DEFER_STATE_DISABLED) {
+		rclcpp::WaitSet wait_set;
+		wait_set.add_subscription(_vehicle_status_sub);
+
+		bool got_message = false;
+		auto start_time = _node.now();
+		const rclcpp::Duration timeout = 1s;
+
+		while (!got_message) {
+			auto now = _node.now();
+
+			if (now >= start_time + timeout) {
+				break;
+			}
+
+			auto wait_ret = wait_set.wait((timeout - (now - start_time)).to_chrono<std::chrono::microseconds>());
+
+			if (wait_ret.kind() == rclcpp::WaitResultKind::Ready) {
+				px4_msgs::msg::VehicleStatus msg;
+				rclcpp::MessageInfo info;
+
+				if (_vehicle_status_sub->take(msg, info)) {
+					if (msg.failsafe_defer_state != px4_msgs::msg::VehicleStatus::FAILSAFE_DEFER_STATE_DISABLED) {
+						got_message = true;
+					}
+
+				} else {
+					RCLCPP_DEBUG(_node.get_logger(), "no message received");
+				}
+
+			} else {
+				RCLCPP_DEBUG(_node.get_logger(), "timeout");
+			}
+		}
+
+		wait_set.remove_subscription(_vehicle_status_sub);
+
+		return got_message;
+	}
+
+	return true;
 }
 
 ModeExecutorBase::ScheduledMode::ScheduledMode(rclcpp::Node &node, const std::string &topic_namespace_prefix)
