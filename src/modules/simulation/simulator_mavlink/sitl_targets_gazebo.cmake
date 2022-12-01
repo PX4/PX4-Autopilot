@@ -95,6 +95,8 @@ set(models
 	typhoon_h480
 	uuv_bluerov2_heavy
 	uuv_hippocampus
+	falcon
+	raptor
 )
 
 set(worlds
@@ -107,6 +109,7 @@ set(worlds
 	warehouse
 	windy
 	yosemite
+	falcon
 )
 
 foreach(debugger ${debuggers})

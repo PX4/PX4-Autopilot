@@ -76,6 +76,9 @@ px4_add_romfs_files(
 
 	4001_x500
 
+	5000_falcon
+	5100_raptor
+
 	17001_tf-g1
 	17002_tf-g2
 	2507_cloudship
