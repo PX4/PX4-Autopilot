@@ -66,6 +66,7 @@
 #include <uORB/topics/estimator_aid_source_3d.h>
 #include <uORB/topics/estimator_aid_source_1d.h>
 #include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/vehicle_land_detected.h>
 #include <matrix/math.hpp>
 #include <mathlib/mathlib.h>
 #include <matrix/Matrix.hpp>
@@ -140,7 +141,7 @@ protected:
 private:
 
 	bool _start_filter = false;
-	uint8_t _nave_state = 0;
+	bool _nave_state_mission = 0;
 
 	enum class TargetMode {
 		Moving = 0,
@@ -183,7 +184,8 @@ private:
 		matrix::Vector<bool, 3> updated_xyz; // Indicates if we have an observation in the x, y or z direction
 		matrix::Vector3f meas_xyz;			// Measurements (meas_x, meas_y, meas_z)
 		matrix::Vector3f meas_unc_xyz;		// Measurements' uncertainties
-		matrix::Matrix<float, 3, 12> meas_h_xyz; // Observation matrix where the rows correspond to the x,y,z directions.
+		matrix::Matrix<float, 3, 12>
+		meas_h_xyz; // Observation matrix where the rows correspond to the x,y,z observations and the columns to the state = [rx, ry, rz, r_dotx, r_doty, r_dotz, bx, by, bz, atx, aty, atz]
 	};
 
 	enum Directions {
@@ -233,6 +235,7 @@ private:
 	uORB::Subscription _landing_target_gnss_sub{ORB_ID(landing_target_gnss)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _pos_sp_triplet_sub{ORB_ID(position_setpoint_triplet)};
+	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 
 	struct localPos {
 		bool valid = false;
@@ -264,6 +267,7 @@ private:
 	localVel _vel_rel_init{};
 
 	uint64_t _new_pos_sensor_acquired_time{0};
+	uint64_t _land_time{0};
 	bool _estimator_initialized{false};
 
 	matrix::Quaternion<float> _q_att; //Quaternion orientation of the body frame
