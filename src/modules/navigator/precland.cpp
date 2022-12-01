@@ -536,7 +536,7 @@ bool PrecLand::check_state_conditions(PrecLandState state)
 			if (check_state_conditions(PrecLandState::FinalApproach)) {
 				float current_timeout = float(hrt_absolute_time() - _target_pose.timestamp) / 1e6f;
 				mavlink_log_info(&_mavlink_log_pub, "Precland: descend above target close to ground, current timeout: %f s", (double)current_timeout);
-				return hrt_absolute_time() - _target_pose.timestamp < 500000; // 0.5s
+				return hrt_absolute_time() - _target_pose.timestamp > 500000; // 0.5s
 
 			} else {
 				return _target_pose_valid && _target_pose.abs_pos_valid;
