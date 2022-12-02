@@ -390,9 +390,12 @@ uORB::DeviceNode::print_statistics(int max_topic_length)
 
 	unlock();
 
+#ifdef __PX4_QURT
+	PX4_INFO("%s %d, %d, %u, %s", get_meta()->o_name, (int)instance, (int)sub_count, queue_size, get_devname());
+#else
 	PX4_INFO_RAW("%-*s %2i %4i %2i %4i %s\n", max_topic_length, get_meta()->o_name, (int)instance, (int)sub_count,
 		     queue_size, get_meta()->o_size, get_devname());
-
+#endif
 	return true;
 }
 
@@ -436,7 +439,7 @@ void uORB::DeviceNode::remove_internal_subscriber()
 }
 
 #ifdef CONFIG_ORB_COMMUNICATOR
-int16_t uORB::DeviceNode::process_add_subscription(int32_t rateInHz)
+int16_t uORB::DeviceNode::process_add_subscription()
 {
 	// if there is already data in the node, send this out to
 	// the remote entity.

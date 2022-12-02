@@ -181,7 +181,11 @@ void uORB::DeviceMaster::printStatistics()
 		return;
 	}
 
+#ifdef __PX4_QURT
+    PX4_INFO("uORB status printout");
+#else
 	PX4_INFO_RAW("%-*s INST #SUB #Q SIZE PATH\n", (int)max_topic_name_length - 2, "TOPIC NAME");
+#endif
 
 	cur_node = first_node;
 
@@ -289,7 +293,9 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 		}
 	}
 
+#ifndef __PX4_QURT
 	PX4_INFO_RAW("\033[2J\n"); //clear screen
+#endif
 
 	lock();
 
@@ -314,6 +320,8 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 
 #ifdef __PX4_QURT // QuRT has no poll()
 	only_once = true;
+	#define TOPIC_NAME_BUFFER_SIZE 36
+	char topic_name_buffer[TOPIC_NAME_BUFFER_SIZE];
 #else
 	const int stdin_fileno = 0;
 
@@ -378,6 +386,7 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 			start_time = current_time;
 
 
+#ifndef __PX4_QURT
 			if (!only_once) {
 				PX4_INFO_RAW("\033[H"); // move cursor to top left corner
 			}
@@ -385,10 +394,15 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 			PX4_INFO_RAW(CLEAR_LINE "update: 1s, topics: %i, total publications: %i, %.1f kB/s\n",
 				     num_topics, total_msgs, (double)(total_size / 1000.f));
 			PX4_INFO_RAW(CLEAR_LINE "%-*s INST #SUB RATE #Q SIZE\n", (int)max_topic_name_length - 2, "TOPIC NAME");
+#else
+			PX4_INFO_RAW("update: num topics: %i                 ", num_topics);
+#endif
 			cur_node = first_node;
 
 			while (cur_node) {
 
+
+#ifndef __PX4_QURT
 				if (!print_active_only || (cur_node->pub_msg_delta > 0 && cur_node->node->subscriber_count() > 0)) {
 					PX4_INFO_RAW(CLEAR_LINE "%-*s %2i %4i %4i %2i %4i \n", (int)max_topic_name_length,
 						     cur_node->node->get_meta()->o_name, (int)cur_node->node->get_instance(),
@@ -396,13 +410,31 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 						     cur_node->node->get_queue_size(), cur_node->node->get_meta()->o_size);
 				}
 
+#else
+				// Copy as much of the topic name into our buffer as we can
+				strncpy(topic_name_buffer, cur_node->node->get_meta()->o_name, TOPIC_NAME_BUFFER_SIZE);
+				// Make sure that the buffer contains a null terminated string
+				topic_name_buffer[TOPIC_NAME_BUFFER_SIZE - 1] = 0;
+				// Fill the buffer with spaces if the topic name doesn't
+				// fill it up. This will keep the next field aligned in the output
+				int buf_len = strlen(topic_name_buffer);
+				int spaces_needed = TOPIC_NAME_BUFFER_SIZE - 1 - buf_len;
+				for (int i = 0, index = TOPIC_NAME_BUFFER_SIZE - 2;
+					i < spaces_needed; i++, index--) {
+					topic_name_buffer[index] = ' ';
+				}
+				PX4_INFO_RAW("%s %d       ", topic_name_buffer, cur_node->last_pub_msg_count);
+#endif
+
 				cur_node = cur_node->next;
 			}
 
 
+#ifndef __PX4_QURT
 			if (!only_once) {
 				PX4_INFO_RAW("\033[0J"); // clear the rest of the screen
 			}
+#endif
 
 			lock();
 			ret = addNewDeviceNodes(&first_node, num_topics, max_topic_name_length, topic_filter, num_filters);

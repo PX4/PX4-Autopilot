@@ -99,7 +99,7 @@ void uORB::AppsProtobufChannel::AdvertiseCallback(const char *topic)
 		return;
 
 	} else if (_RxHandler) {
-		_RxHandler->process_remote_topic(topic, true);
+		_RxHandler->process_remote_topic(topic);
 
 	} else {
 		PX4_ERR("Couldn't handle topic %s in advertise callback", topic);
@@ -119,7 +119,7 @@ void uORB::AppsProtobufChannel::SubscribeCallback(const char *topic)
 		_SlpiSubscriberCache[topic]++;
 		pthread_mutex_unlock(&_rx_mutex);
 
-		_RxHandler->process_add_subscription(topic, 1000);
+		_RxHandler->process_add_subscription(topic);
 
 	} else {
 		PX4_ERR("Couldn't handle topic %s in subscribe callback", topic);
