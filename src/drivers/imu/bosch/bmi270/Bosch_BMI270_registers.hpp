@@ -182,52 +182,19 @@ namespace FIFO
 {
 static constexpr size_t SIZE = 1024;
 
-// 1. Acceleration sensor data frame   - Frame length: 7 bytes (1 byte header + 6 bytes payload)
-// Payload: the next bytes contain the sensor data in the same order as defined in the register map (addresses 0x12 – 0x17).
-// 2. Skip Frame                       - Frame length: 2 bytes (1 byte header + 1 byte payload)
-// Payload: one byte containing the number of skipped frames. When more than 0xFF frames have been skipped, 0xFF is returned.
-// 3. Sensortime Frame                 - Frame length: 4 bytes (1 byte header + 3 bytes payload)
-// Payload: Sensortime (content of registers 0x18 – 0x1A), taken when the last byte of the last frame is read.
-
-struct DATA {
-	uint8_t Header;
-	uint8_t ACC_X_LSB;
-	uint8_t ACC_X_MSB;
-	uint8_t ACC_Y_LSB;
-	uint8_t ACC_Y_MSB;
-	uint8_t ACC_Z_LSB;
-	uint8_t ACC_Z_MSB;
+struct Data {
+	uint8_t x_lsb;
+	uint8_t x_msb;
+	uint8_t y_lsb;
+	uint8_t y_msb;
+	uint8_t z_lsb;
+	uint8_t z_msb;
 };
-static_assert(sizeof(DATA) == 7);
-
-struct ACCEL_DATA {
-	uint8_t Header;
-	uint8_t ACC_X_LSB;
-	uint8_t ACC_X_MSB;
-	uint8_t ACC_Y_LSB;
-	uint8_t ACC_Y_MSB;
-	uint8_t ACC_Z_LSB;
-	uint8_t ACC_Z_MSB;
-
-};
-static_assert(sizeof(ACCEL_DATA) == 7);
-
-struct GYRO_DATA {
-	uint8_t Header;
-	uint8_t GYR_X_LSB;
-	uint8_t GYR_X_MSB;
-	uint8_t GYR_Y_LSB;
-	uint8_t GYR_Y_MSB;
-	uint8_t GYR_Z_LSB;
-	uint8_t GYR_Z_MSB;
-};
-static_assert(sizeof(GYRO_DATA) == 7);
 
 
-enum header : uint8_t {
+enum class Header : uint8_t {
 	sensor_accel_frame          = 0b10000100,
 	sensor_gyro_frame           = 0b10001000,
-	sensor_accel_and_gyro_frame = 0b10001100,
 	skip_frame                  = 0b01000000,
 	sensor_time_frame           = 0b01000100,
 	FIFO_input_config_frame     = 0b01001000,

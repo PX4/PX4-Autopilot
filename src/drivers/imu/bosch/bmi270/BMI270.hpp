@@ -76,7 +76,7 @@ private:
 	static constexpr uint8_t ID_088 = 0x1E;
 	static constexpr uint8_t ID_090L = 0x1A;
 
-	static constexpr int32_t FIFO_MAX_SAMPLES{math::min(FIFO::SIZE / sizeof(FIFO::DATA), sizeof(sensor_accel_fifo_s::x) / sizeof(sensor_accel_fifo_s::x[0]))};
+	static constexpr int32_t FIFO_MAX_SAMPLES{math::min(FIFO::SIZE / sizeof(FIFO::Data), sizeof(sensor_accel_fifo_s::x) / sizeof(sensor_accel_fifo_s::x[0]))};
 
 
 	hrt_abstime _temperature_update_timestamp{0};
@@ -87,10 +87,10 @@ private:
 		uint8_t dummy{0};
 		uint8_t FIFO_LENGTH_0{0};
 		uint8_t FIFO_LENGTH_1{0};
-		FIFO::DATA f[FIFO_MAX_SAMPLES] {};
+		FIFO::Data f[FIFO_MAX_SAMPLES] {};
 	};
 	// ensure no struct padding
-	static_assert(sizeof(FIFOTransferBuffer) == (4 + FIFO_MAX_SAMPLES *sizeof(FIFO::DATA)));
+	static_assert(sizeof(FIFOTransferBuffer) == (4 + FIFO_MAX_SAMPLES *sizeof(FIFO::Data)));
 
 	struct register_config_t {
 		Register reg;
@@ -104,11 +104,11 @@ private:
 
 	bool Configure();
 
-	void ProcessGyro(sensor_gyro_fifo_s *gyro, FIFO::GYRO_DATA *gyro_frame);
-	void ProcessAccel(sensor_accel_fifo_s *accel, FIFO::ACCEL_DATA *accel_frame);
+	void ProcessGyro(sensor_gyro_fifo_s *gyro, FIFO::Data *gyro_frame);
+	void ProcessAccel(sensor_accel_fifo_s *accel, FIFO::Data *accel_frame);
 
-	bool readAccelFrame(FIFO::ACCEL_DATA *accel_frame);
-	bool readGyroFrame(FIFO::GYRO_DATA *gyro_frame);
+	bool readAccelFrame(FIFO::Data *accel_frame);
+	bool readGyroFrame(FIFO::Data *gyro_frame);
 
 	void ConfigurePwr();
 	void SetAccelScaleAndRange();

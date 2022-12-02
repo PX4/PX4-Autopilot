@@ -415,7 +415,7 @@ void BMI270::RunImpl()
 
 			} else {
 
-				uint8_t samples = fifo_count / sizeof(FIFO::DATA);
+				uint8_t samples = fifo_count / sizeof(FIFO::Data);
 
 				// tolerate minor jitter, leave sample to next iteration if behind by only 1
 				if (samples == _fifo_gyro_samples + 1) {
@@ -535,7 +535,7 @@ void BMI270::ConfigureFIFOWatermark(uint8_t samples)
 {
 	// FIFO_WTM: 13 bit FIFO watermark level value
 	// unit of the fifo watermark is one byte
-	const uint16_t fifo_watermark_threshold = samples * sizeof(FIFO::DATA);
+	const uint16_t fifo_watermark_threshold = samples * sizeof(FIFO::Data);
 
 	for (auto &r : _register_cfg) {
 		if (r.reg == Register::FIFO_WTM_0) {
@@ -707,15 +707,13 @@ uint16_t BMI270::FIFOReadCount()
 
 
 // writes a gyro frame into the FIFO buffer the first argument points to
-void BMI270::ProcessGyro(sensor_gyro_fifo_s *gyro, FIFO::GYRO_DATA *gyro_frame)
+void BMI270::ProcessGyro(sensor_gyro_fifo_s *gyro, FIFO::Data *frame)
 {
-
-
 	const uint8_t samples = gyro->samples;
 
-	const int16_t gyro_x = combine(gyro_frame->GYR_X_MSB, gyro_frame->GYR_X_LSB);
-	const int16_t gyro_y = combine(gyro_frame->GYR_Y_MSB, gyro_frame->GYR_Y_LSB);
-	const int16_t gyro_z = combine(gyro_frame->GYR_Z_MSB, gyro_frame->GYR_Z_LSB);
+	const int16_t gyro_x = combine(frame->x_msb, frame->x_lsb);
+	const int16_t gyro_y = combine(frame->y_msb, frame->y_lsb);
+	const int16_t gyro_z = combine(frame->z_msb, frame->z_lsb);
 
 	// Rotate from FLU to NED
 	gyro->x[samples] = gyro_x;
@@ -726,14 +724,14 @@ void BMI270::ProcessGyro(sensor_gyro_fifo_s *gyro, FIFO::GYRO_DATA *gyro_frame)
 }
 
 // writes an accelerometer frame into the FIFO buffer the first argument points to
-void BMI270::ProcessAccel(sensor_accel_fifo_s *accel, FIFO::ACCEL_DATA *accel_frame)
+void BMI270::ProcessAccel(sensor_accel_fifo_s *accel, FIFO::Data *frame)
 {
 
 	const uint8_t samples = accel->samples;
 
-	const int16_t accel_x = combine(accel_frame->ACC_X_MSB, accel_frame->ACC_X_LSB);
-	const int16_t accel_y = combine(accel_frame->ACC_Y_MSB, accel_frame->ACC_Y_LSB);
-	const int16_t accel_z = combine(accel_frame->ACC_Z_MSB, accel_frame->ACC_Z_LSB);
+	const int16_t accel_x = combine(frame->x_msb, frame->x_lsb);
+	const int16_t accel_y = combine(frame->y_msb, frame->y_lsb);
+	const int16_t accel_z = combine(frame->z_msb, frame->z_lsb);
 
 	// Rotate from FLU to NED
 	accel->x[samples] = accel_x;
@@ -786,67 +784,59 @@ bool BMI270::FIFORead(const hrt_abstime &timestamp_sample, uint16_t fifo_bytes)
 
 	while (fifo_buffer_index < fifo_bytes) {
 		// look for header signature (first 6 bits) followed by two bits indicating the status of INT1 and INT2
-		switch (data_buffer[fifo_buffer_index] & 0xFC) {
-		case FIFO::header::sensor_accel_frame: {
-
-				// Acceleration sensor data frame
-				// Frame length: 7 bytes (1 byte header + 6 bytes payload)
-
-				// casts the 7 bytes of the buffer into a FIFO struct
-				FIFO::ACCEL_DATA *fifo_sample = (FIFO::ACCEL_DATA *)&data_buffer[fifo_buffer_index];
-				BMI270::ProcessAccel(&accel_buffer, fifo_sample);
-				fifo_buffer_index += 7; // move forward to next record
-
+		switch (data_buffer[fifo_buffer_index]) {
+		case ((uint8_t)FIFO::Header::sensor_accel_frame | (uint8_t)FIFO::Header::sensor_gyro_frame): {
+				// Move past header and padding for Aux
+				fifo_buffer_index += 1;
+				BMI270::ProcessGyro(&gyro_buffer, (FIFO::Data *)&data_buffer[fifo_buffer_index]);
+				// Move forward to next record
+				fifo_buffer_index += 6;
+				BMI270::ProcessAccel(&accel_buffer, (FIFO::Data *)&data_buffer[fifo_buffer_index]);
+				// Move forward to next record
+				fifo_buffer_index += 6;
 			}
 			break;
 
-		case FIFO::header::sensor_gyro_frame: {
-
-
-
-				FIFO::GYRO_DATA *fifo_sample = (FIFO::GYRO_DATA *)&data_buffer[fifo_buffer_index];
-				BMI270::ProcessGyro(&gyro_buffer, fifo_sample);
-
-				fifo_buffer_index += 7; // move forward to next record
-
+		case (uint8_t)FIFO::Header::sensor_gyro_frame: {
+				// Move past header.
+				fifo_buffer_index += 1;
+				BMI270::ProcessGyro(&gyro_buffer, (FIFO::Data *)&data_buffer[fifo_buffer_index]);
+				// Move forward to next record
+				fifo_buffer_index += 6;
 			}
 			break;
 
-		case FIFO::header::sensor_accel_and_gyro_frame: {
-
-				FIFO::GYRO_DATA *fifo_sample_gyr = (FIFO::GYRO_DATA *)&data_buffer[fifo_buffer_index];
-				BMI270::ProcessGyro(&gyro_buffer, fifo_sample_gyr);
-
-				FIFO::ACCEL_DATA *fifo_sample_acc = (FIFO::ACCEL_DATA *)&data_buffer[fifo_buffer_index + 6];
-				BMI270::ProcessAccel(&accel_buffer, fifo_sample_acc);
-
-				fifo_buffer_index += 13; // move forward to next record
-
+		case (uint8_t)FIFO::Header::sensor_accel_frame: {
+				// Move past header.
+				fifo_buffer_index += 1;
+				BMI270::ProcessAccel(&accel_buffer, (FIFO::Data *)&data_buffer[fifo_buffer_index]);
+				// Move forward to next record
+				fifo_buffer_index += 6;
 			}
 			break;
 
-		case FIFO::header::skip_frame:
+		case (uint8_t)FIFO::Header::skip_frame:
 			// Skip Frame
 			// Frame length: 2 bytes (1 byte header + 1 byte payload)
 			PX4_DEBUG("Skip Frame");
 			fifo_buffer_index += 2;
 			break;
 
-		case FIFO::header::sensor_time_frame:
+		case (uint8_t)FIFO::Header::sensor_time_frame:
 			// Sensortime Frame
 			// Frame length: 4 bytes (1 byte header + 3 bytes payload)
 			PX4_DEBUG("Sensortime Frame");
 			fifo_buffer_index += 4;
 			break;
 
-		case FIFO::header::FIFO_input_config_frame:
+		case (uint8_t)FIFO::Header::FIFO_input_config_frame:
 			// FIFO input config Frame
 			// Frame length: 2 bytes (1 byte header + 1 byte payload)
 			PX4_DEBUG("FIFO input config Frame");
 			fifo_buffer_index += 2;
 			break;
 
-		case FIFO::header::sample_drop_frame:
+		case (uint8_t)FIFO::Header::sample_drop_frame:
 			// Sample drop Frame
 			// Frame length: 2 bytes (1 byte header + 1 byte payload)
 			PX4_DEBUG("Sample drop Frame");
