@@ -139,7 +139,6 @@ public:
 	struct actuator_controls_s 			*get_actuators_out0() {return &_actuators_out_0;}
 	struct actuator_controls_s 			*get_actuators_out1() {return &_actuators_out_1;}
 	struct airspeed_validated_s 			*get_airspeed() {return &_airspeed_validated;}
-	struct home_position_s				*get_home_position() {return &_home_position;}
 	struct position_setpoint_triplet_s		*get_pos_sp_triplet() {return &_pos_sp_triplet;}
 	struct tecs_status_s 				*get_tecs_status() {return &_tecs_status;}
 	struct vehicle_attitude_s 			*get_att() {return &_vehicle_attitude;}
@@ -155,6 +154,7 @@ public:
 	struct vehicle_thrust_setpoint_s 		*get_thrust_setpoint_0() {return &_thrust_setpoint_0;}
 	struct vehicle_thrust_setpoint_s 		*get_thrust_setpoint_1() {return &_thrust_setpoint_1;}
 	struct vtol_vehicle_status_s			*get_vtol_vehicle_status() {return &_vtol_vehicle_status;}
+	float get_home_position_z() { return _home_position_z; }
 
 private:
 	void Run() override;
@@ -206,7 +206,6 @@ private:
 	vehicle_thrust_setpoint_s		_thrust_setpoint_1{};
 
 	airspeed_validated_s 			_airspeed_validated{};
-	home_position_s				_home_position{};
 	position_setpoint_triplet_s		_pos_sp_triplet{};
 	tecs_status_s				_tecs_status{};
 	vehicle_attitude_s			_vehicle_attitude{};
@@ -216,6 +215,7 @@ private:
 	vehicle_local_position_setpoint_s	_local_pos_sp{};
 	vehicle_status_s 			_vehicle_status{};
 	vtol_vehicle_status_s 			_vtol_vehicle_status{};
+	float _home_position_z{0.f};
 
 	float _air_density{CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C};	// [kg/m^3]
 
