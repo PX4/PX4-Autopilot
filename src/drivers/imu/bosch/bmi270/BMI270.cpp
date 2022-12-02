@@ -891,36 +891,27 @@ void BMI270::FIFOReset()
 
 void BMI270::UpdateTemperature()
 {
-	// stored in an 11-bit value in 2’s complement format
 	uint8_t temperature_buf[4] {};
 	temperature_buf[0] = static_cast<uint8_t>(Register::TEMP_MSB) | DIR_READ;
-	// temperature_buf[1] dummy byte
 
 	if (transfer(&temperature_buf[0], &temperature_buf[0], sizeof(temperature_buf)) != PX4_OK) {
 		perf_count(_bad_transfer_perf);
 		return;
 	}
 
-	const uint8_t TEMP_MSB = temperature_buf[2];
-	const uint8_t TEMP_LSB = temperature_buf[3];
+	const uint16_t temp = temperature_buf[2] | (temperature_buf[3] << 8);
 
-	// Datasheet 5.3.7: Register 0x22 – 0x23: Temperature sensor data
-	uint16_t Temp_uint11 = (TEMP_MSB * 8) + (TEMP_LSB / 32);
-	int16_t Temp_int11 = 0;
+	float temperature;
 
-	if (Temp_uint11 > 1023) {
-		Temp_int11 = Temp_uint11 - 2048;
+	if (temp == 0x8000) {
+		// invalid
+		temperature = NAN;
 
 	} else {
-		Temp_int11 = Temp_uint11;
+		constexpr float lsb = 0.001953125f; // 1/2^9
+		temperature = 23.0f + (int16_t)temp * lsb;
 	}
 
-	float temperature = (Temp_int11 * 0.125f) + 23.f; // Temp_int11 * 0.125°C/LSB + 23°C
-
-	if (PX4_ISFINITE(temperature)) {
-		_px4_accel.set_temperature(temperature);
-
-	} else {
-		perf_count(_bad_transfer_perf);
-	}
+	_px4_accel.set_temperature(temperature);
+	_px4_gyro.set_temperature(temperature);
 }
