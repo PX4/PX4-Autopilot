@@ -321,4 +321,41 @@
 #define PIN_EMAC_MII_RMII_MDIO    PIN_EMAC_MII_RMII_MDIO_2     /* PTD16 */
 #define PIN_EMAC_MII_RMII_TX_CLK  PIN_EMAC_MII_RMII_TX_CLK_2   /* PTD6 */
 
+
+/* Board provides GPIO or other Hardware for signaling to timing analyzer */
+
+#if defined(CONFIG_BOARD_USE_PROBES)
+# include "s32k3xx_pin.h"
+# include "hardware/s32k3xx_pinmux.h"
+# define PROBE_N(n) (1<<((n)-1))
+# define PROBE_1    (PIN_PTB12 | GPIO_OUTPUT)  /* PWM-0 */
+# define PROBE_2    (PIN_PTB13 | GPIO_OUTPUT)  /* PWM-1 */
+# define PROBE_3    (PIN_PTB14 | GPIO_OUTPUT)  /* PWM-2 */
+# define PROBE_4    (PIN_PTB15 | GPIO_OUTPUT)  /* PWM-3 */
+# define PROBE_5    (PIN_PTB16 | GPIO_OUTPUT)  /* PWM-4 */
+# define PROBE_6    (PIN_PTB17 | GPIO_OUTPUT)  /* PWM-5 */
+# define PROBE_7    (PIN_PTA17 | GPIO_OUTPUT)  /* PWM-6 */
+# define PROBE_8    (PIN_PTE7  | GPIO_OUTPUT)  /* PWM-7 */
+
+# define PROBE_INIT(mask) \
+	do { \
+		if ((mask)& PROBE_N(1)) { s32k3xx_pinconfig(PROBE_1); } \
+		if ((mask)& PROBE_N(2)) { s32k3xx_pinconfig(PROBE_2); } \
+		if ((mask)& PROBE_N(3)) { s32k3xx_pinconfig(PROBE_3); } \
+		if ((mask)& PROBE_N(4)) { s32k3xx_pinconfig(PROBE_4); } \
+		if ((mask)& PROBE_N(5)) { s32k3xx_pinconfig(PROBE_5); } \
+		if ((mask)& PROBE_N(6)) { s32k3xx_pinconfig(PROBE_6); } \
+		if ((mask)& PROBE_N(7)) { s32k3xx_pinconfig(PROBE_7); } \
+		if ((mask)& PROBE_N(8)) { s32k3xx_pinconfig(PROBE_8); } \
+	} while(0)
+
+# define PROBE(n,s)  do {s32k3xx_gpiowrite(PROBE_##n,(s));}while(0)
+# define PROBE_MARK(n) PROBE(n,false);PROBE(n,true)
+#else
+# define PROBE_INIT(mask)
+# define PROBE(n,s)
+# define PROBE_MARK(n)
+#endif
+
+
 #endif  /* __BOARDS_ARM_S32K3XX_MR_CANHUBK3_INCLUDE_BOARD_H */
