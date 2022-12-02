@@ -813,6 +813,8 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 		float test_point_distance;
 		float vertical_test_point_distance;
 
+		const vehicle_global_position_s pos = _geofence.get_position_by_source(_global_pos, _gps_pos);
+
 		if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 			test_point_bearing = atan2f(_local_pos.vy, _local_pos.vx);
 			const float velocity_hor_abs = sqrtf(_local_pos.vx * _local_pos.vx + _local_pos.vy * _local_pos.vy);
@@ -836,7 +838,7 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 		_gf_breach_avoidance.setHorizontalTestPointDistance(test_point_distance);
 		_gf_breach_avoidance.setVerticalTestPointDistance(vertical_test_point_distance);
 		_gf_breach_avoidance.setTestPointBearing(test_point_bearing);
-		_gf_breach_avoidance.setCurrentPosition(_global_pos.lat, _global_pos.lon, _global_pos.alt);
+		_gf_breach_avoidance.setCurrentPosition(pos.lat, pos.lon, pos.alt);
 		_gf_breach_avoidance.setMaxHorDistHome(_geofence.getMaxHorDistanceHome());
 		_gf_breach_avoidance.setMaxVerDistHome(_geofence.getMaxVerDistanceHome());
 
@@ -848,20 +850,20 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 			fence_violation_test_point = _gf_breach_avoidance.getFenceViolationTestPoint();
 
 		} else {
-			fence_violation_test_point = matrix::Vector2d(_global_pos.lat, _global_pos.lon);
+			fence_violation_test_point = matrix::Vector2d(pos.lat, pos.lon);
 			vertical_test_point_distance = 0;
 		}
 
 		gf_violation_type.flags.dist_to_home_exceeded = !_geofence.isCloserThanMaxDistToHome(fence_violation_test_point(0),
 				fence_violation_test_point(1),
-				_global_pos.alt);
+				pos.alt);
 
-		gf_violation_type.flags.max_altitude_exceeded = !_geofence.isBelowMaxAltitude(_global_pos.alt +
+		gf_violation_type.flags.max_altitude_exceeded = !_geofence.isBelowMaxAltitude(pos.alt +
 				vertical_test_point_distance);
 
 		gf_violation_type.flags.fence_violation = !_geofence.isInsidePolygonOrCircle(fence_violation_test_point(0),
 				fence_violation_test_point(1),
-				_global_pos.alt);
+				pos.alt);
 
 		_last_geofence_check = hrt_absolute_time();
 		have_geofence_position_data = false;
@@ -896,8 +898,8 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 					position_setpoint_triplet_s *rep = get_reposition_triplet();
 
 					matrix::Vector2<double> loiter_center_lat_lon;
-					matrix::Vector2<double> current_pos_lat_lon(_global_pos.lat, _global_pos.lon);
-					float loiter_altitude_amsl = _global_pos.alt;
+					matrix::Vector2<double> current_pos_lat_lon(pos.lat, pos.lon);
+					float loiter_altitude_amsl = pos.alt;
 
 
 					if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {

@@ -359,7 +359,7 @@ private:
 	home_position_s					_home_pos{};		/**< home position for RTL */
 	mission_result_s				_mission_result{};
 	vehicle_global_position_s			_global_pos{};		/**< global vehicle position */
-	sensor_gps_s				_gps_pos{};		/**< gps position */
+	sensor_gps_s					_gps_pos{};		/**< gps position */
 	vehicle_land_detected_s				_land_detected{};	/**< vehicle land_detected */
 	vehicle_local_position_s			_local_pos{};		/**< local vehicle position */
 	vehicle_status_s				_vstatus{};		/**< vehicle status */

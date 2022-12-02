@@ -215,26 +215,7 @@ bool Geofence::checkAll(double lat, double lon, float altitude)
 
 bool Geofence::check(const vehicle_global_position_s &global_position, const sensor_gps_s &gps_position)
 {
-	if (_param_gf_altmode.get() == Geofence::GF_ALT_MODE_WGS84) {
-		if (getSource() == Geofence::GF_SOURCE_GLOBALPOS) {
-			return checkAll(global_position);
-
-		} else {
-			return checkAll(gps_position.lat * 1.0e-7, gps_position.lon * 1.0e-7, gps_position.alt * 1.0e-3);
-		}
-
-	} else {
-		// get baro altitude
-		_sub_airdata.update();
-		const float baro_altitude_amsl = _sub_airdata.get().baro_alt_meter;
-
-		if (getSource() == Geofence::GF_SOURCE_GLOBALPOS) {
-			return checkAll(global_position, baro_altitude_amsl);
-
-		} else {
-			return checkAll(gps_position.lat * 1.0e-7, gps_position.lon * 1.0e-7, baro_altitude_amsl);
-		}
-	}
+	return checkAll(get_position_by_source(global_position, gps_position));
 }
 
 bool Geofence::check(const struct mission_item_s &mission_item)
@@ -628,4 +609,32 @@ void Geofence::printStatus()
 	PX4_INFO("Geofence: %i inclusion, %i exclusion polygons, %i inclusion, %i exclusion circles, %i total vertices",
 		 num_inclusion_polygons, num_exclusion_polygons, num_inclusion_circles, num_exclusion_circles,
 		 total_num_vertices);
+}
+
+const vehicle_global_position_s Geofence::get_position_by_source(const vehicle_global_position_s &global_position, const sensor_gps_s &gps_position)
+{
+	vehicle_global_position_s pos;
+	if (_param_gf_altmode.get() == Geofence::GF_ALT_MODE_WGS84) {
+		if (getSource() == Geofence::GF_SOURCE_GLOBALPOS) {
+			pos = global_position;
+		} else {
+			pos.lat = (double)gps_position.lat * 1.0e-7;
+			pos.lon = (double)gps_position.lon * 1.0e-7;
+			pos.alt = (double)gps_position.alt * 1.0e-3;
+		}
+	} else {
+		// get baro altitude
+		_sub_airdata.update();
+		const float baro_altitude_amsl = _sub_airdata.get().baro_alt_meter;
+
+		if (getSource() == Geofence::GF_SOURCE_GLOBALPOS) {
+			pos = global_position;
+			pos.alt = baro_altitude_amsl;
+		} else {
+			pos.lat = (double)gps_position.lat * 1.0e-7;
+			pos.lon = (double)gps_position.lon * 1.0e-7;
+			pos.alt = baro_altitude_amsl;
+		}
+	}
+	return pos;
 }

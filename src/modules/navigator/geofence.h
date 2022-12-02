@@ -152,6 +152,13 @@ public:
 	 */
 	void printStatus();
 
+	/**
+	 * Get the position of a vehicle as a global position structure depending on GF_SOURCE and GF_ALTMODE parameters
+	 *
+	 * @return global position
+	 */
+	const vehicle_global_position_s get_position_by_source(const vehicle_global_position_s &global_position, const sensor_gps_s &gps_position);
+
 private:
 
 	struct PolygonInfo {
