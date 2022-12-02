@@ -251,7 +251,7 @@ bool LandingTargetEstimator::update_step(Vector3f vehicle_acc_ned)
 		obs_irlock.type = irlock;
 
 		if (processObsIRlock(irlock_report, obs_irlock)) {
-			irlock_valid = true;
+			irlock_valid = ((hrt_absolute_time() - obs_irlock.timestamp) < measurement_valid_TIMEOUT_US);
 		}
 	}
 
@@ -261,7 +261,7 @@ bool LandingTargetEstimator::update_step(Vector3f vehicle_acc_ned)
 		obs_uwb.type = uwb;
 
 		if (processObsUWB(uwb_distance, obs_uwb)) {
-			uwb_valid = true;
+			uwb_valid = ((hrt_absolute_time() - obs_uwb.timestamp) < measurement_valid_TIMEOUT_US);
 		}
 	}
 
@@ -272,7 +272,7 @@ bool LandingTargetEstimator::update_step(Vector3f vehicle_acc_ned)
 		obs_fiducial_marker.type = fiducial_marker;
 
 		if (processObsVision(fiducial_marker_pose, obs_fiducial_marker)) {
-			fiducial_marker_valid = true;
+			fiducial_marker_valid = ((hrt_absolute_time() - obs_fiducial_marker.timestamp) < measurement_valid_TIMEOUT_US);
 		}
 
 		if (_estimate_orientation) {
@@ -298,7 +298,7 @@ bool LandingTargetEstimator::update_step(Vector3f vehicle_acc_ned)
 				obs_target_gps_pos.type = target_gps_pos;
 
 				if (processObsTargetGNSS(target_GNSS_report, target_GNSS_valid, vehicle_gps_position, obs_target_gps_pos)) {
-					pos_GNSS_valid	= true;
+					pos_GNSS_valid	= ((hrt_absolute_time() - obs_target_gps_pos.timestamp) < measurement_valid_TIMEOUT_US);
 				}
 			}
 
@@ -309,7 +309,7 @@ bool LandingTargetEstimator::update_step(Vector3f vehicle_acc_ned)
 				obs_uav_gps_vel.type = uav_gps_vel;
 
 				if (processObsUavGNSSVel(target_GNSS_report, vehicle_gps_position, obs_uav_gps_vel)) {
-					uav_gps_vel_valid = true;
+					uav_gps_vel_valid = ((hrt_absolute_time() - obs_uav_gps_vel.timestamp) < measurement_valid_TIMEOUT_US);
 				}
 			}
 		}
