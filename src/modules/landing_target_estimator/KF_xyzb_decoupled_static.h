@@ -32,10 +32,10 @@
  ****************************************************************************/
 
 /*
- * @file KFxyzDecoupledMoving.h
+ * @file KF_xyzb_decoupled_static.h
  * Simple Kalman Filter for variable gain low-passing
  *
- * State: [r, r_dot, bias, target_acc]
+ * State: [r, r_dot, bias]
  *
  * @author Jonas Perolini <jonas.perolini@epfl.ch>
  *
@@ -52,18 +52,18 @@
 
 namespace landing_target_estimator
 {
-class KFxyzDecoupledMoving : public TargetEstimator
+class KF_xyzb_decoupled_static : public TargetEstimator
 {
 public:
 	/**
 	 * Default constructor, state not initialized
 	 */
-	KFxyzDecoupledMoving() {};
+	KF_xyzb_decoupled_static() {};
 
 	/**
 	 * Default desctructor
 	 */
-	virtual ~KFxyzDecoupledMoving() {};
+	virtual ~KF_xyzb_decoupled_static() {};
 
 	//Prediction step:
 	void predictState(float dt, float acc) override;
@@ -83,30 +83,30 @@ public:
 	void setPosition(float pos) override { _state(0, 0) = pos; };
 	void setVelocity(float vel) override { _state(1, 0) = vel; };
 	void setBias(float bias) override { _state(2, 0) = bias; };
-	void setTargetAcc(float acc) override { _state(3, 0) = acc; };
 
 	// Init: P_0
 	void setStatePosVar(float pos_unc) override { _covariance(0, 0) = pos_unc; };
 	void setStateVelVar(float vel_unc) override { _covariance(1, 1) = vel_unc; };
 	void setStateBiasVar(float bias_unc) override { _covariance(2, 2) = bias_unc; };
-	void setStateAccVar(float acc_unc) override { _covariance(3, 3) = acc_unc; };
 
 	// Retreive output of filter
 	float getPosition() override { return _state(0, 0); };
 	float getVelocity() override { return _state(1, 0); };
 	float getBias() override { return _state(2, 0); };
-	float getAcceleration() override { return _state(3, 0); };
 
 	float getPosVar() override { return _covariance(0, 0); };
 	float getVelVar() override { return _covariance(1, 1); };
 	float getBiasVar() override { return _covariance(2, 2); };
-	float getAccVar() override { return _covariance(3, 3); };
 
-	void setInputAccVar(float var) override { _input_var = var;};
+	void setInputAccVar(float var) override { _input_var = var; };
 	void setBiasVar(float var) override { _bias_var = var; };
-	void setTargetAccVar(float var) override { _acc_var = var; };
 
 	/* Unused functions:  */
+	void setTargetAcc(float acc) override {}
+	void setStateAccVar(float acc_unc) override {};
+	float getAcceleration() override { return 0.f; };
+	float getAccVar() override { return 0.f; };
+	void setTargetAccVar(float var) override {};
 	void computeDynamicMatrix(float dt) override {};
 	void computeProcessNoise(float dt) override {};
 
@@ -114,17 +114,15 @@ public:
 	void setH(float h_meas) override {};
 
 private:
-	matrix::Matrix<float, 4, 1> _state; // state
+	matrix::Matrix<float, 3, 1> _state; // state
 
-	matrix::Matrix<float, 4, 1> _sync_state; // state
+	matrix::Matrix<float, 3, 1> _sync_state; // state
 
-	matrix::Matrix<float, 1, 4> _meas_matrix; // row of measurement matrix
+	matrix::Matrix<float, 1, 3> _meas_matrix; // row of measurement matrix
 
-	matrix::Matrix<float, 4, 4> _covariance; // state covariance
+	matrix::Matrix<float, 3, 3> _covariance; // state covariance
 
 	float _bias_var{0.f}; // target/UAV GPS bias variance
-
-	float _acc_var{0.f}; // Target acceleration variance
 
 	float _input_var{0.f}; // UAV acceleration variance
 

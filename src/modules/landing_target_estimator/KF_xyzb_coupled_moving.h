@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /*
- * @file KFxyzCoupledStatic.h
+ * @file KF_xyzb_coupled_moving.h
  * Simple Kalman Filter for variable gain low-passing
  *
  * State: [rx, ry, rz, r_dotx, r_doty, r_dotz, bx, by, bz, atx, aty, atz]
@@ -52,18 +52,18 @@
 
 namespace landing_target_estimator
 {
-class KFxyzCoupledStatic : public TargetEstimatorCoupled
+class KF_xyzb_coupled_moving : public TargetEstimatorCoupled
 {
 public:
 	/**
 	 * Default constructor, state not initialized
 	 */
-	KFxyzCoupledStatic() {};
+	KF_xyzb_coupled_moving() {};
 
 	/**
 	 * Default desctructor
 	 */
-	virtual ~KFxyzCoupledStatic() {};
+	virtual ~KF_xyzb_coupled_moving() {};
 
 	//Prediction step:
 	void predictState(float dt, matrix::Vector<float, 3> acc) override;
@@ -83,45 +83,44 @@ public:
 	void setPosition(matrix::Vector<float, 3> posVect) override { _state(0, 0) = posVect(0); _state(1, 0) = posVect(1); _state(2, 0) = posVect(2);};
 	void setVelocity(matrix::Vector<float, 3> velVect) override  { _state(3, 0) = velVect(0); _state(4, 0) = velVect(1); _state(5, 0) = velVect(2);};
 	void setBias(matrix::Vector<float, 3> biasVect) override  { _state(6, 0) = biasVect(0); _state(7, 0) = biasVect(1); _state(8, 0) = biasVect(2);};
+	void setTargetAcc(matrix::Vector<float, 3> accVect) override { _state(9, 0) = accVect(0); _state(10, 0) = accVect(1); _state(11, 0) = accVect(2);};
 
 	// Init: P_0 (assume diagonal)
 	void setStatePosVar(matrix::Vector<float, 3> posVect) override { _covariance(0, 0) = posVect(0); _covariance(1, 1) = posVect(1); _covariance(2, 2) = posVect(2);};
 	void setStateVelVar(matrix::Vector<float, 3> velVect) override { _covariance(3, 3) = velVect(0); _covariance(4, 4) = velVect(1); _covariance(5, 5) = velVect(2);};
-	void setStateBiasVar(matrix::Vector<float, 3> biasVarVect) override { _covariance(6, 6) = biasVarVect(0); _covariance(7, 7) = biasVarVect(1); _covariance(8, 8) = biasVarVect(2);};
+	void setStateBiasVar(matrix::Vector<float, 3> biasVect) override { _covariance(6, 6) = biasVect(0); _covariance(7, 7) = biasVect(1); _covariance(8, 8) = biasVect(2);};
+	void setStateAccVar(matrix::Vector<float, 3> accVect) override { _covariance(9, 9) = accVect(0); _covariance(10, 10) = accVect(1); _covariance(11, 11) = accVect(2);};
 
 	// Retreive output of filter
 	matrix::Vector<float, 3> getPositionVect() override {matrix::Vector3f pos_vect(_state(0, 0), _state(1, 0), _state(2, 0)); return pos_vect;};
 	matrix::Vector<float, 3> getVelocityVect() override {matrix::Vector3f vel_vect(_state(3, 0), _state(4, 0), _state(5, 0)); return vel_vect;};
 	matrix::Vector<float, 3> getBiasVect() override {matrix::Vector3f bias_vect(_state(6, 0), _state(7, 0), _state(8, 0)); return bias_vect;};
-
+	matrix::Vector<float, 3> getAccelerationVect() override {matrix::Vector3f acc_vect(_state(9, 0), _state(10, 0), _state(11, 0)); return acc_vect;};
 	matrix::Vector<float, 3> getPosVarVect() override {matrix::Vector3f pos_var_vect(_covariance(0, 0), _covariance(1, 1), _covariance(2, 2)); return pos_var_vect;};
 	matrix::Vector<float, 3> getVelVarVect() override {matrix::Vector3f vel_var_vect(_covariance(3, 3), _covariance(4, 4), _covariance(5, 5)); return vel_var_vect;};
 	matrix::Vector<float, 3> getBiasVarVect() override {matrix::Vector3f bias_var_vect(_covariance(6, 6), _covariance(7, 7), _covariance(8, 8)); return bias_var_vect;};
+	matrix::Vector<float, 3> getAccVarVect() override {matrix::Vector3f acc_var_vect(_covariance(9, 9), _covariance(10, 10), _covariance(11, 11)); return acc_var_vect;};
 
 	void setInputAccVar(matrix::Matrix<float, 3, 3> varVect) override {_input_var = varVect;};
 	void setBiasVar(matrix::Matrix<float, 3, 3> varVect) override {_bias_var = varVect;};
-
+	void setTargetAccVar(matrix::Matrix<float, 3, 3> varVect) override {_acc_var = varVect;};
 
 	/* Unused functions:  */
 	void computeDynamicMatrix(float dt) override {};
 	void computeProcessNoise(float dt) override {};
-	void setTargetAccVar(matrix::Matrix<float, 3, 3> varVect) override {};
-	matrix::Vector<float, 3> getAccVarVect() override {matrix::Vector<float, 3> dummy_vect; return dummy_vect;};
-	matrix::Vector<float, 3> getAccelerationVect() override {matrix::Vector<float, 3> dummy_vect; return dummy_vect;};
-	void setStateAccVar(matrix::Vector<float, 3> posVect) override {};
-	void setTargetAcc(matrix::Vector<float, 3> accVect) override {};
-
 
 private:
-	matrix::Matrix<float, 9, 1> _state; // state
+	matrix::Matrix<float, 12, 1> _state; // state
 
-	matrix::Matrix<float, 9, 1> _sync_state; // state
+	matrix::Matrix<float, 12, 1> _sync_state; // state
 
-	matrix::Matrix<float, 1, 9> _meas_matrix; // row of measurement matrix
+	matrix::Matrix<float, 1, 12> _meas_matrix; // row of measurement matrix
 
-	matrix::Matrix<float, 9, 9> _covariance; // state covariance
+	matrix::Matrix<float, 12, 12> _covariance; // state covariance
 
 	matrix::Matrix<float, 3, 3> _bias_var; // target/UAV GPS bias variance
+
+	matrix::Matrix<float, 3, 3> _acc_var; // Target acceleration variance
 
 	matrix::Matrix<float, 3, 3> _input_var; // UAV acceleration variance
 

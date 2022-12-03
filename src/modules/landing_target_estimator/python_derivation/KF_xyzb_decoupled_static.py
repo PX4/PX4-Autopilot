@@ -10,7 +10,7 @@ def generate_px4_function(function_name, output_names):
             output_names=output_names,
             config=CppConfig())
     metadata = codegen.generate_function(
-            output_dir="src/modules/landing_target_estimator/python_derivation/generated/decoupled_static",
+            output_dir="src/modules/landing_target_estimator/python_derivation/generated/decoupled_static_xyzb",
             skip_directory_nesting=True)
 
     print("Files generated in {}:\n".format(metadata.output_dir))

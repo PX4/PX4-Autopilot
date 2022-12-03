@@ -39,10 +39,10 @@ px4_add_module(
 		landing_target_estimator_main.cpp
 		LandingTargetEstimator.cpp
 		KalmanFilter.cpp
-		KFxyzCoupledMoving.cpp
-		KFxyzDecoupledMoving.cpp
-		KFxyzDecoupledStatic.cpp
-		KFxyzCoupledStatic.cpp
+		KF_xyzb_coupled_moving.cpp
+		KF_xyzb_decoupled_moving.cpp
+		KF_xyzb_decoupled_static.cpp
+		KF_xyzb_coupled_static.cpp
 	DEPENDS
 	)
 

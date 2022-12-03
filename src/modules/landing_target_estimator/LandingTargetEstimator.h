@@ -73,10 +73,10 @@
 #include <lib/conversion/rotation.h>
 #include <lib/geo/geo.h>
 #include "KalmanFilter.h"
-#include "KFxyzDecoupledStatic.h"
-#include "KFxyzDecoupledMoving.h"
-#include "KFxyzCoupledMoving.h"
-#include "KFxyzCoupledStatic.h"
+#include "KF_xyzb_decoupled_static.h"
+#include "KF_xyzb_decoupled_moving.h"
+#include "KF_xyzb_coupled_moving.h"
+#include "KF_xyzb_coupled_static.h"
 
 using namespace time_literals;
 

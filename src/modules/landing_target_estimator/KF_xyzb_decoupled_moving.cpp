@@ -32,21 +32,21 @@
  ****************************************************************************/
 
 /*
- * @file KFxyzDecoupledStatic.h
+ * @file KF_xyzb_decoupled_moving.h
  * Simple Kalman Filter for static target
  *
  * @author Jonas Perolini <jonas.perolini@epfl.ch>
  *
  */
 
-#include "KFxyzDecoupledMoving.h"
-#include "python_derivation/generated/decoupled_moving/predictCov.h"
-#include "python_derivation/generated/decoupled_moving/computeInnovCov.h"
+#include "KF_xyzb_decoupled_moving.h"
+#include "python_derivation/generated/decoupled_moving_xyzb/predictCov.h"
+#include "python_derivation/generated/decoupled_moving_xyzb/computeInnovCov.h"
 
 namespace landing_target_estimator
 {
 
-void KFxyzDecoupledMoving::predictState(float dt, float acc)
+void KF_xyzb_decoupled_moving::predictState(float dt, float acc)
 {
 	const float tmp0 = 0.5f * dt * dt;
 
@@ -54,7 +54,7 @@ void KFxyzDecoupledMoving::predictState(float dt, float acc)
 	_state(1, 0) = _state(1, 0) + _state(3, 0) * dt - acc * dt;
 }
 
-void KFxyzDecoupledMoving::predictCov(float dt)
+void KF_xyzb_decoupled_moving::predictCov(float dt)
 {
 	matrix::Matrix<float, 4, 4> cov_updated;
 	sym::Predictcov(dt, _input_var, _bias_var, _acc_var, _covariance, &cov_updated);
@@ -62,7 +62,7 @@ void KFxyzDecoupledMoving::predictCov(float dt)
 }
 
 
-bool KFxyzDecoupledMoving::update()
+bool KF_xyzb_decoupled_moving::update()
 {
 	// Avoid zero-division
 	if (_innov_cov  <= 0.000001f && _innov_cov  >= -0.000001f) {
@@ -85,7 +85,7 @@ bool KFxyzDecoupledMoving::update()
 	return true;
 }
 
-void KFxyzDecoupledMoving::setH(matrix::Vector<float, 12> h_meas)
+void KF_xyzb_decoupled_moving::setH(matrix::Vector<float, 12> h_meas)
 {
 	// h_meas = [rx, ry, rz, r_dotx, r_doty, r_dotz, bx, by, bz, atx, aty, atz]
 
@@ -98,7 +98,7 @@ void KFxyzDecoupledMoving::setH(matrix::Vector<float, 12> h_meas)
 
 }
 
-void KFxyzDecoupledMoving::syncState(float dt, float acc)
+void KF_xyzb_decoupled_moving::syncState(float dt, float acc)
 {
 	const float _tmp0 = 0.5f * dt * dt;
 	const float _tmp1 = _state(1, 0);
@@ -110,7 +110,7 @@ void KFxyzDecoupledMoving::syncState(float dt, float acc)
 	_sync_state(3, 0) = _tmp2;
 }
 
-float KFxyzDecoupledMoving::computeInnovCov(float meas_unc)
+float KF_xyzb_decoupled_moving::computeInnovCov(float meas_unc)
 {
 	float innov_cov_updated;
 	sym::Computeinnovcov(meas_unc, _covariance, _meas_matrix, &innov_cov_updated);
@@ -119,7 +119,7 @@ float KFxyzDecoupledMoving::computeInnovCov(float meas_unc)
 	return _innov_cov;
 }
 
-float KFxyzDecoupledMoving::computeInnov(float meas)
+float KF_xyzb_decoupled_moving::computeInnov(float meas)
 {
 	/* z - H*x */
 	_innov = meas - (_meas_matrix * _sync_state)(0, 0);
