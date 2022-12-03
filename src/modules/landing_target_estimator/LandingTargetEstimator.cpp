@@ -77,6 +77,13 @@ LandingTargetEstimator::~LandingTargetEstimator()
 	delete _target_estimator_coupled;
 }
 
+void LandingTargetEstimator::resetFilter()
+{
+	_estimator_initialized = false;
+	_new_pos_sensor_acquired_time = 0;
+	_bias_set = false;
+}
+
 void LandingTargetEstimator::update()
 {
 	_check_params(false);
@@ -95,8 +102,7 @@ void LandingTargetEstimator::update()
 
 		if (hrt_absolute_time() - _last_update > _ltest_TIMEOUT_US) {
 			PX4_WARN("LTE estimator timeout");
-			_estimator_initialized = false;
-			_new_pos_sensor_acquired_time = 0;
+			resetFilter();
 
 		} else {
 			predictionStep(input.vehicle_acc_ned);
@@ -318,7 +324,20 @@ bool LandingTargetEstimator::update_step(Vector3f vehicle_acc_ned)
 
 	// If one pos measurement was updated, return true
 	bool new_pos_sensor = pos_GNSS_valid || fiducial_marker_valid || irlock_valid || uwb_valid;
+	bool new_non_gnss_pos_sensor = fiducial_marker_valid || irlock_valid || uwb_valid;
 	bool new_vel_sensor = uav_gps_vel_valid;
+
+	// Once a position measurement other than the target GPS is available, restart the filter and set the bias.
+	if (!_bias_set && ((_ltest_aid_mask & SensorFusionMask::USE_TARGET_GPS_POS)
+			   || (_ltest_aid_mask & SensorFusionMask::USE_MISSION_POS))
+	    && (((hrt_absolute_time() - _pos_rel_gnss.timestamp) < measurement_valid_TIMEOUT_US) && new_non_gnss_pos_sensor)) {
+
+		if (_estimator_initialized) {
+			PX4_INFO("Second relative position measurement available, restarting filter.");
+		}
+
+		_estimator_initialized = false;
+	}
 
 	bool pos_fused = false;
 
@@ -388,25 +407,25 @@ bool LandingTargetEstimator::update_step(Vector3f vehicle_acc_ned)
 			if (fiducial_marker_valid) {
 				pos_init = obs_fiducial_marker.meas_xyz;
 
-			} else if (pos_GNSS_valid) {
-				pos_init = obs_target_gps_pos.meas_xyz;
-
 			} else if (irlock_valid) {
 				pos_init = obs_irlock.meas_xyz;
 
 			} else if (uwb_valid) {
 				pos_init = obs_uwb.meas_xyz;
 
-			} else {
-				pos_init.zero();
+			} else if (pos_GNSS_valid) {
+				pos_init = obs_target_gps_pos.meas_xyz;
+			}
+
+			// Compute the initial bias as the difference between the GPS and external position estimate.
+			if (((hrt_absolute_time() - _pos_rel_gnss.timestamp) < measurement_valid_TIMEOUT_US) && new_non_gnss_pos_sensor) {
+				bias_init = pos_init - _pos_rel_gnss.xyz;
+				_bias_set = true;
 			}
 
 			// Define initial relative velocity of the target w.r.t. to the drone in NED frame
-			if (_vel_rel_init.valid && (hrt_absolute_time() - _vel_rel_init.timestamp < measurement_valid_TIMEOUT_US)) {
-				vel_rel_init = _vel_rel_init.vel;
-
-			} else {
-				vel_rel_init.zero();
+			if (_vel_rel_init.valid && ((hrt_absolute_time() - _vel_rel_init.timestamp) < measurement_valid_TIMEOUT_US)) {
+				vel_rel_init = _vel_rel_init.xyz;
 			}
 
 			initEstimator(pos_init, vel_rel_init, acc_init, bias_init);
@@ -604,9 +623,7 @@ bool LandingTargetEstimator::processObsUavGNSSVel(const landing_target_gnss_s &t
 	// Keep track of the initial relative velocity
 	_vel_rel_init.timestamp = vehicle_gps_position.timestamp;
 	_vel_rel_init.valid = vehicle_gps_position.vel_ned_valid;
-	_vel_rel_init.vel(0) = -vehicle_gps_position.vel_n_m_s;
-	_vel_rel_init.vel(1) = -vehicle_gps_position.vel_e_m_s;
-	_vel_rel_init.vel(2) = -vehicle_gps_position.vel_d_m_s;
+	_vel_rel_init.xyz = obs.meas_xyz;
 
 	return true;
 
@@ -715,6 +732,12 @@ bool LandingTargetEstimator::processObsTargetGNSS(const landing_target_gnss_s &t
 		obs.meas_unc_xyz(2) = gps_unc_vertical;
 
 		obs.updated_xyz.setAll(true);
+
+		// Keep track of the gps relative position
+		_pos_rel_gnss.timestamp = obs.timestamp;
+		_pos_rel_gnss.valid = (PX4_ISFINITE(gps_relative_pos(0)) && PX4_ISFINITE(gps_relative_pos(1))
+				       && PX4_ISFINITE(gps_relative_pos(2)));
+		_pos_rel_gnss.xyz = gps_relative_pos;
 
 		return true;
 	}
@@ -1154,8 +1177,8 @@ void LandingTargetEstimator::publishTarget()
 
 		PX4_DEBUG("Bias exceeds limit: %.2f bias x: %.2f bias y: %.2f bias z: %.2f", (double)bias_lim,
 			  (double)target_estimator_state.x_bias, (double)target_estimator_state.y_bias, (double)target_estimator_state.z_bias);
-		// _estimator_initialized = false;
-		// _new_pos_sensor_acquired_time = 0;
+
+		// resetFilter();
 	}
 
 }
@@ -1193,11 +1216,11 @@ void LandingTargetEstimator::get_input(accInput *input)
 	// Stop computations once the drone has landed
 	if (_start_filter && _vehicle_land_detected_sub.update(&vehicle_land_detected) && vehicle_land_detected.landed) {
 		PX4_INFO("Land detected, target estimator stoped.");
+
+		resetFilter();
+
 		_start_filter = false;
 		_landing_pos.valid = false;
-		_estimator_initialized = false;
-		_new_pos_sensor_acquired_time = 0;
-
 		_land_time = hrt_absolute_time();
 
 		return;

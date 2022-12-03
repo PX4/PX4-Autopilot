@@ -258,13 +258,15 @@ private:
 
 	globalPos _landing_pos{};
 
-	struct localVel {
+	struct vecStamped {
 		hrt_abstime timestamp;
 		bool valid = false;
-		matrix::Vector3f vel;
+		matrix::Vector3f xyz;
 	};
 
-	localVel _vel_rel_init{};
+	vecStamped _vel_rel_init{};
+	vecStamped _pos_rel_gnss{};
+	bool _bias_set;
 
 	uint64_t _new_pos_sensor_acquired_time{0};
 	uint64_t _land_time{0};
@@ -281,6 +283,7 @@ private:
 	void _check_params(const bool force);
 
 	void _update_state();
+	void resetFilter();
 
 	/* parameters */
 	uint32_t _ltest_TIMEOUT_US = 3000000; // timeout after which filter is reset if target not seen
