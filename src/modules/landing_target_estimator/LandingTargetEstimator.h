@@ -77,6 +77,8 @@
 #include "KF_xyzb_decoupled_moving.h"
 #include "KF_xyzb_coupled_moving.h"
 #include "KF_xyzb_coupled_static.h"
+#include "KF_xyz_coupled_moving.h"
+#include "KF_xyz_coupled_static.h"
 
 using namespace time_literals;
 
@@ -205,8 +207,8 @@ private:
 		USE_MISSION_POS     = (1 << 5),    ///< set to true to use the PX4 mission landing position
 	};
 
-	void selectTargetEstimator();
-	void initEstimator(matrix::Vector3f pos_init, matrix::Vector3f vel_rel_init, matrix::Vector3f acc_init,
+	bool selectTargetEstimator();
+	bool initEstimator(matrix::Vector3f pos_init, matrix::Vector3f vel_rel_init, matrix::Vector3f acc_init,
 			   matrix::Vector3f bias_init);
 	bool update_step(matrix::Vector3f vehicle_acc_ned);
 	void predictionStep(matrix::Vector3f acc);
