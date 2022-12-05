@@ -1,8 +1,6 @@
 /************************************************************************************
- * nuttx-configs/px4_fmu-v6u/include/board.h
  *
- *   Copyright (C) 2016-2019 Gregory Nutt. All rights reserved.
- *   Authors: David Sidrane <david.sidrane@nscdg.com>
+ *   Copyright (C) 2016-2022 Gregory Nutt. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,10 +32,6 @@
  ************************************************************************************/
 #pragma once
 
-/************************************************************************************
- * Included Files
- ************************************************************************************/
-
 #include "board_dma_map.h"
 
 #include <nuttx/config.h>
@@ -49,10 +43,6 @@
 #include "stm32_rcc.h"
 #include "stm32_sdmmc.h"
 
-/************************************************************************************
- * Pre-processor Definitions
- ************************************************************************************/
-
 /* Clocking *************************************************************************/
 /* The board provides the following clock sources:
  *
@@ -60,16 +50,15 @@
  *
  * So we have these clock source available within the STM32
  *
- *   HSI: 64 MHz RC factory-trimmed
+ *   HSI: 16 MHz RC factory-trimmed
  *   HSE:  8 MHz crystal for HSE
  */
-
 #define STM32_BOARD_XTAL        8000000ul
 
 #define STM32_HSI_FREQUENCY     16000000ul
 #define STM32_LSI_FREQUENCY     32000
 #define STM32_HSE_FREQUENCY     STM32_BOARD_XTAL
-#define STM32_LSE_FREQUENCY     32768
+#define STM32_LSE_FREQUENCY     0
 
 /* Main PLL Configuration.
  *
@@ -92,10 +81,6 @@
  *   CPUCLK <= 480 MHz
  */
 
-#define STM32_BOARD_USEHSE
-
-#define STM32_PLLCFG_PLLSRC      RCC_PLLCKSELR_PLLSRC_HSE
-
 /* PLL1, wide 4 - 8 MHz input, enable DIVP, DIVQ, DIVR
  *
  *   PLL1_VCO = (8,000,000 / 1) * 120 = 960 MHz
@@ -104,12 +89,7 @@
  *   PLL1Q = PLL1_VCO/4  = 960 MHz / 4   = 240 MHz
  *   PLL1R = PLL1_VCO/8  = 960 MHz / 8   = 120 MHz
  */
-
-#define STM32_PLLCFG_PLL1CFG    (RCC_PLLCFGR_PLL1VCOSEL_WIDE | \
-				 RCC_PLLCFGR_PLL1RGE_4_8_MHZ | \
-				 RCC_PLLCFGR_DIVP1EN | \
-				 RCC_PLLCFGR_DIVQ1EN | \
-				 RCC_PLLCFGR_DIVR1EN)
+#define STM32_PLLCFG_PLL1CFG    (RCC_PLLCFGR_PLL1VCOSEL_WIDE|RCC_PLLCFGR_PLL1RGE_4_8_MHZ|RCC_PLLCFGR_DIVP1EN|RCC_PLLCFGR_DIVQ1EN|RCC_PLLCFGR_DIVR1EN)
 #define STM32_PLLCFG_PLL1M       RCC_PLLCKSELR_DIVM1(1)
 #define STM32_PLLCFG_PLL1N       RCC_PLL1DIVR_N1(120)
 #define STM32_PLLCFG_PLL1P       RCC_PLL1DIVR_P1(2)
@@ -122,12 +102,7 @@
 #define STM32_PLL1R_FREQUENCY    (STM32_VCO1_FREQUENCY / 8)
 
 /* PLL2 */
-
-#define STM32_PLLCFG_PLL2CFG     (RCC_PLLCFGR_PLL2VCOSEL_WIDE | \
-				  RCC_PLLCFGR_PLL2RGE_4_8_MHZ | \
-				  RCC_PLLCFGR_DIVP2EN | \
-				  RCC_PLLCFGR_DIVQ2EN | \
-				  RCC_PLLCFGR_DIVR2EN)
+#define STM32_PLLCFG_PLL2CFG     (RCC_PLLCFGR_PLL2VCOSEL_WIDE|RCC_PLLCFGR_PLL2RGE_4_8_MHZ|RCC_PLLCFGR_DIVP2EN|RCC_PLLCFGR_DIVQ2EN|RCC_PLLCFGR_DIVR2EN)
 #define STM32_PLLCFG_PLL2M       RCC_PLLCKSELR_DIVM2(2)
 #define STM32_PLLCFG_PLL2N       RCC_PLL2DIVR_N2(48)
 #define STM32_PLLCFG_PLL2P       RCC_PLL2DIVR_P2(2)
@@ -140,10 +115,7 @@
 #define STM32_PLL2R_FREQUENCY    (STM32_VCO2_FREQUENCY / 2)
 
 /* PLL3 */
-
-#define STM32_PLLCFG_PLL3CFG    (RCC_PLLCFGR_PLL3VCOSEL_WIDE | \
-				 RCC_PLLCFGR_PLL3RGE_4_8_MHZ | \
-				 RCC_PLLCFGR_DIVQ3EN)
+#define STM32_PLLCFG_PLL3CFG    (RCC_PLLCFGR_PLL3VCOSEL_WIDE|RCC_PLLCFGR_PLL3RGE_4_8_MHZ|RCC_PLLCFGR_DIVQ3EN)
 #define STM32_PLLCFG_PLL3M      RCC_PLLCKSELR_DIVM3(2)
 #define STM32_PLLCFG_PLL3N      RCC_PLL3DIVR_N3(48)
 #define STM32_PLLCFG_PLL3P      RCC_PLL3DIVR_P3(2)
@@ -158,7 +130,6 @@
 /* SYSCLK = PLL1P = 480MHz
  * CPUCLK = SYSCLK / 1 = 480 MHz
  */
-
 #define STM32_RCC_D1CFGR_D1CPRE  (RCC_D1CFGR_D1CPRE_SYSCLK)
 #define STM32_SYSCLK_FREQUENCY   (STM32_PLL1P_FREQUENCY)
 #define STM32_CPUCLK_FREQUENCY   (STM32_SYSCLK_FREQUENCY / 1)
@@ -168,19 +139,16 @@
 /* AHB clock (HCLK) is SYSCLK/2 (240 MHz max)
  * HCLK1 = HCLK2 = HCLK3 = HCLK4 = 240
  */
-
 #define STM32_RCC_D1CFGR_HPRE   RCC_D1CFGR_HPRE_SYSCLKd2        /* HCLK  = SYSCLK / 2 */
 #define STM32_ACLK_FREQUENCY    (STM32_CPUCLK_FREQUENCY / 2)    /* ACLK in D1, HCLK3 in D1 */
 #define STM32_HCLK_FREQUENCY    (STM32_CPUCLK_FREQUENCY / 2)    /* HCLK in D2, HCLK4 in D3 */
 #define STM32_BOARD_HCLK        STM32_HCLK_FREQUENCY            /* same as above, to satisfy compiler */
 
 /* APB1 clock (PCLK1) is HCLK/2 (120 MHz) */
-
 #define STM32_RCC_D2CFGR_D2PPRE1  RCC_D2CFGR_D2PPRE1_HCLKd2       /* PCLK1 = HCLK / 2 */
 #define STM32_PCLK1_FREQUENCY     (STM32_HCLK_FREQUENCY/2)
 
 /* APB2 clock (PCLK2) is HCLK/2 (120 MHz) */
-
 #define STM32_RCC_D2CFGR_D2PPRE2  RCC_D2CFGR_D2PPRE2_HCLKd2       /* PCLK2 = HCLK / 2 */
 #define STM32_PCLK2_FREQUENCY     (STM32_HCLK_FREQUENCY/2)
 
@@ -213,62 +181,23 @@
 #define STM32_APB2_TIM17_CLKIN  (2*STM32_PCLK2_FREQUENCY)
 
 /* Kernel Clock Configuration
- *
- * Note: look at Table 54 in ST Manual
+ *  Note: look at Table 54 in ST Manual
  */
+#define STM32_RCC_D1CCIPR_SDMMCSEL   RCC_D1CCIPR_SDMMC_PLL1
 
-/* I2C123 clock source */
-#define STM32_RCC_D2CCIP2R_I2C123SRC RCC_D2CCIP2R_I2C123SEL_HSI
-
-/* I2C4 clock source */
-#define STM32_RCC_D3CCIPR_I2C4SRC    RCC_D3CCIPR_I2C4SEL_HSI
-
-/* SPI123 clock source */
-#define STM32_RCC_D2CCIP1R_SPI123SRC RCC_D2CCIP1R_SPI123SEL_PLL2
-
-/* SPI45 clock source */
-#define STM32_RCC_D2CCIP1R_SPI45SRC  RCC_D2CCIP1R_SPI45SEL_PLL2
-
-/* SPI6 clock source */
-#define STM32_RCC_D3CCIPR_SPI6SRC    RCC_D3CCIPR_SPI6SEL_PLL2
-
-/* USB 1 and 2 clock source */
-#define STM32_RCC_D2CCIP2R_USBSRC    RCC_D2CCIP2R_USBSEL_PLL3
-
-/* ADC 1 2 3 clock source */
-#define STM32_RCC_D3CCIPR_ADCSEL     RCC_D3CCIPR_ADCSEL_PLL2
-
-/* FDCAN 1 clock source */
+#define STM32_RCC_D2CCIP2R_I2C123SRC RCC_D2CCIP2R_I2C123SEL_HSI  /* I2C123 clock source */
+#define STM32_RCC_D2CCIP1R_SPI123SRC RCC_D2CCIP1R_SPI123SEL_PLL2 /* SPI123 clock source */
+#define STM32_RCC_D2CCIP1R_SPI45SRC  RCC_D2CCIP1R_SPI45SEL_PLL2  /* SPI45 clock source */
+#define STM32_RCC_D2CCIP2R_USBSRC    RCC_D2CCIP2R_USBSEL_PLL3    /* USB 1 and 2 clock source */
 #define STM32_RCC_D2CCIP1R_FDCANSEL  RCC_D2CCIP1R_FDCANSEL_HSE   /* FDCAN 1 2 clock source */
 
-#define STM32_FDCANCLK               STM32_HSE_FREQUENCY
+#define STM32_RCC_D3CCIPR_ADCSEL     RCC_D3CCIPR_ADCSEL_PLL2     /* ADC 1 2 3 clock source */
 
-/* FLASH wait states
- *
- *  ------------ ---------- -----------
- *  Vcore        MAX ACLK   WAIT STATES
- *  ------------ ---------- -----------
- *  1.15-1.26 V     70 MHz    0
- *  (VOS1 level)   140 MHz    1
- *                 210 MHz    2
- *  1.05-1.15 V     55 MHz    0
- *  (VOS2 level)   110 MHz    1
- *                 165 MHz    2
- *                 220 MHz    3
- *  0.95-1.05 V     45 MHz    0
- *  (VOS3 level)    90 MHz    1
- *                 135 MHz    2
- *                 180 MHz    3
- *                 225 MHz    4
- *  ------------ ---------- -----------
- */
-
+/* FLASH wait states */
 #define BOARD_FLASH_WAITSTATES 2
 
 /* SDMMC definitions ********************************************************/
-
 /* Init 480kHz, freq = PLL1Q/(2*div)  div =  PLL1Q/(2*freq) */
-
 #define STM32_SDMMC_INIT_CLKDIV     (300 << STM32_SDMMC_CLKCR_CLKDIV_SHIFT)
 
 /* 20 MHz Max for now - more reliable on some boards than 25 MHz
@@ -288,35 +217,8 @@
 
 #define STM32_SDMMC_CLKCR_EDGE      STM32_SDMMC_CLKCR_NEGEDGE
 
-/* LED definitions ******************************************************************/
-/* The board has two, LED_GREEN a Green LED and LED_BLUE a Blue LED,
- * that can be controlled by software.
- *
- * If CONFIG_ARCH_LEDS is not defined, then the user can control the LEDs in any way.
- * The following definitions are used to access individual LEDs.
- */
 
-/* LED index values for use with board_userled() */
-
-#define BOARD_LED1        0
-#define BOARD_LED2        1
-#define BOARD_NLEDS       2
-
-#define BOARD_LED_BLUE    BOARD_LED1
-#define BOARD_LED_GREEN   BOARD_LED2
-
-/* LED bits for use with board_userled_all() */
-#define BOARD_LED1_BIT    (1 << BOARD_LED1)
-#define BOARD_LED2_BIT    (1 << BOARD_LED2)
-
-/* Thus if the Green LED is statically on, NuttX has successfully booted and
- * is, apparently, running normally.  If the Red LED is flashing at
- * approximately 2Hz, then a fatal error has been detected and the system
- * has halted.
- */
-
-/* Alternate function pin selections ************************************************/
-
+/* UART/USART */
 #define GPIO_USART1_RX   GPIO_USART1_RX_2   /* PA10 */
 #define GPIO_USART1_TX   GPIO_USART1_TX_2   /* PA9  */
 
@@ -365,6 +267,7 @@
 #define GPIO_SPI4_MOSI   GPIO_SPI4_MOSI_1               /* PE14 */
 #define GPIO_SPI4_SCK    ADJ_SLEW_RATE(GPIO_SPI4_SCK_1) /* PE12 */
 
+
 /* I2C */
 #define GPIO_I2C1_SCL GPIO_I2C1_SCL_1       /* PB6  */
 #define GPIO_I2C1_SDA GPIO_I2C1_SDA_1       /* PB7  */
@@ -372,19 +275,3 @@
 #define GPIO_I2C2_SCL GPIO_I2C2_SCL_1       /* PB10 */
 #define GPIO_I2C2_SDA GPIO_I2C2_SDA_1       /* PB11 */
 
-/* SDMMC1
- *
- *      SDMMC1_D0                          PC8
- *      SDMMC1_D1                          PC9
- *      SDMMC1_D2                          PC10
- *      SDMMC1_D3                          PC11
- *      SDMMC1_CK                          PC12
- *      SDMMC1_CMD                         PD2
- */
-
-// #define GPIO_SDMMC1_D0   GPIO_SDMMC1_D0    /* PC8  */
-// #define GPIO_SDMMC1_D1   GPIO_SDMMC1_D1    /* PC9  */
-// #define GPIO_SDMMC1_D2   GPIO_SDMMC1_D2    /* PC10 */
-// #define GPIO_SDMMC1_D3   GPIO_SDMMC1_D3    /* PC11 */
-// #define GPIO_SDMMC1_CK   GPIO_SDMMC1_CK    /* PC12 */
-// #define GPIO_SDMMC1_CMD  GPIO_SDMMC1_CMD   /* PD2  */

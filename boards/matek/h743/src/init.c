@@ -34,7 +34,7 @@
 /**
  * @file init.c
  *
- * FMU-specific early startup code. This file implements the
+ * board specific early startup code. This file implements the
  * board_app_initialize() function that is called early by nsh during startup.
  *
  * Code here is run before the rcS script is invoked; it should start required
@@ -124,8 +124,10 @@ __EXPORT void stm32_boardinitialize(void)
 	const uint32_t gpio[] = PX4_GPIO_INIT_LIST;
 	px4_gpio_init(gpio, arraySize(gpio));
 
-	/* configure SPI interfaces */
-	stm32_spiinitialize();
+	board_control_spi_sensors_power_configgpio();
+
+	/* Turn bluetooth off by default (no mavlink support yet) */
+	px4_arch_gpiowrite(GPIO_RF_SWITCH, 0);
 
 	/* configure USB interfaces */
 	stm32_usbinitialize();
@@ -152,13 +154,25 @@ __EXPORT void stm32_boardinitialize(void)
  ****************************************************************************/
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
+	/* Power on Interfaces */
+	board_control_spi_sensors_power(true, 0xffff);
+
 	/* Need hrt running before using the ADC */
 	px4_platform_init();
+
+	/* configure SPI interfaces */
+	stm32_spiinitialize();
 
 	/* configure the DMA allocator */
 	if (board_dma_alloc_init() < 0) {
 		syslog(LOG_ERR, "[boot] DMA alloc FAILED\n");
 	}
+
+#if defined(SERIAL_HAVE_RXDMA)
+	// set up the serial DMA polling at 1ms intervals for received bytes that have not triggered a DMA event.
+	static struct hrt_call serial_dma_call;
+	hrt_call_every(&serial_dma_call, 1000, 1000, (hrt_callout)stm32_serial_dma_poll, NULL);
+#endif
 
 	/* initial LED state */
 	drv_led_start();
@@ -166,36 +180,43 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	led_off(LED_BLUE);
 
 	if (board_hardfault_init(2, true) != 0) {
+		led_on(LED_RED);
+	}
+
+	/* Get the SPI port for the microSD slot */
+	struct spi_dev_s *spi_dev = stm32_spibus_initialize(CONFIG_NSH_MMCSDSPIPORTNO);
+
+	if (!spi_dev) {
+		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", CONFIG_NSH_MMCSDSPIPORTNO);
 		led_on(LED_BLUE);
 	}
 
-#ifdef CONFIG_MMCSD
-	int ret = stm32_sdio_initialize();
+	/* Now bind the SPI interface to the MMCSD driver */
+	int result = mmcsd_spislotinitialize(CONFIG_NSH_MMCSDMINOR, CONFIG_NSH_MMCSDSLOTNO, spi_dev);
 
-	if (ret != OK) {
+	if (result != OK) {
 		led_on(LED_BLUE);
+		syslog(LOG_ERR, "[boot] FAILED to bind SPI port 1 to the MMCSD driver\n");
+	}
+
+	up_udelay(20);
+
+
+#if defined(FLASH_BASED_PARAMS)
+	static sector_descriptor_t params_sector_map[] = {
+		{15, 128 * 1024, 0x081E0000},
+		{0, 0, 0},
+	};
+
+	/* Initialize the flashfs layer to use heap allocated memory */
+	result = parameter_flashfs_init(params_sector_map, NULL, 0);
+
+	if (result != OK) {
+		syslog(LOG_ERR, "[boot] FAILED to init params in FLASH %d\n", result);
+		led_on(LED_AMBER);
 	}
 
 #endif
-
-
-// #if defined(FLASH_BASED_PARAMS)
-// 	static sector_descriptor_t params_sector_map[] = {
-// 		{6, 128 * 1024, 0x081C0000},
-// 		{7, 128 * 1024, 0x081E0000},
-// 		{0, 0, 0},
-// 	};
-
-// 	/* Initialize the flashfs layer to use heap allocated memory */
-// 	int result = parameter_flashfs_init(params_sector_map, NULL, 0);
-
-// 	if (result != OK) {
-// 		syslog(LOG_ERR, "[boot] FAILED to init params in FLASH %d\n", result);
-// 		led_on(LED_BLUE);
-// 		return -ENODEV;
-// 	}
-
-// #endif
 
 	/* Configure the HW based on the manifest */
 	px4_platform_configure();

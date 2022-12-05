@@ -154,11 +154,6 @@
 
 // #define GPIO_RSSI_IN            /* PC5  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN5)
 
-
-/* SD Card */
-#define SDIO_SLOTNO             0  /* Only one slot */
-#define SDIO_MINOR              0
-
 /* This board provides a DMA pool and APIs */
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120
 
@@ -197,24 +192,6 @@ __BEGIN_DECLS
 
 /****************************************************************************************************
  * Public Functions
- ****************************************************************************************************/
-
-/****************************************************************************
- * Name: stm32_sdio_initialize
- *
- * Description:
- *   Initialize SDIO-based MMC/SD card support
- *
- ****************************************************************************/
-
-int stm32_sdio_initialize(void);
-
-/****************************************************************************************************
- * Name: stm32_spiinitialize
- *
- * Description:
- *   Called to configure SPI chip select GPIO pins for the board.
- *
  ****************************************************************************************************/
 
 extern void stm32_spiinitialize(void);
