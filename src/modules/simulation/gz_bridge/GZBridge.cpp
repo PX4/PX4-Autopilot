@@ -69,6 +69,9 @@ int GZBridge::init()
 	if (!_model_sim.empty()) {
 
 		// service call to create model
+		// From Gazebo Garden
+		// gz service -s /world/${PX4_GZ_WORLD}/create --reqtype gz.msgs.EntityFactory --reptype gz.msgs.Boolean --timeout 1000 --req "sdf_filename: \"${PX4_GZ_MODEL}/model.sdf\""
+		// Older versions
 		// ign service -s /world/${PX4_GZ_WORLD}/create --reqtype ignition.msgs.EntityFactory --reptype ignition.msgs.Boolean --timeout 1000 --req "sdf_filename: \"${PX4_GZ_MODEL}/model.sdf\""
 		ignition::msgs::EntityFactory req{};
 		req.set_sdf_filename(_model_sim + "/model.sdf");

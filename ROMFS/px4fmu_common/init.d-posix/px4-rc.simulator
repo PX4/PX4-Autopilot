@@ -30,24 +30,38 @@ elif [ "$PX4_SIMULATOR" = "gz" ]; then
 	gz_command="ign" # "ign" before garden
 	gz_sub_command="gazebo" # "gazebo" before garden
 
-	# look for running ${gz_command} gazebo world
-	gz_world=$( ${gz_command} topic -l | grep -m 1 -e "/world/.*/clock" | sed 's/\/world\///g; s/\/clock//g' )
+	gz_command="gz"
+	gz_sub_command="sim"
+	if [ -z $(command -v $gz_command) ];
+	then
+			gz_command="ign"
+			gz_sub_command="gazebo"
+	fi
+
+	gz_world=$( $gz_command topic -l | grep -m 1 -e "/world/.*/clock" | sed 's/\/world\///g; s/\/clock//g' )
+
+	gz_version_major=$( $gz_command $gz_sub_command --versions | sed 's/\..*//g' )
+	gz_version_minor=$( $gz_command $gz_sub_command --versions | sed 's/'"${gz_version_major}"\.'//; s/\..*//g' )
+	gz_version_point=$( $gz_command $gz_sub_command --versions | sed 's/'"${gz_version_major}"\.'//; s/'"${gz_version_minor}"\.'//')
 
 	# shellcheck disable=SC2153
 	if [ -z "${gz_world}" ] && [ -n "${PX4_GZ_WORLDS}" ] && [ -n "${PX4_GZ_WORLD}" ]; then
 
 		echo "INFO  [init] starting gazebo with world: ${PX4_GZ_WORLDS}/${PX4_GZ_WORLD}.sdf"
 
-		${gz_command} ${gz_sub_command} --verbose=1 -r -s "${PX4_GZ_WORLDS}/${PX4_GZ_WORLD}.sdf" &
+		# starting gazebo with ${PX4_GZ_WORLD} world
+		echo "INFO  [init] starting $gz_command gazebo"
+# shellcheck disable=SC2153
+		$gz_command $gz_sub_command --verbose=$gz_verbose -r -s "${PX4_GZ_WORLDS}/${PX4_GZ_WORLD}.sdf" &
 
 		if [ -z "${HEADLESS}" ]; then
 			# HEADLESS not set, starting ign gazebo gui
-			${gz_command} gazebo -g &
+			$gz_command $gz_sub_command -g &
 		fi
 
 	else
-		echo "INFO  [init] gazebo already running world: ${gz_world}"
-		PX4_GZ_WORLD=${gz_world}
+		echo "INFO  [init] $gz_command gazebo already running world: $gz_world"
+		PX4_GZ_WORLD=$gz_world
 	fi
 
 	# start gz_bridge
@@ -71,7 +85,7 @@ elif [ "$PX4_SIMULATOR" = "gz" ]; then
 			sensor_mag_sim start
 
 		else
-			echo "ERROR [init] gazebo failed to start"
+			echo "ERROR  [init] $gz_command gazebo failed to start"
 			exit 1
 		fi
 
@@ -84,7 +98,7 @@ elif [ "$PX4_SIMULATOR" = "gz" ]; then
 			sensor_mag_sim start
 
 		else
-			echo "ERROR [init] gazebo failed to start"
+			echo "ERROR  [init] $gz_command gazebo failed to start"
 			exit 1
 		fi
 
@@ -98,7 +112,7 @@ elif [ "$PX4_SIMULATOR" = "gz" ]; then
 			sensor_mag_sim start
 
 		else
-			echo "ERROR [init] gazebo failed to start"
+			echo "ERROR  [init] $gz_command gazebo failed to start"
 			exit 1
 		fi
 
