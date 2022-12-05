@@ -69,7 +69,7 @@ private:
 		FW_MODE					/**< vtol is in fixed wing mode */
 	};
 
-	vtol_mode _flight_mode{vtol_mode::MC_MODE};			/**< vtol flight mode, defined by enum vtol_mode */
+	vtol_mode _vtol_mode{vtol_mode::MC_MODE};			/**< vtol flight mode, defined by enum vtol_mode */
 
 	bool _flag_was_in_trans_mode = false;	// true if mode has just switched to transition
 

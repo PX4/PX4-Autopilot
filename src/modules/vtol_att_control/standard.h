@@ -72,7 +72,7 @@ private:
 		FW_MODE
 	};
 
-	vtol_mode _flight_mode{vtol_mode::MC_MODE};			/**< vtol flight mode, defined by enum vtol_mode */
+	vtol_mode _vtol_mode{vtol_mode::MC_MODE};			/**< vtol flight mode, defined by enum vtol_mode */
 
 	float _pusher_throttle{0.0f};
 	float _reverse_output{0.0f};

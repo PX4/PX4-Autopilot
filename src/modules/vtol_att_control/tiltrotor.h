@@ -75,7 +75,7 @@ private:
 	 * they need to idle otherwise they need too much time to spin up for mc mode.
 	 */
 
-	vtol_mode _flight_mode{vtol_mode::MC_MODE};			/**< vtol flight mode, defined by enum vtol_mode */
+	vtol_mode _vtol_mode{vtol_mode::MC_MODE};			/**< vtol flight mode, defined by enum vtol_mode */
 
 	float _tilt_control{0.0f};		/**< actuator value for the tilt servo */
 
