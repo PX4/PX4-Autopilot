@@ -36,6 +36,8 @@
 
 #include <uORB/topics/sensor_gps.h>
 
+using namespace time_literals;
+
 class MavlinkStreamGPSRawInt : public MavlinkStream
 {
 public:
@@ -57,7 +59,7 @@ private:
 
 	uORB::Subscription _sensor_gps_sub{ORB_ID(sensor_gps), 0};
 	hrt_abstime _last_send_ts {};
-	hrt_abstime _no_gps_send_interval {1 * 1000000};
+	static constexpr hrt_abstime _no_gps_send_interval {1_s};
 
 	bool send() override
 	{
@@ -106,7 +108,7 @@ private:
 
 			return true;
 
-		} else if ((now = hrt_absolute_time()) - _last_send_ts > _no_gps_send_interval) {
+		} else if ((now = hrt_absolute_time()) > _last_send_ts + _no_gps_send_interval) {
 			msg.fix_type = GPS_FIX_TYPE_NO_GPS;
 			msg.eph = UINT16_MAX;
 			msg.epv = UINT16_MAX;
