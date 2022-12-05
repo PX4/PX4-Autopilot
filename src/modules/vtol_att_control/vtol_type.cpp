@@ -171,6 +171,8 @@ void VtolType::update_transition_state()
 	_last_loop_ts = t_now;
 	_throttle_blend_start_ts = t_now;
 
+	_time_since_trans_start = t_now - _trans_start_ts;
+
 	check_quadchute_condition();
 }
 

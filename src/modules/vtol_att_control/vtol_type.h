@@ -210,6 +210,8 @@ protected:
 	float _ra_hrate_sp = 0.0f;		// rolling average on height rate setpoint for quadchute condition
 
 	hrt_abstime _trans_finished_ts = 0;
+	hrt_abstime _trans_start_ts{0};
+	float _time_since_trans_start{0};
 
 	bool _tecs_running = false;
 	hrt_abstime _tecs_running_ts = 0;
