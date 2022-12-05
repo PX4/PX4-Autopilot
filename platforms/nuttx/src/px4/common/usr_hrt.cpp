@@ -61,6 +61,7 @@
 #include <sys/boardctl.h>
 
 static px4_task_t g_usr_hrt_task = -1;
+static px4_hrt_handle_t g_hrt_client_handle;
 
 /**
  * Fetch a never-wrapping absolute time value in microseconds from
@@ -80,15 +81,22 @@ hrt_absolute_time(void)
 int
 event_thread(int argc, char *argv[])
 {
-	struct hrt_call *entry = NULL;
+	struct hrt_boardctl ioc_parm {
+		.handle = g_hrt_client_handle,
+		.entry = nullptr,
+		.time = 0,
+		.interval = 0,
+		.callout = nullptr,
+		.arg = nullptr
+	};
 
 	while (1) {
 		/* Wait for hrt tick */
-		boardctl(HRT_WAITEVENT, (uintptr_t)&entry);
+		boardctl(HRT_WAITEVENT, (uintptr_t)&ioc_parm);
 
 		/* HRT event received, dispatch */
-		if (entry) {
-			entry->usr_callout(entry->usr_arg);
+		if (ioc_parm.callout) {
+			ioc_parm.callout(ioc_parm.arg);
 		}
 	}
 
@@ -101,6 +109,7 @@ event_thread(int argc, char *argv[])
 bool hrt_request_stop()
 {
 	px4_task_delete(g_usr_hrt_task);
+	boardctl(HRT_UNREGISTER, (uintptr_t)&g_hrt_client_handle);
 	return true;
 }
 
@@ -110,9 +119,14 @@ bool hrt_request_stop()
 void
 hrt_init(void)
 {
-	px4_register_shutdown_hook(hrt_request_stop);
-	g_usr_hrt_task = px4_task_spawn_cmd("usr_hrt", SCHED_DEFAULT, SCHED_PRIORITY_MAX, PX4_STACK_ADJUSTED(1024),
-					    event_thread, NULL);
+	boardctl(HRT_REGISTER, (uintptr_t)&g_hrt_client_handle);
+
+	if (g_hrt_client_handle) {
+		px4_register_shutdown_hook(hrt_request_stop);
+		g_usr_hrt_task = px4_task_spawn_cmd("usr_hrt", SCHED_DEFAULT, SCHED_PRIORITY_MAX, PX4_STACK_ADJUSTED(1024),
+						    event_thread, NULL);
+
+	}
 }
 
 /**
@@ -121,13 +135,14 @@ hrt_init(void)
 void
 hrt_call_after(struct hrt_call *entry, hrt_abstime delay, hrt_callout callout, void *arg)
 {
-	hrt_boardctl_t ioc_parm;
-	ioc_parm.entry = entry;
-	ioc_parm.time = delay;
-	ioc_parm.callout = callout;
-	ioc_parm.arg = arg;
-	entry->usr_callout = callout;
-	entry->usr_arg = arg;
+	struct hrt_boardctl ioc_parm {
+		.handle = g_hrt_client_handle,
+		.entry = entry,
+		.time = delay,
+		.interval = 0,
+		.callout = callout,
+		.arg = arg
+	};
 
 	boardctl(HRT_CALL_AFTER, (uintptr_t)&ioc_parm);
 }
@@ -138,14 +153,14 @@ hrt_call_after(struct hrt_call *entry, hrt_abstime delay, hrt_callout callout, v
 void
 hrt_call_at(struct hrt_call *entry, hrt_abstime calltime, hrt_callout callout, void *arg)
 {
-	hrt_boardctl_t ioc_parm;
-	ioc_parm.entry = entry;
-	ioc_parm.time = calltime;
-	ioc_parm.interval = 0;
-	ioc_parm.callout = callout;
-	ioc_parm.arg = arg;
-	entry->usr_callout = callout;
-	entry->usr_arg = arg;
+	hrt_boardctl_t ioc_parm{
+		.handle = g_hrt_client_handle,
+		.entry = entry,
+		.time = calltime,
+		.interval = 0,
+		.callout = callout,
+		.arg = arg
+	};
 
 	boardctl(HRT_CALL_AT, (uintptr_t)&ioc_parm);
 }
@@ -156,14 +171,14 @@ hrt_call_at(struct hrt_call *entry, hrt_abstime calltime, hrt_callout callout, v
 void
 hrt_call_every(struct hrt_call *entry, hrt_abstime delay, hrt_abstime interval, hrt_callout callout, void *arg)
 {
-	hrt_boardctl_t ioc_parm;
-	ioc_parm.entry = entry;
-	ioc_parm.time = delay;
-	ioc_parm.interval = interval;
-	ioc_parm.callout = callout;
-	ioc_parm.arg = arg;
-	entry->usr_callout = callout;
-	entry->usr_arg = arg;
+	hrt_boardctl_t ioc_parm {
+		.handle = g_hrt_client_handle,
+		.entry = entry,
+		.time = delay,
+		.interval = interval,
+		.callout = callout,
+		.arg = arg,
+	};
 
 	boardctl(HRT_CALL_EVERY, (uintptr_t)&ioc_parm);
 }
