@@ -878,6 +878,18 @@ Commander::handle_command(const vehicle_command_s &cmd)
 		}
 		break;
 
+	case vehicle_command_s::VEHICLE_CMD_SET_NAV_STATE: { // Used from ROS
+			uint8_t desired_nav_state = (uint8_t)(cmd.param1 + 0.5f);
+
+			if (_user_mode_intention.change(desired_nav_state, getSourceFromCommand(cmd))) {
+				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
+
+			} else {
+				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+			}
+		}
+		break;
+
 	case vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM: {
 
 			// Adhere to MAVLink specs, but base on knowledge that these fundamentally encode ints
