@@ -122,6 +122,11 @@ public:
 		return _subj_sub._subject_name;
 	}
 
+	const char *getSubjectPrefix()
+	{
+		return _prefix_name;
+	}
+
 	uint8_t getInstance()
 	{
 		return _instance;
