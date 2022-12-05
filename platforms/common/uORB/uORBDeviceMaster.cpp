@@ -376,6 +376,15 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 			}
 
 			start_time = current_time;
+
+
+			if (!only_once) {
+				PX4_INFO_RAW("\033[H"); // move cursor to top left corner
+			}
+
+			PX4_INFO_RAW(CLEAR_LINE "update: 1s, topics: %i, total publications: %i, %.1f kB/s\n",
+				     num_topics, total_msgs, (double)(total_size / 1000.f));
+			PX4_INFO_RAW(CLEAR_LINE "%-*s INST #SUB RATE #Q SIZE\n", (int)max_topic_name_length - 2, "TOPIC NAME");
 			cur_node = first_node;
 
 			while (cur_node) {
@@ -389,6 +398,12 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 
 				cur_node = cur_node->next;
 			}
+
+
+			if (!only_once) {
+				PX4_INFO_RAW("\033[0J"); // clear the rest of the screen
+			}
+
 
 			lock();
 			ret = addNewDeviceNodes(&first_node, num_topics, max_topic_name_length, topic_filter, num_filters);
