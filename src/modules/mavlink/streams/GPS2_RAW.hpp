@@ -81,6 +81,10 @@ private:
 
 			msg.cog = math::degrees(matrix::wrap_2pi(gps.cog_rad)) * 1e2f;
 			msg.satellites_visible = gps.satellites_used;
+			msg.alt_ellipsoid = gps.alt_ellipsoid;
+			msg.h_acc = gps.eph * 1e3f;              // position uncertainty in mm
+			msg.v_acc = gps.epv * 1e3f;              // altitude uncertainty in mm
+			msg.vel_acc = gps.s_variance_m_s * 1e3f; // speed uncertainty in mm
 
 			//msg.dgps_numch = // Number of DGPS satellites
 			//msg.dgps_age = // Age of DGPS info

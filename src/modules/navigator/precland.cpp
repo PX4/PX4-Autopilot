@@ -555,9 +555,9 @@ bool PrecLand::check_state_conditions(PrecLandState state)
 		// allow certain error in tolerance of distance z calculation in final approach (2.5 cm)
 		if (_fappr_tolerance_enabled) {
 			float z_diff = _target_pose.z_abs - vehicle_local_position->z;
-			mavlink_log_info(&_mavlink_log_pub, "Precland: distance between target and current local position: %f m", (double)z_diff);
+			mavlink_log_info(&_mavlink_log_pub, "Precland: distance between target and current local position in z: %f m", (double)z_diff);
 			return _target_pose_valid && _target_pose.abs_pos_valid
-			       && (_target_pose.z_abs - vehicle_local_position->z - 0.025) < _param_pld_fappr_alt.get();
+			       && (_target_pose.z_abs - vehicle_local_position->z - 0.025f) < _param_pld_fappr_alt.get();
 		} else {
 			return _target_pose_valid && _target_pose.abs_pos_valid
 		       	       && (_target_pose.z_abs - vehicle_local_position->z) < _param_pld_fappr_alt.get();
