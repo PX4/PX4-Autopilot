@@ -31,6 +31,11 @@ then
 	set PARAM_FILE /dev/eeeprom0
 fi
 
+if mft query -q -k MTD -s MTD_PARAMETERS -v /mnt/qspi/params
+then
+	set PARAM_FILE /mnt/qspi/params
+fi
+
 #
 # Load parameters.
 #
