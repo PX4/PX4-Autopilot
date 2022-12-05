@@ -668,6 +668,7 @@ void RTL::advance_rtl()
 
 	case RTL_STATE_LAND:
 		_rtl_state = RTL_STATE_LANDED;
+		_navigator->mode_completed(vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
 		break;
 
 	default:

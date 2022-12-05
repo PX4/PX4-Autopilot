@@ -125,6 +125,7 @@ set(msg_files
 	Mission.msg
 	MissionResult.msg
 	MountOrientation.msg
+	ModeCompleted.msg
 	NavigatorMissionItem.msg
 	NpfgStatus.msg
 	ObstacleDistance.msg
