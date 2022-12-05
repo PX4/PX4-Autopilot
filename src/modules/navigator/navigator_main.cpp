@@ -1697,6 +1697,15 @@ void Navigator::calculate_breaking_stop(double &lat, double &lon, float &yaw)
 	yaw = get_local_position()->heading;
 }
 
+void Navigator::mode_completed(uint8_t nav_state, uint8_t result)
+{
+	mode_completed_s mode_completed{};
+	mode_completed.timestamp = hrt_absolute_time();
+	mode_completed.result = result;
+	mode_completed.nav_state = nav_state;
+	_mode_completed_pub.publish(mode_completed);
+}
+
 int Navigator::print_usage(const char *reason)
 {
 	if (reason) {
