@@ -4,6 +4,11 @@ This is the custom simulator for RAPTOR using PX4 gazebo SITL.
 
 ## Installation
 
+clone repository
+```
+git clone --recursive https://github.com/aurelappius/PX4-Autopilot
+```
+
 install dependencies by running
 
 ```
