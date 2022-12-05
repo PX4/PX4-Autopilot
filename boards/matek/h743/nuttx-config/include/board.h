@@ -32,8 +32,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ************************************************************************************/
-#ifndef __NUTTX_CONFIG_MATEKH743SLIM_INCLUDE_BOARD_H
-#define __NUTTX_CONFIG_MATEKH743SLIM_INCLUDE_BOARD_H
+#pragma once
 
 /************************************************************************************
  * Included Files
@@ -55,7 +54,7 @@
  ************************************************************************************/
 
 /* Clocking *************************************************************************/
-/* The MatekH743-Slim  board provides the following clock sources:
+/* The board provides the following clock sources:
  *
  *   X1: 8 MHz crystal for HSE
  *
@@ -186,19 +185,16 @@
 #define STM32_PCLK2_FREQUENCY     (STM32_HCLK_FREQUENCY/2)
 
 /* APB3 clock (PCLK3) is HCLK/2 (120 MHz) */
-
 #define STM32_RCC_D1CFGR_D1PPRE   RCC_D1CFGR_D1PPRE_HCLKd2        /* PCLK3 = HCLK / 2 */
 #define STM32_PCLK3_FREQUENCY     (STM32_HCLK_FREQUENCY/2)
 
 /* APB4 clock (PCLK4) is HCLK/4 (120 MHz) */
-
 #define STM32_RCC_D3CFGR_D3PPRE   RCC_D3CFGR_D3PPRE_HCLKd2       /* PCLK4 = HCLK / 2 */
 #define STM32_PCLK4_FREQUENCY     (STM32_HCLK_FREQUENCY/2)
 
 /* Timer clock frequencies */
 
 /* Timers driven from APB1 will be twice PCLK1 */
-
 #define STM32_APB1_TIM2_CLKIN   (2*STM32_PCLK1_FREQUENCY)
 #define STM32_APB1_TIM3_CLKIN   (2*STM32_PCLK1_FREQUENCY)
 #define STM32_APB1_TIM4_CLKIN   (2*STM32_PCLK1_FREQUENCY)
@@ -210,7 +206,6 @@
 #define STM32_APB1_TIM14_CLKIN  (2*STM32_PCLK1_FREQUENCY)
 
 /* Timers driven from APB2 will be twice PCLK2 */
-
 #define STM32_APB2_TIM1_CLKIN   (2*STM32_PCLK2_FREQUENCY)
 #define STM32_APB2_TIM8_CLKIN   (2*STM32_PCLK2_FREQUENCY)
 #define STM32_APB2_TIM15_CLKIN  (2*STM32_PCLK2_FREQUENCY)
@@ -223,35 +218,27 @@
  */
 
 /* I2C123 clock source */
-
 #define STM32_RCC_D2CCIP2R_I2C123SRC RCC_D2CCIP2R_I2C123SEL_HSI
 
 /* I2C4 clock source */
-
 #define STM32_RCC_D3CCIPR_I2C4SRC    RCC_D3CCIPR_I2C4SEL_HSI
 
 /* SPI123 clock source */
-
 #define STM32_RCC_D2CCIP1R_SPI123SRC RCC_D2CCIP1R_SPI123SEL_PLL2
 
 /* SPI45 clock source */
-
 #define STM32_RCC_D2CCIP1R_SPI45SRC  RCC_D2CCIP1R_SPI45SEL_PLL2
 
 /* SPI6 clock source */
-
 #define STM32_RCC_D3CCIPR_SPI6SRC    RCC_D3CCIPR_SPI6SEL_PLL2
 
 /* USB 1 and 2 clock source */
-
 #define STM32_RCC_D2CCIP2R_USBSRC    RCC_D2CCIP2R_USBSEL_PLL3
 
 /* ADC 1 2 3 clock source */
-
 #define STM32_RCC_D3CCIPR_ADCSEL     RCC_D3CCIPR_ADCSEL_PLL2
 
 /* FDCAN 1 clock source */
-
 #define STM32_RCC_D2CCIP1R_FDCANSEL  RCC_D2CCIP1R_FDCANSEL_HSE   /* FDCAN 1 2 clock source */
 
 #define STM32_FDCANCLK               STM32_HSE_FREQUENCY
@@ -319,28 +306,8 @@
 #define BOARD_LED_GREEN   BOARD_LED2
 
 /* LED bits for use with board_userled_all() */
-
 #define BOARD_LED1_BIT    (1 << BOARD_LED1)
 #define BOARD_LED2_BIT    (1 << BOARD_LED2)
-
-/* If CONFIG_ARCH_LEDS is defined, the usage by the board port is defined in
- * include/board.h and src/stm32_leds.c. The LEDs are used to encode OS-related
- * events as follows:
- *
- *
- *   SYMBOL                     Meaning                      LED state
- *                                                        Red   Green Blue
- *   ----------------------  --------------------------  ------ ------ ----*/
-
-#define LED_STARTED        0 /* NuttX has been started   OFF    OFF   OFF  */
-#define LED_HEAPALLOCATE   1 /* Heap has been allocated  OFF    OFF   ON   */
-#define LED_IRQSENABLED    2 /* Interrupts enabled       OFF    ON    OFF  */
-#define LED_STACKCREATED   3 /* Idle stack created       OFF    ON    ON   */
-#define LED_INIRQ          4 /* In an interrupt          N/C    N/C   GLOW */
-#define LED_SIGNAL         5 /* In a signal handler      N/C    GLOW  N/C  */
-#define LED_ASSERTION      6 /* An assertion failed      GLOW   N/C   GLOW */
-#define LED_PANIC          7 /* The system has crashed   Blink  OFF   N/C  */
-#define LED_IDLE           8 /* MCU is is sleep mode     ON     OFF   OFF  */
 
 /* Thus if the Green LED is statically on, NuttX has successfully booted and
  * is, apparently, running normally.  If the Red LED is flashing at
@@ -374,22 +341,12 @@
 #define GPIO_UART8_TX    GPIO_UART8_TX_1    /* PE1  */
 
 
-/* CAN
- *
- * CAN1 is routed to transceiver.
- */
-
+/* CAN */
 #define GPIO_CAN1_RX     GPIO_CAN1_RX_3     /* PD0  */
 #define GPIO_CAN1_TX     GPIO_CAN1_TX_3     /* PD1  */
 
-/* SPI
- *
- * SPI1 is MPU6000
- * SPI2 is MAX7456
- * SPI3 is extern with PD4 and PE2 as CS
- * SPI4 is ICM20602
- */
 
+/* SPI */
 #define ADJ_SLEW_RATE(p) (((p) & ~GPIO_SPEED_MASK) | (GPIO_SPEED_2MHz))
 
 #define GPIO_SPI1_MISO   GPIO_SPI1_MISO_1               /* PA6  */
@@ -408,25 +365,12 @@
 #define GPIO_SPI4_MOSI   GPIO_SPI4_MOSI_1               /* PE14 */
 #define GPIO_SPI4_SCK    ADJ_SLEW_RATE(GPIO_SPI4_SCK_1) /* PE12 */
 
-/* I2C
- *
- *   The optional _GPIO configurations allow the I2C driver to manually
- *   reset the bus to clear stuck slaves.  They match the pin configuration,
- *   but are normally-high GPIOs.
- *
- */
-
+/* I2C */
 #define GPIO_I2C1_SCL GPIO_I2C1_SCL_1       /* PB6  */
 #define GPIO_I2C1_SDA GPIO_I2C1_SDA_1       /* PB7  */
 
-#define GPIO_I2C1_SCL_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN6)
-#define GPIO_I2C1_SDA_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN7)
-
 #define GPIO_I2C2_SCL GPIO_I2C2_SCL_1       /* PB10 */
 #define GPIO_I2C2_SDA GPIO_I2C2_SDA_1       /* PB11 */
-
-#define GPIO_I2C2_SCL_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN10)
-#define GPIO_I2C2_SDA_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN11)
 
 /* SDMMC1
  *
@@ -444,50 +388,3 @@
 // #define GPIO_SDMMC1_D3   GPIO_SDMMC1_D3    /* PC11 */
 // #define GPIO_SDMMC1_CK   GPIO_SDMMC1_CK    /* PC12 */
 // #define GPIO_SDMMC1_CMD  GPIO_SDMMC1_CMD   /* PD2  */
-
-
-/* USB
- *
- *      OTG_FS_DM                           PA11
- *      OTG_FS_DP                           PA12
- *      VBUS                                PA9
- */
-
-
-/* Board provides GPIO or other Hardware for signaling to timing analyzer */
-
-#if defined(CONFIG_BOARD_USE_PROBES)
-# include "stm32_gpio.h"
-# define PROBE_N(n) (1<<((n)-1))
-# define PROBE_1    (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTI|GPIO_PIN0)   /* PI0 AUX1 */
-# define PROBE_2    (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTH|GPIO_PIN12)  /* PH12 AUX2 */
-# define PROBE_3    (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTH|GPIO_PIN11)  /* PH11 AUX3 */
-# define PROBE_4    (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTH|GPIO_PIN10)  /* PH10 AUX4 */
-# define PROBE_5    (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN13)  /* PD13 AUX5 */
-# define PROBE_6    (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN14)  /* PD14 AUX6 */
-# define PROBE_7    (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTH|GPIO_PIN6)   /* PH6  AUX7 */
-# define PROBE_8    (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTH|GPIO_PIN9)   /* PH9  AUX8 */
-# define PROBE_9    (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN11)  /* PE11  CAP1 */
-
-# define PROBE_INIT(mask) \
-	do { \
-		if ((mask)& PROBE_N(1)) { stm32_configgpio(PROBE_1); } \
-		if ((mask)& PROBE_N(2)) { stm32_configgpio(PROBE_2); } \
-		if ((mask)& PROBE_N(3)) { stm32_configgpio(PROBE_3); } \
-		if ((mask)& PROBE_N(4)) { stm32_configgpio(PROBE_4); } \
-		if ((mask)& PROBE_N(5)) { stm32_configgpio(PROBE_5); } \
-		if ((mask)& PROBE_N(6)) { stm32_configgpio(PROBE_6); } \
-		if ((mask)& PROBE_N(7)) { stm32_configgpio(PROBE_7); } \
-		if ((mask)& PROBE_N(8)) { stm32_configgpio(PROBE_8); } \
-		if ((mask)& PROBE_N(9)) { stm32_configgpio(PROBE_9); } \
-	} while(0)
-
-# define PROBE(n,s)  do {stm32_gpiowrite(PROBE_##n,(s));}while(0)
-# define PROBE_MARK(n) PROBE(n,false);PROBE(n,true)
-#else
-# define PROBE_INIT(mask)
-# define PROBE(n,s)
-# define PROBE_MARK(n)
-#endif
-
-#endif  /*__NUTTX_CONFIG_MATEKH743SLIM_INCLUDE_BOARD_H  */

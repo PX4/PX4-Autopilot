@@ -211,11 +211,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: holybro_durandal-v1_default
-    matek_h743-slim_default:
-      short: matek_h743-slim
+    matek_h743_default:
+      short: matek_h743
       buildType: MinSizeRel
       settings:
-        CONFIG: matek_h743-slim_default
+        CONFIG: matek_h743_default
     matek_gnss-m9n-f4_canbootloader:
       short: matek_gnss-m9n-f4_canbootloader
       buildType: MiniSizeRel
