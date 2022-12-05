@@ -49,6 +49,7 @@
 
 #if defined(__PX4_NUTTX) && !defined(CONFIG_BUILD_FLAT)
 #include <px4_platform/board_ctrl.h>
+#include <px4_platform_common/sem.h>
 #endif
 
 __BEGIN_DECLS
@@ -81,11 +82,10 @@ typedef struct hrt_call {
 	hrt_callout		callout;
 	void			*arg;
 #if defined(__PX4_NUTTX) && !defined(CONFIG_BUILD_FLAT)
-	hrt_callout		usr_callout;
-	void			*usr_arg;
+	px4_sem_t 		*callout_sem;
+	struct usr_hrt_call	*kernel_entry;
 #endif
 } *hrt_call_t;
-
 
 #define LATENCY_BUCKET_COUNT 8
 extern const uint16_t latency_bucket_count;
@@ -99,7 +99,10 @@ typedef struct latency_info {
 
 #if defined(__PX4_NUTTX) && !defined(CONFIG_BUILD_FLAT)
 
+typedef void *px4_hrt_handle_t;
+
 typedef struct hrt_boardctl {
+	const px4_hrt_handle_t	handle;
 	hrt_call_t		entry;
 	hrt_abstime		time; /* delay or calltime */
 	hrt_abstime		interval;
@@ -123,6 +126,8 @@ typedef struct latency_boardctl {
 #define HRT_CANCEL		_HRTIOC(6)
 #define HRT_GET_LATENCY		_HRTIOC(7)
 #define HRT_RESET_LATENCY	_HRTIOC(8)
+#define HRT_REGISTER	_HRTIOC(9)
+#define HRT_UNREGISTER	_HRTIOC(10)
 
 #endif
 
