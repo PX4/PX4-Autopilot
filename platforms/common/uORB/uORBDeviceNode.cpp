@@ -392,6 +392,7 @@ uORB::DeviceNode::print_statistics(int max_topic_length)
 
 	PX4_INFO_RAW("%-*s %2i %4i %2i %4i %s\n", max_topic_length, get_meta()->o_name, (int)instance, (int)sub_count,
 		     queue_size, get_meta()->o_size, get_devname());
+
 	return true;
 }
 

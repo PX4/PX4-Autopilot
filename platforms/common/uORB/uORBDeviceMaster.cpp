@@ -404,7 +404,6 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 				PX4_INFO_RAW("\033[0J"); // clear the rest of the screen
 			}
 
-
 			lock();
 			ret = addNewDeviceNodes(&first_node, num_topics, max_topic_name_length, topic_filter, num_filters);
 			unlock();
