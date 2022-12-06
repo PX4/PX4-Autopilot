@@ -61,6 +61,7 @@ posix-configs/SITL/init/test/*_generated
 /parameters.xml
 /modules
 /msg/ros/*.msg
+/install
 
 *.gcov
 .coverage
