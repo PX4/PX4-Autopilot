@@ -204,8 +204,6 @@ public:
 	// get the orientation (quaterion) covariances
 	matrix::SquareMatrix<float, 4> orientation_covariances() const { return P.slice<4, 4>(0, 0); }
 
-	matrix::SquareMatrix<float, 3> orientation_covariances_euler() const;
-
 	// get the linear velocity covariances
 	matrix::SquareMatrix<float, 3> velocity_covariances() const { return P.slice<3, 3>(4, 4); }
 
@@ -390,6 +388,9 @@ public:
 
 	// use the latest IMU data at the current time horizon.
 	Quatf calculate_quaternion() const;
+
+	// rotate quaternion covariances into variances for an equivalent rotation vector
+	Vector3f calcRotVecVariances() const;
 
 	// set minimum continuous period without GPS fail required to mark a healthy GPS status
 	void set_min_required_gps_health_time(uint32_t time_us) { _min_gps_health_time_us = time_us; }
@@ -966,9 +967,6 @@ private:
 
 	// calculate the measurement variance for the optical flow sensor
 	float calcOptFlowMeasVar(const flowSample &flow_sample);
-
-	// rotate quaternion covariances into variances for an equivalent rotation vector
-	Vector3f calcRotVecVariances();
 
 	// initialise the quaternion covariances using rotation vector variances
 	// do not call before quaternion states are initialised

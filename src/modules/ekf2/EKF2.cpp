@@ -1196,7 +1196,7 @@ void EKF2::PublishOdometry(const hrt_abstime &timestamp)
 	_ekf.position_covariances().diag().copyTo(odom.position_variance);
 
 	// orientation covariance
-	_ekf.orientation_covariances_euler().diag().copyTo(odom.orientation_variance);
+	_ekf.calcRotVecVariances().copyTo(odom.orientation_variance);
 
 	odom.reset_counter = _ekf.get_quat_reset_count()
 			     + _ekf.get_velNE_reset_count() + _ekf.get_velD_reset_count()
