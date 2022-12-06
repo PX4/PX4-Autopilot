@@ -264,7 +264,7 @@ int px4muorb_topic_advertised(const char *topic_name)
 		uORBCommunicator::IChannelRxHandler *rxHandler = channel->GetRxHandler();
 
 		if (rxHandler) {
-			return rxHandler->process_remote_topic(topic_name, true);
+			return rxHandler->process_remote_topic(topic_name);
 
 		} else {
 			PX4_ERR("Null rx handler in %s", __FUNCTION__);
@@ -295,7 +295,7 @@ int px4muorb_add_subscriber(const char *topic_name)
 		if (rxHandler) {
 			channel->AddRemoteSubscriber(topic_name);
 			// Pick a high message rate of 1000 Hz
-			return rxHandler->process_add_subscription(topic_name, 1000);
+			return rxHandler->process_add_subscription(topic_name);
 
 		} else {
 			PX4_ERR("Null rx handler in %s", __FUNCTION__);
