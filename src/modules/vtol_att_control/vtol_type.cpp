@@ -286,11 +286,19 @@ void VtolType::check_quadchute_condition()
 
 float VtolType::pusher_assist()
 {
-	// Altitude above ground is distance sensor altitude if available, otherwise local z-position
-	float dist_to_ground = -_local_pos->z;
+	// Altitude above ground is local z-position or altitude above home or distance sensor altitude depending on what's available
+	float dist_to_ground = 0.f;
+	const float home_position_z = _attc->get_home_position_z();
 
 	if (_local_pos->dist_bottom_valid) {
 		dist_to_ground = _local_pos->dist_bottom;
+
+	} else if (PX4_ISFINITE(home_position_z)) {
+		dist_to_ground = -(_local_pos->z - home_position_z);
+
+	} else {
+		dist_to_ground = -_local_pos->z;
+
 	}
 
 	// disable pusher assist depending on setting of forward_thrust_enable_mode:
