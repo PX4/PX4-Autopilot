@@ -18,14 +18,31 @@ sudo ./Tools/setup/ubuntu.sh
 also install ROS2 humble. see: [https://docs.ros.org/en/humble/Installation.html)](https://docs.ros.org/en/humble/Installation.html)
 
 ## Run the Simulator
-
-source the workspace
+1) Set up your workspace the following way by cloning raptor: https://github.com/raptor-ethz/raptor.git and this repository in the following file structure:
+```
+simulator
+├── raptor
+└── PX4-Autopilot
+```
+2) source the workspace
 
 ```
 source /opt/ros/humble/setup.bash
 ```
 
-run the simulator
+3) build the raptor package by running:
+```
+colcon build
+```
+4) change your directory to PX4-Autopilot
+```
+cd PX4-Autopilot
+```
+5) source the raptor package with the following commmand
+```
+. ../install/local_setup.bash
+```
+6) run the simulator
 
 ```
 make px4_sitl gazebo_raptor__baylands
