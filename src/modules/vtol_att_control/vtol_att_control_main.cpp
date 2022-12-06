@@ -320,6 +320,18 @@ VtolAttitudeControl::Run()
 		_airspeed_validated_sub.update(&_airspeed_validated);
 		_tecs_status_sub.update(&_tecs_status);
 		_land_detected_sub.update(&_land_detected);
+
+		if (_home_position_sub.updated()) {
+			home_position_s home_position;
+
+			if (_home_position_sub.copy(&home_position) && home_position.valid_alt) {
+				_home_position_z = home_position.z;
+
+			} else {
+				_home_position_z = NAN;
+			}
+		}
+
 		vehicle_status_poll();
 		action_request_poll();
 		vehicle_cmd_poll();
