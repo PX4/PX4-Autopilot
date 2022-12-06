@@ -2,7 +2,7 @@
  * board.h
  * include/arch/board/board.h
  *
- *   Copyright (C) 2009, 2016 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009, 2016, 2022 Gregory Nutt. All rights reserved.
  *   Authors: Gregory Nutt <gnutt@nuttx.org>
  *            David Sidrane <david_s5@nscsdg.com>
  *
@@ -55,7 +55,7 @@
  ************************************************************************************/
 
 /* Clocking *************************************************************************/
-/* The PX4FMUV2 uses a 24MHz crystal connected to the HSE.
+/* The ThePeach FCC-R1 uses a 24MHz crystal connected to the HSE.
  *
  * This is the "standard" configuration as set up by arch/arm/src/stm32f40xx_rcc.c:
  *   System Clock source           : PLL (HSE)
