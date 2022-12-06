@@ -140,7 +140,6 @@ public:
 		_M2_accum.zero();
 	}
 
-	// Retrieve the mean, variance and sample variance
 	matrix::Vector<Type, N> mean() const { return _mean; }
 	matrix::Vector<Type, N> variance() const { return _M2.diag() / (_count - 1); }
 	matrix::SquareMatrix<Type, N> covariance() const { return _M2 / (_count - 1); }

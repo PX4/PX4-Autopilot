@@ -104,7 +104,6 @@ public:
 		_M2_accum = 0;
 	}
 
-	// Retrieve the mean, variance and sample variance
 	Type mean() const { return _mean; }
 	Type variance() const { return _M2 / (_count - 1); }
 	Type standard_deviation() const { return std::sqrt(variance()); }
