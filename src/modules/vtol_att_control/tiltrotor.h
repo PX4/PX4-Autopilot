@@ -44,6 +44,9 @@
 #include <parameters/param.h>
 #include <drivers/drv_hrt.h>
 
+#include <uORB/Publication.hpp>
+#include <uORB/topics/tiltrotor_extra_controls.h>
+
 class Tiltrotor : public VtolType
 {
 
@@ -76,6 +79,8 @@ private:
 	 */
 
 	vtol_mode _vtol_mode{vtol_mode::MC_MODE};			/**< vtol flight mode, defined by enum vtol_mode */
+
+	uORB::Publication<tiltrotor_extra_controls_s>	_tiltrotor_extra_controls_pub{ORB_ID(tiltrotor_extra_controls)};
 
 	float _tilt_control{0.0f};		/**< actuator value for the tilt servo */
 

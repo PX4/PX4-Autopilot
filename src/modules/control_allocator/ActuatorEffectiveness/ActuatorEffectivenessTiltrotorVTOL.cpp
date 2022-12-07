@@ -110,10 +110,11 @@ void ActuatorEffectivenessTiltrotorVTOL::updateSetpoint(const matrix::Vector<flo
 
 	// apply tilt
 	if (matrix_index == 0) {
-		actuator_controls_s actuator_controls_1;
 
-		if (_actuator_controls_1_sub.copy(&actuator_controls_1)) {
-			float control_collective_tilt = actuator_controls_1.control[actuator_controls_s::INDEX_COLLECTIVE_TILT] * 2.f - 1.f;
+		tiltrotor_extra_controls_s tiltrotor_extra_controls;
+
+		if (_tiltrotor_extra_controls_sub.copy(&tiltrotor_extra_controls)) {
+			float control_collective_tilt = tiltrotor_extra_controls.collective_tilt_normalized_setpoint * 2.f - 1.f;
 
 			// set control_collective_tilt to exactly -1 or 1 if close to these end points
 			control_collective_tilt = control_collective_tilt < -0.99f ? -1.f : control_collective_tilt;
@@ -133,16 +134,12 @@ void ActuatorEffectivenessTiltrotorVTOL::updateSetpoint(const matrix::Vector<flo
 					actuator_sp(i + _first_tilt_idx) += control_collective_tilt;
 				}
 			}
-		}
 
-		// in FW directly use throttle sp
-		if (_flight_phase == FlightPhase::FORWARD_FLIGHT) {
+			// in FW directly use throttle sp
+			if (_flight_phase == FlightPhase::FORWARD_FLIGHT) {
 
-			actuator_controls_s actuator_controls_0;
-
-			if (_actuator_controls_0_sub.copy(&actuator_controls_0)) {
 				for (int i = 0; i < _first_tilt_idx; ++i) {
-					actuator_sp(i) = actuator_controls_0.control[actuator_controls_s::INDEX_THROTTLE];
+					actuator_sp(i) = tiltrotor_extra_controls.collective_thrust_normalized_setpoint;
 				}
 			}
 		}

@@ -428,16 +428,16 @@ void Tiltrotor::fill_actuator_outputs()
 	_torque_setpoint_0->xyz[1] = mc_in[actuator_controls_s::INDEX_PITCH] * _mc_pitch_weight;
 	_torque_setpoint_0->xyz[2] = mc_in[actuator_controls_s::INDEX_YAW]   * _mc_yaw_weight;
 
+	// Special case tiltrotor: instead of passing a 3D thrust vector (that would mostly have a x-component in FW, and z in MC),
+	// pass the vector magnitude as z-component, plus the collective tilt. Passing 3D thrust plus tilt is not feasible as they
+	// can't be allocated independently, and with the current controller it's not possible to have collective tilt calculated
+	// by the allocator directly.
+	float collective_thrust_normalized_setpoint = 0.f;
+
 	if (_vtol_mode == vtol_mode::FW_MODE) {
 
-		// for the legacy mixing system pubish FW throttle on the MC output
-		mc_out[actuator_controls_s::INDEX_THROTTLE] = fw_in[actuator_controls_s::INDEX_THROTTLE];
-
-		// Special case tiltrotor: instead of passing a 3D thrust vector (that would mostly have a x-component in FW, and z in MC),
-		// pass the vector magnitude as z-component, plus the collective tilt. Passing 3D thrust plus tilt is not feasible as they
-		// can't be allocated independently, and with the current controller it's not possible to have collective tilt calculated
-		// by the allocator directly.
 		_thrust_setpoint_0->xyz[2] = fw_in[actuator_controls_s::INDEX_THROTTLE];
+		collective_thrust_normalized_setpoint = fw_in[actuator_controls_s::INDEX_THROTTLE];
 
 		/* allow differential thrust if enabled */
 		if (_param_vt_fw_difthr_en.get() & static_cast<int32_t>(VtFwDifthrEnBits::YAW_BIT)) {
@@ -446,10 +446,8 @@ void Tiltrotor::fill_actuator_outputs()
 		}
 
 	} else {
-
-		// see comment above for passing magnitude of thrust, not 3D thrust
-		mc_out[actuator_controls_s::INDEX_THROTTLE] = mc_in[actuator_controls_s::INDEX_THROTTLE] * _mc_throttle_weight;
 		_thrust_setpoint_0->xyz[2] = mc_in[actuator_controls_s::INDEX_THROTTLE] * _mc_throttle_weight;
+		collective_thrust_normalized_setpoint = mc_in[actuator_controls_s::INDEX_THROTTLE] * _mc_throttle_weight;
 	}
 
 	// Landing gear
@@ -461,8 +459,6 @@ void Tiltrotor::fill_actuator_outputs()
 	}
 
 	// Fixed wing output
-	fw_out[actuator_controls_s::INDEX_COLLECTIVE_TILT] = _tilt_control;
-
 	if (_param_vt_elev_mc_lock.get()  && _vtol_mode == vtol_mode::MC_MODE) {
 		fw_out[actuator_controls_s::INDEX_ROLL]  = 0;
 		fw_out[actuator_controls_s::INDEX_PITCH] = 0;
@@ -485,6 +481,13 @@ void Tiltrotor::fill_actuator_outputs()
 	_actuators_out_1->timestamp_sample = _actuators_fw_in->timestamp_sample;
 
 	_actuators_out_0->timestamp = _actuators_out_1->timestamp = hrt_absolute_time();
+
+	// publish tiltrotor extra controls
+	tiltrotor_extra_controls_s tiltrotor_extra_controls = {};
+	tiltrotor_extra_controls.collective_tilt_normalized_setpoint = _tilt_control;
+	tiltrotor_extra_controls.collective_thrust_normalized_setpoint = collective_thrust_normalized_setpoint;
+	tiltrotor_extra_controls.timestamp = hrt_absolute_time();
+	_tiltrotor_extra_controls_pub.publish(tiltrotor_extra_controls);
 }
 
 void Tiltrotor::blendThrottleAfterFrontTransition(float scale)
