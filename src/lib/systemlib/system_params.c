@@ -192,13 +192,11 @@ PARAM_DEFINE_INT32(SYS_HAS_GPS, 1);
 /**
  * Control if the vehicle has a magnetometer
  *
- * Disable this if the board has no magnetometer, such as the Omnibus F4 SD.
- * If disabled, the preflight checks will not check for the presence of a
- * magnetometer.
+ * Set this to 0 if the board has no magnetometer.
+ * If set to 0, the preflight checks will not check for the presence of a
+ * magnetometer, otherwise N sensors are required.
  *
- * @boolean
  * @reboot_required true
- *
  * @group System
  */
 PARAM_DEFINE_INT32(SYS_HAS_MAG, 1);

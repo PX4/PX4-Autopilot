@@ -39,11 +39,12 @@ using namespace time_literals;
 
 void MagnetometerChecks::checkAndReport(const Context &context, Report &reporter)
 {
-	if (!_param_sys_has_mag.get()) {
+	if (_param_sys_has_mag.get() == 0) {
 		return;
 	}
 
 	bool had_failure = false;
+	int num_enabled_and_valid_calibration = 0;
 
 	for (int instance = 0; instance < _sensor_mag_sub.size(); instance++) {
 		bool is_mag_fault = false;
@@ -66,7 +67,16 @@ void MagnetometerChecks::checkAndReport(const Context &context, Report &reporter
 				is_calibration_valid = true;
 
 			} else {
-				is_calibration_valid = (calibration::FindCurrentCalibrationIndex("MAG", mag_data.device_id) >= 0);
+				int calibration_index = calibration::FindCurrentCalibrationIndex("MAG", mag_data.device_id);
+				is_calibration_valid = (calibration_index >= 0);
+
+				if (is_calibration_valid) {
+					int priority = calibration::GetCalibrationParamInt32("MAG", "PRIO", calibration_index);
+
+					if (priority > 0) {
+						++num_enabled_and_valid_calibration;
+					}
+				}
 			}
 
 			reporter.setIsPresent(health_component_t::magnetometer);
@@ -125,6 +135,25 @@ void MagnetometerChecks::checkAndReport(const Context &context, Report &reporter
 
 	if (!had_failure && !context.isArmed()) {
 		consistencyCheck(context, reporter);
+
+		if (num_enabled_and_valid_calibration < _param_sys_has_mag.get()) {
+			/* EVENT
+			 * @description
+			 * Make sure all required sensors are working, enabled and calibrated.
+			 *
+			 * <profile name="dev">
+			 * This check can be configured via <param>SYS_HAS_MAG</param> parameter.
+			 * </profile>
+			 */
+			reporter.armingCheckFailure<uint8_t, uint8_t>(NavModes::All, health_component_t::magnetometer,
+					events::ID("check_mag_sys_has_mag_missing"),
+					events::Log::Error, "Found {1} compass (required: {2})", num_enabled_and_valid_calibration, _param_sys_has_mag.get());
+
+			if (reporter.mavlink_log_pub()) {
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Found %i compass (required: %" PRId32 ")",
+						     num_enabled_and_valid_calibration, _param_sys_has_mag.get());
+			}
+		}
 	}
 }
 
