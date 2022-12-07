@@ -44,6 +44,7 @@ AuxiliaryActuatorsController::AuxiliaryActuatorsController() :
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
 {
 
+	landing_gear_pub_.advertise();
 }
 
 AuxiliaryActuatorsController::~AuxiliaryActuatorsController()
@@ -93,10 +94,47 @@ void AuxiliaryActuatorsController::Run()
 
 	perf_begin(_cycle_perf);
 
+	// landing gear logic
+	landing_gear_auto_setpoint_poll();
+	action_request_poll();
+	landing_gear_.timestamp = hrt_absolute_time();
+	landing_gear_pub_.publish(landing_gear_);
 
 	perf_end(_cycle_perf);
 }
 
+void AuxiliaryActuatorsController::landing_gear_auto_setpoint_poll()
+{
+	action_request_poll();
+
+	landing_gear_auto_setpoint_s landing_gear_auto_setpoint;
+
+	if (landing_gear_auto_setpoint_sub_.update(&landing_gear_auto_setpoint)) {
+		if (landing_gear_auto_setpoint.setpoint != lading_gear_auto_setpoint_old_) {
+			landing_gear_.setpoint = landing_gear_auto_setpoint.setpoint;
+			lading_gear_auto_setpoint_old_ = landing_gear_auto_setpoint.setpoint;
+		}
+	}
+}
+
+void AuxiliaryActuatorsController::action_request_poll()
+{
+	while (action_request_sub_.updated()) {
+		action_request_s action_request;
+
+		if (action_request_sub_.copy(&action_request)) {
+			switch (action_request.action) {
+			case action_request_s::ACTION_LANDING_GEAR_DOWN:
+				landing_gear_.setpoint = landing_gear_setpoint_s::GEAR_DOWN;
+				break;
+
+			case action_request_s::ACTION_LANDING_GEAR_UP:
+				landing_gear_.setpoint = landing_gear_setpoint_s::GEAR_UP;
+				break;
+			}
+		}
+	}
+}
 int AuxiliaryActuatorsController::print_status()
 {
 	return 0;

@@ -118,7 +118,7 @@ bool FlightTaskAuto::update()
 	// during mission and reposition, raise the landing gears but only
 	// if altitude is high enough
 	if (_highEnoughForLandingGear()) {
-		_gear.landing_gear = landing_gear_s::GEAR_UP;
+		_gear.setpoint = landing_gear_auto_setpoint_s::GEAR_UP;
 	}
 
 	switch (_type) {
@@ -265,7 +265,7 @@ void FlightTaskAuto::_prepareLandSetpoints()
 	_position_setpoint = _land_position; // The last element of the land position has to stay NAN
 	_yaw_setpoint = _land_heading;
 	_velocity_setpoint(2) = vertical_speed;
-	_gear.landing_gear = landing_gear_s::GEAR_DOWN;
+	_gear.setpoint = landing_gear_auto_setpoint_s::GEAR_DOWN;
 }
 
 void FlightTaskAuto::_limitYawRate()

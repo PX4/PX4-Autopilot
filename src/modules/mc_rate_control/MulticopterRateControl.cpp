@@ -145,24 +145,6 @@ MulticopterRateControl::Run()
 
 		_vehicle_status_sub.update(&_vehicle_status);
 
-		if (_landing_gear_sub.updated()) {
-			landing_gear_s landing_gear;
-
-			if (_landing_gear_sub.copy(&landing_gear)) {
-				if (landing_gear.landing_gear != landing_gear_s::GEAR_KEEP) {
-					if (landing_gear.landing_gear == landing_gear_s::GEAR_UP && (_landed || _maybe_landed)) {
-						mavlink_log_critical(&_mavlink_log_pub, "Landed, unable to retract landing gear\t");
-						events::send(events::ID("mc_rate_control_not_retract_landing_gear_landed"),
-						{events::Log::Error, events::LogInternal::Info},
-						"Landed, unable to retract landing gear");
-
-					} else {
-						_landing_gear = landing_gear.landing_gear;
-					}
-				}
-			}
-		}
-
 		// use rates setpoint topic
 		vehicle_rates_setpoint_s vehicle_rates_setpoint{};
 
@@ -246,7 +228,6 @@ MulticopterRateControl::Run()
 			actuators.control[actuator_controls_s::INDEX_YAW] = PX4_ISFINITE(att_control(2)) ? att_control(2) : 0.0f;
 			actuators.control[actuator_controls_s::INDEX_THROTTLE] = PX4_ISFINITE(_thrust_setpoint(2)) ? -_thrust_setpoint(
 						2) : 0.0f;
-			actuators.control[actuator_controls_s::INDEX_LANDING_GEAR] = _landing_gear;
 			actuators.timestamp_sample = angular_velocity.timestamp_sample;
 
 			if (!_vehicle_status.is_vtol) {

@@ -42,7 +42,7 @@
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/topics/action_request.h>
-#include <uORB/topics/landing_gear.h>
+#include <uORB/topics/landing_gear_setpoint.h>
 #include <uORB/topics/manual_control_switches.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
@@ -84,10 +84,8 @@ private:
 
 	void evaluateModeSlot(uint8_t mode_slot);
 	void sendActionRequest(int8_t action, int8_t source, int8_t mode = 0);
-	void publishLandingGear(int8_t action);
 
 	uORB::Publication<action_request_s> _action_request_pub{ORB_ID(action_request)};
-	uORB::Publication<landing_gear_s> _landing_gear_pub{ORB_ID(landing_gear)};
 
 	enum class CameraMode {
 		Image = 0,

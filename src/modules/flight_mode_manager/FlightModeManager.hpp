@@ -44,7 +44,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/Publication.hpp>
-#include <uORB/topics/landing_gear.h>
+#include <uORB/topics/landing_gear_auto_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/takeoff_status.h>
 #include <uORB/topics/trajectory_setpoint.h>
@@ -127,7 +127,7 @@ private:
 		FlightTaskIndex index{FlightTaskIndex::None};
 	} _current_task{};
 
-	int8_t _old_landing_gear_position{landing_gear_s::GEAR_KEEP};
+	int8_t _old_landing_gear_position{landing_gear_auto_setpoint_s::GEAR_KEEP};
 	uint8_t _takeoff_state{takeoff_status_s::TAKEOFF_STATE_UNINITIALIZED};
 
 	hrt_abstime _failsafe_task_activated_start{0};
@@ -151,7 +151,7 @@ private:
 
 	uORB::SubscriptionData<vehicle_status_s> _vehicle_status_sub{ORB_ID(vehicle_status)};
 
-	uORB::Publication<landing_gear_s> _landing_gear_pub{ORB_ID(landing_gear)};
+	uORB::Publication<landing_gear_auto_setpoint_s> _landing_gear_auto_setpoint_pub{ORB_ID(landing_gear_auto_setpoint)};
 	uORB::Publication<trajectory_setpoint_s> _trajectory_setpoint_pub{ORB_ID(trajectory_setpoint)};
 	uORB::Publication<vehicle_constraints_s> _vehicle_constraints_pub{ORB_ID(vehicle_constraints)};
 

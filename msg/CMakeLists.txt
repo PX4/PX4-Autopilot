@@ -108,7 +108,8 @@ set(msg_files
 	InternalCombustionEngineStatus.msg
 	IridiumsbdStatus.msg
 	IrlockReport.msg
-	LandingGear.msg
+	LandingGearSetpoint.msg
+	LandingGearAutoSetpoint.msg
 	LandingGearWheel.msg
 	LandingTargetInnovations.msg
 	LandingTargetPose.msg

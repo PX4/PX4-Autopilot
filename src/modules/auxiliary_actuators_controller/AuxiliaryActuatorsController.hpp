@@ -48,6 +48,9 @@
 
 #include <uORB/topics/parameter_update.h>
 
+#include <uORB/topics/action_request.h>
+#include <uORB/topics/landing_gear_setpoint.h>
+#include <uORB/topics/landing_gear_auto_setpoint.h>
 using namespace time_literals;
 
 namespace auxiliary_actuators_controller
@@ -79,8 +82,18 @@ public:
 private:
 	void Run() override;
 
+	void action_request_poll();
+	void landing_gear_auto_setpoint_poll();
+
+	landing_gear_setpoint_s landing_gear_;
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	uORB::Subscription action_request_sub_{ORB_ID(action_request)};
+	uORB::Subscription landing_gear_auto_setpoint_sub_{ORB_ID(landing_gear_auto_setpoint)};
+	uORB::Publication<landing_gear_setpoint_s> landing_gear_pub_{ORB_ID(landing_gear_setpoint)};
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
+	int lading_gear_auto_setpoint_old_{landing_gear_auto_setpoint_s::GEAR_KEEP};
+	// TODO: add param to retract landing gear on the ground or not
 };
 
 } // namespace auxiliary_actuators_controller

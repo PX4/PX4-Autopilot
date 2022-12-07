@@ -35,7 +35,7 @@
 
 #include "FunctionProviderBase.hpp"
 
-#include <uORB/topics/landing_gear.h>
+#include <uORB/topics/landing_gear_setpoint.h>
 
 /**
  * Functions: Landing_Gear
@@ -48,13 +48,13 @@ public:
 
 	void update() override
 	{
-		landing_gear_s landing_gear;
+		landing_gear_setpoint_s landing_gear_setpoint;
 
-		if (_topic.update(&landing_gear)) {
-			if (landing_gear.landing_gear == landing_gear_s::GEAR_DOWN) {
+		if (_topic.update(&landing_gear_setpoint)) {
+			if (landing_gear_setpoint.setpoint == landing_gear_setpoint_s::GEAR_DOWN) {
 				_data = -1.f;
 
-			} else if (landing_gear.landing_gear == landing_gear_s::GEAR_UP) {
+			} else if (landing_gear_setpoint.setpoint == landing_gear_setpoint_s::GEAR_UP) {
 				_data = 1.f;
 			}
 		}
@@ -63,6 +63,6 @@ public:
 	float value(OutputFunction func) override { return _data; }
 
 private:
-	uORB::Subscription _topic{ORB_ID(landing_gear)};
+	uORB::Subscription _topic{ORB_ID(landing_gear_setpoint)};
 	float _data{-1.f};
 };

@@ -360,16 +360,16 @@ void FlightModeManager::generateTrajectorySetpoint(const float dt,
 	_vehicle_constraints_pub.publish(constraints);
 
 	// if there's any change in landing gear setpoint publish it
-	landing_gear_s landing_gear = _current_task.task->getGear();
+	landing_gear_auto_setpoint_s landing_gear_auto_setpoint = _current_task.task->getGear();
 
-	if (landing_gear.landing_gear != _old_landing_gear_position
-	    && landing_gear.landing_gear != landing_gear_s::GEAR_KEEP) {
+	if (landing_gear_auto_setpoint.setpoint != _old_landing_gear_position
+	    && landing_gear_auto_setpoint.setpoint != landing_gear_auto_setpoint_s::GEAR_KEEP) {
 
-		landing_gear.timestamp = hrt_absolute_time();
-		_landing_gear_pub.publish(landing_gear);
+		landing_gear_auto_setpoint.timestamp = hrt_absolute_time();
+		_landing_gear_auto_setpoint_pub.publish(landing_gear_auto_setpoint);
 	}
 
-	_old_landing_gear_position = landing_gear.landing_gear;
+	_old_landing_gear_position = landing_gear_auto_setpoint.setpoint;
 }
 
 void FlightModeManager::limitAltitude(trajectory_setpoint_s &setpoint,
