@@ -11,7 +11,6 @@ add_library(px4_layer
 	${PX4_SOURCE_DIR}/platforms/posix/src/px4/common/cpuload.cpp
 	px4_userspace_init.cpp
 	px4_usr_crypto.cpp
-	px4_mtd.cpp
 	usr_atomic.cpp
 	usr_board_ctrl.c
 	usr_hrt.cpp
