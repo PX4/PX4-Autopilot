@@ -31,21 +31,28 @@
 #
 ############################################################################
 
-# Find the Ignition_Transport library
-find_package(ignition-transport
+# Find the gz_Transport library
+find_package(gz-transport
 	#REQUIRED COMPONENTS core
 	NAMES
 		ignition-transport8
 		ignition-transport10
 		ignition-transport11
+		gz-transport12
 	#QUIET
 )
 
-if(ignition-transport_FOUND)
+if(gz-transport_FOUND)
 
 	add_compile_options(-frtti -fexceptions)
 
-	set(IGN_TRANSPORT_VER ${ignition-transport_VERSION_MAJOR})
+	set(GZ_TRANSPORT_VER ${gz-transport_VERSION_MAJOR})
+
+	if (GZ_TRANSPORT_VER GREATER_EQUAL 12)
+		set(GZ_TRANSPORT_LIB gz-transport${GZ_TRANSPORT_VER}::core)
+	else()
+		set(GZ_TRANSPORT_LIB ignition-transport${GZ_TRANSPORT_VER}::core)
+	endif()
 
 	px4_add_module(
 		MODULE modules__simulation__gz_bridge
@@ -58,7 +65,7 @@ if(ignition-transport_FOUND)
 		DEPENDS
 			mixer_module
 			px4_work_queue
-			ignition-transport${IGN_TRANSPORT_VER}::core
+			${GZ_TRANSPORT_LIB}
 		MODULE_CONFIG
 			module.yaml
 	)
