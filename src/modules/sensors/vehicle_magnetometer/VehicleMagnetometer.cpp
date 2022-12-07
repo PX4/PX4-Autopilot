@@ -49,8 +49,8 @@ VehicleMagnetometer::VehicleMagnetometer() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
 {
-	param_find("CAL_MAG_SIDES");
-	param_find("CAL_MAG_ROT_AUTO");
+	param_find("SENS_MAG_SIDES");
+	param_find("SENS_MAG_AUTOROT");
 
 	_voter.set_timeout(SENSOR_TIMEOUT);
 	_voter.set_equal_value_threshold(1000);
