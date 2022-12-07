@@ -122,15 +122,15 @@ FixedwingAttitudeControl::vehicle_manual_poll(const float yaw_body)
 
 				// STABILIZED mode generate the attitude setpoint from manual user inputs
 
-				_att_sp.roll_body = _manual_control_setpoint.y * radians(_param_fw_man_r_max.get());
+				_att_sp.roll_body = _manual_control_setpoint.roll * radians(_param_fw_man_r_max.get());
 
-				_att_sp.pitch_body = -_manual_control_setpoint.x * radians(_param_fw_man_p_max.get())
+				_att_sp.pitch_body = -_manual_control_setpoint.pitch * radians(_param_fw_man_p_max.get())
 						     + radians(_param_fw_psp_off.get());
 				_att_sp.pitch_body = constrain(_att_sp.pitch_body,
 							       -radians(_param_fw_man_p_max.get()), radians(_param_fw_man_p_max.get()));
 
 				_att_sp.yaw_body = yaw_body; // yaw is not controlled, so set setpoint to current yaw
-				_att_sp.thrust_body[0] = math::constrain(_manual_control_setpoint.z, 0.0f, 1.0f);
+				_att_sp.thrust_body[0] = math::constrain(_manual_control_setpoint.throttle, 0.0f, 1.0f);
 
 				Quatf q(Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body));
 				q.copyTo(_att_sp.q_d);
@@ -431,7 +431,7 @@ void FixedwingAttitudeControl::Run()
 
 					/* add yaw rate setpoint from sticks in all attitude-controlled modes */
 					if (_vcontrol_mode.flag_control_manual_enabled) {
-						body_rates_setpoint(2) += math::constrain(_manual_control_setpoint.r * radians(_param_fw_y_rmax.get()),
+						body_rates_setpoint(2) += math::constrain(_manual_control_setpoint.yaw * radians(_param_fw_y_rmax.get()),
 									  -radians(_param_fw_y_rmax.get()), radians(_param_fw_y_rmax.get()));
 					}
 
@@ -451,7 +451,7 @@ void FixedwingAttitudeControl::Run()
 
 			if (_vcontrol_mode.flag_control_manual_enabled) {
 				// always direct control of steering wheel with yaw stick in manual modes
-				wheel_u = _manual_control_setpoint.r;
+				wheel_u = _manual_control_setpoint.yaw;
 
 			} else {
 				// XXX: yaw_sp_move_rate here is an abuse -- used to ferry manual yaw inputs from
