@@ -49,10 +49,6 @@
 #include <px4_platform_common/module_params.h>
 
 
-static constexpr float kFlapSlewRateVtol = 1.f; // minimum time from none to full flap deflection [s]
-static constexpr float kSpoilerSlewRateVtol = 1.f; // minimum time from none to full spoiler deflection [s]
-
-
 // Has to match 1:1 msg/vtol_vehicle_status.msg
 enum class mode {
 	TRANSITION_TO_FW = 1,
@@ -241,14 +237,6 @@ public:
 
 	virtual void parameters_update() = 0;
 
-	/**
-	 * @brief Set current time delta
-	 *
-	 * @param dt Current time delta [s]
-	 */
-	void setDt(float dt) {_dt = dt; }
-
-protected:
 	VtolAttitudeControl *_attc;
 	mode _common_vtol_mode;
 
@@ -303,9 +291,6 @@ protected:
 
 	float update_and_get_backtransition_pitch_sp();
 
-	SlewRate<float> _spoiler_setpoint_with_slewrate;
-	SlewRate<float> _flaps_setpoint_with_slewrate;
-
 	float _dt{0.0025f}; // time step [s]
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(ModuleParams,
@@ -339,9 +324,7 @@ protected:
 					(ParamInt<px4::params::VT_FWD_THRUST_EN>) _param_vt_fwd_thrust_en,
 					(ParamFloat<px4::params::MPC_LAND_ALT1>) _param_mpc_land_alt1,
 					(ParamFloat<px4::params::MPC_LAND_ALT2>) _param_mpc_land_alt2,
-					(ParamFloat<px4::params::VT_LND_PITCH_MIN>) _param_vt_lnd_pitch_min,
-
-					(ParamFloat<px4::params::VT_SPOILER_MC_LD>) _param_vt_spoiler_mc_ld
+					(ParamFloat<px4::params::VT_LND_PITCH_MIN>) _param_vt_lnd_pitch_min
 
 				       )
 

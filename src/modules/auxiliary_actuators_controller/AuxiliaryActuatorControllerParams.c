@@ -30,3 +30,79 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
+/**
+ * Flaps setting during take-off
+ *
+ * Sets a fraction of full flaps during take-off.
+ *
+ * @unit norm
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ * @increment 0.01
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_FLAPS_TO_SCL, 0.f);
+
+/**
+ * Flaps setting during landing
+ *
+ * Sets a fraction of full flaps during landing.
+ *
+ * @unit norm
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ * @increment 0.01
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_FLAPS_LND_SCL, 1.f);
+
+/**
+ * Spoiler landing setting
+ *
+ * @unit norm
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ * @increment 0.01
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_SPOILERS_LND, 0.f);
+
+/**
+ * Spoiler descend setting
+ *
+ * @unit norm
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ * @increment 0.01
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_SPOILERS_DESC, 0.f);
+
+/**
+ * Spoiler input in manual flight
+ *
+ * Chose source for manual setting of spoilers in manual flight modes.
+ *
+ * @value 0 Disabled
+ * @value 1 Flaps channel
+ * @value 2 Aux1
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_INT32(FW_SPOILERS_MAN, 0);
+
+/**
+ * Spoiler setting while landing (hover)
+ *
+ * @unit norm
+ * @min 0
+ * @max 1
+ * @decimal 1
+ * @increment 0.1
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_SPOILER_MC_LD, 0.f);

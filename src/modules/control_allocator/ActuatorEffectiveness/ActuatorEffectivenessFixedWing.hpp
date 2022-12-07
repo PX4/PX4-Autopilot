@@ -37,7 +37,8 @@
 #include "ActuatorEffectivenessRotors.hpp"
 #include "ActuatorEffectivenessControlSurfaces.hpp"
 
-#include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/flaps_setpoint.h>
+#include <uORB/topics/spoilers_setpoint.h>
 
 class ActuatorEffectivenessFixedWing : public ModuleParams, public ActuatorEffectiveness
 {
@@ -57,7 +58,8 @@ private:
 	ActuatorEffectivenessRotors _rotors;
 	ActuatorEffectivenessControlSurfaces _control_surfaces;
 
-	uORB::Subscription _actuator_controls_0_sub{ORB_ID(actuator_controls_0)};
+	uORB::Subscription _flaps_setpoint_sub{ORB_ID(flaps_setpoint)};
+	uORB::Subscription _spoilers_setpoint_sub{ORB_ID(spoilers_setpoint)};
 
 	int _first_control_surface_idx{0}; ///< applies to matrix 1
 };

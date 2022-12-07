@@ -47,7 +47,10 @@
 #include "ActuatorEffectivenessTilts.hpp"
 
 #include <uORB/topics/tiltrotor_extra_controls.h>
-#include <uORB/topics/actuator_controls.h>
+
+#include <uORB/topics/flaps_setpoint.h>
+#include <uORB/topics/spoilers_setpoint.h>
+
 #include <uORB/Subscription.hpp>
 
 class ActuatorEffectivenessTiltrotorVTOL : public ModuleParams, public ActuatorEffectiveness
@@ -99,8 +102,8 @@ protected:
 
 	float _last_collective_tilt_control{NAN};
 
-	uORB::Subscription _actuator_controls_1_sub{ORB_ID(actuator_controls_1)};
-	uORB::Subscription _actuator_controls_0_sub{ORB_ID(actuator_controls_0)};
+	uORB::Subscription _flaps_setpoint_sub{ORB_ID(flaps_setpoint)};
+	uORB::Subscription _spoilers_setpoint_sub{ORB_ID(spoilers_setpoint)};
 
 	struct YawTiltSaturationFlags {
 		bool tilt_yaw_pos;

@@ -44,7 +44,6 @@
 #include <lib/mathlib/mathlib.h>
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
-#include <lib/slew_rate/SlewRate.hpp>
 #include <matrix/math.hpp>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
@@ -79,16 +78,15 @@
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_torque_setpoint.h>
 
+#include <uORB/topics/flaps_setpoint.h>
+#include <uORB/topics/spoilers_setpoint.h>
+
 using matrix::Eulerf;
 using matrix::Quatf;
 
 using uORB::SubscriptionData;
 
 using namespace time_literals;
-
-static constexpr float kFlapSlewRate = 1.f; //minimum time from none to full flap deflection [s]
-static constexpr float kSpoilerSlewRate = 1.f; //minimum time from none to full spoiler deflection [s]
-
 class FixedwingAttitudeControl final : public ModuleBase<FixedwingAttitudeControl>, public ModuleParams,
 	public px4::ScheduledWorkItem
 {
@@ -127,6 +125,8 @@ private:
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};		/**< vehicle land detected subscription */
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};				/**< vehicle status subscription */
 	uORB::Subscription _vehicle_rates_sub{ORB_ID(vehicle_angular_velocity)};
+	uORB::Subscription _flaps_setpoint_sub{ORB_ID(flaps_setpoint)};
+	uORB::Subscription _spoilers_setpoint_sub{ORB_ID(spoilers_setpoint)};
 
 	uORB::SubscriptionMultiArray<control_allocator_status_s, 2> _control_allocator_status_subs{ORB_ID::control_allocator_status};
 
@@ -149,6 +149,8 @@ private:
 	vehicle_rates_setpoint_s		_rates_sp{};
 	vehicle_status_s			_vehicle_status{};
 	landing_gear_wheel_s			_landing_gear_wheel{};
+	flaps_setpoint_s			_flaps_setpoint{};
+	spoilers_setpoint_s			_spoilers_setpoint{};
 
 	matrix::Dcmf _R{matrix::eye<float, 3>()};
 
@@ -167,9 +169,6 @@ private:
 	float _energy_integration_time{0.0f};
 	float _control_energy[4] {};
 	float _control_prev[3] {};
-
-	SlewRate<float> _spoiler_setpoint_with_slewrate;
-	SlewRate<float> _flaps_setpoint_with_slewrate;
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::FW_ACRO_X_MAX>) _param_fw_acro_x_max,
@@ -195,12 +194,6 @@ private:
 		(ParamFloat<px4::params::FW_DTRIM_R_VMIN>) _param_fw_dtrim_r_vmin,
 		(ParamFloat<px4::params::FW_DTRIM_Y_VMAX>) _param_fw_dtrim_y_vmax,
 		(ParamFloat<px4::params::FW_DTRIM_Y_VMIN>) _param_fw_dtrim_y_vmin,
-
-		(ParamFloat<px4::params::FW_FLAPS_LND_SCL>) _param_fw_flaps_lnd_scl,
-		(ParamFloat<px4::params::FW_FLAPS_TO_SCL>) _param_fw_flaps_to_scl,
-		(ParamFloat<px4::params::FW_SPOILERS_LND>) _param_fw_spoilers_lnd,
-		(ParamFloat<px4::params::FW_SPOILERS_DESC>) _param_fw_spoilers_desc,
-		(ParamInt<px4::params::FW_SPOILERS_MAN>) _param_fw_spoilers_man,
 
 		(ParamFloat<px4::params::FW_MAN_P_MAX>) _param_fw_man_p_max,
 		(ParamFloat<px4::params::FW_MAN_P_SC>) _param_fw_man_p_sc,
@@ -253,20 +246,6 @@ private:
 	ECL_YawController		_yaw_ctrl;
 	ECL_WheelController		_wheel_ctrl;
 	RateControl _rate_control; ///< class for rate control calculations
-
-	/**
-	 * @brief Update flap control setting
-	 *
-	 * @param dt Current time delta [s]
-	 */
-	void controlFlaps(const float dt);
-
-	/**
-	 * @brief Update spoiler control setting
-	 *
-	 * @param dt Current time delta [s]
-	 */
-	void controlSpoilers(const float dt);
 
 	void updateActuatorControlsStatus(float dt);
 

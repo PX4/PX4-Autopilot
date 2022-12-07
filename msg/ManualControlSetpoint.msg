@@ -26,7 +26,7 @@ float32 pitch    # move forward, negative pitch rotation, nose down
 float32 yaw      #               positive yaw rotation,   clockwise when seen top down
 float32 throttle # move up,      positive thrust,         -1 is minimum available 0% or -100% +1 is 100% thrust
 
-float32 flaps			 # flap position
+float32 flaps			 # position of flaps switch/knob/lever [-1, 1]
 
 float32 aux1
 float32 aux2

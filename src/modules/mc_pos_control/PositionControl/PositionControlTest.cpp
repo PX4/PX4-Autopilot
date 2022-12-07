@@ -64,7 +64,6 @@ TEST(PositionControlTest, EmptySetpoint)
 	EXPECT_EQ(Vector3f(attitude.thrust_body), Vector3f(0.f, 0.f, 0.f));
 	EXPECT_EQ(attitude.reset_integral, false);
 	EXPECT_EQ(attitude.fw_control_yaw_wheel, false);
-	EXPECT_FLOAT_EQ(attitude.apply_flaps, 0.f);//vehicle_attitude_setpoint_s::FLAPS_OFF); // TODO why no reference?
 }
 
 class PositionControlBasicTest : public ::testing::Test

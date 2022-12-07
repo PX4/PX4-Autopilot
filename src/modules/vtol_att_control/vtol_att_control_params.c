@@ -380,15 +380,3 @@ PARAM_DEFINE_FLOAT(VT_PITCH_MIN, -5.0f);
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_LND_PITCH_MIN, -5.0f);
-
-/**
- * Spoiler setting while landing (hover)
- *
- * @unit norm
- * @min -1
- * @max 1
- * @decimal 1
- * @increment 0.1
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_FLOAT(VT_SPOILER_MC_LD, 0.f);

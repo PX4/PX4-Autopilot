@@ -43,8 +43,13 @@ AuxiliaryActuatorsController::AuxiliaryActuatorsController() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
 {
+	spoilers_setpoint_with_slewrate_.setSlewRate(kSpoilerSlewRate);
+	flaps_setpoint_with_slewrate_.setSlewRate(kFlapSlewRate);
 
 	landing_gear_pub_.advertise();
+
+	flaps_setpoint_pub_.advertise();
+	spoilers_setpoint_pub_.advertise();
 }
 
 AuxiliaryActuatorsController::~AuxiliaryActuatorsController()
@@ -94,9 +99,25 @@ void AuxiliaryActuatorsController::Run()
 
 	perf_begin(_cycle_perf);
 
+	float dt = 0.f;
+
+	const hrt_abstime time_now_us = hrt_absolute_time();
+	dt = math::constrain((time_now_us - _last_run) * 1e-6f, kDtMin, kDtMax);
+	_last_run = time_now_us;
+
+	manual_control_setpoint_sub_.update(&manual_control_setpoint_);
+	vehicle_control_mode_sub_.update(&vehicle_control_mode_);
+	vehicle_status_sub_.update(&vehicle_status_);
+	position_setpoint_triplet_sub_.update(&position_setpoint_triplet_);
+
 	// landing gear logic
 	landing_gear_auto_setpoint_poll();
 	action_request_poll();
+
+	// flaps and spoilers
+	controlFlaps(dt);
+	controlSpoilers(dt);
+
 	landing_gear_.timestamp = hrt_absolute_time();
 	landing_gear_pub_.publish(landing_gear_);
 
@@ -135,6 +156,107 @@ void AuxiliaryActuatorsController::action_request_poll()
 		}
 	}
 }
+
+void AuxiliaryActuatorsController::controlFlaps(const float dt)
+{
+	flaps_auto_setpoint_s flaps_auto_setpoint;
+	flaps_auto_setpoint_sub_.update(&flaps_auto_setpoint);
+
+	// default to no flaps
+	float flaps_control = 0.f;
+
+	/* map flaps by default to manual if valid */
+	if (vehicle_control_mode_.flag_control_manual_enabled && PX4_ISFINITE(manual_control_setpoint_.flaps)) {
+		flaps_control = (manual_control_setpoint_.flaps + 1.f) / 2.f ; // map from [-1, 1] to [0, 1]
+
+	} else if (vehicle_control_mode_.flag_control_auto_enabled
+		   && vehicle_status_.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+
+		// TODO: can maybe be replaced with switch (_pos_sp_triplet.current.type), problem is early land config
+		switch (flaps_auto_setpoint.flaps_configuration) {
+		case flaps_auto_setpoint_s::FLAPS_OFF:
+			flaps_control = 0.f;
+			break;
+
+		case flaps_auto_setpoint_s::FLAPS_LAND:
+			flaps_control = _param_fw_flaps_lnd_scl.get();
+			break;
+
+		case flaps_auto_setpoint_s::FLAPS_TAKEOFF:
+			flaps_control = _param_fw_flaps_to_scl.get();
+			break;
+		}
+
+	} else {
+		flaps_control = 0.f;
+	}
+
+	// move the actual control value continuous with time, full flap travel in 1sec
+	flaps_setpoint_with_slewrate_.update(math::constrain(flaps_control, 0.f, 1.f), dt);
+
+	flaps_setpoint_s flaps_setpoint;
+	flaps_setpoint.timestamp = hrt_absolute_time();
+	flaps_setpoint.normalized_setpoint = flaps_setpoint_with_slewrate_.getState();
+	flaps_setpoint_pub_.publish(flaps_setpoint);
+}
+
+void AuxiliaryActuatorsController::controlSpoilers(const float dt)
+{
+	spoilers_auto_setpoint_s spoilers_auto_setpoint;
+	spoilers_auto_setpoint_sub_.update(&spoilers_auto_setpoint);
+
+	float spoilers_control = 0.f;
+
+	if (vehicle_control_mode_.flag_control_manual_enabled) {
+		switch (_param_fw_spoilers_man.get()) {
+		case 0:
+			break;
+
+		case 1:
+			// map from [-1, 1] to [0, 1]
+			spoilers_control = PX4_ISFINITE(manual_control_setpoint_.flaps) ? (manual_control_setpoint_.flaps + 1.f) / 2.f : 0.f;
+			break;
+
+		case 2:
+			// map from [-1, 1] to [0, 1]
+			spoilers_control = PX4_ISFINITE(manual_control_setpoint_.aux1) ? (manual_control_setpoint_.aux1 + 1.f) / 2.f : 0.f;
+			break;
+		}
+
+	} else if (vehicle_control_mode_.flag_control_auto_enabled
+		   && vehicle_status_.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+		switch (spoilers_auto_setpoint.spoilers_configuration) {
+		case spoilers_auto_setpoint_s::SPOILERS_OFF:
+			spoilers_control = 0.f;
+			break;
+
+		case spoilers_auto_setpoint_s::SPOILERS_LAND:
+			spoilers_control = _param_fw_spoilers_lnd.get();
+			break;
+
+		case spoilers_auto_setpoint_s::SPOILERS_DESCEND:
+			spoilers_control = _param_fw_spoilers_desc.get();
+			break;
+		}
+
+	} else if (vehicle_control_mode_.flag_control_auto_enabled
+		   && vehicle_status_.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+		   && position_setpoint_triplet_.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
+
+		spoilers_control = _param_vt_spoiler_mc_ld.get();
+
+	} else {
+		spoilers_control = 0.f;
+	}
+
+	spoilers_setpoint_with_slewrate_.update(math::constrain(spoilers_control, 0.f, 1.f), dt);
+
+	spoilers_setpoint_s spoilers_setpoint;
+	spoilers_setpoint.timestamp = hrt_absolute_time();
+	spoilers_setpoint.normalized_setpoint = spoilers_setpoint_with_slewrate_.getState();
+	spoilers_setpoint_pub_.publish(spoilers_setpoint);
+}
+
 int AuxiliaryActuatorsController::print_status()
 {
 	return 0;
@@ -150,7 +272,7 @@ int AuxiliaryActuatorsController::print_usage(const char *reason)
 		R"DESCR_STR(
 ### Description
 Auxiliary Flight Control Actuators Controller
-Controls landing gear, flaps, spoilers, landing gear wheel. Not intended for payload control.
+Controls landing gear, flaps, spoilers, landing gear wheel. Not responsible for payload.
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("auxiliary_actuators_controller", "system");

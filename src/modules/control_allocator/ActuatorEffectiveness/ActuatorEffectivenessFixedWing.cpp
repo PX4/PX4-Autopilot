@@ -66,13 +66,16 @@ void ActuatorEffectivenessFixedWing::updateSetpoint(const matrix::Vector<float, 
 		const matrix::Vector<float, NUM_ACTUATORS> &actuator_max)
 {
 	// apply flaps
-	actuator_controls_s actuator_controls_0;
+	flaps_setpoint_s flaps_setpoint;
 
-	if (_actuator_controls_0_sub.copy(&actuator_controls_0)) {
-		const float flaps_control = actuator_controls_0.control[actuator_controls_s::INDEX_FLAPS];
-		const float airbrakes_control = actuator_controls_0.control[actuator_controls_s::INDEX_AIRBRAKES];
-		const float steering_wheel_control = actuator_controls_0.control[actuator_controls_s::INDEX_YAW];
-		_control_surfaces.applyFlapsAirbrakesWheel(flaps_control, airbrakes_control, steering_wheel_control,
-				_first_control_surface_idx, actuator_sp);
+	if (_flaps_setpoint_sub.copy(&flaps_setpoint)) {
+		_control_surfaces.applyFlaps(flaps_setpoint.normalized_setpoint, _first_control_surface_idx, actuator_sp);
+	}
+
+	// apply spoilers
+	spoilers_setpoint_s spoilers_setpoint;
+
+	if (_spoilers_setpoint_sub.copy(&spoilers_setpoint)) {
+		_control_surfaces.applySpoilers(spoilers_setpoint.normalized_setpoint, _first_control_surface_idx, actuator_sp);
 	}
 }

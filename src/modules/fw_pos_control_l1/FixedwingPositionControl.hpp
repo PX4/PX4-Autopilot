@@ -73,13 +73,16 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/airspeed_validated.h>
 #include <uORB/topics/landing_gear_auto_setpoint.h>
+#include <uORB/topics/flaps_auto_setpoint.h>
 #include <uORB/topics/launch_detection_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/landing_gear_auto_setpoint.h>
 #include <uORB/topics/npfg_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_controller_landing_status.h>
 #include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/spoilers_auto_setpoint.h>
 #include <uORB/topics/tecs_status.h>
 #include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/vehicle_air_data.h>
@@ -219,11 +222,15 @@ private:
 	uORB::Publication<launch_detection_status_s> _launch_detection_status_pub{ORB_ID(launch_detection_status)};
 	uORB::PublicationMulti<orbit_status_s> _orbit_status_pub{ORB_ID(orbit_status)};
 	uORB::Publication<landing_gear_auto_setpoint_s> _landing_gear_auto_setpoint_pub{ORB_ID(landing_gear_auto_setpoint)};
+	uORB::Publication<flaps_auto_setpoint_s> _flaps_auto_sp_pub{ORB_ID(flaps_auto_setpoint)};
+	uORB::Publication<spoilers_auto_setpoint_s> _spoilers_auto_sp_pub{ORB_ID(spoilers_auto_setpoint)};
 
 	manual_control_setpoint_s _manual_control_setpoint{};
 	position_setpoint_triplet_s _pos_sp_triplet{};
 	vehicle_attitude_setpoint_s _att_sp{};
 	vehicle_control_mode_s _control_mode{};
+	flaps_auto_setpoint_s _flaps_auto_setpoint{};
+	spoilers_auto_setpoint_s _spoilers_auto_setpoint{};
 	vehicle_local_position_s _local_pos{};
 	vehicle_status_s _vehicle_status{};
 

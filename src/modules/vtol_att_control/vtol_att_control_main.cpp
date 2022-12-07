@@ -274,7 +274,6 @@ VtolAttitudeControl::Run()
 
 #endif // !ENABLE_LOCKSTEP_SCHEDULER
 
-	const float dt = math::min((now - _last_run_timestamp) / 1e6f, kMaxVTOLAttitudeControlTimeStep);
 	_last_run_timestamp = now;
 
 	if (!_initialized) {
@@ -287,8 +286,6 @@ VtolAttitudeControl::Run()
 			return;
 		}
 	}
-
-	_vtol_type->setDt(dt);
 
 	perf_begin(_loop_perf);
 

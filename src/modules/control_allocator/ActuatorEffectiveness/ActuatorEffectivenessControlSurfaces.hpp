@@ -53,14 +53,16 @@ public:
 		RightElevon = 6,
 		LeftVTail = 7,
 		RightVTail = 8,
-		LeftFlaps = 9,
-		RightFlaps = 10,
-		Airbrakes = 11,
+		LeftFlap = 9,
+		RightFlap = 10,
+		Airbrake = 11,
 		Custom = 12,
 		LeftATail = 13,
 		RightATail = 14,
 		SingleChannelAileron = 15,
 		SteeringWheel = 16,
+		LeftSpoiler = 17,
+		RightSpoiler = 18,
 	};
 
 	struct Params {
@@ -68,6 +70,8 @@ public:
 
 		matrix::Vector3f torque;
 		float trim;
+		float scale_flap;
+		float scale_spoiler;
 	};
 
 	ActuatorEffectivenessControlSurfaces(ModuleParams *parent);
@@ -81,8 +85,8 @@ public:
 
 	const Params &config(int idx) const { return _params[idx]; }
 
-	void applyFlapsAirbrakesWheel(float flaps_control, float airbrakes_control, float wheel_control, int first_actuator_idx,
-				      ActuatorVector &actuator_sp) const;
+	void applyFlaps(float flaps_control, int first_actuator_idx, ActuatorVector &actuator_sp) const;
+	void applySpoilers(float spoilers_control, int first_actuator_idx, ActuatorVector &actuator_sp) const;
 
 private:
 	void updateParams() override;
@@ -92,6 +96,8 @@ private:
 
 		param_t torque[3];
 		param_t trim;
+		param_t scale_flap;
+		param_t scale_spoiler;
 	};
 	ParamHandles _param_handles[MAX_COUNT];
 	param_t _count_handle;
