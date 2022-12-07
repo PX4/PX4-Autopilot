@@ -169,7 +169,7 @@ int test_mount(int argc, char *argv[])
 	}
 
 	char buf[64];
-	(void)sprintf(buf, "TEST: %d %d ", it_left_fsync, it_left_abort);
+	snprintf(buf, sizeof(buf), "TEST: %d %d ", it_left_fsync, it_left_abort);
 	lseek(cmd_fd, 0, SEEK_SET);
 	write(cmd_fd, buf, strlen(buf) + 1);
 	fsync(cmd_fd);

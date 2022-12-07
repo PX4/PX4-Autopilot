@@ -103,7 +103,7 @@ __EXPORT void px4_log_modulename(int level, const char *module_name, const char 
 #if defined(PX4_LOG_COLORIZED_OUTPUT)
 
 		if (use_color) {
-			pos += sprintf(buf + pos, "%s", __px4_log_level_color[level]);
+			pos += snprintf(buf + pos, math::max(max_length - pos, (ssize_t)0), "%s", __px4_log_level_color[level]);
 		}
 
 #endif // PX4_LOG_COLORIZED_OUTPUT
@@ -137,13 +137,14 @@ __EXPORT void px4_log_modulename(int level, const char *module_name, const char 
 
 		if (use_color) {
 			// alway reset color
-			const ssize_t sz = math::min(pos, max_length - (ssize_t)strlen(PX4_ANSI_COLOR_RESET) - (ssize_t)1);
-			pos += sprintf(buf + sz, "%s\n", PX4_ANSI_COLOR_RESET);
+			const ssize_t sz = math::min(pos, (ssize_t)(max_length - strlen(PX4_ANSI_COLOR_RESET) - 1));
+			pos += snprintf(buf + sz, math::max(max_length - sz, (ssize_t)0), "%s\n", PX4_ANSI_COLOR_RESET);
 
 		} else
 #endif // PX4_LOG_COLORIZED_OUTPUT
 		{
-			pos += sprintf(buf + math::min(pos, max_length - (ssize_t)1), "\n");
+			const ssize_t sz = math::min(pos, max_length - 1);
+			pos += snprintf(buf + sz, math::max(max_length - sz, (ssize_t)0), "\n");
 		}
 
 		// ensure NULL termination (buffer is max_length + 1)
@@ -162,7 +163,7 @@ __EXPORT void px4_log_modulename(int level, const char *module_name, const char 
 			va_start(argptr, fmt);
 			pos += vsnprintf(buf + pos, math::max(max_length - pos, (ssize_t)0), fmt, argptr);
 			va_end(argptr);
-			pos += sprintf(buf + math::min(pos, max_length - (ssize_t)1), "\n");
+			pos += snprintf(buf + math::min(pos, max_length - (ssize_t)1), math::max(max_length - pos, (ssize_t)0), "\n");
 			buf[max_length] = 0; // ensure NULL termination
 		}
 
@@ -197,6 +198,7 @@ __EXPORT void px4_log_modulename(int level, const char *module_name, const char 
 		va_start(argptr, fmt);
 		pos += vsnprintf((char *)log_message.text + pos, math::max(max_length - pos, (ssize_t)0), fmt, argptr);
 		va_end(argptr);
+
 		log_message.text[max_length - 1] = 0; //ensure 0-termination
 		log_message.timestamp = hrt_absolute_time();
 		orb_publish(ORB_ID(log_message), orb_log_message_pub, &log_message);
@@ -220,7 +222,7 @@ __EXPORT void px4_log_raw(int level, const char *fmt, ...)
 #if defined(PX4_LOG_COLORIZED_OUTPUT)
 
 		if (use_color) {
-			pos += sprintf(buf + pos, "%s", __px4_log_level_color[level]);
+			pos += snprintf(buf + pos, math::max(max_length - pos, (ssize_t)0), "%s", __px4_log_level_color[level]);
 		}
 
 #endif // PX4_LOG_COLORIZED_OUTPUT
@@ -235,7 +237,7 @@ __EXPORT void px4_log_raw(int level, const char *fmt, ...)
 		if (use_color) {
 			// alway reset color
 			const ssize_t sz = math::min(pos, max_length - (ssize_t)strlen(PX4_ANSI_COLOR_RESET));
-			pos += sprintf(buf + sz, "%s", PX4_ANSI_COLOR_RESET);
+			pos += snprintf(buf + sz, math::max(max_length - sz, (ssize_t)0), "%s", PX4_ANSI_COLOR_RESET);
 		}
 
 #endif // PX4_LOG_COLORIZED_OUTPUT
@@ -280,9 +282,7 @@ __EXPORT void px4_log_raw(int level, const char *fmt, ...)
 
 __EXPORT void px4_log_history(FILE *out)
 {
-
 #if defined(BOARD_ENABLE_LOG_HISTORY)
-
 	g_log_history.print(out);
 #endif // BOARD_ENABLE_LOG_HISTORY
 }

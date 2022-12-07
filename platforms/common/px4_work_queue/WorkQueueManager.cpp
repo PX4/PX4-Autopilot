@@ -346,7 +346,7 @@ WorkQueueManagerRun(int, char **)
 
 			// pack wq struct pointer into string, this is compatible with px4_task_spawn_cmd
 			char arg1[sizeof(void *) * 3];
-			sprintf(arg1, "%lx", (long unsigned)wq);
+			snprintf(arg1, sizeof(arg1), "%lx", (long unsigned)wq);
 			const char *arg[2] = {arg1, nullptr};
 
 			int pid = px4_task_spawn_cmd(wq->name,

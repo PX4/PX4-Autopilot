@@ -111,7 +111,7 @@ int uORBTest::UnitTest::pubsublatency_main()
 
 	if (pubsubtest_print && timings) {
 		char fname[32] {};
-		sprintf(fname, PX4_STORAGEDIR"/uorb_timings%u.txt", timingsgroup);
+		snprintf(fname, sizeof(fname), PX4_STORAGEDIR"/uorb_timings%u.txt", timingsgroup);
 		FILE *f = fopen(fname, "w");
 
 		if (f == nullptr) {

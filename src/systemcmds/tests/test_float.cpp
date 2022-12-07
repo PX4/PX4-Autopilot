@@ -89,7 +89,7 @@ bool FloatTest::singlePrecisionTests()
 		  fabsf(atan2f_ones - 0.785398163397448278999490867136f) < 2.0f * FLT_EPSILON);
 
 	char sbuf[30];
-	sprintf(sbuf, "%8.4f", (double)0.553415f);
+	snprintf(sbuf, sizeof(sbuf), "%8.4f", (double)0.553415f);
 	ut_compare("sbuf[0]", sbuf[0], ' ');
 	ut_compare("sbuf[1]", sbuf[1], ' ');
 	ut_compare("sbuf[2]", sbuf[2], '0');
@@ -100,7 +100,7 @@ bool FloatTest::singlePrecisionTests()
 	ut_compare("sbuf[7]", sbuf[7], '4');
 	ut_compare("sbuf[8]", sbuf[8], '\0');
 
-	sprintf(sbuf, "%8.4f", (double) - 0.553415f);
+	snprintf(sbuf, sizeof(sbuf), "%8.4f", (double) - 0.553415f);
 	ut_compare("sbuf[0]", sbuf[0], ' ');
 	ut_compare("sbuf[1]", sbuf[1], '-');
 	ut_compare("sbuf[2]", sbuf[2], '0');
@@ -144,7 +144,7 @@ bool FloatTest::doublePrecisionTests()
 
 
 	char sbuf[30];
-	sprintf(sbuf, "%8.4f", 0.553415);
+	snprintf(sbuf, sizeof(sbuf), "%8.4f", 0.553415);
 	ut_compare("sbuf[0]", sbuf[0], ' ');
 	ut_compare("sbuf[1]", sbuf[1], ' ');
 	ut_compare("sbuf[2]", sbuf[2], '0');
@@ -156,7 +156,7 @@ bool FloatTest::doublePrecisionTests()
 	ut_compare("sbuf[8]", sbuf[8], '\0');
 
 
-	sprintf(sbuf, "%8.4f", -0.553415);
+	snprintf(sbuf, sizeof(sbuf), "%8.4f", -0.553415);
 	ut_compare("sbuf[0]", sbuf[0], ' ');
 	ut_compare("sbuf[1]", sbuf[1], '-');
 	ut_compare("sbuf[2]", sbuf[2], '0');
