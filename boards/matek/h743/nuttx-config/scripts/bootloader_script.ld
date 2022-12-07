@@ -34,7 +34,7 @@
  *
  ****************************************************************************/
 
-/* The Durandal-v1 uses an STM32H743II has 2048Kb of main FLASH memory.
+/* The board uses an STM32H743II has 2048Kb of main FLASH memory.
  * The flash memory is partitioned into a User Flash memory and a System
  * Flash memory. Each of these memories has two banks:
  *
@@ -105,12 +105,14 @@
  * When booting from FLASH, FLASH memory is aliased to address 0x0000:0000
  * where the code expects to begin execution by jumping to the entry point in
  * the 0x0800:0000 address range.
+ *
+ * The bootloader uses the first sector of the flash, which is 128K in length.
  */
 
 MEMORY
 {
 	itcm  (rwx) : ORIGIN = 0x00000000, LENGTH =   64K
-	flash (rx)  : ORIGIN = 0x08000000, LENGTH = 2048K
+	flash (rx)  : ORIGIN = 0x08000000, LENGTH =  128K
 	dtcm1 (rwx) : ORIGIN = 0x20000000, LENGTH =   64K
 	dtcm2 (rwx) : ORIGIN = 0x20010000, LENGTH =   64K
 	sram  (rwx) : ORIGIN = 0x24000000, LENGTH =  512K
