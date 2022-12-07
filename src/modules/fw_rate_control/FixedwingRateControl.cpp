@@ -126,22 +126,23 @@ FixedwingRateControl::vehicle_manual_poll(const float yaw_body)
 
 					// RATE mode we need to generate the rate setpoint from manual user inputs
 					_rates_sp.timestamp = hrt_absolute_time();
-					_rates_sp.roll = _manual_control_setpoint.y * radians(_param_fw_acro_x_max.get());
-					_rates_sp.pitch = -_manual_control_setpoint.x * radians(_param_fw_acro_y_max.get());
-					_rates_sp.yaw = _manual_control_setpoint.r * radians(_param_fw_acro_z_max.get());
-					_rates_sp.thrust_body[0] = math::constrain(_manual_control_setpoint.z, 0.0f, 1.0f);
+					_rates_sp.roll = _manual_control_setpoint.roll * radians(_param_fw_acro_x_max.get());
+					_rates_sp.pitch = -_manual_control_setpoint.pitch * radians(_param_fw_acro_y_max.get());
+					_rates_sp.yaw = _manual_control_setpoint.yaw * radians(_param_fw_acro_z_max.get());
+					_rates_sp.thrust_body[0] = math::constrain(_manual_control_setpoint.throttle, 0.0f, 1.0f);
 
 					_rate_sp_pub.publish(_rates_sp);
 
 				} else {
 					/* manual/direct control */
 					_actuator_controls.control[actuator_controls_s::INDEX_ROLL] =
-						_manual_control_setpoint.y * _param_fw_man_r_sc.get() + _param_trim_roll.get();
+						_manual_control_setpoint.roll * _param_fw_man_r_sc.get() + _param_trim_roll.get();
 					_actuator_controls.control[actuator_controls_s::INDEX_PITCH] =
-						-_manual_control_setpoint.x * _param_fw_man_p_sc.get() + _param_trim_pitch.get();
+						-_manual_control_setpoint.pitch * _param_fw_man_p_sc.get() + _param_trim_pitch.get();
 					_actuator_controls.control[actuator_controls_s::INDEX_YAW] =
-						_manual_control_setpoint.r * _param_fw_man_y_sc.get() + _param_trim_yaw.get();
-					_actuator_controls.control[actuator_controls_s::INDEX_THROTTLE] = math::constrain(_manual_control_setpoint.z, 0.0f,
+						_manual_control_setpoint.yaw * _param_fw_man_y_sc.get() + _param_trim_yaw.get();
+					_actuator_controls.control[actuator_controls_s::INDEX_THROTTLE] = math::constrain(_manual_control_setpoint.throttle,
+							0.0f,
 							1.0f);
 				}
 			}
