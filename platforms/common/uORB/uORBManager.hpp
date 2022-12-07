@@ -34,6 +34,7 @@
 #pragma once
 
 #include <px4_platform_common/atomic.h>
+#include <px4_platform_common/mmap.h>
 #include <px4_platform_common/sem.h>
 
 #include "uORBDeviceNode.hpp"
@@ -425,7 +426,7 @@ public:
 
 	void operator delete (void *p)
 	{
-		munmap(p, sizeof(uORB::Manager));
+		px4_munmap(p, sizeof(uORB::Manager));
 	}
 
 	static void lockThread(int idx)

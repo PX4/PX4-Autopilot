@@ -36,6 +36,7 @@
 #include <uORB/uORBManager.hpp>
 #include <uORB/uORBUtils.hpp>
 
+#include <px4_platform_common/mmap.h>
 #include <px4_platform_common/sem.hpp>
 #include <systemlib/px4_macros.h>
 
@@ -87,7 +88,7 @@ void uORB::DeviceMaster::printStatistics()
 
 		DeviceNodeStatisticsData *prev = cur_node;
 		cur_node = cur_node->next;
-		munmap(prev->node, sizeof(uORB::DeviceNode));
+		px4_munmap(prev->node, sizeof(uORB::DeviceNode));
 		delete prev;
 	}
 }
@@ -122,7 +123,7 @@ int uORB::DeviceMaster::addNewDeviceNodes(DeviceNodeStatisticsData **first_node,
 		int shm_fd = shm_open(shm->d_name, O_RDWR, 0666);
 
 		if (shm_fd >= 0) {
-			ptr = mmap(0, sizeof(uORB::DeviceNode), PROT_READ, MAP_SHARED, shm_fd, 0);
+			ptr = px4_mmap(0, sizeof(uORB::DeviceNode), PROT_READ, MAP_SHARED, shm_fd, 0);
 		}
 
 		if (ptr != MAP_FAILED) {
@@ -147,7 +148,7 @@ int uORB::DeviceMaster::addNewDeviceNodes(DeviceNodeStatisticsData **first_node,
 
 		if (cur_node) {
 			// currently nuttx creates a new mapping on every mmap. TODO: check linux
-			munmap(node, sizeof(uORB::DeviceNode));
+			px4_munmap(node, sizeof(uORB::DeviceNode));
 			continue;
 		}
 
@@ -348,7 +349,7 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 
 	while (cur_node) {
 		DeviceNodeStatisticsData *next_node = cur_node->next;
-		munmap(cur_node->node, sizeof(uORB::DeviceNode));
+		px4_munmap(cur_node->node, sizeof(uORB::DeviceNode));
 		delete (cur_node);
 		cur_node = next_node;
 	}
