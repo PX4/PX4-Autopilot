@@ -13,108 +13,97 @@ if [ "$PX4_SIMULATOR" = "sihsim" ] || [ "$(param show -q SYS_AUTOSTART)" -eq "0"
 		sensor_mag_sim start
 
 	else
-		echo "ERROR  [init] simulator_sih failed to start"
+		echo "ERROR [init] simulator_sih failed to start"
 		exit 1
 	fi
 
 elif [ "$PX4_SIMULATOR" = "gz" ]; then
 
 	# source generated gazebo_env.sh for IGN_GAZEBO_RESOURCE_PATH
-	if [ -f gazebo_env.sh ]; then
+	if [ -f ./gazebo_env.sh ]; then
 		. ./gazebo_env.sh
+
 	elif [ -f ../gazebo_env.sh ]; then
 		. ../gazebo_env.sh
 	fi
 
-# shellcheck disable=SC2236
-	if [ ! -z $PX4_GZ_VERBOSE ]; then
-		if [ "$PX4_GZ_VERBOSE" -le "4" ] && [ "$PX4_GZ_VERBOSE" -ge "1" ]; then
-			gz_verbose=$PX4_GZ_VERBOSE
-		else
-			gz_verbose=4
-			echo "WARN  [init] PX4_GZ_VERBOSE was passed: $PX4_GZ_VERBOSE, not in range [1,4], defaulting to: $gz_verbose."
-		fi
-		echo "INFO  [init] PX4_GZ_VERBOSE set to $gz_verbose."
-	else
-		gz_verbose=1
-		echo "INFO  [init] PX4_GZ_VERBOSE not explicitly set, defaulting to: $gz_verbose."
-	fi
+	gz_command="ign" # "ign" before garden
+	gz_sub_command="gazebo" # "gazebo" before garden
 
-	gz_world=$( ign topic -l | grep -m 1 -e "/world/.*/clock" | sed 's/\/world\///g; s/\/clock//g' )
-	
-	gz_version_major=$( ign gazebo --versions | sed 's/\..*//g' )
-	gz_version_minor=$( ign gazebo --versions | sed 's/'"${gz_version_major}"\.'//; s/\..*//g' )
-	gz_version_point=$( ign gazebo --versions | sed 's/'"${gz_version_major}"\.'//; s/'"${gz_version_minor}"\.'//')
+	# look for running ${gz_command} gazebo world
+	gz_world=$( ${gz_command} topic -l | grep -m 1 -e "/world/.*/clock" | sed 's/\/world\///g; s/\/clock//g' )
 
-	if [ "$gz_version_major" -gt "6" ] || { [ "$gz_version_major" -eq "6" ] && [ "$gz_version_minor" -gt "12" ]; } || { [ "$gz_version_major" -eq "6" ] && [ "$gz_version_minor" -eq "12" ] && [ "$gz_version_point" -gt "0" ]; }; then
-		echo "INFO  [init] using latest version of MultiCopterMotor plugin."
-	else
-		echo "WARN  [init] using older version of MultiCopterMotor plugin, please update to latest gazebo > 6.12.0."
-		if [ "$PX4_SIM_MODEL" = "x500" ]; then
-			PX4_SIM_MODEL="x500-Legacy"
-			echo "WARN  [init] setting PX4_SIM_MODEL -> $PX4_SIM_MODEL from x500 till gazebo > 6.12.0"
-		fi
-	fi
+	# shellcheck disable=SC2153
+	if [ -z "${gz_world}" ] && [ -n "${PX4_GZ_WORLDS}" ] && [ -n "${PX4_GZ_WORLD}" ]; then
 
-	if [ -z $gz_world ]; then
+		echo "INFO  [init] starting gazebo with world: ${PX4_GZ_WORLDS}/${PX4_GZ_WORLD}.sdf"
 
-		# starting ign gazebo with ${PX4_GZ_WORLD} world
-		echo "INFO  [init] starting ign gazebo"
-# shellcheck disable=SC2153
-		ign gazebo --verbose=$gz_verbose -r -s "${PX4_GZ_WORLDS}/${PX4_GZ_WORLD}.sdf" &
+		${gz_command} ${gz_sub_command} --verbose=1 -r -s "${PX4_GZ_WORLDS}/${PX4_GZ_WORLD}.sdf" &
 
-		if [ -z $HEADLESS ]; then
+		if [ -z "${HEADLESS}" ]; then
 			# HEADLESS not set, starting ign gazebo gui
-			ign gazebo -g &
+			${gz_command} gazebo -g &
 		fi
+
 	else
-		echo "INFO  [init] ign gazebo already running world: $gz_world"
-		PX4_GZ_WORLD=$gz_world
+		echo "INFO  [init] gazebo already running world: ${gz_world}"
+		PX4_GZ_WORLD=${gz_world}
 	fi
 
-# shellcheck disable=SC2236
-	if [ ! -z $PX4_GZ_MODEL ] && [ -z $PX4_GZ_MODEL_NAME ]; then
+	# start gz_bridge
+	if [ -n "${PX4_GZ_MODEL}" ] && [ -z "${PX4_GZ_MODEL_NAME}" ]; then
+		# model specified, gz_bridge will spawn model
 
-# shellcheck disable=SC2236
-		if [ ! -z $PX4_GZ_MODEL_POSE ]; then
+		if [ -n "${PX4_GZ_MODEL_POSE}" ]; then
 			# Clean potential input line formatting.
-			model_pose="$( echo ${PX4_GZ_MODEL_POSE} | sed -e 's/^[ \t]*//; s/[ \t]*$//; s/,/ /g; s/  / /g; s/ /,/g' )"
+			model_pose="$( echo "${PX4_GZ_MODEL_POSE}" | sed -e 's/^[ \t]*//; s/[ \t]*$//; s/,/ /g; s/  / /g; s/ /,/g' )"
 			echo "INFO  [init] PX4_GZ_MODEL_POSE set, spawning at: ${model_pose}"
+
 		else
 			echo "WARN  [init] PX4_GZ_MODEL_POSE not set, spawning at origin."
 			model_pose="0,0,0,0,0,0"
 		fi
+
 		# start gz bridge with pose arg.
-		if gz_bridge start -p "${model_pose}"  -m "${PX4_GZ_MODEL}" -w "${PX4_GZ_WORLD}" -i "${px4_instance}"; then
+		if gz_bridge start -p "${model_pose}" -m "${PX4_GZ_MODEL}" -w "${PX4_GZ_WORLD}" -i "${px4_instance}"; then
 			sensor_baro_sim start
 			sensor_gps_sim start
 			sensor_mag_sim start
+
 		else
-			echo "ERROR  [init] ign gazebo failed to start"
+			echo "ERROR [init] gazebo failed to start"
 			exit 1
 		fi
-	elif [ ! -z $PX4_GZ_MODEL_NAME ] && [ -z $PX4_GZ_MODEL ]; then
+
+	elif [ -n "${PX4_GZ_MODEL_NAME}" ] && [ -z "${PX4_GZ_MODEL}" ]; then
+		# model name specificed, gz_bridge will attach to existing model
+
 		if gz_bridge start -n "${PX4_GZ_MODEL_NAME}" -w "${PX4_GZ_WORLD}"; then
 			sensor_baro_sim start
 			sensor_gps_sim start
 			sensor_mag_sim start
+
 		else
-			echo "ERROR  [init] ign gazebo failed to start"
+			echo "ERROR [init] gazebo failed to start"
 			exit 1
 		fi
-	elif [ ! -z $PX4_SIM_MODEL ] && [ -z $PX4_GZ_MODEL_NAME ] && [ -z $PX4_GZ_MODEL ]; then
+
+	elif [ -n "${PX4_SIM_MODEL}" ] && [ -z "${PX4_GZ_MODEL_NAME}" ] && [ -z "${PX4_GZ_MODEL}" ]; then
+
 		echo "WARN  [init] PX4_GZ_MODEL_NAME or PX4_GZ_MODEL not set using PX4_SIM_MODEL."
+
 		if gz_bridge start -m "${PX4_SIM_MODEL}" -w "${PX4_GZ_WORLD}" -i "${px4_instance}"; then
 			sensor_baro_sim start
 			sensor_gps_sim start
 			sensor_mag_sim start
+
 		else
-			echo "ERROR  [init] ign gazebo failed to start"
+			echo "ERROR [init] gazebo failed to start"
 			exit 1
 		fi
 
 	else
-		echo "ERROR  [init] failed to pass only PX4_GZ_MODEL_NAME or PX4_GZ_MODEL"
+		echo "ERROR [init] failed to pass only PX4_GZ_MODEL_NAME or PX4_GZ_MODEL"
 		exit 1
 	fi
 
@@ -131,13 +120,13 @@ else
 			echo "PX4 SIM HOST: localhost"
 			simulator_mavlink start -c $simulator_tcp_port
 		else
-			echo "PX4 SIM HOST: $PX4_SIM_HOST_ADDR"
-			simulator_mavlink start -t $PX4_SIM_HOST_ADDR $simulator_tcp_port
+			echo "PX4 SIM HOST: ${PX4_SIM_HOST_ADDR}"
+			simulator_mavlink start -t "${PX4_SIM_HOST_ADDR}" "${simulator_tcp_port}"
 		fi
 
 	else
-		echo "PX4 SIM HOST: $PX4_SIM_HOSTNAME"
-		simulator_mavlink start -h $PX4_SIM_HOSTNAME $simulator_tcp_port
+		echo "PX4 SIM HOST: ${PX4_SIM_HOSTNAME}"
+		simulator_mavlink start -h "${PX4_SIM_HOSTNAME}" "${simulator_tcp_port}"
 	fi
 
 fi
