@@ -259,7 +259,7 @@ private:
 		(ParamBool<px4::params::SYS_HAS_GPS>) _param_sys_has_gps,
 #endif // CONFIG_SENSORS_VEHICLE_GPS_POSITION
 #if defined(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
-		(ParamBool<px4::params::SYS_HAS_MAG>) _param_sys_has_mag,
+		(ParamInt<px4::params::SYS_HAS_MAG>) _param_sys_has_mag,
 #endif // CONFIG_SENSORS_VEHICLE_MAGNETOMETER
 		(ParamBool<px4::params::SENS_IMU_MODE>) _param_sens_imu_mode
 	)
