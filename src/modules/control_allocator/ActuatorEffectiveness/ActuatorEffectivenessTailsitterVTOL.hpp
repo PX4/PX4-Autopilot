@@ -43,7 +43,6 @@
 #include "ActuatorEffectivenessRotors.hpp"
 #include "ActuatorEffectivenessControlSurfaces.hpp"
 
-#include <uORB/topics/actuator_controls.h>
 #include <uORB/Subscription.hpp>
 
 class ActuatorEffectivenessTailsitterVTOL : public ModuleParams, public ActuatorEffectiveness
@@ -81,6 +80,4 @@ protected:
 	uint32_t _stopped_motors{}; ///< currently stopped motors
 
 	int _first_control_surface_idx{0}; ///< applies to matrix 1
-
-	uORB::Subscription _actuator_controls_1_sub{ORB_ID(actuator_controls_1)};
 };
