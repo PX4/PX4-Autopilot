@@ -46,6 +46,7 @@
 #include "ActuatorEffectivenessControlSurfaces.hpp"
 #include "ActuatorEffectivenessTilts.hpp"
 
+#include <uORB/topics/tiltrotor_extra_controls.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/Subscription.hpp>
 
@@ -107,4 +108,6 @@ protected:
 	};
 
 	YawTiltSaturationFlags _yaw_tilt_saturation_flags{};
+
+	uORB::Subscription _tiltrotor_extra_controls_sub{ORB_ID(tiltrotor_extra_controls)};
 };
