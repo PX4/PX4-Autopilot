@@ -35,10 +35,10 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/shm.h>
-#include <sys/mman.h>
 #include <stdarg.h>
 #include <fcntl.h>
 
+#include <px4_platform_common/mmap.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/tasks.h>
@@ -101,7 +101,7 @@ bool uORB::Manager::initialize()
 			// If the creation succeeded, set the size
 			if (ftruncate(shm_fd, sizeof(uORB::Manager)) == 0) {
 				// mmap the shared memory region
-				void *ptr = mmap(0, sizeof(uORB::Manager), PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
+				void *ptr = px4_mmap(0, sizeof(uORB::Manager), PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
 				_Instance = new (ptr) uORB::Manager();
 
 				for (auto &publisher : _Instance->g_has_publisher) {
@@ -127,7 +127,7 @@ void uORB::Manager::map_instance()
 
 		if (shm_fd >= 0) {
 			// mmap the shared memory region
-			void *ptr = mmap(0, sizeof(uORB::Manager), PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
+			void *ptr = px4_mmap(0, sizeof(uORB::Manager), PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
 
 			if (ptr != MAP_FAILED) {
 				_Instance = (uORB::Manager *)ptr;
