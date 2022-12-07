@@ -363,7 +363,7 @@ extern "C" {
 		bool fd_pollable = false;
 
 		for (unsigned int i = 0; i < nfds; ++i) {
-			fds[i].sem     = &sem;
+			fds[i].arg     = &sem;
 			fds[i].revents = 0;
 			fds[i].priv    = nullptr;
 
