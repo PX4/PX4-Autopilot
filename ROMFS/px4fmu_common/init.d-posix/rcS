@@ -246,6 +246,7 @@ rc_update start
 manual_control start
 sensors start
 commander start
+auxiliary_actuators_controller start
 
 if ! pwm_out_sim start -m sim
 then

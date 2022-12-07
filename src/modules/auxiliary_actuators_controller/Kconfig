@@ -1,0 +1,5 @@
+menuconfig MODULES_AUXILIARY_ACTUATORS_CONTROLLER
+	bool "auxiliary_actuators_controller"
+	default n
+	---help---
+		Enable support for auxiliary_actuators_controller

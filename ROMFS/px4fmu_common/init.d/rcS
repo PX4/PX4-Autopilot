@@ -383,6 +383,8 @@ else
 		pwm_out start
 	fi
 
+	auxiliary_actuators_controller start
+
 	#
 	# Configure vehicle type specific parameters.
 	# Note: rc.vehicle_setup is the entry point for all vehicle type specific setup.
