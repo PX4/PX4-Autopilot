@@ -6,7 +6,7 @@ menuconfig SYSTEMCMDS_MTD
 
 menuconfig USER_MTD
 	bool "mtd running as userspace module"
-	default y
+	default n
 	depends on BOARD_PROTECTED && SYSTEMCMDS_MTD
 	---help---
 		Put mtd in userspace memory
