@@ -97,6 +97,8 @@ Battery::Battery(int index, ModuleParams *parent, const int sample_interval_us, 
 	_param_handles.bat_avrg_current = param_find("BAT_AVRG_CURRENT");
 
 	updateParams();
+
+	_start_timestamp = hrt_absolute_time();
 }
 
 void Battery::updateVoltage(const float voltage_v)
@@ -226,8 +228,13 @@ float Battery::calculateStateOfChargeVoltageBased(const float voltage_v, const f
 
 void Battery::estimateStateOfCharge()
 {
+	// wait 2 seconds with state of charge computation to prevent erroneous voltage reading
+	if (!_state_of_charge_delay && hrt_elapsed_time(&_start_timestamp) > 2000_ms) {
+		_state_of_charge_delay = true;
+	}
+
 	// choose which quantity we're using for final reporting
-	if (_params.capacity > 0.f && _battery_initialized) {
+	if (_params.capacity > 0.f && _battery_initialized && _state_of_charge_delay) {
 		// if battery capacity is known, fuse voltage measurement with used capacity
 		// The lower the voltage the more adjust the estimate with it to avoid deep discharge
 		const float weight_v = 3e-4f * (1 - _state_of_charge_volt_based);
