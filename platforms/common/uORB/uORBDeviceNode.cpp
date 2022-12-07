@@ -32,7 +32,6 @@
  ****************************************************************************/
 
 #include <sys/shm.h>
-#include <sys/mman.h>
 
 #include "uORBDeviceNode.hpp"
 
@@ -51,6 +50,7 @@
 #include <px4_platform/micro_hal.h>
 #endif
 
+#include <px4_platform_common/mmap.h>
 #include <px4_platform_common/sem.hpp>
 #include <drivers/drv_hrt.h>
 
@@ -100,14 +100,14 @@ orb_advert_t uORB::DeviceNode::MappingCache::map_node(ORB_ID orb_id, uint8_t ins
 	lock();
 
 	// Not mapped yet, map it
-	void *ptr = mmap(0, sizeof(uORB::DeviceNode), PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
+	void *ptr = px4_mmap(0, sizeof(uORB::DeviceNode), PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
 
 	if (ptr != MAP_FAILED) {
 		// In NuttX flat and protected builds we can just drop the mappings
 		// to save some kernel memory. There is no MMU, and the memory is
 		// there until the shm object is unlinked
 #if defined(CONFIG_BUILD_FLAT)
-		munmap(ptr, sizeof(uORB::DeviceNode));
+		px4_munmap(ptr, sizeof(uORB::DeviceNode));
 #endif
 
 		// Create a list item and add to the beginning of the list
@@ -145,12 +145,12 @@ orb_advert_t uORB::DeviceNode::MappingCache::map_data(orb_advert_t handle, int s
 		} else {
 			// Drop any old mapping if exists
 			if (handle.data != nullptr) {
-				munmap(handle.data, handle.data_size);
+				px4_munmap(handle.data, handle.data_size);
 			}
 
 			// Map the data with new size
 			if (shm_fd >= 0 && size > 0) {
-				handle.data = mmap(0, size, publisher ? PROT_WRITE : PROT_READ, MAP_SHARED, shm_fd, 0);
+				handle.data = px4_mmap(0, size, publisher ? PROT_WRITE : PROT_READ, MAP_SHARED, shm_fd, 0);
 
 				if (handle.data == MAP_FAILED) {
 					handle.data = nullptr;
@@ -199,12 +199,12 @@ bool uORB::DeviceNode::MappingCache::del(const orb_advert_t &handle)
 			prev->next = item->next;
 		}
 
-		munmap(handle.node, sizeof(DeviceNode));
+		px4_munmap(handle.node, sizeof(DeviceNode));
 
 #ifndef CONFIG_BUILD_FLAT
 
 		if (handle.data) {
-			munmap(handle.data, handle.data_size);
+			px4_munmap(handle.data, handle.data_size);
 		}
 
 #endif
