@@ -41,6 +41,7 @@
 #include <lib/parameters/param.h>
 #include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
 #include <px4_platform_common/spi.h>
+#include <px4_platform_common/log.h>
 #include <uORB/uORB.h>
 #include <sys/boardctl.h>
 
@@ -55,6 +56,8 @@ extern "C" void px4_userspace_init(void)
 	px4::WorkQueueManagerStart();
 
 	uorb_start();
+
+	px4_log_initialize();
 
 #if defined(CONFIG_SYSTEM_CDCACM)
 	cdcacm_init();
