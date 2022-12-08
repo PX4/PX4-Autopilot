@@ -51,6 +51,13 @@ __BEGIN_DECLS
 
 __EXPORT struct system_load_s system_load;
 
+#if defined(CONFIG_SEGGER_SYSVIEW)
+#  include <nuttx/note/note_sysview.h>
+#  ifndef CONFIG_SEGGER_SYSVIEW_PREFIX
+#   error Systemview enabled but prefix is not
+#  endif
+#endif
+
 static px4::atomic_int cpuload_monitor_all_count{0};
 
 void cpuload_monitor_start()
@@ -124,6 +131,10 @@ void sched_note_start(FAR struct tcb_s *tcb)
 			}
 		}
 	}
+
+#ifdef CONFIG_SEGGER_SYSVIEW
+	sysview_sched_note_start(tcb);
+#endif
 }
 
 void sched_note_stop(FAR struct tcb_s *tcb)
@@ -141,6 +152,10 @@ void sched_note_stop(FAR struct tcb_s *tcb)
 			}
 		}
 	}
+
+#ifdef CONFIG_SEGGER_SYSVIEW
+	sysview_sched_note_stop(tcb);
+#endif
 }
 
 void sched_note_suspend(FAR struct tcb_s *tcb)
@@ -166,6 +181,10 @@ void sched_note_suspend(FAR struct tcb_s *tcb)
 			}
 		}
 	}
+
+#ifdef CONFIG_SEGGER_SYSVIEW
+	sysview_sched_note_suspend(tcb);
+#endif
 }
 
 void sched_note_resume(FAR struct tcb_s *tcb)
@@ -190,6 +209,34 @@ void sched_note_resume(FAR struct tcb_s *tcb)
 			}
 		}
 	}
+
+#ifdef CONFIG_SEGGER_SYSVIEW
+	sysview_sched_note_resume(tcb);
+#endif
 }
+
+#ifdef CONFIG_SEGGER_SYSVIEW
+
+#ifdef CONFIG_SCHED_INSTRUMENTATION_IRQHANDLER
+void sched_note_irqhandler(int irq, FAR void *handler, bool enter)
+{
+	sysview_sched_note_irqhandler(irq, handler, enter);
+}
+#endif
+
+#ifdef CONFIG_SCHED_INSTRUMENTATION_SYSCALL
+void sched_note_syscall_enter(int nr);
+{
+	sysview_sched_note_syscall_enter(nr);
+}
+
+void sched_note_syscall_enter(int nr);
+{
+	sysview_sched_note_syscall_enter(nr);
+}
+#endif
+
+#endif
+
 __END_DECLS
 #endif // PX4_NUTTX && CONFIG_SCHED_INSTRUMENTATION
