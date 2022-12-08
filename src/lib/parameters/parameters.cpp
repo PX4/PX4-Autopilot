@@ -47,7 +47,9 @@
 #include <parameters/px4_parameters.hpp>
 #include "tinybson/tinybson.h"
 
+#ifndef __PX4_QURT
 #include <crc32.h>
+#endif
 #include <float.h>
 #include <math.h>
 
@@ -80,7 +82,9 @@ using namespace time_literals;
 #if defined(FLASH_BASED_PARAMS)
 #include "flashparams/flashparams.h"
 #else
+#ifndef __PX4_QURT
 inline static int flash_param_save(param_filter_func filter) { return -1; }
+#endif
 inline static int flash_param_load() { return -1; }
 inline static int flash_param_import() { return -1; }
 #endif
@@ -1091,11 +1095,17 @@ const char *param_get_backup_file()
 	return param_backup_file;
 }
 
+#ifndef __PX4_QURT
 static int param_export_internal(int fd, param_filter_func filter);
 static int param_verify(int fd);
+#endif
 
 int param_save_default()
 {
+#ifdef __PX4_QURT
+	PX4_ERR("Cannot save parameters to a file on client side");
+	return PX4_ERROR;
+#else
 	PX4_DEBUG("param_save_default");
 	int shutdown_lock_ret = px4_shutdown_lock();
 
@@ -1182,6 +1192,7 @@ int param_save_default()
 	}
 
 	return res;
+#endif
 }
 
 /**
@@ -1220,6 +1231,7 @@ param_load_default()
 	return res;
 }
 
+#ifndef __PX4_QURT
 static int param_verify_callback(bson_decoder_t decoder, bson_node_t node)
 {
 	if (node->type == BSON_EOO) {
@@ -1323,10 +1335,15 @@ static int param_verify(int fd)
 
 	return -1;
 }
+#endif
 
 int
 param_export(const char *filename, param_filter_func filter)
 {
+#ifdef __PX4_QURT
+	PX4_ERR("Cannot export parameters on client side");
+	return PX4_ERROR;
+#else
 	PX4_DEBUG("param_export");
 
 	int shutdown_lock_ret = px4_shutdown_lock();
@@ -1362,8 +1379,10 @@ param_export(const char *filename, param_filter_func filter)
 	}
 
 	return result;
+#endif
 }
 
+#ifndef __PX4_QURT
 // internal parameter export, caller is responsible for locking
 static int param_export_internal(int fd, param_filter_func filter)
 {
@@ -1464,6 +1483,7 @@ out:
 
 	return result;
 }
+#endif
 
 static int
 param_import_callback(bson_decoder_t decoder, bson_node_t node)
@@ -1697,11 +1717,12 @@ uint32_t param_hash_check()
 		if (!param_used(param) || param_is_volatile(param)) {
 			continue;
 		}
-
+#ifndef __PX4_QURT
 		const char *name = param_name(param);
 		const void *val = param_get_value_ptr(param);
 		param_hash = crc32part((const uint8_t *)name, strlen(name), param_hash);
 		param_hash = crc32part((const uint8_t *)val, param_size(param), param_hash);
+#endif
 	}
 
 	param_unlock_reader();

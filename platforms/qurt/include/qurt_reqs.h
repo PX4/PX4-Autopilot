@@ -38,6 +38,7 @@
 
 #include <pthread.h>
 #include <visibility.h>
+#include <inttypes.h>
 
 __BEGIN_DECLS
 
