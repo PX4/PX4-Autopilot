@@ -113,4 +113,3 @@ extra_args = {}
 if args.pretty:
     extra_args['indent'] = 2
 print(json.dumps(github_action_config, **extra_args))
-
