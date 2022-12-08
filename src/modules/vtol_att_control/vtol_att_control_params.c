@@ -249,6 +249,21 @@ PARAM_DEFINE_INT32(VT_FW_QC_P, 0);
 PARAM_DEFINE_INT32(VT_FW_QC_R, 0);
 
 /**
+ * Quadchute maximum height.
+ *
+ * Maximum height above the ground (if available, otherwhise above home if available, otherwise above the local origin) where triggering a quadchute is possible.
+ * Triggering a quadchute always means transitioning the vehicle to hover flight in which generally a lot of energy is consumed.
+ * At high altitudes there is therefore a big risk to deplete the battery and therefore crash. Currently, there is no automated
+ * re-transition to fixed wing mode implemented and therefore this parameter serves and an intermediate measure to increase safety.
+ *
+ * @unit m
+ * @increment 1
+ * @decimal 1
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_FW_QC_HMAX, 200.0f);
+
+/**
  * Airspeed less front transition time (open loop)
  *
  * The duration of the front transition when there is no airspeed feedback available.
