@@ -56,6 +56,15 @@
 PARAM_DEFINE_INT32(SENS_MAG_SIDES, 63);
 
 /**
+ * For legacy QGC support only
+ *
+ * Use SENS_MAG_SIDES instead
+ *
+ * @group Sensors
+ */
+PARAM_DEFINE_INT32(CAL_MAG_SIDES, 63);
+
+/**
  * Type of magnetometer compensation
  *
  * @value 0 Disabled
