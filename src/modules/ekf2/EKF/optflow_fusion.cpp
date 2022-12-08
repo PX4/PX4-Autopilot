@@ -142,7 +142,7 @@ void Ekf::fuseOptFlow()
 		SparseVector24f<0,1,2,3,4,5,6> Hfusion(H);
 		Vector24f Kfusion = P * Hfusion / _aid_src_optical_flow.innovation_variance[index];
 
-		if (measurementUpdate(Kfusion, Hfusion, _aid_src_optical_flow.innovation[index])) {
+		if (measurementUpdate(Kfusion, _aid_src_optical_flow.innovation_variance[index], _aid_src_optical_flow.innovation[index])) {
 			fused[index] = true;
 		}
 	}

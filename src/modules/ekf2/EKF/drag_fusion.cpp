@@ -331,7 +331,7 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 
 		// if the innovation consistency check fails then don't fuse the sample
 		if (_drag_test_ratio(axis_index) <= 1.0f) {
-			measurementUpdate(Kfusion, Hfusion, _drag_innov(axis_index));
+			measurementUpdate(Kfusion, _drag_innov_var(axis_index), _drag_innov(axis_index));
 		}
 	}
 }
