@@ -214,7 +214,21 @@ bool VtolType::can_transition_on_ground()
 
 bool VtolType::isQuadchuteEnabled()
 {
-	return _v_control_mode->flag_armed && !_land_detected->landed;
+	float dist_to_ground = 0.f;
+	const float home_position_z = _attc->get_home_position_z();
+
+	if (_local_pos->dist_bottom_valid) {
+		dist_to_ground = _local_pos->dist_bottom;
+
+	} else if (PX4_ISFINITE(home_position_z)) {
+		dist_to_ground = -(_local_pos->z - home_position_z);
+
+	} else {
+		dist_to_ground = -_local_pos->z;
+
+	}
+
+	return _v_control_mode->flag_armed && !_land_detected->landed && dist_to_ground < _param_quadchute_max_height.get();
 }
 
 bool VtolType::isMinAltBreached()
