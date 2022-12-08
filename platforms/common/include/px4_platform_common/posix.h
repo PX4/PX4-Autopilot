@@ -114,6 +114,11 @@ __END_DECLS
 #error "No TARGET OS Provided"
 #endif
 
+#if defined(__PX4_QURT)
+// Qurt has no fsync implementation so need to declare one here
+// and then define a fake one in the Qurt platform code.
+void fsync(int fd);
+#endif
 
 // The stack size is intended for 32-bit architectures; therefore
 // we often run out of stack space when pointers are larger than 4 bytes.
