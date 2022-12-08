@@ -134,6 +134,9 @@ private:
 
 		systemlib::Hysteresis healthy{false};
 
+		bool imu_highest_priority{false};
+		bool mag_highest_priority{false};
+
 		bool warning{false};
 		bool filter_fault{false};
 		bool timeout{false};

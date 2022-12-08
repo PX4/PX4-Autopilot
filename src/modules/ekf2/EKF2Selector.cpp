@@ -245,6 +245,33 @@ bool EKF2Selector::UpdateErrorScores()
 					}
 				}
 			}
+
+			// find highest priority IMU and record which estimator instances are using it
+			uint8_t highest_priority = 0;
+
+			for (unsigned i = 0; i < IMU_STATUS_SIZE; i++) {
+				if ((sensors_status_imu.accel_device_ids[i] != 0)
+				    && (sensors_status_imu.accel_priority[i] > highest_priority)
+				   ) {
+					highest_priority = sensors_status_imu.accel_priority[i];
+				}
+			}
+
+			for (auto &inst : _instance) {
+				inst.imu_highest_priority = false; // clear
+
+				if (inst.accel_device_id != 0) {
+					for (unsigned i = 0; i < IMU_STATUS_SIZE; i++) {
+						if ((inst.accel_device_id == sensors_status_imu.accel_device_ids[i])
+						    && (sensors_status_imu.accel_priority[i] > 0)
+						    && (sensors_status_imu.accel_priority[i] == highest_priority)
+						   ) {
+							inst.imu_highest_priority = true;
+						}
+					}
+				}
+			}
+
 		}
 	}
 
@@ -254,7 +281,7 @@ bool EKF2Selector::UpdateErrorScores()
 	// default estimator timeout
 	const hrt_abstime status_timeout = 50_ms;
 
-	// calculate individual error scores
+// calculate individual error scores
 	for (uint8_t i = 0; i < EKF2_MAX_INSTANCES; i++) {
 		const bool prev_healthy = _instance[i].healthy.get_state();
 
@@ -738,6 +765,16 @@ void EKF2Selector::Run()
 
 					// relative error less than selected instance and has not been the selected instance for at least 10 seconds
 					if ((relative_error <= -_rel_err_thresh) && hrt_elapsed_time(&_instance[i].time_last_selected) > 10_s) {
+						lower_error_available = true;
+					}
+				}
+
+				// prefer higher priority IMU if relative error is the same or better
+				if (_instance[i].imu_highest_priority && !_instance[_selected_instance].imu_highest_priority) {
+
+					if (!lower_error_available && (relative_error <= 0.f)
+					    && (hrt_elapsed_time(&_instance[i].time_last_selected) > 10_s)) {
+						best_ekf_alternate = i;
 						lower_error_available = true;
 					}
 				}
