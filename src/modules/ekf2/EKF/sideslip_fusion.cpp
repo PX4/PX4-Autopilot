@@ -109,15 +109,13 @@ void Ekf::fuseSideslip(estimator_aid_source1d_s &sideslip)
 
 	sym::ComputeSideslipHAndK(getStateAtFusionHorizonAsVector(), P, sideslip.innovation_variance, FLT_EPSILON, &H, &K);
 
-	SparseVector24f<0,1,2,3,4,5,6,22,23> H_sparse(H);
-
 	if (update_wind_only) {
 		for (unsigned row = 0; row <= 21; row++) {
 			K(row) = 0.f;
 		}
 	}
 
-	const bool is_fused = measurementUpdate(K, H_sparse, sideslip.innovation);
+	const bool is_fused = measurementUpdate(K, sideslip.innovation_variance, sideslip.innovation);
 
 	sideslip.fused = is_fused;
 	_fault_status.flags.bad_sideslip = !is_fused;

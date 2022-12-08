@@ -793,35 +793,7 @@ private:
 	// update the rotation matrix which transforms EV navigation frame measurements into NED
 	void calcExtVisRotMat();
 
-	// matrix vector multiplication for computing K<24,1> * H<1,24> * P<24,24>
-	// that is optimized by exploring the sparsity in H
-	template <size_t ...Idxs>
-	SquareMatrix24f computeKHP(const Vector24f &K, const SparseVector24f<Idxs...> &H) const
-	{
-		// K(HP) and (KH)P are equivalent (matrix multiplication is associative)
-		// but K(HP) is computationally much less expensive
-		Vector24f HP;
-		for (unsigned i = 0; i < H.non_zeros(); i++) {
-			const size_t row = H.index(i);
-			for (unsigned col = 0; col < _k_num_states; col++) {
-				HP(col) = HP(col) + H.atCompressedIndex(i) * P(row, col);
-			}
-		}
-
-		SquareMatrix24f KHP;
-		for (unsigned row = 0; row < _k_num_states; row++) {
-			for (unsigned col = 0; col < _k_num_states; col++) {
-				KHP(row, col) = K(row) * HP(col);
-			}
-		}
-
-		return KHP;
-	}
-
-	// measurement update with a single measurement
-	// returns true if fusion is performed
-	template <size_t ...Idxs>
-	bool measurementUpdate(Vector24f &K, const SparseVector24f<Idxs...> &H, float innovation)
+	bool measurementUpdate(Vector24f &K, float innovation_variance, float innovation)
 	{
 		for (unsigned i = 0; i < 3; i++) {
 			if (_accel_bias_inhibit[i]) {
@@ -829,10 +801,16 @@ private:
 			}
 		}
 
-		// apply covariance correction via P_new = (I -K*H)*P
-		// first calculate expression for KHP
-		// then calculate P - KHP
-		const SquareMatrix24f KHP = computeKHP(K, H);
+		const Vector24f KS = K * innovation_variance;
+		SquareMatrix24f KHP;
+
+		for (unsigned row = 0; row < _k_num_states; row++) {
+			for (unsigned col = 0; col < _k_num_states; col++) {
+				// Instad of literally computing KHP, use an equvalent
+				// equation involving less mathematical operations
+				KHP(row, col) = KS(row) * K(col);
+			}
+		}
 
 		const bool is_healthy = checkAndFixCovarianceUpdate(KHP);
 
