@@ -58,29 +58,19 @@
 PARAM_DEFINE_FLOAT(MIS_TAKEOFF_ALT, 2.5f);
 
 /**
- * Take-off waypoint required
+ * Mission takeoff/landing required
  *
- * If set, the mission feasibility checker will check for a takeoff waypoint on the mission.
+ * Specifies if a mission has to contain a takeoff and/or mission landing.
+ * Validity of configured takeoffs/landings is checked independently of the setting here.
  *
- * @boolean
+ * @value 0 No requirements
+ * @value 1 Require a takeoff
+ * @value 2 Require a landing
+ * @value 3 Require a takeoff and a landing
+ * @value 4 Require a takeoff and a landing, or neither of both
  * @group Mission
  */
-PARAM_DEFINE_INT32(MIS_TAKEOFF_REQ, 0);
-
-/**
- * Minimum Loiter altitude
- *
- * This is the minimum altitude the system will always obey. The intent is to stay out of ground effect.
- * set to -1, if there shouldn't be a minimum loiter altitude
- *
- * @unit m
- * @min -1
- * @max 80
- * @decimal 1
- * @increment 0.5
- * @group Mission
- */
-PARAM_DEFINE_FLOAT(MIS_LTRMIN_ALT, -1.0f);
+PARAM_DEFINE_INT32(MIS_TKO_LAND_REQ, 0);
 
 /**
  * Maximal horizontal distance from home to first waypoint
@@ -167,3 +157,16 @@ PARAM_DEFINE_FLOAT(MIS_YAW_ERR, 12.0f);
  * @group Mission
  */
 PARAM_DEFINE_FLOAT(MIS_PD_TO, 5.0f);
+
+/**
+ * Landing abort min altitude
+ *
+ * Minimum altitude above landing point that the vehicle will climb to after an aborted landing.
+ * Then vehicle will loiter in this altitude until further command is received.
+ * Only applies to fixed-wing vehicles.
+ *
+ * @unit m
+ * @min 0
+ * @group Mission
+ */
+PARAM_DEFINE_INT32(MIS_LND_ABRT_ALT, 30);

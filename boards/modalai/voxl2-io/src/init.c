@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file px4iov2_init.c
+ * @file init.c
  *
  * PX4FMU-specific early startup code.  This file implements the
  * stm32_boardinitialize() function that is called during cpu startup.
@@ -84,11 +84,9 @@
 
 __EXPORT void stm32_boardinitialize(void)
 {
-
 	/* configure GPIOs */
 
 	/* Set up for sensing HW */
-
 	stm32_configgpio(GPIO_SENSE_PC14_DN);
 	stm32_configgpio(GPIO_SENSE_PC15_UP);
 

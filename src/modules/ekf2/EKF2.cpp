@@ -1196,7 +1196,7 @@ void EKF2::PublishOdometry(const hrt_abstime &timestamp)
 	_ekf.position_covariances().diag().copyTo(odom.position_variance);
 
 	// orientation covariance
-	_ekf.orientation_covariances_euler().diag().copyTo(odom.orientation_variance);
+	_ekf.calcRotVecVariances().copyTo(odom.orientation_variance);
 
 	odom.reset_counter = _ekf.get_quat_reset_count()
 			     + _ekf.get_velNE_reset_count() + _ekf.get_velD_reset_count()
@@ -1931,6 +1931,7 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 			.alt = vehicle_gps_position.alt,
 			.yaw = vehicle_gps_position.heading,
 			.yaw_offset = vehicle_gps_position.heading_offset,
+			.yaw_accuracy = vehicle_gps_position.heading_accuracy,
 			.fix_type = vehicle_gps_position.fix_type,
 			.eph = vehicle_gps_position.eph,
 			.epv = vehicle_gps_position.epv,

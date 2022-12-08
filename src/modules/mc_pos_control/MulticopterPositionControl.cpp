@@ -421,7 +421,7 @@ void MulticopterPositionControl::Run()
 			if ((_setpoint.timestamp < _time_position_control_enabled)
 			    && (vehicle_local_position.timestamp_sample > _time_position_control_enabled)) {
 
-				_setpoint = generateFailsafeSetpoint(vehicle_local_position.timestamp_sample, states);
+				_setpoint = generateFailsafeSetpoint(vehicle_local_position.timestamp_sample, states, false);
 			}
 		}
 
@@ -542,7 +542,7 @@ void MulticopterPositionControl::Run()
 				// Failsafe
 				_vehicle_constraints = {0, NAN, NAN, false, {}}; // reset constraints
 
-				_control.setInputSetpoint(generateFailsafeSetpoint(vehicle_local_position.timestamp_sample, states));
+				_control.setInputSetpoint(generateFailsafeSetpoint(vehicle_local_position.timestamp_sample, states, true));
 				_control.setVelocityLimits(_param_mpc_xy_vel_max.get(), _param_mpc_z_vel_max_up.get(), _param_mpc_z_vel_max_dn.get());
 				_control.update(dt);
 			}
@@ -583,10 +583,10 @@ void MulticopterPositionControl::Run()
 }
 
 trajectory_setpoint_s MulticopterPositionControl::generateFailsafeSetpoint(const hrt_abstime &now,
-		const PositionControlStates &states)
+		const PositionControlStates &states, bool warn)
 {
-	// do not warn while we are disarmed, as we might not have valid setpoints yet
-	bool warn = _vehicle_control_mode.flag_armed && ((now - _last_warn) > 2_s);
+	// rate limit the warnings
+	warn = warn && (now - _last_warn) > 2_s;
 
 	if (warn) {
 		PX4_WARN("invalid setpoints");

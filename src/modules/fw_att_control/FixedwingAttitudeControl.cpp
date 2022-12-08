@@ -141,18 +141,20 @@ FixedwingAttitudeControl::vehicle_manual_poll(const float yaw_body)
 
 			if (!_vcontrol_mode.flag_control_climb_rate_enabled) {
 
+				const float throttle = (_manual_control_setpoint.throttle + 1.f) * .5f;
+
 				if (_vcontrol_mode.flag_control_attitude_enabled) {
 					// STABILIZED mode generate the attitude setpoint from manual user inputs
 
-					_att_sp.roll_body = _manual_control_setpoint.y * radians(_param_fw_man_r_max.get());
+					_att_sp.roll_body = _manual_control_setpoint.roll * radians(_param_fw_man_r_max.get());
 
-					_att_sp.pitch_body = -_manual_control_setpoint.x * radians(_param_fw_man_p_max.get())
+					_att_sp.pitch_body = -_manual_control_setpoint.pitch * radians(_param_fw_man_p_max.get())
 							     + radians(_param_fw_psp_off.get());
 					_att_sp.pitch_body = constrain(_att_sp.pitch_body,
 								       -radians(_param_fw_man_p_max.get()), radians(_param_fw_man_p_max.get()));
 
 					_att_sp.yaw_body = yaw_body; // yaw is not controlled, so set setpoint to current yaw
-					_att_sp.thrust_body[0] = math::constrain(_manual_control_setpoint.z, 0.0f, 1.0f);
+					_att_sp.thrust_body[0] = throttle;
 
 					Quatf q(Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body));
 					q.copyTo(_att_sp.q_d);
@@ -168,23 +170,23 @@ FixedwingAttitudeControl::vehicle_manual_poll(const float yaw_body)
 
 					// RATE mode we need to generate the rate setpoint from manual user inputs
 					_rates_sp.timestamp = hrt_absolute_time();
-					_rates_sp.roll = _manual_control_setpoint.y * radians(_param_fw_acro_x_max.get());
-					_rates_sp.pitch = -_manual_control_setpoint.x * radians(_param_fw_acro_y_max.get());
-					_rates_sp.yaw = _manual_control_setpoint.r * radians(_param_fw_acro_z_max.get());
-					_rates_sp.thrust_body[0] = math::constrain(_manual_control_setpoint.z, 0.0f, 1.0f);
+					_rates_sp.roll = _manual_control_setpoint.roll * radians(_param_fw_acro_x_max.get());
+					_rates_sp.pitch = -_manual_control_setpoint.pitch * radians(_param_fw_acro_y_max.get());
+					_rates_sp.yaw = _manual_control_setpoint.yaw * radians(_param_fw_acro_z_max.get());
+					_rates_sp.thrust_body[0] = throttle;
 
 					_rate_sp_pub.publish(_rates_sp);
 
 				} else {
 					/* manual/direct control */
 					_actuator_controls.control[actuator_controls_s::INDEX_ROLL] =
-						_manual_control_setpoint.y * _param_fw_man_r_sc.get() + _param_trim_roll.get();
+						_manual_control_setpoint.roll * _param_fw_man_r_sc.get() + _param_trim_roll.get();
 					_actuator_controls.control[actuator_controls_s::INDEX_PITCH] =
-						-_manual_control_setpoint.x * _param_fw_man_p_sc.get() + _param_trim_pitch.get();
+						-_manual_control_setpoint.pitch * _param_fw_man_p_sc.get() + _param_trim_pitch.get();
 					_actuator_controls.control[actuator_controls_s::INDEX_YAW] =
-						_manual_control_setpoint.r * _param_fw_man_y_sc.get() + _param_trim_yaw.get();
-					_actuator_controls.control[actuator_controls_s::INDEX_THROTTLE] = math::constrain(_manual_control_setpoint.z, 0.0f,
-							1.0f);
+						_manual_control_setpoint.yaw * _param_fw_man_y_sc.get() + _param_trim_yaw.get();
+					_actuator_controls.control[actuator_controls_s::INDEX_THROTTLE] = throttle;
+					_landing_gear_wheel.normalized_wheel_setpoint = _manual_control_setpoint.yaw;
 				}
 			}
 		}
@@ -364,12 +366,11 @@ void FixedwingAttitudeControl::Run()
 
 		// the position controller will not emit attitude setpoints in some modes
 		// we need to make sure that this flag is reset
-		_att_sp.fw_control_yaw = _att_sp.fw_control_yaw && _vcontrol_mode.flag_control_auto_enabled;
+		_att_sp.fw_control_yaw_wheel = _att_sp.fw_control_yaw_wheel && _vcontrol_mode.flag_control_auto_enabled;
 
 		bool wheel_control = false;
 
-		// TODO: manual wheel_control on ground?
-		if (_param_fw_w_en.get() && _att_sp.fw_control_yaw) {
+		if (_param_fw_w_en.get() && _att_sp.fw_control_yaw_wheel) {
 			wheel_control = true;
 		}
 
@@ -388,20 +389,19 @@ void FixedwingAttitudeControl::Run()
 
 			const float airspeed = get_airspeed_and_update_scaling();
 
-			/* reset integrals where needed */
-			if (_att_sp.reset_integral) {
-				_rates_sp.reset_integral = true;
-			}
-
-			/* Reset integrators if the aircraft is on ground
+			/* Reset integrators if commanded by attitude setpoint, or the aircraft is on ground
 			 * or a multicopter (but not transitioning VTOL or tailsitter)
 			 */
-			if (_landed
+			if (_att_sp.reset_integral
+			    || _landed
 			    || (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 				&& !_vehicle_status.in_transition_mode && !_vehicle_status.is_vtol_tailsitter)) {
 
 				_rates_sp.reset_integral = true;
 				_wheel_ctrl.reset_integrator();
+
+			} else {
+				_rates_sp.reset_integral = false;
 			}
 
 			// update saturation status from control allocation feedback
@@ -519,13 +519,12 @@ void FixedwingAttitudeControl::Run()
 				if (PX4_ISFINITE(_att_sp.roll_body) && PX4_ISFINITE(_att_sp.pitch_body)) {
 					_roll_ctrl.control_attitude(dt, control_input);
 					_pitch_ctrl.control_attitude(dt, control_input);
+					_yaw_ctrl.control_attitude(dt, control_input);
 
 					if (wheel_control) {
 						_wheel_ctrl.control_attitude(dt, control_input);
 
 					} else {
-						// runs last, because is depending on output of roll and pitch attitude
-						_yaw_ctrl.control_attitude(dt, control_input);
 						_wheel_ctrl.reset_integrator();
 					}
 
@@ -549,17 +548,16 @@ void FixedwingAttitudeControl::Run()
 						}
 					}
 
-					/* add yaw rate setpoint from sticks in Stabilized mode */
+					/* add yaw rate setpoint from sticks in all attitude-controlled modes */
 					if (_vcontrol_mode.flag_control_manual_enabled) {
-						_actuator_controls.control[actuator_controls_s::INDEX_YAW] += _manual_control_setpoint.r;
-						body_rates_setpoint(2) += math::constrain(_manual_control_setpoint.r * radians(_param_fw_y_rmax.get()),
+						body_rates_setpoint(2) += math::constrain(_manual_control_setpoint.yaw * radians(_param_fw_man_yr_max.get()),
 									  -radians(_param_fw_y_rmax.get()), radians(_param_fw_y_rmax.get()));
 					}
 
 					/* Publish the rate setpoint for analysis once available */
 					_rates_sp.roll = body_rates_setpoint(0);
 					_rates_sp.pitch = body_rates_setpoint(1);
-					_rates_sp.yaw = (wheel_control) ? _wheel_ctrl.get_body_rate_setpoint() : body_rates_setpoint(2);
+					_rates_sp.yaw = body_rates_setpoint(2);
 
 					_rates_sp.timestamp = hrt_absolute_time();
 
@@ -586,24 +584,35 @@ void FixedwingAttitudeControl::Run()
 				_actuator_controls.control[actuator_controls_s::INDEX_PITCH] =
 					(PX4_ISFINITE(pitch_u)) ? math::constrain(pitch_u + trim_pitch, -1.f, 1.f) : trim_pitch;
 
-				float yaw_u = 0.0f;
+				const float yaw_feedforward = _param_fw_yr_ff.get() * _airspeed_scaling * body_rates_setpoint(2);
+				const float yaw_u = angular_acceleration_setpoint(2) * _airspeed_scaling * _airspeed_scaling + yaw_feedforward;
 
-				if (wheel_control) {
-					yaw_u = _wheel_ctrl.control_bodyrate(dt, control_input);
+				// wheel control
+				float wheel_u = 0.f;
 
-					// XXX: this is an abuse -- used to ferry manual yaw inputs from position controller during auto modes
-					yaw_u += _att_sp.yaw_sp_move_rate * _param_fw_man_y_sc.get();
+				if (_vcontrol_mode.flag_control_manual_enabled) {
+					// always direct control of steering wheel with yaw stick in manual modes
+					wheel_u = _manual_control_setpoint.yaw;
 
 				} else {
-					const float yaw_feedforward = _param_fw_yr_ff.get() * _airspeed_scaling * body_rates_setpoint(2);
-					yaw_u = angular_acceleration_setpoint(2) * _airspeed_scaling * _airspeed_scaling + yaw_feedforward;
+					// XXX: yaw_sp_move_rate here is an abuse -- used to ferry manual yaw inputs from
+					// position controller during auto modes _manual_control_setpoint.yaw gets passed
+					// whenever nudging is enabled, otherwise zero
+					wheel_u = wheel_control ? _wheel_ctrl.control_bodyrate(dt, control_input)
+						  + _att_sp.yaw_sp_move_rate : 0.f;
 				}
+
+				_landing_gear_wheel.normalized_wheel_setpoint = PX4_ISFINITE(wheel_u) ? wheel_u : 0.f;
 
 				_actuator_controls.control[actuator_controls_s::INDEX_YAW] = (PX4_ISFINITE(yaw_u)) ? math::constrain(yaw_u + trim_yaw,
 						-1.f, 1.f) : trim_yaw;
 
 				if (!PX4_ISFINITE(roll_u) || !PX4_ISFINITE(pitch_u) || !PX4_ISFINITE(yaw_u) || _rates_sp.reset_integral) {
 					_rate_control.resetIntegral();
+				}
+
+				if (!PX4_ISFINITE(wheel_u)) {
+					_wheel_ctrl.reset_integrator();
 				}
 
 				/* throttle passed through if it is finite */
@@ -669,6 +678,9 @@ void FixedwingAttitudeControl::Run()
 				publishThrustSetpoint(angular_velocity.timestamp_sample);
 			}
 		}
+
+		_landing_gear_wheel.timestamp = hrt_absolute_time();
+		_landing_gear_wheel_pub.publish(_landing_gear_wheel);
 
 		updateActuatorControlsStatus(dt);
 	}

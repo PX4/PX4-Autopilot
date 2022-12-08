@@ -117,10 +117,10 @@ private:
 	ManualControlSelector _selector;
 	bool _published_invalid_once{false};
 
-	MovingDiff _x_diff{};
-	MovingDiff _y_diff{};
-	MovingDiff _z_diff{};
-	MovingDiff _r_diff{};
+	MovingDiff _roll_diff{};
+	MovingDiff _pitch_diff{};
+	MovingDiff _yaw_diff{};
+	MovingDiff _throttle_diff{};
 
 	manual_control_switches_s _previous_switches{};
 	bool _previous_switches_initialized{false};

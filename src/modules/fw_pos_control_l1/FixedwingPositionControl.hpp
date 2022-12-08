@@ -72,6 +72,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/airspeed_validated.h>
+#include <uORB/topics/launch_detection_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/npfg_status.h>
 #include <uORB/topics/parameter_update.h>
@@ -126,7 +127,7 @@ static constexpr hrt_abstime TERRAIN_ALT_TIMEOUT = 1_s;
 static constexpr hrt_abstime TERRAIN_ALT_FIRST_MEASUREMENT_TIMEOUT = 10_s;
 
 // [.] max throttle from user which will not lead to motors spinning up in altitude controlled modes
-static constexpr float THROTTLE_THRESH = 0.05f;
+static constexpr float THROTTLE_THRESH = -.9f;
 
 // [m/s/s] slew rate limit for airspeed setpoint changes
 static constexpr float ASPD_SP_SLEW_RATE = 1.f;
@@ -166,6 +167,9 @@ static constexpr float MAX_TOUCHDOWN_POSITION_NUDGE_RATE = 4.0f;
 // [.] normalized deadzone threshold for manual nudging input
 static constexpr float MANUAL_TOUCHDOWN_NUDGE_INPUT_DEADZONE = 0.15f;
 
+// [s] time interval after touchdown for ramping in runway clamping constraints (touchdown is assumed at FW_LND_TD_TIME after start of flare)
+static constexpr float POST_TOUCHDOWN_CLAMP_TIME = 0.5f;
+
 class FixedwingPositionControl final : public ModuleBase<FixedwingPositionControl>, public ModuleParams,
 	public px4::WorkItem
 {
@@ -186,8 +190,6 @@ public:
 
 private:
 	void Run() override;
-
-	orb_advert_t	_mavlink_log_pub{nullptr};
 
 	uORB::SubscriptionCallbackWorkItem _local_pos_sub{this, ORB_ID(vehicle_local_position)};
 
@@ -213,6 +215,7 @@ private:
 	uORB::Publication<position_controller_status_s>	_pos_ctrl_status_pub{ORB_ID(position_controller_status)};
 	uORB::Publication<position_controller_landing_status_s>	_pos_ctrl_landing_status_pub{ORB_ID(position_controller_landing_status)};
 	uORB::Publication<tecs_status_s> _tecs_status_pub{ORB_ID(tecs_status)};
+	uORB::Publication<launch_detection_status_s> _launch_detection_status_pub{ORB_ID(launch_detection_status)};
 	uORB::PublicationMulti<orbit_status_s> _orbit_status_pub{ORB_ID(orbit_status)};
 
 	manual_control_setpoint_s _manual_control_setpoint{};
@@ -290,7 +293,7 @@ private:
 	// [.] normalized setpoint for manual altitude control [-1,1]; -1,0,1 maps to min,zero,max height rate commands
 	float _manual_control_setpoint_for_height_rate{0.0f};
 
-	// [.] normalized setpoint for manual airspeed control [0,1]; 0,0.5,1 maps to min,cruise,max airspeed commands
+	// [.] normalized setpoint for manual airspeed control [-1,1]; -1,0,1 maps to min,cruise,max airspeed commands
 	float _manual_control_setpoint_for_airspeed{0.0f};
 
 	// [m/s] airspeed setpoint for manual modes commanded via MAV_CMD_DO_CHANGE_SPEED
@@ -304,16 +307,14 @@ private:
 	// class handling launch detection methods for fixed-wing takeoff
 	LaunchDetector _launchDetector;
 
-	LaunchDetectionResult _launch_detection_state{LAUNCHDETECTION_RES_NONE};
-
-	// [us] logs the last time the launch detection notification was sent (used not to spam notifications during launch detection)
-	hrt_abstime _last_time_launch_detection_notified{0};
-
 	// true if a launch, specifically using the launch detector, has been detected
 	bool _launch_detected{false};
 
 	// [deg] global position of the vehicle at the time launch is detected (using launch detector)
 	Vector2d _launch_global_position{0, 0};
+
+	// [rad] current vehicle yaw at the time the launch is detected
+	float _launch_current_yaw{0.f};
 
 	// class handling runway takeoff for fixed-wing UAVs with steerable wheels
 	RunwayTakeoff _runway_takeoff;
@@ -344,9 +345,13 @@ private:
 
 	uint8_t _landing_abort_status{position_controller_landing_status_s::NOT_ABORTED};
 
-	bool _flaring{false};
-	hrt_abstime _time_started_flaring{0}; // [us]
-	float _heightrate_setpoint_at_flare_start{0.0f}; // [m/s]
+	// organize flare states XXX: need to split into a separate class at some point!
+	struct FlareStates {
+		bool flaring{false};
+		hrt_abstime start_time{0}; // [us]
+		float initial_height_rate_setpoint{0.0f}; // [m/s]
+		float initial_throttle_setpoint{0.0f};
+	} _flare_states;
 
 	// [m] last terrain estimate which was valid
 	float _last_valid_terrain_alt_estimate{0.0f};
@@ -698,12 +703,14 @@ private:
 	 * @param climbout_mode True if TECS should engage climbout mode
 	 * @param climbout_pitch_min_rad Minimum pitch angle command in climbout mode [rad]
 	 * @param desired_max_sink_rate The desired max sink rate commandable when altitude errors are large [m/s]
+	 * @param desired_max_climb_rate The desired max climb rate commandable when altitude errors are large [m/s]
 	 * @param disable_underspeed_detection True if underspeed detection should be disabled
 	 * @param hgt_rate_sp Height rate setpoint [m/s]
 	 */
 	void tecs_update_pitch_throttle(const float control_interval, float alt_sp, float airspeed_sp, float pitch_min_rad,
-					float pitch_max_rad, float throttle_min, float throttle_max, bool climbout_mode, float climbout_pitch_min_rad,
-					const float desired_max_sink_rate, bool disable_underspeed_detection = false, float hgt_rate_sp = NAN);
+					float pitch_max_rad, float throttle_min, float throttle_max, bool climbout_mode,
+					float climbout_pitch_min_rad, const float desired_max_sink_rate, const float desired_max_climb_rate,
+					bool disable_underspeed_detection = false, float hgt_rate_sp = NAN);
 
 	/**
 	 * @brief Constrains the roll angle setpoint near ground to avoid wingtip strike.
@@ -774,8 +781,6 @@ private:
 		(ParamFloat<px4::params::FW_AIRSPD_TRIM>) _param_fw_airspd_trim,
 		(ParamFloat<px4::params::FW_AIRSPD_STALL>) _param_fw_airspd_stall,
 
-		(ParamFloat<px4::params::FW_CLMBOUT_DIFF>) _param_fw_clmbout_diff,
-
 		(ParamFloat<px4::params::FW_GND_SPD_MIN>) _param_fw_gnd_spd_min,
 
 		(ParamFloat<px4::params::FW_L1_DAMPING>) _param_fw_l1_damping,
@@ -796,7 +801,7 @@ private:
 		(ParamFloat<px4::params::NPFG_SW_DST_MLT>) _param_npfg_switch_distance_multiplier,
 		(ParamFloat<px4::params::NPFG_PERIOD_SF>) _param_npfg_period_safety_factor,
 
-		(ParamFloat<px4::params::FW_LND_AIRSPD_SC>) _param_fw_lnd_airspd_sc,
+		(ParamFloat<px4::params::FW_LND_AIRSPD>) _param_fw_lnd_airspd,
 		(ParamFloat<px4::params::FW_LND_ANG>) _param_fw_lnd_ang,
 		(ParamFloat<px4::params::FW_LND_FL_PMAX>) _param_fw_lnd_fl_pmax,
 		(ParamFloat<px4::params::FW_LND_FL_PMIN>) _param_fw_lnd_fl_pmin,
@@ -861,11 +866,17 @@ private:
 
 		(ParamFloat<px4::params::FW_LND_FL_TIME>) _param_fw_lnd_fl_time,
 		(ParamFloat<px4::params::FW_LND_FL_SINK>) _param_fw_lnd_fl_sink,
+		(ParamFloat<px4::params::FW_LND_TD_TIME>) _param_fw_lnd_td_time,
 		(ParamFloat<px4::params::FW_LND_TD_OFF>) _param_fw_lnd_td_off,
 		(ParamInt<px4::params::FW_LND_NUDGE>) _param_fw_lnd_nudge,
 		(ParamInt<px4::params::FW_LND_ABORT>) _param_fw_lnd_abort,
 
-		(ParamFloat<px4::params::FW_WIND_ARSP_SC>) _param_fw_wind_arsp_sc
+		(ParamFloat<px4::params::FW_WIND_ARSP_SC>) _param_fw_wind_arsp_sc,
+
+		(ParamFloat<px4::params::FW_TKO_AIRSPD>) _param_fw_tko_airspd,
+
+		(ParamFloat<px4::params::RWTO_PSP>) _param_rwto_psp,
+		(ParamBool<px4::params::FW_LAUN_DETCN_ON>) _param_fw_laun_detcn_on
 	)
 
 };

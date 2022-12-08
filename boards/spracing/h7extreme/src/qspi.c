@@ -59,7 +59,7 @@
 #include <nuttx/spi/qspi.h>
 
 #include "arm_internal.h"
-#include "arm_arch.h"
+#include "arm_internal.h"
 #include "barriers.h"
 
 #include "stm32_gpio.h"
@@ -90,6 +90,9 @@
 
 /* Non-atomic, but more effective modification of registers */
 
+# undef modreg8
+# undef modreg16
+# undef modreg32
 # define modreg8(v,m,a)       putreg8((getreg8(a) & ~(m)) | ((v) & (m)), a)
 # define modreg16(v,m,a)      putreg16((getreg16(a) & ~(m)) | ((v) & (m)), a)
 # define modreg32(v,m,a)      putreg32((getreg32(a) & ~(m)) | ((v) & (m)), a)

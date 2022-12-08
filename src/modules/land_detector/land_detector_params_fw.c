@@ -51,8 +51,6 @@ PARAM_DEFINE_FLOAT(LNDFW_VEL_XY_MAX, 5.0f);
  * Fixed-wing land detector: Max vertiacal velocity threshold
  *
  * Maximum vertical velocity allowed in the landed state.
- * A factor of 0.7 is applied in case of airspeed-less flying
- * (either because no sensor is present or sensor data got invalid in flight).
  *
  * @unit m/s
  * @min 0.1
@@ -61,7 +59,7 @@ PARAM_DEFINE_FLOAT(LNDFW_VEL_XY_MAX, 5.0f);
  *
  * @group Land Detector
  */
-PARAM_DEFINE_FLOAT(LNDFW_VEL_Z_MAX, 2.0f);
+PARAM_DEFINE_FLOAT(LNDFW_VEL_Z_MAX, 1.0f);
 
 /**
  * Fixed-wing land detector: Max horizontal acceleration
@@ -90,3 +88,17 @@ PARAM_DEFINE_FLOAT(LNDFW_XYACC_MAX, 8.0f);
  * @group Land Detector
  */
 PARAM_DEFINE_FLOAT(LNDFW_AIRSPD_MAX, 6.00f);
+
+/**
+ * Fixed-wing land detection trigger time
+ *
+ * Time the land conditions (speeds and acceleration) have to be satisfied to detect a landing.
+ *
+ * @unit s
+ * @min 0.1
+ * @decimal 1
+ *
+ * @reboot_required true
+ * @group Land Detector
+ */
+PARAM_DEFINE_FLOAT(LNDFW_TRIG_TIME, 2.f);

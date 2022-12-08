@@ -94,7 +94,7 @@ PARAM_DEFINE_FLOAT(FW_L1_R_SLEW_MAX, 90.0f);
  * @boolean
  * @group FW NPFG Control
  */
-PARAM_DEFINE_INT32(FW_USE_NPFG, 0);
+PARAM_DEFINE_INT32(FW_USE_NPFG, 1);
 
 /**
  * NPFG period
@@ -357,23 +357,6 @@ PARAM_DEFINE_FLOAT(FW_THR_MIN, 0.0f);
 PARAM_DEFINE_FLOAT(FW_THR_IDLE, 0.0f);
 
 /**
- * Climbout Altitude difference
- *
- * If the altitude error exceeds this parameter, the system will climb out
- * with maximum throttle and minimum airspeed until it is closer than this
- * distance to the desired altitude. Mostly used for takeoff waypoints / modes.
- * Set to 0 to disable climbout mode (not recommended).
- *
- * @unit m
- * @min 0.0
- * @max 150.0
- * @decimal 1
- * @increment 0.5
- * @group FW L1 Control
- */
-PARAM_DEFINE_FLOAT(FW_CLMBOUT_DIFF, 10.0f);
-
-/**
  * Maximum landing slope angle
  *
  * Typically the desired landing slope angle when landing configuration (flaps, airspeed) is enabled.
@@ -399,6 +382,21 @@ PARAM_DEFINE_FLOAT(FW_LND_ANG, 5.0f);
  * @group FW L1 Control
  */
 PARAM_DEFINE_FLOAT(FW_TKO_PITCH_MIN, 10.0f);
+
+/**
+ * Takeoff Airspeed
+ *
+ * The calibrated airspeed setpoint TECS will stabilize to during the takeoff climbout.
+ *
+ * If set <= 0.0, FW_AIRSPD_MIN will be set by default.
+ *
+ * @unit m/s
+ * @min -1.0
+ * @decimal 1
+ * @increment 0.1
+ * @group FW TECS
+ */
+PARAM_DEFINE_FLOAT(FW_TKO_AIRSPD, -1.0f);
 
 /**
  * Landing flare altitude (relative to landing altitude)
@@ -455,7 +453,7 @@ PARAM_DEFINE_INT32(FW_LND_EARLYCFG, 0);
  * Applied once flaring is triggered
  *
  * @unit deg
- * @min 0
+ * @min -5
  * @max 15.0
  * @decimal 1
  * @increment 0.5
@@ -479,20 +477,19 @@ PARAM_DEFINE_FLOAT(FW_LND_FL_PMIN, 2.5f);
 PARAM_DEFINE_FLOAT(FW_LND_FL_PMAX, 15.0f);
 
 /**
- * Min. airspeed scaling factor for landing
+ * Landing airspeed
  *
- * Multiplying this factor with the minimum airspeed of the plane
- * gives the target airspeed the landing approach.
- * FW_AIRSPD_MIN * FW_LND_AIRSPD_SC
+ * The calibrated airspeed setpoint during landing.
  *
- * @unit norm
- * @min 1.0
- * @max 1.5
- * @decimal 2
- * @increment 0.01
+ * If set <= 0.0, landing airspeed = FW_AIRSPD_MIN by default.
+ *
+ * @unit m/s
+ * @min -1.0
+ * @decimal 1
+ * @increment 0.1
  * @group FW Auto Landing
  */
-PARAM_DEFINE_FLOAT(FW_LND_AIRSPD_SC, 1.3f);
+PARAM_DEFINE_FLOAT(FW_LND_AIRSPD, -1.f);
 
 /**
  * Altitude time constant factor for landing
@@ -1011,7 +1008,7 @@ PARAM_DEFINE_FLOAT(FW_WING_HEIGHT, 0.5);
  * NOTE: max(FW_LND_FLALT, FW_LND_FL_TIME * descent rate) is taken as the flare altitude
  *
  * @unit s
- * @min 0.0
+ * @min 0.1
  * @max 5.0
  * @decimal 1
  * @increment 0.1
@@ -1020,14 +1017,34 @@ PARAM_DEFINE_FLOAT(FW_WING_HEIGHT, 0.5);
 PARAM_DEFINE_FLOAT(FW_LND_FL_TIME, 1.0f);
 
 /**
+ * Landing touchdown time (since flare start)
+ *
+ * This is the time after the start of flaring that we expect the vehicle to touch the runway.
+ * At this time, a 0.5s clamp down ramp will engage, constraining the pitch setpoint to RWTO_PSP.
+ * If enabled, ensure that RWTO_PSP is configured appropriately for full gear contact on ground roll.
+ *
+ * Set to -1.0 to disable touchdown clamping. E.g. it may not be desirable to clamp on belly landings.
+ *
+ * The touchdown time will be constrained to be greater than or equal to the flare time (FW_LND_FL_TIME).
+ *
+ * @unit s
+ * @min -1.0
+ * @max 5.0
+ * @decimal 1
+ * @increment 0.1
+ * @group FW Auto Landing
+ */
+PARAM_DEFINE_FLOAT(FW_LND_TD_TIME, -1.0f);
+
+/**
  * Landing flare sink rate
  *
  * TECS will attempt to control the aircraft to this sink rate via pitch angle (throttle killed during flare)
  *
  * @unit m/s
  * @min 0.0
- * @max 1.0
- * @decimal 1
+ * @max 2
+ * @decimal 2
  * @increment 0.1
  * @group FW Auto Landing
  */
@@ -1101,3 +1118,15 @@ PARAM_DEFINE_INT32(FW_LND_ABORT, 3);
  * @group FW TECS
  */
 PARAM_DEFINE_FLOAT(FW_WIND_ARSP_SC, 0.f);
+
+/**
+ * FW Launch detection
+ *
+ * Enables automatic launch detection based on measured acceleration. Use for hand- or catapult-launched vehicles.
+ * Only available for fixed-wing vehicles.
+ * Not compatible with runway takeoff.
+ *
+ * @boolean
+ * @group FW Launch detection
+ */
+PARAM_DEFINE_INT32(FW_LAUN_DETCN_ON, 0);

@@ -223,5 +223,5 @@ private:
 	 * Used to handle transitions where no proper setpoint was generated yet and when the received setpoint is invalid.
 	 * This should only happen briefly when transitioning and never during mode operation or by design.
 	 */
-	trajectory_setpoint_s generateFailsafeSetpoint(const hrt_abstime &now, const PositionControlStates &states);
+	trajectory_setpoint_s generateFailsafeSetpoint(const hrt_abstime &now, const PositionControlStates &states, bool warn);
 };

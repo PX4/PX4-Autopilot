@@ -88,6 +88,7 @@ public:
 
 	void setPriority(const uint8_t priority) { _priority = priority; }
 	void setConnected(const bool connected) { _connected = connected; }
+	void setStateOfCharge(const float soc) { _state_of_charge = soc; _external_state_of_charge = true; }
 	void updateVoltage(const float voltage_v);
 	void updateCurrent(const float current_a);
 
@@ -144,7 +145,8 @@ protected:
 
 private:
 	void sumDischarged(const hrt_abstime &timestamp, float current_a);
-	void estimateStateOfCharge(const float voltage_v, const float current_a);
+	float calculateStateOfChargeVoltageBased(const float voltage_v, const float current_a);
+	void estimateStateOfCharge();
 	uint8_t determineWarning(float state_of_charge);
 	void computeScale();
 	float computeRemainingTime(float current_a);
@@ -152,6 +154,8 @@ private:
 	uORB::Subscription _actuator_controls_0_sub{ORB_ID(actuator_controls_0)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::PublicationMulti<battery_status_s> _battery_status_pub{ORB_ID(battery_status)};
+
+	bool _external_state_of_charge{false}; ///< inticates that the soc is injected and not updated by this library
 
 	bool _connected{false};
 	const uint8_t _source;

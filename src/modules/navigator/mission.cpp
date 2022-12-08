@@ -1436,18 +1436,15 @@ Mission::cruising_speed_sp_update()
 void
 Mission::do_abort_landing()
 {
-	// Abort FW landing
-	//  first climb out then loiter over intended landing location
+	// Abort FW landing, loiter above landing site in at least MIS_LND_ABRT_ALT
 
 	if (_mission_item.nav_cmd != NAV_CMD_LAND) {
 		return;
 	}
 
-	// loiter at the larger of MIS_LTRMIN_ALT above the landing point
-	//  or 2 * FW_CLMBOUT_DIFF above the current altitude
 	const float alt_landing = get_absolute_altitude_for_item(_mission_item);
-	const float alt_sp = math::max(alt_landing + _navigator->get_loiter_min_alt(),
-				       _navigator->get_global_position()->alt + 20.0f);
+	const float alt_sp = math::max(alt_landing + _navigator->get_landing_abort_min_alt(),
+				       _navigator->get_global_position()->alt);
 
 	// turn current landing waypoint into an indefinite loiter
 	_mission_item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
@@ -1460,13 +1457,21 @@ Mission::do_abort_landing()
 
 	mission_apply_limitation(_mission_item);
 	mission_item_to_position_setpoint(_mission_item, &_navigator->get_position_setpoint_triplet()->current);
+
+	// XXX: this is a hack to invalidate the "next" position setpoint for the fixed-wing position controller during
+	// the landing abort hold. otherwise, the "next" setpoint would still register as a "LAND" point, and trigger
+	// the early landing configuration (flaps and landing airspeed) during the hold.
+	_navigator->get_position_setpoint_triplet()->next.lat = (double)NAN;
+	_navigator->get_position_setpoint_triplet()->next.lon = (double)NAN;
+	_navigator->get_position_setpoint_triplet()->next.alt = NAN;
+
 	publish_navigator_mission_item(); // for logging
 	_navigator->set_position_setpoint_triplet_updated();
 
-	mavlink_log_info(_navigator->get_mavlink_log_pub(), "Holding at %d m above landing.\t",
+	mavlink_log_info(_navigator->get_mavlink_log_pub(), "Holding at %d m above landing waypoint.\t",
 			 (int)(alt_sp - alt_landing));
 	events::send<float>(events::ID("mission_holding_above_landing"), events::Log::Info,
-			    "Holding at {1:.0m_v} above landing", alt_sp - alt_landing);
+			    "Holding at {1:.0m_v} above landing waypoint", alt_sp - alt_landing);
 
 	// reset mission index to start of landing
 	if (_land_start_available) {
@@ -1743,8 +1748,7 @@ Mission::check_mission_valid(bool force)
 		_navigator->get_mission_result()->valid =
 			_missionFeasibilityChecker.checkMissionFeasible(_mission,
 					_param_mis_dist_1wp.get(),
-					_param_mis_dist_wps.get(),
-					_navigator->mission_landing_required());
+					_param_mis_dist_wps.get());
 
 		_navigator->get_mission_result()->seq_total = _mission.count;
 		_navigator->increment_mission_instance_count();

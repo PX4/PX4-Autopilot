@@ -225,5 +225,16 @@ int TemperatureCalibrationAccel::finish_sensor_instance(PerSensorData &data, int
 	set_parameter("TC_A%d_TMAX", sensor_index, &data.high_temp);
 	set_parameter("TC_A%d_TMIN", sensor_index, &data.low_temp);
 	set_parameter("TC_A%d_TREF", sensor_index, &data.ref_temp);
+
+	// reset current calibration (covered by TC parameters)
+	float offset = 0.0f;
+	float scale = 1.0f;
+	set_parameter("CAL_ACC%u_XOFF", sensor_index, &offset);
+	set_parameter("CAL_ACC%u_YOFF", sensor_index, &offset);
+	set_parameter("CAL_ACC%u_ZOFF", sensor_index, &offset);
+	set_parameter("CAL_ACC%u_XSCALE", sensor_index, &scale);
+	set_parameter("CAL_ACC%u_YSCALE", sensor_index, &scale);
+	set_parameter("CAL_ACC%u_ZSCALE", sensor_index, &scale);
+
 	return 0;
 }

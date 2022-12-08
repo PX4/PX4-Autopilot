@@ -47,8 +47,6 @@
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
-
-
 /******************************************************************************
  * Definitions
  ******************************************************************************/
@@ -155,7 +153,5 @@
 #define LED_PANIC         7  /* N/C  + N/C  + N/C + LED? */
 
 #define BOARD_NUM_IO_TIMERS 3
-
-#define BOARD_DISABLE_I2C_SPI
 
 #include <px4_platform_common/board_common.h>

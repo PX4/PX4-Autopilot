@@ -966,7 +966,7 @@ void Ekf::updateVerticalDeadReckoningStatus()
 }
 
 // calculate the variances for the rotation vector equivalent
-Vector3f Ekf::calcRotVecVariances()
+Vector3f Ekf::calcRotVecVariances() const
 {
 	Vector3f rot_var_vec;
 	float q0, q1, q2, q3;
@@ -1520,61 +1520,4 @@ void Ekf::resetGpsDriftCheckFilters()
 	_gps_horizontal_position_drift_rate_m_s = NAN;
 	_gps_vertical_position_drift_rate_m_s = NAN;
 	_gps_filtered_horizontal_velocity_m_s = NAN;
-}
-
-matrix::SquareMatrix<float, 3> Ekf::orientation_covariances_euler() const
-{
-	// Jacobian matrix (3x4) containing the partial derivatives of the
-	// Euler angle equations with respect to the quaternions
-	matrix::Matrix<float, 3, 4> G;
-
-	// quaternion components
-	float q1 = _state.quat_nominal(0);
-	float q2 = _state.quat_nominal(1);
-	float q3 = _state.quat_nominal(2);
-	float q4 = _state.quat_nominal(3);
-
-	// numerator components
-	float n1 =  2 * q1 * q2 + 2 * q2 * q4;
-	float n2 = -2 * q2 * q2 - 2 * q3 * q3 + 1;
-	float n3 =  2 * q1 * q4 + 2 * q2 * q3;
-	float n4 = -2 * q3 * q3 - 2 * q4 * q4 + 1;
-	float n5 =  2 * q1 * q3 + 2 * q2 * q4;
-	float n6 = -2 * q1 * q2 - 2 * q2 * q4;
-	float n7 = -2 * q1 * q4 - 2 * q2 * q3;
-
-	// Protect against division by 0
-	float d1 = n1 * n1 + n2 * n2;
-	float d2 = n3 * n3 + n4 * n4;
-
-	if (fabsf(d1) < FLT_EPSILON) {
-		d1 = FLT_EPSILON;
-	}
-
-	if (fabsf(d2) < FLT_EPSILON) {
-		d2 = FLT_EPSILON;
-	}
-
-	// Protect against square root of negative numbers
-	float x = math::max(-n5 * n5 + 1, 0.0f);
-
-	// compute G matrix
-	float sqrt_x = sqrtf(x);
-	float g00_03 = 2 * q2 * n2 / d1;
-	G(0, 0) =  g00_03;
-	G(0, 1) = -4 * q2 * n6 / d1 + (2 * q1 + 2 * q4) * n2 / d1;
-	G(0, 2) = -4 * q3 * n6 / d1;
-	G(0, 3) =  g00_03;
-	G(1, 0) =  2 * q3 / sqrt_x;
-	G(1, 1) =  2 * q4 / sqrt_x;
-	G(1, 2) =  2 * q1 / sqrt_x;
-	G(1, 3) =  2 * q2 / sqrt_x;
-	G(2, 0) =  2 * q4 * n4 / d2;
-	G(2, 1) =  2 * q3 * n4 / d2;
-	G(2, 2) =  2 * q2 * n4 / d2 - 4 * q3 * n7 / d2;
-	G(2, 3) =  2 * q1 * n4 / d2 - 4 * q4 * n7 / d2;
-
-	const matrix::SquareMatrix<float, 4> quat_covariances = P.slice<4, 4>(0, 0);
-
-	return G * quat_covariances * G.transpose();
 }
