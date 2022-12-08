@@ -225,6 +225,10 @@ VtolAttitudeControl::quadchute(QuadchuteReason reason)
 			events::send(events::ID("vtol_att_ctrl_quadchute_max_roll"), events::Log::Critical,
 				     "Quadchute triggered, due to maximum roll angle exceeded");
 			break;
+
+		case QuadchuteReason::None:
+			// should never get in here
+			return;
 		}
 
 		_vtol_vehicle_status.vtol_transition_failsafe = true;
