@@ -118,7 +118,14 @@ else
 
 		if [ -z "${PX4_SIM_HOST_ADDR}" ]; then
 			echo "PX4 SIM HOST: localhost"
-			simulator_mavlink start -c $simulator_tcp_port
+			if [ -z "${PX4_SIM_USE_TCP_SERVER}" ]; then
+				# Use default UDP protocol for mavlink msg transport with simulator
+				simulator_mavlink start -u $simulator_udp_port
+			else
+				# Use TCP server for mavlink msg transport with simulator
+				echo "PX4 SIM USE TCP SERVER"
+				simulator_mavlink start -s $simulator_tcp_port
+			fi
 		else
 			echo "PX4 SIM HOST: ${PX4_SIM_HOST_ADDR}"
 			simulator_mavlink start -t "${PX4_SIM_HOST_ADDR}" "${simulator_tcp_port}"
