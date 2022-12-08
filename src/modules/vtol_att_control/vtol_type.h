@@ -158,7 +158,7 @@ public:
 	QuadchuteReason getQuadchuteReason();
 
 	/**
-	 *  @brief Indicates if the vehicle is lower than VT_FW_MIN_ALT below the local origin.
+	 *  @brief Indicates if the vehicle is lower than VT_FW_MIN_ALT above the local origin.
 	 *
 	 * @return     true if below threshold
 	 */
