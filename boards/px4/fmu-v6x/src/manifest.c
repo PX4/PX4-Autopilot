@@ -155,6 +155,8 @@ static px4_hw_mft_list_entry_t mft_lists[] = {
 	{V6X04, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // BMP388 moved to I2C2, Sensor Set 4
 	{V6X14, hw_mft_list_v0610, arraySize(hw_mft_list_v0610)}, // No PX4IO BMP388 moved to I2C2, Sensor Set 4
 	{V6X21, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)},
+	{V6X0910, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // FMUV6X,     rev from EEPROM     Auterion Skynode ver9
+	{V6X1010, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // FMUV6X,     rev from EEPROM     Auterion Skynode ver10
 };
 
 /************************************************************************************
