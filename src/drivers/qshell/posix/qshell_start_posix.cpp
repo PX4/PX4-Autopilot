@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 ModalAI, Inc. All rights reserved.
+ * Copyright (C) 2022 ModalAI, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,68 +31,40 @@
  *
  ****************************************************************************/
 
+#include "qshell.h"
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/app.h>
+#include <px4_platform_common/tasks.h>
+#include <stdio.h>
 #include <string.h>
-#include "uORBAppsProtobufChannel.hpp"
-#include "uORB/uORBManager.hpp"
+#include <sched.h>
+#include <cstdlib>
+#include <string>
+#include <vector>
 
-extern "C" { __EXPORT int muorb_main(int argc, char *argv[]); }
+//using namespace px4;
+
+extern "C" __EXPORT int qshell_main(int argc, char *argv[]);
 
 static void usage()
 {
-	PX4_INFO("Usage: muorb 'start', 'test', 'stop', 'status'");
+	PX4_DEBUG("usage: qshell cmd [args]");
 }
 
-static bool enable_debug = false;
-
-int
-muorb_main(int argc, char *argv[])
+int qshell_main(int argc, char *argv[])
 {
 	if (argc < 2) {
 		usage();
-		return -EINVAL;
+		return 1;
 	}
 
-	// TODO: Add an optional  start parameter to control debug messages
-	if (!strcmp(argv[1], "start")) {
-		// Register the protobuf channel with UORB.
-		uORB::AppsProtobufChannel *channel = uORB::AppsProtobufChannel::GetInstance();
+	std::vector<std::string> argList;
 
-		PX4_INFO("Got muorb start command");
-
-		if (channel && channel->Initialize(enable_debug)) {
-			uORB::Manager::get_instance()->set_uorb_communicator(channel);
-			return OK;
-		}
-
-	} else if (!strcmp(argv[1], "test")) {
-		uORB::AppsProtobufChannel *channel = uORB::AppsProtobufChannel::GetInstance();
-
-		PX4_INFO("Got muorb test command");
-
-		if (channel && channel->Initialize(enable_debug)) {
-			uORB::Manager::get_instance()->set_uorb_communicator(channel);
-
-			if (channel->Test()) { return OK; }
-		}
-
-	} else if (!strcmp(argv[1], "stop")) {
-		if (uORB::AppsProtobufChannel::isInstance() == false) {
-			PX4_WARN("muorb not running");
-		}
-
-		return OK;
-
-	} else if (!strcmp(argv[1], "status")) {
-		if (uORB::AppsProtobufChannel::isInstance()) {
-			PX4_INFO("muorb initialized");
-
-		} else {
-			PX4_INFO("muorb not running");
-		}
-
-		return OK;
+	for (int i = 1; i < argc; i++) {
+		argList.push_back(argv[i]);
 	}
 
-	usage();
-	return -EINVAL;
+
+	QShell qshell;
+	return qshell.main(argList);
 }

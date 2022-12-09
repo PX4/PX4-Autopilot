@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 ModalAI, Inc. All rights reserved.
+ * Copyright (C) 2022 ModalAI, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,68 +31,77 @@
  *
  ****************************************************************************/
 
+#include "qshell.h"
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/app.h>
+#include <px4_platform_common/tasks.h>
+#include <stdio.h>
 #include <string.h>
-#include "uORBAppsProtobufChannel.hpp"
-#include "uORB/uORBManager.hpp"
+#include <sched.h>
 
-extern "C" { __EXPORT int muorb_main(int argc, char *argv[]); }
+static int daemon_task;             /* Handle of deamon task / thread */
+
+extern "C" __EXPORT int qshell_main(int argc, char *argv[]);
+
+int qshell_entry(int argc, char **argv)
+{
+	PX4_INFO("qshell entry.....");
+	QShell qshell;
+	qshell.main();
+
+	PX4_INFO("goodbye");
+	return 0;
+}
 
 static void usage()
 {
-	PX4_INFO("Usage: muorb 'start', 'test', 'stop', 'status'");
+	PX4_INFO("usage: qshell {start|stop|status}");
 }
 
-static bool enable_debug = false;
-
-int
-muorb_main(int argc, char *argv[])
+int qshell_main(int argc, char *argv[])
 {
 	if (argc < 2) {
 		usage();
-		return -EINVAL;
+		return 1;
 	}
 
-	// TODO: Add an optional  start parameter to control debug messages
 	if (!strcmp(argv[1], "start")) {
-		// Register the protobuf channel with UORB.
-		uORB::AppsProtobufChannel *channel = uORB::AppsProtobufChannel::GetInstance();
 
-		PX4_INFO("Got muorb start command");
-
-		if (channel && channel->Initialize(enable_debug)) {
-			uORB::Manager::get_instance()->set_uorb_communicator(channel);
-			return OK;
+		if (QShell::appState.isRunning()) {
+			PX4_INFO("already running");
+			/* this is not an error */
+			return 0;
 		}
 
-	} else if (!strcmp(argv[1], "test")) {
-		uORB::AppsProtobufChannel *channel = uORB::AppsProtobufChannel::GetInstance();
+		PX4_INFO("before starting the qshell_entry task");
 
-		PX4_INFO("Got muorb test command");
+		daemon_task = px4_task_spawn_cmd("qshell",
+						 SCHED_DEFAULT,
+						 SCHED_PRIORITY_MAX - 5,
+						 8192,
+						 qshell_entry,
+						 (char *const *)argv);
+		PX4_INFO("after starting the qshell_entry task");
 
-		if (channel && channel->Initialize(enable_debug)) {
-			uORB::Manager::get_instance()->set_uorb_communicator(channel);
+		return 0;
+	}
 
-			if (channel->Test()) { return OK; }
-		}
+	if (!strcmp(argv[1], "stop")) {
+		QShell::appState.requestExit();
+		return 0;
+	}
 
-	} else if (!strcmp(argv[1], "stop")) {
-		if (uORB::AppsProtobufChannel::isInstance() == false) {
-			PX4_WARN("muorb not running");
-		}
-
-		return OK;
-
-	} else if (!strcmp(argv[1], "status")) {
-		if (uORB::AppsProtobufChannel::isInstance()) {
-			PX4_INFO("muorb initialized");
+	if (!strcmp(argv[1], "status")) {
+		if (QShell::appState.isRunning()) {
+			PX4_INFO("is running");
 
 		} else {
-			PX4_INFO("muorb not running");
+			PX4_INFO("not started");
 		}
 
-		return OK;
+		return 0;
 	}
 
 	usage();
-	return -EINVAL;
+	return 1;
 }
