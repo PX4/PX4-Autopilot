@@ -219,16 +219,21 @@ bool uORB::AppsProtobufChannel::Test()
 
 bool uORB::AppsProtobufChannel::Initialize(bool enable_debug)
 {
-	fc_callbacks cb = {&ReceiveCallback, &AdvertiseCallback,
-			   &SubscribeCallback, &UnsubscribeCallback
-			  };
+	if (! _Initialized) {
+		fc_callbacks cb = { &ReceiveCallback, &AdvertiseCallback,
+				    &SubscribeCallback, &UnsubscribeCallback
+				  };
 
-	if (fc_sensor_initialize(enable_debug, &cb) != 0) {
-		if (enable_debug) { PX4_INFO("Warning: muorb protobuf initalize method failed"); }
+		if (fc_sensor_initialize(enable_debug, &cb) != 0) {
+			if (enable_debug) { PX4_INFO("Warning: muorb protobuf initalize method failed"); }
+
+		} else {
+			PX4_INFO("muorb protobuf initalize method succeeded");
+			_Initialized = true;
+		}
 
 	} else {
-		PX4_INFO("muorb protobuf initalize method succeeded");
-		_Initialized = true;
+		PX4_INFO("AppsProtobufChannel already initialized");
 	}
 
 	return true;

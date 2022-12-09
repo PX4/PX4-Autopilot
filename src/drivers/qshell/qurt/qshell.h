@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 ModalAI, Inc. All rights reserved.
+ * Copyright (C) 2022 ModalAI, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,68 +31,33 @@
  *
  ****************************************************************************/
 
-#include <string.h>
-#include "uORBAppsProtobufChannel.hpp"
-#include "uORB/uORBManager.hpp"
+#pragma once
 
-extern "C" { __EXPORT int muorb_main(int argc, char *argv[]); }
+#include <px4_platform_common/app.h>
+#include <string>
+#include <vector>
+#include <uORB/Publication.hpp>
+#include <uORB/topics/qshell_retval.h>
+#include <uORB/topics/qshell_req.h>
 
-static void usage()
+#include "apps.h"
+
+class QShell
 {
-	PX4_INFO("Usage: muorb 'start', 'test', 'stop', 'status'");
-}
+public:
+	QShell();
+	~QShell() {}
 
-static bool enable_debug = false;
+	int main();
+	int run_cmd(const std::vector<std::string> &appargs);
 
-int
-muorb_main(int argc, char *argv[])
-{
-	if (argc < 2) {
-		usage();
-		return -EINVAL;
-	}
+	static px4::AppState appState; /* track requests to terminate app */
 
-	// TODO: Add an optional  start parameter to control debug messages
-	if (!strcmp(argv[1], "start")) {
-		// Register the protobuf channel with UORB.
-		uORB::AppsProtobufChannel *channel = uORB::AppsProtobufChannel::GetInstance();
+private:
 
-		PX4_INFO("Got muorb start command");
+	uORB::Publication<qshell_retval_s>	_qshell_retval_pub{ORB_ID(qshell_retval)};
 
-		if (channel && channel->Initialize(enable_debug)) {
-			uORB::Manager::get_instance()->set_uorb_communicator(channel);
-			return OK;
-		}
+	qshell_req_s m_qshell_req{};
 
-	} else if (!strcmp(argv[1], "test")) {
-		uORB::AppsProtobufChannel *channel = uORB::AppsProtobufChannel::GetInstance();
-
-		PX4_INFO("Got muorb test command");
-
-		if (channel && channel->Initialize(enable_debug)) {
-			uORB::Manager::get_instance()->set_uorb_communicator(channel);
-
-			if (channel->Test()) { return OK; }
-		}
-
-	} else if (!strcmp(argv[1], "stop")) {
-		if (uORB::AppsProtobufChannel::isInstance() == false) {
-			PX4_WARN("muorb not running");
-		}
-
-		return OK;
-
-	} else if (!strcmp(argv[1], "status")) {
-		if (uORB::AppsProtobufChannel::isInstance()) {
-			PX4_INFO("muorb initialized");
-
-		} else {
-			PX4_INFO("muorb not running");
-		}
-
-		return OK;
-	}
-
-	usage();
-	return -EINVAL;
-}
+	apps_map_type m_apps;
+};

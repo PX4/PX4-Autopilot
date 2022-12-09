@@ -33,12 +33,18 @@
 
 get_property(module_libraries GLOBAL PROPERTY PX4_MODULE_LIBRARIES)
 
+px4_qurt_generate_builtin_commands(
+        OUT ${PX4_BINARY_DIR}/apps
+        MODULE_LIST ${module_libraries}
+)
+
 include_directories(
 	${CMAKE_CURRENT_BINARY_DIR}
 	)
 
 add_library(px4 SHARED
 	${PX4_SOURCE_DIR}/platforms/qurt/unresolved_symbols.c
+	${PX4_BINARY_DIR}/apps.cpp
 	)
 
 target_link_libraries(px4

@@ -192,6 +192,10 @@ static void *test_runner(void *)
 	return nullptr;
 }
 
+__BEGIN_DECLS
+extern int slpi_main(int argc, char *argv[]);
+__END_DECLS
+
 int px4muorb_orb_initialize(fc_func_ptrs *func_ptrs, int32_t clock_offset_us)
 {
 	hrt_set_absolute_time_offset(clock_offset_us);
@@ -225,6 +229,16 @@ int px4muorb_orb_initialize(fc_func_ptrs *func_ptrs, int32_t clock_offset_us)
 		uORB::Manager::initialize();
 		uORB::Manager::get_instance()->set_uorb_communicator(
 			uORB::ProtobufChannel::GetInstance());
+
+		const char *argv[3] = { "slpi", "start" };
+		int argc = 2;
+
+		// Make sure that argv has a NULL pointer in the end.
+		argv[argc] = NULL;
+
+		if (slpi_main(argc, (char **) argv)) {
+			PX4_ERR("slpi failed in %s", __FUNCTION__);
+		}
 
 		px4muorb_orb_initialized = true;
 
