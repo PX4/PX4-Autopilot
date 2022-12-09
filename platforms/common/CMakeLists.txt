@@ -40,7 +40,7 @@ if(NOT "${PX4_PLATFORM}" MATCHES "qurt" AND NOT "${PX4_BOARD}" MATCHES "io-v2" A
 	)
 endif()
 
-add_library(px4_platform
+add_library(px4_platform STATIC
 	board_common.c
 	board_identity.c
 	events.cpp
@@ -56,7 +56,7 @@ add_library(px4_platform
 )
 target_link_libraries(px4_platform prebuild_targets px4_work_queue)
 
-if (NOT "${PX4_BOARD}" MATCHES "io-v2")
+if(NOT "${PX4_BOARD}" MATCHES "io-v2")
 	add_subdirectory(uORB)
 endif()
 
