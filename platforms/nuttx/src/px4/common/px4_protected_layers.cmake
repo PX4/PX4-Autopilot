@@ -49,6 +49,7 @@ target_link_libraries(px4_kernel_layer
 	PRIVATE
 		${KERNEL_LIBS}
 		nuttx_kc
+		nuttx_kxx
 		nuttx_karch
 		nuttx_kmm
 )
