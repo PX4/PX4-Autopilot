@@ -60,8 +60,7 @@
 	branch = px4
 [submodule "src/modules/uxrce_dds_client/Micro-XRCE-DDS-Client"]
 	path = src/modules/uxrce_dds_client/Micro-XRCE-DDS-Client
-	url = https://github.com/PX4/Micro-XRCE-DDS-Client.git
-	branch = px4
+	url = https://github.com/tiiuae/Micro-XRCE-DDS-Client.git
 [submodule "boards/ssrc/saluki-v1"]
 	path = boards/ssrc/saluki-v1
 	url = ../saluki-v1.git
