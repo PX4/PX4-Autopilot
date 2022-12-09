@@ -118,7 +118,6 @@ __END_DECLS
 // Qurt has no fsync implementation so need to declare one here
 // and then define a fake one in the Qurt platform code.
 void fsync(int fd);
-uint32_t crc32part(const uint8_t *src, size_t len, uint32_t crc32val);
 #endif
 
 // The stack size is intended for 32-bit architectures; therefore
