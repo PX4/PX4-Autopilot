@@ -97,7 +97,7 @@ public:
 
 			// Zero natural frequency means our time step is irrelevant
 			cutoff_freq_ = FLT_EPSILON;
-			max_time_step_ = INFINITY;
+			max_time_step_ = (float)INFINITY;
 
 			// Fail
 			return false;
@@ -198,7 +198,7 @@ private:
 	T last_rate_sample_{}; // [units/s]
 
 	// Maximum time step [s]
-	float max_time_step_{INFINITY};
+	float max_time_step_{(float)INFINITY};
 
 	// The selected time discretization method used for state integration
 	DiscretizationMethod discretization_method_{kBilinear};
