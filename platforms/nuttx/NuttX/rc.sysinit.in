@@ -1,0 +1,5 @@
+# Create folder for the links
+mkdir -p lnk
+
+# The link strings, these are generated
+@kernel_symlinks_string@

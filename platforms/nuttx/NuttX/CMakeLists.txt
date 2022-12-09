@@ -93,6 +93,7 @@ if (NOT CONFIG_BUILD_FLAT)
 	set(kernel_builtin_apps_string)
 	set(kernel_builtin_apps_proxy_string)
 	set(kernel_builtin_apps_decl_string)
+	set(kernel_symlinks_string)
 
 	list(SORT kernel_module_libraries)
 	foreach(module ${kernel_module_libraries})
@@ -104,11 +105,13 @@ if (NOT CONFIG_BUILD_FLAT)
 			set(kernel_builtin_apps_string "${kernel_builtin_apps_string}{ \"${MAIN}\", ${PRIORITY}, ${STACK_MAIN}, ${MAIN}_main },\n")
 			set(kernel_builtin_apps_proxy_string "${kernel_builtin_apps_proxy_string}{ \"${MAIN}\", ${PRIORITY}, ${STACK_MAIN}, launch_kmod_main },\n")
 			set(kernel_builtin_apps_decl_string "${kernel_builtin_apps_decl_string}int ${MAIN}_main(int argc, char *argv[]);\n")
+			set(kernel_symlinks_string "${kernel_symlinks_string}ln -s bin/launch_kmod lnk/${MAIN}\n")
 		endif()
 	endforeach()
 
 	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/px4_kernel.bdat.in ${CMAKE_CURRENT_BINARY_DIR}/px4_kernel.bdat)
 	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/px4_kernel.pdat.in ${CMAKE_CURRENT_BINARY_DIR}/px4_kernel.pdat)
+	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/rc.sysinit.in      ${CMAKE_CURRENT_BINARY_DIR}/rc.sysinit)
 
 	add_custom_command(OUTPUT ${KERNEL_BUILTIN_DIR}/kernel_builtin_list.h ${KERNEL_BUILTIN_DIR}/kernel_builtin_proto.h
 		WORKING_DIRECTORY  ${KERNEL_BUILTIN_DIR}
