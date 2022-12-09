@@ -231,7 +231,7 @@ int px4muorb_orb_initialize(fc_func_ptrs *func_ptrs, int32_t clock_offset_us)
 			uORB::ProtobufChannel::GetInstance());
 
 		const char *argv[3] = { "slpi", "start" };
-        	int argc = 2;
+		int argc = 2;
 
 		// Make sure that argv has a NULL pointer in the end.
 		argv[argc] = NULL;
