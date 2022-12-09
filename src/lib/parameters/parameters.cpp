@@ -48,7 +48,6 @@
 #include "tinybson/tinybson.h"
 
 #include <crc32.h>
-#include <sys/stat.h>
 #include <float.h>
 #include <math.h>
 
