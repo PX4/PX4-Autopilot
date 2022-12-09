@@ -55,7 +55,7 @@
  ************************************************************************************/
 
 /* Clocking *************************************************************************/
-/* The MatekH743-Slim  board provides the following clock sources:
+/* The board provides the following clock sources:
  *
  *   X1: 8 MHz crystal for HSE
  *
