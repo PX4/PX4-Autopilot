@@ -64,10 +64,10 @@
 #include <uORB/topics/autotune_attitude_control_status.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/control_allocator_status.h>
+#include <uORB/topics/landing_gear_wheel.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/rate_ctrl_status.h>
-#include <uORB/topics/vehicle_angular_acceleration.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
@@ -127,7 +127,6 @@ private:
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};		/**< vehicle land detected subscription */
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};				/**< vehicle status subscription */
 	uORB::Subscription _vehicle_rates_sub{ORB_ID(vehicle_angular_velocity)};
-	uORB::Subscription _vehicle_angular_acceleration_sub{ORB_ID(vehicle_angular_acceleration)};
 
 	uORB::SubscriptionMultiArray<control_allocator_status_s, 2> _control_allocator_status_subs{ORB_ID::control_allocator_status};
 
@@ -140,6 +139,7 @@ private:
 	uORB::PublicationMulti<rate_ctrl_status_s>	_rate_ctrl_status_pub{ORB_ID(rate_ctrl_status)};
 	uORB::Publication<vehicle_thrust_setpoint_s>	_vehicle_thrust_setpoint_pub{ORB_ID(vehicle_thrust_setpoint)};
 	uORB::Publication<vehicle_torque_setpoint_s>	_vehicle_torque_setpoint_pub{ORB_ID(vehicle_torque_setpoint)};
+	uORB::Publication<landing_gear_wheel_s>		_landing_gear_wheel_pub{ORB_ID(landing_gear_wheel)};
 
 	actuator_controls_s			_actuator_controls{};
 	manual_control_setpoint_s		_manual_control_setpoint{};
@@ -148,6 +148,7 @@ private:
 	vehicle_local_position_s		_local_pos{};
 	vehicle_rates_setpoint_s		_rates_sp{};
 	vehicle_status_s			_vehicle_status{};
+	landing_gear_wheel_s			_landing_gear_wheel{};
 
 	matrix::Dcmf _R{matrix::eye<float, 3>()};
 
@@ -176,6 +177,7 @@ private:
 		(ParamFloat<px4::params::FW_ACRO_Z_MAX>) _param_fw_acro_z_max,
 
 		(ParamFloat<px4::params::FW_AIRSPD_MAX>) _param_fw_airspd_max,
+		(ParamFloat<px4::params::FW_AIRSPD_MIN>) _param_fw_airspd_min,
 		(ParamFloat<px4::params::FW_AIRSPD_STALL>) _param_fw_airspd_stall,
 		(ParamFloat<px4::params::FW_AIRSPD_TRIM>) _param_fw_airspd_trim,
 		(ParamInt<px4::params::FW_ARSP_MODE>) _param_fw_arsp_mode,
@@ -241,7 +243,9 @@ private:
 
 		(ParamFloat<px4::params::TRIM_PITCH>) _param_trim_pitch,
 		(ParamFloat<px4::params::TRIM_ROLL>) _param_trim_roll,
-		(ParamFloat<px4::params::TRIM_YAW>) _param_trim_yaw
+		(ParamFloat<px4::params::TRIM_YAW>) _param_trim_yaw,
+
+		(ParamFloat<px4::params::FW_MAN_YR_MAX>) _param_fw_man_yr_max
 	)
 
 	ECL_RollController		_roll_ctrl;

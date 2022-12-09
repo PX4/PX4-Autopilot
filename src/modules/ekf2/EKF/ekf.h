@@ -204,8 +204,6 @@ public:
 	// get the orientation (quaterion) covariances
 	matrix::SquareMatrix<float, 4> orientation_covariances() const { return P.slice<4, 4>(0, 0); }
 
-	matrix::SquareMatrix<float, 3> orientation_covariances_euler() const;
-
 	// get the linear velocity covariances
 	matrix::SquareMatrix<float, 3> velocity_covariances() const { return P.slice<3, 3>(4, 4); }
 
@@ -285,7 +283,7 @@ public:
 		return !_vertical_velocity_deadreckon_time_exceeded && !_control_status.flags.fake_hgt;
 	}
 
-	bool isTerrainEstimateValid() const { return _hagl_valid; };
+	bool isTerrainEstimateValid() const;
 
 	bool isYawFinalAlignComplete() const
 	{
@@ -335,43 +333,43 @@ public:
 	const auto &state_reset_status() const { return _state_reset_status; }
 
 	// return the amount the local vertical position changed in the last reset and the number of reset events
-	uint8_t get_posD_reset_count() const { return _state_reset_status.posD_counter; }
+	uint8_t get_posD_reset_count() const { return _state_reset_status.reset_count.posD; }
 	void get_posD_reset(float *delta, uint8_t *counter) const
 	{
 		*delta = _state_reset_status.posD_change;
-		*counter = _state_reset_status.posD_counter;
+		*counter = _state_reset_status.reset_count.posD;
 	}
 
 	// return the amount the local vertical velocity changed in the last reset and the number of reset events
-	uint8_t get_velD_reset_count() const { return _state_reset_status.velD_counter; }
+	uint8_t get_velD_reset_count() const { return _state_reset_status.reset_count.velD; }
 	void get_velD_reset(float *delta, uint8_t *counter) const
 	{
 		*delta = _state_reset_status.velD_change;
-		*counter = _state_reset_status.velD_counter;
+		*counter = _state_reset_status.reset_count.velD;
 	}
 
 	// return the amount the local horizontal position changed in the last reset and the number of reset events
-	uint8_t get_posNE_reset_count() const { return _state_reset_status.posNE_counter; }
+	uint8_t get_posNE_reset_count() const { return _state_reset_status.reset_count.posNE; }
 	void get_posNE_reset(float delta[2], uint8_t *counter) const
 	{
 		_state_reset_status.posNE_change.copyTo(delta);
-		*counter = _state_reset_status.posNE_counter;
+		*counter = _state_reset_status.reset_count.posNE;
 	}
 
 	// return the amount the local horizontal velocity changed in the last reset and the number of reset events
-	uint8_t get_velNE_reset_count() const { return _state_reset_status.velNE_counter; }
+	uint8_t get_velNE_reset_count() const { return _state_reset_status.reset_count.velNE; }
 	void get_velNE_reset(float delta[2], uint8_t *counter) const
 	{
 		_state_reset_status.velNE_change.copyTo(delta);
-		*counter = _state_reset_status.velNE_counter;
+		*counter = _state_reset_status.reset_count.velNE;
 	}
 
 	// return the amount the quaternion has changed in the last reset and the number of reset events
-	uint8_t get_quat_reset_count() const { return _state_reset_status.quat_counter; }
+	uint8_t get_quat_reset_count() const { return _state_reset_status.reset_count.quat; }
 	void get_quat_reset(float delta_quat[4], uint8_t *counter) const
 	{
 		_state_reset_status.quat_change.copyTo(delta_quat);
-		*counter = _state_reset_status.quat_counter;
+		*counter = _state_reset_status.reset_count.quat;
 	}
 
 	// get EKF innovation consistency check status information comprising of:
@@ -390,6 +388,9 @@ public:
 
 	// use the latest IMU data at the current time horizon.
 	Quatf calculate_quaternion() const;
+
+	// rotate quaternion covariances into variances for an equivalent rotation vector
+	Vector3f calcRotVecVariances() const;
 
 	// set minimum continuous period without GPS fail required to mark a healthy GPS status
 	void set_min_required_gps_health_time(uint32_t time_us) { _min_gps_health_time_us = time_us; }
@@ -451,20 +452,27 @@ private:
 	void updateHorizontalDeadReckoningstatus();
 	void updateVerticalDeadReckoningStatus();
 
-	void updateTerrainValidity();
+	struct StateResetCounts
+	{
+		uint8_t velNE{0};	///< number of horizontal position reset events (allow to wrap if count exceeds 255)
+		uint8_t velD{0};	///< number of vertical velocity reset events (allow to wrap if count exceeds 255)
+		uint8_t posNE{0};	///< number of horizontal position reset events (allow to wrap if count exceeds 255)
+		uint8_t posD{0};	///< number of vertical position reset events (allow to wrap if count exceeds 255)
+		uint8_t quat{0};	///< number of quaternion reset events (allow to wrap if count exceeds 255)
+	};
 
-	struct {
-		uint8_t velNE_counter;	///< number of horizontal position reset events (allow to wrap if count exceeds 255)
-		uint8_t velD_counter;	///< number of vertical velocity reset events (allow to wrap if count exceeds 255)
-		uint8_t posNE_counter;	///< number of horizontal position reset events (allow to wrap if count exceeds 255)
-		uint8_t posD_counter;	///< number of vertical position reset events (allow to wrap if count exceeds 255)
-		uint8_t quat_counter;	///< number of quaternion reset events (allow to wrap if count exceeds 255)
+	struct StateResets {
 		Vector2f velNE_change;  ///< North East velocity change due to last reset (m)
 		float velD_change;	///< Down velocity change due to last reset (m/sec)
 		Vector2f posNE_change;	///< North, East position change due to last reset (m)
 		float posD_change;	///< Down position change due to last reset (m)
 		Quatf quat_change;	///< quaternion delta due to last reset - multiply pre-reset quaternion by this to get post-reset quaternion
-	} _state_reset_status{};	///< reset event monitoring structure containing velocity, position, height and yaw reset information
+
+		StateResetCounts reset_count{};
+	};
+
+	StateResets _state_reset_status{};	///< reset event monitoring structure containing velocity, position, height and yaw reset information
+	StateResetCounts _state_reset_count_prev{};
 
 	Vector3f _ang_rate_delayed_raw{};	///< uncorrected angular rate vector at fusion time horizon (rad/sec)
 
@@ -503,6 +511,8 @@ private:
 	uint64_t _time_last_zero_velocity_fuse{0}; ///< last time of zero velocity update (uSec)
 	uint64_t _time_last_healthy_rng_data{0};
 	uint8_t _nb_gps_yaw_reset_available{0}; ///< remaining number of resets allowed before switching to another aiding source
+
+	uint8_t _nb_ev_vel_reset_available{0};
 
 	Vector3f _last_known_pos{};		///< last known local position vector (m)
 
@@ -628,7 +638,6 @@ private:
 	float _terrain_var{1e4f};		///< variance of terrain position estimate (m**2)
 	uint8_t _terrain_vpos_reset_counter{0};	///< number of times _terrain_vpos has been reset
 	uint64_t _time_last_hagl_fuse{0};		///< last system time that a range sample was fused by the terrain estimator
-	bool _hagl_valid{false};		///< true when the height above ground estimate is valid
 	terrain_fusion_status_u _hagl_sensor_status{}; ///< Struct indicating type of sensor used to estimate height above ground
 
 	// height sensor status
@@ -669,7 +678,7 @@ private:
 	bool fuseYaw(const float innovation, const float variance, estimator_aid_source1d_s &aid_src_status);
 
 	// fuse the yaw angle obtained from a dual antenna GPS unit
-	void fuseGpsYaw(const gpsSample &gps_sample);
+	void fuseGpsYaw();
 
 	// reset the quaternions states using the yaw angle obtained from a dual antenna GPS unit
 	// return true if the reset was successful
@@ -700,7 +709,6 @@ private:
 	void resetHorizontalVelocityTo(const Vector2f &new_horz_vel, const Vector2f &new_horz_vel_var);
 	void resetHorizontalVelocityTo(const Vector2f &new_horz_vel, float vel_var) { resetHorizontalVelocityTo(new_horz_vel, Vector2f(vel_var, vel_var)); }
 
-	void resetVelocityToVision();
 	void resetHorizontalVelocityToZero();
 
 	void resetVerticalVelocityTo(float new_vert_vel, float new_vert_vel_var);
@@ -719,6 +727,8 @@ private:
 	// fuse optical flow line of sight rate measurements
 	void updateOptFlow(estimator_aid_source2d_s &aid_src);
 	void fuseOptFlow();
+	float predictFlowRange();
+	Vector2f predictFlowVelBody();
 
 	// horizontal and vertical position aid source
 	void updateHorizontalPositionAidSrcStatus(const uint64_t &time_us, const Vector2f &obs, const Vector2f &obs_var, const float innov_gate, estimator_aid_source2d_s &aid_src) const;
@@ -765,7 +775,6 @@ private:
 	void fuseFlowForTerrain();
 
 	void controlHaglFakeFusion();
-	void resetHaglFake();
 
 	// reset the heading and magnetic field states using the declination and magnetometer measurements
 	// return true if successful
@@ -783,10 +792,6 @@ private:
 
 	// update the rotation matrix which transforms EV navigation frame measurements into NED
 	void calcExtVisRotMat();
-
-	Vector3f getVisionVelocityInEkfFrame() const;
-
-	Vector3f getVisionVelocityVarianceInEkfFrame() const;
 
 	// matrix vector multiplication for computing K<24,1> * H<1,24> * P<24,24>
 	// that is optimized by exploring the sparsity in H
@@ -872,6 +877,7 @@ private:
 
 	// control fusion of external vision observations
 	void controlExternalVisionFusion();
+	void controlEvVelFusion(const extVisionSample &ev_sample, bool starting_conditions_passing, bool ev_reset, bool quality_sufficient, estimator_aid_source3d_s& aid_src);
 
 	// control fusion of optical flow observations
 	void controlOpticalFlowFusion();
@@ -881,7 +887,6 @@ private:
 	// control fusion of GPS observations
 	void controlGpsFusion();
 	bool shouldResetGpsFusion() const;
-	bool hasHorizontalAidingTimedOut() const;
 	bool isYawFailure() const;
 
 	void controlGpsYawFusion(const gpsSample &gps_sample, bool gps_checks_passing, bool gps_checks_failing);
@@ -963,9 +968,6 @@ private:
 	// calculate the measurement variance for the optical flow sensor
 	float calcOptFlowMeasVar(const flowSample &flow_sample);
 
-	// rotate quaternion covariances into variances for an equivalent rotation vector
-	Vector3f calcRotVecVariances();
-
 	// initialise the quaternion covariances using rotation vector variances
 	// do not call before quaternion states are initialised
 	void initialiseQuatCovariances(Vector3f &rot_vec_var);
@@ -1033,7 +1035,6 @@ private:
 	void stopGpsYawFusion();
 
 	void startEvPosFusion();
-	void startEvVelFusion();
 	void startEvYawFusion();
 
 	void stopEvFusion();
@@ -1066,9 +1067,6 @@ private:
 	HeightBiasEstimator _gps_hgt_b_est{HeightSensor::GNSS, _height_sensor_ref};
 	HeightBiasEstimator _rng_hgt_b_est{HeightSensor::RANGE, _height_sensor_ref};
 	HeightBiasEstimator _ev_hgt_b_est{HeightSensor::EV, _height_sensor_ref};
-
-	int64_t _ekfgsf_yaw_reset_time{0};	///< timestamp of last emergency yaw reset (uSec)
-	uint8_t _ekfgsf_yaw_reset_count{0};	// number of times the yaw has been reset to the EKF-GSF estimate
 
 	void runYawEKFGSF();
 

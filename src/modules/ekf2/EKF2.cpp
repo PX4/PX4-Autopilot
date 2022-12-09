@@ -123,6 +123,10 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_rng_a_igate(_params->range_aid_innov_gate),
 	_param_ekf2_rng_qlty_t(_params->range_valid_quality_s),
 	_param_ekf2_rng_k_gate(_params->range_kin_consistency_gate),
+	_param_ekf2_ev_ctrl(_params->ev_ctrl),
+	_param_ekf2_ev_qmin(_params->ev_quality_minimum),
+	_param_ekf2_evv_noise(_params->ev_vel_noise),
+	_param_ekf2_eva_noise(_params->ev_att_noise),
 	_param_ekf2_evv_gate(_params->ev_vel_innov_gate),
 	_param_ekf2_evp_gate(_params->ev_pos_innov_gate),
 	_param_ekf2_of_n_min(_params->flow_noise),
@@ -145,6 +149,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_ev_pos_y(_params->ev_pos_body(1)),
 	_param_ekf2_ev_pos_z(_params->ev_pos_body(2)),
 	_param_ekf2_arsp_thr(_params->arsp_thr),
+	_param_ekf2_fuse_beta(_params->beta_fusion_enabled),
 	_param_ekf2_tau_vel(_params->vel_Tau),
 	_param_ekf2_tau_pos(_params->pos_Tau),
 	_param_ekf2_gbias_init(_params->switch_on_gyro_bias),
@@ -525,56 +530,6 @@ void EKF2::Run()
 			_last_time_slip_us = 0;
 		}
 
-		// update all other topics if they have new data
-		if (_status_sub.updated()) {
-			vehicle_status_s vehicle_status;
-
-			if (_status_sub.copy(&vehicle_status)) {
-				const bool is_fixed_wing = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
-
-				// only fuse synthetic sideslip measurements if conditions are met
-				_ekf.set_fuse_beta_flag(is_fixed_wing && (_param_ekf2_fuse_beta.get() == 1));
-
-				// let the EKF know if the vehicle motion is that of a fixed wing (forward flight only relative to wind)
-				_ekf.set_is_fixed_wing(is_fixed_wing);
-
-				_preflt_checker.setVehicleCanObserveHeadingInFlight(vehicle_status.vehicle_type !=
-						vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
-			}
-		}
-
-		if (_vehicle_land_detected_sub.updated()) {
-			vehicle_land_detected_s vehicle_land_detected;
-
-			if (_vehicle_land_detected_sub.copy(&vehicle_land_detected)) {
-
-				_ekf.set_vehicle_at_rest(vehicle_land_detected.at_rest);
-
-				if (vehicle_land_detected.in_ground_effect) {
-					_ekf.set_gnd_effect();
-				}
-
-				const bool was_in_air = _ekf.control_status_flags().in_air;
-				const bool in_air = !vehicle_land_detected.landed;
-
-				if (!was_in_air && in_air) {
-					// takeoff
-					_ekf.set_in_air_status(true);
-
-					// reset learned sensor calibrations on takeoff
-					_accel_cal = {};
-					_gyro_cal = {};
-					_mag_cal = {};
-
-					_preflt_checker.reset();
-
-				} else if (was_in_air && !in_air) {
-					// landed
-					_ekf.set_in_air_status(false);
-				}
-			}
-		}
-
 		// ekf2_timestamps (using 0.1 ms relative timestamps)
 		ekf2_timestamps_s ekf2_timestamps {
 			.timestamp = now,
@@ -593,6 +548,7 @@ void EKF2::Run()
 		UpdateGpsSample(ekf2_timestamps);
 		UpdateMagSample(ekf2_timestamps);
 		UpdateRangeSample(ekf2_timestamps);
+		UpdateSystemFlagsSample(ekf2_timestamps);
 
 		vehicle_odometry_s ev_odom;
 		const bool new_ev_odom = UpdateExtVisionSample(ekf2_timestamps, ev_odom);
@@ -706,6 +662,23 @@ void EKF2::VerifyParams()
 		 */
 		events::send<float>(events::ID("ekf2_hgt_ref_gps"), events::Log::Warning,
 				    "GPS enabled by EKF2_HGT_REF", _param_ekf2_gps_ctrl.get());
+	}
+
+	// EV EKF2_AID_MASK -> EKF2_EV_CTRL
+	if ((_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_USE_EXT_VIS_VEL)) {
+
+		_param_ekf2_ev_ctrl.set(_param_ekf2_ev_ctrl.get() | static_cast<int32_t>(EvCtrl::VEL));
+		_param_ekf2_ev_ctrl.commit();
+
+		_param_ekf2_aid_mask.set(_param_ekf2_aid_mask.get() & ~(SensorFusionMask::DEPRECATED_USE_EXT_VIS_VEL));
+		_param_ekf2_aid_mask.commit();
+
+		mavlink_log_critical(&_mavlink_log_pub, "EKF2 EV use EKF2_EV_CTRL instead of EKF2_AID_MASK\n");
+		/* EVENT
+		 * @description <param>EKF2_AID_MASK</param> is set to {1:.0}.
+		 */
+		events::send<float>(events::ID("ekf2_aid_mask_ev"), events::Log::Warning,
+				    "Use EKF2_EV_CTRL instead", _param_ekf2_aid_mask.get());
 	}
 }
 
@@ -1018,6 +991,11 @@ void EKF2::PublishInnovations(const hrt_abstime &timestamp)
 	_estimator_innovations_pub.publish(innovations);
 
 	// calculate noise filtered velocity innovations which are used for pre-flight checking
+	if (_ekf.control_status_prev_flags().in_air != _ekf.control_status_flags().in_air) {
+		// fully reset on takeoff or landing
+		_preflt_checker.reset();
+	}
+
 	if (!_ekf.control_status_flags().in_air) {
 		// TODO: move to run before publications
 		_preflt_checker.setUsingGpsAiding(_ekf.control_status_flags().gps);
@@ -1029,6 +1007,8 @@ void EKF2::PublishInnovations(const hrt_abstime &timestamp)
 		_preflt_checker.setUsingGpsHgtAiding(_ekf.control_status_flags().gps_hgt);
 		_preflt_checker.setUsingRngHgtAiding(_ekf.control_status_flags().rng_hgt);
 		_preflt_checker.setUsingEvHgtAiding(_ekf.control_status_flags().ev_hgt);
+
+		_preflt_checker.setVehicleCanObserveHeadingInFlight(_ekf.control_status_flags().fixed_wing);
 
 		_preflt_checker.update(_ekf.get_imu_sample_delayed().delta_ang_dt, innovations);
 	}
@@ -1216,7 +1196,7 @@ void EKF2::PublishOdometry(const hrt_abstime &timestamp)
 	_ekf.position_covariances().diag().copyTo(odom.position_variance);
 
 	// orientation covariance
-	_ekf.orientation_covariances_euler().diag().copyTo(odom.orientation_variance);
+	_ekf.calcRotVecVariances().copyTo(odom.orientation_variance);
 
 	odom.reset_counter = _ekf.get_quat_reset_count()
 			     + _ekf.get_velNE_reset_count() + _ekf.get_velD_reset_count()
@@ -1360,11 +1340,11 @@ void EKF2::PublishStatus(const hrt_abstime &timestamp)
 	_ekf.get_ekf_soln_status(&status.solution_status_flags);
 
 	// reset counters
-	status.reset_count_vel_ne = _ekf.state_reset_status().velNE_counter;
-	status.reset_count_vel_d = _ekf.state_reset_status().velD_counter;
-	status.reset_count_pos_ne = _ekf.state_reset_status().posNE_counter;
-	status.reset_count_pod_d = _ekf.state_reset_status().posD_counter;
-	status.reset_count_quat = _ekf.state_reset_status().quat_counter;
+	status.reset_count_vel_ne = _ekf.state_reset_status().reset_count.velNE;
+	status.reset_count_vel_d = _ekf.state_reset_status().reset_count.velD;
+	status.reset_count_pos_ne = _ekf.state_reset_status().reset_count.posNE;
+	status.reset_count_pod_d = _ekf.state_reset_status().reset_count.posD;
+	status.reset_count_quat = _ekf.state_reset_status().reset_count.quat;
 
 	status.time_slip = _last_time_slip_us * 1e-6f;
 
@@ -1738,45 +1718,44 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps, vehicle_odo
 		ev_data.vel.setNaN();
 		ev_data.quat.setNaN();
 
-		// if error estimates are unavailable, use parameter defined defaults
-
 		// check for valid velocity data
-		if (Vector3f(ev_odom.velocity).isAllFinite()) {
-			bool velocity_valid = true;
+		const Vector3f ev_odom_vel(ev_odom.velocity);
+		const Vector3f ev_odom_vel_var(ev_odom.velocity_variance);
+
+		if (ev_odom_vel.isAllFinite()) {
+			bool velocity_frame_valid = false;
 
 			switch (ev_odom.velocity_frame) {
-			// case vehicle_odometry_s::VELOCITY_FRAME_NED:
-			// 	ev_data.vel_frame = VelocityFrame::LOCAL_FRAME_NED;
-			// 	break;
+			case vehicle_odometry_s::VELOCITY_FRAME_NED:
+				ev_data.vel_frame = VelocityFrame::LOCAL_FRAME_NED;
+				velocity_frame_valid = true;
+				break;
 
 			case vehicle_odometry_s::VELOCITY_FRAME_FRD:
 				ev_data.vel_frame = VelocityFrame::LOCAL_FRAME_FRD;
+				velocity_frame_valid = true;
 				break;
 
 			case vehicle_odometry_s::VELOCITY_FRAME_BODY_FRD:
 				ev_data.vel_frame = VelocityFrame::BODY_FRAME_FRD;
-				break;
-
-			default:
-				velocity_valid = false;
+				velocity_frame_valid = true;
 				break;
 			}
 
-			if (velocity_valid) {
-				ev_data.vel(0) = ev_odom.velocity[0];
-				ev_data.vel(1) = ev_odom.velocity[1];
-				ev_data.vel(2) = ev_odom.velocity[2];
+			if (velocity_frame_valid) {
+				ev_data.vel = ev_odom_vel;
 
 				const float evv_noise_var = sq(_param_ekf2_evv_noise.get());
 
 				// velocity measurement error from ev_data or parameters
-				if (!_param_ekf2_ev_noise_md.get() && Vector3f(ev_odom.velocity_variance).isAllFinite()) {
-					ev_data.velVar(0) = fmaxf(evv_noise_var, ev_odom.velocity_variance[0]);
-					ev_data.velVar(1) = fmaxf(evv_noise_var, ev_odom.velocity_variance[1]);
-					ev_data.velVar(2) = fmaxf(evv_noise_var, ev_odom.velocity_variance[2]);
+				if ((_param_ekf2_ev_noise_md.get() == 0) && ev_odom_vel_var.isAllFinite()) {
+
+					ev_data.velocity_var(0) = fmaxf(evv_noise_var, ev_odom_vel_var(0));
+					ev_data.velocity_var(1) = fmaxf(evv_noise_var, ev_odom_vel_var(1));
+					ev_data.velocity_var(2) = fmaxf(evv_noise_var, ev_odom_vel_var(2));
 
 				} else {
-					ev_data.velVar.setAll(evv_noise_var);
+					ev_data.velocity_var.setAll(evv_noise_var);
 				}
 
 				new_ev_odom = true;
@@ -1823,23 +1802,34 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps, vehicle_odo
 		}
 
 		// check for valid orientation data
-		if ((Quatf(ev_odom.q).isAllFinite())
-		    && ((fabsf(ev_odom.q[0]) > 0.f) || (fabsf(ev_odom.q[1]) > 0.f)
-			|| (fabsf(ev_odom.q[2]) > 0.f) || (fabsf(ev_odom.q[3]) > 0.f))
-		   ) {
-			ev_data.quat = Quatf(ev_odom.q);
+		const Quatf ev_odom_q(ev_odom.q);
+		const Vector3f ev_odom_q_var(ev_odom.orientation_variance);
+		const bool non_zero = (fabsf(ev_odom_q(0)) > 0.f) || (fabsf(ev_odom_q(1)) > 0.f)
+				      || (fabsf(ev_odom_q(2)) > 0.f) || (fabsf(ev_odom_q(3)) > 0.f);
+		const float eps = 1e-5f;
+		const bool no_element_larger_than_one = (fabsf(ev_odom_q(0)) <= 1.f + eps)
+							&& (fabsf(ev_odom_q(1)) <= 1.f + eps)
+							&& (fabsf(ev_odom_q(2)) <= 1.f + eps)
+							&& (fabsf(ev_odom_q(3)) <= 1.f + eps);
+		const bool norm_in_tolerance = fabsf(1.f - ev_odom_q.norm()) <= eps;
+
+		const bool orientation_valid = ev_odom_q.isAllFinite() && non_zero && no_element_larger_than_one && norm_in_tolerance;
+
+		if (orientation_valid) {
+			ev_data.quat = ev_odom_q;
 			ev_data.quat.normalize();
 
 			// orientation measurement error from ev_data or parameters
 			const float eva_noise_var = sq(_param_ekf2_eva_noise.get());
 
-			if (!_param_ekf2_ev_noise_md.get() &&
-			    PX4_ISFINITE(ev_odom.orientation_variance[2])
-			   ) {
-				ev_data.angVar = fmaxf(eva_noise_var, ev_odom.orientation_variance[2]);
+			if ((_param_ekf2_ev_noise_md.get() == 0) && ev_odom_q_var.isAllFinite()) {
+
+				ev_data.orientation_var(0) = fmaxf(eva_noise_var, ev_odom_q_var(0));
+				ev_data.orientation_var(1) = fmaxf(eva_noise_var, ev_odom_q_var(1));
+				ev_data.orientation_var(2) = fmaxf(eva_noise_var, ev_odom_q_var(2));
 
 			} else {
-				ev_data.angVar = eva_noise_var;
+				ev_data.orientation_var.setAll(eva_noise_var);
 			}
 
 			new_ev_odom = true;
@@ -1848,7 +1838,7 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps, vehicle_odo
 		// use timestamp from external computer, clocks are synchronized when using MAVROS
 		ev_data.time_us = ev_odom.timestamp_sample;
 		ev_data.reset_counter = ev_odom.reset_counter;
-		//ev_data.quality = ev_odom.quality;
+		ev_data.quality = ev_odom.quality;
 
 		if (new_ev_odom)  {
 			_ekf.setExtVisionData(ev_data);
@@ -1941,6 +1931,7 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 			.alt = vehicle_gps_position.alt,
 			.yaw = vehicle_gps_position.heading,
 			.yaw_offset = vehicle_gps_position.heading_offset,
+			.yaw_accuracy = vehicle_gps_position.heading_accuracy,
 			.fix_type = vehicle_gps_position.fix_type,
 			.eph = vehicle_gps_position.eph,
 			.epv = vehicle_gps_position.epv,
@@ -2078,9 +2069,50 @@ void EKF2::UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps)
 	}
 }
 
+void EKF2::UpdateSystemFlagsSample(ekf2_timestamps_s &ekf2_timestamps)
+{
+	// EKF system flags
+	if (_status_sub.updated() || _vehicle_land_detected_sub.updated()) {
+
+		systemFlagUpdate flags{};
+		flags.time_us = ekf2_timestamps.timestamp;
+
+		// vehicle_status
+		vehicle_status_s vehicle_status;
+
+		if (_status_sub.copy(&vehicle_status)
+		    && (ekf2_timestamps.timestamp < vehicle_status.timestamp + 3_s)) {
+
+			// initially set in_air from arming_state (will be overridden if land detector is available)
+			flags.in_air = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+
+			// let the EKF know if the vehicle motion is that of a fixed wing (forward flight only relative to wind)
+			flags.is_fixed_wing = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+		}
+
+		// vehicle_land_detected
+		vehicle_land_detected_s vehicle_land_detected;
+
+		if (_vehicle_land_detected_sub.copy(&vehicle_land_detected)
+		    && (ekf2_timestamps.timestamp < vehicle_land_detected.timestamp + 3_s)) {
+
+			flags.at_rest = vehicle_land_detected.at_rest;
+			flags.in_air = !vehicle_land_detected.landed;
+			flags.gnd_effect = vehicle_land_detected.in_ground_effect;
+		}
+
+		_ekf.setSystemFlagData(flags);
+	}
+}
+
 void EKF2::UpdateCalibration(const hrt_abstime &timestamp, InFlightCalibration &cal, const matrix::Vector3f &bias,
 			     const matrix::Vector3f &bias_variance, float bias_limit, bool bias_valid, bool learning_valid)
 {
+	// reset existing cal on takeoff
+	if (!_ekf.control_status_prev_flags().in_air && _ekf.control_status_flags().in_air) {
+		cal = {};
+	}
+
 	// Check if conditions are OK for learning of accelerometer bias values
 	// the EKF is operating in the correct mode and there are no filter faults
 	static constexpr float max_var_allowed = 1e-3f;

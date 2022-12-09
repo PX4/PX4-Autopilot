@@ -337,6 +337,84 @@ def compute_mag_declination_innov_innov_var_and_h(
 
     return (innov, innov_var, H.T)
 
+def predict_opt_flow(state, distance, epsilon):
+    q_att = sf.V4(state[State.qw], state[State.qx], state[State.qy], state[State.qz])
+    R_to_earth = quat_to_rot(q_att)
+    R_to_body = R_to_earth.T
+
+    # Calculate earth relative velocity in a non-rotating sensor frame
+    v = sf.V3(state[State.vx], state[State.vy], state[State.vz])
+    rel_vel_sensor = R_to_body * v
+
+    # Divide by range to get predicted angular LOS rates relative to X and Y
+    # axes. Note these are rates in a non-rotating sensor frame
+    flow_pred = sf.V2()
+    flow_pred[0] =  rel_vel_sensor[1] / distance
+    flow_pred[1] = -rel_vel_sensor[0] / distance
+    flow_pred = add_epsilon_sign(flow_pred, distance, epsilon)
+
+    return flow_pred
+
+
+def compute_flow_xy_innov_var_and_hx(
+        state: VState,
+        P: MState,
+        distance: sf.Scalar,
+        R: sf.Scalar,
+        epsilon: sf.Scalar
+) -> (sf.V2, VState):
+    meas_pred = predict_opt_flow(state, distance, epsilon);
+
+    innov_var = sf.V2()
+    Hx = sf.V1(meas_pred[0]).jacobian(state)
+    innov_var[0] = (Hx * P * Hx.T + R)[0,0]
+    Hy = sf.V1(meas_pred[1]).jacobian(state)
+    innov_var[1] = (Hy * P * Hy.T + R)[0,0]
+
+    return (innov_var, Hx.T)
+
+def compute_flow_y_innov_var_and_h(
+        state: VState,
+        P: MState,
+        distance: sf.Scalar,
+        R: sf.Scalar,
+        epsilon: sf.Scalar
+) -> (sf.Scalar, VState):
+    meas_pred = predict_opt_flow(state, distance, epsilon);
+
+    Hy = sf.V1(meas_pred[1]).jacobian(state)
+    innov_var = (Hy * P * Hy.T + R)[0,0]
+
+    return (innov_var, Hy.T)
+
+def compute_gnss_yaw_innon_innov_var_and_h(
+        state: VState,
+        P: MState,
+        antenna_yaw_offset: sf.Scalar,
+        meas: sf.Scalar,
+        R: sf.Scalar,
+        epsilon: sf.Scalar
+) -> (sf.Scalar, sf.Scalar, VState):
+
+    q_att = sf.V4(state[State.qw], state[State.qx], state[State.qy], state[State.qz])
+    R_to_earth = quat_to_rot(q_att)
+
+    # define antenna vector in body frame
+    ant_vec_bf = sf.V3(sf.cos(antenna_yaw_offset), sf.sin(antenna_yaw_offset), 0)
+
+    # rotate into earth frame
+    ant_vec_ef = R_to_earth * ant_vec_bf
+
+    # Calculate the yaw angle from the projection
+    meas_pred = sf.atan2(ant_vec_ef[1], ant_vec_ef[0], epsilon=epsilon)
+
+    H = sf.V1(meas_pred).jacobian(state)
+    innov_var = (H * P * H.T + R)[0,0]
+
+    innov = meas_pred - meas
+
+    return (innov, innov_var, H.T)
+
 print("Derive EKF2 equations...")
 generate_px4_function(compute_airspeed_innov_and_innov_var, output_names=["innov", "innov_var"])
 generate_px4_function(compute_airspeed_h_and_k, output_names=["H", "K"])
@@ -352,3 +430,6 @@ generate_px4_function(compute_yaw_321_innov_var_and_h_alternate, output_names=["
 generate_px4_function(compute_yaw_312_innov_var_and_h, output_names=["innov_var", "H"])
 generate_px4_function(compute_yaw_312_innov_var_and_h_alternate, output_names=["innov_var", "H"])
 generate_px4_function(compute_mag_declination_innov_innov_var_and_h, output_names=["innov", "innov_var", "H"])
+generate_px4_function(compute_flow_xy_innov_var_and_hx, output_names=["innov_var", "H"])
+generate_px4_function(compute_flow_y_innov_var_and_h, output_names=["innov_var", "H"])
+generate_px4_function(compute_gnss_yaw_innon_innov_var_and_h, output_names=["innov", "innov_var", "H"])

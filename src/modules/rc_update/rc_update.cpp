@@ -201,6 +201,21 @@ void RCUpdate::parameters_updated()
 			}
 		}
 	}
+
+	// Center throttle trim when it's set to the minimum to correct for hardcoded QGC RC calibration
+	// See https://github.com/mavlink/qgroundcontrol/commit/0577af2e944a0f53919aeb1367d580f744004b2c
+	const int8_t throttle_channel = _rc.function[rc_channels_s::FUNCTION_THROTTLE];
+
+	if (throttle_channel >= 0 && throttle_channel < RC_MAX_CHAN_COUNT) {
+		const uint16_t throttle_min = _parameters.min[throttle_channel];
+		const uint16_t throttle_trim = _parameters.trim[throttle_channel];
+		const uint16_t throttle_max = _parameters.max[throttle_channel];
+
+		if (throttle_min == throttle_trim) {
+			const uint16_t new_throttle_trim = (throttle_min + throttle_max) / 2;
+			_parameters.trim[throttle_channel] = new_throttle_trim;
+		}
+	}
 }
 
 void RCUpdate::update_rc_functions()
@@ -450,45 +465,21 @@ void RCUpdate::Run()
 
 		/* read out and scale values from raw message even if signal is invalid */
 		for (unsigned int i = 0; i < channel_count_limited; i++) {
+			// float conversions of uint16_t values
+			const float value = input_rc.values[i];
+			const float min = _parameters.min[i];
+			const float trim = _parameters.trim[i];
+			const float max = _parameters.max[i];
+			const float dz = _parameters.dz[i];
 
-			/*
-			 * 1) Constrain to min/max values, as later processing depends on bounds.
-			 */
-			input_rc.values[i] = math::constrain(input_rc.values[i], _parameters.min[i], _parameters.max[i]);
-
-			/*
-			 * 2) Scale around the mid point differently for lower and upper range.
-			 *
-			 * This is necessary as they don't share the same endpoints and slope.
-			 *
-			 * First normalize to 0..1 range with correct sign (below or above center),
-			 * the total range is 2 (-1..1).
-			 * If center (trim) == min, scale to 0..1, if center (trim) == max,
-			 * scale to -1..0.
-			 *
-			 * As the min and max bounds were enforced in step 1), division by zero
-			 * cannot occur, as for the case of center == min or center == max the if
-			 * statement is mutually exclusive with the arithmetic NaN case.
-			 *
-			 * DO NOT REMOVE OR ALTER STEP 1!
-			 */
-			if (input_rc.values[i] > (_parameters.trim[i] + _parameters.dz[i])) {
-				_rc.channels[i] = (input_rc.values[i] - _parameters.trim[i] - _parameters.dz[i]) / (float)(
-							  _parameters.max[i] - _parameters.trim[i] - _parameters.dz[i]);
-
-			} else if (input_rc.values[i] < (_parameters.trim[i] - _parameters.dz[i])) {
-				_rc.channels[i] = (input_rc.values[i] - _parameters.trim[i] + _parameters.dz[i]) / (float)(
-							  _parameters.trim[i] - _parameters.min[i] - _parameters.dz[i]);
-
-			} else {
-				/* in the configured dead zone, output zero */
-				_rc.channels[i] = 0.f;
-			}
+			// piecewise linear function to apply RC calibration
+			_rc.channels[i] = math::interpolateNXY(value,
+			{min, trim - dz, trim + dz, max},
+			{-1.f, 0.f, 0.f, 1.f});
 
 			if (_parameters.rev[i]) {
 				_rc.channels[i] = -_rc.channels[i];
 			}
-
 
 			/* handle any parameter-induced blowups */
 			if (!PX4_ISFINITE(_rc.channels[i])) {
@@ -685,10 +676,10 @@ void RCUpdate::UpdateManualControlInput(const hrt_abstime &timestamp_sample)
 	manual_control_input.data_source = manual_control_setpoint_s::SOURCE_RC;
 
 	// limit controls
-	manual_control_input.y     = get_rc_value(rc_channels_s::FUNCTION_ROLL,    -1.f, 1.f);
-	manual_control_input.x     = get_rc_value(rc_channels_s::FUNCTION_PITCH,   -1.f, 1.f);
-	manual_control_input.r     = get_rc_value(rc_channels_s::FUNCTION_YAW,     -1.f, 1.f);
-	manual_control_input.z     = get_rc_value(rc_channels_s::FUNCTION_THROTTLE, -1.f, 1.f);
+	manual_control_input.roll = get_rc_value(rc_channels_s::FUNCTION_ROLL,    -1.f, 1.f);
+	manual_control_input.pitch = get_rc_value(rc_channels_s::FUNCTION_PITCH,   -1.f, 1.f);
+	manual_control_input.yaw = get_rc_value(rc_channels_s::FUNCTION_YAW,     -1.f, 1.f);
+	manual_control_input.throttle = get_rc_value(rc_channels_s::FUNCTION_THROTTLE, -1.f, 1.f);
 	manual_control_input.flaps = get_rc_value(rc_channels_s::FUNCTION_FLAPS,   -1.f, 1.f);
 	manual_control_input.aux1  = get_rc_value(rc_channels_s::FUNCTION_AUX_1,   -1.f, 1.f);
 	manual_control_input.aux2  = get_rc_value(rc_channels_s::FUNCTION_AUX_2,   -1.f, 1.f);

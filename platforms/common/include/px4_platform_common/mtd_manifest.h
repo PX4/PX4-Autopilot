@@ -37,12 +37,13 @@ typedef enum  {
 	MTD_PARAMETERS  = 1,
 	MTD_WAYPOINTS   = 2,
 	MTD_CALDATA     = 3,
-	MTD_MFT         = 4,
-	MTD_ID          = 5,
-	MTD_NET         = 6,
+	MTD_MFT_VER     = 4,
+	MTD_MFT_REV     = 5,
+	MTD_ID          = 6,
+	MTD_NET         = 7
 } px4_mtd_types_t;
-#define PX4_MFT_MTD_TYPES  {MTD_PARAMETERS, MTD_WAYPOINTS, MTD_CALDATA, MTD_MFT, MTD_ID, MTD_NET}
-#define PX4_MFT_MTD_STR_TYPES  {"MTD_PARAMETERS", "MTD_WAYPOINTS", "MTD_CALDATA", "MTD_MFT", "MTD_ID", "MTD_NET"}
+#define PX4_MFT_MTD_TYPES  {MTD_PARAMETERS, MTD_WAYPOINTS, MTD_CALDATA, MTD_MFT_VER, MTD_MFT_REV, MTD_ID, MTD_NET}
+#define PX4_MFT_MTD_STR_TYPES  {"MTD_PARAMETERS", "MTD_WAYPOINTS", "MTD_CALDATA", "MTD_MFT_VER", "MTD_MFT_REV", "MTD_ID", "MTD_NET"}
 
 typedef struct  {
 	const px4_mtd_types_t   type;

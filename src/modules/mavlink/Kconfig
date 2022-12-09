@@ -7,7 +7,7 @@ menuconfig MODULES_MAVLINK
 menuconfig MAVLINK_DIALECT
 depends on MODULES_MAVLINK
         string "Mavlink dialect"
-        default "standard"
+        default "common"
     help
         Select the Mavlink dialect to generate and use.
 

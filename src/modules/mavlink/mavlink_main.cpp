@@ -1061,6 +1061,7 @@ Mavlink::send_autopilot_capabilities()
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_SET_ATTITUDE_TARGET;
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_SET_POSITION_TARGET_LOCAL_NED;
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_SET_ACTUATOR_TARGET;
+		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_FLIGHT_TERMINATION;
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_MAVLINK2;
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_MISSION_FENCE;
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_MISSION_RALLY;
@@ -2745,26 +2746,27 @@ void Mavlink::configure_sik_radio()
 		if (fs) {
 			/* switch to AT command mode */
 			px4_usleep(1200000);
-			fprintf(fs, "+++\n");
+			fprintf(fs, "+++");
+			fflush(fs);
 			px4_usleep(1200000);
 
 			if (_param_sik_radio_id.get() > 0) {
 				/* set channel */
-				fprintf(fs, "ATS3=%" PRIu32 "\n", _param_sik_radio_id.get());
+				fprintf(fs, "ATS3=%" PRIu32 "\r\n", _param_sik_radio_id.get());
 				px4_usleep(200000);
 
 			} else {
 				/* reset to factory defaults */
-				fprintf(fs, "AT&F\n");
+				fprintf(fs, "AT&F\r\n");
 				px4_usleep(200000);
 			}
 
 			/* write config */
-			fprintf(fs, "AT&W");
+			fprintf(fs, "AT&W\r\n");
 			px4_usleep(200000);
 
 			/* reboot */
-			fprintf(fs, "ATZ");
+			fprintf(fs, "ATZ\r\n");
 			px4_usleep(200000);
 
 			// XXX NuttX suffers from a bug where

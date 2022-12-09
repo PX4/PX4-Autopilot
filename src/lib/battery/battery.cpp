@@ -119,7 +119,13 @@ void Battery::updateBatteryStatus(const hrt_abstime &timestamp)
 	}
 
 	sumDischarged(timestamp, _current_a);
-	estimateStateOfCharge(_voltage_filter_v.getState(), _current_filter_a.getState());
+	_state_of_charge_volt_based =
+		calculateStateOfChargeVoltageBased(_voltage_filter_v.getState(), _current_filter_a.getState());
+
+	if (!_external_state_of_charge) {
+		estimateStateOfCharge();
+	}
+
 	computeScale();
 
 	if (_connected && _battery_initialized) {
@@ -192,7 +198,7 @@ void Battery::sumDischarged(const hrt_abstime &timestamp, float current_a)
 	_last_timestamp = timestamp;
 }
 
-void Battery::estimateStateOfCharge(const float voltage_v, const float current_a)
+float Battery::calculateStateOfChargeVoltageBased(const float voltage_v, const float current_a)
 {
 	// remaining battery capacity based on voltage
 	float cell_voltage = voltage_v / _params.n_cells;
@@ -215,8 +221,11 @@ void Battery::estimateStateOfCharge(const float voltage_v, const float current_a
 		cell_voltage += throttle * _params.v_load_drop;
 	}
 
-	_state_of_charge_volt_based = math::interpolate(cell_voltage, _params.v_empty, _params.v_charged, 0.f, 1.f);
+	return math::interpolate(cell_voltage, _params.v_empty, _params.v_charged, 0.f, 1.f);
+}
 
+void Battery::estimateStateOfCharge()
+{
 	// choose which quantity we're using for final reporting
 	if (_params.capacity > 0.f && _battery_initialized) {
 		// if battery capacity is known, fuse voltage measurement with used capacity

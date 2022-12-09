@@ -39,23 +39,10 @@
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-/*
- * Catapult launch detection parameters, accessible via MAVLink
- *
- */
-
 /**
- * Launch detection
+ * Trigger acceleration threshold
  *
- * @boolean
- * @group FW Launch detection
- */
-PARAM_DEFINE_INT32(LAUN_ALL_ON, 0);
-
-/**
- * Catapult accelerometer threshold.
- *
- * LAUN_CAT_A for LAUN_CAT_T serves as threshold to trigger launch detection.
+ * Launch is detected when acceleration in body forward direction is above FW_LAUN_AC_THLD for FW_LAUN_AC_T seconds.
  *
  * @unit m/s^2
  * @min 0
@@ -63,12 +50,12 @@ PARAM_DEFINE_INT32(LAUN_ALL_ON, 0);
  * @increment 0.5
  * @group FW Launch detection
  */
-PARAM_DEFINE_FLOAT(LAUN_CAT_A, 30.0f);
+PARAM_DEFINE_FLOAT(FW_LAUN_AC_THLD, 30.0f);
 
 /**
- * Catapult time threshold.
+ * Trigger time
  *
- * LAUN_CAT_A for LAUN_CAT_T serves as threshold to trigger launch detection.
+ * Launch is detected when acceleration in body forward direction is above FW_LAUN_AC_THLD for FW_LAUN_AC_T seconds.
  *
  * @unit s
  * @min 0.0
@@ -77,7 +64,7 @@ PARAM_DEFINE_FLOAT(LAUN_CAT_A, 30.0f);
  * @increment 0.05
  * @group FW Launch detection
  */
-PARAM_DEFINE_FLOAT(LAUN_CAT_T, 0.05f);
+PARAM_DEFINE_FLOAT(FW_LAUN_AC_T, 0.05f);
 
 /**
  * Motor delay
@@ -92,19 +79,4 @@ PARAM_DEFINE_FLOAT(LAUN_CAT_T, 0.05f);
  * @increment 0.5
  * @group FW Launch detection
  */
-PARAM_DEFINE_FLOAT(LAUN_CAT_MDEL, 0.0f);
-
-/**
- * Maximum pitch before the throttle is powered up (during motor delay phase)
- *
- * This is an extra limit for the maximum pitch which is imposed in the phase before the throttle turns on.
- * This allows to limit the maximum pitch angle during a bungee launch (make the launch less steep).
- *
- * @unit deg
- * @min 0.0
- * @max 45.0
- * @decimal 1
- * @increment 0.5
- * @group FW Launch detection
- */
-PARAM_DEFINE_FLOAT(LAUN_CAT_PMAX, 30.0f);
+PARAM_DEFINE_FLOAT(FW_LAUN_MOT_DEL, 0.0f);

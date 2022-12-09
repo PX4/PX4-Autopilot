@@ -1,6 +1,6 @@
 ############################################################################
 #
-# Copyright (c) 2017 - 2019 PX4 Development Team. All rights reserved.
+# Copyright (c) 2017 - 2022 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -143,25 +143,17 @@ define_property(GLOBAL PROPERTY PX4_SRC_FILES
 # configuration
 #
 
-set(CONFIG "px4_sitl_default" CACHE STRING "desired configuration")
-
 include(px4_add_module)
 set(config_module_list)
 set(config_kernel_list)
 
 # Find Python
-# If using catkin, Python 2 is found since it points
-# to the Python libs installed with the ROS distro
-if (NOT CATKIN_DEVEL_PREFIX)
-	find_package(PythonInterp 3)
-	# We have a custom error message to tell users how to install python3.
-	if (NOT PYTHONINTERP_FOUND)
-		message(FATAL_ERROR "Python 3 not found. Please install Python 3:\n"
-			"    Ubuntu: sudo apt install python3 python3-dev python3-pip\n"
-			"    macOS: brew install python")
-	endif()
-else()
-	find_package(PythonInterp REQUIRED)
+find_package(PythonInterp 3)
+# We have a custom error message to tell users how to install python3.
+if(NOT PYTHONINTERP_FOUND)
+	message(FATAL_ERROR "Python 3 not found. Please install Python 3:\n"
+		"    Ubuntu: sudo apt install python3 python3-dev python3-pip\n"
+		"    macOS: brew install python")
 endif()
 
 option(PYTHON_COVERAGE "Python code coverage" OFF)
@@ -207,6 +199,11 @@ if(EXISTS "${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/cmake/init.cmake")
 	include(init)
 endif()
 
+#=============================================================================
+# project definition
+#
+project(px4 CXX C ASM)
+
 # CMake build type (Debug Release RelWithDebInfo MinSizeRel Coverage)
 if(NOT CMAKE_BUILD_TYPE)
 	if(${PX4_PLATFORM} STREQUAL "nuttx")
@@ -235,11 +232,6 @@ endif()
 set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug;Release;RelWithDebInfo;MinSizeRel;Coverage;AddressSanitizer;UndefinedBehaviorSanitizer")
 message(STATUS "cmake build type: ${CMAKE_BUILD_TYPE}")
 
-#=============================================================================
-# project definition
-#
-project(px4 CXX C ASM)
-
 # Check if LTO option and check if toolchain supports it
 if(LTO)
     include(CheckIPOSupported)
@@ -256,15 +248,9 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# For the catkin build process, unset build of dynamically-linked binaries
-# and do not change CMAKE_RUNTIME_OUTPUT_DIRECTORY
-if (NOT CATKIN_DEVEL_PREFIX)
-	set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PX4_BINARY_DIR})
-	set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${PX4_BINARY_DIR})
-	set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${PX4_BINARY_DIR})
-else()
-	SET(BUILD_SHARED_LIBS OFF)
-endif()
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PX4_BINARY_DIR})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${PX4_BINARY_DIR})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${PX4_BINARY_DIR})
 
 #=============================================================================
 
@@ -308,21 +294,6 @@ if(${PX4_PLATFORM} STREQUAL "posix")
 endif()
 
 include(ccache)
-
-#=============================================================================
-# find programs and packages
-#
-
-# see if catkin was invoked to build this
-if (CATKIN_DEVEL_PREFIX)
-	message(STATUS "catkin ENABLED")
-	find_package(catkin REQUIRED)
-	if (catkin_FOUND)
-		catkin_package()
-	else()
-		message(FATAL_ERROR "catkin not found")
-	endif()
-endif()
 
 #=============================================================================
 # get chip and chip manufacturer
@@ -450,10 +421,10 @@ add_subdirectory(src/lib/metadata EXCLUDE_FROM_ALL)
 add_subdirectory(src/lib/parameters EXCLUDE_FROM_ALL)
 
 if(${PX4_PLATFORM} STREQUAL "nuttx" AND NOT CONFIG_BUILD_FLAT)
-target_link_libraries(parameters_interface INTERFACE usr_parameters)
-target_link_libraries(kernel_parameters_interface INTERFACE parameters)
+	target_link_libraries(parameters_interface INTERFACE usr_parameters)
+	target_link_libraries(kernel_parameters_interface INTERFACE parameters)
 else()
-target_link_libraries(parameters_interface INTERFACE parameters)
+	target_link_libraries(parameters_interface INTERFACE parameters)
 endif()
 
 # firmware added last to generate the builtin for included modules
@@ -486,17 +457,13 @@ include(doxygen)
 include(metadata)
 include(package)
 
-# print size
-add_custom_target(size
-	COMMAND size $<TARGET_FILE:px4>
-	DEPENDS px4
-	WORKING_DIRECTORY ${PX4_BINARY_DIR}
-	USES_TERMINAL
-	)
-
 # install python requirements using configured python
 add_custom_target(install_python_requirements
 	COMMAND ${PYTHON_EXECUTABLE} -m pip install --requirement ${PX4_SOURCE_DIR}/Tools/setup/requirements.txt
 	DEPENDS ${PX4_SOURCE_DIR}/Tools/setup/requirements.txt
 	USES_TERMINAL
 )
+
+if(EXISTS "${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/cmake/finalize.cmake")
+	include(finalize)
+endif()

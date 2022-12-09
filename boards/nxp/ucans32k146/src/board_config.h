@@ -99,14 +99,14 @@ __BEGIN_DECLS
 
 /* Timer I/O PWM and capture
  *
- * ?? PWM outputs are configured.
+ * 2 PWM outputs are configured.
  * ?? Timer inputs are configured.
  *
  * Pins:
  *      Defined in board.h
  */
 
-#define DIRECT_PWM_OUTPUT_CHANNELS  1
+#define DIRECT_PWM_OUTPUT_CHANNELS  2
 
 
 #define BOARD_HAS_LED_PWM              1
@@ -144,7 +144,7 @@ extern const struct peripheral_clock_config_s g_peripheral_clockconfig0[];
  *   CONFIG_BOARD_LATE_INITIALIZE=y :
  *     Called from board_late_initialize().
  *
- *   CONFIG_BOARD_LATE_INITIALIZE=y && CONFIG_LIB_BOARDCTL=y :
+ *   CONFIG_BOARD_LATE_INITIALIZE=y && CONFIG_BOARDCTL=y :
  *     Called from the NSH library
  *
  ****************************************************************************/

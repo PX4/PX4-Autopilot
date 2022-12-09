@@ -64,10 +64,19 @@ function(px4_os_add_flags)
 		${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/apps/include
 	)
 
-	# prevent using the toolchain's std c++ library
-	add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-nostdinc++>)
 
-	add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-fno-sized-deallocation>)
+	set(cxx_flags)
+	list(APPEND cxx_flags
+		-fno-exceptions
+		-fno-rtti
+		-fno-sized-deallocation
+		-fno-threadsafe-statics
+		-nostdinc++ # prevent using the toolchain's std c++ library
+	)
+
+	foreach(flag ${cxx_flags})
+		add_compile_options($<$<COMPILE_LANGUAGE:CXX>:${flag}>)
+	endforeach()
 
 	add_compile_options($<$<COMPILE_LANGUAGE:C>:-Wbad-function-cast>)
 
@@ -133,6 +142,9 @@ function(px4_os_determine_build_chip)
 	elseif(CONFIG_ARCH_CHIP_S32K146)
 		set(CHIP_MANUFACTURER "nxp")
 		set(CHIP "s32k14x")
+	elseif(CONFIG_ARCH_CHIP_S32K344)
+		set(CHIP_MANUFACTURER "nxp")
+		set(CHIP "s32k34x")
 	elseif(CONFIG_ARCH_CHIP_RP2040)
 		set(CHIP_MANUFACTURER "rpi")
 		set(CHIP "rp2040")

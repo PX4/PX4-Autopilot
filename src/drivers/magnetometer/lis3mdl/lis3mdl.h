@@ -84,8 +84,8 @@
 #define CNTL_REG5_DEFAULT 0x00
 
 /* interface factories */
-extern device::Device *LIS3MDL_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode);
-extern device::Device *LIS3MDL_I2C_interface(int bus, int bus_frequency);
+extern device::Device *LIS3MDL_SPI_interface(const I2CSPIDriverConfig &config);
+extern device::Device *LIS3MDL_I2C_interface(const I2CSPIDriverConfig &config);
 
 enum OPERATING_MODE {
 	CONTINUOUS = 0,

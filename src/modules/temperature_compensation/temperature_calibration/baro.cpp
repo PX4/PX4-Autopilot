@@ -209,5 +209,10 @@ int TemperatureCalibrationBaro::finish_sensor_instance(PerSensorData &data, int 
 	set_parameter("TC_B%d_TMAX", sensor_index, &data.high_temp);
 	set_parameter("TC_B%d_TMIN", sensor_index, &data.low_temp);
 	set_parameter("TC_B%d_TREF", sensor_index, &data.ref_temp);
+
+	// reset current calibration (covered by TC parameters)
+	float offset = 0.0f;
+	set_parameter("CAL_BARO%u_OFF", sensor_index, &offset);
+
 	return 0;
 }

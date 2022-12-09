@@ -31,6 +31,27 @@
 #
 ############################################################################
 
+if ("$ENV{HEXAGON_SDK_ROOT}" STREQUAL "")
+	message(FATAL_ERROR "Enviroment variable HEXAGON_SDK_ROOT must be set")
+else()
+	set(HEXAGON_SDK_ROOT $ENV{HEXAGON_SDK_ROOT})
+endif()
+
+if ("$ENV{HEXAGON_TOOLS_ROOT}" STREQUAL "")
+	message(FATAL_ERROR "Environment variable HEXAGON_TOOLS_ROOT must be set")
+else()
+	set(HEXAGON_TOOLS_ROOT $ENV{HEXAGON_TOOLS_ROOT})
+endif()
+
+include(px4_git)
+
+include(Toolchain-qurt)
+include(qurt_reqs)
+
+include_directories(${HEXAGON_SDK_INCLUDES})
+
+set(DISABLE_PARAMS_MODULE_SCOPING TRUE)
+
 #=============================================================================
 #
 #	Defined functions in this file
@@ -126,6 +147,7 @@ function(px4_os_add_flags)
 
 		-Wno-unknown-warning-option
 		-Wno-cast-align
+		--include=${PX4_SOURCE_DIR}/platforms/qurt/include/qurt_reqs.h
 	)
 
 	# Clear -rdynamic flag which fails for hexagon

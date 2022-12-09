@@ -80,27 +80,22 @@ void AutopilotTester::connect(const std::string uri)
 
 void AutopilotTester::wait_until_ready()
 {
-	std::cout << time_str() << "Waiting for system to be ready" << std::endl;
+	std::cout << time_str() << "Waiting for system to be ready (system health ok & able to arm)" << std::endl;
+
+	// Wiat until the system is healthy
 	CHECK(poll_condition_with_timeout(
 	[this]() { return _telemetry->health_all_ok(); }, std::chrono::seconds(30)));
 
-	// FIXME: workaround to prevent race between PX4 switching to Hold mode
-	// and us trying to arm and take off. If PX4 is not in Hold mode yet,
-	// our arming presumably triggers a failsafe in manual mode.
-	std::this_thread::sleep_for(std::chrono::seconds(1));
-}
+	// Note: There is a known bug in MAVSDK (https://github.com/mavlink/MAVSDK/issues/1852),
+	// where `health_all_ok()` returning true doesn't actually mean vehicle is ready to accept
+	// global position estimate as valid (due to hysteresis). This needs to be fixed properly.
 
-void AutopilotTester::wait_until_ready_local_position_only()
-{
-	std::cout << time_str() << "Waiting for system to be ready" << std::endl;
+	// However, this is mitigated by the `is_armable` check below as a side effect, since
+	// when the vehicle considers global position to be valid, it will then allow arming
+
+	// Wait until we can arm
 	CHECK(poll_condition_with_timeout(
-	[this]() {
-		return
-			(_telemetry->health().is_gyrometer_calibration_ok &&
-			 _telemetry->health().is_accelerometer_calibration_ok &&
-			 _telemetry->health().is_magnetometer_calibration_ok &&
-			 _telemetry->health().is_local_position_ok);
-	}, std::chrono::seconds(20)));
+	[this]() {	return _telemetry->health().is_armable;	}, std::chrono::seconds(20)));
 }
 
 void AutopilotTester::store_home()

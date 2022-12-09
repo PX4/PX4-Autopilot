@@ -47,7 +47,6 @@
 
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/module_params.h>
-#include <systemlib/mavlink_log.h>
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
 
@@ -80,13 +79,13 @@ public:
 	 * @brief Updates the state machine based on the current vehicle condition.
 	 *
 	 * @param time_now Absolute time since system boot [us]
+	 * @param takeoff_airspeed Calibrated airspeed setpoint for the takeoff climbout [m/s]
 	 * @param calibrated_airspeed Vehicle calibrated airspeed [m/s]
 	 * @param vehicle_altitude Vehicle altitude (AGL) [m]
 	 * @param clearance_altitude Altitude (AGL) above which we have cleared all occlusions in the runway path [m]
-	 * @param mavlink_log_pub
 	 */
-	void update(const hrt_abstime &time_now, const float calibrated_airspeed, const float vehicle_altitude,
-		    const float clearance_altitude, orb_advert_t *mavlink_log_pub);
+	void update(const hrt_abstime &time_now, const float takeoff_airspeed, const float calibrated_airspeed,
+		    const float vehicle_altitude, const float clearance_altitude);
 
 	/**
 	 * @return Current takeoff state
@@ -104,11 +103,6 @@ public:
 	bool runwayTakeoffEnabled() { return param_rwto_tkoff_.get(); }
 
 	/**
-	 * @return Scale factor for minimum indicated airspeed
-	 */
-	float getMinAirspeedScaling() { return param_rwto_airspd_scl_.get(); }
-
-	/**
 	 * @return Initial vehicle yaw angle [rad]
 	 */
 	float getInitYaw() { return initial_yaw_; }
@@ -117,11 +111,6 @@ public:
 	 * @return The vehicle should control yaw via rudder or nose gear
 	 */
 	bool controlYaw();
-
-	/**
-	 * @return TECS should be commanded to climbout mode
-	 */
-	bool climbout() { return climbout_; }
 
 	/**
 	 * @param external_pitch_setpoint Externally commanded pitch angle setpoint (usually from TECS) [rad]
@@ -149,27 +138,27 @@ public:
 	/**
 	 * @brief Returns the throttle setpoint.
 	 *
-	 * Ramps up over RWTO_RAMP_TIME to RWTO_MAX_THR until the aircraft lifts off the runway, then passes
-	 * through the externally defined throttle setting.
+	 * Ramps up over RWTO_RAMP_TIME to RWTO_MAX_THR until the aircraft lifts off the runway and then
+	 * ramps from RWTO_MAX_THR to the externally defined throttle setting over the takeoff rotation time
 	 *
-	 * @param time_now Absolute time since system boot [us]
+	 * @param idle_throttle normalized [0,1]
 	 * @param external_throttle_setpoint Externally commanded throttle setpoint (usually from TECS), normalized [0,1]
 	 * @return Throttle setpoint, normalized [0,1]
 	 */
-	float getThrottle(const hrt_abstime &time_now, const float external_throttle_setpoint);
+	float getThrottle(const float idle_throttle, const float external_throttle_setpoint) const;
 
 	/**
 	 * @param min_pitch_in_climbout Minimum pitch angle during climbout [rad]
 	 * @param min_pitch Externally commanded minimum pitch angle [rad]
 	 * @return Minimum pitch angle [rad]
 	 */
-	float getMinPitch(const float min_pitch_in_climbout, const float min_pitch);
+	float getMinPitch(const float min_pitch_in_climbout, const float min_pitch) const;
 
 	/**
 	 * @param max_pitch Externally commanded maximum pitch angle [rad]
 	 * @return Maximum pitch angle [rad]
 	 */
-	float getMaxPitch(const float max_pitch);
+	float getMaxPitch(const float max_pitch) const;
 
 	/**
 	 * @return Runway takeoff starting position in global frame (lat, lon) [deg]
@@ -190,19 +179,19 @@ public:
 	 */
 	void reset();
 
+	/**
+	 * @brief Linearly interpolates between a start and end value over an absolute time span.
+	 *
+	 * @param start_value
+	 * @param end_value
+	 * @param start_time Absolute start time [us]
+	 * @param interpolation_time The time span to interpolate over [s]
+	 * @return interpolated value
+	 */
+	float interpolateValuesOverAbsoluteTime(const float start_value, const float end_value, const hrt_abstime &start_time,
+						const float interpolation_time) const;
+
 private:
-	/**
-	 * Minimum allowed maximum pitch constraint (from parameter) for runway takeoff. [rad]
-	 */
-	static constexpr float kMinMaxPitch = 0.1f;
-
-	/**
-	 * Time from takeoff during which the takeoff throttle is transitioned to the externally commanded throttle.
-	 * Used to avoid throttle jumps immediately on lift off when switching from the constant, parameterized, takeoff
-	 * throttle to the airspeed/altitude controller's commanded throttle [s]
-	 */
-	static constexpr float kThrottleHysteresisTime = 2.0f;
-
 	/**
 	 * Current state of runway takeoff procedure
 	 */
@@ -230,11 +219,6 @@ private:
 	float initial_yaw_{0.f};
 
 	/**
-	 * True if TECS should be commanded to "climbout" mode.
-	 */
-	bool climbout_{false};
-
-	/**
 	 * The global (lat, lon) position of the vehicle on first pass through the runway takeoff state machine. The
 	 * takeoff path emanates from this point to correct for any GNSS uncertainty from the planned takeoff point. The
 	 * vehicle should accordingly be set on the center of the runway before engaging the mission. [deg]
@@ -246,10 +230,9 @@ private:
 		(ParamInt<px4::params::RWTO_HDG>) param_rwto_hdg_,
 		(ParamFloat<px4::params::RWTO_MAX_THR>) param_rwto_max_thr_,
 		(ParamFloat<px4::params::RWTO_PSP>) param_rwto_psp_,
-		(ParamFloat<px4::params::RWTO_MAX_PITCH>) param_rwto_max_pitch_,
-		(ParamFloat<px4::params::RWTO_AIRSPD_SCL>) param_rwto_airspd_scl_,
 		(ParamFloat<px4::params::RWTO_RAMP_TIME>) param_rwto_ramp_time_,
-		(ParamFloat<px4::params::FW_AIRSPD_MIN>) param_fw_airspd_min_
+		(ParamFloat<px4::params::RWTO_ROT_AIRSPD>) param_rwto_rot_airspd_,
+		(ParamFloat<px4::params::RWTO_ROT_TIME>) param_rwto_rot_time_
 	)
 };
 

@@ -363,7 +363,7 @@ static int  write_stack(bool inValid, int winsize, uint32_t wtopaddr,
 						ret = -EIO;
 					}
 
-					wtopaddr--;
+					wtopaddr -= sizeof(stack_word_t);
 				}
 			}
 		}
@@ -621,7 +621,7 @@ static int write_intterupt_stack(int fdin, int fdout, info_s *pi, char *buffer,
 		lseek(fdin, offsetof(fullcontext_s, istack), SEEK_SET);
 		ret = write_stack((pi->flags & eInvalidIntStackPrt) != 0,
 				  CONFIG_ISTACK_SIZE,
-				  pi->stacks.interrupt.sp + CONFIG_ISTACK_SIZE / 2,
+				  pi->stacks.interrupt.sp + (CONFIG_ISTACK_SIZE / 2) * sizeof(stack_word_t),
 				  pi->stacks.interrupt.top,
 				  pi->stacks.interrupt.sp,
 				  pi->stacks.interrupt.top - pi->stacks.interrupt.size,
@@ -644,7 +644,7 @@ static int write_user_stack(int fdin, int fdout, info_s *pi, char *buffer,
 		lseek(fdin, offsetof(fullcontext_s, ustack), SEEK_SET);
 		ret = write_stack((pi->flags & eInvalidUserStackPtr) != 0,
 				  CONFIG_USTACK_SIZE,
-				  pi->stacks.user.sp + CONFIG_USTACK_SIZE / 2,
+				  pi->stacks.user.sp + (CONFIG_USTACK_SIZE / 2) * sizeof(stack_word_t),
 				  pi->stacks.user.top,
 				  pi->stacks.user.sp,
 				  pi->stacks.user.top - pi->stacks.user.size,

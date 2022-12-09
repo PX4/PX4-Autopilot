@@ -105,11 +105,13 @@
 #define rPWMLOAD(t)    REG(t,S32K1XX_FTM_PWMLOAD_OFFSET)
 
 constexpr io_timers_t io_timers[MAX_IO_TIMERS] = {
+	initIOTimer(Timer::FTM1),
 	initIOTimer(Timer::FTM2),
 };
 
 constexpr timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
 	initIOTimerChannel(io_timers, {Timer::FTM2, Timer::Channel1}, {GPIO::PortA, GPIO::Pin0}),
+	initIOTimerChannel(io_timers, {Timer::FTM1, Timer::Channel1}, {GPIO::PortA, GPIO::Pin1}),
 };
 
 constexpr io_timers_channel_mapping_t io_timers_channel_mapping =
@@ -154,16 +156,25 @@ void ucans32k_timer_initialize(void)
 	regval |= FTM_SC_CLKS_FTM;
 	_REG(S32K1XX_FTM0_SC) = regval;
 
+	regval = _REG(S32K1XX_FTM1_SC);
+	regval &= ~(FTM_SC_CLKS_MASK);
+	regval |= FTM_SC_CLKS_FTM;
+	_REG(S32K1XX_FTM1_SC) = regval;
+
 	regval = _REG(S32K1XX_FTM2_SC);
 	regval &= ~(FTM_SC_CLKS_MASK);
 	regval |= FTM_SC_CLKS_FTM;
 	_REG(S32K1XX_FTM2_SC) = regval;
 
-	/* Enabled System Clock Gating Control for FTM0, and FTM2 */
+	/* Enabled System Clock Gating Control for FTM0, FTM1 and FTM2 */
 
 	regval = _REG(S32K1XX_PCC_FTM0);
 	regval |= PCC_CGC;
 	_REG(S32K1XX_PCC_FTM0) = regval;
+
+	regval = _REG(S32K1XX_PCC_FTM1);
+	regval |= PCC_CGC;
+	_REG(S32K1XX_PCC_FTM1) = regval;
 
 	regval = _REG(S32K1XX_PCC_FTM2);
 	regval |= PCC_CGC;

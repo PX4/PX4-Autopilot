@@ -200,8 +200,8 @@ TEST(MatrixAttitudeTest, Attitude)
 	}
 
 	// constants
-	double deg2rad = M_PI / 180.0;
-	double rad2deg = 180.0 / M_PI;
+	double deg2rad = M_PI_PRECISE / 180.0;
+	double rad2deg = 180.0 / M_PI_PRECISE;
 
 	// euler dcm round trip check
 	for (double roll = -90; roll <= 90; roll += 90) {
@@ -417,7 +417,7 @@ TEST(MatrixAttitudeTest, Attitude)
 	EXPECT_EQ(q, q_true);
 
 	// from axis angle, with length of vector the rotation
-	float n = float(std::sqrt(4 * M_PI * M_PI / 3));
+	float n = float(std::sqrt(4 * M_PI_F * M_PI_F / 3));
 	q = AxisAnglef(n, n, n);
 	EXPECT_EQ(q, Quatf(-1, 0, 0, 0));
 	q = AxisAnglef(0, 0, 0);

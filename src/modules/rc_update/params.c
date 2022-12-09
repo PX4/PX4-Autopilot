@@ -53,7 +53,7 @@ PARAM_DEFINE_FLOAT(RC1_MIN, 1000.0f);
 /**
  * RC channel 1 trim
  *
- * Mid point value (same as min for throttle)
+ * Mid point value
  *
  * @min 800.0
  * @max 2200.0
@@ -114,7 +114,7 @@ PARAM_DEFINE_FLOAT(RC2_MIN, 1000.0f);
 /**
  * RC channel 2 trim
  *
- * Mid point value (has to be set to the same as min for throttle channel).
+ * Mid point value
  *
  * @min 800.0
  * @max 2200.0
@@ -175,7 +175,7 @@ PARAM_DEFINE_FLOAT(RC3_MIN, 1000);
 /**
  * RC channel 3 trim
  *
- * Mid point value (has to be set to the same as min for throttle channel).
+ * Mid point value
  *
  * @min 800.0
  * @max 2200.0
@@ -236,7 +236,7 @@ PARAM_DEFINE_FLOAT(RC4_MIN, 1000);
 /**
  * RC channel 4 trim
  *
- * Mid point value (has to be set to the same as min for throttle channel).
+ * Mid point value
  *
  * @min 800.0
  * @max 2200.0
@@ -297,7 +297,7 @@ PARAM_DEFINE_FLOAT(RC5_MIN, 1000);
 /**
  * RC channel 5 trim
  *
- * Mid point value (has to be set to the same as min for throttle channel).
+ * Mid point value
  *
  * @min 800.0
  * @max 2200.0
@@ -357,7 +357,7 @@ PARAM_DEFINE_FLOAT(RC6_MIN, 1000);
 /**
  * RC channel 6 trim
  *
- * Mid point value (has to be set to the same as min for throttle channel).
+ * Mid point value
  *
  * @min 800.0
  * @max 2200.0
@@ -417,7 +417,7 @@ PARAM_DEFINE_FLOAT(RC7_MIN, 1000);
 /**
  * RC channel 7 trim
  *
- * Mid point value (has to be set to the same as min for throttle channel).
+ * Mid point value
  *
  * @min 800.0
  * @max 2200.0
@@ -477,7 +477,7 @@ PARAM_DEFINE_FLOAT(RC8_MIN, 1000);
 /**
  * RC channel 8 trim
  *
- * Mid point value (has to be set to the same as min for throttle channel).
+ * Mid point value
  *
  * @min 800.0
  * @max 2200.0
@@ -537,7 +537,7 @@ PARAM_DEFINE_FLOAT(RC9_MIN, 1000);
 /**
  * RC channel 9 trim
  *
- * Mid point value (has to be set to the same as min for throttle channel).
+ * Mid point value
  *
  * @min 800.0
  * @max 2200.0
@@ -597,7 +597,7 @@ PARAM_DEFINE_FLOAT(RC10_MIN, 1000);
 /**
  * RC channel 10 trim
  *
- * Mid point value (has to be set to the same as min for throttle channel).
+ * Mid point value
  *
  * @min 800.0
  * @max 2200.0
@@ -657,7 +657,7 @@ PARAM_DEFINE_FLOAT(RC11_MIN, 1000);
 /**
  * RC channel 11 trim
  *
- * Mid point value (has to be set to the same as min for throttle channel).
+ * Mid point value
  *
  * @min 800.0
  * @max 2200.0
@@ -717,7 +717,7 @@ PARAM_DEFINE_FLOAT(RC12_MIN, 1000);
 /**
  * RC channel 12 trim
  *
- * Mid point value (has to be set to the same as min for throttle channel).
+ * Mid point value
  *
  * @min 800.0
  * @max 2200.0
@@ -777,7 +777,7 @@ PARAM_DEFINE_FLOAT(RC13_MIN, 1000);
 /**
  * RC channel 13 trim
  *
- * Mid point value (has to be set to the same as min for throttle channel).
+ * Mid point value
  *
  * @min 800.0
  * @max 2200.0
@@ -837,7 +837,7 @@ PARAM_DEFINE_FLOAT(RC14_MIN, 1000);
 /**
  * RC channel 14 trim
  *
- * Mid point value (has to be set to the same as min for throttle channel).
+ * Mid point value
  *
  * @min 800.0
  * @max 2200.0
@@ -897,7 +897,7 @@ PARAM_DEFINE_FLOAT(RC15_MIN, 1000);
 /**
  * RC channel 15 trim
  *
- * Mid point value (has to be set to the same as min for throttle channel).
+ * Mid point value
  *
  * @min 800.0
  * @max 2200.0
@@ -957,7 +957,7 @@ PARAM_DEFINE_FLOAT(RC16_MIN, 1000);
 /**
  * RC channel 16 trim
  *
- * Mid point value (has to be set to the same as min for throttle channel).
+ * Mid point value
  *
  * @min 800.0
  * @max 2200.0
@@ -1017,7 +1017,7 @@ PARAM_DEFINE_FLOAT(RC17_MIN, 1000);
 /**
  * RC channel 17 trim
  *
- * Mid point value (has to be set to the same as min for throttle channel).
+ * Mid point value
  *
  * @min 800.0
  * @max 2200.0
@@ -1077,7 +1077,7 @@ PARAM_DEFINE_FLOAT(RC18_MIN, 1000);
 /**
  * RC channel 18 trim
  *
- * Mid point value (has to be set to the same as min for throttle channel).
+ * Mid point value
  *
  * @min 800.0
  * @max 2200.0

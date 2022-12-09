@@ -329,6 +329,9 @@ PARAM_DEFINE_FLOAT(FW_RLL_TO_YAW_FF, 0.0f);
 /**
  * Enable wheel steering controller
  *
+ * Only enabled during automatic runway takeoff and landing.
+ * In all manual modes the wheel is directly controlled with yaw stick.
+ *
  * @boolean
  * @group FW Attitude Control
  */
@@ -616,10 +619,12 @@ PARAM_DEFINE_INT32(FW_BAT_SCALE_EN, 0);
  *
  * @min 45
  * @max 720
- * @unit deg
+ * @decimal 1
+ * @increment 5
+ * @unit deg/s
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_ACRO_X_MAX, 90);
+PARAM_DEFINE_FLOAT(FW_ACRO_X_MAX, 90.f);
 
 /**
  * Acro body y max rate.
@@ -629,10 +634,12 @@ PARAM_DEFINE_FLOAT(FW_ACRO_X_MAX, 90);
  *
  * @min 45
  * @max 720
- * @unit deg
+ * @decimal 1
+ * @increment 5
+ * @unit deg/s
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_ACRO_Y_MAX, 90);
+PARAM_DEFINE_FLOAT(FW_ACRO_Y_MAX, 90.f);
 
 /**
  * Acro body z max rate.
@@ -642,10 +649,12 @@ PARAM_DEFINE_FLOAT(FW_ACRO_Y_MAX, 90);
  *
  * @min 10
  * @max 180
- * @unit deg
+ * @decimal 1
+ * @increment 5
+ * @unit deg/s
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_ACRO_Z_MAX, 45);
+PARAM_DEFINE_FLOAT(FW_ACRO_Z_MAX, 45.f);
 
 /**
 * Roll trim increment at minimum airspeed
@@ -799,3 +808,18 @@ PARAM_DEFINE_FLOAT(FW_SPOILERS_DESC, 0.f);
  * @group FW Attitude Control
  */
 PARAM_DEFINE_INT32(FW_SPOILERS_MAN, 0);
+
+/**
+ * Maximum manually added yaw rate
+ *
+ * This is the maximally added yaw rate setpoint from the yaw stick in any attitude controlled flight mode.
+ * The controller already generates a yaw rate setpoint to coordinate a turn, and this value is added to it.
+ * This is an absolute value, which is applied symmetrically to the negative and positive side.
+ *
+ * @unit deg/s
+ * @min 0
+ * @decimal 1
+ * @increment 0.5
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_MAN_YR_MAX, 30.f);

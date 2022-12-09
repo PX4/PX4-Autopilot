@@ -32,8 +32,10 @@
  ****************************************************************************/
 #pragma once
 
-#define HW_VERSION_EEPROM 		0x7		//!< Get hw_info from EEPROM
-#define HW_EEPROM_VERSION_MIN	0x10	//!< Minimum supported version
+#include <errno.h>
+
+#define HW_ID_EEPROM 			0x7		//!< Get hw_info from EEPROM
+#define HW_EEPROM_ID_MIN		0x10	//!< Minimum supported id (version/revision)
 
 #pragma pack(push, 1)
 
@@ -43,13 +45,13 @@ typedef struct {
 
 typedef struct {
 	mtd_mft_t version;
-	uint16_t hw_extended_ver;
+	uint16_t hw_extended_id; //<! HW version for MTD_MFT_VER, HW revision for MTD_MFT_REV
 	uint16_t crc;
 } mtd_mft_v0_t;
 
 typedef struct {
-	mtd_mft_t  version;
-	uint16_t hw_extended_ver;
+	mtd_mft_t version;
+	uint16_t hw_extended_id;
 	//{device tree overlay}
 	uint16_t crc;
 } mtd_mft_v1_t;

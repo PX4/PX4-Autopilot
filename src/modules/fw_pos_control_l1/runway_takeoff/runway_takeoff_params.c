@@ -77,7 +77,7 @@ PARAM_DEFINE_INT32(RWTO_HDG, 0);
 PARAM_DEFINE_FLOAT(RWTO_MAX_THR, 1.0);
 
 /**
- * Pitch setpoint during taxi / before takeoff airspeed is reached.
+ * Pitch setpoint during taxi / before takeoff rotation airspeed is reached.
  *
  * A taildragger with steerable wheel might need to pitch up
  * a little to keep its wheel on the ground before airspeed
@@ -91,36 +91,6 @@ PARAM_DEFINE_FLOAT(RWTO_MAX_THR, 1.0);
  * @group Runway Takeoff
  */
 PARAM_DEFINE_FLOAT(RWTO_PSP, 0.0);
-
-/**
- * Max pitch during takeoff.
- *
- * Fixed-wing settings are used if set to 0. Note that there is also a minimum
- * pitch of 10 degrees during takeoff, so this must be larger if set.
- *
- * @unit deg
- * @min 0.0
- * @max 60.0
- * @decimal 1
- * @increment 0.5
- * @group Runway Takeoff
- */
-PARAM_DEFINE_FLOAT(RWTO_MAX_PITCH, 20.0);
-
-/**
- * Min airspeed scaling factor for takeoff.
- *
- * Pitch up will be commanded when the following airspeed is reached:
- * FW_AIRSPD_MIN * RWTO_AIRSPD_SCL
- *
- * @unit norm
- * @min 0.0
- * @max 2.0
- * @decimal 2
- * @increment 0.01
- * @group Runway Takeoff
- */
-PARAM_DEFINE_FLOAT(RWTO_AIRSPD_SCL, 1.3);
 
 /**
  * Throttle ramp up time for runway takeoff
@@ -156,3 +126,32 @@ PARAM_DEFINE_FLOAT(RWTO_L1_PERIOD, 5.0f);
  * @group Runway Takeoff
  */
 PARAM_DEFINE_INT32(RWTO_NUDGE, 1);
+
+/**
+ * Takeoff rotation airspeed
+ *
+ * The calibrated airspeed threshold during the takeoff ground roll when the plane should start rotating (pitching up).
+ * Must be less than the takeoff airspeed, will otherwise be capped at the takeoff airpeed (see FW_TKO_AIRSPD).
+ *
+ * If set <= 0.0, defaults to 0.9 * takeoff airspeed (see FW_TKO_AIRSPD)
+ *
+ * @unit m/s
+ * @min -1.0
+ * @decimal 1
+ * @increment 0.1
+ * @group Runway Takeoff
+ */
+PARAM_DEFINE_FLOAT(RWTO_ROT_AIRSPD, -1.0f);
+
+/**
+ * Takeoff rotation time
+ *
+ * This is the time desired to linearly ramp in takeoff pitch constraints during the takeoff rotation
+ *
+ * @unit s
+ * @min 0.1
+ * @decimal 1
+ * @increment 0.1
+ * @group Runway Takeoff
+ */
+PARAM_DEFINE_FLOAT(RWTO_ROT_TIME, 1.0f);

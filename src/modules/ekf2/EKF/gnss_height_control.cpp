@@ -92,7 +92,7 @@ void Ekf::controlGnssHeightFusion(const gpsSample &gps_sample)
 				&& _gps_checks_passed;
 
 		const bool starting_conditions_passing = continuing_conditions_passing
-				&& isNewestSampleRecent(_time_last_gps_buffer_push, 2 * GPS_MAX_INTERVAL)
+				&& isNewestSampleRecent(_time_last_gps_buffer_push, 2 * GNSS_MAX_INTERVAL)
 				&& _gps_checks_passed
 				&& gps_checks_passing
 				&& !gps_checks_failing;
@@ -158,7 +158,7 @@ void Ekf::controlGnssHeightFusion(const gpsSample &gps_sample)
 		}
 
 	} else if (_control_status.flags.gps_hgt
-		   && !isNewestSampleRecent(_time_last_gps_buffer_push, 2 * GPS_MAX_INTERVAL)) {
+		   && !isNewestSampleRecent(_time_last_gps_buffer_push, 2 * GNSS_MAX_INTERVAL)) {
 		// No data anymore. Stop until it comes back.
 		ECL_WARN("stopping %s height fusion, no data", HGT_SRC_NAME);
 		stopGpsHgtFusion();

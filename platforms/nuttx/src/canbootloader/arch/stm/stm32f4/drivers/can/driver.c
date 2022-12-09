@@ -55,7 +55,7 @@
 
 #include <arch/board/board.h>
 
-#include <lib/systemlib/crc.h>
+#include <lib/crc/crc.h>
 
 #define INAK_TIMEOUT          65535
 

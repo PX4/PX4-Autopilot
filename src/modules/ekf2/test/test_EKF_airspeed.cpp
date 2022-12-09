@@ -83,6 +83,7 @@ TEST_F(EkfAirspeedTest, testWindVelocityEstimation)
 	const Vector2f airspeed_body(2.4f, 0.0f);
 	_ekf_wrapper.enableExternalVisionVelocityFusion();
 	_sensor_simulator._vio.setVelocity(simulated_velocity_earth);
+	_sensor_simulator._vio.setVelocityFrameToLocalNED();
 	_sensor_simulator.startExternalVision();
 
 	_ekf->set_in_air_status(true);

@@ -109,8 +109,10 @@ set(msg_files
 	IridiumsbdStatus.msg
 	IrlockReport.msg
 	LandingGear.msg
+	LandingGearWheel.msg
 	LandingTargetInnovations.msg
 	LandingTargetPose.msg
+	LaunchDetectionStatus.msg
 	LedControl.msg
 	LoggerStatus.msg
 	LogMessage.msg
@@ -186,7 +188,6 @@ set(msg_files
 	UwbGrid.msg
 	VehicleAcceleration.msg
 	VehicleAirData.msg
-	VehicleAngularAcceleration.msg
 	VehicleAngularAccelerationSetpoint.msg
 	VehicleAngularVelocity.msg
 	VehicleAttitude.msg

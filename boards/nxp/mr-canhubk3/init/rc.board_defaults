@@ -1,0 +1,17 @@
+#!/bin/sh
+#
+# board specific defaults
+#------------------------------------------------------------------------------
+
+# FIXME TELEM
+
+# Mavlink ethernet (CFG 1000)
+param set-default MAV_1_CONFIG 1000
+param set-default MAV_1_BROADCAST 1
+param set-default MAV_1_MODE 0
+param set-default MAV_1_RADIO_CTL 0
+param set-default MAV_1_RATE 100000
+param set-default MAV_1_REMOTE_PRT 14550
+param set-default MAV_1_UDP_PRT 14550
+
+param set-default SENS_EXT_I2C_PRB 0

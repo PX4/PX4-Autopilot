@@ -77,6 +77,24 @@ enum VtolForwardActuationMode {
 	ENABLE_ABOVE_MPC_LAND_ALT2_WITHOUT_LAND
 };
 
+// enum for bitmask of VT_FW_DIFTHR_EN parameter options
+enum class VtFwDifthrEnBits : int32_t {
+	YAW_BIT = (1 << 0),
+	ROLL_BIT = (1 << 1),
+	PITCH_BIT = (1 << 2),
+};
+
+enum class QuadchuteReason {
+	None = 0,
+	TransitionTimeout,
+	ExternalCommand,
+	MinimumAltBreached,
+	LossOfAlt,
+	LargeAltError,
+	MaximumPitchExceeded,
+	MaximumRollExceeded,
+};
+
 class VtolAttitudeControl;
 
 class VtolType : public ModuleParams
@@ -126,6 +144,73 @@ public:
 	virtual void waiting_on_tecs() {}
 
 	/**
+	 *  @brief Indicates if quadchute is enabled.
+	 *
+	 * @return     true if enabled
+	 */
+	bool isQuadchuteEnabled();
+
+	/**
+	 *  @brief Evaluates quadchute conditions and returns a reson for quadchute.
+	 *
+	 * @return     QuadchuteReason, can be None
+	 */
+	QuadchuteReason getQuadchuteReason();
+
+	/**
+	 *  @brief Indicates if the vehicle is lower than VT_FW_MIN_ALT above the local origin.
+	 *
+	 * @return     true if below threshold
+	 */
+	bool isMinAltBreached();
+
+	/**
+	 *  @brief Indicates if the vehicle has an altitude error larger than VT_FW_ALT_ERR and is losing altitude quickly.
+	 * 		This only applies when TECS is running.
+	 *
+	 * @return     true if error larger than threshold
+	 */
+	bool largeAltitudeLoss();
+
+	/**
+	 *  @brief Indicates if the vehicle has an altitude error larger than VT_FW_ALT_ERR. This only applied when TECS is not running.
+	 *
+	 * @return     true if error larger than threshold
+	 */
+	bool largeAltitudeError();
+
+	/**
+	 *  @brief Indicates if the absolute value of the vehicle pitch angle exceeds the threshold defined by VT_FW_QC_P
+	 *
+	 * @return     true if exeeded
+	 */
+	bool isPitchExceeded();
+
+	/**
+	 *  @brief Indicates if the absolute value of the vehicle roll angle exceeds the threshold defined by VT_FW_QC_R
+	 *
+	 * @return     true if exeeded
+	 */
+	bool isRollExceeded();
+
+	/**
+	 *  @brief Indicates if the front transition duration has exceeded the timeout definded by VT_TRANS_TIMEOUT
+	 *
+	 * @return     true if exeeded
+	 */
+	bool isFrontTransitionTimeout();
+
+	/**
+	 *  @brief Applied a first order low pass filte to TECS height rate and heigh rate setpoint.
+	 */
+	void filterTecsHeightRates();
+
+	/**
+	 *  @brief Special handling of QuadchuteReason::ReasonExternal
+	 */
+	void handleSpecialExternalCommandQuadchute();
+
+	/**
 	 * Checks for fixed-wing failsafe condition and issues abort request if needed.
 	 */
 	void check_quadchute_condition();
@@ -142,7 +227,7 @@ public:
 
 	virtual void blendThrottleAfterFrontTransition(float scale) {};
 
-	mode get_mode() {return _vtol_mode;}
+	mode get_mode() {return _common_vtol_mode;}
 
 	/**
 	 * @return Minimum front transition time scaled for air density (if available) [s]
@@ -165,7 +250,7 @@ public:
 
 protected:
 	VtolAttitudeControl *_attc;
-	mode _vtol_mode;
+	mode _common_vtol_mode;
 
 	static constexpr const int num_outputs_max = 8;
 
@@ -181,7 +266,7 @@ protected:
 	struct actuator_controls_s			*_actuators_fw_in;			//actuator controls from fw_att_control
 	struct vehicle_local_position_s			*_local_pos;
 	struct vehicle_local_position_setpoint_s	*_local_pos_sp;
-	struct airspeed_validated_s 				*_airspeed_validated;					// airspeed
+	struct airspeed_validated_s 			*_airspeed_validated;					// airspeed
 	struct tecs_status_s				*_tecs_status;
 	struct vehicle_land_detected_s			*_land_detected;
 
@@ -203,6 +288,8 @@ protected:
 	float _ra_hrate_sp = 0.0f;		// rolling average on height rate setpoint for quadchute condition
 
 	hrt_abstime _trans_finished_ts = 0;
+	hrt_abstime _transition_start_timestamp{0};
+	float _time_since_trans_start{0};
 
 	bool _tecs_running = false;
 	hrt_abstime _tecs_running_ts = 0;
@@ -239,8 +326,10 @@ protected:
 					(ParamBool<px4::params::FW_ARSP_MODE>) _param_fw_arsp_mode,
 					(ParamFloat<px4::params::VT_TRANS_TIMEOUT>) _param_vt_trans_timeout,
 					(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_mpc_xy_cruise,
-					(ParamBool<px4::params::VT_FW_DIFTHR_EN>) _param_vt_fw_difthr_en,
-					(ParamFloat<px4::params::VT_FW_DIFTHR_SC>) _param_vt_fw_difthr_sc,
+					(ParamInt<px4::params::VT_FW_DIFTHR_EN>) _param_vt_fw_difthr_en,
+					(ParamFloat<px4::params::VT_FW_DIFTHR_S_Y>) _param_vt_fw_difthr_s_y,
+					(ParamFloat<px4::params::VT_FW_DIFTHR_S_P>) _param_vt_fw_difthr_s_p,
+					(ParamFloat<px4::params::VT_FW_DIFTHR_S_R>) _param_vt_fw_difthr_s_r,
 					(ParamFloat<px4::params::VT_B_DEC_FF>) _param_vt_b_dec_ff,
 					(ParamFloat<px4::params::VT_B_DEC_I>) _param_vt_b_dec_i,
 					(ParamFloat<px4::params::VT_B_DEC_MSS>) _param_vt_b_dec_mss,

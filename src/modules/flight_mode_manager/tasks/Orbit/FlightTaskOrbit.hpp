@@ -56,7 +56,7 @@ public:
 	FlightTaskOrbit();
 	virtual ~FlightTaskOrbit() = default;
 
-	bool applyCommandParameters(const vehicle_command_s &command) override;
+	bool applyCommandParameters(const vehicle_command_s &command, bool &success) override;
 	bool activate(const trajectory_setpoint_s &last_setpoint) override;
 	bool update() override;
 

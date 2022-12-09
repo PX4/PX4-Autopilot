@@ -172,8 +172,8 @@ if(${PX4_PLATFORM} STREQUAL "nuttx")
 endif()
 
 # TODO: find a better way to do this
-if (NOT "${PX4_BOARD}" MATCHES "px4_io")
-	add_library(parameters
+if(NOT "${PX4_BOARD}" MATCHES "px4_io")
+	add_library(parameters STATIC EXCLUDE_FROM_ALL
 		${SRCS}
 		px4_parameters.hpp
 	)
@@ -188,7 +188,7 @@ if (NOT "${PX4_BOARD}" MATCHES "px4_io")
 			-Wno-sign-compare	# TODO: fix and enable
 	)
 else()
-	add_library(parameters ${PX4_SOURCE_DIR}/platforms/common/empty.c)
+	add_library(parameters STATIC EXCLUDE_FROM_ALL ${PX4_SOURCE_DIR}/platforms/common/empty.c)
 endif()
 add_dependencies(parameters prebuild_targets)
 

@@ -44,13 +44,6 @@
 #include <mathlib/mathlib.h>
 #include <cstdlib>
 
-void Ekf::resetVelocityToVision()
-{
-	_information_events.flags.reset_vel_to_vision = true;
-	ECL_INFO("reset to vision velocity");
-	resetVelocityTo(getVisionVelocityInEkfFrame(), getVisionVelocityVarianceInEkfFrame());
-}
-
 void Ekf::resetHorizontalVelocityToZero()
 {
 	_information_events.flags.reset_vel_to_zero = true;
@@ -84,8 +77,16 @@ void Ekf::resetHorizontalVelocityTo(const Vector2f &new_horz_vel, const Vector2f
 
 	_output_new.vel.xy() += delta_horz_vel;
 
-	_state_reset_status.velNE_change = delta_horz_vel;
-	_state_reset_status.velNE_counter++;
+	// record the state change
+	if (_state_reset_status.reset_count.velNE == _state_reset_count_prev.velNE) {
+		_state_reset_status.velNE_change = delta_horz_vel;
+
+	} else {
+		// there's already a reset this update, accumulate total delta
+		_state_reset_status.velNE_change += delta_horz_vel;
+	}
+
+	_state_reset_status.reset_count.velNE++;
 
 	// Reset the timout timer
 	_time_last_hor_vel_fuse = _imu_sample_delayed.time_us;
@@ -108,8 +109,16 @@ void Ekf::resetVerticalVelocityTo(float new_vert_vel, float new_vert_vel_var)
 	_output_new.vel(2) += delta_vert_vel;
 	_output_vert_new.vert_vel += delta_vert_vel;
 
-	_state_reset_status.velD_change = delta_vert_vel;
-	_state_reset_status.velD_counter++;
+	// record the state change
+	if (_state_reset_status.reset_count.velD == _state_reset_count_prev.velD) {
+		_state_reset_status.velD_change = delta_vert_vel;
+
+	} else {
+		// there's already a reset this update, accumulate total delta
+		_state_reset_status.velD_change += delta_vert_vel;
+	}
+
+	_state_reset_status.reset_count.velD++;
 
 	// Reset the timout timer
 	_time_last_ver_vel_fuse = _imu_sample_delayed.time_us;
@@ -158,8 +167,16 @@ void Ekf::resetHorizontalPositionTo(const Vector2f &new_horz_pos, const Vector2f
 
 	_output_new.pos.xy() += delta_horz_pos;
 
-	_state_reset_status.posNE_change = delta_horz_pos;
-	_state_reset_status.posNE_counter++;
+	// record the state change
+	if (_state_reset_status.reset_count.posNE == _state_reset_count_prev.posNE) {
+		_state_reset_status.posNE_change = delta_horz_pos;
+
+	} else {
+		// there's already a reset this update, accumulate total delta
+		_state_reset_status.posNE_change += delta_horz_pos;
+	}
+
+	_state_reset_status.reset_count.posNE++;
 
 	// Reset the timout timer
 	_time_last_hor_pos_fuse = _imu_sample_delayed.time_us;
@@ -187,27 +204,36 @@ void Ekf::resetVerticalPositionTo(const float new_vert_pos, float new_vert_pos_v
 		P.uncorrelateCovarianceSetVariance<1>(9, math::max(sq(0.01f), new_vert_pos_var));
 	}
 
-	// store the reset amount and time to be published
-	_state_reset_status.posD_change = new_vert_pos - old_vert_pos;
-	_state_reset_status.posD_counter++;
+	const float delta_z = new_vert_pos - old_vert_pos;
 
 	// apply the change in height / height rate to our newest height / height rate estimate
 	// which have already been taken out from the output buffer
-	_output_new.pos(2) += _state_reset_status.posD_change;
+	_output_new.pos(2) += delta_z;
 
 	// add the reset amount to the output observer buffered data
 	for (uint8_t i = 0; i < _output_buffer.get_length(); i++) {
-		_output_buffer[i].pos(2) += _state_reset_status.posD_change;
-		_output_vert_buffer[i].vert_vel_integ += _state_reset_status.posD_change;
+		_output_buffer[i].pos(2) += delta_z;
+		_output_vert_buffer[i].vert_vel_integ += delta_z;
 	}
 
 	// add the reset amount to the output observer vertical position state
 	_output_vert_new.vert_vel_integ = _state.pos(2);
 
-	_baro_b_est.setBias(_baro_b_est.getBias() + _state_reset_status.posD_change);
-	_ev_hgt_b_est.setBias(_ev_hgt_b_est.getBias() - _state_reset_status.posD_change);
-	_gps_hgt_b_est.setBias(_gps_hgt_b_est.getBias() + _state_reset_status.posD_change);
-	_rng_hgt_b_est.setBias(_rng_hgt_b_est.getBias() + _state_reset_status.posD_change);
+	// record the state change
+	if (_state_reset_status.reset_count.posD == _state_reset_count_prev.posD) {
+		_state_reset_status.posD_change = delta_z;
+
+	} else {
+		// there's already a reset this update, accumulate total delta
+		_state_reset_status.posD_change += delta_z;
+	}
+
+	_state_reset_status.reset_count.posD++;
+
+	_baro_b_est.setBias(_baro_b_est.getBias() + delta_z);
+	_ev_hgt_b_est.setBias(_ev_hgt_b_est.getBias() - delta_z);
+	_gps_hgt_b_est.setBias(_gps_hgt_b_est.getBias() + delta_z);
+	_rng_hgt_b_est.setBias(_rng_hgt_b_est.getBias() + delta_z);
 
 	// Reset the timout timer
 	_time_last_hgt_fuse = _imu_sample_delayed.time_us;
@@ -297,7 +323,7 @@ bool Ekf::resetMagHeading()
 bool Ekf::resetYawToEv()
 {
 	const float yaw_new = getEulerYaw(_ev_sample_delayed.quat);
-	const float yaw_new_variance = fmaxf(_ev_sample_delayed.angVar, sq(1.0e-2f));
+	const float yaw_new_variance = fmaxf(_ev_sample_delayed.orientation_var(2), sq(1.0e-2f));
 
 	resetQuatStateYaw(yaw_new, yaw_new_variance);
 	_R_ev_to_ekf.setIdentity();
@@ -863,6 +889,8 @@ void Ekf::fuse(const Vector24f &K, float innovation)
 {
 	_state.quat_nominal -= K.slice<4, 1>(0, 0) * innovation;
 	_state.quat_nominal.normalize();
+	_R_to_earth = Dcmf(_state.quat_nominal);
+
 	_state.vel -= K.slice<3, 1>(4, 0) * innovation;
 	_state.pos -= K.slice<3, 1>(7, 0) * innovation;
 	_state.delta_ang_bias -= K.slice<3, 1>(10, 0) * innovation;
@@ -938,7 +966,7 @@ void Ekf::updateVerticalDeadReckoningStatus()
 }
 
 // calculate the variances for the rotation vector equivalent
-Vector3f Ekf::calcRotVecVariances()
+Vector3f Ekf::calcRotVecVariances() const
 {
 	Vector3f rot_var_vec;
 	float q0, q1, q2, q3;
@@ -1156,56 +1184,6 @@ void Ekf::updateGroundEffect()
 	}
 }
 
-Vector3f Ekf::getVisionVelocityInEkfFrame() const
-{
-	Vector3f vel;
-	// correct velocity for offset relative to IMU
-	const Vector3f pos_offset_body = _params.ev_pos_body - _params.imu_pos_body;
-	const Vector3f vel_offset_body = _ang_rate_delayed_raw % pos_offset_body;
-
-	// rotate measurement into correct earth frame if required
-	switch (_ev_sample_delayed.vel_frame) {
-	case VelocityFrame::BODY_FRAME_FRD:
-		vel = _R_to_earth * (_ev_sample_delayed.vel - vel_offset_body);
-		break;
-
-	case VelocityFrame::LOCAL_FRAME_FRD:
-		const Vector3f vel_offset_earth = _R_to_earth * vel_offset_body;
-
-		if (_params.fusion_mode & SensorFusionMask::ROTATE_EXT_VIS) {
-			vel = _R_ev_to_ekf * _ev_sample_delayed.vel - vel_offset_earth;
-
-		} else {
-			vel = _ev_sample_delayed.vel - vel_offset_earth;
-		}
-
-		break;
-	}
-
-	return vel;
-}
-
-Vector3f Ekf::getVisionVelocityVarianceInEkfFrame() const
-{
-	Matrix3f ev_vel_cov = matrix::diag(_ev_sample_delayed.velVar);
-
-	// rotate measurement into correct earth frame if required
-	switch (_ev_sample_delayed.vel_frame) {
-	case VelocityFrame::BODY_FRAME_FRD:
-		ev_vel_cov = _R_to_earth * ev_vel_cov * _R_to_earth.transpose();
-		break;
-
-	case VelocityFrame::LOCAL_FRAME_FRD:
-		if (_params.fusion_mode & SensorFusionMask::ROTATE_EXT_VIS) {
-			ev_vel_cov = _R_ev_to_ekf * ev_vel_cov * _R_ev_to_ekf.transpose();
-		}
-
-		break;
-	}
-
-	return ev_vel_cov.diag();
-}
-
 // update the rotation matrix which rotates EV measurements into the EKF's navigation frame
 void Ekf::calcExtVisRotMat()
 {
@@ -1368,14 +1346,6 @@ void Ekf::startEvPosFusion()
 	ECL_INFO("starting vision pos fusion");
 }
 
-void Ekf::startEvVelFusion()
-{
-	_control_status.flags.ev_vel = true;
-	resetVelocityToVision();
-	_information_events.flags.starting_vision_vel_fusion = true;
-	ECL_INFO("starting vision vel fusion");
-}
-
 void Ekf::startEvYawFusion()
 {
 	// turn on fusion of external vision yaw measurements and disable all magnetometer fusion
@@ -1402,15 +1372,6 @@ void Ekf::stopEvPosFusion()
 		ECL_INFO("stopping EV pos fusion");
 		_control_status.flags.ev_pos = false;
 		resetEstimatorAidStatus(_aid_src_ev_pos);
-	}
-}
-
-void Ekf::stopEvVelFusion()
-{
-	if (_control_status.flags.ev_vel) {
-		ECL_INFO("stopping EV vel fusion");
-		_control_status.flags.ev_vel = false;
-		resetEstimatorAidStatus(_aid_src_ev_vel);
 	}
 }
 
@@ -1456,9 +1417,6 @@ void Ekf::resetQuatStateYaw(float yaw, float yaw_variance)
 	_state.quat_nominal = quat_after_reset;
 	uncorrelateQuatFromOtherStates();
 
-	// record the state change
-	_state_reset_status.quat_change = q_error;
-
 	// update the yaw angle variance
 	if (yaw_variance > FLT_EPSILON) {
 		increaseQuatYawErrVariance(yaw_variance);
@@ -1466,17 +1424,26 @@ void Ekf::resetQuatStateYaw(float yaw, float yaw_variance)
 
 	// add the reset amount to the output observer buffered data
 	for (uint8_t i = 0; i < _output_buffer.get_length(); i++) {
-		_output_buffer[i].quat_nominal = _state_reset_status.quat_change * _output_buffer[i].quat_nominal;
+		_output_buffer[i].quat_nominal = q_error * _output_buffer[i].quat_nominal;
 	}
 
 	// apply the change in attitude quaternion to our newest quaternion estimate
 	// which was already taken out from the output buffer
-	_output_new.quat_nominal = _state_reset_status.quat_change * _output_new.quat_nominal;
+	_output_new.quat_nominal = q_error * _output_new.quat_nominal;
+
+	// record the state change
+	if (_state_reset_status.reset_count.quat == _state_reset_count_prev.quat) {
+		_state_reset_status.quat_change = q_error;
+
+	} else {
+		// there's already a reset this update, accumulate total delta
+		_state_reset_status.quat_change = q_error * _state_reset_status.quat_change;
+		_state_reset_status.quat_change.normalize();
+	}
+
+	_state_reset_status.reset_count.quat++;
 
 	_last_static_yaw = NAN;
-
-	// capture the reset event
-	_state_reset_status.quat_counter++;
 }
 
 // Resets the main Nav EKf yaw to the estimator from the EKF-GSF yaw estimator
@@ -1507,9 +1474,6 @@ bool Ekf::resetYawToEKFGSF()
 	} else if (_control_status.flags.ev_yaw) {
 		_inhibit_ev_yaw_use = true;
 	}
-
-	_ekfgsf_yaw_reset_time = _imu_sample_delayed.time_us;
-	_ekfgsf_yaw_reset_count++;
 
 	return true;
 }
@@ -1556,61 +1520,4 @@ void Ekf::resetGpsDriftCheckFilters()
 	_gps_horizontal_position_drift_rate_m_s = NAN;
 	_gps_vertical_position_drift_rate_m_s = NAN;
 	_gps_filtered_horizontal_velocity_m_s = NAN;
-}
-
-matrix::SquareMatrix<float, 3> Ekf::orientation_covariances_euler() const
-{
-	// Jacobian matrix (3x4) containing the partial derivatives of the
-	// Euler angle equations with respect to the quaternions
-	matrix::Matrix<float, 3, 4> G;
-
-	// quaternion components
-	float q1 = _state.quat_nominal(0);
-	float q2 = _state.quat_nominal(1);
-	float q3 = _state.quat_nominal(2);
-	float q4 = _state.quat_nominal(3);
-
-	// numerator components
-	float n1 =  2 * q1 * q2 + 2 * q2 * q4;
-	float n2 = -2 * q2 * q2 - 2 * q3 * q3 + 1;
-	float n3 =  2 * q1 * q4 + 2 * q2 * q3;
-	float n4 = -2 * q3 * q3 - 2 * q4 * q4 + 1;
-	float n5 =  2 * q1 * q3 + 2 * q2 * q4;
-	float n6 = -2 * q1 * q2 - 2 * q2 * q4;
-	float n7 = -2 * q1 * q4 - 2 * q2 * q3;
-
-	// Protect against division by 0
-	float d1 = n1 * n1 + n2 * n2;
-	float d2 = n3 * n3 + n4 * n4;
-
-	if (fabsf(d1) < FLT_EPSILON) {
-		d1 = FLT_EPSILON;
-	}
-
-	if (fabsf(d2) < FLT_EPSILON) {
-		d2 = FLT_EPSILON;
-	}
-
-	// Protect against square root of negative numbers
-	float x = math::max(-n5 * n5 + 1, 0.0f);
-
-	// compute G matrix
-	float sqrt_x = sqrtf(x);
-	float g00_03 = 2 * q2 * n2 / d1;
-	G(0, 0) =  g00_03;
-	G(0, 1) = -4 * q2 * n6 / d1 + (2 * q1 + 2 * q4) * n2 / d1;
-	G(0, 2) = -4 * q3 * n6 / d1;
-	G(0, 3) =  g00_03;
-	G(1, 0) =  2 * q3 / sqrt_x;
-	G(1, 1) =  2 * q4 / sqrt_x;
-	G(1, 2) =  2 * q1 / sqrt_x;
-	G(1, 3) =  2 * q2 / sqrt_x;
-	G(2, 0) =  2 * q4 * n4 / d2;
-	G(2, 1) =  2 * q3 * n4 / d2;
-	G(2, 2) =  2 * q2 * n4 / d2 - 4 * q3 * n7 / d2;
-	G(2, 3) =  2 * q1 * n4 / d2 - 4 * q4 * n7 / d2;
-
-	const matrix::SquareMatrix<float, 4> quat_covariances = P.slice<4, 4>(0, 0);
-
-	return G * quat_covariances * G.transpose();
 }
