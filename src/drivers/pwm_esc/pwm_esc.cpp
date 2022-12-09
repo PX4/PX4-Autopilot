@@ -59,7 +59,6 @@
 #include <drivers/device/device.h>
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_mixer.h>
 
 #include <lib/mixer_module/mixer_module.hpp>
 #include <perf/perf_counter.h>
@@ -96,7 +95,7 @@
  * The PWMESC class.
  *
  */
-class PWMESC : public cdev::CDev, public OutputModuleInterface
+class PWMESC : public OutputModuleInterface
 {
 public:
 	/**
@@ -129,17 +128,6 @@ public:
 	static inline PWMESC *getInstance() {return _instance;}
 
 	/**
-	 * IO Control handler.
-	 *
-	 * Handle all IOCTL calls to the PWMESC file descriptor.
-	 *
-	 * @param[in] filp file handle (not used). This function is always called directly through object reference
-	 * @param[in] cmd the IOCTL command
-	 * @param[in] the IOCTL command parameter (optional)
-	 */
-	virtual int		ioctl(file *filp, int cmd, unsigned long arg);
-
-	/**
 	 * updateOutputs
 	 *
 	 * Sets the actual PWM outputs. See OutputModuleInterface
@@ -169,7 +157,7 @@ private:
 
 	int		_actuator_armed_sub{-1};	///< system armed control topic
 
-	MixingOutput _mixing_output{"PWM_ESC", PWMESC_MAX_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, true};
+	MixingOutput _mixing_output{"PWM_MAIN", PWMESC_MAX_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, true};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1000000};
 
@@ -182,7 +170,6 @@ private:
 
 	int		_pwm_fd[PWMESC_MAX_DEVICES];
 
-	int32_t		_pwm_disarmed_default;
 	int32_t		_pwm_rate{PWM_DEFAULT_RATE};
 
 	int		init_pwm_outputs();
@@ -215,7 +202,6 @@ private:
 PWMESC *PWMESC::_instance = nullptr;
 
 PWMESC::PWMESC() :
-	CDev(PWM_OUTPUT0_DEVICE_PATH),
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default),
 	_task(-1),
 	_task_should_exit(false),
@@ -259,16 +245,7 @@ PWMESC::~PWMESC()
 int
 PWMESC::init(bool hitl_mode)
 {
-	int ret;
-
 	_hitl_mode = hitl_mode;
-
-	/* do regular cdev init */
-	ret = CDev::init();
-
-	if (ret != OK) {
-		return ret;
-	}
 
 	/* start the main task */
 	_task = px4_task_spawn_cmd("pwm_esc",
@@ -336,8 +313,6 @@ PWMESC::init_pwm_outputs()
 
 	/* Update parameters initially to get pwm min/max etc */
 
-	update_params();
-
 	_mixing_output.setIgnoreLockdown(_hitl_mode);
 	_mixing_output.setMaxNumOutputs(PWMESC_MAX_CHANNELS);
 	const int update_interval_in_us = math::constrain(1000000 / (_pwm_rate * 2), 500, 100000);
@@ -366,7 +341,7 @@ PWMESC::init_pwm_outputs()
 		pwm.frequency = _pwm_rate;
 
 		for (int j = 0; j < PWMESC_MAX_CHANNELS; j++) {
-			pwm.channels[j].duty = ((((uint32_t)_pwm_disarmed_default) << 16) / 2500);
+			pwm.channels[j].duty = 0;
 			pwm.channels[j].channel = j + 1;
 		}
 
@@ -400,19 +375,19 @@ PWMESC::Run()
 void
 PWMESC::task_main()
 {
-	bool first = true;
 
-	/* Wait for system to be initialized fully */
-
-	while (!_initialized) {
-		usleep(10000);
+	if (init_pwm_outputs() != 0) {
+		PX4_ERR("PWM initialization failed");
+		_task_should_exit = true;
 	}
 
-	_actuator_armed_sub =  orb_subscribe(ORB_ID(actuator_armed));
+	if (!_task_should_exit) {
+		_actuator_armed_sub =  orb_subscribe(ORB_ID(actuator_armed));
 
-	if (_actuator_armed_sub < 0) {
-		PX4_ERR("arming status subscription failed");
-		_task_should_exit = true;
+		if (_actuator_armed_sub < 0) {
+			PX4_ERR("arming status subscription failed");
+			_task_should_exit = true;
+		}
 	}
 
 	while (!_task_should_exit) {
@@ -420,16 +395,6 @@ PWMESC::task_main()
 		/* Get the armed status */
 
 		orb_copy(ORB_ID(actuator_armed), _actuator_armed_sub, &_actuator_armed);
-
-
-		/* Initialize PWM outputs on first execution */
-		if (first) {
-			first = false;
-
-			if (init_pwm_outputs() != 0) {
-				_task_should_exit = true;
-			}
-		}
 
 		/* sleep waiting for mixer update */
 
@@ -444,6 +409,8 @@ PWMESC::task_main()
 			// clear update
 			parameter_update_s pupdate;
 			_parameter_update_sub.copy(&pupdate);
+
+			update_params();
 		}
 
 		_mixing_output.updateSubscriptions(true);
@@ -468,167 +435,6 @@ void PWMESC::update_params()
 	/* Call MixingOutput::updateParams */
 
 	updateParams();
-
-	int32_t _pwm_min_default = PWM_DEFAULT_MIN;
-	int32_t _pwm_max_default = PWM_DEFAULT_MAX;
-	_pwm_disarmed_default = PWM_MOTOR_OFF;
-
-	param_get(param_find("PWM_MAIN_MIN"), &_pwm_min_default);
-	param_get(param_find("PWM_MAIN_MAX"), &_pwm_max_default);
-	param_get(param_find("PWM_MAIN_DISARM"), &_pwm_disarmed_default);
-	param_get(param_find("PWM_MAIN_RATE"), &_pwm_rate);
-
-	for (unsigned i = 0; i < PWMESC_MAX_CHANNELS; i++) {
-		_mixing_output.minValue(i) = _pwm_min_default;
-	}
-
-	for (unsigned i = 0; i <  PWMESC_MAX_CHANNELS; i++) {
-		_mixing_output.maxValue(i) = _pwm_max_default;
-	}
-
-	for (unsigned i = 0; i <  PWMESC_MAX_CHANNELS; i++) {
-		_mixing_output.failsafeValue(i) = 0;
-	}
-
-	for (unsigned i = 0; i <  PWMESC_MAX_CHANNELS; i++) {
-		_mixing_output.disarmedValue(i) = _pwm_disarmed_default;
-	}
-}
-
-
-int
-PWMESC::ioctl(file *filep, int cmd, unsigned long arg)
-{
-	int ret = OK;
-
-	switch (cmd) {
-	case PWM_SERVO_ARM:
-		/* set the 'armed' bit */
-		_alert("PWM_SERVO_ARM\n");
-		break;
-
-	case PWM_SERVO_SET_ARM_OK:
-		/* set the 'OK to arm' bit */
-		_alert("PWM_SERVO_SET_ARM_OK\n");
-		break;
-
-	case PWM_SERVO_CLEAR_ARM_OK:
-		/* clear the 'OK to arm' bit */
-		_alert("PWM_SERVO_CLEAR_ARM_OK\n");
-		break;
-
-	case PWM_SERVO_DISARM:
-		/* clear the 'armed' bit */
-		_alert("PWM_SERVO_DISARM\n");
-		break;
-
-	case PWM_SERVO_GET_DEFAULT_UPDATE_RATE:
-		/* get the default update rate */
-		_alert("PWM_SERVO_GET_DEFAULT_UPDATE_RATE\n");
-		break;
-
-	case PWM_SERVO_SET_UPDATE_RATE:
-		/* set the requested alternate rate */
-		_alert("PWM_SERVO_SET_UPDATE_RATE\n");
-		break;
-
-	case PWM_SERVO_GET_UPDATE_RATE:
-		/* get the alternative update rate */
-		_alert("PWM_SERVO_GET_UPDATE_RATE\n");
-		break;
-
-	case PWM_SERVO_SET_SELECT_UPDATE_RATE:
-		_alert("PWM_SERVO_SET_SELECT_UPDATE_RATE\n");
-		break;
-
-	case PWM_SERVO_GET_SELECT_UPDATE_RATE:
-		_alert("PWM_SERVO_GET_SELECT_UPDATE_RATE\n");
-		break;
-
-	case PWM_SERVO_GET_FAILSAFE_PWM:
-		_alert("PWM_SERVO_GET_FAILSAFE_PWM\n");
-		break;
-
-	case PWM_SERVO_GET_DISARMED_PWM:
-		_alert("PWM_SERVO_GET_DISARMED_PWM\n");
-		break;
-
-	case PWM_SERVO_SET_MIN_PWM: {
-			_alert("PWM_SERVO_SET_MIN_PWM\n");
-			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
-
-			for (unsigned i = 0; i < pwm->channel_count; i++) {
-				if (i < MAX_ACTUATORS) {
-					_mixing_output.minValue(i) = pwm->values[i];
-				}
-			}
-
-			break;
-		}
-
-	case PWM_SERVO_GET_MIN_PWM:
-		_alert("PWM_SERVO_GET_MIN_PWM\n");
-		break;
-
-	case PWM_SERVO_SET_MAX_PWM: {
-			_alert("PWM_SERVO_SET_MAX_PWM\n");
-			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
-
-			for (unsigned i = 0; i < pwm->channel_count; i++) {
-				if (i < MAX_ACTUATORS) {
-					_mixing_output.maxValue(i) = pwm->values[i];
-				}
-			}
-
-			break;
-		}
-
-	case PWM_SERVO_GET_MAX_PWM:
-		_alert("PWM_SERVO_GET_MAX_PWM\n");
-		break;
-
-	case PWM_SERVO_GET_COUNT:
-		_alert("PWM_SERVO_GET_COUNT\n");
-		break;
-
-	case PWM_SERVO_SET_FORCE_SAFETY_OFF:
-		_alert("PWM_SERVO_SET_FORCE_SAFETY_OFF\n");
-		break;
-
-	case PWM_SERVO_SET_FORCE_SAFETY_ON:
-		_alert("PWM_SERVO_SET_FORCE_SAFETY_ON\n");
-		break;
-
-	case PWM_SERVO_GET(0) ... PWM_SERVO_GET(PWM_OUTPUT_MAX_CHANNELS - 1):
-		_alert("PWM_SERVO_GET\n");
-		break;
-
-	case PWM_SERVO_GET_RATEGROUP(0) ... PWM_SERVO_GET_RATEGROUP(PWM_OUTPUT_MAX_CHANNELS - 1):
-		_alert("PWM_SERVO_GET_RATEGROUP\n");
-		break;
-
-	case MIXERIOCRESET:
-		_alert("MIXERIOCRESET\n");
-		/* Can start the main thread now */
-		_initialized = true;
-		_mixing_output.resetMixer();
-		break;
-
-	case MIXERIOCLOADBUF: {
-			_alert("MIXERIOCLOADBUF\n");
-			const char *buf = (const char *)arg;
-			unsigned buflen = strlen(buf);
-			ret = _mixing_output.loadMixer(buf, buflen);
-			break;
-		}
-
-	default:
-		/* see if the parent class can make any use of it */
-		ret = CDev::ioctl(filep, cmd, arg);
-		break;
-	}
-
-	return ret;
 }
 
 extern "C" __EXPORT int pwm_esc_main(int argc, char *argv[]);
