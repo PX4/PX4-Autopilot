@@ -31,16 +31,11 @@
 #
 ############################################################################
 
-# Placeholder
-set(QURT_LAYER_SRCS
-	drv_hrt.cpp
-	tasks.cpp
-	px4_qurt_impl.cpp
-	main.cpp
+px4_add_module(
+	MODULE drivers__qshell__posix
+	MAIN qshell
+	SRCS
+		qshell_start_posix.cpp
+		qshell.cpp
+	DEPENDS
 	)
-
-add_library(px4_layer
-        ${QURT_LAYER_SRCS}
-)
-
-target_link_libraries(px4_layer PRIVATE work_queue)
