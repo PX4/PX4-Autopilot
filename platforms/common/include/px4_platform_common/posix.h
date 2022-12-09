@@ -100,6 +100,12 @@ typedef struct {
 #define POLLIN       (0x01)
 #endif
 
+#if defined(__PX4_QURT)
+// Qurt has no fsync implementation so need to declare one here
+// and then define a fake one in the Qurt platform code.
+void fsync(int fd);
+#endif
+
 __EXPORT int 		px4_open(const char *path, int flags, ...);
 __EXPORT int 		px4_close(int fd);
 __EXPORT ssize_t	px4_read(int fd, void *buffer, size_t buflen);
@@ -113,7 +119,6 @@ __END_DECLS
 #else
 #error "No TARGET OS Provided"
 #endif
-
 
 // The stack size is intended for 32-bit architectures; therefore
 // we often run out of stack space when pointers are larger than 4 bytes.
