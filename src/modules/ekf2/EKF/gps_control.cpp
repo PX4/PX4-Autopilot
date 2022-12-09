@@ -87,11 +87,6 @@ void Ekf::controlGpsFusion()
 						     _aid_src_gnss_pos);
 		_aid_src_gnss_pos.fusion_enabled = (_params.gnss_ctrl & GnssCtrl::HPOS);
 
-		// update GSF yaw estimator velocity (basic sanity check on GNSS velocity data)
-		if (gps_checks_passing && !gps_checks_failing) {
-			_yawEstimator.setVelocity(gps_sample.vel.xy(), gps_sample.sacc);
-		}
-
 		// Determine if we should use GPS aiding for velocity and horizontal position
 		// To start using GPS we need angular alignment completed, the local NED origin set and GPS data that has not failed checks recently
 		const bool mandatory_conditions_passing = ((_params.gnss_ctrl & GnssCtrl::HPOS) || (_params.gnss_ctrl & GnssCtrl::VEL))
