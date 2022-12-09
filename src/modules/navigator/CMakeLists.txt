@@ -53,4 +53,5 @@ px4_add_module(
 		geo
 		geofence_breach_avoidance
 		motion_planning
+		planned_mission_interface
 	)
