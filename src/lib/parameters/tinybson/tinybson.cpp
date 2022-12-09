@@ -527,7 +527,9 @@ bson_encoder_fini(bson_encoder_t encoder)
 
 			CODER_KILL(encoder, "write error on document length");
 		}
+
 		::fsync(encoder->fd);
+
 	} else if (encoder->buf != nullptr) {
 		/* update buffer length */
 		memcpy(encoder->buf, &bson_doc_bytes, sizeof(bson_doc_bytes));
