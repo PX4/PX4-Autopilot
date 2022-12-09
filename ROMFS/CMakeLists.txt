@@ -140,6 +140,18 @@ add_custom_command(
 # copy extras into ROMFS
 set(extras_dependencies)
 
+# sysinit script for kernel mode
+if(CONFIG_BUILD_KERNEL)
+	add_custom_command(OUTPUT ${romfs_gen_root_dir}/init.d/rc.sysinit
+	COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PX4_BINARY_DIR}/NuttX/rc.sysinit ${romfs_gen_root_dir}/init.d/rc.sysinit
+		DEPENDS
+			${PX4_BINARY_DIR}/NuttX/rc.sysinit
+	)
+	list(APPEND extras_dependencies
+		${romfs_gen_root_dir}/init.d/rc.sysinit
+	)
+endif()
+
 # optional board architecture defaults
 set(board_arch_rc_file "rc.board_arch_defaults")
 if(EXISTS "${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/init/${CONFIG_ARCH_CHIP}/${board_arch_rc_file}")
