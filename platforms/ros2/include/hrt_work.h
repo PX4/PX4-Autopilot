@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
+ * Copyright (C) 2015 Mark Charlebois. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,26 +31,34 @@
  *
  ****************************************************************************/
 
-/**
- * @file conversions.c
- * Implementation of commonly used conversions.
- */
+#pragma once
 
-#include <px4_platform_common/px4_config.h>
-#include <float.h>
+#include <px4_platform_common/posix.h>
+#include <semaphore.h>
+#include <px4_platform_common/workqueue.h>
 
-#include "conversions.h"
+#include <px4_platform_common/sem.h>
 
-int16_t
-int16_t_from_bytes(uint8_t bytes[])
+__BEGIN_DECLS
+
+extern px4_sem_t _hrt_work_lock;
+extern struct wqueue_s g_hrt_work;
+
+void hrt_work_queue_init(void);
+int hrt_work_queue(struct work_s *work, worker_t worker, void *arg, uint32_t usdelay);
+void hrt_work_cancel(struct work_s *work);
+
+static inline void hrt_work_lock(void);
+static inline void hrt_work_lock()
 {
-	union {
-		uint8_t    b[2];
-		int16_t    w;
-	} u;
-
-	u.b[1] = bytes[0];
-	u.b[0] = bytes[1];
-
-	return u.w;
+	px4_sem_wait(&_hrt_work_lock);
 }
+
+static inline void hrt_work_unlock(void);
+static inline void hrt_work_unlock()
+{
+	px4_sem_post(&_hrt_work_lock);
+}
+
+__END_DECLS
+

@@ -33,14 +33,22 @@
 
 # find PX4 config
 #  look for in tree board config that matches CONFIG input
+
+if(NOT CONFIG)
+	# default to px4_ros2_default if building within a ROS2 colcon environment
+	if(("$ENV{COLCON}" MATCHES "1") AND ("$ENV{ROS_VERSION}" MATCHES "2"))
+		set(CONFIG "px4_ros2_default" CACHE STRING "desired configuration")
+	else()
+		set(CONFIG "px4_sitl_default" CACHE STRING "desired configuration")
+	endif()
+endif()
+
 if(NOT PX4_CONFIG_FILE)
 
 	file(GLOB_RECURSE board_configs
 		RELATIVE "${PX4_SOURCE_DIR}/boards"
 		"boards/*.px4board"
 		)
-
-	set(PX4_CONFIGS ${board_configs} CACHE STRING "PX4 board configs" FORCE)
 
 	foreach(filename ${board_configs})
 		# parse input CONFIG into components to match with existing in tree configs
@@ -63,9 +71,9 @@ if(NOT PX4_CONFIG_FILE)
 			)
 				set(PX4_CONFIG_FILE "${PX4_SOURCE_DIR}/boards/${filename}" CACHE FILEPATH "path to PX4 CONFIG file" FORCE)
 				set(PX4_BOARD_DIR "${PX4_SOURCE_DIR}/boards/${vendor}/${model}" CACHE STRING "PX4 board directory" FORCE)
-                set(MODEL "${model}" CACHE STRING "PX4 board model" FORCE)
-                set(VENDOR "${vendor}" CACHE STRING "PX4 board vendor" FORCE)
-                set(LABEL "${label}" CACHE STRING "PX4 board vendor" FORCE)
+				set(MODEL "${model}" CACHE STRING "PX4 board model" FORCE)
+				set(VENDOR "${vendor}" CACHE STRING "PX4 board vendor" FORCE)
+				set(LABEL "${label}" CACHE STRING "PX4 board vendor" FORCE)
 				break()
 			endif()
 
@@ -76,17 +84,13 @@ if(NOT PX4_CONFIG_FILE)
 			)
 				set(PX4_CONFIG_FILE "${PX4_SOURCE_DIR}/boards/${filename}" CACHE FILEPATH "path to PX4 CONFIG file" FORCE)
 				set(PX4_BOARD_DIR "${PX4_SOURCE_DIR}/boards/${vendor}/${model}" CACHE STRING "PX4 board directory" FORCE)
-                set(MODEL "${model}" CACHE STRING "PX4 board model" FORCE)
-                set(VENDOR "${vendor}" CACHE STRING "PX4 board vendor" FORCE)
-                set(LABEL "${label}" CACHE STRING "PX4 board vendor" FORCE)
+				set(MODEL "${model}" CACHE STRING "PX4 board model" FORCE)
+				set(VENDOR "${vendor}" CACHE STRING "PX4 board vendor" FORCE)
+				set(LABEL "${label}" CACHE STRING "PX4 board vendor" FORCE)
 				break()
 			endif()
 		endif()
 	endforeach()
-endif()
-
-if(NOT PX4_CONFIG_FILE)
-	message(FATAL_ERROR "PX4 config file not set, try one of ${PX4_CONFIGS}")
 endif()
 
 message(STATUS "PX4 config file: ${PX4_CONFIG_FILE}")
@@ -108,9 +112,9 @@ set(PX4_BOARD_LABEL ${LABEL} CACHE STRING "PX4 board label" FORCE)
 set(PX4_CONFIG "${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_${PX4_BOARD_LABEL}" CACHE STRING "PX4 config" FORCE)
 
 if(EXISTS "${PX4_BOARD_DIR}/uavcan_board_identity")
-include ("${PX4_BOARD_DIR}/uavcan_board_identity")
+	include ("${PX4_BOARD_DIR}/uavcan_board_identity")
 endif()
 
 if(EXISTS "${PX4_BOARD_DIR}/sitl.cmake")
-include ("${PX4_BOARD_DIR}/sitl.cmake")
+	include ("${PX4_BOARD_DIR}/sitl.cmake")
 endif()

@@ -39,7 +39,7 @@ add_dependencies(drivers_bootloaders prebuild_targets)
 
 include_directories(include)
 target_include_directories(drivers_bootloaders INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(drivers_bootloaders PRIVATE systemlib)
+target_link_libraries(drivers_bootloaders PRIVATE crc)
 
 # generate bootloader_app_shared_t
 if(NOT "${PX4_BOARD_LABEL}" MATCHES  "canbootloader")

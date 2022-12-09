@@ -48,8 +48,8 @@
 #include <fcntl.h>
 #include <board_config.h>
 
-#include <systemlib/crc.h>
-#include <systemlib/px4_macros.h>
+#include <lib/crc/crc.h>
+#include <lib/systemlib/px4_macros.h>
 
 #if defined(BOARD_HAS_HW_VERSIONING)
 

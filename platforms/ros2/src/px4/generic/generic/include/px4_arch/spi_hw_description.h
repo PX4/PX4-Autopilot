@@ -1,21 +1,20 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (C) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
  *
  * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
+ *	notice, this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
+ *	notice, this list of conditions and the following disclaimer in
+ *	the documentation and/or other materials provided with the
+ *	distribution.
  * 3. Neither the name PX4 nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
+ *	used to endorse or promote products derived from this software
+ *	without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -32,30 +31,29 @@
  *
  ****************************************************************************/
 
-/**
- * @file conversions.h
- * Definition of commonly used conversions.
- *
- * Includes bit / byte / geo representation and unit conversions.
- */
+#pragma once
 
-#ifndef CONVERSIONS_H_
-#define CONVERSIONS_H_
-#include <float.h>
-#include <stdint.h>
+#include <px4_platform_common/spi.h>
 
-__BEGIN_DECLS
+static inline constexpr px4_spi_bus_device_t initSPIDevice(uint8_t devid_driver, uint8_t cs_index)
+{
+	px4_spi_bus_device_t ret{};
+	ret.cs_gpio = 1; // set to some non-zero value to indicate this is used
+	ret.devid = PX4_SPIDEV_ID(PX4_SPI_DEVICE_ID, cs_index);
+	ret.devtype_driver = devid_driver;
+	return ret;
+}
 
-/**
- * Converts a signed 16 bit integer from big endian to little endian.
- *
- * This function is for commonly used 16 bit big endian sensor data,
- * delivered by driver routines as two 8 bit numbers in big endian order.
- * Common vendors with big endian representation are Invense, Bosch and
- * Honeywell. ST micro devices tend to use a little endian representation.
- */
-__EXPORT int16_t int16_t_from_bytes(uint8_t bytes[]);
+static inline constexpr px4_spi_bus_t initSPIBus(int bus, const px4_spi_bus_devices_t &devices)
+{
+	px4_spi_bus_t ret{};
 
-__END_DECLS
+	for (int i = 0; i < SPI_BUS_MAX_DEVICES; ++i) {
+		ret.devices[i] = devices.devices[i];
+	}
 
-#endif /* CONVERSIONS_H_ */
+	ret.bus = bus;
+	ret.is_external = false; // all buses are marked internal on Linux
+	ret.requires_locking = false;
+	return ret;
+}
