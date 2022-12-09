@@ -104,6 +104,13 @@ typedef struct {
 // Qurt has no fsync implementation so need to declare one here
 // and then define a fake one in the Qurt platform code.
 void fsync(int fd);
+// Qurt doesn't have a way to set the scheduler policy. It is always, essentially,
+// SCHED_FIFO. So have to add a fake function for the code that tries to set it.
+#include <pthread.h>
+__EXPORT int pthread_attr_setschedpolicy(pthread_attr_t *attr, int policy);
+// Qurt POSIX implementation doesn't define the SIGCONT signal so we just map it
+// to a reasonable alternative
+#define SIGCONT SIGALRM
 #endif
 
 __EXPORT int 		px4_open(const char *path, int flags, ...);
