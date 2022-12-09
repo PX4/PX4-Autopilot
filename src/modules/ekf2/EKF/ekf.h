@@ -601,6 +601,7 @@ private:
 	float _gps_error_norm{1.0f};		///< normalised gps error
 	uint32_t _min_gps_health_time_us{10000000}; ///< GPS is marked as healthy only after this amount of time
 	bool _gps_checks_passed{false};		///> true when all active GPS checks have passed
+	uint64_t _last_gnss_reset_accel_clipping_us{0}; ///< last time GPS control performed an emergency reset due to accel clipping
 
 	// Variables used to publish the WGS-84 location of the EKF local NED origin
 	float _gps_alt_ref{NAN};		///< WGS-84 height (m)

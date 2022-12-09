@@ -299,6 +299,8 @@ protected:
 	float _dt_ekf_avg{0.010f}; ///< average update rate of the ekf in s
 
 	imuSample _imu_sample_delayed{};	// captures the imu sample on the delayed time horizon
+	bool _imu_accel_clipping_NE{false}; // IMU sample delayed accel clipping in earth NE axis
+	bool _imu_accel_clipping_D{false};  // IMU sample delayed accel clipping in earth D axis
 
 	// measurement samples capturing measurements on the delayed time horizon
 	gpsSample _gps_sample_delayed{};
