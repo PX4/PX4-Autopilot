@@ -160,15 +160,15 @@ else()
 endif()
 
 if(${PX4_PLATFORM} STREQUAL "nuttx")
-	add_subdirectory(flashparams)
+	# add_subdirectory(flashparams)
 
-	# build user-side interface for protected build
-	if(NOT CONFIG_BUILD_FLAT)
-		list(APPEND SRCS parameters_ioctl.cpp)
-		add_library(usr_parameters usr_parameters_if.cpp px4_parameters.hpp)
-		add_dependencies(usr_parameters prebuild_targets)
-		target_compile_definitions(usr_parameters PRIVATE -DMODULE_NAME="usr_parameters")
-	endif()
+	# # build user-side interface for protected build
+	# if(NOT CONFIG_BUILD_FLAT)
+	# 	list(APPEND SRCS parameters_ioctl.cpp)
+	# 	add_library(usr_parameters usr_parameters_if.cpp px4_parameters.hpp)
+	# 	add_dependencies(usr_parameters prebuild_targets)
+	# 	target_compile_definitions(usr_parameters PRIVATE -DMODULE_NAME="usr_parameters")
+	# endif()
 endif()
 
 # TODO: find a better way to do this
@@ -176,6 +176,8 @@ if(NOT "${PX4_BOARD}" MATCHES "px4_io")
 	add_library(parameters STATIC EXCLUDE_FROM_ALL
 		${SRCS}
 		px4_parameters.hpp
+		ParameterServer.cpp
+		ParameterServer.hpp
 	)
 
 	target_link_libraries(parameters PRIVATE perf tinybson px4_platform)
@@ -193,7 +195,7 @@ endif()
 add_dependencies(parameters prebuild_targets)
 
 if(${PX4_PLATFORM} STREQUAL "nuttx")
-	target_link_libraries(parameters PRIVATE flashparams)
+	#target_link_libraries(parameters PRIVATE flashparams)
 endif()
 
 px4_add_functional_gtest(SRC ParameterTest.cpp LINKLIBS parameters)

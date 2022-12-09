@@ -127,8 +127,6 @@ int px4_platform_init()
 	hrt_ioctl_init();
 #endif
 
-	param_init();
-
 	/* configure CPU load estimation */
 #ifdef CONFIG_SCHED_INSTRUMENTATION
 	cpuload_initialize_once();
@@ -182,6 +180,8 @@ int px4_platform_init()
 
 
 	px4::WorkQueueManagerStart();
+
+	param_init();
 
 	uorb_start();
 
