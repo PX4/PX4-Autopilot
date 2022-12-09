@@ -121,7 +121,12 @@ void Ekf::controlFusionModes()
 			_gps_sample_delayed.pos -= pos_offset_earth.xy();
 			_gps_sample_delayed.hgt += pos_offset_earth(2);
 
-			_gps_sample_delayed.sacc = fmaxf(_gps_sample_delayed.sacc, _params.gps_vel_noise);
+			// update GSF yaw estimator velocity (basic sanity check on GNSS velocity data)
+			if ((_gps_sample_delayed.sacc > 0.f) && (_gps_sample_delayed.sacc < _params.req_sacc)
+			    && _gps_sample_delayed.vel.isAllFinite()
+			   ) {
+				_yawEstimator.setVelocity(_gps_sample_delayed.vel.xy(), math::max(_gps_sample_delayed.sacc, _params.gps_vel_noise));
+			}
 		}
 	}
 
