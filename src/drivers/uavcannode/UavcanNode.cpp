@@ -42,6 +42,7 @@
 
 #include "Publishers/BatteryInfo.hpp"
 #include "Publishers/FlowMeasurement.hpp"
+#include "Publishers/HygrometerMeasurement.hpp"
 #include "Publishers/GnssFix2.hpp"
 #include "Publishers/MagneticFieldStrength2.hpp"
 #include "Publishers/MovingBaselineData.hpp"
@@ -296,6 +297,7 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 	// TODO: make runtime (and build time?) configurable
 	_publisher_list.add(new BatteryInfo(this, _node));
 	_publisher_list.add(new FlowMeasurement(this, _node));
+	_publisher_list.add(new HygrometerMeasurement(this, _node));
 	_publisher_list.add(new GnssFix2(this, _node));
 	_publisher_list.add(new MagneticFieldStrength2(this, _node));
 	_publisher_list.add(new RangeSensorMeasurement(this, _node));
