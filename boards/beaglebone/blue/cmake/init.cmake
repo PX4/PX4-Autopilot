@@ -35,8 +35,8 @@ add_compile_options(-Wno-cast-align)
 
 include(ExternalProject)
 ExternalProject_Add(librobotcontrol
-	GIT_REPOSITORY https://github.com/dagar/librobotcontrol.git
-	GIT_TAG 1abcb0a # latest as of 2019-12-29
+        GIT_REPOSITORY https://github.com/beagleboard/librobotcontrol.git
+        GIT_TAG 290e14f
 	CMAKE_CACHE_ARGS -DCMAKE_TOOLCHAIN_FILE:STRING=${CMAKE_TOOLCHAIN_FILE}
 	INSTALL_COMMAND ""
 	TEST_COMMAND ""
