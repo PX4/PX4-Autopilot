@@ -58,7 +58,7 @@ I2C::I2C(uint8_t device_type, const char *name, const int bus, const uint16_t ad
 	CDev(name, nullptr),
 	_frequency(frequency / 1000)
 {
-    _device_id.devid = 0;
+	_device_id.devid = 0;
 
 	// fill in _device_id fields for a I2C device
 	_device_id.devid_s.devtype = device_type;
@@ -66,7 +66,7 @@ I2C::I2C(uint8_t device_type, const char *name, const int bus, const uint16_t ad
 	_device_id.devid_s.bus = bus;
 	_device_id.devid_s.address = address;
 
-    PX4_INFO("*** I2C Device ID 0x%x %d", _device_id.devid, _device_id.devid);
+	PX4_INFO("*** I2C Device ID 0x%x %d", _device_id.devid, _device_id.devid);
 }
 
 I2C::~I2C()
@@ -81,17 +81,17 @@ I2C::init()
 	if (_config_i2c_bus == NULL) {
 		PX4_ERR("NULL i2c init function");
 		goto out;
-    }
+	}
 
-    pthread_mutex_lock(&_mutex);
+	pthread_mutex_lock(&_mutex);
 	// Open the actual I2C device
 	_i2c_fd = _config_i2c_bus(get_device_bus(), get_device_address(), _frequency);
-    pthread_mutex_unlock(&_mutex);
+	pthread_mutex_unlock(&_mutex);
 
 	if (_i2c_fd == PX4_ERROR) {
 		PX4_ERR("i2c init failed");
 		goto out;
-    }
+	}
 
 	// call the probe function to check whether the device is present
 	ret = probe();
@@ -120,15 +120,15 @@ out:
 void
 I2C::set_device_address(int address)
 {
-    if ((_i2c_fd != PX4_ERROR) && (_set_i2c_address != NULL)) {
+	if ((_i2c_fd != PX4_ERROR) && (_set_i2c_address != NULL)) {
 		PX4_INFO("Set i2c address 0x%x, fd %d", address, _i2c_fd);
 
-        pthread_mutex_lock(&_mutex);
+		pthread_mutex_lock(&_mutex);
 		_set_i2c_address(_i2c_fd, address);
-        pthread_mutex_unlock(&_mutex);
+		pthread_mutex_unlock(&_mutex);
 
-        Device::set_device_address(address);
-    }
+		Device::set_device_address(address);
+	}
 }
 
 
@@ -138,20 +138,20 @@ I2C::transfer(const uint8_t *send, const unsigned send_len, uint8_t *recv, const
 	int ret = PX4_ERROR;
 	unsigned retry_count = 1;
 
-    if ((_i2c_fd != PX4_ERROR) && (_i2c_transfer != NULL)) {
-    	do {
-    		// PX4_INFO("transfer out %p/%u  in %p/%u", send, send_len, recv, recv_len);
+	if ((_i2c_fd != PX4_ERROR) && (_i2c_transfer != NULL)) {
+		do {
+			// PX4_INFO("transfer out %p/%u  in %p/%u", send, send_len, recv, recv_len);
 
-            pthread_mutex_lock(&_mutex);
-    		ret = _i2c_transfer(_i2c_fd, send, send_len, recv, recv_len);
-            pthread_mutex_unlock(&_mutex);
+			pthread_mutex_lock(&_mutex);
+			ret = _i2c_transfer(_i2c_fd, send, send_len, recv, recv_len);
+			pthread_mutex_unlock(&_mutex);
 
-            if (ret != PX4_ERROR) break;
+			if (ret != PX4_ERROR) { break; }
 
-            px4_usleep(1000);
+			px4_usleep(1000);
 
-    	} while (retry_count++ < _retries);
-    }
+		} while (retry_count++ < _retries);
+	}
 
 	return ret;
 }

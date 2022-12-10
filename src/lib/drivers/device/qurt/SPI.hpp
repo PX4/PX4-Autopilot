@@ -46,8 +46,8 @@
 #include <px4_platform_common/spi.h>
 
 // Perhaps not the best place for these but they are only used for the IMU SPI driver on Qurt
-int px4_arch_gpiosetevent(spi_drdy_gpio_t pin, bool r, bool f, bool e, int (*func)(int, void*, void*), void* arg);
-void register_interrupt_callback_initalizer(int (*)(int (*)(int, void*, void*), void* arg));
+int px4_arch_gpiosetevent(spi_drdy_gpio_t pin, bool r, bool f, bool e, int (*func)(int, void *, void *), void *arg);
+void register_interrupt_callback_initalizer(int (*)(int (*)(int, void *, void *), void *arg));
 
 enum spi_mode_e {
 	SPIDEV_MODE0 = 0, /* CPOL=0 CHPHA=0 */
@@ -67,14 +67,15 @@ namespace device __EXPORT
 class __EXPORT SPI : public CDev
 {
 public:
-    typedef int (*_config_spi_bus_func_t)();
-    typedef int (*_spi_transfer_func_t)(int, const uint8_t*, uint8_t*, const unsigned);
+	typedef int (*_config_spi_bus_func_t)();
+	typedef int (*_spi_transfer_func_t)(int, const uint8_t *, uint8_t *, const unsigned);
 
-    static void configure_callbacks(_config_spi_bus_func_t config_func,
-                                    _spi_transfer_func_t transfer_func) {
-        _config_spi_bus = config_func;
-        _spi_transfer = transfer_func;
-    }
+	static void configure_callbacks(_config_spi_bus_func_t config_func,
+					_spi_transfer_func_t transfer_func)
+	{
+		_config_spi_bus = config_func;
+		_spi_transfer = transfer_func;
+	}
 
 protected:
 	/**
@@ -176,10 +177,10 @@ protected:
 private:
 	int 			_fd{-1};
 
-    static _config_spi_bus_func_t  _config_spi_bus;
-    static _spi_transfer_func_t    _spi_transfer;
+	static _config_spi_bus_func_t  _config_spi_bus;
+	static _spi_transfer_func_t    _spi_transfer;
 
-    static pthread_mutex_t         _mutex;
+	static pthread_mutex_t         _mutex;
 
 protected:
 

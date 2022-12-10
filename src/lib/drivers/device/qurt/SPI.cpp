@@ -46,19 +46,22 @@
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 
-static int (*register_interrupt_callback_func)(int (*)(int, void*, void*), void* arg) = NULL;
+static int (*register_interrupt_callback_func)(int (*)(int, void *, void *), void *arg) = NULL;
 
-int px4_arch_gpiosetevent(spi_drdy_gpio_t pin, bool r, bool f, bool e, int (*func)(int, void*, void*), void* arg) {
+int px4_arch_gpiosetevent(spi_drdy_gpio_t pin, bool r, bool f, bool e, int (*func)(int, void *, void *), void *arg)
+{
 
-    if ((register_interrupt_callback_func != NULL) && (func != NULL) && (arg != NULL)) {
-        PX4_INFO("Register interrupt %p %p %p", register_interrupt_callback_func, func, arg);
-        return register_interrupt_callback_func(func, arg);
-    }
-    return -1;
+	if ((register_interrupt_callback_func != NULL) && (func != NULL) && (arg != NULL)) {
+		PX4_INFO("Register interrupt %p %p %p", register_interrupt_callback_func, func, arg);
+		return register_interrupt_callback_func(func, arg);
+	}
+
+	return -1;
 }
 
-void register_interrupt_callback_initalizer(int (*func)(int (*)(int, void*, void*), void* arg)) {
-    register_interrupt_callback_func = func;
+void register_interrupt_callback_initalizer(int (*func)(int (*)(int, void *, void *), void *arg))
+{
+	register_interrupt_callback_func = func;
 }
 
 namespace device
@@ -76,7 +79,7 @@ SPI::SPI(uint8_t device_type, const char *name, int bus, uint32_t device, enum s
 	// _mode(mode),
 	// _frequency(frequency)
 {
-    _device_id.devid = 0;
+	_device_id.devid = 0;
 
 	_device_id.devid_s.devtype = device_type;
 	// fill in _device_id fields for a SPI device
@@ -84,7 +87,7 @@ SPI::SPI(uint8_t device_type, const char *name, int bus, uint32_t device, enum s
 	_device_id.devid_s.bus = bus;
 	_device_id.devid_s.address = (uint8_t)device;
 
-    PX4_INFO("*** SPI Device ID 0x%x %d", _device_id.devid, _device_id.devid);
+	PX4_INFO("*** SPI Device ID 0x%x %d", _device_id.devid, _device_id.devid);
 }
 
 SPI::SPI(const I2CSPIDriverConfig &config)
@@ -109,16 +112,16 @@ SPI::init()
 	if (_config_spi_bus == NULL) {
 		PX4_ERR("NULL spi init function");
 		return ret;
-    }
+	}
 
-    pthread_mutex_lock(&_mutex);
+	pthread_mutex_lock(&_mutex);
 	_fd = _config_spi_bus();
-    pthread_mutex_unlock(&_mutex);
+	pthread_mutex_unlock(&_mutex);
 
 	if (_fd == PX4_ERROR) {
 		PX4_ERR("spi init failed");
 		return ret;
-    }
+	}
 
 	/* call the probe function to check whether the device is present */
 	ret = probe();
@@ -148,22 +151,23 @@ SPI::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 	int ret = PX4_ERROR;
 	unsigned retry_count = 1;
 
-    if ((_fd != PX4_ERROR) && (_spi_transfer != NULL)) {
-    	do {
-    		// PX4_DEBUG("SPI transfer out %p in %p len %u", send, recv, len);
+	if ((_fd != PX4_ERROR) && (_spi_transfer != NULL)) {
+		do {
+			// PX4_DEBUG("SPI transfer out %p in %p len %u", send, recv, len);
 
-            if (_spi_transfer != NULL) {
-                pthread_mutex_lock(&_mutex);
-        		ret = _spi_transfer(_fd, send, recv, len);
-                pthread_mutex_unlock(&_mutex);
-            } else {
-                PX4_ERR("SPI transfer function is NULL");
-            }
+			if (_spi_transfer != NULL) {
+				pthread_mutex_lock(&_mutex);
+				ret = _spi_transfer(_fd, send, recv, len);
+				pthread_mutex_unlock(&_mutex);
 
-            if (ret != PX4_ERROR) break;
+			} else {
+				PX4_ERR("SPI transfer function is NULL");
+			}
 
-    	} while (retry_count++ < _retries);
-    }
+			if (ret != PX4_ERROR) { break; }
+
+		} while (retry_count++ < _retries);
+	}
 
 	return ret;
 }
@@ -171,7 +175,7 @@ SPI::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 int
 SPI::transferhword(uint16_t *send, uint16_t *recv, unsigned len)
 {
-    // Not supported on SLPI
+	// Not supported on SLPI
 	return PX4_ERROR;
 }
 
