@@ -2119,6 +2119,9 @@ Mavlink::task_main(int argc, char *argv[])
 		_ftp_on = true;
 		_is_usb_uart = true;
 
+		// Always forward messages to/from the USB instance.
+		_forwarding_on = true;
+
 		set_telemetry_status_type(telemetry_status_s::LINK_TYPE_USB);
 	}
 
