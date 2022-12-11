@@ -344,7 +344,8 @@ const char *param_get_backup_file()
 int param_save_default()
 {
 	if (parameter_server) {
-		return parameter_server->saveDefault();
+		parameter_server->autoSave(true);
+		return 0;
 	}
 
 	return -1;

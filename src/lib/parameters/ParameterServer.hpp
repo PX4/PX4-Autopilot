@@ -86,7 +86,7 @@ public:
 	 *
 	 * @return		The number of parameters.
 	 */
-	unsigned countUsed() const { return params_active.count(); }
+	unsigned countUsed() const { return _params_active.count(); }
 
 	/**
 	 * Wether a parameter is in use in the system.
@@ -341,7 +341,7 @@ public:
 	 *			a result of a call to param_set_default_file, or the
 	 *			built-in default.
 	 */
-	const char *getDefaultFile() const { return param_default_file; }
+	const char *getDefaultFile() const { return _param_default_file; }
 
 	/**
 	 * Set the backup parameter file name.
@@ -357,17 +357,15 @@ public:
 	 *
 	 * @return		The path to the backup parameter file
 	 */
-	const char *getBackupFile() const { return param_backup_file; }
+	const char *getBackupFile() const { return _param_backup_file; }
 
 	/**
-	 * Save parameters to the default file.
-	 * Note: this method requires a large amount of stack size!
+	 * Automatically save the parameters after a timeout and limited rate.
 	 *
-	 * This function saves all parameters with non-default values.
-	 *
-	 * @return		Zero on success.
+	 * This needs to be called with the writer lock held (it's not necessary that it's the writer lock, but it
+	 * needs to be the same lock as autosave_worker() and param_control_autosave() use).
 	 */
-	int saveDefault();
+	void autoSave(bool now = false);
 
 	/**
 	 * Load parameters from the default parameter file.
@@ -448,17 +446,18 @@ private:
 	// get parameter default value, caller is responsible for locking
 	int getParameterDefaultValueInternal(param_t param, void *default_val);
 
+	/**
+	 * Save parameters to the default file.
+	 * Note: this method requires a large amount of stack size!
+	 *
+	 * This function saves all parameters with non-default values.
+	 *
+	 * @return		Zero on success.
+	 */
+	int saveDefault();
+
 	// internal parameter export, caller is responsible for locking
 	int exportInternal(int fd, param_filter_func filter);
-
-	/**
-	 * Automatically save the parameters after a timeout and limited rate.
-	 *
-	 * This needs to be called with the writer lock held (it's not necessary that it's the writer lock, but it
-	 * needs to be the same lock as autosave_worker() and param_control_autosave() use).
-	 */
-	void autoSave();
-
 
 	int bsonImportCallback(bson_decoder_t decoder, bson_node_t node);
 	static int importCallbackTrampoline(bson_decoder_t decoder, void *priv, bson_node_t node);
@@ -472,89 +471,55 @@ private:
 	int bsonDumpCallback(bson_decoder_t decoder, bson_node_t node);
 
 
-	char *param_default_file = nullptr;
-	char *param_backup_file = nullptr;
+	char *_param_default_file{nullptr};
+	char *_param_backup_file{nullptr};
 
-	px4::AtomicBitset<param_info_count> params_active;  // params found
-	px4::AtomicBitset<param_info_count> params_changed; // params non-default
-	px4::Bitset<param_info_count> params_custom_default; // params with runtime default value
-	px4::AtomicBitset<param_info_count> params_unsaved;
+	px4::AtomicBitset<param_info_count> _params_active;  // params found
+	px4::AtomicBitset<param_info_count> _params_changed; // params non-default
+	px4::Bitset<param_info_count> _params_custom_default; // params with runtime default value
+	px4::AtomicBitset<param_info_count> _params_unsaved;
 
 	/** flexible array holding modified parameter values */
-	UT_array *param_values{nullptr};
-	UT_array *param_custom_default_values{nullptr};
+	UT_array *_param_values{nullptr};
+	UT_array *_param_custom_default_values{nullptr};
 
 	const UT_icd param_icd = {sizeof(param_wbuf_s), nullptr, nullptr, nullptr};
 
-	/** parameter update topic handle */
-	orb_advert_t param_topic = nullptr;
-	unsigned int param_instance = 0;
+	unsigned int _param_instance{0};
 
 	// the following implements an RW-lock using 2 semaphores (used as mutexes). It gives
 	// priority to readers, meaning a writer could suffer from starvation, but in our use-case
 	// we only have short periods of reads and writes are rare.
-	px4_sem_t param_sem; ///< this protects against concurrent access to param_values
-	int reader_lock_holders = 0;
-	px4_sem_t reader_lock_holders_lock; ///< this protects against concurrent access to reader_lock_holders
+	px4_sem_t _param_sem; ///< this protects against concurrent access to _param_values
+	int _reader_lock_holders{0};
+	px4_sem_t _reader_lock_holders_lock; ///< this protects against concurrent access to reader_lock_holders
 
-	perf_counter_t param_export_perf;
-	perf_counter_t param_find_perf;
-	perf_counter_t param_get_perf;
-	perf_counter_t param_set_perf;
+	perf_counter_t _export_perf{perf_alloc(PC_ELAPSED, "param: export")};
+	perf_counter_t _find_count_perf{perf_alloc(PC_COUNT, "param: find")};
+	perf_counter_t _get_count_perf{perf_alloc(PC_COUNT, "param: get")};
+	perf_counter_t _set_perf{perf_alloc(PC_ELAPSED, "param: set")};
 
-	px4_sem_t param_sem_save; ///< this protects against concurrent param saves (file or flash access).
+	px4_sem_t _param_sem_save; ///< this protects against concurrent param saves (file or flash access).
 	///< we use a separate lock to allow concurrent param reads and saves.
 	///< a param_set could still be blocked by a param save, because it
 	///< needs to take the reader lock
 
 
-
-
-
-
-
-
-
-
 	void Run() override;
 
 	uORB::Publication<parameter_value_s> _param_response_pub{ORB_ID(parameter_value)};
+	uORB::Publication<parameter_update_s> _parameter_update_pub{ORB_ID(parameter_update)};
 
-	uORB::Subscription _param_request_sub{ORB_ID(parameter_request)};
+	uORB::SubscriptionCallbackWorkItem _param_request_sub{this, ORB_ID(parameter_request)};
+
+	uORB::SubscriptionData<actuator_armed_s> _armed_sub{ORB_ID(actuator_armed)};
 
 
 	// autosaving variables
-	hrt_abstime last_autosave_timestamp = 0;
-	px4::atomic_bool autosave_scheduled{false};
-	bool autosave_disabled = false;
+	hrt_abstime _last_autosave_timestamp{0};
+	px4::atomic_bool _autosave_scheduled{false};
+	bool _autosave_disabled{false};
 
-
-
-	/*
-	 * The MAVLink parameter bridge needs to know the maximum parameter index
-	 * of each node so that clients can determine when parameter listings have
-	 * finished. We do that by querying a node's entire parameter set whenever
-	 * a parameter message is received for a node with a zero _param_count,
-	 * and storing the count here. If a node doesn't respond, or doesn't have
-	 * any parameters, its count will stay at zero and we'll try to query the
-	 * set again next time.
-	 *
-	 * The node's UAVCAN ID is used as the index into the _param_counts array.
-	 */
-	uint8_t _param_counts[128] {};
-	bool _count_in_progress{false};
-	uint8_t _count_index{0};
-
-	bool _param_in_progress{false};
-	uint8_t _param_index{0};
-	bool _param_list_in_progress{false};
-	bool _param_list_all_nodes{false};
-	uint8_t _param_list_node_id{1};
-
-	uint32_t _param_dirty_bitmap[4] {};
-	uint8_t _param_save_opcode{0};
-
-	bool _cmd_in_progress{false};
-
+	px4::atomic_bool _notify_scheduled{false};
 
 };

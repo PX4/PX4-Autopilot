@@ -50,72 +50,63 @@
 // #endif
 
 ParameterServer::ParameterServer() :
-	ScheduledWorkItem("parameter_server", px4::wq_configurations::lp_default)
+	ScheduledWorkItem("parameter_server", px4::wq_configurations::hp_default)
 {
-	px4_sem_init(&param_sem, 0, 1);
-	px4_sem_init(&param_sem_save, 0, 1);
-	px4_sem_init(&reader_lock_holders_lock, 0, 1);
+	px4_sem_init(&_param_sem, 0, 1);
+	px4_sem_init(&_param_sem_save, 0, 1);
+	px4_sem_init(&_reader_lock_holders_lock, 0, 1);
 
-	param_export_perf = perf_alloc(PC_ELAPSED, "param: export");
-	param_find_perf = perf_alloc(PC_COUNT, "param: find");
-	param_get_perf = perf_alloc(PC_COUNT, "param: get");
-	param_set_perf = perf_alloc(PC_ELAPSED, "param: set");
-
-#if defined(__PX4_NUTTX) && !defined(CONFIG_BUILD_FLAT)
-	px4_register_boardct_ioctl(_PARAMIOCBASE, param_ioctl);
-#endif
-
-	ScheduleOnInterval(1_s);
+	_param_request_sub.registerCallback();
 }
 
 ParameterServer::~ParameterServer()
 {
-	px4_sem_destroy(&param_sem);
-	px4_sem_destroy(&param_sem_save);
-	px4_sem_destroy(&reader_lock_holders_lock);
+	px4_sem_destroy(&_param_sem);
+	px4_sem_destroy(&_param_sem_save);
+	px4_sem_destroy(&_reader_lock_holders_lock);
 
-	perf_free(param_export_perf);
-	perf_free(param_find_perf);
-	perf_free(param_get_perf);
-	perf_free(param_set_perf);
+	perf_free(_export_perf);
+	perf_free(_find_count_perf);
+	perf_free(_get_count_perf);
+	perf_free(_set_perf);
 }
 
 void ParameterServer::lockReader()
 {
-	do {} while (px4_sem_wait(&reader_lock_holders_lock) != 0);
+	do {} while (px4_sem_wait(&_reader_lock_holders_lock) != 0);
 
-	++reader_lock_holders;
+	++_reader_lock_holders;
 
-	if (reader_lock_holders == 1) {
+	if (_reader_lock_holders == 1) {
 		// the first reader takes the lock, the next ones are allowed to just continue
-		do {} while (px4_sem_wait(&param_sem) != 0);
+		do {} while (px4_sem_wait(&_param_sem) != 0);
 	}
 
-	px4_sem_post(&reader_lock_holders_lock);
+	px4_sem_post(&_reader_lock_holders_lock);
 }
 
 void ParameterServer::lockWriter()
 {
-	do {} while (px4_sem_wait(&param_sem) != 0);
+	do {} while (px4_sem_wait(&_param_sem) != 0);
 }
 
 void ParameterServer::unlockReader()
 {
-	do {} while (px4_sem_wait(&reader_lock_holders_lock) != 0);
+	do {} while (px4_sem_wait(&_reader_lock_holders_lock) != 0);
 
-	--reader_lock_holders;
+	--_reader_lock_holders;
 
-	if (reader_lock_holders == 0) {
+	if (_reader_lock_holders == 0) {
 		// the last reader releases the lock
-		px4_sem_post(&param_sem);
+		px4_sem_post(&_param_sem);
 	}
 
-	px4_sem_post(&reader_lock_holders_lock);
+	px4_sem_post(&_reader_lock_holders_lock);
 }
 
 void ParameterServer::unlockWriter()
 {
-	px4_sem_post(&param_sem);
+	px4_sem_post(&_param_sem);
 }
 
 int ParameterServer::compareValues(const void *a, const void *b)
@@ -136,10 +127,10 @@ int ParameterServer::compareValues(const void *a, const void *b)
 
 ParameterServer::param_wbuf_s *ParameterServer::findChanged(param_t param)
 {
-	if (params_changed[param] && (param_values != nullptr)) {
+	if (_params_changed[param] && (_param_values != nullptr)) {
 		param_wbuf_s key{};
 		key.param = param;
-		return (param_wbuf_s *)utarray_find(param_values, &key, ParameterServer::compareValues);
+		return (param_wbuf_s *)utarray_find(_param_values, &key, ParameterServer::compareValues);
 	}
 
 	return nullptr;
@@ -155,11 +146,11 @@ const void *ParameterServer::getParameterValuePointer(param_t param)
 			return &s->val;
 
 		} else {
-			if (params_custom_default[param] && param_custom_default_values) {
+			if (_params_custom_default[param] && _param_custom_default_values) {
 				// get default from custom default storage
 				param_wbuf_s key{};
 				key.param = param;
-				param_wbuf_s *pbuf = (param_wbuf_s *)utarray_find(param_custom_default_values, &key, ParameterServer::compareValues);
+				param_wbuf_s *pbuf = (param_wbuf_s *)utarray_find(_param_custom_default_values, &key, ParameterServer::compareValues);
 
 				if (pbuf != nullptr) {
 					return &pbuf->val;
@@ -188,11 +179,11 @@ int ParameterServer::getParameterDefaultValueInternal(param_t param, void *defau
 	}
 
 	if (default_val) {
-		if (params_custom_default[param] && param_custom_default_values) {
+		if (_params_custom_default[param] && _param_custom_default_values) {
 			// get default from custom default storage
 			param_wbuf_s key{};
 			key.param = param;
-			param_wbuf_s *pbuf = (param_wbuf_s *)utarray_find(param_custom_default_values, &key, ParameterServer::compareValues);
+			param_wbuf_s *pbuf = (param_wbuf_s *)utarray_find(_param_custom_default_values, &key, ParameterServer::compareValues);
 
 			if (pbuf != nullptr) {
 				memcpy(default_val, &pbuf->val, getParameterSize(param));
@@ -217,7 +208,7 @@ int ParameterServer::getParameterDefaultValueInternal(param_t param, void *defau
 
 param_t ParameterServer::findParameter(const char *name, bool notification)
 {
-	perf_count(param_find_perf);
+	perf_count(_find_count_perf);
 
 	param_t middle;
 	param_t front = 0;
@@ -254,7 +245,7 @@ param_t ParameterServer::findParameter(const char *name, bool notification)
 bool ParameterServer::isParameterUsed(param_t param) const
 {
 	if (handle_in_range(param)) {
-		return params_active[param];
+		return _params_active[param];
 	}
 
 	return false;
@@ -275,8 +266,8 @@ param_t ParameterServer::forUsedIndex(unsigned index) const
 	if (index < param_info_count) {
 		unsigned used_count = 0;
 
-		for (int i = 0; i < params_active.size(); i++) {
-			if (params_active[i]) {
+		for (int i = 0; i < _params_active.size(); i++) {
+			if (_params_active[i]) {
 				// we found the right used count,
 				//  return the param value
 				if (index == used_count) {
@@ -310,8 +301,8 @@ int ParameterServer::getParameterUsedIndex(param_t param) const
 	// walk all params and count, now knowing that it has a valid index
 	int used_count = 0;
 
-	for (int i = 0; i < params_active.size(); i++) {
-		if (params_active[i]) {
+	for (int i = 0; i < _params_active.size(); i++) {
+		if (_params_active[i]) {
 
 			if (param == i) {
 				return used_count;
@@ -352,13 +343,13 @@ bool ParameterServer::isParameterValueDefault(param_t param)
 		return true;
 	}
 
-	if (!params_changed[param] && !params_custom_default[param]) {
+	if (!_params_changed[param] && !_params_custom_default[param]) {
 		// no value saved and no custom default
 		return true;
 
 	} else {
-		// the param_values dynamic array might carry things that have been set
-		// back to default, so we don't rely on the params_changed bitset here
+		// the _param_values dynamic array might carry things that have been set
+		// back to default, so we don't rely on the _params_changed bitset here
 		switch (getParameterType(param)) {
 		case PARAM_TYPE_INT32: {
 				lockReader();
@@ -403,7 +394,7 @@ bool ParameterServer::isParameterValueDefault(param_t param)
 
 bool ParameterServer::isParameterValueUnsaved(param_t param)
 {
-	return handle_in_range(param) ? params_unsaved[param] : false;
+	return handle_in_range(param) ? _params_unsaved[param] : false;
 }
 
 param_type_t ParameterServer::getParameterType(param_t param) const
@@ -429,21 +420,21 @@ size_t ParameterServer::getParameterSize(param_t param) const
 
 int ParameterServer::getParameterValue(param_t param, void *val)
 {
-	perf_count(param_get_perf);
+	perf_count(_get_count_perf);
 
 	if (!handle_in_range(param)) {
 		PX4_ERR("get: param %" PRId16 " invalid", param);
 		return PX4_ERROR;
 	}
 
-	if (!params_active[param]) {
+	if (!_params_active[param]) {
 		PX4_DEBUG("get: param %" PRId16 " (%s) not active", param, getParameterName(param));
 	}
 
 	int result = PX4_ERROR;
 
 	if (val) {
-		if (!params_changed[param] && !params_custom_default[param]) {
+		if (!_params_changed[param] && !_params_custom_default[param]) {
 			// if parameter is unchanged (static default value) copy immediately and avoid locking
 			switch (getParameterType(param)) {
 			case PARAM_TYPE_INT32:
@@ -478,7 +469,7 @@ int ParameterServer::getParameterDefaultValue(param_t param, void *default_val)
 
 	int ret = 0;
 
-	if (!params_custom_default[param]) {
+	if (!_params_custom_default[param]) {
 		// return static default value
 		switch (getParameterType(param)) {
 		case PARAM_TYPE_INT32:
@@ -540,18 +531,18 @@ int ParameterServer::setParameter(param_t param, const void *val, bool mark_save
 	bool param_changed = false;
 
 	lockWriter();
-	perf_begin(param_set_perf);
+	perf_begin(_set_perf);
 
 	// create the parameter store if it doesn't exist
-	if (param_values == nullptr) {
-		utarray_new(param_values, &param_icd);
+	if (_param_values == nullptr) {
+		utarray_new(_param_values, &param_icd);
 
 		// mark all parameters unchanged (default)
-		params_changed.reset();
-		params_unsaved.reset();
+		_params_changed.reset();
+		_params_unsaved.reset();
 	}
 
-	if (param_values == nullptr) {
+	if (_param_values == nullptr) {
 		PX4_ERR("failed to allocate modified values array");
 		goto out;
 
@@ -566,16 +557,16 @@ int ParameterServer::setParameter(param_t param, const void *val, bool mark_save
 			param_changed = true;
 
 			/* add it to the array and sort */
-			utarray_push_back(param_values, &buf);
-			utarray_sort(param_values, ParameterServer::compareValues);
-			params_changed.set(param, true);
+			utarray_push_back(_param_values, &buf);
+			utarray_sort(_param_values, ParameterServer::compareValues);
+			_params_changed.set(param, true);
 
 			/* find it after sorting */
 			s = findChanged(param);
 		}
 
 		if (s == nullptr) {
-			PX4_ERR("error param_values storage slot invalid");
+			PX4_ERR("error _param_values storage slot invalid");
 
 		} else {
 			/* update the changed value */
@@ -586,8 +577,8 @@ int ParameterServer::setParameter(param_t param, const void *val, bool mark_save
 					param_changed = true;
 				}
 
-				params_changed.set(param, true);
-				params_unsaved.set(param, !mark_saved);
+				_params_changed.set(param, true);
+				_params_unsaved.set(param, !mark_saved);
 				result = PX4_OK;
 				break;
 
@@ -597,8 +588,8 @@ int ParameterServer::setParameter(param_t param, const void *val, bool mark_save
 					param_changed = true;
 				}
 
-				params_changed.set(param, true);
-				params_unsaved.set(param, !mark_saved);
+				_params_changed.set(param, true);
+				_params_unsaved.set(param, !mark_saved);
 				result = PX4_OK;
 				break;
 
@@ -614,7 +605,7 @@ int ParameterServer::setParameter(param_t param, const void *val, bool mark_save
 	}
 
 out:
-	perf_end(param_set_perf);
+	perf_end(_set_perf);
 	unlockWriter();
 
 	/*
@@ -644,13 +635,13 @@ int ParameterServer::setParameterDefaultValue(param_t param, const void *val)
 
 	lockWriter();
 
-	if (param_custom_default_values == nullptr) {
-		utarray_new(param_custom_default_values, &param_icd);
+	if (_param_custom_default_values == nullptr) {
+		utarray_new(_param_custom_default_values, &param_icd);
 
 		// mark all parameters unchanged (default)
-		params_custom_default.reset();
+		_params_custom_default.reset();
 
-		if (param_custom_default_values == nullptr) {
+		if (_param_custom_default_values == nullptr) {
 			PX4_ERR("failed to allocate custom default values array");
 			unlockWriter();
 			return PX4_ERROR;
@@ -676,18 +667,18 @@ int ParameterServer::setParameterDefaultValue(param_t param, const void *val)
 	{
 		param_wbuf_s key{};
 		key.param = param;
-		s = (param_wbuf_s *)utarray_find(param_custom_default_values, &key, ParameterServer::compareValues);
+		s = (param_wbuf_s *)utarray_find(_param_custom_default_values, &key, ParameterServer::compareValues);
 	}
 
 	if (setting_to_static_default) {
 		if (s != nullptr) {
 			// param in memory and set to non-default value, clear
-			int pos = utarray_eltidx(param_custom_default_values, s);
-			utarray_erase(param_custom_default_values, pos, 1);
+			int pos = utarray_eltidx(_param_custom_default_values, s);
+			utarray_erase(_param_custom_default_values, pos, 1);
 		}
 
 		// do nothing if param not already set and being set to default
-		params_custom_default.set(param, false);
+		_params_custom_default.set(param, false);
 		result = PX4_OK;
 
 	} else {
@@ -697,11 +688,11 @@ int ParameterServer::setParameterDefaultValue(param_t param, const void *val)
 			buf.param = param;
 
 			// add it to the array and sort
-			utarray_push_back(param_custom_default_values, &buf);
-			utarray_sort(param_custom_default_values, ParameterServer::compareValues);
+			utarray_push_back(_param_custom_default_values, &buf);
+			utarray_sort(_param_custom_default_values, ParameterServer::compareValues);
 
 			// find it after sorting
-			s = (param_wbuf_s *)utarray_find(param_custom_default_values, &buf, ParameterServer::compareValues);
+			s = (param_wbuf_s *)utarray_find(_param_custom_default_values, &buf, ParameterServer::compareValues);
 		}
 
 		if (s != nullptr) {
@@ -709,13 +700,13 @@ int ParameterServer::setParameterDefaultValue(param_t param, const void *val)
 			switch (getParameterType(param)) {
 			case PARAM_TYPE_INT32:
 				s->val.i = *(int32_t *)val;
-				params_custom_default.set(param, true);
+				_params_custom_default.set(param, true);
 				result = PX4_OK;
 				break;
 
 			case PARAM_TYPE_FLOAT:
 				s->val.f = *(float *)val;
-				params_custom_default.set(param, true);
+				_params_custom_default.set(param, true);
 				result = PX4_OK;
 				break;
 
@@ -738,29 +729,15 @@ int ParameterServer::setParameterDefaultValue(param_t param, const void *val)
 void ParameterServer::setParameterUsed(param_t param)
 {
 	if (handle_in_range(param)) {
-		params_active.set(param, true);
+		_params_active.set(param, true);
 	}
 }
 
 void ParameterServer::notifyChanges()
 {
-	parameter_update_s pup{};
-	pup.instance = param_instance++;
-	pup.get_count = perf_event_count(param_get_perf);
-	pup.set_count = perf_event_count(param_set_perf);
-	pup.find_count = perf_event_count(param_find_perf);
-	pup.export_count = perf_event_count(param_export_perf);
-	pup.active = params_active.count();
-	pup.changed = params_changed.count();
-	pup.custom_default = params_custom_default.count();
-	pup.timestamp = hrt_absolute_time();
-
-	if (param_topic == nullptr) {
-		param_topic = orb_advertise(ORB_ID(parameter_update), &pup);
-
-	} else {
-		orb_publish(ORB_ID(parameter_update), param_topic, &pup);
-	}
+	_notify_scheduled.store(true);
+	ScheduleDelayed(10_ms);
+	// TODO: delay back to back notifications
 }
 
 int ParameterServer::resetParameter(param_t param, bool notify)
@@ -776,12 +753,12 @@ int ParameterServer::resetParameter(param_t param, bool notify)
 
 		/* if we found one, erase it */
 		if (s != nullptr) {
-			int pos = utarray_eltidx(param_values, s);
-			utarray_erase(param_values, pos, 1);
+			int pos = utarray_eltidx(_param_values, s);
+			utarray_erase(_param_values, pos, 1);
 		}
 
-		params_changed.set(param, false);
-		params_unsaved.set(param, true);
+		_params_changed.set(param, false);
+		_params_unsaved.set(param, true);
 
 		param_found = true;
 	}
@@ -801,14 +778,14 @@ void ParameterServer::resetAllParameters(bool auto_save)
 {
 	lockWriter();
 
-	if (param_values != nullptr) {
-		utarray_free(param_values);
+	if (_param_values != nullptr) {
+		utarray_free(_param_values);
 
-		params_changed.reset();
+		_params_changed.reset();
 	}
 
 	/* mark as reset / deleted */
-	param_values = nullptr;
+	_param_values = nullptr;
 
 	if (auto_save) {
 		autoSave();
@@ -878,14 +855,14 @@ int ParameterServer::exportToFile(const char *filename, param_filter_func filter
 	}
 
 	// take the file lock
-	do {} while (px4_sem_wait(&param_sem_save) != 0);
+	do {} while (px4_sem_wait(&_param_sem_save) != 0);
 
 	lockReader();
 
 	int fd = ::open(filename, O_RDWR | O_CREAT, PX4_O_MODE_666);
 	int result = PX4_ERROR;
 
-	perf_begin(param_export_perf);
+	perf_begin(_export_perf);
 
 	if (fd > -1) {
 		result = exportInternal(fd, filter);
@@ -895,10 +872,10 @@ int ParameterServer::exportToFile(const char *filename, param_filter_func filter
 		// result = flash_param_save(filter);
 	}
 
-	perf_end(param_export_perf);
+	perf_end(_export_perf);
 
 	unlockReader();
-	px4_sem_post(&param_sem_save);
+	px4_sem_post(&_param_sem_save);
 
 	if (shutdown_lock_ret == 0) {
 		px4_shutdown_unlock();
@@ -1258,7 +1235,7 @@ void ParameterServer::forEachParameter(void (*func)(void *arg, param_t param), v
 
 int ParameterServer::setDefaultFile(const char *filename)
 {
-	if ((param_backup_file && strcmp(filename, param_backup_file) == 0)) {
+	if ((_param_backup_file && strcmp(filename, _param_backup_file) == 0)) {
 		PX4_ERR("default file can't be the same as the backup file %s", filename);
 		return PX4_ERROR;
 	}
@@ -1268,14 +1245,14 @@ int ParameterServer::setDefaultFile(const char *filename)
 	(void)filename;
 #else
 
-	if (param_default_file != nullptr) {
+	if (_param_default_file != nullptr) {
 		// we assume this is not in use by some other thread
-		free(param_default_file);
-		param_default_file = nullptr;
+		free(_param_default_file);
+		_param_default_file = nullptr;
 	}
 
 	if (filename) {
-		param_default_file = strdup(filename);
+		_param_default_file = strdup(filename);
 	}
 
 #endif /* FLASH_BASED_PARAMS */
@@ -1285,22 +1262,22 @@ int ParameterServer::setDefaultFile(const char *filename)
 
 int ParameterServer::setBackupFile(const char *filename)
 {
-	if (param_default_file && strcmp(filename, param_default_file) == 0) {
+	if (_param_default_file && strcmp(filename, _param_default_file) == 0) {
 		PX4_ERR("backup file can't be the same as the default file %s", filename);
 		return PX4_ERROR;
 	}
 
-	if (param_backup_file != nullptr) {
+	if (_param_backup_file != nullptr) {
 		// we assume this is not in use by some other thread
-		free(param_backup_file);
-		param_backup_file = nullptr;
+		free(_param_backup_file);
+		_param_backup_file = nullptr;
 	}
 
 	if (filename) {
-		param_backup_file = strdup(filename);
+		_param_backup_file = strdup(filename);
 
 	} else {
-		param_backup_file = nullptr; // backup disabled
+		_param_backup_file = nullptr; // backup disabled
 	}
 
 	return 0;
@@ -1316,7 +1293,7 @@ int ParameterServer::saveDefault()
 	}
 
 	// take the file lock
-	do {} while (px4_sem_wait(&param_sem_save) != 0);
+	do {} while (px4_sem_wait(&_param_sem_save) != 0);
 
 	lockReader();
 
@@ -1331,9 +1308,9 @@ int ParameterServer::saveDefault()
 			int fd = ::open(filename, O_WRONLY | O_CREAT | O_TRUNC, PX4_O_MODE_666);
 
 			if (fd > -1) {
-				perf_begin(param_export_perf);
+				perf_begin(_export_perf);
 				res = exportInternal(fd, nullptr);
-				perf_end(param_export_perf);
+				perf_end(_export_perf);
 				::close(fd);
 
 				if (res == PX4_OK) {
@@ -1355,31 +1332,31 @@ int ParameterServer::saveDefault()
 
 	} else {
 		// TODO: flash params
-		// perf_begin(param_export_perf);
+		// perf_begin(_export_perf);
 		// res = flash_param_save(nullptr);
-		// perf_end(param_export_perf);
+		// perf_end(_export_perf);
 	}
 
 	if (res != PX4_OK) {
 		PX4_ERR("param export failed (%d)", res);
 
 	} else {
-		params_unsaved.reset();
+		_params_unsaved.reset();
 
 		// backup file
-		if (param_backup_file) {
-			int fd_backup_file = ::open(param_backup_file, O_WRONLY | O_CREAT | O_TRUNC, PX4_O_MODE_666);
+		if (_param_backup_file) {
+			int fd_backup_file = ::open(_param_backup_file, O_WRONLY | O_CREAT | O_TRUNC, PX4_O_MODE_666);
 
 			if (fd_backup_file > -1) {
 				int backup_export_ret = exportInternal(fd_backup_file, nullptr);
 				::close(fd_backup_file);
 
 				if (backup_export_ret != 0) {
-					PX4_ERR("backup parameter export to %s failed (%d)", param_backup_file, backup_export_ret);
+					PX4_ERR("backup parameter export to %s failed (%d)", _param_backup_file, backup_export_ret);
 
 				} else {
 					// verify export
-					int fd_verify = ::open(param_backup_file, O_RDONLY, PX4_O_MODE_666);
+					int fd_verify = ::open(_param_backup_file, O_RDONLY, PX4_O_MODE_666);
 					verifyBsonExport(fd_verify);
 					::close(fd_verify);
 				}
@@ -1388,7 +1365,7 @@ int ParameterServer::saveDefault()
 	}
 
 	unlockReader();
-	px4_sem_post(&param_sem_save);
+	px4_sem_post(&_param_sem_save);
 
 	if (shutdown_lock_ret == 0) {
 		px4_shutdown_unlock();
@@ -1464,50 +1441,56 @@ void ParameterServer::printStatus()
 		PX4_INFO("file: %s", filename);
 	}
 
-	if (param_backup_file) {
-		PX4_INFO("backup file: %s", param_backup_file);
+	if (_param_backup_file) {
+		PX4_INFO("backup file: %s", _param_backup_file);
 	}
 
 #endif /* FLASH_BASED_PARAMS */
 
-	if (param_values != nullptr) {
+	if (_param_values != nullptr) {
 		PX4_INFO("storage array: %d/%d elements (%zu bytes total)",
-			 utarray_len(param_values), param_values->n, param_values->n * sizeof(UT_icd));
+			 utarray_len(_param_values), _param_values->n, _param_values->n * sizeof(UT_icd));
 	}
 
-	if (param_custom_default_values != nullptr) {
+	if (_param_custom_default_values != nullptr) {
 		PX4_INFO("storage array (custom defaults): %d/%d elements (%zu bytes total)",
-			 utarray_len(param_custom_default_values), param_custom_default_values->n,
-			 param_custom_default_values->n * sizeof(UT_icd));
+			 utarray_len(_param_custom_default_values), _param_custom_default_values->n,
+			 _param_custom_default_values->n * sizeof(UT_icd));
 	}
 
-	PX4_INFO("auto save: %s", autosave_disabled ? "off" : "on");
+	PX4_INFO("auto save: %s", _autosave_disabled ? "off" : "on");
 
-	if (!autosave_disabled && (last_autosave_timestamp > 0)) {
-		PX4_INFO("last auto save: %.3f seconds ago", hrt_elapsed_time(&last_autosave_timestamp) * 1e-6);
+	if (!_autosave_disabled && (_last_autosave_timestamp > 0)) {
+		PX4_INFO("last auto save: %.3f seconds ago", hrt_elapsed_time(&_last_autosave_timestamp) * 1e-6);
 	}
 
-	perf_print_counter(param_export_perf);
-	perf_print_counter(param_find_perf);
-	perf_print_counter(param_get_perf);
-	perf_print_counter(param_set_perf);
+	perf_print_counter(_export_perf);
+	perf_print_counter(_find_count_perf);
+	perf_print_counter(_get_count_perf);
+	perf_print_counter(_set_perf);
 }
 
 void ParameterServer::controlAutosave(bool enable)
 {
 	lockWriter();
 
-	if (!enable && autosave_scheduled.load()) {
-		autosave_scheduled.store(false);
+	if (!enable && _autosave_scheduled.load()) {
+		_autosave_scheduled.store(false);
 	}
 
-	autosave_disabled = !enable;
+	_autosave_disabled = !enable;
 	unlockWriter();
 }
 
-void ParameterServer::autoSave()
+void ParameterServer::autoSave(bool now)
 {
-	if (autosave_scheduled.load() || autosave_disabled) {
+	if (now) {
+		_autosave_scheduled.store(true);
+		ScheduleNow();
+		return;
+	}
+
+	if (_autosave_scheduled.load() || _autosave_disabled) {
 		return;
 	}
 
@@ -1518,13 +1501,13 @@ void ParameterServer::autoSave()
 	hrt_abstime delay = 300_ms;
 
 	static constexpr const hrt_abstime rate_limit = 2_s; // rate-limit saving to 2 seconds
-	const hrt_abstime last_save_elapsed = hrt_elapsed_time(&last_autosave_timestamp);
+	const hrt_abstime last_save_elapsed = hrt_elapsed_time(&_last_autosave_timestamp);
 
 	if (last_save_elapsed < rate_limit && rate_limit > last_save_elapsed + delay) {
 		delay = rate_limit - last_save_elapsed;
 	}
 
-	autosave_scheduled.store(true);
+	_autosave_scheduled.store(true);
 
 	ScheduleDelayed(delay);
 }
@@ -1548,12 +1531,12 @@ int ParameterServer::exportInternal(int fd, param_filter_func filter)
 	}
 
 	// no modified parameters, export empty BSON document
-	if (param_values == nullptr) {
+	if (_param_values == nullptr) {
 		result = 0;
 		goto out;
 	}
 
-	while ((s = (struct param_wbuf_s *)utarray_next(param_values, s)) != nullptr) {
+	while ((s = (struct param_wbuf_s *)utarray_next(_param_values, s)) != nullptr) {
 		if (filter && !filter(s->param)) {
 			continue;
 		}
@@ -1632,54 +1615,109 @@ out:
 void ParameterServer::Run()
 {
 
-	// TODO: param_request
 	// Check for parameter requests (get/set/list)
 	if (_param_request_sub.updated()) {
 		parameter_request_s request;
-		_param_request_sub.copy(&request);
 
-		/*
-		 * We know how many parameters are exposed by this node, so
-		 * process the request.
-		 */
-		if (request.message_type == parameter_request_s::MESSAGE_TYPE_PARAM_REQUEST_READ) {
-			//parameter_value_s parameter_value{};
+		if (_param_request_sub.copy(&request)) {
+
+			if (request.message_type == parameter_request_s::MESSAGE_TYPE_PARAM_REQUEST_READ) {
+
+				parameter_value_s parameter_value{};
+				parameter_value.param_count = countUsed();
+
+				param_t param = findParameter(request.name);
+
+				if (param != PARAM_INVALID) {
+
+					parameter_value.param_index = param;
+
+					switch (getParameterType(param)) {
+					case PARAM_TYPE_INT32: {
+							int32_t v;
+
+							if (getParameterDefaultValue(param, &v) == 0) {
+								parameter_value.type = parameter_request_s::TYPE_INT32;
+								parameter_value.int64_value = v;
+								parameter_value.timestamp = hrt_absolute_time();
+								_param_response_pub.publish(parameter_value);
+							}
+						}
+						break;
+
+					case PARAM_TYPE_FLOAT: {
+							float v;
+
+							if (getParameterDefaultValue(param, &v) == 0) {
+								parameter_value.type = parameter_request_s::TYPE_FLOAT32;
+								parameter_value.float64_value = v;
+								parameter_value.timestamp = hrt_absolute_time();
+								_param_response_pub.publish(parameter_value);
+							}
+						}
+						break;
+					}
+				}
+
+			} else if (request.message_type == parameter_request_s::MESSAGE_TYPE_PARAM_SET) {
+
+				param_t param = findParameter(request.name);
+
+				if (param != PARAM_INVALID) {
+					switch (request.type) {
+					case parameter_request_s::TYPE_BOOL:
+
+					case parameter_request_s::TYPE_UINT8:
+					case parameter_request_s::TYPE_INT32:
+					case parameter_request_s::TYPE_INT64: {
+							int32_t i32_value = request.int64_value;
+							setParameter(param, &i32_value);
+						}
+						break;
+
+					case parameter_request_s::TYPE_FLOAT32:
+					case parameter_request_s::TYPE_FLOAT64: {
+							float float32_value = request.float64_value;
+							setParameter(param, &float32_value);
+						}
+					}
+				}
+
+			} else if (request.message_type == parameter_request_s::MESSAGE_TYPE_PARAM_REQUEST_LIST) {
+
+				// TODO:
 
 
-		} else if (request.message_type == parameter_request_s::MESSAGE_TYPE_PARAM_SET) {
+			} else if (request.node_id == parameter_request_s::NODE_ID_ALL) {
+				if (request.message_type == parameter_request_s::MESSAGE_TYPE_PARAM_REQUEST_LIST) {
 
-		} else if (request.message_type == parameter_request_s::MESSAGE_TYPE_PARAM_REQUEST_LIST) {
+					// TODO:
 
-
-		} else if (request.node_id == parameter_request_s::NODE_ID_ALL) {
-			if (request.message_type == parameter_request_s::MESSAGE_TYPE_PARAM_REQUEST_LIST) {
-
+				}
 			}
 		}
 	}
 
-
-
 	// autosave worker, run last
-	if (autosave_scheduled.load()) {
+	if (_autosave_scheduled.load()) {
 
 		bool disabled = false;
 
 		if (!getDefaultFile()) {
 			// In case we save to FLASH, defer param writes until disarmed,
 			// as writing to FLASH can stall the entire CPU (in rare cases around 300ms on STM32F7)
-			uORB::SubscriptionData<actuator_armed_s> armed_sub{ORB_ID(actuator_armed)};
+			_armed_sub.update();
 
-			if (armed_sub.get().armed) {
+			if (_armed_sub.get().armed) {
 				//work_queue(LPWORK, &autosave_work, (worker_t)&autosave_worker, nullptr, USEC2TICK(1_s));
 				return;
 			}
 		}
 
 		lockWriter();
-		last_autosave_timestamp = hrt_absolute_time();
-		autosave_scheduled.store(false);
-		disabled = autosave_disabled;
+		_last_autosave_timestamp = hrt_absolute_time();
+		_autosave_scheduled.store(false);
+		disabled = _autosave_disabled;
 		unlockWriter();
 
 		if (disabled) {
@@ -1693,6 +1731,26 @@ void ParameterServer::Run()
 			PX4_ERR("param auto save failed (%i)", ret);
 		}
 
+	}
+
+	if (_notify_scheduled.load()) {
+		lockReader();
+
+		_notify_scheduled.store(false);
+
+		parameter_update_s pup{};
+		pup.instance = _param_instance++;
+		pup.get_count = perf_event_count(_get_count_perf);
+		pup.set_count = perf_event_count(_set_perf);
+		pup.find_count = perf_event_count(_find_count_perf);
+		pup.export_count = perf_event_count(_export_perf);
+		pup.active = _params_active.count();
+		pup.changed = _params_changed.count();
+		pup.custom_default = _params_custom_default.count();
+		pup.timestamp = hrt_absolute_time();
+		_parameter_update_pub.publish(pup);
+
+		unlockReader();
 	}
 
 }

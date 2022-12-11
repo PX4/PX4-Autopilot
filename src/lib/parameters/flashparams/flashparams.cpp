@@ -87,12 +87,12 @@ param_export_internal(param_filter_func filter)
 	bson_encoder_init_buf(&encoder, nullptr, 0);
 
 	/* no modified parameters -> we are done */
-	if (param_values == nullptr) {
+	if (_param_values == nullptr) {
 		result = 0;
 		goto out;
 	}
 
-	while ((s = (struct param_wbuf_s *)utarray_next(param_values, s)) != nullptr) {
+	while ((s = (struct param_wbuf_s *)utarray_next(_param_values, s)) != nullptr) {
 
 		int32_t i;
 		float   f;
