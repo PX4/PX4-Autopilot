@@ -2949,6 +2949,7 @@ Mavlink::display_status()
 	       _ftp_on ? "YES" : "NO",
 	       _transmitting_enabled ? "YES" : "NO");
 	printf("\tmode: %s\n", mavlink_mode_str(_mode));
+	printf("\tForwarding: %s\n", get_forwarding_on() ? "On" : "Off");
 	printf("\tMAVLink version: %" PRId32 "\n", _protocol_version);
 
 	printf("\ttransport protocol: ");
