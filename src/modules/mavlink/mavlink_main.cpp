@@ -476,7 +476,7 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 	LockGuard lg{mavlink_module_mutex};
 
 	for (Mavlink *inst : mavlink_module_instances) {
-		if (inst && (inst != self) && (inst->_forwarding_on)) {
+		if (inst && (inst != self) && (inst->get_forwarding_on())) {
 			// Pass message only if target component was seen before
 			if (inst->_receiver.component_was_seen(target_system_id, target_component_id)) {
 				inst->pass_message(msg);
@@ -2183,7 +2183,7 @@ Mavlink::task_main(int argc, char *argv[])
 	pthread_mutex_init(&_radio_status_mutex, nullptr);
 
 	/* if we are passing on mavlink messages, we need to prepare a buffer for this instance */
-	if (_forwarding_on) {
+	if (get_forwarding_on()) {
 		/* initialize message buffer if multiplexing is on.
 		 * make space for two messages plus off-by-one space as we use the empty element
 		 * marker ring buffer approach.
@@ -2537,7 +2537,7 @@ Mavlink::task_main(int argc, char *argv[])
 		_events.update(t);
 
 		/* pass messages from other UARTs */
-		if (_forwarding_on) {
+		if (get_forwarding_on()) {
 
 			bool is_part;
 			uint8_t *read_ptr;
@@ -2629,7 +2629,7 @@ Mavlink::task_main(int argc, char *argv[])
 		_socket_fd = -1;
 	}
 
-	if (_forwarding_on) {
+	if (get_forwarding_on()) {
 		message_buffer_destroy();
 		pthread_mutex_destroy(&_message_buffer_mutex);
 	}
