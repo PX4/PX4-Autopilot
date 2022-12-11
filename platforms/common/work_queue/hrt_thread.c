@@ -138,14 +138,6 @@ static void hrt_work_process()
 	/* Default to sleeping for 1 sec */
 	next  = 1000000;
 
-#ifdef __PX4_QURT
-	// With Qurt we have to wake up more often because there is an assumption
-	// that certain signals wake up a sleeping thread but it isn't the case
-	// with the Qurt POSIX implementation. So rather than assume we can come out
-	// of the sleep early by a signal we just wake up more often.
-	next = 1000;
-#endif
-
 	hrt_work_lock();
 
 	work  = (struct work_s *)wqueue->q.head;

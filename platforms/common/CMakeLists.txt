@@ -56,11 +56,6 @@ add_library(px4_platform STATIC
 )
 target_link_libraries(px4_platform prebuild_targets px4_work_queue)
 
-if("${PX4_PLATFORM}" MATCHES "qurt")
-# Get rid of fatal warning about "px4_spi_buses != nullptr" comparison in spi.cpp
-set_target_properties(px4_platform PROPERTIES COMPILE_FLAGS -Wno-tautological-pointer-compare)
-endif()
-
 if(NOT "${PX4_BOARD}" MATCHES "io-v2")
 	add_subdirectory(uORB)
 endif()
