@@ -13,9 +13,6 @@
 
 . /etc/init.d/rc.mc_defaults
 
-set MIXER quad_x
-set PWM_OUT 1234
-
 # Default rates
 param set-default IMU_GYRO_CUTOFF 60
 param set-default IMU_DGYRO_CUTOFF 30
@@ -25,6 +22,25 @@ param set-default MC_ROLLRATE_I 0.3
 param set-default MC_PITCHRATE_I 0.3
 param set-default MC_ROLLRATE_D 0.004
 param set-default MC_PITCHRATE_D 0.004
+
+# Control allocator parameters
+param set-default CA_ROTOR_COUNT 4
+param set-default CA_ROTOR0_PX 0.175
+param set-default CA_ROTOR0_PY 0.175
+param set-default CA_ROTOR1_PX -0.175
+param set-default CA_ROTOR1_PY -0.175
+param set-default CA_ROTOR2_PX 0.175
+param set-default CA_ROTOR2_PY -0.175
+param set-default CA_ROTOR2_KM -0.05
+param set-default CA_ROTOR3_PX -0.175
+param set-default CA_ROTOR3_PY 0.175
+param set-default CA_ROTOR3_KM -0.05
+
+# PWM functions
+param set-default PWM_MAIN_FUNC1 101
+param set-default PWM_MAIN_FUNC2 102
+param set-default PWM_MAIN_FUNC3 103
+param set-default PWM_MAIN_FUNC4 104
 
 # Increase velocity controller P gain
 param set-default MPC_XY_VEL_P_ACC 2.4
