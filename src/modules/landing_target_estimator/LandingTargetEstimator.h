@@ -77,8 +77,6 @@
 #include "KF_xyzb_decoupled_moving.h"
 #include "KF_xyzb_coupled_moving.h"
 #include "KF_xyzb_coupled_static.h"
-#include "KF_xyz_coupled_moving.h"
-#include "KF_xyz_coupled_static.h"
 
 using namespace time_literals;
 

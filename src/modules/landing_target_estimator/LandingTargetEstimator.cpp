@@ -122,17 +122,10 @@ bool LandingTargetEstimator::initEstimator(Vector3f pos_init, Vector3f vel_rel_i
 		Vector3f bias_init)
 {
 
-	if (!selectTargetEstimator()) {
-		return false;
-	}
-
 	PX4_INFO("Pos init %.2f %.2f %.2f", (double)pos_init(0), (double)pos_init(1), (double)pos_init(2));
 	PX4_INFO("Vel init %.2f %.2f %.2f", (double)vel_rel_init(0), (double)vel_rel_init(1), (double)vel_rel_init(2));
 	PX4_INFO("Acc init %.2f %.2f %.2f", (double)a_init(0), (double)a_init(1), (double)a_init(2));
-
-	if (_bias_set) {
-		PX4_INFO("Bias init %.2f %.2f %.2f", (double)bias_init(0), (double)bias_init(1), (double)bias_init(2));
-	}
+	PX4_INFO("Bias init %.2f %.2f %.2f", (double)bias_init(0), (double)bias_init(1), (double)bias_init(2));
 
 	float state_pos_var = _param_ltest_pos_unc_in.get();
 	float state_vel_var = _param_ltest_vel_unc_in.get();
@@ -154,10 +147,8 @@ bool LandingTargetEstimator::initEstimator(Vector3f pos_init, Vector3f vel_rel_i
 		_target_estimator_coupled->setStateVelVar(state_vel_var_vect);
 		_target_estimator_coupled->setStateAccVar(state_acc_var_vect);
 
-		if (_bias_set) {
-			_target_estimator_coupled->setBias(bias_init);
-			_target_estimator_coupled->setStateBiasVar(state_bias_var_vect);
-		}
+		_target_estimator_coupled->setBias(bias_init);
+		_target_estimator_coupled->setStateBiasVar(state_bias_var_vect);
 
 	} else {
 
@@ -729,15 +720,18 @@ bool LandingTargetEstimator::processObsTargetGNSS(const landing_target_gnss_s &t
 
 		// x direction H = [1, 0, 0, 0, 0, 0, 1, 0, 0, ...]
 		obs.meas_h_xyz(0, 0) = 1;
-		obs.meas_h_xyz(0, 6) = 1;
 
 		// y direction H = [0, 1, 0, 0, 0, 0, 0, 1, 0, ...]
 		obs.meas_h_xyz(1, 1) = 1;
-		obs.meas_h_xyz(1, 7) = 1;
 
 		// z direction H = [0, 0, 1, 0, 0, 0, 0, 0, 1, ...]
 		obs.meas_h_xyz(2, 2) = 1;
-		obs.meas_h_xyz(2, 8) = 1;
+
+		if (_bias_set) {
+			obs.meas_h_xyz(0, 6) = 1;
+			obs.meas_h_xyz(1, 7) = 1;
+			obs.meas_h_xyz(2, 8) = 1;
+		}
 
 		obs.timestamp = gps_timestamp;
 
@@ -1095,17 +1089,15 @@ void LandingTargetEstimator::publishTarget()
 		target_estimator_state.cov_vy_rel = cov_vel_vect(1);
 		target_estimator_state.cov_vz_rel = cov_vel_vect(2);
 
-		if (_bias_set) {
-			Vector3f bias_vect = _target_estimator_coupled->getBiasVect();
-			target_estimator_state.x_bias = bias_vect(0);
-			target_estimator_state.y_bias = bias_vect(1);
-			target_estimator_state.z_bias = bias_vect(2);
+		Vector3f bias_vect = _target_estimator_coupled->getBiasVect();
+		target_estimator_state.x_bias = bias_vect(0);
+		target_estimator_state.y_bias = bias_vect(1);
+		target_estimator_state.z_bias = bias_vect(2);
 
-			Vector3f cov_bias_vect = _target_estimator_coupled->getBiasVarVect();
-			target_estimator_state.cov_x_bias = cov_bias_vect(0);
-			target_estimator_state.cov_y_bias = cov_bias_vect(1);
-			target_estimator_state.cov_z_bias = cov_bias_vect(2);
-		}
+		Vector3f cov_bias_vect = _target_estimator_coupled->getBiasVarVect();
+		target_estimator_state.cov_x_bias = cov_bias_vect(0);
+		target_estimator_state.cov_y_bias = cov_bias_vect(1);
+		target_estimator_state.cov_z_bias = cov_bias_vect(2);
 
 		if (_target_mode == TargetMode::Moving) {
 			Vector3f acc_target_vect = _target_estimator_coupled->getAccelerationVect();
@@ -1153,15 +1145,13 @@ void LandingTargetEstimator::publishTarget()
 		target_estimator_state.cov_vy_rel = _target_estimator[y]->getVelVar();
 		target_estimator_state.cov_vz_rel = _nb_position_kf > 2 ? _target_estimator[z]->getVelVar() : 0.f;
 
-		if (_bias_set) {
-			target_estimator_state.x_bias = _target_estimator[x]->getBias();
-			target_estimator_state.y_bias = _target_estimator[y]->getBias();
-			target_estimator_state.z_bias = _nb_position_kf > 2 ? _target_estimator[z]->getBias() : 0.f;
+		target_estimator_state.x_bias = _target_estimator[x]->getBias();
+		target_estimator_state.y_bias = _target_estimator[y]->getBias();
+		target_estimator_state.z_bias = _nb_position_kf > 2 ? _target_estimator[z]->getBias() : 0.f;
 
-			target_estimator_state.cov_x_bias = _target_estimator[x]->getBiasVar();
-			target_estimator_state.cov_y_bias = _target_estimator[y]->getBiasVar();
-			target_estimator_state.cov_z_bias = _nb_position_kf > 2 ? _target_estimator[z]->getBiasVar() : 0.f;
-		}
+		target_estimator_state.cov_x_bias = _target_estimator[x]->getBiasVar();
+		target_estimator_state.cov_y_bias = _target_estimator[y]->getBiasVar();
+		target_estimator_state.cov_z_bias = _nb_position_kf > 2 ? _target_estimator[z]->getBiasVar() : 0.f;
 
 		if (_target_mode == TargetMode::Moving) {
 			target_estimator_state.ax_target = _target_estimator[x]->getAcceleration();
@@ -1350,6 +1340,10 @@ void LandingTargetEstimator::updateParams()
 		_target_mode = param_target_mode;
 		_target_model = param_target_model;
 
+		if (!selectTargetEstimator()) {
+			// TODO: decide on behaviour
+		}
+
 		// Define LTEST timeout
 		_ltest_TIMEOUT_US = (uint32_t)(_param_ltest_btout.get() * SEC2USEC);
 	}
@@ -1422,25 +1416,14 @@ bool LandingTargetEstimator::selectTargetEstimator()
 
 		if (_target_mode == TargetMode::Moving) {
 
-			if (_bias_set) {
-				tmp_xyz = new KF_xyzb_coupled_moving;
-				PX4_INFO("Init LTEST: moving target, [x,y,z,b] coupled in one filter.");
-
-			} else {
-				tmp_xyz = new KF_xyz_coupled_moving;
-				PX4_INFO("Init LTEST: moving target, [x,y,z] coupled in one filter.");
-			}
+			tmp_xyz = new KF_xyzb_coupled_moving;
+			PX4_INFO("Init LTEST: moving target, [x,y,z,b] coupled in one filter.");
 
 		} else {
 
-			if (_bias_set) {
-				tmp_xyz = new KF_xyzb_coupled_static;
-				PX4_INFO("Init LTEST: static target, [x,y,z,b] coupled in one filter.");
+			tmp_xyz = new KF_xyzb_coupled_static;
+			PX4_INFO("Init LTEST: static target, [x,y,z,b] coupled in one filter.");
 
-			} else {
-				tmp_xyz = new KF_xyz_coupled_static;
-				PX4_INFO("Init LTEST: static target, [x,y,z] coupled in one filter.");
-			}
 		}
 
 		init_failed = (tmp_xyz == nullptr);
