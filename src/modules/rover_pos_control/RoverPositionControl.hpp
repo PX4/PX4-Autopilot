@@ -41,14 +41,15 @@
  * @author Marco Zorzi <mzorzi@student.ethz.ch>
  */
 
-#include <float.h>
 
+#include <float.h>
 #include <drivers/drv_hrt.h>
 #include <lib/geo/geo.h>
 #include <lib/l1/ECL_L1_Pos_Controller.hpp>
 #include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
 #include <lib/pid/pid.h>
+#include <lib/rate_control/rate_control.hpp>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/posix.h>
@@ -67,6 +68,9 @@
 #include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_angular_velocity.h>
+#include <uORB/topics/vehicle_angular_acceleration.h>
+#include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_control_mode.h>
@@ -105,6 +109,7 @@ private:
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
+	uORB::Publication<vehicle_rates_setpoint_s>	_rates_sp_pub{ORB_ID(vehicle_rates_setpoint)};
 	uORB::Publication<vehicle_attitude_setpoint_s>	_attitude_sp_pub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Publication<position_controller_status_s>	_pos_ctrl_status_pub{ORB_ID(position_controller_status)};  /**< navigation capabilities publication */
 
@@ -116,14 +121,19 @@ private:
 	uORB::Subscription _att_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _att_sp_sub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
-
+	uORB::Subscription _rates_sp_sub{ORB_ID(vehicle_rates_setpoint)};
+	uORB::Subscription _vehicle_angular_acceleration_sub{ORB_ID(vehicle_angular_acceleration)};
 	manual_control_setpoint_s		_manual_control_setpoint{};			    /**< r/c channel data */
 	position_setpoint_triplet_s		_pos_sp_triplet{};		/**< triplet of mission items */
 	vehicle_attitude_setpoint_s		_att_sp{};			/**< attitude setpoint > */
+	vehicle_rates_setpoint_s		_rates_sp{};			/**< rate setpoint > */
 	vehicle_control_mode_s			_control_mode{};		/**< control mode */
 	vehicle_global_position_s		_global_pos{};			/**< global vehicle position */
 	vehicle_local_position_s		_local_pos{};			/**< global vehicle position */
 	vehicle_attitude_s				_vehicle_att{};
+	vehicle_angular_acceleration_s		_vehicle_angular_acceleration{};
+	vehicle_angular_velocity_s _vehicle_rates{};
+
 	trajectory_setpoint_s _trajectory_setpoint{};
 	uORB::Publication<vehicle_thrust_setpoint_s>	_vehicle_thrust_setpoint_pub{ORB_ID(vehicle_thrust_setpoint)};
 	uORB::Publication<vehicle_torque_setpoint_s>	_vehicle_torque_setpoint_pub{ORB_ID(vehicle_torque_setpoint)};
@@ -133,6 +143,7 @@ private:
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
 	hrt_abstime _control_position_last_called{0}; 	/**<last call of control_position  */
+	hrt_abstime _control_rates_last_called{0};
 	hrt_abstime _manual_setpoint_last_called{0};
 
 	MapProjection _global_local_proj_ref{};
@@ -145,6 +156,8 @@ private:
 	uint8_t _pos_reset_counter{0};		// captures the number of times the estimator has reset the horizontal position
 
 	ECL_L1_Pos_Controller				_gnd_control;
+	RateControl				_rate_control;
+	float _steering_input{0.0};
 
 	enum UGV_POSCTRL_MODE {
 		UGV_POSCTRL_MODE_AUTO,
@@ -177,6 +190,7 @@ private:
 
 		(ParamFloat<px4::params::GND_SPEED_TRIM>) _param_gndspeed_trim,
 		(ParamFloat<px4::params::GND_SPEED_MAX>) _param_gndspeed_max,
+		(ParamFloat<px4::params::GND_SPEED_MIN>) _param_gndspeed_min,
 
 		(ParamInt<px4::params::GND_SP_CTRL_MODE>) _param_speed_control_mode,
 		(ParamFloat<px4::params::GND_SPEED_P>) _param_speed_p,
@@ -185,12 +199,20 @@ private:
 		(ParamFloat<px4::params::GND_SPEED_IMAX>) _param_speed_imax,
 		(ParamFloat<px4::params::GND_SPEED_THR_SC>) _param_throttle_speed_scaler,
 
+		(ParamFloat<px4::params::GND_RATE_P>) _param_rate_p,
+		(ParamFloat<px4::params::GND_RATE_I>) _param_rate_i,
+		(ParamFloat<px4::params::GND_RATE_D>) _param_rate_d,
+		(ParamFloat<px4::params::GND_RATE_FF>) _param_rate_ff,
+		(ParamFloat<px4::params::GND_RATE_IMAX>) _param_rate_imax,
+		(ParamFloat<px4::params::GND_RATE_MAX>) _param_rate_max,
+		(ParamFloat<px4::params::GND_RATE_IMINSPD>) _param_rate_i_minspeed,
+
 		(ParamFloat<px4::params::GND_THR_MIN>) _param_throttle_min,
 		(ParamFloat<px4::params::GND_THR_MAX>) _param_throttle_max,
 		(ParamFloat<px4::params::GND_THR_CRUISE>) _param_throttle_cruise,
 
-		(ParamFloat<px4::params::GND_WHEEL_BASE>) _param_wheel_base,
 		(ParamFloat<px4::params::GND_MAX_ANG>) _param_max_turn_angle,
+		(ParamFloat<px4::params::GND_ATT_P>) _param_att_p,
 		(ParamFloat<px4::params::GND_MAN_Y_MAX>) _param_gnd_man_y_max,
 		(ParamFloat<px4::params::NAV_LOITER_RAD>) _param_nav_loiter_rad	/**< loiter radius for Rover */
 	)
@@ -202,8 +224,10 @@ private:
 
 	void		position_setpoint_triplet_poll();
 	void		attitude_setpoint_poll();
+	void		rates_setpoint_poll();
 	void		vehicle_control_mode_poll();
 	void 		vehicle_attitude_poll();
+	void		vehicle_angular_acceleration_poll();
 	void		manual_control_setpoint_poll();
 
 	/**
@@ -213,5 +237,8 @@ private:
 					 const position_setpoint_triplet_s &_pos_sp_triplet);
 	void		control_velocity(const matrix::Vector3f &current_velocity);
 	void		control_attitude(const vehicle_attitude_s &att, const vehicle_attitude_setpoint_s &att_sp);
+	void		control_rates(const vehicle_angular_velocity_s &rates, const  vehicle_angular_acceleration_s &acc,
+				      const vehicle_local_position_s &local_pos,
+				      const vehicle_rates_setpoint_s &rates_sp);
 
 };
