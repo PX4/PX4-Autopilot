@@ -55,11 +55,13 @@ ICM42688P::ICM42688P(const I2CSPIDriverConfig &config) :
 	if (config.drdy_gpio != 0) {
 		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME": DRDY missed");
 	}
+
 	if (!hitl_mode) {
 		// _px4_accel = std::make_shared<PX4Accelerometer>(get_device_id(), rotation);
 		// _px4_gyro = std::make_shared<PX4Gyroscope>(get_device_id(), rotation);
 		ConfigureSampleRate(_px4_gyro.get_max_rate_hz());
 		// _imu_server_pub.advertise();
+
 	} else {
 		ConfigureSampleRate(0);
 	}
@@ -75,7 +77,7 @@ ICM42688P::~ICM42688P()
 	perf_free(_drdy_missed_perf);
 
 	// if (!hitl_mode){
-    //  		_imu_server_pub.unadvertise();
+	//  		_imu_server_pub.unadvertise();
 	// }
 }
 
@@ -169,6 +171,7 @@ void ICM42688P::RunImpl()
 
 			_state = STATE::CONFIGURE;
 			ScheduleDelayed(10_ms); // 30 ms gyro startup time, 10 ms accel from sleep to valid data
+
 		} else {
 			// RESET not complete
 			if (hrt_elapsed_time(&_reset_timestamp) > 1000_ms) {
@@ -307,6 +310,7 @@ void ICM42688P::RunImpl()
 				perf_count(_bad_register_perf);
 				Reset();
 			}
+
 #endif
 		}
 
@@ -400,12 +404,13 @@ bool ICM42688P::Configure()
 
 	// // 20-bits data format used
 	// //  the only FSR settings that are operational are ±2000dps for gyroscope and ±16g for accelerometer
-	if (!hitl_mode){
+	if (!hitl_mode) {
 		_px4_accel.set_range(16.f * CONSTANTS_ONE_G);
 		_px4_accel.set_scale(CONSTANTS_ONE_G / 8192.f);
 		_px4_gyro.set_range(math::radians(2000.f));
 		_px4_gyro.set_scale(math::radians(1.f / 131.f));
 	}
+
 	return success;
 }
 
@@ -425,18 +430,22 @@ int ICM42688P::DataReadyInterruptCallback(int irq, void *context, void *arg)
 	if (interrupt_debug) {
 		if (last_interrupt_time) {
 			hrt_abstime interrupt_delta_time = current_interrupt_time - last_interrupt_time;
-			if (interrupt_delta_time > max_interrupt_delta) max_interrupt_delta = interrupt_delta_time;
-			if (interrupt_delta_time < min_interrupt_delta) min_interrupt_delta = interrupt_delta_time;
+
+			if (interrupt_delta_time > max_interrupt_delta) { max_interrupt_delta = interrupt_delta_time; }
+
+			if (interrupt_delta_time < min_interrupt_delta) { min_interrupt_delta = interrupt_delta_time; }
+
 			cumulative_interrupt_delta += interrupt_delta_time;
 		}
 
 		last_interrupt_time = current_interrupt_time;
 
 		interrupt_debug_count++;
+
 		if (interrupt_debug_count == interrupt_debug_trigger) {
 			avg_interrupt_delta = cumulative_interrupt_delta / interrupt_debug_trigger;
 			PX4_INFO(">>> Max: %llu, Min: %llu, Avg: %llu", max_interrupt_delta,
-	                 min_interrupt_delta, avg_interrupt_delta);
+				 min_interrupt_delta, avg_interrupt_delta);
 			interrupt_debug_count = 0;
 			cumulative_interrupt_delta = 0;
 		}
@@ -455,10 +464,11 @@ void ICM42688P::DataReady()
 	if (_drdy_fifo_read_samples.compare_exchange(&expected, _fifo_gyro_samples)) {
 		ScheduleNow();
 	}
-#else
-    uint16_t fifo_byte_count = FIFOReadCount();
 
-    FIFORead(hrt_absolute_time(), fifo_byte_count / sizeof(FIFO::DATA));
+#else
+	uint16_t fifo_byte_count = FIFOReadCount();
+
+	FIFORead(hrt_absolute_time(), fifo_byte_count / sizeof(FIFO::DATA));
 #endif
 }
 
@@ -677,7 +687,8 @@ static constexpr int32_t reassemble_20bit(const uint32_t a, const uint32_t b, co
 	return static_cast<int32_t>(x);
 }
 
-void ICM42688P::ProcessIMU(const hrt_abstime &timestamp_sample, const FIFO::DATA &fifo) {
+void ICM42688P::ProcessIMU(const hrt_abstime &timestamp_sample, const FIFO::DATA &fifo)
+{
 	// float accel_x = 0.0, accel_y = 0.0, accel_z = 0.0;
 	// float gyro_x = 0.0,  gyro_y = 0.0,  gyro_z = 0.0;
 	//
@@ -694,11 +705,11 @@ void ICM42688P::ProcessIMU(const hrt_abstime &timestamp_sample, const FIFO::DATA
 	//
 	// // Gyro [19:12] + Gyro [11:4] + Gyro [3:0] (bottom 4 bits of 20 bit extension byte)
 	// int32_t temp_gyro_x = reassemble_20bit(fifo.GYRO_DATA_X1, fifo.GYRO_DATA_X0,
-    //                    fifo.Ext_Accel_X_Gyro_X & 0x0F);
+	//                    fifo.Ext_Accel_X_Gyro_X & 0x0F);
 	// int32_t temp_gyro_y = reassemble_20bit(fifo.GYRO_DATA_Y1, fifo.GYRO_DATA_Y0,
-    //                    fifo.Ext_Accel_Y_Gyro_Y & 0x0F);
+	//                    fifo.Ext_Accel_Y_Gyro_Y & 0x0F);
 	// int32_t temp_gyro_z = reassemble_20bit(fifo.GYRO_DATA_Z1, fifo.GYRO_DATA_Z0,
-    //                    fifo.Ext_Accel_Z_Gyro_Z & 0x0F);
+	//                    fifo.Ext_Accel_Z_Gyro_Z & 0x0F);
 
 	// // accel samples invalid if -524288
 	// if (temp_accel_x != -524288 && temp_accel_y != -524288 && temp_accel_z != -524288) {
@@ -712,9 +723,9 @@ void ICM42688P::ProcessIMU(const hrt_abstime &timestamp_sample, const FIFO::DATA
 	// 	gyro_y = (float) temp_gyro_y / 2.f;
 	// 	gyro_z = (float) temp_gyro_z / 2.f;
 	//
-    // 	// correct frame for publication
-    // 	// sensor's frame is +x forward, +y left, +z up
-    // 	// flip y & z to publish right handed with z down (x forward, y right, z down)
+	// 	// correct frame for publication
+	// 	// sensor's frame is +x forward, +y left, +z up
+	// 	// flip y & z to publish right handed with z down (x forward, y right, z down)
 	// 	accel_y = -accel_y;
 	// 	accel_z = -accel_z;
 	// 	gyro_y  = -gyro_y;
@@ -801,7 +812,7 @@ void ICM42688P::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DA
 
 	if (!scale_20bit) {
 		// if highres enabled accel data is always 8192 LSB/g
-		if (!hitl_mode){
+		if (!hitl_mode) {
 			_px4_accel.set_scale(CONSTANTS_ONE_G / 8192.f);
 		}
 
@@ -819,7 +830,8 @@ void ICM42688P::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DA
 			accel.y[i] = accel_y;
 			accel.z[i] = accel_z;
 		}
-		if (!hitl_mode){
+
+		if (!hitl_mode) {
 			_px4_accel.set_scale(CONSTANTS_ONE_G / 2048.f);
 		}
 	}
@@ -833,13 +845,13 @@ void ICM42688P::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DA
 		accel.z[i] = (accel.z[i] == INT16_MIN) ? INT16_MAX : -accel.z[i];
 	}
 
-	if (!hitl_mode){
+	if (!hitl_mode) {
 		_px4_accel.set_error_count(perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf) +
-	 			   perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf));
+					   perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf));
 	}
 
 	if (accel.samples > 0) {
-		if (!hitl_mode){
+		if (!hitl_mode) {
 			_px4_accel.updateFIFO(accel);
 		}
 	}
@@ -887,9 +899,10 @@ void ICM42688P::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DAT
 
 	if (!scale_20bit) {
 		// if highres enabled gyro data is always 131 LSB/dps
-		if (!hitl_mode){
+		if (!hitl_mode) {
 			_px4_gyro.set_scale(math::radians(1.f / 131.f));
 		}
+
 	} else {
 		// 20 bit data scaled to 16 bit (2^4)
 		for (int i = 0; i < samples; i++) {
@@ -897,7 +910,8 @@ void ICM42688P::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DAT
 			gyro.y[i] = combine(fifo[i].GYRO_DATA_Y1, fifo[i].GYRO_DATA_Y0);
 			gyro.z[i] = combine(fifo[i].GYRO_DATA_Z1, fifo[i].GYRO_DATA_Z0);
 		}
-		if (!hitl_mode){
+
+		if (!hitl_mode) {
 			_px4_gyro.set_scale(math::radians(2000.f / 32768.f));
 		}
 	}
@@ -911,13 +925,13 @@ void ICM42688P::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DAT
 		gyro.z[i] = (gyro.z[i] == INT16_MIN) ? INT16_MAX : -gyro.z[i];
 	}
 
-	if (!hitl_mode){
+	if (!hitl_mode) {
 		_px4_gyro.set_error_count(perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf) +
-	 			  perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf));
+					  perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf));
 	}
 
 	if (gyro.samples > 0) {
-		if (!hitl_mode){
+		if (!hitl_mode) {
 			_px4_gyro.updateFIFO(gyro);
 		}
 	}
@@ -956,11 +970,12 @@ bool ICM42688P::ProcessTemperature(const FIFO::DATA fifo[], const uint8_t sample
 		const float TEMP_degC = (temperature_avg / TEMPERATURE_SENSITIVITY) + TEMPERATURE_OFFSET;
 
 		if (PX4_ISFINITE(TEMP_degC)) {
-			if (!hitl_mode){
+			if (!hitl_mode) {
 				_px4_accel.set_temperature(TEMP_degC);
 				_px4_gyro.set_temperature(TEMP_degC);
 				return true;
 			}
+
 		} else {
 			perf_count(_bad_transfer_perf);
 		}

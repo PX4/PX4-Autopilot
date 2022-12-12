@@ -69,8 +69,8 @@ void ICM42688P::print_usage()
 extern "C" int icm42688p_main(int argc, char *argv[])
 {
 
-	for(int i=0;i<=argc-1;i++){
-		if(std::string(argv[i]) == "-h"){
+	for (int i = 0; i <= argc - 1; i++) {
+		if (std::string(argv[i]) == "-h") {
 			argv[i] = 0;
 			hitl_mode = true;
 			break;

@@ -97,7 +97,8 @@ private:
 		FIFO::DATA f[FIFO_MAX_SAMPLES] {};
 	};
 	// ensure no struct padding
-	static_assert(sizeof(FIFOTransferBuffer) == (4 + FIFO_MAX_SAMPLES *sizeof(FIFO::DATA)), "Invalid FIFOTransferBuffer size");
+	static_assert(sizeof(FIFOTransferBuffer) == (4 + FIFO_MAX_SAMPLES *sizeof(FIFO::DATA)),
+		      "Invalid FIFOTransferBuffer size");
 
 	struct register_bank0_config_t {
 		Register::BANK_0 reg;
@@ -222,11 +223,11 @@ private:
 		{ Register::BANK_2::ACCEL_CONFIG_STATIC4, ACCEL_CONFIG_STATIC4_BIT::ACCEL_AAF_BITSHIFT_SET | ACCEL_CONFIG_STATIC4_BIT::ACCEL_AAF_DELTSQR_HIGH_SET, ACCEL_CONFIG_STATIC4_BIT::ACCEL_AAF_BITSHIFT_CLEAR | ACCEL_CONFIG_STATIC4_BIT::ACCEL_AAF_DELTSQR_HIGH_CLEAR },
 	};
 
-    uint32_t _temperature_samples{0};
+	uint32_t _temperature_samples{0};
 
-    // Support for the IMU server
-    // uint32_t _imu_server_index{0};
-    // imu_server_s _imu_server_data;
-    // uORB::Publication<imu_server_s> _imu_server_pub{ORB_ID(imu_server)};
+	// Support for the IMU server
+	// uint32_t _imu_server_index{0};
+	// imu_server_s _imu_server_data;
+	// uORB::Publication<imu_server_s> _imu_server_pub{ORB_ID(imu_server)};
 
 };

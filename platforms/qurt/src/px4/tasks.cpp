@@ -69,8 +69,8 @@ static pthread_mutex_t task_mutex;
 // These are some Qurt pthread stubs needed for compilation and linking
 extern "C" {
 
-int pthread_setname_np(pthread_t __target_thread, const char *__name) {	return 0; }
-int pthread_attr_setschedpolicy(pthread_attr_t *attr, int policy) { return 0; }
+	int pthread_setname_np(pthread_t __target_thread, const char *__name) {	return 0; }
+	int pthread_attr_setschedpolicy(pthread_attr_t *attr, int policy) { return 0; }
 
 }
 
