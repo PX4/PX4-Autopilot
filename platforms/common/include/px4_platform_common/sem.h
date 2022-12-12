@@ -71,18 +71,6 @@ __EXPORT int		px4_sem_destroy(px4_sem_t *s);
 
 __END_DECLS
 
-//#elif defined(__PX4_QURT)
-
-//typedef sem_t px4_sem_t;
-
-//#define px4_sem_init		sem_init
-//#define px4_sem_setprotocol sem_setprotocol
-//#define px4_sem_wait		sem_wait
-//#define px4_sem_trywait	sem_trywait
-//#define px4_sem_post		sem_post
-//#define px4_sem_getvalue	sem_getvalue
-//#define px4_sem_destroy		sem_destroy
-
 #else
 
 typedef sem_t px4_sem_t;

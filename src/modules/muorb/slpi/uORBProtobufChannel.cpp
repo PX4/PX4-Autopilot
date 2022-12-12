@@ -41,6 +41,7 @@
 #include <pthread.h>
 #include <px4_platform_common/tasks.h>
 #include <px4_platform_common/log.h>
+#include <lib/parameters/param.h>
 #include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
 
 #include "hrt_work.h"
