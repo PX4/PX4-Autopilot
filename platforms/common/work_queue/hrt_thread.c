@@ -293,4 +293,3 @@ void hrt_work_queue_init(void)
 	signal(SIGCONT, _sighandler);
 #endif
 }
-
