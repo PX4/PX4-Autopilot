@@ -86,7 +86,7 @@ static bool create_data_writer(uxrSession *session, uxrStreamId reliable_out_str
 	uint16_t requests[3] {topic_req, publisher_req, datawriter_req};
 	uint8_t status[3];
 
-	if (!uxr_run_session_until_all_status(session, 1000, requests, status, 3)) {
+	if (!uxr_run_session_until_all_status(session, 5000, requests, status, 3)) {
 		PX4_ERR("create entities failed: %s, topic: %i publisher: %i datawriter: %i",
 			topic_name, status[0], status[1], status[2]);
 		return false;
@@ -151,7 +151,7 @@ static bool create_data_reader(uxrSession *session, uxrStreamId reliable_out_str
 	uint16_t requests[3] {topic_req, subscriber_req, datareader_req};
 	uint8_t status[3];
 
-	if (!uxr_run_session_until_all_status(session, 1000, requests, status, 3)) {
+	if (!uxr_run_session_until_all_status(session, 5000, requests, status, 3)) {
 		PX4_ERR("create entities failed: %s %i %i %i", topic_name,
 			status[0], status[1], status[2]);
 		return false;
