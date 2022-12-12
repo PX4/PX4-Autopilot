@@ -65,7 +65,7 @@ private:
 	{
 		sensor_gps_s gps;
 		mavlink_gps_raw_int_t msg{};
-		hrt_abstime now {};
+		hrt_abstime now{};
 
 		if (_sensor_gps_sub.update(&gps)) {
 			msg.time_usec = gps.timestamp;
@@ -108,7 +108,7 @@ private:
 
 			return true;
 
-		} else if ((now = hrt_absolute_time()) > _last_send_ts + _no_gps_send_interval) {
+		} else if (_last_send_ts != 0 && (now = hrt_absolute_time()) > _last_send_ts + _no_gps_send_interval) {
 			msg.fix_type = GPS_FIX_TYPE_NO_GPS;
 			msg.eph = UINT16_MAX;
 			msg.epv = UINT16_MAX;
@@ -117,6 +117,8 @@ private:
 			msg.satellites_visible = UINT8_MAX;
 			mavlink_msg_gps_raw_int_send_struct(_mavlink->get_channel(), &msg);
 			_last_send_ts = now;
+
+			return true;
 		}
 
 		return false;
