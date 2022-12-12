@@ -301,8 +301,8 @@ if(EXISTS ${BOARD_DEFCONFIG})
 	if(SERIAL_WIFI)
         list(APPEND board_serial_ports WIFI:${SERIAL_WIFI})
 	endif()
-	if(SERIAL_PPB)
-        list(APPEND board_serial_ports PPB:${SERIAL_PPB})
+	if(SERIAL_EXT2)
+        list(APPEND board_serial_ports EXT2:${SERIAL_EXT2})
 	endif()
 
 
