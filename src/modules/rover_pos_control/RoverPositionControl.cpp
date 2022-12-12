@@ -431,8 +431,11 @@ RoverPositionControl::control_rates(const vehicle_angular_velocity_s &rates, con
 	const matrix::Vector3f angular_acceleration{acc.xyz};
 	const matrix::Vector3f torque = _rate_control.update(vehicle_rates, rates_setpoint, angular_acceleration, dt,
 					lock_integrator);
+	///TODO: Handle mimimum speed constraints
+	float steering_input = math::constrain(torque(2), -1.0f, 1.0f);
 
-	_steering_input = math::constrain(_steering_input + torque(2), -1.0f, 1.0f);
+	///TODO: Add slew rate constraints
+	_steering_input = steering_input;
 
 	_act_controls.control[actuator_controls_s::INDEX_YAW] = _steering_input;
 
