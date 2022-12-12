@@ -54,17 +54,33 @@ static bool create_data_writer(uxrSession *session, uxrStreamId reliable_out_str
 
 
 	// data writer
+	char datawriter_xml[1024];
 	datawriter_id = uxr_object_id(topic_id.id, UXR_DATAWRITER_ID);
+	const char *datawriter_xml_format = "<dds>"
+					    "<data_writer>"
+					    "<topic>"
+					    "<kind>NO_KEY</kind>"
+					    "<name>%s</name>"
+					    "<dataType>px4_msgs::msg::dds_::%s_</dataType>"
+					    "</topic>"
+					    "<qos>"
+					    "<publishMode>"
+					    "<kind>ASYNCHRONOUS</kind>"
+					    "</publishMode>"
+					    "</qos>"
+					    "<historyMemoryPolicy>PREALLOCATED_WITH_REALLOC</historyMemoryPolicy>"
+					    "</data_writer>"
+					    "</dds>";
 
-	uxrQoS_t qos = {
-		.durability = UXR_DURABILITY_TRANSIENT_LOCAL,
-		.reliability = UXR_RELIABILITY_BEST_EFFORT,
-		.history = UXR_HISTORY_KEEP_LAST,
-		.depth = 0,
-	};
+	int ret = snprintf(datawriter_xml, 1024, datawriter_xml_format, topic_name, topic_name_simple);
 
-	uint16_t datawriter_req = uxr_buffer_create_datawriter_bin(session, reliable_out_stream_id, datawriter_id, publisher_id,
-				  topic_id, qos, UXR_REPLACE);
+	if (ret < 0) {
+		PX4_ERR("Can't create datawriter_xml string");
+		return false;
+	}
+
+	uint16_t datawriter_req = uxr_buffer_create_datawriter_xml(session, reliable_out_stream_id, datawriter_id, publisher_id,
+				  datawriter_xml, UXR_REPLACE);
 
 	// Send create entities message and wait its status
 	uint16_t requests[3] {topic_req, publisher_req, datawriter_req};
@@ -109,17 +125,28 @@ static bool create_data_reader(uxrSession *session, uxrStreamId reliable_out_str
 
 
 	// data reader
+	char datareader_xml[1024];
 	uxrObjectId datareader_id = uxr_object_id(id, UXR_DATAREADER_ID);
+	const char *datareader_xml_format = "<dds>"
+					    "<data_reader>"
+					    "<topic>"
+					    "<kind>NO_KEY</kind>"
+					    "<name>%s</name>"
+					    "<dataType>px4_msgs::msg::dds_::%s_</dataType>"
+					    "</topic>"
+					    "<historyMemoryPolicy>PREALLOCATED_WITH_REALLOC</historyMemoryPolicy>"
+					    "</data_reader>"
+					    "</dds>";
 
-	uxrQoS_t qos = {
-		.durability = UXR_DURABILITY_VOLATILE,
-		.reliability = UXR_RELIABILITY_BEST_EFFORT,
-		.history = UXR_HISTORY_KEEP_LAST,
-		.depth = queue_depth,
-	};
+	int ret = snprintf(datareader_xml, 1024, datareader_xml_format, topic_name, topic_name_simple);
 
-	uint16_t datareader_req = uxr_buffer_create_datareader_bin(session, reliable_out_stream_id, datareader_id,
-				  subscriber_id, topic_id, qos, UXR_REPLACE);
+	if (ret < 0) {
+		PX4_ERR("Can't create datareader_xml string");
+		return false;
+	}
+
+	uint16_t datareader_req = uxr_buffer_create_datareader_xml(session, reliable_out_stream_id, datareader_id,
+				  subscriber_id, datareader_xml, UXR_REPLACE);
 
 	uint16_t requests[3] {topic_req, subscriber_req, datareader_req};
 	uint8_t status[3];
