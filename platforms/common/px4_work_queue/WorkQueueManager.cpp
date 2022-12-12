@@ -267,9 +267,7 @@ WorkQueueManagerRun(int, char **)
 			// create new work queue
 
 			// stack size
-#if defined(__PX4_QURT)
-			const size_t stacksize = math::max(8 * 1024, PX4_STACK_ADJUSTED(wq->stacksize));
-#elif defined(__PX4_NUTTX)
+#if defined(__PX4_NUTTX) || defined(__PX4_QURT)
 			const size_t stacksize = math::max(PTHREAD_STACK_MIN, PX4_STACK_ADJUSTED(wq->stacksize));
 #elif defined(__PX4_POSIX)
 			// On posix system , the desired stacksize round to the nearest multiplier of the system pagesize
@@ -304,16 +302,12 @@ WorkQueueManagerRun(int, char **)
 				PX4_ERR("getting sched param for %s failed (%i)", wq->name, ret_getschedparam);
 			}
 
-#ifndef __PX4_QURT
-
 			// schedule policy FIFO
 			int ret_setschedpolicy = pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
 
 			if (ret_setschedpolicy != 0) {
 				PX4_ERR("failed to set sched policy SCHED_FIFO (%i)", ret_setschedpolicy);
 			}
-
-#endif // ! QuRT
 
 			// priority
 			param.sched_priority = sched_priority;
