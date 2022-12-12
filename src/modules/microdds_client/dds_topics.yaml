@@ -44,6 +44,29 @@ publications:
   - topic: /fmu/out/vehicle_trajectory_waypoint_desired
     type: px4_msgs::msg::VehicleTrajectoryWaypoint
 
+# messages added by ssrc
+
+  - topic: /fmu/out/battery_status
+    type: px4_msgs::msg::BatteryStatus
+
+  - topic: /fmu/out/distance_sensor
+    type: px4_msgs::msg::DistanceSensor
+
+  - topic: /fmu/out/mission_result
+    type: px4_msgs::msg::MissionResult
+
+  - topic: /fmu/out/sensor_baro
+    type: px4_msgs::msg::SensorBaro
+
+  - topic: /fmu/out/sensor_mag
+    type: px4_msgs::msg::SensorMag
+
+  - topic: /fmu/out/vehicle_land_detected
+    type: px4_msgs::msg::VehicleLandDetected
+
+  - topic: /fmu/out/home_position
+    type: px4_msgs::msg::HomePosition
+
 subscriptions:
 
   - topic: /fmu/in/offboard_control_mode
@@ -84,3 +107,11 @@ subscriptions:
 
   - topic: /fmu/in/vehicle_trajectory_waypoint
     type: px4_msgs::msg::VehicleTrajectoryWaypoint
+
+# messages added by ssrc
+
+  - topic: /fmu/out/sensor_gps
+    type: px4_msgs::msg::SensorGps
+
+  - topic: /fmu/out/gps_inject_data
+    type: px4_msgs::msg::GpsInjectData
