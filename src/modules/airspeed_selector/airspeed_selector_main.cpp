@@ -556,8 +556,7 @@ void AirspeedModule::update_ground_minus_wind_airspeed()
 		const float TAS_east = _vehicle_local_position.vy - _wind_estimate_sideslip.windspeed_east;
 		const float TAS_down = _vehicle_local_position.vz; // no wind estimate in z
 		_ground_minus_wind_TAS = sqrtf(TAS_north * TAS_north + TAS_east * TAS_east + TAS_down * TAS_down);
-		_ground_minus_wind_CAS = calc_CAS_from_TAS(_ground_minus_wind_TAS, _vehicle_air_data.baro_pressure_pa,
-					 _vehicle_air_data.baro_temp_celcius);
+		_ground_minus_wind_CAS = calc_calibrated_from_true_airspeed(_ground_minus_wind_TAS, _vehicle_air_data.rho);
 
 	} else {
 		_ground_minus_wind_TAS = _ground_minus_wind_CAS = NAN;
