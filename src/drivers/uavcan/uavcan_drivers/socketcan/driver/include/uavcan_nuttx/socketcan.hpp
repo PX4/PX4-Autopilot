@@ -71,7 +71,7 @@ class CanIface : public uavcan::ICanIface
 	SystemClock clock;
 
 public:
-	uavcan::uint32_t socketInit(const char *can_iface_name);
+	uavcan::uint32_t socketInit(uint32_t index);
 
 	uavcan::int16_t send(const uavcan::CanFrame &frame,
 			     uavcan::MonotonicTime tx_deadline,
@@ -109,13 +109,13 @@ public:
 	CanDriver() : update_event_(*this)
 	{}
 
-	uavcan::int32_t initIface(uint32_t index, const char *name)
+	uavcan::int32_t initIface(uint32_t index)
 	{
 		if (index > (UAVCAN_SOCKETCAN_NUM_IFACES - 1)) {
 			return -1;
 		}
 
-		return if_[index].socketInit(name);
+		return if_[index].socketInit(index);
 	}
 
 	/**
@@ -180,10 +180,10 @@ public:
 	 */
 	int init(uavcan::uint32_t bitrate)
 	{
-		driver.initIface(0, "can0");
-#if UAVCAN_SOCKETCAN_NUM_IFACES > 1
-		driver.initIface(1, "can1");
-#endif
+		for (int i = 0; i < UAVCAN_SOCKETCAN_NUM_IFACES; i++) {
+			driver.initIface(i);
+		}
+
 		return driver.init(bitrate);
 	}
 
@@ -195,17 +195,17 @@ public:
 	 *                          The callable entity will be invoked without arguments.
 	 *                          @ref getRecommendedListeningDelay().
 	 *
-	 * @param inout_bitrate     Fixed bit rate or zero. Zero invokes the bit rate detection process.
+	 * @param bitrate     Fixed bit rate or zero. Zero invokes the bit rate detection process.
 	 *                          If auto detection was used, the function will update the argument
 	 *                          with established bit rate. In case of an error the value will be undefined.
 	 *
 	 * @return                  Negative value on error; non-negative on success. Refer to constants Err*.
 	 */
 	template <typename DelayCallable>
-	int init(DelayCallable delay_callable, uavcan::uint32_t &inout_bitrate = 1000000)
+	int init(DelayCallable delay_callable, const uavcan::uint32_t bitrate)
 	{
-		if (inout_bitrate > 0) {
-			return driver.init(inout_bitrate);
+		if (bitrate > 0) {
+			return driver.init(bitrate);
 
 		}
 	}

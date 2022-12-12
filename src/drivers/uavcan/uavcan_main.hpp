@@ -220,6 +220,7 @@ private:
 
 	uavcan_node::Allocator	 _pool_allocator;
 
+	bool                    _node_init{false};
 	uavcan::Node<>			_node;				///< library instance
 	pthread_mutex_t			_node_mutex;
 
