@@ -200,7 +200,7 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bo
 			}
 		}
 
-		if (measurementUpdate(Kfusion, Hfusion, aid_src_mag.innovation[index])) {
+		if (measurementUpdate(Kfusion, aid_src_mag.innovation_variance[index], aid_src_mag.innovation[index])) {
 			fused[index] = true;
 			limitDeclination();
 
@@ -312,9 +312,7 @@ bool Ekf::fuseYaw(const float innovation, const float variance, estimator_aid_so
 		_innov_check_fail_status.flags.reject_yaw = false;
 	}
 
-	SparseVector24f<0,1,2,3> Hfusion(H_YAW);
-
-	if (measurementUpdate(Kfusion, Hfusion, aid_src_status.innovation)) {
+	if (measurementUpdate(Kfusion, aid_src_status.innovation_variance, aid_src_status.innovation)) {
 
 		_time_last_heading_fuse = _imu_sample_delayed.time_us;
 
@@ -353,7 +351,7 @@ bool Ekf::fuseDeclination(float decl_sigma)
 	// Calculate the Kalman gains
 	Vector24f Kfusion = P * Hfusion / innovation_variance;
 
-	const bool is_fused = measurementUpdate(Kfusion, Hfusion, innovation);
+	const bool is_fused = measurementUpdate(Kfusion, innovation_variance, innovation);
 
 	_fault_status.flags.bad_mag_decl = !is_fused;
 

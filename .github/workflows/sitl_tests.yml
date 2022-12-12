@@ -16,7 +16,7 @@ jobs:
       matrix:
         config:
           - {model: "iris",          latitude:  "59.617693", longitude: "-151.145316", altitude:  "48", build_type: "RelWithDebInfo" } # Alaska
-          - {model: "standard_vtol", latitude: "-38.071235", longitude:  "145.281220", altitude:  "31", build_type: "AddressSanitizer" } # Australia
+          # - {model: "standard_vtol", latitude: "-38.071235", longitude:  "145.281220", altitude:  "31", build_type: "AddressSanitizer" } # Australia
           - {model: "tailsitter" ,   latitude:  "29.660316", longitude:  "-82.316658", altitude:  "30", build_type: "RelWithDebInfo" } # Florida
           - {model: "standard_vtol", latitude:  "47.397742", longitude:    "8.545594", altitude: "488", build_type: "Coverage" } # Zurich
 

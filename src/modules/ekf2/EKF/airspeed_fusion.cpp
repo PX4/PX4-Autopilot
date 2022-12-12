@@ -115,15 +115,13 @@ void Ekf::fuseAirspeed(estimator_aid_source1d_s &airspeed)
 
 	sym::ComputeAirspeedHAndK(getStateAtFusionHorizonAsVector(), P, innov_var, FLT_EPSILON, &H, &K);
 
-	SparseVector24f<4,5,6,22,23> H_sparse(H);
-
 	if (update_wind_only) {
 		for (unsigned row = 0; row <= 21; row++) {
 			K(row) = 0.f;
 		}
 	}
 
-	const bool is_fused = measurementUpdate(K, H_sparse, airspeed.innovation);
+	const bool is_fused = measurementUpdate(K, airspeed.innovation_variance, airspeed.innovation);
 
 	airspeed.fused = is_fused;
 	_fault_status.flags.bad_airspeed = !is_fused;
