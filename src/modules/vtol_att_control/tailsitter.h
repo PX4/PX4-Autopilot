@@ -69,7 +69,10 @@ private:
 		FW_MODE					/**< vtol is in fixed wing mode */
 	};
 
-	vtol_mode _vtol_mode{vtol_mode::MC_MODE};			/**< vtol flight mode, defined by enum vtol_mode */
+	struct {
+		vtol_mode flight_mode;			/**< vtol flight mode, defined by enum vtol_mode */
+		hrt_abstime transition_start;	/**< absoulte time at which front transition started */
+	} _vtol_schedule;
 
 	bool _flag_was_in_trans_mode = false;	// true if mode has just switched to transition
 

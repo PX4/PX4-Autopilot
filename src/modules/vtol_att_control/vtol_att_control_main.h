@@ -98,6 +98,16 @@ class VtolAttitudeControl : public ModuleBase<VtolAttitudeControl>, public Modul
 {
 public:
 
+	enum class QuadchuteReason {
+		TransitionTimeout = 0,
+		ExternalCommand,
+		MinimumAltBreached,
+		LossOfAlt,
+		LargeAltError,
+		MaximumPitchExceeded,
+		MaximumRollExceeded,
+	};
+
 	VtolAttitudeControl();
 	~VtolAttitudeControl() override;
 
