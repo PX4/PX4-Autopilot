@@ -234,57 +234,9 @@ void UxrceddsClient::run()
 		// uint16_t participant_req = uxr_buffer_create_participant_bin(&session, reliable_out, participant_id, domain_id,
 		// 			   participant_name, UXR_REPLACE);
 
-		char participant_xml[PARTICIPANT_XML_SIZE];
-		int ret = snprintf(participant_xml, PARTICIPANT_XML_SIZE, "%s<name>%s/px4_micro_xrce_dds</name>%s",
-				   _localhost_only ?
-				   "<dds>"
-				   "<profiles>"
-				   "<transport_descriptors>"
-				   "<transport_descriptor>"
-				   "<transport_id>udp_localhost</transport_id>"
-				   "<type>UDPv4</type>"
-				   "<interfaceWhiteList><address>127.0.0.1</address></interfaceWhiteList>"
-				   "</transport_descriptor>"
-				   "</transport_descriptors>"
-				   "</profiles>"
-				   "<participant>"
-				   "<rtps>"
-				   :
-				   "<dds>"
-				   "<participant>"
-				   "<rtps>",
-				   _client_namespace != nullptr ?
-				   _client_namespace
-				   :
-				   "",
-				   _localhost_only ?
-				   "<useBuiltinTransports>false</useBuiltinTransports>"
-				   "<userTransports><transport_id>udp_localhost</transport_id></userTransports>"
-				   "</rtps>"
-				   "</participant>"
-				   "</dds>"
-				   :
-				   "</rtps>"
-				   "</participant>"
-				   "</dds>"
-				  );
-
-		if (ret < 0 || ret >= PARTICIPANT_XML_SIZE) {
-			PX4_ERR("create entities failed: namespace too long");
-			return;
-		}
-
-
-		uint16_t participant_req{};
-
-		if (_custom_participant) {
-			participant_req = uxr_buffer_create_participant_ref(&session, reliable_out, participant_id, domain_id,
-					  "px4_participant", UXR_REPLACE);
-
-		} else {
-			participant_req = uxr_buffer_create_participant_xml(&session, reliable_out, participant_id, domain_id,
-					  participant_xml, UXR_REPLACE);
-		}
+		const char *participant_ref = "default_xrce_participant";
+		uint16_t participant_req = uxr_buffer_create_participant_ref(&session, reliable_out, participant_id, domain_id,
+					   participant_ref, UXR_REPLACE);
 
 		uint8_t request_status;
 
