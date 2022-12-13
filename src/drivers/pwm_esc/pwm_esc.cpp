@@ -44,25 +44,16 @@
 #include <sys/types.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <assert.h>
 #include <debug.h>
 #include <time.h>
 #include <queue.h>
 #include <errno.h>
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
 #include <fcntl.h>
-#include <math.h>
 
-#include <drivers/device/device.h>
 #include <drivers/drv_pwm_output.h>
-#include <drivers/drv_hrt.h>
 
 #include <lib/mixer_module/mixer_module.hpp>
 #include <perf/perf_counter.h>
-#include <systemlib/err.h>
 #include <parameters/param.h>
 
 #include <uORB/Subscription.hpp>
@@ -70,8 +61,6 @@
 #include <uORB/topics/parameter_update.h>
 
 #include <nuttx/timers/pwm.h>
-
-#include <debug.h>
 
 #ifndef PWMESC_OUT_PATH
 #define PWMESC_OUT_PATH "/dev/pwmX";
@@ -124,7 +113,12 @@ public:
 	/**
 	 * Start the PWMESC driver
 	 */
-	static void		start(int argc, char *argv[]);
+	static int		start(int argc, char *argv[]);
+
+	/**
+	 * Stop the PWMESC driver
+	 */
+	static int		stop();
 
 	/**
 	 * Return if the PWMESC driver is already running
@@ -214,6 +208,12 @@ private:
 
 		return _instance;
 	}
+
+	/**
+	 * Set the PWMs on open device fd to 0 duty cycle
+	 * and start or stop (request == PWMIOC_START / PWMIOC_STOP)
+	 */
+	int set_defaults(int fd, unsigned long request);
 };
 
 PWMESC *PWMESC::_instance = nullptr;
@@ -232,9 +232,6 @@ PWMESC::PWMESC() :
 
 	/* clear armed status */
 	memset(&_actuator_armed, 0, sizeof(actuator_armed_s));
-
-	/* we need this potentially before it could be set in task_main */
-	_instance = this;
 }
 
 PWMESC::~PWMESC()
@@ -250,6 +247,7 @@ PWMESC::~PWMESC()
 
 	/* well, kill it anyway, though this will probably crash */
 	if (_task != -1) {
+		PX4_ERR("Task exit fail\n");
 		px4_task_delete(_task);
 	}
 
@@ -257,8 +255,6 @@ PWMESC::~PWMESC()
 	perf_free(_perf_update);
 
 	px4_sem_destroy(&_update_sem);
-
-	_instance = nullptr;
 }
 
 int
@@ -318,7 +314,7 @@ PWMESC::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigne
 	if (!_hitl_mode &&
 	    ::ioctl(_pwm_fd[0], PWMIOC_SETCHARACTERISTICS,
 		    (unsigned long)((uintptr_t)&pwm)) < 0) {
-		PX4_ERR("PWMIOC_SETCHARACTERISTICS) failed: %d\n",
+		PX4_ERR("PWMIOC_SETCHARACTERISTICS failed: %d\n",
 			errno);
 		ret = false;
 	}
@@ -326,13 +322,48 @@ PWMESC::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigne
 	return ret;
 }
 
+int
+PWMESC::set_defaults(int fd, unsigned long request)
+{
+	/* Configure PWM to default rate, 0 pulse and start */
+
+	struct pwm_info_s pwm;
+	memset(&pwm, 0, sizeof(struct pwm_info_s));
+	pwm.frequency = _pwm_rate;
+
+	for (int j = 0; j < PWMESC_MAX_CHANNELS; j++) {
+		pwm.channels[j].duty = 0;
+		pwm.channels[j].channel = j + 1;
+	}
+
+	/* Set the frequency and duty */
+
+	int ret = ::ioctl(fd, PWMIOC_SETCHARACTERISTICS,
+			  (unsigned long)((uintptr_t)&pwm));
+
+	if (ret < 0) {
+		PX4_ERR("PWMIOC_SETCHARACTERISTICS) failed: %d\n",
+			errno);
+
+	} else {
+
+		/* Start / stop */
+
+		ret = ::ioctl(fd, request, 0);
+
+		if (ret < 0) {
+			PX4_ERR("PWMIOC_START/STOP failed: %d\n", errno);
+		}
+
+	}
+
+	return ret;
+}
 
 int
 PWMESC::init_pwm_outputs()
 {
-	int ret;
-
-	/* Update parameters initially to get pwm min/max etc */
+	int ret = 0;
 
 	_mixing_output.setIgnoreLockdown(_hitl_mode);
 	_mixing_output.setMaxNumOutputs(PWMESC_MAX_CHANNELS);
@@ -352,38 +383,18 @@ PWMESC::init_pwm_outputs()
 
 		if (_pwm_fd[i] < 0) {
 			PX4_ERR("pwm_main: open %s failed: %d\n", pwm_device_name, errno);
-			return -ENODEV;
+			ret = -1;
+			continue;
 		}
 
-		/* Configure PWM to default rate, disarmed pulse and start */
+		/* Configure PWM to default rate, 0 pulse and start */
 
-		struct pwm_info_s pwm;
-		memset(&pwm, 0, sizeof(struct pwm_info_s));
-		pwm.frequency = _pwm_rate;
-
-		for (int j = 0; j < PWMESC_MAX_CHANNELS; j++) {
-			pwm.channels[j].duty = 0;
-			pwm.channels[j].channel = j + 1;
-		}
-
-		ret = ::ioctl(_pwm_fd[i], PWMIOC_SETCHARACTERISTICS,
-			      (unsigned long)((uintptr_t)&pwm));
-
-
-		if (ret < 0) {
-			PX4_ERR("PWMIOC_SETCHARACTERISTICS) failed: %d\n",
-				errno);
-		}
-
-		ret = ::ioctl(_pwm_fd[i], PWMIOC_START, 0);
-
-		if (ret < 0) {
-			PX4_ERR("PWMIOC_START failed: %d\n", errno);
-			return -ENODEV;
+		if (set_defaults(_pwm_fd[i], PWMIOC_START) != 0) {
+			ret = -1;
 		}
 	}
 
-	return 0;
+	return ret;
 }
 
 void
@@ -432,9 +443,16 @@ PWMESC::task_main()
 
 	PX4_DEBUG("exiting");
 
+	/* Configure PWM to default rate, 0 pulse and stop */
+
+	int n_pwm_devices = 1;
+
+	for (int i = 0; i < 1 && i < n_pwm_devices; i++) {
+		set_defaults(_pwm_fd[i], PWMIOC_STOP);
+	}
+
 	/* tell the dtor that we are exiting */
 	_task = -1;
-	_exit(0);
 }
 
 void PWMESC::update_params()
@@ -450,15 +468,19 @@ void PWMESC::update_params()
 
 extern "C" __EXPORT int pwm_esc_main(int argc, char *argv[]);
 
-void
+int
 PWMESC::start(int argc, char *argv[])
 {
+	int ret = 0;
+
 	if (PWMESC::getInstance() == nullptr) {
-		errx(1, "driver allocation failed");
+		PX4_ERR("Driver allocation failed");
+		return -1;
 	}
 
 	if (PWMESC::getInstance()->running()) {
-		errx(1, "Already running");
+		PX4_ERR("Already running");
+		return -1;
 	}
 
 	bool hitl_mode = false;
@@ -475,10 +497,30 @@ PWMESC::start(int argc, char *argv[])
 
 	if (OK != PWMESC::getInstance()->init(hitl_mode)) {
 		delete PWMESC::getInstance();
-		errx(1, "driver init failed");
+		PX4_ERR("Driver init failed");
+		return -1;
 	}
 
-	exit(0);
+	return ret;
+}
+
+int
+PWMESC::stop()
+{
+	if (PWMESC::getInstance() == nullptr) {
+		PX4_ERR("Driver allocation failed");
+		return -1;
+	}
+
+	if (!PWMESC::getInstance()->running()) {
+		PX4_ERR("Not running");
+		return -1;
+	}
+
+	delete (PWMESC::getInstance());
+	_instance = nullptr;
+
+	return 0;
 }
 
 int
@@ -486,13 +528,17 @@ pwm_esc_main(int argc, char *argv[])
 {
 	/* check for sufficient number of arguments */
 	if (argc < 2) {
-		goto out;
+		PX4_ERR("Need a command, try 'start' / 'stop'");
+		return -1;
 	}
 
 	if (!strcmp(argv[1], "start")) {
-		PWMESC::start(argc - 1, argv + 1);
+		return PWMESC::start(argc - 1, argv + 1);
 	}
 
-out:
-	errx(1, "need a command, try 'start'");
+	if (!strcmp(argv[1], "stop")) {
+		return PWMESC::stop();
+	}
+
+	return 0;
 }
