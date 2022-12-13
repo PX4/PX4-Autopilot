@@ -297,5 +297,5 @@ void hrt_work_queue_init(void)
 					    (char *const *)NULL);
 
 
-	signal(SIGALRM, _sighandler);
+	signal(SIGCONT, _sighandler);
 }
