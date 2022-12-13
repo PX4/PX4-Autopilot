@@ -394,17 +394,6 @@ void BMI270::RunImpl()
 			bool success = false;
 			const uint16_t fifo_count = FIFOReadCount();
 
-			if (!success) {
-				_failure_count++;
-
-				// full reset if things are failing consistently
-				if (_failure_count > 10) {
-					PX4_DEBUG("failure count > 10, resetting...");
-					Reset();
-					return;
-				}
-			}
-
 			// more bytes than what the buffer takes so an overflow
 			if (fifo_count >= FIFO::SIZE) {
 				FIFOReset();
