@@ -105,7 +105,7 @@ public:
 
 			for (uint8_t i = 0; i < MAX_ACTUATORS; i++) {
 				if (i < num_outputs) {
-					msg_sp.value[i] = static_cast<float>(outputs[i]);
+					msg_sp.value[i] = static_cast<float>(outputs[i] / 8192.0);
 
 				} else {
 					// "unset" values published as NaN
