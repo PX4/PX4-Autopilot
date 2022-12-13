@@ -156,8 +156,8 @@ RoverPositionControl::manual_control_setpoint_poll()
 					// STABILIZED mode generate the attitude setpoint from manual user inputs
 					_rates_sp.roll = 0.0;
 					_rates_sp.pitch = 0.0;
-					_rates_sp.yaw = _manual_control_setpoint.y;
-					_rates_sp.thrust_body[0] = _manual_control_setpoint.z;
+					_rates_sp.yaw = _manual_control_setpoint.roll;
+					_rates_sp.thrust_body[0] = _manual_control_setpoint.throttle;
 
 					_rates_sp.timestamp = hrt_absolute_time();
 
@@ -209,14 +209,6 @@ RoverPositionControl::vehicle_attitude_poll()
 {
 	if (_att_sub.updated()) {
 		_att_sub.copy(&_vehicle_att);
-	}
-}
-
-void
-RoverPositionControl::vehicle_angular_acceleration_poll()
-{
-	if (_vehicle_angular_acceleration_sub.updated()) {
-		_vehicle_angular_acceleration_sub.copy(&_vehicle_angular_acceleration);
 	}
 }
 
@@ -415,8 +407,7 @@ RoverPositionControl::control_attitude(const vehicle_attitude_s &att, const vehi
 }
 
 void
-RoverPositionControl::control_rates(const vehicle_angular_velocity_s &rates, const  vehicle_angular_acceleration_s &acc,
-				    const vehicle_local_position_s &local_pos,
+RoverPositionControl::control_rates(const vehicle_angular_velocity_s &rates, const vehicle_local_position_s &local_pos,
 				    const vehicle_rates_setpoint_s &rates_sp)
 {
 	float dt = (_control_rates_last_called > 0) ? hrt_elapsed_time(&_control_rates_last_called) * 1e-6f : 0.01f;
@@ -428,7 +419,7 @@ RoverPositionControl::control_rates(const vehicle_angular_velocity_s &rates, con
 	const matrix::Vector3f current_velocity(local_pos.vx, local_pos.vy, local_pos.vz);
 	bool lock_integrator = bool(current_velocity.norm() < _param_rate_i_minspeed.get());
 
-	const matrix::Vector3f angular_acceleration{acc.xyz};
+	const matrix::Vector3f angular_acceleration{rates.xyz_derivative};
 	const matrix::Vector3f torque = _rate_control.update(vehicle_rates, rates_setpoint, angular_acceleration, dt,
 					lock_integrator);
 	///TODO: Handle mimimum speed constraints
@@ -452,8 +443,6 @@ RoverPositionControl::Run()
 
 	/* run controller on gyro changes */
 	if (_vehicle_angular_velocity_sub.update(&_vehicle_rates)) {
-		// grab corresponding vehicle_angular_acceleration immediately after vehicle_angular_velocity copy
-		vehicle_angular_acceleration_poll();
 		/* check vehicle control mode for changes to publication state */
 		vehicle_control_mode_poll();
 		attitude_setpoint_poll();
@@ -548,7 +537,7 @@ RoverPositionControl::Run()
 
 		//Body Rate control
 		if (_control_mode.flag_control_rates_enabled) {
-			control_rates(_vehicle_rates, _vehicle_angular_acceleration, _local_pos, _rates_sp);
+			control_rates(_vehicle_rates, _local_pos, _rates_sp);
 		}
 
 		/* Only publish if any of the proper modes are enabled */

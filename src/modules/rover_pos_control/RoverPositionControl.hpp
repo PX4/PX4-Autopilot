@@ -69,7 +69,6 @@
 #include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
-#include <uORB/topics/vehicle_angular_acceleration.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
@@ -122,7 +121,6 @@ private:
 	uORB::Subscription _att_sp_sub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
 	uORB::Subscription _rates_sp_sub{ORB_ID(vehicle_rates_setpoint)};
-	uORB::Subscription _vehicle_angular_acceleration_sub{ORB_ID(vehicle_angular_acceleration)};
 	manual_control_setpoint_s		_manual_control_setpoint{};			    /**< r/c channel data */
 	position_setpoint_triplet_s		_pos_sp_triplet{};		/**< triplet of mission items */
 	vehicle_attitude_setpoint_s		_att_sp{};			/**< attitude setpoint > */
@@ -131,7 +129,6 @@ private:
 	vehicle_global_position_s		_global_pos{};			/**< global vehicle position */
 	vehicle_local_position_s		_local_pos{};			/**< global vehicle position */
 	vehicle_attitude_s				_vehicle_att{};
-	vehicle_angular_acceleration_s		_vehicle_angular_acceleration{};
 	vehicle_angular_velocity_s _vehicle_rates{};
 
 	trajectory_setpoint_s _trajectory_setpoint{};
@@ -227,7 +224,6 @@ private:
 	void		rates_setpoint_poll();
 	void		vehicle_control_mode_poll();
 	void 		vehicle_attitude_poll();
-	void		vehicle_angular_acceleration_poll();
 	void		manual_control_setpoint_poll();
 
 	/**
@@ -237,8 +233,7 @@ private:
 					 const position_setpoint_triplet_s &_pos_sp_triplet);
 	void		control_velocity(const matrix::Vector3f &current_velocity);
 	void		control_attitude(const vehicle_attitude_s &att, const vehicle_attitude_setpoint_s &att_sp);
-	void		control_rates(const vehicle_angular_velocity_s &rates, const  vehicle_angular_acceleration_s &acc,
-				      const vehicle_local_position_s &local_pos,
+	void		control_rates(const vehicle_angular_velocity_s &rates, const vehicle_local_position_s &local_pos,
 				      const vehicle_rates_setpoint_s &rates_sp);
 
 };
