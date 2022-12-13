@@ -167,4 +167,29 @@
 #define PIN_CAN1_ERRN    (GPIO_PULLDOWN  | PIN_PORTE | PIN6 )
 #define PIN_CAN1_EN      (GPIO_OUTPUT  | PIN_PORTE | PIN2 )
 
+/* Board provides GPIO or other Hardware for signaling to timing analyzer */
+
+#if defined(CONFIG_BOARD_USE_PROBES)
+# include "s32k1xx_pin.h"
+# include "hardware/s32k1xx_pinmux.h"
+# define PROBE_N(n) (1<<((n)-1))
+# define PROBE_1    (PIN_PTE0  | GPIO_OUTPUT)  /* 6-wr-SPI_RDY_N */
+# define PROBE_2    (PIN_PTE9  | GPIO_OUTPUT)  /* 6-wr-SPI_INT_N */
+# define PROBE_3    (PIN_PTB5  | GPIO_OUTPUT)  /* 6-wr-SPI_CS_N */
+
+# define PROBE_INIT(mask) \
+	do { \
+		if ((mask)& PROBE_N(1)) { s32k1xx_pinconfig(PROBE_1); } \
+		if ((mask)& PROBE_N(2)) { s32k1xx_pinconfig(PROBE_2); } \
+		if ((mask)& PROBE_N(3)) { s32k1xx_pinconfig(PROBE_3); } \
+	} while(0)
+
+# define PROBE(n,s)  do {s32k1xx_gpiowrite(PROBE_##n,(s));}while(0)
+# define PROBE_MARK(n) PROBE(n,false);PROBE(n,true)
+#else
+# define PROBE_INIT(mask)
+# define PROBE(n,s)
+# define PROBE_MARK(n)
+#endif
+
 #endif  /* __BOARDS_ARM_RDDRONE_UAVCAN146_INCLUDE_BOARD_H */
