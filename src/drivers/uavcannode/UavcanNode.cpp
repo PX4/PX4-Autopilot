@@ -367,7 +367,7 @@ void UavcanNode::Run()
 	if (!_initialized) {
 
 
-		const int can_init_res = _can->init(_bitrate);
+		const int can_init_res = _can->init((uint32_t)_bitrate);
 
 		if (can_init_res < 0) {
 			PX4_ERR("CAN driver init failed %i", can_init_res);
