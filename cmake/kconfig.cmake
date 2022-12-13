@@ -362,7 +362,7 @@ if(EXISTS ${BOARD_DEFCONFIG})
         add_definitions( ${COMPILE_DEFINITIONS})
 	endif()
 
-	if(LINUX)
+	if(LINUX_TARGET)
         add_definitions( "-D__PX4_LINUX" )
 	endif()
 
