@@ -77,7 +77,7 @@ void EkfWrapper::setExternalVisionHeightRef()
 
 void EkfWrapper::enableExternalVisionHeightFusion()
 {
-	setExternalVisionHeightRef(); // TODO: replace by EV control parameter
+	_ekf_params->ev_ctrl |= static_cast<int32_t>(EvCtrl::VPOS);
 }
 
 bool EkfWrapper::isIntendingExternalVisionHeightFusion() const

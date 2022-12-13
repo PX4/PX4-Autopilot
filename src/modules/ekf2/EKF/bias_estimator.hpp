@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -57,11 +57,11 @@ class BiasEstimator
 {
 public:
 	struct status {
-		float bias;
-		float bias_var;
-		float innov;
-		float innov_var;
-		float innov_test_ratio;
+		float bias{0.f};
+		float bias_var{0.f};
+		float innov{0.f};
+		float innov_var{0.f};
+		float innov_test_ratio{INFINITY};
 	};
 
 	BiasEstimator(float state_init, float state_var_init): _state{state_init}, _state_var{state_var_init} {};
@@ -107,7 +107,7 @@ private:
 	float _time_since_last_negative_innov{0.f};
 	float _time_since_last_positive_innov{0.f};
 
-	status _status;
+	status _status{};
 
 	void constrainStateVar();
 	float computeKalmanGain(float innov_var) const;
