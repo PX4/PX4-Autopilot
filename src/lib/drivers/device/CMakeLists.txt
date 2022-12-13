@@ -41,9 +41,9 @@ if (${PX4_PLATFORM} STREQUAL "nuttx")
 		list(APPEND SRCS_PLATFORM nuttx/SPI.cpp)
 	endif()
 elseif((${PX4_PLATFORM} MATCHES "qurt"))
-	list(APPEND SRCS_PLATFORM qurt/I2C.cpp)
+	# list(APPEND SRCS_PLATFORM qurt/I2C.cpp)
 	list(APPEND SRCS_PLATFORM qurt/SPI.cpp)
-	list(APPEND SRCS_PLATFORM qurt/uart.c)
+	# list(APPEND SRCS_PLATFORM qurt/uart.c)
 elseif(UNIX AND NOT APPLE) #TODO: add linux PX4 platform type
 	# Linux I2Cdev and SPIdev
 	list(APPEND SRCS_PLATFORM

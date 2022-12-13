@@ -1,20 +1,20 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 ModalAI, Inc. All rights reserved.
+ *   Copyright (C) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
  *
  * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
+ *	notice, this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
+ *	notice, this list of conditions and the following disclaimer in
+ *	the documentation and/or other materials provided with the
+ *	distribution.
  * 3. Neither the name PX4 nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
+ *	used to endorse or promote products derived from this software
+ *	without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -31,29 +31,30 @@
  *
  ****************************************************************************/
 
-/**
- * @file board_config.h
- *
- * VOXL2 internal definitions
- */
-
 #pragma once
 
-#define BOARD_HAS_NO_RESET
-#define BOARD_HAS_NO_BOOTLOADER
-/*
- * I2C buses
- */
-#define PX4_NUMBER_I2C_BUSES    3
+#include <px4_platform_common/spi.h>
 
-/*
- * SPI buses
- */
-#define CONFIG_SPI 1
-#define BOARD_SPI_BUS_MAX_BUS_ITEMS 1
+static inline constexpr px4_spi_bus_device_t initSPIDevice(uint8_t devid_driver)
+{
+	px4_spi_bus_device_t ret{};
+	ret.cs_gpio = 1; // set to some non-zero value to indicate this is used
+	ret.drdy_gpio = 1;
+	ret.devid = PX4_SPIDEV_ID(PX4_SPI_DEVICE_ID, 0);
+	ret.devtype_driver = devid_driver;
+	return ret;
+}
 
-/*
- * Include these last to make use of the definitions above
- */
-#include <system_config.h>
-#include <px4_platform_common/board_common.h>
+static inline constexpr px4_spi_bus_t initSPIBus(int bus, const px4_spi_bus_devices_t &devices)
+{
+	px4_spi_bus_t ret{};
+
+	for (int i = 0; i < SPI_BUS_MAX_DEVICES; ++i) {
+		ret.devices[i] = devices.devices[i];
+	}
+
+	ret.bus = bus;
+	ret.is_external = false; // all buses are marked internal on QuRT
+	ret.requires_locking = false;
+	return ret;
+}

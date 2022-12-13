@@ -200,6 +200,7 @@ function(px4_os_prebuild_targets)
 			ARGN ${ARGN})
 
 	add_library(prebuild_targets INTERFACE)
+	target_link_libraries(prebuild_targets INTERFACE drivers_board)
 	add_dependencies(prebuild_targets DEPENDS uorb_headers)
 
 endfunction()
