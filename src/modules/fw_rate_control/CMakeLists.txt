@@ -32,17 +32,13 @@
 ############################################################################
 
 px4_add_module(
-	MODULE modules__fw_att_control
-	MAIN fw_att_control
+	MODULE modules__fw_rate_control
+	MAIN fw_rate_control
 	SRCS
-		FixedwingAttitudeControl.cpp
-		FixedwingAttitudeControl.hpp
-
-		ecl_controller.cpp
-		ecl_pitch_controller.cpp
-		ecl_roll_controller.cpp
-		ecl_wheel_controller.cpp
-		ecl_yaw_controller.cpp
+		FixedwingRateControl.cpp
+		FixedwingRateControl.hpp
 	DEPENDS
 		px4_work_queue
+		RateControl
+		SlewRate
 	)
