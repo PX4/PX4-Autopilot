@@ -174,6 +174,8 @@ void Tailsitter::update_vtol_state()
 
 void Tailsitter::update_transition_state()
 {
+	VtolType::update_transition_state();
+
 	const hrt_abstime now = hrt_absolute_time();
 
 	// we need the incoming (virtual) mc attitude setpoints to be recent, otherwise return (means the previous setpoint stays active)
