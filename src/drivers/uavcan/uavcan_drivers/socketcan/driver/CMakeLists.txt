@@ -6,6 +6,7 @@ add_compile_options(-Wno-unused-variable)
 add_library(uavcan_socketcan_driver STATIC
     src/socketcan.cpp
     src/thread.cpp
+    src/clock.cpp
     )
 
 add_dependencies(uavcan_socketcan_driver uavcan)
