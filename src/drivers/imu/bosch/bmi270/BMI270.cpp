@@ -473,24 +473,24 @@ void BMI270::SetAccelScaleAndRange()
 	const uint8_t ACC_RANGE = RegisterRead(Register::ACC_RANGE) & (Bit1 | Bit0);
 
 	switch (ACC_RANGE) {
-	case acc_range_3g:
-		_px4_accel.set_scale(CONSTANTS_ONE_G * (powf(2, ACC_RANGE + 1) * 1.5f) / 32768.f);
-		_px4_accel.set_range(3.f * CONSTANTS_ONE_G);
+	case acc_range_2g:
+		_px4_accel.set_scale(2.f * CONSTANTS_ONE_G / 32768.f);
+		_px4_accel.set_range(2.f * CONSTANTS_ONE_G);
 		break;
 
-	case acc_range_6g:
-		_px4_accel.set_scale(CONSTANTS_ONE_G * (powf(2, ACC_RANGE + 1) * 1.5f) / 32768.f);
-		_px4_accel.set_range(6.f * CONSTANTS_ONE_G);
+	case acc_range_4g:
+		_px4_accel.set_scale(4.f * CONSTANTS_ONE_G / 32768.f);
+		_px4_accel.set_range(4.f * CONSTANTS_ONE_G);
 		break;
 
-	case acc_range_12g:
-		_px4_accel.set_scale(CONSTANTS_ONE_G * (powf(2, ACC_RANGE + 1) * 1.5f) / 32768.f);
-		_px4_accel.set_range(12.f * CONSTANTS_ONE_G);
+	case acc_range_8g:
+		_px4_accel.set_scale(8.f * CONSTANTS_ONE_G / 32768.f);
+		_px4_accel.set_range(8.f * CONSTANTS_ONE_G);
 		break;
 
-	case acc_range_24g:
-		_px4_accel.set_scale(CONSTANTS_ONE_G * (powf(2, ACC_RANGE + 1) * 1.5f) / 32768.f);
-		_px4_accel.set_range(24.f * CONSTANTS_ONE_G);
+	case acc_range_16g:
+		_px4_accel.set_scale(16.f * CONSTANTS_ONE_G / 32768.f);
+		_px4_accel.set_range(16.f * CONSTANTS_ONE_G);
 		break;
 	}
 }

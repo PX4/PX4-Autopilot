@@ -129,10 +129,10 @@ enum ACC_CONF_BIT : uint8_t {
 
 // ACC_RANGE
 enum ACC_RANGE_BIT : uint8_t {
-	acc_range_3g  = 0,           // ±3g
-	acc_range_6g  = Bit0,        // ±6g
-	acc_range_12g = Bit1,        // ±12g
-	acc_range_24g = Bit1 | Bit0, // ±24g
+	acc_range_2g  = 0,           // ±2g
+	acc_range_4g  = Bit0,        // ±4g
+	acc_range_8g = Bit1,        // ±8g
+	acc_range_16g = Bit1 | Bit0, // ±16g
 };
 
 // FIFO_CONFIG_0

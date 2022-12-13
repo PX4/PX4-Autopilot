@@ -182,7 +182,7 @@ private:
 		{ Register::PWR_CTRL,          PWR_CTRL_BIT::accel_en | PWR_CTRL_BIT::gyr_en | PWR_CTRL_BIT::temp_en,  0 },
 		{ Register::ACC_CONF,              ACC_CONF_BIT::acc_bwp_Normal | ACC_CONF_BIT::acc_odr_1600, Bit1 | Bit0 },
 		{ Register::GYR_CONF,              GYR_CONF_BIT::gyr_odr_1k6 | GYR_CONF_BIT::gyr_flt_mode_normal | GYR_CONF_BIT::gyr_noise_hp | GYR_CONF_BIT::gyr_flt_hp, Bit0 | Bit1 | Bit4},
-		{ Register::ACC_RANGE,             ACC_RANGE_BIT::acc_range_24g, 0 },
+		{ Register::ACC_RANGE,             ACC_RANGE_BIT::acc_range_16g, 0 },
 		{ Register::FIFO_WTM_0,            0, 0 },
 		{ Register::FIFO_WTM_1,            0, 0 },
 		{ Register::FIFO_CONFIG_0,         FIFO_CONFIG_0_BIT::BIT1_ALWAYS | FIFO_CONFIG_0_BIT::FIFO_mode, 0 },
