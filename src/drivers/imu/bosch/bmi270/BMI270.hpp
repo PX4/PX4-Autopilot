@@ -81,16 +81,21 @@ private:
 
 	hrt_abstime _temperature_update_timestamp{0};
 
-	// Transfer data
-	struct FIFOTransferBuffer {
+	struct FIFOLengthReadBuffer {
 		uint8_t cmd{static_cast<uint8_t>(Register::FIFO_LENGTH_0) | DIR_READ};
 		uint8_t dummy{0};
 		uint8_t FIFO_LENGTH_0{0};
 		uint8_t FIFO_LENGTH_1{0};
+	};
+
+	struct FIFOReadBuffer {
+		uint8_t cmd{static_cast<uint8_t>(Register::FIFO_DATA) | DIR_READ};
+		uint8_t dummy{0};
 		FIFO::Data f[FIFO_MAX_SAMPLES] {};
 	};
+
 	// ensure no struct padding
-	static_assert(sizeof(FIFOTransferBuffer) == (4 + FIFO_MAX_SAMPLES *sizeof(FIFO::Data)));
+	static_assert(sizeof(FIFOReadBuffer) == (2 + FIFO_MAX_SAMPLES *sizeof(FIFO::Data)));
 
 	struct register_config_t {
 		Register reg;

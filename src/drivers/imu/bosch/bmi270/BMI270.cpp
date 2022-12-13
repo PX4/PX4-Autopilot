@@ -671,25 +671,17 @@ uint16_t BMI270::FIFOReadCount()
 {
 	CheckErrorRegister();
 	PX4_DEBUG("Attempting to determine FIFO fill level");
+
 	// FIFO length registers FIFO_LENGTH_1 and FIFO_LENGTH_0 contain the 14 bit FIFO byte
-	uint8_t fifo_len_buf[4] {};
-	fifo_len_buf[0] = static_cast<uint8_t>(Register::FIFO_LENGTH_0) | DIR_READ;
-	// fifo_len_buf[1] dummy byte
+	FIFOLengthReadBuffer buffer {};
 
-
-	if (transfer(&fifo_len_buf[0], &fifo_len_buf[0], sizeof(fifo_len_buf)) != PX4_OK) {
+	if (transfer((uint8_t *)&buffer, (uint8_t *)&buffer, sizeof(buffer)) != PX4_OK) {
 		PX4_DEBUG("Bad transfer");
 		perf_count(_bad_transfer_perf);
 		return 0;
 	}
 
-
-	const uint8_t FIFO_LENGTH_0 = fifo_len_buf[2];        // fifo_byte_counter[7:0]
-	const uint8_t FIFO_LENGTH_1 = fifo_len_buf[3] & 0x3F; // fifo_byte_counter[13:8]
-
-	uint16_t fifo_fill_level = combine(FIFO_LENGTH_1, FIFO_LENGTH_0);
-
-	PX4_DEBUG("FIFO fill level: %d", fifo_fill_level);
+	uint16_t fifo_fill_level = combine(buffer.FIFO_LENGTH_1 & 0x3F, buffer.FIFO_LENGTH_0);
 
 	return fifo_fill_level;
 }
@@ -741,20 +733,11 @@ bool BMI270::FIFORead(const hrt_abstime &timestamp_sample, uint16_t fifo_bytes)
 		return false;
 	}
 
-	// don't read more than 8 frames at a time, need to find out why this is the case...
-	if (fifo_bytes > BMI270_MAX_FIFO_SAMPLES * 13) {
-		fifo_bytes = BMI270_MAX_FIFO_SAMPLES * 13;
-	}
+	FIFOReadBuffer buffer{};
 
-	if (fifo_bytes == 0) {
-		perf_count(_fifo_empty_perf);
-		return false;
-	}
-
-	FIFOTransferBuffer buffer{};
-
-	// transfers the buffer from the IMU into PX4-land
-	if (transfer((uint8_t *)&buffer, (uint8_t *)&buffer, fifo_bytes) != PX4_OK) {
+	// Reads from the FIFO_DATA register as much data as is available,
+	// plus 2 bytes for the sent command and dummy byte.
+	if (transfer((uint8_t *)&buffer, (uint8_t *)&buffer, fifo_bytes + 2) != PX4_OK) {
 		PX4_DEBUG("buffer transfer failed");
 		perf_count(_bad_transfer_perf);
 		return false;
