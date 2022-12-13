@@ -82,10 +82,6 @@ __BEGIN_DECLS
 
 #define BOARD_NUMBER_I2C_BUSES  2
 
-/* Count of peripheral clock user configurations */
-
-#define NUM_OF_PERIPHERAL_CLOCKS_0 28
-
 /* Timer I/O PWM and capture */
 
 #define DIRECT_PWM_OUTPUT_CHANNELS  8
@@ -104,7 +100,7 @@ __BEGIN_DECLS
 
 /* User peripheral configuration structure 0 */
 
-extern const struct peripheral_clock_config_s g_peripheral_clockconfig0[NUM_OF_PERIPHERAL_CLOCKS_0];
+extern const struct peripheral_clock_config_s g_peripheral_clockconfig0[];
 
 /****************************************************************************
  * Public Function Prototypes
