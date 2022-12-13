@@ -121,11 +121,15 @@ public:
 	 */
 	int			init(bool hitl_mode);
 
+	/**
+	 * Start the PWMESC driver
+	 */
+	static void		start(int argc, char *argv[]);
 
 	/**
-	 * Get the singleton instance
+	 * Return if the PWMESC driver is already running
 	 */
-	static inline PWMESC *getInstance() {return _instance;}
+	bool		running() {return _initialized;};
 
 	/**
 	 * updateOutputs
@@ -155,7 +159,7 @@ private:
 
 	/* subscribed topics */
 
-	int		_actuator_armed_sub{-1};	///< system armed control topic
+	uORB::Subscription _actuator_armed_sub{ORB_ID(actuator_armed)};
 
 	MixingOutput _mixing_output{"PWM_MAIN", PWMESC_MAX_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, true};
 
@@ -197,6 +201,19 @@ private:
 	/* No copy constructor */
 	PWMESC(const PWMESC &);
 	PWMESC operator=(const PWMESC &);
+
+	/**
+	 * Get the singleton instance
+	 */
+	static inline PWMESC *getInstance()
+	{
+		if (_instance == nullptr) {
+			/* create the driver */
+			_instance = new PWMESC();
+		}
+
+		return _instance;
+	}
 };
 
 PWMESC *PWMESC::_instance = nullptr;
@@ -206,13 +223,15 @@ PWMESC::PWMESC() :
 	_task(-1),
 	_task_should_exit(false),
 	_perf_update(perf_alloc(PC_ELAPSED, "pwm update")),
-	_actuator_armed_sub(-1),
 	_hitl_mode(false)
 {
 
 	/* initialize tick semaphores */
 	px4_sem_init(&_update_sem, 0, 0);
 	px4_sem_setprotocol(&_update_sem, SEM_PRIO_NONE);
+
+	/* clear armed status */
+	memset(&_actuator_armed, 0, sizeof(actuator_armed_s));
 
 	/* we need this potentially before it could be set in task_main */
 	_instance = this;
@@ -260,6 +279,8 @@ PWMESC::init(bool hitl_mode)
 		return -errno;
 	}
 
+	_initialized = true;
+
 	/* schedule workqueue */
 	ScheduleNow();
 
@@ -269,7 +290,7 @@ PWMESC::init(bool hitl_mode)
 int
 PWMESC::task_main_trampoline(int argc, char *argv[])
 {
-	_instance->task_main();
+	getInstance()->task_main();
 	return 0;
 }
 
@@ -381,20 +402,11 @@ PWMESC::task_main()
 		_task_should_exit = true;
 	}
 
-	if (!_task_should_exit) {
-		_actuator_armed_sub =  orb_subscribe(ORB_ID(actuator_armed));
-
-		if (_actuator_armed_sub < 0) {
-			PX4_ERR("arming status subscription failed");
-			_task_should_exit = true;
-		}
-	}
-
 	while (!_task_should_exit) {
 
 		/* Get the armed status */
 
-		orb_copy(ORB_ID(actuator_armed), _actuator_armed_sub, &_actuator_armed);
+		_actuator_armed_sub.update(&_actuator_armed);
 
 		/* sleep waiting for mixer update */
 
@@ -427,33 +439,26 @@ PWMESC::task_main()
 
 void PWMESC::update_params()
 {
-	// skip update when armed
+	/* skip update when armed */
 	if (_actuator_armed.armed) {
 		return;
 	}
 
 	/* Call MixingOutput::updateParams */
-
 	updateParams();
 }
 
 extern "C" __EXPORT int pwm_esc_main(int argc, char *argv[]);
 
-namespace
-{
-
 void
-start(int argc, char *argv[])
+PWMESC::start(int argc, char *argv[])
 {
-	if (PWMESC::getInstance() != nullptr) {
-		errx(0, "already loaded");
+	if (PWMESC::getInstance() == nullptr) {
+		errx(1, "driver allocation failed");
 	}
 
-	/* create the driver */
-	(void)new PWMESC();
-
-	if (PWMESC::getInstance == nullptr) {
-		errx(1, "driver allocation failed");
+	if (PWMESC::getInstance()->running()) {
+		errx(1, "Already running");
 	}
 
 	bool hitl_mode = false;
@@ -476,8 +481,6 @@ start(int argc, char *argv[])
 	exit(0);
 }
 
-} /* namespace */
-
 int
 pwm_esc_main(int argc, char *argv[])
 {
@@ -487,7 +490,7 @@ pwm_esc_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "start")) {
-		start(argc - 1, argv + 1);
+		PWMESC::start(argc - 1, argv + 1);
 	}
 
 out:
