@@ -46,6 +46,16 @@
 
 namespace uavcan_socketcan
 {
+namespace clock
+{
+/**
+ * Performs UTC phase and frequency adjustment.
+ * The UTC time will be zero until first adjustment has been performed.
+ * This function is thread safe.
+ */
+void adjustUtc(uavcan::UtcDuration adjustment);
+//FIXME
+}
 /**
  * Different adjustment modes can be used for time synchronization
  */
