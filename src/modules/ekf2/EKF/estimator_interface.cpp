@@ -542,7 +542,7 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 		max_time_delay_ms = math::max(_params.flow_delay_ms, max_time_delay_ms);
 	}
 
-	if ((_params.fusion_mode & (SensorFusionMask::USE_EXT_VIS_POS | SensorFusionMask::USE_EXT_VIS_YAW)) || (_params.ev_ctrl & static_cast<int32_t>(EvCtrl::VEL))) {
+	if ((_params.fusion_mode & (SensorFusionMask::USE_EXT_VIS_POS | SensorFusionMask::USE_EXT_VIS_YAW)) || (_params.ev_ctrl > 0)) {
 		max_time_delay_ms = math::max(_params.ev_delay_ms, max_time_delay_ms);
 	}
 

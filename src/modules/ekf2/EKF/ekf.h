@@ -851,7 +851,8 @@ private:
 
 	// control fusion of external vision observations
 	void controlExternalVisionFusion();
-	void controlEvVelFusion(const extVisionSample &ev_sample, bool starting_conditions_passing, bool ev_reset, bool quality_sufficient, estimator_aid_source3d_s& aid_src);
+	void controlEvHeightFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient, estimator_aid_source1d_s& aid_src);
+	void controlEvVelFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient, estimator_aid_source3d_s& aid_src);
 
 	// control fusion of optical flow observations
 	void controlOpticalFlowFusion();
@@ -922,7 +923,6 @@ private:
 	void controlBaroHeightFusion();
 	void controlGnssHeightFusion(const gpsSample &gps_sample);
 	void controlRangeHeightFusion();
-	void controlEvHeightFusion(const extVisionSample &ev_sample);
 
 	bool isConditionalRangeAidSuitable();
 

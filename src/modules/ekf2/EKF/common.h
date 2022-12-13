@@ -380,6 +380,7 @@ struct parameters {
 
 	// vision position fusion
 	float ev_vel_noise{0.1f};               ///< minimum allowed observation noise for EV velocity fusion (m/sec)
+	float ev_pos_noise{0.1f};               ///< minimum allowed observation noise for EV position fusion (m)
 	float ev_att_noise{0.1f};               ///< minimum allowed observation noise for EV attitude fusion (rad/sec)
 	int32_t ev_quality_minimum{0};          ///< vision minimum acceptable quality integer
 	float ev_vel_innov_gate{3.0f};          ///< vision velocity fusion innovation consistency gate size (STD)
