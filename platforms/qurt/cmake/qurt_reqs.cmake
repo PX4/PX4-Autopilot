@@ -99,6 +99,7 @@ set(ARCHCPUFLAGS
 
 add_definitions(
 	-D __QURT
+	# -D DEBUG_BUILD # Add this to get extra debug output
 	-D _PROVIDE_POSIX_TIME_DECLS
 	-D _HAS_C9X
 	-D restrict=__restrict__

@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2022 ModalAI, Inc. All rights reserved.
+#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,12 +30,19 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-add_library(drivers_board
-	board_config.h
-	init.c
-	spi.cpp
-    )
-
-# Add custom drivers for SLPI
-add_subdirectory(${PX4_BOARD_DIR}/src/drivers/icm42688p)
+px4_add_module(
+	MODULE drivers__imu__invensense__icm42688p
+	MAIN icm42688p
+	COMPILE_FLAGS
+		${MAX_CUSTOM_OPT_LEVEL}
+	SRCS
+		icm42688p_main.cpp
+		ICM42688P.cpp
+		ICM42688P.hpp
+		InvenSense_ICM42688P_registers.hpp
+	DEPENDS
+		px4_work_queue
+		drivers_accelerometer
+		drivers_gyroscope
+		drivers__device
+	)

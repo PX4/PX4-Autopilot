@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 ModalAI, Inc. All rights reserved.
+ *   Copyright (C) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,29 +31,10 @@
  *
  ****************************************************************************/
 
-/**
- * @file board_config.h
- *
- * VOXL2 internal definitions
- */
+#include <px4_arch/spi_hw_description.h>
+#include <px4_platform_common/spi.h>
+#include <drivers/drv_sensor.h>
 
-#pragma once
-
-#define BOARD_HAS_NO_RESET
-#define BOARD_HAS_NO_BOOTLOADER
-/*
- * I2C buses
- */
-#define PX4_NUMBER_I2C_BUSES    3
-
-/*
- * SPI buses
- */
-#define CONFIG_SPI 1
-#define BOARD_SPI_BUS_MAX_BUS_ITEMS 1
-
-/*
- * Include these last to make use of the definitions above
- */
-#include <system_config.h>
-#include <px4_platform_common/board_common.h>
+constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
+	initSPIBus(1, {initSPIDevice(DRV_IMU_DEVTYPE_ICM42688P), }),
+};

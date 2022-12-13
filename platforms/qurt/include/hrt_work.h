@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 ModalAI, Inc. All rights reserved.
+ * Copyright (C) 2015 Mark Charlebois. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,29 +31,32 @@
  *
  ****************************************************************************/
 
-/**
- * @file board_config.h
- *
- * VOXL2 internal definitions
- */
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/posix.h>
+#include <semaphore.h>
+#include <px4_platform_common/workqueue.h>
 
 #pragma once
 
-#define BOARD_HAS_NO_RESET
-#define BOARD_HAS_NO_BOOTLOADER
-/*
- * I2C buses
- */
-#define PX4_NUMBER_I2C_BUSES    3
+__BEGIN_DECLS
 
-/*
- * SPI buses
- */
-#define CONFIG_SPI 1
-#define BOARD_SPI_BUS_MAX_BUS_ITEMS 1
+extern px4_sem_t _hrt_work_lock;
+extern struct wqueue_s g_hrt_work;
 
-/*
- * Include these last to make use of the definitions above
- */
-#include <system_config.h>
-#include <px4_platform_common/board_common.h>
+void hrt_work_queue_init(void);
+int hrt_work_queue(struct work_s *work, worker_t worker, void *arg, uint32_t usdelay);
+void hrt_work_cancel(struct work_s *work);
+
+static inline void hrt_work_lock(void);
+static inline void hrt_work_lock()
+{
+	px4_sem_wait(&_hrt_work_lock);
+}
+
+static inline void hrt_work_unlock(void);
+static inline void hrt_work_unlock()
+{
+	px4_sem_post(&_hrt_work_lock);
+}
+
+__END_DECLS
