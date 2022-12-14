@@ -8,11 +8,7 @@ board_adc start
 # but there might also be an MPU6000
 if ! mpu6000 -R 6 -s start
 then
-	if ! icm20689 -R 6 -s start
-	then
-		# The Kakute H7 v2 comes with a BMI270 instead
-		bmi270 -s start
-	fi
+	icm20689 -R 6 -s start
 fi
 
 bmp280 -X start
