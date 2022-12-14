@@ -96,6 +96,7 @@ enum class BANK_0 : uint8_t {
 	FIFO_CONFIG3       = 0x61,
 
 	INT_CONFIG0        = 0x63,
+	INT_CONFIG1        = 0x64,
 
 	INT_SOURCE0        = 0x65,
 
@@ -239,6 +240,11 @@ enum FIFO_CONFIG1_BIT : uint8_t {
 enum INT_CONFIG0_BIT : uint8_t {
 	// 3:2 FIFO_THS_INT_CLEAR
 	CLEAR_ON_FIFO_READ = Bit3,
+};
+
+// INT_CONFIG1
+enum INT_CONFIG1_BIT : uint8_t {
+	INT_ASYNC_RESET = Bit4, // User should change setting to 0 from default setting of 1, for proper INT1 and INT2 pin operation
 };
 
 // INT_SOURCE0
