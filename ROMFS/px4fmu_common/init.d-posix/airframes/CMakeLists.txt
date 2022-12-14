@@ -78,6 +78,7 @@ px4_add_romfs_files(
 
 	5000_falcon
 	5100_raptor
+	5200_gripper
 
 	17001_tf-g1
 	17002_tf-g2

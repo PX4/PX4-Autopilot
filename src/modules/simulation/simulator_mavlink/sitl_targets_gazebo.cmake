@@ -97,6 +97,7 @@ set(models
 	uuv_hippocampus
 	falcon
 	raptor
+	gripper
 )
 
 set(worlds
@@ -110,6 +111,8 @@ set(worlds
 	windy
 	yosemite
 	falcon
+	gripper
+	raptor
 )
 
 foreach(debugger ${debuggers})
