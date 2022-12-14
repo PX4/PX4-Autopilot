@@ -87,6 +87,7 @@ set(models
 	r1_rover
 	rover
 	shell
+	ssrc_fog_x
 	standard_vtol
 	standard_vtol_drop
 	tailsitter
