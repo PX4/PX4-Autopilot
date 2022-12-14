@@ -75,6 +75,10 @@ LandingTargetEstimator::~LandingTargetEstimator()
 
 	delete _target_estimator_orientation;
 	delete _target_estimator_coupled;
+
+	perf_free(_ltest_predict_perf);
+	perf_free(_ltest_update_perf);
+	perf_free(_ltest_update_full_perf);
 }
 
 void LandingTargetEstimator::resetFilter()
@@ -105,7 +109,10 @@ void LandingTargetEstimator::update()
 			resetFilter();
 
 		} else {
+			const hrt_abstime ltest_predict_start = hrt_absolute_time();
 			predictionStep(input.vehicle_acc_ned);
+			perf_set_elapsed(_ltest_predict_perf, hrt_elapsed_time(&ltest_predict_start));
+
 			_last_predict = hrt_absolute_time();
 		}
 	}
@@ -347,6 +354,8 @@ bool LandingTargetEstimator::update_step(Vector3f vehicle_acc_ned)
 	// If we have a new sensor and the estimator is initialized: fuse available measurements and publish innov.
 	if ((new_pos_sensor || new_vel_sensor) && _estimator_initialized) {
 
+		const hrt_abstime ltest_update_full_start = hrt_absolute_time();
+
 		/*TARGET GPS*/
 		if (pos_GNSS_valid) {
 
@@ -389,6 +398,8 @@ bool LandingTargetEstimator::update_step(Vector3f vehicle_acc_ned)
 				pos_fused = true;
 			}
 		}
+
+		perf_set_elapsed(_ltest_update_full_perf, hrt_elapsed_time(&ltest_update_full_start));
 
 		// If at least one pos measurement was fused, consider the filter updated
 		return pos_fused;
@@ -526,15 +537,14 @@ bool LandingTargetEstimator::processObsVision(const landing_target_pose_s &fiduc
 			H_position(1, 1) = 1;
 			H_position(2, 2) = 1;
 
-			// Cholesky decomposition using PX4 matrix:
-			// TODO: correct
-			// Matrix<float, 3, 3> T =  matrix::cholesky(R_rotated);
+			// Cholesky decomposition R = L*L.T() to find L_inv = inv(L) such that R_diag = L_inv*R*L_inv.T() is diagonal:
+			// Matrix<float, 3, 3> L_inv = matrix::inv(matrix::cholesky(R_rotated));
 
-			Matrix3f T;
-			T.identity();
+			Matrix3f L_inv;
+			L_inv.identity();
 
 			// Diagonalize R_rotated:
-			Matrix<float, 3, 3> R_diag =  T * R_rotated;
+			Matrix<float, 3, 3> R_diag =  L_inv * R_rotated * L_inv.T();
 
 			obs.meas_unc_xyz(0) = R_diag(0, 0);
 			obs.meas_unc_xyz(1) = R_diag(1, 1);
@@ -542,12 +552,12 @@ bool LandingTargetEstimator::processObsVision(const landing_target_pose_s &fiduc
 			//TODO: replace by obs->meas_unc_xyz = R_diag.diag();
 
 			//Transform measurements Z:
-			Vector3f Z_transformed = T * Z;
+			Vector3f Z_transformed = L_inv * Z;
 
 			obs.meas_xyz = Z_transformed;
 
 			//Transform H
-			Matrix<float, 3, 3> H_transformed = T * H_position;
+			Matrix<float, 3, 3> H_transformed = L_inv * H_position;
 
 			//Bring H_position back to the full H: [rx, ry, rz, r_dotx, r_doty, r_dotz, bx, by, bz, atx, aty, atz]
 			obs.meas_h_xyz(0, 0) = H_transformed(0, 0);
@@ -864,6 +874,8 @@ bool LandingTargetEstimator::processObsIRlock(const irlock_report_s &irlock_repo
 
 bool LandingTargetEstimator::fuse_meas(const Vector3f vehicle_acc_ned, const targetObsPos &target_pos_obs)
 {
+	const hrt_abstime ltest_update_start = hrt_absolute_time();
+
 	estimator_aid_source_3d_s target_innov;
 	Vector<bool, 3> meas_xyz_fused{};
 	bool all_directions_fused = false;
@@ -976,6 +988,8 @@ bool LandingTargetEstimator::fuse_meas(const Vector3f vehicle_acc_ned, const tar
 				  meas_xyz_fused(2));
 		}
 	}
+
+	perf_set_elapsed(_ltest_update_perf, hrt_elapsed_time(&ltest_update_start));
 
 	// Publish innovations
 	switch (target_pos_obs.type) {

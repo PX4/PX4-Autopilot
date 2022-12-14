@@ -43,6 +43,7 @@
 
 #pragma once
 
+#include <lib/perf/perf_counter.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/workqueue.h>
 #include <drivers/drv_hrt.h>
@@ -236,6 +237,10 @@ private:
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _pos_sp_triplet_sub{ORB_ID(position_setpoint_triplet)};
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
+
+	perf_counter_t _ltest_predict_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": LTEST prediction")};
+	perf_counter_t _ltest_update_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": LTEST update")};
+	perf_counter_t _ltest_update_full_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": LTEST update full")};
 
 	struct localPos {
 		bool valid = false;
