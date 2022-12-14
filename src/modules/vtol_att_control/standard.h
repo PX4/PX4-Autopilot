@@ -72,10 +72,7 @@ private:
 		FW_MODE
 	};
 
-	struct {
-		vtol_mode flight_mode;			// indicates in which mode the vehicle is in
-		hrt_abstime transition_start;	// at what time did we start a transition (front- or backtransition)
-	} _vtol_schedule;
+	vtol_mode _vtol_mode{vtol_mode::MC_MODE};			/**< vtol flight mode, defined by enum vtol_mode */
 
 	float _pusher_throttle{0.0f};
 	float _reverse_output{0.0f};
@@ -84,7 +81,7 @@ private:
 	void parameters_update() override;
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(VtolType,
-					(ParamFloat<px4::params::VT_PSHER_RMP_DT>) _param_vt_psher_rmp_dt,
+					(ParamFloat<px4::params::VT_PSHER_SLEW>) _param_vt_psher_slew,
 					(ParamFloat<px4::params::VT_B_TRANS_RAMP>) _param_vt_b_trans_ramp,
 					(ParamFloat<px4::params::FW_PSP_OFF>) _param_fw_psp_off,
 					(ParamFloat<px4::params::VT_B_REV_OUT>) _param_vt_b_rev_out,

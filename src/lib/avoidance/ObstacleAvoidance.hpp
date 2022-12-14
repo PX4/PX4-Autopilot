@@ -130,6 +130,8 @@ protected:
 	matrix::Vector3f _position = {}; /**< current vehicle position */
 	matrix::Vector3f _failsafe_position = {}; /**< vehicle position when entered in failsafe */
 
+	bool _avoidance_activated{false}; /**< true after the first avoidance setpoint is received */
+
 	systemlib::Hysteresis _avoidance_point_not_valid_hysteresis{false}; /**< becomes true if the companion doesn't start sending valid setpoints */
 	systemlib::Hysteresis _no_progress_z_hysteresis{false}; /**< becomes true if the vehicle is not making progress towards the z component of the goal */
 

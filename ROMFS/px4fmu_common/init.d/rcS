@@ -162,7 +162,7 @@ else
 		param select-backup $PARAM_BACKUP_FILE
 	fi
 
-	if ver hwcmp PX4_FMU_V5X PX4_FMU_V6X
+	if ver hwcmp PX4_FMU_V5X PX4_FMU_V6X ARK_FMU_V6X
 	then
 		netman update -i eth0
 	fi
@@ -262,23 +262,6 @@ else
 	then
 		echo "Custom: ${FCONFIG}"
 		. $FCONFIG
-	fi
-
-	#
-	# Check if UAVCAN is enabled, default to it for ESCs.
-	#
-	if param greater -s UAVCAN_ENABLE 0
-	then
-		# Start core UAVCAN module.
-		if ! uavcan start
-		then
-			tune_control play error
-		fi
-	else
-		if param greater -s CYPHAL_ENABLE 0
-		then
-			cyphal start
-		fi
 	fi
 
 	#
@@ -526,6 +509,23 @@ else
 		sh $BOARD_BOOTLOADER_UPGRADE
 	fi
 	unset BOARD_BOOTLOADER_UPGRADE
+
+	#
+	# Check if UAVCAN is enabled, default to it for ESCs.
+	#
+	if param greater -s UAVCAN_ENABLE 0
+	then
+		# Start core UAVCAN module.
+		if ! uavcan start
+		then
+			tune_control play error
+		fi
+	else
+		if param greater -s CYPHAL_ENABLE 0
+		then
+			cyphal start
+		fi
+	fi
 
 #
 # End of autostart.

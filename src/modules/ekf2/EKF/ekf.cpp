@@ -103,8 +103,8 @@ bool Ekf::update()
 	// Only run the filter if IMU data in the buffer has been updated
 	if (_imu_updated) {
 		// perform state and covariance prediction for the main filter
-		predictState();
 		predictCovariance();
+		predictState();
 
 		// control fusion of observation data
 		controlFusionModes();
@@ -204,8 +204,6 @@ bool Ekf::initialiseFilter()
 	_time_last_hgt_fuse = _imu_sample_delayed.time_us;
 	_time_last_hor_pos_fuse = _imu_sample_delayed.time_us;
 	_time_last_hor_vel_fuse = _imu_sample_delayed.time_us;
-	_time_last_hagl_fuse = _imu_sample_delayed.time_us;
-	_time_last_flow_terrain_fuse = _imu_sample_delayed.time_us;
 
 	// reset the output predictor state history to match the EKF initial values
 	alignOutputFilter();

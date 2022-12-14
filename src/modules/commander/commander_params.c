@@ -143,23 +143,6 @@ PARAM_DEFINE_INT32(COM_HLDL_REG_T, 0);
 PARAM_DEFINE_FLOAT(COM_RC_LOSS_T, 0.5f);
 
 /**
- * Delay between RC loss and configured reaction
- *
- * RC signal not updated -> still use data for COM_RC_LOSS_T seconds
- * Consider RC signal lost -> wait COM_RCL_ACT_T seconds in Hold mode to regain signal
- * React with failsafe action NAV_RCL_ACT
- *
- * A zero value disables the delay.
- *
- * @group Commander
- * @unit s
- * @min 0.0
- * @max 25.0
- * @decimal 3
- */
-PARAM_DEFINE_FLOAT(COM_RCL_ACT_T, 15.0f);
-
-/**
  * Home position enabled
  *
  * Set home position automatically if possible.
@@ -224,7 +207,8 @@ PARAM_DEFINE_INT32(COM_RC_ARM_HYST, 1000);
  *
  * @group Commander
  * @unit s
- * @decimal 2
+ * @decimal 1
+ * @increment 0.1
  */
 
 PARAM_DEFINE_FLOAT(COM_DISARM_LAND, 2.0f);
@@ -240,7 +224,8 @@ PARAM_DEFINE_FLOAT(COM_DISARM_LAND, 2.0f);
  *
  * @group Commander
  * @unit s
- * @decimal 2
+ * @decimal 1
+ * @increment 0.1
  */
 PARAM_DEFINE_FLOAT(COM_DISARM_PRFLT, 10.0f);
 
@@ -277,8 +262,6 @@ PARAM_DEFINE_INT32(COM_ARM_SWISBTN, 0);
  * @value 0 Warning
  * @value 2 Land mode
  * @value 3 Return at critical level, land at emergency level
- * @decimal 0
- * @increment 1
  */
 PARAM_DEFINE_INT32(COM_LOW_BAT_ACT, 0);
 
@@ -312,7 +295,6 @@ PARAM_DEFINE_FLOAT(COM_FAIL_ACT_T, 5.f);
  * @value 0 Warning
  * @value 1 Return
  * @value 2 Land
- * @decimal 0
  * @increment 1
  */
 PARAM_DEFINE_INT32(COM_IMB_PROP_ACT, 0);
@@ -1033,6 +1015,8 @@ PARAM_DEFINE_INT32(COM_ARM_HFLT_CHK, 1);
  * @group Commander
  * @min 0
  * @max 30
+ * @decimal 1
+ * @increment 0.1
  * @unit s
  */
 PARAM_DEFINE_FLOAT(COM_SPOOLUP_TIME, 1.0f);

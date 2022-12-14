@@ -108,7 +108,7 @@ PARAM_DEFINE_FLOAT(VT_B_REV_OUT, 0.0f);
  *
  * Set this to a value greater than 0 to give the motor time to spin down.
  *
- * unit s
+ * @unit s
  * @min 0
  * @max 10
  * @increment 1
@@ -118,14 +118,16 @@ PARAM_DEFINE_FLOAT(VT_B_REV_OUT, 0.0f);
 PARAM_DEFINE_FLOAT(VT_B_REV_DEL, 0.0f);
 
 /**
- * Pusher throttle ramp up window
+ * Pusher throttle ramp up slew rate
  *
- * Defines the time window during which the pusher throttle will be ramped up linearly to VT_F_TRANS_THR during a transition
- * to fixed wing mode. Zero or negative values will produce an instant throttle rise to VT_F_TRANS_THR.
+ * Defines the slew rate of the puller/pusher throttle during transitions.
+ * Zero will deactivate the slew rate limiting and thus produce an instant throttle
+ * rise to the transition throttle VT_F_TRANS_THR.
  *
- * @max 20
+ * @unit 1/s
+ * @min 0
  * @increment 0.01
  * @decimal 2
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_PSHER_RMP_DT, 3.0f);
+PARAM_DEFINE_FLOAT(VT_PSHER_SLEW, 0.33f);

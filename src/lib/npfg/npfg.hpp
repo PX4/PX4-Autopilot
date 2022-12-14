@@ -180,6 +180,8 @@ public:
 	 */
 	float getHeadingRef() const { return atan2f(air_vel_ref_(1), air_vel_ref_(0)); }
 
+	matrix::Vector2f getClosestPoint() const { return closest_point_on_path_;}
+
 	/*
 	 * @return Bearing angle [rad]
 	 */
@@ -422,6 +424,7 @@ private:
 	matrix::Vector2f unit_path_tangent_{matrix::Vector2f{1.0f, 0.0f}}; // unit path tangent vector
 	float signed_track_error_{0.0f}; // signed track error [m]
 	matrix::Vector2f bearing_vec_{matrix::Vector2f{1.0f, 0.0f}}; // bearing unit vector
+	matrix::Vector2f closest_point_on_path_{matrix::Vector2f{NAN, NAN}}; // instantaneous position setpoint [m]
 
 	/*
 	 * guidance outputs

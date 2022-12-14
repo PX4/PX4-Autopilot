@@ -66,21 +66,23 @@ using math::Utilities::sq;
 using math::Utilities::updateYawInRotMat;
 
 // maximum sensor intervals in usec
-#define BARO_MAX_INTERVAL (uint64_t)2e5 ///< Maximum allowable time interval between pressure altitude measurements (uSec)
-#define EV_MAX_INTERVAL   (uint64_t)2e5 ///< Maximum allowable time interval between external vision system measurements (uSec)
-#define GPS_MAX_INTERVAL  (uint64_t)5e5 ///< Maximum allowable time interval between GPS measurements (uSec)
-#define RNG_MAX_INTERVAL  (uint64_t)2e5 ///< Maximum allowable time interval between range finder  measurements (uSec)
+static constexpr uint64_t BARO_MAX_INTERVAL     = 200e3;  ///< Maximum allowable time interval between pressure altitude measurements (uSec)
+static constexpr uint64_t EV_MAX_INTERVAL       = 200e3;  ///< Maximum allowable time interval between external vision system measurements (uSec)
+static constexpr uint64_t GNSS_MAX_INTERVAL     = 500e3;  ///< Maximum allowable time interval between GNSS measurements (uSec)
+static constexpr uint64_t GNSS_YAW_MAX_INTERVAL = 1500e3; ///< Maximum allowable time interval between GNSS yaw measurements (uSec)
+static constexpr uint64_t RNG_MAX_INTERVAL      = 200e3;  ///< Maximum allowable time interval between range finder  measurements (uSec)
 
 // bad accelerometer detection and mitigation
-#define BADACC_PROBATION  (uint64_t)10e6        ///< Period of time that accel data declared bad must continuously pass checks to be declared good again (uSec)
-#define BADACC_BIAS_PNOISE      4.9f    ///< The delta velocity process noise is set to this when accel data is declared bad (m/sec**2)
+static constexpr uint64_t BADACC_PROBATION = 10e6; ///< Period of time that accel data declared bad must continuously pass checks to be declared good again (uSec)
+static constexpr float BADACC_BIAS_PNOISE = 4.9f;  ///< The delta velocity process noise is set to this when accel data is declared bad (m/sec**2)
 
 // ground effect compensation
-#define GNDEFFECT_TIMEOUT       10E6    ///< Maximum period of time that ground effect protection will be active after it was last turned on (uSec)
+static constexpr uint64_t GNDEFFECT_TIMEOUT = 10e6; ///< Maximum period of time that ground effect protection will be active after it was last turned on (uSec)
 
 enum class VelocityFrame : uint8_t {
-	LOCAL_FRAME_FRD = 0,
-	BODY_FRAME_FRD  = 1
+	LOCAL_FRAME_NED = 0,
+	LOCAL_FRAME_FRD = 1,
+	BODY_FRAME_FRD  = 2
 };
 
 enum GeoDeclinationMask : uint8_t {
@@ -126,6 +128,13 @@ enum RngCtrl : uint8_t {
 	ENABLED     = 2
 };
 
+enum class EvCtrl : uint8_t {
+	HPOS = (1<<0),
+	VPOS = (1<<1),
+	VEL  = (1<<2),
+	YAW  = (1<<3)
+};
+
 enum SensorFusionMask : uint16_t {
 	// Bit locations for fusion_mode
 	DEPRECATED_USE_GPS = (1<<0),    ///< set to true to use GPS data (DEPRECATED, use gnss_ctrl)
@@ -136,7 +145,7 @@ enum SensorFusionMask : uint16_t {
 	USE_DRAG         = (1<<5),      ///< set to true to use the multi-rotor drag model to estimate wind
 	ROTATE_EXT_VIS   = (1<<6),      ///< set to true to if the EV observations are in a non NED reference frame and need to be rotated before being used
 	DEPRECATED_USE_GPS_YAW = (1<<7),///< set to true to use GPS yaw data if available (DEPRECATED, use gnss_ctrl)
-	USE_EXT_VIS_VEL  = (1<<8),      ///< set to true to use external vision velocity data
+	DEPRECATED_USE_EXT_VIS_VEL = (1<<8), ///< set to true to use external vision velocity data
 };
 
 struct gpsMessage {
@@ -146,6 +155,7 @@ struct gpsMessage {
 	int32_t     alt{};              ///< Altitude in 1E-3 meters (millimeters) above MSL
 	float       yaw{};              ///< yaw angle. NaN if not set (used for dual antenna GPS), (rad, [-PI, PI])
 	float       yaw_offset{};       ///< Heading/Yaw offset for dual antenna GPS - refer to description for GPS_YAW_OFFSET
+	float       yaw_accuracy{};	///< yaw measurement accuracy (rad, [0, 2PI])
 	uint8_t     fix_type{};         ///< 0-1: no fix, 2: 2D fix, 3: 3D fix, 4: RTCM code differential, 5: Real-Time Kinematic
 	float       eph{};              ///< GPS horizontal position accuracy in m
 	float       epv{};              ///< GPS vertical position accuracy in m
@@ -189,11 +199,13 @@ struct gpsSample {
 	float       hacc{};     ///< 1-std horizontal position error (m)
 	float       vacc{};     ///< 1-std vertical position error (m)
 	float       sacc{};     ///< 1-std speed error (m/sec)
+	float       yaw_acc{};  ///< 1-std yaw error (rad)
 };
 
 struct magSample {
 	uint64_t    time_us{};  ///< timestamp of the measurement (uSec)
 	Vector3f    mag{};      ///< NED magnetometer body frame measurements (Gauss)
+	bool        reset{false}; ///< magnetometer changed (different sensor or calibration change)
 };
 
 struct baroSample {
@@ -227,10 +239,11 @@ struct extVisionSample {
 	Vector3f    vel{};         ///< FRD velocity in reference frame defined in vel_frame variable (m/sec) - Z must be aligned with down axis
 	Quatf       quat{};        ///< quaternion defining rotation from body to earth frame
 	Vector3f    posVar{};      ///< XYZ position variances (m**2)
-	Vector3f    velVar{};      ///< XYZ velocity variances ((m/sec)**2)
-	float       angVar{};      ///< angular heading variance (rad**2)
+	Vector3f    velocity_var{};    ///< XYZ velocity variances ((m/sec)**2)
+	Vector3f    orientation_var{}; ///< orientation variance (rad**2)
 	VelocityFrame vel_frame = VelocityFrame::BODY_FRAME_FRD;
 	uint8_t     reset_counter{};
+	int8_t     quality{};     ///< quality indicator between 0 and 100
 };
 
 struct dragSample {
@@ -242,6 +255,14 @@ struct auxVelSample {
 	uint64_t    time_us{};     ///< timestamp of the measurement (uSec)
 	Vector2f    vel{};         ///< measured NE velocity relative to the local origin (m/sec)
 	Vector2f    velVar{};      ///< estimated error variance of the NE velocity (m/sec)**2
+};
+
+struct systemFlagUpdate {
+	uint64_t time_us{};
+	bool at_rest{false};
+	bool in_air{true};
+	bool is_fixed_wing{false};
+	bool gnd_effect{false};
 };
 
 struct stateSample {
@@ -265,6 +286,7 @@ struct parameters {
 	int32_t baro_ctrl{1};
 	int32_t gnss_ctrl{GnssCtrl::HPOS | GnssCtrl::VEL};
 	int32_t rng_ctrl{RngCtrl::CONDITIONAL};
+	int32_t ev_ctrl{0};
 	int32_t terrain_fusion_mode{TerrainFusionMask::TerrainFuseRangeFinder |
 				    TerrainFusionMask::TerrainFuseOpticalFlow}; ///< aiding source(s) selection bitmask for the terrain estimator
 
@@ -357,6 +379,10 @@ struct parameters {
 	float range_kin_consistency_gate{1.0f}; ///< gate size used by the range finder kinematic consistency check
 
 	// vision position fusion
+	float ev_vel_noise{0.1f};               ///< minimum allowed observation noise for EV velocity fusion (m/sec)
+	float ev_pos_noise{0.1f};               ///< minimum allowed observation noise for EV position fusion (m)
+	float ev_att_noise{0.1f};               ///< minimum allowed observation noise for EV attitude fusion (rad/sec)
+	int32_t ev_quality_minimum{0};          ///< vision minimum acceptable quality integer
 	float ev_vel_innov_gate{3.0f};          ///< vision velocity fusion innovation consistency gate size (STD)
 	float ev_pos_innov_gate{5.0f};          ///< vision position fusion innovation consistency gate size (STD)
 	float ev_hgt_bias_nsd{0.13f};           ///< process noise for vision height bias estimation (m/s/sqrt(Hz))
@@ -395,11 +421,11 @@ struct parameters {
 	float acc_bias_learn_gyr_lim{3.0f};     ///< learning is disabled if the magnitude of the IMU angular rate vector is greater than this (rad/sec)
 	float acc_bias_learn_tc{0.5f};          ///< time constant used to control the decaying envelope filters applied to the accel and gyro magnitudes (sec)
 
-	const unsigned reset_timeout_max{7000000};      ///< maximum time we allow horizontal inertial dead reckoning before attempting to reset the states to the measurement or change _control_status if the data is unavailable (uSec)
-	const unsigned no_aid_timeout_max{1000000};     ///< maximum lapsed time from last fusion of a measurement that constrains horizontal velocity drift before the EKF will determine that the sensor is no longer contributing to aiding (uSec)
+	const unsigned reset_timeout_max{7'000'000};      ///< maximum time we allow horizontal inertial dead reckoning before attempting to reset the states to the measurement or change _control_status if the data is unavailable (uSec)
+	const unsigned no_aid_timeout_max{1'000'000};     ///< maximum lapsed time from last fusion of a measurement that constrains horizontal velocity drift before the EKF will determine that the sensor is no longer contributing to aiding (uSec)
 	const unsigned hgt_fusion_timeout_max{5'000'000}; ///< maximum time we allow height fusion to fail before attempting a reset or stopping the fusion aiding (uSec)
 
-	int32_t valid_timeout_max{5000000};     ///< amount of time spent inertial dead reckoning before the estimator reports the state estimates as invalid (uSec)
+	int32_t valid_timeout_max{5'000'000};     ///< amount of time spent inertial dead reckoning before the estimator reports the state estimates as invalid (uSec)
 
 	// static barometer pressure position error coefficient along body axes
 	float static_pressure_coef_xp{0.0f};    // (-)
@@ -434,7 +460,6 @@ struct parameters {
 	float EKFGSF_tas_default{15.0f};                ///< default airspeed value assumed during fixed wing flight if no airspeed measurement available (m/s)
 	const unsigned EKFGSF_reset_delay{1000000};     ///< Number of uSec of bad innovations on main filter in immediate post-takeoff phase before yaw is reset to EKF-GSF value
 	const float EKFGSF_yaw_err_max{0.262f};         ///< Composite yaw 1-sigma uncertainty threshold used to check for convergence (rad)
-	const unsigned EKFGSF_reset_count_limit{3};     ///< Maximum number of times the yaw can be reset to the EKF-GSF yaw estimator value
 };
 
 union fault_status_u {

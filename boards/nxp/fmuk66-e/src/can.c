@@ -51,7 +51,7 @@
 
 #include <chip.h>
 #include <kinetis.h>
-#include "arm_arch.h"
+#include "arm_internal.h"
 
 #include "board_config.h"
 

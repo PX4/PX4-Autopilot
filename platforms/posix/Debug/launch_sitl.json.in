@@ -2,13 +2,12 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "SITL (GZ)",
+            "name": "SITL (gz)",
             "type": "cppdbg",
             "request": "launch",
             "program": "${command:cmake.launchTargetPath}",
             "args": [
-                "${workspaceFolder}/ROMFS/px4fmu_common",
-                "-s", "etc/init.d-posix/rcS"
+                "${workspaceFolder}/ROMFS/px4fmu_common"
             ],
             "stopAtEntry": false,
             "cwd": "${command:cmake.buildDirectory}/rootfs",

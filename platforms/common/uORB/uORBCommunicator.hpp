@@ -67,21 +67,8 @@ public:
 	 * 		Note: This does not mean that the receiver as received it.
 	 *  otherwise = failure.
 	 */
-	virtual int16_t topic_advertised(const char *messageName) = 0;
 
-	/**
-	 * @brief Interface to notify the remote entity of a topic being unadvertised
-	 * and is no longer publishing messages.
-	 *
-	 * @param messageName
-	 * 	This represents the uORB message name(aka topic); This message name should be
-	 * 	globally unique.
-	 * @return
-	 * 	0 = success; This means the messages is successfully sent to the receiver
-	 * 		Note: This does not mean that the receiver as received it.
-	 *  otherwise = failure.
-	 */
-	//virtual int16_t topic_unadvertised(const char *messageName) = 0;
+	virtual int16_t topic_advertised(const char *messageName) = 0;
 
 	/**
 	 * @brief Interface to notify the remote entity of interest of a
@@ -100,8 +87,6 @@ public:
 
 	virtual int16_t add_subscription(const char *messageName, int32_t msgRateInHz) = 0;
 
-
-
 	/**
 	 * @brief Interface to notify the remote entity of removal of a subscription
 	 *
@@ -116,10 +101,10 @@ public:
 
 	virtual int16_t remove_subscription(const char *messageName) = 0;
 
-
 	/**
 	 * Register Message Handler.  This is internal for the IChannel implementer*
 	 */
+
 	virtual int16_t register_handler(uORBCommunicator::IChannelRxHandler *handler) = 0;
 
 
@@ -155,35 +140,30 @@ class uORBCommunicator::IChannelRxHandler
 public:
 
 	/**
-	 * Interface to process a received topic from remote.
+	 * Interface to process a received topic advertisement from remote.
 	 * @param topic_name
 	 * 	This represents the uORB message Name (topic); This message Name should be
 	 * 	globally unique.
-	 * @param isAdvertisement
-	 * 	Represents if the topic has been advertised or is no longer avialable.
 	 * @return
 	 *  0 = success; This means the messages is successfully handled in the
 	 *  	handler.
 	 *  otherwise = failure.
 	 */
 
-	virtual int16_t process_remote_topic(const char *topic_name, bool isAdvertisement) = 0;
+	virtual int16_t process_remote_topic(const char *topic_name) = 0;
 
 	/**
 	 * Interface to process a received AddSubscription from remote.
 	 * @param messageName
 	 * 	This represents the uORB message Name; This message Name should be
 	 * 	globally unique.
-	 * @param msgRate
-	 * 	The max rate at which the subscriber can accept the messages.
 	 * @return
 	 *  0 = success; This means the messages is successfully handled in the
 	 *  	handler.
 	 *  otherwise = failure.
 	 */
 
-	virtual int16_t process_add_subscription(const char *messageName, int32_t msgRateInHz) = 0;
-
+	virtual int16_t process_add_subscription(const char *messageName) = 0;
 
 	/**
 	 * Interface to process a received control msg to remove subscription

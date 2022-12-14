@@ -1061,6 +1061,7 @@ Mavlink::send_autopilot_capabilities()
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_SET_ATTITUDE_TARGET;
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_SET_POSITION_TARGET_LOCAL_NED;
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_SET_ACTUATOR_TARGET;
+		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_FLIGHT_TERMINATION;
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_MAVLINK2;
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_MISSION_FENCE;
 		msg.capabilities |= MAV_PROTOCOL_CAPABILITY_MISSION_RALLY;
@@ -1514,7 +1515,8 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("LOCAL_POSITION_NED", 1.0f);
 		configure_stream_local("NAV_CONTROLLER_OUTPUT", 1.0f);
 		configure_stream_local("OBSTACLE_DISTANCE", 1.0f);
-		configure_stream_local("OPEN_DRONE_ID_LOCATION", 0.1f);
+		configure_stream_local("OPEN_DRONE_ID_LOCATION", 1.f);
+		configure_stream_local("OPEN_DRONE_ID_SYSTEM", 1.f);
 		configure_stream_local("ORBIT_EXECUTION_STATUS", 2.0f);
 		configure_stream_local("PING", 0.1f);
 		configure_stream_local("POSITION_TARGET_GLOBAL_INT", 1.0f);
@@ -1577,6 +1579,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("HYGROMETER_SENSOR", 1.0f);
 		configure_stream_local("NAV_CONTROLLER_OUTPUT", 10.0f);
 		configure_stream_local("OPEN_DRONE_ID_LOCATION", 1.f);
+		configure_stream_local("OPEN_DRONE_ID_SYSTEM", 1.f);
 		configure_stream_local("OPTICAL_FLOW_RAD", 10.0f);
 		configure_stream_local("ORBIT_EXECUTION_STATUS", 5.0f);
 		configure_stream_local("PING", 1.0f);
@@ -1729,6 +1732,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("MANUAL_CONTROL", 5.0f);
 		configure_stream_local("NAV_CONTROLLER_OUTPUT", 10.0f);
 		configure_stream_local("OPEN_DRONE_ID_LOCATION", 1.f);
+		configure_stream_local("OPEN_DRONE_ID_SYSTEM", 1.f);
 		configure_stream_local("OPTICAL_FLOW_RAD", 10.0f);
 		configure_stream_local("ORBIT_EXECUTION_STATUS", 5.0f);
 		configure_stream_local("PING", 1.0f);
@@ -1810,6 +1814,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("HOME_POSITION", 0.5f);
 		configure_stream_local("NAV_CONTROLLER_OUTPUT", 1.5f);
 		configure_stream_local("OPEN_DRONE_ID_LOCATION", 1.f);
+		configure_stream_local("OPEN_DRONE_ID_SYSTEM", 1.f);
 		configure_stream_local("OPTICAL_FLOW_RAD", 1.0f);
 		configure_stream_local("ORBIT_EXECUTION_STATUS", 5.0f);
 		configure_stream_local("PING", 0.1f);
@@ -2745,26 +2750,27 @@ void Mavlink::configure_sik_radio()
 		if (fs) {
 			/* switch to AT command mode */
 			px4_usleep(1200000);
-			fprintf(fs, "+++\n");
+			fprintf(fs, "+++");
+			fflush(fs);
 			px4_usleep(1200000);
 
 			if (_param_sik_radio_id.get() > 0) {
 				/* set channel */
-				fprintf(fs, "ATS3=%" PRIu32 "\n", _param_sik_radio_id.get());
+				fprintf(fs, "ATS3=%" PRIu32 "\r\n", _param_sik_radio_id.get());
 				px4_usleep(200000);
 
 			} else {
 				/* reset to factory defaults */
-				fprintf(fs, "AT&F\n");
+				fprintf(fs, "AT&F\r\n");
 				px4_usleep(200000);
 			}
 
 			/* write config */
-			fprintf(fs, "AT&W");
+			fprintf(fs, "AT&W\r\n");
 			px4_usleep(200000);
 
 			/* reboot */
-			fprintf(fs, "ATZ");
+			fprintf(fs, "ATZ\r\n");
 			px4_usleep(200000);
 
 			// XXX NuttX suffers from a bug where

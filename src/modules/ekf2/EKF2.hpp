@@ -170,6 +170,7 @@ private:
 	void UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps);
 	void UpdateMagSample(ekf2_timestamps_s &ekf2_timestamps);
 	void UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps);
+	void UpdateSystemFlagsSample(ekf2_timestamps_s &ekf2_timestamps);
 
 	// Used to check, save and use learned accel/gyro/mag biases
 	struct InFlightCalibration {
@@ -520,13 +521,15 @@ private:
 		_param_ekf2_rng_k_gate, ///< range finder kinematic consistency gate size (STD)
 
 		// vision estimate fusion
+		(ParamExtInt<px4::params::EKF2_EV_CTRL>) _param_ekf2_ev_ctrl,	 ///< external vision (EV) control selection
 		(ParamInt<px4::params::EKF2_EV_NOISE_MD>)
 		_param_ekf2_ev_noise_md,	///< determine source of vision observation noise
-		(ParamFloat<px4::params::EKF2_EVP_NOISE>)
+		(ParamExtInt<px4::params::EKF2_EV_QMIN>) _param_ekf2_ev_qmin,
+		(ParamExtFloat<px4::params::EKF2_EVP_NOISE>)
 		_param_ekf2_evp_noise,	///< default position observation noise for exernal vision measurements (m)
-		(ParamFloat<px4::params::EKF2_EVV_NOISE>)
+		(ParamExtFloat<px4::params::EKF2_EVV_NOISE>)
 		_param_ekf2_evv_noise,	///< default velocity observation noise for exernal vision measurements (m/s)
-		(ParamFloat<px4::params::EKF2_EVA_NOISE>)
+		(ParamExtFloat<px4::params::EKF2_EVA_NOISE>)
 		_param_ekf2_eva_noise,	///< default angular observation noise for exernal vision measurements (rad)
 		(ParamExtFloat<px4::params::EKF2_EVV_GATE>)
 		_param_ekf2_evv_gate,	///< external vision velocity innovation consistency gate size (STD)

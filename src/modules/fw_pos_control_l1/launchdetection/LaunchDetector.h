@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,7 +33,7 @@
 
 /**
  * @file LaunchDetector.h
- * Auto Detection for different launch methods (e.g. catapult)
+ * Auto launch detection for catapult/hand-launch vehicles
  *
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
@@ -41,43 +41,74 @@
 #ifndef LAUNCHDETECTOR_H
 #define LAUNCHDETECTOR_H
 
-#include "LaunchMethod.h"
 #include <px4_platform_common/module_params.h>
+#include <uORB/topics/launch_detection_status.h>
 
 namespace launchdetection
 {
 
+// Info delay threshold (to publish info every kInfoDelay seconds)
+static constexpr float kInfoDelay = 4.f;
+
 class __EXPORT LaunchDetector : public ModuleParams
 {
 public:
-	LaunchDetector(ModuleParams *parent);
-	~LaunchDetector() override;
+	LaunchDetector(ModuleParams *parent) : ModuleParams(parent) {}
+	~LaunchDetector() = default;
 
 	LaunchDetector(const LaunchDetector &) = delete;
 	LaunchDetector operator=(const LaunchDetector &) = delete;
 
+	/**
+	 * @brief Reset launch detection state machine.
+	 */
 	void reset();
 
-	void update(const float dt, float accel_x);
-	LaunchDetectionResult getLaunchDetected();
-	bool launchDetectionEnabled() { return _param_laun_all_on.get(); }
+	/**
+	 * @brief Updates the state machine based on the current vehicle condition.
+	 *
+	 * @param dt Time step [us]
+	 * @param accel_x Measured acceleration in body x [m/s/s]
+	 */
+	void update(const float dt, const float accel_x);
 
-	/* Returns a maximum pitch in deg. Different launch methods may impose upper pitch limits during launch */
-	float getPitchMax(float pitchMaxDefault);
+	/**
+	 * @brief Get the Launch Detected state
+	 *
+	 * @return uint (aligned with launch_detection_status_s::launch_detection_state)
+	 */
+	uint getLaunchDetected() const;
+
+	/**
+	 * @brief Forces state of launch detection state machine to STATE_FLYING.
+	 */
+	void forceSetFlyState() { state_ = launch_detection_status_s::STATE_FLYING; }
 
 private:
-	/* holds an index to the launchMethod in the array _launchMethods
-	 * which detected a Launch. If no launchMethod has detected a launch yet the
-	 * value is -1. Once one launchMethod has detected a launch only this
-	 * method is checked for further advancing in the state machine
-	 * (e.g. when to power up the motors)
+	/**
+	 * Motor delay counter [s]
 	 */
-	int _activeLaunchDetectionMethodIndex{-1};
+	float motor_delay_counter_{0.f};
 
-	LaunchMethod *_launchMethods[1];
+	/**
+	 * Info delay counter (to publish info every kInfoDelay seconds) [s]
+	 */
+	float info_delay_counter_s_{kInfoDelay};
+
+	/**
+	 *  Counter for how long the measured acceleration is above the defined threshold [s]
+	 */
+	float acceleration_detected_counter_{0.f};
+
+	/**
+	 * Current state of the launch detection state machine [launch_detection_status_s::launch_detection_state]
+	 */
+	uint state_{launch_detection_status_s::STATE_WAITING_FOR_LAUNCH};
 
 	DEFINE_PARAMETERS(
-		(ParamBool<px4::params::LAUN_ALL_ON>) _param_laun_all_on
+		(ParamFloat<px4::params::FW_LAUN_AC_THLD>) param_fw_laun_ac_thld_,
+		(ParamFloat<px4::params::FW_LAUN_AC_T>) param_fw_laun_ac_t_,
+		(ParamFloat<px4::params::FW_LAUN_MOT_DEL>) param_fw_laun_mot_del_
 	)
 };
 

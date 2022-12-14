@@ -138,6 +138,16 @@ static void hrt_work_process()
 	/* Default to sleeping for 1 sec */
 	next  = 1000000;
 
+#ifdef __PX4_QURT
+	// In Posix certain signals wake up a sleeping thread but it isn't the case
+	// with the Qurt POSIX implementation. So rather than assume we can come out
+	// of the sleep early by a signal we just wake up more often. The best way to
+	// fix this would be to move to a px4_sem_timedwait. But the current implementation
+	// of that function on Qurt uses this hrt_thread! So, it would all have to be
+	// re-written to use Qurt semaphores which do have timed waits.
+	next = 1000;
+#endif
+
 	hrt_work_lock();
 
 	work  = (struct work_s *)wqueue->q.head;
@@ -287,10 +297,5 @@ void hrt_work_queue_init(void)
 					    (char *const *)NULL);
 
 
-#ifdef __PX4_QURT
-	signal(SIGALRM, _sighandler);
-#else
 	signal(SIGCONT, _sighandler);
-#endif
 }
-

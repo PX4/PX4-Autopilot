@@ -28,7 +28,7 @@ args = parser.parse_args()
 verbose = args.verbose
 
 build_configs = []
-excluded_boards = ['modalai_voxl2']  # TODO: fix and enable
+excluded_boards = ['modalai_voxl2', 'px4_ros2']  # TODO: fix and enable
 excluded_manufacturers = ['atlflight']
 excluded_platforms = ['qurt']
 excluded_labels = [

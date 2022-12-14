@@ -1862,17 +1862,22 @@ void Commander::checkForMissionUpdate()
 			}
 		}
 
-		// Transition mode to loiter or auto-mission after takeoff is completed.
 		if (_arm_state_machine.isArmed() && !_vehicle_land_detected.landed
-		    && (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF ||
-			_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF)
 		    && (mission_result.timestamp >= _vehicle_status.nav_state_timestamp)
 		    && mission_result.finished) {
 
-			if ((_param_takeoff_finished_action.get() == 1) && auto_mission_available) {
-				_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
+			if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF
+			    || _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF) {
+				// Transition mode to loiter or auto-mission after takeoff is completed.
+				if ((_param_takeoff_finished_action.get() == 1) && auto_mission_available) {
+					_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
 
-			} else {
+				} else {
+					_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
+				}
+
+			} else if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
+				// Transition to loiter when the mission is cleared and/or finished, and we are still in mission mode.
 				_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
 			}
 		}
@@ -2709,8 +2714,8 @@ void Commander::manualControlCheck()
 
 	if (manual_control_updated && manual_control_setpoint.valid) {
 
-		_is_throttle_above_center = (manual_control_setpoint.z > 0.6f);
-		_is_throttle_low = (manual_control_setpoint.z < 0.1f);
+		_is_throttle_above_center = (manual_control_setpoint.throttle > 0.2f);
+		_is_throttle_low = (manual_control_setpoint.throttle < -0.8f);
 
 		if (_arm_state_machine.isArmed()) {
 			// Abort autonomous mode and switch to position mode if sticks are moved significantly

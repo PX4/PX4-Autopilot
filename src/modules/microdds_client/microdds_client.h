@@ -92,7 +92,8 @@ private:
 	Timesync _timesync{};
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::XRCE_DDS_DOM_ID>) _param_xrce_dds_dom_id
+		(ParamInt<px4::params::XRCE_DDS_DOM_ID>) _param_xrce_dds_dom_id,
+		(ParamInt<px4::params::XRCE_DDS_KEY>) _param_xrce_key
 	)
 };
 

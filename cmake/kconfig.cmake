@@ -34,7 +34,7 @@ if(EXISTS ${BOARD_DEFCONFIG})
     # Depend on BOARD_DEFCONFIG so that we reconfigure on config change
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${BOARD_DEFCONFIG})
 
-    if(${LABEL} MATCHES "default" OR ${LABEL} MATCHES "qurt" OR ${LABEL} MATCHES "recovery" OR ${LABEL} MATCHES "bootloader" OR ${LABEL} MATCHES "canbootloader")
+    if(${LABEL} MATCHES "default" OR ${LABEL} MATCHES "recovery" OR ${LABEL} MATCHES "bootloader" OR ${LABEL} MATCHES "canbootloader")
         # Generate boardconfig from saved defconfig
         execute_process(COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS}
                         ${DEFCONFIG_PATH} ${BOARD_DEFCONFIG}
@@ -228,10 +228,6 @@ if(EXISTS ${BOARD_DEFCONFIG})
 
         # platform-specific include path
         include_directories(${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/src/px4/common/include)
-
-        if(PLATFORM STREQUAL "qurt")
-            include(${PX4_SOURCE_DIR}/boards/modalai/voxl2/cmake/voxl2_qurt.cmake)
-        endif()
     endif()
 
 	if(ARCHITECTURE)
@@ -305,8 +301,8 @@ if(EXISTS ${BOARD_DEFCONFIG})
 	if(SERIAL_WIFI)
         list(APPEND board_serial_ports WIFI:${SERIAL_WIFI})
 	endif()
-	if(SERIAL_PPB)
-        list(APPEND board_serial_ports PPB:${SERIAL_PPB})
+	if(SERIAL_EXT2)
+        list(APPEND board_serial_ports EXT2:${SERIAL_EXT2})
 	endif()
 
 
@@ -366,7 +362,7 @@ if(EXISTS ${BOARD_DEFCONFIG})
         add_definitions( ${COMPILE_DEFINITIONS})
 	endif()
 
-	if(LINUX)
+	if(LINUX_TARGET)
         add_definitions( "-D__PX4_LINUX" )
 	endif()
 

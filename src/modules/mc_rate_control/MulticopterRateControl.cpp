@@ -122,18 +122,14 @@ MulticopterRateControl::Run()
 
 	if (_vehicle_angular_velocity_sub.update(&angular_velocity)) {
 
-		// grab corresponding vehicle_angular_acceleration immediately after vehicle_angular_velocity copy
-		vehicle_angular_acceleration_s v_angular_acceleration{};
-		_vehicle_angular_acceleration_sub.copy(&v_angular_acceleration);
-
 		const hrt_abstime now = angular_velocity.timestamp_sample;
 
 		// Guard against too small (< 0.125ms) and too large (> 20ms) dt's.
 		const float dt = math::constrain(((now - _last_run) * 1e-6f), 0.000125f, 0.02f);
 		_last_run = now;
 
-		const Vector3f angular_accel{v_angular_acceleration.xyz};
 		const Vector3f rates{angular_velocity.xyz};
+		const Vector3f angular_accel{angular_velocity.xyz_derivative};
 
 		/* check for updates in other topics */
 		_vehicle_control_mode_sub.update(&_vehicle_control_mode);
@@ -177,12 +173,12 @@ MulticopterRateControl::Run()
 			if (_manual_control_setpoint_sub.update(&manual_control_setpoint)) {
 				// manual rates control - ACRO mode
 				const Vector3f man_rate_sp{
-					math::superexpo(manual_control_setpoint.y, _param_mc_acro_expo.get(), _param_mc_acro_supexpo.get()),
-					math::superexpo(-manual_control_setpoint.x, _param_mc_acro_expo.get(), _param_mc_acro_supexpo.get()),
-					math::superexpo(manual_control_setpoint.r, _param_mc_acro_expo_y.get(), _param_mc_acro_supexpoy.get())};
+					math::superexpo(manual_control_setpoint.roll, _param_mc_acro_expo.get(), _param_mc_acro_supexpo.get()),
+					math::superexpo(-manual_control_setpoint.pitch, _param_mc_acro_expo.get(), _param_mc_acro_supexpo.get()),
+					math::superexpo(manual_control_setpoint.yaw, _param_mc_acro_expo_y.get(), _param_mc_acro_supexpoy.get())};
 
 				_rates_setpoint = man_rate_sp.emult(_acro_rate_max);
-				_thrust_setpoint(2) = -math::constrain(manual_control_setpoint.z, 0.0f, 1.0f);
+				_thrust_setpoint(2) = -(manual_control_setpoint.throttle + 1.f) * .5f;
 				_thrust_setpoint(0) = _thrust_setpoint(1) = 0.f;
 
 				// publish rate setpoint
@@ -296,22 +292,20 @@ MulticopterRateControl::Run()
 void MulticopterRateControl::publishTorqueSetpoint(const Vector3f &torque_sp, const hrt_abstime &timestamp_sample)
 {
 	vehicle_torque_setpoint_s vehicle_torque_setpoint{};
-	vehicle_torque_setpoint.timestamp = hrt_absolute_time();
 	vehicle_torque_setpoint.timestamp_sample = timestamp_sample;
 	vehicle_torque_setpoint.xyz[0] = (PX4_ISFINITE(torque_sp(0))) ? torque_sp(0) : 0.0f;
 	vehicle_torque_setpoint.xyz[1] = (PX4_ISFINITE(torque_sp(1))) ? torque_sp(1) : 0.0f;
 	vehicle_torque_setpoint.xyz[2] = (PX4_ISFINITE(torque_sp(2))) ? torque_sp(2) : 0.0f;
-
+	vehicle_torque_setpoint.timestamp = hrt_absolute_time();
 	_vehicle_torque_setpoint_pub.publish(vehicle_torque_setpoint);
 }
 
 void MulticopterRateControl::publishThrustSetpoint(const hrt_abstime &timestamp_sample)
 {
 	vehicle_thrust_setpoint_s vehicle_thrust_setpoint{};
-	vehicle_thrust_setpoint.timestamp = hrt_absolute_time();
 	vehicle_thrust_setpoint.timestamp_sample = timestamp_sample;
 	_thrust_setpoint.copyTo(vehicle_thrust_setpoint.xyz);
-
+	vehicle_thrust_setpoint.timestamp = hrt_absolute_time();
 	_vehicle_thrust_setpoint_pub.publish(vehicle_thrust_setpoint);
 }
 

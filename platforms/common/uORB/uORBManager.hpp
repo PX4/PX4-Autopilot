@@ -40,11 +40,12 @@
 
 #include <uORB/topics/uORBTopics.hpp> // For ORB_ID enum
 #include <stdint.h>
+#include <px4_platform_common/px4_config.h>
 
-#ifdef ORB_COMMUNICATOR
+#ifdef CONFIG_ORB_COMMUNICATOR
 #include "ORBSet.hpp"
 #include "uORBCommunicator.hpp"
-#endif /* ORB_COMMUNICATOR */
+#endif /* CONFIG_ORB_COMMUNICATOR */
 
 namespace uORB
 {
@@ -159,9 +160,9 @@ typedef enum {
  * uORB Api's.
  */
 class uORB::Manager
-#ifdef ORB_COMMUNICATOR
+#ifdef CONFIG_ORB_COMMUNICATOR
 	: public uORBCommunicator::IChannelRxHandler
-#endif /* ORB_COMMUNICATOR */
+#endif /* CONFIG_ORB_COMMUNICATOR */
 {
 public:
 	// public interfaces for this class.
@@ -464,7 +465,7 @@ public:
 	static bool is_advertised(const void *node_handle);
 #endif
 
-#ifdef ORB_COMMUNICATOR
+#ifdef CONFIG_ORB_COMMUNICATOR
 	/**
 	 * Method to set the uORBCommunicator::IChannel instance.
 	 * @param comm_channel
@@ -480,12 +481,7 @@ public:
 	 */
 	uORBCommunicator::IChannel *get_uorb_communicator();
 
-	/**
-	 * Utility method to check if there is a remote subscriber present
-	 * for a given topic
-	 */
-	bool is_remote_subscriber_present(const char *messageName);
-#endif /* ORB_COMMUNICATOR */
+#endif /* CONFIG_ORB_COMMUNICATOR */
 
 private: // class methods
 
@@ -500,13 +496,14 @@ private: // class methods
 private: // data members
 	static Manager *_Instance;
 
-#ifdef ORB_COMMUNICATOR
+#ifdef CONFIG_ORB_COMMUNICATOR
 	// the communicator channel instance.
 	uORBCommunicator::IChannel *_comm_channel{nullptr};
+	static pthread_mutex_t _communicator_mutex;
 
-	ORBSet _remote_subscriber_topics;
+	// Track the advertisements we get from the remote side
 	ORBSet _remote_topics;
-#endif /* ORB_COMMUNICATOR */
+#endif /* CONFIG_ORB_COMMUNICATOR */
 
 	DeviceMaster *_device_master{nullptr};
 
@@ -514,34 +511,30 @@ private: //class methods
 	Manager();
 	virtual ~Manager();
 
-#ifdef ORB_COMMUNICATOR
+#ifdef CONFIG_ORB_COMMUNICATOR
 	/**
-	 * Interface to process a received topic from remote.
+	 * Interface to process a received topic advertisement from remote.
 	 * @param topic_name
 	 * 	This represents the uORB message Name (topic); This message Name should be
 	 * 	globally unique.
-	 * @param isAdvertisement
-	 * 	Represents if the topic has been advertised or is no longer avialable.
 	 * @return
 	 *  0 = success; This means the messages is successfully handled in the
 	 *  	handler.
 	 *  otherwise = failure.
 	 */
-	virtual int16_t process_remote_topic(const char *topic_name, bool isAdvertisement);
+	virtual int16_t process_remote_topic(const char *topic_name);
 
 	/**
 	   * Interface to process a received AddSubscription from remote.
 	   * @param messageName
 	   *  This represents the uORB message Name; This message Name should be
 	   *  globally unique.
-	   * @param msgRate
-	   *  The max rate at which the subscriber can accept the messages.
 	   * @return
 	   *  0 = success; This means the messages is successfully handled in the
 	   *    handler.
 	   *  otherwise = failure.
 	   */
-	virtual int16_t process_add_subscription(const char *messageName, int32_t msgRateInHz);
+	virtual int16_t process_add_subscription(const char *messageName);
 
 	/**
 	 * Interface to process a received control msg to remove subscription
@@ -570,7 +563,7 @@ private: //class methods
 	 *  otherwise = failure.
 	 */
 	virtual int16_t process_received_message(const char *messageName, int32_t length, uint8_t *data);
-#endif /* ORB_COMMUNICATOR */
+#endif /* CONFIG_ORB_COMMUNICATOR */
 
 #ifdef ORB_USE_PUBLISHER_RULES
 

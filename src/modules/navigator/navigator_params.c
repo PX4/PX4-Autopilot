@@ -155,46 +155,25 @@ PARAM_DEFINE_FLOAT(NAV_TRAFF_A_RADM, 500);
 PARAM_DEFINE_FLOAT(NAV_TRAFF_A_RADU, 10);
 
 /**
- * Airfield home Lat
- *
- * Latitude of airfield home waypoint
- *
- * @unit deg*1e7
- * @min -900000000
- * @max 900000000
- * @group Data Link Loss
- */
-PARAM_DEFINE_INT32(NAV_AH_LAT, -265847810);
-
-/**
- * Airfield home Lon
- *
- * Longitude of airfield home waypoint
- *
- * @unit deg*1e7
- * @min -1800000000
- * @max 1800000000
- * @group Data Link Loss
- */
-PARAM_DEFINE_INT32(NAV_AH_LON, 1518423250);
-
-/**
- * Airfield home alt
- *
- * Altitude of airfield home waypoint
- *
- * @unit m
- * @min -50
- * @decimal 1
- * @increment 0.5
- * @group Data Link Loss
- */
-PARAM_DEFINE_FLOAT(NAV_AH_ALT, 600.0f);
-
-/**
  * Force VTOL mode takeoff and land
  *
  * @boolean
  * @group Mission
  */
 PARAM_DEFINE_INT32(NAV_FORCE_VT, 1);
+
+/**
+ * Minimum Loiter altitude
+ *
+ * This is the minimum altitude above Home the system will always obey in Loiter (Hold) mode if switched into this
+ * mode without specifying an altitude (e.g. through Loiter switch on RC).
+ * Doesn't affect Loiters that are part of Missions or that are entered through a reposition setpoint ("Go to").
+ * Set to a negative value to disable.
+ *
+ * @unit m
+ * @min -1
+ * @decimal 1
+ * @increment 0.5
+ * @group Mission
+ */
+PARAM_DEFINE_FLOAT(NAV_MIN_LTR_ALT, -1.f);

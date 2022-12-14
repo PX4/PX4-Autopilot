@@ -59,6 +59,7 @@ static const FunctionProvider all_function_providers[] = {
 	{OutputFunction::Servo1, OutputFunction::ServoMax, &FunctionServos::allocate},
 	{OutputFunction::Offboard_Actuator_Set1, OutputFunction::Offboard_Actuator_Set6, &FunctionActuatorSet::allocate},
 	{OutputFunction::Landing_Gear, &FunctionLandingGear::allocate},
+	{OutputFunction::Landing_Gear_Wheel, &FunctionLandingGearWheel::allocate},
 	{OutputFunction::Parachute, &FunctionParachute::allocate},
 	{OutputFunction::Gripper, &FunctionGripper::allocate},
 	{OutputFunction::RC_Roll, OutputFunction::RC_AUXMax, &FunctionManualRC::allocate},
@@ -212,7 +213,7 @@ void MixingOutput::cleanupFunctions()
 	}
 }
 
-bool MixingOutput::updateSubscriptions(bool allow_wq_switch, bool limit_callbacks_to_primary)
+bool MixingOutput::updateSubscriptions(bool allow_wq_switch)
 {
 	if (!_need_function_update || _armed.armed) {
 		return false;

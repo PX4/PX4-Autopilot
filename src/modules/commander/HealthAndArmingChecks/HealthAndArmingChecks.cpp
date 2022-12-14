@@ -35,8 +35,7 @@
 
 HealthAndArmingChecks::HealthAndArmingChecks(ModuleParams *parent, vehicle_status_s &status)
 	: ModuleParams(parent),
-	  _context(status),
-	  _reporter(_failsafe_flags)
+	  _context(status)
 {
 	// Initialize mode requirements to invalid
 	_failsafe_flags.angular_velocity_invalid = true;

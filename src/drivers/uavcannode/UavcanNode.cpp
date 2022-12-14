@@ -42,6 +42,7 @@
 
 #include "Publishers/BatteryInfo.hpp"
 #include "Publishers/FlowMeasurement.hpp"
+#include "Publishers/HygrometerMeasurement.hpp"
 #include "Publishers/GnssFix2.hpp"
 #include "Publishers/MagneticFieldStrength2.hpp"
 #include "Publishers/MovingBaselineData.hpp"
@@ -296,6 +297,7 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 	// TODO: make runtime (and build time?) configurable
 	_publisher_list.add(new BatteryInfo(this, _node));
 	_publisher_list.add(new FlowMeasurement(this, _node));
+	_publisher_list.add(new HygrometerMeasurement(this, _node));
 	_publisher_list.add(new GnssFix2(this, _node));
 	_publisher_list.add(new MagneticFieldStrength2(this, _node));
 	_publisher_list.add(new RangeSensorMeasurement(this, _node));
@@ -316,10 +318,10 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 	_subscriber_list.add(new BeepCommand(_node));
 	_subscriber_list.add(new LightsCommand(_node));
 
-	int32_t cannode_sub_mdb = 0;
-	param_get(param_find("CANNODE_SUB_MDB"), &cannode_sub_mdb);
+	int32_t cannode_sub_mbd = 0;
+	param_get(param_find("CANNODE_SUB_MBD"), &cannode_sub_mbd);
 
-	if (cannode_sub_mdb == 1) {
+	if (cannode_sub_mbd == 1) {
 		_subscriber_list.add(new MovingBaselineData(_node));
 	}
 
@@ -365,7 +367,7 @@ void UavcanNode::Run()
 	if (!_initialized) {
 
 
-		const int can_init_res = _can->init(_bitrate);
+		const int can_init_res = _can->init((uint32_t)_bitrate);
 
 		if (can_init_res < 0) {
 			PX4_ERR("CAN driver init failed %i", can_init_res);

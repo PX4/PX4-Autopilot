@@ -36,6 +36,8 @@
 
 #include <uORB/topics/sensor_gps.h>
 
+using namespace time_literals;
+
 class MavlinkStreamGPSRawInt : public MavlinkStream
 {
 public:
@@ -56,14 +58,16 @@ private:
 	explicit MavlinkStreamGPSRawInt(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
 	uORB::Subscription _sensor_gps_sub{ORB_ID(sensor_gps), 0};
+	hrt_abstime _last_send_ts {};
+	static constexpr hrt_abstime kNoGpsSendInterval {1_s};
 
 	bool send() override
 	{
 		sensor_gps_s gps;
+		mavlink_gps_raw_int_t msg{};
+		hrt_abstime now{};
 
 		if (_sensor_gps_sub.update(&gps)) {
-			mavlink_gps_raw_int_t msg{};
-
 			msg.time_usec = gps.timestamp;
 			msg.fix_type = gps.fix_type;
 			msg.lat = gps.lat;
@@ -100,6 +104,19 @@ private:
 			}
 
 			mavlink_msg_gps_raw_int_send_struct(_mavlink->get_channel(), &msg);
+			_last_send_ts = gps.timestamp;
+
+			return true;
+
+		} else if (_last_send_ts != 0 && (now = hrt_absolute_time()) > _last_send_ts + kNoGpsSendInterval) {
+			msg.fix_type = GPS_FIX_TYPE_NO_GPS;
+			msg.eph = UINT16_MAX;
+			msg.epv = UINT16_MAX;
+			msg.vel = UINT16_MAX;
+			msg.cog = UINT16_MAX;
+			msg.satellites_visible = UINT8_MAX;
+			mavlink_msg_gps_raw_int_send_struct(_mavlink->get_channel(), &msg);
+			_last_send_ts = now;
 
 			return true;
 		}

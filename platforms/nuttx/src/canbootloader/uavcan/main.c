@@ -58,7 +58,7 @@
 #include <drivers/bootloaders/boot_app_shared.h>
 #include <drivers/bootloaders/boot_alt_app_shared.h>
 #include <drivers/drv_watchdog.h>
-#include <lib/systemlib/crc.h>
+#include <lib/crc/crc.h>
 
 //#define DEBUG_APPLICATION_INPLACE    1 /* Never leave defined */
 #define DEBUG_NO_FW_UPDATE           1 /* With DEBUG_APPLICATION_INPLACE

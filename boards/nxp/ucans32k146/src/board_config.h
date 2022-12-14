@@ -88,11 +88,6 @@ __BEGIN_DECLS
 
 /* SPI chip selects */
 
-/* Count of peripheral clock user configurations */
-
-#define NUM_OF_PERIPHERAL_CLOCKS_0 18
-
-
 /* High-resolution timer */
 #define HRT_TIMER              5  /* FTM timer for the HRT */
 #define HRT_TIMER_CHANNEL      0  /* Use capture/compare channel 0 */
@@ -144,7 +139,7 @@ extern const struct peripheral_clock_config_s g_peripheral_clockconfig0[];
  *   CONFIG_BOARD_LATE_INITIALIZE=y :
  *     Called from board_late_initialize().
  *
- *   CONFIG_BOARD_LATE_INITIALIZE=y && CONFIG_LIB_BOARDCTL=y :
+ *   CONFIG_BOARD_LATE_INITIALIZE=y && CONFIG_BOARDCTL=y :
  *     Called from the NSH library
  *
  ****************************************************************************/

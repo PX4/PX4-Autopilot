@@ -51,12 +51,13 @@ PARAM_DEFINE_FLOAT(LNDMC_TRIG_TIME, 1.0f);
  * Multicopter vertical velocity threshold
  *
  * Vertical velocity threshold to detect landing.
- * Should be set lower than the expected minimal speed for landing
- * so MPC_LAND_SPEED for autonomous landing and MPC_LAND_CRWL
- * if distance sensor is present and slowing down close to ground.
+ * Has to be set lower than the expected minimal speed for landing,
+ * which is either MPC_LAND_SPEED or MPC_LAND_CRWL.
+ * This is enforced by an automatic check.
  *
  * @unit m/s
- * @decimal 1
+ * @min 0
+ * @decimal 2
  *
  * @group Land Detector
  */

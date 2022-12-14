@@ -324,14 +324,14 @@ void FailureDetector::updateImbalancedPropStatus()
 
 			if ((imu_status.accel_device_id != 0)
 			    && (imu_status.accel_device_id == _selected_accel_device_id)) {
-				const float dt = math::constrain((float)(imu_status.timestamp - _imu_status_timestamp_prev), 0.01f, 1.f);
+				const float dt = math::constrain((imu_status.timestamp - _imu_status_timestamp_prev) * 1e-6f, 0.01f, 1.f);
 				_imu_status_timestamp_prev = imu_status.timestamp;
 
 				_imbalanced_prop_lpf.setParameters(dt, _imbalanced_prop_lpf_time_constant);
 
-				const float std_x = sqrtf(imu_status.var_accel[0]);
-				const float std_y = sqrtf(imu_status.var_accel[1]);
-				const float std_z = sqrtf(imu_status.var_accel[2]);
+				const float std_x = sqrtf(math::max(imu_status.var_accel[0], 0.f));
+				const float std_y = sqrtf(math::max(imu_status.var_accel[1], 0.f));
+				const float std_z = sqrtf(math::max(imu_status.var_accel[2], 0.f));
 
 				// Note: the metric is done using standard deviations instead of variances to be linear
 				const float metric = (std_x + std_y) / 2.f - std_z;

@@ -118,8 +118,8 @@ private:
 	float _man_yaw_sp{0.f};                 /**< current yaw setpoint in manual mode */
 	float _man_tilt_max;                    /**< maximum tilt allowed for manual flight [rad] */
 
-	AlphaFilter<float> _man_x_input_filter;
-	AlphaFilter<float> _man_y_input_filter;
+	AlphaFilter<float> _man_roll_input_filter;
+	AlphaFilter<float> _man_pitch_input_filter;
 
 	hrt_abstime _last_run{0};
 	hrt_abstime _last_attitude_setpoint{0};

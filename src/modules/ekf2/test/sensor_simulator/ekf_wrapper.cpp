@@ -77,7 +77,7 @@ void EkfWrapper::setExternalVisionHeightRef()
 
 void EkfWrapper::enableExternalVisionHeightFusion()
 {
-	setExternalVisionHeightRef(); // TODO: replace by EV control parameter
+	_ekf_params->ev_ctrl |= static_cast<int32_t>(EvCtrl::VPOS);
 }
 
 bool EkfWrapper::isIntendingExternalVisionHeightFusion() const
@@ -152,12 +152,12 @@ bool EkfWrapper::isIntendingExternalVisionPositionFusion() const
 
 void EkfWrapper::enableExternalVisionVelocityFusion()
 {
-	_ekf_params->fusion_mode |= SensorFusionMask::USE_EXT_VIS_VEL;
+	_ekf_params->ev_ctrl |= static_cast<int32_t>(EvCtrl::VEL);
 }
 
 void EkfWrapper::disableExternalVisionVelocityFusion()
 {
-	_ekf_params->fusion_mode &= ~SensorFusionMask::USE_EXT_VIS_VEL;
+	_ekf_params->ev_ctrl &= ~static_cast<int32_t>(EvCtrl::VEL);
 }
 
 bool EkfWrapper::isIntendingExternalVisionVelocityFusion() const

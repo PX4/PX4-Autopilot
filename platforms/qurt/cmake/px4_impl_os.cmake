@@ -31,6 +31,25 @@
 #
 ############################################################################
 
+if ("$ENV{HEXAGON_SDK_ROOT}" STREQUAL "")
+	message(FATAL_ERROR "Enviroment variable HEXAGON_SDK_ROOT must be set")
+else()
+	set(HEXAGON_SDK_ROOT $ENV{HEXAGON_SDK_ROOT})
+endif()
+
+if ("$ENV{HEXAGON_TOOLS_ROOT}" STREQUAL "")
+	message(FATAL_ERROR "Environment variable HEXAGON_TOOLS_ROOT must be set")
+else()
+	set(HEXAGON_TOOLS_ROOT $ENV{HEXAGON_TOOLS_ROOT})
+endif()
+
+include(px4_git)
+
+include(Toolchain-qurt)
+include(qurt_reqs)
+
+include_directories(${HEXAGON_SDK_INCLUDES})
+
 #=============================================================================
 #
 #	Defined functions in this file
@@ -181,6 +200,7 @@ function(px4_os_prebuild_targets)
 			ARGN ${ARGN})
 
 	add_library(prebuild_targets INTERFACE)
+	target_link_libraries(prebuild_targets INTERFACE drivers_board)
 	add_dependencies(prebuild_targets DEPENDS uorb_headers)
 
 endfunction()
