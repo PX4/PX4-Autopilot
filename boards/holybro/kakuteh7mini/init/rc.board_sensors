@@ -1,10 +1,9 @@
 #!/bin/sh
 #
-# Holybro KakuteH7 specific board sensors init
+# Holybro KakuteH7Mini specific board sensors init
 #------------------------------------------------------------------------------
 board_adc start
 
-# The default IMU is a bmi270
+bmi270 -R 6 -s start
 
 bmp280 -X start
-bmi270 start -s
