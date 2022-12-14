@@ -59,9 +59,9 @@
  *   2) BOOT=1: Boot address defined by user option byte BOOT_ADD1[15:0].
  *      ST programmed value: System bootloader at 0x1FF0:0000
  *
- * The KakuteH7 has a Swtich on board, the BOOT0 pin is at ground so by default,
- * the STM32 will boot to address 0x0800:0000 in FLASH unless the swiutch is
- * drepresed, then the boot will be from 0x1FF0:0000
+ * The KakuteH7 has a switch on board, the BOOT0 pin is at ground so by default,
+ * the STM32 will boot to address 0x0800:0000 in FLASH unless the switch is
+ * depressed, then the boot will be from 0x1FF0:0000
  *
  * The STM32H743VI also has 1024Kb of data SRAM.
  * SRAM is split up into several blocks and into three power domains:
@@ -105,12 +105,14 @@
  * When booting from FLASH, FLASH memory is aliased to address 0x0000:0000
  * where the code expects to begin execution by jumping to the entry point in
  * the 0x0800:0000 address range.
+ *
+ * The bootloader uses the first sector of the flash, which is 128K in length.
  */
 
 MEMORY
 {
 	itcm  (rwx) : ORIGIN = 0x00000000, LENGTH =   64K
-	flash (rx)  : ORIGIN = 0x08000000, LENGTH = 2048K
+	flash (rx)  : ORIGIN = 0x08000000, LENGTH =  128K
 	dtcm1 (rwx) : ORIGIN = 0x20000000, LENGTH =   64K
 	dtcm2 (rwx) : ORIGIN = 0x20010000, LENGTH =   64K
 	sram  (rwx) : ORIGIN = 0x24000000, LENGTH =  512K
