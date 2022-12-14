@@ -43,6 +43,9 @@ import em
 import yaml
 
 parser = argparse.ArgumentParser()
+parser.add_argument("-c", "--camel-case-topic-names", dest='camelcase', action='store_true',
+                    help="Use CamelCase topic names instead of snake_case")
+
 parser.add_argument("-m", "--topic-msg-dir", dest='msgdir', type=str,
                     help="Topics message, by default using relative path 'msg/'", default="msg")
 
@@ -102,6 +105,13 @@ for p in msg_map['publications']:
     # topic_simple: eg vehicle_status
     p['topic_simple'] = p['topic'].split('/')[-1]
 
+    if args.camelcase:
+        simple_topic_name = p['topic_simple']
+        topic_name_camel_case = ''.join(part.title() for part in simple_topic_name.split('_'))
+        p['topic_name'] = topic_name_camel_case
+    else:
+        p['topic_name'] = p['topic_simple']
+
 
 merged_em_globals['publications'] = msg_map['publications']
 
@@ -121,6 +131,13 @@ for s in msg_map['subscriptions']:
 
     # topic_simple: eg vehicle_status
     s['topic_simple'] = s['topic'].split('/')[-1]
+
+    if args.camelcase:
+        simple_topic_name = s['topic_simple']
+        topic_name_camel_case = ''.join(part.title() for part in simple_topic_name.split('_'))
+        s['topic_name'] = topic_name_camel_case
+    else:
+        s['topic_name'] = s['topic_simple']
 
 
 merged_em_globals['subscriptions'] = msg_map['subscriptions']

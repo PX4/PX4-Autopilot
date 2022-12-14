@@ -59,7 +59,7 @@ void SendTopicsSubs::update(uxrSession *session, uxrStreamId reliable_out_stream
 
 			if (@(pub['topic_simple'])_data_writer.id == UXR_INVALID_ID) {
 				// data writer not created yet
-				create_data_writer(session, reliable_out_stream_id, participant_id, ORB_ID::@(pub['topic_simple']), client_namespace, "@(pub['topic_simple'])", "@(pub['dds_type'])", @(pub['topic_simple'])_data_writer);
+				create_data_writer(session, reliable_out_stream_id, participant_id, ORB_ID::@(pub['topic_simple']), client_namespace, "@(pub['topic_name'])", "@(pub['dds_type'])", @(pub['topic_simple'])_data_writer);
 			}
 
 			if (@(pub['topic_simple'])_data_writer.id != UXR_INVALID_ID) {
@@ -128,7 +128,7 @@ bool RcvTopicsPubs::init(uxrSession *session, uxrStreamId reliable_out_stream_id
 @[    for idx, sub in enumerate(subscriptions)]@
 	{
 			uint16_t queue_depth = uORB::DefaultQueueSize<@(sub['simple_base_type'])_s>::value * 2; // use a bit larger queue size than internal
-			create_data_reader(session, reliable_out_stream_id, best_effort_in_stream_id, participant_id, @(idx), client_namespace, "@(sub['topic_simple'])", "@(sub['dds_type'])", queue_depth);
+			create_data_reader(session, reliable_out_stream_id, best_effort_in_stream_id, participant_id, @(idx), client_namespace, "@(sub['topic_name'])", "@(sub['dds_type'])", queue_depth);
 	}
 @[    end for]@
 
