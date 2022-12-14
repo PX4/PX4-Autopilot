@@ -63,7 +63,7 @@
 constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
 	initSPIBusExternal(SPI::Bus::SPI0, {
 		// Going to assume PTB5 means PortB, Pin5
-		initSPIConfigExternal(SPI::CS{GPIO::PortB, GPIO::Pin5})
+		initSPIConfigExternal(SPI::CS{GPIO::PortB, GPIO::Pin5}, SPI::DRDY{GPIO::PortE, GPIO::Pin0}),
 	}),
 };
 
