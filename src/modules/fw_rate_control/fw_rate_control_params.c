@@ -82,6 +82,18 @@ PARAM_DEFINE_FLOAT(FW_AIRSPD_MIN, 10.0f);
 PARAM_DEFINE_FLOAT(FW_AIRSPD_MAX, 20.0f);
 
 /**
+ * Airspeed mode
+ *
+ * For small wings or VTOL without airspeed sensor this parameter can be used to
+ * enable flying without an airspeed reading
+ *
+ * @value 0 Normal (use airspeed if available)
+ * @value 1 Airspeed disabled
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_INT32(FW_ARSP_MODE, 0);
+
+/**
  * Cruise Airspeed (CAS)
  *
  * The trim CAS (calibrated airspeed) of the vehicle. If an airspeed controller is active,
@@ -558,6 +570,20 @@ PARAM_DEFINE_FLOAT(FW_FLAPS_LND_SCL, 1.0f);
 PARAM_DEFINE_FLOAT(FW_MAN_R_SC, 1.0f);
 
 /**
+ * Maximum manual pitch angle
+ *
+ * Maximum manual pitch angle setpoint (positive & negative) in manual attitude-only stabilized mode
+ *
+ * @unit deg
+ * @min 0.0
+ * @max 90.0
+ * @decimal 1
+ * @increment 0.5
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_MAN_P_MAX, 30.0f);
+
+/**
  * Manual pitch scale
  *
  * Scale factor applied to the desired pitch actuator command in full manual mode. This parameter allows
@@ -570,6 +596,20 @@ PARAM_DEFINE_FLOAT(FW_MAN_R_SC, 1.0f);
  * @group FW Attitude Control
  */
 PARAM_DEFINE_FLOAT(FW_MAN_P_SC, 1.0f);
+
+/**
+ * Maximum manual roll angle
+ *
+ * Maximum manual roll angle setpoint (positive & negative) in manual attitude-only stabilized mode
+ *
+ * @unit deg
+ * @min 0.0
+ * @max 90.0
+ * @decimal 1
+ * @increment 0.5
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_MAN_R_MAX, 45.0f);
 
 /**
  * Manual yaw scale
@@ -599,3 +639,39 @@ PARAM_DEFINE_FLOAT(FW_MAN_Y_SC, 1.0f);
  * @group FW Attitude Control
  */
 PARAM_DEFINE_FLOAT(FW_RLL_TO_YAW_FF, 0.0f);
+
+/**
+ * Spoiler landing setting
+ *
+ * @unit norm
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ * @increment 0.01
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_SPOILERS_LND, 0.f);
+
+/**
+ * Spoiler descend setting
+ *
+ * @unit norm
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ * @increment 0.01
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_SPOILERS_DESC, 0.f);
+
+/**
+ * Spoiler input in manual flight
+ *
+ * Chose source for manual setting of spoilers in manual flight modes.
+ *
+ * @value 0 Disabled
+ * @value 1 Flaps channel
+ * @value 2 Aux1
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_INT32(FW_SPOILERS_MAN, 0);
