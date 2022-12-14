@@ -115,9 +115,9 @@ private:
 	void ConfigureFIFOWatermark(uint8_t samples);
 
 	void SelectRegisterBank(enum REG_BANK_SEL_BIT bank, bool force = false);
-	void SelectRegisterBank(Register::BANK_0 reg) { SelectRegisterBank(REG_BANK_SEL_BIT::USER_BANK_0); }
-	void SelectRegisterBank(Register::BANK_1 reg) { SelectRegisterBank(REG_BANK_SEL_BIT::USER_BANK_1); }
-	void SelectRegisterBank(Register::BANK_2 reg) { SelectRegisterBank(REG_BANK_SEL_BIT::USER_BANK_2); }
+	void SelectRegisterBank(Register::BANK_0 reg) { SelectRegisterBank(REG_BANK_SEL_BIT::BANK_SEL_0); }
+	void SelectRegisterBank(Register::BANK_1 reg) { SelectRegisterBank(REG_BANK_SEL_BIT::BANK_SEL_1); }
+	void SelectRegisterBank(Register::BANK_2 reg) { SelectRegisterBank(REG_BANK_SEL_BIT::BANK_SEL_2); }
 
 	static int DataReadyInterruptCallback(int irq, void *context, void *arg);
 	void DataReady();
@@ -156,7 +156,7 @@ private:
 	hrt_abstime _temperature_update_timestamp{0};
 	int _failure_count{0};
 
-	enum REG_BANK_SEL_BIT _last_register_bank {REG_BANK_SEL_BIT::USER_BANK_0};
+	enum REG_BANK_SEL_BIT _last_register_bank {REG_BANK_SEL_BIT::BANK_SEL_0};
 
 	px4::atomic<hrt_abstime> _drdy_timestamp_sample{0};
 	bool _data_ready_interrupt_enabled{false};
