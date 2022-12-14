@@ -1634,6 +1634,12 @@ int SimulatorMavlink::start(int argc, char *argv[])
 			_instance->set_port(atoi(argv[4]));
 		}
 
+		if (argc == 5 && strcmp(argv[3], "-s") == 0) {
+			_instance->set_ip(InternetProtocol::TCP);
+			_instance->set_port(atoi(argv[4]));
+			_instance->set_server_mode();
+		}
+
 		if (argc == 6 && strcmp(argv[3], "-t") == 0) {
 			PX4_INFO("using TCP on remote host %s port %s", argv[4], argv[5]);
 			PX4_WARN("Please ensure port %s is not blocked by a firewall.", argv[5]);
