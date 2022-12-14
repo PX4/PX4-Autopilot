@@ -59,7 +59,7 @@ private:
 
 	uORB::Subscription _sensor_gps_sub{ORB_ID(sensor_gps), 1};
 	hrt_abstime _last_send_ts {};
-	static constexpr hrt_abstime _no_gps_send_interval {1_s};
+	static constexpr hrt_abstime kNoGpsSendInterval {1_s};
 
 	bool send() override
 	{
@@ -108,14 +108,14 @@ private:
 
 			return true;
 
-		} else if (_last_send_ts != 0 && (now = hrt_absolute_time()) > _last_send_ts + _no_gps_send_interval) {
+		} else if (_last_send_ts != 0 && (now = hrt_absolute_time()) > _last_send_ts + kNoGpsSendInterval) {
 			msg.fix_type = GPS_FIX_TYPE_NO_GPS;
 			msg.eph = UINT16_MAX;
 			msg.epv = UINT16_MAX;
 			msg.vel = UINT16_MAX;
 			msg.cog = UINT16_MAX;
 			msg.satellites_visible = UINT8_MAX;
-			mavlink_msg_gps_raw_int_send_struct(_mavlink->get_channel(), &msg);
+			mavlink_msg_gps2_raw_send_struct(_mavlink->get_channel(), &msg);
 			_last_send_ts = now;
 
 			return true;
