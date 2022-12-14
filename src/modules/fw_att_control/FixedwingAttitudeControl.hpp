@@ -57,7 +57,6 @@
 #include <uORB/topics/airspeed_validated.h>
 #include <uORB/topics/autotune_attitude_control_status.h>
 #include <uORB/topics/battery_status.h>
-#include <uORB/topics/control_allocator_status.h>
 #include <uORB/topics/landing_gear_wheel.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
@@ -70,8 +69,6 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/vehicle_thrust_setpoint.h>
-#include <uORB/topics/vehicle_torque_setpoint.h>
 
 using matrix::Eulerf;
 using matrix::Quatf;
@@ -79,9 +76,6 @@ using matrix::Quatf;
 using uORB::SubscriptionData;
 
 using namespace time_literals;
-
-static constexpr float kFlapSlewRate = 1.f; //minimum time from none to full flap deflection [s]
-static constexpr float kSpoilerSlewRate = 1.f; //minimum time from none to full spoiler deflection [s]
 
 class FixedwingAttitudeControl final : public ModuleBase<FixedwingAttitudeControl>, public ModuleParams,
 	public px4::ScheduledWorkItem
@@ -121,8 +115,6 @@ private:
 
 	uORB::Publication<vehicle_attitude_setpoint_s>	_attitude_sp_pub;
 	uORB::Publication<vehicle_rates_setpoint_s>	_rate_sp_pub{ORB_ID(vehicle_rates_setpoint)};
-	uORB::Publication<vehicle_thrust_setpoint_s>	_vehicle_thrust_setpoint_pub{ORB_ID(vehicle_thrust_setpoint)};
-	uORB::Publication<vehicle_torque_setpoint_s>	_vehicle_torque_setpoint_pub{ORB_ID(vehicle_torque_setpoint)};
 	uORB::Publication<landing_gear_wheel_s>		_landing_gear_wheel_pub{ORB_ID(landing_gear_wheel)};
 
 	manual_control_setpoint_s		_manual_control_setpoint{};
