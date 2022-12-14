@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Holybro KakuteH7 specific board sensors init
+# Holybro KakuteH7v1 specific board sensors init
 #------------------------------------------------------------------------------
 board_adc start
 
