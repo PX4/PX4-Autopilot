@@ -1,13 +1,22 @@
 FROM ghcr.io/tiiuae/fog-ros-baseimage:sha-3dcb78d
 
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget
+
+RUN echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-stable.list
+RUN wget http://packages.osrfoundation.org/gazebo.key -O - | apt-key add -
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libignition-transport8-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 # Install PX4 SITL
 WORKDIR /packages
 
 COPY bin/px4_sitl_build*.tar.gz ./px4_sitl_build.tar.gz
 
 RUN tar -xzf px4_sitl_build.tar.gz \
-    && mv px4_sitl/build/px4_sitl_rtps/bin/* /usr/bin/ \
-    && mv px4_sitl/build/px4_sitl_rtps/etc /px4_sitl_etc \
+    && mv px4_sitl/bin/* /usr/bin/ \
+    && mv px4_sitl/etc /px4_sitl_etc \
     && rm -rf px4_sitl_build/ \
     && rm px4_sitl_build.tar.gz
 

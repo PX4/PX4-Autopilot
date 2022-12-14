@@ -49,29 +49,29 @@ source /opt/ros/galactic/setup.sh
 rm -Rf build/px4_sitl_rtps
 
 # Build
-DONT_RUN=1 make px4_sitl_rtps gazebo_ssrc_fog_x
+DONT_RUN=1 make px4_sitl_default gazebo_ssrc_fog_x
 
 # tar artifacts
 mkdir -p tmp_packing_dir
 pushd tmp_packing_dir
 
-mkdir -p px4_sitl/build/px4_sitl_rtps
+mkdir -p px4_sitl/build/px4_sitl_default
 mkdir -p px4_gazebo_data/plugins
 mkdir -p px4_gazebo_data/models
 mkdir -p px4_gazebo_data/worlds
 mkdir -p px4_gazebo_data/scripts
 
-find ../build/px4_sitl_rtps/build_gazebo/*.so -exec cp {} px4_gazebo_data/plugins \;
+find ../build/px4_sitl_default/build_gazebo/*.so -exec cp {} px4_gazebo_data/plugins \;
 
-cp -r ../build/px4_sitl_rtps/bin                    px4_sitl/build/px4_sitl_rtps/bin
-cp -r ../build/px4_sitl_rtps/etc                    px4_sitl/build/px4_sitl_rtps/etc
-cp -r ../Tools/sitl_gazebo/models/asphalt_plane     px4_gazebo_data/models/asphalt_plane
-cp -r ../Tools/sitl_gazebo/models/ground_plane      px4_gazebo_data/models/ground_plane
-cp -r ../Tools/sitl_gazebo/models/sun               px4_gazebo_data/models/sun
-cp -r ../Tools/sitl_gazebo/models/ssrc_fog_x        px4_gazebo_data/models/ssrc_fog_x
-cp -r ../Tools/sitl_gazebo/worlds/empty.world       px4_gazebo_data/worlds/
-cp -r ../Tools/sitl_gazebo/worlds/empty_ssrc.world  px4_gazebo_data/worlds/
-cp -r ../Tools/sitl_gazebo/scripts/jinja_gen.py     px4_gazebo_data/scripts/
+cp -r ../build/px4_sitl_default/bin                                   px4_sitl/bin
+cp -r ../build/px4_sitl_default/etc                                   px4_sitl/etc
+cp -r ../Tools/simulation/gazebo/sitl_gazebo/models/asphalt_plane     px4_gazebo_data/models/asphalt_plane
+cp -r ../Tools/simulation/gazebo/sitl_gazebo/models/ground_plane      px4_gazebo_data/models/ground_plane
+cp -r ../Tools/simulation/gazebo/sitl_gazebo/models/sun               px4_gazebo_data/models/sun
+cp -r ../Tools/simulation/gazebo/sitl_gazebo/models/ssrc_fog_x        px4_gazebo_data/models/ssrc_fog_x
+cp -r ../Tools/simulation/gazebo/sitl_gazebo/worlds/empty.world       px4_gazebo_data/worlds/
+cp -r ../Tools/simulation/gazebo/sitl_gazebo/worlds/empty_ssrc.world  px4_gazebo_data/worlds/
+cp -r ../Tools/simulation/gazebo/sitl_gazebo/scripts/jinja_gen.py     px4_gazebo_data/scripts/
 tar czvf ../px4_sitl_build-v${VERSION}.tar.gz px4_sitl
 tar czvf ../px4_gazebo_data-v${VERSION}.tar.gz px4_gazebo_data
 
