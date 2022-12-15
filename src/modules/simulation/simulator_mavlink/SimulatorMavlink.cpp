@@ -372,7 +372,11 @@ void SimulatorMavlink::handle_message(const mavlink_message_t *msg)
 		break;
 
 	case MAVLINK_MSG_ID_HIL_STATE_QUATERNION:
-		handle_message_hil_state_quaternion(msg);
+		/* Do not handle hil_state_quaternion,
+		   but let ekf2 to take care of position
+		   estimation.
+		*/
+		//handle_message_hil_state_quaternion(msg);
 		break;
 
 	case MAVLINK_MSG_ID_RAW_RPM:
