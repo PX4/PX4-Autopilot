@@ -45,9 +45,8 @@ static inline constexpr px4_spi_bus_device_t initSPIDevice(uint32_t devid, SPI::
 	px4_spi_bus_device_t ret{};
 	ret.cs_gpio = getGPIOPort(cs_gpio.port) | getGPIOPin(cs_gpio.pin) | (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE);
 
-	if (drdy_gpio.port != GPIO::PortInvalid) {
-		ret.drdy_gpio = getGPIOPort(drdy_gpio.port) | getGPIOPin(drdy_gpio.pin) | getIMCR(drdy_gpio.imcr) |
-				(GPIO_PULLUP | PIN_INT_BOTH);
+	if (drdy_gpio != 0) {
+		ret.drdy_gpio = drdy_gpio;
 	}
 
 	if (PX4_SPIDEVID_TYPE(devid) == 0) { // it's a PX4 device (internal or external)
