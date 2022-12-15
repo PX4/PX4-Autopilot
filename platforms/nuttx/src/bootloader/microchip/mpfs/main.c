@@ -78,9 +78,33 @@ extern int mpfs_set_entrypt(uint64_t hartid, uintptr_t entry);
 # define BOARD_INTERFACE_CONFIG_USB  INTERFACE_USB_CONFIG
 #endif
 
-#define BOARD_RESET_REASON_COLD_BOOT 0x1ff
-#define BOARD_RESET_REASON_SYSTEMRESET_MASK 0x2
-#define BOARD_RESET_REASON_DEBUGGER_MASK 0x8
+/* Reset reasons */
+
+/* Reset was caused by the SCB periphery reset signal*/
+#define RESET_SR_SCB_PERIPH_RESET_MASK                       (0x01 << 0x0)
+
+/* Reset was caused by the SCB MSS reset register*/
+#define RESET_SR_SCB_MSS_RESET_MASK                          (0x01 << 0x1)
+
+/* Reset was caused by the SCB CPU reset register*/
+#define RESET_SR_SCB_CPU_RESET_MASK                          (0x01 << 0x2)
+
+/* Reset was caused by the Risc-V Debugger*/
+#define RESET_SR_DEBUGGER_RESET_MASK                          (0x01 << 0x3)
+
+/* Reset was caused by the fabric*/
+#define RESET_SR_FABRIC_RESET_MASK                           (0x01 << 0x4)
+
+/* Reset was caused by the watchdog*/
+#define RESET_SR_WDOG_RESET_MASK                             (0x01 << 0x5)
+
+/* Indicates that fabric asserted the GPIO reset inputs*/
+#define RESET_SR_GPIO_RESET_MASK                             (0x01 << 0x6)
+
+/* Indicates that SCB bus reset occurred (which causes warm reset of MS
+   S)*/
+#define RESET_SR_SCB_BUS_RESET_MASK                          (0x01 << 0x7)
+
 
 #ifdef CONFIG_MMCSD
 static int px4_fd = -1;
@@ -919,15 +943,22 @@ bootloader_main(int argc, char *argv[])
 
 	uint32_t reset_reason = board_get_reset_reason();
 
-	if (reset_reason != BOARD_RESET_REASON_COLD_BOOT &&
-	    (reset_reason & BOARD_RESET_REASON_SYSTEMRESET_MASK) != 0 &&
-	    (reset_reason & BOARD_RESET_REASON_DEBUGGER_MASK) == 0) {
-
-		/*
-		 * Don't drop out of the bootloader until something has been uploaded.
+	/* Is not FABRIC reset and not caused by WDOG? FABRIC reset bit is only
+	 * set in POR, since it is not even connected in FPGA
+	 */
+	if ((reset_reason & RESET_SR_FABRIC_RESET_MASK) == 0 &&
+	    (reset_reason & RESET_SR_WDOG_RESET_MASK) == 0) {
+		/* This is not a power-on (cold boot) or WDOG reset. Check if the reset
+		 *  reason is soft reset (periph reset is not set) or RISC-V debugger
+		 *  (debugger reset is not set)
 		 */
-		timeout = 0;
-
+		if ((reset_reason & RESET_SR_SCB_PERIPH_RESET_MASK) == 0 ||
+		    (reset_reason & RESET_SR_DEBUGGER_RESET_MASK) == 0) {
+			/*
+			 * Don't drop out of the bootloader until something has been uploaded.
+			 */
+			timeout = 0;
+		}
 	}
 
 	/* Clear the reset reason */
