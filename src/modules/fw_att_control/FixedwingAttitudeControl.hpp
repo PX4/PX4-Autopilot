@@ -129,8 +129,6 @@ private:
 
 	bool _landed{true};
 
-	bool _flag_control_attitude_enabled_last{false};
-
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::FW_AIRSPD_MAX>) _param_fw_airspd_max,
 		(ParamFloat<px4::params::FW_AIRSPD_MIN>) _param_fw_airspd_min,
