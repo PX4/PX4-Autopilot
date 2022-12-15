@@ -362,17 +362,6 @@ void FixedwingAttitudeControl::Run()
 				}
 			}
 
-			/* reset body angular rate limits on mode change */
-			if ((_vcontrol_mode.flag_control_attitude_enabled != _flag_control_attitude_enabled_last) || params_updated) {
-				if (_vcontrol_mode.flag_control_attitude_enabled
-				    || _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-
-
-				}
-			}
-
-			_flag_control_attitude_enabled_last = _vcontrol_mode.flag_control_attitude_enabled;
-
 			/* Run attitude controllers */
 			if (_vcontrol_mode.flag_control_attitude_enabled) {
 				if (PX4_ISFINITE(_att_sp.roll_body) && PX4_ISFINITE(_att_sp.pitch_body)) {
