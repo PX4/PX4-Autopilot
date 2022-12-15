@@ -2226,6 +2226,9 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 	mavlink_hil_sensor_t hil_sensor;
 	mavlink_msg_hil_sensor_decode(msg, &hil_sensor);
 
+	// Workaround for mavlink2 msg generator bug, just in case.
+	hil_sensor.id = 0;
+
 	const uint64_t timestamp = hrt_absolute_time();
 
 	// temperature only updated with baro
