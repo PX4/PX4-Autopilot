@@ -131,7 +131,6 @@ enum Pin {
 struct GPIOPin {
 	Port port;
 	Pin pin;
-	uint16_t imcr;
 };
 }
 
@@ -244,7 +243,7 @@ enum class Bus {
 };
 
 using CS = GPIO::GPIOPin;
-using DRDY = GPIO::GPIOPin;
+using DRDY = uint32_t;
 
 struct bus_device_external_cfg_t {
 	CS cs_gpio;
