@@ -59,6 +59,9 @@ void LoggedTopics::add_default_topics()
 	add_topic("cellular_status", 200);
 	add_topic("commander_state");
 	add_topic("cpuload");
+	add_optional_topic("external_ins_attitude");
+	add_optional_topic("external_ins_global_position");
+	add_optional_topic("external_ins_local_position");
 	add_optional_topic("esc_status", 250);
 	add_topic("failure_detector_status", 100);
 	add_topic("failsafe_flags");
