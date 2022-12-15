@@ -241,7 +241,6 @@ private:
 
 	void		vehicle_control_mode_poll();
 	void		vehicle_manual_poll();
-	void		vehicle_attitude_setpoint_poll();
 	void		vehicle_land_detected_poll();
 
 	float 		get_airspeed_and_update_scaling();
