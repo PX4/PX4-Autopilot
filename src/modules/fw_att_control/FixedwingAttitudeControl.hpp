@@ -136,10 +136,6 @@ private:
 	bool _flag_control_attitude_enabled_last{false};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::FW_ACRO_X_MAX>) _param_fw_acro_x_max,
-		(ParamFloat<px4::params::FW_ACRO_Y_MAX>) _param_fw_acro_y_max,
-		(ParamFloat<px4::params::FW_ACRO_Z_MAX>) _param_fw_acro_z_max,
-
 		(ParamFloat<px4::params::FW_AIRSPD_MAX>) _param_fw_airspd_max,
 		(ParamFloat<px4::params::FW_AIRSPD_MIN>) _param_fw_airspd_min,
 		(ParamFloat<px4::params::FW_AIRSPD_STALL>) _param_fw_airspd_stall,
@@ -167,20 +163,15 @@ private:
 		(ParamFloat<px4::params::FW_Y_RMAX>) _param_fw_y_rmax
 	)
 
-	ECL_RollController		_roll_ctrl;
-	ECL_PitchController		_pitch_ctrl;
-	ECL_YawController		_yaw_ctrl;
-	ECL_WheelController		_wheel_ctrl;
+	ECL_RollController _roll_ctrl;
+	ECL_PitchController _pitch_ctrl;
+	ECL_YawController _yaw_ctrl;
+	ECL_WheelController _wheel_ctrl;
 
-	/**
-	 * Update our local parameter cache.
-	 */
-	int		parameters_update();
-
-	void		vehicle_control_mode_poll();
-	void		vehicle_manual_poll(const float yaw_body);
-	void		vehicle_attitude_setpoint_poll();
-	void		vehicle_land_detected_poll();
-
-	float 		get_airspeed_and_update_scaling();
+	void parameters_update();
+	void vehicle_control_mode_poll();
+	void vehicle_manual_poll(const float yaw_body);
+	void vehicle_attitude_setpoint_poll();
+	void vehicle_land_detected_poll();
+	float get_airspeed_and_update_scaling();
 };
