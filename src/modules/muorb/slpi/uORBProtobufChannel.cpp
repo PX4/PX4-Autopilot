@@ -243,8 +243,9 @@ int px4muorb_orb_initialize(fc_func_ptrs *func_ptrs, int32_t clock_offset_us)
 		// Configure the SPI driver function pointers
 		device::SPI::configure_callbacks(muorb_func_ptrs._config_spi_bus_func_t, muorb_func_ptrs._spi_transfer_func_t);
 
-        // Configure the UART driver function pointers
-        configure_uart_callbacks(muorb_func_ptrs.open_uart_func_t, muorb_func_ptrs.write_uart_func_t, muorb_func_ptrs.read_uart_func_t);
+		// Configure the UART driver function pointers
+		configure_uart_callbacks(muorb_func_ptrs.open_uart_func_t, muorb_func_ptrs.write_uart_func_t,
+					 muorb_func_ptrs.read_uart_func_t);
 
 		// Initialize the interrupt callback registration
 		register_interrupt_callback_initalizer(muorb_func_ptrs.register_interrupt_callback);
