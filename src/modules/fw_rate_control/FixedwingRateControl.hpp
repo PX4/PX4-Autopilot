@@ -56,7 +56,6 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_controls_status.h>
 #include <uORB/topics/airspeed_validated.h>
-#include <uORB/topics/autotune_attitude_control_status.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/control_allocator_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
