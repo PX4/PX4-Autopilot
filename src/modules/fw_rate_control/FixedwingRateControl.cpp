@@ -63,7 +63,7 @@ FixedwingRateControl::~FixedwingRateControl()
 bool
 FixedwingRateControl::init()
 {
-	if (!_att_sub.registerCallback()) {
+	if (!_vehicle_angular_velocity_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;
 	}
@@ -109,7 +109,7 @@ FixedwingRateControl::vehicle_control_mode_poll()
 }
 
 void
-FixedwingRateControl::vehicle_manual_poll(const float yaw_body)
+FixedwingRateControl::vehicle_manual_poll()
 {
 	const bool is_tailsitter_transition = _vehicle_status.is_vtol_tailsitter && _vehicle_status.in_transition_mode;
 	const bool is_fixed_wing = _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
@@ -209,15 +209,15 @@ float FixedwingRateControl::get_airspeed_and_update_scaling()
 void FixedwingRateControl::Run()
 {
 	if (should_exit()) {
-		_att_sub.unregisterCallback();
+		_vehicle_angular_velocity_sub.unregisterCallback();
 		exit_and_cleanup();
 		return;
 	}
 
 	perf_begin(_loop_perf);
 
-	// only run controller if attitude changed
-	if (_att_sub.updated() || (hrt_elapsed_time(&_last_run) > 20_ms)) {
+	// only run controller if angular velocity changed
+	if (_vehicle_angular_velocity_sub.updated() || (hrt_elapsed_time(&_last_run) > 20_ms)) { //TODO rate!
 
 		// only update parameters if they changed
 		bool params_updated = _parameter_update_sub.updated();
@@ -238,14 +238,11 @@ void FixedwingRateControl::Run()
 		static constexpr float DT_MIN = 0.002f;
 		static constexpr float DT_MAX = 0.04f;
 
-		vehicle_attitude_s att{};
+		vehicle_angular_velocity_s vehicle_angular_velocity{};
 
-		if (_att_sub.copy(&att)) {
-			dt = math::constrain((att.timestamp_sample - _last_run) * 1e-6f, DT_MIN, DT_MAX);
-			_last_run = att.timestamp_sample;
-
-			// get current rotation matrix and euler angles from control state quaternions
-			_R = matrix::Quatf(att.q);
+		if (_vehicle_angular_velocity_sub.copy(&vehicle_angular_velocity)) {
+			dt = math::constrain((vehicle_angular_velocity.timestamp_sample - _last_run) * 1e-6f, DT_MIN, DT_MAX);
+			_last_run = vehicle_angular_velocity.timestamp_sample;
 		}
 
 		if (dt < DT_MIN || dt > DT_MAX) {
@@ -255,7 +252,7 @@ void FixedwingRateControl::Run()
 		}
 
 		vehicle_angular_velocity_s angular_velocity{};
-		_vehicle_rates_sub.copy(&angular_velocity);
+		_vehicle_angular_velocity_sub.copy(&angular_velocity);
 		float rollspeed = angular_velocity.xyz[0];
 		float pitchspeed = angular_velocity.xyz[1];
 		float yawspeed = angular_velocity.xyz[2];
@@ -263,49 +260,13 @@ void FixedwingRateControl::Run()
 		const Vector3f angular_accel{angular_velocity.xyz_derivative};
 
 		if (_vehicle_status.is_vtol_tailsitter) {
-			/* vehicle is a tailsitter, we need to modify the estimated attitude for fw mode
-			 *
-			 * Since the VTOL airframe is initialized as a multicopter we need to
-			 * modify the estimated attitude for the fixed wing operation.
-			 * Since the neutral position of the vehicle in fixed wing mode is -90 degrees rotated around
-			 * the pitch axis compared to the neutral position of the vehicle in multicopter mode
-			 * we need to swap the roll and the yaw axis (1st and 3rd column) in the rotation matrix.
-			 * Additionally, in order to get the correct sign of the pitch, we need to multiply
-			 * the new x axis of the rotation matrix with -1
-			 *
-			 * original:			modified:
-			 *
-			 * Rxx  Ryx  Rzx		-Rzx  Ryx  Rxx
-			 * Rxy	Ryy  Rzy		-Rzy  Ryy  Rxy
-			 * Rxz	Ryz  Rzz		-Rzz  Ryz  Rxz
-			 * */
-			matrix::Dcmf R_adapted = _R;		//modified rotation matrix
 
-			/* move z to x */
-			R_adapted(0, 0) = _R(0, 2);
-			R_adapted(1, 0) = _R(1, 2);
-			R_adapted(2, 0) = _R(2, 2);
-
-			/* move x to z */
-			R_adapted(0, 2) = _R(0, 0);
-			R_adapted(1, 2) = _R(1, 0);
-			R_adapted(2, 2) = _R(2, 0);
-
-			/* change direction of pitch (convert to right handed system) */
-			R_adapted(0, 0) = -R_adapted(0, 0);
-			R_adapted(1, 0) = -R_adapted(1, 0);
-			R_adapted(2, 0) = -R_adapted(2, 0);
-
-			/* fill in new attitude data */
-			_R = R_adapted;
-
-			/* lastly, roll- and yawspeed have to be swaped */
+			/* roll- and yawspeed have to be swaped */
 			float helper = rollspeed;
 			rollspeed = -yawspeed;
 			yawspeed = helper;
 		}
 
-		const matrix::Eulerf euler_angles(_R);
 
 		vehicle_attitude_setpoint_poll();
 
@@ -313,7 +274,7 @@ void FixedwingRateControl::Run()
 		_vehicle_status_sub.update(&_vehicle_status);
 
 		vehicle_control_mode_poll();
-		vehicle_manual_poll(euler_angles.psi());
+		vehicle_manual_poll();
 		vehicle_land_detected_poll();
 
 		/* if we are in rotary wing mode, do nothing */
@@ -476,7 +437,7 @@ void FixedwingRateControl::Run()
 
 		/* lazily publish the setpoint only once available */
 		_actuator_controls.timestamp = hrt_absolute_time();
-		_actuator_controls.timestamp_sample = att.timestamp;
+		_actuator_controls.timestamp_sample = vehicle_angular_velocity.timestamp;
 
 		/* Only publish if any of the proper modes are enabled */
 		if (_vcontrol_mode.flag_control_rates_enabled ||
@@ -670,7 +631,7 @@ int FixedwingRateControl::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-fw_rate_control is the fixed wing attitude controller.
+fw_rate_control is the fixed-wing rate controller.
 
 )DESCR_STR");
 
