@@ -237,11 +237,7 @@ void FixedwingAttitudeControl::Run()
 
 		vehicle_angular_velocity_s angular_velocity{};
 		_vehicle_rates_sub.copy(&angular_velocity);
-		float rollspeed = angular_velocity.xyz[0];
-		float pitchspeed = angular_velocity.xyz[1];
-		float yawspeed = angular_velocity.xyz[2];
-		const Vector3f rates(rollspeed, pitchspeed, yawspeed);
-		const Vector3f angular_accel{angular_velocity.xyz_derivative};
+		float yawspeed = angular_velocity.xyz[2]; // only used for wheel controller
 
 		if (_vehicle_status.is_vtol_tailsitter) {
 			/* vehicle is a tailsitter, we need to modify the estimated attitude for fw mode
@@ -281,9 +277,7 @@ void FixedwingAttitudeControl::Run()
 			_R = R_adapted;
 
 			/* lastly, roll- and yawspeed have to be swaped */
-			float helper = rollspeed;
-			rollspeed = -yawspeed;
-			yawspeed = helper;
+			yawspeed = angular_velocity.xyz[0];
 		}
 
 		const matrix::Eulerf euler_angles(_R);
@@ -338,8 +332,6 @@ void FixedwingAttitudeControl::Run()
 			control_input.roll = euler_angles.phi();
 			control_input.pitch = euler_angles.theta();
 			control_input.yaw = euler_angles.psi();
-			control_input.body_x_rate = rollspeed;
-			control_input.body_y_rate = pitchspeed;
 			control_input.body_z_rate = yawspeed;
 			control_input.roll_setpoint = _att_sp.roll_body;
 			control_input.pitch_setpoint = _att_sp.pitch_body;
