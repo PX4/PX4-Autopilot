@@ -47,12 +47,6 @@ FixedwingAttitudeControl::FixedwingAttitudeControl(bool vtol) :
 {
 	/* fetch initial parameter values */
 	parameters_update();
-
-	// set initial maximum body rate setpoints
-	_roll_ctrl.set_max_rate(radians(_param_fw_acro_x_max.get()));
-	_pitch_ctrl.set_max_rate_pos(radians(_param_fw_acro_y_max.get()));
-	_pitch_ctrl.set_max_rate_neg(radians(_param_fw_acro_y_max.get()));
-	_yaw_ctrl.set_max_rate(radians(_param_fw_acro_z_max.get()));
 }
 
 FixedwingAttitudeControl::~FixedwingAttitudeControl()
@@ -71,23 +65,23 @@ FixedwingAttitudeControl::init()
 	return true;
 }
 
-int
+void
 FixedwingAttitudeControl::parameters_update()
 {
-	/* pitch control parameters */
-	_pitch_ctrl.set_time_constant(_param_fw_p_tc.get());
-
-	/* roll control parameters */
 	_roll_ctrl.set_time_constant(_param_fw_r_tc.get());
+	_roll_ctrl.set_max_rate(radians(_param_fw_r_rmax.get()));
 
-	/* wheel control parameters */
+	_pitch_ctrl.set_time_constant(_param_fw_p_tc.get());
+	_pitch_ctrl.set_max_rate_pos(radians(_param_fw_p_rmax_pos.get()));
+	_pitch_ctrl.set_max_rate_neg(radians(_param_fw_p_rmax_neg.get()));
+
+	_yaw_ctrl.set_max_rate(radians(_param_fw_y_rmax.get()));
+
 	_wheel_ctrl.set_k_p(_param_fw_wr_p.get());
 	_wheel_ctrl.set_k_i(_param_fw_wr_i.get());
 	_wheel_ctrl.set_k_ff(_param_fw_wr_ff.get());
 	_wheel_ctrl.set_integrator_max(_param_fw_wr_imax.get());
 	_wheel_ctrl.set_max_rate(radians(_param_fw_w_rmax.get()));
-
-	return PX4_OK;
 }
 
 void
@@ -207,7 +201,7 @@ void FixedwingAttitudeControl::Run()
 	if (_att_sub.updated() || (hrt_elapsed_time(&_last_run) > 20_ms)) {
 
 		// only update parameters if they changed
-		bool params_updated = _parameter_update_sub.updated();
+		const bool params_updated = _parameter_update_sub.updated();
 
 		// check for parameter updates
 		if (params_updated) {
@@ -380,16 +374,8 @@ void FixedwingAttitudeControl::Run()
 			if ((_vcontrol_mode.flag_control_attitude_enabled != _flag_control_attitude_enabled_last) || params_updated) {
 				if (_vcontrol_mode.flag_control_attitude_enabled
 				    || _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-					_roll_ctrl.set_max_rate(radians(_param_fw_r_rmax.get()));
-					_pitch_ctrl.set_max_rate_pos(radians(_param_fw_p_rmax_pos.get()));
-					_pitch_ctrl.set_max_rate_neg(radians(_param_fw_p_rmax_neg.get()));
-					_yaw_ctrl.set_max_rate(radians(_param_fw_y_rmax.get()));
 
-				} else {
-					_roll_ctrl.set_max_rate(radians(_param_fw_acro_x_max.get()));
-					_pitch_ctrl.set_max_rate_pos(radians(_param_fw_acro_y_max.get()));
-					_pitch_ctrl.set_max_rate_neg(radians(_param_fw_acro_y_max.get()));
-					_yaw_ctrl.set_max_rate(radians(_param_fw_acro_z_max.get()));
+
 				}
 			}
 
