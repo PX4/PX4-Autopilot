@@ -85,29 +85,9 @@ FixedwingAttitudeControl::parameters_update()
 }
 
 void
-FixedwingAttitudeControl::vehicle_control_mode_poll()
-{
-	_vcontrol_mode_sub.update(&_vcontrol_mode);
-
-	if (_vehicle_status.is_vtol) {
-		const bool is_hovering = _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
-					 && !_vehicle_status.in_transition_mode;
-		const bool is_tailsitter_transition = _vehicle_status.in_transition_mode && _vehicle_status.is_vtol_tailsitter;
-
-		if (is_hovering || is_tailsitter_transition) {
-			_vcontrol_mode.flag_control_attitude_enabled = false;
-			_vcontrol_mode.flag_control_manual_enabled = false;
-		}
-	}
-}
-
-void
 FixedwingAttitudeControl::vehicle_manual_poll(const float yaw_body)
 {
-	const bool is_tailsitter_transition = _vehicle_status.is_vtol_tailsitter && _vehicle_status.in_transition_mode;
-	const bool is_fixed_wing = _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
-
-	if (_vcontrol_mode.flag_control_manual_enabled && (!is_tailsitter_transition || is_fixed_wing)) {
+	if (_vcontrol_mode.flag_control_manual_enabled && _in_fw_or_transition_wo_tailsitter_transition) {
 
 		// Always copy the new manual setpoint, even if it wasn't updated, to fill the actuators with valid values
 		if (_manual_control_setpoint_sub.copy(&_manual_control_setpoint)) {
@@ -286,10 +266,15 @@ void FixedwingAttitudeControl::Run()
 
 		vehicle_attitude_setpoint_poll();
 
-		// vehicle status update must be before the vehicle_control_mode_poll(), otherwise rate sp are not published during whole transition
+		// vehicle status update must be before the vehicle_control_mode poll, otherwise rate sp are not published during whole transition
 		_vehicle_status_sub.update(&_vehicle_status);
+		const bool is_in_transition_except_tailsitter = _vehicle_status.in_transition_mode
+				&& !_vehicle_status.is_vtol_tailsitter;
+		const bool is_fixed_wing = _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+		_in_fw_or_transition_wo_tailsitter_transition =  is_fixed_wing || is_in_transition_except_tailsitter;
 
-		vehicle_control_mode_poll();
+		_vehicle_control_mode_sub.update(&_vcontrol_mode);
+
 		vehicle_land_detected_poll();
 
 		// the position controller will not emit attitude setpoints in some modes
@@ -315,8 +300,7 @@ void FixedwingAttitudeControl::Run()
 			 */
 			if (_att_sp.reset_integral
 			    || _landed
-			    || (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
-				&& !_vehicle_status.in_transition_mode && !_vehicle_status.is_vtol_tailsitter)) {
+			    || !_in_fw_or_transition_wo_tailsitter_transition) {
 
 				_rates_sp.reset_integral = true;
 				_wheel_ctrl.reset_integrator();
@@ -362,7 +346,8 @@ void FixedwingAttitudeControl::Run()
 			control_input.groundspeed_scaler = groundspeed_scale;
 
 			/* Run attitude controllers */
-			if (_vcontrol_mode.flag_control_attitude_enabled) {
+
+			if (_vcontrol_mode.flag_control_attitude_enabled && _in_fw_or_transition_wo_tailsitter_transition) {
 				if (PX4_ISFINITE(_att_sp.roll_body) && PX4_ISFINITE(_att_sp.pitch_body)) {
 					_roll_ctrl.control_attitude(dt, control_input);
 					_pitch_ctrl.control_attitude(dt, control_input);

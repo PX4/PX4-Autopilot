@@ -112,7 +112,7 @@ private:
 	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription _rates_sp_sub{ORB_ID(vehicle_rates_setpoint)};
-	uORB::Subscription _vcontrol_mode_sub{ORB_ID(vehicle_control_mode)};
+	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _vehicle_rates_sub{ORB_ID(vehicle_angular_velocity)};
@@ -145,14 +145,14 @@ private:
 
 	float _battery_scale{1.0f};
 
-	bool _flag_control_attitude_enabled_last{false};
-
 	float _energy_integration_time{0.0f};
 	float _control_energy[4] {};
 	float _control_prev[3] {};
 
 	SlewRate<float> _spoiler_setpoint_with_slewrate;
 	SlewRate<float> _flaps_setpoint_with_slewrate;
+
+	bool _in_fw_or_transition_wo_tailsitter_transition{false}; // only run the FW attitude controller in these states
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::FW_ACRO_X_MAX>) _param_fw_acro_x_max,
@@ -238,7 +238,6 @@ private:
 	 */
 	int		parameters_update();
 
-	void		vehicle_control_mode_poll();
 	void		vehicle_manual_poll();
 	void		vehicle_land_detected_poll();
 

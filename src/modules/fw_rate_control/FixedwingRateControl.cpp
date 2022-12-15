@@ -92,61 +92,40 @@ FixedwingRateControl::parameters_update()
 }
 
 void
-FixedwingRateControl::vehicle_control_mode_poll()
-{
-	_vcontrol_mode_sub.update(&_vcontrol_mode);
-
-	if (_vehicle_status.is_vtol) {
-		const bool is_hovering = _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
-					 && !_vehicle_status.in_transition_mode;
-		const bool is_tailsitter_transition = _vehicle_status.in_transition_mode && _vehicle_status.is_vtol_tailsitter;
-
-		if (is_hovering || is_tailsitter_transition) {
-			_vcontrol_mode.flag_control_attitude_enabled = false;
-			_vcontrol_mode.flag_control_manual_enabled = false;
-		}
-	}
-}
-
-void
 FixedwingRateControl::vehicle_manual_poll()
 {
-	const bool is_tailsitter_transition = _vehicle_status.is_vtol_tailsitter && _vehicle_status.in_transition_mode;
-	const bool is_fixed_wing = _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
-
-	if (_vcontrol_mode.flag_control_manual_enabled && (!is_tailsitter_transition || is_fixed_wing)) {
+	if (_vcontrol_mode.flag_control_manual_enabled && !_vcontrol_mode.flag_control_climb_rate_enabled
+	    && _in_fw_or_transition_wo_tailsitter_transition) {
 
 		// Always copy the new manual setpoint, even if it wasn't updated, to fill the actuators with valid values
 		if (_manual_control_setpoint_sub.copy(&_manual_control_setpoint)) {
 
-			if (!_vcontrol_mode.flag_control_climb_rate_enabled) {
+			if (_vcontrol_mode.flag_control_rates_enabled &&
+			    !_vcontrol_mode.flag_control_attitude_enabled) {
 
-				if (_vcontrol_mode.flag_control_rates_enabled &&
-				    !_vcontrol_mode.flag_control_attitude_enabled) {
+				// RATE mode we need to generate the rate setpoint from manual user inputs
+				_rates_sp.timestamp = hrt_absolute_time();
+				_rates_sp.roll = _manual_control_setpoint.roll * radians(_param_fw_acro_x_max.get());
+				_rates_sp.pitch = -_manual_control_setpoint.pitch * radians(_param_fw_acro_y_max.get());
+				_rates_sp.yaw = _manual_control_setpoint.yaw * radians(_param_fw_acro_z_max.get());
+				_rates_sp.thrust_body[0] = math::constrain(_manual_control_setpoint.throttle, 0.0f, 1.0f);
 
-					// RATE mode we need to generate the rate setpoint from manual user inputs
-					_rates_sp.timestamp = hrt_absolute_time();
-					_rates_sp.roll = _manual_control_setpoint.roll * radians(_param_fw_acro_x_max.get());
-					_rates_sp.pitch = -_manual_control_setpoint.pitch * radians(_param_fw_acro_y_max.get());
-					_rates_sp.yaw = _manual_control_setpoint.yaw * radians(_param_fw_acro_z_max.get());
-					_rates_sp.thrust_body[0] = math::constrain(_manual_control_setpoint.throttle, 0.0f, 1.0f);
+				_rate_sp_pub.publish(_rates_sp);
 
-					_rate_sp_pub.publish(_rates_sp);
-
-				} else {
-					/* manual/direct control */
-					_actuator_controls.control[actuator_controls_s::INDEX_ROLL] =
-						_manual_control_setpoint.roll * _param_fw_man_r_sc.get() + _param_trim_roll.get();
-					_actuator_controls.control[actuator_controls_s::INDEX_PITCH] =
-						-_manual_control_setpoint.pitch * _param_fw_man_p_sc.get() + _param_trim_pitch.get();
-					_actuator_controls.control[actuator_controls_s::INDEX_YAW] =
-						_manual_control_setpoint.yaw * _param_fw_man_y_sc.get() + _param_trim_yaw.get();
-					_actuator_controls.control[actuator_controls_s::INDEX_THROTTLE] = math::constrain(_manual_control_setpoint.throttle,
-							0.0f,
-							1.0f);
-				}
+			} else {
+				/* manual/direct control */
+				_actuator_controls.control[actuator_controls_s::INDEX_ROLL] =
+					_manual_control_setpoint.roll * _param_fw_man_r_sc.get() + _param_trim_roll.get();
+				_actuator_controls.control[actuator_controls_s::INDEX_PITCH] =
+					-_manual_control_setpoint.pitch * _param_fw_man_p_sc.get() + _param_trim_pitch.get();
+				_actuator_controls.control[actuator_controls_s::INDEX_YAW] =
+					_manual_control_setpoint.yaw * _param_fw_man_y_sc.get() + _param_trim_yaw.get();
+				_actuator_controls.control[actuator_controls_s::INDEX_THROTTLE] = math::constrain(_manual_control_setpoint.throttle,
+						0.0f,
+						1.0f);
 			}
 		}
+
 	}
 }
 
@@ -267,10 +246,17 @@ void FixedwingRateControl::Run()
 		// TODO remove it
 		_att_sp_sub.update(&_att_sp);
 
-		// vehicle status update must be before the vehicle_control_mode_poll(), otherwise rate sp are not published during whole transition
+		// vehicle status update must be before the vehicle_control_mode poll, otherwise rate sp are not published during whole transition
 		_vehicle_status_sub.update(&_vehicle_status);
+		const bool is_in_transition_except_tailsitter = _vehicle_status.in_transition_mode
+				&& !_vehicle_status.is_vtol_tailsitter;
+		const bool is_fixed_wing = _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+		_in_fw_or_transition_wo_tailsitter_transition =  is_fixed_wing || is_in_transition_except_tailsitter;
 
-		vehicle_control_mode_poll();
+		_vehicle_control_mode_sub.update(&_vcontrol_mode);
+
+		vehicle_land_detected_poll();
+
 		vehicle_manual_poll();
 		vehicle_land_detected_poll();
 
@@ -294,12 +280,8 @@ void FixedwingRateControl::Run()
 				_rate_control.resetIntegral();
 			}
 
-			/* Reset integrators if the aircraft is on ground
-			 * or a multicopter (but not transitioning VTOL or tailsitter)
-			 */
-			if (_landed
-			    || (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
-				&& !_vehicle_status.in_transition_mode && !_vehicle_status.is_vtol_tailsitter)) {
+			// Reset integrators if the aircraft is on ground or not in a state where the fw attitude controller is run
+			if (_landed || !_in_fw_or_transition_wo_tailsitter_transition) {
 
 				_rate_control.resetIntegral();
 			}
@@ -325,8 +307,6 @@ void FixedwingRateControl::Run()
 				// TODO: send the unallocated value directly for better anti-windup
 				_rate_control.setSaturationStatus(saturation_positive, saturation_negative);
 			}
-
-			_flag_control_attitude_enabled_last = _vcontrol_mode.flag_control_attitude_enabled;
 
 			/* bi-linear interpolation over airspeed for actuator trim scheduling */
 			float trim_roll = _param_trim_roll.get();
