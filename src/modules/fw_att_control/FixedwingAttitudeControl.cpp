@@ -161,7 +161,7 @@ FixedwingAttitudeControl::vehicle_land_detected_poll()
 	}
 }
 
-float FixedwingAttitudeControl::get_airspeed_and_update_scaling()
+float FixedwingAttitudeControl::get_airspeed_constrained()
 {
 	_airspeed_validated_sub.update();
 	const bool airspeed_valid = PX4_ISFINITE(_airspeed_validated_sub.get().calibrated_airspeed_m_s)
@@ -184,7 +184,7 @@ float FixedwingAttitudeControl::get_airspeed_and_update_scaling()
 		}
 	}
 
-	return airspeed;
+	return math::constrain(airspeed, _param_fw_airspd_stall.get(), _param_fw_airspd_max.get());
 }
 
 void FixedwingAttitudeControl::Run()
@@ -310,8 +310,6 @@ void FixedwingAttitudeControl::Run()
 
 		if (_vcontrol_mode.flag_control_rates_enabled) {
 
-			const float airspeed = get_airspeed_and_update_scaling();
-
 			/* Reset integrators if commanded by attitude setpoint, or the aircraft is on ground
 			 * or a multicopter (but not transitioning VTOL or tailsitter)
 			 */
@@ -327,6 +325,27 @@ void FixedwingAttitudeControl::Run()
 				_rates_sp.reset_integral = false;
 			}
 
+			float groundspeed_scale = 1.f;
+
+			if (wheel_control) {
+				if (_local_pos_sub.updated()) {
+					vehicle_local_position_s vehicle_local_position;
+
+					if (_local_pos_sub.copy(&vehicle_local_position)) {
+						_groundspeed = sqrtf(vehicle_local_position.vx * vehicle_local_position.vx + vehicle_local_position.vy *
+								     vehicle_local_position.vy);
+					}
+				}
+
+				// Use stall airspeed to calculate ground speed scaling region. Don't scale below gspd_scaling_trim
+				float gspd_scaling_trim = (_param_fw_airspd_stall.get());
+
+				if (_groundspeed > gspd_scaling_trim) {
+					groundspeed_scale = gspd_scaling_trim / _groundspeed;
+
+				}
+			}
+
 			/* Prepare data for attitude controllers */
 			ECL_ControlData control_input{};
 			control_input.roll = euler_angles.phi();
@@ -336,31 +355,11 @@ void FixedwingAttitudeControl::Run()
 			control_input.roll_setpoint = _att_sp.roll_body;
 			control_input.pitch_setpoint = _att_sp.pitch_body;
 			control_input.yaw_setpoint = _att_sp.yaw_body;
-			control_input.euler_roll_rate_setpoint = _roll_ctrl.get_euler_rate_setpoint();
 			control_input.euler_pitch_rate_setpoint = _pitch_ctrl.get_euler_rate_setpoint();
 			control_input.euler_yaw_rate_setpoint = _yaw_ctrl.get_euler_rate_setpoint();
-			control_input.airspeed_min = _param_fw_airspd_stall.get();
-			control_input.airspeed_max = _param_fw_airspd_max.get();
-			control_input.airspeed = airspeed;
-
-			if (wheel_control) {
-				_local_pos_sub.update(&_local_pos);
-
-				/* Use stall airspeed to calculate ground speed scaling region.
-				* Don't scale below gspd_scaling_trim
-				*/
-				float groundspeed = sqrtf(_local_pos.vx * _local_pos.vx + _local_pos.vy * _local_pos.vy);
-				float gspd_scaling_trim = (_param_fw_airspd_stall.get());
-
-				control_input.groundspeed = groundspeed;
-
-				if (groundspeed > gspd_scaling_trim) {
-					control_input.groundspeed_scaler = gspd_scaling_trim / groundspeed;
-
-				} else {
-					control_input.groundspeed_scaler = 1.0f;
-				}
-			}
+			control_input.airspeed_constrained = get_airspeed_constrained();
+			control_input.groundspeed = _groundspeed;
+			control_input.groundspeed_scaler = groundspeed_scale;
 
 			/* Run attitude controllers */
 			if (_vcontrol_mode.flag_control_attitude_enabled) {
@@ -380,7 +379,6 @@ void FixedwingAttitudeControl::Run()
 					Vector3f body_rates_setpoint = Vector3f(_roll_ctrl.get_body_rate_setpoint(), _pitch_ctrl.get_body_rate_setpoint(),
 										_yaw_ctrl.get_body_rate_setpoint());
 
-					const hrt_abstime now = hrt_absolute_time();
 					autotune_attitude_control_status_s pid_autotune;
 					matrix::Vector3f bodyrate_autotune_ff;
 
@@ -389,7 +387,7 @@ void FixedwingAttitudeControl::Run()
 						     || pid_autotune.state == autotune_attitude_control_status_s::STATE_PITCH
 						     || pid_autotune.state == autotune_attitude_control_status_s::STATE_YAW
 						     || pid_autotune.state == autotune_attitude_control_status_s::STATE_TEST)
-						    && ((now - pid_autotune.timestamp) < 1_s)) {
+						    && ((hrt_absolute_time() - pid_autotune.timestamp) < 1_s)) {
 
 							bodyrate_autotune_ff = matrix::Vector3f(pid_autotune.rate_sp);
 							body_rates_setpoint += bodyrate_autotune_ff;
