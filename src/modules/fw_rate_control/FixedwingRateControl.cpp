@@ -108,7 +108,7 @@ FixedwingRateControl::vehicle_manual_poll()
 				_rates_sp.roll = _manual_control_setpoint.roll * radians(_param_fw_acro_x_max.get());
 				_rates_sp.pitch = -_manual_control_setpoint.pitch * radians(_param_fw_acro_y_max.get());
 				_rates_sp.yaw = _manual_control_setpoint.yaw * radians(_param_fw_acro_z_max.get());
-				_rates_sp.thrust_body[0] = math::constrain(_manual_control_setpoint.throttle, 0.0f, 1.0f);
+				_rates_sp.thrust_body[0] = (_manual_control_setpoint.throttle + 1.f) * .5f;
 
 				_rate_sp_pub.publish(_rates_sp);
 
@@ -120,9 +120,7 @@ FixedwingRateControl::vehicle_manual_poll()
 					-_manual_control_setpoint.pitch * _param_fw_man_p_sc.get() + _param_trim_pitch.get();
 				_actuator_controls.control[actuator_controls_s::INDEX_YAW] =
 					_manual_control_setpoint.yaw * _param_fw_man_y_sc.get() + _param_trim_yaw.get();
-				_actuator_controls.control[actuator_controls_s::INDEX_THROTTLE] = math::constrain(_manual_control_setpoint.throttle,
-						0.0f,
-						1.0f);
+				_actuator_controls.control[actuator_controls_s::INDEX_THROTTLE] = (_manual_control_setpoint.throttle + 1.f) * .5f;
 			}
 		}
 
