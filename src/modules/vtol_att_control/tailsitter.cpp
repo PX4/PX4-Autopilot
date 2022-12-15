@@ -87,8 +87,8 @@ void Tailsitter::update_vtol_state()
 			break;
 
 		case vtol_mode::FW_MODE:
+			resetTransitionTimer();
 			_vtol_mode = vtol_mode::TRANSITION_BACK;
-			_transition_start_timestamp = hrt_absolute_time();
 			break;
 
 		case vtol_mode::TRANSITION_FRONT_P1:
@@ -112,7 +112,7 @@ void Tailsitter::update_vtol_state()
 		case vtol_mode::MC_MODE:
 			// initialise a front transition
 			_vtol_mode = vtol_mode::TRANSITION_FRONT_P1;
-			_transition_start_timestamp = hrt_absolute_time();
+			resetTransitionTimer();
 			break;
 
 		case vtol_mode::FW_MODE:
