@@ -1,4 +1,5 @@
 px4_add_library(mission_feasibility_checker
-	FeasibilityChecker.hpp
 	FeasibilityChecker.cpp
 )
+
+px4_add_functional_gtest(SRC FeasibilityCheckerTest.cpp LINKLIBS mission_feasibility_checker test_stubs)
