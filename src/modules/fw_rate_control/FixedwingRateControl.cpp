@@ -151,12 +151,6 @@ FixedwingRateControl::vehicle_manual_poll()
 }
 
 void
-FixedwingRateControl::vehicle_attitude_setpoint_poll()
-{
-	_att_sp_sub.update(&_att_sp);
-}
-
-void
 FixedwingRateControl::vehicle_land_detected_poll()
 {
 	if (_vehicle_land_detected_sub.updated()) {
@@ -268,7 +262,10 @@ void FixedwingRateControl::Run()
 		}
 
 
-		vehicle_attitude_setpoint_poll();
+		// this is only to pass through flaps/spoiler setpoints, can be removed once flaps/spoilers
+		// are handled outside of attitude/rate controller.
+		// TODO remove it
+		_att_sp_sub.update(&_att_sp);
 
 		// vehicle status update must be before the vehicle_control_mode_poll(), otherwise rate sp are not published during whole transition
 		_vehicle_status_sub.update(&_vehicle_status);
