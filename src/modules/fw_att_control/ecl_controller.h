@@ -59,12 +59,9 @@ struct ECL_ControlData {
 	float roll_setpoint;
 	float pitch_setpoint;
 	float yaw_setpoint;
-	float euler_roll_rate_setpoint;
 	float euler_pitch_rate_setpoint;
 	float euler_yaw_rate_setpoint;
-	float airspeed_min;
-	float airspeed_max;
-	float airspeed;
+	float airspeed_constrained;
 	float groundspeed;
 	float groundspeed_scaler;
 };
@@ -111,5 +108,4 @@ protected:
 	float _integrator;
 	float _euler_rate_setpoint;
 	float _body_rate_setpoint;
-	float constrain_airspeed(float airspeed, float minspeed, float maxspeed);
 };

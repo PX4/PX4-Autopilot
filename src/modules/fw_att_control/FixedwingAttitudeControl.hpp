@@ -116,7 +116,6 @@ private:
 	manual_control_setpoint_s		_manual_control_setpoint{};
 	vehicle_attitude_setpoint_s		_att_sp{};
 	vehicle_control_mode_s			_vcontrol_mode{};
-	vehicle_local_position_s		_local_pos{};
 	vehicle_rates_setpoint_s		_rates_sp{};
 	vehicle_status_s			_vehicle_status{};
 	landing_gear_wheel_s			_landing_gear_wheel{};
@@ -128,6 +127,7 @@ private:
 	hrt_abstime _last_run{0};
 
 	bool _landed{true};
+	float _groundspeed{0.f};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::FW_AIRSPD_MAX>) _param_fw_airspd_max,
@@ -167,5 +167,5 @@ private:
 	void vehicle_manual_poll(const float yaw_body);
 	void vehicle_attitude_setpoint_poll();
 	void vehicle_land_detected_poll();
-	float get_airspeed_and_update_scaling();
+	float get_airspeed_constrained();
 };
