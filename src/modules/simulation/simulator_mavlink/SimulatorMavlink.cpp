@@ -473,6 +473,9 @@ void SimulatorMavlink::handle_message_hil_sensor(const mavlink_message_t *msg)
 	mavlink_hil_sensor_t imu;
 	mavlink_msg_hil_sensor_decode(msg, &imu);
 
+	// Workaround for mavlink2 msg generator bug
+	imu.id = 0;
+
 	// Assume imu with id 0 is the primary imu an base lockstep based on this.
 	if (imu.id == 0) {
 		if (_lockstep_component == -1) {
