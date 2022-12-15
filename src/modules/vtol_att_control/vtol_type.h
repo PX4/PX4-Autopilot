@@ -248,6 +248,16 @@ public:
 	 */
 	void setDt(float dt) {_dt = dt; }
 
+	/**
+	 * @brief Resets the transition timer states.
+	 *
+	 */
+	void resetTransitionTimer()
+	{
+		_transition_start_timestamp = hrt_absolute_time();
+		_time_since_trans_start = 0.f;
+	}
+
 protected:
 	VtolAttitudeControl *_attc;
 	mode _common_vtol_mode;
