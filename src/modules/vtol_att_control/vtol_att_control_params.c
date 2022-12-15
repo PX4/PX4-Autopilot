@@ -255,13 +255,14 @@ PARAM_DEFINE_INT32(VT_FW_QC_R, 0);
  * Triggering a quadchute always means transitioning the vehicle to hover flight in which generally a lot of energy is consumed.
  * At high altitudes there is therefore a big risk to deplete the battery and therefore crash. Currently, there is no automated
  * re-transition to fixed wing mode implemented and therefore this parameter serves and an intermediate measure to increase safety.
+ * Setting this value to 0 deactivates the behavior.
  *
  * @unit m
+ * @min 0
  * @increment 1
- * @decimal 1
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_FW_QC_HMAX, 200.0f);
+PARAM_DEFINE_INT32(VT_FW_QC_HMAX, 0);
 
 /**
  * Airspeed less front transition time (open loop)
