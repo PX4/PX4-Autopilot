@@ -63,7 +63,6 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/rate_ctrl_status.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
-#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_land_detected.h>
@@ -106,17 +105,17 @@ private:
 	void publishTorqueSetpoint(const hrt_abstime &timestamp_sample);
 	void publishThrustSetpoint(const hrt_abstime &timestamp_sample);
 
-	uORB::SubscriptionCallbackWorkItem _att_sub{this, ORB_ID(vehicle_attitude)};		/**< vehicle attitude */
+	uORB::SubscriptionCallbackWorkItem _vehicle_angular_velocity_sub{this, ORB_ID(vehicle_angular_velocity)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
-	uORB::Subscription _att_sp_sub{ORB_ID(vehicle_attitude_setpoint)};			/**< vehicle attitude setpoint */
-	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};				/**< battery status subscription */
-	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};	/**< notification of manual control updates */
-	uORB::Subscription _rates_sp_sub{ORB_ID(vehicle_rates_setpoint)};			/**< vehicle rates setpoint */
-	uORB::Subscription _vcontrol_mode_sub{ORB_ID(vehicle_control_mode)};			/**< vehicle status subscription */
-	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};		/**< vehicle land detected subscription */
-	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};				/**< vehicle status subscription */
+	uORB::Subscription _att_sp_sub{ORB_ID(vehicle_attitude_setpoint)};
+	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
+	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
+	uORB::Subscription _rates_sp_sub{ORB_ID(vehicle_rates_setpoint)};
+	uORB::Subscription _vcontrol_mode_sub{ORB_ID(vehicle_control_mode)};
+	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _vehicle_rates_sub{ORB_ID(vehicle_angular_velocity)};
 
 	uORB::SubscriptionMultiArray<control_allocator_status_s, 2> _control_allocator_status_subs{ORB_ID::control_allocator_status};
@@ -136,8 +135,6 @@ private:
 	vehicle_control_mode_s			_vcontrol_mode{};
 	vehicle_rates_setpoint_s		_rates_sp{};
 	vehicle_status_s			_vehicle_status{};
-
-	matrix::Dcmf _R{matrix::eye<float, 3>()};
 
 	perf_counter_t _loop_perf;
 
@@ -243,7 +240,7 @@ private:
 	int		parameters_update();
 
 	void		vehicle_control_mode_poll();
-	void		vehicle_manual_poll(const float yaw_body);
+	void		vehicle_manual_poll();
 	void		vehicle_attitude_setpoint_poll();
 	void		vehicle_land_detected_poll();
 
