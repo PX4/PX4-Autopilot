@@ -104,7 +104,7 @@ FixedwingAttitudeControl::vehicle_manual_poll(const float yaw_body)
 							       -radians(_param_fw_man_p_max.get()), radians(_param_fw_man_p_max.get()));
 
 				_att_sp.yaw_body = yaw_body; // yaw is not controlled, so set setpoint to current yaw
-				_att_sp.thrust_body[0] = math::constrain(_manual_control_setpoint.throttle, 0.0f, 1.0f);
+				_att_sp.thrust_body[0] = (_manual_control_setpoint.throttle + 1.f) * .5f;
 
 				Quatf q(Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body));
 				q.copyTo(_att_sp.q_d);
