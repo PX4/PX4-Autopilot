@@ -4,7 +4,7 @@
 #------------------------------------------------------------------------------
 set HAVE_PM2 yes
 
-if ver hwtypecmp V6X005000 V6X005001 V6X005003 V6X005004 V6X009010 V6X010010
+if ver hwtypecmp V6X005000 V6X005001 V6X005003 V6X005004
 then
 	set HAVE_PM2 no
 fi
