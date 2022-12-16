@@ -160,6 +160,7 @@ void CrsfRc::Run()
 				ioctl(_rc_fd, TIOCSSINGLEWIRE, SER_SINGLEWIRE_ENABLED);
 #endif // TIOCSSINGLEWIRE
 			}
+
 #endif
 
 			PX4_INFO("Crsf serial opened sucessfully");
@@ -188,9 +189,9 @@ void CrsfRc::Run()
 
 #ifdef __PX4_QURT
 #define ASYNC_UART_READ_WAIT_US (100 * 1000) // Want 100ms timeout
-		// The UART read on SLPI is via an asynchronous service so specify a timeout
-		// for the return. The driver will poll periodically until the read comes in
-		// so this may block for a while. However, it will timeout if no read comes in.
+	// The UART read on SLPI is via an asynchronous service so specify a timeout
+	// for the return. The driver will poll periodically until the read comes in
+	// so this may block for a while. However, it will timeout if no read comes in.
 	ret = qurt_uart_read(_rc_fd, (char *) &_rcs_buf[0], RC_MAX_BUFFER_SIZE, ASYNC_UART_READ_WAIT_US);
 	new_bytes = ret;
 #else

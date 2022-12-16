@@ -199,6 +199,7 @@ sbus_config(int sbus_fd, bool singlewire)
 		t.c_cflag |= (CSTOPB | PARENB);
 		tcsetattr(sbus_fd, TCSANOW, &t);
 #endif
+
 		if (singlewire) {
 			/* only defined in configs capable of IOCTL
 			 * Note It is never turned off
