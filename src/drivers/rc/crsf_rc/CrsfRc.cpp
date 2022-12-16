@@ -199,7 +199,7 @@ void CrsfRc::Run()
 	pollfd fds[1];
 	fds[0].fd = _rc_fd;
 	fds[0].events = POLLIN;
-	int ret = ::poll(fds, 1, 100);
+	ret = ::poll(fds, 1, 100);
 #endif
 
 	if (ret < 0) {
