@@ -48,6 +48,10 @@ using namespace time_literals;
 
 #define CRSF_BAUDRATE 420000
 
+#ifdef __PX4_QURT
+#include <drivers/device/qurt/uart.h>
+#endif
+
 CrsfRc::CrsfRc(const char *device) :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(device))
@@ -125,9 +129,15 @@ void CrsfRc::Run()
 	}
 
 	if (_rc_fd < 0) {
+#ifdef __PX4_QURT
+		_rc_fd = qurt_uart_open(_device, CRSF_BAUDRATE);
+#else
 		_rc_fd = ::open(_device, O_RDWR | O_NONBLOCK);
+#endif
 
 		if (_rc_fd >= 0) {
+#ifndef __PX4_QURT
+
 			struct termios t;
 
 			tcgetattr(_rc_fd, &t);
@@ -150,6 +160,7 @@ void CrsfRc::Run()
 				ioctl(_rc_fd, TIOCSSINGLEWIRE, SER_SINGLEWIRE_ENABLED);
 #endif // TIOCSSINGLEWIRE
 			}
+#endif
 
 			PX4_INFO("Crsf serial opened sucessfully");
 
@@ -157,7 +168,9 @@ void CrsfRc::Run()
 				PX4_INFO("Crsf serial is single wire. Telemetry disabled");
 			}
 
+#ifndef __PX4_QURT
 			tcflush(_rc_fd, TCIOFLUSH);
+#endif
 
 			Crc8Init(0xd5);
 		}
@@ -170,11 +183,23 @@ void CrsfRc::Run()
 
 	}
 
+	int ret = 0;
+	int new_bytes = 0;
+
+#ifdef __PX4_QURT
+#define ASYNC_UART_READ_WAIT_US (100 * 1000) // Want 100ms timeout
+		// The UART read on SLPI is via an asynchronous service so specify a timeout
+		// for the return. The driver will poll periodically until the read comes in
+		// so this may block for a while. However, it will timeout if no read comes in.
+	ret = qurt_uart_read(_rc_fd, (char *) &_rcs_buf[0], RC_MAX_BUFFER_SIZE, ASYNC_UART_READ_WAIT_US);
+	new_bytes = ret;
+#else
 	// poll with 100mS timeout
 	pollfd fds[1];
 	fds[0].fd = _rc_fd;
 	fds[0].events = POLLIN;
 	int ret = ::poll(fds, 1, 100);
+#endif
 
 	if (ret < 0) {
 		PX4_ERR("poll error");
@@ -186,8 +211,10 @@ void CrsfRc::Run()
 	const hrt_abstime time_now_us = hrt_absolute_time();
 	perf_count_interval(_cycle_interval_perf, time_now_us);
 
+#ifndef __PX4_QURT
 	// Read all available data from the serial RC input UART
-	int new_bytes = ::read(_rc_fd, &_rcs_buf[0], RC_MAX_BUFFER_SIZE);
+	new_bytes = ::read(_rc_fd, &_rcs_buf[0], RC_MAX_BUFFER_SIZE);
+#endif
 
 	if (new_bytes > 0) {
 		_bytes_rx += new_bytes;

@@ -190,6 +190,7 @@ sbus_config(int sbus_fd, bool singlewire)
 #else
 
 	if (sbus_fd >= 0) {
+#ifndef __PX4_QURT
 		struct termios t;
 
 		/* 100000bps, even parity, two stop bits */
@@ -197,7 +198,7 @@ sbus_config(int sbus_fd, bool singlewire)
 		cfsetspeed(&t, 100000);
 		t.c_cflag |= (CSTOPB | PARENB);
 		tcsetattr(sbus_fd, TCSANOW, &t);
-
+#endif
 		if (singlewire) {
 			/* only defined in configs capable of IOCTL
 			 * Note It is never turned off

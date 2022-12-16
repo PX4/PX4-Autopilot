@@ -92,8 +92,10 @@ static bool ghst_parse_buffer(uint16_t *values, int8_t *rssi, uint16_t *num_valu
 
 int ghst_config(int uart_fd)
 {
+	int ret_val = 0;
+
+#ifndef __PX4_QURT
 	struct termios t;
-	int ret_val;
 
 	// no parity, one stop bit
 	tcgetattr(uart_fd, &t);
@@ -101,6 +103,8 @@ int ghst_config(int uart_fd)
 	t.c_cflag &= ~(CSTOPB | PARENB);
 	memset(prev_rc_vals, static_cast<int>(UINT16_MAX), sizeof(uint16_t) * GHST_MAX_NUM_CHANNELS);
 	ret_val = tcsetattr(uart_fd, TCSANOW, &t);
+#endif
+
 	return ret_val;
 }
 
@@ -428,4 +432,3 @@ bool ghst_send_telemetry_gps2_status(int uart_fd, uint16_t ground_speed, uint16_
 
 	return write(uart_fd, buf, offset) == offset;
 }
-

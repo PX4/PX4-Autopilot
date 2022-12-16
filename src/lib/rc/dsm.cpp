@@ -447,7 +447,7 @@ int dsm_config(int fd)
 	int ret = -1;
 
 	if (fd >= 0) {
-
+#ifndef __PX4_QURT
 		struct termios t;
 
 		/* 115200bps, no parity, one stop bit */
@@ -455,7 +455,7 @@ int dsm_config(int fd)
 		cfsetspeed(&t, 115200);
 		t.c_cflag &= ~(CSTOPB | PARENB);
 		tcsetattr(fd, TCSANOW, &t);
-
+#endif
 		/* initialise the decoder */
 		dsm_partial_frame_count = 0;
 		dsm_last_rx_time = hrt_absolute_time();
