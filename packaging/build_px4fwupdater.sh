@@ -62,7 +62,6 @@ then
 else
 	cp ${mod_dir}/build/ssrc_saluki-v1_default/*.px4 ./opt/px4fwupdater/
 	cp ${mod_dir}/build/ssrc_saluki-v2_default/*.px4 ./opt/px4fwupdater/
-	cp ${mod_dir}/build/px4_fmu-v5_ssrc/*.px4 ./opt/px4fwupdater/
 	cp ${mod_dir}/build/px4_fmu-v5x_ssrc/*.px4 ./opt/px4fwupdater/
 fi
 
