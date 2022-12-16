@@ -245,6 +245,8 @@ enum class Bus {
 using CS = GPIO::GPIOPin;
 using DRDY = uint32_t;
 
+#define DRDYInvalid 0
+
 struct bus_device_external_cfg_t {
 	CS cs_gpio;
 	DRDY drdy_gpio;
