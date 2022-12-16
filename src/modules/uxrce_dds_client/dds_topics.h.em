@@ -57,29 +57,38 @@ void SendTopicsSubs::update(uxrSession *session, uxrStreamId reliable_out_stream
 
 		if (@(pub['topic_simple'])_sub.update(&data)) {
 
-			if (@(pub['topic_simple'])_data_writer.id == UXR_INVALID_ID) {
-				// data writer not created yet
-				create_data_writer(session, reliable_out_stream_id, participant_id, ORB_ID::@(pub['topic_simple']), client_namespace, "@(pub['topic_name'])", "@(pub['dds_type'])", @(pub['topic_simple'])_data_writer);
-			}
-
-			if (@(pub['topic_simple'])_data_writer.id != UXR_INVALID_ID) {
-
-				ucdrBuffer ub;
-				uint32_t topic_size = ucdr_topic_size_@(pub['simple_base_type'])();
-				if (uxr_prepare_output_stream(session, best_effort_stream_id, @(pub['topic_simple'])_data_writer, &ub, topic_size) != UXR_INVALID_REQUEST_ID) {
-					ucdr_serialize_@(pub['simple_base_type'])(data, ub, time_offset_us);
-					// TODO: fill up the MTU and then flush, which reduces the packet overhead
-					uxr_flash_output_streams(session);
-					num_payload_sent += topic_size;
-
-				} else {
-					//PX4_ERR("Error uxr_prepare_output_stream UXR_INVALID_REQUEST_ID @(pub['topic_simple'])");
+@[      if pub['topic_pub_thold_us'] > 0 ]@
+		// Rate control
+		static uint64_t @(pub['topic_simple'])_prev_timestamp = 0;
+		if (@(pub['topic_simple'])_prev_timestamp == 0) @(pub['topic_simple'])_prev_timestamp = data.timestamp;
+		if (data.timestamp - @(pub['topic_simple'])_prev_timestamp >= @(pub['topic_pub_thold_us'])) {
+				@(pub['topic_simple'])_prev_timestamp = data.timestamp;
+@[      end if ]@
+				if (@(pub['topic_simple'])_data_writer.id == UXR_INVALID_ID) {
+					// data writer not created yet
+					create_data_writer(session, reliable_out_stream_id, participant_id, ORB_ID::@(pub['topic_simple']), client_namespace, "@(pub['topic_name'])", "@(pub['dds_type'])", @(pub['topic_simple'])_data_writer);
 				}
 
-			} else {
-				//PX4_ERR("Error UXR_INVALID_ID @(pub['topic_simple'])");
-			}
+				if (@(pub['topic_simple'])_data_writer.id != UXR_INVALID_ID) {
 
+					ucdrBuffer ub;
+					uint32_t topic_size = ucdr_topic_size_@(pub['simple_base_type'])();
+					if (uxr_prepare_output_stream(session, best_effort_stream_id, @(pub['topic_simple'])_data_writer, &ub, topic_size) != UXR_INVALID_REQUEST_ID) {
+						ucdr_serialize_@(pub['simple_base_type'])(data, ub, time_offset_us);
+						// TODO: fill up the MTU and then flush, which reduces the packet overhead
+						uxr_flash_output_streams(session);
+						num_payload_sent += topic_size;
+
+					} else {
+						//PX4_ERR("Error uxr_prepare_output_stream UXR_INVALID_REQUEST_ID @(pub['topic_simple'])");
+					}
+
+				} else {
+					//PX4_ERR("Error UXR_INVALID_ID @(pub['topic_simple'])");
+				}
+@[      if pub['topic_pub_thold_us'] > 0 ]@
+			} // Rate control
+@[      end if ]@
 		}
 	}
 @[    end for]@
