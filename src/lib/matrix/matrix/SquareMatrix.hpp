@@ -570,6 +570,65 @@ SquareMatrix <Type, M> choleskyInv(const SquareMatrix<Type, M> &A)
 	return L_inv.T() * L_inv;
 }
 
+/**
+ * cholesky LDLT decomposition
+ *
+ * Note: A must be positive definite and symmetric
+ * A = L * D * L.transpose() with L lower diagonal matrix with unit diagonal and D diagonal matrix
+ * TODO: test for dim > 3
+ */
+template<typename Type, size_t M>
+SquareMatrix <Type, M> choleskyLDLT(const SquareMatrix<Type, M> &A)
+{
+	SquareMatrix<Type, M> L;
+	SquareMatrix<Type, M> D;
+
+	float d00 = A(0, 0);
+
+	if (d00 > (float)1e-4) {
+
+		D(0, 0) = d00;
+
+		// First column:
+		for (size_t i = 0; i < M; i++) {
+			L(i, 0) =  A(i, 0) / d00;
+		}
+
+		// Remaining columns
+		for (size_t j = 1; j < M; j++) {
+
+			float sum_d = 0.f;
+
+			for (size_t k = 0; k <= (j - 1); k ++) {
+				sum_d += L(j, k) * L(j, k) * D(k, k);
+			}
+
+			D(j, j) = A(j, j) - sum_d;
+
+			for (size_t i = 0; i < M; i++) {
+
+				//if (i < j): L(i,j) = 0 (already done in init
+
+				if (i == j) {
+					L(i, i) = 1.f;
+
+				} else if (i > j) {
+
+					float sum = 0.f;
+
+					for (size_t k = 0; k <= (i - 1); k ++) {
+						sum += L(i, k) * L(j, k) * D(k, k);
+					}
+
+					L(i, j) = 1.f / D(j, j) * (A(i, j) - sum);
+				}
+			}
+		}
+	}
+
+	return L;
+}
+
 using Matrix3f = SquareMatrix<float, 3>;
 using Matrix3d = SquareMatrix<double, 3>;
 

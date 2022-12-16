@@ -532,19 +532,31 @@ bool LandingTargetEstimator::processObsVision(const landing_target_pose_s &fiduc
 			// Process measurements for sequential update by diagonalizing the measurement covariance matrix
 
 			// Sliced state: [r_x,r_y,r_z]; (real state: [pose,vel,bias,acc] or [pose,vel,bias] but assume vision measurements independent of other measurements)
-			Matrix<float, 3, 3> H_position =  zeros<float, 3, 3>();
+			Matrix<float, 3, 3> H_position;
 			H_position(0, 0) = 1;
 			H_position(1, 1) = 1;
 			H_position(2, 2) = 1;
 
-			// Cholesky decomposition R = L*L.T() to find L_inv = inv(L) such that R_diag = L_inv*R*L_inv.T() is diagonal:
-			// Matrix<float, 3, 3> L_inv = matrix::inv(matrix::cholesky(R_rotated));
-
-			Matrix3f L_inv;
-			L_inv.identity();
+			// Cholesky decomposition R = L*D*L.T() to find L_inv = inv(L) such that R_diag = L_inv*R*L_inv.T() = D is diagonal:
+			Matrix<float, 3, 3> L_inv = matrix::inv(matrix::choleskyLDLT(R_rotated));
 
 			// Diagonalize R_rotated:
 			Matrix<float, 3, 3> R_diag =  L_inv * R_rotated * L_inv.T();
+
+			bool cholesky_failed = false;
+
+			for (int i = 0; i < 3 ; i ++) {
+				// Check if the diagonal matrix has zero or negative entries
+				if (R_diag(i, i) < (float)1e-6) {
+					cholesky_failed = true;
+				}
+			}
+
+			if (cholesky_failed) {
+				PX4_DEBUG("Cholesky decomposition failed, setting Linv to identity matrix");
+				L_inv.identity();
+				R_diag = R_rotated;
+			}
 
 			obs.meas_unc_xyz(0) = R_diag(0, 0);
 			obs.meas_unc_xyz(1) = R_diag(1, 1);
