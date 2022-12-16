@@ -45,7 +45,7 @@ static inline constexpr px4_spi_bus_device_t initSPIDevice(uint32_t devid, SPI::
 	px4_spi_bus_device_t ret{};
 	ret.cs_gpio = getGPIOPort(cs_gpio.port) | getGPIOPin(cs_gpio.pin) | (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE);
 
-	if (drdy_gpio != 0) {
+	if (drdy_gpio != DRDYInvalid) {
 		ret.drdy_gpio = drdy_gpio;
 	}
 
