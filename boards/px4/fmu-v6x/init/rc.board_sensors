@@ -104,7 +104,7 @@ else
 	bmp388 -I -a 0x77 start
 fi
 
-if ver hwtypecmp V6X000000 V6X001000
+if param compare SENS_INT_BARO_EN 1
 then
 	bmp388 -I start
 else
