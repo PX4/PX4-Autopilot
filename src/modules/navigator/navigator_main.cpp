@@ -283,8 +283,8 @@ void Navigator::run()
 					// If no argument for ground speed, use default value.
 					if (cmd.param1 <= 0 || !PX4_ISFINITE(cmd.param1)) {
 						rep->current.cruising_speed = get_cruising_speed();
-						rep->current.vertical_up_speed = get_cruising_speed(2); //2
-						rep->current.vertical_down_speed = get_cruising_speed(3); //3
+						rep->current.vertical_up_speed = get_cruising_speed(SpeedType::CLIMB_SPEED);
+						rep->current.vertical_down_speed = get_cruising_speed(SpeedType::DESCENT_SPEED);
 
 					} else {
 						rep->current.cruising_speed = cmd.param1;
@@ -495,15 +495,19 @@ void Navigator::run()
 				// CMD_MISSION_START is acknowledged by commander
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_CHANGE_SPEED) {
-				if (cmd.param2 > FLT_EPSILON) {
+
+				//speed type is within range before static_cast
+				bool valid_speed_type = cmd.param1 >= int(SpeedType::AIR_SPEED) && cmd.param1 <= int(SpeedType::DESCENT_SPEED);
+
+				if (cmd.param2 > FLT_EPSILON && valid_speed_type) {
 					// XXX not differentiating ground and airspeed yet
-					set_cruising_speed(cmd.param2, cmd.param1);
+					set_cruising_speed(cmd.param2, static_cast<SpeedType>((int)cmd.param1));
 
 				} else {
 
 					//-1 no change, -2 reset (MAV_CMD_DO_CHANGE_SPEED)
-					if (cmd.param2 <= -2.0f) {
-						set_cruising_speed(NAN, cmd.param1);
+					if (cmd.param2 <= -2.0f && valid_speed_type) {
+						set_cruising_speed(cmd.param2, static_cast<SpeedType>((int)cmd.param1));
 					}
 
 					/* if no speed target was given try to set throttle */
@@ -932,8 +936,8 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 					rep->current.cruising_throttle = get_cruising_throttle();
 					rep->current.acceptance_radius = get_acceptance_radius();
 					rep->current.cruising_speed = get_cruising_speed();
-					rep->current.vertical_up_speed = get_cruising_speed(2); //2
-					rep->current.vertical_down_speed = get_cruising_speed(3); //3
+					rep->current.vertical_up_speed = get_cruising_speed(SpeedType::CLIMB_SPEED);
+					rep->current.vertical_down_speed = get_cruising_speed(SpeedType::DESCENT_SPEED);
 				}
 
 				_geofence_violation_warning_sent = true;
@@ -1029,18 +1033,18 @@ float Navigator::get_altitude_acceptance_radius()
 	}
 }
 
-float Navigator::get_cruising_speed(uint8_t type)
+float Navigator::get_cruising_speed(SpeedType type)
 {
 	/* there are three options: The mission-requested cruise speed, or the current hover / plane speed */
 	if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 
-		if (type == 0 || type == 1) {
+		if (type == SpeedType::AIR_SPEED || type == SpeedType::GROUND_SPEED) {
 			return (_mission_cruising_speed_mc > 0.0f) ? _mission_cruising_speed_mc : -1.0f;
 
-		} else if (type == 2) {
+		} else if (type == SpeedType::CLIMB_SPEED) {
 			return (_mission_vertical_up_speed_mc > 0.0f) ? _mission_vertical_up_speed_mc : -1.0f;
 
-		} else if (type == 3) {
+		} else if (type == SpeedType::DESCENT_SPEED) {
 			return (_mission_vertical_down_speed_mc > 0.0f) ? _mission_vertical_down_speed_mc : -1.0f;
 
 		} else {
@@ -1057,19 +1061,19 @@ float Navigator::get_cruising_speed(uint8_t type)
 	}
 }
 
-void Navigator::set_cruising_speed(float speed, uint8_t type)
+void Navigator::set_cruising_speed(float speed, SpeedType type)
 {
 
 	if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 
 		//airspeed or groundspeed (does not differentiate currently)
-		if (type == 0 || type == 1) {
+		if (type == SpeedType::AIR_SPEED || type == SpeedType::GROUND_SPEED) {
 			_mission_cruising_speed_mc = speed;
 
-		} else if (type == 2) {
+		} else if (type == SpeedType::CLIMB_SPEED) {
 			_mission_vertical_up_speed_mc = speed;
 
-		} else if (type == 3) {
+		} else if (type == SpeedType::DESCENT_SPEED) {
 			_mission_vertical_down_speed_mc = speed;
 		}
 
