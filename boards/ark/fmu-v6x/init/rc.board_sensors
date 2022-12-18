@@ -8,13 +8,13 @@ if ver hwtypecmp ARKV6X005000 ARKV6X005001 ARKV6X005002 ARKV6X005003 ARKV6X00500
 then
 	set HAVE_PM2 no
 fi
+
 if param compare -s ADC_ADS1115_EN 1
 then
 	ads1115 start -X
 else
 	board_adc start
 fi
-
 
 if param compare SENS_EN_INA226 1
 then
@@ -56,16 +56,10 @@ icm42688p -R 9 -s -b 2 start
 # Internal SPI bus ICM42688p
 icm42688p -R 6 -s -b 3 start
 
-# Internal magnetometer on I2c
+# Internal magnetometer on I2C
 bmm150 -I start
 
-# External compass on GPS1/I2C1 (the 3rd external bus): standard Holybro Pixhawk 4 or CUAV V5 GPS/compass puck (with lights, safety button, and buzzer)
-ist8310 -X -b 1 -R 10 start
-
-# Possible internal Baro
+# Internal Baro on I2C
 bmp388 -I start
-
-# Baro on I2C3
-ms5611 -X start
 
 unset HAVE_PM2
