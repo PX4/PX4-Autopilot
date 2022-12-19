@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -171,21 +171,9 @@ void ICM42688P::RunImpl()
 
 	case STATE::CONFIGURE:
 		if (Configure()) {
-			// if configure succeeded then start reading from FIFO
-			_state = STATE::FIFO_READ;
-
-			if (DataReadyInterruptConfigure()) {
-				_data_ready_interrupt_enabled = true;
-
-				// backup schedule as a watchdog timeout
-				ScheduleDelayed(100_ms);
-
-			} else {
-				_data_ready_interrupt_enabled = false;
-				ScheduleOnInterval(_fifo_empty_interval_us, _fifo_empty_interval_us);
-			}
-
-			FIFOReset();
+			// if configure succeeded then reset the FIFO
+			_state = STATE::FIFO_RESET;
+			ScheduleDelayed(1_ms);
 
 		} else {
 			// CONFIGURE not complete
@@ -198,6 +186,24 @@ void ICM42688P::RunImpl()
 			}
 
 			ScheduleDelayed(100_ms);
+		}
+
+		break;
+
+	case STATE::FIFO_RESET:
+
+		_state = STATE::FIFO_READ;
+		FIFOReset();
+
+		if (DataReadyInterruptConfigure()) {
+			_data_ready_interrupt_enabled = true;
+
+			// backup schedule as a watchdog timeout
+			ScheduleDelayed(100_ms);
+
+		} else {
+			_data_ready_interrupt_enabled = false;
+			ScheduleOnInterval(_fifo_empty_interval_us, _fifo_empty_interval_us);
 		}
 
 		break;
@@ -643,6 +649,9 @@ void ICM42688P::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DA
 		}
 	}
 
+	// avoid scale changes for now as it's not handled correctly down the pipeline (fixed in upstream with 8478d1ea37d2bf)
+	scale_20bit = true;
+
 	if (!scale_20bit) {
 		// if highres enabled accel data is always 8192 LSB/g
 		_px4_accel.set_scale(CONSTANTS_ONE_G / 8192.f);
@@ -721,6 +730,9 @@ void ICM42688P::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DAT
 		gyro.z[gyro.samples] = gyro_z / 2;
 		gyro.samples++;
 	}
+
+	// avoid scale changes for now as it's not handled correctly down the pipeline (fixed in upstream with 8478d1ea37d2bf)
+	scale_20bit = true;
 
 	if (!scale_20bit) {
 		// if highres enabled gyro data is always 131 LSB/dps

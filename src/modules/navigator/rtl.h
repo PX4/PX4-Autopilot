@@ -45,6 +45,7 @@
 
 #include "navigator_mode.h"
 #include "mission_block.h"
+#include "terrain_follower_wrapper.hpp"
 
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/home_position.h>
@@ -59,10 +60,6 @@ class Navigator;
 class RTL : public MissionBlock, public ModuleParams
 {
 public:
-	RTL(Navigator *navigator);
-
-	~RTL() = default;
-
 	enum RTLType {
 		RTL_TYPE_HOME_OR_RALLY = 0,
 		RTL_TYPE_MISSION_LANDING,
@@ -82,45 +79,6 @@ public:
 		RTL_CURRENT_HEADING,
 	};
 
-	void on_inactivation() override;
-	void on_inactive() override;
-	void on_activation() override;
-	void on_active() override;
-
-	void find_RTL_destination();
-
-	void set_return_alt_min(bool min) { _rtl_alt_min = min; }
-
-	int get_rtl_type() const { return _param_rtl_type.get(); }
-
-	void setClimbAndReturnDone(bool done) { _climb_and_return_done = done; }
-
-	bool getClimbAndReturnDone() { return _climb_and_return_done; }
-
-	void get_rtl_xy_z_speed(float &xy, float &z);
-	matrix::Vector2f get_wind();
-
-	bool getShouldEngageMissionForLanding() const { return _should_engange_mission_for_landing; }
-
-private:
-
-	void set_rtl_item();
-
-	void advance_rtl();
-
-	float calculate_return_alt_from_cone_half_angle(float cone_half_angle_deg);
-	void calc_and_pub_rtl_time_estimate();
-
-	float getCruiseGroundSpeed();
-
-	float getClimbRate();
-
-	float getDescendRate();
-
-	float getCruiseSpeed();
-
-	float getHoverLandSpeed();
-
 	enum RTLState {
 		RTL_STATE_NONE = 0,
 		RTL_STATE_CLIMB,
@@ -132,7 +90,55 @@ private:
 		RTL_STATE_LAND,
 		RTL_STATE_LANDED,
 		RTL_STATE_HEAD_TO_CENTER,
-	} _rtl_state{RTL_STATE_NONE};
+	};
+
+	RTL(Navigator *navigator, TerrainFollowerWrapper &terrain_follower);
+
+	~RTL() = default;
+
+	void on_inactivation() override;
+	void on_inactive() override;
+	void on_activation() override;
+	void on_active() override;
+
+	void find_RTL_destination();
+
+	void set_return_alt_min(bool min) { _rtl_alt_min = min; }
+
+	int get_rtl_type() const { return _param_rtl_type.get(); }
+
+	matrix::Vector2f get_wind();
+
+	RTLState getRTLState() { return _rtl_state; }
+
+	bool getDestinationTypeHomeLanding() { return _destination.type == RTL_DESTINATION_HOME; }
+
+	bool getShouldEngageMissionForLanding() const { return _should_engange_mission_for_landing; }
+
+private:
+
+	void set_rtl_item(bool do_user_feedback);
+
+	void set_intermediate_item();
+
+	void advance_rtl();
+
+	float calculate_return_alt_from_cone_half_angle(float cone_half_angle_deg);
+	void calc_and_pub_rtl_time_estimate(const RTLState rtl_state);
+
+	float getCruiseGroundSpeed();
+
+	float getClimbRate();
+
+	float getDescendRate();
+
+	float getCruiseSpeed();
+
+	float getHoverLandSpeed();
+
+	void publishMissionItem();
+
+	RTLState _rtl_state{RTL_STATE_NONE};
 
 	struct RTLPosition {
 		double lat;
@@ -156,13 +162,14 @@ private:
 	RTLPosition _destination{}; ///< the RTL position to fly to (typically the home position or a safe point)
 
 	hrt_abstime _destination_check_time{0};
+	hrt_abstime _time_last_terrain_checked{0};
 
 	float _rtl_alt{0.0f};	// AMSL altitude at which the vehicle should return to the home position
-	float _rtl_loiter_rad{50.0f};		// radius at which a fixed wing would loiter while descending
 
-	bool _climb_and_return_done{false};	// this flag is set to true if RTL is active and we are past the climb state and return state
 	bool _rtl_alt_min{false};
 	bool _should_engange_mission_for_landing{false};
+
+	TerrainFollowerWrapper &_terrain_follower;
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::RTL_RETURN_ALT>)  _param_rtl_return_alt,

@@ -91,6 +91,21 @@ public:
 
 	void check_active_mission(void);
 
+	/**
+	 * Get the rectangular area around the current mission, safe points and home postion if valid (south-west and
+	 * north-east corner), with a margin.
+	 * @return true on success, false on failure, or not enough points
+	 */
+	bool get_mission_area(double home_pos_lat, double home_pos_lon, bool home_pos_valid,
+			      double &lat_sw, double &lon_sw, double &lat_ne, double &lon_ne);
+
+	bool had_upload_transfer()
+	{
+		bool ret = _had_upload_transfer;
+		_had_upload_transfer = false;
+		return ret;
+	}
+
 private:
 	enum MAVLINK_WPM_STATES _state {MAVLINK_WPM_STATE_IDLE};	///< Current state
 	enum MAV_MISSION_TYPE _mission_type {MAV_MISSION_TYPE_MISSION};	///< mission type of current transmission (only one at a time possible)
@@ -101,6 +116,7 @@ private:
 	uint8_t			_reached_sent_count{0};			///< last time when the vehicle reached a waypoint
 
 	bool			_int_mode{false};			///< Use accurate int32 instead of float
+	bool			_had_upload_transfer{false};		///< If there was an upload transfer completed
 
 	unsigned		_filesystem_errcount{0};		///< File system error count
 
@@ -143,7 +159,7 @@ private:
 	static constexpr uint16_t	MAX_COUNT[] = {
 		DM_KEY_WAYPOINTS_OFFBOARD_0_MAX,
 		DM_KEY_FENCE_POINTS_MAX - 1,
-		DM_KEY_SAFE_POINTS_MAX - 1
+		DM_KEY_SAFE_POINT_ITEMS_MAX - 1
 	};	/**< Maximum number of mission items for each type
 					(fence & safe points use the first item for the stats) */
 
@@ -159,7 +175,7 @@ private:
 
 	void init_offboard_mission();
 
-	int update_active_mission(dm_item_t dataman_id, uint16_t count, int32_t seq);
+	int update_active_mission(dm_item_t dataman_id, uint16_t count, int32_t seq, bool clear_mission = false);
 
 	/** store the geofence count to dataman */
 	int update_geofence_count(unsigned count);
@@ -216,6 +232,15 @@ private:
 
 	void handle_mission_count(const mavlink_message_t *msg);
 
+	/**
+	 * Helper function to determine next transfer dataman id.
+	 * It reads DM_KEY_MISSION_STATE which stores previous valid dataman_id.
+	 * Since mavlink_mission module and mission module communicate over dataman,
+	 * mission module is restoring dataman_id for invalid mission to previous valid mission
+	 * if valid mission exist.
+	 */
+	dm_item_t next_transfer_dataman_id();
+
 	void handle_mission_item(const mavlink_message_t *msg);
 	void handle_mission_item_int(const mavlink_message_t *msg);
 	void handle_mission_item_both(const mavlink_message_t *msg);
@@ -245,4 +270,19 @@ private:
 	 * set _state to idle (and do necessary cleanup)
 	 */
 	void switch_to_idle_state();
+
+	/**
+	 * Copies the specified range [1, 7] of param of MAVLink mission to params[] array of
+	 * the Mission item struct (Very useful for mission items for non-navigation
+	 * like MAV_CMD_DO*, as they use a parameter mapping 1 ~ 7, which directly
+	 * gets the value from MAVlink's Mission Item parameters.
+	 *
+	 * @param start_idx [1, 7] Start index of Param to copy from Mavlink Mission Item
+	 * @param end_idx [1, 7] End index of Param to copy from Mavlink Mission Item
+	 *
+	 * Note: The Index is in range [1, 7], so if you want to copy param2 ~ param5 into
+	 * params[1] and params[4], you need to call with 'start_idx = 2' and 'end_idx = 5'!
+	 */
+	void copy_params_from_mavlink_to_mission_item(struct mission_item_s *mission_item,
+			const mavlink_mission_item_t *mavlink_mission_item, int8_t start_idx = 1, int8_t end_idx = 7);
 };

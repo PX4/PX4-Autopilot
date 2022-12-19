@@ -95,8 +95,12 @@ public:
 	~AutopilotTester();
 
 	void connect(const std::string uri);
+
+	/**
+	 * @brief Wait until vehicle's system status is healthy & is able to arm
+	 */
 	void wait_until_ready();
-	void wait_until_ready_local_position_only();
+
 	void store_home();
 	void check_home_within(float acceptance_radius_m);
 	void check_home_not_within(float min_distance_m);
@@ -133,6 +137,7 @@ public:
 	void request_ground_truth();
 	void check_mission_item_speed_above(int item_index, float min_speed_m_s);
 	void check_tracks_mission(float corridor_radius_m = 1.5f);
+	void check_current_altitude(float target_rel_altitude_m, float max_distance_m = 1.5f);
 	void start_checking_altitude(const float max_deviation_m);
 	void stop_checking_altitude();
 
@@ -147,7 +152,41 @@ public:
 protected:
 	mavsdk::Param *getParams() const { return _param.get();}
 	mavsdk::Telemetry *getTelemetry() const { return _telemetry.get();}
+	mavsdk::ManualControl *getManualControl() const { return _manual_control.get();}
 	std::shared_ptr<System> get_system() { return _mavsdk.systems().at(0);}
+	Telemetry::GroundTruth getHome()
+	{
+		// Check if home was stored before it is accessed
+		CHECK(_home.absolute_altitude_m != NAN);
+		CHECK(_home.latitude_deg != NAN);
+		CHECK(_home.longitude_deg != NAN);
+		return _home;
+	}
+
+	template<typename Rep, typename Period>
+	void sleep_for(std::chrono::duration<Rep, Period> duration)
+	{
+		const std::chrono::microseconds duration_us(duration);
+
+		if (_telemetry && _telemetry->attitude_quaternion().timestamp_us != 0) {
+
+			const int64_t start_time_us = _telemetry->attitude_quaternion().timestamp_us;
+
+			while (true) {
+				// Hopefully this is often enough not to have PX4 time out on us.
+				std::this_thread::sleep_for(std::chrono::milliseconds(1));
+
+				const int64_t elapsed_time_us = _telemetry->attitude_quaternion().timestamp_us - start_time_us;
+
+				if (elapsed_time_us > duration_us.count()) {
+					return;
+				}
+			}
+
+		} else {
+			std::this_thread::sleep_for(duration);
+		}
+	}
 
 private:
 	mavsdk::geometry::CoordinateTransformation get_coordinate_transformation();
@@ -169,6 +208,12 @@ private:
 
 	void report_speed_factor();
 
+	/**
+	 * @brief Continue polling until condition returns true or we have a timeout
+	 *
+	 * @param fun Boolean returning function. When true, the polling terminates.
+	 * @param duration Timeout for polling in `std::chrono::` time unit
+	 */
 	template<typename Rep, typename Period>
 	bool poll_condition_with_timeout(
 		std::function<bool()> fun, std::chrono::duration<Rep, Period> duration)
@@ -218,30 +263,7 @@ private:
 		return true;
 	}
 
-	template<typename Rep, typename Period>
-	void sleep_for(std::chrono::duration<Rep, Period> duration)
-	{
-		const std::chrono::microseconds duration_us(duration);
 
-		if (_telemetry && _telemetry->attitude_quaternion().timestamp_us != 0) {
-
-			const int64_t start_time_us = _telemetry->attitude_quaternion().timestamp_us;
-
-			while (true) {
-				// Hopefully this is often enough not to have PX4 time out on us.
-				std::this_thread::sleep_for(std::chrono::milliseconds(1));
-
-				const int64_t elapsed_time_us = _telemetry->attitude_quaternion().timestamp_us - start_time_us;
-
-				if (elapsed_time_us > duration_us.count()) {
-					return;
-				}
-			}
-
-		} else {
-			std::this_thread::sleep_for(duration);
-		}
-	}
 
 	mavsdk::Mavsdk _mavsdk{};
 	std::unique_ptr<mavsdk::Action> _action{};

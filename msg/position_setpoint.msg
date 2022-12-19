@@ -10,6 +10,9 @@ uint8 SETPOINT_TYPE_LAND=4	# land setpoint, altitude must be ignored, descend un
 uint8 SETPOINT_TYPE_IDLE=5	# do nothing, switch off motors or keep at idle speed (MC)
 uint8 SETPOINT_TYPE_FOLLOW_TARGET=6  # setpoint in NED frame (x, y, z, vx, vy, vz) set by follow target
 
+uint8 LOITER_TYPE_ORBIT=0 	# Circular pattern
+uint8 LOITER_TYPE_FIGUREEIGHT=1 # Pattern resembling an 8
+
 uint8 VELOCITY_FRAME_LOCAL_NED = 1 # MAV_FRAME_LOCAL_NED
 uint8 VELOCITY_FRAME_BODY_NED = 8 # MAV_FRAME_BODY_NED
 
@@ -34,12 +37,16 @@ bool yawspeed_valid		# true if yawspeed setpoint valid
 
 int8 landing_gear		# landing gear: see definition of the states in landing_gear.msg
 
-float32 loiter_radius		# loiter radius (only for fixed wing), in m
-int8 loiter_direction		# loiter direction: 1 = CW, -1 = CCW
+float32 loiter_radius		# loiter major axis radius in m
+float32 loiter_minor_radius	# loiter minor axis radius (used for non-circular loiter shapes) in m
+bool loiter_direction_counter_clockwise # loiter direction is clockwise by default and can be changed using this field
+float32 loiter_orientation 	# Orientation of the major axis with respect to true north in rad [-pi,pi)
+uint8 	loiter_pattern		# loitern pattern to follow
 
 float32 acceptance_radius   # navigation acceptance_radius if we're doing waypoint navigation
 
 float32 cruising_speed		# the generally desired cruising speed (not a hard constraint)
-float32 cruising_throttle	# the generally desired cruising throttle (not a hard constraint)
+bool gliding_enabled		# commands the vehicle to glide if the capability is available (fixed wing only)
+float32 cruising_throttle	# the generally desired cruising throttle (not a hard constraint), only has an effect for rover
 
 bool disable_weather_vane   # VTOL: disable (in auto mode) the weather vane feature that turns the nose into the wind

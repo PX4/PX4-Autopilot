@@ -58,7 +58,7 @@ const char *parser_state[] = {
 	"5_GOT_STRENGTH_L",
 	"6_GOT_STRENGTH_H",
 	"7_GOT_PRESERVED",
-	"8_GOT_QUALITY"
+	"8_GOT_QUALITY",
 	"9_GOT_CHECKSUM"
 };
 #endif

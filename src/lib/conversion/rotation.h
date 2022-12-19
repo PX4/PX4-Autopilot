@@ -92,6 +92,9 @@ enum Rotation : uint8_t {
 	ROTATION_PITCH_315                = 39,
 	ROTATION_ROLL_90_PITCH_315        = 40,
 
+	ROTATION_ROLL_270_YAW_225    = 41,
+	ROTATION_ROLL_270_YAW_315    = 42,
+	ROTATION_PITCH_90_YAW_45     = 43,
 	ROTATION_MAX
 };
 
@@ -143,6 +146,9 @@ static constexpr rot_lookup_t rot_lookup[ROTATION_MAX] = {
 	{ 90,  68, 293 },
 	{  0, 315,   0 },
 	{ 90, 315,   0 },
+	{270,   0, 225 },
+	{270,   0, 315 },
+	{  0,  90,  45 },
 };
 
 /**

@@ -163,6 +163,13 @@ void Simulator::actuator_controls_from_outputs(mavlink_hil_actuator_controls_t *
 			is_fixed_wing = true;
 			break;
 
+		case MAV_TYPE_VTOL_RESERVED4:
+			// this is the tricopter VTOL / quad plane with 3 motors and 2 servos
+			pos_thrust_motors_count = 3;
+			is_fixed_wing = false;
+			break;
+
+
 		default:
 			pos_thrust_motors_count = 0;
 			is_fixed_wing = false;
@@ -1301,8 +1308,8 @@ void Simulator::check_failure_injections()
 			ack.command = vehicle_command.command;
 			ack.from_external = false;
 			ack.result = supported ?
-				     vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED :
-				     vehicle_command_ack_s::VEHICLE_RESULT_UNSUPPORTED;
+				     vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED :
+				     vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
 			ack.timestamp = hrt_absolute_time();
 			_command_ack_pub.publish(ack);
 		}

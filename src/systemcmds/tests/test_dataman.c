@@ -79,7 +79,7 @@ task_main(int argc, char *argv[])
 	}
 
 	/* try to read an invalid index */
-	if (dm_read(DM_KEY_SAFE_POINTS, DM_KEY_SAFE_POINTS_MAX, buffer, sizeof(buffer)) >= 0) {
+	if (dm_read(DM_KEY_SAFE_POINTS, DM_KEY_SAFE_POINT_ITEMS_MAX, buffer, sizeof(buffer)) >= 0) {
 		PX4_ERR("%d read an invalid index failed", my_id);
 		goto fail;
 	}

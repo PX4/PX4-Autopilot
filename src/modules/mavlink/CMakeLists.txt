@@ -31,7 +31,7 @@
 #
 ############################################################################
 
-set(MAVLINK_DIALECT "development") # standard, development, etc
+set(MAVLINK_DIALECT "auterion") # standard, development, etc
 
 # force mavlink dialect to standard if flash constrained
 if(px4_constrained_flash_build)
@@ -67,6 +67,31 @@ add_library(mavlink_c INTERFACE)
 target_sources(mavlink_c INTERFACE ${MAVLINK_LIBRARY_DIR}/${MAVLINK_DIALECT}/${MAVLINK_DIALECT}.h)
 set_source_files_properties(${MAVLINK_LIBRARY_DIR}/${MAVLINK_DIALECT}/${MAVLINK_DIALECT}.h PROPERTIES GENERATED true)
 target_include_directories(mavlink_c INTERFACE ${MAVLINK_LIBRARY_DIR} ${MAVLINK_LIBRARY_DIR}/${MAVLINK_DIALECT})
+
+set(MAVLINK_DIALECT_UAVIONIX "uAvionix")
+
+add_custom_command(
+	OUTPUT ${MAVLINK_LIBRARY_DIR}/${MAVLINK_DIALECT_UAVIONIX}/${MAVLINK_DIALECT_UAVIONIX}.h
+	COMMAND
+		${PYTHON_EXECUTABLE} ${MAVLINK_GIT_DIR}/pymavlink/tools/mavgen.py
+			--lang C --wire-protocol 2.0
+			#--no-validate
+			#--strict-units
+			--output ${MAVLINK_LIBRARY_DIR}
+			${MAVLINK_GIT_DIR}/message_definitions/v1.0/${MAVLINK_DIALECT_UAVIONIX}.xml
+	DEPENDS
+		git_mavlink_v2
+		${MAVLINK_GIT_DIR}/pymavlink/tools/mavgen.py
+		${MAVLINK_GIT_DIR}/message_definitions/v1.0/${MAVLINK_DIALECT_UAVIONIX}.xml
+	COMMENT "Generating Mavlink ${MAVLINK_DIALECT_UAVIONIX}: ${MAVLINK_GIT_DIR_RELATIVE}/message_definitions/v1.0/${MAVLINK_DIALECT_UAVIONIX}.xml"
+	USES_TERMINAL
+)
+
+add_custom_target(mavlink_c_generate_uavionix DEPENDS ${MAVLINK_LIBRARY_DIR}/${MAVLINK_DIALECT_UAVIONIX}/${MAVLINK_DIALECT_UAVIONIX}.h)
+target_sources(mavlink_c INTERFACE ${MAVLINK_LIBRARY_DIR}/${MAVLINK_DIALECT_UAVIONIX}/${MAVLINK_DIALECT_UAVIONIX}.h)
+set_source_files_properties(${MAVLINK_LIBRARY_DIR}/${MAVLINK_DIALECT_UAVIONIX}/${MAVLINK_DIALECT_UAVIONIX}.h PROPERTIES GENERATED true)
+target_include_directories(mavlink_c INTERFACE ${MAVLINK_LIBRARY_DIR} ${MAVLINK_LIBRARY_DIR}/${MAVLINK_DIALECT_UAVIONIX})
+
 target_compile_options(mavlink_c INTERFACE -Wno-address-of-packed-member -Wno-cast-align)
 
 
@@ -94,10 +119,13 @@ px4_add_module(
 		mavlink_timesync.cpp
 		mavlink_ulog.cpp
 		MavlinkStatustextHandler.cpp
+		mavlink_terrain.cpp
 		tune_publisher.cpp
+		terrain.cpp
 	MODULE_CONFIG
 		module.yaml
 	DEPENDS
+		adsb
 		airspeed
 		component_general_json # for checksums.h
 		drivers_accelerometer
@@ -109,6 +137,7 @@ px4_add_module(
 		mavlink_c
 		tunes
 		version
+		terrain
 	UNITY_BUILD
 	)
 
@@ -116,9 +145,19 @@ if(PX4_TESTING)
 	add_subdirectory(mavlink_tests)
 endif()
 
+px4_add_functional_gtest(SRC mavlink_terrain_test.cpp
+	EXTRA_SRCS terrain.cpp
+	INCLUDES ${MAVLINK_LIBRARY_DIR}/${MAVLINK_DIALECT}
+	LINKLIBS terrain geo
+	COMPILE_FLAGS
+		-DMODULE_NAME=\"mavlink\"
+		-Wno-address-of-packed-member # TODO: fix in c_library_v2
+	)
+
 px4_add_unit_gtest(SRC MavlinkStatustextHandlerTest.cpp
 	INCLUDES
 		${MAVLINK_LIBRARY_DIR}/${MAVLINK_DIALECT}
+		${MAVLINK_LIBRARY_DIR}/${MAVLINK_DIALECT_UAVIONIX}
 	COMPILE_FLAGS
 		-Wno-address-of-packed-member # TODO: fix in c_library_v2
 		-Wno-cast-align # TODO: fix

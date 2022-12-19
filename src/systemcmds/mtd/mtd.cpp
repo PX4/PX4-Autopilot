@@ -80,11 +80,11 @@ static int mtd_status(void)
 	bool running = false;
 	unsigned int num_instances;
 
-	const mtd_instance_s *instances = px4_mtd_get_instances(&num_instances);
+	mtd_instance_s **instances = px4_mtd_get_instances(&num_instances);
 
 	if (instances) {
 		for (unsigned int i = 0; i < num_instances; ++i) {
-			if (instances[i].mtd_dev) {
+			if (instances[i]->mtd_dev) {
 
 				unsigned long blocksize;
 				unsigned long erasesize;
@@ -93,7 +93,7 @@ static int mtd_status(void)
 				unsigned int  nblocks;
 				unsigned int  partsize;
 
-				ret = px4_mtd_get_geometry(&instances[i], &blocksize, &erasesize, &neraseblocks, &blkpererase, &nblocks, &partsize);
+				ret = px4_mtd_get_geometry(instances[i], &blocksize, &erasesize, &neraseblocks, &blkpererase, &nblocks, &partsize);
 
 				if (ret == 0) {
 
@@ -102,17 +102,17 @@ static int mtd_status(void)
 					printf("  blocksize:      %lu\n", blocksize);
 					printf("  erasesize:      %lu\n", erasesize);
 					printf("  neraseblocks:   %lu\n", neraseblocks);
-					printf("  No. partitions: %u\n", instances[i].n_partitions_current);
+					printf("  No. partitions: %u\n", instances[i]->n_partitions_current);
 
 
 					unsigned int  totalnblocks = 0;
 					unsigned int  totalpartsize = 0;
 
-					for (unsigned int p = 0; p < instances[i].n_partitions_current; p++) {
+					for (unsigned int p = 0; p < instances[i]->n_partitions_current; p++) {
 						FAR struct mtd_geometry_s geo;
-						ret = instances[i].part_dev[p]->ioctl(instances[i].part_dev[p], MTDIOC_GEOMETRY, (unsigned long)((uintptr_t)&geo));
+						ret = instances[i]->part_dev[p]->ioctl(instances[i]->part_dev[p], MTDIOC_GEOMETRY, (unsigned long)((uintptr_t)&geo));
 						printf("    partition: %u:\n", p);
-						printf("     name:   %s\n", instances[i].partition_names[p]);
+						printf("     name:   %s\n", instances[i]->partition_names[p]);
 						printf("     blocks: %" PRIu32 " (%lu bytes)\n", geo.neraseblocks, erasesize * geo.neraseblocks);
 						totalnblocks += geo.neraseblocks;
 						totalpartsize += erasesize * geo.neraseblocks;
@@ -323,7 +323,7 @@ int mtd_main(int argc, char *argv[])
 
 	if (myoptind < argc) {
 		unsigned int num_instances;
-		mtd_instance_s *instances = px4_mtd_get_instances(&num_instances);
+		mtd_instance_s **instances = px4_mtd_get_instances(&num_instances);
 
 		if (instances == nullptr) {
 			PX4_ERR("Driver not running");
@@ -338,11 +338,11 @@ int mtd_main(int argc, char *argv[])
 #if !defined(CONSTRAINED_FLASH)
 
 		if (!strcmp(argv[myoptind], "readtest")) {
-			return mtd_readtest(instances[instance]);
+			return mtd_readtest(*instances[instance]);
 		}
 
 		if (!strcmp(argv[myoptind], "rwtest")) {
-			return mtd_rwtest(instances[instance]);
+			return mtd_rwtest(*instances[instance]);
 		}
 
 #endif
@@ -352,7 +352,7 @@ int mtd_main(int argc, char *argv[])
 		}
 
 		if (!strcmp(argv[myoptind],  "erase")) {
-			return mtd_erase(instances[instance]);
+			return mtd_erase(*instances[instance]);
 		}
 	}
 

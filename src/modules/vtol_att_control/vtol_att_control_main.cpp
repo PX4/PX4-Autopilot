@@ -135,7 +135,7 @@ void VtolAttitudeControl::vehicle_cmd_poll()
 			vehicle_status_s vehicle_status{};
 			_vehicle_status_sub.copy(&vehicle_status);
 
-			uint8_t result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
+			uint8_t result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			const int transition_command_param1 = int(vehicle_command.param1 + 0.5f);
 
@@ -146,7 +146,7 @@ void VtolAttitudeControl::vehicle_cmd_poll()
 			     || vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL
 			     ||  vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_ORBIT)) {
 
-				result = vehicle_command_ack_s::VEHICLE_RESULT_TEMPORARILY_REJECTED;
+				result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 
 			} else {
 				_transition_command = transition_command_param1;
@@ -164,6 +164,10 @@ void VtolAttitudeControl::vehicle_cmd_poll()
 				uORB::Publication<vehicle_command_ack_s> command_ack_pub{ORB_ID(vehicle_command_ack)};
 				command_ack_pub.publish(command_ack);
 			}
+
+		} else if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_PREFLIGHT_ACTUATOR_TEST) {
+			const actuator_test_type test_type = (actuator_test_type)static_cast<int>(vehicle_command.param1 + 0.5f);
+			_vtol_type->activate_actuator_test_mode(test_type);
 		}
 	}
 }
@@ -214,6 +218,10 @@ VtolAttitudeControl::quadchute(QuadchuteReason reason)
 			events::send(events::ID("vtol_att_ctrl_quadchute_max_roll"), events::Log::Critical,
 				     "Quadchute triggered, due to maximum roll angle exceeded");
 			break;
+
+		case QuadchuteReason::None:
+			// should never get in here
+			return;
 		}
 
 		_vtol_vehicle_status.vtol_transition_failsafe = true;
@@ -309,6 +317,18 @@ VtolAttitudeControl::Run()
 		_airspeed_validated_sub.update(&_airspeed_validated);
 		_tecs_status_sub.update(&_tecs_status);
 		_land_detected_sub.update(&_land_detected);
+
+		if (_home_position_sub.updated()) {
+			home_position_s home_position;
+
+			if (_home_position_sub.copy(&home_position) && home_position.valid_alt) {
+				_home_position_z = home_position.z;
+
+			} else {
+				_home_position_z = NAN;
+			}
+		}
+
 		action_request_poll();
 		vehicle_cmd_poll();
 
@@ -331,7 +351,7 @@ VtolAttitudeControl::Run()
 			// vehicle is doing a transition to FW
 			_vtol_vehicle_status.vehicle_vtol_state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_TRANSITION_TO_FW;
 
-			if (!_vtol_type->was_in_trans_mode() || mc_att_sp_updated || fw_att_sp_updated) {
+			if (mc_att_sp_updated || fw_att_sp_updated) {
 				_vtol_type->update_transition_state();
 				_vehicle_attitude_sp_pub.publish(_vehicle_attitude_sp);
 			}
@@ -342,7 +362,7 @@ VtolAttitudeControl::Run()
 			// vehicle is doing a transition to MC
 			_vtol_vehicle_status.vehicle_vtol_state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_TRANSITION_TO_MC;
 
-			if (!_vtol_type->was_in_trans_mode() || mc_att_sp_updated || fw_att_sp_updated) {
+			if (mc_att_sp_updated || fw_att_sp_updated) {
 				_vtol_type->update_transition_state();
 				_vehicle_attitude_sp_pub.publish(_vehicle_attitude_sp);
 			}
@@ -352,6 +372,10 @@ VtolAttitudeControl::Run()
 		case mode::ROTARY_WING:
 			// vehicle is in rotary wing mode
 			_vtol_vehicle_status.vehicle_vtol_state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+
+			// VTOL types can implement code that is not in sync with attitude setpoint updates
+			// currently only used for tiltrotors
+			_vtol_type->update_mc_generic();
 
 			if (mc_att_sp_updated) {
 				_vtol_type->update_mc_state();

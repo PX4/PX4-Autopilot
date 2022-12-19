@@ -124,8 +124,8 @@ void FailureInjector::update()
 			ack.command = vehicle_command.command;
 			ack.from_external = false;
 			ack.result = supported ?
-				     vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED :
-				     vehicle_command_ack_s::VEHICLE_RESULT_UNSUPPORTED;
+				     vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED :
+				     vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
 			ack.timestamp = hrt_absolute_time();
 			_command_ack_pub.publish(ack);
 		}
@@ -182,6 +182,10 @@ bool FailureDetector::update(const vehicle_status_s &vehicle_status, const vehic
 		_status.flags.pitch = false;
 		_status.flags.alt = false;
 		_status.flags.ext = false;
+	}
+
+	if (_param_fd_bat_en.get()) {
+		updateBatteryStatus(vehicle_status);
 	}
 
 	// esc_status subscriber is shared between subroutines
@@ -254,6 +258,40 @@ void FailureDetector::updateExternalAtsStatus()
 		_ext_ats_failure_hysteresis.set_state_and_update(ats_trigger_status, time_now);
 
 		_status.flags.ext = _ext_ats_failure_hysteresis.get_state();
+	}
+}
+
+void FailureDetector::updateBatteryStatus(const vehicle_status_s &vehicle_status)
+{
+	const hrt_abstime time_now = hrt_absolute_time();
+
+	if (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+		bool battery_failure = false;
+
+		for (auto &battery_sub : _battery_status_subs) {
+			battery_status_s battery_status;
+
+			if (battery_sub.copy(&battery_status)) {
+				// One faulty battery is enough to trigger fault
+				battery_failure = battery_failure || (battery_status.mode != battery_status_s::BATTERY_MODE_UNKNOWN
+								      || battery_status.faults > 0);
+
+				if (battery_failure) {
+					break;
+				}
+			}
+		}
+
+		_battery_failure_hysteresis.set_hysteresis_time_from(false, 300_ms);
+		_battery_failure_hysteresis.set_state_and_update(battery_failure, time_now);
+
+		if (_battery_failure_hysteresis.get_state()) {
+			_status.flags.battery = true;
+		}
+
+	} else {
+		_battery_failure_hysteresis.set_state_and_update(false, time_now);
+		_status.flags.battery = false;
 	}
 }
 

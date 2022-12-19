@@ -33,7 +33,9 @@
 
 /**
  * @file mavlink_receiver.h
- * MAVLink receiver thread
+ *
+ * MAVLink receiver thread that converts the received MAVLink messages to the appropriate
+ * uORB topic publications, to decouple the uORB message and MAVLink message.
  *
  * @author Lorenz Meier <lorenz@px4.io>
  * @author Anton Babushkin <anton@px4.io>
@@ -46,6 +48,7 @@
 #include "mavlink_mission.h"
 #include "mavlink_parameters.h"
 #include "MavlinkStatustextHandler.hpp"
+#include "mavlink_terrain.h"
 #include "mavlink_timesync.h"
 #include "tune_publisher.h"
 
@@ -87,9 +90,11 @@
 #include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/onboard_computer_status.h>
 #include <uORB/topics/optical_flow.h>
+#include <uORB/topics/autotune_attitude_control_status.h>
 #include <uORB/topics/ping.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/radio_status.h>
+#include <uORB/topics/radio_status_extensions.h>
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/sensor_gps.h>
@@ -104,7 +109,6 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
@@ -184,6 +188,7 @@ private:
 	void handle_message_play_tune(mavlink_message_t *msg);
 	void handle_message_play_tune_v2(mavlink_message_t *msg);
 	void handle_message_radio_status(mavlink_message_t *msg);
+	void handle_message_radio_status_extensions(mavlink_message_t *msg);
 	void handle_message_rc_channels(mavlink_message_t *msg);
 	void handle_message_rc_channels_override(mavlink_message_t *msg);
 	void handle_message_serial_control(mavlink_message_t *msg);
@@ -232,6 +237,8 @@ private:
 
 	void schedule_tune(const char *tune);
 
+	void update_terrain_uploader(const hrt_abstime &now);
+
 	void update_message_statistics(const mavlink_message_t &message);
 	void update_rx_stats(const mavlink_message_t &message);
 
@@ -250,6 +257,7 @@ private:
 	MavlinkParametersManager	_parameters_manager;
 	MavlinkTimesync			_mavlink_timesync;
 	MavlinkStatustextHandler	_mavlink_statustext_handler;
+	terrain::MavlinkTerrainUploader _terrain_uploader;
 
 	mavlink_status_t		_status{}; ///< receiver status, used for mavlink_parse_char()
 
@@ -321,6 +329,7 @@ private:
 	uORB::Publication<vehicle_rates_setpoint_s>		_rates_sp_pub{ORB_ID(vehicle_rates_setpoint)};
 	uORB::Publication<vehicle_trajectory_bezier_s>		_trajectory_bezier_pub{ORB_ID(vehicle_trajectory_bezier)};
 	uORB::Publication<vehicle_trajectory_waypoint_s>	_trajectory_waypoint_pub{ORB_ID(vehicle_trajectory_waypoint)};
+	uORB::Publication<radio_status_extensions_s>		_radio_status_extensions_pub{ORB_ID(radio_status_extensions)};
 
 #if !defined(CONSTRAINED_FLASH)
 	uORB::Publication<debug_array_s>			_debug_array_pub {ORB_ID(debug_array)};
@@ -369,6 +378,8 @@ private:
 	PX4Gyroscope *_px4_gyro{nullptr};
 	PX4Magnetometer *_px4_mag{nullptr};
 
+	hrt_abstime _last_home_position_changed{0};
+
 	float _global_local_alt0{NAN};
 	MapProjection _global_local_proj_ref{};
 
@@ -386,6 +397,7 @@ private:
 	hrt_abstime _heartbeat_type_adsb{0};
 	hrt_abstime _heartbeat_type_camera{0};
 	hrt_abstime _heartbeat_type_parachute{0};
+	hrt_abstime _heartbeat_type_open_drone_id{0};
 
 	hrt_abstime _heartbeat_component_telemetry_radio{0};
 	hrt_abstime _heartbeat_component_log{0};
@@ -402,6 +414,7 @@ private:
 	param_t _handle_sens_flow_rot{PARAM_INVALID};
 	param_t _handle_ekf2_min_rng{PARAM_INVALID};
 	param_t _handle_ekf2_rng_a_hmax{PARAM_INVALID};
+	param_t _handle_tf_terrain_en{PARAM_INVALID};
 
 	float _param_sens_flow_maxhgt{-1.0f};
 	float _param_sens_flow_maxr{-1.0f};
@@ -409,6 +422,7 @@ private:
 	int32_t _param_sens_flow_rot{0};
 	float _param_ekf2_min_rng{NAN};
 	float _param_ekf2_rng_a_hmax{NAN};
+	int32_t _param_tf_terrain_en{0};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::BAT_CRIT_THR>)     _param_bat_crit_thr,

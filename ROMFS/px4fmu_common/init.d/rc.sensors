@@ -129,11 +129,7 @@ fi
 # Sensirion SDP3X differential pressure sensor external I2C
 if param compare -s SENS_EN_SDP3X 1
 then
-	if ! sdp3x start -X
-	then
-		# try another common address
-		sdp3x start -X -a 0x22
-	fi
+	sdp3x start -X -k
 fi
 
 # TE MS4515 differential pressure sensor external I2C

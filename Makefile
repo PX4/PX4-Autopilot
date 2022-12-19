@@ -129,6 +129,22 @@ else
 	BUILD_DIR_SUFFIX :=
 endif
 
+ifdef PX4_RESTRICTED_BUILD
+	CMAKE_ARGS += -DPX4_RESTRICTED_BUILD=ON
+	BUILD_DIR_SUFFIX := $(BUILD_DIR_SUFFIX)_restricted
+endif
+
+# pass the PX4_EXPORT_CONTROLLED_BUILD on to CMAKE_ARGS, and set it to 0 (OFF) by default
+PX4_EXPORT_CONTROLLED_BUILD ?= 0
+ifeq ($(PX4_EXPORT_CONTROLLED_BUILD),1)
+	CMAKE_ARGS += -DPX4_EXPORT_CONTROLLED_BUILD=ON
+	BUILD_DIR_SUFFIX := $(BUILD_DIR_SUFFIX)_export_controlled
+else ifeq ($(PX4_EXPORT_CONTROLLED_BUILD),0)
+	CMAKE_ARGS += -DPX4_EXPORT_CONTROLLED_BUILD=OFF
+else
+        $(error ERROR: Invalid value of flag PX4_EXPORT_CONTROLLED_BUILD, has to be '0' or '1')
+endif
+
 # additional config parameters passed to cmake
 ifdef EXTERNAL_MODULES_LOCATION
 	CMAKE_ARGS += -DEXTERNAL_MODULES_LOCATION:STRING=$(EXTERNAL_MODULES_LOCATION)
@@ -245,6 +261,12 @@ define deprecation_warning
 	$(warning $(1) has been deprecated and will be removed, please use $(2)!)
 endef
 
+skynode:
+	$(MAKE) px4_fmu-v5x $(ARGS)
+
+skynode_rtps:
+	$(MAKE) px4_fmu-v5x_rtps $(ARGS)
+
 # All targets with just dependencies but no recipe must either be marked as phony (or have the special @: as recipe).
 .PHONY: all px4_sitl_default all_config_targets all_default_targets
 
@@ -314,7 +336,9 @@ uorb_graphs:
 	@$(MAKE) --no-print-directory px4_fmu-v5_default uorb_graph
 	@$(MAKE) --no-print-directory px4_sitl_default uorb_graph
 
-px4io_update: px4_io-v2_default cubepilot_io-v2_default
+px4io_update:
+	@$(MAKE) --no-print-directory px4_io-v2_default
+	@$(MAKE) --no-print-directory cubepilot_io-v2_default
 	# px4_io-v2_default
 	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/holybro/durandal-v1/extras/px4_io-v2_default.bin
 	cp build/px4_io-v2_default/px4_io-v2_default.bin boards/holybro/pix32v5/extras/px4_io-v2_default.bin

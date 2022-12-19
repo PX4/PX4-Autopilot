@@ -62,7 +62,7 @@
 #  define BL_FILE_SIZE_LIMIT	32*1024
 #  define STM_RAM_BASE        STM32_SRAM_BASE
 #else
-#  define BL_FILE_SIZE_LIMIT  16384
+#  define BL_FILE_SIZE_LIMIT  32768
 #  define STM_RAM_BASE        STM32_SRAM_BASE
 #endif
 

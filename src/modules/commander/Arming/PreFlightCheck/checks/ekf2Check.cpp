@@ -164,7 +164,7 @@ bool PreFlightCheck::ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 	}
 
 	// If GPS aiding is required, declare fault condition if the required GPS quality checks are failing
-	if (sys_has_gps == 1) {
+	if (sys_has_gps == 1 && !arm_without_gps) {
 		const bool ekf_gps_fusion = status.control_mode_flags & (1 << estimator_status_s::CS_GPS);
 		const bool ekf_gps_check_fail = status.gps_check_fail_flags > 0;
 

@@ -250,11 +250,7 @@ static int gimbal_thread_main(int argc, char *argv[])
 					break;
 
 				case InputBase::UpdateResult::UpdatedNotActive:
-					if (already_active) {
-						// No longer active
-						thread_data.last_input_active = -1;
-					}
-
+					// Ignore, input not active
 					break;
 				}
 

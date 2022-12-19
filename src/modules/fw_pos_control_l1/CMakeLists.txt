@@ -33,6 +33,7 @@
 
 add_subdirectory(launchdetection)
 add_subdirectory(runway_takeoff)
+add_subdirectory(figure_eight)
 
 px4_add_module(
 	MODULE modules__fw_pos_control_l1
@@ -41,9 +42,9 @@ px4_add_module(
 		FixedwingPositionControl.cpp
 		FixedwingPositionControl.hpp
 	DEPENDS
+		figure_eight
 		l1
 		launchdetection
-		landing_slope
     npfg
 		runway_takeoff
 		SlewRate

@@ -61,6 +61,7 @@ set(msg_files
 	collision_report.msg
 	commander_state.msg
 	control_allocator_status.msg
+	custom_action_status.msg
 	cpuload.msg
 	differential_pressure.msg
 	distance_sensor.msg
@@ -81,7 +82,10 @@ set(msg_files
 	estimator_aid_source_2d.msg
 	estimator_aid_source_3d.msg
 	event.msg
+	figure_eight_status.msg
+	follow_target_status.msg
 	follow_target.msg
+	follow_target_estimator.msg
 	failure_detector_status.msg
 	generator_status.msg
 	geofence_result.msg
@@ -94,6 +98,7 @@ set(msg_files
 	gimbal_manager_status.msg
 	gps_dump.msg
 	gps_inject_data.msg
+	gripper.msg
 	heater_status.msg
 	home_position.msg
 	hover_thrust_estimate.msg
@@ -135,6 +140,7 @@ set(msg_files
 	pwm_input.msg
 	px4io_status.msg
 	radio_status.msg
+	radio_status_extensions.msg
 	rate_ctrl_status.msg
 	rc_channels.msg
 	rc_parameter_map.msg
@@ -185,6 +191,7 @@ set(msg_files
 	vehicle_attitude_setpoint.msg
 	vehicle_command.msg
 	vehicle_command_ack.msg
+	vehicle_command_cancel.msg
 	vehicle_constraints.msg
 	vehicle_control_mode.msg
 	vehicle_global_position.msg

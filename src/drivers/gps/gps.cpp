@@ -103,7 +103,7 @@ struct GPS_Sat_Info {
 	satellite_info_s _data;
 };
 
-static constexpr int TASK_STACK_SIZE = PX4_STACK_ADJUSTED(1760);
+static constexpr int TASK_STACK_SIZE = PX4_STACK_ADJUSTED(1940);
 
 
 class GPS : public ModuleBase<GPS>, public device::Device
@@ -317,7 +317,7 @@ GPS::GPS(const char *path, gps_driver_mode_t mode, GPSHelper::Interface interfac
 		set_device_bus_type(device::Device::DeviceBusType::DeviceBusType_SERIAL);
 
 		char c = _port[strlen(_port) - 1]; // last digit of path (eg /dev/ttyS2)
-		set_device_bus(atoi(&c));
+		set_device_bus(c - 48); // sub 48 to convert char to integer
 
 	} else if (_interface == GPSHelper::Interface::SPI) {
 		set_device_bus_type(device::Device::DeviceBusType::DeviceBusType_SPI);
@@ -761,7 +761,18 @@ GPS::run()
 
 		} else if (gps_ubx_mode == 4) {
 			ubx_mode = GPSDriverUBX::UBXMode::MovingBaseUART1;
+
+		} else if (gps_ubx_mode == 5) { // rover with static base on Uart2
+			ubx_mode = GPSDriverUBX::UBXMode::RoverWithStaticBaseUart2;
+
 		}
+	}
+
+	handle = param_find("GPS_UBX_BAUD2");
+	int32_t f9p_uart2_baudrate = 57600;
+
+	if (handle != PARAM_INVALID) {
+		param_get(handle, &f9p_uart2_baudrate);
 	}
 
 	int32_t gnssSystemsParam = static_cast<int32_t>(GPSHelper::GNSSSystemsMask::RECEIVER_DEFAULTS);
@@ -824,7 +835,7 @@ GPS::run()
 		/* FALLTHROUGH */
 		case gps_driver_mode_t::UBX:
 			_helper = new GPSDriverUBX(_interface, &GPS::callback, this, &_report_gps_pos, _p_report_sat_info,
-						   gps_ubx_dynmodel, heading_offset, ubx_mode);
+						   gps_ubx_dynmodel, heading_offset, f9p_uart2_baudrate, ubx_mode);
 			set_device_type(DRV_GPS_DEVTYPE_UBX);
 			break;
 #ifndef CONSTRAINED_FLASH

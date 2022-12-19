@@ -1,0 +1,11 @@
+#!/bin/sh
+#
+# @name 3DR Iris Quadrotor SITL (Depth Camera)
+#
+# @type Quadrotor Wide
+#
+
+. ${R}etc/init.d-posix/airframes/10016_iris
+
+# param set COM_OBS_AVOID 1
+param set-default MPC_XY_CRUISE 5.0

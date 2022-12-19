@@ -146,6 +146,7 @@ private:
 	void sumDischarged(const hrt_abstime &timestamp, float current_a);
 	void estimateStateOfCharge(const float voltage_v, const float current_a);
 	uint8_t determineWarning(float state_of_charge);
+	uint16_t determineFaults();
 	void computeScale();
 	float computeRemainingTime(float current_a);
 

@@ -78,9 +78,10 @@ PARAM_DEFINE_INT32(UAVCAN_NODE_ID, 1);
 PARAM_DEFINE_INT32(UAVCAN_BITRATE, 1000000);
 
 /**
- * UAVCAN ESC will spin at idle throttle when armed, even if the mixer outputs zero setpoints.
+ * UAVCAN ESC will spin at specified idle throttle when armed, even if the mixer outputs zero setpoints.
  *
- * @boolean
+ * @min 0
+ * @max 2048
  * @reboot_required true
  * @group UAVCAN
  */

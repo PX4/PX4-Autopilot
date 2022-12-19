@@ -33,6 +33,8 @@
 
 #include "EscBattery.hpp"
 
+#include <math.h>
+
 using namespace time_literals;
 
 EscBattery::EscBattery() :
@@ -82,22 +84,22 @@ EscBattery::Run()
 
 	if (_esc_status_sub.copy(&esc_status)) {
 
-		int online_bitmask = (1 << esc_status.esc_count) - 1;
-
-		if (online_bitmask != esc_status.esc_online_flags || esc_status.esc_count == 0 ||
-		    esc_status.esc_count > esc_status_s::CONNECTED_ESC_MAX) {
+		if (esc_status.esc_count == 0 || esc_status.esc_count > esc_status_s::CONNECTED_ESC_MAX) {
 			return;
 		}
 
+		const uint8_t online_esc_count = math::countSetBits(esc_status.esc_online_flags);
 		float average_voltage_v = 0.0f;
 		float total_current_a = 0.0f;
 
 		for (unsigned i = 0; i < esc_status.esc_count; ++i) {
-			average_voltage_v += esc_status.esc[i].esc_voltage;
-			total_current_a += esc_status.esc[i].esc_current;
+			if ((1 << i) & esc_status.esc_online_flags) {
+				average_voltage_v += esc_status.esc[i].esc_voltage;
+				total_current_a += esc_status.esc[i].esc_current;
+			}
 		}
 
-		average_voltage_v /= esc_status.esc_count;
+		average_voltage_v /= online_esc_count;
 
 		_battery.setConnected(true);
 		_battery.updateVoltage(average_voltage_v);

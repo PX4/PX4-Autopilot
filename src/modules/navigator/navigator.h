@@ -41,7 +41,6 @@
 
 #pragma once
 
-#include "follow_target.h"
 #include "geofence.h"
 #include "land.h"
 #include "precland.h"
@@ -51,6 +50,7 @@
 #include "rtl.h"
 #include "takeoff.h"
 #include "vtol_takeoff.h"
+#include "vtol_land.h"
 
 #include "navigation.h"
 
@@ -62,6 +62,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
+#include <uORB/topics/custom_action_status.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/mission.h>
@@ -73,11 +74,13 @@
 #include <uORB/topics/transponder_report.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
+#include <uORB/topics/vehicle_command_cancel.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/wind.h>
 #include <uORB/uORB.h>
 
 using namespace time_literals;
@@ -86,6 +89,19 @@ using namespace time_literals;
  * Number of navigation modes that need on_active/on_inactive calls
  */
 #define NAVIGATOR_MODE_ARRAY_SIZE 8
+
+struct CustomAction {
+	enum class FailureAction {
+		IGNORE = 0,
+		LOITER = 1,
+		RTL = 2
+	};
+
+	int8_t id{-1};
+	uint64_t timeout;
+	uint64_t start_time;
+	FailureAction failure_action;
+};
 
 class Navigator : public ModuleBase<Navigator>, public ModuleParams
 {
@@ -119,7 +135,16 @@ public:
 	 */
 	void load_fence_from_file(const char *filename);
 
+	/**
+	 * @brief Publish a given specified vehicle command
+	 *
+	 * Sets the target_component of the vehicle command accordingly depending on the
+	 * vehicle command value (e.g. For Camera control, sets target system component id)
+	 *
+	 * @param vcmd Vehicle command to execute
+	 */
 	void publish_vehicle_cmd(vehicle_command_s *vcmd);
+	void publish_vehicle_cmd_cancel(vehicle_command_cancel_s *vcmd_cancel);
 
 	/**
 	 * Generate an artificial traffic indication
@@ -164,8 +189,14 @@ public:
 	vehicle_land_detected_s     *get_land_detected() { return &_land_detected; }
 	vehicle_local_position_s    *get_local_position() { return &_local_pos; }
 	vehicle_status_s            *get_vstatus() { return &_vstatus; }
+	vehicle_command_ack_s       *get_cmd_ack() { return &_vehicle_cmd_ack; }
+	wind_s                      *get_wind() { return &_wind; }
 
 	PrecLand *get_precland() { return &_precland; } /**< allow others, e.g. Mission, to use the precision land block */
+
+	bool getGroundSpeed(float &ground_speed);	// return true if groundspeed is valid
+
+	terrain::TerrainProvider *getTerrainProvider() { return _terrain_provider; }
 
 	const vehicle_roi_s &get_vroi() { return _vroi; }
 
@@ -194,18 +225,20 @@ public:
 	float get_acceptance_radius();
 
 	/**
-	 * Get the default altitude acceptance radius (i.e. from parameters)
-	 *
-	 * @return the distance from the target altitude before considering the waypoint reached
-	 */
-	float get_default_altitude_acceptance_radius();
-
-	/**
 	 * Get the altitude acceptance radius
 	 *
 	 * @return the distance from the target altitude before considering the waypoint reached
 	 */
 	float get_altitude_acceptance_radius();
+
+	bool hasVtolHomeLandApproach()
+	{
+		return _vtol_home_land_approaches.isAnyApproachValid();
+	}
+
+	bool isFlyingVtolHomeLandApproach() { return _navigation_mode == &_vtol_land;}
+
+	const land_approaches_s &getVtolHomeLandArea() { return  _vtol_home_land_approaches;}
 
 	/**
 	 * Get the cruising speed
@@ -231,6 +264,27 @@ public:
 	 * For VTOL: resets both cruising speeds.
 	 */
 	void reset_cruising_speed();
+
+	/**
+	 * Store cruising speed
+	 *
+	 * For VTOL: store cruising speed for current mode only (multirotor or fixed-wing).
+	 */
+	void store_cruising_speed(float speed);
+
+	/**
+	 * Restore cruising speed from stored value
+	 *
+	 * For VTOL: restore both cruising speeds if speeds are stored.
+	 */
+	void restore_cruising_speed();
+
+	/**
+	 * Reset stored cruising speed to default values
+	 *
+	 * For VTOL: resets both stored cruising speeds.
+	 */
+	void reset_stored_cruising_speed();
 
 	/**
 	 *  Set triplets to invalid
@@ -272,11 +326,17 @@ public:
 
 	void set_mission_failure_heading_timeout();
 
+	void setTerrainFollowerState();
+
 	void setMissionLandingInProgress(bool in_progress) { _mission_landing_in_progress = in_progress; }
 
 	bool getMissionLandingInProgress() { return _mission_landing_in_progress; }
 
 	bool is_planned_mission() const { return _navigation_mode == &_mission; }
+
+	bool get_in_custom_action() { return _custom_action.id != -1; }
+	CustomAction get_custom_action() { return _custom_action; }
+	void set_custom_action(const CustomAction &custom_action);
 
 	bool on_mission_landing() { return _mission.landing(); }
 
@@ -294,6 +354,9 @@ public:
 	double get_mission_landing_lon() { return _mission.get_landing_lon(); }
 	float  get_mission_landing_alt() { return _mission.get_landing_alt(); }
 
+	TerrainFollowerWrapper &getTerrainFollower() { return _terrain_follower; }
+	float get_mission_landing_loiter_radius() { return _mission.get_landing_loiter_rad(); }
+
 	// RTL
 	bool mission_landing_required() { return _rtl.get_rtl_type() == RTL::RTL_TYPE_MISSION_LANDING; }
 
@@ -306,7 +369,7 @@ public:
 	// Param access
 	float get_loiter_min_alt() const { return _param_mis_ltrmin_alt.get(); }
 	float get_takeoff_min_alt() const { return _param_mis_takeoff_alt.get(); }
-	bool  get_takeoff_required() const { return _param_mis_takeoff_req.get(); }
+	int   get_takeoff_land_required() const { return _para_mis_takeoff_land_req.get(); }
 	float get_yaw_timeout() const { return _param_mis_yaw_tmt.get(); }
 	float get_yaw_threshold() const { return math::radians(_param_mis_yaw_err.get()); }
 	float get_lndmc_alt_max() const { return _param_lndmc_alt_max.get(); }
@@ -318,10 +381,23 @@ public:
 
 	void acquire_gimbal_control();
 	void release_gimbal_control();
+	void set_gimbal_neutral();
 
-	void 		calculate_breaking_stop(double &lat, double &lon, float &yaw);
+	void stop_capturing_images();
+	void disable_camera_trigger();
+
+	void calculate_breaking_stop(double &lat, double &lon, float &yaw);
+
+	void readVtolHomeLandApproachesFromStorage();
 
 private:
+	void handle_custom_action_failure();
+	void handle_custom_action_success();
+	void switch_to_auto_mission_mode();
+	void switch_to_auto_rtl_mode();
+	void switch_to_auto_loiter_mode();
+	void reset_custom_action();
+	void publish_custom_action_status(uint8_t status);
 
 	struct traffic_buffer_s {
 		uint32_t 	icao_address;
@@ -343,13 +419,17 @@ private:
 	uORB::Subscription _pos_ctrl_landing_status_sub{ORB_ID(position_controller_landing_status)};	/**< position controller landing status subscription */
 	uORB::Subscription _traffic_sub{ORB_ID(transponder_report)};		/**< traffic subscription */
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};	/**< vehicle commands (onboard and offboard) */
+	uORB::Subscription _vehicle_cmd_ack_sub{ORB_ID(vehicle_command_ack)};	/**< vehicle command acks (onboard and offboard) */
+	uORB::Subscription _wind_sub{ORB_ID(wind)};
 
 	uORB::Publication<geofence_result_s>		_geofence_result_pub{ORB_ID(geofence_result)};
 	uORB::Publication<mission_result_s>		_mission_result_pub{ORB_ID(mission_result)};
 	uORB::Publication<position_setpoint_triplet_s>	_pos_sp_triplet_pub{ORB_ID(position_setpoint_triplet)};
 	uORB::Publication<vehicle_command_ack_s>	_vehicle_cmd_ack_pub{ORB_ID(vehicle_command_ack)};
+	uORB::Publication<vehicle_command_cancel_s>	_vehicle_cmd_cancel_pub{ORB_ID(vehicle_command_cancel)};
 	uORB::Publication<vehicle_command_s>		_vehicle_cmd_pub{ORB_ID(vehicle_command)};
 	uORB::Publication<vehicle_roi_s>		_vehicle_roi_pub{ORB_ID(vehicle_roi)};
+	uORB::Publication<custom_action_status_s> _custom_action_status_pub{ORB_ID(custom_action_status)};
 
 	orb_advert_t	_mavlink_log_pub{nullptr};	/**< the uORB advert to send messages over mavlink */
 
@@ -361,6 +441,8 @@ private:
 	vehicle_land_detected_s				_land_detected{};	/**< vehicle land_detected */
 	vehicle_local_position_s			_local_pos{};		/**< local vehicle position */
 	vehicle_status_s				_vstatus{};		/**< vehicle status */
+	vehicle_command_ack_s			_vehicle_cmd_ack{};		/**< vehicle command_ack */
+	wind_s 				_wind{};
 
 	uint8_t						_previous_nav_state{}; /**< nav_state of the previous iteration*/
 
@@ -374,10 +456,10 @@ private:
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
 	Geofence	_geofence;			/**< class that handles the geofence */
-
 	GeofenceBreachAvoidance _gf_breach_avoidance;
-
 	hrt_abstime _last_geofence_check = 0;
+	terrain::TerrainProvider *_terrain_provider{nullptr};
+	TerrainFollowerWrapper _terrain_follower;
 
 	bool		_geofence_violation_warning_sent{false};	/**< prevents spaming to mavlink */
 	bool		_can_loiter_at_sp{false};			/**< flags if current position SP can be used to loiter */
@@ -385,14 +467,18 @@ private:
 	bool 		_pos_sp_triplet_published_invalid_once{false};	/**< flags if position SP triplet has been published once to UORB */
 	bool		_mission_result_updated{false};			/**< flags if mission result has seen an update */
 
+	CustomAction	_custom_action{};			/**< current custom action **/
+
+	bool 		_use_vtol_land_navigation_mode_for_rtl = false;
+
 	Mission		_mission;			/**< class that handles the missions */
 	Loiter		_loiter;			/**< class that handles loiter */
 	Takeoff		_takeoff;			/**< class for handling takeoff commands */
 	VtolTakeoff	_vtol_takeoff;			/**< class for handling VEHICLE_CMD_NAV_VTOL_TAKEOFF command */
+	VtolLand	_vtol_land;				/**< class that handles VTOL landing */
 	Land		_land;			/**< class for handling land commands */
 	PrecLand	_precland;			/**< class for handling precision land commands */
 	RTL 		_rtl;				/**< class that handles RTL */
-	FollowTarget	_follow_target;
 
 	NavigatorMode *_navigation_mode{nullptr};	/**< abstract pointer to current navigation mode class */
 	NavigatorMode *_navigation_mode_array[NAVIGATOR_MODE_ARRAY_SIZE] {};	/**< array of navigation modes */
@@ -409,12 +495,20 @@ private:
 
 	float _mission_cruising_speed_mc{-1.0f};
 	float _mission_cruising_speed_fw{-1.0f};
+	float _mission_stored_cruising_speed_mc{-1.0f};
+	float _mission_stored_cruising_speed_fw{-1.0f};
 	float _mission_throttle{NAN};
 
 	bool _mission_landing_in_progress{false};	/**< this flag gets set if the mission is currently executing on a landing pattern
 							 * if mission mode is inactive, this flag will be cleared after 2 seconds */
 
-	traffic_buffer_s _traffic_buffer{};
+	bool _is_capturing_images{false}; // keep track if we need to stop capturing images
+
+	traffic_buffer_s _traffic_buffer;
+
+	static constexpr float MAX_DIST_FROM_HOME_FOR_LAND_APPROACHES =
+		10.0; // [m] We don't consider home land approaches valid if the distance from the current home to the land location is greater than this distance
+	land_approaches_s _vtol_home_land_approaches{};
 
 	// update subscriptions
 	void params_update();
@@ -432,6 +526,7 @@ private:
 	void publish_vehicle_command_ack(const vehicle_command_s &cmd, uint8_t result);
 
 	bool geofence_allows_position(const vehicle_global_position_s &pos);
+
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::NAV_LOITER_RAD>)   _param_nav_loiter_rad,	/**< loiter radius for fixedwing */
 		(ParamFloat<px4::params::NAV_ACC_RAD>)      _param_nav_acc_rad,		/**< acceptance for takeoff */
@@ -444,14 +539,14 @@ private:
 		(ParamFloat<px4::params::NAV_TRAFF_A_RADU>) _param_nav_traff_a_radu,	/**< avoidance Distance Unmanned*/
 		(ParamFloat<px4::params::NAV_TRAFF_A_RADM>) _param_nav_traff_a_radm,	/**< avoidance Distance Manned*/
 
-		// non-navigator parameters
-		// Mission (MIS_*)
+		// non-navigator parameters: Mission (MIS_*)
 		(ParamFloat<px4::params::MIS_LTRMIN_ALT>)  _param_mis_ltrmin_alt,
 		(ParamFloat<px4::params::MIS_TAKEOFF_ALT>) _param_mis_takeoff_alt,
-		(ParamBool<px4::params::MIS_TAKEOFF_REQ>)  _param_mis_takeoff_req,
+		(ParamInt<px4::params::MIS_TKO_LAND_REQ>)  _para_mis_takeoff_land_req,
 		(ParamFloat<px4::params::MIS_YAW_TMT>)     _param_mis_yaw_tmt,
 		(ParamFloat<px4::params::MIS_YAW_ERR>)     _param_mis_yaw_err,
-		(ParamFloat<px4::params::LNDMC_ALT_MAX>)   _param_lndmc_alt_max
-
+		(ParamFloat<px4::params::LNDMC_ALT_MAX>)   _param_lndmc_alt_max,
+		(ParamInt<px4::params::TF_TERRAIN_EN>)     _param_tf_terrain_en,
+		(ParamFloat<px4::params::MIS_PD_TO>)       _param_mis_payload_delivery_timeout
 	)
 };

@@ -120,3 +120,15 @@ __EXPORT void mavlink_vasprintf(int severity, orb_advert_t *mavlink_log_pub, con
 		mavlink_vasprintf(_MSG_PRIO_CRITICAL, _pub, _text, ##__VA_ARGS__); \
 		PX4_WARN(_text, ##__VA_ARGS__); \
 	} while(0);
+
+/**
+ * TEMPORARY: Send a mavlink critical message and print to console as info.
+ * This can be removed after ther migration to events interface is fully in place.
+ * @param _pub		Pointer to the uORB advert;
+ * @param _text		The text to log;
+ */
+#define mavlink_log_gcs_critical(_pub, _text, ...) \
+	do { \
+		mavlink_vasprintf(_MSG_PRIO_CRITICAL, _pub, _text, ##__VA_ARGS__); \
+		PX4_INFO(_text, ##__VA_ARGS__); \
+	} while(0);

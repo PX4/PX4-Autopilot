@@ -1,0 +1,5 @@
+menuconfig DRIVERS_DIFFERENTIAL_PRESSURE_SDP6X
+	bool "sdp6x"
+	default n
+	---help---
+		Enable support for sdp6x

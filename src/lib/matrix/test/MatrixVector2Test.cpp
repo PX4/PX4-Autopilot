@@ -34,6 +34,7 @@
 
 #include <gtest/gtest.h>
 #include <matrix/math.hpp>
+#include <mathlib/mathlib.h>
 
 using namespace matrix;
 
@@ -64,4 +65,20 @@ TEST(MatrixVector2Test, Vector2)
 	Vector2f h(g);
 	EXPECT_FLOAT_EQ(h(0), 1.23f);
 	EXPECT_FLOAT_EQ(h(1), 423.4f);
+
+	// rotate 2D vector
+	Vector2f i(1.0f, 0.0f);
+	i.rotate(math::radians(45.0));
+	EXPECT_FLOAT_EQ(i(0), i(1));
+	i.rotate(math::radians(45.0));
+	EXPECT_FLOAT_EQ(i(0), 0.f);
+	EXPECT_FLOAT_EQ(i(1), 1.f);
+
+	// transform vector
+	Vector2f j(1.0f, 0.0f);
+	j.transform(math::radians(-45.0));
+	EXPECT_FLOAT_EQ(j(0), j(1));
+	j.transform(math::radians(-45.0));
+	EXPECT_FLOAT_EQ(j(0), 0.f);
+	EXPECT_FLOAT_EQ(j(1), 1.f);
 }

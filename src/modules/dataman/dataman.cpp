@@ -50,6 +50,7 @@
 #include <drivers/drv_hrt.h>
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
+#include <stdlib.h>
 
 #include "dataman.h"
 
@@ -157,7 +158,7 @@ static unsigned g_func_counts[dm_number_of_funcs];
 
 /* table of maximum number of instances for each item type */
 static const unsigned g_per_item_max_index[DM_KEY_NUM_KEYS] = {
-	DM_KEY_SAFE_POINTS_MAX,
+	DM_KEY_SAFE_POINT_ITEMS_MAX,
 	DM_KEY_FENCE_POINTS_MAX,
 	DM_KEY_WAYPOINTS_OFFBOARD_0_MAX,
 	DM_KEY_WAYPOINTS_OFFBOARD_1_MAX,
@@ -169,7 +170,7 @@ static const unsigned g_per_item_max_index[DM_KEY_NUM_KEYS] = {
 
 /* Table of the len of each item type */
 static constexpr size_t g_per_item_size[DM_KEY_NUM_KEYS] = {
-	sizeof(struct mission_safe_point_s) + DM_SECTOR_HDR_SIZE,
+	sizeof(struct mission_item_s) + DM_SECTOR_HDR_SIZE,
 	sizeof(struct mission_fence_point_s) + DM_SECTOR_HDR_SIZE,
 	sizeof(struct mission_item_s) + DM_SECTOR_HDR_SIZE,
 	sizeof(struct mission_item_s) + DM_SECTOR_HDR_SIZE,

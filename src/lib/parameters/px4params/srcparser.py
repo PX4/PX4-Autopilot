@@ -358,7 +358,7 @@ class SourceParser(object):
                                 'deg', 'deg*1e7', 'deg/s',
                                 'celcius', 'gauss', 'gauss/s', 'gauss^2',
                                 'hPa', 'kg', 'kg/m^2', 'kg m^2',
-                                'mm', 'm', 'm/s', 'm^2', 'm/s^2', 'm/s^3', 'm/s^2/sqrt(Hz)', 'm/s/rad',
+                                'mm', 'm', 'm/s', 'm^2', 'm/s^2', 'm/s^3', 'm/s^2/sqrt(Hz)', '1/s/sqrt(Hz)', 'm/s/rad',
                                 'Ohm', 'V', 'A',
                                 'us', 'ms', 's',
                                 'S', 'A/%', '(m/s^2)^2', 'm/m',  'tan(rad)^2', '(m/s)^2', 'm/rad',

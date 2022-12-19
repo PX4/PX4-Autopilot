@@ -34,6 +34,8 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/time.h>
 
+#include <stdlib.h>
+
 using namespace time_literals;
 
 static void	usage();

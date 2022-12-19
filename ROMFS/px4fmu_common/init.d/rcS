@@ -107,6 +107,16 @@ then
 		fi
 	fi
 
+	# Check for an update
+	if [ -e /fs/microsd/new ]
+	then
+		echo "Updating external autostart files"
+		# FIXME: add NuttX support for recursive rm, then we can remove the
+		# directory (for now this is done during updating via MAVLink FTP)
+		#rm -r $SDCARD_EXT_PATH
+		mv /fs/microsd/new $SDCARD_EXT_PATH
+	fi
+
 	set PARAM_FILE /fs/microsd/params
 fi
 
@@ -207,6 +217,26 @@ else
 	unset BOARD_RC_DEFAULTS
 
 	#
+	# Set parameters and env variables for selected SYS_AUTOSTART.
+	#
+	set AUTOSTART_PATH etc/init.d/rc.autostart
+	if ! param compare SYS_AUTOSTART 0
+	then
+		if param greater SYS_AUTOSTART 1000000
+		then
+			# Use external startup file
+			if [ $SDCARD_AVAILABLE = yes ]
+			then
+				set AUTOSTART_PATH etc/init.d/rc.autostart_ext
+			else
+				echo "ERROR [init] SD card not mounted - trying to load airframe from ROMFS"
+			fi
+		fi
+		. ${R}$AUTOSTART_PATH
+	fi
+	unset AUTOSTART_PATH
+
+	#
 	# Start the tone_alarm driver.
 	# Needs to be started after the parameters are loaded (for CBRK_BUZZER).
 	#
@@ -242,26 +272,6 @@ else
 	#
 	rgbled start -X -q
 	rgbled_ncp5623c start -X -q
-
-	#
-	# Set parameters and env variables for selected AUTOSTART.
-	#
-	set AUTOSTART_PATH etc/init.d/rc.autostart
-	if ! param compare SYS_AUTOSTART 0
-	then
-		if param greater SYS_AUTOSTART 1000000
-		then
-			# Use external startup file
-			if [ $SDCARD_AVAILABLE = yes ]
-			then
-				set AUTOSTART_PATH etc/init.d/rc.autostart_ext
-			else
-				echo "ERROR [init] SD card not mounted - trying to load airframe from ROMFS"
-			fi
-		fi
-		. ${R}$AUTOSTART_PATH
-	fi
-	unset AUTOSTART_PATH
 
 	#
 	# Override parameters from user configuration file.
@@ -303,7 +313,7 @@ else
 	then
 		# Check for the mini using build with px4io fw file
 		# but not a px4IO
-		if ver hwtypecmp V540 V560
+		if ver hwtypecmp V5004000 V5006000
 		then
 			param set SYS_USE_IO 0
 		else
@@ -399,6 +409,21 @@ else
 		commander start
 	fi
 
+	# PPS capture driver (before pwm_out)
+	if param greater -s PPS_CAP_ENABLE 0
+	then
+		pps_capture start
+	fi
+
+	# Camera capture driver (before pwm_out)
+	if param greater -s CAM_CAP_FBACK 0
+	then
+		if camera_capture start
+		then
+			camera_capture on
+		fi
+	fi
+
 	#
 	# Configure vehicle type specific parameters.
 	# Note: rc.vehicle_setup is the entry point for rc.interface,
@@ -439,21 +464,6 @@ else
 	then
 		# Must be started after the serial config is read
 		rc_input start $RC_INPUT_ARGS
-	fi
-
-	# PPS capture driver (before pwm_out)
-	if param greater -s PPS_CAP_ENABLE 0
-	then
-		pps_capture start
-	fi
-
-	# Camera capture driver (before pwm_out)
-	if param greater -s CAM_CAP_FBACK 0
-	then
-		if camera_capture start
-		then
-			camera_capture on
-		fi
 	fi
 
 	#
@@ -503,6 +513,12 @@ else
 	if param compare -s SENS_EN_PX4FLOW 1
 	then
 		px4flow start -X &
+	fi
+
+	# Payload deliverer module if gripper is enabled
+	if param compare -s PD_GRIPPER_EN 1
+	then
+		payload_deliverer start
 	fi
 
 	#

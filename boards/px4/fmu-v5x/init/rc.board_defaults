@@ -2,15 +2,26 @@
 #
 # board specific defaults
 #------------------------------------------------------------------------------
+#
+# External components flashing
+#
 
-# Mavlink ethernet (CFG 1000)
-param set-default MAV_2_CONFIG 1000
-param set-default MAV_2_BROADCAST 1
-param set-default MAV_2_MODE 0
-param set-default MAV_2_RADIO_CTL 0
-param set-default MAV_2_RATE 100000
-param set-default MAV_2_REMOTE_PRT 14550
-param set-default MAV_2_UDP_PRT 14550
+if param compare COM_EXT_COMP_EN 2
+then
+	echo "-> Starting FAKE flasher - SUCCESS case"
+	update_checker fake_success
+fi
+
+if param compare COM_EXT_COMP_EN 3
+then
+	echo "-> Starting FAKE flasher - FAIL case"
+	update_checker fake_fail
+fi
+
+# Probe for LW20/c by default
+param set-default SENS_EN_SF1XX 6
+# start a MAVLink instance on the Pixhawk Payload Bus
+param set-default MAV_2_CONFIG 401
 
 param set-default SENS_EN_INA238 0
 param set-default SENS_EN_INA228 0

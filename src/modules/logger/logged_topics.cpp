@@ -60,15 +60,20 @@ void LoggedTopics::add_default_topics()
 	add_topic("cellular_status", 200);
 	add_topic("commander_state");
 	add_topic("cpuload");
+	add_topic("custom_action_status");
 	add_optional_topic("esc_status", 250);
 	add_topic("failure_detector_status", 100);
+	add_topic("follow_target_status", 100);
 	add_optional_topic("follow_target", 500);
+	add_topic("follow_target_estimator", 100);
 	add_optional_topic("generator_status");
 	add_optional_topic("gps_dump");
+	add_optional_topic("gripper");
 	add_optional_topic("heater_status");
 	add_topic("home_position");
 	add_topic("hover_thrust_estimate", 100);
 	add_topic("input_rc", 500);
+	add_topic("log_message_incoming");
 	add_optional_topic("internal_combustion_engine_status", 10);
 	add_optional_topic("irlock_report", 1000);
 	add_optional_topic("landing_target_pose", 1000);
@@ -79,12 +84,15 @@ void LoggedTopics::add_default_topics()
 	add_topic("navigator_mission_item");
 	add_topic("npfg_status", 100);
 	add_topic("offboard_control_mode", 100);
-	add_topic("onboard_computer_status", 10);
 	add_topic("parameter_update");
+	add_topic("onboard_computer_status", 10);
+	add_topic("autotune_attitude_control_status", 100);
 	add_topic("position_controller_status", 500);
+	add_topic("position_controller_landing_status", 100);
 	add_topic("position_setpoint_triplet", 200);
 	add_optional_topic("px4io_status");
 	add_topic("radio_status");
+	add_topic("radio_status_extensions");
 	add_topic("rtl_time_estimate", 1000);
 	add_topic("sensor_combined");
 	add_optional_topic("sensor_correction");
@@ -102,6 +110,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("vehicle_attitude", 50);
 	add_topic("vehicle_attitude_setpoint", 50);
 	add_topic("vehicle_command");
+	add_topic("vehicle_command_ack");
 	add_topic("vehicle_constraints", 1000);
 	add_topic("vehicle_control_mode");
 	add_topic("vehicle_global_position", 200);
@@ -176,12 +185,12 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic_multi("sensor_baro", 1000, 4);
 	add_topic_multi("sensor_gps", 1000, 2);
 	add_topic_multi("sensor_gnss_relative", 1000, 1);
-	add_optional_topic("pps_capture", 1000);
 	add_optional_topic_multi("sensor_gyro", 1000, 4);
 	add_optional_topic_multi("sensor_mag", 1000, 4);
 	add_topic_multi("vehicle_imu", 500, 4);
 	add_topic_multi("vehicle_imu_status", 1000, 4);
 	add_optional_topic_multi("vehicle_magnetometer", 500, 4);
+	add_optional_topic("pps_capture");
 
 	// SYS_CTRL_ALLOC: additional dynamic control allocation logging when enabled
 	int32_t sys_ctrl_alloc = 0;
@@ -239,6 +248,20 @@ void LoggedTopics::add_default_topics()
 	add_topic("wind");
 	add_topic("yaw_estimator_status");
 #endif /* CONFIG_ARCH_BOARD_PX4_SITL */
+
+	int32_t mount_input_mode = -1;
+	param_get(param_find("MNT_MODE_IN"), &mount_input_mode);
+
+	if (mount_input_mode != -1) {
+		// Gimbal general topics
+		add_topic("gimbal_device_set_attitude", 100);
+		add_topic("gimbal_manager_set_attitude");  // ~ 5Hz
+		add_topic("gimbal_manager_set_manual_control"); // ~ 5Hz
+		add_topic("gimbal_device_attitude_status", 100);
+		add_topic("gimbal_device_information", 1000);
+		add_topic("gimbal_manager_information");
+		add_topic("gimbal_manager_status"); // ~ 5Hz
+	}
 }
 
 void LoggedTopics::add_high_rate_topics()
@@ -315,6 +338,8 @@ void LoggedTopics::add_vision_and_avoidance_topics()
 	add_topic("collision_constraints");
 	add_topic("obstacle_distance_fused");
 	add_topic("vehicle_mocap_odometry", 30);
+	add_topic("vehicle_odometry", 30);
+	add_topic("vehicle_trajectory_bezier", 200);
 	add_topic("vehicle_trajectory_waypoint", 200);
 	add_topic("vehicle_trajectory_waypoint_desired", 200);
 	add_topic("vehicle_visual_odometry", 30);

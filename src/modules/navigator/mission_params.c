@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -58,14 +58,19 @@
 PARAM_DEFINE_FLOAT(MIS_TAKEOFF_ALT, 2.5f);
 
 /**
- * Take-off waypoint required
+ * Mission landing required
  *
- * If set, the mission feasibility checker will check for a takeoff waypoint on the mission.
+ * If set, the mission feasibility checker will check for a planned misson landing at the end of the mission.
  *
- * @boolean
+ * @value 0 Do not require a mission takeoff nor a mission landing
+ * @value 1 Require a mission takeoff, do not require a mission landing
+ * @value 2 Do not require a mission takeoff, require a mission landing
+ * @value 3 Require a mission takeoff and a mission landing
+ * @value 4 Require a mission takeoff and a mission landing, or neither of both
+ * @value 5 Same as previous, but require a landing if in air and no valid VTOL landing approach is present
  * @group Mission
  */
-PARAM_DEFINE_INT32(MIS_TAKEOFF_REQ, 0);
+PARAM_DEFINE_INT32(MIS_TKO_LAND_REQ, 0);
 
 /**
  * Minimum Loiter altitude
@@ -156,3 +161,14 @@ PARAM_DEFINE_FLOAT(MIS_YAW_TMT, -1.0f);
  * @group Mission
  */
 PARAM_DEFINE_FLOAT(MIS_YAW_ERR, 12.0f);
+
+/**
+ * Timeout for a successful payload deployment acknowledgement
+ *
+ * @unit s
+ * @min 0
+ * @decimal 1
+ * @increment 1
+ * @group Mission
+ */
+PARAM_DEFINE_FLOAT(MIS_PD_TO, 5.0f);

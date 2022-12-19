@@ -53,6 +53,9 @@ bool PreFlightCheck::modeCheck(orb_advert_t *mavlink_log_pub, const bool report_
 	case vehicle_status_s::NAVIGATION_STATE_STAB:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF:
+
+	// TODO: disallow init mode when workflow changed from first arming to first switching mode
+	case vehicle_status_s::NAVIGATION_STATE_INIT:
 		break;
 
 	default:

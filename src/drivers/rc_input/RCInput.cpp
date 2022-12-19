@@ -334,7 +334,7 @@ void RCInput::Run()
 			// Check for a pairing command
 			if (vcmd.command == vehicle_command_s::VEHICLE_CMD_START_RX_PAIR) {
 
-				uint8_t cmd_ret = vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
+				uint8_t cmd_ret = vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
 #if defined(SPEKTRUM_POWER)
 
 				if (!_rc_scan_locked && !_armed) {
@@ -356,11 +356,11 @@ void RCInput::Run()
 
 						bind_spektrum(dsm_bind_pulses);
 
-						cmd_ret = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+						cmd_ret = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 					}
 
 				} else {
-					cmd_ret = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+					cmd_ret = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 				}
 
 #endif // SPEKTRUM_POWER

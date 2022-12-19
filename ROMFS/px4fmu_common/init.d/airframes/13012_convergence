@@ -34,8 +34,6 @@ param set-default FW_ACRO_X_MAX   270
 param set-default FW_ACRO_Y_MAX   270
 param set-default FW_ACRO_Z_MAX   180
 param set-default FW_PSP_OFF  5
-param set-default FW_P_LIM_MAX    30
-param set-default FW_P_LIM_MIN    -30
 param set-default FW_RR_FF    0.33
 param set-default FW_RR_P 0.11
 
@@ -74,4 +72,4 @@ then
 	set PWM_OUT 1234
 else
 	set PWM_OUT 3456
-fi	
+fi

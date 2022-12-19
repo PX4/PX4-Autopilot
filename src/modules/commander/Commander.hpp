@@ -153,6 +153,14 @@ private:
 
 	void manual_control_check();
 
+	/**
+	 * @brief Handle incoming vehicle command relavant to Commander
+	 *
+	 * It ignores irrelevant vehicle commands defined inside the switch case statement
+	 * in the function.
+	 *
+	 * @param cmd 		Vehicle command to handle
+	 */
 	bool handle_command(const vehicle_command_s &cmd);
 
 	unsigned handle_command_motor_test(const vehicle_command_s &cmd);
@@ -184,6 +192,8 @@ private:
 	void send_parachute_command();
 
 	void checkWindSpeedThresholds();
+
+	void checkFlightTimeThresholds();
 
 	void updateParameters();
 
@@ -226,6 +236,9 @@ private:
 
 		(ParamFloat<px4::params::COM_WIND_WARN>) _param_com_wind_warn,
 
+		(ParamInt<px4::params::RC_MAP_MODE_SW>) _param_rc_map_mode_sw,
+		(ParamInt<px4::params::RC_MAP_FLTM_BTN>) _param_rc_map_fltm_btn,
+
 		// Quadchute
 		(ParamInt<px4::params::COM_QC_ACT>) _param_com_qc_act,
 
@@ -237,6 +250,7 @@ private:
 		(ParamInt<px4::params::COM_PREARM_MODE>) _param_com_prearm_mode,
 		(ParamBool<px4::params::COM_FORCE_SAFETY>) _param_com_force_safety,
 		(ParamBool<px4::params::COM_MOT_TEST_EN>) _param_com_mot_test_en,
+		(ParamInt<px4::params::COM_ARM_WO_OBLOG>) _param_com_arm_wo_ob_logger,
 
 		(ParamFloat<px4::params::COM_KILL_DISARM>) _param_com_kill_disarm,
 		(ParamFloat<px4::params::COM_LKDOWN_TKO>) _param_com_lkdown_tko,
@@ -248,6 +262,7 @@ private:
 		(ParamBool<px4::params::COM_ARM_MIS_REQ>) _param_arm_mission_required,
 		(ParamBool<px4::params::COM_ARM_AUTH_REQ>) _param_arm_auth_required,
 		(ParamBool<px4::params::COM_ARM_CHK_ESCS>) _param_escs_checks_required,
+		(ParamBool<px4::params::COM_DISARM_MAN>) _param_com_disarm_man,
 
 		(ParamInt<px4::params::COM_FLIGHT_UUID>) _param_flight_uuid,
 		(ParamInt<px4::params::COM_TAKEOFF_ACT>) _param_takeoff_finished_action,
@@ -260,8 +275,12 @@ private:
 		(ParamInt<px4::params::CBRK_VELPOSERR>) _param_cbrk_velposerr,
 		(ParamInt<px4::params::CBRK_VTOLARMING>) _param_cbrk_vtolarming,
 
+		(ParamFloat<px4::params::COM_SPOOLUP_TIME>) _param_com_spoolup_time,
+
 		(ParamInt<px4::params::COM_FLT_TIME_MAX>) _param_com_flt_time_max,
-		(ParamFloat<px4::params::COM_WIND_MAX>) _param_com_wind_max
+		(ParamFloat<px4::params::COM_WIND_MAX>) _param_com_wind_max,
+
+		(ParamInt<px4::params::COM_DR_EPH>) _param_com_dr_eph
 	)
 
 	// optional parameters
@@ -295,6 +314,10 @@ private:
 
 	static constexpr uint64_t HOTPLUG_SENS_TIMEOUT{8_s};	/**< wait for hotplug sensors to come online for upto 8 seconds */
 	static constexpr uint64_t INAIR_RESTART_HOLDOFF_INTERVAL{500_ms};
+
+	// export compliance parameter limits (only active if PX4_EXPORT_CONTROLLED_BUILD)
+	static constexpr int EXPORT_RESTRICTED_MAX_FLIGHT_TIME{3540}; //59 min
+	static constexpr float EXPORT_RESTRICTED_MAX_WIND{12.f}; //12 m/s
 
 	ArmStateMachine _arm_state_machine{};
 	PreFlightCheck::arm_requirements_t	_arm_requirements{};
@@ -334,10 +357,14 @@ private:
 	hrt_abstime	_datalink_last_heartbeat_gcs{0};
 	hrt_abstime	_datalink_last_heartbeat_avoidance_system{0};
 	hrt_abstime	_datalink_last_heartbeat_onboard_controller{0};
+	hrt_abstime	_datalink_last_heartbeat_logging_system{0};
 	hrt_abstime	_datalink_last_heartbeat_parachute_system{0};
+	hrt_abstime	_datalink_last_heartbeat_open_drone_id_system{0};
 	bool		_onboard_controller_lost{false};
 	bool		_avoidance_system_lost{false};
+	bool		_logging_system_lost{false};
 	bool		_parachute_system_lost{true};
+	bool		_open_drone_id_system_lost{true};
 
 	hrt_abstime	_high_latency_datalink_heartbeat{0};
 	hrt_abstime	_high_latency_datalink_lost{0};
@@ -348,6 +375,7 @@ private:
 
 	uint8_t		_battery_warning{battery_status_s::BATTERY_WARNING_NONE};
 	hrt_abstime	_battery_failsafe_timestamp{0};
+	hrt_abstime	_remaining_flighttime_failsafe_timestamp{0};
 	px4::Bitset<battery_status_s::MAX_INSTANCES> _last_connected_batteries;
 	uint32_t	_last_battery_custom_fault[battery_status_s::MAX_INSTANCES] {};
 	uint16_t	_last_battery_fault[battery_status_s::MAX_INSTANCES] {};
@@ -395,6 +423,9 @@ private:
 	vtol_vehicle_status_s	_vtol_vehicle_status{};
 
 	hrt_abstime _last_wind_warning{0};
+	hrt_abstime _last_flight_time_warning{0};
+
+	bool _rtl_after_gnss_outtage_triggered{false};
 
 	// commander publications
 	actuator_armed_s        _actuator_armed{};

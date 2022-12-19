@@ -70,6 +70,9 @@ static inline constexpr bool PX4_ISFINITE(double x) { return __builtin_isfinite(
 #define PX4_O_MODE_666 0666
 #define PX4_O_MODE_600 0600
 
+#define DIRENT_REGULAR_FILE DTYPE_FILE
+#define DIRENT_DIRECTORY DTYPE_DIRECTORY
+
 #elif defined(__PX4_POSIX)
 /****************************************************************************
  * POSIX Specific defines
@@ -90,6 +93,9 @@ static inline constexpr bool PX4_ISFINITE(double x) { return __builtin_isfinite(
 
 #define USEC_PER_TICK (1000000/PX4_TICKS_PER_SEC)
 #define USEC2TICK(x) (((x)+(USEC_PER_TICK/2))/USEC_PER_TICK)
+
+#define DIRENT_REGULAR_FILE DT_REG
+#define DIRENT_DIRECTORY DT_DIR
 
 __BEGIN_DECLS
 extern long PX4_TICKS_PER_SEC;

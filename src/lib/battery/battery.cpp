@@ -155,6 +155,7 @@ battery_status_s Battery::getBatteryStatus()
 	battery_status.id = static_cast<uint8_t>(_index);
 	battery_status.warning = _warning;
 	battery_status.timestamp = hrt_absolute_time();
+	battery_status.faults = determineFaults();
 	return battery_status;
 }
 
@@ -215,7 +216,7 @@ void Battery::estimateStateOfCharge(const float voltage_v, const float current_a
 		cell_voltage += throttle * _params.v_load_drop;
 	}
 
-	_state_of_charge_volt_based = math::gradual(cell_voltage, _params.v_empty, _params.v_charged, 0.f, 1.f);
+	_state_of_charge_volt_based = math::interpolate(cell_voltage, _params.v_empty, _params.v_charged, 0.f, 1.f);
 
 	// choose which quantity we're using for final reporting
 	if (_params.capacity > 0.f && _battery_initialized) {
@@ -249,6 +250,18 @@ uint8_t Battery::determineWarning(float state_of_charge)
 	} else {
 		return battery_status_s::BATTERY_WARNING_NONE;
 	}
+}
+
+uint16_t Battery::determineFaults()
+{
+	uint16_t faults{0};
+
+	if ((_params.n_cells > 0)
+	    && (_voltage_v > (_params.n_cells * _params.v_charged * 1.05f))) {
+		faults |= (1 << battery_status_s::BATTERY_FAULT_SPIKES);
+	}
+
+	return faults;
 }
 
 void Battery::computeScale()

@@ -71,6 +71,32 @@ public:
 		return (*this).cross(b);
 	}
 
+	/**
+	 * @brief rotate vector
+	 *
+	 * @param[in] angle [rad]	The angle around the positive out of plane axis.
+	 */
+	void rotate(const Type angle)
+	{
+		Vector2 &v(*this);
+		Vector2 rotated;
+		Type sin_angle = Type(sin(angle));
+		Type cos_angle = Type(cos(angle));
+		rotated(0) = cos_angle * v(0) - sin_angle * v(1);
+		rotated(1) = sin_angle * v(0) + cos_angle * v(1);
+		v = rotated;
+	}
+
+	/**
+	 * @brief Transform vector in new coordinate system
+	 *
+	 * @param[in] angle [rad]	The rotation of new coordinate system around the positive out of plane axis.
+	 */
+	void transform(const Type angle)
+	{
+		this->rotate(-angle);
+	}
+
 };
 
 

@@ -150,8 +150,21 @@ main_state_transition(const vehicle_status_s &status, const main_state_t new_mai
 
 	case commander_state_s::MAIN_STATE_AUTO_LOITER:
 
-		/* need global position estimate */
-		if (status_flags.global_position_valid) {
+		/* need global position estimate
+		 * and there was not a previously triggered flight time or max
+		 * wind speed rtl in the current flight */
+
+		if (status_flags.max_flight_time_exceeded) {
+			events::send(events::ID("state_machine_loiter_rejected_flight_time"),
+			{events::Log::Warning, events::LogInternal::Info},
+			"Mode rejected due to flight time above limit");
+
+		} else if (status_flags.max_wind_speed_exceeded) {
+			events::send(events::ID("state_machine_loiter_rejected_wind"),
+			{events::Log::Warning, events::LogInternal::Info},
+			"Mode rejected due to wind speed above limit");
+
+		} else if (status_flags.global_position_valid) {
 			ret = TRANSITION_CHANGED;
 		}
 
@@ -160,15 +173,30 @@ main_state_transition(const vehicle_status_s &status, const main_state_t new_mai
 	case commander_state_s::MAIN_STATE_AUTO_FOLLOW_TARGET:
 	case commander_state_s::MAIN_STATE_ORBIT:
 
-		/* Follow and orbit only implemented for multicopter */
-		if (status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+		/* Follow and orbit only implemented for multicopter,
+		 * and only allow if there was not a previously triggered flight time or max
+		 * wind speed rtl in the current flight */
+
+		if (status_flags.max_flight_time_exceeded) {
+			events::send(events::ID("state_machine_orbit_rejected_flight_time"),
+			{events::Log::Warning, events::LogInternal::Info},
+			"Mode rejected due to flight time above limit");
+
+		} else if (status_flags.max_wind_speed_exceeded) {
+			events::send(events::ID("state_machine_orbit_rejected_wind"),
+			{events::Log::Warning, events::LogInternal::Info},
+			"Mode rejected due to wind speed above limit");
+
+		} else if (status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 			ret = TRANSITION_CHANGED;
 		}
 
 		break;
 
 	case commander_state_s::MAIN_STATE_AUTO_VTOL_TAKEOFF:
-		if (status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+		if (is_vtol(status) && status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING &&
+		    status_flags.global_position_valid &&
+		    status_flags.home_position_valid) {
 			ret = TRANSITION_CHANGED;
 		}
 
@@ -176,10 +204,22 @@ main_state_transition(const vehicle_status_s &status, const main_state_t new_mai
 
 	case commander_state_s::MAIN_STATE_AUTO_MISSION:
 
-		/* need global position, home position, and a valid mission */
-		if (status_flags.global_position_valid &&
-		    status_flags.auto_mission_available) {
+		/* need global position, home position, and a valid mission
+		 * and there was not a previously triggered flight time or max
+		 * wind speed rtl in the current flight */
 
+		if (status_flags.max_flight_time_exceeded) {
+			events::send(events::ID("state_machine_mission_rejected_flight_time"),
+			{events::Log::Warning, events::LogInternal::Info},
+			"Mission rejected due to flight time above limit");
+
+		} else if (status_flags.max_wind_speed_exceeded) {
+			events::send(events::ID("state_machine_mission_rejected_wind"),
+			{events::Log::Warning, events::LogInternal::Info},
+			"Mission rejected due to wind speed above limit");
+
+		} else if (status_flags.global_position_valid &&
+			   status_flags.auto_mission_available) {
 			ret = TRANSITION_CHANGED;
 		}
 
@@ -226,6 +266,7 @@ main_state_transition(const vehicle_status_s &status, const main_state_t new_mai
 
 		break;
 
+	case commander_state_s::MAIN_STATE_INIT:
 	case commander_state_s::MAIN_STATE_MAX:
 	default:
 		break;
@@ -283,6 +324,7 @@ static void enable_failsafe(vehicle_status_s &status, bool old_failsafe, orb_adv
 		events::send<events::px4::enums::failsafe_reason_t>(
 			events::ID("commander_enable_failsafe"), {events::Log::Critical, events::LogInternal::Info},
 			"Failsafe enabled: {1}", event_failsafe_reason);
+		status.failsafe_but_user_took_over = false;
 	}
 
 	status.failsafe = true;
@@ -307,6 +349,7 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 
 	bool old_failsafe = status.failsafe;
 	status.failsafe = false;
+	status.failsafe_but_user_took_over &= status.data_link_lost;
 
 	// Safe to do reset flags here, as if loss state persists flags will be restored in the code below
 	reset_link_loss_globals(armed, old_failsafe, rc_loss_act);
@@ -324,6 +367,11 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 		if (status.rc_signal_lost && is_armed) {
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, event_failsafe_reason_t::no_rc);
 			set_link_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act, param_com_rcl_act_t);
+
+		} else if (status.data_link_lost && data_link_loss_act_configured && is_armed && !status.failsafe_but_user_took_over) {
+			// Data link lost, data link loss reaction configured -> do configured reaction
+			enable_failsafe(status, old_failsafe, mavlink_log_pub, event_failsafe_reason_t::no_datalink);
+			set_link_loss_nav_state(status, armed, status_flags, internal_state, data_link_loss_act, 0);
 
 		} else {
 			switch (internal_state.main_state) {
@@ -363,6 +411,11 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 				/* A local position estimate is enough for POSCTL for multirotors,
 				 * this enables POSCTL using e.g. flow.
 				 * For fixedwing, a global position is needed. */
+
+			} else if (status.data_link_lost && data_link_loss_act_configured && is_armed && !status.failsafe_but_user_took_over) {
+				// Data link lost, data link loss reaction configured -> do configured reaction
+				enable_failsafe(status, old_failsafe, mavlink_log_pub, event_failsafe_reason_t::no_datalink);
+				set_link_loss_nav_state(status, armed, status_flags, internal_state, data_link_loss_act, 0);
 
 			} else if (check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags,
 							       rc_fallback_allowed, status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING)) {
@@ -469,7 +522,12 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 
 		/* require global position and home, also go into failsafe on an engine failure */
 
-		if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true)) {
+		if (status.data_link_lost && data_link_loss_act_configured && is_armed) {
+			// Data link lost, data link loss reaction configured -> do configured reaction
+			enable_failsafe(status, old_failsafe, mavlink_log_pub, event_failsafe_reason_t::no_datalink);
+			set_link_loss_nav_state(status, armed, status_flags, internal_state, data_link_loss_act, 0);
+
+		} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true)) {
 			// nothing to do - everything done in check_invalid_pos_nav_state
 		} else {
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
@@ -484,7 +542,22 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 		if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true)) {
 			// nothing to do - everything done in check_invalid_pos_nav_state
 
+		} else if (status.data_link_lost && data_link_loss_act_configured && !landed && is_armed) {
+			// failsafe: datalink is lost
+			// Trigger RTL
+			set_link_loss_nav_state(status, armed, status_flags, internal_state, data_link_loss_act, 0);
+
+			enable_failsafe(status, old_failsafe, mavlink_log_pub, event_failsafe_reason_t::no_datalink);
+
+		} else if (status.rc_signal_lost && status_flags.rc_signal_found_once && !data_link_loss_act_configured && is_armed) {
+			// Trigger failsafe on RC loss only if RC was present once before
+			// Otherwise fly without RC, as follow-target only depends on the datalink
+			enable_failsafe(status, old_failsafe, mavlink_log_pub, event_failsafe_reason_t::no_rc);
+
+			set_link_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act, 0);
+
 		} else {
+			// no failsafe, RC is not mandatory for follow_target
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET;
 		}
 
@@ -526,44 +599,54 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 		break;
 
 	case commander_state_s::MAIN_STATE_AUTO_TAKEOFF:
-	case commander_state_s::MAIN_STATE_AUTO_VTOL_TAKEOFF:
+	case commander_state_s::MAIN_STATE_AUTO_VTOL_TAKEOFF: {
 
-		// require local position
+			// require local position
 
-		if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, false)) {
-			// nothing to do - everything done in check_invalid_pos_nav_state
+			const bool in_forward_flight = status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
+						       || status.in_transition_mode;
 
-		} else if (status_flags.vtol_transition_failure) {
+			// deny entering failsafe while doing a vtol takeoff after the vehicle has started a transition and before it reaches the loiter
+			// altitude. the vtol takeoff navigaton mode will set mission_finished to true as soon as the loiter is established
+			const bool deny_link_failsafe = status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF
+							&& in_forward_flight
+							&& !mission_finished;
 
-			set_quadchute_nav_state(status, armed, status_flags, quadchute_act);
+			if (is_armed
+			    && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, false)) {
+				// nothing to do - everything done in check_invalid_pos_nav_state
 
-		} else if (status.data_link_lost && data_link_loss_act_configured && !landed && is_armed) {
-			// Data link lost, data link loss reaction configured -> do configured reaction
-			enable_failsafe(status, old_failsafe, mavlink_log_pub, event_failsafe_reason_t::no_datalink);
-			set_link_loss_nav_state(status, armed, status_flags, internal_state, data_link_loss_act, 0);
+			} else if (status_flags.vtol_transition_failure) {
+				set_quadchute_nav_state(status, armed, status_flags, quadchute_act);
 
-		} else if (status.rc_signal_lost && !(param_com_rcl_except & RCLossExceptionBits::RCL_EXCEPT_HOLD)
-			   && status_flags.rc_signal_found_once && is_armed && !landed) {
-			// RC link lost, rc loss not disabled in loiter, RC was used before -> RC loss reaction after delay
-			// Safety pilot expects to be able to take over by RC in case anything unexpected happens
-			enable_failsafe(status, old_failsafe, mavlink_log_pub, event_failsafe_reason_t::no_rc);
-			set_link_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act, param_com_rcl_act_t);
+			} else if (status.data_link_lost && data_link_loss_act_configured && !landed && is_armed && !deny_link_failsafe) {
+				// Data link lost, data link loss reaction configured -> do configured reaction
+				enable_failsafe(status, old_failsafe, mavlink_log_pub, event_failsafe_reason_t::no_datalink);
+				set_link_loss_nav_state(status, armed, status_flags, internal_state, data_link_loss_act, 0);
 
-		} else if (status.rc_signal_lost && !(param_com_rcl_except & RCLossExceptionBits::RCL_EXCEPT_HOLD)
-			   && status.data_link_lost && !data_link_loss_act_configured
-			   && is_armed && !landed) {
-			// All links lost, no data link loss reaction configured -> immediately do RC loss reaction
-			// Lost all communication, by default it's considered unsafe to continue the mission
-			// This is only reached when flying mission completely without RC (it was not present since boot)
-			enable_failsafe(status, old_failsafe, mavlink_log_pub, event_failsafe_reason_t::no_rc_and_no_datalink);
-			set_link_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act, 0);
+			} else if (status.rc_signal_lost && !(param_com_rcl_except & RCLossExceptionBits::RCL_EXCEPT_HOLD)
+				   && status_flags.rc_signal_found_once && is_armed && !landed && !deny_link_failsafe) {
+				// RC link lost, rc loss not disabled in loiter, RC was used before -> RC loss reaction after delay
+				// Safety pilot expects to be able to take over by RC in case anything unexpected happens
+				enable_failsafe(status, old_failsafe, mavlink_log_pub, event_failsafe_reason_t::no_rc);
+				set_link_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act, param_com_rcl_act_t);
 
-		} else {
-			status.nav_state = internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_TAKEOFF ?
-					   vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF : vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF;
+			} else if (status.rc_signal_lost && !(param_com_rcl_except & RCLossExceptionBits::RCL_EXCEPT_HOLD)
+				   && status.data_link_lost && !data_link_loss_act_configured
+				   && is_armed && !landed && !deny_link_failsafe) {
+				// All links lost, no data link loss reaction configured -> immediately do RC loss reaction
+				// Lost all communication, by default it's considered unsafe to continue the mission
+				// This is only reached when flying mission completely without RC (it was not present since boot)
+				enable_failsafe(status, old_failsafe, mavlink_log_pub, event_failsafe_reason_t::no_datalink);
+				set_link_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act, 0);
+
+			} else {
+				status.nav_state = internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_TAKEOFF ?
+						   vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF : vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF;
+			}
+
+			break;
 		}
-
-		break;
 
 	case commander_state_s::MAIN_STATE_AUTO_LAND:
 
@@ -595,7 +678,7 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 	case commander_state_s::MAIN_STATE_OFFBOARD:
 
 		if (status_flags.offboard_control_signal_lost) {
-			if (status.rc_signal_lost) {
+			if (status.rc_signal_lost && !(param_com_rcl_except & RCLossExceptionBits::RCL_EXCEPT_OFFBOARD)) {
 				// Offboard and RC are lost
 				enable_failsafe(status, old_failsafe, mavlink_log_pub, event_failsafe_reason_t::no_rc_and_no_offboard);
 				set_offboard_loss_nav_state(status, armed, status_flags, offb_loss_act);
@@ -625,6 +708,12 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 
 		break;
 
+	case commander_state_s::MAIN_STATE_INIT:
+		status.nav_state = vehicle_status_s::NAVIGATION_STATE_INIT;
+		break;
+
+		break;
+
 	default:
 		break;
 	}
@@ -647,6 +736,14 @@ bool check_invalid_pos_nav_state(vehicle_status_s &status, bool old_failsafe, or
 	}
 
 	if (fallback_required) {
+
+		if (using_global_pos) {
+			enable_failsafe(status, old_failsafe, mavlink_log_pub, event_failsafe_reason_t::no_global_position);
+
+		} else {
+			enable_failsafe(status, old_failsafe, mavlink_log_pub, event_failsafe_reason_t::no_local_position);
+		}
+
 		if (use_rc) {
 			// fallback to a mode that gives the operator stick control
 			if (status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
@@ -673,14 +770,6 @@ bool check_invalid_pos_nav_state(vehicle_status_s &status, bool old_failsafe, or
 				status.nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
 			}
 		}
-
-		if (using_global_pos) {
-			enable_failsafe(status, old_failsafe, mavlink_log_pub, event_failsafe_reason_t::no_global_position);
-
-		} else {
-			enable_failsafe(status, old_failsafe, mavlink_log_pub, event_failsafe_reason_t::no_local_position);
-		}
-
 	}
 
 	return fallback_required;
@@ -943,7 +1032,7 @@ void warn_user_about_battery(orb_advert_t *mavlink_log_pub, const uint8_t batter
 	// User warning
 	switch (battery_warning) {
 	case battery_status_s::BATTERY_WARNING_LOW:
-		mavlink_log_critical(mavlink_log_pub, "Low %s, return advised\t", battery_level);
+		mavlink_log_gcs_critical(mavlink_log_pub, "Low %s, return advised\t", battery_level);
 		events::send(events::ID("commander_bat_low"), {events::Log::Warning, events::LogInternal::Info},
 			     "Low battery level, return advised");
 
@@ -951,13 +1040,13 @@ void warn_user_about_battery(orb_advert_t *mavlink_log_pub, const uint8_t batter
 
 	case battery_status_s::BATTERY_WARNING_CRITICAL:
 		if (failsafe_action == commander_state_s::MAIN_STATE_MAX) {
-			mavlink_log_critical(mavlink_log_pub, "Critical %s, return now\t", battery_level);
+			mavlink_log_gcs_critical(mavlink_log_pub, "Critical %s, return now\t", battery_level);
 			events::send(events::ID("commander_bat_crit"), {events::Log::Critical, events::LogInternal::Info},
 				     "Critical battery level, return now");
 
 		} else {
-			mavlink_log_critical(mavlink_log_pub, "Critical %s, executing %s in %d seconds\t", battery_level,
-					     failsafe_action_string, static_cast<uint16_t>(param_com_bat_act_t));
+			mavlink_log_gcs_critical(mavlink_log_pub, "Critical %s, executing %s in %d seconds\t", battery_level,
+						 failsafe_action_string, static_cast<uint16_t>(param_com_bat_act_t));
 			events::send<events::px4::enums::navigation_mode_t, uint16_t>(events::ID("commander_bat_crit_act"), {events::Log::Critical, events::LogInternal::Info},
 					"Critical battery level, executing {1} in {2} seconds",
 					failsafe_action_navigation_mode, static_cast<uint16_t>(param_com_bat_act_t));

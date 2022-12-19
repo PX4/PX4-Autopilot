@@ -79,6 +79,8 @@
 #define VEHICLE_TYPE_VTOL_TILTROTOR 21
 #define VEHICLE_TYPE_VTOL_FIXEDROTOR 22 // VTOL standard
 #define VEHICLE_TYPE_VTOL_TAILSITTER 23
+#define VEHICLE_TYPE_VTOL_RESERVED4 24
+#define VEHICLE_TYPE_VTOL_RESERVED5 25
 
 #define BLINK_MSG_TIME	700000	// 3 fast blinks (in us)
 
@@ -103,7 +105,9 @@ bool is_vtol(const vehicle_status_s &current_status)
 		current_status.system_type == VEHICLE_TYPE_VTOL_TAILSITTER_QUADROTOR ||
 		current_status.system_type == VEHICLE_TYPE_VTOL_TILTROTOR ||
 		current_status.system_type == VEHICLE_TYPE_VTOL_FIXEDROTOR ||
-		current_status.system_type == VEHICLE_TYPE_VTOL_TAILSITTER);
+		current_status.system_type == VEHICLE_TYPE_VTOL_TAILSITTER ||
+		current_status.system_type == VEHICLE_TYPE_VTOL_RESERVED4 ||
+		current_status.system_type == VEHICLE_TYPE_VTOL_RESERVED5);
 }
 
 bool is_vtol_tailsitter(const vehicle_status_s &current_status)

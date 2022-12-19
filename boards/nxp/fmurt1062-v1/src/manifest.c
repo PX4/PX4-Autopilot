@@ -88,8 +88,8 @@ static const px4_hw_mft_item_t hw_mft_list_v0540[] = {
 };
 
 static px4_hw_mft_list_entry_t mft_lists[] = {
-	{0x0000, hw_mft_list_v0500, arraySize(hw_mft_list_v0500)},
-	{0x0400, hw_mft_list_v0540, arraySize(hw_mft_list_v0540)},
+	{V500, hw_mft_list_v0500, arraySize(hw_mft_list_v0500)},
+	{V540, hw_mft_list_v0540, arraySize(hw_mft_list_v0540)},
 };
 
 /************************************************************************************

@@ -33,6 +33,8 @@
 
 #include "actuator_test.hpp"
 
+#include "functions/FunctionMotors.hpp"
+
 using namespace time_literals;
 
 ActuatorTest::ActuatorTest(const OutputFunction function_assignments[MAX_ACTUATORS])

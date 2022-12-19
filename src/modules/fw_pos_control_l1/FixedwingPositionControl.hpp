@@ -48,6 +48,7 @@
 #ifndef FIXEDWINGPOSITIONCONTROL_HPP_
 #define FIXEDWINGPOSITIONCONTROL_HPP_
 
+#include "figure_eight/FigureEight.hpp" // APX4 custom
 #include "launchdetection/LaunchDetector.h"
 #include "runway_takeoff/RunwayTakeoff.h"
 
@@ -58,7 +59,6 @@
 #include <lib/l1/ECL_L1_Pos_Controller.hpp>
 #include <lib/npfg/npfg.hpp>
 #include <lib/tecs/TECS.hpp>
-#include <lib/landing_slope/Landingslope.hpp>
 #include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
 #include <lib/slew_rate/SlewRate.hpp>
@@ -94,6 +94,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/wind.h>
 #include <uORB/topics/orbit_status.h>
+#include <uORB/topics/figure_eight_status.h> // APX4 custom
 #include <uORB/uORB.h>
 
 using namespace launchdetection;
@@ -118,8 +119,13 @@ static constexpr float HDG_HOLD_YAWRATE_THRESH = 0.15f;
 // [.] max manual roll/yaw normalized input from user which does not change the locked heading
 static constexpr float HDG_HOLD_MAN_INPUT_THRESH = 0.01f;
 
-// [us] time after which we abort landing if terrain estimate is not valid
+// [us] time after which we abort landing if terrain estimate is not valid. this timer start whenever the terrain altitude
+// was previously valid, and has changed to invalid.
 static constexpr hrt_abstime TERRAIN_ALT_TIMEOUT = 1_s;
+
+// [us] within this timeout, if a distance sensor measurement not yet made, the land waypoint altitude is used for terrain
+// altitude. this timer starts at the beginning of the landing glide slope.
+static constexpr hrt_abstime TERRAIN_ALT_FIRST_MEASUREMENT_TIMEOUT = 10_s;
 
 // [.] max throttle from user which will not lead to motors spinning up in altitude controlled modes
 static constexpr float THROTTLE_THRESH = 0.05f;
@@ -135,6 +141,32 @@ static constexpr float MIN_AUTO_TIMESTEP = 0.01f;
 
 // [s] maximum time step between auto control updates
 static constexpr float MAX_AUTO_TIMESTEP = 0.05f;
+
+// [.] minimum ratio between the actual vehicle weight and the vehicle nominal weight (weight at which the performance limits are derived)
+static constexpr float MIN_WEIGHT_RATIO = 0.5f;
+
+// [.] maximum ratio between the actual vehicle weight and the vehicle nominal weight (weight at which the performance limits are derived)
+static constexpr float MAX_WEIGHT_RATIO = 2.0f;
+
+// air density of standard athmosphere at 5000m above mean sea level [kg/m^3]
+static constexpr float AIR_DENSITY_STANDARD_ATMOS_5000_AMSL = 0.7363f;
+
+// [rad] minimum pitch while airspeed has not yet reached a controllable value in manual position controlled takeoff modes
+static constexpr float MIN_PITCH_DURING_MANUAL_TAKEOFF = 0.0f;
+
+// [m] arbitrary buffer altitude added to clearance altitude setpoint during takeoff to ensure aircraft passes the clearance
+// altitude while waiting for navigator to flag it exceeded
+static constexpr float kClearanceAltitudeBuffer = 10.0f;
+
+// [m] a very large number to hopefully avoid the "fly back" case in L1 waypoint following logic once passed the second
+// waypoint in the segment. this is unecessary with NPFG.
+static constexpr float L1_VIRTUAL_TAKEOFF_WP_DIST = 1.0e6f;
+
+// [m/s] maximum rate at which the touchdown position can be nudged
+static constexpr float MAX_TOUCHDOWN_POSITION_NUDGE_RATE = 4.0f;
+
+// [.] normalized deadzone threshold for manual nudging input
+static constexpr float MANUAL_TOUCHDOWN_NUDGE_INPUT_DEADZONE = 0.15f;
 
 class FixedwingPositionControl final : public ModuleBase<FixedwingPositionControl>, public ModuleParams,
 	public px4::WorkItem
@@ -184,153 +216,23 @@ private:
 	uORB::Publication<position_controller_landing_status_s>	_pos_ctrl_landing_status_pub{ORB_ID(position_controller_landing_status)};
 	uORB::Publication<tecs_status_s> _tecs_status_pub{ORB_ID(tecs_status)};
 	uORB::PublicationMulti<orbit_status_s> _orbit_status_pub{ORB_ID(orbit_status)};
+	uORB::Publication<figure_eight_status_s> _figure_eight_status_pub{ORB_ID(figure_eight_status)}; // APX4 custom
 
-	manual_control_setpoint_s _manual_control_setpoint {}; // r/c channel data
-	position_setpoint_triplet_s _pos_sp_triplet {}; // triplet of mission items
-	vehicle_attitude_setpoint_s _att_sp {}; // vehicle attitude setpoint
-	vehicle_control_mode_s _control_mode {};
-	vehicle_local_position_s _local_pos {};	// vehicle local position
-	vehicle_status_s _vehicle_status {}; // vehicle status
+	manual_control_setpoint_s _manual_control_setpoint{};
+	position_setpoint_triplet_s _pos_sp_triplet{};
+	vehicle_attitude_setpoint_s _att_sp{};
+	vehicle_control_mode_s _control_mode{};
+	vehicle_local_position_s _local_pos{};
+	vehicle_status_s _vehicle_status{};
 
-	double _current_latitude{0};
-	double _current_longitude{0};
-	float _current_altitude{0.f};
+	bool _position_setpoint_previous_valid{false};
+	bool _position_setpoint_current_valid{false};
+	bool _position_setpoint_next_valid{false};
 
 	perf_counter_t _loop_perf; // loop performance counter
 
-	MapProjection _global_local_proj_ref{};
-	float _global_local_alt0{NAN};
-
-	// [m] ground altitude where the plane was launched
-	float _takeoff_ground_alt{0.0f};
-
-	// [rad] yaw setpoint for manual position mode heading hold
-	float _hdg_hold_yaw{0.0f};
-
-	bool _hdg_hold_enabled{false}; // heading hold enabled
-	bool _yaw_lock_engaged{false}; // yaw is locked for heading hold
-
-	float _min_current_sp_distance_xy{FLT_MAX};
-
-	position_setpoint_s _hdg_hold_prev_wp {}; // position where heading hold started
-	position_setpoint_s _hdg_hold_curr_wp {}; // position to which heading hold flies
-
 	// [us] Last absolute time position control has been called
 	hrt_abstime _last_time_position_control_called{0};
-
-	bool _landed{true};
-
-	/* Landing */
-	bool _land_noreturn_horizontal{false};
-	bool _land_noreturn_vertical{false};
-	bool _land_stayonground{false};
-	bool _land_motor_lim{false};
-	bool _land_onslope{false};
-	bool _land_abort{false};
-
-	Landingslope _landingslope;
-
-	// [us] time at which landing started
-	hrt_abstime _time_started_landing{0};
-
-	// [m] last terrain estimate which was valid
-	float _last_valid_terrain_alt_estimate{0.0f};
-
-	// [us] time at which we had last valid terrain alt
-	hrt_abstime _last_time_terrain_alt_was_valid{0};
-
-	// [m] estimated height to ground at which flare started
-	float _flare_height{0.0f};
-
-	// [m] current forced (i.e. not determined using TECS) flare pitch setpoint
-	float _flare_pitch_sp{0.0f};
-
-	// [m] estimated height to ground at which flare started
-	float _flare_curve_alt_rel_last{0.0f};
-
-	float _target_bearing{0.0f}; // [rad]
-
-	// indicates whether the plane was in the air in the previous interation
-	bool _was_in_air{false};
-
-	// [us] time at which the plane went in the air
-	hrt_abstime _time_went_in_air{0};
-
-	// Takeoff launch detection and runway
-	LaunchDetector _launchDetector;
-	LaunchDetectionResult _launch_detection_state{LAUNCHDETECTION_RES_NONE};
-	hrt_abstime _launch_detection_notify{0};
-
-	RunwayTakeoff _runway_takeoff;
-
-	// true if the last iteration was in manual mode (used to determine when a reset is needed)
-	bool _last_manual{false};
-
-	/* throttle and airspeed states */
-
-	bool _airspeed_valid{false};
-
-	// [us] last time airspeed was received. used to detect timeouts.
-	hrt_abstime _time_airspeed_last_valid{0};
-
-	float _airspeed{0.0f};
-	float _eas2tas{1.0f};
-
-	/* wind estimates */
-
-	// [m/s] wind velocity vector
-	Vector2f _wind_vel{0.0f, 0.0f};
-
-	bool _wind_valid{false};
-
-	hrt_abstime _time_wind_last_received{0}; // [us]
-
-	float _pitch{0.0f};
-	float _yaw{0.0f};
-	float _yawrate{0.0f};
-
-	matrix::Vector3f _body_acceleration{};
-	matrix::Vector3f _body_velocity{};
-
-	bool _reinitialize_tecs{true};
-	bool _is_tecs_running{false};
-
-	hrt_abstime _time_last_tecs_update{0}; // [us]
-
-	float _airspeed_after_transition{0.0f};
-	bool _was_in_transition{false};
-
-	bool _is_vtol_tailsitter{false};
-
-	matrix::Vector2d _transition_waypoint{(double)NAN, (double)NAN};
-
-	// estimator reset counters
-
-	// captures the number of times the estimator has reset the horizontal position
-	uint8_t _pos_reset_counter{0};
-
-	// captures the number of times the estimator has reset the altitude state
-	uint8_t _alt_reset_counter{0};
-
-	// [.] normalized setpoint for manual altitude control [-1,1]; -1,0,1 maps to min,zero,max height rate commands
-	float _manual_control_setpoint_for_height_rate{0.0f};
-
-	// [.] normalized setpoint for manual airspeed control [0,1]; 0,0.5,1 maps to min,cruise,max airspeed commands
-	float _manual_control_setpoint_for_airspeed{0.0f};
-
-	// [m/s] airspeed setpoint for manual modes commanded via MAV_CMD_DO_CHANGE_SPEED
-	float _commanded_airspeed_setpoint{NAN};
-
-	hrt_abstime _time_in_fixed_bank_loiter{0}; // [us]
-
-	// L1 guidance - lateral-directional position control
-	ECL_L1_Pos_Controller _l1_control;
-
-	// nonlinear path following guidance - lateral-directional position control
-	NPFG _npfg;
-
-	// total energy control system - airspeed / altitude control
-	TECS _tecs;
 
 	uint8_t _position_sp_type{0};
 
@@ -345,14 +247,194 @@ private:
 		FW_POSCTRL_MODE_OTHER
 	} _control_mode_current{FW_POSCTRL_MODE_OTHER}; // used to check if the mode has changed
 
-	param_t _param_handle_airspeed_trans{PARAM_INVALID};
-
-	float _param_airspeed_trans{NAN}; // [m/s]
-
 	enum StickConfig {
 		STICK_CONFIG_SWAP_STICKS_BIT = (1 << 0),
 		STICK_CONFIG_ENABLE_AIRSPEED_SP_MANUAL_BIT = (1 << 1)
 	};
+
+	// VEHICLE STATES
+
+	double _current_latitude{0};
+	double _current_longitude{0};
+	float _current_altitude{0.f};
+
+	float _pitch{0.0f};
+	float _yaw{0.0f};
+	float _yawrate{0.0f};
+
+	matrix::Vector3f _body_acceleration{};
+	matrix::Vector3f _body_velocity{};
+
+	MapProjection _global_local_proj_ref{};
+	float _global_local_alt0{NAN};
+
+	bool _landed{true};
+
+	// indicates whether the plane was in the air in the previous interation
+	bool _was_in_air{false};
+
+	// [us] time at which the plane went in the air
+	hrt_abstime _time_went_in_air{0};
+
+	// MANUAL MODES
+
+	// indicates whether we have completed a manual takeoff in a position control mode
+	bool _completed_manual_takeoff{false};
+
+	// [rad] yaw setpoint for manual position mode heading hold
+	float _hdg_hold_yaw{0.0f};
+
+	bool _hdg_hold_enabled{false}; // heading hold enabled
+	bool _yaw_lock_engaged{false}; // yaw is locked for heading hold
+
+	position_setpoint_s _hdg_hold_prev_wp{}; // position where heading hold started
+	position_setpoint_s _hdg_hold_curr_wp{}; // position to which heading hold flies
+
+	// [.] normalized setpoint for manual altitude control [-1,1]; -1,0,1 maps to min,zero,max height rate commands
+	float _manual_control_setpoint_for_height_rate{0.0f};
+
+	// [.] normalized setpoint for manual airspeed control [0,1]; 0,0.5,1 maps to min,cruise,max airspeed commands
+	float _manual_control_setpoint_for_airspeed{0.0f};
+
+	// [m/s] airspeed setpoint for manual modes commanded via MAV_CMD_DO_CHANGE_SPEED
+	float _commanded_manual_airspeed_setpoint{NAN};
+
+	// AUTO TAKEOFF
+
+	// [m] ground altitude AMSL where the plane was launched
+	float _takeoff_ground_alt{0.0f};
+
+	/* Loitering */ // APX4 custom
+	FigureEight _figure_eight;
+
+	// class handling launch detection methods for fixed-wing takeoff
+	LaunchDetector _launchDetector;
+
+	LaunchDetectionResult _launch_detection_state{LAUNCHDETECTION_RES_NONE};
+
+	// [us] logs the last time the launch detection notification was sent (used not to spam notifications during launch detection)
+	hrt_abstime _last_time_launch_detection_notified{0};
+
+	// true if a launch, specifically using the launch detector, has been detected
+	bool _launch_detected{false};
+
+	// [deg] global position of the vehicle at the time launch is detected (using launch detector)
+	Vector2d _launch_global_position{0, 0};
+
+	// class handling runway takeoff for fixed-wing UAVs with steerable wheels
+	RunwayTakeoff _runway_takeoff;
+
+	bool _skipping_takeoff_detection{false};
+
+	// AUTO LANDING
+
+	// corresponds to param FW_LND_NUDGE
+	enum LandingNudgingOption {
+		kNudgingDisabled = 0,
+		kNudgeApproachAngle,
+		kNudgeApproachPath
+	};
+
+	// [us] Start time of the landing approach. If a fixed-wing landing pattern is used, this timer starts *after any
+	// orbit to altitude only when the aircraft has entered the final *straight approach.
+	hrt_abstime _time_started_landing{0};
+
+	// [m] lateral touchdown position offset manually commanded during landing
+	float _lateral_touchdown_position_offset{0.0f};
+
+	// [m] relative vector from land point to approach entrance (NE)
+	Vector2f _landing_approach_entrance_offset_vector{};
+
+	// [m] relative height above land point
+	float _landing_approach_entrance_rel_alt{0.0f};
+
+	uint8_t _landing_abort_status{position_controller_landing_status_s::NOT_ABORTED};
+
+	// organize flare states XXX: need to split into a separate class at some point!
+	struct FlareStates {
+		bool flaring{false};
+		hrt_abstime start_time{0}; // [us]
+		float initial_height_rate_setpoint{0.0f}; // [m/s]
+		float initial_throttle_setpoint{0.0f};
+	} _flare_states;
+
+	// [m] last terrain estimate which was valid
+	float _last_valid_terrain_alt_estimate{0.0f};
+
+	// [us] time at which we had last valid terrain alt
+	hrt_abstime _last_time_terrain_alt_was_valid{0};
+
+	enum TerrainEstimateUseOnLanding {
+		kDisableTerrainEstimation = 0,
+		kTriggerFlareWithTerrainEstimate,
+		kFollowTerrainRelativeLandingGlideSlope
+	};
+
+	// AIRSPEED
+
+	float _airspeed{0.0f};
+	float _eas2tas{1.0f};
+	bool _airspeed_valid{false};
+	float _air_density{CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C};
+
+	// [us] last time airspeed was received. used to detect timeouts.
+	hrt_abstime _time_airspeed_last_valid{0};
+
+	// WIND
+
+	// [m/s] wind velocity vector
+	Vector2f _wind_vel{0.0f, 0.0f};
+
+	bool _wind_valid{false};
+
+	hrt_abstime _time_wind_last_received{0}; // [us]
+
+	// TECS
+
+	// total energy control system - airspeed / altitude control
+	TECS _tecs;
+
+	bool _reinitialize_tecs{true};
+	bool _tecs_is_running{false};
+	hrt_abstime _time_last_tecs_update{0}; // [us]
+
+	// VTOL / TRANSITION
+
+	float _airspeed_after_transition{0.0f};
+	bool _was_in_transition{false};
+	bool _is_vtol_tailsitter{false};
+	matrix::Vector2d _transition_waypoint{(double)NAN, (double)NAN};
+	param_t _param_handle_airspeed_trans{PARAM_INVALID};
+	float _param_airspeed_trans{NAN}; // [m/s]
+
+	// ESTIMATOR RESET COUNTERS
+
+	// captures the number of times the estimator has reset the horizontal position
+	uint8_t _pos_reset_counter{0};
+
+	// captures the number of times the estimator has reset the altitude state
+	uint8_t _alt_reset_counter{0};
+
+	// LATERAL-DIRECTIONAL GUIDANCE
+
+	// L1 guidance - lateral-directional position control
+	ECL_L1_Pos_Controller _l1_control;
+
+	// nonlinear path following guidance - lateral-directional position control
+	NPFG _npfg;
+
+	hrt_abstime _time_in_fixed_bank_loiter{0}; // [us]
+	float _min_current_sp_distance_xy{FLT_MAX};
+	float _target_bearing{0.0f}; // [rad]
+
+	// APX4 custom start
+	hrt_abstime _last_time_eco_checks_failed{0};
+
+	enum FW_MODES {
+		CRUISE_MODE_NORMAL,
+		CRUISE_MODE_ECO,
+	} _cruise_mode_current{CRUISE_MODE_NORMAL};		///< used to make flight mode based vehicle limit adaptions (e.g. airspeed setpoint)
+	// APX4 custom end
 
 	// Update our local parameter cache.
 	int parameters_update();
@@ -372,7 +454,21 @@ private:
 	void tecs_status_publish();
 	void publishLocalPositionSetpoint(const position_setpoint_s &current_waypoint);
 
-	void abort_landing(bool abort);
+	/**
+	 * @brief Sets the landing abort status and publishes landing status.
+	 *
+	 * @param new_abort_status Either 0 (not aborted) or the singular bit >0 which triggered the abort
+	 */
+	void updateLandingAbortStatus(const uint8_t new_abort_status = position_controller_landing_status_s::NOT_ABORTED);
+
+	/**
+	 * @brief Checks if the automatic abort bitmask (from FW_LND_ABORT) contains the given abort criterion.
+	 *
+	 * @param automatic_abort_criteria_bitmask Bitmask containing all active abort criteria
+	 * @param landing_abort_criterion The specifc criterion we are checking for
+	 * @return true if the bitmask contains the criterion
+	 */
+	bool checkLandingAbortBitMask(const uint8_t automatic_abort_criteria_bitmask, uint8_t landing_abort_criterion);
 
 	/**
 	 * @brief Get a new waypoint based on heading and distance from current position
@@ -400,9 +496,11 @@ private:
 	float getManualHeightRateSetpoint();
 
 	/**
-	 * @brief Check if we are in a takeoff situation
+	 * @brief Updates a state indicating whether a manual takeoff has been completed.
+	 *
+	 * Criteria include passing an airspeed threshold and not being in a landed state. VTOL airframes always pass.
 	 */
-	bool in_takeoff_situation();
+	void updateManualTakeoffStatus();
 
 	/**
 	 * @brief Update desired altitude base on user pitch stick input
@@ -493,6 +591,18 @@ private:
 				 const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next);
 
 	/**
+	 * Vehicle control for the autonomous figure 8 mode. // APX4 custom
+	 *
+	 * @param control_interval Time since last position control call [s]
+	 * @param curr_pos the current 2D absolute position of the vehicle in [deg].
+	 * @param ground_speed the 2D ground speed of the vehicle in [m/s].
+	 * @param pos_sp_prev the previous position setpoint.
+	 * @param pos_sp_curr the current position setpoint.
+	 */
+	void controlAutoFigureEight(const float control_interval, const Vector2d &curr_pos, const Vector2f &ground_speed,
+				    const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
+
+	/**
 	 * @brief Controls a desired airspeed, bearing, and height rate.
 	 *
 	 * @param control_interval Time since last position control call [s]
@@ -508,27 +618,25 @@ private:
 	 *
 	 * @param now Current system time [us]
 	 * @param control_interval Time since last position control call [s]
-	 * @param curr_pos Current 2D local position vector of vehicle [m]
+	 * @param global_position Vechile global position [deg]
 	 * @param ground_speed Local 2D ground speed of vehicle [m/s]
-	 * @param pos_sp_prev previous position setpoint
 	 * @param pos_sp_curr current position setpoint
 	 */
-	void control_auto_takeoff(const hrt_abstime &now, const float control_interval, const Vector2d &curr_pos,
-				  const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
+	void control_auto_takeoff(const hrt_abstime &now, const float control_interval, const Vector2d &global_position,
+				  const Vector2f &ground_speed, const position_setpoint_s &pos_sp_curr);
 
 	/**
 	 * @brief Controls automatic landing.
 	 *
 	 * @param now Current system time [us]
 	 * @param control_interval Time since last position control call [s]
-	 * @param curr_pos Current 2D local position vector of vehicle [m]
 	 * @param control_interval Time since the last position control update [s]
 	 * @param ground_speed Local 2D ground speed of vehicle [m/s]
 	 * @param pos_sp_prev previous position setpoint
 	 * @param pos_sp_curr current position setpoint
 	 */
-	void control_auto_landing(const hrt_abstime &now, const float control_interval, const Vector2d &curr_pos,
-				  const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
+	void control_auto_landing(const hrt_abstime &now, const float control_interval, const Vector2f &ground_speed,
+				  const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
 
 	/* manual control methods */
 
@@ -555,20 +663,23 @@ private:
 
 	float get_manual_airspeed_setpoint();
 
+	void		update_cruise_mode(float pos_sp_cruising_speed); // APX4 custom
+
 	/**
-	 * @brief Returns an calibrated airspeed setpoint for auto modes.
+	 * @brief Returns a adapted calibrated airspeed setpoint
 	 *
 	 * Adjusts the setpoint for wind, accelerated stall, and slew rates.
 	 *
 	 * @param control_interval Time since the last position control update [s]
-	 * @param pos_sp_cru_airspeed The commanded cruise airspeed from the position setpoint [s]
-	 * @param ground_speed Vehicle ground velocity vector [m/s]
-	 * @return Calibrated airspeed setpoint [m/s]
+	 * @param calibrated_airspeed_setpoint Calibrated airspeed septoint (generally from the position setpoint) [m/s]
+	 * @param calibrated_min_airspeed Minimum calibrated airspeed [m/s]
+	 * @param ground_speed Vehicle ground velocity vector (NE) [m/s]
+	 * @return Adjusted calibrated airspeed setpoint [m/s]
 	 */
-	float get_auto_airspeed_setpoint(const float control_interval, const float pos_sp_cru_airspeed,
-					 const Vector2f &ground_speed);
+	float adapt_airspeed_setpoint(const float control_interval, float calibrated_airspeed_setpoint,
+				      float calibrated_min_airspeed, const Vector2f &ground_speed);
 
-	void reset_takeoff_state(bool force = false);
+	void reset_takeoff_state();
 	void reset_landing_state();
 
 	bool using_npfg_with_wind_estimate() const;
@@ -590,11 +701,21 @@ private:
 	 * May also change the position setpoint type depending on the desired behavior.
 	 *
 	 * @param now Current system time [us]
-	 * @param pos_sp_curr_valid True if the current position setpoint is valid
 	 */
-	void set_control_mode_current(const hrt_abstime &now, bool pos_sp_curr_valid);
+	void set_control_mode_current(const hrt_abstime &now);
+
+	/**
+	 * @brief Compensate trim throttle for air density and vehicle weight.
+	 *
+	 * @param trim throttle required at sea level during standard conditions.
+	 * @param throttle_min Minimum allowed trim throttle.
+	 * @param throttle_max Maximum allowed trim throttle.
+	 * @return Trim throttle compensated for air density and vehicle weight.
+	 */
+	float compensateTrimThrottleForDensityAndWeight(float throttle_trim, float throttle_min, float throttle_max);
 
 	void publishOrbitStatus(const position_setpoint_s pos_sp);
+	void publishFigureEightStatus(const position_setpoint_s pos_sp); // APX4 custom
 
 	SlewRate<float> _airspeed_slew_rate_controller;
 
@@ -608,17 +729,79 @@ private:
 	 * @param pitch_max_rad Nominal pitch angle command maximum [rad]
 	 * @param throttle_min Minimum throttle command [0,1]
 	 * @param throttle_max Maximum throttle command [0,1]
-	 * @param throttle_cruise Throttle required for level flight at cruising airspeed [0,1]
 	 * @param climbout_mode True if TECS should engage climbout mode
 	 * @param climbout_pitch_min_rad Minimum pitch angle command in climbout mode [rad]
+	 * @param desired_max_sink_rate The desired max sink rate commandable when altitude errors are large [m/s]
+	 * @param desired_max_climb_rate The desired max climb rate commandable when altitude errors are large [m/s]
 	 * @param disable_underspeed_detection True if underspeed detection should be disabled
 	 * @param hgt_rate_sp Height rate setpoint [m/s]
 	 */
-	void tecs_update_pitch_throttle(const float control_interval, float alt_sp, float airspeed_sp,
-					float pitch_min_rad, float pitch_max_rad,
-					float throttle_min, float throttle_max, float throttle_cruise,
-					bool climbout_mode, float climbout_pitch_min_rad,
+	void tecs_update_pitch_throttle(const float control_interval, float alt_sp, float airspeed_sp, float pitch_min_rad,
+					float pitch_max_rad, float throttle_min, float throttle_max, bool climbout_mode,
+					float climbout_pitch_min_rad, const float desired_max_sink_rate, const float desired_max_climb_rate,
 					bool disable_underspeed_detection = false, float hgt_rate_sp = NAN);
+
+	/**
+	 * @brief Constrains the roll angle setpoint near ground to avoid wingtip strike.
+	 *
+	 * @param roll_setpoint Unconstrained roll angle setpoint [rad]
+	 * @param altitude Vehicle altitude (AMSL) [m]
+	 * @param terrain_altitude Terrain altitude (AMSL) [m]
+	 * @return Constrained roll angle setpoint [rad]
+	 */
+	float constrainRollNearGround(const float roll_setpoint, const float altitude, const float terrain_altitude) const;
+
+	/**
+	 * @brief Calculates the unit takeoff bearing vector from the launch position to takeoff waypont.
+	 *
+	 * @param launch_position Vehicle launch position in local coordinates (NE) [m]
+	 * @param takeoff_waypoint Takeoff waypoint position in local coordinates (NE) [m]
+	 * @return Unit takeoff bearing vector
+	 */
+	Vector2f calculateTakeoffBearingVector(const Vector2f &launch_position, const Vector2f &takeoff_waypoint) const;
+
+	/**
+	 * @brief Calculates the touchdown position for landing with optional manual lateral adjustments.
+	 *
+	 * Manual inputs (from the remote) are used to command a rate at which the position moves and the integrated
+	 * position is bounded. This is useful for manually adjusting the landing point in real time when map or GNSS
+	 * errors cause an offset from the desired landing vector.
+	 *
+	 * @param control_interval Time since the last position control update [s]
+	 * @param local_land_position Originally commanded local land position (NE) [m]
+	 * @return (Nudged) Local touchdown position (NE) [m]
+	 */
+	Vector2f calculateTouchdownPosition(const float control_interval, const Vector2f &local_land_position);
+
+	/**
+	 * @brief Calculates the vector from landing approach entrance to touchdown point
+	 *
+	 * NOTE: calculateTouchdownPosition() MUST be called before this method
+	 *
+	 * @return Landing approach vector [m]
+	 */
+	Vector2f calculateLandingApproachVector() const;
+
+	/**
+	 * @brief Returns a terrain altitude estimate with consideration of altimeter measurements.
+	 *
+	 * @param now Current system time [us]
+	 * @param land_point_altitude Altitude (AMSL) of the land point [m]
+	 * @return Terrain altitude (AMSL) [m]
+	 */
+	float getLandingTerrainAltitudeEstimate(const hrt_abstime &now, const float land_point_altitude);
+
+	/**
+	 * @brief Initializes landing states
+	 *
+	 * @param now Current system time [us]
+	 * @param pos_sp_prev Previous position setpoint
+	 * @param pos_sp_curr Current position setpoint
+	 * @param local_position Local aircraft position (NE) [m]
+	 * @param local_land_point Local land point (NE) [m]
+	 */
+	void initializeAutoLanding(const hrt_abstime &now, const position_setpoint_s &pos_sp_prev,
+				   const position_setpoint_s &pos_sp_curr, const Vector2f &local_position, const Vector2f &local_land_point);
 
 	DEFINE_PARAMETERS(
 
@@ -654,12 +837,9 @@ private:
 		(ParamFloat<px4::params::FW_LND_FL_PMAX>) _param_fw_lnd_fl_pmax,
 		(ParamFloat<px4::params::FW_LND_FL_PMIN>) _param_fw_lnd_fl_pmin,
 		(ParamFloat<px4::params::FW_LND_FLALT>) _param_fw_lnd_flalt,
-		(ParamFloat<px4::params::FW_LND_HHDIST>) _param_fw_lnd_hhdist,
-		(ParamFloat<px4::params::FW_LND_HVIRT>) _param_fw_lnd_hvirt,
 		(ParamFloat<px4::params::FW_LND_THRTC_SC>) _param_fw_thrtc_sc,
-		(ParamFloat<px4::params::FW_LND_TLALT>) _param_fw_lnd_tlalt,
 		(ParamBool<px4::params::FW_LND_EARLYCFG>) _param_fw_lnd_earlycfg,
-		(ParamBool<px4::params::FW_LND_USETER>) _param_fw_lnd_useter,
+		(ParamInt<px4::params::FW_LND_USETER>) _param_fw_lnd_useter,
 
 		(ParamFloat<px4::params::FW_P_LIM_MAX>) _param_fw_p_lim_max,
 		(ParamFloat<px4::params::FW_P_LIM_MIN>) _param_fw_p_lim_min,
@@ -684,10 +864,8 @@ private:
 		(ParamFloat<px4::params::FW_T_CLMB_R_SP>) _param_climbrate_target,
 		(ParamFloat<px4::params::FW_T_SINK_R_SP>) _param_sinkrate_target,
 
-		(ParamFloat<px4::params::FW_THR_ALT_SCL>) _param_fw_thr_alt_scl,
-		(ParamFloat<px4::params::FW_THR_CRUISE>) _param_fw_thr_cruise,
+		(ParamFloat<px4::params::FW_THR_TRIM>) _param_fw_thr_trim,
 		(ParamFloat<px4::params::FW_THR_IDLE>) _param_fw_thr_idle,
-		(ParamFloat<px4::params::FW_THR_LND_MAX>) _param_fw_thr_lnd_max,
 		(ParamFloat<px4::params::FW_THR_MAX>) _param_fw_thr_max,
 		(ParamFloat<px4::params::FW_THR_MIN>) _param_fw_thr_min,
 		(ParamFloat<px4::params::FW_THR_SLEW_MAX>) _param_fw_thr_slew_max,
@@ -708,7 +886,38 @@ private:
 
 		(ParamFloat<px4::params::FW_TKO_PITCH_MIN>) _takeoff_pitch_min,
 
-		(ParamFloat<px4::params::NAV_FW_ALT_RAD>) _param_nav_fw_alt_rad
+		// APX4 custom params
+		(ParamFloat<px4::params::FW_T_ALT_TC_E>) _param_fw_t_h_error_tc_eco,
+		(ParamFloat<px4::params::FW_T_SPDWEIGHT_E>) _param_fw_t_spdweight_eco,
+		(ParamFloat<px4::params::FW_THR_MAX_E>) _param_fw_thr_max_eco,
+		(ParamFloat<px4::params::FW_T_CLMB_R_SP_E>) _param_climbrate_target_eco,
+
+		(ParamFloat<px4::params::FW_ECO_ALT_ERR_U>) _param_fw_eco_alt_err_u,
+		(ParamFloat<px4::params::FW_ECO_ALT_ERR_O>) _param_fw_eco_alt_err_o,
+		(ParamFloat<px4::params::FW_ECO_ALT_MIN>) _param_fw_eco_alt_min,
+		(ParamFloat<px4::params::FW_ECO_AD_THRLD>) _param_fw_eco_ad_thrld,
+		// APX4 custom end
+
+		(ParamFloat<px4::params::NAV_FW_ALT_RAD>) _param_nav_fw_alt_rad,
+
+		(ParamFloat<px4::params::WEIGHT_BASE>) _param_weight_base,
+		(ParamFloat<px4::params::WEIGHT_GROSS>) _param_weight_gross,
+
+		(ParamFloat<px4::params::FW_WING_SPAN>) _param_fw_wing_span,
+		(ParamFloat<px4::params::FW_WING_HEIGHT>) _param_fw_wing_height,
+
+		(ParamFloat<px4::params::RWTO_L1_PERIOD>) _param_rwto_l1_period,
+		(ParamBool<px4::params::RWTO_NUDGE>) _param_rwto_nudge,
+
+		(ParamFloat<px4::params::FW_LND_FL_TIME>) _param_fw_lnd_fl_time,
+		(ParamFloat<px4::params::FW_LND_FL_SINK>) _param_fw_lnd_fl_sink,
+		(ParamFloat<px4::params::FW_LND_TD_OFF>) _param_fw_lnd_td_off,
+		(ParamInt<px4::params::FW_LND_NUDGE>) _param_fw_lnd_nudge,
+		(ParamInt<px4::params::FW_LND_ABORT>) _param_fw_lnd_abort,
+
+		(ParamFloat<px4::params::FW_WIND_ARSP_SC>) _param_fw_wind_arsp_sc,
+
+		(ParamFloat<px4::params::FW_TKO_AIRSPD>) _param_fw_tko_airspd
 	)
 
 };

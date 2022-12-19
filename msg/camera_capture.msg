@@ -5,5 +5,5 @@ float64 lat					# Latitude in degrees (WGS84)
 float64 lon					# Longitude in degrees (WGS84)
 float32 alt					# Altitude (AMSL)
 float32 ground_distance			# Altitude above ground (meters)
-float32[4] q					# Attitude of the camera, zero rotation is facing towards front of vehicle
+float32[4] q					# Attitude of the camera relative to NED earth-fixed frame when using a gimbal, otherwise vehicle attitude
 int8 result					# 1 for success, 0 for failure, -1 if camera does not provide feedback

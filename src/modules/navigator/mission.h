@@ -33,7 +33,9 @@
 /**
  * @file mission.h
  *
- * Navigator mode to access missions
+ * Mission mode class that handles everything related to executing a mission.
+ * This class gets included as one of the 'modes' in the Navigator, along with other
+ * modes like RTL, Loiter, etc.
  *
  * @author Julian Oes <julian@oes.ch>
  * @author Thomas Gubler <thomasgubler@gmail.com>
@@ -47,6 +49,7 @@
 #include "mission_block.h"
 #include "mission_feasibility_checker.h"
 #include "navigator_mode.h"
+#include "terrain_follower_wrapper.hpp"
 
 #include <float.h>
 
@@ -69,7 +72,7 @@ class Navigator;
 class Mission : public MissionBlock, public ModuleParams
 {
 public:
-	Mission(Navigator *navigator);
+	Mission(Navigator *navigator, TerrainFollowerWrapper &terrain_follower);
 	~Mission() override = default;
 
 	void on_inactive() override;
@@ -94,6 +97,7 @@ public:
 	double get_landing_lat() { return _landing_lat; }
 	double get_landing_lon() { return _landing_lon; }
 	float get_landing_alt() { return _landing_alt; }
+	float get_landing_loiter_rad() { return _landing_loiter_radius; }
 
 	void set_closest_item_as_current();
 
@@ -113,12 +117,20 @@ private:
 	void update_mission();
 
 	/**
+	 * Restore old mission if update mission was not successful
+	 */
+	bool restore_old_mission();
+
+	/**
 	 * Move on to next mission item or switch to loiter
 	 */
 	void advance_mission();
 
 	/**
-	 * Set new mission items
+	 * @brief Configures mission items in current setting
+	 *
+	 * Configure the mission items depending on current mission item index and settings such
+	 * as terrain following, etc.
 	 */
 	void set_mission_items();
 
@@ -234,6 +246,24 @@ private:
 
 	void publish_navigator_mission_item();
 
+	bool getPreviousPositionItemIndex(const mission_s &mission, int start_index, unsigned &prev_pos_index);
+
+	bool getNextPositionMissionItem(const mission_s &mission, int start_index, mission_item_s &mission_item);
+
+	bool readMissionItemAtIndex(const mission_s &mission, const int index, mission_item_s &missionitem);
+	void cache_command(const mission_item_s &mission_item);
+
+	void updateChachedCommandsUpToIndex(int end_index);
+
+
+	void replay_cached_gimbal_commands();
+	void replay_cached_camera_commands();
+	void reset_command_cache();
+
+	bool haveCachedCommands();
+
+	bool cameraWasTriggering();
+
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MIS_DIST_1WP>) _param_mis_dist_1wp,
 		(ParamFloat<px4::params::MIS_DIST_WPS>) _param_mis_dist_wps,
@@ -244,8 +274,13 @@ private:
 
 	uORB::Subscription	_mission_sub{ORB_ID(mission)};		/**< mission subscription */
 	mission_s		_mission {};
+	mission_s		_old_mission {};			/**< old mission is used as a backup and for comparison with a new mission */
 
 	int32_t _current_mission_index{-1};
+	int32_t _previous_custom_action_mission_index{-1};
+
+	TerrainFollowerWrapper &_terrain_follower;
+	hrt_abstime _time_last_terrain_checked{0};
 
 	// track location of planned mission landing
 	bool	_land_start_available{false};
@@ -257,6 +292,8 @@ private:
 	double _landing_lat{0.0};
 	double _landing_lon{0.0};
 	float _landing_alt{0.0f};
+
+	float _landing_loiter_radius{0.f};
 
 	bool _need_takeoff{true};					/**< if true, then takeoff must be performed before going to the first waypoint (if needed) */
 
@@ -271,8 +308,9 @@ private:
 	bool _home_inited{false};
 	bool _need_mission_reset{false};
 	bool _mission_waypoints_changed{false};
-	bool _mission_changed{false}; /** < true if the mission changed since the mission mode was active */
+	bool _mission_changed{false};	/** < true if the mission changed since the mission mode was active */
 
+	// Work Item corresponds to the sub-mode set on the "MAV_CMD_DO_SET_MODE" MAVLink message
 	enum work_item_type {
 		WORK_ITEM_TYPE_DEFAULT,		/**< default mission item */
 		WORK_ITEM_TYPE_TAKEOFF,		/**< takeoff before moving to waypoint */
@@ -285,4 +323,14 @@ private:
 
 	uint8_t _mission_execution_mode{mission_result_s::MISSION_EXECUTION_MODE_NORMAL};	/**< the current mode of how the mission is executed,look at mission_result.msg for the definition */
 	bool _execution_mode_changed{false};
+
+
+	bool _replay_cached_gimbal_commands_at_next_waypoint = false;
+	bool _replay_cached_camera_commands_at_next_waypoint = false;
+	int _inactivation_index = -1;
+
+	mission_item_s _last_gimbal_configure_command {};
+	mission_item_s _last_gimbal_control_command {};
+	mission_item_s _last_camera_mode_command {};
+	mission_item_s _last_camera_trigger_command {};
 };

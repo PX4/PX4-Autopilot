@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,7 +46,6 @@
 #include <uORB/topics/hover_thrust_estimate.h>
 #include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
-#include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/takeoff_status.h>
 
 #include "LandDetector.h"
@@ -75,6 +74,7 @@ protected:
 	bool _get_has_low_throttle() override { return _has_low_throttle; }
 	bool _get_horizontal_movement() override { return _horizontal_movement; }
 	bool _get_vertical_movement() override { return _vertical_movement; }
+	bool _get_rotational_movement() override { return _rotational_movement; }
 	bool _get_close_to_ground_or_skipped_check() override { return _close_to_ground_or_skipped_check; }
 
 	void _set_hysteresis_factor(const int factor) override;
@@ -84,29 +84,25 @@ private:
 	/** Time in us that freefall has to hold before triggering freefall */
 	static constexpr hrt_abstime FREEFALL_TRIGGER_TIME_US = 300_ms;
 
-	/** Time interval in us in which wider acceptance thresholds are used after landed. */
-	static constexpr hrt_abstime LAND_DETECTOR_LAND_PHASE_TIME_US = 2_s;
-
 	/** Distance above ground below which entering ground contact state is possible when distance to ground is available. */
 	static constexpr float DIST_FROM_GROUND_THRESHOLD = 1.0f;
 
-	/** Handles for interesting parameters. **/
 	struct {
 		param_t minThrottle;
 		param_t hoverThrottle;
 		param_t minManThrottle;
+		param_t useHoverThrustEstimate;
 		param_t landSpeed;
 		param_t crawlSpeed;
-		param_t useHoverThrustEstimate;
 	} _paramHandle{};
 
 	struct {
 		float minThrottle;
 		float hoverThrottle;
 		float minManThrottle;
+		bool useHoverThrustEstimate;
 		float landSpeed;
 		float crawlSpeed;
-		bool useHoverThrustEstimate;
 	} _params{};
 
 	uORB::Subscription _actuator_controls_sub{ORB_ID(actuator_controls_0)};
@@ -126,12 +122,12 @@ private:
 
 	uint8_t _takeoff_state{takeoff_status_s::TAKEOFF_STATE_DISARMED};
 
-	hrt_abstime _min_thrust_start{0};	///< timestamp when minimum trust was applied first
-	hrt_abstime _landed_time{0};
+	systemlib::Hysteresis _minimum_thrust_8s_hysteresis{false};
 
 	bool _in_descend{false};		///< vehicle is commanded to desend
 	bool _horizontal_movement{false};	///< vehicle is moving horizontally
 	bool _vertical_movement{false};
+	bool _rotational_movement{false};
 	bool _has_low_throttle{false};
 	bool _close_to_ground_or_skipped_check{false};
 	bool _below_gnd_effect_hgt{false};	///< vehicle height above ground is below height where ground effect occurs

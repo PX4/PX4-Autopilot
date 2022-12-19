@@ -226,6 +226,8 @@ public:
 		(ParamInt<px4::params::RC_MAP_AUX5>) _param_rc_map_aux5,
 		(ParamInt<px4::params::RC_MAP_AUX6>) _param_rc_map_aux6,
 
+		(ParamInt<px4::params::RC_MAP_ENG_MOT>) _param_rc_map_eng_mot,
+
 		(ParamInt<px4::params::RC_FAILS_THR>) _param_rc_fails_thr,
 
 		(ParamFloat<px4::params::RC_LOITER_TH>) _param_rc_loiter_th,
@@ -235,6 +237,7 @@ public:
 		(ParamFloat<px4::params::RC_TRANS_TH>) _param_rc_trans_th,
 		(ParamFloat<px4::params::RC_GEAR_TH>) _param_rc_gear_th,
 		(ParamFloat<px4::params::RC_RETURN_TH>) _param_rc_return_th,
+		(ParamFloat<px4::params::RC_ENG_MOT_TH>) _param_rc_eng_mot_th,
 
 		(ParamInt<px4::params::RC_CHAN_CNT>) _param_rc_chan_cnt
 	)

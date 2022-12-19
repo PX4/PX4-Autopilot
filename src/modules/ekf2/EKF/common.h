@@ -86,8 +86,9 @@ enum MagFuseType : uint8_t {
 	AUTO    = 0,   	///< The selection of either heading or 3D magnetometer fusion will be automatic
 	HEADING = 1,   	///< Simple yaw angle fusion will always be used. This is less accurate, but less affected by earth field distortions. It should not be used for pitch angles outside the range from -60 to +60 deg
 	MAG_3D  = 2,   	///< Magnetometer 3-axis fusion will always be used. This is more accurate, but more affected by localised earth field distortions
-	INDOOR  = 3,   	///< The same as option 0, but magnetometer or yaw fusion will not be used unless earth frame external aiding (GPS or External Vision) is being used. This prevents inconsistent magnetic fields associated with indoor operation degrading state estimates.
-	NONE    = 4    	///< Do not use magnetometer under any circumstance. Other sources of yaw may be used if selected via the EKF2_AID_MASK parameter.
+	UNUSED  = 3,    ///< Not implemented
+	INDOOR  = 4,   	///< The same as option 0, but magnetometer or yaw fusion will not be used unless earth frame external aiding (GPS or External Vision) is being used. This prevents inconsistent magnetic fields associated with indoor operation degrading state estimates.
+	NONE    = 5    	///< Do not use magnetometer under any circumstance. Other sources of yaw may be used if selected via the EKF2_AID_MASK parameter.
 };
 
 enum TerrainFusionMask : uint8_t {
@@ -259,16 +260,15 @@ struct parameters {
 	float accel_noise{3.5e-1f};             ///< IMU acceleration noise use for covariance prediction (m/sec**2)
 
 	// process noise
-	float gyro_bias_p_noise{1.0e-3f};       ///< process noise for IMU rate gyro bias prediction (rad/sec**2)
-	float accel_bias_p_noise{1.0e-2f};      ///< process noise for IMU accelerometer bias prediction (m/sec**3)
-	float mage_p_noise{1.0e-3f};            ///< process noise for earth magnetic field prediction (Gauss/sec)
-	float magb_p_noise{1.0e-4f};            ///< process noise for body magnetic field prediction (Gauss/sec)
-	float wind_vel_p_noise{1.0e-1f};        ///< process noise for wind velocity prediction (m/sec**2)
-	const float wind_vel_p_noise_scaler{0.5f};      ///< scaling of wind process noise with vertical velocity
-
-	float terrain_p_noise{5.0f};            ///< process noise for terrain offset (m/sec)
-	float terrain_gradient{0.5f};           ///< gradient of terrain used to estimate process noise due to changing position (m/m)
-	const float terrain_timeout{10.f};      ///< maximum time for invalid bottom distance measurements before resetting terrain estimate (s)
+	float gyro_bias_p_noise{1.0e-3f};	///< process noise for IMU rate gyro bias prediction (rad/sec**2)
+	float accel_bias_p_noise{1.0e-2f};	///< process noise for IMU accelerometer bias prediction (m/sec**3)
+	float mage_p_noise{1.0e-3f};		///< process noise for earth magnetic field prediction (Gauss/sec)
+	float magb_p_noise{1.0e-4f};		///< process noise for body magnetic field prediction (Gauss/sec)
+	float wind_vel_nsd{1.0e-2f}; 		///< process noise spectral density for wind velocity prediction (m/sec**2/sqrt(Hz))
+	const float wind_vel_nsd_scaler{0.5f};	///< scaling of wind process noise with vertical velocity
+	float terrain_p_noise{5.0f};		///< process noise for terrain offset (m/sec)
+	float terrain_gradient{0.5f};		///< gradient of terrain used to estimate process noise due to changing position (m/m)
+	const float terrain_timeout{10.f};		///< maximum time for invalid bottom distance measurements before resetting terrain estimate (s)
 
 	// initialization errors
 	float switch_on_gyro_bias{0.1f};        ///< 1-sigma gyro bias uncertainty at switch on (rad/sec)
@@ -404,7 +404,6 @@ struct parameters {
 	float EKFGSF_tas_default{15.0f};                ///< default airspeed value assumed during fixed wing flight if no airspeed measurement available (m/s)
 	const unsigned EKFGSF_reset_delay{1000000};     ///< Number of uSec of bad innovations on main filter in immediate post-takeoff phase before yaw is reset to EKF-GSF value
 	const float EKFGSF_yaw_err_max{0.262f};         ///< Composite yaw 1-sigma uncertainty threshold used to check for convergence (rad)
-	const unsigned EKFGSF_reset_count_limit{3};     ///< Maximum number of times the yaw can be reset to the EKF-GSF yaw estimator value
 };
 
 union fault_status_u {

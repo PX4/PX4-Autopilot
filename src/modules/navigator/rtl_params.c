@@ -47,16 +47,16 @@
  * Return mode return altitude
  *
  * Default minimum altitude above destination (e.g. home, safe point, landing pattern) for return flight.
+ * The vehicle will climb to this altitude when Return mode is enganged, unless it currently is flying higher already.
  * This is affected by RTL_MIN_DIST and RTL_CONE_ANG.
  *
  * @unit m
  * @min 0
- * @max 150
  * @decimal 1
  * @increment 0.5
  * @group Return Mode
  */
-PARAM_DEFINE_FLOAT(RTL_RETURN_ALT, 60);
+PARAM_DEFINE_FLOAT(RTL_RETURN_ALT, 60.f);
 
 
 /**
@@ -64,15 +64,15 @@ PARAM_DEFINE_FLOAT(RTL_RETURN_ALT, 60);
  *
  * Descend to this altitude (above destination position) after return, and wait for time defined in RTL_LAND_DELAY.
  * Land (i.e. slowly descend) from this altitude if autolanding allowed.
+ * VTOLs do transition to hover in this altitdue above the landing point.
  *
  * @unit m
- * @min 2
- * @max 100
+ * @min 0
  * @decimal 1
  * @increment 0.5
  * @group Return Mode
  */
-PARAM_DEFINE_FLOAT(RTL_DESCEND_ALT, 30);
+PARAM_DEFINE_FLOAT(RTL_DESCEND_ALT, 30.f);
 
 /**
  * Return mode delay
@@ -82,7 +82,6 @@ PARAM_DEFINE_FLOAT(RTL_DESCEND_ALT, 30);
  *
  * @unit s
  * @min -1
- * @max 300
  * @decimal 1
  * @increment 0.5
  * @group Return Mode
@@ -98,7 +97,6 @@ PARAM_DEFINE_FLOAT(RTL_LAND_DELAY, 0.0f);
  *
  * @unit m
  * @min 0.5
- * @max 100
  * @decimal 1
  * @increment 0.5
  * @group Return Mode
@@ -156,7 +154,6 @@ PARAM_DEFINE_INT32(RTL_PLD_MD, 0);
  *
  * @unit m
  * @min 25
- * @max 1000
  * @decimal 1
  * @increment 0.5
  * @group Return Mode

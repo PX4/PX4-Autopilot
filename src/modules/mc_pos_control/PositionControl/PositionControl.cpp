@@ -44,6 +44,8 @@
 
 using namespace matrix;
 
+const trajectory_setpoint_s PositionControl::empty_trajectory_setpoint = {0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN};
+
 void PositionControl::setVelocityGains(const Vector3f &P, const Vector3f &I, const Vector3f &D)
 {
 	_gain_vel_p = P;
@@ -93,10 +95,10 @@ void PositionControl::setState(const PositionControlStates &states)
 	_vel_dot = states.acceleration;
 }
 
-void PositionControl::setInputSetpoint(const vehicle_local_position_setpoint_s &setpoint)
+void PositionControl::setInputSetpoint(const trajectory_setpoint_s &setpoint)
 {
-	_pos_sp = Vector3f(setpoint.x, setpoint.y, setpoint.z);
-	_vel_sp = Vector3f(setpoint.vx, setpoint.vy, setpoint.vz);
+	_pos_sp = Vector3f(setpoint.position);
+	_vel_sp = Vector3f(setpoint.velocity);
 	_acc_sp = Vector3f(setpoint.acceleration);
 	_yaw_sp = setpoint.yaw;
 	_yawspeed_sp = setpoint.yawspeed;
@@ -181,9 +183,16 @@ void PositionControl::_velocityControl(const float dt)
 
 	// Use tracking Anti-Windup for horizontal direction: during saturation, the integrator is used to unsaturate the output
 	// see Anti-Reset Windup for PID controllers, L.Rundqwist, 1990
-	const Vector2f acc_sp_xy_limited = Vector2f(_thr_sp) * (CONSTANTS_ONE_G / _hover_thrust);
+	const Vector2f acc_sp_xy_produced = Vector2f(_thr_sp) * (CONSTANTS_ONE_G / _hover_thrust);
 	const float arw_gain = 2.f / _gain_vel_p(0);
-	vel_error.xy() = Vector2f(vel_error) - (arw_gain * (Vector2f(_acc_sp) - acc_sp_xy_limited));
+
+	// The produced acceleration can be greater or smaller than the desired acceleration due to the saturations and the actual vertical thrust (computed independently).
+	// The ARW loop needs to run if the signal is saturated only.
+	const Vector2f acc_sp_xy = _acc_sp.xy();
+	const Vector2f acc_limited_xy = (acc_sp_xy.norm_squared() > acc_sp_xy_produced.norm_squared())
+					? acc_sp_xy_produced
+					: acc_sp_xy;
+	vel_error.xy() = Vector2f(vel_error) - arw_gain * (acc_sp_xy - acc_limited_xy);
 
 	// Make sure integral doesn't get NAN
 	ControlMath::setZeroIfNanVector3f(vel_error);

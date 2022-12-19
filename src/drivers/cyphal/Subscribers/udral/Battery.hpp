@@ -163,7 +163,7 @@ public:
 
 			bat_status.capacity = parameters.design_capacity.coulomb / 3.6f; // Coulomb -> mAh
 			bat_status.cycle_count = parameters.cycle_count;
-			bat_status.serial_number = parameters.unique_id & 0xFFFF;
+			sprintf(bat_status.serial_number, "%d", (int)(parameters.unique_id & 0xFFFF));
 			bat_status.state_of_health = parameters.state_of_health_pct;
 			bat_status.max_error = 1; // UAVCAN didn't spec'ed this, but we're optimistic
 			bat_status.id = 0; //TODO instancing

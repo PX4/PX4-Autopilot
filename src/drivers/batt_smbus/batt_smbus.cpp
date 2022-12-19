@@ -166,7 +166,7 @@ void BATT_SMBUS::RunImpl()
 	if (ret == PX4_OK) {
 		new_report.capacity = _batt_capacity;
 		new_report.cycle_count = _cycle_count;
-		new_report.serial_number = _serial_number;
+		memcpy(new_report.serial_number, _serial_number, sizeof(new_report.serial_number));
 		new_report.max_cell_voltage_delta = _max_cell_voltage_delta;
 		new_report.cell_count = _cell_count;
 		new_report.state_of_health = _state_of_health;
@@ -392,7 +392,7 @@ int BATT_SMBUS::get_startup_info()
 	ret |= _interface->read_word(BATT_SMBUS_STATE_OF_HEALTH, state_of_health);
 
 	if (!ret) {
-		_serial_number = serial_num;
+		itoa(serial_num, _serial_number, 10);
 		_batt_startup_capacity = (uint16_t)((float)remaining_cap * _c_mult);
 		_cycle_count = cycle_count;
 		_batt_capacity = (uint16_t)((float)full_cap * _c_mult);
@@ -567,7 +567,7 @@ BATT_SMBUS::custom_method(const BusCLIArguments &cli)
 		case 1: {
 			PX4_INFO("The manufacturer name: %s", _manufacturer_name);
 			PX4_INFO("The manufacturer date: %" PRId16, _manufacture_date);
-			PX4_INFO("The serial number: %d" PRId16, _serial_number);
+			PX4_INFO("The serial number: %d" PRId16, atoi(_serial_number));
 		}
 			break;
 		case 2:

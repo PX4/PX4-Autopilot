@@ -143,6 +143,19 @@ PARAM_DEFINE_INT32(FD_EXT_ATS_TRIG, 1900);
 PARAM_DEFINE_INT32(FD_ESCS_EN, 1);
 
 /**
+ * Enable checks on smart batteries that report readiness or faults.
+ *
+ * If enabled, failure detector will verify that all the batteries are in nominal mode and no faults were detected by the batteries.
+ * Timeout for receiving a nominal status report from the batteries after arming is 0.5s, if no feedback is received the failure detector will auto disarm the vehicle.
+ *
+ * @boolean
+ * @reboot_required true
+ *
+ * @group Failure Detector
+ */
+PARAM_DEFINE_INT32(FD_BAT_EN, 1);
+
+/**
  * Imbalanced propeller check threshold
  *
  * Value at which the imbalanced propeller metric (based on horizontal and

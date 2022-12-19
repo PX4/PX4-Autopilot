@@ -6,6 +6,7 @@ uint8 TECS_MODE_LAND = 3
 uint8 TECS_MODE_LAND_THROTTLELIM = 4
 uint8 TECS_MODE_BAD_DESCENT = 5
 uint8 TECS_MODE_CLIMBOUT = 6
+uint8 TECS_MODE_ECO= 7
 
 
 float32 altitude_sp
@@ -40,5 +41,12 @@ float32 pitch_integ
 
 float32 throttle_sp
 float32 pitch_sp_rad
+float32 throttle_trim	# estimated throttle value [0,1] required to fly level at equivalent_airspeed_sp in the current atmospheric conditions
 
 uint8 mode
+
+uint8 flight_phase
+
+uint8 TECS_FLIGHT_PHASE_LEVEL 	= 0		# In level flight (no altitude setpoint change)
+uint8 TECS_FLIGHT_PHASE_CLIMB 	= 1		# Climb is triggered (altitude setpoint is increasing)
+uint8 TECS_FLIGHT_PHASE_DESCEND = 2		# Descend is triggered (altitude setpoint is descreasing)

@@ -4,7 +4,7 @@
 #------------------------------------------------------------------------------
 set HAVE_PM2 yes
 
-if ver hwtypecmp V6X50 V6X51 V6X53 V6X54
+if ver hwtypecmp V6X005000 V6X005001 V6X005003 V6X005004
 then
 	set HAVE_PM2 no
 fi
@@ -47,30 +47,44 @@ then
 	fi
 fi
 
-if ver hwtypecmp V6X04 V6X14 V6X54
+if ver hwtypecmp V6X000000 V6X000004 V6X009000 V6X001004 V6X005004
 then
-	# Internal SPI bus ICM20649
-	icm20649 -s -R 6 start
+  # Skynode detected
+
+  # Internal SPI BMI088
+  bmi088 -A -R 2 -s start
+  bmi088 -G -R 2 -s start
+
+  # Internal SPI bus ICM42688p
+  icm42688p -R 4 -s start
+
+  # Internal SPI bus ICM-20649 (hard-mounted)
+  icm20649 -R 12 -s start
+
+  # Internal magnetometer on I2c
+  bmm150 -I -R 6 start
+
 else
-# Internal SPI BMI088
-	bmi088 -A -R 4 -s start
-	bmi088 -G -R 4 -s start
-fi
+  # v6x base detected
 
-# Internal SPI bus ICM42688p
-icm42688p -R 6 -s start
+  # Internal SPI BMI088
+  bmi088 -A -R 4 -s start
+  bmi088 -G -R 4 -s start
 
-if ver hwtypecmp V6X03 V6X13 V6X04 V6X14 V6X53 V6X54
+  # Internal SPI bus ICM42688p
+  icm42688p -R 6 -s start
+
+if ver hwtypecmp V6X000003 V6X001003 V6X000004 V6X001004 V6X005003 V6X005004
 then
 	# Internal SPI bus ICM-42670-P (hard-mounted)
 	icm42670p -R 10 -s start
 else
 	# Internal SPI bus ICM-20649 (hard-mounted)
 	icm20649 -R 14 -s start
-fi
 
-# Internal magnetometer on I2c
-bmm150 -I start
+  # Internal magnetometer on I2c
+  bmm150 -I start
+fi
 
 # External compass on GPS1/I2C1 (the 3rd external bus): standard Holybro Pixhawk 4 or CUAV V5 GPS/compass puck (with lights, safety button, and buzzer)
 ist8310 -X -b 1 -R 10 start
@@ -78,10 +92,12 @@ ist8310 -X -b 1 -R 10 start
 # Possible internal Baro
 bmp388 -I -a 0x77 start
 
-if ver hwtypecmp V6X00 V6X10
+if ver hwtypecmp V6X000000 V6X009000 V6X001000
 then
+  # Skynode detected
 	bmp388 -I start
 else
+  # v6x base detected
 	bmp388 -X start
 fi
 

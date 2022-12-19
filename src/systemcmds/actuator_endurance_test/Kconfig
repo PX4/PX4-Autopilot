@@ -1,0 +1,5 @@
+menuconfig SYSTEMCMDS_ACTUATOR_ENDURANCE_TEST
+	bool "actuator_endurance_test"
+	default n
+	---help---
+		Enable support for actuator_endurance_test

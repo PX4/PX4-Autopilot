@@ -37,6 +37,7 @@
 #include <future>
 #include <thread>
 #include <unistd.h>
+#include <cmath>
 
 std::string connection_url {"udp://"};
 std::optional<float> speed_factor {std::nullopt};
@@ -79,27 +80,24 @@ void AutopilotTester::connect(const std::string uri)
 
 void AutopilotTester::wait_until_ready()
 {
-	std::cout << time_str() << "Waiting for system to be ready" << std::endl;
+	std::cout << time_str() << "Waiting for system to be ready (system health ok & able to arm)" << std::endl;
+
+	// Wiat until the system is healthy
 	CHECK(poll_condition_with_timeout(
 	[this]() { return _telemetry->health_all_ok(); }, std::chrono::seconds(30)));
 
-	// FIXME: workaround to prevent race between PX4 switching to Hold mode
-	// and us trying to arm and take off. If PX4 is not in Hold mode yet,
-	// our arming presumably triggers a failsafe in manual mode.
-	std::this_thread::sleep_for(std::chrono::seconds(1));
-}
+	// Note: There is a known bug in MAVSDK (https://github.com/mavlink/MAVSDK/issues/1852),
+	// where `health_all_ok()` returning true doesn't actually mean vehicle is ready to accept
+	// global position estimate as valid (due to hysteresis). This needs to be fixed properly.
 
-void AutopilotTester::wait_until_ready_local_position_only()
-{
-	std::cout << time_str() << "Waiting for system to be ready" << std::endl;
+	// However, this is mitigated by the `is_armable` check below as a side effect, since
+	// when the vehicle considers global position to be valid, it will then allow arming
+	// if the COM_ARM_WO_GPS parameter is set to 0. For this case, switching to any mode
+	// relying on GPS after arming could be denied, and the test may fail.
+
+	// Wait until we can arm
 	CHECK(poll_condition_with_timeout(
-	[this]() {
-		return
-			(_telemetry->health().is_gyrometer_calibration_ok &&
-			 _telemetry->health().is_accelerometer_calibration_ok &&
-			 _telemetry->health().is_magnetometer_calibration_ok &&
-			 _telemetry->health().is_local_position_ok);
-	}, std::chrono::seconds(20)));
+	[this]() {	return _telemetry->health().is_armable;	}, std::chrono::seconds(20)));
 }
 
 void AutopilotTester::store_home()
@@ -532,6 +530,11 @@ void AutopilotTester::check_tracks_mission(float corridor_radius_m)
 			CHECK(distance_to_trajectory < corridor_radius_m);
 		}
 	});
+}
+
+void AutopilotTester::check_current_altitude(float target_rel_altitude_m, float max_distance_m)
+{
+	CHECK(std::abs(_telemetry->position().relative_altitude_m - target_rel_altitude_m) <= max_distance_m);
 }
 
 std::array<float, 3> AutopilotTester::get_current_position_ned()

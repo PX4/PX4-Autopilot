@@ -212,5 +212,64 @@ bool param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2022-06-09: migrate EKF2_WIND_NOISE->EKF2_WIND_NSD
+	{
+		if (strcmp("EKF2_WIND_NOISE", node->name) == 0) {
+			node->d /= 10.0; // at 100Hz (EKF2 rate), NSD is sqrt(100) times smaller than std_dev
+			strcpy(node->name, "EKF2_WIND_NSD");
+			PX4_INFO("param migrating EKF2_WIND_NOISE (removed) -> EKF2_WIND_NSD: value=%.3f", node->d);
+			return true;
+		}
+	}
+
+	// 2022-06-09: translate ASPD_SC_P_NOISE->ASPD_SCALE_NSD and ASPD_W_P_NOISE->ASPD_WIND_NSD
+	{
+		if (strcmp("ASPD_SC_P_NOISE", node->name) == 0) {
+			strcpy(node->name, "ASPD_SCALE_NSD");
+			PX4_INFO("copying %s -> %s", "ASPD_SC_P_NOISE", "ASPD_SCALE_NSD");
+			return true;
+		}
+
+		if (strcmp("ASPD_W_P_NOISE", node->name) == 0) {
+			strcpy(node->name, "ASPD_WIND_NSD");
+			PX4_INFO("copying %s -> %s", "ASPD_W_P_NOISE", "ASPD_WIND_NSD");
+			return true;
+		}
+	}
+
+	// 2022-07-07: translate FW_THR_CRUISE->FW_THR_TRIM
+	{
+		if (strcmp("FW_THR_CRUISE", node->name) == 0) {
+			strcpy(node->name, "FW_THR_TRIM");
+			PX4_INFO("copying %s -> %s", "FW_THR_CRUISE", "FW_THR_TRIM");
+			return true;
+		}
+	}
+
+	// 2022-07-08: (Auterion only) migrate MPC_VEL_LAT_SC->MPC_VEL_MAN_SIDE and MPC_VEL_BACK_SC->MPC_VEL_MAN_BACK
+	{
+		if (strcmp("MPC_VEL_LAT_SC", node->name) == 0) {
+			if (node->d < 1.0) {
+				float vel_manual;
+				param_get(param_find("MPC_VEL_MANUAL"), &vel_manual);
+				node->d *= static_cast<double>(vel_manual); // convert the scaler relative to vel_manual to an absolute velocity
+				strcpy(node->name, "MPC_VEL_MAN_SIDE");
+				PX4_INFO("param migrating MPC_VEL_LAT_SC (removed) -> MPC_VEL_MAN_SIDE: value=%.3f", node->d);
+				return true;
+			}
+		}
+
+		if (strcmp("MPC_VEL_BACK_SC", node->name) == 0) {
+			if (node->d < 1.0) {
+				float vel_manual;
+				param_get(param_find("MPC_VEL_MANUAL"), &vel_manual);
+				node->d *= static_cast<double>(vel_manual); // convert the scaler relative to vel_manual to an absolute velocity
+				strcpy(node->name, "MPC_VEL_MAN_BACK");
+				PX4_INFO("param migrating MPC_VEL_BACK_SC (removed) -> MPC_VEL_MAN_BACK: value=%.3f", node->d);
+				return true;
+			}
+		}
+	}
+
 	return false;
 }

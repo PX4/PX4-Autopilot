@@ -1,0 +1,5 @@
+menuconfig SYSTEMCMDS_PAIRING_BUTTON_SIM
+	bool "pairing_button_sim"
+	default n
+	---help---
+		Enable support for pairing_button_sim

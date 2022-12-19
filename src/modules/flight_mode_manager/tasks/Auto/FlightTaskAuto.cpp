@@ -154,11 +154,8 @@ bool FlightTaskAuto::update()
 		_velocity_setpoint(2) = NAN;
 		break;
 
-	case WaypointType::takeoff:
-		// Takeoff is completely defined by target position
-		_gear.landing_gear = landing_gear_s::GEAR_DOWN;
-
 	// FALLTHROUGH
+	case WaypointType::takeoff:
 	case WaypointType::loiter:
 	case WaypointType::position:
 	default:
@@ -234,9 +231,9 @@ void FlightTaskAuto::_prepareLandSetpoints()
 	_velocity_setpoint.setNaN(); // Don't take over any smoothed velocity setpoint
 
 	// Slow down automatic descend close to ground
-	float vertical_speed = math::gradual(_dist_to_ground,
-					     _param_mpc_land_alt2.get(), _param_mpc_land_alt1.get(),
-					     _param_mpc_land_speed.get(), _param_mpc_z_vel_max_dn.get());
+	float vertical_speed = math::interpolate(_dist_to_ground,
+			       _param_mpc_land_alt2.get(), _param_mpc_land_alt1.get(),
+			       _param_mpc_land_speed.get(), _param_mpc_z_vel_max_dn.get());
 
 	bool range_dist_available = PX4_ISFINITE(_dist_to_bottom);
 
@@ -355,12 +352,11 @@ bool FlightTaskAuto::_evaluateTriplets()
 	const float cruise_speed_from_triplet = _sub_triplet_setpoint.get().current.cruising_speed;
 
 	if (PX4_ISFINITE(cruise_speed_from_triplet)
-	    && (cruise_speed_from_triplet > 0.f)
 	    && (_sub_triplet_setpoint.get().current.timestamp > _time_last_cruise_speed_override)) {
 		_mc_cruise_speed = cruise_speed_from_triplet;
 	}
 
-	if (!PX4_ISFINITE(_mc_cruise_speed) || (_mc_cruise_speed < 0.0f)) {
+	if (!PX4_ISFINITE(_mc_cruise_speed) || (_mc_cruise_speed < FLT_EPSILON)) {
 		// If no speed is planned use the default cruise speed as limit
 		_mc_cruise_speed = _param_mpc_xy_cruise.get();
 	}
@@ -511,7 +507,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 			   && _sub_triplet_setpoint.get().current.yaw_valid) {
 			// Use the yaw computed in Navigator except during takeoff because
 			// Navigator is not handling the yaw reset properly.
-			// But: use if from Navigator during takeoff if disable_weather_vane is true,
+			// But: use yaw from Navigator during takeoff if disable_weather_vane is true,
 			// because we're then aligning to the transition waypoint.
 			// TODO: fix in navigator
 			_yaw_setpoint = _sub_triplet_setpoint.get().current.yaw;

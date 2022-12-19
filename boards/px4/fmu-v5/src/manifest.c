@@ -186,7 +186,7 @@ __EXPORT px4_hw_mft_item board_query_manifest(px4_hw_mft_item_id_t id)
 	static px4_hw_mft_list_entry boards_manifest = px4_hw_mft_list_uninitialized;
 
 	if (boards_manifest == px4_hw_mft_list_uninitialized) {
-		uint32_t ver_rev = board_get_hw_version() << 8;
+		uint32_t ver_rev = board_get_hw_version() << 16;
 		ver_rev |= board_get_hw_revision();
 
 		for (unsigned i = 0; i < arraySize(mft_lists); i++) {
@@ -197,7 +197,7 @@ __EXPORT px4_hw_mft_item board_query_manifest(px4_hw_mft_item_id_t id)
 		}
 
 		if (boards_manifest == px4_hw_mft_list_uninitialized) {
-			syslog(LOG_ERR, "[boot] Board %4"  PRIx32 " is not supported!\n", ver_rev);
+			syslog(LOG_ERR, "[boot] Board %08"  PRIx32 " is not supported!\n", ver_rev);
 		}
 	}
 

@@ -141,11 +141,11 @@ extern "C" __EXPORT int ver_main(int argc, char *argv[])
 				int  r = px4_board_hw_revision();
 
 				if (v >= 0) {
-					snprintf(vb, sizeof(vb), "0x%08X", v);
+					snprintf(vb, sizeof(vb), "0x%0" STRINGIFY(HW_INFO_VER_DIGITS) "X", v);
 				}
 
 				if (r >= 0) {
-					snprintf(rb, sizeof(rb), "0x%08X", r);
+					snprintf(rb, sizeof(rb), "0x%0" STRINGIFY(HW_INFO_REV_DIGITS) "X", r);
 				}
 
 				printf("HW type: %s\n", strlen(px4_board_sub_type()) ? px4_board_sub_type() : "NA");
@@ -257,6 +257,22 @@ extern "C" __EXPORT int ver_main(int argc, char *argv[])
 
 				ret = 0;
 			}
+
+#ifdef PX4_RESTRICTED_BUILD
+
+			if (show_all) {
+				printf("Restricted build: on\n");
+			}
+
+#endif /* PX4_RESTRICTED_BUILD */
+
+#ifdef PX4_EXPORT_CONTROLLED_BUILD
+
+			if (show_all) {
+				printf("Export controlled build (flight time / wind restrictions): on\n");
+			}
+
+#endif /* PX4_EXPORT_CONTROLLED_BUILD */
 
 			if (ret == 1) {
 				PX4_ERR("unknown command");

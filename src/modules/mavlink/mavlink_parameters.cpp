@@ -116,6 +116,18 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 					return;
 				}
 
+#ifdef PX4_RESTRICTED_BUILD
+
+				// only allow setting the following params
+				if (strcmp(name, "RTL_RETURN_ALT") != 0 &&
+				    strcmp(name, "GF_ACTION") != 0 &&
+				    strcmp(name, "GF_MAX_HOR_DIST") != 0 &&
+				    strcmp(name, "GF_MAX_VER_DIST") != 0) {
+					return;
+				}
+
+#endif /* PX4_RESTRICTED_BUILD */
+
 				/* attempt to find parameter, set and send it */
 				param_t param = param_find_no_notification(name);
 
@@ -228,6 +240,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 		}
 
 	case MAVLINK_MSG_ID_PARAM_MAP_RC: {
+#ifndef PX4_RESTRICTED_BUILD
 			/* map a rc channel to a parameter */
 			mavlink_param_map_rc_t map_rc;
 			mavlink_msg_param_map_rc_decode(msg, &map_rc);
@@ -266,6 +279,8 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 				_rc_param_map.timestamp = hrt_absolute_time();
 				_rc_param_map_pub.publish(_rc_param_map);
 			}
+
+#endif /* PX4_RESTRICTED_BUILD */
 
 			break;
 		}

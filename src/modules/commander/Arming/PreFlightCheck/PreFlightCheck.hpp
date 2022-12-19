@@ -135,7 +135,10 @@ private:
 	static bool modeCheck(orb_advert_t *mavlink_log_pub, const bool report_fail, const vehicle_status_s &status);
 	static bool airframeCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status);
 	static bool cpuResourceCheck(orb_advert_t *mavlink_log_pub, const bool report_fail);
+	static bool externalUpdateCheck(orb_advert_t *mavlink_log_pub, const bool report_fail);
 	static bool sdcardCheck(orb_advert_t *mavlink_log_pub, bool &sd_card_detected_once, const bool report_fail);
 	static bool parachuteCheck(orb_advert_t *mavlink_log_pub, const bool report_fail,
 				   const vehicle_status_flags_s &status_flags);
+	static bool openDroneIDCheck(orb_advert_t *mavlink_log_pub, const bool report_fail,
+				     const vehicle_status_flags_s &status_flags);
 };

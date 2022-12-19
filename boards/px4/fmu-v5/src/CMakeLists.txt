@@ -52,6 +52,7 @@ add_dependencies(drivers_board nuttx_context)
 target_link_libraries(drivers_board
 	PRIVATE
 		arch_board_hw_info
+		arch_io_pins
 		arch_spi
 		drivers__led # drv_led_start
 		nuttx_arch # sdio

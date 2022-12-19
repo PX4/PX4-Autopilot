@@ -73,8 +73,7 @@ public:
 
 	/**
 	 * Update the state for the takeoff.
-	 * @param setpoint a vehicle_local_position_setpoint_s structure
-	 * @return true if setpoint has updated correctly
+	 * Has to be called also when not flying altitude controlled to skip the takeoff and not do it in flight when switching mode.
 	 */
 	void updateTakeoffState(const bool armed, const bool landed, const bool want_takeoff,
 				const float takeoff_desired_vz, const bool skip_takeoff, const hrt_abstime &now_us);

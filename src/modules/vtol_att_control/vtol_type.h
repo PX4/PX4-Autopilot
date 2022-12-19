@@ -53,6 +53,11 @@
 static constexpr float kFlapSlewRateVtol = 1.f; // minimum time from none to full flap deflection [s]
 static constexpr float kSpoilerSlewRateVtol = 1.f; // minimum time from none to full spoiler deflection [s]
 
+using namespace time_literals;
+
+static constexpr float ACTUATOR_POSITIVE_DIRECTION{1.0f};
+static constexpr float ACTUATOR_CENTRAL_DIRECTION{0.0f};
+static constexpr float ACTUATOR_NEGATIVE_DIRECTION{-1.0f};
 
 // Has to match 1:1 msg/vtol_vehicle_status.msg
 enum class mode {
@@ -97,6 +102,41 @@ enum class pwm_limit_type {
 	TYPE_MAXIMUM
 };
 
+// defines the pre-flight control surface and tilting mechanism test types
+enum class actuator_test_type {
+	TYPE_NONE = 0,
+	TYPE_TILT,
+	TYPE_CONTROL_SURFACES
+};
+
+enum class control_surfaces_test_state {
+	STATE_TEST_AILERON = 0,
+	STATE_TEST_ELEVATOR,
+	STATE_TEST_RUDDER,
+	STATE_TEST_END
+};
+
+enum class actuator_test_position_state {
+	STATE_POSITION_WAIT = 0,		//!< Wait, do not output any actuator setpoint
+	STATE_POSITION_POSITIVE,		//!< The actuator is moving from central to positive position
+	STATE_POSITION_NEGATIVE,		//!< The actuator is moving from central to negative position
+	STATE_POSITION_CENTRAL,			//!< The actuator is moving from positive to central position
+	STATE_POSITION_WAIT_1,			//!< The actuator is waiting in positive position
+	STATE_POSITION_WAIT_2,			//!< The actuator is waiting in negative position
+	STATE_POSITION_END			//!< The actuator is moving to end position (central)
+};
+
+enum class QuadchuteReason {
+	None = 0,
+	TransitionTimeout,
+	ExternalCommand,
+	MinimumAltBreached,
+	LossOfAlt,
+	LargeAltError,
+	MaximumPitchExceeded,
+	MaximumRollExceeded,
+};
+
 class VtolAttitudeControl;
 
 class VtolType:  public ModuleParams
@@ -129,6 +169,13 @@ public:
 	 */
 	virtual void update_mc_state();
 
+
+	/**
+	 * Runs code wich will be executed at each loop iteration, does not need to be tied to
+	 * attitude setpoint updates.
+	 */
+	virtual void update_mc_generic() {};
+
 	/**
 	 * Update fixed wing state.
 	 */
@@ -146,6 +193,73 @@ public:
 	virtual void waiting_on_tecs() {}
 
 	/**
+	 *  @brief Indicates if quadchute is enabled.
+	 *
+	 * @return     true if enabled
+	 */
+	bool isQuadchuteEnabled();
+
+	/**
+	 *  @brief Evaluates quadchute conditions and returns a reson for quadchute.
+	 *
+	 * @return     QuadchuteReason, can be None
+	 */
+	QuadchuteReason getQuadchuteReason();
+
+	/**
+	 *  @brief Indicates if the vehicle is lower than VT_FW_MIN_ALT above the local origin.
+	 *
+	 * @return     true if below threshold
+	 */
+	bool isMinAltBreached();
+
+	/**
+	 *  @brief Indicates if the vehicle has an altitude error larger than VT_FW_ALT_ERR and is losing altitude quickly.
+	 * 		This only applies when TECS is running.
+	 *
+	 * @return     true if error larger than threshold
+	 */
+	bool largeAltitudeLoss();
+
+	/**
+	 *  @brief Indicates if the vehicle has an altitude error larger than VT_FW_ALT_ERR. This only applied when TECS is not running.
+	 *
+	 * @return     true if error larger than threshold
+	 */
+	bool largeAltitudeError();
+
+	/**
+	 *  @brief Indicates if the absolute value of the vehicle pitch angle exceeds the threshold defined by VT_FW_QC_P
+	 *
+	 * @return     true if exeeded
+	 */
+	bool isPitchExceeded();
+
+	/**
+	 *  @brief Indicates if the absolute value of the vehicle roll angle exceeds the threshold defined by VT_FW_QC_R
+	 *
+	 * @return     true if exeeded
+	 */
+	bool isRollExceeded();
+
+	/**
+	 *  @brief Indicates if the front transition duration has exceeded the timeout definded by VT_TRANS_TIMEOUT
+	 *
+	 * @return     true if exeeded
+	 */
+	bool isFrontTransitionTimeout();
+
+	/**
+	 *  @brief Applied a first order low pass filte to TECS height rate and heigh rate setpoint.
+	 */
+	void filterTecsHeightRates();
+
+	/**
+	 *  @brief Special handling of QuadchuteReason::ReasonExternal
+	 */
+	void handleSpecialExternalCommandQuadchute();
+
+	/**
 	 * Checks for fixed-wing failsafe condition and issues abort request if needed.
 	 */
 	void check_quadchute_condition();
@@ -160,11 +274,19 @@ public:
 	 */
 	float pusher_assist();
 
+	/**
+	 * Activate a pre-flight control surface or tilt mechanism functionality check, according to test_type.
+	 */
+	void activate_actuator_test_mode(actuator_test_type test_type);
+
+	/**
+	 * Returns true if we are currently executing a control surface or tilt mechanism functionality check.
+	 */
+	bool in_actuator_test_mode() {return _in_actuator_test_mode;}
+
 	virtual void blendThrottleAfterFrontTransition(float scale) {};
 
-	mode get_mode() {return _vtol_mode;}
-
-	bool was_in_trans_mode() {return _flag_was_in_trans_mode;}
+	mode get_mode() {return _common_vtol_mode;}
 
 	/**
 	 * @return Minimum front transition time scaled for air density (if available) [s]
@@ -187,7 +309,7 @@ public:
 
 protected:
 	VtolAttitudeControl *_attc;
-	mode _vtol_mode;
+	mode _common_vtol_mode;
 
 	static constexpr const int num_outputs_max = 8;
 
@@ -203,7 +325,7 @@ protected:
 	struct actuator_controls_s			*_actuators_fw_in;			//actuator controls from fw_att_control
 	struct vehicle_local_position_s			*_local_pos;
 	struct vehicle_local_position_setpoint_s	*_local_pos_sp;
-	struct airspeed_validated_s 				*_airspeed_validated;					// airspeed
+	struct airspeed_validated_s 			*_airspeed_validated;					// airspeed
 	struct tecs_status_s				*_tecs_status;
 	struct vehicle_land_detected_s			*_land_detected;
 
@@ -229,6 +351,8 @@ protected:
 	bool _flag_was_in_trans_mode = false;	// true if mode has just switched to transition
 
 	hrt_abstime _trans_finished_ts = 0;
+	hrt_abstime _transition_start_timestamp{0};
+	float _time_since_trans_start{0};
 
 	bool _tecs_running = false;
 	hrt_abstime _tecs_running_ts = 0;
@@ -242,7 +366,13 @@ protected:
 	float _accel_to_pitch_integ = 0;
 
 	bool _quadchute_command_treated{false};
-
+	bool _in_actuator_test_mode{false};
+	hrt_abstime _actuator_test_start_ts{0};
+	hrt_abstime _timestamp_new_state{0};
+	float _actuator_control_value_target{ACTUATOR_CENTRAL_DIRECTION};
+	actuator_test_type _actuator_test_type{actuator_test_type::TYPE_NONE};
+	control_surfaces_test_state _control_surfaces_test_state{control_surfaces_test_state::STATE_TEST_AILERON};
+	actuator_test_position_state _actuator_test_position_state{actuator_test_position_state::STATE_POSITION_POSITIVE};
 
 	/**
 	 * @brief      Sets mc motor minimum pwm to VT_IDLE_PWM_MC which ensures
@@ -268,6 +398,13 @@ protected:
 
 	float update_and_get_backtransition_pitch_sp();
 
+	/**
+	 * @brief      Overrides controls for control surface or tilt mechanism in the context of preflight tests.
+	 *
+	 * @return     true while executing the test, false once done
+	 */
+	bool override_controls_for_test_mode();
+
 	SlewRate<float> _spoiler_setpoint_with_slewrate;
 	SlewRate<float> _flaps_setpoint_with_slewrate;
 
@@ -279,6 +416,7 @@ protected:
 					(ParamFloat<px4::params::VT_FW_ALT_ERR>) _param_vt_fw_alt_err,
 					(ParamInt<px4::params::VT_FW_QC_P>) _param_vt_fw_qc_p,
 					(ParamInt<px4::params::VT_FW_QC_R>) _param_vt_fw_qc_r,
+					(ParamFloat<px4::params::VT_FW_QC_HMAX>) _param_quadchute_max_height,
 					(ParamFloat<px4::params::VT_F_TR_OL_TM>) _param_vt_f_tr_ol_tm,
 					(ParamFloat<px4::params::VT_TRANS_MIN_TM>) _param_vt_trans_min_tm,
 
@@ -309,12 +447,13 @@ protected:
 					(ParamInt<px4::params::VT_MOT_ID>) _param_vt_mot_id,
 					(ParamBool<px4::params::VT_MC_ON_FMU>) _param_vt_mc_on_fmu,
 					(ParamInt<px4::params::VT_FW_MOT_OFFID>) _param_vt_fw_mot_offid,
-					(ParamFloat<px4::params::VT_SPOILER_MC_LD>) _param_vt_spoiler_mc_ld
+					(ParamFloat<px4::params::VT_SPOILER_MC_LD>) _param_vt_spoiler_mc_ld,
+
+					(ParamInt<px4::params::VT_TYPE>) _param_vt_type // APX4 custom, needed for actuator test
 
 				       )
 
 private:
-
 
 	hrt_abstime _throttle_blend_start_ts{0};	// time at which we start blending between transition throttle and fixed wing throttle
 

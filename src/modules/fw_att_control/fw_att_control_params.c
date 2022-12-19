@@ -455,7 +455,7 @@ PARAM_DEFINE_FLOAT(FW_MAN_R_MAX, 45.0f);
  * @increment 0.5
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_MAN_P_MAX, 45.0f);
+PARAM_DEFINE_FLOAT(FW_MAN_P_MAX, 30.0f);
 
 /**
  * Flaps setting during take-off
@@ -513,6 +513,24 @@ PARAM_DEFINE_INT32(FW_ARSP_MODE, 0);
  * @group FW Attitude Control
  */
 PARAM_DEFINE_INT32(FW_ARSP_SCALE_EN, 1);
+
+/**
+ * Trim / Cruise airspeed
+ *
+ * This is the default cruise airspeed setpoint (calibrated airspeed) used by the system in assisted
+ * and autonomous control modes if no other airspeed setpoint is given.
+ * It is also used for control surface effectiveness scaling:
+ * It is the cruise airspeed around which the airspeed scaling is applied
+ * (scaling = FW_AIRSPD_TRIM / calibrated_airspeed).
+ *
+ * @unit m/s
+ * @min 0.0
+ * @max 40
+ * @decimal 1
+ * @increment 0.5
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_AIRSPD_TRIM, 15.0f);
 
 /**
  * Manual roll scale
@@ -579,10 +597,12 @@ PARAM_DEFINE_INT32(FW_BAT_SCALE_EN, 0);
  *
  * @min 45
  * @max 720
- * @unit deg
+ * @decimal 1
+ * @increment 5
+ * @unit deg/s
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_ACRO_X_MAX, 90);
+PARAM_DEFINE_FLOAT(FW_ACRO_X_MAX, 90.f);
 
 /**
  * Acro body y max rate.
@@ -592,10 +612,12 @@ PARAM_DEFINE_FLOAT(FW_ACRO_X_MAX, 90);
  *
  * @min 45
  * @max 720
- * @unit deg
+ * @decimal 1
+ * @increment 5
+ * @unit deg/s
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_ACRO_Y_MAX, 90);
+PARAM_DEFINE_FLOAT(FW_ACRO_Y_MAX, 90.f);
 
 /**
  * Acro body z max rate.
@@ -605,10 +627,12 @@ PARAM_DEFINE_FLOAT(FW_ACRO_Y_MAX, 90);
  *
  * @min 10
  * @max 180
- * @unit deg
+ * @decimal 1
+ * @increment 5
+ * @unit deg/s
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_ACRO_Z_MAX, 45);
+PARAM_DEFINE_FLOAT(FW_ACRO_Z_MAX, 45.f);
 
 /**
 * Roll trim increment at minimum airspeed
@@ -762,3 +786,18 @@ PARAM_DEFINE_FLOAT(FW_SPOILERS_DESC, 0.f);
  * @group FW Attitude Control
  */
 PARAM_DEFINE_INT32(FW_SPOILERS_MAN, 0);
+
+/**
+ * Maximum manually added yaw rate
+ *
+ * This is the maximally added yaw rate setpoint from the yaw stick in any attitude controlled flight mode.
+ * The controller already generates a yaw rate setpoint to coordinate a turn, and this value is added to it.
+ * This is an absolute value, which is applied symmetrically to the negative and positive side.
+ *
+ * @unit deg/s
+ * @min 0
+ * @decimal 1
+ * @increment 0.5
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_MAN_YR_MAX, 30.f);

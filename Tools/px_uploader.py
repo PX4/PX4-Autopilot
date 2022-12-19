@@ -570,7 +570,7 @@ class uploader(object):
         self.fw_maxsize = self.__getInfo(uploader.INFO_FLASH_SIZE)
 
     # upload the firmware
-    def upload(self, fw, force=False, boot_delay=None):
+    def upload(self, fw, force=False, boot_delay=None, boot_check=False):
         # Make sure we are doing the right thing
         start = time.time()
         if self.board_type != fw.property('board_id'):
@@ -603,9 +603,9 @@ class uploader(object):
                 print("sn: ", end='')
                 for byte in range(0, 12, 4):
                     x = self.__getSN(byte)
-                    x = x[::-1]  # reverse the bytes
                     self.sn = self.sn + x
-                    print(binascii.hexlify(x).decode('Latin-1'), end='')  # show user
+
+                print(binascii.hexlify(self.sn).decode('Latin-1'), end='')  # show user
                 print('')
                 print("chip: %08x" % self.__getCHIP())
 
@@ -667,6 +667,23 @@ class uploader(object):
 
         print("\nRebooting.", end='')
         self.__reboot()
+
+        if boot_check:
+            # check if application has booted
+            time.sleep(self.BOOT_CHECK_DELAY_s)
+            # this Sync is expected to fail, because jump to Px4 succeeded
+            btl_active = False
+            try:
+                # Test if bootloader answers
+                ret =self.__sync()
+                btl_active=True
+
+            except Exception as e :
+                btl_active = False
+
+            if btl_active:
+                raise Exception('Did not boot to PX4 Application, still in Bootloader')
+
         self.port.close()
         print(" Elapsed Time %3.3f\n" % (time.time() - start))
 
@@ -752,6 +769,7 @@ def main():
     parser.add_argument('--force', action='store_true', default=False, help='Override board type check, or silicon errata checks and continue loading')
     parser.add_argument('--boot-delay', type=int, default=None, help='minimum boot delay to store in flash')
     parser.add_argument('--use-protocol-splitter-format', action='store_true', help='use protocol splitter format for reboot')
+    parser.add_argument('--boot-check', action='store_true',default=False, help='Test if bootloader has exited, after boot. Throws an excpetion if bootloader does not jump to application')
     parser.add_argument('firmware', action="store", help="Firmware file to be uploaded")
     args = parser.parse_args()
 

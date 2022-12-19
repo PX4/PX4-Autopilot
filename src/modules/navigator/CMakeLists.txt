@@ -32,6 +32,7 @@
 ############################################################################
 
 add_subdirectory(GeofenceBreachAvoidance)
+add_subdirectory(TerrainFollower)
 
 px4_add_module(
 	MODULE modules__navigator
@@ -48,11 +49,12 @@ px4_add_module(
 		precland.cpp
 		mission_feasibility_checker.cpp
 		geofence.cpp
-		follow_target.cpp
+		terrain_follower_wrapper.cpp
 		vtol_takeoff.cpp
+		vtol_land.cpp
 	DEPENDS
 		geo
-		landing_slope
 		geofence_breach_avoidance
 		motion_planning
+		terrain_follower
 	)

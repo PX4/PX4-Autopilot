@@ -58,12 +58,8 @@ public:
 
 	bool request_message(float param2, float param3, float param4, float param5, float param6, float param7) override
 	{
-		if (_valid) {
-			_force_next_send = true;
-			return true;
-		}
-
-		return false;
+		_force_next_send = true;
+		return send();
 	}
 
 private:
@@ -75,15 +71,14 @@ private:
 	double _ref_lat{static_cast<double>(NAN)};
 	double _ref_lon{static_cast<double>(NAN)};
 	float _ref_alt{NAN};
-
-	bool _valid{false};
 	bool _force_next_send{true};
 
 	bool send() override
 	{
-		vehicle_local_position_s vehicle_local_position;
+		vehicle_local_position_s vehicle_local_position{};
 
-		if (_vehicle_local_position_sub.update(&vehicle_local_position)) {
+		if ((_vehicle_local_position_sub.updated() || _force_next_send)
+		    && _vehicle_local_position_sub.copy(&vehicle_local_position)) {
 			if (vehicle_local_position.xy_global && vehicle_local_position.z_global) {
 
 				static constexpr double LLA_MIN_DIFF = 0.0000001; // ~11.132 mm at the equator
@@ -107,7 +102,6 @@ private:
 					_ref_alt       = vehicle_local_position.ref_alt;
 
 					_force_next_send = false;
-					_valid = true;
 
 					return true;
 				}

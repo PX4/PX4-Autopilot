@@ -31,7 +31,6 @@ param set-default FW_AIRSPD_MAX 30
 param set-default FW_AIRSPD_MIN 19
 param set-default FW_AIRSPD_TRIM 23
 param set-default FW_L1_R_SLEW_MAX 40
-param set-default FW_MAN_P_MAX 30
 param set-default FW_PSP_OFF 3
 param set-default FW_P_LIM_MAX 18
 param set-default FW_P_LIM_MIN -25
@@ -39,7 +38,7 @@ param set-default FW_RLL_TO_YAW_FF 0.1
 param set-default FW_RR_P 0.08
 param set-default FW_R_LIM 45
 param set-default FW_R_RMAX 50
-param set-default FW_THR_CRUISE 0.65
+param set-default FW_THR_TRIM 0.65
 param set-default FW_THR_MIN 0.3
 param set-default FW_THR_SLEW_MAX 0.6
 param set-default FW_T_HRATE_FF 0
@@ -71,7 +70,6 @@ param set-default MPC_VEL_MANUAL 3
 param set-default MPC_XY_CRUISE 3
 param set-default MPC_XY_VEL_MAX 3.5
 param set-default MPC_YAWRAUTO_MAX 40
-param set-default MPC_Z_VEL_MAX_DN 1.5
 param set-default MPC_Z_VEL_MAX_UP 2
 
 param set-default NAV_ACC_RAD 3

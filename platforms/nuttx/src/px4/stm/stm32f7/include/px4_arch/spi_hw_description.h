@@ -32,6 +32,8 @@
  ****************************************************************************/
 #pragma once
 
+#include <board_config.h>
+
 #if defined(CONFIG_SPI)
 
 #include "../../../stm32_common/include/px4_arch/spi_hw_description.h"

@@ -95,6 +95,11 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_handle_sens_flow_rot = param_find("SENS_FLOW_ROT");
 	_handle_ekf2_min_rng = param_find("EKF2_MIN_RNG");
 	_handle_ekf2_rng_a_hmax = param_find("EKF2_RNG_A_HMAX");
+	_handle_tf_terrain_en = param_find("TF_TERRAIN_EN");
+
+	if (_handle_tf_terrain_en != PARAM_INVALID) {
+		param_get(_handle_tf_terrain_en, &_param_tf_terrain_en);
+	}
 }
 
 void
@@ -175,6 +180,13 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 	case MAVLINK_MSG_ID_RADIO_STATUS:
 		handle_message_radio_status(msg);
 		break;
+
+#if !defined(CONSTRAINED_FLASH)
+
+	case MAVLINK_MSG_ID_RADIO_STATUS_EXTENSIONS:
+		handle_message_radio_status_extensions(msg);
+		break;
+#endif // !CONSTRAINED_FLASH
 
 	case MAVLINK_MSG_ID_MANUAL_CONTROL:
 		handle_message_manual_control(msg);
@@ -307,6 +319,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_gimbal_device_attitude_status(msg);
 		break;
 
+	case MAVLINK_MSG_ID_TERRAIN_DATA:
+		_terrain_uploader.handleTerrainData(msg);
+		break;
+
 	default:
 		break;
 	}
@@ -400,7 +416,7 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 		// This looks suspicously like INT32_MAX was sent in a COMMAND_LONG instead of
 		// a COMMAND_INT.
 		PX4_ERR("param5/param6 invalid of command %" PRIu16, cmd_mavlink.command);
-		acknowledge(msg->sysid, msg->compid, cmd_mavlink.command, vehicle_command_ack_s::VEHICLE_RESULT_DENIED);
+		acknowledge(msg->sysid, msg->compid, cmd_mavlink.command, vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED, 0);
 		return;
 	}
 
@@ -436,7 +452,7 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 	if (cmd_mavlink.x == 0x7ff80000 && cmd_mavlink.y == 0x7ff80000) {
 		// This looks like NAN was by accident sent as int.
 		PX4_ERR("x/y invalid of command %" PRIu16, cmd_mavlink.command);
-		acknowledge(msg->sysid, msg->compid, cmd_mavlink.command, vehicle_command_ack_s::VEHICLE_RESULT_DENIED);
+		acknowledge(msg->sysid, msg->compid, cmd_mavlink.command, vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED, 0);
 		return;
 	}
 
@@ -474,14 +490,14 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 {
 	bool target_ok = evaluate_target_ok(cmd_mavlink.command, cmd_mavlink.target_system, cmd_mavlink.target_component);
 	bool send_ack = true;
-	uint8_t result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
+	uint8_t result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 	uint8_t progress = 0; // TODO: should be 255, 0 for backwards compatibility
 
 	if (!target_ok) {
 		// Reject alien commands only if there is no forwarding or we've never seen target component before
 		if (!_mavlink->get_forwarding_on()
 		    || !_mavlink->component_was_seen(cmd_mavlink.target_system, cmd_mavlink.target_component, _mavlink)) {
-			acknowledge(msg->sysid, msg->compid, cmd_mavlink.command, vehicle_command_ack_s::VEHICLE_RESULT_FAILED);
+			acknowledge(msg->sysid, msg->compid, cmd_mavlink.command, vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED, 0);
 		}
 
 		return;
@@ -506,7 +522,7 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 
 	} else if (cmd_mavlink.command == MAV_CMD_SET_MESSAGE_INTERVAL) {
 		if (set_message_interval((int)roundf(cmd_mavlink.param1), cmd_mavlink.param2, cmd_mavlink.param3)) {
-			result = vehicle_command_ack_s::VEHICLE_RESULT_FAILED;
+			result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED;
 		}
 
 	} else if (cmd_mavlink.command == MAV_CMD_GET_MESSAGE_INTERVAL) {
@@ -547,7 +563,7 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 			send_ack = false;
 
 		} else {
-			result = vehicle_command_ack_s::VEHICLE_RESULT_DENIED;
+			result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
 			send_ack = true;
 		}
 
@@ -633,7 +649,7 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 		if (has_module) {
 
 			// most are in progress
-			result = vehicle_command_ack_s::VEHICLE_RESULT_IN_PROGRESS;
+			result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_IN_PROGRESS;
 
 			switch (status.state) {
 			case autotune_attitude_control_status_s::STATE_IDLE:
@@ -675,18 +691,35 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 			case autotune_attitude_control_status_s::STATE_COMPLETE:
 				progress = 100;
 				// ack it properly with an ACCEPTED once we're done
-				result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
+				result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 				break;
 
 			case autotune_attitude_control_status_s::STATE_FAIL:
 				progress = 0;
-				result = vehicle_command_ack_s::VEHICLE_RESULT_FAILED;
+				result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED;
 				break;
 			}
 
 		} else {
-			result = vehicle_command_ack_s::VEHICLE_RESULT_UNSUPPORTED;
+			result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
 		}
+
+		send_ack = true;
+
+	} else if (cmd_mavlink.command == MAV_CMD_WAYPOINT_USER_1) {
+		// Note for this case, the command is sent from an external entity
+		// to trigger a custom action on the Mission Computer, so a timeout
+		// check is not handled by the autopilot, but should rather be handled
+		// by the entity sending this command
+		vehicle_command_s custom_action_cmd = vehicle_command;
+		custom_action_cmd.target_system = 0;
+		custom_action_cmd.target_component = 193; // MAV_COMP_ID_ONBOARD_COMPUTER3 (arbitrarily selected)
+		custom_action_cmd.from_external = false;
+
+		PX4_DEBUG("receiving command %d from %d/%d", custom_action_cmd.command, custom_action_cmd.source_system,
+			  custom_action_cmd.source_component);
+
+		_cmd_pub.publish(custom_action_cmd);
 
 		send_ack = true;
 
@@ -704,7 +737,7 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 			// on a radio link
 			if (_mavlink->get_data_rate() < 5000) {
 				send_ack = true;
-				result = vehicle_command_ack_s::VEHICLE_RESULT_DENIED;
+				result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
 				_mavlink->send_statustext_critical("Not enough bandwidth to enable log streaming\t");
 				events::send<uint32_t>(events::ID("mavlink_log_not_enough_bw"), events::Log::Error,
 						       "Not enough bandwidth to enable log streaming ({1} \\< 5000)", _mavlink->get_data_rate());
@@ -759,7 +792,8 @@ uint8_t MavlinkReceiver::handle_request_message_command(uint16_t message_id, flo
 		}
 	}
 
-	return (message_sent ? vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED : vehicle_command_ack_s::VEHICLE_RESULT_DENIED);
+	return (message_sent ? vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED :
+		vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED);
 }
 
 
@@ -1640,6 +1674,27 @@ MavlinkReceiver::handle_message_radio_status(mavlink_message_t *msg)
 }
 
 void
+MavlinkReceiver::handle_message_radio_status_extensions(mavlink_message_t *msg)
+{
+#if !defined(CONSTRAINED_FLASH)
+	mavlink_radio_status_extensions_t rstatus;
+	mavlink_msg_radio_status_extensions_decode(msg, &rstatus);
+
+	radio_status_extensions_s status{};
+
+	status.timestamp = hrt_absolute_time();
+	status.rssi = rstatus.rssi;
+	status.snr = rstatus.snr;
+	status.mcs_index = rstatus.mcs_index;
+	status.number_spatial_streams = rstatus.number_spatial_streams;
+	status.queue_size = rstatus.queue_size;
+	status.air_time = rstatus.air_time;
+
+	_radio_status_extensions_pub.publish(status);
+#endif // !CONSTRAINED_FLASH
+}
+
+void
 MavlinkReceiver::handle_message_ping(mavlink_message_t *msg)
 {
 	mavlink_ping_t ping;
@@ -1778,6 +1833,7 @@ MavlinkReceiver::handle_message_serial_control(mavlink_message_t *msg)
 	if (shell) {
 		// we ignore the timeout, EXCLUSIVE & BLOCKING flags of the SERIAL_CONTROL message
 		if (serial_control_mavlink.count > 0) {
+			shell->setTargetID(msg->sysid, msg->compid);
 			shell->write(serial_control_mavlink.data, serial_control_mavlink.count);
 		}
 
@@ -2118,6 +2174,12 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 			case MAV_TYPE_PARACHUTE:
 				_heartbeat_type_parachute = now;
 				_mavlink->telemetry_status().parachute_system_healthy =
+					(hb.system_status == MAV_STATE_STANDBY) || (hb.system_status == MAV_STATE_ACTIVE);
+				break;
+
+			case MAV_TYPE_ODID:
+				_heartbeat_type_open_drone_id = now;
+				_mavlink->telemetry_status().open_drone_id_system_healthy =
 					(hb.system_status == MAV_STATE_STANDBY) || (hb.system_status == MAV_STATE_ACTIVE);
 				break;
 
@@ -2923,6 +2985,7 @@ void MavlinkReceiver::CheckHeartbeats(const hrt_abstime &t, bool force)
 		tstatus.heartbeat_type_adsb                    = (t <= TIMEOUT + _heartbeat_type_adsb);
 		tstatus.heartbeat_type_camera                  = (t <= TIMEOUT + _heartbeat_type_camera);
 		tstatus.heartbeat_type_parachute               = (t <= TIMEOUT + _heartbeat_type_parachute);
+		tstatus.heartbeat_type_open_drone_id           = (t <= TIMEOUT + _heartbeat_type_open_drone_id);
 
 		tstatus.heartbeat_component_telemetry_radio    = (t <= TIMEOUT + _heartbeat_component_telemetry_radio);
 		tstatus.heartbeat_component_log                = (t <= TIMEOUT + _heartbeat_component_log);
@@ -3038,7 +3101,7 @@ MavlinkReceiver::handle_message_gimbal_device_attitude_status(mavlink_message_t 
 	mavlink_msg_gimbal_device_attitude_status_decode(msg, &gimbal_device_attitude_status_msg);
 
 	gimbal_device_attitude_status_s gimbal_attitude_status{};
-	gimbal_attitude_status.timestamp = static_cast<uint64_t>(gimbal_device_attitude_status_msg.time_boot_ms) * 1000;
+	gimbal_attitude_status.timestamp = hrt_absolute_time();
 	gimbal_attitude_status.target_system = gimbal_device_attitude_status_msg.target_system;
 	gimbal_attitude_status.target_component = gimbal_device_attitude_status_msg.target_component;
 	gimbal_attitude_status.device_flags = gimbal_device_attitude_status_msg.flags;
@@ -3099,6 +3162,13 @@ MavlinkReceiver::run()
 	}
 
 #endif // MAVLINK_UDP
+
+	// let the main instance initialize the terrain uploader, if enabled
+	if (_mavlink->is_primary_instance() && _param_tf_terrain_en > 0) {
+		if (!_terrain_uploader.init(_param_tf_terrain_en)) {
+			PX4_ERR("Terrain uploader init failed");
+		}
+	}
 
 	ssize_t nread = 0;
 	hrt_abstime last_send_update = 0;
@@ -3261,11 +3331,45 @@ MavlinkReceiver::run()
 			}
 
 			_mavlink_log_handler.send();
+
+			update_terrain_uploader(t);
+
 			last_send_update = t;
 		}
 
 		if (_tune_publisher != nullptr) {
 			_tune_publisher->publish_next_tune(t);
+		}
+	}
+}
+
+void MavlinkReceiver::update_terrain_uploader(const hrt_abstime &now)
+{
+	_terrain_uploader.update(_mavlink->get_channel(), *_mavlink->get_mavlink_log_pub());
+
+	bool home_position_changed = false;
+
+	// let only the main mavlink instance listen for home position changes
+	if (_mavlink->is_primary_instance() && _home_position_sub.updated()
+	    && now - _last_home_position_changed > 5_s) {
+		_last_home_position_changed = now;
+		home_position_changed = true;
+	}
+
+	if (_mission_manager.had_upload_transfer() || home_position_changed) {
+		actuator_armed_s armed{};
+		_actuator_armed_sub.copy(&armed);
+
+		if (!armed.armed && _terrain_uploader.valid()) {
+			home_position_s home_position{};
+			_home_position_sub.copy(&home_position);
+
+			double lat_sw, lon_sw, lat_ne, lon_ne;
+
+			if (_mission_manager.get_mission_area(home_position.lat, home_position.lon, home_position.valid_hpos,
+							      lat_sw, lon_sw, lat_ne, lon_ne)) {
+				_terrain_uploader.updateArea(lat_sw, lon_sw, lat_ne, lon_ne);
+			}
 		}
 	}
 }

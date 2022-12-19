@@ -58,13 +58,13 @@ public:
 	void update(uint64_t time_now);
 
 	void fuse_airspeed(uint64_t time_now, float true_airspeed, const matrix::Vector3f &velI,
-			   const matrix::Vector2f &velIvar, const matrix::Quatf &q_att);
-	void fuse_beta(uint64_t time_now, const matrix::Vector3f &velI, const matrix::Quatf &q_att);
+			   const float hor_vel_variance, const matrix::Quatf &q_att);
+	void fuse_beta(uint64_t time_now, const matrix::Vector3f &velI, const float hor_vel_variance,
+		       const matrix::Quatf &q_att);
 
 	bool is_estimate_valid() { return _initialised; }
 
-	bool check_if_meas_is_rejected(uint64_t time_now, float innov, float innov_var, uint8_t gate_size,
-				       uint64_t &time_meas_rejected, bool &reinit_filter);
+	bool check_if_meas_is_rejected(float innov, float innov_var, uint8_t gate_size);
 
 	matrix::Vector2f get_wind() { return matrix::Vector2f{_state(INDEX_W_N), _state(INDEX_W_E)}; }
 
@@ -78,8 +78,10 @@ public:
 	matrix::Vector2f  get_wind_var() { return matrix::Vector2f{_P(0, 0), _P(1, 1)}; }
 	bool get_wind_estimator_reset() { return _wind_estimator_reset; }
 
-	void set_wind_p_noise(float wind_sigma) { _wind_p_var = wind_sigma * wind_sigma; }
-	void set_tas_scale_p_noise(float tas_scale_sigma) { _tas_scale_p_var = tas_scale_sigma * tas_scale_sigma; }
+	// unaided, the state uncertainty (diagonal of sqrt(P)) grows by the process noise spectral density every second
+	void set_wind_process_noise_spectral_density(float wind_nsd) { _wind_psd = wind_nsd * wind_nsd; }
+	void set_tas_scale_process_noise_spectral_density(float tas_scale_nsd) { _tas_scale_psd = tas_scale_nsd * tas_scale_nsd; }
+
 	void set_tas_noise(float tas_sigma) { _tas_var = tas_sigma * tas_sigma; }
 	void set_beta_noise(float beta_var) { _beta_var = beta_var * beta_var; }
 	void set_tas_gate(uint8_t gate_size) {_tas_gate = gate_size; }
@@ -93,6 +95,13 @@ private:
 		INDEX_TAS_SCALE
 	};	///< enum which can be used to access state.
 
+	static constexpr float INITIAL_WIND_ERROR =
+		2.5f; // initial uncertainty of each wind state when filter is initialised without airspeed [m/s]
+	static constexpr float INITIAL_BETA_ERROR_DEG =
+		15.0f;	// sidelip uncertainty used to initialise the filter with a true airspeed measurement [deg]
+	static constexpr float INITIAL_HEADING_ERROR_DEG =
+		10.0f; // heading uncertainty used to initialise the filter with a true airspeed measurement [deg]
+
 	matrix::Vector3f _state{0.f, 0.f, 1.f};
 	matrix::Matrix3f _P;		///< state covariance matrix
 
@@ -104,8 +113,8 @@ private:
 
 	bool _initialised{false};	///< True: filter has been initialised
 
-	float _wind_p_var{0.1f};	///< wind process noise variance
-	float _tas_scale_p_var{0.0001f};	///< true airspeed scale process noise variance
+	float _wind_psd{0.1f};	///< wind process noise power spectral density (m^2/s^4/Hz)
+	float _tas_scale_psd{0.0001f};	///< true airspeed process noise power spectral density (1/s^2/Hz)
 	float _tas_var{1.4f};		///< true airspeed measurement noise variance
 	float _beta_var{0.5f};	///< sideslip measurement noise variance
 	uint8_t _tas_gate{3};	///< airspeed fusion gate size
@@ -116,15 +125,15 @@ private:
 	uint64_t _time_last_airspeed_fuse = 0;	///< timestamp of last airspeed fusion
 	uint64_t _time_last_beta_fuse = 0;	///< timestamp of last sideslip fusion
 	uint64_t _time_last_update = 0;		///< timestamp of last covariance prediction
-	uint64_t _time_rejected_beta = 0;	///< timestamp of when sideslip measurements have consistently started to be rejected
-	uint64_t _time_rejected_tas =
-		0;	///< timestamp of when true airspeed measurements have consistently started to be rejected
 
 	bool _wind_estimator_reset = false; ///< wind estimator was reset in this cycle
 
 	// initialise state and state covariance matrix
-	bool initialise(const matrix::Vector3f &velI, const matrix::Vector2f &velIvar, const float tas_meas,
-			const matrix::Quatf &q_att);
+	bool initialise(const matrix::Vector3f &velI, const float hor_vel_variance, const float heading_rad,
+			const float tas_meas = NAN, const float tas_variance = NAN);
 
 	void run_sanity_checks();
+
+	// return the square of two floating point numbers
+	static constexpr float sq(float var) { return var * var; }
 };

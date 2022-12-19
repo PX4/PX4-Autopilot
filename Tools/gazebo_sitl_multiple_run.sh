@@ -6,10 +6,17 @@
 # For example gazebo can be run like this:
 #./Tools/gazebo_sitl_multiple_run.sh -n 10 -m iris
 
+SUPPORTED_MODELS=("iris" "plane" "standard_vtol" "rover" "r1_rover" "typhoon_h480", "shieldai_nova2", "skydio_x2d")
+
 function cleanup() {
 	pkill -x px4
-	pkill gzclient
 	pkill gzserver
+
+	if [[ -n "$HEADLESS" ]]; then
+		exit
+	else
+		pkill gzclient
+	fi
 }
 
 function spawn_model() {
@@ -20,10 +27,9 @@ function spawn_model() {
 	X=${X:=0.0}
 	Y=${Y:=$((3*${N}))}
 
-	SUPPORTED_MODELS=("iris" "plane" "standard_vtol" "rover" "r1_rover" "typhoon_h480")
 	if [[ " ${SUPPORTED_MODELS[*]} " != *"$MODEL"* ]];
 	then
-		echo "ERROR: Currently only vehicle model $MODEL is not supported!"
+		echo "ERROR: Currently vehicle model '$MODEL' is not supported!"
 		echo "       Supported Models: [${SUPPORTED_MODELS[@]}]"
 		trap "cleanup" SIGINT SIGTERM EXIT
 		exit 1
@@ -34,8 +40,19 @@ function spawn_model() {
 
 	pushd "$working_dir" &>/dev/null
 	echo "starting instance $N in $(pwd)"
+
+	if [[ -n "${PX4_VIDEO_HOST_IP}" ]]; then
+		export PX4_VIDEO_HOST_IP=${PX4_VIDEO_HOST_IP%.*}.$((7+$N))
+		echo "PX4_VIDEO_HOST_IP '$PX4_VIDEO_HOST_IP'"
+	fi
+
+	if [[ -n "${PX4_SIM_REMOTE_HOST}" ]]; then
+		export PX4_SIM_REMOTE_HOST=${PX4_SIM_REMOTE_HOST%.*}.$((7+$N))
+		echo "PX4_SIM_REMOTE_HOST '$PX4_SIM_REMOTE_HOST'"
+	fi
+
 	../bin/px4 -i $N -d "$build_path/etc" -w sitl_${MODEL}_${N} -s etc/init.d-posix/rcS >out.log 2>err.log &
-	python3 ${src_path}/Tools/sitl_gazebo/scripts/jinja_gen.py ${src_path}/Tools/sitl_gazebo/models/${MODEL}/${MODEL}.sdf.jinja ${src_path}/Tools/sitl_gazebo --mavlink_tcp_port $((4560+${N})) --mavlink_udp_port $((14560+${N})) --mavlink_id $((1+${N})) --gst_udp_port $((5600+${N})) --video_uri $((5600+${N})) --mavlink_cam_udp_port $((14530+${N})) --output-file /tmp/${MODEL}_${N}.sdf
+	python3 ${src_path}/Tools/sitl_gazebo/scripts/jinja_gen.py ${src_path}/Tools/sitl_gazebo/models/${MODEL}/${MODEL}.sdf.jinja ${src_path}/Tools/sitl_gazebo --mavlink_tcp_port $((4560+${N})) --mavlink_udp_port $((14560+${N})) --mavlink_id $((1+${N})) --gst_udp_host 172.5.0.$((7+${N})) --gst_udp_port $((5600)) --video_uri $((5600+${N})) --mavlink_cam_udp_port $((14530+${N})) --udp_onboard_gimbal_port_local $((13030+${N})) --output-file /tmp/${MODEL}_${N}.sdf --vehicle_id ${N}
 
 	echo "Spawning ${MODEL}_${N} at ${X} ${Y}"
 
@@ -47,12 +64,13 @@ function spawn_model() {
 
 if [ "$1" == "-h" ] || [ "$1" == "--help" ]
 then
-	echo "Usage: $0 [-n <num_vehicles>] [-m <vehicle_model>] [-w <world>] [-s <script>]"
+	echo "Usage: $0 [-n <num_vehicles>] [-m <vehicle_model>] [-w <world>] [-s <script>] [-c <custom_models>]"
 	echo "-s flag is used to script spawning vehicles e.g. $0 -s iris:3,plane:2"
+	echo "-c flag is used to allow custom models e.g. $0 -s \"my_plane my_plane_2\""
 	exit 1
 fi
 
-while getopts n:m:w:s:t:l: option
+while getopts n:m:w:s:t:c: option
 do
 	case "${option}"
 	in
@@ -61,7 +79,7 @@ do
 		w) WORLD=${OPTARG};;
 		s) SCRIPT=${OPTARG};;
 		t) TARGET=${OPTARG};;
-		l) LABEL=_${OPTARG};;
+		c) CUSTOM_MODELS=${OPTARG};;
 	esac
 done
 
@@ -70,6 +88,8 @@ world=${WORLD:=empty}
 target=${TARGET:=px4_sitl_default}
 vehicle_model=${VEHICLE_MODEL:="iris"}
 export PX4_SIM_MODEL=${vehicle_model}
+
+SUPPORTED_MODELS+=(${CUSTOM_MODELS})
 
 echo ${SCRIPT}
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -132,9 +152,19 @@ else
 			n=$(($n + 1))
 		done
 	done
-
 fi
-trap "cleanup" SIGINT SIGTERM EXIT
 
-echo "Starting gazebo client"
-gzclient
+if [[ -n "$HEADLESS" ]]; then
+	trap "cleanup" SIGINT SIGTERM
+
+	while :
+	do
+
+		  sleep 5
+	done
+else
+	trap "cleanup" SIGINT SIGTERM EXIT
+
+	echo "Starting gazebo client"
+	gzclient
+fi

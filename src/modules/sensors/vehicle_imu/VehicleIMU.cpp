@@ -620,15 +620,18 @@ bool VehicleIMU::Publish()
 
 			// vehicle_imu_status
 			//  publish before vehicle_imu so that error counts are available synchronously if needed
-			if (_raw_accel_mean.valid() && _raw_gyro_mean.valid()
-			    && (_publish_status || (hrt_elapsed_time(&_status.timestamp) >= 100_ms))) {
+			const bool imu_status_publishing_interval_exceeded = hrt_elapsed_time(&_status.timestamp) >=
+					kIMUStatusPublishingInterval;
 
+			if (_raw_accel_mean.valid() && _raw_gyro_mean.valid()
+			    && (_publish_status || imu_status_publishing_interval_exceeded)) {
+
+				// Accel
 				_status.accel_device_id = _accel_calibration.device_id();
 
 				// accel mean and variance
 				Vector3f(_accel_calibration.rotation() * _raw_accel_mean.mean()).copyTo(_status.mean_accel);
 				Vector3f(_accel_calibration.rotation() * _raw_accel_mean.variance()).copyTo(_status.var_accel);
-				_raw_accel_mean.reset();
 
 				// accel temperature
 				_status.temperature_accel = _accel_temperature_sum / _accel_temperature_sum_count;
@@ -636,12 +639,12 @@ bool VehicleIMU::Publish()
 				_accel_temperature_sum_count = 0;
 
 
+				// Gyro
 				_status.gyro_device_id = _gyro_calibration.device_id();
 
 				// gyro mean and variance
 				Vector3f(_gyro_calibration.rotation() * _raw_gyro_mean.mean()).copyTo(_status.mean_gyro);
 				Vector3f(_gyro_calibration.rotation() * _raw_gyro_mean.variance()).copyTo(_status.var_gyro);
-				_raw_gyro_mean.reset();
 
 				// Gyro delta angle coning metric = length of coning corrections averaged since last status publication
 				_status.delta_angle_coning_metric = _coning_norm_accum / _coning_norm_accum_total_time_s;
@@ -653,11 +656,16 @@ bool VehicleIMU::Publish()
 				_gyro_temperature_sum = NAN;
 				_gyro_temperature_sum_count = 0;
 
-
+				// publish
 				_status.timestamp = hrt_absolute_time();
 				_vehicle_imu_status_pub.publish(_status);
 
 				_publish_status = false;
+
+				if (imu_status_publishing_interval_exceeded) {
+					_raw_accel_mean.reset();
+					_raw_gyro_mean.reset();
+				}
 			}
 
 			// publish vehicle_imu

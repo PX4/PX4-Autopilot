@@ -37,6 +37,9 @@ px4_add_romfs_files(
 	10018_iris_foggy_lidar
 	10019_omnicopter
 	10020_if750a
+	10020_if750a.post
+	10028_quadrotor_x
+	10029_hexarotor_x
 	10030_px4vision
 	10040_quadx
 	10041_airplane
@@ -56,6 +59,7 @@ px4_add_romfs_files(
 	1020_uuv_generic
 	1021_uuv_hippocampus
 	1022_uuv_bluerov2_heavy
+	1025_iris_depth_camera
 	1030_plane
 	1031_plane_cam
 	1032_plane_catapult
@@ -71,9 +75,14 @@ px4_add_romfs_files(
 	1042_tiltrotor
 	1043_standard_vtol_drop
 	1043_standard_vtol_drop.post
+	1058_standard_vtol_gimbal
+	1058_standard_vtol_gimbal.post
+	1059_tiltrotor_tri
 	1060_rover
 	1061_r1_rover
 	1062_tf-r1
+	1063_rover_gimbal
+	1063_rover_gimbal.post
 	1070_boat
 	3010_quadrotor_x
 	3011_hexarotor_x

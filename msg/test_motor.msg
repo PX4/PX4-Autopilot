@@ -11,4 +11,4 @@ uint32 timeout_ms				# timeout in ms after which to exit test mode (if 0, do not
 
 uint8 driver_instance				# select output driver (for boards with multiple outputs, like IO+FMU)
 
-uint8 ORB_QUEUE_LENGTH = 4
+uint8 ORB_QUEUE_LENGTH = 8

@@ -109,8 +109,8 @@ private:
 	hrt_abstime _time_stamp_last_loop{0};		/**< time stamp of last loop iteration */
 	hrt_abstime _time_position_control_enabled{0};
 
-	vehicle_local_position_setpoint_s _setpoint {};
-	vehicle_control_mode_s _vehicle_control_mode {};
+	trajectory_setpoint_s _setpoint{PositionControl::empty_trajectory_setpoint};
+	vehicle_control_mode_s _vehicle_control_mode{};
 
 	vehicle_constraints_s _vehicle_constraints {
 		.timestamp = 0,
@@ -147,12 +147,14 @@ private:
 		(ParamBool<px4::params::MPC_USE_HTE>)       _param_mpc_use_hte,
 
 		// Takeoff / Land
-		(ParamFloat<px4::params::MPC_SPOOLUP_TIME>) _param_mpc_spoolup_time, /**< time to let motors spool up after arming */
+		(ParamFloat<px4::params::COM_SPOOLUP_TIME>) _param_com_spoolup_time, /**< time to let motors spool up after arming */
 		(ParamFloat<px4::params::MPC_TKO_RAMP_T>)   _param_mpc_tko_ramp_t,   /**< time constant for smooth takeoff ramp */
 		(ParamFloat<px4::params::MPC_TKO_SPEED>)    _param_mpc_tko_speed,
 		(ParamFloat<px4::params::MPC_LAND_SPEED>)   _param_mpc_land_speed,
 
 		(ParamFloat<px4::params::MPC_VEL_MANUAL>)   _param_mpc_vel_manual,
+		(ParamFloat<px4::params::MPC_VEL_MAN_BACK>) _param_mpc_vel_man_back,
+		(ParamFloat<px4::params::MPC_VEL_MAN_SIDE>) _param_mpc_vel_man_side,
 		(ParamFloat<px4::params::MPC_XY_CRUISE>)    _param_mpc_xy_cruise,
 		(ParamFloat<px4::params::MPC_LAND_ALT2>)    _param_mpc_land_alt2,    /**< downwards speed limited below this altitude */
 		(ParamInt<px4::params::MPC_POS_MODE>)       _param_mpc_pos_mode,
@@ -221,10 +223,5 @@ private:
 	 * Used to handle transitions where no proper setpoint was generated yet and when the received setpoint is invalid.
 	 * This should only happen briefly when transitioning and never during mode operation or by design.
 	 */
-	vehicle_local_position_setpoint_s generateFailsafeSetpoint(const hrt_abstime &now, const PositionControlStates &states);
-
-	/**
-	 * Reset setpoints to NAN
-	 */
-	void reset_setpoint_to_nan(vehicle_local_position_setpoint_s &setpoint);
+	trajectory_setpoint_s generateFailsafeSetpoint(const hrt_abstime &now, const PositionControlStates &states, bool warn);
 };

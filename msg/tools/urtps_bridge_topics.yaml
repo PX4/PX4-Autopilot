@@ -86,5 +86,3 @@ rtps:
     receive: true
   - msg:     timesync_status
     send:    true
-  - msg:     sensor_combined
-    send:    true

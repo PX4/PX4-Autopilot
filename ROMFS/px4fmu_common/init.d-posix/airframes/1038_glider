@@ -5,5 +5,5 @@
 
 . ${R}etc/init.d-posix/airframes/1030_plane
 
-param set-default FW_THR_CRUISE 0.0
+param set-default FW_THR_TRIM 0.0
 param set-default RWTO_TKOFF 0

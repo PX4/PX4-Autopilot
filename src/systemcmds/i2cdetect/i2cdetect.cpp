@@ -43,6 +43,8 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/getopt.h>
 
+#include <stdlib.h>
+
 namespace i2cdetect
 {
 

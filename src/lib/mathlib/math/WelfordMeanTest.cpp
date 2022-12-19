@@ -45,7 +45,7 @@ TEST(WelfordMeanTest, NoisySignal)
 	std::normal_distribution<float> standard_normal_distribution{0.f, std_dev};
 	std::default_random_engine random_generator{}; // Pseudo-random generator with constant seed
 	random_generator.seed(42);
-	WelfordMean<Vector3f> welford{};
+	WelfordMean<float, 3> welford{};
 
 	for (int i = 0; i < 50; i++) {
 		const float noisy_value = standard_normal_distribution(random_generator);

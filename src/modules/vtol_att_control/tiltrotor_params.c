@@ -99,3 +99,77 @@ PARAM_DEFINE_FLOAT(VT_TILT_SPINUP, 0.0f);
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_TRANS_P2_DUR, 0.5f);
+
+
+/**
+ * Throttle threshold to switch on/off alternative motor.
+ *
+ * The alternative fixed-wing motors are switched off if the throttle setpoint raises above this threshold.
+ *
+ * @min -1.0
+ * @max 1.0
+ * @increment 0.01
+ * @decimal 2
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_THR_ALTER_MAX, -1.0f);
+
+/**
+ * Neutral throttle of main motors. Used for throttle scaling in case alternative throttle is used.
+ *
+ * @min 0.0
+ * @max 1.0
+ * @increment 0.01
+ * @decimal 2
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_THR_N_MAIN, 0.0f);
+
+/**
+ * Neutral throttle of alternative motors. Used for throttle scaling in case alternative throttle is used.
+ *
+ * @min 0.0
+ * @max 1.0
+ * @increment 0.01
+ * @decimal 2
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_THR_N_ALTER, 0.0f);
+
+/**
+ * Scle factor for alternative throttle. Used for throttle scaling in case alternative throttle is used.
+ *
+ * @min 0.0
+ * @max 10
+ * @increment 0.01
+ * @decimal 2
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_THR_ALTER_SC, 1.0f);
+
+/**
+ * Pitch actuator compensation when alternative motor is on.
+ *
+ * Pitch_actuator_offset = VT_ELEV_COMP_OFF + throttle_alt * comp_elev_k / p_dynamic.
+ *
+ * @min 0.0
+ * @max 500.0
+ * @increment 0.1
+ * @decimal 1
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_ELEV_COMP_K, 0.0f);
+
+
+/**
+ * Static offset added to the elevator control as part of the non-zero thrust line offset compensation for the alternate motor.
+ *
+ * Pitch_actuator_offset = VT_ELEV_COMP_OFF + throttle_alt * comp_elev_k / p_dynamic.
+ *
+ * @min -1.0
+ * @max 1.0
+ * @increment 0.01
+ * @decimal 2
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_ELEV_COMP_OFF, 0.0f);

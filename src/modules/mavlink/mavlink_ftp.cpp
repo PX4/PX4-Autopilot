@@ -44,6 +44,7 @@
 
 #include "mavlink_ftp.h"
 #include "mavlink_tests/mavlink_ftp_test.h"
+#include <px4_platform_common/defines.h>
 
 #ifndef MAVLINK_FTP_UNIT_TEST
 #include "mavlink_main.h"
@@ -411,13 +412,7 @@ MavlinkFTP::_workList(PayloadHeader *payload)
 
 		// Determine the directory entry type
 		switch (result->d_type) {
-#ifdef __PX4_NUTTX
-
-		case DTYPE_FILE: {
-#else
-
-		case DT_REG: {
-#endif
+		case DIRENT_REGULAR_FILE: {
 				// For files we get the file size as well
 				direntType = kDirentFile;
 				int ret = snprintf(_work_buffer2, _work_buffer2_len, "%s/%s", _work_buffer1, result->d_name);
@@ -434,12 +429,7 @@ MavlinkFTP::_workList(PayloadHeader *payload)
 				break;
 			}
 
-#ifdef __PX4_NUTTX
-
-		case DTYPE_DIRECTORY:
-#else
-		case DT_DIR:
-#endif
+		case DIRENT_DIRECTORY:
 			if (strcmp(result->d_name, ".") == 0 || strcmp(result->d_name, "..") == 0) {
 				// Don't bother sending these back
 				direntType = kDirentSkip;

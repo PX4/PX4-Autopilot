@@ -1,0 +1,17 @@
+#!/bin/sh
+#
+# @name Standard VTOL with gimbal
+#
+# @type Standard VTOL with gimbal
+#
+
+. ${R}etc/init.d-posix/1040_standard_vtol
+
+param set-default TRIG_INTERFACE 3
+param set-default TRIG_MODE 4
+param set-default MNT_MODE_IN 0
+
+param set-default MAV_TYPE 22
+
+set MIXER_FILE etc/mixers-sitl/standard_vtol_sitl.main.mix
+set MIXER custom

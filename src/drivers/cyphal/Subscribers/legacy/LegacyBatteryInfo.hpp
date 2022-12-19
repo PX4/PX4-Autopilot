@@ -96,7 +96,7 @@ public:
 		bat_status.connected = bat_info.status_flags & legacy_equipment_power_BatteryInfo_1_0_STATUS_FLAG_IN_USE;
 		bat_status.source = 1; // External
 		bat_status.capacity = bat_info.full_charge_capacity_wh;
-		bat_status.serial_number = bat_info.model_instance_id & 0xFFFF; // Take first 16 bits
+		sprintf(bat_status.serial_number, "%d", (int)(bat_info.model_instance_id & 0xFFFF));
 		bat_status.state_of_health = bat_info.state_of_health_pct; // External
 		bat_status.id = bat_info.battery_id;
 

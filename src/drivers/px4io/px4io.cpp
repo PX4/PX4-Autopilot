@@ -590,10 +590,10 @@ void PX4IO::Run()
 
 				/* publish ACK */
 				if (dsm_ret == OK) {
-					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
 				} else {
-					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_FAILED);
+					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED);
 				}
 			}
 		}
@@ -802,6 +802,14 @@ void PX4IO::update_params()
 					if (pwm_fail != _mixing_output.failsafeValue(i)) {
 						int32_t pwm_fail_new = _mixing_output.failsafeValue(i);
 						param_set(param_find(str), &pwm_fail_new);
+					}
+
+				} else {
+					if (pwm_default_channel_mask & 1 << i) {
+						_mixing_output.failsafeValue(i) = PWM_MOTOR_OFF;
+
+					} else {
+						_mixing_output.failsafeValue(i) = PWM_SERVO_STOP;
 					}
 				}
 			}
@@ -1155,7 +1163,7 @@ int PX4IO::io_get_status()
 
 		uint16_t raw_inputs = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_COUNT);
 
-		for (unsigned i = 0; i < raw_inputs; i++) {
+		for (unsigned i = 0; (i < raw_inputs) && (i < _max_rc_input); i++) {
 			status.raw_inputs[i] = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_RC_BASE + i);
 		}
 

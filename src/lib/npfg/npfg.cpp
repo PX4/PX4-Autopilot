@@ -574,11 +574,13 @@ void NPFG::navigateWaypoints(const Vector2f &waypoint_A, const Vector2f &waypoin
 } // navigateWaypoints
 
 void NPFG::navigateLoiter(const Vector2f &loiter_center, const Vector2f &vehicle_pos,
-			  float radius, int8_t loiter_direction, const Vector2f &ground_vel, const Vector2f &wind_vel)
+			  float radius, bool loiter_direction_counter_clockwise, const Vector2f &ground_vel, const Vector2f &wind_vel)
 {
 	path_type_loiter_ = true;
 
 	radius = math::max(radius, MIN_RADIUS);
+
+	const float loiter_direction_multiplier = loiter_direction_counter_clockwise ? -1.f : 1.f;
 
 	Vector2f vector_center_to_vehicle = vehicle_pos - loiter_center;
 	const float dist_to_center = vector_center_to_vehicle.norm();
@@ -605,12 +607,12 @@ void NPFG::navigateLoiter(const Vector2f &loiter_center, const Vector2f &vehicle
 	}
 
 	// 90 deg clockwise rotation * loiter direction
-	unit_path_tangent_ = float(loiter_direction) * Vector2f{-unit_vec_center_to_closest_pt(1), unit_vec_center_to_closest_pt(0)};
+	unit_path_tangent_ = loiter_direction_multiplier * Vector2f{-unit_vec_center_to_closest_pt(1), unit_vec_center_to_closest_pt(0)};
 
 	// positive in direction of path normal
-	signed_track_error_ = -loiter_direction * (dist_to_center - radius);
+	signed_track_error_ = -loiter_direction_multiplier * (dist_to_center - radius);
 
-	float path_curvature = float(loiter_direction) / radius;
+	float path_curvature = loiter_direction_multiplier / radius;
 
 	guideToPath(ground_vel, wind_vel, unit_path_tangent_, signed_track_error_, path_curvature);
 

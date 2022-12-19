@@ -42,6 +42,7 @@ add_library(drivers_board
 	spi.cpp
 	timer_config.cpp
 	usb.c
+	toc.c
 )
 
 add_dependencies(drivers_board platform_gpio_mcp23009)
@@ -57,3 +58,17 @@ target_link_libraries(drivers_board
 		px4_layer
 		platform_gpio_mcp23009
 )
+
+set(manifest_bin_name "mft_v0_0x0010.bin" CACHE INTERNAL "MFT" FORCE)
+set(manifest_bin "${PX4_BINARY_DIR}/romfs_extras/${manifest_bin_name}" CACHE FILEPATH "manifest binary path")
+
+if(EXISTS ${PX4_BOARD_DIR}/manifest/${manifest_bin_name})
+	make_directory(${PX4_BINARY_DIR}/romfs_extras/)
+	file(COPY ${PX4_BOARD_DIR}/manifest/${manifest_bin_name} DESTINATION ${PX4_BINARY_DIR}/romfs_extras/)
+	file(RELATIVE_PATH manifest_bin_relative ${PX4_SOURCE_DIR} ${manifest_bin})
+	add_custom_command(OUTPUT ${manifest_bin}
+		COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_BINARY_DIR}/etc/extras/
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different ${manifest_bin} ${PX4_BINARY_DIR}/etc/extras/
+		)
+	add_custom_target(copy_manifest_bin DEPENDS ${manifest_bin})
+endif()

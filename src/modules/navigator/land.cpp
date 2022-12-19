@@ -65,6 +65,10 @@ Land::on_activation()
 	_navigator->set_can_loiter_at_sp(false);
 
 	_navigator->set_position_setpoint_triplet_updated();
+
+	_navigator->acquire_gimbal_control();
+	_navigator->set_gimbal_neutral();
+	_navigator->release_gimbal_control();
 }
 
 void

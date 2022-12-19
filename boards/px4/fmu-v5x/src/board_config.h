@@ -111,6 +111,8 @@
  *
  * Note that these are unshifted addresses.
  */
+
+#define BOARD_MTD_NUM_EEPROM        2 /* MTD: base_eeprom, imu_eeprom*/
 #define PX4_I2C_OBDEV_SE050         0x48
 
 #define GPIO_I2C4_DRDY1_BMP388      /* PG5  */  (GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTG|GPIO_PIN5)
@@ -182,9 +184,7 @@
 #define GPIO_HW_VER_REV_DRIVE  /* PG0 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN0)
 #define GPIO_HW_REV_SENSE      /* PF5 */  ADC3_GPIO(15)
 #define GPIO_HW_VER_SENSE      /* PF4 */  ADC3_GPIO(14)
-#define HW_INFO_INIT           {'V','5','X','x', 'x',0}
-#define HW_INFO_INIT_VER       3 /* Offset in above string of the VER */
-#define HW_INFO_INIT_REV       4 /* Offset in above string of the REV */
+#define HW_INFO_INIT_PREFIX           "V5X"
 #define BOARD_NUM_SPI_CFG_HW_VERSIONS 6
 // Base                   FMUM
 #define V5X00   HW_VER_REV(0x0,0x0) // FMUV5X,                         Rev 0
@@ -194,12 +194,16 @@
 #define V5X50   HW_VER_REV(0x5,0x0) // FMUV5X, HB Mini                 Rev 0
 #define V5X51   HW_VER_REV(0x5,0x1) // FMUV5X I2C2 BMP388, HB Mini     Rev 1
 #define V5X52   HW_VER_REV(0x5,0x2) // FMUV5X, HB Mini                 Rev 2
+#define V5X80   HW_VER_REV(0x8,0x0) // USB (Q),                        Rev 0
+#define V5X81   HW_VER_REV(0x8,0x1) // USB (Q) I2C2 BMP388,            Rev 1
+#define V5X82   HW_VER_REV(0x8,0x2) // USB (Q) I2C2 BMP388,            Rev 2
 #define V5X90   HW_VER_REV(0x9,0x0) // NO USB,                         Rev 0
 #define V5X91   HW_VER_REV(0x9,0x1) // NO USB I2C2 BMP388,             Rev 1
 #define V5X92   HW_VER_REV(0x9,0x2) // NO USB I2C2 BMP388,             Rev 2
 #define V5Xa0   HW_VER_REV(0xa,0x0) // NO USB (Q),                     Rev 0
 #define V5Xa1   HW_VER_REV(0xa,0x1) // NO USB (Q) I2C2 BMP388,         Rev 1
 #define V5Xa2   HW_VER_REV(0xa,0x2) // NO USB (Q) I2C2 BMP388,         Rev 2
+#define V5X101  HW_VER_REV(0x10,0x1) // NO USB (Q) I2C2 BMP388,        Rev 1
 
 #define UAVCAN_NUM_IFACES_RUNTIME 1
 
@@ -305,6 +309,7 @@
 #define INPUT_CAP1_TIMER                  5
 #define INPUT_CAP1_CHANNEL     /* T5C4 */ 4
 #define GPIO_INPUT_CAP1        /*  PI0 */ GPIO_TIM5_CH4IN
+#define PPS_CAPTURE_CHANNEL		7 // FMU_CH8-> PI0
 
 /* PWM input driver. Use FMU AUX5 pins attached to timer4 channel 2 */
 #define PWMIN_TIMER                       4

@@ -56,7 +56,7 @@ PARAM_DEFINE_INT32(MAV_COMP_ID, 1);
  * @value 1 Always use version 1
  * @value 2 Always use version 2
  */
-PARAM_DEFINE_INT32(MAV_PROTO_VER, 0);
+PARAM_DEFINE_INT32(MAV_PROTO_VER, 2);
 
 /**
  * MAVLink SiK Radio ID
@@ -165,4 +165,15 @@ PARAM_DEFINE_INT32(MAV_ODOM_LP, 0);
  * @min 1
  * @max 250
  */
-PARAM_DEFINE_INT32(MAV_RADIO_TOUT, 5);
+PARAM_DEFINE_INT32(MAV_RADIO_TOUT, 25);
+
+/**
+ * Enable MAVLink forwarding on TELEM2
+ *
+ * TELEM2 on Skynode only.
+ *
+ * @boolean
+ * @group MAVLink
+ * @reboot_required true
+ */
+PARAM_DEFINE_INT32(MAV_S_FORWARD, 0);

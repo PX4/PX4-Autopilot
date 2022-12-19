@@ -68,6 +68,7 @@ parameters:
                 #9: External Vision Minimal # hidden
                 10: Gimbal
                 11: Onboard Low Bandwidth
+                12: uAvionix
             reboot_required: true
             num_instances: *max_num_config_instances
             default: [0, 2, 0]
@@ -118,7 +119,7 @@ parameters:
             type: boolean
             reboot_required: true
             num_instances: *max_num_config_instances
-            default: [true, true, true]
+            default: [false, false, false]
 
         MAV_${i}_UDP_PRT:
             description:

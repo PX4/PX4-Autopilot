@@ -40,10 +40,14 @@
  */
 
 #include "camera_capture.hpp"
+#include <px4_platform_common/events.h>
+#include <systemlib/mavlink_log.h>
 
 #include <board_config.h>
 
 #define commandParamToInt(n) static_cast<int>(n >= 0 ? n + 0.5f : n - 0.5f)
+
+using namespace time_literals;
 
 namespace camera_capture
 {
@@ -104,6 +108,21 @@ CameraCapture::~CameraCapture()
 void
 CameraCapture::capture_callback(uint32_t chan_index, hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow)
 {
+	// Maximum acceptable rate is 5kHz
+	if ((edge_time - _trigger.hrt_edge_time) < 200_us) {
+		++_trigger_rate_exceeded_counter;
+
+		if (_trigger_rate_exceeded_counter > 100) {
+
+			// Trigger rate too high, stop future interrupts
+			up_input_capture_set(_capture_channel, Disabled, 0, nullptr, nullptr);
+			_trigger_rate_failure.store(true);
+		}
+
+	} else if (_trigger_rate_exceeded_counter > 0) {
+		--_trigger_rate_exceeded_counter;
+	}
+
 	_trigger.chan_index = chan_index;
 	_trigger.hrt_edge_time = edge_time;
 	_trigger.edge_state = edge_state;
@@ -139,6 +158,13 @@ void
 CameraCapture::publish_trigger()
 {
 	bool publish = false;
+
+	if (_trigger_rate_failure.load()) {
+		mavlink_log_warning(&_mavlink_log_pub, "Hardware fault: Camera capture disabled\t");
+		events::send(events::ID("camera_capture_trigger_rate_exceeded"),
+			     events::Log::Error, "Hardware fault: Camera capture disabled");
+		_trigger_rate_failure.store(false);
+	}
 
 	camera_trigger_s trigger{};
 
@@ -244,7 +270,7 @@ CameraCapture::Run()
 
 			command_ack.timestamp = hrt_absolute_time();
 			command_ack.command = cmd.command;
-			command_ack.result = (uint8_t)vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+			command_ack.result = (uint8_t)vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 			command_ack.target_system = cmd.source_system;
 			command_ack.target_component = cmd.source_component;
 

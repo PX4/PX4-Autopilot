@@ -39,5 +39,6 @@ px4_add_romfs_files(
 	quad_x_vtol.main.mix
 	standard_vtol_sitl.main.mix
 	tiltrotor_sitl.main.mix
+	tiltrotor_tri_sitl.main.mix
 	uuv_x_sitl.main.mix
 )

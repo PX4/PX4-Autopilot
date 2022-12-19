@@ -51,8 +51,10 @@
 
 // subscriptions
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/topics/actuator_motors.h>
+#include <uORB/topics/battery_status.h>
 #include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -109,6 +111,7 @@ public:
 private:
 	void updateAttitudeStatus();
 	void updateExternalAtsStatus();
+	void updateBatteryStatus(const vehicle_status_s &vehicle_status);
 	void updateEscsStatus(const vehicle_status_s &vehicle_status, const esc_status_s &esc_status);
 	void updateMotorStatus(const vehicle_status_s &vehicle_status, const esc_status_s &esc_status);
 	void updateImbalancedPropStatus();
@@ -119,6 +122,9 @@ private:
 	systemlib::Hysteresis _pitch_failure_hysteresis{false};
 	systemlib::Hysteresis _ext_ats_failure_hysteresis{false};
 	systemlib::Hysteresis _esc_failure_hysteresis{false};
+	systemlib::Hysteresis _battery_failure_hysteresis{false};
+
+	uORB::SubscriptionMultiArray<battery_status_s> _battery_status_subs{ORB_ID::battery_status};
 
 	static constexpr float _imbalanced_prop_lpf_time_constant{5.f};
 	AlphaFilter<float> _imbalanced_prop_lpf{};
@@ -149,6 +155,7 @@ private:
 		(ParamBool<px4::params::FD_EXT_ATS_EN>) _param_fd_ext_ats_en,
 		(ParamInt<px4::params::FD_EXT_ATS_TRIG>) _param_fd_ext_ats_trig,
 		(ParamInt<px4::params::FD_ESCS_EN>) _param_escs_en,
+		(ParamInt<px4::params::FD_BAT_EN>) _param_fd_bat_en,
 		(ParamInt<px4::params::FD_IMB_PROP_THR>) _param_fd_imb_prop_thr,
 
 		// Actuator failure

@@ -243,6 +243,10 @@
                             "name": "auto_vtol_takeoff",
                             "description": "Vtol Takeoff"
                         },
+                        "16": {
+                            "name": "init",
+                            "description": "Initialization"
+                        },
                         "255": {
                             "name": "unknown",
                             "description": "[Unknown]"

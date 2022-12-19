@@ -132,6 +132,14 @@ int UavcanServers::init()
 	}
 
 	/*
+	Check for firmware in the ext_autostart directory, move it to appropriate location on
+	the SD card, as defined by the APDesc.
+	These firmware files will be overwritten by binaries located in the root directory,
+	which will be copied in the next step.
+	*/
+	migrateFWFromRoot(UAVCAN_FIRMWARE_PATH, UAVCAN_SD_ALT_PATH);
+
+	/*
 	Check for firmware in the root directory, move it to appropriate location on
 	the SD card, as defined by the APDesc.
 	*/

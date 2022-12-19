@@ -78,7 +78,7 @@ private:
 	static constexpr int MAX_MANUAL_INPUT_COUNT = 3;
 
 	void Run() override;
-	void processStickArming(const manual_control_setpoint_s &input);
+	void processStickGestures(const manual_control_setpoint_s &input);
 
 	void evaluateModeSlot(uint8_t mode_slot);
 	void sendActionRequest(int8_t action, int8_t source, int8_t mode = 0);
@@ -110,6 +110,7 @@ private:
 
 	systemlib::Hysteresis _stick_arm_hysteresis{false};
 	systemlib::Hysteresis _stick_disarm_hysteresis{false};
+	systemlib::Hysteresis _stick_kill_hysteresis{false};
 	systemlib::Hysteresis _button_hysteresis{false};
 
 	ManualControlSelector _selector;

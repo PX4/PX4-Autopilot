@@ -133,6 +133,8 @@
  *
  * Note that these are unshifted addresses.
  */
+#define BOARD_MTD_NUM_EEPROM        2 /* MTD: base_eeprom, imu_eeprom*/
+
 #define PX4_I2C_OBDEV_SE050         0x48
 
 #define GPIO_I2C2_DRDY1_BMP388      /* PG5  */  (GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTG|GPIO_PIN5)
@@ -211,9 +213,7 @@
 #define GPIO_HW_VER_REV_DRIVE  /* PG0 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN0)
 #define GPIO_HW_REV_SENSE      /* PH4 */  GPIO_ADC3_INP15
 #define GPIO_HW_VER_SENSE      /* PH3 */  GPIO_ADC3_INP14
-#define HW_INFO_INIT           {'V','6','X','x', 'x',0}
-#define HW_INFO_INIT_VER       3 /* Offset in above string of the VER */
-#define HW_INFO_INIT_REV       4 /* Offset in above string of the REV */
+#define HW_INFO_INIT_PREFIX    "V6X"
 
 #define BOARD_NUM_SPI_CFG_HW_VERSIONS 6 // Rev 0 and Rev 3,4 Sensor sets
 //                 Base/FMUM
@@ -228,6 +228,7 @@
 #define V6X51   HW_VER_REV(0x5,0x1) // FMUV6X,     BMI388 I2C2    HB Mini Rev 1
 #define V6X53   HW_VER_REV(0x5,0x3) // FMUV6X,     Sensor Set     HB Mini Rev 3
 #define V6X54   HW_VER_REV(0x5,0x4) // FMUV6X,     Sensor Set     HB Mini Rev 4
+#define V6X90   HW_VER_REV(0x9,0x0) //                         Rev 0
 
 #define UAVCAN_NUM_IFACES_RUNTIME  1
 

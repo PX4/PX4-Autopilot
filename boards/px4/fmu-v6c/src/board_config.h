@@ -139,9 +139,7 @@
 #define GPIO_HW_VER_REV_DRIVE  /* PE12 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN12)
 #define GPIO_HW_REV_SENSE      /* PC0 */  GPIO_ADC123_INP10
 #define GPIO_HW_VER_SENSE      /* PC1 */  GPIO_ADC123_INP11
-#define HW_INFO_INIT           {'V','6','C','x', 'x',0}
-#define HW_INFO_INIT_VER       3 /* Offset in above string of the VER */
-#define HW_INFO_INIT_REV       4 /* Offset in above string of the REV */
+#define HW_INFO_INIT_PREFIX    "V6C"
 
 #define BOARD_NUM_SPI_CFG_HW_VERSIONS 2 // Rev 0, 10 Sensor sets
 //                 Base/FMUM

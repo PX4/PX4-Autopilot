@@ -54,7 +54,7 @@ using namespace matrix;
 VtolType::VtolType(VtolAttitudeControl *att_controller) :
 	ModuleParams(nullptr),
 	_attc(att_controller),
-	_vtol_mode(mode::ROTARY_WING)
+	_common_vtol_mode(mode::ROTARY_WING)
 {
 	_v_att = _attc->get_att();
 	_v_att_sp = _attc->get_att_sp();
@@ -241,6 +241,8 @@ void VtolType::update_transition_state()
 	_last_loop_ts = t_now;
 	_throttle_blend_start_ts = t_now;
 
+	_time_since_trans_start = (float)(t_now - _transition_start_timestamp) * 1e-6f;
+
 	check_quadchute_condition();
 }
 
@@ -280,76 +282,181 @@ bool VtolType::can_transition_on_ground()
 	return !_v_control_mode->flag_armed || _land_detected->landed;
 }
 
-void VtolType::check_quadchute_condition()
+bool VtolType::isQuadchuteEnabled()
+{
+	float dist_to_ground = 0.f;
+	const float home_position_z = _attc->get_home_position_z();
+
+	if (_local_pos->dist_bottom_valid) {
+		dist_to_ground = _local_pos->dist_bottom;
+
+	} else if (PX4_ISFINITE(home_position_z)) {
+		dist_to_ground = -(_local_pos->z - home_position_z);
+
+	} else {
+		dist_to_ground = -_local_pos->z;
+
+	}
+
+	return _v_control_mode->flag_armed && !_land_detected->landed && dist_to_ground < _param_quadchute_max_height.get();
+}
+
+bool VtolType::isMinAltBreached()
+{
+	// fixed-wing minimum altitude
+	if (_param_vt_fw_min_alt.get() > FLT_EPSILON) {
+
+		if (-(_local_pos->z) < _param_vt_fw_min_alt.get()) {
+			return true;
+
+		}
+	}
+
+	return false;
+}
+
+bool VtolType::largeAltitudeLoss()
+{
+	// adaptive quadchute
+	if (_param_vt_fw_alt_err.get() > FLT_EPSILON && _v_control_mode->flag_control_altitude_enabled && _tecs_running) {
+
+		// are we dropping while requesting significant ascend?
+		if (((_tecs_status->altitude_sp - _tecs_status->altitude_filtered) > _param_vt_fw_alt_err.get()) &&
+		    (_ra_hrate < -1.0f) &&
+		    (_ra_hrate_sp > 1.0f)) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool VtolType::largeAltitudeError()
+{
+	// adaptive quadchute
+	if (_param_vt_fw_alt_err.get() > FLT_EPSILON && _v_control_mode->flag_control_altitude_enabled && !_tecs_running) {
+
+
+		const bool height_error = _local_pos->z_valid && ((-_local_pos_sp->z - -_local_pos->z) > _param_vt_fw_alt_err.get());
+		const bool height_rate_error = _local_pos->v_z_valid && (_local_pos->vz > 1.0f) && (_local_pos->z_deriv > 1.0f);
+
+		if (height_error && height_rate_error) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool VtolType::isPitchExceeded()
+{
+	// fixed-wing maximum pitch angle
+	if (_param_vt_fw_qc_p.get() > 0) {
+		Eulerf euler = Quatf(_v_att->q);
+
+		if (fabsf(euler.theta()) > fabsf(math::radians(static_cast<float>(_param_vt_fw_qc_p.get())))) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool VtolType::isRollExceeded()
+{
+	// fixed-wing maximum roll angle
+	if (_param_vt_fw_qc_r.get() > 0) {
+		Eulerf euler = Quatf(_v_att->q);
+
+		if (fabsf(euler.phi()) > fabsf(math::radians(static_cast<float>(_param_vt_fw_qc_r.get())))) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool VtolType::isFrontTransitionTimeout()
+{
+	// check front transition timeout
+	if (_param_vt_trans_timeout.get()  > FLT_EPSILON && _common_vtol_mode == mode::TRANSITION_TO_FW) {
+
+		if (_time_since_trans_start > _param_vt_trans_timeout.get()) {
+			// transition timeout occured, abort transition
+			return true;
+		}
+	}
+
+	return false;
+}
+
+QuadchuteReason VtolType::getQuadchuteReason()
+{
+	if (isMinAltBreached()) {
+		return QuadchuteReason::MinimumAltBreached;
+	}
+
+	if (largeAltitudeLoss()) {
+		return QuadchuteReason::LossOfAlt;
+	}
+
+	if (largeAltitudeError()) {
+		return QuadchuteReason::LargeAltError;
+	}
+
+	if (isPitchExceeded()) {
+		return QuadchuteReason::MaximumPitchExceeded;
+	}
+
+	if (isRollExceeded()) {
+		return QuadchuteReason::MaximumRollExceeded;
+	}
+
+	if (isFrontTransitionTimeout()) {
+		return QuadchuteReason::TransitionTimeout;
+	}
+
+	return QuadchuteReason::None;
+}
+
+void VtolType::filterTecsHeightRates()
+{
+	if (_tecs_running) {
+		// 1 second rolling average
+		_ra_hrate = (49 * _ra_hrate + _tecs_status->height_rate) / 50;
+		_ra_hrate_sp = (49 * _ra_hrate_sp + _tecs_status->height_rate_setpoint) / 50;
+
+	} else {
+		// reset the filtered height rate and heigh rate setpoint if TECS is not running
+		_ra_hrate = 0.0f;
+		_ra_hrate_sp = 0.0f;
+	}
+}
+
+void VtolType::handleSpecialExternalCommandQuadchute()
 {
 	if (_attc->get_transition_command() == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC && _attc->get_immediate_transition()
 	    && !_quadchute_command_treated) {
-		_attc->quadchute(VtolAttitudeControl::QuadchuteReason::ExternalCommand);
+		_attc->quadchute(QuadchuteReason::ExternalCommand);
 		_quadchute_command_treated = true;
 		_attc->reset_immediate_transition();
 
 	} else {
 		_quadchute_command_treated = false;
 	}
+}
 
-	if (!_tecs_running) {
-		// reset the filtered height rate and heigh rate setpoint if TECS is not running
-		_ra_hrate = 0.0f;
-		_ra_hrate_sp = 0.0f;
-	}
+void VtolType::check_quadchute_condition()
+{
 
-	if (_v_control_mode->flag_armed && !_land_detected->landed) {
-		Eulerf euler = Quatf(_v_att->q);
+	filterTecsHeightRates();
+	handleSpecialExternalCommandQuadchute();
 
-		// fixed-wing minimum altitude
-		if (_param_vt_fw_min_alt.get() > FLT_EPSILON) {
+	if (isQuadchuteEnabled()) {
+		QuadchuteReason reason = getQuadchuteReason();
 
-			if (-(_local_pos->z) < _param_vt_fw_min_alt.get()) {
-				_attc->quadchute(VtolAttitudeControl::QuadchuteReason::MinimumAltBreached);
-			}
-		}
-
-		// adaptive quadchute
-		if (_param_vt_fw_alt_err.get() > FLT_EPSILON && _v_control_mode->flag_control_altitude_enabled) {
-
-			// We use tecs for tracking in FW and local_pos_sp during transitions
-			if (_tecs_running) {
-				// 1 second rolling average
-				_ra_hrate = (49 * _ra_hrate + _tecs_status->height_rate) / 50;
-				_ra_hrate_sp = (49 * _ra_hrate_sp + _tecs_status->height_rate_setpoint) / 50;
-
-				// are we dropping while requesting significant ascend?
-				if (((_tecs_status->altitude_sp - _tecs_status->altitude_filtered) > _param_vt_fw_alt_err.get()) &&
-				    (_ra_hrate < -1.0f) &&
-				    (_ra_hrate_sp > 1.0f)) {
-
-					_attc->quadchute(VtolAttitudeControl::QuadchuteReason::LossOfAlt);
-				}
-
-			} else {
-				const bool height_error = _local_pos->z_valid && ((-_local_pos_sp->z - -_local_pos->z) > _param_vt_fw_alt_err.get());
-				const bool height_rate_error = _local_pos->v_z_valid && (_local_pos->vz > 1.0f) && (_local_pos->z_deriv > 1.0f);
-
-				if (height_error && height_rate_error) {
-					_attc->quadchute(VtolAttitudeControl::QuadchuteReason::LargeAltError);
-				}
-			}
-		}
-
-		// fixed-wing maximum pitch angle
-		if (_param_vt_fw_qc_p.get() > 0) {
-
-			if (fabsf(euler.theta()) > fabsf(math::radians(static_cast<float>(_param_vt_fw_qc_p.get())))) {
-				_attc->quadchute(VtolAttitudeControl::QuadchuteReason::MaximumPitchExceeded);
-			}
-		}
-
-		// fixed-wing maximum roll angle
-		if (_param_vt_fw_qc_r.get() > 0) {
-
-			if (fabsf(euler.phi()) > fabsf(math::radians(static_cast<float>(_param_vt_fw_qc_r.get())))) {
-				_attc->quadchute(VtolAttitudeControl::QuadchuteReason::MaximumRollExceeded);
-			}
+		if (reason != QuadchuteReason::None) {
+			_attc->quadchute(reason);
 		}
 	}
 }
@@ -543,11 +650,19 @@ bool VtolType::is_channel_set(const int channel, const int bitmap)
 
 float VtolType::pusher_assist()
 {
-	// Altitude above ground is distance sensor altitude if available, otherwise local z-position
-	float dist_to_ground = -_local_pos->z;
+	// Altitude above ground is local z-position or altitude above home or distance sensor altitude depending on what's available
+	float dist_to_ground = 0.f;
+	const float home_position_z = _attc->get_home_position_z();
 
 	if (_local_pos->dist_bottom_valid) {
 		dist_to_ground = _local_pos->dist_bottom;
+
+	} else if (PX4_ISFINITE(home_position_z)) {
+		dist_to_ground = -(_local_pos->z - home_position_z);
+
+	} else {
+		dist_to_ground = -_local_pos->z;
+
 	}
 
 	// disable pusher assist depending on setting of forward_thrust_enable_mode:
@@ -676,6 +791,165 @@ float VtolType::pusher_assist()
 
 	return forward_thrust;
 
+}
+
+bool VtolType::override_controls_for_test_mode()
+{
+	if (_v_control_mode->flag_armed) {
+		// if vehicle arms immediately deactivate test mode
+		return false;
+	}
+
+	if (_actuator_test_type == actuator_test_type::TYPE_CONTROL_SURFACES) {
+		/* Change actuator position every 1_s*/
+		if (hrt_elapsed_time(&_timestamp_new_state) >= 1_s) {
+			_timestamp_new_state = hrt_absolute_time();
+
+			switch (_actuator_test_position_state) {
+
+			case actuator_test_position_state::STATE_POSITION_WAIT:
+				_actuator_control_value_target = ACTUATOR_POSITIVE_DIRECTION;
+				_actuator_test_position_state = actuator_test_position_state::STATE_POSITION_POSITIVE;
+				break;
+
+			case actuator_test_position_state::STATE_POSITION_POSITIVE:
+				_actuator_test_position_state = actuator_test_position_state::STATE_POSITION_WAIT_1;
+				break;
+
+			case actuator_test_position_state::STATE_POSITION_NEGATIVE:
+				_actuator_test_position_state = actuator_test_position_state::STATE_POSITION_WAIT_2;
+				break;
+
+			case actuator_test_position_state::STATE_POSITION_WAIT_1:
+				_actuator_control_value_target = ACTUATOR_NEGATIVE_DIRECTION;
+				_actuator_test_position_state = actuator_test_position_state::STATE_POSITION_NEGATIVE;
+				break;
+
+			case actuator_test_position_state::STATE_POSITION_WAIT_2:
+				_actuator_test_position_state = actuator_test_position_state::STATE_POSITION_END;
+				_actuator_control_value_target = ACTUATOR_CENTRAL_DIRECTION;
+				break;
+
+			case actuator_test_position_state::STATE_POSITION_END:
+				break;
+
+			default:
+				break;
+			}
+		}
+
+	} else {
+		/* Change actuator position every 2_s for tilt check*/
+		if (hrt_elapsed_time(&_timestamp_new_state) >= 2_s) {
+			_timestamp_new_state = hrt_absolute_time();
+
+			switch (_actuator_test_position_state) {
+
+			case actuator_test_position_state::STATE_POSITION_WAIT:
+				_actuator_control_value_target = ACTUATOR_CENTRAL_DIRECTION;
+				_actuator_test_position_state = actuator_test_position_state::STATE_POSITION_CENTRAL;
+				break;
+
+			case actuator_test_position_state::STATE_POSITION_POSITIVE:
+				_actuator_test_position_state = actuator_test_position_state::STATE_POSITION_WAIT_2;
+				break;
+
+			case actuator_test_position_state::STATE_POSITION_CENTRAL:
+				_actuator_test_position_state = actuator_test_position_state::STATE_POSITION_WAIT_1;
+				break;
+
+			case actuator_test_position_state::STATE_POSITION_WAIT_1:
+				_actuator_control_value_target = ACTUATOR_POSITIVE_DIRECTION;
+				_actuator_test_position_state = actuator_test_position_state::STATE_POSITION_POSITIVE;
+				break;
+
+			case actuator_test_position_state::STATE_POSITION_WAIT_2:
+				_actuator_control_value_target = ACTUATOR_CENTRAL_DIRECTION;
+				_actuator_test_position_state = actuator_test_position_state::STATE_POSITION_END;
+				break;
+
+			default:
+				break;
+			}
+		}
+	}
+
+	if (_actuator_test_type == actuator_test_type::TYPE_CONTROL_SURFACES) {
+
+		switch (_control_surfaces_test_state) {
+
+		case control_surfaces_test_state::STATE_TEST_AILERON:
+			_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] = _actuator_control_value_target;
+			_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] = ACTUATOR_CENTRAL_DIRECTION;
+			_actuators_out_1->control[actuator_controls_s::INDEX_YAW] = ACTUATOR_CENTRAL_DIRECTION;
+
+			if (_actuator_test_position_state == actuator_test_position_state::STATE_POSITION_END) {
+				_control_surfaces_test_state = control_surfaces_test_state::STATE_TEST_ELEVATOR;
+
+				/* After end reinitialize to STATE_POSITION_WAIT for new round of tests */
+				_actuator_test_position_state = actuator_test_position_state::STATE_POSITION_WAIT;
+			}
+
+			break;
+
+		case control_surfaces_test_state::STATE_TEST_ELEVATOR:
+			_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] = ACTUATOR_CENTRAL_DIRECTION;
+			_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] = _actuator_control_value_target;
+			_actuators_out_1->control[actuator_controls_s::INDEX_YAW] = ACTUATOR_CENTRAL_DIRECTION;
+
+			if (_actuator_test_position_state == actuator_test_position_state::STATE_POSITION_END) {
+				_control_surfaces_test_state = control_surfaces_test_state::STATE_TEST_RUDDER;
+
+				/* After end reinitialize to STATE_POSITION_WAIT for new round of tests */
+				_actuator_test_position_state = actuator_test_position_state::STATE_POSITION_WAIT;
+			}
+
+			break;
+
+		case control_surfaces_test_state::STATE_TEST_RUDDER:
+			_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] = ACTUATOR_CENTRAL_DIRECTION;
+			_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] = ACTUATOR_CENTRAL_DIRECTION;
+			_actuators_out_1->control[actuator_controls_s::INDEX_YAW] = _actuator_control_value_target;
+
+			if (_actuator_test_position_state == actuator_test_position_state::STATE_POSITION_END) {
+				_control_surfaces_test_state = control_surfaces_test_state::STATE_TEST_END;
+			}
+
+			break;
+
+		default:
+			break;
+		}
+
+	} else if (_actuator_test_type == actuator_test_type::TYPE_TILT) {
+		_actuators_out_1->control[actuator_controls_s::INDEX_COLLECTIVE_TILT] = _actuator_control_value_target;
+	}
+
+	const bool checks_done = (_actuator_test_type == actuator_test_type::TYPE_CONTROL_SURFACES &&
+				  _control_surfaces_test_state == control_surfaces_test_state::STATE_TEST_END) ||
+				 (_actuator_test_type == actuator_test_type::TYPE_TILT &&
+				  _actuator_test_position_state == actuator_test_position_state::STATE_POSITION_END);
+
+	return !checks_done;
+}
+
+void VtolType::activate_actuator_test_mode(actuator_test_type test_type)
+{
+	if (test_type > actuator_test_type::TYPE_CONTROL_SURFACES || test_type <= actuator_test_type::TYPE_NONE
+	    || _v_control_mode->flag_armed) {
+		return;
+	}
+
+	if (test_type == actuator_test_type::TYPE_TILT && _param_vt_type.get() != (int32_t)vtol_type::TILTROTOR) {
+		return;
+	}
+
+	_in_actuator_test_mode = true;
+	_actuator_test_start_ts = hrt_absolute_time();
+	_actuator_test_type = test_type;
+	_control_surfaces_test_state = control_surfaces_test_state::STATE_TEST_AILERON;
+	_actuator_test_position_state = actuator_test_position_state::STATE_POSITION_WAIT;
+	_timestamp_new_state = hrt_absolute_time();
 }
 
 float VtolType::getFrontTransitionTimeFactor() const

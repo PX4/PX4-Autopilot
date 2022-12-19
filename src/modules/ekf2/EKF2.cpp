@@ -72,7 +72,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_acc_b_noise(_params->accel_bias_p_noise),
 	_param_ekf2_mag_e_noise(_params->mage_p_noise),
 	_param_ekf2_mag_b_noise(_params->magb_p_noise),
-	_param_ekf2_wind_noise(_params->wind_vel_p_noise),
+	_param_ekf2_wind_nsd(_params->wind_vel_nsd),
 	_param_ekf2_terr_noise(_params->terrain_p_noise),
 	_param_ekf2_terr_grad(_params->terrain_gradient),
 	_param_ekf2_gps_v_noise(_params->gps_vel_noise),
@@ -556,6 +556,8 @@ void EKF2::Run()
 					_gyro_cal = {};
 					_mag_cal = {};
 
+					_preflt_checker.reset();
+
 				} else if (was_in_air && !in_air) {
 					// landed
 					_ekf.set_in_air_status(false);
@@ -870,7 +872,10 @@ void EKF2::PublishInnovations(const hrt_abstime &timestamp)
 	_estimator_innovations_pub.publish(innovations);
 
 	// calculate noise filtered velocity innovations which are used for pre-flight checking
-	if (!_ekf.control_status_flags().in_air) {
+	vehicle_status_s vehicle_status;
+	_status_sub.copy(&vehicle_status);
+
+	if (vehicle_status.arming_state != vehicle_status_s::ARMING_STATE_ARMED) {
 		// TODO: move to run before publications
 		_preflt_checker.setUsingGpsAiding(_ekf.control_status_flags().gps);
 		_preflt_checker.setUsingFlowAiding(_ekf.control_status_flags().opt_flow);
@@ -883,10 +888,6 @@ void EKF2::PublishInnovations(const hrt_abstime &timestamp)
 		_preflt_checker.setUsingEvHgtAiding(_ekf.control_status_flags().ev_hgt);
 
 		_preflt_checker.update(_ekf.get_imu_sample_delayed().delta_ang_dt, innovations);
-
-	} else if (_ekf.control_status_flags().in_air != _ekf.control_status_prev_flags().in_air) {
-		// reset preflight checks if transitioning back to landed
-		_preflt_checker.reset();
 	}
 }
 
@@ -1013,6 +1014,9 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 	_ekf.get_velD_reset(&lpos.delta_vz, &lpos.vz_reset_counter);
 	_ekf.get_posNE_reset(&lpos.delta_xy[0], &lpos.xy_reset_counter);
 	_ekf.get_velNE_reset(&lpos.delta_vxy[0], &lpos.vxy_reset_counter);
+
+	lpos.dead_reckoning = _ekf.control_status_flags().inertial_dead_reckoning
+			      || _ekf.control_status_flags().wind_dead_reckoning;
 
 	// get control limit information
 	_ekf.get_ekf_ctrl_limits(&lpos.vxy_max, &lpos.vz_max, &lpos.hagl_min, &lpos.hagl_max);
@@ -1483,6 +1487,16 @@ void EKF2::UpdateAirspeedSample(ekf2_timestamps_s &ekf2_timestamps)
 					.time_us = airspeed_validated.timestamp,
 					.true_airspeed = airspeed_validated.true_airspeed_m_s,
 					.eas2tas = airspeed_validated.true_airspeed_m_s / airspeed_validated.calibrated_airspeed_m_s,
+				};
+				_ekf.setAirspeedData(airspeed_sample);
+
+			} else if (PX4_ISFINITE(airspeed_validated.calibrated_airspeed_trim_m_s)
+				   && PX4_ISFINITE(airspeed_validated.true_airspeed_trim_m_s)
+				   && airspeed_validated.calibrated_airspeed_trim_m_s > 0.f) {
+				airspeedSample airspeed_sample {
+					.time_us = airspeed_validated.timestamp,
+					.true_airspeed = airspeed_validated.true_airspeed_trim_m_s,
+					.eas2tas = airspeed_validated.true_airspeed_trim_m_s / airspeed_validated.calibrated_airspeed_trim_m_s,
 				};
 				_ekf.setAirspeedData(airspeed_sample);
 			}
@@ -2070,17 +2084,29 @@ int EKF2::task_spawn(int argc, char *argv[])
 		}
 
 		int32_t sens_mag_mode = 1;
-		param_get(param_find("SENS_MAG_MODE"), &sens_mag_mode);
+		const param_t param_sens_mag_mode = param_find("SENS_MAG_MODE");
+		param_get(param_sens_mag_mode, &sens_mag_mode);
 
 		if (sens_mag_mode == 0) {
-			param_get(param_find("EKF2_MULTI_MAG"), &mag_instances);
+			const param_t param_ekf2_mult_mag = param_find("EKF2_MULTI_MAG");
+			param_get(param_ekf2_mult_mag, &mag_instances);
 
 			// Mags (1 - 4 supported)
-			if (mag_instances < 1 || mag_instances > 4) {
+			if (mag_instances > 4) {
 				const int32_t mag_instances_limited = math::constrain(mag_instances, static_cast<int32_t>(1), static_cast<int32_t>(4));
 				PX4_WARN("EKF2_MULTI_MAG limited %" PRId32 " -> %" PRId32, mag_instances, mag_instances_limited);
-				param_set_no_notification(param_find("EKF2_MULTI_MAG"), &mag_instances_limited);
+				param_set_no_notification(param_ekf2_mult_mag, &mag_instances_limited);
 				mag_instances = mag_instances_limited;
+
+			} else if (mag_instances <= 1) {
+				// properly disable multi-magnetometer at sensors hub level
+				PX4_WARN("EKF2_MULTI_MAG disabled, resetting SENS_MAG_MODE");
+
+				// re-enable at sensors level
+				sens_mag_mode = 1;
+				param_set(param_sens_mag_mode, &sens_mag_mode);
+
+				mag_instances = 1;
 			}
 
 		} else {

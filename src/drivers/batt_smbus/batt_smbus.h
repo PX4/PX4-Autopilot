@@ -257,7 +257,7 @@ private:
 	uint16_t _cycle_count{0};
 
 	/** @param _serial_number Serial number register. */
-	uint16_t _serial_number{0};
+	char _serial_number[sizeof(battery_status_s::serial_number)] {};
 
 	/** @param _crit_thr Critical battery threshold param. */
 	float _crit_thr{0.f};

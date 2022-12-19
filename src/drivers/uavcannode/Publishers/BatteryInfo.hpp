@@ -83,7 +83,7 @@ public:
 			battery_info.state_of_charge_pct_stdev = battery.max_error;
 			battery_info.model_instance_id = 0; // TODO: what goes here?
 			battery_info.model_name = "ARK BMS Rev 0.2";
-			battery_info.battery_id = battery.serial_number;
+			battery_info.battery_id = atoi(battery.serial_number);
 			battery_info.hours_to_full_charge = 0; // TODO: Read BQ40Z80_TIME_TO_FULL
 			battery_info.state_of_health_pct = battery.state_of_health;
 

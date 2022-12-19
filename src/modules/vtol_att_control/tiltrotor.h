@@ -56,6 +56,7 @@ public:
 	void update_transition_state() override;
 	void fill_actuator_outputs() override;
 	void update_mc_state() override;
+	void update_mc_generic() override;
 	void update_fw_state() override;
 	void waiting_on_tecs() override;
 	float thrust_compensation_for_tilt();
@@ -76,11 +77,7 @@ private:
 	 * they need to idle otherwise they need too much time to spin up for mc mode.
 	 */
 
-
-	struct {
-		vtol_mode flight_mode;			/**< vtol flight mode, defined by enum vtol_mode */
-		hrt_abstime transition_start;	/**< absoulte time at which front transition started */
-	} _vtol_schedule;
+	vtol_mode _vtol_mode{vtol_mode::MC_MODE};			/**< vtol flight mode, defined by enum vtol_mode */
 
 	float _tilt_control{0.0f};		/**< actuator value for the tilt servo */
 
@@ -94,13 +91,29 @@ private:
 	hrt_abstime _last_timestamp_disarmed{0}; /**< used for calculating time since arming */
 	bool _tilt_motors_for_startup{false};
 
+	// APX4 custom
+	void select_fixed_wing_motors();
+	float alternate_motors_throttle_adaption(float throttle_in);
+	float alternate_motors_elevator_trim(const float throttle_alternate);
+	bool _alternate_motor_on = false;
+	hrt_abstime _last_time_switch_to_alternate = 0;
+	hrt_abstime _last_time_alternate_conditions_violated = 0;
+	hrt_abstime _last_time_elevator_not_saturated{0};
+	// APX4 custom end
+
 	DEFINE_PARAMETERS_CUSTOM_PARENT(VtolType,
 					(ParamFloat<px4::params::VT_TILT_MC>) _param_vt_tilt_mc,
 					(ParamFloat<px4::params::VT_TILT_TRANS>) _param_vt_tilt_trans,
 					(ParamFloat<px4::params::VT_TILT_FW>) _param_vt_tilt_fw,
 					(ParamFloat<px4::params::VT_TILT_SPINUP>) _param_vt_tilt_spinup,
-					(ParamFloat<px4::params::VT_TRANS_P2_DUR>) _param_vt_trans_p2_dur
-				       )
+					(ParamFloat<px4::params::VT_TRANS_P2_DUR>) _param_vt_trans_p2_dur,
+					(ParamFloat<px4::params::VT_THR_ALTER_MAX>) _param_vt_thr_alter_max,  // APX4 custom
+					(ParamFloat<px4::params::VT_THR_N_MAIN>) _param_vt_thr_n_main,  // APX4 custom
+					(ParamFloat<px4::params::VT_THR_N_ALTER>) _param_vt_thr_n_alter,  // APX4 custom
+					(ParamFloat<px4::params::VT_THR_ALTER_SC>) _param_vt_thr_alter_sc,  // APX4 custom
+					(ParamFloat<px4::params::VT_ELEV_COMP_K>) _param_vt_elev_comp_k,   // APX4 custom
+					(ParamFloat<px4::params::VT_ELEV_COMP_OFF>) _param_vt_elev_comp_off // APX4 custom
 
+				       )
 };
 #endif

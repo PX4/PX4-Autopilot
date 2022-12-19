@@ -149,6 +149,7 @@ set(models
 	if750a
 	iris
 	iris_ctrlalloc
+	iris_depth_camera
 	iris_dual_gps
 	iris_foggy_lidar
 	iris_irlock
@@ -166,6 +167,7 @@ set(models
 	px4vision
 	r1_rover
 	rover
+	rover_gimbal
 	shell
 	solo
 	standard_vtol
@@ -181,7 +183,10 @@ set(models
 
 set(worlds
 	none
+	almend
+	almend_castle
 	baylands
+	crane
 	empty
 	ksql_airport
 	mcmillan_airfield
@@ -189,6 +194,7 @@ set(worlds
 	warehouse
 	windy
 	yosemite
+	camp_roberts
 )
 
 set(all_posix_vmd_make_targets)

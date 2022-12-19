@@ -288,7 +288,7 @@ int SMBUS_SBS_BaseClass<T>::populate_smbus_data(battery_status_s &data)
 
 	// Read serial number.
 	ret |= _interface->read_word(BATT_SMBUS_SERIAL_NUMBER, result);
-	data.serial_number = result;
+	sprintf(data.serial_number, "%d", result);
 
 	// Read battery temperature and covert to Celsius.
 	ret |= _interface->read_word(BATT_SMBUS_TEMP, result);

@@ -147,8 +147,8 @@ private:
 	bool _initialized{false}; /**< module initialized*/
 	bool _vehicle_local_position_valid{false}; /**< local position (from GPS) valid */
 	bool _in_takeoff_situation{true}; /**< in takeoff situation (defined as not yet stall speed reached) */
-	float _ground_minus_wind_TAS{0.0f}; /**< true airspeed from groundspeed minus windspeed */
-	float _ground_minus_wind_CAS{0.0f}; /**< calibrated airspeed from groundspeed minus windspeed */
+	float _ground_minus_wind_TAS{NAN}; /**< true airspeed from groundspeed minus windspeed */
+	float _ground_minus_wind_CAS{NAN}; /**< calibrated airspeed from groundspeed minus windspeed */
 	bool _armed_prev{false};
 
 	hrt_abstime _time_last_airspeed_update[MAX_NUM_AIRSPEED_SENSORS] {};
@@ -161,12 +161,13 @@ private:
 		CHECK_TYPE_ONLY_DATA_MISSING_BIT = (1 << 0),
 		CHECK_TYPE_DATA_STUCK_BIT = (1 << 1),
 		CHECK_TYPE_INNOVATION_BIT = (1 << 2),
-		CHECK_TYPE_LOAD_FACTOR_BIT = (1 << 3)
+		CHECK_TYPE_LOAD_FACTOR_BIT = (1 << 3),
+		CHECK_TYPE_DATA_VARIATION_BIT = (1 << 4)
 	};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::ASPD_W_P_NOISE>) _param_west_w_p_noise,
-		(ParamFloat<px4::params::ASPD_SC_P_NOISE>) _param_west_sc_p_noise,
+		(ParamFloat<px4::params::ASPD_WIND_NSD>) _param_aspd_wind_nsd,
+		(ParamFloat<px4::params::ASPD_SCALE_NSD>) _param_aspd_scale_nsd,
 		(ParamFloat<px4::params::ASPD_TAS_NOISE>) _param_west_tas_noise,
 		(ParamFloat<px4::params::ASPD_BETA_NOISE>) _param_west_beta_noise,
 		(ParamInt<px4::params::ASPD_TAS_GATE>) _param_west_tas_gate,
@@ -184,7 +185,11 @@ private:
 		(ParamInt<px4::params::ASPD_FS_T_STOP>) _checks_fail_delay, /**< delay to declare airspeed invalid */
 		(ParamInt<px4::params::ASPD_FS_T_START>) _checks_clear_delay, /**<  delay to declare airspeed valid again */
 
-		(ParamFloat<px4::params::FW_AIRSPD_STALL>) _param_fw_airspd_stall
+		(ParamFloat<px4::params::ASPD_WERR_THR>) _param_wind_sigma_max_synth_tas,
+
+		// external parameters
+		(ParamFloat<px4::params::FW_AIRSPD_STALL>) _param_fw_airspd_stall,
+		(ParamFloat<px4::params::FW_AIRSPD_TRIM>) _param_fw_airspd_trim
 	)
 
 	void 		init(); 	/**< initialization of the airspeed validator instances */
@@ -373,7 +378,7 @@ AirspeedModule::Run()
 				// takeoff situation is active from start till one of the sensors' IAS or groundspeed_CAS is above stall speed
 				if (_in_takeoff_situation &&
 				    (airspeed_raw.indicated_airspeed_m_s > _param_fw_airspd_stall.get() ||
-				     _ground_minus_wind_CAS > _param_fw_airspd_stall.get())) {
+				     (PX4_ISFINITE(_ground_minus_wind_CAS) && _ground_minus_wind_CAS > _param_fw_airspd_stall.get()))) {
 					_in_takeoff_situation = false;
 				}
 
@@ -382,7 +387,7 @@ AirspeedModule::Run()
 					_in_takeoff_situation = true;
 				}
 
-				input_data.in_fixed_wing_flight = (armed && in_air_fixed_wing && !_in_takeoff_situation);
+				input_data.in_fixed_wing_flight = (in_air_fixed_wing && !_in_takeoff_situation);
 
 				// push input data into airspeed validator
 				_airspeed_validator[i].update_airspeed_validator(input_data);
@@ -447,16 +452,16 @@ void AirspeedModule::update_params()
 	_param_airspeed_scale[1] = _param_airspeed_scale_2.get();
 	_param_airspeed_scale[2] = _param_airspeed_scale_3.get();
 
-	_wind_estimator_sideslip.set_wind_p_noise(_param_west_w_p_noise.get());
-	_wind_estimator_sideslip.set_tas_scale_p_noise(_param_west_sc_p_noise.get());
+	_wind_estimator_sideslip.set_wind_process_noise_spectral_density(_param_aspd_wind_nsd.get());
+	_wind_estimator_sideslip.set_tas_scale_process_noise_spectral_density(_param_aspd_scale_nsd.get());
 	_wind_estimator_sideslip.set_tas_noise(_param_west_tas_noise.get());
 	_wind_estimator_sideslip.set_beta_noise(_param_west_beta_noise.get());
 	_wind_estimator_sideslip.set_tas_gate(_param_west_tas_gate.get());
 	_wind_estimator_sideslip.set_beta_gate(_param_west_beta_gate.get());
 
 	for (int i = 0; i < MAX_NUM_AIRSPEED_SENSORS; i++) {
-		_airspeed_validator[i].set_wind_estimator_wind_p_noise(_param_west_w_p_noise.get());
-		_airspeed_validator[i].set_wind_estimator_tas_scale_p_noise(_param_west_sc_p_noise.get());
+		_airspeed_validator[i].set_wind_estimator_wind_process_noise_spectral_density(_param_aspd_wind_nsd.get());
+		_airspeed_validator[i].set_wind_estimator_tas_scale_process_noise_spectral_density(_param_aspd_scale_nsd.get());
 		_airspeed_validator[i].set_wind_estimator_tas_noise(_param_west_tas_noise.get());
 		_airspeed_validator[i].set_wind_estimator_beta_noise(_param_west_beta_noise.get());
 		_airspeed_validator[i].set_wind_estimator_tas_gate(_param_west_tas_gate.get());
@@ -477,6 +482,8 @@ void AirspeedModule::update_params()
 				CheckTypeBits::CHECK_TYPE_INNOVATION_BIT);
 		_airspeed_validator[i].set_enable_load_factor_check(_param_airspeed_checks_on.get() &
 				CheckTypeBits::CHECK_TYPE_LOAD_FACTOR_BIT);
+		_airspeed_validator[i].set_enable_data_variation_check(_param_airspeed_checks_on.get() &
+				CheckTypeBits::CHECK_TYPE_DATA_VARIATION_BIT);
 	}
 }
 
@@ -505,7 +512,9 @@ void AirspeedModule::poll_topics()
 
 
 	_vehicle_local_position_valid = (_time_now_usec - _vehicle_local_position.timestamp < 1_s)
-					&& (_vehicle_local_position.timestamp > 0) && _vehicle_local_position.v_xy_valid;
+					&& (_vehicle_local_position.timestamp > 0)
+					&& _vehicle_local_position.v_xy_valid
+					&& !_vehicle_local_position.dead_reckoning;
 }
 
 void AirspeedModule::update_wind_estimator_sideslip()
@@ -514,11 +523,14 @@ void AirspeedModule::update_wind_estimator_sideslip()
 	_wind_estimator_sideslip.update(_time_now_usec);
 
 	if (_vehicle_local_position_valid
-	    && _vtol_vehicle_status.vehicle_vtol_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW) {
+	    && _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
+	    && !_vehicle_land_detected.landed) {
 		Vector3f vI(_vehicle_local_position.vx, _vehicle_local_position.vy, _vehicle_local_position.vz);
 		Quatf q(_vehicle_attitude.q);
 
-		_wind_estimator_sideslip.fuse_beta(_time_now_usec, vI, q);
+		const float hor_vel_variance =  _vehicle_local_position.evh * _vehicle_local_position.evh;
+
+		_wind_estimator_sideslip.fuse_beta(_time_now_usec, vI, hor_vel_variance, q);
 	}
 
 	_wind_estimate_sideslip.timestamp = _time_now_usec;
@@ -538,13 +550,19 @@ void AirspeedModule::update_wind_estimator_sideslip()
 
 void AirspeedModule::update_ground_minus_wind_airspeed()
 {
-	// calculate airspeed estimate based on groundspeed-windspeed to use as fallback
-	const float TAS_north = _vehicle_local_position.vx - _wind_estimate_sideslip.windspeed_north;
-	const float TAS_east = _vehicle_local_position.vy - _wind_estimate_sideslip.windspeed_east;
-	const float TAS_down = _vehicle_local_position.vz; // no wind estimate in z
-	_ground_minus_wind_TAS = sqrtf(TAS_north * TAS_north + TAS_east * TAS_east + TAS_down * TAS_down);
-	_ground_minus_wind_CAS = calc_CAS_from_TAS(_ground_minus_wind_TAS, _vehicle_air_data.baro_pressure_pa,
-				 _vehicle_air_data.baro_temp_celcius);
+	const float wind_uncertainty = sqrtf(_wind_estimate_sideslip.variance_north + _wind_estimate_sideslip.variance_east);
+
+	if (_wind_estimator_sideslip.is_estimate_valid() && wind_uncertainty < _param_wind_sigma_max_synth_tas.get()) {
+		// calculate airspeed estimate based on groundspeed-windspeed
+		const float TAS_north = _vehicle_local_position.vx - _wind_estimate_sideslip.windspeed_north;
+		const float TAS_east = _vehicle_local_position.vy - _wind_estimate_sideslip.windspeed_east;
+		const float TAS_down = _vehicle_local_position.vz; // no wind estimate in z
+		_ground_minus_wind_TAS = sqrtf(TAS_north * TAS_north + TAS_east * TAS_east + TAS_down * TAS_down);
+		_ground_minus_wind_CAS = calc_calibrated_from_true_airspeed(_ground_minus_wind_TAS, _vehicle_air_data.rho);
+
+	} else {
+		_ground_minus_wind_TAS = _ground_minus_wind_CAS = NAN;
+	}
 }
 
 
@@ -641,6 +659,9 @@ void AirspeedModule::select_airspeed_and_publish()
 	airspeed_validated.true_airspeed_m_s = NAN;
 	airspeed_validated.airspeed_sensor_measurement_valid = false;
 	airspeed_validated.selected_airspeed_index = _valid_airspeed_index;
+	airspeed_validated.calibrated_airspeed_trim_m_s = _param_fw_airspd_trim.get();
+	airspeed_validated.true_airspeed_trim_m_s = calc_true_from_calibrated_airspeed(_param_fw_airspd_trim.get(),
+			_vehicle_air_data.rho);
 
 	switch (_valid_airspeed_index) {
 	case airspeed_index::DISABLED_INDEX:

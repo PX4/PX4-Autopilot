@@ -1,0 +1,5 @@
+menuconfig EXAMPLES_EXT_UPDATE_CHECKER
+	bool "ext_update_checker"
+	default n
+	---help---
+		Enable support for ext_update_checker

@@ -1,4 +1,7 @@
 uint64 timestamp			# time since system start (microseconds)
+
+uint8 CONNECTED_BATTERIES_MAX = 4 # The number of max supported batteries
+
 bool connected				# Whether or not a battery is connected, based on a voltage threshold
 float32 voltage_v			# Battery voltage in volts, 0 if unknown
 float32 voltage_filtered_v	# Battery voltage in volts, filtered, 0 if unknown
@@ -17,10 +20,12 @@ uint8 BATTERY_SOURCE_EXTERNAL = 1
 uint8 BATTERY_SOURCE_ESCS = 2
 uint8 source				# Battery source
 uint8 priority				# Zero based priority is the connection on the Power Controller V1..Vn AKA BrickN-1
-uint16 capacity				# actual capacity of the battery
+uint16 capacity         		# actual capacity of the battery in mAh
+uint8 model 				# Battery model
+uint8[2] fw_version			# Firmware version,format MAJOR.MINOR where [0] = MAJOR
 uint16 cycle_count			# number of discharge cycles the battery has experienced
 uint16 average_time_to_empty	# predicted remaining battery capacity based on the average rate of discharge in min
-uint16 serial_number		# serial number of the battery pack
+char[16] serial_number      	# serial number of the battery pack in ASCII characters
 uint16 manufacture_date		# manufacture date, part of serial number of the battery pack. formated as: Day + Month×32 + (Year–1980)×512
 uint16 state_of_health		# state of health. FullChargeCapacity/DesignCapacity, 0-100%.
 uint16 max_error			# max error, expected margin of error in % in the state-of-charge calculation with a range of 1 to 100%

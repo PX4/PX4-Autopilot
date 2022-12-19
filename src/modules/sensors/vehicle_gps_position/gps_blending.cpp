@@ -462,6 +462,8 @@ sensor_gps_s GpsBlending::gps_blend_states(float blend_weights[GPS_MAX_RECEIVERS
 		}
 	}
 
+	gps_blended_state.time_utc_usec = _gps_state[gps_best_index].time_utc_usec;
+
 	// Add the sum of weighted offsets to the reference position to obtain the blended position
 	const double lat_deg_now = (double)gps_blended_state.lat * 1.0e-7;
 	const double lon_deg_now = (double)gps_blended_state.lon * 1.0e-7;

@@ -66,7 +66,7 @@ private:
 			battery_status_s battery_status;
 
 			if (battery_sub.update(&battery_status)) {
-				if (battery_status.serial_number == 0) {
+				if (atoi(battery_status.serial_number) == 0) {
 					// This is not smart battery
 					continue;
 				}
@@ -78,17 +78,8 @@ private:
 				msg.capacity_full = (int32_t)((float)(battery_status.state_of_health * battery_status.capacity) / 100.f);
 				msg.cycle_count = battery_status.cycle_count;
 
-				if (battery_status.manufacture_date) {
-					uint16_t day = battery_status.manufacture_date % 32;
-					uint16_t month = (battery_status.manufacture_date >> 5) % 16;
-					uint16_t year = (80 + (battery_status.manufacture_date >> 9)) % 100;
-
-					//Formatted as 'dd/mm/yy-123456' (maxed 15 + 1 chars)
-					snprintf(msg.serial_number, sizeof(msg.serial_number), "%d/%d/%d-%d", day, month, year, battery_status.serial_number);
-
-				} else {
-					snprintf(msg.serial_number, sizeof(msg.serial_number), "%d", battery_status.serial_number);
-				}
+				static_assert(sizeof(msg.serial_number) == sizeof(battery_status.serial_number), "array size mismatch");
+				memcpy(msg.serial_number, battery_status.serial_number, sizeof(msg.serial_number));
 
 				//msg.device_name = ??
 				msg.weight = -1;

@@ -59,6 +59,7 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 
 	bool failed = false;
 
+	failed = failed || !externalUpdateCheck(mavlink_log_pub, report_failures);
 	failed = failed || !airframeCheck(mavlink_log_pub, status);
 	failed = failed || !sdcardCheck(mavlink_log_pub, status_flags.sd_card_detected_once, report_failures);
 
@@ -100,8 +101,8 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 		param_get(param_find("SYS_HAS_BARO"), &sys_has_baro);
 
 		if (sys_has_baro == 1) {
-			static_cast<void>(sensorAvailabilityCheck(report_failures, max_mandatory_baro_count,
-					  mavlink_log_pub, status, baroCheck));
+			failed |= !sensorAvailabilityCheck(report_failures, max_mandatory_baro_count,
+							   mavlink_log_pub, status, baroCheck);
 		}
 	}
 
@@ -119,8 +120,8 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 		param_get(param_find("SYS_HAS_NUM_DIST"), &sys_has_num_dist_sens);
 
 		if (sys_has_num_dist_sens > 0) {
-			static_cast<void>(sensorAvailabilityCheck(report_failures, sys_has_num_dist_sens,
-					  mavlink_log_pub, status, distSensCheck));
+			failed |= !sensorAvailabilityCheck(report_failures, sys_has_num_dist_sens,
+							   mavlink_log_pub, status, distSensCheck);
 		}
 
 	}
@@ -223,10 +224,22 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 		failed = true;
 	}
 
+	if (status.failsafe) {
+		if (report_failures) {
+			mavlink_log_critical(mavlink_log_pub, "Arming Denied: vehicle is in failsafe mode. Switch flight mode first");
+		}
+
+		failed = true;
+	}
+
 	failed = failed || !manualControlCheck(mavlink_log_pub, report_failures);
 	failed = failed || !modeCheck(mavlink_log_pub, report_failures, status);
 	failed = failed || !cpuResourceCheck(mavlink_log_pub, report_failures);
 	failed = failed || !parachuteCheck(mavlink_log_pub, report_failures, status_flags);
+
+	if (prearm) {
+		failed = failed || !openDroneIDCheck(mavlink_log_pub, report_failures, status_flags);
+	}
 
 	/* Report status */
 	return !failed;

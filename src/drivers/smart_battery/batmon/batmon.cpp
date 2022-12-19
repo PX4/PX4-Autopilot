@@ -192,7 +192,7 @@ void Batmon::RunImpl()
 	if (ret == PX4_OK) {
 		new_report.capacity = _batt_capacity;
 		new_report.cycle_count = _cycle_count;
-		new_report.serial_number = _serial_number;
+		sprintf(new_report.serial_number, "%d", _serial_number);
 		new_report.max_cell_voltage_delta = _max_cell_voltage_delta;
 		new_report.cell_count = _cell_count;
 		new_report.state_of_health = _state_of_health;

@@ -34,6 +34,8 @@
 #include "../PreFlightCheck.hpp"
 #include <lib/parameters/param.h>
 #include <systemlib/mavlink_log.h>
+#include <dirent.h>
+#include <string.h>
 
 #ifdef __PX4_DARWIN
 #include <sys/param.h>
@@ -69,6 +71,48 @@ bool PreFlightCheck::sdcardCheck(orb_advert_t *mavlink_log_pub, bool &sd_card_de
 			}
 		}
 	}
+
+#ifdef __PX4_NUTTX
+	// Check for hardfault files
+	static bool hardfault_checked_once = false; // TODO: make this a class member when porting to newer PX4
+	static bool hardfault_file_present = false;
+
+	if (!hardfault_checked_once) {
+		hardfault_checked_once = true;
+
+		int32_t param_com_arm_hardfault_check{0};
+		param_get(param_find("COM_ARM_HFLT_CHK"), &param_com_arm_hardfault_check);
+
+		if (param_com_arm_hardfault_check > 0) {
+
+			DIR *dp = opendir(PX4_STORAGEDIR);
+
+			if (dp != nullptr) {
+
+				struct dirent *result;
+
+				while ((result = readdir(dp)) && !hardfault_file_present) {
+
+					// Check for pattern fault_*.log
+					if (strncmp("fault_", result->d_name, 6) == 0 && strcmp(result->d_name + strlen(result->d_name) - 4, ".log") == 0) {
+						hardfault_file_present = true;
+					}
+				}
+
+				closedir(dp);
+			}
+		}
+	}
+
+	if (hardfault_file_present) {
+		if (report_fail) {
+			mavlink_log_critical(mavlink_log_pub, "Crash dumps present on SD, vehicle needs service");
+		}
+
+		success = false;
+	}
+
+#endif
 
 	return success;
 }

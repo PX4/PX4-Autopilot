@@ -233,10 +233,11 @@ ActuatorEffectivenessRotors::computeEffectivenessMatrix(const Geometry &geometry
 	return num_actuators;
 }
 
-uint32_t ActuatorEffectivenessRotors::updateAxisFromTilts(const ActuatorEffectivenessTilts &tilts, float tilt_control)
+uint32_t ActuatorEffectivenessRotors::updateAxisFromTilts(const ActuatorEffectivenessTilts &tilts,
+		float collective_tilt_control)
 {
-	if (!PX4_ISFINITE(tilt_control)) {
-		tilt_control = -1.f;
+	if (!PX4_ISFINITE(collective_tilt_control)) {
+		collective_tilt_control = -1.f;
 	}
 
 	uint32_t nontilted_motors = 0;
@@ -250,8 +251,8 @@ uint32_t ActuatorEffectivenessRotors::updateAxisFromTilts(const ActuatorEffectiv
 		}
 
 		const ActuatorEffectivenessTilts::Params &tilt = tilts.config(tilt_index);
-		float tilt_angle = math::lerp(tilt.min_angle, tilt.max_angle, (tilt_control + 1.f) / 2.f);
-		float tilt_direction = math::radians((float)tilt.tilt_direction);
+		const float tilt_angle = math::lerp(tilt.min_angle, tilt.max_angle, (collective_tilt_control + 1.f) / 2.f);
+		const float tilt_direction = math::radians((float)tilt.tilt_direction);
 		_geometry.rotors[i].axis = tiltedAxis(tilt_angle, tilt_direction);
 	}
 

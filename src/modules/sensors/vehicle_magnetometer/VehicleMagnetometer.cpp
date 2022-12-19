@@ -261,9 +261,8 @@ void VehicleMagnetometer::UpdateMagCalibration()
 
 							_mag_cal[i].device_id = estimator_sensor_bias.mag_device_id;
 
-							// readd estimated bias that was removed before publishing vehicle_magnetometer
-							_mag_cal[i].offset = _calibration[mag_index].BiasCorrectedSensorOffset(bias) +
-									     _calibration_estimator_bias[mag_index];
+							// readd estimated bias that was removed before publishing vehicle_magnetometer (_calibration_estimator_bias)
+							_mag_cal[i].offset = _calibration[mag_index].BiasCorrectedSensorOffset(bias + _calibration_estimator_bias[mag_index]);
 
 							_mag_cal[i].variance = bias_variance;
 
@@ -312,21 +311,22 @@ void VehicleMagnetometer::UpdateMagCalibration()
 
 						_calibration[mag_index].ParametersSave();
 
+						_calibration_estimator_bias[mag_index].zero();
+
 						calibration_param_save_needed = true;
 					}
-
 				}
-
-				// clear
-				_mag_cal[i] = {};
 			}
-
-			_calibration_estimator_bias[mag_index].zero();
 		}
 
 		if (calibration_param_save_needed) {
 			param_notify_changes();
 			_last_calibration_update = hrt_absolute_time();
+		}
+
+		// clear all
+		for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+			_mag_cal[i] = {};
 		}
 
 		_in_flight_mag_cal_available = false;
@@ -428,13 +428,6 @@ void VehicleMagnetometer::Run()
 							}
 						}
 
-						// advertise outputs in order if publishing all
-						if (!_param_sens_mag_mode.get()) {
-							for (int instance = 0; instance < uorb_index; instance++) {
-								_vehicle_magnetometer_pub[instance].advertise();
-							}
-						}
-
 						if (_selected_sensor_sub_index < 0) {
 							_sensor_sub[uorb_index].registerCallback();
 						}
@@ -515,6 +508,16 @@ void VehicleMagnetometer::Run()
 						out.timestamp = hrt_absolute_time();
 
 						if (multi_mode) {
+
+							if (!_vehicle_magnetometer_pub[instance].advertised()) {
+								// prefer to maintain vehicle_magneometer instance numbering in sensor order
+								for (int mag_instance = 0; mag_instance < instance; mag_instance++) {
+									if (_calibration[instance].enabled()) {
+										_vehicle_magnetometer_pub[mag_instance].advertise();
+									}
+								}
+							}
+
 							_vehicle_magnetometer_pub[instance].publish(out);
 
 						} else {

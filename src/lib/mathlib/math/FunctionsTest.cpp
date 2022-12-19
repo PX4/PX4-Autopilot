@@ -140,63 +140,57 @@ TEST(FunctionsTest, expo_deadzone)
 	EXPECT_FLOAT_EQ(expo_deadzone(-.5f, .9f, .4f), -.020833336f);
 }
 
-TEST(FunctionsTest, gradual)
+TEST(FunctionsTest, interpolate)
 {
 	// factor of *2, offset +1
-	EXPECT_FLOAT_EQ(gradual(-12.f, 0.f, 1.f, 1.f, 3.f), 1.f);
-	EXPECT_FLOAT_EQ(gradual(0.f, 0.f, 1.f, 1.f, 3.f), 1.f);
-	EXPECT_FLOAT_EQ(gradual(.25f, 0.f, 1.f, 1.f, 3.f), 1.5f);
-	EXPECT_FLOAT_EQ(gradual(.5f, 0.f, 1.f, 1.f, 3.f), 2.f);
-	EXPECT_FLOAT_EQ(gradual(.75f, 0.f, 1.f, 1.f, 3.f), 2.5f);
-	EXPECT_FLOAT_EQ(gradual(1.f, 0.f, 1.f, 1.f, 3.f), 3.f);
-	EXPECT_FLOAT_EQ(gradual(12.f, 0.f, 1.f, 1.f, 3.f), 3.f);
+	EXPECT_FLOAT_EQ(interpolate(-12.f, 0.f, 1.f, 1.f, 3.f), 1.f);
+	EXPECT_FLOAT_EQ(interpolate(0.f, 0.f, 1.f, 1.f, 3.f), 1.f);
+	EXPECT_FLOAT_EQ(interpolate(.25f, 0.f, 1.f, 1.f, 3.f), 1.5f);
+	EXPECT_FLOAT_EQ(interpolate(.5f, 0.f, 1.f, 1.f, 3.f), 2.f);
+	EXPECT_FLOAT_EQ(interpolate(.75f, 0.f, 1.f, 1.f, 3.f), 2.5f);
+	EXPECT_FLOAT_EQ(interpolate(1.f, 0.f, 1.f, 1.f, 3.f), 3.f);
+	EXPECT_FLOAT_EQ(interpolate(12.f, 0.f, 1.f, 1.f, 3.f), 3.f);
 
 	// factor of *2, offset +3
-	EXPECT_FLOAT_EQ(gradual(-12.f, 1.f, 2.f, 4.f, 6.f), 4.f);
-	EXPECT_FLOAT_EQ(gradual(1.f, 1.f, 2.f, 4.f, 6.f), 4.f);
-	EXPECT_FLOAT_EQ(gradual(1.25f, 1.f, 2.f, 4.f, 6.f), 4.5f);
-	EXPECT_FLOAT_EQ(gradual(1.5f, 1.f, 2.f, 4.f, 6.f), 5.f);
-	EXPECT_FLOAT_EQ(gradual(1.75f, 1.f, 2.f, 4.f, 6.f), 5.5f);
-	EXPECT_FLOAT_EQ(gradual(2.f, 1.f, 2.f, 4.f, 6.f), 6.f);
-	EXPECT_FLOAT_EQ(gradual(12.f, 1.f, 2.f, 4.f, 6.f), 6.f);
+	EXPECT_FLOAT_EQ(interpolate(-12.f, 1.f, 2.f, 4.f, 6.f), 4.f);
+	EXPECT_FLOAT_EQ(interpolate(1.f, 1.f, 2.f, 4.f, 6.f), 4.f);
+	EXPECT_FLOAT_EQ(interpolate(1.25f, 1.f, 2.f, 4.f, 6.f), 4.5f);
+	EXPECT_FLOAT_EQ(interpolate(1.5f, 1.f, 2.f, 4.f, 6.f), 5.f);
+	EXPECT_FLOAT_EQ(interpolate(1.75f, 1.f, 2.f, 4.f, 6.f), 5.5f);
+	EXPECT_FLOAT_EQ(interpolate(2.f, 1.f, 2.f, 4.f, 6.f), 6.f);
+	EXPECT_FLOAT_EQ(interpolate(12.f, 1.f, 2.f, 4.f, 6.f), 6.f);
 
 	// corner case when x_low == x_high == value
-	EXPECT_FLOAT_EQ(gradual(1.f, 1.f, 1.f, 4.f, 6.f), 4.f);
+	EXPECT_FLOAT_EQ(interpolate(1.f, 1.f, 1.f, 4.f, 6.f), 4.f);
 
 	// corner case when x_low > x_high
-	EXPECT_FLOAT_EQ(gradual(1.05f, 1.1f, 1.f, 4.f, 6.f), 4.f);
+	EXPECT_FLOAT_EQ(interpolate(1.05f, 1.1f, 1.f, 4.f, 6.f), 4.f);
+
+	// corner case when y_low == y_high == value
+	EXPECT_FLOAT_EQ(interpolate(1.f, 1.f, 1.f, 4.f, 6.f), 4.f);
+
+	// corner case when y_low > y_high
+	EXPECT_FLOAT_EQ(interpolate(1.5f, 1.f, 2.f, 6.f, 4.f), 5.f);
+
+	// corner case when x_low == x_high ==  y_low == y_high == 0.f
+	EXPECT_FLOAT_EQ(interpolate(0.f, 0.f, 0.f, 0.f, 0.f), 0.f);
 }
 
-TEST(FunctionsTest, gradual3)
+TEST(FunctionsTest, interpolateNXY)
 {
+	float x[3] = {0.f, .5f, 1.5f};
+	float y[3] = {1.f, 2.f, 3.f};
+
 	// factor of *2, offset +1
-	EXPECT_FLOAT_EQ(gradual3(-12.f,
-				 0.f, .5f, 1.5f,
-				 1.f, 2.f, 3.f), 1.f);
-	EXPECT_FLOAT_EQ(gradual3(0.f,
-				 0.f, .5f, 1.5f,
-				 1.f, 2.f, 3.f), 1.f);
-	EXPECT_FLOAT_EQ(gradual3(.25f,
-				 0.f, .5f, 1.5f,
-				 1.f, 2.f, 3.f), 1.5f);
-	EXPECT_FLOAT_EQ(gradual3(.5f,
-				 0.f, .5f, 1.5f,
-				 1.f, 2.f, 3.f), 2.f);
-	EXPECT_FLOAT_EQ(gradual3(.75f,
-				 0.f, .5f, 1.5f,
-				 1.f, 2.f, 3.f), 2.25f);
-	EXPECT_FLOAT_EQ(gradual3(1.f,
-				 0.f, .5f, 1.5f,
-				 1.f, 2.f, 3.f), 2.5f);
-	EXPECT_FLOAT_EQ(gradual3(1.25f,
-				 0.f, .5f, 1.5f,
-				 1.f, 2.f, 3.f), 2.75f);
-	EXPECT_FLOAT_EQ(gradual3(1.5f,
-				 0.f, .5f, 1.5f,
-				 1.f, 2.f, 3.f), 3.f);
-	EXPECT_FLOAT_EQ(gradual3(12.f,
-				 0.f, .5f, 1.5f,
-				 1.f, 2.f, 3.f), 3.f);
+	EXPECT_FLOAT_EQ(interpolateNXY(-12.f, x, y), 1.f);
+	EXPECT_FLOAT_EQ(interpolateNXY(0.f, x, y), 1.f);
+	EXPECT_FLOAT_EQ(interpolateNXY(.25f, x, y), 1.5f);
+	EXPECT_FLOAT_EQ(interpolateNXY(.5f, x, y), 2.f);
+	EXPECT_FLOAT_EQ(interpolateNXY(.75f, x, y), 2.25f);
+	EXPECT_FLOAT_EQ(interpolateNXY(1.f, x, y), 2.5f);
+	EXPECT_FLOAT_EQ(interpolateNXY(1.25f, x, y), 2.75f);
+	EXPECT_FLOAT_EQ(interpolateNXY(1.5f, x, y), 3.f);
+	EXPECT_FLOAT_EQ(interpolateNXY(12.f, x, y), 3.f);
 }
 
 TEST(FunctionsTest, sqrt_linear)

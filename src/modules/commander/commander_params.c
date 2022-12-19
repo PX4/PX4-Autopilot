@@ -223,7 +223,8 @@ PARAM_DEFINE_INT32(COM_RC_ARM_HYST, 1000);
  *
  * @group Commander
  * @unit s
- * @decimal 2
+ * @decimal 1
+ * @increment 0.1
  */
 
 PARAM_DEFINE_FLOAT(COM_DISARM_LAND, 2.0f);
@@ -239,7 +240,8 @@ PARAM_DEFINE_FLOAT(COM_DISARM_LAND, 2.0f);
  *
  * @group Commander
  * @unit s
- * @decimal 2
+ * @decimal 1
+ * @increment 0.1
  */
 PARAM_DEFINE_FLOAT(COM_DISARM_PRFLT, 10.0f);
 
@@ -252,7 +254,7 @@ PARAM_DEFINE_FLOAT(COM_DISARM_PRFLT, 10.0f);
  * @value 0 Require GPS lock to arm
  * @value 1 Allow arming without GPS
  */
-PARAM_DEFINE_INT32(COM_ARM_WO_GPS, 1);
+PARAM_DEFINE_INT32(COM_ARM_WO_GPS, 0);
 
 /**
  * Arm switch is a momentary button
@@ -267,6 +269,19 @@ PARAM_DEFINE_INT32(COM_ARM_WO_GPS, 1);
 PARAM_DEFINE_INT32(COM_ARM_SWISBTN, 0);
 
 /**
+ * Allow disarming via switch/stick/button on multicopters in manual thrust modes
+ *
+ * 0: Disallow disarming when not landed
+ * 1: Allow disarming in multicopter flight in modes where
+ * the thrust is directly controlled by thr throttle stick
+ * e.g. Stabilized, Acro
+ *
+ * @group Commander
+ * @boolean
+ */
+PARAM_DEFINE_INT32(COM_DISARM_MAN, 1);
+
+/**
  * Battery failsafe mode
  *
  * Action the system takes at critical battery. See also BAT_CRIT_THR and BAT_EMERGEN_THR
@@ -276,8 +291,6 @@ PARAM_DEFINE_INT32(COM_ARM_SWISBTN, 0);
  * @value 0 Warning
  * @value 2 Land mode
  * @value 3 Return at critical level, land at emergency level
- * @decimal 0
- * @increment 1
  */
 PARAM_DEFINE_INT32(COM_LOW_BAT_ACT, 0);
 
@@ -310,7 +323,6 @@ PARAM_DEFINE_FLOAT(COM_BAT_ACT_T, 5.f);
  * @value 0 Warning
  * @value 1 Return
  * @value 2 Land
- * @decimal 0
  * @increment 1
  */
 PARAM_DEFINE_INT32(COM_IMB_PROP_ACT, 0);
@@ -656,7 +668,7 @@ PARAM_DEFINE_INT32(COM_RC_OVERRIDE, 1);
  * @decimal 0
  * @increment 0.05
  */
-PARAM_DEFINE_FLOAT(COM_RC_STICK_OV, 30.0f);
+PARAM_DEFINE_FLOAT(COM_RC_STICK_OV, 12.0f);
 
 /**
  * Require valid mission to arm
@@ -745,32 +757,47 @@ PARAM_DEFINE_INT32(COM_POS_FS_DELAY, 1);
 /**
  * Horizontal position error threshold.
  *
- * This is the horizontal position error (EPH) threshold that will trigger a failsafe. The default is appropriate for a multicopter. Can be increased for a fixed-wing.
+ * This is the horizontal position error (EPH) threshold that will trigger a failsafe.
+ * The default is appropriate for a multicopter. Can be increased for a fixed-wing.
+ * If the previous position error was below this threshold, there is an additional
+ * factor of 2.5 applied (threshold for invalidation 2.5 times the one for validation).
  *
  * @unit m
+ * @min 0
+ * @decimal 1
  * @group Commander
  */
-PARAM_DEFINE_FLOAT(COM_POS_FS_EPH, 5);
+PARAM_DEFINE_FLOAT(COM_POS_FS_EPH, 5.f);
 
 /**
  * Vertical position error threshold.
  *
- * This is the vertical position error (EPV) threshold that will trigger a failsafe. The default is appropriate for a multicopter. Can be increased for a fixed-wing.
+ * This is the vertical position error (EPV) threshold that will trigger a failsafe.
+ * The default is appropriate for a multicopter. Can be increased for a fixed-wing.
+ * If the previous position error was below this threshold, there is an additional
+ * factor of 2.5 applied (threshold for invalidation 2.5 times the one for validation).
  *
  * @unit m
+ * @min 0
+ * @decimal 1
  * @group Commander
  */
-PARAM_DEFINE_FLOAT(COM_POS_FS_EPV, 10);
+PARAM_DEFINE_FLOAT(COM_POS_FS_EPV, 10.f);
 
 /**
  * Horizontal velocity error threshold.
  *
- * This is the horizontal velocity error (EVH) threshold that will trigger a failsafe. The default is appropriate for a multicopter. Can be increased for a fixed-wing.
+ * This is the horizontal velocity error (EVH) threshold that will trigger a failsafe.
+ * The default is appropriate for a multicopter. Can be increased for a fixed-wing.
+ * If the previous velocity error was below this threshold, there is an additional
+ * factor of 2.5 applied (threshold for invalidation 2.5 times the one for validation).
  *
  * @unit m/s
+ * @min 0
+ * @decimal 1
  * @group Commander
  */
-PARAM_DEFINE_FLOAT(COM_VEL_FS_EVH, 1);
+PARAM_DEFINE_FLOAT(COM_VEL_FS_EVH, 1.f);
 
 /**
  * Next flight UUID
@@ -925,6 +952,23 @@ PARAM_DEFINE_INT32(COM_ARM_CHK_ESCS, 0);
 PARAM_DEFINE_INT32(COM_PREARM_MODE, 0);
 
 /**
+ * Enable pre-arm check on OpenDroneID.
+ *
+ * If this parameter is set, the pre-arm mechanism will check for the OpenDroneID system and prevent arming if it is not present.
+ *
+ * @group Commander
+ * @boolean
+ */
+PARAM_DEFINE_INT32(COM_PREARM_ODID, 0);
+
+/*
+ * Allow arming without onboard logger being enabled and in ready state
+ *
+ * The default allows the vehicle to arm without the onboard logger reporting as ready via it's heartbeat
+ */
+PARAM_DEFINE_INT32(COM_ARM_WO_OBLOG, 0);
+
+/**
  * Enable force safety
  *
  * Force safety when the vehicle disarms
@@ -998,6 +1042,22 @@ PARAM_DEFINE_INT32(COM_POWER_COUNT, 1);
 PARAM_DEFINE_FLOAT(COM_LKDOWN_TKO, 3.0f);
 
 /**
+ * Enable external components update
+ *
+ * If enabled, the check will verify that the external components (e.g. ESCs, Smartbattery,...) have been successfully updated.
+ * The check looks for the "ext_component_updated" file on the SD card and parses it.
+ * The file can contain a "SUCCESS <return_code>" or "FAIL <error_code>", depending on the parsed result the system will
+ * allow/deny arming.
+ *
+ * @group Commander
+ * @value 0 Disabled
+ * @value 1 Enabled
+ * @value 2 Trigger fake success (update_checker)
+ * @value 3 Trigger fake fail (update_checker)
+ */
+PARAM_DEFINE_INT32(COM_EXT_COMP_EN, 0);
+
+/**
 * Enable preflight check for maximal allowed airspeed when arming.
 *
 * Deny arming if the current airspeed measurement is greater than half the cruise airspeed (FW_AIRSPD_TRIM).
@@ -1024,15 +1084,43 @@ PARAM_DEFINE_INT32(COM_ARM_ARSP_EN, 1);
 PARAM_DEFINE_INT32(COM_ARM_SDCARD, 1);
 
 /**
+ * Enable FMU SD card hardfault detection check
+ *
+ * This check detects if there are hardfault files present on the
+ * SD card. If so, and the parameter is enabled, arming is prevented.
+ *
+ * @group Commander
+ * @reboot_required true
+ * @boolean
+ */
+PARAM_DEFINE_INT32(COM_ARM_HFLT_CHK, 1);
+
+/**
+ * Enforced delay between arming and takeoff
+ *
+ * The minimal time from arming the motors until a takeoff is possible is COM_SPOOLUP_TIME seconds.
+ * Goal:
+ * - Motors and propellers spool up to idle speed before getting commanded to spin faster
+ * - ESCs do failure checks e.g. for stuck rotors before the vehicle is off the ground
+ *
+ * @group Commander
+ * @min 0
+ * @max 30
+ * @decimal 1
+ * @increment 0.1
+ * @unit s
+ */
+PARAM_DEFINE_FLOAT(COM_SPOOLUP_TIME, 1.0f);
+
+/**
  * Wind speed warning threshold
  *
  * A warning is triggered if the currently estimated wind speed is above this value.
  * Warning is sent periodically (every 1min).
  *
- * A negative value disables the feature.
+ * Set to -1 to disable.
  *
  * @min -1
- * @max 30
  * @decimal 1
  * @increment 0.1
  * @group Commander
@@ -1045,32 +1133,50 @@ PARAM_DEFINE_FLOAT(COM_WIND_WARN, -1.f);
  *
  * The vehicle aborts the current operation and returns to launch when
  * the time since takeoff is above this value. It is not possible to resume the
- * mission or switch to any mode other than RTL or Land.
+ * mission or switch to any auto mode other than RTL or Land. Taking over in any manual
+ * mode is still possible.
  *
- * Set a nagative value to disable.
+ * Starting from 90% of the maximum flight time, a warning message will be sent
+ * every 1 minute with the remaining time until automatic RTL.
  *
+ * Set to -1 to disable.
  *
  * @unit s
  * @min -1
- * @max 10000
- * @value 0 Disable
  * @group Commander
  */
-PARAM_DEFINE_INT32(COM_FLT_TIME_MAX, -1);
+PARAM_DEFINE_INT32(COM_FLT_TIME_MAX, 3540);
 
 /**
- * Wind speed RLT threshold
+ * Wind speed RTL threshold
  *
- * Wind speed threshold above which an automatic return to launch is triggered
- * and enforced as long as the threshold is exceeded.
+ * Wind speed threshold above which an automatic return to launch is triggered.
+ * It is not possible to resume the mission or switch to any auto mode other than
+ * RTL or Land if this threshold is exceeded. Taking over in any manual
+ * mode is still possible.
  *
- * A negative value disables the feature.
+ * Set to -1 to disable.
  *
  * @min -1
- * @max 30
  * @decimal 1
  * @increment 0.1
  * @group Commander
  * @unit m/s
  */
-PARAM_DEFINE_FLOAT(COM_WIND_MAX, -1.f);
+PARAM_DEFINE_FLOAT(COM_WIND_MAX, 12.f);
+
+/**
+ * EPH threshold for RTL when (wind-compensated) dead reckoning
+ *
+ * Even after the loss of GNSS sensoring capabilities on the vehicle, its position can still be estimated
+ * by relying on the previously estimated wind speed and current airspeed. As the quality of the estimate
+ * in that case though deteriorates with time, an automatic RTL can be configured through this parameter
+ * to have the vehicle (try to) reach Home before the position estimate gets invalidated (see COM_POS_FS_EPH).
+ * Only applies to Mission or Loiter flight mode.
+ * Set to -1 to disable.
+ *
+ * @group Commander
+ * @min -1
+ * @unit m
+ */
+PARAM_DEFINE_INT32(COM_DR_EPH, 50);

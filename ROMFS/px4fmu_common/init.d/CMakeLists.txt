@@ -39,8 +39,10 @@ px4_add_romfs_files(
 	rc.balloon_apps
 	rc.balloon_defaults
 	rc.boat_defaults
+	rc.autostart_ext
 	rc.fw_apps
 	rc.fw_defaults
+	rc.heli_defaults
 	rc.interface
 	rc.logging
 	rc.mc_apps

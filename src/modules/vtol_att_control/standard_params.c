@@ -41,21 +41,23 @@
 
 
 /**
- * Enable/disable usage of fixed-wing actuators in hover to generate forward force (instead of pitching down).
+ * Enable usage of fixed-wing actuators in hover to generate forward force (instead of pitching down).
  *
- * This technique can be used to avoid the plane having to pitch down in order to move forward.
- * This prevents large, negative lift values being created when facing strong winds.
+ * This feature can be used to avoid the plane having to pitch down in order to move forward,
+ * and prevents large, negative lift values being created when facing strong winds.
  * Fixed-wing forward actuators refers to puller/pusher (standard VTOL), or forward-tilt (tiltrotor VTOL).
- * Only active if demaded down pitch is below VT_PITCH_MIN, and uses VT_FWD_THRUST_SC to get from
- * demanded down pitch to fixed-wing actuation.
+ * Only active if demanded down pitch is below VT_PITCH_MIN.
+ * Use VT_FWD_THRUST_SC to tune it.
  *
- * @value 0 Disable FW forward actuation in hover.
- * @value 1 Enable FW forward actuation in hover in altitude, position and auto modes (except LANDING).
- * @value 2 Enable FW forward actuation in hover in altitude, position and auto modes if above MPC_LAND_ALT1.
- * @value 3 Enable FW forward actuation in hover in altitude, position and auto modes if above MPC_LAND_ALT2.
- * @value 4 Enable FW forward actuation in hover in altitude, position and auto modes.
- * @value 5 Enable FW forward actuation in hover in altitude, position and auto modes if above MPC_LAND_ALT1 (except LANDING).
- * @value 6 Enable FW forward actuation in hover in altitude, position and auto modes if above MPC_LAND_ALT2 (except LANDING).
+ * Only active (if enabled) in Altitude, Position and Auto modes, not in Stabilized.
+ *
+ * @value 0 Disabled
+ * @value 1 Enabled (except LANDING)
+ * @value 2 Enabled if distance to ground above MPC_LAND_ALT1
+ * @value 3 Enabled if distance to ground above MPC_LAND_ALT2
+ * @value 4 Enabled constantly
+ * @value 5 Enabled if distance to ground above MPC_LAND_ALT1 (except LANDING)
+ * @value 6 Enabled if distance to ground above MPC_LAND_ALT2 (except LANDING)
  *
  * @group VTOL Attitude Control
  */
