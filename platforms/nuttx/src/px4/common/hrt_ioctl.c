@@ -52,33 +52,61 @@
 struct usr_hrt_call {
 	struct sq_entry_s list_item;
 	struct hrt_call entry;
-	hrt_callout		usr_callout;
-	void			*usr_arg;
+	struct hrt_call *usr_entry;
 };
 
+static sq_queue_t callout_queue;
 static sq_queue_t callout_freelist;
 static sq_queue_t callout_inflight;
 
 static struct usr_hrt_call *dup_entry(const px4_hrt_handle_t handle, struct hrt_call *entry, hrt_callout callout,
 				      void *arg)
 {
-	struct usr_hrt_call *e;
+	struct usr_hrt_call *e = NULL;
+
 	irqstate_t flags =  px4_enter_critical_section();
-	e = (void *)sq_remfirst(&callout_freelist);
+
+	/* check if this is already queued; in that case, re-use it */
+	sq_entry_t *queued;
+	sq_for_every(&callout_queue, queued) {
+		if (((struct usr_hrt_call *)queued)->usr_entry == entry) {
+			e = (struct usr_hrt_call *)queued;
+			break;
+		}
+	}
+
+	/* it was not already queued, get from freelist */
+	if (!e) {
+		e = (void *)sq_remfirst(&callout_freelist);
+	}
+
 	px4_leave_critical_section(flags);
 
 	if (!e) {
-		// Allocate a new kernel side item for the user call
+		/* Allocate a new kernel side item for the user call */
 
 		e = kmm_malloc(sizeof(struct usr_hrt_call));
 	}
 
 	if (e) {
-		entry->callout_sem = handle;
+		/* Store reference to the kernel side entry to the user side struct and
+		 * references to the semaphore and user side entry to the kernel side item
+		 */
+
 		entry->kernel_entry = e;
-		memcpy(&e->entry, entry, sizeof(struct hrt_call));
-		e->usr_callout = callout;
-		e->usr_arg = arg;
+		e->entry.callout_sem = handle;
+		e->usr_entry = entry;
+
+		/* Add this to the callout_queue list, unless it is there already */
+		if (!queued) {
+			flags =  px4_enter_critical_section();
+			sq_addfirst(&e->list_item, &callout_queue);
+			px4_leave_critical_section(flags);
+		}
+
+	} else {
+		PX4_ERR("out of memory");
+
 	}
 
 	return e;
@@ -96,11 +124,12 @@ int hrt_ioctl(unsigned int cmd, unsigned long arg);
 
 void hrt_ioctl_init(void)
 {
-	/* register ioctl callbacks */
-	px4_register_boardct_ioctl(_HRTIOCBASE, hrt_ioctl);
-
+	sq_init(&callout_queue);
 	sq_init(&callout_freelist);
 	sq_init(&callout_inflight);
+
+	/* register ioctl callbacks */
+	px4_register_boardct_ioctl(_HRTIOCBASE, hrt_ioctl);
 }
 
 /* These functions are inlined in all but NuttX protected/kernel builds */
@@ -130,7 +159,6 @@ hrt_ioctl(unsigned int cmd, unsigned long arg)
 			struct hrt_boardctl *ioc_parm = (struct hrt_boardctl *)arg;
 			px4_sem_t *callout_sem = (px4_sem_t *)ioc_parm->handle;
 			struct usr_hrt_call *e;
-
 			px4_sem_wait(callout_sem);
 
 			/* Atomically update the pointer to user side hrt entry */
@@ -143,12 +171,14 @@ hrt_ioctl(unsigned int cmd, unsigned long arg)
 			}
 
 			if (e) {
-				ioc_parm->callout = e->usr_callout;
-				ioc_parm->arg = e->usr_arg;
+				sq_rem((sq_entry_t *)e, &callout_inflight);
+				ioc_parm->callout = e->usr_entry->callout;
+				ioc_parm->arg = e->usr_entry->arg;
 
 				// If the period is 0, the callout is no longer queued by hrt driver
 				// move it back to freelist
 				if (e->entry.period == 0) {
+					sq_rem((sq_entry_t *)e, &callout_queue);
 					sq_addfirst((sq_entry_t *)e, &callout_freelist);
 
 				}
@@ -194,10 +224,12 @@ hrt_ioctl(unsigned int cmd, unsigned long arg)
 
 	case HRT_CANCEL:
 		if (h && h->entry) {
+			irqstate_t flags = px4_enter_critical_section();
+
 			// Cast to void * to avoid compiler alignment requirement warnings. We know that it
 			// is properly aligned since it is allocated with kmm_malloc
 
-			struct usr_hrt_call *e = (void *)sq_peek(&callout_freelist);
+			struct usr_hrt_call *e = (void *)sq_peek(&callout_queue);
 
 			while (e && e != h->entry->kernel_entry) {
 				e = (void *)sq_next(&e->list_item);
@@ -205,11 +237,14 @@ hrt_ioctl(unsigned int cmd, unsigned long arg)
 
 			if (e) {
 				hrt_cancel(&e->entry);
+				sq_rem((sq_entry_t *)e, &callout_queue);
 				sq_addfirst((sq_entry_t *)e, &callout_freelist);
 
 			} else {
 				PX4_ERR("HRT_CANCEL: kernel side entry not found");
 			}
+
+			px4_leave_critical_section(flags);
 
 		} else {
 			PX4_ERR("HRT_CANCEL called with NULL entry");
@@ -249,15 +284,18 @@ hrt_ioctl(unsigned int cmd, unsigned long arg)
 	case HRT_UNREGISTER: {
 			px4_sem_t *callback_sem = *(px4_sem_t **)arg;
 			sq_entry_t *e;
-			kmm_free(callback_sem);
-			*(px4_sem_t **)arg = NULL;
 
-			e = sq_remfirst(&callout_freelist);
-
-			while (e) {
+			while ((e = sq_remfirst(&callout_queue))) {
+				hrt_cancel(&((struct usr_hrt_call *)e)->entry);
 				kmm_free(e);
-				e = sq_remfirst(&callout_freelist);
 			}
+
+			while ((e = sq_remfirst(&callout_freelist))) {
+				kmm_free(e);
+			}
+
+			*(px4_sem_t **)arg = NULL;
+			kmm_free(callback_sem);
 		}
 		break;
 
