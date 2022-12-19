@@ -118,7 +118,6 @@ public:
 	void set_enable_data_stuck_check(bool enable) { _data_stuck_check_enabled = enable; }
 	void set_enable_innovation_check(bool enable) { _innovation_check_enabled = enable; }
 	void set_enable_load_factor_check(bool enable) { _load_factor_check_enabled = enable; }
-	void set_enable_data_variation_check(bool enable) { _data_variation_check_enabled = enable; }
 
 private:
 
@@ -146,13 +145,6 @@ private:
 	bool _data_stuck_test_failed{false};
 	float _IAS_prev{0.f};
 	static constexpr uint64_t DATA_STUCK_TIMEOUT{2_s}; ///< timeout after which data stuck check triggers when data is flat
-
-	// variation check
-	bool _data_variation_test_failed{false};
-	static constexpr uint64_t VARIATION_CHECK_TIMEOUT{10_s}; ///< timeout to check for data variation after first data is received
-	hrt_abstime _time_first_data{0};
-	float _data_variation_check_ias_prev{0.f};
-	bool _variation_detected{false};
 
 	// states of innovation check
 	bool _innovations_check_failed{false};  ///< true when airspeed innovations have failed consistency checks
@@ -193,7 +185,6 @@ private:
 	void update_CAS_scale_applied();
 	void update_CAS_TAS(float air_pressure_pa, float air_temperature_celsius);
 	void check_airspeed_data_stuck(uint64_t timestamp);
-	void check_airspeed_data_variation(uint64_t timestamp);
 	void check_airspeed_innovation(uint64_t timestamp, float estimator_status_vel_test_ratio,
 				       float estimator_status_mag_test_ratio, const matrix::Vector3f &vI);
 	void check_load_factor(float accel_z);
