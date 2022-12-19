@@ -1,1 +1,2 @@
 symforce>=0.5.0
+sympy>=1.10.1
