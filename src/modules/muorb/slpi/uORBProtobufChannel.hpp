@@ -40,6 +40,7 @@
 #include <pthread.h>
 
 #include "uORB/uORBCommunicator.hpp"
+#include "mUORBAggregator.hpp"
 
 namespace uORB
 {
@@ -125,6 +126,11 @@ public:
 		return _RxHandler;
 	}
 
+	void RegisterSendHandler(mUORB::Aggregator::sendFuncPtr func)
+	{
+		_Aggregator.RegisterSendHandler(func);
+	}
+
 	void AddRemoteSubscriber(const std::string &messageName)
 	{
 		pthread_mutex_lock(&_rx_mutex);
@@ -145,12 +151,20 @@ public:
 
 	bool DebugEnabled()	{ return _debug; }
 
+	void SendAggregateData()
+	{
+		pthread_mutex_lock(&_tx_mutex);
+		_Aggregator.SendData();
+		pthread_mutex_unlock(&_tx_mutex);
+	}
+
 private:
 	/**
 	 * Data Members
 	 */
 	static uORB::ProtobufChannel                _Instance;
 	static uORBCommunicator::IChannelRxHandler *_RxHandler;
+	static mUORB::Aggregator					_Aggregator;
 	static std::map<std::string, int>           _AppsSubscriberCache;
 	static pthread_mutex_t                      _tx_mutex;
 	static pthread_mutex_t                      _rx_mutex;

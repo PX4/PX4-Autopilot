@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2019 PX4 Development Team. All rights reserved.
+ * Copyright (C) 2022 ModalAI, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,15 +31,61 @@
  *
  ****************************************************************************/
 
-#include <gtest/gtest.h>
-#include <AngularVelocityControl.hpp>
+#pragma once
 
-using namespace matrix;
+#include <string>
+#include <string.h>
+#include "uORB/uORBCommunicator.hpp"
 
-TEST(AngularVelocityControlTest, AllZeroCase)
+namespace mUORB
 {
-	AngularVelocityControl control;
-	control.update(Vector3f(), Vector3f(), Vector3f(), 0.f, false);
-	Vector3f torque = control.getTorqueSetpoint();
-	EXPECT_EQ(torque, Vector3f());
+
+class Aggregator
+{
+public:
+	typedef int (*sendFuncPtr)(const char *, const uint8_t *, int);
+
+	void RegisterSendHandler(sendFuncPtr func) { sendFunc = func; }
+
+	void RegisterHandler(uORBCommunicator::IChannelRxHandler *handler) { _RxHandler = handler; }
+
+	int16_t ProcessTransmitTopic(const char *topic, const uint8_t *data, uint32_t length_in_bytes);
+
+	void ProcessReceivedTopic(const char *topic, const uint8_t *data, uint32_t length_in_bytes);
+
+	int16_t SendData();
+
+private:
+	static const bool debugFlag;
+
+	const std::string topicName = "aggregation";
+
+	// Master flag to enable aggregation
+	const bool aggregationEnabled = true;
+
+	const uint32_t syncFlag = 0x5A01FF00;
+	const uint32_t syncFlagSize = 4;
+	const uint32_t topicNameLengthSize = 4;
+	const uint32_t dataLengthSize = 4;
+	const uint32_t headerSize = syncFlagSize + topicNameLengthSize + dataLengthSize;
+	static const uint32_t numBuffers = 2;
+	static const uint32_t bufferSize = 2048;
+
+	uint32_t bufferId;
+	uint32_t bufferWriteIndex;
+	uint8_t  buffer[numBuffers][bufferSize];
+
+	uORBCommunicator::IChannelRxHandler *_RxHandler;
+
+	sendFuncPtr sendFunc;
+
+	bool isAggregate(const char *name) { return (strcmp(name, topicName.c_str()) == 0); }
+
+	bool NewRecordOverflows(const char *messageName, int32_t length);
+
+	void MoveToNextBuffer();
+
+	void AddRecordToBuffer(const char *messageName, int32_t length, const uint8_t *data);
+};
+
 }

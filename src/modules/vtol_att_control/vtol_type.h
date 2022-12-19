@@ -248,6 +248,16 @@ public:
 	 */
 	void setDt(float dt) {_dt = dt; }
 
+	/**
+	 * @brief Resets the transition timer states.
+	 *
+	 */
+	void resetTransitionTimer()
+	{
+		_transition_start_timestamp = hrt_absolute_time();
+		_time_since_trans_start = 0.f;
+	}
+
 protected:
 	VtolAttitudeControl *_attc;
 	mode _common_vtol_mode;
@@ -314,6 +324,7 @@ protected:
 					(ParamFloat<px4::params::VT_FW_ALT_ERR>) _param_vt_fw_alt_err,
 					(ParamInt<px4::params::VT_FW_QC_P>) _param_vt_fw_qc_p,
 					(ParamInt<px4::params::VT_FW_QC_R>) _param_vt_fw_qc_r,
+					(ParamInt<px4::params::VT_FW_QC_HMAX>) _param_quadchute_max_height,
 					(ParamFloat<px4::params::VT_F_TR_OL_TM>) _param_vt_f_tr_ol_tm,
 					(ParamFloat<px4::params::VT_TRANS_MIN_TM>) _param_vt_trans_min_tm,
 
