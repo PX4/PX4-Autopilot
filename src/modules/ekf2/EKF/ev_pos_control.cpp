@@ -38,11 +38,12 @@
 
 #include "ekf.h"
 
+static constexpr const char *EV_AID_SRC_NAME = "EV position";
+
+
 void Ekf::controlEvPosFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing,
 			     const bool ev_reset, const bool quality_sufficient, estimator_aid_source2d_s &aid_src)
 {
-	static constexpr const char *AID_SRC_NAME = "EV position";
-
 	const bool yaw_alignment_changed = (!_control_status_prev.flags.ev_yaw && _control_status.flags.ev_yaw)
 					   || (_control_status_prev.flags.yaw_align != _control_status.flags.yaw_align);
 
@@ -178,114 +179,117 @@ void Ekf::controlEvPosFusion(const extVisionSample &ev_sample, const bool common
 		aid_src.fusion_enabled = true;
 
 		if (continuing_conditions_passing) {
-
 			const bool bias_estimator_change = (bias_fusion_was_active != _ev_pos_b_est.fusionActive());
+			const bool reset = ev_reset || yaw_alignment_changed || bias_estimator_change;
 
-			if (ev_reset || yaw_alignment_changed || bias_estimator_change) {
-
-				if (quality_sufficient) {
-
-					if (!_control_status.flags.gps) {
-						ECL_INFO("reset to %s", AID_SRC_NAME);
-						_information_events.flags.reset_pos_to_vision = true;
-						resetHorizontalPositionTo(measurement, measurement_var);
-						_ev_pos_b_est.reset();
-
-					} else {
-						_ev_pos_b_est.setBias(-Vector2f(_state.pos.xy()) + measurement);
-					}
-
-					aid_src.time_last_fuse = _imu_sample_delayed.time_us;
-
-				} else {
-					// EV has reset, but quality isn't sufficient
-					// we have no choice but to stop EV and try to resume once quality is acceptable
-					stopEvPosFusion();
-					return;
-				}
-
-			} else if (quality_sufficient) {
-				fuseHorizontalPosition(aid_src);
-
-			} else {
-				aid_src.innovation_rejected = true;
-			}
-
-			const bool is_fusion_failing = isTimedOut(aid_src.time_last_fuse, _params.no_aid_timeout_max); // 1 second
-
-			if (is_fusion_failing) {
-				bool pos_xy_fusion_failing = isTimedOut(_time_last_hor_pos_fuse, _params.no_aid_timeout_max);
-
-				if ((_nb_ev_pos_reset_available > 0) && quality_sufficient) {
-					// Data seems good, attempt a reset
-					ECL_WARN("%s fusion failing, resetting", AID_SRC_NAME);
-
-					if (_control_status.flags.gps && !pos_xy_fusion_failing) {
-						// reset EV position bias
-						_ev_pos_b_est.setBias(-Vector2f(_state.pos.xy()) + measurement);
-
-					} else {
-						_information_events.flags.reset_pos_to_vision = true;
-
-						if (_control_status.flags.gps) {
-							resetHorizontalPositionTo(measurement - _ev_pos_b_est.getBias(), measurement_var + _ev_pos_b_est.getBiasVar());
-							_ev_pos_b_est.setBias(-Vector2f(_state.pos.xy()) + measurement);
-
-						} else {
-							resetHorizontalPositionTo(measurement, measurement_var);
-							_ev_pos_b_est.reset();
-						}
-					}
-
-					aid_src.time_last_fuse = _imu_sample_delayed.time_us;
-
-					if (_control_status.flags.in_air) {
-						_nb_ev_pos_reset_available--;
-					}
-
-				} else if (starting_conditions_passing) {
-					// Data seems good, but previous reset did not fix the issue
-					// something else must be wrong, declare the sensor faulty and stop the fusion
-					//_control_status.flags.ev_pos_fault = true;
-					ECL_WARN("stopping %s fusion, starting conditions failing", AID_SRC_NAME);
-					stopEvPosFusion();
-
-				} else {
-					// A reset did not fix the issue but all the starting checks are not passing
-					// This could be a temporary issue, stop the fusion without declaring the sensor faulty
-					ECL_WARN("stopping %s, fusion failing", AID_SRC_NAME);
-					stopEvPosFusion();
-				}
-			}
+			updateEvPosFusion(measurement, measurement_var, quality_sufficient, reset, aid_src);
 
 		} else {
 			// Stop fusion but do not declare it faulty
-			ECL_WARN("stopping %s fusion, continuing conditions failing", AID_SRC_NAME);
+			ECL_WARN("stopping %s fusion, continuing conditions failing", EV_AID_SRC_NAME);
 			stopEvPosFusion();
 		}
 
 	} else {
 		if (starting_conditions_passing) {
-			// activate fusion
-			// TODO:  (_params.position_sensor_ref == PositionSensor::EV)
-			if (_control_status.flags.gps) {
-				ECL_INFO("starting %s fusion", AID_SRC_NAME);
-				_ev_pos_b_est.setBias(-Vector2f(_state.pos.xy()) + measurement);
-				_ev_pos_b_est.setFusionActive();
+			startEvPosFusion(measurement, measurement_var, aid_src);
+		}
+	}
+}
 
-			} else {
-				ECL_INFO("starting %s fusion, resetting state", AID_SRC_NAME);
-				//_position_sensor_ref = PositionSensor::EV;
+void Ekf::startEvPosFusion(const Vector2f &measurement, const Vector2f &measurement_var, estimator_aid_source2d_s &aid_src)
+{
+	// activate fusion
+	// TODO:  (_params.position_sensor_ref == PositionSensor::EV)
+	if (_control_status.flags.gps) {
+		ECL_INFO("starting %s fusion", EV_AID_SRC_NAME);
+		_ev_pos_b_est.setBias(-Vector2f(_state.pos.xy()) + measurement);
+		_ev_pos_b_est.setFusionActive();
+
+	} else {
+		ECL_INFO("starting %s fusion, resetting state", EV_AID_SRC_NAME);
+		//_position_sensor_ref = PositionSensor::EV;
+		_information_events.flags.reset_pos_to_vision = true;
+		resetHorizontalPositionTo(measurement, measurement_var);
+		_ev_pos_b_est.reset();
+	}
+
+	aid_src.time_last_fuse = _imu_sample_delayed.time_us;
+
+	_nb_ev_pos_reset_available = 5;
+	_information_events.flags.starting_vision_pos_fusion = true;
+	_control_status.flags.ev_pos = true;
+}
+
+void Ekf::updateEvPosFusion(const Vector2f &measurement, const Vector2f &measurement_var, bool quality_sufficient, bool reset, estimator_aid_source2d_s &aid_src)
+{
+	if (reset) {
+
+		if (quality_sufficient) {
+
+			if (!_control_status.flags.gps) {
+				ECL_INFO("reset to %s", EV_AID_SRC_NAME);
 				_information_events.flags.reset_pos_to_vision = true;
 				resetHorizontalPositionTo(measurement, measurement_var);
 				_ev_pos_b_est.reset();
+
+			} else {
+				_ev_pos_b_est.setBias(-Vector2f(_state.pos.xy()) + measurement);
 			}
 
 			aid_src.time_last_fuse = _imu_sample_delayed.time_us;
 
-			_nb_ev_pos_reset_available = 5;
-			_information_events.flags.starting_vision_pos_fusion = true;
-			_control_status.flags.ev_pos = true;
+		} else {
+			// EV has reset, but quality isn't sufficient
+			// we have no choice but to stop EV and try to resume once quality is acceptable
+			stopEvPosFusion();
+			return;
+		}
+
+	} else if (quality_sufficient) {
+		fuseHorizontalPosition(aid_src);
+
+	} else {
+		aid_src.innovation_rejected = true;
+	}
+
+	const bool is_fusion_failing = isTimedOut(aid_src.time_last_fuse, _params.no_aid_timeout_max); // 1 second
+
+	if (is_fusion_failing) {
+		bool pos_xy_fusion_failing = isTimedOut(_time_last_hor_pos_fuse, _params.no_aid_timeout_max);
+
+		if ((_nb_ev_pos_reset_available > 0) && quality_sufficient) {
+			// Data seems good, attempt a reset
+			ECL_WARN("%s fusion failing, resetting", EV_AID_SRC_NAME);
+
+			if (_control_status.flags.gps && !pos_xy_fusion_failing) {
+				// reset EV position bias
+				_ev_pos_b_est.setBias(-Vector2f(_state.pos.xy()) + measurement);
+
+			} else {
+				_information_events.flags.reset_pos_to_vision = true;
+
+				if (_control_status.flags.gps) {
+					resetHorizontalPositionTo(measurement - _ev_pos_b_est.getBias(), measurement_var + _ev_pos_b_est.getBiasVar());
+					_ev_pos_b_est.setBias(-Vector2f(_state.pos.xy()) + measurement);
+
+				} else {
+					resetHorizontalPositionTo(measurement, measurement_var);
+					_ev_pos_b_est.reset();
+				}
+			}
+
+			aid_src.time_last_fuse = _imu_sample_delayed.time_us;
+
+			if (_control_status.flags.in_air) {
+				_nb_ev_pos_reset_available--;
+			}
+
+		} else {
+			// A reset did not fix the issue but all the starting checks are not passing
+			// This could be a temporary issue, stop the fusion without declaring the sensor faulty
+			ECL_WARN("stopping %s, fusion failing", EV_AID_SRC_NAME);
+			stopEvPosFusion();
 		}
 	}
 }

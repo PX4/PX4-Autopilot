@@ -840,8 +840,14 @@ private:
 
 	// control fusion of external vision observations
 	void controlExternalVisionFusion();
+
 	void controlEvHeightFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient, estimator_aid_source1d_s& aid_src);
+
 	void controlEvPosFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient, estimator_aid_source2d_s& aid_src);
+	void startEvPosFusion(const Vector2f &measurement, const Vector2f &measurement_var, estimator_aid_source2d_s &aid_src);
+	void updateEvPosFusion(const Vector2f &measurement, const Vector2f &measurement_var, bool quality_sufficient, bool reset, estimator_aid_source2d_s &aid_src);
+	void stopEvPosFusion();
+
 	void controlEvVelFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient, estimator_aid_source3d_s& aid_src);
 	void controlEvYawFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient, estimator_aid_source1d_s& aid_src);
 
@@ -999,7 +1005,6 @@ private:
 	void startGpsYawFusion(const gpsSample &gps_sample);
 	void stopGpsYawFusion();
 
-	void stopEvPosFusion();
 	void stopEvVelFusion();
 	void stopEvYawFusion();
 
