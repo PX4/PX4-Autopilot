@@ -49,6 +49,7 @@ public:
 	virtual ~FlightTaskDescend() = default;
 
 	bool update() override;
+	bool activate(const trajectory_setpoint_s &last_setpoint) override;
 
 private:
 	Sticks _sticks{this};

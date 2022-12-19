@@ -42,8 +42,6 @@
 #include "tailsitter.h"
 #include "vtol_att_control_main.h"
 
-#include <uORB/topics/landing_gear.h>
-
 #define PITCH_TRANSITION_FRONT_P1 -1.1f	// pitch angle to switch to TRANSITION_P2
 #define PITCH_TRANSITION_BACK -0.25f	// pitch angle to switch to MC
 
@@ -326,14 +324,6 @@ void Tailsitter::fill_actuator_outputs()
 
 		mc_out[actuator_controls_s::INDEX_THROTTLE] = mc_in[actuator_controls_s::INDEX_THROTTLE];
 		_thrust_setpoint_0->xyz[2] = -mc_in[actuator_controls_s::INDEX_THROTTLE];
-	}
-
-	// Landing Gear
-	if (_vtol_mode == vtol_mode::MC_MODE) {
-		mc_out[actuator_controls_s::INDEX_LANDING_GEAR] = landing_gear_s::GEAR_DOWN;
-
-	} else {
-		mc_out[actuator_controls_s::INDEX_LANDING_GEAR] = landing_gear_s::GEAR_UP;
 	}
 
 	if (_param_vt_elev_mc_lock.get() && _vtol_mode == vtol_mode::MC_MODE) {

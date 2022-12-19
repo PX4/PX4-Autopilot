@@ -36,6 +36,13 @@
 
 #include "FlightTaskDescend.hpp"
 
+bool FlightTaskDescend::activate(const trajectory_setpoint_s &last_setpoint)
+{
+	bool ret = FlightTask::activate(last_setpoint);
+	_gear.landing_gear = landing_gear_s::GEAR_DOWN;
+	return ret;
+}
+
 bool FlightTaskDescend::update()
 {
 	bool ret = FlightTask::update();
