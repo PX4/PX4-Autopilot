@@ -139,18 +139,6 @@ int	param_ioctl(unsigned int cmd, unsigned long arg)
 		}
 		break;
 
-	case PARAMIOCRESET: {
-			paramiocreset_t *data = (paramiocreset_t *)arg;
-
-			if (data->notification) {
-				data->ret = param_reset(data->param);
-
-			} else {
-				data->ret = param_reset_no_notification(data->param);
-			}
-		}
-		break;
-
 	case PARAMIOCRESETGROUP: {
 			paramiocresetgroup_t *data = (paramiocresetgroup_t *)arg;
 

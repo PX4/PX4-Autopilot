@@ -118,13 +118,6 @@ typedef struct paramiocsetdefault {
 	int ret;
 } paramiocsetdefault_t;
 
-#define PARAMIOCRESET	_PARAMIOC(13)
-typedef struct paramiocreset {
-	const param_t param;
-	const bool notification;
-	int ret;
-} paramiocreset_t;
-
 #define PARAMIOCRESETGROUP	_PARAMIOC(14)
 typedef enum {
 	PARAM_RESET_ALL,

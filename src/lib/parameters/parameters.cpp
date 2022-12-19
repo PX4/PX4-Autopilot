@@ -914,7 +914,7 @@ int param_set_default_value(param_t param, const void *val)
 	return result;
 }
 
-static int param_reset_internal(param_t param, bool notify = true)
+static int param_reset_internal(param_t param)
 {
 	param_wbuf_s *s = nullptr;
 	bool param_found = false;
@@ -941,15 +941,12 @@ static int param_reset_internal(param_t param, bool notify = true)
 
 	param_unlock_writer();
 
-	if (s != nullptr && notify) {
+	if (s != nullptr) {
 		param_notify_changes();
 	}
 
 	return (!param_found);
 }
-
-int param_reset(param_t param) { return param_reset_internal(param, true); }
-int param_reset_no_notification(param_t param) { return param_reset_internal(param, false); }
 
 static void
 param_reset_all_internal(bool auto_save)
@@ -1000,7 +997,7 @@ param_reset_excludes(const char *excludes[], int num_excludes)
 		}
 
 		if (!exclude) {
-			param_reset(param);
+			param_reset_internal(param);
 		}
 	}
 }
@@ -1025,7 +1022,7 @@ param_reset_specific(const char *resets[], int num_resets)
 		}
 
 		if (reset) {
-			param_reset(param);
+			param_reset_internal(param);
 		}
 	}
 }

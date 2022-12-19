@@ -162,42 +162,48 @@ void RCUpdate::parameters_updated()
 		if (param_get(param_find("RC_MAP_MODE_SW"), &rc_map_value) == PX4_OK) {
 			if (rc_map_value != 0) {
 				PX4_WARN("RC_MAP_MODE_SW deprecated");
-				param_reset(param_find("RC_MAP_MODE_SW"));
+				rc_map_value = 0;
+				param_set(param_find("RC_MAP_MODE_SW"), &rc_map_value);
 			}
 		}
 
 		if (param_get(param_find("RC_MAP_RATT_SW"), &rc_map_value) == PX4_OK) {
 			if (rc_map_value != 0) {
 				PX4_WARN("RC_MAP_RATT_SW deprecated");
-				param_reset(param_find("RC_MAP_RATT_SW"));
+				rc_map_value = 0;
+				param_set(param_find("RC_MAP_RATT_SW"), &rc_map_value);
 			}
 		}
 
 		if (param_get(param_find("RC_MAP_POSCTL_SW"), &rc_map_value) == PX4_OK) {
 			if (rc_map_value != 0) {
 				PX4_WARN("RC_MAP_POSCTL_SW deprecated");
-				param_reset(param_find("RC_MAP_POSCTL_SW"));
+				rc_map_value = 0;
+				param_set(param_find("RC_MAP_POSCTL_SW"), &rc_map_value);
 			}
 		}
 
 		if (param_get(param_find("RC_MAP_ACRO_SW"), &rc_map_value) == PX4_OK) {
 			if (rc_map_value != 0) {
 				PX4_WARN("RC_MAP_ACRO_SW deprecated");
-				param_reset(param_find("RC_MAP_ACRO_SW"));
+				rc_map_value = 0;
+				param_set(param_find("RC_MAP_ACRO_SW"), &rc_map_value);
 			}
 		}
 
 		if (param_get(param_find("RC_MAP_STAB_SW"), &rc_map_value) == PX4_OK) {
 			if (rc_map_value != 0) {
 				PX4_WARN("RC_MAP_STAB_SW deprecated");
-				param_reset(param_find("RC_MAP_STAB_SW"));
+				rc_map_value = 0;
+				param_set(param_find("RC_MAP_STAB_SW"), &rc_map_value);
 			}
 		}
 
 		if (param_get(param_find("RC_MAP_MAN_SW"), &rc_map_value) == PX4_OK) {
 			if (rc_map_value != 0) {
 				PX4_WARN("RC_MAP_MAN_SW deprecated");
-				param_reset(param_find("RC_MAP_MAN_SW"));
+				rc_map_value = 0;
+				param_set(param_find("RC_MAP_MAN_SW"), &rc_map_value);
 			}
 		}
 	}
