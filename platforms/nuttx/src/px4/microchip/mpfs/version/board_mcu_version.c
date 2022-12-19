@@ -38,11 +38,17 @@
 
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/defines.h>
+#include <px4_platform/board_determine_hw_info.h>
 #include <stdint.h>
 
-#include "board_config.h"
+#include <board_config.h>
+#include <lib/systemlib/px4_macros.h>
 
+#ifndef arraySize
+#define arraySize(a) (sizeof((a))/sizeof(((a)[0])))
+#endif
+
+#define HW_INFO_SIZE (int) arraySize(HW_INFO_INIT_PREFIX) + HW_INFO_VER_DIGITS + HW_INFO_REV_DIGITS
 #define MPFS_SYS_SERVICE_CR        0x37020050
 #define MPFS_SYS_SERVICE_SR        0x37020054
 #define MPFS_SYS_SERVICE_MAILBOX   0x37020800
@@ -53,14 +59,9 @@
 #define getreg32(a)                (*(volatile uint32_t *)(a))
 #define putreg32(v,a)              (*(volatile uint32_t *)(a) = (v))
 
-#define MPFS_ICICLE                0x0
-#define SALUKI_VERSION_1	   0x1
-#define SALUKI_VERSION_2	   0x2
-// ...
-
 static int hw_version = 0;
 static int hw_revision = 0;
-static char hw_info[] = HW_INFO_INIT;
+static char hw_info[HW_INFO_SIZE] = {0};
 
 static uint8_t device_serial_number[PX4_CPU_UUID_BYTE_LENGTH] = { 0 };
 
@@ -173,8 +174,7 @@ int board_determine_hw_info(void)
 {
 	determine_hw();
 
-	hw_info[HW_INFO_INIT_REV] = board_get_hw_revision() + '0';
-	hw_info[HW_INFO_INIT_VER] = board_get_hw_version() + '0';
+	snprintf(hw_info, sizeof(hw_info), HW_INFO_INIT_PREFIX HW_INFO_SUFFIX, hw_version, hw_revision);
 
 	return OK;
 }
