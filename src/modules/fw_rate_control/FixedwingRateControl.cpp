@@ -437,8 +437,6 @@ void FixedwingRateControl::Run()
 		_actuator_controls.control[actuator_controls_s::INDEX_FLAPS] = _flaps_setpoint_with_slewrate.getState();
 		_actuator_controls.control[actuator_controls_s::INDEX_SPOILERS] = _spoiler_setpoint_with_slewrate.getState();
 		_actuator_controls.control[actuator_controls_s::INDEX_AIRBRAKES] = 0.f;
-		// FIXME: this should use _vcontrol_mode.landing_gear_pos in the future
-		_actuator_controls.control[actuator_controls_s::INDEX_LANDING_GEAR] = _manual_control_setpoint.aux3;
 
 		/* lazily publish the setpoint only once available */
 		_actuator_controls.timestamp = hrt_absolute_time();

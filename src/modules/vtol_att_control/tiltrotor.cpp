@@ -42,8 +42,6 @@
 #include "tiltrotor.h"
 #include "vtol_att_control_main.h"
 
-#include <uORB/topics/landing_gear.h>
-
 using namespace matrix;
 using namespace time_literals;
 
@@ -448,14 +446,6 @@ void Tiltrotor::fill_actuator_outputs()
 	} else {
 		_thrust_setpoint_0->xyz[2] = mc_in[actuator_controls_s::INDEX_THROTTLE] * _mc_throttle_weight;
 		collective_thrust_normalized_setpoint = mc_in[actuator_controls_s::INDEX_THROTTLE] * _mc_throttle_weight;
-	}
-
-	// Landing gear
-	if (_vtol_mode == vtol_mode::MC_MODE) {
-		mc_out[actuator_controls_s::INDEX_LANDING_GEAR] = landing_gear_s::GEAR_DOWN;
-
-	} else {
-		mc_out[actuator_controls_s::INDEX_LANDING_GEAR] = landing_gear_s::GEAR_UP;
 	}
 
 	// Fixed wing output
