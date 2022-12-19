@@ -67,6 +67,7 @@ FixedwingPositionControl::FixedwingPositionControl(bool vtol) :
 	_pos_ctrl_landing_status_pub.advertise();
 	_tecs_status_pub.advertise();
 	_launch_detection_status_pub.advertise();
+	_landing_gear_pub.advertise();
 
 	_airspeed_slew_rate_controller.setSlewRate(ASPD_SP_SLEW_RATE);
 
@@ -1232,6 +1233,7 @@ FixedwingPositionControl::control_auto_loiter(const float control_interval, cons
 		airspeed_sp = (_param_fw_lnd_airspd.get() > FLT_EPSILON) ? _param_fw_lnd_airspd.get() : _param_fw_airspd_min.get();
 		_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_LAND;
 		_att_sp.apply_spoilers = vehicle_attitude_setpoint_s::SPOILERS_LAND;
+		_new_landing_gear_position = landing_gear_s::GEAR_DOWN;
 
 	}
 
@@ -1394,6 +1396,11 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 		// apply flaps for takeoff according to the corresponding scale factor set via FW_FLAPS_TO_SCL
 		_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_TAKEOFF;
+
+		// retract ladning gear once passed the climbout state
+		if (_runway_takeoff.getState() > RunwayTakeoffState::CLIMBOUT) {
+			_new_landing_gear_position = landing_gear_s::GEAR_UP;
+		}
 
 	} else {
 		/* Perform launch detection */
@@ -1709,6 +1716,9 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 	// Apply flaps and spoilers for landing. Amount of deflection is handled in the FW attitdue controller
 	_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_LAND;
 	_att_sp.apply_spoilers = vehicle_attitude_setpoint_s::SPOILERS_LAND;
+
+	// deploy gear as soon as we're in land mode, if not already done before
+	_new_landing_gear_position = landing_gear_s::GEAR_DOWN;
 
 	if (!_vehicle_status.in_transition_to_fw) {
 		publishLocalPositionSetpoint(pos_sp_curr);
@@ -2298,6 +2308,9 @@ FixedwingPositionControl::Run()
 			reset_takeoff_state();
 		}
 
+		int8_t old_landing_gear_position = _new_landing_gear_position;
+		_new_landing_gear_position = landing_gear_s::GEAR_KEEP; // is overwritten in Takeoff and Land
+
 		switch (_control_mode_current) {
 		case FW_POSCTRL_MODE_AUTO: {
 				control_auto(control_interval, curr_pos, ground_speed, _pos_sp_triplet.previous, _pos_sp_triplet.current,
@@ -2379,6 +2392,16 @@ FixedwingPositionControl::Run()
 
 				}
 			}
+		}
+
+		// if there's any change in landing gear setpoint publish it
+		if (_new_landing_gear_position != old_landing_gear_position
+		    && _new_landing_gear_position != landing_gear_s::GEAR_KEEP) {
+
+			landing_gear_s landing_gear = {};
+			landing_gear.landing_gear = _new_landing_gear_position;
+			landing_gear.timestamp = hrt_absolute_time();
+			_landing_gear_pub.publish(landing_gear);
 		}
 
 		perf_end(_loop_perf);

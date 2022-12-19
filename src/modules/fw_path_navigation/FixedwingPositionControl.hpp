@@ -71,6 +71,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/airspeed_validated.h>
+#include <uORB/topics/landing_gear.h>
 #include <uORB/topics/launch_detection_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/npfg_status.h>
@@ -212,6 +213,7 @@ private:
 	uORB::Publication<tecs_status_s> _tecs_status_pub{ORB_ID(tecs_status)};
 	uORB::Publication<launch_detection_status_s> _launch_detection_status_pub{ORB_ID(launch_detection_status)};
 	uORB::PublicationMulti<orbit_status_s> _orbit_status_pub{ORB_ID(orbit_status)};
+	uORB::Publication<landing_gear_s> _landing_gear_pub{ORB_ID(landing_gear)};
 
 	manual_control_setpoint_s _manual_control_setpoint{};
 	position_setpoint_triplet_s _pos_sp_triplet{};
@@ -413,6 +415,9 @@ private:
 
 	// nonlinear path following guidance - lateral-directional position control
 	NPFG _npfg;
+
+	// LANDING GEAR
+	int8_t _new_landing_gear_position{landing_gear_s::GEAR_KEEP};
 
 	hrt_abstime _time_in_fixed_bank_loiter{0}; // [us]
 	float _min_current_sp_distance_xy{FLT_MAX};
