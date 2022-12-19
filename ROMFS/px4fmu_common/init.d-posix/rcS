@@ -74,7 +74,7 @@ if [ -f $PARAM_FILE ]; then
 	then
 		echo "ERROR [init] param import failed"
 
-		param dump $PARAM_FILE
+		bsondump $PARAM_FILE
 
 		# try to make a backup copy
 		cp $PARAM_FILE param_import_fail.bson
@@ -85,7 +85,7 @@ if [ -f $PARAM_FILE ]; then
 			echo "[init] importing from parameter backup"
 
 			# dump current backup file contents for comparison
-			param dump $PARAM_BACKUP_FILE
+			bsondump $PARAM_BACKUP_FILE
 
 			param import $PARAM_BACKUP_FILE
 

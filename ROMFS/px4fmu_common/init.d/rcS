@@ -130,7 +130,7 @@ else
 		echo "ERROR [init] param import failed"
 		set STARTUP_TUNE 2 # tune 2 = ERROR_TUNE
 
-		param dump $PARAM_FILE
+		bsondump $PARAM_FILE
 
 		if [ -d "/fs/microsd" ]
 		then
@@ -143,7 +143,7 @@ else
 				echo "[init] importing from parameter backup"
 
 				# dump current backup file contents for comparison
-				param dump $PARAM_BACKUP_FILE
+				bsondump $PARAM_BACKUP_FILE
 
 				param import $PARAM_BACKUP_FILE
 
