@@ -403,28 +403,6 @@ jobs:
                        --status dev \
                        --comment "development build"
 
-      - name: Upload px4-fwupdater build to Artifactory
-        env:
-          ARTIFACTORY_DEB_REPO: debian-public-local
-          DISTRIBUTION: focal
-          COMPONENT: fog-sw
-          ARCHITECTURE: amd64
-          BUILD_NAME_DEB: px4-fwupdater
-          CI: true
-        run: |
-          set -exu
-          pkg=$(find bin -name 'px4fwupdater*.deb')
-          pkg_name=$(basename $pkg)
-          jfrog rt u --deb "$DISTRIBUTION/$COMPONENT/$ARCHITECTURE" \
-                     --target-props COMMIT="$GITHUB_SHA" \
-                     --build-name "$BUILD_NAME_DEB" \
-                     --build-number "$GITHUB_SHA" \
-                     "$pkg" \
-                     "$ARTIFACTORY_DEB_REPO/$pkg_name"
-          jfrog rt build-publish "$BUILD_NAME_DEB" "$GITHUB_SHA"
-          jfrog rt bpr "$BUILD_NAME_DEB" "$GITHUB_SHA" "$ARTIFACTORY_DEB_REPO" \
-                       --status dev \
-                       --comment "development build"
 
   artifactory-uae:
     name: upload builds to UAE artifactory
