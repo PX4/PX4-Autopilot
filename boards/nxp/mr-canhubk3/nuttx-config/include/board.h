@@ -141,7 +141,7 @@
 /* LPUART0   P2 UART (with flow control) connector */
 
 #define PIN_LPUART0_CTS   PIN_LPUART0_CTS_1  /* PTA0 */
-#define PIN_LPUART0_RTS   PIN_LPUART0_RTS_1  /* PTA1 */
+#define PIN_LPUART0_RTS   (PIN_PTA1 | GPIO_OUTPUT) /* PIN_LPUART0_RTS_1 PTA1 */
 #define PIN_LPUART0_RX    (PIN_LPUART0_RX_1 | PIN_INPUT_PULLUP)   /* PTA2 */
 #define PIN_LPUART0_TX    PIN_LPUART0_TX_1   /* PTA3 */
 
