@@ -33,8 +33,6 @@
 
 add_compile_options(${MAX_CUSTOM_OPT_LEVEL})
 
-add_subdirectory(tinybson)
-
 if (NOT PARAM_DEFAULT_OVERRIDES)
 	set(PARAM_DEFAULT_OVERRIDES "{}")
 endif()
