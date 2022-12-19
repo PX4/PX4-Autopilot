@@ -5,6 +5,8 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
 
 jobs:
   pixhawk:
@@ -357,10 +359,10 @@ jobs:
           path: bin
       - uses: jfrog/setup-jfrog-cli@v3
         env:
-          JF_ENV_1: ${{ secrets.ARTIFACTORY_TOKEN }}
+          JF_ENV_1: ${{ secrets.ARTIFACTORY_CLOUD_TOKEN }}
       - name: Upload px4-firmware build to Artifactory
         env:
-          ARTIFACTORY_GEN_REPO: gen-public-local
+          ARTIFACTORY_GEN_REPO: ssrc-gen-public-local
           BUILD_NAME_PX4: px4-firmware
           CI: true
         run: |
