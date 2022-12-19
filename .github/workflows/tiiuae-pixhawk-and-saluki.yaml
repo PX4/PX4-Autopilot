@@ -374,18 +374,28 @@ jobs:
           for pkg in $(find bin -type f); do
 
             file_name=$(basename $pkg)
-            pkg_name=$(basename $(dirname $pkg))
             ext="${file_name##*.}"
+            target_path=""
+            pkg_name=$(echo $file_name | sed -r -e 's/-[0-9]+\.[0-9]+\.[0-9]+-.*//g')
+
+            if [[ $file_name = px4_fmu* ]]; then
+              target_path="pixhawk"
+            elif [[ $file_name = ssrc_saluki* ]]; then
+              target_path="saluki"
+            else
+              echo "$pkg ignored"
+              continue
+            fi
 
             jfrog rt u --target-props COMMIT="$GITHUB_SHA" \
               --build-name "$BUILD_NAME_PX4" \
               --build-number "$GITHUB_SHA" \
               "$pkg" \
-              "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/pixhawk/${pr_or_empty}$file_name"
+              "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/${target_path}/${pr_or_empty}$file_name"
 
             jfrog rt cp --flat \
-              "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/pixhawk/${pr_or_empty}$file_name" \
-              "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/pixhawk/${pr_or_empty}latest/${pkg_name}.${ext}"
+              "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/${target_path}/${pr_or_empty}$file_name" \
+              "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/${target_path}/${pr_or_empty}latest/${pkg_name}.${ext}"
           done
 
           jfrog rt build-publish "$BUILD_NAME_PX4" "$GITHUB_SHA"
@@ -455,18 +465,28 @@ jobs:
           for pkg in $(find bin -type f); do
 
             file_name=$(basename $pkg)
-            pkg_name=$(basename $(dirname $pkg))
             ext="${file_name##*.}"
+            target_path=""
+            pkg_name=$(echo $file_name | sed -r -e 's/-[0-9]+\.[0-9]+\.[0-9]+-.*//g')
+
+            if [[ $file_name = px4_fmu* ]]; then
+              target_path="pixhawk"
+            elif [[ $file_name = ssrc_saluki* ]]; then
+              target_path="saluki"
+            else
+              echo "$pkg ignored"
+              continue
+            fi
 
             jfrog rt u --target-props COMMIT="$GITHUB_SHA" \
               --build-name "$BUILD_NAME_PX4" \
               --build-number "$GITHUB_SHA" \
               "$pkg" \
-              "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/pixhawk/${pr_or_empty}$file_name"
+              "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/${target_path}/${pr_or_empty}$file_name"
 
             jfrog rt cp --flat \
-              "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/pixhawk/${pr_or_empty}$file_name" \
-              "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/pixhawk/${pr_or_empty}latest/${pkg_name}.${ext}"
+              "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/${target_path}/${pr_or_empty}$file_name" \
+              "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/${target_path}/${pr_or_empty}latest/${pkg_name}.${ext}"
           done
 
           jfrog rt build-publish "$BUILD_NAME_PX4" "$GITHUB_SHA"
