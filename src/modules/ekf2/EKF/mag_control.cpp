@@ -304,14 +304,19 @@ void Ekf::check3DMagFusionSuitability()
 
 void Ekf::checkYawAngleObservability()
 {
-	// Check if there has been enough change in horizontal velocity to make yaw observable
-	// Apply hysteresis to check to avoid rapid toggling
-	_yaw_angle_observable = _yaw_angle_observable
-				? _accel_lpf_NE.norm() > _params.mag_acc_gate
-				: _accel_lpf_NE.norm() > 2.0f * _params.mag_acc_gate;
+	if (_control_status.flags.gps) {
+		// Check if there has been enough change in horizontal velocity to make yaw observable
+		// Apply hysteresis to check to avoid rapid toggling
+		if (_yaw_angle_observable) {
+			_yaw_angle_observable = _accel_lpf_NE.norm() > _params.mag_acc_gate;
 
-	_yaw_angle_observable = _yaw_angle_observable
-				&& (_control_status.flags.gps || (_control_status.flags.ev_pos && _control_status.flags.yaw_align));
+		} else {
+			_yaw_angle_observable = _accel_lpf_NE.norm() > _params.mag_acc_gate * 2.f;
+		}
+
+	} else {
+		_yaw_angle_observable = false;
+	}
 }
 
 void Ekf::checkMagBiasObservability()
@@ -374,8 +379,7 @@ bool Ekf::shouldInhibitMag() const
 	// has explicitly stopped magnetometer use.
 	const bool user_selected = (_params.mag_fusion_type == MagFuseType::INDOOR);
 
-	const bool heading_not_required_for_navigation = !_control_status.flags.gps
-			&& (_control_status.flags.ev_pos && _control_status.flags.yaw_align);
+	const bool heading_not_required_for_navigation = !_control_status.flags.gps;
 
 	return (user_selected && heading_not_required_for_navigation) || _control_status.flags.mag_field_disturbed;
 }
