@@ -79,6 +79,7 @@ private:
 	float _airspeed_trans_blend_margin{0.0f};
 
 	void parameters_update() override;
+	void apply_slew_rate(float last_pusher_throttle);
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(VtolType,
 					(ParamFloat<px4::params::VT_PSHER_SLEW>) _param_vt_psher_slew,

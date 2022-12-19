@@ -297,7 +297,11 @@ void Standard::update_mc_state()
 {
 	VtolType::update_mc_state();
 
+	float last_pusher_throttle = _pusher_throttle;
+
 	_pusher_throttle = VtolType::pusher_assist();
+
+	Standard::apply_slew_rate(last_pusher_throttle);
 }
 
 void Standard::update_fw_state()
@@ -422,4 +426,23 @@ void Standard::blendThrottleAfterFrontTransition(float scale)
 {
 	const float tecs_throttle = _v_att_sp->thrust_body[0];
 	_v_att_sp->thrust_body[0] = scale * tecs_throttle + (1.0f - scale) * _pusher_throttle;
+}
+
+/**
+ * Implements the slew rate on the pusher actuation command.
+ * The slew rate is fixed by the value of the parameter VT_PSHER_SLEW in standard_params.c
+*/
+void Standard::apply_slew_rate(float last_pusher_throttle)
+{
+	/* Constrain upper bound to limit fast ramp ups, and lower bound only if pusher throttle
+	   already high to avoid abrupt variations while still permitting fast braking. */
+	if (fabsf(_param_vt_psher_slew.get()) > 0.01f) {
+		float throttle_increment_limit = _dt * _param_vt_psher_slew.get();  //assuming use of full pusher throttle range
+
+		if (_pusher_throttle > FLT_EPSILON) {
+			_pusher_throttle = math::constrain(_pusher_throttle, math::max(last_pusher_throttle - throttle_increment_limit, 0.0f),
+							   last_pusher_throttle + throttle_increment_limit);
+
+		}
+	}
 }
