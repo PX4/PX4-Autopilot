@@ -43,6 +43,8 @@
 #include "ActuatorEffectivenessRotors.hpp"
 #include "ActuatorEffectivenessControlSurfaces.hpp"
 
+#include <uORB/topics/normalized_unsigned_setpoint.h>
+
 #include <uORB/Subscription.hpp>
 
 class ActuatorEffectivenessTailsitterVTOL : public ModuleParams, public ActuatorEffectiveness
@@ -68,6 +70,8 @@ public:
 		normalize[1] = false;
 	}
 
+	void allocateAuxilaryControls(const float dt, int matrix_index, ActuatorVector &actuator_sp) override;
+
 	void setFlightPhase(const FlightPhase &flight_phase) override;
 
 	const char *name() const override { return "VTOL Tailsitter"; }
@@ -80,4 +84,7 @@ protected:
 	uint32_t _stopped_motors{}; ///< currently stopped motors
 
 	int _first_control_surface_idx{0}; ///< applies to matrix 1
+
+	uORB::Subscription _flaps_setpoint_sub{ORB_ID(flaps_setpoint)};
+	uORB::Subscription _spoilers_setpoint_sub{ORB_ID(spoilers_setpoint)};
 };

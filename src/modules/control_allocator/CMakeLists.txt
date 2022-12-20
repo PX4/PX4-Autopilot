@@ -52,4 +52,5 @@ px4_add_module(
 		ActuatorEffectiveness
 		ControlAllocation
 		px4_work_queue
+		SlewRate
 )

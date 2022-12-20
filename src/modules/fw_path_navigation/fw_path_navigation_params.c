@@ -1009,3 +1009,57 @@ PARAM_DEFINE_FLOAT(FW_WIND_ARSP_SC, 0.f);
  * @group FW Launch detection
  */
 PARAM_DEFINE_INT32(FW_LAUN_DETCN_ON, 0);
+
+/**
+ * Flaps setting during take-off
+ *
+ * Sets a fraction of full flaps during take-off.
+ * Also applies to flaperons if enabled in the mixer/allocation.
+ *
+ * @unit norm
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ * @increment 0.01
+ * @group FW Rate Control
+ */
+PARAM_DEFINE_FLOAT(FW_FLAPS_TO_SCL, 0.0f);
+
+/**
+ * Flaps setting during landing
+ *
+ * Sets a fraction of full flaps during landing.
+ * Also applies to flaperons if enabled in the mixer/allocation.
+ *
+ * @unit norm
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ * @increment 0.01
+ * @group FW Rate Control
+ */
+PARAM_DEFINE_FLOAT(FW_FLAPS_LND_SCL, 1.0f);
+
+/**
+ * Spoiler landing setting
+ *
+ * @unit norm
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ * @increment 0.01
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_SPOILERS_LND, 0.f);
+
+/**
+ * Spoiler descend setting
+ *
+ * @unit norm
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ * @increment 0.01
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_SPOILERS_DESC, 0.f);

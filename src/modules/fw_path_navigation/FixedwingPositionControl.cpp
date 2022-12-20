@@ -69,6 +69,9 @@ FixedwingPositionControl::FixedwingPositionControl(bool vtol) :
 	_launch_detection_status_pub.advertise();
 	_landing_gear_pub.advertise();
 
+	_flaps_setpoint_pub.advertise();
+	_spoilers_setpoint_pub.advertise();
+
 	_airspeed_slew_rate_controller.setSlewRate(ASPD_SP_SLEW_RATE);
 
 	/* fetch initial parameter values */
@@ -939,6 +942,7 @@ FixedwingPositionControl::control_auto_fixed_bank_alt_hold(const float control_i
 	}
 
 	_att_sp.pitch_body = get_tecs_pitch();
+
 }
 
 void
@@ -1231,10 +1235,9 @@ FixedwingPositionControl::control_auto_loiter(const float control_interval, cons
 		// have to do this switch (which can cause significant altitude errors) close to the ground.
 		_tecs.set_altitude_error_time_constant(_param_fw_thrtc_sc.get() * _param_fw_t_h_error_tc.get());
 		airspeed_sp = (_param_fw_lnd_airspd.get() > FLT_EPSILON) ? _param_fw_lnd_airspd.get() : _param_fw_airspd_min.get();
-		_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_LAND;
-		_att_sp.apply_spoilers = vehicle_attitude_setpoint_s::SPOILERS_LAND;
+		_flaps_setpoint = _param_fw_flaps_lnd_scl.get();
+		_spoilers_setpoint = _param_fw_spoilers_lnd.get();
 		_new_landing_gear_position = landing_gear_s::GEAR_DOWN;
-
 	}
 
 	float target_airspeed = adapt_airspeed_setpoint(control_interval, airspeed_sp, _param_fw_airspd_min.get(),
@@ -1394,8 +1397,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 		_att_sp.pitch_body = _runway_takeoff.getPitch(get_tecs_pitch());
 		_att_sp.thrust_body[0] = _runway_takeoff.getThrottle(_param_fw_thr_idle.get(), get_tecs_thrust());
 
-		// apply flaps for takeoff according to the corresponding scale factor set via FW_FLAPS_TO_SCL
-		_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_TAKEOFF;
+		_flaps_setpoint = _param_fw_flaps_to_scl.get();
 
 		// retract ladning gear once passed the climbout state
 		if (_runway_takeoff.getState() > RunwayTakeoffState::CLIMBOUT) {
@@ -1713,9 +1715,8 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 
 	_att_sp.roll_body = constrainRollNearGround(_att_sp.roll_body, _current_altitude, terrain_alt);
 
-	// Apply flaps and spoilers for landing. Amount of deflection is handled in the FW attitdue controller
-	_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_LAND;
-	_att_sp.apply_spoilers = vehicle_attitude_setpoint_s::SPOILERS_LAND;
+	_flaps_setpoint = _param_fw_flaps_lnd_scl.get();
+	_spoilers_setpoint = _param_fw_spoilers_lnd.get();
 
 	// deploy gear as soon as we're in land mode, if not already done before
 	_new_landing_gear_position = landing_gear_s::GEAR_DOWN;
@@ -1919,9 +1920,8 @@ FixedwingPositionControl::control_auto_landing_circular(const hrt_abstime &now, 
 
 	_att_sp.roll_body = constrainRollNearGround(_att_sp.roll_body, _current_altitude, terrain_alt);
 
-	// Apply flaps and spoilers for landing. Amount of deflection is handled in the FW attitdue controller
-	_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_LAND;
-	_att_sp.apply_spoilers = vehicle_attitude_setpoint_s::SPOILERS_LAND;
+	_flaps_setpoint = _param_fw_flaps_lnd_scl.get();
+	_spoilers_setpoint = _param_fw_spoilers_lnd.get();
 
 	if (!_vehicle_status.in_transition_to_fw) {
 		publishLocalPositionSetpoint(pos_sp_curr);
@@ -2290,8 +2290,10 @@ FixedwingPositionControl::Run()
 		_npfg.setPeriod(_param_npfg_period.get());
 
 		_att_sp.reset_integral = false;
-		_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_OFF;
-		_att_sp.apply_spoilers = vehicle_attitude_setpoint_s::SPOILERS_OFF;
+
+		// by default no flaps/spoilers, is overwritten below in certain modes
+		_flaps_setpoint = 0.f;
+		_spoilers_setpoint = 0.f;
 
 		// by default we don't want yaw to be contoller directly with rudder
 		_att_sp.fw_control_yaw_wheel = false;
@@ -2402,6 +2404,20 @@ FixedwingPositionControl::Run()
 			landing_gear.landing_gear = _new_landing_gear_position;
 			landing_gear.timestamp = hrt_absolute_time();
 			_landing_gear_pub.publish(landing_gear);
+		}
+
+		// In Manual modes flaps and spoilers are directly controlled in the Attitude controller and not published here
+		if (_control_mode.flag_control_auto_enabled
+		    && _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+			normalized_unsigned_setpoint_s flaps_setpoint;
+			flaps_setpoint.normalized_setpoint = _flaps_setpoint;
+			flaps_setpoint.timestamp = hrt_absolute_time();
+			_flaps_setpoint_pub.publish(flaps_setpoint);
+
+			normalized_unsigned_setpoint_s spoilers_setpoint;
+			spoilers_setpoint.normalized_setpoint = _spoilers_setpoint;
+			spoilers_setpoint.timestamp = hrt_absolute_time();
+			_spoilers_setpoint_pub.publish(spoilers_setpoint);
 		}
 
 		perf_end(_loop_perf);

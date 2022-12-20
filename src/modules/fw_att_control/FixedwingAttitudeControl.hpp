@@ -156,6 +156,7 @@ private:
 		(ParamFloat<px4::params::FW_WR_P>) _param_fw_wr_p,
 
 		(ParamFloat<px4::params::FW_Y_RMAX>) _param_fw_y_rmax
+
 	)
 
 	ECL_RollController _roll_ctrl;

@@ -52,7 +52,14 @@ ActuatorEffectivenessControlSurfaces::ActuatorEffectivenessControlSurfaces(Modul
 		_param_handles[i].torque[2] = param_find(buffer);
 		snprintf(buffer, sizeof(buffer), "CA_SV_CS%u_TRIM", i);
 		_param_handles[i].trim = param_find(buffer);
+		snprintf(buffer, sizeof(buffer), "CA_SV_CS%u_FLAP", i);
+		_param_handles[i].scale_flap = param_find(buffer);
+		snprintf(buffer, sizeof(buffer), "CA_SV_CS%u_SPOIL", i);
+		_param_handles[i].scale_spoiler = param_find(buffer);
 	}
+
+	_flaps_setpoint_with_slewrate.setSlewRate(kFlapSlewRate);
+	_spoilers_setpoint_with_slewrate.setSlewRate(kSpoilersSlewRate);
 
 	_count_handle = param_find("CA_SV_CS_COUNT");
 	updateParams();
@@ -81,6 +88,8 @@ void ActuatorEffectivenessControlSurfaces::updateParams()
 		}
 
 		param_get(_param_handles[i].trim, &_params[i].trim);
+		param_get(_param_handles[i].scale_flap, &_params[i].scale_flap);
+		param_get(_param_handles[i].scale_spoiler, &_params[i].scale_spoiler);
 
 		// TODO: enforce limits (note that tailsitter uses different limits)?
 		switch (_params[i].type) {
@@ -109,12 +118,12 @@ void ActuatorEffectivenessControlSurfaces::updateParams()
 		case Type::RightVTail:
 			break;
 
-		case Type::LeftFlaps:
-		case Type::RightFlaps:
+		case Type::LeftFlap:
+		case Type::RightFlap:
 			torque.setZero();
 			break;
 
-		case Type::Airbrakes:
+		case Type::Airbrake:
 			torque.setZero();
 			break;
 
@@ -134,6 +143,10 @@ void ActuatorEffectivenessControlSurfaces::updateParams()
 			torque.setZero();
 			break;
 
+		case Type::LeftSpoiler:
+		case Type::RightSpoiler:
+			torque.setZero();
+			break;
 		}
 	}
 }
@@ -151,32 +164,25 @@ bool ActuatorEffectivenessControlSurfaces::addActuators(Configuration &configura
 	return true;
 }
 
-void ActuatorEffectivenessControlSurfaces::applyFlapsAirbrakesWheel(float flaps_control, float airbrakes_control,
-		float wheel_control, int first_actuator_idx,
-		ActuatorVector &actuator_sp) const
+void ActuatorEffectivenessControlSurfaces::applyFlaps(float flaps_control, int first_actuator_idx, float dt,
+		ActuatorVector &actuator_sp)
 {
+	_flaps_setpoint_with_slewrate.update(flaps_control, dt);
+
 	for (int i = 0; i < _count; ++i) {
-		switch (_params[i].type) {
-		// TODO: check sign
-		case ActuatorEffectivenessControlSurfaces::Type::LeftFlaps:
-			actuator_sp(i + first_actuator_idx) += flaps_control;
-			break;
-
-		case ActuatorEffectivenessControlSurfaces::Type::RightFlaps:
-			actuator_sp(i + first_actuator_idx) -= flaps_control;
-			break;
-
-		case ActuatorEffectivenessControlSurfaces::Type::Airbrakes:
-			actuator_sp(i + first_actuator_idx) += airbrakes_control;
-			break;
-
-		case ActuatorEffectivenessControlSurfaces::Type::SteeringWheel:
-			actuator_sp(i + first_actuator_idx) += wheel_control;
-			break;
-
-		default:
-			break;
-		}
+		// map [0, 1] to [-1, 1]
+		// TODO: this currently only works for dedicated flaps, not flaperons
+		actuator_sp(i + first_actuator_idx) += (_flaps_setpoint_with_slewrate.getState() * 2.f - 1.f) * _params[i].scale_flap;
 	}
+}
 
+void ActuatorEffectivenessControlSurfaces::applySpoilers(float spoilers_control, int first_actuator_idx, float dt,
+		ActuatorVector &actuator_sp)
+{
+	_spoilers_setpoint_with_slewrate.update(spoilers_control, dt);
+
+	for (int i = 0; i < _count; ++i) {
+		// TODO: this currently only works for spoilerons, not dedicated spoilers
+		actuator_sp(i + first_actuator_idx) += _spoilers_setpoint_with_slewrate.getState() * _params[i].scale_spoiler;
+	}
 }
