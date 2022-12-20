@@ -57,7 +57,6 @@
 #include <px4_platform_common/events.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/tasks.h>
-#include <systemlib/mavlink_log.h>
 
 using namespace time_literals;
 
@@ -363,7 +362,6 @@ void Navigator::run()
 					rep->next.valid = false;
 
 				} else {
-					mavlink_log_critical(&_mavlink_log_pub, "Reposition is outside geofence\t");
 					events::send(events::ID("navigator_reposition_outside_geofence"), {events::Log::Error, events::LogInternal::Info},
 						     "Reposition is outside geofence");
 				}
@@ -406,7 +404,8 @@ void Navigator::run()
 					rep->current.timestamp = hrt_absolute_time();
 
 				} else {
-					mavlink_log_critical(&_mavlink_log_pub, "Orbit is outside geofence");
+					events::send(events::ID("navigator_orbit_outside_geofence"), {events::Log::Error, events::LogInternal::Info},
+						     "Orbit is outside geofence");
 				}
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF) {
@@ -630,7 +629,6 @@ void Navigator::run()
 						}
 
 						if (rtl_activated) {
-							mavlink_log_info(get_mavlink_log_pub(), "RTL Mission activated, continue mission\t");
 							events::send(events::ID("navigator_rtl_mission_activated"), events::Log::Info,
 								     "RTL Mission activated, continue mission");
 						}
@@ -654,7 +652,6 @@ void Navigator::run()
 							}
 
 							if (rtl_activated) {
-								mavlink_log_info(get_mavlink_log_pub(), "RTL Mission activated, fly mission in reverse\t");
 								events::send(events::ID("navigator_rtl_mission_activated_rev"), events::Log::Info,
 									     "RTL Mission activated, fly mission in reverse");
 							}
@@ -663,7 +660,6 @@ void Navigator::run()
 
 						} else {
 							if (rtl_activated) {
-								mavlink_log_info(get_mavlink_log_pub(), "RTL Mission activated, fly to home\t");
 								events::send(events::ID("navigator_rtl_mission_activated_home"), events::Log::Info,
 									     "RTL Mission activated, fly to home");
 							}
@@ -676,7 +672,6 @@ void Navigator::run()
 
 				default:
 					if (rtl_activated) {
-						mavlink_log_info(get_mavlink_log_pub(), "RTL HOME activated\t");
 						events::send(events::ID("navigator_rtl_home_activated"), events::Log::Info, "RTL activated");
 					}
 
@@ -765,7 +760,6 @@ void Navigator::run()
 				vcmd.command = NAV_CMD_DO_VTOL_TRANSITION;
 				vcmd.param1 = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
 				publish_vehicle_cmd(&vcmd);
-				mavlink_log_info(&_mavlink_log_pub, "Transition to hover mode and descend.\t");
 				events::send(events::ID("navigator_transition_descend"), events::Log::Critical,
 					     "Transition to hover mode and descend");
 			}
@@ -1275,8 +1269,7 @@ void Navigator::check_traffic()
 
 						switch (_param_nav_traff_avoid.get()) {
 
-						case 0: {
-								/* Ignore */
+						case 0: { // Ignore
 								PX4_WARN("TRAFFIC %s! dst %d, hdg %d",
 									 tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : uas_id,
 									 traffic_seperation,
@@ -1284,12 +1277,7 @@ void Navigator::check_traffic()
 								break;
 							}
 
-						case 1: {
-								/* Warn only */
-								mavlink_log_critical(&_mavlink_log_pub, "Warning TRAFFIC %s! dst %d, hdg %d\t",
-										     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : uas_id,
-										     traffic_seperation,
-										     traffic_direction);
+						case 1: { // Warn only
 								/* EVENT
 								 * @description
 								 * - ID: {1}
@@ -1301,12 +1289,7 @@ void Navigator::check_traffic()
 								break;
 							}
 
-						case 2: {
-								/* RTL Mode */
-								mavlink_log_critical(&_mavlink_log_pub, "TRAFFIC: %s Returning home! dst %d, hdg %d\t",
-										     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : uas_id,
-										     traffic_seperation,
-										     traffic_direction);
+						case 2: { // RTL Mode
 								/* EVENT
 								 * @description
 								 * - ID: {1}
@@ -1327,12 +1310,7 @@ void Navigator::check_traffic()
 								break;
 							}
 
-						case 3: {
-								/* Land Mode */
-								mavlink_log_critical(&_mavlink_log_pub, "TRAFFIC: %s Landing! dst %d, hdg % d\t",
-										     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : uas_id,
-										     traffic_seperation,
-										     traffic_direction);
+						case 3: { // Land Mode
 								/* EVENT
 								 * @description
 								 * - ID: {1}
@@ -1351,12 +1329,7 @@ void Navigator::check_traffic()
 
 							}
 
-						case 4: {
-								/* Position hold */
-								mavlink_log_critical(&_mavlink_log_pub, "TRAFFIC: %s Holding position! dst %d, hdg %d\t",
-										     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : uas_id,
-										     traffic_seperation,
-										     traffic_direction);
+						case 4: { // Position hold
 								/* EVENT
 								 * @description
 								 * - ID: {1}
@@ -1479,7 +1452,6 @@ void Navigator::set_mission_failure_heading_timeout()
 	if (!_mission_result.failure) {
 		_mission_result.failure = true;
 		set_mission_result_updated();
-		mavlink_log_critical(&_mavlink_log_pub, "unable to reach heading within timeout\t");
 		events::send(events::ID("navigator_mission_failure_heading"), events::Log::Critical,
 			     "Mission failure: unable to reach heading within timeout");
 	}

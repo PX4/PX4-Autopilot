@@ -116,8 +116,6 @@ Takeoff::set_takeoff_position()
 		// If the altitude suggestion is lower than home + minimum clearance, raise it and complain.
 		if (abs_altitude < min_abs_altitude) {
 			if (abs_altitude < min_abs_altitude - 0.1f) { // don't complain if difference is smaller than 10cm
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(),
-						     "Using minimum takeoff altitude: %.2f m\t", (double)_navigator->get_takeoff_min_alt());
 				log_level = events::LogLevel::Warning;
 			}
 
@@ -127,8 +125,6 @@ Takeoff::set_takeoff_position()
 	} else {
 		// Use home + minimum clearance but only notify.
 		abs_altitude = min_abs_altitude;
-		mavlink_log_info(_navigator->get_mavlink_log_pub(),
-				 "Using minimum takeoff altitude: %.2f m\t", (double)_navigator->get_takeoff_min_alt());
 		log_level = events::LogLevel::Info;
 	}
 
@@ -141,7 +137,6 @@ Takeoff::set_takeoff_position()
 	if (abs_altitude < _navigator->get_global_position()->alt) {
 		// If the suggestion is lower than our current alt, let's not go down.
 		abs_altitude = _navigator->get_global_position()->alt;
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Already higher than takeoff altitude\t");
 		events::send(events::ID("navigator_takeoff_already_higher"), {events::Log::Error, events::LogInternal::Info},
 			     "Already higher than takeoff altitude (not descending)");
 	}

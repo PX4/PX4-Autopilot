@@ -45,7 +45,6 @@
 #include "navigation.h"
 
 #include <drivers/drv_hrt.h>
-#include <systemlib/mavlink_log.h>
 #include <uORB/Publication.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/mission.h>

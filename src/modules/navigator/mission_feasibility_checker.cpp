@@ -48,7 +48,6 @@
 #include <drivers/drv_pwm_output.h>
 #include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
-#include <systemlib/mavlink_log.h>
 #include <uORB/Subscription.hpp>
 #include <px4_platform_common/events.h>
 
@@ -72,7 +71,6 @@ MissionFeasibilityChecker::checkMissionFeasible(const mission_s &mission,
 
 	if (!home_alt_valid) {
 		failed = true;
-		mavlink_log_info(_navigator->get_mavlink_log_pub(), "Not yet ready for mission, no position lock.\t");
 		events::send(events::ID("navigator_mis_no_pos_lock"), events::Log::Info, "Not yet ready for mission, no position lock");
 
 	} else {
@@ -113,7 +111,6 @@ bool
 MissionFeasibilityChecker::checkGeofence(const mission_s &mission, float home_alt, bool home_valid)
 {
 	if (_navigator->get_geofence().isHomeRequired() && !home_valid) {
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence requires valid home position\t");
 		events::send(events::ID("navigator_mis_geofence_no_home"), {events::Log::Error, events::LogInternal::Info},
 			     "Geofence requires a valid home position");
 		return false;
@@ -131,7 +128,6 @@ MissionFeasibilityChecker::checkGeofence(const mission_s &mission, float home_al
 			}
 
 			if (missionitem.altitude_is_relative && !home_valid) {
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence requires valid home position\t");
 				events::send(events::ID("navigator_mis_geofence_no_home2"), {events::Log::Error, events::LogInternal::Info},
 					     "Geofence requires a valid home position");
 				return false;
@@ -142,7 +138,6 @@ MissionFeasibilityChecker::checkGeofence(const mission_s &mission, float home_al
 
 			if (MissionBlock::item_contains_position(missionitem) && !_navigator->get_geofence().check(missionitem)) {
 
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence violation for waypoint %zu\t", i + 1);
 				events::send<int16_t>(events::ID("navigator_mis_geofence_violation"), {events::Log::Error, events::LogInternal::Info},
 						      "Geofence violation for waypoint {1}",
 						      i + 1);
@@ -173,7 +168,6 @@ MissionFeasibilityChecker::checkHomePositionAltitude(const mission_s &mission, f
 
 			_navigator->get_mission_result()->warning = true;
 
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: No home pos, WP %zu uses rel alt\t", i + 1);
 			events::send<int16_t>(events::ID("navigator_mis_no_home_rel_alt"), {events::Log::Error, events::LogInternal::Info},
 					      "Mission rejected: No home position, waypoint {1} uses relative altitude",
 					      i + 1);
@@ -188,7 +182,6 @@ MissionFeasibilityChecker::checkHomePositionAltitude(const mission_s &mission, f
 
 			_navigator->get_mission_result()->warning = true;
 
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Warning: Waypoint %zu below home\t", i + 1);
 			events::send<int16_t>(events::ID("navigator_mis_wp_below_home"), {events::Log::Warning, events::LogInternal::Info},
 					      "Waypoint {1} below home", i + 1);
 		}
@@ -207,7 +200,6 @@ MissionFeasibilityChecker::checkMissionItemValidity(const mission_s &mission)
 
 		if (dm_read((dm_item_t)mission.dataman_id, i, &missionitem, len) != len) {
 			// not supposed to happen unless the datamanager can't access the SD card, etc.
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: Cannot access SD card\t");
 			events::send(events::ID("navigator_mis_sd_failure"), events::Log::Error,
 				     "Mission rejected: Cannot access mission storage");
 			return false;
@@ -257,9 +249,6 @@ MissionFeasibilityChecker::checkMissionItemValidity(const mission_s &mission)
 		    missionitem.nav_cmd != NAV_CMD_SET_CAMERA_FOCUS &&
 		    missionitem.nav_cmd != NAV_CMD_DO_VTOL_TRANSITION) {
 
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: item %i: unsupported cmd: %d\t",
-					     (int)(i + 1),
-					     (int)missionitem.nav_cmd);
 			events::send<uint16_t, uint16_t>(events::ID("navigator_mis_unsup_cmd"), {events::Log::Error, events::LogInternal::Warning},
 							 "Mission rejected: item {1}: unsupported command: {2}", i + 1, missionitem.nav_cmd);
 			return false;
@@ -270,8 +259,6 @@ MissionFeasibilityChecker::checkMissionItemValidity(const mission_s &mission)
 
 			/* check actuator number */
 			if (missionitem.params[0] < 0 || missionitem.params[0] > 5) {
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Actuator number %d is out of bounds 0..5\t",
-						     (int)missionitem.params[0]);
 				events::send<uint32_t>(events::ID("navigator_mis_act_index"), {events::Log::Error, events::LogInternal::Warning},
 						       "Actuator number {1} is out of bounds 0..5", (int)missionitem.params[0]);
 				return false;
@@ -279,8 +266,6 @@ MissionFeasibilityChecker::checkMissionItemValidity(const mission_s &mission)
 
 			/* check actuator value */
 			if (missionitem.params[1] < -PWM_DEFAULT_MAX || missionitem.params[1] > PWM_DEFAULT_MAX) {
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(),
-						     "Actuator value %d is out of bounds -PWM_DEFAULT_MAX..PWM_DEFAULT_MAX\t", (int)missionitem.params[1]);
 				events::send<uint32_t, uint32_t>(events::ID("navigator_mis_act_range"), {events::Log::Error, events::LogInternal::Warning},
 								 "Actuator value {1} is out of bounds -{2}..{2}", (int)missionitem.params[1], PWM_DEFAULT_MAX);
 				return false;
@@ -290,7 +275,6 @@ MissionFeasibilityChecker::checkMissionItemValidity(const mission_s &mission)
 		// check if the mission starts with a land command while the vehicle is landed
 		if ((i == 0) && missionitem.nav_cmd == NAV_CMD_LAND && _navigator->get_land_detected()->landed) {
 
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: starts with landing\t");
 			events::send(events::ID("navigator_mis_starts_w_landing"), {events::Log::Error, events::LogInternal::Info},
 				     "Mission rejected: starts with landing");
 			return false;
@@ -332,7 +316,6 @@ MissionFeasibilityChecker::checkTakeoff(const mission_s &mission, float home_alt
 			}
 
 			if (takeoff_alt - 1.0f < acceptance_radius) {
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: Takeoff altitude too low!\t");
 				/* EVENT
 				 * @description The minimum takeoff altitude is the acceptance radius plus 1m.
 				 */
@@ -406,7 +389,6 @@ MissionFeasibilityChecker::checkTakeoff(const mission_s &mission, float home_alt
 		// check if the takeoff waypoint is the first waypoint item on the mission
 		// i.e, an item with position/attitude change modification
 		// if it is not, the mission should be rejected
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: takeoff not first waypoint item\t");
 		events::send(events::ID("navigator_mis_takeoff_not_first"), {events::Log::Error, events::LogInternal::Info},
 			     "Mission rejected: takeoff is not the first waypoint item");
 		return false;
@@ -464,7 +446,6 @@ MissionFeasibilityChecker::checkFixedWingLanding(const mission_s &mission)
 		// if DO_LAND_START found then require valid landing AFTER
 		if (missionitem.nav_cmd == NAV_CMD_DO_LAND_START) {
 			if (_has_landing) {
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: more than one land start.\t");
 				events::send(events::ID("navigator_mis_multiple_land"), {events::Log::Error, events::LogInternal::Info},
 					     "Mission rejected: more than one land start commands");
 				return false;
@@ -484,7 +465,6 @@ MissionFeasibilityChecker::checkFixedWingLanding(const mission_s &mission)
 			const param_t param_handle_fw_lnd_ang = param_find("FW_LND_ANG");
 
 			if (param_handle_fw_lnd_ang == PARAM_INVALID) {
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: FW_LND_ANG parameter is missing.\t");
 				events::send(events::ID("navigator_mis_land_angle_param_missing"), {events::Log::Error, events::LogInternal::Info},
 					     "Mission rejected: FW_LND_ANG parameter is missing");
 				return false;
@@ -510,8 +490,6 @@ MissionFeasibilityChecker::checkFixedWingLanding(const mission_s &mission)
 					const float relative_approach_altitude = entrance_alt_amsl - land_alt_amsl;
 
 					if (relative_approach_altitude < FLT_EPSILON) {
-						mavlink_log_critical(_navigator->get_mavlink_log_pub(),
-								     "Mission rejected: the approach waypoint must be above the landing point.\t");
 						events::send(events::ID("navigator_mis_approach_wp_below_land"), {events::Log::Error, events::LogInternal::Info},
 							     "Mission rejected: the approach waypoint must be above the landing point");
 						return false;
@@ -528,8 +506,6 @@ MissionFeasibilityChecker::checkFixedWingLanding(const mission_s &mission)
 						const float orbit_radius = fabsf(missionitem_previous.loiter_radius);
 
 						if (distance_orbit_center_to_land <= orbit_radius) {
-							mavlink_log_critical(_navigator->get_mavlink_log_pub(),
-									     "Mission rejected: the landing point must be outside the orbit radius.\t");
 							events::send(events::ID("navigator_mis_land_wp_inside_orbit_radius"), {events::Log::Error, events::LogInternal::Info},
 								     "Mission rejected: the landing point must be outside the orbit radius");
 							return false;
@@ -546,8 +522,6 @@ MissionFeasibilityChecker::checkFixedWingLanding(const mission_s &mission)
 						landing_approach_distance = waypoint_distance;
 
 					} else {
-						mavlink_log_critical(_navigator->get_mavlink_log_pub(),
-								     "Mission rejected: unsupported landing approach entrance waypoint type. Only ORBIT_TO_ALT or WAYPOINT allowed.\t");
 						events::send(events::ID("navigator_mis_unsupported_landing_approach_wp"), {events::Log::Error, events::LogInternal::Info},
 							     "Mission rejected: unsupported landing approach entrance waypoint type. Only ORBIT_TO_ALT or WAYPOINT allowed");
 						return false;
@@ -567,9 +541,6 @@ MissionFeasibilityChecker::checkFixedWingLanding(const mission_s &mission)
 						const uint8_t land_angle_first_after_decimal = (uint8_t)((param_fw_lnd_ang - floorf(
 									param_fw_lnd_ang)) * 10.0f);
 
-						mavlink_log_critical(_navigator->get_mavlink_log_pub(),
-								     "Mission rejected: the landing glide slope is steeper than the vehicle setting of %d.%d degrees.\t",
-								     (int)land_angle_left_of_decimal, (int)land_angle_first_after_decimal);
 						events::send<uint8_t, uint8_t>(events::ID("navigator_mis_glide_slope_too_steep"), {events::Log::Error, events::LogInternal::Info},
 									       "Mission rejected: the landing glide slope is steeper than the vehicle setting of {1}.{2} degrees",
 									       land_angle_left_of_decimal, land_angle_first_after_decimal);
@@ -577,9 +548,6 @@ MissionFeasibilityChecker::checkFixedWingLanding(const mission_s &mission)
 						const uint32_t acceptable_entrance_alt = (uint32_t)(max_glide_slope * landing_approach_distance);
 						const uint32_t acceptable_landing_dist = (uint32_t)ceilf(relative_approach_altitude / max_glide_slope);
 
-						mavlink_log_critical(_navigator->get_mavlink_log_pub(),
-								     "Reduce the glide slope, lower the entrance altitude %d meters, or increase the landing approach distance %d meters.\t",
-								     (int)acceptable_entrance_alt, (int)acceptable_landing_dist);
 						events::send<uint32_t, uint32_t>(events::ID("navigator_mis_correct_glide_slope"), {events::Log::Error, events::LogInternal::Info},
 										 "Reduce the glide slope, lower the entrance altitude {1} meters, or increase the landing approach distance {2} meters",
 										 acceptable_entrance_alt, acceptable_landing_dist);
@@ -591,14 +559,12 @@ MissionFeasibilityChecker::checkFixedWingLanding(const mission_s &mission)
 
 				} else {
 					// mission item before land doesn't have a position
-					mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: need landing approach.\t");
 					events::send(events::ID("navigator_mis_req_landing_approach"), {events::Log::Error, events::LogInternal::Info},
 						     "Mission rejected: landing approach is required");
 					return false;
 				}
 
 			} else {
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: starts with land waypoint.\t");
 				events::send(events::ID("navigator_mis_starts_w_landing2"), {events::Log::Error, events::LogInternal::Info},
 					     "Mission rejected: starts with landing");
 				return false;
@@ -606,8 +572,6 @@ MissionFeasibilityChecker::checkFixedWingLanding(const mission_s &mission)
 
 		} else if (missionitem.nav_cmd == NAV_CMD_RETURN_TO_LAUNCH) {
 			if (_has_landing && do_land_start_index < i) {
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(),
-						     "Mission rejected: land start item before RTL item not possible.\t");
 				events::send(events::ID("navigator_mis_land_before_rtl"), {events::Log::Error, events::LogInternal::Info},
 					     "Mission rejected: land start item before RTL item is not possible");
 				return false;
@@ -616,7 +580,6 @@ MissionFeasibilityChecker::checkFixedWingLanding(const mission_s &mission)
 	}
 
 	if (_has_landing && (!landing_valid || (do_land_start_index > landing_approach_index))) {
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: invalid land start.\t");
 		events::send(events::ID("navigator_mis_invalid_land"), {events::Log::Error, events::LogInternal::Info},
 			     "Mission rejected: invalid land start");
 		return false;
@@ -646,7 +609,6 @@ MissionFeasibilityChecker::checkVTOLLanding(const mission_s &mission)
 		// if DO_LAND_START found then require valid landing AFTER
 		if (missionitem.nav_cmd == NAV_CMD_DO_LAND_START) {
 			if (_has_landing) {
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: more than one land start.\t");
 				events::send(events::ID("navigator_mis_multi_land"), {events::Log::Error, events::LogInternal::Info},
 					     "Mission rejected: more than one land start commands");
 				return false;
@@ -672,7 +634,6 @@ MissionFeasibilityChecker::checkVTOLLanding(const mission_s &mission)
 
 
 			} else {
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: starts with land waypoint.\t");
 				events::send(events::ID("navigator_mis_starts_w_land"), {events::Log::Error, events::LogInternal::Info},
 					     "Mission rejected: starts with land waypoint");
 				return false;
@@ -680,8 +641,6 @@ MissionFeasibilityChecker::checkVTOLLanding(const mission_s &mission)
 
 		} else if (missionitem.nav_cmd == NAV_CMD_RETURN_TO_LAUNCH) {
 			if (_has_landing && do_land_start_index < i) {
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(),
-						     "Mission rejected: land start item before RTL item not possible.\t");
 				events::send(events::ID("navigator_mis_land_before_rtl2"), {events::Log::Error, events::LogInternal::Info},
 					     "Mission rejected: land start item before RTL item is not possible");
 				return false;
@@ -690,7 +649,6 @@ MissionFeasibilityChecker::checkVTOLLanding(const mission_s &mission)
 	}
 
 	if (_has_landing && (do_land_start_index > landing_approach_index)) {
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: invalid land start.\t");
 		events::send(events::ID("navigator_mis_invalid_land2"), {events::Log::Error, events::LogInternal::Info},
 			     "Mission rejected: invalid land start");
 		return false;
@@ -714,7 +672,6 @@ MissionFeasibilityChecker::checkTakeoffLandAvailable()
 		result = _has_takeoff;
 
 		if (!result) {
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: Takeoff waypoint required.\t");
 			events::send(events::ID("navigator_mis_takeoff_missing"), {events::Log::Error, events::LogInternal::Info},
 				     "Mission rejected: Takeoff waypoint required");
 			return false;
@@ -726,7 +683,6 @@ MissionFeasibilityChecker::checkTakeoffLandAvailable()
 		result = _has_landing;
 
 		if (!result) {
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: Landing waypoint/pattern required.\t");
 			events::send(events::ID("navigator_mis_land_missing"), {events::Log::Error, events::LogInternal::Info},
 				     "Mission rejected: Landing waypoint/pattern required");
 		}
@@ -737,7 +693,6 @@ MissionFeasibilityChecker::checkTakeoffLandAvailable()
 		result = _has_takeoff && _has_landing;
 
 		if (!result) {
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: Takeoff or Landing item missing.\t");
 			events::send(events::ID("navigator_mis_takeoff_or_land_missing"), {events::Log::Error, events::LogInternal::Info},
 				     "Mission rejected: Takeoff or Landing item missing");
 		}
@@ -748,12 +703,10 @@ MissionFeasibilityChecker::checkTakeoffLandAvailable()
 		result = _has_takeoff == _has_landing;
 
 		if (!result && (_has_takeoff)) {
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: Add Landing item or remove Takeoff.\t");
 			events::send(events::ID("navigator_mis_add_land_or_rm_to"), {events::Log::Error, events::LogInternal::Info},
 				     "Mission rejected: Add Landing item or remove Takeoff");
 
 		} else if (!result && (_has_landing)) {
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: Add Takeoff item or remove Landing.\t");
 			events::send(events::ID("navigator_mis_add_to_or_rm_land"), {events::Log::Error, events::LogInternal::Info},
 				     "Mission rejected: Add Takeoff item or remove Landing");
 		}
@@ -783,7 +736,6 @@ MissionFeasibilityChecker::checkDistanceToFirstWaypoint(const mission_s &mission
 
 		if (!(dm_read((dm_item_t)mission.dataman_id, i, &mission_item, sizeof(mission_item_s)) == sizeof(mission_item_s))) {
 			/* error reading, mission is invalid */
-			mavlink_log_info(_navigator->get_mavlink_log_pub(), "Error reading offboard mission.\t");
 			events::send(events::ID("navigator_mis_storage_failure"), events::Log::Error,
 				     "Error reading mission storage");
 			return false;
@@ -805,9 +757,6 @@ MissionFeasibilityChecker::checkDistanceToFirstWaypoint(const mission_s &mission
 
 		} else {
 			/* item is too far from home */
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(),
-					     "First waypoint too far away: %dm, %d max\t",
-					     (int)dist_to_1wp, (int)max_distance);
 			events::send<uint32_t, uint32_t>(events::ID("navigator_mis_first_wp_too_far"), {events::Log::Error, events::LogInternal::Info},
 							 "First waypoint too far away: {1m} (maximum: {2m})", (uint32_t)dist_to_1wp, (uint32_t)max_distance);
 
@@ -839,7 +788,6 @@ MissionFeasibilityChecker::checkDistancesBetweenWaypoints(const mission_s &missi
 
 		if (!(dm_read((dm_item_t)mission.dataman_id, i, &mission_item, sizeof(mission_item_s)) == sizeof(mission_item_s))) {
 			/* error reading, mission is invalid */
-			mavlink_log_info(_navigator->get_mavlink_log_pub(), "Error reading offboard mission.\t");
 			events::send(events::ID("navigator_mis_storage_failure2"), events::Log::Error,
 				     "Error reading mission storage");
 			return false;
@@ -861,9 +809,6 @@ MissionFeasibilityChecker::checkDistancesBetweenWaypoints(const mission_s &missi
 
 			if (dist_between_waypoints > max_distance) {
 				/* distance between waypoints is too high */
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(),
-						     "Distance between waypoints too far: %d meters, %d max.\t",
-						     (int)dist_between_waypoints, (int)max_distance);
 				events::send<uint32_t, uint32_t>(events::ID("navigator_mis_wp_dist_too_far"), {events::Log::Error, events::LogInternal::Info},
 								 "Distance between waypoints too far: {1m}, (maximum: {2m})", (uint32_t)dist_between_waypoints, (uint32_t)max_distance);
 
@@ -880,9 +825,6 @@ MissionFeasibilityChecker::checkDistancesBetweenWaypoints(const mission_s &missi
 				/* Waypoints and gate are at the exact same position, which indicates an
 				 * invalid mission and makes calculating the direction from one waypoint
 				 * to another impossible. */
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(),
-						     "Distance between waypoint and gate too close: %d meters\t",
-						     (int)dist_between_waypoints);
 				events::send<float, float>(events::ID("navigator_mis_wp_gate_too_close"), {events::Log::Error, events::LogInternal::Info},
 							   "Distance between waypoint and gate too close: {1:.3m} (minimum: {2:.3m})", dist_between_waypoints, 0.05f);
 

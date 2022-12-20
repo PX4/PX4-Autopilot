@@ -264,8 +264,6 @@ public:
 	 */
 	float get_yaw_acceptance(float mission_item_yaw);
 
-	orb_advert_t *get_mavlink_log_pub() { return &_mavlink_log_pub; }
-
 	void increment_mission_instance_count() { _mission_result.instance_count++; }
 
 	int mission_instance_count() const { return _mission_result.instance_count; }
@@ -352,8 +350,6 @@ private:
 	uORB::Publication<vehicle_command_ack_s>	_vehicle_cmd_ack_pub{ORB_ID(vehicle_command_ack)};
 	uORB::Publication<vehicle_command_s>		_vehicle_cmd_pub{ORB_ID(vehicle_command)};
 	uORB::Publication<vehicle_roi_s>		_vehicle_roi_pub{ORB_ID(vehicle_roi)};
-
-	orb_advert_t	_mavlink_log_pub{nullptr};	/**< the uORB advert to send messages over mavlink */
 
 	// Subscriptions
 	home_position_s					_home_pos{};		/**< home position for RTL */

@@ -46,7 +46,6 @@
 #include <dataman/dataman.h>
 #include <drivers/drv_hrt.h>
 #include <lib/geo/geo.h>
-#include <systemlib/mavlink_log.h>
 #include <px4_platform_common/events.h>
 
 #include "navigator.h"
@@ -261,8 +260,6 @@ bool Geofence::isCloserThanMaxDistToHome(double lat, double lon, float altitude)
 
 		if (max_horizontal_distance > FLT_EPSILON && (dist_xy > max_horizontal_distance)) {
 			if (hrt_elapsed_time(&_last_horizontal_range_warning) > GEOFENCE_RANGE_WARNING_LIMIT) {
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Maximum distance from home reached (%.5f)\t",
-						     (double)max_horizontal_distance);
 				events::send<float>(events::ID("navigator_geofence_max_dist_from_home"), {events::Log::Critical, events::LogInternal::Warning},
 						    "Geofence: maximum distance from home reached ({1:.0m})",
 						    max_horizontal_distance);
@@ -289,8 +286,6 @@ bool Geofence::isBelowMaxAltitude(float altitude)
 
 		if (max_vertical_distance > FLT_EPSILON && (dist_z > max_vertical_distance)) {
 			if (hrt_elapsed_time(&_last_vertical_range_warning) > GEOFENCE_RANGE_WARNING_LIMIT) {
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Maximum altitude above home reached (%.5f)\t",
-						     (double)max_vertical_distance);
 				events::send<float>(events::ID("navigator_geofence_max_alt_from_home"), {events::Log::Critical, events::LogInternal::Warning},
 						    "Geofence: maximum altitude above home reached ({1:.0m_v})",
 						    max_vertical_distance);
@@ -553,7 +548,6 @@ Geofence::loadFromFile(const char *filename)
 
 	/* Check if import was successful */
 	if (gotVertical && pointCounter > 2) {
-		mavlink_log_info(_navigator->get_mavlink_log_pub(), "Geofence imported\t");
 		events::send(events::ID("navigator_geofence_imported"), events::Log::Info, "Geofence imported");
 		ret_val = PX4_OK;
 
@@ -573,7 +567,6 @@ Geofence::loadFromFile(const char *filename)
 		ret_val = dm_write(DM_KEY_FENCE_POINTS, 0, &stats, sizeof(mission_stats_entry_s));
 
 	} else {
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence: import error\t");
 		events::send(events::ID("navigator_geofence_import_failed"), events::Log::Error, "Geofence: import error");
 	}
 

@@ -221,7 +221,6 @@ void RTL::find_RTL_destination()
 			break;
 
 		default:
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "RTL: unsupported MAV_FRAME\t");
 			events::send<uint8_t>(events::ID("rtl_unsupported_mav_frame"), events::Log::Error, "RTL: unsupported MAV_FRAME ({1})",
 					      closest_safe_point.frame);
 			break;
@@ -249,17 +248,14 @@ void RTL::on_activation()
 	// output the correct message, depending on where the RTL destination is
 	switch (_destination.type) {
 	case RTL_DESTINATION_HOME:
-		mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: landing at home position.\t");
 		events::send(events::ID("rtl_land_at_home"), events::Log::Info, "RTL: landing at home position");
 		break;
 
 	case RTL_DESTINATION_MISSION_LANDING:
-		mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: landing at mission landing.\t");
 		events::send(events::ID("rtl_land_at_mission"), events::Log::Info, "RTL: landing at mission landing");
 		break;
 
 	case RTL_DESTINATION_SAFE_POINT:
-		mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: landing at safe landing point.\t");
 		events::send(events::ID("rtl_land_at_safe_point"), events::Log::Info, "RTL: landing at safe landing point");
 		break;
 	}
@@ -356,8 +352,6 @@ void RTL::set_rtl_item()
 			_mission_item.origin = ORIGIN_ONBOARD;
 			_mission_item.loiter_radius = _navigator->get_loiter_radius();
 
-			mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: climb to %d m (%d m above destination)\t",
-					 (int)ceilf(_rtl_alt), (int)ceilf(_rtl_alt - _destination.alt));
 			events::send<int32_t, int32_t>(events::ID("rtl_climb_to"), events::Log::Info,
 						       "RTL: climb to {1m_v} ({2m_v} above destination)",
 						       (int32_t)ceilf(_rtl_alt), (int32_t)ceilf(_rtl_alt - _destination.alt));
@@ -400,8 +394,6 @@ void RTL::set_rtl_item()
 			_mission_item.origin = ORIGIN_ONBOARD;
 			_mission_item.loiter_radius = landing_loiter_radius;
 
-			mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: return at %d m (%d m above destination)\t",
-					 (int)ceilf(_mission_item.altitude), (int)ceilf(_mission_item.altitude - _destination.alt));
 			events::send<int32_t, int32_t>(events::ID("rtl_return_at"), events::Log::Info,
 						       "RTL: return at {1m_v} ({2m_v} above destination)",
 						       (int32_t)ceilf(_mission_item.altitude), (int32_t)ceilf(_mission_item.altitude - _destination.alt));
@@ -438,8 +430,6 @@ void RTL::set_rtl_item()
 			// Disable previous setpoint to prevent drift.
 			pos_sp_triplet->previous.valid = false;
 
-			mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: descend to %d m (%d m above destination)\t",
-					 (int)ceilf(_mission_item.altitude), (int)ceilf(_mission_item.altitude - _destination.alt));
 			events::send<int32_t, int32_t>(events::ID("rtl_descend_to"), events::Log::Info,
 						       "RTL: descend to {1m_v} ({2m_v} above destination)",
 						       (int32_t)ceilf(_mission_item.altitude), (int32_t)ceilf(_mission_item.altitude - _destination.alt));
@@ -451,13 +441,10 @@ void RTL::set_rtl_item()
 
 			if (autocontinue) {
 				_mission_item.nav_cmd = NAV_CMD_LOITER_TIME_LIMIT;
-				mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: loiter %.1fs\t",
-						 (double)_param_rtl_land_delay.get());
 				events::send<float>(events::ID("rtl_loiter"), events::Log::Info, "RTL: loiter {1:.1}s", _param_rtl_land_delay.get());
 
 			} else {
 				_mission_item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
-				mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: completed, loitering\t");
 				events::send(events::ID("rtl_completed_loiter"), events::Log::Info, "RTL: completed, loitering");
 			}
 
@@ -568,7 +555,6 @@ void RTL::set_rtl_item()
 				_navigator->get_precland()->on_activation();
 			}
 
-			mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: land at destination\t");
 			events::send(events::ID("rtl_land_at_destination"), events::Log::Info, "RTL: land at destination");
 			break;
 		}

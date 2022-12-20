@@ -41,23 +41,12 @@
 #include "precland.h"
 #include "navigator.h"
 
-#include <string.h>
-#include <stdlib.h>
-#include <stdbool.h>
 #include <math.h>
-#include <fcntl.h>
-
-#include <systemlib/err.h>
-#include <systemlib/mavlink_log.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/position_setpoint_triplet.h>
-#include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/vehicle_command.h>
 
 #define SEC2USEC 1000000.0f
-
-#define STATE_TIMEOUT 10000000 // [us] Maximum time to spend in any state
 
 static constexpr const char *LOST_TARGET_ERROR_MESSAGE = "Lost landing target while landing";
 
