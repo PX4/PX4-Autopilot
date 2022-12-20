@@ -38,6 +38,7 @@
 #include <string>
 #include <map>
 #include <pthread.h>
+#include <termios.h>
 
 #include "uORB/uORBCommunicator.hpp"
 #include "mUORBAggregator.hpp"
@@ -196,7 +197,7 @@ typedef struct {
 	// open_uart_func_t open_uart_func;
 	// write_uart_func_t write_uart_func;
 	// read_uart_func_t read_uart_func;
-	int (*open_uart_func_t)(uint8_t, uint32_t);
+	int (*open_uart_func_t)(uint8_t, speed_t);
 	int (*write_uart_func_t)(int, const void *, size_t);
 	int (*read_uart_func_t)(int,  void *, size_t);
 	int (*register_interrupt_callback)(int (*)(int, void *, void *), void *arg);

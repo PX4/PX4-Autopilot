@@ -134,7 +134,8 @@ void Ekf::controlEvVelFusion(const extVisionSample &ev_sample, const bool common
 		continuing_conditions_passing = false;
 	}
 
-	const bool starting_conditions_passing = common_starting_conditions_passing && continuing_conditions_passing
+	const bool starting_conditions_passing = common_starting_conditions_passing
+			&& continuing_conditions_passing
 			&& ((Vector3f(aid_src.test_ratio).max() < 0.1f) || !isHorizontalAidingActive());
 
 	if (_control_status.flags.ev_vel) {

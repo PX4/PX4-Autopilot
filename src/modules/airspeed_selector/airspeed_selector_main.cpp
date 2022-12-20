@@ -397,32 +397,32 @@ AirspeedModule::Run()
 
 			}
 
-			// save estimated airspeed scale after disarm
+			// save estimated airspeed scale after disarm if airspeed is valid and scale has changed
 			if (!armed && _armed_prev) {
-				if (_param_aspd_scale_apply.get() > 0) {
-					if (fabsf(_airspeed_validator[i].get_CAS_scale_validated() - _param_airspeed_scale[i]) > 0.01f) {
-						// apply the new scale if changed more than 0.01
-						mavlink_log_info(&_mavlink_log_pub, "Airspeed sensor Nr. %d ASPD_SCALE updated: %.2f --> %.2f", i + 1,
-								 (double)_param_airspeed_scale[i],
-								 (double)_airspeed_validator[i].get_CAS_scale_validated());
+				if (_param_aspd_scale_apply.get() > 0 && _airspeed_validator[i].get_airspeed_valid()
+				    && fabsf(_airspeed_validator[i].get_CAS_scale_validated() - _param_airspeed_scale[i]) > FLT_EPSILON) {
 
-						switch (i) {
-						case 0:
-							_param_airspeed_scale_1.set(_airspeed_validator[i].get_CAS_scale_validated());
-							_param_airspeed_scale_1.commit_no_notification();
-							break;
+					mavlink_log_info(&_mavlink_log_pub, "Airspeed sensor Nr. %d ASPD_SCALE updated: %.4f --> %.4f", i + 1,
+							 (double)_param_airspeed_scale[i],
+							 (double)_airspeed_validator[i].get_CAS_scale_validated());
 
-						case 1:
-							_param_airspeed_scale_2.set(_airspeed_validator[i].get_CAS_scale_validated());
-							_param_airspeed_scale_2.commit_no_notification();
-							break;
+					switch (i) {
+					case 0:
+						_param_airspeed_scale_1.set(_airspeed_validator[i].get_CAS_scale_validated());
+						_param_airspeed_scale_1.commit_no_notification();
+						break;
 
-						case 2:
-							_param_airspeed_scale_3.set(_airspeed_validator[i].get_CAS_scale_validated());
-							_param_airspeed_scale_3.commit_no_notification();
-							break;
-						}
+					case 1:
+						_param_airspeed_scale_2.set(_airspeed_validator[i].get_CAS_scale_validated());
+						_param_airspeed_scale_2.commit_no_notification();
+						break;
+
+					case 2:
+						_param_airspeed_scale_3.set(_airspeed_validator[i].get_CAS_scale_validated());
+						_param_airspeed_scale_3.commit_no_notification();
+						break;
 					}
+
 				}
 
 				_airspeed_validator[i].set_scale_init(_param_airspeed_scale[i]);
@@ -553,8 +553,7 @@ void AirspeedModule::update_ground_minus_wind_airspeed()
 		const float TAS_east = _vehicle_local_position.vy - _wind_estimate_sideslip.windspeed_east;
 		const float TAS_down = _vehicle_local_position.vz; // no wind estimate in z
 		_ground_minus_wind_TAS = sqrtf(TAS_north * TAS_north + TAS_east * TAS_east + TAS_down * TAS_down);
-		_ground_minus_wind_CAS = calc_CAS_from_TAS(_ground_minus_wind_TAS, _vehicle_air_data.baro_pressure_pa,
-					 _vehicle_air_data.baro_temp_celcius);
+		_ground_minus_wind_CAS = calc_calibrated_from_true_airspeed(_ground_minus_wind_TAS, _vehicle_air_data.rho);
 
 	} else {
 		_ground_minus_wind_TAS = _ground_minus_wind_CAS = NAN;

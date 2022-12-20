@@ -74,6 +74,7 @@ set(msg_files
 	EstimatorAidSource2d.msg
 	EstimatorAidSource3d.msg
 	EstimatorBias.msg
+	EstimatorBias3d.msg
 	EstimatorEventFlags.msg
 	EstimatorGpsStatus.msg
 	EstimatorInnovations.msg

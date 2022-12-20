@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 ModalAI, Inc. All rights reserved.
+ *   Copyright (C) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,34 +31,60 @@
  *
  ****************************************************************************/
 
-/**
- * @file board_config.h
+#include <px4_platform_common/px4_config.h>
+#include <systemlib/px4_macros.h>
+
+#include <arch/board/board.h>
+
+#include <errno.h>
+
+#include <s32k1xx_pin.h>
+
+/****************************************************************************
+ * Name: s32k1xx_gpiosetevent
  *
- * VOXL2 internal definitions
- */
+ * Description:
+ *   Sets/clears GPIO based event and interrupt triggers.
+ *
+ * Input Parameters:
+ *  - pinset: gpio pin configuration
+ *  - rising/falling edge: enables
+ *  - event:  generate event when set
+ *  - func:   when non-NULL, generate interrupt
+ *  - arg:    Argument passed to the interrupt callback
+ *
+ * Returned Value:
+ *   Zero (OK) on success; a negated errno value on failure indicating the
+ *   nature of the failure.
+ *
+ ****************************************************************************/
+#if defined(CONFIG_S32K1XX_GPIOIRQ)
+int s32k1xx_gpiosetevent(uint32_t pinset, bool risingedge, bool fallingedge,
+			 bool event, xcpt_t func, void *arg)
+{
+	int ret = -ENOSYS;
 
-#pragma once
+	s32k1xx_pinconfig(pinset);
 
-#define BOARD_HAS_NO_RESET
-#define BOARD_HAS_NO_BOOTLOADER
-/*
- * I2C buses
- */
-#define PX4_NUMBER_I2C_BUSES    3
+	if (func == NULL) {
+		s32k1xx_pinirqdisable(pinset);
+		ret = s32k1xx_pinirqattach(pinset, NULL, NULL);
 
-/*
- * SPI buses
- */
-#define CONFIG_SPI 1
-#define BOARD_SPI_BUS_MAX_BUS_ITEMS 1
+	} else {
+		ret = s32k1xx_pinirqattach(pinset, func, arg);
+		pinset &= ~_PIN_INT_MASK;
 
-/*
- * Include these last to make use of the definitions above
- */
-#include <system_config.h>
-#include <px4_platform_common/board_common.h>
+		if (risingedge) {
+			pinset |= PIN_INT_RISING;
+		}
 
-/*
- *  Default port for the ESC
- */
-#define MODALAI_ESC_DEFAULT_PORT 	"2"
+		if (fallingedge) {
+			pinset |= PIN_INT_FALLING;
+		}
+
+		s32k1xx_pinirqenable(pinset);
+	}
+
+	return ret;
+}
+#endif /* CONFIG_S32K1XX_GPIOIRQ */
