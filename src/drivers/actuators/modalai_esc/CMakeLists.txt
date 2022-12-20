@@ -47,4 +47,5 @@ px4_add_module(
 		qc_esc_packet.h
 	DEPENDS
 		px4_work_queue
+		mixer_module
 	)
