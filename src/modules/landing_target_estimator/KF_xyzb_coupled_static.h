@@ -103,8 +103,6 @@ public:
 
 
 	/* Unused functions:  */
-	void computeDynamicMatrix(float dt) override {};
-	void computeProcessNoise(float dt) override {};
 	void setTargetAccVar(matrix::Matrix<float, 3, 3> varVect) override {};
 	matrix::Vector<float, 3> getAccVarVect() override {matrix::Vector<float, 3> dummy_vect; return dummy_vect;};
 	matrix::Vector<float, 3> getAccelerationVect() override {matrix::Vector<float, 3> dummy_vect; return dummy_vect;};

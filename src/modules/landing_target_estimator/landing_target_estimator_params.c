@@ -51,6 +51,15 @@
 PARAM_DEFINE_INT32(LTEST_EN, 0);
 
 /**
+ * Landing target estimator module enable orientation estimation
+ *
+ * @boolean
+ *
+ * @group Landing target Estimator
+ */
+PARAM_DEFINE_INT32(LTEST_YAW_EN, 0);
+
+/**
  * Integer bitmask controlling data fusion and aiding methods.
  *
  * Set bits in the following positions to enable:
@@ -250,6 +259,19 @@ PARAM_DEFINE_FLOAT(LTEST_VEL_UNC_IN, 0.5f);
  * @group Landing target Estimator
  */
 PARAM_DEFINE_FLOAT(LTEST_BIA_UNC_IN, 1.0f);
+
+/**
+ * Initial Orientation uncertainty
+ *
+ * Initial variance of the orientation (yaw) of the landing target
+ *
+ * @unit m^2
+ * @min 0.001
+ * @decimal 3
+ *
+ * @group Landing target Estimator
+ */
+PARAM_DEFINE_FLOAT(LTEST_YAW_UNC_IN, 1.0f);
 
 /**
  * Initial landing target absolute acceleration uncertainty

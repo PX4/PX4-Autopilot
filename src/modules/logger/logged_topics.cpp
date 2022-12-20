@@ -85,6 +85,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("landing_target_pose", 1000);
 	add_optional_topic("launch_detection_status", 200);
 	add_optional_topic("target_estimator_state", 1000);
+	add_optional_topic("landing_target_orientation", 100);
 	add_optional_topic("magnetometer_bias_estimate", 200);
 	add_topic("manual_control_setpoint", 200);
 	add_topic("manual_control_switches");
@@ -192,6 +193,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic_multi("target_estimator_aid_vision", 100, MAX_ESTIMATOR_INSTANCES);
 	add_optional_topic_multi("target_estimator_aid_irlock", 100, MAX_ESTIMATOR_INSTANCES);
 	add_optional_topic_multi("target_estimator_aid_uwb", 100, MAX_ESTIMATOR_INSTANCES);
+	add_optional_topic_multi("target_estimator_aid_ev_yaw", 100, MAX_ESTIMATOR_INSTANCES);
 
 	// add_optional_topic_multi("estimator_aid_src_airspeed", 100, MAX_ESTIMATOR_INSTANCES);
 	// add_optional_topic_multi("estimator_aid_src_baro_hgt", 100, MAX_ESTIMATOR_INSTANCES);

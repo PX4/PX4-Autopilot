@@ -53,6 +53,7 @@
 #include <systemlib/err.h>
 
 #include "LandingTargetEstimator.h"
+#include "LTEOrientation.h"
 
 
 namespace landing_target_estimator
@@ -138,8 +139,12 @@ int landing_target_estimator_thread_main(int argc, char *argv[])
 
 	LandingTargetEstimator est;
 
+	LTEOrientation est_orientation;
+
+
 	while (!thread_should_exit) {
 		est.update();
+		est_orientation.update();
 		px4_usleep(1000000 / landing_target_estimator_UPDATE_RATE_HZ);
 	}
 

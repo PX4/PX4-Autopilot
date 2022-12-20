@@ -36,6 +36,3 @@ float32 cov_z_bias		# Z/down bias variance [(meters)^2]
 float32 cov_ax_target		# X/north velocity variance [(meters/second^2)^2]
 float32 cov_ay_target		# Y/east velocity variance [(meters/second^2)^2]
 float32 cov_az_target		# Z/down velocity variance [(meters/second^2)^2]
-
-float32 theta           # orientation of the target relative to body frame [rad]
-float32 cov_theta       # orientation uncertainty

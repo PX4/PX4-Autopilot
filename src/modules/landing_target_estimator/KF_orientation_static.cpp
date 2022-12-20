@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,57 +31,78 @@
  *
  ****************************************************************************/
 
-/**
- * @file target_estimator.cpp
- * @brief Interface for target estimators
+/*
+ * @file KF_orientation_static.h
+ * Simple Kalman Filter for static target
+ *
+ * @author Jonas Perolini <jonas.perolini@epfl.ch>
+ *
  */
 
-#pragma once
+#include "KF_orientation_static.h"
 
-class TargetEstimator
+namespace landing_target_estimator
 {
-public:
-	TargetEstimator() = default;
-	virtual ~TargetEstimator() = default;
 
-	//Prediction step:
-	virtual void predictState(float dt, float acc) = 0;
-	virtual void predictCov(float dt) = 0;
+void KF_orientation_static::predictState(float dt)
+{
+	_state = _state;
+}
 
-	// Backwards state prediciton
-	virtual void syncState(float dt, float acc) = 0;
+void KF_orientation_static::predictCov(float dt)
+{
+	_covariance = _covariance;
+}
 
-	virtual void setH(matrix::Vector<float, 12> h_meas) = 0;
 
-	virtual float computeInnovCov(float measUnc) = 0;
-	virtual float computeInnov(float meas) = 0;
+bool KF_orientation_static::update()
+{
+	// Avoid zero-division
+	if (_innov_cov  <= 0.000001f && _innov_cov  >= -0.000001f)  {
+		return false;
+	}
 
-	virtual bool update() { return true; }
+	float beta = _innov / _innov_cov * _innov;
 
-	// Init: x_0
-	virtual void setPosition(float pos) = 0;
-	virtual void setVelocity(float vel) = 0;
-	virtual void setTargetAcc(float acc) = 0;
-	virtual void setBias(float bias) = 0;
+	// 5% false alarm probability
+	if (beta > 3.84f) {
+		return false;
+	}
 
-	// Init: P_0
-	virtual void setStatePosVar(float var) = 0;
-	virtual void setStateVelVar(float var) = 0;
-	virtual void setStateAccVar(float var) = 0;
-	virtual void setStateBiasVar(float var) = 0;
+	float kalmanGain = _covariance * _meas_matrix / _innov_cov;
 
-	// Retreive output of filter
-	virtual float getPosition() { return 0.f; };
-	virtual float getVelocity() { return 0.f; };
-	virtual float getBias() { return 0.f; };
-	virtual float getAcceleration() { return 0.f; };
+	_state = matrix::wrap_pi(_state + kalmanGain * _innov);
 
-	virtual float getPosVar() { return 0.f; };
-	virtual float getVelVar() { return 0.f; };
-	virtual float getBiasVar() { return 0.f; };
-	virtual float getAccVar() { return 0.f; };
+	_covariance = _covariance - kalmanGain * _meas_matrix * _covariance;
 
-	virtual void setInputAccVar(float var) = 0;
-	virtual void setTargetAccVar(float var) = 0;
-	virtual void setBiasVar(float var) = 0;
-};
+	return true;
+}
+
+void KF_orientation_static::setH(matrix::Vector<float, 2> h_meas)
+{
+	// h_meas = [theta, theta_dot]
+
+	// For this filter: [theta]
+
+	_meas_matrix = h_meas(0);
+}
+
+void KF_orientation_static::syncState(float dt)
+{
+	_sync_state = _state;
+}
+
+float KF_orientation_static::computeInnovCov(float meas_unc)
+{
+	_innov_cov = _meas_matrix * _covariance * _meas_matrix + meas_unc;
+	return _innov_cov;
+}
+
+float KF_orientation_static::computeInnov(float meas)
+{
+	/* z - H*x */
+	_innov = matrix::wrap_pi(meas - (_meas_matrix * _sync_state));
+	return _innov;
+}
+
+} // namespace landing_target_estimator

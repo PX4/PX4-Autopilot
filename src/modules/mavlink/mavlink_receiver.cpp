@@ -2438,6 +2438,14 @@ MavlinkReceiver::handle_message_landing_target(mavlink_message_t *msg)
 
 		_fiducial_marker_report_pub.publish(fiducial_marker_report);
 
+		/*
+		landing_target_orientation_s fiducial_marker_orientation{};
+		fiducial_marker_orientation.timestamp = _mavlink_timesync.sync_stamp(landing_target.time_usec);
+		fiducial_marker_orientation.theta_rel = landing_target.;
+		fiducial_marker_orientation.cov_theta_rel = landing_target.;
+		_fiducial_marker_orientation_pub.publish(fiducial_marker_orientation);
+		*/
+
 	} else if (landing_target.position_valid && landing_target.frame == MAV_FRAME_LOCAL_NED) {
 		landing_target_pose_s landing_target_pose{};
 

@@ -73,7 +73,6 @@ LandingTargetEstimator::~LandingTargetEstimator()
 		delete _target_estimator[i];
 	}
 
-	delete _target_estimator_orientation;
 	delete _target_estimator_coupled;
 
 	perf_free(_ltest_predict_perf);
@@ -172,14 +171,6 @@ bool LandingTargetEstimator::initEstimator(Vector3f pos_init, Vector3f vel_rel_i
 		}
 	}
 
-	if (_estimate_orientation) {
-		//TODO: define thse values
-		_target_estimator_orientation->setPosition(0.f);
-		_target_estimator_orientation->setVelocity(0.f);
-		_target_estimator_orientation->setStatePosVar(state_pos_var);
-		_target_estimator_orientation->setStateVelVar(state_vel_var);
-	}
-
 	return true;
 }
 
@@ -224,12 +215,6 @@ void LandingTargetEstimator::predictionStep(Vector3f vehicle_acc_ned)
 			_target_estimator[i]->predictCov(dt);
 		}
 	}
-
-	if (_estimate_orientation) {
-		//Orientation (theta) prediction (no input)
-		_target_estimator_orientation->predictState(dt, 0.0);
-		_target_estimator_orientation->predictCov(dt);
-	}
 }
 
 
@@ -248,8 +233,6 @@ bool LandingTargetEstimator::update_step(Vector3f vehicle_acc_ned)
 	targetObsPos obs_fiducial_marker;
 	targetObsPos obs_irlock;
 	targetObsPos obs_uwb;
-
-	targetObsOrientation obs_fiducial_marker_orientation;
 
 	bool pos_GNSS_valid = false;
 	bool target_GNSS_valid = false;
@@ -289,10 +272,6 @@ bool LandingTargetEstimator::update_step(Vector3f vehicle_acc_ned)
 
 		if (processObsVision(fiducial_marker_pose, obs_fiducial_marker)) {
 			fiducial_marker_valid = ((hrt_absolute_time() - obs_fiducial_marker.timestamp) < measurement_valid_TIMEOUT_US);
-		}
-
-		if (_estimate_orientation) {
-			processObsVisionOrientation(fiducial_marker_pose, obs_fiducial_marker_orientation);
 		}
 	}
 
@@ -376,11 +355,6 @@ bool LandingTargetEstimator::update_step(Vector3f vehicle_acc_ned)
 			if (fuse_meas(vehicle_acc_ned, obs_fiducial_marker)) {
 				pos_fused = true;
 			}
-
-			if (_estimate_orientation) {
-
-				fuse_orientation(obs_fiducial_marker_orientation);
-			}
 		}
 
 		/*IRLOCK*/
@@ -444,7 +418,7 @@ bool LandingTargetEstimator::update_step(Vector3f vehicle_acc_ned)
 			}
 
 			if (initEstimator(pos_init, vel_rel_init, acc_init, bias_init)) {
-				PX4_INFO("LTE Estimator properly initialized.");
+				PX4_INFO("LTE Position Estimator properly initialized.");
 				_estimator_initialized = true;
 				_vel_rel_init.valid = false;
 				_last_update = hrt_absolute_time();
@@ -454,35 +428,6 @@ bool LandingTargetEstimator::update_step(Vector3f vehicle_acc_ned)
 				resetFilter();
 			}
 		}
-	}
-
-	return false;
-}
-
-
-bool LandingTargetEstimator::processObsVisionOrientation(const landing_target_pose_s &fiducial_marker_pose,
-		targetObsOrientation &obs)
-{
-
-	// TODO complete mavlink message to include orientation
-	float vision_r_theta = fiducial_marker_pose.theta;
-	float vision_r_theta_unc = 0.f; // eventually use fiducial_marker_pose.cov_theta
-	hrt_abstime vision_timestamp = fiducial_marker_pose.timestamp;
-
-	/* ORIENTATION */
-	if (!PX4_ISFINITE(vision_r_theta)) {
-		PX4_WARN("VISION orientation is corrupt!");
-
-	} else {
-
-		// TODO: obtain relative orientation using the orientation of the drone.
-		// (vision gives orientation between body and target frame. We can thus use the orientation between the body frame and NED to obtain the orientation between NED and target)
-		obs.timestamp = vision_timestamp;
-		obs.updated_theta = true;
-		obs.meas_unc_theta = vision_r_theta_unc;
-		obs.meas_theta = vision_r_theta;
-		obs.meas_h_theta = 1;
-
 	}
 
 	return false;
@@ -1029,47 +974,10 @@ bool LandingTargetEstimator::fuse_meas(const Vector3f vehicle_acc_ned, const tar
 	return all_directions_fused;
 }
 
-bool LandingTargetEstimator::fuse_orientation(const targetObsOrientation &target_orientation_obs)
-{
-	// Update step for orientation
-	bool meas_fused = false;
-
-	estimator_aid_source_1d_s target_innov;
-
-	if (target_orientation_obs.updated_theta) {
-		_target_estimator_orientation->setH(target_orientation_obs.meas_h_theta);
-		target_innov.innovation_variance = _target_estimator_orientation->computeInnovCov(
-				target_orientation_obs.meas_unc_theta);
-		target_innov.innovation = _target_estimator_orientation->computeInnov(target_orientation_obs.meas_theta);
-		meas_fused = _target_estimator_orientation->update();
-
-		// Fill the target innovation field
-		target_innov.fusion_enabled = true;
-		target_innov.innovation_rejected = !meas_fused;
-		target_innov.fused = meas_fused;
-
-		target_innov.observation = target_orientation_obs.meas_theta;
-		target_innov.observation_variance = target_orientation_obs.meas_unc_theta;
-		target_innov.timestamp_sample = target_orientation_obs.timestamp;
-		target_innov.timestamp = hrt_absolute_time(); // TODO: check if correct hrt_absolute_time() or _last_predict
-
-	} else {
-		// No yaw measurement
-		target_innov.fusion_enabled = false;
-		target_innov.fused = false;
-	}
-
-	_target_estimator_aid_ev_yaw_pub.publish(target_innov);
-
-	return meas_fused;
-}
-
-
 void LandingTargetEstimator::publishTarget()
 {
 	target_estimator_state_s target_estimator_state{};
 
-	//TODO: Update target_pose msg to add orientation: target_pose.rel_orientation_valid -- target_pose.theta_rel -- target_pose.cov_theta_rel
 	landing_target_pose_s target_pose{};
 
 	target_pose.timestamp = _last_predict;
@@ -1189,11 +1097,6 @@ void LandingTargetEstimator::publishTarget()
 			target_estimator_state.cov_az_target = _nb_position_kf > 2 ? _target_estimator[z]->getAccVar() : 0.f;
 		}
 	}
-
-	// TODO: eventually uncomment
-	// target_pose.theta_rel = _estimate_orientation ? _target_estimator_orientation->getPosition() : 0.f; ;
-	// target_pose.vtheta_abs = _target_estimator_orientation->getVelocity();
-	// target_pose.cov_theta_rel =  _target_estimator_orientation->getPosVar();
 
 	if (_local_pos.valid) {
 		target_pose.x_abs = target_pose.x_rel + _local_pos.x;
@@ -1334,7 +1237,6 @@ void LandingTargetEstimator::updateParams()
 
 	const TargetMode param_target_mode = (TargetMode)_param_ltest_mode.get();
 	const TargetModel param_target_model = (TargetModel)_param_ltest_model.get();
-	_estimate_orientation = false; // TODO: change to a parameter
 	_ltest_aid_mask = _param_ltest_aid_mask.get();
 
 	_target_acc_unc = _param_ltest_acc_t_unc.get();
@@ -1342,7 +1244,8 @@ void LandingTargetEstimator::updateParams()
 	_meas_unc = _param_ltest_meas_unc.get();
 	_gps_target_unc = _param_ltest_gps_t_unc.get();
 
-	// TODO: if we don't have observations, do not init the estimator
+	PX4_INFO("LTE position estimator enabled.");
+
 	if (_ltest_aid_mask == 0) { PX4_ERR("LTE no data fusion enabled. Modify LTEST_AID_MASK and reboot");}
 
 	if (_ltest_aid_mask & SensorFusionMask::USE_TARGET_GPS_POS) { PX4_INFO("LTE target GPS position data fusion enabled");}
@@ -1359,7 +1262,6 @@ void LandingTargetEstimator::updateParams()
 
 	if (_ltest_aid_mask & SensorFusionMask::USE_MISSION_POS && _ltest_aid_mask & SensorFusionMask::USE_TARGET_GPS_POS) { PX4_INFO("LTE a weighted average between the landing point and the target GPS position will be performed");}
 
-	// TODO: add orientation
 	if (_target_mode != param_target_mode || _target_model != param_target_model) {
 
 		// Define the target mode and model
@@ -1378,8 +1280,8 @@ void LandingTargetEstimator::updateParams()
 	case TargetModel::FullPoseDecoupled:
 		_nb_position_kf = 3;
 
-		if ((_target_estimator[x] == nullptr) || (_target_estimator[y] == nullptr) || (_target_estimator[z] == nullptr)
-		    || (_target_estimator_orientation == nullptr)) {
+		if ((_target_estimator[x] == nullptr) || (_target_estimator[y] == nullptr) || (_target_estimator[z] == nullptr)) {
+			// TODO: should return false
 			return;
 		}
 
@@ -1413,7 +1315,6 @@ bool LandingTargetEstimator::selectTargetEstimator()
 	TargetEstimator *tmp_x = nullptr;
 	TargetEstimator *tmp_y = nullptr;
 	TargetEstimator *tmp_z = nullptr;
-	TargetEstimator *tmp_theta = nullptr;
 	TargetEstimatorCoupled *tmp_xyz = nullptr;
 
 	bool init_failed = true;
@@ -1468,18 +1369,6 @@ bool LandingTargetEstimator::selectTargetEstimator()
 		break;
 	}
 
-	if (_estimate_orientation) {
-		// TODO: complete
-
-		if (_target_mode == TargetMode::Moving) {
-			// tmp_theta = new KFOrientationMoving;
-		} else {
-			// tmp_theta = new KFOrientationStationary;
-		}
-
-		// init_failed = (tmp_theta == nullptr);
-	}
-
 	if (init_failed) {
 		PX4_ERR("LTE init failed");
 		return false;
@@ -1517,11 +1406,6 @@ bool LandingTargetEstimator::selectTargetEstimator()
 
 		case TargetModel::NotInit:
 			break;
-		}
-
-		if (_estimate_orientation) {
-			delete _target_estimator_orientation;
-			_target_estimator_orientation = tmp_theta;
 		}
 
 		return true;

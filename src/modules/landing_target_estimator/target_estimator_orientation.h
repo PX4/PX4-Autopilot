@@ -38,20 +38,20 @@
 
 #pragma once
 
-class TargetEstimator
+class TargetEstimatorOrientation
 {
 public:
-	TargetEstimator() = default;
-	virtual ~TargetEstimator() = default;
+	TargetEstimatorOrientation() = default;
+	virtual ~TargetEstimatorOrientation() = default;
 
 	//Prediction step:
-	virtual void predictState(float dt, float acc) = 0;
+	virtual void predictState(float dt) = 0;
 	virtual void predictCov(float dt) = 0;
 
 	// Backwards state prediciton
-	virtual void syncState(float dt, float acc) = 0;
+	virtual void syncState(float dt) = 0;
 
-	virtual void setH(matrix::Vector<float, 12> h_meas) = 0;
+	virtual void setH(matrix::Vector<float, 2> h_meas) = 0;
 
 	virtual float computeInnovCov(float measUnc) = 0;
 	virtual float computeInnov(float meas) = 0;
@@ -61,27 +61,15 @@ public:
 	// Init: x_0
 	virtual void setPosition(float pos) = 0;
 	virtual void setVelocity(float vel) = 0;
-	virtual void setTargetAcc(float acc) = 0;
-	virtual void setBias(float bias) = 0;
 
 	// Init: P_0
 	virtual void setStatePosVar(float var) = 0;
 	virtual void setStateVelVar(float var) = 0;
-	virtual void setStateAccVar(float var) = 0;
-	virtual void setStateBiasVar(float var) = 0;
 
 	// Retreive output of filter
 	virtual float getPosition() { return 0.f; };
 	virtual float getVelocity() { return 0.f; };
-	virtual float getBias() { return 0.f; };
-	virtual float getAcceleration() { return 0.f; };
 
 	virtual float getPosVar() { return 0.f; };
 	virtual float getVelVar() { return 0.f; };
-	virtual float getBiasVar() { return 0.f; };
-	virtual float getAccVar() { return 0.f; };
-
-	virtual void setInputAccVar(float var) = 0;
-	virtual void setTargetAccVar(float var) = 0;
-	virtual void setBiasVar(float var) = 0;
 };

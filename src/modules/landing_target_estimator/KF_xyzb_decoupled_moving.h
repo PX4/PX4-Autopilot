@@ -106,13 +106,6 @@ public:
 	void setBiasVar(float var) override { _bias_var = var; };
 	void setTargetAccVar(float var) override { _acc_var = var; };
 
-	/* Unused functions:  */
-	void computeDynamicMatrix(float dt) override {};
-	void computeProcessNoise(float dt) override {};
-
-	// For orientation filter
-	void setH(float h_meas) override {};
-
 private:
 	matrix::Matrix<float, 4, 1> _state; // state
 

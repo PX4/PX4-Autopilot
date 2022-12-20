@@ -107,11 +107,6 @@ public:
 	float getAcceleration() override { return 0.f; };
 	float getAccVar() override { return 0.f; };
 	void setTargetAccVar(float var) override {};
-	void computeDynamicMatrix(float dt) override {};
-	void computeProcessNoise(float dt) override {};
-
-	// For orientation filter
-	void setH(float h_meas) override {};
 
 private:
 	matrix::Matrix<float, 3, 1> _state; // state

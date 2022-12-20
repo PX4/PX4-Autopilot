@@ -38,11 +38,14 @@ px4_add_module(
 	SRCS
 		landing_target_estimator_main.cpp
 		LandingTargetEstimator.cpp
+		LTEOrientation.cpp
 		KalmanFilter.cpp
 		KF_xyzb_coupled_moving.cpp
 		KF_xyzb_decoupled_moving.cpp
+		KF_orientation_moving.cpp
 		KF_xyzb_decoupled_static.cpp
 		KF_xyzb_coupled_static.cpp
+		KF_orientation_static.cpp
 	DEPENDS
 	)
 

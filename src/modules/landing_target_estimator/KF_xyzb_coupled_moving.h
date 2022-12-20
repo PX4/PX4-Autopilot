@@ -105,10 +105,6 @@ public:
 	void setBiasVar(matrix::Matrix<float, 3, 3> varVect) override {_bias_var = varVect;};
 	void setTargetAccVar(matrix::Matrix<float, 3, 3> varVect) override {_acc_var = varVect;};
 
-	/* Unused functions:  */
-	void computeDynamicMatrix(float dt) override {};
-	void computeProcessNoise(float dt) override {};
-
 private:
 	matrix::Matrix<float, 12, 1> _state; // state
 

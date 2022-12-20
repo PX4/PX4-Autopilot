@@ -11,9 +11,6 @@ float32 x_rel			# X/north position of target, relative to vehicle (navigation fr
 float32 y_rel			# Y/east position of target, relative to vehicle (navigation frame) [meters]
 float32 z_rel			# Z/down position of target, relative to vehicle (navigation frame) [meters]
 
-float32 theta           # orientation of the target relative to body frame [rad]
-float32 cov_theta       # orientation uncertainty
-
 float32 vx_rel			# X/north velocity  of target, relative to vehicle (navigation frame) [meters/second]
 float32 vy_rel			# Y/east velocity of target, relative to vehicle (navigation frame) [meters/second]
 float32 vz_rel			# Z/down velocity of target, relative to vehicle (navigation frame) [meters/second]

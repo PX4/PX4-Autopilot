@@ -58,9 +58,6 @@ public:
 
 	virtual bool update() { return true; };
 
-	virtual void computeDynamicMatrix(float dt) = 0;
-	virtual void computeProcessNoise(float dt) = 0;
-
 	// Init: x_0
 	//TODO: Rename with "Init": setInitPosition
 

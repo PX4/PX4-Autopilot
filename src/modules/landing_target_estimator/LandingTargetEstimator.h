@@ -65,7 +65,6 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/estimator_aid_source_3d.h>
-#include <uORB/topics/estimator_aid_source_1d.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <matrix/math.hpp>
@@ -135,8 +134,6 @@ protected:
 	uORB::Publication<estimator_aid_source_3d_s> _target_estimator_aid_irlock_pub{ORB_ID(target_estimator_aid_irlock)};
 	uORB::Publication<estimator_aid_source_3d_s> _target_estimator_aid_uwb_pub{ORB_ID(target_estimator_aid_uwb)};
 
-	uORB::Publication<estimator_aid_source_1d_s> _target_estimator_aid_ev_yaw_pub{ORB_ID(target_estimator_aid_ev_yaw)};
-
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 private:
@@ -159,15 +156,6 @@ private:
 
 	TargetMode _target_mode{TargetMode::NotInit};
 	TargetModel _target_model{TargetModel::NotInit};
-
-	struct targetObsOrientation {
-		hrt_abstime timestamp;
-		// Theta
-		bool updated_theta = false;
-		float meas_theta = 0.f;
-		float meas_unc_theta = 0.f;
-		float meas_h_theta = 0.f;
-	};
 
 	enum ObservationType {
 		target_gps_pos = 0,
@@ -215,14 +203,12 @@ private:
 	bool processObsIRlock(const irlock_report_s &irlock_report, targetObsPos &obs);
 	bool processObsUWB(const uwb_distance_s &uwb_distance, targetObsPos &obs);
 	bool processObsVision(const landing_target_pose_s &fiducial_marker_pose, targetObsPos &obs);
-	bool processObsVisionOrientation(const landing_target_pose_s &fiducial_marker_pose, targetObsOrientation &obs);
 	bool processObsTargetGNSS(const landing_target_gnss_s &target_GNSS_report, bool target_GNSS_report_valid,
 				  const sensor_gps_s &vehicle_gps_position, targetObsPos &obs);
 	bool processObsUavGNSSVel(const landing_target_gnss_s &target_GNSS_report,  const sensor_gps_s &vehicle_gps_position,
 				  targetObsPos &obs);
 
 	bool fuse_meas(const matrix::Vector3f vehicle_acc_ned, const targetObsPos &target_pos_obs);
-	bool fuse_orientation(const targetObsOrientation &target_pos_obs);
 	void publishTarget();
 	void publishInnovations();
 
@@ -279,7 +265,6 @@ private:
 
 	matrix::Quaternion<float> _q_att; //Quaternion orientation of the body frame
 	TargetEstimator *_target_estimator[nb_directions] {nullptr, nullptr, nullptr};
-	TargetEstimator *_target_estimator_orientation {nullptr}; // TODO: have a separate class for orientation
 	TargetEstimatorCoupled *_target_estimator_coupled {nullptr};
 	int _nb_position_kf; // Number of kalman filter instances for the position estimate (no orientation)
 	hrt_abstime _last_predict{0}; // timestamp of last filter prediction
@@ -293,7 +278,6 @@ private:
 	/* parameters */
 	uint32_t _ltest_TIMEOUT_US = 3000000; // timeout after which filter is reset if target not seen
 	int _ltest_aid_mask{0};
-	bool _estimate_orientation; // TODO: set as parameter
 	float _target_acc_unc;
 	float _bias_unc;
 	float _meas_unc;

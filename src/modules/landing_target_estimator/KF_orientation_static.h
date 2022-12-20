@@ -32,17 +32,12 @@
  ****************************************************************************/
 
 /*
- * @file KalmanFilter.h
+ * @file KF_xyzb_decoupled_static.h
  * Simple Kalman Filter for variable gain low-passing
  *
- * Constant velocity model. Prediction according to
- * x_{k+1} = A * x_{k}
- * with A = [1 dt; 0 1]
+ * State: [orientation]
  *
- * Update with a direct measurement of the first state:
- * H = [1 0]
- *
- * @author Nicolas de Palezieux (Sunflower Labs) <ndepal@gmail.com>
+ * @author Jonas Perolini <jonas.perolini@epfl.ch>
  *
  */
 
@@ -51,33 +46,33 @@
 #include <matrix/Matrix.hpp>
 #include <matrix/Vector.hpp>
 
-#include "target_estimator.h"
+#include "target_estimator_orientation.h"
 
 #pragma once
 
 namespace landing_target_estimator
 {
-class KalmanFilter : public TargetEstimator
+class KF_orientation_static : public TargetEstimatorOrientation
 {
 public:
 	/**
 	 * Default constructor, state not initialized
 	 */
-	KalmanFilter() {};
+	KF_orientation_static() {};
 
 	/**
 	 * Default desctructor
 	 */
-	virtual ~KalmanFilter() {};
+	virtual ~KF_orientation_static() {};
 
 	//Prediction step:
-	void predictState(float dt, float acc) override;
+	void predictState(float dt) override;
 	void predictCov(float dt) override;
 
 	// Backwards state prediciton
-	void syncState(float dt, float acc) override;
+	void syncState(float dt) override;
 
-	void setH(matrix::Vector<float, 12> h_meas) override;
+	void setH(matrix::Vector<float, 2> h_meas) override;
 
 	virtual float computeInnovCov(float measUnc) override;
 	virtual float computeInnov(float meas) override;
@@ -85,50 +80,32 @@ public:
 	bool update() override;
 
 	// Init: x_0
-	//TODO: Rename with "Init": setInitPosition
-	void setPosition(float pos) override { _state(0) = pos; };
-	void setVelocity(float vel) override { _state(1) = vel; };
+	void setPosition(float pos) override { _state = pos; };
 
 	// Init: P_0
-	void setStatePosVar(float pos_unc) override { _covariance(0, 0) = pos_unc; };
-	void setStateVelVar(float vel_unc) override { _covariance(1, 1) = vel_unc; };
+	void setStatePosVar(float pos_unc) override { _covariance = pos_unc; };
 
 	// Retreive output of filter
-	float getPosition() override { return _state(0); };
-	float getVelocity() override { return _state(1); };
+	float getPosition() override { return _state; };
 
-	float getPosVar() override { return _covariance(0, 0); };
-	float getVelVar() override { return _covariance(1, 1); };
-
-	void setInputAccVar(float var) override { _input_var = var;};
+	float getPosVar() override { return _covariance; };
 
 
-	/* Unused functions:  */
-	void setTargetAcc(float acc) override {};
-	void setBias(float acc) override {};
-	void setTargetAccVar(float var) override {};
-	void setBiasVar(float var) override {};
-	void setStateBiasVar(float var) override {};
+	float getVelVar() override { return 0.f; };
+	float getVelocity() override { return 0.f; };
+	void setStateVelVar(float vel_unc) override { };
+	void setVelocity(float vel) override { };
 
-	void setStateAccVar(float var) override {};
-
-	float getAcceleration() override { return 0.f; };
-	float getAccVar() override { return 0.f; };
-	float getBias() override { return 0.f; };
-	float getBiasVar() override { return 0.f; };
 
 private:
-	matrix::Vector<float, 2> _state; // state
 
-	matrix::Vector<float, 2> _sync_state; // state
+	float _state; // state
 
-	matrix::Vector<float, 2> _meas_matrix; // row of measurement matrix
+	float _sync_state; // state
 
-	matrix::Matrix<float, 2, 2> _covariance; // state covariance
+	float _meas_matrix; // row of measurement matrix
 
-	matrix::Matrix<float, 2, 2> _process_noise;
-
-	float _input_var{0.f};
+	float _covariance; // state covariance
 
 	float _innov{0.0f}; // residual of last measurement update
 
