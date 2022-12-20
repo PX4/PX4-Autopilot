@@ -3,3 +3,10 @@ menuconfig DRIVERS_PWM_ESC
 	default n
 	---help---
 		Enable support for pwm_esc
+
+menuconfig USER_PWM_ESC
+	bool "pwm_esc running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && DRIVERS_PWM_ESC
+	---help---
+		Put pwm_esc in userspace memory
