@@ -69,6 +69,10 @@
 // #include <sys/types.h> and leaving OK undefined
 # define OK 0
 
+#if defined(__PX4_NUTTX)
+#include <klibc_glue.h>
+#endif
+
 /*
  * UavcanNode
  */
