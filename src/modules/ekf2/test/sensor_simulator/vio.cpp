@@ -8,6 +8,7 @@ namespace sensor
 Vio::Vio(std::shared_ptr<Ekf> ekf): Sensor(ekf)
 {
 	_vio_data.vel_frame = VelocityFrame::LOCAL_FRAME_FRD;
+	_vio_data.pos_frame = PositionFrame::LOCAL_FRAME_FRD;
 }
 
 Vio::~Vio()
@@ -32,7 +33,7 @@ void Vio::setVelocityVariance(const Vector3f &velVar)
 
 void Vio::setPositionVariance(const Vector3f &posVar)
 {
-	_vio_data.posVar = posVar;
+	_vio_data.position_var = posVar;
 }
 
 void Vio::setAngularVariance(float angVar)
@@ -70,16 +71,27 @@ void Vio::setVelocityFrameToLocalNED()
 	_vio_data.vel_frame = VelocityFrame::LOCAL_FRAME_NED;
 }
 
+void Vio::setPositionFrameToLocalNED()
+{
+	_vio_data.pos_frame = PositionFrame::LOCAL_FRAME_NED;
+}
+
+void Vio::setPositionFrameToLocalFRD()
+{
+	_vio_data.pos_frame = PositionFrame::LOCAL_FRAME_FRD;
+}
+
 extVisionSample Vio::dataAtRest()
 {
 	extVisionSample vio_data;
-	vio_data.pos = Vector3f{0.0f, 0.0f, 0.0f};;
-	vio_data.vel = Vector3f{0.0f, 0.0f, 0.0f};;
+	vio_data.pos = Vector3f{0.0f, 0.0f, 0.0f};
+	vio_data.vel = Vector3f{0.0f, 0.0f, 0.0f};
 	vio_data.quat = Quatf{1.0f, 0.0f, 0.0f, 0.0f};
-	vio_data.posVar = Vector3f{0.1f, 0.1f, 0.1f};
+	vio_data.position_var = Vector3f{0.1f, 0.1f, 0.1f};
 	vio_data.velocity_var = Vector3f{0.1f, 0.1f, 0.1f};
 	vio_data.orientation_var(2) = 0.05f;
 	vio_data.vel_frame = VelocityFrame::LOCAL_FRAME_FRD;
+	vio_data.pos_frame = PositionFrame::LOCAL_FRAME_FRD;
 	return vio_data;
 }
 

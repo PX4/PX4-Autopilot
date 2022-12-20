@@ -79,6 +79,11 @@ static constexpr float BADACC_BIAS_PNOISE = 4.9f;  ///< The delta velocity proce
 // ground effect compensation
 static constexpr uint64_t GNDEFFECT_TIMEOUT = 10e6; ///< Maximum period of time that ground effect protection will be active after it was last turned on (uSec)
 
+enum class PositionFrame : uint8_t {
+	LOCAL_FRAME_NED = 0,
+	LOCAL_FRAME_FRD = 1,
+};
+
 enum class VelocityFrame : uint8_t {
 	LOCAL_FRAME_NED = 0,
 	LOCAL_FRAME_FRD = 1,
@@ -115,6 +120,12 @@ enum HeightSensor : uint8_t {
 	UNKNOWN  = 4
 };
 
+enum class PositionSensor : uint8_t {
+	UNKNOWN = 0,
+	GNSS    = 1,
+	EV      = 2,
+};
+
 enum GnssCtrl : uint8_t {
 	HPOS  = (1<<0),
 	VPOS  = (1<<1),
@@ -140,11 +151,11 @@ enum SensorFusionMask : uint16_t {
 	DEPRECATED_USE_GPS = (1<<0),    ///< set to true to use GPS data (DEPRECATED, use gnss_ctrl)
 	USE_OPT_FLOW     = (1<<1),      ///< set to true to use optical flow data
 	INHIBIT_ACC_BIAS = (1<<2),      ///< set to true to inhibit estimation of accelerometer delta velocity bias
-	USE_EXT_VIS_POS  = (1<<3),      ///< set to true to use external vision position data
-	USE_EXT_VIS_YAW  = (1<<4),      ///< set to true to use external vision quaternion data for yaw
+	DEPRECATED_USE_EXT_VIS_POS = (1<<3), ///< set to true to use external vision position data
+	DEPRECATED_USE_EXT_VIS_YAW = (1<<4), ///< set to true to use external vision quaternion data for yaw
 	USE_DRAG         = (1<<5),      ///< set to true to use the multi-rotor drag model to estimate wind
-	ROTATE_EXT_VIS   = (1<<6),      ///< set to true to if the EV observations are in a non NED reference frame and need to be rotated before being used
-	DEPRECATED_USE_GPS_YAW = (1<<7),///< set to true to use GPS yaw data if available (DEPRECATED, use gnss_ctrl)
+	DEPRECATED_ROTATE_EXT_VIS  = (1<<6), ///< set to true to if the EV observations are in a non NED reference frame and need to be rotated before being used
+	DEPRECATED_USE_GPS_YAW     = (1<<7), ///< set to true to use GPS yaw data if available (DEPRECATED, use gnss_ctrl)
 	DEPRECATED_USE_EXT_VIS_VEL = (1<<8), ///< set to true to use external vision velocity data
 };
 
@@ -238,9 +249,10 @@ struct extVisionSample {
 	Vector3f    pos{};         ///< XYZ position in external vision's local reference frame (m) - Z must be aligned with down axis
 	Vector3f    vel{};         ///< FRD velocity in reference frame defined in vel_frame variable (m/sec) - Z must be aligned with down axis
 	Quatf       quat{};        ///< quaternion defining rotation from body to earth frame
-	Vector3f    posVar{};      ///< XYZ position variances (m**2)
+	Vector3f    position_var{};    ///< XYZ position variances (m**2)
 	Vector3f    velocity_var{};    ///< XYZ velocity variances ((m/sec)**2)
 	Vector3f    orientation_var{}; ///< orientation variance (rad**2)
+	PositionFrame pos_frame = PositionFrame::LOCAL_FRAME_FRD;
 	VelocityFrame vel_frame = VelocityFrame::BODY_FRAME_FRD;
 	uint8_t     reset_counter{};
 	int8_t     quality{};     ///< quality indicator between 0 and 100
@@ -283,6 +295,7 @@ struct parameters {
 	// measurement source control
 	int32_t fusion_mode{};         ///< bitmasked integer that selects some aiding sources
 	int32_t height_sensor_ref{HeightSensor::BARO};
+	int32_t position_sensor_ref{static_cast<int32_t>(PositionSensor::GNSS)};
 	int32_t baro_ctrl{1};
 	int32_t gnss_ctrl{GnssCtrl::HPOS | GnssCtrl::VEL};
 	int32_t rng_ctrl{RngCtrl::CONDITIONAL};
@@ -325,7 +338,7 @@ struct parameters {
 	const float initial_wind_uncertainty{1.0f};     ///< 1-sigma initial uncertainty in wind velocity (m/sec)
 
 	// position and velocity fusion
-	float gps_vel_noise{5.0e-1f};           ///< minimum allowed observation noise for gps velocity fusion (m/sec)
+	float gps_vel_noise{0.5f};           ///< minimum allowed observation noise for gps velocity fusion (m/sec)
 	float gps_pos_noise{0.5f};              ///< minimum allowed observation noise for gps position fusion (m)
 	float gps_hgt_bias_nsd{0.13f};          ///< process noise for gnss height bias estimation (m/s/sqrt(Hz))
 	float pos_noaid_noise{10.0f};           ///< observation noise for non-aiding position fusion (m)

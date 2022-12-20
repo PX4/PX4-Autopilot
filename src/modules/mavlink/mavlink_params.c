@@ -143,17 +143,6 @@ PARAM_DEFINE_INT32(MAV_HASH_CHK_EN, 1);
 PARAM_DEFINE_INT32(MAV_HB_FORW_EN, 1);
 
 /**
- * Activate ODOMETRY loopback.
- *
- * If set, it gets the data from 'vehicle_visual_odometry' instead of 'vehicle_odometry'
- * serving as a loopback of the received ODOMETRY messages on the Mavlink receiver.
- *
- * @boolean
- * @group MAVLink
- */
-PARAM_DEFINE_INT32(MAV_ODOM_LP, 0);
-
-/**
  * Timeout in seconds for the RADIO_STATUS reports coming in
  *
  * If the connected radio stops reporting RADIO_STATUS for a certain time,

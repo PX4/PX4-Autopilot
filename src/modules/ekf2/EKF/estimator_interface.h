@@ -258,7 +258,6 @@ public:
 
 	const gpsSample &get_gps_sample_delayed() const { return _gps_sample_delayed; }
 	const rangeSample &get_rng_sample_delayed() { return *(_range_sensor.getSampleAddress()); }
-	const extVisionSample &get_ev_sample_delayed() const { return _ev_sample_delayed; }
 
 	const bool &global_origin_valid() const { return _NED_origin_initialised; }
 	const MapProjection &global_origin() const { return _pos_ref; }
@@ -305,8 +304,7 @@ protected:
 	sensor::SensorRangeFinder _range_sensor{};
 	airspeedSample _airspeed_sample_delayed{};
 	flowSample _flow_sample_delayed{};
-	extVisionSample _ev_sample_delayed{};
-	extVisionSample _ev_sample_delayed_prev{};
+	extVisionSample _ev_sample_prev{};
 	dragSample _drag_down_sampled{};	// down sampled drag specific force data (filter prediction rate -> observation rate)
 
 	RangeFinderConsistencyCheck _rng_consistency_check;

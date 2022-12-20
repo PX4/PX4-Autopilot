@@ -95,7 +95,6 @@ void Ekf::controlFakePosFusion()
 			if (starting_conditions_passing) {
 				ECL_INFO("start fake position fusion");
 				_control_status.flags.fake_pos = true;
-				_fuse_hpos_as_odom = false; // TODO: needed?
 				resetFakePosFusion();
 
 				if (_control_status.flags.tilt_align) {
