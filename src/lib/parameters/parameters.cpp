@@ -81,6 +81,10 @@ using namespace time_literals;
 #include "parameters_ioctl.h"
 #endif
 
+#if defined(__PX4_NUTTX)
+#include <klibc_glue.h>
+#endif
+
 #if defined(FLASH_BASED_PARAMS)
 #include "flashparams/flashparams.h"
 #else
