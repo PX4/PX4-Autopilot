@@ -1338,8 +1338,9 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 		}
 
 		// tune up the lateral position control guidance when on the ground
-		if (_att_sp.fw_control_yaw_wheel) {
+		if (_runway_takeoff.controlYaw()) {
 			_npfg.setPeriod(_param_rwto_npfg_period.get());
+
 		}
 
 		const Vector2f start_pos_local = _global_local_proj_ref.project(_runway_takeoff.getStartPosition()(0),
