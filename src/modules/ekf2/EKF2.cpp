@@ -1741,10 +1741,26 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps, vehicle_odo
 				ev_data.vel_frame = VelocityFrame::BODY_FRAME_FRD;
 				velocity_frame_valid = true;
 				break;
+
+			case vehicle_odometry_s::VELOCITY_FRAME_ENU:
+				ev_data.vel_frame = VelocityFrame::LOCAL_FRAME_NED;
+				velocity_frame_valid = true;
+				break;
 			}
 
 			if (velocity_frame_valid) {
-				ev_data.vel = ev_odom_vel;
+				switch (ev_odom.velocity_frame) {
+				case vehicle_odometry_s::VELOCITY_FRAME_ENU:
+					// ENU -> NED
+					ev_data.vel(0) = ev_odom_vel(0);
+					ev_data.vel(1) = ev_odom_vel(1);
+					ev_data.vel(2) = ev_odom_vel(2);
+					ev_data.vel_frame = VelocityFrame::LOCAL_FRAME_NED;
+					break;
+
+				default:
+					ev_data.vel = ev_odom_vel;
+				}
 
 				const float evv_noise_var = sq(_param_ekf2_evv_noise.get());
 
@@ -1782,9 +1798,20 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps, vehicle_odo
 			// }
 
 			if (position_valid) {
-				ev_data.pos(0) = ev_odom.position[0];
-				ev_data.pos(1) = ev_odom.position[1];
-				ev_data.pos(2) = ev_odom.position[2];
+				switch (ev_odom.pose_frame) {
+				case vehicle_odometry_s::POSE_FRAME_ENU:
+					// ENU -> NED
+					ev_data.pos(0) =  ev_odom.position[1];
+					ev_data.pos(1) =  ev_odom.position[0];
+					ev_data.pos(2) = -ev_odom.position[2];
+					break;
+
+				default:
+					ev_data.pos(0) = ev_odom.position[0];
+					ev_data.pos(1) = ev_odom.position[1];
+					ev_data.pos(2) = ev_odom.position[2];
+					break;
+				}
 
 				const float evp_noise_var = sq(_param_ekf2_evp_noise.get());
 
