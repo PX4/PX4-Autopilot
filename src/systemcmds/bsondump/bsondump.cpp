@@ -51,7 +51,7 @@ static void print_usage(const char *reason = nullptr)
 	PRINT_MODULE_USAGE_ARG("<file>", "File name", false);
 }
 
-static int bson_print_callback(bson_decoder_t decoder, bson_node_t node)
+static int bson_print_callback(bson_decoder_t decoder, void *priv, bson_node_t node)
 {
 	switch (node->type) {
 	case BSON_EOO:
@@ -102,7 +102,7 @@ extern "C" __EXPORT int bsondump_main(int argc, char *argv[])
 
 				bson_decoder_s decoder{};
 
-				if (bson_decoder_init_file(&decoder, fd, bson_print_callback) == 0) {
+				if (bson_decoder_init_file(&decoder, fd, bson_print_callback, nullptr) == 0) {
 					PX4_INFO_RAW("BSON document size %" PRId32 "\n", decoder.total_document_size);
 
 					int result = -1;

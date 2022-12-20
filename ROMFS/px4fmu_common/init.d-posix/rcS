@@ -227,7 +227,7 @@ then
 elif [ ! -e "$autostart_file" ] && [ "$SYS_AUTOSTART" -ne "0" ]
 then
 	echo "Error: no autostart file found ($autostart_file)"
-	exit 1
+	#exit 1
 fi
 
 #user defined params for instances can be in PATH

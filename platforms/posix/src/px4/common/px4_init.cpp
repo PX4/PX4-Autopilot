@@ -44,11 +44,11 @@ int px4_platform_init(void)
 {
 	hrt_init();
 
-	param_init();
-
 	px4::WorkQueueManagerStart();
 
 	uorb_start();
+
+	param_init();
 
 	px4_log_initialize();
 

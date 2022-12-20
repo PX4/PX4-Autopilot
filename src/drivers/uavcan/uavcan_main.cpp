@@ -701,7 +701,8 @@ UavcanNode::Run()
 
 	// Check for parameter requests (get/set/list)
 	if (_param_request_sub.updated() && !_param_list_in_progress && !_param_in_progress && !_count_in_progress) {
-		uavcan_parameter_request_s request{};
+
+		parameter_request_s request{};
 		_param_request_sub.copy(&request);
 
 		if (_param_counts[request.node_id]) {
@@ -709,14 +710,14 @@ UavcanNode::Run()
 			 * We know how many parameters are exposed by this node, so
 			 * process the request.
 			 */
-			if (request.message_type == uavcan_parameter_request_s::MESSAGE_TYPE_PARAM_REQUEST_READ) {
+			if (request.message_type == parameter_request_s::MESSAGE_TYPE_PARAM_REQUEST_READ) {
 				uavcan::protocol::param::GetSet::Request req;
 
 				if (request.param_index >= 0) {
 					req.index = request.param_index;
 
 				} else {
-					req.name = (char *)request.param_id;
+					req.name = (char *)request.name;
 				}
 
 				int call_res = _param_getset_client.call(request.node_id, req);
@@ -729,24 +730,28 @@ UavcanNode::Run()
 					_param_index = request.param_index;
 				}
 
-			} else if (request.message_type == uavcan_parameter_request_s::MESSAGE_TYPE_PARAM_SET) {
+			} else if (request.message_type == parameter_request_s::MESSAGE_TYPE_PARAM_SET) {
 				uavcan::protocol::param::GetSet::Request req;
 
 				if (request.param_index >= 0) {
 					req.index = request.param_index;
 
 				} else {
-					req.name = (char *)request.param_id;
+					req.name = (char *)request.name;
 				}
 
-				if (request.param_type == uavcan_parameter_request_s::PARAM_TYPE_REAL32) {
-					req.value.to<uavcan::protocol::param::Value::Tag::real_value>() = request.real_value;
+				switch (request.type) {
+				case parameter_request_s::TYPE_BOOL:
+					req.value.to<uavcan::protocol::param::Value::Tag::boolean_value>() = request.int32_value;
+					break;
 
-				} else if (request.param_type == uavcan_parameter_request_s::PARAM_TYPE_UINT8) {
-					req.value.to<uavcan::protocol::param::Value::Tag::boolean_value>() = request.int_value;
+				case parameter_request_s::TYPE_FLOAT32:
+					req.value.to<uavcan::protocol::param::Value::Tag::real_value>() = request.float32_value;
+					break;
 
-				} else {
-					req.value.to<uavcan::protocol::param::Value::Tag::integer_value>() = request.int_value;
+				default:
+					req.value.to<uavcan::protocol::param::Value::Tag::integer_value>() = request.int32_value;
+					break;
 				}
 
 				// Set the dirty bit for this node
@@ -762,7 +767,7 @@ UavcanNode::Run()
 					_param_index = request.param_index;
 				}
 
-			} else if (request.message_type == uavcan_parameter_request_s::MESSAGE_TYPE_PARAM_REQUEST_LIST) {
+			} else if (request.message_type == parameter_request_s::MESSAGE_TYPE_PARAM_REQUEST_LIST) {
 				// This triggers the _param_list_in_progress case below.
 				_param_index = 0;
 				_param_list_in_progress = true;
@@ -772,8 +777,8 @@ UavcanNode::Run()
 				PX4_DEBUG("starting component-specific param list");
 			}
 
-		} else if (request.node_id == uavcan_parameter_request_s::NODE_ID_ALL) {
-			if (request.message_type == uavcan_parameter_request_s::MESSAGE_TYPE_PARAM_REQUEST_LIST) {
+		} else if (request.node_id == parameter_request_s::NODE_ID_ALL) {
+			if (request.message_type == parameter_request_s::MESSAGE_TYPE_PARAM_REQUEST_LIST) {
 				/*
 				 * This triggers the _param_list_in_progress case below,
 				 * but additionally iterates over all active nodes.
@@ -1091,24 +1096,24 @@ UavcanNode::cb_getset(const uavcan::ServiceCallResult<uavcan::protocol::param::G
 		if (result.isSuccessful()) {
 			uavcan::protocol::param::GetSet::Response param = result.getResponse();
 
-			uavcan_parameter_value_s response{};
+			parameter_value_s response{};
 			response.node_id = result.getCallID().server_node_id.get();
-			strncpy(response.param_id, param.name.c_str(), sizeof(response.param_id) - 1);
-			response.param_id[16] = '\0';
+			strncpy(response.param_name, param.name.c_str(), sizeof(response.param_name) - 1);
+			response.param_name[16] = '\0';
 			response.param_index = _param_index;
 			response.param_count = _param_counts[response.node_id];
 
 			if (param.value.is(uavcan::protocol::param::Value::Tag::integer_value)) {
-				response.param_type = uavcan_parameter_request_s::PARAM_TYPE_INT64;
-				response.int_value = param.value.to<uavcan::protocol::param::Value::Tag::integer_value>();
+				response.type = parameter_request_s::TYPE_INT32;
+				response.int32_value = param.value.to<uavcan::protocol::param::Value::Tag::integer_value>();
 
 			} else if (param.value.is(uavcan::protocol::param::Value::Tag::real_value)) {
-				response.param_type = uavcan_parameter_request_s::PARAM_TYPE_REAL32;
-				response.real_value = param.value.to<uavcan::protocol::param::Value::Tag::real_value>();
+				response.type = parameter_request_s::TYPE_FLOAT32;
+				response.float32_value = param.value.to<uavcan::protocol::param::Value::Tag::real_value>();
 
 			} else if (param.value.is(uavcan::protocol::param::Value::Tag::boolean_value)) {
-				response.param_type = uavcan_parameter_request_s::PARAM_TYPE_UINT8;
-				response.int_value = param.value.to<uavcan::protocol::param::Value::Tag::boolean_value>();
+				response.type = parameter_request_s::TYPE_BOOL;
+				response.int32_value = param.value.to<uavcan::protocol::param::Value::Tag::boolean_value>();
 			}
 
 			_param_response_pub.publish(response);

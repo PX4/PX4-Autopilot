@@ -514,7 +514,7 @@ uORB::DeviceNode::register_callback(uORB::SubscriptionCallback *callback_sub)
 		ATOMIC_ENTER;
 
 		// prevent duplicate registrations
-		for (auto existing_callbacks : _callbacks) {
+		for (const auto &existing_callbacks : _callbacks) {
 			if (callback_sub == existing_callbacks) {
 				ATOMIC_LEAVE;
 				return true;

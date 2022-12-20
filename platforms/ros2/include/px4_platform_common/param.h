@@ -107,7 +107,6 @@ public:
 
 	Param()
 	{
-		//param_set_used(handle());
 		update();
 	}
 
@@ -165,7 +164,6 @@ public:
 	Param(float &external_val)
 		: _val(external_val)
 	{
-		//param_set_used(handle()); // TODO
 		update();
 	}
 
@@ -221,7 +219,6 @@ public:
 
 	Param()
 	{
-		//param_set_used(handle());
 		update();
 	}
 
@@ -279,7 +276,6 @@ public:
 	Param(int32_t &external_val)
 		: _val(external_val)
 	{
-		//param_set_used(handle());
 		update();
 	}
 
@@ -335,7 +331,6 @@ public:
 
 	Param()
 	{
-		//param_set_used(handle());
 		update();
 	}
 

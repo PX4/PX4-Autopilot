@@ -87,12 +87,12 @@ param_export_internal(param_filter_func filter)
 	bson_encoder_init_buf(&encoder, nullptr, 0);
 
 	/* no modified parameters -> we are done */
-	if (param_values == nullptr) {
+	if (_param_values == nullptr) {
 		result = 0;
 		goto out;
 	}
 
-	while ((s = (struct param_wbuf_s *)utarray_next(param_values, s)) != nullptr) {
+	while ((s = (struct param_wbuf_s *)utarray_next(_param_values, s)) != nullptr) {
 
 		int32_t i;
 		float   f;
@@ -103,12 +103,12 @@ param_export_internal(param_filter_func filter)
 
 		/* append the appropriate BSON type object */
 
-		switch (param_type(s->param)) {
+		switch (getParameterType(s->param)) {
 		case PARAM_TYPE_INT32:
 			i = s->val.i;
 
-			if (bson_encoder_append_int32(&encoder, param_name(s->param), i)) {
-				debug("BSON append failed for '%s'", param_name(s->param));
+			if (bson_encoder_append_int32(&encoder, getParameterName(s->param), i)) {
+				debug("BSON append failed for '%s'", getParameterName(s->param));
 				goto out;
 			}
 
@@ -117,8 +117,8 @@ param_export_internal(param_filter_func filter)
 		case PARAM_TYPE_FLOAT:
 			f = s->val.f;
 
-			if (bson_encoder_append_double(&encoder, param_name(s->param), f)) {
-				debug("BSON append failed for '%s'", param_name(s->param));
+			if (bson_encoder_append_double(&encoder, getParameterName(s->param), f)) {
+				debug("BSON append failed for '%s'", getParameterName(s->param));
 				goto out;
 			}
 
@@ -214,7 +214,7 @@ param_import_callback(bson_decoder_t decoder, bson_node_t node)
 
 	switch (node->type) {
 	case BSON_INT32:
-		if (param_type(param) != PARAM_TYPE_INT32) {
+		if (getParameterType(param) != PARAM_TYPE_INT32) {
 			PX4_WARN("unexpected type for %s", node->name);
 			result = 1; // just skip this entry
 			goto out;
@@ -225,7 +225,7 @@ param_import_callback(bson_decoder_t decoder, bson_node_t node)
 		break;
 
 	case BSON_DOUBLE:
-		if (param_type(param) != PARAM_TYPE_FLOAT) {
+		if (getParameterType(param) != PARAM_TYPE_FLOAT) {
 			PX4_WARN("unexpected type for %s", node->name);
 			result = 1; // just skip this entry
 			goto out;
