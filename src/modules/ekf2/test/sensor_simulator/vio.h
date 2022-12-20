@@ -63,6 +63,9 @@ public:
 	void setVelocityFrameToLocalFRD();
 	void setVelocityFrameToBody();
 
+	void setPositionFrameToLocalNED();
+	void setPositionFrameToLocalFRD();
+
 	extVisionSample dataAtRest();
 
 private:

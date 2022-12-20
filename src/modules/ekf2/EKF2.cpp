@@ -207,22 +207,66 @@ bool EKF2::multi_init(int imu, int mag)
 {
 	// advertise all topics to ensure consistent uORB instance numbering
 	_ekf2_timestamps_pub.advertise();
-	_estimator_baro_bias_pub.advertise();
-	_estimator_ev_hgt_bias_pub.advertise();
 	_estimator_event_flags_pub.advertise();
-	_estimator_gnss_hgt_bias_pub.advertise();
-	_estimator_gps_status_pub.advertise();
 	_estimator_innovation_test_ratios_pub.advertise();
 	_estimator_innovation_variances_pub.advertise();
 	_estimator_innovations_pub.advertise();
 	_estimator_optical_flow_vel_pub.advertise();
-	_estimator_rng_hgt_bias_pub.advertise();
 	_estimator_sensor_bias_pub.advertise();
 	_estimator_states_pub.advertise();
 	_estimator_status_flags_pub.advertise();
 	_estimator_status_pub.advertise();
-	_estimator_visual_odometry_aligned_pub.advertise();
 	_yaw_est_pub.advertise();
+
+	// baro advertise
+	if (_param_ekf2_baro_ctrl.get()) {
+		_estimator_aid_src_baro_hgt_pub.advertise();
+		_estimator_baro_bias_pub.advertise();
+	}
+
+	// EV advertise
+	if (_param_ekf2_ev_ctrl.get() & static_cast<int32_t>(EvCtrl::VPOS)) {
+		_estimator_aid_src_ev_hgt_pub.advertise();
+		_estimator_ev_pos_bias_pub.advertise();
+	}
+
+	if (_param_ekf2_ev_ctrl.get() & static_cast<int32_t>(EvCtrl::HPOS)) {
+		_estimator_aid_src_ev_pos_pub.advertise();
+		_estimator_ev_pos_bias_pub.advertise();
+	}
+
+	if (_param_ekf2_ev_ctrl.get() & static_cast<int32_t>(EvCtrl::VEL)) {
+		_estimator_aid_src_ev_vel_pub.advertise();
+	}
+
+	if (_param_ekf2_ev_ctrl.get() & static_cast<int32_t>(EvCtrl::YAW)) {
+		_estimator_aid_src_ev_yaw_pub.advertise();
+	}
+
+	// GNSS advertise
+	if (_param_ekf2_gps_ctrl.get() & static_cast<int32_t>(GnssCtrl::VPOS)) {
+		_estimator_aid_src_gnss_hgt_pub.advertise();
+		_estimator_gnss_hgt_bias_pub.advertise();
+	}
+
+	if (_param_ekf2_gps_ctrl.get() & static_cast<int32_t>(GnssCtrl::HPOS)) {
+		_estimator_aid_src_gnss_pos_pub.advertise();
+		_estimator_gps_status_pub.advertise();
+	}
+
+	if (_param_ekf2_gps_ctrl.get() & static_cast<int32_t>(GnssCtrl::VEL)) {
+		_estimator_aid_src_gnss_vel_pub.advertise();
+	}
+
+	if (_param_ekf2_gps_ctrl.get() & static_cast<int32_t>(GnssCtrl::YAW)) {
+		_estimator_aid_src_gnss_yaw_pub.advertise();
+	}
+
+	// RNG advertise
+	if (_param_ekf2_rng_ctrl.get()) {
+		_estimator_aid_src_rng_hgt_pub.advertise();
+		_estimator_rng_hgt_bias_pub.advertise();
+	}
 
 	_attitude_pub.advertise();
 	_local_position_pub.advertise();
@@ -545,14 +589,12 @@ void EKF2::Run()
 		UpdateAirspeedSample(ekf2_timestamps);
 		UpdateAuxVelSample(ekf2_timestamps);
 		UpdateBaroSample(ekf2_timestamps);
+		UpdateExtVisionSample(ekf2_timestamps);
 		UpdateFlowSample(ekf2_timestamps);
 		UpdateGpsSample(ekf2_timestamps);
 		UpdateMagSample(ekf2_timestamps);
 		UpdateRangeSample(ekf2_timestamps);
 		UpdateSystemFlagsSample(ekf2_timestamps);
-
-		vehicle_odometry_s ev_odom;
-		const bool new_ev_odom = UpdateExtVisionSample(ekf2_timestamps, ev_odom);
 
 		// run the EKF update and output
 		const hrt_abstime ekf_update_start = hrt_absolute_time();
@@ -569,7 +611,7 @@ void EKF2::Run()
 			PublishBaroBias(now);
 			PublishGnssHgtBias(now);
 			PublishRngHgtBias(now);
-			PublishEvHgtBias(now);
+			PublishEvPosBias(now);
 			PublishEventFlags(now);
 			PublishGpsStatus(now);
 			PublishInnovations(now);
@@ -591,11 +633,6 @@ void EKF2::Run()
 		} else {
 			// ekf no update
 			perf_set_elapsed(_ecl_ekf_update_perf, hrt_elapsed_time(&ekf_update_start));
-		}
-
-		// publish external visual odometry after fixed frame alignment if new odometry is received
-		if (new_ev_odom) {
-			PublishOdometryAligned(now, ev_odom);
 		}
 
 		// publish ekf2_timestamps
@@ -666,12 +703,32 @@ void EKF2::VerifyParams()
 	}
 
 	// EV EKF2_AID_MASK -> EKF2_EV_CTRL
-	if ((_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_USE_EXT_VIS_VEL)) {
+	if ((_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_USE_EXT_VIS_VEL)
+	    || (_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_USE_EXT_VIS_POS)
+	    || (_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_USE_EXT_VIS_YAW)
+	   ) {
 
-		_param_ekf2_ev_ctrl.set(_param_ekf2_ev_ctrl.get() | static_cast<int32_t>(EvCtrl::VEL));
-		_param_ekf2_ev_ctrl.commit();
+		// EKF2_EV_CTRL set VEL bit
+		if ((_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_USE_EXT_VIS_VEL)) {
+			_param_ekf2_ev_ctrl.set(_param_ekf2_ev_ctrl.get() | static_cast<int32_t>(EvCtrl::VEL));
+		}
+
+		// EKF2_EV_CTRL set HPOS/VPOS bits
+		if ((_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_USE_EXT_VIS_POS)) {
+			_param_ekf2_ev_ctrl.set(_param_ekf2_ev_ctrl.get()
+						| static_cast<int32_t>(EvCtrl::HPOS) | static_cast<int32_t>(EvCtrl::VPOS));
+		}
+
+		// EKF2_EV_CTRL set YAW bit
+		if ((_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_USE_EXT_VIS_YAW)) {
+			_param_ekf2_ev_ctrl.set(_param_ekf2_ev_ctrl.get() | static_cast<int32_t>(EvCtrl::YAW));
+		}
 
 		_param_ekf2_aid_mask.set(_param_ekf2_aid_mask.get() & ~(SensorFusionMask::DEPRECATED_USE_EXT_VIS_VEL));
+		_param_ekf2_aid_mask.set(_param_ekf2_aid_mask.get() & ~(SensorFusionMask::DEPRECATED_USE_EXT_VIS_POS));
+		_param_ekf2_aid_mask.set(_param_ekf2_aid_mask.get() & ~(SensorFusionMask::DEPRECATED_USE_EXT_VIS_YAW));
+
+		_param_ekf2_ev_ctrl.commit();
 		_param_ekf2_aid_mask.commit();
 
 		mavlink_log_critical(&_mavlink_log_pub, "EKF2 EV use EKF2_EV_CTRL instead of EKF2_AID_MASK\n");
@@ -787,15 +844,35 @@ void EKF2::PublishRngHgtBias(const hrt_abstime &timestamp)
 	}
 }
 
-void EKF2::PublishEvHgtBias(const hrt_abstime &timestamp)
+void EKF2::PublishEvPosBias(const hrt_abstime &timestamp)
 {
-	if (_ekf.get_ev_sample_delayed().time_us != 0) {
-		const BiasEstimator::status &status = _ekf.getEvHgtBiasEstimatorStatus();
+	if (_ekf.aid_src_ev_hgt().timestamp_sample) {
 
-		if (fabsf(status.bias - _last_ev_hgt_bias_published) > 0.001f) {
-			_estimator_ev_hgt_bias_pub.publish(fillEstimatorBiasMsg(status, _ekf.get_ev_sample_delayed().time_us, timestamp));
+		estimator_bias3d_s bias{};
 
-			_last_ev_hgt_bias_published = status.bias;
+		// height
+		BiasEstimator::status bias_est_status[3];
+		bias_est_status[0] = _ekf.getEvPosBiasEstimatorStatus(0);
+		bias_est_status[1] = _ekf.getEvPosBiasEstimatorStatus(1);
+		bias_est_status[2] = _ekf.getEvHgtBiasEstimatorStatus();
+
+		for (int i = 0; i < 3; i++) {
+			bias.bias[i] = bias_est_status[i].bias;
+			bias.bias_var[i] = bias_est_status[i].bias_var;
+
+			bias.innov[i] = bias_est_status[i].innov;
+			bias.innov_var[i] = bias_est_status[i].innov_var;
+			bias.innov_test_ratio[i] = bias_est_status[i].innov_test_ratio;
+		}
+
+		const Vector3f bias_vec{bias.bias};
+
+		if ((bias_vec - _last_ev_bias_published).longerThan(0.01f)) {
+			bias.timestamp_sample = _ekf.aid_src_ev_hgt().timestamp_sample;
+			bias.timestamp = hrt_absolute_time();
+			_estimator_ev_pos_bias_pub.publish(bias);
+
+			_last_ev_bias_published = Vector3f(bias.bias);
 		}
 	}
 }
@@ -1208,43 +1285,6 @@ void EKF2::PublishOdometry(const hrt_abstime &timestamp)
 	// publish vehicle odometry data
 	odom.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 	_odometry_pub.publish(odom);
-}
-
-void EKF2::PublishOdometryAligned(const hrt_abstime &timestamp, const vehicle_odometry_s &ev_odom)
-{
-	const Quatf quat_ev2ekf = _ekf.getVisionAlignmentQuaternion(); // rotates from EV to EKF navigation frame
-	const Dcmf ev_rot_mat(quat_ev2ekf);
-
-	vehicle_odometry_s aligned_ev_odom{ev_odom};
-
-	// Rotate external position and velocity into EKF navigation frame
-	const Vector3f aligned_pos = ev_rot_mat * Vector3f(ev_odom.position);
-	aligned_pos.copyTo(aligned_ev_odom.position);
-
-	switch (ev_odom.velocity_frame) {
-	case vehicle_odometry_s::VELOCITY_FRAME_BODY_FRD: {
-			const Vector3f aligned_vel = Dcmf(_ekf.getQuaternion()) * Vector3f(ev_odom.velocity);
-			aligned_vel.copyTo(aligned_ev_odom.velocity);
-			break;
-		}
-
-	case vehicle_odometry_s::VELOCITY_FRAME_FRD: {
-			const Vector3f aligned_vel = ev_rot_mat * Vector3f(ev_odom.velocity);
-			aligned_vel.copyTo(aligned_ev_odom.velocity);
-			break;
-		}
-	}
-
-	aligned_ev_odom.velocity_frame = vehicle_odometry_s::VELOCITY_FRAME_NED;
-
-	// Compute orientation in EKF navigation frame
-	Quatf ev_quat_aligned = quat_ev2ekf * Quatf(ev_odom.q);
-	ev_quat_aligned.normalize();
-
-	ev_quat_aligned.copyTo(aligned_ev_odom.q);
-
-	aligned_ev_odom.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
-	_estimator_visual_odometry_aligned_pub.publish(aligned_ev_odom);
 }
 
 void EKF2::PublishSensorBias(const hrt_abstime &timestamp)
@@ -1700,11 +1740,13 @@ void EKF2::UpdateBaroSample(ekf2_timestamps_s &ekf2_timestamps)
 	}
 }
 
-bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps, vehicle_odometry_s &ev_odom)
+bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps)
 {
 	// EKF external vision sample
 	bool new_ev_odom = false;
 	const unsigned last_generation = _ev_odom_sub.get_last_generation();
+
+	vehicle_odometry_s ev_odom;
 
 	if (_ev_odom_sub.update(&ev_odom)) {
 		if (_msg_missed_odometry_perf == nullptr) {
@@ -1764,38 +1806,38 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps, vehicle_odo
 		}
 
 		// check for valid position data
-		if (Vector3f(ev_odom.position).isAllFinite()) {
-			bool position_valid = true;
+		const Vector3f ev_odom_pos(ev_odom.position);
+		const Vector3f ev_odom_pos_var(ev_odom.position_variance);
 
-			// switch (ev_odom.pose_frame) {
-			// case vehicle_odometry_s::POSE_FRAME_NED:
-			// 	ev_data.pos_frame = PositionFrame::LOCAL_FRAME_NED;
-			// 	break;
+		if (ev_odom_pos.isAllFinite()) {
+			bool position_frame_valid = false;
 
-			// case vehicle_odometry_s::POSE_FRAME_FRD:
-			// 	ev_data.pos_frame = PositionFrame::LOCAL_FRAME_FRD;
-			// 	break;
+			switch (ev_odom.pose_frame) {
+			case vehicle_odometry_s::POSE_FRAME_NED:
+				ev_data.pos_frame = PositionFrame::LOCAL_FRAME_NED;
+				position_frame_valid = true;
+				break;
 
-			// default:
-			// 	position_valid = false;
-			// 	break;
-			// }
+			case vehicle_odometry_s::POSE_FRAME_FRD:
+				ev_data.pos_frame = PositionFrame::LOCAL_FRAME_FRD;
+				position_frame_valid = true;
+				break;
+			}
 
-			if (position_valid) {
-				ev_data.pos(0) = ev_odom.position[0];
-				ev_data.pos(1) = ev_odom.position[1];
-				ev_data.pos(2) = ev_odom.position[2];
+			if (position_frame_valid) {
+				ev_data.pos = ev_odom_pos;
 
 				const float evp_noise_var = sq(_param_ekf2_evp_noise.get());
 
 				// position measurement error from ev_data or parameters
-				if (!_param_ekf2_ev_noise_md.get() && Vector3f(ev_odom.position_variance).isAllFinite()) {
-					ev_data.posVar(0) = fmaxf(evp_noise_var, ev_odom.position_variance[0]);
-					ev_data.posVar(1) = fmaxf(evp_noise_var, ev_odom.position_variance[1]);
-					ev_data.posVar(2) = fmaxf(evp_noise_var, ev_odom.position_variance[2]);
+				if ((_param_ekf2_ev_noise_md.get() == 0) && ev_odom_pos_var.isAllFinite()) {
+
+					ev_data.position_var(0) = fmaxf(evp_noise_var, ev_odom_pos_var(0));
+					ev_data.position_var(1) = fmaxf(evp_noise_var, ev_odom_pos_var(1));
+					ev_data.position_var(2) = fmaxf(evp_noise_var, ev_odom_pos_var(2));
 
 				} else {
-					ev_data.posVar.setAll(evp_noise_var);
+					ev_data.position_var.setAll(evp_noise_var);
 				}
 
 				new_ev_odom = true;
