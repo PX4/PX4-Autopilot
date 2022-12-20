@@ -7,7 +7,7 @@ import os
 class JsonOutput():
     def __init__(self, groups):
         all_json = {}
-        all_json['version'] = 1
+        all_json['version'] = 2
         component = {}
         all_json['components'] = {1: component} #1: autopilot component
 

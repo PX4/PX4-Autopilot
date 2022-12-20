@@ -11,6 +11,32 @@ class JsonOutput():
         all_params=[]
         all_json['parameters']=all_params
 
+        all_json["translation"] = {
+            "items": {
+                "parameters": {
+                    "list": {
+                        "key": "name",
+                        "translate": [ "shortDesc", "longDesc" ],
+                        "translate-global": ["category", "group"],
+                        "items": {
+                            "bitmask": {
+                                "list": {
+                                    "key": "index",
+                                    "translate": [ "description" ]
+                                }
+                            },
+                            "values": {
+                                "list": {
+                                    "key": "value",
+                                    "translate": [ "description" ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         schema_map = {
                         "short_desc": "shortDesc",
 			"long_desc": "longDesc",
