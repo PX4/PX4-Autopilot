@@ -46,12 +46,6 @@
 
 #include "parameters_common.cpp"
 
-void
-param_notify_changes()
-{
-	boardctl(PARAMIOCNOTIFY, NULL);
-}
-
 param_t param_find(const char *name)
 {
 	paramiocfind_t data = {name, true, PARAM_INVALID};
@@ -125,24 +119,11 @@ int param_set(param_t param, const void *val)
 	return data.ret;
 }
 
-int param_set_no_notification(param_t param, const void *val)
-{
-	paramiocset_t data = {param, false, val, PX4_ERROR};
-	boardctl(PARAMIOCSET, reinterpret_cast<unsigned long>(&data));
-	return data.ret;
-}
-
 bool param_used(param_t param)
 {
 	paramiocused_t data = {param, false};
 	boardctl(PARAMIOCUSED, reinterpret_cast<unsigned long>(&data));
 	return data.ret;
-}
-
-void param_set_used(param_t param)
-{
-	paramiocsetused_t data = {param};
-	boardctl(PARAMIOCSETUSED, reinterpret_cast<unsigned long>(&data));
 }
 
 int param_set_default_value(param_t param, const void *val)

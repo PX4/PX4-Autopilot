@@ -189,14 +189,9 @@ void LandDetector::Run()
 		_takeoff_time = 0;
 
 		uint32_t flight_time = (_total_flight_time >> 32) & 0xffffffff;
-
 		_param_total_flight_time_high.set(flight_time);
-		_param_total_flight_time_high.commit_no_notification();
-
 		flight_time = _total_flight_time & 0xffffffff;
-
 		_param_total_flight_time_low.set(flight_time);
-		_param_total_flight_time_low.commit_no_notification();
 	}
 
 	_previous_armed_state = _armed;

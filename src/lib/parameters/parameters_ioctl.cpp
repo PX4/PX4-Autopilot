@@ -50,11 +50,6 @@ int	param_ioctl(unsigned int cmd, unsigned long arg)
 	int ret = OK;
 
 	switch (cmd) {
-	case PARAMIOCNOTIFY: {
-			param_notify_changes();
-		}
-		break;
-
 	case PARAMIOCFIND: {
 			paramiocfind_t *data = (paramiocfind_t *)arg;
 
@@ -111,25 +106,13 @@ int	param_ioctl(unsigned int cmd, unsigned long arg)
 
 	case PARAMIOCSET: {
 			paramiocset_t *data = (paramiocset_t *)arg;
-
-			if (data->notification) {
-				data->ret = param_set(data->param, data->val);
-
-			} else {
-				data->ret = param_set_no_notification(data->param, data->val);
-			}
+			data->ret = param_set(data->param, data->val);
 		}
 		break;
 
 	case PARAMIOCUSED: {
 			paramiocused_t *data = (paramiocused_t *)arg;
 			data->ret = param_used(data->param);
-		}
-		break;
-
-	case PARAMIOCSETUSED: {
-			paramiocsetused_t *data = (paramiocsetused_t *)arg;
-			param_set_used(data->param);
 		}
 		break;
 

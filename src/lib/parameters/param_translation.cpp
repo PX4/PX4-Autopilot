@@ -156,7 +156,7 @@ bool param_modify_on_import(bson_node_t node)
 			// If was in range height mode, set range aiding to "always"
 			if (node->i32 == 2) {
 				int32_t rng_mode = 2;
-				param_set_no_notification(param_find("EKF2_RNG_CTRL"), &rng_mode);
+				param_set(param_find("EKF2_RNG_CTRL"), &rng_mode);
 			}
 
 			PX4_INFO("param migrating EKF2_HGT_MODE (removed) -> EKF2_HGT_REF: value=%" PRId32, node->i32);

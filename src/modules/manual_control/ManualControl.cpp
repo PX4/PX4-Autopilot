@@ -102,7 +102,6 @@ void ManualControl::Run()
 
 				if (rc_map_arm_sw > 0) {
 					_param_man_arm_gesture.set(0); // disable arm gesture
-					_param_man_arm_gesture.commit();
 
 					orb_advert_t mavlink_log_pub = nullptr;
 					mavlink_log_critical(&mavlink_log_pub, "Arm stick gesture disabled if arm switch in use\t")

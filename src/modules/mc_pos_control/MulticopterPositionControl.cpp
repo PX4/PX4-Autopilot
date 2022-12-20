@@ -91,57 +91,52 @@ void MulticopterPositionControl::parameters_update(bool force)
 			// make it less sensitive at the lower end
 			float responsiveness = _param_sys_vehicle_resp.get() * _param_sys_vehicle_resp.get();
 
-			num_changed += _param_mpc_acc_hor.commit_no_notification(math::lerp(1.f, 15.f, responsiveness));
-			num_changed += _param_mpc_acc_hor_max.commit_no_notification(math::lerp(2.f, 15.f, responsiveness));
-			num_changed += _param_mpc_man_y_max.commit_no_notification(math::lerp(80.f, 450.f, responsiveness));
+			num_changed += _param_mpc_acc_hor.set(math::lerp(1.f, 15.f, responsiveness));
+			num_changed += _param_mpc_acc_hor_max.set(math::lerp(2.f, 15.f, responsiveness));
+			num_changed += _param_mpc_man_y_max.set(math::lerp(80.f, 450.f, responsiveness));
 
 			if (responsiveness > 0.6f) {
-				num_changed += _param_mpc_man_y_tau.commit_no_notification(0.f);
+				num_changed += _param_mpc_man_y_tau.set(0.f);
 
 			} else {
-				num_changed += _param_mpc_man_y_tau.commit_no_notification(math::lerp(0.5f, 0.f, responsiveness / 0.6f));
+				num_changed += _param_mpc_man_y_tau.set(math::lerp(0.5f, 0.f, responsiveness / 0.6f));
 			}
 
 			if (responsiveness < 0.5f) {
-				num_changed += _param_mpc_tiltmax_air.commit_no_notification(45.f);
+				num_changed += _param_mpc_tiltmax_air.set(45.f);
 
 			} else {
-				num_changed += _param_mpc_tiltmax_air.commit_no_notification(math::min(MAX_SAFE_TILT_DEG, math::lerp(45.f, 70.f,
+				num_changed += _param_mpc_tiltmax_air.set(math::min(MAX_SAFE_TILT_DEG, math::lerp(45.f, 70.f,
 						(responsiveness - 0.5f) * 2.f)));
 			}
 
-			num_changed += _param_mpc_acc_down_max.commit_no_notification(math::lerp(0.8f, 15.f, responsiveness));
-			num_changed += _param_mpc_acc_up_max.commit_no_notification(math::lerp(1.f, 15.f, responsiveness));
-			num_changed += _param_mpc_jerk_max.commit_no_notification(math::lerp(2.f, 50.f, responsiveness));
-			num_changed += _param_mpc_jerk_auto.commit_no_notification(math::lerp(1.f, 25.f, responsiveness));
+			num_changed += _param_mpc_acc_down_max.set(math::lerp(0.8f, 15.f, responsiveness));
+			num_changed += _param_mpc_acc_up_max.set(math::lerp(1.f, 15.f, responsiveness));
+			num_changed += _param_mpc_jerk_max.set(math::lerp(2.f, 50.f, responsiveness));
+			num_changed += _param_mpc_jerk_auto.set(math::lerp(1.f, 25.f, responsiveness));
 		}
 
 		if (_param_mpc_xy_vel_all.get() >= 0.f) {
 			float xy_vel = _param_mpc_xy_vel_all.get();
-			num_changed += _param_mpc_vel_manual.commit_no_notification(xy_vel);
-			num_changed += _param_mpc_vel_man_back.commit_no_notification(-1.f);
-			num_changed += _param_mpc_vel_man_side.commit_no_notification(-1.f);
-			num_changed += _param_mpc_xy_cruise.commit_no_notification(xy_vel);
-			num_changed += _param_mpc_xy_vel_max.commit_no_notification(xy_vel);
+			num_changed += _param_mpc_vel_manual.set(xy_vel);
+			num_changed += _param_mpc_vel_man_back.set(-1.f);
+			num_changed += _param_mpc_vel_man_side.set(-1.f);
+			num_changed += _param_mpc_xy_cruise.set(xy_vel);
+			num_changed += _param_mpc_xy_vel_max.set(xy_vel);
 		}
 
 		if (_param_mpc_z_vel_all.get() >= 0.f) {
 			float z_vel = _param_mpc_z_vel_all.get();
-			num_changed += _param_mpc_z_v_auto_up.commit_no_notification(z_vel);
-			num_changed += _param_mpc_z_vel_max_up.commit_no_notification(z_vel);
-			num_changed += _param_mpc_z_v_auto_dn.commit_no_notification(z_vel * 0.75f);
-			num_changed += _param_mpc_z_vel_max_dn.commit_no_notification(z_vel * 0.75f);
-			num_changed += _param_mpc_tko_speed.commit_no_notification(z_vel * 0.6f);
-			num_changed += _param_mpc_land_speed.commit_no_notification(z_vel * 0.5f);
-		}
-
-		if (num_changed > 0) {
-			param_notify_changes();
+			num_changed += _param_mpc_z_v_auto_up.set(z_vel);
+			num_changed += _param_mpc_z_vel_max_up.set(z_vel);
+			num_changed += _param_mpc_z_v_auto_dn.set(z_vel * 0.75f);
+			num_changed += _param_mpc_z_vel_max_dn.set(z_vel * 0.75f);
+			num_changed += _param_mpc_tko_speed.set(z_vel * 0.6f);
+			num_changed += _param_mpc_land_speed.set(z_vel * 0.5f);
 		}
 
 		if (_param_mpc_tiltmax_air.get() > MAX_SAFE_TILT_DEG) {
 			_param_mpc_tiltmax_air.set(MAX_SAFE_TILT_DEG);
-			_param_mpc_tiltmax_air.commit();
 			mavlink_log_critical(&_mavlink_log_pub, "Tilt constrained to safe value\t");
 			/* EVENT
 			 * @description <param>MPC_TILTMAX_AIR</param> is set to {1:.0}.
@@ -152,7 +147,6 @@ void MulticopterPositionControl::parameters_update(bool force)
 
 		if (_param_mpc_tiltmax_lnd.get() > _param_mpc_tiltmax_air.get()) {
 			_param_mpc_tiltmax_lnd.set(_param_mpc_tiltmax_air.get());
-			_param_mpc_tiltmax_lnd.commit();
 			mavlink_log_critical(&_mavlink_log_pub, "Land tilt has been constrained by max tilt\t");
 			/* EVENT
 			 * @description <param>MPC_TILTMAX_LND</param> is set to {1:.0}.
@@ -171,7 +165,7 @@ void MulticopterPositionControl::parameters_update(bool force)
 		// Check that the design parameters are inside the absolute maximum constraints
 		if (_param_mpc_xy_cruise.get() > _param_mpc_xy_vel_max.get()) {
 			_param_mpc_xy_cruise.set(_param_mpc_xy_vel_max.get());
-			_param_mpc_xy_cruise.commit();
+
 			mavlink_log_critical(&_mavlink_log_pub, "Cruise speed has been constrained by max speed\t");
 			/* EVENT
 			 * @description <param>MPC_XY_CRUISE</param> is set to {1:.0}.
@@ -182,7 +176,6 @@ void MulticopterPositionControl::parameters_update(bool force)
 
 		if (_param_mpc_vel_manual.get() > _param_mpc_xy_vel_max.get()) {
 			_param_mpc_vel_manual.set(_param_mpc_xy_vel_max.get());
-			_param_mpc_vel_manual.commit();
 			mavlink_log_critical(&_mavlink_log_pub, "Manual speed has been constrained by max speed\t");
 			/* EVENT
 			 * @description <param>MPC_VEL_MANUAL</param> is set to {1:.0}.
@@ -193,7 +186,6 @@ void MulticopterPositionControl::parameters_update(bool force)
 
 		if (_param_mpc_vel_man_back.get() > _param_mpc_vel_manual.get()) {
 			_param_mpc_vel_man_back.set(_param_mpc_vel_manual.get());
-			_param_mpc_vel_man_back.commit();
 			mavlink_log_critical(&_mavlink_log_pub, "Manual backward speed has been constrained by forward speed\t");
 			/* EVENT
 			 * @description <param>MPC_VEL_MAN_BACK</param> is set to {1:.0}.
@@ -204,7 +196,6 @@ void MulticopterPositionControl::parameters_update(bool force)
 
 		if (_param_mpc_vel_man_side.get() > _param_mpc_vel_manual.get()) {
 			_param_mpc_vel_man_side.set(_param_mpc_vel_manual.get());
-			_param_mpc_vel_man_side.commit();
 			mavlink_log_critical(&_mavlink_log_pub, "Manual sideways speed has been constrained by forward speed\t");
 			/* EVENT
 			 * @description <param>MPC_VEL_MAN_SIDE</param> is set to {1:.0}.
@@ -215,7 +206,6 @@ void MulticopterPositionControl::parameters_update(bool force)
 
 		if (_param_mpc_z_v_auto_up.get() > _param_mpc_z_vel_max_up.get()) {
 			_param_mpc_z_v_auto_up.set(_param_mpc_z_vel_max_up.get());
-			_param_mpc_z_v_auto_up.commit();
 			mavlink_log_critical(&_mavlink_log_pub, "Ascent speed has been constrained by max speed\t");
 			/* EVENT
 			 * @description <param>MPC_Z_V_AUTO_UP</param> is set to {1:.0}.
@@ -226,7 +216,6 @@ void MulticopterPositionControl::parameters_update(bool force)
 
 		if (_param_mpc_z_v_auto_dn.get() > _param_mpc_z_vel_max_dn.get()) {
 			_param_mpc_z_v_auto_dn.set(_param_mpc_z_vel_max_dn.get());
-			_param_mpc_z_v_auto_dn.commit();
 			mavlink_log_critical(&_mavlink_log_pub, "Descent speed has been constrained by max speed\t");
 			/* EVENT
 			 * @description <param>MPC_Z_V_AUTO_DN</param> is set to {1:.0}.
@@ -239,7 +228,6 @@ void MulticopterPositionControl::parameters_update(bool force)
 		    _param_mpc_thr_hover.get() < _param_mpc_thr_min.get()) {
 			_param_mpc_thr_hover.set(math::constrain(_param_mpc_thr_hover.get(), _param_mpc_thr_min.get(),
 						 _param_mpc_thr_max.get()));
-			_param_mpc_thr_hover.commit();
 			mavlink_log_critical(&_mavlink_log_pub, "Hover thrust has been constrained by min/max\t");
 			/* EVENT
 			 * @description <param>MPC_THR_HOVER</param> is set to {1:.0}.

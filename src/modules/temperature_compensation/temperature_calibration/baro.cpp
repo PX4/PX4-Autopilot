@@ -159,7 +159,7 @@ int TemperatureCalibrationBaro::finish()
 	}
 
 	int32_t enabled = 1;
-	int result = param_set_no_notification(param_find("TC_B_ENABLE"), &enabled);
+	int result = param_set(param_find("TC_B_ENABLE"), &enabled);
 
 	if (result != PX4_OK) {
 		PX4_ERR("unable to reset TC_B_ENABLE (%i)", result);
@@ -199,7 +199,7 @@ int TemperatureCalibrationBaro::finish_sensor_instance(PerSensorData &data, int 
 	for (unsigned coef_index = 0; coef_index <= POLYFIT_ORDER; coef_index++) {
 		sprintf(str, "TC_B%d_X%d", sensor_index, (POLYFIT_ORDER - coef_index));
 		param = (float)res[coef_index];
-		result = param_set_no_notification(param_find(str), &param);
+		result = param_set(param_find(str), &param);
 
 		if (result != PX4_OK) {
 			PX4_ERR("unable to reset %s", str);

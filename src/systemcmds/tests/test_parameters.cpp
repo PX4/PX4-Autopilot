@@ -282,16 +282,16 @@ bool ParameterTest::exportImport()
 		if (param_type(p) == PARAM_TYPE_INT32) {
 			const int32_t set_val = p;
 
-			if (param_set_no_notification(p, &set_val) != PX4_OK) {
-				PX4_ERR("param_set_no_notification failed for: %d", p);
-				ut_assert("param_set_no_notification failed", false);
+			if (param_set(p, &set_val) != PX4_OK) {
+				PX4_ERR("param_set failed for: %d", p);
+				ut_assert("param_set failed", false);
 			}
 
 			int32_t get_val = 0;
 
 			if (param_get(p, &get_val) != PX4_OK) {
 				PX4_ERR("param_get failed for: %d", p);
-				ut_assert("param_set_no_notification failed", false);
+				ut_assert("param_set failed", false);
 			}
 
 			ut_compare("value for param doesn't match default value", p, get_val);
@@ -300,16 +300,16 @@ bool ParameterTest::exportImport()
 		if (param_type(p) == PARAM_TYPE_FLOAT) {
 			const float set_val = (float)p + MAGIC_FLOAT_VAL;
 
-			if (param_set_no_notification(p, &set_val) != PX4_OK) {
-				PX4_ERR("param_set_no_notification failed for: %d", p);
-				ut_assert("param_set_no_notification failed", false);
+			if (param_set(p, &set_val) != PX4_OK) {
+				PX4_ERR("param_set failed for: %d", p);
+				ut_assert("param_set failed", false);
 			}
 
 			float get_val = 0.0f;
 
 			if (param_get(p, &get_val) != PX4_OK) {
 				PX4_ERR("param_get failed for: %d", p);
-				ut_assert("param_set_no_notification failed", false);
+				ut_assert("param_set failed", false);
 			}
 
 			ut_compare("value for param doesn't match default value", p, (float)p + MAGIC_FLOAT_VAL);
@@ -327,16 +327,16 @@ bool ParameterTest::exportImport()
 		if (param_type(p) == PARAM_TYPE_INT32) {
 			const int32_t set_val = 0;
 
-			if (param_set_no_notification(p, &set_val) != PX4_OK) {
-				PX4_ERR("param_set_no_notification failed for: %d", p);
-				ut_assert("param_set_no_notification failed", false);
+			if (param_set(p, &set_val) != PX4_OK) {
+				PX4_ERR("param_set failed for: %d", p);
+				ut_assert("param_set failed", false);
 			}
 
 			int32_t get_val = -1;
 
 			if (param_get(p, &get_val) != PX4_OK) {
 				PX4_ERR("param_get failed for: %d", p);
-				ut_assert("param_set_no_notification failed", false);
+				ut_assert("param_set failed", false);
 			}
 
 			ut_compare("value for param doesn't match default value", set_val, get_val);
@@ -345,16 +345,16 @@ bool ParameterTest::exportImport()
 		if (param_type(p) == PARAM_TYPE_FLOAT) {
 			const float set_val = 0.0f;
 
-			if (param_set_no_notification(p, &set_val) != PX4_OK) {
-				PX4_ERR("param_set_no_notification failed for: %d", p);
-				ut_assert("param_set_no_notification failed", false);
+			if (param_set(p, &set_val) != PX4_OK) {
+				PX4_ERR("param_set failed for: %d", p);
+				ut_assert("param_set failed", false);
 			}
 
 			float get_val = -1.0f;
 
 			if (param_get(p, &get_val) != PX4_OK) {
 				PX4_ERR("param_get failed for: %d", p);
-				ut_assert("param_set_no_notification failed", false);
+				ut_assert("param_set failed", false);
 			}
 
 			ut_compare_float("value for param doesn't match default value", set_val, get_val, 0.001f);
@@ -375,7 +375,7 @@ bool ParameterTest::exportImport()
 
 			if (param_get(p, &get_val) != PX4_OK) {
 				PX4_ERR("param_get failed for: %d", p);
-				ut_assert("param_set_no_notification failed", false);
+				ut_assert("param_set failed", false);
 			}
 
 			ut_compare("value for param doesn't match default value", p, get_val);
@@ -386,7 +386,7 @@ bool ParameterTest::exportImport()
 
 			if (param_get(p, &get_val) != PX4_OK) {
 				PX4_ERR("param_get failed for: %d", p);
-				ut_assert("param_set_no_notification failed", false);
+				ut_assert("param_set failed", false);
 			}
 
 			ut_compare_float("value for param doesn't match default value", p, (float)p + MAGIC_FLOAT_VAL, 0.001f);
@@ -427,16 +427,16 @@ bool ParameterTest::exportImportAll()
 		if (param_type(p) == PARAM_TYPE_INT32) {
 			const int32_t set_val = p;
 
-			if (param_set_no_notification(p, &set_val) != PX4_OK) {
-				PX4_ERR("param_set_no_notification failed for: %d", p);
-				ut_assert("param_set_no_notification failed", false);
+			if (param_set(p, &set_val) != PX4_OK) {
+				PX4_ERR("param_set failed for: %d", p);
+				ut_assert("param_set failed", false);
 			}
 
 			int32_t get_val = 0;
 
 			if (param_get(p, &get_val) != PX4_OK) {
 				PX4_ERR("param_get failed for: %d", p);
-				ut_assert("param_set_no_notification failed", false);
+				ut_assert("param_set failed", false);
 			}
 
 			ut_compare("value for param doesn't match default value", p, get_val);
@@ -445,16 +445,16 @@ bool ParameterTest::exportImportAll()
 		if (param_type(p) == PARAM_TYPE_FLOAT) {
 			const float set_val = (float)p + MAGIC_FLOAT_VAL;
 
-			if (param_set_no_notification(p, &set_val) != PX4_OK) {
-				PX4_ERR("param_set_no_notification failed for: %d", p);
-				ut_assert("param_set_no_notification failed", false);
+			if (param_set(p, &set_val) != PX4_OK) {
+				PX4_ERR("param_set failed for: %d", p);
+				ut_assert("param_set failed", false);
 			}
 
 			float get_val = 0.0f;
 
 			if (param_get(p, &get_val) != PX4_OK) {
 				PX4_ERR("param_get failed for: %d", p);
-				ut_assert("param_set_no_notification failed", false);
+				ut_assert("param_set failed", false);
 			}
 
 			ut_compare("value for param doesn't match default value", p, (float)p + MAGIC_FLOAT_VAL);
@@ -475,16 +475,16 @@ bool ParameterTest::exportImportAll()
 
 			const int32_t set_val = 0;
 
-			if (param_set_no_notification(p, &set_val) != PX4_OK) {
+			if (param_set(p, &set_val) != PX4_OK) {
 				PX4_ERR("param set failed: %d", p);
-				ut_assert("param_set_no_notification failed", false);
+				ut_assert("param_set failed", false);
 			}
 
 			int32_t get_val = -1;
 
 			if (param_get(p, &get_val) != PX4_OK) {
 				PX4_ERR("param_get failed for: %d", p);
-				ut_assert("param_set_no_notification failed", false);
+				ut_assert("param_set failed", false);
 			}
 
 			ut_compare("value for param doesn't match default value", set_val, get_val);
@@ -493,16 +493,16 @@ bool ParameterTest::exportImportAll()
 		if (param_type(p) == PARAM_TYPE_FLOAT) {
 			float set_val = 0.0f;
 
-			if (param_set_no_notification(p, &set_val) != PX4_OK) {
+			if (param_set(p, &set_val) != PX4_OK) {
 				PX4_ERR("param set failed: %d", p);
-				ut_assert("param_set_no_notification failed", false);
+				ut_assert("param_set failed", false);
 			}
 
 			float get_val = -1.0f;
 
 			if (param_get(p, &get_val) != PX4_OK) {
 				PX4_ERR("param_get failed for: %d", p);
-				ut_assert("param_set_no_notification failed", false);
+				ut_assert("param_set failed", false);
 			}
 
 			ut_compare("value for param doesn't match default value", set_val, get_val);
@@ -525,7 +525,7 @@ bool ParameterTest::exportImportAll()
 
 			if (param_get(p, &get_val) != PX4_OK) {
 				PX4_ERR("param_get failed for: %d", p);
-				ut_assert("param_set_no_notification failed", false);
+				ut_assert("param_set failed", false);
 			}
 
 			ut_compare("value for param doesn't match default value", p, get_val);
@@ -536,7 +536,7 @@ bool ParameterTest::exportImportAll()
 
 			if (param_get(p, &get_val) != PX4_OK) {
 				PX4_ERR("param_get failed for: %d", p);
-				ut_assert("param_set_no_notification failed", false);
+				ut_assert("param_set failed", false);
 			}
 
 			ut_compare("value for param doesn't match default value", p, (float)p + MAGIC_FLOAT_VAL);

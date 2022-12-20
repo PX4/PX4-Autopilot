@@ -42,6 +42,8 @@
 #include <containers/List.hpp>
 
 #include "param.h"
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/parameter_update.h>
 
 class ModuleParams : public ListNode<ModuleParams *>
 {
@@ -68,6 +70,8 @@ public:
 	virtual ~ModuleParams()
 	{
 		if (_parent) { _parent->_children.remove(this); }
+
+		_parameter_update_sub.unsubscribe();
 	}
 
 	// Disallow copy construction and move assignment.
@@ -83,20 +87,75 @@ protected:
 	 */
 	virtual void updateParams()
 	{
-		for (const auto &child : _children) {
-			child->updateParams();
+		bool update_all = true;
+		int parameter_updates = 0;
+
+		while (_parameter_update_sub.updated() && (parameter_updates < parameter_update_s::ORB_QUEUE_LENGTH)) {
+			parameter_updates++;
+
+			parameter_update_s parameter_update;
+
+			if (_parameter_update_sub.copy(&parameter_update)
+			    && (_parameter_update_instance > 0)
+			    && (parameter_update.instance == _parameter_update_instance + 1)
+			    && (parameter_update.changed_param.index >= 0)
+			    && (static_cast<uint16_t>(parameter_update.changed_param.index) != PARAM_INVALID)
+			   ) {
+				update_all = false;
+
+				for (const auto &child : _children) {
+					child->updateParams(parameter_update);
+				}
+
+				updateParamsImpl(parameter_update);
+
+				_parameter_update_instance = parameter_update.instance;
+
+			} else {
+				update_all = true;
+				break;
+			}
 		}
 
-		updateParamsImpl();
+		if (update_all) {
+			PX4_DEBUG("updateParams: updating all params");
+			parameter_update_s parameter_update;
+
+			if (_parameter_update_sub.copy(&parameter_update)) {
+				_parameter_update_instance = parameter_update.instance;
+			}
+
+			for (const auto &child : _children) {
+				child->updateParams();
+			}
+
+			updateParamsImpl();
+
+		} else {
+			PX4_DEBUG("updateParams: updating all params skipped");
+		}
+	}
+
+	virtual void updateParams(const parameter_update_s &parameter_update)
+	{
+		for (const auto &child : _children) {
+			child->updateParams(parameter_update);
+		}
+
+		updateParamsImpl(parameter_update);
 	}
 
 	/**
 	 * @brief The implementation for this is generated with the macro DEFINE_PARAMETERS()
 	 */
 	virtual void updateParamsImpl() {}
+	virtual void updateParamsImpl(const parameter_update_s &parameter_update) {}
 
 private:
 	/** @list _children The module parameter list of inheriting classes. */
 	List<ModuleParams *> _children;
 	ModuleParams *_parent{nullptr};
+
+	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
+	uint32_t _parameter_update_instance{0};
 };

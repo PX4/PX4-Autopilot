@@ -610,9 +610,10 @@ void EKF2::VerifyParams()
 {
 	if ((_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_USE_GPS)
 	    || (_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_USE_GPS_YAW)) {
+
 		_param_ekf2_aid_mask.set(_param_ekf2_aid_mask.get() & ~(SensorFusionMask::DEPRECATED_USE_GPS |
 					 SensorFusionMask::DEPRECATED_USE_GPS_YAW));
-		_param_ekf2_aid_mask.commit();
+
 		mavlink_log_critical(&_mavlink_log_pub, "Use EKF2_GPS_CTRL instead\n");
 		/* EVENT
 		 * @description <param>EKF2_AID_MASK</param> is set to {1:.0}.
@@ -622,8 +623,9 @@ void EKF2::VerifyParams()
 	}
 
 	if ((_param_ekf2_gps_ctrl.get() & GnssCtrl::VPOS) && !(_param_ekf2_gps_ctrl.get() & GnssCtrl::HPOS)) {
+
 		_param_ekf2_gps_ctrl.set(_param_ekf2_gps_ctrl.get() & ~GnssCtrl::VPOS);
-		_param_ekf2_gps_ctrl.commit();
+
 		mavlink_log_critical(&_mavlink_log_pub, "GPS lon/lat is required for altitude fusion\n");
 		/* EVENT
 		 * @description <param>EKF2_GPS_CTRL</param> is set to {1:.0}.
@@ -633,8 +635,9 @@ void EKF2::VerifyParams()
 	}
 
 	if ((_param_ekf2_hgt_ref.get() == HeightSensor::BARO) && (_param_ekf2_baro_ctrl.get() == 0)) {
+
 		_param_ekf2_baro_ctrl.set(1);
-		_param_ekf2_baro_ctrl.commit();
+
 		mavlink_log_critical(&_mavlink_log_pub, "Baro enabled by EKF2_HGT_REF\n");
 		/* EVENT
 		 * @description <param>EKF2_BARO_CTRL</param> is set to {1:.0}.
@@ -644,8 +647,9 @@ void EKF2::VerifyParams()
 	}
 
 	if ((_param_ekf2_hgt_ref.get() == HeightSensor::RANGE) && (_param_ekf2_rng_ctrl.get() == RngCtrl::DISABLED)) {
+
 		_param_ekf2_rng_ctrl.set(1);
-		_param_ekf2_rng_ctrl.commit();
+
 		mavlink_log_critical(&_mavlink_log_pub, "Range enabled by EKF2_HGT_REF\n");
 		/* EVENT
 		 * @description <param>EKF2_RNG_CTRL</param> is set to {1:.0}.
@@ -655,8 +659,9 @@ void EKF2::VerifyParams()
 	}
 
 	if ((_param_ekf2_hgt_ref.get() == HeightSensor::GNSS) && !(_param_ekf2_gps_ctrl.get() & GnssCtrl::VPOS)) {
+
 		_param_ekf2_gps_ctrl.set(_param_ekf2_gps_ctrl.get() | (GnssCtrl::VPOS | GnssCtrl::HPOS | GnssCtrl::VEL));
-		_param_ekf2_gps_ctrl.commit();
+
 		mavlink_log_critical(&_mavlink_log_pub, "GPS enabled by EKF2_HGT_REF\n");
 		/* EVENT
 		 * @description <param>EKF2_GPS_CTRL</param> is set to {1:.0}.
@@ -669,10 +674,8 @@ void EKF2::VerifyParams()
 	if ((_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_USE_EXT_VIS_VEL)) {
 
 		_param_ekf2_ev_ctrl.set(_param_ekf2_ev_ctrl.get() | static_cast<int32_t>(EvCtrl::VEL));
-		_param_ekf2_ev_ctrl.commit();
 
 		_param_ekf2_aid_mask.set(_param_ekf2_aid_mask.get() & ~(SensorFusionMask::DEPRECATED_USE_EXT_VIS_VEL));
-		_param_ekf2_aid_mask.commit();
 
 		mavlink_log_critical(&_mavlink_log_pub, "EKF2 EV use EKF2_EV_CTRL instead of EKF2_AID_MASK\n");
 		/* EVENT
@@ -2204,7 +2207,6 @@ void EKF2::UpdateMagCalibration(const hrt_abstime &timestamp)
 
 			if (PX4_ISFINITE(declination_deg) && (fabsf(declination_deg - _param_ekf2_mag_decl.get()) > 0.1f)) {
 				_param_ekf2_mag_decl.set(declination_deg);
-				_param_ekf2_mag_decl.commit_no_notification();
 			}
 
 			_mag_decl_saved = true;
@@ -2245,7 +2247,7 @@ int EKF2::task_spawn(int argc, char *argv[])
 		if (imu_instances < 1 || imu_instances > 4) {
 			const int32_t imu_instances_limited = math::constrain(imu_instances, static_cast<int32_t>(1), static_cast<int32_t>(4));
 			PX4_WARN("EKF2_MULTI_IMU limited %" PRId32 " -> %" PRId32, imu_instances, imu_instances_limited);
-			param_set_no_notification(param_find("EKF2_MULTI_IMU"), &imu_instances_limited);
+			param_set(param_find("EKF2_MULTI_IMU"), &imu_instances_limited);
 			imu_instances = imu_instances_limited;
 		}
 
@@ -2261,7 +2263,7 @@ int EKF2::task_spawn(int argc, char *argv[])
 			if (mag_instances > 4) {
 				const int32_t mag_instances_limited = math::constrain(mag_instances, static_cast<int32_t>(1), static_cast<int32_t>(4));
 				PX4_WARN("EKF2_MULTI_MAG limited %" PRId32 " -> %" PRId32, mag_instances, mag_instances_limited);
-				param_set_no_notification(param_ekf2_mult_mag, &mag_instances_limited);
+				param_set(param_ekf2_mult_mag, &mag_instances_limited);
 				mag_instances = mag_instances_limited;
 
 			} else if (mag_instances <= 1) {

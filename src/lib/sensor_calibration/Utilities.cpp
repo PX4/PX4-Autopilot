@@ -195,7 +195,7 @@ bool SetCalibrationParamsVector3f(const char *sensor_type, const char *cal_type,
 		// eg CAL_MAGn_{X,Y,Z}OFF
 		sprintf(str, "CAL_%s%" PRIu8 "_%c%s", sensor_type, instance, axis_char, cal_type);
 
-		if (param_set_no_notification(param_find(str), &values(axis)) != 0) {
+		if (param_set(param_find(str), &values(axis)) != 0) {
 			PX4_ERR("failed to set %s = %.4f", str, (double)values(axis));
 			ret = PX4_ERROR;
 		}

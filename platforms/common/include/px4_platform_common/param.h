@@ -44,11 +44,13 @@
 #include <math.h>
 
 #include <parameters/px4_parameters.hpp>
+#include <uORB/topics/parameter.h>
+#include <uORB/topics/parameter_update.h>
 
 /**
  * get the parameter handle from a parameter enum
  */
-inline static param_t param_handle(px4::params p)
+inline static constexpr param_t param_handle(px4::params p)
 {
 	return (param_t)p;
 }
@@ -62,12 +64,20 @@ inline static param_t param_handle(px4::params p)
 #define _CALL_UPDATE(x) \
 	STRIP(x).update();
 
+#define _SET_PARAMETER_UPDATE(x) \
+	case STRIP(x).handle(): STRIP(x).setValue(parameter_update.changed_param); return;
+
 // define the parameter update method, which will update all parameters.
 // It is marked as 'final', so that wrong usages lead to a compile error (see below)
 #define _DEFINE_PARAMETER_UPDATE_METHOD(...) \
 	protected: \
 	void updateParamsImpl() final { \
 		APPLY_ALL(_CALL_UPDATE, __VA_ARGS__) \
+	} \
+	void updateParamsImpl(const parameter_update_s &parameter_update) { \
+		switch(parameter_update.changed_param.index) { \
+			APPLY_ALL(_SET_PARAMETER_UPDATE, __VA_ARGS__) \
+		} \
 	} \
 	private:
 
@@ -87,6 +97,12 @@ inline static param_t param_handle(px4::params p)
 	void updateParamsImpl() override { \
 		parent_class::updateParamsImpl(); \
 		APPLY_ALL(_CALL_UPDATE, __VA_ARGS__) \
+	} \
+	void updateParamsImpl(const parameter_update_s &parameter_update) { \
+		parent_class::updateParamsImpl(parameter_update); \
+		switch(parameter_update.changed_param.index) { \
+			APPLY_ALL(_SET_PARAMETER_UPDATE, __VA_ARGS__) \
+		} \
 	} \
 	private:
 
@@ -118,7 +134,6 @@ public:
 
 	Param()
 	{
-		param_set_used(handle());
 		update();
 	}
 
@@ -126,29 +141,22 @@ public:
 
 	const float &reference() const { return _val; }
 
-	/// Store the parameter value to the parameter storage (@see param_set())
-	bool commit() const { return param_set(handle(), &_val) == 0; }
-
-	/// Store the parameter value to the parameter storage, w/o notifying the system (@see param_set_no_notification())
-	bool commit_no_notification() const { return param_set_no_notification(handle(), &_val) == 0; }
-
 	/// Set and commit a new value. Returns true if the value changed.
-	bool commit_no_notification(float val)
+	bool set(float val)
 	{
 		if (fabsf(val - _val) > FLT_EPSILON) {
-			set(val);
-			commit_no_notification();
-			return true;
+			_val = val;
+			return (param_set(handle(), &_val) == 0);
 		}
 
 		return false;
 	}
 
-	void set(float val) { _val = val; }
-
 	bool update() { return param_get(handle(), &_val) == 0; }
 
-	param_t handle() const { return param_handle(p); }
+	void setValue(const parameter_s &parameter_update) { _val = parameter_update.float32_value; }
+
+	static constexpr param_t handle() { return param_handle(p); }
 private:
 	float _val;
 };
@@ -164,7 +172,6 @@ public:
 	Param(float &external_val)
 		: _val(external_val)
 	{
-		param_set_used(handle());
 		update();
 	}
 
@@ -172,29 +179,18 @@ public:
 
 	const float &reference() const { return _val; }
 
-	/// Store the parameter value to the parameter storage (@see param_set())
-	bool commit() const { return param_set(handle(), &_val) == 0; }
-
-	/// Store the parameter value to the parameter storage, w/o notifying the system (@see param_set_no_notification())
-	bool commit_no_notification() const { return param_set_no_notification(handle(), &_val) == 0; }
-
 	/// Set and commit a new value. Returns true if the value changed.
-	bool commit_no_notification(float val)
+	bool set(float val)
 	{
-		if (fabsf(val - _val) > FLT_EPSILON) {
-			set(val);
-			commit_no_notification();
-			return true;
-		}
-
-		return false;
+		_val = val;
+		return (param_set(handle(), &_val) == 0);
 	}
-
-	void set(float val) { _val = val; }
 
 	bool update() { return param_get(handle(), &_val) == 0; }
 
-	param_t handle() const { return param_handle(p); }
+	void setValue(const parameter_s &parameter_update) { _val = parameter_update.float32_value; }
+
+	static constexpr param_t handle() { return param_handle(p); }
 private:
 	float &_val;
 };
@@ -208,7 +204,6 @@ public:
 
 	Param()
 	{
-		param_set_used(handle());
 		update();
 	}
 
@@ -216,29 +211,18 @@ public:
 
 	const int32_t &reference() const { return _val; }
 
-	/// Store the parameter value to the parameter storage (@see param_set())
-	bool commit() const { return param_set(handle(), &_val) == 0; }
-
-	/// Store the parameter value to the parameter storage, w/o notifying the system (@see param_set_no_notification())
-	bool commit_no_notification() const { return param_set_no_notification(handle(), &_val) == 0; }
-
 	/// Set and commit a new value. Returns true if the value changed.
-	bool commit_no_notification(int32_t val)
+	bool set(int32_t val)
 	{
-		if (val != _val) {
-			set(val);
-			commit_no_notification();
-			return true;
-		}
-
-		return false;
+		_val = val;
+		return (param_set(handle(), &_val) == 0);
 	}
-
-	void set(int32_t val) { _val = val; }
 
 	bool update() { return param_get(handle(), &_val) == 0; }
 
-	param_t handle() const { return param_handle(p); }
+	void setValue(const parameter_s &parameter_update) { _val = parameter_update.int32_value; }
+
+	static constexpr param_t handle() { return param_handle(p); }
 private:
 	int32_t _val;
 };
@@ -254,7 +238,6 @@ public:
 	Param(int32_t &external_val)
 		: _val(external_val)
 	{
-		param_set_used(handle());
 		update();
 	}
 
@@ -263,28 +246,17 @@ public:
 	const int32_t &reference() const { return _val; }
 
 	/// Store the parameter value to the parameter storage (@see param_set())
-	bool commit() const { return param_set(handle(), &_val) == 0; }
-
-	/// Store the parameter value to the parameter storage, w/o notifying the system (@see param_set_no_notification())
-	bool commit_no_notification() const { return param_set_no_notification(handle(), &_val) == 0; }
-
-	/// Set and commit a new value. Returns true if the value changed.
-	bool commit_no_notification(int32_t val)
+	bool set(int32_t val)
 	{
-		if (val != _val) {
-			set(val);
-			commit_no_notification();
-			return true;
-		}
-
-		return false;
+		_val = val;
+		return (param_set(handle(), &_val) == 0);
 	}
-
-	void set(int32_t val) { _val = val; }
 
 	bool update() { return param_get(handle(), &_val) == 0; }
 
-	param_t handle() const { return param_handle(p); }
+	void setValue(const parameter_s &parameter_update) { _val = parameter_update.int32_value; }
+
+	static constexpr param_t handle() { return param_handle(p); }
 private:
 	int32_t &_val;
 };
@@ -298,7 +270,6 @@ public:
 
 	Param()
 	{
-		param_set_used(handle());
 		update();
 	}
 
@@ -306,33 +277,13 @@ public:
 
 	const bool &reference() const { return _val; }
 
-	/// Store the parameter value to the parameter storage (@see param_set())
-	bool commit() const
-	{
-		int32_t value_int = (int32_t)_val;
-		return param_set(handle(), &value_int) == 0;
-	}
-
-	/// Store the parameter value to the parameter storage, w/o notifying the system (@see param_set_no_notification())
-	bool commit_no_notification() const
-	{
-		int32_t value_int = (int32_t)_val;
-		return param_set_no_notification(handle(), &value_int) == 0;
-	}
-
 	/// Set and commit a new value. Returns true if the value changed.
-	bool commit_no_notification(bool val)
+	bool set(bool val)
 	{
-		if (val != _val) {
-			set(val);
-			commit_no_notification();
-			return true;
-		}
-
-		return false;
+		_val = val;
+		int32_t value_int = (int32_t)_val;
+		return (param_set(handle(), &value_int) == 0);
 	}
-
-	void set(bool val) { _val = val; }
 
 	bool update()
 	{
@@ -347,7 +298,9 @@ public:
 		return false;
 	}
 
-	param_t handle() const { return param_handle(p); }
+	void setValue(const parameter_s &parameter_update) { _val = parameter_update.int32_value; }
+
+	static constexpr param_t handle() { return param_handle(p); }
 private:
 	bool _val;
 };

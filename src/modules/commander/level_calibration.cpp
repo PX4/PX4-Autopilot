@@ -165,9 +165,8 @@ int do_level_calibration(orb_advert_t *mavlink_log_pub)
 			PX4_INFO("Updating SENS_BOARD_Y_OFF %.1f -> %.1f degrees", (double)pitch_offset_current, (double)pitch_mean_degrees);
 		}
 
-		param_set_no_notification(roll_offset_handle, &roll_mean_degrees);
-		param_set_no_notification(pitch_offset_handle, &pitch_mean_degrees);
-		param_notify_changes();
+		param_set(roll_offset_handle, &roll_mean_degrees);
+		param_set(pitch_offset_handle, &pitch_mean_degrees);
 		success = true;
 	}
 

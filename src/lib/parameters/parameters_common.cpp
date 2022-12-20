@@ -96,7 +96,7 @@ bool param_is_volatile(param_t param)
 	return false;
 }
 
-size_t param_size(param_t param)
+static size_t param_size(param_t param)
 {
 	if (handle_in_range(param)) {
 		switch (param_type(param)) {

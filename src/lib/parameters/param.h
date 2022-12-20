@@ -198,14 +198,6 @@ __EXPORT bool		param_value_unsaved(param_t param);
 __EXPORT param_type_t	param_type(param_t param);
 
 /**
- * Determine the size of a parameter.
- *
- * @param param		A handle returned by param_find or passed by param_foreach.
- * @return		The size of the parameter's value.
- */
-__EXPORT size_t		param_size(param_t param);
-
-/**
  * Copy the value of a parameter.
  *
  * @param param		A handle returned by param_find or passed by param_foreach.
@@ -249,29 +241,6 @@ __EXPORT int		param_set(param_t param, const void *val);
  * @return		Zero if the parameter's default value could be set from a scalar, nonzero otherwise.
  */
 __EXPORT int		param_set_default_value(param_t param, const void *val);
-
-/**
- * Mark a parameter as used. Only marked parameters will be sent to a GCS.
- * A call to param_find() will mark a param as used as well.
- *
- * @param param		A handle returned by param_find or passed by param_foreach.
- */
-__EXPORT void		param_set_used(param_t param);
-
-/**
- * Set the value of a parameter, but do not notify the system about the change.
- *
- * @param param		A handle returned by param_find or passed by param_foreach.
- * @param val		The value to set; assumed to point to a variable of the parameter type.
- * @return		Zero if the parameter's value could be set from a scalar, nonzero otherwise.
- */
-__EXPORT int		param_set_no_notification(param_t param, const void *val);
-
-/**
- * Notify the system about parameter changes. Can be used for example after several calls to
- * param_set_no_notification() to avoid unnecessary system notifications.
- */
-__EXPORT void		param_notify_changes(void);
 
 /**
  * Reset all parameters to their default values.

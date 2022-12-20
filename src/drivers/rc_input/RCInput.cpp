@@ -773,7 +773,6 @@ void RCInput::Run()
 		   ) {
 			// RC_INPUT_PROTO auto => locked selection
 			_param_rc_input_proto.set(_rc_scan_state);
-			_param_rc_input_proto.commit();
 		}
 	}
 }

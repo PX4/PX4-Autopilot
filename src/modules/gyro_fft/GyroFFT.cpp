@@ -134,7 +134,6 @@ bool GyroFFT::init()
 		PX4_ERR("Invalid IMU_GYRO_FFT_LEN=%" PRId32 ", resetting", _param_imu_gyro_fft_len.get());
 		buffers_allocated = AllocateBuffers<256>();
 		_param_imu_gyro_fft_len.set(256);
-		_param_imu_gyro_fft_len.commit();
 		break;
 	}
 

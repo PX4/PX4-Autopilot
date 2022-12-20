@@ -197,7 +197,7 @@ public:
 
 	uint8_t get_queue_size() const { return _queue_size; }
 
-	int8_t subscriber_count() const { return _subscriber_count; }
+	int16_t subscriber_count() const { return _subscriber_count; }
 
 	/**
 	 * Returns the number of updated data relative to the parameter 'generation'
@@ -296,7 +296,7 @@ private:
 	const uint8_t _instance; /**< orb multi instance identifier */
 	bool _advertised{false};  /**< has ever been advertised (not necessarily published data yet) */
 	uint8_t _queue_size; /**< maximum number of elements in the queue */
-	int8_t _subscriber_count{0};
+	int16_t _subscriber_count{0};
 
 
 // Determine the data range

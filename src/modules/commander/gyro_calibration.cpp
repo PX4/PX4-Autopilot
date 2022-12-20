@@ -248,7 +248,6 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 
 	if (res == PX4_OK) {
 		// set offset parameters to new values
-		bool param_save = false;
 		bool failed = true;
 
 		for (unsigned uorb_index = 0; uorb_index < MAX_GYROS; uorb_index++) {
@@ -260,7 +259,6 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 				calibration.PrintStatus();
 
 				if (calibration.ParametersSave(uorb_index, true)) {
-					param_save = true;
 					failed = false;
 
 				} else {
@@ -273,10 +271,6 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 
 		if (!failed && factory_storage.store() != PX4_OK) {
 			failed = true;
-		}
-
-		if (param_save) {
-			param_notify_changes();
 		}
 
 		if (!failed) {

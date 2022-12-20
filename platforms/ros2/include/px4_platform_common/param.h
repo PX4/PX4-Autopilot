@@ -107,7 +107,6 @@ public:
 
 	Param()
 	{
-		//param_set_used(handle());
 		update();
 	}
 
@@ -122,19 +121,12 @@ public:
 		//return param_set(handle(), &_val) == 0;
 	}
 
-	/// Store the parameter value to the parameter storage, w/o notifying the system (@see param_set_no_notification())
-	bool commit_no_notification() const
-	{
-		return true; // TODO
-		//return param_set_no_notification(handle(), &_val) == 0;
-	}
-
 	/// Set and commit a new value. Returns true if the value changed.
-	bool commit_no_notification(float val)
+	bool commit(float val)
 	{
 		if (fabsf(val - _val) > FLT_EPSILON) {
 			set(val);
-			commit_no_notification();
+			commit();
 			return true;
 		}
 
@@ -165,7 +157,6 @@ public:
 	Param(float &external_val)
 		: _val(external_val)
 	{
-		//param_set_used(handle()); // TODO
 		update();
 	}
 
@@ -180,19 +171,12 @@ public:
 		return true;
 	}
 
-	/// Store the parameter value to the parameter storage, w/o notifying the system (@see param_set_no_notification())
-	bool commit_no_notification() const
-	{
-		return true;
-		//return param_set_no_notification(handle(), &_val) == 0;
-	}
-
 	/// Set and commit a new value. Returns true if the value changed.
-	bool commit_no_notification(float val)
+	bool commit(float val)
 	{
 		if (fabsf(val - _val) > FLT_EPSILON) {
 			set(val);
-			commit_no_notification();
+			commit();
 			return true;
 		}
 
@@ -221,7 +205,6 @@ public:
 
 	Param()
 	{
-		//param_set_used(handle());
 		update();
 	}
 
@@ -236,19 +219,12 @@ public:
 		//return param_set(handle(), &_val) == 0;
 	}
 
-	/// Store the parameter value to the parameter storage, w/o notifying the system (@see param_set_no_notification())
-	bool commit_no_notification() const
-	{
-		//return param_set_no_notification(handle(), &_val) == 0;
-		return true;
-	}
-
 	/// Set and commit a new value. Returns true if the value changed.
-	bool commit_no_notification(int32_t val)
+	bool commit(int32_t val)
 	{
 		if (val != _val) {
 			set(val);
-			commit_no_notification();
+			commit();
 			return true;
 		}
 
@@ -279,7 +255,6 @@ public:
 	Param(int32_t &external_val)
 		: _val(external_val)
 	{
-		//param_set_used(handle());
 		update();
 	}
 
@@ -294,19 +269,12 @@ public:
 		//return param_set(handle(), &_val) == 0;
 	}
 
-	/// Store the parameter value to the parameter storage, w/o notifying the system (@see param_set_no_notification())
-	bool commit_no_notification() const
-	{
-		return true;
-		//return param_set_no_notification(handle(), &_val) == 0;
-	}
-
 	/// Set and commit a new value. Returns true if the value changed.
-	bool commit_no_notification(int32_t val)
+	bool commit(int32_t val)
 	{
 		if (val != _val) {
 			set(val);
-			commit_no_notification();
+			commit();
 			return true;
 		}
 
@@ -335,7 +303,6 @@ public:
 
 	Param()
 	{
-		//param_set_used(handle());
 		update();
 	}
 
@@ -351,20 +318,12 @@ public:
 		return true;
 	}
 
-	/// Store the parameter value to the parameter storage, w/o notifying the system (@see param_set_no_notification())
-	bool commit_no_notification() const
-	{
-		int32_t value_int = (int32_t)_val;
-		//return param_set_no_notification(handle(), &value_int) == 0;
-		return true;
-	}
-
 	/// Set and commit a new value. Returns true if the value changed.
-	bool commit_no_notification(bool val)
+	bool commit(bool val)
 	{
 		if (val != _val) {
 			set(val);
-			commit_no_notification();
+			commit();
 			return true;
 		}
 
