@@ -273,13 +273,9 @@ void FixedwingAttitudeControl::Run()
 
 		vehicle_land_detected_poll();
 
-		// the position controller will not emit attitude setpoints in some modes
-		// we need to make sure that this flag is reset
-		_att_sp.fw_control_yaw_wheel = _att_sp.fw_control_yaw_wheel && _vcontrol_mode.flag_control_auto_enabled;
-
 		bool wheel_control = false;
 
-		if (_param_fw_w_en.get() && _att_sp.fw_control_yaw_wheel) {
+		if (_param_fw_w_en.get() && _att_sp.fw_control_yaw_wheel && _vcontrol_mode.flag_control_auto_enabled) {
 			wheel_control = true;
 		}
 
@@ -419,6 +415,12 @@ void FixedwingAttitudeControl::Run()
 		} else {
 			// full manual
 			_wheel_ctrl.reset_integrator();
+
+			_landing_gear_wheel.normalized_wheel_setpoint = PX4_ISFINITE(_manual_control_setpoint.yaw) ?
+					_manual_control_setpoint.yaw : 0.f;
+			_landing_gear_wheel.timestamp = hrt_absolute_time();
+			_landing_gear_wheel_pub.publish(_landing_gear_wheel);
+
 		}
 	}
 
