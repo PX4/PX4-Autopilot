@@ -9,16 +9,11 @@ then
 	mavlink start -d /dev/ttyS4 -b 3000000 -r 290000 -m onboard_low_bandwidth -x -z
 fi
 
-# Enable these on ethernet only if RTPS_MAV_CONFIG is not defined or equals 0
-if param compare -s RTPS_MAV_CONFIG 0
-then
+# Start MC flight control mavlink to ethernet interface
+mavlink start -c 192.168.200.100 -u 14541 -o 14540 -r 2000000 -x
 
-    # Start MC flight control mavlink to ethernet interface
-    mavlink start -c 192.168.200.100 -u 14541 -o 14540 -r 2000000 -x
-
-    # Start uXRCE-DDS client on UDP
-    microdds_client start -t udp -h 192.168.200.100 -r 2019 -p 2020
-fi
+# Start uXRCE-DDS client on UDP
+microdds_client start -t udp -h 192.168.200.100 -r 2019 -p 2020
 
 # Start MC maintenance mavlink to ethernet interface
 #mavlink start -c 192.168.200.100 -u 14543 -o 14542 -r 2000000 -m magic -x
