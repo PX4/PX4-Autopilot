@@ -473,7 +473,7 @@ uORB::Manager::launchCallbackThread()
 		per_process_cb_thread = px4_task_spawn_cmd("orb_callback",
 					SCHED_DEFAULT,
 					SCHED_PRIORITY_MAX - 1,
-					1024,
+					PX4_STACK_ADJUSTED(1024),
 					callback_thread,
 					nullptr);
 
