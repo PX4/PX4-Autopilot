@@ -229,10 +229,6 @@ void Standard::update_transition_state()
 		const Quatf q_sp(Eulerf(_v_att_sp->roll_body, _v_att_sp->pitch_body, _v_att_sp->yaw_body));
 		q_sp.copyTo(_v_att_sp->q_d);
 
-		// set spoiler and flaps to 0
-		_flaps_setpoint_with_slewrate.update(0.f, _dt);
-		_spoiler_setpoint_with_slewrate.update(0.f, _dt);
-
 	} else if (_vtol_mode == vtol_mode::TRANSITION_TO_MC) {
 
 		if (_v_control_mode->flag_control_climb_rate_enabled) {
@@ -299,10 +295,6 @@ void Standard::fill_actuator_outputs()
 				fw_in[actuator_controls_s::INDEX_PITCH];
 		fw_out[actuator_controls_s::INDEX_YAW]          = 0;
 		fw_out[actuator_controls_s::INDEX_THROTTLE]     = _pusher_throttle;
-		fw_out[actuator_controls_s::INDEX_FLAPS]        = _flaps_setpoint_with_slewrate.getState();
-		fw_out[actuator_controls_s::INDEX_SPOILERS]    	= _spoiler_setpoint_with_slewrate.getState();
-		fw_out[actuator_controls_s::INDEX_AIRBRAKES]    = 0.f;
-
 		break;
 
 	case vtol_mode::TRANSITION_TO_FW:
@@ -320,8 +312,6 @@ void Standard::fill_actuator_outputs()
 		fw_out[actuator_controls_s::INDEX_PITCH]        = fw_in[actuator_controls_s::INDEX_PITCH] * (1.f - _mc_pitch_weight);
 		fw_out[actuator_controls_s::INDEX_YAW]          = fw_in[actuator_controls_s::INDEX_YAW] * (1.f - _mc_yaw_weight);
 		fw_out[actuator_controls_s::INDEX_THROTTLE]     = _pusher_throttle;
-		fw_out[actuator_controls_s::INDEX_FLAPS]        = _flaps_setpoint_with_slewrate.getState();
-		fw_out[actuator_controls_s::INDEX_SPOILERS]    	= _spoiler_setpoint_with_slewrate.getState();
 
 		break;
 
@@ -337,9 +327,6 @@ void Standard::fill_actuator_outputs()
 		fw_out[actuator_controls_s::INDEX_PITCH]        = fw_in[actuator_controls_s::INDEX_PITCH];
 		fw_out[actuator_controls_s::INDEX_YAW]          = fw_in[actuator_controls_s::INDEX_YAW];
 		fw_out[actuator_controls_s::INDEX_THROTTLE]     = fw_in[actuator_controls_s::INDEX_THROTTLE];
-		fw_out[actuator_controls_s::INDEX_FLAPS]        = _flaps_setpoint_with_slewrate.getState();
-		fw_out[actuator_controls_s::INDEX_SPOILERS]    	= _spoiler_setpoint_with_slewrate.getState();
-		fw_out[actuator_controls_s::INDEX_AIRBRAKES]    = 0;
 		break;
 	}
 

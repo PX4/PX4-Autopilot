@@ -45,7 +45,8 @@
 #include "ActuatorEffectivenessRotors.hpp"
 #include "ActuatorEffectivenessControlSurfaces.hpp"
 
-#include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/normalized_unsigned_setpoint.h>
+
 
 class ActuatorEffectivenessStandardVTOL : public ModuleParams, public ActuatorEffectiveness
 {
@@ -72,9 +73,7 @@ public:
 		normalize[1] = false;
 	}
 
-	void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
-			    ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
-			    const matrix::Vector<float, NUM_ACTUATORS> &actuator_max) override;
+	void allocateAuxilaryControls(const float dt, int matrix_index, ActuatorVector &actuator_sp) override;
 
 	void setFlightPhase(const FlightPhase &flight_phase) override;
 
@@ -89,6 +88,7 @@ private:
 
 	int _first_control_surface_idx{0}; ///< applies to matrix 1
 
-	uORB::Subscription _actuator_controls_1_sub{ORB_ID(actuator_controls_0)};
+	uORB::Subscription _flaps_setpoint_sub{ORB_ID(flaps_setpoint)};
+	uORB::Subscription _spoilers_setpoint_sub{ORB_ID(spoilers_setpoint)};
 
 };

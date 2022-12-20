@@ -68,6 +68,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("follow_target", 500);
 	add_optional_topic("follow_target_estimator", 200);
 	add_optional_topic("follow_target_status", 400);
+	add_optional_topic("flaps_setpoint", 1000);
 	add_topic("gimbal_manager_set_attitude", 500);
 	add_optional_topic("generator_status");
 	add_optional_topic("gps_dump");
@@ -103,6 +104,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("sensor_gyro_fft", 50);
 	add_topic("sensor_selection");
 	add_topic("sensors_status_imu", 200);
+	add_optional_topic("spoilers_setpoint", 1000);
 	add_topic("system_power", 500);
 	add_optional_topic("takeoff_status", 1000);
 	add_optional_topic("tecs_status", 200);
