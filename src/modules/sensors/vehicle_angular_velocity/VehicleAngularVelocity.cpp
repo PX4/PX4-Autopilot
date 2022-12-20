@@ -383,7 +383,6 @@ void VehicleAngularVelocity::ParametersUpdate(bool force)
 		if (_param_imu_gyro_ratemax.get() <= 0) {
 			const int32_t imu_gyro_ratemax = _param_imu_gyro_ratemax.get();
 			_param_imu_gyro_ratemax.set(400);
-			_param_imu_gyro_ratemax.commit();
 			PX4_WARN("IMU_GYRO_RATEMAX invalid (%" PRId32 "), resetting to default %" PRId32 ")", imu_gyro_ratemax,
 				 _param_imu_gyro_ratemax.get());
 		}
@@ -394,7 +393,6 @@ void VehicleAngularVelocity::ParametersUpdate(bool force)
 		if (imu_gyro_ratemax != _param_imu_gyro_ratemax.get()) {
 			PX4_WARN("IMU_GYRO_RATEMAX updated %" PRId32 " -> %" PRIu32, _param_imu_gyro_ratemax.get(), imu_gyro_ratemax);
 			_param_imu_gyro_ratemax.set(imu_gyro_ratemax);
-			_param_imu_gyro_ratemax.commit_no_notification();
 		}
 
 		// gyro low pass cutoff frequency changed

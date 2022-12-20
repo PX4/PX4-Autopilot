@@ -98,7 +98,7 @@ int TemperatureCalibrationBase::set_parameter(const char *format_str, unsigned i
 {
 	char param_str[30] {};
 	(void)sprintf(param_str, format_str, index);
-	int result = param_set_no_notification(param_find(param_str), value);
+	int result = param_set(param_find(param_str), value);
 
 	if (result != 0) {
 		PX4_ERR("unable to reset %s (%i)", param_str, result);

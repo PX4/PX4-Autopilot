@@ -164,8 +164,6 @@ int do_baro_calibration(orb_advert_t *mavlink_log_pub)
 		return PX4_ERROR;
 	}
 
-	bool param_save = false;
-
 	for (int instance = 0; instance < MAX_SENSOR_COUNT; instance++) {
 		if ((calibration[instance].device_id() != 0) && (data_sum_count[instance] > 0)) {
 
@@ -210,14 +208,9 @@ int do_baro_calibration(orb_advert_t *mavlink_log_pub)
 
 				if (calibration[instance].ParametersSave(instance, true)) {
 					calibration[instance].PrintStatus();
-					param_save = true;
 				}
 			}
 		}
-	}
-
-	if (param_save) {
-		param_notify_changes();
 	}
 
 	calibration_log_info(mavlink_log_pub, CAL_QGC_DONE_MSG, sensor_name);

@@ -363,7 +363,6 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 		const Dcmf board_rotation = calibration::GetBoardRotationMatrix();
 		const Dcmf board_rotation_t = board_rotation.transpose();
 
-		bool param_save = false;
 		bool failed = true;
 
 		for (unsigned i = 0; i < MAX_ACCEL_SENS; i++) {
@@ -419,7 +418,6 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 
 
 				if (calibrations[i].ParametersSave(i, true)) {
-					param_save = true;
 					failed = false;
 
 				} else {
@@ -432,10 +430,6 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 
 		if (!failed && factory_storage.store() != PX4_OK) {
 			failed = true;
-		}
-
-		if (param_save) {
-			param_notify_changes();
 		}
 
 		if (!failed) {
@@ -455,7 +449,6 @@ int do_accel_calibration_quick(orb_advert_t *mavlink_log_pub)
 #if !defined(CONSTRAINED_FLASH)
 	PX4_INFO("Accelerometer quick calibration");
 
-	bool param_save = false;
 	bool failed = true;
 
 	FactoryCalibrationStorage factory_storage;
@@ -566,7 +559,6 @@ int do_accel_calibration_quick(orb_advert_t *mavlink_log_pub)
 
 				if (calibration.ParametersSave(accel_index)) {
 					calibration.PrintStatus();
-					param_save = true;
 					failed = false;
 
 				} else {
@@ -580,10 +572,6 @@ int do_accel_calibration_quick(orb_advert_t *mavlink_log_pub)
 
 	if (!failed && factory_storage.store() != PX4_OK) {
 		failed = true;
-	}
-
-	if (param_save) {
-		param_notify_changes();
 	}
 
 	if (!failed) {

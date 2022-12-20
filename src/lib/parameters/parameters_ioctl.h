@@ -106,11 +106,6 @@ typedef struct paramiocused {
 	bool ret;
 } paramiocused_t;
 
-#define PARAMIOCSETUSED	_PARAMIOC(11)
-typedef struct paramiocsetused {
-	const param_t param;
-} paramiocsetused_t;
-
 #define PARAMIOCSETDEFAULT	_PARAMIOC(12)
 typedef struct paramiocsetdefault {
 	const param_t param;

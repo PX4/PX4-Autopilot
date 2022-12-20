@@ -894,7 +894,6 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 	}
 
 	if (result == calibrate_return_ok) {
-		bool param_save = false;
 		bool failed = true;
 
 		for (unsigned cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
@@ -918,7 +917,6 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 				current_cal.PrintStatus();
 
 				if (current_cal.ParametersSave(cur_mag, true)) {
-					param_save = true;
 					failed = false;
 
 				} else {
@@ -931,10 +929,6 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 
 		if (!failed && factory_storage.store() != PX4_OK) {
 			failed = true;
-		}
-
-		if (param_save) {
-			param_notify_changes();
 		}
 
 		if (failed) {
@@ -1005,7 +999,6 @@ int do_mag_calibration_quick(orb_advert_t *mavlink_log_pub, float heading_radian
 
 		const Vector3f expected_field = Dcmf(euler).transpose() * mag_earth_pred;
 
-		bool param_save = false;
 		bool failed = true;
 
 		for (uint8_t cur_mag = 0; cur_mag < MAX_MAGS; cur_mag++) {
@@ -1024,7 +1017,6 @@ int do_mag_calibration_quick(orb_advert_t *mavlink_log_pub, float heading_radian
 				// save new calibration
 				if (cal.ParametersSave(cur_mag)) {
 					cal.PrintStatus();
-					param_save = true;
 					failed = false;
 
 				} else {
@@ -1033,10 +1025,6 @@ int do_mag_calibration_quick(orb_advert_t *mavlink_log_pub, float heading_radian
 					break;
 				}
 			}
-		}
-
-		if (param_save) {
-			param_notify_changes();
 		}
 
 		if (!failed && factory_storage.store() != PX4_OK) {

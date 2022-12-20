@@ -194,7 +194,6 @@ Mavlink::mavlink_update_parameters()
 
 	if (_param_mav_type.get() < 0 || _param_mav_type.get() >= MAV_TYPE_ENUM_END) {
 		_param_mav_type.set(0);
-		_param_mav_type.commit_no_notification();
 		PX4_ERR("MAV_TYPE parameter invalid, resetting to 0.");
 	}
 }
@@ -2788,7 +2787,6 @@ void Mavlink::configure_sik_radio()
 
 		/* reset param and save */
 		_param_sik_radio_id.set(0);
-		_param_sik_radio_id.commit_no_notification();
 	}
 }
 

@@ -106,8 +106,6 @@ int SagetechMXS::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-
-
 bool SagetechMXS::init()
 {
 	ScheduleOnInterval(UPDATE_INTERVAL_US);	// 50Hz
@@ -117,7 +115,6 @@ bool SagetechMXS::init()
 	if (vehicle_list == nullptr) {
 		if (_adsb_list_max.get() > MAX_VEHICLES_LIMIT) {	// Safety Check
 			_adsb_list_max.set(MAX_VEHICLES_LIMIT);
-			_adsb_list_max.commit();
 			list_size_allocated = MAX_VEHICLES_LIMIT;
 		}
 
@@ -158,8 +155,7 @@ int SagetechMXS::custom_command(int argc, char *argv[])
 	}
 
 	if (!strcmp(verb, "ident")) {
-		get_instance()->_adsb_ident.set(1);
-		return get_instance()->_adsb_ident.commit();
+		return get_instance()->_adsb_ident.set(1);
 	}
 
 	if (!strcmp(verb, "opmode")) {
@@ -170,20 +166,16 @@ int SagetechMXS::custom_command(int argc, char *argv[])
 			return PX4_ERROR;
 
 		} else if (!strcmp(opmode, "off") || !strcmp(opmode, "0")) {
-			get_instance()->_mxs_op_mode.set(0);
-			return get_instance()->_mxs_op_mode.commit();
+			return get_instance()->_mxs_op_mode.set(0);
 
 		} else if (!strcmp(opmode, "on") || !strcmp(opmode, "1")) {
-			get_instance()->_mxs_op_mode.set(1);
-			return get_instance()->_mxs_op_mode.commit();
+			return get_instance()->_mxs_op_mode.set(1);
 
 		} else if (!strcmp(opmode, "stby") || !strcmp(opmode, "2")) {
-			get_instance()->_mxs_op_mode.set(2);
-			return get_instance()->_mxs_op_mode.commit();
+			return get_instance()->_mxs_op_mode.set(2);
 
 		} else if (!strcmp(opmode, "alt") || !strcmp(opmode, "3")) {
-			get_instance()->_mxs_op_mode.set(3);
-			return get_instance()->_mxs_op_mode.commit();
+			return get_instance()->_mxs_op_mode.set(3);
 
 		} else {
 			print_usage("Invalid Op Mode");
@@ -207,8 +199,7 @@ int SagetechMXS::custom_command(int argc, char *argv[])
 			return PX4_ERROR;
 
 		} else {
-			get_instance()->_adsb_squawk.set(sqk);
-			return get_instance()->_adsb_squawk.commit();
+			return get_instance()->_adsb_squawk.set(sqk);
 		}
 	}
 
@@ -305,7 +296,6 @@ void SagetechMXS::Run()
 			auto_config_installation();
 			auto_config_flightid();
 			_mxs_op_mode.set(sg_op_mode_t::modeStby);
-			_mxs_op_mode.commit();
 			send_targetreq_msg();
 			mxs_state.initialized = true;
 		}
@@ -751,7 +741,6 @@ void SagetechMXS::send_operating_msg()
 
 	if (mxs_state.op.identOn) {
 		_adsb_ident.set(0);
-		_adsb_ident.commit();
 	}
 
 	if (_gps.vel_ned_valid) {
@@ -1248,22 +1237,16 @@ int SagetechMXS::handle_fid(const char *fid)
 int SagetechMXS::store_inst_resp()
 {
 	_mxs_op_mode.set(mxs_state.ack.opMode);
-	_mxs_op_mode.commit();
 	_adsb_icao.set(mxs_state.inst.icao);
-	_adsb_icao.commit();
 	_adsb_len_width.set(mxs_state.inst.size);
-	_adsb_len_width.commit();
 	_adsb_emit_type.set(convert_sg_to_emitter_type(mxs_state.inst.emitter));
-	_adsb_emit_type.commit();
 	return PX4_OK;
 }
-
 
 void SagetechMXS::auto_config_operating()
 {
 	mxs_state.op.opMode = sg_op_mode_t::modeOff;
 	_mxs_op_mode.set(sg_op_mode_t::modeOff);
-	_mxs_op_mode.commit();
 
 	if (check_valid_squawk(_adsb_squawk.get())) {
 		mxs_state.op.squawk = convert_base_to_decimal(BASE_OCTAL, _adsb_squawk.get());

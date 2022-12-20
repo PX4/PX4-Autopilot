@@ -308,7 +308,7 @@ CameraTrigger::CameraTrigger() :
 
 		_activation_time = 40.0f;
 		PX4_WARN("Trigger interval too low for PWM interface, setting to 40 ms");
-		param_set_no_notification(_p_activation_time, &(_activation_time));
+		param_set(_p_activation_time, &(_activation_time));
 	}
 
 	// Advertise critical publishers here, because we cannot advertise in interrupt context
@@ -581,7 +581,7 @@ CameraTrigger::Run()
 			 */
 			if (cmd.param1 > 0.0f) {
 				_distance = cmd.param1;
-				param_set_no_notification(_p_distance, &_distance);
+				param_set(_p_distance, &_distance);
 
 				_trigger_enabled = true;
 				_trigger_paused = false;
@@ -598,7 +598,7 @@ CameraTrigger::Run()
 			if (cmd.param2 > 0.0f) {
 				if (_camera_interface_mode == CAMERA_INTERFACE_MODE_GPIO) {
 					_activation_time = cmd.param2;
-					param_set_no_notification(_p_activation_time, &(_activation_time));
+					param_set(_p_activation_time, &(_activation_time));
 				}
 			}
 
@@ -616,14 +616,14 @@ CameraTrigger::Run()
 
 			if (cmd.param1 > 0.0f) {
 				_interval = cmd.param1;
-				param_set_no_notification(_p_interval, &(_interval));
+				param_set(_p_interval, &_interval);
 			}
 
 			// We can only control the shutter integration time of the camera in GPIO mode
 			if (cmd.param2 > 0.0f) {
 				if (_camera_interface_mode == CAMERA_INTERFACE_MODE_GPIO) {
 					_activation_time = cmd.param2;
-					param_set_no_notification(_p_activation_time, &_activation_time);
+					param_set(_p_activation_time, &_activation_time);
 				}
 			}
 
@@ -637,7 +637,7 @@ CameraTrigger::Run()
 
 			if (cmd.param1 > 0.0f) {
 				_distance = cmd.param1;
-				param_set_no_notification(_p_distance, &_distance);
+				param_set(_p_distance, &_distance);
 
 				_trigger_enabled = true;
 				_trigger_paused = false;
@@ -654,14 +654,14 @@ CameraTrigger::Run()
 			if (cmd.param2 > 0.0f) {
 				if (_camera_interface_mode == CAMERA_INTERFACE_MODE_GPIO) {
 					_activation_time = cmd.param2;
-					param_set_no_notification(_p_activation_time, &(_activation_time));
+					param_set(_p_activation_time, &_activation_time);
 				}
 			}
 
 			// Set Param for minimum camera trigger interval
 			if (cmd.param3 > 0.0f) {
 				_min_interval = cmd.param3;
-				param_set_no_notification(_p_min_interval, &(_min_interval));
+				param_set(_p_min_interval, &_min_interval);
 			}
 
 			if (cmd.param4 >= 2.0f) {

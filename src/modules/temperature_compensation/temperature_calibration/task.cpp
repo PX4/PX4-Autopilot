@@ -269,7 +269,6 @@ void TemperatureCalibration::task_main()
 			}
 		}
 
-		param_notify_changes();
 		int ret = param_save_default();
 
 		if (ret != 0) {

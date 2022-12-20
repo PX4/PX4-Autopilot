@@ -131,7 +131,6 @@ void MulticopterLandDetector::_update_params()
 			(double)_param_lndmc_z_vel_max.get(), (double)(lndmc_upper_threshold));
 
 		_param_lndmc_z_vel_max.set(lndmc_upper_threshold);
-		_param_lndmc_z_vel_max.commit_no_notification();
 	}
 
 	int32_t use_hover_thrust_estimate = 0;

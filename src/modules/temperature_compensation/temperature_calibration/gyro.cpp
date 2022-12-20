@@ -150,7 +150,7 @@ int TemperatureCalibrationGyro::finish()
 	}
 
 	int32_t enabled = 1;
-	int result = param_set_no_notification(param_find("TC_G_ENABLE"), &enabled);
+	int result = param_set(param_find("TC_G_ENABLE"), &enabled);
 
 	if (result != PX4_OK) {
 		PX4_ERR("unable to reset TC_G_ENABLE (%i)", result);
@@ -199,7 +199,7 @@ int TemperatureCalibrationGyro::finish_sensor_instance(PerSensorData &data, int 
 		for (unsigned coef_index = 0; coef_index <= 3; coef_index++) {
 			sprintf(str, "TC_G%d_X%d_%d", sensor_index, 3 - coef_index, axis_index);
 			param = (float)res[axis_index][coef_index];
-			result = param_set_no_notification(param_find(str), &param);
+			result = param_set(param_find(str), &param);
 
 			if (result != PX4_OK) {
 				PX4_ERR("unable to reset %s", str);

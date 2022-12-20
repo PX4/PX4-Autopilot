@@ -470,7 +470,6 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 			mavlink_log_info(&mavlink_log_pub, "Autotune returned to idle");
 			_state = state::idle;
 			_param_fw_at_start.set(false);
-			_param_fw_at_start.commit();
 		}
 
 		break;
@@ -574,16 +573,6 @@ void FwAutotuneAttitudeControl::saveGainsToParams()
 		_param_fw_rr_i.set(_rate_k(0) * _rate_i(0));
 		_param_fw_rr_ff.set(_rate_ff(0));
 		_param_fw_r_tc.set(1.f / _att_p(0));
-		_param_fw_rr_p.commit_no_notification();
-		_param_fw_rr_i.commit_no_notification();
-		_param_fw_rr_ff.commit_no_notification();
-
-		if (_param_fw_at_axes.get() == Axes::roll) {
-			_param_fw_r_tc.commit();
-
-		} else {
-			_param_fw_r_tc.commit_no_notification();
-		}
 	}
 
 	if (_param_fw_at_axes.get() & Axes::pitch) {
@@ -591,25 +580,12 @@ void FwAutotuneAttitudeControl::saveGainsToParams()
 		_param_fw_pr_i.set(_rate_k(1) * _rate_i(1));
 		_param_fw_pr_ff.set(_rate_ff(1));
 		_param_fw_p_tc.set(1.f / _att_p(1));
-		_param_fw_pr_p.commit_no_notification();
-		_param_fw_pr_i.commit_no_notification();
-		_param_fw_pr_ff.commit_no_notification();
-
-		if (!(_param_fw_at_axes.get() & Axes::yaw)) {
-			_param_fw_p_tc.commit();
-
-		} else {
-			_param_fw_p_tc.commit_no_notification();
-		}
 	}
 
 	if (_param_fw_at_axes.get() & Axes::yaw) {
 		_param_fw_yr_p.set(_rate_k(2));
 		_param_fw_yr_i.set(_rate_k(2) * _rate_i(2));
 		_param_fw_yr_ff.set(_rate_ff(2));
-		_param_fw_yr_p.commit_no_notification();
-		_param_fw_yr_i.commit_no_notification();
-		_param_fw_yr_ff.commit();
 	}
 }
 

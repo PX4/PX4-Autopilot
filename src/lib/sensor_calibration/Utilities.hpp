@@ -90,7 +90,7 @@ bool SetCalibrationParam(const char *sensor_type, const char *cal_type, uint8_t 
 	// eg CAL_MAGn_ID/CAL_MAGn_ROT
 	sprintf(str, "CAL_%s%u_%s", sensor_type, instance, cal_type);
 
-	int ret = param_set_no_notification(param_find(str), &value);
+	int ret = param_set(param_find(str), &value);
 
 	if (ret != PX4_OK) {
 		PX4_ERR("failed to set %s", str);

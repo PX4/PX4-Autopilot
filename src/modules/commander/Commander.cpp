@@ -1752,7 +1752,6 @@ void Commander::run()
 		if (_was_armed && !_arm_state_machine.isArmed()) {
 			const int32_t flight_uuid = _param_flight_uuid.get() + 1;
 			_param_flight_uuid.set(flight_uuid);
-			_param_flight_uuid.commit_no_notification();
 
 			_last_disarmed_timestamp = hrt_absolute_time();
 

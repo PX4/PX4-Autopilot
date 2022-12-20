@@ -385,7 +385,7 @@ uORB::DeviceNode::print_statistics(int max_topic_length)
 	lock();
 
 	const uint8_t instance = get_instance();
-	const int8_t sub_count = subscriber_count();
+	const int16_t sub_count = subscriber_count();
 	const uint8_t queue_size = get_queue_size();
 
 	unlock();

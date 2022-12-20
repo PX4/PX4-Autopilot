@@ -409,17 +409,14 @@ AirspeedModule::Run()
 						switch (i) {
 						case 0:
 							_param_airspeed_scale_1.set(_airspeed_validator[i].get_CAS_scale_validated());
-							_param_airspeed_scale_1.commit_no_notification();
 							break;
 
 						case 1:
 							_param_airspeed_scale_2.set(_airspeed_validator[i].get_CAS_scale_validated());
-							_param_airspeed_scale_2.commit_no_notification();
 							break;
 
 						case 2:
 							_param_airspeed_scale_3.set(_airspeed_validator[i].get_CAS_scale_validated());
-							_param_airspeed_scale_3.commit_no_notification();
 							break;
 						}
 					}

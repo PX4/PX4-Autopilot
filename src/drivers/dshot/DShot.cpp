@@ -135,7 +135,7 @@ void DShot::enable_dshot_outputs(const bool enabled)
 			if (dshot_frequency_request != 0) {
 				if (dshot_frequency != 0 && dshot_frequency != dshot_frequency_request) {
 					PX4_WARN("Only supporting a single frequency, adjusting param %s", param_name);
-					param_set_no_notification(handle, &dshot_frequency_param);
+					param_set(handle, &dshot_frequency_param);
 
 				} else {
 					dshot_frequency = dshot_frequency_request;

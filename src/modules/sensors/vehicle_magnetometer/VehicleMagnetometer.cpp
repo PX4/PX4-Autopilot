@@ -200,7 +200,6 @@ void VehicleMagnetometer::UpdateMagBiasEstimate()
 		magnetometer_bias_estimate_s mag_bias_est;
 
 		if (_magnetometer_bias_estimate_sub.copy(&mag_bias_est)) {
-			bool parameters_notify = false;
 
 			for (int mag_index = 0; mag_index < MAX_SENSOR_COUNT; mag_index++) {
 				if (mag_bias_est.valid[mag_index] && (mag_bias_est.timestamp > _last_calibration_update)) {
@@ -233,15 +232,10 @@ void VehicleMagnetometer::UpdateMagBiasEstimate()
 
 							_calibration_estimator_bias[mag_index].zero();
 
-							parameters_notify = true;
+							_last_calibration_update = hrt_absolute_time();
 						}
 					}
 				}
-			}
-
-			if (parameters_notify) {
-				param_notify_changes();
-				_last_calibration_update = hrt_absolute_time();
 			}
 		}
 	}
@@ -295,7 +289,6 @@ void VehicleMagnetometer::UpdateMagCalibration()
 
 	} else if (_in_flight_mag_cal_available) {
 		// not armed and mag cal available
-		bool calibration_param_save_needed = false;
 		// iterate through available bias estimates and fuse them sequentially using a Kalman Filter scheme
 		Vector3f state_variance{magb_vref, magb_vref, magb_vref};
 
@@ -332,15 +325,10 @@ void VehicleMagnetometer::UpdateMagCalibration()
 
 						_calibration_estimator_bias[mag_index].zero();
 
-						calibration_param_save_needed = true;
+						_last_calibration_update = hrt_absolute_time();
 					}
 				}
 			}
-		}
-
-		if (calibration_param_save_needed) {
-			param_notify_changes();
-			_last_calibration_update = hrt_absolute_time();
 		}
 
 		// clear all
