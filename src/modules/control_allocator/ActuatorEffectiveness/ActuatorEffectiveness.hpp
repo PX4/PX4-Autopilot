@@ -182,6 +182,13 @@ public:
 	 */
 	virtual const char *name() const = 0;
 
+	/**
+	 * Callback from the control allocation, allowing to manipulate the setpoint.
+	 * Used to allocate auxiliary controls to actuators (e.g. flaps and spoilers).
+	 *
+	 * @param actuator_sp input & output setpoint
+	 */
+	virtual void allocateAuxilaryControls(const float dt, int matrix_index, ActuatorVector &actuator_sp) {}
 
 	/**
 	 * Callback from the control allocation, allowing to manipulate the setpoint.

@@ -45,7 +45,6 @@
 
 #include <drivers/drv_hrt.h>
 #include <lib/mathlib/mathlib.h>
-#include <lib/slew_rate/SlewRate.hpp>
 #include <px4_platform_common/module_params.h>
 
 
@@ -306,9 +305,6 @@ protected:
 	bool isFrontTransitionCompleted();
 	virtual bool isFrontTransitionCompletedBase();
 
-	SlewRate<float> _spoiler_setpoint_with_slewrate;
-	SlewRate<float> _flaps_setpoint_with_slewrate;
-
 	float _dt{0.0025f}; // time step [s]
 
 	float _local_position_z_start_of_transition{0.f}; // altitude at start of transition
@@ -346,10 +342,7 @@ protected:
 					(ParamInt<px4::params::VT_FWD_THRUST_EN>) _param_vt_fwd_thrust_en,
 					(ParamFloat<px4::params::MPC_LAND_ALT1>) _param_mpc_land_alt1,
 					(ParamFloat<px4::params::MPC_LAND_ALT2>) _param_mpc_land_alt2,
-					(ParamFloat<px4::params::VT_LND_PITCH_MIN>) _param_vt_lnd_pitch_min,
-
-					(ParamFloat<px4::params::VT_SPOILER_MC_LD>) _param_vt_spoiler_mc_ld
-
+					(ParamFloat<px4::params::VT_LND_PITCH_MIN>) _param_vt_lnd_pitch_min
 				       )
 
 private:

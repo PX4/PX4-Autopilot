@@ -68,6 +68,27 @@ ActuatorEffectivenessTailsitterVTOL::getEffectivenessMatrix(Configuration &confi
 	return (mc_rotors_added_successfully && surfaces_added_successfully);
 }
 
+void ActuatorEffectivenessTailsitterVTOL::allocateAuxilaryControls(const float dt, int matrix_index,
+		ActuatorVector &actuator_sp)
+{
+	if (matrix_index == 1) {
+		// apply flaps
+		normalized_unsigned_setpoint_s flaps_setpoint;
+
+		if (_flaps_setpoint_sub.copy(&flaps_setpoint)) {
+			_control_surfaces.applyFlaps(flaps_setpoint.normalized_setpoint, _first_control_surface_idx, dt, actuator_sp);
+		}
+
+		// apply spoilers
+		normalized_unsigned_setpoint_s spoilers_setpoint;
+
+		if (_spoilers_setpoint_sub.copy(&spoilers_setpoint)) {
+			_control_surfaces.applySpoilers(spoilers_setpoint.normalized_setpoint, _first_control_surface_idx, dt, actuator_sp);
+		}
+	}
+
+}
+
 void ActuatorEffectivenessTailsitterVTOL::setFlightPhase(const FlightPhase &flight_phase)
 {
 	if (_flight_phase == flight_phase) {

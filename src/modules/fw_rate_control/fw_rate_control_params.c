@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -470,75 +470,6 @@ PARAM_DEFINE_FLOAT(FW_DTRIM_P_VMAX, 0.0f);
 PARAM_DEFINE_FLOAT(FW_DTRIM_Y_VMAX, 0.0f);
 
 /**
- * Roll trim increment for flaps configuration
- *
- * This increment is added to TRIM_ROLL whenever flaps are fully deployed.
- *
- * @group FW Rate Control
- * @min -0.25
- * @max 0.25
- * @decimal 2
- * @increment 0.01
- */
-PARAM_DEFINE_FLOAT(FW_DTRIM_R_FLPS, 0.0f);
-
-/**
- * Pitch trim increment for flaps configuration
- *
- * This increment is added to the pitch trim whenever flaps are fully deployed.
- *
- * @group FW Rate Control
- * @min -0.25
- * @max 0.25
- * @decimal 2
- * @increment 0.01
- */
-PARAM_DEFINE_FLOAT(FW_DTRIM_P_FLPS, 0.0f);
-
-/**
- * Pitch trim increment for spoiler configuration
- *
- * This increment is added to the pitch trim whenever spoilers are fully deployed.
- *
- * @group FW Rate Control
- * @min -0.25
- * @max 0.25
- * @decimal 2
- * @increment 0.01
- */
-PARAM_DEFINE_FLOAT(FW_DTRIM_P_SPOIL, 0.f);
-
-/**
- * Flaps setting during take-off
- *
- * Sets a fraction of full flaps during take-off.
- * Also applies to flaperons if enabled in the mixer/allocation.
- *
- * @unit norm
- * @min 0.0
- * @max 1.0
- * @decimal 2
- * @increment 0.01
- * @group FW Rate Control
- */
-PARAM_DEFINE_FLOAT(FW_FLAPS_TO_SCL, 0.0f);
-
-/**
- * Flaps setting during landing
- *
- * Sets a fraction of full flaps during landing.
- * Also applies to flaperons if enabled in the mixer/allocation.
- *
- * @unit norm
- * @min 0.0
- * @max 1.0
- * @decimal 2
- * @increment 0.01
- * @group FW Rate Control
- */
-PARAM_DEFINE_FLOAT(FW_FLAPS_LND_SCL, 1.0f);
-
-/**
  * Manual roll scale
  *
  * Scale factor applied to the desired roll actuator command in full manual mode. This parameter allows
@@ -622,30 +553,6 @@ PARAM_DEFINE_FLOAT(FW_MAN_Y_SC, 1.0f);
  * @group FW Attitude Control
  */
 PARAM_DEFINE_FLOAT(FW_RLL_TO_YAW_FF, 0.0f);
-
-/**
- * Spoiler landing setting
- *
- * @unit norm
- * @min 0.0
- * @max 1.0
- * @decimal 2
- * @increment 0.01
- * @group FW Attitude Control
- */
-PARAM_DEFINE_FLOAT(FW_SPOILERS_LND, 0.f);
-
-/**
- * Spoiler descend setting
- *
- * @unit norm
- * @min 0.0
- * @max 1.0
- * @decimal 2
- * @increment 0.01
- * @group FW Attitude Control
- */
-PARAM_DEFINE_FLOAT(FW_SPOILERS_DESC, 0.f);
 
 /**
  * Spoiler input in manual flight
