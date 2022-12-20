@@ -53,13 +53,18 @@ int ModalaiEscSerial::uart_open(const char *dev, speed_t speed)
 	}
 
 	/* Open UART */
+#ifdef __PX4_QURT
+	_uart_fd = qurt_uart_open(dev, speed);
+#else
 	_uart_fd = open(dev, O_RDWR | O_NOCTTY | O_NONBLOCK);
+#endif
 
 	if (_uart_fd < 0) {
 		PX4_ERR("Error opening port: %s (%i)", dev, errno);
 		return -1;
 	}
 
+#ifndef __PX4_QURT
 	/* Back up the original UART configuration to restore it after exit */
 	int termios_state;
 
@@ -98,6 +103,8 @@ int ModalaiEscSerial::uart_open(const char *dev, speed_t speed)
 		return -1;
 	}
 
+#endif
+
 	_speed =  speed;
 
 	return 0;
@@ -105,6 +112,8 @@ int ModalaiEscSerial::uart_open(const char *dev, speed_t speed)
 
 int ModalaiEscSerial::uart_set_baud(speed_t speed)
 {
+#ifndef __PX4_QURT
+
 	if (_uart_fd < 0) {
 		return -1;
 	}
@@ -120,10 +129,15 @@ int ModalaiEscSerial::uart_set_baud(speed_t speed)
 	_speed = speed;
 
 	return 0;
+#endif
+
+	return -1;
 }
 
 int ModalaiEscSerial::uart_close()
 {
+#ifndef __PX4_QURT
+
 	if (_uart_fd < 0) {
 		PX4_ERR("invalid state for closing");
 		return -1;
@@ -137,6 +151,8 @@ int ModalaiEscSerial::uart_close()
 		PX4_ERR("error closing uart");
 	}
 
+#endif
+
 	_uart_fd = -1;
 
 	return 0;
@@ -149,7 +165,11 @@ int ModalaiEscSerial::uart_write(FAR void *buf, size_t len)
 		return -1;
 	}
 
+#ifdef __PX4_QURT
+	return qurt_uart_write(_uart_fd, (const char *) buf, len);
+#else
 	return write(_uart_fd, buf, len);
+#endif
 }
 
 int ModalaiEscSerial::uart_read(FAR void *buf, size_t len)
@@ -159,5 +179,13 @@ int ModalaiEscSerial::uart_read(FAR void *buf, size_t len)
 		return -1;
 	}
 
+#ifdef __PX4_QURT
+#define ASYNC_UART_READ_WAIT_US 2000
+	// The UART read on SLPI is via an asynchronous service so specify a timeout
+	// for the return. The driver will poll periodically until the read comes in
+	// so this may block for a while. However, it will timeout if no read comes in.
+	return qurt_uart_read(_uart_fd, (char *) buf, len, ASYNC_UART_READ_WAIT_US);
+#else
 	return read(_uart_fd, buf, len);
+#endif
 }
