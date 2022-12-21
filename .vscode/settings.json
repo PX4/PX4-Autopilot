@@ -119,7 +119,9 @@
                 "utility": "cpp",
                 "valarray": "cpp",
                 "variant": "cpp",
-                "vector": "cpp"
+                "vector": "cpp",
+                "Jenkinsfile*": "groovy",
+                "*.sdf": "xml"
         },
         "search.exclude": {
                 "${workspaceFolder}/build": true
