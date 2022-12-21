@@ -56,6 +56,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_global_position_pub(multi_mode ? ORB_ID(estimator_global_position) : ORB_ID(vehicle_global_position)),
 	_odometry_pub(multi_mode ? ORB_ID(estimator_odometry) : ORB_ID(vehicle_odometry)),
 	_wind_pub(multi_mode ? ORB_ID(estimator_wind) : ORB_ID(wind)),
+	_local_position_wo_ref_pub(ORB_ID(vehicle_local_position_wo_ref)),
 	_params(_ekf.getParamHandle()),
 	_param_ekf2_predict_us(_params->filter_update_interval_us),
 	_param_ekf2_mag_delay(_params->mag_delay_ms),
@@ -168,6 +169,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	// advertise expected minimal topic set immediately to ensure logging
 	_attitude_pub.advertise();
 	_local_position_pub.advertise();
+	_local_position_wo_ref_pub.advertise();
 
 	_estimator_event_flags_pub.advertise();
 	_estimator_innovation_test_ratios_pub.advertise();
@@ -1041,6 +1043,14 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 	// publish vehicle local position data
 	lpos.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 	_local_position_pub.publish(lpos);
+
+	// publish vehicle_local_position_wo_ref (without lat/lon ref)
+	vehicle_local_position_s vehicle_local_position_wo_ref;
+	vehicle_local_position_wo_ref = lpos;
+	vehicle_local_position_wo_ref.ref_lat = static_cast<double>(NAN);
+	vehicle_local_position_wo_ref.ref_lon = static_cast<double>(NAN);
+	vehicle_local_position_wo_ref.ref_alt = NAN;
+	_local_position_wo_ref_pub.publish(vehicle_local_position_wo_ref);
 }
 
 void EKF2::PublishOdometry(const hrt_abstime &timestamp, const imuSample &imu)

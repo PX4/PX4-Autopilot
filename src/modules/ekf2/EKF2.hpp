@@ -337,6 +337,8 @@ private:
 	uORB::PublicationMulti<vehicle_odometry_s>           _odometry_pub;
 	uORB::PublicationMulti<wind_s>              _wind_pub;
 
+	uORB::Publication<vehicle_local_position_s>     _local_position_wo_ref_pub;
+
 	PreFlightChecker _preflt_checker;
 
 	Ekf _ekf;

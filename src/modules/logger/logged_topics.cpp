@@ -112,6 +112,8 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("vtol_vehicle_status", 200);
 	add_topic("wind", 1000);
 
+	add_topic("vehicle_local_position_wo_ref", 100);
+
 	if (!_do_not_log_position_data) {
 		add_optional_topic("camera_capture");
 		add_topic("follow_target_status", 100);
