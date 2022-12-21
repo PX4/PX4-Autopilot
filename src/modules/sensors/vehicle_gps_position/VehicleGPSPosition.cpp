@@ -44,6 +44,7 @@ VehicleGPSPosition::VehicleGPSPosition() :
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
 {
 	_vehicle_gps_position_pub.advertise();
+	_vehicle_gps_position_wo_lat_lon_pub.advertise();
 }
 
 VehicleGPSPosition::~VehicleGPSPosition()
@@ -172,6 +173,12 @@ void VehicleGPSPosition::Publish(const sensor_gps_s &gps, uint8_t selected)
 	gps_output.selected = selected;
 
 	_vehicle_gps_position_pub.publish(gps_output);
+
+	vehicle_gps_position_s gps_output_wo_lat_lon;
+	gps_output_wo_lat_lon = gps_output;
+	gps_output_wo_lat_lon.lat = 0;
+	gps_output_wo_lat_lon.lon = 0;
+	_vehicle_gps_position_wo_lat_lon_pub.publish(gps_output_wo_lat_lon);
 }
 
 void VehicleGPSPosition::PrintStatus()

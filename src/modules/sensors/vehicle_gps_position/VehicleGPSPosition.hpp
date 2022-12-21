@@ -82,6 +82,7 @@ private:
 		      "GPS_MAX_RECEIVERS must match to GPS_MAX_RECEIVERS_BLEND");
 
 	uORB::Publication<vehicle_gps_position_s> _vehicle_gps_position_pub{ORB_ID(vehicle_gps_position)};
+	uORB::Publication<vehicle_gps_position_s> _vehicle_gps_position_wo_lat_lon_pub{ORB_ID(vehicle_gps_position_wo_lat_lon)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 

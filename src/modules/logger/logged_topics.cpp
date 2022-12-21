@@ -113,6 +113,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("wind", 1000);
 
 	add_topic("vehicle_local_position_wo_ref", 100);
+	add_topic("vehicle_gps_position_wo_lat_lon", 500);
 
 	if (!_do_not_log_position_data) {
 		add_optional_topic("camera_capture");

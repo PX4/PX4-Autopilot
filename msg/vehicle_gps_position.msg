@@ -42,3 +42,5 @@ float32 heading			# heading angle of XYZ body frame rel to NED. Set to NaN if no
 float32 heading_offset		# heading offset of dual antenna array in body frame. Set to NaN if not applicable. (rad, [-PI, PI])
 
 uint8 selected			# GPS selection: 0: GPS1, 1: GPS2. 2: GPS3. 3. Blending multiple receivers
+
+# TOPICS vehicle_gps_position vehicle_gps_position_wo_lat_lon
