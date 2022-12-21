@@ -222,6 +222,7 @@ struct magSample {
 struct baroSample {
 	uint64_t    time_us{};  ///< timestamp of the measurement (uSec)
 	float       hgt{};      ///< pressure altitude above sea level (m)
+	bool        reset{false};
 };
 
 struct rangeSample {
