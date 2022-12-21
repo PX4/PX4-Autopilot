@@ -39,35 +39,40 @@
  *
  */
 
-#include "KF_xyzb_coupled_moving.h"
-#include "python_derivation/generated/coupled_moving_xyzb/predictCov.h"
-#include "python_derivation/generated/coupled_moving_xyzb/computeInnovCov.h"
-#include "python_derivation/generated/coupled_moving_xyzb/syncState.h"
+#include "KF_xyzb_v_coupled_moving.h"
+#include "python_derivation/generated/coupled_moving_xyzb_v/predictCov.h"
+#include "python_derivation/generated/coupled_moving_xyzb_v/computeInnovCov.h"
+#include "python_derivation/generated/coupled_moving_xyzb_v/syncState.h"
 
 namespace landing_target_estimator
 {
 
-void KF_xyzb_coupled_moving::predictState(float dt, matrix::Vector<float, 3> acc)
+void KF_xyzb_v_coupled_moving::predictState(float dt, matrix::Vector<float, 3> acc)
 {
+	// _state [rx, ry, rz, vdx, vdy, vdz, bx, by, bz, atx, aty, atz, vtx, vty, vtz]
+	// idx    [0,   1,  2,   3,   4,   5,  6,  7,  8,   9,  10,  11,  12,  13,  14]
 	const float tmp0 = 0.5f * dt * dt;
 
-	_state(0, 0) = _state(0, 0) + _state(3, 0) * dt + _state(9, 0) * tmp0 - tmp0 * acc(0);
-	_state(1, 0) = _state(1, 0) + _state(10, 0) * tmp0 + _state(4, 0) * dt - tmp0 * acc(1);
-	_state(2, 0) = _state(11, 0) * tmp0 + _state(2, 0) + _state(5, 0) * dt - tmp0 * acc(2);
-	_state(3, 0) = _state(3, 0) + _state(9, 0) * dt - acc(0) * dt;
-	_state(4, 0) = _state(10, 0) * dt + _state(4, 0) - acc(1) * dt;
-	_state(5, 0) = _state(11, 0) * dt + _state(5, 0) - acc(2) * dt;
+	_state(0, 0) = _state(0, 0) - tmp0 * acc(0) + tmp0 * _state(9, 0) + dt * _state(12, 0) - dt * _state(3, 0);
+	_state(1, 0) = _state(1, 0) - tmp0 * acc(1) + tmp0 * _state(10, 0) + dt * _state(13, 0) - dt * _state(4, 0);
+	_state(2, 0) = _state(2, 0) - tmp0 * acc(2) + tmp0 * _state(11, 0) + dt * _state(14, 0) - dt * _state(5, 0);
+	_state(3, 0) = _state(3, 0) + acc(0) * dt;
+	_state(4, 0) = _state(4, 0) + acc(1) * dt;
+	_state(5, 0) = _state(5, 0) + acc(2) * dt;
+	_state(12, 0) = _state(12, 0) + dt * _state(9, 0);
+	_state(13, 0) = _state(13, 0) + dt * _state(10, 0);
+	_state(14, 0) = _state(14, 0) + dt * _state(11, 0);
 }
 
-void KF_xyzb_coupled_moving::predictCov(float dt)
+void KF_xyzb_v_coupled_moving::predictCov(float dt)
 {
-	matrix::Matrix<float, 12, 12> cov_updated;
+	matrix::Matrix<float, 15, 15> cov_updated;
 	sym::Predictcov(dt, _input_var, _bias_var, _acc_var, _covariance, &cov_updated);
 	_covariance = cov_updated;
 }
 
 
-bool KF_xyzb_coupled_moving::update()
+bool KF_xyzb_v_coupled_moving::update()
 {
 	// Avoid zero-division
 	if (_innov_cov  <= 0.000001f && _innov_cov  >= -0.000001f) {
@@ -81,7 +86,7 @@ bool KF_xyzb_coupled_moving::update()
 		return false;
 	}
 
-	matrix::Matrix<float, 12, 1> kalmanGain = _covariance * _meas_matrix.transpose() / _innov_cov;
+	matrix::Matrix<float, 15, 1> kalmanGain = _covariance * _meas_matrix.transpose() / _innov_cov;
 
 	_state = _state + kalmanGain * _innov;
 	_covariance = _covariance - kalmanGain * _meas_matrix * _covariance;
@@ -89,32 +94,20 @@ bool KF_xyzb_coupled_moving::update()
 	return true;
 }
 
-void KF_xyzb_coupled_moving::setH(matrix::Vector<float, 15> h_meas)
+void KF_xyzb_v_coupled_moving::setH(matrix::Vector<float, 15> h_meas)
 {
-	// h_meas = [rx, ry, rz, r_dotx, r_doty, r_dotz, bx, by, bz, atx, aty, atz, vtx, vty, vtz]
-	// _meas_matrix.row(0) = h_meas;
-	_meas_matrix(0, 0) = h_meas(0);
-	_meas_matrix(0, 1) = h_meas(1);
-	_meas_matrix(0, 2) = h_meas(2);
-	_meas_matrix(0, 3) = h_meas(3);
-	_meas_matrix(0, 4) = h_meas(4);
-	_meas_matrix(0, 5) = h_meas(5);
-	_meas_matrix(0, 6) = h_meas(6);
-	_meas_matrix(0, 7) = h_meas(7);
-	_meas_matrix(0, 8) = h_meas(8);
-	_meas_matrix(0, 9) = h_meas(6);
-	_meas_matrix(0, 10) = h_meas(7);
-	_meas_matrix(0, 11) = h_meas(8);
+	// h_meas = [rx, ry, rz, r_dotx, r_doty, r_dotz, bx, by, bz, atx, aty, atz]
+	_meas_matrix.row(0) = h_meas;
 }
 
-void KF_xyzb_coupled_moving::syncState(float dt, matrix::Vector<float, 3> acc)
+void KF_xyzb_v_coupled_moving::syncState(float dt, matrix::Vector<float, 3> acc)
 {
-	matrix::Matrix<float, 12, 1> sync_stat_updated;
+	matrix::Matrix<float, 15, 1> sync_stat_updated;
 	sym::Syncstate(dt, _state, acc, &sync_stat_updated);
 	_sync_state = sync_stat_updated;
 }
 
-float KF_xyzb_coupled_moving::computeInnovCov(float meas_unc)
+float KF_xyzb_v_coupled_moving::computeInnovCov(float meas_unc)
 {
 	float innov_cov_updated;
 	sym::Computeinnovcov(meas_unc, _covariance, _meas_matrix, &innov_cov_updated);
@@ -123,10 +116,11 @@ float KF_xyzb_coupled_moving::computeInnovCov(float meas_unc)
 	return _innov_cov;
 }
 
-float KF_xyzb_coupled_moving::computeInnov(float meas)
+float KF_xyzb_v_coupled_moving::computeInnov(float meas)
 {
 	/* z - H*x */
 	_innov = meas - (_meas_matrix * _sync_state)(0, 0);
+
 	return _innov;
 }
 

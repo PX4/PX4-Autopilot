@@ -72,7 +72,7 @@ public:
 	// Backwards state prediciton
 	void syncState(float dt, matrix::Vector<float, 3> acc) override;
 
-	void setH(matrix::Vector<float, 12> h_meas) override;
+	void setH(matrix::Vector<float, 15> h_meas) override;
 
 	virtual float computeInnovCov(float measUnc) override;
 	virtual float computeInnov(float meas) override;
@@ -109,6 +109,10 @@ public:
 	void setStateAccVar(matrix::Vector<float, 3> posVect) override {};
 	void setTargetAcc(matrix::Vector<float, 3> accVect) override {};
 
+	matrix::Vector<float, 3> getTargetVelVar() override {matrix::Vector<float, 3> dummy_vect; return dummy_vect;};
+	matrix::Vector<float, 3> getTargetVel() override {matrix::Vector<float, 3> dummy_vect; return dummy_vect;};
+	void setStateTargetVelVar(matrix::Vector<float, 3> posVect) override {};
+	void setTargetVel(matrix::Vector<float, 3> accVect) override {};
 
 private:
 	matrix::Matrix<float, 9, 1> _state; // state

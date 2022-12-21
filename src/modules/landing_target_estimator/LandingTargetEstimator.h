@@ -76,6 +76,7 @@
 #include "KF_xyzb_decoupled_static.h"
 #include "KF_xyzb_decoupled_moving.h"
 #include "KF_xyzb_coupled_moving.h"
+#include "KF_xyzb_v_coupled_moving.h"
 #include "KF_xyzb_coupled_static.h"
 
 using namespace time_literals;
@@ -143,7 +144,8 @@ private:
 
 	enum class TargetMode {
 		Moving = 0,
-		Stationary,
+		Stationary = 1,
+		MovingAugmented = 2,
 		NotInit
 	};
 
@@ -173,7 +175,7 @@ private:
 		matrix::Vector<bool, 3> updated_xyz; // Indicates if we have an observation in the x, y or z direction
 		matrix::Vector3f meas_xyz;			// Measurements (meas_x, meas_y, meas_z)
 		matrix::Vector3f meas_unc_xyz;		// Measurements' uncertainties
-		matrix::Matrix<float, 3, 12>
+		matrix::Matrix<float, 3, 15>
 		meas_h_xyz; // Observation matrix where the rows correspond to the x,y,z observations and the columns to the state = [rx, ry, rz, r_dotx, r_doty, r_dotz, bx, by, bz, atx, aty, atz]
 	};
 

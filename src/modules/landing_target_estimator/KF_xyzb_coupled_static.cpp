@@ -89,7 +89,7 @@ bool KF_xyzb_coupled_static::update()
 	return true;
 }
 
-void KF_xyzb_coupled_static::setH(matrix::Vector<float, 12> h_meas)
+void KF_xyzb_coupled_static::setH(matrix::Vector<float, 15> h_meas)
 {
 	// h_meas = [rx, ry, rz, r_dotx, r_doty, r_dotz, bx, by, bz, atx, aty, atz]
 

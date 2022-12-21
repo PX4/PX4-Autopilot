@@ -99,7 +99,7 @@ bool KalmanFilter::update()
 	return true;
 }
 
-void KalmanFilter::setH(matrix::Vector<float, 12> h_meas)
+void KalmanFilter::setH(matrix::Vector<float, 15> h_meas)
 {
 	// h_meas = [rx, ry, rz, r_dotx, r_doty, r_dotz, bx, by, bz, atx, aty, atz]
 

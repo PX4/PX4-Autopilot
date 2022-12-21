@@ -51,7 +51,7 @@ public:
 	// Backwards state prediciton
 	virtual void syncState(float dt, float acc) = 0;
 
-	virtual void setH(matrix::Vector<float, 12> h_meas) = 0;
+	virtual void setH(matrix::Vector<float, 15> h_meas) = 0;
 
 	virtual float computeInnovCov(float measUnc) = 0;
 	virtual float computeInnov(float meas) = 0;

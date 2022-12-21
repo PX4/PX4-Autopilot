@@ -77,7 +77,7 @@ public:
 	// Backwards state prediciton
 	void syncState(float dt, float acc) override;
 
-	void setH(matrix::Vector<float, 12> h_meas) override;
+	void setH(matrix::Vector<float, 15> h_meas) override;
 
 	virtual float computeInnovCov(float measUnc) override;
 	virtual float computeInnov(float meas) override;

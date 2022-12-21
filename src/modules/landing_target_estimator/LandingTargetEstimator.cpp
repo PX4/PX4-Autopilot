@@ -143,6 +143,9 @@ bool LandingTargetEstimator::initEstimator(Vector3f pos_init, Vector3f vel_rel_i
 	Vector3f state_bias_var_vect(state_bias_var, state_bias_var, state_bias_var);
 	Vector3f state_acc_var_vect(state_acc_var, state_acc_var, state_acc_var);
 
+	Vector3f state_target_vel_var;
+	Vector3f state_target_vel;
+
 	if (_target_model == TargetModel::FullPoseCoupled) {
 
 		_target_estimator_coupled->setPosition(pos_init);
@@ -155,6 +158,9 @@ bool LandingTargetEstimator::initEstimator(Vector3f pos_init, Vector3f vel_rel_i
 
 		_target_estimator_coupled->setBias(bias_init);
 		_target_estimator_coupled->setStateBiasVar(state_bias_var_vect);
+
+		_target_estimator_coupled->setTargetVel(state_target_vel);
+		_target_estimator_coupled->setStateTargetVelVar(state_target_vel_var);
 
 	} else {
 
@@ -195,7 +201,7 @@ void LandingTargetEstimator::predictionStep(Vector3f vehicle_acc_ned)
 
 	if (_target_model == TargetModel::FullPoseCoupled) {
 
-		if (_target_mode == TargetMode::Moving) {_target_estimator_coupled->setTargetAccVar(target_acc_cov);}
+		if (_target_mode == TargetMode::Moving || _target_mode == TargetMode::MovingAugmented) {_target_estimator_coupled->setTargetAccVar(target_acc_cov);}
 
 		_target_estimator_coupled->setBiasVar(bias_cov);
 		_target_estimator_coupled->setInputAccVar(input_cov);
@@ -206,7 +212,7 @@ void LandingTargetEstimator::predictionStep(Vector3f vehicle_acc_ned)
 	} else {
 		for (int i = 0; i < _nb_position_kf; i++) {
 			//For decoupled dynamics, we neglect the off diag elements.
-			if (_target_mode == TargetMode::Moving) {_target_estimator[i]->setTargetAccVar(target_acc_cov(i, i));}
+			if (_target_mode == TargetMode::Moving || _target_mode == TargetMode::MovingAugmented) {_target_estimator[i]->setTargetAccVar(target_acc_cov(i, i));}
 
 			_target_estimator[i]->setBiasVar(bias_cov(i, i));
 			_target_estimator[i]->setInputAccVar(input_cov(i, i));
@@ -299,7 +305,8 @@ bool LandingTargetEstimator::update_step(Vector3f vehicle_acc_ned)
 
 			/*UAV GPS velocity*/
 			if ((vehicle_gps_position.vel_ned_valid && (_ltest_aid_mask & SensorFusionMask::USE_UAV_GPS_VEL)) &&
-			    (_target_mode == TargetMode::Stationary || (_target_mode == TargetMode::Moving && target_GNSS_valid))) {
+			    (_target_mode == TargetMode::Stationary || _target_mode == TargetMode::MovingAugmented
+			     || (_target_mode == TargetMode::Moving && target_GNSS_valid))) {
 
 				obs_uav_gps_vel.type = uav_gps_vel;
 
@@ -567,6 +574,11 @@ bool LandingTargetEstimator::processObsUavGNSSVel(const landing_target_gnss_s &t
 		obs.meas_unc_xyz(0) = vehicle_gps_position.s_variance_m_s;
 		obs.meas_unc_xyz(1) = vehicle_gps_position.s_variance_m_s;
 		obs.meas_unc_xyz(2) = vehicle_gps_position.s_variance_m_s;
+
+	} else if (_target_mode == TargetMode::MovingAugmented) {
+		obs.meas_xyz(0) = vehicle_gps_position.vel_n_m_s;
+		obs.meas_xyz(1) = vehicle_gps_position.vel_e_m_s;
+		obs.meas_xyz(2) = vehicle_gps_position.vel_d_m_s;
 
 	} else {
 
@@ -836,7 +848,7 @@ bool LandingTargetEstimator::fuse_meas(const Vector3f vehicle_acc_ned, const tar
 	estimator_aid_source_3d_s target_innov;
 	Vector<bool, 3> meas_xyz_fused{};
 	bool all_directions_fused = false;
-	Vector<float, 12> meas_h_row;
+	Vector<float, 15> meas_h_row;
 
 	// Number of direction:  x,y,z for all filters excep for the horizontal filter: x,y
 	int nb_update_directions = (_target_model == TargetModel::Horizontal) ? 2 : 3;
@@ -1033,7 +1045,7 @@ void LandingTargetEstimator::publishTarget()
 		target_estimator_state.cov_y_bias = cov_bias_vect(1);
 		target_estimator_state.cov_z_bias = cov_bias_vect(2);
 
-		if (_target_mode == TargetMode::Moving) {
+		if (_target_mode == TargetMode::Moving || _target_mode == TargetMode::MovingAugmented) {
 			Vector3f acc_target_vect = _target_estimator_coupled->getAccelerationVect();
 			target_estimator_state.ax_target = acc_target_vect(0);
 			target_estimator_state.ay_target = acc_target_vect(1);
@@ -1087,7 +1099,7 @@ void LandingTargetEstimator::publishTarget()
 		target_estimator_state.cov_y_bias = _target_estimator[y]->getBiasVar();
 		target_estimator_state.cov_z_bias = _nb_position_kf > 2 ? _target_estimator[z]->getBiasVar() : 0.f;
 
-		if (_target_mode == TargetMode::Moving) {
+		if (_target_mode == TargetMode::Moving || _target_mode == TargetMode::MovingAugmented) {
 			target_estimator_state.ax_target = _target_estimator[x]->getAcceleration();
 			target_estimator_state.ay_target = _target_estimator[y]->getAcceleration();
 			target_estimator_state.az_target = _nb_position_kf > 2 ? _target_estimator[z]->getAcceleration() : 0.f;
@@ -1322,7 +1334,7 @@ bool LandingTargetEstimator::selectTargetEstimator()
 	switch (_target_model) {
 	case TargetModel::FullPoseDecoupled:
 
-		if (_target_mode == TargetMode::Moving) {
+		if (_target_mode == TargetMode::Moving || _target_mode == TargetMode::MovingAugmented) {
 			tmp_x = new KF_xyzb_decoupled_moving;
 			tmp_y = new KF_xyzb_decoupled_moving;
 			tmp_z = new KF_xyzb_decoupled_moving;
@@ -1345,6 +1357,10 @@ bool LandingTargetEstimator::selectTargetEstimator()
 
 			tmp_xyz = new KF_xyzb_coupled_moving;
 			PX4_INFO("Init LTEST: moving target, [x,y,z,b] coupled in one filter.");
+
+		} else if (_target_mode == TargetMode::MovingAugmented) {
+			tmp_xyz = new KF_xyzb_v_coupled_moving;
+			PX4_INFO("Init LTEST: moving target, [x,y,z,b,v] coupled in one filter.");
 
 		} else {
 

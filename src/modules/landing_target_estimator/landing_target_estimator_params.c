@@ -99,6 +99,7 @@ PARAM_DEFINE_INT32(LTEST_AID_MASK, 6);
  * @group Landing target Estimator
  * @value 0 Moving
  * @value 1 Stationary
+ * @value 2 Moving augmented state
  *
  * @group Landing target Estimator
  */

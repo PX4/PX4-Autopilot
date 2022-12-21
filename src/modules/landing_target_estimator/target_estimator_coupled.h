@@ -51,7 +51,7 @@ public:
 	// Backwards state prediciton
 	virtual void syncState(float dt, matrix::Vector<float, 3> acc) = 0;
 
-	virtual void setH(matrix::Vector<float, 12> h_meas) = 0;
+	virtual void setH(matrix::Vector<float, 15> h_meas) = 0;
 
 	virtual float computeInnovCov(float measUnc) = 0;
 	virtual float computeInnov(float meas) = 0;
@@ -66,23 +66,27 @@ public:
 	virtual void setVelocity(matrix::Vector<float, 3> velVect) = 0;
 	virtual void setTargetAcc(matrix::Vector<float, 3> accVect) = 0;
 	virtual void setBias(matrix::Vector<float, 3> biasVarVect) = 0;
+	virtual void setTargetVel(matrix::Vector<float, 3> velVect) = 0;
 
 	// Init: P_0
 	virtual void setStatePosVar(matrix::Vector<float, 3> posVarVect) = 0;
 	virtual void setStateVelVar(matrix::Vector<float, 3> velVarVect) = 0;
 	virtual void setStateAccVar(matrix::Vector<float, 3> accVarVect) = 0;
 	virtual void setStateBiasVar(matrix::Vector<float, 3> biasVarVect) = 0;
+	virtual void setStateTargetVelVar(matrix::Vector<float, 3> biasVarVect) = 0;
 
 	// Retreive output of coupled filter
 	virtual matrix::Vector<float, 3> getPositionVect() = 0;
 	virtual matrix::Vector<float, 3> getVelocityVect() = 0;
 	virtual matrix::Vector<float, 3> getAccelerationVect() = 0;
 	virtual matrix::Vector<float, 3> getBiasVect() = 0;
+	virtual matrix::Vector<float, 3> getTargetVel() = 0;
 
 	virtual matrix::Vector<float, 3> getPosVarVect() = 0;
 	virtual matrix::Vector<float, 3> getVelVarVect() = 0;
 	virtual matrix::Vector<float, 3> getAccVarVect() = 0;
 	virtual matrix::Vector<float, 3> getBiasVarVect() = 0;
+	virtual matrix::Vector<float, 3> getTargetVelVar() = 0;
 
 	virtual void setInputAccVar(matrix::Matrix<float, 3, 3> varVect) = 0;
 	virtual void setTargetAccVar(matrix::Matrix<float, 3, 3> varVect) = 0;
