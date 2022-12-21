@@ -1,0 +1,6 @@
+#!/bin/sh
+#
+# board specific defaults
+#------------------------------------------------------------------------------
+
+set PARAM_FILE /dev/eeeprom0

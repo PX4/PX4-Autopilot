@@ -49,6 +49,7 @@ MEMORY
 OUTPUT_ARCH(arm)
 EXTERN(_vectors)
 EXTERN(boot_header)
+EXTERN(board_get_manifest)
 ENTRY(_stext)
 
 SECTIONS
