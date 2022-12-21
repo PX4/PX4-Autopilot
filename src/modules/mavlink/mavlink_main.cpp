@@ -2039,7 +2039,6 @@ Mavlink::task_main(int argc, char *argv[])
 
 					} else if (strcmp(myoptarg, "iridium") == 0) {
 						_mode = MAVLINK_MODE_IRIDIUM;
-						set_telemetry_status_type(telemetry_status_s::LINK_TYPE_IRIDIUM);
 
 					} else if (strcmp(myoptarg, "minimal") == 0) {
 						_mode = MAVLINK_MODE_MINIMAL;
@@ -2178,65 +2177,7 @@ Mavlink::task_main(int argc, char *argv[])
 		return PX4_ERROR;
 	}
 
-	/* initialize send mutex */
-	pthread_mutex_init(&_send_mutex, nullptr);
-	pthread_mutex_init(&_radio_status_mutex, nullptr);
-
-	/* if we are passing on mavlink messages, we need to prepare a buffer for this instance */
-	if (_forwarding_on) {
-		/* initialize message buffer if multiplexing is on.
-		 * make space for two messages plus off-by-one space as we use the empty element
-		 * marker ring buffer approach.
-		 */
-		if (OK != message_buffer_init(2 * sizeof(mavlink_message_t) + 1)) {
-			PX4_ERR("msg buf alloc fail");
-			return PX4_ERROR;
-		}
-
-		/* initialize message buffer mutex */
-		pthread_mutex_init(&_message_buffer_mutex, nullptr);
-	}
-
-	/* Activate sending the data by default (for the IRIDIUM mode it will be disabled after the first round of packages is sent)*/
-	_transmitting_enabled = true;
-	_transmitting_enabled_commanded = true;
-
-	if (_mode == MAVLINK_MODE_IRIDIUM) {
-		_transmitting_enabled_commanded = false;
-	}
-
-	/* add default streams depending on mode */
-	if (_mode != MAVLINK_MODE_IRIDIUM) {
-
-		/* HEARTBEAT is constant rate stream, rate never adjusted */
-		configure_stream("HEARTBEAT", 1.0f);
-
-		/* STATUSTEXT stream */
-		configure_stream("STATUSTEXT", 20.0f);
-
-		/* COMMAND_LONG stream: use unlimited rate to send all commands */
-		configure_stream("COMMAND_LONG");
-
-	}
-
-	if (configure_streams_to_default() != 0) {
-		PX4_ERR("configure_streams_to_default() failed");
-	}
-
-	/* set main loop delay depending on data rate to minimize CPU overhead */
-	_main_loop_delay = (MAIN_LOOP_DELAY * 1000) / _datarate;
-
-	/* hard limit to 1000 Hz at max */
-	if (_main_loop_delay < MAVLINK_MIN_INTERVAL) {
-		_main_loop_delay = MAVLINK_MIN_INTERVAL;
-	}
-
-	/* hard limit to 100 Hz at least */
-	if (_main_loop_delay > MAVLINK_MAX_INTERVAL) {
-		_main_loop_delay = MAVLINK_MAX_INTERVAL;
-	}
-
-	/* open the UART device after setting the instance, as it might block */
+	// open the UART device after setting the instance, as it might block
 	if (get_protocol() == Protocol::SERIAL) {
 		_uart_fd = mavlink_open_uart(_baudrate, _device_name, _flow_control);
 
@@ -2245,6 +2186,71 @@ Mavlink::task_main(int argc, char *argv[])
 			return PX4_ERROR;
 		}
 	}
+
+	// initialize send mutex
+	pthread_mutex_init(&_send_mutex, nullptr);
+	pthread_mutex_init(&_radio_status_mutex, nullptr);
+
+	_task_id = px4_getpid();
+
+	if (_mode != MAVLINK_MODE_IRIDIUM) {
+
+		/* if we are passing on mavlink messages, we need to prepare a buffer for this instance */
+		if (_forwarding_on) {
+			/* initialize message buffer if multiplexing is on.
+			* make space for two messages plus off-by-one space as we use the empty element
+			* marker ring buffer approach.
+			*/
+			if (OK != message_buffer_init(2 * sizeof(mavlink_message_t) + 1)) {
+				PX4_ERR("msg buf alloc fail");
+				return PX4_ERROR;
+			}
+
+			/* initialize message buffer mutex */
+			pthread_mutex_init(&_message_buffer_mutex, nullptr);
+		}
+
+		/* Activate sending the data by default (for the IRIDIUM mode it will be disabled after the first round of packages is sent)*/
+		_transmitting_enabled = true;
+		_transmitting_enabled_commanded = true;
+
+		// add default streams
+		configure_stream("HEARTBEAT", 1.f); // // HEARTBEAT is constant rate stream, rate never adjusted
+		configure_stream("STATUSTEXT", 20.f);
+		configure_stream("COMMAND_LONG"); // use unlimited rate to send all commands
+
+	} else {
+		// MAVLINK_MODE_IRIDIUM
+		set_telemetry_status_type(telemetry_status_s::LINK_TYPE_IRIDIUM);
+
+		set_proto_version(1);
+
+		_forwarding_on = false;
+
+		_ftp_on = false;
+
+		_transmitting_enabled = true;
+		_transmitting_enabled_commanded = false;
+
+		// if this instance was responsible for checking events then select a new mavlink instance
+		if (check_events()) {
+			// select next available instance
+			for (Mavlink *inst : mavlink_module_instances) {
+				if (inst && (inst != this)) {
+					check_events_disable(); // disable events on this instance
+					inst->check_events_enable();
+					break;
+				}
+			}
+		}
+	}
+
+	if (configure_streams_to_default() != 0) {
+		PX4_ERR("configure_streams_to_default() failed");
+	}
+
+	/* set main loop delay depending on data rate to minimize CPU overhead */
+	_main_loop_delay = math::constrain((MAIN_LOOP_DELAY * 1000) / _datarate, MAVLINK_MIN_INTERVAL, MAVLINK_MAX_INTERVAL);
 
 #if defined(MAVLINK_UDP)
 
@@ -2255,20 +2261,15 @@ Mavlink::task_main(int argc, char *argv[])
 
 #endif // MAVLINK_UDP
 
-	_task_id = px4_getpid();
-
 	/* if the protocol is serial, we send the system version blindly */
 	if (get_protocol() == Protocol::SERIAL) {
 		send_autopilot_capabilities();
 	}
 
-	_receiver.start();
-
-	uint16_t event_sequence_offset = 0; // offset to account for skipped events, not sent via MAVLink
+	_task_running.store(true);
 
 	_mavlink_start_time = hrt_absolute_time();
-
-	_task_running.store(true);
+	_receiver.start();
 
 	while (!should_exit()) {
 		/* main loop */
@@ -2298,289 +2299,11 @@ Mavlink::task_main(int argc, char *argv[])
 
 		configure_sik_radio();
 
-		if (_vehicle_status_sub.updated()) {
-			vehicle_status_s vehicle_status;
+		if (_mode != MAVLINK_MODE_IRIDIUM) {
+			streamUpdateCycle(t);
 
-			if (_vehicle_status_sub.copy(&vehicle_status)) {
-				/* switch HIL mode if required */
-				set_hil_enabled(vehicle_status.hil_state == vehicle_status_s::HIL_STATE_ON);
-
-				if (_mode == MAVLINK_MODE_IRIDIUM) {
-
-					if (_transmitting_enabled && vehicle_status.high_latency_data_link_lost &&
-					    !_transmitting_enabled_commanded && _first_heartbeat_sent) {
-
-						_transmitting_enabled = false;
-						mavlink_log_info(&_mavlink_log_pub, "Disable transmitting with IRIDIUM mavlink on device %s\t", _device_name);
-						events::send<int8_t>(events::ID("mavlink_iridium_disable"), events::Log::Info,
-								     "Disabling transmitting with IRIDIUM mavlink on instance {1}", _instance_id);
-
-					} else if (!_transmitting_enabled && !vehicle_status.high_latency_data_link_lost) {
-						_transmitting_enabled = true;
-						mavlink_log_info(&_mavlink_log_pub, "Enable transmitting with IRIDIUM mavlink on device %s\t", _device_name);
-						events::send<int8_t>(events::ID("mavlink_iridium_enable"), events::Log::Info,
-								     "Enabling transmitting with IRIDIUM mavlink on instance {1}", _instance_id);
-					}
-				}
-			}
-		}
-
-
-		// MAVLINK_MODE_IRIDIUM: handle VEHICLE_CMD_CONTROL_HIGH_LATENCY
-		if (_mode == MAVLINK_MODE_IRIDIUM) {
-			int vehicle_command_updates = 0;
-
-			while (_vehicle_command_sub.updated() && (vehicle_command_updates < vehicle_command_s::ORB_QUEUE_LENGTH)) {
-				vehicle_command_updates++;
-				const unsigned last_generation = _vehicle_command_sub.get_last_generation();
-				vehicle_command_s vehicle_cmd;
-
-				if (_vehicle_command_sub.update(&vehicle_cmd)) {
-					if (_vehicle_command_sub.get_last_generation() != last_generation + 1) {
-						PX4_ERR("vehicle_command lost, generation %u -> %u", last_generation, _vehicle_command_sub.get_last_generation());
-					}
-
-					if ((vehicle_cmd.command == vehicle_command_s::VEHICLE_CMD_CONTROL_HIGH_LATENCY) &&
-					    _mode == MAVLINK_MODE_IRIDIUM) {
-
-						if (vehicle_cmd.param1 > 0.5f) {
-							if (!_transmitting_enabled) {
-								mavlink_log_info(&_mavlink_log_pub, "Enable transmitting with IRIDIUM mavlink on device %s by command\t",
-										 _device_name);
-								events::send<int8_t>(events::ID("mavlink_iridium_enable_cmd"), events::Log::Info,
-										     "Enabling transmitting with IRIDIUM mavlink on instance {1} by command", _instance_id);
-							}
-
-							_transmitting_enabled = true;
-							_transmitting_enabled_commanded = true;
-
-						} else {
-							if (_transmitting_enabled) {
-								mavlink_log_info(&_mavlink_log_pub, "Disable transmitting with IRIDIUM mavlink on device %s by command\t",
-										 _device_name);
-								events::send<int8_t>(events::ID("mavlink_iridium_disable_cmd"), events::Log::Info,
-										     "Disabling transmitting with IRIDIUM mavlink on instance {1} by command", _instance_id);
-							}
-
-							_transmitting_enabled = false;
-							_transmitting_enabled_commanded = false;
-						}
-
-						// send positive command ack
-						vehicle_command_ack_s command_ack{};
-						command_ack.command = vehicle_cmd.command;
-						command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
-						command_ack.from_external = !vehicle_cmd.from_external;
-						command_ack.target_system = vehicle_cmd.source_system;
-						command_ack.target_component = vehicle_cmd.source_component;
-						command_ack.timestamp = vehicle_cmd.timestamp;
-						_vehicle_command_ack_pub.publish(command_ack);
-					}
-				}
-			}
-		}
-
-		/* send command ACK */
-		bool cmd_logging_start_acknowledgement = false;
-		bool cmd_logging_stop_acknowledgement = false;
-
-		if (_vehicle_command_ack_sub.updated()) {
-			static constexpr size_t COMMAND_ACK_TOTAL_LEN = MAVLINK_MSG_ID_COMMAND_ACK_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
-
-			while ((get_free_tx_buf() >= COMMAND_ACK_TOTAL_LEN) && _vehicle_command_ack_sub.updated()) {
-				vehicle_command_ack_s command_ack;
-				const unsigned last_generation = _vehicle_command_ack_sub.get_last_generation();
-
-				if (_vehicle_command_ack_sub.update(&command_ack)) {
-					if (_vehicle_command_ack_sub.get_last_generation() != last_generation + 1) {
-						PX4_ERR("vehicle_command_ack lost, generation %u -> %u", last_generation,
-							_vehicle_command_ack_sub.get_last_generation());
-					}
-
-					if (!command_ack.from_external && command_ack.command < vehicle_command_s::VEHICLE_CMD_PX4_INTERNAL_START) {
-						mavlink_command_ack_t msg{};
-						msg.result = command_ack.result;
-						msg.command = command_ack.command;
-						msg.progress = command_ack.result_param1;
-						msg.result_param2 = command_ack.result_param2;
-						msg.target_system = command_ack.target_system;
-						msg.target_component = command_ack.target_component;
-
-						// TODO: always transmit the acknowledge once it is only sent over the instance the command is received
-						//bool _transmitting_enabled_temp = _transmitting_enabled;
-						//_transmitting_enabled = true;
-						mavlink_msg_command_ack_send_struct(get_channel(), &msg);
-						//_transmitting_enabled = _transmitting_enabled_temp;
-
-						if (command_ack.command == vehicle_command_s::VEHICLE_CMD_LOGGING_START) {
-							cmd_logging_start_acknowledgement = true;
-
-						} else if (command_ack.command == vehicle_command_s::VEHICLE_CMD_LOGGING_STOP
-							   && command_ack.result == vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED) {
-							cmd_logging_stop_acknowledgement = true;
-						}
-					}
-				}
-			}
-		}
-
-		// For legacy gimbals using the mavlink gimbal v1 protocol, we need to send out commands.
-		// We don't care about acks for these though.
-		if (_gimbal_v1_command_sub.updated()) {
-			vehicle_command_s cmd;
-			_gimbal_v1_command_sub.copy(&cmd);
-
-			// FIXME: filter for target system/component
-
-			mavlink_command_long_t msg{};
-			msg.param1 = cmd.param1;
-			msg.param2 = cmd.param2;
-			msg.param3 = cmd.param3;
-			msg.param4 = cmd.param4;
-			msg.param5 = cmd.param5;
-			msg.param6 = cmd.param6;
-			msg.param7 = cmd.param7;
-			msg.command = cmd.command;
-			msg.target_system = cmd.target_system;
-			msg.target_component = cmd.target_component;
-			msg.confirmation = 0;
-
-			mavlink_msg_command_long_send_struct(get_channel(), &msg);
-		}
-
-		/* check for shell output */
-		if (_mavlink_shell && _mavlink_shell->available() > 0) {
-			if (get_free_tx_buf() >= MAVLINK_MSG_ID_SERIAL_CONTROL_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) {
-				mavlink_serial_control_t msg;
-				msg.baudrate = 0;
-				msg.flags = SERIAL_CONTROL_FLAG_REPLY;
-				msg.timeout = 0;
-				msg.device = SERIAL_CONTROL_DEV_SHELL;
-				msg.count = _mavlink_shell->read(msg.data, sizeof(msg.data));
-				msg.target_system = _mavlink_shell->targetSysid();
-				msg.target_component = _mavlink_shell->targetCompid();
-				mavlink_msg_serial_control_send_struct(get_channel(), &msg);
-			}
-		}
-
-		check_requested_subscriptions();
-
-		/* update streams */
-		for (const auto &stream : _streams) {
-			stream->update(t);
-
-			if (!_first_heartbeat_sent) {
-				if (_mode == MAVLINK_MODE_IRIDIUM) {
-					if (stream->get_id() == MAVLINK_MSG_ID_HIGH_LATENCY2) {
-						_first_heartbeat_sent = stream->first_message_sent();
-					}
-
-				} else {
-					if (stream->get_id() == MAVLINK_MSG_ID_HEARTBEAT) {
-						_first_heartbeat_sent = stream->first_message_sent();
-					}
-				}
-			}
-		}
-
-		/* check for ulog streaming messages */
-		if (_mavlink_ulog) {
-			if (cmd_logging_stop_acknowledgement) {
-				_mavlink_ulog->stop();
-				_mavlink_ulog = nullptr;
-
-			} else {
-				if (cmd_logging_start_acknowledgement) {
-					_mavlink_ulog->start_ack_received();
-				}
-
-				int ret = _mavlink_ulog->handle_update(get_channel());
-
-				if (ret < 0) { //abort the streaming on error
-					if (ret != -1) {
-						PX4_WARN("mavlink ulog stream update failed, stopping (%i)", ret);
-					}
-
-					_mavlink_ulog->stop();
-					_mavlink_ulog = nullptr;
-				}
-			}
-		}
-
-		/* handle new events */
-		if (check_events()) {
-			if (_event_sub.updated()) {
-				LockGuard lg{mavlink_module_mutex};
-
-				event_s orb_event;
-
-				while (_event_sub.update(&orb_event)) {
-					if (events::externalLogLevel(orb_event.log_levels) == events::LogLevel::Disabled) {
-						++event_sequence_offset; // skip this event
-
-					} else {
-						events::Event e;
-						e.id = orb_event.id;
-						e.timestamp_ms = orb_event.timestamp / 1000;
-						e.sequence = orb_event.event_sequence - event_sequence_offset;
-						e.log_levels = orb_event.log_levels;
-						static_assert(sizeof(e.arguments) == sizeof(orb_event.arguments),
-							      "uorb message event: arguments size mismatch");
-						memcpy(e.arguments, orb_event.arguments, sizeof(orb_event.arguments));
-						_event_buffer->insert_event(e);
-					}
-				}
-			}
-		}
-
-		_events.update(t);
-
-		/* pass messages from other UARTs */
-		if (_forwarding_on) {
-
-			bool is_part;
-			uint8_t *read_ptr;
-			uint8_t *write_ptr;
-
-			pthread_mutex_lock(&_message_buffer_mutex);
-			int available = message_buffer_get_ptr((void **)&read_ptr, &is_part);
-			pthread_mutex_unlock(&_message_buffer_mutex);
-
-			if (available > 0) {
-				// Reconstruct message from buffer
-
-				mavlink_message_t msg;
-				write_ptr = (uint8_t *)&msg;
-
-				// Pull a single message from the buffer
-				size_t read_count = available;
-
-				if (read_count > sizeof(mavlink_message_t)) {
-					read_count = sizeof(mavlink_message_t);
-				}
-
-				memcpy(write_ptr, read_ptr, read_count);
-
-				// We hold the mutex until after we complete the second part of the buffer. If we don't
-				// we may end up breaking the empty slot overflow detection semantics when we mark the
-				// possibly partial read below.
-				pthread_mutex_lock(&_message_buffer_mutex);
-
-				message_buffer_mark_read(read_count);
-
-				/* write second part of buffer if there is some */
-				if (is_part && read_count < sizeof(mavlink_message_t)) {
-					write_ptr += read_count;
-					available = message_buffer_get_ptr((void **)&read_ptr, &is_part);
-					read_count = sizeof(mavlink_message_t) - read_count;
-					memcpy(write_ptr, read_ptr, read_count);
-					message_buffer_mark_read(available);
-				}
-
-				pthread_mutex_unlock(&_message_buffer_mutex);
-
-				resend_message(&msg);
-			}
+		} else {
+			streamUpdateCycleIridium(t);
 		}
 
 		/* update TX/RX rates*/
@@ -2646,6 +2369,304 @@ Mavlink::task_main(int argc, char *argv[])
 	_task_running.store(false);
 
 	return OK;
+}
+
+void Mavlink::streamUpdateCycle(const hrt_abstime &t)
+{
+	if (_vehicle_status_sub.updated()) {
+		vehicle_status_s vehicle_status;
+
+		if (_vehicle_status_sub.copy(&vehicle_status)) {
+			/* switch HIL mode if required */
+			set_hil_enabled(vehicle_status.hil_state == vehicle_status_s::HIL_STATE_ON);
+		}
+	}
+
+	// send command ACK
+	bool cmd_logging_start_acknowledgement = false;
+	bool cmd_logging_stop_acknowledgement = false;
+
+	if (_vehicle_command_ack_sub.updated()) {
+		static constexpr size_t COMMAND_ACK_TOTAL_LEN = MAVLINK_MSG_ID_COMMAND_ACK_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+
+		while ((get_free_tx_buf() >= COMMAND_ACK_TOTAL_LEN) && _vehicle_command_ack_sub.updated()) {
+			vehicle_command_ack_s command_ack;
+			const unsigned last_generation = _vehicle_command_ack_sub.get_last_generation();
+
+			if (_vehicle_command_ack_sub.update(&command_ack)) {
+				if (_vehicle_command_ack_sub.get_last_generation() != last_generation + 1) {
+					PX4_ERR("vehicle_command_ack lost, generation %u -> %u", last_generation,
+						_vehicle_command_ack_sub.get_last_generation());
+				}
+
+				if (!command_ack.from_external && command_ack.command < vehicle_command_s::VEHICLE_CMD_PX4_INTERNAL_START) {
+					mavlink_command_ack_t msg{};
+					msg.result = command_ack.result;
+					msg.command = command_ack.command;
+					msg.progress = command_ack.result_param1;
+					msg.result_param2 = command_ack.result_param2;
+					msg.target_system = command_ack.target_system;
+					msg.target_component = command_ack.target_component;
+
+					// TODO: always transmit the acknowledge once it is only sent over the instance the command is received
+					//bool _transmitting_enabled_temp = _transmitting_enabled;
+					//_transmitting_enabled = true;
+					mavlink_msg_command_ack_send_struct(get_channel(), &msg);
+					//_transmitting_enabled = _transmitting_enabled_temp;
+
+					if (command_ack.command == vehicle_command_s::VEHICLE_CMD_LOGGING_START) {
+						cmd_logging_start_acknowledgement = true;
+
+					} else if (command_ack.command == vehicle_command_s::VEHICLE_CMD_LOGGING_STOP
+						   && command_ack.result == vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED) {
+						cmd_logging_stop_acknowledgement = true;
+					}
+				}
+			}
+		}
+	}
+
+	// For legacy gimbals using the mavlink gimbal v1 protocol, we need to send out commands.
+	// We don't care about acks for these though.
+	if (_gimbal_v1_command_sub.updated()) {
+		vehicle_command_s cmd;
+		_gimbal_v1_command_sub.copy(&cmd);
+
+		// FIXME: filter for target system/component
+
+		mavlink_command_long_t msg{};
+		msg.param1 = cmd.param1;
+		msg.param2 = cmd.param2;
+		msg.param3 = cmd.param3;
+		msg.param4 = cmd.param4;
+		msg.param5 = cmd.param5;
+		msg.param6 = cmd.param6;
+		msg.param7 = cmd.param7;
+		msg.command = cmd.command;
+		msg.target_system = cmd.target_system;
+		msg.target_component = cmd.target_component;
+		msg.confirmation = 0;
+
+		mavlink_msg_command_long_send_struct(get_channel(), &msg);
+	}
+
+	/* check for shell output */
+	if (_mavlink_shell && _mavlink_shell->available() > 0) {
+		if (get_free_tx_buf() >= MAVLINK_MSG_ID_SERIAL_CONTROL_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) {
+			mavlink_serial_control_t msg;
+			msg.baudrate = 0;
+			msg.flags = SERIAL_CONTROL_FLAG_REPLY;
+			msg.timeout = 0;
+			msg.device = SERIAL_CONTROL_DEV_SHELL;
+			msg.count = _mavlink_shell->read(msg.data, sizeof(msg.data));
+			msg.target_system = _mavlink_shell->targetSysid();
+			msg.target_component = _mavlink_shell->targetCompid();
+			mavlink_msg_serial_control_send_struct(get_channel(), &msg);
+		}
+	}
+
+	check_requested_subscriptions();
+
+	// update streams
+	for (const auto &stream : _streams) {
+		stream->update(t);
+
+		if (!_first_heartbeat_sent) {
+			if (stream->get_id() == MAVLINK_MSG_ID_HEARTBEAT) {
+				_first_heartbeat_sent = stream->first_message_sent();
+			}
+		}
+	}
+
+	// check for ulog streaming messages
+	if (_mavlink_ulog) {
+		if (cmd_logging_stop_acknowledgement) {
+			_mavlink_ulog->stop();
+			_mavlink_ulog = nullptr;
+
+		} else {
+			if (cmd_logging_start_acknowledgement) {
+				_mavlink_ulog->start_ack_received();
+			}
+
+			int ret = _mavlink_ulog->handle_update(get_channel());
+
+			if (ret < 0) { //abort the streaming on error
+				if (ret != -1) {
+					PX4_WARN("mavlink ulog stream update failed, stopping (%i)", ret);
+				}
+
+				_mavlink_ulog->stop();
+				_mavlink_ulog = nullptr;
+			}
+		}
+	}
+
+	// handle new events
+	if (check_events()) {
+		if (_event_sub.updated()) {
+			LockGuard lg{mavlink_module_mutex};
+
+			event_s orb_event;
+
+			while (_event_sub.update(&orb_event)) {
+				if (events::externalLogLevel(orb_event.log_levels) == events::LogLevel::Disabled) {
+					++_event_sequence_offset; // skip this event
+
+				} else {
+					events::Event e;
+					e.id = orb_event.id;
+					e.timestamp_ms = orb_event.timestamp / 1000;
+					e.sequence = orb_event.event_sequence - _event_sequence_offset;
+					e.log_levels = orb_event.log_levels;
+					static_assert(sizeof(e.arguments) == sizeof(orb_event.arguments),
+						      "uorb message event: arguments size mismatch");
+					memcpy(e.arguments, orb_event.arguments, sizeof(orb_event.arguments));
+					_event_buffer->insert_event(e);
+				}
+			}
+		}
+	}
+
+	_events.update(t);
+
+	// pass messages from other UARTs
+	if (_forwarding_on) {
+
+		bool is_part;
+		uint8_t *read_ptr;
+		uint8_t *write_ptr;
+
+		pthread_mutex_lock(&_message_buffer_mutex);
+		int available = message_buffer_get_ptr((void **)&read_ptr, &is_part);
+		pthread_mutex_unlock(&_message_buffer_mutex);
+
+		if (available > 0) {
+			// Reconstruct message from buffer
+
+			mavlink_message_t msg;
+			write_ptr = (uint8_t *)&msg;
+
+			// Pull a single message from the buffer
+			size_t read_count = available;
+
+			if (read_count > sizeof(mavlink_message_t)) {
+				read_count = sizeof(mavlink_message_t);
+			}
+
+			memcpy(write_ptr, read_ptr, read_count);
+
+			// We hold the mutex until after we complete the second part of the buffer. If we don't
+			// we may end up breaking the empty slot overflow detection semantics when we mark the
+			// possibly partial read below.
+			pthread_mutex_lock(&_message_buffer_mutex);
+
+			message_buffer_mark_read(read_count);
+
+			/* write second part of buffer if there is some */
+			if (is_part && read_count < sizeof(mavlink_message_t)) {
+				write_ptr += read_count;
+				available = message_buffer_get_ptr((void **)&read_ptr, &is_part);
+				read_count = sizeof(mavlink_message_t) - read_count;
+				memcpy(write_ptr, read_ptr, read_count);
+				message_buffer_mark_read(available);
+			}
+
+			pthread_mutex_unlock(&_message_buffer_mutex);
+
+			resend_message(&msg);
+		}
+	}
+}
+
+void Mavlink::streamUpdateCycleIridium(const hrt_abstime &t)
+{
+	if (_vehicle_status_sub.updated()) {
+		vehicle_status_s vehicle_status;
+
+		if (_vehicle_status_sub.copy(&vehicle_status)) {
+			if (_transmitting_enabled && vehicle_status.high_latency_data_link_lost &&
+			    !_transmitting_enabled_commanded && _first_heartbeat_sent) {
+
+				_transmitting_enabled = false;
+				mavlink_log_info(&_mavlink_log_pub, "Disable transmitting with IRIDIUM mavlink on device %s\t", _device_name);
+				events::send<int8_t>(events::ID("mavlink_iridium_disable"), events::Log::Info,
+						     "Disabling transmitting with IRIDIUM mavlink on instance {1}", _instance_id);
+
+			} else if (!_transmitting_enabled && !vehicle_status.high_latency_data_link_lost) {
+				_transmitting_enabled = true;
+				mavlink_log_info(&_mavlink_log_pub, "Enable transmitting with IRIDIUM mavlink on device %s\t", _device_name);
+				events::send<int8_t>(events::ID("mavlink_iridium_enable"), events::Log::Info,
+						     "Enabling transmitting with IRIDIUM mavlink on instance {1}", _instance_id);
+			}
+		}
+	}
+
+	// vehicle_command: handle VEHICLE_CMD_CONTROL_HIGH_LATENCY
+	int vehicle_command_updates = 0;
+
+	while (_vehicle_command_sub.updated() && (vehicle_command_updates < vehicle_command_s::ORB_QUEUE_LENGTH)) {
+		vehicle_command_updates++;
+		const unsigned last_generation = _vehicle_command_sub.get_last_generation();
+		vehicle_command_s vehicle_cmd;
+
+		if (_vehicle_command_sub.update(&vehicle_cmd)) {
+			if (_vehicle_command_sub.get_last_generation() != last_generation + 1) {
+				PX4_ERR("vehicle_command lost, generation %u -> %u", last_generation, _vehicle_command_sub.get_last_generation());
+			}
+
+			if (vehicle_cmd.command == vehicle_command_s::VEHICLE_CMD_CONTROL_HIGH_LATENCY) {
+
+				if (vehicle_cmd.param1 > 0.5f) {
+					if (!_transmitting_enabled) {
+						mavlink_log_info(&_mavlink_log_pub, "Enable transmitting with IRIDIUM mavlink on device %s by command\t",
+								 _device_name);
+						events::send<int8_t>(events::ID("mavlink_iridium_enable_cmd"), events::Log::Info,
+								     "Enabling transmitting with IRIDIUM mavlink on instance {1} by command", _instance_id);
+					}
+
+					_transmitting_enabled = true;
+					_transmitting_enabled_commanded = true;
+
+				} else {
+					if (_transmitting_enabled) {
+						mavlink_log_info(&_mavlink_log_pub, "Disable transmitting with IRIDIUM mavlink on device %s by command\t",
+								 _device_name);
+						events::send<int8_t>(events::ID("mavlink_iridium_disable_cmd"), events::Log::Info,
+								     "Disabling transmitting with IRIDIUM mavlink on instance {1} by command", _instance_id);
+					}
+
+					_transmitting_enabled = false;
+					_transmitting_enabled_commanded = false;
+				}
+
+				// send positive command ack
+				vehicle_command_ack_s command_ack{};
+				command_ack.command = vehicle_cmd.command;
+				command_ack.result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
+				command_ack.from_external = !vehicle_cmd.from_external;
+				command_ack.target_system = vehicle_cmd.source_system;
+				command_ack.target_component = vehicle_cmd.source_component;
+				command_ack.timestamp = vehicle_cmd.timestamp;
+				_vehicle_command_ack_pub.publish(command_ack);
+			}
+		}
+	}
+
+
+
+	// update streams
+	for (const auto &stream : _streams) {
+		stream->update(t);
+
+		if (!_first_heartbeat_sent) {
+			if (stream->get_id() == MAVLINK_MSG_ID_HIGH_LATENCY2) {
+				_first_heartbeat_sent = stream->first_message_sent();
+			}
+		}
+	}
+
+
 }
 
 void Mavlink::check_requested_subscriptions()
