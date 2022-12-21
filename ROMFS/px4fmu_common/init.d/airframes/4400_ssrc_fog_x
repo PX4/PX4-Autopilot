@@ -51,9 +51,6 @@ param set-default BAT1_V_CHARGED 4.2
 param set-default BAT1_V_EMPTY 3.6
 param set-default BAT1_V_DIV 18.1
 
-# Enable ethernet for PX4<->MC
-param set-default RTPS_MAV_CONFIG 0
-
 # Enable LL40LS in i2c
 param set-default SENS_EN_LL40LS 2
 
