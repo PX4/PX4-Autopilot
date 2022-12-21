@@ -478,7 +478,7 @@ PARAM_DEFINE_INT32(EKF2_DECL_TYPE, 7);
  * Type of magnetometer fusion
  *
  * Integer controlling the type of magnetometer fusion used - magnetic heading or 3-component vector.
- * The fusion of magnetomer data as a three component vector enables vehicle body fixed hard iron errors to be learned, but requires a stable earth field.
+ * The fusion of magnetometer data as a three component vector enables vehicle body fixed hard iron errors to be learned, but requires a stable earth field.
  * If set to 'Automatic' magnetic heading fusion is used when on-ground and 3-axis magnetic field fusion in-flight with fallback to magnetic heading fusion if there is insufficient motion to make yaw or magnetic field states observable.
  * If set to 'Magnetic heading' magnetic heading fusion is used at all times.
  * If set to '3-axis' 3-axis field fusion is used at all times.
