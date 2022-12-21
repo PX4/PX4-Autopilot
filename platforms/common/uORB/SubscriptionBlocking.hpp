@@ -85,6 +85,7 @@ public:
 
 	virtual ~SubscriptionBlocking()
 	{
+		unregisterCallback();
 		pthread_mutex_destroy(&_mutex);
 		pthread_cond_destroy(&_cv);
 	}

@@ -198,14 +198,6 @@ __EXPORT bool		param_value_unsaved(param_t param);
 __EXPORT param_type_t	param_type(param_t param);
 
 /**
- * Determine the size of a parameter.
- *
- * @param param		A handle returned by param_find or passed by param_foreach.
- * @return		The size of the parameter's value.
- */
-__EXPORT size_t		param_size(param_t param);
-
-/**
  * Copy the value of a parameter.
  *
  * @param param		A handle returned by param_find or passed by param_foreach.
@@ -251,14 +243,6 @@ __EXPORT int		param_set(param_t param, const void *val);
 __EXPORT int		param_set_default_value(param_t param, const void *val);
 
 /**
- * Mark a parameter as used. Only marked parameters will be sent to a GCS.
- * A call to param_find() will mark a param as used as well.
- *
- * @param param		A handle returned by param_find or passed by param_foreach.
- */
-__EXPORT void		param_set_used(param_t param);
-
-/**
  * Set the value of a parameter, but do not notify the system about the change.
  *
  * @param param		A handle returned by param_find or passed by param_foreach.
@@ -274,22 +258,6 @@ __EXPORT int		param_set_no_notification(param_t param, const void *val);
 __EXPORT void		param_notify_changes(void);
 
 /**
- * Reset a parameter to its default value.
- *
- * @param param		A handle returned by param_find or passed by param_foreach.
- * @return		Zero on success, nonzero on failure
- */
-__EXPORT int		param_reset(param_t param);
-
-/**
- * Reset a parameter to its default value, but do not notify the system about the change.
- *
- * @param param		A handle returned by param_find or passed by param_foreach.
- * @return		Zero on success, nonzero on failure
- */
-__EXPORT int		param_reset_no_notification(param_t param);
-
-/**
  * Reset all parameters to their default values.
  */
 __EXPORT void		param_reset_all(void);
@@ -302,8 +270,6 @@ __EXPORT void		param_reset_all(void);
  * @param num_excludes		The number of excludes provided.
  */
 __EXPORT void		param_reset_excludes(const char *excludes[], int num_excludes);
-
-typedef bool(*param_filter_func)(param_t handle);
 
 /**
  * Reset only specific parameters to their default values.
@@ -322,6 +288,7 @@ __EXPORT void		param_reset_specific(const char *resets[], int num_resets);
  * 			the parameter should be exported. No filtering if nullptr is passed.
  * @return		Zero on success, nonzero on failure.
  */
+typedef bool(*param_filter_func)(param_t handle);
 __EXPORT int		param_export(const char *filename, param_filter_func filter);
 
 /**
@@ -346,17 +313,6 @@ __EXPORT int		param_import(int fd);
  *			Note that in the failure case, parameters may be inconsistent.
  */
 __EXPORT int		param_load(int fd);
-
-/**
- * Read saved parameters from file and dump to console.
- *
- * This function reads the file and dumps all contents to console
- * values from a file.
- *
- * @param fd		File descriptor to read from.
- * @return		Zero on success, nonzero if an error occurred during import.
- */
-__EXPORT int		param_dump(int fd);
 
 /**
  * Apply a function to each parameter.

@@ -74,7 +74,7 @@ if [ -f $PARAM_FILE ]; then
 	then
 		echo "ERROR [init] param import failed"
 
-		param dump $PARAM_FILE
+		bsondump $PARAM_FILE
 
 		# try to make a backup copy
 		cp $PARAM_FILE param_import_fail.bson
@@ -85,7 +85,7 @@ if [ -f $PARAM_FILE ]; then
 			echo "[init] importing from parameter backup"
 
 			# dump current backup file contents for comparison
-			param dump $PARAM_BACKUP_FILE
+			bsondump $PARAM_BACKUP_FILE
 
 			param import $PARAM_BACKUP_FILE
 
@@ -227,7 +227,7 @@ then
 elif [ ! -e "$autostart_file" ] && [ "$SYS_AUTOSTART" -ne "0" ]
 then
 	echo "Error: no autostart file found ($autostart_file)"
-	exit 1
+	#exit 1
 fi
 
 #user defined params for instances can be in PATH

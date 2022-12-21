@@ -75,8 +75,8 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/uavcan_parameter_request.h>
-#include <uORB/topics/uavcan_parameter_value.h>
+#include <uORB/topics/parameter_request.h>
+#include <uORB/topics/parameter_value.h>
 #include <uORB/topics/vehicle_command_ack.h>
 
 using namespace time_literals;
@@ -267,7 +267,7 @@ private:
 	uORB::Subscription _vcmd_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription _param_request_sub{ORB_ID(uavcan_parameter_request)};
 
-	uORB::Publication<uavcan_parameter_value_s> _param_response_pub{ORB_ID(uavcan_parameter_value)};
+	uORB::Publication<parameter_value_s> _param_response_pub{ORB_ID(uavcan_parameter_value)};
 	uORB::Publication<vehicle_command_ack_s>	_command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	/*

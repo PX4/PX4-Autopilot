@@ -89,19 +89,6 @@ int param_get(param_t param, void *val)
 	return -1;
 }
 
-void param_set_used(param_t param)
-{
-	std::map<param_t, Param> &used_params = failsafe_instance.params();
-
-	if (used_params.find(param) != used_params.end()) {
-		return;
-	}
-
-	Param p;
-	memcpy(&p.val, &px4::parameters[param].val, sizeof(p.val));
-	used_params[param] = p;
-}
-
 std::vector<std::string> get_used_params()
 {
 	std::vector<std::string> ret;

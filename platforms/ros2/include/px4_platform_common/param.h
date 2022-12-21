@@ -107,7 +107,6 @@ public:
 
 	Param()
 	{
-		//param_set_used(handle());
 		update();
 	}
 
@@ -143,12 +142,6 @@ public:
 
 	void set(float val) { _val = val; }
 
-	void reset()
-	{
-		//param_reset_no_notification(handle()); // TODO
-		update();
-	}
-
 	bool update()
 	{
 		return true; // TODO
@@ -171,7 +164,6 @@ public:
 	Param(float &external_val)
 		: _val(external_val)
 	{
-		//param_set_used(handle()); // TODO
 		update();
 	}
 
@@ -207,12 +199,6 @@ public:
 
 	void set(float val) { _val = val; }
 
-	void reset()
-	{
-		//param_reset_no_notification(handle());
-		update();
-	}
-
 	bool update()
 	{
 		return true;
@@ -233,7 +219,6 @@ public:
 
 	Param()
 	{
-		//param_set_used(handle());
 		update();
 	}
 
@@ -268,12 +253,6 @@ public:
 	}
 
 	void set(int32_t val) { _val = val; }
-
-	void reset()
-	{
-		//param_reset_no_notification(handle());
-		update();
-	}
 
 	bool update()
 	{
@@ -297,7 +276,6 @@ public:
 	Param(int32_t &external_val)
 		: _val(external_val)
 	{
-		//param_set_used(handle());
 		update();
 	}
 
@@ -333,12 +311,6 @@ public:
 
 	void set(int32_t val) { _val = val; }
 
-	void reset()
-	{
-		//param_reset_no_notification(handle());
-		update();
-	}
-
 	bool update()
 	{
 		//return param_get(handle(), &_val) == 0;
@@ -359,7 +331,6 @@ public:
 
 	Param()
 	{
-		//param_set_used(handle());
 		update();
 	}
 
@@ -396,12 +367,6 @@ public:
 	}
 
 	void set(bool val) { _val = val; }
-
-	void reset()
-	{
-		//param_reset_no_notification(handle());
-		update();
-	}
 
 	bool update()
 	{
