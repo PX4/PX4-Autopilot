@@ -163,7 +163,7 @@ void Predictcov(const Scalar dt, const matrix::Matrix<Scalar, 3, 3> &input_var,
 		_cov_updated(1, 2) = _tmp1 * _tmp56 + _tmp1 * covariance(10, 2) + _tmp5 * input_var(1, 2) +
 				     _tmp57 * dt + covariance(1, 2) + covariance(4, 2) * dt;
 		_cov_updated(2, 2) = _tmp1 * _tmp59 + _tmp1 * covariance(11, 2) + _tmp5 * input_var(2, 2) +
-				     _tmp60 * dt + bias_var(0, 0) + covariance(2, 2) + covariance(5, 2) * dt;
+				     _tmp60 * dt + covariance(2, 2) + covariance(5, 2) * dt;
 		_cov_updated(3, 2) =
 			_tmp1 * _tmp65 + _tmp62 * dt + _tmp63 + covariance(3, 2) + covariance(9, 2) * dt;
 		_cov_updated(4, 2) =
@@ -179,7 +179,7 @@ void Predictcov(const Scalar dt, const matrix::Matrix<Scalar, 3, 3> &input_var,
 		_cov_updated(0, 3) = _tmp17 + _tmp2 + _tmp4 * dt;
 		_cov_updated(1, 3) = _tmp18 + _tmp6 + _tmp8 * dt;
 		_cov_updated(2, 3) = _tmp11 * dt + _tmp23 + _tmp9;
-		_cov_updated(3, 3) = _tmp0 * input_var(0, 0) + _tmp13 * dt + _tmp15 + acc_var(0, 0);
+		_cov_updated(3, 3) = _tmp0 * input_var(0, 0) + _tmp13 * dt + _tmp15;
 		_cov_updated(4, 3) = _tmp0 * input_var(1, 0) + _tmp20 + _tmp22 * dt;
 		_cov_updated(5, 3) = _tmp0 * input_var(2, 0) + _tmp25 * dt + _tmp27;
 		_cov_updated(6, 3) = covariance(6, 3) + covariance(6, 9) * dt;
@@ -218,7 +218,7 @@ void Predictcov(const Scalar dt, const matrix::Matrix<Scalar, 3, 3> &input_var,
 		_cov_updated(3, 6) = covariance(3, 6) + covariance(9, 6) * dt;
 		_cov_updated(4, 6) = covariance(10, 6) * dt + covariance(4, 6);
 		_cov_updated(5, 6) = covariance(11, 6) * dt + covariance(5, 6);
-		_cov_updated(6, 6) = bias_var(1, 1) + covariance(6, 6);
+		_cov_updated(6, 6) = bias_var(0, 0) + covariance(6, 6);
 		_cov_updated(7, 6) = covariance(7, 6);
 		_cov_updated(8, 6) = covariance(8, 6);
 		_cov_updated(9, 6) = covariance(9, 6);
@@ -231,7 +231,7 @@ void Predictcov(const Scalar dt, const matrix::Matrix<Scalar, 3, 3> &input_var,
 		_cov_updated(4, 7) = covariance(10, 7) * dt + covariance(4, 7);
 		_cov_updated(5, 7) = covariance(11, 7) * dt + covariance(5, 7);
 		_cov_updated(6, 7) = covariance(6, 7);
-		_cov_updated(7, 7) = acc_var(1, 1) + covariance(7, 7);
+		_cov_updated(7, 7) = bias_var(1, 1) + covariance(7, 7);
 		_cov_updated(8, 7) = covariance(8, 7);
 		_cov_updated(9, 7) = covariance(9, 7);
 		_cov_updated(10, 7) = covariance(10, 7);
@@ -244,7 +244,7 @@ void Predictcov(const Scalar dt, const matrix::Matrix<Scalar, 3, 3> &input_var,
 		_cov_updated(5, 8) = covariance(11, 8) * dt + covariance(5, 8);
 		_cov_updated(6, 8) = covariance(6, 8);
 		_cov_updated(7, 8) = covariance(7, 8);
-		_cov_updated(8, 8) = covariance(8, 8);
+		_cov_updated(8, 8) = bias_var(2, 2) + covariance(8, 8);
 		_cov_updated(9, 8) = covariance(9, 8);
 		_cov_updated(10, 8) = covariance(10, 8);
 		_cov_updated(11, 8) = covariance(11, 8);
@@ -257,7 +257,7 @@ void Predictcov(const Scalar dt, const matrix::Matrix<Scalar, 3, 3> &input_var,
 		_cov_updated(6, 9) = covariance(6, 9);
 		_cov_updated(7, 9) = covariance(7, 9);
 		_cov_updated(8, 9) = covariance(8, 9);
-		_cov_updated(9, 9) = covariance(9, 9);
+		_cov_updated(9, 9) = acc_var(0, 0) + covariance(9, 9);
 		_cov_updated(10, 9) = covariance(10, 9);
 		_cov_updated(11, 9) = covariance(11, 9);
 		_cov_updated(0, 10) = _tmp29;
@@ -270,7 +270,7 @@ void Predictcov(const Scalar dt, const matrix::Matrix<Scalar, 3, 3> &input_var,
 		_cov_updated(7, 10) = covariance(7, 10);
 		_cov_updated(8, 10) = covariance(8, 10);
 		_cov_updated(9, 10) = covariance(9, 10);
-		_cov_updated(10, 10) = bias_var(2, 2) + covariance(10, 10);
+		_cov_updated(10, 10) = acc_var(1, 1) + covariance(10, 10);
 		_cov_updated(11, 10) = covariance(11, 10);
 		_cov_updated(0, 11) = _tmp53;
 		_cov_updated(1, 11) = _tmp56;

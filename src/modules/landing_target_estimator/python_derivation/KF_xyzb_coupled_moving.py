@@ -99,23 +99,23 @@ def predictCov(dt: sf.Scalar, input_var: MDirections, bias_var: MDirections, acc
 
     G = sf.Matrix.block_matrix([ [-0.5*dt*dt * identity], [-dt * identity], [0 * identity], [0 * identity]])
 
-    mult_mat_acc = sf.Matrix([  [0, 0, 0, 0],
-                                [0, 0, 0, 0],
-                                [0, 0, 0, 0],
-                                [0, 0, 0, 1]])
+    Q_acc_diag = sf.Matrix([  [acc_var[0,0], 0, 0],
+                        [0, acc_var[1,1], 0],
+                        [0, 0, acc_var[2,2]]])
 
-    Q_acc = sf.Matrix.block_matrix([   [acc_var[0,0] * mult_mat_acc, 0 * mult_mat_acc, 0 * mult_mat_acc],
-                                        [0 * mult_mat_acc, acc_var[1,1] * mult_mat_acc, 0 * mult_mat_acc],
-                                        [0 * mult_mat_acc, 0 * mult_mat_acc, acc_var[2,2] * mult_mat_acc]])
+    Q_acc = sf.Matrix.block_matrix([   [0 * identity, 0 * identity, 0 * identity, 0 * identity],
+                    [0 * identity, 0 * identity,  0 * identity, 0 * identity       ],
+                    [0 * identity, 0 * identity,  0 * identity, 0  * identity       ],
+                    [0 * identity, 0 * identity,  0 * identity,  Q_acc_diag * identity       ]])
 
-    mult_mat = sf.Matrix([  [0, 0, 0, 0],
-                            [0, 0, 0, 0],
-                            [0, 0, 1, 0],
-                            [0, 0, 0, 0]])
+    Q_bias_diag = sf.Matrix([  [bias_var[0,0], 0, 0],
+                            [0, bias_var[1,1], 0],
+                            [0, 0, bias_var[2,2]]])
 
-    Q_bias = sf.Matrix.block_matrix([   [bias_var[0,0] * mult_mat, 0 * mult_mat, 0 * mult_mat],
-                                        [0 * mult_mat, bias_var[1,1] * mult_mat, 0 * mult_mat],
-                                        [0 * mult_mat, 0 * mult_mat, bias_var[2,2] * mult_mat]])
+    Q_bias = sf.Matrix.block_matrix([   [0 * identity, 0 * identity, 0 * identity, 0 * identity],
+                    [0 * identity, 0 * identity,  0 * identity, 0 * identity       ],
+                    [0 * identity, 0 * identity,  Q_bias_diag, 0  * identity       ],
+                    [0 * identity, 0 * identity,  0 * identity, 0  * identity       ]])
 
     return G*input_var*G.T + Q_bias + Q_acc + Phi*covariance*Phi.T
 
