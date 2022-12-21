@@ -59,17 +59,18 @@ void Ekf::controlBaroHeightFusion()
 		const bool measurement_valid = PX4_ISFINITE(measurement) && PX4_ISFINITE(measurement_var);
 
 		if (measurement_valid) {
-			if (_baro_counter == 0) {
+			if ((_baro_counter == 0) || baro_sample.reset) {
 				_baro_lpf.reset(measurement);
+				_baro_counter = 1;
 
 			} else {
 				_baro_lpf.update(measurement);
+				_baro_counter++;
 			}
 
 			if (_baro_counter <= _obs_buffer_length) {
 				// Initialize the pressure offset (included in the baro bias)
 				bias_est.setBias(_state.pos(2) + _baro_lpf.getState());
-				_baro_counter++;
 			}
 		}
 
@@ -108,10 +109,10 @@ void Ekf::controlBaroHeightFusion()
 		// determine if we should use height aiding
 		const bool continuing_conditions_passing = (_params.baro_ctrl == 1)
 				&& measurement_valid
+				&& (_baro_counter > _obs_buffer_length)
 				&& !_baro_hgt_faulty;
 
 		const bool starting_conditions_passing = continuing_conditions_passing
-				&& (_baro_counter > _obs_buffer_length)
 				&& isNewestSampleRecent(_time_last_baro_buffer_push, 2 * BARO_MAX_INTERVAL);
 
 		if (_control_status.flags.baro_hgt) {

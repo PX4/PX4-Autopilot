@@ -1712,28 +1712,25 @@ void EKF2::UpdateBaroSample(ekf2_timestamps_s &ekf2_timestamps)
 		// check if barometer has changed
 		if (airdata.baro_device_id != _device_id_baro) {
 			if (_device_id_baro != 0) {
-				PX4_WARN("%d - baro sensor ID changed %" PRIu32 " -> %" PRIu32, _instance, _device_id_baro, airdata.baro_device_id);
+				PX4_DEBUG("%d - baro sensor ID changed %" PRIu32 " -> %" PRIu32, _instance, _device_id_baro, airdata.baro_device_id);
 			}
 
 			reset = true;
 
-		} else if (airdata.calibration_count > _baro_calibration_count) {
+		} else if (airdata.calibration_count != _baro_calibration_count) {
 			// existing calibration has changed, reset saved baro bias
 			PX4_DEBUG("%d - baro %" PRIu32 " calibration updated, resetting bias", _instance, _device_id_baro);
 			reset = true;
 		}
 
 		if (reset) {
-			// TODO: reset baro ref and bias estimate?
 			_device_id_baro = airdata.baro_device_id;
 			_baro_calibration_count = airdata.calibration_count;
 		}
 
 		_ekf.set_air_density(airdata.rho);
 
-		_ekf.setBaroData(baroSample{airdata.timestamp_sample, airdata.baro_alt_meter});
-
-		_device_id_baro = airdata.baro_device_id;
+		_ekf.setBaroData(baroSample{airdata.timestamp_sample, airdata.baro_alt_meter, reset});
 
 		ekf2_timestamps.vehicle_air_data_timestamp_rel = (int16_t)((int64_t)airdata.timestamp / 100 -
 				(int64_t)ekf2_timestamps.timestamp / 100);
