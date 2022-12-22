@@ -233,8 +233,14 @@ void BMI270::print_status()
 
 int BMI270::probe()
 {
-	// Interface selection (SPI only): Read an arbitrary register of the device, discard the read response
+	// When starting communication with the BMI270, according page 123 of the
+	// datasheet a rising edge on CSB is required to start SPI.
+	// It is recommended to just read the CHIP_ID register once to do that
+	// but ignore the result.
 	RegisterRead(Register::CHIP_ID);
+
+	// It takes 200us for the device to start SPI communication.
+	px4_usleep(200);
 
 	const uint8_t CHIP_ID = RegisterRead(Register::CHIP_ID);
 
