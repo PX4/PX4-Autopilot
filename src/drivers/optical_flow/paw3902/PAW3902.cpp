@@ -239,7 +239,7 @@ void PAW3902::RunImpl()
 				}
 
 				// push backup schedule back
-				ScheduleDelayed(1_s);
+				ScheduleDelayed(kBackupScheduleIntervalUs);
 			}
 
 			struct TransferBuffer {
@@ -418,7 +418,7 @@ void PAW3902::RunImpl()
 					}
 
 					// only publish when there's motion or at least every second
-					if (motion_reported || (hrt_elapsed_time(&_last_publish) >= 1_s)) {
+					if (motion_reported || (hrt_elapsed_time(&_last_publish) >= kBackupScheduleIntervalUs)) {
 
 						sensor_optical_flow.timestamp = hrt_absolute_time();
 						_sensor_optical_flow_pub.publish(sensor_optical_flow);
