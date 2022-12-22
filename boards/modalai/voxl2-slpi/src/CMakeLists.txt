@@ -31,6 +31,11 @@
 #
 ############################################################################
 
+# Need to make sure that the DSP processor on VOXL2
+# knows about all parameters since some modules need parameters
+# from other modules that are not running on the DSP.
+set(DISABLE_PARAMS_MODULE_SCOPING TRUE PARENT_SCOPE)
+
 add_library(drivers_board
 	board_config.h
 	init.c

@@ -47,3 +47,6 @@
 
 #include <system_config.h>
 #include <px4_platform_common/board_common.h>
+
+#define BOARD_OVERRIDE_UUID "MODALAIVOXL20000" // must be of length 16
+#define PX4_SOC_ARCH_ID PX4_SOC_ARCH_ID_VOXL2
