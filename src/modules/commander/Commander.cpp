@@ -4461,14 +4461,12 @@ void Commander::estimator_check()
 	}
 
 	if (condition_gps_position_was_valid && !_vehicle_status_flags.gps_position_valid) {
-		PX4_DEBUG("GPS no longer valid");
 
 		// report GPS failure if flying and the global position estimate is still valid
-		if (!_vehicle_land_detected.landed && _vehicle_status_flags.global_position_valid
-		    && _vehicle_status_flags.dead_reckoning) {
-			mavlink_log_warning(&_mavlink_log_pub, "GPS no longer valid, switching to dead-reckoning\t");
+		if (!_vehicle_land_detected.landed && _vehicle_status_flags.global_position_valid) {
+			mavlink_log_warning(&_mavlink_log_pub, "GPS no longer valid\t");
 			events::send(events::ID("commander_gps_lost"), {events::Log::Critical, events::LogInternal::Info},
-				     "GPS no longer valid, switching to dead-reckoning");
+				     "GPS no longer valid");
 		}
 
 	} else if (!condition_gps_position_was_valid && _vehicle_status_flags.gps_position_valid) {
