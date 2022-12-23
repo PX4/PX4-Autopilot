@@ -360,7 +360,6 @@ struct parameters {
 	int32_t mag_fusion_type{0};             ///< integer used to specify the type of magnetometer fusion used
 	float mag_acc_gate{0.5f};               ///< when in auto select mode, heading fusion will be used when manoeuvre accel is lower than this (m/sec**2)
 	float mag_yaw_rate_gate{0.25f};         ///< yaw rate threshold used by mode select logic (rad/sec)
-	const float quat_max_variance{0.0001f}; ///< zero innovation yaw measurements will not be fused when the sum of quaternion variance is less than this
 
 	// GNSS heading fusion
 	float gps_heading_noise{0.1f};          ///< measurement noise standard deviation used for GNSS heading fusion (rad)
