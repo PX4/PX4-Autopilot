@@ -110,8 +110,6 @@ int MavlinkShell::start()
 #ifdef __PX4_NUTTX
 	sched_lock();
 #endif /* __PX4_NUTTX */
-	fflush(stdout);
-	fflush(stderr);
 
 	int fd_backups[2]; //we don't touch stderr, we will redirect it to stdout in the startup of the shell task
 
