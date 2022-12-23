@@ -242,7 +242,7 @@ int UUVPOSControl::print_usage(const char *reason)
 		R"DESCR_STR(
 ### Description
 Controls the attitude of an unmanned underwater vehicle (UUV).
-Publishes `actuator_controls_0` messages at a constant 250Hz.
+Publishes `attitude_setpoint` messages.
 ### Implementation
 Currently, this implementation supports only a few modes:
  * Full manual: Roll, pitch, yaw, and throttle controls are passed directly through to the actuators

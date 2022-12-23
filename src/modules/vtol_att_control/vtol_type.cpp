@@ -62,10 +62,10 @@ VtolType::VtolType(VtolAttitudeControl *att_controller) :
 	_fw_virtual_att_sp = _attc->get_fw_virtual_att_sp();
 	_v_control_mode = _attc->get_control_mode();
 	_vtol_vehicle_status = _attc->get_vtol_vehicle_status();
-	_actuators_out_0 = _attc->get_actuators_out0();
-	_actuators_out_1 = _attc->get_actuators_out1();
-	_actuators_mc_in = _attc->get_actuators_mc_in();
-	_actuators_fw_in = _attc->get_actuators_fw_in();
+	_vehicle_torque_setpoint_virtual_mc = _attc->get_vehicle_torque_setpoint_virtual_mc();
+	_vehicle_torque_setpoint_virtual_fw = _attc->get_vehicle_torque_setpoint_virtual_fw();
+	_vehicle_thrust_setpoint_virtual_mc = _attc->get_vehicle_thrust_setpoint_virtual_mc();
+	_vehicle_thrust_setpoint_virtual_fw = _attc->get_vehicle_thrust_setpoint_virtual_fw();
 	_torque_setpoint_0 = _attc->get_torque_setpoint_0();
 	_torque_setpoint_1 = _attc->get_torque_setpoint_1();
 	_thrust_setpoint_0 = _attc->get_thrust_setpoint_0();
@@ -108,7 +108,7 @@ void VtolType::update_mc_state()
 void VtolType::update_fw_state()
 {
 	resetAccelToPitchPitchIntegrator();
-	_last_thr_in_fw_mode =  _actuators_fw_in->control[actuator_controls_s::INDEX_THROTTLE];
+	_last_thr_in_fw_mode =  _vehicle_thrust_setpoint_virtual_fw->xyz[0];
 
 	// copy virtual attitude setpoint to real attitude setpoint
 	memcpy(_v_att_sp, _fw_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));

@@ -47,7 +47,6 @@
 #include <drivers/drv_hrt.h>
 #include <systemlib/mavlink_log.h>
 #include <uORB/Publication.hpp>
-#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_command.h>
