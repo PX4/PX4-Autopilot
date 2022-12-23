@@ -232,6 +232,20 @@ PARAM_DEFINE_INT32(SYS_HAS_BARO, 1);
 PARAM_DEFINE_INT32(SYS_HAS_NUM_DIST, 0);
 
 /**
+ * Control if the vehicle has a dedicated RC input
+ *
+ * Disable if the board has no RC input, or if the RC input will be used
+ * as a telemetry port.
+ * If disabled, the rc_input module will not be started.
+ *
+ * @boolean
+ * @reboot_required true
+ *
+ * @group System
+ */
+PARAM_DEFINE_INT32(SYS_HAS_RC_INPUT, 1);
+
+/**
  * Enable factory calibration mode
  *
  * If enabled, future sensor calibrations will be stored to /fs/mtd_caldata.

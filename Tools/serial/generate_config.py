@@ -104,6 +104,11 @@ serial_ports = {
         "index": 104,
         "default_baudrate": 57600,
         },
+    "TEL5": {
+        "label": "TELEM 5",
+        "index": 105,
+        "default_baudrate": 57600,
+        },
 
     # GPS Ports
     "GPS1": {
