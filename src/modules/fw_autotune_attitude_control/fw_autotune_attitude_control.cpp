@@ -44,7 +44,7 @@ using namespace matrix;
 FwAutotuneAttitudeControl::FwAutotuneAttitudeControl(bool is_vtol) :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
-	_actuator_controls_sub(this, is_vtol ? ORB_ID(actuator_controls_1) : ORB_ID(actuator_controls_0)),
+	_vehicle_torque_setpoint_sub(this, ORB_ID(vehicle_torque_setpoint), is_vtol ? 1 : 0),
 	_actuator_controls_status_sub(is_vtol ? ORB_ID(actuator_controls_status_1) : ORB_ID(actuator_controls_status_0))
 {
 	_autotune_attitude_control_status_pub.advertise();
@@ -65,7 +65,7 @@ bool FwAutotuneAttitudeControl::init()
 
 	_signal_filter.setParameters(_publishing_dt_s, .2f); // runs in the slow publishing loop
 
-	if (!_actuator_controls_sub.registerCallback()) {
+	if (!_vehicle_torque_setpoint_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;
 	}
@@ -81,7 +81,7 @@ void FwAutotuneAttitudeControl::Run()
 {
 	if (should_exit()) {
 		_parameter_update_sub.unregisterCallback();
-		_actuator_controls_sub.unregisterCallback();
+		_vehicle_torque_setpoint_sub.unregisterCallback();
 		exit_and_cleanup();
 		return;
 	}
@@ -101,7 +101,7 @@ void FwAutotuneAttitudeControl::Run()
 
 	// new control data needed every iteration
 	if ((_state == state::idle && !_aux_switch_en)
-	    || !_actuator_controls_sub.updated()) {
+	    || !_vehicle_torque_setpoint_sub.updated()) {
 
 		return;
 	}
@@ -123,17 +123,17 @@ void FwAutotuneAttitudeControl::Run()
 		}
 	}
 
-	actuator_controls_s controls;
+	vehicle_torque_setpoint_s vehicle_torque_setpoint;
 	vehicle_angular_velocity_s angular_velocity;
 
-	if (!_actuator_controls_sub.copy(&controls)
+	if (!_vehicle_torque_setpoint_sub.copy(&vehicle_torque_setpoint)
 	    || !_vehicle_angular_velocity_sub.copy(&angular_velocity)) {
 		return;
 	}
 
 	perf_begin(_cycle_perf);
 
-	const hrt_abstime timestamp_sample = controls.timestamp;
+	const hrt_abstime timestamp_sample = vehicle_torque_setpoint.timestamp;
 
 	// collect sample interval average for filters
 	if (_last_run > 0) {
@@ -152,15 +152,15 @@ void FwAutotuneAttitudeControl::Run()
 	checkFilters();
 
 	if (_state == state::roll) {
-		_sys_id.update(_input_scale * controls.control[actuator_controls_s::INDEX_ROLL],
+		_sys_id.update(_input_scale * vehicle_torque_setpoint.xyz[0],
 			       angular_velocity.xyz[0]);
 
 	} else if (_state == state::pitch) {
-		_sys_id.update(_input_scale * controls.control[actuator_controls_s::INDEX_PITCH],
+		_sys_id.update(_input_scale * vehicle_torque_setpoint.xyz[1],
 			       angular_velocity.xyz[1]);
 
 	} else if (_state == state::yaw) {
-		_sys_id.update(_input_scale * controls.control[actuator_controls_s::INDEX_YAW],
+		_sys_id.update(_input_scale * vehicle_torque_setpoint.xyz[2],
 			       angular_velocity.xyz[2]);
 	}
 

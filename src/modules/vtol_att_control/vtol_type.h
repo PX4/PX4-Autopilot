@@ -259,10 +259,10 @@ protected:
 	struct vehicle_attitude_setpoint_s *_fw_virtual_att_sp;	// virtual fw attitude setpoint
 	struct vehicle_control_mode_s		*_v_control_mode;	//vehicle control mode
 	struct vtol_vehicle_status_s 		*_vtol_vehicle_status;
-	struct actuator_controls_s			*_actuators_out_0;			//actuator controls going to the mc mixer
-	struct actuator_controls_s			*_actuators_out_1;			//actuator controls going to the fw mixer (used for elevons)
-	struct actuator_controls_s			*_actuators_mc_in;			//actuator controls from mc_rate_control
-	struct actuator_controls_s			*_actuators_fw_in;			//actuator controls from fw_att_control
+	struct vehicle_torque_setpoint_s 		*_vehicle_torque_setpoint_virtual_mc;
+	struct vehicle_torque_setpoint_s 		*_vehicle_torque_setpoint_virtual_fw;
+	struct vehicle_thrust_setpoint_s 		*_vehicle_thrust_setpoint_virtual_mc;
+	struct vehicle_thrust_setpoint_s 		*_vehicle_thrust_setpoint_virtual_fw;
 	struct vehicle_local_position_s			*_local_pos;
 	struct vehicle_local_position_setpoint_s	*_local_pos_sp;
 	struct airspeed_validated_s 			*_airspeed_validated;					// airspeed

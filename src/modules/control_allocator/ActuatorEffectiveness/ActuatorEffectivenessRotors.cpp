@@ -226,7 +226,7 @@ ActuatorEffectivenessRotors::computeEffectivenessMatrix(const Geometry &geometry
 
 			effectiveness(0 + 3, i + actuator_start_index) = 0.f;
 			effectiveness(1 + 3, i + actuator_start_index) = 0.f;
-			effectiveness(2 + 3, i + actuator_start_index) = ct;
+			effectiveness(2 + 3, i + actuator_start_index) = -ct;
 		}
 	}
 

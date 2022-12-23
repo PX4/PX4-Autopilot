@@ -42,10 +42,10 @@
 
 #pragma once
 
-#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/hover_thrust_estimate.h>
 #include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/takeoff_status.h>
 
 #include "LandDetector.h"
@@ -105,7 +105,7 @@ private:
 		float crawlSpeed;
 	} _params{};
 
-	uORB::Subscription _actuator_controls_sub{ORB_ID(actuator_controls_0)};
+	uORB::Subscription _vehicle_thrust_setpoint_sub{ORB_ID(vehicle_thrust_setpoint)};
 	uORB::Subscription _hover_thrust_estimate_sub{ORB_ID(hover_thrust_estimate)};
 	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
 
@@ -118,7 +118,7 @@ private:
 	bool _flag_control_climb_rate_enabled{false};
 	bool _hover_thrust_initialized{false};
 
-	float _actuator_controls_throttle{0.f};
+	float _vehicle_thrust_setpoint_throttle{0.f};
 
 	uint8_t _takeoff_state{takeoff_status_s::TAKEOFF_STATE_DISARMED};
 
