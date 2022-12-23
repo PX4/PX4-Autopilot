@@ -1644,12 +1644,9 @@ void Commander::run()
 			parameter_update_s update;
 			_parameter_update_sub.copy(&update);
 
-			/* update parameters */
-			if (!_arm_state_machine.isArmed()) {
-				updateParameters();
+			updateParameters();
 
-				_status_changed = true;
-			}
+			_status_changed = true;
 		}
 
 		/* Update OA parameter */
