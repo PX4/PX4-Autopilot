@@ -52,13 +52,13 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
-#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_controls_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/autotune_attitude_control_status.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_torque_setpoint.h>
 #include <mathlib/mathlib.h>
 #include <lib/systemlib/mavlink_log.h>
 
@@ -108,7 +108,7 @@ private:
 
 	const matrix::Vector3f getIdentificationSignal();
 
-	uORB::SubscriptionCallbackWorkItem _actuator_controls_sub;
+	uORB::SubscriptionCallbackWorkItem _vehicle_torque_setpoint_sub;
 	uORB::SubscriptionCallbackWorkItem _parameter_update_sub{this, ORB_ID(parameter_update)};
 
 	uORB::Subscription _actuator_controls_status_sub;

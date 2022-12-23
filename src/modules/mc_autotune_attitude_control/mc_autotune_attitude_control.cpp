@@ -74,7 +74,7 @@ void McAutotuneAttitudeControl::Run()
 {
 	if (should_exit()) {
 		_parameter_update_sub.unregisterCallback();
-		_actuator_controls_sub.unregisterCallback();
+		_vehicle_torque_setpoint_sub.unregisterCallback();
 		exit_and_cleanup();
 		return;
 	}
@@ -92,7 +92,7 @@ void McAutotuneAttitudeControl::Run()
 
 	// new control data needed every iteration
 	if (_state == state::idle
-	    || !_actuator_controls_sub.updated()) {
+	    || !_vehicle_torque_setpoint_sub.updated()) {
 		return;
 	}
 
@@ -112,17 +112,17 @@ void McAutotuneAttitudeControl::Run()
 		}
 	}
 
-	actuator_controls_s controls;
+	vehicle_torque_setpoint_s vehicle_torque_setpoint;
 	vehicle_angular_velocity_s angular_velocity;
 
-	if (!_actuator_controls_sub.copy(&controls)
+	if (!_vehicle_torque_setpoint_sub.copy(&vehicle_torque_setpoint)
 	    || !_vehicle_angular_velocity_sub.copy(&angular_velocity)) {
 		return;
 	}
 
 	perf_begin(_cycle_perf);
 
-	const hrt_abstime timestamp_sample = controls.timestamp;
+	const hrt_abstime timestamp_sample = vehicle_torque_setpoint.timestamp;
 
 	// collect sample interval average for filters
 	if (_last_run > 0) {
@@ -142,15 +142,15 @@ void McAutotuneAttitudeControl::Run()
 
 	// Send data to the filters at maximum frequency
 	if (_state == state::roll) {
-		_sys_id.updateFilters(_input_scale * controls.control[actuator_controls_s::INDEX_ROLL],
+		_sys_id.updateFilters(_input_scale * vehicle_torque_setpoint.xyz[0],
 				      angular_velocity.xyz[0]);
 
 	} else if (_state == state::pitch) {
-		_sys_id.updateFilters(_input_scale * controls.control[actuator_controls_s::INDEX_PITCH],
+		_sys_id.updateFilters(_input_scale * vehicle_torque_setpoint.xyz[1],
 				      angular_velocity.xyz[1]);
 
 	} else if (_state == state::yaw) {
-		_sys_id.updateFilters(_input_scale * controls.control[actuator_controls_s::INDEX_YAW],
+		_sys_id.updateFilters(_input_scale * vehicle_torque_setpoint.xyz[2],
 				      angular_velocity.xyz[2]);
 	}
 
@@ -498,7 +498,7 @@ void McAutotuneAttitudeControl::revertParamGains()
 
 bool McAutotuneAttitudeControl::registerActuatorControlsCallback()
 {
-	if (!_actuator_controls_sub.registerCallback()) {
+	if (!_vehicle_torque_setpoint_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;
 	}
@@ -581,7 +581,7 @@ void McAutotuneAttitudeControl::stopAutotune()
 {
 	_param_mc_at_start.set(false);
 	_param_mc_at_start.commit();
-	_actuator_controls_sub.unregisterCallback();
+	_vehicle_torque_setpoint_sub.unregisterCallback();
 }
 
 const Vector3f McAutotuneAttitudeControl::getIdentificationSignal()

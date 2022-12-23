@@ -364,11 +364,13 @@ void VehicleMagnetometer::UpdatePowerCompensation()
 	if (_mag_comp_type != MagCompensationType::Disabled) {
 		// update power signal for mag compensation
 		if (_armed && (_mag_comp_type == MagCompensationType::Throttle)) {
-			actuator_controls_s controls;
+			vehicle_thrust_setpoint_s vehicle_thrust_setpoint;
 
-			if (_actuator_controls_0_sub.update(&controls)) {
+			if (_vehicle_thrust_setpoint_0_sub.update(&vehicle_thrust_setpoint)) {
+				const matrix::Vector3f thrust_setpoint = matrix::Vector3f(vehicle_thrust_setpoint.xyz);
+
 				for (auto &cal : _calibration) {
-					cal.UpdatePower(controls.control[actuator_controls_s::INDEX_THROTTLE]);
+					cal.UpdatePower(thrust_setpoint.length());
 				}
 			}
 
