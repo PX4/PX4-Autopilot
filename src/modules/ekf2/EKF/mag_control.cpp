@@ -162,7 +162,10 @@ void Ekf::checkHaglYawResetReq()
 		// and request a yaw reset if not already requested.
 		static constexpr float mag_anomalies_max_hagl = 1.5f;
 		const bool above_mag_anomalies = (getTerrainVPos() - _state.pos(2)) > mag_anomalies_max_hagl;
-		_mag_yaw_reset_req = _mag_yaw_reset_req || above_mag_anomalies;
+
+		if (above_mag_anomalies) {
+			_control_status.flags.mag_aligned_in_flight = true;
+		}
 	}
 }
 
