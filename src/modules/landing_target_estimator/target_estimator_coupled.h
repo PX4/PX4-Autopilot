@@ -34,6 +34,7 @@
 /**
  * @file target_estimator_coupled.cpp
  * @brief Interface for target estimators
+ * @author Jonas Perolini <jonas.perolini@epfl.ch>
  */
 
 #pragma once

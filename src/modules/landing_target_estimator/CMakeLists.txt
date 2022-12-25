@@ -35,10 +35,12 @@ px4_add_module(
 	MODULE modules__landing_target_estimator
 	MAIN landing_target_estimator
 	COMPILE_FLAGS
+	STACK_MAX
+        3600
 	SRCS
-		landing_target_estimator_main.cpp
-		LandingTargetEstimator.cpp
-		LTEOrientation.cpp
+		LandingTargetEst.cpp
+		LTEstPos.cpp
+		LTEstYaw.cpp
 		KalmanFilter.cpp
 		KF_xyzb_coupled_moving.cpp
 		KF_xyzb_v_coupled_moving.cpp
@@ -48,5 +50,7 @@ px4_add_module(
 		KF_xyzb_coupled_static.cpp
 		KF_orientation_static.cpp
 	DEPENDS
+		mathlib
+		px4_work_queue
 	)
 

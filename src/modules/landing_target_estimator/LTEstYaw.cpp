@@ -32,10 +32,8 @@
  ****************************************************************************/
 
 /*
- * @file LTEOrientation.cpp
+ * @file LTEstYaw.cpp
  *
- * @author Nicolas de Palezieux (Sunflower Labs) <ndepal@gmail.com>
- * @author Mohammed Kabir <kabir@uasys.io>
  * @author Jonas Perolini <jonas.perolini@epfl.ch>
  *
  */
@@ -44,7 +42,7 @@
 #include <px4_platform_common/defines.h>
 #include <drivers/drv_hrt.h>
 
-#include "LTEOrientation.h"
+#include "LTEstYaw.h"
 
 #define SEC2USEC 1000000.0f
 
@@ -53,7 +51,7 @@ namespace landing_target_estimator
 
 using namespace matrix;
 
-LTEOrientation::LTEOrientation() :
+LTEstYaw::LTEstYaw() :
 	ModuleParams(nullptr)
 {
 	_target_estimator_aid_ev_yaw_pub.advertise();
@@ -62,18 +60,27 @@ LTEOrientation::LTEOrientation() :
 	_check_params(true);
 }
 
-LTEOrientation::~LTEOrientation()
+LTEstYaw::~LTEstYaw()
 {
 	delete _target_estimator_orientation;
 }
 
-void LTEOrientation::resetFilter()
+bool LTEstYaw::init()
+{
+
+	_target_mode = (TargetMode)_param_ltest_mode.get();
+	_ltest_TIMEOUT_US = (uint32_t)(_param_ltest_btout.get() * SEC2USEC);
+
+	return selectTargetEstimator();
+}
+
+void LTEstYaw::resetFilter()
 {
 	_estimator_initialized = false;
 	_new_pos_sensor_acquired_time = 0;
 }
 
-void LTEOrientation::update()
+void LTEstYaw::update()
 {
 	_check_params(false);
 
@@ -81,7 +88,7 @@ void LTEOrientation::update()
 	update_topics();
 
 	// Next waypoint is not land: early return;
-	if (!_estimate_orientation || !_start_filter) {
+	if (!_start_filter) {
 		return;
 	}
 
@@ -106,7 +113,7 @@ void LTEOrientation::update()
 	if (_estimator_initialized) {publishTarget();}
 }
 
-bool LTEOrientation::initEstimator(float theta_init)
+bool LTEstYaw::initEstimator(float theta_init)
 {
 
 	PX4_INFO("Theta init %.2f", (double)theta_init);
@@ -120,7 +127,7 @@ bool LTEOrientation::initEstimator(float theta_init)
 }
 
 
-void LTEOrientation::predictionStep()
+void LTEstYaw::predictionStep()
 {
 	// Time from last prediciton
 	float dt = (hrt_absolute_time() - _last_predict) / SEC2USEC;
@@ -131,7 +138,7 @@ void LTEOrientation::predictionStep()
 
 
 
-bool LTEOrientation::update_step()
+bool LTEstYaw::update_step()
 {
 	landing_target_orientation_s fiducial_marker_orientation;
 	targetObsOrientation obs_fiducial_marker_orientation;
@@ -178,7 +185,7 @@ bool LTEOrientation::update_step()
 }
 
 
-bool LTEOrientation::processObsVisionOrientation(const landing_target_orientation_s &fiducial_marker_orientation,
+bool LTEstYaw::processObsVisionOrientation(const landing_target_orientation_s &fiducial_marker_orientation,
 		targetObsOrientation &obs)
 {
 
@@ -208,7 +215,7 @@ bool LTEOrientation::processObsVisionOrientation(const landing_target_orientatio
 	return false;
 }
 
-bool LTEOrientation::fuse_orientation(const targetObsOrientation &target_orientation_obs)
+bool LTEstYaw::fuse_orientation(const targetObsOrientation &target_orientation_obs)
 {
 	// Update step for orientation
 	bool meas_fused = false;
@@ -264,7 +271,7 @@ bool LTEOrientation::fuse_orientation(const targetObsOrientation &target_orienta
 }
 
 
-void LTEOrientation::publishTarget()
+void LTEstYaw::publishTarget()
 {
 	landing_target_orientation_s target_orientation{};
 
@@ -290,7 +297,7 @@ void LTEOrientation::publishTarget()
 	_targetOrientationPub.publish(target_orientation);
 }
 
-void LTEOrientation::_check_params(const bool force)
+void LTEstYaw::_check_params(const bool force)
 {
 	if (_parameter_update_sub.updated() || force) {
 		parameter_update_s pupdate;
@@ -300,7 +307,7 @@ void LTEOrientation::_check_params(const bool force)
 	}
 }
 
-void LTEOrientation::update_topics()
+void LTEstYaw::update_topics()
 {
 	vehicle_local_position_s	vehicle_local_position;
 	vehicle_status_s vehicle_status;
@@ -337,38 +344,15 @@ void LTEOrientation::update_topics()
 	_local_pos.valid = (vehicle_local_position_valid && vehicle_local_position.heading_good_for_control);
 }
 
-void LTEOrientation::updateParams()
+void LTEstYaw::updateParams()
 {
 
 	ModuleParams::updateParams();
 
-	const TargetMode param_target_mode = (TargetMode)_param_ltest_mode.get();
-	_estimate_orientation = _param_ltest_yaw_en.get();
 	_yaw_unc = _param_ltest_yaw_unc_in.get();
-
-	PX4_INFO("LTE orientation estimator enabled.");
-
-	// TODO: add orientation
-	if (_target_mode != param_target_mode) {
-
-		// Define the target mode and model
-		_target_mode = param_target_mode;
-
-		if (!selectTargetEstimator()) {
-			// TODO: decide on behaviour
-		}
-
-		// Define LTEST timeout
-		_ltest_TIMEOUT_US = (uint32_t)(_param_ltest_btout.get() * SEC2USEC);
-	}
-
-	if ((_target_estimator_orientation == nullptr)) {
-		// TODO: should return false
-		return;
-	}
 }
 
-bool LTEOrientation::selectTargetEstimator()
+bool LTEstYaw::selectTargetEstimator()
 {
 	TargetEstimatorOrientation *tmp_theta = nullptr;
 

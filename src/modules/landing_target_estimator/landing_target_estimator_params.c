@@ -48,7 +48,7 @@
  *
  * @group Landing target Estimator
  */
-PARAM_DEFINE_INT32(LTEST_EN, 0);
+PARAM_DEFINE_INT32(LTEST_EN, 1);
 
 /**
  * Landing target estimator module enable orientation estimation
@@ -58,6 +58,15 @@ PARAM_DEFINE_INT32(LTEST_EN, 0);
  * @group Landing target Estimator
  */
 PARAM_DEFINE_INT32(LTEST_YAW_EN, 0);
+
+/**
+ * Landing target estimator module enable position estimation
+ *
+ * @boolean
+ *
+ * @group Landing target Estimator
+ */
+PARAM_DEFINE_INT32(LTEST_POS_EN, 1);
 
 /**
  * Integer bitmask controlling data fusion and aiding methods.
@@ -84,7 +93,7 @@ PARAM_DEFINE_INT32(LTEST_YAW_EN, 0);
  *
  * @group Landing target Estimator
  */
-PARAM_DEFINE_INT32(LTEST_AID_MASK, 6);
+PARAM_DEFINE_INT32(LTEST_AID_MASK, 46);
 
 /**
  * Landing target mode

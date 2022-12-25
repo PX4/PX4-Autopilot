@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /*
- * @file LandingTargetEstimator.h
+ * @file LTEstPos.h
  * Landing target position estimator. Filter and publish the position of a landing target on the ground as observed by an onboard sensor.
  *
  * @author Jonas Perolini <jonas.perolini@epfl.ch>
@@ -84,17 +84,19 @@ using namespace time_literals;
 namespace landing_target_estimator
 {
 
-class LandingTargetEstimator: public ModuleParams
+class LTEstPos: public ModuleParams
 {
 public:
 
-	LandingTargetEstimator();
-	virtual ~LandingTargetEstimator();
+	LTEstPos();
+	virtual ~LTEstPos();
 
 	/*
 	 * Get new measurements and update the state estimate
 	 */
 	void update();
+
+	bool init();
 
 private:
 	struct accInput {

@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /*
- * @file LTEOrientation.h
+ * @file LTEstYaw.h
  * Landing target orientation estimator. Filter and publish the orientation of a landing target on the ground as observed by an onboard sensor.
  *
  * @author Jonas Perolini <jonas.perolini@epfl.ch>
@@ -71,17 +71,19 @@ using namespace time_literals;
 namespace landing_target_estimator
 {
 
-class LTEOrientation: public ModuleParams
+class LTEstYaw: public ModuleParams
 {
 public:
 
-	LTEOrientation();
-	virtual ~LTEOrientation();
+	LTEstYaw();
+	virtual ~LTEstYaw();
 
 	/*
 	 * Get new measurements and update the state estimate
 	 */
 	void update();
+
+	bool init();
 
 protected:
 
@@ -179,7 +181,6 @@ private:
 	float _yaw_unc;
 
 	DEFINE_PARAMETERS(
-
 		(ParamFloat<px4::params::LTEST_YAW_UNC_IN>) _param_ltest_yaw_unc_in,
 		(ParamFloat<px4::params::LTEST_BTOUT>) _param_ltest_btout,
 		(ParamInt<px4::params::LTEST_MODE>) _param_ltest_mode,

@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /*
- * @file LandingTargetEstimator.cpp
+ * @file LTEstPos.cpp
  *
  * @author Nicolas de Palezieux (Sunflower Labs) <ndepal@gmail.com>
  * @author Mohammed Kabir <kabir@uasys.io>
@@ -44,7 +44,7 @@
 #include <px4_platform_common/defines.h>
 #include <drivers/drv_hrt.h>
 
-#include "LandingTargetEstimator.h"
+#include "LTEstPos.h"
 
 #define SEC2USEC 1000000.0f
 
@@ -53,7 +53,7 @@ namespace landing_target_estimator
 
 using namespace matrix;
 
-LandingTargetEstimator::LandingTargetEstimator() :
+LTEstPos::LTEstPos() :
 	ModuleParams(nullptr)
 {
 	_targetPosePub.advertise();
@@ -67,7 +67,7 @@ LandingTargetEstimator::LandingTargetEstimator() :
 	_check_params(true);
 }
 
-LandingTargetEstimator::~LandingTargetEstimator()
+LTEstPos::~LTEstPos()
 {
 	for (int i = 0; i < 3; i++) {
 		delete _target_estimator[i];
@@ -80,14 +80,50 @@ LandingTargetEstimator::~LandingTargetEstimator()
 	perf_free(_ltest_update_full_perf);
 }
 
-void LandingTargetEstimator::resetFilter()
+bool LTEstPos::init()
+{
+	bool return_bool = false;
+
+	_target_mode = (TargetMode)_param_ltest_mode.get();
+	_target_model = (TargetModel)_param_ltest_model.get();
+	_ltest_aid_mask = _param_ltest_aid_mask.get();
+	_ltest_TIMEOUT_US = (uint32_t)(_param_ltest_btout.get() * SEC2USEC);
+
+	if (selectTargetEstimator()) {
+
+		if (_ltest_aid_mask == 0) {
+			PX4_ERR("LTEst: no data fusion enabled. Modify LTEST_AID_MASK and reboot");
+			return false;
+		}
+
+		if (_ltest_aid_mask & SensorFusionMask::USE_TARGET_GPS_POS) { PX4_INFO("LTEst target GPS position data fusion enabled");}
+
+		if (_ltest_aid_mask & SensorFusionMask::USE_MISSION_POS) { PX4_INFO("LTEst PX4 mission landing position fusion enabled");}
+
+		if (_ltest_aid_mask & SensorFusionMask::USE_MISSION_POS && _ltest_aid_mask & SensorFusionMask::USE_TARGET_GPS_POS) { PX4_INFO("LTEst a weighted average between the landing point and the target GPS position will be performed");}
+
+		if (_ltest_aid_mask & SensorFusionMask::USE_UAV_GPS_VEL) { PX4_INFO("LTEst drone GPS velocity data fusion enabled");}
+
+		if (_ltest_aid_mask & SensorFusionMask::USE_EXT_VIS_POS) { PX4_INFO("LTEst target external vision-based relative position data fusion enabled");}
+
+		if (_ltest_aid_mask & SensorFusionMask::USE_IRLOCK_POS) { PX4_INFO("LTEst target relative position from irlock data fusion enabled");}
+
+		if (_ltest_aid_mask & SensorFusionMask::USE_UWB_POS) { PX4_INFO("LTEst target relative position from uwb data fusion enabled");}
+
+		return_bool = true;
+	}
+
+	return return_bool;
+}
+
+void LTEstPos::resetFilter()
 {
 	_estimator_initialized = false;
 	_new_pos_sensor_acquired_time = 0;
 	_bias_set = false;
 }
 
-void LandingTargetEstimator::update()
+void LTEstPos::update()
 {
 	_check_params(false);
 
@@ -124,8 +160,8 @@ void LandingTargetEstimator::update()
 	if (_estimator_initialized) {publishTarget();}
 }
 
-bool LandingTargetEstimator::initEstimator(Vector3f pos_init, Vector3f vel_rel_init, Vector3f a_init,
-		Vector3f bias_init)
+bool LTEstPos::initEstimator(Vector3f pos_init, Vector3f vel_rel_init, Vector3f a_init,
+			     Vector3f bias_init)
 {
 
 	PX4_INFO("Pos init %.2f %.2f %.2f", (double)pos_init(0), (double)pos_init(1), (double)pos_init(2));
@@ -181,7 +217,7 @@ bool LandingTargetEstimator::initEstimator(Vector3f pos_init, Vector3f vel_rel_i
 }
 
 
-void LandingTargetEstimator::predictionStep(Vector3f vehicle_acc_ned)
+void LTEstPos::predictionStep(Vector3f vehicle_acc_ned)
 {
 	// predict target position with the help of accel data
 
@@ -225,7 +261,7 @@ void LandingTargetEstimator::predictionStep(Vector3f vehicle_acc_ned)
 
 
 
-bool LandingTargetEstimator::update_step(Vector3f vehicle_acc_ned)
+bool LTEstPos::update_step(Vector3f vehicle_acc_ned)
 {
 
 	sensor_gps_s vehicle_gps_position;
@@ -441,7 +477,7 @@ bool LandingTargetEstimator::update_step(Vector3f vehicle_acc_ned)
 }
 
 /*Vision observation: [rx, ry, rz]*/
-bool LandingTargetEstimator::processObsVision(const landing_target_pose_s &fiducial_marker_pose, targetObsPos &obs)
+bool LTEstPos::processObsVision(const landing_target_pose_s &fiducial_marker_pose, targetObsPos &obs)
 {
 
 	// Assume vision measurement is in NED frame.
@@ -559,8 +595,8 @@ bool LandingTargetEstimator::processObsVision(const landing_target_pose_s &fiduc
 }
 
 /*Drone GNSS velocity observation: [r_dotx, r_doty, r_dotz]*/
-bool LandingTargetEstimator::processObsUavGNSSVel(const landing_target_gnss_s &target_GNSS_report,
-		const sensor_gps_s &vehicle_gps_position, targetObsPos &obs)
+bool LTEstPos::processObsUavGNSSVel(const landing_target_gnss_s &target_GNSS_report,
+				    const sensor_gps_s &vehicle_gps_position, targetObsPos &obs)
 {
 
 	// TODO: convert .s_variance_m_s from accuracy to variance
@@ -616,8 +652,8 @@ bool LandingTargetEstimator::processObsUavGNSSVel(const landing_target_gnss_s &t
 }
 
 /*Target GNSS observation: [rx + bx, ry + by, rz + bz]*/
-bool LandingTargetEstimator::processObsTargetGNSS(const landing_target_gnss_s &target_GNSS_report,
-		bool target_GNSS_report_valid,  const sensor_gps_s &vehicle_gps_position, targetObsPos &obs)
+bool LTEstPos::processObsTargetGNSS(const landing_target_gnss_s &target_GNSS_report,
+				    bool target_GNSS_report_valid,  const sensor_gps_s &vehicle_gps_position, targetObsPos &obs)
 {
 
 	bool use_gps_measurements = false;
@@ -736,7 +772,7 @@ bool LandingTargetEstimator::processObsTargetGNSS(const landing_target_gnss_s &t
 }
 
 /*UWB observation: [rx, ry, rz]*/
-bool LandingTargetEstimator::processObsUWB(const uwb_distance_s &uwb_distance, targetObsPos &obs)
+bool LTEstPos::processObsUWB(const uwb_distance_s &uwb_distance, targetObsPos &obs)
 {
 
 	if (!PX4_ISFINITE((float)uwb_distance.position[0]) || !PX4_ISFINITE((float)uwb_distance.position[1]) ||
@@ -774,7 +810,7 @@ bool LandingTargetEstimator::processObsUWB(const uwb_distance_s &uwb_distance, t
 }
 
 
-bool LandingTargetEstimator::processObsIRlock(const irlock_report_s &irlock_report, targetObsPos &obs)
+bool LTEstPos::processObsIRlock(const irlock_report_s &irlock_report, targetObsPos &obs)
 {
 	if (!PX4_ISFINITE(irlock_report.pos_y) || !PX4_ISFINITE(irlock_report.pos_x)) {
 		PX4_WARN("IRLOCK position is corrupt!");
@@ -841,7 +877,7 @@ bool LandingTargetEstimator::processObsIRlock(const irlock_report_s &irlock_repo
 	return false;
 }
 
-bool LandingTargetEstimator::fuse_meas(const Vector3f vehicle_acc_ned, const targetObsPos &target_pos_obs)
+bool LTEstPos::fuse_meas(const Vector3f vehicle_acc_ned, const targetObsPos &target_pos_obs)
 {
 	const hrt_abstime ltest_update_start = hrt_absolute_time();
 
@@ -986,7 +1022,7 @@ bool LandingTargetEstimator::fuse_meas(const Vector3f vehicle_acc_ned, const tar
 	return all_directions_fused;
 }
 
-void LandingTargetEstimator::publishTarget()
+void LTEstPos::publishTarget()
 {
 	target_estimator_state_s target_estimator_state{};
 
@@ -1138,7 +1174,7 @@ void LandingTargetEstimator::publishTarget()
 
 }
 
-void LandingTargetEstimator::_check_params(const bool force)
+void LTEstPos::_check_params(const bool force)
 {
 	if (_parameter_update_sub.updated() || force) {
 		parameter_update_s pupdate;
@@ -1148,7 +1184,7 @@ void LandingTargetEstimator::_check_params(const bool force)
 	}
 }
 
-void LandingTargetEstimator::get_input(accInput *input)
+void LTEstPos::get_input(accInput *input)
 {
 	vehicle_attitude_s	vehicle_attitude;
 	vehicle_local_position_s	vehicle_local_position;
@@ -1242,87 +1278,17 @@ void LandingTargetEstimator::get_input(accInput *input)
 	}
 }
 
-void LandingTargetEstimator::updateParams()
+void LTEstPos::updateParams()
 {
-
 	ModuleParams::updateParams();
-
-	const TargetMode param_target_mode = (TargetMode)_param_ltest_mode.get();
-	const TargetModel param_target_model = (TargetModel)_param_ltest_model.get();
-	_ltest_aid_mask = _param_ltest_aid_mask.get();
 
 	_target_acc_unc = _param_ltest_acc_t_unc.get();
 	_bias_unc = _param_ltest_bias_unc.get();
 	_meas_unc = _param_ltest_meas_unc.get();
 	_gps_target_unc = _param_ltest_gps_t_unc.get();
-
-	PX4_INFO("LTE position estimator enabled.");
-
-	if (_ltest_aid_mask == 0) { PX4_ERR("LTE no data fusion enabled. Modify LTEST_AID_MASK and reboot");}
-
-	if (_ltest_aid_mask & SensorFusionMask::USE_TARGET_GPS_POS) { PX4_INFO("LTE target GPS position data fusion enabled");}
-
-	if (_ltest_aid_mask & SensorFusionMask::USE_UAV_GPS_VEL) { PX4_INFO("LTE drone GPS velocity data fusion enabled");}
-
-	if (_ltest_aid_mask & SensorFusionMask::USE_EXT_VIS_POS) { PX4_INFO("LTE target external vision-based relative position data fusion enabled");}
-
-	if (_ltest_aid_mask & SensorFusionMask::USE_IRLOCK_POS) { PX4_INFO("LTE target relative position from irlock data fusion enabled");}
-
-	if (_ltest_aid_mask & SensorFusionMask::USE_UWB_POS) { PX4_INFO("LTE target relative position from uwb data fusion enabled");}
-
-	if (_ltest_aid_mask & SensorFusionMask::USE_MISSION_POS) { PX4_INFO("LTE PX4 mission landing position fusion enabled");}
-
-	if (_ltest_aid_mask & SensorFusionMask::USE_MISSION_POS && _ltest_aid_mask & SensorFusionMask::USE_TARGET_GPS_POS) { PX4_INFO("LTE a weighted average between the landing point and the target GPS position will be performed");}
-
-	if (_target_mode != param_target_mode || _target_model != param_target_model) {
-
-		// Define the target mode and model
-		_target_mode = param_target_mode;
-		_target_model = param_target_model;
-
-		if (!selectTargetEstimator()) {
-			// TODO: decide on behaviour
-		}
-
-		// Define LTEST timeout
-		_ltest_TIMEOUT_US = (uint32_t)(_param_ltest_btout.get() * SEC2USEC);
-	}
-
-	switch (_target_model) {
-	case TargetModel::FullPoseDecoupled:
-		_nb_position_kf = 3;
-
-		if ((_target_estimator[x] == nullptr) || (_target_estimator[y] == nullptr) || (_target_estimator[z] == nullptr)) {
-			// TODO: should return false
-			return;
-		}
-
-		break;
-
-	case TargetModel::Horizontal:
-		_nb_position_kf = 2;
-
-		if ((_target_estimator[x] == nullptr) || (_target_estimator[y] == nullptr)) {
-			return;
-		}
-
-		break;
-
-	case TargetModel::FullPoseCoupled:
-		_nb_position_kf = 1;
-
-		if (_target_estimator_coupled == nullptr) {
-			return;
-		}
-
-		break;
-
-	case TargetModel::NotInit:
-		return;
-	}
 }
 
-bool LandingTargetEstimator::selectTargetEstimator()
+bool LTEstPos::selectTargetEstimator()
 {
 	TargetEstimator *tmp_x = nullptr;
 	TargetEstimator *tmp_y = nullptr;
