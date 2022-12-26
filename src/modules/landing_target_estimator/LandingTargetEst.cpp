@@ -59,6 +59,7 @@ namespace landing_target_estimator
 
 static constexpr uint32_t ltest_pos_UPDATE_RATE_HZ = 50;
 static constexpr uint32_t ltest_yaw_UPDATE_RATE_HZ = 50;
+static const matrix::Vector3f gravity_ned(0, 0, 0.9807);
 
 LandingTargetEst::LandingTargetEst() :
 	ModuleParams(nullptr),
@@ -71,6 +72,7 @@ LandingTargetEst::~LandingTargetEst()
 {
 	perf_free(_cycle_perf_pos);
 	perf_free(_cycle_perf_yaw);
+	perf_free(_cycle_perf);
 }
 
 int LandingTargetEst::task_spawn(int argc, char *argv[])
@@ -99,32 +101,32 @@ int LandingTargetEst::task_spawn(int argc, char *argv[])
 
 bool LandingTargetEst::init()
 {
-	if (!_vehicle_acceleration_sub.registerCallback()) {
-		PX4_ERR("vehicle_acceleration callback registration failed!");
+	if (!_vehicle_attitude_sub.registerCallback()) {
+		PX4_ERR("vehicle_attitude callback registration failed!");
 		return false;
 	}
 
 	updateParams();
 
-	delete _ltest_pos;
-	delete _ltest_yaw;
+	delete _ltest_position;
+	delete _ltest_orientation;
 
-	_ltest_pos_valid = false;
-	_ltest_yaw_valid = false;
+	_ltest_position_valid = false;
+	_ltest_orientation_valid = false;
 
 	if (_param_ltest_pos_en.get()) {
 		PX4_INFO("LTEst position estimator enabled.");
-		_ltest_pos = new LTEstPos;
-		_ltest_pos_valid = (_ltest_pos != nullptr && _ltest_pos->init());
+		_ltest_position = new LTEstPosition;
+		_ltest_position_valid = (_ltest_position != nullptr && _ltest_position->init());
 	}
 
 	if (_param_ltest_yaw_en.get()) {
 		PX4_INFO("LTEst yaw estimator enabled.");
-		_ltest_yaw = new LTEstYaw;
-		_ltest_yaw_valid = (_ltest_yaw != nullptr && _ltest_yaw->init());
+		_ltest_orientation = new LTEstOrientation;
+		_ltest_orientation_valid = (_ltest_orientation != nullptr && _ltest_orientation->init());
 	}
 
-	return _ltest_pos_valid || _ltest_yaw_valid;
+	return _ltest_position_valid || _ltest_orientation_valid;
 }
 
 void LandingTargetEst::updateParams()
@@ -135,28 +137,159 @@ void LandingTargetEst::updateParams()
 void LandingTargetEst::Run()
 {
 	if (should_exit()) {
-		_vehicle_acceleration_sub.unregisterCallback();
+		_vehicle_attitude_sub.unregisterCallback();
 		exit_and_cleanup();
 		return;
 	}
 
-	//TODO: Average acceleration (and attitude?s). Correct for gravity (rotate gravity into body frame and subtract)
+	if (!_start_filters) {
 
-	// Update pos filter at ltest_pos_UPDATE_RATE_HZ
-	if (_ltest_pos_valid && ((hrt_absolute_time() - _last_update_pos) > (1000000 / ltest_pos_UPDATE_RATE_HZ))) {
-		perf_begin(_cycle_perf_pos);
-		_ltest_pos->update();
-		_last_update_pos = hrt_absolute_time();
-		perf_end(_cycle_perf_pos);
+		position_setpoint_triplet_s pos_sp_triplet;
+
+		if (((hrt_absolute_time() - _land_time) > 5000000) && _pos_sp_triplet_sub.update(&pos_sp_triplet)) {
+			_start_filters = (pos_sp_triplet.next.type == position_setpoint_s::SETPOINT_TYPE_LAND);
+
+			if (_start_filters && _ltest_position_valid) {
+				// TODO: do we want to enable this feature only in mission mode? (_vehicle_status_sub.update(&vehicle_status) && (vehicle_status.nav_state  == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
+				_ltest_position->set_landpoint((int)(pos_sp_triplet.next.lat * 1e7), (int)(pos_sp_triplet.next.lon * 1e7),
+							       pos_sp_triplet.next.alt * 1000.f);
+			}
+		}
+
+	} else {
+
+		perf_begin(_cycle_perf);
+
+		vehicle_land_detected_s vehicle_land_detected;
+
+		// Stop computations once the drone has landed
+		if (_vehicle_land_detected_sub.update(&vehicle_land_detected) && vehicle_land_detected.landed) {
+			PX4_INFO("Land detected, target estimator stoped.");
+			_land_time = hrt_absolute_time();
+			reset_filters();
+
+			return;
+		}
+
+		localPose local_pose;
+
+		bool local_pose_updated = get_local_pose(local_pose);
+
+		//TODO: Average ned acceleration.
+
+		/* Update position filter at ltest_pos_UPDATE_RATE_HZ */
+		if (_ltest_position_valid) {
+
+			bool acc_valid = false;
+
+			matrix::Vector3f vehicle_acc_ned;
+			matrix::Quaternionf q_att;
+
+			if (get_input(vehicle_acc_ned, q_att)) {
+				acc_valid = true;
+			}
+
+			if (acc_valid && (hrt_absolute_time() - _last_update_pos) > (1000000 / ltest_pos_UPDATE_RATE_HZ)) {
+				perf_begin(_cycle_perf_pos);
+
+				if (local_pose_updated) {
+					_ltest_position->set_local_position(local_pose.xyz, local_pose.pos_valid);
+					_ltest_position->set_range_sensor(local_pose.dist_bottom, local_pose.dist_valid);
+				}
+
+				_ltest_position->set_attitude(q_att);
+				_ltest_position->update(vehicle_acc_ned);
+				_last_update_pos = hrt_absolute_time();
+				perf_end(_cycle_perf_pos);
+			}
+		}
+
+		/* Update orientation filter at ltest_yaw_UPDATE_RATE_HZ */
+		if (_ltest_orientation_valid && ((hrt_absolute_time() - _last_update_yaw) > (1000000 / ltest_yaw_UPDATE_RATE_HZ))) {
+			perf_begin(_cycle_perf_yaw);
+
+			if (local_pose_updated) {
+				_ltest_orientation->set_local_orientation(local_pose.yaw, local_pose.yaw_valid);
+				_ltest_orientation->set_range_sensor(local_pose.dist_bottom, local_pose.dist_valid);
+			}
+
+			_ltest_orientation->update();
+			_last_update_yaw = hrt_absolute_time();
+			perf_end(_cycle_perf_yaw);
+		}
+
+		perf_end(_cycle_perf);
+	}
+}
+
+void LandingTargetEst::reset_filters()
+{
+	if (_ltest_orientation_valid) {
+		_ltest_orientation->resetFilter();
 	}
 
-	// Update Yaw filter at ltest_yaw_UPDATE_RATE_HZ
-	if (_ltest_yaw_valid && ((hrt_absolute_time() - _last_update_yaw) > (1000000 / ltest_yaw_UPDATE_RATE_HZ))) {
-		perf_begin(_cycle_perf_yaw);
-		_ltest_yaw->update();
-		_last_update_yaw = hrt_absolute_time();
-		perf_end(_cycle_perf_yaw);
+	if (_ltest_position_valid) {
+		_ltest_position->resetFilter();
 	}
+
+	_start_filters = false;
+
+}
+
+bool LandingTargetEst::get_local_pose(localPose &local_pose)
+{
+
+	vehicle_local_position_s vehicle_local_position;
+
+	if (!_vehicle_local_position_sub.update(&vehicle_local_position)) {
+		return false;
+
+	} else {
+
+		local_pose.xyz(0) = vehicle_local_position.x;
+		local_pose.xyz(1) = vehicle_local_position.y;
+		local_pose.xyz(2) = vehicle_local_position.z;
+		local_pose.pos_valid = vehicle_local_position.xy_valid;
+
+		local_pose.dist_bottom = vehicle_local_position.dist_bottom;
+		local_pose.dist_valid = vehicle_local_position.dist_bottom_valid;
+
+		local_pose.yaw_valid = vehicle_local_position.heading_good_for_control;
+		local_pose.yaw = vehicle_local_position.heading;
+
+		return true;
+	}
+}
+
+bool LandingTargetEst::get_input(matrix::Vector3f &vehicle_acc_ned, matrix::Quaternionf &q_att)
+{
+
+	vehicle_attitude_s	vehicle_attitude;
+	vehicle_acceleration_s	vehicle_acceleration;
+
+	bool vehicle_attitude_valid = _vehicle_attitude_sub.update(&vehicle_attitude);
+	bool vehicle_acceleration_valid = _vehicle_acceleration_sub.update(&vehicle_acceleration);
+
+	// Minimal requirement: acceleraion (for input) and attitude (to rotate acc in vehicle-carried NED frame)
+	if (!vehicle_attitude_valid || !vehicle_acceleration_valid) {
+		return false;
+
+	} else {
+
+		/* Transform body acc to NED */
+		matrix::Quaternionf quat_att(&vehicle_attitude.q[0]);
+		q_att = quat_att;
+		matrix::Dcmf R_att = matrix::Dcm<float>(q_att);
+
+		matrix::Vector3f vehicle_acc{vehicle_acceleration.xyz};
+
+		/* Compensate for gravity: the inverse of a rotation matrix is simply its transposed. */
+		matrix::Vector3f gravity_body = R_att.transpose() * gravity_ned;
+
+		vehicle_acc_ned = R_att * (vehicle_acc + gravity_body);
+	}
+
+	return true;
 }
 
 

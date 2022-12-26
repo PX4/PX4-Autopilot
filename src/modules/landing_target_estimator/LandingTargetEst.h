@@ -65,8 +65,8 @@
 #include <px4_platform_common/module_params.h>
 #include <uORB/topics/parameter_update.h>
 
-#include "LTEstPos.h"
-#include "LTEstYaw.h"
+#include "LTEstPosition.h"
+#include "LTEstOrientation.h"
 
 
 namespace landing_target_estimator
@@ -98,22 +98,47 @@ private:
 	void Run() override;
 	void updateParams() override;
 
+	void reset_filters();
+	bool get_input(matrix::Vector3f &acc_ned, matrix::Quaternionf &q_att);
+
 	perf_counter_t _cycle_perf_pos{perf_alloc(PC_ELAPSED, MODULE_NAME": ltest cycle pos")};
 	perf_counter_t _cycle_perf_yaw{perf_alloc(PC_ELAPSED, MODULE_NAME": ltest cycle yaw")};
+	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": ltest cycle ")};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
-	uORB::SubscriptionCallbackWorkItem _vehicle_acceleration_sub{this, ORB_ID(vehicle_acceleration)};
-	// uORB::SubscriptionCallbackWorkItem _vehicle_local_position_sub{this, ORB_ID(vehicle_local_position)};
+	uORB::SubscriptionCallbackWorkItem _vehicle_attitude_sub{this, ORB_ID(vehicle_attitude)};
 
-	bool _ltest_yaw_valid{false};
-	LTEstYaw *_ltest_yaw {nullptr};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _pos_sp_triplet_sub{ORB_ID(position_setpoint_triplet)};
+	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
+	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
+	uORB::Subscription _vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
+
+	bool _start_filters{false};
+	uint64_t _land_time{0};
+
+
+	bool _ltest_orientation_valid{false};
+	LTEstOrientation *_ltest_orientation {nullptr};
 	hrt_abstime _last_update_yaw{0};
 
-	LTEstPos *_ltest_pos {nullptr};
-	bool _ltest_pos_valid{false};
+	LTEstPosition *_ltest_position {nullptr};
+	bool _ltest_position_valid{false};
 	hrt_abstime _last_update_pos{0};
 
+	struct localPose {
+		bool pos_valid = false;
+		matrix::Vector3f xyz;
+
+		bool dist_valid = false;
+		float dist_bottom = 0, f;
+
+		bool yaw_valid = false;
+		float yaw = 0.f;
+	};
+
+	bool get_local_pose(localPose &local_pose);
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::LTEST_YAW_EN>) _param_ltest_yaw_en,

@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /*
- * @file LTEstYaw.h
+ * @file LTEstOrientation.h
  * Landing target orientation estimator. Filter and publish the orientation of a landing target on the ground as observed by an onboard sensor.
  *
  * @author Jonas Perolini <jonas.perolini@epfl.ch>
@@ -71,12 +71,12 @@ using namespace time_literals;
 namespace landing_target_estimator
 {
 
-class LTEstYaw: public ModuleParams
+class LTEstOrientation: public ModuleParams
 {
 public:
 
-	LTEstYaw();
-	virtual ~LTEstYaw();
+	LTEstOrientation();
+	virtual ~LTEstOrientation();
 
 	/*
 	 * Get new measurements and update the state estimate
@@ -85,12 +85,13 @@ public:
 
 	bool init();
 
-protected:
+	void resetFilter();
 
-	/*
-	 * Get drone's acceleration (used as filter input)
-	 */
-	void update_topics();
+	void set_range_sensor(const float dist, const bool valid);
+
+	void set_local_orientation(const float yaw, const bool valid);
+
+protected:
 
 	/*
 	 * Update parameters.
@@ -115,9 +116,6 @@ protected:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 private:
-
-	bool _start_filter = false;
-	bool _nave_state_mission = 0;
 
 	enum class TargetMode {
 		Moving = 0,
@@ -145,21 +143,24 @@ private:
 
 	bool fuse_orientation(const targetObsOrientation &target_pos_obs);
 	void publishTarget();
-	void publishInnovations();
 
-	uORB::Subscription _vehicleLocalPositionSub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _fiducial_marker_orientation_sub{ORB_ID(fiducial_marker_orientation)};
-	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
-	uORB::Subscription _pos_sp_triplet_sub{ORB_ID(position_setpoint_triplet)};
-	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 
-
-	struct localPos {
+	struct localOrientation {
 		bool valid = false;
-		float heading = 0.f;
+		float yaw = 0.f;
+		hrt_abstime last_update = 0;
 	};
 
-	localPos _local_pos{};
+	localOrientation _local_orientation{};
+
+	struct rangeSensor {
+		bool valid;
+		float dist_bottom;
+		hrt_abstime last_update = 0;
+	};
+
+	rangeSensor _range_sensor{};
 
 	uint64_t _new_pos_sensor_acquired_time{0};
 	uint64_t _land_time{0};
@@ -171,9 +172,6 @@ private:
 	hrt_abstime _last_update{0}; // timestamp of last filter update (used to check timeout)
 
 	void _check_params(const bool force);
-
-	void _update_state();
-	void resetFilter();
 
 	/* parameters */
 	uint32_t _ltest_TIMEOUT_US = 3000000; // timeout after which filter is reset if target not seen

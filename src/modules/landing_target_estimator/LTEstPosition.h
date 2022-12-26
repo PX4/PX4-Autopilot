@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /*
- * @file LTEstPos.h
+ * @file LTEstPosition.h
  * Landing target position estimator. Filter and publish the position of a landing target on the ground as observed by an onboard sensor.
  *
  * @author Jonas Perolini <jonas.perolini@epfl.ch>
@@ -84,19 +84,29 @@ using namespace time_literals;
 namespace landing_target_estimator
 {
 
-class LTEstPos: public ModuleParams
+class LTEstPosition: public ModuleParams
 {
 public:
 
-	LTEstPos();
-	virtual ~LTEstPos();
+	LTEstPosition();
+	virtual ~LTEstPosition();
 
 	/*
 	 * Get new measurements and update the state estimate
 	 */
-	void update();
+	void update(const matrix::Vector3f &acc_ned);
 
 	bool init();
+
+	void resetFilter();
+
+	void set_landpoint(const int lat, const int lon, const float alt);
+
+	void set_attitude(const matrix::Quaternionf &q_att);
+
+	void set_range_sensor(const float dist, const bool valid);
+
+	void set_local_position(const matrix::Vector3f &xyz, const bool valid);
 
 private:
 	struct accInput {
@@ -110,7 +120,7 @@ protected:
 	/*
 	 * Get drone's acceleration (used as filter input)
 	 */
-	void get_input(accInput *input);
+	void get_dist_bottom();
 
 	/*
 	 * Update parameters.
@@ -140,9 +150,6 @@ protected:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 private:
-
-	bool _start_filter = false;
-	bool _nave_state_mission = 0;
 
 	enum class TargetMode {
 		Moving = 0,
@@ -178,7 +185,7 @@ private:
 		matrix::Vector3f meas_xyz;			// Measurements (meas_x, meas_y, meas_z)
 		matrix::Vector3f meas_unc_xyz;		// Measurements' uncertainties
 		matrix::Matrix<float, 3, 15>
-		meas_h_xyz; // Observation matrix where the rows correspond to the x,y,z observations and the columns to the state = [rx, ry, rz, r_dotx, r_doty, r_dotz, bx, by, bz, atx, aty, atz]
+		meas_h_xyz; // Observation matrix where the rows correspond to the x,y,z observations and the columns to the state = [r_xyz, v_drone_xyz, b_xyz, v_target_xyz, a_target_xyz]
 	};
 
 	enum Directions {
@@ -214,35 +221,30 @@ private:
 
 	bool fuse_meas(const matrix::Vector3f vehicle_acc_ned, const targetObsPos &target_pos_obs);
 	void publishTarget();
-	void publishInnovations();
 
-	uORB::Subscription _vehicleLocalPositionSub{ORB_ID(vehicle_local_position)};
-	uORB::Subscription _attitudeSub{ORB_ID(vehicle_attitude)};
-	uORB::Subscription _vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 	uORB::Subscription _irlockReportSub{ORB_ID(irlock_report)};
 	uORB::Subscription _uwbDistanceSub{ORB_ID(uwb_distance)};
 	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
 	uORB::Subscription _fiducial_marker_report_sub{ORB_ID(fiducial_marker_report)};
 	uORB::Subscription _landing_target_gnss_sub{ORB_ID(landing_target_gnss)};
-	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
-	uORB::Subscription _pos_sp_triplet_sub{ORB_ID(position_setpoint_triplet)};
-	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 
 	perf_counter_t _ltest_predict_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": LTEST prediction")};
 	perf_counter_t _ltest_update_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": LTEST update")};
-	perf_counter_t _ltest_update_full_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": LTEST update full")};
 
 	struct localPos {
 		bool valid = false;
-		float x = 0.f;
-		float y = 0.f;
-		float z = 0.f;
+		matrix::Vector3f xyz;
+		hrt_abstime last_update = 0;
 	};
 
-	float _dist_bottom;
-	bool _dist_bottom_valid;
+	struct rangeSensor {
+		bool valid;
+		float dist_bottom;
+		hrt_abstime last_update = 0;
+	};
 
-	localPos _local_pos{};
+	rangeSensor _range_sensor{};
+	localPos _local_position{};
 
 	struct globalPos {
 		bool valid = false;
@@ -267,7 +269,7 @@ private:
 	uint64_t _land_time{0};
 	bool _estimator_initialized{false};
 
-	matrix::Quaternion<float> _q_att; //Quaternion orientation of the body frame
+	matrix::Quaternionf _q_att; //Quaternion orientation of the body frame
 	TargetEstimator *_target_estimator[nb_directions] {nullptr, nullptr, nullptr};
 	TargetEstimatorCoupled *_target_estimator_coupled {nullptr};
 	int _nb_position_kf; // Number of kalman filter instances for the position estimate (no orientation)
@@ -276,16 +278,15 @@ private:
 
 	void _check_params(const bool force);
 
-	void _update_state();
-	void resetFilter();
-
 	/* parameters */
-	uint32_t _ltest_TIMEOUT_US = 3000000; // timeout after which filter is reset if target not seen
+	/* timeout after which filter is reset if target not seen */
+	uint32_t _ltest_TIMEOUT_US = 3000000;
 	int _ltest_aid_mask{0};
 	float _target_acc_unc;
 	float _bias_unc;
 	float _meas_unc;
 	float _gps_target_unc;
+	float _drone_acc_unc;
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::LTEST_AID_MASK>) _param_ltest_aid_mask,

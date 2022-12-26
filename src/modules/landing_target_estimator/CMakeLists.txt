@@ -39,8 +39,8 @@ px4_add_module(
         3600
 	SRCS
 		LandingTargetEst.cpp
-		LTEstPos.cpp
-		LTEstYaw.cpp
+		LTEstPosition.cpp
+		LTEstOrientation.cpp
 		KalmanFilter.cpp
 		KF_xyzb_coupled_moving.cpp
 		KF_xyzb_v_coupled_moving.cpp

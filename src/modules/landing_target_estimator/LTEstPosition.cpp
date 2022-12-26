@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /*
- * @file LTEstPos.cpp
+ * @file LTEstPosition.cpp
  *
  * @author Nicolas de Palezieux (Sunflower Labs) <ndepal@gmail.com>
  * @author Mohammed Kabir <kabir@uasys.io>
@@ -44,7 +44,7 @@
 #include <px4_platform_common/defines.h>
 #include <drivers/drv_hrt.h>
 
-#include "LTEstPos.h"
+#include "LTEstPosition.h"
 
 #define SEC2USEC 1000000.0f
 
@@ -53,7 +53,7 @@ namespace landing_target_estimator
 
 using namespace matrix;
 
-LTEstPos::LTEstPos() :
+LTEstPosition::LTEstPosition() :
 	ModuleParams(nullptr)
 {
 	_targetPosePub.advertise();
@@ -67,7 +67,7 @@ LTEstPos::LTEstPos() :
 	_check_params(true);
 }
 
-LTEstPos::~LTEstPos()
+LTEstPosition::~LTEstPosition()
 {
 	for (int i = 0; i < 3; i++) {
 		delete _target_estimator[i];
@@ -77,10 +77,9 @@ LTEstPos::~LTEstPos()
 
 	perf_free(_ltest_predict_perf);
 	perf_free(_ltest_update_perf);
-	perf_free(_ltest_update_full_perf);
 }
 
-bool LTEstPos::init()
+bool LTEstPosition::init()
 {
 	bool return_bool = false;
 
@@ -116,25 +115,17 @@ bool LTEstPos::init()
 	return return_bool;
 }
 
-void LTEstPos::resetFilter()
+void LTEstPosition::resetFilter()
 {
 	_estimator_initialized = false;
 	_new_pos_sensor_acquired_time = 0;
 	_bias_set = false;
+	_landing_pos.valid = false;
 }
 
-void LTEstPos::update()
+void LTEstPosition::update(const Vector3f &acc_ned)
 {
 	_check_params(false);
-
-	// Get the drone's acceleration and check if the next waypoint is a land waypoint.
-	accInput input;
-	get_input(&input);
-
-	// No attitude or acceleration or next waypoint is not land: early return;
-	if (!input.acc_ned_valid || !_start_filter) {
-		return;
-	}
 
 	// predict the target state using a constant relative acceleration model
 	if (_estimator_initialized) {
@@ -144,24 +135,24 @@ void LTEstPos::update()
 			resetFilter();
 
 		} else {
-			const hrt_abstime ltest_predict_start = hrt_absolute_time();
-			predictionStep(input.vehicle_acc_ned);
-			perf_set_elapsed(_ltest_predict_perf, hrt_elapsed_time(&ltest_predict_start));
+			perf_begin(_ltest_predict_perf);
+			predictionStep(acc_ned);
+			perf_end(_ltest_predict_perf);
 
 			_last_predict = hrt_absolute_time();
 		}
 	}
 
 	// Update and fuse the observations and pulishes innovations
-	if (update_step(input.vehicle_acc_ned)) {
+	if (update_step(acc_ned)) {
 		_last_update = _last_predict;
 	}
 
 	if (_estimator_initialized) {publishTarget();}
 }
 
-bool LTEstPos::initEstimator(Vector3f pos_init, Vector3f vel_rel_init, Vector3f a_init,
-			     Vector3f bias_init)
+bool LTEstPosition::initEstimator(Vector3f pos_init, Vector3f vel_rel_init, Vector3f a_init,
+				  Vector3f bias_init)
 {
 
 	PX4_INFO("Pos init %.2f %.2f %.2f", (double)pos_init(0), (double)pos_init(1), (double)pos_init(2));
@@ -217,21 +208,15 @@ bool LTEstPos::initEstimator(Vector3f pos_init, Vector3f vel_rel_init, Vector3f 
 }
 
 
-void LTEstPos::predictionStep(Vector3f vehicle_acc_ned)
+void LTEstPosition::predictionStep(Vector3f vehicle_acc_ned)
 {
 	// predict target position with the help of accel data
 
 	// Time from last prediciton
 	float dt = (hrt_absolute_time() - _last_predict) / SEC2USEC;
 
-	//TODO: eventually get the acc variance from the EKF:
-	float drone_acc_unc = _param_ltest_acc_d_unc.get();
-	SquareMatrix<float, 3> input_cov = diag(Vector3f(drone_acc_unc, drone_acc_unc, drone_acc_unc));
-
-	// Rotate input covariance from body to NED (note _q_att was updated by get_input())
-	Dcmf R_att = Dcm<float>(_q_att);
-	input_cov = R_att * input_cov * R_att.transpose();
-
+	// The rotated input cov (from body to NED R*cov*R^T) is the same as the original input cov since input_cov = acc_unc * Identiy and R*R^T = Identity
+	SquareMatrix<float, 3> input_cov = diag(Vector3f(_drone_acc_unc, _drone_acc_unc, _drone_acc_unc));
 	SquareMatrix<float, 3> target_acc_cov = diag(Vector3f(_target_acc_unc, _target_acc_unc, _target_acc_unc));
 	SquareMatrix<float, 3> bias_cov = diag(Vector3f(_bias_unc, _bias_unc, _bias_unc));
 
@@ -261,7 +246,7 @@ void LTEstPos::predictionStep(Vector3f vehicle_acc_ned)
 
 
 
-bool LTEstPos::update_step(Vector3f vehicle_acc_ned)
+bool LTEstPosition::update_step(Vector3f vehicle_acc_ned)
 {
 
 	sensor_gps_s vehicle_gps_position;
@@ -286,7 +271,7 @@ bool LTEstPos::update_step(Vector3f vehicle_acc_ned)
 	// Process data from all topics
 
 	/*IRLOCK*/
-	if ((_ltest_aid_mask & SensorFusionMask::USE_IRLOCK_POS) && _dist_bottom_valid
+	if ((_ltest_aid_mask & SensorFusionMask::USE_IRLOCK_POS) && _range_sensor.valid
 	    && _irlockReportSub.update(&irlock_report)) {
 
 		obs_irlock.type = irlock;
@@ -297,7 +282,7 @@ bool LTEstPos::update_step(Vector3f vehicle_acc_ned)
 	}
 
 	/*UWB*/
-	if ((_ltest_aid_mask & SensorFusionMask::USE_UWB_POS) && _dist_bottom_valid && _uwbDistanceSub.update(&uwb_distance)) {
+	if ((_ltest_aid_mask & SensorFusionMask::USE_UWB_POS) && _range_sensor.valid && _uwbDistanceSub.update(&uwb_distance)) {
 
 		obs_uwb.type = uwb;
 
@@ -330,7 +315,7 @@ bool LTEstPos::update_step(Vector3f vehicle_acc_ned)
 
 			/*TARGET GPS*/
 			if ((((_ltest_aid_mask & SensorFusionMask::USE_TARGET_GPS_POS) && target_GNSS_valid)
-			     || ((_ltest_aid_mask & SensorFusionMask::USE_MISSION_POS) && _nave_state_mission && _landing_pos.valid))) {
+			     || ((_ltest_aid_mask & SensorFusionMask::USE_MISSION_POS) && _landing_pos.valid))) {
 
 				obs_target_gps_pos.type = target_gps_pos;
 
@@ -376,8 +361,6 @@ bool LTEstPos::update_step(Vector3f vehicle_acc_ned)
 	// If we have a new sensor and the estimator is initialized: fuse available measurements and publish innov.
 	if ((new_pos_sensor || new_vel_sensor) && _estimator_initialized) {
 
-		const hrt_abstime ltest_update_full_start = hrt_absolute_time();
-
 		/*TARGET GPS*/
 		if (pos_GNSS_valid) {
 
@@ -416,8 +399,6 @@ bool LTEstPos::update_step(Vector3f vehicle_acc_ned)
 			}
 		}
 
-		perf_set_elapsed(_ltest_update_full_perf, hrt_elapsed_time(&ltest_update_full_start));
-
 		// If at least one pos measurement was fused, consider the filter updated
 		return pos_fused;
 
@@ -431,8 +412,8 @@ bool LTEstPos::update_step(Vector3f vehicle_acc_ned)
 
 			Vector3f pos_init;
 			Vector3f vel_rel_init;
-			Vector3f acc_init;	// Assume null relative acceleration
-			Vector3f bias_init; // TODO: init the GPS bias to vision - GNSS?
+			Vector3f acc_init;	// Assume null target absolute acceleration
+			Vector3f bias_init;
 
 			// Define the initial relative position of target w.r.t. the drone in NED frame using the available measurement
 			if (fiducial_marker_valid) {
@@ -477,7 +458,7 @@ bool LTEstPos::update_step(Vector3f vehicle_acc_ned)
 }
 
 /*Vision observation: [rx, ry, rz]*/
-bool LTEstPos::processObsVision(const landing_target_pose_s &fiducial_marker_pose, targetObsPos &obs)
+bool LTEstPosition::processObsVision(const landing_target_pose_s &fiducial_marker_pose, targetObsPos &obs)
 {
 
 	// Assume vision measurement is in NED frame.
@@ -500,7 +481,7 @@ bool LTEstPos::processObsVision(const landing_target_pose_s &fiducial_marker_pos
 	*/
 
 	// For now assume that we are at 10m if no distance bottom is valid
-	float meas_uncertainty = _dist_bottom_valid ? (_meas_unc * _dist_bottom) : (_meas_unc * 10);
+	float meas_uncertainty = _range_sensor.valid ? (_meas_unc * _range_sensor.dist_bottom) : (_meas_unc * 10);
 	SquareMatrix<float, 3> R_rotated = diag(Vector3f(meas_uncertainty, meas_uncertainty, meas_uncertainty));
 
 	/* RELATIVE POSITION*/
@@ -595,8 +576,8 @@ bool LTEstPos::processObsVision(const landing_target_pose_s &fiducial_marker_pos
 }
 
 /*Drone GNSS velocity observation: [r_dotx, r_doty, r_dotz]*/
-bool LTEstPos::processObsUavGNSSVel(const landing_target_gnss_s &target_GNSS_report,
-				    const sensor_gps_s &vehicle_gps_position, targetObsPos &obs)
+bool LTEstPosition::processObsUavGNSSVel(const landing_target_gnss_s &target_GNSS_report,
+		const sensor_gps_s &vehicle_gps_position, targetObsPos &obs)
 {
 
 	// TODO: convert .s_variance_m_s from accuracy to variance
@@ -652,8 +633,8 @@ bool LTEstPos::processObsUavGNSSVel(const landing_target_gnss_s &target_GNSS_rep
 }
 
 /*Target GNSS observation: [rx + bx, ry + by, rz + bz]*/
-bool LTEstPos::processObsTargetGNSS(const landing_target_gnss_s &target_GNSS_report,
-				    bool target_GNSS_report_valid,  const sensor_gps_s &vehicle_gps_position, targetObsPos &obs)
+bool LTEstPosition::processObsTargetGNSS(const landing_target_gnss_s &target_GNSS_report,
+		bool target_GNSS_report_valid,  const sensor_gps_s &vehicle_gps_position, targetObsPos &obs)
 {
 
 	bool use_gps_measurements = false;
@@ -675,7 +656,7 @@ bool LTEstPos::processObsTargetGNSS(const landing_target_gnss_s &target_GNSS_rep
 		gps_timestamp = target_GNSS_report.timestamp;
 
 		// If mission mode && landing position valid && fusion mission position
-		if ((_ltest_aid_mask & SensorFusionMask::USE_MISSION_POS) && _nave_state_mission && _landing_pos.valid) {
+		if ((_ltest_aid_mask & SensorFusionMask::USE_MISSION_POS) && _landing_pos.valid) {
 
 			// Average between the landing point and the target GPS position is performed
 			// TODO once target_GNSS_report.epv is available: weighted average
@@ -700,7 +681,7 @@ bool LTEstPos::processObsTargetGNSS(const landing_target_gnss_s &target_GNSS_rep
 			gps_target_epv = _gps_target_unc;
 		}
 
-	} else if ((_ltest_aid_mask & SensorFusionMask::USE_MISSION_POS) && _nave_state_mission && _landing_pos.valid) {
+	} else if ((_ltest_aid_mask & SensorFusionMask::USE_MISSION_POS) && _landing_pos.valid) {
 
 		use_gps_measurements = true;
 
@@ -772,7 +753,7 @@ bool LTEstPos::processObsTargetGNSS(const landing_target_gnss_s &target_GNSS_rep
 }
 
 /*UWB observation: [rx, ry, rz]*/
-bool LTEstPos::processObsUWB(const uwb_distance_s &uwb_distance, targetObsPos &obs)
+bool LTEstPosition::processObsUWB(const uwb_distance_s &uwb_distance, targetObsPos &obs)
 {
 
 	if (!PX4_ISFINITE((float)uwb_distance.position[0]) || !PX4_ISFINITE((float)uwb_distance.position[1]) ||
@@ -796,7 +777,7 @@ bool LTEstPos::processObsUWB(const uwb_distance_s &uwb_distance, targetObsPos &o
 
 		obs.updated_xyz.setAll(true);
 
-		float dist_z = _dist_bottom - _param_ltest_sens_pos_z.get();
+		float dist_z = _range_sensor.dist_bottom - _param_ltest_sens_pos_z.get();
 
 		float measurement_uncertainty = _meas_unc * dist_z * dist_z;
 
@@ -810,7 +791,7 @@ bool LTEstPos::processObsUWB(const uwb_distance_s &uwb_distance, targetObsPos &o
 }
 
 
-bool LTEstPos::processObsIRlock(const irlock_report_s &irlock_report, targetObsPos &obs)
+bool LTEstPosition::processObsIRlock(const irlock_report_s &irlock_report, targetObsPos &obs)
 {
 	if (!PX4_ISFINITE(irlock_report.pos_y) || !PX4_ISFINITE(irlock_report.pos_x)) {
 		PX4_WARN("IRLOCK position is corrupt!");
@@ -827,16 +808,14 @@ bool LTEstPos::processObsIRlock(const irlock_report_s &irlock_report, targetObsP
 		S_att = get_rot_matrix(static_cast<enum Rotation>(_param_ltest_sens_rot.get()));
 		sensor_ray = S_att * sensor_ray;
 
-		// rotate the unit ray into the navigation frame
+		// TODO: rotate the unit ray into the navigation frame. Should be done in MAVLINK receiver or onboard
 		Dcmf R_att = Dcm<float>(_q_att);
 		sensor_ray = R_att * sensor_ray;
-
-		//TODO: rotate measurement uncertainty S_att & R_att
 
 		// z component of measurement safe, use this measurement
 		if (fabsf(sensor_ray(2)) > 1e-6f) {
 
-			float dist_z = _dist_bottom - _param_ltest_sens_pos_z.get();
+			float dist_z = _range_sensor.dist_bottom - _param_ltest_sens_pos_z.get();
 
 			// scale the ray s.t. the z component has length of _uncertainty_scale
 			float rel_pos_x = sensor_ray(0) / sensor_ray(2) * dist_z;
@@ -846,8 +825,6 @@ bool LTEstPos::processObsIRlock(const irlock_report_s &irlock_report, targetObsP
 			// Adjust relative position according to sensor offset
 			rel_pos_x += _param_ltest_sens_pos_x.get();
 			rel_pos_y += _param_ltest_sens_pos_y.get();
-
-			//TODO: For coupled dynamics: Cholesky decomposition as for vision obs to uncorrelate noise (find matrix T that diagonalizes R) z' = T*z; H' = T*H
 
 			// Fill the observations for the irlock sensor
 			obs.timestamp = irlock_report.timestamp;
@@ -877,9 +854,9 @@ bool LTEstPos::processObsIRlock(const irlock_report_s &irlock_report, targetObsP
 	return false;
 }
 
-bool LTEstPos::fuse_meas(const Vector3f vehicle_acc_ned, const targetObsPos &target_pos_obs)
+bool LTEstPosition::fuse_meas(const Vector3f vehicle_acc_ned, const targetObsPos &target_pos_obs)
 {
-	const hrt_abstime ltest_update_start = hrt_absolute_time();
+	perf_begin(_ltest_update_perf);
 
 	estimator_aid_source_3d_s target_innov;
 	Vector<bool, 3> meas_xyz_fused{};
@@ -909,11 +886,8 @@ bool LTEstPos::fuse_meas(const Vector3f vehicle_acc_ned, const targetObsPos &tar
 		// For debug: log the time sync
 		target_innov.test_ratio[0] = dt_sync_us / SEC2USEC;
 
-		// TODO: Eventually remove, for now to debug, assume prediction time = measurement time
-		const float dt_sync_s = 0.f;
-
 		// Convert time sync to seconds
-		// const float dt_sync_s = dt_sync_us / SEC2USEC;
+		const float dt_sync_s = dt_sync_us / SEC2USEC;
 
 		// Fill the timestamp field of innovation
 		target_innov.timestamp_sample = target_pos_obs.timestamp;
@@ -971,13 +945,6 @@ bool LTEstPos::fuse_meas(const Vector3f vehicle_acc_ned, const targetObsPos &tar
 
 				target_innov.observation[j] = target_pos_obs.meas_xyz(j);
 				target_innov.observation_variance[j] = target_pos_obs.meas_unc_xyz(j);
-
-				/*	TODO: fill those fields of estimator_aid_source_3d_s
-					uint8 estimator_instance
-					uint32 device_id
-					uint64[3] time_last_fuse
-					float32[3] test_ratio
-				*/
 			}
 		}
 
@@ -994,7 +961,7 @@ bool LTEstPos::fuse_meas(const Vector3f vehicle_acc_ned, const targetObsPos &tar
 		}
 	}
 
-	perf_set_elapsed(_ltest_update_perf, hrt_elapsed_time(&ltest_update_start));
+	perf_end(_ltest_update_perf);
 
 	// Publish innovations
 	switch (target_pos_obs.type) {
@@ -1022,7 +989,7 @@ bool LTEstPos::fuse_meas(const Vector3f vehicle_acc_ned, const targetObsPos &tar
 	return all_directions_fused;
 }
 
-void LTEstPos::publishTarget()
+void LTEstPosition::publishTarget()
 {
 	target_estimator_state_s target_estimator_state{};
 
@@ -1097,8 +1064,8 @@ void LTEstPos::publishTarget()
 
 		float rel_z = 0.f;
 
-		if (_dist_bottom_valid) {
-			rel_z = _dist_bottom - _param_ltest_sens_pos_z.get();
+		if (_range_sensor.valid) {
+			rel_z = _range_sensor.dist_bottom - _param_ltest_sens_pos_z.get();
 		}
 
 		// Fill target pose
@@ -1146,17 +1113,16 @@ void LTEstPos::publishTarget()
 		}
 	}
 
-	if (_local_pos.valid) {
-		target_pose.x_abs = target_pose.x_rel + _local_pos.x;
-		target_pose.y_abs = target_pose.y_rel + _local_pos.y;
-		target_pose.z_abs = target_pose.z_rel + _local_pos.z;
+	// prec land does not check target_pose.abs_pos_valid. Only send the target if bas pose valid.
+	if (_local_position.valid) {
+		target_pose.x_abs = target_pose.x_rel + _local_position.xyz(0);
+		target_pose.y_abs = target_pose.y_rel + _local_position.xyz(1);
+		target_pose.z_abs = target_pose.z_rel + _local_position.xyz(2);
 		target_pose.abs_pos_valid = true;
+		_targetPosePub.publish(target_pose);
 
-	} else {
-		target_pose.abs_pos_valid = false;
 	}
 
-	_targetPosePub.publish(target_pose);
 	_targetEstimatorStatePub.publish(target_estimator_state);
 
 
@@ -1174,7 +1140,7 @@ void LTEstPos::publishTarget()
 
 }
 
-void LTEstPos::_check_params(const bool force)
+void LTEstPosition::_check_params(const bool force)
 {
 	if (_parameter_update_sub.updated() || force) {
 		parameter_update_s pupdate;
@@ -1182,103 +1148,61 @@ void LTEstPos::_check_params(const bool force)
 
 		updateParams();
 	}
+
+	// Make sure range sensor and local position are up to date.
+	if (_range_sensor.valid) {
+		_range_sensor.valid = (hrt_absolute_time() - _range_sensor.last_update) < measurement_updated_TIMEOUT_US;
+	}
+
+	if (_local_position.valid) {
+		_local_position.valid = (hrt_absolute_time() - _local_position.last_update) < measurement_updated_TIMEOUT_US;
+	}
 }
 
-void LTEstPos::get_input(accInput *input)
+void LTEstPosition::set_range_sensor(const float dist, const bool valid)
 {
-	vehicle_attitude_s	vehicle_attitude;
-	vehicle_local_position_s	vehicle_local_position;
-	vehicle_status_s vehicle_status;
-	position_setpoint_triplet_s pos_sp_triplet;
-	vehicle_acceleration_s		vehicle_acceleration;
-	vehicle_land_detected_s vehicle_land_detected;
+	_range_sensor.valid = valid;
+	_range_sensor.dist_bottom = dist;
+	_range_sensor.last_update = hrt_absolute_time();
 
-	//Update topics
-	bool vehicle_local_position_valid = _vehicleLocalPositionSub.update(&vehicle_local_position);
-	bool vehicle_attitude_valid = _attitudeSub.update(&vehicle_attitude);
-	bool vehicle_acceleration_valid = _vehicle_acceleration_sub.update(&vehicle_acceleration);
-	bool pos_sp_triplet_valid = _pos_sp_triplet_sub.update(&pos_sp_triplet);
+}
 
-	// Update nav state
-	if (_vehicle_status_sub.update(&vehicle_status)) {
-		_nave_state_mission = (vehicle_status.nav_state  == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
-	}
+void LTEstPosition::set_local_position(const matrix::Vector3f &xyz, const bool valid)
+{
+	_local_position.xyz = xyz;
+	_local_position.valid = valid;
+	_local_position.last_update = hrt_absolute_time();
+}
 
-	// Stop computations once the drone has landed
-	if (_start_filter && _vehicle_land_detected_sub.update(&vehicle_land_detected) && vehicle_land_detected.landed) {
-		PX4_INFO("Land detected, target estimator stoped.");
+void LTEstPosition::set_attitude(const matrix::Quaternionf &q_att)
+{
+	_q_att = q_att;
+}
 
-		resetFilter();
+void LTEstPosition::set_landpoint(const int lat, const int lon, const float alt)
+{
+	if (_ltest_aid_mask & SensorFusionMask::USE_MISSION_POS) {
+		_landing_pos.lat = lat;
+		_landing_pos.lon = lon;
+		_landing_pos.alt = alt;
+		_landing_pos.valid = (_landing_pos.lat != 0 && _landing_pos.lon != 0);
 
-		_start_filter = false;
-		_landing_pos.valid = false;
-		_land_time = hrt_absolute_time();
+		if (_landing_pos.valid) {
+			PX4_INFO("Landing pos used lat: %.0f [1e-7 deg] -- lon: %.0f [1e-7 deg] -- alt %.2f [m]", (double)(lat),
+				 (double)(lon), (double)(alt));
 
-		return;
-	}
-
-	if (!_start_filter && ((hrt_absolute_time() - _land_time) > 5000000) && pos_sp_triplet_valid) {
-		_start_filter = (pos_sp_triplet.next.type == position_setpoint_s::SETPOINT_TYPE_LAND);
-
-		if (_start_filter) {
-
-			if (_ltest_aid_mask & SensorFusionMask::USE_MISSION_POS) {
-				_landing_pos.lat = (int)(pos_sp_triplet.next.lat * 1e7);
-				_landing_pos.lon = (int)(pos_sp_triplet.next.lon * 1e7);
-				_landing_pos.alt = pos_sp_triplet.next.alt * 1000.f;
-				_landing_pos.valid = (_landing_pos.lat != 0 && _landing_pos.lon != 0);
-
-				if (_landing_pos.valid) {
-					PX4_INFO("Landing pos used:  %.2f %.2f %.2f", (double)(pos_sp_triplet.next.lat),
-						 (double)(pos_sp_triplet.next.lon), (double)(pos_sp_triplet.next.alt));
-
-				} else {
-					PX4_INFO("Landing target estimator detection enabled but landing pos not valid:  %.2f %.2f %.2f",
-						 (double)(pos_sp_triplet.next.lat),
-						 (double)(pos_sp_triplet.next.lon), (double)(pos_sp_triplet.next.alt));
-				}
-			}
+		} else {
+			PX4_INFO("Landing target estimator detection enabled but landing pos not valid. lat: %.2f [1e-7 deg] -- lon: %.2f [1e-7 deg] -- alt %.2f [m]",
+				 (double)(lat),
+				 (double)(lon), (double)(alt));
 		}
-	}
-
-	// To save stack space, only use x,y,z,valid as global variables (_local_pos is used when the target is published)
-	_local_pos.x = vehicle_local_position.x;
-	_local_pos.y = vehicle_local_position.y;
-	_local_pos.z = vehicle_local_position.z;
-	_local_pos.valid = (vehicle_local_position_valid && vehicle_local_position.xy_valid);
-
-	_dist_bottom = vehicle_local_position.dist_bottom;
-	_dist_bottom_valid = vehicle_local_position.dist_bottom_valid;
-
-	// Minimal requirement: acceleraion (for input) and attitude (to rotate acc in vehicle-carried NED frame)
-	if (!vehicle_attitude_valid || !vehicle_acceleration_valid) {
-		// Only print if the estimator has been initialized
-		if (_estimator_initialized) {
-			PX4_INFO("Kalman input not available: Attitude: %d, Acc: %d", vehicle_attitude_valid, vehicle_acceleration_valid);
-		}
-
-		input->acc_ned_valid = false;
-		return;
 
 	} else {
-		Quaternion<float> q_att(&vehicle_attitude.q[0]);
-		_q_att = q_att;
-		Dcmf R_att = Dcm<float>(_q_att);
-
-		// Transform body acc to NED
-		Vector3f vehicle_acc{vehicle_acceleration.xyz};
-
-		// Compensate for gravity:
-		Dcmf R_att_inv = inv(R_att);
-		Vector3f gravity_ned(0, 0, 9.807);
-		Vector3f gravity_body = R_att_inv * gravity_ned;
-
-		input->vehicle_acc_ned = R_att * (vehicle_acc + gravity_body);
-		input->acc_ned_valid = true;
+		_landing_pos.valid = false;
 	}
 }
 
-void LTEstPos::updateParams()
+void LTEstPosition::updateParams()
 {
 	ModuleParams::updateParams();
 
@@ -1286,9 +1210,10 @@ void LTEstPos::updateParams()
 	_bias_unc = _param_ltest_bias_unc.get();
 	_meas_unc = _param_ltest_meas_unc.get();
 	_gps_target_unc = _param_ltest_gps_t_unc.get();
+	_drone_acc_unc = _param_ltest_acc_d_unc.get();
 }
 
-bool LTEstPos::selectTargetEstimator()
+bool LTEstPosition::selectTargetEstimator()
 {
 	TargetEstimator *tmp_x = nullptr;
 	TargetEstimator *tmp_y = nullptr;

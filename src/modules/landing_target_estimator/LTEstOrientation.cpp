@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /*
- * @file LTEstYaw.cpp
+ * @file LTEstOrientation.cpp
  *
  * @author Jonas Perolini <jonas.perolini@epfl.ch>
  *
@@ -42,7 +42,7 @@
 #include <px4_platform_common/defines.h>
 #include <drivers/drv_hrt.h>
 
-#include "LTEstYaw.h"
+#include "LTEstOrientation.h"
 
 #define SEC2USEC 1000000.0f
 
@@ -51,7 +51,7 @@ namespace landing_target_estimator
 
 using namespace matrix;
 
-LTEstYaw::LTEstYaw() :
+LTEstOrientation::LTEstOrientation() :
 	ModuleParams(nullptr)
 {
 	_target_estimator_aid_ev_yaw_pub.advertise();
@@ -60,12 +60,12 @@ LTEstYaw::LTEstYaw() :
 	_check_params(true);
 }
 
-LTEstYaw::~LTEstYaw()
+LTEstOrientation::~LTEstOrientation()
 {
 	delete _target_estimator_orientation;
 }
 
-bool LTEstYaw::init()
+bool LTEstOrientation::init()
 {
 
 	_target_mode = (TargetMode)_param_ltest_mode.get();
@@ -74,23 +74,15 @@ bool LTEstYaw::init()
 	return selectTargetEstimator();
 }
 
-void LTEstYaw::resetFilter()
+void LTEstOrientation::resetFilter()
 {
 	_estimator_initialized = false;
 	_new_pos_sensor_acquired_time = 0;
 }
 
-void LTEstYaw::update()
+void LTEstOrientation::update()
 {
 	_check_params(false);
-
-	// Rename to update topics
-	update_topics();
-
-	// Next waypoint is not land: early return;
-	if (!_start_filter) {
-		return;
-	}
 
 	// predict the target state using a constant relative acceleration model
 	if (_estimator_initialized) {
@@ -113,7 +105,7 @@ void LTEstYaw::update()
 	if (_estimator_initialized) {publishTarget();}
 }
 
-bool LTEstYaw::initEstimator(float theta_init)
+bool LTEstOrientation::initEstimator(float theta_init)
 {
 
 	PX4_INFO("Theta init %.2f", (double)theta_init);
@@ -127,7 +119,7 @@ bool LTEstYaw::initEstimator(float theta_init)
 }
 
 
-void LTEstYaw::predictionStep()
+void LTEstOrientation::predictionStep()
 {
 	// Time from last prediciton
 	float dt = (hrt_absolute_time() - _last_predict) / SEC2USEC;
@@ -138,7 +130,7 @@ void LTEstYaw::predictionStep()
 
 
 
-bool LTEstYaw::update_step()
+bool LTEstOrientation::update_step()
 {
 	landing_target_orientation_s fiducial_marker_orientation;
 	targetObsOrientation obs_fiducial_marker_orientation;
@@ -185,13 +177,13 @@ bool LTEstYaw::update_step()
 }
 
 
-bool LTEstYaw::processObsVisionOrientation(const landing_target_orientation_s &fiducial_marker_orientation,
+bool LTEstOrientation::processObsVisionOrientation(const landing_target_orientation_s &fiducial_marker_orientation,
 		targetObsOrientation &obs)
 {
 
 	// TODO complete mavlink message to include orientation
 	float vision_r_theta = matrix::wrap_pi(fiducial_marker_orientation.theta_rel);
-	float vision_r_theta_unc = 0.5f; // eventually use fiducial_marker_orientation.cov_theta_rel
+	float vision_r_theta_unc = 0.1f; // eventually use fiducial_marker_orientation.cov_theta_rel
 	hrt_abstime vision_timestamp = fiducial_marker_orientation.timestamp;
 
 	/* ORIENTATION */
@@ -204,7 +196,7 @@ bool LTEstYaw::processObsVisionOrientation(const landing_target_orientation_s &f
 		// (vision gives orientation between body and target frame. We can thus use the orientation between the body frame and NED to obtain the orientation between NED and target)
 		obs.timestamp = vision_timestamp;
 		obs.updated_theta = true;
-		obs.meas_unc_theta = vision_r_theta_unc;
+		obs.meas_unc_theta = _range_sensor.valid ? (vision_r_theta_unc * _range_sensor.dist_bottom) : (vision_r_theta_unc * 10);
 		obs.meas_theta = vision_r_theta;
 		obs.meas_h_theta(0) = 1;
 
@@ -215,7 +207,7 @@ bool LTEstYaw::processObsVisionOrientation(const landing_target_orientation_s &f
 	return false;
 }
 
-bool LTEstYaw::fuse_orientation(const targetObsOrientation &target_orientation_obs)
+bool LTEstOrientation::fuse_orientation(const targetObsOrientation &target_orientation_obs)
 {
 	// Update step for orientation
 	bool meas_fused = false;
@@ -271,7 +263,7 @@ bool LTEstYaw::fuse_orientation(const targetObsOrientation &target_orientation_o
 }
 
 
-void LTEstYaw::publishTarget()
+void LTEstOrientation::publishTarget()
 {
 	landing_target_orientation_s target_orientation{};
 
@@ -285,10 +277,12 @@ void LTEstYaw::publishTarget()
 	target_orientation.v_theta_rel = _target_estimator_orientation->getVelocity();
 	target_orientation.cov_v_theta_rel =  _target_estimator_orientation->getVelVar();
 
-	if (_local_pos.valid) {
+
+	if (_local_orientation.valid) {
 
 		target_orientation.abs_pos_valid = true;
-		target_orientation.theta_abs = matrix::wrap_pi(target_orientation.theta_rel - _local_pos.heading);
+		target_orientation.theta_abs = matrix::wrap_pi(target_orientation.theta_rel -
+					       _local_orientation.yaw); //vehicle_local_position.heading already in [-Pi; Pi]
 
 	} else {
 		target_orientation.abs_pos_valid = false;
@@ -297,7 +291,7 @@ void LTEstYaw::publishTarget()
 	_targetOrientationPub.publish(target_orientation);
 }
 
-void LTEstYaw::_check_params(const bool force)
+void LTEstOrientation::_check_params(const bool force)
 {
 	if (_parameter_update_sub.updated() || force) {
 		parameter_update_s pupdate;
@@ -305,46 +299,17 @@ void LTEstYaw::_check_params(const bool force)
 
 		updateParams();
 	}
+
+	if (_range_sensor.valid) {
+		_range_sensor.valid = (hrt_absolute_time() - _range_sensor.last_update) < measurement_updated_TIMEOUT_US;
+	}
+
+	if (_local_orientation.valid) {
+		_local_orientation.valid = (hrt_absolute_time() - _local_orientation.last_update) < measurement_updated_TIMEOUT_US;
+	}
 }
 
-void LTEstYaw::update_topics()
-{
-	vehicle_local_position_s	vehicle_local_position;
-	vehicle_status_s vehicle_status;
-	position_setpoint_triplet_s pos_sp_triplet;
-	vehicle_land_detected_s vehicle_land_detected;
-
-	//Update topics
-	bool vehicle_local_position_valid = _vehicleLocalPositionSub.update(&vehicle_local_position);
-	bool pos_sp_triplet_valid = _pos_sp_triplet_sub.update(&pos_sp_triplet);
-
-	// Update nav state
-	if (_vehicle_status_sub.update(&vehicle_status)) {
-		_nave_state_mission = (vehicle_status.nav_state  == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
-	}
-
-	// Stop computations once the drone has landed
-	if (_start_filter && _vehicle_land_detected_sub.update(&vehicle_land_detected) && vehicle_land_detected.landed) {
-		PX4_INFO("Land detected, orientation target estimator stoped.");
-
-		resetFilter();
-
-		_start_filter = false;
-		_land_time = hrt_absolute_time();
-
-		return;
-	}
-
-	if (!_start_filter && ((hrt_absolute_time() - _land_time) > 5000000) && pos_sp_triplet_valid) {
-		_start_filter = (pos_sp_triplet.next.type == position_setpoint_s::SETPOINT_TYPE_LAND);
-	}
-
-	// To save stack space, only use x,y,z,valid as global variables (_local_pos is used when the target is published)
-	_local_pos.heading = vehicle_local_position.heading; // Already in [-Pi; Pi]
-	_local_pos.valid = (vehicle_local_position_valid && vehicle_local_position.heading_good_for_control);
-}
-
-void LTEstYaw::updateParams()
+void LTEstOrientation::updateParams()
 {
 
 	ModuleParams::updateParams();
@@ -352,7 +317,21 @@ void LTEstYaw::updateParams()
 	_yaw_unc = _param_ltest_yaw_unc_in.get();
 }
 
-bool LTEstYaw::selectTargetEstimator()
+void LTEstOrientation::set_range_sensor(const float dist, const bool valid)
+{
+	_range_sensor.valid = valid;
+	_range_sensor.dist_bottom = dist;
+	_range_sensor.last_update = hrt_absolute_time();
+}
+
+void LTEstOrientation::set_local_orientation(const float yaw, const bool valid)
+{
+	_local_orientation.yaw = yaw;
+	_local_orientation.valid = valid;
+	_local_orientation.last_update = hrt_absolute_time();
+}
+
+bool LTEstOrientation::selectTargetEstimator()
 {
 	TargetEstimatorOrientation *tmp_theta = nullptr;
 
