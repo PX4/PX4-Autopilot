@@ -29,7 +29,6 @@
 #include <debug.h>
 #include <stdint.h>
 #include <sys/types.h>
-#include <syslog.h>
 
 #ifdef CONFIG_INPUT_BUTTONS
 #  include <nuttx/input/buttons.h>
@@ -55,7 +54,14 @@
 #endif
 
 #include <arch/board/board.h>
+#include <px4_platform_common/log.h>
 #include "board_config.h"
+
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+#define MODULE_NAME "bringup"
 
 /****************************************************************************
  * Public Data
@@ -65,6 +71,7 @@
 struct qspi_dev_s *g_qspi;
 struct mtd_dev_s *g_mtd_fs;
 #endif
+
 
 /****************************************************************************
  * Public Functions
@@ -106,10 +113,10 @@ int s32k3xx_bringup(void)
 	ret = btn_lower_initialize("/dev/buttons");
 
 	if (ret < 0) {
-		_err("btn_lower_initialize() failed: %d\n", ret);
+		PX4_ERR("btn_lower_initialize() failed: %d", ret);
 
 	} else {
-		_info("btn_lower_initialize() succesful\n");
+		PX4_INFO("btn_lower_initialize() succesful");
 	}
 
 #endif
@@ -120,10 +127,42 @@ int s32k3xx_bringup(void)
 	ret = userled_lower_initialize("/dev/userleds");
 
 	if (ret < 0) {
-		_err("userled_lower_initialize() failed: %d\n", ret);
+		PX4_ERR("userled_lower_initialize() failed: %d", ret);
 
 	} else {
-		_info("userled_lower_initialize() succesful\n");
+		PX4_INFO("userled_lower_initialize() succesful");
+	}
+
+#endif
+
+#ifdef CONFIG_S32K3XX_PROGMEM
+	struct mtd_dev_s *mtd;
+
+	mtd = progmem_initialize();
+
+	if (mtd == NULL) {
+		PX4_ERR("progmem_initialize() failed");
+	}
+
+	ret = register_mtddriver("/dev/progmem0", mtd, 0755, NULL);
+
+	if (ret != OK) {
+		PX4_ERR("register_mtddriver() failed: %d", ret);
+
+	} else {
+		ret = nx_mount("/dev/progmem0", "/mnt/progmem", "littlefs", 0, NULL);
+
+		if (ret < 0) {
+			ret = nx_mount("/dev/progmem0", "/mnt/progmem", "littlefs", 0,
+				       "forceformat");
+
+			if (ret < 0) {
+				PX4_ERR("progmem mount failed: %d", ret);
+
+			} else {
+				PX4_INFO("progmem forceformat");
+			}
+		}
 	}
 
 #endif
@@ -134,20 +173,17 @@ int s32k3xx_bringup(void)
 	g_qspi = s32k3xx_qspi_initialize(0);
 
 	if (!g_qspi) {
-		_err("s32k3xx_qspi_initialize() failed\n");
+		PX4_ERR("s32k3xx_qspi_initialize() failed");
 
 	} else {
-		_info("s32k3xx_qspi_initialize() succesful\n");
-
 		/* Use the QSPI device instance to initialize the MX25 device */
 
 		g_mtd_fs = mx25rxx_initialize(g_qspi, true);
 
 		if (!g_mtd_fs) {
-			_err("mx25rxx_initialize() failed\n");
+			PX4_ERR("mx25rxx_initialize() failed");
 
 		} else {
-			_info("mx25rxx_initialize() succesful\n");
 
 #  ifdef HAVE_MX25L_LITTLEFS
 			/* Configure the device with no partition support */
@@ -158,11 +194,9 @@ int s32k3xx_bringup(void)
 			ret = register_mtddriver(blockdev, g_mtd_fs, 0755, NULL);
 
 			if (ret != OK) {
-				_err("register_mtddriver() failed: %d\n", ret);
+				PX4_ERR("register_mtddriver() failed: %d", ret);
 
 			} else {
-				_info("register_mtddriver() succesful\n");
-
 				ret = nx_mount(blockdev, "/mnt/qspi", "littlefs", 0, NULL);
 
 				if (ret < 0) {
@@ -170,10 +204,10 @@ int s32k3xx_bringup(void)
 						       "forceformat");
 
 					if (ret < 0) {
-						_err("nx_mount() failed: %d\n", ret);
+						PX4_ERR("MX25L mount: %d", ret);
 
 					} else {
-						_info("nx_mount() succesful\n");
+						PX4_INFO("MX25L forceformat");
 					}
 				}
 			}
@@ -184,20 +218,20 @@ int s32k3xx_bringup(void)
 			ret = nxffs_initialize(g_mtd_fs);
 
 			if (ret < 0) {
-				_err("nxffs_initialize() failed: %d\n", ret);
+				PX4_ERR("nxffs_initialize() failed: %d", ret);
 
 			} else {
-				_info("nxffs_initialize() succesful\n");
+				PX4_INFO("nxffs_initialize() succesful");
 
 				/* Mount the file system at /mnt/qspi */
 
 				ret = nx_mount(NULL, "/mnt/qspi", "nxffs", 0, NULL);
 
 				if (ret < 0) {
-					_err("nx_mount() failed: %d\n", ret);
+					PX4_ERR("nx_mount() failed: %d", ret);
 
 				} else {
-					_info("nx_mount() succesful\n");
+					PX4_INFO("nx_mount() succesful");
 				}
 			}
 
@@ -207,13 +241,13 @@ int s32k3xx_bringup(void)
 			ret = ftl_initialize(MX25L_MTD_MINOR, g_mtd_fs);
 
 			if (ret < 0) {
-				_err("ftl_initialize() failed: %d\n", ret);
+				PX4_ERR("ftl_initialize() failed: %d", ret);
 			}
 
 #    ifdef CONFIG_BCH
 
 			else {
-				_info("ftl_initialize() succesful\n");
+				PX4_INFO("ftl_initialize() succesful");
 
 				/* Use the minor number to create device paths */
 
@@ -227,10 +261,10 @@ int s32k3xx_bringup(void)
 				ret = bchdev_register(blockdev, chardev, false);
 
 				if (ret < 0) {
-					_err("bchdev_register %s failed: %d\n", chardev, ret);
+					PX4_ERR("bchdev_register %s failed: %d", chardev, ret);
 
 				} else {
-					_info("bchdev_register %s succesful\n", chardev);
+					PX4_INFO("bchdev_register %s succesful", chardev);
 				}
 			}
 
@@ -274,8 +308,6 @@ int s32k3xx_bringup(void)
 #    endif /* CONFIG_S32K3XX_TJA1153 */
 #  endif /* CONFIG_S32K3XX_FLEXCAN5 */
 #endif /* CONFIG_NETDEV_LATEINIT */
-
-	_info("MR-CANHUBK3 board bringup complete\n");
 
 	return ret;
 }
