@@ -59,7 +59,8 @@ namespace landing_target_estimator
 
 static constexpr uint32_t ltest_pos_UPDATE_RATE_HZ = 50;
 static constexpr uint32_t ltest_yaw_UPDATE_RATE_HZ = 50;
-static const matrix::Vector3f gravity_ned(0, 0, 0.9807);
+static constexpr uint32_t acc_downsample_TIMEOUT_US = 40000; // 40 ms -> 25Hz
+static constexpr float CONSTANTS_ONE_G = 9.80665f;  // m/s^2
 
 LandingTargetEst::LandingTargetEst() :
 	ModuleParams(nullptr),
@@ -134,6 +135,13 @@ void LandingTargetEst::updateParams()
 	ModuleParams::updateParams();
 }
 
+void LandingTargetEst::reset_acc_downsample()
+{
+	_vehicle_acc_ned_sum.setAll(0);
+	_loops_count = 0;
+	_last_acc_reset = hrt_absolute_time();
+}
+
 void LandingTargetEst::Run()
 {
 	if (should_exit()) {
@@ -149,10 +157,15 @@ void LandingTargetEst::Run()
 		if (((hrt_absolute_time() - _land_time) > 5000000) && _pos_sp_triplet_sub.update(&pos_sp_triplet)) {
 			_start_filters = (pos_sp_triplet.next.type == position_setpoint_s::SETPOINT_TYPE_LAND);
 
-			if (_start_filters && _ltest_position_valid) {
-				// TODO: do we want to enable this feature only in mission mode? (_vehicle_status_sub.update(&vehicle_status) && (vehicle_status.nav_state  == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
-				_ltest_position->set_landpoint((int)(pos_sp_triplet.next.lat * 1e7), (int)(pos_sp_triplet.next.lon * 1e7),
-							       pos_sp_triplet.next.alt * 1000.f);
+			if (_start_filters) {
+
+				reset_acc_downsample();
+
+				if (_ltest_position_valid) {
+					// TODO: do we want to enable this feature only in mission mode? (_vehicle_status_sub.update(&vehicle_status) && (vehicle_status.nav_state  == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
+					_ltest_position->set_landpoint((int)(pos_sp_triplet.next.lat * 1e7), (int)(pos_sp_triplet.next.lon * 1e7),
+								       pos_sp_triplet.next.alt * 1000.f);
+				}
 			}
 		}
 
@@ -175,32 +188,41 @@ void LandingTargetEst::Run()
 
 		bool local_pose_updated = get_local_pose(local_pose);
 
-		//TODO: Average ned acceleration.
-
 		/* Update position filter at ltest_pos_UPDATE_RATE_HZ */
 		if (_ltest_position_valid) {
-
-			bool acc_valid = false;
 
 			matrix::Vector3f vehicle_acc_ned;
 			matrix::Quaternionf q_att;
 
+			/* Downsample acceleration ned */
 			if (get_input(vehicle_acc_ned, q_att)) {
-				acc_valid = true;
-			}
 
-			if (acc_valid && (hrt_absolute_time() - _last_update_pos) > (1000000 / ltest_pos_UPDATE_RATE_HZ)) {
-				perf_begin(_cycle_perf_pos);
-
-				if (local_pose_updated) {
-					_ltest_position->set_local_position(local_pose.xyz, local_pose.pos_valid);
-					_ltest_position->set_range_sensor(local_pose.dist_bottom, local_pose.dist_valid);
+				/* If the acceleration has been averaged for too long, early return */
+				if ((hrt_absolute_time() - _last_acc_reset) > acc_downsample_TIMEOUT_US) {
+					PX4_INFO("Forced acc downsample reset");
+					reset_acc_downsample();
+					return;
 				}
 
-				_ltest_position->set_attitude(q_att);
-				_ltest_position->update(vehicle_acc_ned);
-				_last_update_pos = hrt_absolute_time();
-				perf_end(_cycle_perf_pos);
+				_vehicle_acc_ned_sum += vehicle_acc_ned;
+				_loops_count ++;
+
+				if ((hrt_absolute_time() - _last_update_pos) > (1000000 / ltest_pos_UPDATE_RATE_HZ)) {
+					perf_begin(_cycle_perf_pos);
+
+					if (local_pose_updated) {
+						_ltest_position->set_local_position(local_pose.xyz, local_pose.pos_valid);
+						_ltest_position->set_range_sensor(local_pose.dist_bottom, local_pose.dist_valid);
+					}
+
+					_ltest_position->set_attitude(q_att);
+					_ltest_position->update(_vehicle_acc_ned_sum / _loops_count);
+					_last_update_pos = hrt_absolute_time();
+
+					reset_acc_downsample();
+
+					perf_end(_cycle_perf_pos);
+				}
 			}
 		}
 
@@ -284,6 +306,7 @@ bool LandingTargetEst::get_input(matrix::Vector3f &vehicle_acc_ned, matrix::Quat
 		matrix::Vector3f vehicle_acc{vehicle_acceleration.xyz};
 
 		/* Compensate for gravity: the inverse of a rotation matrix is simply its transposed. */
+		const matrix::Vector3f gravity_ned(0, 0, CONSTANTS_ONE_G);
 		matrix::Vector3f gravity_body = R_att.transpose() * gravity_ned;
 
 		vehicle_acc_ned = R_att * (vehicle_acc + gravity_body);

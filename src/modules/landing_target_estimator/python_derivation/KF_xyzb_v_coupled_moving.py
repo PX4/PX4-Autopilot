@@ -125,8 +125,8 @@ def predictCov(dt: sf.Scalar, input_var: MDirections, bias_var: MDirections, acc
     mult_mat_acc = sf.Matrix([  [0, 0, 0, 0, 0],
                                 [0, 0, 0, 0, 0],
                                 [0, 0, 0, 0, 0],
-                                [0, 0, 0, 0, 0],
-                                [0, 0, 0, 0, 1]])
+                                [0, 0, 0, 1, 0],
+                                [0, 0, 0, 0, 0]])
 
     Q_acc = sf.Matrix.block_matrix([   [acc_var[0,0] * mult_mat_acc, 0 * mult_mat_acc, 0 * mult_mat_acc],
                                         [0 * mult_mat_acc, acc_var[1,1] * mult_mat_acc, 0 * mult_mat_acc],

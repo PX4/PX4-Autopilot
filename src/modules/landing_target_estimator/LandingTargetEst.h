@@ -118,7 +118,6 @@ private:
 	bool _start_filters{false};
 	uint64_t _land_time{0};
 
-
 	bool _ltest_orientation_valid{false};
 	LTEstOrientation *_ltest_orientation {nullptr};
 	hrt_abstime _last_update_yaw{0};
@@ -139,6 +138,12 @@ private:
 	};
 
 	bool get_local_pose(localPose &local_pose);
+
+	/* Down sample acceleration data */
+	matrix::Vector3f _vehicle_acc_ned_sum;
+	int _loops_count{0};
+	hrt_abstime _last_acc_reset{0};
+	void reset_acc_downsample();
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::LTEST_YAW_EN>) _param_ltest_yaw_en,
