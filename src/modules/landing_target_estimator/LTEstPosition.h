@@ -72,7 +72,6 @@
 #include <matrix/Matrix.hpp>
 #include <lib/conversion/rotation.h>
 #include <lib/geo/geo.h>
-#include "KalmanFilter.h"
 #include "KF_xyzb_decoupled_static.h"
 #include "KF_xyzb_decoupled_moving.h"
 #include "KF_xyzb_coupled_moving.h"
@@ -161,7 +160,6 @@ private:
 	enum class TargetModel {
 		FullPoseDecoupled = 0,
 		FullPoseCoupled,
-		Horizontal,
 		NotInit
 	};
 
@@ -272,7 +270,6 @@ private:
 	matrix::Quaternionf _q_att; //Quaternion orientation of the body frame
 	TargetEstimator *_target_estimator[nb_directions] {nullptr, nullptr, nullptr};
 	TargetEstimatorCoupled *_target_estimator_coupled {nullptr};
-	int _nb_position_kf; // Number of kalman filter instances for the position estimate (no orientation)
 	hrt_abstime _last_predict{0}; // timestamp of last filter prediction
 	hrt_abstime _last_update{0}; // timestamp of last filter update (used to check timeout)
 

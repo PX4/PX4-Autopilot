@@ -121,14 +121,12 @@ PARAM_DEFINE_INT32(LTEST_MODE, 1);
  *
  * Mode Full pos decoupled:  x,y,z,theta decoupled
  * Mode Full pose coupled: [x,y,z] coupled, theta
- * Mode Horizontal position: x,y decoupled
  *
  * @min 0
  * @max 2
  * @group Landing target Estimator
  * @value 0 Full pose decoupled
  * @value 1 Full pose coupled
- * @value 2 Horizontal position
  *
  * @group Landing target Estimator
  */

@@ -191,7 +191,7 @@ bool LTEstPosition::initEstimator(Vector3f pos_init, Vector3f vel_rel_init, Vect
 
 	} else {
 
-		for (int i = 0; i < _nb_position_kf; i++) {
+		for (int i = 0; i < 3; i++) {
 			_target_estimator[i]->setPosition(pos_init(i));
 			_target_estimator[i]->setVelocity(vel_rel_init(i));
 			_target_estimator[i]->setBias(bias_init(i));
@@ -231,7 +231,7 @@ void LTEstPosition::predictionStep(Vector3f vehicle_acc_ned)
 		_target_estimator_coupled->predictCov(dt);
 
 	} else {
-		for (int i = 0; i < _nb_position_kf; i++) {
+		for (int i = 0; i < 3; i++) {
 			//For decoupled dynamics, we neglect the off diag elements.
 			if (_target_mode == TargetMode::Moving || _target_mode == TargetMode::MovingAugmented) {_target_estimator[i]->setTargetAccVar(target_acc_cov(i, i));}
 
@@ -783,6 +783,7 @@ bool LTEstPosition::processObsUWB(const uwb_distance_s &uwb_distance, targetObsP
 
 		obs.meas_unc_xyz(0) = measurement_uncertainty;
 		obs.meas_unc_xyz(1) = measurement_uncertainty;
+		obs.meas_unc_xyz(2) = measurement_uncertainty;
 
 		return true;
 	}
@@ -863,9 +864,6 @@ bool LTEstPosition::fuse_meas(const Vector3f vehicle_acc_ned, const targetObsPos
 	bool all_directions_fused = false;
 	Vector<float, 15> meas_h_row;
 
-	// Number of direction:  x,y,z for all filters excep for the horizontal filter: x,y
-	int nb_update_directions = (_target_model == TargetModel::Horizontal) ? 2 : 3;
-
 	// Compute the measurement's time delay (difference between state and measurement time on validity)
 	const float dt_sync_us = (_last_predict - target_pos_obs.timestamp);
 
@@ -894,7 +892,7 @@ bool LTEstPosition::fuse_meas(const Vector3f vehicle_acc_ned, const targetObsPos
 		target_innov.timestamp = hrt_absolute_time();
 
 		// Loop over x,y,z directions. Note: even with coupled dynamics we have a sequential update of measurements in x,y,z directions separately
-		for (int j = 0; j < nb_update_directions; j++) {
+		for (int j = 0; j < 3; j++) {
 
 			//If the measurement of this filter (x,y or z) has not been updated:
 			if (!target_pos_obs.updated_xyz(j)) {
@@ -949,7 +947,7 @@ bool LTEstPosition::fuse_meas(const Vector3f vehicle_acc_ned, const targetObsPos
 		}
 
 		// If we have updated all three directions (x,y,z) for one relative position measurement, consider the state updated.
-		if (meas_xyz_fused(0) && meas_xyz_fused(1) && (meas_xyz_fused(2) || _target_model == TargetModel::Horizontal)) {
+		if (meas_xyz_fused(0) && meas_xyz_fused(1) && meas_xyz_fused(2)) {
 
 			all_directions_fused = true;
 
@@ -1062,54 +1060,48 @@ void LTEstPosition::publishTarget()
 
 	} else {
 
-		float rel_z = 0.f;
-
-		if (_range_sensor.valid) {
-			rel_z = _range_sensor.dist_bottom - _param_ltest_sens_pos_z.get();
-		}
-
 		// Fill target pose
 		target_pose.x_rel = _target_estimator[x]->getPosition();
 		target_pose.y_rel = _target_estimator[y]->getPosition();
-		target_pose.z_rel = _nb_position_kf > 2 ? _target_estimator[z]->getPosition() : rel_z;
+		target_pose.z_rel = _target_estimator[z]->getPosition();
 
 		target_pose.vx_rel = _target_estimator[x]->getVelocity();
 		target_pose.vy_rel = _target_estimator[y]->getVelocity();
-		target_pose.vz_rel = _nb_position_kf > 2 ? _target_estimator[z]->getVelocity() : 0.f;
+		target_pose.vz_rel = _target_estimator[z]->getVelocity();
 
 		// Fill target estimator state
 		target_estimator_state.x_rel = _target_estimator[x]->getPosition();
 		target_estimator_state.y_rel = _target_estimator[y]->getPosition();
-		target_estimator_state.z_rel = _nb_position_kf > 2 ? _target_estimator[z]->getPosition() : rel_z;
+		target_estimator_state.z_rel = _target_estimator[z]->getPosition();
 
 		target_estimator_state.cov_x_rel = _target_estimator[x]->getPosVar();
 		target_estimator_state.cov_y_rel = _target_estimator[y]->getPosVar();
-		target_estimator_state.cov_z_rel = _nb_position_kf > 2 ? _target_estimator[z]->getPosVar() : 0.f;
+		target_estimator_state.cov_z_rel = _target_estimator[z]->getPosVar();
 
 		target_estimator_state.vx_rel = _target_estimator[x]->getVelocity();
 		target_estimator_state.vy_rel = _target_estimator[y]->getVelocity();
-		target_estimator_state.vz_rel = _nb_position_kf > 2 ? _target_estimator[z]->getVelocity() : 0.f;
+		target_estimator_state.vz_rel = _target_estimator[z]->getVelocity();
 
 		target_estimator_state.cov_vx_rel = _target_estimator[x]->getVelVar();
 		target_estimator_state.cov_vy_rel = _target_estimator[y]->getVelVar();
-		target_estimator_state.cov_vz_rel = _nb_position_kf > 2 ? _target_estimator[z]->getVelVar() : 0.f;
+		target_estimator_state.cov_vz_rel = _target_estimator[z]->getVelVar();
 
 		target_estimator_state.x_bias = _target_estimator[x]->getBias();
 		target_estimator_state.y_bias = _target_estimator[y]->getBias();
-		target_estimator_state.z_bias = _nb_position_kf > 2 ? _target_estimator[z]->getBias() : 0.f;
+		target_estimator_state.z_bias = _target_estimator[z]->getBias();
 
 		target_estimator_state.cov_x_bias = _target_estimator[x]->getBiasVar();
 		target_estimator_state.cov_y_bias = _target_estimator[y]->getBiasVar();
-		target_estimator_state.cov_z_bias = _nb_position_kf > 2 ? _target_estimator[z]->getBiasVar() : 0.f;
+		target_estimator_state.cov_z_bias = _target_estimator[z]->getBiasVar();
 
 		if (_target_mode == TargetMode::Moving || _target_mode == TargetMode::MovingAugmented) {
 			target_estimator_state.ax_target = _target_estimator[x]->getAcceleration();
 			target_estimator_state.ay_target = _target_estimator[y]->getAcceleration();
-			target_estimator_state.az_target = _nb_position_kf > 2 ? _target_estimator[z]->getAcceleration() : 0.f;
+			target_estimator_state.az_target = _target_estimator[z]->getAcceleration();
 
 			target_estimator_state.cov_ax_target = _target_estimator[x]->getAccVar();
 			target_estimator_state.cov_ay_target = _target_estimator[y]->getAccVar();
-			target_estimator_state.cov_az_target = _nb_position_kf > 2 ? _target_estimator[z]->getAccVar() : 0.f;
+			target_estimator_state.cov_az_target = _target_estimator[z]->getAccVar();
 		}
 	}
 
@@ -1129,8 +1121,8 @@ void LTEstPosition::publishTarget()
 	// TODO: decide what to do with Bias lim
 	float bias_lim = _param_ltest_bias_lim.get();
 
-	if (_target_model != TargetModel::Horizontal && ((float)fabs(target_estimator_state.x_bias) > bias_lim
-			|| (float)fabs(target_estimator_state.y_bias) > bias_lim || (float)fabs(target_estimator_state.z_bias) > bias_lim)) {
+	if (((float)fabs(target_estimator_state.x_bias) > bias_lim
+	     || (float)fabs(target_estimator_state.y_bias) > bias_lim || (float)fabs(target_estimator_state.z_bias) > bias_lim)) {
 
 		PX4_DEBUG("Bias exceeds limit: %.2f bias x: %.2f bias y: %.2f bias z: %.2f", (double)bias_lim,
 			  (double)target_estimator_state.x_bias, (double)target_estimator_state.y_bias, (double)target_estimator_state.z_bias);
@@ -1263,14 +1255,6 @@ bool LTEstPosition::selectTargetEstimator()
 		init_failed = (tmp_xyz == nullptr);
 		break;
 
-	case TargetModel::Horizontal:
-		tmp_x = new KalmanFilter();
-		tmp_y = new KalmanFilter();
-		PX4_INFO("LTE estimator: Horizontal position only.");
-
-		init_failed = (tmp_x == nullptr) || (tmp_y == nullptr);
-		break;
-
 	case TargetModel::NotInit:
 		init_failed = true;
 		break;
@@ -1299,15 +1283,6 @@ bool LTEstPosition::selectTargetEstimator()
 		case TargetModel::FullPoseCoupled:
 			delete _target_estimator_coupled;
 			_target_estimator_coupled = tmp_xyz;
-
-			break;
-
-		case TargetModel::Horizontal:
-			delete _target_estimator[x];
-			delete _target_estimator[y];
-
-			_target_estimator[x] = tmp_x;
-			_target_estimator[y] = tmp_y;
 
 			break;
 

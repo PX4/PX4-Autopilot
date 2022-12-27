@@ -41,7 +41,6 @@ px4_add_module(
 		LandingTargetEst.cpp
 		LTEstPosition.cpp
 		LTEstOrientation.cpp
-		KalmanFilter.cpp
 		KF_xyzb_coupled_moving.cpp
 		KF_xyzb_v_coupled_moving.cpp
 		KF_xyzb_decoupled_moving.cpp
