@@ -1393,7 +1393,7 @@ void EKF2::PublishStatus(const hrt_abstime &timestamp)
 	status.pre_flt_fail_innov_vel_horiz = _preflt_checker.hasHorizVelFailed();
 	status.pre_flt_fail_innov_vel_vert = _preflt_checker.hasVertVelFailed();
 	status.pre_flt_fail_innov_height = _preflt_checker.hasHeightFailed();
-	status.pre_flt_fail_mag_field_disturbed = _ekf.control_status_flags().mag_field_disturbed;
+	status.pre_flt_fail_mag_field_disturbed = _ekf.control_status_flags().mag_field_ne_disturbed;
 
 	status.accel_device_id = _device_id_accel;
 	status.baro_device_id = _device_id_baro;
@@ -1469,6 +1469,7 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 		status_flags.cs_rng_kin_consistent      = _ekf.control_status_flags().rng_kin_consistent;
 		status_flags.cs_fake_pos                = _ekf.control_status_flags().fake_pos;
 		status_flags.cs_fake_hgt                = _ekf.control_status_flags().fake_hgt;
+		status_flags.cs_mag_field_ne_disturbed  = _ekf.control_status_flags().mag_field_ne_disturbed;
 
 		status_flags.fault_status_changes     = _filter_fault_status_changes;
 		status_flags.fs_bad_mag_x             = _ekf.fault_status_flags().bad_mag_x;
