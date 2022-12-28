@@ -118,7 +118,6 @@
 
 /* RC Serial port */
 #define RC_SERIAL_PORT          "/dev/ttyS4"
-#define BOARD_SUPPORTS_RC_SERIAL_PORT_OUTPUT
 
 #define GPIO_RSSI_IN            /* PC1  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN1)
 

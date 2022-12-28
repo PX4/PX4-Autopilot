@@ -1,0 +1,7 @@
+module_name: RC SBUS input driver
+serial_config:
+    - command: "sbus start -d ${SERIAL_DEV}"
+      port_config_param:
+        name: RC_SBUS_PRT_CFG
+        group: Serial
+        #default: RC

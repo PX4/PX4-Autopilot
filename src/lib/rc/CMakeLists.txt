@@ -31,26 +31,11 @@
 #
 ############################################################################
 
-add_library(rc
-	crsf.cpp
-	ghst.cpp
-	st24.cpp
-	sumd.cpp
-	sbus.cpp
-	dsm.cpp
-	common_rc.cpp
-)
-target_compile_options(rc
-	PRIVATE
-		#-DDEBUG_BUILD
-		-Wno-unused-result
-)
-target_link_libraries(rc PRIVATE prebuild_targets)
+add_subdirectory(dsm)
+add_subdirectory(sbus)
+add_subdirectory(st24)
+add_subdirectory(sumd)
 
 if(PX4_TESTING AND (${PX4_PLATFORM} MATCHES "posix"))
 	add_subdirectory(rc_tests)
-endif()
-
-if(${PX4_PLATFORM} MATCHES "nuttx")
-	target_link_libraries(rc PRIVATE nuttx_fs)
 endif()

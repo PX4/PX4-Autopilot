@@ -39,5 +39,8 @@ px4_add_module(
 	SRCS
 		RCTest.cpp
 	DEPENDS
-		rc
+		rc_dsm
+		rc_sbus
+		rc_st24
+		rc_sumd
 	)

@@ -44,10 +44,10 @@
 
 #include <drivers/drv_hrt.h>
 #include <systemlib/ppm_decode.h>
-#include <rc/st24.h>
-#include <rc/sumd.h>
-#include <rc/sbus.h>
-#include <rc/dsm.h>
+#include <lib/rc/st24/st24.h>
+#include <lib/rc/sumd/sumd.h>
+#include <lib/rc/sbus/sbus.h>
+#include <lib/rc/dsm/dsm.h>
 #include <uORB/topics/input_rc.h>
 
 #if defined(PX4IO_PERF)

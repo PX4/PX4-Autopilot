@@ -1,0 +1,7 @@
+module_name: RC GHST input driver
+serial_config:
+    - command: "rc_ghst start -d ${SERIAL_DEV}"
+      port_config_param:
+        name: RC_GHST_PRT_CFG
+        group: Serial
+        #default: RC

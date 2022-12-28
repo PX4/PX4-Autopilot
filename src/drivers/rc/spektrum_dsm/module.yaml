@@ -1,0 +1,7 @@
+module_name: RC Spektrum DSM input driver
+serial_config:
+    - command: "spektrum_dsm start -d ${SERIAL_DEV}"
+      port_config_param:
+        name: RC_DSM_PRT_CFG
+        group: Serial
+        #default: RC

@@ -51,7 +51,7 @@
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_hrt.h>
 
-#include <rc/sbus.h>
+#include <lib/rc/sbus/sbus.h>
 
 extern "C" {
 	/* #define DEBUG */

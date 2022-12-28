@@ -58,7 +58,7 @@
 #include <lib/mixer_module/mixer_module.hpp>
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
-#include <lib/rc/dsm.h>
+#include <lib/rc/dsm/dsm.h>
 #include <lib/systemlib/mavlink_log.h>
 #include <lib/button/ButtonPublisher.hpp>
 
