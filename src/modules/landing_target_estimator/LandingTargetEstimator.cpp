@@ -42,6 +42,8 @@
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
 #include <drivers/drv_hrt.h>
+#include <uORB/topics/parameter_update.h>
+#include "conversion/rotation.h"
 
 #include "LandingTargetEstimator.h"
 
@@ -50,20 +52,10 @@
 namespace landing_target_estimator
 {
 
-LandingTargetEstimator::LandingTargetEstimator()
+LandingTargetEstimator::LandingTargetEstimator() :
+	ModuleParams(nullptr)
 {
-	_paramHandle.acc_unc = param_find("LTEST_ACC_UNC");
-	_paramHandle.meas_unc = param_find("LTEST_MEAS_UNC");
-	_paramHandle.pos_unc_init = param_find("LTEST_POS_UNC_IN");
-	_paramHandle.vel_unc_init = param_find("LTEST_VEL_UNC_IN");
-	_paramHandle.mode = param_find("LTEST_MODE");
-	_paramHandle.scale_x = param_find("LTEST_SCALE_X");
-	_paramHandle.scale_y = param_find("LTEST_SCALE_Y");
-	_paramHandle.sensor_yaw = param_find("LTEST_SENS_ROT");
-	_paramHandle.offset_x = param_find("LTEST_SENS_POS_X");
-	_paramHandle.offset_y = param_find("LTEST_SENS_POS_Y");
-	_paramHandle.offset_z = param_find("LTEST_SENS_POS_Z");
-	_check_params(true);
+	updateParams();
 }
 
 void LandingTargetEstimator::update()
@@ -200,7 +192,8 @@ void LandingTargetEstimator::_check_params(const bool force)
 		parameter_update_s pupdate;
 		_parameter_update_sub.copy(&pupdate);
 
-		_update_params();
+		parameters_update();
+		// _update_params();
 	}
 }
 
@@ -209,7 +202,6 @@ void LandingTargetEstimator::_update_topics()
 	_vehicleLocalPosition_valid = _vehicleLocalPositionSub.update(&_vehicleLocalPosition);
 	_vehicleAttitude_valid = _attitudeSub.update(&_vehicleAttitude);
 	_vehicle_acceleration_valid = _vehicle_acceleration_sub.update(&_vehicle_acceleration);
-
 
 	if (_irlockReportSub.update(&_irlockReport)) { //
 		_new_irlockReport = true;
@@ -229,7 +221,7 @@ void LandingTargetEstimator::_update_topics()
 		sensor_ray(2) = 1.0f;
 
 		// rotate unit ray according to sensor orientation
-		_S_att = get_rot_matrix(_params.sensor_yaw);
+		_S_att = get_rot_matrix(_params.sensor_rot);
 		sensor_ray = _S_att * sensor_ray;
 
 		// rotate the unit ray into the navigation frame
@@ -256,28 +248,76 @@ void LandingTargetEstimator::_update_topics()
 
 		_new_sensorReport = true;
 
-	} else if (_uwbDistanceSub.update(&_uwbDistance)) {
+	} else if (_sensorUwbSub.update(&_sensorUwb)) {
+
 		if (!_vehicleAttitude_valid || !_vehicleLocalPosition_valid) {
 			// don't have the data needed for an update
 			PX4_INFO("Attitude: %d, Local pos: %d", _vehicleAttitude_valid, _vehicleLocalPosition_valid);
 			return;
 		}
 
-		if (!matrix::Vector3f(_uwbDistance.position).isAllFinite()) {
-			PX4_WARN("Position is corrupt!");
+		/* 		if (!PX4_ISFINITE(_sensorUwbSub.distance)) {
+					PX4_WARN("Position is corrupt!");
+					return;
+				} */
+
+		// First we need to catch angle measurements outside of the useable measuring range
+		if ((float)(60.0) <= _sensorUwb.aoa_azimuth_dev || (float)(-60.0) >= _sensorUwb.aoa_azimuth_dev) {
+			return;
+		}
+
+		if ((float) 60.0 <= _sensorUwb.aoa_elevation_dev  || (float) -60.0 >= _sensorUwb.aoa_elevation_dev) {
 			return;
 		}
 
 		_new_sensorReport = true;
+		_target_position_report.timestamp = _sensorUwb.timestamp;
 
-		// The coordinate system is NED (north-east-down)
-		// the uwb_distance msg contains the Position in NED, Vehicle relative to LP
-		// The coordinates "rel_pos_*" are the position of the landing point relative to the vehicle.
-		// To change POV we negate every Axis:
-		_target_position_report.timestamp = _uwbDistance.timestamp;
-		_target_position_report.rel_pos_x = -_uwbDistance.position[0];
-		_target_position_report.rel_pos_y = -_uwbDistance.position[1];
-		_target_position_report.rel_pos_z = -_uwbDistance.position[2];
+		const float deg2rad = M_PI / 180.0;
+		float azimuth 	 = _sensorUwb.aoa_azimuth_dev *  deg2rad; 	//subtract yaw offset and convert to rad
+		float elevation = _sensorUwb.aoa_elevation_dev  * deg2rad; 	//subtract pitch offset and convert to rad
+
+		/* ****** Position algorithm ************************************
+		 * this algorithm takes distance and angle measurements (spherical coordinates) and converts them into the cartesian bodyframe expected by the LTE
+		 * Convert spherical coordinates to cartesian: sph(r, phi, theta) => cartesian(x,y,z)
+		 * With radial distance r, elevation angle theta, azimuth angle phi
+		 *
+		 * position =   ( r * cos(elevation) * cos(azimuth),
+		 * 		( r * cos(elevation) * sin(azimuth),
+		 * 		( r * sin(elevation) )
+		 *
+		 * The resulting coordinate system is not NED (north-east-down)
+		 * Using the angle information from the drone device results in a position where the Drone is centered at [0, 0, 0] in NED.
+		 * ||Using the angle information from the destination device results in a position where the ground device is centered at [0, 0, 0] in NED.||
+		 * The coordinates "rel_pos_*" are the position of the landing point relative to the vehicle.
+		 * To change POV we negate rotate the position with Eulerangles[XYZ] = [-90 0 -90]:
+		 *
+		 * rotation_matrix = (0, 1, 0,
+					0, 0, 1;
+					-1, 0, 0);
+		 *
+		 * This step can also be skipped if we rearrange the position calculation like this:
+		 * 	X -> -Z
+		 * 	Y -> X
+		 * 	Z -> Y
+		 * Resulting in the following conversion function:
+		 * ******************************************/
+		matrix::Vector3f _position = - matrix::Vector3f{(_sensorUwb.distance  * sinf(azimuth) * cosf(elevation)),
+				 (_sensorUwb.distance  * sinf(elevation)),
+				 (_sensorUwb.distance * cosf(azimuth) * cosf(elevation))};
+		// Now the position is the landing point relative to the vehicle.
+		//Rotate around orientation:
+		_position = get_rot_matrix(static_cast<enum Rotation>(_sensorUwb.orientation)) *
+			    _position; //cast the orientatio to Rotation enum
+		// And add the initiator offset:
+		_position +=  matrix::Vector3f(_sensorUwb.offset_x,  _sensorUwb.offset_y,  _sensorUwb.offset_z);
+
+
+
+		// Now we negate every axis to get the Position of the drone relative to the landing spot:
+		_target_position_report.rel_pos_x = _position(0);
+		_target_position_report.rel_pos_y = _position(1);
+		_target_position_report.rel_pos_z = _position(2);
 	}
 }
 
@@ -295,14 +335,26 @@ void LandingTargetEstimator::_update_params()
 	param_get(_paramHandle.scale_x, &_params.scale_x);
 	param_get(_paramHandle.scale_y, &_params.scale_y);
 
-	int32_t sensor_yaw = 0;
-	param_get(_paramHandle.sensor_yaw, &sensor_yaw);
-	_params.sensor_yaw = static_cast<enum Rotation>(sensor_yaw);
+	int32_t sensor_rot = 0;
+	param_get(_paramHandle.sensor_rot, &sensor_rot);
+	_params.sensor_rot = static_cast<enum Rotation>(sensor_rot);
 
 	param_get(_paramHandle.offset_x, &_params.offset_x);
 	param_get(_paramHandle.offset_y, &_params.offset_y);
 	param_get(_paramHandle.offset_z, &_params.offset_z);
+
 }
 
+void LandingTargetEstimator::parameters_update()
+{
+	if (_parameter_update_sub.updated()) {
+		parameter_update_s param_update;
+		_parameter_update_sub.copy(&param_update);
+
+		// If any parameter updated, call updateParams() to check if
+		// this class attributes need updating (and do so).
+		updateParams();
+	}
+}
 
 } // namespace landing_target_estimator

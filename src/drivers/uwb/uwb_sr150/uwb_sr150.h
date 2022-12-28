@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,100 +38,62 @@
 #include <poll.h>
 #include <sys/select.h>
 #include <sys/time.h>
+#include <perf/perf_counter.h>
+#include <lib/conversion/rotation.h>
 
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/module.h>
-#include <perf/perf_counter.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+
 #include <uORB/Publication.hpp>
-#include <uORB/topics/landing_target_pose.h>
-#include <uORB/topics/uwb_grid.h>
-#include <uORB/topics/uwb_distance.h>
-#include <uORB/topics/parameter_update.h>
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/SubscriptionInterval.hpp>
-#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/sensor_uwb.h>
+#include <uORB/topics/parameter_update.h>
+
 #include <matrix/math.hpp>
-#include <matrix/Matrix.hpp>
+
+#define UWB_DEFAULT_PORT "/dev/ttyS1"
 
 using namespace time_literals;
 
-#define UWB_CMD  0x8e
-#define UWB_CMD_START  0x01
-#define UWB_CMD_STOP  0x00
-#define UWB_CMD_RANGING  0x0A
-#define STOP_B 0x0A
-
-#define UWB_PRECNAV_APP   0x04
-#define UWB_APP_START     0x10
-#define UWB_APP_STOP      0x11
-#define UWB_SESSION_START 0x22
-#define UWB_SESSION_STOP  0x23
-#define UWB_RANGING_START 0x01
-#define UWB_RANGING_STOP  0x00
-#define UWB_DRONE_CTL     0x0A
-
-#define UWB_CMD_LEN  0x05
-#define UWB_CMD_DISTANCE_LEN 0x21
-#define UWB_MAC_MODE 2
-#define MAX_ANCHORS 12
-#define UWB_GRID_CONFIG "/fs/microsd/etc/uwb_grid_config.csv"
-
-typedef struct {  //needs higher accuracy?
-	float lat, lon, alt, yaw; //offset to true North
-} gps_pos_t;
-
 typedef struct {
-	int16_t x, y, z; //axis in cm
-} position_t; // Position of a device or target in 3D space
-
-enum UWB_POS_ERROR_CODES {
-	UWB_OK,
-	UWB_ANC_BELOW_THREE,
-	UWB_LIN_DEP_FOR_THREE,
-	UWB_ANC_ON_ONE_LEVEL,
-	UWB_LIN_DEP_FOR_FOUR,
-	UWB_RANK_ZERO
-};
-
-typedef struct {
-	uint8_t MAC[2];		// MAC Adress of UWB device
-	uint8_t status;		// Status of Measurement
-	uint16_t distance; 	// Distance in cm
-	uint8_t nLos; 		// line of sight y/n
-	uint16_t aoaFirst;	// Angle of Arrival of incoming msg
+	uint16_t MAC;					// MAC address of UWB device
+	uint8_t status;					// Status of Measurement
+	uint16_t distance; 				// Distance in cm
+	uint8_t nLos; 					// line of sight y/n
+	int16_t aoa_azimuth;				// AOA of incoming msg for Azimuth antenna pairing
+	int16_t aoa_elevation;				// AOA of incoming msg for Altitude antenna pairing
+	int16_t aoa_dest_azimuth;			// AOA destination Azimuth
+	int16_t aoa_dest_elevation; 			// AOA destination elevation
+	uint8_t aoa_azimuth_FOM;			// AOA Azimuth FOM
+	uint8_t aoa_elevation_FOM;			// AOA Elevation FOM
+	uint8_t aoa_dest_azimuth_FOM;			// AOA Azimuth FOM
+	uint8_t aoa_dest_elevation_FOM;			// AOA Elevation FOM
 } __attribute__((packed)) UWB_range_meas_t;
 
 typedef struct {
-	uint32_t initator_time;  	//timestamp of init
-	uint32_t sessionId;	// Session ID of UWB session
-	uint8_t	num_anchors;	//number of anchors
-	gps_pos_t target_gps; //GPS position of Landing Point
-	uint8_t  mac_mode;	// MAC adress mode, either 2 Byte or 8 Byte
-	uint8_t MAC[UWB_MAC_MODE][MAX_ANCHORS];
-	position_t target_pos; //target position
-	position_t anchor_pos[MAX_ANCHORS]; // Position of each anchor
-	uint8_t stop; 		// Should be 27
-} grid_msg_t;
-
-typedef struct {
-	uint8_t cmd;      	// Should be 0x8E for distance result message
-	uint16_t len; 		// Should be 0x30 for distance result message
-	uint32_t time_uwb_ms;	// Timestamp of UWB device in ms
-	uint32_t seq_ctr;	// Number of Ranges since last Start of Ranging
-	uint32_t sessionId;	// Session ID of UWB session
-	uint32_t range_interval;	// Time between ranging rounds
-	uint8_t  mac_mode;	// MAC adress mode, either 2 Byte or 8 Byte
-	uint8_t  no_measurements;	// MAC adress mode, either 2 Byte or 8 Byte
-	UWB_range_meas_t measurements[4]; //Raw anchor_distance distances in CM 2*9
-	uint8_t stop; 		// Should be 0x1B
+	uint8_t cmd;      				// Should be 0x8E for distance result message
+	uint16_t len; 					// Should be 0x30 for distance result message
+	uint32_t seq_ctr;				// Number of Ranges since last Start of Ranging
+	uint32_t sessionId;				// Session ID of UWB session
+	uint32_t range_interval;			// Time between ranging rounds
+	uint16_t MAC;					// MAC address of UWB device
+	UWB_range_meas_t measurements; 			//Raw anchor_distance distances in CM 2*9
+	uint8_t stop; 					// Should be 0x1B
 } __attribute__((packed)) distance_msg_t;
 
-class UWB_SR150 : public ModuleBase<UWB_SR150>, public ModuleParams
+class UWB_SR150 : public ModuleBase<UWB_SR150>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
-	UWB_SR150(const char *device_name, speed_t baudrate, bool uwb_pos_debug);
-
+	UWB_SR150(const char *port);
 	~UWB_SR150();
+
+	/**
+	 * @see ModuleBase::task_spawn
+	 */
+	static int task_spawn(int argc, char *argv[]);
 
 	/**
 	 * @see ModuleBase::custom_command
@@ -143,67 +105,51 @@ public:
 	 */
 	static int print_usage(const char *reason = nullptr);
 
-	/**
-	 * @see ModuleBase::Multilateration
-	 */
-	UWB_POS_ERROR_CODES localization();
+	bool init();
 
-	/**
-	 * @see ModuleBase::Distance Result
-	 */
-	int distance();
+	void start();
 
-	/**
-	 * @see ModuleBase::task_spawn
-	 */
-	static int task_spawn(int argc, char *argv[]);
+	void stop();
 
-	static UWB_SR150 *instantiate(int argc, char *argv[]);
-
-	void run() override;
+	int collectData();
 
 private:
-	static constexpr int64_t sq(int64_t x) { return x * x; }
 
 	void parameters_update();
 
-	void grid_info_read(position_t *grid);
+	void Run() override;
 
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::UWB_INIT_OFF_X>) _uwb_init_off_x,
-		(ParamFloat<px4::params::UWB_INIT_OFF_Y>) _uwb_init_off_y,
-		(ParamFloat<px4::params::UWB_INIT_OFF_Z>) _uwb_init_off_z,
-		(ParamFloat<px4::params::UWB_INIT_OFF_YAW>) _uwb_init_off_yaw
-	)
+	// Publications
+	uORB::Publication<sensor_uwb_s> _sensor_uwb_pub{ORB_ID(sensor_uwb)};
 
+	// Subscriptions
+	uORB::SubscriptionCallbackWorkItem _sensor_uwb_sub{this, ORB_ID(sensor_uwb)};
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
-	int _uart;
-	fd_set _uart_set;
-	struct timeval _uart_timeout {};
-	bool _uwb_pos_debug;
-
-	uORB::Publication<uwb_grid_s> _uwb_grid_pub{ORB_ID(uwb_grid)};
-	uwb_grid_s _uwb_grid{};
-
-	uORB::Publication<uwb_distance_s> _uwb_distance_pub{ORB_ID(uwb_distance)};
-	uwb_distance_s _uwb_distance{};
-
-	uORB::Publication<landing_target_pose_s> _landing_target_pub{ORB_ID(landing_target_pose)};
-	landing_target_pose_s _landing_target{};
-
-	grid_msg_t _uwb_grid_info{};
-	distance_msg_t _distance_result_msg{};
-	matrix::Vector3f _rel_pos;
-
-	matrix::Dcmf _uwb_init_to_nwu;
-	matrix::Dcmf _nwu_to_ned{matrix::Eulerf(M_PI_F, 0.0f, 0.0f)};
-	matrix::Vector3f _current_position_uwb_init;
-	matrix::Vector3f _current_position_ned;
-	matrix::Vector3f _uwb_init_offset_v3f;
-
+	// Parameters
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::UWB_PORT_CFG>) 			_uwb_port_cfg,
+		(ParamFloat<px4::params::UWB_INIT_OFF_X>) 		_offset_x,
+		(ParamFloat<px4::params::UWB_INIT_OFF_Y>) 		_offset_y,
+		(ParamFloat<px4::params::UWB_INIT_OFF_Z>) 		_offset_z,
+		(ParamInt<px4::params::UWB_SENS_ROT>) 			_sensor_rot
+	)
+	// Performance (perf) counters
 	perf_counter_t _read_count_perf;
 	perf_counter_t _read_err_perf;
-};
 
+	sensor_uwb_s _sensor_uwb{};
+
+	char _port[20] {};
+	hrt_abstime param_timestamp{0};
+
+	int _uart{-1};
+	fd_set _uart_set;
+	struct timeval _uart_timeout {};
+
+	unsigned _consecutive_fail_count;
+	int _interval{100000};
+
+	distance_msg_t 		_distance_result_msg{};
+};
 #endif //PX4_RDDRONE_H

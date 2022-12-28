@@ -169,6 +169,7 @@ set(msg_files
 	SensorSelection.msg
 	SensorsStatus.msg
 	SensorsStatusImu.msg
+	SensorUwb.msg
 	SystemPower.msg
 	TakeoffStatus.msg
 	TaskStackInfo.msg
@@ -184,7 +185,6 @@ set(msg_files
 	UavcanParameterValue.msg
 	UlogStream.msg
 	UlogStreamAck.msg
-	UwbDistance.msg
 	UwbGrid.msg
 	VehicleAcceleration.msg
 	VehicleAirData.msg
