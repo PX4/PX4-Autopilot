@@ -73,7 +73,7 @@ elif [[ "${UBUNTU_RELEASE}" == "20.04" ]]; then
 elif [[ "${UBUNTU_RELEASE}" == "22.04" ]]; then
 	echo "Ubuntu 22.04, simulation build off by default." 
 	echo "Use --sim_jammy to enable simulation build."
-	INSTALL_SIM=$INSTALL_SIM_JAMMY
+	INSTALL_SIM="false"
 fi
 
 
@@ -230,7 +230,7 @@ if [[ $INSTALL_SIM == "true" ]]; then
 		gazebo_version=9
 		gazebo_packages="gazebo$gazebo_version libgazebo$gazebo_version-dev"
 	elif [[ "${UBUNTU_RELEASE}" == "22.04" ]]; then
-		gazebo_packages="gazebo libgazebo-dev"
+		gazebo_packages="ignition-fortress"
 	else
 		# default and Ubuntu 20.04
 		gazebo_version=11
@@ -262,6 +262,16 @@ if [[ $INSTALL_SIM == "true" ]]; then
 		# fix VMWare 3D graphics acceleration for gazebo
 		echo "export SVGA_VGPU10=0" >> ~/.profile
 	fi
+fi
+
+if [[ $INSTALL_SIM_JAMMY == "true" ]]; then
+	sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-stable.list'
+	wget http://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add -
+	# Update list, since new gazebo-stable.list has been added
+	sudo apt-get update -y --quiet
+	sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
+		ignition-fortress \
+		;
 fi
 
 if [[ $INSTALL_NUTTX == "true" ]]; then
