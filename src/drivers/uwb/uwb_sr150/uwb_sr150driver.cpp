@@ -40,18 +40,53 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_combined.h>
 
+extern "C" __EXPORT int uwb_sr150_main(int argc, char *argv[]);
 
-int TemplateModule::print_status()
+// Unchanged
+UWB_SR150::UWB_SR150(const char *device_name, speed_t baudrate, bool uwb_pos_debug):
+	ModuleParams(nullptr),
+	_read_count_perf(perf_alloc(PC_COUNT, "uwb_sr150_count")),
+	_read_err_perf(perf_alloc(PC_COUNT, "uwb_sr150_err"))
 {
-	PX4_INFO("Running");
-	// TODO: print additional runtime information about the state of the module
+	_uwb_pos_debug = uwb_pos_debug;
+	// start serial port
+	_uart = open(device_name, O_RDWR | O_NOCTTY);
 
-	return 0;
+	if (_uart < 0) { err(1, "could not open %s", device_name); }
+
+	int ret = 0;
+	struct termios uart_config {};
+	ret = tcgetattr(_uart, &uart_config);
+
+	if (ret < 0) { err(1, "failed to get attr"); }
+
+	uart_config.c_oflag &= ~ONLCR; // no CR for every LF
+	ret = cfsetispeed(&uart_config, baudrate);
+
+	if (ret < 0) { err(1, "failed to set input speed"); }
+
+	ret = cfsetospeed(&uart_config, baudrate);
+
+	if (ret < 0) { err(1, "failed to set output speed"); }
+
+	ret = tcsetattr(_uart, TCSANOW, &uart_config);
+
+	if (ret < 0) { err(1, "failed to set attr"); }
 }
 
-int TemplateModule::custom_command(int argc, char *argv[])
+// TODO
+UWB_SR150::~UWB_SR150(){
+
+}
+
+// TODO
+void UWB_SR150::run(){
+}
+
+// Unchanged
+int UWB_SR150::custom_command(int argc, char *argv[])
 {
-	/*
+		/*
 	if (!is_running()) {
 		print_usage("not running");
 		return 1;
@@ -64,162 +99,150 @@ int TemplateModule::custom_command(int argc, char *argv[])
 	}
 	 */
 
-	return print_usage("unknown command");
+	return print_usage("Unrecognized command.");
 }
 
-
-int TemplateModule::task_spawn(int argc, char *argv[])
+// Unchanged
+int UWB_SR150::print_usage(const char *reason)
 {
-	_task_id = px4_task_spawn_cmd("module",
-				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_DEFAULT,
-				      1024,
-				      (px4_main_t)&run_trampoline,
-				      (char *const *)argv);
-
-	if (_task_id < 0) {
-		_task_id = -1;
-		return -errno;
+	if (reason) {
+		printf("%s\n\n", reason);
 	}
 
+	PRINT_MODULE_USAGE_NAME("uwb", "driver");
+	PRINT_MODULE_DESCRIPTION(R"DESC_STR(
+### Description
+
+Driver for NXP UWB_SR150 UWB positioning system. This driver publishes a `uwb_distance` message
+whenever the UWB_SR150 has a position measurement available.
+
+### Example
+
+Start the driver with a given device:
+
+$ uwb start -d /dev/ttyS2
+	)DESC_STR");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, "<file:dev>", "Name of device for serial communication with UWB", false);
+	PRINT_MODULE_USAGE_PARAM_STRING('b', nullptr, "<int>", "Baudrate for serial communication", false);
+	PRINT_MODULE_USAGE_PARAM_STRING('p', nullptr, "<int>", "Position Debug: displays errors in Multilateration", false);
+	PRINT_MODULE_USAGE_COMMAND("stop");
+	PRINT_MODULE_USAGE_COMMAND("status");
 	return 0;
 }
 
-TemplateModule *TemplateModule::instantiate(int argc, char *argv[])
+// Unchanged
+int UWB_SR150::task_spawn(int argc, char *argv[])
 {
-	int example_param = 0;
-	bool example_flag = false;
-	bool error_flag = false;
+	int task_id = px4_task_spawn_cmd(
+			      "uwb_driver",
+			      SCHED_DEFAULT,
+			      SCHED_PRIORITY_DEFAULT,
+			      2048,
+			      &run_trampoline,
+			      argv
+		      );
 
-	int myoptind = 1;
+	if (task_id < 0) {
+		return -errno;
+
+	} else {
+		_task_id = task_id;
+		return 0;
+	}
+}
+
+// Unchanged
+UWB_SR150 *UWB_SR150::instantiate(int argc, char *argv[])
+{
 	int ch;
-	const char *myoptarg = nullptr;
+	int option_index = 1;
+	const char *option_arg;
+	const char *device_name = nullptr;
+	bool error_flag = false;
+	int baudrate = 0;
+	bool uwb_pos_debug = false; // Display UWB position calculation debug Messages
 
-	// parse CLI arguments
-	while ((ch = px4_getopt(argc, argv, "p:f", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "d:b:p", &option_index, &option_arg)) != EOF) {
 		switch (ch) {
+		case 'd':
+			device_name = option_arg;
+			break;
+
+		case 'b':
+			px4_get_parameter_value(option_arg, baudrate);
+			break;
+
 		case 'p':
-			example_param = (int)strtol(myoptarg, nullptr, 10);
-			break;
 
-		case 'f':
-			example_flag = true;
-			break;
-
-		case '?':
-			error_flag = true;
+			uwb_pos_debug = true;
 			break;
 
 		default:
-			PX4_WARN("unrecognized flag");
+			PX4_WARN("Unrecognized flag: %c", ch);
 			error_flag = true;
 			break;
 		}
 	}
 
+	if (!error_flag && device_name == nullptr) {
+		print_usage("Device name not provided. Using default Device: TEL1:/dev/ttyS4 \n");
+		device_name = "TEL2";
+		error_flag = true;
+	}
+
+	if (!error_flag && baudrate == 0) {
+		printf("Baudrate not provided. Using default Baud: 115200 \n");
+		baudrate = B115200;
+	}
+
+	if (!error_flag && uwb_pos_debug == true) {
+		printf("UWB Position algorithm Debugging \n");
+	}
+
 	if (error_flag) {
+		PX4_WARN("Failed to start UWB driver. \n");
 		return nullptr;
+
+	} else {
+		PX4_INFO("Constructing UWB_SR150. Device: %s", device_name);
+		return new UWB_SR150(device_name, baudrate, uwb_pos_debug);
 	}
-
-	TemplateModule *instance = new TemplateModule(example_param, example_flag);
-
-	if (instance == nullptr) {
-		PX4_ERR("alloc failed");
-	}
-
-	return instance;
 }
 
-TemplateModule::TemplateModule(int example_param, bool example_flag)
-	: ModuleParams(nullptr)
-{
+// TODO
+int UWB_SR150::distance(){
 }
 
-void TemplateModule::run()
-{
-	// Example: run the loop synchronized to the sensor_combined topic publication
-	int sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
+// TODO
+UWB_POS_ERROR_CODES UWB_SR150::localization(){
 
-	px4_pollfd_struct_t fds[1];
-	fds[0].fd = sensor_combined_sub;
-	fds[0].events = POLLIN;
-
-	// initialize parameters
-	parameters_update(true);
-
-	while (!should_exit()) {
-
-		// wait for up to 1000ms for data
-		int pret = px4_poll(fds, (sizeof(fds) / sizeof(fds[0])), 1000);
-
-		if (pret == 0) {
-			// Timeout: let the loop run anyway, don't do `continue` here
-
-		} else if (pret < 0) {
-			// this is undesirable but not much we can do
-			PX4_ERR("poll error %d, %d", pret, errno);
-			px4_usleep(50000);
-			continue;
-
-		} else if (fds[0].revents & POLLIN) {
-
-			struct sensor_combined_s sensor_combined;
-			orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor_combined);
-			// TODO: do something with the data...
-
-		}
-
-		parameters_update();
-	}
-
-	orb_unsubscribe(sensor_combined_sub);
 }
 
-void TemplateModule::parameters_update(bool force)
+// Unchanged
+int uwb_sr150_main(int argc, char *argv[])
 {
-	// check for parameter updates
-	if (_parameter_update_sub.updated() || force) {
-		// clear update
-		parameter_update_s update;
-		_parameter_update_sub.copy(&update);
+	return UWB_SR150::main(argc, argv);
+}
 
-		// update parameters from storage
+// Unchanged
+void UWB_SR150::parameters_update()
+{
+	if (_parameter_update_sub.updated()) {
+		parameter_update_s param_update;
+		_parameter_update_sub.copy(&param_update);
+
+		// If any parameter updated, call updateParams() to check if
+		// this class attributes need updating (and do so).
 		updateParams();
 	}
 }
 
-int TemplateModule::print_usage(const char *reason)
+// TODO: Not included in either uwb driver.... do I need this?
+int UWB_SR150::print_status()
 {
-	if (reason) {
-		PX4_WARN("%s\n", reason);
-	}
-
-	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Section that describes the provided module functionality.
-
-This is a template for a module running as a task in the background with start/stop/status functionality.
-
-### Implementation
-Section describing the high-level implementation of this module.
-
-### Examples
-CLI usage example:
-$ module start -f -p 42
-
-)DESCR_STR");
-
-	PRINT_MODULE_USAGE_NAME("module", "template");
-	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Optional example flag", true);
-	PRINT_MODULE_USAGE_PARAM_INT('p', 0, 0, 1000, "Optional example parameter", true);
-	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+	PX4_INFO("Running");
+	// TODO: print additional runtime information about the state of the module
 
 	return 0;
-}
-
-int template_module_main(int argc, char *argv[])
-{
-	return TemplateModule::main(argc, argv);
 }
