@@ -328,6 +328,21 @@ if (TARGET parameters_xml AND TARGET airframes_xml)
 
 endif()
 
+if(${CONFIG_NSH_LIBRARY} MATCHES "y")
+	if(${CONFIG_NSH_DISABLE_ECHO} MATCHES "y")
+		message(FATAL_ERROR "init scripts require NSH SET (board has CONFIG_NSH_DISABLE_ECHO=y)")
+	endif()
+	if(${CONFIG_NSH_DISABLE_SET} MATCHES "y")
+		message(FATAL_ERROR "init scripts require NSH SET (board has CONFIG_NSH_DISABLE_SET=y)")
+	endif()
+	if(${CONFIG_NSH_DISABLE_SLEEP} MATCHES "y")
+		message(FATAL_ERROR "init scripts require NSH SET (board has CONFIG_NSH_DISABLE_SLEEP=y)")
+	endif()
+	if(${CONFIG_NSH_DISABLE_SOURCE} MATCHES "y")
+		message(FATAL_ERROR "init scripts require NSH SET (board has CONFIG_NSH_DISABLE_SOURCE=y)")
+	endif()
+endif()
+
 if("${PX4_BOARD_LABEL}" STREQUAL "bootloader")
 	add_custom_command(OUTPUT ${PX4_BOARD_DIR}/extras/${PX4_BOARD}_bootloader.bin
 		COMMAND ${CMAKE_OBJCOPY} -O binary ${PX4_BINARY_DIR_REL}/${FW_NAME} ${PX4_BOARD_DIR}/extras/${PX4_BOARD}_bootloader.bin
