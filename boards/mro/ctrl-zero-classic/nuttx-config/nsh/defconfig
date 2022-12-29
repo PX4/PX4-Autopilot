@@ -47,6 +47,9 @@
 # CONFIG_NSH_DISABLE_SOURCE is not set
 # CONFIG_NSH_DISABLE_TEST is not set
 # CONFIG_NSH_DISABLE_TIME is not set
+# CONFIG_NSH_DISABLE_UMOUNT is not set
+# CONFIG_NSH_DISABLE_UNSET is not set
+# CONFIG_NSH_DISABLE_USLEEP is not set
 CONFIG_ARCH="arm"
 CONFIG_ARCH_BOARD_CUSTOM=y
 CONFIG_ARCH_BOARD_CUSTOM_DIR="../../../../boards/mro/ctrl-zero-classic/nuttx-config"
