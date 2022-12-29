@@ -33,5 +33,5 @@
  ****************************************************************************/
 
 __BEGIN_DECLS
-void rgb_led(int r, int g, int b, int freqs);
+void rgb_led(uint8_t r, uint8_t g, uint8_t b, int freqs);
 __END_DECLS

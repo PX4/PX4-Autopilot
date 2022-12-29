@@ -5,3 +5,5 @@
 pwm_out start
 
 control_allocator start
+
+rgbled_pwm start

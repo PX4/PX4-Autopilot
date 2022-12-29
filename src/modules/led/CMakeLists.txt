@@ -31,7 +31,14 @@
 #
 ############################################################################
 
-px4_add_library(led led.cpp)
-target_compile_options(led
-	PRIVATE -Wno-implicit-fallthrough # TODO: fix and remove
+px4_add_module(
+	MODULE modules__led
+	MAIN led
+	COMPILE_FLAGS
+		#-DDEBUG_BUILD
+	SRCS
+		led.cpp
+		led.hpp
+	DEPENDS
+		px4_work_queue
 )

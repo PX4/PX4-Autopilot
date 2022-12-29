@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,11 +32,10 @@
  ****************************************************************************/
 
 /**
- * @file led.h
+ * @file led.hpp
  *
  * Led controller helper class, used by Led drivers
  *
- * @author Beat Küng <beat-kueng@gmx.net>
  */
 
 #pragma once
@@ -61,12 +60,11 @@ struct LedControlData {
 	LedControlDataSingle leds[BOARD_MAX_LEDS] {};
 };
 
-
 /**
  ** class LedController
  * Handles the led_control topic: blinking, priorities and state updates.
  */
-class LedController : public ModuleParams
+class LedController : public ModuleBase<LedController>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
 	LedController() : ModuleParams(nullptr) {}

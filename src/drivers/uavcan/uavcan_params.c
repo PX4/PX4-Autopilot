@@ -117,7 +117,7 @@ PARAM_DEFINE_FLOAT(UAVCAN_RNG_MAX, 200.0f);
  * @reboot_required true
  * @group UAVCAN
  */
-PARAM_DEFINE_INT32(UAVCAN_LGT_ANTCL, 2);
+PARAM_DEFINE_INT32(UAVCAN_LGT_ANTCL, 0);
 
 /**
  * UAVCAN STROBE light operating mode
@@ -139,7 +139,7 @@ PARAM_DEFINE_INT32(UAVCAN_LGT_ANTCL, 2);
  * @reboot_required true
  * @group UAVCAN
  */
-PARAM_DEFINE_INT32(UAVCAN_LGT_STROB, 1);
+PARAM_DEFINE_INT32(UAVCAN_LGT_STROB, 0);
 
 /**
  * UAVCAN RIGHT_OF_WAY light operating mode
@@ -161,7 +161,7 @@ PARAM_DEFINE_INT32(UAVCAN_LGT_STROB, 1);
  * @reboot_required true
  * @group UAVCAN
  */
-PARAM_DEFINE_INT32(UAVCAN_LGT_NAV, 3);
+PARAM_DEFINE_INT32(UAVCAN_LGT_NAV, 0);
 
 /**
  * UAVCAN LIGHT_ID_LANDING light operating mode

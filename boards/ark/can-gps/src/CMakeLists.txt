@@ -54,6 +54,7 @@ else()
 		init.c
 		led.c
 		spi.cpp
+		timer_config.cpp
 	)
 
 	target_link_libraries(drivers_board
