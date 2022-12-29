@@ -68,7 +68,6 @@ public:
 	uint8_t                         sf45_convert_angle(const int16_t yaw);
 	float                           sf45_wrap_360(float f);
 protected:
-	distance_sensor_s                         _distance_sensor_msg{};
 	obstacle_distance_s                       _obstacle_map_msg{};
 	uORB::Publication<obstacle_distance_s>		_obstacle_distance_pub{ORB_ID(obstacle_distance)};	/**< obstacle_distance publication */
 

@@ -61,13 +61,3 @@ parameters:
               reboot_required: true
               num_instances: 1
               default: 0
-
-          SF45_CP_LIMIT:
-              description:
-                  short: Minimum distance to enable collision
-                  long: |
-                      Distances below the minumum will result in an obstacle distance array value of 100
-              type: int32
-              reboot_required: true
-              num_instances: 1
-              default: 5000

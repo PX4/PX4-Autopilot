@@ -76,11 +76,9 @@ SF45LaserSerial::SF45LaserSerial(const char *port, uint8_t rotation) :
 	_obstacle_map_msg.frame = obstacle_distance_s::MAV_FRAME_BODY_FRD;
 	_obstacle_map_msg.increment = 5;
 	_obstacle_map_msg.angle_offset = -2.5;
-	_obstacle_map_msg.min_distance = 1;
+	_obstacle_map_msg.min_distance = UINT16_MAX;
 	_obstacle_map_msg.max_distance = 5000;
 
-	// populate horizontal field of view
-	_distance_sensor_msg.h_fov = 5.58505f;
 }
 
 SF45LaserSerial::~SF45LaserSerial()
@@ -96,7 +94,6 @@ int SF45LaserSerial::init()
 
 	param_get(param_find("SF45_UPDATE_CFG"), &_update_rate);
 	param_get(param_find("SF45_ORIENT_CFG"), &_orient_cfg);
-	param_get(param_find("SF45_CP_LIMIT"), &_collision_constraint);
 	param_get(param_find("SF45_YAW_CFG"), &_yaw_cfg);
 
 	/* SF45/B (50M) */
@@ -160,6 +157,7 @@ int SF45LaserSerial::collect()
 	int64_t read_elapsed = hrt_elapsed_time(&_last_read);
 	int ret;
 	/* the buffer for read chars is buflen minus null termination */
+	param_get(param_find("SF45_CP_LIMIT"), &_collision_constraint);
 	uint8_t readbuf[SF45_MAX_PAYLOAD];
 
 	float distance_m = -1.0f;
@@ -712,15 +710,7 @@ void SF45LaserSerial::sf45_process_replies(float *distance_m)
 				// update the current bin to the distance sensor reading
 				// readings in cm
 				_obstacle_map_msg.distances[current_bin] = obstacle_dist_cm;
-
-				// Reduce CP velocity oscillating when when sensor rotates away from close up obstacle
-				if (_obstacle_map_msg.distances[current_bin] > _collision_constraint) {
-
-					_obstacle_map_msg.distances[_previous_bin] = 5000; // max distance value of sensor in meters
-
-				} else {
-					_obstacle_map_msg.distances[_previous_bin] = 100; // minimum CP distance value
-				}
+				_obstacle_map_msg.timestamp = hrt_absolute_time();
 
 			}
 

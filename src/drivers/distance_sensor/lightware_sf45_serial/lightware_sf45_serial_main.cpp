@@ -116,7 +116,7 @@ $ lightware_sf45_serial stop
 	PRINT_MODULE_USAGE_SUBCATEGORY("distance_sensor");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start driver");
 	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, nullptr, "Serial device", false);
-	PRINT_MODULE_USAGE_PARAM_INT('R', 25, 0, 25, "Sensor rotation - downward facing by default", true);
+	PRINT_MODULE_USAGE_PARAM_INT('R', 25, 0, 25, "Sensor rotation - downward facing by default", false);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop driver");
 	return PX4_OK;
 }
@@ -125,7 +125,7 @@ $ lightware_sf45_serial stop
 
 extern "C" __EXPORT int lightware_sf45_serial_main(int argc, char *argv[])
 {
-	uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
+	uint8_t rotation = distance_sensor_s::ROTATION_FORWARD_FACING;
 	const char *device_path = nullptr;
 	int ch;
 	int myoptind = 1;
