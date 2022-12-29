@@ -46,13 +46,13 @@
 #include <matrix/Matrix.hpp>
 #include <matrix/Vector.hpp>
 
-#include "target_estimator.h"
+#include "base_KF_decoupled.h"
 
 #pragma once
 
 namespace landing_target_estimator
 {
-class KF_xyzb_decoupled_static : public TargetEstimator
+class KF_xyzb_decoupled_static : public Base_KF_decoupled
 {
 public:
 	/**
@@ -72,7 +72,7 @@ public:
 	// Backwards state prediciton
 	void syncState(float dt, float acc) override;
 
-	void setH(matrix::Vector<float, 15> h_meas) override;
+	void setH(matrix::Vector<float, 15> h_meas, int direction) override;
 
 	virtual float computeInnovCov(float measUnc) override;
 	virtual float computeInnov(float meas) override;
@@ -107,6 +107,10 @@ public:
 	float getAcceleration() override { return 0.f; };
 	float getAccVar() override { return 0.f; };
 	void setTargetAccVar(float var) override {};
+	float getTargetVelVar() override { return 0.f; };
+	float getTargetVel() override { return 0.f; };
+	void setStateTargetVelVar(float posVect) override {};
+	void setTargetVel(float accVect) override {};
 
 private:
 	matrix::Matrix<float, 3, 1> _state; // state

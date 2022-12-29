@@ -32,10 +32,10 @@
  ****************************************************************************/
 
 /*
- * @file KF_xyzb_coupled_moving.h
+ * @file KF_xyzb_v_coupled_moving.h
  * Simple Kalman Filter for variable gain low-passing
  *
- * State: [rx, ry, rz, r_dotx, r_doty, r_dotz, bx, by, bz, atx, aty, atz]
+ * State: [rx, ry, rz, r_dotx, r_doty, r_dotz, bx, by, bz, atx, aty, atz, vtx, vty, vtz]
  *
  * @author Jonas Perolini <jonas.perolini@epfl.ch>
  *
@@ -46,13 +46,13 @@
 #include <matrix/Matrix.hpp>
 #include <matrix/Vector.hpp>
 
-#include "target_estimator_coupled.h"
+#include "base_KF_coupled.h"
 
 #pragma once
 
 namespace landing_target_estimator
 {
-class KF_xyzb_v_coupled_moving : public TargetEstimatorCoupled
+class KF_xyzb_v_coupled_moving : public Base_KF_coupled
 {
 public:
 	/**

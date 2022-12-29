@@ -49,6 +49,8 @@ namespace landing_target_estimator
 
 void KF_xyzb_coupled_moving::predictState(float dt, matrix::Vector<float, 3> acc)
 {
+
+	// [rx, ry, rz, r_dotx, r_doty, r_dotz, bx, by, bz, atx, aty, atz]
 	const float tmp0 = 0.5f * dt * dt;
 
 	_state(0, 0) = _state(0, 0) + _state(3, 0) * dt + _state(9, 0) * tmp0 - tmp0 * acc(0);
@@ -102,9 +104,9 @@ void KF_xyzb_coupled_moving::setH(matrix::Vector<float, 15> h_meas)
 	_meas_matrix(0, 6) = h_meas(6);
 	_meas_matrix(0, 7) = h_meas(7);
 	_meas_matrix(0, 8) = h_meas(8);
-	_meas_matrix(0, 9) = h_meas(6);
-	_meas_matrix(0, 10) = h_meas(7);
-	_meas_matrix(0, 11) = h_meas(8);
+	_meas_matrix(0, 9) = h_meas(9);
+	_meas_matrix(0, 10) = h_meas(10);
+	_meas_matrix(0, 11) = h_meas(11);
 }
 
 void KF_xyzb_coupled_moving::syncState(float dt, matrix::Vector<float, 3> acc)

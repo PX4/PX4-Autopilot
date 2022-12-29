@@ -82,15 +82,27 @@ bool KF_xyzb_decoupled_static::update()
 	return true;
 }
 
-void KF_xyzb_decoupled_static::setH(matrix::Vector<float, 15> h_meas)
+void KF_xyzb_decoupled_static::setH(matrix::Vector<float, 15> h_meas, int direction)
 {
 	// h_meas = [rx, ry, rz, r_dotx, r_doty, r_dotz, bx, by, bz, atx, aty, atz]
 
 	// For this filter: [rx, r_dotx, bx]
 
-	_meas_matrix(0, 0) = h_meas(0);
-	_meas_matrix(0, 1) = h_meas(3);
-	_meas_matrix(0, 2) = h_meas(6);
+	if (direction == Directions::x) {
+		_meas_matrix(0, 0) = h_meas(0);
+		_meas_matrix(0, 1) = h_meas(3);
+		_meas_matrix(0, 2) = h_meas(6);
+
+	} else if (direction == Directions::y) {
+		_meas_matrix(0, 0) = h_meas(1);
+		_meas_matrix(0, 1) = h_meas(4);
+		_meas_matrix(0, 2) = h_meas(7);
+
+	} else {
+		_meas_matrix(0, 0) = h_meas(2);
+		_meas_matrix(0, 1) = h_meas(5);
+		_meas_matrix(0, 2) = h_meas(8);
+	}
 }
 
 void KF_xyzb_decoupled_static::syncState(float dt, float acc)

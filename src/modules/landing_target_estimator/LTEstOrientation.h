@@ -166,7 +166,7 @@ private:
 	uint64_t _land_time{0};
 	bool _estimator_initialized{false};
 
-	TargetEstimatorOrientation *_target_estimator_orientation {nullptr};
+	Base_KF_orientation *_target_estimator_orientation {nullptr};
 
 	hrt_abstime _last_predict{0}; // timestamp of last filter prediction
 	hrt_abstime _last_update{0}; // timestamp of last filter update (used to check timeout)

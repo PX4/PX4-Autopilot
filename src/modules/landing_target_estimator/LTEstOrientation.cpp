@@ -333,7 +333,7 @@ void LTEstOrientation::set_local_orientation(const float yaw, const bool valid)
 
 bool LTEstOrientation::selectTargetEstimator()
 {
-	TargetEstimatorOrientation *tmp_theta = nullptr;
+	Base_KF_orientation *tmp_theta = nullptr;
 
 	bool init_failed = true;
 

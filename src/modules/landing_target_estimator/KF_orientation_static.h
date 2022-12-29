@@ -46,13 +46,13 @@
 #include <matrix/Matrix.hpp>
 #include <matrix/Vector.hpp>
 
-#include "target_estimator_orientation.h"
+#include "base_KF_orientation.h"
 
 #pragma once
 
 namespace landing_target_estimator
 {
-class KF_orientation_static : public TargetEstimatorOrientation
+class KF_orientation_static : public Base_KF_orientation
 {
 public:
 	/**

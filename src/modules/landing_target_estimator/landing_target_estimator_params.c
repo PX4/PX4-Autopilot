@@ -100,15 +100,16 @@ PARAM_DEFINE_INT32(LTEST_AID_MASK, 46);
  *
  * Configure the mode of the landing target. Depending on the mode, the landing target observations are used differently to aid position estimation.
  *
- * Mode Moving:     The landing target may be moving around. Drone's GPS velocity measurements are not used to aid target estimation.
  * Mode Stationary: The landing target is stationary, therefore the relative velocity between the drone and the target is the velocity of the drone. The drone's GPS velocity can be used to aid target estimation.
+ * Mode Moving:     The landing target may be moving around. Drone's GPS velocity measurements are not used to aid target estimation.
+ * Mode Moving Augmented State: The landing target may be moving around. Drone's GPS velocity measurements are used to aid target estimation.
  *
  * @min 0
- * @max 1
+ * @max 2
  * @group Landing target Estimator
- * @value 0 Moving
- * @value 1 Stationary
- * @value 2 Moving augmented state
+ * @value 0 Stationary
+ * @value 1 Moving
+ * @value 2 Moving augmented State
  *
  * @group Landing target Estimator
  */
@@ -125,8 +126,8 @@ PARAM_DEFINE_INT32(LTEST_MODE, 1);
  * @min 0
  * @max 2
  * @group Landing target Estimator
- * @value 0 Full pose decoupled
- * @value 1 Full pose coupled
+ * @value 0 Decoupled
+ * @value 1 Coupled
  *
  * @group Landing target Estimator
  */

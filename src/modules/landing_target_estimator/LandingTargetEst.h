@@ -115,6 +115,8 @@ private:
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 
+	uORB::Publication<vehicle_acceleration_s> _ltest_acc_input_pub{ORB_ID(ltest_acc_input)};
+
 	bool _start_filters{false};
 	uint64_t _land_time{0};
 

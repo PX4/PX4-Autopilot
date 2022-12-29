@@ -66,7 +66,7 @@ LandingTargetEst::LandingTargetEst() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
 {
-
+	_ltest_acc_input_pub.advertise();
 }
 
 LandingTargetEst::~LandingTargetEst()
@@ -215,12 +215,23 @@ void LandingTargetEst::Run()
 						_ltest_position->set_range_sensor(local_pose.dist_bottom, local_pose.dist_valid);
 					}
 
+					matrix::Vector3f vehicle_acc_ned_sampled = _vehicle_acc_ned_sum / _loops_count;
+
 					_ltest_position->set_attitude(q_att);
-					_ltest_position->update(_vehicle_acc_ned_sum / _loops_count);
+					_ltest_position->update(vehicle_acc_ned_sampled);
 					_last_update_pos = hrt_absolute_time();
 
-					reset_acc_downsample();
+					/* Publish downsampled acceleration*/
+					vehicle_acceleration_s ltest_acc_input_report;
+					ltest_acc_input_report.timestamp = hrt_absolute_time();
 
+					for (int i = 0; i < 3; i++) {
+						ltest_acc_input_report.xyz[i] = vehicle_acc_ned_sampled(i);
+					}
+
+					_ltest_acc_input_pub.publish(ltest_acc_input_report);
+
+					reset_acc_downsample();
 					perf_end(_cycle_perf_pos);
 				}
 			}
@@ -298,7 +309,7 @@ bool LandingTargetEst::get_input(matrix::Vector3f &vehicle_acc_ned, matrix::Quat
 
 	} else {
 
-		/* Transform body acc to NED */
+		/* Transform FRD body acc to NED */
 		matrix::Quaternionf quat_att(&vehicle_attitude.q[0]);
 		q_att = quat_att;
 		matrix::Dcmf R_att = matrix::Dcm<float>(q_att);
@@ -308,6 +319,8 @@ bool LandingTargetEst::get_input(matrix::Vector3f &vehicle_acc_ned, matrix::Quat
 		/* Compensate for gravity: the inverse of a rotation matrix is simply its transposed. */
 		const matrix::Vector3f gravity_ned(0, 0, CONSTANTS_ONE_G);
 		matrix::Vector3f gravity_body = R_att.transpose() * gravity_ned;
+		// TODO: compare with:
+		// matrix::Vector3f gravity_body = inv(R_att) * gravity_ned;
 
 		vehicle_acc_ned = R_att * (vehicle_acc + gravity_body);
 	}

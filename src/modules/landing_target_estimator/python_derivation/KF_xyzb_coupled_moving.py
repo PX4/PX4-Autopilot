@@ -71,6 +71,22 @@ class MDirections(sf.Matrix):
     SHAPE = (Directions.nb_directions, Directions.nb_directions)
 
 
+def predictState(dt: sf.Scalar, state: VState, acc: VInput) -> (VState):
+
+    identity = sf.Matrix([  [1, 0, 0],
+                            [0, 1, 0],
+                            [0, 0, 1]])
+
+    Phi = sf.Matrix.block_matrix([   [1 * identity, dt * identity, 0 * identity, 0.5*dt*dt * identity],
+                        [0 * identity, 1 * identity,  0 * identity, dt * identity       ],
+                        [0 * identity, 0 * identity,  1 * identity, 0  * identity       ],
+                        [0 * identity, 0 * identity,  0 * identity, 1  * identity       ]])
+
+
+    G = sf.Matrix.block_matrix([ [-0.5*dt*dt * identity], [-dt * identity], [0 * identity], [0 * identity]])
+
+    return (Phi * state + G*acc).simplify()
+
 def syncState(dt: sf.Scalar, state: VState, acc: VInput) -> (VState):
 
     identity = sf.Matrix([  [1, 0, 0],
@@ -123,6 +139,7 @@ def predictCov(dt: sf.Scalar, input_var: MDirections, bias_var: MDirections, acc
 def computeInnovCov(meas_unc: sf.Scalar, covariance: MState, meas_matrix: VMeas) -> (sf.Scalar):
     return (meas_matrix*covariance*meas_matrix.T)[0,0] + meas_unc
 
+generate_px4_function(predictState, output_names=["state_pred"])
 generate_px4_function(syncState, output_names=["state_updated"])
 generate_px4_function(predictCov, output_names=["cov_updated"])
 generate_px4_function(computeInnovCov, output_names=["innov_cov_updated"])

@@ -46,13 +46,13 @@
 #include <matrix/Matrix.hpp>
 #include <matrix/Vector.hpp>
 
-#include "target_estimator_coupled.h"
+#include "base_KF_coupled.h"
 
 #pragma once
 
 namespace landing_target_estimator
 {
-class KF_xyzb_coupled_static : public TargetEstimatorCoupled
+class KF_xyzb_coupled_static : public Base_KF_coupled
 {
 public:
 	/**

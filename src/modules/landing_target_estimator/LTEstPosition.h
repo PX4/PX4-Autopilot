@@ -74,6 +74,7 @@
 #include <lib/geo/geo.h>
 #include "KF_xyzb_decoupled_static.h"
 #include "KF_xyzb_decoupled_moving.h"
+#include "KF_xyzb_v_decoupled_moving.h"
 #include "KF_xyzb_coupled_moving.h"
 #include "KF_xyzb_v_coupled_moving.h"
 #include "KF_xyzb_coupled_static.h"
@@ -117,11 +118,6 @@ private:
 protected:
 
 	/*
-	 * Get drone's acceleration (used as filter input)
-	 */
-	void get_dist_bottom();
-
-	/*
 	 * Update parameters.
 	 */
 	void updateParams() override;
@@ -151,15 +147,15 @@ protected:
 private:
 
 	enum class TargetMode {
-		Moving = 0,
-		Stationary = 1,
+		Stationary = 0,
+		Moving = 1,
 		MovingAugmented = 2,
 		NotInit
 	};
 
 	enum class TargetModel {
-		FullPoseDecoupled = 0,
-		FullPoseCoupled,
+		Decoupled = 0,
+		Coupled = 1,
 		NotInit
 	};
 
@@ -205,7 +201,7 @@ private:
 
 	bool selectTargetEstimator();
 	bool initEstimator(matrix::Vector3f pos_init, matrix::Vector3f vel_rel_init, matrix::Vector3f acc_init,
-			   matrix::Vector3f bias_init);
+			   matrix::Vector3f bias_init, matrix::Vector3f target_vel_init);
 	bool update_step(matrix::Vector3f vehicle_acc_ned);
 	void predictionStep(matrix::Vector3f acc);
 
@@ -260,6 +256,7 @@ private:
 	};
 
 	vecStamped _vel_rel_init{};
+	vecStamped _target_vel_init{};
 	vecStamped _pos_rel_gnss{};
 	bool _bias_set;
 
@@ -268,8 +265,8 @@ private:
 	bool _estimator_initialized{false};
 
 	matrix::Quaternionf _q_att; //Quaternion orientation of the body frame
-	TargetEstimator *_target_estimator[nb_directions] {nullptr, nullptr, nullptr};
-	TargetEstimatorCoupled *_target_estimator_coupled {nullptr};
+	Base_KF_decoupled *_target_estimator[nb_directions] {nullptr, nullptr, nullptr};
+	Base_KF_coupled *_target_estimator_coupled {nullptr};
 	hrt_abstime _last_predict{0}; // timestamp of last filter prediction
 	hrt_abstime _last_update{0}; // timestamp of last filter update (used to check timeout)
 
