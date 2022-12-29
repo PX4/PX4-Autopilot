@@ -195,6 +195,11 @@ void EkfWrapper::setMagFuseTypeNone()
 	_ekf_params->mag_fusion_type = MagFuseType::NONE;
 }
 
+void EkfWrapper::enableMagStrengthCheck()
+{
+	_ekf_params->check_mag_strength = 1;
+}
+
 bool EkfWrapper::isWindVelocityEstimated() const
 {
 	return _ekf->control_status_flags().wind;
