@@ -82,3 +82,8 @@ mc_pos_control start
 # Start Multicopter Land Detector.
 #
 land_detector start multicopter
+
+#
+# Start Drag Estimator module
+#
+drag_estimator start

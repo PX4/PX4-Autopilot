@@ -1,6 +1,7 @@
+
 /****************************************************************************
  *
- *   Copyright (C) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,14 +32,36 @@
  *
  ****************************************************************************/
 
-#include <gtest/gtest.h>
-#include <RateControl.hpp>
+/**
+ * @file drag_estimator_params.c
+ * Parameters for drag estimator
+ *
+ * @author David Patrick <dpatrick@sees.ai>
+ * @author Richard Hopkirk <rhopkirk@sees.ai>
+ */
 
-using namespace matrix;
+/**
+ * Drag estimator filter cutoff frequency
+ *
+ * Drag estimator lowpass filter cutoff frequency - filters the output to reduce noise
+ *
+ * @min 0
+ * @max 100
+ * @decimal 1
+ * @increment 1
+ * @group Drag Estimator
+ */
+PARAM_DEFINE_FLOAT(DE_CUTOFF, 5.f);
 
-TEST(RateControlTest, AllZeroCase)
-{
-	RateControl rate_control;
-	Vector3f torque = rate_control.update(Vector3f(), Vector3f(), Vector3f(), Vector3f(), 0.f, false);
-	EXPECT_EQ(torque, Vector3f());
-}
+/**
+ * Drag estimator CoG z offset
+ *
+ * Drag estimator CoG offset in z for calculating the drag moment, note -ve values mean drag moment applied above CoG
+ *
+ * @min -1
+ * @max 1
+ * @decimal 2
+ * @increment 0.01
+ * @group Drag Estimator
+ */
+PARAM_DEFINE_FLOAT(DE_COG_Z_OFFSET, -0.1f);

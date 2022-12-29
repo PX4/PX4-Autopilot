@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2018 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,20 +31,12 @@
 #
 ############################################################################
 
-px4_add_library(mathlib
-	math/test/test.cpp
-	math/filter/LowPassFilter1p.hpp
-	math/filter/LowPassFilter2p.hpp
-	math/filter/MedianFilter.hpp
-	math/filter/NotchFilter.hpp
-	math/filter/second_order_reference_model.hpp
-)
-
-px4_add_unit_gtest(SRC math/filter/LowPassFilter1pVector3fTest.cpp LINKLIBS mathlib)
-px4_add_unit_gtest(SRC math/test/LowPassFilter2pVector3fTest.cpp LINKLIBS mathlib)
-px4_add_unit_gtest(SRC math/test/AlphaFilterTest.cpp)
-px4_add_unit_gtest(SRC math/test/MedianFilterTest.cpp)
-px4_add_unit_gtest(SRC math/test/NotchFilterTest.cpp)
-px4_add_unit_gtest(SRC math/test/second_order_reference_model_test.cpp)
-px4_add_unit_gtest(SRC math/FunctionsTest.cpp)
-px4_add_unit_gtest(SRC math/WelfordMeanTest.cpp)
+px4_add_module(
+	MODULE modules__drag_estimator
+	MAIN drag_estimator
+	SRCS
+		DragEstimator.cpp
+		DragEstimator.h
+	DEPENDS
+		px4_work_queue
+	)

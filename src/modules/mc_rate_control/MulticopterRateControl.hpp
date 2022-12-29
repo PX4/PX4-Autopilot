@@ -51,6 +51,7 @@
 #include <uORB/topics/actuator_controls_status.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/control_allocator_status.h>
+#include <uORB/topics/drag_estimator.h>
 #include <uORB/topics/landing_gear.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
@@ -107,6 +108,7 @@ private:
 	uORB::Subscription _vehicle_angular_acceleration_sub{ORB_ID(vehicle_angular_acceleration)};
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _drag_estimator_sub{ORB_ID(drag_estimator)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -118,6 +120,7 @@ private:
 	uORB::Publication<vehicle_rates_setpoint_s>	_v_rates_sp_pub{ORB_ID(vehicle_rates_setpoint)};
 	uORB::Publication<vehicle_thrust_setpoint_s>	_vehicle_thrust_setpoint_pub{ORB_ID(vehicle_thrust_setpoint)};
 	uORB::Publication<vehicle_torque_setpoint_s>	_vehicle_torque_setpoint_pub{ORB_ID(vehicle_torque_setpoint)};
+	uORB::PublicationMulti<rate_ctrl_status_detail_s> _controller_status_detail_pub{ORB_ID(rate_ctrl_status_detail)};	/**< controller status publication */
 
 	orb_advert_t _mavlink_log_pub{nullptr};
 
@@ -133,6 +136,8 @@ private:
 	perf_counter_t	_loop_perf;			/**< loop duration performance counter */
 
 	matrix::Vector3f _rates_sp;			/**< angular rates setpoint */
+
+	matrix::Vector3f _drag_moment;                  /**< drag moment from drag estimator */
 
 	float		_thrust_sp{0.0f};		/**< thrust setpoint */
 
@@ -177,7 +182,11 @@ private:
 
 		(ParamBool<px4::params::MC_BAT_SCALE_EN>) _param_mc_bat_scale_en,
 
-		(ParamInt<px4::params::CBRK_RATE_CTRL>) _param_cbrk_rate_ctrl
+		(ParamInt<px4::params::CBRK_RATE_CTRL>) _param_cbrk_rate_ctrl,
+
+		(ParamFloat<px4::params::MC_PR_DRAG_K>) _param_mc_pr_drag_factor,
+		(ParamFloat<px4::params::MC_PR_D_CUTOFF>) _param_mc_pr_deriv_filter_cutoff,
+		(ParamBool<px4::params::MC_PR_D_USE_SP>) _param_mc_pr_deriv_use_setpoint
 	)
 
 	matrix::Vector3f _acro_rate_max;	/**< max attitude rates in acro mode */

@@ -90,6 +90,12 @@ MulticopterRateControl::parameters_updated()
 	_rate_control.setFeedForwardGain(
 		Vector3f(_param_mc_rollrate_ff.get(), _param_mc_pitchrate_ff.get(), _param_mc_yawrate_ff.get()));
 
+	_rate_control.setDragEstimatorGain(Vector3f(_param_mc_pr_drag_factor.get(), _param_mc_pr_drag_factor.get(), 0));
+
+	_rate_control.setDTermFilterCutoff(_param_mc_pr_deriv_filter_cutoff.get());
+
+	_rate_control.setDTermToUseSetpoint(_param_mc_pr_deriv_use_setpoint.get());
+
 
 	// manual rate control acro mode rate limits
 	_acro_rate_max = Vector3f(radians(_param_mc_acro_r_max.get()), radians(_param_mc_acro_p_max.get()),
@@ -211,6 +217,16 @@ MulticopterRateControl::Run()
 		// run the rate controller
 		if (_v_control_mode.flag_control_rates_enabled && !_actuators_0_circuit_breaker_enabled) {
 
+			drag_estimator_s drag_estimator{};
+
+			if (_drag_estimator_sub.update(&drag_estimator)) {
+				_drag_moment(0) = PX4_ISFINITE(drag_estimator.drag_acceleration_moment_body[0]) ?
+						  drag_estimator.drag_acceleration_moment_body[0] : 0.f;
+				_drag_moment(1) = PX4_ISFINITE(drag_estimator.drag_acceleration_moment_body[1]) ?
+						  drag_estimator.drag_acceleration_moment_body[1] : 0.f;
+				_drag_moment(2) = 0; // ignore z drag moments
+			}
+
 			// reset integral if disarmed
 			if (!_v_control_mode.flag_armed || _vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 				_rate_control.resetIntegral();
@@ -239,13 +255,20 @@ MulticopterRateControl::Run()
 			}
 
 			// run rate controller
-			const Vector3f att_control = _rate_control.update(rates, _rates_sp, angular_accel, dt, _maybe_landed || _landed);
+			const Vector3f att_control = _rate_control.update(rates, _rates_sp, angular_accel, _drag_moment, dt, _maybe_landed
+						     || _landed);
 
 			// publish rate controller status
 			rate_ctrl_status_s rate_ctrl_status{};
 			_rate_control.getRateControlStatus(rate_ctrl_status);
 			rate_ctrl_status.timestamp = hrt_absolute_time();
 			_controller_status_pub.publish(rate_ctrl_status);
+
+			// temporary publish detail rate controller status (Richard - will remove once this is working)
+			rate_ctrl_status_detail_s rate_ctrl_status_detail{};
+			_rate_control.getRateControlStatus(rate_ctrl_status_detail);
+			rate_ctrl_status_detail.timestamp = hrt_absolute_time();
+			_controller_status_detail_pub.publish(rate_ctrl_status_detail);
 
 			// publish actuator controls
 			actuator_controls_s actuators{};

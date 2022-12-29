@@ -1,0 +1,12 @@
+menuconfig MODULES_DRAG_ESTIMATOR
+	bool "drag_estimator"
+	default n
+	---help---
+		Enable support for drag_estimator
+
+menuconfig DRAG_ESTIMATOR
+	bool "drag_estimator running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && MODULES_DRAG_ESTIMATOR
+	---help---
+		Put drag_estimator in userspace memory

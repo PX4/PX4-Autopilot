@@ -307,7 +307,8 @@ PrecLand::run_state_descend_above_target()
 			pos_sp_triplet->current.alt = _navigator->get_global_position()->alt;
 
 			if (!switch_to_state_start()) {
-				mavlink_log_info(&_mavlink_log_pub, "Precland: Unable to switch to state start, number of search count: %i", _search_cnt);
+				mavlink_log_info(&_mavlink_log_pub, "Precland: Unable to switch to state start, number of search count: %i",
+						 _search_cnt);
 				switch_to_state_fallback();
 			}
 		}
@@ -322,12 +323,19 @@ PrecLand::run_state_descend_above_target()
 
 	if (_navigator->get_local_position()->dist_bottom > _param_mpc_land_alt1) {
 		dt_z = 1.0f;
-	} else if (_navigator->get_local_position()->dist_bottom > _param_mpc_land_alt2 && _navigator->get_local_position()->dist_bottom <= _param_mpc_land_alt1) {
+
+	} else if (_navigator->get_local_position()->dist_bottom > _param_mpc_land_alt2
+		   && _navigator->get_local_position()->dist_bottom <= _param_mpc_land_alt1) {
 		dt_z = 0.75f;
-	} else if (_navigator->get_local_position()->dist_bottom > _param_mpc_land_alt3 && _navigator->get_local_position()->dist_bottom <= _param_mpc_land_alt2) {
+
+	} else if (_navigator->get_local_position()->dist_bottom > _param_mpc_land_alt3
+		   && _navigator->get_local_position()->dist_bottom <= _param_mpc_land_alt2) {
 		dt_z = 0.5f;
-	} else if (_navigator->get_local_position()->dist_bottom > 0.5f && _navigator->get_local_position()->dist_bottom <= _param_mpc_land_alt3) {
+
+	} else if (_navigator->get_local_position()->dist_bottom > 0.5f
+		   && _navigator->get_local_position()->dist_bottom <= _param_mpc_land_alt3) {
 		dt_z = 0.25f;
+
 	} else if (_navigator->get_local_position()->dist_bottom <= 0.5f) {
 		dt_z = 0.1f;
 	}
@@ -442,12 +450,14 @@ bool
 PrecLand::switch_to_state_final_approach()
 {
 	_fappr_tolerance_enabled = true;
+
 	if (check_state_conditions(PrecLandState::FinalApproach)) {
 		print_state_switch_message("final approach");
 		_state = PrecLandState::FinalApproach;
 		_state_start_time = hrt_absolute_time();
 		return true;
 	}
+
 	_fappr_tolerance_enabled = false;
 
 	return false;
@@ -537,7 +547,8 @@ bool PrecLand::check_state_conditions(PrecLandState state)
 			// if we're close to the ground, we're more critical of target timeouts so we quickly go into descend
 			if (check_state_conditions(PrecLandState::FinalApproach)) {
 				float current_timeout = float(hrt_absolute_time() - _target_pose.timestamp) / 1e6f;
-				mavlink_log_info(&_mavlink_log_pub, "Precland: descend above target close to ground, current timeout: %f s", (double)current_timeout);
+				mavlink_log_info(&_mavlink_log_pub, "Precland: descend above target close to ground, current timeout: %f s",
+						 (double)current_timeout);
 				return hrt_absolute_time() - _target_pose.timestamp > 500000; // 0.5s
 
 			} else {
@@ -552,15 +563,18 @@ bool PrecLand::check_state_conditions(PrecLandState state)
 		}
 
 	case PrecLandState::FinalApproach:
+
 		// allow certain error in tolerance of distance z calculation in final approach (2.5 cm)
 		if (_fappr_tolerance_enabled) {
 			float z_diff = _target_pose.z_abs - vehicle_local_position->z;
-			mavlink_log_info(&_mavlink_log_pub, "Precland: distance between target and current local position in z: %f m", (double)z_diff);
+			mavlink_log_info(&_mavlink_log_pub, "Precland: distance between target and current local position in z: %f m",
+					 (double)z_diff);
 			return _target_pose_valid && _target_pose.abs_pos_valid
 			       && (_target_pose.z_abs - vehicle_local_position->z - 0.025f) < _param_pld_fappr_alt.get();
+
 		} else {
 			return _target_pose_valid && _target_pose.abs_pos_valid
-		       	       && (_target_pose.z_abs - vehicle_local_position->z) < _param_pld_fappr_alt.get();
+			       && (_target_pose.z_abs - vehicle_local_position->z) < _param_pld_fappr_alt.get();
 		}
 
 	case PrecLandState::Search:

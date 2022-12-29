@@ -128,9 +128,9 @@ bool VehicleAngularVelocity::UpdateSampleRate()
 			_filter_sample_rate_hz = sample_rate_hz;
 			_update_sample_rate = false;
 
-			if (_param_imu_gyro_ratemax.get() > 0.f) {
+			if (_param_imu_integ_rate.get() > 0.f) {
 				// determine number of sensor samples that will get closest to the desired rate
-				const float configured_interval_us = 1e6f / _param_imu_gyro_ratemax.get();
+				const float configured_interval_us = 1e6f / _param_imu_integ_rate.get();
 				const float publish_interval_us = 1e6f / publish_rate_hz;
 
 				const uint8_t samples = roundf(configured_interval_us / publish_interval_us);
@@ -377,22 +377,23 @@ void VehicleAngularVelocity::ParametersUpdate(bool force)
 
 		_calibration.ParametersUpdate();
 
-		// IMU_GYRO_RATEMAX
-		if (_param_imu_gyro_ratemax.get() <= 0) {
-			const int32_t imu_gyro_ratemax = _param_imu_gyro_ratemax.get();
-			_param_imu_gyro_ratemax.reset();
-			PX4_WARN("IMU_GYRO_RATEMAX invalid (%" PRId32 "), resetting to default %" PRId32 ")", imu_gyro_ratemax,
-				 _param_imu_gyro_ratemax.get());
-		}
+		// ---Sees.ai--- Commented out as we instead use IMU_INTEG_RATE
+		// // IMU_GYRO_RATEMAX
+		// if (_param_imu_gyro_ratemax.get() <= 0) {
+		// 	const int32_t imu_gyro_ratemax = _param_imu_gyro_ratemax.get();
+		// 	_param_imu_gyro_ratemax.reset();
+		// 	PX4_WARN("IMU_GYRO_RATEMAX invalid (%" PRId32 "), resetting to default %" PRId32 ")", imu_gyro_ratemax,
+		// 		 _param_imu_gyro_ratemax.get());
+		// }
 
-		// constrain IMU_GYRO_RATEMAX 50-10,000 Hz
-		const int32_t imu_gyro_ratemax = constrain(_param_imu_gyro_ratemax.get(), (int32_t)50, (int32_t)10'000);
+		// // constrain IMU_GYRO_RATEMAX 50-10,000 Hz
+		// const int32_t imu_gyro_ratemax = constrain(_param_imu_gyro_ratemax.get(), (int32_t)50, (int32_t)10'000);
 
-		if (imu_gyro_ratemax != _param_imu_gyro_ratemax.get()) {
-			PX4_WARN("IMU_GYRO_RATEMAX updated %" PRId32 " -> %" PRIu32, _param_imu_gyro_ratemax.get(), imu_gyro_ratemax);
-			_param_imu_gyro_ratemax.set(imu_gyro_ratemax);
-			_param_imu_gyro_ratemax.commit_no_notification();
-		}
+		// if (imu_gyro_ratemax != _param_imu_gyro_ratemax.get()) {
+		// 	PX4_WARN("IMU_GYRO_RATEMAX updated %" PRId32 " -> %" PRIu32, _param_imu_gyro_ratemax.get(), imu_gyro_ratemax);
+		// 	_param_imu_gyro_ratemax.set(imu_gyro_ratemax);
+		// 	_param_imu_gyro_ratemax.commit_no_notification();
+		// }
 
 		// gyro low pass cutoff frequency changed
 		for (auto &lp : _lp_filter_velocity) {
