@@ -125,9 +125,20 @@ void Ekf::controlMagFusion()
 	}
 
 	_mag_yaw_reset_req |= !_control_status.flags.yaw_align;
-	_mag_yaw_reset_req |= _mag_inhibit_yaw_reset_req;
 
 	if (mag_data_ready && !_control_status.flags.ev_yaw && !_control_status.flags.gps_yaw) {
+
+		if (shouldInhibitMag()) {
+			if (uint32_t(_imu_sample_delayed.time_us - _mag_use_not_inhibit_us) > (uint32_t)5e6) {
+				// If magnetometer use has been inhibited continuously then stop the fusion
+				stopMagFusion();
+			}
+
+			return;
+
+		} else {
+			_mag_use_not_inhibit_us = _imu_sample_delayed.time_us;
+		}
 
 		const bool mag_enabled_previously = _control_status_prev.flags.mag_hdg || _control_status_prev.flags.mag_3D;
 
@@ -172,7 +183,6 @@ void Ekf::controlMagFusion()
 		}
 
 		checkMagDeclRequired();
-		checkMagInhibition();
 
 		runMagAndMagDeclFusions(mag_sample.mag);
 	}
@@ -193,27 +203,14 @@ void Ekf::checkHaglYawResetReq()
 
 void Ekf::runOnGroundYawReset()
 {
-	if (_mag_yaw_reset_req && !_is_yaw_fusion_inhibited) {
-		const bool has_realigned_yaw = canResetMagHeading() ? resetMagHeading() : false;
+	if (_mag_yaw_reset_req) {
+		const bool has_realigned_yaw = resetMagHeading();
 
 		if (has_realigned_yaw) {
 			_mag_yaw_reset_req = false;
 			_control_status.flags.yaw_align = true;
-
-			// Handle the special case where we have not been constraining yaw drift or learning yaw bias due
-			// to assumed invalid mag field associated with indoor operation with a downwards looking flow sensor.
-			if (_mag_inhibit_yaw_reset_req) {
-				_mag_inhibit_yaw_reset_req = false;
-				// Zero the yaw bias covariance and set the variance to the initial alignment uncertainty
-				P.uncorrelateCovarianceSetVariance<1>(12, sq(_params.switch_on_gyro_bias * _dt_ekf_avg));
-			}
 		}
 	}
-}
-
-bool Ekf::canResetMagHeading() const
-{
-	return !_control_status.flags.mag_field_disturbed && (_params.mag_fusion_type != MagFuseType::NONE);
 }
 
 void Ekf::runInAirYawReset()
@@ -224,7 +221,7 @@ void Ekf::runInAirYawReset()
 		return;
 	}
 
-	if (_mag_yaw_reset_req && !_is_yaw_fusion_inhibited) {
+	if (_mag_yaw_reset_req) {
 		bool has_realigned_yaw = false;
 
 		// use yaw estimator if available
@@ -262,7 +259,7 @@ void Ekf::runInAirYawReset()
 			has_realigned_yaw = true;
 		}
 
-		if (!has_realigned_yaw && canResetMagHeading()) {
+		if (!has_realigned_yaw) {
 			has_realigned_yaw = resetMagHeading();
 		}
 
@@ -273,16 +270,7 @@ void Ekf::runInAirYawReset()
 
 			// record the time for the magnetic field alignment event
 			_flt_mag_align_start_time = _imu_sample_delayed.time_us;
-
-			// Handle the special case where we have not been constraining yaw drift or learning yaw bias due
-			// to assumed invalid mag field associated with indoor operation with a downwards looking flow sensor.
-			if (_mag_inhibit_yaw_reset_req) {
-				_mag_inhibit_yaw_reset_req = false;
-				// Zero the yaw bias covariance and set the variance to the initial alignment uncertainty
-				P.uncorrelateCovarianceSetVariance<1>(12, sq(_params.switch_on_gyro_bias * _dt_ekf_avg));
-			}
 		}
-
 	}
 }
 
@@ -356,20 +344,6 @@ void Ekf::checkMagDeclRequired()
 	_control_status.flags.mag_dec = (_control_status.flags.mag_3D && (not_using_ne_aiding || user_selected));
 }
 
-void Ekf::checkMagInhibition()
-{
-	_is_yaw_fusion_inhibited = shouldInhibitMag();
-
-	if (!_is_yaw_fusion_inhibited) {
-		_mag_use_not_inhibit_us = _imu_sample_delayed.time_us;
-	}
-
-	// If magnetometer use has been inhibited continuously then a yaw reset is required for a valid heading
-	if (uint32_t(_imu_sample_delayed.time_us - _mag_use_not_inhibit_us) > (uint32_t)5e6) {
-		_mag_inhibit_yaw_reset_req = true;
-	}
-}
-
 bool Ekf::shouldInhibitMag() const
 {
 	// If the user has selected auto protection against indoor magnetic field errors, only use the magnetometer
@@ -414,7 +388,7 @@ void Ekf::runMagAndMagDeclFusions(const Vector3f &mag)
 	if (_control_status.flags.mag_3D) {
 		run3DMagAndDeclFusions(mag);
 
-	} else if (_control_status.flags.mag_hdg && !_is_yaw_fusion_inhibited) {
+	} else if (_control_status.flags.mag_hdg) {
 		// Rotate the measurements into earth frame using the zero yaw angle
 		Dcmf R_to_earth = updateYawInRotMat(0.f, _R_to_earth);
 
@@ -437,8 +411,7 @@ void Ekf::run3DMagAndDeclFusions(const Vector3f &mag)
 {
 	// For the first few seconds after in-flight alignment we allow the magnetic field state estimates to stabilise
 	// before they are used to constrain heading drift
-	const bool update_all_states = ((_imu_sample_delayed.time_us - _flt_mag_align_start_time) > (uint64_t)5e6)
-			&& !_control_status.flags.mag_fault && !_control_status.flags.mag_field_disturbed;
+	const bool update_all_states = ((_imu_sample_delayed.time_us - _flt_mag_align_start_time) > (uint64_t)5e6);
 
 	if (!_mag_decl_cov_reset) {
 		// After any magnetic field covariance reset event the earth field state
