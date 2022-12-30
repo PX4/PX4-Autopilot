@@ -36,11 +36,18 @@
  * Included Files
  ****************************************************************************/
 #include <px4_platform_common/px4_config.h>
+#include <px4_arch/micro_hal.h>
 #include <systemlib/px4_macros.h>
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
+#if defined(HAS_BBSRAM)
+
+#include <stm32_bbsram.h>
+typedef struct bbsramd_s dump_s;
+
 #define HARDFAULT_REBOOT_FILENO 0
 #define HARDFAULT_REBOOT_PATH BBSRAM_PATH "" STRINGIFY(HARDFAULT_REBOOT_FILENO)
 #define HARDFAULT_ULOG_FILENO 3
@@ -86,6 +93,66 @@
 		BBSRAM_SIZE_FN4,   /* For the Panic Log use rest of space */  \
 		0                  /* End of table marker */                  \
 	}
+#elif defined(HAS_PROGMEM)
+
+typedef struct progmem_s dump_s;
+
+#if CONFIG_ARCH_INTERRUPTSTACK <= 3
+#  define PROGMEM_NUMBER_STACKS 1
+#else
+#  define PROGMEM_NUMBER_STACKS 2
+#endif
+#define PROGMEM_DUMP_FIXED_ELEMENTS_SIZE (sizeof(info_s))
+#define PROGMEM_DUMP_LEFTOVER (PROGMEM_DUMP_STACK_SIZE-PROGMEM_DUMP_FIXED_ELEMENTS_SIZE)
+
+#define CONFIG_ISTACK_SIZE (PROGMEM_DUMP_LEFTOVER/PROGMEM_NUMBER_STACKS/sizeof(stack_word_t))
+#define CONFIG_USTACK_SIZE (PROGMEM_DUMP_LEFTOVER/PROGMEM_NUMBER_STACKS/sizeof(stack_word_t))
+
+#define HARDFAULT_ULOG_FILENO 2
+#define HARDFAULT_ULOG_PATH PROGMEM_PATH "" STRINGIFY(HARDFAULT_ULOG_FILENO)
+#define HARDFAULT_FILENO 3
+#define HARDFAULT_PATH PROGMEM_PATH "" STRINGIFY(HARDFAULT_FILENO)
+
+#define HARDFAULT_MAX_ULOG_FILE_LEN 64 /* must be large enough to store the full path to the log file */
+
+#define PROGMEM_SIZE_FN0 384     /* greater then 2.5 times the size of vehicle_status_s */
+#define PROGMEM_SIZE_FN1 384     /* greater then 2.5 times the size of vehicle_status_s */
+#define PROGMEM_SIZE_FN2 HARDFAULT_MAX_ULOG_FILE_LEN
+#define PROGMEM_SIZE_FN3 -1
+
+/* The following guides in the amount of the user and interrupt stack
+ * data we can save. The amount of storage left will dictate the actual
+ * number of entries of the user stack data saved. If it is too big
+ * It will be truncated by the call to stm32_bbsram_savepanic
+ */
+
+#define PROGMEM_USED ((5*PROGMEM_HEADER_SIZE)+(PROGMEM_SIZE_FN0+PROGMEM_SIZE_FN1+PROGMEM_SIZE_FN2+PROGMEM_SIZE_FN3))
+#define PROGMEM_REAMINING (PX4_PROGMEM_SIZE-PROGMEM_USED)
+#if CONFIG_ARCH_INTERRUPTSTACK <= 3
+#  define PROGMEM_NUMBER_STACKS 1
+#else
+#  define PROGMEM_NUMBER_STACKS 2
+#endif
+#define PROGMEM_FIXED_ELEMENTS_SIZE (sizeof(info_s))
+#define PROGMEM_LEFTOVER (PROGMEM_REAMINING-PROGMEM_FIXED_ELEMENTS_SIZE)
+
+#define PROGMEM_FILE_COUNT 4
+/* The path to the Battery Backed up SRAM */
+#define PROGMEM_PATH "/mnt/hardfault"
+/* The sizes of the files to create (-1) use rest of BBSRAM memory */
+#define PROGMEM_FILE_SIZES { \
+		PROGMEM_SIZE_FN0,   /* For Current Flight Parameters Copy A */ \
+		PROGMEM_SIZE_FN1,   /* For Current Flight Parameters Copy B */ \
+		PROGMEM_SIZE_FN2,  /* For the latest ULog file path */        \
+		PROGMEM_SIZE_FN3,   /* For the Panic Log use rest of space */  \
+		0                  /* End of table marker */                  \
+	}
+#else /* HAS_PROGMEM */
+
+#define CONFIG_ISTACK_SIZE 0
+#define CONFIG_USTACK_SIZE 0
+
+#endif
 
 /* For Assert keep this much of the file name*/
 #define MAX_FILE_PATH_LENGTH 40
