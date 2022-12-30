@@ -309,5 +309,7 @@ int s32k3xx_bringup(void)
 #  endif /* CONFIG_S32K3XX_FLEXCAN5 */
 #endif /* CONFIG_NETDEV_LATEINIT */
 
+	board_hardfault_init(2, true);
+
 	return ret;
 }

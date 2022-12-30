@@ -41,7 +41,7 @@ __BEGIN_DECLS
 
 // Fixme: using ??
 #define PX4_BBSRAM_SIZE             2048
-#define PX4_BBSRAM_GETDESC_IOCTL    0
+#define PX4_HF_GETDESC_IOCTL        PROGMEM_DUMP_GETDESC_IOCTL
 #define PX4_NUMBER_I2C_BUSES        2
 
 #define GPIO_OUTPUT_SET             GPIO_OUTPUT_ONE
@@ -92,6 +92,12 @@ __BEGIN_DECLS
 /* bus_num is zero based on s32k3xx and must be translated from the legacy one based */
 
 #define PX4_BUS_OFFSET       1                  /* s32k3xx buses are 0 based and adjustment is needed */
+
+#define px4_savepanic(fileno, context, length)  progmem_dump_savepanic(fileno, context, length)
+
+#if defined(CONFIG_ARCH_HAVE_PROGMEM) && defined(CONFIG_BOARD_CRASHDUMP)
+#  define HAS_PROGMEM 1
+#endif
 
 #define px4_spibus_initialize(bus_num_1based)   s32k3xx_lpspibus_initialize(PX4_BUS_NUMBER_FROM_PX4(bus_num_1based))
 
