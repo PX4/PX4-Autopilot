@@ -2,7 +2,7 @@ module_name: Lightware SF45 Rangefinder (serial)
 serial_config:
     - command: lightware_sf45_serial start -R 0 -d ${SERIAL_DEV}
       port_config_param:
-        name: SENS_EN_SF45
+        name: SENS_EN_SF45_CFG
         group: Sensors
         default: TEL1
       num_instances: 1
