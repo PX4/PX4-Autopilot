@@ -84,14 +84,12 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 	// calculate relative wind velocity in earth frame and rotate into body frame
 	const Vector3f rel_wind_earth(vn - vwn, ve - vwe, vd);
 	const Vector3f rel_wind_body = _state.quat_nominal.rotateVectorInverse(rel_wind_earth);
+	const float rel_wind_speed = rel_wind_body.norm();
 
 	// perform sequential fusion of XY specific forces
 	for (uint8_t axis_index = 0; axis_index < 2; axis_index++) {
 		// measured drag acceleration corrected for sensor bias
 		const float mea_acc = drag_sample.accelXY(axis_index)  - _state.delta_vel_bias(axis_index) / _dt_ekf_avg;
-
-		// predicted drag force sign is opposite to predicted wind relative velocity
-		const float drag_sign = (rel_wind_body(axis_index) >= 0.f) ? -1.f : 1.f;
 
 		// Drag is modelled as an arbitrary combination of bluff body drag that proportional to
 		// equivalent airspeed squared, and rotor momentum drag that is proportional to true airspeed
@@ -106,14 +104,15 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 				const float bcoef_inv = 1.0f / _params.bcoef_x;
 				// The airspeed used for linearisation is calculated from the measured acceleration by solving the following quadratic
 				// mea_acc = 0.5 * rho * bcoef_inv * airspeed**2 + mcoef_corrrected * airspeed
+				// TODO: this should be modified as well and in the derivation: mea_acc = 0.5 * rho * bcoef_inv * airspeed * airspeed_norm + mcoef_corrrected * airspeed
 				const float airspeed = (_params.bcoef_x  / rho) * (- mcoef_corrrected  + sqrtf(sq(mcoef_corrrected) + 2.0f * rho * bcoef_inv * fabsf(mea_acc)));
 				Kacc = fmaxf(1e-1f, rho * bcoef_inv * airspeed + mcoef_corrrected);
-				pred_acc = 0.5f * bcoef_inv * rho * sq(rel_wind_body(0)) * drag_sign - rel_wind_body(0) * mcoef_corrrected;
+				pred_acc = -0.5f * bcoef_inv * rho * rel_wind_body(0) * rel_wind_speed - rel_wind_body(0) * mcoef_corrrected;
 
 			} else if (using_mcoef) {
 				// Use propeller momentum drag only
 				Kacc = fmaxf(1e-1f, mcoef_corrrected);
-				pred_acc = - rel_wind_body(0) * mcoef_corrrected;
+				pred_acc = -rel_wind_body(0) * mcoef_corrrected;
 
 			} else if (using_bcoef_x) {
 				// Use bluff body drag only
@@ -122,7 +121,7 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 				const float airspeed = sqrtf((2.0f * _params.bcoef_x  * fabsf(mea_acc)) / rho);
 				const float bcoef_inv = 1.0f / _params.bcoef_x;
 				Kacc = fmaxf(1e-1f, rho * bcoef_inv * airspeed);
-				pred_acc = 0.5f * bcoef_inv * rho * sq(rel_wind_body(0)) * drag_sign;
+				pred_acc = -0.5f * bcoef_inv * rho * rel_wind_body(0) * rel_wind_speed;
 
 			} else {
 				// skip this axis
@@ -221,12 +220,12 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 				// mea_acc = 0.5 * rho * bcoef_inv * airspeed**2 + mcoef_corrrected * airspeed
 				const float airspeed = (_params.bcoef_y  / rho) * (- mcoef_corrrected  + sqrtf(sq(mcoef_corrrected) + 2.0f * rho * bcoef_inv * fabsf(mea_acc)));
 				Kacc = fmaxf(1e-1f, rho * bcoef_inv * airspeed + mcoef_corrrected);
-				pred_acc = 0.5f * bcoef_inv * rho * sq(rel_wind_body(1)) * drag_sign - rel_wind_body(1) * mcoef_corrrected;
+				pred_acc = -0.5f * bcoef_inv * rho * rel_wind_body(1) * rel_wind_speed - rel_wind_body(1) * mcoef_corrrected;
 
 			} else if (using_mcoef) {
 				// Use propeller momentum drag only
 				Kacc = fmaxf(1e-1f, mcoef_corrrected);
-				pred_acc = - rel_wind_body(1) * mcoef_corrrected;
+				pred_acc = -rel_wind_body(1) * mcoef_corrrected;
 
 			} else if (using_bcoef_y) {
 				// Use bluff body drag only
@@ -235,7 +234,7 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 				const float airspeed = sqrtf((2.0f * _params.bcoef_y * fabsf(mea_acc)) / rho);
 				const float bcoef_inv = 1.0f / _params.bcoef_y;
 				Kacc = fmaxf(1e-1f, rho * bcoef_inv * airspeed);
-				pred_acc = 0.5f * bcoef_inv * rho * sq(rel_wind_body(1)) * drag_sign;
+				pred_acc = -0.5f * bcoef_inv * rho * rel_wind_body(1) * rel_wind_speed;
 
 			} else {
 				// nothing more to do
