@@ -189,11 +189,13 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic_multi("estimator_status_flags", 0, MAX_ESTIMATOR_INSTANCES);
 	add_optional_topic_multi("yaw_estimator_status", 1000, MAX_ESTIMATOR_INSTANCES);
 
-	add_optional_topic_multi("target_estimator_aid_gps_pos", 100, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("target_estimator_aid_gps_vel", 100, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("target_estimator_aid_vision", 100, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("target_estimator_aid_irlock", 100, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("target_estimator_aid_uwb", 100, MAX_ESTIMATOR_INSTANCES);
+	add_optional_topic_multi("ltest_aid_gps_pos_target", 100, MAX_ESTIMATOR_INSTANCES);
+	add_optional_topic_multi("ltest_aid_gps_pos_mission", 100, MAX_ESTIMATOR_INSTANCES);
+	add_optional_topic_multi("ltest_aid_gps_vel_rel", 100, MAX_ESTIMATOR_INSTANCES);
+	add_optional_topic_multi("ltest_aid_gps_vel_target", 100, MAX_ESTIMATOR_INSTANCES);
+	add_optional_topic_multi("ltest_aid_fiducial_marker", 100, MAX_ESTIMATOR_INSTANCES);
+	add_optional_topic_multi("ltest_aid_irlock", 100, MAX_ESTIMATOR_INSTANCES);
+	add_optional_topic_multi("ltest_aid_uwb", 100, MAX_ESTIMATOR_INSTANCES);
 	add_optional_topic_multi("target_estimator_aid_ev_yaw", 100, MAX_ESTIMATOR_INSTANCES);
 
 	// add_optional_topic_multi("estimator_aid_src_airspeed", 100, MAX_ESTIMATOR_INSTANCES);

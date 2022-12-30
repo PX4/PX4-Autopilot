@@ -98,13 +98,13 @@ public:
 	matrix::Vector<float, 3> getVelocityVect() override {matrix::Vector3f vel_vect(_state(3, 0), _state(4, 0), _state(5, 0)); return vel_vect;};
 	matrix::Vector<float, 3> getBiasVect() override {matrix::Vector3f bias_vect(_state(6, 0), _state(7, 0), _state(8, 0)); return bias_vect;};
 	matrix::Vector<float, 3> getAccelerationVect() override {matrix::Vector3f acc_vect(_state(9, 0), _state(10, 0), _state(11, 0)); return acc_vect;};
-	matrix::Vector<float, 3> getTargetVel() override {matrix::Vector3f acc_vect(_state(12, 0), _state(13, 0), _state(13, 0)); return acc_vect;};
+	matrix::Vector<float, 3> getTargetVel() override {matrix::Vector3f target_vel_vect(_state(12, 0), _state(13, 0), _state(14, 0)); return target_vel_vect;};
 
 	matrix::Vector<float, 3> getPosVarVect() override {matrix::Vector3f pos_var_vect(_covariance(0, 0), _covariance(1, 1), _covariance(2, 2)); return pos_var_vect;};
 	matrix::Vector<float, 3> getVelVarVect() override {matrix::Vector3f vel_var_vect(_covariance(3, 3), _covariance(4, 4), _covariance(5, 5)); return vel_var_vect;};
 	matrix::Vector<float, 3> getBiasVarVect() override {matrix::Vector3f bias_var_vect(_covariance(6, 6), _covariance(7, 7), _covariance(8, 8)); return bias_var_vect;};
 	matrix::Vector<float, 3> getAccVarVect() override {matrix::Vector3f acc_var_vect(_covariance(9, 9), _covariance(10, 10), _covariance(11, 11)); return acc_var_vect;};
-	matrix::Vector<float, 3> getTargetVelVar() override {matrix::Vector3f acc_var_vect(_covariance(12, 12), _covariance(13, 13), _covariance(14, 14)); return acc_var_vect;};
+	matrix::Vector<float, 3> getTargetVelVar() override {matrix::Vector3f target_vel_var_vect(_covariance(12, 12), _covariance(13, 13), _covariance(14, 14)); return target_vel_var_vect;};
 
 	void setInputAccVar(matrix::Matrix<float, 3, 3> varVect) override {_input_var = varVect;};
 	void setBiasVar(matrix::Matrix<float, 3, 3> varVect) override {_bias_var = varVect;};

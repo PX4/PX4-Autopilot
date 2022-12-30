@@ -136,11 +136,13 @@ protected:
 	uORB::Publication<target_estimator_state_s> _targetEstimatorStatePub{ORB_ID(target_estimator_state)};
 
 	// publish innovations target_estimator_gps_pos
-	uORB::Publication<estimator_aid_source_3d_s> _target_estimator_aid_gps_pos_pub{ORB_ID(target_estimator_aid_gps_pos)};
-	uORB::Publication<estimator_aid_source_3d_s> _target_estimator_aid_gps_vel_pub{ORB_ID(target_estimator_aid_gps_vel)};
-	uORB::Publication<estimator_aid_source_3d_s> _target_estimator_aid_vision_pub{ORB_ID(target_estimator_aid_vision)};
-	uORB::Publication<estimator_aid_source_3d_s> _target_estimator_aid_irlock_pub{ORB_ID(target_estimator_aid_irlock)};
-	uORB::Publication<estimator_aid_source_3d_s> _target_estimator_aid_uwb_pub{ORB_ID(target_estimator_aid_uwb)};
+	uORB::Publication<estimator_aid_source_3d_s> _ltest_aid_gps_pos_target_pub{ORB_ID(ltest_aid_gps_pos_target)};
+	uORB::Publication<estimator_aid_source_3d_s> _ltest_aid_gps_pos_mission_pub{ORB_ID(ltest_aid_gps_pos_mission)};
+	uORB::Publication<estimator_aid_source_3d_s> _ltest_aid_gps_vel_target_pub{ORB_ID(ltest_aid_gps_vel_target)};
+	uORB::Publication<estimator_aid_source_3d_s> _ltest_aid_gps_vel_rel_pub{ORB_ID(ltest_aid_gps_vel_rel)};
+	uORB::Publication<estimator_aid_source_3d_s> _ltest_aid_fiducial_marker_pub{ORB_ID(ltest_aid_fiducial_marker)};
+	uORB::Publication<estimator_aid_source_3d_s> _ltest_aid_irlock_pub{ORB_ID(ltest_aid_irlock)};
+	uORB::Publication<estimator_aid_source_3d_s> _ltest_aid_uwb_pub{ORB_ID(ltest_aid_uwb)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -164,10 +166,12 @@ private:
 
 	enum ObservationType {
 		target_gps_pos = 0,
-		uav_gps_vel = 1,
-		fiducial_marker = 2,
-		irlock = 3,
-		uwb = 4,
+		mission_gps_pos = 1,
+		vel_rel_gps = 2,
+		vel_target_gps = 3,
+		fiducial_marker = 4,
+		irlock = 5,
+		uwb = 6,
 	};
 
 	struct targetObsPos {
@@ -192,7 +196,7 @@ private:
 	enum SensorFusionMask : uint16_t {
 		// Bit locations for fusion_mode
 		USE_TARGET_GPS_POS  = (1 << 0),    ///< set to true to use target GPS position data
-		USE_UAV_GPS_VEL     = (1 << 1),    ///< set to true to use drone GPS velocity data
+		USE_GPS_REL_VEL     = (1 << 1),    ///< set to true to use drone GPS velocity data (and target GPS velocity data if the target is moving)
 		USE_EXT_VIS_POS 	= (1 << 2),    ///< set to true to use target external vision-based relative position data
 		USE_IRLOCK_POS 		= (1 << 3),    ///< set to true to use target relative position from irlock data
 		USE_UWB_POS     	= (1 << 4),    ///< set to true to use target relative position from uwb data
@@ -208,10 +212,13 @@ private:
 	bool processObsIRlock(const irlock_report_s &irlock_report, targetObsPos &obs);
 	bool processObsUWB(const uwb_distance_s &uwb_distance, targetObsPos &obs);
 	bool processObsVision(const landing_target_pose_s &fiducial_marker_pose, targetObsPos &obs);
-	bool processObsTargetGNSS(const landing_target_gnss_s &target_GNSS_report, bool target_GNSS_report_valid,
-				  const sensor_gps_s &vehicle_gps_position, targetObsPos &obs);
-	bool processObsUavGNSSVel(const landing_target_gnss_s &target_GNSS_report,  const sensor_gps_s &vehicle_gps_position,
+	bool processObsGNSSPosTarget(const landing_target_gnss_s &target_GNSS_report,
+				     const sensor_gps_s &vehicle_gps_position, targetObsPos &obs);
+	bool processObsGNSSPosMission(const sensor_gps_s &vehicle_gps_position, targetObsPos &obs);
+	bool processObsGNSSVelRel(const landing_target_gnss_s &target_GNSS_report, bool target_GNSS_report_valid,
+				  const sensor_gps_s &vehicle_gps_position, bool vehicle_gps_vel_updated,
 				  targetObsPos &obs);
+	bool processObsGNSSVelTarget(const landing_target_gnss_s &target_GNSS_report, targetObsPos &obs);
 
 	bool fuse_meas(const matrix::Vector3f vehicle_acc_ned, const targetObsPos &target_pos_obs);
 	void publishTarget();
@@ -255,8 +262,8 @@ private:
 		matrix::Vector3f xyz;
 	};
 
-	vecStamped _vel_rel_init{};
-	vecStamped _target_vel_init{};
+	vecStamped _uav_gps_vel{};
+	vecStamped _target_gps_vel{};
 	vecStamped _pos_rel_gnss{};
 	bool _bias_set;
 
