@@ -40,6 +40,20 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_combined.h>
 
+// Timeout between bytes. If there is more time than this between bytes, then this driver assumes
+// that it is the boundary between messages.
+// See uwb_sr150::run() for more detailed explanation.
+#define BYTE_TIMEOUT_US 5000
+
+// Amount of time to wait for a new message. If more time than this passes between messages, then this
+// driver assumes that the UWB_SR150 module is disconnected.
+// (Right now it does not do anything about this)
+#define MESSAGE_TIMEOUT_S 10  //wait 10 seconds.
+#define MESSAGE_TIMEOUT_US 1
+
+// The default baudrate of the uwb_sr150 module before configuration
+#define DEFAULT_BAUD B115200
+
 extern "C" __EXPORT int uwb_sr150_main(int argc, char *argv[]);
 
 // Unchanged
@@ -74,9 +88,26 @@ UWB_SR150::UWB_SR150(const char *device_name, speed_t baudrate, bool uwb_pos_deb
 	if (ret < 0) { err(1, "failed to set attr"); }
 }
 
-// TODO
+//TODO: Make sure this works with new stop command
 UWB_SR150::~UWB_SR150(){
+	printf("UWB: Ranging Stopped\t\n");
 
+	stop{};
+	perf_free(_read_err_perf);
+	perf_free(_read_count_perf);
+
+	close(_uart);
+}
+
+//TODO: Contains part of destructor from 4A_uwb_sr150
+UWB_SR150::Stop{
+	//TODO enable stop part
+	//int written = write(_uart, &CMD_APP_STOP, sizeof(CMD_APP_STOP));
+
+	//if (written < (int) sizeof(CMD_APP_STOP)) {
+	//PX4_ERR("Only wrote %d bytes out of %d.", written, (int) sizeof(CMD_APP_STOP));
+	//}
+	break;
 }
 
 // TODO
@@ -238,7 +269,7 @@ void UWB_SR150::parameters_update()
 	}
 }
 
-// TODO: Not included in either uwb driver.... do I need this?
+// TODO: Not included in either uwb driver.... do I need this? Print whether it's 4anchor mode or single anchor mode? (e.g. gps.cpp)
 int UWB_SR150::print_status()
 {
 	PX4_INFO("Running");

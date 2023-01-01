@@ -2,14 +2,24 @@
 # such as Pozyx or NXP Rddrone.
 
 uint64 	timestamp		# time since system start (microseconds)
-uint32 	time_uwb_ms		# Time of UWB device in ms
 uint32 	counter			# Number of Ranges since last Start of Ranging
 uint32 	sessionid		# UWB SessionID
 uint32 	time_offset		# Time between Ranging Rounds in ms
+uint16 	mac			# MAC adress of Initiator
+
 uint16 	status			# status feedback #
+uint8 	nlos			# Visual line of sight yes/no
+float32 test
+float32 distance		# distance in m to the UWB receiver
 
-uint16[12] anchor_distance	# distance in cm to each UWB Anchor (UWB Device which takes part in Ranging)
-bool[12] nlos			# Visual line of sight yes/no
-float32[12] aoafirst		# Angle of arrival of first incoming RX msg
 
+#Angle of arrival, Angle in Degree -70..+70
+float32 aoa_azimuth_dev	# Angle of arrival of first incomming RX msg
+float32 aoa_elevation_dev	# Angle of arrival of first incomming RX msg
+float32 aoa_azimuth_resp	# Angle of arrival of first incomming RX msg at the responder
+float32 aoa_elevation_resp	# Angle of arrival of first incomming RX msg at the responder
+
+# GPS:
+#GPS position of target_pos of the UWB system
+float32[4] gps_data #Latitude, Longitude, Altitude, and Yaw Offset to True North  #
 float32[3] position		# Position of the Landing point in relation to the Drone (x,y,z in Meters NED)
