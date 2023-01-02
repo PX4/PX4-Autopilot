@@ -74,6 +74,7 @@ set(msg_files
 	EstimatorAidSource2d.msg
 	EstimatorAidSource3d.msg
 	EstimatorBias.msg
+	EstimatorBias3d.msg
 	EstimatorEventFlags.msg
 	EstimatorGpsStatus.msg
 	EstimatorInnovations.msg
@@ -145,6 +146,8 @@ set(msg_files
 	PpsCapture.msg
 	PwmInput.msg
 	Px4ioStatus.msg
+	QshellReq.msg
+	QshellRetval.msg
 	RadioStatus.msg
 	RateCtrlStatus.msg
 	RcChannels.msg

@@ -59,7 +59,7 @@ typedef int px4_task_t;
 
 #define px4_task_exit(x) _exit(x)
 
-#elif defined(__PX4_POSIX) || defined(__PX4_QURT)
+#elif defined(__PX4_POSIX)
 
 #include <pthread.h>
 #include <sched.h>
@@ -67,7 +67,7 @@ typedef int px4_task_t;
 /** Default scheduler type */
 #define SCHED_DEFAULT	SCHED_FIFO
 
-#if defined(__PX4_LINUX) || defined(__PX4_DARWIN) || defined(__PX4_CYGWIN)
+#if defined(__PX4_LINUX) || defined(__PX4_DARWIN) || defined(__PX4_CYGWIN) || defined(__PX4_ROS2)
 
 #define SCHED_PRIORITY_MAX sched_get_priority_max(SCHED_FIFO)
 #define SCHED_PRIORITY_MIN sched_get_priority_min(SCHED_FIFO)

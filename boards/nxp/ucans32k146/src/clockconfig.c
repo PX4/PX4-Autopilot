@@ -197,7 +197,6 @@ const struct clock_configuration_s g_initial_clkconfig = {
 	},
 	.pcc             =
 	{
-		.count         = NUM_OF_PERIPHERAL_CLOCKS_0,       /* Number peripheral clock configurations */
 		.pclks         = g_peripheral_clockconfig0,        /* Peripheral clock configurations */
 	},
 	.pmc             =

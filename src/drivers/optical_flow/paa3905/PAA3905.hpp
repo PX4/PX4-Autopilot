@@ -121,6 +121,7 @@ private:
 	bool _data_ready_interrupt_enabled{false};
 
 	uint32_t _scheduled_interval_us{SAMPLE_INTERVAL_MODE_0 / 2};
+	static constexpr uint32_t kBackupScheduleIntervalUs{200_ms};
 
 	Mode _mode{Mode::LowLight};
 

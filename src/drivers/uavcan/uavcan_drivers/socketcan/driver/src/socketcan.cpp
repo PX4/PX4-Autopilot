@@ -69,7 +69,7 @@ struct BitTimingSettings {
 
 } // namespace
 
-uavcan::uint32_t CanIface::socketInit(const char *can_iface_name)
+uavcan::uint32_t CanIface::socketInit(uint32_t index)
 {
 
 	struct sockaddr_can addr;
@@ -86,7 +86,7 @@ uavcan::uint32_t CanIface::socketInit(const char *can_iface_name)
 		return -1;
 	}
 
-	strncpy(ifr.ifr_name, can_iface_name, IFNAMSIZ - 1);
+	snprintf(ifr.ifr_name, IFNAMSIZ, "can%li", index);
 	ifr.ifr_name[IFNAMSIZ - 1] = '\0';
 	ifr.ifr_ifindex = if_nametoindex(ifr.ifr_name);
 
@@ -194,7 +194,7 @@ uavcan::int16_t CanIface::send(const uavcan::CanFrame &frame, uavcan::MonotonicT
 	_send_tv->tv_usec = tx_deadline.toUSec() % 1000000ULL;
 	_send_tv->tv_sec = (tx_deadline.toUSec() - _send_tv->tv_usec) / 1000000ULL;
 
-	res = sendmsg(_fd, &_send_msg, 0);
+	res = sendmsg(_fd, &_send_msg, MSG_DONTWAIT);
 
 	if (res > 0) {
 		return 1;
@@ -271,12 +271,10 @@ uavcan::uint32_t CanDriver::detectBitRate(void (*idle_callback)())
 
 int CanDriver::init(uavcan::uint32_t bitrate)
 {
-	pfds[0].fd     = if_[0].getFD();
-	pfds[0].events = POLLIN | POLLOUT;
-#if UAVCAN_SOCKETCAN_NUM_IFACES > 1
-	pfds[1].fd     = if_[1].getFD();
-	pfds[1].events = POLLIN | POLLOUT;
-#endif
+	for (int i = 0; i < UAVCAN_SOCKETCAN_NUM_IFACES; i++) {
+		pfds[i].fd     = if_[i].getFD();
+		pfds[i].events = POLLIN | POLLOUT;
+	}
 
 	/*
 	 * TODO add filter configuration ioctl
@@ -308,8 +306,7 @@ uavcan::int16_t CanDriver::select(uavcan::CanSelectMasks &inout_masks,
 	}
 
 	inout_masks.read = 0;
-	//FIXME NuttX SocketCAN implement POLLOUT
-	inout_masks.write = 0x3;
+	inout_masks.write = 0;
 
 	if (poll(pfds, UAVCAN_SOCKETCAN_NUM_IFACES, timeout_usec / 1000) > 0) {
 		for (int i = 0; i < UAVCAN_SOCKETCAN_NUM_IFACES; i++) {

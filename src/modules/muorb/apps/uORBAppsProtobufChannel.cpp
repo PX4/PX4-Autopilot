@@ -41,6 +41,7 @@ bool uORB::AppsProtobufChannel::test_flag = false;
 // Initialize the static members
 uORB::AppsProtobufChannel *uORB::AppsProtobufChannel::_InstancePtr = nullptr;
 uORBCommunicator::IChannelRxHandler *uORB::AppsProtobufChannel::_RxHandler = nullptr;
+mUORB::Aggregator uORB::AppsProtobufChannel::_Aggregator;
 std::map<std::string, int> uORB::AppsProtobufChannel::_SlpiSubscriberCache;
 pthread_mutex_t uORB::AppsProtobufChannel::_tx_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t uORB::AppsProtobufChannel::_rx_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -81,9 +82,7 @@ void uORB::AppsProtobufChannel::ReceiveCallback(const char *topic,
 		return;
 
 	} else if (_RxHandler) {
-		_RxHandler->process_received_message(topic,
-						     length_in_bytes,
-						     const_cast<uint8_t *>(data));
+		_Aggregator.ProcessReceivedTopic(topic, data, length_in_bytes);
 
 	} else {
 		PX4_ERR("Couldn't handle topic %s in receive callback", topic);
@@ -99,7 +98,7 @@ void uORB::AppsProtobufChannel::AdvertiseCallback(const char *topic)
 		return;
 
 	} else if (_RxHandler) {
-		_RxHandler->process_remote_topic(topic, true);
+		_RxHandler->process_remote_topic(topic);
 
 	} else {
 		PX4_ERR("Couldn't handle topic %s in advertise callback", topic);
@@ -119,7 +118,7 @@ void uORB::AppsProtobufChannel::SubscribeCallback(const char *topic)
 		_SlpiSubscriberCache[topic]++;
 		pthread_mutex_unlock(&_rx_mutex);
 
-		_RxHandler->process_add_subscription(topic, 1000);
+		_RxHandler->process_add_subscription(topic);
 
 	} else {
 		PX4_ERR("Couldn't handle topic %s in subscribe callback", topic);
@@ -219,16 +218,21 @@ bool uORB::AppsProtobufChannel::Test()
 
 bool uORB::AppsProtobufChannel::Initialize(bool enable_debug)
 {
-	fc_callbacks cb = {&ReceiveCallback, &AdvertiseCallback,
-			   &SubscribeCallback, &UnsubscribeCallback
-			  };
+	if (! _Initialized) {
+		fc_callbacks cb = { &ReceiveCallback, &AdvertiseCallback,
+				    &SubscribeCallback, &UnsubscribeCallback
+				  };
 
-	if (fc_sensor_initialize(enable_debug, &cb) != 0) {
-		if (enable_debug) { PX4_INFO("Warning: muorb protobuf initalize method failed"); }
+		if (fc_sensor_initialize(enable_debug, &cb) != 0) {
+			if (enable_debug) { PX4_INFO("Warning: muorb protobuf initalize method failed"); }
+
+		} else {
+			PX4_INFO("muorb protobuf initalize method succeeded");
+			_Initialized = true;
+		}
 
 	} else {
-		PX4_INFO("muorb protobuf initalize method succeeded");
-		_Initialized = true;
+		PX4_INFO("AppsProtobufChannel already initialized");
 	}
 
 	return true;
@@ -278,6 +282,7 @@ int16_t uORB::AppsProtobufChannel::remove_subscription(const char *messageName)
 int16_t uORB::AppsProtobufChannel::register_handler(uORBCommunicator::IChannelRxHandler *handler)
 {
 	_RxHandler = handler;
+	_Aggregator.RegisterHandler(handler);
 	return 0;
 }
 

@@ -48,6 +48,7 @@
 #include "EKFGSF_yaw.h"
 #include "bias_estimator.hpp"
 #include "height_bias_estimator.hpp"
+#include "position_bias_estimator.hpp"
 
 #include <uORB/topics/estimator_aid_source1d.h>
 #include <uORB/topics/estimator_aid_source2d.h>
@@ -204,8 +205,6 @@ public:
 	// get the orientation (quaterion) covariances
 	matrix::SquareMatrix<float, 4> orientation_covariances() const { return P.slice<4, 4>(0, 0); }
 
-	matrix::SquareMatrix<float, 3> orientation_covariances_euler() const;
-
 	// get the linear velocity covariances
 	matrix::SquareMatrix<float, 3> velocity_covariances() const { return P.slice<3, 3>(4, 4); }
 
@@ -240,10 +239,6 @@ public:
 	void resetImuBias();
 	void resetGyroBias();
 	void resetAccelBias();
-
-	// Reset all magnetometer bias states and covariances to initial alignment values.
-	// Requests full mag yaw reset (if using mag)
-	void resetMagBiasAndYaw();
 
 	Vector3f getVelocityVariance() const { return P.slice<3, 3>(4, 4).diag(); };
 
@@ -385,11 +380,11 @@ public:
 	// return a bitmask integer that describes which state estimates can be used for flight control
 	void get_ekf_soln_status(uint16_t *status) const;
 
-	// return the quaternion defining the rotation from the External Vision to the EKF reference frame
-	matrix::Quatf getVisionAlignmentQuaternion() const { return Quatf(_R_ev_to_ekf); };
-
 	// use the latest IMU data at the current time horizon.
 	Quatf calculate_quaternion() const;
+
+	// rotate quaternion covariances into variances for an equivalent rotation vector
+	Vector3f calcRotVecVariances() const;
 
 	// set minimum continuous period without GPS fail required to mark a healthy GPS status
 	void set_min_required_gps_health_time(uint32_t time_us) { _min_gps_health_time_us = time_us; }
@@ -412,6 +407,8 @@ public:
 	const BiasEstimator::status &getGpsHgtBiasEstimatorStatus() const { return _gps_hgt_b_est.getStatus(); }
 	const BiasEstimator::status &getRngHgtBiasEstimatorStatus() const { return _rng_hgt_b_est.getStatus(); }
 	const BiasEstimator::status &getEvHgtBiasEstimatorStatus() const { return _ev_hgt_b_est.getStatus(); }
+
+	const BiasEstimator::status &getEvPosBiasEstimatorStatus(int i) const { return _ev_pos_b_est.getStatus(i); }
 
 	const auto &aid_src_airspeed() const { return _aid_src_airspeed; }
 	const auto &aid_src_sideslip() const { return _aid_src_sideslip; }
@@ -479,23 +476,18 @@ private:
 
 	bool _filter_initialised{false};	///< true when the EKF sttes and covariances been initialised
 
-	// variables used when position data is being fused using a relative position odometry model
-	bool _fuse_hpos_as_odom{false};		///< true when the NE position data is being fused using an odometry assumption
-	Vector2f _hpos_pred_prev{};		///< previous value of NE position state used by odometry fusion (m)
-	float _yaw_pred_prev{};                 ///< previous value of yaw state used by odometry fusion (m)
-	bool _hpos_prev_available{false};	///< true when previous values of the estimate and measurement are available for use
-	Dcmf _R_ev_to_ekf;			///< transformation matrix that rotates observations from the EV to the EKF navigation frame, initialized with Identity
+	float _ev_yaw_pred_prev{};                 ///< previous value of yaw state used by odometry fusion (m)
 	bool _inhibit_ev_yaw_use{false};	///< true when the vision yaw data should not be used (e.g.: NE fusion requires true North)
 
 	// booleans true when fresh sensor data is available at the fusion time horizon
 	bool _gps_data_ready{false};	///< true when new GPS data has fallen behind the fusion time horizon and is available to be fused
 	bool _rng_data_ready{false};
 	bool _flow_data_ready{false};	///< true when the leading edge of the optical flow integration period has fallen behind the fusion time horizon
-	bool _ev_data_ready{false};	///< true when new external vision system data has fallen behind the fusion time horizon and is available to be fused
 	bool _tas_data_ready{false};	///< true when new true airspeed data has fallen behind the fusion time horizon and is available to be fused
 	bool _flow_for_terrain_data_ready{false}; /// same flag as "_flow_data_ready" but used for separate terrain estimator
 
 	uint64_t _time_prev_gps_us{0};	///< time stamp of previous GPS data retrieved from the buffer (uSec)
+
 	uint64_t _time_last_horizontal_aiding{0}; ///< amount of time we have been doing inertial only deadreckoning (uSec)
 	uint64_t _time_last_v_pos_aiding{0};
 	uint64_t _time_last_v_vel_aiding{0};
@@ -511,7 +503,9 @@ private:
 	uint64_t _time_last_healthy_rng_data{0};
 	uint8_t _nb_gps_yaw_reset_available{0}; ///< remaining number of resets allowed before switching to another aiding source
 
+	uint8_t _nb_ev_pos_reset_available{0};
 	uint8_t _nb_ev_vel_reset_available{0};
+	uint8_t _nb_ev_yaw_reset_available{0};
 
 	Vector3f _last_known_pos{};		///< last known local position vector (m)
 
@@ -531,11 +525,9 @@ private:
 	uint64_t _mag_use_not_inhibit_us{0};	///< last system time in usec before magnetometer use was inhibited
 	float _last_static_yaw{NAN};		///< last yaw angle recorded when on ground motion checks were passing (rad)
 
-	bool _mag_inhibit_yaw_reset_req{false};	///< true when magnetometer inhibit has been active for long enough to require a yaw reset when conditions improve.
 	bool _mag_yaw_reset_req{false};		///< true when a reset of the yaw using the magnetometer data has been requested
 	bool _mag_decl_cov_reset{false};	///< true after the fuseDeclination() function has been used to modify the earth field covariances after a magnetic field reset event.
 	bool _synthetic_mag_z_active{false};	///< true if we are generating synthetic magnetometer Z measurements
-	bool _is_yaw_fusion_inhibited{false};		///< true when yaw sensor use is being inhibited
 
 	SquareMatrix24f P{};	///< state covariance matrix
 
@@ -672,9 +664,9 @@ private:
 	bool fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bool update_all_states = true);
 
 	// update quaternion states and covariances using an innovation, observation variance and Jacobian vector
-	// innovation : prediction - measurement
-	// variance : observaton variance
-	bool fuseYaw(const float innovation, const float variance, estimator_aid_source1d_s &aid_src_status);
+	bool fuseYaw(float innovation, float variance, estimator_aid_source1d_s &aid_src_status);
+	bool fuseYaw(float innovation, float variance, estimator_aid_source1d_s &aid_src_status, const Vector24f &H_YAW);
+	void computeYawInnovVarAndH(float variance, float &innovation_variance, Vector24f &H_YAW) const;
 
 	// fuse the yaw angle obtained from a dual antenna GPS unit
 	void fuseGpsYaw();
@@ -711,7 +703,6 @@ private:
 	void resetHorizontalVelocityToZero();
 
 	void resetVerticalVelocityTo(float new_vert_vel, float new_vert_vel_var);
-	void resetHorizontalPositionToVision();
 	void resetHorizontalPositionToLastKnown();
 
 	void resetHorizontalPositionTo(const Vector2f &new_horz_pos, const Vector2f &new_horz_pos_var);
@@ -779,48 +770,13 @@ private:
 	// return true if successful
 	bool resetMagHeading();
 
-	// reset the heading using the external vision measurements
-	// return true if successful
-	bool resetYawToEv();
-
 	// Return the magnetic declination in radians to be used by the alignment and fusion processing
 	float getMagDeclination();
 
 	// modify output filter to match the the EKF state at the fusion time horizon
 	void alignOutputFilter();
 
-	// update the rotation matrix which transforms EV navigation frame measurements into NED
-	void calcExtVisRotMat();
-
-	// matrix vector multiplication for computing K<24,1> * H<1,24> * P<24,24>
-	// that is optimized by exploring the sparsity in H
-	template <size_t ...Idxs>
-	SquareMatrix24f computeKHP(const Vector24f &K, const SparseVector24f<Idxs...> &H) const
-	{
-		// K(HP) and (KH)P are equivalent (matrix multiplication is associative)
-		// but K(HP) is computationally much less expensive
-		Vector24f HP;
-		for (unsigned i = 0; i < H.non_zeros(); i++) {
-			const size_t row = H.index(i);
-			for (unsigned col = 0; col < _k_num_states; col++) {
-				HP(col) = HP(col) + H.atCompressedIndex(i) * P(row, col);
-			}
-		}
-
-		SquareMatrix24f KHP;
-		for (unsigned row = 0; row < _k_num_states; row++) {
-			for (unsigned col = 0; col < _k_num_states; col++) {
-				KHP(row, col) = K(row) * HP(col);
-			}
-		}
-
-		return KHP;
-	}
-
-	// measurement update with a single measurement
-	// returns true if fusion is performed
-	template <size_t ...Idxs>
-	bool measurementUpdate(Vector24f &K, const SparseVector24f<Idxs...> &H, float innovation)
+	bool measurementUpdate(Vector24f &K, float innovation_variance, float innovation)
 	{
 		for (unsigned i = 0; i < 3; i++) {
 			if (_accel_bias_inhibit[i]) {
@@ -828,10 +784,16 @@ private:
 			}
 		}
 
-		// apply covariance correction via P_new = (I -K*H)*P
-		// first calculate expression for KHP
-		// then calculate P - KHP
-		const SquareMatrix24f KHP = computeKHP(K, H);
+		const Vector24f KS = K * innovation_variance;
+		SquareMatrix24f KHP;
+
+		for (unsigned row = 0; row < _k_num_states; row++) {
+			for (unsigned col = 0; col < _k_num_states; col++) {
+				// Instad of literally computing KHP, use an equvalent
+				// equation involving less mathematical operations
+				KHP(row, col) = KS(row) * K(col);
+			}
+		}
 
 		const bool is_healthy = checkAndFixCovarianceUpdate(KHP);
 
@@ -876,7 +838,16 @@ private:
 
 	// control fusion of external vision observations
 	void controlExternalVisionFusion();
-	void controlEvVelFusion(const extVisionSample &ev_sample, bool starting_conditions_passing, bool ev_reset, bool quality_sufficient, estimator_aid_source3d_s& aid_src);
+
+	void controlEvHeightFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient, estimator_aid_source1d_s& aid_src);
+
+	void controlEvPosFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient, estimator_aid_source2d_s& aid_src);
+	void startEvPosFusion(const Vector2f &measurement, const Vector2f &measurement_var, estimator_aid_source2d_s &aid_src);
+	void updateEvPosFusion(const Vector2f &measurement, const Vector2f &measurement_var, bool quality_sufficient, bool reset, estimator_aid_source2d_s &aid_src);
+	void stopEvPosFusion();
+
+	void controlEvVelFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient, estimator_aid_source3d_s& aid_src);
+	void controlEvYawFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient, estimator_aid_source1d_s& aid_src);
 
 	// control fusion of optical flow observations
 	void controlOpticalFlowFusion();
@@ -897,7 +868,6 @@ private:
 	float getTerrainVPos() const { return isTerrainEstimateValid() ? _terrain_vpos : _last_on_ground_posD; }
 
 	void runOnGroundYawReset();
-	bool canResetMagHeading() const;
 	void runInAirYawReset();
 
 	void selectMagAuto();
@@ -907,7 +877,6 @@ private:
 	bool canUse3DMagFusion() const;
 
 	void checkMagDeclRequired();
-	void checkMagInhibition();
 	bool shouldInhibitMag() const;
 	bool magFieldStrengthDisturbed(const Vector3f &mag) const;
 	static bool isMeasuredMatchingExpected(float measured, float expected, float gate);
@@ -947,7 +916,6 @@ private:
 	void controlBaroHeightFusion();
 	void controlGnssHeightFusion(const gpsSample &gps_sample);
 	void controlRangeHeightFusion();
-	void controlEvHeightFusion(const extVisionSample &ev_sample);
 
 	bool isConditionalRangeAidSuitable();
 
@@ -966,9 +934,6 @@ private:
 
 	// calculate the measurement variance for the optical flow sensor
 	float calcOptFlowMeasVar(const flowSample &flow_sample);
-
-	// rotate quaternion covariances into variances for an equivalent rotation vector
-	Vector3f calcRotVecVariances();
 
 	// initialise the quaternion covariances using rotation vector variances
 	// do not call before quaternion states are initialised
@@ -1036,11 +1001,6 @@ private:
 	void startGpsYawFusion(const gpsSample &gps_sample);
 	void stopGpsYawFusion();
 
-	void startEvPosFusion();
-	void startEvYawFusion();
-
-	void stopEvFusion();
-	void stopEvPosFusion();
 	void stopEvVelFusion();
 	void stopEvYawFusion();
 
@@ -1064,11 +1024,13 @@ private:
 	EKFGSF_yaw _yawEstimator{};
 
 	uint8_t _height_sensor_ref{HeightSensor::UNKNOWN};
+	uint8_t _position_sensor_ref{static_cast<uint8_t>(PositionSensor::GNSS)};
 
 	HeightBiasEstimator _baro_b_est{HeightSensor::BARO, _height_sensor_ref};
 	HeightBiasEstimator _gps_hgt_b_est{HeightSensor::GNSS, _height_sensor_ref};
 	HeightBiasEstimator _rng_hgt_b_est{HeightSensor::RANGE, _height_sensor_ref};
 	HeightBiasEstimator _ev_hgt_b_est{HeightSensor::EV, _height_sensor_ref};
+	PositionBiasEstimator _ev_pos_b_est{static_cast<uint8_t>(PositionSensor::EV), _position_sensor_ref};
 
 	void runYawEKFGSF();
 

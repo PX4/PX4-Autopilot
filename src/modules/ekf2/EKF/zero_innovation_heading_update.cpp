@@ -74,12 +74,19 @@ void Ekf::controlZeroInnovationHeadingUpdate()
 	} else {
 		// vehicle moving and tilt alignment completed
 
-		// fuse zero innovation at a limited rate (every 200 milliseconds)
+		// fuse zero innovation at a limited rate if the yaw variance is too large
 		if (!yaw_aiding && isTimedOut(_time_last_heading_fuse, (uint64_t)200'000)) {
-			float innovation = 0.f;
-			float obs_var = 0.01f;
-			estimator_aid_source1d_s unused;
-			fuseYaw(innovation, obs_var, unused);
+			float obs_var = 0.25f;
+			estimator_aid_source1d_s aid_src_status;
+			Vector24f H_YAW;
+
+			computeYawInnovVarAndH(obs_var, aid_src_status.innovation_variance, H_YAW);
+
+			if ((aid_src_status.innovation_variance - obs_var) > sq(_params.mag_heading_noise)) {
+				// The yaw variance is too large, fuse fake measurement
+				float innovation = 0.f;
+				fuseYaw(innovation, obs_var, aid_src_status, H_YAW);
+			}
 		}
 
 		_last_static_yaw = NAN;

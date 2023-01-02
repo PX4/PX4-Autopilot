@@ -119,7 +119,9 @@
                 "utility": "cpp",
                 "valarray": "cpp",
                 "variant": "cpp",
-                "vector": "cpp"
+                "vector": "cpp",
+                "Jenkinsfile*": "groovy",
+                "*.sdf": "xml"
         },
         "search.exclude": {
                 "${workspaceFolder}/build": true
@@ -133,6 +135,5 @@
         "workbench.settings.enableNaturalLanguageSearch": false,
         "yaml.schemas": {
                 "${workspaceFolder}/validation/module_schema.yaml": "${workspaceFolder}/src/modules/*/module.yaml"
-        },
-        "cortex-debug.openocdPath": "${env:PICO_SDK_PATH}/../openocd/src/openocd"       // Added for rp2040
+        }
 }

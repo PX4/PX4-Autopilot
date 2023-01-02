@@ -60,7 +60,7 @@ private:
 	uORB::Subscription _sensor_preflight_mag_sub{ORB_ID(sensor_preflight_mag)};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
-					(ParamBool<px4::params::SYS_HAS_MAG>) _param_sys_has_mag,
+					(ParamInt<px4::params::SYS_HAS_MAG>) _param_sys_has_mag,
 					(ParamInt<px4::params::COM_ARM_MAG_ANG>) _param_com_arm_mag_ang
 				       )
 };

@@ -48,8 +48,8 @@
 #include <fcntl.h>
 #include <board_config.h>
 
-#include <systemlib/crc.h>
-#include <systemlib/px4_macros.h>
+#include <lib/crc/crc.h>
+#include <lib/systemlib/px4_macros.h>
 
 #if defined(BOARD_HAS_HW_VERSIONING)
 
@@ -468,7 +468,7 @@ int board_determine_hw_info()
 		path = NULL;
 		rvmft = px4_mtd_query("MTD_MFT_REV", NULL, &path);
 
-		if (rvmft == OK && path != NULL && hw_revision == HW_ID_EEPROM) {
+		if (rv == OK && rvmft == OK && path != NULL && hw_revision == HW_ID_EEPROM) {
 
 			mtd_mft_v0_t mtd_mft = {MTD_MFT_v0};
 			rv = board_get_eeprom_hw_info(path, (mtd_mft_t *)&mtd_mft);
@@ -516,7 +516,7 @@ int board_set_eeprom_hw_info(const char *path, mtd_mft_t *mtd_mft_unk)
 	mtd_mft_v0_t *mtd_mft = (mtd_mft_v0_t *)mtd_mft_unk;
 
 	if (mtd_mft->hw_extended_id < HW_EEPROM_ID_MIN) {
-		printf("hardware version for EEPROM must be greater than %x\n", HW_EEPROM_ID_MIN);
+		printf("hardware version for EEPROM must be greater than %d\n", HW_EEPROM_ID_MIN);
 		return -EINVAL;
 	}
 

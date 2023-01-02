@@ -18,21 +18,11 @@ float32 true_airspeed_filtered
 float32 true_airspeed_derivative_sp
 float32 true_airspeed_derivative
 float32 true_airspeed_derivative_raw
-float32 true_airspeed_innovation
 
-float32 total_energy_error
-float32 energy_distribution_error
-float32 total_energy_rate_error
-float32 energy_distribution_rate_error
-
-float32 total_energy
 float32 total_energy_rate
-float32 total_energy_balance
 float32 total_energy_balance_rate
 
-float32 total_energy_sp
 float32 total_energy_rate_sp
-float32 total_energy_balance_sp
 float32 total_energy_balance_rate_sp
 
 float32 throttle_integ

@@ -41,6 +41,7 @@
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/workqueue.h>
 #include <px4_platform_common/tasks.h>
+#include <px4_platform_common/posix.h>
 
 #include <signal.h>
 #include <stdint.h>
@@ -125,11 +126,7 @@ int work_queue(int qid, struct work_s *work, worker_t worker, void *arg, uint32_
 	work->qtime  = clock_systimer(); /* Time work queued */
 
 	dq_addlast((dq_entry_t *)work, &wqueue->q);
-#ifdef __PX4_QURT
-	px4_task_kill(wqueue->pid, SIGALRM);      /* Wake up the worker thread */
-#else
 	px4_task_kill(wqueue->pid, SIGCONT);      /* Wake up the worker thread */
-#endif
 
 	work_unlock(qid);
 	return PX4_OK;
