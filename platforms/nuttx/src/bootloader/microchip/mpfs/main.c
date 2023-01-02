@@ -139,7 +139,6 @@ typedef enum {
 
 static image_loading_status_t loading_status = UNINITIALIZED;
 static bool u_boot_loaded = false;
-static bool sel4_loaded = false;
 
 /* board definition */
 struct boardinfo board_info = {
@@ -717,13 +716,6 @@ led_toggle(unsigned led)
 void
 arch_do_jump(const uint32_t *app_base)
 {
-	/* seL4 on hart 1 */
-	if (sel4_loaded) {
-#if CONFIG_MPFS_HART1_ENTRYPOINT != 0xFFFFFFFFFFFFFFFF
-		_alert("Jump to SEL4 0x%lx\n", CONFIG_MPFS_HART1_ENTRYPOINT);
-		*(volatile uint32_t *)MPFS_CLINT_MSIP1 = 0x01U;
-#endif
-	}
 
 	/* PX4 on hart 2 */
 #if CONFIG_MPFS_HART2_ENTRYPOINT != 0xFFFFFFFFFFFFFFFF
@@ -732,15 +724,27 @@ arch_do_jump(const uint32_t *app_base)
 	*(volatile uint32_t *)MPFS_CLINT_MSIP2 = 0x01U;
 #endif
 
-	/* Linux on harts 3,4 */
+	/* Linux on harts 1, 3 and 4 */
 	if (u_boot_loaded) {
 #if CONFIG_MPFS_HART3_ENTRYPOINT != 0xFFFFFFFFFFFFFFFF
-		_alert("Jump to U-boot 0x%lx\n", CONFIG_MPFS_HART3_ENTRYPOINT);
+		_alert("Jump to Hart 3 U-boot 0x%lx\n", CONFIG_MPFS_HART3_ENTRYPOINT);
 		*(volatile uint32_t *)MPFS_CLINT_MSIP3 = 0x01U;
 #endif
 
+// If SMP is used on Linux, the primary core (Hart 3) will boot the secondary
+// cores (Hart 1 and 4), so they should not be booted here
+#if BOOTLOADER_BOOT_HART_1
+#if CONFIG_MPFS_HART1_ENTRYPOINT != 0xFFFFFFFFFFFFFFFF
+		_alert("Jump to Hart 1 U-boot 0x%lx\n", CONFIG_MPFS_HART1_ENTRYPOINT);
+		*(volatile uint32_t *)MPFS_CLINT_MSIP1 = 0x01U;
+#endif
+#endif
+
+#if BOOTLOADER_BOOT_HART_4
 #if CONFIG_MPFS_HART4_ENTRYPOINT != 0xFFFFFFFFFFFFFFFF
+		_alert("Jump to Hart 4 U-boot 0x%lx\n", CONFIG_MPFS_HART4_ENTRYPOINT);
 		*(volatile uint32_t *)MPFS_CLINT_MSIP4 = 0x01U;
+#endif
 #endif
 
 	}
@@ -873,16 +877,6 @@ static int loader_main(int argc, char *argv[])
 		} else {
 			_alert("u-boot loading failed\n");
 			u_boot_loaded = false;
-		}
-
-		ret = load_sdcard_images("/sdcard/boot/seL4.bin", CONFIG_MPFS_HART1_ENTRYPOINT);
-
-		if (ret > 0) {
-			sel4_loaded = true;
-
-		} else {
-			sel4_loaded = false;
-			_alert("sel4 loading failed\n");
 		}
 	}
 
