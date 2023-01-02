@@ -728,16 +728,20 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 			if (base_mode & VEHICLE_MODE_FLAG_CUSTOM_MODE_ENABLED) {
 				/* use autopilot-specific mode */
-				if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_MANUAL) {
+				switch (custom_main_mode) {
+				case PX4_CUSTOM_MAIN_MODE_MANUAL:
 					desired_nav_state = vehicle_status_s::NAVIGATION_STATE_MANUAL;
+					break;
 
-				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_ALTCTL) {
+				case PX4_CUSTOM_MAIN_MODE_ALTCTL:
 					desired_nav_state = vehicle_status_s::NAVIGATION_STATE_ALTCTL;
+					break;
 
-				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_POSCTL) {
+				case PX4_CUSTOM_MAIN_MODE_POSCTL:
 					desired_nav_state = vehicle_status_s::NAVIGATION_STATE_POSCTL;
+					break;
 
-				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_AUTO) {
+				case PX4_CUSTOM_MAIN_MODE_AUTO:
 					if (custom_sub_mode > 0) {
 
 						switch (custom_sub_mode) {
@@ -781,14 +785,21 @@ Commander::handle_command(const vehicle_command_s &cmd)
 						desired_nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
 					}
 
-				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_ACRO) {
+					break;
+
+				case PX4_CUSTOM_MAIN_MODE_ACRO:
 					desired_nav_state = vehicle_status_s::NAVIGATION_STATE_ACRO;
+					break;
 
-				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_STABILIZED) {
+				case PX4_CUSTOM_MAIN_MODE_STABILIZED:
 					desired_nav_state = vehicle_status_s::NAVIGATION_STATE_STAB;
+					break;
 
-				} else if (custom_main_mode == PX4_CUSTOM_MAIN_MODE_OFFBOARD) {
+				case PX4_CUSTOM_MAIN_MODE_OFFBOARD:
 					desired_nav_state = vehicle_status_s::NAVIGATION_STATE_OFFBOARD;
+
+				default:
+					break;
 				}
 
 			} else {
@@ -1110,44 +1121,57 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 	case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_REBOOT_SHUTDOWN: {
 
-			const int param1 = cmd.param1;
-
-			if (param1 == 0) {
+			switch (int(cmd.param1)) {
+			case 0:
 				// 0: Do nothing for autopilot
 				answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
+				break;
 
 #if defined(CONFIG_BOARDCTL_RESET)
 
-			} else if ((param1 == 1) && shutdownIfAllowed() && (px4_reboot_request(false, 400_ms) == 0)) {
-				// 1: Reboot autopilot
-				answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
+			case 1:
+				if (shutdownIfAllowed() && (px4_reboot_request(false, 400_ms) == 0)) {
+					// 1: Reboot autopilot
+					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
-				while (1) { px4_usleep(1); }
+					while (1) { px4_usleep(1); }
+				}
+
+				break;
 
 #endif // CONFIG_BOARDCTL_RESET
 
 #if defined(BOARD_HAS_POWER_CONTROL)
 
-			} else if ((param1 == 2) && shutdownIfAllowed() && (px4_shutdown_request(400_ms) == 0)) {
-				// 2: Shutdown autopilot
-				answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
+			case 2:
+				if (shutdownIfAllowed() && (px4_shutdown_request(400_ms) == 0)) {
+					// 2: Shutdown autopilot
+					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
-				while (1) { px4_usleep(1); }
+					while (1) { px4_usleep(1); }
+				}
+
+				break;
 
 #endif // BOARD_HAS_POWER_CONTROL
 
 #if defined(CONFIG_BOARDCTL_RESET)
 
-			} else if ((param1 == 3) && shutdownIfAllowed() && (px4_reboot_request(true, 400_ms) == 0)) {
-				// 3: Reboot autopilot and keep it in the bootloader until upgraded.
-				answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
+			case 3:
+				if (shutdownIfAllowed() && (px4_reboot_request(true, 400_ms) == 0)) {
+					// 3: Reboot autopilot and keep it in the bootloader until upgraded.
+					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
-				while (1) { px4_usleep(1); }
+					while (1) { px4_usleep(1); }
+				}
+
+				break;
 
 #endif // CONFIG_BOARDCTL_RESET
 
-			} else {
+			default:
 				answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED);
+				break;
 			}
 		}
 
@@ -1322,25 +1346,34 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 			} else {
 
-				if (((int)(cmd.param1)) == 0) {
+				switch (int(cmd.param1)) {
+				case 0:
 					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 					_worker_thread.startTask(WorkerThread::Request::ParamLoadDefault);
+					break;
 
-				} else if (((int)(cmd.param1)) == 1) {
+				case 1:
 					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 					_worker_thread.startTask(WorkerThread::Request::ParamSaveDefault);
+					break;
 
-				} else if (((int)(cmd.param1)) == 2) {
+				case 2:
 					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 					_worker_thread.startTask(WorkerThread::Request::ParamResetAllConfig);
+					break;
 
-				} else if (((int)(cmd.param1)) == 3) {
+				case 3:
 					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 					_worker_thread.startTask(WorkerThread::Request::ParamResetSensorFactory);
+					break;
 
-				} else if (((int)(cmd.param1)) == 4) {
+				case 4:
 					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 					_worker_thread.startTask(WorkerThread::Request::ParamResetAll);
+					break;
+
+				default:
+					break;
 				}
 			}
 
