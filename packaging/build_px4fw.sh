@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source /opt/ros/galactic/setup.sh
+source /opt/ros/humble/setup.sh
 export SIGNING_TOOL=Tools/cryptotools.py
 
 if [ -z "$1" ]; then

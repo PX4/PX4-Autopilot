@@ -42,7 +42,7 @@ do
 	esac
 done
 
-source /opt/ros/galactic/setup.sh
+source /opt/ros/humble/setup.sh
 
 
 # Remove old build output

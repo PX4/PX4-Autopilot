@@ -1,13 +1,13 @@
-FROM ghcr.io/tiiuae/fog-ros-baseimage:sha-3dcb78d
+FROM ghcr.io/tiiuae/fog-ros-baseimage-builder:dp-4266_humble_upgrade
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     wget
 
-RUN echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-stable.list
-RUN wget http://packages.osrfoundation.org/gazebo.key -O - | apt-key add -
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libignition-transport8-dev \
-    && rm -rf /var/lib/apt/lists/*
+#RUN echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-stable.list
+#RUN wget http://packages.osrfoundation.org/gazebo.key -O - | apt-key add -
+#RUN apt-get update && apt-get install -y --no-install-recommends \
+#    libignition-transport8-dev \
+#    && rm -rf /var/lib/apt/lists/*
 
 # Install PX4 SITL
 WORKDIR /packages

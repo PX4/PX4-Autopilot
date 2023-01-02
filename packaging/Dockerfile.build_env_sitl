@@ -21,8 +21,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libboost-all-dev libeigen3-dev libgstreamer-plugins-base1.0-dev libopencv-dev \
     python3-empy python3-toml python3-numpy python3-genmsg python3-setuptools \
     python3-packaging python3-jinja2 python3-yaml openjdk-11-jre \
-    genromfs xxd curl unzip \
+    gazebo libgazebo-dev \
+    genromfs xxd curl \
     python3-nacl python3-pip python3-future \
+    ros-humble-gazebo-ros \
     ros-humble-fastrtps \
     ros-humble-rmw-fastrtps-cpp \
     fastddsgen \
@@ -33,20 +35,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 
-RUN mkdir -p /tools
-
-RUN curl -LOs https://static.dev.sifive.com/dev-tools/freedom-tools/v2020.12/riscv64-unknown-elf-toolchain-10.2.0-2020.12.8-x86_64-linux-ubuntu14.tar.gz && \
-    tar xf riscv64-unknown-elf-toolchain-10.2.0-2020.12.8-x86_64-linux-ubuntu14.tar.gz -C /tools && \
-    rm -f riscv64-unknown-elf-toolchain-10.2.0-2020.12.8-x86_64-linux-ubuntu14.tar.gz
-
-RUN curl -LOs https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2019q4/gcc-arm-none-eabi-9-2019-q4-major-x86_64-linux.tar.bz2 && \
-    tar xvf gcc-arm-none-eabi-9-2019-q4-major-x86_64-linux.tar.bz2 -C /tools && \
-    rm -f gcc-arm-none-eabi-9-2019-q4-major-x86_64-linux.tar.bz2
-
 RUN mkdir -p /px4-firmware && chown -R builder:builder /px4-firmware
 RUN mkdir -p /artifacts && chown -R builder:builder /artifacts
-
-ENV PATH=/tools/riscv64-unknown-elf-toolchain-10.2.0-2020.12.8-x86_64-linux-ubuntu14/bin:/tools/gcc-arm-none-eabi-9-2019-q4-major/bin/:$PATH
 
 USER builder
 

@@ -49,9 +49,9 @@ def clone(c):
 @task(
     help={'nocache': "do not use cache when building the image",
           'pull': "always attempt to pull a newer version of the image",
-          'ros_distro': "ROS distro to use (Available [foxy, galactic])"}
+          'ros_distro': "ROS distro to use (Available [humble])"}
 )
-def build_sitl(c, nocache=False, pull=False, ros_distro="galactic", image_name=MODULE_NAME):
+def build_sitl(c, nocache=False, pull=False, ros_distro="humble", image_name=MODULE_NAME):
     """
     Create Docker build environment.
     """
@@ -86,9 +86,9 @@ def clean(c, reallyclean=False):
 
 @task(
     help={'out_dir': "output directory for the generated deb files",
-          'ros_distro': "ROS distro to use (Available [foxy, galactic])"}
+          'ros_distro': "ROS distro to use (Available [humble])"}
 )
-def create_deb_package(c, out_dir="../bin/", ros_distro="galactic", image_name=MODULE_NAME):
+def create_deb_package(c, out_dir="../bin/", ros_distro="humble", image_name=MODULE_NAME):
     """
     Build debian package
     """
