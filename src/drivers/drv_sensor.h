@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -221,6 +221,8 @@
 #define DRV_POWER_DEVTYPE_VOXLPM 0xD2
 #define DRV_POWER_DEVTYPE_INA220 0xD3
 #define DRV_POWER_DEVTYPE_INA238 0xD4
+
+#define DRV_DIST_DEVTYPE_TF02PRO  0xE0
 
 #define DRV_DEVTYPE_UNUSED		0xff
 
