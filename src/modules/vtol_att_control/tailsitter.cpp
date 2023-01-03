@@ -357,9 +357,22 @@ void Tailsitter::fill_actuator_outputs()
 		mc_out[actuator_controls_s::INDEX_LANDING_GEAR] = landing_gear_s::GEAR_UP;
 	}
 
+	// Control surface control
 	if (_param_vt_elev_mc_lock.get() && _vtol_mode == vtol_mode::MC_MODE) {
+		_torque_setpoint_1->xyz[1] = 0.0;
+		_torque_setpoint_1->xyz[2] = 0.0;
+
 		fw_out[actuator_controls_s::INDEX_ROLL]  = 0;
 		fw_out[actuator_controls_s::INDEX_PITCH] = 0;
+
+	} else if (!_param_vt_elev_mc_lock.get() && _vtol_mode == vtol_mode::MC_MODE) {
+		_torque_setpoint_1->xyz[0] = mc_in[actuator_controls_s::INDEX_YAW];
+		_torque_setpoint_1->xyz[1] = mc_in[actuator_controls_s::INDEX_PITCH];
+		_torque_setpoint_1->xyz[2] = -mc_in[actuator_controls_s::INDEX_ROLL];
+
+		fw_out[actuator_controls_s::INDEX_ROLL]  = mc_in[actuator_controls_s::INDEX_YAW];
+		fw_out[actuator_controls_s::INDEX_PITCH] = mc_in[actuator_controls_s::INDEX_PITCH];
+		fw_out[actuator_controls_s::INDEX_YAW] = -mc_in[actuator_controls_s::INDEX_ROLL];
 
 	} else {
 		fw_out[actuator_controls_s::INDEX_ROLL]  = fw_in[actuator_controls_s::INDEX_ROLL];
