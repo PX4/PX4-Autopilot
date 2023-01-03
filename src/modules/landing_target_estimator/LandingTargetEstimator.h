@@ -81,6 +81,11 @@ public:
 	 */
 	void update();
 
+	/*
+	 * From uwb_sr150.h
+	 */
+	matrix::Vector3d  UWB_SR150_localization(double distance, double azimuth_dev, double elevation_dev);
+
 protected:
 
 	/*
@@ -149,6 +154,9 @@ private:
 		float rel_pos_z;
 	} _target_position_report;
 
+	uORB::Publication<uwb_distance_s> _uwb_distance_pub{ORB_ID(uwb_distance)};
+	uwb_distance_s _uwb_distance{};
+
 	uORB::Subscription _vehicleLocalPositionSub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _attitudeSub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
@@ -174,7 +182,7 @@ private:
 
 	matrix::Dcmf _R_att; //Orientation of the body frame
 	matrix::Dcmf _S_att; //Orientation of the sensor relative to body frame
-	matrix::Vector2f _rel_pos;
+	// matrix::Vector2f _rel_pos;
 	KalmanFilter _kalman_filter_x;
 	KalmanFilter _kalman_filter_y;
 	hrt_abstime _last_predict{0}; // timestamp of last filter prediction
@@ -184,5 +192,10 @@ private:
 	void _check_params(const bool force);
 
 	void _update_state();
+
+	void uwb_sr150_prec_nav();
+
+	matrix::Vector3d _uwb_init_offset;
+	matrix::Vector3d _rel_pos;
 };
 } // namespace landing_target_estimator

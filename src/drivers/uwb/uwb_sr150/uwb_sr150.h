@@ -54,9 +54,9 @@
 #include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_controls.h>
+#include <modules/landing_target_estimator/LandingTargetEstimator.h>
 
 #include <matrix/math.hpp>
-#include <matrix/Matrix.hpp>
 
 using namespace time_literals;
 
@@ -109,17 +109,6 @@ typedef struct {
 } __attribute__((packed)) UWB_range_meas_t;
 
 typedef struct {
-	uint32_t initator_time;  	//timestamp of init
-	uint32_t sessionId;	// Session ID of UWB session
-	uint8_t	num_anchors;	//number of anchors
-	gps_pos_t target_gps; //GPS position of Landing Point
-	uint8_t  mac_mode;	// MAC address mode, either 2 Byte or 8 Byte
-	uint8_t MAC[UWB_MAC_MODE][MAX_ANCHORS];
-	position_t target_pos; //target position
-	position_t anchor_pos[MAX_ANCHORS]; // Position of each anchor
-	uint8_t stop; 		// Should be 27
-} grid_msg_t;
-typedef struct {
 	uint8_t cmd;      			// Should be 0x8E for distance result message
 	uint16_t len; 				// Should be 0x30 for distance result message
 	uint32_t seq_ctr;			// Number of Ranges since last Start of Ranging
@@ -167,7 +156,7 @@ public:
 	/**
 	 * @see ModuleBase::Distance Result
 	 */
-	int distance();
+	int collectData();
 
 	/**
 	 * @see ModuleBase::task_spawn
@@ -182,8 +171,6 @@ private:
 	static constexpr int64_t sq(int64_t x) { return x * x; }
 
 	void parameters_update();
-
-	void grid_info_read(position_t *grid);
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::UWB_PORT_CFG>) 			_uwb_port_cfg,
@@ -217,16 +204,12 @@ private:
 	bool _uwb_pos_debug;
 	_uwb_driver_mode _uwb_mode;
 
-	uORB::Publication<uwb_grid_s> _uwb_grid_pub{ORB_ID(uwb_grid)};
-	uwb_grid_s _uwb_grid{};
-
 	uORB::Publication<uwb_distance_s> _uwb_distance_pub{ORB_ID(uwb_distance)};
 	uwb_distance_s _uwb_distance{};
 
 	uORB::Publication<landing_target_pose_s> _landing_target_pub{ORB_ID(landing_target_pose)};
 	landing_target_pose_s _landing_target{};
 
-	grid_msg_t _uwb_grid_info{};
 	distance_msg_t _distance_result_msg{};
 	matrix::Vector3d _rel_pos;
 

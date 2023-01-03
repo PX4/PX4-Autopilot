@@ -304,5 +304,48 @@ void LandingTargetEstimator::_update_params()
 	param_get(_paramHandle.offset_z, &_params.offset_z);
 }
 
+// Navigation - landing target estimator - also the math needs to be fixed
+matrix::Vector3d LandingTargetEstimator::UWB_SR150_localization(double distance, double azimuth_dev, double elevation_dev)
+{
+	/* UWB_SR150::localization takes distance and angle measurements and publishes position data.
+	can be used to make a rover follow an UWB receiver
+	*/
+	double deg2rad = M_PI / 180.0;
+	// Catch angle measurements at the end of the range and discard them
+	/*
+	if(60.0 > azimuth_dev  || -60.0 < azimuth_dev){
+		return;
+	}
+	if(60.0 > elevation_dev  || -60.0 < elevation_dev){
+		return;
+	}*/
+
+
+	double azimuth 	 = azimuth_dev * deg2rad; 	//subtract yaw offset and convert to rad
+	double elevation = elevation_dev  * deg2rad; 	//subtract pitch offset and convert to rad
+
+	matrix::Vector3d position(	sin(azimuth) * sin(elevation),
+					cos(azimuth) * sin(elevation),
+					-cos(elevation));
+
+	position *= distance; //scale the vector to the distance
+	//Output is the Coordinates of the Initiator in relation to the UWB Receiver in NED (North-East-Down) Framing
+
+	// Now the position is the landing point relative to the vehicle.
+	// so the only thing left is to add the Initiator offset
+	position +=  matrix::Vector3d(_uwb_init_offset);
+
+	return position;
+}
+
+//TODO: Find out if this works
+void LandingTargetEstimator::uwb_sr150_prec_nav() { //Precision landing mode
+				_uwb_distance.status = 10;
+				_rel_pos = LandingTargetEstimator::UWB_SR150_localization(_uwb_distance.distance, _uwb_distance.aoa_azimuth_dev,
+								   _uwb_distance.aoa_elevation_dev);
+				_uwb_distance.position[0] = _rel_pos(0);
+				_uwb_distance.position[1] = _rel_pos(1);
+				_uwb_distance.position[2] = _rel_pos(2);
+}
 
 } // namespace landing_target_estimator

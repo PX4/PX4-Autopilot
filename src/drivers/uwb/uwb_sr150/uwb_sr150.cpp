@@ -124,7 +124,7 @@ void UWB_SR150::run()
 	int status = FALSE;
 
 	while (!should_exit()) {
-		status = UWB_SR150::distance(); //evaluate Ranging Messages until Stop
+		status = UWB_SR150::collectData(); //evaluate Ranging Messages until Stop
 	}
 
 	if (!status) { printf("ERROR: Distance Failed"); }
@@ -265,7 +265,10 @@ void UWB_SR150::parameters_update()
 	}
 }
 
-int UWB_SR150::distance()
+//  HW Driver - should rename - reads the data via uart
+//TODO: switch needs to be removed - prec_nav & follow_me so only publishing data. make it an IF that only reacts to follow me
+//TODO: case prec_nav - move to landing target estimator
+int UWB_SR150::collectData()
 {
 
 	if (hrt_elapsed_time(&param_timestamp) > 1000_ms) {
@@ -350,7 +353,7 @@ int UWB_SR150::distance()
 		//TODO doe something with the AoA FOM
 		//FOM is angle measurement quality estimation
 
-		switch (_uwb_mode) {
+		/* switch (_uwb_mode) {
 		case data: {
 				_uwb_distance.status = 9;
 				break;
@@ -364,18 +367,14 @@ int UWB_SR150::distance()
 				_uwb_distance.position[1] = _rel_pos(1);
 				_uwb_distance.position[2] = _rel_pos(2);
 				break;
-			}
+			}*/
 
-		case follow_me: { // Follow me mode
+		if(_uwb_mode == 1) { // Follow me mode
 				_uwb_distance.status = 11;
 				actuator_control(_uwb_distance.distance, _uwb_distance.aoa_azimuth_dev,
 						 _uwb_distance.aoa_elevation_dev);
-				break;
-			}
-
-		default:
+		} else {
 			_uwb_distance.status = _uwb_mode;
-			break;
 		}
 
 		_uwb_distance_pub.publish(_uwb_distance);
@@ -391,6 +390,7 @@ int UWB_SR150::distance()
 	return 1;
 }
 
+// Keep here for right now - LF doesn't want it to break
 void UWB_SR150::actuator_control(double distance, double azimuth, double elevation)
 {
 	/* UWB_SR150::actuator_control takes distance and angle measurements and publishes proportional thrust commands.
@@ -473,35 +473,36 @@ void UWB_SR150::actuator_control(double distance, double azimuth, double elevati
 
 }
 
-matrix::Vector3d UWB_SR150::localization(double distance, double azimuth_dev, double elevation_dev)
-{
-	/* UWB_SR150::localization takes distance and angle measurements and publishes position data.
-	can be used to make a rover follow an UWB receiver
-	*/
-	double deg2rad = M_PI / 180.0;
-	// Catch angle measurements at the end of the range and discard them
-	/*
-	if(60.0 > azimuth_dev  || -60.0 < azimuth_dev){
-		return;
-	}
-	if(60.0 > elevation_dev  || -60.0 < elevation_dev){
-		return;
-	}*/
+// Navigation - landing target estimator - also the math needs to be fixed
+//  matrix::Vector3d UWB_SR150::localization(double distance, double azimuth_dev, double elevation_dev)
+// {
+// 	/* UWB_SR150::localization takes distance and angle measurements and publishes position data.
+// 	can be used to make a rover follow an UWB receiver
+// 	*/
+// 	double deg2rad = M_PI / 180.0;
+// 	// Catch angle measurements at the end of the range and discard them
+// 	/*
+// 	if(60.0 > azimuth_dev  || -60.0 < azimuth_dev){
+// 		return;
+// 	}
+// 	if(60.0 > elevation_dev  || -60.0 < elevation_dev){
+// 		return;
+// 	}*/
 
 
-	double azimuth 	 = azimuth_dev * deg2rad; 	//subtract yaw offset and convert to rad
-	double elevation = elevation_dev  * deg2rad; 	//subtract pitch offset and convert to rad
+// 	double azimuth 	 = azimuth_dev * deg2rad; 	//subtract yaw offset and convert to rad
+// 	double elevation = elevation_dev  * deg2rad; 	//subtract pitch offset and convert to rad
 
-	matrix::Vector3d position(	sin(azimuth) * sin(elevation),
-					cos(azimuth) * sin(elevation),
-					-cos(elevation));
+// 	matrix::Vector3d position(	sin(azimuth) * sin(elevation),
+// 					cos(azimuth) * sin(elevation),
+// 					-cos(elevation));
 
-	position *= distance; //scale the vector to the distance
-	//Output is the Coordinates of the Initiator in relation to the UWB Receiver in NED (North-East-Down) Framing
+// 	position *= distance; //scale the vector to the distance
+// 	//Output is the Coordinates of the Initiator in relation to the UWB Receiver in NED (North-East-Down) Framing
 
-	// Now the position is the landing point relative to the vehicle.
-	// so the only thing left is to add the Initiator offset
-	position +=  matrix::Vector3d(_uwb_init_offset);
+// 	// Now the position is the landing point relative to the vehicle.
+// 	// so the only thing left is to add the Initiator offset
+// 	position +=  matrix::Vector3d(_uwb_init_offset);
 
-	return position;
-}
+// 	return position;
+// }
