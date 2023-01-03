@@ -110,8 +110,8 @@ subscriptions:
 
 # messages added by ssrc
 
-  - topic: /fmu/out/sensor_gps
+  - topic: /fmu/in/sensor_gps
     type: px4_msgs::msg::SensorGps
 
-  - topic: /fmu/out/gps_inject_data
+  - topic: /fmu/in/gps_inject_data
     type: px4_msgs::msg::GpsInjectData
