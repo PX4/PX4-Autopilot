@@ -259,7 +259,8 @@ void LoadMon::stack_usage()
 
 	if (system_load.tasks[_stack_task_index].valid && (system_load.tasks[_stack_task_index].tcb->pid > 0)) {
 
-		stack_free = up_check_tcbstack_remain(system_load.tasks[_stack_task_index].tcb);
+		stack_free = system_load.tasks[_stack_task_index].tcb->adj_stack_size - up_check_tcbstack(
+				     system_load.tasks[_stack_task_index].tcb);
 
 		strncpy((char *)task_stack_info.task_name, system_load.tasks[_stack_task_index].tcb->name, CONFIG_TASK_NAME_SIZE - 1);
 		task_stack_info.task_name[CONFIG_TASK_NAME_SIZE - 1] = '\0';
