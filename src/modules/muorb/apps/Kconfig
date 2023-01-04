@@ -1,5 +1,6 @@
 menuconfig MODULES_MUORB_APPS	
-        bool "apps"
-        default n
-        ---help---
-                Enable support for muorb apps
+	bool "apps"
+	default n
+	depends on PLATFORM_QURT
+	---help---
+		Enable support for muorb apps
