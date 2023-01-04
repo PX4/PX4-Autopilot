@@ -29,14 +29,14 @@ elif [ "$PX4_SIMULATOR" = "gz" ]; then
 
 	# "gz sim" only avaiilable in Garden and later
 	GZ_SIM_VERSIONS=$(gz sim --versions 2>&1)
-	if [ $? -eq 0 ]
+	if [ $? -eq 0 ] && [ "${GZ_SIM_VERSIONS}" != "" ]
 	then
 		# "gz sim" from Garden on
 		gz_command="gz"
 		gz_sub_command="sim"
 	else
 		IGN_GAZEBO_VERSIONS=$(ign gazebo --versions 2>&1)
-		if [ $? -eq 0 ]
+		if [ $? -eq 0 ] && [ "${IGN_GAZEBO_VERSIONS}" != "" ]
 		then
 			# "ign gazebo" for Fortress and earlier
 			gz_command="ign"
