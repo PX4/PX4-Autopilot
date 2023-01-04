@@ -46,7 +46,7 @@
             }
         },
         {
-            "name": "SITL (sihsim 10040_quadx)",
+            "name": "SITL (sihsim_quadx SYS_AUTOSTART=10040)",
             "type": "cppdbg",
             "request": "launch",
             "program": "${command:cmake.launchTargetPath}",
@@ -57,15 +57,13 @@
             "cwd": "${command:cmake.buildDirectory}/rootfs",
             "environment": [
                 {
-                    "name": "PX4_SIM_MODEL",
-                    "value": "quadx"
+                    "name": "PX4_SYS_AUTOSTART",
+                    "value": "10040"
                 }
             ],
-            "externalConsole": false,
             "postDebugTask": "px4_sitl_cleanup",
             "linux": {
                 "MIMode": "gdb",
-                "externalConsole": false,
                 "setupCommands": [
                     {
                         "description": "Enable pretty-printing for gdb",
@@ -81,7 +79,6 @@
             },
             "osx": {
                 "MIMode": "lldb",
-                "externalConsole": true,
                 "setupCommands": [
                     {
                         "text": "pro hand -p true -s false -n false SIGCONT",
