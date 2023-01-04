@@ -50,49 +50,6 @@
             }
         },
         {
-            "label": "jmavsim build",
-            "type": "shell",
-            "command": "ant create_run_jar copy_res",
-            "options": {
-                "cwd": "${workspaceFolder}/Tools/simulation/jmavsim/jMAVSim"
-            },
-            "presentation": {
-                "echo": true,
-                "reveal": "never",
-                "revealProblems": "onProblem",
-                "focus": false,
-                "panel": "dedicated",
-                "showReuseMessage": false,
-                "clear": false,
-                "close": true
-            },
-            "problemMatcher": []
-        },
-        {
-            "label": "jmavsim",
-            "type": "shell",
-            "dependsOn": "jmavsim build",
-            "command": "java -Djava.ext.dirs= -jar jmavsim_run.jar -r 250 -lockstep -tcp localhost:4560 -qgc",
-            "options": {
-                "cwd": "${workspaceFolder}/Tools/simulation/jmavsim/jMAVSim/out/production",
-                "env": {
-                    "PX4_SIM_SPEED_FACTOR": "1"
-                }
-            },
-            "isBackground": true,
-            "presentation": {
-                "echo": true,
-                "reveal": "never",
-                "revealProblems": "onProblem",
-                "focus": false,
-                "panel": "dedicated",
-                "showReuseMessage": false,
-                "clear": false,
-                "close": true
-            },
-            "problemMatcher": []
-        },
-        {
             "label": "jmavsim kill",
             "type": "shell",
             "command": "kill $(ps aux | grep jmavsim | grep -v 'grep' | awk '{print $2}') || true",

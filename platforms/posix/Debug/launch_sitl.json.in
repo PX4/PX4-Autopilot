@@ -135,7 +135,7 @@
             }
         },
         {
-            "name": "SITL (jmavsim)",
+            "name": "SITL (jmavsim_iris SYS_AUTOSTART=10017)",
             "type": "cppdbg",
             "request": "launch",
             "program": "${command:cmake.launchTargetPath}",
@@ -146,16 +146,13 @@
             "cwd": "${command:cmake.buildDirectory}/rootfs",
             "environment": [
                 {
-                    "name": "PX4_SIM_MODEL",
-                    "value": "iris"
+                    "name": "PX4_SYS_AUTOSTART",
+                    "value": "10017"
                 }
             ],
-            "externalConsole": false,
-            "preLaunchTask": "jmavsim",
             "postDebugTask": "jmavsim kill",
             "linux": {
                 "MIMode": "gdb",
-                "externalConsole": false,
                 "setupCommands": [
                     {
                         "description": "Enable pretty-printing for gdb",
@@ -171,7 +168,6 @@
             },
             "osx": {
                 "MIMode": "lldb",
-                "externalConsole": true,
                 "setupCommands": [
                     {
                         "text": "pro hand -p true -s false -n false SIGCONT",

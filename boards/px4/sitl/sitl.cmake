@@ -1,5 +1,3 @@
-set(config_sitl_viewer jmavsim CACHE STRING "viewer for sitl")
-set_property(CACHE config_sitl_viewer PROPERTY STRINGS "jmavsim;none")
 
 # If the environment variable 'replay' is defined, we are building with replay
 # support. In this case, we enable the orb publisher rules.
