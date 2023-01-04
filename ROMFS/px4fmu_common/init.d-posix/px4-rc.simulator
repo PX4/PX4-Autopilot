@@ -27,8 +27,25 @@ elif [ "$PX4_SIMULATOR" = "gz" ]; then
 		. ../gazebo_env.sh
 	fi
 
-	gz_command="ign" # "ign" before garden
-	gz_sub_command="gazebo" # "gazebo" before garden
+	# "gz sim" only avaiilable in Garden and later
+	GZ_SIM_VERSIONS=$(gz sim --versions 2>&1)
+	if [ $? -eq 0 ]
+	then
+		# "gz sim" from Garden on
+		gz_command="gz"
+		gz_sub_command="sim"
+	else
+		IGN_GAZEBO_VERSIONS=$(ign gazebo --versions 2>&1)
+		if [ $? -eq 0 ]
+		then
+			# "ign gazebo" for Fortress and earlier
+			gz_command="ign"
+			gz_sub_command="gazebo"
+		else
+			echo "ERROR [init] Gazebo gz and ign commands unavailable"
+			exit 1
+		fi
+	fi
 
 	# look for running ${gz_command} gazebo world
 	gz_world=$( ${gz_command} topic -l | grep -m 1 -e "/world/.*/clock" | sed 's/\/world\///g; s/\/clock//g' )
@@ -41,8 +58,8 @@ elif [ "$PX4_SIMULATOR" = "gz" ]; then
 		${gz_command} ${gz_sub_command} --verbose=1 -r -s "${PX4_GZ_WORLDS}/${PX4_GZ_WORLD}.sdf" &
 
 		if [ -z "${HEADLESS}" ]; then
-			# HEADLESS not set, starting ign gazebo gui
-			${gz_command} gazebo -g &
+			# HEADLESS not set, starting gui
+			${gz_command} ${gz_sub_command} -g &
 		fi
 
 	else
@@ -71,7 +88,7 @@ elif [ "$PX4_SIMULATOR" = "gz" ]; then
 			sensor_mag_sim start
 
 		else
-			echo "ERROR [init] gazebo failed to start"
+			echo "ERROR [init] gz_bridge failed to start"
 			exit 1
 		fi
 
@@ -84,7 +101,7 @@ elif [ "$PX4_SIMULATOR" = "gz" ]; then
 			sensor_mag_sim start
 
 		else
-			echo "ERROR [init] gazebo failed to start"
+			echo "ERROR [init] gz_bridge failed to start"
 			exit 1
 		fi
 
@@ -98,7 +115,7 @@ elif [ "$PX4_SIMULATOR" = "gz" ]; then
 			sensor_mag_sim start
 
 		else
-			echo "ERROR [init] gazebo failed to start"
+			echo "ERROR [init] gz_bridge failed to start"
 			exit 1
 		fi
 
