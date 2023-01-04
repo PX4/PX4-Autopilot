@@ -37,9 +37,6 @@ px4_add_romfs_files(
 	10018_iris_foggy_lidar
 	10019_omnicopter
 	10030_px4vision
-	10040_quadx
-	10041_airplane
-	10042_xvert
 	1010_iris_opt_flow
 	1010_iris_opt_flow.post
 	1011_iris_irlock
@@ -83,4 +80,8 @@ px4_add_romfs_files(
 
 	6011_typhoon_h480
 	6011_typhoon_h480.post
+
+	10040_sihsim_quadx
+	10041_sihsim_airplane
+	10042_sihsim_xvert
 )

@@ -54,9 +54,45 @@ if(PX4_PLATFORM MATCHES "posix")
 		xvert
 	)
 
+	# find corresponding airframes
+	file(GLOB sihsim_airframes
+		RELATIVE ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/init.d-posix/airframes
+		${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/init.d-posix/airframes/*_sihsim_*
+	)
+
+	# remove any .post files
+	foreach(sihsim_airframe IN LISTS sihsim_airframes)
+		if(sihsim_airframe MATCHES ".post")
+			list(REMOVE_ITEM sihsim_airframes ${sihsim_airframe})
+		endif()
+	endforeach()
+	list(REMOVE_DUPLICATES sihsim_airframes)
+
 	foreach(model ${models})
+
+		# match model to airframe
+		set(airframe_model_only)
+		set(airframe_sys_autostart)
+		set(sihsim_airframe_found)
+		foreach(sihsim_airframe IN LISTS sihsim_airframes)
+
+			string(REGEX REPLACE ".*_sihsim_" "" airframe_model_only ${sihsim_airframe})
+			string(REGEX REPLACE "_sihsim_.*" "" airframe_sys_autostart ${sihsim_airframe})
+
+			if(model STREQUAL ${airframe_model_only})
+				set(sihsim_airframe_found ${sihsim_airframe})
+				break()
+			endif()
+		endforeach()
+
+		if(sihsim_airframe_found)
+			#message(STATUS "sihsim model: ${model} (${airframe_model_only}), airframe: ${sihsim_airframe_found}, SYS_AUTOSTART: ${airframe_sys_autostart}")
+		else()
+			message(WARNING "sihsim missing model: ${model} (${airframe_model_only}), airframe: ${sihsim_airframe_found}, SYS_AUTOSTART: ${airframe_sys_autostart}")
+		endif()
+
 		add_custom_target(sihsim_${model}
-			COMMAND ${CMAKE_COMMAND} -E env PX4_SIM_MODEL=${model} PX4_SIMULATOR=sihsim $<TARGET_FILE:px4>
+			COMMAND ${CMAKE_COMMAND} -E env PX4_SIM_MODEL=sihsim_${model} PX4_SIMULATOR=sihsim $<TARGET_FILE:px4>
 			WORKING_DIRECTORY ${SITL_WORKING_DIR}
 			USES_TERMINAL
 			DEPENDS px4
