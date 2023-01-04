@@ -271,7 +271,7 @@ if (NOT CONFIG_BUILD_FLAT)
 
 else()
 
-	target_link_libraries(nuttx_c INTERFACE nuttx_sched) # nxsched_get_streams
+	target_link_libraries(nuttx_c INTERFACE nuttx_sched)
 
 	target_link_libraries(nuttx_arch
 		INTERFACE
