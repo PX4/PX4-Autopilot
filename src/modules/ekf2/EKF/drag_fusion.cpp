@@ -60,7 +60,6 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 		return;
 	}
 
-	// predicted specific forces
 	// calculate relative wind velocity in earth frame and rotate into body frame
 	const Vector3f rel_wind_earth(_state.vel(0) - _state.wind_vel(0),
 				      _state.vel(1) - _state.wind_vel(1),
@@ -68,6 +67,24 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 	const Vector3f rel_wind_body = _state.quat_nominal.rotateVectorInverse(rel_wind_earth);
 	const float rel_wind_speed = rel_wind_body.norm();
 	const Vector24f state_vector_prev = getStateAtFusionHorizonAsVector();
+
+	Vector2f bcoef_inv;
+
+	if (using_bcoef_x) {
+		bcoef_inv(0) = 1.0f / _params.bcoef_x;
+	}
+
+	if (using_bcoef_y) {
+		bcoef_inv(1) = 1.0f / _params.bcoef_y;
+	}
+
+	if (using_bcoef_x && using_bcoef_y) {
+
+		// Interpolate between the X and Y bluff body drag coefficients using current relative velocity
+		// This creates an elliptic drag distribution around the XY plane
+		bcoef_inv(0) = Vector2f(bcoef_inv.emult(rel_wind_body.xy()) / rel_wind_body.xy().norm()).norm();
+		bcoef_inv(1) = bcoef_inv(0);
+	}
 
 	Vector24f Kfusion;
 
@@ -79,21 +96,20 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 		// Drag is modelled as an arbitrary combination of bluff body drag that proportional to
 		// equivalent airspeed squared, and rotor momentum drag that is proportional to true airspeed
 		// parallel to the rotor disc and mass flow through the rotor disc.
-		float bcoef_inv = 0.f;
 
 		if (axis_index == 0) {
-			if (using_bcoef_x) {
-				bcoef_inv = 1.0f / _params.bcoef_x;
+			if (!using_bcoef_x && !using_mcoef) {
+				continue;
 			}
 
-			sym::ComputeDragXInnovVarAndK(state_vector_prev, P, rho, bcoef_inv, mcoef_corrrected, R_ACC, FLT_EPSILON, &_drag_innov_var(0), &Kfusion);
+			sym::ComputeDragXInnovVarAndK(state_vector_prev, P, rho, bcoef_inv(axis_index), mcoef_corrrected, R_ACC, FLT_EPSILON, &_drag_innov_var(axis_index), &Kfusion);
 
 		} else if (axis_index == 1) {
-			if (using_bcoef_y) {
-				bcoef_inv = 1.0f / _params.bcoef_y;
+			if (!using_bcoef_y && !using_mcoef) {
+				continue;
 			}
 
-			sym::ComputeDragYInnovVarAndK(state_vector_prev, P, rho, bcoef_inv, mcoef_corrrected, R_ACC, FLT_EPSILON, &_drag_innov_var(1), &Kfusion);
+			sym::ComputeDragYInnovVarAndK(state_vector_prev, P, rho, bcoef_inv(axis_index), mcoef_corrrected, R_ACC, FLT_EPSILON, &_drag_innov_var(axis_index), &Kfusion);
 		}
 
 		if (_drag_innov_var(axis_index) < R_ACC) {
@@ -101,7 +117,7 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 			return;
 		}
 
-		const float pred_acc = -0.5f * bcoef_inv * rho * rel_wind_body(axis_index) * rel_wind_speed - rel_wind_body(axis_index) * mcoef_corrrected;
+		const float pred_acc = -0.5f * bcoef_inv(axis_index) * rho * rel_wind_body(axis_index) * rel_wind_speed - rel_wind_body(axis_index) * mcoef_corrrected;
 
 		// Apply an innovation consistency check with a 5 Sigma threshold
 		_drag_innov(axis_index) = pred_acc - mea_acc;
