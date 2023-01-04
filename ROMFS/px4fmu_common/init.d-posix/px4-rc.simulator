@@ -124,6 +124,20 @@ elif [ "$PX4_SIMULATOR" = "gz" ]; then
 		exit 1
 	fi
 
+elif [ "$PX4_SIM_MODEL" = "jmavsim_iris" ] || [ "$(param show -q SYS_AUTOSTART)" -eq "10017" ]; then
+
+	echo "INFO  [init] jMAVSim simulator"
+
+	if jps | grep -i jmavsim; then
+		kill $(jps | grep -i jmavsim | awk '{print $1}') || true
+		sleep 1
+	fi
+
+	param set IMU_INTEG_RATE 250
+	./jmavsim_run.sh -l -r 250 &
+
+	simulator_mavlink start -h localhost $((4560+px4_instance))
+
 else
 	# otherwise start simulator (mavlink) module
 	simulator_tcp_port=$((4560+px4_instance))
@@ -134,15 +148,15 @@ else
 	if [ -z "${PX4_SIM_HOSTNAME}" ]; then
 
 		if [ -z "${PX4_SIM_HOST_ADDR}" ]; then
-			echo "PX4 SIM HOST: localhost"
+			echo "INFO  [init] PX4_SIM_HOSTNAME: localhost"
 			simulator_mavlink start -c $simulator_tcp_port
 		else
-			echo "PX4 SIM HOST: ${PX4_SIM_HOST_ADDR}"
+			echo "INFO  [init] PX4_SIM_HOSTNAME: ${PX4_SIM_HOST_ADDR}"
 			simulator_mavlink start -t "${PX4_SIM_HOST_ADDR}" "${simulator_tcp_port}"
 		fi
 
 	else
-		echo "PX4 SIM HOST: ${PX4_SIM_HOSTNAME}"
+		echo "INFO  [init] PX4_SIM_HOSTNAME: ${PX4_SIM_HOSTNAME}"
 		simulator_mavlink start -h "${PX4_SIM_HOSTNAME}" "${simulator_tcp_port}"
 	fi
 

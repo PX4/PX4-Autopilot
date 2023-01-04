@@ -33,6 +33,7 @@
 
 px4_add_romfs_files(
 	10016_iris
+	10017_jmavsim_iris
 	10018_iris_foggy_lidar
 	10019_omnicopter
 	10030_px4vision
