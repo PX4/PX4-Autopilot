@@ -64,6 +64,15 @@ static px4_task_t g_usr_hrt_task = -1;
 static px4_hrt_handle_t g_hrt_client_handle;
 
 /**
+ * Wrapper for atexit()
+ */
+static void hrt_stop(void)
+{
+	px4_task_delete(g_usr_hrt_task);
+	boardctl(HRT_UNREGISTER, (uintptr_t)&g_hrt_client_handle);
+}
+
+/**
  * Fetch a never-wrapping absolute time value in microseconds from
  * some arbitrary epoch shortly after system start.
  */
@@ -108,8 +117,7 @@ event_thread(int argc, char *argv[])
  */
 bool hrt_request_stop()
 {
-	px4_task_delete(g_usr_hrt_task);
-	boardctl(HRT_UNREGISTER, (uintptr_t)&g_hrt_client_handle);
+	hrt_stop();
 	return true;
 }
 
@@ -122,7 +130,7 @@ hrt_init(void)
 	boardctl(HRT_REGISTER, (uintptr_t)&g_hrt_client_handle);
 
 	if (g_hrt_client_handle) {
-		px4_register_shutdown_hook(hrt_request_stop);
+		atexit(hrt_stop);
 		g_usr_hrt_task = px4_task_spawn_cmd("usr_hrt", SCHED_DEFAULT, SCHED_PRIORITY_MAX, PX4_STACK_ADJUSTED(1024),
 						    event_thread, NULL);
 
