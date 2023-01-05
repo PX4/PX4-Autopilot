@@ -53,10 +53,9 @@ px4_add_romfs_files(
 	1030_plane
 	1031_plane_cam
 	1032_plane_catapult
-	1033_rascal
-	1034_rascal-electric
+	1033_jsbsim_rascal
 	1035_techpod
-	1036_malolo
+	1036_jsbsim_malolo
 	1037_believer
 	1038_glider
 	1039_advanced_plane
@@ -69,8 +68,9 @@ px4_add_romfs_files(
 	1061_r1_rover
 	1062_tf-r1
 	1070_boat
-	3010_quadrotor_x
-	3011_hexarotor_x
+
+	3010_jsbsim_quadrotor_x
+	3011_jsbsim_hexarotor_x
 
 	4001_x500
 
