@@ -21,12 +21,12 @@ if [ "$PX4_SIMULATOR" = "sihsim" ] || [ "$(param show -q SYS_AUTOSTART)" -eq "0"
 
 elif [ "$PX4_SIMULATOR" = "gz" ]; then
 
-	# source generated gazebo_env.sh for IGN_GAZEBO_RESOURCE_PATH
-	if [ -f ./gazebo_env.sh ]; then
-		. ./gazebo_env.sh
+	# source generated gz_env.sh for IGN_GAZEBO_RESOURCE_PATH
+	if [ -f ./gz_env.sh ]; then
+		. ./gz_env.sh
 
-	elif [ -f ../gazebo_env.sh ]; then
-		. ../gazebo_env.sh
+	elif [ -f ../gz_env.sh ]; then
+		. ../gz_env.sh
 	fi
 
 	# "gz sim" only avaiilable in Garden and later
@@ -111,7 +111,7 @@ elif [ "$PX4_SIMULATOR" = "gz" ]; then
 
 		echo "WARN  [init] PX4_GZ_MODEL_NAME or PX4_GZ_MODEL not set using PX4_SIM_MODEL."
 
-		if gz_bridge start -m "${PX4_SIM_MODEL}" -w "${PX4_GZ_WORLD}" -i "${px4_instance}"; then
+		if gz_bridge start -m "${PX4_SIM_MODEL#*gz_}" -w "${PX4_GZ_WORLD}" -i "${px4_instance}"; then
 			sensor_baro_sim start
 			sensor_gps_sim start
 			sensor_mag_sim start
