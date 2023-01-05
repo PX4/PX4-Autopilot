@@ -62,7 +62,6 @@ set(debuggers
 )
 
 set(models
-	none
 	advanced_plane
 	believer
 	boat
@@ -77,7 +76,6 @@ set(models
 	iris_opt_flow_mockup
 	iris_rplidar
 	iris_vision
-	nxp_cupcar
 	omnicopter
 	plane
 	plane_cam
@@ -86,7 +84,6 @@ set(models
 	px4vision
 	r1_rover
 	rover
-	shell
 	standard_vtol
 	standard_vtol_drop
 	tailsitter
@@ -109,8 +106,62 @@ set(worlds
 	yosemite
 )
 
+# find corresponding airframes
+file(GLOB gazebo_airframes
+     RELATIVE ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/init.d-posix/airframes
+     ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/init.d-posix/airframes/*_gazebo_*
+)
+
+# remove any .post files
+foreach(gazebo_airframe IN LISTS gazebo_airframes)
+	if(gazebo_airframe MATCHES ".post")
+		list(REMOVE_ITEM gazebo_airframes ${gazebo_airframe})
+	endif()
+endforeach()
+list(REMOVE_DUPLICATES gazebo_airframes)
+
+foreach(gazebo_airframe IN LISTS gazebo_airframes)
+	set(model_only)
+	string(REGEX REPLACE ".*_gazebo_" "" model_only ${gazebo_airframe})
+
+	if(EXISTS "${PX4_SOURCE_DIR}/Tools/simulation/gazebo/sitl_gazebo/models/${model_only}")
+
+		if((EXISTS "${PX4_SOURCE_DIR}/Tools/simulation/gazebo/sitl_gazebo/models/${model_only}/${model_only}.sdf")
+		OR (EXISTS "${PX4_SOURCE_DIR}/Tools/simulation/gazebo/sitl_gazebo/models/${model_only}/${model_only}.sdf.jinja"))
+			#message(STATUS "SDF file found for ${model_only}")
+		else()
+			message(WARNING "No SDF file found for ${model_only}")
+		endif()
+
+	else()
+		message(WARNING "model directory ${PX4_SOURCE_DIR}/Tools/simulation/gazebo/sitl_gazebo/models/${model_only} not found")
+	endif()
+endforeach()
+
 foreach(debugger ${debuggers})
 	foreach(model ${models})
+
+		# match model to airframe
+		set(airframe_model_only)
+		set(airframe_sys_autostart)
+		set(gazebo_airframe_found)
+		foreach(gazebo_airframe IN LISTS gazebo_airframes)
+
+			string(REGEX REPLACE ".*_gazebo_" "" airframe_model_only ${gazebo_airframe})
+			string(REGEX REPLACE "_gazebo_.*" "" airframe_sys_autostart ${gazebo_airframe})
+
+			if(model STREQUAL ${airframe_model_only})
+				set(gazebo_airframe_found ${gazebo_airframe})
+				break()
+			endif()
+		endforeach()
+
+		if(gazebo_airframe_found)
+			#message(STATUS "gazebo model: ${model} (${airframe_model_only}), airframe: ${gazebo_airframe_found}, SYS_AUTOSTART: ${airframe_sys_autostart}")
+		else()
+			message(WARNING "gazebo missing model: ${model} (${airframe_model_only}), airframe: ${gazebo_airframe_found}, SYS_AUTOSTART: ${airframe_sys_autostart}")
+		endif()
+
 		foreach(world ${worlds})
 			if(world STREQUAL "none")
 				if(debugger STREQUAL "none")

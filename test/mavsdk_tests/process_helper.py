@@ -164,7 +164,7 @@ class Px4Runner(Runner):
                 os.path.join(workspace_dir, "test_data"),
                 "-d"
             ]
-        self.env["PX4_SIM_MODEL"] = self.model
+        self.env["PX4_SIM_MODEL"] = "gazebo_" + self.model
         self.env["PX4_SIM_SPEED_FACTOR"] = str(speed_factor)
         self.debugger = debugger
         self.clear_rootfs()
@@ -275,13 +275,6 @@ class GzmodelspawnRunner(Runner):
                                       PX4_GAZEBO_MODELS,
                                       self.model, self.model + ".sdf")
 
-        elif os.path.isfile(os.path.join(workspace_dir,
-                                         PX4_GAZEBO_MODELS,
-                                         self.model, self.model + "-gen.sdf")):
-
-            model_path = os.path.join(workspace_dir,
-                                      PX4_GAZEBO_MODELS,
-                                      self.model, self.model + "-gen.sdf")
         else:
             raise Exception("Model not found")
 

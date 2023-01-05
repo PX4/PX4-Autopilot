@@ -99,7 +99,7 @@
             "environment": [
                 {
                     "name": "PX4_SIM_MODEL",
-                    "value": "iris"
+                    "value": "gazebo_iris"
                 }
             ],
             "externalConsole": false,

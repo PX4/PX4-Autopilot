@@ -81,7 +81,7 @@ jobs:
       env:
         PX4_CMAKE_BUILD_TYPE: ${{matrix.config.build_type}}
         DONT_RUN: 1
-      run: make px4_sitl_default gazebo mavsdk_tests
+      run: make px4_sitl_default sitl_gazebo mavsdk_tests
     - name: ccache post-run mavsdk_tests
       run: ccache -s
 

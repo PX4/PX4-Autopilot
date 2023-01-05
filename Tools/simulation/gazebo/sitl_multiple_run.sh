@@ -1,6 +1,6 @@
 #!/bin/bash
 # run multiple instances of the 'px4' binary, with the gazebo SITL simulation
-# It assumes px4 is already built, with 'make px4_sitl_default gazebo'
+# It assumes px4 is already built, with 'make px4_sitl_default sitl_gazebo'
 
 # The simulator is expected to send to TCP port 4560+i for i in [0, N-1]
 # For example gazebo can be run like this:
@@ -69,7 +69,7 @@ num_vehicles=${NUM_VEHICLES:=3}
 world=${WORLD:=empty}
 target=${TARGET:=px4_sitl_default}
 vehicle_model=${VEHICLE_MODEL:="iris"}
-export PX4_SIM_MODEL=${vehicle_model}
+export PX4_SIM_MODEL=gazebo_${vehicle_model}
 
 echo ${SCRIPT}
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -126,7 +126,7 @@ else
 
 		m=0
 		while [ $m -lt ${target_number} ]; do
-			export PX4_SIM_MODEL=${target_vehicle}
+			export PX4_SIM_MODEL=gazebo_${target_vehicle}
 			spawn_model ${target_vehicle}${LABEL} $n $target_x $target_y
 			m=$(($m + 1))
 			n=$(($n + 1))
