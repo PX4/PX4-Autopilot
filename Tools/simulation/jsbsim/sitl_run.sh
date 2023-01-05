@@ -37,7 +37,7 @@ else
 	no_pxh=""
 fi
 
-export PX4_SIM_MODEL=${model}
+export PX4_SIM_MODEL=jsbsim_${model}
 export PX4_SIM_WORLD=${world}
 
 # This is needed for aircraft namespace mapping
