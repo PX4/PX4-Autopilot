@@ -47,51 +47,46 @@
 #include <uORB/SubscriptionInterval.hpp>
 
 #include <uORB/topics/landing_target_pose.h>
-#include <uORB/topics/uwb_grid.h>
+// #include <uORB/topics/uwb_grid.h>
 #include <uORB/topics/uwb_distance.h>
 #include <uORB/topics/parameter_update.h>
-
-#include <uORB/topics/offboard_control_mode.h>
-#include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/actuator_controls.h>
-#include <modules/landing_target_estimator/LandingTargetEstimator.h>
 
 #include <matrix/math.hpp>
 
 using namespace time_literals;
 
-#define UWB_PARAM_UPDATE_TIME 1000000
+// #define UWB_PARAM_UPDATE_TIME 1000000
 
-#define UWB_CMD  0x8e
-#define UWB_CMD_START  0x01
-#define UWB_CMD_STOP  0x00
-#define UWB_CMD_RANGING  0x0A
-#define STOP_B 0x0A
+// #define UWB_CMD  0x8e
+// #define UWB_CMD_START  0x01
+// #define UWB_CMD_STOP  0x00
+// #define UWB_CMD_RANGING  0x0A
+// #define STOP_B 0x0A
 
-#define UWB_PRECNAV_APP   0x04
-#define UWB_APP_START     0x10
-#define UWB_APP_STOP      0x11
-#define UWB_SESSION_START 0x22
-#define UWB_SESSION_STOP  0x23
-#define UWB_RANGING_START 0x01
-#define UWB_RANGING_STOP  0x00
-#define UWB_DRONE_CTL     0x0A
-#define UWB_SUBCMD_PRECLAND      0x0B
-#define UWB_SUBCMD_FOLLOW_ME     0x0F
+// #define UWB_PRECNAV_APP   0x04
+// #define UWB_APP_START     0x10
+// #define UWB_APP_STOP      0x11
+// #define UWB_SESSION_START 0x22
+// #define UWB_SESSION_STOP  0x23
+// #define UWB_RANGING_START 0x01
+// #define UWB_RANGING_STOP  0x00
+// #define UWB_DRONE_CTL     0x0A
+// #define UWB_SUBCMD_PRECLAND      0x0B
+// #define UWB_SUBCMD_FOLLOW_ME     0x0F
 
-#define UWB_CMD_LEN  0x05
-#define UWB_CMD_DISTANCE_LEN 0x21
-#define UWB_MAC_MODE 2
-#define MAX_ANCHORS 12
-#define UWB_GRID_CONFIG "/fs/microsd/etc/uwb_grid_config.csv"
+// #define UWB_CMD_LEN  0x05
+// #define UWB_CMD_DISTANCE_LEN 0x21
+// #define UWB_MAC_MODE 2
+// #define MAX_ANCHORS 12
+// #define UWB_GRID_CONFIG "/fs/microsd/etc/uwb_grid_config.csv"
 
-typedef struct {  //needs higher accuracy?
-	float lat, lon, alt, yaw; //offset to true North
-} gps_pos_t;
+// typedef struct {  //needs higher accuracy?
+// 	float lat, lon, alt, yaw; //offset to true North
+// } gps_pos_t;
 
-typedef struct {  //needs higher accuracy?
-	int16_t x, y, z;//offset to true North
-} position_t;
+// typedef struct {  //needs higher accuracy?
+// 	int16_t x, y, z;//offset to true North
+// } position_t;
 
 typedef struct {
 	uint8_t MAC[2];					// MAC address of UWB device
@@ -120,12 +115,6 @@ typedef struct {
 } __attribute__((packed)) distance_msg_t;
 
 
-typedef enum {
-	data 		= -1,
-	prec_nav	= 0,
-	follow_me	= 1,
-} _uwb_driver_mode;
-
 class UWB_SR150 : public ModuleBase<UWB_SR150>, public ModuleParams
 {
 public:
@@ -144,16 +133,6 @@ public:
 	static int print_usage(const char *reason = nullptr);
 
 	/**
-	 * @see ModuleBase::Localization
-	 */
-	matrix::Vector3d  localization(double distance, double azimuth_dev, double elevation_dev);
-
-	/**
-	 * @see ModuleBase::actuator_control
-	 */
-	void actuator_control(double distance, double azimuth, double elevation);
-
-	/**
 	 * @see ModuleBase::Distance Result
 	 */
 	int collectData();
@@ -167,6 +146,8 @@ public:
 
 	void run() override;
 
+	// void stop();
+
 private:
 	static constexpr int64_t sq(int64_t x) { return x * x; }
 
@@ -174,27 +155,16 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::UWB_PORT_CFG>) 			_uwb_port_cfg,
-		(ParamInt<px4::params::UWB_MODE>)  			_uwb_mode_p,
+		// (ParamInt<px4::params::UWB_MODE>)  			_uwb_mode_p,
 		(ParamFloat<px4::params::UWB_INIT_OFF_X>) 		_uwb_init_off_x,
 		(ParamFloat<px4::params::UWB_INIT_OFF_Y>) 		_uwb_init_off_y,
 		(ParamFloat<px4::params::UWB_INIT_OFF_Z>) 		_uwb_init_off_z,
 		(ParamFloat<px4::params::UWB_INIT_YAW>) 		_uwb_init_off_yaw,
-		(ParamFloat<px4::params::UWB_INIT_PITCH>) 		_uwb_init_off_pitch,
-		(ParamFloat<px4::params::UWB_FW_DIST>)   		_uwb_follow_distance, //Follow me
-		(ParamFloat<px4::params::UWB_FW_DIST_MIN>) 		_uwb_follow_distance_min,
-		(ParamFloat<px4::params::UWB_FW_DIST_MAX>) 		_uwb_follow_distance_max,
-		(ParamFloat<px4::params::UWB_THROTTLE>) 		_uwb_throttle,
-		(ParamFloat<px4::params::UWB_THROTTLE_REV>) 		_uwb_throttle_reverse,
-		(ParamFloat<px4::params::UWB_THR_HEAD>) 		_uwb_thrust_head,
-		(ParamFloat<px4::params::UWB_THR_HEAD_MIN>) 		_uwb_thrust_head_min,
-		(ParamFloat<px4::params::UWB_THR_HEAD_MAX>) 		_uwb_thrust_head_max
+		(ParamFloat<px4::params::UWB_INIT_PITCH>) 		_uwb_init_off_pitch
 	)
 
 
 	uORB::SubscriptionInterval 						_parameter_update_sub{ORB_ID(parameter_update), 1_s};
-	uORB::Publication<offboard_control_mode_s>				_offboard_control_mode_pub{ORB_ID(offboard_control_mode)};
-	uORB::Publication<actuator_controls_s>					_actuator_controls_pubs[4] {ORB_ID(actuator_controls_0), ORB_ID(actuator_controls_1), ORB_ID(actuator_controls_2), ORB_ID(actuator_controls_3)};
-	uORB::Subscription							_vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	hrt_abstime param_timestamp{0};
 
@@ -202,7 +172,7 @@ private:
 	fd_set _uart_set;
 	struct timeval _uart_timeout {};
 	bool _uwb_pos_debug;
-	_uwb_driver_mode _uwb_mode;
+
 
 	uORB::Publication<uwb_distance_s> _uwb_distance_pub{ORB_ID(uwb_distance)};
 	uwb_distance_s _uwb_distance{};

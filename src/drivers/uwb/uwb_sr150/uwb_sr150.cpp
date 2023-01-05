@@ -100,13 +100,7 @@ UWB_SR150::~UWB_SR150()
 {
 	printf("UWB: Ranging Stopped\t\n");
 
-	//TODO enable stop part
-	//int written = write(_uart, &CMD_APP_STOP, sizeof(CMD_APP_STOP));
-
-	//if (written < (int) sizeof(CMD_APP_STOP)) {
-	//PX4_ERR("Only wrote %d bytes out of %d.", written, (int) sizeof(CMD_APP_STOP));
-	//}
-
+	// stop{};
 	perf_free(_read_err_perf);
 	perf_free(_read_count_perf);
 
@@ -118,7 +112,7 @@ void UWB_SR150::run()
 	// Subscribe to parameter_update message
 	parameters_update();
 	param_timestamp = hrt_absolute_time();
-	_uwb_mode = (_uwb_driver_mode)_uwb_mode_p.get();
+	// _uwb_mode = (_uwb_driver_mode)_uwb_mode_p.get();
 
 	/* Ranging  Command */
 	int status = FALSE;
@@ -265,9 +259,6 @@ void UWB_SR150::parameters_update()
 	}
 }
 
-//  HW Driver - should rename - reads the data via uart
-//TODO: switch needs to be removed - prec_nav & follow_me so only publishing data. make it an IF that only reacts to follow me
-//TODO: case prec_nav - move to landing target estimator
 int UWB_SR150::collectData()
 {
 
@@ -339,43 +330,14 @@ int UWB_SR150::collectData()
 		_uwb_distance.counter = _distance_result_msg.seq_ctr;
 		_uwb_distance.sessionid = _distance_result_msg.sessionId;
 		_uwb_distance.time_offset = _distance_result_msg.range_interval;
-		//_uwb_distance.mac = _distance_result_msg.MAC
-
-
 		_uwb_distance.distance = double(_distance_result_msg.measurements.distance) / 100;
 		_uwb_distance.nlos = _distance_result_msg.measurements.nLos;
+
 		/*Angle of Arrival has Format Q9.7; dividing by 2^7 and negating results in the correct value*/
 		_uwb_distance.aoa_azimuth_dev 	= - double(_distance_result_msg.measurements.aoa_azimuth) / 128;
 		_uwb_distance.aoa_elevation_dev = - double(_distance_result_msg.measurements.aoa_elevation) / 128;
 		_uwb_distance.aoa_azimuth_resp 	= - double(_distance_result_msg.measurements.aoa_dest_azimuth) / 128;
 		_uwb_distance.aoa_elevation_resp = - double(_distance_result_msg.measurements.aoa_dest_elevation) / 128;
-
-		//TODO doe something with the AoA FOM
-		//FOM is angle measurement quality estimation
-
-		/* switch (_uwb_mode) {
-		case data: {
-				_uwb_distance.status = 9;
-				break;
-			}
-
-		case prec_nav: { //Precision landing mode
-				_uwb_distance.status = 10;
-				_rel_pos = UWB_SR150::localization(_uwb_distance.distance, _uwb_distance.aoa_azimuth_dev,
-								   _uwb_distance.aoa_elevation_dev);
-				_uwb_distance.position[0] = _rel_pos(0);
-				_uwb_distance.position[1] = _rel_pos(1);
-				_uwb_distance.position[2] = _rel_pos(2);
-				break;
-			}*/
-
-		if(_uwb_mode == 1) { // Follow me mode
-				_uwb_distance.status = 11;
-				actuator_control(_uwb_distance.distance, _uwb_distance.aoa_azimuth_dev,
-						 _uwb_distance.aoa_elevation_dev);
-		} else {
-			_uwb_distance.status = _uwb_mode;
-		}
 
 		_uwb_distance_pub.publish(_uwb_distance);
 
@@ -389,120 +351,3 @@ int UWB_SR150::collectData()
 
 	return 1;
 }
-
-// Keep here for right now - LF doesn't want it to break
-void UWB_SR150::actuator_control(double distance, double azimuth, double elevation)
-{
-	/* UWB_SR150::actuator_control takes distance and angle measurements and publishes proportional thrust commands.
-	can be used to make a rover follow an UWB receiver
-	*/
-
-	//Lots of Params to finetune the Follow me behavior
-	double follow_distance_max =	_uwb_follow_distance_max.get();
-	double follow_distance = 	_uwb_follow_distance.get();
-	double follow_distance_min =	_uwb_follow_distance_min.get();
-	double throttle_max =		_uwb_throttle.get();
-	double thrust_heading =		_uwb_thrust_head.get(); // heading thrust multiplier
-	double thrust_heading_min =		_uwb_thrust_head_min.get();
-	double thrust_heading_max =		_uwb_thrust_head_max.get();
-	double throttle_reverse =	_uwb_throttle_reverse.get();
-
-	double heading = azimuth / 70; //normalize the AoA to -1..+1
-	double throttle = 0;
-
-	//simple heading control loop
-	if (azimuth >= 0) { // Heading deadzone
-		heading = heading * thrust_heading;
-		heading = math::constrain(heading, thrust_heading_min, thrust_heading_max) ; //Limit heading to -1..+1
-
-	} else if (azimuth <= 0) { // Heading deadzone
-		heading = heading * thrust_heading;
-		heading = math::constrain(heading, -thrust_heading_max, -thrust_heading_min) ;
-
-	} else {
-		heading = 0;
-	}
-
-	//simple Throttle control loop
-	if (distance > follow_distance_max) {
-		throttle = 0;
-
-	} else if (distance <= follow_distance_min) {
-		throttle =	throttle_reverse;
-
-	} else if ((distance >= follow_distance_min) && (distance < follow_distance)) {
-		throttle = 0;
-
-	} else if ((distance >= follow_distance) && (distance < follow_distance_max)) {
-		throttle = (distance - follow_distance) / 2; //Throttle will reach 100% over 2 meters
-
-	}
-
-	throttle = math::constrain(throttle, -throttle_max, throttle_max); //limit throttle to -1..1
-
-	offboard_control_mode_s offboard_control_mode{}; //publish offboard control mode to enable it
-	offboard_control_mode.timestamp = hrt_absolute_time();
-	offboard_control_mode.actuator = true;
-	_offboard_control_mode_pub.publish(offboard_control_mode);
-
-	vehicle_status_s vehicle_status{};
-	_vehicle_status_sub.copy(&vehicle_status);
-
-	// Publish actuator controls only once in OFFBOARD
-	if (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD) {
-		//TODO query frame type and disable if not rover
-
-		/*
-		vehicle_rates_setpoint_s vehicle_rates_setpoint{};
-		vehicle_rates_setpoint.timestamp = hrt_absolute_time();
-		vehicle_rates_setpoint.roll = heading;
-		vehicle_rates_setpoint.pitch = heading;
-		vehicle_rates_setpoint.yaw = heading;
-		vehicle_rates_setpoint.thrust_body[0] = throttle * max_throttle * timeout;
-		vehicle_rates_setpoint.thrust_body[1] = throttle * max_throttle * timeout;
-		vehicle_rates_setpoint.thrust_body[2] = throttle * max_throttle * timeout;
-		_vehicle_rates_setpoint_pub.publish(vehicle_rates_setpoint);
-		*/
-
-		actuator_controls_s actuator_controls{};
-		actuator_controls.timestamp = hrt_absolute_time();
-		actuator_controls.control[2] = heading; //yaw
-		actuator_controls.control[3] = throttle; //Thrust
-		_actuator_controls_pubs[0].publish(actuator_controls); //flight controls
-	}
-
-}
-
-// Navigation - landing target estimator - also the math needs to be fixed
-//  matrix::Vector3d UWB_SR150::localization(double distance, double azimuth_dev, double elevation_dev)
-// {
-// 	/* UWB_SR150::localization takes distance and angle measurements and publishes position data.
-// 	can be used to make a rover follow an UWB receiver
-// 	*/
-// 	double deg2rad = M_PI / 180.0;
-// 	// Catch angle measurements at the end of the range and discard them
-// 	/*
-// 	if(60.0 > azimuth_dev  || -60.0 < azimuth_dev){
-// 		return;
-// 	}
-// 	if(60.0 > elevation_dev  || -60.0 < elevation_dev){
-// 		return;
-// 	}*/
-
-
-// 	double azimuth 	 = azimuth_dev * deg2rad; 	//subtract yaw offset and convert to rad
-// 	double elevation = elevation_dev  * deg2rad; 	//subtract pitch offset and convert to rad
-
-// 	matrix::Vector3d position(	sin(azimuth) * sin(elevation),
-// 					cos(azimuth) * sin(elevation),
-// 					-cos(elevation));
-
-// 	position *= distance; //scale the vector to the distance
-// 	//Output is the Coordinates of the Initiator in relation to the UWB Receiver in NED (North-East-Down) Framing
-
-// 	// Now the position is the landing point relative to the vehicle.
-// 	// so the only thing left is to add the Initiator offset
-// 	position +=  matrix::Vector3d(_uwb_init_offset);
-
-// 	return position;
-// }
