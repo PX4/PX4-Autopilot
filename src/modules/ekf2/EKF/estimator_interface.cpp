@@ -86,9 +86,9 @@ void EstimatorInterface::setIMUData(const imuSample &imu_sample)
 		// calculate the minimum interval between observations required to guarantee no loss of data
 		// this will occur if data is overwritten before its time stamp falls behind the fusion time horizon
 		_min_obs_interval_us = (imu_sample.time_us - _imu_sample_delayed.time_us) / (_obs_buffer_length - 1);
-
-		setDragData(imu_sample);
 	}
+
+	setDragData(imu_sample);
 }
 
 void EstimatorInterface::setMagData(const magSample &mag_sample)
