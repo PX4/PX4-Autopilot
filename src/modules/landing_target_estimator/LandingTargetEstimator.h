@@ -42,6 +42,7 @@
 
 #pragma once
 
+#include <px4_platform_common/module_params.h>
 #include <px4_platform_common/workqueue.h>
 #include <drivers/drv_hrt.h>
 #include <parameters/param.h>
@@ -55,7 +56,7 @@
 #include <uORB/topics/landing_target_pose.h>
 #include <uORB/topics/landing_target_innovations.h>
 #include <uORB/topics/uwb_distance.h>
-#include <uORB/topics/uwb_grid.h>
+// #include <uORB/topics/uwb_grid.h>
 #include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/parameter_update.h>
 #include <matrix/math.hpp>
@@ -63,6 +64,10 @@
 #include <matrix/Matrix.hpp>
 #include <lib/conversion/rotation.h>
 #include "KalmanFilter.h"
+
+#include <uORB/topics/offboard_control_mode.h>
+#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/actuator_controls.h>
 
 using namespace time_literals;
 
@@ -97,6 +102,7 @@ protected:
 	 * Update parameters.
 	 */
 	void _update_params();
+	void parameters_update();
 
 	/* timeout after which filter is reset if target not seen */
 	static constexpr uint32_t landing_target_estimator_TIMEOUT_US = 2000000;
@@ -107,14 +113,18 @@ protected:
 	uORB::Publication<landing_target_innovations_s> _targetInnovationsPub{ORB_ID(landing_target_innovations)};
 	landing_target_innovations_s _target_innovations{};
 
-	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
-
 private:
 
 	enum class TargetMode {
 		Moving = 0,
 		Stationary
 	};
+
+	typedef enum {
+		data 		= -1,
+		prec_nav	= 0,
+		follow_me	= 1,
+	} _uwb_driver_mode;
 
 	/**
 	* Handles for parameters
@@ -154,8 +164,38 @@ private:
 		float rel_pos_z;
 	} _target_position_report;
 
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::LTEST_ACC_UNC>)  		_acc_unc,
+		(ParamFloat<px4::params::LTEST_MEAS_UNC>)  		_meas_unc,
+		(ParamFloat<px4::params::LTEST_POS_UNC_IN>)  		_pos_unc_init,
+		(ParamFloat<px4::params::LTEST_VEL_UNC_IN>)  		_vel_unc_init,
+		(ParamInt<px4::params::LTEST_MODE>)  			_mode,
+		(ParamFloat<px4::params::LTEST_SCALE_X>)  		_scale_x,
+		(ParamFloat<px4::params::LTEST_SCALE_Y>)  		_scale_y,
+		(ParamInt<px4::params::LTEST_SENS_ROT>)  		_sensor_yaw,
+		(ParamFloat<px4::params::LTEST_SENS_POS_X>)  		_offset_x,
+		(ParamFloat<px4::params::LTEST_SENS_POS_Y>)  		_offset_y,
+		(ParamFloat<px4::params::LTEST_SENS_POS_Z>)  		_offset_z,
+		(ParamInt<px4::params::UWB_MODE>)  			_uwb_mode_p,
+		(ParamFloat<px4::params::UWB_FW_DIST>)   		_uwb_follow_distance, //Follow me
+		(ParamFloat<px4::params::UWB_FW_DIST_MIN>) 		_uwb_follow_distance_min,
+		(ParamFloat<px4::params::UWB_FW_DIST_MAX>) 		_uwb_follow_distance_max,
+		(ParamFloat<px4::params::UWB_THROTTLE>) 		_uwb_throttle,
+		(ParamFloat<px4::params::UWB_THROTTLE_REV>) 		_uwb_throttle_reverse,
+		(ParamFloat<px4::params::UWB_THR_HEAD>) 		_uwb_thrust_head,
+		(ParamFloat<px4::params::UWB_THR_HEAD_MIN>) 		_uwb_thrust_head_min,
+		(ParamFloat<px4::params::UWB_THR_HEAD_MAX>) 		_uwb_thrust_head_max
+	)
+
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+
 	uORB::Publication<uwb_distance_s> _uwb_distance_pub{ORB_ID(uwb_distance)};
 	uwb_distance_s _uwb_distance{};
+
+	// actuator_controls
+	uORB::Publication<offboard_control_mode_s>_offboard_control_mode_pub{ORB_ID(offboard_control_mode)};
+	uORB::Publication<actuator_controls_s> _actuator_controls_pubs[4] {ORB_ID(actuator_controls_0), ORB_ID(actuator_controls_1), ORB_ID(actuator_controls_2), ORB_ID(actuator_controls_3)};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	uORB::Subscription _vehicleLocalPositionSub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _attitudeSub{ORB_ID(vehicle_attitude)};
@@ -167,8 +207,10 @@ private:
 	vehicle_attitude_s		_vehicleAttitude{};
 	vehicle_acceleration_s		_vehicle_acceleration{};
 	irlock_report_s			_irlockReport{};
-	uwb_grid_s		_uwbGrid{};
+//	Isn't used in the code?
+//	uwb_grid_s		_uwbGrid{};
 	uwb_distance_s		_uwbDistance{};
+	_uwb_driver_mode _uwb_mode;
 
 	// keep track of which topics we have received
 	bool _vehicleLocalPosition_valid{false};
@@ -194,6 +236,10 @@ private:
 	void _update_state();
 
 	void uwb_sr150_prec_nav();
+
+	void uwb_sr150_followme();
+
+	void actuator_control(double distance, double azimuth, double elevation);
 
 	matrix::Vector3d _uwb_init_offset;
 	matrix::Vector3d _rel_pos;

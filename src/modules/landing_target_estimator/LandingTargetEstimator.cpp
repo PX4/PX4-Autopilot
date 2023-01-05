@@ -52,18 +52,7 @@ namespace landing_target_estimator
 
 LandingTargetEstimator::LandingTargetEstimator()
 {
-	_paramHandle.acc_unc = param_find("LTEST_ACC_UNC");
-	_paramHandle.meas_unc = param_find("LTEST_MEAS_UNC");
-	_paramHandle.pos_unc_init = param_find("LTEST_POS_UNC_IN");
-	_paramHandle.vel_unc_init = param_find("LTEST_VEL_UNC_IN");
-	_paramHandle.mode = param_find("LTEST_MODE");
-	_paramHandle.scale_x = param_find("LTEST_SCALE_X");
-	_paramHandle.scale_y = param_find("LTEST_SCALE_Y");
-	_paramHandle.sensor_yaw = param_find("LTEST_SENS_ROT");
-	_paramHandle.offset_x = param_find("LTEST_SENS_POS_X");
-	_paramHandle.offset_y = param_find("LTEST_SENS_POS_Y");
-	_paramHandle.offset_z = param_find("LTEST_SENS_POS_Z");
-	_check_params(true);
+	update_parameters(true);
 }
 
 void LandingTargetEstimator::update()
@@ -200,7 +189,8 @@ void LandingTargetEstimator::_check_params(const bool force)
 		parameter_update_s pupdate;
 		_parameter_update_sub.copy(&pupdate);
 
-		_update_params();
+		parameters_update();
+		// _update_params();
 	}
 }
 
@@ -304,7 +294,7 @@ void LandingTargetEstimator::_update_params()
 	param_get(_paramHandle.offset_z, &_params.offset_z);
 }
 
-// Navigation - landing target estimator - also the math needs to be fixed
+// math needs to be fixed
 matrix::Vector3d LandingTargetEstimator::UWB_SR150_localization(double distance, double azimuth_dev, double elevation_dev)
 {
 	/* UWB_SR150::localization takes distance and angle measurements and publishes position data.
@@ -339,13 +329,115 @@ matrix::Vector3d LandingTargetEstimator::UWB_SR150_localization(double distance,
 }
 
 //TODO: Find out if this works
-void LandingTargetEstimator::uwb_sr150_prec_nav() { //Precision landing mode
-				_uwb_distance.status = 10;
+void LandingTargetEstimator::uwb_sr150_prec_nav()
+{ //Precision landing mode
+				// _uwb_distance.status = 10;
 				_rel_pos = LandingTargetEstimator::UWB_SR150_localization(_uwb_distance.distance, _uwb_distance.aoa_azimuth_dev,
 								   _uwb_distance.aoa_elevation_dev);
 				_uwb_distance.position[0] = _rel_pos(0);
 				_uwb_distance.position[1] = _rel_pos(1);
 				_uwb_distance.position[2] = _rel_pos(2);
+}
+
+void LandingTargetEstimator::uwb_sr150_followme()
+{ // Follow me mode
+			// _uwb_distance.status = 11;
+			actuator_control(_uwb_distance.distance, _uwb_distance.aoa_azimuth_dev,
+						_uwb_distance.aoa_elevation_dev);
+}
+
+void LandingTargetEstimator::actuator_control(double distance, double azimuth, double elevation)
+{
+	/* UWB_SR150::actuator_control takes distance and angle measurements and publishes proportional thrust commands.
+	can be used to make a rover follow an UWB receiver
+	*/
+
+	//Lots of Params to finetune the Follow me behavior
+	double follow_distance_max =	_uwb_follow_distance_max.get();
+	double follow_distance = 	_uwb_follow_distance.get();
+	double follow_distance_min =	_uwb_follow_distance_min.get();
+	double throttle_max =		_uwb_throttle.get();
+	double thrust_heading =		_uwb_thrust_head.get(); // heading thrust multiplier
+	double thrust_heading_min =	_uwb_thrust_head_min.get();
+	double thrust_heading_max =	_uwb_thrust_head_max.get();
+	double throttle_reverse =	_uwb_throttle_reverse.get();
+
+	double heading = azimuth / 70; //normalize the AoA to -1..+1
+	double throttle = 0;
+
+	//simple heading control loop
+	if (azimuth >= 0) { // Heading deadzone
+		heading = heading * thrust_heading;
+		heading = math::constrain(heading, thrust_heading_min, thrust_heading_max) ; //Limit heading to -1..+1
+
+	} else if (azimuth <= 0) { // Heading deadzone
+		heading = heading * thrust_heading;
+		heading = math::constrain(heading, -thrust_heading_max, -thrust_heading_min) ;
+
+	} else {
+		heading = 0;
+	}
+
+	//simple Throttle control loop
+	if (distance > follow_distance_max) {
+		throttle = 0;
+
+	} else if (distance <= follow_distance_min) {
+		throttle =	throttle_reverse;
+
+	} else if ((distance >= follow_distance_min) && (distance < follow_distance)) {
+		throttle = 0;
+
+	} else if ((distance >= follow_distance) && (distance < follow_distance_max)) {
+		throttle = (distance - follow_distance) / 2; //Throttle will reach 100% over 2 meters
+
+	}
+
+	throttle = math::constrain(throttle, -throttle_max, throttle_max); //limit throttle to -1..1
+
+	offboard_control_mode_s offboard_control_mode{}; //publish offboard control mode to enable it
+	offboard_control_mode.timestamp = hrt_absolute_time();
+	offboard_control_mode.actuator = true;
+	_offboard_control_mode_pub.publish(offboard_control_mode);
+
+	vehicle_status_s vehicle_status{};
+	_vehicle_status_sub.copy(&vehicle_status);
+
+	// Publish actuator controls only once in OFFBOARD
+	if (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD) {
+		//TODO query frame type and disable if not rover
+
+		/*
+		vehicle_rates_setpoint_s vehicle_rates_setpoint{};
+		vehicle_rates_setpoint.timestamp = hrt_absolute_time();
+		vehicle_rates_setpoint.roll = heading;
+		vehicle_rates_setpoint.pitch = heading;
+		vehicle_rates_setpoint.yaw = heading;
+		vehicle_rates_setpoint.thrust_body[0] = throttle * max_throttle * timeout;
+		vehicle_rates_setpoint.thrust_body[1] = throttle * max_throttle * timeout;
+		vehicle_rates_setpoint.thrust_body[2] = throttle * max_throttle * timeout;
+		_vehicle_rates_setpoint_pub.publish(vehicle_rates_setpoint);
+		*/
+
+		actuator_controls_s actuator_controls{};
+		actuator_controls.timestamp = hrt_absolute_time();
+		actuator_controls.control[2] = heading; //yaw
+		actuator_controls.control[3] = throttle; //Thrust
+		_actuator_controls_pubs[0].publish(actuator_controls); //flight controls
+	}
+
+}
+
+void LandingTargetEstimator::parameters_update()
+{
+	if (_parameter_update_sub.updated()) {
+		parameter_update_s param_update;
+		_parameter_update_sub.copy(&param_update);
+
+		// If any parameter updated, call updateParams() to check if
+		// this class attributes need updating (and do so).
+		updateParams();
+	}
 }
 
 } // namespace landing_target_estimator
