@@ -63,10 +63,6 @@ Sensors::Sensors(bool hil_enabled) :
 	_parameter_handles.diff_pres_analog_scale = param_find("SENS_DPRES_ANSC");
 #endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
 
-#if defined(CONFIG_SENSORS_VEHICLE_ANGULAR_VELOCITY)
-	_vehicle_angular_velocity.Start();
-#endif // CONFIG_SENSORS_VEHICLE_ANGULAR_VELOCITY
-
 	_parameter_handles.air_cmodel = param_find("CAL_AIR_CMODEL");
 	_parameter_handles.air_tube_length = param_find("CAL_AIR_TUBELEN");
 	_parameter_handles.air_tube_diameter_mm = param_find("CAL_AIR_TUBED_MM");
@@ -74,6 +70,10 @@ Sensors::Sensors(bool hil_enabled) :
 	_airspeed_validator.set_timeout(300000);
 	_airspeed_validator.set_equal_value_threshold(100);
 #endif // CONFIG_SENSORS_VEHICLE_AIRSPEED
+
+#if defined(CONFIG_SENSORS_VEHICLE_ANGULAR_VELOCITY)
+	_vehicle_angular_velocity.Start();
+#endif // CONFIG_SENSORS_VEHICLE_ANGULAR_VELOCITY
 
 	param_find("SYS_FAC_CAL_MODE");
 
