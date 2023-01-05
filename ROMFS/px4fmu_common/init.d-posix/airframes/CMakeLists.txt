@@ -54,6 +54,7 @@ px4_add_romfs_files(
 	1031_plane_cam
 	1032_plane_catapult
 	1033_jsbsim_rascal
+	1034_flightgear_rascal-electric
 	1035_techpod
 	1036_jsbsim_malolo
 	1037_believer
@@ -66,7 +67,6 @@ px4_add_romfs_files(
 	1044_plane_lidar
 	1060_rover
 	1061_r1_rover
-	1062_tf-r1
 	1070_boat
 
 	3010_jsbsim_quadrotor_x
@@ -74,8 +74,6 @@ px4_add_romfs_files(
 
 	4001_x500
 
-	17001_tf-g1
-	17002_tf-g2
 	2507_cloudship
 
 	6011_typhoon_h480
@@ -84,4 +82,7 @@ px4_add_romfs_files(
 	10040_sihsim_quadx
 	10041_sihsim_airplane
 	10042_sihsim_xvert
+
+	17001_flightgear_tf-g1
+	17002_flightgear_tf-g2
 )
