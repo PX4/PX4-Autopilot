@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2020-2023 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,42 +32,40 @@
 ############################################################################
 
 px4_add_romfs_files(
-	10016_iris
-	10017_jmavsim_iris
-	10018_iris_foggy_lidar
-	10019_omnicopter
-	10030_px4vision
-	1010_iris_opt_flow
-	1010_iris_opt_flow.post
-	1011_iris_irlock
-	1012_iris_rplidar
-	1013_iris_vision
-	1013_iris_vision.post
-	1015_iris_obs_avoid
-	1015_iris_obs_avoid.post
-	1017_iris_opt_flow_mockup
-	1018_iris_vision_velocity
-	1019_iris_dual_gps
-	1021_uuv_hippocampus
-	1022_uuv_bluerov2_heavy
-	1030_plane
-	1031_plane_cam
-	1032_plane_catapult
+
+	1010_gazebo_iris_opt_flow
+	1010_gazebo_iris_opt_flow.post
+	1011_gazebo_iris_irlock
+	1012_gazebo_iris_rplidar
+	1013_gazebo_iris_vision
+	1013_gazebo_iris_vision.post
+	1015_gazebo_iris_obs_avoid
+	1015_gazebo_iris_obs_avoid.post
+	1017_gazebo_iris_opt_flow_mockup
+	1019_gazebo_iris_dual_gps
+	1021_gazebo_uuv_hippocampus
+	1022_gazebo_uuv_bluerov2_heavy
+	1030_gazebo_plane
+	1031_gazebo_plane_cam
+	1032_gazebo_plane_catapult
 	1033_jsbsim_rascal
 	1034_flightgear_rascal-electric
-	1035_techpod
+	1035_gazebo_techpod
 	1036_jsbsim_malolo
-	1037_believer
-	1038_glider
-	1039_advanced_plane
-	1040_standard_vtol
-	1041_tailsitter
-	1042_tiltrotor
-	1043_standard_vtol_drop
-	1044_plane_lidar
-	1060_rover
-	1061_r1_rover
-	1070_boat
+	1037_gazebo_believer
+	1038_gazebo_glider
+	1039_gazebo_advanced_plane
+	1040_gazebo_standard_vtol
+	1041_gazebo_tailsitter
+	1042_gazebo_tiltrotor
+	1043_gazebo_standard_vtol_drop
+	1044_gazebo_plane_lidar
+	1060_gazebo_rover
+	1061_gazebo_r1_rover
+	1062_flightgear_tf-r1
+	1070_gazebo_boat
+
+	2507_gazebo_cloudship
 
 	3010_jsbsim_quadrotor_x
 	3011_jsbsim_hexarotor_x
@@ -75,10 +73,14 @@ px4_add_romfs_files(
 	4001_gz_x500
 	4002_gz_x500_depth
 
-	2507_cloudship
+	6011_gazebo_typhoon_h480
+	6011_gazebo_typhoon_h480.post
 
-	6011_typhoon_h480
-	6011_typhoon_h480.post
+	10016_gazebo_iris
+	10017_jmavsim_iris
+	10018_gazebo_iris_foggy_lidar
+	10019_gazebo_omnicopter
+	10030_gazebo_px4vision
 
 	10040_sihsim_quadx
 	10041_sihsim_airplane

@@ -131,7 +131,7 @@ elif [ "$PX4_SIM_MODEL" = "jmavsim_iris" ] || [ "$(param show -q SYS_AUTOSTART)"
 	echo "INFO  [init] jMAVSim simulator"
 
 	if jps | grep -i jmavsim; then
-		kill $(jps | grep -i jmavsim | awk '{print $1}') || true
+		kill "$(jps | grep -i jmavsim | awk '{print $1}')" || true
 		sleep 1
 	fi
 
