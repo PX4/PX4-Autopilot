@@ -48,7 +48,8 @@ float ECL_YawController::control_attitude(const float dt, const ECL_ControlData 
 	/* Do not calculate control signal with bad inputs */
 	if (!(PX4_ISFINITE(ctl_data.roll) &&
 	      PX4_ISFINITE(ctl_data.pitch) &&
-	      PX4_ISFINITE(ctl_data.euler_pitch_rate_setpoint))) {
+	      PX4_ISFINITE(ctl_data.euler_pitch_rate_setpoint) &&
+	      PX4_ISFINITE(ctl_data.airspeed_constrained))) {
 
 		return _body_rate_setpoint;
 	}
@@ -81,8 +82,7 @@ float ECL_YawController::control_attitude(const float dt, const ECL_ControlData 
 
 	if (!inverted) {
 		/* Calculate desired yaw rate from coordinated turn constraint / (no side forces) */
-		_euler_rate_setpoint = tanf(constrained_roll) * cosf(ctl_data.pitch) * CONSTANTS_ONE_G / (ctl_data.airspeed <
-				       ctl_data.airspeed_min ? ctl_data.airspeed_min : ctl_data.airspeed);
+		_euler_rate_setpoint = tanf(constrained_roll) * cosf(ctl_data.pitch) * CONSTANTS_ONE_G / ctl_data.airspeed_constrained;
 
 		/* Transform setpoint to body angular rates (jacobian) */
 		const float yaw_body_rate_setpoint_raw = -sinf(ctl_data.roll) * ctl_data.euler_pitch_rate_setpoint +
