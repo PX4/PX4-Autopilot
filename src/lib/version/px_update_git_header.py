@@ -37,8 +37,9 @@ header = """
 
 # PX4
 git_describe_cmd = 'git describe --exclude ext/* --always --tags --dirty'
-git_tag = subprocess.check_output(git_describe_cmd.split(),
-                                  stderr=subprocess.STDOUT).decode('utf-8').strip()
+#git_tag = subprocess.check_output(git_describe_cmd.split(),
+#                                  stderr=subprocess.STDOUT).decode('utf-8').strip()
+git_tag = 'v1.13.2'
 
 try:
     # get the tag if we're on a tagged commit

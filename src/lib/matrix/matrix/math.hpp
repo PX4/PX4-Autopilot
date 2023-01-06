@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <assert.h>
 #include <px4_platform_common/defines.h>
@@ -6,6 +6,7 @@
 #include "helper_functions.hpp"
 
 #include "Matrix.hpp"
+#include "MatrixSO3.hpp"
 #include "SquareMatrix.hpp"
 #include "Slice.hpp"
 #include "Vector.hpp"
