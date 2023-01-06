@@ -55,38 +55,13 @@
 
 using namespace time_literals;
 
-// #define UWB_PARAM_UPDATE_TIME 1000000
+typedef struct {  //needs higher accuracy?
+	float lat, lon, alt, yaw; //offset to true North
+} gps_pos_t;
 
-// #define UWB_CMD  0x8e
-// #define UWB_CMD_START  0x01
-// #define UWB_CMD_STOP  0x00
-// #define UWB_CMD_RANGING  0x0A
-// #define STOP_B 0x0A
-
-// #define UWB_PRECNAV_APP   0x04
-// #define UWB_APP_START     0x10
-// #define UWB_APP_STOP      0x11
-// #define UWB_SESSION_START 0x22
-// #define UWB_SESSION_STOP  0x23
-// #define UWB_RANGING_START 0x01
-// #define UWB_RANGING_STOP  0x00
-// #define UWB_DRONE_CTL     0x0A
-// #define UWB_SUBCMD_PRECLAND      0x0B
-// #define UWB_SUBCMD_FOLLOW_ME     0x0F
-
-// #define UWB_CMD_LEN  0x05
-// #define UWB_CMD_DISTANCE_LEN 0x21
-// #define UWB_MAC_MODE 2
-// #define MAX_ANCHORS 12
-// #define UWB_GRID_CONFIG "/fs/microsd/etc/uwb_grid_config.csv"
-
-// typedef struct {  //needs higher accuracy?
-// 	float lat, lon, alt, yaw; //offset to true North
-// } gps_pos_t;
-
-// typedef struct {  //needs higher accuracy?
-// 	int16_t x, y, z;//offset to true North
-// } position_t;
+typedef struct {  //needs higher accuracy?
+	int16_t x, y, z;//offset to true North
+} position_t;
 
 typedef struct {
 	uint8_t MAC[2];					// MAC address of UWB device
@@ -154,8 +129,8 @@ private:
 	void parameters_update();
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::UWB_PORT_CFG>) 			_uwb_port_cfg,
-		// (ParamInt<px4::params::UWB_MODE>)  			_uwb_mode_p,
+		// (ParamInt<px4::params::UWB_PORT_CFG>) 			_uwb_port_cfg,
+		(ParamInt<px4::params::UWB_DRIVER_EN>) 			_uwb_driver_en,
 		(ParamFloat<px4::params::UWB_INIT_OFF_X>) 		_uwb_init_off_x,
 		(ParamFloat<px4::params::UWB_INIT_OFF_Y>) 		_uwb_init_off_y,
 		(ParamFloat<px4::params::UWB_INIT_OFF_Z>) 		_uwb_init_off_z,

@@ -203,8 +203,8 @@ then
 fi
 
 # UWB driver
-if param compare -s UWB_PORT_CFG 1
+if param compare -s UWB_DRIVER_EN 1
 then
-	uwb_sr150 start -X
-	landing_target_estimator start -X
+	uwb_sr150 start
+	landing_target_estimator start
 fi
