@@ -68,6 +68,10 @@ jobs:
           spracing_h7extreme,
           uvify_core
           ]
+        exclude:
+        - config: cuav_x7pro
+        - config: holybro_kakutef7
+        - config: px4_fmu-v5
     steps:
     - uses: actions/checkout@v1
       with:
