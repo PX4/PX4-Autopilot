@@ -326,20 +326,20 @@ int UWB_SR150::collectData()
 	if (ok) {
 
 		/* Ranging Message*/
-		_uwb_distance.timestamp = hrt_absolute_time();
-		_uwb_distance.counter = _distance_result_msg.seq_ctr;
-		_uwb_distance.sessionid = _distance_result_msg.sessionId;
-		_uwb_distance.time_offset = _distance_result_msg.range_interval;
-		_uwb_distance.distance = double(_distance_result_msg.measurements.distance) / 100;
-		_uwb_distance.nlos = _distance_result_msg.measurements.nLos;
+		_sensor_uwb.timestamp = hrt_absolute_time();
+		_sensor_uwb.counter = _distance_result_msg.seq_ctr;
+		_sensor_uwb.sessionid = _distance_result_msg.sessionId;
+		_sensor_uwb.time_offset = _distance_result_msg.range_interval;
+		_sensor_uwb.distance = double(_distance_result_msg.measurements.distance) / 100;
+		_sensor_uwb.nlos = _distance_result_msg.measurements.nLos;
 
 		/*Angle of Arrival has Format Q9.7; dividing by 2^7 and negating results in the correct value*/
-		_uwb_distance.aoa_azimuth_dev 	= - double(_distance_result_msg.measurements.aoa_azimuth) / 128;
-		_uwb_distance.aoa_elevation_dev = - double(_distance_result_msg.measurements.aoa_elevation) / 128;
-		_uwb_distance.aoa_azimuth_resp 	= - double(_distance_result_msg.measurements.aoa_dest_azimuth) / 128;
-		_uwb_distance.aoa_elevation_resp = - double(_distance_result_msg.measurements.aoa_dest_elevation) / 128;
+		_sensor_uwb.aoa_azimuth_dev 	= - double(_distance_result_msg.measurements.aoa_azimuth) / 128;
+		_sensor_uwb.aoa_elevation_dev = - double(_distance_result_msg.measurements.aoa_elevation) / 128;
+		_sensor_uwb.aoa_azimuth_resp 	= - double(_distance_result_msg.measurements.aoa_dest_azimuth) / 128;
+		_sensor_uwb.aoa_elevation_resp = - double(_distance_result_msg.measurements.aoa_dest_elevation) / 128;
 
-		_uwb_distance_pub.publish(_uwb_distance);
+		_sensor_uwb_pub.publish(_sensor_uwb);
 
 	} else {
 		perf_count(_read_err_perf);

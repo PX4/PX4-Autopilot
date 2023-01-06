@@ -55,7 +55,7 @@
 #include <uORB/topics/irlock_report.h>
 #include <uORB/topics/landing_target_pose.h>
 #include <uORB/topics/landing_target_innovations.h>
-#include <uORB/topics/uwb_distance.h>
+#include <uORB/topics/sensor_uwb.h>
 // #include <uORB/topics/uwb_grid.h>
 #include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/parameter_update.h>
@@ -188,8 +188,8 @@ private:
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
-	uORB::Publication<uwb_distance_s> _uwb_distance_pub{ORB_ID(uwb_distance)};
-	uwb_distance_s _uwb_distance{};
+	uORB::Publication<sensor_uwb_s> _sensor_uwb_pub{ORB_ID(sensor_uwb)};
+	sensor_uwb_s _sensor_uwb{};
 
 	// actuator_controls
 	uORB::Publication<offboard_control_mode_s>_offboard_control_mode_pub{ORB_ID(offboard_control_mode)};
@@ -200,7 +200,7 @@ private:
 	uORB::Subscription _attitudeSub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 	uORB::Subscription _irlockReportSub{ORB_ID(irlock_report)};
-	uORB::Subscription _uwbDistanceSub{ORB_ID(uwb_distance)};
+	uORB::Subscription _sensorUwbSub{ORB_ID(sensor_uwb)};
 
 	vehicle_local_position_s	_vehicleLocalPosition{};
 	vehicle_attitude_s		_vehicleAttitude{};
@@ -208,7 +208,7 @@ private:
 	irlock_report_s			_irlockReport{};
 //	Isn't used in the code?
 //	uwb_grid_s		_uwbGrid{};
-	uwb_distance_s		_uwbDistance{};
+	sensor_uwb_s		_sensorUwb{};
 	_uwb_driver_mode _uwb_mode;
 
 	// keep track of which topics we have received

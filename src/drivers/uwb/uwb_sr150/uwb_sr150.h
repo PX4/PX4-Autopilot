@@ -48,7 +48,7 @@
 
 #include <uORB/topics/landing_target_pose.h>
 // #include <uORB/topics/uwb_grid.h>
-#include <uORB/topics/uwb_distance.h>
+#include <uORB/topics/sensor_uwb.h>
 #include <uORB/topics/parameter_update.h>
 
 #include <matrix/math.hpp>
@@ -149,8 +149,8 @@ private:
 	bool _uwb_pos_debug;
 
 
-	uORB::Publication<uwb_distance_s> _uwb_distance_pub{ORB_ID(uwb_distance)};
-	uwb_distance_s _uwb_distance{};
+	uORB::Publication<sensor_uwb_s> _sensor_uwb_pub{ORB_ID(sensor_uwb)};
+	sensor_uwb_s _sensor_uwb{};
 
 	uORB::Publication<landing_target_pose_s> _landing_target_pub{ORB_ID(landing_target_pose)};
 	landing_target_pose_s _landing_target{};
