@@ -67,7 +67,7 @@ PARAM_DEFINE_FLOAT(MIS_TAKEOFF_ALT, 2.5f);
  * @value 1 Require a takeoff
  * @value 2 Require a landing
  * @value 3 Require a takeoff and a landing
- * @value 4 Require a takeoff and a landing, or neither of both
+ * @value 4 Require both a takeoff and a landing, or neither
  * @group Mission
  */
 PARAM_DEFINE_INT32(MIS_TKO_LAND_REQ, 0);
