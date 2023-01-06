@@ -42,6 +42,7 @@
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
 #include <drivers/drv_hrt.h>
+#include <uORB/topics/parameter_update.h>
 
 #include "LandingTargetEstimator.h"
 
@@ -50,9 +51,10 @@
 namespace landing_target_estimator
 {
 
-LandingTargetEstimator::LandingTargetEstimator()
+LandingTargetEstimator::LandingTargetEstimator() :
+	ModuleParams(nullptr)
 {
-	update_parameters(true);
+	updateParams();
 }
 
 void LandingTargetEstimator::update()

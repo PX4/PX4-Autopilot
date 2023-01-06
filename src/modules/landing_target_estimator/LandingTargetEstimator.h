@@ -71,10 +71,9 @@
 
 using namespace time_literals;
 
-namespace landing_target_estimator
-{
+ namespace landing_target_estimator{
 
-class LandingTargetEstimator
+class LandingTargetEstimator : public ModuleParams
 {
 public:
 
