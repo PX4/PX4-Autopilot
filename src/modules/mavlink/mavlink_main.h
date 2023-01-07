@@ -695,6 +695,8 @@ private:
 
 	static hrt_abstime _first_start_time;
 
+	uint16_t _event_sequence_offset{0}; // offset to account for skipped events, not sent via MAVLink
+
 	/**
 	 * Configure a single stream.
 	 * @param stream_name
@@ -741,6 +743,9 @@ private:
 	 * Update rate mult so total bitrate will be equal to _datarate.
 	 */
 	void update_rate_mult();
+
+	void streamUpdateCycle(const hrt_abstime &t);
+	void streamUpdateCycleIridium(const hrt_abstime &t);
 
 #if defined(MAVLINK_UDP)
 	void find_broadcast_address();

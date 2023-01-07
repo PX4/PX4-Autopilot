@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -44,18 +44,18 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/estimator_selector_status.h>
 #include <uORB/topics/estimator_status.h>
+#include <uORB/topics/failsafe_flags.h>
 #include <uORB/topics/geofence_result.h>
+#include <uORB/topics/health_report.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/position_controller_status.h>
+#include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/tecs_status.h>
-#include <uORB/topics/wind.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/failsafe_flags.h>
-#include <uORB/topics/health_report.h>
+#include <uORB/topics/wind.h>
 
 #include <px4_platform_common/events.h>
 
@@ -83,8 +83,6 @@ private:
 		_airspeed(SimpleAnalyzer::AVERAGE),
 		_airspeed_sp(SimpleAnalyzer::AVERAGE),
 		_climb_rate(SimpleAnalyzer::MAX),
-		_eph(SimpleAnalyzer::MAX),
-		_epv(SimpleAnalyzer::MAX),
 		_groundspeed(SimpleAnalyzer::AVERAGE),
 		_temperature(SimpleAnalyzer::AVERAGE),
 		_throttle(SimpleAnalyzer::AVERAGE),
@@ -119,23 +117,21 @@ private:
 			}
 
 			updated |= _climb_rate.valid();
-			updated |= _eph.valid();
-			updated |= _epv.valid();
 			updated |= _groundspeed.valid();
 			updated |= _temperature.valid();
 			updated |= _throttle.valid();
 			updated |= _windspeed.valid();
 			updated |= write_airspeed(&msg);
-			updated |= write_attitude_sp(&msg);
+			updated |= write_attitude_setpoint(&msg);
 			updated |= write_battery_status(&msg);
 			updated |= write_estimator_status(&msg);
+			updated |= write_failsafe_flags(&msg);
 			updated |= write_fw_ctrl_status(&msg);
 			updated |= write_geofence_result(&msg);
 			updated |= write_global_position(&msg);
 			updated |= write_mission_result(&msg);
 			updated |= write_tecs_status(&msg);
 			updated |= write_vehicle_status(&msg);
-			updated |= write_failsafe_flags(&msg);
 			updated |= write_wind(&msg);
 
 			if (updated) {
@@ -175,14 +171,6 @@ private:
 
 				if (_climb_rate.valid()) {
 					_climb_rate.get_scaled(msg.climb_rate, 10.0f);
-				}
-
-				if (_eph.valid()) {
-					_eph.get_scaled(msg.eph, 10.0f);
-				}
-
-				if (_epv.valid()) {
-					_epv.get_scaled(msg.epv, 10.0f);
 				}
 
 				if (_groundspeed.valid()) {
@@ -230,8 +218,6 @@ private:
 		}
 
 		_climb_rate.reset();
-		_eph.reset();
-		_epv.reset();
 		_groundspeed.reset();
 		_temperature.reset();
 		_throttle.reset();
@@ -244,7 +230,7 @@ private:
 	{
 		airspeed_s airspeed;
 
-		if (_airspeed_sub.update(&airspeed)) {
+		if (_airspeed_sub.copy(&airspeed)) {
 			if (airspeed.confidence < 0.95f) { // the same threshold as for the commander
 				msg->failure_flags |= HL_FAILURE_FLAG_DIFFERENTIAL_PRESSURE;
 			}
@@ -255,11 +241,11 @@ private:
 		return false;
 	}
 
-	bool write_attitude_sp(mavlink_high_latency2_t *msg)
+	bool write_attitude_setpoint(mavlink_high_latency2_t *msg)
 	{
 		vehicle_attitude_setpoint_s attitude_sp;
 
-		if (_attitude_sp_sub.update(&attitude_sp)) {
+		if (_attitude_sp_sub.copy(&attitude_sp)) {
 			msg->target_heading = static_cast<uint8_t>(math::degrees(matrix::wrap_2pi(attitude_sp.yaw_body)) * 0.5f);
 			return true;
 		}
@@ -274,7 +260,7 @@ private:
 		for (int i = 0; i < battery_status_s::MAX_INSTANCES; i++) {
 			battery_status_s battery;
 
-			if (_batteries[i].subscription.update(&battery)) {
+			if (_batteries[i].subscription.copy(&battery)) {
 				updated = true;
 				_batteries[i].connected = battery.connected;
 
@@ -302,7 +288,8 @@ private:
 
 		estimator_status_s estimator_status;
 
-		if (_estimator_status_sub.update(&estimator_status)) {
+		if (_estimator_status_sub.copy(&estimator_status)) {
+
 			if (estimator_status.gps_check_fail_flags > 0 ||
 			    estimator_status.filter_fault_flags > 0 ||
 			    estimator_status.innovation_check_flags > 0) {
@@ -320,7 +307,7 @@ private:
 	{
 		position_controller_status_s pos_ctrl_status;
 
-		if (_pos_ctrl_status_sub.update(&pos_ctrl_status)) {
+		if (_pos_ctrl_status_sub.copy(&pos_ctrl_status)) {
 			uint16_t target_distance;
 			convert_limit_safe(pos_ctrl_status.wp_dist * 0.1f, target_distance);
 			msg->target_distance = target_distance;
@@ -334,7 +321,7 @@ private:
 	{
 		geofence_result_s geofence;
 
-		if (_geofence_sub.update(&geofence)) {
+		if (_geofence_sub.copy(&geofence)) {
 			if (geofence.primary_geofence_breached) {
 				msg->failure_flags |= HL_FAILURE_FLAG_GEOFENCE;
 			}
@@ -349,8 +336,9 @@ private:
 	{
 		vehicle_global_position_s global_pos;
 		vehicle_local_position_s local_pos;
+		sensor_gps_s sensor_gps;
 
-		if (_global_pos_sub.update(&global_pos) && _local_pos_sub.update(&local_pos)) {
+		if (_global_pos_sub.update(&global_pos) && _local_pos_sub.copy(&local_pos)) {
 			msg->latitude = global_pos.lat * 1e7;
 			msg->longitude = global_pos.lon * 1e7;
 
@@ -367,6 +355,22 @@ private:
 
 			msg->heading = static_cast<uint8_t>(math::degrees(matrix::wrap_2pi(local_pos.heading)) * 0.5f);
 
+			msg->eph = global_pos.eph * 10.f; // m -> dm
+			msg->eph = global_pos.eph * 10.f; // m -> dm
+
+			return true;
+
+		} else if (_vehicle_gps_position_sub.copy(&sensor_gps)) {
+			msg->latitude = sensor_gps.lat;
+			msg->longitude = sensor_gps.lon;
+
+			msg->altitude = math::constrain((int16_t)roundf(sensor_gps.alt * 1e-3f), (int16_t)INT16_MIN, (int16_t)INT16_MAX);
+
+			msg->heading = math::degrees(matrix::wrap_2pi(sensor_gps.cog_rad)) * 0.5f; // rad -> deg/2
+
+			msg->eph = sensor_gps.eph * 10.f; // m -> dm
+			msg->eph = sensor_gps.eph * 10.f; // m -> dm
+
 			return true;
 		}
 
@@ -377,7 +381,7 @@ private:
 	{
 		mission_result_s mission_result;
 
-		if (_mission_result_sub.update(&mission_result)) {
+		if (_mission_result_sub.copy(&mission_result)) {
 			msg->wp_num = mission_result.seq_current;
 			return true;
 		}
@@ -389,7 +393,7 @@ private:
 	{
 		tecs_status_s tecs_status;
 
-		if (_tecs_status_sub.update(&tecs_status)) {
+		if (_tecs_status_sub.copy(&tecs_status)) {
 			int16_t target_altitude;
 			convert_limit_safe(tecs_status.altitude_sp, target_altitude);
 			msg->target_altitude = target_altitude;
@@ -402,52 +406,56 @@ private:
 
 	bool write_vehicle_status(mavlink_high_latency2_t *msg)
 	{
+		// vehicle_status
 		vehicle_status_s status;
 
-		if (_status_sub.update(&status)) {
-			health_report_s health_report;
-
-			if (_health_report_sub.copy(&health_report)) {
-				if ((health_report.arming_check_error_flags | health_report.health_error_flags) & (uint64_t)
-				    events::px4::enums::health_component_t::absolute_pressure) {
-					msg->failure_flags |= HL_FAILURE_FLAG_ABSOLUTE_PRESSURE;
-				}
-
-				if ((health_report.arming_check_error_flags | health_report.health_error_flags) & (uint64_t)
-				    events::px4::enums::health_component_t::accel) {
-					msg->failure_flags |= HL_FAILURE_FLAG_3D_ACCEL;
-				}
-
-				if ((health_report.arming_check_error_flags | health_report.health_error_flags) & (uint64_t)
-				    events::px4::enums::health_component_t::gyro) {
-					msg->failure_flags |= HL_FAILURE_FLAG_3D_GYRO;
-				}
-
-				if ((health_report.arming_check_error_flags | health_report.health_error_flags) & (uint64_t)
-				    events::px4::enums::health_component_t::magnetometer) {
-					msg->failure_flags |= HL_FAILURE_FLAG_3D_MAG;
-				}
-			}
-
+		if (_status_sub.copy(&status)) {
 			if (status.failure_detector_status & vehicle_status_s::FAILURE_MOTOR) {
 				msg->failure_flags |= HL_FAILURE_FLAG_ENGINE;
 			}
-
-			// flight mode
-			union px4_custom_mode custom_mode {get_px4_custom_mode(status.nav_state)};
-			msg->custom_mode = custom_mode.custom_mode_hl;
-
-			return true;
 		}
 
-		return false;
+
+		health_report_s health_report;
+
+		if (_health_report_sub.copy(&health_report)) {
+			if ((health_report.arming_check_error_flags | health_report.health_error_flags) & (uint64_t)
+			    events::px4::enums::health_component_t::absolute_pressure) {
+
+				msg->failure_flags |= HL_FAILURE_FLAG_ABSOLUTE_PRESSURE;
+			}
+
+			if ((health_report.arming_check_error_flags | health_report.health_error_flags) & (uint64_t)
+			    events::px4::enums::health_component_t::accel) {
+
+				msg->failure_flags |= HL_FAILURE_FLAG_3D_ACCEL;
+			}
+
+			if ((health_report.arming_check_error_flags | health_report.health_error_flags) & (uint64_t)
+			    events::px4::enums::health_component_t::gyro) {
+
+				msg->failure_flags |= HL_FAILURE_FLAG_3D_GYRO;
+			}
+
+			if ((health_report.arming_check_error_flags | health_report.health_error_flags) & (uint64_t)
+			    events::px4::enums::health_component_t::magnetometer) {
+
+				msg->failure_flags |= HL_FAILURE_FLAG_3D_MAG;
+			}
+		}
+
+		// flight mode
+		union px4_custom_mode custom_mode {get_px4_custom_mode(status.nav_state)};
+		msg->custom_mode = custom_mode.custom_mode_hl;
+
+		return true;
 	}
 
 	bool write_failsafe_flags(mavlink_high_latency2_t *msg)
 	{
 		failsafe_flags_s failsafe_flags;
 
-		if (_failsafe_flags_sub.update(&failsafe_flags)) {
+		if (_failsafe_flags_sub.copy(&failsafe_flags)) {
 			if (failsafe_flags.gps_position_invalid) {
 				msg->failure_flags |= HL_FAILURE_FLAG_GPS;
 			}
@@ -464,7 +472,6 @@ private:
 				msg->failure_flags |= HL_FAILURE_FLAG_RC_RECEIVER;
 			}
 
-
 			return true;
 		}
 
@@ -475,7 +482,7 @@ private:
 	{
 		wind_s wind;
 
-		if (_wind_sub.update(&wind)) {
+		if (_wind_sub.copy(&wind)) {
 			msg->wind_heading = static_cast<uint8_t>(math::degrees(matrix::wrap_2pi(atan2f(wind.windspeed_east,
 					    wind.windspeed_north))) * 0.5f);
 			return true;
@@ -498,7 +505,6 @@ private:
 		update_tecs_status();
 		update_battery_status();
 		update_local_position();
-		update_gps();
 		update_vehicle_status();
 		update_wind();
 	}
@@ -542,16 +548,6 @@ private:
 		if (_local_pos_sub.update(&local_pos)) {
 			_climb_rate.add_value(fabsf(local_pos.vz), _update_rate_filtered);
 			_groundspeed.add_value(sqrtf(local_pos.vx * local_pos.vx + local_pos.vy * local_pos.vy), _update_rate_filtered);
-		}
-	}
-
-	void update_gps()
-	{
-		sensor_gps_s gps;
-
-		if (_gps_sub.update(&gps)) {
-			_eph.add_value(gps.eph, _update_rate_filtered);
-			_epv.add_value(gps.epv, _update_rate_filtered);
 		}
 	}
 
@@ -627,23 +623,21 @@ private:
 	uORB::Subscription _attitude_sp_sub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Subscription _estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
 	uORB::Subscription _estimator_status_sub{ORB_ID(estimator_status)};
-	uORB::Subscription _pos_ctrl_status_sub{ORB_ID(position_controller_status)};
+	uORB::Subscription _failsafe_flags_sub{ORB_ID(failsafe_flags)};
 	uORB::Subscription _geofence_sub{ORB_ID(geofence_result)};
 	uORB::Subscription _global_pos_sub{ORB_ID(vehicle_global_position)};
+	uORB::Subscription _health_report_sub{ORB_ID(health_report)};
 	uORB::Subscription _local_pos_sub{ORB_ID(vehicle_local_position)};
-	uORB::Subscription _gps_sub{ORB_ID(vehicle_gps_position)};
 	uORB::Subscription _mission_result_sub{ORB_ID(mission_result)};
+	uORB::Subscription _pos_ctrl_status_sub{ORB_ID(position_controller_status)};
 	uORB::Subscription _status_sub{ORB_ID(vehicle_status)};
-	uORB::Subscription _failsafe_flags_sub{ORB_ID(failsafe_flags)};
 	uORB::Subscription _tecs_status_sub{ORB_ID(tecs_status)};
 	uORB::Subscription _wind_sub{ORB_ID(wind)};
-	uORB::Subscription _health_report_sub{ORB_ID(health_report)};
+	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
 
 	SimpleAnalyzer _airspeed;
 	SimpleAnalyzer _airspeed_sp;
 	SimpleAnalyzer _climb_rate;
-	SimpleAnalyzer _eph;
-	SimpleAnalyzer _epv;
 	SimpleAnalyzer _groundspeed;
 	SimpleAnalyzer _temperature;
 	SimpleAnalyzer _throttle;
