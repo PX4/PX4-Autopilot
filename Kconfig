@@ -174,8 +174,8 @@ menu "Serial ports"
     config BOARD_SERIAL_WIFI
         string "WIFI tty port"
 
-    config BOARD_SERIAL_PPB
-        string "PPB (Pixhawk Payload Bus) tty port"
+    config BOARD_SERIAL_EXT2
+        string "EXT2 tty port"
 endmenu
 
 menu "drivers"
