@@ -67,6 +67,17 @@ private:
 		ReturnOrLand = 3    // Return mode at critically low level, Land mode at current position if reaching dangerously low levels
 	};
 
+	enum class offboard_loss_failsafe_mode : int32_t {
+		Position_mode = 0,
+		Altitude_mode = 1,
+		Manual = 2,
+		Return_mode = 3,
+		Land_mode = 4,
+		Hold_mode = 5,
+		Terminate = 6,
+		Disarm = 7,
+	};
+
 	static ActionOptions fromNavDllOrRclActParam(int param_value);
 
 	static ActionOptions fromGfActParam(int param_value);

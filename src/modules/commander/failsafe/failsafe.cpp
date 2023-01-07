@@ -278,44 +278,44 @@ FailsafeBase::Action Failsafe::fromOffboardLossActParam(int param_value, uint8_t
 {
 	Action action{Action::None};
 
-	switch (param_value) {
-	case 0:
+	switch (offboard_loss_failsafe_mode(param_value)) {
+	case offboard_loss_failsafe_mode::Position_mode:
 	default:
 		action = Action::FallbackPosCtrl;
 		user_intended_mode = vehicle_status_s::NAVIGATION_STATE_POSCTL;
 		break;
 
-	case 1:
+	case offboard_loss_failsafe_mode::Altitude_mode:
 		action = Action::FallbackAltCtrl;
 		user_intended_mode = vehicle_status_s::NAVIGATION_STATE_ALTCTL;
 		break;
 
-	case 2:
+	case offboard_loss_failsafe_mode::Manual:
 		action = Action::FallbackStab;
 		user_intended_mode = vehicle_status_s::NAVIGATION_STATE_STAB;
 		break;
 
-	case 3:
+	case offboard_loss_failsafe_mode::Return_mode:
 		action = Action::RTL;
 		user_intended_mode = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
 		break;
 
-	case 4:
+	case offboard_loss_failsafe_mode::Land_mode:
 		action = Action::Land;
 		user_intended_mode = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
 		break;
 
-	case 5:
+	case offboard_loss_failsafe_mode::Hold_mode:
 		action = Action::Hold;
 		user_intended_mode = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
 		break;
 
-	case 6:
+	case offboard_loss_failsafe_mode::Terminate:
 		action = Action::Terminate;
 		user_intended_mode = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
 		break;
 
-	case 7:
+	case offboard_loss_failsafe_mode::Disarm:
 		action = Action::Disarm;
 		break;
 	}
@@ -354,7 +354,7 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 	const bool rc_loss_ignored = rc_loss_ignored_mission || rc_loss_ignored_loiter || rc_loss_ignored_offboard ||
 				     rc_loss_ignored_takeoff || ignore_link_failsafe || _manual_control_lost_at_arming;
 
-	if (_param_com_rc_in_mode.get() != 4 && !rc_loss_ignored) {
+	if (_param_com_rc_in_mode.get() != int32_t(offboard_loss_failsafe_mode::Land_mode) && !rc_loss_ignored) {
 		CHECK_FAILSAFE(status_flags, manual_control_signal_lost,
 			       fromNavDllOrRclActParam(_param_nav_rcl_act.get()).causedBy(Cause::ManualControlLoss));
 	}
@@ -382,7 +382,8 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 
 		// If manual control loss and GCS connection loss are disabled and we lose both command links and the mission finished,
 		// trigger RTL to avoid losing the vehicle
-		if ((_param_com_rc_in_mode.get() == 4 || rc_loss_ignored_mission) && _param_nav_dll_act.get() == 0
+		if ((_param_com_rc_in_mode.get() == int32_t(offboard_loss_failsafe_mode::Land_mode) || rc_loss_ignored_mission)
+		    && _param_nav_dll_act.get() == int32_t(offboard_loss_failsafe_mode::Position_mode)
 		    && state.mission_finished) {
 			_last_state_mission_control_lost = checkFailsafe(_caller_id_mission_control_lost, _last_state_mission_control_lost,
 							   status_flags.gcs_connection_lost, Action::RTL);
