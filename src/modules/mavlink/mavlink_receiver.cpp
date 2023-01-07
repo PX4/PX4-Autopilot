@@ -1574,7 +1574,7 @@ void MavlinkReceiver::fill_thrust(float *thrust_body_array, uint8_t vehicle_type
 	case MAV_TYPE_VTOL_TILTROTOR:
 	case MAV_TYPE_VTOL_FIXEDROTOR:
 	case MAV_TYPE_VTOL_TAILSITTER:
-	case MAV_TYPE_VTOL_RESERVED4:
+	case MAV_TYPE_VTOL_TILTWING:
 	case MAV_TYPE_VTOL_RESERVED5:
 		switch (vehicle_type) {
 		case vehicle_status_s::VEHICLE_TYPE_FIXED_WING:
