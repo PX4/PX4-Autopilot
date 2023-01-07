@@ -78,6 +78,51 @@ private:
 		Disarm = 7,
 	};
 
+	enum class position_control_navigation_loss_response : int32_t {
+		Altitude_Manual = 0,
+		Land_Descend = 1,
+	};
+
+	enum class actuator_failure_failsafe_mode : int32_t {
+		Warning_only = 0,
+		Hold_mode = 1,
+		Land_mode = 2,
+		Return_mode = 3,
+		Terminate = 4,
+	};
+
+	enum class imbalanced_propeller_failsafe_mode : int32_t {
+		Disabled = -1,
+		Warning = 0,
+		Return = 1,
+		Land = 2,
+	};
+
+	enum class geofence_violation_action : int32_t {
+		None = 0,
+		Warning = 1,
+		Hold_mode = 2,
+		Return_mode = 3,
+		Terminate = 4,
+		Land_mode = 5,
+	};
+
+	enum class gcs_connection_loss_failsafe_mode : int32_t {
+		Disabled = 0,
+		Hold_mode = 1,
+		Return_mode = 2,
+		Land_mode = 3,
+		Terminate = 5,
+		Disarm = 6,
+	};
+
+	enum class command_after_quadchute : int32_t {
+		Warning_only = -1,
+		Return_mode = 0,
+		Land_mode = 1,
+		Hold_mode = 2,
+	};
+
 	static ActionOptions fromNavDllOrRclActParam(int param_value);
 
 	static ActionOptions fromGfActParam(int param_value);

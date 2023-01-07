@@ -44,31 +44,31 @@ FailsafeBase::ActionOptions Failsafe::fromNavDllOrRclActParam(int param_value)
 {
 	ActionOptions options{};
 
-	switch (param_value) {
-	case 0:
+	switch (gcs_connection_loss_failsafe_mode(param_value)) {
+	case gcs_connection_loss_failsafe_mode::Disabled:
 		options.action = Action::None;
 		break;
 
-	case 1:
+	case gcs_connection_loss_failsafe_mode::Hold_mode:
 		options.action = Action::Hold;
 		break;
 
-	case 2:
+	case gcs_connection_loss_failsafe_mode::Return_mode:
 		options.action = Action::RTL;
 		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
 		break;
 
-	case 3:
+	case gcs_connection_loss_failsafe_mode::Land_mode:
 		options.action = Action::Land;
 		break;
 
-	case 5:
+	case gcs_connection_loss_failsafe_mode::Terminate:
 		options.allow_user_takeover = UserTakeoverAllowed::Never;
 		options.action = Action::Terminate;
 		options.clear_condition = ClearCondition::Never;
 		break;
 
-	case 6: // Lockdown
+	case gcs_connection_loss_failsafe_mode::Disarm: // Lockdown
 		options.allow_user_takeover = UserTakeoverAllowed::Never;
 		options.action = Action::Disarm;
 		break;
@@ -85,33 +85,33 @@ FailsafeBase::ActionOptions Failsafe::fromGfActParam(int param_value)
 {
 	ActionOptions options{};
 
-	switch (param_value) {
-	case 0:
+	switch (geofence_violation_action(param_value)) {
+	case geofence_violation_action::None:
 		options.action = Action::None;
 		break;
 
-	case 1:
+	case geofence_violation_action::Warning:
 		options.action = Action::Warn;
 		break;
 
-	case 2:
+	case geofence_violation_action::Hold_mode:
 		options.allow_user_takeover = UserTakeoverAllowed::AlwaysModeSwitchOnly; // ensure the user can escape again
 		options.action = Action::Hold;
 		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
 		break;
 
-	case 3:
+	case geofence_violation_action::Return_mode:
 		options.action = Action::RTL;
 		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
 		break;
 
-	case 4:
+	case geofence_violation_action::Terminate:
 		options.allow_user_takeover = UserTakeoverAllowed::Never;
 		options.action = Action::Terminate;
 		options.clear_condition = ClearCondition::Never;
 		break;
 
-	case 5:
+	case geofence_violation_action::Land_mode:
 		options.action = Action::Land;
 		break;
 
@@ -127,22 +127,22 @@ FailsafeBase::ActionOptions Failsafe::fromImbalancedPropActParam(int param_value
 {
 	ActionOptions options{};
 
-	switch (param_value) {
-	case -1:
+	switch (imbalanced_propeller_failsafe_mode(param_value)) {
+	case imbalanced_propeller_failsafe_mode::Disabled:
 	default:
 		options.action = Action::None;
 		break;
 
-	case 0:
+	case imbalanced_propeller_failsafe_mode::Warning:
 		options.action = Action::Warn;
 		break;
 
-	case 1:
+	case imbalanced_propeller_failsafe_mode::Return:
 		options.action = Action::RTL;
 		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
 		break;
 
-	case 2:
+	case imbalanced_propeller_failsafe_mode::Land:
 		options.action = Action::Land;
 		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
 		break;
@@ -155,27 +155,27 @@ FailsafeBase::ActionOptions Failsafe::fromActuatorFailureActParam(int param_valu
 {
 	ActionOptions options{};
 
-	switch (param_value) {
-	case 0:
+	switch (actuator_failure_failsafe_mode(param_value)) {
+	case actuator_failure_failsafe_mode::Warning_only:
 	default:
 		options.action = Action::Warn;
 		break;
 
-	case 1:
+	case actuator_failure_failsafe_mode::Hold_mode:
 		options.action = Action::Hold;
 		break;
 
-	case 2:
+	case actuator_failure_failsafe_mode::Land_mode:
 		options.action = Action::Land;
 		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
 		break;
 
-	case 3:
+	case actuator_failure_failsafe_mode::Return_mode:
 		options.action = Action::RTL;
 		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
 		break;
 
-	case 4:
+	case actuator_failure_failsafe_mode::Terminate:
 		options.action = Action::Terminate;
 		options.clear_condition = ClearCondition::Never;
 		break;
@@ -249,23 +249,23 @@ FailsafeBase::ActionOptions Failsafe::fromQuadchuteActParam(int param_value)
 {
 	ActionOptions options{};
 
-	switch (param_value) {
-	case -1:
+	switch (command_after_quadchute(param_value)) {
+	case command_after_quadchute::Warning_only:
 	default:
 		options.action = Action::Warn;
 		break;
 
-	case 0:
+	case command_after_quadchute::Return_mode:
 		options.action = Action::RTL;
 		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
 		break;
 
-	case 1:
+	case command_after_quadchute::Land_mode:
 		options.action = Action::Land;
 		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
 		break;
 
-	case 2:
+	case command_after_quadchute::Hold_mode:
 		options.action = Action::Hold;
 		options.clear_condition = ClearCondition::OnModeChangeOrDisarm;
 		break;
@@ -363,7 +363,7 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 	const bool gcs_connection_loss_ignored = state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND ||
 			state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND || ignore_link_failsafe;
 
-	if (_param_nav_dll_act.get() != 0 && !gcs_connection_loss_ignored) {
+	if (_param_nav_dll_act.get() != int32_t(gcs_connection_loss_failsafe_mode::Disabled) && !gcs_connection_loss_ignored) {
 		CHECK_FAILSAFE(status_flags, gcs_connection_lost,
 			       fromNavDllOrRclActParam(_param_nav_dll_act.get()).causedBy(Cause::GCSConnectionLoss));
 	}
@@ -383,7 +383,7 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 		// If manual control loss and GCS connection loss are disabled and we lose both command links and the mission finished,
 		// trigger RTL to avoid losing the vehicle
 		if ((_param_com_rc_in_mode.get() == int32_t(offboard_loss_failsafe_mode::Land_mode) || rc_loss_ignored_mission)
-		    && _param_nav_dll_act.get() == int32_t(offboard_loss_failsafe_mode::Position_mode)
+		    && _param_nav_dll_act.get() == int32_t(gcs_connection_loss_failsafe_mode::Disabled)
 		    && state.mission_finished) {
 			_last_state_mission_control_lost = checkFailsafe(_caller_id_mission_control_lost, _last_state_mission_control_lost,
 							   status_flags.gcs_connection_lost, Action::RTL);
@@ -402,19 +402,26 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 	CHECK_FAILSAFE(status_flags, battery_low_remaining_time, ActionOptions(Action::RTL).causedBy(Cause::BatteryLow));
 	CHECK_FAILSAFE(status_flags, battery_unhealthy, Action::Warn);
 
-	if (status_flags.battery_warning == battery_status_s::BATTERY_WARNING_LOW) {
+	switch (status_flags.battery_warning) {
+	case battery_status_s::BATTERY_WARNING_LOW:
 		_last_state_battery_warning_low = checkFailsafe(_caller_id_battery_warning_low, _last_state_battery_warning_low,
 						  true, fromBatteryWarningActParam(_param_com_low_bat_act.get(), battery_status_s::BATTERY_WARNING_LOW));
+		break;
 
-	} else if (status_flags.battery_warning == battery_status_s::BATTERY_WARNING_CRITICAL) {
+	case battery_status_s::BATTERY_WARNING_CRITICAL:
 		_last_state_battery_warning_critical = checkFailsafe(_caller_id_battery_warning_critical,
 						       _last_state_battery_warning_critical,
 						       true, fromBatteryWarningActParam(_param_com_low_bat_act.get(), battery_status_s::BATTERY_WARNING_CRITICAL));
+		break;
 
-	} else if (status_flags.battery_warning == battery_status_s::BATTERY_WARNING_EMERGENCY) {
+	case battery_status_s::BATTERY_WARNING_EMERGENCY:
 		_last_state_battery_warning_emergency = checkFailsafe(_caller_id_battery_warning_emergency,
 							_last_state_battery_warning_emergency,
 							true, fromBatteryWarningActParam(_param_com_low_bat_act.get(), battery_status_s::BATTERY_WARNING_EMERGENCY));
+		break;
+
+	default:
+		break;
 	}
 
 
@@ -476,8 +483,8 @@ FailsafeBase::Action Failsafe::checkModeFallback(const failsafe_flags_s &status_
 	}
 
 	// posctrl
-	switch (_param_com_posctl_navl.get()) {
-	case 0: // AltCtrl/Manual
+	switch (position_control_navigation_loss_response(_param_com_posctl_navl.get())) {
+	case position_control_navigation_loss_response::Altitude_Manual: // AltCtrl/Manual
 
 		// PosCtrl -> AltCtrl
 		if (user_intended_mode == vehicle_status_s::NAVIGATION_STATE_POSCTL
@@ -495,7 +502,7 @@ FailsafeBase::Action Failsafe::checkModeFallback(const failsafe_flags_s &status_
 
 		break;
 
-	case 1: // Land/Terminate
+	case position_control_navigation_loss_response::Land_Descend: // Land/Terminate
 
 		// PosCtrl -> Land
 		if (user_intended_mode == vehicle_status_s::NAVIGATION_STATE_POSCTL
