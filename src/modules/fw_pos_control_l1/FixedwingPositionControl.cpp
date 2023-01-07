@@ -129,21 +129,21 @@ FixedwingPositionControl::parameters_update()
 	_tecs.set_equivalent_airspeed_trim(_param_fw_airspd_trim.get());
 	_tecs.set_equivalent_airspeed_min(_param_fw_airspd_min.get());
 	_tecs.set_equivalent_airspeed_max(_param_fw_airspd_max.get());
-	_tecs.set_min_sink_rate(_param_fw_t_sink_min.get());
 	_tecs.set_throttle_damp(_param_fw_t_thr_damp.get());
 	_tecs.set_integrator_gain_throttle(_param_fw_t_I_gain_thr.get());
 	_tecs.set_integrator_gain_pitch(_param_fw_t_I_gain_pit.get());
 	_tecs.set_throttle_slewrate(_param_fw_thr_slew_max.get());
 	_tecs.set_vertical_accel_limit(_param_fw_t_vert_acc.get());
-	_tecs.set_speed_comp_filter_omega(_param_fw_t_spd_omega.get());
 	_tecs.set_roll_throttle_compensation(_param_fw_t_rll2thr.get());
 	_tecs.set_pitch_damping(_param_fw_t_ptch_damp.get());
-	_tecs.set_height_error_time_constant(_param_fw_t_h_error_tc.get());
-	_tecs.set_heightrate_ff(_param_fw_t_hrate_ff.get());
+	_tecs.set_altitude_error_time_constant(_param_fw_t_h_error_tc.get());
+	_tecs.set_altitude_rate_ff(_param_fw_t_hrate_ff.get());
 	_tecs.set_airspeed_error_time_constant(_param_fw_t_tas_error_tc.get());
 	_tecs.set_ste_rate_time_const(_param_ste_rate_time_const.get());
-	_tecs.set_speed_derivative_time_constant(_param_tas_rate_time_const.get());
 	_tecs.set_seb_rate_ff_gain(_param_seb_rate_ff.get());
+	_tecs.set_airspeed_measurement_std_dev(_param_speed_standard_dev.get());
+	_tecs.set_airspeed_rate_measurement_std_dev(_param_speed_rate_standard_dev.get());
+	_tecs.set_airspeed_filter_process_std_dev(_param_process_noise_standard_dev.get());
 
 	int check_ret = PX4_OK;
 
@@ -458,9 +458,12 @@ FixedwingPositionControl::adapt_airspeed_setpoint(const float control_interval, 
 }
 
 void
-FixedwingPositionControl::tecs_status_publish()
+FixedwingPositionControl::tecs_status_publish(float alt_sp, float equivalent_airspeed_sp,
+		float true_airspeed_derivative_raw, float throttle_trim)
 {
 	tecs_status_s t{};
+
+	const TECS::DebugOutput &debug_output{_tecs.getStatus()};
 
 	switch (_tecs.tecs_mode()) {
 	case TECS::ECL_TECS_MODE_NORMAL:
@@ -480,43 +483,25 @@ FixedwingPositionControl::tecs_status_publish()
 		break;
 	}
 
-	t.altitude_sp = _tecs.hgt_setpoint();
-	t.altitude_filtered = _tecs.vert_pos_state();
-
-	t.true_airspeed_sp = _tecs.TAS_setpoint_adj();
-	t.true_airspeed_filtered = _tecs.tas_state();
-
-	t.height_rate_setpoint = _tecs.hgt_rate_setpoint();
-	t.height_rate = _tecs.vert_vel_state();
-
-	t.equivalent_airspeed_sp = _tecs.get_EAS_setpoint();
-	t.true_airspeed_derivative_sp = _tecs.TAS_rate_setpoint();
-	t.true_airspeed_derivative = _tecs.speed_derivative();
-	t.true_airspeed_derivative_raw = _tecs.speed_derivative_raw();
-	t.true_airspeed_innovation = _tecs.getTASInnovation();
-
-	t.total_energy_error = _tecs.STE_error();
-	t.total_energy_rate_error = _tecs.STE_rate_error();
-
-	t.energy_distribution_error = _tecs.SEB_error();
-	t.energy_distribution_rate_error = _tecs.SEB_rate_error();
-
-	t.total_energy = _tecs.STE();
-	t.total_energy_rate = _tecs.STE_rate();
-	t.total_energy_balance = _tecs.SEB();
-	t.total_energy_balance_rate = _tecs.SEB_rate();
-
-	t.total_energy_sp = _tecs.STE_setpoint();
-	t.total_energy_rate_sp = _tecs.STE_rate_setpoint();
-	t.total_energy_balance_sp = _tecs.SEB_setpoint();
-	t.total_energy_balance_rate_sp = _tecs.SEB_rate_setpoint();
-
-	t.throttle_integ = _tecs.throttle_integ_state();
-	t.pitch_integ = _tecs.pitch_integ_state();
-
+	t.altitude_sp = alt_sp;
+	t.altitude_filtered = debug_output.altitude_sp;
+	t.height_rate_setpoint = debug_output.control.altitude_rate_control;
+	t.height_rate = -_local_pos.vz;
+	t.equivalent_airspeed_sp = equivalent_airspeed_sp;
+	t.true_airspeed_sp = _eas2tas * equivalent_airspeed_sp;
+	t.true_airspeed_filtered = debug_output.true_airspeed_filtered;
+	t.true_airspeed_derivative_sp = debug_output.control.true_airspeed_derivative_control;
+	t.true_airspeed_derivative = debug_output.true_airspeed_derivative;
+	t.true_airspeed_derivative_raw = true_airspeed_derivative_raw;
+	t.total_energy_rate = debug_output.control.total_energy_rate_estimate;
+	t.total_energy_balance_rate = debug_output.control.energy_balance_rate_estimate;
+	t.total_energy_rate_sp = debug_output.control.total_energy_rate_sp;
+	t.total_energy_balance_rate_sp = debug_output.control.energy_balance_rate_sp;
+	t.throttle_integ = debug_output.control.throttle_integrator;
+	t.pitch_integ = debug_output.control.pitch_integrator;
 	t.throttle_sp = _tecs.get_throttle_setpoint();
 	t.pitch_sp_rad = _tecs.get_pitch_setpoint();
-	t.throttle_trim = _tecs.get_throttle_trim();
+	t.throttle_trim = throttle_trim;
 
 	t.timestamp = hrt_absolute_time();
 
@@ -843,8 +828,7 @@ FixedwingPositionControl::update_in_air_states(const hrt_abstime now)
 		_was_in_air = true;
 		_time_went_in_air = now;
 
-		_tecs.resetIntegrals();
-		_tecs.resetTrajectoryGenerators(_current_altitude);
+		_tecs.initialize(_current_altitude, -_local_pos.vz, _airspeed, _eas2tas);
 	}
 
 	/* reset flag when airplane landed */
@@ -852,8 +836,7 @@ FixedwingPositionControl::update_in_air_states(const hrt_abstime now)
 		_was_in_air = false;
 		_completed_manual_takeoff = false;
 
-		_tecs.resetIntegrals();
-		_tecs.resetTrajectoryGenerators(_current_altitude);
+		_tecs.initialize(_current_altitude, -_local_pos.vz, _airspeed, _eas2tas);
 	}
 }
 
@@ -1309,7 +1292,7 @@ FixedwingPositionControl::control_auto_loiter(const float control_interval, cons
 		// We're in a loiter directly before a landing WP. Enable our landing configuration (flaps,
 		// landing airspeed and potentially tighter altitude control) already such that we don't
 		// have to do this switch (which can cause significant altitude errors) close to the ground.
-		_tecs.set_height_error_time_constant(_param_fw_thrtc_sc.get() * _param_fw_t_h_error_tc.get());
+		_tecs.set_altitude_error_time_constant(_param_fw_thrtc_sc.get() * _param_fw_t_h_error_tc.get());
 		airspeed_sp = (_param_fw_lnd_airspd.get() > FLT_EPSILON) ? _param_fw_lnd_airspd.get() : _param_fw_airspd_min.get();
 		_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_LAND;
 		_att_sp.apply_spoilers = vehicle_attitude_setpoint_s::SPOILERS_LAND;
@@ -1355,7 +1338,7 @@ FixedwingPositionControl::control_auto_loiter(const float control_interval, cons
 			_att_sp.roll_body = 0.0f;
 		}
 
-		_tecs.set_height_error_time_constant(_param_fw_thrtc_sc.get() * _param_fw_t_h_error_tc.get());
+		_tecs.set_altitude_error_time_constant(_param_fw_thrtc_sc.get() * _param_fw_t_h_error_tc.get());
 	}
 
 	tecs_update_pitch_throttle(control_interval,
@@ -1628,7 +1611,7 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr)
 {
 	// Enable tighter altitude control for landings
-	_tecs.set_height_error_time_constant(_param_fw_thrtc_sc.get() * _param_fw_t_h_error_tc.get());
+	_tecs.set_altitude_error_time_constant(_param_fw_thrtc_sc.get() * _param_fw_t_h_error_tc.get());
 
 	const Vector2f local_position{_local_pos.x, _local_pos.y};
 	Vector2f local_land_point = _global_local_proj_ref.project(pos_sp_curr.lat, pos_sp_curr.lon);
@@ -1691,7 +1674,7 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 		if (!_flare_states.flaring) {
 			_flare_states.flaring = true;
 			_flare_states.start_time = now;
-			_flare_states.initial_height_rate_setpoint = _tecs.hgt_rate_setpoint();
+			_flare_states.initial_height_rate_setpoint = -_local_pos.vz;
 			_flare_states.initial_throttle_setpoint = _att_sp.thrust_body[0];
 			events::send(events::ID("fixedwing_position_control_landing_flaring"), events::Log::Info,
 				     "Landing, flaring");
@@ -2120,7 +2103,7 @@ FixedwingPositionControl::Run()
 		if (_control_mode.flag_control_manual_enabled) {
 			if (_control_mode.flag_control_altitude_enabled && _local_pos.vz_reset_counter != _alt_reset_counter) {
 				// make TECS accept step in altitude and demanded altitude
-				_tecs.handle_alt_step(-_local_pos.delta_z, _current_altitude);
+				_tecs.handle_alt_step(_current_altitude, -_local_pos.vz);
 			}
 
 			// adjust navigation waypoints in position control mode
@@ -2200,11 +2183,6 @@ FixedwingPositionControl::Run()
 				}
 
 				_position_setpoint_current_valid = valid_setpoint;
-
-				if (!valid_setpoint) {
-					events::send(events::ID("fixedwing_position_control_invalid_offboard_sp"), events::Log::Error,
-						     "Invalid offboard setpoint");
-				}
 			}
 
 		} else {
@@ -2267,7 +2245,7 @@ FixedwingPositionControl::Run()
 
 		// restore nominal TECS parameters in case changed intermittently (e.g. in landing handling)
 		_tecs.set_speed_weight(_param_fw_t_spdweight.get());
-		_tecs.set_height_error_time_constant(_param_fw_t_h_error_tc.get());
+		_tecs.set_altitude_error_time_constant(_param_fw_t_h_error_tc.get());
 
 		// restore lateral-directional guidance parameters (changed in takeoff mode)
 		_npfg.setPeriod(_param_npfg_period.get());
@@ -2333,7 +2311,7 @@ FixedwingPositionControl::Run()
 				_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_OFF;
 				_att_sp.apply_spoilers = vehicle_attitude_setpoint_s::SPOILERS_OFF;
 
-				_tecs.reset_state();
+				_tecs.initialize(_current_altitude, -_local_pos.vz, _airspeed, _eas2tas);
 
 				break;
 			}
@@ -2509,8 +2487,13 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 		return;
 	}
 
+	// We need an altitude lock to calculate the TECS control
+	if (_local_pos.timestamp == 0) {
+		_reinitialize_tecs = true;
+	}
+
 	if (_reinitialize_tecs) {
-		_tecs.reset_state();
+		_tecs.initialize(_current_altitude, -_local_pos.vz, _airspeed, _eas2tas);
 		_reinitialize_tecs = false;
 	}
 
@@ -2518,35 +2501,33 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 	_tecs.set_detect_underspeed_enabled(!disable_underspeed_detection);
 
 	if (_landed) {
-		_tecs.resetIntegrals();
-		_tecs.resetTrajectoryGenerators(_current_altitude);
+		_tecs.initialize(_current_altitude, -_local_pos.vz, _airspeed, _eas2tas);
 	}
 
 	/* update TECS vehicle state estimates */
-	_tecs.update_vehicle_state_estimates(_airspeed, _body_acceleration(0), (_local_pos.timestamp > 0), _current_altitude,
-					     _local_pos.vz);
-
 	const float throttle_trim_comp = compensateTrimThrottleForDensityAndWeight(_param_fw_thr_trim.get(), throttle_min,
 					 throttle_max);
 
-	_tecs.update_pitch_throttle(_pitch - radians(_param_fw_psp_off.get()),
-				    _current_altitude,
-				    alt_sp,
-				    airspeed_sp,
-				    _airspeed,
-				    _eas2tas,
-				    climbout_mode,
-				    climbout_pitch_min_rad - radians(_param_fw_psp_off.get()),
-				    throttle_min,
-				    throttle_max,
-				    throttle_trim_comp,
-				    pitch_min_rad - radians(_param_fw_psp_off.get()),
-				    pitch_max_rad - radians(_param_fw_psp_off.get()),
-				    desired_max_climbrate,
-				    desired_max_sinkrate,
-				    hgt_rate_sp);
+	_tecs.update(_pitch - radians(_param_fw_psp_off.get()),
+		     _current_altitude,
+		     alt_sp,
+		     airspeed_sp,
+		     _airspeed,
+		     _eas2tas,
+		     climbout_mode,
+		     climbout_pitch_min_rad - radians(_param_fw_psp_off.get()),
+		     throttle_min,
+		     throttle_max,
+		     throttle_trim_comp,
+		     pitch_min_rad - radians(_param_fw_psp_off.get()),
+		     pitch_max_rad - radians(_param_fw_psp_off.get()),
+		     desired_max_climbrate,
+		     desired_max_sinkrate,
+		     _body_acceleration(0),
+		     -_local_pos.vz,
+		     hgt_rate_sp);
 
-	tecs_status_publish();
+	tecs_status_publish(alt_sp, airspeed_sp, -_local_pos.vz, throttle_trim_comp);
 }
 
 float

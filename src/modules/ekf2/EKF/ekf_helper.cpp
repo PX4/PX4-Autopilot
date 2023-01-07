@@ -114,22 +114,6 @@ void Ekf::resetVerticalVelocityTo(float new_vert_vel, float new_vert_vel_var)
 	_time_last_ver_vel_fuse = _time_delayed_us;
 }
 
-void Ekf::resetHorizontalPositionToVision()
-{
-	_information_events.flags.reset_pos_to_vision = true;
-	ECL_INFO("reset position to ev position");
-	Vector3f _ev_pos = _ev_sample_delayed.pos;
-
-	if (_params.fusion_mode & SensorFusionMask::ROTATE_EXT_VIS) {
-		_ev_pos = _R_ev_to_ekf * _ev_sample_delayed.pos;
-	}
-
-	resetHorizontalPositionTo(Vector2f(_ev_pos), _ev_sample_delayed.posVar.slice<2, 1>(0, 0));
-
-	// let the next odometry update know that the previous value of states cannot be used to calculate the change in position
-	_hpos_prev_available = false;
-}
-
 void Ekf::resetHorizontalPositionToLastKnown()
 {
 	_information_events.flags.reset_pos_to_last_known = true;
@@ -164,6 +148,9 @@ void Ekf::resetHorizontalPositionTo(const Vector2f &new_horz_pos, const Vector2f
 
 	_state_reset_status.reset_count.posNE++;
 
+	_ev_pos_b_est.setBias(_ev_pos_b_est.getBias() - _state_reset_status.posNE_change);
+	//_gps_pos_b_est.setBias(_gps_pos_b_est.getBias() + _state_reset_status.posNE_change);
+
 	// Reset the timout timer
 	_time_last_hor_pos_fuse = _time_delayed_us;
 }
@@ -178,7 +165,6 @@ bool Ekf::isHeightResetRequired() const
 
 	return (continuous_bad_accel_hgt || hgt_fusion_timeout);
 }
-
 
 void Ekf::resetVerticalPositionTo(const float new_vert_pos, float new_vert_pos_var)
 {
@@ -228,8 +214,8 @@ void Ekf::resetVerticalVelocityToZero()
 bool Ekf::resetMagHeading()
 {
 	// prevent a reset being performed more than once on the same frame
-	if (_time_delayed_us == _flt_mag_align_start_time) {
-		return true;
+	if ((_flt_mag_align_start_time == _time_delayed_us) || (_control_status_prev.flags.yaw_align != _control_status.flags.yaw_align)) {
+		return false;
 	}
 
 	const Vector3f mag_init = _mag_lpf.getState();
@@ -271,17 +257,6 @@ bool Ekf::resetMagHeading()
 	}
 
 	return false;
-}
-
-bool Ekf::resetYawToEv()
-{
-	const float yaw_new = getEulerYaw(_ev_sample_delayed.quat);
-	const float yaw_new_variance = fmaxf(_ev_sample_delayed.orientation_var(2), sq(1.0e-2f));
-
-	resetQuatStateYaw(yaw_new, yaw_new_variance);
-	_R_ev_to_ekf.setIdentity();
-
-	return true;
 }
 
 // Return the magnetic declination in radians to be used by the alignment and fusion processing
@@ -688,27 +663,6 @@ void Ekf::resetAccelBias()
 	_prev_dvel_bias_var = P.slice<3, 3>(13, 13).diag();
 }
 
-void Ekf::resetMagBiasAndYaw()
-{
-	// Zero the magnetometer bias states
-	_state.mag_B.zero();
-
-	// Zero the corresponding covariances and set
-	// variances to the values use for initial alignment
-	P.uncorrelateCovarianceSetVariance<3>(19, sq(_params.mag_noise));
-
-	// reset any saved covariance data for re-use when auto-switching between heading and 3-axis fusion
-	_saved_mag_bf_variance.zero();
-
-	if (_control_status.flags.mag_hdg || _control_status.flags.mag_3D) {
-		_mag_yaw_reset_req = true;
-	}
-
-	_control_status.flags.mag_fault = false;
-
-	_mag_counter = 0;
-}
-
 // get EKF innovation consistency check status information comprising of:
 // status - a bitmask integer containing the pass/fail status for each EKF measurement innovation consistency check
 // Innovation Test Ratios - these are the ratio of the innovation to the acceptance threshold.
@@ -729,6 +683,7 @@ void Ekf::get_innovation_test_status(uint16_t &status, float &mag, float &vel, f
 
 	} else if (_control_status.flags.gps_yaw) {
 		mag = sqrtf(_aid_src_gnss_yaw.test_ratio);
+
 	} else {
 		mag = NAN;
 	}
@@ -1065,9 +1020,12 @@ void Ekf::initialiseQuatCovariances(Vector3f &rot_vec_var)
 
 void Ekf::stopMagFusion()
 {
-	stopMag3DFusion();
-	stopMagHdgFusion();
-	clearMagCov();
+	if (_control_status.flags.mag_hdg || _control_status.flags.mag_3D) {
+		ECL_INFO("stopping all mag fusion");
+		stopMag3DFusion();
+		stopMagHdgFusion();
+		clearMagCov();
+	}
 }
 
 void Ekf::stopMag3DFusion()
@@ -1135,14 +1093,6 @@ void Ekf::updateGroundEffect()
 	} else {
 		_control_status.flags.gnd_effect = false;
 	}
-}
-
-// update the rotation matrix which rotates EV measurements into the EKF's navigation frame
-void Ekf::calcExtVisRotMat()
-{
-	// Calculate the quaternion delta that rotates from the EV to the EKF reference frame at the EKF fusion time horizon.
-	const Quatf q_error((_state.quat_nominal * _ev_sample_delayed.quat.inversed()).normalized());
-	_R_ev_to_ekf = Dcmf(q_error);
 }
 
 // Increase the yaw error variance of the quaternions
@@ -1288,51 +1238,6 @@ void Ekf::stopGpsYawFusion()
 		ECL_INFO("stopping GPS yaw fusion");
 		_control_status.flags.gps_yaw = false;
 		resetEstimatorAidStatus(_aid_src_gnss_yaw);
-	}
-}
-
-void Ekf::startEvPosFusion()
-{
-	_control_status.flags.ev_pos = true;
-	resetHorizontalPositionToVision();
-	_information_events.flags.starting_vision_pos_fusion = true;
-	ECL_INFO("starting vision pos fusion");
-}
-
-void Ekf::startEvYawFusion()
-{
-	// turn on fusion of external vision yaw measurements and disable all magnetometer fusion
-	_control_status.flags.ev_yaw = true;
-	_control_status.flags.mag_dec = false;
-
-	stopMagHdgFusion();
-	stopMag3DFusion();
-
-	_information_events.flags.starting_vision_yaw_fusion = true;
-	ECL_INFO("starting vision yaw fusion");
-}
-
-void Ekf::stopEvFusion()
-{
-	stopEvPosFusion();
-	stopEvVelFusion();
-	stopEvYawFusion();
-}
-
-void Ekf::stopEvPosFusion()
-{
-	if (_control_status.flags.ev_pos) {
-		ECL_INFO("stopping EV pos fusion");
-		_control_status.flags.ev_pos = false;
-		resetEstimatorAidStatus(_aid_src_ev_pos);
-	}
-}
-
-void Ekf::stopEvYawFusion()
-{
-	if (_control_status.flags.ev_yaw) {
-		ECL_INFO("stopping EV yaw fusion");
-		_control_status.flags.ev_yaw = false;
 	}
 }
 

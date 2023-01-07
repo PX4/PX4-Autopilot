@@ -175,4 +175,5 @@ private:
 	uint8_t _warning{battery_status_s::BATTERY_WARNING_NONE};
 	hrt_abstime _last_timestamp{0};
 	bool _armed{false};
+	hrt_abstime _last_unconnected_timestamp{0};
 };

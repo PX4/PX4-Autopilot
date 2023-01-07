@@ -40,8 +40,8 @@ menu "Toolchain"
         help
             forces nolockstep behaviour, despite REPLAY env variable
 
-    config BOARD_LINUX
-        bool "Linux OS"
+    config BOARD_LINUX_TARGET
+        bool "Linux OS Target"
         depends on PLATFORM_POSIX
         help
             Board Platform is running the Linux operating system
@@ -195,5 +195,6 @@ source "src/examples/Kconfig"
 endmenu
 
 menu "platforms"
+depends on PLATFORM_QURT || PLATFORM_POSIX
 source "platforms/common/Kconfig"
 endmenu

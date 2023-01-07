@@ -37,9 +37,16 @@
 #include <string>
 
 #include <drivers/drv_hrt.h>
+#include <drivers/device/spi.h>
+#include <drivers/device/qurt/uart.h>
 #include <pthread.h>
 #include <px4_platform_common/tasks.h>
 #include <px4_platform_common/log.h>
+#include <lib/parameters/param.h>
+#include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
+#include <qurt.h>
+
+#include "hrt_work.h"
 
 // Definition of test to run when in muorb test mode
 static MUORBTestType test_to_run;
@@ -49,6 +56,7 @@ fc_func_ptrs muorb_func_ptrs;
 // static initialization.
 uORB::ProtobufChannel uORB::ProtobufChannel::_Instance;
 uORBCommunicator::IChannelRxHandler *uORB::ProtobufChannel::_RxHandler;
+mUORB::Aggregator uORB::ProtobufChannel::_Aggregator;
 std::map<std::string, int> uORB::ProtobufChannel::_AppsSubscriberCache;
 pthread_mutex_t uORB::ProtobufChannel::_rx_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t uORB::ProtobufChannel::_tx_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -56,6 +64,30 @@ pthread_mutex_t uORB::ProtobufChannel::_tx_mutex = PTHREAD_MUTEX_INITIALIZER;
 bool uORB::ProtobufChannel::_debug = false;
 bool _px4_muorb_debug = false;
 static bool px4muorb_orb_initialized = false;
+
+// Thread for aggregator checking
+qurt_thread_t aggregator_tid;
+qurt_thread_attr_t aggregator_attr;
+// 1 is highest priority, 255 is lowest. Set it low.
+const uint32_t aggregator_thread_priority = 240;
+const uint32_t aggregator_stack_size = 8096;
+char aggregator_stack[aggregator_stack_size];
+
+static void aggregator_thread_func(void *ptr)
+{
+	PX4_INFO("muorb aggregator thread running");
+
+	uORB::ProtobufChannel *muorb = uORB::ProtobufChannel::GetInstance();
+
+	while (true) {
+		// Check for timeout. Send buffer if timeout happened.
+		muorb->SendAggregateData();
+
+		qurt_timer_sleep(2000);
+	}
+
+	qurt_thread_exit(QURT_EOK);
+}
 
 int16_t uORB::ProtobufChannel::topic_advertised(const char *messageName)
 {
@@ -106,6 +138,7 @@ int16_t uORB::ProtobufChannel::remove_subscription(const char *messageName)
 int16_t uORB::ProtobufChannel::register_handler(uORBCommunicator::IChannelRxHandler *handler)
 {
 	_RxHandler = handler;
+	_Aggregator.RegisterHandler(handler);
 	return 0;
 }
 
@@ -136,8 +169,17 @@ int16_t uORB::ProtobufChannel::send_message(const char *messageName, int32_t len
 				PX4_INFO("Sending message for topic %s", messageName);
 			}
 
+			int16_t rc = 0;
 			pthread_mutex_lock(&_tx_mutex);
-			int16_t rc = muorb_func_ptrs.topic_data_func_ptr(messageName, data, length);
+
+			if (is_not_slpi_log) {
+				rc = _Aggregator.ProcessTransmitTopic(messageName, data, length);
+
+			} else {
+				// SLPI logs don't go through the aggregator
+				rc = muorb_func_ptrs.topic_data_func_ptr(messageName, data, length);
+			}
+
 			pthread_mutex_unlock(&_tx_mutex);
 			return rc;
 		}
@@ -230,6 +272,24 @@ int px4muorb_orb_initialize(fc_func_ptrs *func_ptrs, int32_t clock_offset_us)
 		uORB::Manager::get_instance()->set_uorb_communicator(
 			uORB::ProtobufChannel::GetInstance());
 
+		param_init();
+
+		px4::WorkQueueManagerStart();
+
+		uORB::ProtobufChannel::GetInstance()->RegisterSendHandler(muorb_func_ptrs.topic_data_func_ptr);
+
+		// Configure the SPI driver function pointers
+		device::SPI::configure_callbacks(muorb_func_ptrs._config_spi_bus_func_t, muorb_func_ptrs._spi_transfer_func_t);
+
+		// Configure the UART driver function pointers
+		configure_uart_callbacks(muorb_func_ptrs.open_uart_func_t, muorb_func_ptrs.write_uart_func_t,
+					 muorb_func_ptrs.read_uart_func_t);
+
+		// Initialize the interrupt callback registration
+		register_interrupt_callback_initalizer(muorb_func_ptrs.register_interrupt_callback);
+
+		hrt_work_queue_init();
+
 		const char *argv[3] = { "slpi", "start" };
 		int argc = 2;
 
@@ -239,6 +299,13 @@ int px4muorb_orb_initialize(fc_func_ptrs *func_ptrs, int32_t clock_offset_us)
 		if (slpi_main(argc, (char **) argv)) {
 			PX4_ERR("slpi failed in %s", __FUNCTION__);
 		}
+
+		// Setup the thread to monitor for topic aggregator timeouts
+		qurt_thread_attr_init(&aggregator_attr);
+		qurt_thread_attr_set_stack_addr(&aggregator_attr, aggregator_stack);
+		qurt_thread_attr_set_stack_size(&aggregator_attr, aggregator_stack_size);
+		qurt_thread_attr_set_priority(&aggregator_attr, aggregator_thread_priority);
+		(void) qurt_thread_create(&aggregator_tid, &aggregator_attr, aggregator_thread_func, NULL);
 
 		px4muorb_orb_initialized = true;
 

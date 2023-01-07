@@ -554,6 +554,14 @@ check_px4: $(call make_list,nuttx,"px4") \
 check_nxp: $(call make_list,nuttx,"nxp") \
 	sizes
 
+# helpers for running olddefconfig (nuttx) and px4_savedefconfig on all boards
+.PHONY: all_oldconfig all_px4_savedefconfig
+all_oldconfig:
+	@for targ in $(ALL_CONFIG_TARGETS); do $(MAKE) $$targ oldconfig; done
+
+all_px4_savedefconfig:
+	@for targ in $(ALL_CONFIG_TARGETS); do $(MAKE) $$targ px4_savedefconfig; done
+
 .PHONY: failsafe_web run_failsafe_web_server
 failsafe_web:
 	@if ! command -v emcc; then echo -e "Install emscripten first: https://emscripten.org/docs/getting_started/downloads.html\nAnd source the env: source <path>/emsdk_env.sh"; exit 1; fi

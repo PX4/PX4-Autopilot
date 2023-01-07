@@ -226,16 +226,15 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bo
 // update quaternion states and covariances using the yaw innovation and yaw observation variance
 bool Ekf::fuseYaw(const float innovation, const float variance, estimator_aid_source1d_s& aid_src_status)
 {
-	aid_src_status.innovation = innovation;
-
 	Vector24f H_YAW;
+	computeYawInnovVarAndH(variance, aid_src_status.innovation_variance, H_YAW);
 
-	if (shouldUse321RotationSequence(_R_to_earth)) {
-		sym::ComputeYaw321InnovVarAndH(getStateAtFusionHorizonAsVector(), P, variance, FLT_EPSILON, &aid_src_status.innovation_variance, &H_YAW);
+	return fuseYaw(innovation, variance, aid_src_status, H_YAW);
+}
 
-	} else {
-		sym::ComputeYaw312InnovVarAndH(getStateAtFusionHorizonAsVector(), P, variance, FLT_EPSILON, &aid_src_status.innovation_variance, &H_YAW);
-	}
+bool Ekf::fuseYaw(const float innovation, const float variance, estimator_aid_source1d_s& aid_src_status, const Vector24f &H_YAW)
+{
+	aid_src_status.innovation = innovation;
 
 	float heading_innov_var_inv = 0.f;
 
@@ -328,6 +327,16 @@ bool Ekf::fuseYaw(const float innovation, const float variance, estimator_aid_so
 	aid_src_status.fused = false;
 	_fault_status.flags.bad_hdg = true;
 	return false;
+}
+
+void Ekf::computeYawInnovVarAndH(float variance, float &innovation_variance, Vector24f &H_YAW) const
+{
+	if (shouldUse321RotationSequence(_R_to_earth)) {
+		sym::ComputeYaw321InnovVarAndH(getStateAtFusionHorizonAsVector(), P, variance, FLT_EPSILON, &innovation_variance, &H_YAW);
+
+	} else {
+		sym::ComputeYaw312InnovVarAndH(getStateAtFusionHorizonAsVector(), P, variance, FLT_EPSILON, &innovation_variance, &H_YAW);
+	}
 }
 
 bool Ekf::fuseDeclination(float decl_sigma)

@@ -74,7 +74,7 @@ if [ -f $PARAM_FILE ]; then
 	then
 		echo "ERROR [init] param import failed"
 
-		param dump $PARAM_FILE
+		bsondump $PARAM_FILE
 
 		# try to make a backup copy
 		cp $PARAM_FILE param_import_fail.bson
@@ -85,7 +85,7 @@ if [ -f $PARAM_FILE ]; then
 			echo "[init] importing from parameter backup"
 
 			# dump current backup file contents for comparison
-			param dump $PARAM_BACKUP_FILE
+			bsondump $PARAM_BACKUP_FILE
 
 			param import $PARAM_BACKUP_FILE
 
@@ -142,7 +142,9 @@ then
 	param set CAL_GYRO2_ID 1311004 # 1311004: DRV_IMU_DEVTYPE_SIM, BUS: 3, ADDR: 1, TYPE: SIMULATION
 
 	param set CAL_MAG0_ID 197388
+	param set CAL_MAG0_PRIO 50
 	param set CAL_MAG1_ID 197644
+	param set CAL_MAG1_PRIO 50
 
 	param set SENS_BOARD_X_OFF 0.000001
 	param set SENS_DPRES_OFF 0.001

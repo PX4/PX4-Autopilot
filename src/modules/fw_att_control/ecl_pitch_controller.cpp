@@ -49,8 +49,7 @@ float ECL_PitchController::control_attitude(const float dt, const ECL_ControlDat
 	if (!(PX4_ISFINITE(ctl_data.pitch_setpoint) &&
 	      PX4_ISFINITE(ctl_data.roll) &&
 	      PX4_ISFINITE(ctl_data.pitch) &&
-	      PX4_ISFINITE(ctl_data.euler_yaw_rate_setpoint) &&
-	      PX4_ISFINITE(ctl_data.airspeed))) {
+	      PX4_ISFINITE(ctl_data.euler_yaw_rate_setpoint))) {
 
 		return _body_rate_setpoint;
 	}

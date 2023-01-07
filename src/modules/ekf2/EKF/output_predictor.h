@@ -44,7 +44,11 @@
 class OutputPredictor
 {
 public:
-	OutputPredictor() = default;
+	OutputPredictor()
+	{
+		reset();
+	};
+
 	~OutputPredictor() = default;
 
 	// modify output filter to match the the EKF state at the fusion time horizon
@@ -60,8 +64,8 @@ public:
 	* “Recursive Attitude Estimation in the Presence of Multi-rate and Multi-delay Vector Measurements”
 	* A Khosravian, J Trumpf, R Mahony, T Hamel, Australian National University
 	*/
-	void calculateOutputStates(const uint64_t time_us, const matrix::Vector3f delta_angle, const float delta_angle_dt,
-				   const matrix::Vector3f delta_velocity, const float delta_velocity_dt);
+	void calculateOutputStates(const uint64_t time_us, const matrix::Vector3f &delta_angle, const float delta_angle_dt,
+				   const matrix::Vector3f &delta_velocity, const float delta_velocity_dt);
 
 	void correctOutputStates(const uint64_t time_delayed_us,
 				 const matrix::Vector3f &gyro_bias, const matrix::Vector3f &accel_bias,
@@ -79,18 +83,15 @@ public:
 
 	bool allocate(uint8_t size)
 	{
-		return _output_buffer.allocate(size) && _output_vert_buffer.allocate(size);
+		if (_output_buffer.allocate(size) && _output_vert_buffer.allocate(size)) {
+			reset();
+			return true;
+		}
+
+		return false;
 	}
 
-	void reset()
-	{
-		// TODO: who resets the output buffer content?
-		_output_new.vel.setZero();
-		_output_new.pos.setZero();
-		_output_new.quat_nominal.setIdentity();
-
-		_delta_angle_corr.setZero();
-	}
+	void reset();
 
 	const matrix::Quatf &getQuaternion() const { return _output_new.quat_nominal; }
 
@@ -143,17 +144,17 @@ private:
 	static constexpr float sq(float var) { return var * var; }
 
 	struct outputSample {
-		uint64_t         time_us{};          ///< timestamp of the measurement (uSec)
-		matrix::Quatf    quat_nominal{};     ///< nominal quaternion describing vehicle attitude
-		matrix::Vector3f vel{};              ///< NED velocity estimate in earth frame (m/sec)
-		matrix::Vector3f pos{};              ///< NED position estimate in earth frame (m/sec)
+		uint64_t         time_us{0};                       ///< timestamp of the measurement (uSec)
+		matrix::Quatf    quat_nominal{1.f, 0.f, 0.f, 0.f}; ///< nominal quaternion describing vehicle attitude
+		matrix::Vector3f vel{0.f, 0.f, 0.f};               ///< NED velocity estimate in earth frame (m/sec)
+		matrix::Vector3f pos{0.f, 0.f, 0.f};               ///< NED position estimate in earth frame (m/sec)
 	};
 
 	struct outputVert {
-		uint64_t time_us{};          ///< timestamp of the measurement (uSec)
-		float    vert_vel{};         ///< Vertical velocity calculated using alternative algorithm (m/sec)
-		float    vert_vel_integ{};   ///< Integral of vertical velocity (m)
-		float    dt{};               ///< delta time (sec)
+		uint64_t time_us{0};          ///< timestamp of the measurement (uSec)
+		float    vert_vel{0.f};       ///< Vertical velocity calculated using alternative algorithm (m/sec)
+		float    vert_vel_integ{0.f}; ///< Integral of vertical velocity (m)
+		float    dt{0.f};             ///< delta time (sec)
 	};
 
 	RingBuffer<outputSample> _output_buffer{12};

@@ -46,7 +46,6 @@ void Ekf::controlHeightFusion(const imuSample &imu_delayed)
 	controlBaroHeightFusion();
 	controlGnssHeightFusion(_gps_sample_delayed);
 	controlRangeHeightFusion();
-	controlEvHeightFusion(_ev_sample_delayed);
 
 	checkHeightSensorRefFallback();
 }
@@ -62,6 +61,7 @@ void Ekf::checkHeightSensorRefFallback()
 
 	switch (_params.height_sensor_ref) {
 	default:
+
 	/* FALLTHROUGH */
 	case HeightSensor::UNKNOWN:
 		fallback_list[0] = HeightSensor::GNSS;
@@ -142,10 +142,10 @@ void Ekf::checkVerticalAccelerationHealth(const imuSample &imu_delayed)
 				    || (inertial_nav_falling_likelihood == Likelihood::HIGH);
 
 	if (bad_vert_accel) {
-		_time_bad_vert_accel = _time_delayed_us;
+		_time_bad_vert_accel = imu_delayed.time_us;
 
 	} else {
-		_time_good_vert_accel = _time_delayed_us;
+		_time_good_vert_accel = imu_delayed.time_us;
 	}
 
 	// declare a bad vertical acceleration measurement and make the declaration persist

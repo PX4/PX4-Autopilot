@@ -71,6 +71,38 @@ void OutputPredictor::alignOutputFilter(const Quatf &quat_state, const Vector3f 
 	_output_new = _output_buffer.get_newest();
 }
 
+void OutputPredictor::reset()
+{
+	// TODO: who resets the output buffer content?
+	_output_new = {};
+	_output_vert_new = {};
+
+	_accel_bias.setZero();
+	_gyro_bias.setZero();
+
+	_time_last_update_states_us = 0;
+	_time_last_correct_states_us = 0;
+
+	_R_to_earth_now.setIdentity();
+	_vel_imu_rel_body_ned.setZero();
+	_vel_deriv.setZero();
+
+	_delta_angle_corr.setZero();
+
+	_vel_err_integ.setZero();
+	_pos_err_integ.setZero();
+
+	_output_tracking_error.setZero();
+
+	for (uint8_t index = 0; index < _output_buffer.get_length(); index++) {
+		_output_buffer[index] = {};
+	}
+
+	for (uint8_t index = 0; index < _output_vert_buffer.get_length(); index++) {
+		_output_vert_buffer[index] = {};
+	}
+}
+
 void OutputPredictor::resetQuaternion(const Quatf &quat_change)
 {
 	// add the reset amount to the output observer buffered data
@@ -128,8 +160,8 @@ void OutputPredictor::resetVerticalPositionTo(const float new_vert_pos, const fl
 	_output_vert_new.vert_vel_integ = new_vert_pos;
 }
 
-void OutputPredictor::calculateOutputStates(const uint64_t time_us, const Vector3f delta_angle,
-		const float delta_angle_dt, const Vector3f delta_velocity, const float delta_velocity_dt)
+void OutputPredictor::calculateOutputStates(const uint64_t time_us, const Vector3f &delta_angle,
+		const float delta_angle_dt, const Vector3f &delta_velocity, const float delta_velocity_dt)
 {
 	// Use full rate IMU data at the current time horizon
 	if (_time_last_update_states_us != 0) {

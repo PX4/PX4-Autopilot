@@ -88,8 +88,8 @@ void Tiltrotor::update_vtol_state()
 			break;
 
 		case vtol_mode::FW_MODE:
+			resetTransitionTimer();
 			_vtol_mode = vtol_mode::TRANSITION_BACK;
-			_transition_start_timestamp = hrt_absolute_time();
 			break;
 
 		case vtol_mode::TRANSITION_FRONT_P1:
@@ -131,8 +131,8 @@ void Tiltrotor::update_vtol_state()
 		switch (_vtol_mode) {
 		case vtol_mode::MC_MODE:
 			// initialise a front transition
+			resetTransitionTimer();
 			_vtol_mode = vtol_mode::TRANSITION_FRONT_P1;
-			_transition_start_timestamp = hrt_absolute_time();
 			break;
 
 		case vtol_mode::FW_MODE:
@@ -159,7 +159,7 @@ void Tiltrotor::update_vtol_state()
 
 				if (transition_to_p2) {
 					_vtol_mode = vtol_mode::TRANSITION_FRONT_P2;
-					_transition_start_timestamp = hrt_absolute_time();
+					resetTransitionTimer();
 				}
 
 				break;

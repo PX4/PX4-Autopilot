@@ -56,18 +56,14 @@
 #include "nvic.h"
 #include <syslog.h>
 
-#if defined(CONFIG_STM32F7_BBSRAM) && defined(CONFIG_STM32F7_SAVE_CRASHDUMP)
-#  define HAS_BBSRAM CONFIG_STM32F7_BBSRAM
-#  define BBSRAM_FILE_COUNT CONFIG_STM32F7_BBSRAM_FILES
-#  define SAVE_CRASHDUMP CONFIG_STM32F7_SAVE_CRASHDUMP
-#elif defined(CONFIG_STM32H7_BBSRAM) && defined(CONFIG_STM32H7_SAVE_CRASHDUMP)
-#  define HAS_BBSRAM CONFIG_STM32H7_BBSRAM
-#  define BBSRAM_FILE_COUNT CONFIG_STM32H7_BBSRAM_FILES
-#  define SAVE_CRASHDUMP CONFIG_STM32H7_SAVE_CRASHDUMP
-#elif defined(CONFIG_STM32_BBSRAM) && defined(CONFIG_STM32_SAVE_CRASHDUMP)
-#  define HAS_BBSRAM CONFIG_STM32_BBSRAM
-#  define BBSRAM_FILE_COUNT CONFIG_STM32_BBSRAM_FILES
-#  define SAVE_CRASHDUMP CONFIG_STM32_SAVE_CRASHDUMP
+#ifdef HAS_PROGMEM
+#include <px4_platform/progmem_dump.h>
+#endif
+
+#ifdef HAS_BBSRAM
+#  define REBOOTS_COUNT 32000
+#elif defined(HAS_PROGMEM)
+#  define REBOOTS_COUNT 32
 #endif
 
 int board_hardfault_init(int display_to_console, bool allow_prompt)
@@ -86,7 +82,21 @@ int board_hardfault_init(int display_to_console, bool allow_prompt)
 
 	stm32_bbsraminitialize(BBSRAM_PATH, filesizes);
 
-#if defined(SAVE_CRASHDUMP)
+#elif defined(HAS_PROGMEM)
+
+	/* NB. the use of the console requires the hrt running
+	 * to poll the DMA
+	 */
+
+	/* Using progmem */
+
+	int filesizes[PROGMEM_FILE_COUNT + 1] = PROGMEM_FILE_SIZES;
+
+	progmem_dump_initialize(PROGMEM_PATH, filesizes);
+
+#endif // HAS_PROGMEM
+
+#if defined(SAVE_CRASHDUMP) && (defined(HAS_BBSRAM) || defined(HAS_PROGMEM))
 
 	/* Panic Logging in Battery Backed Up Files */
 
@@ -124,7 +134,7 @@ int board_hardfault_init(int display_to_console, bool allow_prompt)
 			return -EIO;
 		}
 
-		if (reboots >= 32000) {
+		if (reboots >= REBOOTS_COUNT) {
 			reboots = hardfault_increment_reboot("boot", true);
 			return -ENOSPC;
 		}
@@ -219,7 +229,6 @@ read:
 	} // outer if
 
 #endif // SAVE_CRASHDUMP
-#endif // HAS_BBSRAM
 	return hadCrash == OK ? 1 : 0;
 }
 
@@ -230,10 +239,21 @@ static void copy_reverse(stack_word_t *dest, stack_word_t *src, int size)
 	}
 }
 
+#ifdef BOARD_CRASHDUMP_BSS
+
+static uint32_t *__attribute__((noinline)) __ebss_addr(void)
+{
+	return &_ebss;
+}
+
+#else
+
 static uint32_t *__attribute__((noinline)) __sdata_addr(void)
 {
 	return &_sdata;
 }
+
+#endif
 
 
 __EXPORT void board_crashdump(uintptr_t currentsp, FAR void *tcb, FAR const char *filename, int lineno)
@@ -246,7 +266,11 @@ __EXPORT void board_crashdump(uintptr_t currentsp, FAR void *tcb, FAR const char
 	 * Unfortunately this is hard to test. See dead below
 	 */
 
+#ifdef BOARD_CRASHDUMP_BSS
+	fullcontext_s *pdump = (fullcontext_s *)(__ebss_addr() - sizeof(fullcontext_s));
+#else
 	fullcontext_s *pdump = (fullcontext_s *)__sdata_addr();
+#endif
 
 	(void)enter_critical_section();
 
@@ -378,14 +402,14 @@ __EXPORT void board_crashdump(uintptr_t currentsp, FAR void *tcb, FAR const char
 		char *dead = "Memory wiped - dump not saved!";
 
 		while (*dead) {
-			arm_lowputc(*dead++);
+			up_putc(*dead++);
 		}
 
 	} else if (rv == -ENOSPC) {
 
 		/* hard fault again */
 
-		arm_lowputc('!');
+		up_putc('!');
 	}
 
 #endif /* BOARD_CRASHDUMP_RESET_ONLY */

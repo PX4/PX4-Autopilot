@@ -46,5 +46,19 @@
  */
 #define PX4_NUMBER_I2C_BUSES    3
 
+/*
+ * SPI buses
+ */
+#define CONFIG_SPI 1
+#define BOARD_SPI_BUS_MAX_BUS_ITEMS 1
+
+/*
+ * Include these last to make use of the definitions above
+ */
 #include <system_config.h>
 #include <px4_platform_common/board_common.h>
+
+/*
+ *  Default port for the ESC
+ */
+#define MODALAI_ESC_DEFAULT_PORT 	"2"

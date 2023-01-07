@@ -70,8 +70,6 @@ void EstimatorInterface::setIMUData(const imuSample &imu_sample)
 	// the output observer always runs
 	_output_predictor.calculateOutputStates(imu_sample.time_us, imu_sample.delta_ang, imu_sample.delta_ang_dt, imu_sample.delta_vel, imu_sample.delta_vel_dt);
 
-	setDragData(imu_sample);
-
 	// accumulate and down-sample imu data and push to the buffer when new downsampled data becomes available
 	if (_imu_down_sampler.update(imu_sample)) {
 
@@ -85,10 +83,9 @@ void EstimatorInterface::setIMUData(const imuSample &imu_sample)
 		// calculate the minimum interval between observations required to guarantee no loss of data
 		// this will occur if data is overwritten before its time stamp falls behind the fusion time horizon
 		_min_obs_interval_us = (imu_sample.time_us - _time_delayed_us) / (_obs_buffer_length - 1);
-
-	} else {
-		_imu_updated = false;
 	}
+
+	setDragData(imu_sample);
 }
 
 void EstimatorInterface::setMagData(const magSample &mag_sample)
@@ -229,9 +226,8 @@ void EstimatorInterface::setBaroData(const baroSample &baro_sample)
 	// limit data rate to prevent data being lost
 	if (time_us >= static_cast<int64_t>(_baro_buffer->get_newest().time_us + _min_obs_interval_us)) {
 
-		baroSample baro_sample_new;
+		baroSample baro_sample_new{baro_sample};
 		baro_sample_new.time_us = time_us;
-		baro_sample_new.hgt = baro_sample.hgt;
 
 		_baro_buffer->push(baro_sample_new);
 		_time_last_baro_buffer_push = _time_latest_us;
@@ -542,7 +538,7 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 		max_time_delay_ms = math::max(_params.flow_delay_ms, max_time_delay_ms);
 	}
 
-	if ((_params.fusion_mode & (SensorFusionMask::USE_EXT_VIS_POS | SensorFusionMask::USE_EXT_VIS_YAW)) || (_params.ev_ctrl & static_cast<int32_t>(EvCtrl::VEL))) {
+	if (_params.ev_ctrl > 0) {
 		max_time_delay_ms = math::max(_params.ev_delay_ms, max_time_delay_ms);
 	}
 

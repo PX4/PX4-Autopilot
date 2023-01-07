@@ -41,6 +41,7 @@ bool uORB::AppsProtobufChannel::test_flag = false;
 // Initialize the static members
 uORB::AppsProtobufChannel *uORB::AppsProtobufChannel::_InstancePtr = nullptr;
 uORBCommunicator::IChannelRxHandler *uORB::AppsProtobufChannel::_RxHandler = nullptr;
+mUORB::Aggregator uORB::AppsProtobufChannel::_Aggregator;
 std::map<std::string, int> uORB::AppsProtobufChannel::_SlpiSubscriberCache;
 pthread_mutex_t uORB::AppsProtobufChannel::_tx_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t uORB::AppsProtobufChannel::_rx_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -81,9 +82,7 @@ void uORB::AppsProtobufChannel::ReceiveCallback(const char *topic,
 		return;
 
 	} else if (_RxHandler) {
-		_RxHandler->process_received_message(topic,
-						     length_in_bytes,
-						     const_cast<uint8_t *>(data));
+		_Aggregator.ProcessReceivedTopic(topic, data, length_in_bytes);
 
 	} else {
 		PX4_ERR("Couldn't handle topic %s in receive callback", topic);
@@ -283,6 +282,7 @@ int16_t uORB::AppsProtobufChannel::remove_subscription(const char *messageName)
 int16_t uORB::AppsProtobufChannel::register_handler(uORBCommunicator::IChannelRxHandler *handler)
 {
 	_RxHandler = handler;
+	_Aggregator.RegisterHandler(handler);
 	return 0;
 }
 

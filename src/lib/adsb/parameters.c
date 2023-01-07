@@ -226,3 +226,26 @@ PARAM_DEFINE_INT32(ADSB_GPS_OFF_LAT, 0);
  * @group ADSB
  */
 PARAM_DEFINE_INT32(ADSB_GPS_OFF_LON, 0);
+
+/**
+ * First 4 characters of CALLSIGN
+ *
+ * Sets first 4 characters of a total of 8. Valid characters are A-Z, 0-9, " ". Example "PX4 " -> 1347957792
+ * For CALLSIGN shorter than 8 characters use the null terminator at the end '\0'.
+ *
+ * @reboot_required true
+ * @group ADSB
+ */
+
+PARAM_DEFINE_INT32(ADSB_CALLSIGN_1, 0);
+
+/**
+* Second 4 characters of CALLSIGN
+*
+* Sets second 4 characters of a total of 8. Valid characters are A-Z, 0-9, " " only. Example "TEST" -> 1413829460
+* For CALLSIGN shorter than 8 characters use the null terminator at the end '\0'.
+*
+* @reboot_required true
+* @group ADSB
+*/
+PARAM_DEFINE_INT32(ADSB_CALLSIGN_2, 0);
