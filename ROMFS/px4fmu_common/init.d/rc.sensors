@@ -101,6 +101,12 @@ then
 	pmw3901 -S start
 fi
 
+# vl53l0x i2c distance sensor
+if param compare -s SENS_EN_VL53L0X 1
+then
+	vl53l0x start -X
+fi
+
 # vl53l1x i2c distance sensor
 if param compare -s SENS_EN_VL53L1X 1
 then
