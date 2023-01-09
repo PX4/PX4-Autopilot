@@ -851,7 +851,6 @@ void Navigator::run()
 		case vehicle_status_s::NAVIGATION_STATE_STAB:
 		default:
 			navigation_mode_new = nullptr;
-			_can_loiter_at_sp = false;
 			break;
 		}
 

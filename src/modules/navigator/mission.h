@@ -134,11 +134,6 @@ private:
 	void set_mission_items();
 
 	/**
-	 * Returns true if we need to do a takeoff at the current state
-	 */
-	bool do_need_vertical_takeoff();
-
-	/**
 	 * Returns true if we need to move to waypoint location before starting descent
 	 */
 	bool do_need_move_to_land();
@@ -347,8 +342,6 @@ private:
 	float _landing_loiter_radius{0.f};
 
 	float _mission_init_climb_altitude_amsl{NAN};	/**< altitude AMSL the vehicle will climb to when mission starts */
-
-	bool _need_takeoff{true};					/**< if true, then takeoff must be performed before going to the first waypoint (if needed) */
 
 	enum {
 		MISSION_TYPE_NONE,
