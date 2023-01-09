@@ -142,7 +142,6 @@ public:
 	/**
 	 * Setters
 	 */
-	void set_can_loiter_at_sp(bool can_loiter) { _can_loiter_at_sp = can_loiter; }
 	void set_position_setpoint_triplet_updated() { _pos_sp_triplet_updated = true; }
 	void set_mission_result_updated() { _mission_result_updated = true; }
 
@@ -170,8 +169,6 @@ public:
 	bool home_global_position_valid() { return (_home_pos.valid_alt && _home_pos.valid_hpos); }
 
 	Geofence &get_geofence() { return _geofence; }
-
-	bool get_can_loiter_at_sp() { return _can_loiter_at_sp; }
 
 	float get_loiter_radius() { return _param_nav_loiter_rad.get(); }
 
@@ -358,7 +355,6 @@ private:
 	hrt_abstime _last_geofence_check = 0;
 
 	bool		_geofence_violation_warning_sent{false};	/**< prevents spaming to mavlink */
-	bool		_can_loiter_at_sp{false};			/**< flags if current position SP can be used to loiter */
 	bool		_pos_sp_triplet_updated{false};			/**< flags if position SP triplet needs to be published */
 	bool 		_pos_sp_triplet_published_invalid_once{false};	/**< flags if position SP triplet has been published once to UORB */
 	bool		_mission_result_updated{false};			/**< flags if mission result has seen an update */

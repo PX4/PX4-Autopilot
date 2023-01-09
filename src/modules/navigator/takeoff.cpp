@@ -181,12 +181,5 @@ Takeoff::set_takeoff_position()
 		memset(rep, 0, sizeof(*rep));
 	}
 
-	if (PX4_ISFINITE(pos_sp_triplet->current.lat) && PX4_ISFINITE(pos_sp_triplet->current.lon)) {
-		_navigator->set_can_loiter_at_sp(true);
-
-	} else {
-		_navigator->set_can_loiter_at_sp(false);
-	}
-
 	_navigator->set_position_setpoint_triplet_updated();
 }

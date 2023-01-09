@@ -82,7 +82,6 @@ Loiter::set_loiter_position()
 		// Not setting loiter position if disarmed and landed, instead mark the current
 		// setpoint as invalid and idle (both, just to be sure).
 
-		_navigator->set_can_loiter_at_sp(false);
 		_navigator->get_position_setpoint_triplet()->current.type = position_setpoint_s::SETPOINT_TYPE_IDLE;
 		_navigator->set_position_setpoint_triplet_updated();
 		return;
@@ -110,7 +109,6 @@ Loiter::set_loiter_position()
 	mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 	pos_sp_triplet->next.valid = false;
 
-	_navigator->set_can_loiter_at_sp(pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER);
 	_navigator->set_position_setpoint_triplet_updated();
 }
 
@@ -136,7 +134,6 @@ Loiter::reposition()
 		memcpy(&pos_sp_triplet->current, &rep->current, sizeof(rep->current));
 		pos_sp_triplet->next.valid = false;
 
-		_navigator->set_can_loiter_at_sp(pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER);
 		_navigator->set_position_setpoint_triplet_updated();
 
 		// mark this as done
