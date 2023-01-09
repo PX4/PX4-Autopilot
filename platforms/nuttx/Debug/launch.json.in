@@ -5,6 +5,7 @@
             "name": "jlink (@PX4_BOARD@)",
             "device": "@DEBUG_DEVICE@",
             "svdFile": "@DEBUG_SVD_FILE_PATH@",
+            "rtos": "@JLINK_RTOS_PATH@",
             "executable": "${command:cmake.launchTargetPath}",
             "request": "launch",
             "type": "cortex-debug",
