@@ -11,9 +11,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-clang:2021-09-08
+    container: px4io/px4-dev-clang:2023-01-09
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v3
       with:
         token: ${{secrets.ACCESS_TOKEN}}
 
