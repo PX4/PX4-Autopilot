@@ -416,8 +416,6 @@ void RTL::on_active()
 
 void RTL::set_rtl_item()
 {
-	_navigator->set_can_loiter_at_sp(false);
-
 	const vehicle_global_position_s &gpos = *_navigator->get_global_position();
 
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
@@ -576,8 +574,6 @@ void RTL::set_rtl_item()
 			_mission_item.autocontinue = autocontinue;
 			_mission_item.origin = ORIGIN_ONBOARD;
 			_mission_item.loiter_radius = landing_loiter_radius;
-
-			_navigator->set_can_loiter_at_sp(true);
 
 			break;
 		}

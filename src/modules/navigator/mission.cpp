@@ -168,11 +168,6 @@ Mission::on_inactive()
 		_inited = true;
 	}
 
-	/* require takeoff after non-loiter or landing */
-	if (!_navigator->get_can_loiter_at_sp() || _navigator->get_land_detected()->landed) {
-		_need_takeoff = true;
-	}
-
 	/* reset so current mission item gets restarted if mission was paused */
 	_work_item_type = WORK_ITEM_TYPE_DEFAULT;
 
@@ -323,11 +318,6 @@ Mission::on_active()
 			set_mission_items();
 		}
 
-	} else {
-		/* if waypoint position reached allow loiter on the setpoint */
-		if (_waypoint_position_reached && _mission_item.nav_cmd != NAV_CMD_IDLE) {
-			_navigator->set_can_loiter_at_sp(true);
-		}
 	}
 
 	/* see if we need to update the current yaw heading */
@@ -801,9 +791,6 @@ Mission::set_mission_items()
 				} else {
 					events::send(events::ID("mission_finished_loiter"), events::Log::Info, "Mission finished, loitering");
 				}
-
-				/* use last setpoint for loiter */
-				_navigator->set_can_loiter_at_sp(true);
 			}
 
 			user_feedback_done = true;
@@ -831,9 +818,6 @@ Mission::set_mission_items()
 		mission_apply_limitation(_mission_item);
 		mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 		pos_sp_triplet->next.valid = false;
-
-		/* reuse setpoint for LOITER only if it's not IDLE */
-		_navigator->set_can_loiter_at_sp(pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER);
 
 		// set mission finished
 		_navigator->get_mission_result()->finished = true;
@@ -1274,14 +1258,6 @@ Mission::set_mission_items()
 	/* set current work item type */
 	_work_item_type = new_work_item_type;
 
-	/* require takeoff after landing or idle */
-	if (pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LAND
-	    || pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
-
-		_need_takeoff = true;
-	}
-
-	_navigator->set_can_loiter_at_sp(false);
 	reset_mission_item_reached();
 
 	if (_mission_type == MISSION_TYPE_MISSION) {
@@ -1328,44 +1304,6 @@ Mission::set_mission_items()
 
 	publish_navigator_mission_item(); // for logging
 	_navigator->set_position_setpoint_triplet_updated();
-}
-
-bool
-Mission::do_need_vertical_takeoff()
-{
-	if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-
-		float takeoff_alt = calculate_takeoff_altitude(&_mission_item);
-
-		if (_navigator->get_land_detected()->landed) {
-			/* force takeoff if landed (additional protection) */
-			_need_takeoff = true;
-
-		} else if (_navigator->get_global_position()->alt > takeoff_alt - _navigator->get_altitude_acceptance_radius()) {
-			/* if in-air and already above takeoff height, don't do takeoff */
-			_need_takeoff = false;
-
-		} else if (_navigator->get_global_position()->alt <= takeoff_alt - _navigator->get_altitude_acceptance_radius()
-			   && (_mission_item.nav_cmd == NAV_CMD_TAKEOFF
-			       || _mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF)) {
-			/* if in-air but below takeoff height and we have a takeoff item */
-			_need_takeoff = true;
-		}
-
-		/* check if current mission item is one that requires takeoff before */
-		if (_need_takeoff && (
-			    _mission_item.nav_cmd == NAV_CMD_TAKEOFF ||
-			    _mission_item.nav_cmd == NAV_CMD_WAYPOINT ||
-			    _mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF ||
-			    _mission_item.nav_cmd == NAV_CMD_LOITER_TIME_LIMIT ||
-			    _mission_item.nav_cmd == NAV_CMD_LOITER_UNLIMITED)) {
-
-			_need_takeoff = false;
-			return true;
-		}
-	}
-
-	return false;
 }
 
 bool
