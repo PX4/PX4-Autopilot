@@ -1,6 +1,6 @@
 menuconfig ORB_COMMUNICATOR
 	bool "orb communicator"
 	default n
-	depends on PLATFORM_QURT
+	depends on PLATFORM_QURT || PLATFORM_POSIX
 	---help---
 		Enable support for the uorb communicator for distributed platforms
