@@ -50,30 +50,84 @@
 #endif
 
 struct usr_hrt_call {
-	struct sq_entry_s list_item;
-	struct hrt_call entry;
-	struct hrt_call *usr_entry;
+	struct sq_entry_s list_item; /* List head for local sl_list */
+	struct hrt_call entry;       /* Kernel side entry for HRT driver */
+	struct hrt_call *usr_entry;  /* Reference to user side entry */
 };
 
 static sq_queue_t callout_queue;
 static sq_queue_t callout_freelist;
 static sq_queue_t callout_inflight;
 
+/* Check if entry is in list */
+
+static bool entry_inlist(sq_queue_t *queue, sq_entry_t *item)
+{
+	sq_entry_t *queued;
+
+	sq_for_every(queue, queued) {
+		if (queued == item) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+/* Find (pop) first entry for user from queue, the queue must be locked prior */
+
+static struct usr_hrt_call *pop_user(sq_queue_t *queue, const px4_hrt_handle_t handle)
+{
+	sq_entry_t *queued;
+
+	sq_for_every(queue, queued) {
+		struct usr_hrt_call *e = (void *)queued;
+
+		if (e->entry.callout_sem == handle) {
+			sq_rem(queued, queue);
+			return e;
+		}
+	}
+
+	return NULL;
+}
+
+/* Find (pop) entry from queue, the queue must be locked prior */
+
+static struct usr_hrt_call *pop_entry(sq_queue_t *queue, const px4_hrt_handle_t handle, struct hrt_call *entry)
+{
+	sq_entry_t *queued;
+
+	sq_for_every(queue, queued) {
+		struct usr_hrt_call *e = (void *)queued;
+
+		if (e->usr_entry == entry && e->entry.callout_sem == handle) {
+			sq_rem(queued, queue);
+			return e;
+		}
+	}
+
+	return NULL;
+}
+
+/**
+ * Copy user entry to kernel space. Either re-uses existing one or if none can
+ * be found, creates a new.
+ *
+ * handle  : user space handle to identify who is behind the HRT request
+ * entry   : user space HRT entry
+ * callout : user callback
+ * arg     : user argument passed in callback
+ */
 static struct usr_hrt_call *dup_entry(const px4_hrt_handle_t handle, struct hrt_call *entry, hrt_callout callout,
 				      void *arg)
 {
 	struct usr_hrt_call *e = NULL;
 
-	irqstate_t flags =  px4_enter_critical_section();
+	irqstate_t flags = px4_enter_critical_section();
 
-	/* check if this is already queued; in that case, re-use it */
-	sq_entry_t *queued;
-	sq_for_every(&callout_queue, queued) {
-		if (((struct usr_hrt_call *)queued)->usr_entry == entry) {
-			e = (struct usr_hrt_call *)queued;
-			break;
-		}
-	}
+	/* check if this is already queued */
+	e = pop_entry(&callout_queue, handle, entry);
 
 	/* it was not already queued, get from freelist */
 	if (!e) {
@@ -89,20 +143,22 @@ static struct usr_hrt_call *dup_entry(const px4_hrt_handle_t handle, struct hrt_
 	}
 
 	if (e) {
+
+		/* Store the user side callout function and argument to the user's handle */
+		entry->callout = callout;
+		entry->arg = arg;
+
 		/* Store reference to the kernel side entry to the user side struct and
 		 * references to the semaphore and user side entry to the kernel side item
 		 */
 
-		entry->kernel_entry = e;
 		e->entry.callout_sem = handle;
 		e->usr_entry = entry;
 
-		/* Add this to the callout_queue list, unless it is there already */
-		if (!queued) {
-			flags =  px4_enter_critical_section();
-			sq_addfirst(&e->list_item, &callout_queue);
-			px4_leave_critical_section(flags);
-		}
+		/* Add this to the callout_queue list */
+		flags = px4_enter_critical_section();
+		sq_addfirst(&e->list_item, &callout_queue);
+		px4_leave_critical_section(flags);
 
 	} else {
 		PX4_ERR("out of memory");
@@ -116,8 +172,12 @@ void hrt_usr_call(void *arg)
 {
 	// This is called from hrt interrupt
 	struct usr_hrt_call *e = (struct usr_hrt_call *)arg;
-	sq_addfirst(&e->list_item, &callout_inflight);
-	px4_sem_post(e->entry.callout_sem);
+
+	// Make sure the event is not already in flight
+	if (!entry_inlist(&callout_inflight, (sq_entry_t *)e)) {
+		sq_addfirst(&e->list_item, &callout_inflight);
+		px4_sem_post(e->entry.callout_sem);
+	}
 }
 
 int hrt_ioctl(unsigned int cmd, unsigned long arg);
@@ -163,15 +223,9 @@ hrt_ioctl(unsigned int cmd, unsigned long arg)
 
 			/* Atomically update the pointer to user side hrt entry */
 			flags = px4_enter_critical_section();
-
-			e = (void *)sq_peek(&callout_inflight);
-
-			while (e && e->entry.callout_sem != callout_sem) {
-				e = (void *)sq_next(&e->list_item);
-			}
+			e = pop_user(&callout_inflight, callout_sem);
 
 			if (e) {
-				sq_rem((sq_entry_t *)e, &callout_inflight);
 				ioc_parm->callout = e->usr_entry->callout;
 				ioc_parm->arg = e->usr_entry->arg;
 
@@ -224,24 +278,14 @@ hrt_ioctl(unsigned int cmd, unsigned long arg)
 
 	case HRT_CANCEL:
 		if (h && h->entry) {
+			/* Find the user entry */
 			irqstate_t flags = px4_enter_critical_section();
-
-			// Cast to void * to avoid compiler alignment requirement warnings. We know that it
-			// is properly aligned since it is allocated with kmm_malloc
-
-			struct usr_hrt_call *e = (void *)sq_peek(&callout_queue);
-
-			while (e && e != h->entry->kernel_entry) {
-				e = (void *)sq_next(&e->list_item);
-			}
+			struct usr_hrt_call *e = pop_entry(&callout_queue, h->handle, h->entry);
 
 			if (e) {
 				hrt_cancel(&e->entry);
-				sq_rem((sq_entry_t *)e, &callout_queue);
 				sq_addfirst((sq_entry_t *)e, &callout_freelist);
 
-			} else {
-				PX4_ERR("HRT_CANCEL: kernel side entry not found");
 			}
 
 			px4_leave_critical_section(flags);
@@ -283,16 +327,23 @@ hrt_ioctl(unsigned int cmd, unsigned long arg)
 
 	case HRT_UNREGISTER: {
 			px4_sem_t *callback_sem = *(px4_sem_t **)arg;
-			sq_entry_t *e;
+			struct usr_hrt_call *e;
+			irqstate_t flags;
 
-			while ((e = sq_remfirst(&callout_queue))) {
-				hrt_cancel(&((struct usr_hrt_call *)e)->entry);
-				kmm_free(e);
+			flags = px4_enter_critical_section();
+
+			while ((e = (void *)sq_remfirst(&callout_queue))) {
+				if (callback_sem == e->entry.callout_sem) {
+					hrt_cancel(&e->entry);
+					/* Remove potential inflight entry as well */
+					sq_rem(&e->list_item, &callout_inflight);
+					kmm_free(e);
+				}
 			}
 
-			while ((e = sq_remfirst(&callout_freelist))) {
-				kmm_free(e);
-			}
+			px4_sem_destroy(callback_sem);
+
+			px4_leave_critical_section(flags);
 
 			*(px4_sem_t **)arg = NULL;
 			kmm_free(callback_sem);
