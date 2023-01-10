@@ -55,8 +55,8 @@ else
 	# Internal SPI BMI088
 	if ver hwtypecmp V6X009010 V6X010010
 	then
-		bmi088 -A -R 2 -s start
-		bmi088 -G -R 2 -s start
+		bmi088 -A -R 6 -s start
+		bmi088 -G -R 6 -s start
 	else
 		bmi088 -A -R 4 -s start
 		bmi088 -G -R 4 -s start
@@ -66,7 +66,7 @@ fi
 # Internal SPI bus ICM42688p
 if ver hwtypecmp V6X009010 V6X010010
 then
-	icm42688p -R 4 -s start
+	icm42688p -R 12 -s start
 else
 	icm42688p -R 6 -s start
 fi
@@ -78,7 +78,7 @@ then
 else
 	if ver hwtypecmp V6X009010 V6X010010
 	then
-		icm20602 -R 8 -s start
+		icm20602 -R 6 -s start
 	else
 		# Internal SPI bus ICM-20649 (hard-mounted)
 		icm20649 -R 14 -s start
