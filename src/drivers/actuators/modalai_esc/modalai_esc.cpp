@@ -36,8 +36,6 @@
 #include "modalai_esc.hpp"
 #include "modalai_esc_serial.hpp"
 
-#define MODALAI_ESC_DEVICE_PATH		"/dev/uart_esc"
-
 // utility for running on VOXL and using driver as a bridge
 #define MODALAI_ESC_VOXL_BRIDGE_PORT	"/dev/ttyS4"
 
@@ -47,7 +45,8 @@
 const char *_device;
 
 ModalaiEsc::ModalaiEsc() :
-	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default),
+	OutputModuleInterface(MODULE_NAME, px4::serial_port_to_wq(MODALAI_ESC_DEFAULT_PORT)),
+	_mixing_output{"UART_ESC", MODALAI_ESC_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, true},
 	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
 	_output_update_perf(perf_alloc(PC_INTERVAL, MODULE_NAME": output update interval"))
 {
@@ -123,18 +122,40 @@ int ModalaiEsc::load_params(uart_esc_params_t *params, ch_assign_t *map)
 {
 	int ret = PX4_OK;
 
+	// initialize out
+	for (int i = 0; i < MODALAI_ESC_OUTPUT_CHANNELS; i++) {
+		params->function_map[i] = (int)OutputFunction::Disabled;
+		params->direction_map[i] = 1;
+		params->motor_map[i] = 0;
+	}
+
 	param_get(param_find("UART_ESC_CONFIG"),  &params->config);
 	param_get(param_find("UART_ESC_MODE"),    &params->mode);
+	param_get(param_find("UART_ESC_BAUD"),    &params->baud_rate);
+
 	param_get(param_find("UART_ESC_T_PERC"),  &params->turtle_motor_percent);
 	param_get(param_find("UART_ESC_T_DEAD"),  &params->turtle_motor_deadband);
 	param_get(param_find("UART_ESC_T_EXPO"),  &params->turtle_motor_expo);
 	param_get(param_find("UART_ESC_T_MINF"),  &params->turtle_stick_minf);
 	param_get(param_find("UART_ESC_T_COSP"),  &params->turtle_cosphi);
-	param_get(param_find("UART_ESC_BAUD"),    &params->baud_rate);
-	param_get(param_find("UART_ESC_MOTOR1"),  &params->motor_map[0]);
-	param_get(param_find("UART_ESC_MOTOR2"),  &params->motor_map[1]);
-	param_get(param_find("UART_ESC_MOTOR3"),  &params->motor_map[2]);
-	param_get(param_find("UART_ESC_MOTOR4"),  &params->motor_map[3]);
+
+	param_get(param_find("UART_ESC_FUNC1"),  &params->function_map[0]);
+	param_get(param_find("UART_ESC_FUNC2"),  &params->function_map[1]);
+	param_get(param_find("UART_ESC_FUNC3"),  &params->function_map[2]);
+	param_get(param_find("UART_ESC_FUNC4"),  &params->function_map[3]);
+
+	param_get(param_find("UART_ESC_REV"),  &params->rev_mask);
+
+	for (int i = 0; i < MODALAI_ESC_OUTPUT_CHANNELS; i++) {
+		// set to 1 to reverse
+		if (params->rev_mask & (1 << i)) {
+			params->direction_map[i] = 1;
+
+		} else {
+			params->direction_map[i] = 0;
+		}
+	}
+
 	param_get(param_find("UART_ESC_RPM_MIN"), &params->rpm_min);
 	param_get(param_find("UART_ESC_RPM_MAX"), &params->rpm_max);
 
@@ -175,6 +196,18 @@ int ModalaiEsc::load_params(uart_esc_params_t *params, ch_assign_t *map)
 	}
 
 	for (int i = 0; i < MODALAI_ESC_OUTPUT_CHANNELS; i++) {
+		if (params->function_map[i] < (int)OutputFunction::Motor1 || params->function_map[i] > (int)OutputFunction::Motor4) {
+			PX4_ERR("Invalid parameter UART_ESC_FUNCX.  Only supports motors 1-4.  Please verify parameters.");
+			params->function_map[i] = 0;
+			ret = PX4_ERROR;
+
+		} else {
+			// Motor function IDs start at 100, Motor1 = 101, Motor2 = 102...
+			params->motor_map[i] = params->function_map[i] - 100;
+		}
+	}
+
+	for (int i = 0; i < MODALAI_ESC_OUTPUT_CHANNELS; i++) {
 		if (params->motor_map[i] == MODALAI_ESC_OUTPUT_DISABLED ||
 		    params->motor_map[i] < -(MODALAI_ESC_OUTPUT_CHANNELS) ||
 		    params->motor_map[i] > MODALAI_ESC_OUTPUT_CHANNELS) {
@@ -185,7 +218,7 @@ int ModalaiEsc::load_params(uart_esc_params_t *params, ch_assign_t *map)
 
 		/* Can map -4 to 4, 0 being disabled.  Negative represents reverse direction */
 		map[i].number = abs(params->motor_map[i]);
-		map[i].direction = (params->motor_map[i] > 0) ? 1 : -1;
+		map[i].direction = (params->direction_map[i] > 0) ? -1 : 1;
 	}
 
 	return ret;
@@ -1056,6 +1089,97 @@ void ModalaiEsc::mix_turtle_mode(uint16_t outputs[MAX_ACTUATORS])
 
 }
 
+void ModalaiEsc::handle_actuator_test()
+{
+	double update_rate_ms = 1000;
+	actuator_test_s actuator_test_command{};
+	_actuator_test_sub.copy(&actuator_test_command);
+
+	double static last_time_ms = 0;
+	double cur_time_ms = (double)hrt_absolute_time() / 1000.0;  // ms
+
+	//PX4_ERR("time: %f - value: %f - timeout: %li - function: %i - action: %i", (double)cur_time_ms, (double)actuator_test_command.value, actuator_test_command.timeout_ms, actuator_test_command.function, actuator_test_command.action);
+
+	if ((cur_time_ms - last_time_ms) >= update_rate_ms) {
+		update_params();
+		last_time_ms = cur_time_ms;
+
+		int16_t rate = 0;
+
+		if (actuator_test_command.value > 0.01f) {
+			rate = (int16_t)(actuator_test_command.value * _rpm_fullscale) + _parameters.rpm_min;
+		}
+
+		int16_t outputs[MODALAI_ESC_OUTPUT_CHANNELS];
+		uint8_t id_fb_raw = 0;
+		uint8_t id_fb = 0;
+
+		outputs[0] = 0;
+		outputs[1] = 0;
+		outputs[2] = 0;
+		outputs[3] = 0;
+
+		if (actuator_test_command.function == (int)OutputFunction::Motor1) {
+			outputs[0] = rate;
+			id_fb_raw = 0;
+
+		} else if (actuator_test_command.function == (int)OutputFunction::Motor2) {
+			outputs[1] = rate;
+			id_fb_raw = 1;
+
+		} else if (actuator_test_command.function == (int)OutputFunction::Motor3) {
+			outputs[2] = rate;
+			id_fb_raw = 2;
+
+		} else if (actuator_test_command.function == (int)OutputFunction::Motor4) {
+			outputs[3] = rate;
+			id_fb_raw = 3;
+		}
+
+		int16_t rate_req[MODALAI_ESC_OUTPUT_CHANNELS];
+
+		for (int i = 0; i < MODALAI_ESC_OUTPUT_CHANNELS; i++) {
+			int motor_idx = _output_map[i].number - 1; // user defined mapping is 1-4, array is 0-3
+
+			if (motor_idx >= 0 && motor_idx < MODALAI_ESC_OUTPUT_CHANNELS) {
+				rate_req[i] = outputs[motor_idx] * _output_map[i].direction;
+			}
+
+			if (motor_idx == id_fb_raw) {
+				id_fb = i;
+			}
+		}
+
+		Command  cmd;
+
+		cmd.len = qc_esc_create_rpm_packet4_fb(rate_req[0],
+						       rate_req[1],
+						       rate_req[2],
+						       rate_req[3],
+						       0,
+						       0,
+						       0,
+						       0,
+						       id_fb,
+						       cmd.buf,
+						       sizeof(cmd.buf));
+
+		while (1) {
+			cur_time_ms = (double)hrt_absolute_time() / 1000.0;
+
+			if (cur_time_ms > (last_time_ms + update_rate_ms)) {
+				break;
+			}
+
+			if (_uart_port->uart_write(cmd.buf, cmd.len) != cmd.len) {
+				PX4_ERR("Failed to send packet");
+			}
+
+			px4_usleep(2000); // ~500Hz
+		}
+	}
+}
+
 /* OutputModuleInterface */
 bool ModalaiEsc::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			       unsigned num_outputs, unsigned num_control_groups_updated)
@@ -1318,6 +1442,12 @@ void ModalaiEsc::Run()
 		}
 	}
 
+	if (!_outputs_on) {
+		if (_actuator_test_sub.updated()) {
+			handle_actuator_test();
+		}
+	}
+
 	/* Don't process commands if outputs on */
 	if (!_outputs_on) {
 		if (_current_cmd.valid()) {
@@ -1438,10 +1568,14 @@ int ModalaiEsc::print_status()
 
 	PX4_INFO("Params: UART_ESC_CONFIG: %li", _parameters.config);
 	PX4_INFO("Params: UART_ESC_BAUD: %li", _parameters.baud_rate);
-	PX4_INFO("Params: UART_ESC_MOTOR1: %li", _parameters.motor_map[0]);
-	PX4_INFO("Params: UART_ESC_MOTOR2: %li", _parameters.motor_map[1]);
-	PX4_INFO("Params: UART_ESC_MOTOR3: %li", _parameters.motor_map[2]);
-	PX4_INFO("Params: UART_ESC_MOTOR4: %li", _parameters.motor_map[3]);
+
+	PX4_INFO("Params: UART_ESC_FUNC1: %li", _parameters.function_map[0]);
+	PX4_INFO("Params: UART_ESC_FUNC2: %li", _parameters.function_map[1]);
+	PX4_INFO("Params: UART_ESC_FUNC3: %li", _parameters.function_map[2]);
+	PX4_INFO("Params: UART_ESC_FUNC4: %li", _parameters.function_map[3]);
+
+	PX4_INFO("Params: UART_ESC_REV: %li", _parameters.rev_mask);
+
 	PX4_INFO("Params: UART_ESC_RPM_MIN: %li", _parameters.rpm_min);
 	PX4_INFO("Params: UART_ESC_RPM_MAX: %li", _parameters.rpm_max);
 
@@ -1449,6 +1583,8 @@ int ModalaiEsc::print_status()
 
 	for( int i = 0; i < MODALAI_ESC_OUTPUT_CHANNELS; i++){
 		PX4_INFO("-- ID: %i", i);
+		PX4_INFO("   Motor:           %i", _output_map[i].number);
+		PX4_INFO("   Direction:       %i", _output_map[i].direction);
 		PX4_INFO("   State:           %i", _esc_chans[i].state);
 		PX4_INFO("   Requested:       %i RPM", _esc_chans[i].rate_req);
 		PX4_INFO("   Measured:        %i RPM", _esc_chans[i].rate_meas);

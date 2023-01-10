@@ -1,0 +1,18 @@
+module_name: MODALAI ESC Output
+actuator_output:
+  show_subgroups_if: 'UART_ESC_CONFIG>0'
+  config_parameters:
+    - param: 'UART_ESC_CONFIG'
+      label: 'Configure'
+      function: 'enable'
+    - param: 'UART_ESC_BAUD'
+      label: 'Bitrate'
+    - param: 'UART_ESC_RPM_MIN'
+      label: 'RPM Min'
+    - param: 'UART_ESC_RPM_MAX'
+      label: 'RPM Max'
+  output_groups:
+    - param_prefix: UART_ESC
+      group_label: 'ESCs'
+      channel_label: 'ESC'
+      num_channels: 4
