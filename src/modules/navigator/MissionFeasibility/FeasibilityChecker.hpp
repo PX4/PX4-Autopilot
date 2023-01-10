@@ -60,6 +60,7 @@ public:
 		       _distance_first_waypoint_failed ||
 		       _distance_between_waypoints_failed ||
 		       _fixed_wing_landing_failed ||
+		       _fixed_wing_land_approach_failed ||
 		       _below_home_alt_failed ||
 		       _mission_validity_failed ||
 		       _takeoff_land_available_failed;
