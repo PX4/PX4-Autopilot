@@ -83,7 +83,6 @@ typedef struct hrt_call {
 	void			*arg;
 #if defined(__PX4_NUTTX) && !defined(CONFIG_BUILD_FLAT)
 	px4_sem_t 		*callout_sem;
-	struct usr_hrt_call	*kernel_entry;
 #endif
 } *hrt_call_t;
 
