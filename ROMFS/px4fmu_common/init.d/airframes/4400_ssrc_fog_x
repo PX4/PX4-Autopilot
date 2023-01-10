@@ -15,7 +15,7 @@
 
 # Default rates
 param set-default IMU_GYRO_CUTOFF 30
-param set-default IMU_GYRO_NF0 75
+param set-default IMU_GYRO_NF0_FRQ 75
 param set-default IMU_DGYRO_CUTOFF 30
 param set-default MC_ROLLRATE_P 0.14
 param set-default MC_PITCHRATE_P 0.14
