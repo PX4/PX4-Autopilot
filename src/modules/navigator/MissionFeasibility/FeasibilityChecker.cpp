@@ -46,6 +46,13 @@ FeasibilityChecker::FeasibilityChecker() :
 
 void FeasibilityChecker::reset()
 {
+
+	_is_landed = false;
+	_home_alt_msl = NAN;
+	_home_lat_lon = matrix::Vector2d(NAN, NAN);
+	_vehicle_type = 0;
+	_is_vtol = false;
+
 	_mission_validity_failed = false;
 	_takeoff_failed = false;
 	_fixed_wing_landing_failed = false;
@@ -75,7 +82,8 @@ void FeasibilityChecker::updateData()
 {
 	home_position_s home = {};
 
-	if (_home_pos_sub.copy(&home)) {
+	if (_home_pos_sub.updated()) {
+		_home_pos_sub.update(&home);
 		if (home.valid_hpos) {
 			_home_lat_lon = matrix::Vector2d(home.lat, home.lon);
 		}
@@ -87,14 +95,16 @@ void FeasibilityChecker::updateData()
 
 	vehicle_status_s status = {};
 
-	if (_status_sub.copy(&status)) {
+	if (_status_sub.updated()) {
+		_status_sub.copy(&status);
 		_vehicle_type = status.vehicle_type;
 		_is_vtol = status.is_vtol;
 	}
 
 	vehicle_land_detected_s land_detected = {};
 
-	if (_land_detector_sub.copy(&land_detected)) {
+	if (_land_detector_sub.updated()) {
+		_land_detector_sub.copy(&land_detected);
 		_is_landed = land_detected.landed;
 	}
 
@@ -119,7 +129,7 @@ void FeasibilityChecker::processNextItem(mission_item_s &mission_item, const int
 		doMulticopterChecks(mission_item, current_index);
 	}
 
-	if (current_index == total_count) {
+	if (current_index == total_count - 1) {
 		_takeoff_land_available_failed = !checkTakeoffLandAvailable();
 	}
 
@@ -162,7 +172,7 @@ void FeasibilityChecker::doFixedWingChecks(mission_item_s &mission_item, const i
 		_fixed_wing_landing_failed = !checkFixedWingLanding(mission_item, current_index);
 	}
 
-	if (_fixed_wing_land_approach_failed) {
+	if (!_fixed_wing_land_approach_failed) {
 		_fixed_wing_land_approach_failed = !checkFixedWindLandApproach(mission_item, current_index);
 	}
 
@@ -431,12 +441,6 @@ bool FeasibilityChecker::checkFixedWindLandApproach(mission_item_s &mission_item
 
 			_landing_valid = true;
 
-		} else {
-			// mission item before land doesn't have a position
-			mavlink_log_critical(_mavlink_log_pub, "Mission rejected: need landing approach.\t");
-			events::send(events::ID("navigator_mis_req_landing_approach"), {events::Log::Error, events::LogInternal::Info},
-				     "Mission rejected: landing approach is required");
-			return false;
 		}
 	}
 
@@ -445,7 +449,6 @@ bool FeasibilityChecker::checkFixedWindLandApproach(mission_item_s &mission_item
 
 bool FeasibilityChecker::checkFixedWingLanding(mission_item_s &mission_item, const int current_index)
 {
-	const bool land_start_found = _do_land_start_index > 0;
 
 	// if DO_LAND_START found then require valid landing AFTER
 	if (mission_item.nav_cmd == NAV_CMD_DO_LAND_START) {
@@ -459,6 +462,8 @@ bool FeasibilityChecker::checkFixedWingLanding(mission_item_s &mission_item, con
 
 		_do_land_start_index = current_index;
 	}
+
+	const bool land_start_found = _do_land_start_index >= 0;
 
 	if (mission_item.nav_cmd == NAV_CMD_LAND || mission_item.nav_cmd == NAV_CMD_VTOL_LAND) {
 
@@ -563,7 +568,7 @@ bool FeasibilityChecker::checkTakeoffLandAvailable()
 
 bool FeasibilityChecker::checkDistanceToFirstWaypoint(mission_item_s &mission_item)
 {
-	if (_param_mis_dist_1wp.get() <= 0.0f) {
+	if (_param_mis_dist_1wp.get() <= 0.0f || !_home_lat_lon.isAllFinite()) {
 		/* param not set, check is ok */
 		return true;
 	}
