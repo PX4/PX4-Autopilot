@@ -217,7 +217,6 @@ void FixedwingAttitudeControl::Run()
 
 		vehicle_angular_velocity_s angular_velocity{};
 		_vehicle_rates_sub.copy(&angular_velocity);
-		float yawspeed = angular_velocity.xyz[2]; // only used for wheel controller
 
 		if (_vehicle_status.is_vtol_tailsitter) {
 			/* vehicle is a tailsitter, we need to modify the estimated attitude for fw mode
@@ -255,9 +254,6 @@ void FixedwingAttitudeControl::Run()
 
 			/* fill in new attitude data */
 			_R = R_adapted;
-
-			/* lastly, roll- and yawspeed have to be swaped */
-			yawspeed = angular_velocity.xyz[0];
 		}
 
 		const matrix::Eulerf euler_angles(_R);
@@ -335,7 +331,7 @@ void FixedwingAttitudeControl::Run()
 			control_input.roll = euler_angles.phi();
 			control_input.pitch = euler_angles.theta();
 			control_input.yaw = euler_angles.psi();
-			control_input.body_z_rate = yawspeed;
+			control_input.body_z_rate = angular_velocity.xyz[2];
 			control_input.roll_setpoint = _att_sp.roll_body;
 			control_input.pitch_setpoint = _att_sp.pitch_body;
 			control_input.yaw_setpoint = _att_sp.yaw_body;
@@ -383,6 +379,11 @@ void FixedwingAttitudeControl::Run()
 					if (_vcontrol_mode.flag_control_manual_enabled) {
 						body_rates_setpoint(2) += math::constrain(_manual_control_setpoint.yaw * radians(_param_fw_y_rmax.get()),
 									  -radians(_param_fw_y_rmax.get()), radians(_param_fw_y_rmax.get()));
+					}
+
+					// Tailsitter: transform from FW to hover frame (all interfaces are in hover (body) frame)
+					if (_vehicle_status.is_vtol_tailsitter) {
+						body_rates_setpoint = Vector3f(body_rates_setpoint(2), body_rates_setpoint(1), -body_rates_setpoint(0));
 					}
 
 					/* Publish the rate setpoint for analysis once available */
