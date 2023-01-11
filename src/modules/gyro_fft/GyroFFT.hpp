@@ -104,7 +104,7 @@ private:
 		_fft_input_buffer = new q15_t[N];
 		_fft_outupt_buffer = new q15_t[N * 2];
 
-		_peak_magnitudes_all = new float[N];
+		_peak_magnitudes_all = new float[N] {};
 
 		return (_gyro_data_buffer_x && _gyro_data_buffer_y && _gyro_data_buffer_z
 			&& _hanning_window
