@@ -13,7 +13,7 @@ else
 	exit 1
 fi
 
-@JLinkGDBServerExe_PATH@ -device @DEBUG_DEVICE@ -select usb -endian little -if SWD -speed auto -ir -LocalhostOnly 1 -strict -vd -singlerun &
+@JLinkGDBServerExe_PATH@ -device @DEBUG_DEVICE@ -rtos "@JLINK_RTOS_PATH@" -select usb -endian little -if SWD -speed auto -ir -LocalhostOnly 1 -strict -vd -singlerun &
 
 cd @PX4_BINARY_DIR@ && ${GDB_CMD} -silent -nh \
 	-iex "set auto-load safe-path @PX4_BINARY_DIR@" \
