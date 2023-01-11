@@ -529,7 +529,7 @@ bool VehicleIMU::Publish()
 {
 	bool updated = false;
 
-	vehicle_imu_s imu;
+	vehicle_imu_s imu {};
 	Vector3f delta_angle;
 	Vector3f delta_velocity;
 
