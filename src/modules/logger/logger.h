@@ -87,7 +87,8 @@ public:
 		while_armed = 0,
 		boot_until_disarm,
 		boot_until_shutdown,
-		rc_aux1
+		rc_aux1,
+		arm_until_shutdown,
 	};
 
 	Logger(LogWriter::Backend backend, size_t buffer_size, uint32_t log_interval, const char *poll_topic_name,
