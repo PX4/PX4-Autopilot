@@ -60,6 +60,7 @@ PARAM_DEFINE_INT32(SDLOG_UTC_OFFSET, 0);
  * @value 1 from boot until disarm
  * @value 2 from boot until shutdown
  * @value 3 depending on AUX1 RC channel
+ * @value 4 from 1st armed until shutdown
  *
  * @reboot_required true
  * @group SD Logging
