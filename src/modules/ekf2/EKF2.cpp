@@ -978,17 +978,22 @@ void EKF2::PublishGlobalPosition(const hrt_abstime &timestamp)
 		// Position of local NED origin in GPS / WGS84 frame
 		_ekf.global_origin().reproject(position(0), position(1), global_pos.lat, global_pos.lon);
 
-		float delta_xy[2];
-		_ekf.get_posNE_reset(delta_xy, &global_pos.lat_lon_reset_counter);
-
 		global_pos.alt = -position(2) + _ekf.getEkfGlobalOriginAltitude(); // Altitude AMSL in meters
 		global_pos.alt_ellipsoid = filter_altitude_ellipsoid(global_pos.alt);
 
-		// global altitude has opposite sign of local down position
-		float delta_z;
-		uint8_t z_reset_counter;
+		// delta_alt, alt_reset_counter
+		//  global altitude has opposite sign of local down position
+		float delta_z = 0.f;
+		uint8_t z_reset_counter = 0;
 		_ekf.get_posD_reset(&delta_z, &z_reset_counter);
 		global_pos.delta_alt = -delta_z;
+		global_pos.alt_reset_counter = z_reset_counter;
+
+		// lat_lon_reset_counter
+		float delta_xy[2] {};
+		uint8_t xy_reset_counter = 0;
+		_ekf.get_posNE_reset(delta_xy, &xy_reset_counter);
+		global_pos.lat_lon_reset_counter = xy_reset_counter;
 
 		_ekf.get_ekf_gpos_accuracy(&global_pos.eph, &global_pos.epv);
 
@@ -1004,6 +1009,7 @@ void EKF2::PublishGlobalPosition(const hrt_abstime &timestamp)
 
 		global_pos.dead_reckoning = _ekf.control_status_flags().inertial_dead_reckoning
 					    || _ekf.control_status_flags().wind_dead_reckoning;
+
 		global_pos.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 		_global_position_pub.publish(global_pos);
 	}
