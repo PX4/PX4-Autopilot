@@ -457,10 +457,23 @@ if(NOT NUTTX_DIR MATCHES "external")
 		${CMAKE_SOURCE_DIR}/../svd/${DEBUG_SVD_FILE}
 	)
 
-	file(GLOB_RECURSE JLINK_RTOS_PATH
-		LIST_DIRECTORIES false
-		${CMAKE_SOURCE_DIR}/Tools/jlink-nuttx.so
-	)
+	if(CONFIG_DEBUG_TCBINFO)
+		# jlink-nuttx.so
+		add_custom_command(
+			OUTPUT ${NUTTX_DIR}/tools/jlink-nuttx.so
+			COMMAND make --no-print-directory --silent -f Makefile.host jlink-nuttx
+			DEPENDS ${NUTTX_DIR}/tools/gencromfs.c
+			WORKING_DIRECTORY ${NUTTX_DIR}/tools
+		)
+		add_custom_target(jlink-nuttx ALL
+			DEPENDS ${NUTTX_DIR}/tools/jlink-nuttx.so
+		)
+
+		# JLINK_RTOS_PATH used by launch.json.in
+		set(JLINK_RTOS_PATH ${NUTTX_DIR}/tools/jlink-nuttx)
+	else()
+		set(JLINK_RTOS_PATH "")
+	endif()
 
 	if(DEBUG_SVD_FILE_PATH)
 		message(STATUS "Found SVD: ${DEBUG_SVD_FILE_PATH}")
