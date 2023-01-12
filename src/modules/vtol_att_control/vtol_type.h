@@ -90,7 +90,7 @@ enum class QuadchuteReason {
 	ExternalCommand,
 	MinimumAltBreached,
 	LossOfAlt,
-	LargeAltError,
+	TransitionAltitudeLoss,
 	MaximumPitchExceeded,
 	MaximumRollExceeded,
 };
@@ -173,11 +173,11 @@ public:
 	bool largeAltitudeLoss();
 
 	/**
-	 *  @brief Indicates if the vehicle has an altitude error larger than VT_FW_ALT_ERR. This only applied when TECS is not running.
+	 * @brief Indicates if there is an altitude loss higher than specified threshold during a VTOL transition to FW
 	 *
-	 * @return     true if error larger than threshold
+	 * @return true if error larger than threshold
 	 */
-	bool largeAltitudeError();
+	bool isFrontTransitionAltitudeLoss();
 
 	/**
 	 *  @brief Indicates if the absolute value of the vehicle pitch angle exceeds the threshold defined by VT_FW_QC_P
@@ -252,11 +252,7 @@ public:
 	 * @brief Resets the transition timer states.
 	 *
 	 */
-	void resetTransitionTimer()
-	{
-		_transition_start_timestamp = hrt_absolute_time();
-		_time_since_trans_start = 0.f;
-	}
+	void resetTransitionStates();
 
 protected:
 	VtolAttitudeControl *_attc;
@@ -318,12 +314,15 @@ protected:
 
 	float _dt{0.0025f}; // time step [s]
 
+	float _local_position_z_start_of_transition{0.f}; // altitude at start of transition
+
 	DEFINE_PARAMETERS_CUSTOM_PARENT(ModuleParams,
 					(ParamBool<px4::params::VT_ELEV_MC_LOCK>) _param_vt_elev_mc_lock,
 					(ParamFloat<px4::params::VT_FW_MIN_ALT>) _param_vt_fw_min_alt,
 					(ParamFloat<px4::params::VT_FW_ALT_ERR>) _param_vt_fw_alt_err,
 					(ParamInt<px4::params::VT_FW_QC_P>) _param_vt_fw_qc_p,
 					(ParamInt<px4::params::VT_FW_QC_R>) _param_vt_fw_qc_r,
+					(ParamFloat<px4::params::VT_QC_T_ALT_LOSS>) _param_vt_qc_t_alt_loss,
 					(ParamInt<px4::params::VT_FW_QC_HMAX>) _param_quadchute_max_height,
 					(ParamFloat<px4::params::VT_F_TR_OL_TM>) _param_vt_f_tr_ol_tm,
 					(ParamFloat<px4::params::VT_TRANS_MIN_TM>) _param_vt_trans_min_tm,

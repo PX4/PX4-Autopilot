@@ -212,6 +212,13 @@ bool VtolType::can_transition_on_ground()
 	return !_v_control_mode->flag_armed || _land_detected->landed;
 }
 
+void VtolType::resetTransitionStates()
+{
+	_transition_start_timestamp = hrt_absolute_time();
+	_time_since_trans_start = 0.f;
+	_local_position_z_start_of_transition = _local_pos->z;
+}
+
 bool VtolType::isQuadchuteEnabled()
 {
 	float dist_to_ground = 0.f;
@@ -266,21 +273,23 @@ bool VtolType::largeAltitudeLoss()
 	return false;
 }
 
-bool VtolType::largeAltitudeError()
+bool VtolType::isFrontTransitionAltitudeLoss()
 {
-	// adaptive quadchute
-	if (_param_vt_fw_alt_err.get() > FLT_EPSILON && _v_control_mode->flag_control_altitude_enabled && !_tecs_running) {
+	bool result = false;
 
+	if (_param_vt_qc_t_alt_loss.get() > FLT_EPSILON && _common_vtol_mode == mode::TRANSITION_TO_FW && _local_pos->z_valid) {
 
-		const bool height_error = _local_pos->z_valid && ((-_local_pos_sp->z - -_local_pos->z) > _param_vt_fw_alt_err.get());
-		const bool height_rate_error = _local_pos->v_z_valid && (_local_pos->vz > 1.0f) && (_local_pos->z_deriv > 1.0f);
+		if (_local_pos->z <= FLT_EPSILON) {
+			// vehilce is above home
+			result = _local_pos->z - _local_position_z_start_of_transition > _param_vt_qc_t_alt_loss.get();
 
-		if (height_error && height_rate_error) {
-			return true;
+		} else {
+			// vehilce is below home
+			result = _local_position_z_start_of_transition - _local_pos->z > _param_vt_qc_t_alt_loss.get();
 		}
 	}
 
-	return false;
+	return result;
 }
 
 bool VtolType::isPitchExceeded()
@@ -335,8 +344,8 @@ QuadchuteReason VtolType::getQuadchuteReason()
 		return QuadchuteReason::LossOfAlt;
 	}
 
-	if (largeAltitudeError()) {
-		return QuadchuteReason::LargeAltError;
+	if (isFrontTransitionAltitudeLoss()) {
+		return QuadchuteReason::TransitionAltitudeLoss;
 	}
 
 	if (isPitchExceeded()) {
