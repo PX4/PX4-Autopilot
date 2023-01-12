@@ -184,6 +184,12 @@ bool FlightTaskAuto::update()
 
 	const bool should_wait_for_yaw_align = _param_mpc_yaw_mode.get() == 4 && !_yaw_sp_aligned;
 	const bool force_zero_velocity_setpoint = should_wait_for_yaw_align || _is_emergency_braking_active;
+
+	// Don't stretch time while landing
+	// This is to prevent scenarios where the drone is unable to land
+	// due to strong winds that blows the drone away from its setpoint
+	// TODO Create a parameter to enable/disable this feature
+	const bool disable_time_stretch = _type == WaypointType::land;
 	_updateTrajConstraints();
 	PositionSmoothing::PositionSmoothingSetpoints smoothed_setpoints;
 	_position_smoothing.generateSetpoints(
@@ -192,6 +198,7 @@ bool FlightTaskAuto::update()
 		_velocity_setpoint,
 		_deltatime,
 		force_zero_velocity_setpoint,
+		disable_time_stretch,
 		smoothed_setpoints
 	);
 
@@ -249,6 +256,14 @@ void FlightTaskAuto::_prepareLandSetpoints()
 		_land_position = Vector3f(_target(0), _target(1), NAN);
 		_land_heading = _yaw_setpoint;
 		_stick_acceleration_xy.resetPosition(Vector2f(_target(0), _target(1)));
+		// Reset the trajectory current position when initializing landing.
+		// This is important when time stretching is disabled for landing trajectory,
+		// when the drone is blown away from its current setpoint by strong winds.
+		// This reduces that chance that when the drone descends to lower altitudes
+		// with potentially less wind, and moves towards its previous trajectory setpoint.
+		// TODO Should be set by a common parameter as disable time stretch for landing.
+		// TODO evaluate if needed to reset position again during landing if drift is too high
+		_position_smoothing.forceSetPosition({_position(0), _position(1), NAN});
 	}
 
 	// User input assisted landing
