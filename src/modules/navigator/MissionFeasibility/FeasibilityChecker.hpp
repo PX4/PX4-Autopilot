@@ -120,8 +120,8 @@ private:
 	bool _first_waypoint_found{false};
 
 	// internal checkDistancesBetweenWaypoints variables
-	double _last_lat{NAN};
-	double _last_lon{NAN};
+	double _last_lat{(double)NAN};
+	double _last_lon{(double)NAN};
 	int _last_cmd{-1};
 
 	void updateData();
