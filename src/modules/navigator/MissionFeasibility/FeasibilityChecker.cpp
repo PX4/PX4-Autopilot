@@ -84,6 +84,7 @@ void FeasibilityChecker::updateData()
 
 	if (_home_pos_sub.updated()) {
 		_home_pos_sub.update(&home);
+
 		if (home.valid_hpos) {
 			_home_lat_lon = matrix::Vector2d(home.lat, home.lon);
 		}
@@ -487,12 +488,14 @@ bool FeasibilityChecker::checkFixedWingLanding(mission_item_s &mission_item, con
 		}
 	}
 
-	if (land_start_found && (!_landing_valid || (_do_land_start_index > _landing_approach_index))) {
+	if (land_start_found && (_do_land_start_index > _landing_approach_index)) {
 		mavlink_log_critical(_mavlink_log_pub, "Mission rejected: invalid land start.\t");
 		events::send(events::ID("navigator_mis_invalid_land"), {events::Log::Error, events::LogInternal::Info},
 			     "Mission rejected: invalid land start");
 		return false;
 	}
+
+	_landing_valid = _landing_approach_index >= 0;
 
 	/* No landing waypoints or no waypoints */
 	return true;
