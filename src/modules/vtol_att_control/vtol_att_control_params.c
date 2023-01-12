@@ -227,6 +227,24 @@ PARAM_DEFINE_FLOAT(VT_FW_MIN_ALT, 0.0f);
 PARAM_DEFINE_FLOAT(VT_FW_ALT_ERR, 0.0f);
 
 /**
+ * Quad-chute transition altitude loss threshold
+ *
+ * Altitude loss threshold for quad-chute triggering during VTOL transition to fixed-wing flight.
+ * If the current altitude is more than this value below the altitude at the beginning of the
+ * transition, it will instantly switch back to MC mode and execute behavior defined in COM_QC_ACT.
+ *
+ * Set to 0 do disable this threshold.
+ *
+ * @unit m
+ * @min 0
+ * @max 50
+ * @increment 1
+ * @decimal 1
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_QC_T_ALT_LOSS, 10.0f);
+
+/**
  * Quad-chute max pitch threshold
  *
  * Absolute pitch threshold for quad-chute triggering in FW mode.
