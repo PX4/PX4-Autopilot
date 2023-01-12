@@ -471,7 +471,7 @@ float VtolType::pusher_assist()
 	}
 
 	// Do not engage pusher assist during a failsafe event (could be a problem with the fixed wing drive)
-	if (_attc->get_vtol_vehicle_status()->vtol_transition_failsafe) {
+	if (_attc->get_vtol_vehicle_status()->fixed_wing_system_failure) {
 		return 0.0f;
 	}
 

@@ -373,7 +373,7 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 	    state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER ||
 	    state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF ||
 	    state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF) {
-		CHECK_FAILSAFE(status_flags, vtol_transition_failure, fromQuadchuteActParam(_param_com_qc_act.get()));
+		CHECK_FAILSAFE(status_flags, vtol_fixed_wing_system_failure, fromQuadchuteActParam(_param_com_qc_act.get()));
 	}
 
 	// Mission

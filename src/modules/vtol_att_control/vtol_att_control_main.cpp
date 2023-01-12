@@ -134,9 +134,9 @@ void VtolAttitudeControl::action_request_poll()
 				_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
 				_immediate_transition = false;
 
-				// reset vtol_transition_failsafe flag when a new transition to FW is triggered
+				// reset fixed_wing_system_failure flag when a new transition to FW is triggered
 				if (_transition_command == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW) {
-					_vtol_vehicle_status.vtol_transition_failsafe = false;
+					_vtol_vehicle_status.fixed_wing_system_failure = false;
 				}
 
 				break;
@@ -169,9 +169,9 @@ void VtolAttitudeControl::vehicle_cmd_poll()
 				_transition_command = transition_command_param1;
 				_immediate_transition = (PX4_ISFINITE(vehicle_command.param2)) ? int(vehicle_command.param2 + 0.5f) : false;
 
-				// reset vtol_transition_failsafe flag when a new transition to FW is triggered
+				// reset fixed_wing_system_failure flag when a new transition to FW is triggered
 				if (_transition_command == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW) {
-					_vtol_vehicle_status.vtol_transition_failsafe = false;
+					_vtol_vehicle_status.fixed_wing_system_failure = false;
 				}
 			}
 
@@ -193,7 +193,7 @@ void VtolAttitudeControl::vehicle_cmd_poll()
 void
 VtolAttitudeControl::quadchute(QuadchuteReason reason)
 {
-	if (!_vtol_vehicle_status.vtol_transition_failsafe) {
+	if (!_vtol_vehicle_status.fixed_wing_system_failure) {
 		switch (reason) {
 		case QuadchuteReason::TransitionTimeout:
 			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: transition timeout\t");
@@ -242,7 +242,7 @@ VtolAttitudeControl::quadchute(QuadchuteReason reason)
 			return;
 		}
 
-		_vtol_vehicle_status.vtol_transition_failsafe = true;
+		_vtol_vehicle_status.fixed_wing_system_failure = true;
 	}
 }
 
