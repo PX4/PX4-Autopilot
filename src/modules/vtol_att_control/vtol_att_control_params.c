@@ -212,10 +212,14 @@ PARAM_DEFINE_FLOAT(VT_TRANS_MIN_TM, 2.0f);
 PARAM_DEFINE_FLOAT(VT_FW_MIN_ALT, 0.0f);
 
 /**
- * Adaptive QuadChute
+ * Quad-chute uncommanded descent threshold
  *
- * Maximum negative altitude error for fixed wing flight. If the altitude drops below this value below the altitude setpoint
- * the vehicle will transition back to MC mode and enter failsafe RTL.
+ * Threshold for integrated height rate error to trigger a uncommanded-descent quad-chute.
+ * Only checked in altitude-controlled fixed-wing flight.
+ * Additional conditions that have to be met for uncommanded descent detection are a positive (climbing) height
+ * rate setpoint and a negative (sinking) current height rate estimate.
+ *
+ * Set to 0 do disable this threshold.
  *
  * @unit m
  * @min 0.0
@@ -224,7 +228,7 @@ PARAM_DEFINE_FLOAT(VT_FW_MIN_ALT, 0.0f);
  * @decimal 1
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_FW_ALT_ERR, 0.0f);
+PARAM_DEFINE_FLOAT(VT_QC_HR_ERROR_I, 0.0f);
 
 /**
  * Quad-chute transition altitude loss threshold

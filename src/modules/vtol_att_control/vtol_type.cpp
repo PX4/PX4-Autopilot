@@ -257,17 +257,28 @@ bool VtolType::isMinAltBreached()
 	return false;
 }
 
-bool VtolType::largeAltitudeLoss()
+bool VtolType::isUncommandedDescent()
 {
-	// adaptive quadchute
-	if (_param_vt_fw_alt_err.get() > FLT_EPSILON && _v_control_mode->flag_control_altitude_enabled && _tecs_running) {
+	if (_param_vt_qc_hr_error_i.get() > FLT_EPSILON && _v_control_mode->flag_control_altitude_enabled
+	    && hrt_elapsed_time(&_tecs_status->timestamp) < 1_s) {
 
-		// are we dropping while requesting significant ascend?
-		if (((_tecs_status->altitude_sp - _tecs_status->altitude_filtered) > _param_vt_fw_alt_err.get()) &&
-		    (_ra_hrate < -1.0f) &&
-		    (_ra_hrate_sp > 1.0f)) {
-			return true;
+		// TODO if TECS publishes local_position_setpoint dependency on tecs_status can be dropped here
+
+		if (_tecs_status->height_rate < -FLT_EPSILON && _tecs_status->height_rate_setpoint > FLT_EPSILON) {
+			// vehicle is currently in uncommended descend, start integrating error
+
+			const hrt_abstime now = hrt_absolute_time();
+			float dt = static_cast<float>(now - _last_loop_quadchute_timestamp) / 1e6f;
+			dt = math::constrain(dt, 0.0001f, 0.1f);
+			_last_loop_quadchute_timestamp = now;
+
+			_height_rate_error_integral += (_tecs_status->height_rate_setpoint - _tecs_status->height_rate) * dt;
+
+		} else {
+			_height_rate_error_integral = 0.f; // reset
 		}
+
+		return (_height_rate_error_integral > _param_vt_qc_hr_error_i.get());
 	}
 
 	return false;
@@ -340,8 +351,8 @@ QuadchuteReason VtolType::getQuadchuteReason()
 		return QuadchuteReason::MinimumAltBreached;
 	}
 
-	if (largeAltitudeLoss()) {
-		return QuadchuteReason::LossOfAlt;
+	if (isUncommandedDescent()) {
+		return QuadchuteReason::UncommandedDescent;
 	}
 
 	if (isFrontTransitionAltitudeLoss()) {
@@ -363,20 +374,6 @@ QuadchuteReason VtolType::getQuadchuteReason()
 	return QuadchuteReason::None;
 }
 
-void VtolType::filterTecsHeightRates()
-{
-	if (_tecs_running) {
-		// 1 second rolling average
-		_ra_hrate = (49 * _ra_hrate + _tecs_status->height_rate) / 50;
-		_ra_hrate_sp = (49 * _ra_hrate_sp + _tecs_status->height_rate_setpoint) / 50;
-
-	} else {
-		// reset the filtered height rate and heigh rate setpoint if TECS is not running
-		_ra_hrate = 0.0f;
-		_ra_hrate_sp = 0.0f;
-	}
-}
-
 void VtolType::handleSpecialExternalCommandQuadchute()
 {
 	if (_attc->get_transition_command() == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC && _attc->get_immediate_transition()
@@ -392,8 +389,6 @@ void VtolType::handleSpecialExternalCommandQuadchute()
 
 void VtolType::check_quadchute_condition()
 {
-
-	filterTecsHeightRates();
 	handleSpecialExternalCommandQuadchute();
 
 	if (isQuadchuteEnabled()) {
