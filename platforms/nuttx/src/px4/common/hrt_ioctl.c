@@ -66,7 +66,7 @@ struct usr_hrt_call *pop_user(sq_queue_t *queue, const px4_hrt_handle_t handle)
 	sq_entry_t *queued;
 
 	sq_for_every(queue, queued) {
-		struct usr_hrt_call *e = (struct usr_hrt_call *)queued;
+		struct usr_hrt_call *e = (void *)queued;
 
 		if (e->entry.callout_sem == handle) {
 			sq_rem(queued, queue);
@@ -84,7 +84,7 @@ struct usr_hrt_call *pop_entry(sq_queue_t *queue, const px4_hrt_handle_t handle,
 	sq_entry_t *queued;
 
 	sq_for_every(queue, queued) {
-		struct usr_hrt_call *e = (struct usr_hrt_call *)queued;
+		struct usr_hrt_call *e = (void *)queued;
 
 		if (e->usr_entry == entry && e->entry.callout_sem == handle) {
 			sq_rem(queued, queue);
@@ -310,7 +310,7 @@ hrt_ioctl(unsigned int cmd, unsigned long arg)
 
 			flags = px4_enter_critical_section();
 
-			while ((e = (struct usr_hrt_call *)sq_remfirst(&callout_queue))) {
+			while ((e = (void *)sq_remfirst(&callout_queue))) {
 				if (callback_sem == e->entry.callout_sem) {
 					hrt_cancel(&e->entry);
 					/* Remove potential inflight entry as well */
