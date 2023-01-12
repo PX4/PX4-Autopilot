@@ -58,13 +58,14 @@ else
 		bmi088 -A -R 6 -s start
 		bmi088 -G -R 6 -s start
 	else
-    if ver hwtypecmp V6X000010
-    then
-      bmi088 -A -R 0 -s start
-		  bmi088 -G -R 0 -s start
-    else
-		  bmi088 -A -R 4 -s start
-		  bmi088 -G -R 4 -s start
+		if ver hwtypecmp V6X000010
+		then
+			bmi088 -A -R 0 -s start
+			bmi088 -G -R 0 -s start
+		else
+			bmi088 -A -R 4 -s start
+			bmi088 -G -R 4 -s start
+		fi
 	fi
 fi
 
@@ -73,11 +74,12 @@ if ver hwtypecmp V6X009010 V6X010010
 then
 	icm42688p -R 12 -s start
 else
-  if ver hwtypecmp V6X000010
-  then
-    icm42688p -R 14 -s start
-  else
-	  icm42688p -R 6 -s start
+	if ver hwtypecmp V6X000010
+	then
+		icm42688p -R 14 -s start
+	else
+		icm42688p -R 6 -s start
+	fi
 fi
 
 if ver hwtypecmp V6X000003 V6X001003 V6X003003 V6X000004 V6X001004 V6X004003 V6X004004 V6X005003 V6X005004
