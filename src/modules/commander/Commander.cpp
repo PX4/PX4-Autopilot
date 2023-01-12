@@ -3931,7 +3931,8 @@ void Commander::battery_status_check()
 	rtl_time_estimate_s rtl_time_estimate{};
 
 	// Compare estimate of RTL time to estimate of remaining flight time
-	if (_rtl_time_estimate_sub.copy(&rtl_time_estimate)
+	if (_param_com_pred_bat_fs.get() == 1  // Only if predictive failsafe is enabled
+	    && _rtl_time_estimate_sub.copy(&rtl_time_estimate)
 	    && (hrt_absolute_time() - rtl_time_estimate.timestamp) < 2_s
 	    && rtl_time_estimate.valid
 	    && _armed.armed

@@ -342,6 +342,20 @@ PARAM_DEFINE_INT32(COM_LOW_BAT_ACT, 0);
 PARAM_DEFINE_FLOAT(COM_BAT_ACT_T, 10.0f);
 
 /**
+ * Predictive battery failsafe
+ *
+ * If this parameter is enabled, the battery failsafe action defined by COM_LOW_BAT_ACT will trigger predictively
+ * based on the estimated remaining state of charge after an RTL.
+ *
+ * @group Commander
+ * @value 0 Disabled
+ * @value 1 Enabled
+ * @decimal 0
+ * @increment 1
+ */
+PARAM_DEFINE_INT32(COM_PRED_BAT_FS, 1);
+
+/**
  * Imbalanced propeller failsafe mode
  *
  * Action the system takes when an imbalanced propeller is detected by the failure detector.

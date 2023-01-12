@@ -210,6 +210,7 @@ private:
 
 		(ParamInt<px4::params::COM_LOW_BAT_ACT>) _param_com_low_bat_act,
 		(ParamFloat<px4::params::COM_BAT_ACT_T>) _param_com_bat_act_t,
+		(ParamInt<px4::params::COM_PRED_BAT_FS>) _param_com_pred_bat_fs,
 		(ParamInt<px4::params::COM_IMB_PROP_ACT>) _param_com_imb_prop_act,
 		(ParamFloat<px4::params::COM_DISARM_LAND>) _param_com_disarm_land,
 		(ParamFloat<px4::params::COM_DISARM_PRFLT>) _param_com_disarm_preflight,
