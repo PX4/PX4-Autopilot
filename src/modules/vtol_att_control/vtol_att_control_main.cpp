@@ -198,43 +198,43 @@ VtolAttitudeControl::quadchute(QuadchuteReason reason)
 		case QuadchuteReason::TransitionTimeout:
 			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: transition timeout\t");
 			events::send(events::ID("vtol_att_ctrl_quadchute_tout"), events::Log::Critical,
-				     "Quadchute triggered, due to transition timeout");
+				     "Quad-chute triggered due to transition timeout");
 			break;
 
 		case QuadchuteReason::ExternalCommand:
 			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: external command\t");
 			events::send(events::ID("vtol_att_ctrl_quadchute_ext_cmd"), events::Log::Critical,
-				     "Quadchute triggered, due to external command");
+				     "Quad-chute triggered due to external command");
 			break;
 
 		case QuadchuteReason::MinimumAltBreached:
 			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: minimum altitude breached\t");
 			events::send(events::ID("vtol_att_ctrl_quadchute_min_alt"), events::Log::Critical,
-				     "Quadchute triggered, due to minimum altitude breach");
+				     "Quad-chute triggered due to minimum altitude breach");
 			break;
 
 		case QuadchuteReason::LossOfAlt:
 			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: loss of altitude\t");
 			events::send(events::ID("vtol_att_ctrl_quadchute_alt_loss"), events::Log::Critical,
-				     "Quadchute triggered, due to loss of altitude");
+				     "Quad-chute triggered due to loss of altitude");
 			break;
 
 		case QuadchuteReason::LargeAltError:
 			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: large altitude error\t");
 			events::send(events::ID("vtol_att_ctrl_quadchute_alt_err"), events::Log::Critical,
-				     "Quadchute triggered, due to large altitude error");
+				     "Quad-chute triggered due to large altitude error");
 			break;
 
 		case QuadchuteReason::MaximumPitchExceeded:
 			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: maximum pitch exceeded\t");
 			events::send(events::ID("vtol_att_ctrl_quadchute_max_pitch"), events::Log::Critical,
-				     "Quadchute triggered, due to maximum pitch angle exceeded");
+				     "Quad-chute triggered due to maximum pitch angle exceeded");
 			break;
 
 		case QuadchuteReason::MaximumRollExceeded:
 			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: maximum roll exceeded\t");
 			events::send(events::ID("vtol_att_ctrl_quadchute_max_roll"), events::Log::Critical,
-				     "Quadchute triggered, due to maximum roll angle exceeded");
+				     "Quad-chute triggered due to maximum roll angle exceeded");
 			break;
 
 		case QuadchuteReason::None:
