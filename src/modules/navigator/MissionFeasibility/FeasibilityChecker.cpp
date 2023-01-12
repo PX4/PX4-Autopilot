@@ -50,8 +50,7 @@ void FeasibilityChecker::reset()
 	_is_landed = false;
 	_home_alt_msl = NAN;
 	_home_lat_lon = matrix::Vector2d(NAN, NAN);
-	_vehicle_type = 0;
-	_is_vtol = false;
+	_vehicle_type = VehicleType::RotaryWing;
 
 	_mission_validity_failed = false;
 	_takeoff_failed = false;
@@ -98,8 +97,19 @@ void FeasibilityChecker::updateData()
 
 	if (_status_sub.updated()) {
 		_status_sub.copy(&status);
-		_vehicle_type = status.vehicle_type;
-		_is_vtol = status.is_vtol;
+
+		if (status.is_vtol) {
+			_vehicle_type = VehicleType::Vtol;
+
+		} else if (status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+			_vehicle_type = VehicleType::RotaryWing;
+
+		} else if (status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+			_vehicle_type = VehicleType::FixedWing;
+
+		} else {
+			_vehicle_type = VehicleType::Other;
+		}
 	}
 
 	vehicle_land_detected_s land_detected = {};
@@ -109,6 +119,35 @@ void FeasibilityChecker::updateData()
 		_is_landed = land_detected.landed;
 	}
 
+	param_t handle = param_find("FW_LND_ANG");
+
+	if (handle != PARAM_INVALID) {
+		param_get(handle, &_param_fw_lnd_ang);
+	}
+
+	handle = param_find("MIS_DIST_1WP");
+
+	if (handle != PARAM_INVALID) {
+		param_get(handle, &_param_mis_dist_1wp);
+	}
+
+	handle = param_find("MIS_DIST_WPS");
+
+	if (handle != PARAM_INVALID) {
+		param_get(handle, &_param_mis_dist_wps);
+	}
+
+	handle = param_find("NAV_ACC_RAD");
+
+	if (handle != PARAM_INVALID) {
+		param_get(handle, &_param_nav_acc_rad);
+	}
+
+	handle = param_find("MIS_TKO_LAND_REQ");
+
+	if (handle != PARAM_INVALID) {
+		param_get(handle, &_param_mis_takeoff_land_req);
+	}
 }
 
 void FeasibilityChecker::processNextItem(mission_item_s &mission_item, const int current_index, const int total_count)
@@ -120,13 +159,13 @@ void FeasibilityChecker::processNextItem(mission_item_s &mission_item, const int
 
 	doCommonChecks(mission_item, current_index);
 
-	if (_is_vtol) {
+	if (_vehicle_type == VehicleType::Vtol) {
 		doVtolChecks(mission_item, current_index);
 
-	} else if (_vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+	} else if (_vehicle_type == VehicleType::FixedWing) {
 		doFixedWingChecks(mission_item, current_index);
 
-	} else {
+	} else if (_vehicle_type == VehicleType::RotaryWing) {
 		doMulticopterChecks(mission_item, current_index);
 	}
 
@@ -284,7 +323,7 @@ bool FeasibilityChecker::checkTakeoff(mission_item_s &mission_item)
 				    ? mission_item.altitude
 				    : mission_item.altitude - _home_alt_msl;
 
-		float acceptance_radius = _param_nav_acc_rad.get();
+		float acceptance_radius = _param_nav_acc_rad;
 
 		if (mission_item.acceptance_radius > NAV_EPSILON_POSITION) {
 			acceptance_radius = mission_item.acceptance_radius;
@@ -412,13 +451,13 @@ bool FeasibilityChecker::checkFixedWindLandApproach(mission_item_s &mission_item
 			// rounding on next check with small (arbitrary) 0.1 deg buffer, as the
 			// landing angle parameter is what is typically used for steepest glide
 			// in landing config
-			const float max_glide_slope = tanf(math::radians(_param_fw_lnd_ang.get() + 0.1f));
+			const float max_glide_slope = tanf(math::radians(_param_fw_lnd_ang + 0.1f));
 
 			if (glide_slope > max_glide_slope) {
 
-				const uint8_t land_angle_left_of_decimal = (uint8_t)_param_fw_lnd_ang.get();
-				const uint8_t land_angle_first_after_decimal = (uint8_t)((_param_fw_lnd_ang.get() - floorf(
-							_param_fw_lnd_ang.get())) * 10.0f);
+				const uint8_t land_angle_left_of_decimal = (uint8_t)_param_fw_lnd_ang;
+				const uint8_t land_angle_first_after_decimal = (uint8_t)((_param_fw_lnd_ang - floorf(
+							_param_fw_lnd_ang)) * 10.0f);
 
 				mavlink_log_critical(_mavlink_log_pub,
 						     "Mission rejected: the landing glide slope is steeper than the vehicle setting of %d.%d degrees.\t",
@@ -505,7 +544,7 @@ bool FeasibilityChecker::checkTakeoffLandAvailable()
 {
 	bool result = true;
 
-	switch (_param_mis_takeoff_land_req.get()) {
+	switch (_param_mis_takeoff_land_req) {
 	case 0:
 		result = true;
 		break;
@@ -571,7 +610,7 @@ bool FeasibilityChecker::checkTakeoffLandAvailable()
 
 bool FeasibilityChecker::checkDistanceToFirstWaypoint(mission_item_s &mission_item)
 {
-	if (_param_mis_dist_1wp.get() <= 0.0f || !_home_lat_lon.isAllFinite()) {
+	if (_param_mis_dist_1wp <= 0.0f || !_home_lat_lon.isAllFinite()) {
 		/* param not set, check is ok */
 		return true;
 	}
@@ -585,7 +624,7 @@ bool FeasibilityChecker::checkDistanceToFirstWaypoint(mission_item_s &mission_it
 					    mission_item.lat, mission_item.lon,
 					    _home_lat_lon(0), _home_lat_lon(1));
 
-		if (dist_to_1wp < _param_mis_dist_1wp.get()) {
+		if (dist_to_1wp < _param_mis_dist_1wp) {
 
 			return true;
 
@@ -593,9 +632,9 @@ bool FeasibilityChecker::checkDistanceToFirstWaypoint(mission_item_s &mission_it
 			/* item is too far from home */
 			mavlink_log_critical(_mavlink_log_pub,
 					     "First waypoint too far away: %dm, %d max\t",
-					     (int)dist_to_1wp, (int)_param_mis_dist_1wp.get());
+					     (int)dist_to_1wp, (int)_param_mis_dist_1wp);
 			events::send<uint32_t, uint32_t>(events::ID("navigator_mis_first_wp_too_far"), {events::Log::Error, events::LogInternal::Info},
-							 "First waypoint too far away: {1m} (maximum: {2m})", (uint32_t)dist_to_1wp, (uint32_t)_param_mis_dist_1wp.get());
+							 "First waypoint too far away: {1m} (maximum: {2m})", (uint32_t)dist_to_1wp, (uint32_t)_param_mis_dist_1wp);
 
 			return false;
 		}
@@ -607,7 +646,7 @@ bool FeasibilityChecker::checkDistanceToFirstWaypoint(mission_item_s &mission_it
 
 bool FeasibilityChecker::checkDistancesBetweenWaypoints(const mission_item_s &mission_item)
 {
-	if (_param_mis_dist_wps.get() <= 0.0f) {
+	if (_param_mis_dist_wps <= 0.0f) {
 		/* param not set, check is ok */
 		return true;
 	}
@@ -626,14 +665,14 @@ bool FeasibilityChecker::checkDistancesBetweenWaypoints(const mission_item_s &mi
 				_last_lat, _last_lon);
 
 
-		if (dist_between_waypoints > _param_mis_dist_wps.get()) {
+		if (dist_between_waypoints > _param_mis_dist_wps) {
 			/* distance between waypoints is too high */
 			mavlink_log_critical(_mavlink_log_pub,
 					     "Distance between waypoints too far: %d meters, %d max.\t",
-					     (int)dist_between_waypoints, (int)_param_mis_dist_wps.get());
+					     (int)dist_between_waypoints, (int)_param_mis_dist_wps);
 			events::send<uint32_t, uint32_t>(events::ID("navigator_mis_wp_dist_too_far"), {events::Log::Error, events::LogInternal::Info},
 							 "Distance between waypoints too far: {1m}, (maximum: {2m})", (uint32_t)dist_between_waypoints,
-							 (uint32_t)_param_mis_dist_wps.get());
+							 (uint32_t)_param_mis_dist_wps);
 
 
 			return false;
