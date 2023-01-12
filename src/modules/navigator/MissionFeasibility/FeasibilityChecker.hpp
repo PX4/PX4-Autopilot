@@ -87,7 +87,7 @@ private:
 	float _param_mis_dist_1wp{0.f};
 	float _param_mis_dist_wps{0.f};
 	float _param_nav_acc_rad{0.f};
-	int _param_mis_takeoff_land_req{0};
+	int32_t _param_mis_takeoff_land_req{0};
 
 	bool _is_landed{false};
 	float _home_alt_msl{NAN};
