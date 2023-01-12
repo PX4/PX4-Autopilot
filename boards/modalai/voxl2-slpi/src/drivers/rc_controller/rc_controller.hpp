@@ -66,10 +66,10 @@ public:
 	/** @see ModuleBase::print_status() */
 	int print_status() override;
 
-    void set_throttle(uint16_t val) { _throttle = val; }
-    void set_yaw(uint16_t val) { _yaw = val; }
-    void set_pitch(uint16_t val) { _pitch = val; }
-    void set_roll(uint16_t val) { _roll = val; }
+	void set_throttle(uint16_t val) { _throttle = val; }
+	void set_yaw(uint16_t val) { _yaw = val; }
+	void set_pitch(uint16_t val) { _pitch = val; }
+	void set_roll(uint16_t val) { _roll = val; }
 
 private:
 
@@ -86,10 +86,10 @@ private:
 		(ParamInt<px4::params::SYS_AUTOCONFIG>) _param_sys_autoconfig  /**< another parameter */
 	)
 
-    uint16_t _throttle;
-    uint16_t _yaw;
-    uint16_t _pitch;
-    uint16_t _roll;
+	uint16_t _throttle;
+	uint16_t _yaw;
+	uint16_t _pitch;
+	uint16_t _roll;
 
 	// Subscriptions
 	// uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};

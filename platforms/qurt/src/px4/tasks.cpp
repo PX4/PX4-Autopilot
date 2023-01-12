@@ -76,19 +76,23 @@ extern "C" {
 	// seem to work. It looks like the Qurt pthread implementation likes to allocate
 	// the stack itself and not give us that ability.
 	// int pthread_attr_setstackaddr(pthread_attr_t *attr, void * stackaddr) {
-		// if (attr == NULL) return -1;
-		// if (stackaddr == NULL) return -1;
-		// attr->stackaddr = stackaddr;
-		// attr->internal_stack = 0;
-		// return 0;
+	// if (attr == NULL) return -1;
+	// if (stackaddr == NULL) return -1;
+	// attr->stackaddr = stackaddr;
+	// attr->internal_stack = 0;
+	// return 0;
 	// }
 
 	// This function is in pthread.h but is not, apparently, defined in the
 	// Qurt system image. So, it is being defined here.
-	int pthread_attr_setthreadname(pthread_attr_t *attr, const char * name) {
-		if (attr == NULL) return -1;
-		if (&attr->name[0] == NULL) return -1;
-		if (name == NULL) return -1;
+	int pthread_attr_setthreadname(pthread_attr_t *attr, const char *name)
+	{
+		if (attr == NULL) { return -1; }
+
+		if (&attr->name[0] == NULL) { return -1; }
+
+		if (name == NULL) { return -1; }
+
 		memcpy(attr->name, name, PTHREAD_NAME_LEN);
 		attr->name[PTHREAD_NAME_LEN - 1] = 0;
 		return 0;
@@ -209,6 +213,7 @@ static px4_task_t px4_task_spawn_internal(const char *name, int priority, px4_ma
 	if (priority > 128) {
 		priority -= 16;
 	}
+
 	// Likewise, for low priorities, bump everything up a little.
 	else if (priority < 128) {
 		priority += 10;

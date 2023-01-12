@@ -75,30 +75,30 @@ int RC_ControllerModule::custom_command(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[0], "throttle")) {
-        uint16_t val = atoi(argv[1]);
+		uint16_t val = atoi(argv[1]);
 		get_instance()->set_throttle(val);
-        PX4_INFO("Setting throttle to %u", val);
+		PX4_INFO("Setting throttle to %u", val);
 		return 0;
 	}
 
 	if (!strcmp(argv[0], "yaw")) {
-        uint16_t val = atoi(argv[1]);
+		uint16_t val = atoi(argv[1]);
 		get_instance()->set_yaw(val);
-        PX4_INFO("Setting yaw to %u", val);
+		PX4_INFO("Setting yaw to %u", val);
 		return 0;
 	}
 
 	if (!strcmp(argv[0], "pitch")) {
-        uint16_t val = atoi(argv[1]);
+		uint16_t val = atoi(argv[1]);
 		get_instance()->set_pitch(val);
-        PX4_INFO("Setting pitch to %u", val);
+		PX4_INFO("Setting pitch to %u", val);
 		return 0;
 	}
 
 	if (!strcmp(argv[0], "roll")) {
-        uint16_t val = atoi(argv[1]);
+		uint16_t val = atoi(argv[1]);
 		get_instance()->set_roll(val);
-        PX4_INFO("Setting roll to %u", val);
+		PX4_INFO("Setting roll to %u", val);
 		return 0;
 	}
 
@@ -128,33 +128,33 @@ RC_ControllerModule *RC_ControllerModule::instantiate(int argc, char *argv[])
 	// int example_param = 0;
 	// bool example_flag = false;
 	// bool error_flag = false;
-    //
+	//
 	// int myoptind = 1;
 	// int ch;
 	// const char *myoptarg = nullptr;
-    //
+	//
 	// // parse CLI arguments
 	// while ((ch = px4_getopt(argc, argv, "p:f", &myoptind, &myoptarg)) != EOF) {
 	// 	switch (ch) {
 	// 	case 'p':
 	// 		example_param = (int)strtol(myoptarg, nullptr, 10);
 	// 		break;
-    //
+	//
 	// 	case 'f':
 	// 		example_flag = true;
 	// 		break;
-    //
+	//
 	// 	case '?':
 	// 		error_flag = true;
 	// 		break;
-    //
+	//
 	// 	default:
 	// 		PX4_WARN("unrecognized flag");
 	// 		error_flag = true;
 	// 		break;
 	// 	}
 	// }
-    //
+	//
 	// if (error_flag) {
 	// 	return nullptr;
 	// }
@@ -173,50 +173,50 @@ RC_ControllerModule *RC_ControllerModule::instantiate(int argc, char *argv[])
 RC_ControllerModule::RC_ControllerModule()
 	: ModuleParams(nullptr)
 {
-    _throttle = 800;
-    // _yaw      = 1500;
-    // _pitch    = 1500;
-    // _roll     = 1500;
-    _yaw      = 800;
-    _pitch    = 800;
-    _roll     = 800;
+	_throttle = 800;
+	// _yaw      = 1500;
+	// _pitch    = 1500;
+	// _roll     = 1500;
+	_yaw      = 800;
+	_pitch    = 800;
+	_roll     = 800;
 }
 
 void RC_ControllerModule::run()
 {
 	PX4_INFO("ModalAI RC_ControllerModule starting");
 
-    input_rc_s rc_data;
-    memset(&rc_data, 0, sizeof(input_rc_s));
-    orb_advert_t input_rc_pub_fd = orb_advertise(ORB_ID(input_rc), &rc_data);
+	input_rc_s rc_data;
+	memset(&rc_data, 0, sizeof(input_rc_s));
+	orb_advert_t input_rc_pub_fd = orb_advertise(ORB_ID(input_rc), &rc_data);
 
 	while (!should_exit()) {
 
-        usleep(10000);
+		usleep(10000);
 
-    	rc_data.input_source = input_rc_s::RC_INPUT_SOURCE_QURT;
-        rc_data.channel_count = 4;
-    	// for (unsigned i = 0; i < rc_data.channel_count; ++i) {
-    	// 	rc_data.values[i] = 1024;
-    	// }
-    	rc_data.values[0] = _throttle;
-    	rc_data.values[1] = _yaw;
-    	rc_data.values[2] = _pitch;
-    	rc_data.values[3] = _roll;
+		rc_data.input_source = input_rc_s::RC_INPUT_SOURCE_QURT;
+		rc_data.channel_count = 4;
+		// for (unsigned i = 0; i < rc_data.channel_count; ++i) {
+		// 	rc_data.values[i] = 1024;
+		// }
+		rc_data.values[0] = _throttle;
+		rc_data.values[1] = _yaw;
+		rc_data.values[2] = _pitch;
+		rc_data.values[3] = _roll;
 
-    	rc_data.timestamp = hrt_absolute_time();
-    	rc_data.timestamp_last_signal = rc_data.timestamp;
-    	rc_data.rc_ppm_frame_length = 0;
+		rc_data.timestamp = hrt_absolute_time();
+		rc_data.timestamp_last_signal = rc_data.timestamp;
+		rc_data.rc_ppm_frame_length = 0;
 		rc_data.rssi = 100;
-    	rc_data.rc_failsafe = false;
-    	rc_data.rc_lost = 0;
-    	rc_data.rc_lost_frame_count = 0;
-    	rc_data.rc_total_frame_count = 0;
+		rc_data.rc_failsafe = false;
+		rc_data.rc_lost = 0;
+		rc_data.rc_lost_frame_count = 0;
+		rc_data.rc_total_frame_count = 0;
 
-        orb_publish(ORB_ID(input_rc), input_rc_pub_fd, &rc_data);
+		orb_publish(ORB_ID(input_rc), input_rc_pub_fd, &rc_data);
 
 		parameters_update();
-    }
+	}
 
 	PX4_INFO("RC_ControllerModule Exiting");
 }
