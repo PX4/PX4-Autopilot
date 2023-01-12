@@ -47,6 +47,13 @@ public:
 
 	FeasibilityChecker();
 
+	enum class VehicleType {
+		RotaryWing,
+		FixedWing,
+		Vtol,
+		Other
+	};
+
 	void processNextItem(mission_item_s &mission_item, const int current_index, const int total_count);
 
 	void setMavlinkLogPub(orb_advert_t *mavlink_log_pub)
@@ -75,20 +82,18 @@ private:
 	uORB::Subscription _status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _land_detector_sub{ORB_ID(vehicle_land_detected)};
 
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::FW_LND_ANG>)   _param_fw_lnd_ang,
-		(ParamFloat<px4::params::MIS_DIST_1WP>) _param_mis_dist_1wp,
-		(ParamFloat<px4::params::MIS_DIST_WPS>) _param_mis_dist_wps,
-		(ParamFloat<px4::params::NAV_ACC_RAD>)  _param_nav_acc_rad,
-		(ParamInt<px4::params::MIS_TKO_LAND_REQ>)  _param_mis_takeoff_land_req
-	)
+	// parameters
+	float _param_fw_lnd_ang{0.f};
+	float _param_mis_dist_1wp{0.f};
+	float _param_mis_dist_wps{0.f};
+	float _param_nav_acc_rad{0.f};
+	int _param_mis_takeoff_land_req{0};
 
-	// parameter that need to be set from the outside
 	bool _is_landed{false};
 	float _home_alt_msl{NAN};
 	matrix::Vector2d _home_lat_lon = matrix::Vector2d(NAN, NAN);
-	int _vehicle_type{0};
 	bool _is_vtol{false};
+	VehicleType _vehicle_type{VehicleType::RotaryWing};
 
 	// internal flags to keep track of which checks failed
 	bool _mission_validity_failed{false};
