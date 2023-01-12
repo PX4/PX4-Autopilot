@@ -49,7 +49,7 @@ void FeasibilityChecker::reset()
 
 	_is_landed = false;
 	_home_alt_msl = NAN;
-	_home_lat_lon = matrix::Vector2d(NAN, NAN);
+	_home_lat_lon = matrix::Vector2d((double)NAN, (double)NAN);
 	_vehicle_type = VehicleType::RotaryWing;
 
 	_mission_validity_failed = false;
