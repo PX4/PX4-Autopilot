@@ -40,12 +40,13 @@ void VtolChecks::checkAndReport(const Context &context, Report &reporter)
 	vtol_vehicle_status_s vtol_vehicle_status;
 
 	if (_vtol_vehicle_status_sub.copy(&vtol_vehicle_status)) {
-		reporter.failsafeFlags().vtol_transition_failure = vtol_vehicle_status.vtol_transition_failsafe;
+		reporter.failsafeFlags().vtol_fixed_wing_system_failure = vtol_vehicle_status.fixed_wing_system_failure;
 
-		if (reporter.failsafeFlags().vtol_transition_failure) {
+		if (reporter.failsafeFlags().vtol_fixed_wing_system_failure) {
 			/* EVENT
 			 */
-			reporter.armingCheckFailure(NavModes::All, health_component_t::system, events::ID("check_vtol_transition_failure"),
+			reporter.armingCheckFailure(NavModes::All, health_component_t::system,
+						    events::ID("check_vtol_fixed_wing_system_failure"),
 						    events::Log::Error, "VTOL transition failure");
 
 			if (reporter.mavlink_log_pub()) {
