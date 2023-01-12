@@ -78,11 +78,6 @@ void Standard::update_vtol_state()
 		_pusher_throttle = 0.0f;
 		_reverse_output = 0.0f;
 
-		//reset failsafe when FW is no longer requested
-		if (!_attc->is_fixed_wing_requested()) {
-			_vtol_vehicle_status->vtol_transition_failsafe = false;
-		}
-
 	} else if (!_attc->is_fixed_wing_requested()) {
 
 		// the transition to fw mode switch is off

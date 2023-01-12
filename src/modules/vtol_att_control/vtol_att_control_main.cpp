@@ -133,6 +133,12 @@ void VtolAttitudeControl::action_request_poll()
 			case action_request_s::ACTION_VTOL_TRANSITION_TO_FIXEDWING:
 				_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
 				_immediate_transition = false;
+
+				// reset vtol_transition_failsafe flag when a new transition to FW is triggered
+				if (_transition_command == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW) {
+					_vtol_vehicle_status.vtol_transition_failsafe = false;
+				}
+
 				break;
 			}
 		}
@@ -162,6 +168,11 @@ void VtolAttitudeControl::vehicle_cmd_poll()
 			} else {
 				_transition_command = transition_command_param1;
 				_immediate_transition = (PX4_ISFINITE(vehicle_command.param2)) ? int(vehicle_command.param2 + 0.5f) : false;
+
+				// reset vtol_transition_failsafe flag when a new transition to FW is triggered
+				if (_transition_command == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW) {
+					_vtol_vehicle_status.vtol_transition_failsafe = false;
+				}
 			}
 
 			if (vehicle_command.from_external) {
