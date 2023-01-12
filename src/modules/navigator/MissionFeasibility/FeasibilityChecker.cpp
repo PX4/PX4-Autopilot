@@ -72,8 +72,8 @@ void FeasibilityChecker::reset()
 
 	_first_waypoint_found = false;
 
-	_last_lat = NAN;
-	_last_lon = NAN;
+	_last_lat = (double)NAN;
+	_last_lon = (double)NAN;
 	_last_cmd = -1;
 }
 
