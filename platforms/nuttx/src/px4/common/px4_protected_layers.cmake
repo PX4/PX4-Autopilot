@@ -22,7 +22,6 @@ target_link_libraries(px4_layer
 	PUBLIC
 		board_bus_info
 	PRIVATE
-		m
 		nuttx_c
 		nuttx_xx
 		nuttx_mm
