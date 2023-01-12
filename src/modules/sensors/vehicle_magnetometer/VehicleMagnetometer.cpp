@@ -49,8 +49,8 @@ VehicleMagnetometer::VehicleMagnetometer() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
 {
-	param_find("CAL_MAG_SIDES");
-	param_find("CAL_MAG_ROT_AUTO");
+	param_find("SENS_MAG_SIDES");
+	param_find("SENS_MAG_AUTOROT");
 
 	_voter.set_timeout(SENSOR_TIMEOUT);
 	_voter.set_equal_value_threshold(1000);
@@ -98,11 +98,25 @@ bool VehicleMagnetometer::ParametersUpdate(bool force)
 {
 	// Check if parameters have changed
 	if (_parameter_update_sub.updated() || force) {
+		const int cal_mag_sides_prev = _param_cal_mag_sides.get();
+
 		// clear update
 		parameter_update_s param_update;
 		_parameter_update_sub.copy(&param_update);
 
 		updateParams();
+
+		// Legacy QGC support: CAL_MAG_SIDES required to display the correct UI
+		// Force it to be a copy of the new SENS_MAG_SIDES
+		if (_param_cal_mag_sides.get() != _param_sens_mag_sides.get()) {
+			if (_param_cal_mag_sides.get() != cal_mag_sides_prev) {
+				// The user tried to change the deprecated parameter
+				mavlink_log_critical(&_mavlink_log_pub, "CAL_MAG_SIDES deprecated, use SENS_MAG_SIDES\t");
+			}
+
+			_param_cal_mag_sides.set(_param_sens_mag_sides.get());
+			_param_cal_mag_sides.commit();
+		}
 
 		// Mag compensation type
 		MagCompensationType mag_comp_typ = static_cast<MagCompensationType>(_param_mag_comp_typ.get());
