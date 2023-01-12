@@ -53,6 +53,15 @@
  * @value 63 Six side calibration
  * @group Sensors
  */
+PARAM_DEFINE_INT32(SENS_MAG_SIDES, 63);
+
+/**
+ * For legacy QGC support only
+ *
+ * Use SENS_MAG_SIDES instead
+ *
+ * @group Sensors
+ */
 PARAM_DEFINE_INT32(CAL_MAG_SIDES, 63);
 
 /**
@@ -76,7 +85,7 @@ PARAM_DEFINE_INT32(CAL_MAG_COMP_TYP, 0);
  * @boolean
  * @group Sensors
  */
-PARAM_DEFINE_INT32(CAL_MAG_ROT_AUTO, 1);
+PARAM_DEFINE_INT32(SENS_MAG_AUTOROT, 1);
 
 /**
  * Magnetometer max rate.
