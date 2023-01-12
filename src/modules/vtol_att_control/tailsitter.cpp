@@ -71,7 +71,7 @@ void Tailsitter::update_vtol_state()
 
 	float pitch = Eulerf(Quatf(_v_att->q)).theta();
 
-	if (_vtol_vehicle_status->vtol_transition_failsafe) {
+	if (_vtol_vehicle_status->fixed_wing_system_failure) {
 		// Failsafe event, switch to MC mode immediately
 		_vtol_mode = vtol_mode::MC_MODE;
 
