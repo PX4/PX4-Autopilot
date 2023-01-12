@@ -19,7 +19,6 @@ add_library(px4_layer
 
 target_link_libraries(px4_layer
 	PRIVATE
-		m
 		nuttx_c
 		nuttx_xx
 		nuttx_mm
