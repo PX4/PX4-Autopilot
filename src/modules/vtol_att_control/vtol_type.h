@@ -89,7 +89,7 @@ enum class QuadchuteReason {
 	TransitionTimeout,
 	ExternalCommand,
 	MinimumAltBreached,
-	LossOfAlt,
+	UncommandedDescent,
 	TransitionAltitudeLoss,
 	MaximumPitchExceeded,
 	MaximumRollExceeded,
@@ -165,12 +165,11 @@ public:
 	bool isMinAltBreached();
 
 	/**
-	 *  @brief Indicates if the vehicle has an altitude error larger than VT_FW_ALT_ERR and is losing altitude quickly.
-	 * 		This only applies when TECS is running.
+	 * @brief Indicates if conditions are met for uncommanded-descent quad-chute.
 	 *
-	 * @return     true if error larger than threshold
+	 * @return true if integrated height rate error larger than threshold
 	 */
-	bool largeAltitudeLoss();
+	bool isUncommandedDescent();
 
 	/**
 	 * @brief Indicates if there is an altitude loss higher than specified threshold during a VTOL transition to FW
@@ -199,11 +198,6 @@ public:
 	 * @return     true if exeeded
 	 */
 	bool isFrontTransitionTimeout();
-
-	/**
-	 *  @brief Applied a first order low pass filte to TECS height rate and heigh rate setpoint.
-	 */
-	void filterTecsHeightRates();
 
 	/**
 	 *  @brief Special handling of QuadchuteReason::ReasonExternal
@@ -290,8 +284,8 @@ protected:
 	float _thrust_transition = 0.0f;	// thrust value applied during a front transition (tailsitter & tiltrotor only)
 	float _last_thr_in_fw_mode = 0.0f;
 
-	float _ra_hrate = 0.0f;			// rolling average on height rate for quadchute condition
-	float _ra_hrate_sp = 0.0f;		// rolling average on height rate setpoint for quadchute condition
+	float _height_rate_error_integral{0.f};
+
 
 	hrt_abstime _trans_finished_ts = 0;
 	hrt_abstime _transition_start_timestamp{0};
@@ -302,6 +296,7 @@ protected:
 
 	hrt_abstime _last_loop_ts = 0;
 	float _transition_dt = 0;
+	hrt_abstime _last_loop_quadchute_timestamp = 0;
 
 	float _accel_to_pitch_integ = 0;
 
@@ -319,7 +314,7 @@ protected:
 	DEFINE_PARAMETERS_CUSTOM_PARENT(ModuleParams,
 					(ParamBool<px4::params::VT_ELEV_MC_LOCK>) _param_vt_elev_mc_lock,
 					(ParamFloat<px4::params::VT_FW_MIN_ALT>) _param_vt_fw_min_alt,
-					(ParamFloat<px4::params::VT_FW_ALT_ERR>) _param_vt_fw_alt_err,
+					(ParamFloat<px4::params::VT_QC_HR_ERROR_I>) _param_vt_qc_hr_error_i,
 					(ParamInt<px4::params::VT_FW_QC_P>) _param_vt_fw_qc_p,
 					(ParamInt<px4::params::VT_FW_QC_R>) _param_vt_fw_qc_r,
 					(ParamFloat<px4::params::VT_QC_T_ALT_LOSS>) _param_vt_qc_t_alt_loss,
