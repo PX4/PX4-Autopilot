@@ -228,9 +228,12 @@ bool VtolType::isQuadchuteEnabled()
 
 	}
 
+	const bool above_quadchute_altitude_limit = _param_quadchute_max_height.get() > 0
+			&& dist_to_ground > (float)_param_quadchute_max_height.get();
+
 	return _v_control_mode->flag_armed &&
-	       !_land_detected->landed && _param_quadchute_max_height.get() > 0 &&
-	       dist_to_ground < (float)_param_quadchute_max_height.get();
+	       !_land_detected->landed && !above_quadchute_altitude_limit;
+
 }
 
 bool VtolType::isMinAltBreached()

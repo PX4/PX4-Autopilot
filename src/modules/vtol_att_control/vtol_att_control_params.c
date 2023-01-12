@@ -249,13 +249,13 @@ PARAM_DEFINE_INT32(VT_FW_QC_P, 0);
 PARAM_DEFINE_INT32(VT_FW_QC_R, 0);
 
 /**
- * Quadchute maximum height.
+ * Quadchute maximum height
  *
  * Maximum height above the ground (if available, otherwhise above home if available, otherwise above the local origin) where triggering a quadchute is possible.
  * Triggering a quadchute always means transitioning the vehicle to hover flight in which generally a lot of energy is consumed.
  * At high altitudes there is therefore a big risk to deplete the battery and therefore crash. Currently, there is no automated
  * re-transition to fixed wing mode implemented and therefore this parameter serves and an intermediate measure to increase safety.
- * Setting this value to 0 deactivates the behavior.
+ * Setting this value to 0 deactivates the behavior (always enable quad-chute independently of altitude).
  *
  * @unit m
  * @min 0
