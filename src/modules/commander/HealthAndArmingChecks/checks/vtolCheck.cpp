@@ -47,10 +47,11 @@ void VtolChecks::checkAndReport(const Context &context, Report &reporter)
 			 */
 			reporter.armingCheckFailure(NavModes::All, health_component_t::system,
 						    events::ID("check_vtol_fixed_wing_system_failure"),
-						    events::Log::Error, "VTOL transition failure");
+						    events::Log::Error,
+						    "VTOL fixed-wing system failure detected. Verify reason for failure, and reboot the vehicle once confirmed safe");
 
 			if (reporter.mavlink_log_pub()) {
-				mavlink_log_info(reporter.mavlink_log_pub(), "Preflight Fail: VTOL transition failure\t");
+				mavlink_log_info(reporter.mavlink_log_pub(), "Preflight Fail: VTOL fixed-wing system failure detected\t");
 			}
 		}
 	}
