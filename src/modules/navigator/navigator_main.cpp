@@ -666,7 +666,15 @@ void Navigator::run()
 
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
 			_pos_sp_triplet_published_invalid_once = false;
-			navigation_mode_new = &_rtl;
+
+			// If we are in VTOL takeoff, do not switch until it is finished.
+			if (_navigation_mode == &_vtol_takeoff && !get_mission_result()->finished) {
+				navigation_mode_new = &_vtol_takeoff;
+
+			} else {
+				navigation_mode_new = &_rtl;
+			}
+
 			break;
 
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:

@@ -54,7 +54,8 @@ RTL::RTL(Navigator *navigator) :
 	ModuleParams(navigator),
 	_rtl_direct(navigator),
 	_rtl_mission(navigator),
-	_rtl_mission_reverse(navigator)
+	_rtl_mission_reverse(navigator),
+	_rtl_vtol_land(navigator)
 {
 	initMission();
 }
@@ -74,6 +75,10 @@ void RTL::on_inactivation()
 		_rtl_direct.on_inactivation();
 		break;
 
+	case RtlType::RTL_DIRECT_SAFE_VTOL:
+		_rtl_vtol_land.on_inactivation();
+		break;
+
 	default:
 		break;
 	}
@@ -88,6 +93,7 @@ void RTL::on_inactive()
 	_rtl_mission.on_inactive();
 	_rtl_mission_reverse.on_inactive();
 	_rtl_direct.on_inactive();
+	_rtl_vtol_land.on_inactive();
 
 	// Limit inactive calculation to 1Hz
 	hrt_abstime now{hrt_absolute_time()};
@@ -109,6 +115,10 @@ void RTL::on_inactive()
 
 		case RtlType::RTL_MISSION_FAST_REVERSE:
 			estimated_time = _rtl_mission_reverse.calc_rtl_time_estimate();
+			break;
+
+		case RtlType::RTL_DIRECT_SAFE_VTOL:
+			_rtl_vtol_land.calc_rtl_time_estimate();
 			break;
 
 		default:
@@ -136,6 +146,10 @@ void RTL::on_activation()
 		_rtl_direct.on_activation(_enforce_rtl_alt);
 		break;
 
+	case RtlType::RTL_DIRECT_SAFE_VTOL:
+		_rtl_vtol_land.on_activation();
+		break;
+
 	default:
 		break;
 	}
@@ -152,18 +166,28 @@ void RTL::on_active()
 		_rtl_mission.on_active();
 		_rtl_mission_reverse.on_inactive();
 		_rtl_direct.on_inactive();
+		_rtl_vtol_land.on_inactive();
 		break;
 
 	case RtlType::RTL_MISSION_FAST_REVERSE:
 		_rtl_mission_reverse.on_active();
 		_rtl_mission.on_inactive();
 		_rtl_direct.on_inactive();
+		_rtl_vtol_land.on_inactive();
 		break;
 
 	case RtlType::RTL_DIRECT:
 		_rtl_direct.on_active();
 		_rtl_mission_reverse.on_inactive();
 		_rtl_mission.on_inactive();
+		_rtl_vtol_land.on_inactive();
+		break;
+
+	case RtlType::RTL_DIRECT_SAFE_VTOL:
+		_rtl_vtol_land.on_active();
+		_rtl_mission_reverse.on_inactive();
+		_rtl_mission.on_inactive();
+		_rtl_direct.on_inactive();
 		break;
 
 	default:
@@ -185,31 +209,58 @@ void RTL::setRtlTypeAndDestination()
 
 	} else {
 		// check the closest allowed destination.
-		bool isMissionLanding{false};
+		DestinationType destination_type{DestinationType::DESTINATION_TYPE_HOME};
 		RtlDirect::RtlPosition rtl_position;
 		float rtl_alt;
-		findRtlDestination(isMissionLanding, rtl_position, rtl_alt);
+		findRtlDestination(destination_type, rtl_position, rtl_alt);
 
-		if (isMissionLanding) {
+		switch (destination_type) {
+		case DestinationType::DESTINATION_TYPE_MISSION_LAND:
 			_rtl_mission.setInitialMissionIndex(_land_start_index);
 			_rtl_type = RtlType::RTL_MISSION_FAST;
+			break;
 
-		} else {
+		case DestinationType::DESTINATION_TYPE_SAFE_POINT:
 			_rtl_direct.setRtlAlt(rtl_alt);
 			_rtl_direct.setRtlPosition(rtl_position);
 			_rtl_type = RtlType::RTL_DIRECT;
+			break;
+
+		case DestinationType::DESTINATION_TYPE_HOME: {
+				// check if we can apply vtol land.
+				bool vtol_land{_vehicle_status_sub.get().is_vtol &&
+					       _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING &&
+					       _rtl_vtol_land.hasVtolHomeLandApproach()};
+
+				if (vtol_land) {
+					_rtl_type = RtlType::RTL_DIRECT_SAFE_VTOL;
+
+				} else {
+					_rtl_direct.setRtlAlt(rtl_alt);
+					_rtl_direct.setRtlPosition(rtl_position);
+					_rtl_type = RtlType::RTL_DIRECT;
+				}
+
+				break;
+			}
+
+		default:
+			_rtl_direct.setRtlAlt(rtl_alt);
+			_rtl_direct.setRtlPosition(rtl_position);
+			_rtl_type = RtlType::RTL_DIRECT;
+			break;
 		}
 	}
 }
 
-void RTL::findRtlDestination(bool &isMissionLanding, RtlDirect::RtlPosition &rtl_position, float &rtl_alt)
+void RTL::findRtlDestination(DestinationType &destination_type, RtlDirect::RtlPosition &rtl_position, float &rtl_alt)
 {
 	// set destination to home per default, then check if other valid landing spot is closer
 	rtl_position.alt = _home_pos_sub.get().alt;
 	rtl_position.lat = _home_pos_sub.get().lat;
 	rtl_position.lon = _home_pos_sub.get().lon;
 	rtl_position.yaw = _home_pos_sub.get().yaw;
-	isMissionLanding = false;
+	destination_type = DestinationType::DESTINATION_TYPE_HOME;
 
 	// get distance to home position
 	float min_dist{get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, rtl_position.lat, rtl_position.lon)};
@@ -226,12 +277,12 @@ void RTL::findRtlDestination(bool &isMissionLanding, RtlDirect::RtlPosition &rtl
 			// Use the mission landing destination.
 			min_dist = dist;
 			setLandPosAsDestination(rtl_position);
-			isMissionLanding = true;
+			destination_type = DestinationType::DESTINATION_TYPE_MISSION_LAND;
 
 		} else if (dist < min_dist) {
 			min_dist = dist;
 			setLandPosAsDestination(rtl_position);
-			isMissionLanding = true;
+			destination_type = DestinationType::DESTINATION_TYPE_MISSION_LAND;
 		}
 	}
 
@@ -263,7 +314,7 @@ void RTL::findRtlDestination(bool &isMissionLanding, RtlDirect::RtlPosition &rtl
 		if (dist < min_dist) {
 			min_dist = dist;
 			setSafepointAsDestination(rtl_position, mission_safe_point);
-			isMissionLanding = false;
+			destination_type = DestinationType::DESTINATION_TYPE_SAFE_POINT;
 		}
 	}
 
