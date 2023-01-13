@@ -44,6 +44,7 @@
 #include <px4_platform_common/module_params.h>
 
 #include "navigator_mode.h"
+#include "navigation.h"
 #include <dataman_client/DatamanClient.hpp>
 #include "rtl_base.h"
 #include "rtl_direct.h"
@@ -88,6 +89,13 @@ public:
 	void updateSafePoints() { _initiate_safe_points_updated = true; }
 
 private:
+	enum class DestinationType {
+		DESTINATION_TYPE_HOME,
+		DESTINATION_TYPE_MISSION_LAND,
+		DESTINATION_TYPE_SAFE_POINT,
+	};
+
+private:
 	bool hasMissionLandStart();
 
 	/**
@@ -101,20 +109,20 @@ private:
 	 * @brief Find RTL destination.
 	 *
 	 */
-	void findRtlDestination(bool &isMissionLanding, RtlDirect::RtlPosition &rtl_position, float &rtl_alt);
+	void findRtlDestination(DestinationType &destination_type, DestinationPosition &rtl_position, float &rtl_alt);
 
 	/**
 	 * @brief Set the position of the land start marker in the planned mission as destination.
 	 *
 	 */
-	void setLandPosAsDestination(RtlDirect::RtlPosition &rtl_position, mission_item_s &land_mission_item);
+	void setLandPosAsDestination(DestinationPosition &rtl_position, mission_item_s &land_mission_item);
 
 	/**
 	 * @brief Set the safepoint as destination.
 	 *
 	 * @param mission_safe_point is the mission safe point/rally point to set as destination.
 	 */
-	void setSafepointAsDestination(RtlDirect::RtlPosition &rtl_position, const mission_item_s &mission_safe_point);
+	void setSafepointAsDestination(DestinationPosition &rtl_position, const mission_item_s &mission_safe_point);
 
 	/**
 	 * @brief calculate return altitude from cone half angle
@@ -123,7 +131,7 @@ private:
 	 * @param[in] cone_half_angle_deg half angle of the cone [deg]
 	 * @return return altitude
 	 */
-	float calculate_return_alt_from_cone_half_angle(const RtlDirect::RtlPosition &rtl_position, float cone_half_angle_deg);
+	float calculate_return_alt_from_cone_half_angle(const DestinationPosition &rtl_position, float cone_half_angle_deg);
 
 	/**
 	 * @brief initialize RTL mission type
@@ -136,6 +144,33 @@ private:
 	 *
 	 */
 	void parameters_update();
+
+	/**
+	 * @brief read VTOL land approaches
+	 *
+	 * @param[in] rtl_position landing position of the rtl
+	 *
+	 */
+	void readVtolLandApproaches(DestinationPosition rtl_position);
+
+	/**
+	 * @brief Has VTOL land approach
+	 *
+	 * @param[in] rtl_position landing position of the rtl
+	 *
+	 * @return true if home land approaches are defined for home position
+	 * @return false otherwise
+	 */
+	bool hasVtolLandApproach(DestinationPosition rtl_position);
+
+	/**
+	 * @brief Choose best landing approach
+	 *
+	 * Choose best landing approach for home considering wind
+	 *
+	 * @return loiter_point_s best landing approach
+	 */
+	loiter_point_s chooseBestLandingApproach();
 
 	enum class DatamanState {
 		UpdateRequestWait,
@@ -156,8 +191,8 @@ private:
 	DatamanState _error_state{DatamanState::UpdateRequestWait};
 	uint16_t _update_counter{0}; ///< dataman update counter: if it does not match, safe points data was updated
 	bool _safe_points_updated{false}; ///< flag indicating if safe points are updated to dataman cache
-	DatamanCache _dataman_cache_geofence{"rtl_dm_cache_miss_geo", 4};
-	DatamanClient	&_dataman_client_geofence = _dataman_cache_geofence.client();
+	DatamanCache _dataman_cache_safepoint{"rtl_dm_cache_miss_geo", 4};
+	DatamanClient	&_dataman_client_safepoint = _dataman_cache_safepoint.client();
 	bool _initiate_safe_points_updated{true}; ///< flag indicating if safe points update is needed
 	DatamanCache _dataman_cache_landItem{"rtl_dm_cache_miss_land", 2};
 	int16_t _mission_counter = -1;
@@ -165,6 +200,8 @@ private:
 	mission_stats_entry_s _stats;
 
 	RtlDirect _rtl_direct;
+
+	land_approaches_s _vtol_land_approaches{};
 
 	bool _enforce_rtl_alt{false};
 
@@ -182,6 +219,7 @@ private:
 	uORB::SubscriptionData<vehicle_status_s> _vehicle_status_sub{ORB_ID(vehicle_status)};	/**< vehicle status subscription */
 	uORB::SubscriptionData<mission_s> _mission_sub{ORB_ID(mission)};
 	uORB::SubscriptionData<home_position_s> _home_pos_sub{ORB_ID(home_position)};
+	uORB::SubscriptionData<wind_s>		_wind_sub{ORB_ID(wind)};
 
 	uORB::Publication<rtl_time_estimate_s> _rtl_time_estimate_pub{ORB_ID(rtl_time_estimate)};
 };
