@@ -77,7 +77,8 @@ bool check_battery_disconnected(orb_advert_t *mavlink_log_pub)
 	return false;
 }
 
-static void set_motor_actuators(uORB::Publication<actuator_test_s> &publisher, float value, bool release_control)
+static void set_motor_actuators(uORB::Publication<actuator_test_s, actuator_test_s::MAX_NUM_MOTORS> &publisher,
+				float value, bool release_control)
 {
 	actuator_test_s actuator_test{};
 	actuator_test.timestamp = hrt_absolute_time();
@@ -96,7 +97,7 @@ int do_esc_calibration(orb_advert_t *mavlink_log_pub)
 	calibration_log_info(mavlink_log_pub, CAL_QGC_STARTED_MSG, "esc");
 
 	int	return_code = PX4_OK;
-	uORB::Publication<actuator_test_s> actuator_test_pub{ORB_ID(actuator_test)};
+	uORB::Publication<actuator_test_s, actuator_test_s::MAX_NUM_MOTORS> actuator_test_pub{ORB_ID(actuator_test)};
 	// since we publish multiple at once, make sure the output driver subscribes before we publish
 	actuator_test_pub.advertise();
 	px4_usleep(10000);
