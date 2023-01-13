@@ -108,23 +108,22 @@ fi
 ist8310 -X -b 1 -R 10 start
 
 # Possible internal Baro
-if ver hwtypecmp V6X002001
-then
-	icp201xx -I -a 0x64 start
-else
-	bmp388 -I -a 0x77 start
-fi
-
 if param compare SENS_INT_BARO_EN 1
 then
-	bmp388 -I start
-else
 	if ver hwtypecmp V6X002001
 	then
-		icp201xx -X start
+		icp201xx -I -a 0x64 start
 	else
-		bmp388 -X start
+		bmp388 -I -a 0x77 start
 	fi
+fi
+
+#external baro
+if ver hwtypecmp V6X002001
+then
+	icp201xx -X start
+else
+	bmp388 -X start
 fi
 
 # Baro on I2C3
