@@ -98,8 +98,6 @@ bool VehicleMagnetometer::ParametersUpdate(bool force)
 {
 	// Check if parameters have changed
 	if (_parameter_update_sub.updated() || force) {
-		const int cal_mag_sides_prev = _param_cal_mag_sides.get();
-
 		// clear update
 		parameter_update_s param_update;
 		_parameter_update_sub.copy(&param_update);
@@ -109,11 +107,6 @@ bool VehicleMagnetometer::ParametersUpdate(bool force)
 		// Legacy QGC support: CAL_MAG_SIDES required to display the correct UI
 		// Force it to be a copy of the new SENS_MAG_SIDES
 		if (_param_cal_mag_sides.get() != _param_sens_mag_sides.get()) {
-			if (_param_cal_mag_sides.get() != cal_mag_sides_prev) {
-				// The user tried to change the deprecated parameter
-				mavlink_log_critical(&_mavlink_log_pub, "CAL_MAG_SIDES deprecated, use SENS_MAG_SIDES\t");
-			}
-
 			_param_cal_mag_sides.set(_param_sens_mag_sides.get());
 			_param_cal_mag_sides.commit();
 		}
