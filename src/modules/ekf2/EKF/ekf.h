@@ -306,7 +306,7 @@ public:
 	// gyro bias (states 10, 11, 12)
 	Vector3f getGyroBias() const { return _state.delta_ang_bias / _dt_ekf_avg; } // get the gyroscope bias in rad/s
 	Vector3f getGyroBiasVariance() const { return Vector3f{P(10, 10), P(11, 11), P(12, 12)} / sq(_dt_ekf_avg); } // get the gyroscope bias variance in rad/s
-	float getGyroBiasLimit() const { return math::radians(20.f); } // 20 degrees/s
+	float getGyroBiasLimit() const { return _params.gyro_bias_lim; }
 
 	// accel bias (states 13, 14, 15)
 	Vector3f getAccelBias() const { return _state.delta_vel_bias / _dt_ekf_avg; } // get the accelerometer bias in m/s**2

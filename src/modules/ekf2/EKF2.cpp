@@ -160,6 +160,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_abl_acclim(_params->acc_bias_learn_acc_lim),
 	_param_ekf2_abl_gyrlim(_params->acc_bias_learn_gyr_lim),
 	_param_ekf2_abl_tau(_params->acc_bias_learn_tc),
+	_param_ekf2_gyr_b_lim(_params->gyro_bias_lim),
 	_param_ekf2_drag_noise(_params->drag_noise),
 	_param_ekf2_bcoef_x(_params->bcoef_x),
 	_param_ekf2_bcoef_y(_params->bcoef_y),
