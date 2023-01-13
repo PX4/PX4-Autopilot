@@ -63,7 +63,7 @@ all: px4_sitl_default
 space := $(subst ,, )
 
 define make_list
-     $(shell [ -f .github/workflows/compile_${1}.yml ] && cat .github/workflows/compile_${1}.yml | sed -E 's|[[:space:]]+(.*),|check_\1|g' | grep check_${2})
+     $(shell [ -f .github/workflows/compile_${1}.yml ] && cat .github/workflows/compile_${1}.yml | awk '/config: \[/,/\]/' | sed -E 's|[[:space:]]+(.*),|check_\1|g' | grep check_${2})
 endef
 
 # Parsing
