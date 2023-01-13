@@ -34,8 +34,8 @@
 message(STATUS "Mavlink include directory: ${PX4_SOURCE_DIR}/../build/modalai_voxl2_default/mavlink/standard")
 
 px4_add_module(
-	MODULE drivers__modalai__tbs_crossfire
-	MAIN tbs_crossfire
+	MODULE drivers__modalai__mavlink_rc_in
+	MAIN mavlink_rc_in
 	COMPILE_FLAGS
 		-Wno-cast-align # TODO: fix and enable
 		-Wno-address-of-packed-member # TODO: fix in c_library_v2
@@ -43,7 +43,7 @@ px4_add_module(
 		${PX4_SOURCE_DIR}/src/drivers/rc_input
 		${PX4_SOURCE_DIR}/build/modalai_voxl2_default/mavlink/common
 	SRCS
-		tbs_crossfire.cpp
+		mavlink_rc_in.cpp
 	DEPENDS
 		px4_work_queue
 	)

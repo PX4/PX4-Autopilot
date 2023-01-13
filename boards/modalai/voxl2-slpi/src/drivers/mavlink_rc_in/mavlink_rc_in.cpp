@@ -52,9 +52,9 @@
 
 #define TX_BUFFER_LEN 20
 
-extern "C" { __EXPORT int tbs_crossfire_main(int argc, char *argv[]); }
+extern "C" { __EXPORT int mavlink_rc_in_main(int argc, char *argv[]); }
 
-namespace tbs_crossfire
+namespace mavlink_rc_in
 {
 
 static bool _is_running = false;
@@ -250,7 +250,7 @@ void task_main(int argc, char *argv[])
 		return;
 	}
 
-	_mav_task_handle = px4_task_spawn_cmd("tbs_crossfire_mav",
+	_mav_task_handle = px4_task_spawn_cmd("mavlink_rc_in_mav",
 					      SCHED_DEFAULT,
 					      SCHED_PRIORITY_DEFAULT,
 					      2000,
@@ -263,7 +263,7 @@ void task_main(int argc, char *argv[])
 	}
 
 	_is_running = true;
-	_perf_rx_rate = perf_alloc(PC_INTERVAL, "tbs_crossfire: rx interval");
+	_perf_rx_rate = perf_alloc(PC_INTERVAL, "mavlink_rc_in: rx interval");
 
 	uint8_t rx_buf[1024];
 	mavlink_message_t msg;
@@ -411,7 +411,7 @@ int start(int argc, char *argv[])
 
 	_task_should_exit = false;
 
-	_task_handle = px4_task_spawn_cmd("tbs_crossfire_main",
+	_task_handle = px4_task_spawn_cmd("mavlink_rc_in_main",
 					  SCHED_DEFAULT,
 					  SCHED_PRIORITY_DEFAULT,
 					  2000,
@@ -458,7 +458,7 @@ int status()
 void
 usage()
 {
-	PX4_INFO("Usage: tbs_crossfire {start|info|stop} [options]");
+	PX4_INFO("Usage: mavlink_rc_in {start|info|stop} [options]");
 	PX4_INFO("Options: -d             enable debug messages");
 	PX4_INFO("         -p <number>    uart port number");
 	PX4_INFO("         -b <number>    uart baudrate");
@@ -472,28 +472,28 @@ usage()
 
 }
 
-int tbs_crossfire_main(int argc, char *argv[])
+int mavlink_rc_in_main(int argc, char *argv[])
 {
 	int myoptind = 1;
 
 	if (argc <= 1) {
-		tbs_crossfire::usage();
+		mavlink_rc_in::usage();
 		return -1;
 	}
 
 	const char *verb = argv[myoptind];
 
 	if (!strcmp(verb, "start")) {
-		return tbs_crossfire::start(argc - 1, argv + 1);
+		return mavlink_rc_in::start(argc - 1, argv + 1);
 
 	} else if (!strcmp(verb, "stop")) {
-		return tbs_crossfire::stop();
+		return mavlink_rc_in::stop();
 
 	} else if (!strcmp(verb, "status")) {
-		return tbs_crossfire::status();
+		return mavlink_rc_in::status();
 
 	} else {
-		tbs_crossfire::usage();
+		mavlink_rc_in::usage();
 		return -1;
 	}
 }
