@@ -61,6 +61,7 @@ PARAM_DEFINE_INT32(SENS_MAG_SIDES, 63);
  * Use SENS_MAG_SIDES instead
  *
  * @group Sensors
+ * @category Developer
  */
 PARAM_DEFINE_INT32(CAL_MAG_SIDES, 63);
 
