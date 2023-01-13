@@ -33,12 +33,12 @@
 
 #include "param_translation.h"
 
-
 #include <px4_platform_common/log.h>
 #include <lib/drivers/device/Device.hpp>
 #include <drivers/drv_sensor.h>
 #include <lib/parameters/param.h>
 #include <lib/mathlib/mathlib.h>
+#include <inttypes.h>
 
 bool param_modify_on_import(bson_node_t node)
 {

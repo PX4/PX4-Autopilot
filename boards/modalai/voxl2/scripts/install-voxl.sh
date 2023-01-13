@@ -15,5 +15,7 @@ adb shell chmod a+x /usr/bin/voxl-px4
 # Push configuration file
 adb shell mkdir -p /etc/modalai
 adb push boards/modalai/voxl2/target/voxl-px4.config /etc/modalai
+adb push boards/modalai/voxl2/target/voxl-px4-set-default-parameters.config /etc/modalai
+adb push boards/modalai/voxl2/target/voxl-px4-fake-imu-calibration.config /etc/modalai
 
 adb shell sync

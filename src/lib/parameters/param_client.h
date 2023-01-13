@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ * Copyright (C) 2022 ModalAI, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,29 +31,10 @@
  *
  ****************************************************************************/
 
-#include <px4_platform_common/init.h>
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/defines.h>
-#include <px4_platform_common/log.h>
-#include <drivers/drv_hrt.h>
-#include <lib/parameters/param.h>
-#include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
-#include <uORB/uORB.h>
+#pragma once
 
-int px4_platform_init(void)
-{
-	hrt_init();
+#include "param.h"
 
-	px4::WorkQueueManagerStart();
-
-	//Put sleeper in here to allow wq to finish initializing before param_init is called
-	usleep(10000);
-
-	uorb_start();
-
-	param_init();
-
-	px4_log_initialize();
-
-	return PX4_OK;
-}
+void param_client_init();
+void param_client_set(param_t param, const void *val);
+void param_client_set_used(param_t param);

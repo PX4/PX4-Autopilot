@@ -1,0 +1,11 @@
+menuconfig PARAM_SERVER
+	bool "parameter server"
+	default n
+	---help---
+		Enable support for the parameter server in distributed board architectures
+
+menuconfig PARAM_CLIENT
+	bool "parameter client"
+	default n
+	---help---
+		Enable support for the parameter client in distributed board architectures
