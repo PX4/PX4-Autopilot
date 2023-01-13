@@ -720,6 +720,17 @@ void Navigator::run()
 
 			} else {
 				_pos_sp_triplet_published_invalid_once = false;
+			}
+
+#if CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
+
+			// If we are in VTOL takeoff, do not switch until it is finished.
+			if (_navigation_mode == &_vtol_takeoff && !get_mission_result()->finished) {
+				navigation_mode_new = &_vtol_takeoff;
+
+			} else
+#endif //CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
+			{
 				navigation_mode_new = &_rtl;
 			}
 
