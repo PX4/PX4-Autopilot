@@ -147,6 +147,15 @@ public:
 
 protected:
 	/**
+	 * @brief heading mode for setting navigation items
+	 *
+	 */
+	enum class HeadingMode {
+		NAVIGATION_HEADING = 0,
+		DESTINATION_HEADING,
+		CURRENT_HEADING,
+	};
+	/**
 	 * Check if mission item has been reached (for Waypoint based mission items) or Completed (Action based mission items)
 	 *
 	 * Mission Item's 'nav_cmd' can be either Waypoint or Action based. In order to check whether current mission item's
@@ -200,6 +209,19 @@ protected:
 	 * General function used to adjust the mission item based on vehicle specific limitations
 	 */
 	void mission_apply_limitation(mission_item_s &item);
+
+	void setLoiterToAltMissionItem(mission_item_s &item, const DestinationPosition &dest, float loiter_radius,
+				       HeadingMode heading_mode) const;
+
+	void setLoiterHoldMissionItem(mission_item_s &item, const DestinationPosition &dest, float loiter_time,
+				      float loiter_radius, HeadingMode heading_mode) const;
+
+	void setMoveToPositionMissionItem(mission_item_s &item, const DestinationPosition &dest,
+					  HeadingMode heading_mode) const;
+
+	void setLandMissionItem(mission_item_s &item, const DestinationPosition &dest, HeadingMode heading_mode) const;
+
+	float setYawFromHeadingMode(const DestinationPosition &dest, HeadingMode heading_mode) const;
 
 	/**
 	 * @brief Issue a command for mission items with a nav_cmd that specifies an action

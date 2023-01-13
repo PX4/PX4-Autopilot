@@ -227,6 +227,18 @@ struct mission_fence_point_s {
 	uint8_t _padding0[5];				/**< padding struct size to alignment boundary  */
 };
 
+/**
+ * @brief Return to launch position.
+ * Defines the position and landing yaw for the return to launch destination.
+ *
+ */
+struct DestinationPosition {
+	double lat;	/**< latitude in WGS84 [rad].*/
+	double lon;	/**< longitude in WGS84 [rad].*/
+	float alt;	/**< altitude in MSL [m].*/
+	float yaw;	/**< final yaw when landed [rad].*/
+};
+
 #if (__GNUC__ >= 5) || __clang__
 #pragma GCC diagnostic pop
 #endif // GCC >= 5 || Clang

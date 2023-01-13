@@ -961,3 +961,101 @@ MissionBlock::initialize()
 	_mission_item.autocontinue = true;
 	_mission_item.origin = ORIGIN_ONBOARD;
 }
+
+void MissionBlock::setLoiterToAltMissionItem(mission_item_s &item, const DestinationPosition &dest, float loiter_radius,
+		HeadingMode heading_mode) const
+{
+	item.nav_cmd = NAV_CMD_LOITER_TO_ALT;
+	item.lat = dest.lat;
+	item.lon = dest.lon;
+	item.altitude = dest.alt;
+	item.altitude_is_relative = false;
+
+	item. yaw = setYawFromHeadingMode(dest, heading_mode);
+
+	item.acceptance_radius = _navigator->get_acceptance_radius();
+	item.time_inside = 0.0f;
+	item.autocontinue = true;
+	item.origin = ORIGIN_ONBOARD;
+	item.loiter_radius = loiter_radius;
+}
+
+void MissionBlock::setLoiterHoldMissionItem(mission_item_s &item, const DestinationPosition &dest, float loiter_time,
+		float loiter_radius, HeadingMode heading_mode) const
+{
+	const bool autocontinue = (loiter_time > -FLT_EPSILON);
+
+	if (autocontinue) {
+		item.nav_cmd = NAV_CMD_LOITER_TIME_LIMIT;
+
+	} else {
+		item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
+	}
+
+	item.lat = dest.lat;
+	item.lon = dest.lon;
+	item.altitude = dest.alt;
+	item.altitude_is_relative = false;
+
+	item. yaw = setYawFromHeadingMode(dest, heading_mode);
+
+	item.acceptance_radius = _navigator->get_acceptance_radius();
+	item.time_inside = math::max(loiter_time, 0.0f);
+	item.autocontinue = autocontinue;
+	item.origin = ORIGIN_ONBOARD;
+	item.loiter_radius = loiter_radius;
+}
+
+void MissionBlock::setMoveToPositionMissionItem(mission_item_s &item, const DestinationPosition &dest,
+		HeadingMode heading_mode) const
+{
+	item.nav_cmd = NAV_CMD_WAYPOINT;
+	item.lat = dest.lat;
+	item.lon = dest.lon;
+	item.altitude = dest.alt;
+	item.altitude_is_relative = false;
+
+	item.autocontinue = true;
+	item.acceptance_radius = _navigator->get_acceptance_radius();
+	item.time_inside = 0.f;
+	item.origin = ORIGIN_ONBOARD;
+
+	item. yaw = setYawFromHeadingMode(dest, heading_mode);
+}
+
+void MissionBlock::setLandMissionItem(mission_item_s &item, const DestinationPosition &dest,
+				      HeadingMode heading_mode) const
+{
+	item.nav_cmd = NAV_CMD_LAND;
+	item.lat = dest.lat;
+	item.lon = dest.lon;
+	item.altitude = dest.alt;
+
+	if (heading_mode == HeadingMode::CURRENT_HEADING) {
+		item.yaw = _navigator->get_local_position()->heading;
+
+	} else {
+		item.yaw = dest.yaw;
+	}
+
+	item.acceptance_radius = _navigator->get_acceptance_radius();
+	item.time_inside = 0.0f;
+	item.autocontinue = true;
+	item.origin = ORIGIN_ONBOARD;
+}
+
+float MissionBlock::setYawFromHeadingMode(const DestinationPosition &dest, HeadingMode heading_mode) const
+{
+	float desired_yaw(_navigator->get_local_position()->heading);
+
+	if (heading_mode == HeadingMode::NAVIGATION_HEADING) {
+		desired_yaw = get_bearing_to_next_waypoint(_navigator->get_global_position()->lat,
+				_navigator->get_global_position()->lon, dest.lat, dest.lon);
+
+	} else if (heading_mode == HeadingMode::DESTINATION_HEADING) {
+		desired_yaw = dest.yaw;
+
+	}
+
+	return desired_yaw;
+}

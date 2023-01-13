@@ -41,11 +41,9 @@
 
 #pragma once
 
-#include <px4_platform_common/module_params.h>
-
-#include "mission_block.h"
-
 #include <drivers/drv_hrt.h>
+#include <matrix/Vector2.hpp>
+#include <px4_platform_common/module_params.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/home_position.h>
@@ -53,10 +51,12 @@
 #include <uORB/topics/rtl_time_estimate.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
-#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/wind.h>
-#include <matrix/Vector2.hpp>
+
+#include "mission_block.h"
+#include "navigation.h"
+#include "safe_point_land.hpp"
 
 using namespace time_literals;
 
@@ -65,18 +65,6 @@ class Navigator;
 class RtlDirect : public MissionBlock, public ModuleParams
 {
 public:
-	/**
-	 * @brief Return to launch position.
-	 * Defines the position and landing yaw for the return to launch destination.
-	 *
-	 */
-	struct RtlPosition {
-		double lat;	/**< latitude in WGS84 [rad].*/
-		double lon;	/**< longitude in WGS84 [rad].*/
-		float alt;	/**< altitude in MSL [m].*/
-		float yaw;	/**< final yaw when landed [rad].*/
-	};
-
 	RtlDirect(Navigator *navigator);
 
 	~RtlDirect() = default;
@@ -111,35 +99,24 @@ public:
 	void setReturnAltMin(bool min) { _enforce_rtl_alt = min; }
 	void setRtlAlt(float alt) {_rtl_alt = alt;};
 
-	void setRtlPosition(RtlPosition position) {_destination = position;};
+	void setRtlPosition(DestinationPosition position, loiter_point_s loiter_pos);
 
 private:
-	/**
-	 * @brief Return to launch heading mode.
-	 *
-	 */
-	enum RTLHeadingMode {
-		RTL_NAVIGATION_HEADING = 0,
-		RTL_DESTINATION_HEADING,
-		RTL_CURRENT_HEADING,
-	};
-
 	/**
 	 * @brief Return to launch state machine.
 	 *
 	 */
-	enum RTLState {
-		RTL_STATE_NONE = 0,
-		RTL_STATE_CLIMB,
-		RTL_STATE_RETURN,
-		RTL_STATE_DESCEND,
-		RTL_STATE_LOITER,
-		RTL_STATE_TRANSITION_TO_MC,
-		RTL_MOVE_TO_LAND_HOVER_VTOL,
-		RTL_STATE_LAND,
-		RTL_STATE_LANDED,
-		RTL_STATE_HEAD_TO_CENTER,
-	};
+	enum class RTLState {
+		CLIMBING,
+		MOVE_TO_LOITER,
+		LOITER_DOWN,
+		LOITER_HOLD,
+		MOVE_TO_LAND,
+		TRANSITION_TO_MC,
+		MOVE_TO_LAND_HOVER,
+		LAND,
+		IDLE
+	} _rtl_state{RTLState::IDLE}; /*< Current state in the state machine.*/
 
 private:
 	/**
@@ -154,12 +131,6 @@ private:
 	 *
 	 */
 	void set_rtl_item();
-
-	/**
-	 * @brief Advance the return to launch state machine.
-	 *
-	 */
-	void advance_rtl();
 
 	/**
 	 * @brief Get the Cruise Ground Speed
@@ -201,17 +172,19 @@ private:
 	 */
 	void parameters_update();
 
-	/** Current state in the state machine.*/
-	RTLState _rtl_state{RTL_STATE_NONE};
+	RTLState getActivationLandState();
+
+	void setLoiterPosition();
 
 	bool _enforce_rtl_alt{false};
+	bool _force_heading{false};
 
-	RtlPosition _destination{}; ///< the RTL position to fly to
+	DestinationPosition _destination; ///< the RTL position to fly to
+	loiter_point_s _land_approach;
 
 	float _rtl_alt{0.0f};	///< AMSL altitude at which the vehicle should return to the home position
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::RTL_RETURN_ALT>)  _param_rtl_return_alt,
 		(ParamFloat<px4::params::RTL_DESCEND_ALT>) _param_rtl_descend_alt,
 		(ParamFloat<px4::params::RTL_LAND_DELAY>)  _param_rtl_land_delay,
 		(ParamFloat<px4::params::RTL_MIN_DIST>)    _param_rtl_min_dist,
@@ -234,8 +207,8 @@ private:
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::SubscriptionData<vehicle_global_position_s> _global_pos_sub{ORB_ID(vehicle_global_position)};	/**< global position subscription */
+	uORB::SubscriptionData<home_position_s> _home_pos_sub{ORB_ID(home_position)};		/**< home position subscription */
 	uORB::SubscriptionData<vehicle_land_detected_s> _land_detected_sub{ORB_ID(vehicle_land_detected)};	/**< vehicle land detected subscription */
 	uORB::SubscriptionData<vehicle_status_s> _vehicle_status_sub{ORB_ID(vehicle_status)};	/**< vehicle status subscription */
-	uORB::SubscriptionData<vehicle_local_position_s> _local_pos_sub{ORB_ID(vehicle_local_position)};	/**< vehicle status subscription */
 	uORB::SubscriptionData<wind_s>		_wind_sub{ORB_ID(wind)};
 };

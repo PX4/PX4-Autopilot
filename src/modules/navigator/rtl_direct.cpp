@@ -40,23 +40,26 @@
  * @author Julian Kent <julian@auterion.com>
  */
 
+#include <float.h>
+
 #include "rtl_direct.h"
 #include "navigator.h"
-#include <dataman/dataman.h>
 #include <px4_platform_common/events.h>
 
 #include <lib/geo/geo.h>
 
-
-static constexpr float DELAY_SIGMA = 0.01f;
-
-using namespace time_literals;
 using namespace math;
 
 RtlDirect::RtlDirect(Navigator *navigator) :
 	MissionBlock(navigator),
 	ModuleParams(navigator)
 {
+	_destination.lat = static_cast<double>(NAN);
+	_destination.lon = static_cast<double>(NAN);
+	_land_approach.lat = static_cast<double>(NAN);
+	_land_approach.lon = static_cast<double>(NAN);
+	_land_approach.height_m = NAN;
+
 	_param_mpc_z_v_auto_up = param_find("MPC_Z_V_AUTO_UP");
 	_param_mpc_z_v_auto_dn = param_find("MPC_Z_V_AUTO_DN");
 	_param_mpc_land_speed = param_find("MPC_LAND_SPEED");
@@ -72,59 +75,98 @@ void RtlDirect::on_inactivation()
 	if (_navigator->get_precland()->is_activated()) {
 		_navigator->get_precland()->on_inactivation();
 	}
+
+	_rtl_state = RTLState::IDLE;
 }
 
 void RtlDirect::on_activation()
 {
 	_global_pos_sub.update();
-	_local_pos_sub.update();
 	_land_detected_sub.update();
 	_vehicle_status_sub.update();
 
 	parameters_update();
 
-	if (_land_detected_sub.get().landed) {
-		// For safety reasons don't go into RTL if landed.
-		_rtl_state = RTL_STATE_LANDED;
-
-	} else if ((_global_pos_sub.get().alt < _destination.alt + _param_rtl_return_alt.get()) || _enforce_rtl_alt) {
-
-		// If lower than return altitude, climb up first.
-		// If rtl_alt_min is true then forcing altitude change even if above.
-		_rtl_state = RTL_STATE_CLIMB;
-
-	} else {
-		// Otherwise go start with climb
-		_rtl_state = RTL_STATE_RETURN;
-	}
+	_rtl_state = getActivationLandState();
 
 	// reset cruising speed and throttle to default for RTL
 	_navigator->reset_cruising_speed();
 	_navigator->set_cruising_throttle();
 
 	set_rtl_item();
+
+	mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: start return at %d m (%d m above destination)\t",
+			 (int)ceilf(_rtl_alt), (int)ceilf(_rtl_alt - _destination.alt));
+	events::send<int32_t, int32_t>(events::ID("vrtl_return_at"), events::Log::Info,
+				       "RTL: start return at {1m_v} ({2m_v} above destination)",
+				       (int32_t)ceilf(_rtl_alt), (int32_t)ceilf(_rtl_alt - _destination.alt));
 }
 
 void RtlDirect::on_active()
 {
 	_global_pos_sub.update();
-	_local_pos_sub.update();
-	_land_detected_sub.update();
 	_vehicle_status_sub.update();
 
 	parameters_update();
 
-	if (_rtl_state != RTL_STATE_LANDED && is_mission_item_reached_or_completed()) {
-		advance_rtl();
+	if (_rtl_state != RTLState::IDLE && is_mission_item_reached_or_completed()) {
 		set_rtl_item();
 	}
 
-	if (_rtl_state == RTL_STATE_LAND && _param_rtl_pld_md.get() > 0) {
+	if (_rtl_state == RTLState::LAND && _param_rtl_pld_md.get() > 0) {
 		// Need to update the position and type on the current setpoint triplet.
 		_navigator->get_precland()->on_active();
 
 	} else if (_navigator->get_precland()->is_activated()) {
 		_navigator->get_precland()->on_inactivation();
+	}
+}
+
+void RtlDirect::setRtlPosition(DestinationPosition rtl_position, loiter_point_s loiter_pos)
+{
+	_home_pos_sub.update();
+
+	parameters_update();
+
+	// Only allow to set a new approach if the mode is not activated yet.
+	if (!isActive()) {
+		_land_approach = loiter_pos;
+		_destination = rtl_position;
+		_force_heading = false;
+
+		// Input sanitation
+		if (!PX4_ISFINITE(_destination.lat) || !PX4_ISFINITE(_destination.lon)) {
+			// We don't have a valid rtl position, use the home position instead.
+			_destination.lat = _home_pos_sub.get().lat;
+			_destination.lon = _home_pos_sub.get().lon;
+			_destination.alt = _home_pos_sub.get().alt;
+			_destination.yaw = _home_pos_sub.get().yaw;
+		}
+
+		if (!PX4_ISFINITE(_destination.alt)) {
+			// Not a valid rtl land altitude. Assume same altitude as home position.
+			_destination.alt = _home_pos_sub.get().alt;
+		}
+
+		if (!PX4_ISFINITE(_land_approach.lat) || !PX4_ISFINITE(_land_approach.lon)) {
+			_land_approach.lat = _destination.lat;
+			_land_approach.lon = _destination.lon;
+
+		} else {
+			const float dist_to_destination{get_distance_to_next_waypoint(_land_approach.lat, _land_approach.lon, _destination.lat, _destination.lon)};
+
+			if (dist_to_destination > _navigator->get_acceptance_radius()) {
+				_force_heading = true;
+			}
+		}
+
+		if (!PX4_ISFINITE(_land_approach.height_m)) {
+			_land_approach.height_m = _destination.alt + _param_rtl_descend_alt.get();
+		}
+
+		if (!PX4_ISFINITE(_land_approach.loiter_radius_m) || fabsf(_land_approach.loiter_radius_m) <= FLT_EPSILON) {
+			_land_approach.loiter_radius_m = _param_rtl_loiter_rad.get();
+		}
 	}
 }
 
@@ -134,243 +176,150 @@ void RtlDirect::set_rtl_item()
 
 	const float destination_dist = get_distance_to_next_waypoint(_destination.lat, _destination.lon,
 				       _global_pos_sub.get().lat, _global_pos_sub.get().lon);
-	const float loiter_altitude = math::min(_destination.alt + _param_rtl_descend_alt.get(), _rtl_alt);
+	const float loiter_altitude = math::min(_land_approach.height_m, _rtl_alt);
 
-	const RTLHeadingMode rtl_heading_mode = static_cast<RTLHeadingMode>(_param_rtl_hdg_md.get());
+	HeadingMode rtl_heading_mode = static_cast<HeadingMode>(_param_rtl_hdg_md.get());
+
+	if ((rtl_heading_mode == HeadingMode::NAVIGATION_HEADING) && (destination_dist < _param_rtl_min_dist.get())) {
+		rtl_heading_mode = HeadingMode::DESTINATION_HEADING;
+	}
 
 	switch (_rtl_state) {
-	case RTL_STATE_CLIMB: {
+	case RTLState::CLIMBING: {
+			DestinationPosition dest {
+				.lat = _global_pos_sub.get().lat,
+				.lon = _global_pos_sub.get().lon,
+				.alt = _rtl_alt,
+			};
 
-			_mission_item.nav_cmd = NAV_CMD_LOITER_TO_ALT;
+			setLoiterToAltMissionItem(_mission_item, dest, _navigator->get_loiter_radius(), HeadingMode::CURRENT_HEADING);
 
-			_mission_item.lat = _global_pos_sub.get().lat;
-			_mission_item.lon = _global_pos_sub.get().lon;
-			_mission_item.altitude = _rtl_alt;
-			_mission_item.altitude_is_relative = false;
-
-			if (rtl_heading_mode != RTLHeadingMode::RTL_DESTINATION_HEADING) {
-				_mission_item.yaw = _local_pos_sub.get().heading;
-
-			} else {
-				_mission_item.yaw = _destination.yaw;
-			}
-
-			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
-			_mission_item.time_inside = 0.0f;
-			_mission_item.autocontinue = true;
-			_mission_item.origin = ORIGIN_ONBOARD;
-			_mission_item.loiter_radius = _navigator->get_loiter_radius();
-
-			mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: climb to %d m (%d m above destination)\t",
-					 (int)ceilf(_rtl_alt), (int)ceilf(_rtl_alt - _destination.alt));
-			events::send<int32_t, int32_t>(events::ID("rtl_climb_to"), events::Log::Info,
-						       "RTL: climb to {1m_v} ({2m_v} above destination)",
-						       (int32_t)ceilf(_rtl_alt), (int32_t)ceilf(_rtl_alt - _destination.alt));
+			_rtl_state = RTLState::MOVE_TO_LOITER;
 			break;
 		}
 
-	case RTL_STATE_RETURN: {
+	case RTLState::MOVE_TO_LOITER: {
+			DestinationPosition dest {
+				.lat = _land_approach.lat,
+				.lon = _land_approach.lon,
+				.alt = _rtl_alt,
+				.yaw = _destination.yaw,
+			};
 
 			// For FW flight:set to LOITER_TIME (with 0s loiter time), such that the loiter (orbit) status
 			// can be displayed on groundstation and the WP is accepted once within loiter radius
 			if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
-				_mission_item.nav_cmd = NAV_CMD_LOITER_TIME_LIMIT;
-
+				setLoiterHoldMissionItem(_mission_item, dest, 0.f, _land_approach.loiter_radius_m, rtl_heading_mode);
 
 			} else {
-				_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+				setMoveToPositionMissionItem(_mission_item, dest, rtl_heading_mode);
 			}
 
-			_mission_item.lat = _destination.lat;
-			_mission_item.lon = _destination.lon;
-			_mission_item.altitude = _rtl_alt; // Don't change altitude
-			_mission_item.altitude_is_relative = false;
-
-			if (rtl_heading_mode == RTLHeadingMode::RTL_NAVIGATION_HEADING &&
-			    destination_dist > _param_rtl_min_dist.get()) {
-				_mission_item.yaw = get_bearing_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, _destination.lat,
-						    _destination.lon);
-
-			} else if (rtl_heading_mode == RTLHeadingMode::RTL_DESTINATION_HEADING ||
-				   destination_dist < _param_rtl_min_dist.get()) {
-				// Use destination yaw if close to _destination.
-				_mission_item.yaw = _destination.yaw;
-
-			} else if (rtl_heading_mode == RTLHeadingMode::RTL_CURRENT_HEADING) {
-				_mission_item.yaw = _local_pos_sub.get().heading;
-			}
-
-			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
-			_mission_item.time_inside = 0.0f;
-			_mission_item.autocontinue = true;
-			_mission_item.origin = ORIGIN_ONBOARD;
-			_mission_item.loiter_radius = _param_rtl_loiter_rad.get();
-
-			mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: return at %d m (%d m above destination)\t",
-					 (int)ceilf(_mission_item.altitude), (int)ceilf(_mission_item.altitude - _destination.alt));
-			events::send<int32_t, int32_t>(events::ID("rtl_return_at"), events::Log::Info,
-						       "RTL: return at {1m_v} ({2m_v} above destination)",
-						       (int32_t)ceilf(_mission_item.altitude), (int32_t)ceilf(_mission_item.altitude - _destination.alt));
+			_rtl_state = RTLState::LOITER_DOWN;
 
 			break;
 		}
 
-	case RTL_STATE_DESCEND: {
-			_mission_item.nav_cmd = NAV_CMD_LOITER_TO_ALT;
-			_mission_item.lat = _destination.lat;
-			_mission_item.lon = _destination.lon;
-			_mission_item.altitude = loiter_altitude;
-			_mission_item.altitude_is_relative = false;
+	case RTLState::LOITER_DOWN: {
+			DestinationPosition dest{
+				.lat = _land_approach.lat,
+				.lon = _land_approach.lon,
+				.alt = loiter_altitude,
+				.yaw = _destination.yaw,
+			};
 
-			// Except for vtol which might be still off here and should point towards this location.
-			const float d_current = get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon,
-						_mission_item.lat, _mission_item.lon);
+			setLoiterToAltMissionItem(_mission_item, dest, _land_approach.loiter_radius_m, rtl_heading_mode);
 
-			if (_vehicle_status_sub.get().is_vtol && (d_current > _navigator->get_acceptance_radius())) {
-				_mission_item.yaw = get_bearing_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon,
-						    _mission_item.lat, _mission_item.lon);
+			pos_sp_triplet->next.valid = true;
+			pos_sp_triplet->next.lat = _destination.lat;
+			pos_sp_triplet->next.lon = _destination.lon;
+			pos_sp_triplet->next.type = position_setpoint_s::SETPOINT_TYPE_LAND;
 
-			} else if (rtl_heading_mode == RTLHeadingMode::RTL_CURRENT_HEADING) {
-				_mission_item.yaw = _local_pos_sub.get().heading;
-
-			} else {
-				_mission_item.yaw = _destination.yaw;
+			if (_force_heading) {
+				_mission_item.force_heading = true;
 			}
-
-			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
-			_mission_item.time_inside = 0.0f;
-			_mission_item.autocontinue = true;
-			_mission_item.origin = ORIGIN_ONBOARD;
-			_mission_item.loiter_radius = _param_rtl_loiter_rad.get();
 
 			// Disable previous setpoint to prevent drift.
 			pos_sp_triplet->previous.valid = false;
 
-			mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: descend to %d m (%d m above destination)\t",
-					 (int)ceilf(_mission_item.altitude), (int)ceilf(_mission_item.altitude - _destination.alt));
-			events::send<int32_t, int32_t>(events::ID("rtl_descend_to"), events::Log::Info,
-						       "RTL: descend to {1m_v} ({2m_v} above destination)",
-						       (int32_t)ceilf(_mission_item.altitude), (int32_t)ceilf(_mission_item.altitude - _destination.alt));
+			_rtl_state = RTLState::LOITER_HOLD;
+
 			break;
 		}
 
-	case RTL_STATE_LOITER: {
-			const bool autocontinue = (_param_rtl_land_delay.get() > FLT_EPSILON);
+	case RTLState::LOITER_HOLD: {
+			DestinationPosition dest {
+				.lat = _land_approach.lat,
+				.lon = _land_approach.lon,
+				.alt = loiter_altitude,
+				.yaw = _destination.yaw,
+			};
 
-			if (autocontinue) {
-				_mission_item.nav_cmd = NAV_CMD_LOITER_TIME_LIMIT;
-				mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: loiter %.1fs\t",
-						 (double)_param_rtl_land_delay.get());
-				events::send<float>(events::ID("rtl_loiter"), events::Log::Info, "RTL: loiter {1:.1}s", _param_rtl_land_delay.get());
+			setLoiterHoldMissionItem(_mission_item, dest, _param_rtl_land_delay.get(), _land_approach.loiter_radius_m,
+						 rtl_heading_mode);
 
-			} else {
-				_mission_item.nav_cmd = NAV_CMD_LOITER_UNLIMITED;
+			if (_param_rtl_land_delay.get() < -FLT_EPSILON) {
 				mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: completed, loitering\t");
 				events::send(events::ID("rtl_completed_loiter"), events::Log::Info, "RTL: completed, loitering");
 			}
 
-			_mission_item.lat = _destination.lat;
-			_mission_item.lon = _destination.lon;
-			_mission_item.altitude = loiter_altitude;    // Don't change altitude.
-			_mission_item.altitude_is_relative = false;
-
-			if (rtl_heading_mode == RTLHeadingMode::RTL_CURRENT_HEADING) {
-				_mission_item.yaw = _local_pos_sub.get().heading;
+			if (_vehicle_status_sub.get().is_vtol
+			    && _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+				_rtl_state = RTLState::MOVE_TO_LAND;
 
 			} else {
-				_mission_item.yaw = _destination.yaw;
+				_rtl_state = RTLState::MOVE_TO_LAND_HOVER;
 			}
-
-			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
-			_mission_item.time_inside = max(_param_rtl_land_delay.get(), 0.0f);
-			_mission_item.autocontinue = autocontinue;
-			_mission_item.origin = ORIGIN_ONBOARD;
-			_mission_item.loiter_radius = _param_rtl_loiter_rad.get();
 
 			break;
 		}
 
-	case RTL_STATE_HEAD_TO_CENTER: {
-			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-			_mission_item.lat = _destination.lat;
-			_mission_item.lon = _destination.lon;
-			_mission_item.altitude = loiter_altitude;
-			_mission_item.altitude_is_relative = false;
+	case RTLState::MOVE_TO_LAND: {
 
-			if (rtl_heading_mode == RTLHeadingMode::RTL_NAVIGATION_HEADING) {
-				_mission_item.yaw = get_bearing_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, _destination.lat,
-						    _destination.lon);
+			DestinationPosition dest{_destination};
+			dest.alt = loiter_altitude;
 
-			} else if (rtl_heading_mode == RTLHeadingMode::RTL_DESTINATION_HEADING) {
-				_mission_item.yaw = _destination.yaw;
+			setMoveToPositionMissionItem(_mission_item, dest, rtl_heading_mode);
 
-			} else if (rtl_heading_mode == RTLHeadingMode::RTL_CURRENT_HEADING) {
-				_mission_item.yaw = _local_pos_sub.get().heading;
-			}
-
+			// Prepare for transition
 			_mission_item.vtol_back_transition = true;
-			// acceptance_radius will be overwritten since vtol_back_transition is set,
-			// set as a default value only
-			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
-			_mission_item.time_inside = 0.0f;
-			_mission_item.autocontinue = true;
-			_mission_item.origin = ORIGIN_ONBOARD;
+			_mission_item.force_heading = false;
 
-			// Disable previous setpoint to prevent drift.
-			pos_sp_triplet->previous.valid = false;
+			// set previous item location to loiter location such that vehicle tracks line between loiter
+			// location and land location after exiting the loiter circle
+			pos_sp_triplet->previous.lat = _land_approach.lat;
+			pos_sp_triplet->previous.lon = _land_approach.lon;
+			pos_sp_triplet->previous.alt = _mission_item.altitude;
+			pos_sp_triplet->previous.valid = true;
+
+			_rtl_state = RTLState::TRANSITION_TO_MC;
+
 			break;
 		}
 
-	case RTL_STATE_TRANSITION_TO_MC: {
+	case RTLState::TRANSITION_TO_MC: {
 			set_vtol_transition_item(&_mission_item, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC);
+
+			_rtl_state = RTLState::MOVE_TO_LAND_HOVER;
+
 			break;
 		}
 
-	case RTL_MOVE_TO_LAND_HOVER_VTOL: {
-			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-			_mission_item.lat = _destination.lat;
-			_mission_item.lon = _destination.lon;
-			_mission_item.altitude = loiter_altitude;
-			_mission_item.altitude_is_relative = false;
+	case RTLState::MOVE_TO_LAND_HOVER: {
+			DestinationPosition dest{_destination};
+			dest.alt = loiter_altitude;
 
-			// have to reset here because these field were used in set_vtol_transition_item
-			_mission_item.time_inside = 0.f;
-			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
+			setMoveToPositionMissionItem(_mission_item, dest, rtl_heading_mode);
 
-			if (rtl_heading_mode == RTLHeadingMode::RTL_NAVIGATION_HEADING) {
-				_mission_item.yaw = get_bearing_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, _destination.lat,
-						    _destination.lon);
+			_rtl_state = RTLState::LAND;
 
-			} else if (rtl_heading_mode == RTLHeadingMode::RTL_DESTINATION_HEADING) {
-				_mission_item.yaw = _destination.yaw;
-
-			} else if (rtl_heading_mode == RTLHeadingMode::RTL_CURRENT_HEADING) {
-				_mission_item.yaw = _local_pos_sub.get().heading;
-			}
-
-			_mission_item.origin = ORIGIN_ONBOARD;
 			break;
 		}
 
-	case RTL_STATE_LAND: {
-			// Land at destination.
-			_mission_item.nav_cmd = NAV_CMD_LAND;
-			_mission_item.lat = _destination.lat;
-			_mission_item.lon = _destination.lon;
-			_mission_item.altitude = _destination.alt;
-			_mission_item.altitude_is_relative = false;
+	case RTLState::LAND: {
 
-			if (rtl_heading_mode == RTLHeadingMode::RTL_CURRENT_HEADING) {
-				_mission_item.yaw = _local_pos_sub.get().heading;
+			setLandMissionItem(_mission_item, _destination, rtl_heading_mode);
 
-			} else {
-				_mission_item.yaw = _destination.yaw;
-			}
-
-			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
-			_mission_item.time_inside = 0.0f;
-			_mission_item.autocontinue = true;
-			_mission_item.origin = ORIGIN_ONBOARD;
 			_mission_item.land_precision = _param_rtl_pld_md.get();
 
 			if (_mission_item.land_precision == 1) {
@@ -382,13 +331,16 @@ void RtlDirect::set_rtl_item()
 				_navigator->get_precland()->on_activation();
 			}
 
+			_rtl_state = RTLState::IDLE;
+
 			mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: land at destination\t");
 			events::send(events::ID("rtl_land_at_destination"), events::Log::Info, "RTL: land at destination");
 			break;
 		}
 
-	case RTL_STATE_LANDED: {
+	case RTLState::IDLE: {
 			set_idle_item(&_mission_item);
+			_navigator->mode_completed(vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
 			break;
 		}
 
@@ -401,85 +353,35 @@ void RtlDirect::set_rtl_item()
 	// Execute command if set. This is required for commands like VTOL transition.
 	if (!MissionBlock::item_contains_position(_mission_item)) {
 		issue_command(_mission_item);
-	}
 
-	// Convert mission item to current position setpoint and make it valid.
-	mission_apply_limitation(_mission_item);
+	} else {
+		// Convert mission item to current position setpoint and make it valid.
+		mission_apply_limitation(_mission_item);
 
-	if (mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current)) {
-		_navigator->set_position_setpoint_triplet_updated();
+		if (mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current)) {
+			_navigator->set_position_setpoint_triplet_updated();
+		}
 	}
 }
 
-void RtlDirect::advance_rtl()
+RtlDirect::RTLState RtlDirect::getActivationLandState()
 {
-	// determines if the vehicle should loiter above land
-	const bool descend_and_loiter = _param_rtl_land_delay.get() < -DELAY_SIGMA || _param_rtl_land_delay.get() > DELAY_SIGMA;
+	_land_detected_sub.update();
 
-	// vehicle is a vtol and currently in fixed wing mode
-	const bool vtol_in_fw_mode = _vehicle_status_sub.get().is_vtol
-				     && _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+	RTLState land_state;
 
-	switch (_rtl_state) {
-	case RTL_STATE_CLIMB:
-		_rtl_state = RTL_STATE_RETURN;
-		break;
+	if (_land_detected_sub.get().landed) {
+		// For safety reasons don't go into RTL if landed.
+		land_state = RTLState::IDLE;
 
-	case RTL_STATE_RETURN:
-		_rtl_state = RTL_STATE_DESCEND;
-		break;
+	} else if ((_global_pos_sub.get().alt < _rtl_alt) || _enforce_rtl_alt) {
+		land_state = RTLState::CLIMBING;
 
-	case RTL_STATE_DESCEND:
-
-		if (descend_and_loiter) {
-			_rtl_state = RTL_STATE_LOITER;
-
-		} else if (vtol_in_fw_mode) {
-			_rtl_state = RTL_STATE_HEAD_TO_CENTER;
-
-		} else {
-			_rtl_state = RTL_STATE_LAND;
-		}
-
-		break;
-
-	case RTL_STATE_LOITER:
-
-		if (vtol_in_fw_mode) {
-			_rtl_state = RTL_STATE_HEAD_TO_CENTER;
-
-		} else {
-			_rtl_state = RTL_STATE_LAND;
-		}
-
-		break;
-
-	case RTL_STATE_HEAD_TO_CENTER:
-
-		_rtl_state = RTL_STATE_TRANSITION_TO_MC;
-
-		break;
-
-	case RTL_STATE_TRANSITION_TO_MC:
-
-		_rtl_state = RTL_MOVE_TO_LAND_HOVER_VTOL;
-
-		break;
-
-	case RTL_MOVE_TO_LAND_HOVER_VTOL:
-
-		_rtl_state = RTL_STATE_LAND;
-
-		break;
-
-	case RTL_STATE_LAND:
-		_rtl_state = RTL_STATE_LANDED;
-		_navigator->mode_completed(vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
-		break;
-
-	default:
-		break;
+	} else {
+		land_state = RTLState::MOVE_TO_LOITER;
 	}
+
+	return land_state;
 }
 
 rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
@@ -488,10 +390,13 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 
 	rtl_time_estimate_s rtl_time_estimate{};
 
-	RTLState start_state_for_estimate{RTL_STATE_NONE};
+	RTLState start_state_for_estimate;
 
 	if (isActive()) {
 		start_state_for_estimate = _rtl_state;
+
+	} else {
+		start_state_for_estimate = getActivationLandState();
 	}
 
 	// Calculate RTL time estimate only when there is a valid home position
@@ -501,11 +406,13 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 
 	} else {
 		rtl_time_estimate.valid = true;
+		rtl_time_estimate.time_estimate = 0.f;
+
+		const float loiter_altitude = min(_land_approach.height_m, _rtl_alt);
 
 		// Sum up time estimate for various segments of the landing procedure
 		switch (start_state_for_estimate) {
-		case RTL_STATE_NONE:
-		case RTL_STATE_CLIMB: {
+		case RTLState::CLIMBING: {
 				// Climb segment is only relevant if the drone is below return altitude
 				const float climb_dist = _global_pos_sub.get().alt < _rtl_alt ? (_rtl_alt - _global_pos_sub.get().alt) : 0;
 
@@ -515,30 +422,24 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 			}
 
 		// FALLTHROUGH
-		case RTL_STATE_RETURN:
+		case RTLState::MOVE_TO_LOITER:
 
 			// Add cruise segment to home
 			rtl_time_estimate.time_estimate += get_distance_to_next_waypoint(
-					_destination.lat, _destination.lon, _global_pos_sub.get().lat, _global_pos_sub.get().lon) / getCruiseGroundSpeed();
+					_land_approach.lat, _land_approach.lon, _global_pos_sub.get().lat, _global_pos_sub.get().lon) / getCruiseGroundSpeed();
 
 		// FALLTHROUGH
-		case RTL_STATE_HEAD_TO_CENTER:
-		case RTL_STATE_TRANSITION_TO_MC:
-		case RTL_STATE_DESCEND: {
+		case RTLState::LOITER_DOWN: {
 				// when descending, the target altitude is stored in the current mission item
 				float initial_altitude = 0.f;
-				float loiter_altitude = 0.f;
 
-				if (start_state_for_estimate == RTL_STATE_DESCEND) {
+				if (start_state_for_estimate == RTLState::LOITER_DOWN) {
 					// Take current vehicle altitude as the starting point for calculation
 					initial_altitude = _global_pos_sub.get().alt;  // TODO: Check if this is in the right frame
-					loiter_altitude = _mission_item.altitude;  // Next waypoint = loiter
-
 
 				} else {
 					// Take the return altitude as the starting point for the calculation
 					initial_altitude = _rtl_alt; // CLIMB and RETURN
-					loiter_altitude = math::min(_destination.alt + _param_rtl_descend_alt.get(), _rtl_alt);
 				}
 
 				// Add descend segment (first landing phase: return alt to loiter alt)
@@ -546,18 +447,38 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 			}
 
 		// FALLTHROUGH
-		case RTL_STATE_LOITER:
+		case RTLState::LOITER_HOLD:
 			// Add land delay (the short pause for deploying landing gear)
 			// TODO: Check if landing gear is deployed or not
 			rtl_time_estimate.time_estimate += _param_rtl_land_delay.get();
 
 		// FALLTHROUGH
-		case RTL_MOVE_TO_LAND_HOVER_VTOL:
-		case RTL_STATE_LAND: {
+		case RTLState::MOVE_TO_LAND:
+		case RTLState::TRANSITION_TO_MC:
+		case RTLState::MOVE_TO_LAND_HOVER: {
+				// Add cruise segment to home
+				float move_to_land_dist{0.f};
+
+				if (start_state_for_estimate >= RTLState::MOVE_TO_LAND) {
+					move_to_land_dist = get_distance_to_next_waypoint(
+								    _destination.lat, _destination.lon, _global_pos_sub.get().lat, _global_pos_sub.get().lon);
+
+				} else {
+					move_to_land_dist = get_distance_to_next_waypoint(
+								    _destination.lat, _destination.lon, _land_approach.lat, _land_approach.lon);
+				}
+
+				if (move_to_land_dist > FLT_EPSILON) {
+					rtl_time_estimate.time_estimate += move_to_land_dist / getCruiseGroundSpeed();
+				}
+			}
+
+		// FALLTHROUGH
+		case RTLState::LAND: {
 				float initial_altitude;
 
 				// Add land segment (second landing phase) which comes after LOITER
-				if (start_state_for_estimate == RTL_STATE_LAND) {
+				if (start_state_for_estimate == RTLState::LAND) {
 					// If we are in this phase, use the current vehicle altitude  instead
 					// of the altitude paramteter to get a continous time estimate
 					initial_altitude = _global_pos_sub.get().alt;
@@ -566,7 +487,6 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 				} else {
 					// If this phase is not active yet, simply use the loiter altitude,
 					// which is where the LAND phase will start
-					const float loiter_altitude = math::min(_destination.alt + _param_rtl_descend_alt.get(), _rtl_alt);
 					initial_altitude = loiter_altitude;
 				}
 
@@ -578,7 +498,7 @@ rtl_time_estimate_s RtlDirect::calc_rtl_time_estimate()
 
 			break;
 
-		case RTL_STATE_LANDED:
+		case RTLState::IDLE:
 			// Remaining time is 0
 			break;
 		}

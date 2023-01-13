@@ -200,3 +200,13 @@ PARAM_DEFINE_FLOAT(RTL_TIME_FACTOR, 1.1f);
  * @group Return To Land
  */
 PARAM_DEFINE_INT32(RTL_TIME_MARGIN, 100);
+
+/**
+ * RTL force approach landing
+ *
+ * Only consider RTL point, if it has an approach defined.
+ *
+ * @boolean
+ * @group Return To Land
+ */
+PARAM_DEFINE_INT32(RTL_APPR_FORCE, 0);
