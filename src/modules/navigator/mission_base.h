@@ -119,10 +119,10 @@ protected:
 	/**
 	 * @brief Has Mission a Land Start or Land Item
 	 *
-	 * @return true If mission has a land start of land item
+	 * @return true If mission has a land start of land item and a land item
 	 * @return false otherwise
 	 */
-	bool hasMissionLandStart() const { return _mission.land_start_index > 0;};
+	bool hasMissionLandStart() const { return _mission.land_start_index > 0 && _mission.land_index > 0;};
 	/**
 	 * @brief Go to next Mission Item
 	 * Go to next non jump mission item
