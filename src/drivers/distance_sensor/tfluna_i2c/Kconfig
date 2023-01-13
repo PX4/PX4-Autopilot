@@ -1,0 +1,5 @@
+menuconfig DRIVERS_DISTANCE_SENSOR_TFLUNA_I2C
+	bool "tfluna_i2c"
+	default n
+	---help---
+		Enable support for tfluna_i2c
