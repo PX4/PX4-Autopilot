@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016-2018, 2021, 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -84,7 +84,6 @@ typedef enum {
 	SATCOM_STATE_TEST,
 } satcom_state;
 
-extern "C" __EXPORT int iridiumsbd_main(int argc, char *argv[]);
 
 #define SATCOM_TX_BUF_LEN			340		// TX buffer size - maximum for a SBD MO message is 340, but billed per 50
 #define SATCOM_MAX_MESSAGE_LENGTH		50		// Maximum length of the expected messages sent over this link
