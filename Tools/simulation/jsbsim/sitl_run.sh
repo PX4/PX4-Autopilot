@@ -37,6 +37,10 @@ else
 	no_pxh=""
 fi
 
+if [ -n $FG_BINARY ]; then
+    FG_BINARY=fgfs
+fi
+
 export PX4_SIM_MODEL=jsbsim_${model}
 export PX4_SIM_WORLD=${world}
 
@@ -68,7 +72,7 @@ if [[ -n "$HEADLESS" ]]; then
 else
 	export FG_AIRCRAFT="${SRC_DIR}/Tools/simulation/jsbsim/jsbsim_bridge/models"
 
-	fgfs --fdm=null \
+	$FG_BINARY --fdm=null \
 		--native-fdm=socket,in,60,,5550,udp \
 		--aircraft=$JSBSIM_AIRCRAFT_MODEL \
 		--airport=${world} \
