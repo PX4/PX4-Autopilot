@@ -268,6 +268,8 @@ int px4muorb_orb_initialize(fc_func_ptrs *func_ptrs, int32_t clock_offset_us)
 			return -1;
 		}
 
+		hrt_init();
+
 		uORB::Manager::initialize();
 		uORB::Manager::get_instance()->set_uorb_communicator(
 			uORB::ProtobufChannel::GetInstance());
@@ -288,6 +290,7 @@ int px4muorb_orb_initialize(fc_func_ptrs *func_ptrs, int32_t clock_offset_us)
 		// Initialize the interrupt callback registration
 		register_interrupt_callback_initalizer(muorb_func_ptrs.register_interrupt_callback);
 
+		work_queues_init();
 		hrt_work_queue_init();
 
 		const char *argv[3] = { "slpi", "start" };
@@ -304,6 +307,9 @@ int px4muorb_orb_initialize(fc_func_ptrs *func_ptrs, int32_t clock_offset_us)
 		qurt_thread_attr_init(&aggregator_attr);
 		qurt_thread_attr_set_stack_addr(&aggregator_attr, aggregator_stack);
 		qurt_thread_attr_set_stack_size(&aggregator_attr, aggregator_stack_size);
+		char thread_name[QURT_THREAD_ATTR_NAME_MAXLEN];
+		strncpy(thread_name, "PX4_muorb_agg", QURT_THREAD_ATTR_NAME_MAXLEN);
+		qurt_thread_attr_set_name(&aggregator_attr, thread_name);
 		qurt_thread_attr_set_priority(&aggregator_attr, aggregator_thread_priority);
 		(void) qurt_thread_create(&aggregator_tid, &aggregator_attr, aggregator_thread_func, NULL);
 
