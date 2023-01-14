@@ -67,7 +67,7 @@ fi
 # be running from last time
 pkill -x gazebo || true
 
-export PX4_SIM_MODEL=${model}
+export PX4_SIM_MODEL=gazebo_${model}
 export PX4_SIM_WORLD=${world}
 
 SIM_PID=0
@@ -75,10 +75,6 @@ SIM_PID=0
 if [ -x "$(command -v gazebo)" ]; then
 	# Get the model name
 	model_name="${model}"
-	# Check if a 'modelname-gen.sdf' file exist for the models using jinja and generating the SDF files
-	if [ -f "${src_path}/Tools/simulation/gazebo/sitl_gazebo/models/${model}/${model}-gen.sdf" ]; then
-		model_name="${model}-gen"
-	fi
 
 	# Set the plugin path so Gazebo finds our model and sim
 	source "$src_path/Tools/simulation/gazebo/setup_gazebo.bash" "${src_path}" "${build_path}"

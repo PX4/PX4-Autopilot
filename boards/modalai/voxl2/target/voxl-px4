@@ -20,6 +20,7 @@ fi
 # Make sure to setup all of the needed px4 aliases.
 cd /usr/bin
 /bin/ln -f -s px4 px4-muorb
+/bin/ln -f -s px4 px4-qshell
 cd -
 
 DAEMON=" "

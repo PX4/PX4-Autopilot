@@ -2397,7 +2397,12 @@ Mavlink::task_main(int argc, char *argv[])
 							_vehicle_command_ack_sub.get_last_generation());
 					}
 
-					if (!command_ack.from_external && command_ack.command < vehicle_command_s::VEHICLE_CMD_PX4_INTERNAL_START) {
+					const bool is_target_known = _receiver.component_was_seen(command_ack.target_system, command_ack.target_component);
+
+					if (!command_ack.from_external
+					    && command_ack.command < vehicle_command_s::VEHICLE_CMD_PX4_INTERNAL_START
+					    && is_target_known) {
+
 						mavlink_command_ack_t msg{};
 						msg.result = command_ack.result;
 						msg.command = command_ack.command;
@@ -2406,11 +2411,7 @@ Mavlink::task_main(int argc, char *argv[])
 						msg.target_system = command_ack.target_system;
 						msg.target_component = command_ack.target_component;
 
-						// TODO: always transmit the acknowledge once it is only sent over the instance the command is received
-						//bool _transmitting_enabled_temp = _transmitting_enabled;
-						//_transmitting_enabled = true;
 						mavlink_msg_command_ack_send_struct(get_channel(), &msg);
-						//_transmitting_enabled = _transmitting_enabled_temp;
 
 						if (command_ack.command == vehicle_command_s::VEHICLE_CMD_LOGGING_START) {
 							cmd_logging_start_acknowledgement = true;
