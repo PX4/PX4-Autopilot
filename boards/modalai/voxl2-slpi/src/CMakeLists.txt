@@ -38,6 +38,7 @@ set(DISABLE_PARAMS_MODULE_SCOPING TRUE PARENT_SCOPE)
 
 add_library(drivers_board
 	board_config.h
+	i2c.cpp
 	init.c
 	spi.cpp
     )
