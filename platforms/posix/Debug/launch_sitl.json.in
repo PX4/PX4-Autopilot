@@ -99,12 +99,12 @@
             "environment": [
                 {
                     "name": "PX4_SIM_MODEL",
-                    "value": "gazebo_iris"
+                    "value": "gazebo-classic_iris"
                 }
             ],
             "externalConsole": false,
-            "preLaunchTask": "gazebo",
-            "postDebugTask": "gazebo kill",
+            "preLaunchTask": "gazebo-classic",
+            "postDebugTask": "gazebo-classic kill",
             "linux": {
                 "MIMode": "gdb",
                 "externalConsole": false,
