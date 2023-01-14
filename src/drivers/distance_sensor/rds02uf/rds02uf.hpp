@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017-2019, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,45 +32,65 @@
  ****************************************************************************/
 
 /**
- * @author RJ Gritter <rjgritter657@gmail.com>
+ * @file rds02uf.cpp
+ * @author
+ *
+ * Driver for the Benewake RDS02UF rangefinder series
  */
 
 #pragma once
 
-#include "sensor_bridge.hpp"
+#include <termios.h>
+
+#include <drivers/drv_hrt.h>
+#include <lib/perf/perf_counter.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
 #include <uORB/topics/distance_sensor.h>
-#include <drivers/rangefinder/PX4Rangefinder.hpp>
 
-#include <uavcan/equipment/range_sensor/Measurement.hpp>
+#include "rds02uf_parser.h"
 
-class UavcanRangefinderBridge : public UavcanSensorBridgeBase
+#define RDS02UF_DEFAULT_PORT	"/dev/ttyS3"
+
+using namespace time_literals;
+
+class Rds02uf : public px4::ScheduledWorkItem
 {
 public:
-	static const char *const NAME;
+	Rds02uf(const char *port, uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
+	virtual ~Rds02uf();
 
-	UavcanRangefinderBridge(uavcan::INode &node);
+	int init();
 
-	const char *get_name() const override { return NAME; }
-
-	int init() override;
+	void print_info();
 
 private:
 
-	int init_driver(uavcan_bridge::Channel *channel) override;
+	int collect();
 
-	void range_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::range_sensor::Measurement> &msg);
+	void Run() override;
 
-	typedef uavcan::MethodBinder < UavcanRangefinderBridge *,
-		void (UavcanRangefinderBridge::*)
-		(const uavcan::ReceivedDataStructure<uavcan::equipment::range_sensor::Measurement> &) >
-		RangeCbBinder;
+	void start();
+	void stop();
 
-	uavcan::Subscriber<uavcan::equipment::range_sensor::Measurement, RangeCbBinder> _sub_range_data;
+	PX4Rangefinder	_px4_rangefinder;
 
-	float _range_min_m{0.0f};
-	float _range_max_m{0.0f};
-	int32_t _range_rot{25};
+	RDS02UF_PARSE_STATE _parse_state {RDS02UF_PARSE_STATE::STATE0_SYNC_1};
 
-	bool _inited{false};
+	char _linebuf[21] {};
+	char _port[20] {};
+
+	static constexpr int kCONVERSIONINTERVAL{50_ms};
+
+	int _fd{-1};
+
+	unsigned int _linebuf_index{0};
+
+	hrt_abstime _last_read{0};
+
+	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": com_err")};
+	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};
 
 };

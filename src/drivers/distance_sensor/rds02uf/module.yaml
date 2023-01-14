@@ -1,14 +1,14 @@
-module_name: Benewake TFmini Rangefinder
+module_name: Benewake RDS02UF Rangefinder
 serial_config:
-    - command: tfmini start -d ${SERIAL_DEV}
+    - command: rds02uf start -d ${SERIAL_DEV} -R SENS_RDS02UF_ROT
       port_config_param:
-        name: SENS_TFMINI_CFG
+        name: SENS_RDS02_CFG
         group: Sensors
 
 parameters:
     - group: Sensors
       definitions:
-        SENS_TFMINI_ROT:
+        SENS_RDS02_ROT:
             description:
                 short: Distance Sensor Rotation
                 long: |
@@ -25,21 +25,21 @@ parameters:
             reboot_required: true
             default: 25
 
-        SENS_TFMINI_MAXD:
+        SENS_RDS02_MAXD:
             description:
-                short: Benewake TF Sensor Max Distance
+                short: Benewake RDS02UF Sensor Max Distance
                 long: |
                     This parameter defines maximum measuring distance in cm.
             type: int32
             min: 5
             max: 20000
-            default: 1200
+            default: 1500
 
-        SENS_TFMINI_MIND:
+        SENS_RDS02_MIND:
             description:
-                short: Benewake TF Sensor Min Distance
+                short: Benewake RDS02UF Sensor Min Distance
                 long: |
-                    This parameter defines min measuring distance in cm.
+                    This plsarameter defines min measuring distance in cm.
             type: int32
             min: 5
             max: 20000

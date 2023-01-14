@@ -1,0 +1,5 @@
+menuconfig DRIVERS_DISTANCE_SENSOR_RDS02UF
+	bool "tfmini"
+	default n
+	---help---
+		Enable support for rds02uf

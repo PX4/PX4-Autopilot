@@ -31,12 +31,13 @@
  *
  ****************************************************************************/
 
-#include "TFMINI.hpp"
+#include "rds02uf.hpp"
 
 #include <lib/drivers/device/Device.hpp>
+#include <parameters/param.h>
 #include <fcntl.h>
 
-TFMINI::TFMINI(const char *port, uint8_t rotation) :
+Rds02uf::Rds02uf(const char *port, uint8_t rotation) :
 	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(port)),
 	_px4_rangefinder(0, rotation)
 {
@@ -47,7 +48,7 @@ TFMINI::TFMINI(const char *port, uint8_t rotation) :
 	_port[sizeof(_port) - 1] = '\0';
 
 	device::Device::DeviceId device_id;
-	device_id.devid_s.devtype = DRV_DIST_DEVTYPE_TFMINI;
+	device_id.devid_s.devtype = DRV_DIST_DEVTYPE_RDS02UF;
 	device_id.devid_s.bus_type = device::Device::DeviceBusType_SERIAL;
 
 	uint8_t bus_num = atoi(&_port[strlen(_port) - 1]); // Assuming '/dev/ttySx'
@@ -57,10 +58,10 @@ TFMINI::TFMINI(const char *port, uint8_t rotation) :
 	}
 
 	_px4_rangefinder.set_device_id(device_id.devid);
-	_px4_rangefinder.set_rangefinder_type(distance_sensor_s::MAV_DISTANCE_SENSOR_LASER);
+	_px4_rangefinder.set_rangefinder_type(distance_sensor_s::MAV_DISTANCE_SENSOR_RADAR);
 }
 
-TFMINI::~TFMINI()
+Rds02uf::~Rds02uf()
 {
 	// make sure we are truly inactive
 	stop();
@@ -70,49 +71,30 @@ TFMINI::~TFMINI()
 }
 
 int
-TFMINI::init()
+Rds02uf::init()
 {
-	int32_t hw_model = 1; // only one model so far...
-
-	param_t _param_tfmini_rot = param_find("SENS_TFMINI_ROT");
-	param_t _param_tfmini_mind = param_find("SENS_TFMINI_MIND");
-	param_t _param_tfmini_maxd = param_find("SENS_TFMINI_MAXD");
+	param_t _param_rds02uf_rot = param_find("SENS_RDS02_ROT");
+	param_t _param_rds02uf_mind = param_find("SENS_RDS02_MIND");
+	param_t _param_rds02uf_maxd = param_find("SENS_RDS02_MAXD");
 	int32_t rotation,max_dist,min_dist;
-	if (param_get(_param_tfmini_rot, &rotation) == PX4_OK)
+	if (param_get(_param_rds02uf_rot, &rotation) == PX4_OK)
 	{
 		_px4_rangefinder.set_orientation(rotation);
 	}
-	if (param_get(_param_tfmini_mind, &min_dist) == PX4_OK)
+	if (param_get(_param_rds02uf_mind, &min_dist) == PX4_OK)
 	{
 		_px4_rangefinder.set_min_distance(min_dist / 100.0f);
 	} else {
 		_px4_rangefinder.set_min_distance(0.4f);
 	}
-	if (param_get(_param_tfmini_maxd, &max_dist) == PX4_OK)
+	if (param_get(_param_rds02uf_maxd, &max_dist) == PX4_OK)
 	{
 		_px4_rangefinder.set_max_distance(max_dist / 100.0f);
 	} else {
-		_px4_rangefinder.set_max_distance(12.0f);
+		_px4_rangefinder.set_max_distance(20.0f);
 	}
 
-	switch (hw_model) {
-	case 1: // TFMINI (12m, 100 Hz)
-		// Note:
-		// Sensor specification shows 0.3m as minimum, but in practice
-		// 0.3 is too close to minimum so chattering of invalid sensor decision
-		// is happening sometimes. this cause EKF to believe inconsistent range readings.
-		// So we set 0.4 as valid minimum.
-		// _px4_rangefinder.set_min_distance(0.4f);	// use parameter settings
-		// _px4_rangefinder.set_max_distance(12.0f);
-		_px4_rangefinder.set_fov(math::radians(1.15f));
-		// _px4_rangefinder.set_orientation(tf_rotation);
-
-		break;
-
-	default:
-		PX4_ERR("invalid HW model %" PRId32 ".", hw_model);
-		return -1;
-	}
+	// _px4_rangefinder.set_fov(math::radians(1.15f));
 
 	// status
 	int ret = 0;
@@ -191,20 +173,16 @@ TFMINI::init()
 }
 
 int
-TFMINI::collect()
+Rds02uf::collect()
 {
 	perf_begin(_sample_perf);
-
 	// clear buffer if last read was too long ago
 	int64_t read_elapsed = hrt_elapsed_time(&_last_read);
-
 	// the buffer for read chars is buflen minus null termination
 	char readbuf[sizeof(_linebuf)] {};
 	unsigned readlen = sizeof(readbuf) - 1;
-
 	int ret = 0;
 	float distance_m = -1.0f;
-
 	// Check the number of bytes available in the buffer
 	int bytes_available = 0;
 	::ioctl(_fd, FIONREAD, (unsigned long)&bytes_available);
@@ -213,14 +191,11 @@ TFMINI::collect()
 		perf_end(_sample_perf);
 		return 0;
 	}
-
 	// parse entire buffer
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
-
 	do {
 		// read from the sensor (uart buffer)
 		ret = ::read(_fd, &readbuf[0], readlen);
-
 		if (ret < 0) {
 			PX4_ERR("read err: %d", ret);
 			perf_count(_comms_errors);
@@ -241,7 +216,7 @@ TFMINI::collect()
 
 		// parse buffer
 		for (int i = 0; i < ret; i++) {
-			tfmini_parse(readbuf[i], _linebuf, &_linebuf_index, &_parse_state, &distance_m);
+			rds02uf_parse(readbuf[i], _linebuf, &_linebuf_index, &_parse_state, &distance_m);
 		}
 
 		// bytes left to parse
@@ -264,20 +239,20 @@ TFMINI::collect()
 }
 
 void
-TFMINI::start()
+Rds02uf::start()
 {
-	// schedule a cycle to start things (the sensor sends at 100Hz, but we run a bit faster to avoid missing data)
-	ScheduleOnInterval(7_ms);
+	// schedule a cycle to start things (the sensor sends at 20Hz, but we run a bit faster to avoid missing data)
+	ScheduleOnInterval(47_ms);
 }
 
 void
-TFMINI::stop()
+Rds02uf::stop()
 {
 	ScheduleClear();
 }
 
 void
-TFMINI::Run()
+Rds02uf::Run()
 {
 	// fds initialized?
 	if (_fd < 0) {
@@ -287,15 +262,15 @@ TFMINI::Run()
 
 	// perform collection
 	if (collect() == -EAGAIN) {
-		// reschedule to grab the missing bits, time to transmit 9 bytes @ 115200 bps
+		// reschedule to grab the missing bits, time to transmit 21 bytes @ 115200 bps
 		ScheduleClear();
-		ScheduleOnInterval(7_ms, 87 * 9);
+		ScheduleOnInterval(57_ms, 87 * 21);
 		return;
 	}
 }
 
 void
-TFMINI::print_info()
+Rds02uf::print_info()
 {
 	printf("Using port '%s'\n", _port);
 	perf_print_counter(_sample_perf);

@@ -53,6 +53,7 @@
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
 #include <uORB/topics/distance_sensor.h>
+#include <px4_platform_common/module_params.h>
 
 #include "tfmini_parser.h"
 
