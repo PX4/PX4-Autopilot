@@ -149,7 +149,6 @@ private:
 		int32_t		rpm_max{MODALAI_ESC_DEFAULT_RPM_MAX};
 		int32_t		function_map[MODALAI_ESC_OUTPUT_CHANNELS] {0, 0, 0, 0};
 		int32_t		motor_map[MODALAI_ESC_OUTPUT_CHANNELS] {1, 2, 3, 4};
-		int32_t		rev_mask{0};
 		int32_t		direction_map[MODALAI_ESC_OUTPUT_CHANNELS] {1, 1, 1, 1};
 	} uart_esc_params_t;
 
@@ -181,7 +180,7 @@ private:
 	} led_rsc_t;
 
 	ch_assign_t		_output_map[MODALAI_ESC_OUTPUT_CHANNELS] {{1, 1}, {2, 1}, {3, 1}, {4, 1}};
-	MixingOutput 		_mixing_output{"MODALAI_ESC", MODALAI_ESC_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
+	MixingOutput 		_mixing_output;
 
 	perf_counter_t		_cycle_perf;
 	perf_counter_t		_output_update_perf;

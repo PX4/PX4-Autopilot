@@ -11,6 +11,14 @@ actuator_output:
       label: 'RPM Min'
     - param: 'UART_ESC_RPM_MAX'
       label: 'RPM Max'
+    - param: 'UART_ESC_SDIR1'
+      label: 'ESC 1 Spin Direction'
+    - param: 'UART_ESC_SDIR2'
+      label: 'ESC 2 Spin Direction'
+    - param: 'UART_ESC_SDIR3'
+      label: 'ESC 3 Spin Direction'
+    - param: 'UART_ESC_SDIR4'
+      label: 'ESC 4 Spin Direction'
   output_groups:
     - param_prefix: UART_ESC
       group_label: 'ESCs'

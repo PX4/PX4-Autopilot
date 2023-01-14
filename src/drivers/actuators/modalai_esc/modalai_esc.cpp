@@ -46,7 +46,7 @@ const char *_device;
 
 ModalaiEsc::ModalaiEsc() :
 	OutputModuleInterface(MODULE_NAME, px4::serial_port_to_wq(MODALAI_ESC_DEFAULT_PORT)),
-	_mixing_output{"UART_ESC", MODALAI_ESC_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, true},
+	_mixing_output{"UART_ESC", MODALAI_ESC_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false},
 	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
 	_output_update_perf(perf_alloc(PC_INTERVAL, MODULE_NAME": output update interval"))
 {
@@ -125,7 +125,7 @@ int ModalaiEsc::load_params(uart_esc_params_t *params, ch_assign_t *map)
 	// initialize out
 	for (int i = 0; i < MODALAI_ESC_OUTPUT_CHANNELS; i++) {
 		params->function_map[i] = (int)OutputFunction::Disabled;
-		params->direction_map[i] = 1;
+		params->direction_map[i] = 0;
 		params->motor_map[i] = 0;
 	}
 
@@ -144,17 +144,10 @@ int ModalaiEsc::load_params(uart_esc_params_t *params, ch_assign_t *map)
 	param_get(param_find("UART_ESC_FUNC3"),  &params->function_map[2]);
 	param_get(param_find("UART_ESC_FUNC4"),  &params->function_map[3]);
 
-	param_get(param_find("UART_ESC_REV"),  &params->rev_mask);
-
-	for (int i = 0; i < MODALAI_ESC_OUTPUT_CHANNELS; i++) {
-		// set to 1 to reverse
-		if (params->rev_mask & (1 << i)) {
-			params->direction_map[i] = 1;
-
-		} else {
-			params->direction_map[i] = 0;
-		}
-	}
+	param_get(param_find("UART_ESC_SDIR1"),  &params->direction_map[0]);
+	param_get(param_find("UART_ESC_SDIR2"),  &params->direction_map[1]);
+	param_get(param_find("UART_ESC_SDIR3"),  &params->direction_map[2]);
+	param_get(param_find("UART_ESC_SDIR4"),  &params->direction_map[3]);
 
 	param_get(param_find("UART_ESC_RPM_MIN"), &params->rpm_min);
 	param_get(param_find("UART_ESC_RPM_MAX"), &params->rpm_max);
@@ -802,8 +795,11 @@ int ModalaiEsc::update_params()
 	ret = load_params(&_parameters, (ch_assign_t *)&_output_map);
 
 	if (ret == PX4_OK) {
+		_mixing_output.setAllDisarmedValues(0);
+		_mixing_output.setAllFailsafeValues(0);
 		_mixing_output.setAllMinValues(_parameters.rpm_min);
 		_mixing_output.setAllMaxValues(_parameters.rpm_max);
+
 		_rpm_fullscale = _parameters.rpm_max - _parameters.rpm_min;
 	}
 
@@ -1574,7 +1570,10 @@ int ModalaiEsc::print_status()
 	PX4_INFO("Params: UART_ESC_FUNC3: %li", _parameters.function_map[2]);
 	PX4_INFO("Params: UART_ESC_FUNC4: %li", _parameters.function_map[3]);
 
-	PX4_INFO("Params: UART_ESC_REV: %li", _parameters.rev_mask);
+	PX4_INFO("Params: UART_ESC_SDIR1: %li", _parameters.direction_map[0]);
+	PX4_INFO("Params: UART_ESC_SDIR2: %li", _parameters.direction_map[1]);
+	PX4_INFO("Params: UART_ESC_SDIR3: %li", _parameters.direction_map[2]);
+	PX4_INFO("Params: UART_ESC_SDIR4: %li", _parameters.direction_map[3]);
 
 	PX4_INFO("Params: UART_ESC_RPM_MIN: %li", _parameters.rpm_min);
 	PX4_INFO("Params: UART_ESC_RPM_MAX: %li", _parameters.rpm_max);
