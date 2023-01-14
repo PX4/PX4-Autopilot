@@ -38,6 +38,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <drivers/device/spi.h>
+#include <drivers/device/i2c.h>
 #include <drivers/device/qurt/uart.h>
 #include <pthread.h>
 #include <px4_platform_common/tasks.h>
@@ -279,6 +280,10 @@ int px4muorb_orb_initialize(fc_func_ptrs *func_ptrs, int32_t clock_offset_us)
 		px4::WorkQueueManagerStart();
 
 		uORB::ProtobufChannel::GetInstance()->RegisterSendHandler(muorb_func_ptrs.topic_data_func_ptr);
+
+		// Configure the I2C driver function pointers
+		device::I2C::configure_callbacks(muorb_func_ptrs._config_i2c_bus_func_t, muorb_func_ptrs._set_i2c_address_func_t,
+						 muorb_func_ptrs._i2c_transfer_func_t);
 
 		// Configure the SPI driver function pointers
 		device::SPI::configure_callbacks(muorb_func_ptrs._config_spi_bus_func_t, muorb_func_ptrs._spi_transfer_func_t);
