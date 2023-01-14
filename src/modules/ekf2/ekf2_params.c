@@ -1415,6 +1415,19 @@ PARAM_DEFINE_FLOAT(EKF2_ABL_GYRLIM, 3.0f);
 PARAM_DEFINE_FLOAT(EKF2_ABL_TAU, 0.5f);
 
 /**
+ * Gyro bias learning limit.
+ *
+ * The ekf delta angle bias states will be limited to within a range equivalent to +- of this value.
+ *
+ * @group EKF2
+ * @min 0.0
+ * @max 0.4
+ * @unit rad/s
+ * @decimal 3
+ */
+PARAM_DEFINE_FLOAT(EKF2_GYR_B_LIM, 0.15f);
+
+/**
  * Required GPS health time on startup
  *
  * Minimum continuous period without GPS failure required to mark a healthy GPS status.
