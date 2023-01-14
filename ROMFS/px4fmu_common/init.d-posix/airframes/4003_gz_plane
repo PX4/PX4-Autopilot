@@ -68,13 +68,23 @@ param set-default CA_SV_CS3_TRQ_Y 1.0
 param set-default CA_SV_CS3_TYPE 4
 param set-default CA_SV_CS4_TYPE 9
 param set-default CA_SV_CS5_TYPE 10
-param set-default PWM_MAIN_FUNC3 204
-param set-default PWM_MAIN_FUNC4 205
-param set-default PWM_MAIN_FUNC5 101
-param set-default PWM_MAIN_FUNC6 201
-param set-default PWM_MAIN_FUNC7 202
-param set-default PWM_MAIN_FUNC8 203
-param set-default PWM_MAIN_FUNC9 206
-param set-default PWM_MAIN_REV 256
+
+param set-default SIM_GZ_FUNC1 201
+param set-default SIM_GZ_FUNC2 202
+param set-default SIM_GZ_FUNC3 203
+param set-default SIM_GZ_FUNC4 101
+param set-default SIM_GZ_FUNC5 204
+param set-default SIM_GZ_FUNC6 205
+param set-default SIM_GZ_FUNC7 206
+
+param set-default SIM_GZ_MIN1 150
+param set-default SIM_GZ_MIN2 150
+param set-default SIM_GZ_MIN3 150
+param set-default SIM_GZ_MIN4 150
+
+param set-default SIM_GZ_MAX1 1000
+param set-default SIM_GZ_MAX2 1000
+param set-default SIM_GZ_MAX3 1000
+param set-default SIM_GZ_MAX4 1000
 
 
