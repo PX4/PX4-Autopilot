@@ -99,7 +99,6 @@ PARAM_DEFINE_FLOAT(IMU_GYRO_NF1_FRQ, 0.0f);
 */
 PARAM_DEFINE_FLOAT(IMU_GYRO_NF1_BW, 20.0f);
 
-
 /**
 * Low pass filter cutoff frequency for gyro
 *

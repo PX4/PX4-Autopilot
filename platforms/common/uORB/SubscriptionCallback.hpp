@@ -61,6 +61,11 @@ public:
 	{
 	}
 
+	SubscriptionCallback(ORB_ID id, uint32_t interval_us = 0, uint8_t instance = 0) :
+		SubscriptionInterval(id, interval_us, instance)
+	{
+	}
+
 	virtual ~SubscriptionCallback()
 	{
 		unregisterCallback();
@@ -154,6 +159,12 @@ public:
 	 */
 	SubscriptionCallbackWorkItem(px4::WorkItem *work_item, const orb_metadata *meta, uint8_t instance = 0) :
 		SubscriptionCallback(meta, 0, instance),	// interval 0
+		_work_item(work_item)
+	{
+	}
+
+	SubscriptionCallbackWorkItem(px4::WorkItem *work_item, ORB_ID id, uint8_t instance = 0) :
+		SubscriptionCallback(id, 0, instance),	// interval 0
 		_work_item(work_item)
 	{
 	}

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,30 +33,41 @@
 
 #pragma once
 
-#include <Integrator.hpp>
+#include "IMU.hpp"
+#include "VehicleAcceleration.hpp"
+#include "VehicleAngularVelocity.hpp"
+
+#include <include/containers/Bitset.hpp>
 
 #include <lib/mathlib/math/Limits.hpp>
-#include <lib/mathlib/math/WelfordMean.hpp>
-#include <lib/mathlib/math/WelfordMeanVector.hpp>
+
 #include <lib/matrix/matrix/math.hpp>
-#include <lib/perf/perf_counter.h>
-#include <lib/sensor_calibration/Accelerometer.hpp>
-#include <lib/sensor_calibration/Gyroscope.hpp>
+#include <lib/mathlib/math/filter/AlphaFilter.hpp>
+#include <lib/mathlib/math/filter/LowPassFilter2p.hpp>
+#include <lib/mathlib/math/filter/NotchFilter.hpp>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+
+// publications
+#include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
+#include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/sensors_status_imu.h>
+#include <uORB/topics/sensor_selection.h>
+
+// subscriptions
 #include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/SubscriptionCallback.hpp>
+#include <uORB/SubscriptionMultiArray.hpp>
+#include <uORB/topics/estimator_selector_status.h>
 #include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_accel.h>
 #include <uORB/topics/sensor_gyro.h>
+#include <uORB/topics/sensor_imu_fifo.h>
 #include <uORB/topics/vehicle_control_mode.h>
-#include <uORB/topics/vehicle_imu.h>
-#include <uORB/topics/vehicle_imu_status.h>
 
 using namespace time_literals;
 
@@ -66,140 +77,129 @@ namespace sensors
 class VehicleIMU : public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
-	VehicleIMU() = delete;
-	VehicleIMU(int instance, uint8_t accel_index, uint8_t gyro_index, const px4::wq_config_t &config);
-
+	VehicleIMU();
 	~VehicleIMU() override;
 
+	void PrintStatus();
 	bool Start();
 	void Stop();
 
-	void PrintStatus();
-
 private:
-	bool ParametersUpdate(bool force = false);
-	bool Publish();
 	void Run() override;
 
-	bool UpdateAccel();
-	bool UpdateGyro();
+	bool ParametersUpdate(bool force = false);
 
-	void UpdateIntegratorConfiguration();
+	int8_t findAccelInstance(uint32_t device_id);
 
-	inline void UpdateAccelVibrationMetrics(const matrix::Vector3f &acceleration);
-	inline void UpdateGyroVibrationMetrics(const matrix::Vector3f &angular_velocity);
+	bool PublishImu(sensors::IMU &imu, const matrix::Vector3f &delta_angle, const uint16_t delta_angle_dt,
+			const matrix::Vector3f &delta_velocity, const uint16_t delta_velocity_dt);
+	void PublishSensorsStatusIMU();
+
+	void SensorBiasUpdate();
+	bool SensorSelectionUpdate(bool force = false);
+	void UpdateSensorImuFifo(uint8_t sensor_instance);
+	void UpdateSensorAccel(uint8_t sensor_instance);
+	void UpdateSensorGyro(uint8_t sensor_instance);
 
 	void SensorCalibrationUpdate();
 	void SensorCalibrationSaveAccel();
 	void SensorCalibrationSaveGyro();
 
+	void updateGyroCalibration();
+
 	// return the square of two floating point numbers
 	static constexpr float sq(float var) { return var * var; }
 
-	uORB::PublicationMulti<vehicle_imu_s> _vehicle_imu_pub{ORB_ID(vehicle_imu)};
-	uORB::PublicationMulti<vehicle_imu_status_s> _vehicle_imu_status_pub{ORB_ID(vehicle_imu_status)};
+	static constexpr int MAX_SENSOR_COUNT = 4;
 
-	static constexpr hrt_abstime kIMUStatusPublishingInterval{100_ms};
-
-	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
-
-	// Used to check, save and use learned magnetometer biases
+	uORB::Subscription _estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
 	uORB::SubscriptionMultiArray<estimator_sensor_bias_s> _estimator_sensor_bias_subs{ORB_ID::estimator_sensor_bias};
-
-	uORB::Subscription _sensor_accel_sub;
-	uORB::SubscriptionCallbackWorkItem _sensor_gyro_sub;
-
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	uORB::SubscriptionCallbackWorkItem _sensor_selection_sub{this, ORB_ID(sensor_selection)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 
-	calibration::Accelerometer _accel_calibration{};
-	calibration::Gyroscope _gyro_calibration{};
-
-	sensors::Integrator       _accel_integrator{};
-	sensors::IntegratorConing _gyro_integrator{};
-
-	uint32_t _imu_integration_interval_us{5000};
-
-	hrt_abstime _accel_timestamp_sample_last{0};
-	hrt_abstime _gyro_timestamp_sample_last{0};
-	hrt_abstime _gyro_timestamp_last{0};
-
-	math::WelfordMeanVector<float, 3> _raw_accel_mean{};
-	math::WelfordMeanVector<float, 3> _raw_gyro_mean{};
-
-	math::WelfordMean<float> _accel_mean_interval_us{};
-	math::WelfordMean<float> _accel_fifo_mean_interval_us{};
-
-	math::WelfordMean<float> _gyro_mean_interval_us{};
-	math::WelfordMean<float> _gyro_fifo_mean_interval_us{};
-
-	math::WelfordMean<float> _gyro_update_latency_mean_us{};
-	math::WelfordMean<float> _gyro_publish_latency_mean_us{};
-
-	float _accel_interval_us{NAN};
-	float _gyro_interval_us{NAN};
-
-	unsigned _accel_last_generation{0};
-	unsigned _gyro_last_generation{0};
-
-	float _accel_temperature_sum{NAN};
-	float _gyro_temperature_sum{NAN};
-
-	int _accel_temperature_sum_count{0};
-	int _gyro_temperature_sum_count{0};
-
-	matrix::Vector3f _acceleration_prev{};     // acceleration from the previous IMU measurement for vibration metrics
-	matrix::Vector3f _angular_velocity_prev{}; // angular velocity from the previous IMU measurement for vibration metrics
-
-	vehicle_imu_status_s _status{};
-
-	float _coning_norm_accum{0};
-	float _coning_norm_accum_total_time_s{0};
-
-	uint8_t     _delta_angle_clipping{0};
-	uint8_t     _delta_velocity_clipping{0};
-
-	hrt_abstime _last_accel_clipping_notify_time{0};
-	hrt_abstime _last_gyro_clipping_notify_time{0};
-
-	uint64_t    _last_accel_clipping_notify_total_count{0};
-	uint64_t    _last_gyro_clipping_notify_total_count{0};
-
-	orb_advert_t _mavlink_log_pub{nullptr};
-
-	uint32_t _backup_schedule_timeout_us{20000};
-
-	bool _data_gap{false};
-	bool _update_integrator_config{true};
-	bool _intervals_configured{false};
-	bool _publish_status{true};
-
-	const uint8_t _instance;
-
-	bool _armed{false};
-
-	bool _accel_cal_available{false};
-	bool _gyro_cal_available{false};
-
-	struct InFlightCalibration {
-		matrix::Vector3f offset{};
-		matrix::Vector3f bias_variance{};
-		bool valid{false};
+	uORB::SubscriptionCallbackWorkItem _sensor_imu_fifo_subs[MAX_SENSOR_COUNT] {
+		{this, ORB_ID::sensor_imu_fifo, 0},
+		{this, ORB_ID::sensor_imu_fifo, 1},
+		{this, ORB_ID::sensor_imu_fifo, 2},
+		{this, ORB_ID::sensor_imu_fifo, 3}
 	};
 
-	InFlightCalibration _accel_learned_calibration[ORB_MULTI_MAX_INSTANCES] {};
-	InFlightCalibration _gyro_learned_calibration[ORB_MULTI_MAX_INSTANCES] {};
+	uORB::SubscriptionCallbackWorkItem _sensor_accel_subs[MAX_SENSOR_COUNT] {
+		{this, ORB_ID::sensor_accel, 0},
+		{this, ORB_ID::sensor_accel, 1},
+		{this, ORB_ID::sensor_accel, 2},
+		{this, ORB_ID::sensor_accel, 3}
+	};
+
+	uORB::SubscriptionCallbackWorkItem _sensor_gyro_subs[MAX_SENSOR_COUNT] {
+		{this, ORB_ID::sensor_gyro, 0},
+		{this, ORB_ID::sensor_gyro, 1},
+		{this, ORB_ID::sensor_gyro, 2},
+		{this, ORB_ID::sensor_gyro, 3}
+	};
+
+	IMU _imus[MAX_SENSOR_COUNT] {};
+
+
+
+	// struct SensorData {
+	// 	DataValidatorGroup voter{1};
+	// 	unsigned int last_failover_count{0};
+	// 	int32_t priority[MAX_SENSOR_COUNT] {};
+	// 	int32_t priority_configured[MAX_SENSOR_COUNT] {};
+	// 	uint8_t last_best_vote{0}; /**< index of the latest best vote */
+	// 	uint8_t subscription_count{0};
+	// 	bool advertised[MAX_SENSOR_COUNT] {false, false, false};
+	// };
+
+	// SensorData _accel{};
+	// SensorData _gyro{};
+
+	hrt_abstime _last_error_message{0};
+	orb_advert_t _mavlink_log_pub{nullptr};
+
+	matrix::Vector3f _accel_diff[MAX_SENSOR_COUNT] {};		/**< filtered accel differences between IMU units (m/s/s) */
+	matrix::Vector3f _gyro_diff[MAX_SENSOR_COUNT] {};			/**< filtered gyro differences between IMU uinits (rad/s) */
+
+
+
+	// TODO:
+	uORB::Publication<sensor_combined_s>    _sensor_combined_pub{ORB_ID(sensor_combined)}; // legacy
+	uORB::Publication<sensor_selection_s>   _sensor_selection_pub{ORB_ID(sensor_selection)};
+	uORB::Publication<sensors_status_imu_s> _sensors_status_imu_pub{ORB_ID(sensors_status_imu)};
+
+	VehicleAcceleration _vehicle_acceleration{};
+	VehicleAngularVelocity _vehicle_angular_velocity{};
+
+	uint32_t _selected_accel_device_id{0};
+	uint32_t _selected_gyro_device_id{0};
+	int8_t _selected_imu_index{-1};
+
+
+	// calibration
+	hrt_abstime _last_calibration_update{0};
 
 	static constexpr hrt_abstime INFLIGHT_CALIBRATION_QUIET_PERIOD_US{30_s};
 
 	hrt_abstime _in_flight_calibration_check_timestamp_last{0};
+	bool _accel_cal_available{false};
+	bool _gyro_cal_available{false};
 
-	perf_counter_t _accel_generation_gap_perf{perf_alloc(PC_COUNT, MODULE_NAME": accel data gap")};
-	perf_counter_t _gyro_generation_gap_perf{perf_alloc(PC_COUNT, MODULE_NAME": gyro data gap")};
+
+	bool _armed{false};
+
+
+	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": IMU update")};
+	perf_counter_t _selection_changed_perf{perf_alloc(PC_COUNT, MODULE_NAME": IMU selection changed")};
 
 	DEFINE_PARAMETERS(
+		(ParamBool<px4::params::SENS_IMU_AUTOCAL>) _param_sens_imu_autocal,
+		(ParamBool<px4::params::SENS_IMU_MODE>) _param_sens_imu_mode,
 		(ParamInt<px4::params::IMU_INTEG_RATE>) _param_imu_integ_rate,
-		(ParamBool<px4::params::SENS_IMU_AUTOCAL>) _param_sens_imu_autocal
+		(ParamInt<px4::params::IMU_GYRO_RATEMAX>) _param_imu_gyro_ratemax
 	)
+
 };
 
 } // namespace sensors

@@ -45,16 +45,7 @@
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
-#include <uORB/Publication.hpp>
-#include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionCallback.hpp>
-#include "voted_sensors_update.h"
-#include "vehicle_imu/VehicleIMU.hpp"
-
-#if defined(CONFIG_SENSORS_VEHICLE_ACCELERATION)
-# include "vehicle_acceleration/VehicleAcceleration.hpp"
-#endif // CONFIG_SENSORS_VEHICLE_ACCELERATION
 
 #if defined(CONFIG_SENSORS_VEHICLE_AIRSPEED)
 # include <drivers/drv_sensor.h>
@@ -70,9 +61,9 @@
 # include "vehicle_air_data/VehicleAirData.hpp"
 #endif // CONFIG_SENSORS_VEHICLE_AIR_DATA
 
-#if defined(CONFIG_SENSORS_VEHICLE_ANGULAR_VELOCITY)
-# include "vehicle_angular_velocity/VehicleAngularVelocity.hpp"
-#endif // CONFIG_SENSORS_VEHICLE_ANGULAR_VELOCITY
+#if defined(CONFIG_SENSORS_VEHICLE_IMU)
+# include "vehicle_imu/VehicleIMU.hpp"
+#endif // CONFIG_SENSORS_VEHICLE_IMU
 
 #if defined(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
 # include "vehicle_gps_position/VehicleGPSPosition.hpp"
@@ -80,8 +71,6 @@
 
 #if defined(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
 # include "vehicle_magnetometer/VehicleMagnetometer.hpp"
-# include <lib/sensor_calibration/Magnetometer.hpp>
-# include <uORB/topics/sensor_mag.h>
 #endif // CONFIG_SENSORS_VEHICLE_MAGNETOMETER
 
 #if defined(CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW)
@@ -98,7 +87,7 @@ using namespace time_literals;
 class Sensors : public ModuleBase<Sensors>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
-	explicit Sensors(bool hil_enabled);
+	Sensors();
 	~Sensors() override;
 
 	/** @see ModuleBase */
@@ -123,44 +112,13 @@ private:
 	int		parameters_update();
 
 	void		InitializeVehicleAirData();
-
 	void		InitializeVehicleGPSPosition();
-
-	void		InitializeVehicleIMU();
-
 	void		InitializeVehicleMagnetometer();
-
 	void		InitializeVehicleOpticalFlow();
-
-	const bool _hil_enabled;	/**< if true, HIL is active */
 
 	perf_counter_t	_loop_perf;	/**< loop performance counter */
 
-	VehicleIMU *_vehicle_imu_list[MAX_SENSOR_COUNT] {};
-
-	VotedSensorsUpdate _voted_sensors_update;
-
-	sensor_combined_s _sensor_combined{};
-
-	hrt_abstime     _last_config_update{0};
-	hrt_abstime     _sensor_combined_prev_timestamp{0};
-
-	uint8_t _n_accel{0};
-	uint8_t _n_gyro{0};
-
-	bool _armed{false};		/**< arming status of the vehicle */
-
-	uORB::SubscriptionCallbackWorkItem _vehicle_imu_sub[MAX_SENSOR_COUNT] {
-		{this, ORB_ID(vehicle_imu), 0},
-		{this, ORB_ID(vehicle_imu), 1},
-		{this, ORB_ID(vehicle_imu), 2},
-		{this, ORB_ID(vehicle_imu), 3}
-	};
-
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
-	uORB::Subscription _vcontrol_mode_sub{ORB_ID(vehicle_control_mode)};
-
-	uORB::Publication<sensor_combined_s> _sensor_pub{ORB_ID(sensor_combined)};
 
 #if defined(CONFIG_SENSORS_VEHICLE_AIRSPEED)
 	/**
@@ -201,54 +159,46 @@ private:
 # endif // ADC_AIRSPEED_VOLTAGE_CHANNEL
 
 	struct Parameters {
-		float diff_pres_offset_pa;
+		float diff_pres_offset_pa{0.f};
 #ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
-		float diff_pres_analog_scale;
+		float diff_pres_analog_scale {0.f};
 #endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
 
-		int32_t air_cmodel;
-		float air_tube_length;
-		float air_tube_diameter_mm;
+		int32_t air_cmodel{0};
+		float air_tube_length{0.f};
+		float air_tube_diameter_mm{0.f};
 	} _parameters{}; /**< local copies of interesting parameters */
 
 	struct ParameterHandles {
-		param_t diff_pres_offset_pa;
+		param_t diff_pres_offset_pa{PARAM_INVALID};
 #ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
-		param_t diff_pres_analog_scale;
+		param_t diff_pres_analog_scale {PARAM_INVALID};
 #endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
 
-		param_t air_cmodel;
-		param_t air_tube_length;
-		param_t air_tube_diameter_mm;
+		param_t air_cmodel{PARAM_INVALID};
+		param_t air_tube_length{PARAM_INVALID};
+		param_t air_tube_diameter_mm{PARAM_INVALID};
 	} _parameter_handles{};		/**< handles for interesting parameters */
 #endif // CONFIG_SENSORS_VEHICLE_AIRSPEED
 
-#if defined(CONFIG_SENSORS_VEHICLE_ACCELERATION)
-	VehicleAcceleration _vehicle_acceleration;
-#endif // CONFIG_SENSORS_VEHICLE_ACCELERATION
-
 #if defined(CONFIG_SENSORS_VEHICLE_AIR_DATA)
 	VehicleAirData *_vehicle_air_data {nullptr};
-	uint8_t _n_baro{0};
 #endif // CONFIG_SENSORS_VEHICLE_AIR_DATA
 
-#if defined(CONFIG_SENSORS_VEHICLE_ANGULAR_VELOCITY)
-	VehicleAngularVelocity	_vehicle_angular_velocity;
-#endif // CONFIG_SENSORS_VEHICLE_ANGULAR_VELOCITY
+#if defined(CONFIG_SENSORS_VEHICLE_IMU)
+	VehicleIMU _vehicle_imu {};
+#endif // CONFIG_SENSORS_VEHICLE_IMU
 
 #if defined(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
 	VehicleMagnetometer *_vehicle_magnetometer {nullptr};
-	uint8_t _n_mag{0};
 #endif // CONFIG_SENSORS_VEHICLE_MAGNETOMETER
 
 #if defined(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
 	VehicleGPSPosition *_vehicle_gps_position {nullptr};
-	uint8_t _n_gps{0};
 #endif // CONFIG_SENSORS_VEHICLE_GPS_POSITION
 
 #if defined(CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW)
 	VehicleOpticalFlow *_vehicle_optical_flow {nullptr};
-	uint8_t _n_optical_flow{0};
 #endif // CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW
 
 	DEFINE_PARAMETERS(
@@ -259,8 +209,7 @@ private:
 		(ParamBool<px4::params::SYS_HAS_GPS>) _param_sys_has_gps,
 #endif // CONFIG_SENSORS_VEHICLE_GPS_POSITION
 #if defined(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
-		(ParamInt<px4::params::SYS_HAS_MAG>) _param_sys_has_mag,
+		(ParamBool<px4::params::SYS_HAS_MAG>) _param_sys_has_mag
 #endif // CONFIG_SENSORS_VEHICLE_MAGNETOMETER
-		(ParamBool<px4::params::SENS_IMU_MODE>) _param_sens_imu_mode
 	)
 };

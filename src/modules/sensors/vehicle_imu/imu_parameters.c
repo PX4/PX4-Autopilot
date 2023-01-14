@@ -32,6 +32,20 @@
  ****************************************************************************/
 
 /**
+* Low pass filter cutoff frequency for accel
+*
+* The cutoff frequency for the 2nd order butterworth filter on the primary accelerometer.
+* This only affects the signal sent to the controllers, not the estimators. 0 disables the filter.
+*
+* @min 0
+* @max 1000
+* @unit Hz
+* @reboot_required true
+* @group Sensors
+*/
+PARAM_DEFINE_FLOAT(IMU_ACCEL_CUTOFF, 30.0f);
+
+/**
 * IMU integration rate.
 *
 * The rate at which raw IMU data is integrated to produce delta angles and delta velocities.
@@ -60,3 +74,15 @@ PARAM_DEFINE_INT32(IMU_INTEG_RATE, 200);
  * @group Sensors
  */
 PARAM_DEFINE_INT32(SENS_IMU_AUTOCAL, 1);
+
+/**
+ * Sensors hub IMU mode
+ *
+ * @value 0 Disabled
+ * @value 1 Publish primary IMU selection
+ *
+ * @category system
+ * @reboot_required true
+ * @group Sensors
+ */
+PARAM_DEFINE_INT32(SENS_IMU_MODE, 1);

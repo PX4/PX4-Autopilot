@@ -96,12 +96,6 @@ then
 	px4flow start -X &
 fi
 
-if param compare -s IMU_GYRO_CAL_EN 1
-then
-	gyro_calibration start
-fi
-
-
 if param compare -s MBE_ENABLE 1
 then
 	# conservative mag bias estimation

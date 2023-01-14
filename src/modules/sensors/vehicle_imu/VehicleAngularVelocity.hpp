@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,28 +33,24 @@
 
 #pragma once
 
+#include "IMU.hpp"
+
 #include <containers/Bitset.hpp>
-#include <lib/sensor_calibration/Gyroscope.hpp>
 #include <lib/mathlib/math/Limits.hpp>
 #include <lib/matrix/matrix/math.hpp>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <lib/mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/mathlib/math/filter/NotchFilter.hpp>
+#include <lib/perf/perf_counter.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/esc_status.h>
-#include <uORB/topics/estimator_selector_status.h>
-#include <uORB/topics/estimator_sensor_bias.h>
-#include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_gyro.h>
 #include <uORB/topics/sensor_gyro_fft.h>
-#include <uORB/topics/sensor_gyro_fifo.h>
-#include <uORB/topics/sensor_selection.h>
+#include <uORB/topics/sensor_imu_fifo.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 
 using namespace time_literals;
@@ -62,60 +58,48 @@ using namespace time_literals;
 namespace sensors
 {
 
-class VehicleAngularVelocity : public ModuleParams, public px4::ScheduledWorkItem
+class VehicleAngularVelocity : public ModuleParams
 {
 public:
 	VehicleAngularVelocity();
 	~VehicleAngularVelocity() override;
 
 	void PrintStatus();
-	bool Start();
-	void Stop();
+
+	void ParametersUpdate();
+
+	// IMU& ?
+	void updateSensorGyro(IMU &imu, const sensor_gyro_s &sensor_data);
+	void updateSensorImuFifo(IMU &imu, const sensor_imu_fifo_s &sensor_fifo_data);
 
 private:
-	void Run() override;
 
-	bool CalibrateAndPublish(const hrt_abstime &timestamp_sample, const matrix::Vector3f &angular_velocity_uncalibrated,
-				 const matrix::Vector3f &angular_acceleration_uncalibrated);
+	bool CalibrateAndPublish(const hrt_abstime &timestamp_sample, const IMU &imu,
+				 const matrix::Vector3f &angular_velocity_uncalibrated, const matrix::Vector3f &angular_acceleration_uncalibrated);
 
 	inline float FilterAngularVelocity(int axis, float data[], int N = 1);
 	inline float FilterAngularAcceleration(int axis, float inverse_dt_s, float data[], int N = 1);
 
 	void DisableDynamicNotchEscRpm();
 	void DisableDynamicNotchFFT();
-	void ParametersUpdate(bool force = false);
 
-	void ResetFilters(const hrt_abstime &time_now_us);
-	void SensorBiasUpdate(bool force = false);
-	bool SensorSelectionUpdate(const hrt_abstime &time_now_us, bool force = false);
+	void ResetFilters(const hrt_abstime &time_now_us, const IMU &imu);
 	void UpdateDynamicNotchEscRpm(const hrt_abstime &time_now_us, bool force = false);
 	void UpdateDynamicNotchFFT(const hrt_abstime &time_now_us, bool force = false);
-	bool UpdateSampleRate();
+	bool UpdateSampleRate(float sample_rate_hz, float publish_rate_hz);
+
+	void update(IMU &imu);
 
 	// scaled appropriately for current sensor
-	matrix::Vector3f GetResetAngularVelocity() const;
-	matrix::Vector3f GetResetAngularAcceleration() const;
+	matrix::Vector3f GetResetAngularVelocity(const IMU &imu) const;
+	matrix::Vector3f GetResetAngularAcceleration(const IMU &imu) const;
 
-	static constexpr int MAX_SENSOR_COUNT = 4;
+	uORB::Publication<vehicle_angular_velocity_s> _vehicle_angular_velocity_pub{ORB_ID(vehicle_angular_velocity)};
 
-	uORB::Publication<vehicle_angular_velocity_s>     _vehicle_angular_velocity_pub{ORB_ID(vehicle_angular_velocity)};
-
-	uORB::Subscription _estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
-	uORB::Subscription _estimator_sensor_bias_sub{ORB_ID(estimator_sensor_bias)};
 #if !defined(CONSTRAINED_FLASH)
 	uORB::Subscription _esc_status_sub {ORB_ID(esc_status)};
 	uORB::Subscription _sensor_gyro_fft_sub {ORB_ID(sensor_gyro_fft)};
 #endif // !CONSTRAINED_FLASH
-
-	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
-
-	uORB::SubscriptionCallbackWorkItem _sensor_selection_sub{this, ORB_ID(sensor_selection)};
-	uORB::SubscriptionCallbackWorkItem _sensor_sub{this, ORB_ID(sensor_gyro)};
-	uORB::SubscriptionCallbackWorkItem _sensor_gyro_fifo_sub{this, ORB_ID(sensor_gyro_fifo)};
-
-	calibration::Gyroscope _calibration{};
-
-	matrix::Vector3f _bias{};
 
 	matrix::Vector3f _angular_velocity{};
 	matrix::Vector3f _angular_acceleration{};
@@ -140,7 +124,7 @@ private:
 		FFT    = 2,
 	};
 
-	static constexpr hrt_abstime DYNAMIC_NOTCH_FITLER_TIMEOUT = 3_s;
+	static constexpr hrt_abstime DYNAMIC_NOTCH_FITLER_TIMEOUT = 1_s;
 
 	// ESC RPM
 	static constexpr int MAX_NUM_ESCS = sizeof(esc_status_s::esc) / sizeof(esc_status_s::esc[0]);
@@ -179,7 +163,6 @@ private:
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": gyro filter")};
 	perf_counter_t _filter_reset_perf{perf_alloc(PC_COUNT, MODULE_NAME": gyro filter reset")};
-	perf_counter_t _selection_changed_perf{perf_alloc(PC_COUNT, MODULE_NAME": gyro selection changed")};
 
 	DEFINE_PARAMETERS(
 #if !defined(CONSTRAINED_FLASH)

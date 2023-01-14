@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2019-2023 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -34,12 +34,23 @@
 px4_add_library(vehicle_imu
 	VehicleIMU.cpp
 	VehicleIMU.hpp
+
+	VehicleAcceleration.cpp
+	VehicleAcceleration.hpp
+	VehicleAngularVelocity.cpp
+	VehicleAngularVelocity.hpp
 )
 
 target_compile_options(vehicle_imu
 	PRIVATE
 		${MAX_CUSTOM_OPT_LEVEL}
 		#-DDEBUG_BUILD
+		-Wno-error
 )
 
-target_link_libraries(vehicle_imu PRIVATE px4_work_queue sensor_calibration)
+target_link_libraries(vehicle_imu
+	PRIVATE
+		mathlib
+		px4_work_queue
+		sensor_calibration
+)

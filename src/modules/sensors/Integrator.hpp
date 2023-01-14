@@ -81,6 +81,7 @@ public:
 	 * @param reset_interval	New reset time interval for the integrator in microseconds.
 	 */
 	void set_reset_interval(uint32_t reset_interval_us) { _reset_interval_min = reset_interval_us * 1e-6f; }
+	uint32_t reset_interval_us() const { return _reset_interval_min * 1e6f; }
 
 	/**
 	 * Set required samples for reset. This won't reset the integrator.
@@ -89,6 +90,8 @@ public:
 	 */
 	void set_reset_samples(uint8_t reset_samples) { _reset_samples_min = reset_samples; }
 	uint8_t get_reset_samples() const { return _reset_samples_min; }
+
+	uint8_t integrated_samples() const { return _integrated_samples; }
 
 	/**
 	 * Is the Integrator ready to reset?
@@ -142,7 +145,7 @@ protected:
 	matrix::Vector3f _last_val{0.f, 0.f, 0.f}; /**< previous input */
 	float _integral_dt{0};
 
-	float _reset_interval_min{0.001f}; /**< the interval after which the content will be published and the integrator reset */
+	float _reset_interval_min{0.01f}; /**< the interval after which the content will be published and the integrator reset */
 	uint8_t _reset_samples_min{1};
 
 	uint8_t _integrated_samples{0};

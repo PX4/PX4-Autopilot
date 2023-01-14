@@ -111,6 +111,31 @@ bool VehicleMagnetometer::ParametersUpdate(bool force)
 			_param_cal_mag_sides.commit();
 		}
 
+
+		// 1. mark all existing sensor calibrations active even if sensor is missing
+		//    this preserves the calibration in the event of a parameter export while the sensor is missing
+		// 2. ensure calibration slots are active for the number of sensors currently available
+		//    this to done to eliminate differences in the active set of parameters before and after sensor calibration
+		for (uint8_t i = 0; i < MAX_SENSOR_COUNT; i++) {
+			// sensor_mag
+			{
+				uint32_t device_id_mag = calibration::GetCalibrationParamInt32("MAG",  "ID", i);
+
+				if (device_id_mag != 0) {
+					calibration::Magnetometer mag_cal(device_id_mag);
+				}
+
+				uORB::SubscriptionData<sensor_mag_s> sensor_mag_sub{ORB_ID(sensor_mag), i};
+
+				if (sensor_mag_sub.advertised() && (sensor_mag_sub.get().device_id != 0)) {
+					calibration::Magnetometer cal;
+					cal.set_calibration_index(i);
+					cal.ParametersLoad();
+				}
+			}
+		}
+
+
 		// Mag compensation type
 		MagCompensationType mag_comp_typ = static_cast<MagCompensationType>(_param_mag_comp_typ.get());
 
@@ -143,6 +168,7 @@ bool VehicleMagnetometer::ParametersUpdate(bool force)
 
 
 		if (!_armed) {
+
 			bool calibration_updated = false;
 
 			// update mag priority (CAL_MAGx_PRIO)
