@@ -98,7 +98,7 @@
       <parent>base_link</parent>
     </joint>
     <link name='rotor_puller'>
-      <pose>0.22 0 0.0 0 0 0</pose>
+      <pose>0.22 0 0.0 0 1.57 0</pose>
       <inertial>
         <pose>0 0 0 0 0 0</pose>
         <mass>0.005</mass>
@@ -136,7 +136,7 @@
         </geometry>
       </visual> -->
       <visual name='rotor_puller_visual'>
-        <pose>0 0 0 1.57079632679 0 1.57079632679</pose>
+        <pose>0 0 0 0.0 0 0.0</pose>
         <geometry>
           <mesh>
             <scale>1 1 1</scale>
@@ -156,7 +156,7 @@
       <child>rotor_puller</child>
       <parent>base_link</parent>
       <axis>
-        <xyz>1 0 0</xyz>
+        <xyz>0 0 1</xyz>
         <limit>
           <lower>-1e+16</lower>
           <upper>1e+16</upper>
@@ -559,15 +559,15 @@
       <control_joint_name>rudder_joint</control_joint_name>
       <control_joint_rad_to_cl>0.8</control_joint_rad_to_cl>
     </plugin>
-    <plugin filename="gz-sim-multicopter-motor-model-system" name="gz::sim::systems::MulticopterMotorModel">
+   <plugin filename="ignition-gazebo-multicopter-motor-model-system" name="ignition::gazebo::systems::MulticopterMotorModel">
       <jointName>rotor_puller_joint</jointName>
       <linkName>rotor_puller</linkName>
       <turningDirection>cw</turningDirection>
       <timeConstantUp>0.0125</timeConstantUp>
       <timeConstantDown>0.025</timeConstantDown>
-      <maxRotVelocity>3500</maxRotVelocity>
-      <motorConstant>8.54858e-06</motorConstant>
-      <momentConstant>0.01</momentConstant>
+      <maxRotVelocity>1000</maxRotVelocity>
+      <motorConstant>8.54858e-05</motorConstant>
+      <momentConstant>0.016</momentConstant>
       <commandSubTopic>command/motor_speed</commandSubTopic>
       <motorNumber>3</motorNumber>
       <rotorDragCoefficient>8.06428e-05</rotorDragCoefficient>
