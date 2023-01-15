@@ -301,20 +301,23 @@ void RTL::findRtlDestination(DestinationType &destination_type, RtlDirect::RtlPo
 	}
 
 	for (int current_seq = 1; current_seq <= num_safe_points; ++current_seq) {
-		mission_safe_point_s mission_safe_point;
+		mission_item_s mission_safe_point;
 
-		if (dm_read(DM_KEY_SAFE_POINTS, current_seq, &mission_safe_point, sizeof(mission_safe_point_s)) !=
-		    sizeof(mission_safe_point_s)) {
+		if (dm_read(DM_KEY_SAFE_POINTS, current_seq, &mission_safe_point, sizeof(mission_item_s)) !=
+		    sizeof(mission_item_s)) {
 			PX4_ERR("dm_read failed");
 			continue;
 		}
 
-		float dist{get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, mission_safe_point.lat, mission_safe_point.lon)};
+		if (mission_safe_point.nav_cmd == NAV_CMD_RALLY_POINT && mission_safe_point.is_mission_rally_point == 1) {
 
-		if (dist < min_dist) {
-			min_dist = dist;
-			setSafepointAsDestination(rtl_position, mission_safe_point);
-			destination_type = DestinationType::DESTINATION_TYPE_SAFE_POINT;
+			float dist{get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, mission_safe_point.lat, mission_safe_point.lon)};
+
+			if (dist < min_dist) {
+				min_dist = dist;
+				setSafepointAsDestination(rtl_position, mission_safe_point);
+				destination_type = DestinationType::DESTINATION_TYPE_SAFE_POINT;
+			}
 		}
 	}
 
@@ -338,7 +341,7 @@ void RTL::setLandPosAsDestination(RtlDirect::RtlPosition &rtl_position)
 }
 
 void RTL::setSafepointAsDestination(RtlDirect::RtlPosition &rtl_position,
-				    const mission_safe_point_s &mission_safe_point)
+				    const mission_item_s &mission_safe_point)
 {
 	// There is a safe point closer than home/mission landing
 	// TODO: handle all possible mission_safe_point.frame cases
@@ -346,14 +349,14 @@ void RTL::setSafepointAsDestination(RtlDirect::RtlPosition &rtl_position,
 	case 0: // MAV_FRAME_GLOBAL
 		rtl_position.lat = mission_safe_point.lat;
 		rtl_position.lon = mission_safe_point.lon;
-		rtl_position.alt = mission_safe_point.alt;
+		rtl_position.alt = mission_safe_point.altitude;
 		rtl_position.yaw = _home_pos_sub.get().yaw;;
 		break;
 
 	case 3: // MAV_FRAME_GLOBAL_RELATIVE_ALT
 		rtl_position.lat = mission_safe_point.lat;
 		rtl_position.lon = mission_safe_point.lon;
-		rtl_position.alt = mission_safe_point.alt + _home_pos_sub.get().alt; // alt of safe point is rel to home
+		rtl_position.alt = mission_safe_point.altitude + _home_pos_sub.get().alt; // alt of safe point is rel to home
 		rtl_position.yaw = _home_pos_sub.get().yaw;;
 		break;
 

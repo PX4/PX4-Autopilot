@@ -143,7 +143,7 @@ private:
 	static constexpr uint16_t	MAX_COUNT[] = {
 		DM_KEY_WAYPOINTS_OFFBOARD_0_MAX,
 		DM_KEY_FENCE_POINTS_MAX - 1,
-		DM_KEY_SAFE_POINTS_MAX - 1
+		DM_KEY_SAFE_POINT_ITEMS_MAX - 1
 	};	/**< Maximum number of mission items for each type
 					(fence & safe points use the first item for the stats) */
 

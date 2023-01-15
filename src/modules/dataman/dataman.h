@@ -59,7 +59,7 @@ typedef enum {
 
 #if defined(MEMORY_CONSTRAINED_SYSTEM)
 enum {
-	DM_KEY_SAFE_POINTS_MAX = 8,
+	DM_KEY_SAFE_POINT_ITEMS_MAX = 8,
 	DM_KEY_FENCE_POINTS_MAX = 16,
 	DM_KEY_WAYPOINTS_OFFBOARD_0_MAX = NUM_MISSIONS_SUPPORTED,
 	DM_KEY_WAYPOINTS_OFFBOARD_1_MAX = NUM_MISSIONS_SUPPORTED,
@@ -69,7 +69,7 @@ enum {
 #else
 /** The maximum number of instances for each item type */
 enum {
-	DM_KEY_SAFE_POINTS_MAX = 8,
+	DM_KEY_SAFE_POINT_ITEMS_MAX = 64,
 	DM_KEY_FENCE_POINTS_MAX = 64,
 	DM_KEY_WAYPOINTS_OFFBOARD_0_MAX = NUM_MISSIONS_SUPPORTED,
 	DM_KEY_WAYPOINTS_OFFBOARD_1_MAX = NUM_MISSIONS_SUPPORTED,
@@ -83,11 +83,11 @@ struct dataman_compat_s {
 };
 
 /* increment this define whenever a binary incompatible change is performed */
-#define DM_COMPAT_VERSION	2ULL
+#define DM_COMPAT_VERSION	3ULL
 
 #define DM_COMPAT_KEY ((DM_COMPAT_VERSION << 32) + (sizeof(struct mission_item_s) << 24) + \
 		       (sizeof(struct mission_s) << 16) + (sizeof(struct mission_stats_entry_s) << 12) + \
-		       (sizeof(struct mission_fence_point_s) << 8) + (sizeof(struct mission_safe_point_s) << 4) + \
+		       (sizeof(struct mission_fence_point_s) << 8) + (sizeof(struct mission_item_s) << 4) + \
 		       sizeof(struct dataman_compat_s))
 
 /** Retrieve from the data manager store */
