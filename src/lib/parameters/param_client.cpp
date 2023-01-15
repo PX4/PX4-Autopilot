@@ -50,7 +50,7 @@
 #include <uORB/topics/parameter_server_set_used_response.h>
 
 // Debug flag
-static bool debug = true;
+static bool debug = false;
 
 #define TIMEOUT_WAIT 1000
 #define TIMEOUT_COUNT 50
