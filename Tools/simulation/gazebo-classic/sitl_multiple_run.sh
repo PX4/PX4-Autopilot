@@ -1,10 +1,10 @@
 #!/bin/bash
 # run multiple instances of the 'px4' binary, with the gazebo SITL simulation
-# It assumes px4 is already built, with 'make px4_sitl_default sitl_gazebo'
+# It assumes px4 is already built, with 'make px4_sitl_default sitl_gazebo-classic'
 
 # The simulator is expected to send to TCP port 4560+i for i in [0, N-1]
 # For example gazebo can be run like this:
-#./Tools/simulation/gazebo/sitl_multiple_run.sh -n 10 -m iris
+#./Tools/simulation/gazebo-classic/sitl_multiple_run.sh -n 10 -m iris
 
 function cleanup() {
 	pkill -x px4
@@ -35,7 +35,7 @@ function spawn_model() {
 	pushd "$working_dir" &>/dev/null
 	echo "starting instance $N in $(pwd)"
 	$build_path/bin/px4 -i $N -d "$build_path/etc" >out.log 2>err.log &
-	python3 ${src_path}/Tools/simulation/gazebo/sitl_gazebo/scripts/jinja_gen.py ${src_path}/Tools/simulation/gazebo/sitl_gazebo/models/${MODEL}/${MODEL}.sdf.jinja ${src_path}/Tools/simulation/gazebo/sitl_gazebo --mavlink_tcp_port $((4560+${N})) --mavlink_udp_port $((14560+${N})) --mavlink_id $((1+${N})) --gst_udp_port $((5600+${N})) --video_uri $((5600+${N})) --mavlink_cam_udp_port $((14530+${N})) --output-file /tmp/${MODEL}_${N}.sdf
+	python3 ${src_path}/Tools/simulation/gazebo-classic/sitl_gazebo-classic/scripts/jinja_gen.py ${src_path}/Tools/simulation/gazebo-classic/sitl_gazebo-classic/models/${MODEL}/${MODEL}.sdf.jinja ${src_path}/Tools/simulation/gazebo-classic/sitl_gazebo-classic --mavlink_tcp_port $((4560+${N})) --mavlink_udp_port $((14560+${N})) --mavlink_id $((1+${N})) --gst_udp_port $((5600+${N})) --video_uri $((5600+${N})) --mavlink_cam_udp_port $((14530+${N})) --output-file /tmp/${MODEL}_${N}.sdf
 
 	echo "Spawning ${MODEL}_${N} at ${X} ${Y}"
 
@@ -69,7 +69,7 @@ num_vehicles=${NUM_VEHICLES:=3}
 world=${WORLD:=empty}
 target=${TARGET:=px4_sitl_default}
 vehicle_model=${VEHICLE_MODEL:="iris"}
-export PX4_SIM_MODEL=gazebo_${vehicle_model}
+export PX4_SIM_MODEL=gazebo-classic_${vehicle_model}
 
 echo ${SCRIPT}
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -84,7 +84,7 @@ pkill -x px4 || true
 
 sleep 1
 
-source ${src_path}/Tools/simulation/gazebo/setup_gazebo.bash ${src_path} ${src_path}/build/${target}
+source ${src_path}/Tools/simulation/gazebo-classic/setup_gazebo.bash ${src_path} ${src_path}/build/${target}
 
 # To use gazebo_ros ROS2 plugins
 if [[ -n "$ROS_VERSION" ]] && [ "$ROS_VERSION" == "2" ]; then
@@ -94,7 +94,7 @@ else
 fi
 
 echo "Starting gazebo"
-gzserver ${src_path}/Tools/simulation/gazebo/sitl_gazebo/worlds/${world}.world --verbose $ros_args &
+gzserver ${src_path}/Tools/simulation/gazebo-classic/sitl_gazebo-classic/worlds/${world}.world --verbose $ros_args &
 sleep 5
 
 n=0
@@ -126,7 +126,7 @@ else
 
 		m=0
 		while [ $m -lt ${target_number} ]; do
-			export PX4_SIM_MODEL=gazebo_${target_vehicle}
+			export PX4_SIM_MODEL=gazebo-classic_${target_vehicle}
 			spawn_model ${target_vehicle}${LABEL} $n $target_x $target_y
 			m=$(($m + 1))
 			n=$(($n + 1))
