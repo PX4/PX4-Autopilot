@@ -54,13 +54,13 @@ jobs:
       run: |
           export
           ulimit -a
-    - name: Build PX4 and sitl_gazebo
+    - name: Build PX4 and sitl_gazebo-classic
       env:
         PX4_CMAKE_BUILD_TYPE: ${{matrix.config.build_type}}
       run: |
         ccache -z
         make px4_sitl_default
-        make px4_sitl_default sitl_gazebo
+        make px4_sitl_default sitl_gazebo-classic
         ccache -s
 
     - name: Core dump settings

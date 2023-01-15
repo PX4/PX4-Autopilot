@@ -33,39 +33,39 @@
 
 px4_add_romfs_files(
 
-	1010_gazebo_iris_opt_flow
-	1010_gazebo_iris_opt_flow.post
-	1011_gazebo_iris_irlock
-	1012_gazebo_iris_rplidar
-	1013_gazebo_iris_vision
-	1013_gazebo_iris_vision.post
-	1015_gazebo_iris_obs_avoid
-	1015_gazebo_iris_obs_avoid.post
-	1017_gazebo_iris_opt_flow_mockup
-	1019_gazebo_iris_dual_gps
-	1021_gazebo_uuv_hippocampus
-	1022_gazebo_uuv_bluerov2_heavy
-	1030_gazebo_plane
-	1031_gazebo_plane_cam
-	1032_gazebo_plane_catapult
+	1010_gazebo-classic_iris_opt_flow
+	1010_gazebo-classic_iris_opt_flow.post
+	1011_gazebo-classic_iris_irlock
+	1012_gazebo-classic_iris_rplidar
+	1013_gazebo-classic_iris_vision
+	1013_gazebo-classic_iris_vision.post
+	1015_gazebo-classic_iris_obs_avoid
+	1015_gazebo-classic_iris_obs_avoid.post
+	1017_gazebo-classic_iris_opt_flow_mockup
+	1019_gazebo-classic_iris_dual_gps
+	1021_gazebo-classic_uuv_hippocampus
+	1022_gazebo-classic_uuv_bluerov2_heavy
+	1030_gazebo-classic_plane
+	1031_gazebo-classic_plane_cam
+	1032_gazebo-classic_plane_catapult
 	1033_jsbsim_rascal
 	1034_flightgear_rascal-electric
-	1035_gazebo_techpod
+	1035_gazebo-classic_techpod
 	1036_jsbsim_malolo
-	1037_gazebo_believer
-	1038_gazebo_glider
-	1039_gazebo_advanced_plane
-	1040_gazebo_standard_vtol
-	1041_gazebo_tailsitter
-	1042_gazebo_tiltrotor
-	1043_gazebo_standard_vtol_drop
-	1044_gazebo_plane_lidar
-	1060_gazebo_rover
-	1061_gazebo_r1_rover
+	1037_gazebo-classic_believer
+	1038_gazebo-classic_glider
+	1039_gazebo-classic_advanced_plane
+	1040_gazebo-classic_standard_vtol
+	1041_gazebo-classic_tailsitter
+	1042_gazebo-classic_tiltrotor
+	1043_gazebo-classic_standard_vtol_drop
+	1044_gazebo-classic_plane_lidar
+	1060_gazebo-classic_rover
+	1061_gazebo-classic_r1_rover
 	1062_flightgear_tf-r1
-	1070_gazebo_boat
+	1070_gazebo-classic_boat
 
-	2507_gazebo_cloudship
+	2507_gazebo-classic_cloudship
 
 	3010_jsbsim_quadrotor_x
 	3011_jsbsim_hexarotor_x
@@ -73,14 +73,14 @@ px4_add_romfs_files(
 	4001_gz_x500
 	4002_gz_x500_depth
 
-	6011_gazebo_typhoon_h480
-	6011_gazebo_typhoon_h480.post
+	6011_gazebo-classic_typhoon_h480
+	6011_gazebo-classic_typhoon_h480.post
 
-	10016_gazebo_iris
+	10016_gazebo-classic_iris
 	10017_jmavsim_iris
-	10018_gazebo_iris_foggy_lidar
-	10019_gazebo_omnicopter
-	10030_gazebo_px4vision
+	10018_gazebo-classic_iris_foggy_lidar
+	10019_gazebo-classic_omnicopter
+	10030_gazebo-classic_px4vision
 
 	10040_sihsim_quadx
 	10041_sihsim_airplane

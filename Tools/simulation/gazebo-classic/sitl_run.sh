@@ -67,7 +67,7 @@ fi
 # be running from last time
 pkill -x gazebo || true
 
-export PX4_SIM_MODEL=gazebo_${model}
+export PX4_SIM_MODEL=gazebo-classic_${model}
 export PX4_SIM_WORLD=${world}
 
 SIM_PID=0
@@ -77,25 +77,25 @@ if [ -x "$(command -v gazebo)" ]; then
 	model_name="${model}"
 
 	# Set the plugin path so Gazebo finds our model and sim
-	source "$src_path/Tools/simulation/gazebo/setup_gazebo.bash" "${src_path}" "${build_path}"
+	source "$src_path/Tools/simulation/gazebo-classic/setup_gazebo.bash" "${src_path}" "${build_path}"
 	if [ -z $PX4_SITL_WORLD ]; then
 		#Spawn predefined world
 		if [ "$world" == "none" ]; then
-			if [ -f ${src_path}/Tools/simulation/gazebo/sitl_gazebo/worlds/${model}.world ]; then
+			if [ -f ${src_path}/Tools/simulation/gazebo-classic/sitl_gazebo-classic/worlds/${model}.world ]; then
 				echo "empty world, default world ${model}.world for model found"
-				world_path="${src_path}/Tools/simulation/gazebo/sitl_gazebo/worlds/${model}.world"
+				world_path="${src_path}/Tools/simulation/gazebo-classic/sitl_gazebo-classic/worlds/${model}.world"
 			else
 				echo "empty world, setting empty.world as default"
-				world_path="${src_path}/Tools/simulation/gazebo/sitl_gazebo/worlds/empty.world"
+				world_path="${src_path}/Tools/simulation/gazebo-classic/sitl_gazebo-classic/worlds/empty.world"
 			fi
 		else
 			#Spawn empty world if world with model name doesn't exist
-			world_path="${src_path}/Tools/simulation/gazebo/sitl_gazebo/worlds/${world}.world"
+			world_path="${src_path}/Tools/simulation/gazebo-classic/sitl_gazebo-classic/worlds/${world}.world"
 		fi
 	else
-		if [ -f ${src_path}/Tools/simulation/gazebo/sitl_gazebo/worlds/${PX4_SITL_WORLD}.world ]; then
+		if [ -f ${src_path}/Tools/simulation/gazebo-classic/sitl_gazebo-classic/worlds/${PX4_SITL_WORLD}.world ]; then
 			# Spawn world by name if exists in the worlds directory from environment variable
-			world_path="${src_path}/Tools/simulation/gazebo/sitl_gazebo/worlds/${PX4_SITL_WORLD}.world"
+			world_path="${src_path}/Tools/simulation/gazebo-classic/sitl_gazebo-classic/worlds/${PX4_SITL_WORLD}.world"
 		else
 			# Spawn world from environment variable with absolute path
 			world_path="$PX4_SITL_WORLD"
