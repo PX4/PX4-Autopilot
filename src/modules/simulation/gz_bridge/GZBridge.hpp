@@ -128,6 +128,7 @@ private:
 
 	ignition::transport::Node _node;
 	ignition::transport::Node::Publisher _actuators_pub;
+	std::vector<ignition::transport::Node::Publisher> _servos_pub;
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::SIM_GZ_HOME_LAT>) _param_sim_home_lat,

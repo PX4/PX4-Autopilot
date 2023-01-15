@@ -173,6 +173,20 @@ int GZBridge::init()
 		return PX4_ERROR;
 	}
 
+	// /model/plane_0/joint/left_elevon_joint/0/cmd_pos
+
+	for (int i = 0; i < 8; i++) {
+		std::string joint_name = "px4_servo_" + std::to_string(i);
+		std::string servo_topic = "/model/" + _model_name + "/joint/" + joint_name + "/0/cmd_pos";
+		std::cout << "Servo topic: " << servo_topic << std::endl;
+		_servos_pub.push_back(_node.Advertise<ignition::msgs::Double>(servo_topic));
+
+		if (!_servos_pub.back().Valid()) {
+			PX4_ERR("failed to advertise %s", servo_topic.c_str());
+			return PX4_ERROR;
+		}
+	}
+
 	ScheduleNow();
 	return OK;
 }
@@ -579,7 +593,23 @@ bool GZBridge::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], 
 		}
 
 		if (_actuators_pub.Valid()) {
-			return _actuators_pub.Publish(rotor_velocity_message);
+			_actuators_pub.Publish(rotor_velocity_message);
+		}
+
+		int i = 0;
+
+		for (auto &servo_pub : _servos_pub) {
+			ignition::msgs::Double servo_output;
+			///TODO: Normalize output data
+			double output = (outputs[i] - 500) / 500.0;
+			// std::cout << "outputs[" << i << "]: " << outputs[i] << std::endl;
+			// std::cout << "  output: " << output << std::endl;
+			servo_output.set_data(output);
+			i++;
+
+			if (servo_pub.Valid()) {
+				servo_pub.Publish(servo_output);
+			}
 		}
 	}
 

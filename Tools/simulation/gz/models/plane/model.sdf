@@ -330,7 +330,7 @@
         </material>
       </visual>
     </link>
-    <joint name='left_elevon_joint' type='revolute'>
+    <joint name='px4_servo_0' type='revolute'>
       <parent>base_link</parent>
       <child>left_elevon</child>
       <pose>-0.07 0.4 0.08 0.00 0 0.0</pose>
@@ -350,7 +350,7 @@
         </ode>
       </physics>
     </joint>
-    <joint name='right_elevon_joint' type='revolute'>
+    <joint name='px4_servo_1' type='revolute'>
       <parent>base_link</parent>
       <child>right_elevon</child>
       <pose>-0.07 -0.4 0.08 0.00 0 0.0</pose>
@@ -410,7 +410,7 @@
         </ode>
       </physics>
     </joint>
-    <joint name='elevator_joint' type='revolute'>
+    <joint name='px4_servo_2' type='revolute'>
       <parent>base_link</parent>
       <child>elevator</child>
       <pose> -0.5 0 0 0 0 0</pose>
@@ -466,12 +466,12 @@
       <forward>1 0 0</forward>
       <upward>0 0 1</upward>
       <link_name>base_link</link_name>
-      <control_joint_name>left_elevon_joint</control_joint_name>
+      <control_joint_name>px4_servo_0</control_joint_name>
       <control_joint_rad_to_cl>-0.3</control_joint_rad_to_cl>
     </plugin>
     <plugin
       filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
-      <joint_name>left_elevon_joint</joint_name>
+      <joint_name>px4_servo_0</joint_name>
     </plugin>
     <plugin filename="gz-sim-lift-drag-system" name="gz::sim::systems::LiftDrag">
       <a0>0.05984281113</a0>
@@ -488,12 +488,12 @@
       <forward>1 0 0</forward>
       <upward>0 0 1</upward>
       <link_name>base_link</link_name>
-      <control_joint_name>right_elevon_joint</control_joint_name>
+      <control_joint_name>px4_servo_1</control_joint_name>
       <control_joint_rad_to_cl>-0.3</control_joint_rad_to_cl>
     </plugin>
     <plugin
       filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
-      <joint_name>right_elevon_joint</joint_name>
+      <joint_name>px4_servo_1</joint_name>
     </plugin>
     <plugin filename="gz-sim-lift-drag-system" name="gz::sim::systems::LiftDrag">
       <a0>0.05984281113</a0>
@@ -546,12 +546,12 @@
       <forward>1 0 0</forward>
       <upward>0 0 1</upward>
       <link_name>base_link</link_name>
-      <control_joint_name>elevator_joint</control_joint_name>
+      <control_joint_name>px4_servo_2</control_joint_name>
       <control_joint_rad_to_cl>-4.0</control_joint_rad_to_cl>
     </plugin>
     <plugin
       filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
-      <joint_name>elevator_joint</joint_name>
+      <joint_name>px4_servo_2</joint_name>
     </plugin>
     <plugin filename="gz-sim-lift-drag-system" name="gz::sim::systems::LiftDrag">
       <a0>0.0</a0>
