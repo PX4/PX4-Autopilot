@@ -469,6 +469,10 @@
       <control_joint_name>left_elevon_joint</control_joint_name>
       <control_joint_rad_to_cl>-0.3</control_joint_rad_to_cl>
     </plugin>
+    <plugin
+      filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
+      <joint_name>left_elevon_joint</joint_name>
+    </plugin>
     <plugin filename="gz-sim-lift-drag-system" name="gz::sim::systems::LiftDrag">
       <a0>0.05984281113</a0>
       <cla>4.752798721</cla>
@@ -486,6 +490,10 @@
       <link_name>base_link</link_name>
       <control_joint_name>right_elevon_joint</control_joint_name>
       <control_joint_rad_to_cl>-0.3</control_joint_rad_to_cl>
+    </plugin>
+    <plugin
+      filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
+      <joint_name>right_elevon_joint</joint_name>
     </plugin>
     <plugin filename="gz-sim-lift-drag-system" name="gz::sim::systems::LiftDrag">
       <a0>0.05984281113</a0>
@@ -523,7 +531,7 @@
       <control_joint_name>right_flap_joint</control_joint_name>
       <control_joint_rad_to_cl>-0.1</control_joint_rad_to_cl>
     </plugin>
-    <plugin filename="gz-sim-lift-drag-system" name="gz::sim::systems::LiftDrag">
+      <plugin filename="gz-sim-lift-drag-system" name="gz::sim::systems::LiftDrag">
       <a0>-0.2</a0>
       <cla>4.752798721</cla>
       <cda>0.6417112299</cda>
@@ -540,6 +548,10 @@
       <link_name>base_link</link_name>
       <control_joint_name>elevator_joint</control_joint_name>
       <control_joint_rad_to_cl>-4.0</control_joint_rad_to_cl>
+    </plugin>
+    <plugin
+      filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
+      <joint_name>elevator_joint</joint_name>
     </plugin>
     <plugin filename="gz-sim-lift-drag-system" name="gz::sim::systems::LiftDrag">
       <a0>0.0</a0>
@@ -558,6 +570,10 @@
       <link_name>base_link</link_name>
       <control_joint_name>rudder_joint</control_joint_name>
       <control_joint_rad_to_cl>0.8</control_joint_rad_to_cl>
+    </plugin>
+    <plugin
+      filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
+      <joint_name>rudder_joint</joint_name>
     </plugin>
    <plugin filename="ignition-gazebo-multicopter-motor-model-system" name="gz::sim::systems::MulticopterMotorModel">
       <jointName>rotor_puller_joint</jointName>
