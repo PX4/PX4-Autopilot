@@ -81,6 +81,11 @@ void Ekf::controlBaroHeightFusion()
 						   innov_gate,
 						   aid_src);
 
+		// filtered innovation for preflight checks
+		if (!aid_src.innovation_rejected) {
+			_baro_hgt_innov_lpf.update(aid_src.innovation);
+		}
+
 		// Compensate for positive static pressure transients (negative vertical position innovations)
 		// caused by rotor wash ground interaction by applying a temporary deadzone to baro innovations.
 		if (_control_status.flags.gnd_effect && (_params.gnd_effect_deadzone > 0.f)) {

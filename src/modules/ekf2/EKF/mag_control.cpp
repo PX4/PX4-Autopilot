@@ -404,6 +404,11 @@ void Ekf::runMagAndMagDeclFusions(const Vector3f &mag)
 		_aid_src_mag_heading.fusion_enabled = _control_status.flags.mag_hdg;
 
 		fuseYaw(innovation, obs_var, _aid_src_mag_heading);
+
+		// filtered innovation for preflight checks
+		if (!_aid_src_mag_heading.innovation_rejected) {
+			_mag_heading_innov_lpf.update(_aid_src_mag_heading.innovation);
+		}
 	}
 }
 

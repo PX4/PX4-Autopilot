@@ -115,6 +115,9 @@ void Ekf::fuseOptFlow()
 		return;
 	}
 
+	// filtered optical flow velocity innovation (for preflight checks)
+	_optical_flow_vel_innov_lpf.update(Vector2f(_state.vel(0) - _flow_vel_ne(0), _state.vel(1) - _flow_vel_ne(1)));
+
 	bool fused[2] {false, false};
 
 	// fuse observation axes sequentially

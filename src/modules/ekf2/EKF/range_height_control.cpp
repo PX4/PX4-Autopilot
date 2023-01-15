@@ -63,6 +63,11 @@ void Ekf::controlRangeHeightFusion()
 						   innov_gate,
 						   aid_src);
 
+		// filtered innovation for preflight checks
+		if (!aid_src.innovation_rejected) {
+			_rng_hgt_innov_lpf.update(aid_src.innovation);
+		}
+
 		// update the bias estimator before updating the main filter but after
 		// using its current state to compute the vertical position innovation
 		if (measurement_valid && _range_sensor.isDataHealthy()) {

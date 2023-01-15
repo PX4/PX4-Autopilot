@@ -160,6 +160,11 @@ void Ekf::controlEvPosFusion(const extVisionSample &ev_sample, const bool common
 					     math::max(_params.ev_pos_innov_gate, 1.f),    // innovation gate
 					     aid_src);
 
+	// filtered innovation for preflight checks
+	if (!aid_src.innovation_rejected) {
+		_ev_pos_innov_lpf.update(Vector2f(aid_src.innovation));
+	}
+
 	// update the bias estimator before updating the main filter but after
 	// using its current state to compute the vertical position innovation
 	if (measurement_valid && quality_sufficient) {

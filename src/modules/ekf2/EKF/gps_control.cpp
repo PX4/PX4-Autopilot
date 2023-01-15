@@ -67,6 +67,11 @@ void Ekf::controlGpsFusion()
 					   _aid_src_gnss_vel);
 		_aid_src_gnss_vel.fusion_enabled = (_params.gnss_ctrl & GnssCtrl::VEL);
 
+		// filtered innovation for preflight checks
+		if (!_aid_src_gnss_vel.innovation_rejected) {
+			_gnss_vel_innov_lpf.update(Vector3f(_aid_src_gnss_vel.innovation));
+		}
+
 		// GNSS position
 		const Vector2f position{gps_sample.pos};
 		// relax the upper observation noise limit which prevents bad GPS perturbing the position estimate
@@ -88,6 +93,11 @@ void Ekf::controlGpsFusion()
 						     math::max(_params.gps_pos_innov_gate, 1.f), // innovation gate
 						     _aid_src_gnss_pos);
 		_aid_src_gnss_pos.fusion_enabled = (_params.gnss_ctrl & GnssCtrl::HPOS);
+
+		// filtered innovation for preflight checks
+		if (!_aid_src_gnss_pos.innovation_rejected) {
+			_gnss_pos_innov_lpf.update(Vector2f(_aid_src_gnss_pos.innovation));
+		}
 
 		// if GPS is otherwise ready to go, but yaw_align is blocked by EV give mag a chance to start
 		if (_control_status.flags.tilt_align && _NED_origin_initialised
