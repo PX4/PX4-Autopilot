@@ -45,6 +45,7 @@
 #include <px4_platform_common/module_params.h>
 
 #include "navigator_mode.h"
+#include "navigation.h"
 #include "lib/mission/planned_mission_interface.h"
 #include "rtl_direct.h"
 #include "rtl_mission_fast.h"
@@ -97,20 +98,20 @@ private:
 	 * @brief Find RTL destination.
 	 *
 	 */
-	void findRtlDestination(DestinationType &destination_type, RtlDirect::RtlPosition &rtl_position, float &rtl_alt);
+	void findRtlDestination(DestinationType &destination_type, LandingPosition_s &rtl_position, float &rtl_alt);
 
 	/**
 	 * @brief Set the position of the land start marker in the planned mission as destination.
 	 *
 	 */
-	void setLandPosAsDestination(RtlDirect::RtlPosition &rtl_position);
+	void setLandPosAsDestination(LandingPosition_s &rtl_position);
 
 	/**
 	 * @brief Set the safepoint as destination.
 	 *
 	 * @param mission_safe_point is the mission safe point/rally point to set as destination.
 	 */
-	void setSafepointAsDestination(RtlDirect::RtlPosition &rtl_position, const mission_item_s &mission_safe_point);
+	void setSafepointAsDestination(LandingPosition_s &rtl_position, const mission_item_s &mission_safe_point);
 
 	/**
 	 * @brief
@@ -118,7 +119,7 @@ private:
 	 * @param cone_half_angle_deg
 	 * @return float
 	 */
-	float calculate_return_alt_from_cone_half_angle(const RtlDirect::RtlPosition &rtl_position, float cone_half_angle_deg);
+	float calculate_return_alt_from_cone_half_angle(const LandingPosition_s &rtl_position, float cone_half_angle_deg);
 
 	hrt_abstime _destination_check_time{0};
 

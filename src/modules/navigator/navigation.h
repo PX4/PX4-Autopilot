@@ -139,6 +139,19 @@ enum NAV_FRAME {
 #endif // GCC >= 5 || Clang
 
 /**
+ * @brief Landing position.
+ * Defines the global 3D position and landing yaw.
+ *
+ */
+struct LandingPosition_s {
+	double lat;	/**< latitude in WGS84 [rad].*/
+	double lon;	/**< longitude in WGS84 [rad].*/
+	float alt;	/**< altitude in MSL [m].*/
+	float yaw;	/**< final yaw when landed [rad].*/
+};
+
+
+/**
  * Mission Item structure
  *
  * We explicitly handle struct padding to ensure consistency between in memory and on disk formats

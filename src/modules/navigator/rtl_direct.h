@@ -45,6 +45,7 @@
 
 #include "mission_block.h"
 #include "lib/mission/planned_mission_interface.h"
+#include "navigation.h"
 
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/home_position.h>
@@ -61,18 +62,6 @@ class Navigator;
 class RtlDirect : public MissionBlock, public ModuleParams
 {
 public:
-	/**
-	 * @brief Return to launch position.
-	 * Defines the position and landing yaw for the return to launch destination.
-	 *
-	 */
-	struct RtlPosition {
-		double lat;	/**< latitude in WGS84 [rad].*/
-		double lon;	/**< longitude in WGS84 [rad].*/
-		float alt;	/**< altitude in MSL [m].*/
-		float yaw;	/**< final yaw when landed [rad].*/
-	};
-
 	RtlDirect(Navigator *navigator);
 
 	~RtlDirect() = default;
@@ -101,7 +90,7 @@ public:
 
 	void setRtlAlt(float alt) {_rtl_alt = alt;};
 
-	void setRtlPosition(RtlPosition position) {_destination = position;};
+	void setRtlPosition(LandingPosition_s position) {_destination = position;};
 
 private:
 	/**
@@ -189,7 +178,7 @@ private:
 	/** Current state in the state machine.*/
 	RTLState _rtl_state{RTL_STATE_NONE};
 
-	RtlPosition _destination{}; ///< the RTL position to fly to
+	LandingPosition_s _destination{}; ///< the RTL position to fly to
 
 	float _rtl_alt{0.0f};	///< AMSL altitude at which the vehicle should return to the home position
 

@@ -40,6 +40,7 @@
 #pragma once
 
 #include "navigator_mode.h"
+#include "navigation.h"
 #include "mission_block.h"
 #include "safe_point_land.hpp"
 
@@ -63,7 +64,9 @@ public:
 	void on_active() override;
 	void on_inactive() override;
 
-	bool hasVtolHomeLandApproach();
+	bool hasVtolLandApproach();
+
+	void setLandPosition(LandingPosition_s position){_destination = position;};
 
 	rtl_time_estimate_s calc_rtl_time_estimate();
 private:
@@ -88,19 +91,20 @@ private:
 		(ParamFloat<px4::params::RTL_LOITER_RAD>) _param_rtl_loiter_rad
 	)
 
+	LandingPosition_s _destination;
+
 	void set_loiter_position();
 
 	loiter_point_s chooseBestLandingApproach();
 
 	land_approaches_s _vtol_home_land_approaches{};
 
-	void readVtolHomeLandApproachesFromStorage();
+	void readVtolLandApproachesFromStorage();
 
-	static constexpr float MAX_DIST_FROM_HOME_FOR_LAND_APPROACHES =
+	static constexpr float MAX_DIST_FROM_LAND_FOR_APPROACHES =
 		10.0; // [m] We don't consider home land approaches valid if the distance from the current home to the land location is greater than this distance
 
 	uORB::SubscriptionData<vehicle_global_position_s> _global_pos_sub{ORB_ID(vehicle_global_position)};	/**< global position subscription */
-	uORB::SubscriptionData<home_position_s> _home_pos_sub{ORB_ID(home_position)};		/**< home position subscription */
 	uORB::SubscriptionData<wind_s>		_wind_sub{ORB_ID(wind)};
 
 };

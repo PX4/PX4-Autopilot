@@ -55,11 +55,9 @@ void
 VtolLand::on_activation()
 {
 	_global_pos_sub.update();
-	_home_pos_sub.update();
 	_wind_sub.update();
 
-	_land_pos_lat_lon = matrix::Vector2<double>(_home_pos_sub.get().lat, _home_pos_sub.get().lon);
-	readVtolHomeLandApproachesFromStorage();
+	readVtolLandApproachesFromStorage();
 	set_loiter_position();
 	_land_state = vtol_land_state::MOVE_TO_LOITER;
 
@@ -68,7 +66,6 @@ VtolLand::on_activation()
 void VtolLand::on_inactive()
 {
 	_global_pos_sub.update();
-	_home_pos_sub.update();
 	_wind_sub.update();
 }
 
@@ -76,13 +73,12 @@ void
 VtolLand::on_active()
 {
 	_global_pos_sub.update();
-	_home_pos_sub.update();
 	_wind_sub.update();
 
 	if (is_mission_item_reached_or_completed()) {
 		switch	(_land_state) {
 		case vtol_land_state::MOVE_TO_LOITER: {
-				_mission_item.altitude = _home_pos_sub.get().alt + _land_approach.height_m;
+				_mission_item.altitude = _destination.alt + _land_approach.height_m;
 				_mission_item.nav_cmd = NAV_CMD_LOITER_TO_ALT;
 				_mission_item.loiter_radius = _param_rtl_loiter_rad.get();
 
@@ -179,9 +175,9 @@ VtolLand::on_active()
 	}
 }
 
-bool VtolLand::hasVtolHomeLandApproach()
+bool VtolLand::hasVtolLandApproach()
 {
-	readVtolHomeLandApproachesFromStorage();
+	readVtolLandApproachesFromStorage();
 	return _vtol_home_land_approaches.isAnyApproachValid();
 }
 
@@ -196,14 +192,14 @@ VtolLand::set_loiter_position()
 		_loiter_pos_lat_lon(1) = _land_approach.lon;
 
 	} else {
-		_loiter_pos_lat_lon(0) = _home_pos_sub.get().lat;
-		_loiter_pos_lat_lon(1) = _home_pos_sub.get().lon;
+		_loiter_pos_lat_lon(0) = _destination.lat;
+		_loiter_pos_lat_lon(1) = _destination.lon;
 	}
 
 
 	_mission_item.lat  = _loiter_pos_lat_lon(0);
 	_mission_item.lon = _loiter_pos_lat_lon(1);
-	_mission_item.altitude = math::max(_home_pos_sub.get().alt + _param_return_alt_rel_m.get(),
+	_mission_item.altitude = math::max(_destination.alt + _param_return_alt_rel_m.get(),
 					   _global_pos_sub.get().alt);
 	_mission_item.nav_cmd = NAV_CMD_LOITER_TIME_LIMIT;
 	_mission_item.force_heading = true;
@@ -240,8 +236,8 @@ loiter_point_s VtolLand::chooseBestLandingApproach()
 	for (int i = 0; i < _vtol_home_land_approaches.num_approaches_max; i++) {
 
 		if (_vtol_home_land_approaches.approaches[i].isValid()) {
-			const float wind_angle = wrap_pi(get_bearing_to_next_waypoint(_home_pos_sub.get().lat,
-							 _home_pos_sub.get().lon, _vtol_home_land_approaches.approaches[i].lat,
+			const float wind_angle = wrap_pi(get_bearing_to_next_waypoint(_destination.lat,
+							 _destination.lon, _vtol_home_land_approaches.approaches[i].lat,
 							 _vtol_home_land_approaches.approaches[i].lon) - wind_direction);
 
 			if (fabsf(wind_angle) < wind_angle_prev) {
@@ -261,22 +257,18 @@ loiter_point_s VtolLand::chooseBestLandingApproach()
 	}
 }
 
-void VtolLand::readVtolHomeLandApproachesFromStorage()
+void VtolLand::readVtolLandApproachesFromStorage()
 {
 
 	// go through all mission items in the rally point storage. If we find a mission item of type NAV_CMD_RALLY_POINT
-	// which is within MAX_DIST_FROM_HOME_FOR_LAND_APPROACHES  of our current home position then treat ALL following mission items of type NAV_CMD_LOITER_TO_ALT which come
-	// BEFORE the next mission item of type NAV_CMD_RALLY_POINT as land approaches for the home position
+	// which is within MAX_DIST_FROM_LAND_FOR_APPROACHES of our current pestination position then treat ALL following mission items of type NAV_CMD_LOITER_TO_ALT which come
+	// BEFORE the next mission item of type NAV_CMD_RALLY_POINT as land approaches for the destination
 	_vtol_home_land_approaches.resetAllApproaches();
-
-	if (!(_home_pos_sub.get().valid_alt && _home_pos_sub.get().valid_hpos)) {
-		return;
-	}
 
 	mission_stats_entry_s stats;
 	int ret = dm_read(DM_KEY_SAFE_POINTS, 0, &stats, sizeof(mission_stats_entry_s));
 	int num_mission_items = 0;
-	bool foundHomeLandApproaches = false;
+	bool foundLandApproaches = false;
 	uint8_t sector_counter = 0;
 
 	if (ret == sizeof(mission_stats_entry_s)) {
@@ -294,22 +286,22 @@ void VtolLand::readVtolHomeLandApproachesFromStorage()
 
 		if (mission_item.nav_cmd == NAV_CMD_RALLY_POINT) {
 
-			if (foundHomeLandApproaches) {
+			if (foundLandApproaches) {
 				break;
 			}
 
-			const float dist_to_home = get_distance_to_next_waypoint(mission_item.lat, mission_item.lon, _home_pos_sub.get().lat,
-						   _home_pos_sub.get().lon);
+			const float dist_to_land = get_distance_to_next_waypoint(mission_item.lat, mission_item.lon, _destination.lat,
+						   _destination.lon);
 
-			if (!mission_item.is_mission_rally_point && dist_to_home < MAX_DIST_FROM_HOME_FOR_LAND_APPROACHES) {
-				foundHomeLandApproaches = true;
+			if (!mission_item.is_mission_rally_point && dist_to_land < MAX_DIST_FROM_LAND_FOR_APPROACHES) {
+				foundLandApproaches = true;
 				_vtol_home_land_approaches.land_location_lat_lon = matrix::Vector2d(mission_item.lat, mission_item.lon);
 			}
 
 			sector_counter = 0;
 		}
 
-		if (foundHomeLandApproaches && mission_item.nav_cmd == NAV_CMD_LOITER_TO_ALT) {
+		if (foundLandApproaches && mission_item.nav_cmd == NAV_CMD_LOITER_TO_ALT) {
 			_vtol_home_land_approaches.approaches[sector_counter].lat = mission_item.lat;
 			_vtol_home_land_approaches.approaches[sector_counter].lon = mission_item.lon;
 			_vtol_home_land_approaches.approaches[sector_counter].height_m = mission_item.altitude;

@@ -210,7 +210,7 @@ void RTL::setRtlTypeAndDestination()
 	} else {
 		// check the closest allowed destination.
 		DestinationType destination_type{DestinationType::DESTINATION_TYPE_HOME};
-		RtlDirect::RtlPosition rtl_position;
+		LandingPosition_s rtl_position;
 		float rtl_alt;
 		findRtlDestination(destination_type, rtl_position, rtl_alt);
 
@@ -221,16 +221,13 @@ void RTL::setRtlTypeAndDestination()
 			break;
 
 		case DestinationType::DESTINATION_TYPE_SAFE_POINT:
-			_rtl_direct.setRtlAlt(rtl_alt);
-			_rtl_direct.setRtlPosition(rtl_position);
-			_rtl_type = RtlType::RTL_DIRECT;
-			break;
-
+			// Fall through
 		case DestinationType::DESTINATION_TYPE_HOME: {
 				// check if we can apply vtol land.
+				_rtl_vtol_land.setLandPosition(rtl_position);
 				bool vtol_land{_vehicle_status_sub.get().is_vtol &&
 					       _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING &&
-					       _rtl_vtol_land.hasVtolHomeLandApproach()};
+					       _rtl_vtol_land.hasVtolLandApproach()};
 
 				if (vtol_land) {
 					_rtl_type = RtlType::RTL_DIRECT_SAFE_VTOL;
@@ -253,7 +250,7 @@ void RTL::setRtlTypeAndDestination()
 	}
 }
 
-void RTL::findRtlDestination(DestinationType &destination_type, RtlDirect::RtlPosition &rtl_position, float &rtl_alt)
+void RTL::findRtlDestination(DestinationType &destination_type, LandingPosition_s &rtl_position, float &rtl_alt)
 {
 	// set destination to home per default, then check if other valid landing spot is closer
 	rtl_position.alt = _home_pos_sub.get().alt;
@@ -332,7 +329,7 @@ void RTL::findRtlDestination(DestinationType &destination_type, RtlDirect::RtlPo
 	}
 }
 
-void RTL::setLandPosAsDestination(RtlDirect::RtlPosition &rtl_position)
+void RTL::setLandPosAsDestination(LandingPosition_s &rtl_position)
 {
 	rtl_position.alt = _land_pos.alt;
 	rtl_position.lat = _land_pos.lat;
@@ -340,7 +337,7 @@ void RTL::setLandPosAsDestination(RtlDirect::RtlPosition &rtl_position)
 	rtl_position.yaw = _home_pos_sub.get().yaw;
 }
 
-void RTL::setSafepointAsDestination(RtlDirect::RtlPosition &rtl_position,
+void RTL::setSafepointAsDestination(LandingPosition_s &rtl_position,
 				    const mission_item_s &mission_safe_point)
 {
 	// There is a safe point closer than home/mission landing
@@ -368,7 +365,7 @@ void RTL::setSafepointAsDestination(RtlDirect::RtlPosition &rtl_position,
 	}
 }
 
-float RTL::calculate_return_alt_from_cone_half_angle(const RtlDirect::RtlPosition &rtl_position,
+float RTL::calculate_return_alt_from_cone_half_angle(const LandingPosition_s &rtl_position,
 		float cone_half_angle_deg)
 {
 	// horizontal distance to destination
