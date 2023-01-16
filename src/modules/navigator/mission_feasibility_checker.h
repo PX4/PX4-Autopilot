@@ -56,9 +56,6 @@ private:
 	Navigator *_navigator{nullptr};
 	FeasibilityChecker _feasibility_checker;
 
-	bool _has_takeoff{false};
-	bool _has_landing{false};
-
 	bool checkGeofence(const mission_s &mission, float home_alt, bool home_valid);
 
 public:
@@ -77,6 +74,5 @@ public:
 	/*
 	 * Returns true if mission is feasible and false otherwise
 	 */
-	bool checkMissionFeasible(const mission_s &mission,
-				  float max_distance_to_1st_waypoint, float max_distance_between_waypoints);
+	bool checkMissionFeasible(const mission_s &mission);
 };

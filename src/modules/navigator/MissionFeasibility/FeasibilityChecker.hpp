@@ -92,7 +92,6 @@ private:
 	bool _is_landed{false};
 	float _home_alt_msl{NAN};
 	matrix::Vector2d _home_lat_lon = matrix::Vector2d((double)NAN, (double)NAN);
-	bool _is_vtol{false};
 	VehicleType _vehicle_type{VehicleType::RotaryWing};
 
 	// internal flags to keep track of which checks failed
