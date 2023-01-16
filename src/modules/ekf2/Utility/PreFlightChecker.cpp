@@ -78,7 +78,7 @@ bool PreFlightChecker::preFlightCheckHorizVelFailed(const estimator_innovations_
 						       fmaxf(fabsf(innov.gps_hvel[1]), fabsf(innov.ev_hvel[1])));
 		Vector2f vel_ne_innov_lpf;
 		vel_ne_innov_lpf(0) = _filter_vel_n_innov.update(vel_ne_innov(0), alpha, _vel_innov_spike_lim);
-		vel_ne_innov_lpf(1) = _filter_vel_n_innov.update(vel_ne_innov(1), alpha, _vel_innov_spike_lim);
+		vel_ne_innov_lpf(1) = _filter_vel_e_innov.update(vel_ne_innov(1), alpha, _vel_innov_spike_lim);
 		has_failed |= checkInnov2DFailed(vel_ne_innov_lpf, vel_ne_innov, _vel_innov_test_lim, _vel_innov_spike_lim);
 	}
 
