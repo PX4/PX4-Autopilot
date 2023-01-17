@@ -91,7 +91,7 @@ bool KF_orientation_moving::update()
 	_state = _state + kalmanGain * _innov;
 
 	_state(0, 0) = matrix::wrap_pi(_state(0, 0));
-	_state(1, 1) = matrix::wrap_pi(_state(1, 1));
+	_state(1, 0) = matrix::wrap_pi(_state(1, 0));
 
 	_covariance = _covariance - kalmanGain * _meas_matrix * _covariance;
 

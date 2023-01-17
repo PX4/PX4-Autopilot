@@ -242,7 +242,6 @@ void LandingTargetEst::Run()
 			perf_begin(_cycle_perf_yaw);
 
 			if (local_pose_updated) {
-				_ltest_orientation->set_local_orientation(local_pose.yaw, local_pose.yaw_valid);
 				_ltest_orientation->set_range_sensor(local_pose.dist_bottom, local_pose.dist_valid);
 			}
 

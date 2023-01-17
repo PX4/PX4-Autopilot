@@ -54,7 +54,7 @@ using namespace matrix;
 LTEstOrientation::LTEstOrientation() :
 	ModuleParams(nullptr)
 {
-	_target_estimator_aid_ev_yaw_pub.advertise();
+	_ltest_aid_ev_yaw_pub.advertise();
 	_targetOrientationPub.advertise();
 
 	_check_params(true);
@@ -182,8 +182,8 @@ bool LTEstOrientation::processObsVisionOrientation(const landing_target_orientat
 {
 
 	// TODO complete mavlink message to include orientation
-	float vision_r_theta = matrix::wrap_pi(fiducial_marker_orientation.theta_rel);
-	float vision_r_theta_unc = 0.1f; // eventually use fiducial_marker_orientation.cov_theta_rel
+	float vision_r_theta = matrix::wrap_pi(fiducial_marker_orientation.theta);
+	float vision_r_theta_unc = 0.1f; // eventually use fiducial_marker_orientation.cov_theta
 	hrt_abstime vision_timestamp = fiducial_marker_orientation.timestamp;
 
 	/* ORIENTATION */
@@ -257,7 +257,7 @@ bool LTEstOrientation::fuse_orientation(const targetObsOrientation &target_orien
 		target_innov.fused = false;
 	}
 
-	_target_estimator_aid_ev_yaw_pub.publish(target_innov);
+	_ltest_aid_ev_yaw_pub.publish(target_innov);
 
 	return meas_fused;
 }
@@ -268,25 +268,14 @@ void LTEstOrientation::publishTarget()
 	landing_target_orientation_s target_orientation{};
 
 	target_orientation.timestamp = _last_predict;
-	target_orientation.rel_orientation_valid = (hrt_absolute_time() - _last_update < landing_target_valid_TIMEOUT_US);
+	target_orientation.orientation_valid = (hrt_absolute_time() - _last_update < landing_target_valid_TIMEOUT_US);
 
 	// TODO: get velocity if (_target_mode == TargetMode::Moving) {
-	target_orientation.theta_rel = _target_estimator_orientation->getPosition();
-	target_orientation.cov_theta_rel =  _target_estimator_orientation->getPosVar();
+	target_orientation.theta = _target_estimator_orientation->getPosition();
+	target_orientation.cov_theta =  _target_estimator_orientation->getPosVar();
 
-	target_orientation.v_theta_rel = _target_estimator_orientation->getVelocity();
-	target_orientation.cov_v_theta_rel =  _target_estimator_orientation->getVelVar();
-
-
-	if (_local_orientation.valid) {
-
-		target_orientation.abs_pos_valid = true;
-		target_orientation.theta_abs = matrix::wrap_pi(target_orientation.theta_rel -
-					       _local_orientation.yaw); //vehicle_local_position.heading already in [-Pi; Pi]
-
-	} else {
-		target_orientation.abs_pos_valid = false;
-	}
+	target_orientation.v_theta = _target_estimator_orientation->getVelocity();
+	target_orientation.cov_v_theta =  _target_estimator_orientation->getVelVar();
 
 	_targetOrientationPub.publish(target_orientation);
 }
@@ -302,10 +291,6 @@ void LTEstOrientation::_check_params(const bool force)
 
 	if (_range_sensor.valid) {
 		_range_sensor.valid = (hrt_absolute_time() - _range_sensor.last_update) < measurement_updated_TIMEOUT_US;
-	}
-
-	if (_local_orientation.valid) {
-		_local_orientation.valid = (hrt_absolute_time() - _local_orientation.last_update) < measurement_updated_TIMEOUT_US;
 	}
 }
 
@@ -324,20 +309,13 @@ void LTEstOrientation::set_range_sensor(const float dist, const bool valid)
 	_range_sensor.last_update = hrt_absolute_time();
 }
 
-void LTEstOrientation::set_local_orientation(const float yaw, const bool valid)
-{
-	_local_orientation.yaw = yaw;
-	_local_orientation.valid = valid;
-	_local_orientation.last_update = hrt_absolute_time();
-}
-
 bool LTEstOrientation::selectTargetEstimator()
 {
 	Base_KF_orientation *tmp_theta = nullptr;
 
 	bool init_failed = true;
 
-	if (_target_mode == TargetMode::Moving) {
+	if (_target_mode == TargetMode::Moving || _target_mode == TargetMode::MovingAugmented) {
 		tmp_theta = new KF_orientation_moving;
 
 	} else {
