@@ -370,6 +370,10 @@ void SimulatorMavlink::handle_message(const mavlink_message_t *msg)
 		handle_message_landing_target(msg);
 		break;
 
+	case MAVLINK_MSG_ID_FOLLOW_TARGET:
+		handle_message_follow_target(msg);
+		break;
+
 	case MAVLINK_MSG_ID_HIL_STATE_QUATERNION:
 		handle_message_hil_state_quaternion(msg);
 		break;
@@ -603,15 +607,85 @@ void SimulatorMavlink::handle_message_hil_state_quaternion(const mavlink_message
 	}
 }
 
+void
+SimulatorMavlink::handle_message_follow_target(const mavlink_message_t *msg)
+{
+	mavlink_follow_target_t follow_target_msg;
+	mavlink_msg_follow_target_decode(msg, &follow_target_msg);
+
+	landing_target_gnss_s target_GNSS_report{};
+
+	target_GNSS_report.timestamp = follow_target_msg.timestamp;
+	target_GNSS_report.lat = follow_target_msg.lat;
+	target_GNSS_report.lon = follow_target_msg.lon;
+	target_GNSS_report.alt = follow_target_msg.alt * 1000.f; //Convert to [mm]
+	target_GNSS_report.eph = follow_target_msg.position_cov[0];
+	target_GNSS_report.epv = follow_target_msg.position_cov[2];
+
+	target_GNSS_report.vel_n_m_s = follow_target_msg.vel[0];
+	target_GNSS_report.vel_e_m_s = follow_target_msg.vel[1];
+	target_GNSS_report.vel_d_m_s = follow_target_msg.vel[2];
+
+	_landing_target_gnss_pub.publish(target_GNSS_report);
+}
+
 void SimulatorMavlink::handle_message_landing_target(const mavlink_message_t *msg)
 {
 	mavlink_landing_target_t landing_target_mavlink;
 	mavlink_msg_landing_target_decode(msg, &landing_target_mavlink);
 
-	if (landing_target_mavlink.position_valid) {
+	if (landing_target_mavlink.position_valid && landing_target_mavlink.type == 2) {
+		landing_target_pose_s fiducial_marker_report{};
+
+		fiducial_marker_report.timestamp = landing_target_mavlink.time_usec;
+		fiducial_marker_report.x_rel = landing_target_mavlink.x;
+		fiducial_marker_report.y_rel = landing_target_mavlink.y;
+		fiducial_marker_report.z_rel = landing_target_mavlink.z;
+
+		/*
+			// TODO: include uncertainty in the vision observation
+			fiducial_marker_report.cov_x_rel = landing_target_mavlink.;
+			fiducial_marker_report.cov_y_rel = landing_target_mavlink.;
+			fiducial_marker_report.cov_z_rel = landing_target_mavlink.;
+			fiducial_marker_report.cov_x_y_rel = landing_target_mavlink.;
+			fiducial_marker_report.cov_x_z_rel = landing_target_mavlink.;
+			fiducial_marker_report.cov_y_z_rel = landing_target_mavlink.;
+		*/
+
+		_fiducial_marker_report_pub.publish(fiducial_marker_report);
+
+		landing_target_orientation_s fiducial_marker_orientation{};
+		fiducial_marker_orientation.timestamp = landing_target_mavlink.time_usec;
+		fiducial_marker_orientation.theta = landing_target_mavlink.angle_x;
+		/* fiducial_marker_orientation.cov_theta_rel = landing_target.; */
+		_fiducial_marker_orientation_pub.publish(fiducial_marker_orientation);
+
+	} else if (landing_target_mavlink.position_valid) {
 		PX4_WARN("Only landing targets relative to captured images are supported");
 
 	} else {
+
+		/*
+		TODO: rotate irlock measurement here
+
+		landing_target_pose_s fiducial_marker_report{};
+
+		vehicle_attitude_s	vehicle_attitude;
+
+		if(_vehicle_attitude_sub.update(&vehicle_attitude)){
+			PX4_INFO(" ATTITUDE UPDATED ");
+			matrix::Quaternionf quat_att(&vehicle_attitude.q[0]);
+			matrix::Dcmf R_att = matrix::Dcm<float>(quat_att);
+
+			matrix::Vector3f body_pose(landing_target_mavlink.x, landing_target_mavlink.y, landing_target_mavlink.z);
+			matrix::Vector3f vcNED_pose = R_att * body_pose;
+			fiducial_marker_report.timestamp = hrt_absolute_time(); // landing_target_mavlink.time_usec;
+			fiducial_marker_report.x_rel = vcNED_pose(0);
+			fiducial_marker_report.y_rel = vcNED_pose(1);
+			fiducial_marker_report.z_rel = vcNED_pose(2);
+
+			PX4_INFO("ROTATED North %.5f East %.5f Down: %.5f", (double)( vcNED_pose(0)), (double)( vcNED_pose(1)),  (double)(vcNED_pose(2)));
+		*/
 		irlock_report_s report{};
 		report.timestamp = hrt_absolute_time();
 		report.signature = landing_target_mavlink.target_num;
