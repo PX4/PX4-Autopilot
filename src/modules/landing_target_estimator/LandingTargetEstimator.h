@@ -114,6 +114,10 @@ protected:
 
 private:
 
+	typedef struct {  //needs higher accuracy?
+		int16_t x, y, z;//offset to true North
+	} position_t;
+
 	enum class TargetMode {
 		Moving = 0,
 		Stationary

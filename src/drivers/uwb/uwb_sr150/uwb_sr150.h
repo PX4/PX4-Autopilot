@@ -47,13 +47,43 @@
 #include <uORB/SubscriptionInterval.hpp>
 
 #include <uORB/topics/landing_target_pose.h>
-// #include <uORB/topics/uwb_grid.h>
+#include <uORB/topics/uwb_grid.h>
 #include <uORB/topics/sensor_uwb.h>
 #include <uORB/topics/parameter_update.h>
 
+#include <uORB/topics/offboard_control_mode.h>
+#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/actuator_controls.h>
+
 #include <matrix/math.hpp>
+#include <matrix/Matrix.hpp>
 
 using namespace time_literals;
+
+#define UWB_PARAM_UPDATE_TIME 1000000
+
+#define UWB_CMD  0x8e
+#define UWB_CMD_START  0x01
+#define UWB_CMD_STOP  0x00
+#define UWB_CMD_RANGING  0x0A
+#define STOP_B 0x0A
+
+#define UWB_PRECNAV_APP   0x04
+#define UWB_APP_START     0x10
+#define UWB_APP_STOP      0x11
+#define UWB_SESSION_START 0x22
+#define UWB_SESSION_STOP  0x23
+#define UWB_RANGING_START 0x01
+#define UWB_RANGING_STOP  0x00
+#define UWB_DRONE_CTL     0x0A
+#define UWB_SUBCMD_PRECLAND      0x0B
+#define UWB_SUBCMD_FOLLOW_ME     0x0F
+
+#define UWB_CMD_LEN  0x05
+#define UWB_CMD_DISTANCE_LEN 0x21
+#define UWB_MAC_MODE 2
+#define MAX_ANCHORS 12
+#define UWB_GRID_CONFIG "/fs/microsd/etc/uwb_grid_config.csv"
 
 typedef struct {  //needs higher accuracy?
 	float lat, lon, alt, yaw; //offset to true North
@@ -77,6 +107,18 @@ typedef struct {
 	uint8_t aoa_dest_azimuth_FOM;	// AOA Azimuth FOM
 	uint8_t aoa_dest_elevation_FOM;	// AOA Elevation FOM
 } __attribute__((packed)) UWB_range_meas_t;
+
+typedef struct {
+	uint32_t initator_time;  	//timestamp of init
+	uint32_t sessionId;	// Session ID of UWB session
+	uint8_t	num_anchors;	//number of anchors
+	gps_pos_t target_gps; //GPS position of Landing Point
+	uint8_t  mac_mode;	// MAC address mode, either 2 Byte or 8 Byte
+	uint8_t MAC[UWB_MAC_MODE][MAX_ANCHORS];
+	position_t target_pos; //target position
+	position_t anchor_pos[MAX_ANCHORS]; // Position of each anchor
+	uint8_t stop; 		// Should be 27
+} grid_msg_t;
 
 typedef struct {
 	uint8_t cmd;      			// Should be 0x8E for distance result message
@@ -129,7 +171,6 @@ private:
 	void parameters_update();
 
 	DEFINE_PARAMETERS(
-		// (ParamInt<px4::params::UWB_PORT_CFG>) 			_uwb_port_cfg,
 		(ParamInt<px4::params::UWB_DRIVER_EN>) 			_uwb_driver_en,
 		(ParamFloat<px4::params::UWB_INIT_OFF_X>) 		_uwb_init_off_x,
 		(ParamFloat<px4::params::UWB_INIT_OFF_Y>) 		_uwb_init_off_y,
@@ -139,7 +180,10 @@ private:
 	)
 
 
-	uORB::SubscriptionInterval 						_parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	uORB::SubscriptionInterval
+		uORB::Publication<offboard_control_mode_s>				_offboard_control_mode_pub{ORB_ID(offboard_control_mode)};
+	uORB::Publication<actuator_controls_s>					_actuator_controls_pubs[4] {ORB_ID(actuator_controls_0), ORB_ID(actuator_controls_1), ORB_ID(actuator_controls_2), ORB_ID(actuator_controls_3)};
+	uORB::Subscription							_vehicle_status_sub{ORB_ID(vehicle_status)}; 						_parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	hrt_abstime param_timestamp{0};
 
@@ -148,6 +192,8 @@ private:
 	struct timeval _uart_timeout {};
 	bool _uwb_pos_debug;
 
+	uORB::Publication<uwb_grid_s> _uwb_grid_pub{ORB_ID(uwb_grid)};
+	uwb_grid_s _uwb_grid{};
 
 	uORB::Publication<sensor_uwb_s> _sensor_uwb_pub{ORB_ID(sensor_uwb)};
 	sensor_uwb_s _sensor_uwb{};
@@ -155,6 +201,7 @@ private:
 	uORB::Publication<landing_target_pose_s> _landing_target_pub{ORB_ID(landing_target_pose)};
 	landing_target_pose_s _landing_target{};
 
+	grid_msg_t _uwb_grid_info{};
 	distance_msg_t _distance_result_msg{};
 	matrix::Vector3d _rel_pos;
 
