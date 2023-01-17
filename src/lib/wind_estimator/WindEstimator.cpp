@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -95,9 +95,9 @@ WindEstimator::update(uint64_t time_now)
 	_time_last_update = time_now;
 
 	matrix::Matrix3f Qk;
-	Qk(0, 0) = _wind_psd * dt;
-	Qk(1, 1) = Qk(0, 0);
-	Qk(2, 2) = _tas_scale_psd * dt;
+	Qk(INDEX_W_N, INDEX_W_N) = _wind_psd * dt;
+	Qk(INDEX_W_E, INDEX_W_E) = Qk(INDEX_W_N, INDEX_W_N);
+	Qk(INDEX_TAS_SCALE, INDEX_TAS_SCALE) = _tas_scale_psd * dt;
 	_P += Qk;
 }
 
@@ -137,9 +137,9 @@ WindEstimator::fuse_airspeed(uint64_t time_now, const float true_airspeed, const
 	}
 
 	// apply correction to state
-	_state(INDEX_W_N) += _tas_innov * K(0, 0);
-	_state(INDEX_W_E) += _tas_innov * K(1, 0);
-	_state(INDEX_TAS_SCALE) += _tas_innov * K(2, 0);
+	_state(INDEX_W_N) += _tas_innov * K(INDEX_W_N, 0);
+	_state(INDEX_W_E) += _tas_innov * K(INDEX_W_E, 0);
+	_state(INDEX_TAS_SCALE) += _tas_innov * K(INDEX_TAS_SCALE, 0);
 
 	// update covariance matrix
 	_P = _P - K * H_tas * _P;
@@ -182,9 +182,9 @@ WindEstimator::fuse_beta(uint64_t time_now, const matrix::Vector3f &velI, const 
 	}
 
 	// apply correction to state
-	_state(INDEX_W_N) += _beta_innov * K(0, 0);
-	_state(INDEX_W_E) += _beta_innov * K(1, 0);
-	_state(INDEX_TAS_SCALE) += _beta_innov * K(2, 0);
+	_state(INDEX_W_N) += _beta_innov * K(INDEX_W_N, 0);
+	_state(INDEX_W_E) += _beta_innov * K(INDEX_W_E, 0);
+	_state(INDEX_TAS_SCALE) += _beta_innov * K(INDEX_TAS_SCALE, 0);
 
 	// update covariance matrix
 	_P = _P - K * H_beta * _P;
