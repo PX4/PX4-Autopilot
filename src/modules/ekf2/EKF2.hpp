@@ -598,6 +598,8 @@ private:
 		(ParamExtFloat<px4::params::EKF2_ABL_TAU>)
 		_param_ekf2_abl_tau,	///< Time constant used to inhibit IMU delta velocity bias learning (sec)
 
+		(ParamExtFloat<px4::params::EKF2_GYR_B_LIM>) _param_ekf2_gyr_b_lim,	///< Gyro bias learning limit (rad/s)
+
 		// Multi-rotor drag specific force fusion
 		(ParamExtFloat<px4::params::EKF2_DRAG_NOISE>)
 		_param_ekf2_drag_noise,	///< observation noise variance for drag specific force measurements (m/sec**2)**2

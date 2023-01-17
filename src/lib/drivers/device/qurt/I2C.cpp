@@ -42,8 +42,11 @@
 
 #include "I2C.hpp"
 
-#include <dev_fs_lib_i2c.h>
+#if defined(CONFIG_I2C)
+
 #include <px4_platform_common/time.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/i2c_spi_buses.h>
 
 namespace device
 {
@@ -67,6 +70,11 @@ I2C::I2C(uint8_t device_type, const char *name, const int bus, const uint16_t ad
 	_device_id.devid_s.address = address;
 
 	PX4_INFO("*** I2C Device ID 0x%x %d", _device_id.devid, _device_id.devid);
+}
+
+I2C::I2C(const I2CSPIDriverConfig &config)
+	: I2C(config.devid_driver_index, config.module_name, config.bus, config.i2c_address, config.bus_frequency)
+{
 }
 
 I2C::~I2C()
@@ -157,3 +165,5 @@ I2C::transfer(const uint8_t *send, const unsigned send_len, uint8_t *recv, const
 }
 
 } // namespace device
+
+#endif

@@ -41,6 +41,11 @@ using matrix::Vector3f;
 
 void OutputPredictor::print_status()
 {
+	printf("output predictor: IMU dt: %.4f, EKF dt: %.4f\n", (double)_dt_update_states_avg, (double)_dt_correct_states_avg);
+
+	printf("output predictor: tracking error, angular: %.6f rad, velocity: %.3f m/s, position: %.3f m\n",
+	       (double)_output_tracking_error(0), (double)_output_tracking_error(1), (double)_output_tracking_error(2));
+
 	printf("output buffer: %d/%d (%d Bytes)\n", _output_buffer.entries(), _output_buffer.get_length(),
 	       _output_buffer.get_total_size());
 
@@ -165,7 +170,7 @@ void OutputPredictor::calculateOutputStates(const uint64_t time_us, const Vector
 {
 	// Use full rate IMU data at the current time horizon
 	if (_time_last_update_states_us != 0) {
-		const float dt = math::constrain((time_us - _time_last_update_states_us) / 1e6f, 0.0001f, 0.02f);
+		const float dt = math::constrain((time_us - _time_last_update_states_us) * 1e-6f, 0.0001f, 0.03f);
 		_dt_update_states_avg = 0.8f * _dt_update_states_avg + 0.2f * dt;
 	}
 
@@ -238,20 +243,15 @@ void OutputPredictor::correctOutputStates(const uint64_t time_delayed_us,
 		const matrix::Vector3f &gyro_bias, const matrix::Vector3f &accel_bias,
 		const Quatf &quat_state, const Vector3f &vel_state, const Vector3f &pos_state)
 {
-	if (_time_last_update_states_us <= time_delayed_us) {
-		return;
-	}
-
-	const uint64_t time_us = _time_last_update_states_us;
-
 	// calculate an average filter update time
-	if ((_time_last_correct_states_us != 0) && (time_us > _time_last_correct_states_us)) {
-		const float dt = math::constrain((time_us - _time_last_correct_states_us) / 1e6f, 0.0001f, 0.03f);
+	if (_time_last_correct_states_us != 0) {
+		const float dt = math::constrain((time_delayed_us - _time_last_correct_states_us) * 1e-6f, 0.0001f, 0.03f);
 		_dt_correct_states_avg = 0.8f * _dt_correct_states_avg + 0.2f * dt;
 	}
 
-	_time_last_correct_states_us = time_us;
+	_time_last_correct_states_us = time_delayed_us;
 
+	// store IMU bias for calculateOutputStates
 	_gyro_bias = gyro_bias;
 	_accel_bias = accel_bias;
 
@@ -276,7 +276,8 @@ void OutputPredictor::correctOutputStates(const uint64_t time_delayed_us,
 
 	// calculate a gain that provides tight tracking of the estimator attitude states and
 	// adjust for changes in time delay to maintain consistent damping ratio of ~0.7
-	const float time_delay = fmaxf((time_us - time_delayed_us) * 1e-6f, _dt_update_states_avg);
+	const uint64_t time_latest_us = _time_last_update_states_us;
+	const float time_delay = fmaxf((time_latest_us - time_delayed_us) * 1e-6f, _dt_update_states_avg);
 	const float att_gain = 0.5f * _dt_update_states_avg / time_delay;
 
 	// calculate a corrrection to the delta angle

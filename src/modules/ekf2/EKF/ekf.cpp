@@ -95,6 +95,8 @@ bool Ekf::update()
 
 	// Only run the filter if IMU data in the buffer has been updated
 	if (_imu_updated) {
+		_imu_updated = false;
+
 		// get the oldest IMU data from the buffer
 		// TODO: explicitly pop at desired time horizon
 		const imuSample imu_sample_delayed = _imu_buffer.get_oldest();

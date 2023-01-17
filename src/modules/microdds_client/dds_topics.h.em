@@ -37,6 +37,14 @@ struct SendTopicsSubs {
 	uint32_t num_payload_sent{};
 
 	void update(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrStreamId best_effort_stream_id, uxrObjectId participant_id, const char *client_namespace);
+	void reset();
+};
+
+void SendTopicsSubs::reset() {
+	num_payload_sent = 0;
+@[    for idx, pub in enumerate(publications)]@
+	@(pub['topic_simple'])_data_writer = uxr_object_id(0, UXR_INVALID_ID);
+@[    end for]@
 };
 
 void SendTopicsSubs::update(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrStreamId best_effort_stream_id, uxrObjectId participant_id, const char *client_namespace)

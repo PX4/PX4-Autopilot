@@ -227,10 +227,13 @@ PARAM_DEFINE_FLOAT(VT_FW_MIN_ALT, 0.0f);
 PARAM_DEFINE_FLOAT(VT_FW_ALT_ERR, 0.0f);
 
 /**
- * QuadChute Max Pitch
+ * Quad-chute max pitch threshold
  *
- * Maximum pitch angle before QuadChute engages
- * Above this the vehicle will transition back to MC mode and enter failsafe RTL
+ * Absolute pitch threshold for quad-chute triggering in FW mode.
+ * Above this the vehicle will transition back to MC mode and execute behavior defined in COM_QC_ACT.
+ * Set to 0 do disable this threshold.
+ *
+ * @unit deg
  * @min 0
  * @max 180
  * @group VTOL Attitude Control
@@ -238,10 +241,13 @@ PARAM_DEFINE_FLOAT(VT_FW_ALT_ERR, 0.0f);
 PARAM_DEFINE_INT32(VT_FW_QC_P, 0);
 
 /**
- * QuadChute Max Roll
+ * Quad-chute max roll threshold
  *
- * Maximum roll angle before QuadChute engages
- * Above this the vehicle will transition back to MC mode and enter failsafe RTL
+ * Absolute roll threshold for quad-chute triggering in FW mode.
+ * Above this the vehicle will transition back to MC mode and execute behavior defined in COM_QC_ACT.
+ * Set to 0 do disable this threshold.
+ *
+ * @unit deg
  * @min 0
  * @max 180
  * @group VTOL Attitude Control
@@ -249,13 +255,13 @@ PARAM_DEFINE_INT32(VT_FW_QC_P, 0);
 PARAM_DEFINE_INT32(VT_FW_QC_R, 0);
 
 /**
- * Quadchute maximum height.
+ * Quad-chute maximum height
  *
  * Maximum height above the ground (if available, otherwhise above home if available, otherwise above the local origin) where triggering a quadchute is possible.
  * Triggering a quadchute always means transitioning the vehicle to hover flight in which generally a lot of energy is consumed.
  * At high altitudes there is therefore a big risk to deplete the battery and therefore crash. Currently, there is no automated
  * re-transition to fixed wing mode implemented and therefore this parameter serves and an intermediate measure to increase safety.
- * Setting this value to 0 deactivates the behavior.
+ * Setting this value to 0 deactivates the behavior (always enable quad-chute independently of altitude).
  *
  * @unit m
  * @min 0
