@@ -46,7 +46,7 @@
             }
         },
         {
-            "name": "SITL (sihsim 10040_quadx)",
+            "name": "SITL (sihsim_quadx SYS_AUTOSTART=10040)",
             "type": "cppdbg",
             "request": "launch",
             "program": "${command:cmake.launchTargetPath}",
@@ -57,15 +57,13 @@
             "cwd": "${command:cmake.buildDirectory}/rootfs",
             "environment": [
                 {
-                    "name": "PX4_SIM_MODEL",
-                    "value": "quadx"
+                    "name": "PX4_SYS_AUTOSTART",
+                    "value": "10040"
                 }
             ],
-            "externalConsole": false,
             "postDebugTask": "px4_sitl_cleanup",
             "linux": {
                 "MIMode": "gdb",
-                "externalConsole": false,
                 "setupCommands": [
                     {
                         "description": "Enable pretty-printing for gdb",
@@ -81,7 +79,6 @@
             },
             "osx": {
                 "MIMode": "lldb",
-                "externalConsole": true,
                 "setupCommands": [
                     {
                         "text": "pro hand -p true -s false -n false SIGCONT",
@@ -102,12 +99,12 @@
             "environment": [
                 {
                     "name": "PX4_SIM_MODEL",
-                    "value": "iris"
+                    "value": "gazebo-classic_iris"
                 }
             ],
             "externalConsole": false,
-            "preLaunchTask": "gazebo",
-            "postDebugTask": "gazebo kill",
+            "preLaunchTask": "gazebo-classic",
+            "postDebugTask": "gazebo-classic kill",
             "linux": {
                 "MIMode": "gdb",
                 "externalConsole": false,
@@ -135,7 +132,7 @@
             }
         },
         {
-            "name": "SITL (jmavsim)",
+            "name": "SITL (jmavsim_iris SYS_AUTOSTART=10017)",
             "type": "cppdbg",
             "request": "launch",
             "program": "${command:cmake.launchTargetPath}",
@@ -146,16 +143,13 @@
             "cwd": "${command:cmake.buildDirectory}/rootfs",
             "environment": [
                 {
-                    "name": "PX4_SIM_MODEL",
-                    "value": "iris"
+                    "name": "PX4_SYS_AUTOSTART",
+                    "value": "10017"
                 }
             ],
-            "externalConsole": false,
-            "preLaunchTask": "jmavsim",
             "postDebugTask": "jmavsim kill",
             "linux": {
                 "MIMode": "gdb",
-                "externalConsole": false,
                 "setupCommands": [
                     {
                         "description": "Enable pretty-printing for gdb",
@@ -171,7 +165,6 @@
             },
             "osx": {
                 "MIMode": "lldb",
-                "externalConsole": true,
                 "setupCommands": [
                     {
                         "text": "pro hand -p true -s false -n false SIGCONT",

@@ -228,6 +228,8 @@ Server::_server_main()
 		_unlock();
 	}
 
+	std::string sock_path = get_socket_path(_instance_id);
+	unlink(sock_path.c_str());
 	close(_fd);
 }
 

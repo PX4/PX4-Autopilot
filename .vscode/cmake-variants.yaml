@@ -266,6 +266,16 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: nxp_fmuk66-v3_default
+    nxp_mr-canhubk3_default:
+      short: nxp_mr-canhubk3_default
+      buildType: MinSizeRel
+      settings:
+        CONFIG: nxp_mr-canhubk3_default
+    nxp_mr-canhubk3_fmu:
+      short: nxp_mr-canhubk3_fmu
+      buildType: MinSizeRel
+      settings:
+        CONFIG: nxp_mr-canhubk3_fmu
     raspberrypi_pico_default:
       short: raspberrypi_pico
       buildType: MinSizeRel

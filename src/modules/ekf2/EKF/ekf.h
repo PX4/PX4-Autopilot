@@ -306,7 +306,7 @@ public:
 	// gyro bias (states 10, 11, 12)
 	Vector3f getGyroBias() const { return _state.delta_ang_bias / _dt_ekf_avg; } // get the gyroscope bias in rad/s
 	Vector3f getGyroBiasVariance() const { return Vector3f{P(10, 10), P(11, 11), P(12, 12)} / sq(_dt_ekf_avg); } // get the gyroscope bias variance in rad/s
-	float getGyroBiasLimit() const { return math::radians(20.f); } // 20 degrees/s
+	float getGyroBiasLimit() const { return _params.gyro_bias_lim; }
 
 	// accel bias (states 13, 14, 15)
 	Vector3f getAccelBias() const { return _state.delta_vel_bias / _dt_ekf_avg; } // get the accelerometer bias in m/s**2
@@ -525,11 +525,9 @@ private:
 	uint64_t _mag_use_not_inhibit_us{0};	///< last system time in usec before magnetometer use was inhibited
 	float _last_static_yaw{NAN};		///< last yaw angle recorded when on ground motion checks were passing (rad)
 
-	bool _mag_inhibit_yaw_reset_req{false};	///< true when magnetometer inhibit has been active for long enough to require a yaw reset when conditions improve.
 	bool _mag_yaw_reset_req{false};		///< true when a reset of the yaw using the magnetometer data has been requested
 	bool _mag_decl_cov_reset{false};	///< true after the fuseDeclination() function has been used to modify the earth field covariances after a magnetic field reset event.
 	bool _synthetic_mag_z_active{false};	///< true if we are generating synthetic magnetometer Z measurements
-	bool _is_yaw_fusion_inhibited{false};		///< true when yaw sensor use is being inhibited
 
 	SquareMatrix24f P{};	///< state covariance matrix
 
@@ -666,9 +664,9 @@ private:
 	bool fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bool update_all_states = true);
 
 	// update quaternion states and covariances using an innovation, observation variance and Jacobian vector
-	// innovation : prediction - measurement
-	// variance : observaton variance
-	bool fuseYaw(const float innovation, const float variance, estimator_aid_source1d_s &aid_src_status);
+	bool fuseYaw(float innovation, float variance, estimator_aid_source1d_s &aid_src_status);
+	bool fuseYaw(float innovation, float variance, estimator_aid_source1d_s &aid_src_status, const Vector24f &H_YAW);
+	void computeYawInnovVarAndH(float variance, float &innovation_variance, Vector24f &H_YAW) const;
 
 	// fuse the yaw angle obtained from a dual antenna GPS unit
 	void fuseGpsYaw();
@@ -870,7 +868,6 @@ private:
 	float getTerrainVPos() const { return isTerrainEstimateValid() ? _terrain_vpos : _last_on_ground_posD; }
 
 	void runOnGroundYawReset();
-	bool canResetMagHeading() const;
 	void runInAirYawReset();
 
 	void selectMagAuto();
@@ -880,7 +877,6 @@ private:
 	bool canUse3DMagFusion() const;
 
 	void checkMagDeclRequired();
-	void checkMagInhibition();
 	bool shouldInhibitMag() const;
 	bool magFieldStrengthDisturbed(const Vector3f &mag) const;
 	static bool isMeasuredMatchingExpected(float measured, float expected, float gate);

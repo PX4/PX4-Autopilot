@@ -3,11 +3,10 @@
 # ModalAI FC-v2 specific board sensors init
 #------------------------------------------------------------------------------
 
-# VOXL ESC - TODO
-#if param greater UART_ESC_CONFIG 0
-#then
-#	modalai_esc -d /dev/ttyS4 start
-#fi
+if param greater UART_ESC_CONFIG 0
+then
+	modalai_esc start
+fi
 
 board_adc start
 

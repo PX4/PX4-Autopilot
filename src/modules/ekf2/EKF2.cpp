@@ -160,6 +160,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_abl_acclim(_params->acc_bias_learn_acc_lim),
 	_param_ekf2_abl_gyrlim(_params->acc_bias_learn_gyr_lim),
 	_param_ekf2_abl_tau(_params->acc_bias_learn_tc),
+	_param_ekf2_gyr_b_lim(_params->gyro_bias_lim),
 	_param_ekf2_drag_noise(_params->drag_noise),
 	_param_ekf2_bcoef_x(_params->bcoef_x),
 	_param_ekf2_bcoef_y(_params->bcoef_y),
@@ -978,17 +979,22 @@ void EKF2::PublishGlobalPosition(const hrt_abstime &timestamp)
 		// Position of local NED origin in GPS / WGS84 frame
 		_ekf.global_origin().reproject(position(0), position(1), global_pos.lat, global_pos.lon);
 
-		float delta_xy[2];
-		_ekf.get_posNE_reset(delta_xy, &global_pos.lat_lon_reset_counter);
-
 		global_pos.alt = -position(2) + _ekf.getEkfGlobalOriginAltitude(); // Altitude AMSL in meters
 		global_pos.alt_ellipsoid = filter_altitude_ellipsoid(global_pos.alt);
 
-		// global altitude has opposite sign of local down position
-		float delta_z;
-		uint8_t z_reset_counter;
+		// delta_alt, alt_reset_counter
+		//  global altitude has opposite sign of local down position
+		float delta_z = 0.f;
+		uint8_t z_reset_counter = 0;
 		_ekf.get_posD_reset(&delta_z, &z_reset_counter);
 		global_pos.delta_alt = -delta_z;
+		global_pos.alt_reset_counter = z_reset_counter;
+
+		// lat_lon_reset_counter
+		float delta_xy[2] {};
+		uint8_t xy_reset_counter = 0;
+		_ekf.get_posNE_reset(delta_xy, &xy_reset_counter);
+		global_pos.lat_lon_reset_counter = xy_reset_counter;
 
 		_ekf.get_ekf_gpos_accuracy(&global_pos.eph, &global_pos.epv);
 
@@ -1004,6 +1010,7 @@ void EKF2::PublishGlobalPosition(const hrt_abstime &timestamp)
 
 		global_pos.dead_reckoning = _ekf.control_status_flags().inertial_dead_reckoning
 					    || _ekf.control_status_flags().wind_dead_reckoning;
+
 		global_pos.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 		_global_position_pub.publish(global_pos);
 	}
@@ -1712,28 +1719,25 @@ void EKF2::UpdateBaroSample(ekf2_timestamps_s &ekf2_timestamps)
 		// check if barometer has changed
 		if (airdata.baro_device_id != _device_id_baro) {
 			if (_device_id_baro != 0) {
-				PX4_WARN("%d - baro sensor ID changed %" PRIu32 " -> %" PRIu32, _instance, _device_id_baro, airdata.baro_device_id);
+				PX4_DEBUG("%d - baro sensor ID changed %" PRIu32 " -> %" PRIu32, _instance, _device_id_baro, airdata.baro_device_id);
 			}
 
 			reset = true;
 
-		} else if (airdata.calibration_count > _baro_calibration_count) {
+		} else if (airdata.calibration_count != _baro_calibration_count) {
 			// existing calibration has changed, reset saved baro bias
 			PX4_DEBUG("%d - baro %" PRIu32 " calibration updated, resetting bias", _instance, _device_id_baro);
 			reset = true;
 		}
 
 		if (reset) {
-			// TODO: reset baro ref and bias estimate?
 			_device_id_baro = airdata.baro_device_id;
 			_baro_calibration_count = airdata.calibration_count;
 		}
 
 		_ekf.set_air_density(airdata.rho);
 
-		_ekf.setBaroData(baroSample{airdata.timestamp_sample, airdata.baro_alt_meter});
-
-		_device_id_baro = airdata.baro_device_id;
+		_ekf.setBaroData(baroSample{airdata.timestamp_sample, airdata.baro_alt_meter, reset});
 
 		ekf2_timestamps.vehicle_air_data_timestamp_rel = (int16_t)((int64_t)airdata.timestamp / 100 -
 				(int64_t)ekf2_timestamps.timestamp / 100);
