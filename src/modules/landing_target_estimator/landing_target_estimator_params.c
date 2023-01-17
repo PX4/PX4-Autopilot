@@ -192,7 +192,7 @@ PARAM_DEFINE_FLOAT(LTEST_SENS_POS_Z, 0.0f);
  * Euler Angle Rotation (3-2-1 intrinsic Tait-Bryan) Phi (X)
  *
  * Orientation transformation from camera frame that detected
- * the landing_target to drone's NED frame
+ * the landing_target to drone's FRD frame
  *
  * @unit rad
  * @decimal 2
