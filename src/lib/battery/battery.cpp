@@ -241,6 +241,7 @@ void Battery::estimateStateOfCharge(const float voltage_v, const float current_a
 			_sees_warning_last = hrt_absolute_time();
 		}
 	}
+
 	// -----------------------------
 	// Else do PX4 Default Behaviour
 	// -----------------------------
