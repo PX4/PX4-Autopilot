@@ -665,36 +665,39 @@ void SimulatorMavlink::handle_message_landing_target(const mavlink_message_t *ms
 
 	} else {
 
-		/*
-		TODO: rotate irlock measurement here
-
-		landing_target_pose_s fiducial_marker_report{};
-
 		vehicle_attitude_s	vehicle_attitude;
 
-		if(_vehicle_attitude_sub.update(&vehicle_attitude)){
-			PX4_INFO(" ATTITUDE UPDATED ");
+		if (_vehicle_attitude_sub.update(&vehicle_attitude)) {
+			irlock_report_s irlock_report{};
+
+			matrix::Vector3f sensor_ray; // ray pointing towards target in body frame
+			sensor_ray(0) = landing_target_mavlink.angle_x * _param_ltest_scale_x.get(); // forward
+			sensor_ray(1) = landing_target_mavlink.angle_y * _param_ltest_scale_y.get(); // right
+			sensor_ray(2) = 1.0f;
+
+			// rotate unit ray according to sensor orientation
+			matrix::Dcmf S_att; //Orientation of the sensor relative to body frame
+			S_att = get_rot_matrix(static_cast<enum Rotation>(_param_ltest_sens_rot.get()));
+			sensor_ray = S_att * sensor_ray;
+
+			// Adjust relative position according to sensor offset
+			sensor_ray(0) += _param_ltest_sens_pos_x.get();
+			sensor_ray(1) += _param_ltest_sens_pos_y.get();
+
+			// Rotate the unit ray into the navigation frame.
 			matrix::Quaternionf quat_att(&vehicle_attitude.q[0]);
 			matrix::Dcmf R_att = matrix::Dcm<float>(quat_att);
+			sensor_ray = R_att * sensor_ray;
 
-			matrix::Vector3f body_pose(landing_target_mavlink.x, landing_target_mavlink.y, landing_target_mavlink.z);
-			matrix::Vector3f vcNED_pose = R_att * body_pose;
-			fiducial_marker_report.timestamp = hrt_absolute_time(); // landing_target_mavlink.time_usec;
-			fiducial_marker_report.x_rel = vcNED_pose(0);
-			fiducial_marker_report.y_rel = vcNED_pose(1);
-			fiducial_marker_report.z_rel = vcNED_pose(2);
+			// publish sensor_ray NED
+			irlock_report.timestamp = hrt_absolute_time();
+			irlock_report.signature = landing_target_mavlink.target_num;
+			irlock_report.sensor_ray_n = sensor_ray(0);
+			irlock_report.sensor_ray_e = sensor_ray(1);
+			irlock_report.sensor_ray_d = sensor_ray(2);
 
-			PX4_INFO("ROTATED North %.5f East %.5f Down: %.5f", (double)( vcNED_pose(0)), (double)( vcNED_pose(1)),  (double)(vcNED_pose(2)));
-		*/
-		irlock_report_s report{};
-		report.timestamp = hrt_absolute_time();
-		report.signature = landing_target_mavlink.target_num;
-		report.pos_x = landing_target_mavlink.angle_x;
-		report.pos_y = landing_target_mavlink.angle_y;
-		report.size_x = landing_target_mavlink.size_x;
-		report.size_y = landing_target_mavlink.size_y;
-
-		_irlock_report_pub.publish(report);
+			_irlock_report_pub.publish(irlock_report);
+		}
 	}
 }
 

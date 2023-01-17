@@ -36,8 +36,6 @@
  * Landing target position estimator. Filter and publish the position of a landing target on the ground as observed by an onboard sensor.
  *
  * @author Jonas Perolini <jonas.perolini@epfl.ch>
- * @author Nicolas de Palezieux (Sunflower Labs) <ndepal@gmail.com>
- * @author Mohammed Kabir <kabir@uasys.io>
  *
  */
 
@@ -101,8 +99,6 @@ public:
 	void resetFilter();
 
 	void set_landpoint(const int lat, const int lon, const float alt);
-
-	void set_attitude(const matrix::Quaternionf &q_att);
 
 	void set_range_sensor(const float dist, const bool valid);
 
@@ -304,11 +300,6 @@ private:
 		(ParamFloat<px4::params::LTEST_ACC_UNC_IN>) _param_ltest_acc_unc_in,
 		(ParamInt<px4::params::LTEST_MODE>) _param_ltest_mode,
 		(ParamInt<px4::params::LTEST_MODEL>) _param_ltest_model,
-		(ParamFloat<px4::params::LTEST_SCALE_X>) _param_ltest_scale_x,
-		(ParamFloat<px4::params::LTEST_SCALE_Y>) _param_ltest_scale_y,
-		(ParamInt<px4::params::LTEST_SENS_ROT>) _param_ltest_sens_rot,
-		(ParamFloat<px4::params::LTEST_SENS_POS_X>) _param_ltest_sens_pos_x,
-		(ParamFloat<px4::params::LTEST_SENS_POS_Y>) _param_ltest_sens_pos_y,
 		(ParamFloat<px4::params::LTEST_SENS_POS_Z>) _param_ltest_sens_pos_z
 	)
 };

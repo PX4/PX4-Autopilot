@@ -35,7 +35,7 @@
  * @file LandingTargetEst.cpp
  * Landing target estimator. Filter and publish the position of a landing target on the ground as observed by an onboard sensor.
  *
- * @author Jonas Perolini <jonspero@me.com>
+ * @author Jonas Perolini <jonas.perolini@epfl.ch>
  *
  */
 
@@ -192,10 +192,9 @@ void LandingTargetEst::Run()
 		if (_ltest_position_valid) {
 
 			matrix::Vector3f vehicle_acc_ned;
-			matrix::Quaternionf q_att;
 
 			/* Downsample acceleration ned */
-			if (get_input(vehicle_acc_ned, q_att)) {
+			if (get_input(vehicle_acc_ned)) {
 
 				/* If the acceleration has been averaged for too long, early return */
 				if ((hrt_absolute_time() - _last_acc_reset) > acc_downsample_TIMEOUT_US) {
@@ -217,7 +216,6 @@ void LandingTargetEst::Run()
 
 					matrix::Vector3f vehicle_acc_ned_sampled = _vehicle_acc_ned_sum / _loops_count;
 
-					_ltest_position->set_attitude(q_att);
 					_ltest_position->update(vehicle_acc_ned_sampled);
 					_last_update_pos = hrt_absolute_time();
 
@@ -293,7 +291,7 @@ bool LandingTargetEst::get_local_pose(localPose &local_pose)
 	}
 }
 
-bool LandingTargetEst::get_input(matrix::Vector3f &vehicle_acc_ned, matrix::Quaternionf &q_att)
+bool LandingTargetEst::get_input(matrix::Vector3f &vehicle_acc_ned)
 {
 
 	vehicle_attitude_s	vehicle_attitude;
@@ -310,8 +308,7 @@ bool LandingTargetEst::get_input(matrix::Vector3f &vehicle_acc_ned, matrix::Quat
 
 		/* Transform FRD body acc to NED */
 		matrix::Quaternionf quat_att(&vehicle_attitude.q[0]);
-		q_att = quat_att;
-		matrix::Dcmf R_att = matrix::Dcm<float>(q_att);
+		matrix::Dcmf R_att = matrix::Dcm<float>(quat_att);
 
 		matrix::Vector3f vehicle_acc{vehicle_acceleration.xyz};
 

@@ -401,7 +401,12 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::BAT_CRIT_THR>)     _param_bat_crit_thr,
 		(ParamFloat<px4::params::BAT_EMERGEN_THR>)  _param_bat_emergen_thr,
-		(ParamFloat<px4::params::BAT_LOW_THR>)      _param_bat_low_thr
+		(ParamFloat<px4::params::BAT_LOW_THR>)      _param_bat_low_thr,
+		(ParamFloat<px4::params::LTEST_SCALE_X>) _param_ltest_scale_x,
+		(ParamFloat<px4::params::LTEST_SCALE_Y>) _param_ltest_scale_y,
+		(ParamInt<px4::params::LTEST_SENS_ROT>) _param_ltest_sens_rot,
+		(ParamFloat<px4::params::LTEST_SENS_POS_X>) _param_ltest_sens_pos_x,
+		(ParamFloat<px4::params::LTEST_SENS_POS_Y>) _param_ltest_sens_pos_y
 	);
 
 	// Disallow copy construction and move assignment.

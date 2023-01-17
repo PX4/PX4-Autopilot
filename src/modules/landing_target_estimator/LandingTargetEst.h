@@ -35,7 +35,7 @@
  * @file LandingTargetEst.h
  * Landing target position estimator. Filter and publish the position of a landing target on the ground as observed by an onboard sensor.
  *
- * @author Jonas Perolini <jonspero@me.com>
+ * @author Jonas Perolini <jonas.perolini@epfl.ch>
  *
  */
 
@@ -99,7 +99,7 @@ private:
 	void updateParams() override;
 
 	void reset_filters();
-	bool get_input(matrix::Vector3f &acc_ned, matrix::Quaternionf &q_att);
+	bool get_input(matrix::Vector3f &acc_ned);
 
 	perf_counter_t _cycle_perf_pos{perf_alloc(PC_ELAPSED, MODULE_NAME": ltest cycle pos")};
 	perf_counter_t _cycle_perf_yaw{perf_alloc(PC_ELAPSED, MODULE_NAME": ltest cycle yaw")};

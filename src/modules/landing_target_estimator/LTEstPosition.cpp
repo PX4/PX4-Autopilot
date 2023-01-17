@@ -34,8 +34,6 @@
 /*
  * @file LTEstPosition.cpp
  *
- * @author Nicolas de Palezieux (Sunflower Labs) <ndepal@gmail.com>
- * @author Mohammed Kabir <kabir@uasys.io>
  * @author Jonas Perolini <jonas.perolini@epfl.ch>
  *
  */
@@ -982,24 +980,16 @@ bool LTEstPosition::processObsUWB(const uwb_distance_s &uwb_distance, targetObsP
 
 bool LTEstPosition::processObsIRlock(const irlock_report_s &irlock_report, targetObsPos &obs)
 {
-	if (!PX4_ISFINITE(irlock_report.pos_y) || !PX4_ISFINITE(irlock_report.pos_x)) {
+	if (!PX4_ISFINITE(irlock_report.sensor_ray_n) || !PX4_ISFINITE(irlock_report.sensor_ray_e)
+	    || !PX4_ISFINITE(irlock_report.sensor_ray_d)) {
 		PX4_WARN("IRLOCK position is corrupt!");
 
 	} else {
 
 		Vector3f sensor_ray; // ray pointing towards target in body frame
-		sensor_ray(0) = irlock_report.pos_x * _param_ltest_scale_x.get(); // forward
-		sensor_ray(1) = irlock_report.pos_y * _param_ltest_scale_y.get(); // right
-		sensor_ray(2) = 1.0f;
-
-		// rotate unit ray according to sensor orientation
-		Dcmf S_att; //Orientation of the sensor relative to body frame
-		S_att = get_rot_matrix(static_cast<enum Rotation>(_param_ltest_sens_rot.get()));
-		sensor_ray = S_att * sensor_ray;
-
-		// TODO: rotate the unit ray into the navigation frame. Should be done in MAVLINK receiver or onboard
-		Dcmf R_att = Dcm<float>(_q_att);
-		sensor_ray = R_att * sensor_ray;
+		sensor_ray(0) = irlock_report.sensor_ray_n;
+		sensor_ray(1) = irlock_report.sensor_ray_e;
+		sensor_ray(2) = irlock_report.sensor_ray_d;
 
 		// z component of measurement safe, use this measurement
 		if (fabsf(sensor_ray(2)) > 1e-6f) {
@@ -1010,10 +1000,6 @@ bool LTEstPosition::processObsIRlock(const irlock_report_s &irlock_report, targe
 			float rel_pos_x = sensor_ray(0) / sensor_ray(2) * dist_z;
 			float rel_pos_y = sensor_ray(1) / sensor_ray(2) * dist_z;
 			float rel_pos_z = dist_z;
-
-			// Adjust relative position according to sensor offset
-			rel_pos_x += _param_ltest_sens_pos_x.get();
-			rel_pos_y += _param_ltest_sens_pos_y.get();
 
 			// Fill the observations for the irlock sensor
 			obs.timestamp = irlock_report.timestamp;
@@ -1405,11 +1391,6 @@ void LTEstPosition::set_local_position(const matrix::Vector3f &xyz, const bool v
 	_local_position.xyz = xyz;
 	_local_position.valid = valid;
 	_local_position.last_update = hrt_absolute_time();
-}
-
-void LTEstPosition::set_attitude(const matrix::Quaternionf &q_att)
-{
-	_q_att = q_att;
 }
 
 void LTEstPosition::set_landpoint(const int lat, const int lon, const float alt)

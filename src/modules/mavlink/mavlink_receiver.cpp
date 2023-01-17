@@ -2399,6 +2399,22 @@ MavlinkReceiver::handle_message_follow_target(mavlink_message_t *msg)
 	follow_target_topic.vz = follow_target_msg.vel[2];
 
 	_follow_target_pub.publish(follow_target_topic);
+
+	// TODO: Use a field to distinguish between follow_target_topic and target_GNSS_report
+	landing_target_gnss_s target_GNSS_report{};
+
+	target_GNSS_report.timestamp = follow_target_msg.timestamp;
+	target_GNSS_report.lat = follow_target_msg.lat;
+	target_GNSS_report.lon = follow_target_msg.lon;
+	target_GNSS_report.alt = follow_target_msg.alt * 1000.f; //Convert to [mm]
+	target_GNSS_report.eph = follow_target_msg.position_cov[0];
+	target_GNSS_report.epv = follow_target_msg.position_cov[2];
+
+	target_GNSS_report.vel_n_m_s = follow_target_msg.vel[0];
+	target_GNSS_report.vel_e_m_s = follow_target_msg.vel[1];
+	target_GNSS_report.vel_d_m_s = follow_target_msg.vel[2];
+
+	_landing_target_gnss_pub.publish(target_GNSS_report);
 }
 
 void
@@ -2408,16 +2424,41 @@ MavlinkReceiver::handle_message_landing_target(mavlink_message_t *msg)
 	mavlink_msg_landing_target_decode(msg, &landing_target);
 
 	if (landing_target.position_valid && landing_target.type == 0) {
-		irlock_report_s irlock_report{};
 
-		irlock_report.timestamp = hrt_absolute_time();
-		irlock_report.signature = landing_target.target_num;
-		irlock_report.pos_x = landing_target.angle_x;
-		irlock_report.pos_y = landing_target.angle_y;
-		irlock_report.size_x = landing_target.size_x;
-		irlock_report.size_y = landing_target.size_y;
+		/* Handle irlock observation */
+		vehicle_attitude_s	vehicle_attitude;
 
-		_irlock_report_pub.publish(irlock_report);
+		if (_vehicle_attitude_sub.update(&vehicle_attitude)) {
+			irlock_report_s irlock_report{};
+
+			matrix::Vector3f sensor_ray; // ray pointing towards target in body frame
+			sensor_ray(0) = landing_target.angle_x * _param_ltest_scale_x.get(); // forward
+			sensor_ray(1) = landing_target.angle_y * _param_ltest_scale_y.get(); // right
+			sensor_ray(2) = 1.0f;
+
+			// rotate unit ray according to sensor orientation
+			matrix::Dcmf S_att; //Orientation of the sensor relative to body frame
+			S_att = get_rot_matrix(static_cast<enum Rotation>(_param_ltest_sens_rot.get()));
+			sensor_ray = S_att * sensor_ray;
+
+			// Adjust relative position according to sensor offset
+			sensor_ray(0) += _param_ltest_sens_pos_x.get();
+			sensor_ray(1) += _param_ltest_sens_pos_y.get();
+
+			// Rotate the unit ray into the navigation frame.
+			matrix::Quaternionf quat_att(&vehicle_attitude.q[0]);
+			matrix::Dcmf R_att = matrix::Dcm<float>(quat_att);
+			sensor_ray = R_att * sensor_ray;
+
+			// publish sensor_ray NED
+			irlock_report.timestamp = hrt_absolute_time();
+			irlock_report.signature = landing_target.target_num;
+			irlock_report.sensor_ray_n = sensor_ray(0);
+			irlock_report.sensor_ray_e = sensor_ray(1);
+			irlock_report.sensor_ray_d = sensor_ray(2);
+
+			_irlock_report_pub.publish(irlock_report);
+		}
 
 	} else if (landing_target.position_valid && landing_target.type == 2) {
 		landing_target_pose_s fiducial_marker_report{};
@@ -2441,8 +2482,8 @@ MavlinkReceiver::handle_message_landing_target(mavlink_message_t *msg)
 		/*
 		landing_target_orientation_s fiducial_marker_orientation{};
 		fiducial_marker_orientation.timestamp = _mavlink_timesync.sync_stamp(landing_target.time_usec);
-		fiducial_marker_orientation.theta_rel = landing_target.;
-		fiducial_marker_orientation.cov_theta_rel = landing_target.;
+		fiducial_marker_orientation.theta = landing_target.;
+		fiducial_marker_orientation.cov_theta = landing_target.;
 		_fiducial_marker_orientation_pub.publish(fiducial_marker_orientation);
 		*/
 
@@ -2457,40 +2498,6 @@ MavlinkReceiver::handle_message_landing_target(mavlink_message_t *msg)
 
 		_landing_target_pose_pub.publish(landing_target_pose);
 
-	} else if (landing_target.frame == MAV_FRAME_GLOBAL) {
-
-		// TODO: check if mavros handles this frame
-
-		landing_target_gnss_s target_GNSS_report{};
-		target_GNSS_report.timestamp = _mavlink_timesync.sync_stamp(landing_target.time_usec);
-
-		if (landing_target.position_valid) {
-			target_GNSS_report.lat = landing_target.x;
-			target_GNSS_report.lon = landing_target.y;
-			target_GNSS_report.alt = landing_target.z; // Altitude AMSL
-
-			/*
-			target_GNSS_report.eph = landing_target.;
-			target_GNSS_report.epv = landing_target.;
-			*/
-		}
-
-		_landing_target_gnss_pub.publish(target_GNSS_report);
-
-		/*
-		if(landing_target.velocity_valid){
-			target_GNSS_report.vel_n_m_s = landing_target.vx;
-			target_GNSS_report.vel_e_m_s = landing_target.vy;
-			target_GNSS_report.vel_d_m_s = landing_target.vz;
-
-			target_GNSS_report.s_variance_m_s = landing_target.;
-		}
-
-		if(landing_target.position_valid || landing_target.velocity_valid){
-			_target_GNSS_report_pub.publish(target_GNSS_report);
-		}
-		*/
-
 	} else if (landing_target.position_valid) {
 		// We only support MAV_FRAME_LOCAL_NED. In this case, the frame was unsupported.
 		mavlink_log_critical(&_mavlink_log_pub, "landing target: coordinate frame %" PRIu8 " unsupported\t",
@@ -2499,17 +2506,41 @@ MavlinkReceiver::handle_message_landing_target(mavlink_message_t *msg)
 				      "landing target: unsupported coordinate frame {1}", landing_target.frame);
 
 	} else {
-		// TODO: eventually remove else
-		irlock_report_s irlock_report{};
 
-		irlock_report.timestamp = hrt_absolute_time();
-		irlock_report.signature = landing_target.target_num;
-		irlock_report.pos_x = landing_target.angle_x;
-		irlock_report.pos_y = landing_target.angle_y;
-		irlock_report.size_x = landing_target.size_x;
-		irlock_report.size_y = landing_target.size_y;
+		/* Handle irlock observation */
+		vehicle_attitude_s	vehicle_attitude;
 
-		_irlock_report_pub.publish(irlock_report);
+		if (_vehicle_attitude_sub.update(&vehicle_attitude)) {
+			irlock_report_s irlock_report{};
+
+			matrix::Vector3f sensor_ray; // ray pointing towards target in body frame
+			sensor_ray(0) = landing_target.angle_x * _param_ltest_scale_x.get(); // forward
+			sensor_ray(1) = landing_target.angle_y * _param_ltest_scale_y.get(); // right
+			sensor_ray(2) = 1.0f;
+
+			// rotate unit ray according to sensor orientation
+			matrix::Dcmf S_att; //Orientation of the sensor relative to body frame
+			S_att = get_rot_matrix(static_cast<enum Rotation>(_param_ltest_sens_rot.get()));
+			sensor_ray = S_att * sensor_ray;
+
+			// Adjust relative position according to sensor offset
+			sensor_ray(0) += _param_ltest_sens_pos_x.get();
+			sensor_ray(1) += _param_ltest_sens_pos_y.get();
+
+			// Rotate the unit ray into the navigation frame.
+			matrix::Quaternionf quat_att(&vehicle_attitude.q[0]);
+			matrix::Dcmf R_att = matrix::Dcm<float>(quat_att);
+			sensor_ray = R_att * sensor_ray;
+
+			// publish sensor_ray NED
+			irlock_report.timestamp = hrt_absolute_time();
+			irlock_report.signature = landing_target.target_num;
+			irlock_report.sensor_ray_n = sensor_ray(0);
+			irlock_report.sensor_ray_e = sensor_ray(1);
+			irlock_report.sensor_ray_d = sensor_ray(2);
+
+			_irlock_report_pub.publish(irlock_report);
+		}
 	}
 }
 
