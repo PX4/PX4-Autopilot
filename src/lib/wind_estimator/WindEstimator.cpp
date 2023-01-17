@@ -211,7 +211,7 @@ WindEstimator::run_sanity_checks()
 		}
 	}
 
-	if (!PX4_ISFINITE(_state(INDEX_W_N)) || !PX4_ISFINITE(_state(INDEX_W_E)) || !PX4_ISFINITE(_state(INDEX_TAS_SCALE))) {
+	if (!_state.isAllFinite()) {
 		_initialised = false;
 		return;
 	}
