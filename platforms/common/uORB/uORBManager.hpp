@@ -50,6 +50,7 @@
 #endif /* CONFIG_ORB_COMMUNICATOR */
 
 #define NUM_GLOBAL_SEMS 40
+#define SUB_ALIVE_SEM_MAX_VALUE 100
 
 namespace uORB
 {
@@ -450,6 +451,12 @@ public:
 		// The manager is unlocked in callback thread
 	}
 
+	static bool isThreadAlive(int idx)
+	{
+		int value = _Instance->g_sem_pool.value(idx);
+		return value <= SUB_ALIVE_SEM_MAX_VALUE;
+	}
+
 private: // class methods
 	inline static uORB::DeviceNode *node(orb_advert_t handle) {return static_cast<uORB::DeviceNode *>(handle.node);}
 
@@ -636,6 +643,7 @@ private: //class methods
 		int take_interruptible(int8_t i) { return _global_sem[i].take(); }
 		int take_timedwait(int8_t i, struct timespec *abstime) { return _global_sem[i].take_timedwait(abstime); }
 		void release(int8_t i) {_global_sem[i].release(); }
+		int value(int8_t i) { return _global_sem[i].value(); }
 
 		class GlobalLock
 		{
@@ -659,7 +667,7 @@ private: //class methods
 			int take() {return px4_sem_wait(&_sem);}
 			int take_timedwait(struct timespec *abstime) { return px4_sem_timedwait(&_sem, abstime); }
 			void release() {px4_sem_post(&_sem); }
-
+			int value() { int value; px4_sem_getvalue(&_sem, &value); return value; }
 			bool in_use{false};
 
 		private:

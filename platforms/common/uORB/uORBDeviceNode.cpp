@@ -571,6 +571,9 @@ uORB::DeviceNode::write(const char *buffer, const orb_metadata *meta, orb_advert
 	/* If data size has changed, re-map the data */
 	size_t data_size = _queue_size * o_size;
 
+	/* Remove single unresponsive entry at a time (if any) */
+	uorb_cb_handle_t remove_cb = UORB_INVALID_CB_HANDLE;
+
 	/* Perform an atomic copy. */
 	ATOMIC_ENTER;
 
@@ -610,7 +613,12 @@ uORB::DeviceNode::write(const char *buffer, const orb_metadata *meta, orb_advert
 
 			// Release poll waiters (and callback threads in non-flat builds)
 			if (item->lock != -1) {
-				Manager::unlockThread(item->lock);
+				if (Manager::isThreadAlive(item->lock)) {
+					Manager::unlockThread(item->lock);
+
+				} else {
+					remove_cb = cb;
+				}
 			}
 		}
 
@@ -618,6 +626,11 @@ uORB::DeviceNode::write(const char *buffer, const orb_metadata *meta, orb_advert
 	}
 
 	ATOMIC_LEAVE;
+
+	if (callbacks.handle_valid(remove_cb)) {
+		PX4_ERR("Removing subscriber due to inactivity\n");
+		unregister_callback(handle, remove_cb);
+	}
 
 	return o_size;
 }
