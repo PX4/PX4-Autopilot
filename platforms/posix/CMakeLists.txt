@@ -182,31 +182,11 @@ elseif("${PX4_BOARD}" MATCHES "sitl")
 			${PROJECT_NAME}/build/px4_sitl_default
 		)
 
-	# sitl_gazebo-classic built plugins
+	# gazebo dirs
 	install(
 		DIRECTORY
-			${PX4_BINARY_DIR}/build_gazebo-classic
-		DESTINATION
-			${PROJECT_NAME}/build/px4_sitl_default
-		FILES_MATCHING
-			PATTERN "CMakeFiles" EXCLUDE
-			PATTERN "*.so"
-		)
-
-	# sitl_gazebo-classic dirs
-	install(
-		DIRECTORY
-			${PROJECT_SOURCE_DIR}/Tools/simulation/gazebo-classic/sitl_gazebo-classic/models
-			${PROJECT_SOURCE_DIR}/Tools/simulation/gazebo-classic/sitl_gazebo-classic/worlds
-		DESTINATION
-			${PROJECT_NAME}/Tools/simulation/gazebo-classic/sitl_gazebo-classic
-		)
-
-	# sitl_gazebo-classic files
-	install(
-		FILES
-			${PROJECT_SOURCE_DIR}/Tools/simulation/gazebo-classic/sitl_gazebo-classic/CMakeLists.txt
-			${PROJECT_SOURCE_DIR}/Tools/simulation/gazebo-classic/sitl_gazebo-classic/package.xml
+			${PROJECT_SOURCE_DIR}/Tools/simulation/gz/models
+			${PROJECT_SOURCE_DIR}/Tools/simulation/gz/worlds
 		DESTINATION
 			${PROJECT_NAME}/Tools/simulation/gazebo-classic/sitl_gazebo-classic
 		)

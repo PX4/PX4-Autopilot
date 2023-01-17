@@ -118,7 +118,21 @@ execute_process(
 	OUTPUT_STRIP_TRAILING_WHITESPACE
 	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
 	)
-message(STATUS "PX4 version: ${PX4_GIT_TAG}")
+
+# git describe to X.Y.Z version
+string(REPLACE "." ";" VERSION_LIST ${PX4_GIT_TAG})
+
+# major version
+list(GET VERSION_LIST 0 PX4_VERSION_MAJOR)
+string(REPLACE "v" "" PX4_VERSION_MAJOR ${PX4_VERSION_MAJOR})
+# minor version
+list(GET VERSION_LIST 1 PX4_VERSION_MINOR)
+# patch version
+list(GET VERSION_LIST 2 PX4_VERSION_PATCH)
+string(REPLACE "-" ";" PX4_VERSION_PATCH ${PX4_VERSION_PATCH})
+list(GET PX4_VERSION_PATCH 0 PX4_VERSION_PATCH)
+
+message(STATUS "PX4 version: ${PX4_GIT_TAG} (${PX4_VERSION_MAJOR}.${PX4_VERSION_MINOR}.${PX4_VERSION_PATCH})")
 
 define_property(GLOBAL PROPERTY PX4_MODULE_LIBRARIES
                  BRIEF_DOCS "PX4 module libs"
@@ -454,6 +468,9 @@ add_custom_command(OUTPUT ${uorb_graph_config}
 	COMMENT "Generating uORB graph"
 )
 add_custom_target(uorb_graph DEPENDS ${uorb_graph_config})
+
+
+include(bloaty)
 
 
 include(doxygen)
