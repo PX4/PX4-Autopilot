@@ -90,6 +90,7 @@ if(gazebo_FOUND)
 		plane_lidar
 		px4vision
 		r1_rover
+		raptor
 		rover
 		standard_vtol
 		standard_vtol_drop
@@ -106,6 +107,7 @@ if(gazebo_FOUND)
 		baylands
 		empty
 		ksql_airport
+		leoc6
 		mcmillan_airfield
 		sonoma_raceway
 		warehouse
