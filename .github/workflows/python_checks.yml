@@ -3,10 +3,10 @@ name: Python CI Checks
 on:
   push:
     branches:
-    - 'master'
+    - 'aviant/1.13'
   pull_request:
     branches:
-    - '*'
+    - '**'
 
 jobs:
   build:

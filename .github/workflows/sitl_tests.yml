@@ -3,10 +3,10 @@ name: SITL Tests
 on:
   push:
     branches:
-    - 'master'
+    - 'aviant/1.13'
   pull_request:
     branches:
-    - '*'
+    - '**'
 
 jobs:
   build:
@@ -126,10 +126,3 @@ jobs:
           git config --global url."https://github.com/".insteadof git@github.com: # credentials add credential
           mkdir -p coverage
           lcov --directory build/px4_sitl_default --base-directory build/px4_sitl_default --gcov-tool gcov --capture -o coverage/lcov.info
-    - name: Upload coverage information to Codecov
-      if: contains(matrix.config.build_type, 'Coverage')
-      uses: codecov/codecov-action@v1
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        flags: mavsdk
-        file: coverage/lcov.info

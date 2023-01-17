@@ -3,10 +3,10 @@ name: Checks
 on:
   push:
     branches:
-    - 'master'
+    - 'aviant/1.13'
   pull_request:
     branches:
-    - '*'
+    - '**'
 
 jobs:
   build:
@@ -42,10 +42,3 @@ jobs:
           ulimit -a
     - name: ${{matrix.check}}
       run: make ${{matrix.check}}
-    - name: upload coverage
-      if: contains(matrix.check, 'coverage')
-      uses: codecov/codecov-action@v1
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        flags: unittests
-        file: coverage/lcov.info
