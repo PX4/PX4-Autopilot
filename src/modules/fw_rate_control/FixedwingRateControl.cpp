@@ -104,22 +104,42 @@ FixedwingRateControl::vehicle_manual_poll()
 			    !_vcontrol_mode.flag_control_attitude_enabled) {
 
 				// RATE mode we need to generate the rate setpoint from manual user inputs
+
+				if (_vehicle_status.is_vtol_tailsitter && _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+					// the rate_sp must always be published in body (hover) frame
+					_rates_sp.roll = _manual_control_setpoint.yaw * radians(_param_fw_acro_z_max.get());
+					_rates_sp.yaw = -_manual_control_setpoint.roll * radians(_param_fw_acro_x_max.get());
+
+				} else {
+					_rates_sp.roll = _manual_control_setpoint.roll * radians(_param_fw_acro_x_max.get());
+					_rates_sp.yaw = _manual_control_setpoint.yaw * radians(_param_fw_acro_z_max.get());
+				}
+
 				_rates_sp.timestamp = hrt_absolute_time();
-				_rates_sp.roll = _manual_control_setpoint.roll * radians(_param_fw_acro_x_max.get());
 				_rates_sp.pitch = -_manual_control_setpoint.pitch * radians(_param_fw_acro_y_max.get());
-				_rates_sp.yaw = _manual_control_setpoint.yaw * radians(_param_fw_acro_z_max.get());
 				_rates_sp.thrust_body[0] = (_manual_control_setpoint.throttle + 1.f) * .5f;
 
 				_rate_sp_pub.publish(_rates_sp);
 
 			} else {
 				/* manual/direct control */
-				_actuator_controls.control[actuator_controls_s::INDEX_ROLL] =
-					_manual_control_setpoint.roll * _param_fw_man_r_sc.get() + _param_trim_roll.get();
+
+				if (_vehicle_status.is_vtol_tailsitter && _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+					// the controls must always be published in body (hover) frame
+					_actuator_controls.control[actuator_controls_s::INDEX_ROLL] =
+						_manual_control_setpoint.yaw * _param_fw_man_y_sc.get() + _param_trim_yaw.get();
+					_actuator_controls.control[actuator_controls_s::INDEX_YAW] =
+						-(_manual_control_setpoint.roll * _param_fw_man_r_sc.get() + _param_trim_roll.get());
+
+				} else {
+					_actuator_controls.control[actuator_controls_s::INDEX_ROLL] =
+						_manual_control_setpoint.roll * _param_fw_man_r_sc.get() + _param_trim_roll.get();
+					_actuator_controls.control[actuator_controls_s::INDEX_YAW] =
+						_manual_control_setpoint.yaw * _param_fw_man_y_sc.get() + _param_trim_yaw.get();
+				}
+
 				_actuator_controls.control[actuator_controls_s::INDEX_PITCH] =
 					-_manual_control_setpoint.pitch * _param_fw_man_p_sc.get() + _param_trim_pitch.get();
-				_actuator_controls.control[actuator_controls_s::INDEX_YAW] =
-					_manual_control_setpoint.yaw * _param_fw_man_y_sc.get() + _param_trim_yaw.get();
 				_actuator_controls.control[actuator_controls_s::INDEX_THROTTLE] = (_manual_control_setpoint.throttle + 1.f) * .5f;
 			}
 		}
@@ -224,20 +244,16 @@ void FixedwingRateControl::Run()
 
 		vehicle_angular_velocity_s angular_velocity{};
 		_vehicle_angular_velocity_sub.copy(&angular_velocity);
-		float rollspeed = angular_velocity.xyz[0];
-		float pitchspeed = angular_velocity.xyz[1];
-		float yawspeed = angular_velocity.xyz[2];
-		const Vector3f rates(rollspeed, pitchspeed, yawspeed);
-		const Vector3f angular_accel{angular_velocity.xyz_derivative};
 
+		Vector3f rates(angular_velocity.xyz);
+		Vector3f angular_accel{angular_velocity.xyz_derivative};
+
+		// Tailsitter: rotate setpoint from hover to fixed-wing frame (controller is in fixed-wing frame, interface in hover)
 		if (_vehicle_status.is_vtol_tailsitter) {
-
-			/* roll- and yawspeed have to be swaped */
-			float helper = rollspeed;
-			rollspeed = -yawspeed;
-			yawspeed = helper;
+			rates = Vector3f(-angular_velocity.xyz[2], angular_velocity.xyz[1], angular_velocity.xyz[0]);
+			angular_accel = Vector3f(-angular_velocity.xyz_derivative[2], angular_velocity.xyz_derivative[1],
+						 angular_velocity.xyz_derivative[0]);
 		}
-
 
 		// this is only to pass through flaps/spoiler setpoints, can be removed once flaps/spoilers
 		// are handled outside of attitude/rate controller.
@@ -341,7 +357,12 @@ void FixedwingRateControl::Run()
 			if (_vcontrol_mode.flag_control_rates_enabled) {
 				_rates_sp_sub.update(&_rates_sp);
 
-				const Vector3f body_rates_setpoint = Vector3f(_rates_sp.roll, _rates_sp.pitch, _rates_sp.yaw);
+				Vector3f body_rates_setpoint = Vector3f(_rates_sp.roll, _rates_sp.pitch, _rates_sp.yaw);
+
+				// Tailsitter: rotate setpoint from hover to fixed-wing frame (controller is in fixed-wing frame, interface in hover)
+				if (_vehicle_status.is_vtol_tailsitter) {
+					body_rates_setpoint = Vector3f(-_rates_sp.yaw, _rates_sp.pitch, _rates_sp.roll);
+				}
 
 				/* Run attitude RATE controllers which need the desired attitudes from above, add trim */
 				const Vector3f angular_acceleration_setpoint = _rate_control.update(rates, body_rates_setpoint, angular_accel, dt,
@@ -403,6 +424,15 @@ void FixedwingRateControl::Run()
 		// This can be used to counteract the adverse yaw effect when rolling the plane
 		_actuator_controls.control[actuator_controls_s::INDEX_YAW] += _param_fw_rll_to_yaw_ff.get()
 				* constrain(_actuator_controls.control[actuator_controls_s::INDEX_ROLL], -1.0f, 1.0f);
+
+		// Tailsitter: rotate back to body frame from airspeed frame
+		if (_vehicle_status.is_vtol_tailsitter) {
+			const float helper = _actuator_controls.control[actuator_controls_s::INDEX_ROLL];
+			_actuator_controls.control[actuator_controls_s::INDEX_ROLL] =
+				_actuator_controls.control[actuator_controls_s::INDEX_YAW];
+
+			_actuator_controls.control[actuator_controls_s::INDEX_YAW] = -helper;
+		}
 
 		_actuator_controls.control[actuator_controls_s::INDEX_FLAPS] = _flaps_setpoint_with_slewrate.getState();
 		_actuator_controls.control[actuator_controls_s::INDEX_SPOILERS] = _spoiler_setpoint_with_slewrate.getState();

@@ -113,6 +113,12 @@ then
 	vl53l1x start -X
 fi
 
+# tf02 pro i2c distance sensor
+if param compare -s SENS_EN_TF02PRO 1
+then
+	tf02pro start -X
+fi
+
 # ADIS16448 spi external IMU
 if param compare -s SENS_EN_ADIS164X 1
 then
