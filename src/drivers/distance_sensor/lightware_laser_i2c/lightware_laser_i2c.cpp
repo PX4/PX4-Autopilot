@@ -259,17 +259,26 @@ int LightwareLaser::enableI2CBinaryProtocol()
 		return ret;
 	}
 
-	// now read and check against the expected values
-	uint8_t value[2];
-	ret = transfer(cmd, 1, value, sizeof(value));
+	// Now read and check against the expected values
+	for (int i = 0; i < 2; ++i) {
+		uint8_t value[2];
+		ret = transfer(cmd, 1, value, sizeof(value));
 
-	if (ret != 0) {
-		return ret;
+		if (ret != 0) {
+			return ret;
+		}
+
+		PX4_DEBUG("protocol values: 0x%" PRIx8 " 0x%" PRIx8, value[0], value[1]);
+
+		if (value[0] == 0xcc && value[1] == 0x00) {
+			return 0;
+		}
+
+		// Occasionally the previous transfer returns ret == value[0] == value[1] == 0. If so, wait a bit and retry
+		px4_usleep(1000);
 	}
 
-	PX4_DEBUG("protocol values: 0x%" PRIx8 " 0x%" PRIx8, value[0], value[1]);
-
-	return (value[0] == 0xcc && value[1] == 0x00) ? 0 : -1;
+	return -1;
 }
 
 int LightwareLaser::configure()
