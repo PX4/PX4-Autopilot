@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- * Copyright (C) 2019, 2021 PX4 Development Team. All rights reserved.
+ * Copyright (C) 2019-2021 PX4 Development Team. All rights reserved.
  * Author: Igor Misic <igy1000mb@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without

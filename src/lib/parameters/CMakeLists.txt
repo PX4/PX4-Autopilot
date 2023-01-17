@@ -57,7 +57,14 @@ if(DISABLE_PARAMS_MODULE_SCOPING)
 		${PX4_SOURCE_DIR}/src/*.yaml
 		)
 	foreach(file_path ${yaml_files})
-		list(APPEND module_config_files "${file_path}")
+		# VOXL2 doesn't support PWM and so it has no timer configurations
+		# that are expected when dealing with certain pwm modules. This will
+		# allow those timer configurations to be skipped.
+		if ((${PX4_BOARD_NAME} MATCHES "MODALAI_VOXL2") AND (file_path MATCHES pwm_out))
+			message(STATUS "Skipping pwm file path ${file_path} for VOXL2")
+		else()
+			list(APPEND module_config_files "${file_path}")
+		endif()
 	endforeach()
 
 	list(REMOVE_DUPLICATES module_config_files)

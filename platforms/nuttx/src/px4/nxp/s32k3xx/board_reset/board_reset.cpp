@@ -46,7 +46,7 @@
 
 #ifdef CONFIG_BOARDCTL_RESET
 
-static int board_reset_enter_bootloader()
+static int board_functional_reset()
 {
 	putreg32(MC_ME_MODE_CONF_FUNC_RST, S32K3XX_MC_ME_MODE_CONF);
 	putreg32(MC_ME_MODE_UPD, S32K3XX_MC_ME_MODE_UPD);
@@ -80,15 +80,20 @@ static int board_reset_enter_bootloader()
 
 int board_reset(int status)
 {
-	if (status == 1) {
-		board_reset_enter_bootloader();
-	}
+	board_functional_reset();
 
 #if defined(BOARD_HAS_ON_RESET)
 	board_on_reset(status);
 #endif
 
-	up_systemreset();
+	/* Ensure completion of memory accesses */
+
+	__asm volatile("dsb");
+
+	/* Wait for the reset */
+
+	for (; ;);
+
 	return 0;
 }
 

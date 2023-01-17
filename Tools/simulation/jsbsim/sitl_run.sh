@@ -37,7 +37,11 @@ else
 	no_pxh=""
 fi
 
-export PX4_SIM_MODEL=${model}
+if [ -n $FG_BINARY ]; then
+    FG_BINARY=fgfs
+fi
+
+export PX4_SIM_MODEL=jsbsim_${model}
 export PX4_SIM_WORLD=${world}
 
 # This is needed for aircraft namespace mapping
@@ -68,7 +72,7 @@ if [[ -n "$HEADLESS" ]]; then
 else
 	export FG_AIRCRAFT="${SRC_DIR}/Tools/simulation/jsbsim/jsbsim_bridge/models"
 
-	fgfs --fdm=null \
+	$FG_BINARY --fdm=null \
 		--native-fdm=socket,in,60,,5550,udp \
 		--aircraft=$JSBSIM_AIRCRAFT_MODEL \
 		--airport=${world} \
