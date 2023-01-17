@@ -3,6 +3,11 @@
 # ModalAI FC-v1 specific board sensors init
 #------------------------------------------------------------------------------
 
+if param greater UART_ESC_CONFIG 0
+then
+	modalai_esc start
+fi
+
 board_adc start
 
 # Start Digital power monitors

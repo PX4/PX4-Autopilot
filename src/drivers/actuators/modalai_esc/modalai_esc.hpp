@@ -46,6 +46,7 @@
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/led_control.h>
 #include <uORB/topics/esc_status.h>
+#include <uORB/topics/actuator_test.h>
 
 #include "modalai_esc_serial.hpp"
 
@@ -146,7 +147,9 @@ private:
 		int32_t		baud_rate{MODALAI_ESC_DEFAULT_BAUD};
 		int32_t		rpm_min{MODALAI_ESC_DEFAULT_RPM_MIN};
 		int32_t		rpm_max{MODALAI_ESC_DEFAULT_RPM_MAX};
+		int32_t		function_map[MODALAI_ESC_OUTPUT_CHANNELS] {0, 0, 0, 0};
 		int32_t		motor_map[MODALAI_ESC_OUTPUT_CHANNELS] {1, 2, 3, 4};
+		int32_t		direction_map[MODALAI_ESC_OUTPUT_CHANNELS] {1, 1, 1, 1};
 	} uart_esc_params_t;
 
 	struct EscChan {
@@ -177,7 +180,7 @@ private:
 	} led_rsc_t;
 
 	ch_assign_t		_output_map[MODALAI_ESC_OUTPUT_CHANNELS] {{1, 1}, {2, 1}, {3, 1}, {4, 1}};
-	MixingOutput 		_mixing_output{"MODALAI_ESC", MODALAI_ESC_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
+	MixingOutput 		_mixing_output;
 
 	perf_counter_t		_cycle_perf;
 	perf_counter_t		_output_update_perf;
@@ -189,6 +192,7 @@ private:
 	uORB::Subscription	_vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription	_manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription 	_parameter_update_sub{ORB_ID(parameter_update)};
+	uORB::Subscription 	_actuator_test_sub{ORB_ID(actuator_test)};
 	uORB::Subscription	_led_update_sub{ORB_ID(led_control)};
 
 	//uORB::Publication<actuator_outputs_s> _outputs_debug_pub{ORB_ID(actuator_outputs_debug)};
@@ -228,4 +232,5 @@ private:
 	int			flush_uart_rx();
 	int			check_for_esc_timeout();
 	void			mix_turtle_mode(uint16_t outputs[]);
+	void			handle_actuator_test();
 };
