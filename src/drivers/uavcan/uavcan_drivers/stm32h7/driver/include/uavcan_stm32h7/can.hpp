@@ -341,8 +341,7 @@ public:
 	 *
 	 * @return                  Negative value on error; non-negative on success. Refer to constants Err*.
 	 */
-	template <typename DelayCallable>
-	int init(DelayCallable delay_callable, uavcan::uint32_t &inout_bitrate = BitRateAutoDetect)
+	int init(uavcan::uint32_t &inout_bitrate = BitRateAutoDetect)
 	{
 		if (inout_bitrate > 0) {
 			return driver.init(inout_bitrate, CanIface::NormalMode, enabledInterfaces_);
@@ -360,7 +359,7 @@ public:
 
 				const int res = driver.init(inout_bitrate, CanIface::SilentMode, enabledInterfaces_);
 
-				delay_callable();
+				usleep(1000000);
 
 				if (res >= 0) {
 					for (uavcan::uint8_t iface = 0; iface < driver.getNumIfaces(); iface++) {
