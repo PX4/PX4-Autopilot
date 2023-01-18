@@ -101,7 +101,7 @@ void Ekf::controlRangeHeightFusion()
 					// reset vertical velocity
 					resetVerticalVelocityToZero();
 
-					aid_src.time_last_fuse = _imu_sample_delayed.time_us;
+					aid_src.time_last_fuse = _time_delayed_us;
 
 				} else if (is_fusion_failing) {
 					// Some other height source is still working
@@ -139,7 +139,7 @@ void Ekf::controlRangeHeightFusion()
 					bias_est.setBias(_state.pos(2) + measurement);
 				}
 
-				aid_src.time_last_fuse = _imu_sample_delayed.time_us;
+				aid_src.time_last_fuse = _time_delayed_us;
 				bias_est.setFusionActive();
 				_control_status.flags.rng_hgt = true;
 			}

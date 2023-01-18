@@ -45,7 +45,7 @@ void Ekf::controlExternalVisionFusion()
 	// Check for new external vision data
 	extVisionSample ev_sample;
 
-	if (_ext_vision_buffer && _ext_vision_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &ev_sample)) {
+	if (_ext_vision_buffer && _ext_vision_buffer->pop_first_older_than(_time_delayed_us, &ev_sample)) {
 
 		bool ev_reset = (ev_sample.reset_counter != _ev_sample_prev.reset_counter);
 

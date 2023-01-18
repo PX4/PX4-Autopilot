@@ -55,7 +55,7 @@ void Ekf::initHagl()
 	_terrain_var = sq(_params.rng_gnd_clearance);
 }
 
-void Ekf::runTerrainEstimator()
+void Ekf::runTerrainEstimator(const imuSample &imu_delayed)
 {
 	// If we are on ground, store the local position and time to use as a reference
 	if (!_control_status.flags.in_air) {
@@ -63,7 +63,7 @@ void Ekf::runTerrainEstimator()
 		_control_status.flags.rng_fault = false;
 	}
 
-	predictHagl();
+	predictHagl(imu_delayed);
 
 	controlHaglRngFusion();
 	controlHaglFlowFusion();
@@ -75,15 +75,15 @@ void Ekf::runTerrainEstimator()
 	}
 }
 
-void Ekf::predictHagl()
+void Ekf::predictHagl(const imuSample &imu_delayed)
 {
 	// predict the state variance growth where the state is the vertical position of the terrain underneath the vehicle
 
 	// process noise due to errors in vehicle height estimate
-	_terrain_var += sq(_imu_sample_delayed.delta_vel_dt * _params.terrain_p_noise);
+	_terrain_var += sq(imu_delayed.delta_vel_dt * _params.terrain_p_noise);
 
 	// process noise due to terrain gradient
-	_terrain_var += sq(_imu_sample_delayed.delta_vel_dt * _params.terrain_gradient)
+	_terrain_var += sq(imu_delayed.delta_vel_dt * _params.terrain_gradient)
 			* (sq(_state.vel(0)) + sq(_state.vel(1)));
 
 	// limit the variance to prevent it becoming badly conditioned
@@ -104,7 +104,7 @@ void Ekf::controlHaglRngFusion()
 		//const bool continuing_conditions_passing = _control_status.flags.in_air && !_control_status.flags.rng_hgt; // TODO: should not be fused when using range height
 		const bool starting_conditions_passing = continuing_conditions_passing && _range_sensor.isRegularlySendingData() && (_rng_consistency_check.getTestRatio() < 1.f);
 
-		_time_last_healthy_rng_data = _imu_sample_delayed.time_us;
+		_time_last_healthy_rng_data = _time_delayed_us;
 
 		if (_hagl_sensor_status.flags.range_finder) {
 			if (continuing_conditions_passing) {
@@ -193,7 +193,7 @@ void Ekf::resetHaglRng()
 	_terrain_vpos = _state.pos(2) + _range_sensor.getDistBottom();
 	_terrain_var = getRngVar();
 	_terrain_vpos_reset_counter++;
-	_time_last_hagl_fuse = _imu_sample_delayed.time_us;
+	_time_last_hagl_fuse = _time_delayed_us;
 }
 
 void Ekf::stopHaglRngFusion()
@@ -238,7 +238,7 @@ void Ekf::fuseHaglRng()
 		// correct the variance
 		_terrain_var = fmaxf(_terrain_var * (1.0f - gain), 0.0f);
 		// record last successful fusion event
-		_time_last_hagl_fuse = _imu_sample_delayed.time_us;
+		_time_last_hagl_fuse = _time_delayed_us;
 		_innov_check_fail_status.flags.reject_hagl = false;
 
 	} else {
@@ -286,7 +286,7 @@ void Ekf::controlHaglFlowFusion()
 		}
 
 	} else if (_hagl_sensor_status.flags.flow
-		   && (_imu_sample_delayed.time_us > _flow_sample_delayed.time_us + (uint64_t)5e6)) {
+		   && (_time_delayed_us > _flow_sample_delayed.time_us + (uint64_t)5e6)) {
 		// No data anymore. Stop until it comes back.
 		stopHaglFlowFusion();
 	}
@@ -405,8 +405,8 @@ void Ekf::fuseFlowForTerrain()
 	_terrain_var = fmaxf(_terrain_var - KyHyP, sq(0.01f));
 
 
-	_time_last_flow_terrain_fuse = _imu_sample_delayed.time_us;
-	//_aid_src_optical_flow.time_last_fuse = _imu_sample_delayed.time_us; // TODO: separate aid source status for OF terrain?
+	_time_last_flow_terrain_fuse = _time_delayed_us;
+	//_aid_src_optical_flow.time_last_fuse = _time_delayed_us; // TODO: separate aid source status for OF terrain?
 	_aid_src_optical_flow.fused = true;
 }
 
