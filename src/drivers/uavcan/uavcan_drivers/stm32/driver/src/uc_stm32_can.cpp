@@ -301,6 +301,19 @@ uavcan::int16_t CanIface::send(const uavcan::CanFrame &frame, uavcan::MonotonicT
 		return -ErrUnsupportedFrame;
 	}
 
+	// brick end time 2225ms
+	// brick start time 1187ms
+	static bool check_for_delay = false;
+	if (!check_for_delay) {
+		struct timespec ts;
+		clock_systime_timespec(&ts);
+		const uint32_t msec = ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
+		if (msec < 2225) {
+			return 0;
+		}
+		check_for_delay = true;
+	}
+
 	/*
 	 * Normally we should perform the same check as in @ref canAcceptNewTxFrame(), because
 	 * it is possible that the highest-priority frame between select() and send() could have been
