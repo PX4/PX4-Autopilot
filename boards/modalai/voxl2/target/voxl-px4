@@ -40,8 +40,9 @@ mkdir -p /data/px4/param
 
 DAEMON=" "
 S="OFF"
+R="SPEKTRUM"
 
-while getopts "dsif" flag
+while getopts "dsifrc" flag
 do
     case "${flag}" in
         # Use -d to put PX4 into daemon mode
@@ -52,6 +53,10 @@ do
         i) I="ROTATE_IMU_YAW_180";;
         # Use -f to specify fake rc input instead of from a real transmitter
         f) R="FAKE_RC_INPUT";;
+        # Use -r to specify TBS Crossfire RC receiver, MAVLINK
+        r) R="CRSF_MAV";;
+        # Use -r to specify TBS Crossfire RC receiver, raw
+        c) R="CRSF_RAW";;
     esac
 done
 

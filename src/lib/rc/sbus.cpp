@@ -155,7 +155,7 @@ int
 sbus_config(int sbus_fd, bool singlewire)
 {
 	int ret = -1;
-
+#if not defined(__PX4_QURT)
 #if defined(__PX4_LINUX)
 
 	struct termios2 tio = {};
@@ -215,7 +215,7 @@ sbus_config(int sbus_fd, bool singlewire)
 	partial_frame_count = 0;
 	last_rx_time = hrt_absolute_time();
 	sbus_frame_drops = 0;
-
+#endif
 	return ret;
 }
 

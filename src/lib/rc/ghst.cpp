@@ -92,6 +92,9 @@ static bool ghst_parse_buffer(uint16_t *values, int8_t *rssi, uint16_t *num_valu
 
 int ghst_config(int uart_fd)
 {
+#if defined(__PX4_QURT)
+	return 0;
+#else
 	struct termios t;
 	int ret_val;
 
@@ -102,6 +105,7 @@ int ghst_config(int uart_fd)
 	memset(prev_rc_vals, static_cast<int>(UINT16_MAX), sizeof(uint16_t) * GHST_MAX_NUM_CHANNELS);
 	ret_val = tcsetattr(uart_fd, TCSANOW, &t);
 	return ret_val;
+#endif
 }
 
 /**

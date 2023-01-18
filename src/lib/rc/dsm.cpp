@@ -445,7 +445,7 @@ int dsm_config(int fd)
 #endif
 
 	int ret = -1;
-
+#if not defined(__PX4_QURT)
 	if (fd >= 0) {
 
 		struct termios t;
@@ -465,7 +465,7 @@ int dsm_config(int fd)
 
 		ret = 0;
 	}
-
+#endif
 	return ret;
 }
 
