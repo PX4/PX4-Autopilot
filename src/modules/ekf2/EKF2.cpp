@@ -690,12 +690,24 @@ void EKF2::Run()
 		if (_ekf.update()) {
 			perf_set_elapsed(_ecl_ekf_update_full_perf, hrt_elapsed_time(&ekf_update_start));
 
-			PublishLocalPosition(now);
-			PublishOdometry(now, imu_sample_new);
-			PublishGlobalPosition(now);
+			if (_ekf.attitude_valid() && _ekf.output_predictor().aligned()) {
+				// publish output predictor output
+				PublishLocalPosition(now);
+				PublishOdometry(now, imu_sample_new);
+				PublishGlobalPosition(now);
+			}
+
+			// online accel/gyro/mag calibration
+			UpdateAccelCalibration(now);
+			UpdateGyroCalibration(now);
+			UpdateMagCalibration(now);
+
+			// publish other state output used by the system not dependent on output predictor
+			PublishSensorBias(now);
 			PublishWindEstimate(now);
 
 			// publish status/logging messages
+			PublishAidSourceStatus(now);
 			PublishBaroBias(now);
 			PublishGnssHgtBias(now);
 #if defined(CONFIG_EKF2_RANGE_FINDER)
@@ -716,13 +728,6 @@ void EKF2::Run()
 			PublishStatus(now);
 			PublishStatusFlags(now);
 			PublishYawEstimatorStatus(now);
-
-			UpdateAccelCalibration(now);
-			UpdateGyroCalibration(now);
-			UpdateMagCalibration(now);
-			PublishSensorBias(now);
-
-			PublishAidSourceStatus(now);
 
 		} else {
 			// ekf no update
@@ -999,7 +1004,7 @@ void EKF2::PublishAidSourceStatus(const hrt_abstime &timestamp)
 
 void EKF2::PublishAttitude(const hrt_abstime &timestamp)
 {
-	if (_ekf.attitude_valid()) {
+	if (_ekf.attitude_valid() && _ekf.output_predictor().aligned()) {
 		// generate vehicle attitude quaternion data
 		vehicle_attitude_s att;
 		att.timestamp_sample = timestamp;
@@ -1009,7 +1014,7 @@ void EKF2::PublishAttitude(const hrt_abstime &timestamp)
 		att.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 		_attitude_pub.publish(att);
 
-	}  else if (_replay_mode) {
+	} else if (_replay_mode) {
 		// in replay mode we have to tell the replay module not to wait for an update
 		// we do this by publishing an attitude with zero timestamp
 		vehicle_attitude_s att{};
