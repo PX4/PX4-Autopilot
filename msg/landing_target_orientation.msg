@@ -9,6 +9,3 @@ float32 cov_theta       # orientation uncertainty
 
 float32 v_theta         # orientation speed of the target relative to navigation frame [rad/s]
 float32 cov_v_theta     # orientation speed uncertainty
-
-# TOPICS landing_target_orientation
-# TOPICS fiducial_marker_orientation

@@ -132,7 +132,7 @@ void LTEstOrientation::predictionStep()
 
 bool LTEstOrientation::update_step()
 {
-	landing_target_orientation_s fiducial_marker_orientation;
+	fiducial_marker_yaw_report_s fiducial_marker_orientation;
 	targetObsOrientation obs_fiducial_marker_orientation;
 
 	bool orientation_valid = false;
@@ -177,13 +177,13 @@ bool LTEstOrientation::update_step()
 }
 
 
-bool LTEstOrientation::processObsVisionOrientation(const landing_target_orientation_s &fiducial_marker_orientation,
+bool LTEstOrientation::processObsVisionOrientation(const fiducial_marker_yaw_report_s &fiducial_marker_orientation,
 		targetObsOrientation &obs)
 {
 
 	// TODO complete mavlink message to include orientation
-	float vision_r_theta = matrix::wrap_pi(fiducial_marker_orientation.theta);
-	float vision_r_theta_unc = 0.1f; // eventually use fiducial_marker_orientation.cov_theta
+	float vision_r_theta = wrap_pi(fiducial_marker_orientation.theta_rel_body);
+	float vision_r_theta_unc = 0.1f; // eventually use fiducial_marker_orientation.cov_theta_rel_body
 	hrt_abstime vision_timestamp = fiducial_marker_orientation.timestamp;
 
 	/* ORIENTATION */
@@ -192,15 +192,16 @@ bool LTEstOrientation::processObsVisionOrientation(const landing_target_orientat
 
 	} else {
 
-		// TODO: obtain relative orientation using the orientation of the drone.
-		// (vision gives orientation between body and target frame. We can thus use the orientation between the body frame and NED to obtain the orientation between NED and target)
+		/* Extract the drone's heading from the attitude of the drone */
+		matrix::Quaternionf quat_att(fiducial_marker_orientation.q);
+		const float drone_yaw_ned = wrap_pi(matrix::Eulerf(quat_att).psi());
+
 		obs.timestamp = vision_timestamp;
 		obs.updated_theta = true;
 		obs.meas_unc_theta = _range_sensor.valid ? (vision_r_theta_unc * _range_sensor.dist_bottom) : (vision_r_theta_unc * 10);
-		obs.meas_theta = vision_r_theta;
+		obs.meas_theta = wrap_pi(vision_r_theta + drone_yaw_ned);
 		obs.meas_h_theta(0) = 1;
 
-		// TODO: uncomment once mavlink message is complete
 		return true;
 	}
 
@@ -228,11 +229,8 @@ bool LTEstOrientation::fuse_orientation(const targetObsOrientation &target_orien
 
 	} else if (target_orientation_obs.updated_theta) {
 
-		// TODO: Eventually remove, for now to debug, assume prediction time = measurement time
-		const float dt_sync_s = 0.f;
-
 		// Convert time sync to seconds
-		// const float dt_sync_s = dt_sync_us / SEC2USEC;
+		const float dt_sync_s = dt_sync_us / SEC2USEC;
 
 		_target_estimator_orientation->syncState(dt_sync_s);
 		_target_estimator_orientation->setH(target_orientation_obs.meas_h_theta);
@@ -270,12 +268,13 @@ void LTEstOrientation::publishTarget()
 	target_orientation.timestamp = _last_predict;
 	target_orientation.orientation_valid = (hrt_absolute_time() - _last_update < landing_target_valid_TIMEOUT_US);
 
-	// TODO: get velocity if (_target_mode == TargetMode::Moving) {
 	target_orientation.theta = _target_estimator_orientation->getPosition();
 	target_orientation.cov_theta =  _target_estimator_orientation->getPosVar();
 
-	target_orientation.v_theta = _target_estimator_orientation->getVelocity();
-	target_orientation.cov_v_theta =  _target_estimator_orientation->getVelVar();
+	if (_target_mode == TargetMode::Moving || _target_mode == TargetMode::MovingAugmented) {
+		target_orientation.v_theta = _target_estimator_orientation->getVelocity();
+		target_orientation.cov_v_theta =  _target_estimator_orientation->getVelVar();
+	}
 
 	_targetOrientationPub.publish(target_orientation);
 }

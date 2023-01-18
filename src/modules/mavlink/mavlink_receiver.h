@@ -81,7 +81,8 @@
 #include <uORB/topics/input_rc.h>
 #include <uORB/topics/irlock_report.h>
 #include <uORB/topics/landing_target_pose.h>
-#include <uORB/topics/landing_target_orientation.h>
+#include <uORB/topics/fiducial_marker_pos_report.h>
+#include <uORB/topics/fiducial_marker_yaw_report.h>
 #include <uORB/topics/landing_target_gnss.h>
 #include <uORB/topics/log_message.h>
 #include <uORB/topics/manual_control_setpoint.h>
@@ -301,8 +302,8 @@ private:
 	uORB::Publication<gimbal_device_information_s>		_gimbal_device_information_pub{ORB_ID(gimbal_device_information)};
 	uORB::Publication<gimbal_device_attitude_status_s>	_gimbal_device_attitude_status_pub{ORB_ID(gimbal_device_attitude_status)};
 	uORB::Publication<irlock_report_s>			_irlock_report_pub{ORB_ID(irlock_report)};
-	uORB::Publication<landing_target_pose_s>			_fiducial_marker_report_pub{ORB_ID(fiducial_marker_report)};
-	uORB::Publication<landing_target_orientation_s>			_fiducial_marker_orientation_pub{ORB_ID(fiducial_marker_orientation)};
+	uORB::Publication<fiducial_marker_pos_report_s>			_fiducial_marker_pos_report_pub{ORB_ID(fiducial_marker_pos_report)};
+	uORB::Publication<fiducial_marker_yaw_report_s>			_fiducial_marker_yaw_report_pub{ORB_ID(fiducial_marker_yaw_report)};
 	uORB::Publication<landing_target_gnss_s>		_landing_target_gnss_pub{ORB_ID(landing_target_gnss)};
 	uORB::Publication<landing_target_pose_s>		_landing_target_pose_pub{ORB_ID(landing_target_pose)};
 	uORB::Publication<log_message_s>			_log_message_pub{ORB_ID(log_message)};

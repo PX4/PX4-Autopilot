@@ -258,7 +258,7 @@ bool LTEstPosition::update_step(Vector3f vehicle_acc_ned)
 
 	sensor_gps_s vehicle_gps_position;
 	landing_target_gnss_s target_GNSS_report;
-	landing_target_pose_s fiducial_marker_pose;
+	fiducial_marker_pos_report_s fiducial_marker_pose;
 	irlock_report_s irlock_report;
 	uwb_distance_s	uwb_distance;
 
@@ -532,34 +532,37 @@ bool LTEstPosition::update_step(Vector3f vehicle_acc_ned)
 }
 
 /*Vision observation: [rx, ry, rz]*/
-bool LTEstPosition::processObsVision(const landing_target_pose_s &fiducial_marker_pose, targetObsPos &obs)
+bool LTEstPosition::processObsVision(const fiducial_marker_pos_report_s &fiducial_marker_pose, targetObsPos &obs)
 {
+	/* Rotate vision observation from body FRD - to vc-NED */
+	matrix::Quaternionf quat_att(fiducial_marker_pose.q);
+	Vector3f vision_body(fiducial_marker_pose.x_rel_body, fiducial_marker_pose.y_rel_body, fiducial_marker_pose.z_rel_body);
+	Vector3f vision_ned = quat_att.rotateVector(vision_body);
 
-	// Assume vision measurement is in NED frame.
-	// Note: (The vision estimate is rotated into the NED navigation frame offboard to avoid sync issues (target detection needs time))
-
-	// Fiducial marker measurements :
-	float vision_r_x = fiducial_marker_pose.x_rel;
-	float vision_r_y = fiducial_marker_pose.y_rel;
-	float vision_r_z = fiducial_marker_pose.z_rel;
-
-	// TODO: complete mavlink message to include covariance matrix rotated in NED.
 	/*
-		SquareMatrix<float, 3> R_rotated = diag(Vector3f(fiducial_marker_pose.cov_x_rel, fiducial_marker_pose.cov_y_rel, fiducial_marker_pose.cov_z_rel));
-		R_rotated(0,1) = fiducial_marker_pose.cov_x_y_rel;
-		R_rotated(0,2) = fiducial_marker_pose.cov_x_z_rel;
-		R_rotated(1,2) = fiducial_marker_pose.cov_y_z_rel;
-		R_rotated(1,0) = R_rotated(0,1);
-		R_rotated(2,0) = R_rotated(0,2);
-		R_rotated(2,1) = R_rotated(1,2);
+
+	// TODO: complete mavlink message to include covariance matrix.
+
+	SquareMatrix<float, 3> covMat = diag(Vector3f(fiducial_marker_pose.cov_x_rel_body, fiducial_marker_pose.cov_y_rel_body, fiducial_marker_pose.cov_z_rel_body));
+	covMat(0,1) = fiducial_marker_pose.cov_x_y_rel_body;
+	covMat(0,2) = fiducial_marker_pose.cov_x_z_rel_body;
+	covMat(1,2) = fiducial_marker_pose.cov_y_z_rel_body;
+	covMat(1,0) = covMat(0,1);
+	covMat(2,0) = covMat(0,2);
+	covMat(2,1) = covMat(1,2);
+
+	matrix::Dcmf R_att = matrix::Dcm<float>(quat_att);
+
+	Cov_rotated = R_att * covMat * R_att.transpose();
+
 	*/
 
 	// For now assume that we are at 10m if no distance bottom is valid
 	float meas_uncertainty = _range_sensor.valid ? (_meas_unc * _range_sensor.dist_bottom) : (_meas_unc * 10);
-	SquareMatrix<float, 3> R_rotated = diag(Vector3f(meas_uncertainty, meas_uncertainty, meas_uncertainty));
+	SquareMatrix<float, 3> Cov_rotated = diag(Vector3f(meas_uncertainty, meas_uncertainty, meas_uncertainty));
 
 	/* RELATIVE POSITION*/
-	if (!PX4_ISFINITE(vision_r_x) || !PX4_ISFINITE(vision_r_y) || !PX4_ISFINITE(vision_r_y)) {
+	if (!PX4_ISFINITE(vision_ned(0)) || !PX4_ISFINITE(vision_ned(1)) || !PX4_ISFINITE(vision_ned(2))) {
 		PX4_WARN("VISION position is corrupt!");
 
 	} else {
@@ -567,8 +570,6 @@ bool LTEstPosition::processObsVision(const landing_target_pose_s &fiducial_marke
 		obs.timestamp = fiducial_marker_pose.timestamp;
 
 		obs.updated_xyz.setAll(true);
-
-		Vector3f Z(vision_r_x, vision_r_y, vision_r_z);
 
 		if (_target_model == TargetModel::Coupled) {
 
@@ -581,10 +582,10 @@ bool LTEstPosition::processObsVision(const landing_target_pose_s &fiducial_marke
 			H_position(2, 2) = 1;
 
 			// Cholesky decomposition R = L*D*L.T() to find L_inv = inv(L) such that R_diag = L_inv*R*L_inv.T() = D is diagonal:
-			Matrix<float, 3, 3> L_inv = matrix::inv(matrix::choleskyLDLT(R_rotated));
+			Matrix<float, 3, 3> L_inv = matrix::inv(matrix::choleskyLDLT(Cov_rotated));
 
-			// Diagonalize R_rotated:
-			Matrix<float, 3, 3> R_diag =  L_inv * R_rotated * L_inv.T();
+			// Diagonalize Cov_rotated:
+			Matrix<float, 3, 3> R_diag =  L_inv * Cov_rotated * L_inv.T();
 
 			bool cholesky_failed = false;
 
@@ -598,7 +599,7 @@ bool LTEstPosition::processObsVision(const landing_target_pose_s &fiducial_marke
 			if (cholesky_failed) {
 				PX4_DEBUG("Cholesky decomposition failed, setting Linv to identity matrix");
 				L_inv.identity();
-				R_diag = R_rotated;
+				R_diag = Cov_rotated;
 			}
 
 			obs.meas_unc_xyz(0) = R_diag(0, 0);
@@ -606,8 +607,8 @@ bool LTEstPosition::processObsVision(const landing_target_pose_s &fiducial_marke
 			obs.meas_unc_xyz(2) = R_diag(2, 2);
 			//TODO: replace by obs->meas_unc_xyz = R_diag.diag();
 
-			//Transform measurements Z:
-			Vector3f Z_transformed = L_inv * Z;
+			//Transform measurements:
+			Vector3f Z_transformed = L_inv * vision_ned;
 
 			obs.meas_xyz = Z_transformed;
 
@@ -635,12 +636,12 @@ bool LTEstPosition::processObsVision(const landing_target_pose_s &fiducial_marke
 			obs.meas_h_xyz(1, 1) = 1;
 			obs.meas_h_xyz(2, 2) = 1;
 
-			obs.meas_xyz = Z;
+			obs.meas_xyz = vision_ned;
 
 			// Assume off diag elements ~ 0
-			obs.meas_unc_xyz(0) = R_rotated(0, 0);
-			obs.meas_unc_xyz(1) = R_rotated(1, 1);
-			obs.meas_unc_xyz(2) = R_rotated(2, 2);
+			obs.meas_unc_xyz(0) = Cov_rotated(0, 0);
+			obs.meas_unc_xyz(1) = Cov_rotated(1, 1);
+			obs.meas_unc_xyz(2) = Cov_rotated(2, 2);
 		}
 
 		return true;
@@ -1196,8 +1197,6 @@ void LTEstPosition::publishTarget()
 	// TODO: eventually set to true, but for testing we don't want to use the target as an external source of velocity in the EKF
 	target_pose.rel_vel_valid = false;
 
-	// target_pose.rel_orientation_valid = ;
-
 	if (_target_model == TargetModel::Coupled) {
 
 		// Fill target pose
@@ -1206,15 +1205,20 @@ void LTEstPosition::publishTarget()
 		target_pose.y_rel = pos_vect(1);
 		target_pose.z_rel = pos_vect(2);
 
+		Vector3f cov_pos_vect = _target_estimator_coupled->getPosVarVect();
+		target_pose.cov_x_rel = cov_pos_vect(0);
+		target_pose.cov_y_rel = cov_pos_vect(1);
+		target_pose.cov_z_rel = cov_pos_vect(2);
+
 		Vector3f vel_vect = _target_estimator_coupled->getVelocityVect();
 		target_pose.vx_rel = vel_vect(0);
 		target_pose.vy_rel = vel_vect(1);
 		target_pose.vz_rel = vel_vect(2);
 
 		Vector3f cov_vel_vect = _target_estimator_coupled->getVelVarVect();
-		target_estimator_state.cov_vx_rel = cov_vel_vect(0);
-		target_estimator_state.cov_vy_rel = cov_vel_vect(1);
-		target_estimator_state.cov_vz_rel = cov_vel_vect(2);
+		target_pose.cov_vx_rel = cov_vel_vect(0);
+		target_pose.cov_vy_rel = cov_vel_vect(1);
+		target_pose.cov_vz_rel = cov_vel_vect(2);
 
 		if (_target_mode == TargetMode::MovingAugmented) {
 
@@ -1230,9 +1234,9 @@ void LTEstPosition::publishTarget()
 			target_estimator_state.cov_vz_target = cov_vel_target_vect(2);
 
 			/* Var(aX + bY) = a^2 Var(x) + b^2 Var(y) + 2abCov(X,Y) */
-			target_estimator_state.cov_vx_rel += cov_vel_target_vect(0);
-			target_estimator_state.cov_vy_rel += cov_vel_target_vect(1);
-			target_estimator_state.cov_vz_rel += cov_vel_target_vect(2);
+			target_pose.cov_vx_rel += cov_vel_target_vect(0);
+			target_pose.cov_vy_rel += cov_vel_target_vect(1);
+			target_pose.cov_vz_rel += cov_vel_target_vect(2);
 
 			// Overwrite Target pose msg
 			target_pose.vx_rel = vel_target_vect(0) - vel_vect(0);
@@ -1245,14 +1249,17 @@ void LTEstPosition::publishTarget()
 		target_estimator_state.y_rel = target_pose.y_rel;
 		target_estimator_state.z_rel = target_pose.z_rel;
 
-		Vector3f cov_pos_vect = _target_estimator_coupled->getPosVarVect();
-		target_estimator_state.cov_x_rel = cov_pos_vect(0);
-		target_estimator_state.cov_y_rel = cov_pos_vect(1);
-		target_estimator_state.cov_z_rel = cov_pos_vect(2);
+		target_estimator_state.cov_x_rel = target_pose.cov_x_rel;
+		target_estimator_state.cov_y_rel = target_pose.cov_y_rel;
+		target_estimator_state.cov_z_rel = target_pose.cov_z_rel;
 
 		target_estimator_state.vx_rel = target_pose.vx_rel;
 		target_estimator_state.vy_rel = target_pose.vy_rel;
 		target_estimator_state.vz_rel = target_pose.vz_rel;
+
+		target_estimator_state.cov_vx_rel = target_pose.cov_vx_rel;
+		target_estimator_state.cov_vy_rel = target_pose.cov_vy_rel;
+		target_estimator_state.cov_vz_rel = target_pose.cov_vz_rel;
 
 		Vector3f bias_vect = _target_estimator_coupled->getBiasVect();
 		target_estimator_state.x_bias = bias_vect(0);
@@ -1284,13 +1291,17 @@ void LTEstPosition::publishTarget()
 		target_pose.y_rel = _target_estimator[y]->getPosition();
 		target_pose.z_rel = _target_estimator[z]->getPosition();
 
+		target_pose.cov_x_rel = _target_estimator[x]->getPosVar();
+		target_pose.cov_y_rel = _target_estimator[y]->getPosVar();
+		target_pose.cov_z_rel = _target_estimator[z]->getPosVar();
+
 		target_pose.vx_rel = _target_estimator[x]->getVelocity();
 		target_pose.vy_rel = _target_estimator[y]->getVelocity();
 		target_pose.vz_rel = _target_estimator[z]->getVelocity();
 
-		target_estimator_state.cov_vx_rel = _target_estimator[x]->getVelVar();
-		target_estimator_state.cov_vy_rel = _target_estimator[y]->getVelVar();
-		target_estimator_state.cov_vz_rel = _target_estimator[z]->getVelVar();
+		target_pose.cov_vx_rel = _target_estimator[x]->getVelVar();
+		target_pose.cov_vy_rel = _target_estimator[y]->getVelVar();
+		target_pose.cov_vz_rel = _target_estimator[z]->getVelVar();
 
 		if (_target_mode == TargetMode::MovingAugmented) {
 
@@ -1307,9 +1318,9 @@ void LTEstPosition::publishTarget()
 			target_pose.vz_rel = target_estimator_state.vz_target - target_pose.vz_rel;
 
 			/* Var(aX + bY) = a^2 Var(x) + b^2 Var(y) + 2abCov(X,Y) */
-			target_estimator_state.cov_vx_rel += target_estimator_state.cov_vx_target;
-			target_estimator_state.cov_vy_rel += target_estimator_state.cov_vy_target;
-			target_estimator_state.cov_vz_rel += target_estimator_state.cov_vz_target;
+			target_pose.cov_vx_rel += target_estimator_state.cov_vx_target;
+			target_pose.cov_vy_rel += target_estimator_state.cov_vy_target;
+			target_pose.cov_vz_rel += target_estimator_state.cov_vz_target;
 		}
 
 		// Fill target estimator state
@@ -1317,13 +1328,17 @@ void LTEstPosition::publishTarget()
 		target_estimator_state.y_rel = target_pose.y_rel;
 		target_estimator_state.z_rel = target_pose.z_rel;
 
-		target_estimator_state.cov_x_rel = _target_estimator[x]->getPosVar();
-		target_estimator_state.cov_y_rel = _target_estimator[y]->getPosVar();
-		target_estimator_state.cov_z_rel = _target_estimator[z]->getPosVar();
+		target_estimator_state.cov_x_rel = target_pose.cov_x_rel;
+		target_estimator_state.cov_y_rel = target_pose.cov_y_rel;
+		target_estimator_state.cov_z_rel = target_pose.cov_z_rel;
 
 		target_estimator_state.vx_rel = target_pose.vx_rel;
 		target_estimator_state.vy_rel = target_pose.vy_rel;
 		target_estimator_state.vz_rel = target_pose.vz_rel;
+
+		target_estimator_state.cov_vx_rel = target_pose.cov_vx_rel;
+		target_estimator_state.cov_vy_rel = target_pose.cov_vy_rel;
+		target_estimator_state.cov_vz_rel = target_pose.cov_vz_rel;
 
 		target_estimator_state.x_bias = _target_estimator[x]->getBias();
 		target_estimator_state.y_bias = _target_estimator[y]->getBias();

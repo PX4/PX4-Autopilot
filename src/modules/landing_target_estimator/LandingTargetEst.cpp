@@ -315,8 +315,6 @@ bool LandingTargetEst::get_input(matrix::Vector3f &vehicle_acc_ned)
 		/* Compensate for gravity: the inverse of a rotation matrix is simply its transposed. */
 		const matrix::Vector3f gravity_ned(0, 0, CONSTANTS_ONE_G);
 		matrix::Vector3f gravity_body = R_att.transpose() * gravity_ned;
-		// TODO: compare with:
-		// matrix::Vector3f gravity_body = inv(R_att) * gravity_ned;
 
 		vehicle_acc_ned = R_att * (vehicle_acc + gravity_body);
 	}

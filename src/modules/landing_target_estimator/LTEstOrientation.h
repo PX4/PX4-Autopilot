@@ -51,6 +51,7 @@
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/fiducial_marker_yaw_report.h>
 #include <uORB/topics/landing_target_orientation.h>
 #include <uORB/topics/target_estimator_state.h>
 #include <uORB/topics/estimator_sensor_bias.h>
@@ -138,12 +139,12 @@ private:
 	bool update_step();
 	void predictionStep();
 
-	bool processObsVisionOrientation(const landing_target_orientation_s &fiducial_marker_pose, targetObsOrientation &obs);
+	bool processObsVisionOrientation(const fiducial_marker_yaw_report_s &fiducial_marker_pose, targetObsOrientation &obs);
 
 	bool fuse_orientation(const targetObsOrientation &target_pos_obs);
 	void publishTarget();
 
-	uORB::Subscription _fiducial_marker_orientation_sub{ORB_ID(fiducial_marker_orientation)};
+	uORB::Subscription _fiducial_marker_orientation_sub{ORB_ID(fiducial_marker_yaw_report)};
 
 	struct localOrientation {
 		bool valid = false;

@@ -55,6 +55,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/irlock_report.h>
 #include <uORB/topics/landing_target_pose.h>
+#include <uORB/topics/fiducial_marker_pos_report.h>
 #include <uORB/topics/landing_target_gnss.h>
 #include <uORB/topics/target_estimator_state.h>
 #include <uORB/topics/uwb_distance.h>
@@ -207,7 +208,7 @@ private:
 
 	bool processObsIRlock(const irlock_report_s &irlock_report, targetObsPos &obs);
 	bool processObsUWB(const uwb_distance_s &uwb_distance, targetObsPos &obs);
-	bool processObsVision(const landing_target_pose_s &fiducial_marker_pose, targetObsPos &obs);
+	bool processObsVision(const fiducial_marker_pos_report_s &fiducial_marker_pose, targetObsPos &obs);
 	bool processObsGNSSPosTarget(const landing_target_gnss_s &target_GNSS_report,
 				     const sensor_gps_s &vehicle_gps_position, targetObsPos &obs);
 	bool processObsGNSSPosMission(const sensor_gps_s &vehicle_gps_position, targetObsPos &obs);
@@ -222,7 +223,7 @@ private:
 	uORB::Subscription _irlockReportSub{ORB_ID(irlock_report)};
 	uORB::Subscription _uwbDistanceSub{ORB_ID(uwb_distance)};
 	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
-	uORB::Subscription _fiducial_marker_report_sub{ORB_ID(fiducial_marker_report)};
+	uORB::Subscription _fiducial_marker_report_sub{ORB_ID(fiducial_marker_pos_report)};
 	uORB::Subscription _landing_target_gnss_sub{ORB_ID(landing_target_gnss)};
 
 	perf_counter_t _ltest_predict_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": LTEST prediction")};

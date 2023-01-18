@@ -80,7 +80,8 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("irlock_report", 1000);
 	add_optional_topic("landing_gear", 200);
 	add_optional_topic("landing_gear_wheel", 100);
-	add_optional_topic("fiducial_marker_report", 1000);
+	add_optional_topic("fiducial_marker_pos_report", 100);
+	add_optional_topic("fiducial_marker_yaw_report", 100);
 	add_optional_topic("target_GNSS_report", 1000);
 	add_optional_topic("landing_target_pose", 1000);
 	add_optional_topic("launch_detection_status", 200);

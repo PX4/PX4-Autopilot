@@ -2423,9 +2423,10 @@ MavlinkReceiver::handle_message_landing_target(mavlink_message_t *msg)
 	mavlink_landing_target_t landing_target;
 	mavlink_msg_landing_target_decode(msg, &landing_target);
 
+	vehicle_attitude_s	vehicle_attitude;
+
 	if (landing_target.position_valid && landing_target.type == 0) {
 
-		vehicle_attitude_s	vehicle_attitude;
 		irlock_report_s irlock_report{};
 
 		irlock_report.timestamp = hrt_absolute_time();
@@ -2449,30 +2450,30 @@ MavlinkReceiver::handle_message_landing_target(mavlink_message_t *msg)
 		}
 
 	} else if (landing_target.position_valid && landing_target.type == 2) {
-		landing_target_pose_s fiducial_marker_report{};
+		fiducial_marker_pos_report_s fiducial_marker_pos_report{};
 
-		fiducial_marker_report.timestamp = _mavlink_timesync.sync_stamp(landing_target.time_usec);
-		fiducial_marker_report.x_rel = landing_target.x;
-		fiducial_marker_report.y_rel = landing_target.y;
-		fiducial_marker_report.z_rel = landing_target.z;
+		fiducial_marker_pos_report.timestamp = _mavlink_timesync.sync_stamp(landing_target.time_usec);
+		fiducial_marker_pos_report.x_rel_body = landing_target.x;
+		fiducial_marker_pos_report.y_rel_body = landing_target.y;
+		fiducial_marker_pos_report.z_rel_body = landing_target.z;
 
 		/*
-		fiducial_marker_report.cov_x_rel = landing_target.;
-		fiducial_marker_report.cov_y_rel = landing_target.;
-		fiducial_marker_report.cov_z_rel = landing_target.;
-		fiducial_marker_report.cov_x_y_rel = landing_target.;
-		fiducial_marker_report.cov_x_z_rel = landing_target.;
-		fiducial_marker_report.cov_y_z_rel = landing_target.;
+		fiducial_marker_pos_report.cov_x_rel_body = landing_target.;
+		fiducial_marker_pos_report.cov_y_rel_body = landing_target.;
+		fiducial_marker_pos_report.cov_z_rel_body = landing_target.;
+		fiducial_marker_pos_report.cov_x_y_rel_body = landing_target.;
+		fiducial_marker_pos_report.cov_x_z_rel_body = landing_target.;
+		fiducial_marker_pos_report.cov_y_z_rel_body = landing_target.;
 		*/
 
-		_fiducial_marker_report_pub.publish(fiducial_marker_report);
+		_fiducial_marker_pos_report_pub.publish(fiducial_marker_pos_report);
 
 		/*
-		landing_target_orientation_s fiducial_marker_orientation{};
-		fiducial_marker_orientation.timestamp = _mavlink_timesync.sync_stamp(landing_target.time_usec);
-		fiducial_marker_orientation.theta = landing_target.;
-		fiducial_marker_orientation.cov_theta = landing_target.;
-		_fiducial_marker_orientation_pub.publish(fiducial_marker_orientation);
+		fiducial_marker_yaw_report_s fiducial_marker_yaw_report{};
+		fiducial_marker_yaw_report.timestamp = _mavlink_timesync.sync_stamp(landing_target.time_usec);
+		fiducial_marker_yaw_report.theta_rel_body = landing_target.;
+		fiducial_marker_yaw_report.cov_theta_rel_body = landing_target.;
+		_fiducial_marker_yaw_report_pub.publish(fiducial_marker_yaw_report);
 		*/
 
 	} else if (landing_target.position_valid && landing_target.frame == MAV_FRAME_LOCAL_NED) {
@@ -2495,7 +2496,6 @@ MavlinkReceiver::handle_message_landing_target(mavlink_message_t *msg)
 
 	} else {
 
-		vehicle_attitude_s	vehicle_attitude;
 		irlock_report_s irlock_report{};
 
 		irlock_report.timestamp = hrt_absolute_time();

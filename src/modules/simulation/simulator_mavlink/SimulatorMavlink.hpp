@@ -63,9 +63,9 @@
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/esc_report.h>
 #include <uORB/topics/irlock_report.h>
-#include <uORB/topics/landing_target_pose.h>
+#include <uORB/topics/fiducial_marker_pos_report.h>
 #include <uORB/topics/landing_target_gnss.h>
-#include <uORB/topics/landing_target_orientation.h>
+#include <uORB/topics/fiducial_marker_yaw_report.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
@@ -199,9 +199,9 @@ private:
 	uORB::Publication<differential_pressure_s>	_differential_pressure_pub{ORB_ID(differential_pressure)};
 	uORB::PublicationMulti<sensor_optical_flow_s>	_sensor_optical_flow_pub{ORB_ID(sensor_optical_flow)};
 	uORB::Publication<irlock_report_s>		_irlock_report_pub{ORB_ID(irlock_report)};
-	uORB::Publication<landing_target_pose_s>			_fiducial_marker_report_pub{ORB_ID(fiducial_marker_report)};
+	uORB::Publication<fiducial_marker_pos_report_s>			_fiducial_marker_pos_report_pub{ORB_ID(fiducial_marker_pos_report)};
 	uORB::Publication<landing_target_gnss_s>		_landing_target_gnss_pub{ORB_ID(landing_target_gnss)};
-	uORB::Publication<landing_target_orientation_s>			_fiducial_marker_orientation_pub{ORB_ID(fiducial_marker_orientation)};
+	uORB::Publication<fiducial_marker_yaw_report_s>			_fiducial_marker_yaw_report_pub{ORB_ID(fiducial_marker_yaw_report)};
 	uORB::Publication<esc_status_s>			_esc_status_pub{ORB_ID(esc_status)};
 	uORB::Publication<vehicle_odometry_s>		_visual_odometry_pub{ORB_ID(vehicle_visual_odometry)};
 	uORB::Publication<vehicle_odometry_s>		_mocap_odometry_pub{ORB_ID(vehicle_mocap_odometry)};

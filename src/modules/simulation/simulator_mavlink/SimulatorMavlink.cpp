@@ -96,6 +96,9 @@ SimulatorMavlink::SimulatorMavlink() :
 		snprintf(param_name, sizeof(param_name), "%s_%s%d", "PWM_MAIN", "FUNC", i + 1);
 		param_get(param_find(param_name), &_output_functions[i]);
 	}
+
+	_fiducial_marker_yaw_report_pub.advertise();
+	_fiducial_marker_pos_report_pub.advertise();
 }
 
 void SimulatorMavlink::parameters_update(bool force)
@@ -634,38 +637,53 @@ void SimulatorMavlink::handle_message_landing_target(const mavlink_message_t *ms
 	mavlink_landing_target_t landing_target_mavlink;
 	mavlink_msg_landing_target_decode(msg, &landing_target_mavlink);
 
-	if (landing_target_mavlink.position_valid && landing_target_mavlink.type == 2) {
-		landing_target_pose_s fiducial_marker_report{};
+	vehicle_attitude_s	vehicle_attitude;
 
-		fiducial_marker_report.timestamp = landing_target_mavlink.time_usec;
-		fiducial_marker_report.x_rel = landing_target_mavlink.x;
-		fiducial_marker_report.y_rel = landing_target_mavlink.y;
-		fiducial_marker_report.z_rel = landing_target_mavlink.z;
+	if (landing_target_mavlink.position_valid && landing_target_mavlink.type == 2) {
+		fiducial_marker_pos_report_s fiducial_marker_pos_report{};
+
+		fiducial_marker_pos_report.timestamp = landing_target_mavlink.time_usec;
+		fiducial_marker_pos_report.x_rel_body = landing_target_mavlink.x;
+		fiducial_marker_pos_report.y_rel_body = landing_target_mavlink.y;
+		fiducial_marker_pos_report.z_rel_body = landing_target_mavlink.z;
 
 		/*
 			// TODO: include uncertainty in the vision observation
-			fiducial_marker_report.cov_x_rel = landing_target_mavlink.;
-			fiducial_marker_report.cov_y_rel = landing_target_mavlink.;
-			fiducial_marker_report.cov_z_rel = landing_target_mavlink.;
-			fiducial_marker_report.cov_x_y_rel = landing_target_mavlink.;
-			fiducial_marker_report.cov_x_z_rel = landing_target_mavlink.;
-			fiducial_marker_report.cov_y_z_rel = landing_target_mavlink.;
+			fiducial_marker_pos_report.cov_x_rel_body = landing_target_mavlink.;
+			fiducial_marker_pos_report.cov_y_rel_body = landing_target_mavlink.;
+			fiducial_marker_pos_report.cov_z_rel_body = landing_target_mavlink.;
+			fiducial_marker_pos_report.cov_x_y_rel_body = landing_target_mavlink.;
+			fiducial_marker_pos_report.cov_x_z_rel_body = landing_target_mavlink.;
+			fiducial_marker_pos_report.cov_y_z_rel_body = landing_target_mavlink.;
 		*/
 
-		_fiducial_marker_report_pub.publish(fiducial_marker_report);
+		fiducial_marker_yaw_report_s fiducial_marker_yaw_report{};
+		fiducial_marker_yaw_report.timestamp = landing_target_mavlink.time_usec;
+		fiducial_marker_yaw_report.theta_rel_body = landing_target_mavlink.angle_x;
+		/* fiducial_marker_yaw_report.cov_theta_rel_body = landing_target.; */
 
-		landing_target_orientation_s fiducial_marker_orientation{};
-		fiducial_marker_orientation.timestamp = landing_target_mavlink.time_usec;
-		fiducial_marker_orientation.theta = landing_target_mavlink.angle_x;
-		/* fiducial_marker_orientation.cov_theta_rel = landing_target.; */
-		_fiducial_marker_orientation_pub.publish(fiducial_marker_orientation);
+		matrix::Quatf q(landing_target_mavlink.q);
+
+		/* Check that the drone's attitude field is filled, if not, use the current attitude */
+		if ((abs(q(0)) + abs(q(1)) + abs(q(2)) + abs(q(3))) > (float)1e-6) {
+			q.copyTo(fiducial_marker_pos_report.q);
+			q.copyTo(fiducial_marker_yaw_report.q);
+			_fiducial_marker_pos_report_pub.publish(fiducial_marker_pos_report);
+			_fiducial_marker_yaw_report_pub.publish(fiducial_marker_yaw_report);
+
+		} else if (_vehicle_attitude_sub.update(&vehicle_attitude))  {
+			matrix::Quaternionf quat_att(&vehicle_attitude.q[0]);
+			quat_att.copyTo(fiducial_marker_pos_report.q);
+			quat_att.copyTo(fiducial_marker_yaw_report.q);
+			_fiducial_marker_pos_report_pub.publish(fiducial_marker_pos_report);
+			_fiducial_marker_yaw_report_pub.publish(fiducial_marker_yaw_report);
+		}
 
 	} else if (landing_target_mavlink.position_valid) {
 		PX4_WARN("Only landing targets relative to captured images are supported");
 
 	} else {
 
-		vehicle_attitude_s	vehicle_attitude;
 		irlock_report_s irlock_report{};
 
 		irlock_report.timestamp = hrt_absolute_time();
