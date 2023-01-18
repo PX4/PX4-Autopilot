@@ -24,4 +24,4 @@ icm42688p -s -b 2 -R 12 start
 bmm150 -I start
 
 # Internal I2C baro
-bmp388 -I start
+icp201xx -I start
