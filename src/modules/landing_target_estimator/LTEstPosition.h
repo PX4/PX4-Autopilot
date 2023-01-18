@@ -300,6 +300,11 @@ private:
 		(ParamFloat<px4::params::LTEST_ACC_UNC_IN>) _param_ltest_acc_unc_in,
 		(ParamInt<px4::params::LTEST_MODE>) _param_ltest_mode,
 		(ParamInt<px4::params::LTEST_MODEL>) _param_ltest_model,
+		(ParamFloat<px4::params::LTEST_SCALE_X>) _param_ltest_scale_x,
+		(ParamFloat<px4::params::LTEST_SCALE_Y>) _param_ltest_scale_y,
+		(ParamInt<px4::params::LTEST_SENS_ROT>) _param_ltest_sens_rot,
+		(ParamFloat<px4::params::LTEST_SENS_POS_X>) _param_ltest_sens_pos_x,
+		(ParamFloat<px4::params::LTEST_SENS_POS_Y>) _param_ltest_sens_pos_y,
 		(ParamFloat<px4::params::LTEST_SENS_POS_Z>) _param_ltest_sens_pos_z
 	)
 };

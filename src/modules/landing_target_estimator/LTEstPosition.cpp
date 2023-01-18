@@ -980,16 +980,28 @@ bool LTEstPosition::processObsUWB(const uwb_distance_s &uwb_distance, targetObsP
 
 bool LTEstPosition::processObsIRlock(const irlock_report_s &irlock_report, targetObsPos &obs)
 {
-	if (!PX4_ISFINITE(irlock_report.sensor_ray_n) || !PX4_ISFINITE(irlock_report.sensor_ray_e)
-	    || !PX4_ISFINITE(irlock_report.sensor_ray_d)) {
+	if (!PX4_ISFINITE(irlock_report.pos_y) || !PX4_ISFINITE(irlock_report.pos_x)) {
 		PX4_WARN("IRLOCK position is corrupt!");
 
 	} else {
 
-		Vector3f sensor_ray; // ray pointing towards target in body frame
-		sensor_ray(0) = irlock_report.sensor_ray_n;
-		sensor_ray(1) = irlock_report.sensor_ray_e;
-		sensor_ray(2) = irlock_report.sensor_ray_d;
+		matrix::Vector3f sensor_ray; // ray pointing towards target in body frame
+		sensor_ray(0) = irlock_report.pos_x * _param_ltest_scale_x.get(); // forward
+		sensor_ray(1) = irlock_report.pos_y * _param_ltest_scale_y.get(); // right
+		sensor_ray(2) = 1.0f;
+
+		// rotate unit ray according to sensor orientation
+		matrix::Dcmf S_att; //Orientation of the sensor relative to body frame
+		S_att = get_rot_matrix(static_cast<enum Rotation>(_param_ltest_sens_rot.get()));
+		sensor_ray = S_att * sensor_ray;
+
+		// Adjust relative position according to sensor offset
+		sensor_ray(0) += _param_ltest_sens_pos_x.get();
+		sensor_ray(1) += _param_ltest_sens_pos_y.get();
+
+		// Rotate the unit ray into the navigation frame.
+		matrix::Quaternionf quat_att(irlock_report.q);
+		sensor_ray = quat_att.rotateVector(sensor_ray);
 
 		// z component of measurement safe, use this measurement
 		if (fabsf(sensor_ray(2)) > 1e-6f) {

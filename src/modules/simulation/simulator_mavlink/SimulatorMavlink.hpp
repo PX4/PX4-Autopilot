@@ -324,11 +324,6 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::MAV_TYPE>) _param_mav_type,
 		(ParamInt<px4::params::MAV_SYS_ID>) _param_mav_sys_id,
-		(ParamInt<px4::params::MAV_COMP_ID>) _param_mav_comp_id,
-		(ParamFloat<px4::params::LTEST_SCALE_X>) _param_ltest_scale_x,
-		(ParamFloat<px4::params::LTEST_SCALE_Y>) _param_ltest_scale_y,
-		(ParamInt<px4::params::LTEST_SENS_ROT>) _param_ltest_sens_rot,
-		(ParamFloat<px4::params::LTEST_SENS_POS_X>) _param_ltest_sens_pos_x,
-		(ParamFloat<px4::params::LTEST_SENS_POS_Y>) _param_ltest_sens_pos_y
+		(ParamInt<px4::params::MAV_COMP_ID>) _param_mav_comp_id
 	)
 };

@@ -2425,38 +2425,26 @@ MavlinkReceiver::handle_message_landing_target(mavlink_message_t *msg)
 
 	if (landing_target.position_valid && landing_target.type == 0) {
 
-		/* Handle irlock observation */
 		vehicle_attitude_s	vehicle_attitude;
+		irlock_report_s irlock_report{};
 
-		if (_vehicle_attitude_sub.update(&vehicle_attitude)) {
-			irlock_report_s irlock_report{};
+		irlock_report.timestamp = hrt_absolute_time();
+		irlock_report.signature = landing_target.target_num;
+		irlock_report.pos_x = landing_target.angle_x;
+		irlock_report.pos_y = landing_target.angle_y;
+		irlock_report.size_x = landing_target.size_x;
+		irlock_report.size_y = landing_target.size_y;
 
-			matrix::Vector3f sensor_ray; // ray pointing towards target in body frame
-			sensor_ray(0) = landing_target.angle_x * _param_ltest_scale_x.get(); // forward
-			sensor_ray(1) = landing_target.angle_y * _param_ltest_scale_y.get(); // right
-			sensor_ray(2) = 1.0f;
+		matrix::Quatf q(landing_target.q);
 
-			// rotate unit ray according to sensor orientation
-			matrix::Dcmf S_att; //Orientation of the sensor relative to body frame
-			S_att = get_rot_matrix(static_cast<enum Rotation>(_param_ltest_sens_rot.get()));
-			sensor_ray = S_att * sensor_ray;
+		/* Check that the drone's attitude field is filled, if not, use the current attitude */
+		if ((abs(q(0)) + abs(q(1)) + abs(q(2)) + abs(q(3))) > (float)1e-6) {
+			q.copyTo(irlock_report.q);
+			_irlock_report_pub.publish(irlock_report);
 
-			// Adjust relative position according to sensor offset
-			sensor_ray(0) += _param_ltest_sens_pos_x.get();
-			sensor_ray(1) += _param_ltest_sens_pos_y.get();
-
-			// Rotate the unit ray into the navigation frame.
+		} else if (_vehicle_attitude_sub.update(&vehicle_attitude))  {
 			matrix::Quaternionf quat_att(&vehicle_attitude.q[0]);
-			matrix::Dcmf R_att = matrix::Dcm<float>(quat_att);
-			sensor_ray = R_att * sensor_ray;
-
-			// publish sensor_ray NED
-			irlock_report.timestamp = hrt_absolute_time();
-			irlock_report.signature = landing_target.target_num;
-			irlock_report.sensor_ray_n = sensor_ray(0);
-			irlock_report.sensor_ray_e = sensor_ray(1);
-			irlock_report.sensor_ray_d = sensor_ray(2);
-
+			quat_att.copyTo(irlock_report.q);
 			_irlock_report_pub.publish(irlock_report);
 		}
 
@@ -2507,38 +2495,26 @@ MavlinkReceiver::handle_message_landing_target(mavlink_message_t *msg)
 
 	} else {
 
-		/* Handle irlock observation */
 		vehicle_attitude_s	vehicle_attitude;
+		irlock_report_s irlock_report{};
 
-		if (_vehicle_attitude_sub.update(&vehicle_attitude)) {
-			irlock_report_s irlock_report{};
+		irlock_report.timestamp = hrt_absolute_time();
+		irlock_report.signature = landing_target.target_num;
+		irlock_report.pos_x = landing_target.angle_x;
+		irlock_report.pos_y = landing_target.angle_y;
+		irlock_report.size_x = landing_target.size_x;
+		irlock_report.size_y = landing_target.size_y;
 
-			matrix::Vector3f sensor_ray; // ray pointing towards target in body frame
-			sensor_ray(0) = landing_target.angle_x * _param_ltest_scale_x.get(); // forward
-			sensor_ray(1) = landing_target.angle_y * _param_ltest_scale_y.get(); // right
-			sensor_ray(2) = 1.0f;
+		matrix::Quatf q(landing_target.q);
 
-			// rotate unit ray according to sensor orientation
-			matrix::Dcmf S_att; //Orientation of the sensor relative to body frame
-			S_att = get_rot_matrix(static_cast<enum Rotation>(_param_ltest_sens_rot.get()));
-			sensor_ray = S_att * sensor_ray;
+		/* Check that the attitude field is filled, if not, use the current attitude */
+		if ((abs(q(0)) + abs(q(1)) + abs(q(2)) + abs(q(3))) > (float)1e-6) {
+			q.copyTo(irlock_report.q);
+			_irlock_report_pub.publish(irlock_report);
 
-			// Adjust relative position according to sensor offset
-			sensor_ray(0) += _param_ltest_sens_pos_x.get();
-			sensor_ray(1) += _param_ltest_sens_pos_y.get();
-
-			// Rotate the unit ray into the navigation frame.
+		} else if (_vehicle_attitude_sub.update(&vehicle_attitude))  {
 			matrix::Quaternionf quat_att(&vehicle_attitude.q[0]);
-			matrix::Dcmf R_att = matrix::Dcm<float>(quat_att);
-			sensor_ray = R_att * sensor_ray;
-
-			// publish sensor_ray NED
-			irlock_report.timestamp = hrt_absolute_time();
-			irlock_report.signature = landing_target.target_num;
-			irlock_report.sensor_ray_n = sensor_ray(0);
-			irlock_report.sensor_ray_e = sensor_ray(1);
-			irlock_report.sensor_ray_d = sensor_ray(2);
-
+			quat_att.copyTo(irlock_report.q);
 			_irlock_report_pub.publish(irlock_report);
 		}
 	}

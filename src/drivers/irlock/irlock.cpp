@@ -47,6 +47,8 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 #include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/irlock_report.h>
 
 /** Configuration Constants **/
@@ -115,6 +117,7 @@ private:
 	uint32_t _read_failures{0};
 
 	uORB::Publication<irlock_report_s> _irlock_report_topic{ORB_ID(irlock_report)};
+	uORB::Subscription	_vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 };
 
 IRLOCK::IRLOCK(const I2CSPIDriverConfig &config) :
@@ -209,15 +212,26 @@ int IRLOCK::read_device()
 
 	// publish over uORB
 	if (report.num_targets > 0) {
-		irlock_report_s orb_report{};
-		orb_report.timestamp = report.timestamp;
-		orb_report.signature = report.targets[0].signature;
-		orb_report.pos_x     = report.targets[0].pos_x;
-		orb_report.pos_y     = report.targets[0].pos_y;
-		orb_report.size_x    = report.targets[0].size_x;
-		orb_report.size_y    = report.targets[0].size_y;
 
-		_irlock_report_topic.publish(orb_report);
+		vehicle_attitude_s	vehicle_attitude;
+
+		if (_vehicle_attitude_sub.update(&vehicle_attitude)) {
+			irlock_report_s orb_report{};
+
+			// Get the current attitude, will be used to rotate the sensor observation into navigation frame
+			matrix::Quaternionf quat_att(&vehicle_attitude.q[0]);
+
+			// publish sensor_ray NED
+			orb_report.timestamp = report.timestamp;
+			orb_report.signature = report.targets[0].signature;
+			quat_att.copyTo(orb_report.q);
+			orb_report.pos_x     = report.targets[0].pos_x;
+			orb_report.pos_y     = report.targets[0].pos_y;
+			orb_report.size_x    = report.targets[0].size_x;
+			orb_report.size_y    = report.targets[0].size_y;
+
+			_irlock_report_topic.publish(orb_report);
+		}
 	}
 
 	return OK;
