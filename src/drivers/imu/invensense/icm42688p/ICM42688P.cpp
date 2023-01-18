@@ -122,7 +122,7 @@ int ICM42688P::probe()
 			if (bank >= 1 && bank <= 3) {
 				DEVICE_DEBUG("incorrect register bank for WHO_AM_I REG_BANK_SEL:0x%02x, bank:%d", reg_bank_sel, bank);
 				// force bank selection and retry
-				SelectRegisterBank(REG_BANK_SEL_BIT::USER_BANK_0, true);
+				SelectRegisterBank(REG_BANK_SEL_BIT::BANK_SEL_0, true);
 			}
 		}
 	}
@@ -477,7 +477,7 @@ uint16_t ICM42688P::FIFOReadCount()
 	// read FIFO count
 	uint8_t fifo_count_buf[3] {};
 	fifo_count_buf[0] = static_cast<uint8_t>(Register::BANK_0::FIFO_COUNTH) | DIR_READ;
-	SelectRegisterBank(REG_BANK_SEL_BIT::USER_BANK_0);
+	SelectRegisterBank(REG_BANK_SEL_BIT::BANK_SEL_0);
 
 	if (transfer(fifo_count_buf, fifo_count_buf, sizeof(fifo_count_buf)) != PX4_OK) {
 		perf_count(_bad_transfer_perf);
@@ -491,7 +491,7 @@ bool ICM42688P::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
 {
 	FIFOTransferBuffer buffer{};
 	const size_t transfer_size = math::min(samples * sizeof(FIFO::DATA) + 4, FIFO::SIZE);
-	SelectRegisterBank(REG_BANK_SEL_BIT::USER_BANK_0);
+	SelectRegisterBank(REG_BANK_SEL_BIT::BANK_SEL_0);
 
 	if (transfer((uint8_t *)&buffer, (uint8_t *)&buffer, transfer_size) != PX4_OK) {
 		perf_count(_bad_transfer_perf);

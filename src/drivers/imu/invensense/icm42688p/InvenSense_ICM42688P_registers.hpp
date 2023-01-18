@@ -96,6 +96,7 @@ enum class BANK_0 : uint8_t {
 	FIFO_CONFIG3       = 0x61,
 
 	INT_CONFIG0        = 0x63,
+	INT_CONFIG1        = 0x64,
 
 	INT_SOURCE0        = 0x65,
 
@@ -241,6 +242,11 @@ enum INT_CONFIG0_BIT : uint8_t {
 	CLEAR_ON_FIFO_READ = Bit3,
 };
 
+// INT_CONFIG1
+enum INT_CONFIG1_BIT : uint8_t {
+	INT_ASYNC_RESET = Bit4, // User should change setting to 0 from default setting of 1, for proper INT1 and INT2 pin operation
+};
+
 // INT_SOURCE0
 enum INT_SOURCE0_BIT : uint8_t {
 	UI_FSYNC_INT1_EN   = Bit6,
@@ -254,10 +260,12 @@ enum INT_SOURCE0_BIT : uint8_t {
 
 // REG_BANK_SEL
 enum REG_BANK_SEL_BIT : uint8_t {
-	USER_BANK_0 = 0,           // 0: Select USER BANK 0.
-	USER_BANK_1 = Bit4,        // 1: Select USER BANK 1.
-	USER_BANK_2 = Bit5,        // 2: Select USER BANK 2.
-	USER_BANK_3 = Bit5 | Bit4, // 3: Select USER BANK 3.
+	// 2:0 BANK_SEL
+	BANK_SEL_0 = 0,           // 000: Bank 0 (default)
+	BANK_SEL_1 = Bit0,        // 001: Bank 1
+	BANK_SEL_2 = Bit1,        // 010: Bank 2
+	BANK_SEL_3 = Bit1 | Bit0, // 011: Bank 3
+	BANK_SEL_4 = Bit2,        // 100: Bank 4
 };
 
 
