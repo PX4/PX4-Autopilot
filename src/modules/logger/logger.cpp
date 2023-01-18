@@ -257,7 +257,7 @@ Logger *Logger::instantiate(int argc, char *argv[])
 	int ch;
 	const char *myoptarg = nullptr;
 
-	while ((ch = px4_getopt(argc, argv, "r:b:etfm:p:xc:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "r:b:aetfm:p:xc:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'r': {
 				unsigned long r = strtoul(myoptarg, nullptr, 10);
@@ -289,6 +289,10 @@ Logger *Logger::instantiate(int argc, char *argv[])
 
 		case 'f':
 			log_mode = Logger::LogMode::boot_until_shutdown;
+			break;
+
+		case 'a':
+			log_mode = Logger::LogMode::arm_until_shutdown;
 			break;
 
 		case 'b': {
@@ -1113,7 +1117,8 @@ bool Logger::start_stop_logging()
 
 		if (_vehicle_status_sub.update(&vehicle_status)) {
 
-			desired_state = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+			desired_state = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) || (_prev_state
+					&& _log_mode == LogMode::arm_until_shutdown);
 			updated = true;
 		}
 	}
@@ -2405,6 +2410,7 @@ $ logger on
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAM_STRING('m', "all", "file|mavlink|all", "Backend mode", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('x', "Enable/disable logging via Aux1 RC channel", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('a', "Log 1st armed until shutdown", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('e', "Enable logging right after start until disarm (otherwise only when armed)", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Log until shutdown (implies -e)", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('t', "Use date/time for naming log directories and files", true);
