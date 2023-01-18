@@ -31,7 +31,7 @@
  *
  ****************************************************************************/
 
-#include "autopilot_tester.h"
+#include "autopilot_tester_rtl.h"
 
 
 TEST_CASE("Fly VTOL mission", "[vtol]")
@@ -43,4 +43,48 @@ TEST_CASE("Fly VTOL mission", "[vtol]")
 	tester.arm();
 	tester.execute_mission_raw();
 	tester.wait_until_disarmed();
+}
+
+TEST_CASE("RTL direct Home", "[vtol]")
+{
+	AutopilotTesterRtl tester;
+	tester.connect(connection_url);
+	tester.wait_until_ready();
+	tester.store_home();
+	tester.load_qgc_mission_raw_and_move_here("test/mavsdk_tests/vtol_mission.plan");
+	// fly directly to home position
+	tester.set_rtl_type(0);
+	tester.arm();
+	tester.execute_rtl_when_reaching_mission_sequence(2);
+	tester.wait_until_disarmed(std::chrono::seconds(90));
+	tester.check_home_within(5.0f);
+}
+
+TEST_CASE("RTL with Mission Landing", "[vtol]")
+{
+	AutopilotTesterRtl tester;
+	tester.connect(connection_url);
+	tester.wait_until_ready();
+	tester.load_qgc_mission_raw_and_move_here("test/mavsdk_tests/vtol_mission.plan");
+	// Vehicle should follow the mission and use the mission landing
+	tester.set_rtl_type(2);
+	tester.arm();
+	tester.execute_rtl_when_reaching_mission_sequence(2);
+	tester.check_tracks_mission_raw(30.0f);
+	tester.wait_until_disarmed(std::chrono::seconds(90));
+}
+
+TEST_CASE("RTL with Reverse Mission", "[vtol]")
+{
+	AutopilotTesterRtl tester;
+	tester.connect(connection_url);
+	tester.wait_until_ready();
+	tester.set_takeoff_land_requirements(0);
+	tester.load_qgc_mission_raw_and_move_here("test/mavsdk_tests/vtol_mission_without_landing.plan");
+	// vehicle should follow the mission in reverse and land at the home position
+	tester.set_rtl_type(2);
+	tester.arm();
+	tester.execute_rtl_when_reaching_mission_sequence(6);
+	tester.check_tracks_mission_raw(30.0f);
+	tester.wait_until_disarmed(std::chrono::seconds(90));
 }
