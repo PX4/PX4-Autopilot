@@ -46,7 +46,7 @@ const char *_device;
 
 ModalaiEsc::ModalaiEsc() :
 	OutputModuleInterface(MODULE_NAME, px4::serial_port_to_wq(MODALAI_ESC_DEFAULT_PORT)),
-	_mixing_output{"UART_ESC", MODALAI_ESC_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, true},
+	_mixing_output{"UART_ESC", MODALAI_ESC_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false},
 	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
 	_output_update_perf(perf_alloc(PC_INTERVAL, MODULE_NAME": output update interval"))
 {
@@ -125,7 +125,7 @@ int ModalaiEsc::load_params(uart_esc_params_t *params, ch_assign_t *map)
 	// initialize out
 	for (int i = 0; i < MODALAI_ESC_OUTPUT_CHANNELS; i++) {
 		params->function_map[i] = (int)OutputFunction::Disabled;
-		params->direction_map[i] = 1;
+		params->direction_map[i] = 0;
 		params->motor_map[i] = 0;
 	}
 
@@ -144,12 +144,10 @@ int ModalaiEsc::load_params(uart_esc_params_t *params, ch_assign_t *map)
 	param_get(param_find("UART_ESC_FUNC3"),  &params->function_map[2]);
 	param_get(param_find("UART_ESC_FUNC4"),  &params->function_map[3]);
 
-	// param_get(param_find("UART_ESC_REV1"),  &params->direction_map[0]);
-	// param_get(param_find("UART_ESC_REV2"),  &params->direction_map[1]);
-	// param_get(param_find("UART_ESC_REV3"),  &params->direction_map[2]);
-	// param_get(param_find("UART_ESC_REV4"),  &params->direction_map[3]);
-	param_get(param_find("UART_ESC_REV"),  &params->direction_map[0]);
-	params->direction_map[3] = params->direction_map[2] = params->direction_map[1] = params->direction_map[0];
+	param_get(param_find("UART_ESC_SDIR1"),  &params->direction_map[0]);
+	param_get(param_find("UART_ESC_SDIR2"),  &params->direction_map[1]);
+	param_get(param_find("UART_ESC_SDIR3"),  &params->direction_map[2]);
+	param_get(param_find("UART_ESC_SDIR4"),  &params->direction_map[3]);
 
 	param_get(param_find("UART_ESC_RPM_MIN"), &params->rpm_min);
 	param_get(param_find("UART_ESC_RPM_MAX"), &params->rpm_max);
@@ -250,9 +248,8 @@ int ModalaiEsc::task_spawn(int argc, char *argv[])
 		PX4_ERR("alloc failed");
 	}
 
-	// These commented out statements cause a crash on VOXL2
-	// delete instance;
-	// _object.store(nullptr);
+	delete instance;
+	_object.store(nullptr);
 	_task_id = -1;
 
 	return PX4_ERROR;
@@ -798,8 +795,11 @@ int ModalaiEsc::update_params()
 	ret = load_params(&_parameters, (ch_assign_t *)&_output_map);
 
 	if (ret == PX4_OK) {
+		_mixing_output.setAllDisarmedValues(0);
+		_mixing_output.setAllFailsafeValues(0);
 		_mixing_output.setAllMinValues(_parameters.rpm_min);
 		_mixing_output.setAllMaxValues(_parameters.rpm_max);
+
 		_rpm_fullscale = _parameters.rpm_max - _parameters.rpm_min;
 	}
 
@@ -1085,104 +1085,10 @@ void ModalaiEsc::mix_turtle_mode(uint16_t outputs[MAX_ACTUATORS])
 
 }
 
-void ModalaiEsc::handle_actuator_test()
-{
-	double update_rate_ms = 1000;
-	actuator_test_s actuator_test_command{};
-	_actuator_test_sub.copy(&actuator_test_command);
-
-	double static last_time_ms = 0;
-	double cur_time_ms = (double)hrt_absolute_time() / 1000.0;  // ms
-
-	//PX4_ERR("time: %f - value: %f - timeout: %li - function: %i - action: %i", (double)cur_time_ms, (double)actuator_test_command.value, actuator_test_command.timeout_ms, actuator_test_command.function, actuator_test_command.action);
-
-	if ((cur_time_ms - last_time_ms) >= update_rate_ms) {
-		update_params();
-		last_time_ms = cur_time_ms;
-
-		int16_t rate = 0;
-
-		if (actuator_test_command.value > 0.01f) {
-			rate = (int16_t)(actuator_test_command.value * _rpm_fullscale) + _parameters.rpm_min;
-		}
-
-		PX4_ERR("  --> rate: %f", (double)rate);
-		int16_t outputs[MODALAI_ESC_OUTPUT_CHANNELS];
-		uint8_t id_fb_raw = 0;
-		uint8_t id_fb = 0;
-
-		outputs[0] = 0;
-		outputs[1] = 0;
-		outputs[2] = 0;
-		outputs[3] = 0;
-
-		if (actuator_test_command.function == (int)OutputFunction::Motor1) {
-			outputs[0] = rate;
-			id_fb_raw = 0;
-
-		} else if (actuator_test_command.function == (int)OutputFunction::Motor2) {
-			outputs[1] = rate;
-			id_fb_raw = 1;
-
-		} else if (actuator_test_command.function == (int)OutputFunction::Motor3) {
-			outputs[2] = rate;
-			id_fb_raw = 2;
-
-		} else if (actuator_test_command.function == (int)OutputFunction::Motor4) {
-			outputs[3] = rate;
-			id_fb_raw = 3;
-		}
-
-		int16_t rate_req[MODALAI_ESC_OUTPUT_CHANNELS];
-
-		for (int i = 0; i < MODALAI_ESC_OUTPUT_CHANNELS; i++) {
-			int motor_idx = _output_map[i].number - 1; // user defined mapping is 1-4, array is 0-3
-
-			if (motor_idx >= 0 && motor_idx < MODALAI_ESC_OUTPUT_CHANNELS) {
-				rate_req[i] = outputs[motor_idx] * _output_map[i].direction;
-			}
-
-			if (motor_idx == id_fb_raw) {
-				id_fb = i;
-			}
-		}
-
-		Command  cmd;
-
-		cmd.len = qc_esc_create_rpm_packet4_fb(rate_req[0],
-						       rate_req[1],
-						       rate_req[2],
-						       rate_req[3],
-						       0,
-						       0,
-						       0,
-						       0,
-						       id_fb,
-						       cmd.buf,
-						       sizeof(cmd.buf));
-
-		while (1) {
-			cur_time_ms = (double)hrt_absolute_time() / 1000.0;
-
-			if (cur_time_ms > (last_time_ms + update_rate_ms)) {
-				break;
-			}
-
-			if (_uart_port->uart_write(cmd.buf, cmd.len) != cmd.len) {
-				PX4_ERR("Failed to send packet");
-			}
-
-			px4_usleep(2000); // ~500Hz
-		}
-	}
-}
-
 /* OutputModuleInterface */
 bool ModalaiEsc::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			       unsigned num_outputs, unsigned num_control_groups_updated)
 {
-	// PX4_INFO("ModalaiEsc::updateOutputs %d %d %d %d %d", stop_motors, outputs[0], outputs[1], outputs[2], outputs[3]);
-
 	if (num_outputs != MODALAI_ESC_OUTPUT_CHANNELS) {
 		return false;
 	}
@@ -1215,14 +1121,6 @@ bool ModalaiEsc::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS]
 			}
 		}
 	}
-
-	/*
-	static uint16_t filter = 0;
-	if(filter++>1024){
-		filter=0;
-		PX4_ERR("%i - %i - %i - %i", _esc_chans[0].rate_req, _esc_chans[1].rate_req, _esc_chans[2].rate_req, _esc_chans[3].rate_req);
-	}
-	*/
 
 	Command cmd;
 	cmd.len = qc_esc_create_rpm_packet4_fb(_esc_chans[0].rate_req,
@@ -1451,7 +1349,8 @@ void ModalaiEsc::Run()
 
 	if (!_outputs_on) {
 		if (_actuator_test_sub.updated()) {
-			handle_actuator_test();
+			// values are set in ActuatorTest::update, we just need to enable outputs to let them through
+			_outputs_on = true;
 		}
 	}
 
@@ -1581,10 +1480,10 @@ int ModalaiEsc::print_status()
 	PX4_INFO("Params: UART_ESC_FUNC3: %li", _parameters.function_map[2]);
 	PX4_INFO("Params: UART_ESC_FUNC4: %li", _parameters.function_map[3]);
 
-	PX4_INFO("Params: UART_ESC_REV1: %li", _parameters.direction_map[0]);
-	PX4_INFO("Params: UART_ESC_REV2: %li", _parameters.direction_map[1]);
-	PX4_INFO("Params: UART_ESC_REV3: %li", _parameters.direction_map[2]);
-	PX4_INFO("Params: UART_ESC_REV4: %li", _parameters.direction_map[3]);
+	PX4_INFO("Params: UART_ESC_SDIR1: %li", _parameters.direction_map[0]);
+	PX4_INFO("Params: UART_ESC_SDIR2: %li", _parameters.direction_map[1]);
+	PX4_INFO("Params: UART_ESC_SDIR3: %li", _parameters.direction_map[2]);
+	PX4_INFO("Params: UART_ESC_SDIR4: %li", _parameters.direction_map[3]);
 
 	PX4_INFO("Params: UART_ESC_RPM_MIN: %li", _parameters.rpm_min);
 	PX4_INFO("Params: UART_ESC_RPM_MAX: %li", _parameters.rpm_max);

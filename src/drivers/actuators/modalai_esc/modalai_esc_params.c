@@ -77,50 +77,6 @@ PARAM_DEFINE_INT32(UART_ESC_BAUD, 250000);
 //PARAM_DEFINE_INT32(UART_ESC_FUNC4, 104);
 
 /**
- * UART ESC Motor 1 reverse flag (1 to reverse direction)
- *
- * @group UART ESC
- * @value 0 - Default
- * @value 1 - Reversed
- * @min 0
- * @max 1
- */
-// PARAM_DEFINE_INT32(UART_ESC_REV1, 0);
-
-/**
- * UART ESC Motor 2 reverse flag (1 to reverse direction)
- *
- * @group UART ESC
- * @value 0 - Default
- * @value 1 - Reversed
- * @min 0
- * @max 1
- */
-// PARAM_DEFINE_INT32(UART_ESC_REV2, 0);
-
-/**
- * UART ESC Motor 3 reverse flag (1 to reverse direction)
- *
- * @group UART ESC
- * @value 0 - Default
- * @value 1 - Reversed
- * @min 0
- * @max 1
- */
-// PARAM_DEFINE_INT32(UART_ESC_REV3, 0);
-
-/**
- * UART ESC Motor 4 reverse flag (1 to reverse direction)
- *
- * @group UART ESC
- * @value 0 - Default
- * @value 1 - Reversed
- * @min 0
- * @max 1
- */
-// PARAM_DEFINE_INT32(UART_ESC_REV4, 0);
-
-/**
  * UART ESC RPM Min
  *
  * Minimum RPM for ESC
@@ -154,6 +110,42 @@ PARAM_DEFINE_INT32(UART_ESC_RPM_MAX, 15000);
  * @max 2
  */
 PARAM_DEFINE_INT32(UART_ESC_MODE, 0);
+
+/**
+ * UART ESC ID 1 Spin Direction Flag
+ *
+ * @group UART ESC
+ * @value 0 - Default
+ * @value 1 - Reverse
+ */
+PARAM_DEFINE_INT32(UART_ESC_SDIR1, 0);
+
+/**
+ * UART ESC ID 2 Spin Direction Flag
+ *
+ * @group UART ESC
+ * @value 0 - Default
+ * @value 1 - Reverse
+ */
+PARAM_DEFINE_INT32(UART_ESC_SDIR2, 0);
+
+/**
+ * UART ESC ID 3 Spin Direction Flag
+ *
+ * @group UART ESC
+ * @value 0 - Default
+ * @value 1 - Reverse
+ */
+PARAM_DEFINE_INT32(UART_ESC_SDIR3, 0);
+
+/**
+ * UART ESC ID 4 Spin Direction Flag
+ *
+ * @group UART ESC
+ * @value 0 - Default
+ * @value 1 - Reverse
+ */
+PARAM_DEFINE_INT32(UART_ESC_SDIR4, 0);
 
 /**
  * UART ESC Turtle Mode Crash Flip Motor Percent
