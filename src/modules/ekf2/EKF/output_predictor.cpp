@@ -67,11 +67,11 @@ void OutputPredictor::alignOutputFilter(const Quatf &quat_state, const Vector3f 
 
 	// loop through the output filter state history and add the deltas
 	for (uint8_t i = 0; i < _output_buffer.get_length(); i++) {
-		_output_buffer[i].quat_nominal = q_delta * _output_buffer[i].quat_nominal;
-		_output_buffer[i].quat_nominal.normalize();
 		_output_buffer[i].vel += vel_delta;
 		_output_buffer[i].pos += pos_delta;
 	}
+
+	resetQuaternion(q_delta);
 
 	_output_new = _output_buffer.get_newest();
 }
@@ -118,6 +118,7 @@ void OutputPredictor::resetQuaternion(const Quatf &quat_change)
 	// apply the change in attitude quaternion to our newest quaternion estimate
 	// which was already taken out from the output buffer
 	_output_new.quat_nominal = quat_change * _output_new.quat_nominal;
+	_output_new.quat_nominal.normalize();
 }
 
 void OutputPredictor::resetHorizontalVelocityTo(const Vector2f &delta_horz_vel)
@@ -187,13 +188,8 @@ void OutputPredictor::calculateOutputStates(const uint64_t time_us, const Vector
 	_output_new.time_us = time_us;
 	_output_vert_new.time_us = time_us;
 
-	const Quatf dq(AxisAnglef{delta_angle_corrected});
-
 	// rotate the previous INS quaternion by the delta quaternions
-	_output_new.quat_nominal = _output_new.quat_nominal * dq;
-
-	// the quaternions must always be normalised after modification
-	_output_new.quat_nominal.normalize();
+	_output_new.quat_nominal = (_output_new.quat_nominal * Quatf::expq(delta_angle_corrected * 0.5f)).normalized();
 
 	// calculate the rotation matrix from body to earth frame
 	_R_to_earth_now = Dcmf(_output_new.quat_nominal);

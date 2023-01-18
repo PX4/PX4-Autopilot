@@ -240,10 +240,8 @@ void Ekf::predictState(const imuSample &imu_delayed)
 	// subtract component of angular rate due to earth rotation
 	corrected_delta_ang -= _R_to_earth.transpose() * _earth_rate_NED * imu_delayed.delta_ang_dt;
 
-	const Quatf dq(AxisAnglef{corrected_delta_ang});
-
 	// rotate the previous quaternion by the delta quaternion using a quaternion multiplication
-	_state.quat_nominal = (_state.quat_nominal * dq).normalized();
+	_state.quat_nominal = (_state.quat_nominal * Quatf::expq(corrected_delta_ang * 0.5f)).normalized();
 	_R_to_earth = Dcmf(_state.quat_nominal);
 
 	// Calculate an earth frame delta velocity
