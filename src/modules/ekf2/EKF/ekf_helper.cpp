@@ -71,11 +71,7 @@ void Ekf::resetHorizontalVelocityTo(const Vector2f &new_horz_vel, const Vector2f
 		P.uncorrelateCovarianceSetVariance<1>(5, math::max(sq(0.01f), new_horz_vel_var(1)));
 	}
 
-	for (uint8_t index = 0; index < _output_buffer.get_length(); index++) {
-		_output_buffer[index].vel.xy() += delta_horz_vel;
-	}
-
-	_output_new.vel.xy() += delta_horz_vel;
+	_output_predictor.resetHorizontalVelocityTo(delta_horz_vel);
 
 	// record the state change
 	if (_state_reset_status.reset_count.velNE == _state_reset_count_prev.velNE) {
@@ -89,7 +85,7 @@ void Ekf::resetHorizontalVelocityTo(const Vector2f &new_horz_vel, const Vector2f
 	_state_reset_status.reset_count.velNE++;
 
 	// Reset the timout timer
-	_time_last_hor_vel_fuse = _imu_sample_delayed.time_us;
+	_time_last_hor_vel_fuse = _time_delayed_us;
 }
 
 void Ekf::resetVerticalVelocityTo(float new_vert_vel, float new_vert_vel_var)
@@ -101,13 +97,7 @@ void Ekf::resetVerticalVelocityTo(float new_vert_vel, float new_vert_vel_var)
 		P.uncorrelateCovarianceSetVariance<1>(6, math::max(sq(0.01f), new_vert_vel_var));
 	}
 
-	for (uint8_t index = 0; index < _output_buffer.get_length(); index++) {
-		_output_buffer[index].vel(2) += delta_vert_vel;
-		_output_vert_buffer[index].vert_vel += delta_vert_vel;
-	}
-
-	_output_new.vel(2) += delta_vert_vel;
-	_output_vert_new.vert_vel += delta_vert_vel;
+	_output_predictor.resetVerticalVelocityTo(delta_vert_vel);
 
 	// record the state change
 	if (_state_reset_status.reset_count.velD == _state_reset_count_prev.velD) {
@@ -121,7 +111,7 @@ void Ekf::resetVerticalVelocityTo(float new_vert_vel, float new_vert_vel_var)
 	_state_reset_status.reset_count.velD++;
 
 	// Reset the timout timer
-	_time_last_ver_vel_fuse = _imu_sample_delayed.time_us;
+	_time_last_ver_vel_fuse = _time_delayed_us;
 }
 
 void Ekf::resetHorizontalPositionToLastKnown()
@@ -145,11 +135,7 @@ void Ekf::resetHorizontalPositionTo(const Vector2f &new_horz_pos, const Vector2f
 		P.uncorrelateCovarianceSetVariance<1>(8, math::max(sq(0.01f), new_horz_pos_var(1)));
 	}
 
-	for (uint8_t index = 0; index < _output_buffer.get_length(); index++) {
-		_output_buffer[index].pos.xy() += delta_horz_pos;
-	}
-
-	_output_new.pos.xy() += delta_horz_pos;
+	_output_predictor.resetHorizontalPositionTo(delta_horz_pos);
 
 	// record the state change
 	if (_state_reset_status.reset_count.posNE == _state_reset_count_prev.posNE) {
@@ -166,7 +152,7 @@ void Ekf::resetHorizontalPositionTo(const Vector2f &new_horz_pos, const Vector2f
 	//_gps_pos_b_est.setBias(_gps_pos_b_est.getBias() + _state_reset_status.posNE_change);
 
 	// Reset the timout timer
-	_time_last_hor_pos_fuse = _imu_sample_delayed.time_us;
+	_time_last_hor_pos_fuse = _time_delayed_us;
 }
 
 bool Ekf::isHeightResetRequired() const
@@ -194,16 +180,7 @@ void Ekf::resetVerticalPositionTo(const float new_vert_pos, float new_vert_pos_v
 
 	// apply the change in height / height rate to our newest height / height rate estimate
 	// which have already been taken out from the output buffer
-	_output_new.pos(2) += delta_z;
-
-	// add the reset amount to the output observer buffered data
-	for (uint8_t i = 0; i < _output_buffer.get_length(); i++) {
-		_output_buffer[i].pos(2) += delta_z;
-		_output_vert_buffer[i].vert_vel_integ += delta_z;
-	}
-
-	// add the reset amount to the output observer vertical position state
-	_output_vert_new.vert_vel_integ = _state.pos(2);
+	_output_predictor.resetVerticalPositionTo(new_vert_pos, delta_z);
 
 	// record the state change
 	if (_state_reset_status.reset_count.posD == _state_reset_count_prev.posD) {
@@ -222,7 +199,7 @@ void Ekf::resetVerticalPositionTo(const float new_vert_pos, float new_vert_pos_v
 	_rng_hgt_b_est.setBias(_rng_hgt_b_est.getBias() + delta_z);
 
 	// Reset the timout timer
-	_time_last_hgt_fuse = _imu_sample_delayed.time_us;
+	_time_last_hgt_fuse = _time_delayed_us;
 }
 
 void Ekf::resetVerticalVelocityToZero()
@@ -233,35 +210,11 @@ void Ekf::resetVerticalVelocityToZero()
 	resetVerticalVelocityTo(0.0f, 10.f);
 }
 
-// align output filter states to match EKF states at the fusion time horizon
-void Ekf::alignOutputFilter()
-{
-	const outputSample &output_delayed = _output_buffer.get_oldest();
-
-	// calculate the quaternion rotation delta from the EKF to output observer states at the EKF fusion time horizon
-	Quatf q_delta{_state.quat_nominal * output_delayed.quat_nominal.inversed()};
-	q_delta.normalize();
-
-	// calculate the velocity and position deltas between the output and EKF at the EKF fusion time horizon
-	const Vector3f vel_delta = _state.vel - output_delayed.vel;
-	const Vector3f pos_delta = _state.pos - output_delayed.pos;
-
-	// loop through the output filter state history and add the deltas
-	for (uint8_t i = 0; i < _output_buffer.get_length(); i++) {
-		_output_buffer[i].quat_nominal = q_delta * _output_buffer[i].quat_nominal;
-		_output_buffer[i].quat_nominal.normalize();
-		_output_buffer[i].vel += vel_delta;
-		_output_buffer[i].pos += pos_delta;
-	}
-
-	_output_new = _output_buffer.get_newest();
-}
-
 // Reset heading and magnetic field states
 bool Ekf::resetMagHeading()
 {
 	// prevent a reset being performed more than once on the same frame
-	if ((_flt_mag_align_start_time == _imu_sample_delayed.time_us) || (_control_status_prev.flags.yaw_align != _control_status.flags.yaw_align)) {
+	if ((_flt_mag_align_start_time == _time_delayed_us) || (_control_status_prev.flags.yaw_align != _control_status.flags.yaw_align)) {
 		return false;
 	}
 
@@ -298,7 +251,7 @@ bool Ekf::resetMagHeading()
 		resetMagCov();
 
 		// record the time for the magnetic field alignment event
-		_flt_mag_align_start_time = _imu_sample_delayed.time_us;
+		_flt_mag_align_start_time = _time_delayed_us;
 
 		return true;
 	}
@@ -518,7 +471,7 @@ bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, cons
 		const float gps_alt_ref_prev = getEkfGlobalOriginAltitude();
 
 		// reinitialize map projection to latitude, longitude, altitude, and reset position
-		_pos_ref.initReference(latitude, longitude, _imu_sample_delayed.time_us);
+		_pos_ref.initReference(latitude, longitude, _time_delayed_us);
 		_gps_alt_ref = altitude;
 
 		// minimum change in position or height that triggers a reset
@@ -883,8 +836,8 @@ void Ekf::updateHorizontalDeadReckoningstatus()
 	_control_status.flags.inertial_dead_reckoning = !velPosAiding && !optFlowAiding && !airDataAiding;
 
 	if (!_control_status.flags.inertial_dead_reckoning) {
-		if (_imu_sample_delayed.time_us > _params.no_aid_timeout_max) {
-			_time_last_horizontal_aiding = _imu_sample_delayed.time_us - _params.no_aid_timeout_max;
+		if (_time_delayed_us > _params.no_aid_timeout_max) {
+			_time_last_horizontal_aiding = _time_delayed_us - _params.no_aid_timeout_max;
 		}
 	}
 
@@ -1328,13 +1281,7 @@ void Ekf::resetQuatStateYaw(float yaw, float yaw_variance)
 	}
 
 	// add the reset amount to the output observer buffered data
-	for (uint8_t i = 0; i < _output_buffer.get_length(); i++) {
-		_output_buffer[i].quat_nominal = q_error * _output_buffer[i].quat_nominal;
-	}
-
-	// apply the change in attitude quaternion to our newest quaternion estimate
-	// which was already taken out from the output buffer
-	_output_new.quat_nominal = q_error * _output_new.quat_nominal;
+	_output_predictor.resetQuaternion(q_error);
 
 	// record the state change
 	if (_state_reset_status.reset_count.quat == _state_reset_count_prev.quat) {
@@ -1363,7 +1310,7 @@ bool Ekf::resetYawToEKFGSF()
 	resetQuatStateYaw(_yawEstimator.getYaw(), _yawEstimator.getYawVar());
 
 	// record a magnetic field alignment event to prevent possibility of the EKF trying to reset the yaw to the mag later in flight
-	_flt_mag_align_start_time = _imu_sample_delayed.time_us;
+	_flt_mag_align_start_time = _time_delayed_us;
 	_control_status.flags.yaw_align = true;
 
 	if (_control_status.flags.mag_hdg || _control_status.flags.mag_3D) {
@@ -1400,7 +1347,7 @@ bool Ekf::getDataEKFGSF(float *yaw_composite, float *yaw_variance, float yaw[N_M
 	return _yawEstimator.getLogData(yaw_composite, yaw_variance, yaw, innov_VN, innov_VE, weight);
 }
 
-void Ekf::runYawEKFGSF()
+void Ekf::runYawEKFGSF(const imuSample &imu_delayed)
 {
 	float TAS = 0.f;
 
@@ -1414,7 +1361,7 @@ void Ekf::runYawEKFGSF()
 	}
 
 	const Vector3f imu_gyro_bias = getGyroBias();
-	_yawEstimator.update(_imu_sample_delayed, _control_status.flags.in_air, TAS, imu_gyro_bias);
+	_yawEstimator.update(imu_delayed, _control_status.flags.in_air, TAS, imu_gyro_bias);
 }
 
 void Ekf::resetGpsDriftCheckFilters()

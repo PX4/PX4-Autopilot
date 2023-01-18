@@ -153,7 +153,7 @@ private:
 	void PublishInnovationTestRatios(const hrt_abstime &timestamp);
 	void PublishInnovationVariances(const hrt_abstime &timestamp);
 	void PublishLocalPosition(const hrt_abstime &timestamp);
-	void PublishOdometry(const hrt_abstime &timestamp);
+	void PublishOdometry(const hrt_abstime &timestamp, const imuSample &imu_sample);
 	void PublishOdometryAligned(const hrt_abstime &timestamp, const vehicle_odometry_s &ev_odom);
 	void PublishOpticalFlowVel(const hrt_abstime &timestamp);
 	void PublishSensorBias(const hrt_abstime &timestamp);
@@ -576,9 +576,9 @@ private:
 		_param_ekf2_fuse_beta,		///< Controls synthetic sideslip fusion, 0 disables, 1 enables
 
 		// output predictor filter time constants
-		(ParamExtFloat<px4::params::EKF2_TAU_VEL>)
+		(ParamFloat<px4::params::EKF2_TAU_VEL>)
 		_param_ekf2_tau_vel,		///< time constant used by the output velocity complementary filter (sec)
-		(ParamExtFloat<px4::params::EKF2_TAU_POS>)
+		(ParamFloat<px4::params::EKF2_TAU_POS>)
 		_param_ekf2_tau_pos,		///< time constant used by the output position complementary filter (sec)
 
 		// IMU switch on bias parameters

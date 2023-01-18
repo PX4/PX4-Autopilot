@@ -185,13 +185,13 @@ void Ekf::controlGpsFusion()
 					// reset velocity
 					_information_events.flags.reset_vel_to_gps = true;
 					resetVelocityTo(velocity, vel_obs_var);
-					_aid_src_gnss_vel.time_last_fuse = _imu_sample_delayed.time_us;
+					_aid_src_gnss_vel.time_last_fuse = _time_delayed_us;
 				}
 
 				// reset position
 				_information_events.flags.reset_pos_to_gps = true;
 				resetHorizontalPositionTo(position, pos_obs_var);
-				_aid_src_gnss_pos.time_last_fuse = _imu_sample_delayed.time_us;
+				_aid_src_gnss_pos.time_last_fuse = _time_delayed_us;
 
 				_control_status.flags.gps = true;
 
@@ -204,12 +204,12 @@ void Ekf::controlGpsFusion()
 					// reset velocity
 					_information_events.flags.reset_vel_to_gps = true;
 					resetVelocityTo(velocity, vel_obs_var);
-					_aid_src_gnss_vel.time_last_fuse = _imu_sample_delayed.time_us;
+					_aid_src_gnss_vel.time_last_fuse = _time_delayed_us;
 
 					// reset position
 					_information_events.flags.reset_pos_to_gps = true;
 					resetHorizontalPositionTo(position, pos_obs_var);
-					_aid_src_gnss_pos.time_last_fuse = _imu_sample_delayed.time_us;
+					_aid_src_gnss_pos.time_last_fuse = _time_delayed_us;
 				}
 			}
 		}

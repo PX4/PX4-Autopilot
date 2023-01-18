@@ -65,7 +65,7 @@ void Ekf::controlFakePosFusion()
 
 		const float innov_gate = 3.f;
 
-		updateHorizontalPositionAidSrcStatus(_imu_sample_delayed.time_us, Vector2f(_last_known_pos), obs_var, innov_gate, aid_src);
+		updateHorizontalPositionAidSrcStatus(_time_delayed_us, Vector2f(_last_known_pos), obs_var, innov_gate, aid_src);
 
 
 		const bool continuing_conditions_passing = !isHorizontalAidingActive();
@@ -118,7 +118,7 @@ void Ekf::resetFakePosFusion()
 	resetHorizontalPositionToLastKnown();
 	resetHorizontalVelocityToZero();
 
-	_aid_src_fake_pos.time_last_fuse = _imu_sample_delayed.time_us;
+	_aid_src_fake_pos.time_last_fuse = _time_delayed_us;
 }
 
 void Ekf::stopFakePosFusion()

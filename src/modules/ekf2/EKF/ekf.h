@@ -115,7 +115,8 @@ public:
 	const Vector3f getFlowGyro() const { return _flow_sample_delayed.gyro_xyz * (1.f / _flow_sample_delayed.dt); }
 	const Vector3f &getFlowGyroIntegral() const { return _flow_sample_delayed.gyro_xyz; }
 
-	void getHeadingInnov(float &heading_innov) const {
+	void getHeadingInnov(float &heading_innov) const
+	{
 		if (_control_status.flags.mag_hdg) {
 			heading_innov = _aid_src_mag_heading.innovation;
 
@@ -130,7 +131,8 @@ public:
 		}
 	}
 
-	void getHeadingInnovVar(float &heading_innov_var) const {
+	void getHeadingInnovVar(float &heading_innov_var) const
+	{
 		if (_control_status.flags.mag_hdg) {
 			heading_innov_var = _aid_src_mag_heading.innovation_variance;
 
@@ -145,7 +147,8 @@ public:
 		}
 	}
 
-	void getHeadingInnovRatio(float &heading_innov_ratio) const {
+	void getHeadingInnovRatio(float &heading_innov_ratio) const
+	{
 		if (_control_status.flags.mag_hdg) {
 			heading_innov_ratio = _aid_src_mag_heading.test_ratio;
 
@@ -244,10 +247,6 @@ public:
 
 	Vector3f getPositionVariance() const { return P.slice<3, 3>(7, 7).diag(); }
 
-	// return an array containing the output predictor angular, velocity and position tracking
-	// error magnitudes (rad), (m/sec), (m)
-	const Vector3f &getOutputTrackingError() const { return _output_tracking_error; }
-
 	// First argument returns GPS drift  metrics in the following array locations
 	// 0 : Horizontal position drift rate (m/s)
 	// 1 : Vertical position drift rate (m/s)
@@ -287,7 +286,7 @@ public:
 		const bool is_using_mag = (_control_status.flags.mag_3D || _control_status.flags.mag_hdg);
 		const bool is_mag_alignment_in_flight_complete = is_using_mag
 				&& _control_status.flags.mag_aligned_in_flight
-				&& ((_imu_sample_delayed.time_us - _flt_mag_align_start_time) > (uint64_t)1e6);
+				&& ((_time_delayed_us - _flt_mag_align_start_time) > (uint64_t)1e6);
 		return _control_status.flags.yaw_align
 		       && (is_mag_alignment_in_flight_complete || !is_using_mag);
 	}
@@ -380,9 +379,6 @@ public:
 	// return a bitmask integer that describes which state estimates can be used for flight control
 	void get_ekf_soln_status(uint16_t *status) const;
 
-	// use the latest IMU data at the current time horizon.
-	Quatf calculate_quaternion() const;
-
 	// rotate quaternion covariances into variances for an equivalent rotation vector
 	Vector3f calcRotVecVariances() const;
 
@@ -448,8 +444,7 @@ private:
 	void updateHorizontalDeadReckoningstatus();
 	void updateVerticalDeadReckoningStatus();
 
-	struct StateResetCounts
-	{
+	struct StateResetCounts {
 		uint8_t velNE{0};	///< number of horizontal position reset events (allow to wrap if count exceeds 255)
 		uint8_t velD{0};	///< number of vertical velocity reset events (allow to wrap if count exceeds 255)
 		uint8_t posNE{0};	///< number of horizontal position reset events (allow to wrap if count exceeds 255)
@@ -576,12 +571,6 @@ private:
 
 	estimator_aid_source2d_s _aid_src_optical_flow{};
 
-	// output predictor states
-	Vector3f _delta_angle_corr{};	///< delta angle correction vector (rad)
-	Vector3f _vel_err_integ{};	///< integral of velocity tracking error (m)
-	Vector3f _pos_err_integ{};	///< integral of position tracking error (m.s)
-	Vector3f _output_tracking_error{}; ///< contains the magnitude of the angle, velocity and position track errors (rad, m/s, m)
-
 	// variables used for the GPS quality checks
 	Vector3f _gps_pos_deriv_filt{};	///< GPS NED position derivative (m/sec)
 	Vector2f _gps_velNE_filt{};	///< filtered GPS North and East velocity (m/sec)
@@ -642,12 +631,6 @@ private:
 
 	float _height_rate_lpf{0.0f};
 
-	// update the real time complementary filter states. This includes the prediction
-	// and the correction step
-	void calculateOutputStates(const imuSample &imu);
-	void applyCorrectionToVerticalOutputBuffer(float vert_vel_correction);
-	void applyCorrectionToOutputBuffer(const Vector3f &vel_correction, const Vector3f &pos_correction);
-
 	// initialise filter states of both the delayed ekf and the real time complementary filter
 	bool initialiseFilter(void);
 
@@ -655,10 +638,10 @@ private:
 	void initialiseCovariance();
 
 	// predict ekf state
-	void predictState();
+	void predictState(const imuSample &imu_delayed);
 
 	// predict ekf covariance
-	void predictCovariance();
+	void predictCovariance(const imuSample &imu_delayed);
 
 	// ekf sequential fusion of magnetometer measurements
 	bool fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bool update_all_states = true);
@@ -745,8 +728,8 @@ private:
 	// initialise the terrain vertical position estimator
 	void initHagl();
 
-	void runTerrainEstimator();
-	void predictHagl();
+	void runTerrainEstimator(const imuSample &imu_delayed);
+	void predictHagl(const imuSample &imu_delayed);
 
 	// update the terrain vertical position estimate using a height above ground measurement from the range finder
 	void controlHaglRngFusion();
@@ -772,9 +755,6 @@ private:
 
 	// Return the magnetic declination in radians to be used by the alignment and fusion processing
 	float getMagDeclination();
-
-	// modify output filter to match the the EKF state at the fusion time horizon
-	void alignOutputFilter();
 
 	bool measurementUpdate(Vector24f &K, float innovation_variance, float innovation)
 	{
@@ -834,23 +814,23 @@ private:
 	bool gps_is_good(const gpsMessage &gps);
 
 	// Control the filter fusion modes
-	void controlFusionModes();
+	void controlFusionModes(const imuSample &imu_delayed);
 
 	// control fusion of external vision observations
 	void controlExternalVisionFusion();
 
-	void controlEvHeightFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient, estimator_aid_source1d_s& aid_src);
+	void controlEvHeightFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient, estimator_aid_source1d_s &aid_src);
 
-	void controlEvPosFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient, estimator_aid_source2d_s& aid_src);
+	void controlEvPosFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient, estimator_aid_source2d_s &aid_src);
 	void startEvPosFusion(const Vector2f &measurement, const Vector2f &measurement_var, estimator_aid_source2d_s &aid_src);
 	void updateEvPosFusion(const Vector2f &measurement, const Vector2f &measurement_var, bool quality_sufficient, bool reset, estimator_aid_source2d_s &aid_src);
 	void stopEvPosFusion();
 
-	void controlEvVelFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient, estimator_aid_source3d_s& aid_src);
-	void controlEvYawFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient, estimator_aid_source1d_s& aid_src);
+	void controlEvVelFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient, estimator_aid_source3d_s &aid_src);
+	void controlEvYawFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient, estimator_aid_source1d_s &aid_src);
 
 	// control fusion of optical flow observations
-	void controlOpticalFlowFusion();
+	void controlOpticalFlowFusion(const imuSample &imu_delayed);
 	void updateOnGroundMotionForOpticalFlowChecks();
 	void resetOnGroundMotionForOpticalFlowChecks();
 
@@ -887,7 +867,7 @@ private:
 	void controlAirDataFusion();
 
 	// control fusion of synthetic sideslip observations
-	void controlBetaFusion();
+	void controlBetaFusion(const imuSample &imu_delayed);
 
 	// control fusion of multi-rotor drag specific force observations
 	void controlDragFusion();
@@ -907,11 +887,11 @@ private:
 	// control fusion of auxiliary velocity observations
 	void controlAuxVelFusion();
 
-	void checkVerticalAccelerationHealth();
+	void checkVerticalAccelerationHealth(const imuSample &imu_delayed);
 	Likelihood estimateInertialNavFallingLikelihood() const;
 
 	// control for combined height fusion mode (implemented for switching between baro and range height)
-	void controlHeightFusion();
+	void controlHeightFusion(const imuSample &imu_delayed);
 	void checkHeightSensorRefFallback();
 	void controlBaroHeightFusion();
 	void controlGnssHeightFusion(const gpsSample &gps_sample);
@@ -978,17 +958,17 @@ private:
 
 	bool isTimedOut(uint64_t last_sensor_timestamp, uint64_t timeout_period) const
 	{
-		return last_sensor_timestamp + timeout_period < _imu_sample_delayed.time_us;
+		return last_sensor_timestamp + timeout_period < _time_delayed_us;
 	}
 
 	bool isRecent(uint64_t sensor_timestamp, uint64_t acceptance_interval) const
 	{
-		return sensor_timestamp + acceptance_interval > _imu_sample_delayed.time_us;
+		return sensor_timestamp + acceptance_interval > _time_delayed_us;
 	}
 
 	bool isNewestSampleRecent(uint64_t sensor_timestamp, uint64_t acceptance_interval) const
 	{
-		return sensor_timestamp + acceptance_interval > _newest_high_rate_imu_sample.time_us;
+		return sensor_timestamp + acceptance_interval > _time_latest_us;
 	}
 
 	void startAirspeedFusion();
@@ -1032,7 +1012,7 @@ private:
 	HeightBiasEstimator _ev_hgt_b_est{HeightSensor::EV, _height_sensor_ref};
 	PositionBiasEstimator _ev_pos_b_est{static_cast<uint8_t>(PositionSensor::EV), _position_sensor_ref};
 
-	void runYawEKFGSF();
+	void runYawEKFGSF(const imuSample &imu_delayed);
 
 	// Resets the main Nav EKf yaw to the estimator from the EKF-GSF yaw estimator
 	// Resets the horizontal velocity and position to the default navigation sensor
@@ -1088,7 +1068,10 @@ private:
 
 	void setEstimatorAidStatusTestRatio(estimator_aid_source1d_s &status, float innovation_gate) const
 	{
-		if (PX4_ISFINITE(status.innovation) && PX4_ISFINITE(status.innovation_variance) && (status.innovation_variance > 0.f)) {
+		if (PX4_ISFINITE(status.innovation)
+		    && PX4_ISFINITE(status.innovation_variance)
+		    && (status.innovation_variance > 0.f)
+		   ) {
 			status.test_ratio = sq(status.innovation) / (sq(innovation_gate) * status.innovation_variance);
 			status.innovation_rejected = (status.test_ratio > 1.f);
 
@@ -1104,7 +1087,10 @@ private:
 		bool innovation_rejected = false;
 
 		for (size_t i = 0; i < (sizeof(status.test_ratio) / sizeof(status.test_ratio[0])); i++) {
-			if (PX4_ISFINITE(status.innovation[i]) && PX4_ISFINITE(status.innovation_variance[i]) && (status.innovation_variance[i] > 0.f)) {
+			if (PX4_ISFINITE(status.innovation[i])
+			    && PX4_ISFINITE(status.innovation_variance[i])
+			    && (status.innovation_variance[i] > 0.f)
+			   ) {
 				status.test_ratio[i] = sq(status.innovation[i]) / (sq(innovation_gate) * status.innovation_variance[i]);
 
 				if (status.test_ratio[i] > 1.f) {
