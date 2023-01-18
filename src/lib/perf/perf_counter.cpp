@@ -181,7 +181,22 @@ perf_free(perf_counter_t handle)
 	sq_rem(&handle->link, &perf_counters);
 	pthread_mutex_unlock(&perf_counters_mutex);
 
-	delete handle;
+	switch (handle->type) {
+	case PC_COUNT:
+		delete (struct perf_ctr_count *)handle;
+		break;
+
+	case PC_ELAPSED:
+		delete (struct perf_ctr_elapsed *)handle;
+		break;
+
+	case PC_INTERVAL:
+		delete (struct perf_ctr_interval *)handle;
+		break;
+
+	default:
+		break;
+	}
 }
 
 void
