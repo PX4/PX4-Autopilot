@@ -45,6 +45,20 @@ std::array<T, 3> get_local_mission_item(const Mission::MissionItem &item, const 
 }
 
 template<typename T>
+std::array<T, 3> get_local_mission_item_from_raw_item(const mavsdk::MissionRaw::MissionItem &item,
+		const CoordinateTransformation &ct)
+{
+	using GlobalCoordinate = mavsdk::geometry::CoordinateTransformation::GlobalCoordinate;
+	GlobalCoordinate global;
+	global.latitude_deg = item.x / 1e7;
+	global.longitude_deg = item.y / 1e7;
+
+
+	auto local = ct.local_from_global(global);
+	return {static_cast<T>(local.north_m), static_cast<T>(local.east_m), -item.z};
+}
+
+template<typename T>
 T sq(T x)
 {
 	return x * x;
