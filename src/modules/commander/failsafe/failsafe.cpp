@@ -426,11 +426,16 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 
 
 	// Failure detector
-	if (_armed_time != 0 && time_us - _armed_time < _param_com_spoolup_time.get() * 1_s) {
+	if ((_armed_time != 0)
+	    && (time_us < _armed_time + static_cast<hrt_abstime>(_param_com_spoolup_time.get() * 1_s))
+	   ) {
 		CHECK_FAILSAFE(status_flags, fd_esc_arming_failure, Action::Disarm);
 	}
 
-	if (_armed_time != 0 && time_us - _armed_time < (_param_com_lkdown_tko.get() + _param_com_spoolup_time.get()) * 1_s) {
+	if ((_armed_time != 0)
+	    && (time_us < _armed_time
+		+ static_cast<hrt_abstime>((_param_com_lkdown_tko.get() + _param_com_spoolup_time.get()) * 1_s))
+	   ) {
 		// This handles the case where something fails during the early takeoff phase
 		CHECK_FAILSAFE(status_flags, fd_critical_failure, Action::Disarm);
 
