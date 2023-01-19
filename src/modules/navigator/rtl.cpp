@@ -618,14 +618,7 @@ void RTL::advance_rtl()
 
 	case RTL_STATE_RETURN:
 		setClimbAndReturnDone(true);
-
-		if (vtol_in_fw_mode || descend_and_loiter) {
-			_rtl_state = RTL_STATE_DESCEND;
-
-		} else {
-			_rtl_state = RTL_STATE_LAND;
-		}
-
+		_rtl_state = RTL_STATE_DESCEND;
 		break;
 
 	case RTL_STATE_DESCEND:
