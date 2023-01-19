@@ -427,6 +427,18 @@ void Ekf::getFlowInnovVar(float flow_innov_var[2]) const
 	flow_innov_var[1] = _aid_src_optical_flow.innovation_variance[1];
 }
 
+void Ekf::getTerrainFlowInnov(float flow_innov[2]) const
+{
+	flow_innov[0] = _aid_src_terrain_optical_flow.innovation[0];
+	flow_innov[1] = _aid_src_terrain_optical_flow.innovation[1];
+}
+
+void Ekf::getTerrainFlowInnovVar(float flow_innov_var[2]) const
+{
+	flow_innov_var[0] = _aid_src_terrain_optical_flow.innovation_variance[0];
+	flow_innov_var[1] = _aid_src_terrain_optical_flow.innovation_variance[1];
+}
+
 // get the state vector at the delayed time horizon
 matrix::Vector<float, 24> Ekf::getStateAtFusionHorizonAsVector() const
 {

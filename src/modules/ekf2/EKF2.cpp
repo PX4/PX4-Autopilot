@@ -787,6 +787,8 @@ void EKF2::PublishAidSourceStatus(const hrt_abstime &timestamp)
 
 	// optical flow
 	PublishAidSourceStatus(_ekf.aid_src_optical_flow(), _status_optical_flow_pub_last, _estimator_aid_src_optical_flow_pub);
+	PublishAidSourceStatus(_ekf.aid_src_terrain_optical_flow(), _status_terrain_optical_flow_pub_last,
+			       _estimator_aid_src_terrain_optical_flow_pub);
 }
 
 void EKF2::PublishAttitude(const hrt_abstime &timestamp)
@@ -1073,6 +1075,7 @@ void EKF2::PublishInnovations(const hrt_abstime &timestamp)
 	_ekf.getBetaInnov(innovations.beta);
 	_ekf.getHaglInnov(innovations.hagl);
 	_ekf.getHaglRateInnov(innovations.hagl_rate);
+	_ekf.getTerrainFlowInnov(innovations.terr_flow);
 	// Not yet supported
 	innovations.aux_vvel = NAN;
 
@@ -1122,6 +1125,7 @@ void EKF2::PublishInnovationTestRatios(const hrt_abstime &timestamp)
 	_ekf.getBetaInnovRatio(test_ratios.beta);
 	_ekf.getHaglInnovRatio(test_ratios.hagl);
 	_ekf.getHaglRateInnovRatio(test_ratios.hagl_rate);
+	_ekf.getTerrainFlowInnovRatio(test_ratios.terr_flow[0]);
 	// Not yet supported
 	test_ratios.aux_vvel = NAN;
 
@@ -1147,6 +1151,7 @@ void EKF2::PublishInnovationVariances(const hrt_abstime &timestamp)
 	_ekf.getBetaInnovVar(variances.beta);
 	_ekf.getHaglInnovVar(variances.hagl);
 	_ekf.getHaglRateInnovVar(variances.hagl_rate);
+	_ekf.getTerrainFlowInnovVar(variances.terr_flow);
 	// Not yet supported
 	variances.aux_vvel = NAN;
 
