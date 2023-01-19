@@ -115,6 +115,10 @@ public:
 	const Vector3f getFlowGyro() const { return _flow_sample_delayed.gyro_xyz * (1.f / _flow_sample_delayed.dt); }
 	const Vector3f &getFlowGyroIntegral() const { return _flow_sample_delayed.gyro_xyz; }
 
+	void getTerrainFlowInnov(float flow_innov[2]) const;
+	void getTerrainFlowInnovVar(float flow_innov_var[2]) const;
+	void getTerrainFlowInnovRatio(float &flow_innov_ratio) const { flow_innov_ratio = math::max(_aid_src_terrain_optical_flow.test_ratio[0], _aid_src_terrain_optical_flow.test_ratio[1]); }
+
 	void getHeadingInnov(float &heading_innov) const
 	{
 		if (_control_status.flags.mag_hdg) {
@@ -431,6 +435,7 @@ public:
 	const auto &aid_src_aux_vel() const { return _aid_src_aux_vel; }
 
 	const auto &aid_src_optical_flow() const { return _aid_src_optical_flow; }
+	const auto &aid_src_terrain_optical_flow() const { return _aid_src_terrain_optical_flow; }
 
 private:
 
@@ -570,6 +575,7 @@ private:
 	estimator_aid_source2d_s _aid_src_aux_vel{};
 
 	estimator_aid_source2d_s _aid_src_optical_flow{};
+	estimator_aid_source2d_s _aid_src_terrain_optical_flow{};
 
 	// variables used for the GPS quality checks
 	Vector3f _gps_pos_deriv_filt{};	///< GPS NED position derivative (m/sec)
@@ -745,7 +751,7 @@ private:
 	void startHaglFlowFusion();
 	void resetHaglFlow();
 	void stopHaglFlowFusion();
-	void fuseFlowForTerrain();
+	void fuseFlowForTerrain(estimator_aid_source2d_s &flow);
 
 	void controlHaglFakeFusion();
 
