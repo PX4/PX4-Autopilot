@@ -645,7 +645,6 @@ void RTL::advance_rtl()
 			_rtl_state = RTL_STATE_LAND;
 		}
 
-		_rtl_state = RTL_STATE_LAND;
 		break;
 
 	case RTL_STATE_HEAD_TO_CENTER:
