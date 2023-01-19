@@ -836,8 +836,14 @@ bool BMI270::FIFORead(const hrt_abstime &timestamp_sample, uint16_t fifo_bytes)
 		return false;
 
 	} else {
-		_px4_accel.updateFIFO(accel_buffer);
-		_px4_gyro.updateFIFO(gyro_buffer);
+		if (accel_buffer.samples > 0) {
+			_px4_accel.updateFIFO(accel_buffer);
+		}
+
+		if (gyro_buffer.samples > 0) {
+			_px4_gyro.updateFIFO(gyro_buffer);
+		}
+
 		return true;
 	}
 
