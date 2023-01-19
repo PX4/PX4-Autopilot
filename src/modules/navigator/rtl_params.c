@@ -64,6 +64,7 @@ PARAM_DEFINE_FLOAT(RTL_RETURN_ALT, 60);
  *
  * Descend to this altitude (above destination position) after return, and wait for time defined in RTL_LAND_DELAY.
  * Land (i.e. slowly descend) from this altitude if autolanding allowed.
+ * Only used for FW vehicles (including VTOL in FW mode).
  *
  * @unit m
  * @min 2
@@ -79,6 +80,7 @@ PARAM_DEFINE_FLOAT(RTL_DESCEND_ALT, 30);
  *
  * Delay before landing (after initial descent) in Return mode.
  * If set to -1 the system will not land but loiter at RTL_DESCEND_ALT.
+ * Only used for FW vehicles (including VTOL in FW mode).
  *
  * @unit s
  * @min -1
@@ -88,6 +90,26 @@ PARAM_DEFINE_FLOAT(RTL_DESCEND_ALT, 30);
  * @group Return Mode
  */
 PARAM_DEFINE_FLOAT(RTL_LAND_DELAY, 0.0f);
+
+/**
+ * Return mode MC descend altitude
+ *
+ * Descend to this altitude (above destination position) before starting the actual landing.
+ * Only for MC vehicles (including VTOL in MC mode).
+ * For VTOLs that start RTL in FW, the vehicle will descend to this altitide
+ * after loitering at RTL_RETURN_ALT in FW and transition to MC.
+ * This allows for a faster MC descent than the landing speed to conserve battery,
+ * while still setting RTL_DESCEND_ALT at an altitude high enough for safe FW loitering.
+ * Set to -1 to disable. Should be less than RTL_DESCEND_ALT if vehicle is VTOL.
+ *
+ * @unit m
+ * @min -1
+ * @max 100
+ * @decimal 1
+ * @increment 0.5
+ * @group Return Mode
+ */
+PARAM_DEFINE_FLOAT(RTL_DESCEND_MC, -1.0f);
 
 /**
  * Horizontal radius from return point within which special rules for return mode apply.
