@@ -36,6 +36,15 @@ px4_add_library(arch_bootloader
 	systick.c
 )
 
+execute_process(
+	COMMAND  git show --summary --pretty="%h %d, %as"
+	WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+	OUTPUT_VARIABLE GIT_COMMIT
+	OUTPUT_STRIP_TRAILING_WHITESPACE
+	)
+
+add_definitions(-DGIT_COMMIT=${GIT_COMMIT})
+
 target_link_libraries(arch_bootloader
 	PRIVATE
 		bootloader_lib
