@@ -117,6 +117,15 @@
 #define ADC_BATTERY_VOLTAGE_CHANNEL 1
 #define ADC_BATTERY_CURRENT_CHANNEL 2
 
+/* PX4 Boot image type; 0 to boot directly, 1 through SBI */
+#define INFO_BIT_USE_SBI 1
+
+#ifdef CONFIG_BUILD_KERNEL
+#define PX4_VENDOR_BOOT_FLAGS INFO_BIT_USE_SBI
+#else
+#define PX4_VENDOR_BOOT_FLAGS 0
+#endif
+
 __BEGIN_DECLS
 
 /****************************************************************************************************
