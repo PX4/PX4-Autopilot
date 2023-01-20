@@ -20,8 +20,9 @@ fi
 DAEMON=" "
 S="OFF"
 R="SPEKTRUM"
+C="ACTUAL"
 
-while getopts "dsifrc" flag
+while getopts "dsifrcz" flag
 do
     case "${flag}" in
         # Use -d to put PX4 into daemon mode
@@ -36,13 +37,22 @@ do
         r) R="CRSF_MAV";;
         # Use -r to specify TBS Crossfire RC receiver, raw
         c) R="CRSF_RAW";;
+        # Use -z to specify that you want to set fake sensor calibration values
+        z) C="FAKE"
     esac
 done
 
 if [ ! -f /data/px4/param/parameters ]; then
-   echo "Setting default parameters for PX4 on voxl"
+   /bin/echo "Setting default parameters for PX4 on voxl"
    px4 $DAEMON -s /etc/modalai/voxl-px4-set-default-parameters.config
    /bin/sync
 fi
+
+if [ $C = "FAKE" ]; then
+   /bin/echo "Setting up fake sensor calibration values"
+   px4 $DAEMON -s /etc/modalai/voxl-px4-fake-imu-calibration.config
+   /bin/sync
+fi
+
 
 TESTMODE=$S RC=$R IMU=$I px4 $DAEMON -s /etc/modalai/voxl-px4.config
