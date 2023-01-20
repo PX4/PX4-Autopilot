@@ -37,13 +37,13 @@ px4_add_library(arch_bootloader
 )
 
 execute_process(
-	COMMAND  git show --summary --pretty="%h %d, %as"
+	COMMAND  git describe --dirty --all --long
 	WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
-	OUTPUT_VARIABLE GIT_COMMIT
+	OUTPUT_VARIABLE VERSION
 	OUTPUT_STRIP_TRAILING_WHITESPACE
 	)
 
-add_definitions(-DGIT_COMMIT=${GIT_COMMIT})
+add_definitions(-DVERSION=\"${VERSION}\")
 
 target_link_libraries(arch_bootloader
 	PRIVATE

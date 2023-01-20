@@ -917,7 +917,7 @@ bootloader_main(int argc, char *argv[])
 {
 	unsigned timeout = BOOTLOADER_DELAY;	 /* if nonzero, drop out of the bootloader after this time */
 	bool try_boot;
-	_alert("Git commit: %s\n", GIT_COMMIT);
+	_alert("Version: %s\n", VERSION);
 
 	/* do board-specific initialisation */
 	board_init();
