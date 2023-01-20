@@ -17,27 +17,6 @@ else
     fi
 fi
 
-# Make sure to setup all of the needed px4 aliases.
-# TODO: Put these in package installation script
-cd /usr/bin
-/bin/ln -f -s px4 px4-muorb
-/bin/ln -f -s px4 px4-param
-/bin/ln -f -s px4 px4-logger
-/bin/ln -f -s px4 px4-qshell
-/bin/ln -f -s px4 px4-rc_update
-/bin/ln -f -s px4 px4-manual_control
-/bin/ln -f -s px4 px4-control_allocator
-/bin/ln -f -s px4 px4-mavlink
-/bin/ln -f -s px4 px4-flight_mode_manager
-/bin/ln -f -s px4 px4-commander
-/bin/ln -f -s px4 px4-navigator
-/bin/ln -f -s px4 px4-dataman
-/bin/ln -f -s px4 px4-shutdown
-cd -
-
-# Make sure any required directories exist
-mkdir -p /data/px4/param
-
 DAEMON=" "
 S="OFF"
 R="SPEKTRUM"
