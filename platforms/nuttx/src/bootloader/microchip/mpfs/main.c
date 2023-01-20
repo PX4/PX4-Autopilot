@@ -106,6 +106,8 @@ extern int sercon_main(int c, char **argv);
    S)*/
 #define RESET_SR_SCB_BUS_RESET_MASK                          (0x01 << 0x7)
 
+/* Indicates that CPU soft reset occured */
+#define RESET_SR_CPU_SOFT_RESET_MASK                         (0x01 << 0x8)
 
 #ifdef CONFIG_MMCSD
 static int px4_fd = -1;
@@ -953,21 +955,15 @@ bootloader_main(int argc, char *argv[])
 	uint32_t reset_reason = board_get_reset_reason();
 
 	/* Is not FABRIC reset and not caused by WDOG? FABRIC reset bit is only
-	 * set in POR, since it is not even connected in FPGA
+	 * set in POR, since it is not even connected in FPGA.
+	 * If also CPU_SOFT_RESET is set, we know that this is soft reset from PX4 (reboot -b)
 	 */
 	if ((reset_reason & RESET_SR_FABRIC_RESET_MASK) == 0 &&
-	    (reset_reason & RESET_SR_WDOG_RESET_MASK) == 0) {
-		/* This is not a power-on (cold boot) or WDOG reset. Check if the reset
-		 *  reason is soft reset (periph reset is not set) or RISC-V debugger
-		 *  (debugger reset is not set)
-		 */
-		if ((reset_reason & RESET_SR_SCB_PERIPH_RESET_MASK) == 0 ||
-		    (reset_reason & RESET_SR_DEBUGGER_RESET_MASK) == 0) {
-			/*
-			 * Don't drop out of the bootloader until something has been uploaded.
-			 */
-			timeout = 0;
-		}
+	    (reset_reason & RESET_SR_WDOG_RESET_MASK) == 0 &&
+	    (reset_reason & RESET_SR_CPU_SOFT_RESET_MASK) == RESET_SR_CPU_SOFT_RESET_MASK) {
+
+		/* Don't drop out of the bootloader until something has been uploaded */
+		timeout = 0;
 	}
 
 	/* Clear the reset reason */
