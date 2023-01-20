@@ -136,11 +136,12 @@ typedef enum {
 	UNINITIALIZED = -1,
 	IN_PROGRESS,
 	DONE,
+	SW_UPDATED,
 	INTERRUPTED,
 	LOAD_FAIL
 } image_loading_status_t;
 
-static image_loading_status_t loading_status = UNINITIALIZED;
+static image_loading_status_t loading_status;
 static bool u_boot_loaded = false;
 
 /* board definition */
@@ -614,7 +615,11 @@ flash_func_write_word(uintptr_t address, uint32_t word)
 
 	/* After the last word has been written, update the loading_status */
 	if (address == 0 && word != 0xffffffffu) {
-		loading_status = DONE;
+#ifdef CONFIG_MMCSD
+		close(px4_fd);
+		px4_fd = -1;
+#endif
+		loading_status = SW_UPDATED;
 	}
 }
 
@@ -915,8 +920,11 @@ static int loader_main(int argc, char *argv[])
 	return 0;
 }
 
-int start_image_loading(void)
+static void start_image_loading(void)
 {
+	/* Mark that we are waiting for the task to start */
+	loading_status = UNINITIALIZED;
+
 	/* create the task */
 	loader_task = task_create("loader", SCHED_PRIORITY_MAX - 6, 8192, loader_main, (char *const *)0);
 
@@ -924,8 +932,6 @@ int start_image_loading(void)
 	while (loading_status == UNINITIALIZED) {
 		usleep(1000);
 	}
-
-	return 0;
 }
 
 int
@@ -981,6 +987,12 @@ bootloader_main(int argc, char *argv[])
 	while (1) {
 		/* run the bootloader, come back after an app is uploaded or we time out */
 		bootloader(timeout);
+
+		/* if the sw was just re-flashed, load the image again */
+		if (loading_status == SW_UPDATED) {
+			timeout = BOOTLOADER_DELAY;
+			start_image_loading();
+		}
 
 		/* look to see if we can boot the app */
 
