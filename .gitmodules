@@ -12,7 +12,7 @@
 	branch = main
 [submodule "Tools/simulation/gazebo/sitl_gazebo"]
 	path = Tools/simulation/gazebo/sitl_gazebo
-	url = https://github.com/PX4/PX4-SITL_gazebo.git
+	url = https://github.com/tiiuae/PX4-SITL_gazebo.git
 	branch = main
 [submodule "src/drivers/gps/devices"]
 	path = src/drivers/gps/devices
