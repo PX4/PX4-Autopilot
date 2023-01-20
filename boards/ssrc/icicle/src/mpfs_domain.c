@@ -73,10 +73,7 @@ static struct sbi_domain_memregion
 };
 
 static const int linux_harts[] = {1, 3, 4};
-
-#if CONFIG_MPFS_HART2_SBI
 static const int px4_harts[] = {2};
-#endif
 
 static const struct mpfs_domain domains[] = {
 	{
@@ -86,7 +83,6 @@ static const struct mpfs_domain domains[] = {
 		.bootaddress = CONFIG_MPFS_HART3_ENTRYPOINT,
 		.reset_allowed = false,
 	},
-#if CONFIG_MPFS_HART2_SBI
 	{
 		.domain_name = "PX4-Ree-Domain",
 		.harts = px4_harts,
@@ -94,7 +90,6 @@ static const struct mpfs_domain domains[] = {
 		.bootaddress = CONFIG_MPFS_HART2_ENTRYPOINT,
 		.reset_allowed = true,
 	},
-#endif
 };
 
 /****************************************************************************
