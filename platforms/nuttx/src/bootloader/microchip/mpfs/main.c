@@ -57,11 +57,12 @@
 #include <nuttx/fs/partition.h>
 #include <nuttx/board.h>
 
+#include <mpfs_entrypoints.h>
+
 #include "image_toc.h"
 #include "crypto.h"
 
 extern int sercon_main(int c, char **argv);
-extern int mpfs_set_entrypt(uint64_t hartid, uintptr_t entry);
 
 #define MK_GPIO_INPUT(def) (((def) & (~(GPIO_OUTPUT)))  | GPIO_INPUT)
 
@@ -155,6 +156,12 @@ static bool g_led_state[3];
 
 /* State of an inserted USB cable */
 static bool usb_connected = false;
+
+/* PX4 image TOC 'reserved' field for vendor specific info_bits
+ * Bit 0 marks for whether SBI should be used or not
+*/
+
+static uint32_t info_bits;
 
 static uint32_t board_get_reset_reason(void)
 {
@@ -719,7 +726,9 @@ arch_do_jump(const uint32_t *app_base)
 
 	/* PX4 on hart 2 */
 #if CONFIG_MPFS_HART2_ENTRYPOINT != 0xFFFFFFFFFFFFFFFF
-	_alert("Jump to PX4 0x%lx\n", (uint64_t)app_base);
+	bool use_sbi = info_bits & INFO_BIT_USE_SBI ? true : false;
+	_alert("Jump to PX4 0x%lx %s\n", (uint64_t)app_base, use_sbi ? "via SBI" : "");
+	mpfs_set_use_sbi(2, use_sbi);
 	mpfs_set_entrypt(2, (uintptr_t)app_base);
 	*(volatile uint32_t *)MPFS_CLINT_MSIP2 = 0x01U;
 #endif
@@ -765,9 +774,14 @@ static size_t get_image_size(void)
 	if (find_toc(&toc_entries, &len)) {
 		_alert("Found TOC\n");
 
-		// find the largest end address
+		// find the boot image vendor flags and the largest end address
+		const uint32_t sig = ('B' << 0) | ('O' << 8) | ('O' << 16) | ('T' << 24);
 
 		for (int i = 0; i < len; i++) {
+			if (*(uint32_t *)(void *)toc_entries[i].name == sig) {
+				info_bits = toc_entries[i].reserved;
+			}
+
 			if (toc_entries[i].end > end) {
 				end = toc_entries[i].end;
 			}
