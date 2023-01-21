@@ -211,15 +211,15 @@
 
 
 /* UART/USART */
-#define GPIO_USART2_TX   GPIO_USART2_TX_2      /* PD5 */
-#define GPIO_USART2_RX   GPIO_USART2_RX_2      /* PD6 */
-#define GPIO_USART2_CTS  GPIO_USART2_CTS_NSS_2 /* PD3 */
-#define GPIO_USART2_RTS  GPIO_USART2_RTS_2     /* PD4 */
+#define GPIO_USART2_TX   GPIO_USART2_TX_2                       /* PD5 */
+#define GPIO_USART2_RX   GPIO_USART2_RX_2                       /* PD6 */
+#define GPIO_USART2_CTS (GPIO_USART2_CTS_NSS_2 | GPIO_PULLDOWN) /* PD3 */
+#define GPIO_USART2_RTS (GPIO_USART2_RTS_2 | GPIO_PULLDOWN)     /* PD4 */
 
-#define GPIO_USART3_TX   GPIO_USART3_TX_3      /* PD8  */
-#define GPIO_USART3_RX   GPIO_USART3_RX_3      /* PD9  */
-#define GPIO_USART3_CTS  GPIO_USART3_CTS_NSS_2 /* PD11 */
-#define GPIO_USART3_RTS  GPIO_USART3_RTS_2     /* PD12 */
+#define GPIO_USART3_TX   GPIO_USART3_TX_3                       /* PD8  */
+#define GPIO_USART3_RX   GPIO_USART3_RX_3                       /* PD9  */
+#define GPIO_USART3_CTS (GPIO_USART3_CTS_NSS_2 | GPIO_PULLDOWN) /* PD11 */
+#define GPIO_USART3_RTS (GPIO_USART3_RTS_2 | GPIO_PULLDOWN)     /* PD12 */
 
 #define GPIO_UART4_TX    GPIO_UART4_TX_2       /* PA0 */
 #define GPIO_UART4_RX    GPIO_UART4_RX_2       /* PA1 */
