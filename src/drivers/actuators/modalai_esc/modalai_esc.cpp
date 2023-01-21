@@ -195,8 +195,12 @@ int ModalaiEsc::load_params(uart_esc_params_t *params, ch_assign_t *map)
 			ret = PX4_ERROR;
 
 		} else {
+			//
 			// Motor function IDs start at 100, Motor1 = 101, Motor2 = 102...
-			params->motor_map[i] = params->function_map[i] - 100;
+			// This motor_map array represents ESC IDs 0-3 (matching the silkscreen)
+			// This array will hold ESC ID to Motor ID (e.g. motor_map[0] = 1, means ESC ID0 wired to motor 1)
+			//
+			params->motor_map[i] = (params->function_map[i] - (int)OutputFunction::Motor1) + 1;
 		}
 	}
 
@@ -209,8 +213,8 @@ int ModalaiEsc::load_params(uart_esc_params_t *params, ch_assign_t *map)
 			ret = PX4_ERROR;
 		}
 
-		/* Can map -4 to 4, 0 being disabled.  Negative represents reverse direction */
-		map[i].number = abs(params->motor_map[i]);
+		// Keep tabs on motor map for turtle mode where we mix ourselves
+		map[i].number = params->motor_map[i];
 		map[i].direction = (params->direction_map[i] > 0) ? -1 : 1;
 	}
 
@@ -1093,8 +1097,6 @@ bool ModalaiEsc::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS]
 		return false;
 	}
 
-	uint8_t motor_idx;
-
 	// don't use mixed values... recompute now.
 	if (_turtle_mode_en) {
 		mix_turtle_mode(outputs);
@@ -1106,14 +1108,7 @@ bool ModalaiEsc::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS]
 
 		} else {
 			if (!_turtle_mode_en) {
-
-				motor_idx = _output_map[i].number;
-
-				if (motor_idx > 0 && motor_idx <= MODALAI_ESC_OUTPUT_CHANNELS) {
-					/* user defined mapping is 1-4, array is 0-3 */
-					motor_idx--;
-					_esc_chans[i].rate_req = outputs[motor_idx] * _output_map[i].direction;
-				}
+				_esc_chans[i].rate_req = outputs[i] * _output_map[i].direction;
 
 			} else {
 				// mapping updated in mixTurtleMode, no remap needed here, but reverse direction
