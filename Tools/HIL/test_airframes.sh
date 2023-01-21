@@ -54,7 +54,10 @@ do
 	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'ps'
 	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'work_queue status'
 
+	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'mavlink status'
 	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'mavlink stop-all'
+
+	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'gps status'
 	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'gps stop'
 
 done
