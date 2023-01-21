@@ -1,0 +1,9 @@
+menu "Inertial Navigation Systems (INS)"
+    menuconfig COMMON_INS
+        bool "All INS sensors"
+        default n
+        select DRIVERS_INS_VECTORNAV
+        ---help---
+            Enable default set of INS sensors
+    rsource "*/Kconfig"
+endmenu
