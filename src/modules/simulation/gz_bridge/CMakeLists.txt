@@ -62,6 +62,10 @@ if(gz-transport_FOUND)
 		SRCS
 			GZBridge.cpp
 			GZBridge.hpp
+			GZMixingInterfaceESC.cpp
+			GZMixingInterfaceESC.hpp
+			GZMixingInterfaceServo.cpp
+			GZMixingInterfaceServo.hpp
 		DEPENDS
 			mixer_module
 			px4_work_queue

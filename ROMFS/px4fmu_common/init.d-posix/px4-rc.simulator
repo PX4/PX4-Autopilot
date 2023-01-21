@@ -19,7 +19,7 @@ if [ "$PX4_SIMULATOR" = "sihsim" ] || [ "$(param show -q SYS_AUTOSTART)" -eq "0"
 		exit 1
 	fi
 
-elif [ "$PX4_SIMULATOR" = "gz" ]; then
+elif [ "$PX4_SIMULATOR" = "gz" ] || [ "$(param show -q SIM_GZ_EN)" -eq "1" ]; then
 
 	# source generated gz_env.sh for IGN_GAZEBO_RESOURCE_PATH
 	if [ -f ./gz_env.sh ]; then
