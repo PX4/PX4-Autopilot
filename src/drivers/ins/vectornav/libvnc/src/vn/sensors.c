@@ -9,8 +9,6 @@
 
 #include "vn/xplat/time.h"
 
-#define UNUSED(x) (void)(sizeof(x))
-
 #define DEFAULT_RESPONSE_TIMEOUT_MS	500
 #define DEFAULT_RETRANSMIT_DELAY_MS	200
 #define DEFAULT_READ_BUFFER_SIZE	256
@@ -2687,9 +2685,58 @@ RESEND:
 	error = VnSensor_transactionNoFinalizeWithTiming(s, toSend, toSendLength, true, responseBuffer, &responseLength, 7000, 7000);
 	if (error != E_NONE)
 	{
-		char buffer[128];
-		memset(buffer, 0, sizeof(buffer));
-		strFromSensorError(buffer, error);
+		if (error >= E_SENSOR_HARD_FAULT && error <= E_SENSOR_ERROR_BUFFER_OVERFLOW)
+		{
+			char buffer[128];
+			memset(buffer, 0, sizeof(buffer));
+			SensorError sError;
+			switch (error)
+			{
+			case E_SENSOR_HARD_FAULT:
+				sError = ERR_HARD_FAULT;
+				break;
+			case E_SENSOR_SERIAL_BUFFER_OVERFLOW:
+				sError = ERR_SERIAL_BUFFER_OVERFLOW;
+				break;
+			case E_SENSOR_INVALID_CHECKSUM:
+				sError = ERR_INVALID_CHECKSUM;
+				break;
+			case E_SENSOR_INVALID_COMMAND:
+				sError = ERR_INVALID_COMMAND;
+				break;
+			case E_SENSOR_NOT_ENOUGH_PARAMETERS:
+				sError = ERR_NOT_ENOUGH_PARAMETERS;
+				break;
+			case E_SENSOR_TOO_MANY_PARAMETERS:
+				sError = ERR_TOO_MANY_PARAMETERS;
+				break;
+			case E_SENSOR_INVALID_PARAMETER:
+				sError = ERR_INVALID_PARAMETER;
+				break;
+			case E_SENSOR_INVALID_REGISTER:
+				sError = ERR_INVALID_REGISTER;
+				break;
+			case E_SENSOR_UNAUTHORIZED_ACCESS:
+				sError = ERR_UNAUTHORIZED_ACCESS;
+				break;
+			case E_SENSOR_WATCHDOG_RESET:
+				sError = ERR_WATCHDOG_RESET;
+				break;
+			case E_SENSOR_OUTPUT_BUFFER_OVERFLOW:
+				sError = ERR_OUTPUT_BUFFER_OVERFLOW;
+				break;
+			case E_SENSOR_INSUFFICIENT_BAUD_RATE:
+				sError = ERR_INSUFFICIENT_BAUD_RATE;
+				break;
+			case E_SENSOR_ERROR_BUFFER_OVERFLOW:
+				sError = ERR_ERROR_BUFFER_OVERFLOW;
+				break;
+			default:
+				break;
+			}
+
+			strFromSensorError(buffer, sError);
+		}
 		/* printf("VnSensor_writeFirmwareUpdate: Error %d - %s", error, buffer); */
 	}
 	else
