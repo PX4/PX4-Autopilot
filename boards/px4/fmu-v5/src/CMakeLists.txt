@@ -51,6 +51,7 @@ add_dependencies(drivers_board nuttx_context)
 
 target_link_libraries(drivers_board
 	PRIVATE
+		arch_board_init
 		arch_board_hw_info
 		arch_io_pins
 		arch_spi

@@ -34,7 +34,7 @@
 /**
  * @file board_config.h
  *
- * ARKFMU-v6x internal definitions
+ * board internal definitions
  */
 
 #pragma once
@@ -253,15 +253,6 @@
 #define DIRECT_PWM_OUTPUT_CHANNELS   8
 #define BOARD_PWM_FREQ	             1024000
 
-#define GPIO_FMU_CH1                    /* PI0  */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTI|GPIO_PIN0)
-#define GPIO_FMU_CH2                    /* PH12 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTH|GPIO_PIN12)
-#define GPIO_FMU_CH3                    /* PH11 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTH|GPIO_PIN11)
-#define GPIO_FMU_CH4                    /* PH10 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTH|GPIO_PIN10)
-#define GPIO_FMU_CH5                    /* PD13 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTD|GPIO_PIN13)
-#define GPIO_FMU_CH6                    /* PD14 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTD|GPIO_PIN14)
-#define GPIO_FMU_CH7                    /* PH6  */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTH|GPIO_PIN6)
-#define GPIO_FMU_CH8                    /* PH9  */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTH|GPIO_PIN9)
-
 #define GPIO_FMU_CAP                    /* PE11 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTE|GPIO_PIN11)
 #define GPIO_SPIX_SYNC                  /* PE9  */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTE|GPIO_PIN9)
 
@@ -367,7 +358,7 @@
 #define SPEKTRUM_POWER(_on_true)           VDD_3V3_SPEKTRUM_POWER_EN(_on_true)
 
 /*
- * ARKV6X has a separate RC_IN
+ * board has a separate RC_IN
  *
  * GPIO PPM_IN on PI5 T8CH1
  * SPEKTRUM_RX (it's TX or RX in Bind) on UART6 PC7
@@ -401,7 +392,7 @@
 #define BOARD_ADC_USB_CONNECTED (px4_arch_gpioread(GPIO_OTGFS_VBUS))
 #define BOARD_ADC_USB_VALID     (!px4_arch_gpioread(GPIO_nVDD_USB_VALID))
 
-/* ARKV6X never powers off the Servo rail */
+/* board never powers off the Servo rail */
 
 #define BOARD_ADC_SERVO_VALID     (1)
 
@@ -453,14 +444,11 @@
 		GPIO_TRACE,                       \
 		PX4_ADC_GPIO,                     \
 		GPIO_HW_VER_REV_DRIVE,            \
-		GPIO_CAN1_TX,                     \
-		GPIO_CAN1_RX,                     \
-		GPIO_CAN2_TX,                     \
-		GPIO_CAN2_RX,                     \
 		GPIO_HEATER_OUTPUT,               \
 		GPIO_nPOWER_IN_A,                 \
 		GPIO_nPOWER_IN_B,                 \
 		GPIO_nPOWER_IN_C,                 \
+		GPIO_OTGFS_VBUS,                  \
 		GPIO_VDD_5V_PERIPH_nEN,           \
 		GPIO_VDD_5V_PERIPH_nOC,           \
 		GPIO_VDD_5V_HIPOWER_nEN,          \
@@ -477,15 +465,7 @@
 		GPIO_SAFETY_SWITCH_IN,            \
 		GPIO_PG6,                         \
 		GPIO_nARMED_INIT,                 \
-		GPIO_FMU_CH1,     	          \
-		GPIO_FMU_CH2,     	          \
-		GPIO_FMU_CH3,     	          \
-		GPIO_FMU_CH4,     	          \
-		GPIO_FMU_CH5,     	          \
-		GPIO_FMU_CH6,     	          \
-		GPIO_FMU_CH7,     	          \
-		GPIO_FMU_CH8,     	          \
-		GPIO_FMU_CAP,     	          \
+		GPIO_FMU_CAP,     	           \
 		GPIO_SPIX_SYNC                    \
 	}
 
@@ -532,8 +512,6 @@ int stm32_sdio_initialize(void);
  ****************************************************************************************************/
 
 extern void stm32_spiinitialize(void);
-
-extern void stm32_usbinitialize(void);
 
 extern void board_peripheral_reset(int ms);
 

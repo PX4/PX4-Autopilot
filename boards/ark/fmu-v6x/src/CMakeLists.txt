@@ -40,6 +40,7 @@ if("${PX4_BOARD_LABEL}" STREQUAL  "bootloader")
 	)
 	target_link_libraries(drivers_board
 		PRIVATE
+			arch_board_init
 			nuttx_arch # sdio
 			nuttx_drivers # sdio
 			px4_layer #gpio
@@ -67,6 +68,7 @@ else()
 
 	target_link_libraries(drivers_board
 		PRIVATE
+			arch_board_init
 			arch_io_pins
 			arch_spi
 			arch_board_hw_info

@@ -35,10 +35,10 @@
  * @file init.c
  *
  * PX4FMU-specific early startup code.  This file implements the
- * board_app_initializ() function that is called early by nsh during startup.
+ * board_app_initialize() function that is called early by nsh during startup.
  *
  * Code here is run before the rcS script is invoked; it should start required
- * subsystems and perform board-specific initialisation.
+ * subsystems and perform board-specific initialization.
  */
 
 /****************************************************************************
@@ -66,10 +66,11 @@
 #include <arch/board/board.h>
 #include "arm_internal.h"
 
-#include <px4_arch/io_timer.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_board_led.h>
 #include <systemlib/px4_macros.h>
+#include <px4_arch/board_init.h>
+#include <px4_arch/io_timer.h>
 #include <px4_platform_common/init.h>
 #include <px4_platform/gpio.h>
 #include <px4_platform/board_determine_hw_info.h>
@@ -161,22 +162,10 @@ __EXPORT void board_on_reset(int status)
 __EXPORT void
 stm32_boardinitialize(void)
 {
-	board_on_reset(-1); /* Reset PWM first thing */
+	px4_arch_pin_initialize();
 
 	/* configure LEDs */
-
 	board_autoled_initialize();
-
-	/* configure pins */
-
-	const uint32_t gpio[] = PX4_GPIO_INIT_LIST;
-	px4_gpio_init(gpio, arraySize(gpio));
-	board_control_spi_sensors_power_configgpio();
-
-	/* configure USB interfaces */
-
-	stm32_usbinitialize();
-
 }
 
 /****************************************************************************
@@ -203,7 +192,6 @@ stm32_boardinitialize(void)
  *   any failure to indicate the nature of the failure.
  *
  ****************************************************************************/
-
 
 __EXPORT int board_app_initialize(uintptr_t arg)
 {

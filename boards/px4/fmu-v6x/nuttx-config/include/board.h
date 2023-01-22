@@ -302,7 +302,7 @@
 #define STM32_SDMMC_CLKCR_EDGE      STM32_SDMMC_CLKCR_NEGEDGE
 
 /* LED definitions ******************************************************************/
-/* The PX4 FMUV6X board has three, LED_GREEN a Green LED, LED_BLUE a Blue LED and
+/* The board board has three, LED_GREEN a Green LED, LED_BLUE a Blue LED and
  * LED_RED a Red LED, that can be controlled by software.
  *
  * If CONFIG_ARCH_LEDS is not defined, then the user can control the LEDs in any way.
@@ -366,10 +366,10 @@
 #define GPIO_USART1_RX   GPIO_USART1_RX_3      /* PB7 */
 #define GPIO_USART1_TX   GPIO_USART1_TX_3      /* PB6 */
 
-#define GPIO_USART2_RX   GPIO_USART2_RX_1       /* PA3   */
-#define GPIO_USART2_TX   GPIO_USART2_TX_2       /* PD5   */
-#define GPIO_USART2_RTS  GPIO_USART2_RTS_2      /* PD4   */
-#define GPIO_USART2_CTS  GPIO_USART2_CTS_NSS_2  /* PD3   */
+#define GPIO_USART2_RX   GPIO_USART2_RX_1                       /* PA3   */
+#define GPIO_USART2_TX   GPIO_USART2_TX_2                       /* PD5   */
+#define GPIO_USART2_RTS (GPIO_USART2_RTS_2 | GPIO_PULLDOWN)     /* PD4   */
+#define GPIO_USART2_CTS (GPIO_USART2_CTS_NSS_2 | GPIO_PULLDOWN) /* PD3   */
 
 #define GPIO_USART3_RX   GPIO_USART3_RX_3   /* PD9   */
 #define GPIO_USART3_TX   GPIO_USART3_TX_3   /* PD8   */
@@ -385,10 +385,10 @@
 #define GPIO_USART6_RX   GPIO_USART6_RX_1   /* PC7 */
 #define GPIO_USART6_TX   GPIO_USART6_TX_1   /* PC6  */
 
-#define GPIO_UART7_RX    GPIO_UART7_RX_4    /* PF6  */
-#define GPIO_UART7_TX    GPIO_UART7_TX_3    /* PE8  */
-#define GPIO_UART7_RTS   (GPIO_UART7_RTS_2 | GPIO_PULLDOWN)   /* PF8  */
-#define GPIO_UART7_CTS   (GPIO_UART7_CTS_1 | GPIO_PULLDOWN)   /* PE10 */
+#define GPIO_UART7_RX    GPIO_UART7_RX_4                   /* PF6  */
+#define GPIO_UART7_TX    GPIO_UART7_TX_3                   /* PE8  */
+#define GPIO_UART7_RTS  (GPIO_UART7_RTS_2 | GPIO_PULLDOWN) /* PF8  */
+#define GPIO_UART7_CTS  (GPIO_UART7_CTS_1 | GPIO_PULLDOWN) /* PE10 */
 
 #define GPIO_UART8_RX    GPIO_UART8_RX_1    /* PE0 */
 #define GPIO_UART8_TX    GPIO_UART8_TX_1    /* PE1 */
@@ -447,26 +447,14 @@
 #define GPIO_I2C1_SCL GPIO_I2C1_SCL_2       /* PB8  */
 #define GPIO_I2C1_SDA GPIO_I2C1_SDA_2       /* PB9  */
 
-#define GPIO_I2C1_SCL_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN |GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN8)
-#define GPIO_I2C1_SDA_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN |GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN9)
-
 #define GPIO_I2C2_SCL GPIO_I2C2_SCL_2       /* PF1 */
 #define GPIO_I2C2_SDA GPIO_I2C2_SDA_2       /* PF0 */
-
-#define GPIO_I2C2_SCL_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN |GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTF | GPIO_PIN1)
-#define GPIO_I2C2_SDA_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN |GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTF | GPIO_PIN0)
 
 #define GPIO_I2C3_SCL GPIO_I2C3_SCL_1       /* PA8 */
 #define GPIO_I2C3_SDA GPIO_I2C3_SDA_2       /* PH8 */
 
-#define GPIO_I2C3_SCL_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN |GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTA | GPIO_PIN8)
-#define GPIO_I2C3_SDA_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN |GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTH | GPIO_PIN8)
-
 #define GPIO_I2C4_SCL GPIO_I2C4_SCL_2       /* PF14 */
 #define GPIO_I2C4_SDA GPIO_I2C4_SDA_2       /* PF15 */
-
-#define GPIO_I2C4_SCL_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTF | GPIO_PIN14)
-#define GPIO_I2C4_SDA_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTF | GPIO_PIN15)
 
 /* SDMMC2
  *

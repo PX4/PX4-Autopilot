@@ -34,7 +34,7 @@
 /**
  * @file led.c
  *
- * ARKFMU LED backend.
+ * board LED backend.
  */
 
 #include <px4_platform_common/px4_config.h>

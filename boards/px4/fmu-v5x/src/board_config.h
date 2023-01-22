@@ -34,7 +34,7 @@
 /**
  * @file board_config.h
  *
- * PX4FMU-v5 internal definitions
+ * board internal definitions
  */
 
 #pragma once
@@ -334,7 +334,7 @@
 #define SPEKTRUM_POWER(_on_true)           VDD_3V3_SPEKTRUM_POWER_EN(_on_true)
 
 /*
- * FMUv5X has a separate RC_IN
+ * board has a separate RC_IN
  *
  * GPIO PPM_IN on PI5 T8CH1
  * SPEKTRUM_RX (it's TX or RX in Bind) on UART6 PC7
@@ -368,7 +368,7 @@
 #define BOARD_ADC_USB_CONNECTED (px4_arch_gpioread(GPIO_OTGFS_VBUS))
 #define BOARD_ADC_USB_VALID     (!px4_arch_gpioread(GPIO_nVDD_USB_VALID))
 
-/* FMUv5X never powers off the Servo rail */
+/* board never powers off the Servo rail */
 
 #define BOARD_ADC_SERVO_VALID     (1)
 
@@ -408,10 +408,6 @@
 #define PX4_GPIO_INIT_LIST { \
 		PX4_ADC_GPIO,                     \
 		GPIO_HW_VER_REV_DRIVE,            \
-		GPIO_CAN1_TX,                     \
-		GPIO_CAN1_RX,                     \
-		GPIO_CAN2_TX,                     \
-		GPIO_CAN2_RX,                     \
 		GPIO_HEATER_OUTPUT,               \
 		GPIO_nPOWER_IN_A,                 \
 		GPIO_nPOWER_IN_B,                 \
@@ -432,15 +428,7 @@
 		GPIO_nSAFETY_SWITCH_LED_OUT_INIT, \
 		GPIO_SAFETY_SWITCH_IN,            \
 		GPIO_PG6,                         \
-		GPIO_nARMED_INIT,                  \
-		PX4_MAKE_GPIO_OUTPUT_CLEAR(GPIO_I2C1_SCL), \
-		PX4_MAKE_GPIO_OUTPUT_CLEAR(GPIO_I2C1_SDA), \
-		PX4_MAKE_GPIO_OUTPUT_CLEAR(GPIO_I2C2_SCL), \
-		PX4_MAKE_GPIO_OUTPUT_CLEAR(GPIO_I2C2_SDA), \
-		PX4_MAKE_GPIO_OUTPUT_CLEAR(GPIO_I2C3_SCL), \
-		PX4_MAKE_GPIO_OUTPUT_CLEAR(GPIO_I2C3_SDA), \
-		PX4_MAKE_GPIO_OUTPUT_CLEAR(GPIO_I2C4_SCL), \
-		PX4_MAKE_GPIO_OUTPUT_CLEAR(GPIO_I2C4_SDA), \
+		GPIO_nARMED_INIT                  \
 	}
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
@@ -485,8 +473,6 @@ int stm32_sdio_initialize(void);
  ****************************************************************************************************/
 
 extern void stm32_spiinitialize(void);
-
-extern void stm32_usbinitialize(void);
 
 extern void board_peripheral_reset(int ms);
 

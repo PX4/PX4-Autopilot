@@ -34,7 +34,7 @@
 /**
  * @file board_config.h
  *
- * PX4FMU-v6x internal definitions
+ * board internal definitions
  */
 
 #pragma once
@@ -367,7 +367,7 @@
 #define SPEKTRUM_POWER(_on_true)           VDD_3V3_SPEKTRUM_POWER_EN(_on_true)
 
 /*
- * FMUv6X has a separate RC_IN
+ * board has a separate RC_IN
  *
  * GPIO PPM_IN on PI5 T8CH1
  * SPEKTRUM_RX (it's TX or RX in Bind) on UART6 PC7
@@ -401,7 +401,7 @@
 #define BOARD_ADC_USB_CONNECTED (px4_arch_gpioread(GPIO_OTGFS_VBUS))
 #define BOARD_ADC_USB_VALID     (!px4_arch_gpioread(GPIO_nVDD_USB_VALID))
 
-/* FMUv6X never powers off the Servo rail */
+/* board never powers off the Servo rail */
 
 #define BOARD_ADC_SERVO_VALID     (1)
 
@@ -453,14 +453,11 @@
 		GPIO_TRACE,                       \
 		PX4_ADC_GPIO,                     \
 		GPIO_HW_VER_REV_DRIVE,            \
-		GPIO_CAN1_TX,                     \
-		GPIO_CAN1_RX,                     \
-		GPIO_CAN2_TX,                     \
-		GPIO_CAN2_RX,                     \
 		GPIO_HEATER_OUTPUT,               \
 		GPIO_nPOWER_IN_A,                 \
 		GPIO_nPOWER_IN_B,                 \
 		GPIO_nPOWER_IN_C,                 \
+		GPIO_OTGFS_VBUS,                  \
 		GPIO_VDD_5V_PERIPH_nEN,           \
 		GPIO_VDD_5V_PERIPH_nOC,           \
 		GPIO_VDD_5V_HIPOWER_nEN,          \
@@ -522,8 +519,6 @@ int stm32_sdio_initialize(void);
  ****************************************************************************************************/
 
 extern void stm32_spiinitialize(void);
-
-extern void stm32_usbinitialize(void);
 
 extern void board_peripheral_reset(int ms);
 

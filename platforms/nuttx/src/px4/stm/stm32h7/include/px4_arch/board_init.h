@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,45 +30,10 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+#pragma once
 
-/**
- * @file usb.c
- *
- * Board-specific USB functions.
- */
+__BEGIN_DECLS
 
-/************************************************************************************
- * Included Files
- ************************************************************************************/
+void px4_arch_pin_initialize(void);
 
-#include <px4_platform_common/px4_config.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <debug.h>
-
-#include <nuttx/usb/usbdev.h>
-#include <nuttx/usb/usbdev_trace.h>
-
-#include <arm_internal.h>
-#include <chip.h>
-#include <stm32_gpio.h>
-#include <stm32_otg.h>
-#include "board_config.h"
-
-/************************************************************************************
- * Name:  stm32_usbsuspend
- *
- * Description:
- *   Board logic must provide the stm32_usbsuspend logic if the USBDEV driver is
- *   used.  This function is called whenever the USB enters or leaves suspend mode.
- *   This is an opportunity for the board logic to shutdown clocks, power, etc.
- *   while the USB is suspended.
- *
- ************************************************************************************/
-
-__EXPORT void stm32_usbsuspend(FAR struct usbdev_s *dev, bool resume)
-{
-	uinfo("resume: %d\n", resume);
-}
+__END_DECLS

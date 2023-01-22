@@ -31,6 +31,7 @@
 #
 ############################################################################
 
+add_subdirectory(board_init)
 
 add_subdirectory(../stm32_common/adc adc)
 add_subdirectory(../stm32_common/board_critmon board_critmon)

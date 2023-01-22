@@ -68,6 +68,7 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_board_led.h>
 #include <systemlib/px4_macros.h>
+#include <px4_arch/board_init.h>
 #include <px4_arch/io_timer.h>
 #include <px4_platform_common/init.h>
 #include <px4_platform_common/px4_manifest.h>
@@ -163,23 +164,12 @@ __EXPORT void board_on_reset(int status)
 extern "C" __EXPORT void
 stm32_boardinitialize(void)
 {
-	board_on_reset(-1); /* Reset PWM first thing */
+	px4_arch_pin_initialize();
 
 	/* configure LEDs */
-
 	board_autoled_initialize();
 
-	/* configure pins */
-
-	const uint32_t gpio[] = PX4_GPIO_INIT_LIST;
-	px4_gpio_init(gpio, arraySize(gpio));
-
-	/* configure USB interfaces */
-
-	stm32_usbinitialize();
-
 	VDD_3V3_ETH_POWER_EN(true);
-
 }
 
 /****************************************************************************

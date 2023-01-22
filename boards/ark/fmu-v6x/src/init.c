@@ -34,7 +34,7 @@
 /**
  * @file init.c
  *
- * ARKFMU-specific early startup code.  This file implements the
+ * board-specific early startup code.  This file implements the
  * board_app_initialize() function that is called early by nsh during startup.
  *
  * Code here is run before the rcS script is invoked; it should start required
@@ -69,6 +69,7 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_board_led.h>
 #include <systemlib/px4_macros.h>
+#include <px4_arch/board_init.h>
 #include <px4_arch/io_timer.h>
 #include <px4_platform_common/init.h>
 #include <px4_platform_common/px4_manifest.h>
@@ -165,23 +166,12 @@ __EXPORT void board_on_reset(int status)
 __EXPORT void
 stm32_boardinitialize(void)
 {
-	board_on_reset(-1); /* Reset PWM first thing */
+	px4_arch_pin_initialize();
 
 	/* configure LEDs */
-
 	board_autoled_initialize();
 
-	/* configure pins */
-
-	const uint32_t gpio[] = PX4_GPIO_INIT_LIST;
-	px4_gpio_init(gpio, arraySize(gpio));
-
-	/* configure USB interfaces */
-
-	stm32_usbinitialize();
-
 	VDD_3V3_ETH_POWER_EN(true);
-
 }
 
 /****************************************************************************
@@ -211,7 +201,10 @@ stm32_boardinitialize(void)
 
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
+#if !defined(BOOTLOADER)
+
 	/* Power on Interfaces */
+	VDD_3V3_SD_CARD_EN(true);
 	VDD_5V_PERIPH_EN(true);
 	VDD_5V_HIPOWER_EN(true);
 	VDD_3V3_SENSORS4_EN(true);
@@ -249,11 +242,11 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		syslog(LOG_ERR, "[boot] DMA alloc FAILED\n");
 	}
 
-#if defined(SERIAL_HAVE_RXDMA)
+#  if defined(SERIAL_HAVE_RXDMA)
 	// set up the serial DMA polling at 1ms intervals for received bytes that have not triggered a DMA event.
 	static struct hrt_call serial_dma_call;
 	hrt_call_every(&serial_dma_call, 1000, 1000, (hrt_callout)stm32_serial_dma_poll, NULL);
-#endif
+#  endif
 
 	/* initial LED state */
 	drv_led_start();
@@ -270,7 +263,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	VDD_3V3_SD_CARD_EN(true);
 	usleep(500 * 1000);
 
-#ifdef CONFIG_MMCSD
+#  ifdef CONFIG_MMCSD
 	int ret = stm32_sdio_initialize();
 
 	if (ret != OK) {
@@ -278,11 +271,13 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		return ret;
 	}
 
-#endif /* CONFIG_MMCSD */
+#  endif /* CONFIG_MMCSD */
 
 	/* Configure the SPIX_SYNC output */
 	spix_sync_servo_init(BOARD_SPIX_SYNC_FREQ);
 	spix_sync_servo_set(0, 150);
+
+#endif /* !defined(BOOTLOADER) */
 
 	return OK;
 }
