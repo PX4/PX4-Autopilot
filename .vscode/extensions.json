@@ -2,9 +2,11 @@
     // See http://go.microsoft.com/fwlink/?LinkId=827846
     // for the documentation about the extensions.json format
     "recommendations": [
+        "althack.ament-task-provider",
         "chiehyu.vscode-astyle",
         "dan-c-underwood.arm",
         "fredericbonnet.cmake-test-adapter",
+        "github.remotehub",
         "github.vscode-pull-request-github",
         "marus25.cortex-debug",
         "ms-azuretools.vscode-docker",
@@ -13,6 +15,7 @@
         "ms-vscode.cmake-tools",
         "ms-vscode.cpptools",
         "ms-vscode.cpptools-extension-pack",
+        "nonanonno.vscode-ros2",
         "redhat.vscode-yaml",
         "streetsidesoftware.code-spell-checker",
         "twxs.cmake",
