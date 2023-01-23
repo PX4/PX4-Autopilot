@@ -1,4 +1,31 @@
 uint64 timestamp		# time since system start (microseconds)
+
+float32 altitude_sp			# Altitude setpoint AMSL [m]
+float32 altitude_filtered		# Altitude filtered AMSL [m]
+float32 height_rate_setpoint		# Height rate setpoint [m/s]
+float32 height_rate			# Height rate [m/s]
+float32 equivalent_airspeed_sp		# Equivalent airpseed setpoint [m/s]
+float32 true_airspeed_sp		# True airpseed setpoint [m/s]
+float32 true_airspeed_filtered		# True airpseed filtered [m/s]
+float32 true_airspeed_derivative_sp	# True airpseed derivative setpoint [m/s^2]
+float32 true_airspeed_derivative	# True airpseed derivative [m/s^2]
+float32 true_airspeed_derivative_raw	# True airpseed derivative raw [m/s^2]
+
+float32 total_energy_rate_sp		# Total energy rate setpoint [m^2/s^3]
+float32 total_energy_rate		# Total energy rate estimate [m^2/s^3]
+
+float32 total_energy_balance_rate_sp	# Energy balance rate setpoint [m^2/s^3]
+float32 total_energy_balance_rate	# Energy balance rate estimate [m^2/s^3]
+
+float32 throttle_integ			# Throttle integrator value [-]
+float32 pitch_integ			# Pitch integrator value [rad]
+
+float32 throttle_sp			# Current throttle setpoint [-]
+float32 pitch_sp_rad			# Current pitch setpoint [rad]
+float32 throttle_trim			# estimated throttle value [0,1] required to fly level at equivalent_airspeed_sp in the current atmospheric conditions
+
+# TECS mode
+uint8 mode
 uint8 TECS_MODE_NORMAL = 0
 uint8 TECS_MODE_UNDERSPEED = 1
 uint8 TECS_MODE_TAKEOFF = 2
@@ -6,30 +33,3 @@ uint8 TECS_MODE_LAND = 3
 uint8 TECS_MODE_LAND_THROTTLELIM = 4
 uint8 TECS_MODE_BAD_DESCENT = 5
 uint8 TECS_MODE_CLIMBOUT = 6
-
-
-float32 altitude_sp
-float32 altitude_filtered
-float32 height_rate_setpoint
-float32 height_rate
-float32 equivalent_airspeed_sp
-float32 true_airspeed_sp
-float32 true_airspeed_filtered
-float32 true_airspeed_derivative_sp
-float32 true_airspeed_derivative
-float32 true_airspeed_derivative_raw
-
-float32 total_energy_rate
-float32 total_energy_balance_rate
-
-float32 total_energy_rate_sp
-float32 total_energy_balance_rate_sp
-
-float32 throttle_integ
-float32 pitch_integ
-
-float32 throttle_sp
-float32 pitch_sp_rad
-float32 throttle_trim	# estimated throttle value [0,1] required to fly level at equivalent_airspeed_sp in the current atmospheric conditions
-
-uint8 mode
