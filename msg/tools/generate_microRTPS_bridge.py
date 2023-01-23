@@ -355,7 +355,6 @@ def generate_agent(out_dir):
     # .. note:: This is only available in FastRTPSGen 1.0.4 and above
     gen_ros2_typename = ""
 
-    print(f"My ROS2 distro is: {ros2_distro}")
     if ros2_distro and ros2_distro in ['dashing', 'eloquent', 'foxy', 'galactic', 'humble', 'rolling'] and fastrtpsgen_version >= version.Version("1.0.4"):
         gen_ros2_typename = "-typeros2 "
 
