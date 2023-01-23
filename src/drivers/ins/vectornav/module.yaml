@@ -1,0 +1,7 @@
+module_name: VectorNav (VN-100, VN-200, VN-300)
+serial_config:
+    - command: vectornav start -d ${SERIAL_DEV}
+      port_config_param:
+        name: SENS_VN_CFG
+        group: Sensors
+

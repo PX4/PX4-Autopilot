@@ -65,27 +65,24 @@ void EstimatorInterface::setIMUData(const imuSample &imu_sample)
 		_initialised = init(imu_sample.time_us);
 	}
 
-	const float dt = math::constrain((imu_sample.time_us - _newest_high_rate_imu_sample.time_us) / 1e6f, 0.0001f, 0.02f);
+	_time_latest_us = imu_sample.time_us;
 
-	if (_newest_high_rate_imu_sample.time_us > 0) {
-		_dt_imu_avg = 0.8f * _dt_imu_avg + 0.2f * dt;
-	}
-
-	_newest_high_rate_imu_sample = imu_sample;
-
-	_imu_updated = _imu_down_sampler.update(imu_sample);
+	// the output observer always runs
+	_output_predictor.calculateOutputStates(imu_sample.time_us, imu_sample.delta_ang, imu_sample.delta_ang_dt, imu_sample.delta_vel, imu_sample.delta_vel_dt);
 
 	// accumulate and down-sample imu data and push to the buffer when new downsampled data becomes available
-	if (_imu_updated) {
+	if (_imu_down_sampler.update(imu_sample)) {
+
+		_imu_updated = true;
 
 		_imu_buffer.push(_imu_down_sampler.getDownSampledImuAndTriggerReset());
 
 		// get the oldest data from the buffer
-		_imu_sample_delayed = _imu_buffer.get_oldest();
+		_time_delayed_us = _imu_buffer.get_oldest().time_us;
 
 		// calculate the minimum interval between observations required to guarantee no loss of data
 		// this will occur if data is overwritten before its time stamp falls behind the fusion time horizon
-		_min_obs_interval_us = (imu_sample.time_us - _imu_sample_delayed.time_us) / (_obs_buffer_length - 1);
+		_min_obs_interval_us = (imu_sample.time_us - _time_delayed_us) / (_obs_buffer_length - 1);
 	}
 
 	setDragData(imu_sample);
@@ -120,7 +117,7 @@ void EstimatorInterface::setMagData(const magSample &mag_sample)
 		mag_sample_new.time_us = time_us;
 
 		_mag_buffer->push(mag_sample_new);
-		_time_last_mag_buffer_push = _newest_high_rate_imu_sample.time_us;
+		_time_last_mag_buffer_push = _time_latest_us;
 
 	} else {
 		ECL_WARN("mag data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us, _mag_buffer->get_newest().time_us, _min_obs_interval_us);
@@ -193,10 +190,10 @@ void EstimatorInterface::setGpsData(const gpsMessage &gps)
 		}
 
 		_gps_buffer->push(gps_sample_new);
-		_time_last_gps_buffer_push = _newest_high_rate_imu_sample.time_us;
+		_time_last_gps_buffer_push = _time_latest_us;
 
 		if (PX4_ISFINITE(gps.yaw)) {
-			_time_last_gps_yaw_buffer_push = _newest_high_rate_imu_sample.time_us;
+			_time_last_gps_yaw_buffer_push = _time_latest_us;
 		}
 
 	} else {
@@ -233,7 +230,7 @@ void EstimatorInterface::setBaroData(const baroSample &baro_sample)
 		baro_sample_new.time_us = time_us;
 
 		_baro_buffer->push(baro_sample_new);
-		_time_last_baro_buffer_push = _newest_high_rate_imu_sample.time_us;
+		_time_last_baro_buffer_push = _time_latest_us;
 
 	} else {
 		ECL_WARN("baro data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us, _baro_buffer->get_newest().time_us, _min_obs_interval_us);
@@ -304,7 +301,7 @@ void EstimatorInterface::setRangeData(const rangeSample &range_sample)
 		range_sample_new.time_us = time_us;
 
 		_range_buffer->push(range_sample_new);
-		_time_last_range_buffer_push = _newest_high_rate_imu_sample.time_us;
+		_time_last_range_buffer_push = _time_latest_us;
 
 	} else {
 		ECL_WARN("range data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us, _range_buffer->get_newest().time_us, _min_obs_interval_us);
@@ -377,7 +374,7 @@ void EstimatorInterface::setExtVisionData(const extVisionSample &evdata)
 		ev_sample_new.time_us = time_us;
 
 		_ext_vision_buffer->push(ev_sample_new);
-		_time_last_ext_vision_buffer_push = _newest_high_rate_imu_sample.time_us;
+		_time_last_ext_vision_buffer_push = _time_latest_us;
 
 	} else {
 		ECL_WARN("EV data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us, _ext_vision_buffer->get_newest().time_us, _min_obs_interval_us);
@@ -561,17 +558,14 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 
 	ECL_DEBUG("EKF max time delay %.1f ms, OBS length %d\n", (double)ekf_delay_ms, _obs_buffer_length);
 
-	if (!_imu_buffer.allocate(_imu_buffer_length) || !_output_buffer.allocate(_imu_buffer_length)
-	    || !_output_vert_buffer.allocate(_imu_buffer_length)) {
+	if (!_imu_buffer.allocate(_imu_buffer_length) || !_output_predictor.allocate(_imu_buffer_length)) {
 
 		printBufferAllocationFailed("IMU and output");
 		return false;
 	}
 
-	_imu_sample_delayed.time_us = timestamp;
-	_imu_sample_delayed.delta_vel_clipping[0] = false;
-	_imu_sample_delayed.delta_vel_clipping[1] = false;
-	_imu_sample_delayed.delta_vel_clipping[2] = false;
+	_time_delayed_us = timestamp;
+	_time_latest_us = timestamp;
 
 	_fault_status.value = 0;
 
@@ -654,7 +648,6 @@ void EstimatorInterface::printBufferAllocationFailed(const char *buffer_name)
 
 void EstimatorInterface::print_status()
 {
-	printf("IMU average dt: %.6f seconds\n", (double)_dt_imu_avg);
 	printf("EKF average dt: %.6f seconds\n", (double)_dt_ekf_avg);
 
 	printf("IMU buffer: %d (%d Bytes)\n", _imu_buffer.get_length(), _imu_buffer.get_total_size());
@@ -693,6 +686,5 @@ void EstimatorInterface::print_status()
 		printf("drag buffer: %d/%d (%d Bytes)\n", _drag_buffer->entries(), _drag_buffer->get_length(), _drag_buffer->get_total_size());
 	}
 
-	printf("output buffer: %d/%d (%d Bytes)\n", _output_buffer.entries(), _output_buffer.get_length(), _output_buffer.get_total_size());
-	printf("output vert buffer: %d/%d (%d Bytes)\n", _output_vert_buffer.entries(), _output_vert_buffer.get_length(), _output_vert_buffer.get_total_size());
+	_output_predictor.print_status();
 }

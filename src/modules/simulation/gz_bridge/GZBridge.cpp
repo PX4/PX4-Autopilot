@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -44,13 +44,14 @@
 
 GZBridge::GZBridge(const char *world, const char *name, const char *model,
 		   const char *pose_str) :
-	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default),
+	ModuleParams(nullptr),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
 	_world_name(world),
 	_model_name(name),
 	_model_sim(model),
 	_model_pose(pose_str)
 {
-	pthread_mutex_init(&_mutex, nullptr);
+	pthread_mutex_init(&_node_mutex, nullptr);
 
 	updateParams();
 }
@@ -151,40 +152,14 @@ int GZBridge::init()
 		return PX4_ERROR;
 	}
 
-	// ESC feedback: /x500/command/motor_speed
-	std::string motor_speed_topic = "/" + _model_name + "/command/motor_speed";
-
-	if (!_node.Subscribe(motor_speed_topic, &GZBridge::motorSpeedCallback, this)) {
-		PX4_ERR("failed to subscribe to %s", motor_speed_topic.c_str());
+	if (!_mixing_interface_esc.init(_model_name)) {
+		PX4_ERR("failed to init ESC output");
 		return PX4_ERROR;
 	}
 
-	// list all subscriptions
-	for (auto &sub_topic : _node.SubscribedTopics()) {
-		PX4_INFO("subscribed: %s", sub_topic.c_str());
-	}
-
-	// output eg /X500/command/motor_speed
-	std::string actuator_topic = "/" + _model_name + "/command/motor_speed";
-	_actuators_pub = _node.Advertise<ignition::msgs::Actuators>(actuator_topic);
-
-	if (!_actuators_pub.Valid()) {
-		PX4_ERR("failed to advertise %s", actuator_topic.c_str());
+	if (!_mixing_interface_servo.init(_model_name)) {
+		PX4_ERR("failed to init servo output");
 		return PX4_ERROR;
-	}
-
-	// /model/plane_0/joint/left_elevon_joint/0/cmd_pos
-
-	for (int i = 0; i < 8; i++) {
-		std::string joint_name = "px4_servo_" + std::to_string(i);
-		std::string servo_topic = "/model/" + _model_name + "/joint/" + joint_name + "/0/cmd_pos";
-		std::cout << "Servo topic: " << servo_topic << std::endl;
-		_servos_pub.push_back(_node.Advertise<ignition::msgs::Double>(servo_topic));
-
-		if (!_servos_pub.back().Valid()) {
-			PX4_ERR("failed to advertise %s", servo_topic.c_str());
-			return PX4_ERROR;
-		}
 	}
 
 	ScheduleNow();
@@ -331,7 +306,7 @@ bool GZBridge::updateClock(const uint64_t tv_sec, const uint64_t tv_nsec)
 
 void GZBridge::clockCallback(const ignition::msgs::Clock &clock)
 {
-	pthread_mutex_lock(&_mutex);
+	pthread_mutex_lock(&_node_mutex);
 
 	const uint64_t time_us = (clock.sim().sec() * 1000000) + (clock.sim().nsec() / 1000);
 
@@ -339,7 +314,7 @@ void GZBridge::clockCallback(const ignition::msgs::Clock &clock)
 		updateClock(clock.sim().sec(), clock.sim().nsec());
 	}
 
-	pthread_mutex_unlock(&_mutex);
+	pthread_mutex_unlock(&_node_mutex);
 }
 
 void GZBridge::imuCallback(const ignition::msgs::IMU &imu)
@@ -348,7 +323,7 @@ void GZBridge::imuCallback(const ignition::msgs::IMU &imu)
 		return;
 	}
 
-	pthread_mutex_lock(&_mutex);
+	pthread_mutex_lock(&_node_mutex);
 
 	const uint64_t time_us = (imu.header().stamp().sec() * 1000000) + (imu.header().stamp().nsec() / 1000);
 
@@ -404,7 +379,7 @@ void GZBridge::imuCallback(const ignition::msgs::IMU &imu)
 	sensor_gyro.samples = 1;
 	_sensor_gyro_pub.publish(sensor_gyro);
 
-	pthread_mutex_unlock(&_mutex);
+	pthread_mutex_unlock(&_node_mutex);
 }
 
 void GZBridge::poseInfoCallback(const ignition::msgs::Pose_V &pose)
@@ -413,7 +388,7 @@ void GZBridge::poseInfoCallback(const ignition::msgs::Pose_V &pose)
 		return;
 	}
 
-	pthread_mutex_lock(&_mutex);
+	pthread_mutex_lock(&_node_mutex);
 
 	for (int p = 0; p < pose.pose_size(); p++) {
 		if (pose.pose(p).name() == _model_name) {
@@ -533,122 +508,50 @@ void GZBridge::poseInfoCallback(const ignition::msgs::Pose_V &pose)
 				_gpos_ground_truth_pub.publish(global_position_groundtruth);
 			}
 
-			pthread_mutex_unlock(&_mutex);
+			pthread_mutex_unlock(&_node_mutex);
 			return;
 		}
 	}
 
-	pthread_mutex_unlock(&_mutex);
-}
-
-void GZBridge::motorSpeedCallback(const ignition::msgs::Actuators &actuators)
-{
-	if (hrt_absolute_time() == 0) {
-		return;
-	}
-
-	pthread_mutex_lock(&_mutex);
-
-	esc_status_s esc_status{};
-	esc_status.esc_count = actuators.velocity_size();
-
-	for (int i = 0; i < actuators.velocity_size(); i++) {
-		esc_status.esc[i].timestamp = hrt_absolute_time();
-		esc_status.esc[i].esc_rpm = actuators.velocity(i);
-		esc_status.esc_online_flags |= 1 << i;
-
-		if (actuators.velocity(i) > 0) {
-			esc_status.esc_armed_flags |= 1 << i;
-		}
-	}
-
-	if (esc_status.esc_count > 0) {
-		esc_status.timestamp = hrt_absolute_time();
-		_esc_status_pub.publish(esc_status);
-	}
-
-	pthread_mutex_unlock(&_mutex);
-}
-
-bool GZBridge::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
-			     unsigned num_control_groups_updated)
-{
-	unsigned active_output_count = 0;
-
-	for (unsigned i = 0; i < num_outputs; i++) {
-		if (_mixing_output.isFunctionSet(i)) {
-			active_output_count++;
-
-		} else {
-			break;
-		}
-	}
-
-	if (active_output_count > 0) {
-		ignition::msgs::Actuators rotor_velocity_message;
-		rotor_velocity_message.mutable_velocity()->Resize(active_output_count, 0);
-
-		for (unsigned i = 0; i < active_output_count; i++) {
-			rotor_velocity_message.set_velocity(i, outputs[i]);
-		}
-
-		if (_actuators_pub.Valid()) {
-			_actuators_pub.Publish(rotor_velocity_message);
-		}
-
-		int i = 0;
-
-		for (auto &servo_pub : _servos_pub) {
-			ignition::msgs::Double servo_output;
-			///TODO: Normalize output data
-			double output = (outputs[i] - 500) / 500.0;
-			// std::cout << "outputs[" << i << "]: " << outputs[i] << std::endl;
-			// std::cout << "  output: " << output << std::endl;
-			servo_output.set_data(output);
-			i++;
-
-			if (servo_pub.Valid()) {
-				servo_pub.Publish(servo_output);
-			}
-		}
-	}
-
-	return false;
+	pthread_mutex_unlock(&_node_mutex);
 }
 
 void GZBridge::Run()
 {
 	if (should_exit()) {
 		ScheduleClear();
-		_mixing_output.unregister();
+
+		_mixing_interface_esc.stop();
+		_mixing_interface_servo.stop();
 
 		exit_and_cleanup();
 		return;
 	}
 
-	pthread_mutex_lock(&_mutex);
+	pthread_mutex_lock(&_node_mutex);
 
 	if (_parameter_update_sub.updated()) {
 		parameter_update_s pupdate;
 		_parameter_update_sub.copy(&pupdate);
 
 		updateParams();
+
+		_mixing_interface_esc.updateParams();
+		_mixing_interface_servo.updateParams();
 	}
 
-	_mixing_output.update();
+	ScheduleDelayed(10_ms);
 
-	//ScheduleDelayed(1000_us);
-
-	// check at end of cycle (updateSubscriptions() can potentially change to a different WorkQueue thread)
-	_mixing_output.updateSubscriptions(true);
-
-	pthread_mutex_unlock(&_mutex);
+	pthread_mutex_unlock(&_node_mutex);
 }
 
 int GZBridge::print_status()
 {
-	//perf_print_counter(_cycle_perf);
-	_mixing_output.printStatus();
+	PX4_INFO_RAW("ESC outputs:\n");
+	_mixing_interface_esc.mixingOutput().printStatus();
+
+	PX4_INFO_RAW("Servo outputs:\n");
+	_mixing_interface_servo.mixingOutput().printStatus();
 
 	return 0;
 }

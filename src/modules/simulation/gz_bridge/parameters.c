@@ -32,6 +32,15 @@
  ****************************************************************************/
 
 /**
+ * Simulator Gazebo bridge enable
+ *
+ * @boolean
+ * @reboot_required true
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(SIM_GZ_EN, 0);
+
+/**
  * simulator origin latitude
  *
  * @unit deg

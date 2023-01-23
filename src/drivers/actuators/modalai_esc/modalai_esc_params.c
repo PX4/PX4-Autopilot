@@ -57,7 +57,7 @@ PARAM_DEFINE_INT32(UART_ESC_CONFIG, 0);
 PARAM_DEFINE_INT32(UART_ESC_BAUD, 250000);
 
 /**
- * Motor mappings for ModalAI ESC M004
+ * Motor mappings for ModalAI ESC
  *
  *  HW Channel Idexes (PX4 Indexes) (note: silkscreen shows 0 indexed)
  *         4(1)     3(4)
@@ -65,41 +65,16 @@ PARAM_DEFINE_INT32(UART_ESC_BAUD, 250000);
  *         1(3)     2(2)
  */
 
-/**
- * UART ESC Motor 1 Mapping.  1-4 (negative for reversal).
- *
- * @group UART ESC
- * @min -4
- * @max 4
- */
-PARAM_DEFINE_INT32(UART_ESC_MOTOR1, 3);
+// The following are auto generated params from control allocator pattern, put here for reference
 
-/**
- *UART ESC Motor 2 Mapping.  1-4 (negative for reversal).
- *
- * @group UART ESC
- * @min -4
- * @max 4
- */
-PARAM_DEFINE_INT32(UART_ESC_MOTOR2, 2);
+// Default ESC1 to motor2
+//PARAM_DEFINE_INT32(UART_ESC_FUNC1, 102);
 
-/**
- * UART ESC Motor 3 Mapping.  1-4 (negative for reversal).
- *
- * @group UART ESC
- * @min -4
- * @max 4
- */
-PARAM_DEFINE_INT32(UART_ESC_MOTOR3, 4);
+//PARAM_DEFINE_INT32(UART_ESC_FUNC2, 103);
 
-/**
- * UART ESC Motor 4 Mapping.  1-4 (negative for reversal).
- *
- * @group UART ESC
- * @min -4
- * @max 4
- */
-PARAM_DEFINE_INT32(UART_ESC_MOTOR4, 1);
+//PARAM_DEFINE_INT32(UART_ESC_FUNC3, 101);
+
+//PARAM_DEFINE_INT32(UART_ESC_FUNC4, 104);
 
 /**
  * UART ESC RPM Min
@@ -135,6 +110,42 @@ PARAM_DEFINE_INT32(UART_ESC_RPM_MAX, 15000);
  * @max 2
  */
 PARAM_DEFINE_INT32(UART_ESC_MODE, 0);
+
+/**
+ * UART ESC ID 1 Spin Direction Flag
+ *
+ * @group UART ESC
+ * @value 0 - Default
+ * @value 1 - Reverse
+ */
+PARAM_DEFINE_INT32(UART_ESC_SDIR1, 0);
+
+/**
+ * UART ESC ID 2 Spin Direction Flag
+ *
+ * @group UART ESC
+ * @value 0 - Default
+ * @value 1 - Reverse
+ */
+PARAM_DEFINE_INT32(UART_ESC_SDIR2, 0);
+
+/**
+ * UART ESC ID 3 Spin Direction Flag
+ *
+ * @group UART ESC
+ * @value 0 - Default
+ * @value 1 - Reverse
+ */
+PARAM_DEFINE_INT32(UART_ESC_SDIR3, 0);
+
+/**
+ * UART ESC ID 4 Spin Direction Flag
+ *
+ * @group UART ESC
+ * @value 0 - Default
+ * @value 1 - Reverse
+ */
+PARAM_DEFINE_INT32(UART_ESC_SDIR4, 0);
 
 /**
  * UART ESC Turtle Mode Crash Flip Motor Percent

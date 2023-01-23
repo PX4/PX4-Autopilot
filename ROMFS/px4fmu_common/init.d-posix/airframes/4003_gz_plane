@@ -69,22 +69,13 @@ param set-default CA_SV_CS3_TYPE 4
 param set-default CA_SV_CS4_TYPE 9
 param set-default CA_SV_CS5_TYPE 10
 
-param set-default SIM_GZ_FUNC1 201
-param set-default SIM_GZ_FUNC2 202
-param set-default SIM_GZ_FUNC3 203
-param set-default SIM_GZ_FUNC4 101
-param set-default SIM_GZ_FUNC5 204
-param set-default SIM_GZ_FUNC6 205
-param set-default SIM_GZ_FUNC7 206
+param set-default SIM_GZ_EC_FUNC1 101
+param set-default SIM_GZ_EC_MIN1 0
+param set-default SIM_GZ_EC_MAX1 1000
 
-param set-default SIM_GZ_MIN1 150
-param set-default SIM_GZ_MIN2 150
-param set-default SIM_GZ_MIN3 150
-param set-default SIM_GZ_MIN4 150
-
-param set-default SIM_GZ_MAX1 1000
-param set-default SIM_GZ_MAX2 1000
-param set-default SIM_GZ_MAX3 1000
-param set-default SIM_GZ_MAX4 1000
-
-
+param set-default SIM_GZ_SV_FUNC1 201
+param set-default SIM_GZ_SV_FUNC2 202
+param set-default SIM_GZ_SV_FUNC3 203
+param set-default SIM_GZ_SV_FUNC4 204
+param set-default SIM_GZ_SV_FUNC5 205
+param set-default SIM_GZ_SV_FUNC6 206

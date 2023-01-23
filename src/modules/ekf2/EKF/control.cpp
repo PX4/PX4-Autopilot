@@ -43,7 +43,7 @@
 #include "ekf.h"
 #include <mathlib/mathlib.h>
 
-void Ekf::controlFusionModes()
+void Ekf::controlFusionModes(const imuSample &imu_delayed)
 {
 	// Store the status to enable change detection
 	_control_status_prev.value = _control_status.value;
@@ -52,7 +52,7 @@ void Ekf::controlFusionModes()
 	if (_system_flag_buffer) {
 		systemFlagUpdate system_flags_delayed;
 
-		if (_system_flag_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &system_flags_delayed)) {
+		if (_system_flag_buffer->pop_first_older_than(imu_delayed.time_us, &system_flags_delayed)) {
 
 			set_vehicle_at_rest(system_flags_delayed.at_rest);
 			set_in_air_status(system_flags_delayed.in_air);
@@ -97,7 +97,7 @@ void Ekf::controlFusionModes()
 
 			if (height_source) {
 				ECL_INFO("%llu: EKF aligned, (%s hgt, IMU buf: %i, OBS buf: %i)",
-					 (unsigned long long)_imu_sample_delayed.time_us, height_source, (int)_imu_buffer_length, (int)_obs_buffer_length);
+					 (unsigned long long)imu_delayed.time_us, height_source, (int)_imu_buffer_length, (int)_obs_buffer_length);
 			}
 		}
 	}
@@ -107,7 +107,7 @@ void Ekf::controlFusionModes()
 
 		// check for arrival of new sensor data at the fusion time horizon
 		_time_prev_gps_us = _gps_sample_delayed.time_us;
-		_gps_data_ready = _gps_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &_gps_sample_delayed);
+		_gps_data_ready = _gps_buffer->pop_first_older_than(imu_delayed.time_us, &_gps_sample_delayed);
 
 		if (_gps_data_ready) {
 			// correct velocity for offset relative to IMU
@@ -132,7 +132,7 @@ void Ekf::controlFusionModes()
 
 	if (_range_buffer) {
 		// Get range data from buffer and check validity
-		_rng_data_ready = _range_buffer->pop_first_older_than(_imu_sample_delayed.time_us, _range_sensor.getSampleAddress());
+		_rng_data_ready = _range_buffer->pop_first_older_than(imu_delayed.time_us, _range_sensor.getSampleAddress());
 		_range_sensor.setDataReadiness(_rng_data_ready);
 
 		// update range sensor angle parameters in case they have changed
@@ -140,7 +140,7 @@ void Ekf::controlFusionModes()
 		_range_sensor.setCosMaxTilt(_params.range_cos_max_tilt);
 		_range_sensor.setQualityHysteresis(_params.range_valid_quality_s);
 
-		_range_sensor.runChecks(_imu_sample_delayed.time_us, _R_to_earth);
+		_range_sensor.runChecks(imu_delayed.time_us, _R_to_earth);
 
 		if (_range_sensor.isDataHealthy()) {
 			// correct the range data for position offset relative to the IMU
@@ -156,7 +156,7 @@ void Ekf::controlFusionModes()
 				const float var = sq(_params.range_noise) + dist_dependant_var;
 
 				_rng_consistency_check.setGate(_params.range_kin_consistency_gate);
-				_rng_consistency_check.update(_range_sensor.getDistBottom(), math::max(var, 0.001f), _state.vel(2), P(6, 6), _imu_sample_delayed.time_us);
+				_rng_consistency_check.update(_range_sensor.getDistBottom(), math::max(var, 0.001f), _state.vel(2), P(6, 6), imu_delayed.time_us);
 			}
 
 		} else {
@@ -179,25 +179,25 @@ void Ekf::controlFusionModes()
 		// This means we stop looking for new data until the old data has been fused, unless we are not fusing optical flow,
 		// in this case we need to empty the buffer
 		if (!_flow_data_ready || (!_control_status.flags.opt_flow && !_hagl_sensor_status.flags.flow)) {
-			_flow_data_ready = _flow_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &_flow_sample_delayed);
+			_flow_data_ready = _flow_buffer->pop_first_older_than(imu_delayed.time_us, &_flow_sample_delayed);
 		}
 	}
 
 	if (_airspeed_buffer) {
-		_tas_data_ready = _airspeed_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &_airspeed_sample_delayed);
+		_tas_data_ready = _airspeed_buffer->pop_first_older_than(imu_delayed.time_us, &_airspeed_sample_delayed);
 	}
 
-	// run EKF-GSF yaw estimator once per _imu_sample_delayed update after all main EKF data samples available
-	runYawEKFGSF();
+	// run EKF-GSF yaw estimator once per imu_delayed update after all main EKF data samples available
+	runYawEKFGSF(imu_delayed);
 
 	// control use of observations for aiding
 	controlMagFusion();
-	controlOpticalFlowFusion();
+	controlOpticalFlowFusion(imu_delayed);
 	controlGpsFusion();
 	controlAirDataFusion();
-	controlBetaFusion();
+	controlBetaFusion(imu_delayed);
 	controlDragFusion();
-	controlHeightFusion();
+	controlHeightFusion(imu_delayed);
 
 	// Additional data odometry data from an external estimator can be fused.
 	controlExternalVisionFusion();
@@ -358,7 +358,7 @@ void Ekf::controlAirDataFusion()
 	}
 }
 
-void Ekf::controlBetaFusion()
+void Ekf::controlBetaFusion(const imuSample &imu_delayed)
 {
 	_control_status.flags.fuse_beta = _params.beta_fusion_enabled && _control_status.flags.fixed_wing
 		&& _control_status.flags.in_air && !_control_status.flags.fake_pos;
@@ -378,7 +378,7 @@ void Ekf::controlBetaFusion()
 				// activate the wind states
 				_control_status.flags.wind = true;
 				// reset the timeout timers to prevent repeated resets
-				_aid_src_sideslip.time_last_fuse = _imu_sample_delayed.time_us;
+				_aid_src_sideslip.time_last_fuse = imu_delayed.time_us;
 				resetWind();
 			}
 
@@ -404,7 +404,7 @@ void Ekf::controlDragFusion()
 
 		dragSample drag_sample;
 
-		if (_drag_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &drag_sample)) {
+		if (_drag_buffer->pop_first_older_than(_time_delayed_us, &drag_sample)) {
 			fuseDrag(drag_sample);
 		}
 	}
@@ -415,7 +415,7 @@ void Ekf::controlAuxVelFusion()
 	if (_auxvel_buffer) {
 		auxVelSample auxvel_sample_delayed;
 
-		if (_auxvel_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &auxvel_sample_delayed)) {
+		if (_auxvel_buffer->pop_first_older_than(_time_delayed_us, &auxvel_sample_delayed)) {
 
 			resetEstimatorAidStatus(_aid_src_aux_vel);
 
