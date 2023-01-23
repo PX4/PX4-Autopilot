@@ -45,23 +45,13 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
-
 #include <uORB/topics/landing_target_pose.h>
-// #include <uORB/topics/uwb_grid.h>
 #include <uORB/topics/sensor_uwb.h>
 #include <uORB/topics/parameter_update.h>
 
 #include <matrix/math.hpp>
 
 using namespace time_literals;
-
-typedef struct {  //needs higher accuracy?
-	float lat, lon, alt, yaw; //offset to true North
-} gps_pos_t;
-
-typedef struct {  //needs higher accuracy?
-	int16_t x, y, z;//offset to true North
-} position_t;
 
 typedef struct {
 	uint8_t MAC[2];					// MAC address of UWB device
@@ -135,7 +125,8 @@ private:
 		(ParamFloat<px4::params::UWB_INIT_OFF_Y>) 		_uwb_init_off_y,
 		(ParamFloat<px4::params::UWB_INIT_OFF_Z>) 		_uwb_init_off_z,
 		(ParamFloat<px4::params::UWB_INIT_YAW>) 		_uwb_init_off_yaw,
-		(ParamFloat<px4::params::UWB_INIT_PITCH>) 		_uwb_init_off_pitch
+		(ParamFloat<px4::params::UWB_INIT_PITCH>) 		_uwb_init_off_pitch,
+		(ParamInt<px4::params::UWB_SENS_ORIENTATION>) 		_uwb_sens_orientation
 	)
 
 

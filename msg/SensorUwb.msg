@@ -21,5 +21,5 @@ float32 aoa_elevation_resp	# Angle of arrival of first incomming RX msg at the r
 
 # GPS:
 #GPS position of target_pos of the UWB system
-float32[4] gps_data #Latitude, Longitude, Altitude, and Yaw Offset to True North  #
-float32[3] position		# Position of the Landing point in relation to the Drone (x,y,z in Meters NED)
+# float32[4] gps_data #Latitude, Longitude, Altitude, and Yaw Offset to True North  #
+# float32[3] position		# Position of the Landing point in relation to the Drone (x,y,z in Meters NED)

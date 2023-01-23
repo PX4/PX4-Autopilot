@@ -41,7 +41,7 @@ parameters:
 
         UWB_INIT_OFF_Z:
           description:
-            short: UWB sensor Y offset in body frame
+            short: UWB sensor Z offset in body frame
             long: UWB sensor positioning in relation to Drone in NED. Z offset.
           type: float
           unit: m
@@ -68,3 +68,16 @@ parameters:
           decimal: 1
           increment: 0.1
           default: 0.00
+
+        UWB_SENS_ORIENTATION:
+          description:
+            short: UWB sensor orientation
+            long: The orientation of the sensor relative to the forward direction of the body frame. 0 degrees = uwb sensor is parallel with body frame with antannaes facing down
+          type: enum
+          values:
+            -1: incorrect orientation set
+            0: Rotation = downwards
+            1: Rotation = upwards
+            2: Rotation = left-facing
+            3: Rotation = right-facing
+          default: 0

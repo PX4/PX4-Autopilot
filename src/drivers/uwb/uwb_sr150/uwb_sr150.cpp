@@ -100,7 +100,7 @@ UWB_SR150::~UWB_SR150()
 {
 	printf("UWB: Ranging Stopped\t\n");
 
-	// stop{};
+	// stop{}; will be implemented when this is changed to a scheduled work task
 	perf_free(_read_err_perf);
 	perf_free(_read_count_perf);
 
