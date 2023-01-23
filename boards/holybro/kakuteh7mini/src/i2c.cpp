@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2020-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,22 +31,8 @@
  *
  ****************************************************************************/
 
-#include <px4_arch/spi_hw_description.h>
-#include <drivers/drv_sensor.h>
-#include <nuttx/spi/spi.h>
+#include <px4_arch/i2c_hw_description.h>
 
-constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
-	initSPIBus(SPI::Bus::SPI1, {
-		initSPIDevice(SPIDEV_MMCSD(0), SPI::CS{GPIO::PortA, GPIO::Pin4})
-	}),
-	initSPIBus(SPI::Bus::SPI2, {
-		initSPIDevice(DRV_OSD_DEVTYPE_ATXXXX, SPI::CS{GPIO::PortB, GPIO::Pin12}),
-	}),
-	initSPIBus(SPI::Bus::SPI4, {
-		initSPIDevice(DRV_IMU_DEVTYPE_ICM20689, SPI::CS{GPIO::PortE, GPIO::Pin4}, SPI::DRDY{GPIO::PortE, GPIO::Pin1}),
-		initSPIDevice(DRV_IMU_DEVTYPE_MPU6000, SPI::CS{GPIO::PortE, GPIO::Pin4}, SPI::DRDY{GPIO::PortE, GPIO::Pin1}),
-		initSPIDevice(DRV_IMU_DEVTYPE_BMI270, SPI::CS{GPIO::PortE, GPIO::Pin4}, SPI::DRDY{GPIO::PortE, GPIO::Pin1}),
-	}),
+constexpr px4_i2c_bus_t px4_i2c_buses[I2C_BUS_MAX_BUS_ITEMS] = {
+	initI2CBusExternal(1),
 };
-
-static constexpr bool unused = validateSPIConfig(px4_spi_buses);

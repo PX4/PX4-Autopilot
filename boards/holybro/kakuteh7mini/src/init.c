@@ -57,8 +57,6 @@
 #include <nuttx/config.h>
 #include <nuttx/board.h>
 #include <nuttx/spi/spi.h>
-#include <nuttx/sdio.h>
-#include <nuttx/mmcsd.h>
 #include <nuttx/analog/adc.h>
 #include <nuttx/mm/gran.h>
 #include <chip.h>
@@ -228,6 +226,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		led_on(LED_RED);
 	}
 
+	// MARK: this will *not* work as the minis have a W25N NAND flash chip
 	/* Get the SPI port for the microSD slot */
 	struct spi_dev_s *spi_dev = stm32_spibus_initialize(CONFIG_NSH_MMCSDSPIPORTNO);
 
@@ -236,15 +235,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		led_on(LED_BLUE);
 	}
 
-	/* Now bind the SPI interface to the MMCSD driver */
-	int result = mmcsd_spislotinitialize(CONFIG_NSH_MMCSDMINOR, CONFIG_NSH_MMCSDSLOTNO, spi_dev);
-
-	if (result != OK) {
-		syslog(LOG_ERR, "[boot] Could not bind MMCSD driver, expected on Kakute H7 V2\n");
-	}
-
 	up_udelay(20);
-
 
 #if defined(FLASH_BASED_PARAMS)
 	static sector_descriptor_t params_sector_map[] = {
@@ -253,7 +244,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	};
 
 	/* Initialize the flashfs layer to use heap allocated memory */
-	result = parameter_flashfs_init(params_sector_map, NULL, 0);
+	int result = parameter_flashfs_init(params_sector_map, NULL, 0);
 
 	if (result != OK) {
 		syslog(LOG_ERR, "[boot] FAILED to init params in FLASH %d\n", result);
