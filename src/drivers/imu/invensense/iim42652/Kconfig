@@ -1,5 +1,0 @@
-menuconfig DRIVERS_IMU_INVENSENSE_IIM42652
-	bool "iim42652"
-	default n
-	---help---
-		Enable support for iim42652

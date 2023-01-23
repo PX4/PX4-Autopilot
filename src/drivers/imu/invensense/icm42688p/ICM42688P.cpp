@@ -125,10 +125,7 @@ int ICM42688P::probe()
 	for (int i = 0; i < 3; i++) {
 		uint8_t whoami = RegisterRead(Register::BANK_0::WHO_AM_I);
 
-		if (whoami == WHOAMI) {
-			return PX4_OK;
-
-		} else {
+		if (whoami != WHOAMI_42688P && whoami != WHOAMI_42652) {
 			DEVICE_DEBUG("unexpected WHO_AM_I 0x%02x", whoami);
 
 			uint8_t reg_bank_sel = RegisterRead(Register::BANK_0::REG_BANK_SEL);
@@ -139,6 +136,15 @@ int ICM42688P::probe()
 				// force bank selection and retry
 				SelectRegisterBank(REG_BANK_SEL_BIT::BANK_SEL_0, true);
 			}
+		}
+
+		if (whoami == WHOAMI_42688P) {
+			return PX4_OK;
+
+		} else if (whoami == WHOAMI_42652) {
+			_px4_accel.set_device_type(DRV_IMU_DEVTYPE_IIM42652);
+			_px4_gyro.set_device_type(DRV_IMU_DEVTYPE_IIM42652);
+			return PX4_OK;
 		}
 	}
 
@@ -160,7 +166,8 @@ void ICM42688P::RunImpl()
 		break;
 
 	case STATE::WAIT_FOR_RESET:
-		if ((RegisterRead(Register::BANK_0::WHO_AM_I) == WHOAMI)
+		if (((RegisterRead(Register::BANK_0::WHO_AM_I) == WHOAMI_42688P)
+		     || (RegisterRead(Register::BANK_0::WHO_AM_I) == WHOAMI_42652))
 		    && (RegisterRead(Register::BANK_0::DEVICE_CONFIG) == 0x00)
 		    && (RegisterRead(Register::BANK_0::INT_STATUS) & INT_STATUS_BIT::RESET_DONE_INT)) {
 

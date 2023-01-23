@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,7 +34,7 @@
 /**
  * @file InvenSense_ICM42688P_registers.hpp
  *
- * Invensense ICM-42688-P registers.
+ * Invensense ICM-42688-P and IIM-42652 registers.
  *
  */
 
@@ -58,7 +58,8 @@ static constexpr uint8_t Bit7 = (1 << 7);
 static constexpr uint32_t SPI_SPEED = 24 * 1000 * 1000; // 24 MHz SPI
 static constexpr uint8_t DIR_READ = 0x80;
 
-static constexpr uint8_t WHOAMI = 0x47;
+static constexpr uint8_t WHOAMI_42688P = 0x47;
+static constexpr uint8_t WHOAMI_42652  = 0x6F;
 
 static constexpr float TEMPERATURE_SENSITIVITY = 132.48f; // LSB/C
 static constexpr float TEMPERATURE_OFFSET = 25.f; // C
