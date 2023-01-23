@@ -54,7 +54,7 @@ void FeasibilityChecker::reset()
 
 	_mission_validity_failed = false;
 	_takeoff_failed = false;
-	_fixed_wing_landing_failed = false;
+	_land_pattern_validity_failed = false;
 	_distance_first_waypoint_failed = false;
 	_distance_between_waypoints_failed = false;
 	_below_home_alt_failed = false;
@@ -201,15 +201,16 @@ void FeasibilityChecker::doCommonChecks(mission_item_s &mission_item, const int 
 
 void FeasibilityChecker::doVtolChecks(mission_item_s &mission_item, const int current_index)
 {
-	if (!_fixed_wing_landing_failed) {
-		_fixed_wing_landing_failed = !checkFixedWingLanding(mission_item, current_index);
+	if (!_land_pattern_validity_failed) {
+		_land_pattern_validity_failed = !checkLandPatternValidity(mission_item, current_index);
 	}
+
 }
 
 void FeasibilityChecker::doFixedWingChecks(mission_item_s &mission_item, const int current_index)
 {
-	if (!_fixed_wing_landing_failed) {
-		_fixed_wing_landing_failed = !checkFixedWingLanding(mission_item, current_index);
+	if (!_land_pattern_validity_failed) {
+		_land_pattern_validity_failed = !checkLandPatternValidity(mission_item, current_index);
 	}
 
 	if (!_fixed_wing_land_approach_failed) {
@@ -487,7 +488,7 @@ bool FeasibilityChecker::checkFixedWindLandApproach(mission_item_s &mission_item
 	return true;
 }
 
-bool FeasibilityChecker::checkFixedWingLanding(mission_item_s &mission_item, const int current_index)
+bool FeasibilityChecker::checkLandPatternValidity(mission_item_s &mission_item, const int current_index)
 {
 
 	// if DO_LAND_START found then require valid landing AFTER
