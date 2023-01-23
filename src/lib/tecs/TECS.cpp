@@ -394,7 +394,7 @@ void TECSControl::_calcPitchControl(float dt, const Input &input, const Specific
 	const SpecificEnergyWeighting weight{_updateSpeedAltitudeWeights(param, flag)};
 	ControlValues seb_rate{_calcPitchControlSebRate(weight, specific_energy_rates)};
 
-	_calcPitchControlUpdate(dt, seb_rate, param);
+	_calcPitchControlUpdate(dt, input, seb_rate, param);
 	const float pitch_setpoint{_calcPitchControlOutput(input, seb_rate, param, flag)};
 
 	// Comply with the specified vertical acceleration limit by applying a pitch rate limit
@@ -433,11 +433,16 @@ TECSControl::ControlValues TECSControl::_calcPitchControlSebRate(const SpecificE
 	return seb_rate;
 }
 
-void TECSControl::_calcPitchControlUpdate(float dt, const ControlValues &seb_rate, const Param &param)
+void TECSControl::_calcPitchControlUpdate(float dt, const Input &input, const ControlValues &seb_rate,
+		const Param &param)
 {
 	if (param.integrator_gain_pitch > FLT_EPSILON) {
+
+		// Calculate derivative from change in climb angle to rate of change of specific energy balance
+		const float climb_angle_to_SEB_rate = input.tas * CONSTANTS_ONE_G;
+
 		// Calculate pitch integrator input term
-		float pitch_integ_input = _getControlError(seb_rate) * param.integrator_gain_pitch;
+		float pitch_integ_input = _getControlError(seb_rate) * param.integrator_gain_pitch / climb_angle_to_SEB_rate;
 
 		// Prevent the integrator changing in a direction that will increase pitch demand saturation
 		if (_pitch_setpoint >= param.pitch_max) {
@@ -458,19 +463,19 @@ void TECSControl::_calcPitchControlUpdate(float dt, const ControlValues &seb_rat
 float TECSControl::_calcPitchControlOutput(const Input &input, const ControlValues &seb_rate, const Param &param,
 		const Flag &flag) const
 {
-	// Calculate a specific energy correction that doesn't include the integrator contribution
-	float SEB_rate_correction = _getControlError(seb_rate) * param.pitch_damping_gain + _pitch_integ_state +
-				    param.seb_rate_ff *
-				    seb_rate.setpoint;
-
 	// Calculate derivative from change in climb angle to rate of change of specific energy balance
 	const float climb_angle_to_SEB_rate = input.tas * CONSTANTS_ONE_G;
+
+	// Calculate a specific energy correction that doesn't include the integrator contribution
+	float SEB_rate_correction = _getControlError(seb_rate) * param.pitch_damping_gain +
+				    param.seb_rate_ff *
+				    seb_rate.setpoint;
 
 	// Convert the specific energy balance rate correction to a target pitch angle. This calculation assumes:
 	// a) The climb angle follows pitch angle with a lag that is small enough not to destabilise the control loop.
 	// b) The offset between climb angle and pitch angle (angle of attack) is constant, excluding the effect of
 	// pitch transients due to control action or turbulence.
-	const float pitch_setpoint_unc = SEB_rate_correction / climb_angle_to_SEB_rate;
+	const float pitch_setpoint_unc = SEB_rate_correction / climb_angle_to_SEB_rate + _pitch_integ_state;
 
 	return constrain(pitch_setpoint_unc, param.pitch_min, param.pitch_max);
 }
