@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -54,8 +54,6 @@ static inline constexpr bool TIMESTAMP_VALID(float dt) { return (PX4_ISFINITE(dt
 
 void TECSAirspeedFilter::initialize(const float equivalent_airspeed)
 {
-
-
 	_airspeed_state.speed = equivalent_airspeed;
 	_airspeed_state.speed_rate = 0.0f;
 }
@@ -373,10 +371,7 @@ TECSControl::SpecificEnergyWeighting TECSControl::_updateSpeedAltitudeWeights(co
 	// Calculate the weight applied to control of specific kinetic energy error
 	float pitch_speed_weight = constrain(param.pitch_speed_weight, 0.0f, 2.0f);
 
-	if (flag.climbout_mode_active && flag.airspeed_enabled) {
-		pitch_speed_weight = 2.0f;
-
-	} else if (_ratio_undersped > FLT_EPSILON && flag.airspeed_enabled) {
+	if (_ratio_undersped > FLT_EPSILON && flag.airspeed_enabled) {
 		pitch_speed_weight = 2.0f * _ratio_undersped + (1.0f - _ratio_undersped) * pitch_speed_weight;
 
 	} else if (!flag.airspeed_enabled) {
@@ -463,7 +458,6 @@ void TECSControl::_calcPitchControlUpdate(float dt, const ControlValues &seb_rat
 float TECSControl::_calcPitchControlOutput(const Input &input, const ControlValues &seb_rate, const Param &param,
 		const Flag &flag) const
 {
-	// Pitch setpoint
 	// Calculate a specific energy correction that doesn't include the integrator contribution
 	float SEB_rate_correction = _getControlError(seb_rate) * param.pitch_damping_gain + _pitch_integ_state +
 				    param.seb_rate_ff *
@@ -471,13 +465,6 @@ float TECSControl::_calcPitchControlOutput(const Input &input, const ControlValu
 
 	// Calculate derivative from change in climb angle to rate of change of specific energy balance
 	const float climb_angle_to_SEB_rate = input.tas * CONSTANTS_ONE_G;
-
-	// During climbout, bias the demanded pitch angle so that a zero speed error produces a pitch angle
-	// demand equal to the minimum pitch angle set by the mission plan. This prevents the integrator
-	// having to catch up before the nose can be raised to reduce excess speed during climbout.
-	if (flag.climbout_mode_active) {
-		SEB_rate_correction += param.pitch_min * climb_angle_to_SEB_rate;
-	}
 
 	// Convert the specific energy balance rate correction to a target pitch angle. This calculation assumes:
 	// a) The climb angle follows pitch angle with a lag that is small enough not to destabilise the control loop.
@@ -561,12 +548,6 @@ void TECSControl::_calcThrottleControlUpdate(float dt, const STERateLimit &limit
 			// Calculate a throttle demand from the integrated total energy rate error
 			// This will be added to the total throttle demand to compensate for steady state errors
 			_throttle_integ_state = _throttle_integ_state + throttle_integ_input;
-
-			if (flag.climbout_mode_active) {
-				// During climbout, set the integrator to maximum throttle to prevent transient throttle drop
-				// at end of climbout when we transition to closed loop throttle control
-				_throttle_integ_state = param.throttle_max - _throttle_setpoint;
-			}
 
 		} else {
 			_throttle_integ_state = 0.0f;
@@ -728,7 +709,7 @@ void TECS::initialize(const float altitude, const float altitude_rate, const flo
 }
 
 void TECS::update(float pitch, float altitude, float hgt_setpoint, float EAS_setpoint, float equivalent_airspeed,
-		  float eas_to_tas, bool climb_out_setpoint, float pitch_min_climbout, float throttle_min, float throttle_setpoint_max,
+		  float eas_to_tas, float throttle_min, float throttle_setpoint_max,
 		  float throttle_trim, float pitch_limit_min, float pitch_limit_max, float target_climbrate, float target_sinkrate,
 		  const float speed_deriv_forward, float hgt_rate, float hgt_rate_sp)
 {
@@ -748,7 +729,6 @@ void TECS::update(float pitch, float altitude, float hgt_setpoint, float EAS_set
 	_control_param.throttle_trim = throttle_trim;
 	_control_param.throttle_max = throttle_setpoint_max;
 	_control_param.throttle_min = throttle_min;
-	_control_flag.climbout_mode_active = climb_out_setpoint;
 
 	if (dt < DT_MIN) {
 		// Update intervall too small, do not update. Assume constant states/output in this case.
@@ -803,9 +783,6 @@ void TECS::update(float pitch, float altitude, float hgt_setpoint, float EAS_set
 
 		} else if (_uncommanded_descent_recovery) {
 			_tecs_mode = ECL_TECS_MODE_BAD_DESCENT;
-
-		} else if (climb_out_setpoint) {
-			_tecs_mode = ECL_TECS_MODE_CLIMBOUT;
 
 		} else {
 			// This is the default operation mode
