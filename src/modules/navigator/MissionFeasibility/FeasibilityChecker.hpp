@@ -66,7 +66,7 @@ public:
 		return _takeoff_failed ||
 		       _distance_first_waypoint_failed ||
 		       _distance_between_waypoints_failed ||
-		       _fixed_wing_landing_failed ||
+		       _land_pattern_validity_failed ||
 		       _fixed_wing_land_approach_failed ||
 		       _below_home_alt_failed ||
 		       _mission_validity_failed ||
@@ -97,7 +97,7 @@ private:
 	// internal flags to keep track of which checks failed
 	bool _mission_validity_failed{false};
 	bool _takeoff_failed{false};
-	bool _fixed_wing_landing_failed{false};
+	bool _land_pattern_validity_failed{false};
 	bool _distance_first_waypoint_failed{false};
 	bool _distance_between_waypoints_failed{false};
 	bool _below_home_alt_failed{false};
@@ -128,7 +128,7 @@ private:
 	// methods which are called for each mission item
 	bool checkMissionItemValidity(mission_item_s &mission_item, const int current_index);
 	bool checkTakeoff(mission_item_s &mission_item);
-	bool checkFixedWingLanding(mission_item_s &mission_item, const int current_index);
+	bool checkLandPatternValidity(mission_item_s &mission_item, const int current_index);
 	bool checkDistanceToFirstWaypoint(mission_item_s &mission_item);
 	bool checkDistancesBetweenWaypoints(const mission_item_s &mission_item);
 	bool checkIfBelowHomeAltitude(const mission_item_s &mission_item, const int current_index);
