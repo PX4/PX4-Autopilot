@@ -32,7 +32,7 @@
 ############################################################################
 
 find_program(BLOATY_PROGRAM bloaty)
-if(BLOATY_PROGRAM)
+if(BLOATY_PROGRAM AND ((${PX4_PLATFORM} MATCHES "nuttx") OR (${PX4_PLATFORM} MATCHES "posix")))
 
 	set(BLOATY_OPTS --demangle=full --domain=vm -s vm -n 200 -w)
 

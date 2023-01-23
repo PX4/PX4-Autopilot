@@ -64,6 +64,8 @@ rosidl_generate_interfaces(${PROJECT_NAME}
 	${ros_msg_files}
 )
 
+ament_export_dependencies(rosidl_default_runtime)
+
 # # mc_rate_control_ros2
 # add_executable(mc_rate_control ${CMAKE_SOURCE_DIR}/src/modules/mc_rate_control_ros2/MulticopterRateControl.cpp)
 # target_link_libraries(mc_rate_control px4_layer work_queue)
@@ -76,3 +78,15 @@ rosidl_generate_interfaces(${PROJECT_NAME}
 #     mc_rate_control
 #   DESTINATION lib/${PROJECT_NAME}
 # )
+
+
+
+# TODO: python node
+
+# Install Python modules
+ament_python_install_package(${PROJECT_NAME})
+# Install Python executables
+install(PROGRAMS
+  scripts/py_node.py
+  DESTINATION lib/${PROJECT_NAME}
+)

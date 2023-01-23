@@ -1,6 +1,7 @@
+#!/usr/bin/env python
 ############################################################################
 #
-#   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+#   Copyright (C) 2022 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,12 +32,39 @@
 #
 ############################################################################
 
-enable_language(CXX)
+__author__ = "Jaeyoung Lim"
+__contact__ = "jalim@ethz.ch"
 
-# find dependencies
-find_package(ament_cmake REQUIRED)
-find_package(ament_cmake_python REQUIRED)
-find_package(rclcpp REQUIRED)
-find_package(rclpy REQUIRED)
-find_package(rosidl_default_generators REQUIRED)
-find_package(std_msgs REQUIRED)
+from launch import LaunchDescription
+from launch_ros.actions import Node
+from ament_index_python.packages import get_package_share_directory
+import os
+
+
+def generate_launch_description():
+    package_dir = get_package_share_directory('px4_offboard')
+    return LaunchDescription([
+
+        Node(
+            package='px4_offboard',
+            namespace='px4_offboard',
+            executable='visualizer',
+            name='visualizer'
+        ),
+
+        Node(
+            package='px4_offboard',
+            namespace='px4_offboard',
+            executable='offboard_control',
+            name='control'
+        ),
+
+        Node(
+            package='rviz2',
+            namespace='',
+            executable='rviz2',
+            name='rviz2',
+            arguments=['-d', [os.path.join(package_dir, 'visualize.rviz')]]
+        )
+
+    ])

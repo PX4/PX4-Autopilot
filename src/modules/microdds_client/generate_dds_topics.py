@@ -86,7 +86,7 @@ merged_em_globals = {}
 all_type_includes = []
 
 for p in msg_map['publications']:
-    # eg TrajectoryWaypoint from px4_msgs::msg::TrajectoryWaypoint
+    # eg TrajectoryWaypoint from px4::msg::TrajectoryWaypoint
     simple_base_type = p['type'].split('::')[-1]
 
     # eg TrajectoryWaypoint -> trajectory_waypoint
@@ -96,7 +96,7 @@ for p in msg_map['publications']:
     # simple_base_type: eg vehicle_status
     p['simple_base_type'] = base_type_name_snake_case
 
-    # dds_type: eg px4_msgs::msg::dds_::VehicleStatus_
+    # dds_type: eg px4::msg::dds_::VehicleStatus_
     p['dds_type'] = p['type'].replace("::msg::", "::msg::dds_::") + "_"
 
     # topic_simple: eg vehicle_status
@@ -106,7 +106,7 @@ for p in msg_map['publications']:
 merged_em_globals['publications'] = msg_map['publications']
 
 for s in msg_map['subscriptions']:
-    # eg TrajectoryWaypoint from px4_msgs::msg::TrajectoryWaypoint
+    # eg TrajectoryWaypoint from px4::msg::TrajectoryWaypoint
     simple_base_type = s['type'].split('::')[-1]
 
     # eg TrajectoryWaypoint -> trajectory_waypoint
@@ -116,7 +116,7 @@ for s in msg_map['subscriptions']:
     # simple_base_type: eg vehicle_status
     s['simple_base_type'] = base_type_name_snake_case
 
-    # dds_type: eg px4_msgs::msg::dds_::VehicleStatus_
+    # dds_type: eg px4::msg::dds_::VehicleStatus_
     s['dds_type'] = s['type'].replace("::msg::", "::msg::dds_::") + "_"
 
     # topic_simple: eg vehicle_status

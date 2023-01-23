@@ -10,10 +10,14 @@
   <build_depend>rosidl_default_generators</build_depend>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_python</buildtool_depend>
 
+  <depend>builtin_interfaces</depend>
   <depend>rclcpp</depend>
+  <depend>rclpy</depend>
   <depend>std_msgs</depend>
 
+  <exec_depend>ros2launch</exec_depend>
   <exec_depend>rosidl_default_runtime</exec_depend>
 
   <member_of_group>rosidl_interface_packages</member_of_group>
@@ -23,5 +27,6 @@
 
   <export>
     <build_type>ament_cmake</build_type>
+    <build_type>ament_python</build_type>
   </export>
 </package>
