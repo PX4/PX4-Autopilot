@@ -183,29 +183,6 @@ void LandingTargetEstimator::update()
 
 		_targetInnovationsPub.publish(_target_innovations);
 	}
-
-	switch (_uwb_mode) {
-		case data: {
-				_sensor_uwb.status = 9;
-				break;
-			}
-
-		case prec_nav: { //Precision landing mode
-				uwb_sr150_prec_nav();
-				break;
-			}
-
-		case follow_me: { // Follow me mode
-				uwb_sr150_followme();
-				break;
-			}
-
-		default:
-			_sensor_uwb.status = _uwb_mode;
-			break;
-		}
-
-		//_sensor_uwb_pub.publish(_sensor_uwb);
 }
 
 void LandingTargetEstimator::_check_params(const bool force)
@@ -214,10 +191,8 @@ void LandingTargetEstimator::_check_params(const bool force)
 		parameter_update_s pupdate;
 		_parameter_update_sub.copy(&pupdate);
 
-		// If any parameter updated, call updateParams() to check if
-		// this class attributes need updating (and do so).
-		// updateParams();
-		 _update_params();
+		parameters_update();
+		// _update_params();
 	}
 }
 
@@ -358,7 +333,7 @@ matrix::Vector3d LandingTargetEstimator::UWB_SR150_localization(double distance,
 //TODO: Find out if this works
 void LandingTargetEstimator::uwb_sr150_prec_nav()
 { //Precision landing mode
-				_sensor_uwb.status = 10;
+				// _sensor_uwb.status = 10;
 				_rel_pos = LandingTargetEstimator::UWB_SR150_localization(_sensor_uwb.distance, _sensor_uwb.aoa_azimuth_dev,
 								   _sensor_uwb.aoa_elevation_dev);
 				_sensor_uwb.position[0] = _rel_pos(0);
@@ -368,7 +343,7 @@ void LandingTargetEstimator::uwb_sr150_prec_nav()
 
 void LandingTargetEstimator::uwb_sr150_followme()
 { // Follow me mode
-			_sensor_uwb.status = 11;
+			// _sensor_uwb.status = 11;
 			actuator_control(_sensor_uwb.distance, _sensor_uwb.aoa_azimuth_dev,
 						_sensor_uwb.aoa_elevation_dev);
 }
@@ -453,6 +428,18 @@ void LandingTargetEstimator::actuator_control(double distance, double azimuth, d
 		_actuator_controls_pubs[0].publish(actuator_controls); //flight controls
 	}
 
+}
+
+void LandingTargetEstimator::parameters_update()
+{
+	if (_parameter_update_sub.updated()) {
+		parameter_update_s param_update;
+		_parameter_update_sub.copy(&param_update);
+
+		// If any parameter updated, call updateParams() to check if
+		// this class attributes need updating (and do so).
+		updateParams();
+	}
 }
 
 } // namespace landing_target_estimator

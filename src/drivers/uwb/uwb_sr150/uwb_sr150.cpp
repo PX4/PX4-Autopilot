@@ -107,18 +107,6 @@ UWB_SR150::~UWB_SR150()
 	close(_uart);
 }
 
-UWB_SR150::stop()
-{
-	printf("UWB: Ranging Stopped\t\n");
-
-	//TODO enable stop part
-	//int written = write(_uart, &CMD_APP_STOP, sizeof(CMD_APP_STOP));
-
-	//if (written < (int) sizeof(CMD_APP_STOP)) {
-	//PX4_ERR("Only wrote %d bytes out of %d.", written, (int) sizeof(CMD_APP_STOP));
-	//}
-}
-
 void UWB_SR150::run()
 {
 	// Subscribe to parameter_update message
@@ -159,7 +147,7 @@ int UWB_SR150::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(R"DESC_STR(
 ### Description
 
-Driver for NXP UWB_SR150 UWB positioning system. This driver publishes a `sensor_uwb` message
+Driver for NXP UWB_SR150 UWB positioning system. This driver publishes a `uwb_distance` message
 whenever the UWB_SR150 has a position measurement available.
 
 ### Example
@@ -259,6 +247,18 @@ int uwb_sr150_main(int argc, char *argv[])
 	return UWB_SR150::main(argc, argv);
 }
 
+void UWB_SR150::parameters_update()
+{
+	if (_parameter_update_sub.updated()) {
+		parameter_update_s param_update;
+		_parameter_update_sub.copy(&param_update);
+
+		// If any parameter updated, call updateParams() to check if
+		// this class attributes need updating (and do so).
+		updateParams();
+	}
+}
+
 int UWB_SR150::collectData()
 {
 
@@ -330,9 +330,9 @@ int UWB_SR150::collectData()
 		_sensor_uwb.counter = _distance_result_msg.seq_ctr;
 		_sensor_uwb.sessionid = _distance_result_msg.sessionId;
 		_sensor_uwb.time_offset = _distance_result_msg.range_interval;
-		//_uwb_distance.mac = _distance_result_msg.MAC
 		_sensor_uwb.distance = double(_distance_result_msg.measurements.distance) / 100;
 		_sensor_uwb.nlos = _distance_result_msg.measurements.nLos;
+
 		/*Angle of Arrival has Format Q9.7; dividing by 2^7 and negating results in the correct value*/
 		_sensor_uwb.aoa_azimuth_dev 	= - double(_distance_result_msg.measurements.aoa_azimuth) / 128;
 		_sensor_uwb.aoa_elevation_dev = - double(_distance_result_msg.measurements.aoa_elevation) / 128;
@@ -350,16 +350,4 @@ int UWB_SR150::collectData()
 	}
 
 	return 1;
-}
-
-void UWB_SR150::parameters_update()
-{
-	if (_parameter_update_sub.updated()) {
-		parameter_update_s param_update;
-		_parameter_update_sub.copy(&param_update);
-
-		// If any parameter updated, call updateParams() to check if
-		// this class attributes need updating (and do so).
-		updateParams();
-	}
 }
