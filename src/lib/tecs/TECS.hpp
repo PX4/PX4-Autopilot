@@ -269,7 +269,6 @@ public:
 	 */
 	struct Flag {
 		bool airspeed_enabled;			///< Flag if the airspeed sensor is enabled.
-		bool climbout_mode_active;		///< Flag if climbout mode is activated.
 		bool detect_underspeed_enabled;		///< Flag if underspeed detection is enabled.
 	};
 public:
@@ -586,7 +585,7 @@ public:
 	 *
 	 */
 	void update(float pitch, float altitude, float hgt_setpoint, float EAS_setpoint, float equivalent_airspeed,
-		    float eas_to_tas, bool climb_out_setpoint, float pitch_min_climbout, float throttle_min, float throttle_setpoint_max,
+		    float eas_to_tas, float throttle_min, float throttle_setpoint_max,
 		    float throttle_trim, float pitch_limit_min, float pitch_limit_max, float target_climbrate, float target_sinkrate,
 		    float speed_deriv_forward, float hgt_rate, float hgt_rate_sp = NAN);
 
@@ -726,7 +725,6 @@ private:
 
 	TECSControl::Flag _control_flag{
 		.airspeed_enabled = false,
-		.climbout_mode_active = false,
 		.detect_underspeed_enabled = false,
 	};
 
