@@ -179,6 +179,13 @@ extern "C" __EXPORT int ver_main(int argc, char *argv[])
 					}
 				}
 
+				fwver = px4_firmware_vendor_version();
+				major = (fwver >> (8 * 3)) & 0xFF;
+				minor = (fwver >> (8 * 2)) & 0xFF;
+				patch = (fwver >> (8 * 1)) & 0xFF;
+				type = (fwver >> (8 * 0)) & 0xFF;
+				printf("Vendor version: %u.%u.%u %u (%u)\n", major, minor, patch, type, fwver);
+
 				fwver = px4_os_version();
 				major = (fwver >> (8 * 3)) & 0xFF;
 				minor = (fwver >> (8 * 2)) & 0xFF;
