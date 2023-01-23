@@ -38,7 +38,7 @@
 
 #include "ekf.h"
 
-void Ekf::controlOpticalFlowFusion()
+void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 {
 	// Check if on ground motion is un-suitable for use of optical flow
 	if (!_control_status.flags.in_air) {
@@ -49,15 +49,15 @@ void Ekf::controlOpticalFlowFusion()
 	}
 
 	// Accumulate autopilot gyro data across the same time interval as the flow sensor
-	const Vector3f delta_angle(_imu_sample_delayed.delta_ang - (getGyroBias() * _imu_sample_delayed.delta_ang_dt));
+	const Vector3f delta_angle(imu_delayed.delta_ang - (getGyroBias() * imu_delayed.delta_ang_dt));
 	if (_delta_time_of < 0.1f) {
 		_imu_del_ang_of += delta_angle;
-		_delta_time_of += _imu_sample_delayed.delta_ang_dt;
+		_delta_time_of += imu_delayed.delta_ang_dt;
 
 	} else {
 		// reset the accumulators if the time interval is too large
 		_imu_del_ang_of = delta_angle;
-		_delta_time_of = _imu_sample_delayed.delta_ang_dt;
+		_delta_time_of = imu_delayed.delta_ang_dt;
 	}
 
 	if (_flow_data_ready) {
@@ -71,10 +71,10 @@ void Ekf::controlOpticalFlowFusion()
 
 		if (!is_delta_time_good && (_flow_sample_delayed.dt > FLT_EPSILON)) {
 
-			if (fabsf(_imu_sample_delayed.delta_ang_dt - _flow_sample_delayed.dt) < 0.1f) {
+			if (fabsf(imu_delayed.delta_ang_dt - _flow_sample_delayed.dt) < 0.1f) {
 				// reset accumulators to current IMU
 				_imu_del_ang_of = delta_angle;
-				_delta_time_of = _imu_sample_delayed.delta_ang_dt;
+				_delta_time_of = imu_delayed.delta_ang_dt;
 
 				is_delta_time_good = true;
 			}
@@ -82,7 +82,7 @@ void Ekf::controlOpticalFlowFusion()
 			if (is_quality_good && !is_delta_time_good) {
 				ECL_DEBUG("Optical flow: bad delta time: OF dt %.6f s (min: %.3f, max: %.3f), IMU dt %.6f s",
 					  (double)_flow_sample_delayed.dt, (double)delta_time_min, (double)delta_time_max,
-					  (double)_imu_sample_delayed.delta_ang_dt);
+					  (double)imu_delayed.delta_ang_dt);
 			}
 		}
 
@@ -140,8 +140,8 @@ void Ekf::controlOpticalFlowFusion()
 
 		// inhibit use of optical flow if motion is unsuitable and we are not reliant on it for flight navigation
 		const bool preflight_motion_not_ok = !_control_status.flags.in_air
-						     && ((_imu_sample_delayed.time_us > (_time_good_motion_us + (uint64_t)1E5))
-								     || (_imu_sample_delayed.time_us < (_time_bad_motion_us + (uint64_t)5E6)));
+						     && ((_time_delayed_us > (_time_good_motion_us + (uint64_t)1E5))
+								     || (_time_delayed_us < (_time_bad_motion_us + (uint64_t)5E6)));
 		const bool flight_condition_not_ok = _control_status.flags.in_air && !isTerrainEstimateValid();
 
 		const bool inhibit_flow_use = ((preflight_motion_not_ok || flight_condition_not_ok) && !is_flow_required)
@@ -184,7 +184,7 @@ void Ekf::controlOpticalFlowFusion()
 				}
 			}
 
-			_aid_src_optical_flow.time_last_fuse = _imu_sample_delayed.time_us;
+			_aid_src_optical_flow.time_last_fuse = _time_delayed_us;
 			_control_status.flags.opt_flow = true;
 
 			return;
@@ -192,7 +192,7 @@ void Ekf::controlOpticalFlowFusion()
 
 		if (_control_status.flags.opt_flow) {
 			// Wait until the midpoint of the flow sample has fallen behind the fusion time horizon
-			if (_imu_sample_delayed.time_us > (_flow_sample_delayed.time_us - uint32_t(1e6f * _flow_sample_delayed.dt) / 2)) {
+			if (_time_delayed_us > (_flow_sample_delayed.time_us - uint32_t(1e6f * _flow_sample_delayed.dt) / 2)) {
 				// Fuse optical flow LOS rate observations into the main filter only if height above ground has been updated recently
 				// but use a relaxed time criteria to enable it to coast through bad range finder data
 				if (isRecent(_time_last_hagl_fuse, (uint64_t)10e6)) {
@@ -216,7 +216,7 @@ void Ekf::controlOpticalFlowFusion()
 				_information_events.flags.reset_pos_to_last_known = true;
 				resetHorizontalPositionTo(_last_known_pos.xy(), 0.f);
 
-				_aid_src_optical_flow.time_last_fuse = _imu_sample_delayed.time_us;
+				_aid_src_optical_flow.time_last_fuse = _time_delayed_us;
 			}
 		}
 
@@ -237,15 +237,15 @@ void Ekf::updateOnGroundMotionForOpticalFlowChecks()
 					  || (_R_to_earth(2, 2) < cosf(math::radians(30.0f)))); // tilted excessively
 
 	if (motion_is_excessive) {
-		_time_bad_motion_us = _imu_sample_delayed.time_us;
+		_time_bad_motion_us = _time_delayed_us;
 
 	} else {
-		_time_good_motion_us = _imu_sample_delayed.time_us;
+		_time_good_motion_us = _time_delayed_us;
 	}
 }
 
 void Ekf::resetOnGroundMotionForOpticalFlowChecks()
 {
 	_time_bad_motion_us = 0;
-	_time_good_motion_us = _imu_sample_delayed.time_us;
+	_time_good_motion_us = _time_delayed_us;
 }

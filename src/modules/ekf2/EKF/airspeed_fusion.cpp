@@ -127,7 +127,7 @@ void Ekf::fuseAirspeed(estimator_aid_source1d_s &airspeed)
 	_fault_status.flags.bad_airspeed = !is_fused;
 
 	if (is_fused) {
-		airspeed.time_last_fuse = _imu_sample_delayed.time_us;
+		airspeed.time_last_fuse = _time_delayed_us;
 	}
 }
 
@@ -159,7 +159,7 @@ void Ekf::resetWindUsingAirspeed()
 
 	resetWindCovarianceUsingAirspeed();
 
-	_aid_src_airspeed.time_last_fuse = _imu_sample_delayed.time_us;
+	_aid_src_airspeed.time_last_fuse = _time_delayed_us;
 }
 
 void Ekf::resetWindToZero()

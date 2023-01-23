@@ -178,20 +178,6 @@ struct gpsMessage {
 	float       pdop{};             ///< position dilution of precision
 };
 
-struct outputSample {
-	uint64_t    time_us{};          ///< timestamp of the measurement (uSec)
-	Quatf       quat_nominal{};     ///< nominal quaternion describing vehicle attitude
-	Vector3f    vel{};              ///< NED velocity estimate in earth frame (m/sec)
-	Vector3f    pos{};              ///< NED position estimate in earth frame (m/sec)
-};
-
-struct outputVert {
-	uint64_t    time_us{};          ///< timestamp of the measurement (uSec)
-	float       vert_vel{};         ///< Vertical velocity calculated using alternative algorithm (m/sec)
-	float       vert_vel_integ{};   ///< Integral of vertical velocity (m)
-	float       dt{};               ///< delta time (sec)
-};
-
 struct imuSample {
 	uint64_t    time_us{};                ///< timestamp of the measurement (uSec)
 	Vector3f    delta_ang{};              ///< delta angle in body frame (integrated gyro measurements) (rad)
@@ -423,10 +409,6 @@ struct parameters {
 	Vector3f rng_pos_body{};                ///< xyz position of range sensor in body frame (m)
 	Vector3f flow_pos_body{};               ///< xyz position of range sensor focal point in body frame (m)
 	Vector3f ev_pos_body{};                 ///< xyz position of VI-sensor focal point in body frame (m)
-
-	// output complementary filter tuning
-	float vel_Tau{0.25f};                   ///< velocity state correction time constant (1/sec)
-	float pos_Tau{0.25f};                   ///< position state correction time constant (1/sec)
 
 	// accel bias learning control
 	float acc_bias_lim{0.4f};               ///< maximum accel bias magnitude (m/sec**2)

@@ -59,6 +59,7 @@ add_library(ecl_EKF
 	mag_fusion.cpp
 	optical_flow_control.cpp
 	optflow_fusion.cpp
+	output_predictor.cpp
 	range_finder_consistency_check.cpp
 	range_height_control.cpp
 	sensor_range_finder.cpp

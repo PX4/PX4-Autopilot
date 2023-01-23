@@ -51,7 +51,7 @@ void Ekf::controlFakeHgtFusion()
 		const float obs_var = sq(_params.pos_noaid_noise);
 		const float innov_gate = 3.f;
 
-		updateVerticalPositionAidSrcStatus(_imu_sample_delayed.time_us, _last_known_pos(2), obs_var, innov_gate, aid_src);
+		updateVerticalPositionAidSrcStatus(_time_delayed_us, _last_known_pos(2), obs_var, innov_gate, aid_src);
 
 
 		const bool continuing_conditions_passing = !isVerticalAidingActive();
@@ -98,7 +98,7 @@ void Ekf::resetFakeHgtFusion()
 	resetVerticalVelocityToZero();
 	resetHeightToLastKnown();
 
-	_aid_src_fake_hgt.time_last_fuse = _imu_sample_delayed.time_us;
+	_aid_src_fake_hgt.time_last_fuse = _time_delayed_us;
 }
 
 void Ekf::resetHeightToLastKnown()
