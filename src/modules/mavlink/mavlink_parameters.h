@@ -98,7 +98,6 @@ private:
 
 	// making them static to run computation only once for all instances of MavlinkParametersManager, as the whitelist is the same for all instances
 	static constexpr size_t WHITELIST_MAX_SIZE = 250; // increase if more parameters need to be whitelisted
-	static pthread_once_t _whitelist_once;
 	static param_t _whitelist_ids[WHITELIST_MAX_SIZE];
 	static size_t _whitelist_count;
 
