@@ -34,7 +34,7 @@
 /**
  * @file board_config.h
  *
- * Saluki internal definitions
+ * Icicle internal definitions
  */
 
 #pragma once
@@ -56,7 +56,7 @@
 
 /* Configuration ************************************************************************************/
 
-/* Saluki GPIOs ***********************************************************************************/
+/* Icicle GPIOs *************************************************************************************/
 
 #define BOARD_HAS_HW_VERSIONING
 #define GPIO_HW_VERSION_PIN1    (GPIO_BANK2 | GPIO_PIN20 | GPIO_INPUT)
@@ -87,9 +87,7 @@
 
 /* I2C */
 #define I2C_RESET_SPEED         I2C_SPEED_FAST
-#define SALUKI_I2C_BUS0_HZ      I2C_SPEED_FAST
-#define SALUKI_I2C_BUS1_HZ      I2C_SPEED_FAST
-#define BOARD_I2C_BUS_CLOCK_INIT {SALUKI_I2C_BUS0_HZ, SALUKI_I2C_BUS1_HZ}
+#define BOARD_I2C_BUS_CLOCK_INIT {I2C_SPEED_FAST, I2C_SPEED_FAST}
 
 /* RC Serial port */
 

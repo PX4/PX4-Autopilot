@@ -34,7 +34,7 @@
 /**
  * @file init.c
  *
- * Saluki-specific early startup code.  This file implements the
+ * Icicle-specific early startup code.  This file implements the
  * board_app_initializ() function that is called early by nsh during startup.
  *
  * Code here is run before the rcS script is invoked; it should start required

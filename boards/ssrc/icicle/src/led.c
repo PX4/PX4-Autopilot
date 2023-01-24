@@ -34,7 +34,7 @@
 /**
  * @file led.c
  *
- * Saluki LED backend.
+ * Icicle board LED backend.
  */
 
 #include <px4_platform_common/px4_config.h>

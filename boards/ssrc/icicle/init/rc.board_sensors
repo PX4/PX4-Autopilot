@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Saluki specific board sensors init
+# Icicle specific board sensors init
 #------------------------------------------------------------------------------
 
 #board_adc start

@@ -85,7 +85,7 @@ static void configure_pmp(void)
 
 __EXPORT void mpfs_boardinitialize(void)
 {
-	_alert("Saluki bootloader\n");
+	_alert("Icicle bootloader\n");
 
 	/* this call exists to fix a weird linking issue */
 	up_udelay(0);
