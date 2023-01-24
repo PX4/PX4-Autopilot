@@ -42,3 +42,9 @@
 //--------------------------------------------//---------------------------//----------------
 #define DMACHAN_SPI1_RX    DMAMAP_SPI1_RX_2   // DMA2, Stream 2, Channel 3
 #define DMACHAN_SPI1_TX    DMAMAP_SPI1_TX_2   // DMA2, Stream 5, Channel 3
+
+// Assigned in timer_config.cpp
+
+// Timer 2                                    /* DMA1, Stream 7, Channel 3 DMAMAP_TIM2_UP_2 */
+// Timer 3                                    /* DMA1, Stream 2, Channel 5 DMAMAP_TIM3_UP   */
+// Timer 4                                    /* DMA1, Stream 6, Channel 2 DMAMAP_TIM4_UP   */

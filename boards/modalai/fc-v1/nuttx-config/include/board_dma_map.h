@@ -50,7 +50,7 @@
 | Channel 8  | I2C3_TX          | I2C4_RX          | -                | -                | I2C2_TX          | -                | I2C4_TX          | -                |
 | Channel 9  | -                | SPI2_RX          | -                | -                | -                | -                | SPI2_TX          | -                |
 |            |                  |                  |                  |                  |                  |                  |                  |                  |
-| Usage      | UART5_RX         | SPI2_RX          | UART4_RX         | UART7_RX         | SPI2_TX          | USART2_RX        |TIM4_UP /USART2_TX| UART5_TX         |
+| Usage      |                  | SPI2_RX          | SPI3_RX_2        | UART7_RX         | SPI2_TX          | SPI3_TX_1        | TIM4_UP          |                  |
 
 
 |    DMA2    | Stream 0         | Stream 1         | Stream 2         | Stream 3         | Stream 4         | Stream 5         | Stream 6         | Stream 7         |
@@ -81,15 +81,11 @@
 //--------------------------------------------//---------------------------//----------------
 //      DMAMAP_UART5_RX                       // DMA1, Stream 0, Channel 4    (TELEM2 RX)
 #define DMAMAP_SPI2_RX    DMAMAP_SPI2_RX_1    // DMA1, Stream 1, Channel 9    (SPI2 RX)
-//      DMAMAP_UART4_RX                       // DMA1, Stream 2, Channel 4    (EXPANSION RX)
-//#define DMAMAP_SPI3_RX    DMAMAP_SPI3_RX_2    // DMA1, Stream 2, Channel 0    (SPI3 RX)
+#define DMAMAP_SPI3_RX    DMAMAP_SPI3_RX_2    // DMA1, Stream 2, Channel 0    (SPI3 RX)
 //      DMAMAP_UART7_RX                       // DMA1, Stream 3, Channel 5    (TELEM1 RX)
 #define DMAMAP_SPI2_TX    DMAMAP_SPI2_TX_2    // DMA1, Stream 4, Channel 0    (SPI2 TX)
-//#define DMAMAP_SPI3_TX    DMAMAP_SPI3_TX_1    // DMA1, Stream 5, Channel 0  (ESC RX)
-//      DMAMAP_USART2_RX                      // DMA1, Stream 5, Channel 4    (SPI3 TX)
+#define DMAMAP_SPI3_TX    DMAMAP_SPI3_TX_1    // DMA1, Stream 5, Channel 0    (SPI3 TX)
 //      DMAMAP_TIM4_UP                        // DMA1, Stream 6, Channel 2    (DSHOT)
-//      DMAMAP_USART2_TX                      // DMA1, Stream 6, Channel 4    (ESC TX)
-//      DMAMAP_UART5_TX                       // DMA1, Stream 7, Channel 4    (TELEM2 TX)
 
 //  DMA2 Channel/Stream Selections
 //--------------------------------------------//---------------------------//----------------
