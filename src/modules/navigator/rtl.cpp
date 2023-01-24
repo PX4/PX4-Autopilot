@@ -639,7 +639,7 @@ void RTL::advance_rtl()
 	case RTL_STATE_LOITER:
 
 		if (vtol_in_fw_mode) {
-			_rtl_state = RTL_STATE_TRANSITION_TO_MC;
+			_rtl_state = RTL_STATE_HEAD_TO_CENTER;
 
 		} else {
 			_rtl_state = RTL_STATE_LAND;
