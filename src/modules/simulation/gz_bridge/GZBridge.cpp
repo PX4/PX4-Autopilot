@@ -35,6 +35,7 @@
 
 #include <uORB/Subscription.hpp>
 
+#include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 
 #include <px4_platform_common/getopt.h>
@@ -151,13 +152,17 @@ int GZBridge::init()
 		return PX4_ERROR;
 	}
 
+#if 0
 	// Airspeed: /world/$WORLD/model/$MODEL/link/airspeed_link/sensor/air_speed/air_speed
-	// std::string airpressure_topic = "/world/" + _world_name + "/model/" + _model_name + "/link/airspeed_link/sensor/air_speed/air_speed";
+	std::string airpressure_topic = "/world/" + _world_name + "/model/" + _model_name +
+					"/link/airspeed_link/sensor/air_speed/air_speed";
 
-	// if (!_node.Subscribe(airpressure_topic, &GZBridge::airpressureCallback, this)) {
-	// 	PX4_ERR("failed to subscribe to %s", airpressure_topic.c_str());
-	// 	return PX4_ERROR;
-	// }
+	if (!_node.Subscribe(airpressure_topic, &GZBridge::airpressureCallback, this)) {
+		PX4_ERR("failed to subscribe to %s", airpressure_topic.c_str());
+		return PX4_ERROR;
+	}
+
+#endif
 
 	if (!_mixing_interface_esc.init(_model_name)) {
 		PX4_ERR("failed to init ESC output");
@@ -324,29 +329,31 @@ void GZBridge::clockCallback(const gz::msgs::Clock &clock)
 	pthread_mutex_unlock(&_node_mutex);
 }
 
-// void GZBridge::airpressureCallback(const gz::msgs::FluidPressure &air_pressure)
-// {
-// 	if (hrt_absolute_time() == 0) {
-// 		return;
-// 	}
+#if 0
+void GZBridge::airpressureCallback(const gz::msgs::FluidPressure &air_pressure)
+{
+	if (hrt_absolute_time() == 0) {
+		return;
+	}
 
-// 	pthread_mutex_lock(&_mutex);
+	pthread_mutex_lock(&_mutex);
 
-// 	const uint64_t time_us = (air_pressure.header().stamp().sec() * 1000000) + (air_pressure.header().stamp().nsec() / 1000);
+	const uint64_t time_us = (air_pressure.header().stamp().sec() * 1000000)
+				 + (air_pressure.header().stamp().nsec() / 1000);
 
-// 	double air_pressure_value = air_pressure.pressure();
+	double air_pressure_value = air_pressure.pressure();
 
-// 	differential_pressure_s report{};
-// 	report.timestamp_sample = time_us;
-// 	report.device_id = 1377548; // 1377548: DRV_DIFF_PRESS_DEVTYPE_SIM, BUS: 1, ADDR: 5, TYPE: SIMULATION
-// 	report.differential_pressure_pa = static_cast<float>(air_pressure_value); // hPa to Pa;
-// 	report.temperature = static_cast<float>(air_pressure.variance()) - 273.15f;//_sensors_temperature;
-// 	report.timestamp = hrt_absolute_time();;
-// 	_differential_pressure_pub.publish(report);
+	differential_pressure_s report{};
+	report.timestamp_sample = time_us;
+	report.device_id = 1377548; // 1377548: DRV_DIFF_PRESS_DEVTYPE_SIM, BUS: 1, ADDR: 5, TYPE: SIMULATION
+	report.differential_pressure_pa = static_cast<float>(air_pressure_value); // hPa to Pa;
+	report.temperature = static_cast<float>(air_pressure.variance()) + CONSTANTS_ABSOLUTE_NULL_CELSIUS; // K to C
+	report.timestamp = hrt_absolute_time();;
+	_differential_pressure_pub.publish(report);
 
-// 	pthread_mutex_unlock(&_node_mutex);
-// }
-
+	pthread_mutex_unlock(&_node_mutex);
+}
+#endif
 
 void GZBridge::imuCallback(const gz::msgs::IMU &imu)
 {
@@ -366,9 +373,9 @@ void GZBridge::imuCallback(const gz::msgs::IMU &imu)
 	static const auto q_FLU_to_FRD = gz::math::Quaterniond(0, 1, 0, 0);
 
 	gz::math::Vector3d accel_b = q_FLU_to_FRD.RotateVector(gz::math::Vector3d(
-			imu.linear_acceleration().x(),
-			imu.linear_acceleration().y(),
-			imu.linear_acceleration().z()));
+					     imu.linear_acceleration().x(),
+					     imu.linear_acceleration().y(),
+					     imu.linear_acceleration().z()));
 
 	// publish accel
 	sensor_accel_s sensor_accel{};
@@ -389,9 +396,9 @@ void GZBridge::imuCallback(const gz::msgs::IMU &imu)
 
 
 	gz::math::Vector3d gyro_b = q_FLU_to_FRD.RotateVector(gz::math::Vector3d(
-			imu.angular_velocity().x(),
-			imu.angular_velocity().y(),
-			imu.angular_velocity().z()));
+					    imu.angular_velocity().x(),
+					    imu.angular_velocity().y(),
+					    imu.angular_velocity().z()));
 
 	// publish gyro
 	sensor_gyro_s sensor_gyro{};
@@ -449,10 +456,10 @@ void GZBridge::poseInfoCallback(const gz::msgs::Pose_V &pose)
 
 			// ground truth
 			gz::math::Quaterniond q_gr = gz::math::Quaterniond(
-					pose_orientation.w(),
-					pose_orientation.x(),
-					pose_orientation.y(),
-					pose_orientation.z());
+							     pose_orientation.w(),
+							     pose_orientation.x(),
+							     pose_orientation.y(),
+							     pose_orientation.z());
 
 			gz::math::Quaterniond q_gb = q_gr * q_FLU_to_FRD.Inverse();
 			gz::math::Quaterniond q_nb = q_ENU_to_NED * q_gb;

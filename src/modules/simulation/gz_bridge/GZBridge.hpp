@@ -45,9 +45,9 @@
 #include <lib/geo/geo.h>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/differential_pressure.h>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/sensor_accel.h>
 #include <uORB/topics/sensor_gyro.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
@@ -55,11 +55,12 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
 
+#include <gz/math.hh>
 #include <gz/msgs.hh>
 #include <gz/transport.hh>
-#include <gz/math.hh>
-#include <gz/msgs/imu.pb.h>
+
 // #include <gz/msgs/fluid_pressure.pb.h>
+#include <gz/msgs/imu.pb.h>
 
 using namespace time_literals;
 
@@ -92,14 +93,15 @@ private:
 	bool updateClock(const uint64_t tv_sec, const uint64_t tv_nsec);
 
 	void clockCallback(const gz::msgs::Clock &clock);
+
+	//void airpressureCallback(const gz::msgs::FluidPressure &air_pressure);
 	void imuCallback(const gz::msgs::IMU &imu);
-	void airpressureCallback(const gz::msgs::FluidPressure &air_pressure);
 	void poseInfoCallback(const gz::msgs::Pose_V &pose);
 
 	// Subscriptions
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
-	uORB::Publication<differential_pressure_s>    _differential_pressure_pub{ORB_ID(differential_pressure)};
+	//uORB::Publication<differential_pressure_s>    _differential_pressure_pub{ORB_ID(differential_pressure)};
 	uORB::Publication<vehicle_angular_velocity_s> _angular_velocity_ground_truth_pub{ORB_ID(vehicle_angular_velocity_groundtruth)};
 	uORB::Publication<vehicle_attitude_s>         _attitude_ground_truth_pub{ORB_ID(vehicle_attitude_groundtruth)};
 	uORB::Publication<vehicle_global_position_s>  _gpos_ground_truth_pub{ORB_ID(vehicle_global_position_groundtruth)};

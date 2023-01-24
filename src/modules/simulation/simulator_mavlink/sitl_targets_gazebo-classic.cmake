@@ -1,5 +1,7 @@
 
-find_package(gazebo)
+find_package(gazebo
+	QUIET
+)
 
 if(gazebo_FOUND)
 
