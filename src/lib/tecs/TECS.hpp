@@ -551,7 +551,7 @@ public:
 		TECSControl::DebugOutput control;
 		float true_airspeed_filtered;
 		float true_airspeed_derivative;
-		float altitude_sp;
+		float altitude_sp_ref;
 		float altitude_rate_alt_ref;
 		float altitude_rate_feedforward;
 		enum ECL_TECS_MODE tecs_mode;

@@ -484,7 +484,7 @@ FixedwingPositionControl::tecs_status_publish(float alt_sp, float equivalent_air
 	}
 
 	t.altitude_sp = alt_sp;
-	t.altitude_filtered = debug_output.altitude_sp;
+	t.altitude_sp_filtered = debug_output.altitude_sp_ref;
 	t.height_rate_setpoint = debug_output.control.altitude_rate_control;
 	t.height_rate = -_local_pos.vz;
 	t.equivalent_airspeed_sp = equivalent_airspeed_sp;
