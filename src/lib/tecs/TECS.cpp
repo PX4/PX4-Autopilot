@@ -706,7 +706,7 @@ void TECS::initialize(const float altitude, const float altitude_rate, const flo
 	_debug_status.true_airspeed_filtered = eas_to_tas * eas.speed;
 	_debug_status.true_airspeed_derivative = eas_to_tas * eas.speed_rate;
 	const TECSReferenceModel::AltitudeReferenceState ref_alt{_reference_model.getAltitudeReference()};
-	_debug_status.altitude_sp = ref_alt.alt;
+	_debug_status.altitude_sp_ref = ref_alt.alt;
 	_debug_status.altitude_rate_alt_ref = ref_alt.alt_rate;
 	_debug_status.altitude_rate_feedforward = _reference_model.getAltitudeRateReference();
 
@@ -798,7 +798,7 @@ void TECS::update(float pitch, float altitude, float hgt_setpoint, float EAS_set
 		_debug_status.control = _control.getDebugOutput();
 		_debug_status.true_airspeed_filtered = eas_to_tas * eas.speed;
 		_debug_status.true_airspeed_derivative = eas_to_tas * eas.speed_rate;
-		_debug_status.altitude_sp = control_setpoint.altitude_reference.alt;
+		_debug_status.altitude_sp_ref = control_setpoint.altitude_reference.alt;
 		_debug_status.altitude_rate_alt_ref = control_setpoint.altitude_reference.alt_rate;
 		_debug_status.altitude_rate_feedforward = control_setpoint.altitude_rate_setpoint;
 	}

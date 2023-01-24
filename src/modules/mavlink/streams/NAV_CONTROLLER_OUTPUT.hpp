@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,6 +36,7 @@
 
 #include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/tecs_status.h>
+#include <uORB/topics/vehicle_global_position.h>
 
 class MavlinkStreamNavControllerOutput : public MavlinkStream
 {
@@ -59,6 +60,7 @@ private:
 
 	uORB::Subscription _position_controller_status_sub{ORB_ID(position_controller_status)};
 	uORB::Subscription _tecs_status_sub{ORB_ID(tecs_status)};
+	uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position)};
 
 	bool send() override
 	{
@@ -69,6 +71,9 @@ private:
 			tecs_status_s tecs_status{};
 			_tecs_status_sub.copy(&tecs_status);
 
+			vehicle_global_position_s vehicle_global_position{};
+			_vehicle_global_position_sub.copy(&vehicle_global_position);
+
 			mavlink_nav_controller_output_t msg{};
 
 			msg.nav_roll = math::degrees(pos_ctrl_status.nav_roll);
@@ -77,7 +82,7 @@ private:
 			msg.target_bearing = roundf(math::degrees(pos_ctrl_status.target_bearing));
 			msg.wp_dist = math::constrain(roundf(pos_ctrl_status.wp_dist), 0.f, (float)UINT16_MAX);
 			msg.xtrack_error = pos_ctrl_status.xtrack_error;
-			msg.alt_error = tecs_status.altitude_filtered - tecs_status.altitude_sp;
+			msg.alt_error = tecs_status.altitude_sp - vehicle_global_position.alt;
 			msg.aspd_error = tecs_status.true_airspeed_filtered - tecs_status.true_airspeed_sp;
 
 			mavlink_msg_nav_controller_output_send_struct(_mavlink->get_channel(), &msg);
