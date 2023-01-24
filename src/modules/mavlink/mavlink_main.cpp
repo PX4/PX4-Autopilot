@@ -1578,6 +1578,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("PING", 1.0f);
 		configure_stream_local("POSITION_TARGET_GLOBAL_INT", 10.0f);
 		configure_stream_local("POSITION_TARGET_LOCAL_NED", 10.0f);
+		configure_stream_local("RADIO_STATUS", 1.0f);
 		configure_stream_local("RAW_RPM", 5.0f);
 		configure_stream_local("RC_CHANNELS", 20.0f);
 		configure_stream_local("SERVO_OUTPUT_RAW_0", 10.0f);
@@ -1684,6 +1685,18 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 	/* fallthrough */
 	case MAVLINK_MODE_CUSTOM:
 		//stream nothing
+		configure_stream_local("ALTITUDE", 1.5f);
+		configure_stream_local("ATTITUDE", 3.0f);
+		configure_stream_local("BATTERY_STATUS", 0.5f);
+		configure_stream_local("EXTENDED_SYS_STATE", 0.1f);
+		configure_stream_local("GLOBAL_POSITION_INT", 1.5f);
+		configure_stream_local("GPS_RAW_INT", 0.5f);
+		configure_stream_local("HOME_POSITION", 0.1f);
+		configure_stream_local("RC_CHANNELS", 2.0f);
+		configure_stream_local("SYS_STATUS", 0.1f);
+#if !defined(CONSTRAINED_FLASH)
+		configure_stream_local("LINK_NODE_STATUS", 1.0f);
+#endif // !CONSTRAINED_FLASH
 		break;
 
 	case MAVLINK_MODE_CONFIG: // USB
@@ -1725,6 +1738,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("ORBIT_EXECUTION_STATUS", 5.0f);
 		configure_stream_local("PING", 1.0f);
 		configure_stream_local("POSITION_TARGET_GLOBAL_INT", 10.0f);
+		configure_stream_local("RADIO_STATUS", 1.0f);
 		configure_stream_local("RAW_RPM", 5.0f);
 		configure_stream_local("RC_CHANNELS", 10.0f);
 		configure_stream_local("SCALED_IMU", 25.0f);

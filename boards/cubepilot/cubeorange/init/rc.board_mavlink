@@ -3,8 +3,10 @@
 # Board specific MAVLink startup script.
 #------------------------------------------------------------------------------
 
-# Start ADS-B receiver mavlink connection if console not present
-if [ ! -e /dev/console ]
-then
-	mavlink start -d /dev/ttyS4 -b 57600 -m minimal
-fi
+## Start ADS-B receiver mavlink connection if console not present
+# if [ ! -e /dev/console ]
+# then
+# 	mavlink start -d /dev/ttyS4 -b 57600 -m minimal
+# fi
+
+# Sees.ai - Disabled as we do not use ADS-B and we need ttyS4 for FRSky Telemetry.

@@ -101,6 +101,7 @@
 #include "streams/POSITION_TARGET_GLOBAL_INT.hpp"
 #include "streams/POSITION_TARGET_LOCAL_NED.hpp"
 #include "streams/PROTOCOL_VERSION.hpp"
+#include "streams/RADIO_STATUS.hpp"
 #include "streams/RAW_RPM.hpp"
 #include "streams/RC_CHANNELS.hpp"
 #include "streams/SCALED_IMU.hpp"
@@ -559,8 +560,11 @@ static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamEfiStatus>(),
 #endif // EFI_STATUS_HPP
 #if defined(GPS_RTCM_DATA_HPP)
-	create_stream_list_item<MavlinkStreamGPSRTCMData>()
+	create_stream_list_item<MavlinkStreamGPSRTCMData>(),
 #endif // GPS_RTCM_DATA_HPP
+#if defined(RADIO_STATUS_HPP)
+	create_stream_list_item<MavlinkStreamRadioStatus>()
+#endif // RADIO_STATUS_HPP
 };
 
 const char *get_stream_name(const uint16_t msg_id)

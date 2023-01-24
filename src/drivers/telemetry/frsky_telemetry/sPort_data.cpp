@@ -52,6 +52,7 @@
 #include <lib/geo/geo.h>
 
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_air_data.h>
@@ -59,10 +60,13 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/sensor_gps.h>
 
 #include <drivers/drv_hrt.h>
 
 #define frac(f) (f - (int)f)
+
+static constexpr int GPS_MAX_RECEIVERS = 2;
 
 struct s_port_subscription_data_s {
 	uORB::SubscriptionData<battery_status_s> battery_status_sub{ORB_ID(battery_status)};
@@ -72,6 +76,8 @@ struct s_port_subscription_data_s {
 	uORB::SubscriptionData<vehicle_gps_position_s> vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
 	uORB::SubscriptionData<vehicle_local_position_s> vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::SubscriptionData<vehicle_status_s> vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::SubscriptionMultiArray<sensor_gps_s> sensor_gps_subs{ORB_ID::sensor_gps};
+	sensor_gps_s sensor_gps_data[GPS_MAX_RECEIVERS];
 };
 
 static struct s_port_subscription_data_s *s_port_subscription_data = nullptr;
@@ -108,6 +114,10 @@ void sPort_update_topics()
 	s_port_subscription_data->vehicle_gps_position_sub.update();
 	s_port_subscription_data->vehicle_local_position_sub.update();
 	s_port_subscription_data->vehicle_status_sub.update();
+
+	for (int i = 0; i < GPS_MAX_RECEIVERS; i++) {
+		s_port_subscription_data->sensor_gps_subs[i].update(&s_port_subscription_data->sensor_gps_data[i]);
+	}
 }
 
 static void update_crc(uint16_t *crc, unsigned char b)
@@ -215,9 +225,17 @@ void sPort_send_SPD(int uart)
 // TODO: verify scaling
 void sPort_send_VSPD(int uart, float speed)
 {
+	/* Hijacked to send additional GPS data (David @sees.ai) */
+	// const vehicle_gps_position_s &gps = s_port_subscription_data->vehicle_gps_position_sub.get();
+	// s_port_subscription_data->sensor_gps_data[1];
+	sensor_gps_s gps_raw;
+	s_port_subscription_data->sensor_gps_subs[1].copy(&gps_raw);
+	int32_t gps2_fix_type = (int) 100 * gps_raw.fix_type;
+	sPort_send_data(uart, SMARTPORT_ID_VARIO, gps2_fix_type);
+
 	/* send data for VARIO vertical speed: int16 cm/sec */
-	int32_t ispeed = (int)(100 * speed);
-	sPort_send_data(uart, SMARTPORT_ID_VARIO, ispeed);
+	// int32_t ispeed = (int)(100 * speed);
+	// sPort_send_data(uart, SMARTPORT_ID_VARIO, ispeed);
 }
 
 // verified scaling
@@ -336,6 +354,8 @@ void sPort_send_flight_mode(int uart)
 
 void sPort_send_GPS_info(int uart)
 {
-	const vehicle_gps_position_s &gps = s_port_subscription_data->vehicle_gps_position_sub.get();
-	sPort_send_data(uart, FRSKY_ID_TEMP2, gps.satellites_used * 10 + gps.fix_type);
+	sensor_gps_s gps_raw;
+	s_port_subscription_data->sensor_gps_subs[0].copy(&gps_raw);
+	// const vehicle_gps_position_s &gps = s_port_subscription_data->vehicle_gps_position_sub.get();
+	sPort_send_data(uart, FRSKY_ID_TEMP2, gps_raw.satellites_used * 10 + gps_raw.fix_type);
 }

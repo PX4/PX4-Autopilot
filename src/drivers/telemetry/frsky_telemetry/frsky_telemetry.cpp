@@ -94,34 +94,40 @@ extern "C" __EXPORT int frsky_telemetry_main(int argc, char *argv[]);
 uint16_t get_telemetry_flight_mode(int px4_flight_mode)
 {
 	// map the flight modes (see https://github.com/ilihack/LuaPilot_Taranis_Telemetry/blob/master/SCRIPTS/TELEMETRY/LuaPil.lua#L790)
+
+	// -----sees.ai-----
+	// Nav States defined in msg/vehicle_status.msg*/
+	// The mapping chosen by default is not very helpful, obviously has some historical reasons.
+	// Remapped it to something easier for the pilot to remember. 0-4 Flight modes. 10-13 Automatic actions used regularly >20 Rarely used
+	// modes
 	switch (px4_flight_mode) {
-	case 0: return 18; // manual
+	case 0: return 20; // manual
 
-	case 1: return 23; // alt control
+	case 1: return 1; // alt control
 
-	case 2: return 22; // pos control
+	case 2: return 2; // pos control
 
-	case 3: return 27; // mission
+	case 3: return 22; // mission
 
-	case 4: return 26; // loiter
+	case 4: return 11; // loiter
 
 	case 5:
 	case 6:
-	case 7: return 28; // rtl
+	case 7: return 13; // rtl
 
-	case 10: return 19; // acro
+	case 10: return 21; // acro
 
-	case 14: return 24; // offboard
+	case 14: return 3; // offboard
 
-	case 15: return 20; // stabilized
+	case 15: return 0; // stabilized
 
-	case 17: return 25; // takeoff
+	case 17: return 10; // takeoff
 
 	case 8:
 	case 9:
-	case 18: return 29; // land
+	case 18: return 12; // land
 
-	case 19: return 30; // follow target
+	case 19: return 23; // follow target
 	}
 
 	return -1;
