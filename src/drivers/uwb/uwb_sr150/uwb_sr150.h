@@ -38,14 +38,12 @@
 #include <poll.h>
 #include <sys/select.h>
 #include <sys/time.h>
-
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/module.h>
 #include <perf/perf_counter.h>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
-#include <uORB/topics/landing_target_pose.h>
 #include <uORB/topics/sensor_uwb.h>
 #include <uORB/topics/parameter_update.h>
 
@@ -119,14 +117,14 @@ private:
 	void parameters_update();
 
 	DEFINE_PARAMETERS(
-		// (ParamInt<px4::params::UWB_PORT_CFG>) 			_uwb_port_cfg,
-		(ParamInt<px4::params::UWB_DRIVER_EN>) 			_uwb_driver_en,
+		(ParamInt<px4::params::UWB_PORT_CFG>) 			_uwb_port_cfg,
+		// (ParamInt<px4::params::UWB_DRIVER_EN>) 			_uwb_driver_en,
 		(ParamFloat<px4::params::UWB_INIT_OFF_X>) 		_uwb_init_off_x,
 		(ParamFloat<px4::params::UWB_INIT_OFF_Y>) 		_uwb_init_off_y,
 		(ParamFloat<px4::params::UWB_INIT_OFF_Z>) 		_uwb_init_off_z,
 		(ParamFloat<px4::params::UWB_INIT_YAW>) 		_uwb_init_off_yaw,
 		(ParamFloat<px4::params::UWB_INIT_PITCH>) 		_uwb_init_off_pitch,
-		(ParamInt<px4::params::UWB_SENS_ORIENTATION>) 		_uwb_sens_orientation
+		(ParamInt<px4::params::UWB_SENS_ROT>) 			_uwb_sens_rot
 	)
 
 
@@ -137,14 +135,11 @@ private:
 	int _uart;
 	fd_set _uart_set;
 	struct timeval _uart_timeout {};
+	// need to figure out debugging/error handling still...
 	bool _uwb_pos_debug;
-
 
 	uORB::Publication<sensor_uwb_s> _sensor_uwb_pub{ORB_ID(sensor_uwb)};
 	sensor_uwb_s _sensor_uwb{};
-
-	uORB::Publication<landing_target_pose_s> _landing_target_pub{ORB_ID(landing_target_pose)};
-	landing_target_pose_s _landing_target{};
 
 	distance_msg_t _distance_result_msg{};
 	matrix::Vector3d _rel_pos;
