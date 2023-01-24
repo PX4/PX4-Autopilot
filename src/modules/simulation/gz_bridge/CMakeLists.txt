@@ -77,12 +77,10 @@ if(gz-transport_FOUND)
 	file(GLOB gz_models
 		LIST_DIRECTORIES true
 		RELATIVE ${PX4_SOURCE_DIR}/Tools/simulation/gz/models
-		CONFIGURE_DEPENDS
 		${PX4_SOURCE_DIR}/Tools/simulation/gz/models/*
 	)
 
 	file(GLOB gz_worlds
-		CONFIGURE_DEPENDS
 		${PX4_SOURCE_DIR}/Tools/simulation/gz/worlds/*.sdf
 	)
 
