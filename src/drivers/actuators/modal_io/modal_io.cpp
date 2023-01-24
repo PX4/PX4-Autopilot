@@ -1091,7 +1091,7 @@ void ModalIo::mix_turtle_mode(uint16_t outputs[MAX_ACTUATORS])
 
 /* OutputModuleInterface */
 bool ModalIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
-			       unsigned num_outputs, unsigned num_control_groups_updated)
+			    unsigned num_outputs, unsigned num_control_groups_updated)
 {
 	if (num_outputs != MODAL_IO_OUTPUT_CHANNELS) {
 		return false;
