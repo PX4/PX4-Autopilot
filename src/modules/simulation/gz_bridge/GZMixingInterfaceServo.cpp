@@ -35,17 +35,18 @@
 
 bool GZMixingInterfaceServo::init(const std::string &model_name)
 {
-#if 0 // TODO
-	// output eg /X500/command/motor_speed
-	std::string actuator_topic = "/" + model_name + "/command/motor_speed";
-	_actuators_pub = _node.Advertise<ignition::msgs::Actuators>(actuator_topic);
+	// /model/plane_0/joint/left_elevon_joint/0/cmd_pos
+	for (int i = 0; i < 8; i++) {
+		std::string joint_name = "px4_servo_" + std::to_string(i);
+		std::string servo_topic = "/model/" + model_name + "/joint/" + joint_name + "/0/cmd_pos";
+		//std::cout << "Servo topic: " << servo_topic << std::endl;
+		_servos_pub.push_back(_node.Advertise<ignition::msgs::Double>(servo_topic));
 
-	if (!_actuators_pub.Valid()) {
-		PX4_ERR("failed to advertise %s", actuator_topic.c_str());
-		return false;
+		if (!_servos_pub.back().Valid()) {
+			PX4_ERR("failed to advertise %s", servo_topic.c_str());
+			return false;
+		}
 	}
-
-#endif
 
 	ScheduleNow();
 
@@ -55,37 +56,30 @@ bool GZMixingInterfaceServo::init(const std::string &model_name)
 bool GZMixingInterfaceServo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
 		unsigned num_control_groups_updated)
 {
-
+	bool updated = false;
 	// cmd.command_value = (float)outputs[i] / 500.f - 1.f; // [-1, 1]
 
-#if 0 // TODO
-	unsigned active_output_count = 0;
+	int i = 0;
 
-	for (unsigned i = 0; i < num_outputs; i++) {
+	for (auto &servo_pub : _servos_pub) {
 		if (_mixing_output.isFunctionSet(i)) {
-			active_output_count++;
+			ignition::msgs::Double servo_output;
+			///TODO: Normalize output data
+			double output = (outputs[i] - 500) / 500.0;
+			// std::cout << "outputs[" << i << "]: " << outputs[i] << std::endl;
+			// std::cout << "  output: " << output << std::endl;
+			servo_output.set_data(output);
 
-		} else {
-			break;
+			if (servo_pub.Valid()) {
+				servo_pub.Publish(servo_output);
+				updated = true;
+			}
 		}
+
+		i++;
 	}
 
-	if (active_output_count > 0) {
-		ignition::msgs::Actuators rotor_velocity_message;
-		rotor_velocity_message.mutable_velocity()->Resize(active_output_count, 0);
-
-		for (unsigned i = 0; i < active_output_count; i++) {
-			rotor_velocity_message.set_velocity(i, outputs[i]);
-		}
-
-		if (_actuators_pub.Valid()) {
-			return _actuators_pub.Publish(rotor_velocity_message);
-		}
-	}
-
-#endif
-
-	return false;
+	return updated;
 }
 
 void GZMixingInterfaceServo::Run()
