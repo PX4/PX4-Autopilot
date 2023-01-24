@@ -63,14 +63,6 @@
 
 using namespace time_literals;
 
-static constexpr auto DEFAULT_HOME_ALT_AMSL = 488.0f; // altitude AMSL at Irchel Park, Zurich, Switzerland [m]
-
-// international standard atmosphere (troposphere model - valid up to 11km) see [1]
-static constexpr auto TEMPERATURE_MSL = 288.15f; // temperature at MSL [K] (15 [C])
-static constexpr auto PRESSURE_MSL = 101325.0f; // pressure at MSL [Pa]
-static constexpr auto LAPSE_RATE = 0.0065f; // reduction in temperature with altitude for troposphere [K/m]
-static constexpr auto AIR_DENSITY_MSL = 1.225f; // air density at MSL [kg/m^3]
-
 class GZBridge : public ModuleBase<GZBridge>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
