@@ -45,6 +45,7 @@
 #include <lib/geo/geo.h>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/topics/differential_pressure.h>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_accel.h>
@@ -54,12 +55,21 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
 
-#include <ignition/msgs.hh>
-#include <ignition/transport.hh>
-#include <ignition/math.hh>
-#include <ignition/msgs/imu.pb.h>
+#include <gz/msgs.hh>
+#include <gz/transport.hh>
+#include <gz/math.hh>
+#include <gz/msgs/imu.pb.h>
+// #include <gz/msgs/fluid_pressure.pb.h>
 
 using namespace time_literals;
+
+static constexpr auto DEFAULT_HOME_ALT_AMSL = 488.0f; // altitude AMSL at Irchel Park, Zurich, Switzerland [m]
+
+// international standard atmosphere (troposphere model - valid up to 11km) see [1]
+static constexpr auto TEMPERATURE_MSL = 288.15f; // temperature at MSL [K] (15 [C])
+static constexpr auto PRESSURE_MSL = 101325.0f; // pressure at MSL [Pa]
+static constexpr auto LAPSE_RATE = 0.0065f; // reduction in temperature with altitude for troposphere [K/m]
+static constexpr auto AIR_DENSITY_MSL = 1.225f; // air density at MSL [kg/m^3]
 
 class GZBridge : public ModuleBase<GZBridge>, public ModuleParams, public px4::ScheduledWorkItem
 {
@@ -89,13 +99,15 @@ private:
 
 	bool updateClock(const uint64_t tv_sec, const uint64_t tv_nsec);
 
-	void clockCallback(const ignition::msgs::Clock &clock);
-	void imuCallback(const ignition::msgs::IMU &imu);
-	void poseInfoCallback(const ignition::msgs::Pose_V &pose);
+	void clockCallback(const gz::msgs::Clock &clock);
+	void imuCallback(const gz::msgs::IMU &imu);
+	void airpressureCallback(const gz::msgs::FluidPressure &air_pressure);
+	void poseInfoCallback(const gz::msgs::Pose_V &pose);
 
 	// Subscriptions
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
+	uORB::Publication<differential_pressure_s>    _differential_pressure_pub{ORB_ID(differential_pressure)};
 	uORB::Publication<vehicle_angular_velocity_s> _angular_velocity_ground_truth_pub{ORB_ID(vehicle_angular_velocity_groundtruth)};
 	uORB::Publication<vehicle_attitude_s>         _attitude_ground_truth_pub{ORB_ID(vehicle_attitude_groundtruth)};
 	uORB::Publication<vehicle_global_position_s>  _gpos_ground_truth_pub{ORB_ID(vehicle_global_position_groundtruth)};
@@ -123,7 +135,7 @@ private:
 	const std::string _model_sim;
 	const std::string _model_pose;
 
-	ignition::transport::Node _node;
+	gz::transport::Node _node;
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::SIM_GZ_HOME_LAT>) _param_sim_home_lat,

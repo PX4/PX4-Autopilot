@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <sdf version='1.9'>
-  <model name='plane'>
+  <model name='rascal_110'>
     <pose>0 0 0.246 0 0 0</pose>
     <link name='base_link'>
       <pose>0 0 0 0 0 0</pose>
@@ -37,7 +37,7 @@
         <geometry>
           <mesh>
             <scale>0.1 0.1 0.1</scale>
-            <uri>model://plane/meshes/body.dae</uri>
+            <uri>model://rascal_110/meshes/body.dae</uri>
           </mesh>
         </geometry>
         <material>
@@ -67,7 +67,7 @@
           <izz>1e-05</izz>
         </inertia>
       </inertial>
-      <visual name="visual">
+      <visual name="airspeed_visual">
         <geometry>
           <cylinder>
             <radius>0.01</radius>
@@ -98,7 +98,7 @@
       <parent>base_link</parent>
     </joint>
     <link name='rotor_puller'>
-      <pose>0.22 0 0.0 0 1.57 0</pose>
+      <pose>0.22 0 0.0 0 0 0</pose>
       <inertial>
         <pose>0 0 0 0 0 0</pose>
         <mass>0.005</mass>
@@ -136,11 +136,11 @@
         </geometry>
       </visual> -->
       <visual name='rotor_puller_visual'>
-        <pose>0 0 0 0.0 0 0.0</pose>
+        <pose>0 0 0 1.57079632679 0 1.57079632679</pose>
         <geometry>
           <mesh>
             <scale>1 1 1</scale>
-            <uri>model://plane/meshes/iris_prop_ccw.dae</uri>
+            <uri>model://rascal_110/meshes/iris_prop_ccw.dae</uri>
           </mesh>
         </geometry>
         <material>
@@ -156,7 +156,7 @@
       <child>rotor_puller</child>
       <parent>base_link</parent>
       <axis>
-        <xyz>0 0 1</xyz>
+        <xyz>1 0 0</xyz>
         <limit>
           <lower>-1e+16</lower>
           <upper>1e+16</upper>
@@ -186,7 +186,7 @@
         <geometry>
           <mesh>
             <scale>0.1 0.1 0.1</scale>
-            <uri>model://plane/meshes/left_aileron.dae</uri>
+            <uri>model://rascal_110/meshes/left_aileron.dae</uri>
           </mesh>
         </geometry>
         <material>
@@ -213,7 +213,7 @@
         <geometry>
           <mesh>
             <scale>0.1 0.1 0.1</scale>
-            <uri>model://plane/meshes/right_aileron.dae</uri>
+            <uri>model://rascal_110/meshes/right_aileron.dae</uri>
           </mesh>
         </geometry>
         <material>
@@ -240,7 +240,7 @@
         <geometry>
           <mesh>
             <scale>0.1 0.1 0.1</scale>
-            <uri>model://plane/meshes/left_flap.dae</uri>
+            <uri>model://rascal_110/meshes/left_flap.dae</uri>
           </mesh>
         </geometry>
         <material>
@@ -267,7 +267,7 @@
         <geometry>
           <mesh>
             <scale>0.1 0.1 0.1</scale>
-            <uri>model://plane/meshes/right_flap.dae</uri>
+            <uri>model://rascal_110/meshes/right_flap.dae</uri>
           </mesh>
         </geometry>
         <material>
@@ -294,7 +294,7 @@
         <geometry>
           <mesh>
             <scale>0.1 0.1 0.1</scale>
-            <uri>model://plane/meshes/elevators.dae</uri>
+            <uri>model://rascal_110/meshes/elevators.dae</uri>
           </mesh>
         </geometry>
         <material>
@@ -321,7 +321,7 @@
         <geometry>
           <mesh>
             <scale>0.1 0.1 0.1</scale>
-            <uri>model://plane/meshes/rudder.dae</uri>
+            <uri>model://rascal_110/meshes/rudder.dae</uri>
           </mesh>
         </geometry>
         <material>
@@ -472,6 +472,7 @@
     <plugin
       filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
       <joint_name>px4_servo_0</joint_name>
+      <sub_topic>px4_servo_0</sub_topic>
     </plugin>
     <plugin filename="gz-sim-lift-drag-system" name="gz::sim::systems::LiftDrag">
       <a0>0.05984281113</a0>
@@ -494,6 +495,7 @@
     <plugin
       filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
       <joint_name>px4_servo_1</joint_name>
+      <sub_topic>px4_servo_1</sub_topic>
     </plugin>
     <plugin filename="gz-sim-lift-drag-system" name="gz::sim::systems::LiftDrag">
       <a0>0.05984281113</a0>
@@ -531,7 +533,7 @@
       <control_joint_name>right_flap_joint</control_joint_name>
       <control_joint_rad_to_cl>-0.1</control_joint_rad_to_cl>
     </plugin>
-      <plugin filename="gz-sim-lift-drag-system" name="gz::sim::systems::LiftDrag">
+    <plugin filename="gz-sim-lift-drag-system" name="gz::sim::systems::LiftDrag">
       <a0>-0.2</a0>
       <cla>4.752798721</cla>
       <cda>0.6417112299</cda>
@@ -552,6 +554,7 @@
     <plugin
       filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
       <joint_name>px4_servo_2</joint_name>
+      <sub_topic>px4_servo_2</sub_topic>
     </plugin>
     <plugin filename="gz-sim-lift-drag-system" name="gz::sim::systems::LiftDrag">
       <a0>0.0</a0>
@@ -575,7 +578,7 @@
       filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
       <joint_name>rudder_joint</joint_name>
     </plugin>
-   <plugin filename="ignition-gazebo-multicopter-motor-model-system" name="gz::sim::systems::MulticopterMotorModel">
+    <plugin filename="ignition-gazebo-multicopter-motor-model-system" name="gz::sim::systems::MulticopterMotorModel">
       <jointName>rotor_puller_joint</jointName>
       <linkName>rotor_puller</linkName>
       <turningDirection>cw</turningDirection>
