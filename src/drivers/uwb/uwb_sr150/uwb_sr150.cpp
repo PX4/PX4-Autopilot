@@ -67,6 +67,7 @@ extern "C" __EXPORT int uwb_sr150_main(int argc, char *argv[]);
 
 UWB_SR150::UWB_SR150(const char *device_name, speed_t baudrate, bool uwb_pos_debug):
 	ModuleParams(nullptr),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::ttyS1),
 	_read_count_perf(perf_alloc(PC_COUNT, "uwb_sr150_count")),
 	_read_err_perf(perf_alloc(PC_COUNT, "uwb_sr150_err"))
 {

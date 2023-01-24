@@ -38,9 +38,12 @@
 #include <poll.h>
 #include <sys/select.h>
 #include <sys/time.h>
+#include <perf/perf_counter.h>
+
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/module.h>
-#include <perf/perf_counter.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
@@ -78,7 +81,7 @@ typedef struct {
 } __attribute__((packed)) distance_msg_t;
 
 
-class UWB_SR150 : public ModuleBase<UWB_SR150>, public ModuleParams
+class UWB_SR150 : public ModuleBase<UWB_SR150>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
 	UWB_SR150(const char *device_name, speed_t baudrate, bool uwb_pos_debug);
