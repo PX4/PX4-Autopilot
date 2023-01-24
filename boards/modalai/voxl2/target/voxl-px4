@@ -22,7 +22,7 @@ S="OFF"
 R="SPEKTRUM"
 C="ACTUAL"
 
-while getopts "dsifrcz" flag
+while getopts "dsifrocz" flag
 do
     case "${flag}" in
         # Use -d to put PX4 into daemon mode
@@ -37,6 +37,8 @@ do
         r) R="CRSF_MAV";;
         # Use -r to specify TBS Crossfire RC receiver, raw
         c) R="CRSF_RAW";;
+        # Use -o to start OSD module on the apps processor
+        o) O="OSD";;
         # Use -z to specify that you want to set fake sensor calibration values
         z) C="FAKE"
     esac
@@ -55,4 +57,4 @@ if [ $C = "FAKE" ]; then
 fi
 
 
-TESTMODE=$S RC=$R IMU=$I px4 $DAEMON -s /etc/modalai/voxl-px4.config
+TESTMODE=$S RC=$R OSD=$O IMU=$I px4 $DAEMON -s /etc/modalai/voxl-px4.config
