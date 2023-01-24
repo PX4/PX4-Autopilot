@@ -72,5 +72,5 @@ private:
 
 	MixingOutput _mixing_output{"SIM_GZ_SV", MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
 
-	//ignition::transport::Node::Publisher _actuators_pub;
+	std::vector<ignition::transport::Node::Publisher> _servos_pub;
 };
