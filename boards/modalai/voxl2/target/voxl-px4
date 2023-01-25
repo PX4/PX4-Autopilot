@@ -20,15 +20,18 @@ fi
 DAEMON=" "
 S="OFF"
 R="SPEKTRUM"
+G="HOLYBRO"
 C="ACTUAL"
 
-while getopts "dsifrocz" flag
+while getopts "dsmifrocz" flag
 do
     case "${flag}" in
         # Use -d to put PX4 into daemon mode
         d) DAEMON="-d";;
         # Use -s to run self tests
         s) S="ON";;
+        # Use -m to specify Mateksys M8Q-5883 GPS unit
+        m) G="MATEK";;
         # Use -i to specify IMU rotation of ROTATION_YAW_180
         i) I="ROTATE_IMU_YAW_180";;
         # Use -f to specify fake rc input instead of from a real transmitter
@@ -57,4 +60,4 @@ if [ $C = "FAKE" ]; then
 fi
 
 
-TESTMODE=$S RC=$R OSD=$O IMU=$I px4 $DAEMON -s /etc/modalai/voxl-px4.config
+TESTMODE=$S GPS=$G RC=$R OSD=$O IMU=$I px4 $DAEMON -s /etc/modalai/voxl-px4.config
