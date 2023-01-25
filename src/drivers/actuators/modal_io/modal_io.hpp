@@ -48,16 +48,16 @@
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/actuator_test.h>
 
-#include "modalai_esc_serial.hpp"
+#include "modal_io_serial.hpp"
 
 #include "qc_esc_packet.h"
 #include "qc_esc_packet_types.h"
 
-class ModalaiEsc : public ModuleBase<ModalaiEsc>, public OutputModuleInterface
+class ModalIo : public ModuleBase<ModalIo>, public OutputModuleInterface
 {
 public:
-	ModalaiEsc();
-	virtual ~ModalaiEsc();
+	ModalIo();
+	virtual ~ModalIo();
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -80,13 +80,6 @@ public:
 
 	virtual int	init();
 
-	typedef enum {
-		UART_ESC_RESET,
-		UART_ESC_VERSION,
-		UART_ESC_TONE,
-		UART_ESC_LED
-	} uart_esc_cmd_t;
-
 	struct Command {
 		uint16_t	id                 = 0;
 		uint8_t 	len                = 0;
@@ -107,50 +100,50 @@ public:
 	int send_cmd_thread_safe(Command *cmd);
 
 private:
-	static constexpr uint32_t MODALAI_ESC_UART_CONFIG = 1;
-	static constexpr uint32_t MODALAI_ESC_DEFAULT_BAUD = 250000;
-	static constexpr uint16_t MODALAI_ESC_OUTPUT_CHANNELS = 4;
-	static constexpr uint16_t MODALAI_ESC_OUTPUT_DISABLED = 0;
+	static constexpr uint32_t MODAL_IO_UART_CONFIG = 1;
+	static constexpr uint32_t MODAL_IO_DEFAULT_BAUD = 250000;
+	static constexpr uint16_t MODAL_IO_OUTPUT_CHANNELS = 4;
+	static constexpr uint16_t MODAL_IO_OUTPUT_DISABLED = 0;
 
-	static constexpr uint32_t MODALAI_ESC_WRITE_WAIT_US = 200;
-	static constexpr uint32_t MODALAI_ESC_DISCONNECT_TIMEOUT_US = 500000;
+	static constexpr uint32_t MODAL_IO_WRITE_WAIT_US = 200;
+	static constexpr uint32_t MODAL_IO_DISCONNECT_TIMEOUT_US = 500000;
 
 	static constexpr uint16_t DISARMED_VALUE = 0;
 
-	static constexpr uint16_t MODALAI_ESC_PWM_MIN = 0;
-	static constexpr uint16_t MODALAI_ESC_PWM_MAX = 800;
-	static constexpr uint16_t MODALAI_ESC_DEFAULT_RPM_MIN = 5000;
-	static constexpr uint16_t MODALAI_ESC_DEFAULT_RPM_MAX = 17000;
+	static constexpr uint16_t MODAL_IO_PWM_MIN = 0;
+	static constexpr uint16_t MODAL_IO_PWM_MAX = 800;
+	static constexpr uint16_t MODAL_IO_DEFAULT_RPM_MIN = 5000;
+	static constexpr uint16_t MODAL_IO_DEFAULT_RPM_MAX = 17000;
 
-	static constexpr float    MODALAI_ESC_MODE_DISABLED_SETPOINT = -0.1f;
-	static constexpr float    MODALAI_ESC_MODE_THRESHOLD = 0.0f;
+	static constexpr float    MODAL_IO_MODE_DISABLED_SETPOINT = -0.1f;
+	static constexpr float    MODAL_IO_MODE_THRESHOLD = 0.0f;
 
-	static constexpr uint32_t MODALAI_ESC_MODE = 0;
-	static constexpr uint32_t MODALAI_ESC_MODE_TURTLE_AUX1 = 1;
-	static constexpr uint32_t MODALAI_ESC_MODE_TURTLE_AUX2 = 2;
-	static constexpr uint32_t MODALAI_ESC_MODE_UART_BRIDGE = 3;
+	static constexpr uint32_t MODAL_IO_MODE = 0;
+	static constexpr uint32_t MODAL_IO_MODE_TURTLE_AUX1 = 1;
+	static constexpr uint32_t MODAL_IO_MODE_TURTLE_AUX2 = 2;
+	static constexpr uint32_t MODAL_IO_MODE_UART_BRIDGE = 3;
 
-	//static constexpr uint16_t max_pwm(uint16_t pwm) { return math::min(pwm, MODALAI_ESC_PWM_MAX); }
-	//static constexpr uint16_t max_rpm(uint16_t rpm) { return math::min(rpm, MODALAI_ESC_RPM_MAX); }
+	//static constexpr uint16_t max_pwm(uint16_t pwm) { return math::min(pwm, MODAL_IO_PWM_MAX); }
+	//static constexpr uint16_t max_rpm(uint16_t rpm) { return math::min(rpm, MODAL_IO_RPM_MAX); }
 
-	ModalaiEscSerial 	*_uart_port;
-	ModalaiEscSerial 	*_uart_port_bridge;
+	ModalIoSerial 		*_uart_port;
+	ModalIoSerial		*_uart_port_bridge;
 
 	typedef struct {
-		int32_t		config{MODALAI_ESC_UART_CONFIG};
-		int32_t		mode{MODALAI_ESC_MODE};
+		int32_t		config{MODAL_IO_UART_CONFIG};
+		int32_t		mode{MODAL_IO_MODE};
 		int32_t		turtle_motor_expo{35};
 		int32_t		turtle_motor_deadband{20};
 		int32_t		turtle_motor_percent{90};
 		float		turtle_stick_minf{0.15f};
 		float		turtle_cosphi{0.99f};
-		int32_t		baud_rate{MODALAI_ESC_DEFAULT_BAUD};
-		int32_t		rpm_min{MODALAI_ESC_DEFAULT_RPM_MIN};
-		int32_t		rpm_max{MODALAI_ESC_DEFAULT_RPM_MAX};
-		int32_t		function_map[MODALAI_ESC_OUTPUT_CHANNELS] {0, 0, 0, 0};
-		int32_t		motor_map[MODALAI_ESC_OUTPUT_CHANNELS] {1, 2, 3, 4};
-		int32_t		direction_map[MODALAI_ESC_OUTPUT_CHANNELS] {1, 1, 1, 1};
-	} uart_esc_params_t;
+		int32_t		baud_rate{MODAL_IO_DEFAULT_BAUD};
+		int32_t		rpm_min{MODAL_IO_DEFAULT_RPM_MIN};
+		int32_t		rpm_max{MODAL_IO_DEFAULT_RPM_MAX};
+		int32_t		function_map[MODAL_IO_OUTPUT_CHANNELS] {0, 0, 0, 0};
+		int32_t		motor_map[MODAL_IO_OUTPUT_CHANNELS] {1, 2, 3, 4};
+		int32_t		direction_map[MODAL_IO_OUTPUT_CHANNELS] {1, 1, 1, 1};
+	} modal_io_params_t;
 
 	struct EscChan {
 		int16_t		rate_req;
@@ -173,13 +166,13 @@ private:
 	typedef struct {
 		led_control_s		control{};
 		vehicle_control_mode_s	mode{};
-		uint8_t			led_mask;// TODO led_mask[MODALAI_ESC_OUTPUT_CHANNELS];
+		uint8_t			led_mask;// TODO led_mask[MODAL_IO_OUTPUT_CHANNELS];
 		bool			breath_en;
 		uint8_t			breath_counter;
 		bool			test;
 	} led_rsc_t;
 
-	ch_assign_t		_output_map[MODALAI_ESC_OUTPUT_CHANNELS] {{1, 1}, {2, 1}, {3, 1}, {4, 1}};
+	ch_assign_t		_output_map[MODAL_IO_OUTPUT_CHANNELS] {{1, 1}, {2, 1}, {3, 1}, {4, 1}};
 	MixingOutput 		_mixing_output;
 
 	perf_counter_t		_cycle_perf;
@@ -198,9 +191,9 @@ private:
 	//uORB::Publication<actuator_outputs_s> _outputs_debug_pub{ORB_ID(actuator_outputs_debug)};
 	uORB::Publication<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
 
-	uart_esc_params_t	_parameters;
+	modal_io_params_t	_parameters;
 	int			update_params();
-	int			load_params(uart_esc_params_t *params, ch_assign_t *map);
+	int			load_params(modal_io_params_t *params, ch_assign_t *map);
 
 	bool			_turtle_mode_en{false};
 	int32_t			_rpm_turtle_min{0};
@@ -211,7 +204,7 @@ private:
 	Command 		_current_cmd;
 	px4::atomic<Command *>	_pending_cmd{nullptr};
 
-	EscChan			_esc_chans[MODALAI_ESC_OUTPUT_CHANNELS];
+	EscChan			_esc_chans[MODAL_IO_OUTPUT_CHANNELS];
 	Command			_esc_cmd;
 	esc_status_s		_esc_status;
 	EscPacket		_fb_packet;

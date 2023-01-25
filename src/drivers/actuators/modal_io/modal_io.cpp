@@ -33,34 +33,34 @@
 
 #include <px4_platform_common/getopt.h>
 
-#include "modalai_esc.hpp"
-#include "modalai_esc_serial.hpp"
+#include "modal_io.hpp"
+#include "modal_io_serial.hpp"
 
 // utility for running on VOXL and using driver as a bridge
-#define MODALAI_ESC_VOXL_BRIDGE_PORT	"/dev/ttyS4"
+#define MODAL_IO_VOXL_BRIDGE_PORT	"/dev/ttyS4"
 
 // future use:
 #define MODALAI_PUBLISH_ESC_STATUS	0
 
 const char *_device;
 
-ModalaiEsc::ModalaiEsc() :
-	OutputModuleInterface(MODULE_NAME, px4::serial_port_to_wq(MODALAI_ESC_DEFAULT_PORT)),
-	_mixing_output{"UART_ESC", MODALAI_ESC_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false},
+ModalIo::ModalIo() :
+	OutputModuleInterface(MODULE_NAME, px4::serial_port_to_wq(MODAL_IO_DEFAULT_PORT)),
+	_mixing_output{"MODAL_IO", MODAL_IO_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false},
 	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
 	_output_update_perf(perf_alloc(PC_INTERVAL, MODULE_NAME": output update interval"))
 {
-	_device = MODALAI_ESC_DEFAULT_PORT;
+	_device = MODAL_IO_DEFAULT_PORT;
 
 	_mixing_output.setAllFailsafeValues(0);
 	_mixing_output.setAllDisarmedValues(0);
 
 	_esc_status.timestamp          = hrt_absolute_time();
 	_esc_status.counter            = 0;
-	_esc_status.esc_count          = MODALAI_ESC_OUTPUT_CHANNELS;
+	_esc_status.esc_count          = MODAL_IO_OUTPUT_CHANNELS;
 	_esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_SERIAL;
 
-	for (unsigned i = 0; i < MODALAI_ESC_OUTPUT_CHANNELS; i++) {
+	for (unsigned i = 0; i < MODAL_IO_OUTPUT_CHANNELS; i++) {
 		_esc_status.esc[i].timestamp       = 0;
 		_esc_status.esc[i].esc_address     = 0;
 		_esc_status.esc[i].esc_rpm         = 0;
@@ -79,7 +79,7 @@ ModalaiEsc::ModalaiEsc() :
 	_fb_idx = 0;
 }
 
-ModalaiEsc::~ModalaiEsc()
+ModalIo::~ModalIo()
 {
 	_outputs_on = false;
 
@@ -97,7 +97,7 @@ ModalaiEsc::~ModalaiEsc()
 	perf_free(_output_update_perf);
 }
 
-int ModalaiEsc::init()
+int ModalIo::init()
 {
 
 	/* Getting initial parameter values */
@@ -107,8 +107,8 @@ int ModalaiEsc::init()
 		return ret;
 	}
 
-	_uart_port = new ModalaiEscSerial();
-	_uart_port_bridge = new ModalaiEscSerial();
+	_uart_port = new ModalIoSerial();
+	_uart_port_bridge = new ModalIoSerial();
 	memset(&_esc_chans, 0x00, sizeof(_esc_chans));
 
 	//get_instance()->ScheduleOnInterval(10000); //100hz
@@ -118,79 +118,79 @@ int ModalaiEsc::init()
 	return 0;
 }
 
-int ModalaiEsc::load_params(uart_esc_params_t *params, ch_assign_t *map)
+int ModalIo::load_params(modal_io_params_t *params, ch_assign_t *map)
 {
 	int ret = PX4_OK;
 
 	// initialize out
-	for (int i = 0; i < MODALAI_ESC_OUTPUT_CHANNELS; i++) {
+	for (int i = 0; i < MODAL_IO_OUTPUT_CHANNELS; i++) {
 		params->function_map[i] = (int)OutputFunction::Disabled;
 		params->direction_map[i] = 0;
 		params->motor_map[i] = 0;
 	}
 
-	param_get(param_find("UART_ESC_CONFIG"),  &params->config);
-	param_get(param_find("UART_ESC_MODE"),    &params->mode);
-	param_get(param_find("UART_ESC_BAUD"),    &params->baud_rate);
+	param_get(param_find("MODAL_IO_CONFIG"),  &params->config);
+	param_get(param_find("MODAL_IO_MODE"),    &params->mode);
+	param_get(param_find("MODAL_IO_BAUD"),    &params->baud_rate);
 
-	param_get(param_find("UART_ESC_T_PERC"),  &params->turtle_motor_percent);
-	param_get(param_find("UART_ESC_T_DEAD"),  &params->turtle_motor_deadband);
-	param_get(param_find("UART_ESC_T_EXPO"),  &params->turtle_motor_expo);
-	param_get(param_find("UART_ESC_T_MINF"),  &params->turtle_stick_minf);
-	param_get(param_find("UART_ESC_T_COSP"),  &params->turtle_cosphi);
+	param_get(param_find("MODAL_IO_T_PERC"),  &params->turtle_motor_percent);
+	param_get(param_find("MODAL_IO_T_DEAD"),  &params->turtle_motor_deadband);
+	param_get(param_find("MODAL_IO_T_EXPO"),  &params->turtle_motor_expo);
+	param_get(param_find("MODAL_IO_T_MINF"),  &params->turtle_stick_minf);
+	param_get(param_find("MODAL_IO_T_COSP"),  &params->turtle_cosphi);
 
-	param_get(param_find("UART_ESC_FUNC1"),  &params->function_map[0]);
-	param_get(param_find("UART_ESC_FUNC2"),  &params->function_map[1]);
-	param_get(param_find("UART_ESC_FUNC3"),  &params->function_map[2]);
-	param_get(param_find("UART_ESC_FUNC4"),  &params->function_map[3]);
+	param_get(param_find("MODAL_IO_FUNC1"),  &params->function_map[0]);
+	param_get(param_find("MODAL_IO_FUNC2"),  &params->function_map[1]);
+	param_get(param_find("MODAL_IO_FUNC3"),  &params->function_map[2]);
+	param_get(param_find("MODAL_IO_FUNC4"),  &params->function_map[3]);
 
-	param_get(param_find("UART_ESC_SDIR1"),  &params->direction_map[0]);
-	param_get(param_find("UART_ESC_SDIR2"),  &params->direction_map[1]);
-	param_get(param_find("UART_ESC_SDIR3"),  &params->direction_map[2]);
-	param_get(param_find("UART_ESC_SDIR4"),  &params->direction_map[3]);
+	param_get(param_find("MODAL_IO_SDIR1"),  &params->direction_map[0]);
+	param_get(param_find("MODAL_IO_SDIR2"),  &params->direction_map[1]);
+	param_get(param_find("MODAL_IO_SDIR3"),  &params->direction_map[2]);
+	param_get(param_find("MODAL_IO_SDIR4"),  &params->direction_map[3]);
 
-	param_get(param_find("UART_ESC_RPM_MIN"), &params->rpm_min);
-	param_get(param_find("UART_ESC_RPM_MAX"), &params->rpm_max);
+	param_get(param_find("MODAL_IO_RPM_MIN"), &params->rpm_min);
+	param_get(param_find("MODAL_IO_RPM_MAX"), &params->rpm_max);
 
 	if (params->rpm_min >= params->rpm_max) {
-		PX4_ERR("Invalid parameter UART_ESC_RPM_MIN.  Please verify parameters.");
+		PX4_ERR("Invalid parameter MODAL_IO_RPM_MIN.  Please verify parameters.");
 		params->rpm_min = 0;
 		ret = PX4_ERROR;
 	}
 
 	if (params->turtle_motor_percent < 0 || params->turtle_motor_percent > 100) {
-		PX4_ERR("Invalid parameter UART_ESC_T_PERC.  Please verify parameters.");
+		PX4_ERR("Invalid parameter MODAL_IO_T_PERC.  Please verify parameters.");
 		params->turtle_motor_percent = 0;
 		ret = PX4_ERROR;
 	}
 
 	if (params->turtle_motor_deadband < 0 || params->turtle_motor_deadband > 100) {
-		PX4_ERR("Invalid parameter UART_ESC_T_DEAD.  Please verify parameters.");
+		PX4_ERR("Invalid parameter MODAL_IO_T_DEAD.  Please verify parameters.");
 		params->turtle_motor_deadband = 0;
 		ret = PX4_ERROR;
 	}
 
 	if (params->turtle_motor_expo < 0 || params->turtle_motor_expo > 100) {
-		PX4_ERR("Invalid parameter UART_ESC_T_EXPO.  Please verify parameters.");
+		PX4_ERR("Invalid parameter MODAL_IO_T_EXPO.  Please verify parameters.");
 		params->turtle_motor_expo = 0;
 		ret = PX4_ERROR;
 	}
 
 	if (params->turtle_stick_minf < 0.0f || params->turtle_stick_minf > 100.0f) {
-		PX4_ERR("Invalid parameter UART_ESC_T_MINF.  Please verify parameters.");
+		PX4_ERR("Invalid parameter MODAL_IO_T_MINF.  Please verify parameters.");
 		params->turtle_stick_minf = 0.0f;
 		ret = PX4_ERROR;
 	}
 
 	if (params->turtle_cosphi < 0.0f || params->turtle_cosphi > 100.0f) {
-		PX4_ERR("Invalid parameter UART_ESC_T_COSP.  Please verify parameters.");
+		PX4_ERR("Invalid parameter MODAL_IO_T_COSP.  Please verify parameters.");
 		params->turtle_cosphi = 0.0f;
 		ret = PX4_ERROR;
 	}
 
-	for (int i = 0; i < MODALAI_ESC_OUTPUT_CHANNELS; i++) {
+	for (int i = 0; i < MODAL_IO_OUTPUT_CHANNELS; i++) {
 		if (params->function_map[i] < (int)OutputFunction::Motor1 || params->function_map[i] > (int)OutputFunction::Motor4) {
-			PX4_ERR("Invalid parameter UART_ESC_FUNCX.  Only supports motors 1-4.  Please verify parameters.");
+			PX4_ERR("Invalid parameter MODAL_IO_FUNCX.  Only supports motors 1-4.  Please verify parameters.");
 			params->function_map[i] = 0;
 			ret = PX4_ERROR;
 
@@ -204,11 +204,11 @@ int ModalaiEsc::load_params(uart_esc_params_t *params, ch_assign_t *map)
 		}
 	}
 
-	for (int i = 0; i < MODALAI_ESC_OUTPUT_CHANNELS; i++) {
-		if (params->motor_map[i] == MODALAI_ESC_OUTPUT_DISABLED ||
-		    params->motor_map[i] < -(MODALAI_ESC_OUTPUT_CHANNELS) ||
-		    params->motor_map[i] > MODALAI_ESC_OUTPUT_CHANNELS) {
-			PX4_ERR("Invalid parameter UART_ESC_MOTORX.  Please verify parameters.");
+	for (int i = 0; i < MODAL_IO_OUTPUT_CHANNELS; i++) {
+		if (params->motor_map[i] == MODAL_IO_OUTPUT_DISABLED ||
+		    params->motor_map[i] < -(MODAL_IO_OUTPUT_CHANNELS) ||
+		    params->motor_map[i] > MODAL_IO_OUTPUT_CHANNELS) {
+			PX4_ERR("Invalid parameter MODAL_IO_MOTORX.  Please verify parameters.");
 			params->motor_map[i] = 0;
 			ret = PX4_ERROR;
 		}
@@ -221,7 +221,7 @@ int ModalaiEsc::load_params(uart_esc_params_t *params, ch_assign_t *map)
 	return ret;
 }
 
-int ModalaiEsc::task_spawn(int argc, char *argv[])
+int ModalIo::task_spawn(int argc, char *argv[])
 {
 	int myoptind = 0;
 	int ch;
@@ -238,7 +238,7 @@ int ModalaiEsc::task_spawn(int argc, char *argv[])
 		}
 	}
 
-	ModalaiEsc *instance = new ModalaiEsc();
+	ModalIo *instance = new ModalIo();
 
 	if (instance) {
 		_object.store(instance);
@@ -259,14 +259,14 @@ int ModalaiEsc::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int ModalaiEsc::flush_uart_rx()
+int ModalIo::flush_uart_rx()
 {
 	while (_uart_port->uart_read(_read_buf, sizeof(_read_buf)) > 0) {}
 
 	return 0;
 }
 
-int ModalaiEsc::read_response(Command *out_cmd)
+int ModalIo::read_response(Command *out_cmd)
 {
 	px4_usleep(_current_cmd.resp_delay_us);
 
@@ -289,7 +289,7 @@ int ModalaiEsc::read_response(Command *out_cmd)
 	return 0;
 }
 
-int ModalaiEsc::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
+int ModalIo::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
 {
 	hrt_abstime tnow = hrt_absolute_time();
 
@@ -309,7 +309,7 @@ int ModalaiEsc::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
 
 				uint32_t id             = (fb.id_state & 0xF0) >> 4;  //ID of the ESC based on hardware address
 
-				if (id < MODALAI_ESC_OUTPUT_CHANNELS) {
+				if (id < MODAL_IO_OUTPUT_CHANNELS) {
 
 					int motor_idx = _output_map[id].number - 1; // mapped motor id.. user defined mapping is 1-4, array is 0-3
 
@@ -438,7 +438,7 @@ int ModalaiEsc::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
 				memcpy(&fb, buf, len);
 				uint8_t id = (fb.state & 0xF0) >> 4;
 
-				if (id < MODALAI_ESC_OUTPUT_CHANNELS) {
+				if (id < MODAL_IO_OUTPUT_CHANNELS) {
 					_esc_chans[id].rate_meas = fb.rpm;
 					_esc_chans[id].state = fb.state & 0x0F;
 					_esc_chans[id].cmd_counter = fb.cmd_counter;
@@ -456,19 +456,19 @@ int ModalaiEsc::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
 	return 0;
 }
 
-int ModalaiEsc::check_for_esc_timeout()
+int ModalIo::check_for_esc_timeout()
 {
 	hrt_abstime tnow = hrt_absolute_time();
 
-	for (int i = 0; i < MODALAI_ESC_OUTPUT_CHANNELS; i++) {
+	for (int i = 0; i < MODAL_IO_OUTPUT_CHANNELS; i++) {
 		// PX4 motor indexed user defined mapping is 1-4, we want to use in bitmask (0-3)
 		uint8_t motor_idx = _output_map[i].number - 1;
 
-		if (motor_idx < MODALAI_ESC_OUTPUT_CHANNELS) {
+		if (motor_idx < MODAL_IO_OUTPUT_CHANNELS) {
 			// we are using PX4 motor index in the bitmask
 			if (_esc_status.esc_online_flags & (1 << motor_idx)) {
 				// using index i here for esc_chans enumeration stored in ESC ID order
-				if ((tnow - _esc_chans[i].feedback_time) > MODALAI_ESC_DISCONNECT_TIMEOUT_US) {
+				if ((tnow - _esc_chans[i].feedback_time) > MODAL_IO_DISCONNECT_TIMEOUT_US) {
 					// stale data, assume offline and clear armed
 					_esc_status.esc_online_flags &= ~(1 << motor_idx);
 					_esc_status.esc_armed_flags &= ~(1 << motor_idx);
@@ -481,7 +481,7 @@ int ModalaiEsc::check_for_esc_timeout()
 
 }
 
-int ModalaiEsc::send_cmd_thread_safe(Command *cmd)
+int ModalIo::send_cmd_thread_safe(Command *cmd)
 {
 	cmd->id = _cmd_id++;
 	_pending_cmd.store(cmd);
@@ -496,7 +496,7 @@ int ModalaiEsc::send_cmd_thread_safe(Command *cmd)
 
 
 
-int ModalaiEsc::custom_command(int argc, char *argv[])
+int ModalIo::custom_command(int argc, char *argv[])
 {
 	int myoptind = 0;
 	int ch;
@@ -522,7 +522,7 @@ int ModalaiEsc::custom_command(int argc, char *argv[])
 	/* start the FMU if not running */
 	if (!strcmp(verb, "start")) {
 		if (!is_running()) {
-			return ModalaiEsc::task_spawn(argc, argv);
+			return ModalIo::task_spawn(argc, argv);
 		}
 	}
 
@@ -654,8 +654,8 @@ int ModalaiEsc::custom_command(int argc, char *argv[])
 	}  else if (!strcmp(verb, "rpm")) {
 		if (0 < esc_id && esc_id < 16) {
 			PX4_INFO("Request RPM for ESC bit mask: %i - RPM: %i", esc_id, rate);
-			int16_t rate_req[MODALAI_ESC_OUTPUT_CHANNELS];
-			int16_t outputs[MODALAI_ESC_OUTPUT_CHANNELS];
+			int16_t rate_req[MODAL_IO_OUTPUT_CHANNELS];
+			int16_t outputs[MODAL_IO_OUTPUT_CHANNELS];
 			outputs[0] = (esc_id & 1) ? rate : 0;
 			outputs[1] = (esc_id & 2) ? rate : 0;
 			outputs[2] = (esc_id & 4) ? rate : 0;
@@ -663,8 +663,8 @@ int ModalaiEsc::custom_command(int argc, char *argv[])
 
 			//the motor mapping is.. if I want to spin Motor 1 (1-4) then i need to provide non-zero rpm for motor map[m-1]
 
-			uart_esc_params_t params;
-			ch_assign_t map[MODALAI_ESC_OUTPUT_CHANNELS];
+			modal_io_params_t params;
+			ch_assign_t map[MODAL_IO_OUTPUT_CHANNELS];
 			get_instance()->load_params(&params, (ch_assign_t *)&map);
 
 			uint8_t id_fb_raw = 0;
@@ -678,10 +678,10 @@ int ModalaiEsc::custom_command(int argc, char *argv[])
 
 			else if (esc_id & 8) { id_fb_raw = 3; }
 
-			for (int i = 0; i < MODALAI_ESC_OUTPUT_CHANNELS; i++) {
+			for (int i = 0; i < MODAL_IO_OUTPUT_CHANNELS; i++) {
 				int motor_idx = map[i].number - 1; // user defined mapping is 1-4, array is 0-3
 
-				if (motor_idx >= 0 && motor_idx < MODALAI_ESC_OUTPUT_CHANNELS) {
+				if (motor_idx >= 0 && motor_idx < MODAL_IO_OUTPUT_CHANNELS) {
 					rate_req[i] = outputs[motor_idx] * map[i].direction;
 				}
 
@@ -722,15 +722,15 @@ int ModalaiEsc::custom_command(int argc, char *argv[])
 	} else if (!strcmp(verb, "pwm")) {
 		if (0 < esc_id && esc_id < 16) {
 			PX4_INFO("Request PWM for ESC mask: %i - PWM: %i", esc_id, rate);
-			int16_t rate_req[MODALAI_ESC_OUTPUT_CHANNELS];
-			int16_t outputs[MODALAI_ESC_OUTPUT_CHANNELS];
+			int16_t rate_req[MODAL_IO_OUTPUT_CHANNELS];
+			int16_t outputs[MODAL_IO_OUTPUT_CHANNELS];
 			outputs[0] = (esc_id & 1) ? rate : 0;
 			outputs[1] = (esc_id & 2) ? rate : 0;
 			outputs[2] = (esc_id & 4) ? rate : 0;
 			outputs[3] = (esc_id & 8) ? rate : 0;
 
-			uart_esc_params_t params;
-			ch_assign_t map[MODALAI_ESC_OUTPUT_CHANNELS];
+			modal_io_params_t params;
+			ch_assign_t map[MODAL_IO_OUTPUT_CHANNELS];
 			get_instance()->load_params(&params, (ch_assign_t *)&map);
 
 			uint8_t id_fb_raw = 0;
@@ -744,10 +744,10 @@ int ModalaiEsc::custom_command(int argc, char *argv[])
 
 			else if (esc_id & 8) { id_fb_raw = 3; }
 
-			for (int i = 0; i < MODALAI_ESC_OUTPUT_CHANNELS; i++) {
+			for (int i = 0; i < MODAL_IO_OUTPUT_CHANNELS; i++) {
 				int motor_idx = map[i].number - 1; // user defined mapping is 1-4, array is 0-3
 
-				if (motor_idx >= 0 && motor_idx < MODALAI_ESC_OUTPUT_CHANNELS) {
+				if (motor_idx >= 0 && motor_idx < MODAL_IO_OUTPUT_CHANNELS) {
 					rate_req[i] = outputs[motor_idx] * map[i].direction;
 					PX4_INFO("rate_req[%d]=%d", i, rate_req[i]);
 				}
@@ -791,7 +791,7 @@ int ModalaiEsc::custom_command(int argc, char *argv[])
 	return print_usage("unknown command");
 }
 
-int ModalaiEsc::update_params()
+int ModalIo::update_params()
 {
 	int ret = PX4_ERROR;
 
@@ -810,7 +810,7 @@ int ModalaiEsc::update_params()
 	return ret;
 }
 
-void ModalaiEsc::update_leds(vehicle_control_mode_s mode, led_control_s control)
+void ModalIo::update_leds(vehicle_control_mode_s mode, led_control_s control)
 {
 	int i = 0;
 	uint8_t led_mask = _led_rsc.led_mask;
@@ -910,12 +910,12 @@ void ModalaiEsc::update_leds(vehicle_control_mode_s mode, led_control_s control)
 		}
 	}
 
-	for (i = 0; i < MODALAI_ESC_OUTPUT_CHANNELS; i++) {
+	for (i = 0; i < MODAL_IO_OUTPUT_CHANNELS; i++) {
 		_esc_chans[i].led = led_mask;
 	}
 }
 
-void ModalaiEsc::mix_turtle_mode(uint16_t outputs[MAX_ACTUATORS])
+void ModalIo::mix_turtle_mode(uint16_t outputs[MAX_ACTUATORS])
 {
 	bool use_pitch = true;
 	bool use_roll  = true;
@@ -1090,10 +1090,10 @@ void ModalaiEsc::mix_turtle_mode(uint16_t outputs[MAX_ACTUATORS])
 }
 
 /* OutputModuleInterface */
-bool ModalaiEsc::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
-			       unsigned num_outputs, unsigned num_control_groups_updated)
+bool ModalIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+			    unsigned num_outputs, unsigned num_control_groups_updated)
 {
-	if (num_outputs != MODALAI_ESC_OUTPUT_CHANNELS) {
+	if (num_outputs != MODAL_IO_OUTPUT_CHANNELS) {
 		return false;
 	}
 
@@ -1102,7 +1102,7 @@ bool ModalaiEsc::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS]
 		mix_turtle_mode(outputs);
 	}
 
-	for (int i = 0; i < MODALAI_ESC_OUTPUT_CHANNELS; i++) {
+	for (int i = 0; i < MODAL_IO_OUTPUT_CHANNELS; i++) {
 		if (!_outputs_on || stop_motors) {
 			_esc_chans[i].rate_req = 0;
 
@@ -1137,7 +1137,7 @@ bool ModalaiEsc::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS]
 	}
 
 	// round robin
-	_fb_idx = (_fb_idx + 1) % MODALAI_ESC_OUTPUT_CHANNELS;
+	_fb_idx = (_fb_idx + 1) % MODAL_IO_OUTPUT_CHANNELS;
 
 
 	/*
@@ -1179,7 +1179,7 @@ bool ModalaiEsc::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS]
 }
 
 
-void ModalaiEsc::Run()
+void ModalIo::Run()
 {
 	if (should_exit()) {
 		ScheduleClear();
@@ -1260,16 +1260,16 @@ void ModalaiEsc::Run()
 
 			if (!_outputs_on) {
 
-				float setpoint = MODALAI_ESC_MODE_DISABLED_SETPOINT;
+				float setpoint = MODAL_IO_MODE_DISABLED_SETPOINT;
 
-				if (_parameters.mode == MODALAI_ESC_MODE_TURTLE_AUX1) {
+				if (_parameters.mode == MODAL_IO_MODE_TURTLE_AUX1) {
 					setpoint = _manual_control_setpoint.aux1;
 
-				} else if (_parameters.mode == MODALAI_ESC_MODE_TURTLE_AUX2) {
+				} else if (_parameters.mode == MODAL_IO_MODE_TURTLE_AUX2) {
 					setpoint = _manual_control_setpoint.aux2;
 				}
 
-				if (setpoint > MODALAI_ESC_MODE_THRESHOLD) {
+				if (setpoint > MODAL_IO_MODE_THRESHOLD) {
 					_turtle_mode_en = true;
 
 				} else {
@@ -1278,9 +1278,9 @@ void ModalaiEsc::Run()
 			}
 		}
 
-		if (_parameters.mode == MODALAI_ESC_MODE_UART_BRIDGE) {
+		if (_parameters.mode == MODAL_IO_MODE_UART_BRIDGE) {
 			if (!_uart_port_bridge->is_open()) {
-				if (_uart_port_bridge->uart_open(MODALAI_ESC_VOXL_BRIDGE_PORT, 230400) == PX4_OK) {
+				if (_uart_port_bridge->uart_open(MODAL_IO_VOXL_BRIDGE_PORT, 230400) == PX4_OK) {
 					PX4_INFO("Opened UART ESC Bridge device");
 
 				} else {
@@ -1400,7 +1400,7 @@ void ModalaiEsc::Run()
 }
 
 
-int ModalaiEsc::print_usage(const char *reason)
+int ModalIo::print_usage(const char *reason)
 {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
@@ -1420,7 +1420,7 @@ $ todo
 
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_NAME("modalai_esc", "driver");
+	PRINT_MODULE_USAGE_NAME("modal_io", "driver");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the task");
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("reset", "Send reset request to ESC");
@@ -1458,7 +1458,7 @@ $ todo
 	return 0;
 }
 
-int ModalaiEsc::print_status()
+int ModalIo::print_status()
 {
 	PX4_INFO("Max update rate: %i Hz", _current_update_rate);
 	PX4_INFO("Outputs on: %s", _outputs_on ? "yes" : "no");
@@ -1467,25 +1467,25 @@ int ModalaiEsc::print_status()
 
 	PX4_INFO("");
 
-	PX4_INFO("Params: UART_ESC_CONFIG: %li", _parameters.config);
-	PX4_INFO("Params: UART_ESC_BAUD: %li", _parameters.baud_rate);
+	PX4_INFO("Params: MODAL_IO_CONFIG: %li", _parameters.config);
+	PX4_INFO("Params: MODAL_IO_BAUD: %li", _parameters.baud_rate);
 
-	PX4_INFO("Params: UART_ESC_FUNC1: %li", _parameters.function_map[0]);
-	PX4_INFO("Params: UART_ESC_FUNC2: %li", _parameters.function_map[1]);
-	PX4_INFO("Params: UART_ESC_FUNC3: %li", _parameters.function_map[2]);
-	PX4_INFO("Params: UART_ESC_FUNC4: %li", _parameters.function_map[3]);
+	PX4_INFO("Params: MODAL_IO_FUNC1: %li", _parameters.function_map[0]);
+	PX4_INFO("Params: MODAL_IO_FUNC2: %li", _parameters.function_map[1]);
+	PX4_INFO("Params: MODAL_IO_FUNC3: %li", _parameters.function_map[2]);
+	PX4_INFO("Params: MODAL_IO_FUNC4: %li", _parameters.function_map[3]);
 
-	PX4_INFO("Params: UART_ESC_SDIR1: %li", _parameters.direction_map[0]);
-	PX4_INFO("Params: UART_ESC_SDIR2: %li", _parameters.direction_map[1]);
-	PX4_INFO("Params: UART_ESC_SDIR3: %li", _parameters.direction_map[2]);
-	PX4_INFO("Params: UART_ESC_SDIR4: %li", _parameters.direction_map[3]);
+	PX4_INFO("Params: MODAL_IO_SDIR1: %li", _parameters.direction_map[0]);
+	PX4_INFO("Params: MODAL_IO_SDIR2: %li", _parameters.direction_map[1]);
+	PX4_INFO("Params: MODAL_IO_SDIR3: %li", _parameters.direction_map[2]);
+	PX4_INFO("Params: MODAL_IO_SDIR4: %li", _parameters.direction_map[3]);
 
-	PX4_INFO("Params: UART_ESC_RPM_MIN: %li", _parameters.rpm_min);
-	PX4_INFO("Params: UART_ESC_RPM_MAX: %li", _parameters.rpm_max);
+	PX4_INFO("Params: MODAL_IO_RPM_MIN: %li", _parameters.rpm_min);
+	PX4_INFO("Params: MODAL_IO_RPM_MAX: %li", _parameters.rpm_max);
 
 	PX4_INFO("");
 
-	for( int i = 0; i < MODALAI_ESC_OUTPUT_CHANNELS; i++){
+	for( int i = 0; i < MODAL_IO_OUTPUT_CHANNELS; i++){
 		PX4_INFO("-- ID: %i", i);
 		PX4_INFO("   Motor:           %i", _output_map[i].number);
 		PX4_INFO("   Direction:       %i", _output_map[i].direction);
@@ -1505,9 +1505,9 @@ int ModalaiEsc::print_status()
 	return 0;
 }
 
-extern "C" __EXPORT int modalai_esc_main(int argc, char *argv[]);
+extern "C" __EXPORT int modal_io_main(int argc, char *argv[]);
 
-int modalai_esc_main(int argc, char *argv[])
+int modal_io_main(int argc, char *argv[])
 {
-	return ModalaiEsc::main(argc, argv);
+	return ModalIo::main(argc, argv);
 }

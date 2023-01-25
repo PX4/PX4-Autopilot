@@ -43,11 +43,11 @@
 #define FAR
 #endif
 
-class ModalaiEscSerial
+class ModalIoSerial
 {
 public:
-	ModalaiEscSerial();
-	virtual ~ModalaiEscSerial();
+	ModalIoSerial();
+	virtual ~ModalIoSerial();
 
 	int		uart_open(const char *dev, speed_t speed);
 	int		uart_set_baud(speed_t speed);
@@ -55,7 +55,7 @@ public:
 	int		uart_write(FAR void *buf, size_t len);
 	int		uart_read(FAR void *buf, size_t len);
 	bool		is_open() { return _uart_fd >= 0; };
-	int   uart_get_baud() {return _speed; }
+	int		uart_get_baud() {return _speed; }
 
 private:
 	int			_uart_fd = -1;
