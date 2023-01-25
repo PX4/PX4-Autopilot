@@ -1507,7 +1507,7 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 	const Vector2f local_position{_local_pos.x, _local_pos.y};
 	Vector2f local_land_point = _global_local_proj_ref.project(pos_sp_curr.lat, pos_sp_curr.lon);
 
-	initializeAutoLanding(now, pos_sp_prev, pos_sp_curr, local_position, local_land_point);
+	initializeAutoLanding(now, pos_sp_prev, pos_sp_curr.alt, local_position, local_land_point);
 
 	// touchdown may get nudged by manual inputs
 	local_land_point = calculateTouchdownPosition(control_interval, local_land_point);
@@ -2360,7 +2360,7 @@ FixedwingPositionControl::calculateTakeoffBearingVector(const Vector2f &launch_p
 
 void
 FixedwingPositionControl::initializeAutoLanding(const hrt_abstime &now, const position_setpoint_s &pos_sp_prev,
-		const position_setpoint_s &pos_sp_curr, const Vector2f &local_position, const Vector2f &local_land_point)
+		const float land_point_altitdue, const Vector2f &local_position, const Vector2f &local_land_point)
 {
 	if (_time_started_landing == 0) {
 
@@ -2371,7 +2371,7 @@ FixedwingPositionControl::initializeAutoLanding(const hrt_abstime &now, const po
 		// NOTE: the landing approach vector is relative to the land point. ekf resets may cause a local frame
 		// jump, so we reference to the land point, which is globally referenced and will update
 		if (_position_setpoint_previous_valid) {
-			height_above_land_point = pos_sp_prev.alt - pos_sp_curr.alt;
+			height_above_land_point = pos_sp_prev.alt - land_point_altitdue;
 			local_approach_entrance = _global_local_proj_ref.project(pos_sp_prev.lat, pos_sp_prev.lon);
 
 		} else {
@@ -2384,7 +2384,7 @@ FixedwingPositionControl::initializeAutoLanding(const hrt_abstime &now, const po
 			// TODO: proper handling of on-the-fly landing points would need to involve some more sophisticated
 			// landing pattern generation and corresponding logic
 
-			height_above_land_point = _current_altitude - pos_sp_curr.alt;
+			height_above_land_point = _current_altitude - land_point_altitdue;
 			local_approach_entrance = local_position;
 		}
 
