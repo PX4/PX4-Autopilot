@@ -462,7 +462,7 @@ if(NOT NUTTX_DIR MATCHES "external")
 		add_custom_command(
 			OUTPUT ${NUTTX_DIR}/tools/jlink-nuttx.so
 			COMMAND make --no-print-directory --silent -f Makefile.host jlink-nuttx
-			DEPENDS ${NUTTX_DIR}/tools/gencromfs.c
+			DEPENDS ${NUTTX_DIR}/tools/jlink-nuttx.c
 			WORKING_DIRECTORY ${NUTTX_DIR}/tools
 		)
 		add_custom_target(jlink-nuttx ALL

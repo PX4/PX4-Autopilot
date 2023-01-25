@@ -123,7 +123,7 @@ void Ekf::controlEvHeightFusion(const extVisionSample &ev_sample, const bool com
 						bias_est.setBias(-_state.pos(2) + measurement);
 					}
 
-					aid_src.time_last_fuse = _imu_sample_delayed.time_us;
+					aid_src.time_last_fuse = _time_delayed_us;
 
 				} else {
 					// EV has reset, but quality isn't sufficient
@@ -175,7 +175,7 @@ void Ekf::controlEvHeightFusion(const extVisionSample &ev_sample, const bool com
 					resetVerticalVelocityToZero();
 				}
 
-				aid_src.time_last_fuse = _imu_sample_delayed.time_us;
+				aid_src.time_last_fuse = _time_delayed_us;
 
 			} else if (is_fusion_failing) {
 				// A reset did not fix the issue but all the starting checks are not passing
@@ -206,7 +206,7 @@ void Ekf::controlEvHeightFusion(const extVisionSample &ev_sample, const bool com
 				bias_est.setBias(-_state.pos(2) + measurement);
 			}
 
-			aid_src.time_last_fuse = _imu_sample_delayed.time_us;
+			aid_src.time_last_fuse = _time_delayed_us;
 			bias_est.setFusionActive();
 			_control_status.flags.ev_hgt = true;
 		}

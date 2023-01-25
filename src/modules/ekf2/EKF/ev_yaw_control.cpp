@@ -82,7 +82,7 @@ void Ekf::controlEvYawFusion(const extVisionSample &ev_sample, const bool common
 					ECL_INFO("reset to %s", AID_SRC_NAME);
 					//_information_events.flags.reset_yaw_to_vision = true; // TODO
 					resetQuatStateYaw(aid_src.observation, aid_src.observation_variance);
-					aid_src.time_last_fuse = _imu_sample_delayed.time_us;
+					aid_src.time_last_fuse = _time_delayed_us;
 
 				} else {
 					// EV has reset, but quality isn't sufficient
@@ -106,7 +106,7 @@ void Ekf::controlEvYawFusion(const extVisionSample &ev_sample, const bool common
 					//_information_events.flags.reset_yaw_to_vision = true; // TODO
 					ECL_WARN("%s fusion failing, resetting", AID_SRC_NAME);
 					resetQuatStateYaw(aid_src.innovation, aid_src.observation_variance);
-					aid_src.time_last_fuse = _imu_sample_delayed.time_us;
+					aid_src.time_last_fuse = _time_delayed_us;
 
 					if (_control_status.flags.in_air) {
 						_nb_ev_yaw_reset_available--;
@@ -148,7 +148,7 @@ void Ekf::controlEvYawFusion(const extVisionSample &ev_sample, const bool common
 					_control_status.flags.yaw_align = true;
 				}
 
-				aid_src.time_last_fuse = _imu_sample_delayed.time_us;
+				aid_src.time_last_fuse = _time_delayed_us;
 				_information_events.flags.starting_vision_yaw_fusion = true;
 				_control_status.flags.ev_yaw = true;
 
@@ -162,7 +162,7 @@ void Ekf::controlEvYawFusion(const extVisionSample &ev_sample, const bool common
 
 				// reset yaw to EV
 				resetQuatStateYaw(aid_src.observation, aid_src.observation_variance);
-				aid_src.time_last_fuse = _imu_sample_delayed.time_us;
+				aid_src.time_last_fuse = _time_delayed_us;
 
 				_information_events.flags.starting_vision_yaw_fusion = true;
 				_control_status.flags.yaw_align = false;

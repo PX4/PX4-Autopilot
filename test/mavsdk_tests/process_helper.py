@@ -10,8 +10,10 @@ import threading
 import errno
 from typing import Any, Dict, List, TextIO, Optional
 
-PX4_GAZEBO_MODELS = "Tools/simulation/gazebo/sitl_gazebo/models"
-PX4_GAZEBO_WORLDS = "Tools/simulation/gazebo/sitl_gazebo/worlds"
+PX4_SITL_GAZEBO_PATH = "Tools/simulation/gazebo-classic/sitl_gazebo-classic"
+
+PX4_GAZEBO_MODELS = PX4_SITL_GAZEBO_PATH + "/models"
+PX4_GAZEBO_WORLDS = PX4_SITL_GAZEBO_PATH + "/worlds"
 
 
 class Runner:
@@ -164,7 +166,7 @@ class Px4Runner(Runner):
                 os.path.join(workspace_dir, "test_data"),
                 "-d"
             ]
-        self.env["PX4_SIM_MODEL"] = "gazebo_" + self.model
+        self.env["PX4_SIM_MODEL"] = "gazebo-classic_" + self.model
         self.env["PX4_SIM_SPEED_FACTOR"] = str(speed_factor)
         self.debugger = debugger
         self.clear_rootfs()
@@ -224,7 +226,7 @@ class GzserverRunner(Runner):
         self.name = "gzserver"
         self.cwd = workspace_dir
         self.env["GAZEBO_PLUGIN_PATH"] = \
-            os.path.join(workspace_dir, build_dir, "build_gazebo")
+            os.path.join(workspace_dir, build_dir, "build_gazebo-classic")
         self.env["GAZEBO_MODEL_PATH"] = \
             os.path.join(workspace_dir, PX4_GAZEBO_MODELS)
         self.env["PX4_SIM_SPEED_FACTOR"] = str(speed_factor)
@@ -262,7 +264,7 @@ class GzmodelspawnRunner(Runner):
         self.name = "gzmodelspawn"
         self.cwd = workspace_dir
         self.env["GAZEBO_PLUGIN_PATH"] = \
-            os.path.join(workspace_dir, build_dir, "build_gazebo")
+            os.path.join(workspace_dir, build_dir, "build_gazebo-classic")
         self.env["GAZEBO_MODEL_PATH"] = \
             os.path.join(workspace_dir, PX4_GAZEBO_MODELS)
         self.cmd = "gz"

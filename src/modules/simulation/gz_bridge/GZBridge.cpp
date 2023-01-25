@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,6 +35,7 @@
 
 #include <uORB/Subscription.hpp>
 
+#include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 
 #include <px4_platform_common/getopt.h>
@@ -44,13 +45,14 @@
 
 GZBridge::GZBridge(const char *world, const char *name, const char *model,
 		   const char *pose_str) :
-	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default),
+	ModuleParams(nullptr),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
 	_world_name(world),
 	_model_name(name),
 	_model_sim(model),
 	_model_pose(pose_str)
 {
-	pthread_mutex_init(&_mutex, nullptr);
+	pthread_mutex_init(&_node_mutex, nullptr);
 
 	updateParams();
 }
@@ -69,8 +71,7 @@ int GZBridge::init()
 	if (!_model_sim.empty()) {
 
 		// service call to create model
-		// ign service -s /world/${PX4_GZ_WORLD}/create --reqtype ignition.msgs.EntityFactory --reptype ignition.msgs.Boolean --timeout 1000 --req "sdf_filename: \"${PX4_GZ_MODEL}/model.sdf\""
-		ignition::msgs::EntityFactory req{};
+		gz::msgs::EntityFactory req{};
 		req.set_sdf_filename(_model_sim + "/model.sdf");
 
 		req.set_name(_model_name); // New name for the entity, overrides the name on the SDF.
@@ -94,16 +95,16 @@ int GZBridge::init()
 				model_pose_v.push_back(0.0);
 			}
 
-			ignition::msgs::Pose *p = req.mutable_pose();
-			ignition::msgs::Vector3d *position = p->mutable_position();
+			gz::msgs::Pose *p = req.mutable_pose();
+			gz::msgs::Vector3d *position = p->mutable_position();
 			position->set_x(model_pose_v[0]);
 			position->set_y(model_pose_v[1]);
 			position->set_z(model_pose_v[2]);
 
-			ignition::math::Quaterniond q(model_pose_v[3], model_pose_v[4], model_pose_v[5]);
+			gz::math::Quaterniond q(model_pose_v[3], model_pose_v[4], model_pose_v[5]);
 
 			q.Normalize();
-			ignition::msgs::Quaternion *orientation = p->mutable_orientation();
+			gz::msgs::Quaternion *orientation = p->mutable_orientation();
 			orientation->set_x(q.X());
 			orientation->set_y(q.Y());
 			orientation->set_z(q.Z());
@@ -111,7 +112,7 @@ int GZBridge::init()
 		}
 
 		//world/$WORLD/create service.
-		ignition::msgs::Boolean rep;
+		gz::msgs::Boolean rep;
 		bool result;
 		std::string create_service = "/world/" + _world_name + "/create";
 
@@ -151,25 +152,25 @@ int GZBridge::init()
 		return PX4_ERROR;
 	}
 
-	// ESC feedback: /x500/command/motor_speed
-	std::string motor_speed_topic = "/" + _model_name + "/command/motor_speed";
+#if 0
+	// Airspeed: /world/$WORLD/model/$MODEL/link/airspeed_link/sensor/air_speed/air_speed
+	std::string airpressure_topic = "/world/" + _world_name + "/model/" + _model_name +
+					"/link/airspeed_link/sensor/air_speed/air_speed";
 
-	if (!_node.Subscribe(motor_speed_topic, &GZBridge::motorSpeedCallback, this)) {
-		PX4_ERR("failed to subscribe to %s", motor_speed_topic.c_str());
+	if (!_node.Subscribe(airpressure_topic, &GZBridge::airpressureCallback, this)) {
+		PX4_ERR("failed to subscribe to %s", airpressure_topic.c_str());
 		return PX4_ERROR;
 	}
 
-	// list all subscriptions
-	for (auto &sub_topic : _node.SubscribedTopics()) {
-		PX4_INFO("subscribed: %s", sub_topic.c_str());
+#endif
+
+	if (!_mixing_interface_esc.init(_model_name)) {
+		PX4_ERR("failed to init ESC output");
+		return PX4_ERROR;
 	}
 
-	// output eg /X500/command/motor_speed
-	std::string actuator_topic = "/" + _model_name + "/command/motor_speed";
-	_actuators_pub = _node.Advertise<ignition::msgs::Actuators>(actuator_topic);
-
-	if (!_actuators_pub.Valid()) {
-		PX4_ERR("failed to advertise %s", actuator_topic.c_str());
+	if (!_mixing_interface_servo.init(_model_name)) {
+		PX4_ERR("failed to init servo output");
 		return PX4_ERROR;
 	}
 
@@ -315,9 +316,9 @@ bool GZBridge::updateClock(const uint64_t tv_sec, const uint64_t tv_nsec)
 	return false;
 }
 
-void GZBridge::clockCallback(const ignition::msgs::Clock &clock)
+void GZBridge::clockCallback(const gz::msgs::Clock &clock)
 {
-	pthread_mutex_lock(&_mutex);
+	pthread_mutex_lock(&_node_mutex);
 
 	const uint64_t time_us = (clock.sim().sec() * 1000000) + (clock.sim().nsec() / 1000);
 
@@ -325,16 +326,42 @@ void GZBridge::clockCallback(const ignition::msgs::Clock &clock)
 		updateClock(clock.sim().sec(), clock.sim().nsec());
 	}
 
-	pthread_mutex_unlock(&_mutex);
+	pthread_mutex_unlock(&_node_mutex);
 }
 
-void GZBridge::imuCallback(const ignition::msgs::IMU &imu)
+#if 0
+void GZBridge::airpressureCallback(const gz::msgs::FluidPressure &air_pressure)
 {
 	if (hrt_absolute_time() == 0) {
 		return;
 	}
 
 	pthread_mutex_lock(&_mutex);
+
+	const uint64_t time_us = (air_pressure.header().stamp().sec() * 1000000)
+				 + (air_pressure.header().stamp().nsec() / 1000);
+
+	double air_pressure_value = air_pressure.pressure();
+
+	differential_pressure_s report{};
+	report.timestamp_sample = time_us;
+	report.device_id = 1377548; // 1377548: DRV_DIFF_PRESS_DEVTYPE_SIM, BUS: 1, ADDR: 5, TYPE: SIMULATION
+	report.differential_pressure_pa = static_cast<float>(air_pressure_value); // hPa to Pa;
+	report.temperature = static_cast<float>(air_pressure.variance()) + CONSTANTS_ABSOLUTE_NULL_CELSIUS; // K to C
+	report.timestamp = hrt_absolute_time();;
+	_differential_pressure_pub.publish(report);
+
+	pthread_mutex_unlock(&_node_mutex);
+}
+#endif
+
+void GZBridge::imuCallback(const gz::msgs::IMU &imu)
+{
+	if (hrt_absolute_time() == 0) {
+		return;
+	}
+
+	pthread_mutex_lock(&_node_mutex);
 
 	const uint64_t time_us = (imu.header().stamp().sec() * 1000000) + (imu.header().stamp().nsec() / 1000);
 
@@ -343,12 +370,12 @@ void GZBridge::imuCallback(const ignition::msgs::IMU &imu)
 	}
 
 	// FLU -> FRD
-	static const auto q_FLU_to_FRD = ignition::math::Quaterniond(0, 1, 0, 0);
+	static const auto q_FLU_to_FRD = gz::math::Quaterniond(0, 1, 0, 0);
 
-	ignition::math::Vector3d accel_b = q_FLU_to_FRD.RotateVector(ignition::math::Vector3d(
-			imu.linear_acceleration().x(),
-			imu.linear_acceleration().y(),
-			imu.linear_acceleration().z()));
+	gz::math::Vector3d accel_b = q_FLU_to_FRD.RotateVector(gz::math::Vector3d(
+					     imu.linear_acceleration().x(),
+					     imu.linear_acceleration().y(),
+					     imu.linear_acceleration().z()));
 
 	// publish accel
 	sensor_accel_s sensor_accel{};
@@ -368,10 +395,10 @@ void GZBridge::imuCallback(const ignition::msgs::IMU &imu)
 	_sensor_accel_pub.publish(sensor_accel);
 
 
-	ignition::math::Vector3d gyro_b = q_FLU_to_FRD.RotateVector(ignition::math::Vector3d(
-			imu.angular_velocity().x(),
-			imu.angular_velocity().y(),
-			imu.angular_velocity().z()));
+	gz::math::Vector3d gyro_b = q_FLU_to_FRD.RotateVector(gz::math::Vector3d(
+					    imu.angular_velocity().x(),
+					    imu.angular_velocity().y(),
+					    imu.angular_velocity().z()));
 
 	// publish gyro
 	sensor_gyro_s sensor_gyro{};
@@ -390,16 +417,16 @@ void GZBridge::imuCallback(const ignition::msgs::IMU &imu)
 	sensor_gyro.samples = 1;
 	_sensor_gyro_pub.publish(sensor_gyro);
 
-	pthread_mutex_unlock(&_mutex);
+	pthread_mutex_unlock(&_node_mutex);
 }
 
-void GZBridge::poseInfoCallback(const ignition::msgs::Pose_V &pose)
+void GZBridge::poseInfoCallback(const gz::msgs::Pose_V &pose)
 {
 	if (hrt_absolute_time() == 0) {
 		return;
 	}
 
-	pthread_mutex_lock(&_mutex);
+	pthread_mutex_lock(&_node_mutex);
 
 	for (int p = 0; p < pose.pose_size(); p++) {
 		if (pose.pose(p).name() == _model_name) {
@@ -413,10 +440,10 @@ void GZBridge::poseInfoCallback(const ignition::msgs::Pose_V &pose)
 			const double dt = math::constrain((time_us - _timestamp_prev) * 1e-6, 0.001, 0.1);
 			_timestamp_prev = time_us;
 
-			ignition::msgs::Vector3d pose_position = pose.pose(p).position();
-			ignition::msgs::Quaternion pose_orientation = pose.pose(p).orientation();
+			gz::msgs::Vector3d pose_position = pose.pose(p).position();
+			gz::msgs::Quaternion pose_orientation = pose.pose(p).orientation();
 
-			static const auto q_FLU_to_FRD = ignition::math::Quaterniond(0, 1, 0, 0);
+			static const auto q_FLU_to_FRD = gz::math::Quaterniond(0, 1, 0, 0);
 
 			/**
 			 * @brief Quaternion for rotation between ENU and NED frames
@@ -425,17 +452,17 @@ void GZBridge::poseInfoCallback(const ignition::msgs::Pose_V &pose)
 			 * ENU to NED: +PI/2 rotation about Z (Up) followed by a +PI rotation about X (old East/new North)
 			 * This rotation is symmetric, so q_ENU_to_NED == q_NED_to_ENU.
 			 */
-			static const auto q_ENU_to_NED = ignition::math::Quaterniond(0, 0.70711, 0.70711, 0);
+			static const auto q_ENU_to_NED = gz::math::Quaterniond(0, 0.70711, 0.70711, 0);
 
 			// ground truth
-			ignition::math::Quaterniond q_gr = ignition::math::Quaterniond(
-					pose_orientation.w(),
-					pose_orientation.x(),
-					pose_orientation.y(),
-					pose_orientation.z());
+			gz::math::Quaterniond q_gr = gz::math::Quaterniond(
+							     pose_orientation.w(),
+							     pose_orientation.x(),
+							     pose_orientation.y(),
+							     pose_orientation.z());
 
-			ignition::math::Quaterniond q_gb = q_gr * q_FLU_to_FRD.Inverse();
-			ignition::math::Quaterniond q_nb = q_ENU_to_NED * q_gb;
+			gz::math::Quaterniond q_gb = q_gr * q_FLU_to_FRD.Inverse();
+			gz::math::Quaterniond q_nb = q_ENU_to_NED * q_gb;
 
 			// publish attitude groundtruth
 			vehicle_attitude_s vehicle_attitude_groundtruth{};
@@ -519,106 +546,50 @@ void GZBridge::poseInfoCallback(const ignition::msgs::Pose_V &pose)
 				_gpos_ground_truth_pub.publish(global_position_groundtruth);
 			}
 
-			pthread_mutex_unlock(&_mutex);
+			pthread_mutex_unlock(&_node_mutex);
 			return;
 		}
 	}
 
-	pthread_mutex_unlock(&_mutex);
-}
-
-void GZBridge::motorSpeedCallback(const ignition::msgs::Actuators &actuators)
-{
-	if (hrt_absolute_time() == 0) {
-		return;
-	}
-
-	pthread_mutex_lock(&_mutex);
-
-	esc_status_s esc_status{};
-	esc_status.esc_count = actuators.velocity_size();
-
-	for (int i = 0; i < actuators.velocity_size(); i++) {
-		esc_status.esc[i].timestamp = hrt_absolute_time();
-		esc_status.esc[i].esc_rpm = actuators.velocity(i);
-		esc_status.esc_online_flags |= 1 << i;
-
-		if (actuators.velocity(i) > 0) {
-			esc_status.esc_armed_flags |= 1 << i;
-		}
-	}
-
-	if (esc_status.esc_count > 0) {
-		esc_status.timestamp = hrt_absolute_time();
-		_esc_status_pub.publish(esc_status);
-	}
-
-	pthread_mutex_unlock(&_mutex);
-}
-
-bool GZBridge::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
-			     unsigned num_control_groups_updated)
-{
-	unsigned active_output_count = 0;
-
-	for (unsigned i = 0; i < num_outputs; i++) {
-		if (_mixing_output.isFunctionSet(i)) {
-			active_output_count++;
-
-		} else {
-			break;
-		}
-	}
-
-	if (active_output_count > 0) {
-		ignition::msgs::Actuators rotor_velocity_message;
-		rotor_velocity_message.mutable_velocity()->Resize(active_output_count, 0);
-
-		for (unsigned i = 0; i < active_output_count; i++) {
-			rotor_velocity_message.set_velocity(i, outputs[i]);
-		}
-
-		if (_actuators_pub.Valid()) {
-			return _actuators_pub.Publish(rotor_velocity_message);
-		}
-	}
-
-	return false;
+	pthread_mutex_unlock(&_node_mutex);
 }
 
 void GZBridge::Run()
 {
 	if (should_exit()) {
 		ScheduleClear();
-		_mixing_output.unregister();
+
+		_mixing_interface_esc.stop();
+		_mixing_interface_servo.stop();
 
 		exit_and_cleanup();
 		return;
 	}
 
-	pthread_mutex_lock(&_mutex);
+	pthread_mutex_lock(&_node_mutex);
 
 	if (_parameter_update_sub.updated()) {
 		parameter_update_s pupdate;
 		_parameter_update_sub.copy(&pupdate);
 
 		updateParams();
+
+		_mixing_interface_esc.updateParams();
+		_mixing_interface_servo.updateParams();
 	}
 
-	_mixing_output.update();
+	ScheduleDelayed(10_ms);
 
-	//ScheduleDelayed(1000_us);
-
-	// check at end of cycle (updateSubscriptions() can potentially change to a different WorkQueue thread)
-	_mixing_output.updateSubscriptions(true);
-
-	pthread_mutex_unlock(&_mutex);
+	pthread_mutex_unlock(&_node_mutex);
 }
 
 int GZBridge::print_status()
 {
-	//perf_print_counter(_cycle_perf);
-	_mixing_output.printStatus();
+	PX4_INFO_RAW("ESC outputs:\n");
+	_mixing_interface_esc.mixingOutput().printStatus();
+
+	PX4_INFO_RAW("Servo outputs:\n");
+	_mixing_interface_servo.mixingOutput().printStatus();
 
 	return 0;
 }

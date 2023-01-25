@@ -213,16 +213,16 @@ VtolAttitudeControl::quadchute(QuadchuteReason reason)
 				     "Quad-chute triggered due to minimum altitude breach");
 			break;
 
-		case QuadchuteReason::LossOfAlt:
-			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: loss of altitude\t");
+		case QuadchuteReason::UncommandedDescent:
+			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: Uncommanded descent detected\t");
 			events::send(events::ID("vtol_att_ctrl_quadchute_alt_loss"), events::Log::Critical,
-				     "Quad-chute triggered due to loss of altitude");
+				     "Quad-chute triggered due to uncommanded descent detection");
 			break;
 
-		case QuadchuteReason::LargeAltError:
-			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: large altitude error\t");
-			events::send(events::ID("vtol_att_ctrl_quadchute_alt_err"), events::Log::Critical,
-				     "Quad-chute triggered due to large altitude error");
+		case QuadchuteReason::TransitionAltitudeLoss:
+			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: loss of altitude during transition\t");
+			events::send(events::ID("vtol_att_ctrl_quadchute_trans_alt_err"), events::Log::Critical,
+				     "Quad-chute triggered due to loss of altitude during transition");
 			break;
 
 		case QuadchuteReason::MaximumPitchExceeded:

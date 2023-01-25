@@ -151,7 +151,7 @@ void Ekf::fuseOptFlow()
 	_fault_status.flags.bad_optflow_Y = !fused[1];
 
 	if (fused[0] && fused[1]) {
-		_aid_src_optical_flow.time_last_fuse = _imu_sample_delayed.time_us;
+		_aid_src_optical_flow.time_last_fuse = _time_delayed_us;
 		_aid_src_optical_flow.fused = true;
 	}
 }

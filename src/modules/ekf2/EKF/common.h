@@ -178,20 +178,6 @@ struct gpsMessage {
 	float       pdop{};             ///< position dilution of precision
 };
 
-struct outputSample {
-	uint64_t    time_us{};          ///< timestamp of the measurement (uSec)
-	Quatf       quat_nominal{};     ///< nominal quaternion describing vehicle attitude
-	Vector3f    vel{};              ///< NED velocity estimate in earth frame (m/sec)
-	Vector3f    pos{};              ///< NED position estimate in earth frame (m/sec)
-};
-
-struct outputVert {
-	uint64_t    time_us{};          ///< timestamp of the measurement (uSec)
-	float       vert_vel{};         ///< Vertical velocity calculated using alternative algorithm (m/sec)
-	float       vert_vel_integ{};   ///< Integral of vertical velocity (m)
-	float       dt{};               ///< delta time (sec)
-};
-
 struct imuSample {
 	uint64_t    time_us{};                ///< timestamp of the measurement (uSec)
 	Vector3f    delta_ang{};              ///< delta angle in body frame (integrated gyro measurements) (rad)
@@ -424,15 +410,13 @@ struct parameters {
 	Vector3f flow_pos_body{};               ///< xyz position of range sensor focal point in body frame (m)
 	Vector3f ev_pos_body{};                 ///< xyz position of VI-sensor focal point in body frame (m)
 
-	// output complementary filter tuning
-	float vel_Tau{0.25f};                   ///< velocity state correction time constant (1/sec)
-	float pos_Tau{0.25f};                   ///< position state correction time constant (1/sec)
-
 	// accel bias learning control
 	float acc_bias_lim{0.4f};               ///< maximum accel bias magnitude (m/sec**2)
 	float acc_bias_learn_acc_lim{25.0f};    ///< learning is disabled if the magnitude of the IMU acceleration vector is greater than this (m/sec**2)
 	float acc_bias_learn_gyr_lim{3.0f};     ///< learning is disabled if the magnitude of the IMU angular rate vector is greater than this (rad/sec)
 	float acc_bias_learn_tc{0.5f};          ///< time constant used to control the decaying envelope filters applied to the accel and gyro magnitudes (sec)
+
+	float gyro_bias_lim{0.4f};              ///< maximum gyro bias magnitude (rad/sec)
 
 	const unsigned reset_timeout_max{7'000'000};      ///< maximum time we allow horizontal inertial dead reckoning before attempting to reset the states to the measurement or change _control_status if the data is unavailable (uSec)
 	const unsigned no_aid_timeout_max{1'000'000};     ///< maximum lapsed time from last fusion of a measurement that constrains horizontal velocity drift before the EKF will determine that the sensor is no longer contributing to aiding (uSec)

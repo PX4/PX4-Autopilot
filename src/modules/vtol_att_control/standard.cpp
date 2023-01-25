@@ -89,7 +89,7 @@ void Standard::update_vtol_state()
 
 		} else if (_vtol_mode == vtol_mode::FW_MODE) {
 			// Regular backtransition
-			resetTransitionTimer();
+			resetTransitionStates();
 			_vtol_mode = vtol_mode::TRANSITION_TO_MC;
 			_reverse_output = _param_vt_b_rev_out.get();
 
@@ -126,7 +126,7 @@ void Standard::update_vtol_state()
 			// start transition to fw mode
 			/* NOTE: The failsafe transition to fixed-wing was removed because it can result in an
 			 * unsafe flying state. */
-			resetTransitionTimer();
+			resetTransitionStates();
 			_vtol_mode = vtol_mode::TRANSITION_TO_FW;
 
 		} else if (_vtol_mode == vtol_mode::FW_MODE) {
