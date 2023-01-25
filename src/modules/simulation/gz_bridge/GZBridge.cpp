@@ -35,6 +35,7 @@
 
 #include <uORB/Subscription.hpp>
 
+#include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 
 #include <px4_platform_common/getopt.h>
@@ -70,8 +71,7 @@ int GZBridge::init()
 	if (!_model_sim.empty()) {
 
 		// service call to create model
-		// ign service -s /world/${PX4_GZ_WORLD}/create --reqtype ignition.msgs.EntityFactory --reptype ignition.msgs.Boolean --timeout 1000 --req "sdf_filename: \"${PX4_GZ_MODEL}/model.sdf\""
-		ignition::msgs::EntityFactory req{};
+		gz::msgs::EntityFactory req{};
 		req.set_sdf_filename(_model_sim + "/model.sdf");
 
 		req.set_name(_model_name); // New name for the entity, overrides the name on the SDF.
@@ -95,16 +95,16 @@ int GZBridge::init()
 				model_pose_v.push_back(0.0);
 			}
 
-			ignition::msgs::Pose *p = req.mutable_pose();
-			ignition::msgs::Vector3d *position = p->mutable_position();
+			gz::msgs::Pose *p = req.mutable_pose();
+			gz::msgs::Vector3d *position = p->mutable_position();
 			position->set_x(model_pose_v[0]);
 			position->set_y(model_pose_v[1]);
 			position->set_z(model_pose_v[2]);
 
-			ignition::math::Quaterniond q(model_pose_v[3], model_pose_v[4], model_pose_v[5]);
+			gz::math::Quaterniond q(model_pose_v[3], model_pose_v[4], model_pose_v[5]);
 
 			q.Normalize();
-			ignition::msgs::Quaternion *orientation = p->mutable_orientation();
+			gz::msgs::Quaternion *orientation = p->mutable_orientation();
 			orientation->set_x(q.X());
 			orientation->set_y(q.Y());
 			orientation->set_z(q.Z());
@@ -112,7 +112,7 @@ int GZBridge::init()
 		}
 
 		//world/$WORLD/create service.
-		ignition::msgs::Boolean rep;
+		gz::msgs::Boolean rep;
 		bool result;
 		std::string create_service = "/world/" + _world_name + "/create";
 
@@ -151,6 +151,18 @@ int GZBridge::init()
 		PX4_ERR("failed to subscribe to %s", imu_topic.c_str());
 		return PX4_ERROR;
 	}
+
+#if 0
+	// Airspeed: /world/$WORLD/model/$MODEL/link/airspeed_link/sensor/air_speed/air_speed
+	std::string airpressure_topic = "/world/" + _world_name + "/model/" + _model_name +
+					"/link/airspeed_link/sensor/air_speed/air_speed";
+
+	if (!_node.Subscribe(airpressure_topic, &GZBridge::airpressureCallback, this)) {
+		PX4_ERR("failed to subscribe to %s", airpressure_topic.c_str());
+		return PX4_ERROR;
+	}
+
+#endif
 
 	if (!_mixing_interface_esc.init(_model_name)) {
 		PX4_ERR("failed to init ESC output");
@@ -304,7 +316,7 @@ bool GZBridge::updateClock(const uint64_t tv_sec, const uint64_t tv_nsec)
 	return false;
 }
 
-void GZBridge::clockCallback(const ignition::msgs::Clock &clock)
+void GZBridge::clockCallback(const gz::msgs::Clock &clock)
 {
 	pthread_mutex_lock(&_node_mutex);
 
@@ -317,7 +329,33 @@ void GZBridge::clockCallback(const ignition::msgs::Clock &clock)
 	pthread_mutex_unlock(&_node_mutex);
 }
 
-void GZBridge::imuCallback(const ignition::msgs::IMU &imu)
+#if 0
+void GZBridge::airpressureCallback(const gz::msgs::FluidPressure &air_pressure)
+{
+	if (hrt_absolute_time() == 0) {
+		return;
+	}
+
+	pthread_mutex_lock(&_mutex);
+
+	const uint64_t time_us = (air_pressure.header().stamp().sec() * 1000000)
+				 + (air_pressure.header().stamp().nsec() / 1000);
+
+	double air_pressure_value = air_pressure.pressure();
+
+	differential_pressure_s report{};
+	report.timestamp_sample = time_us;
+	report.device_id = 1377548; // 1377548: DRV_DIFF_PRESS_DEVTYPE_SIM, BUS: 1, ADDR: 5, TYPE: SIMULATION
+	report.differential_pressure_pa = static_cast<float>(air_pressure_value); // hPa to Pa;
+	report.temperature = static_cast<float>(air_pressure.variance()) + CONSTANTS_ABSOLUTE_NULL_CELSIUS; // K to C
+	report.timestamp = hrt_absolute_time();;
+	_differential_pressure_pub.publish(report);
+
+	pthread_mutex_unlock(&_node_mutex);
+}
+#endif
+
+void GZBridge::imuCallback(const gz::msgs::IMU &imu)
 {
 	if (hrt_absolute_time() == 0) {
 		return;
@@ -332,12 +370,12 @@ void GZBridge::imuCallback(const ignition::msgs::IMU &imu)
 	}
 
 	// FLU -> FRD
-	static const auto q_FLU_to_FRD = ignition::math::Quaterniond(0, 1, 0, 0);
+	static const auto q_FLU_to_FRD = gz::math::Quaterniond(0, 1, 0, 0);
 
-	ignition::math::Vector3d accel_b = q_FLU_to_FRD.RotateVector(ignition::math::Vector3d(
-			imu.linear_acceleration().x(),
-			imu.linear_acceleration().y(),
-			imu.linear_acceleration().z()));
+	gz::math::Vector3d accel_b = q_FLU_to_FRD.RotateVector(gz::math::Vector3d(
+					     imu.linear_acceleration().x(),
+					     imu.linear_acceleration().y(),
+					     imu.linear_acceleration().z()));
 
 	// publish accel
 	sensor_accel_s sensor_accel{};
@@ -357,10 +395,10 @@ void GZBridge::imuCallback(const ignition::msgs::IMU &imu)
 	_sensor_accel_pub.publish(sensor_accel);
 
 
-	ignition::math::Vector3d gyro_b = q_FLU_to_FRD.RotateVector(ignition::math::Vector3d(
-			imu.angular_velocity().x(),
-			imu.angular_velocity().y(),
-			imu.angular_velocity().z()));
+	gz::math::Vector3d gyro_b = q_FLU_to_FRD.RotateVector(gz::math::Vector3d(
+					    imu.angular_velocity().x(),
+					    imu.angular_velocity().y(),
+					    imu.angular_velocity().z()));
 
 	// publish gyro
 	sensor_gyro_s sensor_gyro{};
@@ -382,7 +420,7 @@ void GZBridge::imuCallback(const ignition::msgs::IMU &imu)
 	pthread_mutex_unlock(&_node_mutex);
 }
 
-void GZBridge::poseInfoCallback(const ignition::msgs::Pose_V &pose)
+void GZBridge::poseInfoCallback(const gz::msgs::Pose_V &pose)
 {
 	if (hrt_absolute_time() == 0) {
 		return;
@@ -402,10 +440,10 @@ void GZBridge::poseInfoCallback(const ignition::msgs::Pose_V &pose)
 			const double dt = math::constrain((time_us - _timestamp_prev) * 1e-6, 0.001, 0.1);
 			_timestamp_prev = time_us;
 
-			ignition::msgs::Vector3d pose_position = pose.pose(p).position();
-			ignition::msgs::Quaternion pose_orientation = pose.pose(p).orientation();
+			gz::msgs::Vector3d pose_position = pose.pose(p).position();
+			gz::msgs::Quaternion pose_orientation = pose.pose(p).orientation();
 
-			static const auto q_FLU_to_FRD = ignition::math::Quaterniond(0, 1, 0, 0);
+			static const auto q_FLU_to_FRD = gz::math::Quaterniond(0, 1, 0, 0);
 
 			/**
 			 * @brief Quaternion for rotation between ENU and NED frames
@@ -414,17 +452,17 @@ void GZBridge::poseInfoCallback(const ignition::msgs::Pose_V &pose)
 			 * ENU to NED: +PI/2 rotation about Z (Up) followed by a +PI rotation about X (old East/new North)
 			 * This rotation is symmetric, so q_ENU_to_NED == q_NED_to_ENU.
 			 */
-			static const auto q_ENU_to_NED = ignition::math::Quaterniond(0, 0.70711, 0.70711, 0);
+			static const auto q_ENU_to_NED = gz::math::Quaterniond(0, 0.70711, 0.70711, 0);
 
 			// ground truth
-			ignition::math::Quaterniond q_gr = ignition::math::Quaterniond(
-					pose_orientation.w(),
-					pose_orientation.x(),
-					pose_orientation.y(),
-					pose_orientation.z());
+			gz::math::Quaterniond q_gr = gz::math::Quaterniond(
+							     pose_orientation.w(),
+							     pose_orientation.x(),
+							     pose_orientation.y(),
+							     pose_orientation.z());
 
-			ignition::math::Quaterniond q_gb = q_gr * q_FLU_to_FRD.Inverse();
-			ignition::math::Quaterniond q_nb = q_ENU_to_NED * q_gb;
+			gz::math::Quaterniond q_gb = q_gr * q_FLU_to_FRD.Inverse();
+			gz::math::Quaterniond q_nb = q_ENU_to_NED * q_gb;
 
 			// publish attitude groundtruth
 			vehicle_attitude_s vehicle_attitude_groundtruth{};

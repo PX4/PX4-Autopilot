@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# @name Gazebo plane
+# @name Gazebo rc_cessna
 # @type Fixedwing
 #
 
@@ -8,7 +8,7 @@
 
 PX4_SIMULATOR=${PX4_SIMULATOR:=gz}
 PX4_GZ_WORLD=${PX4_GZ_WORLD:=default}
-PX4_SIM_MODEL=${PX4_SIM_MODEL:=plane}
+PX4_SIM_MODEL=${PX4_SIM_MODEL:=rc_cessna}
 
 param set-default EKF2_MAG_ACCLIM 0
 param set-default EKF2_MAG_YAWLIM 0

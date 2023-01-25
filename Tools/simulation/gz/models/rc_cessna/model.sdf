@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <sdf version='1.9'>
-  <model name='plane'>
+  <model name='rc_cessna'>
     <pose>0 0 0.246 0 0 0</pose>
     <link name='base_link'>
       <pose>0 0 0 0 0 0</pose>
@@ -16,11 +16,11 @@
           <izz>0.1477</izz>
         </inertia>
       </inertial>
-      <collision name='base_link_collision'>
-        <pose>0 0 -0.07 0 0 0</pose>
+      <collision name='fuselodge_collision'>
+        <pose>-.14 0 0 0 0 0</pose>
         <geometry>
           <box>
-            <size>0.47 0.47 0.11</size>
+            <size>0.65 .08 0.10</size>
           </box>
         </geometry>
         <surface>
@@ -32,12 +32,44 @@
           </contact>
         </surface>
       </collision>
+      <collision name='wings_collision'>
+        <pose>-0.01 0 0.07 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.1 1.0 0.01</size>
+          </box>
+        </geometry>
+        <surface>
+          <contact>
+            <ode>
+              <max_vel>10</max_vel>
+              <min_depth>0.01</min_depth>
+            </ode>
+          </contact>
+        </surface>
+      </collision>
+      <!-- <visual name='fuselodge_collision_visual'>
+        <pose>-.14 0 0 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.65 .08 0.1</size>
+          </box>
+        </geometry>
+      </visual>
+      <visual name='wings_collision_visual'>
+        <pose>-0.01 0 0.07 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.1 1.0 0.01</size>
+          </box>
+        </geometry>
+      </visual> -->
       <visual name='base_link_visual'>
         <pose>0.07 0 -0.08 0 0 0</pose>
         <geometry>
           <mesh>
             <scale>0.1 0.1 0.1</scale>
-            <uri>model://plane/meshes/body.dae</uri>
+            <uri>model://rc_cessna/meshes/body.dae</uri>
           </mesh>
         </geometry>
         <material>
@@ -67,7 +99,7 @@
           <izz>1e-05</izz>
         </inertia>
       </inertial>
-      <visual name="visual">
+      <visual name="airspeed_visual">
         <geometry>
           <cylinder>
             <radius>0.01</radius>
@@ -98,7 +130,7 @@
       <parent>base_link</parent>
     </joint>
     <link name='rotor_puller'>
-      <pose>0.22 0 0.0 0 1.57 0</pose>
+      <pose>0.22 0 0.0 0 1.57079632679 0</pose>
       <inertial>
         <pose>0 0 0 0 0 0</pose>
         <mass>0.005</mass>
@@ -112,7 +144,7 @@
         </inertia>
       </inertial>
       <collision name='rotor_puller_collision'>
-        <pose>0.0 0 0 0 0 0</pose>
+        <pose>0 0 0 0 -1.57079632679 0</pose>
         <geometry>
           <box>
             <size>0.005 0.22 0.02</size>
@@ -128,7 +160,7 @@
         </surface>
       </collision>
       <!-- <visual name='rotor_puller_collision_visual'>
-        <pose>0.0 0 0 0 0 0</pose>
+        <pose>0 0 0 0 -1.57079632679 0</pose>
         <geometry>
           <box>
             <size>0.005 0.22 0.02</size>
@@ -136,11 +168,11 @@
         </geometry>
       </visual> -->
       <visual name='rotor_puller_visual'>
-        <pose>0 0 0 0.0 0 0.0</pose>
+        <pose>0 0 0 0 0 -1.57079632679</pose>
         <geometry>
           <mesh>
             <scale>1 1 1</scale>
-            <uri>model://plane/meshes/iris_prop_ccw.dae</uri>
+            <uri>model://rc_cessna/meshes/iris_prop_ccw.dae</uri>
           </mesh>
         </geometry>
         <material>
@@ -186,7 +218,7 @@
         <geometry>
           <mesh>
             <scale>0.1 0.1 0.1</scale>
-            <uri>model://plane/meshes/left_aileron.dae</uri>
+            <uri>model://rc_cessna/meshes/left_aileron.dae</uri>
           </mesh>
         </geometry>
         <material>
@@ -194,6 +226,135 @@
           <diffuse>0 0 1 1.0</diffuse>
         </material>
       </visual>
+    </link>
+    <link name="LeftWheel">
+      <pose relative_to="LeftWheelJoint">0 0 0 0 0 0</pose>
+      <inertial>
+        <mass>.05</mass>
+        <inertia>
+          <ixx>0.00003331</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>0.0000204</iyy>
+          <iyz>0</iyz>
+          <izz>0.0000204</izz>
+        </inertia>
+      </inertial>
+      <gravity>true</gravity>
+      <velocity_decay/>
+      <visual name="LeftWheelVisual">
+        <pose>0 0 0 -1.57079632679 0 0</pose>
+        <geometry>
+          <cylinder>
+            <length>0.01</length>
+            <radius>0.03</radius>
+          </cylinder>
+        </geometry>
+      </visual>
+      <collision name="LeftWheelCollision">
+        <pose>0 0 0 -1.57079632679 0 0</pose>
+        <geometry>
+          <cylinder>
+            <length>0.01</length>
+            <radius>0.03</radius>
+          </cylinder>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>1.0</mu>
+              <mu2>0.5</mu2>
+              <fdir1>0 0 1</fdir1>
+            </ode>
+          </friction>
+        </surface>
+      </collision>
+    </link>
+    <link name="RightWheel">
+      <pose relative_to="RightWheelJoint">0 0 0 0 0 0</pose>
+      <inertial>
+        <mass>.05</mass>
+        <inertia>
+          <ixx>0.00003331</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>0.0000204</iyy>
+          <iyz>0</iyz>
+          <izz>0.0000204</izz>
+        </inertia>
+      </inertial>
+      <gravity>true</gravity>
+      <velocity_decay/>
+      <visual name="RightWheelVisual">
+        <pose>0 0 0 -1.57079632679 0 0</pose>
+        <geometry>
+          <cylinder>
+            <length>0.01</length>
+            <radius>0.03</radius>
+          </cylinder>
+        </geometry>
+      </visual>
+      <collision name="RightWheelCollision">
+        <pose>0 0 0 -1.57079632679 0 0</pose>
+        <geometry>
+          <cylinder>
+            <length>0.01</length>
+            <radius>0.03</radius>
+          </cylinder>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>1.0</mu>
+              <mu2>0.5</mu2>
+              <fdir1>0 0 1</fdir1>
+            </ode>
+          </friction>
+        </surface>
+      </collision>
+    </link>
+    <link name="CenterWheel">
+      <pose relative_to="CenterWheelJoint">0 0 0 0 0 0</pose>
+      <inertial>
+        <mass>.05</mass>
+        <inertia>
+          <ixx>0.00003331</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>0.0000204</iyy>
+          <iyz>0</iyz>
+          <izz>0.0000204</izz>
+        </inertia>
+      </inertial>
+      <gravity>true</gravity>
+      <velocity_decay/>
+      <visual name="CenterWheelVisual">
+        <pose>0 0 0 -1.57079632679 0 0</pose>
+        <geometry>
+          <cylinder>
+            <length>0.01</length>
+            <radius>0.025</radius>
+          </cylinder>
+        </geometry>
+      </visual>
+      <collision name="CenterWheelCollision">
+        <pose>0 0 0 -1.57079632679 0 0</pose>
+        <geometry>
+          <cylinder>
+            <length>0.01</length>
+            <radius>0.025</radius>
+          </cylinder>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>1.0</mu>
+              <mu2>0.5</mu2>
+              <fdir1>0 0 1</fdir1>
+            </ode>
+          </friction>
+        </surface>
+      </collision>
     </link>
     <link name="right_elevon">
       <inertial>
@@ -213,7 +374,7 @@
         <geometry>
           <mesh>
             <scale>0.1 0.1 0.1</scale>
-            <uri>model://plane/meshes/right_aileron.dae</uri>
+            <uri>model://rc_cessna/meshes/right_aileron.dae</uri>
           </mesh>
         </geometry>
         <material>
@@ -240,7 +401,7 @@
         <geometry>
           <mesh>
             <scale>0.1 0.1 0.1</scale>
-            <uri>model://plane/meshes/left_flap.dae</uri>
+            <uri>model://rc_cessna/meshes/left_flap.dae</uri>
           </mesh>
         </geometry>
         <material>
@@ -267,7 +428,7 @@
         <geometry>
           <mesh>
             <scale>0.1 0.1 0.1</scale>
-            <uri>model://plane/meshes/right_flap.dae</uri>
+            <uri>model://rc_cessna/meshes/right_flap.dae</uri>
           </mesh>
         </geometry>
         <material>
@@ -294,7 +455,7 @@
         <geometry>
           <mesh>
             <scale>0.1 0.1 0.1</scale>
-            <uri>model://plane/meshes/elevators.dae</uri>
+            <uri>model://rc_cessna/meshes/elevators.dae</uri>
           </mesh>
         </geometry>
         <material>
@@ -321,7 +482,7 @@
         <geometry>
           <mesh>
             <scale>0.1 0.1 0.1</scale>
-            <uri>model://plane/meshes/rudder.dae</uri>
+            <uri>model://rc_cessna/meshes/rudder.dae</uri>
           </mesh>
         </geometry>
         <material>
@@ -451,6 +612,57 @@
         </ode>
       </physics>
     </joint>
+    <joint name="LeftWheelJoint" type="revolute">
+      <parent>base_link</parent>
+      <child>LeftWheel</child>
+      <pose relative_to="base_link">-.035 .13 -0.12 0 0 0</pose>
+      <axis>
+        <xyz>0 1 0</xyz>
+        <limit>
+          <lower>-1.79769e+308</lower>
+          <upper>1.79769e+308</upper>
+        </limit>
+        <dynamics>
+          <spring_reference>0</spring_reference>
+          <spring_stiffness>0</spring_stiffness>
+        </dynamics>
+        <use_parent_model_frame>1</use_parent_model_frame>
+      </axis>
+    </joint>
+    <joint name="RightWheelJoint" type="revolute">
+      <parent>base_link</parent>
+      <child>RightWheel</child>
+      <pose relative_to="base_link">-.035 -.13 -0.12 0 0 0</pose>
+      <axis>
+        <xyz>0 1 0</xyz>
+        <limit>
+          <lower>-1.79769e+308</lower>
+          <upper>1.79769e+308</upper>
+        </limit>
+        <dynamics>
+          <spring_reference>0</spring_reference>
+          <spring_stiffness>0</spring_stiffness>
+        </dynamics>
+        <use_parent_model_frame>1</use_parent_model_frame>
+      </axis>
+    </joint>
+    <joint name="CenterWheelJoint" type="revolute">
+      <parent>base_link</parent>
+      <child>CenterWheel</child>
+      <pose relative_to="base_link">.135 0 -0.12 0 0 0</pose>
+      <axis>
+        <xyz>0 1 0</xyz>
+        <limit>
+          <lower>-1.79769e+308</lower>
+          <upper>1.79769e+308</upper>
+        </limit>
+        <dynamics>
+          <spring_reference>0</spring_reference>
+          <spring_stiffness>0</spring_stiffness>
+        </dynamics>
+        <use_parent_model_frame>1</use_parent_model_frame>
+      </axis>
+    </joint>
     <plugin filename="gz-sim-lift-drag-system" name="gz::sim::systems::LiftDrag">
       <a0>0.05984281113</a0>
       <cla>4.752798721</cla>
@@ -472,6 +684,7 @@
     <plugin
       filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
       <joint_name>px4_servo_0</joint_name>
+      <sub_topic>px4_servo_0</sub_topic>
     </plugin>
     <plugin filename="gz-sim-lift-drag-system" name="gz::sim::systems::LiftDrag">
       <a0>0.05984281113</a0>
@@ -494,6 +707,7 @@
     <plugin
       filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
       <joint_name>px4_servo_1</joint_name>
+      <sub_topic>px4_servo_1</sub_topic>
     </plugin>
     <plugin filename="gz-sim-lift-drag-system" name="gz::sim::systems::LiftDrag">
       <a0>0.05984281113</a0>
@@ -531,7 +745,7 @@
       <control_joint_name>right_flap_joint</control_joint_name>
       <control_joint_rad_to_cl>-0.1</control_joint_rad_to_cl>
     </plugin>
-      <plugin filename="gz-sim-lift-drag-system" name="gz::sim::systems::LiftDrag">
+    <plugin filename="gz-sim-lift-drag-system" name="gz::sim::systems::LiftDrag">
       <a0>-0.2</a0>
       <cla>4.752798721</cla>
       <cda>0.6417112299</cda>
@@ -552,6 +766,7 @@
     <plugin
       filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
       <joint_name>px4_servo_2</joint_name>
+      <sub_topic>px4_servo_2</sub_topic>
     </plugin>
     <plugin filename="gz-sim-lift-drag-system" name="gz::sim::systems::LiftDrag">
       <a0>0.0</a0>
@@ -575,7 +790,7 @@
       filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
       <joint_name>rudder_joint</joint_name>
     </plugin>
-   <plugin filename="ignition-gazebo-multicopter-motor-model-system" name="gz::sim::systems::MulticopterMotorModel">
+    <plugin filename="ignition-gazebo-multicopter-motor-model-system" name="gz::sim::systems::MulticopterMotorModel">
       <jointName>rotor_puller_joint</jointName>
       <linkName>rotor_puller</linkName>
       <turningDirection>cw</turningDirection>
@@ -585,7 +800,7 @@
       <motorConstant>2.44858e-05</motorConstant>
       <momentConstant>0.016</momentConstant>
       <commandSubTopic>command/motor_speed</commandSubTopic>
-      <motorNumber>3</motorNumber>
+      <motorNumber>0</motorNumber>
       <rotorDragCoefficient>8.06428e-05</rotorDragCoefficient>
       <rollingMomentCoefficient>1e-06</rollingMomentCoefficient>
       <rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
