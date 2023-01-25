@@ -19,3 +19,5 @@ param set-default SENS_EN_INA226 1
 param set-default SYS_USE_IO 1
 
 safety_button start
+
+set LOGGER_BUF 8
