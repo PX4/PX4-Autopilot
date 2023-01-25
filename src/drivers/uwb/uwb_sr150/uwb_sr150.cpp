@@ -61,18 +61,74 @@
 #define MESSAGE_TIMEOUT_US 1
 
 // The default baudrate of the uwb_sr150 module before configuration
-#define DEFAULT_BAUD B115200
+// #define DEFAULT_BAUD B115200
 
-extern "C" __EXPORT int uwb_sr150_main(int argc, char *argv[]);
+// extern "C" __EXPORT int uwb_sr150_main(int argc, char *argv[]);
 
-UWB_SR150::UWB_SR150(const char *device_name, speed_t baudrate, bool uwb_pos_debug):
+UWB_SR150::UWB_SR150():
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::ttyS1),
 	_read_count_perf(perf_alloc(PC_COUNT, "uwb_sr150_count")),
 	_read_err_perf(perf_alloc(PC_COUNT, "uwb_sr150_err"))
 {
-	_uwb_pos_debug = uwb_pos_debug;
-	// start serial port
+}
+
+UWB_SR150::~UWB_SR150()
+{
+	printf("UWB: Ranging Stopped\t\n");
+
+	perf_free(_read_err_perf);
+	perf_free(_read_count_perf);
+
+	close(_uart);
+}
+
+bool UWB_SR150::init()
+{
+	// execute Run() on every sensor_accel publication
+	if (!_sensor_uwb_sub.registerCallback()) {
+		PX4_ERR("callback registration failed");
+		return false;
+	}
+
+	// alternatively, Run on fixed interval
+	// ScheduleOnInterval(5000_us); // 2000 us interval, 200 Hz rate
+
+	return true;
+}
+
+void UWB_SR150::run()
+{
+	if (should_exit()) {
+		ScheduleClear();
+		exit_and_cleanup();
+		return;
+	}
+
+	// Subscribe to parameter_update message
+	parameters_update();
+
+	// Do i need this if I have perf_begin? I could try
+	param_timestamp = hrt_absolute_time();
+
+	/* Ranging  Command */
+	int status = FALSE;
+
+	while (!should_exit()) {
+		status = UWB_SR150::collectData(); //evaluate Ranging Messages until Stop
+	}
+
+	if (!status) { printf("ERROR: Distance Failed"); }
+}
+
+void UWB_SR150::start_uart(int argc, char *argv[])
+{
+	int ch;
+	int option_index = 1;
+	const char *option_arg;
+	const char *device_name = nullptr;
+	int baudrate = 0;
+
 	_uart = open(device_name, O_RDWR | O_NOCTTY);
 
 	if (_uart < 0) { err(1, "could not open %s", device_name); }
@@ -95,42 +151,23 @@ UWB_SR150::UWB_SR150(const char *device_name, speed_t baudrate, bool uwb_pos_deb
 	ret = tcsetattr(_uart, TCSANOW, &uart_config);
 
 	if (ret < 0) { err(1, "failed to set attr"); }
-}
 
-UWB_SR150::~UWB_SR150()
-{
-	printf("UWB: Ranging Stopped\t\n");
+	while ((ch = px4_getopt(argc, argv, "d:b", &option_index, &option_arg)) != EOF) {
+		switch (ch) {
+		case 'd':
+			device_name = option_arg;
+			break;
 
-	// stop{}; will be implemented when this is changed to a scheduled work task
-	perf_free(_read_err_perf);
-	perf_free(_read_count_perf);
+		case 'b':
+			px4_get_parameter_value(option_arg, baudrate);
+			break;
 
-	close(_uart);
-}
-
-void UWB_SR150::run()
-{
-	// Subscribe to parameter_update message
-	parameters_update();
-	param_timestamp = hrt_absolute_time();
-	// _uwb_mode = (_uwb_driver_mode)_uwb_mode_p.get();
-
-	/* Ranging  Command */
-	int status = FALSE;
-
-	while (!should_exit()) {
-		status = UWB_SR150::collectData(); //evaluate Ranging Messages until Stop
+		default:
+			PX4_WARN("Unrecognized flag: %c", ch);
+			// error_flag = true;
+			break;
+		}
 	}
-
-	if (!status) { printf("ERROR: Distance Failed"); }
-
-	// Automatic Stop. This should not be reachable
-	//
-	//status = write(_uart, &CMD_RANGING_STOP, UWB_CMD_LEN);
-
-	//if (status < (int) sizeof(CMD_RANGING_STOP)) {
-	//	PX4_ERR("Only wrote %d bytes out of %d.", status, (int) sizeof(CMD_RANGING_STOP));
-	//}
 }
 
 int UWB_SR150::custom_command(int argc, char *argv[])
@@ -168,82 +205,30 @@ $ uwb start -d /dev/ttyS2
 
 int UWB_SR150::task_spawn(int argc, char *argv[])
 {
-	int task_id = px4_task_spawn_cmd(
-			      "uwb_driver",
-			      SCHED_DEFAULT,
-			      SCHED_PRIORITY_DEFAULT,
-			      2048,
-			      &run_trampoline,
-			      argv
-		      );
+	UWB_SR150 *instance = new UWB_SR150();
 
-	if (task_id < 0) {
-		return -errno;
+	// start_uart(argc, argv);
 
-	} else {
-		_task_id = task_id;
-		return 0;
-	}
-}
+	if (instance) {
+		_object.store(instance);
+		_task_id = task_id_is_work_queue;
 
-UWB_SR150 *UWB_SR150::instantiate(int argc, char *argv[])
-{
-	int ch;
-	int option_index = 1;
-	const char *option_arg;
-	const char *device_name = nullptr;
-	bool error_flag = false;
-	int baudrate = 0;
-	bool uwb_pos_debug = false; // Display UWB position calculation debug Messages
-
-	while ((ch = px4_getopt(argc, argv, "d:b:p", &option_index, &option_arg)) != EOF) {
-		switch (ch) {
-		case 'd':
-			device_name = option_arg;
-			break;
-
-		case 'b':
-			px4_get_parameter_value(option_arg, baudrate);
-			break;
-
-		case 'p':
-
-			uwb_pos_debug = true;
-			break;
-
-		default:
-			PX4_WARN("Unrecognized flag: %c", ch);
-			error_flag = true;
-			break;
+		if (instance->init()) {
+			return PX4_OK;
 		}
-	}
-
-	if (!error_flag && device_name == nullptr) {
-		print_usage("Device name not provided. Using default Device: TEL1:/dev/ttyS4 \n");
-		device_name = "TEL2";
-		error_flag = true;
-	}
-
-	if (!error_flag && baudrate == 0) {
-		printf("Baudrate not provided. Using default Baud: 115200 \n");
-		baudrate = B115200;
-	}
-
-	if (!error_flag && uwb_pos_debug == true) {
-		printf("UWB Position algorithm Debugging \n");
-	}
-
-	if (error_flag) {
-		PX4_WARN("Failed to start UWB driver. \n");
-		return nullptr;
 
 	} else {
-		PX4_INFO("Constructing UWB_SR150. Device: %s", device_name);
-		return new UWB_SR150(device_name, baudrate, uwb_pos_debug);
+		PX4_ERR("alloc failed");
 	}
+
+	delete instance;
+	_object.store(nullptr);
+	_task_id = -1;
+
+	return PX4_ERROR;
 }
 
-int uwb_sr150_main(int argc, char *argv[])
+extern "C" __EXPORT int uwb_sr150_main(int argc, char *argv[])
 {
 	return UWB_SR150::main(argc, argv);
 }
@@ -351,4 +336,10 @@ int UWB_SR150::collectData()
 	}
 
 	return 1;
+}
+
+int UWB_SR150::getRotation()
+{
+	int orientation = _uwb_sens_rot.get();
+      return orientation;
 }
