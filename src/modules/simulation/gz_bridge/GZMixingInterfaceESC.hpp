@@ -35,7 +35,7 @@
 
 #include <lib/mixer_module/mixer_module.hpp>
 
-#include <ignition/transport.hh>
+#include <gz/transport.hh>
 
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/esc_status.h>
@@ -49,7 +49,7 @@ class GZMixingInterfaceESC : public OutputModuleInterface
 public:
 	static constexpr int MAX_ACTUATORS = MixingOutput::MAX_ACTUATORS;
 
-	GZMixingInterfaceESC(ignition::transport::Node &node, pthread_mutex_t &node_mutex) :
+	GZMixingInterfaceESC(gz::transport::Node &node, pthread_mutex_t &node_mutex) :
 		OutputModuleInterface(MODULE_NAME "-actuators-esc", px4::wq_configurations::rate_ctrl),
 		_node(node),
 		_node_mutex(node_mutex)
@@ -73,14 +73,14 @@ private:
 
 	void Run() override;
 
-	void motorSpeedCallback(const ignition::msgs::Actuators &actuators);
+	void motorSpeedCallback(const gz::msgs::Actuators &actuators);
 
-	ignition::transport::Node &_node;
+	gz::transport::Node &_node;
 	pthread_mutex_t &_node_mutex;
 
 	MixingOutput _mixing_output{"SIM_GZ_EC", MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
 
-	ignition::transport::Node::Publisher _actuators_pub;
+	gz::transport::Node::Publisher _actuators_pub;
 
 	uORB::Publication<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
 
