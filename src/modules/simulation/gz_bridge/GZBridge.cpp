@@ -152,7 +152,7 @@ int GZBridge::init()
 		return PX4_ERROR;
 	}
 
-#if 0
+
 	// Airspeed: /world/$WORLD/model/$MODEL/link/airspeed_link/sensor/air_speed/air_speed
 	std::string airpressure_topic = "/world/" + _world_name + "/model/" + _model_name +
 					"/link/airspeed_link/sensor/air_speed/air_speed";
@@ -162,7 +162,6 @@ int GZBridge::init()
 		return PX4_ERROR;
 	}
 
-#endif
 
 	if (!_mixing_interface_esc.init(_model_name)) {
 		PX4_ERR("failed to init ESC output");
@@ -329,14 +328,14 @@ void GZBridge::clockCallback(const gz::msgs::Clock &clock)
 	pthread_mutex_unlock(&_node_mutex);
 }
 
-#if 0
+
 void GZBridge::airpressureCallback(const gz::msgs::FluidPressure &air_pressure)
 {
 	if (hrt_absolute_time() == 0) {
 		return;
 	}
 
-	pthread_mutex_lock(&_mutex);
+	pthread_mutex_lock(&_node_mutex);
 
 	const uint64_t time_us = (air_pressure.header().stamp().sec() * 1000000)
 				 + (air_pressure.header().stamp().nsec() / 1000);
@@ -353,7 +352,7 @@ void GZBridge::airpressureCallback(const gz::msgs::FluidPressure &air_pressure)
 
 	pthread_mutex_unlock(&_node_mutex);
 }
-#endif
+
 
 void GZBridge::imuCallback(const gz::msgs::IMU &imu)
 {

@@ -135,7 +135,7 @@
         <update_rate>250</update_rate>
       </sensor>
     </link>
-    <link name="airspeed">
+    <link name="airspeed_link">
       <pose>0 0 0 0 0 0</pose>
       <inertial>
         <pose>0 0 0 0 0 0</pose>
@@ -177,23 +177,9 @@
       </sensor>
     </link>
     <joint name='airspeed_joint' type='fixed'>
-      <child>airspeed</child>
+      <child>airspeed_link</child>
       <parent>base_link</parent>
     </joint>
-    <!-- <include>
-      <uri>model://airspeed</uri>
-      <pose>0 0 0 0 0 0</pose>
-      <name>airspeed</name>
-    </include>
-    <include>
-      <uri>model://magnetometer</uri>
-      <pose>0 0 0 0 0 0</pose>
-      <name>mag</name>
-    </include>
-    <joint name='mag_joint' type='fixed'>
-      <child>mag::link</child>
-      <parent>base_link</parent>
-    </joint> -->
     <link name='rotor_0'>
       <pose>0.35 -0.35 0.07 0 0 0</pose>
       <inertial>
