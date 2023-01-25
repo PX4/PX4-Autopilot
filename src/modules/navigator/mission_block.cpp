@@ -831,7 +831,7 @@ MissionBlock::set_takeoff_item(struct mission_item_s *item, float abs_altitude)
 }
 
 void
-MissionBlock::set_land_item(struct mission_item_s *item, bool at_current_location)
+MissionBlock::set_land_item(struct mission_item_s *item)
 {
 	/* VTOL transition to RW before landing */
 	if (_navigator->force_vtol()) {
@@ -846,18 +846,9 @@ MissionBlock::set_land_item(struct mission_item_s *item, bool at_current_locatio
 	/* set the land item */
 	item->nav_cmd = NAV_CMD_LAND;
 
-	/* use current position */
-	if (at_current_location) {
-		item->lat = (double)NAN; //descend at current position
-		item->lon = (double)NAN; //descend at current position
-		item->yaw = _navigator->get_local_position()->heading;
-
-	} else {
-		/* use home position */
-		item->lat = _navigator->get_home_position()->lat;
-		item->lon = _navigator->get_home_position()->lon;
-		item->yaw = _navigator->get_home_position()->yaw;
-	}
+	item->lat = (double)NAN; //descend at current position
+	item->lon = (double)NAN; //descend at current position
+	item->yaw = _navigator->get_local_position()->heading;
 
 	item->altitude = 0;
 	item->altitude_is_relative = false;
