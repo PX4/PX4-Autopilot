@@ -46,7 +46,7 @@ bool GZMixingInterfaceESC::init(const std::string &model_name)
 
 	// output eg /X500/command/motor_speed
 	std::string actuator_topic = "/" + model_name + "/command/motor_speed";
-	_actuators_pub = _node.Advertise<ignition::msgs::Actuators>(actuator_topic);
+	_actuators_pub = _node.Advertise<gz::msgs::Actuators>(actuator_topic);
 
 	if (!_actuators_pub.Valid()) {
 		PX4_ERR("failed to advertise %s", actuator_topic.c_str());
@@ -73,7 +73,7 @@ bool GZMixingInterfaceESC::updateOutputs(bool stop_motors, uint16_t outputs[MAX_
 	}
 
 	if (active_output_count > 0) {
-		ignition::msgs::Actuators rotor_velocity_message;
+		gz::msgs::Actuators rotor_velocity_message;
 		rotor_velocity_message.mutable_velocity()->Resize(active_output_count, 0);
 
 		for (unsigned i = 0; i < active_output_count; i++) {
@@ -96,7 +96,7 @@ void GZMixingInterfaceESC::Run()
 	pthread_mutex_unlock(&_node_mutex);
 }
 
-void GZMixingInterfaceESC::motorSpeedCallback(const ignition::msgs::Actuators &actuators)
+void GZMixingInterfaceESC::motorSpeedCallback(const gz::msgs::Actuators &actuators)
 {
 	if (hrt_absolute_time() == 0) {
 		return;

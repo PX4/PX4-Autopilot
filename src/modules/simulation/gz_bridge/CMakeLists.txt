@@ -35,9 +35,7 @@
 find_package(gz-transport
 	#REQUIRED COMPONENTS core
 	NAMES
-		ignition-transport8
-		ignition-transport10
-		ignition-transport11
+		#ignition-transport11 # IGN (Fortress and earlier) no longer supported
 		gz-transport12
 	#QUIET
 )
@@ -77,12 +75,10 @@ if(gz-transport_FOUND)
 	file(GLOB gz_models
 		LIST_DIRECTORIES true
 		RELATIVE ${PX4_SOURCE_DIR}/Tools/simulation/gz/models
-		CONFIGURE_DEPENDS
 		${PX4_SOURCE_DIR}/Tools/simulation/gz/models/*
 	)
 
 	file(GLOB gz_worlds
-		CONFIGURE_DEPENDS
 		${PX4_SOURCE_DIR}/Tools/simulation/gz/worlds/*.sdf
 	)
 

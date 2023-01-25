@@ -21,7 +21,7 @@ if [ "$PX4_SIMULATOR" = "sihsim" ] || [ "$(param show -q SYS_AUTOSTART)" -eq "0"
 
 elif [ "$PX4_SIMULATOR" = "gz" ] || [ "$(param show -q SIM_GZ_EN)" -eq "1" ]; then
 
-	# source generated gz_env.sh for IGN_GAZEBO_RESOURCE_PATH
+	# source generated gz_env.sh for GZ_SIM_RESOURCE_PATH
 	if [ -f ./gz_env.sh ]; then
 		. ./gz_env.sh
 
@@ -37,16 +37,8 @@ elif [ "$PX4_SIMULATOR" = "gz" ] || [ "$(param show -q SIM_GZ_EN)" -eq "1" ]; th
 		gz_command="gz"
 		gz_sub_command="sim"
 	else
-		IGN_GAZEBO_VERSIONS=$(ign gazebo --versions 2>&1)
-		if [ $? -eq 0 ] && [ "${IGN_GAZEBO_VERSIONS}" != "" ]
-		then
-			# "ign gazebo" for Fortress and earlier
-			gz_command="ign"
-			gz_sub_command="gazebo"
-		else
-			echo "ERROR [init] Gazebo gz and ign commands unavailable"
-			exit 1
-		fi
+		echo "ERROR [init] Gazebo gz please install gz-garden"
+		exit 1
 	fi
 
 	# look for running ${gz_command} gazebo world
