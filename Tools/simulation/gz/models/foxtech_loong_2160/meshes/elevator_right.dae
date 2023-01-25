@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="utf-8"?>
+<COLLADA xmlns="http://www.collada.org/2005/11/COLLADASchema" version="1.4.1">
+  <asset>
+    <contributor>
+      <author/>
+      <authoring_tool>FBX COLLADA exporter</authoring_tool>
+      <comments/>
+    </contributor>
+    <created>2023-01-04T01:05:24Z</created>
+    <keywords/>
+    <modified>2023-01-04T01:05:24Z</modified>
+    <revision/>
+    <subject/>
+    <title/>
+    <unit meter="0.010000" name="centimeter"/>
+    <up_axis>Z_UP</up_axis>
+  </asset>
+  <library_materials>
+    <material id="FBXASC0481FBXASC032-FBXASC032Default" name="FBXASC0481FBXASC032-FBXASC032Default">
+      <instance_effect url="#FBXASC0481FBXASC032-FBXASC032Default-fx"/>
+    </material>
+  </library_materials>
+  <library_effects>
+    <effect id="FBXASC0481FBXASC032-FBXASC032Default-fx" name="FBXASC0481FBXASC032-FBXASC032Default">
+      <profile_COMMON>
+        <technique sid="standard">
+          <phong>
+            <emission>
+              <color sid="emission">0.000000  0.000000 0.000000 1.000000</color>
+            </emission>
+            <ambient>
+              <color sid="ambient">0.588235  0.588235 0.588235 1.000000</color>
+            </ambient>
+            <diffuse>
+              <color sid="diffuse">0.588235  0.588235 0.588235 1.000000</color>
+            </diffuse>
+            <specular>
+              <color sid="specular">0.486000  0.486000 0.486000 1.000000</color>
+            </specular>
+            <shininess>
+              <float sid="shininess">2.000000</float>
+            </shininess>
+            <reflective>
+              <color sid="reflective">0.000000  0.000000 0.000000 1.000000</color>
+            </reflective>
+            <reflectivity>
+              <float sid="reflectivity">1.000000</float>
+            </reflectivity>
+            <transparent opaque="RGB_ZERO">
+              <color sid="transparent">1.000000  1.000000 1.000000 1.000000</color>
+            </transparent>
+            <transparency>
+              <float sid="transparency">0.000000</float>
+            </transparency>
+          </phong>
+        </technique>
+      </profile_COMMON>
+    </effect>
+  </library_effects>
+  <library_geometries>
+    <geometry id="elevator_right-lib" name="elevator_rightMesh">
+      <mesh>
+        <source id="elevator_right-POSITION">
+          <float_array id="elevator_right-POSITION-array" count="48">
+18.025543 -15.576103 -0.524075
+18.025543 -15.576107 -0.159084
+31.474091 -14.334805 -0.524075
+31.474091 -14.334805 -0.159084
+16.329094 0.045925 -0.524075
+15.810318 0.045925 0.524076
+29.862923 0.045921 -0.524075
+29.375877 0.045925 0.487995
+-35.404789 -15.576107 -0.159084
+-35.404789 -15.576103 -0.524075
+-35.404789 0.045925 -0.524075
+-35.404789 0.045925 0.523587
+35.406570 -13.420116 -0.524075
+35.406570 -13.394806 -0.159084
+35.406570 0.045921 -0.524075
+35.406570 0.045925 0.445975
+</float_array>
+          <technique_common>
+            <accessor source="#elevator_right-POSITION-array" count="16" stride="3">
+              <param name="X" type="float"/>
+              <param name="Y" type="float"/>
+              <param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <source id="elevator_right-Normal0">
+          <float_array id="elevator_right-Normal0-array" count="252">
+0.005639 -0.044047 0.999014
+0.001521 -0.043737 0.999042
+0.001776 -0.043748 0.999041
+0.005639 -0.044047 0.999014
+0.001776 -0.043748 0.999041
+0.005840 -0.044067 0.999012
+0.046003 -0.998941 -0.000008
+0.161065 -0.986799 0.016905
+0.161065 -0.986799 0.016905
+0.161065 -0.986799 0.016905
+0.046003 -0.998941 -0.000008
+0.046003 -0.998941 -0.000008
+0.005639 -0.044047 0.999014
+0.008395 -0.044327 0.998982
+0.008395 -0.044327 0.998982
+0.008395 -0.044327 0.998982
+0.005639 -0.044047 0.999014
+0.005840 -0.044067 0.999012
+0.229390 -0.972750 0.033728
+0.161065 -0.986799 0.016905
+0.229390 -0.972750 0.033728
+0.161065 -0.986799 0.016905
+0.229390 -0.972750 0.033728
+0.161065 -0.986799 0.016905
+0.000000 0.000000 -1.000000
+0.000000 0.000000 -1.000000
+0.000000 0.000000 -1.000000
+0.000000 0.000000 -1.000000
+0.000000 0.000000 -1.000000
+0.000000 0.000000 -1.000000
+0.000000 0.000000 -1.000000
+0.000000 0.000000 -1.000000
+0.000000 0.000000 -1.000000
+0.000000 0.000000 -1.000000
+0.000000 0.000000 -1.000000
+0.000000 0.000000 -1.000000
+0.001521 -0.043737 0.999042
+-0.000005 -0.043674 0.999046
+-0.000005 -0.043674 0.999046
+0.001521 -0.043737 0.999042
+-0.000005 -0.043674 0.999046
+0.001776 -0.043748 0.999041
+0.000000 -1.000000 -0.000010
+0.046003 -0.998941 -0.000008
+0.046003 -0.998941 -0.000008
+0.046003 -0.998941 -0.000008
+0.000000 -1.000000 -0.000010
+0.000000 -1.000000 -0.000010
+0.000000 0.000000 -1.000000
+0.000000 0.000000 -1.000000
+0.000000 0.000000 -1.000000
+0.000000 0.000000 -1.000000
+0.000000 0.000000 -1.000000
+0.000000 0.000000 -1.000000
+1.000000 0.000000 0.000000
+1.000000 0.000000 0.000000
+1.000000 0.000000 0.000000
+1.000000 0.000000 0.000000
+1.000000 0.000000 0.000000
+1.000000 0.000000 0.000000
+-0.000000 1.000000 -0.000004
+0.000000 1.000000 -0.000003
+-0.000000 1.000000 -0.000004
+0.000000 1.000000 -0.000003
+-0.000000 1.000000 -0.000004
+0.000000 1.000000 -0.000003
+0.000000 1.000000 -0.000003
+0.000000 1.000000 -0.000001
+0.000000 1.000000 -0.000003
+0.000000 1.000000 -0.000001
+0.000000 1.000000 -0.000003
+0.000000 1.000000 -0.000001
+0.000000 1.000000 -0.000001
+0.000000 1.000000 0.000000
+0.000000 1.000000 -0.000001
+0.000000 1.000000 0.000000
+0.000000 1.000000 -0.000001
+0.000000 1.000000 0.000000
+-1.000000 0.000000 0.000000
+-1.000000 0.000000 0.000000
+-1.000000 0.000000 0.000000
+-1.000000 0.000000 0.000000
+-1.000000 0.000000 0.000000
+-1.000000 0.000000 0.000000
+</float_array>
+          <technique_common>
+            <accessor source="#elevator_right-Normal0-array" count="84" stride="3">
+              <param name="X" type="float"/>
+              <param name="Y" type="float"/>
+              <param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <source id="elevator_right-UV0">
+          <float_array id="elevator_right-UV0-array" count="48">
+0.250000 0.000000
+0.750000 0.000000
+0.750000 0.000000
+0.750000 1.000000
+0.125000 0.000000
+0.875000 0.000000
+0.875000 0.000000
+0.875000 1.000000
+0.250000 0.247131
+0.750000 0.172769
+0.125000 0.234707
+0.875000 0.160663
+0.556720 0.000000
+0.556720 1.000000
+0.443280 0.000000
+0.556720 0.000000
+0.441864 0.247131
+0.558584 0.173020
+0.897586 0.000000
+0.102414 0.000000
+0.898211 0.000000
+0.898211 1.000000
+0.095974 0.232439
+0.905697 0.154750
+</float_array>
+          <technique_common>
+            <accessor source="#elevator_right-UV0-array" count="24" stride="2">
+              <param name="S" type="float"/>
+              <param name="T" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <vertices id="elevator_right-VERTEX">
+          <input semantic="POSITION" source="#elevator_right-POSITION"/>
+        </vertices>
+        <triangles count="28" material="FBXASC0481FBXASC032-FBXASC032Default">
+          <input semantic="VERTEX" offset="0" source="#elevator_right-VERTEX"/>
+          <input semantic="NORMAL" offset="1" source="#elevator_right-Normal0"/>
+          <input semantic="TEXCOORD" offset="2" set="0" source="#elevator_right-UV0"/>
+          <p> 7 0 11 5 1 9 1 2 2 7 3 11 1 4 2 3 5 6 1 6 3 2 7 5 3 8 7 2 9 5 1 10 3 0 11 1 7 12 11 13 13 20 15 14 23 13 15 20 7 16 11 3 17 6 13 18 21 2 19 5 12 20 18 2 21 5 13 22 21 3 23 7 9 24 14 4 25 8 0 26 0 4 27 8 9 28 14 10 29 16 0 30 0 6 31 10 2 32 4 6 33 10 0 34 0 4 35 8 5 36 9 11 37 17 8 38 12 5 39 9 8 40 12 1 41 2 8 42 13 0 43 1 1 44 3 0 45 1 8 46 13 9 47 15 2 48 4 6 49 10 12 50 19 12 51 19 6 52 10 14 53 22 12 54 12 14 55 14 13 56 13 15 57 15 13 58 13 14 59 14 14 60 14 6 61 6 15 62 15 7 63 7 15 64 15 6 65 6 6 66 6 4 67 4 7 68 7 5 69 5 7 70 7 4 71 4 4 72 4 10 73 10 5 74 5 11 75 11 5 76 5 10 77 10 10 78 10 8 79 8 11 80 11 8 81 8 10 82 10 9 83 9</p>
+        </triangles>
+      </mesh>
+    </geometry>
+  </library_geometries>
+  <library_visual_scenes>
+    <visual_scene id="elevator_right" name="elevator_right">
+      <node name="elevator_right" id="elevator_right" sid="elevator_right">
+        <matrix sid="matrix">0.280290 0.000000 0.000000 0.000000 0.000000 0.280290 0.000000 0.000000 0.000000 0.000000 0.477438 0.000000 0.000000 0.000000 0.000000 1.000000</matrix>
+        <instance_geometry url="#elevator_right-lib">
+          <bind_material>
+            <technique_common>
+              <instance_material symbol="FBXASC0481FBXASC032-FBXASC032Default" target="#FBXASC0481FBXASC032-FBXASC032Default"/>
+            </technique_common>
+          </bind_material>
+        </instance_geometry>
+        <extra>
+          <technique profile="FCOLLADA">
+            <visibility>1.000000</visibility>
+          </technique>
+        </extra>
+      </node>
+      <extra>
+        <technique profile="MAX3D">
+          <frame_rate>30.000000</frame_rate>
+        </technique>
+        <technique profile="FCOLLADA">
+          <start_time>0.000000</start_time>
+          <end_time>3.333333</end_time>
+        </technique>
+      </extra>
+    </visual_scene>
+  </library_visual_scenes>
+  <scene>
+    <instance_visual_scene url="#elevator_right"/>
+  </scene>
+</COLLADA>

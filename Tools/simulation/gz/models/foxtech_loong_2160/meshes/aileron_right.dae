@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="utf-8"?>
+<COLLADA xmlns="http://www.collada.org/2005/11/COLLADASchema" version="1.4.1">
+  <asset>
+    <contributor>
+      <author/>
+      <authoring_tool>FBX COLLADA exporter</authoring_tool>
+      <comments/>
+    </contributor>
+    <created>2023-01-04T01:05:21Z</created>
+    <keywords/>
+    <modified>2023-01-04T01:05:21Z</modified>
+    <revision/>
+    <subject/>
+    <title/>
+    <unit meter="0.010000" name="centimeter"/>
+    <up_axis>Z_UP</up_axis>
+  </asset>
+  <library_materials>
+    <material id="FBXASC0481FBXASC032-FBXASC032Default" name="FBXASC0481FBXASC032-FBXASC032Default">
+      <instance_effect url="#FBXASC0481FBXASC032-FBXASC032Default-fx"/>
+    </material>
+  </library_materials>
+  <library_effects>
+    <effect id="FBXASC0481FBXASC032-FBXASC032Default-fx" name="FBXASC0481FBXASC032-FBXASC032Default">
+      <profile_COMMON>
+        <technique sid="standard">
+          <phong>
+            <emission>
+              <color sid="emission">0.000000  0.000000 0.000000 1.000000</color>
+            </emission>
+            <ambient>
+              <color sid="ambient">0.588235  0.588235 0.588235 1.000000</color>
+            </ambient>
+            <diffuse>
+              <color sid="diffuse">0.588235  0.588235 0.588235 1.000000</color>
+            </diffuse>
+            <specular>
+              <color sid="specular">0.486000  0.486000 0.486000 1.000000</color>
+            </specular>
+            <shininess>
+              <float sid="shininess">2.000000</float>
+            </shininess>
+            <reflective>
+              <color sid="reflective">0.000000  0.000000 0.000000 1.000000</color>
+            </reflective>
+            <reflectivity>
+              <float sid="reflectivity">1.000000</float>
+            </reflectivity>
+            <transparent opaque="RGB_ZERO">
+              <color sid="transparent">1.000000  1.000000 1.000000 1.000000</color>
+            </transparent>
+            <transparency>
+              <float sid="transparency">0.000000</float>
+            </transparency>
+          </phong>
+        </technique>
+      </profile_COMMON>
+    </effect>
+  </library_effects>
+  <library_geometries>
+    <geometry id="aileron_right-lib" name="aileron_rightMesh">
+      <mesh>
+        <source id="aileron_right-POSITION">
+          <float_array id="aileron_right-POSITION-array" count="48">
+-8.508881 -8.085777 -0.718638
+-8.508881 -8.085783 -0.353647
+4.939667 -6.844479 -0.718638
+4.939667 -6.844481 -0.353647
+-17.070042 -8.085783 -0.353647
+-17.070042 -8.085777 -0.718638
+17.070045 -4.887245 -0.718638
+17.070038 -4.887245 -0.353647
+-8.508881 0.511266 -0.718638
+-8.508881 0.511267 0.718638
+4.939667 0.511266 -0.718638
+4.939667 0.511266 0.642922
+-17.070042 0.511266 -0.718638
+-17.070042 0.511266 0.718212
+17.070045 0.511266 -0.718638
+17.070030 0.511267 0.494327
+</float_array>
+          <technique_common>
+            <accessor source="#aileron_right-POSITION-array" count="16" stride="3">
+              <param name="X" type="float"/>
+              <param name="Y" type="float"/>
+              <param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <source id="aileron_right-Normal0">
+          <float_array id="aileron_right-Normal0-array" count="252">
+0.004350 -0.126175 0.991998
+0.012806 -0.135273 0.990726
+0.013164 -0.135857 0.990641
+0.012806 -0.135273 0.990726
+0.004350 -0.126175 0.991998
+0.004220 -0.126103 0.992008
+0.046003 -0.998941 -0.000013
+0.125672 -0.992072 -0.000006
+0.125672 -0.992072 -0.000006
+0.125672 -0.992072 -0.000006
+0.046003 -0.998941 -0.000013
+0.046003 -0.998941 -0.000013
+0.013164 -0.135857 0.990641
+0.017606 -0.143110 0.989550
+0.017606 -0.143110 0.989550
+0.017606 -0.143110 0.989550
+0.013164 -0.135857 0.990641
+0.012806 -0.135273 0.990726
+0.159290 -0.987232 -0.000001
+0.125672 -0.992072 -0.000006
+0.159290 -0.987232 -0.000001
+0.125672 -0.992072 -0.000006
+0.159290 -0.987232 -0.000001
+0.125672 -0.992072 -0.000006
+-0.000025 -0.123744 0.992314
+0.004220 -0.126103 0.992008
+0.004350 -0.126175 0.991998
+0.004220 -0.126103 0.992008
+-0.000025 -0.123744 0.992314
+-0.000025 -0.123744 0.992314
+0.000000 -1.000000 -0.000016
+0.046003 -0.998941 -0.000013
+0.046003 -0.998941 -0.000013
+0.046003 -0.998941 -0.000013
+0.000000 -1.000000 -0.000016
+0.000000 -1.000000 -0.000016
+0.000000 0.000000 -1.000000
+0.000000 0.000000 -1.000000
+0.000000 0.000000 -1.000000
+0.000000 0.000000 -1.000000
+0.000000 0.000000 -1.000000
+0.000000 0.000000 -1.000000
+0.000000 0.000000 -1.000000
+0.000000 0.000000 -1.000000
+0.000000 0.000000 -1.000000
+0.000000 0.000000 -1.000000
+0.000000 0.000000 -1.000000
+0.000000 0.000000 -1.000000
+0.000000 0.000000 -1.000000
+0.000000 0.000000 -1.000000
+0.000000 0.000000 -1.000000
+0.000000 0.000000 -1.000000
+0.000000 0.000000 -1.000000
+0.000000 0.000000 -1.000000
+-1.000000 0.000000 0.000000
+-1.000000 0.000000 0.000000
+-1.000000 0.000000 0.000000
+-1.000000 0.000000 0.000000
+-1.000000 0.000000 0.000000
+-1.000000 0.000000 0.000000
+-0.000000 1.000000 -0.000000
+-0.000000 1.000000 -0.000000
+-0.000000 1.000000 -0.000000
+-0.000000 1.000000 -0.000000
+-0.000000 1.000000 -0.000000
+-0.000000 1.000000 -0.000000
+-0.000000 1.000000 -0.000000
+-0.000000 1.000000 -0.000000
+-0.000000 1.000000 -0.000000
+-0.000000 1.000000 -0.000000
+-0.000000 1.000000 -0.000000
+-0.000000 1.000000 -0.000000
+-0.000000 1.000000 -0.000000
+-0.000000 1.000000 -0.000000
+-0.000000 1.000000 -0.000000
+-0.000000 1.000000 -0.000000
+-0.000000 1.000000 -0.000000
+-0.000000 1.000000 -0.000000
+1.000000 -0.000000 0.000015
+1.000000 -0.000000 0.000015
+1.000000 -0.000000 0.000015
+1.000000 -0.000000 0.000015
+1.000000 -0.000000 0.000015
+1.000000 -0.000000 0.000015
+</float_array>
+          <technique_common>
+            <accessor source="#aileron_right-Normal0-array" count="84" stride="3">
+              <param name="X" type="float"/>
+              <param name="Y" type="float"/>
+              <param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <source id="aileron_right-UV0">
+          <float_array id="aileron_right-UV0-array" count="48">
+0.250000 0.000000
+0.750000 0.000000
+0.750000 0.000000
+0.750000 1.000000
+0.125000 0.000000
+0.875000 0.000000
+0.875000 0.000000
+0.875000 1.000000
+0.715060 0.000000
+0.715060 1.000000
+0.284940 0.000000
+0.715060 0.000000
+0.076671 0.000000
+0.923329 0.000000
+0.923329 0.000000
+0.923329 1.000000
+0.250000 0.290830
+0.750000 0.284605
+0.125000 0.265730
+0.875000 0.259691
+0.284940 0.290830
+0.715060 0.284605
+0.078795 0.225632
+0.921382 0.233592
+</float_array>
+          <technique_common>
+            <accessor source="#aileron_right-UV0-array" count="24" stride="2">
+              <param name="S" type="float"/>
+              <param name="T" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <vertices id="aileron_right-VERTEX">
+          <input semantic="POSITION" source="#aileron_right-POSITION"/>
+        </vertices>
+        <triangles count="28" material="FBXASC0481FBXASC032-FBXASC032Default">
+          <input semantic="VERTEX" offset="0" source="#aileron_right-VERTEX"/>
+          <input semantic="NORMAL" offset="1" source="#aileron_right-Normal0"/>
+          <input semantic="TEXCOORD" offset="2" set="0" source="#aileron_right-UV0"/>
+          <p> 9 0 17 3 1 6 11 2 19 3 3 6 9 4 17 1 5 2 1 6 3 2 7 5 3 8 7 2 9 5 1 10 3 0 11 1 11 12 19 7 13 14 15 14 23 7 15 14 11 16 19 3 17 6 7 18 15 2 19 5 6 20 13 2 21 5 7 22 15 3 23 7 13 24 21 1 25 2 9 26 17 1 27 2 13 28 21 4 29 8 4 30 9 0 31 1 1 32 3 0 33 1 4 34 9 5 35 11 2 36 4 0 37 0 8 38 16 2 39 4 8 40 16 10 41 18 6 42 12 2 43 4 10 44 18 6 45 12 10 46 18 14 47 22 5 48 10 12 49 20 0 50 0 0 51 0 12 52 20 8 53 16 4 54 4 13 55 13 12 56 12 4 57 4 12 58 12 5 59 5 13 60 13 8 61 8 12 62 12 8 63 8 13 64 13 9 65 9 11 66 11 8 67 8 9 68 9 8 69 8 11 70 11 10 71 10 15 72 15 10 73 10 11 74 11 10 75 10 15 76 15 14 77 14 7 78 7 14 79 14 15 80 15 14 81 14 7 82 7 6 83 6</p>
+        </triangles>
+      </mesh>
+    </geometry>
+  </library_geometries>
+  <library_visual_scenes>
+    <visual_scene id="aileron_right" name="aileron_right">
+      <node name="aileron_right" id="aileron_right" sid="aileron_right">
+        <matrix sid="matrix">1.000000 0.000000 0.000000 0.000000 0.000000 1.000000 0.000000 0.000000 0.000000 0.000000 1.000000 0.000000 0.000000 0.000000 0.000000 1.000000</matrix>
+        <instance_geometry url="#aileron_right-lib">
+          <bind_material>
+            <technique_common>
+              <instance_material symbol="FBXASC0481FBXASC032-FBXASC032Default" target="#FBXASC0481FBXASC032-FBXASC032Default"/>
+            </technique_common>
+          </bind_material>
+        </instance_geometry>
+        <extra>
+          <technique profile="FCOLLADA">
+            <visibility>1.000000</visibility>
+          </technique>
+        </extra>
+      </node>
+      <extra>
+        <technique profile="MAX3D">
+          <frame_rate>30.000000</frame_rate>
+        </technique>
+        <technique profile="FCOLLADA">
+          <start_time>0.000000</start_time>
+          <end_time>3.333333</end_time>
+        </technique>
+      </extra>
+    </visual_scene>
+  </library_visual_scenes>
+  <scene>
+    <instance_visual_scene url="#aileron_right"/>
+  </scene>
+</COLLADA>
