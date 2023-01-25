@@ -168,6 +168,7 @@ TEST_F(EkfFlowTest, resetToFlowVelocityOnGround)
 	_sensor_simulator._flow.setData(flow_sample);
 	_ekf_wrapper.enableFlowFusion();
 	_sensor_simulator.startFlow();
+	_sensor_simulator.startRangeFinder();
 	_sensor_simulator.runSeconds(1.0);
 
 	// THEN: estimated velocity should match simulated velocity

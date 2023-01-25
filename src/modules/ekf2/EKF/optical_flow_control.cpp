@@ -59,6 +59,7 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 
 	// Accumulate autopilot gyro data across the same time interval as the flow sensor
 	const Vector3f delta_angle(imu_delayed.delta_ang - (getGyroBias() * imu_delayed.delta_ang_dt));
+
 	if (_delta_time_of < 0.1f) {
 		_imu_del_ang_of += delta_angle;
 		_delta_time_of += imu_delayed.delta_ang_dt;
@@ -110,7 +111,7 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 			// compensate for body motion to give a LOS rate
 			_flow_compensated_XY_rad = _flow_sample_delayed.flow_xy_rad - _flow_sample_delayed.gyro_xyz.xy();
 
-		} else if (!_control_status.flags.in_air) {
+		} else if (!_control_status.flags.in_air && _control_status.flags.vehicle_at_rest) {
 
 			if (!is_delta_time_good) {
 				// handle special case of SITL and PX4Flow where dt is forced to
@@ -154,7 +155,7 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 		const bool flight_condition_not_ok = _control_status.flags.in_air && !isTerrainEstimateValid();
 
 		const bool inhibit_flow_use = ((preflight_motion_not_ok || flight_condition_not_ok) && !is_flow_required)
-				    || !_control_status.flags.tilt_align;
+					      || !_control_status.flags.tilt_align;
 
 		// Handle cases where we are using optical flow but we should not use it anymore
 		if (_control_status.flags.opt_flow) {
@@ -169,7 +170,15 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 		// optical flow fusion mode selection logic
 		if ((_params.fusion_mode & SensorFusionMask::USE_OPT_FLOW) // optical flow has been selected by the user
 		    && !_control_status.flags.opt_flow // we are not yet using flow data
-		    && !inhibit_flow_use) {
+		    && !inhibit_flow_use
+		    && _range_sensor.isDataHealthy()) {
+
+			if (isHorizontalAidingActive()
+			    && ((_aid_src_optical_flow.test_ratio[0] > 0.1f) || (_aid_src_optical_flow.test_ratio[1] > 0.1f))
+			   ) {
+				// if horizontal aiding already active don't allow optical flow to start unless the test ratio is good
+				return;
+			}
 
 			// set the flag and reset the fusion timeout
 			ECL_INFO("starting optical flow fusion");
@@ -205,6 +214,8 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 				// Fuse optical flow LOS rate observations into the main filter only if height above ground has been updated recently
 				// but use a relaxed time criteria to enable it to coast through bad range finder data
 				if (isRecent(_time_last_hagl_fuse, (uint64_t)10e6)) {
+
+					_aid_src_optical_flow.fusion_enabled = true;
 					fuseOptFlow();
 					_last_known_pos.xy() = _state.pos.xy();
 				}
@@ -214,7 +225,10 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 
 			// handle the case when we have optical flow, are reliant on it, but have not been using it for an extended period
 			if (isTimedOut(_aid_src_optical_flow.time_last_fuse, _params.no_aid_timeout_max)
-			    && !isOtherSourceOfHorizontalAidingThan(_control_status.flags.opt_flow)) {
+			    && !isOtherSourceOfHorizontalAidingThan(_control_status.flags.opt_flow)
+			    && (_flow_sample_delayed.quality >= _params.flow_qual_min)
+			    && isTerrainEstimateValid()
+			   ) {
 
 				ECL_INFO("reset velocity to flow");
 				_information_events.flags.reset_vel_to_flow = true;
@@ -229,7 +243,10 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 			}
 		}
 
-	} else if (_control_status.flags.opt_flow && !isRecent(_flow_sample_delayed.time_us, (uint64_t)10e6)) {
+	} else if (_control_status.flags.opt_flow
+		   && (!isRecent(_flow_sample_delayed.time_us, (uint64_t)10e6)
+		       || !isRecent(_aid_src_optical_flow.time_last_fuse, (uint64_t)10e6))
+		  ) {
 
 		stopFlowFusion();
 	}
