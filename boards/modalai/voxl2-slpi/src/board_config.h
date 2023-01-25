@@ -62,4 +62,4 @@
 /*
  *  Default port for the ESC
  */
-#define MODALAI_ESC_DEFAULT_PORT 	"2"
+#define MODAL_IO_DEFAULT_PORT 	"2"
