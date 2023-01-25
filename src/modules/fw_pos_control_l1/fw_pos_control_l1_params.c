@@ -861,6 +861,65 @@ PARAM_DEFINE_FLOAT(FW_T_CLMB_R_SP, 3.0f);
 PARAM_DEFINE_FLOAT(FW_T_SINK_R_SP, 2.0f);
 
 /**
+ * Stall detection and recovery
+ *
+ * Define a crude stall detection based on positive altitude change setpoint, while sinking
+ * with a positive pitch as well as a saturated pitch command.
+ * If stall is detected, ramp up a command to sink with maximum sink rate as well as maximum speed.
+ *
+ * @boolean
+ * @group FW TECS
+ */
+PARAM_DEFINE_INT32(FW_T_STALL_PRV, 0);
+
+/**
+ * Stall prevention throttle trim scale increase.
+ *
+ *
+ * If a stall condition is detected, the throttle trim is increased to prevent future stall condition.
+ * The throttle is scaled up by the amount defined in this parameter each time a stall has been detected.
+ *
+ * @unit ms
+ * @min 0
+ * @max 5000
+ * @group FW TECS
+ */
+PARAM_DEFINE_INT32(FW_T_STALL_DELAY, 100);
+
+/**
+ * Stall prevention throttle trim scale increase.
+ *
+ *
+ * If a stall condition is detected, the throttle trim is increased to prevent future stall condition.
+ * The throttle is scaled up by the amount defined in this parameter each time a stall has been detected.
+ *
+ * @unit %
+ * @min 0.01
+ * @max 1
+ * @decimal 2
+ * @increment 0.01
+ * @group FW TECS
+ */
+PARAM_DEFINE_FLOAT(FW_T_STALL_TH_SC, 0.05f);
+
+/**
+ * Stall action ramp up
+ *
+ *
+ * If a stall condition is detected, a sink rate and an airspeed increase is commanded. to avoid sudden steps
+ * those commands are ramped up. This parameters defines the amount of time spend in stall, before the commands
+ * are completely ramped up. When stall is prevented. the commands are ramped down within the same time.
+ *
+ * @unit s
+ * @min 0.01
+ * @max 2
+ * @decimal 2
+ * @increment 0.01
+ * @group FW TECS
+ */
+PARAM_DEFINE_FLOAT(FW_T_STALL_RAMP, 0.2f);
+
+/**
  * GPS failure loiter time
  *
  * The time in seconds the system should do open loop loiter and wait for GPS recovery

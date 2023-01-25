@@ -43,6 +43,7 @@
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
+#include <px4_platform_common/module_params.h>
 
 #include <uORB/Publication.hpp>
 #include <uORB/topics/tecs_status.h>
@@ -299,7 +300,7 @@ public:
 	 *
 	 * @return Ratio of detected undersped [0,1].
 	 */
-	float getRatioUndersped() const {return _ratio_undersped;};
+	float getRatioUnderspeed() const {return _ratio_underspeed;};
 	/**
 	 * @brief Get the throttle setpoint.
 	 *
@@ -533,18 +534,19 @@ private:
 	DebugOutput _debug_output;				///< Debug output.
 	float _pitch_setpoint{0.0f};				///< Controlled pitch setpoint [rad].
 	float _throttle_setpoint{0.0f};				///< Controlled throttle setpoint [0,1].
-	float _ratio_undersped{0.0f};				///< A continuous representation of how "undersped" the TAS is [0,1]
+	float _ratio_underspeed{0.0f};				///< A continuous representation of how "undersped" the TAS is [0,1]
 	float _ste_rate{0.0f};					///< Specific total energy rate [m²/s³].
 };
 
-class TECS
+class TECS : public ModuleParams
 {
 public:
 	enum ECL_TECS_MODE {
 		ECL_TECS_MODE_NORMAL = 0,
 		ECL_TECS_MODE_UNDERSPEED,
 		ECL_TECS_MODE_BAD_DESCENT,
-		ECL_TECS_MODE_CLIMBOUT
+		ECL_TECS_MODE_CLIMBOUT,
+		ECL_TECS_MODE_STALL_PREVENTION
 	};
 
 	struct DebugOutput {
@@ -557,7 +559,7 @@ public:
 		enum ECL_TECS_MODE tecs_mode;
 	};
 public:
-	TECS() = default;
+	TECS();
 	~TECS() = default;
 
 	// no copy, assignment, move, move assignment
@@ -664,13 +666,21 @@ private:
 
 	enum ECL_TECS_MODE _tecs_mode {ECL_TECS_MODE_NORMAL};		///< Current activated mode.
 
-	hrt_abstime _update_timestamp{0};				///< last timestamp of the update function call.
-
+	hrt_abstime _update_timestamp{0ULL};				///< last timestamp of the update function call.
+	hrt_abstime _stall_start_timestamp{0ULL};			///< timestamp when the stall condition was first achieved.
+	enum class STALL_MODE {
+		NO_STALL,
+		MAYBE_STALL,
+		STALL,
+		STALL_ENDING,
+	} _stall_state{STALL_MODE::NO_STALL};				///< State machine of the stall detection algorithm
+	float _stall_thr_trim_scale_to_prevent_stall{1.0f};		///< Scale applied to throttle trim to avoid future stall conditions.
 	float _equivalent_airspeed_min{3.0f};				///< equivalent airspeed demand lower limit (m/sec)
 	float _equivalent_airspeed_max{30.0f};				///< equivalent airspeed demand upper limit (m/sec)
 
 	// controller mode logic
 	bool _uncommanded_descent_recovery{false};			///< true when a continuous descent caused by an unachievable airspeed demand has been detected
+	float _stall_detection_percentage{0.f};			///< Continuous representation of how certain we are about a potential stall situation between [0 1]
 
 	static constexpr float DT_MIN = 0.001f;				///< minimum allowed value of _dt (sec)
 	static constexpr float DT_MAX = 1.0f;				///< max value of _dt allowed before a filter state reset is performed (sec)
@@ -737,5 +747,16 @@ private:
 	 */
 	void _detect_uncommanded_descent(float throttle_setpoint_max, float altitude, float altitude_setpoint, float tas,
 					 float tas_setpoint);
+
+	void _detect_airspeedless_stall(float dt, float altitude_sp, float altitude, float pitch, float altitude_rate);
+
+	void _update_altitude_setpoint(TECSControl::Setpoint &control_setpoint, float altitude) const;
+
+	DEFINE_PARAMETERS(
+		(ParamBool<px4::params::FW_T_STALL_PRV>) _param_fw_stall_prv,
+		(ParamInt<px4::params::FW_T_STALL_DELAY>) _param_fw_stall_delay_ms,
+		(ParamFloat<px4::params::FW_T_STALL_TH_SC>) _param_fw_stall_throttle_scale,
+		(ParamFloat<px4::params::FW_T_STALL_RAMP>) _param_fw_stall_ramp_up
+	)
 };
 

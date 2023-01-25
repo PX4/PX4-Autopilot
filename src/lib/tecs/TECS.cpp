@@ -344,7 +344,7 @@ TECSControl::SpecificEnergyRates TECSControl::_calcSpecificEnergyRates(const Alt
 void TECSControl::_detectUnderspeed(const Input &input, const Param &param, const Flag &flag)
 {
 	if (!flag.detect_underspeed_enabled) {
-		_ratio_undersped = 0.0f;
+		_ratio_underspeed = 0.0f;
 		return;
 	}
 
@@ -360,8 +360,8 @@ void TECSControl::_detectUnderspeed(const Input &input, const Param &param, cons
 	const float tas_fully_undersped = math::max(param.tas_min - tas_error_bound - tas_underspeed_soft_bound, 0.0f);
 	const float tas_starting_to_underspeed = math::max(param.tas_min - tas_error_bound, tas_fully_undersped);
 
-	_ratio_undersped = 1.0f - math::constrain((input.tas - tas_fully_undersped) /
-			   math::max(tas_starting_to_underspeed - tas_fully_undersped, FLT_EPSILON), 0.0f, 1.0f);
+	_ratio_underspeed = 1.0f - math::constrain((input.tas - tas_fully_undersped) /
+			    math::max(tas_starting_to_underspeed - tas_fully_undersped, FLT_EPSILON), 0.0f, 1.0f);
 }
 
 TECSControl::SpecificEnergyWeighting TECSControl::_updateSpeedAltitudeWeights(const Param &param, const Flag &flag)
@@ -371,8 +371,8 @@ TECSControl::SpecificEnergyWeighting TECSControl::_updateSpeedAltitudeWeights(co
 	// Calculate the weight applied to control of specific kinetic energy error
 	float pitch_speed_weight = constrain(param.pitch_speed_weight, 0.0f, 2.0f);
 
-	if (_ratio_undersped > FLT_EPSILON && flag.airspeed_enabled) {
-		pitch_speed_weight = 2.0f * _ratio_undersped + (1.0f - _ratio_undersped) * pitch_speed_weight;
+	if (_ratio_underspeed > FLT_EPSILON && flag.airspeed_enabled) {
+		pitch_speed_weight = 2.0f * _ratio_underspeed + (1.0f - _ratio_underspeed) * pitch_speed_weight;
 
 	} else if (!flag.airspeed_enabled) {
 		pitch_speed_weight = 0.0f;
@@ -540,7 +540,7 @@ void TECSControl::_calcThrottleControlUpdate(float dt, const STERateLimit &limit
 		if (param.integrator_gain_throttle > FLT_EPSILON) {
 			// underspeed conditions zero out integration
 			float throttle_integ_input = (_getControlError(ste_rate) * param.integrator_gain_throttle) * dt *
-						     STE_rate_to_throttle * (1.0f - _ratio_undersped);
+						     STE_rate_to_throttle * (1.0f - _ratio_underspeed);
 
 			// only allow integrator propagation into direction which unsaturates throttle
 			if (_throttle_setpoint >= param.throttle_max) {
@@ -603,7 +603,7 @@ float TECSControl::_calcThrottleControlOutput(const STERateLimit &limit, const C
 
 
 	// ramp in max throttle setting with underspeediness value
-	throttle_setpoint = _ratio_undersped * param.throttle_max + (1.0f - _ratio_undersped) * throttle_setpoint;
+	throttle_setpoint = _ratio_underspeed * param.throttle_max + (1.0f - _ratio_underspeed) * throttle_setpoint;
 
 	return constrain(throttle_setpoint, param.throttle_min, param.throttle_max);
 }
@@ -614,23 +614,32 @@ void TECSControl::resetIntegrals()
 	_throttle_integ_state = 0.0f;
 }
 
+TECS::TECS() :
+	ModuleParams(nullptr)
+{
+
+}
+
 float TECS::_update_speed_setpoint(const float tas_min, const float tas_max, const float tas_setpoint, const float tas)
 {
 	float new_setpoint{tas_setpoint};
-	const float percent_undersped = _control.getRatioUndersped();
+	const float percent_underspeed = _control.getRatioUnderspeed();
 
 	// Set the TAS demand to the minimum value if an underspeed or
 	// or a uncontrolled descent condition exists to maximise climb rate
-	if (_uncommanded_descent_recovery) {
+	if (_stall_detection_percentage > FLT_EPSILON) {
+		new_setpoint = (1 - _stall_detection_percentage) * tas_setpoint + _stall_detection_percentage * tas_max;
+
+	} else if (_uncommanded_descent_recovery) {
 		new_setpoint = tas_min;
 
-	} else if (percent_undersped > FLT_EPSILON) {
+	} else if (percent_underspeed > FLT_EPSILON) {
 		// TAS setpoint is reset from external setpoint every time tecs is called, so the interpolation is still
 		// between current setpoint and mininimum airspeed here (it's not feeding the newly adjusted setpoint
 		// from this line back into this method each time).
 		// TODO: WOULD BE GOOD to "functionalize" this library a bit and remove many of these internal states to
 		// avoid the fear of side effects in simple operations like this.
-		new_setpoint = tas_min * percent_undersped + (1.0f - percent_undersped) * tas_setpoint;
+		new_setpoint = tas_min * percent_underspeed + (1.0f - percent_underspeed) * tas_setpoint;
 	}
 
 	new_setpoint = constrain(new_setpoint, tas_min, tas_max);
@@ -660,7 +669,7 @@ void TECS::_detect_uncommanded_descent(float throttle_setpoint_max, float altitu
 	const float SKE_error = SKE_setpoint - SKE_estimate;
 	const float STE_error = SPE_error + SKE_error;
 
-	const bool underspeed_detected = _control.getRatioUndersped() > FLT_EPSILON;
+	const bool underspeed_detected = _control.getRatioUnderspeed() > FLT_EPSILON;
 
 	// If total energy is very low and reducing, throttle is high, and we are not in an underspeed condition, then enter uncommanded descent recovery mode
 	const bool enter_mode = !_uncommanded_descent_recovery && !underspeed_detected && (STE_error > 200.0f)
@@ -731,9 +740,15 @@ void TECS::update(float pitch, float altitude, float hgt_setpoint, float EAS_set
 	_control_param.tas_min = eas_to_tas * _equivalent_airspeed_min;
 	_control_param.pitch_max = pitch_limit_max;
 	_control_param.pitch_min = pitch_limit_min;
-	_control_param.throttle_trim = throttle_trim;
 	_control_param.throttle_max = throttle_setpoint_max;
 	_control_param.throttle_min = throttle_min;
+
+	if (throttle_trim > _control_param.throttle_trim / _stall_thr_trim_scale_to_prevent_stall) {
+		_stall_thr_trim_scale_to_prevent_stall = 1.0f;
+
+	}
+
+	_control_param.throttle_trim = throttle_trim * _stall_thr_trim_scale_to_prevent_stall;
 
 	if (dt < DT_MIN) {
 		// Update intervall too small, do not update. Assume constant states/output in this case.
@@ -766,6 +781,7 @@ void TECS::update(float pitch, float altitude, float hgt_setpoint, float EAS_set
 		// TODO this function should not be in the module. Only give feedback that the airspeed can't be achieved.
 		control_setpoint.tas_setpoint = _update_speed_setpoint(eas_to_tas * _equivalent_airspeed_min,
 						eas_to_tas * _equivalent_airspeed_max, EAS_setpoint * eas_to_tas, eas_to_tas * eas.speed);
+		_update_altitude_setpoint(control_setpoint, altitude);
 
 		const TECSControl::Input control_input{ .altitude = altitude,
 							.altitude_rate = hgt_rate,
@@ -778,16 +794,22 @@ void TECS::update(float pitch, float altitude, float hgt_setpoint, float EAS_set
 		_detect_uncommanded_descent(throttle_setpoint_max, altitude, hgt_setpoint, equivalent_airspeed * eas_to_tas,
 					    control_setpoint.tas_setpoint);
 
+		// Detect stall
+		_detect_airspeedless_stall(dt, hgt_setpoint, altitude, pitch, hgt_rate);
+
 		// Update time stamps
 		_update_timestamp = now;
 
 
 		// Set TECS mode for next frame
-		if (_control.getRatioUndersped() > FLT_EPSILON) {
+		if (_control.getRatioUnderspeed() > FLT_EPSILON) {
 			_tecs_mode = ECL_TECS_MODE_UNDERSPEED;
 
 		} else if (_uncommanded_descent_recovery) {
 			_tecs_mode = ECL_TECS_MODE_BAD_DESCENT;
+
+		} else if (_stall_detection_percentage > FLT_EPSILON) {
+			_tecs_mode = ECL_TECS_MODE_STALL_PREVENTION;
 
 		} else {
 			// This is the default operation mode
@@ -804,3 +826,78 @@ void TECS::update(float pitch, float altitude, float hgt_setpoint, float EAS_set
 	}
 }
 
+void TECS::_update_altitude_setpoint(TECSControl::Setpoint &control_setpoint, const float altitude) const
+{
+	if (_stall_detection_percentage > FLT_EPSILON) {
+		control_setpoint.altitude_reference.alt = (1.0f - _stall_detection_percentage) * control_setpoint.altitude_reference.alt
+				+ _stall_detection_percentage * altitude;
+		control_setpoint.altitude_reference.alt_rate = (1.0f - _stall_detection_percentage) *
+				control_setpoint.altitude_reference.alt_rate;
+		control_setpoint.altitude_rate_setpoint = (1.0f - _stall_detection_percentage) * control_setpoint.altitude_rate_setpoint
+				- _stall_detection_percentage * _control_param.max_sink_rate;
+	}
+}
+
+void TECS::_detect_airspeedless_stall(const float dt, const float altitude_sp, const float altitude, const float pitch,
+				      const float altitude_rate)
+{
+	if (_param_fw_stall_prv.get()) {
+		// Checks to detect an aircraft stalling: a positive altitude change is given,
+		// while the pitch command is maxed and the AV is sinking.
+		// TODO could also add airspeed rate negative, would need to filter the speed_deriv_forward.
+		if (((altitude_sp - altitude) > 0.0f) &&
+		    (pitch > 0.0f) &&
+		    (altitude_rate < 0.0f) &&
+		    (fabsf(_control_param.pitch_max - _control.getPitchSetpoint()) < FLT_EPSILON)) {
+			if (_stall_state == STALL_MODE::NO_STALL) {
+				PX4_WARN("Entered stall condition");
+				_stall_start_timestamp = hrt_absolute_time();
+				_stall_state = STALL_MODE::MAYBE_STALL;
+			}
+
+		} else if (_stall_state == STALL_MODE::MAYBE_STALL) {
+			PX4_WARN("Aborting stall");
+			_stall_state = STALL_MODE::NO_STALL;
+			_stall_start_timestamp = 0ULL;
+		}
+
+		// Only be sure to enter stall prevention if the stall state persists for a certain amount of time.
+		if (_stall_state == STALL_MODE::MAYBE_STALL
+		    && hrt_elapsed_time(&_stall_start_timestamp) > math::max(_param_fw_stall_delay_ms.get() * 1000ULL, 0ULL)) {
+			PX4_WARN("Start stall reaction.");
+			_stall_state = STALL_MODE::STALL;
+		}
+
+		// End stall if we pitched the nose downwards and flying nearly at max sinkrate.
+		if ((_stall_state == STALL_MODE::STALL) && (pitch < 0.0f) && (altitude_rate < (0.5f - _control_param.max_sink_rate))) {
+			PX4_WARN("Stall ending, speed increased.");
+			_stall_state = STALL_MODE::STALL_ENDING;
+		}
+
+		if ((_stall_state == STALL_MODE::STALL_ENDING) && (_stall_detection_percentage < FLT_EPSILON)) {
+			PX4_WARN("Stall ended.");
+			_stall_state = STALL_MODE::NO_STALL;
+			_stall_start_timestamp = 0ULL;
+			_stall_thr_trim_scale_to_prevent_stall += math::max(_param_fw_stall_throttle_scale.get(),
+					0.f); // Increase throttle trim to prevent future stall.
+		}
+
+		switch (_stall_state) {
+		case STALL_MODE::STALL: {
+				_stall_detection_percentage = math::min(_stall_detection_percentage + dt / math::max(FLT_EPSILON,
+									_param_fw_stall_ramp_up.get()), 1.0f);
+				break;
+			}
+
+		case STALL_MODE::STALL_ENDING: {
+				_stall_detection_percentage = math::max(_stall_detection_percentage - dt / math::max(FLT_EPSILON,
+									_param_fw_stall_ramp_up.get()), 0.0f);
+				break;
+			}
+
+		default: {
+				_stall_detection_percentage = 0.0f;
+			}
+		}
+	}
+}

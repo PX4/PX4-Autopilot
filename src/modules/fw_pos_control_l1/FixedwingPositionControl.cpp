@@ -481,6 +481,10 @@ FixedwingPositionControl::tecs_status_publish(float alt_sp, float equivalent_air
 	case TECS::ECL_TECS_MODE_CLIMBOUT:
 		t.mode = tecs_status_s::TECS_MODE_CLIMBOUT;
 		break;
+
+	case TECS::ECL_TECS_MODE_STALL_PREVENTION:
+		t.mode = tecs_status_s::TECS_MODE_STALL_PREVENTION;
+		break;
 	}
 
 	t.altitude_sp = alt_sp;
