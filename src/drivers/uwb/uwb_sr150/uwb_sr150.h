@@ -46,6 +46,7 @@
 
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/sensor_uwb.h>
 #include <uORB/topics/parameter_update.h>
@@ -80,13 +81,16 @@ typedef struct {
 	uint8_t stop; 		// Should be 0x1B
 } __attribute__((packed)) distance_msg_t;
 
-
 class UWB_SR150 : public ModuleBase<UWB_SR150>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
-	UWB_SR150(const char *device_name, speed_t baudrate, bool uwb_pos_debug);
+	UWB_SR150();
+	~UWB_SR150() override;
 
-	~UWB_SR150();
+	/**
+	 * @see ModuleBase::task_spawn
+	 */
+	static int task_spawn(int argc, char *argv[]);
 
 	/**
 	 * @see ModuleBase::custom_command
@@ -98,27 +102,32 @@ public:
 	 */
 	static int print_usage(const char *reason = nullptr);
 
-	/**
-	 * @see ModuleBase::Distance Result
-	 */
 	int collectData();
 
-	/**
-	 * @see ModuleBase::task_spawn
-	 */
-	static int task_spawn(int argc, char *argv[]);
+	bool init();
 
-	static UWB_SR150 *instantiate(int argc, char *argv[]);
-
-	void run() override;
-
-	// void stop();
+	int getRotation();
 
 private:
-	static constexpr int64_t sq(int64_t x) { return x * x; }
+	void run() override;
 
 	void parameters_update();
 
+	void start_uart(int argc, char *argv[]);
+
+	// Publications
+	uORB::Publication<sensor_uwb_s> _sensor_uwb_pub{ORB_ID(sensor_uwb)};
+	sensor_uwb_s _sensor_uwb{};
+
+	// Subscriptions
+	uORB::SubscriptionCallbackWorkItem _sensor_uwb_sub{this, ORB_ID(sensor_uwb)};
+	uORB::SubscriptionInterval 						_parameter_update_sub{ORB_ID(parameter_update), 1_s};
+
+	// Performance (perf) counters
+	perf_counter_t _read_count_perf;
+	perf_counter_t _read_err_perf;
+
+	// Parameters
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::UWB_PORT_CFG>) 			_uwb_port_cfg,
 		// (ParamInt<px4::params::UWB_DRIVER_EN>) 			_uwb_driver_en,
@@ -130,27 +139,16 @@ private:
 		(ParamInt<px4::params::UWB_SENS_ROT>) 			_uwb_sens_rot
 	)
 
-
-	uORB::SubscriptionInterval 						_parameter_update_sub{ORB_ID(parameter_update), 1_s};
-
 	hrt_abstime param_timestamp{0};
 
 	int _uart;
 	fd_set _uart_set;
 	struct timeval _uart_timeout {};
-	// need to figure out debugging/error handling still...
-	bool _uwb_pos_debug;
-
-	uORB::Publication<sensor_uwb_s> _sensor_uwb_pub{ORB_ID(sensor_uwb)};
-	sensor_uwb_s _sensor_uwb{};
 
 	distance_msg_t _distance_result_msg{};
 	matrix::Vector3d _rel_pos;
 
 	matrix::Vector3d _uwb_init_offset;
 	matrix::Vector3d _uwb_init_attitude;
-
-	perf_counter_t _read_count_perf;
-	perf_counter_t _read_err_perf;
 };
 #endif //PX4_RDDRONE_H
