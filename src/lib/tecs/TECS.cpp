@@ -609,7 +609,12 @@ float TECSControl::_calcThrottleControlOutput(const STERateLimit &limit, const C
 		// Add the integrator feedback during closed loop operation with an airspeed sensor
 		throttle_setpoint += _throttle_integ_state;
 
+	} else {
+		/* We want to avoid reducing the throttle output when switching from airspeed enabled mode into airspeedless mode.
+		  Thus, if the throttle integrator has a positive value, add it still to the throttle setpoint. */
+		throttle_setpoint += math::max(0.0f, _throttle_integ_state);
 	}
+
 
 	// ramp in max throttle setting with underspeediness value
 	throttle_setpoint = _ratio_undersped * param.throttle_max + (1.0f - _ratio_undersped) * throttle_setpoint;
