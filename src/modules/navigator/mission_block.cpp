@@ -846,8 +846,9 @@ MissionBlock::set_land_item(struct mission_item_s *item)
 	/* set the land item */
 	item->nav_cmd = NAV_CMD_LAND;
 
-	item->lat = (double)NAN; //descend at current position
-	item->lon = (double)NAN; //descend at current position
+	// set land item to current position
+	item->lat = _navigator->get_global_position()->lat;
+	item->lon = _navigator->get_global_position()->lon;
 	item->yaw = _navigator->get_local_position()->heading;
 
 	item->altitude = 0;
