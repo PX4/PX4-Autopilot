@@ -748,12 +748,12 @@ private:
 	 *
 	 * @param now Current system time [us]
 	 * @param pos_sp_prev Previous position setpoint
-	 * @param pos_sp_curr Current position setpoint
+	 * @param land_point_alt Landing point altitude setpoint AMSL [m]
 	 * @param local_position Local aircraft position (NE) [m]
 	 * @param local_land_point Local land point (NE) [m]
 	 */
 	void initializeAutoLanding(const hrt_abstime &now, const position_setpoint_s &pos_sp_prev,
-				   const position_setpoint_s &pos_sp_curr, const Vector2f &local_position, const Vector2f &local_land_point);
+				   const float land_point_alt, const Vector2f &local_position, const Vector2f &local_land_point);
 
 	/*
 	 * Waypoint handling logic following closely to the ECL_L1_Pos_Controller
