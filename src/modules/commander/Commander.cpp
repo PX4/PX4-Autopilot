@@ -702,14 +702,8 @@ Commander::handle_command(const vehicle_command_s &cmd)
 					cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 				} else {
+					printRejectMode(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
 					cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
-					mavlink_log_critical(&_mavlink_log_pub, "Reposition command rejected\t");
-					/* EVENT
-					 * @description Check for a valid position estimate
-					 */
-					events::send(events::ID("commander_reposition_rejected"),
-					{events::Log::Error, events::LogInternal::Info},
-					"Reposition command rejected");
 				}
 
 			} else {
@@ -729,14 +723,8 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else {
+				printRejectMode(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
-				mavlink_log_critical(&_mavlink_log_pub, "Change altitude command rejected\t");
-				/* EVENT
-					* @description Check for a valid position estimate
-					*/
-				events::send(events::ID("commander_change_altitude_rejected"),
-				{events::Log::Error, events::LogInternal::Info},
-				"Change altitude command rejected");
 			}
 
 		}
