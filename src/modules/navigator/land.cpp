@@ -50,7 +50,7 @@ void
 Land::on_activation()
 {
 	/* set current mission item to Land */
-	set_land_item(&_mission_item, true);
+	set_land_item(&_mission_item);
 	_navigator->get_mission_result()->finished = false;
 	_navigator->set_mission_result_updated();
 	reset_mission_item_reached();
