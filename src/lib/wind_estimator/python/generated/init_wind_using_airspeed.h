@@ -56,12 +56,12 @@ void InitWindUsingAirspeed(const matrix::Matrix<Scalar, 3, 1>& v_local, const Sc
   }
 
   if (P != nullptr) {
-    matrix::Matrix<Scalar, 2, 2>& _P = (*P);
+    matrix::Matrix<Scalar, 2, 2>& _p = (*P);
 
-    _P(0, 0) = _tmp2 * _tmp3 + _tmp4 * airspeed_var + v_var;
-    _P(1, 0) = _tmp6;
-    _P(0, 1) = _tmp6;
-    _P(1, 1) = _tmp2 * airspeed_var + _tmp3 * _tmp4 + v_var;
+    _p(0, 0) = _tmp2 * _tmp3 + _tmp4 * airspeed_var + v_var;
+    _p(1, 0) = _tmp6;
+    _p(0, 1) = _tmp6;
+    _p(1, 1) = _tmp2 * airspeed_var + _tmp3 * _tmp4 + v_var;
   }
 }  // NOLINT(readability/fn_size)
 
