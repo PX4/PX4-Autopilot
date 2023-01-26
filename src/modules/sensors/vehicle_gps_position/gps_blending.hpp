@@ -92,6 +92,7 @@ public:
 		}
 	}
 	int getSelectedGps() const { return _selected_gps; }
+	bool isFallbackAllowed() {return _fallback_allowed;}
 
 private:
 	/*

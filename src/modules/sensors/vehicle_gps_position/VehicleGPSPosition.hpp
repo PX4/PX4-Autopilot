@@ -99,5 +99,7 @@ private:
 		(ParamFloat<px4::params::SENS_GPS_TAU>) _param_sens_gps_tau,
 		(ParamInt<px4::params::SENS_GPS_PRIME>) _param_sens_gps_prime
 	)
+
+	orb_advert_t _mavlink_log_pub{nullptr};
 };
 }; // namespace sensors

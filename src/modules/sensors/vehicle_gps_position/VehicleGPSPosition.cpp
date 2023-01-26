@@ -36,6 +36,7 @@
 #include <px4_platform_common/log.h>
 #include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
+#include <lib/systemlib/mavlink_log.h>
 
 namespace sensors
 {
@@ -118,6 +119,11 @@ void VehicleGPSPosition::Run()
 
 			_sensor_gps_sub[i].copy(&gps_data);
 			_gps_blending.setGpsData(gps_data, i);
+
+			if (_gps_blending.isFallbackAllowed()) {
+				mavlink_log_critical(&_mavlink_log_pub, "GPS Sensor Timeout. Switch to Altitude mode.");
+			}
+
 
 			if (!_sensor_gps_sub[i].registered()) {
 				_sensor_gps_sub[i].registerCallback();
