@@ -272,14 +272,6 @@ MulticopterAttitudeControl::Run()
 		_manual_control_setpoint_sub.update(&_manual_control_setpoint);
 		_vehicle_control_mode_sub.update(&_vehicle_control_mode);
 
-		if (_vehicle_land_detected_sub.updated()) {
-			vehicle_land_detected_s vehicle_land_detected;
-
-			if (_vehicle_land_detected_sub.copy(&vehicle_land_detected)) {
-				_landed = vehicle_land_detected.landed;
-			}
-		}
-
 		if (_vehicle_status_sub.updated()) {
 			vehicle_status_s vehicle_status;
 
@@ -345,7 +337,7 @@ MulticopterAttitudeControl::Run()
 
 		// reset yaw setpoint during transitions, tailsitter.cpp generates
 		// attitude setpoint for the transition
-		_reset_yaw_sp = !attitude_setpoint_generated || _landed || (_vtol && _vtol_in_transition_mode);
+		_reset_yaw_sp = !attitude_setpoint_generated || (_vtol && _vtol_in_transition_mode);
 	}
 
 	perf_end(_loop_perf);

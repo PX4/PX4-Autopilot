@@ -52,7 +52,6 @@
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/vehicle_land_detected.h>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
 
 #include <AttitudeControl.hpp>
@@ -101,7 +100,6 @@ private:
 	uORB::Subscription _vehicle_attitude_setpoint_sub{ORB_ID(vehicle_attitude_setpoint)};   /**< vehicle attitude setpoint subscription */
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};             /**< vehicle control mode subscription */
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};                         /**< vehicle status subscription */
-	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};           /**< vehicle land detected subscription */
 
 	uORB::SubscriptionCallbackWorkItem _vehicle_attitude_sub{this, ORB_ID(vehicle_attitude)};
 
@@ -124,7 +122,6 @@ private:
 	hrt_abstime _last_run{0};
 	hrt_abstime _last_attitude_setpoint{0};
 
-	bool _landed{true};
 	bool _reset_yaw_sp{true};
 	bool _vehicle_type_rotary_wing{true};
 	bool _vtol{false};
