@@ -633,7 +633,6 @@
       <axis>
         <xyz>0 1 0</xyz>
         <limit>
-          <!-- -30/+30 deg. -->
           <lower>-0.53</lower>
           <upper>0.53</upper>
         </limit>
@@ -654,7 +653,6 @@
       <axis>
         <xyz>1 0 0</xyz>
         <limit>
-          <!-- -30/+30 deg. -->
           <lower>-0.01</lower>
           <upper>0.01</upper>
         </limit>
@@ -668,15 +666,6 @@
         </ode>
       </physics>
     </joint>
-    <!-- <include>
-      <uri>model://gps</uri>
-      <pose>0 0 0 0 0 0</pose>
-      <name>gps</name>
-    </include>
-    <joint name='gps_joint' type='fixed'>
-      <child>gps::link</child>
-      <parent>base_link</parent>
-    </joint> -->
     <plugin filename="gz-sim-lift-drag-system" name="gz::sim::systems::LiftDrag">
     <!-- <plugin name="left_wing_lift" filename="libLiftDragPlugin.so"> -->
       <a0>0.05984281113</a0>
@@ -725,7 +714,6 @@
       <joint_name>servo_1</joint_name>
       <sub_topic>servo_1</sub_topic>
     </plugin>
-    <!-- <plugin name="elevator_lift" filename="libLiftDragPlugin.so"> -->
     <plugin filename="gz-sim-lift-drag-system" name="gz::sim::systems::LiftDrag">
       <a0>-0.2</a0>
       <cla>4.752798721</cla>
@@ -749,7 +737,6 @@
       <joint_name>servo_2</joint_name>
       <sub_topic>servo_2</sub_topic>
     </plugin>
-    <!-- <plugin name="rudder_lift" filename="libLiftDragPlugin.so"> -->
     <plugin filename="gz-sim-lift-drag-system" name="gz::sim::systems::LiftDrag">
       <a0>0.0</a0>
       <cla>4.752798721</cla>
@@ -855,7 +842,7 @@
       <timeConstantDown>0.025</timeConstantDown>
       <maxRotVelocity>3500</maxRotVelocity>
       <motorConstant>8.54858e-06</motorConstant>
-      <momentConstant>0.01</momentConstant>
+      <momentConstant>0.6</momentConstant>
       <commandSubTopic>command/motor_speed</commandSubTopic>
       <motorNumber>4</motorNumber>
       <rotorDragCoefficient>0.000106428</rotorDragCoefficient>
