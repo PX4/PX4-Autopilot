@@ -160,10 +160,10 @@ void FeasibilityChecker::processNextItem(mission_item_s &mission_item, const int
 	doCommonChecks(mission_item, current_index);
 
 	if (_vehicle_type == VehicleType::Vtol) {
-		doVtolChecks(mission_item, current_index);
+		doVtolChecks(mission_item, current_index, total_count - 1);
 
 	} else if (_vehicle_type == VehicleType::FixedWing) {
-		doFixedWingChecks(mission_item, current_index);
+		doFixedWingChecks(mission_item, current_index, total_count - 1);
 
 	} else if (_vehicle_type == VehicleType::RotaryWing) {
 		doMulticopterChecks(mission_item, current_index);
@@ -199,18 +199,18 @@ void FeasibilityChecker::doCommonChecks(mission_item_s &mission_item, const int 
 	}
 }
 
-void FeasibilityChecker::doVtolChecks(mission_item_s &mission_item, const int current_index)
+void FeasibilityChecker::doVtolChecks(mission_item_s &mission_item, const int current_index, const int last_index)
 {
 	if (!_land_pattern_validity_failed) {
-		_land_pattern_validity_failed = !checkLandPatternValidity(mission_item, current_index);
+		_land_pattern_validity_failed = !checkLandPatternValidity(mission_item, current_index, last_index);
 	}
 
 }
 
-void FeasibilityChecker::doFixedWingChecks(mission_item_s &mission_item, const int current_index)
+void FeasibilityChecker::doFixedWingChecks(mission_item_s &mission_item, const int current_index, const int last_index)
 {
 	if (!_land_pattern_validity_failed) {
-		_land_pattern_validity_failed = !checkLandPatternValidity(mission_item, current_index);
+		_land_pattern_validity_failed = !checkLandPatternValidity(mission_item, current_index, last_index);
 	}
 
 	if (!_fixed_wing_land_approach_failed) {
@@ -488,7 +488,8 @@ bool FeasibilityChecker::checkFixedWindLandApproach(mission_item_s &mission_item
 	return true;
 }
 
-bool FeasibilityChecker::checkLandPatternValidity(mission_item_s &mission_item, const int current_index)
+bool FeasibilityChecker::checkLandPatternValidity(mission_item_s &mission_item, const int current_index,
+		const int last_index)
 {
 
 	// if DO_LAND_START found then require valid landing AFTER
@@ -528,7 +529,7 @@ bool FeasibilityChecker::checkLandPatternValidity(mission_item_s &mission_item, 
 		}
 	}
 
-	if (land_start_found && (_do_land_start_index > _landing_approach_index)) {
+	if (current_index == last_index && land_start_found && (_do_land_start_index > _landing_approach_index)) {
 		mavlink_log_critical(_mavlink_log_pub, "Mission rejected: invalid land start.\t");
 		events::send(events::ID("navigator_mis_invalid_land"), {events::Log::Error, events::LogInternal::Info},
 			     "Mission rejected: invalid land start");
