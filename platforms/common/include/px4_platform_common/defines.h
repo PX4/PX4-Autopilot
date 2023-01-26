@@ -40,6 +40,7 @@
 #pragma once
 
 #include <sys/ioctl.h>
+#include <px4_platform_common/px4_config.h>
 
 /****************************************************************************
  * Defines for all platforms.
@@ -95,11 +96,7 @@ __BEGIN_DECLS
 extern long PX4_TICKS_PER_SEC;
 __END_DECLS
 
-#if defined(CONFIG_ARCH_BOARD_MODALAI_VOXL2)
-#define PX4_ROOTFSDIR "/data/px4"
-#else
-#define PX4_ROOTFSDIR "."
-#endif
+#define PX4_ROOTFSDIR CONFIG_BOARD_ROOTFSDIR
 
 #define PX4_STORAGEDIR PX4_ROOTFSDIR
 
