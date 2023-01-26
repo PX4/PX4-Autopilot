@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!-- DO NOT EDIT: Generated from standard_vtol.sdf.jinja -->
-<sdf version='1.5'>
+<sdf version='1.9'>
   <model name='standard_vtol'>
     <pose>0 0 0.246 0 0 0</pose>
     <link name='base_link'>
@@ -556,34 +556,6 @@
         </material>
       </visual>
     </link>
-    <link name="elevator">
-      <inertial>
-        <mass>0.00000001</mass>
-        <inertia>
-          <ixx>0.000001</ixx>
-          <ixy>0.0</ixy>
-          <iyy>0.000001</iyy>
-          <ixz>0.0</ixz>
-          <iyz>0.0</iyz>
-          <izz>0.000001</izz>
-        </inertia>
-        <pose> -0.5 0 0 0.00 0 0.0</pose>
-      </inertial>
-    </link>
-    <link name="rudder">
-      <inertial>
-        <mass>0.00000001</mass>
-        <inertia>
-          <ixx>0.000001</ixx>
-          <ixy>0.0</ixy>
-          <iyy>0.000001</iyy>
-          <ixz>0.0</ixz>
-          <iyz>0.0</iyz>
-          <izz>0.000001</izz>
-        </inertia>
-        <pose>-0.5 0 0.05 0 0 0 </pose>
-      </inertial>
-    </link>
     <joint name='servo_0' type='revolute'>
       <parent>base_link</parent>
       <child>left_elevon</child>
@@ -591,7 +563,6 @@
       <axis>
         <xyz>0 1 0</xyz>
         <limit>
-          <!-- -30/+30 deg. -->
           <lower>-0.53</lower>
           <upper>0.53</upper>
         </limit>
@@ -612,49 +583,8 @@
       <axis>
         <xyz>0 1 0</xyz>
         <limit>
-          <!-- -30/+30 deg. -->
           <lower>-0.53</lower>
           <upper>0.53</upper>
-        </limit>
-        <dynamics>
-          <damping>1.000</damping>
-        </dynamics>
-      </axis>
-      <physics>
-        <ode>
-          <implicit_spring_damper>1</implicit_spring_damper>
-        </ode>
-      </physics>
-    </joint>
-    <joint name='servo_2' type='revolute'>
-      <parent>base_link</parent>
-      <child>elevator</child>
-      <pose> -0.5 0 0 0 0 0</pose>
-      <axis>
-        <xyz>0 1 0</xyz>
-        <limit>
-          <lower>-0.53</lower>
-          <upper>0.53</upper>
-        </limit>
-        <dynamics>
-          <damping>1.000</damping>
-        </dynamics>
-      </axis>
-      <physics>
-        <ode>
-          <implicit_spring_damper>1</implicit_spring_damper>
-        </ode>
-      </physics>
-    </joint>
-    <joint name='servo_3' type='revolute'>
-      <parent>base_link</parent>
-      <child>rudder</child>
-      <pose>-0.5 0 0.05 0.00 0 0.0</pose>
-      <axis>
-        <xyz>1 0 0</xyz>
-        <limit>
-          <lower>-0.01</lower>
-          <upper>0.01</upper>
         </limit>
         <dynamics>
           <damping>1.000</damping>
@@ -667,7 +597,6 @@
       </physics>
     </joint>
     <plugin filename="gz-sim-lift-drag-system" name="gz::sim::systems::LiftDrag">
-    <!-- <plugin name="left_wing_lift" filename="libLiftDragPlugin.so"> -->
       <a0>0.05984281113</a0>
       <cla>4.752798721</cla>
       <cda>0.6417112299</cda>
@@ -690,7 +619,6 @@
       <joint_name>servo_0</joint_name>
       <sub_topic>servo_0</sub_topic>
     </plugin>
-    <!-- <plugin name="right_wing_lift" filename="libLiftDragPlugin.so"> -->
     <plugin filename="gz-sim-lift-drag-system" name="gz::sim::systems::LiftDrag">
       <a0>0.05984281113</a0>
       <cla>4.752798721</cla>
@@ -714,52 +642,6 @@
       <joint_name>servo_1</joint_name>
       <sub_topic>servo_1</sub_topic>
     </plugin>
-    <plugin filename="gz-sim-lift-drag-system" name="gz::sim::systems::LiftDrag">
-      <a0>-0.2</a0>
-      <cla>4.752798721</cla>
-      <cda>0.6417112299</cda>
-      <cma>0.0</cma>
-      <alpha_stall>0.3391428111</alpha_stall>
-      <cla_stall>-3.85</cla_stall>
-      <cda_stall>-0.9233984055</cda_stall>
-      <cma_stall>0</cma_stall>
-      <cp>-0.5 0 0</cp>
-      <area>0.01</area>
-      <air_density>1.2041</air_density>
-      <forward>1 0 0</forward>
-      <upward>0 0 1</upward>
-      <link_name>base_link</link_name>
-      <control_joint_name>servo_2</control_joint_name>
-      <control_joint_rad_to_cl>-12.0</control_joint_rad_to_cl>
-    </plugin>
-    <plugin
-      filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
-      <joint_name>servo_2</joint_name>
-      <sub_topic>servo_2</sub_topic>
-    </plugin>
-    <plugin filename="gz-sim-lift-drag-system" name="gz::sim::systems::LiftDrag">
-      <a0>0.0</a0>
-      <cla>4.752798721</cla>
-      <cda>0.6417112299</cda>
-      <cma>0.0.</cma>
-      <alpha_stall>0.3391428111</alpha_stall>
-      <cla_stall>-3.85</cla_stall>
-      <cda_stall>-0.9233984055</cda_stall>
-      <cma_stall>0</cma_stall>
-      <cp>-0.5 0 0.05</cp>
-      <area>0.02</area>
-      <air_density>1.2041</air_density>
-      <forward>1 0 0</forward>
-      <upward>0 1 0</upward>
-      <link_name>base_link</link_name>
-      <control_joint_name>servo_3</control_joint_name>
-    </plugin>
-    <plugin
-      filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
-      <joint_name>servo_3</joint_name>
-      <sub_topic>servo_3</sub_topic>
-    </plugin>
-    <!-- <plugin name='front_right_motor_model' filename='libgazebo_motor_model.so'> -->
     <plugin filename="gz-sim-multicopter-motor-model-system" name="gz::sim::systems::MulticopterMotorModel">
       <jointName>rotor_0_joint</jointName>
       <linkName>rotor_0</linkName>
@@ -776,7 +658,6 @@
       <rotorVelocitySlowdownSim>20</rotorVelocitySlowdownSim>
       <motorType>velocity</motorType>
     </plugin>
-    <!-- <plugin name='back_left_motor_model' filename='libgazebo_motor_model.so'> -->
     <plugin filename="gz-sim-multicopter-motor-model-system" name="gz::sim::systems::MulticopterMotorModel">
       <jointName>rotor_1_joint</jointName>
       <linkName>rotor_1</linkName>
@@ -793,7 +674,6 @@
       <rotorVelocitySlowdownSim>20</rotorVelocitySlowdownSim>
       <motorType>velocity</motorType>
     </plugin>
-    <!-- <plugin name='front_left_motor_model' filename='libgazebo_motor_model.so'> -->
     <plugin
       filename="gz-sim-multicopter-motor-model-system"
       name="gz::sim::systems::MulticopterMotorModel">
@@ -812,7 +692,6 @@
       <rotorVelocitySlowdownSim>20</rotorVelocitySlowdownSim>
       <motorType>velocity</motorType>
     </plugin>
-    <!-- <plugin name='back_right_motor_model' filename='libgazebo_motor_model.so'> -->
     <plugin
       filename="gz-sim-multicopter-motor-model-system"
       name="gz::sim::systems::MulticopterMotorModel">
@@ -831,7 +710,6 @@
       <rotorVelocitySlowdownSim>20</rotorVelocitySlowdownSim>
       <motorType>velocity</motorType>
     </plugin>
-    <!-- <plugin name='puller_motor_model' filename='libgazebo_motor_model.so'> -->
     <plugin
       filename="gz-sim-multicopter-motor-model-system"
       name="gz::sim::systems::MulticopterMotorModel">

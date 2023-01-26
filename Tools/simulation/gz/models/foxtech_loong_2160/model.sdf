@@ -33,7 +33,7 @@
         <update_rate>250</update_rate>
       </sensor>
     </link>
-    <link name="airspeed">
+    <link name="airspeed_link">
       <pose>0 0 0 0 0 0</pose>
       <inertial>
         <pose>0 0 0 0 0 0</pose>
@@ -73,7 +73,7 @@
       </sensor>
     </link>
     <joint name='airspeed_joint' type='fixed'>
-      <child>airspeed</child>
+      <child>airspeed_link</child>
       <parent>base_link</parent>
     </joint>
     <link name="aileron_left_link">
