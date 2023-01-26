@@ -200,6 +200,8 @@ void Ekf::resetVerticalPositionTo(const float new_vert_pos, float new_vert_pos_v
 	_gps_hgt_b_est.setBias(_gps_hgt_b_est.getBias() + delta_z);
 	_rng_hgt_b_est.setBias(_rng_hgt_b_est.getBias() + delta_z);
 
+	_terrain_vpos -= delta_z;
+
 	// Reset the timout timer
 	_time_last_hgt_fuse = _time_delayed_us;
 }

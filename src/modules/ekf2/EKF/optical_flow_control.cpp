@@ -111,7 +111,7 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 			// compensate for body motion to give a LOS rate
 			_flow_compensated_XY_rad = _flow_sample_delayed.flow_xy_rad - _flow_sample_delayed.gyro_xyz.xy();
 
-		} else if (!_control_status.flags.in_air && _control_status.flags.vehicle_at_rest) {
+		} else if (!_control_status.flags.in_air) {
 
 			if (!is_delta_time_good) {
 				// handle special case of SITL and PX4Flow where dt is forced to
@@ -128,8 +128,6 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 			_flow_data_ready = false;
 			_flow_compensated_XY_rad.setZero();
 		}
-
-		updateOptFlow(_aid_src_optical_flow);
 
 	} else {
 		_flow_compensated_XY_rad.setZero();
@@ -173,13 +171,6 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 		    && !inhibit_flow_use
 		    && _range_sensor.isDataHealthy()) {
 
-			if (isHorizontalAidingActive()
-			    && ((_aid_src_optical_flow.test_ratio[0] > 0.1f) || (_aid_src_optical_flow.test_ratio[1] > 0.1f))
-			   ) {
-				// if horizontal aiding already active don't allow optical flow to start unless the test ratio is good
-				return;
-			}
-
 			// set the flag and reset the fusion timeout
 			ECL_INFO("starting optical flow fusion");
 
@@ -202,7 +193,16 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 				}
 			}
 
+			updateOptFlow(_aid_src_optical_flow);
+			_aid_src_optical_flow.fusion_enabled = true;
+			_aid_src_optical_flow.test_ratio[0] = 0.f;
+			_aid_src_optical_flow.test_ratio[1] = 0.f;
+			_aid_src_optical_flow.innovation_rejected = false;
 			_aid_src_optical_flow.time_last_fuse = _time_delayed_us;
+
+			_innov_check_fail_status.flags.reject_optflow_X = false;
+			_innov_check_fail_status.flags.reject_optflow_Y = false;
+
 			_control_status.flags.opt_flow = true;
 
 			return;
@@ -214,8 +214,7 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 				// Fuse optical flow LOS rate observations into the main filter only if height above ground has been updated recently
 				// but use a relaxed time criteria to enable it to coast through bad range finder data
 				if (isRecent(_time_last_hagl_fuse, (uint64_t)10e6)) {
-
-					_aid_src_optical_flow.fusion_enabled = true;
+					updateOptFlow(_aid_src_optical_flow);
 					fuseOptFlow();
 					_last_known_pos.xy() = _state.pos.xy();
 				}

@@ -77,24 +77,12 @@ void Ekf::updateOptFlow(estimator_aid_source2d_s &aid_src)
 	const float R_LOS = calcOptFlowMeasVar(_flow_sample_delayed);
 	aid_src.observation_variance[0] = R_LOS;
 	aid_src.observation_variance[1] = R_LOS;
-
-
-	// compute innovation variance to update test ratios
-	const Vector24f state_vector = getStateAtFusionHorizonAsVector();
-	Vector2f innov_var;
-	Vector24f H;
-	sym::ComputeFlowXyInnovVarAndHx(state_vector, P, range, R_LOS, FLT_EPSILON, &innov_var, &H);
-	innov_var.copyTo(_aid_src_optical_flow.innovation_variance);
-
-	// run the innovation consistency check and record result
-	setEstimatorAidStatusTestRatio(_aid_src_optical_flow, math::max(_params.flow_innov_gate, 1.f));
-
-	_innov_check_fail_status.flags.reject_optflow_X = (_aid_src_optical_flow.test_ratio[0] > 1.f);
-	_innov_check_fail_status.flags.reject_optflow_Y = (_aid_src_optical_flow.test_ratio[1] > 1.f);
 }
 
 void Ekf::fuseOptFlow()
 {
+	_aid_src_optical_flow.fusion_enabled = true;
+
 	const float R_LOS = _aid_src_optical_flow.observation_variance[0];
 
 	// calculate the height above the ground of the optical flow camera. Since earth frame is NED
