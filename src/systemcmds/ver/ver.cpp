@@ -180,6 +180,7 @@ extern "C" __EXPORT int ver_main(int argc, char *argv[])
 				}
 
 				fwver = px4_firmware_vendor_version();
+
 				// Only display vendor version if it is non-zero
 				if (fwver & 0xFFFFFF00) {
 					major = (fwver >> (8 * 3)) & 0xFF;
