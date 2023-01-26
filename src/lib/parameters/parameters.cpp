@@ -1029,9 +1029,7 @@ int param_reset_no_notification(param_t param) { return param_reset_internal(par
 static void
 param_reset_all_internal(bool auto_save)
 {
-#if defined(CONFIG_PARAM_CLIENT)
-	PX4_ERR("Cannot reset all parameters on client side");
-#else
+#if not defined(CONFIG_PARAM_CLIENT)
 	param_lock_writer();
 
 	if (param_values != nullptr) {
