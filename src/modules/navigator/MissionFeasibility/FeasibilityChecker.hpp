@@ -128,7 +128,7 @@ private:
 	// methods which are called for each mission item
 	bool checkMissionItemValidity(mission_item_s &mission_item, const int current_index);
 	bool checkTakeoff(mission_item_s &mission_item);
-	bool checkLandPatternValidity(mission_item_s &mission_item, const int current_index);
+	bool checkLandPatternValidity(mission_item_s &mission_item, const int current_index, const int last_index);
 	bool checkDistanceToFirstWaypoint(mission_item_s &mission_item);
 	bool checkDistancesBetweenWaypoints(const mission_item_s &mission_item);
 	bool checkIfBelowHomeAltitude(const mission_item_s &mission_item, const int current_index);
@@ -138,7 +138,7 @@ private:
 	bool checkTakeoffLandAvailable();
 
 	void doCommonChecks(mission_item_s &mission_item, const int current_index);
-	void doVtolChecks(mission_item_s &mission_item, const int current_index);
-	void doFixedWingChecks(mission_item_s &mission_item, const int current_index);
+	void doVtolChecks(mission_item_s &mission_item, const int current_index, const int last_index);
+	void doFixedWingChecks(mission_item_s &mission_item, const int current_index, const int last_index);
 	void doMulticopterChecks(mission_item_s &mission_item, const int current_index);
 };
