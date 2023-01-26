@@ -40,7 +40,8 @@
 #pragma once
 
 #include <sys/ioctl.h>
-#include <px4_platform_common/px4_config.h>
+#include <px4_boardconfig.h>
+
 
 /****************************************************************************
  * Defines for all platforms.
