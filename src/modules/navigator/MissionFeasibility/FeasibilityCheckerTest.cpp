@@ -411,6 +411,23 @@ TEST_F(FeasibilityCheckerTest, fixed_wing_landing)
 	mission_item.nav_cmd = NAV_CMD_DO_LAND_START;
 	checker.processNextItem(mission_item, 2, 3);
 	ASSERT_EQ(checker.someCheckFailed(), true);
+
+
+	checker.reset();
+	param_t param = param_handle(px4::params::MIS_TKO_LAND_REQ);
+	// not takeoff land requiremntes, check should pass
+	int param_val = 0;
+	param_set(param, &param_val);
+	checker.paramsChanged();
+	checker.publishHomePosition(0, 0, 100);
+	checker.publishVehicleType(vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+	mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+	checker.processNextItem(mission_item, 0, 3);
+	mission_item.nav_cmd = NAV_CMD_DO_LAND_START;
+	checker.processNextItem(mission_item, 1, 3);
+	mission_item.nav_cmd = NAV_CMD_LAND;
+	checker.processNextItem(mission_item, 2, 3);
+	ASSERT_EQ(checker.someCheckFailed(), false);
 }
 
 TEST_F(FeasibilityCheckerTest, check_takeoff_land_requirements)
