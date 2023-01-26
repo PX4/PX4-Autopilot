@@ -60,8 +60,11 @@
 #include <uORB/topics/sensors_status.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_magnetometer.h>
+#include <uORB/topics/magnetometer_noise.h>
+#include <lib/mathlib/math/filter/LowPassFilter1p.hpp>
 
 using namespace time_literals;
+using namespace matrix;
 
 namespace sensors
 {
@@ -78,6 +81,59 @@ public:
 	void PrintStatus();
 
 private:
+
+	class RMSNoiseCalculator
+	{
+
+		/**
+		 * Calculates the RMS noise of the signal (vs the specified low-pass of the signal)
+		 */
+
+	public:
+		RMSNoiseCalculator() = default;
+
+		void set_cutoff_frequency(float cutoff_freq, bool reset_states = true)
+		{
+			_lp_filter_in1.set_cutoff_frequency(cutoff_freq, reset_states);
+			_lp_filter_in2.set_cutoff_frequency(cutoff_freq, reset_states);
+			_lp_filter_out1.set_cutoff_frequency(cutoff_freq, reset_states);
+			_lp_filter_out2.set_cutoff_frequency(cutoff_freq, reset_states);
+		}
+
+		Vector3f get_last_value() {return _last_value;}
+
+		Vector3f apply(const Vector3f &input, const float &dt)
+		{
+			// Highpass the input signal to get the noise amplitude
+			const Vector3f filtered_1Hz = _lp_filter_in2.apply(_lp_filter_in1.apply(input, dt), dt);
+			const Vector3f noise = input - filtered_1Hz;
+
+			// Lowpass the square of the noise to get the averaged squared noise
+			const Vector3f noise_sq = Vector3f(noise(0) * noise(0), //
+							   noise(1) * noise(1), //
+							   noise(2) * noise(2));
+			const Vector3f noise_average = _lp_filter_out2.apply((_lp_filter_out1.apply(noise_sq, dt)), dt);
+
+			// The output is the square root of the noise (sanity check for positive)
+			if (noise_average(0) < 0 || noise_average(1) < 0 || noise_average(2) < 0) {
+				_last_value = Vector3f(0.f, 0.f, 0.f);
+
+			} else {
+				_last_value = Vector3f(sqrt(noise_average(0)), sqrt(noise_average(1)), sqrt(noise_average(2)));
+			}
+
+			// Return the square root of the average squared noise
+			return _last_value;
+		}
+
+	private:
+		Vector3f _last_value {0.0f, 0.0f, 0.0f};
+		math::LowPassFilter1p<matrix::Vector3f> _lp_filter_in1 {};
+		math::LowPassFilter1p<matrix::Vector3f> _lp_filter_in2 {};
+		math::LowPassFilter1p<matrix::Vector3f> _lp_filter_out1 {};
+		math::LowPassFilter1p<matrix::Vector3f> _lp_filter_out2 {};
+	};
+
 	void Run() override;
 
 	void CheckFailover(const hrt_abstime &time_now_us);
@@ -106,6 +162,13 @@ private:
 		{ORB_ID(vehicle_magnetometer)},
 		{ORB_ID(vehicle_magnetometer)},
 		{ORB_ID(vehicle_magnetometer)},
+	};
+
+	uORB::PublicationMulti<magnetometer_noise_s> _magnetometer_noise_pub[MAX_SENSOR_COUNT] {
+		{ORB_ID(magnetometer_noise)},
+		{ORB_ID(magnetometer_noise)},
+		{ORB_ID(magnetometer_noise)},
+		{ORB_ID(magnetometer_noise)},
 	};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
@@ -173,11 +236,21 @@ private:
 
 	bool _armed{false};
 
+	math::LowPassFilter1p<matrix::Vector3f> _lp_filter1[MAX_SENSOR_COUNT] {};
+	math::LowPassFilter1p<matrix::Vector3f> _lp_filter2[MAX_SENSOR_COUNT] {};
+	RMSNoiseCalculator _rms_calculator_raw[MAX_SENSOR_COUNT] {};
+	RMSNoiseCalculator _rms_calculator_filtered[MAX_SENSOR_COUNT] {};
+	hrt_abstime _mag_filtered_timestamp[MAX_SENSOR_COUNT] {};
+	hrt_abstime _sampling_warning_last{};
+	matrix::Vector3f _mag_filtered[MAX_SENSOR_COUNT] {};
+	bool _sees_filtering[MAX_SENSOR_COUNT] {false};
+
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::CAL_MAG_COMP_TYP>) _param_mag_comp_typ,
 		(ParamBool<px4::params::SENS_MAG_MODE>) _param_sens_mag_mode,
 		(ParamFloat<px4::params::SENS_MAG_RATE>) _param_sens_mag_rate,
-		(ParamBool<px4::params::SENS_MAG_AUTOCAL>) _param_sens_mag_autocal
+		(ParamBool<px4::params::SENS_MAG_AUTOCAL>) _param_sens_mag_autocal,
+		(ParamInt<px4::params::SENS_MAG_LP_CUT>) _param_sens_mag_lp_cut
 	)
 };
 }; // namespace sensors

@@ -159,6 +159,16 @@ bool VehicleMagnetometer::ParametersUpdate(bool force)
 				if (calibration_count != _calibration[mag].calibration_count()) {
 					calibration_updated = true;
 				}
+
+				int cutoff_freq_old = _lp_filter1->get_cutoff_freq();
+				int cutoff_freq_new = _param_sens_mag_lp_cut.get();
+
+				if (cutoff_freq_new != cutoff_freq_old) {
+					_lp_filter1[mag].set_cutoff_frequency(cutoff_freq_new);
+					_lp_filter2[mag].set_cutoff_frequency(cutoff_freq_new);
+					_rms_calculator_raw[mag].set_cutoff_frequency(cutoff_freq_new);
+					_rms_calculator_filtered[mag].set_cutoff_frequency(cutoff_freq_new);
+				}
 			}
 
 			if (calibration_updated) {
@@ -452,7 +462,50 @@ void VehicleMagnetometer::Run()
 					_data_sum[uorb_index] += vect;
 					_data_sum_count[uorb_index]++;
 
-					_last_data[uorb_index] = vect;
+					float dt = 0;
+					float sample_freq = 0;
+
+					if (_param_sens_mag_lp_cut.get() > 0) {
+						// Catch backwards timesteps just in case
+						if (report.timestamp_sample > _mag_filtered_timestamp[uorb_index]) {
+							dt = (report.timestamp_sample - _mag_filtered_timestamp[uorb_index]) * 1e-6f;
+							sample_freq = 1.f / dt;
+						}
+
+						const float filter_freq = _param_sens_mag_lp_cut.get();
+
+						if (filter_freq > (0.5f * sample_freq) && (hrt_absolute_time() - _sampling_warning_last) > 10'000'000) {
+							mavlink_log_warning(&_mavlink_log_pub,
+									    "Warning, magnetometer filter freq too high. Sampling Freq = %f, Filter Freq = %f.", double(sample_freq),
+									    double(filter_freq));
+							_sampling_warning_last = hrt_absolute_time();
+							_sees_filtering[uorb_index] = false;
+
+						} else {
+							_sees_filtering[uorb_index] = true;
+						}
+					}
+
+					if (_sees_filtering[uorb_index]) {
+
+						// Apply filter and save result
+						_mag_filtered[uorb_index] = _lp_filter2[uorb_index].apply(_lp_filter1[uorb_index].apply(vect, dt), dt);
+						_mag_filtered_timestamp[uorb_index] = report.timestamp_sample;
+
+						// RMS the raw and filtered values for logging
+						_rms_calculator_raw[uorb_index].apply(vect, dt);
+						_rms_calculator_filtered[uorb_index].apply(_mag_filtered[uorb_index], dt);
+
+						// Use filtered values for consistency check
+						_last_data[uorb_index](0) = _mag_filtered[uorb_index](0);
+						_last_data[uorb_index](1) = _mag_filtered[uorb_index](1);
+						_last_data[uorb_index](2) = _mag_filtered[uorb_index](2);
+
+					} else {
+						// Else use the unfiltered values for consistency check
+						_last_data[uorb_index] = vect;
+
+					}
 
 					updated[uorb_index] = true;
 				}
@@ -492,7 +545,14 @@ void VehicleMagnetometer::Run()
 		for (int instance = 0; instance < MAX_SENSOR_COUNT; instance++) {
 			if (updated[instance] && (_data_sum_count[instance] > 0)) {
 
-				const hrt_abstime timestamp_sample = _timestamp_sample_sum[instance] / _data_sum_count[instance];
+				hrt_abstime timestamp_sample{};
+
+				if (_sees_filtering[instance]) {
+					timestamp_sample = _mag_filtered_timestamp[instance];
+
+				} else {
+					timestamp_sample = _timestamp_sample_sum[instance] / _data_sum_count[instance];
+				}
 
 				if (timestamp_sample >= _last_publication_timestamp[instance] + interval_us) {
 
@@ -505,7 +565,30 @@ void VehicleMagnetometer::Run()
 					}
 
 					if (publish) {
-						const Vector3f magnetometer_data = _data_sum[instance] / _data_sum_count[instance];
+
+						Vector3f magnetometer_data{};
+						magnetometer_noise_s mag_noise_out{};
+
+						if (_sees_filtering[instance]) {
+							// Output filtered values to the main message
+							magnetometer_data = _mag_filtered[instance];
+
+							// Copy raw mag, RMS raw mag and RMS filtered mag to mag_noise_out message ready to be published.
+							const Vector3f mag_raw = _data_sum[instance] / _data_sum_count[instance];
+							const Vector3f mag_noise_raw_rms = _rms_calculator_raw[instance].get_last_value();
+							const Vector3f mag_noise_filtered_rms = _rms_calculator_filtered[instance].get_last_value();
+
+							mag_noise_out.timestamp_sample = _mag_filtered_timestamp[instance];
+							mag_noise_out.device_id = _calibration[instance].device_id();
+							mag_noise_raw_rms.copyTo(mag_noise_out.magnetometer_raw_rms);
+							mag_noise_filtered_rms.copyTo(mag_noise_out.magnetometer_filtered_rms);
+							mag_raw.copyTo(mag_noise_out.magnetometer_raw);
+							mag_noise_out.timestamp = hrt_absolute_time();
+
+						} else {
+							// PX4 default behaviour - output averaged value
+							magnetometer_data = _data_sum[instance] / _data_sum_count[instance];
+						}
 
 						// populate vehicle_magnetometer and publish
 						vehicle_magnetometer_s out{};
@@ -517,10 +600,12 @@ void VehicleMagnetometer::Run()
 
 						if (multi_mode) {
 							_vehicle_magnetometer_pub[instance].publish(out);
+							_magnetometer_noise_pub[instance].publish(mag_noise_out);
 
 						} else {
 							// otherwise only ever publish the first instance
 							_vehicle_magnetometer_pub[0].publish(out);
+							_magnetometer_noise_pub[0].publish(mag_noise_out);
 						}
 					}
 

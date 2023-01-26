@@ -159,7 +159,7 @@ void IST8310::RunImpl()
 	case STATE::MEASURE:
 		RegisterWrite(Register::CNTL1, CNTL1_BIT::MODE_SINGLE_MEASUREMENT);
 		_state = STATE::READ;
-		ScheduleDelayed(20_ms); // Wait at least 6ms. (minimum waiting time for 16 times internal average setup)
+		ScheduleDelayed(6_ms); // Wait at least 6ms. (minimum waiting time for 16 times internal average setup)
 		break;
 
 	case STATE::READ: {
@@ -226,7 +226,8 @@ void IST8310::RunImpl()
 
 			// initiate next measurement
 			RegisterWrite(Register::CNTL1, CNTL1_BIT::MODE_SINGLE_MEASUREMENT);
-			ScheduleDelayed(20_ms); // Wait at least 6ms. (minimum waiting time for 16 times internal average setup)
+			// Change poll rate here
+			ScheduleDelayed(6_ms); // Wait at least 6ms. (minimum waiting time for 16 times internal average setup)
 		}
 
 		break;

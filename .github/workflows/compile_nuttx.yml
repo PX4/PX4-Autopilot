@@ -72,6 +72,7 @@ jobs:
         - config: cuav_x7pro
         - config: holybro_kakutef7
         - config: px4_fmu-v5
+        - config: omnibus_f4sd
     steps:
     - uses: actions/checkout@v1
       with:

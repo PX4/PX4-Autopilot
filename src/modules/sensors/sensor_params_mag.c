@@ -117,3 +117,15 @@ PARAM_DEFINE_INT32(SENS_MAG_MODE, 1);
  * @group Sensors
  */
 PARAM_DEFINE_INT32(SENS_MAG_AUTOCAL, 0);
+
+/**
+ * Magnetometer filter sees.ai
+ *
+ * Set cutoff frequency of magnetometer low-pass filter. Set to 0 to disable.
+ * Enable Sees.ai lp filtered magnetometer
+ *
+ * @category system
+ * @group Sensors
+ * @unit Hz
+ */
+PARAM_DEFINE_INT32(SENS_MAG_LP_CUT, 10);
