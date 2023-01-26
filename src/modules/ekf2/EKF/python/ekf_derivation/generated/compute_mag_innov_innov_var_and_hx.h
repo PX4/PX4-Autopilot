@@ -158,18 +158,18 @@ void ComputeMagInnovInnovVarAndHx(const matrix::Matrix<Scalar, 24, 1>& state,
   }
 
   if (Hx != nullptr) {
-    matrix::Matrix<Scalar, 24, 1>& _Hx = (*Hx);
+    matrix::Matrix<Scalar, 24, 1>& _hx = (*Hx);
 
-    _Hx.setZero();
+    _hx.setZero();
 
-    _Hx(0, 0) = _tmp23;
-    _Hx(1, 0) = _tmp24;
-    _Hx(2, 0) = _tmp32;
-    _Hx(3, 0) = _tmp28;
-    _Hx(16, 0) = _tmp6;
-    _Hx(17, 0) = _tmp35;
-    _Hx(18, 0) = _tmp38;
-    _Hx(19, 0) = 1;
+    _hx(0, 0) = _tmp23;
+    _hx(1, 0) = _tmp24;
+    _hx(2, 0) = _tmp32;
+    _hx(3, 0) = _tmp28;
+    _hx(16, 0) = _tmp6;
+    _hx(17, 0) = _tmp35;
+    _hx(18, 0) = _tmp38;
+    _hx(19, 0) = 1;
   }
 }  // NOLINT(readability/fn_size)
 
