@@ -55,7 +55,7 @@ static constexpr unsigned int DSHOT600  =  600000u;
 static constexpr unsigned int DSHOT1200 = 1200000u;
 
 static constexpr int DSHOT_DISARM_VALUE = 0;
-static constexpr int DSHOT_MIN_THROTTLE = 1;
+static constexpr int DSHOT_MIN_THROTTLE = 0;
 static constexpr int DSHOT_MAX_THROTTLE = 1999;
 
 class DShot final : public ModuleBase<DShot>, public OutputModuleInterface
