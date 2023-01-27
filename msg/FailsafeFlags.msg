@@ -48,6 +48,7 @@ bool mission_failure                  # Mission failure
 bool vtol_fixed_wing_system_failure   # vehicle in fixed-wing system failure failsafe mode (after quad-chute)
 bool wind_limit_exceeded              # Wind limit exceeded
 bool flight_time_limit_exceeded       # Maximum flight time exceeded
+bool local_position_accuracy_low      # Local position estimate has dropped below threshold, but is currently still declared valid
 
 # Failure detector
 bool fd_critical_failure              # Critical failure (attitude/altitude limit exceeded, or external ATS)
