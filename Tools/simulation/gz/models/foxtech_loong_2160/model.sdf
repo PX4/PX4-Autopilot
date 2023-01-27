@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <sdf version="1.9">
   <model name="foxtech">
+    <pose>0 0 0.5 0 0 0</pose>
     <link name="base_link">
       <visual name="visual_base_link">
         <geometry>
@@ -33,6 +34,30 @@
         <update_rate>250</update_rate>
       </sensor>
     </link>
+    <link name="legs_link">
+      <visual name="visual_legs_link">
+        <geometry>
+          <mesh>
+            <uri>model://foxtech_loong_2160/meshes/legs.dae</uri>
+          </mesh>
+        </geometry>
+        <material>
+          <ambient>1 1 1 1.0</ambient>
+          <diffuse>1 1 1 1.0</diffuse>
+        </material>
+      </visual>
+      <collision name="collision_legs_link">
+        <geometry>
+          <mesh>
+            <uri>model://foxtech_loong_2160/meshes/legs.dae</uri>
+          </mesh>
+        </geometry>
+      </collision>
+    </link>
+    <joint name='legs_joint' type='fixed'>
+      <child>legs_link</child>
+      <parent>base_link</parent>
+    </joint>
     <link name="airspeed_link">
       <pose>0 0 0 0 0 0</pose>
       <inertial>
@@ -109,16 +134,13 @@
       <parent>base_link</parent>
       <child>aileron_left_link</child>
       <axis>
-        <xyz>1 0 0</xyz>
+        <xyz>-1 0 0</xyz>
         <limit>
-          <lower>0</lower>
-          <upper>0</upper>
-          <effort>0</effort>
-          <velocity>0</velocity>
+          <lower>-0.53</lower>
+          <upper>0.53</upper>
         </limit>
         <dynamics>
-          <spring_reference>0</spring_reference>
-          <spring_stiffness>0</spring_stiffness>
+          <damping>1.000</damping>
         </dynamics>
       </axis>
     </joint>
@@ -155,16 +177,13 @@
       <parent>base_link</parent>
       <child>aileron_right_link</child>
       <axis>
-        <xyz>1 0 0</xyz>
+        <xyz>-1 0 0</xyz>
         <limit>
-          <lower>0</lower>
-          <upper>0</upper>
-          <effort>0</effort>
-          <velocity>0</velocity>
+          <lower>-0.53</lower>
+          <upper>0.53</upper>
         </limit>
         <dynamics>
-          <spring_reference>0</spring_reference>
-          <spring_stiffness>0</spring_stiffness>
+          <damping>1.000</damping>
         </dynamics>
       </axis>
     </joint>
@@ -203,14 +222,11 @@
       <axis>
         <xyz>1 0 0</xyz>
         <limit>
-          <lower>0</lower>
-          <upper>0</upper>
-          <effort>0</effort>
-          <velocity>0</velocity>
+          <lower>-0.53</lower>
+          <upper>0.53</upper>
         </limit>
         <dynamics>
-          <spring_reference>0</spring_reference>
-          <spring_stiffness>0</spring_stiffness>
+          <damping>1.000</damping>
         </dynamics>
       </axis>
     </joint>
@@ -249,14 +265,11 @@
       <axis>
         <xyz>1 0 0</xyz>
         <limit>
-          <lower>0</lower>
-          <upper>0</upper>
-          <effort>0</effort>
-          <velocity>0</velocity>
+          <lower>-0.53</lower>
+          <upper>0.53</upper>
         </limit>
         <dynamics>
-          <spring_reference>0</spring_reference>
-          <spring_stiffness>0</spring_stiffness>
+          <damping>1.000</damping>
         </dynamics>
       </axis>
     </joint>
@@ -276,7 +289,7 @@
           </mesh>
         </geometry>
       </collision>
-      <inertial>
+      <inertial>p
         <pose>3.0720176589210631e-09 -0.014597633583934367 -0.00023793299837082617 -0.00096325055376496349 0 0</pose>
         <mass>0.08686124232617691</mass>
         <inertia>
@@ -293,16 +306,13 @@
       <parent>base_link</parent>
       <child>rudder_link</child>
       <axis>
-        <xyz>1 0 0</xyz>
+        <xyz>0 0 1</xyz>
         <limit>
-          <lower>0</lower>
-          <upper>0</upper>
-          <effort>0</effort>
-          <velocity>0</velocity>
+          <lower>-0.53</lower>
+          <upper>0.53</upper>
         </limit>
         <dynamics>
-          <spring_reference>0</spring_reference>
-          <spring_stiffness>0</spring_stiffness>
+          <damping>1.000</damping>
         </dynamics>
       </axis>
     </joint>
@@ -310,7 +320,7 @@
       <gravity>true</gravity>
       <self_collide>false</self_collide>
       <velocity_decay/>
-      <pose>0.427 0.403 0.083 0 0 0</pose>
+      <pose>0.427 -0.403 0.083 0 0 0</pose>
       <inertial>
           <mass>0.016076923076923075</mass>
           <inertia>
@@ -365,7 +375,7 @@
       <gravity>true</gravity>
       <self_collide>false</self_collide>
       <velocity_decay/>
-      <pose>-0.427 -0.403 0.083 0 0 0</pose>
+      <pose>-0.427 0.403 0.083 0 0 0</pose>
       <inertial>
           <mass>0.016076923076923075</mass>
           <inertia>
@@ -420,7 +430,7 @@
       <gravity>true</gravity>
       <self_collide>false</self_collide>
       <velocity_decay/>
-      <pose>-0.427 0.403 0.083 0 0 0</pose>
+      <pose>0.427 0.403 0.083 0 0 0</pose>
       <inertial>
           <mass>0.016076923076923075</mass>
           <inertia>
@@ -475,7 +485,7 @@
       <gravity>true</gravity>
       <self_collide>false</self_collide>
       <velocity_decay/>
-      <pose>0.427 -0.403 0.083 0 0 0</pose>
+      <pose>-0.427 -0.403 0.083 0 0 0</pose>
       <inertial>
           <mass>0.016076923076923075</mass>
           <inertia>
@@ -527,7 +537,7 @@
       </axis>
     </joint>
     <link name='rotor_puller'>
-      <pose>0.0 0.379 0.0 -1.57 0 0</pose>
+      <pose>0.0 0.379 0.0 -1.57 1.57 0</pose>
       <inertial>
         <pose>0 0 0 0 0 0</pose>
         <mass>0.005</mass>
@@ -568,6 +578,7 @@
       <self_collide>0</self_collide>
     </link>
     <joint name='rotor_puller_joint' type='revolute'>
+      <pose>0.0 0 0.0 0 -1.57 0</pose>
       <child>rotor_puller</child>
       <parent>base_link</parent>
       <axis>
@@ -616,7 +627,6 @@
       <rotorVelocitySlowdownSim>20</rotorVelocitySlowdownSim>
       <motorType>velocity</motorType>
     </plugin>
-    <!-- <plugin name='front_left_motor_model' filename='libgazebo_motor_model.so'> -->
     <plugin
       filename="gz-sim-multicopter-motor-model-system"
       name="gz::sim::systems::MulticopterMotorModel">
@@ -635,7 +645,6 @@
       <rotorVelocitySlowdownSim>20</rotorVelocitySlowdownSim>
       <motorType>velocity</motorType>
     </plugin>
-    <!-- <plugin name='back_right_motor_model' filename='libgazebo_motor_model.so'> -->
     <plugin
       filename="gz-sim-multicopter-motor-model-system"
       name="gz::sim::systems::MulticopterMotorModel">
