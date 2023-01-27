@@ -219,7 +219,7 @@ WindEstimator::run_sanity_checks()
 	// attain symmetry
 	for (unsigned row = 0; row < 3; row++) {
 		for (unsigned column = 0; column < row; column++) {
-			const float tmp = (_P(row, column) + _P(column, row)) / 2.f;
+			const float tmp = (_P(row, column) + _P(column, row)) * 0.5f;
 			_P(row, column) = tmp;
 			_P(column, row) = tmp;
 		}
