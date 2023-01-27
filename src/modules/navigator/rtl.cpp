@@ -663,7 +663,10 @@ void RTL::advance_rtl()
 		break;
 
 	case RTL_STATE_DESCEND:
-		if (do_fw_loiter) {
+
+		// We should normally always be in FW in this state,
+		// but we handle MC as well
+		if (is_fw && do_fw_loiter) {
 			_rtl_state = RTL_STATE_LOITER;
 
 		} else if (is_fw && is_vtol) {
@@ -672,7 +675,7 @@ void RTL::advance_rtl()
 		} else if (!is_fw && do_mc_descend) {
 			_rtl_state = RTL_STATE_MC_DESCEND;
 
-		} else {  // FW and not VTOL
+		} else {  // FW and not VTOL, or MC
 			_rtl_state = RTL_STATE_LAND;
 		}
 
