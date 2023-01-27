@@ -1088,3 +1088,20 @@ PARAM_DEFINE_INT32(COM_FLT_TIME_MAX, -1);
  * @unit m/s
  */
 PARAM_DEFINE_FLOAT(COM_WIND_MAX, -1.f);
+
+/**
+ * EPH threshold for RTL
+ *
+ * Specify the threshold for triggering a warning for low local position accuracy. Additionally triggers
+ * a RTL if currently in Mission or Loiter mode.
+ * Local position has to be still declared valid, which is most of all depending on COM_POS_FS_EPH.
+ * Use this feature on systems with dead-reckoning capabilites (e.g. fixed-wing vehicles with airspeed sensor)
+ * to improve the user notification and failure mitigation when flying in GNSS-denied areas.
+ *
+ * Set to -1 to disable.
+ *
+ * @group Commander
+ * @min -1
+ * @unit m
+ */
+PARAM_DEFINE_FLOAT(COM_POS_LOW_EPH, -1.0f);
