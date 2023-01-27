@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -257,7 +257,7 @@ public:
 	 *
 	 */
 	struct Input {
-		float altitude;		///< Current altitude of the UAS [m].
+		float altitude;		///< Current altitude amsl of the UAS [m].
 		float altitude_rate;	///< Current altitude rate of the UAS [m/s].
 		float tas;		///< Current true airspeed of the UAS [m/s].
 		float tas_rate;		///< Current true airspeed rate of the UAS [m/s²].
@@ -269,7 +269,6 @@ public:
 	 */
 	struct Flag {
 		bool airspeed_enabled;			///< Flag if the airspeed sensor is enabled.
-		bool climbout_mode_active;		///< Flag if climbout mode is activated.
 		bool detect_underspeed_enabled;		///< Flag if underspeed detection is enabled.
 	};
 public:
@@ -457,13 +456,14 @@ private:
 
 	/**
 	 * @brief Calculate the pitch control update function.
-	 * Update the states of the pitch control
+	 * Update the states of the pitch control (pitch integrator).
 	 *
 	 * @param dt is the update time intervall in [s].
+	 * @param input is the current input measurement of the UAS.
 	 * @param seb_rate is the specific energy balance rate in [m²/s³].
 	 * @param param is the control parameters.
 	 */
-	void _calcPitchControlUpdate(float dt, const ControlValues &seb_rate, const Param &param);
+	void _calcPitchControlUpdate(float dt, const Input &input, const ControlValues &seb_rate, const Param &param);
 
 	/**
 	 * @brief Calculate the pitch control output function.
@@ -500,7 +500,7 @@ private:
 
 	/**
 	 * @brief Calculate the throttle control update function.
-	 * Update the throttle control states.
+	 * Update the throttle control states (throttle integrator).
 	 *
 	 * @param dt is the update time intervall in [s].
 	 * @param limit is the specific total energy rate limits in [m²/s³].
@@ -527,8 +527,7 @@ private:
 	// State
 	AlphaFilter<float> _ste_rate_estimate_filter;		///< Low pass filter for the specific total energy rate.
 	float _pitch_integ_state{0.0f};				///< Pitch integrator state [rad].
-	float _throttle_integ_state{0.0f};			///< Throttle integrator state.
-
+	float _throttle_integ_state{0.0f};			///< Throttle integrator state [-].
 
 	// Output
 	DebugOutput _debug_output;				///< Debug output.
@@ -552,7 +551,7 @@ public:
 		TECSControl::DebugOutput control;
 		float true_airspeed_filtered;
 		float true_airspeed_derivative;
-		float altitude_sp;
+		float altitude_sp_ref;
 		float altitude_rate_alt_ref;
 		float altitude_rate_feedforward;
 		enum ECL_TECS_MODE tecs_mode;
@@ -586,7 +585,7 @@ public:
 	 *
 	 */
 	void update(float pitch, float altitude, float hgt_setpoint, float EAS_setpoint, float equivalent_airspeed,
-		    float eas_to_tas, bool climb_out_setpoint, float pitch_min_climbout, float throttle_min, float throttle_setpoint_max,
+		    float eas_to_tas, float throttle_min, float throttle_setpoint_max,
 		    float throttle_trim, float pitch_limit_min, float pitch_limit_max, float target_climbrate, float target_sinkrate,
 		    float speed_deriv_forward, float hgt_rate, float hgt_rate_sp = NAN);
 
@@ -603,7 +602,7 @@ public:
 
 	void set_detect_underspeed_enabled(bool enabled) { _control_flag.detect_underspeed_enabled = enabled; };
 
-	// // setters for parameters
+	// setters for parameters
 	void set_airspeed_measurement_std_dev(float std_dev) {_airspeed_filter_param.airspeed_measurement_std_dev = std_dev;};
 	void set_airspeed_rate_measurement_std_dev(float std_dev) {_airspeed_filter_param.airspeed_rate_measurement_std_dev = std_dev;};
 	void set_airspeed_filter_process_std_dev(float std_dev) {_airspeed_filter_param.airspeed_rate_noise_std_dev = std_dev;};
@@ -655,7 +654,6 @@ public:
 	float get_pitch_setpoint() {return _control.getPitchSetpoint();}
 	float get_throttle_setpoint() {return _control.getThrottleSetpoint();}
 
-	// // TECS status
 	uint64_t timestamp() { return _update_timestamp; }
 	ECL_TECS_MODE tecs_mode() { return _tecs_mode; }
 
@@ -726,7 +724,6 @@ private:
 
 	TECSControl::Flag _control_flag{
 		.airspeed_enabled = false,
-		.climbout_mode_active = false,
 		.detect_underspeed_enabled = false,
 	};
 
