@@ -42,18 +42,12 @@ static const px4_mft_device_t i2c1 = {             // 24AA64FT on Base  8K 32 X 
 
 static const px4_mtd_entry_t fmu_eeprom = {
 	.device = &i2c1,
-	.npart = 2,
+	.npart = 1,
 	.partd = {
 		{
 			.type = MTD_PARAMETERS,
 			.path = "/fs/mtd_params",
-			.nblocks = 128
-		},
-		{
-			.type = MTD_WAYPOINTS,
-			.path = "/fs/mtd_waypoints",
-			.nblocks = 128
-
+			.nblocks = 256
 		}
 	},
 };

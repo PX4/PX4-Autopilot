@@ -48,7 +48,7 @@ do
 	${DIR}/reboot.py --device ${SERIAL_DEVICE}
 
 	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'param status'
-	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'bsondump /fs/mtd_params' || true
+	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'bsondump /fs/mtd_params/parameters.bson' || true
 	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'bsondump /fs/microsd/parameters_backup.bson' || true
 
 	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'ps'
