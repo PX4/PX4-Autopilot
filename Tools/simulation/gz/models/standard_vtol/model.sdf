@@ -486,6 +486,7 @@
       <self_collide>0</self_collide>
     </link>
     <joint name='rotor_puller_joint' type='revolute'>
+      <pose>0.0 0 0.0 0 -1.57 0</pose>
       <child>rotor_puller</child>
       <parent>base_link</parent>
       <axis>
