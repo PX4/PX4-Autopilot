@@ -1337,20 +1337,6 @@ bool Ekf::resetYawToEKFGSF()
 	_flt_mag_align_start_time = _time_delayed_us;
 	_control_status.flags.yaw_align = true;
 
-	if (_control_status.flags.mag_hdg || _control_status.flags.mag_3D) {
-		// stop using the magnetometer in the main EKF otherwise it's fusion could drag the yaw around
-		// and cause another navigation failure
-		_control_status.flags.mag_fault = true;
-		_warning_events.flags.emergency_yaw_reset_mag_stopped = true;
-
-	} else if (_control_status.flags.gps_yaw) {
-		_control_status.flags.gps_yaw_fault = true;
-		_warning_events.flags.emergency_yaw_reset_gps_yaw_stopped = true;
-
-	} else if (_control_status.flags.ev_yaw) {
-		_inhibit_ev_yaw_use = true;
-	}
-
 	return true;
 }
 
