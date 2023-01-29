@@ -548,7 +548,7 @@ void EstimatorChecks::checkEstimatorStatusFlags(const Context &context, Report &
 			_position_reliant_on_optical_flow = !gps && optical_flow && !vision_position;
 		}
 
-		// Check for a magnetomer fault and notify the user
+		// Check for a magnetometer fault and notify the user
 		if (estimator_status_flags.cs_mag_fault) {
 			/* EVENT
 			 * @description
