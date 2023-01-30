@@ -46,6 +46,7 @@
 class LockstepScheduler
 {
 public:
+	LockstepScheduler(bool no_cleanup_on_destroy = false) : _components(no_cleanup_on_destroy) {}
 	~LockstepScheduler();
 
 	void set_absolute_time(uint64_t time_us);
