@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- * Copyright (C) 2022-2023 ModalAI, Inc. All rights reserved.
+ *   Copyright (c) 2023 ModalAI, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,31 +30,19 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#pragma once
+#include <px4_platform_common/log.h>
+#include <uORB/uORBManager.hpp>
 
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <px4_platform_common/defines.h>
-
-__BEGIN_DECLS
-
-extern void qurt_log_to_apps(int level, const char *message);
-
-// Defining hap_debug
-void HAP_debug(const char *msg, int level, const char *filename, int line);
-
-static __inline void qurt_log(int level, const char *file, int line,
-			      const char *format, ...)
+// This function will send a debug or error message up to the apps proc
+// so that it can be displayed and logged. Otherwise the messages are only
+// available with the mini-dm tool that requires adb (i.e. USB cable attached)
+extern "C" void qurt_log_to_apps(int level, const char *message)
 {
-	char buf[256];
-	va_list args;
-	va_start(args, format);
-	vsnprintf(buf, sizeof(buf), format, args);
-	va_end(args);
-	HAP_debug(buf, level, file, line);
+	uORBCommunicator::IChannel *ch = uORB::Manager::get_instance()->get_uorb_communicator();
 
-	qurt_log_to_apps(level, buf);
+	if (ch != nullptr) {
+		if (level >= _PX4_LOG_LEVEL_ERROR) { ch->send_message("slpi_error", strlen(message) + 1, (uint8_t *) message); }
+
+		else { ch->send_message("slpi_debug", strlen(message) + 1, (uint8_t *) message); }
+	}
 }
-
-__END_DECLS

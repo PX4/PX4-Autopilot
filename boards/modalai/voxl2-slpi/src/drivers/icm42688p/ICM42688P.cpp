@@ -414,7 +414,7 @@ bool ICM42688P::Configure()
 	return success;
 }
 
-static bool interrupt_debug = true;
+static bool interrupt_debug = false;
 static uint32_t interrupt_debug_count = 0;
 static const uint32_t interrupt_debug_trigger = 800;
 static hrt_abstime last_interrupt_time = 0;
