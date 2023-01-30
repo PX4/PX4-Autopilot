@@ -160,42 +160,33 @@ void UWB_SR150::Run()
 		}
 	}
 
-	param_timestamp = hrt_absolute_time();
+	/* perform collection */
+	int collect_ret = collectData();
 
-	/* collection phase? */
-	while (!should_exit()) {
+	if (collect_ret == -EAGAIN) {
+		/* reschedule to grab the missing bits, time to transmit 8 bytes @ 9600 bps */
+		ScheduleDelayed(1042 * 8);
 
-		/* perform collection */
-		int collect_ret = collectData();
-
-		if (collect_ret == -EAGAIN) {
-			/* reschedule to grab the missing bits, time to transmit 8 bytes @ 9600 bps */
-			ScheduleDelayed(1042 * 8);
-
-			return;
-		}
-
-		if (OK != collect_ret) {
-
-			/* we know the sensor needs about four seconds to initialize */
-			if (hrt_absolute_time() > 5 * 1000 * 1000LL && _consecutive_fail_count < 5) {
-				PX4_ERR("collection error #%u", _consecutive_fail_count);
-			}
-
-			_consecutive_fail_count++;
-
-			/* restart the measurement state machine */
-			start();
-			return;
-
-		} else {
-			/* apparently success */
-			_consecutive_fail_count = 0;
-		}
+		return;
 	}
 
-	/* schedule a fresh cycle call when the measurement is done */
-	ScheduleDelayed(_interval);
+	if (OK != collect_ret) {
+
+		/* we know the sensor needs about four seconds to initialize */
+		if (hrt_absolute_time() > 5 * 1000 * 1000LL && _consecutive_fail_count < 5) {
+			PX4_ERR("collection error #%u", _consecutive_fail_count);
+		}
+
+		_consecutive_fail_count++;
+
+		/* restart the measurement state machine */
+		start();
+		return;
+
+	} else {
+		/* apparently success */
+		_consecutive_fail_count = 0;
+	}
 }
 
 int UWB_SR150::custom_command(int argc, char *argv[])
