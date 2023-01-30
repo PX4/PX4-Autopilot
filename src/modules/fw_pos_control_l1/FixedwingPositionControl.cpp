@@ -1059,7 +1059,7 @@ FixedwingPositionControl::handle_setpoint_type(const position_setpoint_s &pos_sp
 		} else if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
 			// LOITER: use SETPOINT_TYPE_POSITION to get to SETPOINT_TYPE_LOITER (NPFG handles this internally)
 			if ((dist >= 0.f)
-			    && (dist_xy > 2.f * math::max(acc_rad, loiter_radius_abs))
+			    && (dist_xy > math::max(acc_rad, loiter_radius_abs))
 			    && !_param_fw_use_npfg.get()) {
 				// SETPOINT_TYPE_LOITER -> SETPOINT_TYPE_POSITION
 				position_sp_type = position_setpoint_s::SETPOINT_TYPE_POSITION;
