@@ -416,7 +416,7 @@ void Ekf::run3DMagAndDeclFusions(const Vector3f &mag)
 	if (!_mag_decl_cov_reset) {
 		// After any magnetic field covariance reset event the earth field state
 		// covariances need to be corrected to incorporate knowledge of the declination
-		// before fusing magnetomer data to prevent rapid rotation of the earth field
+		// before fusing magnetometer data to prevent rapid rotation of the earth field
 		// states for the first few observations.
 		fuseDeclination(0.02f);
 		_mag_decl_cov_reset = true;
