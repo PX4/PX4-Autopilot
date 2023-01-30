@@ -210,6 +210,30 @@ PARAM_DEFINE_INT32(UAVCAN_PUB_RTCM, 0);
 PARAM_DEFINE_INT32(UAVCAN_PUB_MBD, 0);
 
 /**
+ * publish safety state
+ *
+ * Enable UAVCAN safety state publish to control CAN SafetyState led
+ *  ardupilot::indication::SafetyState
+ *
+ * @boolean
+ * @reboot_required true
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(UAVCAN_PUB_SS, 0);
+
+/**
+ * publish rgb led
+ *
+ * Enable UAVCAN rgb led control
+ *  uavcan::equipment::indication::LightsCommand
+ *
+ * @boolean
+ * @reboot_required true
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(UAVCAN_PUB_RGB, 0);
+
+/**
  * subscription airspeed
  *
  * Enable UAVCAN airspeed subscriptions.
@@ -292,7 +316,7 @@ PARAM_DEFINE_INT32(UAVCAN_SUB_FLOW, 0);
  * @reboot_required true
  * @group UAVCAN
  */
-PARAM_DEFINE_INT32(UAVCAN_SUB_GPS, 1);
+PARAM_DEFINE_INT32(UAVCAN_SUB_GPS, 0);
 
 /**
  * subscription hygrometer
@@ -341,7 +365,7 @@ PARAM_DEFINE_INT32(UAVCAN_SUB_IMU, 0);
  * @reboot_required true
  * @group UAVCAN
  */
-PARAM_DEFINE_INT32(UAVCAN_SUB_MAG, 1);
+PARAM_DEFINE_INT32(UAVCAN_SUB_MAG, 0);
 
 /**
  * subscription range finder
@@ -366,3 +390,26 @@ PARAM_DEFINE_INT32(UAVCAN_SUB_RNG, 0);
  * @group UAVCAN
  */
 PARAM_DEFINE_INT32(UAVCAN_SUB_BTN, 0);
+
+/**
+ * use rate limit of ESC output
+ *
+ * Enable UAVCAN ESC rate limit for output update
+ *
+ * @boolean
+ * @reboot_required true
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(UAVCAN_ESC_LR, 0);
+
+/**
+ * use UAVCAN dynamic node server
+ *
+ * Enable UAVCAN dynamic node server for automatic node enumeration
+ *
+ * @boolean
+ * @reboot_required true
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(UAVCAN_DNS, 0);
+

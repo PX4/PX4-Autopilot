@@ -497,10 +497,15 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 		return ret;
 	}
 
-	ret = _safety_state_controller.init();
+	int32_t safety_state_pub_enable = 0;
+	(void)param_get(param_find("UAVCAN_PUB_SS"), &safety_state_pub_enable);
 
-	if (ret < 0) {
-		return ret;
+	if (safety_state_pub_enable == 1) {
+		ret = _safety_state_controller.init();
+
+		if (ret < 0) {
+			return ret;
+		}
 	}
 
 	ret = _log_message_controller.init();
@@ -509,10 +514,15 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 		return ret;
 	}
 
-	ret = _rgbled_controller.init();
+	int32_t rgbled_pub_enable = 0;
+	(void)param_get(param_find("UAVCAN_PUB_RGB"), &rgbled_pub_enable);
 
-	if (ret < 0) {
-		return ret;
+	if (rgbled_pub_enable == 1) {
+		ret = _rgbled_controller.init();
+
+		if (ret < 0) {
+			return ret;
+		}
 	}
 
 	/* Start node info retriever to fetch node info from new nodes */
@@ -552,17 +562,17 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 	_param_restartnode_client.setCallback(RestartNodeCallback(this, &UavcanNode::cb_restart));
 
 
-	int32_t uavcan_enable = 1;
-	(void)param_get(param_find("UAVCAN_ENABLE"), &uavcan_enable);
+	int32_t uavcan_dyna_node_server = 1;
+	(void)param_get(param_find("UAVCAN_DNS"), &uavcan_dyna_node_server);
 
-	if (uavcan_enable > 1) {
+	if (uavcan_dyna_node_server == 1) {
 		_servers = new UavcanServers(_node, _node_info_retriever);
 
 		if (_servers) {
 			int rv = _servers->init();
 
 			if (rv < 0) {
-				PX4_ERR("UavcanServers init: %d", ret);
+				PX4_ERR("UavcanServers init: %d", rv);
 			}
 		}
 	}
@@ -712,6 +722,9 @@ UavcanNode::Run()
 			if (request.message_type == uavcan_parameter_request_s::MESSAGE_TYPE_PARAM_REQUEST_READ) {
 				uavcan::protocol::param::GetSet::Request req;
 
+				// sleep a bit to reduce spike on CAN bus traffic
+				usleep(100);
+
 				if (request.param_index >= 0) {
 					req.index = request.param_index;
 
@@ -836,6 +849,11 @@ UavcanNode::Run()
 		// after each successful fetch by cb_getset
 		uavcan::protocol::param::GetSet::Request req;
 		req.index = _param_index;
+
+		//PX4_DEBUG("send param get set listing");
+
+		// sleep a bit to reduce spike on CAN bus traffic
+		usleep(100);
 
 		int call_res = _param_getset_client.call(_param_list_node_id, req);
 
@@ -1110,11 +1128,22 @@ UavcanNode::cb_getset(const uavcan::ServiceCallResult<uavcan::protocol::param::G
 				response.param_type = uavcan_parameter_request_s::PARAM_TYPE_UINT8;
 				response.int_value = param.value.to<uavcan::protocol::param::Value::Tag::boolean_value>();
 			}
-
+			PX4_DEBUG("Got node : %d, param index %d", response.node_id, response.param_index);
 			_param_response_pub.publish(response);
 
 		} else {
-			PX4_ERR("GetSet error");
+			PX4_ERR("GetSet error at node : %d, param index %d, need resend...", result.getCallID().server_node_id.get(), _param_index);
+
+			uavcan::protocol::param::GetSet::Request req;
+
+			req.index = _param_index;
+
+			int call_res = _param_getset_client.call(result.getCallID().server_node_id.get(), req);
+			if(call_res < 0){
+				PX4_ERR("resend failed");
+			}
+
+			_param_index--;
 		}
 
 		_param_in_progress = false;

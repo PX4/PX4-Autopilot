@@ -235,3 +235,9 @@ void read_dsn(uint8_t *retval)
 		serial[i] = getreg8(p);
 	}
 }
+
+int board_get_mfguid(mfguid_t mfgid)
+{
+	read_dsn(mfgid);
+	return PX4_CPU_MFGUID_BYTE_LENGTH;
+}
