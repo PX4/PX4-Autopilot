@@ -4,21 +4,11 @@ serial_config:
     port_config_param:
       name: UWB_PORT_CFG
       group: UWB
-      default: ""
+      default: "TEL2"
 
 parameters:
     - group: UWB
       definitions:
-        UWB_DRIVER_EN:
-          description:
-            short: UWB Enable Autostart
-            long: Set this param to enable/disable the automatic starting of the UWB driver
-          type: enum
-          values:
-            0: disabled
-            1: enabled
-          default: 1
-
         UWB_INIT_OFF_X:
           description:
             short: UWB sensor X offset in body frame

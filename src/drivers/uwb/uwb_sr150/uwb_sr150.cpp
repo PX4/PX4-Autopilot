@@ -65,36 +65,16 @@
 
 extern "C" __EXPORT int uwb_sr150_main(int argc, char *argv[]);
 
-UWB_SR150::UWB_SR150(const char *device_name, speed_t baudrate, bool uwb_pos_debug):
+UWB_SR150::UWB_SR150(const char *port):
 	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::ttyS1),
+	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(port)),
 	_read_count_perf(perf_alloc(PC_COUNT, "uwb_sr150_count")),
 	_read_err_perf(perf_alloc(PC_COUNT, "uwb_sr150_err"))
 {
-	_uwb_pos_debug = uwb_pos_debug;
-	// start serial port
-	_uart = open(device_name, O_RDWR | O_NOCTTY);
-
-	if (_uart < 0) { err(1, "could not open %s", device_name); }
-
-	int ret = 0;
-	struct termios uart_config {};
-	ret = tcgetattr(_uart, &uart_config);
-
-	if (ret < 0) { err(1, "failed to get attr"); }
-
-	uart_config.c_oflag &= ~ONLCR; // no CR for every LF
-	ret = cfsetispeed(&uart_config, baudrate);
-
-	if (ret < 0) { err(1, "failed to set input speed"); }
-
-	ret = cfsetospeed(&uart_config, baudrate);
-
-	if (ret < 0) { err(1, "failed to set output speed"); }
-
-	ret = tcsetattr(_uart, TCSANOW, &uart_config);
-
-	if (ret < 0) { err(1, "failed to set attr"); }
+	/* store port name */
+	strncpy(_port, port, sizeof(_port) - 1);
+	/* enforce null termination */
+	_port[sizeof(_port) - 1] = '\0';
 }
 
 UWB_SR150::~UWB_SR150()
@@ -108,29 +88,114 @@ UWB_SR150::~UWB_SR150()
 	close(_uart);
 }
 
-void UWB_SR150::run()
+bool UWB_SR150::init()
 {
-	// Subscribe to parameter_update message
-	parameters_update();
-	param_timestamp = hrt_absolute_time();
-	// _uwb_mode = (_uwb_driver_mode)_uwb_mode_p.get();
-
-	/* Ranging  Command */
-	int status = FALSE;
-
-	while (!should_exit()) {
-		status = UWB_SR150::collectData(); //evaluate Ranging Messages until Stop
+		// execute Run() on every sensor_accel publication
+	if (!_sensor_uwb_sub.registerCallback()) {
+		PX4_ERR("callback registration failed");
+		return false;
 	}
 
-	if (!status) { printf("ERROR: Distance Failed"); }
+	// alternatively, Run on fixed interval
+	// ScheduleOnInterval(5000_us); // 2000 us interval, 200 Hz rate
 
-	// Automatic Stop. This should not be reachable
-	//
-	//status = write(_uart, &CMD_RANGING_STOP, UWB_CMD_LEN);
+	return true;
+}
 
-	//if (status < (int) sizeof(CMD_RANGING_STOP)) {
-	//	PX4_ERR("Only wrote %d bytes out of %d.", status, (int) sizeof(CMD_RANGING_STOP));
-	//}
+void UWB_SR150::start()
+{
+	/* schedule a cycle to start things */
+	ScheduleNow();
+}
+
+void UWB_SR150::stop()
+{
+	ScheduleClear();
+}
+
+void UWB_SR150::Run()
+{
+	if (should_exit()) {
+		ScheduleClear();
+		exit_and_cleanup();
+		return;
+	}
+
+	if (_uart < 0) {
+		/* open fd */
+		_uart = ::open(_port, O_RDWR | O_NOCTTY | O_NONBLOCK);
+
+		if (_uart < 0) {
+			PX4_ERR("open failed (%i)", errno);
+			return;
+		}
+
+		struct termios uart_config;
+
+		int termios_state;
+
+		/* fill the struct for the new configuration */
+		tcgetattr(_uart, &uart_config);
+
+		/* clear ONLCR flag (which appends a CR for every LF) */
+		uart_config.c_oflag &= ~ONLCR;
+
+		//TODO: should I keep this?
+		/* no parity, one stop bit */
+		uart_config.c_cflag &= ~(CSTOPB | PARENB);
+
+		unsigned speed = DEFAULT_BAUD;
+
+		/* set baud rate */
+		if ((termios_state = cfsetispeed(&uart_config, speed)) < 0) {
+			PX4_ERR("CFG: %d ISPD", termios_state);
+		}
+
+		if ((termios_state = cfsetospeed(&uart_config, speed)) < 0) {
+			PX4_ERR("CFG: %d OSPD", termios_state);
+		}
+
+		if ((termios_state = tcsetattr(_uart, TCSANOW, &uart_config)) < 0) {
+			PX4_ERR("baud %d ATTR", termios_state);
+		}
+	}
+
+	param_timestamp = hrt_absolute_time();
+
+	/* collection phase? */
+	while (!should_exit()) {
+
+		/* perform collection */
+		int collect_ret = collectData();
+
+		if (collect_ret == -EAGAIN) {
+			/* reschedule to grab the missing bits, time to transmit 8 bytes @ 9600 bps */
+			ScheduleDelayed(1042 * 8);
+
+			return;
+		}
+
+		if (OK != collect_ret) {
+
+			/* we know the sensor needs about four seconds to initialize */
+			if (hrt_absolute_time() > 5 * 1000 * 1000LL && _consecutive_fail_count < 5) {
+				PX4_ERR("collection error #%u", _consecutive_fail_count);
+			}
+
+			_consecutive_fail_count++;
+
+			/* restart the measurement state machine */
+			start();
+			return;
+
+		} else {
+			/* apparently success */
+			_consecutive_fail_count = 0;
+		}
+	}
+
+	/* schedule a fresh cycle call when the measurement is done */
+	ScheduleDelayed(_interval);
 }
 
 int UWB_SR150::custom_command(int argc, char *argv[])
@@ -168,35 +233,13 @@ $ uwb start -d /dev/ttyS2
 
 int UWB_SR150::task_spawn(int argc, char *argv[])
 {
-	int task_id = px4_task_spawn_cmd(
-			      "uwb_driver",
-			      SCHED_DEFAULT,
-			      SCHED_PRIORITY_DEFAULT,
-			      2048,
-			      &run_trampoline,
-			      argv
-		      );
-
-	if (task_id < 0) {
-		return -errno;
-
-	} else {
-		_task_id = task_id;
-		return 0;
-	}
-}
-
-UWB_SR150 *UWB_SR150::instantiate(int argc, char *argv[])
-{
 	int ch;
 	int option_index = 1;
 	const char *option_arg;
-	const char *device_name = nullptr;
-	bool error_flag = false;
+	const char *device_name = UWB_DEFAULT_PORT;
 	int baudrate = 0;
-	bool uwb_pos_debug = false; // Display UWB position calculation debug Messages
 
-	while ((ch = px4_getopt(argc, argv, "d:b:p", &option_index, &option_arg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "d:b", &option_index, &option_arg)) != EOF) {
 		switch (ch) {
 		case 'd':
 			device_name = option_arg;
@@ -206,41 +249,33 @@ UWB_SR150 *UWB_SR150::instantiate(int argc, char *argv[])
 			px4_get_parameter_value(option_arg, baudrate);
 			break;
 
-		case 'p':
-
-			uwb_pos_debug = true;
-			break;
-
 		default:
 			PX4_WARN("Unrecognized flag: %c", ch);
-			error_flag = true;
 			break;
 		}
 	}
 
-	if (!error_flag && device_name == nullptr) {
-		print_usage("Device name not provided. Using default Device: TEL1:/dev/ttyS4 \n");
-		device_name = "TEL2";
-		error_flag = true;
-	}
+	UWB_SR150 *instance = new UWB_SR150(device_name);
 
-	if (!error_flag && baudrate == 0) {
-		printf("Baudrate not provided. Using default Baud: 115200 \n");
-		baudrate = B115200;
-	}
+	if (instance) {
+		_object.store(instance);
+		_task_id = task_id_is_work_queue;
 
-	if (!error_flag && uwb_pos_debug == true) {
-		printf("UWB Position algorithm Debugging \n");
-	}
+		instance->ScheduleOnInterval(5000_us);
 
-	if (error_flag) {
-		PX4_WARN("Failed to start UWB driver. \n");
-		return nullptr;
+		if (instance->init()) {
+			return PX4_OK;
+		}
 
 	} else {
-		PX4_INFO("Constructing UWB_SR150. Device: %s", device_name);
-		return new UWB_SR150(device_name, baudrate, uwb_pos_debug);
+		PX4_ERR("alloc failed");
 	}
+
+	delete instance;
+	_object.store(nullptr);
+	_task_id = -1;
+
+	return PX4_ERROR;
 }
 
 int uwb_sr150_main(int argc, char *argv[])
@@ -351,4 +386,10 @@ int UWB_SR150::collectData()
 	}
 
 	return 1;
+}
+
+int UWB_SR150::getRotation()
+{
+	int orientation = _uwb_sens_rot.get();
+	return orientation;
 }

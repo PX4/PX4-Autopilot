@@ -53,6 +53,8 @@
 
 #include <matrix/math.hpp>
 
+#define UWB_DEFAULT_PORT "/dev/ttyS1"
+
 using namespace time_literals;
 
 typedef struct {
@@ -84,8 +86,8 @@ typedef struct {
 class UWB_SR150 : public ModuleBase<UWB_SR150>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
-	UWB_SR150();
-	~UWB_SR150() override;
+	UWB_SR150(const char *port);
+	~UWB_SR150();
 
 	/**
 	 * @see ModuleBase::task_spawn
@@ -102,18 +104,20 @@ public:
 	 */
 	static int print_usage(const char *reason = nullptr);
 
-	int collectData();
-
 	bool init();
+
+	void start();
+
+	void stop();
+
+	int collectData();
 
 	int getRotation();
 
 private:
-	void run() override;
-
 	void parameters_update();
 
-	void start_uart(int argc, char *argv[]);
+	void Run() override;
 
 	// Publications
 	uORB::Publication<sensor_uwb_s> _sensor_uwb_pub{ORB_ID(sensor_uwb)};
@@ -121,7 +125,7 @@ private:
 
 	// Subscriptions
 	uORB::SubscriptionCallbackWorkItem _sensor_uwb_sub{this, ORB_ID(sensor_uwb)};
-	uORB::SubscriptionInterval 						_parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	// Performance (perf) counters
 	perf_counter_t _read_count_perf;
@@ -130,7 +134,6 @@ private:
 	// Parameters
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::UWB_PORT_CFG>) 			_uwb_port_cfg,
-		// (ParamInt<px4::params::UWB_DRIVER_EN>) 			_uwb_driver_en,
 		(ParamFloat<px4::params::UWB_INIT_OFF_X>) 		_uwb_init_off_x,
 		(ParamFloat<px4::params::UWB_INIT_OFF_Y>) 		_uwb_init_off_y,
 		(ParamFloat<px4::params::UWB_INIT_OFF_Z>) 		_uwb_init_off_z,
@@ -139,11 +142,15 @@ private:
 		(ParamInt<px4::params::UWB_SENS_ROT>) 			_uwb_sens_rot
 	)
 
+	char _port[20] {};
 	hrt_abstime param_timestamp{0};
 
-	int _uart;
+	int _uart{-1};
 	fd_set _uart_set;
 	struct timeval _uart_timeout {};
+
+	unsigned _consecutive_fail_count;
+	int _interval{100000};
 
 	distance_msg_t _distance_result_msg{};
 	matrix::Vector3d _rel_pos;
