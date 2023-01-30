@@ -77,17 +77,17 @@ void ComputeFlowYInnovVarAndH(const matrix::Matrix<Scalar, 24, 1>& state,
   }
 
   if (H != nullptr) {
-    matrix::Matrix<Scalar, 24, 1>& _H = (*H);
+    matrix::Matrix<Scalar, 24, 1>& _h = (*H);
 
-    _H.setZero();
+    _h.setZero();
 
-    _H(0, 0) = -_tmp10;
-    _H(1, 0) = -_tmp11;
-    _H(2, 0) = -_tmp12;
-    _H(3, 0) = -_tmp8;
-    _H(4, 0) = -_tmp1;
-    _H(5, 0) = -_tmp4;
-    _H(6, 0) = -_tmp5;
+    _h(0, 0) = -_tmp10;
+    _h(1, 0) = -_tmp11;
+    _h(2, 0) = -_tmp12;
+    _h(3, 0) = -_tmp8;
+    _h(4, 0) = -_tmp1;
+    _h(5, 0) = -_tmp4;
+    _h(6, 0) = -_tmp5;
   }
 }  // NOLINT(readability/fn_size)
 

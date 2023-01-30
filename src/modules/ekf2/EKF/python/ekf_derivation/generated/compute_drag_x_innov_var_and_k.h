@@ -167,14 +167,14 @@ void ComputeDragXInnovVarAndK(const matrix::Matrix<Scalar, 24, 1>& state,
   }
 
   if (K != nullptr) {
-    matrix::Matrix<Scalar, 24, 1>& _K = (*K);
+    matrix::Matrix<Scalar, 24, 1>& _k = (*K);
 
-    _K.setZero();
+    _k.setZero();
 
-    _K(22, 0) = _tmp75 * (P(22, 0) * _tmp57 + P(22, 1) * _tmp67 + P(22, 2) * _tmp45 +
+    _k(22, 0) = _tmp75 * (P(22, 0) * _tmp57 + P(22, 1) * _tmp67 + P(22, 2) * _tmp45 +
                           P(22, 23) * _tmp66 + P(22, 3) * _tmp70 + P(22, 4) * _tmp63 +
                           P(22, 5) * _tmp69 + P(22, 6) * _tmp51 + _tmp73);
-    _K(23, 0) = _tmp75 * (P(23, 0) * _tmp57 + P(23, 1) * _tmp67 + P(23, 2) * _tmp45 +
+    _k(23, 0) = _tmp75 * (P(23, 0) * _tmp57 + P(23, 1) * _tmp67 + P(23, 2) * _tmp45 +
                           P(23, 22) * _tmp71 + P(23, 3) * _tmp70 + P(23, 4) * _tmp63 +
                           P(23, 5) * _tmp69 + P(23, 6) * _tmp51 + _tmp72);
   }

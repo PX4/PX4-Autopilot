@@ -58,19 +58,19 @@ void FuseAirspeed(const matrix::Matrix<Scalar, 3, 1>& v_local,
 
   // Output terms (4)
   if (H != nullptr) {
-    matrix::Matrix<Scalar, 1, 3>& _H = (*H);
+    matrix::Matrix<Scalar, 1, 3>& _h = (*H);
 
-    _H(0, 0) = -_tmp4;
-    _H(0, 1) = -_tmp5;
-    _H(0, 2) = _tmp2;
+    _h(0, 0) = -_tmp4;
+    _h(0, 1) = -_tmp5;
+    _h(0, 2) = _tmp2;
   }
 
   if (K != nullptr) {
-    matrix::Matrix<Scalar, 3, 1>& _K = (*K);
+    matrix::Matrix<Scalar, 3, 1>& _k = (*K);
 
-    _K(0, 0) = _tmp10 * (-P(0, 1) * _tmp5 + P(0, 2) * _tmp2 + _tmp6);
-    _K(1, 0) = _tmp10 * (-P(1, 0) * _tmp4 + P(1, 2) * _tmp2 + _tmp7);
-    _K(2, 0) = _tmp10 * (-P(2, 0) * _tmp4 - P(2, 1) * _tmp5 + _tmp8);
+    _k(0, 0) = _tmp10 * (-P(0, 1) * _tmp5 + P(0, 2) * _tmp2 + _tmp6);
+    _k(1, 0) = _tmp10 * (-P(1, 0) * _tmp4 + P(1, 2) * _tmp2 + _tmp7);
+    _k(2, 0) = _tmp10 * (-P(2, 0) * _tmp4 - P(2, 1) * _tmp5 + _tmp8);
   }
 
   if (innov_var != nullptr) {
