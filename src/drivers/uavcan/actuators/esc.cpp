@@ -51,6 +51,7 @@ UavcanEscController::UavcanEscController(uavcan::INode &node) :
 	_uavcan_sub_status(node)
 {
 	_uavcan_pub_raw_cmd.setPriority(uavcan::TransferPriority::NumericallyMin); // Highest priority
+	param_get(param_find("UAVCAN_ESC_RL"), &_uavcan_rate_limit_enable);
 }
 
 int
@@ -75,7 +76,7 @@ UavcanEscController::update_outputs(bool stop_motors, uint16_t outputs[MAX_ACTUA
 	 */
 	const auto timestamp = _node.getMonotonicTime();
 
-	if ((timestamp - _prev_cmd_pub).toUSec() < (1000000 / MAX_RATE_HZ)) {
+	if (_uavcan_rate_limit_enable == 1 && (timestamp - _prev_cmd_pub).toUSec() < (1000000 / MAX_RATE_HZ)) {
 		return;
 	}
 
