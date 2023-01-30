@@ -39,26 +39,6 @@ parameters:
           increment: 0.01
           default: 0.00
 
-        UWB_INIT_YAW:
-          description:
-            short: UWB sensor YAW offset in body frame
-            long: UWB sensor positioning in relation to Drone in NED. Yaw rotation in relation to direction of FMU.
-          type: float
-          unit: deg
-          decimal: 1
-          increment: 0.1
-          default: 0.00
-
-        UWB_INIT_PITCH:
-          description:
-            short: UWB sensor PITCH offset in body frame
-            long: UWB sensor positioning in relation to Drone in NED. PITCH rotation in relation to direction of FMU.
-          type: float
-          unit: deg
-          decimal: 1
-          increment: 0.1
-          default: 0.00
-
         UWB_SENS_ROT:
           description:
             short: UWB sensor orientation

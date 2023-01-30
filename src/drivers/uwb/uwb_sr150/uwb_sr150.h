@@ -137,8 +137,6 @@ private:
 		(ParamFloat<px4::params::UWB_INIT_OFF_X>) 		_uwb_init_off_x,
 		(ParamFloat<px4::params::UWB_INIT_OFF_Y>) 		_uwb_init_off_y,
 		(ParamFloat<px4::params::UWB_INIT_OFF_Z>) 		_uwb_init_off_z,
-		(ParamFloat<px4::params::UWB_INIT_YAW>) 		_uwb_init_off_yaw,
-		(ParamFloat<px4::params::UWB_INIT_PITCH>) 		_uwb_init_off_pitch,
 		(ParamInt<px4::params::UWB_SENS_ROT>) 			_uwb_sens_rot
 	)
 

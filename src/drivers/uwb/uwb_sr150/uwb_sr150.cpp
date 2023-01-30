@@ -288,17 +288,6 @@ void UWB_SR150::parameters_update()
 
 int UWB_SR150::collectData()
 {
-
-	if (hrt_elapsed_time(&param_timestamp) > 1000_ms) {
-		parameters_update();
-		param_timestamp = hrt_absolute_time();
-	}
-
-	_uwb_init_offset = matrix::Vector3d(_uwb_init_off_x.get(), _uwb_init_off_y.get(),
-					    _uwb_init_off_z.get()); //set offset at the start
-	_uwb_init_attitude = matrix::Vector3d(_uwb_init_off_yaw.get(), _uwb_init_off_pitch.get(), 0.0); //set UWB attitude
-	uint8_t *buffer = (uint8_t *) &_distance_result_msg;
-
 	FD_ZERO(&_uart_set);
 	FD_SET(_uart, &_uart_set);
 	_uart_timeout.tv_sec = MESSAGE_TIMEOUT_S ;
