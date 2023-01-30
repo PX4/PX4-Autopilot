@@ -160,7 +160,7 @@ bool VehicleMagnetometer::ParametersUpdate(bool force)
 					calibration_updated = true;
 				}
 
-				int cutoff_freq_old = _lp_filter1->get_cutoff_freq();
+				int cutoff_freq_old = _lp_filter1[mag].get_cutoff_freq();
 				int cutoff_freq_new = _param_sens_mag_lp_cut.get();
 
 				if (cutoff_freq_new != cutoff_freq_old) {

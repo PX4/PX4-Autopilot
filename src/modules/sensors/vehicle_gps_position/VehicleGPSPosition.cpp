@@ -120,10 +120,10 @@ void VehicleGPSPosition::Run()
 			_sensor_gps_sub[i].copy(&gps_data);
 			_gps_blending.setGpsData(gps_data, i);
 
-			if (_gps_blending.isFallbackAllowed()) {
+			if (_gps_blending.isFallbackAllowed() && (hrt_absolute_time() - _sensor_warning_timeout > 10'000'000)) {
 				mavlink_log_critical(&_mavlink_log_pub, "GPS Sensor Timeout. Switch to Altitude mode.");
+				_sensor_warning_timeout = hrt_absolute_time();
 			}
-
 
 			if (!_sensor_gps_sub[i].registered()) {
 				_sensor_gps_sub[i].registerCallback();
