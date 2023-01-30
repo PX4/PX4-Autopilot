@@ -308,6 +308,10 @@ Mavlink::instance_count()
 Mavlink *
 Mavlink::get_instance_for_device(const char *device_name)
 {
+	if (device_name == nullptr) {
+		return nullptr;
+	}
+
 	LockGuard lg{mavlink_module_mutex};
 
 	for (Mavlink *inst : mavlink_module_instances) {
@@ -417,6 +421,10 @@ Mavlink::get_status_all_instances(bool show_streams_status)
 bool
 Mavlink::serial_instance_exists(const char *device_name, Mavlink *self)
 {
+	if (device_name == nullptr) {
+		return false;
+	}
+
 	LockGuard lg{mavlink_module_mutex};
 
 	for (Mavlink *inst : mavlink_module_instances) {
@@ -979,7 +987,7 @@ const in_addr Mavlink::compute_broadcast_addr(const in_addr &host_addr, const in
 	return broadcast_addr;
 }
 
-void Mavlink::init_udp()
+bool Mavlink::init_udp()
 {
 	PX4_DEBUG("Setting up UDP with port %hu", _network_port);
 
@@ -988,13 +996,13 @@ void Mavlink::init_udp()
 	_myaddr.sin_port = htons(_network_port);
 
 	if ((_socket_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-		PX4_WARN("create socket failed: %s", strerror(errno));
-		return;
+		PX4_ERR("create socket failed: %s", strerror(errno));
+		return false;
 	}
 
 	if (bind(_socket_fd, (struct sockaddr *)&_myaddr, sizeof(_myaddr)) < 0) {
-		PX4_WARN("bind failed: %s", strerror(errno));
-		return;
+		PX4_ERR("bind failed: %s", strerror(errno));
+		return false;
 	}
 
 	/* set default target address, but not for onboard mode (will be set on first received packet) */
@@ -1004,6 +1012,8 @@ void Mavlink::init_udp()
 	}
 
 	_src_addr.sin_port = htons(_remote_port);
+
+	return true;
 }
 #endif // MAVLINK_UDP
 
@@ -1860,12 +1870,6 @@ int
 Mavlink::task_main(int argc, char *argv[])
 {
 	int ch;
-	_baudrate = 57600;
-	_datarate = 0;
-	_mode = MAVLINK_MODE_COUNT;
-	FLOW_CONTROL_MODE _flow_control = FLOW_CONTROL_AUTO;
-
-	_interface_name = nullptr;
 
 	// We don't care about the name and verb at this point.
 	argc -= 2;
@@ -1879,6 +1883,8 @@ Mavlink::task_main(int argc, char *argv[])
 #if defined(CONFIG_NET) || defined(__PX4_POSIX)
 	int temp_int_arg;
 #endif
+
+	FLOW_CONTROL_MODE flow_control = FLOW_CONTROL_AUTO;
 
 	while ((ch = px4_getopt(argc, argv, "b:r:d:n:u:o:m:t:c:fswxzZp", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
@@ -2006,7 +2012,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 		case 'm': {
 
-				int mode;
+				int mode = -1;
 
 				if (px4_get_parameter_value(myoptarg, mode) == 0) {
 					if (mode >= 0 && mode < (int)MAVLINK_MODE_COUNT) {
@@ -2085,11 +2091,11 @@ Mavlink::task_main(int argc, char *argv[])
 			break;
 
 		case 'z':
-			_flow_control = FLOW_CONTROL_ON;
+			flow_control = FLOW_CONTROL_ON;
 			break;
 
 		case 'Z':
-			_flow_control = FLOW_CONTROL_OFF;
+			flow_control = FLOW_CONTROL_OFF;
 			break;
 
 		default:
@@ -2103,29 +2109,6 @@ Mavlink::task_main(int argc, char *argv[])
 		return PX4_ERROR;
 	}
 
-	/* USB serial is indicated by /dev/ttyACMx */
-	if (strncmp(_device_name, "/dev/ttyACM", 11) == 0) {
-		if (_datarate == 0) {
-			_datarate = 100000;
-		}
-
-		/* USB has no baudrate, but use a magic number for 'fast' */
-		_baudrate = 2000000;
-
-		if (_mode == MAVLINK_MODE_COUNT) {
-			_mode = MAVLINK_MODE_CONFIG;
-		}
-
-		_ftp_on = true;
-		_is_usb_uart = true;
-
-		set_telemetry_status_type(telemetry_status_s::LINK_TYPE_USB);
-	}
-
-	if (_mode == MAVLINK_MODE_COUNT) {
-		_mode = MAVLINK_MODE_NORMAL;
-	}
-
 	if (_datarate == 0) {
 		/* convert bits to bytes and use 1/2 of bandwidth by default */
 		_datarate = _baudrate / 20;
@@ -2136,16 +2119,56 @@ Mavlink::task_main(int argc, char *argv[])
 	}
 
 	if (get_protocol() == Protocol::SERIAL) {
-		if (Mavlink::serial_instance_exists(_device_name, this)) {
-			PX4_ERR("%s already running", _device_name);
+		if (_device_name) {
+
+			if (Mavlink::serial_instance_exists(_device_name, this)) {
+				PX4_ERR("%s already running", _device_name);
+				return PX4_ERROR;
+			}
+
+			if (access(_device_name, F_OK) != 0) {
+				PX4_ERR("invalid device (-d) %s", _device_name);
+				return PX4_ERROR;
+
+			} else if (access(_device_name, R_OK | W_OK) != 0) {
+				PX4_ERR("unable to access device %s", _device_name);
+				return PX4_ERROR;
+			}
+
+			// USB serial is indicated by /dev/ttyACMx
+			if (strncmp(_device_name, "/dev/ttyACM", 11) == 0) {
+				if (_datarate == 0) {
+					_datarate = 100000;
+				}
+
+				/* USB has no baudrate, but use a magic number for 'fast' */
+				_baudrate = 2000000;
+
+				if (_mode == MAVLINK_MODE_COUNT) {
+					_mode = MAVLINK_MODE_CONFIG;
+				}
+
+				_is_usb_uart = true;
+
+				set_telemetry_status_type(telemetry_status_s::LINK_TYPE_USB);
+			}
+
+		} else {
+			PX4_ERR("serial device not set");
+			usage();
+			return PX4_ERROR;
+		}
+
+		// open the UART device after setting the instance, as it might block */
+		_uart_fd = mavlink_open_uart(_baudrate, _device_name, flow_control);
+
+		if (_uart_fd < 0) {
+			PX4_ERR("could not open %s", _device_name);
 			return PX4_ERROR;
 		}
 
 		PX4_INFO("mode: %s, data rate: %d B/s on %s @ %dB",
 			 mavlink_mode_str(_mode), _datarate, _device_name, _baudrate);
-
-		/* flush stdout in case MAVLink is about to take it over */
-		fflush(stdout);
 	}
 
 #if defined(MAVLINK_UDP)
@@ -2153,6 +2176,11 @@ Mavlink::task_main(int argc, char *argv[])
 	else if (get_protocol() == Protocol::UDP) {
 		if (Mavlink::get_instance_for_network_port(_network_port) != nullptr) {
 			PX4_ERR("port %hu already occupied", _network_port);
+			return PX4_ERROR;
+		}
+
+		// init socket
+		if (!init_udp()) {
 			return PX4_ERROR;
 		}
 
@@ -2199,7 +2227,6 @@ Mavlink::task_main(int argc, char *argv[])
 
 	/* Activate sending the data by default (for the IRIDIUM mode it will be disabled after the first round of packages is sent)*/
 	_transmitting_enabled = true;
-	_transmitting_enabled_commanded = true;
 
 	if (_mode == MAVLINK_MODE_IRIDIUM) {
 		_transmitting_enabled_commanded = false;
@@ -2224,36 +2251,7 @@ Mavlink::task_main(int argc, char *argv[])
 	}
 
 	/* set main loop delay depending on data rate to minimize CPU overhead */
-	_main_loop_delay = (MAIN_LOOP_DELAY * 1000) / _datarate;
-
-	/* hard limit to 1000 Hz at max */
-	if (_main_loop_delay < MAVLINK_MIN_INTERVAL) {
-		_main_loop_delay = MAVLINK_MIN_INTERVAL;
-	}
-
-	/* hard limit to 100 Hz at least */
-	if (_main_loop_delay > MAVLINK_MAX_INTERVAL) {
-		_main_loop_delay = MAVLINK_MAX_INTERVAL;
-	}
-
-	/* open the UART device after setting the instance, as it might block */
-	if (get_protocol() == Protocol::SERIAL) {
-		_uart_fd = mavlink_open_uart(_baudrate, _device_name, _flow_control);
-
-		if (_uart_fd < 0) {
-			PX4_ERR("could not open %s", _device_name);
-			return PX4_ERROR;
-		}
-	}
-
-#if defined(MAVLINK_UDP)
-
-	/* init socket if necessary */
-	if (get_protocol() == Protocol::UDP) {
-		init_udp();
-	}
-
-#endif // MAVLINK_UDP
+	_main_loop_delay = math::constrain((MAIN_LOOP_DELAY * 1000) / _datarate, MAVLINK_MIN_INTERVAL, MAVLINK_MAX_INTERVAL);
 
 	_task_id = px4_getpid();
 
@@ -3138,7 +3136,7 @@ Mavlink::stop_command(int argc, char *argv[])
 int
 Mavlink::stream_command(int argc, char *argv[])
 {
-	const char *device_name = DEFAULT_DEVICE_NAME;
+	const char *device_name = nullptr;
 	float rate = -1.0f;
 	const char *stream_name = nullptr;
 #ifdef MAVLINK_UDP
