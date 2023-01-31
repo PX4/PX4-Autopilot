@@ -470,7 +470,7 @@ if(NOT NUTTX_DIR MATCHES "external")
 		)
 
 		# JLINK_RTOS_PATH used by launch.json.in
-		set(JLINK_RTOS_PATH ${NUTTX_DIR}/tools/jlink-nuttx)
+		set(JLINK_RTOS_PATH ${NUTTX_DIR}/tools/jlink-nuttx.so)
 	else()
 		set(JLINK_RTOS_PATH "")
 	endif()
