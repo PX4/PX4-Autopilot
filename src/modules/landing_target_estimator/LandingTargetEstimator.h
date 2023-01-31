@@ -175,15 +175,15 @@ private:
 		(ParamFloat<px4::params::LTEST_SENS_POS_X>)  		_offset_x,
 		(ParamFloat<px4::params::LTEST_SENS_POS_Y>)  		_offset_y,
 		(ParamFloat<px4::params::LTEST_SENS_POS_Z>)  		_offset_z,
-		(ParamInt<px4::params::UWB_MODE>)  			_uwb_mode_p,
-		(ParamFloat<px4::params::UWB_FW_DIST>)   		_uwb_follow_distance, //Follow me
+		(ParamInt<px4::params::UWB_MODE>)  			_uwb_mode_p /*,
+ 		(ParamFloat<px4::params::UWB_FW_DIST>)   		_uwb_follow_distance, //Follow me
 		(ParamFloat<px4::params::UWB_FW_DIST_MIN>) 		_uwb_follow_distance_min,
 		(ParamFloat<px4::params::UWB_FW_DIST_MAX>) 		_uwb_follow_distance_max,
 		(ParamFloat<px4::params::UWB_THROTTLE>) 		_uwb_throttle,
 		(ParamFloat<px4::params::UWB_THROTTLE_REV>) 		_uwb_throttle_reverse,
 		(ParamFloat<px4::params::UWB_THR_HEAD>) 		_uwb_thrust_head,
 		(ParamFloat<px4::params::UWB_THR_HEAD_MIN>) 		_uwb_thrust_head_min,
-		(ParamFloat<px4::params::UWB_THR_HEAD_MAX>) 		_uwb_thrust_head_max
+		(ParamFloat<px4::params::UWB_THR_HEAD_MAX>) 		_uwb_thrust_head_max */
 	)
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
@@ -192,9 +192,9 @@ private:
 	sensor_uwb_s _sensor_uwb{};
 
 	// actuator_controls
-	uORB::Publication<offboard_control_mode_s>_offboard_control_mode_pub{ORB_ID(offboard_control_mode)};
-	uORB::Publication<actuator_controls_s> _actuator_controls_pubs[4] {ORB_ID(actuator_controls_0), ORB_ID(actuator_controls_1), ORB_ID(actuator_controls_2), ORB_ID(actuator_controls_3)};
-	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	// uORB::Publication<offboard_control_mode_s>_offboard_control_mode_pub{ORB_ID(offboard_control_mode)};
+	// uORB::Publication<actuator_controls_s> _actuator_controls_pubs[4] {ORB_ID(actuator_controls_0), ORB_ID(actuator_controls_1), ORB_ID(actuator_controls_2), ORB_ID(actuator_controls_3)};
+	// uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	uORB::Subscription _vehicleLocalPositionSub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _attitudeSub{ORB_ID(vehicle_attitude)};
@@ -238,7 +238,7 @@ private:
 
 	void uwb_sr150_followme();
 
-	void actuator_control(double distance, double azimuth, double elevation);
+	// void actuator_control(double distance, double azimuth, double elevation);
 
 	matrix::Vector3d _uwb_init_offset;
 	matrix::Vector3d _rel_pos;

@@ -341,7 +341,7 @@ void LandingTargetEstimator::uwb_sr150_prec_nav()
 				_sensor_uwb.position[2] = _rel_pos(2);
 }
 
-void LandingTargetEstimator::uwb_sr150_followme()
+/* void LandingTargetEstimator::uwb_sr150_followme()
 { // Follow me mode
 			// _sensor_uwb.status = 11;
 			actuator_control(_sensor_uwb.distance, _sensor_uwb.aoa_azimuth_dev,
@@ -350,9 +350,9 @@ void LandingTargetEstimator::uwb_sr150_followme()
 
 void LandingTargetEstimator::actuator_control(double distance, double azimuth, double elevation)
 {
-	/* UWB_SR150::actuator_control takes distance and angle measurements and publishes proportional thrust commands.
+	/ * UWB_SR150::actuator_control takes distance and angle measurements and publishes proportional thrust commands.
 	can be used to make a rover follow an UWB receiver
-	*/
+	* /
 
 	//Lots of Params to finetune the Follow me behavior
 	double follow_distance_max =	_uwb_follow_distance_max.get();
@@ -409,7 +409,7 @@ void LandingTargetEstimator::actuator_control(double distance, double azimuth, d
 	if (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD) {
 		//TODO query frame type and disable if not rover
 
-		/*
+		/ *
 		vehicle_rates_setpoint_s vehicle_rates_setpoint{};
 		vehicle_rates_setpoint.timestamp = hrt_absolute_time();
 		vehicle_rates_setpoint.roll = heading;
@@ -419,7 +419,7 @@ void LandingTargetEstimator::actuator_control(double distance, double azimuth, d
 		vehicle_rates_setpoint.thrust_body[1] = throttle * max_throttle * timeout;
 		vehicle_rates_setpoint.thrust_body[2] = throttle * max_throttle * timeout;
 		_vehicle_rates_setpoint_pub.publish(vehicle_rates_setpoint);
-		*/
+		* /
 
 		actuator_controls_s actuator_controls{};
 		actuator_controls.timestamp = hrt_absolute_time();
@@ -428,7 +428,7 @@ void LandingTargetEstimator::actuator_control(double distance, double azimuth, d
 		_actuator_controls_pubs[0].publish(actuator_controls); //flight controls
 	}
 
-}
+} */
 
 void LandingTargetEstimator::parameters_update()
 {

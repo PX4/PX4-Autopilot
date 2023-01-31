@@ -13,86 +13,85 @@ parameters:
             0: prec_nav
             1: follow
           default: 0
+        # UWB_FW_DIST_MIN:
+        #   description:
+        #     short: UWB follow minimum distance
+        #     long: UWB follow minimum distance, reversing thrust
+        #   type: float
+        #   unit: 'm'
+        #   decimal: 2
+        #   increment: 0.1
+        #   default: 0.5
 
-        UWB_FW_DIST_MIN:
-          description:
-            short: UWB follow minimum distance
-            long: UWB follow minimum distance, reversing thrust
-          type: float
-          unit: 'm'
-          decimal: 2
-          increment: 0.1
-          default: 0.5
+        # UWB_FW_DIST:
+        #   description:
+        #     short: UWB follow distance
+        #     long: Distance that the rover will follow with
+        #   type: float
+        #   unit: 'm'
+        #   decimal: 2
+        #   increment: 0.1
+        #   default: 1
 
-        UWB_FW_DIST:
-          description:
-            short: UWB follow distance
-            long: Distance that the rover will follow with
-          type: float
-          unit: 'm'
-          decimal: 2
-          increment: 0.1
-          default: 1
+        # UWB_FW_DIST_MAX:
+        #   description:
+        #     short: Maximum Distance UWB will follow
+        #     long: Maximum Distance UWB will follow
+        #   type: float
+        #   unit: 'm'
+        #   decimal: 1
+        #   increment: 0.1
+        #   default: 10
 
-        UWB_FW_DIST_MAX:
-          description:
-            short: Maximum Distance UWB will follow
-            long: Maximum Distance UWB will follow
-          type: float
-          unit: 'm'
-          decimal: 1
-          increment: 0.1
-          default: 10
+        # UWB_THROTTLE:
+        #   description:
+        #     short: UWB follow me throttle modifier
+        #     long:  UWB follow me throttle modifier
+        #   type: float
+        #   unit: '%'
+        #   decimal: 2
+        #   increment: 0.01
+        #   default: 0.50
 
-        UWB_THROTTLE:
-          description:
-            short: UWB follow me throttle modifier
-            long:  UWB follow me throttle modifier
-          type: float
-          unit: '%'
-          decimal: 2
-          increment: 0.01
-          default: 0.50
+        # UWB_THROTTLE_REV:
+        #   description:
+        #     short: UWB follow me throttle modifier reverse
+        #     long:  UWB follow me throttle modifier reverse
+        #   type: float
+        #   unit: '%'
+        #   decimal: 2
+        #   increment: 0.01
+        #   default: -0.1
 
-        UWB_THROTTLE_REV:
-          description:
-            short: UWB follow me throttle modifier reverse
-            long:  UWB follow me throttle modifier reverse
-          type: float
-          unit: '%'
-          decimal: 2
-          increment: 0.01
-          default: -0.1
+        # UWB_THR_HEAD:
+        #   description:
+        #     short: UWB follow me heading thrust modifier
+        #     long:  UWB follow me heading thrust modifier
+        #   type: float
+        #   unit: '%'
+        #   decimal: 2
+        #   increment: 0.01
+        #   default: 0.5
 
-        UWB_THR_HEAD:
-          description:
-            short: UWB follow me heading thrust modifier
-            long:  UWB follow me heading thrust modifier
-          type: float
-          unit: '%'
-          decimal: 2
-          increment: 0.01
-          default: 0.5
+        # UWB_THR_HEAD_MIN:
+        #   description:
+        #     short: UWB follow me heading min Thrust
+        #     long:  UWB follow me heading min Thrust
+        #   type: float
+        #   unit: '%'
+        #   decimal: 2
+        #   increment: 0.01
+        #   default: 0.3
 
-        UWB_THR_HEAD_MIN:
-          description:
-            short: UWB follow me heading min Thrust
-            long:  UWB follow me heading min Thrust
-          type: float
-          unit: '%'
-          decimal: 2
-          increment: 0.01
-          default: 0.3
-
-        UWB_THR_HEAD_MAX:
-          description:
-            short: UWB follow me heading max Thrust
-            long:  UWB follow me heading max Thrust
-          type: float
-          unit: '%'
-          decimal: 2
-          increment: 0.01
-          default: 0.8
+        # UWB_THR_HEAD_MAX:
+        #   description:
+        #     short: UWB follow me heading max Thrust
+        #     long:  UWB follow me heading max Thrust
+        #   type: float
+        #   unit: '%'
+        #   decimal: 2
+        #   increment: 0.01
+        #   default: 0.8
 
         LTEST_MODE:
           description:
