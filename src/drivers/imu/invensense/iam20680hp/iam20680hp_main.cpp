@@ -31,18 +31,6 @@
  *
  ****************************************************************************/
 
-/**
- * @file iam20680hp_main.cpp
- * @author ShiauweiZhao (xiaowei_zhao1013@163.com)
- * @brief
- * @version 0.1
- * @date 2023-01-09
- *
- * @copyright Copyright (c) 2023
- *
- */
-
-
 
 #include "IAM20680HP.hpp"
 
