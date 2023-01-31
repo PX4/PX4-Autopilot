@@ -683,7 +683,10 @@ void EstimatorChecks::lowPositionAccuracy(const Context &context, Report &report
 		if (context.isArmed()) {
 			/* EVENT
 			 * @description Local position estimate valid but has low accuracy. Warn user.
+			 *
+			 * <profile name="dev">
 			 * This check can be configured via <param>COM_POS_LOW_EPH</param> parameter.
+			 * </profile>
 			 */
 			events::send(events::ID("check_estimator_low_position_accuracy"), {events::Log::Error, events::LogInternal::Info},
 				     "Local position estimate has low accuracy");
