@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -288,6 +288,8 @@ void UWB_SR150::parameters_update()
 
 int UWB_SR150::collectData()
 {
+	uint8_t *buffer = (uint8_t *) &_distance_result_msg;
+
 	FD_ZERO(&_uart_set);
 	FD_SET(_uart, &_uart_set);
 	_uart_timeout.tv_sec = MESSAGE_TIMEOUT_S ;
