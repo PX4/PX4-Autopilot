@@ -171,6 +171,20 @@ void VehicleIMU::Run()
 
 	const bool parameters_updated = ParametersUpdate();
 
+	if ((_accel_device_id == 0) && (_sensor_accel_sub.updated())) {
+		sensor_accel_s accel;
+		if (_sensor_accel_sub.update(&accel)) {
+			_accel_device_id = accel.device_id;
+		}
+	}
+
+	if ((_gyro_device_id == 0) && (_sensor_gyro_sub.updated())) {
+		sensor_gyro_s gyro;
+		if (_sensor_gyro_sub.update(&gyro)) {
+			_gyro_device_id = gyro.device_id;
+		}
+	}
+
 	if (!_accel_calibration.enabled() || !_gyro_calibration.enabled()) {
 		_sensor_gyro_sub.unregisterCallback();
 		ScheduleDelayed(1_s);

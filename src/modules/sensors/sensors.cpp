@@ -190,15 +190,12 @@ int Sensors::parameters_update()
 				calibration::Accelerometer accel_cal(device_id_accel);
 			}
 
-			uORB::SubscriptionData<sensor_accel_s> sensor_accel_sub{ORB_ID(sensor_accel), i};
-
-			if (sensor_accel_sub.advertised() && (sensor_accel_sub.get().device_id != 0)) {
+			if ((_vehicle_imu_list[i] != nullptr) && (_vehicle_imu_list[i]->GetAccelDeviceID() != 0)) {
 				calibration::Accelerometer cal;
 				cal.set_calibration_index(i);
 				cal.ParametersLoad();
 			}
 		}
-
 
 		// sensor_gyro
 		{
@@ -208,9 +205,7 @@ int Sensors::parameters_update()
 				calibration::Gyroscope gyro_cal(device_id_gyro);
 			}
 
-			uORB::SubscriptionData<sensor_gyro_s> sensor_gyro_sub{ORB_ID(sensor_gyro), i};
-
-			if (sensor_gyro_sub.advertised() && (sensor_gyro_sub.get().device_id != 0)) {
+			if ((_vehicle_imu_list[i] != nullptr) && (_vehicle_imu_list[i]->GetGyroDeviceID() != 0)) {
 				calibration::Gyroscope cal;
 				cal.set_calibration_index(i);
 				cal.ParametersLoad();

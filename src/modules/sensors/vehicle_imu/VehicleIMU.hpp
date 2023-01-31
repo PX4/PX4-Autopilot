@@ -74,6 +74,9 @@ public:
 	bool Start();
 	void Stop();
 
+	uint32_t GetAccelDeviceID() { return _accel_device_id; }
+	uint32_t GetGyroDeviceID() { return _gyro_device_id; }
+
 	void PrintStatus();
 
 private:
@@ -179,6 +182,9 @@ private:
 
 	bool _accel_cal_available{false};
 	bool _gyro_cal_available{false};
+
+	uint32_t _accel_device_id{0};
+	uint32_t _gyro_device_id{0};
 
 	struct InFlightCalibration {
 		matrix::Vector3f offset{};
