@@ -1501,18 +1501,7 @@ void
 FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const float control_interval,
 		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr)
 {
-	// Enable tighter altitude control for landings
-	_tecs.set_altitude_error_time_constant(_param_fw_thrtc_sc.get() * _param_fw_t_h_error_tc.get());
-
-	const Vector2f local_position{_local_pos.x, _local_pos.y};
-	Vector2f local_land_point = _global_local_proj_ref.project(pos_sp_curr.lat, pos_sp_curr.lon);
-
-	initializeAutoLanding(now, pos_sp_prev, pos_sp_curr.alt, local_position, local_land_point);
-
-	// touchdown may get nudged by manual inputs
-	local_land_point = calculateTouchdownPosition(control_interval, local_land_point);
-	const Vector2f landing_approach_vector = calculateLandingApproachVector();
-
+	// first handle non-position things like airspeed and tecs settings
 	const float airspeed_land = (_param_fw_lnd_airspd.get() > FLT_EPSILON) ? _param_fw_lnd_airspd.get() :
 				    _param_fw_airspd_min.get();
 	float adjusted_min_airspeed = _param_fw_airspd_min.get();
@@ -1525,6 +1514,18 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 
 	float target_airspeed = adapt_airspeed_setpoint(control_interval, airspeed_land, adjusted_min_airspeed,
 				ground_speed);
+	// Enable tighter altitude control for landings
+	_tecs.set_altitude_error_time_constant(_param_fw_thrtc_sc.get() * _param_fw_t_h_error_tc.get());
+
+	// now handle position
+	const Vector2f local_position{_local_pos.x, _local_pos.y};
+	Vector2f local_land_point = _global_local_proj_ref.project(pos_sp_curr.lat, pos_sp_curr.lon);
+
+	initializeAutoLanding(now, pos_sp_prev, pos_sp_curr.alt, local_position, local_land_point);
+
+	// touchdown may get nudged by manual inputs
+	local_land_point = calculateTouchdownPosition(control_interval, local_land_point);
+	const Vector2f landing_approach_vector = calculateLandingApproachVector();
 
 	// calculate the altitude setpoint based on the landing glide slope
 	const float along_track_dist_to_touchdown = -landing_approach_vector.unit_or_zero().dot(
