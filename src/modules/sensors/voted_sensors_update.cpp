@@ -57,10 +57,15 @@ VotedSensorsUpdate::VotedSensorsUpdate(bool hil_enabled,
 	_sensor_selection_pub.advertise();
 	_sensors_status_imu_pub.advertise();
 
+#ifdef __PX4_QURT
+	_gyro.voter.set_timeout(500000);
+	_accel.voter.set_timeout(500000);
+#else
 	if (_hil_enabled) { // HIL has less accurate timing so increase the timeouts a bit
 		_gyro.voter.set_timeout(500000);
 		_accel.voter.set_timeout(500000);
 	}
+#endif
 
 	initializeSensors();
 
