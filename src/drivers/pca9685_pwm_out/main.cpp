@@ -70,8 +70,7 @@ public:
 	static int custom_command(int argc, char *argv[]);
 	static int print_usage(const char *reason = nullptr);
 
-	bool updateOutputs(bool stop_motors, uint16_t *outputs, unsigned num_outputs,
-			   unsigned num_control_groups_updated) override;
+	bool updateOutputs(bool stop_motors, float outputs[MAX_ACTUATORS], unsigned num_outputs) override;
 
 	int print_status() override;
 
@@ -136,12 +135,13 @@ int PCA9685Wrapper::init()
 	return PX4_OK;
 }
 
-bool PCA9685Wrapper::updateOutputs(bool stop_motors, uint16_t *outputs, unsigned num_outputs,
-				   unsigned num_control_groups_updated)
+bool PCA9685Wrapper::updateOutputs(bool stop_motors, float outputs[MAX_ACTUATORS], unsigned num_outputs)
 {
-	if (state != STATE::RUNNING) { return false; }
+	if (state != STATE::RUNNING) {
+		return false;
+	}
 
-	uint16_t low_level_outputs[PCA9685_PWM_CHANNEL_COUNT] = {};
+	uint16_t low_level_outputs[PCA9685_PWM_CHANNEL_COUNT] {};
 	num_outputs = num_outputs > PCA9685_PWM_CHANNEL_COUNT ? PCA9685_PWM_CHANNEL_COUNT : num_outputs;
 
 	for (uint8_t i = 0; i < num_outputs; ++i) {
@@ -149,7 +149,8 @@ bool PCA9685Wrapper::updateOutputs(bool stop_motors, uint16_t *outputs, unsigned
 			low_level_outputs[i] = outputs[i];
 
 		} else {
-			low_level_outputs[i] = pca9685->calcRawFromPulse(outputs[i]);
+			uint16_t pulse_width = outputs[i];
+			low_level_outputs[i] = pca9685->calcRawFromPulse(pulse_width);
 		}
 	}
 

@@ -125,8 +125,7 @@ bool PWMOut::update_pwm_out_state(bool on)
 	return true;
 }
 
-bool PWMOut::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
-			   unsigned num_outputs, unsigned num_control_groups_updated)
+bool PWMOut::updateOutputs(bool stop_motors, float outputs[MAX_ACTUATORS], unsigned num_outputs)
 {
 	/* output to the servos */
 	if (_pwm_initialized) {
@@ -137,17 +136,13 @@ bool PWMOut::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			}
 
 			if (_pwm_mask & (1 << i)) {
-				up_pwm_servo_set(i, outputs[i]);
+				uint16_t output = math::constrain((int)lroundf(outputs[i]), 0, UINT16_MAX);
+				up_pwm_servo_set(i, output);
 			}
 		}
 	}
 
-	/* Trigger all timer's channels in Oneshot mode to fire
-	 * the oneshots with updated values.
-	 */
-	if (num_control_groups_updated > 0) {
-		up_pwm_update(_pwm_mask);
-	}
+	up_pwm_update(_pwm_mask);
 
 	return true;
 }

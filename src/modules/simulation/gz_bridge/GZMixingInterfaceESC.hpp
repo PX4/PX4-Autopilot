@@ -56,8 +56,7 @@ public:
 		_node_mutex(node_mutex)
 	{}
 
-	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
-			   unsigned num_outputs, unsigned num_control_groups_updated) override;
+	bool updateOutputs(bool stop_motors, float outputs[MAX_ACTUATORS], unsigned num_outputs) override;
 
 	MixingOutput &mixingOutput() { return _mixing_output; }
 

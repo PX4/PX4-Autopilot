@@ -154,11 +154,10 @@ int Roboclaw::initializeUART()
 	}
 }
 
-bool Roboclaw::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
-			     unsigned num_outputs, unsigned num_control_groups_updated)
+bool Roboclaw::updateOutputs(bool stop_motors, float outputs[MAX_ACTUATORS], unsigned num_outputs)
 {
-	float right_motor_output = ((float)outputs[0] - 128.0f) / 127.f;
-	float left_motor_output = ((float)outputs[1] - 128.0f) / 127.f;
+	float right_motor_output = (outputs[0] - 128.0f) / 127.f;
+	float left_motor_output = (outputs[1] - 128.0f) / 127.f;
 
 	if (stop_motors) {
 		setMotorSpeed(Motor::Right, 0.f);

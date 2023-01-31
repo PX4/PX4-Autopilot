@@ -53,22 +53,20 @@ bool GZMixingInterfaceServo::init(const std::string &model_name)
 	return true;
 }
 
-bool GZMixingInterfaceServo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
-		unsigned num_control_groups_updated)
+bool GZMixingInterfaceServo::updateOutputs(bool stop_motors, float outputs[MAX_ACTUATORS], unsigned num_outputs)
 {
 	bool updated = false;
-	// cmd.command_value = (float)outputs[i] / 500.f - 1.f; // [-1, 1]
 
 	int i = 0;
 
 	for (auto &servo_pub : _servos_pub) {
 		if (_mixing_output.isFunctionSet(i)) {
-			gz::msgs::Double servo_output;
+			gz::msgs::Double servo_output{};
 			///TODO: Normalize output data
-			double output = (outputs[i] - 500) / 500.0;
+
 			// std::cout << "outputs[" << i << "]: " << outputs[i] << std::endl;
 			// std::cout << "  output: " << output << std::endl;
-			servo_output.set_data(output);
+			servo_output.set_data(outputs[i]);
 
 			if (servo_pub.Valid()) {
 				servo_pub.Publish(servo_output);

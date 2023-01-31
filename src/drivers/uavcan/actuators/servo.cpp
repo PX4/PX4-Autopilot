@@ -45,7 +45,7 @@ UavcanServoController::UavcanServoController(uavcan::INode &node) :
 }
 
 void
-UavcanServoController::update_outputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs)
+UavcanServoController::update_outputs(bool stop_motors, float outputs[MAX_ACTUATORS], unsigned num_outputs)
 {
 	uavcan::equipment::actuator::ArrayCommand msg;
 
@@ -53,7 +53,7 @@ UavcanServoController::update_outputs(bool stop_motors, uint16_t outputs[MAX_ACT
 		uavcan::equipment::actuator::Command cmd;
 		cmd.actuator_id = i;
 		cmd.command_type = uavcan::equipment::actuator::Command::COMMAND_TYPE_UNITLESS;
-		cmd.command_value = (float)outputs[i] / 500.f - 1.f; // [-1, 1]
+		cmd.command_value = outputs[i];
 
 		msg.commands.push_back(cmd);
 	}

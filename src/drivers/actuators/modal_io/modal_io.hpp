@@ -75,8 +75,7 @@ public:
 	int print_status() override;
 
 	/** @see OutputModuleInterface */
-	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
-			   unsigned num_outputs, unsigned num_control_groups_updated) override;
+	bool updateOutputs(bool stop_motors, float outputs[MAX_ACTUATORS], unsigned num_outputs) override;
 
 	virtual int	init();
 
@@ -225,6 +224,6 @@ private:
 	int 			parse_response(uint8_t *buf, uint8_t len, bool print_feedback);
 	int			flush_uart_rx();
 	int			check_for_esc_timeout();
-	void			mix_turtle_mode(uint16_t outputs[]);
+	void			mix_turtle_mode(float outputs[]);
 	void			handle_actuator_test();
 };

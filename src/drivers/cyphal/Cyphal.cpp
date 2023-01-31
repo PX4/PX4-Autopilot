@@ -392,8 +392,7 @@ void CyphalNode::sendHeartbeat()
 	}
 }
 
-bool UavcanMixingInterface::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
-		unsigned num_control_groups_updated)
+bool UavcanMixingInterface::updateOutputs(bool stop_motors, float outputs[MAX_ACTUATORS], unsigned num_outputs)
 {
 	// Note: This gets called from MixingOutput from within its update() function
 	// Hence, the mutex lock in UavcanMixingInterface::Run() is in effect

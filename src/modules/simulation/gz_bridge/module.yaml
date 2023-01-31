@@ -11,17 +11,17 @@ actuator_output:
       group_label: 'ESCs'
       channel_label: 'ESC'
       standard_params:
-        disarmed: { min: 0, max: 1000, default: 0 }
-        min: { min: 0, max: 1000, default: 0 }
-        max: { min: 0, max: 1000, default: 1000 }
-        failsafe: { min: 0, max: 1000 }
+        disarmed: { min: -8192, max: 8191, default: 0 }
+        min: { min: -8192, max: 8191, default: 0 }
+        max: { min: -8192, max: 8191, default: 8191 }
+        failsafe: { min: -8192, max: 8191 }
       num_channels: 8
     - param_prefix: SIM_GZ_SV
       group_label: 'Servos'
       channel_label: 'Servo'
       standard_params:
-        disarmed: { min: 0, max: 1000, default: 500 }
-        min: { min: 0, max: 1000, default: 0 }
-        max: { min: 0, max: 1000, default: 1000 }
-        failsafe: { min: 0, max: 1000 }
+        disarmed: { min: -3.14159, max: 3.14159, default: 0 }
+        min: { min: -3.14159, max: 3.14159, default: -3.14159 }
+        max: { min: -3.14159, max: 3.14159, default: 3.14159 }
+        failsafe: { min: -3.14159, max: 3.14159 }
       num_channels: 8
