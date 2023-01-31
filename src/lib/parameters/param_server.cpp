@@ -53,7 +53,7 @@
 static bool debug = false;
 
 #define TIMEOUT_WAIT 1000
-#define TIMEOUT_COUNT 500
+#define TIMEOUT_COUNT 50
 
 // Advertisement handles
 static orb_advert_t param_set_value_req_h = nullptr;
