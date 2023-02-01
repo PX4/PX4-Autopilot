@@ -281,20 +281,6 @@ public:
 				 const matrix::Vector2f &ground_vel, const matrix::Vector2f &wind_vel, const float &curvature);
 
 	/*
-	 * Navigate on a fixed heading.
-	 *
-	 * This only holds a certain (air mass relative) direction and does not perform
-	 * cross track correction. Helpful for semi-autonomous modes. Introduced
-	 * by in ECL_L1_Pos_Controller, augmented for use with NPFG here.
-	 *
-	 * @param[in] heading_ref Reference heading angle [rad]
-	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
-	 * @param[in] wind_vel Wind velocity vector [m/s]
-	 */
-	void navigateHeading(float heading_ref, const matrix::Vector2f &ground_vel,
-			     const matrix::Vector2f &wind_vel);
-
-	/*
 	 * Navigate on a fixed bearing.
 	 *
 	 * This only holds a certain (ground relative) direction and does not perform
@@ -305,13 +291,6 @@ public:
 	 * @param[in] wind_vel Wind velocity vector [m/s]
 	 */
 	void navigateBearing(float bearing, const matrix::Vector2f &ground_vel, const matrix::Vector2f &wind_vel);
-
-	/*
-	 * Keep the wings level.
-	 *
-	 * @param[in] heading Heading angle [rad]
-	 */
-	void navigateLevelFlight(const float heading);
 
 	/*
 	 * [Copied directly from ECL_L1_Pos_Controller]

@@ -574,22 +574,6 @@ void NPFG::navigatePathTangent(const matrix::Vector2f &vehicle_pos, const matrix
 	updateRollSetpoint();
 } // navigatePathTangent
 
-void NPFG::navigateHeading(float heading_ref, const Vector2f &ground_vel, const Vector2f &wind_vel)
-{
-	path_type_loiter_ = false;
-
-	Vector2f air_vel = ground_vel - wind_vel;
-	unit_path_tangent_ = Vector2f{cosf(heading_ref), sinf(heading_ref)};
-	signed_track_error_ = 0.0f;
-
-	closest_point_on_path_.setNaN();
-
-	// use the guidance law to regulate heading error - ignoring wind or inertial position
-	guideToPath(air_vel, Vector2f{0.0f, 0.0f}, unit_path_tangent_, signed_track_error_, 0.0f);
-
-	updateRollSetpoint();
-} // navigateHeading
-
 void NPFG::navigateBearing(float bearing, const Vector2f &ground_vel, const Vector2f &wind_vel)
 {
 	path_type_loiter_ = false;
@@ -604,20 +588,6 @@ void NPFG::navigateBearing(float bearing, const Vector2f &ground_vel, const Vect
 
 	updateRollSetpoint();
 } // navigateBearing
-
-void NPFG::navigateLevelFlight(const float heading)
-{
-	path_type_loiter_ = false;
-
-	airspeed_ref_ = airspeed_nom_;
-	lateral_accel_ = 0.0f;
-	feas_ = 1.0f;
-	bearing_vec_ = Vector2f{cosf(heading), sinf(heading)};
-	unit_path_tangent_ = bearing_vec_;
-	signed_track_error_ = 0.0f;
-
-	updateRollSetpoint();
-} // navigateLevelFlight
 
 float NPFG::switchDistance(float wp_radius) const
 {
