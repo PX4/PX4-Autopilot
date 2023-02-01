@@ -180,7 +180,7 @@ CONFIG:
       short: cubepilot_cubeorange
       buildType: MinSizeRel
       settings:
-        CONFIG: cubepilot_orange_test
+        CONFIG: cubepilot_cubeorange_test
     emlid_navio2_default:
       short: emlid_navio2
       buildType: MinSizeRel
