@@ -214,7 +214,7 @@ void RunwayTakeoff::reset()
 float RunwayTakeoff::interpolateValuesOverAbsoluteTime(const float start_value, const float end_value,
 		const hrt_abstime &start_time, const float interpolation_time) const
 {
-	const float seconds_since_start = hrt_elapsed_time(&start_time) / float(1_s);
+	const float seconds_since_start = hrt_elapsed_time(&start_time) * 1.e-6f;
 	const float interpolator = math::constrain(seconds_since_start / interpolation_time, 0.0f, 1.0f);
 
 	return interpolator * end_value + (1.0f - interpolator) * start_value;
