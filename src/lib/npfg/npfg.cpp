@@ -117,60 +117,6 @@ void NPFG::guideToPath(const Vector2f &ground_vel, const Vector2f &wind_vel, con
 	lateral_accel_ = lateral_accel + feas_combined * track_proximity_ * lateral_accel_ff_;
 } // guideToPath
 
-void NPFG::guideToPoint(const Vector2f &ground_vel, const Vector2f &wind_vel, const Vector2f &bearing_vec,
-			const float track_error)
-{
-	bearing_vec_ = bearing_vec; // for status output
-
-	const float ground_speed = ground_vel.norm();
-
-	const Vector2f air_vel = ground_vel - wind_vel;
-	const float airspeed = air_vel.norm();
-
-	const float wind_speed = wind_vel.norm();
-
-	// wind triangle projections
-	const float wind_cross_bearing = wind_vel.cross(bearing_vec);
-	const float wind_dot_bearing = wind_vel.dot(bearing_vec);
-
-	// continuous representation of the bearing feasibility
-	feas_ = bearingFeasibility(wind_cross_bearing, wind_dot_bearing, airspeed, wind_speed);
-	feas_on_track_ = feas_; // no distinction in point following - set only for recording
-
-	// update control parameters considering upper and lower stability bounds (if enabled)
-	// must be called before trackErrorBound() as it updates time_const_
-	// NOTE: track error input as 0 for the period adaptation as track proximity will
-	//       only ramp in 1) curvature based lower bounding, of which there is none
-	//       for a point, and 2) period upper bounds, which for zero curvature is
-	//       infinite, and thus disregarded in this case.
-	adapted_period_ = adaptPeriod(ground_speed, airspeed, wind_speed, 0.0f, 0.0f,
-				      wind_vel, bearing_vec, feas_);
-	p_gain_ = pGain(adapted_period_, damping_);
-	time_const_ = timeConst(adapted_period_, damping_);
-
-	// track error bound is dynamic depending on ground speed
-	track_error_bound_ = trackErrorBound(ground_speed, time_const_);
-	const float normalized_track_error = normalizedTrackError(track_error, track_error_bound_);
-
-	// look ahead angle based solely on track proximity
-	const float look_ahead_ang = lookAheadAngle(normalized_track_error);
-
-	track_proximity_ = trackProximity(look_ahead_ang);
-
-	min_ground_speed_ref_ = minGroundSpeed(normalized_track_error, feas_);
-
-	// reference air velocity with directional feedforward effect for following
-	// curvature in wind and magnitude incrementation depending on minimum ground
-	// speed violations and/or high wind conditions in general
-	air_vel_ref_ = refAirVelocity(wind_vel, bearing_vec, wind_cross_bearing,
-				      wind_dot_bearing, wind_speed, min_ground_speed_ref_);
-	airspeed_ref_ = air_vel_ref_.norm();
-
-	// lateral acceleration demand based on heading error
-	lateral_accel_ff_ = 0.0f;
-	lateral_accel_ = lateralAccel(air_vel, air_vel_ref_, airspeed);
-} // guideToPoint
-
 float NPFG::adaptPeriod(const float ground_speed, const float airspeed, const float wind_speed,
 			const float track_error, const float path_curvature, const Vector2f &wind_vel,
 			const Vector2f &unit_path_tangent, const float feas_on_track) const
@@ -232,7 +178,7 @@ float NPFG::adaptPeriod(const float ground_speed, const float airspeed, const fl
 	return period;
 } // adaptPeriod
 
-float NPFG::normalizedTrackError(const float track_error, const float track_error_bound) const
+float NPFG::normalizedTrackError(const float track_error, const float track_error_bound)
 {
 	return math::constrain(track_error / track_error_bound, 0.0f, 1.0f);
 }
@@ -285,7 +231,7 @@ float NPFG::trackProximity(const float look_ahead_ang) const
 	return sin_look_ahead_ang * sin_look_ahead_ang;
 } // trackProximity
 
-float NPFG::trackErrorBound(const float ground_speed, const float time_const) const
+float NPFG::trackErrorBound(const float ground_speed, const float time_const)
 {
 	if (ground_speed > 1.0f) {
 		return ground_speed * time_const;
@@ -307,9 +253,9 @@ float NPFG::timeConst(const float period, const float damping) const
 	return period * damping;
 } // timeConst
 
-float NPFG::lookAheadAngle(const float normalized_track_error) const
+float NPFG::lookAheadAngle(const float normalized_track_error)
 {
-	return M_PI_F * 0.5f * (normalized_track_error - 1.0f) * (normalized_track_error - 1.0f);
+	return M_PI_2_F * (normalized_track_error - 1.0f) * (normalized_track_error - 1.0f);
 } // lookAheadAngle
 
 Vector2f NPFG::bearingVec(const Vector2f &unit_path_tangent, const float look_ahead_ang,
@@ -530,49 +476,32 @@ void NPFG::navigateWaypoints(const Vector2f &waypoint_A, const Vector2f &waypoin
 	Vector2f vector_A_to_B = waypoint_B - waypoint_A;
 	Vector2f vector_A_to_vehicle = vehicle_pos - waypoint_A;
 
-	if (vector_A_to_B.norm() < NPFG_EPSILON) {
+	if (vector_A_to_B.norm() < FLT_EPSILON) {
 		// the waypoints are on top of each other and should be considered as a
 		// single waypoint, fly directly to it
-		unit_path_tangent_ = -vector_A_to_vehicle.normalized();
-		signed_track_error_ = vector_A_to_vehicle.norm();
-		closest_point_on_path_ = waypoint_A;
-		guideToPoint(ground_vel, wind_vel, unit_path_tangent_, signed_track_error_);
-
-	} else if (vector_A_to_B.dot(vector_A_to_vehicle) < 0.0f) {
-		// we are in front of waypoint A, fly directly to it until the bearing generated
-		// to the line segement between A and B is shallower than that from the
-		// bearing to the first waypoint (A).
-
-		// guidance to the line through A and B
-		unit_path_tangent_ = vector_A_to_B.normalized();
-		signed_track_error_ = unit_path_tangent_.cross(vector_A_to_vehicle);
-		closest_point_on_path_ = waypoint_A + vector_A_to_vehicle.dot(unit_path_tangent_) * unit_path_tangent_;
-		guideToPath(ground_vel, wind_vel, unit_path_tangent_, signed_track_error_, 0.0f);
-
-		const Vector2f bearing_vec_to_point = -vector_A_to_vehicle.normalized();
-
-		if (unit_path_tangent_.dot(bearing_vec_) < unit_path_tangent_.dot(bearing_vec_to_point)) {
-			// we are in front of the first waypoint and the bearing to the point is
-			// shallower than that to the line. reset path params to fly directly to
-			// the first waypoint.
-
-			// TODO: probably better to blend these instead of hard switching (could
-			// affect the adaptive tuning if we switch between these cases with wind
-			// gusts)
-
-			unit_path_tangent_ = bearing_vec_to_point;
-			signed_track_error_ = vector_A_to_vehicle.norm();
-			closest_point_on_path_ = waypoint_A;
-			guideToPoint(ground_vel, wind_vel, bearing_vec_to_point, signed_track_error_);
+		if(vector_A_to_vehicle.norm() > FLT_EPSILON) {
+			vector_A_to_B = vector_A_to_vehicle;
+		}
+		else {
+			// Fly to a point and on it. Stay to the current control. Do not update the npfg library to get last output.
+			return;
 		}
 
-	} else {
-		// track the line segment between A and B
-		unit_path_tangent_ = vector_A_to_B.normalized();
-		signed_track_error_ = unit_path_tangent_.cross(vector_A_to_vehicle);
-		closest_point_on_path_ = waypoint_A + vector_A_to_vehicle.dot(unit_path_tangent_) * unit_path_tangent_;
-		guideToPath(ground_vel, wind_vel, unit_path_tangent_, signed_track_error_, 0.0f);
+
+	} else if ((vector_A_to_B.dot(vector_A_to_vehicle) < -FLT_EPSILON)) {
+		// we are in front of waypoint A, fly directly to it until we are within switch distance.
+
+
+		if( vector_A_to_vehicle.norm() > switchDistance(20.0f) ) //TODO replace with actual acceptance radius.
+		{
+			vector_A_to_B = vector_A_to_vehicle;
+		}
 	}
+	// track the line segment
+	unit_path_tangent_ = vector_A_to_B.normalized();
+	signed_track_error_ = unit_path_tangent_.cross(vector_A_to_vehicle);
+	closest_point_on_path_ = waypoint_A + vector_A_to_vehicle.dot(unit_path_tangent_) * unit_path_tangent_;
+	guideToPath(ground_vel, wind_vel, unit_path_tangent_, signed_track_error_, 0.0f);
 
 	updateRollSetpoint();
 } // navigateWaypoints
