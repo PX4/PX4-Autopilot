@@ -162,7 +162,7 @@ private:
 		(ParamInt<px4::params::LTEST_SENS_ROT>)  		_sensor_yaw,
 		(ParamFloat<px4::params::LTEST_SENS_POS_X>)  		_offset_x,
 		(ParamFloat<px4::params::LTEST_SENS_POS_Y>)  		_offset_y,
-		(ParamFloat<px4::params::LTEST_SENS_POS_Z>)  		_offset_z,
+		(ParamFloat<px4::params::LTEST_SENS_POS_Z>)  		_offset_z
 	)
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
@@ -211,5 +211,6 @@ private:
 
 	matrix::Vector3d _uwb_init_offset;
 	matrix::Vector3d _rel_pos;
+	matrix::Vector3f _position;
 };
 } // namespace landing_target_estimator
