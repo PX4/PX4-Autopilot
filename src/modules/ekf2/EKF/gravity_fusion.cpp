@@ -56,7 +56,7 @@ void Ekf::fuseGravity()
 	Vector3f innovation_variance;
 
 	// calculate kalman gains and innovation variances
-	sym::ComputyGravityInnovVarAndKAndH(
+	sym::ComputeGravityInnovVarAndKAndH(
 		getStateAtFusionHorizonAsVector(), P, measurement, acc_measurement_noise, FLT_EPSILON,
 		&_gravity_innov, &innovation_variance, &Kx, &Ky, &Kz);
 
