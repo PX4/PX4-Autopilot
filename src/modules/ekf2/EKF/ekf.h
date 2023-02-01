@@ -540,6 +540,8 @@ private:
 	float _hagl_innov{0.0f};		///< innovation of the last height above terrain measurement (m)
 	float _hagl_innov_var{0.0f};		///< innovation variance for the last height above terrain measurement (m**2)
 
+	Vector3f _gravity_innov{};	///< innovation of the last gravity fusion observation (m/s**2)
+
 	// optical flow processing
 	Vector3f _flow_gyro_bias{};	///< bias errors in optical flow sensor rate gyro outputs (rad/sec)
 	Vector2f _flow_vel_body{};	///< velocity from corrected flow measurement (body frame)(m/s)
@@ -917,6 +919,11 @@ private:
 	void stopEvHgtFusion();
 
 	void updateGroundEffect();
+
+	// gravity fusion
+	void fuseGravity();
+	// heuristically enable / disable gravity fusion
+	void controlGravityFusion();
 
 	// calculate the measurement variance for the optical flow sensor
 	float calcOptFlowMeasVar(const flowSample &flow_sample);

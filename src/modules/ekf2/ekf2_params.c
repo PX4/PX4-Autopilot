@@ -844,6 +844,17 @@ PARAM_DEFINE_FLOAT(EKF2_EVV_NOISE, 0.1f);
 PARAM_DEFINE_FLOAT(EKF2_EVA_NOISE, 0.1f);
 
 /**
+ * Accelerometer measurement noise for gravity based observations.
+ *
+ * @group EKF2
+ * @min 0.1
+ * @max 10.0
+ * @unit m/s^2
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(EKF2_GRAV_NOISE, 1.0f);
+
+/**
  * Measurement noise for the optical flow sensor when it's reported quality metric is at the maximum
  *
  * @group EKF2

@@ -386,6 +386,9 @@ struct parameters {
 	float ev_pos_innov_gate{5.0f};          ///< vision position fusion innovation consistency gate size (STD)
 	float ev_hgt_bias_nsd{0.13f};           ///< process noise for vision height bias estimation (m/s/sqrt(Hz))
 
+	// gravity fusion
+	float gravity_noise{1.0f};		///< accelerometer measurement gaussian noise (m/s**2)
+
 	// optical flow fusion
 	float flow_noise{0.15f};                ///< observation noise for optical flow LOS rate measurements (rad/sec)
 	float flow_noise_qual_min{0.5f};        ///< observation noise for optical flow LOS rate measurements when flow sensor quality is at the minimum useable (rad/sec)

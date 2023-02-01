@@ -198,6 +198,7 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 	controlBetaFusion(imu_delayed);
 	controlDragFusion();
 	controlHeightFusion(imu_delayed);
+	controlGravityFusion();
 
 	// Additional data odometry data from an external estimator can be fused.
 	controlExternalVisionFusion();
@@ -426,5 +427,14 @@ void Ekf::controlAuxVelFusion()
 				fuseVelocity(_aid_src_aux_vel);
 			}
 		}
+	}
+}
+
+void Ekf::controlGravityFusion()
+{
+	// fuse gravity observation if our overall acceleration isn't too big
+	const float gravity_scale = _accel_vec_filt.norm() / CONSTANTS_ONE_G;
+	if (gravity_scale >= 0.9f && gravity_scale <= 1.1f) {
+		fuseGravity();
 	}
 }

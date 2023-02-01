@@ -538,6 +538,9 @@ private:
 		(ParamExtFloat<px4::params::EKF2_EVP_GATE>)
 		_param_ekf2_evp_gate,	///< external vision position innovation consistency gate size (STD)
 
+		(ParamExtFloat<px4::params::EKF2_GRAV_NOISE>)
+		_param_ekf2_grav_noise,	///< default accelerometer noise for gravity fusion measurements (m/s**2)
+
 		// optical flow fusion
 		(ParamExtFloat<px4::params::EKF2_OF_N_MIN>)
 		_param_ekf2_of_n_min,	///< best quality observation noise for optical flow LOS rate measurements (rad/sec)

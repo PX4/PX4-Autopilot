@@ -130,6 +130,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_eva_noise(_params->ev_att_noise),
 	_param_ekf2_evv_gate(_params->ev_vel_innov_gate),
 	_param_ekf2_evp_gate(_params->ev_pos_innov_gate),
+	_param_ekf2_grav_noise(_params->gravity_noise),
 	_param_ekf2_of_n_min(_params->flow_noise),
 	_param_ekf2_of_n_max(_params->flow_noise_qual_min),
 	_param_ekf2_of_qmin(_params->flow_qual_min),
