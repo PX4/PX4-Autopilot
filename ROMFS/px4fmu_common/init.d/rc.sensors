@@ -213,10 +213,3 @@ then
 	# start last (wait for possible icm20948 passthrough mode)
 	ak09916 -X -q start
 fi
-
-# UWB driver
-if param compare -s UWB_DRIVER_EN 1
-then
-	uwb_sr150 start
-	landing_target_estimator start
-fi
