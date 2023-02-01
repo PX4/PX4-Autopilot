@@ -56,7 +56,6 @@
 #include <uORB/topics/landing_target_pose.h>
 #include <uORB/topics/landing_target_innovations.h>
 #include <uORB/topics/sensor_uwb.h>
-// #include <uORB/topics/uwb_grid.h>
 #include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/parameter_update.h>
 #include <matrix/math.hpp>
@@ -84,11 +83,6 @@ public:
 	 * Get new measurements and update the state estimate
 	 */
 	void update();
-
-	/*
-	 * From uwb_sr150.h
-	 */
-	matrix::Vector3d  UWB_SR150_localization(double distance, double azimuth_dev, double elevation_dev);
 
 protected:
 
@@ -118,12 +112,6 @@ private:
 		Moving = 0,
 		Stationary
 	};
-
-	typedef enum {
-		data 		= -1,
-		prec_nav	= 0,
-		follow_me	= 1,
-	} _uwb_driver_mode;
 
 	/**
 	* Handles for parameters
@@ -175,21 +163,9 @@ private:
 		(ParamFloat<px4::params::LTEST_SENS_POS_X>)  		_offset_x,
 		(ParamFloat<px4::params::LTEST_SENS_POS_Y>)  		_offset_y,
 		(ParamFloat<px4::params::LTEST_SENS_POS_Z>)  		_offset_z,
-		(ParamInt<px4::params::UWB_MODE>)  			_uwb_mode_p /*,
- 		(ParamFloat<px4::params::UWB_FW_DIST>)   		_uwb_follow_distance, //Follow me
-		(ParamFloat<px4::params::UWB_FW_DIST_MIN>) 		_uwb_follow_distance_min,
-		(ParamFloat<px4::params::UWB_FW_DIST_MAX>) 		_uwb_follow_distance_max,
-		(ParamFloat<px4::params::UWB_THROTTLE>) 		_uwb_throttle,
-		(ParamFloat<px4::params::UWB_THROTTLE_REV>) 		_uwb_throttle_reverse,
-		(ParamFloat<px4::params::UWB_THR_HEAD>) 		_uwb_thrust_head,
-		(ParamFloat<px4::params::UWB_THR_HEAD_MIN>) 		_uwb_thrust_head_min,
-		(ParamFloat<px4::params::UWB_THR_HEAD_MAX>) 		_uwb_thrust_head_max */
 	)
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
-
-	uORB::Publication<sensor_uwb_s> _sensor_uwb_pub{ORB_ID(sensor_uwb)};
-	sensor_uwb_s _sensor_uwb{};
 
 	// actuator_controls
 	// uORB::Publication<offboard_control_mode_s>_offboard_control_mode_pub{ORB_ID(offboard_control_mode)};
@@ -206,10 +182,7 @@ private:
 	vehicle_attitude_s		_vehicleAttitude{};
 	vehicle_acceleration_s		_vehicle_acceleration{};
 	irlock_report_s			_irlockReport{};
-//	Isn't used in the code?
-//	uwb_grid_s		_uwbGrid{};
-	sensor_uwb_s		_sensorUwb{};
-	_uwb_driver_mode _uwb_mode;
+	sensor_uwb_s			_sensorUwb{};
 
 	// keep track of which topics we have received
 	bool _vehicleLocalPosition_valid{false};
@@ -233,10 +206,6 @@ private:
 	void _check_params(const bool force);
 
 	void _update_state();
-
-	void uwb_sr150_prec_nav();
-
-	void uwb_sr150_followme();
 
 	// void actuator_control(double distance, double azimuth, double elevation);
 

@@ -255,21 +255,65 @@ void LandingTargetEstimator::_update_topics()
 			return;
 		}
 
-/* 		if (!matrix::Vector3f(_sensorUwb.position).isAllFinite()) {
+		if (!PX4_ISFINITE(_sensorUwbSub.distance) { //why is this here?
 			PX4_WARN("Position is corrupt!");
 			return;
-		} */
+		}
 
 		_new_sensorReport = true;
+		_target_position_report.timestamp = _sensorUwb.timestamp;
+		_target_position_report.is_static = false; //TODO propogate static/mobile tag via the UWBS
 
-		// The coordinate system is NED (north-east-down)
-		// the sensor_uwb msg contains the Position in NED, Vehicle relative to LP
-		// The coordinates "rel_pos_*" are the position of the landing point relative to the vehicle.
-		// To change POV we negate every Axis:
-	/* 	_target_position_report.timestamp = _sensorUwb.timestamp;
-		_target_position_report.rel_pos_x = -_sensorUwb.position[0];
-		_target_position_report.rel_pos_y = -_sensorUwb.position[1];
-		_target_position_report.rel_pos_z = -_sensorUwb.position[2]; */
+		// First we need to catch angle measurements outside of the useable measuring range
+		if(60.0 => azimuth_dev  || -60.0 <= azimuth_dev){
+			return;
+		}
+		if(60.0 => elevation_dev  || -60.0 <= elevation_dev){
+			return;
+		}
+
+		_target_position_report.rel_pos_valid = true;
+		const double deg2rad = M_PI / 180.0;
+		double azimuth 	 = _sensorUwbSub.aoa_azimuth_dev * deg2rad; 	//subtract yaw offset and convert to rad
+		double elevation = _sensorUwbSub.aoa_elevation_dev  * deg2rad; 	//subtract pitch offset and convert to rad
+
+		/* ****** Position algorithm ************************************
+		 * this algorithm takes distance and angle measurements (spherical coordinates) and converts them into the cartesian bodyframe expected by the LTE
+		 * Convert spherical coordinates to cartesian: sph(r, phi, theta) => cartesian(x,y,z)
+		 * With radial distance r, elevation angle theta, azimuth angle phi
+		 *
+		 * position =   ( r * cos(elevation) * cos(azimuth),
+		 * 		( r * cos(elevation) * sin(azimuth),
+		 * 		( r * sin(elevation) )
+		 *
+		 * The resulting coordinate system is not NED (north-east-down)
+		 * Using the angle information from the drone device results in a position where the Drone is centered at [0, 0, 0] in NED.
+		 * ||Using the angle information from the destination device results in a position where the ground device is centered at [0, 0, 0] in NED.||
+		 * The coordinates "rel_pos_*" are the position of the landing point relative to the vehicle.
+		 * To change POV we negate rotate the position with Eulerangles[XYZ] = [-90 0 -90]:
+		 *
+		 * rotation_matrix = (0, 1, 0,
+					0, 0, 1;
+					-1, 0, 0);
+		 *
+		 * This step can also be skipped if we rearrange the position calculation like this:
+		 * 	X -> -Z
+		 * 	Y -> X
+		 * 	Z -> Y
+		 * Resulting in the following conversion function:
+		 * ******************************************/
+		matrix::Vector3d position(	_sensorUwbSub.distance  * sin(azimuth) * cos(elevation),
+						_sensorUwbSub.distance  * sin(elevation),
+						-_sensorUwbSub.distance  * cos(azimuth) * cos(elevation));
+
+		// Now the position is the landing point relative to the vehicle.
+		// Add the initiator offset and orientation:
+		position +=  matrix::Vector3d( _params.offset_x,  _params.offset_y,  _params.offset_z) ;
+
+		// Now we negate every axis to get the Position of the drone relative to the landing spot:
+		_target_position_report.rel_pos_x = -position[0];
+		_target_position_report.rel_pos_y = -position[1];
+		_target_position_report.rel_pos_z = -position[2];
 	}
 }
 
@@ -295,140 +339,6 @@ void LandingTargetEstimator::_update_params()
 	param_get(_paramHandle.offset_y, &_params.offset_y);
 	param_get(_paramHandle.offset_z, &_params.offset_z);
 }
-
-// math needs to be fixed
-matrix::Vector3d LandingTargetEstimator::UWB_SR150_localization(double distance, double azimuth_dev, double elevation_dev)
-{
-	/* UWB_SR150::localization takes distance and angle measurements and publishes position data.
-	can be used to make a rover follow an UWB receiver
-	*/
-	double deg2rad = M_PI / 180.0;
-	// Catch angle measurements at the end of the range and discard them
-	/*
-	if(60.0 > azimuth_dev  || -60.0 < azimuth_dev){
-		return;
-	}
-	if(60.0 > elevation_dev  || -60.0 < elevation_dev){
-		return;
-	}*/
-
-
-	double azimuth 	 = azimuth_dev * deg2rad; 	//subtract yaw offset and convert to rad
-	double elevation = elevation_dev  * deg2rad; 	//subtract pitch offset and convert to rad
-
-	matrix::Vector3d position(	sin(azimuth) * sin(elevation),
-					cos(azimuth) * sin(elevation),
-					-cos(elevation));
-
-	position *= distance; //scale the vector to the distance
-	//Output is the Coordinates of the Initiator in relation to the UWB Receiver in NED (North-East-Down) Framing
-
-	// Now the position is the landing point relative to the vehicle.
-	// so the only thing left is to add the Initiator offset
-	position +=  matrix::Vector3d(_uwb_init_offset);
-
-	return position;
-}
-
-//TODO: Find out if this works
-/* void LandingTargetEstimator::uwb_sr150_prec_nav()
-{ //Precision landing mode
-				// _sensor_uwb.status = 10;
-				_rel_pos = LandingTargetEstimator::UWB_SR150_localization(_sensor_uwb.distance, _sensor_uwb.aoa_azimuth_dev,
-								   _sensor_uwb.aoa_elevation_dev);
-				_sensor_uwb.position[0] = _rel_pos(0);
-				_sensor_uwb.position[1] = _rel_pos(1);
-				_sensor_uwb.position[2] = _rel_pos(2);
-} */
-
-/* void LandingTargetEstimator::uwb_sr150_followme()
-{ // Follow me mode
-			// _sensor_uwb.status = 11;
-			actuator_control(_sensor_uwb.distance, _sensor_uwb.aoa_azimuth_dev,
-						_sensor_uwb.aoa_elevation_dev);
-}
-
-void LandingTargetEstimator::actuator_control(double distance, double azimuth, double elevation)
-{
-	/ * UWB_SR150::actuator_control takes distance and angle measurements and publishes proportional thrust commands.
-	can be used to make a rover follow an UWB receiver
-	* /
-
-	//Lots of Params to finetune the Follow me behavior
-	double follow_distance_max =	_uwb_follow_distance_max.get();
-	double follow_distance = 	_uwb_follow_distance.get();
-	double follow_distance_min =	_uwb_follow_distance_min.get();
-	double throttle_max =		_uwb_throttle.get();
-	double thrust_heading =		_uwb_thrust_head.get(); // heading thrust multiplier
-	double thrust_heading_min =	_uwb_thrust_head_min.get();
-	double thrust_heading_max =	_uwb_thrust_head_max.get();
-	double throttle_reverse =	_uwb_throttle_reverse.get();
-
-	double heading = azimuth / 70; //normalize the AoA to -1..+1
-	double throttle = 0;
-
-	//simple heading control loop
-	if (azimuth >= 0) { // Heading deadzone
-		heading = heading * thrust_heading;
-		heading = math::constrain(heading, thrust_heading_min, thrust_heading_max) ; //Limit heading to -1..+1
-
-	} else if (azimuth <= 0) { // Heading deadzone
-		heading = heading * thrust_heading;
-		heading = math::constrain(heading, -thrust_heading_max, -thrust_heading_min) ;
-
-	} else {
-		heading = 0;
-	}
-
-	//simple Throttle control loop
-	if (distance > follow_distance_max) {
-		throttle = 0;
-
-	} else if (distance <= follow_distance_min) {
-		throttle =	throttle_reverse;
-
-	} else if ((distance >= follow_distance_min) && (distance < follow_distance)) {
-		throttle = 0;
-
-	} else if ((distance >= follow_distance) && (distance < follow_distance_max)) {
-		throttle = (distance - follow_distance) / 2; //Throttle will reach 100% over 2 meters
-
-	}
-
-	throttle = math::constrain(throttle, -throttle_max, throttle_max); //limit throttle to -1..1
-
-	offboard_control_mode_s offboard_control_mode{}; //publish offboard control mode to enable it
-	offboard_control_mode.timestamp = hrt_absolute_time();
-	offboard_control_mode.actuator = true;
-	_offboard_control_mode_pub.publish(offboard_control_mode);
-
-	vehicle_status_s vehicle_status{};
-	_vehicle_status_sub.copy(&vehicle_status);
-
-	// Publish actuator controls only once in OFFBOARD
-	if (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD) {
-		//TODO query frame type and disable if not rover
-
-		/ *
-		vehicle_rates_setpoint_s vehicle_rates_setpoint{};
-		vehicle_rates_setpoint.timestamp = hrt_absolute_time();
-		vehicle_rates_setpoint.roll = heading;
-		vehicle_rates_setpoint.pitch = heading;
-		vehicle_rates_setpoint.yaw = heading;
-		vehicle_rates_setpoint.thrust_body[0] = throttle * max_throttle * timeout;
-		vehicle_rates_setpoint.thrust_body[1] = throttle * max_throttle * timeout;
-		vehicle_rates_setpoint.thrust_body[2] = throttle * max_throttle * timeout;
-		_vehicle_rates_setpoint_pub.publish(vehicle_rates_setpoint);
-		* /
-
-		actuator_controls_s actuator_controls{};
-		actuator_controls.timestamp = hrt_absolute_time();
-		actuator_controls.control[2] = heading; //yaw
-		actuator_controls.control[3] = throttle; //Thrust
-		_actuator_controls_pubs[0].publish(actuator_controls); //flight controls
-	}
-
-} */
 
 void LandingTargetEstimator::parameters_update()
 {
