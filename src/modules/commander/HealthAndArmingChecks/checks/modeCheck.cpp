@@ -147,6 +147,12 @@ void ModeChecks::checkAndReport(const Context &context, Report &reporter)
 		// Here we expect there is already an event reported for the failing check (this is for external modes)
 		reporter.clearCanRunBits((NavModes)reporter.failsafeFlags().mode_req_other);
 	}
+
+	if ((reporter.failsafeFlags().flight_time_limit_exceeded || reporter.failsafeFlags().wind_limit_exceeded)
+	    && reporter.failsafeFlags().mode_req_wind_and_flight_time_compliance != 0) {
+		// Already reported
+		reporter.clearCanRunBits((NavModes)reporter.failsafeFlags().mode_req_wind_and_flight_time_compliance);
+	}
 }
 
 void ModeChecks::checkArmingRequirement(const Context &context, Report &reporter)
