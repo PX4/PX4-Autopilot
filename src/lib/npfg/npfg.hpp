@@ -75,16 +75,17 @@ public:
 	 * Computes the lateral acceleration and airspeed references necessary to track
 	 * a path in wind (including excess wind conditions).
 	 *
+	 * @param[in] curr_pos_local Current horizontal vehicle position in local coordinates [m]
 	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
 	 * @param[in] wind_vel Wind velocity vector [m/s]
 	 * @param[in] unit_path_tangent Unit vector tangent to path at closest point
 	 *            in direction of path
-	 * @param[in] signed_track_error Signed error to track at closest point (sign
-	 *            determined by path normal direction) [m]
+	 * @param[in] position_on_path Horizontal point on the path to track described in local coordinates [m]
 	 * @param[in] path_curvature Path curvature at closest point on track [m^-1]
 	 */
-	void guideToPath(const matrix::Vector2f &ground_vel, const matrix::Vector2f &wind_vel,
-			 const matrix::Vector2f &unit_path_tangent, const float signed_track_error,
+	void guideToPath(const matrix::Vector2f &curr_pos_local, const matrix::Vector2f &ground_vel,
+			 const matrix::Vector2f &wind_vel,
+			 const matrix::Vector2f &unit_path_tangent, const matrix::Vector2f &position_on_path,
 			 const float path_curvature);
 
 	/*
@@ -195,8 +196,6 @@ public:
 	 */
 	float getHeadingRef() const { return atan2f(air_vel_ref_(1), air_vel_ref_(0)); }
 
-	matrix::Vector2f getClosestPoint() const { return closest_point_on_path_;}
-
 	/*
 	 * @return Bearing angle [rad]
 	 */
@@ -227,70 +226,6 @@ public:
 	 * @return Minimum forward ground speed reference [m/s]
 	 */
 	float getMinGroundSpeedRef() const { return min_ground_speed_ref_; }
-
-	/*******************************************************************************
-	 * PX4 NAVIGATION INTERFACE FUNCTIONS (provide similar functionality to ECL_L1_Pos_Controller)
-	 */
-
-	/*
-	 * Waypoint handling logic following closely to the ECL_L1_Pos_Controller
-	 * method of the same name. Takes two waypoints and determines the relevant
-	 * parameters for evaluating the NPFG guidance law, then updates control setpoints.
-	 *
-	 * @param[in] waypoint_A Waypoint A (segment start) position in WGS84 coordinates
-	 *            (lat,lon) [deg]
-	 * @param[in] waypoint_B Waypoint B (segment end) position in WGS84 coordinates
-	 *            (lat,lon) [deg]
-	 * @param[in] vehicle_pos Vehicle position in WGS84 coordinates (lat,lon) [deg]
-	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
-	 * @param[in] wind_vel Wind velocity vector [m/s]
-	 */
-	void navigateWaypoints(const matrix::Vector2f &waypoint_A, const matrix::Vector2f &waypoint_B,
-			       const matrix::Vector2f &vehicle_pos, const matrix::Vector2f &ground_vel,
-			       const matrix::Vector2f &wind_vel);
-
-	/*
-	 * Loitering (unlimited) logic. Takes loiter center, radius, and direction and
-	 * determines the relevant parameters for evaluating the NPFG guidance law,
-	 * then updates control setpoints.
-	 *
-	 * @param[in] loiter_center The position of the center of the loiter circle [m]
-	 * @param[in] vehicle_pos Vehicle position in WGS84 coordinates (lat,lon) [deg]
-	 * @param[in] radius Loiter radius [m]
-	 * @param[in] loiter_direction_counter_clockwise Specifies loiter direction
-	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
-	 * @param[in] wind_vel Wind velocity vector [m/s]
-	 */
-	void navigateLoiter(const matrix::Vector2f &loiter_center, const matrix::Vector2f &vehicle_pos,
-			    float radius, bool loiter_direction_counter_clockwise, const matrix::Vector2f &ground_vel,
-			    const matrix::Vector2f &wind_vel);
-
-	/*
-	 * Path following logic. Takes poisiton, path tangent, curvature and
-	 * then updates control setpoints to follow a path setpoint.
-	 *
-	 * @param[in] vehicle_pos vehicle_pos Vehicle position in WGS84 coordinates (lat,lon) [deg]
-	 * @param[in] position_setpoint closest point on a path in WGS84 coordinates (lat,lon) [deg]
-	 * @param[in] tangent_setpoint unit tangent vector of the path [m]
-	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
-	 * @param[in] wind_vel Wind velocity vector [m/s]
-	 * @param[in] curvature of the path setpoint [1/m]
-	 */
-	void navigatePathTangent(const matrix::Vector2f &vehicle_pos, const matrix::Vector2f &position_setpoint,
-				 const matrix::Vector2f &tangent_setpoint,
-				 const matrix::Vector2f &ground_vel, const matrix::Vector2f &wind_vel, const float &curvature);
-
-	/*
-	 * Navigate on a fixed bearing.
-	 *
-	 * This only holds a certain (ground relative) direction and does not perform
-	 * cross track correction. Helpful for semi-autonomous modes. Similar to navigateHeading.
-	 *
-	 * @param[in] bearing Bearing angle [rad]
-	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
-	 * @param[in] wind_vel Wind velocity vector [m/s]
-	 */
-	void navigateBearing(float bearing, const matrix::Vector2f &ground_vel, const matrix::Vector2f &wind_vel);
 
 	/*
 	 * [Copied directly from ECL_L1_Pos_Controller]
@@ -326,25 +261,6 @@ public:
 	float switchDistance(float wp_radius) const;
 
 	/*
-	 * The path bearing
-	 *
-	 * @return bearing angle (-pi..pi, in NED frame) [rad]
-	 */
-	float targetBearing() const { return atan2f(unit_path_tangent_(1), unit_path_tangent_(0)); }
-
-	/*
-	 * [Copied directly from ECL_L1_Pos_Controller]
-	 *
-	 * Returns true if the loiter waypoint has been reached
-	 */
-	bool reachedLoiterTarget() { return circleMode(); }
-
-	/*
-	 * Returns true if following a circle (loiter)
-	 */
-	bool circleMode() { return path_type_loiter_ && track_proximity_ > NPFG_EPSILON; }
-
-	/*
 	 * [Copied directly from ECL_L1_Pos_Controller]
 	 *
 	 * Get roll angle setpoint for fixed wing.
@@ -352,35 +268,6 @@ public:
 	 * @return Roll angle (in NED frame)
 	 */
 	float getRollSetpoint() { return roll_setpoint_; }
-
-	/*
-	 * Cacluates the look ahead angle as a quadratic function of the normalized
-	 * track error.
-	 *
-	 * @param[in] normalized_track_error Normalized track error (track error / track error boundary)
-	 * @return Look ahead angle [rad]
-	 */
-	static float lookAheadAngle(const float normalized_track_error);
-
-	/*
-	 * Returns normalized (unitless) and constrained track error [0,1].
-	 *
-	 * @param[in] track_error Track error (magnitude) [m]
-	 * @param[in] track_error_bound Track error boundary [m]
-	 * @return Normalized track error
-	 */
-	static float normalizedTrackError(const float track_error, const float track_error_bound);
-
-	/*
-	 * Calculates a ground speed modulated track error bound under which the
-	 * look ahead angle is quadratically transitioned from alignment with the
-	 * track error vector to that of the path tangent vector.
-	 *
-	 * @param[in] ground_speed Vehicle ground speed [m/s]
-	 * @param[in] time_const Controller time constant [s]
-	 * @return Track error boundary [m]
-	 */
-	static float trackErrorBound(const float ground_speed, const float time_const);
 
 private:
 
@@ -444,10 +331,8 @@ private:
 	float track_proximity_{0.0f}; // value in [0,1] indicating proximity to track, 0 = at track error boundary or beyond, 1 = on track
 
 	// path following states
-	matrix::Vector2f unit_path_tangent_{matrix::Vector2f{1.0f, 0.0f}}; // unit path tangent vector
 	float signed_track_error_{0.0f}; // signed track error [m]
 	matrix::Vector2f bearing_vec_{matrix::Vector2f{1.0f, 0.0f}}; // bearing unit vector
-	matrix::Vector2f closest_point_on_path_{matrix::Vector2f{NAN, NAN}}; // instantaneous position setpoint [m]
 
 	/*
 	 * guidance outputs
@@ -466,7 +351,6 @@ private:
 	float roll_lim_rad_{math::radians(30.0f)}; // maximum roll angle [rad]
 	float roll_setpoint_{0.0f}; // current roll angle setpoint [rad]
 	float roll_slew_rate_{0.0f}; // roll angle setpoint slew rate limit [rad/s]
-	bool path_type_loiter_{false}; // true if the guidance law is tracking a loiter circle
 
 	/*
 	 * Adapts the controller period considering user defined inputs, current flight
@@ -486,6 +370,15 @@ private:
 	float adaptPeriod(const float ground_speed, const float airspeed, const float wind_speed,
 			  const float track_error, const float path_curvature, const matrix::Vector2f &wind_vel,
 			  const matrix::Vector2f &unit_path_tangent, const float feas_on_track) const;
+
+	/*
+	 * Returns normalized (unitless) and constrained track error [0,1].
+	 *
+	 * @param[in] track_error Track error (magnitude) [m]
+	 * @param[in] track_error_bound Track error boundary [m]
+	 * @return Normalized track error
+	 */
+	float normalizedTrackError(const float track_error, const float track_error_bound) const;
 
 	/*
 	 * Cacluates an approximation of the wind factor (see [TODO: include citation]).
@@ -531,6 +424,17 @@ private:
 	float trackProximity(const float look_ahead_ang) const;
 
 	/*
+	 * Calculates a ground speed modulated track error bound under which the
+	 * look ahead angle is quadratically transitioned from alignment with the
+	 * track error vector to that of the path tangent vector.
+	 *
+	 * @param[in] ground_speed Vehicle ground speed [m/s]
+	 * @param[in] time_const Controller time constant [s]
+	 * @return Track error boundary [m]
+	 */
+	float trackErrorBound(const float ground_speed, const float time_const) const;
+
+	/*
 	 * Calculates the required controller proportional gain to achieve the desired
 	 * system period and damping ratio. NOTE: actual period and damping will vary
 	 * when following paths with curvature in wind.
@@ -551,6 +455,15 @@ private:
 	 * @return Time constant [s]
 	 */
 	float timeConst(const float period, const float damping) const;
+
+	/*
+	 * Cacluates the look ahead angle as a quadratic function of the normalized
+	 * track error.
+	 *
+	 * @param[in] normalized_track_error Normalized track error (track error / track error boundary)
+	 * @return Look ahead angle [rad]
+	 */
+	float lookAheadAngle(const float normalized_track_error) const;
 
 	/*
 	 * Calculates the bearing vector and track proximity transitioning variable

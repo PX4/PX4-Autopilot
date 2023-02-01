@@ -47,8 +47,9 @@
 using matrix::Vector2d;
 using matrix::Vector2f;
 
-void NPFG::guideToPath(const Vector2f &ground_vel, const Vector2f &wind_vel, const Vector2f &unit_path_tangent,
-		       const float signed_track_error, const float path_curvature)
+void NPFG::guideToPath(const matrix::Vector2f &curr_pos_local, const Vector2f &ground_vel, const Vector2f &wind_vel,
+		       const Vector2f &unit_path_tangent,
+		       const Vector2f &position_on_path, const float path_curvature)
 {
 	const float ground_speed = ground_vel.norm();
 
@@ -56,6 +57,9 @@ void NPFG::guideToPath(const Vector2f &ground_vel, const Vector2f &wind_vel, con
 	const float airspeed = air_vel.norm();
 
 	const float wind_speed = wind_vel.norm();
+
+	const Vector2f path_pos_to_vehicle{curr_pos_local - position_on_path};
+	const float signed_track_error = unit_path_tangent.cross(path_pos_to_vehicle);
 
 	// on-track wind triangle projections
 	const float wind_cross_upt = wind_vel.cross(unit_path_tangent);
@@ -115,6 +119,8 @@ void NPFG::guideToPath(const Vector2f &ground_vel, const Vector2f &wind_vel, con
 	// ramped in as the vehicle approaches the track and is further smoothly
 	// zeroed out as the bearing becomes infeasible.
 	lateral_accel_ = lateral_accel + feas_combined * track_proximity_ * lateral_accel_ff_;
+
+	updateRollSetpoint();
 } // guideToPath
 
 float NPFG::adaptPeriod(const float ground_speed, const float airspeed, const float wind_speed,
@@ -178,7 +184,7 @@ float NPFG::adaptPeriod(const float ground_speed, const float airspeed, const fl
 	return period;
 } // adaptPeriod
 
-float NPFG::normalizedTrackError(const float track_error, const float track_error_bound)
+float NPFG::normalizedTrackError(const float track_error, const float track_error_bound) const
 {
 	return math::constrain(track_error / track_error_bound, 0.0f, 1.0f);
 }
@@ -231,7 +237,7 @@ float NPFG::trackProximity(const float look_ahead_ang) const
 	return sin_look_ahead_ang * sin_look_ahead_ang;
 } // trackProximity
 
-float NPFG::trackErrorBound(const float ground_speed, const float time_const)
+float NPFG::trackErrorBound(const float ground_speed, const float time_const) const
 {
 	if (ground_speed > 1.0f) {
 		return ground_speed * time_const;
@@ -253,7 +259,7 @@ float NPFG::timeConst(const float period, const float damping) const
 	return period * damping;
 } // timeConst
 
-float NPFG::lookAheadAngle(const float normalized_track_error)
+float NPFG::lookAheadAngle(const float normalized_track_error) const
 {
 	return M_PI_2_F * (normalized_track_error - 1.0f) * (normalized_track_error - 1.0f);
 } // lookAheadAngle
@@ -459,135 +465,6 @@ float NPFG::lateralAccel(const Vector2f &air_vel, const Vector2f &air_vel_ref, c
 		return p_gain_ * cross_air_vel_err / airspeed_ref_;
 	}
 } // lateralAccel
-
-/*******************************************************************************
- * PX4 NAVIGATION INTERFACE FUNCTIONS (provide similar functionality to ECL_L1_Pos_Controller)
- */
-
-void NPFG::navigateWaypoints(const Vector2f &waypoint_A, const Vector2f &waypoint_B,
-			     const Vector2f &vehicle_pos, const Vector2f &ground_vel, const Vector2f &wind_vel)
-{
-	// similar to logic found in ECL_L1_Pos_Controller method of same name
-	// BUT no arbitrary max approach angle, approach entirely determined by generated
-	// bearing vectors
-
-	path_type_loiter_ = false;
-
-	Vector2f vector_A_to_B = waypoint_B - waypoint_A;
-	Vector2f vector_A_to_vehicle = vehicle_pos - waypoint_A;
-
-	if (vector_A_to_B.norm() < FLT_EPSILON) {
-		// the waypoints are on top of each other and should be considered as a
-		// single waypoint, fly directly to it
-		if(vector_A_to_vehicle.norm() > FLT_EPSILON) {
-			vector_A_to_B = vector_A_to_vehicle;
-		}
-		else {
-			// Fly to a point and on it. Stay to the current control. Do not update the npfg library to get last output.
-			return;
-		}
-
-
-	} else if ((vector_A_to_B.dot(vector_A_to_vehicle) < -FLT_EPSILON)) {
-		// we are in front of waypoint A, fly directly to it until we are within switch distance.
-
-
-		if( vector_A_to_vehicle.norm() > switchDistance(20.0f) ) //TODO replace with actual acceptance radius.
-		{
-			vector_A_to_B = vector_A_to_vehicle;
-		}
-	}
-	// track the line segment
-	unit_path_tangent_ = vector_A_to_B.normalized();
-	signed_track_error_ = unit_path_tangent_.cross(vector_A_to_vehicle);
-	closest_point_on_path_ = waypoint_A + vector_A_to_vehicle.dot(unit_path_tangent_) * unit_path_tangent_;
-	guideToPath(ground_vel, wind_vel, unit_path_tangent_, signed_track_error_, 0.0f);
-
-	updateRollSetpoint();
-} // navigateWaypoints
-
-void NPFG::navigateLoiter(const Vector2f &loiter_center, const Vector2f &vehicle_pos,
-			  float radius, bool loiter_direction_counter_clockwise, const Vector2f &ground_vel, const Vector2f &wind_vel)
-{
-	path_type_loiter_ = true;
-
-	radius = math::max(radius, MIN_RADIUS);
-
-	const float loiter_direction_multiplier = loiter_direction_counter_clockwise ? -1.f : 1.f;
-
-	Vector2f vector_center_to_vehicle = vehicle_pos - loiter_center;
-	const float dist_to_center = vector_center_to_vehicle.norm();
-
-	// find the direction from the circle center to the closest point on its perimeter
-	// from the vehicle position
-	Vector2f unit_vec_center_to_closest_pt;
-
-	if (dist_to_center < 0.1f) {
-		// the logic breaks down at the circle center, employ some mitigation strategies
-		// until we exit this region
-		if (ground_vel.norm() < 0.1f) {
-			// arbitrarily set the point in the northern top of the circle
-			unit_vec_center_to_closest_pt = Vector2f{1.0f, 0.0f};
-
-		} else {
-			// set the point in the direction we are moving
-			unit_vec_center_to_closest_pt = ground_vel.normalized();
-		}
-
-	} else {
-		// set the point in the direction of the aircraft
-		unit_vec_center_to_closest_pt = vector_center_to_vehicle.normalized();
-	}
-
-	// 90 deg clockwise rotation * loiter direction
-	unit_path_tangent_ = loiter_direction_multiplier * Vector2f{-unit_vec_center_to_closest_pt(1), unit_vec_center_to_closest_pt(0)};
-
-	// positive in direction of path normal
-	signed_track_error_ = -loiter_direction_multiplier * (dist_to_center - radius);
-
-	closest_point_on_path_ = unit_vec_center_to_closest_pt * radius + loiter_center;
-
-	float path_curvature = loiter_direction_multiplier / radius;
-
-	guideToPath(ground_vel, wind_vel, unit_path_tangent_, signed_track_error_, path_curvature);
-
-	updateRollSetpoint();
-} // navigateLoiter
-
-
-void NPFG::navigatePathTangent(const matrix::Vector2f &vehicle_pos, const matrix::Vector2f &position_setpoint,
-			       const matrix::Vector2f &tangent_setpoint,
-			       const matrix::Vector2f &ground_vel, const matrix::Vector2f &wind_vel, const float &curvature)
-{
-	path_type_loiter_ = false;
-
-	// set unit tangent directly
-	unit_path_tangent_ = tangent_setpoint.normalized();
-
-	// closest point to vehicle
-	matrix::Vector2f error_vector = vehicle_pos - position_setpoint;
-	closest_point_on_path_ = position_setpoint;
-	signed_track_error_ = unit_path_tangent_.cross(error_vector);
-
-	guideToPath(ground_vel, wind_vel, unit_path_tangent_, signed_track_error_, curvature);
-
-	updateRollSetpoint();
-} // navigatePathTangent
-
-void NPFG::navigateBearing(float bearing, const Vector2f &ground_vel, const Vector2f &wind_vel)
-{
-	path_type_loiter_ = false;
-
-	unit_path_tangent_ = Vector2f{cosf(bearing), sinf(bearing)};
-
-	signed_track_error_ = 0.0f;
-
-	// no track error or path curvature to consider, just regulate ground velocity
-	// to bearing vector
-	guideToPath(ground_vel, wind_vel, unit_path_tangent_, signed_track_error_, 0.0f);
-
-	updateRollSetpoint();
-} // navigateBearing
 
 float NPFG::switchDistance(float wp_radius) const
 {
