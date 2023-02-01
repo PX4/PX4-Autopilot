@@ -95,7 +95,7 @@ void Ekf::controlMagFusion()
 
 			resetEstimatorAidStatus(_aid_src_mag_heading);
 			_aid_src_mag_heading.timestamp_sample = mag_sample.time_us;
-			_aid_src_mag_heading.observation = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + getMagDeclination();;
+			_aid_src_mag_heading.observation = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + getMagDeclination();
 			_aid_src_mag_heading.innovation = wrap_pi(getEulerYaw(_R_to_earth) - _aid_src_mag_heading.observation);
 
 			// compute magnetometer innovations (for estimator_aid_src_mag logging)
@@ -114,6 +114,45 @@ void Ekf::controlMagFusion()
 	// re-initialised next time we achieve flight altitude
 	if (!_control_status.flags.in_air) {
 		_control_status.flags.mag_aligned_in_flight = false;
+	}
+
+	if (mag_data_ready && !_control_status.flags.tilt_align && !_control_status.flags.yaw_align) {
+		// calculate the initial magnetic field and yaw alignment
+		// but do not mark the yaw alignement complete as it needs to be
+		// reset once the leveling phase is done
+		if (_params.mag_fusion_type <= MagFuseType::MAG_3D) {
+			if ((_mag_counter > 1) && isTimedOut(_aid_src_mag_heading.time_last_fuse, (uint64_t)100'000)) {
+				// rotate the magnetometer measurements into earth frame using a zero yaw angle
+				// the angle of the projection onto the horizontal gives the yaw angle
+				const Vector3f mag_earth_pred = updateYawInRotMat(0.f, _R_to_earth) * _mag_lpf.getState();
+				const float yaw_new = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + getMagDeclination();
+
+				const float yaw_prev = getEulerYaw(_R_to_earth);
+
+				if (fabsf(yaw_new - yaw_prev) > math::radians(1.f)) {
+
+					ECL_INFO("mag heading init %.3f -> %.3f rad (declination %.1f)", (double)yaw_prev, (double)yaw_new, (double)getMagDeclination());
+
+					// update the rotation matrix using the new yaw value
+					_R_to_earth = updateYawInRotMat(yaw_new, Dcmf(_state.quat_nominal));
+					_state.quat_nominal = _R_to_earth;
+
+					// reset the output predictor state history to match the EKF initial values
+					_output_predictor.alignOutputFilter(_state.quat_nominal, _state.vel, _state.pos);
+
+					// set the earth magnetic field states using the updated rotation
+					_state.mag_I = _R_to_earth * _mag_lpf.getState();
+					_state.mag_B.zero();
+
+					_aid_src_mag_heading.time_last_fuse = _time_delayed_us;
+					_time_last_heading_fuse = _time_delayed_us;
+
+					_last_static_yaw = NAN;
+				}
+			}
+		}
+
+		return;
 	}
 
 	if (_params.mag_fusion_type >= MagFuseType::NONE
@@ -225,9 +264,9 @@ void Ekf::runInAirYawReset()
 		bool has_realigned_yaw = false;
 
 		// use yaw estimator if available
-		if (_control_status.flags.gps && isYawEmergencyEstimateAvailable() &&
-		(_mag_counter != 0) && isNewestSampleRecent(_time_last_mag_buffer_push, 500'000) // mag LPF available
-		) {
+		if (_control_status.flags.gps && isYawEmergencyEstimateAvailable()
+		    && (_mag_counter > 1) // mag LPF available
+		   ) {
 
 			resetQuatStateYaw(_yawEstimator.getYaw(), _yawEstimator.getYawVar());
 

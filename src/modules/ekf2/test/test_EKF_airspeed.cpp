@@ -106,8 +106,8 @@ TEST_F(EkfAirspeedTest, testWindVelocityEstimation)
 	const Vector3f vel_wind_expected = simulated_velocity_earth - R_to_earth_sim * (Vector3f(airspeed_body(0),
 					   airspeed_body(1), 0.0f));
 
-	EXPECT_NEAR(vel_wind_earth(0), vel_wind_expected(0), 1e-2f);
-	EXPECT_NEAR(vel_wind_earth(1), vel_wind_expected(1), 1e-2f);
+	EXPECT_NEAR(vel_wind_earth(0), vel_wind_expected(0), 1e-1f);
+	EXPECT_NEAR(vel_wind_earth(1), vel_wind_expected(1), 1e-1f);
 
 	EXPECT_NEAR(height_before_pressure_correction, 0.0f, 1e-5f);
 

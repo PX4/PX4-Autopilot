@@ -222,8 +222,7 @@ bool Ekf::resetMagHeading()
 
 	const Vector3f mag_init = _mag_lpf.getState();
 
-	const bool mag_available = (_mag_counter != 0) && isNewestSampleRecent(_time_last_mag_buffer_push, 500'000)
-				   && !magFieldStrengthDisturbed(mag_init);
+	const bool mag_available = (_mag_counter > 1) && !magFieldStrengthDisturbed(mag_init);
 
 	// low pass filtered mag required
 	if (!mag_available) {
@@ -244,7 +243,7 @@ bool Ekf::resetMagHeading()
 		float yaw_new = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + getMagDeclination();
 		float yaw_new_variance = sq(fmaxf(_params.mag_heading_noise, 1.e-2f));
 
-		ECL_INFO("reset mag heading %.3f -> %.3f rad", (double)getEulerYaw(_R_to_earth), (double)yaw_new);
+		ECL_INFO("reset mag heading %.3f -> %.3f rad (declination %.1f)", (double)getEulerYaw(_R_to_earth), (double)yaw_new, (double)getMagDeclination());
 
 		// update quaternion states and corresponding covarainces
 		resetQuatStateYaw(yaw_new, yaw_new_variance);
