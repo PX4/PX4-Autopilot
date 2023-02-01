@@ -357,6 +357,7 @@ void UxrceddsClient::run()
 		_synchronize_timestamps = (_param_uxrce_dds_synct.get() > 0);
 
 		bool got_response = false;
+		PX4_INFO("Waiting for ping response...");
 
 		while (!should_exit() && !got_response) {
 			// Sending ping without initing a XRCE session
@@ -641,8 +642,24 @@ void UxrceddsClient::run()
 		uxr_delete_session_retries(&session, _connected ? 1 : 0);
 		_last_payload_tx_rate = 0;
 		_last_payload_tx_rate = 0;
-		_subs->reset();
 		_timesync.reset_filter();
+
+		if (_subs) {
+			delete _subs;
+		}
+
+		_subs = new SendTopicsSubs();
+
+		if (_pubs) {
+			delete _pubs;
+		}
+
+		_pubs = new RcvTopicsPubs();
+
+		if (!_subs || !_pubs) {
+			PX4_ERR("alloc failed");
+			return;
+		}
 	}
 }
 
