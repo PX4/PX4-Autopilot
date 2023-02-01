@@ -400,7 +400,7 @@ PARAM_DEFINE_INT32(UAVCAN_SUB_BTN, 0);
  * @reboot_required true
  * @group UAVCAN
  */
-PARAM_DEFINE_INT32(UAVCAN_ESC_LR, 0);
+PARAM_DEFINE_INT32(UAVCAN_ESC_RL, 0);
 
 /**
  * use UAVCAN dynamic node server
