@@ -2251,7 +2251,7 @@ void EKF2::UpdateAccelCalibration(const hrt_abstime &timestamp)
 void EKF2::UpdateGyroCalibration(const hrt_abstime &timestamp)
 {
 	// the EKF is operating in the correct mode and there are no filter faults
-	const bool bias_valid = (_param_ekf2_imu_ctrl.get() & static_cast<int32_t>(ImuCtrl::AccelBias))
+	const bool bias_valid = (_param_ekf2_imu_ctrl.get() & static_cast<int32_t>(ImuCtrl::GyroBias))
 				&& _ekf.control_status_flags().tilt_align
 				&& (_ekf.fault_status().value == 0);
 
