@@ -61,10 +61,13 @@ void Ekf::fuseGravity()
 		&_gravity_innov, &innovation_variance, &Kx, &Ky, &Kz);
 
 	// perform fusion for each axis
-	if (!measurementUpdate(Kx, innovation_variance(0), _gravity_innov(0)))
+	if (!measurementUpdate(Kx, innovation_variance(0), _gravity_innov(0))) {
 		PX4_ERR("Gravity fusion (X axis) unsuccessful.");
-	if (!measurementUpdate(Ky, innovation_variance(1), _gravity_innov(1)))
+  }
+	if (!measurementUpdate(Ky, innovation_variance(1), _gravity_innov(1))) {
 		PX4_ERR("Gravity fusion (y axis) unsuccessful.");
-	if (!measurementUpdate(Kz, innovation_variance(2), _gravity_innov(2)))
+  }
+	if (!measurementUpdate(Kz, innovation_variance(2), _gravity_innov(2))) {
 		PX4_ERR("Gravity fusion (Z axis) unsuccessful.");
+  }
 }
