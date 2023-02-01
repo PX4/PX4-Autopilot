@@ -492,7 +492,7 @@ def compute_gravity_innov_var_and_k_and_h(
     # the innovation is the error between measured acceleration
     #  and predicted (body frame), assuming no body acceleration
     meas_pred = R_to_body * sf.Matrix([0,0,-9.80665])
-    innov = meas_pred - 9.80665 * meas.norm(epsilon=epsilon)
+    innov = meas_pred - 9.80665 * meas.normalized(epsilon=epsilon)
 
     # initialize outputs
     innov_var = sf.V3()
