@@ -17,9 +17,3 @@ float32 aoa_azimuth_dev	# Angle of arrival of first incomming RX msg
 float32 aoa_elevation_dev	# Angle of arrival of first incomming RX msg
 float32 aoa_azimuth_resp	# Angle of arrival of first incomming RX msg at the responder
 float32 aoa_elevation_resp	# Angle of arrival of first incomming RX msg at the responder
-
-# GPS:
-#GPS position of target_pos of the UWB system
-# float32[4] gps_data #Latitude, Longitude, Altitude, and Yaw Offset to True North  #
-# TODO: Loic does this belong in this message anymore? It should be completely in LTE driver but the LTE references this from the sensor_uwb message?
-float32[3] position		# Position of the Landing point in relation to the Drone (x,y,z in Meters NED)
