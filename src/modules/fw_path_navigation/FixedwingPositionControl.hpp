@@ -236,7 +236,8 @@ private:
 		FW_POSCTRL_MODE_AUTO_ALTITUDE,
 		FW_POSCTRL_MODE_AUTO_CLIMBRATE,
 		FW_POSCTRL_MODE_AUTO_TAKEOFF,
-		FW_POSCTRL_MODE_AUTO_LANDING,
+		FW_POSCTRL_MODE_AUTO_LANDING_STRAIGHT,
+		FW_POSCTRL_MODE_AUTO_LANDING_CIRCULAR,
 		FW_POSCTRL_MODE_MANUAL_POSITION,
 		FW_POSCTRL_MODE_MANUAL_ALTITUDE,
 		FW_POSCTRL_MODE_OTHER
@@ -596,7 +597,9 @@ private:
 				  const Vector2f &ground_speed, const position_setpoint_s &pos_sp_curr);
 
 	/**
-	 * @brief Controls automatic landing.
+	 * @brief Controls automatic landing with straight approach.
+	 *
+	 * To be used in Missions that contain a loiter down followed by a land waypoint.
 	 *
 	 * @param now Current system time [us]
 	 * @param control_interval Time since last position control call [s]
@@ -605,8 +608,22 @@ private:
 	 * @param pos_sp_prev previous position setpoint
 	 * @param pos_sp_curr current position setpoint
 	 */
-	void control_auto_landing(const hrt_abstime &now, const float control_interval, const Vector2f &ground_speed,
-				  const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
+	void control_auto_landing_straight(const hrt_abstime &now, const float control_interval, const Vector2f &ground_speed,
+					   const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
+
+	/**
+	 * @brief Controls automatic landing with circular final appraoch.
+	 *
+	 * To be used outside of Mission landings. Vehicle will orbit down around the landing position setpoint until flaring.
+	 *
+	 * @param now Current system time [us]
+	 * @param control_interval Time since last position control call [s]
+	 * @param control_interval Time since the last position control update [s]
+	 * @param ground_speed Local 2D ground speed of vehicle [m/s]
+	 * @param pos_sp_curr current position setpoint
+	 */
+	void control_auto_landing_circular(const hrt_abstime &now, const float control_interval, const Vector2f &ground_speed,
+					   const position_setpoint_s &pos_sp_curr);
 
 	/* manual control methods */
 

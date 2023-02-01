@@ -94,4 +94,20 @@ Land::on_active()
 		mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 		_navigator->set_position_setpoint_triplet_updated();
 	}
+
+	/* check if landing needs to be aborted */
+	if (_navigator->abort_landing()) {
+
+		// send reposition cmd to get out of land mode (will loiter at current position and altitude)
+		vehicle_command_s vcmd = {};
+
+		vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_REPOSITION;
+		vcmd.param1 = -1;
+		vcmd.param2 = 1;
+		vcmd.param5 = _navigator->get_global_position()->lat;
+		vcmd.param6 = _navigator->get_global_position()->lon;
+		vcmd.param7 = _navigator->get_global_position()->alt;
+
+		_navigator->publish_vehicle_cmd(&vcmd);
+	}
 }
