@@ -255,10 +255,10 @@ void LandingTargetEstimator::_update_topics()
 			return;
 		}
 
-		if (!matrix::Vector3f(_sensorUwb.position).isAllFinite()) {
+/* 		if (!matrix::Vector3f(_sensorUwb.position).isAllFinite()) {
 			PX4_WARN("Position is corrupt!");
 			return;
-		}
+		} */
 
 		_new_sensorReport = true;
 
@@ -266,10 +266,10 @@ void LandingTargetEstimator::_update_topics()
 		// the sensor_uwb msg contains the Position in NED, Vehicle relative to LP
 		// The coordinates "rel_pos_*" are the position of the landing point relative to the vehicle.
 		// To change POV we negate every Axis:
-		_target_position_report.timestamp = _sensorUwb.timestamp;
+	/* 	_target_position_report.timestamp = _sensorUwb.timestamp;
 		_target_position_report.rel_pos_x = -_sensorUwb.position[0];
 		_target_position_report.rel_pos_y = -_sensorUwb.position[1];
-		_target_position_report.rel_pos_z = -_sensorUwb.position[2];
+		_target_position_report.rel_pos_z = -_sensorUwb.position[2]; */
 	}
 }
 
@@ -331,7 +331,7 @@ matrix::Vector3d LandingTargetEstimator::UWB_SR150_localization(double distance,
 }
 
 //TODO: Find out if this works
-void LandingTargetEstimator::uwb_sr150_prec_nav()
+/* void LandingTargetEstimator::uwb_sr150_prec_nav()
 { //Precision landing mode
 				// _sensor_uwb.status = 10;
 				_rel_pos = LandingTargetEstimator::UWB_SR150_localization(_sensor_uwb.distance, _sensor_uwb.aoa_azimuth_dev,
@@ -339,7 +339,7 @@ void LandingTargetEstimator::uwb_sr150_prec_nav()
 				_sensor_uwb.position[0] = _rel_pos(0);
 				_sensor_uwb.position[1] = _rel_pos(1);
 				_sensor_uwb.position[2] = _rel_pos(2);
-}
+} */
 
 /* void LandingTargetEstimator::uwb_sr150_followme()
 { // Follow me mode
