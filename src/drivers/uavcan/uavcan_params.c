@@ -316,7 +316,7 @@ PARAM_DEFINE_INT32(UAVCAN_SUB_FLOW, 0);
  * @reboot_required true
  * @group UAVCAN
  */
-PARAM_DEFINE_INT32(UAVCAN_SUB_GPS, 0);
+PARAM_DEFINE_INT32(UAVCAN_SUB_GPS, 1);
 
 /**
  * subscription hygrometer
@@ -365,7 +365,7 @@ PARAM_DEFINE_INT32(UAVCAN_SUB_IMU, 0);
  * @reboot_required true
  * @group UAVCAN
  */
-PARAM_DEFINE_INT32(UAVCAN_SUB_MAG, 0);
+PARAM_DEFINE_INT32(UAVCAN_SUB_MAG, 1);
 
 /**
  * subscription range finder
