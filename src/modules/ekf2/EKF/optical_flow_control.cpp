@@ -59,7 +59,8 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 
 	// Accumulate autopilot gyro data across the same time interval as the flow sensor
 	const Vector3f delta_angle(imu_delayed.delta_ang - (getGyroBias() * imu_delayed.delta_ang_dt));
-	if (_delta_time_of < 0.1f) {
+	// increase limit from 0.1f to 0.5f
+	if (_delta_time_of < 0.5f) {
 		_imu_del_ang_of += delta_angle;
 		_delta_time_of += imu_delayed.delta_ang_dt;
 
@@ -75,7 +76,8 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 		const bool is_tilt_good = (_R_to_earth(2, 2) > _params.range_cos_max_tilt);
 
 		const float delta_time_min = fmaxf(0.7f * _delta_time_of, 0.001f);
-		const float delta_time_max = fminf(1.3f * _delta_time_of, 0.2f);
+		// increase hard max to 0.5f from 0.2f
+		const float delta_time_max = fminf(1.3f * _delta_time_of, 0.5f);
 		bool is_delta_time_good = _flow_sample_delayed.dt >= delta_time_min && _flow_sample_delayed.dt <= delta_time_max;
 
 		if (!is_delta_time_good && (_flow_sample_delayed.dt > FLT_EPSILON)) {
@@ -204,10 +206,15 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 			if (_time_delayed_us > (_flow_sample_delayed.time_us - uint32_t(1e6f * _flow_sample_delayed.dt) / 2)) {
 				// Fuse optical flow LOS rate observations into the main filter only if height above ground has been updated recently
 				// but use a relaxed time criteria to enable it to coast through bad range finder data
-				if (isRecent(_time_last_hagl_fuse, (uint64_t)10e6)) {
+
+				// give much larger timeout (10x) for hagl fuse
+				if (isRecent(_time_last_hagl_fuse, (uint64_t)100e6)) {
 					fuseOptFlow();
 					_last_known_pos.xy() = _state.pos.xy();
 				}
+				// else {
+				// 	PX4_WARN("terrain estimator sad %ld", _time_last_hagl_fuse);
+				// }
 
 				_flow_data_ready = false;
 			}
