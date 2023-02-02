@@ -197,7 +197,10 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 	}
 
 	// check vertical position innovation test ratio
-	if (!context.isArmed() && (estimator_status.hgt_test_ratio > _param_com_arm_ekf_hgt.get())) {
+	float hgt_test_ratio_limit = _param_com_arm_ekf_hgt.get();
+	if (!context.isArmed() && 
+		(hgt_test_ratio_limit > 0.0f) &&
+		(estimator_status.hgt_test_ratio > hgt_test_ratio_limit)) {
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
@@ -477,14 +480,17 @@ void EstimatorChecks::checkSensorBias(const Context &context, Report &reporter, 
 
 	if (_estimator_sensor_bias_sub.copy(&bias) && hrt_elapsed_time(&bias.timestamp) < 30_s) {
 
+		float sensor_bias_sigma = 3.0f;
+		param_get(param_find("COM_ARM_EKF_BIAS"), &sensor_bias_sigma);
+
 		// check accelerometer bias estimates
-		if (bias.accel_bias_valid) {
+		if (bias.accel_bias_valid && sensor_bias_sigma > 0.0f) {
 			const float ekf_ab_test_limit = 0.75f * bias.accel_bias_limit;
 
 			for (int axis_index = 0; axis_index < 3; axis_index++) {
 				// allow for higher uncertainty in estimates for axes that are less observable to prevent false positives
-				// adjust test threshold by 3-sigma
-				const float test_uncertainty = 3.0f * sqrtf(fmaxf(bias.accel_bias_variance[axis_index], 0.0f));
+				// adjust test threshold by N-sigma
+				const float test_uncertainty =  sensor_bias_sigma * sqrtf(fmaxf(bias.accel_bias_variance[axis_index], 0.0f));
 
 				if (fabsf(bias.accel_bias[axis_index]) > ekf_ab_test_limit + test_uncertainty) {
 					/* EVENT
@@ -512,13 +518,13 @@ void EstimatorChecks::checkSensorBias(const Context &context, Report &reporter, 
 		}
 
 		// check gyro bias estimates
-		if (bias.gyro_bias_valid) {
+		if (bias.gyro_bias_valid && sensor_bias_sigma > 0.0f) {
 			const float ekf_gb_test_limit = 0.75f * bias.gyro_bias_limit;
 
 			for (int axis_index = 0; axis_index < 3; axis_index++) {
 				// allow for higher uncertainty in estimates for axes that are less observable to prevent false positives
-				// adjust test threshold by 3-sigma
-				const float test_uncertainty = 3.0f * sqrtf(fmaxf(bias.gyro_bias_variance[axis_index], 0.0f));
+				// adjust test threshold by N-sigma
+				const float test_uncertainty = sensor_bias_sigma * sqrtf(fmaxf(bias.gyro_bias_variance[axis_index], 0.0f));
 
 				if (fabsf(bias.gyro_bias[axis_index]) > ekf_gb_test_limit + test_uncertainty) {
 					/* EVENT

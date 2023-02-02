@@ -497,10 +497,12 @@ PARAM_DEFINE_INT32(COM_FLTMODE5, -1);
 PARAM_DEFINE_INT32(COM_FLTMODE6, -1);
 
 /**
- * Maximum EKF position innovation test ratio that will allow arming
+ * Maximum EKF height innovation test ratio that will allow arming.
+ *
+ * A value of 0 disables the check.
  *
  * @group Commander
- * @min 0.1
+ * @min 0.0
  * @max 1.0
  * @decimal 2
  * @increment 0.05
@@ -519,10 +521,12 @@ PARAM_DEFINE_FLOAT(COM_ARM_EKF_POS, 0.5f);
 PARAM_DEFINE_FLOAT(COM_ARM_EKF_VEL, 0.5f);
 
 /**
- * Maximum EKF height innovation test ratio that will allow arming
+ * Maximum EKF height innovation test ratio that will allow arming.
+ *
+ * A value of 0.0 disables the check.
  *
  * @group Commander
- * @min 0.1
+ * @min 0.0
  * @max 1.0
  * @decimal 2
  * @increment 0.05
@@ -539,6 +543,19 @@ PARAM_DEFINE_FLOAT(COM_ARM_EKF_HGT, 1.0f);
  * @increment 0.05
  */
 PARAM_DEFINE_FLOAT(COM_ARM_EKF_YAW, 0.5f);
+
+/**
+ * Maximum allowed uncertainty in EFK sensor bias estimates for arming.
+ *
+ * A value of 0.0 disables the test.
+ *
+ * @group Commander
+ * @min 0.0
+ * @max 10.0
+ * @decimal 2
+ * @increment 0.05
+ */
+PARAM_DEFINE_FLOAT(COM_ARM_EKF_BIAS, 3.0f);
 
 /**
  * Maximum accelerometer inconsistency between IMU units that will allow arming
