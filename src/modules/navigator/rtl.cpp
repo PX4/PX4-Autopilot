@@ -49,6 +49,7 @@
 
 
 static constexpr float DELAY_SIGMA = 0.01f;
+static constexpr float ALT_SIGMA = 0.01f;
 
 using namespace time_literals;
 using namespace math;
@@ -334,6 +335,8 @@ void RTL::set_rtl_item()
 	const float destination_dist = get_distance_to_next_waypoint(_destination.lat, _destination.lon, gpos.lat, gpos.lon);
 	const float descend_altitude_target = min(_destination.alt + _param_rtl_descend_alt.get(), gpos.alt);
 	const float loiter_altitude = min(descend_altitude_target, _rtl_alt);
+	const float mc_descend_altitude_target = min(_destination.alt + _param_rtl_descend_mc.get(), gpos.alt);
+	const float mc_descend_altitude = min(mc_descend_altitude_target, _rtl_alt);
 
 	const RTLHeadingMode rtl_heading_mode = static_cast<RTLHeadingMode>(_param_rtl_hdg_md.get());
 
@@ -505,6 +508,9 @@ void RTL::set_rtl_item()
 				_mission_item.yaw = _navigator->get_local_position()->heading;
 			}
 
+			_mission_item.vtol_back_transition = true;
+			// acceptance_radius will be overwritten since vtol_back_transition is set,
+			// set as a default value only
 			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 			_mission_item.time_inside = 0.0f;
 			_mission_item.autocontinue = true;
@@ -539,6 +545,28 @@ void RTL::set_rtl_item()
 
 			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 			_mission_item.origin = ORIGIN_ONBOARD;
+			break;
+		}
+
+	case RTL_STATE_MC_DESCEND: {
+			_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+			_mission_item.lat = _destination.lat;
+			_mission_item.lon = _destination.lon;
+
+			if (rtl_heading_mode == RTLHeadingMode::RTL_CURRENT_HEADING) {
+				_mission_item.yaw = _navigator->get_local_position()->heading;
+
+			} else {
+				_mission_item.yaw = _destination.yaw;
+			}
+
+			_mission_item.altitude = mc_descend_altitude;
+			_mission_item.altitude_is_relative = false;
+			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
+			_mission_item.origin = ORIGIN_ONBOARD;
+
+			mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: MC descend to %d m (%d m above destination)",
+					 (int)ceilf(_mission_item.altitude), (int)ceilf(_mission_item.altitude - _destination.alt));
 			break;
 		}
 
@@ -604,12 +632,17 @@ void RTL::set_rtl_item()
 
 void RTL::advance_rtl()
 {
-	// determines if the vehicle should loiter above land
-	const bool descend_and_loiter = _param_rtl_land_delay.get() < -DELAY_SIGMA || _param_rtl_land_delay.get() > DELAY_SIGMA;
+	// vehicle is a VTOL, either in FW or MC mode
+	const bool is_vtol = _navigator->get_vstatus()->is_vtol;
 
-	// vehicle is a vtol and currently in fixed wing mode
-	const bool vtol_in_fw_mode = _navigator->get_vstatus()->is_vtol
-				     && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+	// vehicle is FW, which could be a VTOL in FW mode
+	const bool is_fw = _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+
+	// determines if the vehicle should loiter above land, only relevant in FW
+	const bool do_fw_loiter = _param_rtl_land_delay.get() < -DELAY_SIGMA || _param_rtl_land_delay.get() > DELAY_SIGMA;
+
+	// determines if the vehicle should descent in MC before land
+	const bool do_mc_descend = _param_rtl_descend_mc.get() > ALT_SIGMA;
 
 	switch (_rtl_state) {
 	case RTL_STATE_CLIMB:
@@ -617,12 +650,13 @@ void RTL::advance_rtl()
 		break;
 
 	case RTL_STATE_RETURN:
-		setClimbAndReturnDone(true);
-
-		if (vtol_in_fw_mode || descend_and_loiter) {
+		if (is_fw) {
 			_rtl_state = RTL_STATE_DESCEND;
 
-		} else {
+		} else if (do_mc_descend) {
+			_rtl_state = RTL_STATE_MC_DESCEND;
+
+		} else {  // MC with RTL_DESCEND_MC <= 0
 			_rtl_state = RTL_STATE_LAND;
 		}
 
@@ -630,45 +664,53 @@ void RTL::advance_rtl()
 
 	case RTL_STATE_DESCEND:
 
-		if (descend_and_loiter) {
+		// We should normally always be in FW in this state,
+		// but we handle MC as well
+		if (is_fw && do_fw_loiter) {
 			_rtl_state = RTL_STATE_LOITER;
 
-		} else if (vtol_in_fw_mode) {
+		} else if (is_fw && is_vtol) {
 			_rtl_state = RTL_STATE_HEAD_TO_CENTER;
 
-		} else {
+		} else if (!is_fw && do_mc_descend) {
+			_rtl_state = RTL_STATE_MC_DESCEND;
+
+		} else {  // FW and not VTOL, or MC
 			_rtl_state = RTL_STATE_LAND;
 		}
 
 		break;
 
 	case RTL_STATE_LOITER:
-		if (vtol_in_fw_mode) {
-			_rtl_state = RTL_STATE_TRANSITION_TO_MC;
+		if (is_vtol) {
+			_rtl_state = RTL_STATE_HEAD_TO_CENTER;
+
+		} else {  // FW and not VTOL
+			_rtl_state = RTL_STATE_LAND;
+		}
+
+		break;
+
+	case RTL_STATE_HEAD_TO_CENTER:
+		_rtl_state = RTL_STATE_TRANSITION_TO_MC;
+		break;
+
+	case RTL_STATE_TRANSITION_TO_MC:
+		_rtl_state = RTL_MOVE_TO_LAND_HOVER_VTOL;
+		break;
+
+	case RTL_MOVE_TO_LAND_HOVER_VTOL:
+		if (do_mc_descend) {
+			_rtl_state = RTL_STATE_MC_DESCEND;
 
 		} else {
 			_rtl_state = RTL_STATE_LAND;
 		}
 
+		break;
+
+	case RTL_STATE_MC_DESCEND:
 		_rtl_state = RTL_STATE_LAND;
-		break;
-
-	case RTL_STATE_HEAD_TO_CENTER:
-
-		_rtl_state = RTL_STATE_TRANSITION_TO_MC;
-
-		break;
-
-	case RTL_STATE_TRANSITION_TO_MC:
-
-		_rtl_state = RTL_MOVE_TO_LAND_HOVER_VTOL;
-
-		break;
-
-	case RTL_MOVE_TO_LAND_HOVER_VTOL:
-
-		_rtl_state = RTL_STATE_LAND;
-
 		break;
 
 	case RTL_STATE_LAND:
@@ -782,6 +824,7 @@ void RTL::calc_and_pub_rtl_time_estimate()
 
 		// FALLTHROUGH
 		case RTL_MOVE_TO_LAND_HOVER_VTOL:
+		case RTL_STATE_MC_DESCEND:
 		case RTL_STATE_LAND: {
 				float initial_altitude;
 
