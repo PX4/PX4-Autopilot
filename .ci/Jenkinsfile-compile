@@ -62,6 +62,8 @@ pipeline {
                      "holybro_durandal-v1_default",
                      "holybro_kakutef7_default",
                      "holybro_kakuteh7_default",
+                     "holybro_kakuteh7v2_default",
+                     "holybro_kakuteh7mini_default",
                      "holybro_pix32v5_default",
                      "matek_gnss-m9n-f4_canbootloader",
                      "matek_gnss-m9n-f4_default",
