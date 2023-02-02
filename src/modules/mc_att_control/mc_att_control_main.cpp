@@ -284,6 +284,14 @@ MulticopterAttitudeControl::Run()
 			}
 		}
 
+		if (_vehicle_local_position_sub.updated()) {
+			vehicle_local_position_s vehicle_local_position;
+
+			if (_vehicle_local_position_sub.copy(&vehicle_local_position)) {
+				_heading_good_for_control = vehicle_local_position.heading_good_for_control;
+			}
+		}
+
 		bool attitude_setpoint_generated = false;
 
 		const bool is_hovering = (_vehicle_type_rotary_wing && !_vtol_in_transition_mode);
@@ -337,7 +345,7 @@ MulticopterAttitudeControl::Run()
 
 		// reset yaw setpoint during transitions, tailsitter.cpp generates
 		// attitude setpoint for the transition
-		_reset_yaw_sp = !attitude_setpoint_generated || (_vtol && _vtol_in_transition_mode);
+		_reset_yaw_sp = !attitude_setpoint_generated || !_heading_good_for_control || (_vtol && _vtol_in_transition_mode);
 	}
 
 	perf_end(_loop_perf);
