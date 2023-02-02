@@ -255,9 +255,7 @@ void LandingTargetEstimator::_update_topics()
 			return;
 		}
 
-		// Loic - PX4_ISFINITE doesn't work because distance isn't either a float or double. it's multiple values. .isAllFinite takes a matrix, which was what position was before.
-		// originally, it checked if the position data that was received was finite and if it wasn't, then it was corrupt
-/* 		if (!PX4_ISFINITE(_sensorUwbSub.distance)) { //why is this here?
+/* 		if (!PX4_ISFINITE(_sensorUwbSub.distance)) {
 			PX4_WARN("Position is corrupt!");
 			return;
 		} */
@@ -265,23 +263,18 @@ void LandingTargetEstimator::_update_topics()
 		_new_sensorReport = true;
 		_target_position_report.timestamp = _sensorUwb.timestamp;
 
-		// Loic - is_static is a member of LandingTargetPose.msg, not _target_position_report struct
-		// _target_position_report.is_static = false; //TODO propogate static/mobile tag via the UWBS
-
 		// First we need to catch angle measurements outside of the useable measuring range
-		if(((float) 60.0 >= _sensorUwb.aoa_azimuth_dev)  || ((float)-60.0 <= _sensorUwb.aoa_azimuth_dev)){
+		if((float )60.0 >= _sensorUwb.aoa_azimuth_dev  || ((float)-60.0 <= _sensorUwb.aoa_azimuth_dev)){
 			return;
 		}
 		if((float) 60.0 >= _sensorUwb.aoa_elevation_dev  || (float)-60.0 <= _sensorUwb.aoa_elevation_dev){
 			return;
 		}
 
-		// Loic - this is not a member of aoa_elevation_dev
-		// c.rel_pos_valid = true;
 
 		const double deg2rad = M_PI / 180.0;
-		double azimuth 	 = _sensorUwb.aoa_azimuth_dev * (float) deg2rad; 	//subtract yaw offset and convert to rad
-		double elevation = _sensorUwb.aoa_elevation_dev  * (float) deg2rad; 	//subtract pitch offset and convert to rad
+		double azimuth 	 = (double)_sensorUwb.aoa_azimuth_dev *  deg2rad; 	//subtract yaw offset and convert to rad
+		double elevation = (double)_sensorUwb.aoa_elevation_dev  * deg2rad; 	//subtract pitch offset and convert to rad
 
 		/* ****** Position algorithm ************************************
 		 * this algorithm takes distance and angle measurements (spherical coordinates) and converts them into the cartesian bodyframe expected by the LTE
@@ -308,23 +301,19 @@ void LandingTargetEstimator::_update_topics()
 		 * 	Z -> Y
 		 * Resulting in the following conversion function:
 		 * ******************************************/
-		// Loic - error: declaration of '_position' shadows a member of 'landing_target_estimator::LandingTargetEstimator' [-Werror=shadow]
-		//   311 |   matrix::Vector3f _position( _sensorUwb.distance  * (float)(sin(azimuth) * cos(elevation)),
-		//       |                               ^~~~~~~~~~
-		matrix::Vector3f _position(	_sensorUwb.distance  * (float)(sin(azimuth) * cos(elevation)),
-						_sensorUwb.distance  * (float)sin(elevation),
-						-_sensorUwb.distance  * (float)(cos(azimuth) * cos(elevation)));
+		matrix::Vector3d _position = {	((double)(_sensorUwb.distance)  * sin(azimuth) * cos(elevation)),
+						((double)(_sensorUwb.distance)  * sin(elevation)),
+						-((double)(_sensorUwb.distance)  * cos(azimuth) * cos(elevation))};
+
 
 		// Now the position is the landing point relative to the vehicle.
 		// Add the initiator offset and orientation:
-		position +=  matrix::Vector3d( _params.offset_x,  _params.offset_y,  _params.offset_z) ;
+		//_position +=  matrix::Vector3d( _params.offset_x,  _params.offset_y,  _params.offset_z) ;
 
 		// Now we negate every axis to get the Position of the drone relative to the landing spot:
-		// Loic: error: declaration of '_position' shadows a member of 'landing_target_estimator::LandingTargetEstimator' [-Werror=shadow]
-		// Not sure how to access this at the moment. Could figure it out tomorrow, unless you get to it first
-		_target_position_report.rel_pos_x = -_position[0];
-		_target_position_report.rel_pos_y = -_position[1];
-		_target_position_report.rel_pos_z = -_position[2];
+		_target_position_report.rel_pos_x = -_position(0);
+		_target_position_report.rel_pos_y = -_position(1);
+		_target_position_report.rel_pos_z = -_position(2);
 	}
 }
 

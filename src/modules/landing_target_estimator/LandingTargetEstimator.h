@@ -208,9 +208,5 @@ private:
 	void _update_state();
 
 	// void actuator_control(double distance, double azimuth, double elevation);
-
-	matrix::Vector3d _uwb_init_offset;
-	matrix::Vector3d _rel_pos;
-	matrix::Vector3f _position;
 };
 } // namespace landing_target_estimator
