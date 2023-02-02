@@ -81,10 +81,7 @@ public:
 
 		_size = size;
 
-		_head = 0;
-		_tail = 0;
-
-		_first_write = true;
+		reset();
 
 		return true;
 	}
@@ -169,6 +166,19 @@ public:
 		}
 
 		return count;
+	}
+
+	void reset()
+	{
+		if (_buffer) {
+			for (uint8_t i = 0; i < _size; i++) {
+				_buffer[i] = {};
+			}
+
+			_head = 0;
+			_tail = 0;
+			_first_write = true;
+		}
 	}
 
 private:
