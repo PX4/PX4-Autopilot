@@ -566,7 +566,7 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 	int32_t uavcan_dynamic_node_server_enable = 1;
 	(void)param_get(param_find("UAVCAN_DNS"), &uavcan_dynamic_node_server_enable);
 
-	if (uavcan_enable > 1 && uavcan_dynamic_node_server == 1) {
+	if (uavcan_enable > 1 && uavcan_dynamic_node_server_enable == 1) {
 		_servers = new UavcanServers(_node, _node_info_retriever);
 
 		if (_servers) {
