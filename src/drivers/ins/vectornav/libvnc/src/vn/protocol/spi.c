@@ -2,8 +2,6 @@
 #include <string.h>
 #include "vn/util.h"
 
-#define UNUSED(x) (void)(sizeof(x))
-
 VnError VnSpi_genGenericCommand(
 	char cmdId,
 	char* buffer,
@@ -103,7 +101,7 @@ VnError VnSpi_genRead(
 		buffer[i] = 0x00;
 
 	*size = desiredLength > 3 ? desiredLength : 3;
-	
+
 	return E_NONE;
 }
 
@@ -324,9 +322,9 @@ VnError VnSpi_parseAttitudeQuaternion(
 
 VnError VnSpi_parseQuaternionMagneticAccelerationAndAngularRates(
 	const char* response,
-	vec4f* quat, 
-	vec3f* mag, 
-	vec3f* accel, 
+	vec4f* quat,
+	vec3f* mag,
+	vec3f* accel,
 	vec3f* gyro)
 {
 	const char* pos = response + 3;
@@ -401,8 +399,8 @@ VnError VnSpi_parseAngularRateMeasurements(
 
 VnError VnSpi_parseMagneticAccelerationAndAngularRates(
 	const char* response,
-	vec3f* mag, 
-	vec3f* accel, 
+	vec3f* mag,
+	vec3f* accel,
 	vec3f* gyro)
 {
 	const char* pos = response + 3;
@@ -424,7 +422,7 @@ VnError VnSpi_parseMagneticAccelerationAndAngularRates(
 
 VnError VnSpi_parseMagneticAndGravityReferenceVectors(
 	const char* response,
-	vec3f* magRef, 
+	vec3f* magRef,
 	vec3f* accRef)
 {
 	const char* pos = response + 3;
@@ -444,9 +442,9 @@ VnError VnSpi_parseMagneticAndGravityReferenceVectors(
 
 VnError VnSpi_parseFilterMeasurementsVarianceParameters(
 	const char* response,
-	float* angularWalkVariance, 
-	vec3f* angularRateVariance, 
-	vec3f* magneticVariance, 
+	float* angularWalkVariance,
+	vec3f* angularRateVariance,
+	vec3f* magneticVariance,
 	vec3f* accelerationVariance)
 {
 	const char* pos = response + 3;
@@ -470,7 +468,7 @@ VnError VnSpi_parseFilterMeasurementsVarianceParameters(
 
 VnError VnSpi_parseMagnetometerCompensation(
 	const char* response,
-	mat3f* c, 
+	mat3f* c,
 	vec3f* b)
 {
 	const char* pos = response + 3;
@@ -490,9 +488,9 @@ VnError VnSpi_parseMagnetometerCompensation(
 
 VnError VnSpi_parseFilterActiveTuningParameters(
 	const char* response,
-	float* magneticDisturbanceGain, 
-	float* accelerationDisturbanceGain, 
-	float* magneticDisturbanceMemory, 
+	float* magneticDisturbanceGain,
+	float* accelerationDisturbanceGain,
+	float* magneticDisturbanceMemory,
 	float* accelerationDisturbanceMemory)
 {
 	const char* pos = response + 3;
@@ -516,7 +514,7 @@ VnError VnSpi_parseFilterActiveTuningParameters(
 
 VnError VnSpi_parseAccelerationCompensation(
 	const char* response,
-	mat3f* c, 
+	mat3f* c,
 	vec3f* b)
 {
 	const char* pos = response + 3;
@@ -553,9 +551,9 @@ VnError VnSpi_parseReferenceFrameRotation(
 
 VnError VnSpi_parseYawPitchRollMagneticAccelerationAndAngularRates(
 	const char* response,
-	vec3f* yawPitchRoll, 
-	vec3f* mag, 
-	vec3f* accel, 
+	vec3f* yawPitchRoll,
+	vec3f* mag,
+	vec3f* accel,
 	vec3f* gyro)
 {
 	const char* pos = response + 3;
@@ -579,12 +577,12 @@ VnError VnSpi_parseYawPitchRollMagneticAccelerationAndAngularRates(
 
 VnError VnSpi_parseCommunicationProtocolControl(
 	const char* response,
-	uint8_t* serialCount, 
-	uint8_t* serialStatus, 
-	uint8_t* spiCount, 
-	uint8_t* spiStatus, 
-	uint8_t* serialChecksum, 
-	uint8_t* spiChecksum, 
+	uint8_t* serialCount,
+	uint8_t* serialStatus,
+	uint8_t* spiCount,
+	uint8_t* spiStatus,
+	uint8_t* serialChecksum,
+	uint8_t* spiChecksum,
 	uint8_t* errorMode)
 {
 	const char* pos = response + 3;
@@ -614,14 +612,14 @@ VnError VnSpi_parseCommunicationProtocolControl(
 
 VnError VnSpi_parseSynchronizationControl(
 	const char* response,
-	uint8_t* syncInMode, 
-	uint8_t* syncInEdge, 
-	uint16_t* syncInSkipFactor, 
-	uint32_t* reserved1, 
-	uint8_t* syncOutMode, 
-	uint8_t* syncOutPolarity, 
-	uint16_t* syncOutSkipFactor, 
-	uint32_t* syncOutPulseWidth, 
+	uint8_t* syncInMode,
+	uint8_t* syncInEdge,
+	uint16_t* syncInSkipFactor,
+	uint32_t* reserved1,
+	uint8_t* syncOutMode,
+	uint8_t* syncOutPolarity,
+	uint16_t* syncOutSkipFactor,
+	uint32_t* syncOutPulseWidth,
 	uint32_t* reserved2)
 {
 	const char* pos = response + 3;
@@ -655,8 +653,8 @@ VnError VnSpi_parseSynchronizationControl(
 
 VnError VnSpi_parseSynchronizationStatus(
 	const char* response,
-	uint32_t* syncInCount, 
-	uint32_t* syncInTime, 
+	uint32_t* syncInCount,
+	uint32_t* syncInTime,
 	uint32_t* syncOutCount)
 {
 	const char* pos = response + 3;
@@ -678,10 +676,10 @@ VnError VnSpi_parseSynchronizationStatus(
 
 VnError VnSpi_parseFilterBasicControl(
 	const char* response,
-	uint8_t* magMode, 
-	uint8_t* extMagMode, 
-	uint8_t* extAccMode, 
-	uint8_t* extGyroMode, 
+	uint8_t* magMode,
+	uint8_t* extMagMode,
+	uint8_t* extAccMode,
+	uint8_t* extGyroMode,
 	vec3f* gyroLimit)
 {
 	const char* pos = response + 3;
@@ -707,9 +705,9 @@ VnError VnSpi_parseFilterBasicControl(
 
 VnError VnSpi_parseVpeBasicControl(
 	const char* response,
-	uint8_t* enable, 
-	uint8_t* headingMode, 
-	uint8_t* filteringMode, 
+	uint8_t* enable,
+	uint8_t* headingMode,
+	uint8_t* filteringMode,
 	uint8_t* tuningMode)
 {
 	const char* pos = response + 3;
@@ -733,8 +731,8 @@ VnError VnSpi_parseVpeBasicControl(
 
 VnError VnSpi_parseVpeMagnetometerBasicTuning(
 	const char* response,
-	vec3f* baseTuning, 
-	vec3f* adaptiveTuning, 
+	vec3f* baseTuning,
+	vec3f* adaptiveTuning,
 	vec3f* adaptiveFiltering)
 {
 	const char* pos = response + 3;
@@ -756,10 +754,10 @@ VnError VnSpi_parseVpeMagnetometerBasicTuning(
 
 VnError VnSpi_parseVpeMagnetometerAdvancedTuning(
 	const char* response,
-	vec3f* minFiltering, 
-	vec3f* maxFiltering, 
-	float* maxAdaptRate, 
-	float* disturbanceWindow, 
+	vec3f* minFiltering,
+	vec3f* maxFiltering,
+	float* maxAdaptRate,
+	float* disturbanceWindow,
 	float* maxTuning)
 {
 	const char* pos = response + 3;
@@ -785,8 +783,8 @@ VnError VnSpi_parseVpeMagnetometerAdvancedTuning(
 
 VnError VnSpi_parseVpeAccelerometerBasicTuning(
 	const char* response,
-	vec3f* baseTuning, 
-	vec3f* adaptiveTuning, 
+	vec3f* baseTuning,
+	vec3f* adaptiveTuning,
 	vec3f* adaptiveFiltering)
 {
 	const char* pos = response + 3;
@@ -808,10 +806,10 @@ VnError VnSpi_parseVpeAccelerometerBasicTuning(
 
 VnError VnSpi_parseVpeAccelerometerAdvancedTuning(
 	const char* response,
-	vec3f* minFiltering, 
-	vec3f* maxFiltering, 
-	float* maxAdaptRate, 
-	float* disturbanceWindow, 
+	vec3f* minFiltering,
+	vec3f* maxFiltering,
+	float* maxAdaptRate,
+	float* disturbanceWindow,
 	float* maxTuning)
 {
 	const char* pos = response + 3;
@@ -837,8 +835,8 @@ VnError VnSpi_parseVpeAccelerometerAdvancedTuning(
 
 VnError VnSpi_parseVpeGyroBasicTuning(
 	const char* response,
-	vec3f* angularWalkVariance, 
-	vec3f* baseTuning, 
+	vec3f* angularWalkVariance,
+	vec3f* baseTuning,
 	vec3f* adaptiveTuning)
 {
 	const char* pos = response + 3;
@@ -877,8 +875,8 @@ VnError VnSpi_parseFilterStartupGyroBias(
 
 VnError VnSpi_parseMagnetometerCalibrationControl(
 	const char* response,
-	uint8_t* hsiMode, 
-	uint8_t* hsiOutput, 
+	uint8_t* hsiMode,
+	uint8_t* hsiOutput,
 	uint8_t* convergeRate)
 {
 	const char* pos = response + 3;
@@ -900,7 +898,7 @@ VnError VnSpi_parseMagnetometerCalibrationControl(
 
 VnError VnSpi_parseCalculatedMagnetometerCalibration(
 	const char* response,
-	mat3f* c, 
+	mat3f* c,
 	vec3f* b)
 {
 	const char* pos = response + 3;
@@ -920,7 +918,7 @@ VnError VnSpi_parseCalculatedMagnetometerCalibration(
 
 VnError VnSpi_parseIndoorHeadingModeControl(
 	const char* response,
-	float* maxRateError, 
+	float* maxRateError,
 	uint8_t* reserved1)
 {
 	const char* pos = response + 3;
@@ -957,8 +955,8 @@ VnError VnSpi_parseVelocityCompensationMeasurement(
 
 VnError VnSpi_parseVelocityCompensationControl(
 	const char* response,
-	uint8_t* mode, 
-	float* velocityTuning, 
+	uint8_t* mode,
+	float* velocityTuning,
 	float* rateTuning)
 {
 	const char* pos = response + 3;
@@ -980,9 +978,9 @@ VnError VnSpi_parseVelocityCompensationControl(
 
 VnError VnSpi_parseVelocityCompensationStatus(
 	const char* response,
-	float* x, 
-	float* xDot, 
-	vec3f* accelOffset, 
+	float* x,
+	float* xDot,
+	vec3f* accelOffset,
 	vec3f* omega)
 {
 	const char* pos = response + 3;
@@ -1006,10 +1004,10 @@ VnError VnSpi_parseVelocityCompensationStatus(
 
 VnError VnSpi_parseImuMeasurements(
 	const char* response,
-	vec3f* mag, 
-	vec3f* accel, 
-	vec3f* gyro, 
-	float* temp, 
+	vec3f* mag,
+	vec3f* accel,
+	vec3f* gyro,
+	float* temp,
 	float* pressure)
 {
 	const char* pos = response + 3;
@@ -1035,10 +1033,10 @@ VnError VnSpi_parseImuMeasurements(
 
 VnError VnSpi_parseGpsConfiguration(
 	const char* response,
-	uint8_t* mode, 
-	uint8_t* ppsSource, 
-	uint8_t* reserved1, 
-	uint8_t* reserved2, 
+	uint8_t* mode,
+	uint8_t* ppsSource,
+	uint8_t* reserved1,
+	uint8_t* reserved2,
 	uint8_t* reserved3)
 {
 	const char* pos = response + 3;
@@ -1081,14 +1079,14 @@ VnError VnSpi_parseGpsAntennaOffset(
 
 VnError VnSpi_parseGpsSolutionLla(
 	const char* response,
-	double* time, 
-	uint16_t* week, 
-	uint8_t* gpsFix, 
-	uint8_t* numSats, 
-	vec3d* lla, 
-	vec3f* nedVel, 
-	vec3f* nedAcc, 
-	float* speedAcc, 
+	double* time,
+	uint16_t* week,
+	uint8_t* gpsFix,
+	uint8_t* numSats,
+	vec3d* lla,
+	vec3f* nedVel,
+	vec3f* nedAcc,
+	float* speedAcc,
 	float* timeAcc)
 {
 	const char* pos = response + 3;
@@ -1123,14 +1121,14 @@ VnError VnSpi_parseGpsSolutionLla(
 
 VnError VnSpi_parseGpsSolutionEcef(
 	const char* response,
-	double* tow, 
-	uint16_t* week, 
-	uint8_t* gpsFix, 
-	uint8_t* numSats, 
-	vec3d* position, 
-	vec3f* velocity, 
-	vec3f* posAcc, 
-	float* speedAcc, 
+	double* tow,
+	uint16_t* week,
+	uint8_t* gpsFix,
+	uint8_t* numSats,
+	vec3d* position,
+	vec3f* velocity,
+	vec3f* posAcc,
+	float* speedAcc,
 	float* timeAcc)
 {
 	const char* pos = response + 3;
@@ -1165,14 +1163,14 @@ VnError VnSpi_parseGpsSolutionEcef(
 
 VnError VnSpi_parseInsSolutionLla(
 	const char* response,
-	double* time, 
-	uint16_t* week, 
-	uint16_t* status, 
-	vec3f* yawPitchRoll, 
-	vec3d* position, 
-	vec3f* nedVel, 
-	float* attUncertainty, 
-	float* posUncertainty, 
+	double* time,
+	uint16_t* week,
+	uint16_t* status,
+	vec3f* yawPitchRoll,
+	vec3d* position,
+	vec3f* nedVel,
+	float* attUncertainty,
+	float* posUncertainty,
 	float* velUncertainty)
 {
 	const char* pos = response + 3;
@@ -1206,14 +1204,14 @@ VnError VnSpi_parseInsSolutionLla(
 
 VnError VnSpi_parseInsSolutionEcef(
 	const char* response,
-	double* time, 
-	uint16_t* week, 
-	uint16_t* status, 
-	vec3f* yawPitchRoll, 
-	vec3d* position, 
-	vec3f* velocity, 
-	float* attUncertainty, 
-	float* posUncertainty, 
+	double* time,
+	uint16_t* week,
+	uint16_t* status,
+	vec3f* yawPitchRoll,
+	vec3d* position,
+	vec3f* velocity,
+	float* attUncertainty,
+	float* posUncertainty,
 	float* velUncertainty)
 {
 	const char* pos = response + 3;
@@ -1247,9 +1245,9 @@ VnError VnSpi_parseInsSolutionEcef(
 
 VnError VnSpi_parseInsBasicConfiguration(
 	const char* response,
-	uint8_t* scenario, 
-	uint8_t* ahrsAiding, 
-	uint8_t* estBaseline, 
+	uint8_t* scenario,
+	uint8_t* ahrsAiding,
+	uint8_t* estBaseline,
 	uint8_t* resv2)
 {
 	const char* pos = response + 3;
@@ -1273,20 +1271,20 @@ VnError VnSpi_parseInsBasicConfiguration(
 
 VnError VnSpi_parseInsAdvancedConfiguration(
 	const char* response,
-	uint8_t* useMag, 
-	uint8_t* usePres, 
-	uint8_t* posAtt, 
-	uint8_t* velAtt, 
-	uint8_t* velBias, 
-	uint8_t* useFoam, 
-	uint8_t* gpsCovType, 
-	uint8_t* velCount, 
-	float* velInit, 
-	float* moveOrigin, 
-	float* gpsTimeout, 
-	float* deltaLimitPos, 
-	float* deltaLimitVel, 
-	float* minPosUncertainty, 
+	uint8_t* useMag,
+	uint8_t* usePres,
+	uint8_t* posAtt,
+	uint8_t* velAtt,
+	uint8_t* velBias,
+	uint8_t* useFoam,
+	uint8_t* gpsCovType,
+	uint8_t* velCount,
+	float* velInit,
+	float* moveOrigin,
+	float* gpsTimeout,
+	float* deltaLimitPos,
+	float* deltaLimitVel,
+	float* minPosUncertainty,
 	float* minVelUncertainty)
 {
 	const char* pos = response + 3;
@@ -1332,10 +1330,10 @@ VnError VnSpi_parseInsAdvancedConfiguration(
 
 VnError VnSpi_parseInsStateLla(
 	const char* response,
-	vec3f* yawPitchRoll, 
-	vec3d* position, 
-	vec3f* velocity, 
-	vec3f* accel, 
+	vec3f* yawPitchRoll,
+	vec3d* position,
+	vec3f* velocity,
+	vec3f* accel,
 	vec3f* angularRate)
 {
 	const char* pos = response + 3;
@@ -1361,10 +1359,10 @@ VnError VnSpi_parseInsStateLla(
 
 VnError VnSpi_parseInsStateEcef(
 	const char* response,
-	vec3f* yawPitchRoll, 
-	vec3d* position, 
-	vec3f* velocity, 
-	vec3f* accel, 
+	vec3f* yawPitchRoll,
+	vec3d* position,
+	vec3f* velocity,
+	vec3f* accel,
 	vec3f* angularRate)
 {
 	const char* pos = response + 3;
@@ -1390,8 +1388,8 @@ VnError VnSpi_parseInsStateEcef(
 
 VnError VnSpi_parseStartupFilterBiasEstimate(
 	const char* response,
-	vec3f* gyroBias, 
-	vec3f* accelBias, 
+	vec3f* gyroBias,
+	vec3f* accelBias,
 	float* pressureBias)
 {
 	const char* pos = response + 3;
@@ -1413,8 +1411,8 @@ VnError VnSpi_parseStartupFilterBiasEstimate(
 
 VnError VnSpi_parseDeltaThetaAndDeltaVelocity(
 	const char* response,
-	float* deltaTime, 
-	vec3f* deltaTheta, 
+	float* deltaTime,
+	vec3f* deltaTheta,
 	vec3f* deltaVelocity)
 {
 	const char* pos = response + 3;
@@ -1436,10 +1434,10 @@ VnError VnSpi_parseDeltaThetaAndDeltaVelocity(
 
 VnError VnSpi_parseDeltaThetaAndDeltaVelocityConfiguration(
 	const char* response,
-	uint8_t* integrationFrame, 
-	uint8_t* gyroCompensation, 
-	uint8_t* accelCompensation, 
-	uint8_t* reserved1, 
+	uint8_t* integrationFrame,
+	uint8_t* gyroCompensation,
+	uint8_t* accelCompensation,
+	uint8_t* reserved1,
 	uint16_t* reserved2)
 {
 	const char* pos = response + 3;
@@ -1465,12 +1463,12 @@ VnError VnSpi_parseDeltaThetaAndDeltaVelocityConfiguration(
 
 VnError VnSpi_parseReferenceVectorConfiguration(
 	const char* response,
-	uint8_t* useMagModel, 
-	uint8_t* useGravityModel, 
-	uint8_t* resv1, 
-	uint8_t* resv2, 
-	uint32_t* recalcThreshold, 
-	float* year, 
+	uint8_t* useMagModel,
+	uint8_t* useGravityModel,
+	uint8_t* resv1,
+	uint8_t* resv2,
+	uint32_t* recalcThreshold,
+	float* year,
 	vec3d* position)
 {
 	const char* pos = response + 3;
@@ -1501,7 +1499,7 @@ VnError VnSpi_parseReferenceVectorConfiguration(
 
 VnError VnSpi_parseGyroCompensation(
 	const char* response,
-	mat3f* c, 
+	mat3f* c,
 	vec3f* b)
 {
 	const char* pos = response + 3;
@@ -1521,15 +1519,15 @@ VnError VnSpi_parseGyroCompensation(
 
 VnError VnSpi_parseImuFilteringConfiguration(
 	const char* response,
-	uint16_t* magWindowSize, 
-	uint16_t* accelWindowSize, 
-	uint16_t* gyroWindowSize, 
-	uint16_t* tempWindowSize, 
-	uint16_t* presWindowSize, 
-	uint8_t* magFilterMode, 
-	uint8_t* accelFilterMode, 
-	uint8_t* gyroFilterMode, 
-	uint8_t* tempFilterMode, 
+	uint16_t* magWindowSize,
+	uint16_t* accelWindowSize,
+	uint16_t* gyroWindowSize,
+	uint16_t* tempWindowSize,
+	uint16_t* presWindowSize,
+	uint8_t* magFilterMode,
+	uint8_t* accelFilterMode,
+	uint8_t* gyroFilterMode,
+	uint8_t* tempFilterMode,
 	uint8_t* presFilterMode)
 {
 	const char* pos = response + 3;
@@ -1565,7 +1563,7 @@ VnError VnSpi_parseImuFilteringConfiguration(
 
 VnError VnSpi_parseGpsCompassBaseline(
 	const char* response,
-	vec3f* position, 
+	vec3f* position,
 	vec3f* uncertainty)
 {
 	const char* pos = response + 3;
@@ -1585,10 +1583,10 @@ VnError VnSpi_parseGpsCompassBaseline(
 
 VnError VnSpi_parseGpsCompassEstimatedBaseline(
 	const char* response,
-	uint8_t* estBaselineUsed, 
-	uint8_t* resv, 
-	uint16_t* numMeas, 
-	vec3f* position, 
+	uint8_t* estBaselineUsed,
+	uint8_t* resv,
+	uint16_t* numMeas,
+	vec3f* position,
 	vec3f* uncertainty)
 {
 	const char* pos = response + 3;
@@ -1614,9 +1612,9 @@ VnError VnSpi_parseGpsCompassEstimatedBaseline(
 
 VnError VnSpi_parseImuRateConfiguration(
 	const char* response,
-	uint16_t* imuRate, 
-	uint16_t* navDivisor, 
-	float* filterTargetRate, 
+	uint16_t* imuRate,
+	uint16_t* navDivisor,
+	float* filterTargetRate,
 	float* filterMinRate)
 {
 	const char* pos = response + 3;
@@ -1640,8 +1638,8 @@ VnError VnSpi_parseImuRateConfiguration(
 
 VnError VnSpi_parseYawPitchRollTrueBodyAccelerationAndAngularRates(
 	const char* response,
-	vec3f* yawPitchRoll, 
-	vec3f* bodyAccel, 
+	vec3f* yawPitchRoll,
+	vec3f* bodyAccel,
 	vec3f* gyro)
 {
 	const char* pos = response + 3;
@@ -1663,8 +1661,8 @@ VnError VnSpi_parseYawPitchRollTrueBodyAccelerationAndAngularRates(
 
 VnError VnSpi_parseYawPitchRollTrueInertialAccelerationAndAngularRates(
 	const char* response,
-	vec3f* yawPitchRoll, 
-	vec3f* inertialAccel, 
+	vec3f* yawPitchRoll,
+	vec3f* inertialAccel,
 	vec3f* gyro)
 {
 	const char* pos = response + 3;

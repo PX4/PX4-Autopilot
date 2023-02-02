@@ -308,7 +308,7 @@ int px4_mtd_config(const px4_mtd_manifest_t *mft_mtd)
 
 		instances[i] = new mtd_instance_s;
 
-		if (instances == nullptr) {
+		if (instances[i] == nullptr) {
 memoryout:
 			PX4_ERR("failed to allocate memory!");
 			return rv;
@@ -444,7 +444,7 @@ __EXPORT int px4_mtd_query(const char *sub, const char *val, const char **get)
 {
 	int rv = -ENODEV;
 
-	if (instances != nullptr) {
+	if (num_instances != 0) {
 
 		static const char *keys[] = PX4_MFT_MTD_STR_TYPES;
 		static const px4_mtd_types_t types[] = PX4_MFT_MTD_TYPES;
