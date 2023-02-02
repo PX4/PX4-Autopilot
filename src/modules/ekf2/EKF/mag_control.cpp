@@ -51,7 +51,7 @@ void Ekf::controlMagFusion()
 		if (mag_data_ready) {
 
 			// sensor or calibration has changed, clear any mag bias and reset low pass filter
-			if (mag_sample.reset) {
+			if (mag_sample.reset || (_mag_counter == 0)) {
 				// Zero the magnetometer bias states
 				_state.mag_B.zero();
 
