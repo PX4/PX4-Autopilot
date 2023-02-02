@@ -126,7 +126,12 @@ void EstimatorChecks::checkAndReport(const Context &context, Report &reporter)
 void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &reporter,
 		const estimator_status_s &estimator_status, NavModes required_groups)
 {
-	if (!context.isArmed() && estimator_status.pre_flt_fail_innov_heading) {
+	int32_t arm_with_bad_innovation = 0;
+	param_get(param_find("COM_ARM_BAD_INOV"), &arm_with_bad_innovation);
+
+	if (!context.isArmed() &&
+		(arm_with_bad_innovation == 0) &&
+		estimator_status.pre_flt_fail_innov_heading) {
 		/* EVENT
 		 */
 		reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
@@ -137,7 +142,9 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: heading estimate not stable");
 		}
 
-	} else if (!context.isArmed() && estimator_status.pre_flt_fail_innov_vel_horiz) {
+	} else if (!context.isArmed() &&
+			   (arm_with_bad_innovation == 0) &&
+			   estimator_status.pre_flt_fail_innov_vel_horiz) {
 		/* EVENT
 		 */
 		reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
@@ -148,7 +155,9 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: horizontal velocity unstable");
 		}
 
-	} else if (!context.isArmed() && estimator_status.pre_flt_fail_innov_vel_vert) {
+	} else if (!context.isArmed() &&
+			   (arm_with_bad_innovation == 0) &&
+			   estimator_status.pre_flt_fail_innov_vel_vert) {
 		/* EVENT
 		 */
 		reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
@@ -159,7 +168,9 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: vertical velocity unstable");
 		}
 
-	} else if (!context.isArmed() && estimator_status.pre_flt_fail_innov_height) {
+	} else if (!context.isArmed() &&
+			   (arm_with_bad_innovation == 0) &&
+			   estimator_status.pre_flt_fail_innov_height) {
 		/* EVENT
 		 */
 		reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
@@ -198,7 +209,7 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 
 	// check vertical position innovation test ratio
 	float hgt_test_ratio_limit = _param_com_arm_ekf_hgt.get();
-	if (!context.isArmed() && 
+	if (!context.isArmed() &&
 		(hgt_test_ratio_limit > 0.0f) &&
 		(estimator_status.hgt_test_ratio > hgt_test_ratio_limit)) {
 		/* EVENT
@@ -219,7 +230,10 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 	}
 
 	// check velocity innovation test ratio
-	if (!context.isArmed() && (estimator_status.vel_test_ratio > _param_com_arm_ekf_vel.get())) {
+	float vel_test_ratio_limit = _param_com_arm_ekf_vel.get();
+	if (!context.isArmed() &&
+		(vel_test_ratio_limit > 0.0f) &&
+		(estimator_status.vel_test_ratio > vel_test_ratio_limit)) {
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
@@ -238,7 +252,10 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 	}
 
 	// check horizontal position innovation test ratio
-	if (!context.isArmed() && (estimator_status.pos_test_ratio > _param_com_arm_ekf_pos.get())) {
+	float pos_test_ratio_limit = _param_com_arm_ekf_pos.get();
+	if (!context.isArmed() &&
+		(pos_test_ratio_limit > 0.0f) &&
+		(estimator_status.pos_test_ratio > pos_test_ratio_limit)) {
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
@@ -257,7 +274,10 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 	}
 
 	// check magnetometer innovation test ratio
-	if (!context.isArmed() && (estimator_status.mag_test_ratio > _param_com_arm_ekf_yaw.get())) {
+	float mag_test_ratio_limit = _param_com_arm_ekf_yaw.get();
+	if (!context.isArmed() &&
+		(mag_test_ratio_limit > 0.0f) &&
+		(estimator_status.mag_test_ratio > mag_test_ratio_limit)) {
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
