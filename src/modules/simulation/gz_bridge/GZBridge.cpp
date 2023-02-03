@@ -330,7 +330,7 @@ void GZBridge::clockCallback(const gz::msgs::Clock &clock)
 }
 
 
-void GZBridge::airpressureCallback(const gz::msgs::FluidPressure &air_pressure)
+void GZBridge::airpressureCallback(const gz::msgs::AirSpeedSensor &air_pressure)
 {
 	if (hrt_absolute_time() == 0) {
 		return;
@@ -341,13 +341,13 @@ void GZBridge::airpressureCallback(const gz::msgs::FluidPressure &air_pressure)
 	const uint64_t time_us = (air_pressure.header().stamp().sec() * 1000000)
 				 + (air_pressure.header().stamp().nsec() / 1000);
 
-	double air_pressure_value = air_pressure.pressure();
+	double air_pressure_value = air_pressure.diff_pressure();
 
 	differential_pressure_s report{};
 	report.timestamp_sample = time_us;
 	report.device_id = 1377548; // 1377548: DRV_DIFF_PRESS_DEVTYPE_SIM, BUS: 1, ADDR: 5, TYPE: SIMULATION
 	report.differential_pressure_pa = static_cast<float>(air_pressure_value); // hPa to Pa;
-	report.temperature = static_cast<float>(air_pressure.variance()) + CONSTANTS_ABSOLUTE_NULL_CELSIUS; // K to C
+	report.temperature = static_cast<float>(air_pressure.temperature()) + CONSTANTS_ABSOLUTE_NULL_CELSIUS; // K to C
 	report.timestamp = hrt_absolute_time();;
 	_differential_pressure_pub.publish(report);
 
