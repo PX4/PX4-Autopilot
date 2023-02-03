@@ -723,9 +723,6 @@ UavcanNode::Run()
 			if (request.message_type == uavcan_parameter_request_s::MESSAGE_TYPE_PARAM_REQUEST_READ) {
 				uavcan::protocol::param::GetSet::Request req;
 
-				// sleep a bit to reduce spike on CAN bus traffic
-				usleep(100);
-
 				if (request.param_index >= 0) {
 					req.index = request.param_index;
 
@@ -850,11 +847,6 @@ UavcanNode::Run()
 		// after each successful fetch by cb_getset
 		uavcan::protocol::param::GetSet::Request req;
 		req.index = _param_index;
-
-		//PX4_DEBUG("send param get set listing");
-
-		// sleep a bit to reduce spike on CAN bus traffic
-		usleep(100);
 
 		int call_res = _param_getset_client.call(_param_list_node_id, req);
 
