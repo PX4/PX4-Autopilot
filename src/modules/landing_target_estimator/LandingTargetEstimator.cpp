@@ -165,6 +165,10 @@ void LandingTargetEstimator::update()
 				_target_pose.abs_pos_valid = false;
 			}
 
+			_target_pose.x_abs = _target_position_report.rel_pos_x;
+			_target_pose.y_abs = _target_position_report.rel_pos_y;
+			_target_pose.z_abs = _target_position_report.rel_pos_z;
+
 			_targetPosePub.publish(_target_pose);
 
 			_last_update = hrt_absolute_time();
@@ -201,7 +205,6 @@ void LandingTargetEstimator::_update_topics()
 	_vehicleLocalPosition_valid = _vehicleLocalPositionSub.update(&_vehicleLocalPosition);
 	_vehicleAttitude_valid = _attitudeSub.update(&_vehicleAttitude);
 	_vehicle_acceleration_valid = _vehicle_acceleration_sub.update(&_vehicle_acceleration);
-
 
 	if (_irlockReportSub.update(&_irlockReport)) { //
 		_new_irlockReport = true;
@@ -249,6 +252,7 @@ void LandingTargetEstimator::_update_topics()
 		_new_sensorReport = true;
 
 	} else if (_sensorUwbSub.update(&_sensorUwb)) {
+
 		if (!_vehicleAttitude_valid || !_vehicleLocalPosition_valid) {
 			// don't have the data needed for an update
 			PX4_INFO("Attitude: %d, Local pos: %d", _vehicleAttitude_valid, _vehicleLocalPosition_valid);
@@ -260,17 +264,16 @@ void LandingTargetEstimator::_update_topics()
 			return;
 		} */
 
+		// First we need to catch angle measurements outside of the useable measuring range
+		if( (float)(60.0) <= _sensorUwb.aoa_azimuth_dev || (float)(-60.0) >= _sensorUwb.aoa_azimuth_dev){
+			return;
+		}
+		if((float) 60.0 <= _sensorUwb.aoa_elevation_dev  || (float)-60.0 >= _sensorUwb.aoa_elevation_dev){
+			return;
+		}
+
 		_new_sensorReport = true;
 		_target_position_report.timestamp = _sensorUwb.timestamp;
-
-		// First we need to catch angle measurements outside of the useable measuring range
-		if((float )60.0 >= _sensorUwb.aoa_azimuth_dev  || ((float)-60.0 <= _sensorUwb.aoa_azimuth_dev)){
-			return;
-		}
-		if((float) 60.0 >= _sensorUwb.aoa_elevation_dev  || (float)-60.0 <= _sensorUwb.aoa_elevation_dev){
-			return;
-		}
-
 
 		const double deg2rad = M_PI / 180.0;
 		double azimuth 	 = (double)_sensorUwb.aoa_azimuth_dev *  deg2rad; 	//subtract yaw offset and convert to rad
@@ -304,8 +307,6 @@ void LandingTargetEstimator::_update_topics()
 		matrix::Vector3d _position = {	((double)(_sensorUwb.distance)  * sin(azimuth) * cos(elevation)),
 						((double)(_sensorUwb.distance)  * sin(elevation)),
 						-((double)(_sensorUwb.distance)  * cos(azimuth) * cos(elevation))};
-
-
 		// Now the position is the landing point relative to the vehicle.
 		// Add the initiator offset and orientation:
 		//_position +=  matrix::Vector3d( _params.offset_x,  _params.offset_y,  _params.offset_z) ;
