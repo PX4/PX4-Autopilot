@@ -329,6 +329,7 @@ public:
 	float getMagBiasLimit() const { return 0.5f; } // 0.5 Gauss
 
 	bool accel_bias_inhibited() const { return _accel_bias_inhibit[0] || _accel_bias_inhibit[1] || _accel_bias_inhibit[2]; }
+	bool gyro_bias_inhibited() const { return _gyro_bias_inhibit[0] || _gyro_bias_inhibit[1] || _gyro_bias_inhibit[2]; }
 
 	const auto &state_reset_status() const { return _state_reset_status; }
 
@@ -531,8 +532,8 @@ private:
 
 	SquareMatrix24f P{};	///< state covariance matrix
 
-	Vector3f _delta_vel_bias_var_accum{};		///< kahan summation algorithm accumulator for delta velocity bias variance
 	Vector3f _delta_angle_bias_var_accum{};	///< kahan summation algorithm accumulator for delta angle bias variance
+	Vector3f _delta_vel_bias_var_accum{};   ///< kahan summation algorithm accumulator for delta velocity bias variance
 
 	Vector2f _drag_innov{};		///< multirotor drag measurement innovation (m/sec**2)
 	Vector2f _drag_innov_var{};	///< multirotor drag measurement innovation variance ((m/sec**2)**2)
@@ -614,9 +615,11 @@ private:
 
 	// variables used to inhibit accel bias learning
 	bool _accel_bias_inhibit[3] {};		///< true when the accel bias learning is being inhibited for the specified axis
+	bool _gyro_bias_inhibit[3] {};		///< true when the gyro bias learning is being inhibited for the specified axis
 	Vector3f _accel_vec_filt{};		///< acceleration vector after application of a low pass filter (m/sec**2)
 	float _accel_magnitude_filt{0.0f};	///< acceleration magnitude after application of a decaying envelope filter (rad/sec)
 	float _ang_rate_magnitude_filt{0.0f};		///< angular rate magnitude after application of a decaying envelope filter (rad/sec)
+	Vector3f _prev_delta_ang_bias_var{};	///< saved delta angle XYZ bias variances (rad/sec)
 	Vector3f _prev_dvel_bias_var{};		///< saved delta velocity XYZ bias variances (m/sec)**2
 
 	// Terrain height state estimation
@@ -765,6 +768,12 @@ private:
 	bool measurementUpdate(Vector24f &K, float innovation_variance, float innovation)
 	{
 		for (unsigned i = 0; i < 3; i++) {
+			// gyro bias: states 10, 11, 12
+			if (_gyro_bias_inhibit[i]) {
+				K(10 + i) = 0.0f;
+			}
+
+			// accel bias: states 13, 14, 15
 			if (_accel_bias_inhibit[i]) {
 				K(13 + i) = 0.0f;
 			}
