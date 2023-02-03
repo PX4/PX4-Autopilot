@@ -81,6 +81,62 @@ void Ekf::reset()
 	resetGpsDriftCheckFilters();
 
 	_output_predictor.reset();
+
+	// Ekf private fields
+	_time_last_horizontal_aiding = 0;
+	_time_last_v_pos_aiding = 0;
+	_time_last_v_vel_aiding = 0;
+
+	_time_last_hor_pos_fuse = 0;
+	_time_last_hgt_fuse = 0;
+	_time_last_hor_vel_fuse = 0;
+	_time_last_ver_vel_fuse = 0;
+	_time_last_heading_fuse = 0;
+
+	_time_last_flow_terrain_fuse = 0;
+	_time_last_zero_velocity_fuse = 0;
+	_time_last_healthy_rng_data = 0;
+
+	_last_known_pos.setZero();
+
+	_time_acc_bias_check = 0;
+
+	_gps_checks_passed = false;
+
+	_gps_alt_ref = NAN;
+
+	_baro_counter = 0;
+	_mag_counter = 0;
+
+	_time_bad_vert_accel = 0;
+	_time_good_vert_accel = 0;
+	_clip_counter = 0;
+
+	resetEstimatorAidStatus(_aid_src_baro_hgt);
+	resetEstimatorAidStatus(_aid_src_rng_hgt);
+	resetEstimatorAidStatus(_aid_src_airspeed);
+	resetEstimatorAidStatus(_aid_src_sideslip);
+
+	resetEstimatorAidStatus(_aid_src_fake_pos);
+	resetEstimatorAidStatus(_aid_src_fake_hgt);
+
+	resetEstimatorAidStatus(_aid_src_ev_hgt);
+	resetEstimatorAidStatus(_aid_src_ev_pos);
+	resetEstimatorAidStatus(_aid_src_ev_vel);
+	resetEstimatorAidStatus(_aid_src_ev_yaw);
+
+	resetEstimatorAidStatus(_aid_src_gnss_hgt);
+	resetEstimatorAidStatus(_aid_src_gnss_pos);
+	resetEstimatorAidStatus(_aid_src_gnss_vel);
+	resetEstimatorAidStatus(_aid_src_gnss_yaw);
+
+	resetEstimatorAidStatus(_aid_src_mag_heading);
+	resetEstimatorAidStatus(_aid_src_mag);
+
+	resetEstimatorAidStatus(_aid_src_aux_vel);
+
+	resetEstimatorAidStatus(_aid_src_optical_flow);
+	resetEstimatorAidStatus(_aid_src_terrain_optical_flow);
 }
 
 bool Ekf::update()
@@ -197,11 +253,6 @@ bool Ekf::initialiseFilter()
 
 	// Initialise the terrain estimator
 	initHagl();
-
-	// reset the essential fusion timeout counters
-	_time_last_hgt_fuse = _time_delayed_us;
-	_time_last_hor_pos_fuse = _time_delayed_us;
-	_time_last_hor_vel_fuse = _time_delayed_us;
 
 	// reset the output predictor state history to match the EKF initial values
 	_output_predictor.alignOutputFilter(_state.quat_nominal, _state.vel, _state.pos);

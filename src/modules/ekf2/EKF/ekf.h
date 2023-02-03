@@ -973,17 +973,17 @@ private:
 
 	bool isTimedOut(uint64_t last_sensor_timestamp, uint64_t timeout_period) const
 	{
-		return last_sensor_timestamp + timeout_period < _time_delayed_us;
+		return (last_sensor_timestamp == 0) || (last_sensor_timestamp + timeout_period < _time_delayed_us);
 	}
 
 	bool isRecent(uint64_t sensor_timestamp, uint64_t acceptance_interval) const
 	{
-		return sensor_timestamp + acceptance_interval > _time_delayed_us;
+		return (sensor_timestamp != 0) && (sensor_timestamp + acceptance_interval > _time_delayed_us);
 	}
 
 	bool isNewestSampleRecent(uint64_t sensor_timestamp, uint64_t acceptance_interval) const
 	{
-		return sensor_timestamp + acceptance_interval > _time_latest_us;
+		return (sensor_timestamp != 0) && (sensor_timestamp + acceptance_interval > _time_latest_us);
 	}
 
 	void startAirspeedFusion();

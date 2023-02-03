@@ -64,7 +64,7 @@ public:
 		_ekf->set_vehicle_at_rest(true);
 	}
 
-	const uint32_t _init_duration_s{4};
+	const uint32_t _init_duration_s{6};
 };
 
 TEST_F(EkfMagTest, fusionStartWithReset)
