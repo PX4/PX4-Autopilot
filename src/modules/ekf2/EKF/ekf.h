@@ -191,7 +191,9 @@ public:
 	void getHaglRateInnovVar(float &hagl_rate_innov_var) const { hagl_rate_innov_var = _rng_consistency_check.getInnovVar(); }
 	void getHaglRateInnovRatio(float &hagl_rate_innov_ratio) const { hagl_rate_innov_ratio = _rng_consistency_check.getSignedTestRatioLpf(); }
 
-	void getGravInnov(float grav_innov[3]) const { _gravity_innov.copyTo(grav_innov); }
+	void getGravityInnov(float grav_innov[3]) const { memcpy(grav_innov, _aid_src_gravity.innovation, sizeof(_aid_src_gravity.innovation)); }
+	void getGravityInnovVar(float grav_innov_var[3]) const { memcpy(grav_innov_var, _aid_src_gravity.innovation_variance, sizeof(_aid_src_gravity.innovation_variance)); }
+	void getGravityInnovRatio(float &grav_innov_ratio) const { grav_innov_ratio = Vector3f(_aid_src_gravity.test_ratio).max(); }
 
 	// get the state vector at the delayed time horizon
 	matrix::Vector<float, 24> getStateAtFusionHorizonAsVector() const;
@@ -435,6 +437,8 @@ public:
 	const auto &aid_src_mag_heading() const { return _aid_src_mag_heading; }
 	const auto &aid_src_mag() const { return _aid_src_mag; }
 
+	const auto &aid_src_gravity() const { return _aid_src_gravity; }
+
 	const auto &aid_src_aux_vel() const { return _aid_src_aux_vel; }
 
 	const auto &aid_src_optical_flow() const { return _aid_src_optical_flow; }
@@ -543,8 +547,6 @@ private:
 	float _hagl_innov{0.0f};		///< innovation of the last height above terrain measurement (m)
 	float _hagl_innov_var{0.0f};		///< innovation variance for the last height above terrain measurement (m**2)
 
-	Vector3f _gravity_innov{};	///< innovation of the last gravity fusion observation (m/s**2)
-
 	// optical flow processing
 	Vector3f _flow_gyro_bias{};	///< bias errors in optical flow sensor rate gyro outputs (rad/sec)
 	Vector2f _flow_vel_body{};	///< velocity from corrected flow measurement (body frame)(m/s)
@@ -576,6 +578,8 @@ private:
 
 	estimator_aid_source1d_s _aid_src_mag_heading{};
 	estimator_aid_source3d_s _aid_src_mag{};
+
+	estimator_aid_source3d_s _aid_src_gravity{};
 
 	estimator_aid_source2d_s _aid_src_aux_vel{};
 
@@ -931,10 +935,8 @@ private:
 
 	void updateGroundEffect();
 
-	// gravity fusion
-	void fuseGravity();
-	// heuristically enable / disable gravity fusion
-	void controlGravityFusion();
+	// gravity fusion: heuristically enable / disable gravity fusion
+	void controlGravityFusion(const imuSample &imu_delayed);
 
 	// calculate the measurement variance for the optical flow sensor
 	float calcOptFlowMeasVar(const flowSample &flow_sample);

@@ -805,6 +805,9 @@ void EKF2::PublishAidSourceStatus(const hrt_abstime &timestamp)
 	// mag 3d
 	PublishAidSourceStatus(_ekf.aid_src_mag(), _status_mag_pub_last, _estimator_aid_src_mag_pub);
 
+	// gravity
+	PublishAidSourceStatus(_ekf.aid_src_gravity(), _status_gravity_pub_last, _estimator_aid_src_gravity_pub);
+
 	// aux velocity
 	PublishAidSourceStatus(_ekf.aid_src_aux_vel(), _status_aux_vel_pub_last, _estimator_aid_src_aux_vel_pub);
 
@@ -1099,7 +1102,7 @@ void EKF2::PublishInnovations(const hrt_abstime &timestamp)
 	_ekf.getHaglInnov(innovations.hagl);
 	_ekf.getHaglRateInnov(innovations.hagl_rate);
 	_ekf.getTerrainFlowInnov(innovations.terr_flow);
-	_ekf.getGravInnov(innovations.gravity);
+	_ekf.getGravityInnov(innovations.gravity);
 	// Not yet supported
 	innovations.aux_vvel = NAN;
 
@@ -1150,6 +1153,7 @@ void EKF2::PublishInnovationTestRatios(const hrt_abstime &timestamp)
 	_ekf.getHaglInnovRatio(test_ratios.hagl);
 	_ekf.getHaglRateInnovRatio(test_ratios.hagl_rate);
 	_ekf.getTerrainFlowInnovRatio(test_ratios.terr_flow[0]);
+	_ekf.getGravityInnovRatio(test_ratios.gravity[0]);
 	// Not yet supported
 	test_ratios.aux_vvel = NAN;
 
@@ -1176,6 +1180,7 @@ void EKF2::PublishInnovationVariances(const hrt_abstime &timestamp)
 	_ekf.getHaglInnovVar(variances.hagl);
 	_ekf.getHaglRateInnovVar(variances.hagl_rate);
 	_ekf.getTerrainFlowInnovVar(variances.terr_flow);
+	_ekf.getGravityInnovVar(variances.gravity);
 	// Not yet supported
 	variances.aux_vvel = NAN;
 
@@ -1509,6 +1514,7 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 		status_flags.cs_rng_kin_consistent      = _ekf.control_status_flags().rng_kin_consistent;
 		status_flags.cs_fake_pos                = _ekf.control_status_flags().fake_pos;
 		status_flags.cs_fake_hgt                = _ekf.control_status_flags().fake_hgt;
+		status_flags.cs_gravity_vector          = _ekf.control_status_flags().gravity_vector;
 
 		status_flags.fault_status_changes     = _filter_fault_status_changes;
 		status_flags.fs_bad_mag_x             = _ekf.fault_status_flags().bad_mag_x;
