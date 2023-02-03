@@ -59,7 +59,7 @@
 #include <gz/msgs.hh>
 #include <gz/transport.hh>
 
-#include <gz/msgs/fluid_pressure.pb.h>
+#include <gz/msgs/air_speed_sensor.pb.h>
 #include <gz/msgs/imu.pb.h>
 
 using namespace time_literals;
@@ -94,7 +94,7 @@ private:
 
 	void clockCallback(const gz::msgs::Clock &clock);
 
-	void airpressureCallback(const gz::msgs::FluidPressure &air_pressure);
+	void airpressureCallback(const gz::msgs::AirSpeedSensor &air_pressure);
 	void imuCallback(const gz::msgs::IMU &imu);
 	void poseInfoCallback(const gz::msgs::Pose_V &pose);
 
