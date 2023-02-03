@@ -53,6 +53,17 @@
 PARAM_DEFINE_INT32(EKF2_PREDICT_US, 10000);
 
 /**
+ * IMU control
+ *
+ * @group EKF2
+ * @min 0
+ * @max 3
+ * @bit 0 Gyro Bias
+ * @bit 1 Accel Bias
+ */
+PARAM_DEFINE_INT32(EKF2_IMU_CTRL, 3);
+
+/**
  * Magnetometer measurement delay relative to IMU measurements
  *
  * @group EKF2
@@ -602,7 +613,7 @@ PARAM_DEFINE_FLOAT(EKF2_TAS_GATE, 3.0f);
  * Set bits in the following positions to enable:
  * 0 : Deprecated, use EKF2_GPS_CTRL instead
  * 1 : Set to true to use optical flow data if available
- * 2 : Set to true to inhibit IMU delta velocity bias estimation
+ * 2 : Deprecated, use EKF2_IMU_CTRL instead
  * 3 : Deprecated, use EKF2_EV_CTRL instead
  * 4 : Deprecated, use EKF2_EV_CTRL instead
  * 5 : Set to true to enable multi-rotor drag specific force fusion
@@ -615,7 +626,7 @@ PARAM_DEFINE_FLOAT(EKF2_TAS_GATE, 3.0f);
  * @max 511
  * @bit 0 unused
  * @bit 1 use optical flow
- * @bit 2 inhibit IMU bias estimation
+ * @bit 2 unused
  * @bit 3 unused
  * @bit 4 unused
  * @bit 5 multi-rotor drag fusion

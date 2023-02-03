@@ -126,6 +126,11 @@ enum class PositionSensor : uint8_t {
 	EV      = 2,
 };
 
+enum class ImuCtrl : uint8_t {
+	GyroBias  = (1<<0),
+	AccelBias = (1<<1),
+};
+
 enum GnssCtrl : uint8_t {
 	HPOS  = (1<<0),
 	VPOS  = (1<<1),
@@ -150,7 +155,7 @@ enum SensorFusionMask : uint16_t {
 	// Bit locations for fusion_mode
 	DEPRECATED_USE_GPS = (1<<0),    ///< set to true to use GPS data (DEPRECATED, use gnss_ctrl)
 	USE_OPT_FLOW     = (1<<1),      ///< set to true to use optical flow data
-	INHIBIT_ACC_BIAS = (1<<2),      ///< set to true to inhibit estimation of accelerometer delta velocity bias
+	DEPRECATED_INHIBIT_ACC_BIAS = (1<<2), ///< set to true to inhibit estimation of accelerometer delta velocity bias
 	DEPRECATED_USE_EXT_VIS_POS = (1<<3), ///< set to true to use external vision position data
 	DEPRECATED_USE_EXT_VIS_YAW = (1<<4), ///< set to true to use external vision quaternion data for yaw
 	USE_DRAG         = (1<<5),      ///< set to true to use the multi-rotor drag model to estimate wind
@@ -278,6 +283,8 @@ struct stateSample {
 struct parameters {
 
 	int32_t filter_update_interval_us{10000}; ///< filter update interval in microseconds
+
+	int32_t imu_ctrl{static_cast<int32_t>(ImuCtrl::GyroBias) | static_cast<int32_t>(ImuCtrl::AccelBias)};
 
 	// measurement source control
 	int32_t fusion_mode{};         ///< bitmasked integer that selects some aiding sources
