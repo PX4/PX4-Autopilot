@@ -126,6 +126,12 @@ enum class PositionSensor : uint8_t {
 	EV      = 2,
 };
 
+enum class ImuCtrl : uint8_t {
+	GyroBias      = (1<<0),
+	AccelBias     = (1<<1),
+	GravityVector = (1<<2),
+};
+
 enum GnssCtrl : uint8_t {
 	HPOS  = (1<<0),
 	VPOS  = (1<<1),
@@ -150,7 +156,7 @@ enum SensorFusionMask : uint16_t {
 	// Bit locations for fusion_mode
 	DEPRECATED_USE_GPS = (1<<0),    ///< set to true to use GPS data (DEPRECATED, use gnss_ctrl)
 	USE_OPT_FLOW     = (1<<1),      ///< set to true to use optical flow data
-	INHIBIT_ACC_BIAS = (1<<2),      ///< set to true to inhibit estimation of accelerometer delta velocity bias
+	DEPRECATED_INHIBIT_ACC_BIAS = (1<<2), ///< set to true to inhibit estimation of accelerometer delta velocity bias
 	DEPRECATED_USE_EXT_VIS_POS = (1<<3), ///< set to true to use external vision position data
 	DEPRECATED_USE_EXT_VIS_YAW = (1<<4), ///< set to true to use external vision quaternion data for yaw
 	USE_DRAG         = (1<<5),      ///< set to true to use the multi-rotor drag model to estimate wind
@@ -279,6 +285,8 @@ struct parameters {
 
 	int32_t filter_update_interval_us{10000}; ///< filter update interval in microseconds
 
+	int32_t imu_ctrl{static_cast<int32_t>(ImuCtrl::GyroBias) | static_cast<int32_t>(ImuCtrl::AccelBias)};
+
 	// measurement source control
 	int32_t fusion_mode{};         ///< bitmasked integer that selects some aiding sources
 	int32_t height_sensor_ref{HeightSensor::BARO};
@@ -387,7 +395,7 @@ struct parameters {
 	float ev_hgt_bias_nsd{0.13f};           ///< process noise for vision height bias estimation (m/s/sqrt(Hz))
 
 	// gravity fusion
-	float gravity_noise{1.0f};		///< accelerometer measurement gaussian noise (m/s**2)
+	float gravity_noise{1.0f};              ///< accelerometer measurement gaussian noise (m/s**2)
 
 	// optical flow fusion
 	float flow_noise{0.15f};                ///< observation noise for optical flow LOS rate measurements (rad/sec)
@@ -560,6 +568,7 @@ union filter_control_status_u {
 		uint64_t rng_kin_consistent      : 1; ///< 31 - true when the range finder kinematic consistency check is passing
 		uint64_t fake_pos                : 1; ///< 32 - true when fake position measurements are being fused
 		uint64_t fake_hgt                : 1; ///< 33 - true when fake height measurements are being fused
+		uint64_t gravity_vector          : 1; ///< 34 - true when gravity vector measurements are being fused
 	} flags;
 	uint64_t value;
 };

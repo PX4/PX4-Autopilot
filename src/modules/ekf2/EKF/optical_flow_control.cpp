@@ -179,7 +179,7 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 
 				} else {
 					_information_events.flags.reset_pos_to_last_known = true;
-					ECL_INFO("reset position to last known position");
+					ECL_INFO("reset position to last known (%.3f, %.3f)", (double)_last_known_pos(0), (double)_last_known_pos(1));
 					resetHorizontalPositionTo(_last_known_pos.xy(), 0.f);
 				}
 			}
@@ -212,7 +212,7 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 				resetHorizontalVelocityTo(_flow_vel_ne, calcOptFlowMeasVar(_flow_sample_delayed));
 
 				// reset position, estimate is relative to initial position in this mode, so we start with zero error
-				ECL_INFO("reset position to last known");
+				ECL_INFO("reset position to last known (%.3f, %.3f)", (double)_last_known_pos(0), (double)_last_known_pos(1));
 				_information_events.flags.reset_pos_to_last_known = true;
 				resetHorizontalPositionTo(_last_known_pos.xy(), 0.f);
 

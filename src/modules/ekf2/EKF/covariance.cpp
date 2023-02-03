@@ -81,9 +81,9 @@ void Ekf::initialiseCovariance()
 	}
 
 	// gyro bias
-	P(10,10) = sq(_params.switch_on_gyro_bias * dt);
-	P(11,11) = P(10,10);
-	P(12,12) = P(10,10);
+	_prev_delta_ang_bias_var(0) = P(10,10) = sq(_params.switch_on_gyro_bias * dt);
+	_prev_delta_ang_bias_var(1) = P(11,11) = P(10,10);
+	_prev_delta_ang_bias_var(2) = P(12,12) = P(10,10);
 
 	// accel bias
 	_prev_dvel_bias_var(0) = P(13,13) = sq(_params.switch_on_accel_bias * dt);
@@ -121,7 +121,36 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 	const bool is_manoeuvre_level_high = _ang_rate_magnitude_filt > _params.acc_bias_learn_gyr_lim
 					     || _accel_magnitude_filt > _params.acc_bias_learn_acc_lim;
 
-	const bool do_inhibit_all_axes = (_params.fusion_mode & SensorFusionMask::INHIBIT_ACC_BIAS)
+	// gyro bias inhibit
+	const bool do_inhibit_all_gyro_axes = !(_params.imu_ctrl & static_cast<int32_t>(ImuCtrl::GyroBias));
+
+	for (unsigned stateIndex = 10; stateIndex <= 12; stateIndex++) {
+		const unsigned index = stateIndex - 10;
+
+		bool is_bias_observable = true;
+
+		// TODO: gyro bias conditions
+
+		const bool do_inhibit_axis = do_inhibit_all_gyro_axes || !is_bias_observable;
+
+		if (do_inhibit_axis) {
+			// store the bias state variances to be reinstated later
+			if (!_gyro_bias_inhibit[index]) {
+				_prev_delta_ang_bias_var(index) = P(stateIndex, stateIndex);
+				_gyro_bias_inhibit[index] = true;
+			}
+
+		} else {
+			if (_gyro_bias_inhibit[index]) {
+				// reinstate the bias state variances
+				P(stateIndex, stateIndex) = _prev_delta_ang_bias_var(index);
+				_gyro_bias_inhibit[index] = false;
+			}
+		}
+	}
+
+	// accel bias inhibit
+	const bool do_inhibit_all_accel_axes = !(_params.imu_ctrl & static_cast<int32_t>(ImuCtrl::AccelBias))
 					 || is_manoeuvre_level_high
 					 || _fault_status.flags.bad_acc_vertical;
 
@@ -141,7 +170,7 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 			is_bias_observable = (fabsf(_R_to_earth(2, index)) > 0.966f); // cos 15 degrees ~= 0.966
 		}
 
-		const bool do_inhibit_axis = do_inhibit_all_axes || imu_delayed.delta_vel_clipping[index] || !is_bias_observable;
+		const bool do_inhibit_axis = do_inhibit_all_accel_axes || imu_delayed.delta_vel_clipping[index] || !is_bias_observable;
 
 		if (do_inhibit_axis) {
 			// store the bias state variances to be reinstated later
@@ -239,7 +268,17 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 	// the variances, therefore use algorithm to minimise numerical error
 	for (unsigned i = 10; i <= 12; i++) {
 		const int index = i - 10;
-		nextP(i, i) = kahanSummation(nextP(i, i), process_noise(i), _delta_angle_bias_var_accum(index));
+
+		if (!_gyro_bias_inhibit[index]) {
+			// add process noise that is not from the IMU
+			// process noise contribution for delta velocity states can be very small compared to
+			// the variances, therefore use algorithm to minimise numerical error
+			nextP(i, i) = kahanSummation(nextP(i, i), process_noise(i), _delta_angle_bias_var_accum(index));
+
+		} else {
+			nextP.uncorrelateCovarianceSetVariance<1>(i, _prev_delta_ang_bias_var(index));
+			_delta_angle_bias_var_accum(index) = 0.f;
+		}
 	}
 
 	for (int i = 13; i <= 15; i++) {

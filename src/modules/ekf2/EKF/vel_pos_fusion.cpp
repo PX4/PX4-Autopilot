@@ -201,6 +201,12 @@ bool Ekf::fuseVelPosHeight(const float innov, const float innov_var, const int o
 	}
 
 	for (unsigned i = 0; i < 3; i++) {
+		// gyro bias: states 10, 11, 12
+		if (_gyro_bias_inhibit[i]) {
+			Kfusion(10 + i) = 0.0f;
+		}
+
+		// accel bias: states 13, 14, 15
 		if (_accel_bias_inhibit[i]) {
 			Kfusion(13 + i) = 0.0f;
 		}
