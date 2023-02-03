@@ -165,10 +165,6 @@ void LandingTargetEstimator::update()
 				_target_pose.abs_pos_valid = false;
 			}
 
-			_target_pose.x_abs = _target_position_report.rel_pos_x;
-			_target_pose.y_abs = _target_position_report.rel_pos_y;
-			_target_pose.z_abs = _target_position_report.rel_pos_z;
-
 			_targetPosePub.publish(_target_pose);
 
 			_last_update = hrt_absolute_time();
@@ -304,17 +300,17 @@ void LandingTargetEstimator::_update_topics()
 		 * 	Z -> Y
 		 * Resulting in the following conversion function:
 		 * ******************************************/
-		matrix::Vector3d _position = {	((double)(_sensorUwb.distance)  * sin(azimuth) * cos(elevation)),
+		matrix::Vector3d _position = - matrix::Vector3d{((double)(_sensorUwb.distance)  * sin(azimuth) * cos(elevation)),
 						((double)(_sensorUwb.distance)  * sin(elevation)),
-						-((double)(_sensorUwb.distance)  * cos(azimuth) * cos(elevation))};
+						((double)(_sensorUwb.distance)  * cos(azimuth) * cos(elevation))};
 		// Now the position is the landing point relative to the vehicle.
 		// Add the initiator offset and orientation:
 		//_position +=  matrix::Vector3d( _params.offset_x,  _params.offset_y,  _params.offset_z) ;
 
 		// Now we negate every axis to get the Position of the drone relative to the landing spot:
-		_target_position_report.rel_pos_x = -_position(0);
-		_target_position_report.rel_pos_y = -_position(1);
-		_target_position_report.rel_pos_z = -_position(2);
+		_target_position_report.rel_pos_x = _position(0);
+		_target_position_report.rel_pos_y = _position(1);
+		_target_position_report.rel_pos_z = _position(2);
 	}
 }
 
