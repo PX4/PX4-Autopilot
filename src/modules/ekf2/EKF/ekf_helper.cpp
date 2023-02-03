@@ -116,8 +116,10 @@ void Ekf::resetVerticalVelocityTo(float new_vert_vel, float new_vert_vel_var)
 
 void Ekf::resetHorizontalPositionToLastKnown()
 {
+	ECL_INFO("reset position to last known (%.3f, %.3f)", (double)_last_known_pos(0), (double)_last_known_pos(1));
+
 	_information_events.flags.reset_pos_to_last_known = true;
-	ECL_INFO("reset position to last known position");
+
 	// Used when falling back to non-aiding mode of operation
 	resetHorizontalPositionTo(_last_known_pos.xy(), sq(_params.pos_noaid_noise));
 }
@@ -241,6 +243,8 @@ bool Ekf::resetMagHeading()
 		// calculate the observed yaw angle and yaw variance
 		float yaw_new = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + getMagDeclination();
 		float yaw_new_variance = sq(fmaxf(_params.mag_heading_noise, 1.e-2f));
+
+		ECL_INFO("reset mag heading %.3f -> %.3f rad", (double)getEulerYaw(_R_to_earth), (double)yaw_new);
 
 		// update quaternion states and corresponding covarainces
 		resetQuatStateYaw(yaw_new, yaw_new_variance);
@@ -854,8 +858,7 @@ void Ekf::updateHorizontalDeadReckoningstatus()
 	}
 
 	// report if we have been deadreckoning for too long, initial state is deadreckoning until aiding is present
-	bool deadreckon_time_exceeded = (_time_last_horizontal_aiding == 0)
-				    || isTimedOut(_time_last_horizontal_aiding, (uint64_t)_params.valid_timeout_max);
+	bool deadreckon_time_exceeded = isTimedOut(_time_last_horizontal_aiding, (uint64_t)_params.valid_timeout_max);
 
 	if (!_horizontal_deadreckon_time_exceeded && deadreckon_time_exceeded) {
 		// deadreckon time now exceeded
@@ -871,7 +874,7 @@ void Ekf::updateVerticalDeadReckoningStatus()
 		_time_last_v_pos_aiding = _time_last_hgt_fuse;
 		_vertical_position_deadreckon_time_exceeded = false;
 
-	} else if ((_time_last_v_pos_aiding == 0) || isTimedOut(_time_last_v_pos_aiding, (uint64_t)_params.valid_timeout_max)) {
+	} else if (isTimedOut(_time_last_v_pos_aiding, (uint64_t)_params.valid_timeout_max)) {
 		_vertical_position_deadreckon_time_exceeded = true;
 	}
 
@@ -879,8 +882,9 @@ void Ekf::updateVerticalDeadReckoningStatus()
 		_time_last_v_vel_aiding = _time_last_ver_vel_fuse;
 		_vertical_velocity_deadreckon_time_exceeded = false;
 
-	} else if (((_time_last_v_vel_aiding == 0) || isTimedOut(_time_last_v_vel_aiding, (uint64_t)_params.valid_timeout_max))
+	} else if (isTimedOut(_time_last_v_vel_aiding, (uint64_t)_params.valid_timeout_max)
 		   && _vertical_position_deadreckon_time_exceeded) {
+
 		_vertical_velocity_deadreckon_time_exceeded = true;
 	}
 }
@@ -1180,20 +1184,27 @@ void Ekf::loadMagCovData()
 
 void Ekf::startAirspeedFusion()
 {
-	// If starting wind state estimation, reset the wind states and covariances before fusing any data
-	if (!_control_status.flags.wind) {
-		// activate the wind states
-		_control_status.flags.wind = true;
-		// reset the wind speed states and corresponding covariances
-		resetWindUsingAirspeed();
-	}
+	if (!_control_status.flags.fuse_aspd) {
+		ECL_INFO("starting airspeed fusion");
 
-	_control_status.flags.fuse_aspd = true;
+		// If starting wind state estimation, reset the wind states and covariances before fusing any data
+		if (!_control_status.flags.wind) {
+			// activate the wind states
+			_control_status.flags.wind = true;
+			// reset the wind speed states and corresponding covariances
+			resetWindUsingAirspeed();
+		}
+
+		_control_status.flags.fuse_aspd = true;
+	}
 }
 
 void Ekf::stopAirspeedFusion()
 {
-	_control_status.flags.fuse_aspd = false;
+	if (_control_status.flags.fuse_aspd) {
+		ECL_INFO("stopping airspeed fusion");
+		_control_status.flags.fuse_aspd = false;
+	}
 }
 
 void Ekf::stopGpsFusion()
