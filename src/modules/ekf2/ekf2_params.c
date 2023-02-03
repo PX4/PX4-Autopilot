@@ -626,7 +626,7 @@ PARAM_DEFINE_FLOAT(EKF2_TAS_GATE, 3.0f);
  * @max 511
  * @bit 0 unused
  * @bit 1 use optical flow
- * @bit 2 inhibit IMU bias estimation
+ * @bit 2 unused
  * @bit 3 unused
  * @bit 4 unused
  * @bit 5 multi-rotor drag fusion
