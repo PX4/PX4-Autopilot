@@ -38,7 +38,7 @@ bool GZMixingInterfaceServo::init(const std::string &model_name)
 	// /model/rascal_110_0/servo_2
 	for (int i = 0; i < 8; i++) {
 		std::string joint_name = "servo_" + std::to_string(i);
-		std::string servo_topic = "/model/" + model_name + "/" + joint_name;
+		std::string servo_topic = "/model/" + model_name + "/joint/" + joint_name + "/0/cmd_pos";
 		//std::cout << "Servo topic: " << servo_topic << std::endl;
 		_servos_pub.push_back(_node.Advertise<gz::msgs::Double>(servo_topic));
 
