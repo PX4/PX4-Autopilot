@@ -71,6 +71,7 @@
 
 #include <px4_platform_common/defines.h>
 #include <drivers/drv_hrt.h>
+#include <uavcan/node/port/List_0_1.h>
 #include "Subscribers/DynamicPortSubscriber.hpp"
 #include "CanardInterface.hpp"
 
@@ -100,6 +101,7 @@ public:
 	void subscribe();
 	void printInfo();
 	void updateParams();
+	void fillSubjectIdList(uavcan_node_port_SubjectIDList_0_1 &subscribers_list);
 
 private:
 	void updateDynamicSubscriptions();
