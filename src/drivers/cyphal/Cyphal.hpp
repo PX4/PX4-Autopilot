@@ -137,6 +137,9 @@ private:
 	// Sends a heartbeat at 1s intervals
 	void sendHeartbeat();
 
+	// Sends a port.List at 3s intervals
+	void sendPortList();
+
 	px4::atomic_bool _task_should_exit{false};	///< flag to indicate to tear down the CAN driver
 
 	bool _initialized{false};		///< number of actuators currently available
