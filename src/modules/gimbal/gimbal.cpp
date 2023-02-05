@@ -282,7 +282,7 @@ static int gimbal_thread_main(int argc, char *argv[])
 
 		} else {
 			// We still need to wake up regularly to check for thread exit requests
-			px4_usleep(1e6);
+			px4_usleep(1_s);
 		}
 	}
 
@@ -333,7 +333,7 @@ int gimbal_main(int argc, char *argv[])
 		int counter = 0;
 
 		while (!thread_running.load() && gimbal_task >= 0) {
-			px4_usleep(5000);
+			px4_usleep(5_ms);
 
 			if (++counter >= 100) {
 				break;
@@ -358,7 +358,7 @@ int gimbal_main(int argc, char *argv[])
 		thread_should_exit.store(true);
 
 		while (thread_running.load()) {
-			px4_usleep(100000);
+			px4_usleep(100_ms);
 		}
 
 		return 0;

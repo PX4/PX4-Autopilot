@@ -118,23 +118,23 @@ int do_mag_calibration(orb_advert_t *mavlink_log_pub)
 
 		case calibrate_return_ok:
 			/* if there is a any preflight-check system response, let the barrage of messages through */
-			px4_usleep(200000);
+			px4_usleep(200_ms);
 
 			calibration_log_info(mavlink_log_pub, CAL_QGC_PROGRESS_MSG, 100);
-			px4_usleep(20000);
+			px4_usleep(20_ms);
 			calibration_log_info(mavlink_log_pub, CAL_QGC_DONE_MSG, sensor_name);
-			px4_usleep(20000);
+			px4_usleep(20_ms);
 			break;
 
 		default:
 			calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, sensor_name);
-			px4_usleep(20000);
+			px4_usleep(20_ms);
 			break;
 		}
 	}
 
 	/* give this message enough time to propagate */
-	px4_usleep(600000);
+	px4_usleep(600_ms);
 
 	return result;
 }
@@ -435,7 +435,7 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 					calibration_log_info(worker_data->mavlink_log_pub,
 							     "[cal] %s side calibration: progress <%u>",
 							     detect_orientation_str(orientation), new_progress);
-					px4_usleep(10000);
+					px4_usleep(10_ms);
 
 					worker_data->last_mag_progress = new_progress;
 				}
@@ -459,7 +459,7 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 				     detect_orientation_str(orientation));
 
 		worker_data->done_count++;
-		px4_usleep(20000);
+		px4_usleep(20_ms);
 		calibration_log_info(worker_data->mavlink_log_pub, CAL_QGC_PROGRESS_MSG, progress_percentage(worker_data));
 	}
 
@@ -509,7 +509,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 			calibration_log_info(mavlink_log_pub,
 					     "[cal] %s side done, rotate to a different side",
 					     detect_orientation_str(static_cast<enum detect_orientation_return>(i)));
-			px4_usleep(100000);
+			px4_usleep(100_ms);
 		}
 	}
 

@@ -430,7 +430,7 @@ void LogWriterFile::run()
 					if (written < 0) {
 						// retry once
 						PX4_ERR("write failed errno:%i (%s), retrying", errno, strerror(errno));
-						px4_usleep(10000); // 10 milliseconds
+						px4_usleep(10_ms); // 10 milliseconds
 						written = buffer.write_to_file(read_ptr, available, call_fsync);
 					}
 
@@ -505,7 +505,7 @@ int LogWriterFile::write_message(LogType type, void *ptr, size_t size, uint64_t 
 			while ((ret = write(type, ptr, 0, dropout_start)) == -1) {
 				unlock();
 				notify();
-				px4_usleep(3000);
+				px4_usleep(3_ms);
 				lock();
 			}
 		}
@@ -519,7 +519,7 @@ int LogWriterFile::write_message(LogType type, void *ptr, size_t size, uint64_t 
 			while ((ret = write(type, uptr, write_size, 0)) == -1) {
 				unlock();
 				notify();
-				px4_usleep(3000);
+				px4_usleep(3_ms);
 				lock();
 			}
 

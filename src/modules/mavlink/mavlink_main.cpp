@@ -147,7 +147,7 @@ Mavlink::~Mavlink()
 
 		do {
 			/* wait at least 1 second (10ms * 10) */
-			px4_usleep(10000);
+			px4_usleep(10_ms);
 
 			/* if we have given up, kill it */
 			if (++i > 100) {
@@ -371,7 +371,7 @@ Mavlink::destroy_all_instances()
 			iterations++;
 			printf(".");
 			fflush(stdout);
-			px4_usleep(10000);
+			px4_usleep(10_ms);
 		}
 	}
 
@@ -2753,29 +2753,29 @@ void Mavlink::configure_sik_radio()
 
 		if (fs) {
 			/* switch to AT command mode */
-			px4_usleep(1200000);
+			px4_usleep(1200_ms);
 			fprintf(fs, "+++");
 			fflush(fs);
-			px4_usleep(1200000);
+			px4_usleep(1200_ms);
 
 			if (_param_sik_radio_id.get() > 0) {
 				/* set channel */
 				fprintf(fs, "ATS3=%" PRIu32 "\r\n", _param_sik_radio_id.get());
-				px4_usleep(200000);
+				px4_usleep(200_ms);
 
 			} else {
 				/* reset to factory defaults */
 				fprintf(fs, "AT&F\r\n");
-				px4_usleep(200000);
+				px4_usleep(200_ms);
 			}
 
 			/* write config */
 			fprintf(fs, "AT&W\r\n");
-			px4_usleep(200000);
+			px4_usleep(200_ms);
 
 			/* reboot */
 			fprintf(fs, "ATZ\r\n");
-			px4_usleep(200000);
+			px4_usleep(200_ms);
 
 			// XXX NuttX suffers from a bug where
 			// fclose() also closes the fd, not just
@@ -3110,7 +3110,7 @@ Mavlink::stop_command(int argc, char *argv[])
 				while ((iterations < 1000) && inst->running()) {
 					inst->request_stop();
 					iterations++;
-					px4_usleep(1000);
+					px4_usleep(1_ms);
 				}
 
 				if (inst->running()) {

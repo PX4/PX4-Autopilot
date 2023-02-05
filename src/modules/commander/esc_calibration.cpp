@@ -99,7 +99,7 @@ int do_esc_calibration(orb_advert_t *mavlink_log_pub)
 	uORB::Publication<actuator_test_s> actuator_test_pub{ORB_ID(actuator_test)};
 	// since we publish multiple at once, make sure the output driver subscribes before we publish
 	actuator_test_pub.advertise();
-	px4_usleep(10000);
+	px4_usleep(10_ms);
 
 	// set motors to high
 	set_motor_actuators(actuator_test_pub, 1.f, false);
@@ -140,13 +140,13 @@ int do_esc_calibration(orb_advert_t *mavlink_log_pub)
 			}
 		}
 
-		px4_usleep(50000);
+		px4_usleep(50_ms);
 	}
 
 	if (return_code == PX4_OK) {
 		// set motors to low
 		set_motor_actuators(actuator_test_pub, 0.f, false);
-		px4_usleep(4000000);
+		px4_usleep(4_s);
 
 		// release control
 		set_motor_actuators(actuator_test_pub, 0.f, true);

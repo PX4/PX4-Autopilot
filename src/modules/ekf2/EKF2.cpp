@@ -2425,20 +2425,20 @@ int EKF2::task_spawn(int argc, char *argv[])
 
 							} else {
 								PX4_ERR("alloc and init failed imu: %" PRIu8 " mag:%" PRIu8, imu, mag);
-								px4_usleep(100000);
+								px4_usleep(100_ms);
 								break;
 							}
 						}
 
 					} else {
-						px4_usleep(1000); // give the sensors extra time to start
+						px4_usleep(1_ms); // give the sensors extra time to start
 						break;
 					}
 				}
 			}
 
 			if (multi_instances_allocated < multi_instances) {
-				px4_usleep(10000);
+				px4_usleep(10_ms);
 			}
 		}
 
@@ -2568,7 +2568,7 @@ extern "C" __EXPORT int ekf2_main(int argc, char *argv[])
 
 				if (inst) {
 					inst->request_stop();
-					px4_usleep(20000); // 20 ms
+					px4_usleep(20_ms); // 20 ms
 					delete inst;
 					_objects[instance].store(nullptr);
 				}
@@ -2597,7 +2597,7 @@ extern "C" __EXPORT int ekf2_main(int argc, char *argv[])
 					PX4_INFO("stopping ekf2 instance %d", i);
 					was_running = true;
 					inst->request_stop();
-					px4_usleep(20000); // 20 ms
+					px4_usleep(20_ms); // 20 ms
 					delete inst;
 					_objects[i].store(nullptr);
 				}
