@@ -70,7 +70,7 @@ int WQueueTest::main()
 
 	// Wait for work to finsh
 	while (!appState.exitRequested()) {
-		px4_usleep(5000);
+		px4_usleep(5_ms);
 	}
 
 	PX4_INFO("WQueueTest finished");

@@ -37,6 +37,8 @@
 #include <px4_platform_common/px4_work_queue/WorkItem.hpp>
 #include <string.h>
 
+using namespace time_literals;
+
 using namespace px4;
 
 class WQueueTest : public px4::WorkItem

@@ -45,6 +45,8 @@
 #include <poll.h>
 #endif // PX4_QURT
 
+using namespace time_literals;
+
 uORB::DeviceMaster::DeviceMaster()
 {
 	px4_sem_init(&_lock, 0, 1);
@@ -346,11 +348,11 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 					}
 				}
 
-				px4_usleep(200000);
+				px4_usleep(200_ms);
 			}
 
 		} else {
-			px4_usleep(2000000); // 2 seconds
+			px4_usleep(2_s); // 2 seconds
 		}
 
 #endif
