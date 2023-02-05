@@ -54,6 +54,8 @@
 
 #include <nuttx/progmem.h>
 
+using namespace time_literals;
+
 #if defined(CONFIG_ARCH_CHIP_STM32H7)
 #  define BL_FILE_SIZE_LIMIT	128*1024
 #  define STM_RAM_BASE        STM32_AXISRAM_BASE
@@ -175,7 +177,7 @@ extern "C" __EXPORT int bl_update_main(int argc, char *argv[])
 	}
 
 	PX4_INFO("image validated, erasing bootloader...");
-	px4_usleep(10000);
+	px4_usleep(10_ms);
 
 	/* prevent other tasks from running while we do this */
 	sched_lock();
@@ -253,7 +255,7 @@ setopt(void)
 	/* program the new option value */
 	*optcr = (*optcr & ~opt_mask) | opt_bits | (1 << 1);
 
-	px4_usleep(1000);
+	px4_usleep(1_ms);
 
 	if ((*optcr & opt_mask) == opt_bits) {
 		PX4_INFO("option bits set");

@@ -52,6 +52,8 @@
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/module.h>
 
+using namespace time_literals;
+
 static void print_usage()
 {
 	PRINT_MODULE_DESCRIPTION("Monitor running processes and their CPU, stack usage, priority and state");
@@ -64,7 +66,7 @@ extern "C" __EXPORT int top_main(int argc, char *argv[])
 {
 	print_load_s load{};
 	init_print_load(&load);
-	px4_usleep(200000);
+	px4_usleep(200_ms);
 
 	/* clear screen */
 	dprintf(1, "\033[2J\n");
@@ -115,7 +117,7 @@ extern "C" __EXPORT int top_main(int argc, char *argv[])
 				}
 			}
 
-			px4_usleep(200000);
+			px4_usleep(200_ms);
 		}
 	}
 
