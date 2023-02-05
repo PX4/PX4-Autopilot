@@ -479,6 +479,20 @@ PARAM_DEFINE_FLOAT(MPC_LAND_CRWL, 0.3f);
 PARAM_DEFINE_INT32(MPC_LAND_RC_HELP, 0);
 
 /**
+ * User assisted landing radius
+ *
+ * When user assisted descent is enabled (see MPC_LAND_RC_HELP),
+ * this parameter controls the maximum position adjustment
+ * allowed from the original landing point.
+ *
+ * @unit m
+ * @min 0
+ * @decimal 1
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_LAND_RADIUS, 1000.f);
+
+/**
  * Takeoff climb rate
  *
  * @unit m/s
