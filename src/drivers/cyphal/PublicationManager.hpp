@@ -79,6 +79,7 @@
 
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/sensor_gps.h>
+#include <uavcan/node/port/List_0_1.h>
 
 #include "Actuators/EscClient.hpp"
 #include "Publishers/udral/Readiness.hpp"
@@ -103,6 +104,7 @@ public:
 
 	UavcanPublisher *getPublisher(const char *subject_name);
 
+	void fillSubjectIdList(uavcan_node_port_SubjectIDList_0_1 &publishers_list);
 private:
 	void updateDynamicPublications();
 

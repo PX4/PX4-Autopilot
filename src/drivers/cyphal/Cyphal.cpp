@@ -125,7 +125,7 @@ int CyphalNode::start(uint32_t node_id, uint32_t bitrate)
 		_instance = new CyphalNode(node_id, 8, CANARD_MTU_CAN_FD);
 
 	} else {
-		_instance = new CyphalNode(node_id, 64, CANARD_MTU_CAN_CLASSIC);
+		_instance = new CyphalNode(node_id, 512, CANARD_MTU_CAN_CLASSIC);
 	}
 
 	if (_instance == nullptr) {
@@ -187,6 +187,8 @@ void CyphalNode::Run()
 	if (_canard_handle.node_id() != CANARD_NODE_ID_UNSET) {
 		// send uavcan::node::Heartbeat_1_0 @ 1 Hz
 		sendHeartbeat();
+
+		sendPortList();
 
 		// Check all publishers
 		_pub_manager.update();
@@ -390,6 +392,45 @@ void CyphalNode::sendHeartbeat()
 
 		_uavcan_node_heartbeat_last = now;
 	}
+}
+
+void CyphalNode::sendPortList()
+{
+	static hrt_abstime _uavcan_node_port_List_last{0};
+
+	if (hrt_elapsed_time(&_uavcan_node_port_List_last) < 3_s) {
+		return;
+	}
+
+	static uavcan_node_port_List_0_1 msg{};
+	static uint8_t uavcan_node_port_List_0_1_buffer[uavcan_node_port_List_0_1_EXTENT_BYTES_];
+	static CanardTransferID _uavcan_node_port_List_transfer_id{0};
+	size_t payload_size = uavcan_node_port_List_0_1_EXTENT_BYTES_;
+	const hrt_abstime now = hrt_absolute_time();
+
+	const CanardTransferMetadata transfer_metadata = {
+		.priority       = CanardPriorityNominal,
+		.transfer_kind  = CanardTransferKindMessage,
+		.port_id        = uavcan_node_port_List_0_1_FIXED_PORT_ID_,
+		.remote_node_id = CANARD_NODE_ID_UNSET,
+		.transfer_id    = _uavcan_node_port_List_transfer_id++
+	};
+
+	// memset(uavcan_node_port_List_0_1_buffer, 0x00, uavcan_node_port_List_0_1_EXTENT_BYTES_);
+	uavcan_node_port_List_0_1_initialize_(&msg);
+
+	_pub_manager.fillSubjectIdList(msg.publishers);
+	_sub_manager.fillSubjectIdList(msg.subscribers);
+
+	uavcan_node_port_List_0_1_serialize_(&msg, uavcan_node_port_List_0_1_buffer, &payload_size);
+
+	_canard_handle.TxPush(now + PUBLISHER_DEFAULT_TIMEOUT_USEC,
+			      &transfer_metadata,
+			      payload_size,
+			      &uavcan_node_port_List_0_1_buffer
+			     );
+
+	_uavcan_node_port_List_last = now;
 }
 
 bool UavcanMixingInterface::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
