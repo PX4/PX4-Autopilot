@@ -75,7 +75,8 @@ void StickAccelerationXY::generateSetpoints(Vector2f stick_xy, const float yaw, 
 {
 	// maximum commanded acceleration and velocity
 	Vector2f acceleration_scale(_param_mpc_acc_hor.get(), _param_mpc_acc_hor.get());
-	Vector2f velocity_scale(_param_mpc_vel_manual.get(), _param_mpc_vel_manual.get());
+	const float velocity_sc = fminf(_param_mpc_vel_manual.get(), _velocity_constraint);
+	Vector2f velocity_scale(velocity_sc, velocity_sc);
 
 	acceleration_scale *= 2.f; // because of drag the average acceleration is half
 
