@@ -186,3 +186,11 @@ void ActuatorEffectivenessControlSurfaces::applySpoilers(float spoilers_control,
 		actuator_sp(i + first_actuator_idx) += _spoilers_setpoint_with_slewrate.getState() * _params[i].scale_spoiler;
 	}
 }
+
+void ActuatorEffectivenessControlSurfaces::applyScale(float scale, int first_actuator_idx,
+		ActuatorVector &actuator_sp) const
+{
+	for (int i = 0; i < _count; ++i) {
+		actuator_sp(i + first_actuator_idx) *= scale;
+	}
+}
