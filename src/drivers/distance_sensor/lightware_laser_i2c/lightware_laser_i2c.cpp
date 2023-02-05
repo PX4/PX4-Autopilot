@@ -275,7 +275,7 @@ int LightwareLaser::enableI2CBinaryProtocol()
 		}
 
 		// Occasionally the previous transfer returns ret == value[0] == value[1] == 0. If so, wait a bit and retry
-		px4_usleep(1000);
+		px4_usleep(1_ms);
 	}
 
 	return -1;

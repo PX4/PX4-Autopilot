@@ -173,7 +173,7 @@ LeddarOne::init()
 			}
 		}
 
-		px4_usleep(1000);
+		px4_usleep(1_ms);
 		time_now = hrt_absolute_time();
 	}
 

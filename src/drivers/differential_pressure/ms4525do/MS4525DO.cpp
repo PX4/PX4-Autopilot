@@ -79,7 +79,7 @@ int MS4525DO::probe()
 			}
 
 		} else {
-			px4_usleep(1000); // TODO
+			px4_usleep(1_ms);
 		}
 	}
 

@@ -67,7 +67,7 @@ int SRF02::init()
 	}
 
 	// XXX we should find out why we need to wait 200 ms here
-	px4_usleep(200000);
+	px4_usleep(200_ms);
 
 	int ret = measure();
 

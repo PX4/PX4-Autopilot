@@ -365,7 +365,7 @@ GPS::~GPS()
 		unsigned int i = 0;
 
 		do {
-			px4_usleep(20000); // 20 ms
+			px4_usleep(20_ms); // 20 ms
 			++i;
 		} while (_secondary_instance.load() && i < 100);
 	}
@@ -504,7 +504,7 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 #else
 	/* For QURT, just use read for now, since this doesn't block, we need to slow it down
 	 * just a bit. */
-	px4_usleep(10000);
+	px4_usleep(10_ms);
 	return ::read(_serial_fd, buf, buf_length);
 #endif
 }
@@ -1060,7 +1060,7 @@ GPS::run()
 			case gps_driver_mode_t::NMEA: // skip NMEA for auto-detection to avoid false positive matching
 #endif // CONSTRAINED_FLASH
 				_mode = gps_driver_mode_t::UBX;
-				px4_usleep(500000); // tried all possible drivers. Wait a bit before next round
+				px4_usleep(500_ms); // tried all possible drivers. Wait a bit before next round
 				break;
 
 			default:
@@ -1068,7 +1068,7 @@ GPS::run()
 			}
 
 		} else {
-			px4_usleep(500000);
+			px4_usleep(500_ms);
 		}
 	}
 
@@ -1508,7 +1508,7 @@ GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 
 			do {
 				/* wait up to 1s */
-				px4_usleep(2500);
+				px4_usleep(2500_us);
 
 			} while (!_secondary_instance.load() && ++i < 400);
 

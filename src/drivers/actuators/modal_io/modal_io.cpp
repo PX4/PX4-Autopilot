@@ -488,7 +488,7 @@ int ModalIo::send_cmd_thread_safe(Command *cmd)
 
 	/* wait until main thread processed it */
 	while (_pending_cmd.load()) {
-		px4_usleep(1000);
+		px4_usleep(1_ms);
 	}
 
 	return 0;
@@ -1311,13 +1311,13 @@ void ModalIo::Run()
 								int bootloader_baud_rate = 230400;
 
 								if (_uart_port->uart_get_baud() != bootloader_baud_rate) {
-									px4_usleep(5000);
+									px4_usleep(5_ms);
 									_uart_port->uart_set_baud(bootloader_baud_rate);
 								}
 
 							} else {
 								if (_uart_port->uart_get_baud() != _parameters.baud_rate) {
-									px4_usleep(5000);
+									px4_usleep(5_ms);
 									_uart_port->uart_set_baud(_parameters.baud_rate);  //restore normal baud rate
 								}
 							}
@@ -1331,7 +1331,7 @@ void ModalIo::Run()
 					_uart_port_bridge->uart_write(uart_buf, bytes_read);
 				}
 
-				px4_usleep(10000);
+				px4_usleep(10_ms);
 			}
 		}
 

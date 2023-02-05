@@ -391,7 +391,7 @@ int PX4IO::init()
 	hrt_abstime start_try_time = hrt_absolute_time();
 
 	do {
-		px4_usleep(2000);
+		px4_usleep(2_ms);
 		protocol = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_PROTOCOL_VERSION);
 	} while (protocol == _io_reg_get_error && (hrt_elapsed_time(&start_try_time) < 700U * 1000U));
 
@@ -898,12 +898,12 @@ int PX4IO::dsm_bind_ioctl(int dsmMode)
 
 	int ret = OK;
 	ret |= io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_power_down);
-	px4_usleep(500000);
+	px4_usleep(500_ms);
 	ret |= io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_set_rx_out);
 	ret |= io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_power_up);
-	px4_usleep(72000);
+	px4_usleep(72_ms);
 	ret |= io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_send_pulses | (dsmMode << 4));
-	px4_usleep(50000);
+	px4_usleep(50_ms);
 	ret |= io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_DSM, dsm_bind_reinit_uart);
 
 	if (ret != OK) {

@@ -40,6 +40,8 @@
 #include <drivers/device/spi.h>
 #include "ms5611.h"
 
+using namespace time_literals;
+
 /* SPI protocol address bits */
 #define DIR_READ			(1<<7)
 #define DIR_WRITE			(0<<7)
@@ -218,7 +220,7 @@ MS5611_SPI::_read_prom()
 	 * Wait for PROM contents to be in the device (2.8 ms) in the case we are
 	 * called immediately after reset.
 	 */
-	px4_usleep(3000);
+	px4_usleep(3_ms);
 
 	/* read and convert PROM words */
 	bool all_zero = true;
