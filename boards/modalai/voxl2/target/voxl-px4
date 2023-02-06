@@ -33,7 +33,7 @@ do
         # Use -m to specify Mateksys M8Q-5883 GPS unit
         m) G="MATEK";;
         # Use -h to specify Holybro GPS unit
-        m) G="HOLYBRO";;
+        h) G="HOLYBRO";;
         # Use -i to specify IMU rotation of ROTATION_YAW_180
         i) I="ROTATE_IMU_YAW_180";;
         # Use -f to specify fake rc input instead of from a real transmitter
