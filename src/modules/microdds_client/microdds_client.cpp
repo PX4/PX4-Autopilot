@@ -80,9 +80,9 @@ void on_time(uxrSession *session, int64_t current_time, int64_t received_timesta
 }
 
 MicroddsClient::MicroddsClient(Transport transport, const char *device, int baudrate, const char *host,
-			       const char *port, bool localhost_only, const char *client_namespace) :
+			       const char *port, bool localhost_only, bool custom_participant, const char *client_namespace) :
 	ModuleParams(nullptr),
-	_localhost_only(localhost_only),
+	_localhost_only(localhost_only), _custom_participant(custom_participant),
 	_client_namespace(client_namespace)
 {
 	if (transport == Transport::Serial) {
@@ -270,8 +270,17 @@ void MicroddsClient::run()
 			return;
 		}
 
-		uint16_t participant_req = uxr_buffer_create_participant_xml(&session, reliable_out, participant_id, domain_id,
-					   participant_xml, UXR_REPLACE);
+
+		uint16_t participant_req{};
+
+		if (_custom_participant) {
+			participant_req = uxr_buffer_create_participant_ref(&session, reliable_out, participant_id, domain_id,
+					  "px4_participant", UXR_REPLACE);
+
+		} else {
+			participant_req = uxr_buffer_create_participant_xml(&session, reliable_out, participant_id, domain_id,
+					  participant_xml, UXR_REPLACE);
+		}
 
 		uint8_t request_status;
 
@@ -560,11 +569,12 @@ MicroddsClient *MicroddsClient::instantiate(int argc, char *argv[])
 
 	const char *port = "8888";
 	bool localhost_only = false;
+	bool custom_participant = false;
 	const char *ip = "127.0.0.1";
 
 	const char *client_namespace = nullptr;//"px4";
 
-	while ((ch = px4_getopt(argc, argv, "t:d:b:h:p:l:n:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "t:d:b:h:p:lcn:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 't':
 			if (!strcmp(myoptarg, "serial")) {
@@ -605,6 +615,10 @@ MicroddsClient *MicroddsClient::instantiate(int argc, char *argv[])
 		case 'l':
 			localhost_only = true;
 			break;
+
+		case 'c':
+			custom_participant = true;
+			break;
 #endif // MICRODDS_CLIENT_UDP
 
 		case 'n':
@@ -633,7 +647,7 @@ MicroddsClient *MicroddsClient::instantiate(int argc, char *argv[])
 		}
 	}
 
-	return new MicroddsClient(transport, device, baudrate, ip, port, localhost_only, client_namespace);
+	return new MicroddsClient(transport, device, baudrate, ip, port, localhost_only, custom_participant, client_namespace);
 }
 
 int MicroddsClient::print_usage(const char *reason)
@@ -660,6 +674,7 @@ $ microdds_client start -t udp -h 127.0.0.1 -p 15555
 	PRINT_MODULE_USAGE_PARAM_STRING('h', "127.0.0.1", "<IP>", "Host IP", true);
 	PRINT_MODULE_USAGE_PARAM_INT('p', 8888, 0, 65535, "Remote Port", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('l', "Restrict to localhost (use in combination with ROS_LOCALHOST_ONLY=1)", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('c', "Use custom participant config (profile_name=\"px4_participant\")", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('n', nullptr, nullptr, "Client DDS namespace", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
