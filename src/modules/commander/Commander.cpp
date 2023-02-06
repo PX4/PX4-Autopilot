@@ -1704,9 +1704,14 @@ void Commander::run()
 
 			perf_begin(_preflight_check_perf);
 			_health_and_arming_checks.update();
-			_vehicle_status.pre_flight_checks_pass = _health_and_arming_checks.canArm(_vehicle_status.nav_state);
-			perf_end(_preflight_check_perf);
+			bool pre_flight_checks_pass = _health_and_arming_checks.canArm(_vehicle_status.nav_state);
 
+			if (_vehicle_status.pre_flight_checks_pass != pre_flight_checks_pass) {
+				_vehicle_status.pre_flight_checks_pass = pre_flight_checks_pass;
+				_status_changed = true;
+			}
+
+			perf_end(_preflight_check_perf);
 			checkAndInformReadyForTakeoff();
 		}
 
