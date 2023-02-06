@@ -262,8 +262,6 @@ hrt_ioctl(unsigned int cmd, unsigned long arg)
 				hrt_cancel(&e->entry);
 				sq_addfirst((sq_entry_t *)e, &callout_freelist);
 
-			} else {
-				PX4_ERR("HRT_CANCEL: kernel side entry not found");
 			}
 
 			px4_leave_critical_section(flags);
