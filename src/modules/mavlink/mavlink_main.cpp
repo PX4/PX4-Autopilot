@@ -479,7 +479,7 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 		if (inst && (inst != self) && (inst->_forwarding_on)) {
 			// Pass message only if target component was seen before
 			if (inst->_receiver.component_was_seen(target_system_id, target_component_id)) {
-				inst->pass_message(msg);
+				inst->resend_message(msg);
 			}
 		}
 	}
