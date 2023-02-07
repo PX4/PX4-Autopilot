@@ -2729,11 +2729,11 @@ int FixedwingPositionControl::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-fw_pos_control_l1 is the fixed wing position controller.
+fw_path_navigation is the fixed wing path navigation.
 
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_NAME("fw_pos_control_l1", "controller");
+	PRINT_MODULE_USAGE_NAME("fw_path_navigation", "controller");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_ARG("vtol", "VTOL mode", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
@@ -2741,7 +2741,7 @@ fw_pos_control_l1 is the fixed wing position controller.
 	return 0;
 }
 
-extern "C" __EXPORT int fw_pos_control_l1_main(int argc, char *argv[])
+extern "C" __EXPORT int fw_path_navigation_main(int argc, char *argv[])
 {
 	return FixedwingPositionControl::main(argc, argv);
 }

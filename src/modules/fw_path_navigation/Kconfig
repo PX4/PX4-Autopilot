@@ -1,0 +1,12 @@
+menuconfig MODULES_FW_PATH_NAVIGATION
+	bool "fw_path_navigation"
+	default n
+	---help---
+		Enable support for fw_path_navigation
+
+menuconfig USER_FW_PATH_NAVIGATION
+	bool "fw_path_navigation running as userspace module"
+	default n
+	depends on BOARD_PROTECTED && MODULES_FW_PATH_NAVIGATION
+	---help---
+		Put fw_path_navigation in userspace memory
