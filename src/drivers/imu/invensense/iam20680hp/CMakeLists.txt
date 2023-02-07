@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2023 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,11 +31,17 @@
 #
 ############################################################################
 
-add_subdirectory(../stm32_common/io_pins io_pins)
-add_subdirectory(../stm32_common/spi spi)
-add_subdirectory(../stm32_common/hrt hrt)
-add_subdirectory(../stm32_common/board_critmon board_critmon)
-add_subdirectory(../stm32_common/board_reset board_reset)
-add_subdirectory(../stm32_common/version version)
-
-add_subdirectory(watchdog)
+px4_add_module(
+	MODULE drivers__imu__invensense__iam20680hp
+	MAIN iam20680hp
+	COMPILE_FLAGS
+	SRCS
+		IAM20680HP.cpp
+		IAM20680HP.hpp
+		iam20680hp_main.cpp
+		InvenSense_IAM20680HP_registers.hpp
+	DEPENDS
+		drivers_accelerometer
+		drivers_gyroscope
+		px4_work_queue
+	)

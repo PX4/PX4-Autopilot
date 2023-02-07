@@ -55,9 +55,9 @@ void TerrEstComputeFlowYInnovVarAndH(const Scalar terrain_vpos, const Scalar P,
   }
 
   if (H != nullptr) {
-    Scalar& _H = (*H);
+    Scalar& _h = (*H);
 
-    _H = -_tmp0 * v(0, 0) / std::pow(_tmp2, Scalar(2));
+    _h = -_tmp0 * v(0, 0) / std::pow(_tmp2, Scalar(2));
   }
 }  // NOLINT(readability/fn_size)
 

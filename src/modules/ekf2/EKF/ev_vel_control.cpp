@@ -205,7 +205,7 @@ void Ekf::controlEvVelFusion(const extVisionSample &ev_sample, const bool common
 		if (starting_conditions_passing) {
 			// activate fusion, only reset if necessary
 			if (!isHorizontalAidingActive() || yaw_alignment_changed) {
-				ECL_INFO("starting %s fusion, resetting state", AID_SRC_NAME);
+				ECL_INFO("starting %s fusion, resetting velocity to (%.3f, %.3f, %.3f)", AID_SRC_NAME, (double)measurement(0), (double)measurement(1), (double)measurement(2));
 				_information_events.flags.reset_vel_to_vision = true;
 				resetVelocityTo(measurement, measurement_var);
 

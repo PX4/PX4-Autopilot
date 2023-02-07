@@ -15,6 +15,7 @@ uint32 mode_req_global_position
 uint32 mode_req_mission
 uint32 mode_req_offboard_signal
 uint32 mode_req_home_position
+uint32 mode_req_wind_and_flight_time_compliance # if set, mode cannot be entered if wind or flight time limit exceeded
 uint32 mode_req_prevent_arming    # if set, cannot arm while in this mode
 uint32 mode_req_other             # other requirements, not covered above (for external modes)
 
@@ -47,6 +48,7 @@ bool mission_failure                  # Mission failure
 bool vtol_fixed_wing_system_failure   # vehicle in fixed-wing system failure failsafe mode (after quad-chute)
 bool wind_limit_exceeded              # Wind limit exceeded
 bool flight_time_limit_exceeded       # Maximum flight time exceeded
+bool local_position_accuracy_low      # Local position estimate has dropped below threshold, but is currently still declared valid
 
 # Failure detector
 bool fd_critical_failure              # Critical failure (attitude/altitude limit exceeded, or external ATS)

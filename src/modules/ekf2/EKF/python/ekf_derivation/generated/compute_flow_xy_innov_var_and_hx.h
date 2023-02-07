@@ -109,17 +109,17 @@ void ComputeFlowXyInnovVarAndHx(const matrix::Matrix<Scalar, 24, 1>& state,
   }
 
   if (H != nullptr) {
-    matrix::Matrix<Scalar, 24, 1>& _H = (*H);
+    matrix::Matrix<Scalar, 24, 1>& _h = (*H);
 
-    _H.setZero();
+    _h.setZero();
 
-    _H(0, 0) = _tmp17;
-    _H(1, 0) = _tmp21;
-    _H(2, 0) = _tmp22;
-    _H(3, 0) = _tmp15;
-    _H(4, 0) = _tmp9;
-    _H(5, 0) = _tmp4;
-    _H(6, 0) = _tmp23;
+    _h(0, 0) = _tmp17;
+    _h(1, 0) = _tmp21;
+    _h(2, 0) = _tmp22;
+    _h(3, 0) = _tmp15;
+    _h(4, 0) = _tmp9;
+    _h(5, 0) = _tmp4;
+    _h(6, 0) = _tmp23;
   }
 }  // NOLINT(readability/fn_size)
 

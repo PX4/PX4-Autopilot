@@ -59,6 +59,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_wind_pub(multi_mode ? ORB_ID(estimator_wind) : ORB_ID(wind)),
 	_params(_ekf.getParamHandle()),
 	_param_ekf2_predict_us(_params->filter_update_interval_us),
+	_param_ekf2_imu_ctrl(_params->imu_ctrl),
 	_param_ekf2_mag_delay(_params->mag_delay_ms),
 	_param_ekf2_baro_delay(_params->baro_delay_ms),
 	_param_ekf2_gps_delay(_params->gps_delay_ms),
@@ -744,6 +745,27 @@ void EKF2::VerifyParams()
 		events::send<float>(events::ID("ekf2_aid_mask_ev"), events::Log::Warning,
 				    "Use EKF2_EV_CTRL instead", _param_ekf2_aid_mask.get());
 	}
+
+
+	// IMU EKF2_AID_MASK -> EKF2_IMU_CTRL (2023-01-31)
+	if (_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_INHIBIT_ACC_BIAS) {
+
+		// EKF2_IMU_CTRL set disable accel bias bit
+		_param_ekf2_imu_ctrl.set(_param_ekf2_imu_ctrl.get() & ~(static_cast<int32_t>(ImuCtrl::AccelBias)));
+
+		// EKF2_AID_MASK clear inhibit accel bias bit
+		_param_ekf2_aid_mask.set(_param_ekf2_aid_mask.get() & ~(SensorFusionMask::DEPRECATED_INHIBIT_ACC_BIAS));
+
+		_param_ekf2_imu_ctrl.commit();
+		_param_ekf2_aid_mask.commit();
+
+		mavlink_log_critical(&_mavlink_log_pub, "EKF2 IMU accel bias inhibit use EKF2_IMU_CTRL instead of EKF2_AID_MASK\n");
+		/* EVENT
+		 * @description <param>EKF2_AID_MASK</param> is set to {1:.0}.
+		 */
+		events::send<float>(events::ID("ekf2_aid_mask_imu"), events::Log::Warning,
+				    "Use EKF2_IMU_CTRL instead", _param_ekf2_aid_mask.get());
+	}
 }
 
 void EKF2::PublishAidSourceStatus(const hrt_abstime &timestamp)
@@ -1320,7 +1342,7 @@ void EKF2::PublishSensorBias(const hrt_abstime &timestamp)
 		bias.timestamp_sample = _ekf.time_delayed_us();
 
 		// take device ids from sensor_selection_s if not using specific vehicle_imu_s
-		if (_device_id_gyro != 0) {
+		if ((_device_id_gyro != 0) && (_param_ekf2_imu_ctrl.get() & static_cast<int32_t>(ImuCtrl::GyroBias))) {
 			bias.gyro_device_id = _device_id_gyro;
 			gyro_bias.copyTo(bias.gyro_bias);
 			bias.gyro_bias_limit = _ekf.getGyroBiasLimit();
@@ -1330,7 +1352,7 @@ void EKF2::PublishSensorBias(const hrt_abstime &timestamp)
 			_last_gyro_bias_published = gyro_bias;
 		}
 
-		if ((_device_id_accel != 0) && !(_param_ekf2_aid_mask.get() & SensorFusionMask::INHIBIT_ACC_BIAS)) {
+		if ((_device_id_accel != 0) && (_param_ekf2_imu_ctrl.get() & static_cast<int32_t>(ImuCtrl::AccelBias))) {
 			bias.accel_device_id = _device_id_accel;
 			accel_bias.copyTo(bias.accel_bias);
 			bias.accel_bias_limit = _ekf.getAccelBiasLimit();
@@ -2212,7 +2234,7 @@ void EKF2::UpdateCalibration(const hrt_abstime &timestamp, InFlightCalibration &
 void EKF2::UpdateAccelCalibration(const hrt_abstime &timestamp)
 {
 	// the EKF is operating in the correct mode and there are no filter faults
-	const bool bias_valid = !(_param_ekf2_aid_mask.get() & SensorFusionMask::INHIBIT_ACC_BIAS)
+	const bool bias_valid = (_param_ekf2_imu_ctrl.get() & static_cast<int32_t>(ImuCtrl::AccelBias))
 				&& _ekf.control_status_flags().tilt_align
 				&& (_ekf.fault_status().value == 0)
 				&& !_ekf.fault_status_flags().bad_acc_bias
@@ -2229,10 +2251,11 @@ void EKF2::UpdateAccelCalibration(const hrt_abstime &timestamp)
 void EKF2::UpdateGyroCalibration(const hrt_abstime &timestamp)
 {
 	// the EKF is operating in the correct mode and there are no filter faults
-	const bool bias_valid = _ekf.control_status_flags().tilt_align
+	const bool bias_valid = (_param_ekf2_imu_ctrl.get() & static_cast<int32_t>(ImuCtrl::GyroBias))
+				&& _ekf.control_status_flags().tilt_align
 				&& (_ekf.fault_status().value == 0);
 
-	const bool learning_valid = bias_valid; // TODO
+	const bool learning_valid = bias_valid && !_ekf.gyro_bias_inhibited();
 
 	UpdateCalibration(timestamp, _gyro_cal, _ekf.getGyroBias(), _ekf.getGyroBiasVariance(), _ekf.getGyroBiasLimit(),
 			  bias_valid, learning_valid);

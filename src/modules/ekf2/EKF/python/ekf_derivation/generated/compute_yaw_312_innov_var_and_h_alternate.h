@@ -60,14 +60,14 @@ void ComputeYaw312InnovVarAndHAlternate(const matrix::Matrix<Scalar, 24, 1>& sta
   }
 
   if (H != nullptr) {
-    matrix::Matrix<Scalar, 24, 1>& _H = (*H);
+    matrix::Matrix<Scalar, 24, 1>& _h = (*H);
 
-    _H.setZero();
+    _h.setZero();
 
-    _H(0, 0) = -_tmp10;
-    _H(1, 0) = -_tmp8;
-    _H(2, 0) = -_tmp7;
-    _H(3, 0) = -_tmp9;
+    _h(0, 0) = -_tmp10;
+    _h(1, 0) = -_tmp8;
+    _h(2, 0) = -_tmp7;
+    _h(3, 0) = -_tmp9;
   }
 }  // NOLINT(readability/fn_size)
 

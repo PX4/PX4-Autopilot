@@ -38,6 +38,8 @@ from symforce import symbolic as sm
 from symforce import geo
 from symforce import typing as T
 
+import re
+
 # q: quaternion describing rotation from frame 1 to frame 2
 # returns a rotation matrix derived form q which describes the same
 # rotation
@@ -87,6 +89,10 @@ def generate_px4_function(function_name, output_names):
             line = line.replace("std::min", "math::min")
             line = line.replace("Eigen", "matrix")
             line = line.replace("matrix/Dense", "matrix/math.hpp")
+
+            # don't allow underscore + uppercase identifier naming (always reserved for any use)
+            line = re.sub(r'_([A-Z])', lambda x: '_' + x.group(1).lower(), line)
+
             print(line, end='')
 
 def generate_python_function(function_name, output_names):

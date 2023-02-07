@@ -168,14 +168,14 @@ void ComputeDragYInnovVarAndK(const matrix::Matrix<Scalar, 24, 1>& state,
   }
 
   if (K != nullptr) {
-    matrix::Matrix<Scalar, 24, 1>& _K = (*K);
+    matrix::Matrix<Scalar, 24, 1>& _k = (*K);
 
-    _K.setZero();
+    _k.setZero();
 
-    _K(22, 0) = _tmp75 * (P(22, 0) * _tmp50 + P(22, 1) * _tmp44 + P(22, 2) * _tmp51 +
+    _k(22, 0) = _tmp75 * (P(22, 0) * _tmp50 + P(22, 1) * _tmp44 + P(22, 2) * _tmp51 +
                           P(22, 23) * _tmp58 + P(22, 3) * _tmp53 + P(22, 4) * _tmp65 +
                           P(22, 5) * _tmp71 + P(22, 6) * _tmp70 + _tmp72);
-    _K(23, 0) = _tmp75 * (P(23, 0) * _tmp50 + P(23, 1) * _tmp44 + P(23, 2) * _tmp51 +
+    _k(23, 0) = _tmp75 * (P(23, 0) * _tmp50 + P(23, 1) * _tmp44 + P(23, 2) * _tmp51 +
                           P(23, 22) * _tmp66 + P(23, 3) * _tmp53 + P(23, 4) * _tmp65 +
                           P(23, 5) * _tmp71 + P(23, 6) * _tmp70 + _tmp73);
   }

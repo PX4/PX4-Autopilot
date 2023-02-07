@@ -10,6 +10,11 @@ set VEHICLE_TYPE vtol
 # MAV_TYPE_VTOL_FIXEDROTOR 22
 param set-default MAV_TYPE 22
 
+# there is a 2.5 factor applied on COM_POS_FS_EPH if for invalidation
+param set-default COM_POS_FS_EPH 50
+
+param set-default COM_POS_LOW_EPH 50
+
 param set-default MIS_TAKEOFF_ALT 20
 param set-default MIS_YAW_TMT 10
 

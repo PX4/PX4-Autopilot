@@ -126,6 +126,11 @@ enum class PositionSensor : uint8_t {
 	EV      = 2,
 };
 
+enum class ImuCtrl : uint8_t {
+	GyroBias  = (1<<0),
+	AccelBias = (1<<1),
+};
+
 enum GnssCtrl : uint8_t {
 	HPOS  = (1<<0),
 	VPOS  = (1<<1),
@@ -150,7 +155,7 @@ enum SensorFusionMask : uint16_t {
 	// Bit locations for fusion_mode
 	DEPRECATED_USE_GPS = (1<<0),    ///< set to true to use GPS data (DEPRECATED, use gnss_ctrl)
 	USE_OPT_FLOW     = (1<<1),      ///< set to true to use optical flow data
-	INHIBIT_ACC_BIAS = (1<<2),      ///< set to true to inhibit estimation of accelerometer delta velocity bias
+	DEPRECATED_INHIBIT_ACC_BIAS = (1<<2), ///< set to true to inhibit estimation of accelerometer delta velocity bias
 	DEPRECATED_USE_EXT_VIS_POS = (1<<3), ///< set to true to use external vision position data
 	DEPRECATED_USE_EXT_VIS_YAW = (1<<4), ///< set to true to use external vision quaternion data for yaw
 	USE_DRAG         = (1<<5),      ///< set to true to use the multi-rotor drag model to estimate wind
@@ -278,6 +283,8 @@ struct stateSample {
 struct parameters {
 
 	int32_t filter_update_interval_us{10000}; ///< filter update interval in microseconds
+
+	int32_t imu_ctrl{static_cast<int32_t>(ImuCtrl::GyroBias) | static_cast<int32_t>(ImuCtrl::AccelBias)};
 
 	// measurement source control
 	int32_t fusion_mode{};         ///< bitmasked integer that selects some aiding sources
@@ -623,9 +630,9 @@ union warning_event_status_u {
 		bool stopping_navigation                : 1; ///< 5 - true when the filter has insufficient data to estimate velocity and position and is falling back to an attitude, height and height rate mode of operation
 		bool invalid_accel_bias_cov_reset       : 1; ///< 6 - true when the filter has detected bad acceerometer bias state estimates and has reset the corresponding covariance matrix elements
 		bool bad_yaw_using_gps_course           : 1; ///< 7 - true when the filter has detected an invalid yaw estimate and has reset the yaw angle to the GPS ground course
-		bool stopping_mag_use                   : 1; ///< 8 - true when the filter has detected bad magnetometer data and is stopping further use of the magnetomer data
+		bool stopping_mag_use                   : 1; ///< 8 - true when the filter has detected bad magnetometer data and is stopping further use of the magnetometer data
 		bool vision_data_stopped                : 1; ///< 9 - true when the vision system data has stopped for a significant time period
-		bool emergency_yaw_reset_mag_stopped    : 1; ///< 10 - true when the filter has detected bad magnetometer data, has reset the yaw to anothter source of data and has stopped further use of the magnetomer data
+		bool emergency_yaw_reset_mag_stopped    : 1; ///< 10 - true when the filter has detected bad magnetometer data, has reset the yaw to anothter source of data and has stopped further use of the magnetometer data
 		bool emergency_yaw_reset_gps_yaw_stopped: 1; ///< 11 - true when the filter has detected bad GNSS yaw data, has reset the yaw to anothter source of data and has stopped further use of the GNSS yaw data
 	} flags;
 	uint32_t value;
