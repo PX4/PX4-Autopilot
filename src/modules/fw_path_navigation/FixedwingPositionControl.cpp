@@ -1026,10 +1026,8 @@ FixedwingPositionControl::control_auto_position(const float control_interval, co
 		prev_wp(1) = pos_sp_prev.lon;
 
 	} else {
-		// No valid previous waypoint, go for the current wp.
-		// This is automatically handled by the NPFG libraries.
-		prev_wp(0) = pos_sp_curr.lat;
-		prev_wp(1) = pos_sp_curr.lon;
+		// No valid previous waypoint, go along the line between aircraft and current waypoint
+		prev_wp = curr_pos;
 	}
 
 	float tecs_fw_thr_min;
@@ -1186,10 +1184,8 @@ FixedwingPositionControl::control_auto_loiter(const float control_interval, cons
 		prev_wp(1) = pos_sp_prev.lon;
 
 	} else {
-		// No valid previous waypoint, go for the current wp.
-		// This is automatically handled by the NPFG libraries.
-		prev_wp(0) = pos_sp_curr.lat;
-		prev_wp(1) = pos_sp_curr.lon;
+		// No valid previous waypoint, go along the line between aircraft and current waypoint
+		prev_wp = curr_pos;
 	}
 
 	float airspeed_sp = -1.f;
