@@ -407,7 +407,6 @@ PWMESC::Run()
 void
 PWMESC::task_main()
 {
-
 	if (init_pwm_outputs() != 0) {
 		PX4_ERR("PWM initialization failed");
 		_task_should_exit = true;
@@ -419,13 +418,24 @@ PWMESC::task_main()
 
 		_actuator_armed_sub.update(&_actuator_armed);
 
-		/* sleep waiting for mixer update */
+		struct timespec ts;
+		px4_clock_gettime(CLOCK_REALTIME, &ts);
+		/* Add 100 ms, this can't overflow */
+		ts.tv_nsec += 100000000;
 
-		px4_sem_wait(&_update_sem);
+		if (ts.tv_nsec >= 1000000000) {
+			ts.tv_nsec -= 1000000000;
+			ts.tv_sec += 1;
+		}
+
+		/* sleep waiting for mixer update */
+		int ret = px4_sem_timedwait(&_update_sem, &ts);
 
 		perf_begin(_perf_update);
 
-		_mixing_output.update();
+		if (ret == 0) {
+			_mixing_output.update();
+		}
 
 		// check for parameter updates
 		if (_parameter_update_sub.updated()) {
