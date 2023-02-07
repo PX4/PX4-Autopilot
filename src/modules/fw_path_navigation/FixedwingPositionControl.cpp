@@ -113,7 +113,7 @@ FixedwingPositionControl::parameters_update()
 	_npfg.setRollTimeConst(_param_npfg_roll_time_const.get());
 	_npfg.setSwitchDistanceMultiplier(_param_npfg_switch_distance_multiplier.get());
 	_npfg.setRollLimit(radians(_param_fw_r_lim.get()));
-	_npfg.setRollSlewRate(radians(_param_fw_l1_r_slew_max.get()));
+	_npfg.setRollSlewRate(radians(_param_fw_pn_r_slew_max.get()));
 	_npfg.setPeriodSafetyFactor(_param_npfg_period_safety_factor.get());
 
 	// TECS parameters
@@ -1338,7 +1338,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 		// tune up the lateral position control guidance when on the ground
 		if (_att_sp.fw_control_yaw_wheel) {
-			_npfg.setPeriod(_param_rwto_l1_period.get());
+			_npfg.setPeriod(_param_rwto_npfg_period.get());
 		}
 
 		const Vector2f start_pos_local = _global_local_proj_ref.project(_runway_takeoff.getStartPosition()(0),
@@ -1578,7 +1578,7 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 		/* lateral guidance first, because npfg will adjust the airspeed setpoint if necessary */
 
 		// tune up the lateral position control guidance when on the ground
-		const float ground_roll_npfg_period = flare_ramp_interpolator * _param_rwto_l1_period.get() +
+		const float ground_roll_npfg_period = flare_ramp_interpolator * _param_rwto_npfg_period.get() +
 						      (1.0f - flare_ramp_interpolator) * _param_npfg_period.get();
 		_npfg.setPeriod(ground_roll_npfg_period);
 
@@ -1853,7 +1853,7 @@ FixedwingPositionControl::control_manual_position(const float control_interval, 
 
 		// do slew rate limiting on roll if enabled
 		float roll_sp_new = _manual_control_setpoint.roll * radians(_param_fw_r_lim.get());
-		const float roll_rate_slew_rad = radians(_param_fw_l1_r_slew_max.get());
+		const float roll_rate_slew_rad = radians(_param_fw_pn_r_slew_max.get());
 
 		if (control_interval > 0.f && roll_rate_slew_rad > 0.f) {
 			roll_sp_new = constrain(roll_sp_new, _att_sp.roll_body - roll_rate_slew_rad * control_interval,

@@ -34,10 +34,10 @@
 
 /**
  * @file fw_path_navigation_main.hpp
- * Implementation of a generic position controller based on the L1 norm. Outputs a bank / roll
+ * Implementation of a generic path navigation. Outputs a bank / roll
  * angle, equivalent to a lateral motion (for copters and rovers).
  *
- * The implementation for the controllers is in the ECL library. This class only
+ * The implementation for the controllers is in a separate library. This class only
  * interfaces to the library.
  *
  * @author Lorenz Meier <lorenz@px4.io>
@@ -155,10 +155,6 @@ static constexpr float MIN_PITCH_DURING_MANUAL_TAKEOFF = 0.0f;
 // [m] arbitrary buffer altitude added to clearance altitude setpoint during takeoff to ensure aircraft passes the clearance
 // altitude while waiting for navigator to flag it exceeded
 static constexpr float kClearanceAltitudeBuffer = 10.0f;
-
-// [m] a very large number to hopefully avoid the "fly back" case in L1 waypoint following logic once passed the second
-// waypoint in the segment. this is unecessary with NPFG.
-static constexpr float L1_VIRTUAL_TAKEOFF_WP_DIST = 1.0e6f;
 
 // [m/s] maximum rate at which the touchdown position can be nudged
 static constexpr float MAX_TOUCHDOWN_POSITION_NUDGE_RATE = 4.0f;
@@ -841,7 +837,7 @@ private:
 
 		(ParamFloat<px4::params::FW_GND_SPD_MIN>) _param_fw_gnd_spd_min,
 
-		(ParamFloat<px4::params::FW_L1_R_SLEW_MAX>) _param_fw_l1_r_slew_max,
+		(ParamFloat<px4::params::FW_PN_R_SLEW_MAX>) _param_fw_pn_r_slew_max,
 		(ParamFloat<px4::params::FW_R_LIM>) _param_fw_r_lim,
 
 		(ParamFloat<px4::params::NPFG_PERIOD>) _param_npfg_period,
@@ -917,7 +913,7 @@ private:
 		(ParamFloat<px4::params::FW_WING_SPAN>) _param_fw_wing_span,
 		(ParamFloat<px4::params::FW_WING_HEIGHT>) _param_fw_wing_height,
 
-		(ParamFloat<px4::params::RWTO_L1_PERIOD>) _param_rwto_l1_period,
+		(ParamFloat<px4::params::RWTO_NPFG_PERIOD>) _param_rwto_npfg_period,
 		(ParamBool<px4::params::RWTO_NUDGE>) _param_rwto_nudge,
 
 		(ParamFloat<px4::params::FW_LND_FL_TIME>) _param_fw_lnd_fl_time,

@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * L1 controller roll slew rate limit.
+ * Path navigation roll slew rate limit.
  *
  * The maximum change in roll angle setpoint per second.
  *
@@ -40,9 +40,9 @@
  * @min 0
  * @decimal 0
  * @increment 1
- * @group FW L1 Control
+ * @group FW Path Control
  */
-PARAM_DEFINE_FLOAT(FW_L1_R_SLEW_MAX, 90.0f);
+PARAM_DEFINE_FLOAT(FW_PN_R_SLEW_MAX, 90.0f);
 
 /**
  * NPFG period
@@ -153,8 +153,7 @@ PARAM_DEFINE_FLOAT(NPFG_ROLL_TC, 0.5f);
  * NPFG switch distance multiplier
  *
  * Multiplied by the track error boundary to determine when the aircraft switches
- * to the next waypoint and/or path segment. Should be less than 1. 1/pi (0.32)
- * sets the switch distance equivalent to that of the L1 controller.
+ * to the next waypoint and/or path segment. Should be less than 1.
  *
  * @min 0.1
  * @max 1.0
@@ -243,7 +242,7 @@ PARAM_DEFINE_FLOAT(FW_P_LIM_MAX, 30.0f);
  * @max 65.0
  * @decimal 1
  * @increment 0.5
- * @group FW L1 Control
+ * @group FW Path Control
  */
 PARAM_DEFINE_FLOAT(FW_R_LIM, 50.0f);
 
@@ -327,7 +326,7 @@ PARAM_DEFINE_FLOAT(FW_LND_ANG, 5.0f);
  * @max 30.0
  * @decimal 1
  * @increment 0.5
- * @group FW L1 Control
+ * @group FW Path Control
  */
 PARAM_DEFINE_FLOAT(FW_TKO_PITCH_MIN, 10.0f);
 
@@ -746,7 +745,7 @@ PARAM_DEFINE_FLOAT(FW_GND_SPD_MIN, 5.0f);
  * @max 3
  * @bit 0 Alternative stick configuration (height rate on throttle stick, airspeed on pitch stick)
  * @bit 1 Enable airspeed setpoint via sticks in altitude and position flight mode
- * @group FW L1 Control
+ * @group FW Path Control
  */
 PARAM_DEFINE_INT32(FW_POS_STK_CONF, 2);
 

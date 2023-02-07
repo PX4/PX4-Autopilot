@@ -42,7 +42,7 @@ px4_add_module(
 		FixedwingPositionControl.hpp
 	DEPENDS
 		launchdetection
-    npfg
+    		npfg
 		runway_takeoff
 		SlewRate
 		tecs
