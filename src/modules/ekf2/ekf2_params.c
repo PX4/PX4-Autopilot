@@ -62,7 +62,7 @@ PARAM_DEFINE_INT32(EKF2_PREDICT_US, 10000);
  * @bit 1 Accel Bias
  * @bit 2 Gravity vector fusion
  */
-PARAM_DEFINE_INT32(EKF2_IMU_CTRL, 7);
+PARAM_DEFINE_INT32(EKF2_IMU_CTRL, 3);
 
 /**
  * Magnetometer measurement delay relative to IMU measurements
