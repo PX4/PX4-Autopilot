@@ -257,17 +257,19 @@ void CyphalNode::print_info()
 
 	_pub_manager.printInfo();
 
+	PX4_INFO("Message subscriptions:");
 	traverseTree<CanardRxSubscription>(_canard_handle.getRxSubscriptions(CanardTransferKindMessage),
 	[&](const CanardRxSubscription * const sub) {
 		if (sub->user_reference == nullptr) {
 			PX4_INFO("Message port id %d", sub->port_id);
 
 		} else {
-			((UavcanBaseSubscriber *)sub->user_reference)->printInfo();
+			((UavcanBaseSubscriber *)sub->user_reference)->printInfo(sub->port_id);
 		}
 	});
 
 
+	PX4_INFO("Service response subscriptions:");
 	traverseTree<CanardRxSubscription>(_canard_handle.getRxSubscriptions(CanardTransferKindRequest),
 	[&](const CanardRxSubscription * const sub) {
 		if (sub->user_reference == nullptr) {
@@ -278,6 +280,7 @@ void CyphalNode::print_info()
 		}
 	});
 
+	PX4_INFO("Service request subscriptions:");
 	traverseTree<CanardRxSubscription>(_canard_handle.getRxSubscriptions(CanardTransferKindResponse),
 	[&](const CanardRxSubscription * const sub) {
 		if (sub->user_reference == nullptr) {

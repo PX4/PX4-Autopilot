@@ -104,8 +104,9 @@ public:
 
 		if (unsubscribeRequired) {
 			unsubscribe();
+		}
 
-		} else if (subscribeRequired) {
+		if (subscribeRequired) {
 			subscribe();
 		}
 	};

@@ -15,8 +15,16 @@ param set-default MAV_1_REMOTE_PRT 14550
 param set-default MAV_1_UDP_PRT 14550
 
 param set-default SENS_EXT_I2C_PRB 0
+param set-default CYPHAL_ENABLE 0
 
 if param greater -s UAVCAN_ENABLE 0
+then
+	ifup can0
+	ifup can1
+	ifup can2
+	ifup can3
+fi
+if param greater -s CYPHAL_ENABLE 0
 then
 	ifup can0
 	ifup can1

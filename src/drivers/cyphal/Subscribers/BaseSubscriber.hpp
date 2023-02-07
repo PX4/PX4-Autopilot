@@ -132,13 +132,16 @@ public:
 		return _instance;
 	}
 
-	void printInfo()
+	void printInfo(CanardPortID port_id = CANARD_PORT_ID_UNSET)
 	{
 		SubjectSubscription *curSubj = &_subj_sub;
 
 		while (curSubj != nullptr) {
 			if (curSubj->_canard_sub.port_id != CANARD_PORT_ID_UNSET) {
-				PX4_INFO("Subscribed %s.%d on port %d", curSubj->_subject_name, _instance, curSubj->_canard_sub.port_id);
+				if (port_id == CANARD_PORT_ID_UNSET ||
+				    port_id == curSubj->_canard_sub.port_id) {
+					PX4_INFO("Subscribed %s.%d on port %d", curSubj->_subject_name, _instance, curSubj->_canard_sub.port_id);
+				}
 			}
 
 			curSubj = curSubj->next;
