@@ -53,6 +53,7 @@ add_library(ecl_EKF
 	gps_checks.cpp
 	gps_control.cpp
 	gps_yaw_fusion.cpp
+	gravity_fusion.cpp
 	height_control.cpp
 	imu_down_sampler.cpp
 	mag_control.cpp

@@ -191,6 +191,10 @@ public:
 	void getHaglRateInnovVar(float &hagl_rate_innov_var) const { hagl_rate_innov_var = _rng_consistency_check.getInnovVar(); }
 	void getHaglRateInnovRatio(float &hagl_rate_innov_ratio) const { hagl_rate_innov_ratio = _rng_consistency_check.getSignedTestRatioLpf(); }
 
+	void getGravityInnov(float grav_innov[3]) const { memcpy(grav_innov, _aid_src_gravity.innovation, sizeof(_aid_src_gravity.innovation)); }
+	void getGravityInnovVar(float grav_innov_var[3]) const { memcpy(grav_innov_var, _aid_src_gravity.innovation_variance, sizeof(_aid_src_gravity.innovation_variance)); }
+	void getGravityInnovRatio(float &grav_innov_ratio) const { grav_innov_ratio = Vector3f(_aid_src_gravity.test_ratio).max(); }
+
 	// get the state vector at the delayed time horizon
 	matrix::Vector<float, 24> getStateAtFusionHorizonAsVector() const;
 
@@ -433,6 +437,8 @@ public:
 	const auto &aid_src_mag_heading() const { return _aid_src_mag_heading; }
 	const auto &aid_src_mag() const { return _aid_src_mag; }
 
+	const auto &aid_src_gravity() const { return _aid_src_gravity; }
+
 	const auto &aid_src_aux_vel() const { return _aid_src_aux_vel; }
 
 	const auto &aid_src_optical_flow() const { return _aid_src_optical_flow; }
@@ -572,6 +578,8 @@ private:
 
 	estimator_aid_source1d_s _aid_src_mag_heading{};
 	estimator_aid_source3d_s _aid_src_mag{};
+
+	estimator_aid_source3d_s _aid_src_gravity{};
 
 	estimator_aid_source2d_s _aid_src_aux_vel{};
 
@@ -926,6 +934,9 @@ private:
 	void stopEvHgtFusion();
 
 	void updateGroundEffect();
+
+	// gravity fusion: heuristically enable / disable gravity fusion
+	void controlGravityFusion(const imuSample &imu_delayed);
 
 	// calculate the measurement variance for the optical flow sensor
 	float calcOptFlowMeasVar(const flowSample &flow_sample);

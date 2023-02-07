@@ -102,6 +102,7 @@ px4_add_module(
 		EKF/gps_checks.cpp
 		EKF/gps_control.cpp
 		EKF/gps_yaw_fusion.cpp
+		EKF/gravity_fusion.cpp
 		EKF/height_control.cpp
 		EKF/imu_down_sampler.cpp
 		EKF/mag_control.cpp

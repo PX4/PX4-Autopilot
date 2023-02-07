@@ -28,6 +28,7 @@ float32[2] terr_flow	# flow innvoation (rad/sec) and innovation variance compute
 # Various
 float32 heading		# heading innovation (rad) and innovation variance (rad**2)
 float32[3] mag_field	# earth magnetic field innovation (Gauss) and innovation variance (Gauss**2)
+float32[3] gravity	# gravity innovation from accelerometerr vector (m/s**2)
 float32[2] drag		# drag specific force innovation (m/sec**2) and innovation variance ((m/sec)**2)
 float32 airspeed	# airspeed innovation (m/sec) and innovation variance ((m/sec)**2)
 float32 beta		# synthetic sideslip innovation (rad) and innovation variance (rad**2)
