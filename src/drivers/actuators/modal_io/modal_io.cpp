@@ -252,7 +252,9 @@ int ModalIo::task_spawn(int argc, char *argv[])
 		PX4_ERR("alloc failed");
 	}
 
-	delete instance;
+	// This will cause a crash on SLPI DSP
+	// delete instance;
+
 	_object.store(nullptr);
 	_task_id = -1;
 
