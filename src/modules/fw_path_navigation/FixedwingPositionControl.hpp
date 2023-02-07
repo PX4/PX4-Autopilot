@@ -33,7 +33,7 @@
 
 
 /**
- * @file fw_pos_control_l1_main.hpp
+ * @file fw_path_navigation_main.hpp
  * Implementation of a generic position controller based on the L1 norm. Outputs a bank / roll
  * angle, equivalent to a lateral motion (for copters and rovers).
  *
