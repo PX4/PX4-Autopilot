@@ -651,17 +651,6 @@ private:
 	void reset_landing_state();
 
 	/**
-	 * @brief Returns the velocity vector to be input in the lateral-directional guidance laws.
-	 *
-	 * Replaces the ground velocity vector with an air velocity vector depending on the wind condition and whether
-	 * NPFG or L1 are being used for horizontal position control.
-	 *
-	 * @param ground_speed Vehicle ground velocity vector [m/s]
-	 * @return Velocity vector to control with lateral-directional guidance [m/s]
-	 */
-	Vector2f get_nav_speed_2d(const Vector2f &ground_speed);
-
-	/**
 	 * @brief Decides which control mode to execute.
 	 *
 	 * May also change the position setpoint type depending on the desired behavior.
