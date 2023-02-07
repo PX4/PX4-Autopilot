@@ -57,11 +57,12 @@ PARAM_DEFINE_INT32(EKF2_PREDICT_US, 10000);
  *
  * @group EKF2
  * @min 0
- * @max 3
+ * @max 7
  * @bit 0 Gyro Bias
  * @bit 1 Accel Bias
+ * @bit 2 Gravity vector fusion
  */
-PARAM_DEFINE_INT32(EKF2_IMU_CTRL, 3);
+PARAM_DEFINE_INT32(EKF2_IMU_CTRL, 7);
 
 /**
  * Magnetometer measurement delay relative to IMU measurements
@@ -853,6 +854,17 @@ PARAM_DEFINE_FLOAT(EKF2_EVV_NOISE, 0.1f);
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(EKF2_EVA_NOISE, 0.1f);
+
+/**
+ * Accelerometer measurement noise for gravity based observations.
+ *
+ * @group EKF2
+ * @min 0.1
+ * @max 10.0
+ * @unit m/s^2
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(EKF2_GRAV_NOISE, 1.0f);
 
 /**
  * Measurement noise for the optical flow sensor when it's reported quality metric is at the maximum
