@@ -128,6 +128,11 @@ static struct usr_hrt_call *dup_entry(const px4_hrt_handle_t handle, struct hrt_
 	}
 
 	if (e) {
+
+		/* Store the user side callout function and argument to the user's handle */
+		entry->callout = callout;
+		entry->arg = arg;
+
 		/* Store reference to the kernel side entry to the user side struct and
 		 * references to the semaphore and user side entry to the kernel side item
 		 */
