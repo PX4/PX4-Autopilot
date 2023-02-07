@@ -895,9 +895,6 @@ FixedwingPositionControl::control_auto(const float control_interval, const Vecto
 		_att_sp.thrust_body[0] = 0.0f;
 		_att_sp.roll_body = 0.0f;
 		_att_sp.pitch_body = radians(_param_fw_psp_off.get());
-		_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_OFF;
-		_att_sp.apply_spoilers = vehicle_attitude_setpoint_s::SPOILERS_OFF;
-
 		break;
 
 	case position_setpoint_s::SETPOINT_TYPE_POSITION:
@@ -957,9 +954,6 @@ FixedwingPositionControl::control_auto_fixed_bank_alt_hold(const float control_i
 	}
 
 	_att_sp.pitch_body = get_tecs_pitch();
-
-	_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_OFF;
-	_att_sp.apply_spoilers = vehicle_attitude_setpoint_s::SPOILERS_OFF;
 }
 
 void
@@ -986,9 +980,6 @@ FixedwingPositionControl::control_auto_descend(const float control_interval)
 
 	_att_sp.thrust_body[0] = (_landed) ? _param_fw_thr_min.get() : min(get_tecs_thrust(), _param_fw_thr_max.get());
 	_att_sp.pitch_body = get_tecs_pitch();
-
-	_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_OFF;
-	_att_sp.apply_spoilers = vehicle_attitude_setpoint_s::SPOILERS_OFF;
 }
 
 uint8_t
@@ -1155,9 +1146,6 @@ FixedwingPositionControl::control_auto_position(const float control_interval, co
 
 	_att_sp.yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
 
-	_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_OFF;
-	_att_sp.apply_spoilers = vehicle_attitude_setpoint_s::SPOILERS_OFF;
-
 	tecs_update_pitch_throttle(control_interval,
 				   position_sp_alt,
 				   target_airspeed,
@@ -1212,9 +1200,6 @@ FixedwingPositionControl::control_auto_velocity(const float control_interval, co
 	}
 
 	_att_sp.yaw_body = _yaw;
-
-	_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_OFF;
-	_att_sp.apply_spoilers = vehicle_attitude_setpoint_s::SPOILERS_OFF;
 
 	tecs_update_pitch_throttle(control_interval,
 				   position_sp_alt,
@@ -1296,9 +1281,6 @@ FixedwingPositionControl::control_auto_loiter(const float control_interval, cons
 		_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_LAND;
 		_att_sp.apply_spoilers = vehicle_attitude_setpoint_s::SPOILERS_LAND;
 
-	} else {
-		_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_OFF;
-		_att_sp.apply_spoilers = vehicle_attitude_setpoint_s::SPOILERS_OFF;
 	}
 
 	float target_airspeed = adapt_airspeed_setpoint(control_interval, airspeed_sp, _param_fw_airspd_min.get(),
@@ -1487,7 +1469,6 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 		// apply flaps for takeoff according to the corresponding scale factor set via FW_FLAPS_TO_SCL
 		_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_TAKEOFF;
-		_att_sp.apply_spoilers = vehicle_attitude_setpoint_s::SPOILERS_OFF;
 
 	} else {
 		/* Perform launch detection */
@@ -1579,9 +1560,6 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 			_att_sp.thrust_body[0] = _param_fw_thr_idle.get();
 			_att_sp.pitch_body = radians(_takeoff_pitch_min.get());
 		}
-
-		_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_OFF;
-		_att_sp.apply_spoilers = vehicle_attitude_setpoint_s::SPOILERS_OFF;
 
 		launch_detection_status_s launch_detection_status;
 		launch_detection_status.timestamp = now;
@@ -1891,11 +1869,6 @@ FixedwingPositionControl::control_manual_altitude(const float control_interval, 
 
 	_att_sp.thrust_body[0] = min(get_tecs_thrust(), throttle_max);
 	_att_sp.pitch_body = get_tecs_pitch();
-
-	// In Manual modes flaps and spoilers are directly controlled in FW Attitude controller and not passed
-	// through attitdue setpoints
-	_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_OFF;
-	_att_sp.apply_spoilers = vehicle_attitude_setpoint_s::SPOILERS_OFF;
 }
 
 void
@@ -2014,11 +1987,6 @@ FixedwingPositionControl::control_manual_position(const float control_interval, 
 
 	_att_sp.thrust_body[0] = min(get_tecs_thrust(), throttle_max);
 	_att_sp.pitch_body = get_tecs_pitch();
-
-	// In Manual modes flaps and spoilers are directly controlled in FW Attitude controller and not passed
-	// through attitdue setpoints
-	_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_OFF;
-	_att_sp.apply_spoilers = vehicle_attitude_setpoint_s::SPOILERS_OFF;
 }
 
 float
@@ -2234,6 +2202,8 @@ FixedwingPositionControl::Run()
 		_l1_control.set_l1_period(_param_fw_l1_period.get());
 
 		_att_sp.reset_integral = false;
+		_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_OFF;
+		_att_sp.apply_spoilers = vehicle_attitude_setpoint_s::SPOILERS_OFF;
 
 		// by default we don't want yaw to be contoller directly with rudder
 		_att_sp.fw_control_yaw_wheel = false;
@@ -2289,9 +2259,6 @@ FixedwingPositionControl::Run()
 
 		case FW_POSCTRL_MODE_OTHER: {
 				_att_sp.thrust_body[0] = min(_att_sp.thrust_body[0], _param_fw_thr_max.get());
-
-				_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_OFF;
-				_att_sp.apply_spoilers = vehicle_attitude_setpoint_s::SPOILERS_OFF;
 
 				_tecs.initialize(_current_altitude, -_local_pos.vz, _airspeed, _eas2tas);
 
