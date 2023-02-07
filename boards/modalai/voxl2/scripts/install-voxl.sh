@@ -121,5 +121,12 @@ adb shell "cd /usr/bin; /bin/ln -f -s px4 px4-imu_server"
 
 # Make sure any required directories exist
 adb shell "/bin/mkdir -p /data/px4/param"
+adb shell "/bin/mkdir -p /data/px4/etc/extras"
+
+# Push the json files for the component metadata
+adb push build/modalai_voxl2_default/actuators.json.xz /data/px4/etc/extras
+adb push build/modalai_voxl2_default/component_general.json.xz /data/px4/etc/extras
+adb push build/modalai_voxl2_default/parameters.json.xz /data/px4/etc/extras
+adb push build/modalai_voxl2_default/events/all_events.json.xz /data/px4/etc/extras
 
 adb shell sync
