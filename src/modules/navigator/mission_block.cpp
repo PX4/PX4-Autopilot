@@ -255,7 +255,7 @@ MissionBlock::is_mission_item_reached_or_completed()
 			 * coordinates with a radius equal to the loiter_radius field. It is not flying
 			 * through the waypoint center.
 			 * Therefore the item is marked as reached once the system reaches the loiter
-			 * radius + L1 distance. Time inside and turn count is handled elsewhere.
+			 * radius + navigation switch distance. Time inside and turn count is handled elsewhere.
 			 */
 
 			// check if within loiter radius around wp, if yes then set altitude sp to mission item

@@ -37,7 +37,7 @@ fi
 
 fw_rate_control start vtol
 fw_att_control start vtol
-fw_pos_control_l1 start vtol
+fw_path_navigation start vtol
 fw_autotune_attitude_control start vtol
 
 # Start Land Detector
