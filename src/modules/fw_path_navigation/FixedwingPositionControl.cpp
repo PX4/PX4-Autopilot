@@ -827,7 +827,7 @@ FixedwingPositionControl::move_position_setpoint_for_vtol_transition(position_se
 		if (!PX4_ISFINITE(_transition_waypoint(0))) {
 			double lat_transition, lon_transition;
 
-			// Create a virtual waypoint HDG_HOLD_DIST_NEXT meters in front of the vehicle which the L1 controller can track
+			// Create a virtual waypoint HDG_HOLD_DIST_NEXT meters in front of the vehicle which the path navigation controller can track
 			// during the transition. Use the current yaw setpoint to determine the transition heading, as that one in turn
 			// is set to the transition heading by Navigator, or current yaw if setpoint is not valid.
 			const float transition_heading = PX4_ISFINITE(current_sp.yaw) ? current_sp.yaw : _yaw;
@@ -1027,7 +1027,7 @@ FixedwingPositionControl::control_auto_position(const float control_interval, co
 
 	} else {
 		// No valid previous waypoint, go for the current wp.
-		// This is automatically handled by the L1/NPFG libraries.
+		// This is automatically handled by the NPFG libraries.
 		prev_wp(0) = pos_sp_curr.lat;
 		prev_wp(1) = pos_sp_curr.lon;
 	}
@@ -1096,11 +1096,11 @@ FixedwingPositionControl::control_auto_position(const float control_interval, co
 		matrix::Vector2f velocity_2d(pos_sp_curr.vx, pos_sp_curr.vy);
 		float curvature = PX4_ISFINITE(_pos_sp_triplet.current.loiter_radius) ? 1 / _pos_sp_triplet.current.loiter_radius :
 				  0.0f;
-		navigatePathTangent(curr_pos_local, curr_wp_local, velocity_2d.normalized(), get_nav_speed_2d(ground_speed),
+		navigatePathTangent(curr_pos_local, curr_wp_local, velocity_2d.normalized(), ground_speed,
 					  _wind_vel, curvature);
 
 	} else {
-		navigateWaypoints(prev_wp_local, curr_wp_local, curr_pos_local, get_nav_speed_2d(ground_speed), _wind_vel);
+		navigateWaypoints(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
 	}
 
 	_att_sp.roll_body = _npfg.getRollSetpoint();
@@ -1187,7 +1187,7 @@ FixedwingPositionControl::control_auto_loiter(const float control_interval, cons
 
 	} else {
 		// No valid previous waypoint, go for the current wp.
-		// This is automatically handled by the L1/NPFG libraries.
+		// This is automatically handled by the NPFG libraries.
 		prev_wp(0) = pos_sp_curr.lat;
 		prev_wp(1) = pos_sp_curr.lon;
 	}
@@ -1245,7 +1245,7 @@ FixedwingPositionControl::control_auto_loiter(const float control_interval, cons
 	_npfg.setAirspeedNom(target_airspeed * _eas2tas);
 	_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
 	navigateLoiter(curr_wp_local, curr_pos_local, loiter_radius, pos_sp_curr.loiter_direction_counter_clockwise,
-			     get_nav_speed_2d(ground_speed),
+		       ground_speed,
 			     _wind_vel);
 	_att_sp.roll_body = _npfg.getRollSetpoint();
 	target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
@@ -2202,29 +2202,6 @@ FixedwingPositionControl::reset_landing_state()
 
 		updateLandingAbortStatus(position_controller_landing_status_s::NOT_ABORTED);
 	}
-}
-
-Vector2f
-FixedwingPositionControl::get_nav_speed_2d(const Vector2f &ground_speed)
-{
-
-	Vector2f nav_speed_2d{ground_speed};
-
-	if (_airspeed_valid && !_wind_valid) {
-		// l1 navigation logic breaks down when wind speed exceeds max airspeed
-		// compute 2D groundspeed from airspeed-heading projection
-		const Vector2f air_speed_2d{_airspeed * cosf(_yaw), _airspeed * sinf(_yaw)};
-
-		// angle between air_speed_2d and ground_speed
-		const float air_gnd_angle = acosf((air_speed_2d * ground_speed) / (air_speed_2d.length() * ground_speed.length()));
-
-		// if angle > 90 degrees or groundspeed is less than threshold, replace groundspeed with airspeed projection
-		if ((fabsf(air_gnd_angle) > M_PI_2_F) || (ground_speed.length() < 3.0f)) {
-			nav_speed_2d = air_speed_2d;
-		}
-	}
-
-	return nav_speed_2d;
 }
 
 float FixedwingPositionControl::compensateTrimThrottleForDensityAndWeight(float throttle_trim, float throttle_min,
