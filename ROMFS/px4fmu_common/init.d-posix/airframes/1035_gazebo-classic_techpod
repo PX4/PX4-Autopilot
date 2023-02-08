@@ -10,8 +10,6 @@ param set-default EKF2_MAG_YAWLIM 0
 
 param set-default FW_LND_ANG 8
 
-param set-default FW_L1_PERIOD 15
-
 param set-default FW_P_TC 0.5
 param set-default FW_PR_FF 0.40
 param set-default FW_PR_I 0.05
@@ -22,7 +20,7 @@ param set-default FW_RR_FF 0.20
 param set-default FW_RR_I 0.02
 param set-default FW_RR_P 0.22
 
-param set-default FW_L1_PERIOD 12
+param set-default NPFG_PERIOD 12
 
 param set-default FW_W_EN 1
 

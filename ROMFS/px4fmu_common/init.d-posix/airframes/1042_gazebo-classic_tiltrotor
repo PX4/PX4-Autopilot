@@ -46,7 +46,7 @@ param set-default PWM_MAIN_FUNC7 201
 param set-default PWM_MAIN_FUNC8 202
 param set-default PWM_MAIN_FUNC9 203
 
-param set-default FW_L1_PERIOD 12
+param set-default NPFG_PERIOD 12
 param set-default FW_PR_FF 0.2
 param set-default FW_PR_P 0.9
 param set-default FW_PSP_OFF 2

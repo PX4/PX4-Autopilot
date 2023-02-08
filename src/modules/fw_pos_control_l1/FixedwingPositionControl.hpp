@@ -55,7 +55,6 @@
 
 #include <drivers/drv_hrt.h>
 #include <lib/geo/geo.h>
-#include <lib/l1/ECL_L1_Pos_Controller.hpp>
 #include <lib/npfg/npfg.hpp>
 #include <lib/tecs/TECS.hpp>
 #include <lib/mathlib/mathlib.h>
@@ -415,9 +414,6 @@ private:
 	// CLosest point on path to track
 	matrix::Vector2f _closest_point_on_path;
 
-	// L1 guidance - lateral-directional position control
-	ECL_L1_Pos_Controller _l1_control;
-
 	// nonlinear path following guidance - lateral-directional position control
 	NPFG _npfg;
 
@@ -658,8 +654,6 @@ private:
 	void reset_takeoff_state();
 	void reset_landing_state();
 
-	bool using_npfg_with_wind_estimate() const;
-
 	/**
 	 * @brief Returns the velocity vector to be input in the lateral-directional guidance laws.
 	 *
@@ -847,12 +841,9 @@ private:
 
 		(ParamFloat<px4::params::FW_GND_SPD_MIN>) _param_fw_gnd_spd_min,
 
-		(ParamFloat<px4::params::FW_L1_DAMPING>) _param_fw_l1_damping,
-		(ParamFloat<px4::params::FW_L1_PERIOD>) _param_fw_l1_period,
 		(ParamFloat<px4::params::FW_L1_R_SLEW_MAX>) _param_fw_l1_r_slew_max,
 		(ParamFloat<px4::params::FW_R_LIM>) _param_fw_r_lim,
 
-		(ParamBool<px4::params::FW_USE_NPFG>) _param_fw_use_npfg,
 		(ParamFloat<px4::params::NPFG_PERIOD>) _param_npfg_period,
 		(ParamFloat<px4::params::NPFG_DAMPING>) _param_npfg_damping,
 		(ParamBool<px4::params::NPFG_LB_PERIOD>) _param_npfg_en_period_lb,

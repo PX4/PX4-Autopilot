@@ -32,48 +32,6 @@
  ****************************************************************************/
 
 /**
- * @file fw_pos_control_l1_params.c
- *
- * Parameters defined by the L1 position control task
- *
- * @author Lorenz Meier <lorenz@px4.io>
- */
-
-/*
- * Controller parameters, accessible via MAVLink
- */
-
-/**
- * L1 period
- *
- * Used to determine the L1 gain and controller time constant. This parameter is
- * proportional to the L1 distance (which points ahead of the aircraft on the path
- * it is following). A value of 18-25 seconds works for most aircraft. Shorten
- * slowly during tuning until response is sharp without oscillation.
- *
- * @unit s
- * @min 7.0
- * @max 50.0
- * @decimal 1
- * @increment 0.5
- * @group FW L1 Control
- */
-PARAM_DEFINE_FLOAT(FW_L1_PERIOD, 20.0f);
-
-/**
- * L1 damping
- *
- * Damping factor for L1 control.
- *
- * @min 0.6
- * @max 0.9
- * @decimal 2
- * @increment 0.05
- * @group FW L1 Control
- */
-PARAM_DEFINE_FLOAT(FW_L1_DAMPING, 0.75f);
-
-/**
  * L1 controller roll slew rate limit.
  *
  * The maximum change in roll angle setpoint per second.
@@ -85,16 +43,6 @@ PARAM_DEFINE_FLOAT(FW_L1_DAMPING, 0.75f);
  * @group FW L1 Control
  */
 PARAM_DEFINE_FLOAT(FW_L1_R_SLEW_MAX, 90.0f);
-
-/**
- * Use NPFG as lateral-directional guidance law for fixed-wing vehicles
- *
- * Replaces L1.
- *
- * @boolean
- * @group FW NPFG Control
- */
-PARAM_DEFINE_INT32(FW_USE_NPFG, 1);
 
 /**
  * NPFG period
