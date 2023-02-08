@@ -536,7 +536,7 @@ FixedwingPositionControl::status_publish()
 		const float bearing = _npfg.getBearing(); // dont repeat atan2 calc
 
 		pos_ctrl_status.nav_bearing = bearing;
-		pos_ctrl_status.target_bearing = _npfg.targetBearing();
+		pos_ctrl_status.target_bearing = _target_bearing;
 		pos_ctrl_status.xtrack_error = _npfg.getTrackError();
 		pos_ctrl_status.acceptance_radius = _npfg.switchDistance(500.0f);
 
@@ -895,9 +895,6 @@ FixedwingPositionControl::control_auto(const float control_interval, const Vecto
 		_att_sp.thrust_body[0] = 0.0f;
 		_att_sp.roll_body = 0.0f;
 		_att_sp.pitch_body = radians(_param_fw_psp_off.get());
-		_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_OFF;
-		_att_sp.apply_spoilers = vehicle_attitude_setpoint_s::SPOILERS_OFF;
-
 		break;
 
 	case position_setpoint_s::SETPOINT_TYPE_POSITION:
@@ -957,9 +954,6 @@ FixedwingPositionControl::control_auto_fixed_bank_alt_hold(const float control_i
 	}
 
 	_att_sp.pitch_body = get_tecs_pitch();
-
-	_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_OFF;
-	_att_sp.apply_spoilers = vehicle_attitude_setpoint_s::SPOILERS_OFF;
 }
 
 void
@@ -986,9 +980,6 @@ FixedwingPositionControl::control_auto_descend(const float control_interval)
 
 	_att_sp.thrust_body[0] = (_landed) ? _param_fw_thr_min.get() : min(get_tecs_thrust(), _param_fw_thr_max.get());
 	_att_sp.pitch_body = get_tecs_pitch();
-
-	_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_OFF;
-	_att_sp.apply_spoilers = vehicle_attitude_setpoint_s::SPOILERS_OFF;
 }
 
 uint8_t
@@ -1138,11 +1129,11 @@ FixedwingPositionControl::control_auto_position(const float control_interval, co
 			matrix::Vector2f velocity_2d(pos_sp_curr.vx, pos_sp_curr.vy);
 			float curvature = PX4_ISFINITE(_pos_sp_triplet.current.loiter_radius) ? 1 / _pos_sp_triplet.current.loiter_radius :
 					  0.0f;
-			_npfg.navigatePathTangent(curr_pos_local, curr_wp_local, velocity_2d.normalized(), get_nav_speed_2d(ground_speed),
-						  _wind_vel, curvature);
+			navigatePathTangent(curr_pos_local, curr_wp_local, velocity_2d.normalized(), get_nav_speed_2d(ground_speed),
+					    _wind_vel, curvature);
 
 		} else {
-			_npfg.navigateWaypoints(prev_wp_local, curr_wp_local, curr_pos_local, get_nav_speed_2d(ground_speed), _wind_vel);
+			navigateWaypoints(prev_wp_local, curr_wp_local, curr_pos_local, get_nav_speed_2d(ground_speed), _wind_vel);
 		}
 
 		_att_sp.roll_body = _npfg.getRollSetpoint();
@@ -1154,9 +1145,6 @@ FixedwingPositionControl::control_auto_position(const float control_interval, co
 	}
 
 	_att_sp.yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
-
-	_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_OFF;
-	_att_sp.apply_spoilers = vehicle_attitude_setpoint_s::SPOILERS_OFF;
 
 	tecs_update_pitch_throttle(control_interval,
 				   position_sp_alt,
@@ -1199,9 +1187,10 @@ FixedwingPositionControl::control_auto_velocity(const float control_interval, co
 				_param_fw_airspd_min.get(), ground_speed);
 
 	if (_param_fw_use_npfg.get()) {
+		Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
 		_npfg.setAirspeedNom(target_airspeed * _eas2tas);
 		_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
-		_npfg.navigateBearing(_target_bearing, ground_speed, _wind_vel);
+		navigateBearing(curr_pos_local, _target_bearing, ground_speed, _wind_vel);
 		_att_sp.roll_body = _npfg.getRollSetpoint();
 		target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
 
@@ -1211,9 +1200,6 @@ FixedwingPositionControl::control_auto_velocity(const float control_interval, co
 	}
 
 	_att_sp.yaw_body = _yaw;
-
-	_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_OFF;
-	_att_sp.apply_spoilers = vehicle_attitude_setpoint_s::SPOILERS_OFF;
 
 	tecs_update_pitch_throttle(control_interval,
 				   position_sp_alt,
@@ -1279,10 +1265,14 @@ FixedwingPositionControl::control_auto_loiter(const float control_interval, cons
 		loiter_radius = _param_nav_loiter_rad.get();
 	}
 
-	const bool in_circle_mode = (_param_fw_use_npfg.get()) ? _npfg.circleMode() : _l1_control.circle_mode();
+	Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
+	Vector2f curr_wp_local{_global_local_proj_ref.project(curr_wp(0), curr_wp(1))};
+	Vector2f vehicle_to_loiter_center{curr_wp_local - curr_pos_local};
+
+	const bool close_to_circle = vehicle_to_loiter_center.norm() < loiter_radius + _npfg.switchDistance(500);
 
 	if (pos_sp_next.type == position_setpoint_s::SETPOINT_TYPE_LAND && _position_setpoint_next_valid
-	    && in_circle_mode && _param_fw_lnd_earlycfg.get()) {
+	    && close_to_circle && _param_fw_lnd_earlycfg.get()) {
 		// We're in a loiter directly before a landing WP. Enable our landing configuration (flaps,
 		// landing airspeed and potentially tighter altitude control) already such that we don't
 		// have to do this switch (which can cause significant altitude errors) close to the ground.
@@ -1291,23 +1281,17 @@ FixedwingPositionControl::control_auto_loiter(const float control_interval, cons
 		_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_LAND;
 		_att_sp.apply_spoilers = vehicle_attitude_setpoint_s::SPOILERS_LAND;
 
-	} else {
-		_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_OFF;
-		_att_sp.apply_spoilers = vehicle_attitude_setpoint_s::SPOILERS_OFF;
 	}
 
 	float target_airspeed = adapt_airspeed_setpoint(control_interval, airspeed_sp, _param_fw_airspd_min.get(),
 				ground_speed);
 
-	Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
-	Vector2f curr_wp_local = _global_local_proj_ref.project(curr_wp(0), curr_wp(1));
-
 	if (_param_fw_use_npfg.get()) {
 		_npfg.setAirspeedNom(target_airspeed * _eas2tas);
 		_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
-		_npfg.navigateLoiter(curr_wp_local, curr_pos_local, loiter_radius, pos_sp_curr.loiter_direction_counter_clockwise,
-				     get_nav_speed_2d(ground_speed),
-				     _wind_vel);
+		navigateLoiter(curr_wp_local, curr_pos_local, loiter_radius, pos_sp_curr.loiter_direction_counter_clockwise,
+			       get_nav_speed_2d(ground_speed),
+			       _wind_vel);
 		_att_sp.roll_body = _npfg.getRollSetpoint();
 		target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
 
@@ -1426,8 +1410,8 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 		if (_param_fw_use_npfg.get()) {
 			_npfg.setAirspeedNom(target_airspeed * _eas2tas);
 			_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
-			_npfg.navigatePathTangent(local_2D_position, start_pos_local, takeoff_bearing_vector, ground_speed,
-						  _wind_vel, 0.0f);
+			navigatePathTangent(local_2D_position, start_pos_local, takeoff_bearing_vector, ground_speed,
+					    _wind_vel, 0.0f);
 
 			_att_sp.roll_body = _runway_takeoff.getRoll(_npfg.getRollSetpoint());
 
@@ -1485,7 +1469,6 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 		// apply flaps for takeoff according to the corresponding scale factor set via FW_FLAPS_TO_SCL
 		_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_TAKEOFF;
-		_att_sp.apply_spoilers = vehicle_attitude_setpoint_s::SPOILERS_OFF;
 
 	} else {
 		/* Perform launch detection */
@@ -1532,8 +1515,8 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 			if (_param_fw_use_npfg.get()) {
 				_npfg.setAirspeedNom(target_airspeed * _eas2tas);
 				_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
-				_npfg.navigatePathTangent(local_2D_position, launch_local_position, takeoff_bearing_vector, ground_speed, _wind_vel,
-							  0.0f);
+				navigatePathTangent(local_2D_position, launch_local_position, takeoff_bearing_vector, ground_speed, _wind_vel,
+						    0.0f);
 				_att_sp.roll_body = _npfg.getRollSetpoint();
 				target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
 
@@ -1577,9 +1560,6 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 			_att_sp.thrust_body[0] = _param_fw_thr_idle.get();
 			_att_sp.pitch_body = radians(_takeoff_pitch_min.get());
 		}
-
-		_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_OFF;
-		_att_sp.apply_spoilers = vehicle_attitude_setpoint_s::SPOILERS_OFF;
 
 		launch_detection_status_s launch_detection_status;
 		launch_detection_status.timestamp = now;
@@ -1688,7 +1668,7 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 		if (_param_fw_use_npfg.get()) {
 			_npfg.setAirspeedNom(target_airspeed * _eas2tas);
 			_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
-			_npfg.navigateWaypoints(local_approach_entrance, local_land_point, local_position, ground_speed, _wind_vel);
+			navigateWaypoints(local_approach_entrance, local_land_point, local_position, ground_speed, _wind_vel);
 			target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
 			_att_sp.roll_body = _npfg.getRollSetpoint();
 
@@ -1785,7 +1765,7 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 		if (_param_fw_use_npfg.get()) {
 			_npfg.setAirspeedNom(target_airspeed * _eas2tas);
 			_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
-			_npfg.navigateWaypoints(local_approach_entrance, local_land_point, local_position, ground_speed, _wind_vel);
+			navigateWaypoints(local_approach_entrance, local_land_point, local_position, ground_speed, _wind_vel);
 			target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
 			_att_sp.roll_body = _npfg.getRollSetpoint();
 
@@ -1889,11 +1869,6 @@ FixedwingPositionControl::control_manual_altitude(const float control_interval, 
 
 	_att_sp.thrust_body[0] = min(get_tecs_thrust(), throttle_max);
 	_att_sp.pitch_body = get_tecs_pitch();
-
-	// In Manual modes flaps and spoilers are directly controlled in FW Attitude controller and not passed
-	// through attitdue setpoints
-	_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_OFF;
-	_att_sp.apply_spoilers = vehicle_attitude_setpoint_s::SPOILERS_OFF;
 }
 
 void
@@ -1965,7 +1940,7 @@ FixedwingPositionControl::control_manual_position(const float control_interval, 
 			if (_param_fw_use_npfg.get()) {
 				_npfg.setAirspeedNom(calibrated_airspeed_sp * _eas2tas);
 				_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
-				_npfg.navigateWaypoints(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
+				navigateWaypoints(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
 				_att_sp.roll_body = _npfg.getRollSetpoint();
 				calibrated_airspeed_sp = _npfg.getAirspeedRef() / _eas2tas;
 
@@ -2012,11 +1987,6 @@ FixedwingPositionControl::control_manual_position(const float control_interval, 
 
 	_att_sp.thrust_body[0] = min(get_tecs_thrust(), throttle_max);
 	_att_sp.pitch_body = get_tecs_pitch();
-
-	// In Manual modes flaps and spoilers are directly controlled in FW Attitude controller and not passed
-	// through attitdue setpoints
-	_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_OFF;
-	_att_sp.apply_spoilers = vehicle_attitude_setpoint_s::SPOILERS_OFF;
 }
 
 float
@@ -2232,6 +2202,8 @@ FixedwingPositionControl::Run()
 		_l1_control.set_l1_period(_param_fw_l1_period.get());
 
 		_att_sp.reset_integral = false;
+		_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_OFF;
+		_att_sp.apply_spoilers = vehicle_attitude_setpoint_s::SPOILERS_OFF;
 
 		// by default we don't want yaw to be contoller directly with rudder
 		_att_sp.fw_control_yaw_wheel = false;
@@ -2287,9 +2259,6 @@ FixedwingPositionControl::Run()
 
 		case FW_POSCTRL_MODE_OTHER: {
 				_att_sp.thrust_body[0] = min(_att_sp.thrust_body[0], _param_fw_thr_max.get());
-
-				_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_OFF;
-				_att_sp.apply_spoilers = vehicle_attitude_setpoint_s::SPOILERS_OFF;
 
 				_tecs.initialize(_current_altitude, -_local_pos.vz, _airspeed, _eas2tas);
 
@@ -2720,7 +2689,7 @@ void FixedwingPositionControl::publishLocalPositionSetpoint(const position_setpo
 		}
 
 	} else {
-		current_setpoint = _npfg.getClosestPoint();
+		current_setpoint = _closest_point_on_path;
 	}
 
 	local_position_setpoint.x = current_setpoint(0);
@@ -2758,6 +2727,104 @@ void FixedwingPositionControl::publishOrbitStatus(const position_setpoint_s pos_
 	orbit_status.yaw_behaviour = orbit_status_s::ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TANGENT_TO_CIRCLE;
 	_orbit_status_pub.publish(orbit_status);
 }
+
+void FixedwingPositionControl::navigateWaypoints(const Vector2f &waypoint_A, const Vector2f &waypoint_B,
+		const Vector2f &vehicle_pos, const Vector2f &ground_vel, const Vector2f &wind_vel)
+{
+	// similar to logic found in ECL_L1_Pos_Controller method of same name
+	// BUT no arbitrary max approach angle, approach entirely determined by generated
+	// bearing vectors
+
+	Vector2f vector_A_to_B = waypoint_B - waypoint_A;
+	Vector2f vector_A_to_vehicle = vehicle_pos - waypoint_A;
+
+	if (vector_A_to_B.norm() < FLT_EPSILON) {
+		// the waypoints are on top of each other and should be considered as a
+		// single waypoint, fly directly to it
+		if (vector_A_to_vehicle.norm() > FLT_EPSILON) {
+			vector_A_to_B = -vector_A_to_vehicle;
+
+		} else {
+			// Fly to a point and on it. Stay to the current control. Do not update the npfg library to get last output.
+			return;
+		}
+
+
+	} else if ((vector_A_to_B.dot(vector_A_to_vehicle) < -FLT_EPSILON)) {
+		// we are in front of waypoint A, fly directly to it until we are within switch distance.
+
+		if (vector_A_to_vehicle.norm() > _npfg.switchDistance(500.0f)) {
+			vector_A_to_B = -vector_A_to_vehicle;
+		}
+	}
+
+	// track the line segment
+	Vector2f unit_path_tangent{vector_A_to_B.normalized()};
+	_target_bearing = atan2f(unit_path_tangent(1), unit_path_tangent(0));
+	_closest_point_on_path = waypoint_A + vector_A_to_vehicle.dot(unit_path_tangent) * unit_path_tangent;
+	_npfg.guideToPath(vehicle_pos, ground_vel, wind_vel, unit_path_tangent, waypoint_A, 0.0f);
+} // navigateWaypoints
+
+void FixedwingPositionControl::navigateLoiter(const Vector2f &loiter_center, const Vector2f &vehicle_pos,
+		float radius, bool loiter_direction_counter_clockwise, const Vector2f &ground_vel, const Vector2f &wind_vel)
+{
+	const float loiter_direction_multiplier = loiter_direction_counter_clockwise ? -1.f : 1.f;
+
+	Vector2f vector_center_to_vehicle = vehicle_pos - loiter_center;
+	const float dist_to_center = vector_center_to_vehicle.norm();
+
+	// find the direction from the circle center to the closest point on its perimeter
+	// from the vehicle position
+	Vector2f unit_vec_center_to_closest_pt;
+
+	if (dist_to_center < 0.1f) {
+		// the logic breaks down at the circle center, employ some mitigation strategies
+		// until we exit this region
+		if (ground_vel.norm() < 0.1f) {
+			// arbitrarily set the point in the northern top of the circle
+			unit_vec_center_to_closest_pt = Vector2f{1.0f, 0.0f};
+
+		} else {
+			// set the point in the direction we are moving
+			unit_vec_center_to_closest_pt = ground_vel.normalized();
+		}
+
+	} else {
+		// set the point in the direction of the aircraft
+		unit_vec_center_to_closest_pt = vector_center_to_vehicle.normalized();
+	}
+
+	// 90 deg clockwise rotation * loiter direction
+	const Vector2f unit_path_tangent = loiter_direction_multiplier * Vector2f{-unit_vec_center_to_closest_pt(1), unit_vec_center_to_closest_pt(0)};
+
+	float path_curvature = loiter_direction_multiplier / radius;
+	_target_bearing = atan2f(unit_path_tangent(1), unit_path_tangent(0));
+	_closest_point_on_path = unit_vec_center_to_closest_pt * radius + loiter_center;
+	_npfg.guideToPath(vehicle_pos, ground_vel, wind_vel, unit_path_tangent,
+			  loiter_center + unit_vec_center_to_closest_pt * radius, path_curvature);
+} // navigateLoiter
+
+
+void FixedwingPositionControl::navigatePathTangent(const matrix::Vector2f &vehicle_pos,
+		const matrix::Vector2f &position_setpoint,
+		const matrix::Vector2f &tangent_setpoint,
+		const matrix::Vector2f &ground_vel, const matrix::Vector2f &wind_vel, const float &curvature)
+{
+	const Vector2f unit_path_tangent{tangent_setpoint.normalized()};
+	_target_bearing = atan2f(unit_path_tangent(1), unit_path_tangent(0));
+	_closest_point_on_path = position_setpoint;
+	_npfg.guideToPath(vehicle_pos, ground_vel, wind_vel, tangent_setpoint.normalized(), position_setpoint, curvature);
+} // navigatePathTangent
+
+void FixedwingPositionControl::navigateBearing(const matrix::Vector2f &vehicle_pos, float bearing,
+		const Vector2f &ground_vel, const Vector2f &wind_vel)
+{
+
+	const Vector2f unit_path_tangent = Vector2f{cosf(bearing), sinf(bearing)};
+	_target_bearing = atan2f(unit_path_tangent(1), unit_path_tangent(0));
+	_closest_point_on_path = vehicle_pos;
+	_npfg.guideToPath(vehicle_pos, ground_vel, wind_vel, unit_path_tangent, vehicle_pos, 0.0f);
+} // navigateBearing
 
 int FixedwingPositionControl::task_spawn(int argc, char *argv[])
 {

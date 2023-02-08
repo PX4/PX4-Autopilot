@@ -412,6 +412,9 @@ private:
 
 	// LATERAL-DIRECTIONAL GUIDANCE
 
+	// CLosest point on path to track
+	matrix::Vector2f _closest_point_on_path;
+
 	// L1 guidance - lateral-directional position control
 	ECL_L1_Pos_Controller _l1_control;
 
@@ -772,6 +775,68 @@ private:
 	 */
 	void initializeAutoLanding(const hrt_abstime &now, const position_setpoint_s &pos_sp_prev,
 				   const position_setpoint_s &pos_sp_curr, const Vector2f &local_position, const Vector2f &local_land_point);
+
+	/*
+	 * Waypoint handling logic following closely to the ECL_L1_Pos_Controller
+	 * method of the same name. Takes two waypoints and determines the relevant
+	 * parameters for evaluating the NPFG guidance law, then updates control setpoints.
+	 *
+	 * @param[in] waypoint_A Waypoint A (segment start) position in WGS84 coordinates
+	 *            (lat,lon) [deg]
+	 * @param[in] waypoint_B Waypoint B (segment end) position in WGS84 coordinates
+	 *            (lat,lon) [deg]
+	 * @param[in] vehicle_pos Vehicle position in WGS84 coordinates (lat,lon) [deg]
+	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
+	 * @param[in] wind_vel Wind velocity vector [m/s]
+	 */
+	void navigateWaypoints(const matrix::Vector2f &waypoint_A, const matrix::Vector2f &waypoint_B,
+			       const matrix::Vector2f &vehicle_pos, const matrix::Vector2f &ground_vel,
+			       const matrix::Vector2f &wind_vel);
+
+	/*
+	 * Loitering (unlimited) logic. Takes loiter center, radius, and direction and
+	 * determines the relevant parameters for evaluating the NPFG guidance law,
+	 * then updates control setpoints.
+	 *
+	 * @param[in] loiter_center The position of the center of the loiter circle [m]
+	 * @param[in] vehicle_pos Vehicle position in WGS84 coordinates (lat,lon) [deg]
+	 * @param[in] radius Loiter radius [m]
+	 * @param[in] loiter_direction_counter_clockwise Specifies loiter direction
+	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
+	 * @param[in] wind_vel Wind velocity vector [m/s]
+	 */
+	void navigateLoiter(const matrix::Vector2f &loiter_center, const matrix::Vector2f &vehicle_pos,
+			    float radius, bool loiter_direction_counter_clockwise, const matrix::Vector2f &ground_vel,
+			    const matrix::Vector2f &wind_vel);
+
+	/*
+	 * Path following logic. Takes poisiton, path tangent, curvature and
+	 * then updates control setpoints to follow a path setpoint.
+	 *
+	 * @param[in] vehicle_pos vehicle_pos Vehicle position in WGS84 coordinates (lat,lon) [deg]
+	 * @param[in] position_setpoint closest point on a path in WGS84 coordinates (lat,lon) [deg]
+	 * @param[in] tangent_setpoint unit tangent vector of the path [m]
+	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
+	 * @param[in] wind_vel Wind velocity vector [m/s]
+	 * @param[in] curvature of the path setpoint [1/m]
+	 */
+	void navigatePathTangent(const matrix::Vector2f &vehicle_pos, const matrix::Vector2f &position_setpoint,
+				 const matrix::Vector2f &tangent_setpoint,
+				 const matrix::Vector2f &ground_vel, const matrix::Vector2f &wind_vel, const float &curvature);
+
+	/*
+	 * Navigate on a fixed bearing.
+	 *
+	 * This only holds a certain (ground relative) direction and does not perform
+	 * cross track correction. Helpful for semi-autonomous modes. Similar to navigateHeading.
+	 *
+	 * @param[in] vehicle_pos vehicle_pos Vehicle position in WGS84 coordinates (lat,lon) [deg]
+	 * @param[in] bearing Bearing angle [rad]
+	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
+	 * @param[in] wind_vel Wind velocity vector [m/s]
+	 */
+	void navigateBearing(const matrix::Vector2f &vehicle_pos, float bearing, const matrix::Vector2f &ground_vel,
+			     const matrix::Vector2f &wind_vel);
 
 	DEFINE_PARAMETERS(
 
