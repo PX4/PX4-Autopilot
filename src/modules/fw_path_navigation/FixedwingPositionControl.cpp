@@ -303,6 +303,11 @@ FixedwingPositionControl::wind_poll()
 		// invalidate wind estimate usage (and correspondingly NPFG, if enabled) after subscription timeout
 		_wind_valid = _wind_valid && (hrt_absolute_time() - _time_wind_last_received) < WIND_EST_TIMEOUT;
 	}
+
+	if (!_wind_valid) {
+		_wind_vel(0) = 0.f;
+		_wind_vel(1) = 0.f;
+	}
 }
 
 void
@@ -1095,7 +1100,7 @@ FixedwingPositionControl::control_auto_position(const float control_interval, co
 		float curvature = PX4_ISFINITE(_pos_sp_triplet.current.loiter_radius) ? 1 / _pos_sp_triplet.current.loiter_radius :
 				  0.0f;
 		navigatePathTangent(curr_pos_local, curr_wp_local, velocity_2d.normalized(), ground_speed,
-					  _wind_vel, curvature);
+				    _wind_vel, curvature);
 
 	} else {
 		navigateWaypoints(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
@@ -1242,7 +1247,7 @@ FixedwingPositionControl::control_auto_loiter(const float control_interval, cons
 	_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
 	navigateLoiter(curr_wp_local, curr_pos_local, loiter_radius, pos_sp_curr.loiter_direction_counter_clockwise,
 		       ground_speed,
-			     _wind_vel);
+		       _wind_vel);
 	_att_sp.roll_body = _npfg.getRollSetpoint();
 	target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
 
