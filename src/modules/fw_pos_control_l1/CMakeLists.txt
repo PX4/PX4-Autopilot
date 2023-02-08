@@ -41,7 +41,6 @@ px4_add_module(
 		FixedwingPositionControl.cpp
 		FixedwingPositionControl.hpp
 	DEPENDS
-		l1
 		launchdetection
     npfg
 		runway_takeoff
