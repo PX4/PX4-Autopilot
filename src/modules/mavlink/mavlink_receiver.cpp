@@ -3213,6 +3213,13 @@ MavlinkReceiver::run()
 				/* non-blocking read. read may return negative values */
 				nread = ::read(fds[0].fd, buf, sizeof(buf));
 
+				parse_for_ok(nread, (const char *)buf);
+
+				if (waiting_for_ok()) {
+					// Don't bother with the rest at the moment, we only wait for an ok.
+					continue;
+				}
+
 				if (nread == -1 && errno == ENOTCONN) { // Not connected (can happen for USB)
 					usleep(100000);
 				}
@@ -3578,4 +3585,63 @@ void MavlinkReceiver::stop()
 {
 	_should_exit.store(true);
 	pthread_join(_thread, nullptr);
+}
+
+void MavlinkReceiver::parse_for_ok(int nread, const char *buf)
+{
+	if (nread < 1) {
+		return;
+	}
+
+	for (int i = 0; i < nread; ++i) {
+		switch (_parse_state) {
+		case OkParseState::None:
+			// Nothing to do.
+			break;
+
+		case OkParseState::Waiting:
+			if (buf[i] == 'O') {
+				_parse_state = OkParseState::GotO;
+			}
+
+			break;
+
+		case OkParseState::GotO:
+			if (buf[i] == 'K') {
+				_parse_state = OkParseState::GotK;
+
+			} else {
+				_parse_state = OkParseState::None;
+			}
+
+			break;
+
+		case OkParseState::GotK:
+			break;
+
+		default:
+			break;
+
+
+		};
+	}
+}
+
+void MavlinkReceiver::wait_for_ok()
+{
+	_parse_state = OkParseState::Waiting;
+}
+
+bool MavlinkReceiver::got_ok()
+{
+	if (_parse_state == OkParseState::GotK) {
+		_parse_state = OkParseState::None;
+		return true;
+	}
+
+	return false;
+}
+bool MavlinkReceiver::waiting_for_ok() const
+{
+	return _parse_state == OkParseState::Waiting;
 }
