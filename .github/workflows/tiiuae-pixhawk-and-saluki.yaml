@@ -216,6 +216,32 @@ jobs:
           path: bin/
           retention-days: 1
 
+  saluki-v2_protected:
+    name: build saluki-v2_protected
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push'
+    steps:
+      - name: Checkout px4-firmware
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GH_REPO_TOKEN }}
+          submodules: recursive
+          path: px4-firmware
+          fetch-depth: 0
+      - name: Run px4-firmware saluki-v2_protected build
+        run: |
+          set -eux
+          mkdir -p bin
+          cd px4-firmware/
+          ./build.sh ../bin/ saluki-v2_protected
+          ls ../bin
+      - name: Upload saluki-v2_protected
+        uses: actions/upload-artifact@v3
+        with:
+          name: pixhawk
+          path: bin/
+          retention-days: 1
+
   px4fwupdater:
     name: build px4fwupdater
     runs-on: ubuntu-latest
@@ -228,6 +254,7 @@ jobs:
       - saluki-v2_default
       - saluki-v2_bootloader
       - saluki-v2_amp
+      - saluki-v2_protected
     steps:
       - name: Checkout px4-firmware
         uses: actions/checkout@v3
@@ -349,6 +376,7 @@ jobs:
       - saluki-v2_default
       - saluki-v2_bootloader
       - saluki-v2_amp
+      - saluki-v2_protected
       - px4fwupdater
     if: true
     steps:
@@ -418,6 +446,7 @@ jobs:
       - saluki-v2_default
       - saluki-v2_bootloader
       - saluki-v2_amp
+      - saluki-v2_protected
       - px4fwupdater
     if: true
     steps:
