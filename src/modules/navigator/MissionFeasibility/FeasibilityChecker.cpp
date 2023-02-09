@@ -150,11 +150,20 @@ void FeasibilityChecker::updateData()
 	}
 }
 
-void FeasibilityChecker::processNextItem(mission_item_s &mission_item, const int current_index, const int total_count)
+bool FeasibilityChecker::processNextItem(mission_item_s &mission_item, const int current_index, const int total_count)
 {
 	if (current_index == 0) {
 		reset();
 		updateData();
+	}
+
+	if (!_mission_validity_failed) {
+		_mission_validity_failed = !checkMissionItemValidity(mission_item, current_index);
+	}
+
+	if (_mission_validity_failed) {
+		// if a mission item is not valid then abort the other checks
+		return false;
 	}
 
 	doCommonChecks(mission_item, current_index);
@@ -174,13 +183,12 @@ void FeasibilityChecker::processNextItem(mission_item_s &mission_item, const int
 	}
 
 	_mission_item_previous = mission_item;
+
+	return true;
 }
 
 void FeasibilityChecker::doCommonChecks(mission_item_s &mission_item, const int current_index)
 {
-	if (!_mission_validity_failed) {
-		_mission_validity_failed = !checkMissionItemValidity(mission_item, current_index);
-	}
 
 	if (!_distance_between_waypoints_failed) {
 		_distance_between_waypoints_failed = !checkDistancesBetweenWaypoints(mission_item);
@@ -227,6 +235,20 @@ void FeasibilityChecker::doMulticopterChecks(mission_item_s &mission_item, const
 
 bool FeasibilityChecker::checkMissionItemValidity(mission_item_s &mission_item, const int current_index)
 {
+	/* reject relative alt without home set */
+	if (mission_item.altitude_is_relative && !PX4_ISFINITE(_home_alt_msl)
+	    && MissionBlock::item_contains_position(mission_item)) {
+
+
+
+		mavlink_log_critical(_mavlink_log_pub, "Mission rejected: No home pos, WP %d uses rel alt\t", current_index + 1);
+		events::send<int16_t>(events::ID("navigator_mis_no_home_rel_alt"), {events::Log::Error, events::LogInternal::Info},
+				      "Mission rejected: No home position, waypoint {1} uses relative altitude",
+				      current_index + 1);
+		return false;
+
+	}
+
 	// check if we find unsupported items and reject mission if so
 	if (mission_item.nav_cmd != NAV_CMD_IDLE &&
 	    mission_item.nav_cmd != NAV_CMD_WAYPOINT &&
@@ -317,23 +339,16 @@ bool FeasibilityChecker::checkTakeoff(mission_item_s &mission_item)
 
 	// look for a takeoff waypoint
 	if (mission_item.nav_cmd == NAV_CMD_TAKEOFF || mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF) {
-		// make sure that the altitude of the waypoint is at least one meter larger than the acceptance radius
-		// this makes sure that the takeoff waypoint is not reached before we are at least one meter in the air
+		// make sure that the altitude of the waypoint is above the home altitude
+		const float takeoff_alt = mission_item.altitude_is_relative
+					  ? mission_item.altitude
+					  : mission_item.altitude - _home_alt_msl;
 
-		float takeoff_alt = mission_item.altitude_is_relative
-				    ? mission_item.altitude
-				    : mission_item.altitude - _home_alt_msl;
-
-		float acceptance_radius = _param_nav_acc_rad;
-
-		if (mission_item.acceptance_radius > NAV_EPSILON_POSITION) {
-			acceptance_radius = mission_item.acceptance_radius;
-		}
-
-		if (takeoff_alt - 1.0f < acceptance_radius) {
-			mavlink_log_critical(_mavlink_log_pub, "Mission rejected: Takeoff altitude too low!\t");
+		if (takeoff_alt < FLT_EPSILON) {
+			mavlink_log_critical(_mavlink_log_pub, "Mission rejected: Takeoff altitude below home altitude!\t");
 			events::send<float>(events::ID("navigator_mis_takeoff_too_low"), {events::Log::Error, events::LogInternal::Info},
-					    "Mission rejected: takeoff altitude too low! Minimum: {1:.1m_v}", acceptance_radius + 1.f);
+					    "Mission rejected: takeoff altitude too low! Minimum: {1:.1m_v}",
+					    mission_item.altitude_is_relative ? 0.0f : _home_alt_msl);
 			return false;
 		}
 
@@ -710,21 +725,6 @@ bool FeasibilityChecker::checkDistancesBetweenWaypoints(const mission_item_s &mi
 
 bool FeasibilityChecker::checkIfBelowHomeAltitude(const mission_item_s &mission_item, const int current_index)
 {
-
-	/* reject relative alt without home set */
-	if (mission_item.altitude_is_relative && !PX4_ISFINITE(_home_alt_msl)
-	    && MissionBlock::item_contains_position(mission_item)) {
-
-
-
-		mavlink_log_critical(_mavlink_log_pub, "Mission rejected: No home pos, WP %d uses rel alt\t", current_index + 1);
-		events::send<int16_t>(events::ID("navigator_mis_no_home_rel_alt"), {events::Log::Error, events::LogInternal::Info},
-				      "Mission rejected: No home position, waypoint {1} uses relative altitude",
-				      current_index + 1);
-		return false;
-
-	}
-
 	/* calculate the global waypoint altitude */
 	float wp_alt = (mission_item.altitude_is_relative) ? mission_item.altitude + _home_alt_msl : mission_item.altitude;
 

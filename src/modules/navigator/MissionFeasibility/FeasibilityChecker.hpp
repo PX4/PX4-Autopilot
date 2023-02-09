@@ -54,13 +54,25 @@ public:
 		Other
 	};
 
-	void processNextItem(mission_item_s &mission_item, const int current_index, const int total_count);
+	/**
+	 * @brief Run validity checks for mission item
+	 *
+	 *
+	 * @param mission_item The mission item to run the checks on
+	 * @param current_index The index of the current mission item in the mission
+	 * @param total_count The total number of mission items in the mission
+	 * @return False if fatal error occured and no other checks should be run.
+	*/
+	bool processNextItem(mission_item_s &mission_item, const int current_index, const int total_count);
 
 	void setMavlinkLogPub(orb_advert_t *mavlink_log_pub)
 	{
 		_mavlink_log_pub = mavlink_log_pub;
 	}
 
+	/**
+	 * @return True At least one check failed.
+	*/
 	bool someCheckFailed()
 	{
 		return _takeoff_failed ||
@@ -73,6 +85,9 @@ public:
 		       _takeoff_land_available_failed;
 	}
 
+	/**
+	 * @brief Reset all data
+	*/
 	void reset();
 
 private:
@@ -123,22 +138,113 @@ private:
 	double _last_lon{(double)NAN};
 	int _last_cmd{-1};
 
+	/**
+	 * @brief Update data from external topics, e.g home position
+	*/
 	void updateData();
 
 	// methods which are called for each mission item
+
+	/**
+	 * @brief Check general mission item validity, e.g. supported commands.
+	 *
+	 * @param mission_item The current mission item
+	 * @return False if the check failed.
+	*/
 	bool checkMissionItemValidity(mission_item_s &mission_item, const int current_index);
+
+	/**
+	 * @brief Check if takeoff is valid
+	 *
+	 * @param mission_item The current mission item
+	 * @return False if the check failed.
+	*/
 	bool checkTakeoff(mission_item_s &mission_item);
+
+	/**
+	 * @brief Check validity of landing pattern (fixed wing & vtol)
+	 *
+	 * @param mission_item The current mission item
+	 * @param current_index The current mission index
+	 * @param last_index The last index of the mission
+	 * @return False if the check failed.
+	*/
 	bool checkLandPatternValidity(mission_item_s &mission_item, const int current_index, const int last_index);
+
+	/**
+	 * @brief Check distance to first waypoint.
+	 *
+	 * @param mission_item The current mission item
+	 * @return False if the check failed.
+	*/
 	bool checkDistanceToFirstWaypoint(mission_item_s &mission_item);
+
+	/**
+	 * @brief Check distances between waypoints
+	 *
+	 * @param mission_item The current mission item
+	 * @return False if the check failed.
+	*/
 	bool checkDistancesBetweenWaypoints(const mission_item_s &mission_item);
+
+	/**
+	 * @brief Check if any waypoint is below the home altitude. Issues warning only.
+	 *
+	 * @param mission_item The current mission item
+	 * @param current_index The current mission index
+	 * @return Always returns true, only issues warning.
+	*/
 	bool checkIfBelowHomeAltitude(const mission_item_s &mission_item, const int current_index);
+
+	/**
+	 * @brief Check fixed wing land approach (fixed wing only)
+	 *
+	 * @param mission_item The current mission item
+	 * @param current_index The current mission index
+	 * @return False if the check failed.
+	*/
 	bool checkFixedWindLandApproach(mission_item_s &mission_item, const int current_index);
 
 	// methods which are called once at the end
+	/**
+	 * @brief Check if takeoff/landing are available according to MIS_TKO_LAND_REQ parameter
+	 *
+	 * @return False if the check failed.
+	*/
 	bool checkTakeoffLandAvailable();
 
+	/**
+	 * @brief Run checks which are common for all vehicle types
+	 *
+	 * @param mission_item The current mission item
+	 * @param current_index The current mission index
+	*/
 	void doCommonChecks(mission_item_s &mission_item, const int current_index);
+
+	/**
+	 * @brief Run checks which are only related to VTOL vehicles.
+	 *
+	 * @param mission_item The current mission item
+	 * @param current_index The current mission index
+	*/
 	void doVtolChecks(mission_item_s &mission_item, const int current_index, const int last_index);
+
+	/**
+	 * @brief Run checks which are only related to fixed wing vehicles.
+	 *
+	 * @param mission_item The current mission item
+	 * @param current_index The current mission index
+	 * @param last_index The last mission index
+	 * @return False if the check failed.
+	*/
 	void doFixedWingChecks(mission_item_s &mission_item, const int current_index, const int last_index);
+
+	/**
+	 * @brief Run checks which are only related to multirotor vehicles.
+	 *
+	 * @param mission_item The current mission item
+	 * @param current_index The current mission index
+	 * @return False if the check failed.
+	*/
 	void doMulticopterChecks(mission_item_s &mission_item, const int current_index);
 };
