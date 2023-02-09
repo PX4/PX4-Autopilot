@@ -73,33 +73,32 @@
 #  define hrtinfo(x...)
 #endif
 
+/* This assumes MTIMER count at 1MHz in MPFS */
+
+#if MPFS_MSS_RTC_TOGGLE_CLK != 1000000
+#  error This driver currently assumes that MTIMER runs at 1MHz
+#endif
+
 #define CLOCK_RATE_MHZ          (MPFS_MSS_APB_AHB_CLK / 1000000)
-
-#define HRT_INTERVAL_MIN	50UL // in microseconds
-#define HRT_INTERVAL_MAX	28633115UL // in microsecond
-
-#define HRT_COUNTER_MIN	        (HRT_INTERVAL_MIN * CLOCK_RATE_MHZ)
-#define HRT_COUNTER_MAX         (HRT_INTERVAL_MAX * CLOCK_RATE_MHZ)
 
 /*
  * Scaling factor(s) for the free-running counter; convert an input
  * in counts to a time in microseconds.
  */
 
-#define HRT_COUNTER_SCALE(_c)	((_c) / CLOCK_RATE_MHZ)
-#define HRT_TIME_TO_COUNTS(_a)  ((_a) * CLOCK_RATE_MHZ)
+#define HRT_COUNTS_TO_TIME(_c) ((_c) / CLOCK_RATE_MHZ)
+#define HRT_TIME_TO_COUNTS(_a) ((_a) * CLOCK_RATE_MHZ)
+
+#define HRT_INTERVAL_MIN 50UL                          // 50 microseconds
+#define HRT_INTERVAL_MAX HRT_COUNTS_TO_TIME(0xFFFFFFFF) // ~28.6s at 150MHz timer
 
 /*
  * Queue of callout entries.
  */
-static struct sq_queue_s	callout_queue;
+static struct sq_queue_s callout_queue;
 
-/* timer static variables */
-static volatile uint64_t base_time;
-static volatile uint32_t loadval;
-
-/* timer count at interrupt (for latency purposes) */
-static uint32_t			latency_actual;
+/* last loaded value for irq latency calculation */
+static hrt_abstime loadval;
 
 /* latency histogram */
 const uint16_t latency_bucket_count = LATENCY_BUCKET_COUNT;
@@ -119,42 +118,6 @@ static void hrt_call_reschedule(void);
 static void hrt_call_invoke(void);
 
 /**
- * function to retrieve current timestamp in timer resolution.
- * this handles the possible overflows and returns a monotonically
- * increasing time.
- *
- * Always call with interrupts disabled.
- */
-
-inline static uint64_t hrt_get_curr_time(void)
-{
-	uint64_t	curr_time;
-	static volatile uint64_t	prev_curr_time;
-
-	/* get the current counter value */
-	uint32_t count = getreg32(MPFS_MSTIMER_LO_BASE + MPFS_MSTIMER_TIM1VALUE_OFFSET);
-
-	curr_time = base_time + (loadval - count);
-
-	/* This takes care of timer wrapping over during some other isr, and this
-	 * function being called several times before the base_time is updated in the
-	 * timer isr.
-	*/
-
-	if (prev_curr_time > curr_time) {
-		curr_time += loadval;
-
-		if (prev_curr_time > curr_time) {
-			_err("HRT not monotonic\n");
-		}
-	}
-
-	prev_curr_time = curr_time;
-
-	return curr_time;
-}
-
-/**
  * function to set new time to the the next interrupt.
  *
  * Always call with interrupts disabled.
@@ -162,12 +125,9 @@ inline static uint64_t hrt_get_curr_time(void)
 
 inline static void hrt_set_new_deadline(uint32_t deadline)
 {
-	uint64_t curr_time = hrt_get_curr_time();
-
 	/* load the new deadline into register and store it locally */
-	putreg32(deadline, MPFS_MSTIMER_LO_BASE + MPFS_MSTIMER_TIM1LOADVAL_OFFSET);
-	loadval = deadline;
-	base_time = curr_time;
+	putreg32(HRT_TIME_TO_COUNTS(deadline), MPFS_MSTIMER_LO_BASE + MPFS_MSTIMER_TIM1LOADVAL_OFFSET);
+	loadval = hrt_absolute_time() + deadline;
 }
 
 /**
@@ -187,7 +147,7 @@ hrt_tim_init(void)
 		/* Assumes that the clock for timer is enabled and not in reset */
 
 		/* set an initial timeout to 1 ms*/
-		hrt_set_new_deadline(HRT_TIME_TO_COUNTS(1000));
+		hrt_set_new_deadline(1000);
 
 		/* enable interrupt for timer, set periodic mode and enable timer */
 		putreg32((MPFS_MSTIMER_INTEN_MASK | MPFS_MSTIMER_ENABLE_MASK) & ~(MPFS_MSTIMER_MODE_MASK),
@@ -207,16 +167,10 @@ hrt_tim_isr(int irq, void *context, void *arg)
 {
 	uint32_t status;
 
-	/* get the current (wrapped over) counter value for
-	   latency tracking purposes */
-	latency_actual = getreg32(MPFS_MSTIMER_LO_BASE + MPFS_MSTIMER_TIM1VALUE_OFFSET);
-
 	status = getreg32(MPFS_MSTIMER_LO_BASE + MPFS_MSTIMER_TIM1RIS_OFFSET);
 
 	/* was this a timer tick? */
 	if (status & MPFS_MSTIMER_RIS_MASK) {
-		/* update base_time */
-		base_time += loadval;
 
 		/* do latency calculations */
 		hrt_latency_update();
@@ -241,17 +195,7 @@ hrt_tim_isr(int irq, void *context, void *arg)
 hrt_abstime
 hrt_absolute_time(void)
 {
-	uint64_t	curr_time;
-	irqstate_t	flags;
-
-	/* prevent re-entry */
-	flags = px4_enter_critical_section();
-
-	curr_time = hrt_get_curr_time();
-
-	px4_leave_critical_section(flags);
-
-	return HRT_COUNTER_SCALE(curr_time);
+	return getreg64(MPFS_CLINT_MTIME);
 }
 
 /**
@@ -467,16 +411,13 @@ hrt_call_invoke(void)
 static void
 hrt_call_reschedule()
 {
-	hrt_abstime	now = hrt_absolute_time();
+	hrt_abstime now = hrt_absolute_time();
 	struct hrt_call	*next = (struct hrt_call *)sq_peek(&callout_queue);
-	uint32_t	deadline = HRT_COUNTER_MAX;
+	uint32_t	deadline = HRT_INTERVAL_MAX;
 
 	/*
 	 * Determine what the next deadline will be.
 	 *
-	 * It is important for accurate timekeeping that
-	 * the interrupt fires sufficiently often that the base_time update in
-	 * hrt_absolute_time runs at least once per timer period.
 	 */
 	if (next != NULL) {
 		hrtinfo("entry in queue\n");
@@ -484,18 +425,16 @@ hrt_call_reschedule()
 		if (next->deadline <= (now + HRT_INTERVAL_MIN)) {
 			hrtinfo("pre-expired\n");
 			/* set a minimal deadline so that we call ASAP */
-			deadline = HRT_COUNTER_MIN;
+			deadline = HRT_INTERVAL_MIN;
 
 		} else if (next->deadline < now + HRT_INTERVAL_MAX) {
 			hrtinfo("due soon\n");
 			/* calculate how much time we have to the next deadline */
-			uint32_t deadline_us = (next->deadline - now);
-			/* convert to the counter counts */
-			deadline = HRT_TIME_TO_COUNTS(deadline_us);
+			deadline = (next->deadline - now);
 		}
 	}
 
-	hrtinfo("schedule for %"PRIu64" at %"PRIu64"\n", HRT_COUNTER_SCALE(deadline), now);
+	hrtinfo("schedule for %"PRIu64" at %"PRIu64"\n", deadline, now);
 
 	/* set next deadline */
 	hrt_set_new_deadline(deadline);
@@ -504,8 +443,8 @@ hrt_call_reschedule()
 static void
 hrt_latency_update(void)
 {
-	uint32_t latency = HRT_COUNTER_SCALE(loadval - latency_actual);
-	unsigned	index;
+	uint32_t latency = hrt_absolute_time() - loadval;
+	unsigned index;
 
 	/* bounded buckets */
 	for (index = 0; index < LATENCY_BUCKET_COUNT; index++) {
