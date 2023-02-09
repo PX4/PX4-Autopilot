@@ -47,6 +47,9 @@ __BEGIN_DECLS
 #include <chip.h>
 #include <mpfs_i2c.h>
 #include <mpfs_spi.h>
+#include <arch/board/board_memorymap.h>
+
+#include "riscv_mmu.h"
 
 /*
  *  PX4 uses the words in bigendian order MSB to LSB
@@ -106,6 +109,13 @@ __BEGIN_DECLS
 #define PX4_MAKE_GPIO_OUTPUT(gpio) (((gpio) & (~GPIO_INPUT | GPIO_BANK_MASK | GPIO_PIN_MASK | GPIO_BUFFER_MASK)) | GPIO_OUTPUT)
 
 #define PX4_GPIO_PIN_OFF(gpio) (gpio & (GPIO_BANK_MASK | GPIO_PIN_MASK))
+
+/* MPFS can access HRT timer counter directly from user space in
+ * CONFIG_BUILD_PROTECTED and CONFIG_BUILD_KERNEL
+ */
+
+#define PX4_USERSPACE_HRT
+#define usr_hrt_absolute_time() getreg64(USRIO_START + (MPFS_CLINT_MTIME & RV_MMU_PAGE_MASK))
 
 // TODO!
 #  define px4_cache_aligned_data()
