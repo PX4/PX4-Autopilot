@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!-- DO NOT EDIT: Generated from standard_vtol.sdf.jinja -->
-<sdf version='1.9'>
+<sdf version='1.10'>
   <model name='standard_vtol'>
     <pose>0 0 0.246 0 0 0</pose>
     <link name='base_link'>
@@ -167,12 +167,12 @@
         <visualize>true</visualize>
         <enable_metrics>true</enable_metrics>
         <air_speed>
-          <airspeed>
+          <pressure>
             <noise type="gaussian">
               <mean>0</mean>
               <stddev>0.01</stddev>
             </noise>
-          </airspeed>
+          </pressure>
         </air_speed>
       </sensor>
     </link>

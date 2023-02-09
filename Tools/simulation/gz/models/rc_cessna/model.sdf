@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<sdf version='1.9'>
+<sdf version='1.10'>
   <model name='rc_cessna'>
     <pose>0 0 0.246 0 0 0</pose>
     <link name='base_link'>
@@ -85,7 +85,7 @@
         <update_rate>250</update_rate>
       </sensor>
     </link>
-    <link name="airspeed">
+    <link name="airspeed_link">
       <pose>0 0 0 0 0 0</pose>
       <inertial>
         <pose>0 0 0 0 0 0</pose>
@@ -111,22 +111,22 @@
           <diffuse>0 0 0 1.0</diffuse>
         </material>
       </visual>
-      <!-- <sensor name="air_speed" type="air_speed">
+      <sensor name="air_speed" type="air_speed">
         <always_on>1</always_on>
         <update_rate>5.0</update_rate>
         <enable_metrics>false</enable_metrics>
         <air_speed>
-          <airspeed>
+          <pressure>
             <noise type="gaussian">
               <mean>0</mean>
               <stddev>0.01</stddev>
             </noise>
-          </airspeed>
+          </pressure>
         </air_speed>
-      </sensor> -->
+      </sensor>
     </link>
     <joint name='airspeed_joint' type='fixed'>
-      <child>airspeed</child>
+      <child>airspeed_link</child>
       <parent>base_link</parent>
     </joint>
     <link name='rotor_puller'>
@@ -685,6 +685,7 @@
       filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
       <joint_name>servo_0</joint_name>
       <sub_topic>servo_0</sub_topic>
+      <p_gain>10.0</p_gain>
     </plugin>
     <plugin filename="gz-sim-lift-drag-system" name="gz::sim::systems::LiftDrag">
       <a0>0.05984281113</a0>
@@ -708,6 +709,7 @@
       filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
       <joint_name>servo_1</joint_name>
       <sub_topic>servo_1</sub_topic>
+      <p_gain>10.0</p_gain>
     </plugin>
     <plugin filename="gz-sim-lift-drag-system" name="gz::sim::systems::LiftDrag">
       <a0>0.05984281113</a0>
@@ -767,6 +769,7 @@
       filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
       <joint_name>servo_2</joint_name>
       <sub_topic>servo_2</sub_topic>
+      <p_gain>10.0</p_gain>
     </plugin>
     <plugin filename="gz-sim-lift-drag-system" name="gz::sim::systems::LiftDrag">
       <a0>0.0</a0>
@@ -789,6 +792,7 @@
     <plugin
       filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
       <joint_name>rudder_joint</joint_name>
+      <p_gain>10.0</p_gain>
     </plugin>
     <plugin filename="ignition-gazebo-multicopter-motor-model-system" name="gz::sim::systems::MulticopterMotorModel">
       <jointName>rotor_puller_joint</jointName>
