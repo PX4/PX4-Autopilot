@@ -3597,7 +3597,7 @@ void MavlinkReceiver::parse_for_ok(int nread, const char *buf)
 		switch (_parse_state) {
 		case OkParseState::None:
 			// Nothing to do.
-			break;
+			return;
 
 		case OkParseState::Waiting:
 			if (buf[i] == 'O') {
