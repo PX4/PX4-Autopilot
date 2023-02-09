@@ -30,6 +30,7 @@ jobs:
           cuav_nora,
           cuav_x7pro,
           cubepilot_cubeorange,
+          cubepilot_cubeorangeplus,
           cubepilot_cubeyellow,
           diatone_mamba-f405-mk2,
           freefly_can-rtk-gps,
