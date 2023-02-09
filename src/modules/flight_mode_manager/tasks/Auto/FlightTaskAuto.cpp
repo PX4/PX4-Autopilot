@@ -141,9 +141,13 @@ bool FlightTaskAuto::update()
 		_velocity_setpoint(2) = NAN;
 		break;
 
+	case WaypointType::loiter:
+		if (_param_mpc_land_rc_help.get() && _sticks.checkAndUpdateStickInputs()) {
+			rcHelpModifyYaw(_yaw_setpoint);
+		}
+
 	// FALLTHROUGH
 	case WaypointType::takeoff:
-	case WaypointType::loiter:
 	case WaypointType::position:
 	default:
 		// Simple waypoint navigation: go to xyz target, with standard limitations
@@ -213,6 +217,18 @@ void FlightTaskAuto::overrideCruiseSpeed(const float cruise_speed_m_s)
 	_time_last_cruise_speed_override = hrt_absolute_time();
 }
 
+void FlightTaskAuto::rcHelpModifyYaw(float &yaw_sp)
+{
+	// Only set a yawrate setpoint if weather vane is not active or the yaw stick is out of its dead-zone
+	if (!_weathervane.isActive() || fabsf(_sticks.getYawExpo()) > FLT_EPSILON) {
+		_stick_yaw.generateYawSetpoint(_yawspeed_setpoint, yaw_sp, _sticks.getYawExpo(), _yaw, _is_yaw_good_for_control,
+					       _deltatime);
+
+		// Hack to make sure the MPC_YAW_MODE 4 alignment doesn't stop the vehicle from descending when there's yaw input
+		_yaw_sp_aligned = true;
+	}
+}
+
 void FlightTaskAuto::_prepareLandSetpoints()
 {
 	_velocity_setpoint.setNaN(); // Don't take over any smoothed velocity setpoint
@@ -243,11 +259,7 @@ void FlightTaskAuto::_prepareLandSetpoints()
 		// Stick full up -1 -> stop, stick full down 1 -> double the speed
 		vertical_speed *= (1 - _sticks.getThrottleZeroCenteredExpo());
 
-		// Only set a yawrate setpoint if weather vane is not active or the yaw stick is out of its dead-zone
-		if (!_weathervane.isActive() || fabsf(_sticks.getYawExpo()) > FLT_EPSILON) {
-			_stick_yaw.generateYawSetpoint(_yawspeed_setpoint, _land_heading, _sticks.getYawExpo(), _yaw, _is_yaw_good_for_control,
-						       _deltatime);
-		}
+		rcHelpModifyYaw(_land_heading);
 
 		Vector2f sticks_xy = _sticks.getPitchRollExpo();
 		Vector2f sticks_ne = sticks_xy;
@@ -274,11 +286,6 @@ void FlightTaskAuto::_prepareLandSetpoints()
 		_stick_acceleration_xy.generateSetpoints(sticks_xy, _yaw, _land_heading, _position,
 				_velocity_setpoint_feedback.xy(), _deltatime);
 		_stick_acceleration_xy.getSetpoints(_land_position, _velocity_setpoint, _acceleration_setpoint);
-
-		// Hack to make sure the MPC_YAW_MODE 4 alignment doesn't stop the vehicle from descending when there's yaw input
-		if (fabsf(_yawspeed_setpoint) > FLT_EPSILON) {
-			_yaw_sp_aligned = true;
-		}
 
 	} else {
 		// Make sure we have a valid land position even in the case we loose RC while amending it
