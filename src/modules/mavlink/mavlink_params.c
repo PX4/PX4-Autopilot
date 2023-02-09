@@ -59,6 +59,18 @@ PARAM_DEFINE_INT32(MAV_COMP_ID, 1);
 PARAM_DEFINE_INT32(MAV_PROTO_VER, 0);
 
 /**
+ * MAVLink SiK Radio ID
+ *
+ * When non-zero the MAVLink app will attempt to configure the
+ * SiK radio to this ID and re-set the parameter to 0. Only applies if this mavlink instance is going through a SiK radio
+ *
+ * @group MAVLink
+ * @min 0
+ * @max 240
+ */
+PARAM_DEFINE_INT32(MAV_SIK_RADIO_ID, 0);
+
+/**
  * MAVLink airframe type
  *
  * @min 0

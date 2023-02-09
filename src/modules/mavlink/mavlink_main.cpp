@@ -2299,6 +2299,15 @@ Mavlink::task_main(int argc, char *argv[])
 			mavlink_update_parameters();
 		}
 
+		if (_param_sik_radio_id.get() != 0) {
+			const uint8_t ret = configure_sik_radio((uint16_t)_param_sik_radio_id.get());
+
+			if (ret == vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED) {
+				_param_sik_radio_id.set(0);
+				_param_sik_radio_id.commit_no_notification();
+			}
+		}
+
 		if (_vehicle_status_sub.updated()) {
 			vehicle_status_s vehicle_status;
 
