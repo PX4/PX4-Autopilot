@@ -79,9 +79,13 @@ static void hrt_stop(void)
 hrt_abstime
 hrt_absolute_time(void)
 {
+#ifndef PX4_USERSPACE_HRT
 	hrt_abstime abstime = 0;
 	boardctl(HRT_ABSOLUTE_TIME, (uintptr_t)&abstime);
 	return abstime;
+#else
+	return usr_hrt_absolute_time();
+#endif
 }
 
 /**
