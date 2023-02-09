@@ -804,6 +804,27 @@ PARAM_DEFINE_FLOAT(MPC_LAND_ALT2, 5.0f);
 PARAM_DEFINE_FLOAT(MPC_LAND_ALT3, 1.0f);
 
 /**
+ * Land speed when ground level is unknown.
+ *
+ * If the land altitude is not explicitly given,
+ * choose between assuming that the land altitude is the
+ * same as home altitude (default), or descend with either
+ * MPC_LAND_SPEED (to ensure soft landing) or
+ * MPC_Z_V_AUTO_DN (to ensure fast landing)
+ * the entire descent.
+ *
+ * Only valid for auto mode.
+ *
+ * @min 0
+ * @max 2
+ * @value 0 assume home ground level
+ * @value 1 descend with MPC_LAND_SPEED
+ * @value 2 descend with MPC_Z_V_AUTO_DN
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_INT32(MPC_LAND_MODE, 0);
+
+/**
  * Position control smooth takeoff ramp time constant
  *
  * Increasing this value will make automatic and manual takeoff slower.
