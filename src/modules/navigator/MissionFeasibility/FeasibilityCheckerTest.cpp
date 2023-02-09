@@ -105,10 +105,22 @@ TEST_F(FeasibilityCheckerTest, mission_item_validity)
 
 	// when landed the first item cannot be a land item
 	checker.reset();
+	checker.publishHomePosition(0, 0, 100.f);
 	checker.publishLanded(true);
 	mission_item.nav_cmd = NAV_CMD_LAND;
-	checker.processNextItem(mission_item, 0, 1);
+	bool ret = checker.processNextItem(mission_item, 0, 1);
 	ASSERT_EQ(checker.someCheckFailed(), true);
+
+	// mission item validity failed
+	ASSERT_EQ(ret, false);
+
+	checker.reset();
+	mission_item.nav_cmd = NAV_CMD_TAKEOFF;
+	mission_item.altitude_is_relative = true;
+	ret = checker.processNextItem(mission_item, 0, 5);
+
+	// home alt is not valid but we have a relative mission item, should fail immediately
+	ASSERT_EQ(ret, false);
 }
 
 TEST_F(FeasibilityCheckerTest, max_dist_between_waypoints)
@@ -214,9 +226,8 @@ TEST_F(FeasibilityCheckerTest, check_takeoff)
 	// takeoff altitude is smaller than acceptance radius, should fail
 	mission_item_s mission_item = {};
 	mission_item.nav_cmd = NAV_CMD_TAKEOFF;
-	mission_item.altitude = 5.0f;
+	mission_item.altitude = -5.0f;
 	mission_item.altitude_is_relative = true;
-	mission_item.acceptance_radius = 10.0f;
 
 	checker.processNextItem(mission_item, 0, 1);
 
@@ -227,8 +238,8 @@ TEST_F(FeasibilityCheckerTest, check_takeoff)
 	checker.publishHomePosition(0, 0, 100);
 
 
-	// takeoff altitude is larger than acceptance radius, should pass
-	mission_item.acceptance_radius = 3.0f;
+	// takeoff altitude is larger than home altitude, should pass
+	mission_item.altitude = 0.1f;
 	checker.processNextItem(mission_item, 0, 1);
 
 	ASSERT_EQ(checker.someCheckFailed(), false);
