@@ -119,7 +119,7 @@ public:
 	float getPitch(float external_pitch_setpoint);
 
 	/**
-	 * @param external_roll_setpoint Externally commanded roll angle setpoint (usually from L1) [rad]
+	 * @param external_roll_setpoint Externally commanded roll angle setpoint (usually from path navigation) [rad]
 	 * @return Roll angle setpoint [rad]
 	 */
 	float getRoll(float external_roll_setpoint);

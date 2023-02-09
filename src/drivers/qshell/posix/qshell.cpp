@@ -47,13 +47,14 @@
 // Static variables
 px4::AppState QShell::appState;
 uint32_t QShell::_current_sequence{0};
-uORB::Subscription* QShell::_qshell_retval_sub{nullptr};
+uORB::Subscription *QShell::_qshell_retval_sub{nullptr};
 
 
 int QShell::main(std::vector<std::string> argList)
 {
 	if (_qshell_retval_sub == nullptr) {
 		_qshell_retval_sub = new uORB::Subscription(ORB_ID(qshell_retval));
+
 		if (_qshell_retval_sub == nullptr) {
 			PX4_ERR("Couldn't initialilze Qshell response subscription");
 		}

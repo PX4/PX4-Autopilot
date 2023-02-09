@@ -1177,7 +1177,7 @@ float Navigator::get_acceptance_radius()
 	float acceptance_radius = get_default_acceptance_radius(); // the value specified in the parameter NAV_ACC_RAD
 	const position_controller_status_s &pos_ctrl_status = _position_controller_status_sub.get();
 
-	// for fixed-wing and rover, return the max of NAV_ACC_RAD and the controller acceptance radius (e.g. L1 distance)
+	// for fixed-wing and rover, return the max of NAV_ACC_RAD and the controller acceptance radius (e.g. navigation switch distance)
 	if (_vstatus.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 	    && PX4_ISFINITE(pos_ctrl_status.acceptance_radius) && pos_ctrl_status.timestamp != 0) {
 
@@ -1695,6 +1695,15 @@ void Navigator::calculate_breaking_stop(double &lat, double &lon, float &yaw)
 	waypoint_from_heading_and_distance(get_global_position()->lat, get_global_position()->lon, course_over_ground,
 					   multirotor_braking_distance, &lat, &lon);
 	yaw = get_local_position()->heading;
+}
+
+void Navigator::mode_completed(uint8_t nav_state, uint8_t result)
+{
+	mode_completed_s mode_completed{};
+	mode_completed.timestamp = hrt_absolute_time();
+	mode_completed.result = result;
+	mode_completed.nav_state = nav_state;
+	_mode_completed_pub.publish(mode_completed);
 }
 
 int Navigator::print_usage(const char *reason)

@@ -127,8 +127,9 @@ enum class PositionSensor : uint8_t {
 };
 
 enum class ImuCtrl : uint8_t {
-	GyroBias  = (1<<0),
-	AccelBias = (1<<1),
+	GyroBias      = (1<<0),
+	AccelBias     = (1<<1),
+	GravityVector = (1<<2),
 };
 
 enum GnssCtrl : uint8_t {
@@ -393,6 +394,9 @@ struct parameters {
 	float ev_pos_innov_gate{5.0f};          ///< vision position fusion innovation consistency gate size (STD)
 	float ev_hgt_bias_nsd{0.13f};           ///< process noise for vision height bias estimation (m/s/sqrt(Hz))
 
+	// gravity fusion
+	float gravity_noise{1.0f};              ///< accelerometer measurement gaussian noise (m/s**2)
+
 	// optical flow fusion
 	float flow_noise{0.15f};                ///< observation noise for optical flow LOS rate measurements (rad/sec)
 	float flow_noise_qual_min{0.5f};        ///< observation noise for optical flow LOS rate measurements when flow sensor quality is at the minimum useable (rad/sec)
@@ -564,6 +568,7 @@ union filter_control_status_u {
 		uint64_t rng_kin_consistent      : 1; ///< 31 - true when the range finder kinematic consistency check is passing
 		uint64_t fake_pos                : 1; ///< 32 - true when fake position measurements are being fused
 		uint64_t fake_hgt                : 1; ///< 33 - true when fake height measurements are being fused
+		uint64_t gravity_vector          : 1; ///< 34 - true when gravity vector measurements are being fused
 	} flags;
 	uint64_t value;
 };

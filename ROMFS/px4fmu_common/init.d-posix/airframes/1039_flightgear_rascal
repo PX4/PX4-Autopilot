@@ -11,7 +11,7 @@ param set-default FW_LND_FL_PMIN 9.5
 param set-default FW_LND_FL_PMAX 20
 param set-default FW_LND_FLALT 5
 
-param set-default FW_L1_PERIOD 25
+param set-default NPFG_PERIOD 25
 
 param set-default FW_PR_FF 0.40
 param set-default FW_PR_I 0.05

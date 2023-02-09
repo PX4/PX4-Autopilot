@@ -477,6 +477,36 @@ def compute_drag_y_innov_var_and_k(
 
     return (innov_var, K)
 
+def compute_gravity_innov_var_and_k_and_h(
+        state: VState,
+        P: MState,
+        meas: sf.V3,
+        R: sf.Scalar,
+        epsilon: sf.Scalar
+) -> (sf.V3, sf.V3, VState, VState, VState):
+
+    # get transform from earth to body frame
+    q_att = sf.V4(state[State.qw], state[State.qx], state[State.qy], state[State.qz])
+    R_to_body = quat_to_rot(q_att).T
+
+    # the innovation is the error between measured acceleration
+    #  and predicted (body frame), assuming no body acceleration
+    meas_pred = R_to_body * sf.Matrix([0,0,-9.80665])
+    innov = meas_pred - 9.80665 * meas.normalized(epsilon=epsilon)
+
+    # initialize outputs
+    innov_var = sf.V3()
+    K = [None] * 3
+
+    # calculate observation jacobian (H), kalman gain (K), and innovation variance (S)
+    #  for each axis
+    for i in range(3):
+        H = sf.V1(meas_pred[i]).jacobian(state)
+        innov_var[i] = (H * P * H.T + R)[0,0]
+        K[i] = P * H.T / innov_var[i]
+
+    return (innov, innov_var, K[0], K[1], K[2])
+
 print("Derive EKF2 equations...")
 generate_px4_function(compute_airspeed_innov_and_innov_var, output_names=["innov", "innov_var"])
 generate_px4_function(compute_airspeed_h_and_k, output_names=["H", "K"])
@@ -497,3 +527,4 @@ generate_px4_function(compute_flow_y_innov_var_and_h, output_names=["innov_var",
 generate_px4_function(compute_gnss_yaw_innon_innov_var_and_h, output_names=["innov", "innov_var", "H"])
 generate_px4_function(compute_drag_x_innov_var_and_k, output_names=["innov_var", "K"])
 generate_px4_function(compute_drag_y_innov_var_and_k, output_names=["innov_var", "K"])
+generate_px4_function(compute_gravity_innov_var_and_k_and_h, output_names=["innov", "innov_var", "Kx", "Ky", "Kz"])

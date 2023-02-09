@@ -70,7 +70,14 @@ uint8_t FailsafeBase::update(const hrt_abstime &time_us, const State &state, boo
 		removeActions(ClearCondition::OnModeChangeOrDisarm);
 	}
 
-	updateDelay(time_us - _last_update);
+	if (_defer_failsafes && _failsafe_defer_started != 0 && _defer_timeout > 0
+	    && time_us > _failsafe_defer_started + _defer_timeout) {
+		_defer_failsafes = false;
+	}
+
+	if (_failsafe_defer_started == 0) {
+		updateDelay(time_us - _last_update);
+	}
 
 	checkStateAndMode(time_us, state, status_flags);
 	removeNonActivatedActions();
@@ -79,7 +86,8 @@ uint8_t FailsafeBase::update(const hrt_abstime &time_us, const State &state, boo
 	SelectedActionState action_state{};
 	getSelectedAction(state, status_flags, user_intended_mode_updated, rc_sticks_takeover_request, action_state);
 
-	updateDelay(time_us - _last_update, action_state.delayed_action != Action::None);
+	updateStartDelay(time_us - _last_update, action_state.delayed_action != Action::None);
+	updateFailsafeDeferState(time_us, action_state.failsafe_deferred);
 
 	// Notify user if the action is worse than before, or a new action got added
 	if (action_state.action > _selected_action || (action_state.action != Action::None && _notification_required)) {
@@ -98,7 +106,19 @@ uint8_t FailsafeBase::update(const hrt_abstime &time_us, const State &state, boo
 	return _last_user_intended_mode;
 }
 
-void FailsafeBase::updateDelay(const hrt_abstime &dt, bool delay_active)
+void FailsafeBase::updateFailsafeDeferState(const hrt_abstime &time_us, bool defer)
+{
+	if (defer) {
+		if (_failsafe_defer_started == 0) {
+			_failsafe_defer_started = time_us;
+		}
+
+	} else {
+		_failsafe_defer_started = 0;
+	}
+}
+
+void FailsafeBase::updateStartDelay(const hrt_abstime &dt, bool delay_active)
 {
 	// Ensure that even with a toggling state the delayed action is executed at some point.
 	// This is done by increasing the delay slower than reducing it.
@@ -411,6 +431,7 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 	returned_state.action = Action::None;
 	Action &selected_action = returned_state.action;
 	UserTakeoverAllowed allow_user_takeover = UserTakeoverAllowed::Always;
+	bool allow_failsafe_to_be_deferred{true};
 
 	// Select the worst action based on the current active actions
 	for (int action_idx = 0; action_idx < max_num_actions; ++action_idx) {
@@ -426,7 +447,17 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 				selected_action = cur_action.action;
 				returned_state.cause = cur_action.cause;
 			}
+
+			if (!cur_action.can_be_deferred) {
+				allow_failsafe_to_be_deferred = false;
+			}
 		}
+	}
+
+	if (_defer_failsafes && allow_failsafe_to_be_deferred && selected_action != Action::None) {
+		returned_state.failsafe_deferred = selected_action > Action::Warn;
+		returned_state.action = Action::None;
+		return;
 	}
 
 	// Check if we should enter delayed Hold
@@ -626,4 +657,24 @@ bool FailsafeBase::modeCanRun(const failsafe_flags_s &status_flags, uint8_t mode
 		(!status_flags.offboard_control_signal_lost || ((status_flags.mode_req_offboard_signal & mode_mask) == 0)) &&
 		(!status_flags.home_position_invalid || ((status_flags.mode_req_home_position & mode_mask) == 0)) &&
 		((status_flags.mode_req_other & mode_mask) == 0);
+}
+
+bool FailsafeBase::deferFailsafes(bool enabled, int timeout_s)
+{
+	if (enabled && _selected_action > Action::Warn) {
+		return false;
+	}
+
+	if (timeout_s == 0) {
+		_defer_timeout = DEFAULT_DEFER_TIMEOUT;
+
+	} else if (timeout_s < 0) {
+		_defer_timeout = 0;
+
+	} else {
+		_defer_timeout = timeout_s * 1_s;
+	}
+
+	_defer_failsafes = enabled;
+	return true;
 }

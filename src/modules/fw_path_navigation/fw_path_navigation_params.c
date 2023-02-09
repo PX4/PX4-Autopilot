@@ -32,49 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file fw_pos_control_l1_params.c
- *
- * Parameters defined by the L1 position control task
- *
- * @author Lorenz Meier <lorenz@px4.io>
- */
-
-/*
- * Controller parameters, accessible via MAVLink
- */
-
-/**
- * L1 period
- *
- * Used to determine the L1 gain and controller time constant. This parameter is
- * proportional to the L1 distance (which points ahead of the aircraft on the path
- * it is following). A value of 18-25 seconds works for most aircraft. Shorten
- * slowly during tuning until response is sharp without oscillation.
- *
- * @unit s
- * @min 7.0
- * @max 50.0
- * @decimal 1
- * @increment 0.5
- * @group FW L1 Control
- */
-PARAM_DEFINE_FLOAT(FW_L1_PERIOD, 20.0f);
-
-/**
- * L1 damping
- *
- * Damping factor for L1 control.
- *
- * @min 0.6
- * @max 0.9
- * @decimal 2
- * @increment 0.05
- * @group FW L1 Control
- */
-PARAM_DEFINE_FLOAT(FW_L1_DAMPING, 0.75f);
-
-/**
- * L1 controller roll slew rate limit.
+ * Path navigation roll slew rate limit.
  *
  * The maximum change in roll angle setpoint per second.
  *
@@ -82,19 +40,9 @@ PARAM_DEFINE_FLOAT(FW_L1_DAMPING, 0.75f);
  * @min 0
  * @decimal 0
  * @increment 1
- * @group FW L1 Control
+ * @group FW Path Control
  */
-PARAM_DEFINE_FLOAT(FW_L1_R_SLEW_MAX, 90.0f);
-
-/**
- * Use NPFG as lateral-directional guidance law for fixed-wing vehicles
- *
- * Replaces L1.
- *
- * @boolean
- * @group FW NPFG Control
- */
-PARAM_DEFINE_INT32(FW_USE_NPFG, 1);
+PARAM_DEFINE_FLOAT(FW_PN_R_SLEW_MAX, 90.0f);
 
 /**
  * NPFG period
@@ -205,8 +153,7 @@ PARAM_DEFINE_FLOAT(NPFG_ROLL_TC, 0.5f);
  * NPFG switch distance multiplier
  *
  * Multiplied by the track error boundary to determine when the aircraft switches
- * to the next waypoint and/or path segment. Should be less than 1. 1/pi (0.32)
- * sets the switch distance equivalent to that of the L1 controller.
+ * to the next waypoint and/or path segment. Should be less than 1.
  *
  * @min 0.1
  * @max 1.0
@@ -295,7 +242,7 @@ PARAM_DEFINE_FLOAT(FW_P_LIM_MAX, 30.0f);
  * @max 65.0
  * @decimal 1
  * @increment 0.5
- * @group FW L1 Control
+ * @group FW Path Control
  */
 PARAM_DEFINE_FLOAT(FW_R_LIM, 50.0f);
 
@@ -379,7 +326,7 @@ PARAM_DEFINE_FLOAT(FW_LND_ANG, 5.0f);
  * @max 30.0
  * @decimal 1
  * @increment 0.5
- * @group FW L1 Control
+ * @group FW Path Control
  */
 PARAM_DEFINE_FLOAT(FW_TKO_PITCH_MIN, 10.0f);
 
@@ -798,7 +745,7 @@ PARAM_DEFINE_FLOAT(FW_GND_SPD_MIN, 5.0f);
  * @max 3
  * @bit 0 Alternative stick configuration (height rate on throttle stick, airspeed on pitch stick)
  * @bit 1 Enable airspeed setpoint via sticks in altitude and position flight mode
- * @group FW L1 Control
+ * @group FW Path Control
  */
 PARAM_DEFINE_INT32(FW_POS_STK_CONF, 2);
 
