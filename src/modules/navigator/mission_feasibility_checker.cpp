@@ -86,7 +86,10 @@ MissionFeasibilityChecker::checkMissionFeasible(const mission_s &mission)
 			return false;
 		}
 
-		_feasibility_checker.processNextItem(missionitem, i, mission.count);
+		if (!_feasibility_checker.processNextItem(missionitem, i, mission.count)) {
+			failed = true;
+			break;
+		}
 
 	}
 
