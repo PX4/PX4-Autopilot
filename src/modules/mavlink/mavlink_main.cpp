@@ -1864,20 +1864,30 @@ Mavlink::task_main(int argc, char *argv[])
 	// use default /dev/null so that these numbers are not used by other other files.
 	if (fcntl(0, F_GETFD) == -1) {
 		int tmp = open("/dev/null", O_RDONLY);
-		dup2(tmp, 0);
-		close(tmp);
+
+		if (tmp != 0) {
+			dup2(tmp, 0);
+			close(tmp);
+		}
+
 	}
 
 	if (fcntl(1, F_GETFD) == -1) {
 		int tmp = open("/dev/null", O_WRONLY);
-		dup2(tmp, 1);
-		close(tmp);
+
+		if (tmp != 1) {
+			dup2(tmp, 1);
+			close(tmp);
+		}
 	}
 
 	if (fcntl(2, F_GETFD) == -1) {
 		int tmp = open("/dev/null", O_WRONLY);
-		dup2(tmp, 2);
-		close(tmp);
+
+		if (tmp != 2) {
+			dup2(tmp, 2);
+			close(tmp);
+		}
 	}
 
 	int ch;
