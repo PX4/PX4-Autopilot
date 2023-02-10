@@ -110,6 +110,8 @@ public:
 	void updateAndPublishBatteryStatus(const hrt_abstime &timestamp);
 
 protected:
+	static constexpr float LITHIUM_BATTERY_RECOGNITION_VOLTAGE = 2.1f;
+
 	struct {
 		param_t v_empty;
 		param_t v_charged;
