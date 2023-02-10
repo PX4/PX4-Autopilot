@@ -135,6 +135,8 @@
 
 #define GPIO_RF_SWITCH                     /* PE13  */ (GPIO_OUTPUT|GPIO_PULLDOWN|GPIO_PORTE|GPIO_PIN13)
 
+#define GPIO_VTX_ON                        /* PB11  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN11)
+
 /* Power switch controls ******************************************************/
 
 #define SDIO_SLOTNO                    0  /* Only one slot */
@@ -178,6 +180,7 @@
 		GPIO_TONE_ALARM_IDLE,             \
 		GPIO_RSSI_IN,                     \
 		GPIO_RF_SWITCH,                   \
+		GPIO_VTX_ON,                      \
 	}
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
