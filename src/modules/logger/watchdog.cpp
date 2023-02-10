@@ -49,6 +49,7 @@ namespace logger
 
 bool watchdog_update(watchdog_data_t &watchdog_data, bool semaphore_value_saturated)
 {
+	return false;
 
 #if defined(__PX4_NUTTX) && defined(CONFIG_BUILD_FLAT)
 
