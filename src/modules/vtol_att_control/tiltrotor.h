@@ -84,7 +84,7 @@ private:
 	float moveLinear(float start, float stop, float progress);
 
 	void blendThrottleDuringBacktransition(const float scale, const float target_throttle);
-
+	bool isFrontTransitionCompletedBase() override;
 
 	hrt_abstime _last_timestamp_disarmed{0}; /**< used for calculating time since arming */
 	bool _tilt_motors_for_startup{false};

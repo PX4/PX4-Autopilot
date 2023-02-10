@@ -135,26 +135,8 @@ void Standard::update_vtol_state()
 			mc_weight = 0.0f;
 
 		} else if (_vtol_mode == vtol_mode::TRANSITION_TO_FW) {
-			// continue the transition to fw mode while monitoring airspeed for a final switch to fw mode
 
-			const bool airspeed_triggers_transition = PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s)
-					&& !_param_fw_arsp_mode.get();
-			const bool minimum_trans_time_elapsed = _time_since_trans_start > getMinimumFrontTransitionTime();
-
-			bool transition_to_fw = false;
-
-			if (minimum_trans_time_elapsed) {
-				if (airspeed_triggers_transition) {
-					transition_to_fw = _airspeed_validated->calibrated_airspeed_m_s >= _param_vt_arsp_trans.get();
-
-				} else {
-					transition_to_fw = true;
-				}
-			}
-
-			transition_to_fw |= can_transition_on_ground();
-
-			if (transition_to_fw) {
+			if (isFrontTransitionCompleted()) {
 				_vtol_mode = vtol_mode::FW_MODE;
 
 				// don't set pusher throttle here as it's being ramped up elsewhere
