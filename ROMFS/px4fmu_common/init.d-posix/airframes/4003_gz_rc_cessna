@@ -55,7 +55,6 @@ param set-default RWTO_TKOFF 1
 param set-default CA_AIRFRAME 1
 
 param set-default COM_PREARM_MODE 2
-param set-default CBRK_AIRSPD_CHK 162128
 
 param set-default CA_ROTOR_COUNT 1
 param set-default CA_ROTOR0_PX 0.3
