@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2020-2023 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,54 +32,61 @@
 ############################################################################
 
 px4_add_romfs_files(
-	10016_iris
-	10018_iris_foggy_lidar
-	10019_omnicopter
-	10030_px4vision
-	10040_quadx
-	10041_airplane
-	10042_xvert
-	1010_iris_opt_flow
-	1010_iris_opt_flow.post
-	1011_iris_irlock
-	1012_iris_rplidar
-	1013_iris_vision
-	1013_iris_vision.post
-	1015_iris_obs_avoid
-	1015_iris_obs_avoid.post
-	1017_iris_opt_flow_mockup
-	1018_iris_vision_velocity
-	1019_iris_dual_gps
-	1021_uuv_hippocampus
-	1022_uuv_bluerov2_heavy
-	1030_plane
-	1031_plane_cam
-	1032_plane_catapult
-	1033_rascal
-	1034_rascal-electric
-	1035_techpod
-	1036_malolo
-	1037_believer
-	1038_glider
-	1039_advanced_plane
-	1040_standard_vtol
-	1041_tailsitter
-	1042_tiltrotor
-	1043_standard_vtol_drop
-	1044_plane_lidar
-	1060_rover
-	1061_r1_rover
-	1062_tf-r1
-	1070_boat
-	3010_quadrotor_x
-	3011_hexarotor_x
 
-	4001_x500
+	1010_gazebo-classic_iris_opt_flow
+	1010_gazebo-classic_iris_opt_flow.post
+	1011_gazebo-classic_iris_irlock
+	1012_gazebo-classic_iris_rplidar
+	1013_gazebo-classic_iris_vision
+	1013_gazebo-classic_iris_vision.post
+	1015_gazebo-classic_iris_obs_avoid
+	1015_gazebo-classic_iris_obs_avoid.post
+	1017_gazebo-classic_iris_opt_flow_mockup
+	1019_gazebo-classic_iris_dual_gps
+	1021_gazebo-classic_uuv_hippocampus
+	1022_gazebo-classic_uuv_bluerov2_heavy
+	1030_gazebo-classic_plane
+	1031_gazebo-classic_plane_cam
+	1032_gazebo-classic_plane_catapult
+	1033_jsbsim_rascal
+	1034_flightgear_rascal-electric
+	1035_gazebo-classic_techpod
+	1036_jsbsim_malolo
+	1037_gazebo-classic_believer
+	1038_gazebo-classic_glider
+	1039_gazebo-classic_advanced_plane
+	1040_gazebo-classic_standard_vtol
+	1041_gazebo-classic_tailsitter
+	1042_gazebo-classic_tiltrotor
+	1043_gazebo-classic_standard_vtol_drop
+	1044_gazebo-classic_plane_lidar
+	1060_gazebo-classic_rover
+	1061_gazebo-classic_r1_rover
+	1062_flightgear_tf-r1
+	1070_gazebo-classic_boat
 
-	17001_tf-g1
-	17002_tf-g2
-	2507_cloudship
+	2507_gazebo-classic_cloudship
 
-	6011_typhoon_h480
-	6011_typhoon_h480.post
+	3010_jsbsim_quadrotor_x
+	3011_jsbsim_hexarotor_x
+
+	4001_gz_x500
+	4002_gz_x500_depth
+	4003_gz_rc_cessna
+
+	6011_gazebo-classic_typhoon_h480
+	6011_gazebo-classic_typhoon_h480.post
+
+	10016_gazebo-classic_iris
+	10017_jmavsim_iris
+	10018_gazebo-classic_iris_foggy_lidar
+	10019_gazebo-classic_omnicopter
+	10030_gazebo-classic_px4vision
+
+	10040_sihsim_quadx
+	10041_sihsim_airplane
+	10042_sihsim_xvert
+
+	17001_flightgear_tf-g1
+	17002_flightgear_tf-g2
 )

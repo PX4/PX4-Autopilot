@@ -175,7 +175,7 @@ PARAM_DEFINE_INT32(RTL_HDG_MD, 0);
 /**
  * RTL time estimate safety margin factor
  *
- * Safety factor that is used to scale the actual RTL time estiamte.
+ * Safety factor that is used to scale the actual RTL time estimate.
  * Time with margin = RTL_TIME_FACTOR * time + RTL_TIME_MARGIN
  *
  * @min 1.0

@@ -34,6 +34,9 @@
 #include "EKFGSF_yaw.h"
 #include <cstdlib>
 
+#include "python/ekf_derivation/generated/yaw_est_predict_covariance.h"
+#include "python/ekf_derivation/generated/yaw_est_compute_measurement_update.h"
+
 EKFGSF_yaw::EKFGSF_yaw()
 {
 	initialiseEKFGSF();
@@ -271,44 +274,11 @@ void EKFGSF_yaw::predictEKF(const uint8_t model_index, const Vector3f &delta_ang
 	const float dvx =   del_vel_NED(0) * cos_yaw + del_vel_NED(1) * sin_yaw;
 	const float dvy = - del_vel_NED(0) * sin_yaw + del_vel_NED(1) * cos_yaw;
 
-	// sum delta velocities in earth frame:
-	_ekf_gsf[model_index].X(0) += del_vel_NED(0);
-	_ekf_gsf[model_index].X(1) += del_vel_NED(1);
-
-	// predict covariance - equations generated using EKF/python/gsf_ekf_yaw_estimator/main.py
-
-	// Local short variable name copies required for readability
-	const float P00 = _ekf_gsf[model_index].P(0, 0);
-	const float P01 = _ekf_gsf[model_index].P(0, 1);
-	const float P02 = _ekf_gsf[model_index].P(0, 2);
-	const float P11 = _ekf_gsf[model_index].P(1, 1);
-	const float P12 = _ekf_gsf[model_index].P(1, 2);
-	const float P22 = _ekf_gsf[model_index].P(2, 2);
-	const float psi = _ekf_gsf[model_index].X(2);
-
 	// Use fixed values for delta velocity and delta angle process noise variances
-	const float dvxVar = sq(_accel_noise * delta_vel_dt); // variance of forward delta velocity - (m/s)^2
-	const float dvyVar = dvxVar; // variance of right delta velocity - (m/s)^2
-	const float dazVar = sq(_gyro_noise * delta_ang_dt); // variance of yaw delta angle - rad^2
+	const float d_vel_var = sq(_accel_noise * delta_vel_dt);
+	const float d_ang_var = sq(_gyro_noise * delta_ang_dt);
 
-	// optimized auto generated code from SymPy script src/lib/ecl/EKF/python/ekf_derivation/main.py
-	const float S0 = cosf(psi);
-	const float S1 = ecl::powf(S0, 2);
-	const float S2 = sinf(psi);
-	const float S3 = ecl::powf(S2, 2);
-	const float S4 = S0 * dvy + S2 * dvx;
-	const float S5 = P02 - P22 * S4;
-	const float S6 = S0 * dvx - S2 * dvy;
-	const float S7 = S0 * S2;
-	const float S8 = P01 + S7 * dvxVar - S7 * dvyVar;
-	const float S9 = P12 + P22 * S6;
-
-	_ekf_gsf[model_index].P(0, 0) = P00 - P02 * S4 + S1 * dvxVar + S3 * dvyVar - S4 * S5;
-	_ekf_gsf[model_index].P(0, 1) = -P12 * S4 + S5 * S6 + S8;
-	_ekf_gsf[model_index].P(1, 1) = P11 + P12 * S6 + S1 * dvyVar + S3 * dvxVar + S6 * S9;
-	_ekf_gsf[model_index].P(0, 2) = S5;
-	_ekf_gsf[model_index].P(1, 2) = S9;
-	_ekf_gsf[model_index].P(2, 2) = P22 + dazVar;
+	sym::YawEstPredictCovariance(_ekf_gsf[model_index].X, _ekf_gsf[model_index].P, Vector2f(dvx, dvy), d_vel_var, d_ang_var, &_ekf_gsf[model_index].P);
 
 	// covariance matrix is symmetrical, so copy upper half to lower half
 	_ekf_gsf[model_index].P(1, 0) = _ekf_gsf[model_index].P(0, 1);
@@ -321,89 +291,36 @@ void EKFGSF_yaw::predictEKF(const uint8_t model_index, const Vector3f &delta_ang
 	for (unsigned index = 0; index < 3; index++) {
 		_ekf_gsf[model_index].P(index, index) = fmaxf(_ekf_gsf[model_index].P(index, index), min_var);
 	}
+
+	// sum delta velocities in earth frame:
+	_ekf_gsf[model_index].X(0) += del_vel_NED(0);
+	_ekf_gsf[model_index].X(1) += del_vel_NED(1);
 }
 
 // Update EKF states and covariance for specified model index using velocity measurement
 bool EKFGSF_yaw::updateEKF(const uint8_t model_index, const Vector2f &vel_NE, const float vel_accuracy)
 {
 	// set observation variance from accuracy estimate supplied by GPS and apply a sanity check minimum
-	const float velObsVar = sq(fmaxf(vel_accuracy, 0.01f));
+	const float vel_obs_var = sq(fmaxf(vel_accuracy, 0.01f));
 
 	// calculate velocity observation innovations
 	_ekf_gsf[model_index].innov(0) = _ekf_gsf[model_index].X(0) - vel_NE(0);
 	_ekf_gsf[model_index].innov(1) = _ekf_gsf[model_index].X(1) - vel_NE(1);
 
-	// Use temporary variables for covariance elements to reduce verbosity of auto-code expressions
-	const float P00 = _ekf_gsf[model_index].P(0, 0);
-	const float P01 = _ekf_gsf[model_index].P(0, 1);
-	const float P02 = _ekf_gsf[model_index].P(0, 2);
-	const float P11 = _ekf_gsf[model_index].P(1, 1);
-	const float P12 = _ekf_gsf[model_index].P(1, 2);
-	const float P22 = _ekf_gsf[model_index].P(2, 2);
-
-	// optimized auto generated code from SymPy script src/lib/ecl/EKF/python/ekf_derivation/main.py
-	const float t0 = ecl::powf(P01, 2);
-	const float t1 = -t0;
-	const float t2 = P00 * P11 + P00 * velObsVar + P11 * velObsVar + t1 + ecl::powf(velObsVar, 2);
-
-	if (fabsf(t2) < 1e-6f) {
-		return false;
-	}
-
-	const float t3 = 1.0F / t2;
-	const float t4 = P11 + velObsVar;
-	const float t5 = P01 * t3;
-	const float t6 = -t5;
-	const float t7 = P00 + velObsVar;
-	const float t8 = P00 * t4 + t1;
-	const float t9 = t5 * velObsVar;
-	const float t10 = P11 * t7;
-	const float t11 = t1 + t10;
-	const float t12 = P01 * P12;
-	const float t13 = P02 * t4;
-	const float t14 = P01 * P02;
-	const float t15 = P12 * t7;
-	const float t16 = t0 * velObsVar;
-	const float t17 = ecl::powf(t2, -2);
-	const float t18 = t4 * velObsVar + t8;
-	const float t19 = t17 * t18;
-	const float t20 = t17 * (t16 + t7 * t8);
-	const float t21 = t0 - t10;
-	const float t22 = t17 * t21;
-	const float t23 = t14 - t15;
-	const float t24 = P01 * t23;
-	const float t25 = t12 - t13;
-	const float t26 = t16 - t21 * t4;
-	const float t27 = t17 * t26;
-	const float t28 = t11 + t7 * velObsVar;
-	const float t30 = t17 * t28;
-	const float t31 = P01 * t25;
-	const float t32 = t23 * t4 + t31;
-	const float t33 = t17 * t32;
-	const float t35 = t24 + t25 * t7;
-	const float t36 = t17 * t35;
-
-	_ekf_gsf[model_index].S_det_inverse = t3;
-
-	_ekf_gsf[model_index].S_inverse(0, 0) = t3 * t4;
-	_ekf_gsf[model_index].S_inverse(0, 1) = t6;
-	_ekf_gsf[model_index].S_inverse(1, 1) = t3 * t7;
-	_ekf_gsf[model_index].S_inverse(1, 0) = _ekf_gsf[model_index].S_inverse(0, 1);
-
 	matrix::Matrix<float, 3, 2> K;
-	K(0, 0) = t3 * t8;
-	K(1, 0) = t9;
-	K(2, 0) = t3 * (-t12 + t13);
-	K(0, 1) = t9;
-	K(1, 1) = t11 * t3;
-	K(2, 1) = t3 * (-t14 + t15);
+	matrix::SquareMatrix<float, 3> P_new;
 
-	_ekf_gsf[model_index].P(0, 0) = P00 - t16 * t19 - t20 * t8;
-	_ekf_gsf[model_index].P(0, 1) = P01 * (t18 * t22 - t20 * velObsVar + 1);
-	_ekf_gsf[model_index].P(1, 1) = P11 - t16 * t30 + t22 * t26;
-	_ekf_gsf[model_index].P(0, 2) = P02 + t19 * t24 + t20 * t25;
-	_ekf_gsf[model_index].P(1, 2) = P12 + t23 * t27 + t30 * t31;
-	_ekf_gsf[model_index].P(2, 2) = P22 - t23 * t33 - t25 * t36;
+	sym::YawEstComputeMeasurementUpdate(_ekf_gsf[model_index].P,
+					    vel_obs_var,
+					    FLT_EPSILON,
+					    &_ekf_gsf[model_index].S_inverse,
+					    &_ekf_gsf[model_index].S_det_inverse,
+					    &K,
+					    &P_new);
+
+	_ekf_gsf[model_index].P = P_new;
+
+	// copy upper to lower diagonal
 	_ekf_gsf[model_index].P(1, 0) = _ekf_gsf[model_index].P(0, 1);
 	_ekf_gsf[model_index].P(2, 0) = _ekf_gsf[model_index].P(0, 2);
 	_ekf_gsf[model_index].P(2, 1) = _ekf_gsf[model_index].P(1, 2);

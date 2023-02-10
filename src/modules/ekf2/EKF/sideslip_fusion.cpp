@@ -65,7 +65,7 @@ void Ekf::updateSideslip(estimator_aid_source1d_s &sideslip) const
 
 	sideslip.fusion_enabled = _control_status.flags.fuse_aspd;
 
-	sideslip.timestamp_sample = _imu_sample_delayed.time_us;
+	sideslip.timestamp_sample = _time_delayed_us;
 
 	const float innov_gate = fmaxf(_params.beta_innov_gate, 1.f);
 	setEstimatorAidStatusTestRatio(sideslip, innov_gate);
@@ -121,6 +121,6 @@ void Ekf::fuseSideslip(estimator_aid_source1d_s &sideslip)
 	_fault_status.flags.bad_sideslip = !is_fused;
 
 	if (is_fused) {
-		sideslip.time_last_fuse = _imu_sample_delayed.time_us;
+		sideslip.time_last_fuse = _time_delayed_us;
 	}
 }

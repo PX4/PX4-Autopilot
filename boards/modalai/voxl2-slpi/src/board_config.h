@@ -44,6 +44,7 @@
 /*
  * I2C buses
  */
+#define CONFIG_I2C 1
 #define PX4_NUMBER_I2C_BUSES    3
 
 /*
@@ -61,4 +62,4 @@
 /*
  *  Default port for the ESC
  */
-#define MODALAI_ESC_DEFAULT_PORT 	"2"
+#define MODAL_IO_DEFAULT_PORT 	"2"

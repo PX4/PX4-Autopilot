@@ -37,6 +37,9 @@
  * Template RingBuffer.
  */
 
+#ifndef EKF_RINGBUFFER_H
+#define EKF_RINGBUFFER_H
+
 #include <inttypes.h>
 #include <cstdio>
 #include <cstring>
@@ -78,10 +81,7 @@ public:
 
 		_size = size;
 
-		_head = 0;
-		_tail = 0;
-
-		_first_write = true;
+		reset();
 
 		return true;
 	}
@@ -168,6 +168,19 @@ public:
 		return count;
 	}
 
+	void reset()
+	{
+		if (_buffer) {
+			for (uint8_t i = 0; i < _size; i++) {
+				_buffer[i] = {};
+			}
+
+			_head = 0;
+			_tail = 0;
+			_first_write = true;
+		}
+	}
+
 private:
 	data_type *_buffer{nullptr};
 
@@ -177,3 +190,5 @@ private:
 
 	bool _first_write{true};
 };
+
+#endif // !EKF_RINGBUFFER_H

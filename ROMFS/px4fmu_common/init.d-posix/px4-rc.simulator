@@ -6,6 +6,8 @@ param set-default IMU_INTEG_RATE 250
 
 if [ "$PX4_SIMULATOR" = "sihsim" ] || [ "$(param show -q SYS_AUTOSTART)" -eq "0" ]; then
 
+	echo "INFO  [init] SIH simulator"
+
 	if simulator_sih start; then
 
 		sensor_baro_sim start
@@ -17,18 +19,27 @@ if [ "$PX4_SIMULATOR" = "sihsim" ] || [ "$(param show -q SYS_AUTOSTART)" -eq "0"
 		exit 1
 	fi
 
-elif [ "$PX4_SIMULATOR" = "gz" ]; then
+elif [ "$PX4_SIMULATOR" = "gz" ] || [ "$(param show -q SIM_GZ_EN)" -eq "1" ]; then
 
-	# source generated gazebo_env.sh for IGN_GAZEBO_RESOURCE_PATH
-	if [ -f ./gazebo_env.sh ]; then
-		. ./gazebo_env.sh
+	# source generated gz_env.sh for GZ_SIM_RESOURCE_PATH
+	if [ -f ./gz_env.sh ]; then
+		. ./gz_env.sh
 
-	elif [ -f ../gazebo_env.sh ]; then
-		. ../gazebo_env.sh
+	elif [ -f ../gz_env.sh ]; then
+		. ../gz_env.sh
 	fi
 
-	gz_command="ign" # "ign" before garden
-	gz_sub_command="gazebo" # "gazebo" before garden
+	# "gz sim" only avaiilable in Garden and later
+	GZ_SIM_VERSIONS=$(gz sim --versions 2>&1)
+	if [ $? -eq 0 ] && [ "${GZ_SIM_VERSIONS}" != "" ]
+	then
+		# "gz sim" from Garden on
+		gz_command="gz"
+		gz_sub_command="sim"
+	else
+		echo "ERROR [init] Gazebo gz please install gz-garden"
+		exit 1
+	fi
 
 	# look for running ${gz_command} gazebo world
 	gz_world=$( ${gz_command} topic -l | grep -m 1 -e "/world/.*/clock" | sed 's/\/world\///g; s/\/clock//g' )
@@ -41,8 +52,8 @@ elif [ "$PX4_SIMULATOR" = "gz" ]; then
 		${gz_command} ${gz_sub_command} --verbose=1 -r -s "${PX4_GZ_WORLDS}/${PX4_GZ_WORLD}.sdf" &
 
 		if [ -z "${HEADLESS}" ]; then
-			# HEADLESS not set, starting ign gazebo gui
-			${gz_command} gazebo -g &
+			# HEADLESS not set, starting gui
+			${gz_command} ${gz_sub_command} -g &
 		fi
 
 	else
@@ -71,7 +82,7 @@ elif [ "$PX4_SIMULATOR" = "gz" ]; then
 			sensor_mag_sim start
 
 		else
-			echo "ERROR [init] gazebo failed to start"
+			echo "ERROR [init] gz_bridge failed to start"
 			exit 1
 		fi
 
@@ -84,7 +95,7 @@ elif [ "$PX4_SIMULATOR" = "gz" ]; then
 			sensor_mag_sim start
 
 		else
-			echo "ERROR [init] gazebo failed to start"
+			echo "ERROR [init] gz_bridge failed to start"
 			exit 1
 		fi
 
@@ -92,13 +103,13 @@ elif [ "$PX4_SIMULATOR" = "gz" ]; then
 
 		echo "WARN  [init] PX4_GZ_MODEL_NAME or PX4_GZ_MODEL not set using PX4_SIM_MODEL."
 
-		if gz_bridge start -m "${PX4_SIM_MODEL}" -w "${PX4_GZ_WORLD}" -i "${px4_instance}"; then
+		if gz_bridge start -m "${PX4_SIM_MODEL#*gz_}" -w "${PX4_GZ_WORLD}" -i "${px4_instance}"; then
 			sensor_baro_sim start
 			sensor_gps_sim start
 			sensor_mag_sim start
 
 		else
-			echo "ERROR [init] gazebo failed to start"
+			echo "ERROR [init] gz_bridge failed to start"
 			exit 1
 		fi
 
@@ -106,6 +117,20 @@ elif [ "$PX4_SIMULATOR" = "gz" ]; then
 		echo "ERROR [init] failed to pass only PX4_GZ_MODEL_NAME or PX4_GZ_MODEL"
 		exit 1
 	fi
+
+elif [ "$PX4_SIM_MODEL" = "jmavsim_iris" ] || [ "$(param show -q SYS_AUTOSTART)" -eq "10017" ]; then
+
+	echo "INFO  [init] jMAVSim simulator"
+
+	if jps | grep -i jmavsim; then
+		kill "$(jps | grep -i jmavsim | awk '{print $1}')" || true
+		sleep 1
+	fi
+
+	param set IMU_INTEG_RATE 250
+	./jmavsim_run.sh -l -r 250 &
+
+	simulator_mavlink start -h localhost $((4560+px4_instance))
 
 else
 	# otherwise start simulator (mavlink) module
@@ -117,15 +142,15 @@ else
 	if [ -z "${PX4_SIM_HOSTNAME}" ]; then
 
 		if [ -z "${PX4_SIM_HOST_ADDR}" ]; then
-			echo "PX4 SIM HOST: localhost"
+			echo "INFO  [init] PX4_SIM_HOSTNAME: localhost"
 			simulator_mavlink start -c $simulator_tcp_port
 		else
-			echo "PX4 SIM HOST: ${PX4_SIM_HOST_ADDR}"
+			echo "INFO  [init] PX4_SIM_HOSTNAME: ${PX4_SIM_HOST_ADDR}"
 			simulator_mavlink start -t "${PX4_SIM_HOST_ADDR}" "${simulator_tcp_port}"
 		fi
 
 	else
-		echo "PX4 SIM HOST: ${PX4_SIM_HOSTNAME}"
+		echo "INFO  [init] PX4_SIM_HOSTNAME: ${PX4_SIM_HOSTNAME}"
 		simulator_mavlink start -h "${PX4_SIM_HOSTNAME}" "${simulator_tcp_port}"
 	fi
 

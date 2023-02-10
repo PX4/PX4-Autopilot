@@ -180,7 +180,7 @@ CONFIG:
       short: cubepilot_cubeorange
       buildType: MinSizeRel
       settings:
-        CONFIG: cubepilot_orange_test
+        CONFIG: cubepilot_cubeorange_test
     emlid_navio2_default:
       short: emlid_navio2
       buildType: MinSizeRel
@@ -266,6 +266,16 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: nxp_fmuk66-v3_default
+    nxp_mr-canhubk3_default:
+      short: nxp_mr-canhubk3_default
+      buildType: MinSizeRel
+      settings:
+        CONFIG: nxp_mr-canhubk3_default
+    nxp_mr-canhubk3_fmu:
+      short: nxp_mr-canhubk3_fmu
+      buildType: MinSizeRel
+      settings:
+        CONFIG: nxp_mr-canhubk3_fmu
     raspberrypi_pico_default:
       short: raspberrypi_pico
       buildType: MinSizeRel

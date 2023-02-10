@@ -53,7 +53,7 @@
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 #include <lockstep_scheduler/lockstep_scheduler.h>
-static LockstepScheduler lockstep_scheduler {};
+static LockstepScheduler lockstep_scheduler {true};
 #endif
 
 // Intervals in usec

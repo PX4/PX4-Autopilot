@@ -195,6 +195,11 @@ void EkfWrapper::setMagFuseTypeNone()
 	_ekf_params->mag_fusion_type = MagFuseType::NONE;
 }
 
+void EkfWrapper::enableMagStrengthCheck()
+{
+	_ekf_params->check_mag_strength = 1;
+}
+
 bool EkfWrapper::isWindVelocityEstimated() const
 {
 	return _ekf->control_status_flags().wind;
@@ -261,4 +266,21 @@ int EkfWrapper::getQuaternionResetCounter() const
 matrix::Vector3f EkfWrapper::getDeltaVelBiasVariance() const
 {
 	return _ekf->covariances_diagonal().slice<3, 1>(13, 0);
+}
+
+void EkfWrapper::enableDragFusion()
+{
+	_ekf_params->fusion_mode |= SensorFusionMask::USE_DRAG;
+}
+
+void EkfWrapper::disableDragFusion()
+{
+	_ekf_params->fusion_mode &= ~SensorFusionMask::USE_DRAG;
+}
+
+void EkfWrapper::setDragFusionParameters(const float &bcoef_x, const float &bcoef_y, const float &mcoef)
+{
+	_ekf_params->bcoef_x = bcoef_x;
+	_ekf_params->bcoef_y = bcoef_y;
+	_ekf_params->mcoef = mcoef;
 }

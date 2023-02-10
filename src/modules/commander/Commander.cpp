@@ -702,19 +702,31 @@ Commander::handle_command(const vehicle_command_s &cmd)
 					cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 				} else {
+					printRejectMode(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
 					cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
-					mavlink_log_critical(&_mavlink_log_pub, "Reposition command rejected\t");
-					/* EVENT
-					 * @description Check for a valid position estimate
-					 */
-					events::send(events::ID("commander_reposition_rejected"),
-					{events::Log::Error, events::LogInternal::Info},
-					"Reposition command rejected");
 				}
 
 			} else {
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 			}
+		}
+		break;
+
+	case vehicle_command_s::VEHICLE_CMD_DO_CHANGE_ALTITUDE: {
+
+			// Just switch the flight mode here, the navigator takes care of
+			// doing something sensible with the coordinates. Its designed
+			// to not require navigator and command to receive / process
+			// the data at the exact same time.
+
+			if (_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER)) {
+				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
+
+			} else {
+				printRejectMode(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
+				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+			}
+
 		}
 		break;
 
@@ -1644,12 +1656,9 @@ void Commander::run()
 			parameter_update_s update;
 			_parameter_update_sub.copy(&update);
 
-			/* update parameters */
-			if (!_arm_state_machine.isArmed()) {
-				updateParameters();
+			updateParameters();
 
-				_status_changed = true;
-			}
+			_status_changed = true;
 		}
 
 		/* Update OA parameter */
@@ -1704,9 +1713,14 @@ void Commander::run()
 
 			perf_begin(_preflight_check_perf);
 			_health_and_arming_checks.update();
-			_vehicle_status.pre_flight_checks_pass = _health_and_arming_checks.canArm(_vehicle_status.nav_state);
-			perf_end(_preflight_check_perf);
+			bool pre_flight_checks_pass = _health_and_arming_checks.canArm(_vehicle_status.nav_state);
 
+			if (_vehicle_status.pre_flight_checks_pass != pre_flight_checks_pass) {
+				_vehicle_status.pre_flight_checks_pass = pre_flight_checks_pass;
+				_status_changed = true;
+			}
+
+			perf_end(_preflight_check_perf);
 			checkAndInformReadyForTakeoff();
 		}
 
@@ -1757,6 +1771,7 @@ void Commander::run()
 			_last_disarmed_timestamp = hrt_absolute_time();
 
 			_user_mode_intention.onDisarm();
+			_vehicle_status.takeoff_time = 0;
 		}
 
 		if (!_arm_state_machine.isArmed()) {
@@ -1962,7 +1977,6 @@ void Commander::landDetectorUpdate()
 			if (!was_landed && _vehicle_land_detected.landed) {
 				mavlink_log_info(&_mavlink_log_pub, "Landing detected\t");
 				events::send(events::ID("commander_landing_detected"), events::Log::Info, "Landing detected");
-				_vehicle_status.takeoff_time = 0;
 
 			} else if (was_landed && !_vehicle_land_detected.landed) {
 				mavlink_log_info(&_mavlink_log_pub, "Takeoff detected\t");

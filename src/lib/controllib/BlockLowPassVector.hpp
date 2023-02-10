@@ -79,7 +79,7 @@ public:
 			}
 		}
 
-		float b = 2 * float(M_PI) * getFCut() * getDt();
+		float b = 2 * M_PI_F * getFCut() * getDt();
 		float a = b / (1 + b);
 		setState(input * a + getState() * (1 - a));
 		return getState();

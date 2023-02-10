@@ -49,8 +49,8 @@ VehicleMagnetometer::VehicleMagnetometer() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
 {
-	param_find("CAL_MAG_SIDES");
-	param_find("CAL_MAG_ROT_AUTO");
+	param_find("SENS_MAG_SIDES");
+	param_find("SENS_MAG_AUTOROT");
 
 	_voter.set_timeout(SENSOR_TIMEOUT);
 	_voter.set_equal_value_threshold(1000);
@@ -103,6 +103,13 @@ bool VehicleMagnetometer::ParametersUpdate(bool force)
 		_parameter_update_sub.copy(&param_update);
 
 		updateParams();
+
+		// Legacy QGC support: CAL_MAG_SIDES required to display the correct UI
+		// Force it to be a copy of the new SENS_MAG_SIDES
+		if (_param_cal_mag_sides.get() != _param_sens_mag_sides.get()) {
+			_param_cal_mag_sides.set(_param_sens_mag_sides.get());
+			_param_cal_mag_sides.commit();
+		}
 
 		// Mag compensation type
 		MagCompensationType mag_comp_typ = static_cast<MagCompensationType>(_param_mag_comp_typ.get());

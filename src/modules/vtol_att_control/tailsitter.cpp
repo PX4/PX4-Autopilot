@@ -71,14 +71,9 @@ void Tailsitter::update_vtol_state()
 
 	float pitch = Eulerf(Quatf(_v_att->q)).theta();
 
-	if (_vtol_vehicle_status->vtol_transition_failsafe) {
+	if (_vtol_vehicle_status->fixed_wing_system_failure) {
 		// Failsafe event, switch to MC mode immediately
 		_vtol_mode = vtol_mode::MC_MODE;
-
-		//reset failsafe when FW is no longer requested
-		if (!_attc->is_fixed_wing_requested()) {
-			_vtol_vehicle_status->vtol_transition_failsafe = false;
-		}
 
 	} else if (!_attc->is_fixed_wing_requested()) {
 
@@ -87,7 +82,7 @@ void Tailsitter::update_vtol_state()
 			break;
 
 		case vtol_mode::FW_MODE:
-			resetTransitionTimer();
+			resetTransitionStates();
 			_vtol_mode = vtol_mode::TRANSITION_BACK;
 			break;
 
@@ -112,7 +107,7 @@ void Tailsitter::update_vtol_state()
 		case vtol_mode::MC_MODE:
 			// initialise a front transition
 			_vtol_mode = vtol_mode::TRANSITION_FRONT_P1;
-			resetTransitionTimer();
+			resetTransitionStates();
 			break;
 
 		case vtol_mode::FW_MODE:
@@ -364,8 +359,10 @@ void Tailsitter::fill_actuator_outputs()
 	} else {
 		fw_out[actuator_controls_s::INDEX_ROLL]  = fw_in[actuator_controls_s::INDEX_ROLL];
 		fw_out[actuator_controls_s::INDEX_PITCH] = fw_in[actuator_controls_s::INDEX_PITCH];
+
+		_torque_setpoint_1->xyz[0] = fw_in[actuator_controls_s::INDEX_ROLL];
 		_torque_setpoint_1->xyz[1] = fw_in[actuator_controls_s::INDEX_PITCH];
-		_torque_setpoint_1->xyz[2] = -fw_in[actuator_controls_s::INDEX_ROLL];
+		_torque_setpoint_1->xyz[2] = fw_in[actuator_controls_s::INDEX_YAW];
 	}
 
 	_actuators_out_0->timestamp_sample = _actuators_mc_in->timestamp_sample;

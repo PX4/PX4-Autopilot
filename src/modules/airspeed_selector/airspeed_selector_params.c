@@ -25,7 +25,7 @@ PARAM_DEFINE_FLOAT(ASPD_WIND_NSD, 1.e-2f);
  * @decimal 5
  * @group Airspeed Validator
  */
-PARAM_DEFINE_FLOAT(ASPD_SCALE_NSD, 0.0001f);
+PARAM_DEFINE_FLOAT(ASPD_SCALE_NSD, 1.e-4f);
 
 /**
  * Airspeed Selector: Wind estimator true airspeed measurement noise

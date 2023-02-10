@@ -38,7 +38,7 @@ param set-default EKF2_GPS_P_GATE 10
 param set-default EKF2_GPS_V_GATE 10
 
 param set-default FW_ARSP_MODE 1
-param set-default FW_L1_PERIOD 25
+param set-default NPFG_PERIOD 25
 param set-default FW_PR_FF 0.7
 param set-default FW_PR_I 0.18
 param set-default FW_PR_P 0.15

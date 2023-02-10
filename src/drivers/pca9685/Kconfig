@@ -1,5 +1,0 @@
-menuconfig DRIVERS_PCA9685
-	bool "pca9685"
-	default n
-	---help---
-		Enable support for pca9685

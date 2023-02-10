@@ -55,7 +55,7 @@
 #include <parameters/param.h>
 
 #include "../uthash/utarray.h"
-#include <parameters/tinybson/tinybson.h>
+#include <lib/tinybson/tinybson.h>
 #include "flashparams.h"
 #include "flashfs.h"
 #include "../param_translation.h"

@@ -14,9 +14,14 @@ param set-default MAV_TYPE 1
 # Default parameters for fixed wing UAVs.
 #
 param set-default COM_POS_FS_DELAY 5
-param set-default COM_POS_FS_EPH 15
+
+# there is a 2.5 factor applied on the _FS thresholds if for invalidation
+param set-default COM_POS_FS_EPH 50
 param set-default COM_POS_FS_EPV 30
 param set-default COM_VEL_FS_EVH 5
+
+param set-default COM_POS_LOW_EPH 50
+
 # Disable preflight disarm to not interfere with external launching
 param set-default COM_DISARM_PRFLT -1
 

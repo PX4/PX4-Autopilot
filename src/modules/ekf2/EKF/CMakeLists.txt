@@ -53,12 +53,14 @@ add_library(ecl_EKF
 	gps_checks.cpp
 	gps_control.cpp
 	gps_yaw_fusion.cpp
+	gravity_fusion.cpp
 	height_control.cpp
 	imu_down_sampler.cpp
 	mag_control.cpp
 	mag_fusion.cpp
 	optical_flow_control.cpp
 	optflow_fusion.cpp
+	output_predictor.cpp
 	range_finder_consistency_check.cpp
 	range_height_control.cpp
 	sensor_range_finder.cpp

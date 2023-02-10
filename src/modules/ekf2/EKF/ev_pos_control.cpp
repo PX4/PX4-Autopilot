@@ -214,7 +214,7 @@ void Ekf::startEvPosFusion(const Vector2f &measurement, const Vector2f &measurem
 		_ev_pos_b_est.reset();
 	}
 
-	aid_src.time_last_fuse = _imu_sample_delayed.time_us;
+	aid_src.time_last_fuse = _time_delayed_us;
 
 	_nb_ev_pos_reset_available = 5;
 	_information_events.flags.starting_vision_pos_fusion = true;
@@ -237,7 +237,7 @@ void Ekf::updateEvPosFusion(const Vector2f &measurement, const Vector2f &measure
 				_ev_pos_b_est.setBias(-Vector2f(_state.pos.xy()) + measurement);
 			}
 
-			aid_src.time_last_fuse = _imu_sample_delayed.time_us;
+			aid_src.time_last_fuse = _time_delayed_us;
 
 		} else {
 			// EV has reset, but quality isn't sufficient
@@ -279,7 +279,7 @@ void Ekf::updateEvPosFusion(const Vector2f &measurement, const Vector2f &measure
 				}
 			}
 
-			aid_src.time_last_fuse = _imu_sample_delayed.time_us;
+			aid_src.time_last_fuse = _time_delayed_us;
 
 			if (_control_status.flags.in_air) {
 				_nb_ev_pos_reset_available--;

@@ -38,6 +38,7 @@ __BEGIN_DECLS
 #include "hardware/s32k344_pinmux.h"
 #include "s32k3xx_periphclocks.h"
 #include "s32k3xx_pin.h"
+#include "s32k3xx_progmem.h"
 #include <arch/board/board.h>
 
 /****************************************************************************
@@ -91,6 +92,23 @@ __BEGIN_DECLS
 #define RC_SERIAL_INVERT_RX_ONLY
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
+
+/*
+ * Hardfault log to progmem
+ */
+#define PROGMEM_CRASHDUMP        1
+#define SAVE_CRASHDUMP           1
+#define PROGMEM_DUMP_BASE        ((CONFIG_S32K3XX_PROGMEM_SIZE * 1024) + S32K3XX_PROGMEM_START_ADDR)
+#define PROGMEM_DUMP_SIZE        ((DFLASH_SIZE - CONFIG_S32K3XX_PROGMEM_SIZE) * 1024)
+#define PROGMEM_DUMP_ALIGNMENT   (S32K3XX_PROGMEM_WRITE_SIZE)
+#define PROGMEM_DUMP_UNIT_SIZE   (S32K3XX_PROGMEM_DFLASH_WRITE_UNIT_SIZE)
+#define PROGMEM_DUMP_HEADER_PAD  (108)
+#define PROGMEM_DUMP_ERASE_VALUE (0xFF)
+#define PROGMEM_DUMP_STACK_SIZE  (6656)
+#define BOARD_CRASHDUMP_BSS      1
+
+/* Reboot and ulog we store on a wear-level filesystem */
+#define HARDFAULT_REBOOT_PATH "/mnt/progmem/reboot"
 
 /****************************************************************************
  * Public Data
