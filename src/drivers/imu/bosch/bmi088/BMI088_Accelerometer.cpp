@@ -155,7 +155,7 @@ void BMI088_Accelerometer::RunImpl()
 		if (Configure()) {
 			// if configure succeeded then reset the FIFO
 			_state = STATE::FIFO_RESET;
-			ScheduleDelayed(1_ms);
+			ScheduleDelayed(10_ms);
 
 		} else {
 			// CONFIGURE not complete
