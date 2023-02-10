@@ -42,7 +42,7 @@
  * @author Norbert Szulc <>
  */
 
-#include "uuv_att_control.hpp"
+#include "usv_att_control.hpp"
 
 
 #define ACTUATOR_PUBLISH_PERIOD_MS 4
@@ -53,7 +53,7 @@
  *
  * @ingroup apps
  */
-extern "C" __EXPORT int uuv_att_control_main(int argc, char *argv[]);
+extern "C" __EXPORT int usv_att_control_main(int argc, char *argv[]);
 
 
 USVAttitudeControl::USVAttitudeControl():
@@ -91,6 +91,27 @@ void USVAttitudeControl::parameters_update(bool force)
 		updateParams();
 	}
 }
+
+// void USVAttitudeControl::position_setpoint_triplet_poll()
+// {
+// 	if (_pos_sp_triplet_sub.updated()) {
+// 		_pos_sp_triplet_sub.copy(&_pos_sp_triplet);
+// 	}
+// }
+
+// void USVAttitudeControl::attitude_setpoint_poll()
+// {
+// 	if (_att_sp_sub.updated()) {
+// 		_att_sp_sub.copy(&_att_sp);
+// 	}
+// }
+
+// void USVAttitudeControl::vehicle_attitude_poll()
+// {
+// 	if (_att_sub.updated()) {
+// 		_att_sub.copy(&_vehicle_att);
+// 	}
+// }
 
 void USVAttitudeControl::constrain_actuator_commands(float roll_u, float pitch_u, float yaw_u,
 		float thrust_x, float thrust_y, float thrust_z)
@@ -218,6 +239,74 @@ void USVAttitudeControl::control_attitude_geo(const vehicle_attitude_s &attitude
 	/* Geometric Controller END*/
 }
 
+void USVAttitudeControl::control_attitude_turn(const vehicle_attitude_s &attitude,
+		const vehicle_attitude_setpoint_s &attitude_setpoint, const vehicle_angular_velocity_s &angular_velocity,
+		const vehicle_rates_setpoint_s &rates_setpoint)
+{
+	Eulerf euler_angles(matrix::Quatf(attitude.q));
+
+	// float roll_u;
+	// float pitch_u;
+	float yaw_u;
+	float thrust_x;
+	float thrust_y;
+	float thrust_z;
+
+	// float roll_body = attitude_setpoint.roll_body;
+	// float pitch_body = attitude_setpoint.pitch_body;
+	float yaw_body = attitude_setpoint.yaw_body;
+
+	// float roll_rate_desired = rates_setpoint.roll;
+	// float pitch_rate_desired = rates_setpoint.pitch;
+	float yaw_rate_desired = rates_setpoint.yaw;
+
+	/* get attitude setpoint rotational matrix */
+	Dcmf rot_des = Eulerf(0.0f, 0.0f, yaw_body);
+
+	/* get current rotation matrix from control state quaternions */
+	Quatf q_att(attitude.q);
+	Matrix3f rot_att =  matrix::Dcm<float>(q_att);
+
+	Vector3f e_R_vec;
+	Vector3f torques;
+
+	/* Compute matrix: attitude error */
+	Matrix3f e_R = (rot_des.transpose() * rot_att - rot_att.transpose() * rot_des) * 0.5;
+
+	/* vee-map the error to get a vector instead of matrix e_R */
+	e_R_vec(0) = e_R(2, 1);  /**< Roll  */
+	e_R_vec(1) = e_R(0, 2);  /**< Pitch */
+	e_R_vec(2) = e_R(1, 0);  /**< Yaw   */
+
+	Vector3f omega{angular_velocity.xyz};
+	// omega(0) -= roll_rate_desired;
+	// omega(1) -= pitch_rate_desired;
+	omega(2) -= yaw_rate_desired;
+
+	/**< P-Control */
+	// torques(0) = - e_R_vec(0) * _param_roll_p.get();	/**< Roll  */
+	// torques(1) = - e_R_vec(1) * _param_pitch_p.get();	/**< Pitch */
+	torques(2) = - e_R_vec(2) * _param_yaw_p.get();		/**< Yaw   */
+
+	/**< PD-Control */
+	// torques(0) = torques(0) - omega(0) * _param_roll_d.get();  /**< Roll  */
+	// torques(1) = torques(1) - omega(1) * _param_pitch_d.get(); /**< Pitch */
+	torques(2) = torques(2) - omega(2) * _param_yaw_d.get();   /**< Yaw   */
+
+	// roll_u = torques(0);
+	// pitch_u = torques(1);
+	yaw_u = torques(2);
+
+	// take thrust as is
+	thrust_x = attitude_setpoint.thrust_body[0];
+	thrust_y = attitude_setpoint.thrust_body[1];
+	thrust_z = attitude_setpoint.thrust_body[2];
+
+
+	constrain_actuator_commands(0.0f, 0.0f, yaw_u, thrust_x, thrust_y, thrust_z);
+	/* Geometric Controller END*/
+}
+
 void USVAttitudeControl::Run()
 {
 	if (should_exit()) {
@@ -251,6 +340,8 @@ void USVAttitudeControl::Run()
 			_vehicle_attitude_setpoint_sub.update(&_attitude_setpoint);
 			_vehicle_rates_setpoint_sub.update(&_rates_setpoint);
 
+			PX4_INFO("got att setpoint?");
+
 			if (input_mode == 1) { // process manual data
 				_attitude_setpoint.roll_body = _param_direct_roll.get();
 				_attitude_setpoint.pitch_body = _param_direct_pitch.get();
@@ -268,7 +359,7 @@ void USVAttitudeControl::Run()
 							    _rates_setpoint.thrust_body[0], _rates_setpoint.thrust_body[1], _rates_setpoint.thrust_body[2]);
 
 			} else {
-				control_attitude_geo(attitude, _attitude_setpoint, angular_velocity, _rates_setpoint);
+				control_attitude_turn(attitude, _attitude_setpoint, angular_velocity, _rates_setpoint);
 			}
 		}
 	}
@@ -277,6 +368,7 @@ void USVAttitudeControl::Run()
 	if (_manual_control_setpoint_sub.update(&_manual_control_setpoint)) {
 		// This should be copied even if not in manual mode. Otherwise, the poll(...) call will keep
 		// returning immediately and this loop will eat up resources.
+		PX4_INFO("hello");
 		if (_vcontrol_mode.flag_control_manual_enabled && !_vcontrol_mode.flag_control_rates_enabled) {
 			/* manual/direct control */
 			constrain_actuator_commands(_manual_control_setpoint.roll, -_manual_control_setpoint.pitch,
@@ -300,6 +392,7 @@ void USVAttitudeControl::Run()
 	perf_end(_loop_perf);
 }
 
+// TODO: timestamp_sample??
 void USVAttitudeControl::publishTorqueSetpoint(const hrt_abstime &timestamp_sample)
 {
 	vehicle_torque_setpoint_s v_torque_sp = {};
@@ -317,7 +410,7 @@ void USVAttitudeControl::publishThrustSetpoint(const hrt_abstime &timestamp_samp
 	vehicle_thrust_setpoint_s v_thrust_sp = {};
 	v_thrust_sp.timestamp = hrt_absolute_time();
 	v_thrust_sp.timestamp_sample = timestamp_sample;
-	v_thrust_sp.xyz[0] = _actuators.control[actuator_controls_s::INDEX_THROTTLE];
+	v_thrust_sp.xyz[0] = 0.0f;
 	v_thrust_sp.xyz[1] = 0.0f;
 	v_thrust_sp.xyz[2] = 0.0f;
 
@@ -371,24 +464,24 @@ Publishes `actuator_controls_0` messages at a constant 250Hz.
 Currently, this implementation supports only a few modes:
 
  * Full manual: Roll, pitch, yaw, and throttle controls are passed directly through to the actuators
- * Auto mission: The uuv runs missions
+ * Auto mission: The usv runs missions
 
 ### Examples
 CLI usage example:
-$ uuv_att_control start
-$ uuv_att_control status
-$ uuv_att_control stop
+$ usv_att_control start
+$ usv_att_control status
+$ usv_att_control stop
 
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_NAME("uuv_att_control", "controller");
+	PRINT_MODULE_USAGE_NAME("usv_att_control", "controller");
 	PRINT_MODULE_USAGE_COMMAND("start")
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
 }
 
-int uuv_att_control_main(int argc, char *argv[])
+int usv_att_control_main(int argc, char *argv[])
 {
 	return USVAttitudeControl::main(argc, argv);
 }

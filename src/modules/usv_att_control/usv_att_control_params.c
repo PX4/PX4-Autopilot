@@ -34,7 +34,7 @@
 /**
  * @file usv_att_control_params.c
  *
- * Parameters defined by the attitude control task for unmanned underwater vehicles (UUVs)
+ * Parameters defined by the attitude control task for unmanned underwater vehicles (USVs)
  *
  * This is a modification of the fixed wing/ground rover params and it is designed for ground rovers.
  * It has been developed starting from the fw  module, simplified and improved with dedicated items.
@@ -54,54 +54,54 @@
 /**
  * Roll proportional gain
  *
- * @group UUV Attitude Control
+ * @group USV Attitude Control
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(UUV_ROLL_P, 4.0f);
+PARAM_DEFINE_FLOAT(USV_ROLL_P, 4.0f);
 
 /**
  * Roll differential gain
  *
- * @group UUV Attitude Control
+ * @group USV Attitude Control
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(UUV_ROLL_D, 1.5f);
+PARAM_DEFINE_FLOAT(USV_ROLL_D, 1.5f);
 
 
 // Pitch gains
 /**
  * Pitch proportional gain
  *
- * @group UUV Attitude Control
+ * @group USV Attitude Control
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(UUV_PITCH_P, 4.0f);
+PARAM_DEFINE_FLOAT(USV_PITCH_P, 4.0f);
 
 /**
  * Pitch differential gain
  *
- * @group UUV Attitude Control
+ * @group USV Attitude Control
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(UUV_PITCH_D, 2.0f);
+PARAM_DEFINE_FLOAT(USV_PITCH_D, 2.0f);
 
 
 // Yaw gains
 /**
  * Yawh proportional gain
  *
- * @group UUV Attitude Control
+ * @group USV Attitude Control
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(UUV_YAW_P, 4.0f);
+PARAM_DEFINE_FLOAT(USV_YAW_P, 4.0f);
 
 /**
  * Yaw differential gain
  *
- * @group UUV Attitude Control
+ * @group USV Attitude Control
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(UUV_YAW_D, 2.0f);
+PARAM_DEFINE_FLOAT(USV_YAW_D, 2.0f);
 
 
 // Input Modes
@@ -110,9 +110,9 @@ PARAM_DEFINE_FLOAT(UUV_YAW_D, 2.0f);
  *
  * @value 0 use Attitude Setpoints
  * @value 1 Direct Feedthrough
- * @group UUV Attitude Control
+ * @group USV Attitude Control
  */
-PARAM_DEFINE_INT32(UUV_INPUT_MODE, 0);
+PARAM_DEFINE_INT32(USV_INPUT_MODE, 0);
 
 /**
  * Skip the controller
@@ -120,32 +120,32 @@ PARAM_DEFINE_INT32(UUV_INPUT_MODE, 0);
  * @value 0 use the module's controller
  * @value 1 skip the controller and feedthrough the setpoints
  */
-PARAM_DEFINE_INT32(UUV_SKIP_CTRL, 0);
+PARAM_DEFINE_INT32(USV_SKIP_CTRL, 0);
 
 /**
  * Direct roll input
  *
- * @group UUV Attitude Control
+ * @group USV Attitude Control
  */
-PARAM_DEFINE_FLOAT(UUV_DIRCT_ROLL, 0.0f);
+PARAM_DEFINE_FLOAT(USV_DIRCT_ROLL, 0.0f);
 
 /**
  * Direct pitch input
  *
- * @group UUV Attitude Control
+ * @group USV Attitude Control
  */
-PARAM_DEFINE_FLOAT(UUV_DIRCT_PITCH, 0.0f);
+PARAM_DEFINE_FLOAT(USV_DIRCT_PITCH, 0.0f);
 
 /**
  * Direct yaw input
  *
- * @group UUV Attitude Control
+ * @group USV Attitude Control
  */
-PARAM_DEFINE_FLOAT(UUV_DIRCT_YAW, 0.0f);
+PARAM_DEFINE_FLOAT(USV_DIRCT_YAW, 0.0f);
 
 /**
  * Direct thrust input
  *
- * @group UUV Attitude Control
+ * @group USV Attitude Control
  */
-PARAM_DEFINE_FLOAT(UUV_DIRCT_THRUST, 0.0f);
+PARAM_DEFINE_FLOAT(USV_DIRCT_THRUST, 0.0f);

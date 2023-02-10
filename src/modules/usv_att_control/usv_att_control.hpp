@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -108,6 +108,8 @@ private:
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
+	// uORB::Subscription _att_sub{ORB_ID(vehicle_attitude)};
+	// uORB::Subscription _att_sp_sub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Subscription _vehicle_attitude_setpoint_sub{ORB_ID(vehicle_attitude_setpoint)};	/**< vehicle attitude setpoint */
 	uORB::Subscription _vehicle_rates_setpoint_sub{ORB_ID(vehicle_rates_setpoint)}; /**< vehicle bodyrates setpoint subscriber */
 	uORB::Subscription _angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};	/**< vehicle angular velocity subscription */
@@ -125,20 +127,20 @@ private:
 	perf_counter_t	_loop_perf;
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::UUV_ROLL_P>) _param_roll_p,
-		(ParamFloat<px4::params::UUV_ROLL_D>) _param_roll_d,
-		(ParamFloat<px4::params::UUV_PITCH_P>) _param_pitch_p,
-		(ParamFloat<px4::params::UUV_PITCH_D>) _param_pitch_d,
-		(ParamFloat<px4::params::UUV_YAW_P>) _param_yaw_p,
-		(ParamFloat<px4::params::UUV_YAW_D>) _param_yaw_d,
+		(ParamFloat<px4::params::USV_ROLL_P>) _param_roll_p,
+		(ParamFloat<px4::params::USV_ROLL_D>) _param_roll_d,
+		(ParamFloat<px4::params::USV_PITCH_P>) _param_pitch_p,
+		(ParamFloat<px4::params::USV_PITCH_D>) _param_pitch_d,
+		(ParamFloat<px4::params::USV_YAW_P>) _param_yaw_p,
+		(ParamFloat<px4::params::USV_YAW_D>) _param_yaw_d,
 		// control/input modes
-		(ParamInt<px4::params::UUV_INPUT_MODE>) _param_input_mode,
-		(ParamInt<px4::params::UUV_SKIP_CTRL>) _param_skip_ctrl,
+		(ParamInt<px4::params::USV_INPUT_MODE>) _param_input_mode,
+		(ParamInt<px4::params::USV_SKIP_CTRL>) _param_skip_ctrl,
 		// direct access to inputs
-		(ParamFloat<px4::params::UUV_DIRCT_ROLL>) _param_direct_roll,
-		(ParamFloat<px4::params::UUV_DIRCT_PITCH>) _param_direct_pitch,
-		(ParamFloat<px4::params::UUV_DIRCT_YAW>) _param_direct_yaw,
-		(ParamFloat<px4::params::UUV_DIRCT_THRUST>) _param_direct_thrust
+		(ParamFloat<px4::params::USV_DIRCT_ROLL>) _param_direct_roll,
+		(ParamFloat<px4::params::USV_DIRCT_PITCH>) _param_direct_pitch,
+		(ParamFloat<px4::params::USV_DIRCT_YAW>) _param_direct_yaw,
+		(ParamFloat<px4::params::USV_DIRCT_THRUST>) _param_direct_thrust
 	)
 
 	void Run() override;
@@ -151,6 +153,8 @@ private:
 	 * Control Attitude
 	 */
 	void control_attitude_geo(const vehicle_attitude_s &attitude, const vehicle_attitude_setpoint_s &attitude_setpoint,
+				  const vehicle_angular_velocity_s &angular_velocity, const vehicle_rates_setpoint_s &rates_setpoint);
+	void control_attitude_turn(const vehicle_attitude_s &attitude, const vehicle_attitude_setpoint_s &attitude_setpoint,
 				  const vehicle_angular_velocity_s &angular_velocity, const vehicle_rates_setpoint_s &rates_setpoint);
 	void constrain_actuator_commands(float roll_u, float pitch_u, float yaw_u,
 					 float thrust_x, float thrust_y, float thrust_z);
