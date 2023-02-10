@@ -1,0 +1,12 @@
+menuconfig MODULES_USV_ATT_CONTROL
+	bool "usv_att_control"
+	default n
+	---help---
+		Enable support for usv_att_control
+
+menuconfig USER_USV_ATT_CONTROL
+	bool "usv_att_control running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && MODULES_USV_ATT_CONTROL
+	---help---
+		Put usv_att_control in userspace memory
