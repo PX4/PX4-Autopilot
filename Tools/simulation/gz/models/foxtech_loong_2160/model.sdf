@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
-<sdf version="1.9">
-  <model name="foxtech">
+<sdf version="1.10">
+  <model name="foxtech_loong_2160">
     <pose>0 0 0.5 0 0 0</pose>
     <link name="base_link">
       <visual name="visual_base_link">
@@ -18,7 +18,7 @@
         </geometry>
       </collision>
       <inertial>
-        <pose>5.5496318928189852e-08 -0.13220957545547668 0.04102677817672417 1.5707963267949001 -1.5231416921301011 1.5707963267948919</pose>
+        <pose>-0.13220955077769075 -4.9142356489896525e-08 0.04102678265168308 1.5707963267948966 -1.5231416433972742 0</pose>
         <mass>3.584838964525901</mass>
         <inertia>
           <ixx>0.67738485351961117</ixx>
@@ -35,6 +35,7 @@
       </sensor>
     </link>
     <link name="legs_link">
+      <pose>0 0 0 0 0 -1.57</pose>
       <visual name="visual_legs_link">
         <geometry>
           <mesh>
@@ -46,6 +47,18 @@
           <diffuse>1 1 1 1.0</diffuse>
         </material>
       </visual>
+      <inertial>
+        <pose>3.7153930608820144e-06 -0.17032952180315669 -0.067888027893133446 0.010363008330798451 -1.494594844601834 1.5602561510969915</pose>
+        <mass>0.6675493726413797</mass>
+        <inertia>
+          <ixx>0.032153703643267112</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>0.031670484418576728</iyy>
+          <iyz>0</iyz>
+          <izz>0.00069030434527976208</izz>
+        </inertia>
+      </inertial>
       <collision name="collision_legs_link">
         <geometry>
           <mesh>
@@ -59,9 +72,7 @@
       <parent>base_link</parent>
     </joint>
     <link name="airspeed_link">
-      <pose>0 0 0 0 0 0</pose>
       <inertial>
-        <pose>0 0 0 0 0 0</pose>
         <mass>0.015</mass>
         <inertia>
           <ixx>1e-05</ixx>
@@ -88,12 +99,12 @@
         <always_on>1</always_on>
         <update_rate>30</update_rate>
         <air_speed>
-          <airspeed>
+          <pressure>
             <noise type="gaussian">
               <mean>0</mean>
               <stddev>0.01</stddev>
             </noise>
-          </airspeed>
+          </pressure>
         </air_speed>
       </sensor>
     </link>
@@ -102,7 +113,7 @@
       <parent>base_link</parent>
     </joint>
     <link name="aileron_left_link">
-      <pose>-0.713 -0.122 0.062 0 0 0</pose>
+      <pose>-0.122 0.713 0.062 0 0 -1.57</pose>
       <visual name="visual_aileron_left_link">
         <geometry>
           <mesh>
@@ -145,7 +156,7 @@
       </axis>
     </joint>
     <link name="aileron_right_link">
-      <pose>0.713 -0.122 0.062 0 0 0</pose>
+      <pose>-0.122 -0.713 0.062 0 0 -1.57</pose>
       <visual name="visual_aileron_right_link">
         <geometry>
           <mesh>
@@ -187,9 +198,9 @@
         </dynamics>
       </axis>
     </joint>
-    <link name="elevator_right_link">
-      <pose>0.145 -0.883 0.058 0 0 0</pose>
+    <link name="elevator_link">
       <visual name="visual_elevator_right_link">
+        <pose>-0.883 -0.145 0.058 0 0 -1.57</pose>
         <geometry>
           <mesh>
             <uri>model://foxtech_loong_2160/meshes/elevator_right.dae</uri>
@@ -197,42 +208,15 @@
         </geometry>
       </visual>
       <collision name="collision_elevator_right_link">
+        <pose>-0.883 -0.145 0.058 0 0 -1.57</pose>
         <geometry>
           <mesh>
             <uri>model://foxtech_loong_2160/meshes/elevator_right.dae</uri>
           </mesh>
         </geometry>
       </collision>
-      <inertial>
-        <pose>-0.0016067211671852988 -0.018030442713651468 -0.00069522433005383619 -1.5781803398819152 -1.5333187237477242 -1.557643721247719</pose>
-        <mass>0.060753042156032153</mass>
-        <inertia>
-          <ixx>0.00020350509255462549</ixx>
-          <ixy>0</ixy>
-          <ixz>0</ixz>
-          <iyy>0.00019480985651122032</iyy>
-          <iyz>0</iyz>
-          <izz>8.8355306524910641e-06</izz>
-        </inertia>
-      </inertial>
-    </link>
-    <joint name="servo_2" type="revolute">
-      <parent>base_link</parent>
-      <child>elevator_right_link</child>
-      <axis>
-        <xyz>1 0 0</xyz>
-        <limit>
-          <lower>-0.53</lower>
-          <upper>0.53</upper>
-        </limit>
-        <dynamics>
-          <damping>1.000</damping>
-        </dynamics>
-      </axis>
-    </joint>
-    <link name="elevator_left_link">
-      <pose>-0.145 -0.883 0.058 0 0 0</pose>
       <visual name="visual_elevator_left_link">
+        <pose>-0.883 0.145 0.058 0 0 -1.57</pose>
         <geometry>
           <mesh>
             <uri>model://foxtech_loong_2160/meshes/elevator_left.dae</uri>
@@ -240,6 +224,7 @@
         </geometry>
       </visual>
       <collision name="collision_elevator_left_link">
+        <pose>-0.883 0.145 0.058 0 0 -1.57</pose>
         <geometry>
           <mesh>
             <uri>model://foxtech_loong_2160/meshes/elevator_left.dae</uri>
@@ -247,23 +232,24 @@
         </geometry>
       </collision>
       <inertial>
-        <pose>0.0016067211849514255 -0.01803044297097545 -0.00069522588918623891 -1.5634123386853667 -1.5333186393334697 -1.5839489042016495</pose>
-        <mass>0.060753043945841481</mass>
+        <pose>-0.90103043712540809 -1.4356019912623529e-05 0.057304774890379953 -1.5708004219891478 -1.5333831628670098 -3.141493135229823</pose>
+        <mass>0.12150608610187363</mass>
         <inertia>
-          <ixx>0.00020350510004415204</ixx>
+          <ixx>0.0029053735939891879</ixx>
           <ixy>0</ixy>
           <ixz>0</ixz>
-          <iyy>0.00019480986370137352</iyy>
+          <iyy>0.0028879706692375028</iyy>
           <iyz>0</iyz>
-          <izz>8.8355309624774113e-06</izz>
+          <izz>1.7683703559870421e-05</izz>
         </inertia>
       </inertial>
     </link>
-    <joint name="servo_3" type="revolute">
+    <joint name="servo_2" type="revolute">
+      <pose>-0.883 0 0.058 0 0 -1.57</pose>
       <parent>base_link</parent>
-      <child>elevator_left_link</child>
+      <child>elevator_link</child>
       <axis>
-        <xyz>1 0 0</xyz>
+        <xyz>-1 0 0</xyz>
         <limit>
           <lower>-0.53</lower>
           <upper>0.53</upper>
@@ -274,7 +260,7 @@
       </axis>
     </joint>
     <link name="rudder_link">
-      <pose>0 -0.887 0.201 0 0 0</pose>
+      <pose>-0.887 0 0.201 0 0 -1.57</pose>
       <visual name="visual_rudder_link">
         <geometry>
           <mesh>
@@ -302,7 +288,7 @@
         </inertia>
       </inertial>
     </link>
-    <joint name="servo_4" type="revolute">
+    <joint name="servo_3" type="revolute">
       <parent>base_link</parent>
       <child>rudder_link</child>
       <axis>
@@ -316,11 +302,11 @@
         </dynamics>
       </axis>
     </joint>
-    <link name="rotor_0">
+    <link name="rotor_3">
       <gravity>true</gravity>
       <self_collide>false</self_collide>
       <velocity_decay/>
-      <pose>0.427 -0.403 0.083 0 0 0</pose>
+      <pose>-0.403 -0.427 0.083 0 0 -1.57</pose>
       <inertial>
           <mass>0.016076923076923075</mass>
           <inertia>
@@ -329,15 +315,14 @@
             <izz>2.649858234714004e-05</izz>
           </inertia>
         </inertial>
-      <visual name="rotor_0_visual">
+      <visual name="rotor_3_visual">
         <geometry>
           <mesh>
             <uri>model://foxtech_loong_2160/meshes/propeller_ccw.dae</uri>
           </mesh>
         </geometry>
       </visual>
-      <collision name="rotor_0_collision">
-        <pose>0 0 0 0 0 0 </pose>
+      <collision name="rotor_3_collision">
         <geometry>
           <box>
             <size>0.2792307692307692 0.016923076923076923 0.0008461538461538462</size>
@@ -371,11 +356,11 @@
         </dynamics>
       </axis>
     </joint>
-    <link name="rotor_1">
+    <link name="rotor_2">
       <gravity>true</gravity>
       <self_collide>false</self_collide>
       <velocity_decay/>
-      <pose>-0.427 0.403 0.083 0 0 0</pose>
+      <pose>0.403 0.427 0.083 0 0 -1.57</pose>
       <inertial>
           <mass>0.016076923076923075</mass>
           <inertia>
@@ -384,15 +369,14 @@
             <izz>2.649858234714004e-05</izz>
           </inertia>
         </inertial>
-      <visual name="rotor_1_visual">
+      <visual name="rotor_2_visual">
         <geometry>
           <mesh>
             <uri>model://foxtech_loong_2160/meshes/propeller_ccw.dae</uri>
           </mesh>
         </geometry>
       </visual>
-      <collision name="rotor_1_collision">
-        <pose>0 0 0 0 0 0 </pose>
+      <collision name="rotor_2_collision">
         <geometry>
           <box>
             <size>0.2792307692307692 0.016923076923076923 0.0008461538461538462</size>
@@ -426,11 +410,11 @@
         </dynamics>
       </axis>
     </joint>
-    <link name="rotor_2">
+    <link name="rotor_0">
       <gravity>true</gravity>
       <self_collide>false</self_collide>
       <velocity_decay/>
-      <pose>0.427 0.403 0.083 0 0 0</pose>
+      <pose>0.403 -0.427 0.083 0 0 -1.57</pose>
       <inertial>
           <mass>0.016076923076923075</mass>
           <inertia>
@@ -439,15 +423,14 @@
             <izz>2.649858234714004e-05</izz>
           </inertia>
         </inertial>
-      <visual name="rotor_2_visual">
+      <visual name="rotor_0_visual">
         <geometry>
           <mesh>
             <uri>model://foxtech_loong_2160/meshes/propeller_cw.dae</uri>
           </mesh>
         </geometry>
       </visual>
-      <collision name="rotor_2_collision">
-        <pose>0 0 0 0 0 0 </pose>
+      <collision name="rotor_0_collision">
         <geometry>
           <box>
             <size>0.2792307692307692 0.016923076923076923 0.0008461538461538462</size>
@@ -481,11 +464,11 @@
         </dynamics>
       </axis>
     </joint>
-    <link name="rotor_3">
+    <link name="rotor_1">
       <gravity>true</gravity>
       <self_collide>false</self_collide>
       <velocity_decay/>
-      <pose>-0.427 -0.403 0.083 0 0 0</pose>
+      <pose>-0.403 0.427 0.083 0 0 -1.57</pose>
       <inertial>
           <mass>0.016076923076923075</mass>
           <inertia>
@@ -494,15 +477,14 @@
             <izz>2.649858234714004e-05</izz>
           </inertia>
         </inertial>
-      <visual name="rotor_3_visual">
+      <visual name="rotor_1_visual">
         <geometry>
           <mesh>
             <uri>model://foxtech_loong_2160/meshes/propeller_cw.dae</uri>
           </mesh>
         </geometry>
       </visual>
-      <collision name="rotor_3_collision">
-        <pose>0 0 0 0 0 0 </pose>
+      <collision name="rotor_1_collision">
         <geometry>
           <box>
             <size>0.2792307692307692 0.016923076923076923 0.0008461538461538462</size>
@@ -537,7 +519,7 @@
       </axis>
     </joint>
     <link name='rotor_puller'>
-      <pose>0.0 0.379 0.0 -1.57 1.57 0</pose>
+      <pose>0.379 0.0 0.0 -1.57 1.57 -1.57</pose>
       <inertial>
         <pose>0 0 0 0 0 0</pose>
         <mass>0.005</mass>
@@ -690,19 +672,20 @@
       <cla_stall>-3.85</cla_stall>
       <cda_stall>-0.9233984055</cda_stall>
       <cma_stall>0</cma_stall>
-      <cp>-0.05 0.3 0.05</cp>
-      <area>0.50</area>
+      <cp>-0.05 0.45 0.05</cp>
+      <area>0.6</area>
       <air_density>1.2041</air_density>
       <forward>1 0 0</forward>
       <upward>0 0 1</upward>
       <link_name>base_link</link_name>
       <control_joint_name>servo_0</control_joint_name>
-      <control_joint_rad_to_cl>-1.0</control_joint_rad_to_cl>
+      <control_joint_rad_to_cl>-0.3</control_joint_rad_to_cl>
     </plugin>
     <plugin
       filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
       <joint_name>servo_0</joint_name>
       <sub_topic>servo_0</sub_topic>
+      <p_gain>10.0</p_gain>
     </plugin>
     <plugin filename="gz-sim-lift-drag-system" name="gz::sim::systems::LiftDrag">
       <a0>0.05984281113</a0>
@@ -713,19 +696,20 @@
       <cla_stall>-3.85</cla_stall>
       <cda_stall>-0.9233984055</cda_stall>
       <cma_stall>0</cma_stall>
-      <cp>-0.05 -0.3 0.05</cp>
-      <area>0.50</area>
+      <cp>-0.05 -0.45 0.05</cp>
+      <area>0.6</area>
       <air_density>1.2041</air_density>
       <forward>1 0 0</forward>
       <upward>0 0 1</upward>
       <link_name>base_link</link_name>
       <control_joint_name>servo_1</control_joint_name>
-      <control_joint_rad_to_cl>-1.0</control_joint_rad_to_cl>
+      <control_joint_rad_to_cl>-0.3</control_joint_rad_to_cl>
     </plugin>
     <plugin
       filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
       <joint_name>servo_1</joint_name>
       <sub_topic>servo_1</sub_topic>
+      <p_gain>10.0</p_gain>
     </plugin>
     <plugin filename="gz-sim-lift-drag-system" name="gz::sim::systems::LiftDrag">
       <a0>-0.2</a0>
@@ -743,12 +727,13 @@
       <upward>0 0 1</upward>
       <link_name>base_link</link_name>
       <control_joint_name>servo_2</control_joint_name>
-      <control_joint_rad_to_cl>-12.0</control_joint_rad_to_cl>
+      <control_joint_rad_to_cl>-4.0</control_joint_rad_to_cl>
     </plugin>
     <plugin
       filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
       <joint_name>servo_2</joint_name>
       <sub_topic>servo_2</sub_topic>
+      <p_gain>10.0</p_gain>
     </plugin>
     <plugin filename="gz-sim-lift-drag-system" name="gz::sim::systems::LiftDrag">
       <a0>0.0</a0>
@@ -766,33 +751,13 @@
       <upward>0 1 0</upward>
       <link_name>base_link</link_name>
       <control_joint_name>servo_3</control_joint_name>
+      <control_joint_rad_to_cl>0.8</control_joint_rad_to_cl>
     </plugin>
     <plugin
       filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
       <joint_name>servo_3</joint_name>
       <sub_topic>servo_3</sub_topic>
-    </plugin>
-    <plugin filename="gz-sim-lift-drag-system" name="gz::sim::systems::LiftDrag">
-      <a0>0.0</a0>
-      <cla>4.752798721</cla>
-      <cda>0.6417112299</cda>
-      <cma>0.0.</cma>
-      <alpha_stall>0.3391428111</alpha_stall>
-      <cla_stall>-3.85</cla_stall>
-      <cda_stall>-0.9233984055</cda_stall>
-      <cma_stall>0</cma_stall>
-      <cp>-0.5 0 0.05</cp>
-      <area>0.02</area>
-      <air_density>1.2041</air_density>
-      <forward>1 0 0</forward>
-      <upward>0 1 0</upward>
-      <link_name>base_link</link_name>
-      <control_joint_name>servo_4</control_joint_name>
-    </plugin>
-    <plugin
-      filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
-      <joint_name>servo_4</joint_name>
-      <sub_topic>servo_4</sub_topic>
+      <p_gain>10.0</p_gain>
     </plugin>
   </model>
 </sdf>
