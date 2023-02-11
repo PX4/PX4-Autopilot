@@ -301,7 +301,7 @@ int LogWriterFile::thread_start()
 
 	sched_param param;
 	/* low priority, as this is expensive disk I/O */
-	param.sched_priority = SCHED_PRIORITY_DEFAULT - 40;
+	param.sched_priority = SCHED_PRIORITY_LOG_WRITER;
 	(void)pthread_attr_setschedparam(&thr_attr, &param);
 
 	pthread_attr_setstacksize(&thr_attr, PX4_STACK_ADJUSTED(1170));

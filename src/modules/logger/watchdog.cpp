@@ -34,6 +34,7 @@
 #include "watchdog.h"
 
 #include <px4_platform_common/log.h>
+#include <px4_platform_common/tasks.h>
 
 #if defined(__PX4_NUTTX) && !defined(CONFIG_SCHED_INSTRUMENTATION)
 #  error watchdog support requires CONFIG_SCHED_INSTRUMENTATION
@@ -54,9 +55,11 @@ bool watchdog_update(watchdog_data_t &watchdog_data, bool semaphore_value_satura
 	if (system_load.initialized && watchdog_data.logger_main_task_index >= 0
 	    && watchdog_data.logger_writer_task_index >= 0) {
 		const hrt_abstime now = hrt_absolute_time();
-		const system_load_taskinfo_s &log_writer_task = system_load.tasks[watchdog_data.logger_writer_task_index];
 
-		if (log_writer_task.valid) {
+		const system_load_taskinfo_s &logger_main_task = system_load.tasks[watchdog_data.logger_main_task_index];
+		const system_load_taskinfo_s &logger_writer_task = system_load.tasks[watchdog_data.logger_writer_task_index];
+
+		if (logger_writer_task.valid) {
 			// Trigger the watchdog if the log writer task has been ready to run for a
 			// minimum duration and it has not been scheduled during that time.
 			// When the writer is waiting for an SD transfer, it is not in ready state, thus a long dropout
@@ -68,12 +71,12 @@ bool watchdog_update(watchdog_data_t &watchdog_data, bool semaphore_value_satura
 			// No need to lock the tcb access, since we are in IRQ context
 
 			// update the timestamp if it has been scheduled recently
-			if (log_writer_task.curr_start_time > watchdog_data.ready_to_run_timestamp) {
-				watchdog_data.ready_to_run_timestamp = log_writer_task.curr_start_time;
+			if (logger_writer_task.curr_start_time > watchdog_data.ready_to_run_timestamp) {
+				watchdog_data.ready_to_run_timestamp = logger_writer_task.curr_start_time;
 			}
 
 			// update the timestamp if not ready to run or if transitioned into ready to run
-			uint8_t current_state = log_writer_task.tcb->task_state;
+			uint8_t current_state = logger_writer_task.tcb->task_state;
 
 			if (current_state != TSTATE_TASK_READYTORUN
 			    || (watchdog_data.last_state != TSTATE_TASK_READYTORUN && current_state == TSTATE_TASK_READYTORUN)) {
@@ -106,23 +109,52 @@ bool watchdog_update(watchdog_data_t &watchdog_data, bool semaphore_value_satura
 				watchdog_data.sem_counter_saturated_start = now;
 			}
 
-			if (now - watchdog_data.sem_counter_saturated_start > 3_s || now - watchdog_data.ready_to_run_timestamp > 1_s) {
+			if (!watchdog_data.priority_boosted
+			    && ((now - watchdog_data.sem_counter_saturated_start > 3_s) || (now - watchdog_data.ready_to_run_timestamp > 1_s)
+				|| watchdog_data.priority_boost_requested.load())
+			   ) {
 				// boost the priority to make sure the logger continues to write to the log.
 				// Note that we never restore the priority, to keep the logic simple and because it is
 				// an event that must not occur under normal circumstances (if it does, there's a bug
 				// somewhere)
-				sched_param param{};
-				param.sched_priority = SCHED_PRIORITY_MAX;
 
-				if (system_load.tasks[watchdog_data.logger_main_task_index].valid) {
-					sched_setparam(system_load.tasks[watchdog_data.logger_main_task_index].tcb->pid, &param);
+				if (logger_main_task.valid) {
+					sched_param param{};
+					param.sched_priority = SCHED_PRIORITY_MAX;
+					sched_setparam(logger_main_task.tcb->pid, &param);
 				}
 
-				sched_setparam(log_writer_task.tcb->pid, &param);
+				if (logger_writer_task.valid) {
+					sched_param param{};
+					param.sched_priority = SCHED_PRIORITY_MAX;
+					sched_setparam(logger_writer_task.tcb->pid, &param);
+				}
 
-				// make sure we won't trigger again
-				watchdog_data.logger_main_task_index = -1;
+				// reset to avoid trigger again immediately
+				watchdog_data.sem_counter_saturated_start = now;
+				watchdog_data.ready_to_run_timestamp = now;
+
+				watchdog_data.priority_boosted = true;
+				watchdog_data.priority_boost_requested.store(true);
+
 				return true;
+
+			} else if (watchdog_data.priority_boosted && !watchdog_data.priority_boost_requested.load()) {
+				// restore original priorities
+				if (logger_main_task.valid) {
+					sched_param param{};
+					param.sched_priority = SCHED_PRIORITY_LOG_CAPTURE;
+					sched_setparam(logger_main_task.tcb->pid, &param);
+				}
+
+				if (logger_writer_task.valid) {
+					sched_param param{};
+					param.sched_priority = SCHED_PRIORITY_LOG_WRITER;
+					sched_setparam(logger_writer_task.tcb->pid, &param);
+				}
+
+				watchdog_data.priority_boosted = false;
+				watchdog_data.priority_boost_requested.store(false);
 			}
 
 		} else {

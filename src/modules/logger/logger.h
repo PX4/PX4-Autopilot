@@ -36,12 +36,14 @@
 #include "log_writer.h"
 #include "logged_topics.h"
 #include "messages.h"
+#include "watchdog.h"
 #include <containers/Array.hpp>
 #include "util.h"
 #include <px4_platform_common/defines.h>
 #include <drivers/drv_hrt.h>
 #include <version/version.h>
 #include <parameters/param.h>
+#include <px4_platform_common/atomic.h>
 #include <px4_platform_common/printload.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
@@ -55,6 +57,8 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/parameter_update.h>
+
+
 
 extern "C" __EXPORT int logger_main(int argc, char *argv[]);
 
@@ -130,6 +134,8 @@ public:
 	void print_statistics(LogType type);
 
 	void set_arm_override(bool override) { _manually_logging_override = override; }
+
+	void set_priority_boost_request(bool request_boost) { _timer_callback_data.watchdog_data.priority_boost_requested.store(request_boost); }
 
 private:
 
@@ -326,6 +332,18 @@ private:
 
 	void adjust_subscription_updates();
 
+	/* This is used to schedule work for the logger (periodic scan for updated topics) */
+	static void timer_callback(void *arg);
+
+	struct timer_callback_data_s {
+		px4_sem_t semaphore{};
+
+		watchdog_data_t watchdog_data{};
+		px4::atomic_bool watchdog_triggered{false};
+	} _timer_callback_data{};
+
+	struct hrt_call _timer_call {};
+
 	uint8_t						*_msg_buffer{nullptr};
 	int						_msg_buffer_len{0};
 
@@ -333,6 +351,7 @@ private:
 
 	bool						_prev_state{false}; ///< previous state depending on logging mode (arming or aux1 state)
 	bool						_manually_logging_override{false};
+	bool						_request_priority_boost{false};
 
 	Statistics					_statistics[(int)LogType::Count];
 	hrt_abstime					_last_sync_time{0}; ///< last time a sync msg was sent

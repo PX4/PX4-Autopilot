@@ -141,8 +141,12 @@ typedef struct {
 // The navigation system needs to execute regularly but has no realtime needs
 #define SCHED_PRIORITY_NAVIGATION		(SCHED_PRIORITY_DEFAULT + 5)
 //      SCHED_PRIORITY_DEFAULT
-#define SCHED_PRIORITY_LOG_WRITER		(SCHED_PRIORITY_DEFAULT - 10)
+
 #define SCHED_PRIORITY_PARAMS			(SCHED_PRIORITY_DEFAULT - 15)
+
+#define SCHED_PRIORITY_LOG_WRITER		(SCHED_PRIORITY_DEFAULT - 40)
+
+
 //      SCHED_PRIORITY_IDLE
 
 typedef int (*px4_main_t)(int argc, char *argv[]);

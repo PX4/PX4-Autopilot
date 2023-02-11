@@ -36,7 +36,6 @@
 #include "logged_topics.h"
 #include "logger.h"
 #include "messages.h"
-#include "watchdog.h"
 
 #include <dirent.h>
 #include <sys/stat.h>
@@ -83,47 +82,6 @@
 using namespace px4::logger;
 using namespace time_literals;
 
-
-struct timer_callback_data_s {
-	px4_sem_t semaphore;
-
-	watchdog_data_t watchdog_data;
-	volatile bool watchdog_triggered = false;
-};
-
-/* This is used to schedule work for the logger (periodic scan for updated topics) */
-static void timer_callback(void *arg)
-{
-	/* Note: we are in IRQ context here (on NuttX) */
-
-	timer_callback_data_s *data = (timer_callback_data_s *)arg;
-
-	int semaphore_value = 0;
-
-	px4_sem_getvalue(&data->semaphore, &semaphore_value);
-
-	/* check the value of the semaphore: if the logger cannot keep up with running it's main loop as fast
-	 * as the timer_callback here increases the semaphore count, the counter would increase unbounded,
-	 * leading to an overflow at some point. This case we want to avoid here, so we check the current
-	 * value against a (somewhat arbitrary) threshold, and avoid calling sem_post() if it's exceeded.
-	 * (it's not a problem if the threshold is a bit too large, it just means the logger will do
-	 * multiple iterations at once, the next time it's scheduled).
-	 * As the watchdog also uses the counter we use a conservatively high value */
-	bool semaphore_value_saturated = semaphore_value > 100;
-
-	if (watchdog_update(data->watchdog_data, semaphore_value_saturated)) {
-		data->watchdog_triggered = true;
-	}
-
-	if (semaphore_value_saturated) {
-		return;
-	}
-
-	px4_sem_post(&data->semaphore);
-
-}
-
-
 int logger_main(int argc, char *argv[])
 {
 	// logger currently assumes little endian
@@ -142,6 +100,35 @@ namespace px4
 namespace logger
 {
 
+void Logger::timer_callback(void *arg)
+{
+	// Note: we are in IRQ context here (on NuttX)
+	timer_callback_data_s *data = static_cast<timer_callback_data_s *>(arg);
+
+	int semaphore_value = 0;
+
+	px4_sem_getvalue(&data->semaphore, &semaphore_value);
+
+	/* check the value of the semaphore: if the logger cannot keep up with running it's main loop as fast
+	 * as the timer_callback here increases the semaphore count, the counter would increase unbounded,
+	 * leading to an overflow at some point. This case we want to avoid here, so we check the current
+	 * value against a (somewhat arbitrary) threshold, and avoid calling sem_post() if it's exceeded.
+	 * (it's not a problem if the threshold is a bit too large, it just means the logger will do
+	 * multiple iterations at once, the next time it's scheduled).
+	 * As the watchdog also uses the counter we use a conservatively high value */
+	bool semaphore_value_saturated = semaphore_value > 100;
+
+	if (watchdog_update(data->watchdog_data, semaphore_value_saturated)) {
+		data->watchdog_triggered.store(true);
+	}
+
+	if (semaphore_value_saturated) {
+		return;
+	}
+
+	px4_sem_post(&data->semaphore);
+}
+
 constexpr const char *Logger::LOG_ROOT[(int)LogType::Count];
 
 int Logger::custom_command(int argc, char *argv[])
@@ -158,6 +145,16 @@ int Logger::custom_command(int argc, char *argv[])
 
 	if (!strcmp(argv[0], "off")) {
 		get_instance()->set_arm_override(false);
+		return 0;
+	}
+
+	if (!strcmp(argv[0], "priority_boost")) {
+		get_instance()->set_priority_boost_request(true);
+		return 0;
+	}
+
+	if (!strcmp(argv[0], "priority_restore")) {
+		get_instance()->set_priority_boost_request(false);
 		return 0;
 	}
 
@@ -649,11 +646,10 @@ void Logger::run()
 	}
 
 	/* init the update timer */
-	struct hrt_call timer_call {};
-	timer_callback_data_s timer_callback_data;
-	px4_sem_init(&timer_callback_data.semaphore, 0, 0);
+	_timer_call = {};
+	px4_sem_init(&_timer_callback_data.semaphore, 0, 0);
 	/* timer_semaphore use case is a signal */
-	px4_sem_setprotocol(&timer_callback_data.semaphore, SEM_PRIO_NONE);
+	px4_sem_setprotocol(&_timer_callback_data.semaphore, SEM_PRIO_NONE);
 
 	int polling_topic_sub = -1;
 
@@ -673,10 +669,10 @@ void Logger::run()
 
 			// sched_note_start is already called from pthread_create and task_create,
 			// which means we can expect to find the tasks in system_load.tasks, as required in watchdog_initialize
-			watchdog_initialize(pid_self, writer_thread, timer_callback_data.watchdog_data);
+			watchdog_initialize(pid_self, writer_thread, _timer_callback_data.watchdog_data);
 		}
 
-		hrt_call_every(&timer_call, _log_interval, _log_interval, timer_callback, &timer_callback_data);
+		hrt_call_every(&_timer_call, _log_interval, _log_interval, timer_callback, &_timer_callback_data);
 	}
 
 	// check for new subscription data
@@ -703,9 +699,9 @@ void Logger::run()
 		/* check for logging command from MAVLink (start/stop streaming) */
 		handle_vehicle_command_update();
 
-		if (timer_callback_data.watchdog_triggered) {
-			timer_callback_data.watchdog_triggered = false;
+		if (_timer_callback_data.watchdog_triggered.load()) {
 			initialize_load_output(PrintLoadReason::Watchdog);
+			_timer_callback_data.watchdog_triggered.store(false);
 		}
 
 
@@ -916,7 +912,7 @@ void Logger::run()
 			 * And on linux this is quite accurate as well, but under NuttX it is not accurate,
 			 * because usleep() has only a granularity of CONFIG_MSEC_PER_TICK (=1ms).
 			 */
-			while (px4_sem_wait(&timer_callback_data.semaphore) != 0) {}
+			while (px4_sem_wait(&_timer_callback_data.semaphore) != 0) {}
 		}
 	}
 
@@ -925,8 +921,8 @@ void Logger::run()
 	stop_log_file(LogType::Full);
 	stop_log_file(LogType::Mission);
 
-	hrt_cancel(&timer_call);
-	px4_sem_destroy(&timer_callback_data.semaphore);
+	hrt_cancel(&_timer_call);
+	px4_sem_destroy(&_timer_callback_data.semaphore);
 
 	// stop the writer thread
 	_writer.thread_stop();
@@ -1587,7 +1583,7 @@ void Logger::initialize_load_output(PrintLoadReason reason)
 void Logger::write_load_output()
 {
 	if (_print_load_reason == PrintLoadReason::Watchdog) {
-		PX4_ERR("Writing watchdog data"); // this is just that we see it easily in the log
+		PX4_WARN("Writing watchdog data"); // this is just that we see it easily in the log
 	}
 
 	perf_callback_data_t callback_data = {};
@@ -2421,6 +2417,12 @@ $ logger on
 	PRINT_MODULE_USAGE_PARAM_FLOAT('c', 1.0, 0.2, 2.0, "Log rate factor (higher is faster)", true);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("on", "start logging now, override arming (logger must be running)");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("off", "stop logging now, override arming (logger must be running)");
+
+#if defined(__PX4_NUTTX)
+	PRINT_MODULE_USAGE_COMMAND_DESCR("priority_boost", "boost logger and log writer to maximum priority (logger must be running)");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("priority_restore", "restore logger and log writer priority to default (logger must be running)");
+#endif // __PX4_NUTTX
+
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;

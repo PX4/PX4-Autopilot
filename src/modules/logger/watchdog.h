@@ -34,6 +34,7 @@
 #pragma once
 
 #include <drivers/drv_hrt.h>
+#include <px4_platform_common/atomic.h>
 
 #ifdef __PX4_NUTTX
 #include <nuttx/sched.h>
@@ -52,7 +53,10 @@ struct watchdog_data_t {
 	hrt_abstime ready_to_run_timestamp = hrt_absolute_time();
 	hrt_abstime sem_counter_saturated_start = hrt_absolute_time();
 	uint8_t last_state = TSTATE_TASK_INVALID;
+
+	bool priority_boosted{false};
 #endif /* __PX4_NUTTX */
+	px4::atomic_bool priority_boost_requested {false};
 };
 
 
