@@ -669,9 +669,9 @@ bool ICM42688P::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
 			if (!accel_scale_16bit) {
 				// Accel: 20 bit hires mode, Accel data is 18 bit
 				// Sign extension + Accel [19:12] + Accel [11:4] + Accel [3:2] (20 bit extension byte)
-				int32_t accel_x = reassemble_20bit(fifo.ACCEL_DATA_X1, fifo.ACCEL_DATA_X0, fifo.Ext_Accel_X_Gyro_X & 0xF0 >> 4);
-				int32_t accel_y = reassemble_20bit(fifo.ACCEL_DATA_Y1, fifo.ACCEL_DATA_Y0, fifo.Ext_Accel_Y_Gyro_Y & 0xF0 >> 4);
-				int32_t accel_z = reassemble_20bit(fifo.ACCEL_DATA_Z1, fifo.ACCEL_DATA_Z0, fifo.Ext_Accel_Z_Gyro_Z & 0xF0 >> 4);
+				int32_t accel_x = reassemble_20bit(fifo.ACCEL_DATA_X1, fifo.ACCEL_DATA_X0, (fifo.Ext_Accel_X_Gyro_X & 0xF0) >> 4);
+				int32_t accel_y = reassemble_20bit(fifo.ACCEL_DATA_Y1, fifo.ACCEL_DATA_Y0, (fifo.Ext_Accel_Y_Gyro_Y & 0xF0) >> 4);
+				int32_t accel_z = reassemble_20bit(fifo.ACCEL_DATA_Z1, fifo.ACCEL_DATA_Z0, (fifo.Ext_Accel_Z_Gyro_Z & 0xF0) >> 4);
 
 				// sample invalid if -524288
 				if (accel_x == -524288 || accel_y == -524288 || accel_z == -524288) {
@@ -679,9 +679,9 @@ bool ICM42688P::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
 				}
 
 				// shift by 2 (2 least significant bits are always 0)
-				accel_x = accel_x / 4;
-				accel_y = accel_y / 4;
-				accel_z = accel_z / 4;
+				accel_x = accel_x >> 2;
+				accel_y = accel_y >> 2;
+				accel_z = accel_z >> 2;
 
 				// check if any values are going to exceed int16 limits
 				if ((accel_x >= INT16_MAX || accel_x <= INT16_MIN)
@@ -721,9 +721,9 @@ bool ICM42688P::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
 				int32_t gyro_z = reassemble_20bit(fifo.GYRO_DATA_Z1, fifo.GYRO_DATA_Z0, fifo.Ext_Accel_Z_Gyro_Z & 0x0F);
 
 				// shift by 1 (least significant bit is always 0)
-				gyro_x = gyro_x / 2;
-				gyro_y = gyro_y / 2;
-				gyro_z = gyro_z / 2;
+				gyro_x = gyro_x >> 1;
+				gyro_y = gyro_y >> 1;
+				gyro_z = gyro_z >> 1;
 
 				// check if any gyro values are going to exceed int16 limits
 				if ((gyro_x >= INT16_MAX || gyro_x <= INT16_MIN)

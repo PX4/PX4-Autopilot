@@ -216,7 +216,7 @@ enum ACCEL_CONFIG0_BIT : uint8_t {
 // GYRO_CONFIG1
 enum GYRO_CONFIG1_BIT : uint8_t {
 	// 7:5 TEMP_FILT_BW
-	TEMP_FILT_BW_5HZ = Bit7 | Bit6 | Bit5, // 0b111: DLPF BW = 5Hz; DLPF Latency = 32ms
+	TEMP_FILT_BW_4000HZ_CLEAR = Bit7 | Bit6 | Bit5, // 0b000: DLPF BW = 4000Hz; DLPF Latency = 0.125ms
 
 	// 3:2 GYRO_UI_FILT_ORD
 	GYRO_UI_FILT_1ST_ORDER_CLEAR = Bit3 | Bit2, // 0b00: 1st Order
@@ -225,10 +225,12 @@ enum GYRO_CONFIG1_BIT : uint8_t {
 // GYRO_ACCEL_CONFIG0
 enum GYRO_ACCEL_CONFIG0_BIT : uint8_t {
 	// 7:4 ACCEL_UI_FILT_BW
-	ACCEL_UI_FILT_BW_MAX_CLEAR = Bit7 | Bit6 | Bit5 | Bit4, // 0: BW=ODR/2
+	ACCEL_UI_FILT_BW_SET   = Bit4,               // 0b0001: BW=max(400Hz, ODR)/4 (default)
+	ACCEL_UI_FILT_BW_CLEAR = Bit7 | Bit6 | Bit5, // 0b0001: BW=max(400Hz, ODR)/4 (default)
 
 	// 3:0 GYRO_UI_FILT_BW
-	GYRO_UI_FILT_BW_MAX_CLEAR  = Bit3 | Bit2 | Bit1 | Bit0, // 0: BW=ODR/2
+	GYRO_UI_FILT_BW_SET    = Bit0,               // 0b0001: BW=max(400Hz, ODR)/4 (default)
+	GYRO_UI_FILT_BW_CLEAR  = Bit3 | Bit2 | Bit1, // 0b0001: BW=max(400Hz, ODR)/4 (default)
 };
 
 // ACCEL_CONFIG1
