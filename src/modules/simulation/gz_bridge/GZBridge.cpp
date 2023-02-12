@@ -185,6 +185,7 @@ int GZBridge::task_spawn(int argc, char *argv[])
 	const char *model_pose = nullptr;
 	const char *model_sim = nullptr;
 	const char *px4_instance = nullptr;
+	std::string model_name_std;
 
 
 	bool error_flag = false;
@@ -248,7 +249,7 @@ int GZBridge::task_spawn(int argc, char *argv[])
 		}
 
 	} else if (!model_name) {
-		std::string model_name_std = std::string(model_sim) + "_" + std::string(px4_instance);
+		model_name_std = std::string(model_sim) + "_" + std::string(px4_instance);
 		model_name = model_name_std.c_str();
 	}
 
