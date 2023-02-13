@@ -10,7 +10,7 @@
 
 #include "vn/xplat/time.h"
 
-#if (defined __linux__ || defined __CYGWIN__ || defined __QNXNTO__ || defined __NUTTX__)
+#if (defined __linux__ || defined __CYGWIN__ || defined __QNXNTO__)
 	#include <time.h>
 #elif defined __APPLE__
 	#include <mach/clock.h>
@@ -20,14 +20,14 @@
 VnError VnStopwatch_initializeAndStart(VnStopwatch *sw)
 {
 	#if _WIN32
-
+	
 	sw->pcFrequency = 0;
 	sw->counterStart = -1;
-
-	#elif (defined __linux__ || defined __APPLE__ || defined __CYGWIN__ || defined __QNXNTO__ || defined __NUTTX__)
+	
+	#elif (defined __linux__ || defined __APPLE__ || defined __CYGWIN__ || defined __QNXNTO__)
 
 	sw->clockStart = -1;
-
+	
 	#else
 	#error "Unknown System"
 	#endif
@@ -51,7 +51,7 @@ VnError VnStopwatch_reset(VnStopwatch *sw)
 
 	sw->counterStart = li.QuadPart;
 
-	#elif (defined __linux__ || defined __CYGWIN__ || defined __QNXNTO__ || defined __NUTTX__)
+	#elif (defined __linux__ || defined __CYGWIN__ || defined __QNXNTO__)
 
 	struct timespec time;
 	int error;
@@ -94,7 +94,7 @@ VnError VnStopwatch_elapsedMs(VnStopwatch *sw, float *elapsedMs)
 
 	*elapsedMs = (float) ((li.QuadPart - sw->counterStart) / sw->pcFrequency);
 
-	#elif (defined __linux__ || defined __CYGWIN__ || defined __QNXNTO__ || defined __NUTTX__)
+	#elif (defined __linux__ || defined __CYGWIN__ || defined __QNXNTO__)
 
 	struct timespec time;
 	int error;
@@ -111,16 +111,16 @@ VnError VnStopwatch_elapsedMs(VnStopwatch *sw, float *elapsedMs)
 	*elapsedMs = (time.tv_sec * 1000.0) + (time.tv_nsec / 1000000.0) - sw->clockStart;
 
 	#elif defined __APPLE__
-
+	
 	clock_serv_t cclock;
 	mach_struct timespec_t mts;
-
+	
 	host_get_clock_service(mach_host_self(), SYSTEM_CLOCK, &cclock);
 	clock_get_time(cclock, &mts);
 	mach_port_deallocate(mach_task_self(), cclock);
-
+	
 	return (mts.tv_sec * 1000.0) + (mts.tv_nsec / 1000000.0) - sw->clockStart;
-
+		
 	#else
 	#error "Unknown System"
 	#endif

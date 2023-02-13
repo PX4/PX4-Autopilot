@@ -6,7 +6,7 @@
 #if (defined _M_IX86 || defined __i386__ || defined __x86_64)
 	/* Compiling for x86 processor. */
 	#define VN_LITTLE_ENDIAN	1
-#elif defined __linux__ || defined __NUTTX__
+#elif defined __linux__
 	/* Don't know what processor we are compiling for but we have endian.h. */
 	#define VN_HAVE_ENDIAN_H	1
 	#include <endian.h>

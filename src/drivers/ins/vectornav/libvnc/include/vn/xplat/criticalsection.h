@@ -27,7 +27,7 @@
 
 #endif
 
-#if (defined __linux__ || defined __APPLE__ || defined __CYGWIN__ || defined __QNXNTO__ || defined __NUTTX__)
+#if (defined __linux__ || defined __APPLE__ || defined __CYGWIN__ || defined __QNXNTO__)
 	#include <pthread.h>
 #endif
 
@@ -39,7 +39,7 @@ typedef struct
 {
 	#if _WIN32
 	CRITICAL_SECTION handle;
-	#elif __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__ || __NUTTX__
+	#elif __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__
 	pthread_mutex_t handle;
 	#else
 	#error "Unknown System"

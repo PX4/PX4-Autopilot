@@ -9,7 +9,7 @@
 
 #include "vn/xplat/event.h"
 
-#if defined __linux__ || defined __APPLE__ || defined __CYGWIN__ || defined __QNXNTO__ || defined __NUTTX__
+#if defined __linux__ || defined __APPLE__ || defined __CYGWIN__ || defined __QNXNTO__
 	#include <time.h>
 	#include <errno.h>
 #endif
@@ -34,8 +34,8 @@ VnError VnEvent_initialize(VnEvent *e)
 	if (e->handle == NULL)
 		return E_UNKNOWN;
 
-	#elif defined __linux__ || defined __APPLE__ || defined __CYGWIN__ || defined __QNXNTO__ || defined __NUTTX__
-
+	#elif defined __linux__ || defined __APPLE__ || defined __CYGWIN__ || defined __QNXNTO__
+	
 	if (pthread_mutex_init(&e->mutex, NULL))
 		return E_UNKNOWN;
 
@@ -64,8 +64,8 @@ VnError VnEvent_wait(VnEvent *e)
 
 	return E_UNKNOWN;
 
-	#elif defined __linux__ || defined __APPLE__ || defined __CYGWIN__ || defined __QNXNTO__ || defined __NUTTX__
-
+	#elif defined __linux__ || defined __APPLE__ || defined __CYGWIN__ || defined __QNXNTO__
+	
 	if (pthread_mutex_lock(&e->mutex))
 		return E_UNKNOWN;
 
@@ -76,7 +76,7 @@ VnError VnEvent_wait(VnEvent *e)
 
 	if (pthread_mutex_unlock(&e->mutex))
 		return E_UNKNOWN;
-
+		
 	return E_NONE;
 
 	#else
@@ -100,8 +100,8 @@ VnError VnEvent_waitMs(VnEvent *e, uint32_t timeoutMs)
 
 	return E_UNKNOWN;
 
-	#elif defined __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__ || defined __NUTTX__
-
+	#elif defined __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__
+	
 	return VnEvent_waitUs(e, timeoutMs * 1000);
 
 	#else
@@ -112,7 +112,7 @@ VnError VnEvent_waitMs(VnEvent *e, uint32_t timeoutMs)
 VnError VnEvent_waitUs(VnEvent *e, uint32_t timeoutUs)
 {
 	#ifdef _WIN32
-
+	
 	DWORD result;
 
 	result = WaitForSingleObject(
@@ -125,15 +125,15 @@ VnError VnEvent_waitUs(VnEvent *e, uint32_t timeoutUs)
 	if (result == WAIT_TIMEOUT)
 		return E_TIMEOUT;
 
-#elif (defined __linux__ || defined __CYGWIN__ || defined __QNXNTO__ || defined __NUTTX__)
+#elif (defined __linux__ || defined __CYGWIN__ || defined __QNXNTO__)
 
 	struct timespec now;
 	int errorCode;
 	uint32_t numOfSecs, numOfNanoseconds;
-
+	
 	if (pthread_mutex_lock(&e->mutex))
 		return E_UNKNOWN;
-
+	
 	if (clock_gettime(CLOCK_REALTIME, &now))
 		return E_UNKNOWN;
 
@@ -162,7 +162,7 @@ VnError VnEvent_waitUs(VnEvent *e, uint32_t timeoutUs)
 
 	if (errorCode == ETIMEDOUT)
 		return E_TIMEOUT;
-
+	
 	#elif defined __APPLE__
 
 	pthread_mutex_lock(&e->mutex);
@@ -172,7 +172,7 @@ VnError VnEvent_waitUs(VnEvent *e, uint32_t timeoutUs)
 	host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
 	clock_get_time(cclock, &mts);
 	mach_port_deallocate(mach_task_self(), cclock);
-
+	
 	struct timespec now;
 	now.tv_sec = mts.tv_sec;
 	now.tv_nsec = mts.tv_nsec;
@@ -201,9 +201,9 @@ VnError VnEvent_waitUs(VnEvent *e, uint32_t timeoutUs)
 
 	if (errorCode == ETIMEDOUT)
 		return E_TIMEOUT;
-
+		
 	#else
-
+	
 	#error "Unknown System"
 
 	#endif
@@ -218,8 +218,8 @@ VnError VnEvent_signal(VnEvent *e)
 	if (!SetEvent(e->handle))
 		return E_UNKNOWN;
 
-	#elif defined __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__ || defined __NUTTX__
-
+	#elif defined __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__
+	
 	if (pthread_mutex_lock(&e->mutex))
 		return E_UNKNOWN;
 
@@ -227,13 +227,13 @@ VnError VnEvent_signal(VnEvent *e)
 
 	if (pthread_cond_signal(&e->condition))
 		return E_UNKNOWN;
-
+	
 	if (pthread_mutex_unlock(&e->mutex))
 		return E_UNKNOWN;
-
+	
 	#else
 	#error "Unknown System"
 	#endif
-
+	
 	return E_NONE;
 }

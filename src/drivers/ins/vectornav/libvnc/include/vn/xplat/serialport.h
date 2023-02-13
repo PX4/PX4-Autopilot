@@ -51,7 +51,7 @@ typedef struct
 	HANDLE handle;
 	/* Windows appears to need single-thread access to read/write API functions. */
 	VnCriticalSection readWriteCS;
-	#elif (defined __linux__ || defined __APPLE__ || defined __CYGWIN__ || defined __QNXNTO__ || defined __NUTTX__)
+	#elif (defined __linux__ || defined __APPLE__ || defined __CYGWIN__ || defined __QNXNTO__)
 	int handle;
 	#else
 	#error "Unknown System"

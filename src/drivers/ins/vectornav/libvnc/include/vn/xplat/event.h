@@ -29,7 +29,7 @@
 
 #endif
 
-#if (defined __linux__ || defined __APPLE__ || defined __CYGWIN__ || defined __QNXNTO__ || defined __NUTTX__)
+#if (defined __linux__ || defined __APPLE__ || defined __CYGWIN__ || defined __QNXNTO__)
 	#include <pthread.h>
 #endif
 
@@ -42,7 +42,7 @@ typedef struct
 {
 	#ifdef _WIN32
 	HANDLE handle;
-	#elif (defined __linux__ || defined __APPLE__ || defined __CYGWIN__ || defined __QNXNTO__ || defined __NUTTX__)
+	#elif (defined __linux__ || defined __APPLE__ || defined __CYGWIN__ || defined __QNXNTO__)
 	pthread_mutex_t mutex;
 	pthread_cond_t condition;
 	bool isTriggered;

@@ -79,6 +79,9 @@ VectorNav::~VectorNav()
 
 void VectorNav::binaryAsyncMessageReceived(void *userData, VnUartPacket *packet, size_t runningIndex)
 {
+	PX4_INFO("binaryAsyncMessageReceived");
+	//perf_begin(_sample_perf);
+
 	if (VnUartPacket_isError(packet)) {
 		uint8_t error = 0;
 		VnUartPacket_parseError(packet, &error);
@@ -91,6 +94,8 @@ void VectorNav::binaryAsyncMessageReceived(void *userData, VnUartPacket *packet,
 	} else if (userData && (VnUartPacket_type(packet) == PACKETTYPE_BINARY)) {
 		static_cast<VectorNav *>(userData)->sensorCallback(packet);
 	}
+
+	//perf_end(_sample_perf);
 }
 
 void VectorNav::sensorCallback(VnUartPacket *packet)
@@ -349,26 +354,35 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 
 bool VectorNav::init()
 {
+	PX4_INFO("init");
+
 	// first try default baudrate
 	const uint32_t DEFAULT_BAUDRATE = 115200;
 	const uint32_t DESIRED_BAUDRATE = 921600;
 
 	// first try default baudrate, if that fails try all other supported baudrates
+	PX4_INFO("VnSensor_initialize");
 	VnSensor_initialize(&_vs);
+
+	PX4_INFO("VnSensor_connect port: %d", _port);
 
 	if ((VnSensor_connect(&_vs, _port, DEFAULT_BAUDRATE) != E_NONE) || !VnSensor_verifySensorConnectivity(&_vs)) {
 
 		static constexpr uint32_t BAUDRATES[] {9600, 19200, 38400, 57600, 115200, 128000, 230400, 460800, 921600};
 
 		for (auto &baudrate : BAUDRATES) {
+			PX4_INFO("VnSensor_initialize baud: %d", baudrate);
 			VnSensor_initialize(&_vs);
 
+
+			PX4_INFO("VnSensor_connect");
 			if (VnSensor_connect(&_vs, _port, baudrate) == E_NONE && VnSensor_verifySensorConnectivity(&_vs)) {
 				PX4_DEBUG("found baudrate %d", baudrate);
 				break;
 			}
 
 			// disconnect before trying again
+			PX4_INFO("VnSensor_disconnect");
 			VnSensor_disconnect(&_vs);
 		}
 	}
@@ -420,6 +434,7 @@ bool VectorNav::init()
 
 bool VectorNav::configure()
 {
+	PX4_INFO("configure");
 	// disable all ASCII messages
 	VnSensor_writeAsyncDataOutputType(&_vs, VNOFF, true);
 
@@ -546,6 +561,8 @@ bool VectorNav::configure()
 
 void VectorNav::Run()
 {
+	PX4_INFO("Run");
+
 	if (should_exit()) {
 		VnSensor_unregisterAsyncPacketReceivedHandler(&_vs);
 		VnSensor_disconnect(&_vs);
@@ -576,9 +593,6 @@ void VectorNav::Run()
 			return;
 		}
 	}
-
-
-
 
 	ScheduleDelayed(100_ms);
 }
