@@ -105,3 +105,13 @@ src/modules/simulator/simulator_config.h
 src/systemcmds/topic_listener/listener_generated.cpp
 
 !src/drivers/distance_sensor/broadcom/afbrs50/Lib/*
+
+# # build files dxdy
+# Tools/*
+# boards/*
+platforms/nuttx*
+platforms/posix/*
+src/drivers/*
+src/lib/*
+src/modules/mavlink/*
+src/modules/microdds_client/*
