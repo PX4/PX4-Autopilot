@@ -417,7 +417,7 @@ VnError VnSensor_registerAsyncPacketReceivedHandler(VnSensor *s, VnSensor_Packet
 
 	s->asyncPacketFoundHandler = handler;
 	s->asyncPacketFoundHandlerUserData = userData;
-	
+
 	return E_NONE;
 }
 
@@ -428,7 +428,7 @@ VnError VnSensor_unregisterAsyncPacketReceivedHandler(VnSensor *s)
 
 	s->asyncPacketFoundHandler = NULL;
 	s->asyncPacketFoundHandlerUserData = NULL;
-	
+
 	return E_NONE;
 }
 
@@ -439,7 +439,7 @@ VnError VnSensor_registerErrorPacketReceivedHandler(VnSensor *s, VnSensor_Packet
 
 	s->errorMessageReceivedHandler = handler;
 	s->errorMessageReceivedHandlerUserData = userData;
-	
+
 	return E_NONE;
 }
 
@@ -450,7 +450,7 @@ VnError VnSensor_unregisterErrorPacketReceivedHandler(VnSensor *s)
 
 	s->errorMessageReceivedHandler = NULL;
 	s->errorMessageReceivedHandlerUserData = NULL;
-	
+
 	return E_NONE;
 }
 
@@ -2598,7 +2598,7 @@ VnError VnSensor_switchProcessors(VnSensor* s, VnProcessorType processor, char *
 		if (error == E_NONE)
 		{
 			/* Check the response buffer for errors */
-			
+
 			/* Wait 2 seconds to allow the processor to switch */
 			VnThread_sleepMs(2000);
 
@@ -2616,12 +2616,12 @@ FILE *VnSensor_openFirmwareUpdateFile(char* filename)
 {
 #if VN_HAVE_SECURE_CRT
 	FILE *file;
-	errno_t error = fopen_s(&file, filename, "r");
+	int error = fopen_s(&file, filename, "r");
 	return file;
 #else
 	return fopen(filename, "r");
 #endif
-	
+
 }
 
 bool VnSensor_getNextFirmwareUpdateRecord(FILE* file, char* record, int MaxRecordSize)
@@ -2634,7 +2634,7 @@ bool VnSensor_getNextFirmwareUpdateRecord(FILE* file, char* record, int MaxRecor
 #else
 	int retval = fscanf(file, "%s\n", record);
 #endif
-	
+
 	if (retval != EOF)
 	{
 		result = true;
@@ -2647,7 +2647,7 @@ void VnSensor_closeFirmwareUpdateFile(FILE* file)
 {
 	if (file != NULL)
 	{
-		errno_t error = fclose(file);
+		int error = fclose(file);
 		file = NULL;
 	}
 }
@@ -2659,7 +2659,7 @@ void VnSensor_calibrateBootloader(VnSensor *s)
 	size_t bootloaderVersionSize = sizeof(bootloaderVersion);
 	memset(bootloaderVersion, 0, 64);
 	uint16_t responseTimeoutMs = 500;
-	uint16_t retransmitDelayMs = responseTimeoutMs; 
+	uint16_t retransmitDelayMs = responseTimeoutMs;
 
 	s->bootloaderFilter = true;
 	if (E_NONE == VnSensor_transactionNoFinalizeWithTiming(s, calibration, sizeof(calibration) - 2, true, bootloaderVersion, &bootloaderVersionSize, responseTimeoutMs, retransmitDelayMs))

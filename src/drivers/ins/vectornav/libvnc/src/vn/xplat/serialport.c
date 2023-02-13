@@ -2,7 +2,7 @@
 
 #if _WIN32
 	/* Nothing to do. */
-#elif __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__
+#elif __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__ || __NUTTX__
 	#include <fcntl.h>
 	#include <errno.h>
 	#include <termios.h>
@@ -31,7 +31,7 @@ VnError VnSerialPort_initialize(VnSerialPort *sp)
 	#if _WIN32
 	sp->handle = NULL;
 	VnCriticalSection_initialize(&sp->readWriteCS);
-	#elif __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__
+	#elif __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__ || __NUTTX__
 	sp->handle = -1;
 	#else
 	#error "Unknown System"
@@ -59,9 +59,9 @@ VnError VnSerialPort_open_internal(VnSerialPort *serialport, char const *portNam
 	#ifdef UNICODE
 	WCHAR wFullName[0x100];
 	#endif
-	
-	#elif (defined __linux__ || defined __APPLE__ || defined __CYGWIN__ || defined __QNXNTO__)
-	
+
+	#elif (defined __linux__ || defined __APPLE__ || defined __CYGWIN__ || defined __QNXNTO__ || defined __NUTTX__)
+
 	struct termios portSettings;
 	int portFd = -1;
 	tcflag_t baudrateFlag;
@@ -192,18 +192,18 @@ VnError VnSerialPort_open_internal(VnSerialPort *serialport, char const *portNam
 			return E_UNKNOWN;
 	}
 
-	#elif __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__
+	#elif __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__ || __NUTTX__
 
 	portFd = open(
 		portName,
-		#if __linux__ || __CYGWIN__ || __QNXNTO__
+		#if __linux__ || __CYGWIN__ || __QNXNTO__ || __NUTTX__
 		O_RDWR | O_NOCTTY);
 		#elif __APPLE__
 		O_RDWR | O_NOCTTY | O_NONBLOCK);
 		#else
 		#error "Unknown System"
 		#endif
-	
+
 	if (portFd == -1)
 	{
 		switch (errno)
@@ -248,19 +248,19 @@ VnError VnSerialPort_open_internal(VnSerialPort *serialport, char const *portNam
 		case 230400:
 			baudrateFlag = B230400;
 			break;
-			
+
 		/* Not available on Mac OS X??? */
 		#if !defined(__APPLE__)
-		
+
 		case 460800:
 			baudrateFlag = B460800;
 			break;
 		case 921600:
 			baudrateFlag = B921600;
 			break;
-			
+
 		#endif
-		
+
 		#endif
 
 		default:
@@ -268,7 +268,7 @@ VnError VnSerialPort_open_internal(VnSerialPort *serialport, char const *portNam
 	}
 
 	/* Set baudrate, 8n1, no modem control, enable receiving characters. */
-	#if __linux__ || __QNXNTO__ || __CYGWIN__
+	#if __linux__ || __QNXNTO__ || __CYGWIN__ || __NUTTX__
 	portSettings.c_cflag = baudrateFlag;
 	#elif defined(__APPLE__)
 	cfsetspeed(&portSettings, baudrateFlag);
@@ -315,7 +315,7 @@ VnError VnSerialPort_close_internal(VnSerialPort *serialport, bool checkAndToggl
 
 	serialport->handle = NULL;
 
-	#elif __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__
+	#elif __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__ || __NUTTX__
 
 	if (close(serialport->handle) == -1)
 		return E_UNKNOWN;
@@ -338,7 +338,7 @@ VnError VnSerialPort_closeAfterUserUnpluggedSerialPort(VnSerialPort *serialport)
 
 	serialport->handle = NULL;
 
-	#elif __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__
+	#elif __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__ || __NUTTX__
 
 	if (close(serialport->handle) == -1)
 		return E_UNKNOWN;
@@ -361,7 +361,7 @@ bool VnSerialPort_isOpen(VnSerialPort *serialport)
 {
 	#if defined(_WIN32)
 	return serialport->handle != NULL;
-	#elif __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__
+	#elif __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__ || __NUTTX__
 	return serialport->handle != -1;
 	#else
 	#error "Unknown System"
@@ -395,12 +395,12 @@ VnError VnSerialPort_read(VnSerialPort *serialport, char *buffer, size_t numOfBy
 	OVERLAPPED overlapped;
 	BOOL result;
 	DWORD numOfBytesTransferred;
-	#elif __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__
+	#elif __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__ || __NUTTX__
 	int result;
 	#else
 	#error "Unknown System"
 	#endif
-	
+
 	if (!VnSerialPort_isOpen(serialport))
 		return E_INVALID_OPERATION;
 
@@ -436,7 +436,7 @@ VnError VnSerialPort_read(VnSerialPort *serialport, char *buffer, size_t numOfBy
 	if (!result)
 		return E_UNKNOWN;
 
-	#elif __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__
+	#elif __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__ || __NUTTX__
 
 	result = read(
 		serialport->handle,
@@ -461,7 +461,7 @@ VnError VnSerialPort_write(VnSerialPort *sp, char const *data, size_t length)
 	DWORD numOfBytesWritten;
 	BOOL result;
 	OVERLAPPED overlapped;
-	#elif __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__
+	#elif __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__ || __NUTTX__
 	size_t numOfBytesWritten;
 	#else
 	#error "Unknown System"
@@ -508,7 +508,7 @@ VnError VnSerialPort_write(VnSerialPort *sp, char const *data, size_t length)
 	if (!result)
 		return E_UNKNOWN;
 
-	#elif __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__
+	#elif __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__ || __NUTTX__
 
 	numOfBytesWritten = write(
 		sp->handle,
@@ -521,7 +521,7 @@ VnError VnSerialPort_write(VnSerialPort *sp, char const *data, size_t length)
 	#else
 	#error "Unknown System"
 	#endif
-	
+
 	return E_NONE;
 }
 
@@ -540,7 +540,7 @@ void VnSerialPort_startSerialPortNotificationsThread(VnSerialPort *serialport)
 void VnSerialPort_stopSerialPortNotificationsThread(VnSerialPort *serialport)
 {
 	serialport->continueHandlingSerialPortEvents = false;
-	
+
 	VnThread_join(&serialport->serialPortNotificationsThread);
 }
 
@@ -565,7 +565,7 @@ void VnSerialPort_handleSerialPortNotifications(void* routineData)
 		sp->handle,
 		EV_RXCHAR | EV_ERR | EV_RX80FULL);
 
-	#elif __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__
+	#elif __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__ || __NUTTX__
 
 	fd_set readfs;
 	int error;
@@ -629,7 +629,7 @@ void VnSerialPort_handleSerialPortNotifications(void* routineData)
 				sp->continueHandlingSerialPortEvents = false;
 				userUnpluggedUsbCable = true;
 			}
-			
+
 			/* Something unexpected happened. */
 			break;
 		}
@@ -672,7 +672,7 @@ void VnSerialPort_handleSerialPortNotifications(void* routineData)
 			continue;
 		}
 
-		#elif __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__
+		#elif __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__ || __NUTTX__
 
 		FD_ZERO(&readfs);
 		FD_SET(sp->handle, &readfs);

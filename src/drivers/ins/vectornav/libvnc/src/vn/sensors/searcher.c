@@ -9,7 +9,7 @@
 #include <stdlib.h>
 
 
-#ifdef __linux__
+#if defined(__linux__) || defined(__NUTTX__)
 #include <errno.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -94,7 +94,7 @@ bool VnSearcher_findString(char* inputData, size_t* inputSize, char* toFind, siz
 	char* end = inputData + *inputSize;
 	char* start = inputData;
 	size_t size = *inputSize;
-	
+
 	/* Loop through the data until we run out */
 	while ((NULL != start) && (!success) && (findSize <= size) && (NULL != end))
 	{
@@ -117,7 +117,7 @@ bool VnSearcher_findString(char* inputData, size_t* inputSize, char* toFind, siz
 			{
 				/* We have both a start and end sentinal.  Let's see if */
 				/* we have a proper packet. */
-				
+
 				if(((end - start) >= (int)findSize) &&
 				   (strncmp(start, toFind, findSize) == 0))
 				{
@@ -154,7 +154,7 @@ bool VnSearcher_validateData(char inputData[], size_t* dataLength)
 
 	size_t size1 = *dataLength;
 	size_t size2 = *dataLength;
-	
+
 	memcpy(search1, inputData, *dataLength);
 	memcpy(search2, inputData, *dataLength);
 
@@ -204,7 +204,7 @@ void VnSearcher_dataReceivedHandler(void* portInfo)
 
 	size_t bytesToRead = sizeof(port->data) - port->dataSize;
 	size_t bytesRead = 0;
-	
+
 	/* Keep looping until a valid packet is found or the thread shuts down. */
 	/* Read the data from the port. */
 	VnError error = VnSerialPort_read(port->port, readBuffer, bytesToRead, &bytesRead);
@@ -310,7 +310,7 @@ int32_t VnSearcher_getPortBaud(VnPortInfo* portInfo)
 	return portInfo->baud;
 }
 
-#ifdef __linux__
+#if defined(__linux__) || defined(__NUTTX__)
 void VnSearcher_findPorts_LINUX(char*** portNamesOut, int32_t* numPortsFound)
 {
 	char portName[15] = {0};
@@ -330,7 +330,7 @@ void VnSearcher_findPorts_LINUX(char*** portNamesOut, int32_t* numPortsFound)
 
 		/* Attempt to open the serial port */
 		portFd = open(portName,
-					  #if __linux__ || __CYGWIN__ || __QNXNTO__
+					  #if __linux__ || __CYGWIN__ || __QNXNTO__ || __NUTTX__
 					  O_RDWR | O_NOCTTY );
 					  #elif __APPLE__
 					  O_RDWR | O_NOCTTY | O_NONBLOCK);
@@ -449,7 +449,7 @@ void VnSearcher_findPorts_WIN32(char*** portNamesOut, int32_t* numPortsFound)
 		while ((int32_t)index < *numPortsFound)
 		{
 			uint32_t length;
-			
+
 			start = strstr(end, "COM");
 
 			end = strchr(start, ',');
@@ -458,7 +458,7 @@ void VnSearcher_findPorts_WIN32(char*** portNamesOut, int32_t* numPortsFound)
 			memcpy((*portNamesOut)[index], start, length);
 			(*portNamesOut)[index][length] = '\0';
 			end += 1;
-			
+
 			index++;
 		}
 	}
@@ -473,7 +473,7 @@ void VnSearcher_findPortBaud(char* portName, int32_t* foundBaudrate)
 	/* These will handle the input data. */
 	char** portNames = &portName;
 	int32_t numPorts = 1;
-	
+
 	/* This function will search the port and, if found, return a VnPortInfo */
 	/* containing the baud rate. */
 	VnSearcher_searchInputPorts(&portNames, numPorts, &portInfo);

@@ -364,7 +364,7 @@ bool VectorNav::init()
 	PX4_INFO("VnSensor_initialize");
 	VnSensor_initialize(&_vs);
 
-	PX4_INFO("VnSensor_connect port: %d", _port);
+	PX4_INFO("VnSensor_connect port: %s", _port);
 
 	if ((VnSensor_connect(&_vs, _port, DEFAULT_BAUDRATE) != E_NONE) || !VnSensor_verifySensorConnectivity(&_vs)) {
 
@@ -376,6 +376,7 @@ bool VectorNav::init()
 
 
 			PX4_INFO("VnSensor_connect");
+
 			if (VnSensor_connect(&_vs, _port, baudrate) == E_NONE && VnSensor_verifySensorConnectivity(&_vs)) {
 				PX4_DEBUG("found baudrate %d", baudrate);
 				break;

@@ -26,9 +26,9 @@
 	#endif
 #endif
 
-#ifdef __linux__
+#if defined(__linux__)
 	#include <linux/serial.h>
-#elif defined __APPLE__
+#elif defined __APPLE__ || defined(__NUTTX__)
 	#include <dirent.h>
 #endif
 
@@ -51,7 +51,7 @@ typedef struct
 	HANDLE handle;
 	/* Windows appears to need single-thread access to read/write API functions. */
 	VnCriticalSection readWriteCS;
-	#elif (defined __linux__ || defined __APPLE__ || defined __CYGWIN__ || defined __QNXNTO__)
+	#elif (defined __linux__ || defined __APPLE__ || defined __CYGWIN__ || defined __QNXNTO__ || defined __NUTTX__)
 	int handle;
 	#else
 	#error "Unknown System"

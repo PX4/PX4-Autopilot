@@ -2,7 +2,7 @@
 
 #include "vn/xplat/thread.h"
 
-#if (defined __linux__ || defined __APPLE__ || defined __CYGWIN__ || defined __QNXNTO__)
+#if (defined __linux__ || defined __APPLE__ || defined __CYGWIN__ || defined __QNXNTO__ || defined __NUTTX__)
 	#include <stdlib.h>
 	#include <unistd.h>
 	#include <stddef.h>
@@ -29,11 +29,11 @@ DWORD WINAPI VnThread_intermediateStartRoutine(LPVOID userData)
 	free(starter);
 
 	routine(routineData);
-	
+
 	return 0;
 }
 
-#elif (defined __linux__ || defined __APPLE__ || defined __CYGWIN__ || defined __QNXNTO__)
+#elif (defined __linux__ || defined __APPLE__ || defined __CYGWIN__ || defined __QNXNTO__ || defined __NUTTX__)
 
 void* VnThread_intermediateStartRoutine(void* data)
 {
@@ -45,7 +45,7 @@ void* VnThread_intermediateStartRoutine(void* data)
 	free(starter);
 
 	routine(routineData);
-	
+
 	return NULL;
 }
 
@@ -53,15 +53,15 @@ void* VnThread_intermediateStartRoutine(void* data)
 
 VnError VnThread_startNew(VnThread *thread, VnThread_StartRoutine startRoutine, void* routineData)
 {
-	#if (defined __linux__ || defined __APPLE__ || defined __CYGWIN__ || defined __QNXNTO__)
+	#if (defined __linux__ || defined __APPLE__ || defined __CYGWIN__ || defined __QNXNTO__ || defined __NUTTX__)
 	int errorCode;
 	#endif
-	
+
 	VnThreadStarter *starter = (VnThreadStarter*) malloc(sizeof(VnThreadStarter));
-	
+
 	starter->startRoutine = startRoutine;
 	starter->routineData = routineData;
-	
+
 	#if _WIN32
 
 	thread->handle = CreateThread(
@@ -75,7 +75,7 @@ VnError VnThread_startNew(VnThread *thread, VnThread_StartRoutine startRoutine, 
 	if (thread->handle == NULL)
 		return E_UNKNOWN;
 
-	#elif (defined __linux__ || defined __APPLE__ || defined __CYGWIN__ || defined __QNXNTO__)
+	#elif (defined __linux__ || defined __APPLE__ || defined __CYGWIN__ || defined __QNXNTO__ || defined __NUTTX__)
 
 
 	errorCode = pthread_create(
@@ -102,7 +102,7 @@ VnError VnThread_join(VnThread *thread)
 		thread->handle,
 		INFINITE);
 
-	#elif (defined __linux__ || defined __APPLE__ || defined __CYGWIN__ || defined __QNXNTO__)
+	#elif (defined __linux__ || defined __APPLE__ || defined __CYGWIN__ || defined __QNXNTO__ || defined __NUTTX__)
 
 	int error = pthread_join(
 		thread->handle,
@@ -122,7 +122,7 @@ void VnThread_sleepSec(uint32_t numOfSecsToSleep)
 {
 	#if _WIN32
 	Sleep(numOfSecsToSleep * 1000);
-	#elif (defined __linux__ || defined __APPLE__ || defined __CYGWIN__ || defined __QNXNTO__)
+	#elif (defined __linux__ || defined __APPLE__ || defined __CYGWIN__ || defined __QNXNTO__ || defined __NUTTX__)
 	sleep(numOfSecsToSleep);
 	#else
 	#error "Unknown System"
@@ -133,7 +133,7 @@ void VnThread_sleepMs(uint32_t numOfMsToSleep)
 {
 	#if _WIN32
 	Sleep(numOfMsToSleep);
-	#elif (defined __linux__ || defined __APPLE__ || defined __CYGWIN__ || defined __QNXNTO__)
+	#elif (defined __linux__ || defined __APPLE__ || defined __CYGWIN__ || defined __QNXNTO__ || defined __NUTTX__)
 	VnThread_sleepUs(numOfMsToSleep * 1000);
 	#else
 	#error "Unknown System"
@@ -148,7 +148,7 @@ void VnThread_sleepUs(uint32_t numOfUsToSleep)
 	exitValue = -1;
 	exit(exitValue);
 
-	#elif (defined __linux__ || defined __APPLE__ || defined __CYGWIN__ || defined __QNXNTO__)
+	#elif (defined __linux__ || defined __APPLE__ || defined __CYGWIN__ || defined __QNXNTO__ || defined __NUTTX__)
 	usleep(numOfUsToSleep);
 
 	#else

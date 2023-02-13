@@ -8,7 +8,7 @@
 
 /* These defines are used to enable a single function name while implementing */
 /* different solutions given the OS. */
-#if defined __linux__ || defined __CYGWIN__
+#if defined __linux__ || defined __CYGWIN__ || defined __NUTTX__
 	#define VnSearcher_findPorts VnSearcher_findPorts_LINUX
 #elif defined _WIN32
 	#define VnSearcher_findPorts VnSearcher_findPorts_WIN32
