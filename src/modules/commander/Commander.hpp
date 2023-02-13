@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -49,6 +49,7 @@
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
 // publications
 #include <uORB/Publication.hpp>
@@ -61,6 +62,7 @@
 
 // subscriptions
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/action_request.h>
@@ -89,7 +91,7 @@ using systemlib::Hysteresis;
 
 using namespace time_literals;
 
-class Commander : public ModuleBase<Commander>, public ModuleParams
+class Commander : public ModuleBase<Commander>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
 	Commander();
@@ -99,23 +101,21 @@ public:
 	static int task_spawn(int argc, char *argv[]);
 
 	/** @see ModuleBase */
-	static Commander *instantiate(int argc, char *argv[]);
-
-	/** @see ModuleBase */
 	static int custom_command(int argc, char *argv[]);
 
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
-
-	/** @see ModuleBase::run() */
-	void run() override;
 
 	/** @see ModuleBase::print_status() */
 	int print_status() override;
 
 	void enable_hil();
 
+	bool init();
+
 private:
+	void Run() override;
+
 	void answer_command(const vehicle_command_s &cmd, uint8_t result);
 
 	transition_result_t arm(arm_disarm_reason_t calling_reason, bool run_preflight_checks = true);
@@ -194,9 +194,9 @@ private:
 		OFFBOARD_MODE_BIT = (1 << 1),
 	};
 
-	/* Decouple update interval and hysteresis counters, all depends on intervals */
-	static constexpr uint64_t COMMANDER_MONITORING_INTERVAL{10_ms};
 	static constexpr uint64_t INAIR_RESTART_HOLDOFF_INTERVAL{500_ms};
+
+	bool _initialized{false};
 
 	vehicle_status_s        _vehicle_status{};
 
@@ -267,12 +267,13 @@ private:
 	vtol_vehicle_status_s	_vtol_vehicle_status{};
 
 	// Subscriptions
-	uORB::Subscription					_action_request_sub{ORB_ID(action_request)};
+	uORB::SubscriptionCallbackWorkItem _action_request_sub{this, ORB_ID(action_request)};
+	uORB::SubscriptionCallbackWorkItem _vehicle_command_sub{this, ORB_ID(vehicle_command)};
+
 	uORB::Subscription					_cpuload_sub{ORB_ID(cpuload)};
 	uORB::Subscription					_iridiumsbd_status_sub{ORB_ID(iridiumsbd_status)};
 	uORB::Subscription					_manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription					_system_power_sub{ORB_ID(system_power)};
-	uORB::Subscription					_vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription					_vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription					_vtol_vehicle_status_sub{ORB_ID(vtol_vehicle_status)};
 

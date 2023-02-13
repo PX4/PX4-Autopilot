@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -471,20 +471,16 @@ int Commander::custom_command(int argc, char *argv[])
 	return print_usage("unknown command");
 }
 
-int Commander::print_status()
+bool Commander::init()
 {
-	PX4_INFO("Arm state: %s", _arm_state_machine.getArmStateName());
-	PX4_INFO("navigation mode: %s", mode_util::nav_state_names[_vehicle_status.nav_state]);
-	PX4_INFO("user intended navigation mode: %s", mode_util::nav_state_names[_user_mode_intention.get()]);
-	PX4_INFO("in failsafe: %s", _failsafe.inFailsafe() ? "yes" : "no");
-	perf_print_counter(_loop_perf);
-	perf_print_counter(_preflight_check_perf);
-	return 0;
-}
+	if (!_action_request_sub.registerCallback() || !_vehicle_command_sub.registerCallback()) {
+		PX4_ERR("callback registration failed!");
+		return false;
+	}
 
-extern "C" __EXPORT int commander_main(int argc, char *argv[])
-{
-	return Commander::main(argc, argv);
+	ScheduleNow();
+
+	return true;
 }
 
 bool Commander::shutdownIfAllowed()
@@ -639,7 +635,8 @@ transition_result_t Commander::disarm(arm_disarm_reason_t calling_reason, bool f
 }
 
 Commander::Commander() :
-	ModuleParams(nullptr)
+	ModuleParams(nullptr),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
 {
 	_vehicle_land_detected.landed = true;
 
@@ -1610,237 +1607,253 @@ void Commander::updateParameters()
 
 }
 
-void Commander::run()
+void Commander::Run()
 {
-	/* initialize */
-	led_init();
-	buzzer_init();
+	if (should_exit()) {
+
+		_action_request_sub.unregisterCallback();
+		_vehicle_command_sub.unregisterCallback();
+
+		rgbled_set_color_and_mode(led_control_s::COLOR_WHITE, led_control_s::MODE_OFF);
+
+		/* close fds */
+		led_deinit();
+		buzzer_deinit();
+
+		exit_and_cleanup();
+		return;
+	}
+
+
+	if (!_initialized) {
+		/* initialize */
+		led_init();
+		buzzer_init();
 
 #if defined(BOARD_HAS_POWER_CONTROL)
-	{
-		// we need to do an initial publication to make sure uORB allocates the buffer, which cannot happen
-		// in IRQ context.
-		power_button_state_s button_state{};
-		button_state.timestamp = hrt_absolute_time();
-		button_state.event = 0xff;
-		power_button_state_pub = orb_advertise(ORB_ID(power_button_state), &button_state);
+		{
+			// we need to do an initial publication to make sure uORB allocates the buffer, which cannot happen
+			// in IRQ context.
+			power_button_state_s button_state{};
+			button_state.timestamp = hrt_absolute_time();
+			button_state.event = 0xff;
+			power_button_state_pub = orb_advertise(ORB_ID(power_button_state), &button_state);
 
-		_power_button_state_sub.copy(&button_state);
+			_power_button_state_sub.copy(&button_state);
 
-		tune_control_s tune_control{};
-		button_state.timestamp = hrt_absolute_time();
-		tune_control_pub = orb_advertise(ORB_ID(tune_control), &tune_control);
-	}
+			tune_control_s tune_control{};
+			button_state.timestamp = hrt_absolute_time();
+			tune_control_pub = orb_advertise(ORB_ID(tune_control), &tune_control);
+		}
 
-	if (board_register_power_state_notification_cb(power_button_state_notification_cb) != 0) {
-		PX4_ERR("Failed to register power notification callback");
-	}
+		if (board_register_power_state_notification_cb(power_button_state_notification_cb) != 0) {
+			PX4_ERR("Failed to register power notification callback");
+		}
 
 #endif // BOARD_HAS_POWER_CONTROL
 
-	_boot_timestamp = hrt_absolute_time();
+		_boot_timestamp = hrt_absolute_time();
 
-	arm_auth_init(&_mavlink_log_pub, &_vehicle_status.system_id);
+		arm_auth_init(&_mavlink_log_pub, &_vehicle_status.system_id);
 
-	while (!should_exit()) {
 
-		perf_begin(_loop_perf);
+		_initialized = true;
+	}
 
-		const actuator_armed_s actuator_armed_prev{_actuator_armed};
 
-		/* update parameters */
-		const bool params_updated = _parameter_update_sub.updated();
+	perf_begin(_loop_perf);
 
-		if (params_updated) {
-			// clear update
-			parameter_update_s update;
-			_parameter_update_sub.copy(&update);
+	const actuator_armed_s actuator_armed_prev{_actuator_armed};
 
-			updateParameters();
+	/* update parameters */
+	const bool params_updated = _parameter_update_sub.updated();
 
+	if (params_updated) {
+		// clear update
+		parameter_update_s update;
+		_parameter_update_sub.copy(&update);
+
+		updateParameters();
+
+		_status_changed = true;
+	}
+
+	/* Update OA parameter */
+	_vehicle_status.avoidance_system_required = _param_com_obs_avoid.get();
+
+	handlePowerButtonState();
+
+	systemPowerUpdate();
+
+	landDetectorUpdate();
+
+	safetyButtonUpdate();
+
+	vtolStatusUpdate();
+
+	_home_position.update(_param_com_home_en.get(), !_arm_state_machine.isArmed() && _vehicle_land_detected.landed);
+
+	handleAutoDisarm();
+
+	battery_status_check();
+
+	/* If in INIT state, try to proceed to STANDBY state */
+	if (!_vehicle_status.calibration_enabled && _arm_state_machine.isInit()) {
+
+		_arm_state_machine.arming_state_transition(_vehicle_status,
+				vehicle_status_s::ARMING_STATE_STANDBY, _actuator_armed, _health_and_arming_checks,
+				true /* fRunPreArmChecks */, &_mavlink_log_pub, arm_disarm_reason_t::transition_to_standby);
+	}
+
+	checkForMissionUpdate();
+
+	manualControlCheck();
+
+	offboardControlCheck();
+
+	// data link checks which update the status
+	dataLinkCheck();
+
+	// Check for failure detector status
+	if (_failure_detector.update(_vehicle_status, _vehicle_control_mode)) {
+		_vehicle_status.failure_detector_status = _failure_detector.getStatus().value;
+		_status_changed = true;
+	}
+
+	const hrt_abstime now = hrt_absolute_time();
+
+	const bool nav_state_or_failsafe_changed = handleModeIntentionAndFailsafe();
+
+	// Run arming checks @ 10Hz
+	if ((now >= _last_health_and_arming_check + 100_ms) || _status_changed || nav_state_or_failsafe_changed) {
+		_last_health_and_arming_check = now;
+
+		perf_begin(_preflight_check_perf);
+		_health_and_arming_checks.update();
+		bool pre_flight_checks_pass = _health_and_arming_checks.canArm(_vehicle_status.nav_state);
+
+		if (_vehicle_status.pre_flight_checks_pass != pre_flight_checks_pass) {
+			_vehicle_status.pre_flight_checks_pass = pre_flight_checks_pass;
 			_status_changed = true;
 		}
 
-		/* Update OA parameter */
-		_vehicle_status.avoidance_system_required = _param_com_obs_avoid.get();
+		perf_end(_preflight_check_perf);
+		checkAndInformReadyForTakeoff();
+	}
 
-		handlePowerButtonState();
+	// handle commands last, as the system needs to be updated to handle them
+	if (_vehicle_command_sub.updated()) {
+		// got command
+		const unsigned last_generation = _vehicle_command_sub.get_last_generation();
+		vehicle_command_s cmd;
 
-		systemPowerUpdate();
+		if (_vehicle_command_sub.copy(&cmd)) {
+			if (_vehicle_command_sub.get_last_generation() != last_generation + 1) {
+				PX4_ERR("vehicle_command lost, generation %u -> %u", last_generation, _vehicle_command_sub.get_last_generation());
+			}
 
-		landDetectorUpdate();
-
-		safetyButtonUpdate();
-
-		vtolStatusUpdate();
-
-		_home_position.update(_param_com_home_en.get(), !_arm_state_machine.isArmed() && _vehicle_land_detected.landed);
-
-		handleAutoDisarm();
-
-		battery_status_check();
-
-		/* If in INIT state, try to proceed to STANDBY state */
-		if (!_vehicle_status.calibration_enabled && _arm_state_machine.isInit()) {
-
-			_arm_state_machine.arming_state_transition(_vehicle_status,
-					vehicle_status_s::ARMING_STATE_STANDBY, _actuator_armed, _health_and_arming_checks,
-					true /* fRunPreArmChecks */, &_mavlink_log_pub, arm_disarm_reason_t::transition_to_standby);
-		}
-
-		checkForMissionUpdate();
-
-		manualControlCheck();
-
-		offboardControlCheck();
-
-		// data link checks which update the status
-		dataLinkCheck();
-
-		// Check for failure detector status
-		if (_failure_detector.update(_vehicle_status, _vehicle_control_mode)) {
-			_vehicle_status.failure_detector_status = _failure_detector.getStatus().value;
-			_status_changed = true;
-		}
-
-		const hrt_abstime now = hrt_absolute_time();
-
-		const bool nav_state_or_failsafe_changed = handleModeIntentionAndFailsafe();
-
-		// Run arming checks @ 10Hz
-		if ((now >= _last_health_and_arming_check + 100_ms) || _status_changed || nav_state_or_failsafe_changed) {
-			_last_health_and_arming_check = now;
-
-			perf_begin(_preflight_check_perf);
-			_health_and_arming_checks.update();
-			bool pre_flight_checks_pass = _health_and_arming_checks.canArm(_vehicle_status.nav_state);
-
-			if (_vehicle_status.pre_flight_checks_pass != pre_flight_checks_pass) {
-				_vehicle_status.pre_flight_checks_pass = pre_flight_checks_pass;
+			if (handle_command(cmd)) {
 				_status_changed = true;
 			}
-
-			perf_end(_preflight_check_perf);
-			checkAndInformReadyForTakeoff();
-		}
-
-		// handle commands last, as the system needs to be updated to handle them
-		if (_vehicle_command_sub.updated()) {
-			// got command
-			const unsigned last_generation = _vehicle_command_sub.get_last_generation();
-			vehicle_command_s cmd;
-
-			if (_vehicle_command_sub.copy(&cmd)) {
-				if (_vehicle_command_sub.get_last_generation() != last_generation + 1) {
-					PX4_ERR("vehicle_command lost, generation %u -> %u", last_generation, _vehicle_command_sub.get_last_generation());
-				}
-
-				if (handle_command(cmd)) {
-					_status_changed = true;
-				}
-			}
-		}
-
-		if (_action_request_sub.updated()) {
-			const unsigned last_generation = _action_request_sub.get_last_generation();
-			action_request_s action_request;
-
-			if (_action_request_sub.copy(&action_request)) {
-				if (_action_request_sub.get_last_generation() != last_generation + 1) {
-					PX4_ERR("action_request lost, generation %u -> %u", last_generation, _action_request_sub.get_last_generation());
-				}
-
-				executeActionRequest(action_request);
-			}
-		}
-
-		// check for arming state changes
-		if (_was_armed != _arm_state_machine.isArmed()) {
-			_status_changed = true;
-		}
-
-		if (!_was_armed && _arm_state_machine.isArmed() && !_vehicle_land_detected.landed) {
-			_have_taken_off_since_arming = true;
-		}
-
-		if (_was_armed && !_arm_state_machine.isArmed()) {
-			const int32_t flight_uuid = _param_flight_uuid.get() + 1;
-			_param_flight_uuid.set(flight_uuid);
-			_param_flight_uuid.commit_no_notification();
-
-			_last_disarmed_timestamp = hrt_absolute_time();
-
-			_user_mode_intention.onDisarm();
-			_vehicle_status.takeoff_time = 0;
-		}
-
-		if (!_arm_state_machine.isArmed()) {
-			/* Reset the flag if disarmed. */
-			_have_taken_off_since_arming = false;
-		}
-
-		_actuator_armed.prearmed = getPrearmState();
-
-		// publish states (armed, control_mode, vehicle_status, failure_detector_status) at 2 Hz or immediately when changed
-		if ((now >= _vehicle_status.timestamp + 500_ms) || _status_changed || nav_state_or_failsafe_changed
-		    || !(_actuator_armed == actuator_armed_prev)) {
-
-			// publish actuator_armed first (used by output modules)
-			_actuator_armed.armed = _arm_state_machine.isArmed();
-			_actuator_armed.ready_to_arm = _arm_state_machine.isArmed() || _arm_state_machine.isStandby();
-			_actuator_armed.timestamp = hrt_absolute_time();
-			_actuator_armed_pub.publish(_actuator_armed);
-
-			// update and publish vehicle_control_mode
-			updateControlMode();
-
-			// vehicle_status publish (after prearm/preflight updates above)
-			_vehicle_status.arming_state = _arm_state_machine.getArmState();
-			_vehicle_status.timestamp = hrt_absolute_time();
-			_vehicle_status_pub.publish(_vehicle_status);
-
-			// failure_detector_status publish
-			failure_detector_status_s fd_status{};
-			fd_status.fd_roll = _failure_detector.getStatusFlags().roll;
-			fd_status.fd_pitch = _failure_detector.getStatusFlags().pitch;
-			fd_status.fd_alt = _failure_detector.getStatusFlags().alt;
-			fd_status.fd_ext = _failure_detector.getStatusFlags().ext;
-			fd_status.fd_arm_escs = _failure_detector.getStatusFlags().arm_escs;
-			fd_status.fd_battery = _failure_detector.getStatusFlags().battery;
-			fd_status.fd_imbalanced_prop = _failure_detector.getStatusFlags().imbalanced_prop;
-			fd_status.fd_motor = _failure_detector.getStatusFlags().motor;
-			fd_status.imbalanced_prop_metric = _failure_detector.getImbalancedPropMetric();
-			fd_status.motor_failure_mask = _failure_detector.getMotorFailures();
-			fd_status.timestamp = hrt_absolute_time();
-			_failure_detector_status_pub.publish(fd_status);
-		}
-
-		checkWorkerThread();
-
-		updateTunes();
-		control_status_leds(_status_changed, _battery_warning);
-
-		_status_changed = false;
-
-		_was_armed = _arm_state_machine.isArmed();
-
-		arm_auth_update(hrt_absolute_time(), params_updated);
-
-		px4_indicate_external_reset_lockout(LockoutComponent::Commander, _arm_state_machine.isArmed());
-
-		perf_end(_loop_perf);
-
-		// sleep if there are no vehicle_commands or action_requests to process
-		if (!_vehicle_command_sub.updated() && !_action_request_sub.updated()) {
-			px4_usleep(COMMANDER_MONITORING_INTERVAL);
 		}
 	}
 
-	rgbled_set_color_and_mode(led_control_s::COLOR_WHITE, led_control_s::MODE_OFF);
+	if (_action_request_sub.updated()) {
+		const unsigned last_generation = _action_request_sub.get_last_generation();
+		action_request_s action_request;
 
-	/* close fds */
-	led_deinit();
-	buzzer_deinit();
+		if (_action_request_sub.copy(&action_request)) {
+			if (_action_request_sub.get_last_generation() != last_generation + 1) {
+				PX4_ERR("action_request lost, generation %u -> %u", last_generation, _action_request_sub.get_last_generation());
+			}
+
+			executeActionRequest(action_request);
+		}
+	}
+
+	// check for arming state changes
+	if (_was_armed != _arm_state_machine.isArmed()) {
+		_status_changed = true;
+	}
+
+	if (!_was_armed && _arm_state_machine.isArmed() && !_vehicle_land_detected.landed) {
+		_have_taken_off_since_arming = true;
+	}
+
+	if (_was_armed && !_arm_state_machine.isArmed()) {
+		const int32_t flight_uuid = _param_flight_uuid.get() + 1;
+		_param_flight_uuid.set(flight_uuid);
+		_param_flight_uuid.commit_no_notification();
+
+		_last_disarmed_timestamp = hrt_absolute_time();
+
+		_user_mode_intention.onDisarm();
+		_vehicle_status.takeoff_time = 0;
+	}
+
+	if (!_arm_state_machine.isArmed()) {
+		/* Reset the flag if disarmed. */
+		_have_taken_off_since_arming = false;
+	}
+
+	_actuator_armed.prearmed = getPrearmState();
+
+	// publish states (armed, control_mode, vehicle_status, failure_detector_status) at 2 Hz or immediately when changed
+	if ((now >= _vehicle_status.timestamp + 500_ms) || _status_changed || nav_state_or_failsafe_changed
+	    || !(_actuator_armed == actuator_armed_prev)) {
+
+		// publish actuator_armed first (used by output modules)
+		_actuator_armed.armed = _arm_state_machine.isArmed();
+		_actuator_armed.ready_to_arm = _arm_state_machine.isArmed() || _arm_state_machine.isStandby();
+		_actuator_armed.timestamp = hrt_absolute_time();
+		_actuator_armed_pub.publish(_actuator_armed);
+
+		// update and publish vehicle_control_mode
+		updateControlMode();
+
+		// vehicle_status publish (after prearm/preflight updates above)
+		_vehicle_status.arming_state = _arm_state_machine.getArmState();
+		_vehicle_status.timestamp = hrt_absolute_time();
+		_vehicle_status_pub.publish(_vehicle_status);
+
+		// failure_detector_status publish
+		failure_detector_status_s fd_status{};
+		fd_status.fd_roll = _failure_detector.getStatusFlags().roll;
+		fd_status.fd_pitch = _failure_detector.getStatusFlags().pitch;
+		fd_status.fd_alt = _failure_detector.getStatusFlags().alt;
+		fd_status.fd_ext = _failure_detector.getStatusFlags().ext;
+		fd_status.fd_arm_escs = _failure_detector.getStatusFlags().arm_escs;
+		fd_status.fd_battery = _failure_detector.getStatusFlags().battery;
+		fd_status.fd_imbalanced_prop = _failure_detector.getStatusFlags().imbalanced_prop;
+		fd_status.fd_motor = _failure_detector.getStatusFlags().motor;
+		fd_status.imbalanced_prop_metric = _failure_detector.getImbalancedPropMetric();
+		fd_status.motor_failure_mask = _failure_detector.getMotorFailures();
+		fd_status.timestamp = hrt_absolute_time();
+		_failure_detector_status_pub.publish(fd_status);
+	}
+
+	checkWorkerThread();
+
+	updateTunes();
+	control_status_leds(_status_changed, _battery_warning);
+
+	_status_changed = false;
+
+	_was_armed = _arm_state_machine.isArmed();
+
+	arm_auth_update(hrt_absolute_time(), params_updated);
+
+	px4_indicate_external_reset_lockout(LockoutComponent::Commander, _arm_state_machine.isArmed());
+
+
+	if (_vehicle_command_sub.updated() || _action_request_sub.updated()) {
+		ScheduleNow();
+
+	} else {
+		ScheduleDelayed(100_ms);
+	}
+
+	perf_end(_loop_perf);
 }
 
 void Commander::checkForMissionUpdate()
@@ -2468,42 +2481,6 @@ void Commander::answer_command(const vehicle_command_s &cmd, uint8_t result)
 	_vehicle_command_ack_pub.publish(command_ack);
 }
 
-int Commander::task_spawn(int argc, char *argv[])
-{
-	_task_id = px4_task_spawn_cmd("commander",
-				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_DEFAULT + 40,
-				      3250,
-				      (px4_main_t)&run_trampoline,
-				      (char *const *)argv);
-
-	if (_task_id < 0) {
-		_task_id = -1;
-		return -errno;
-	}
-
-	// wait until task is up & running
-	if (wait_until_running() < 0) {
-		_task_id = -1;
-		return -1;
-	}
-
-	return 0;
-}
-
-Commander *Commander::instantiate(int argc, char *argv[])
-{
-	Commander *instance = new Commander();
-
-	if (instance) {
-		if (argc >= 2 && !strcmp(argv[1], "-h")) {
-			instance->enable_hil();
-		}
-	}
-
-	return instance;
-}
-
 void Commander::enable_hil()
 {
 	_vehicle_status.hil_state = vehicle_status_s::HIL_STATE_ON;
@@ -2807,6 +2784,41 @@ void Commander::send_parachute_command()
 	set_tune_override(tune_control_s::TUNE_ID_PARACHUTE_RELEASE);
 }
 
+int Commander::task_spawn(int argc, char *argv[])
+{
+	Commander *instance = new Commander();
+
+	if (instance) {
+		_object.store(instance);
+		_task_id = task_id_is_work_queue;
+
+		if (instance->init()) {
+			return PX4_OK;
+		}
+
+	} else {
+		PX4_ERR("alloc failed");
+	}
+
+	delete instance;
+	_object.store(nullptr);
+	_task_id = -1;
+
+	return PX4_ERROR;
+}
+
+int Commander::print_status()
+{
+	PX4_INFO("Arm state: %s", _arm_state_machine.getArmStateName());
+	PX4_INFO("navigation mode: %s", mode_util::nav_state_names[_vehicle_status.nav_state]);
+	PX4_INFO("user intended navigation mode: %s", mode_util::nav_state_names[_user_mode_intention.get()]);
+	PX4_INFO("in failsafe: %s", _failsafe.inFailsafe() ? "yes" : "no");
+	perf_print_counter(_loop_perf);
+	perf_print_counter(_preflight_check_perf);
+
+	return 0;
+}
+
 int Commander::print_usage(const char *reason)
 {
 	if (reason) {
@@ -2849,3 +2861,9 @@ The commander module contains the state machine for mode switching and failsafe 
 
 	return 1;
 }
+
+extern "C" __EXPORT int commander_main(int argc, char *argv[])
+{
+	return Commander::main(argc, argv);
+}
+
