@@ -62,7 +62,7 @@ static const char px4_guid_str[]         = "px4guid";
 static void usage(const char *reason)
 {
 	if (reason != nullptr) {
-		printf("%s\n\n", reason);
+		PX4_INFO_RAW("%s\n", reason);
 	}
 
 	PRINT_MODULE_DESCRIPTION("Tool to print various version information");
@@ -133,7 +133,7 @@ extern "C" __EXPORT int ver_main(int argc, char *argv[])
 			bool show_all = !strncmp(argv[1], sz_ver_all_str, sizeof(sz_ver_all_str));
 
 			if (show_all || !strncmp(argv[1], sz_ver_hw_str, sizeof(sz_ver_hw_str))) {
-				printf("HW arch: %s\n", px4_board_name());
+				PX4_INFO_RAW("HW arch: %s\n", px4_board_name());
 #if defined(BOARD_HAS_VERSIONING)
 				char vb[14] = "NA";
 				char rb[14] = "NA";
@@ -148,16 +148,16 @@ extern "C" __EXPORT int ver_main(int argc, char *argv[])
 					snprintf(rb, sizeof(rb), "0x%0" STRINGIFY(HW_INFO_REV_DIGITS) "X", r);
 				}
 
-				printf("HW type: %s\n", strlen(px4_board_sub_type()) ? px4_board_sub_type() : "NA");
-				printf("HW version: %s\n", vb);
-				printf("HW revision: %s\n", rb);
+				PX4_INFO_RAW("HW type: %s\n", strlen(px4_board_sub_type()) ? px4_board_sub_type() : "NA");
+				PX4_INFO_RAW("HW version: %s\n", vb);
+				PX4_INFO_RAW("HW revision: %s\n", rb);
 #endif
 				ret = 0;
 
 			}
 
 			if (show_all || !strncmp(argv[1], sz_ver_git_str, sizeof(sz_ver_git_str))) {
-				printf("PX4 git-hash: %s\n", px4_firmware_version_string());
+				PX4_INFO_RAW("PX4 git-hash: %s\n", px4_firmware_version_string());
 				unsigned fwver = px4_firmware_version();
 				unsigned major = (fwver >> (8 * 3)) & 0xFF;
 				unsigned minor = (fwver >> (8 * 2)) & 0xFF;
@@ -165,18 +165,29 @@ extern "C" __EXPORT int ver_main(int argc, char *argv[])
 				unsigned type = (fwver >> (8 * 0)) & 0xFF;
 
 				if (type == 255) {
-					printf("PX4 version: Release %u.%u.%u (%u)\n", major, minor, patch, fwver);
+					PX4_INFO_RAW("PX4 version: Release %u.%u.%u (%u)\n", major, minor, patch, fwver);
 
 				} else {
-					printf("PX4 version: %u.%u.%u %x (%u)\n", major, minor, patch, type, fwver);
+					PX4_INFO_RAW("PX4 version: %u.%u.%u %x (%u)\n", major, minor, patch, type, fwver);
 				}
 
 				if (show_all) {
 					const char *git_branch = px4_firmware_git_branch();
 
 					if (git_branch && git_branch[0]) {
-						printf("PX4 git-branch: %s\n", git_branch);
+						PX4_INFO_RAW("PX4 git-branch: %s\n", git_branch);
 					}
+				}
+
+				fwver = px4_firmware_vendor_version();
+
+				// Only display vendor version if it is non-zero
+				if (fwver & 0xFFFFFF00) {
+					major = (fwver >> (8 * 3)) & 0xFF;
+					minor = (fwver >> (8 * 2)) & 0xFF;
+					patch = (fwver >> (8 * 1)) & 0xFF;
+					type = (fwver >> (8 * 0)) & 0xFF;
+					PX4_INFO_RAW("Vendor version: %u.%u.%u %u (%u)\n", major, minor, patch, type, fwver);
 				}
 
 				fwver = px4_os_version();
@@ -184,19 +195,19 @@ extern "C" __EXPORT int ver_main(int argc, char *argv[])
 				minor = (fwver >> (8 * 2)) & 0xFF;
 				patch = (fwver >> (8 * 1)) & 0xFF;
 				type = (fwver >> (8 * 0)) & 0xFF;
-				printf("OS: %s\n", px4_os_name());
+				PX4_INFO_RAW("OS: %s\n", px4_os_name());
 
 				if (type == 255) {
-					printf("OS version: Release %u.%u.%u (%u)\n", major, minor, patch, fwver);
+					PX4_INFO_RAW("OS version: Release %u.%u.%u (%u)\n", major, minor, patch, fwver);
 
 				} else {
-					printf("OS version: %u.%u.%u %u (%u)\n", major, minor, patch, type, fwver);
+					PX4_INFO_RAW("OS version: %u.%u.%u %u (%u)\n", major, minor, patch, type, fwver);
 				}
 
 				const char *os_git_hash = px4_os_version_string();
 
 				if (os_git_hash) {
-					printf("OS git-hash: %s\n", os_git_hash);
+					PX4_INFO_RAW("OS git-hash: %s\n", os_git_hash);
 				}
 
 				ret = 0;
@@ -204,23 +215,23 @@ extern "C" __EXPORT int ver_main(int argc, char *argv[])
 			}
 
 			if (show_all || !strncmp(argv[1], sz_ver_bdate_str, sizeof(sz_ver_bdate_str))) {
-				printf("Build datetime: %s %s\n", __DATE__, __TIME__);
+				PX4_INFO_RAW("Build datetime: %s %s\n", __DATE__, __TIME__);
 				ret = 0;
 
 			}
 
 			if (show_all || !strncmp(argv[1], sz_ver_buri_str, sizeof(sz_ver_buri_str))) {
-				printf("Build uri: %s\n", px4_build_uri());
+				PX4_INFO_RAW("Build uri: %s\n", px4_build_uri());
 				ret = 0;
 
 			}
 
 			if (show_all) {
-				printf("Build variant: %s\n", px4_board_target_label());
+				PX4_INFO_RAW("Build variant: %s\n", px4_board_target_label());
 			}
 
 			if (show_all || !strncmp(argv[1], sz_ver_gcc_str, sizeof(sz_ver_gcc_str))) {
-				printf("Toolchain: %s, %s\n", px4_toolchain_name(), px4_toolchain_version());
+				PX4_INFO_RAW("Toolchain: %s, %s\n", px4_toolchain_name(), px4_toolchain_version());
 				ret = 0;
 
 			}
@@ -229,7 +240,7 @@ extern "C" __EXPORT int ver_main(int argc, char *argv[])
 				char px4guid_fmt_buffer[PX4_GUID_FORMAT_SIZE];
 
 				board_get_px4_guid_formated(px4guid_fmt_buffer, sizeof(px4guid_fmt_buffer));
-				printf("PX4GUID: %s\n", px4guid_fmt_buffer);
+				PX4_INFO_RAW("PX4GUID: %s\n", px4guid_fmt_buffer);
 				ret = 0;
 			}
 
@@ -242,10 +253,10 @@ extern "C" __EXPORT int ver_main(int argc, char *argv[])
 				int chip_version = board_mcu_version(&rev, &revstr, &errata);
 
 				if (chip_version < 0) {
-					printf("UNKNOWN MCU\n");
+					PX4_INFO_RAW("UNKNOWN MCU\n");
 
 				} else {
-					printf("MCU: %s, rev. %c\n", revstr, rev);
+					PX4_INFO_RAW("MCU: %s, rev. %c\n", revstr, rev);
 
 					if (errata != nullptr) {
 						printf("\nWARNING   WARNING   WARNING!\n"

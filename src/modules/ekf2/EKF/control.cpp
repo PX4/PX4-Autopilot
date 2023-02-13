@@ -43,7 +43,7 @@
 #include "ekf.h"
 #include <mathlib/mathlib.h>
 
-void Ekf::controlFusionModes()
+void Ekf::controlFusionModes(const imuSample &imu_delayed)
 {
 	// Store the status to enable change detection
 	_control_status_prev.value = _control_status.value;
@@ -52,7 +52,7 @@ void Ekf::controlFusionModes()
 	if (_system_flag_buffer) {
 		systemFlagUpdate system_flags_delayed;
 
-		if (_system_flag_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &system_flags_delayed)) {
+		if (_system_flag_buffer->pop_first_older_than(imu_delayed.time_us, &system_flags_delayed)) {
 
 			set_vehicle_at_rest(system_flags_delayed.at_rest);
 			set_in_air_status(system_flags_delayed.in_air);
@@ -97,7 +97,7 @@ void Ekf::controlFusionModes()
 
 			if (height_source) {
 				ECL_INFO("%llu: EKF aligned, (%s hgt, IMU buf: %i, OBS buf: %i)",
-					 (unsigned long long)_imu_sample_delayed.time_us, height_source, (int)_imu_buffer_length, (int)_obs_buffer_length);
+					 (unsigned long long)imu_delayed.time_us, height_source, (int)_imu_buffer_length, (int)_obs_buffer_length);
 			}
 		}
 	}
@@ -107,7 +107,7 @@ void Ekf::controlFusionModes()
 
 		// check for arrival of new sensor data at the fusion time horizon
 		_time_prev_gps_us = _gps_sample_delayed.time_us;
-		_gps_data_ready = _gps_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &_gps_sample_delayed);
+		_gps_data_ready = _gps_buffer->pop_first_older_than(imu_delayed.time_us, &_gps_sample_delayed);
 
 		if (_gps_data_ready) {
 			// correct velocity for offset relative to IMU
@@ -121,13 +121,18 @@ void Ekf::controlFusionModes()
 			_gps_sample_delayed.pos -= pos_offset_earth.xy();
 			_gps_sample_delayed.hgt += pos_offset_earth(2);
 
-			_gps_sample_delayed.sacc = fmaxf(_gps_sample_delayed.sacc, _params.gps_vel_noise);
+			// update GSF yaw estimator velocity (basic sanity check on GNSS velocity data)
+			if ((_gps_sample_delayed.sacc > 0.f) && (_gps_sample_delayed.sacc < _params.req_sacc)
+			    && _gps_sample_delayed.vel.isAllFinite()
+			   ) {
+				_yawEstimator.setVelocity(_gps_sample_delayed.vel.xy(), math::max(_gps_sample_delayed.sacc, _params.gps_vel_noise));
+			}
 		}
 	}
 
 	if (_range_buffer) {
 		// Get range data from buffer and check validity
-		_rng_data_ready = _range_buffer->pop_first_older_than(_imu_sample_delayed.time_us, _range_sensor.getSampleAddress());
+		_rng_data_ready = _range_buffer->pop_first_older_than(imu_delayed.time_us, _range_sensor.getSampleAddress());
 		_range_sensor.setDataReadiness(_rng_data_ready);
 
 		// update range sensor angle parameters in case they have changed
@@ -135,7 +140,7 @@ void Ekf::controlFusionModes()
 		_range_sensor.setCosMaxTilt(_params.range_cos_max_tilt);
 		_range_sensor.setQualityHysteresis(_params.range_valid_quality_s);
 
-		_range_sensor.runChecks(_imu_sample_delayed.time_us, _R_to_earth);
+		_range_sensor.runChecks(imu_delayed.time_us, _R_to_earth);
 
 		if (_range_sensor.isDataHealthy()) {
 			// correct the range data for position offset relative to the IMU
@@ -151,7 +156,7 @@ void Ekf::controlFusionModes()
 				const float var = sq(_params.range_noise) + dist_dependant_var;
 
 				_rng_consistency_check.setGate(_params.range_kin_consistency_gate);
-				_rng_consistency_check.update(_range_sensor.getDistBottom(), math::max(var, 0.001f), _state.vel(2), P(6, 6), _imu_sample_delayed.time_us);
+				_rng_consistency_check.update(_range_sensor.getDistBottom(), math::max(var, 0.001f), _state.vel(2), P(6, 6), imu_delayed.time_us);
 			}
 
 		} else {
@@ -174,31 +179,28 @@ void Ekf::controlFusionModes()
 		// This means we stop looking for new data until the old data has been fused, unless we are not fusing optical flow,
 		// in this case we need to empty the buffer
 		if (!_flow_data_ready || (!_control_status.flags.opt_flow && !_hagl_sensor_status.flags.flow)) {
-			_flow_data_ready = _flow_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &_flow_sample_delayed);
+			_flow_data_ready = _flow_buffer->pop_first_older_than(imu_delayed.time_us, &_flow_sample_delayed);
 		}
 	}
 
-	if (_ext_vision_buffer) {
-		_ev_data_ready = _ext_vision_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &_ev_sample_delayed);
-	}
-
 	if (_airspeed_buffer) {
-		_tas_data_ready = _airspeed_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &_airspeed_sample_delayed);
+		_tas_data_ready = _airspeed_buffer->pop_first_older_than(imu_delayed.time_us, &_airspeed_sample_delayed);
 	}
 
-	// run EKF-GSF yaw estimator once per _imu_sample_delayed update after all main EKF data samples available
-	runYawEKFGSF();
+	// run EKF-GSF yaw estimator once per imu_delayed update after all main EKF data samples available
+	runYawEKFGSF(imu_delayed);
 
 	// control use of observations for aiding
 	controlMagFusion();
-	controlOpticalFlowFusion();
+	controlOpticalFlowFusion(imu_delayed);
 	controlGpsFusion();
 	controlAirDataFusion();
-	controlBetaFusion();
+	controlBetaFusion(imu_delayed);
 	controlDragFusion();
-	controlHeightFusion();
+	controlHeightFusion(imu_delayed);
+	controlGravityFusion(imu_delayed);
 
-	// Additional data odoemtery data from an external estimator can be fused.
+	// Additional data odometry data from an external estimator can be fused.
 	controlExternalVisionFusion();
 
 	// Additional horizontal velocity data from an auxiliary sensor can be fused
@@ -214,210 +216,6 @@ void Ekf::controlFusionModes()
 
 	// check if we are no longer fusing measurements that directly constrain velocity drift
 	updateDeadReckoningStatus();
-}
-
-void Ekf::controlExternalVisionFusion()
-{
-	// Check for new external vision data
-	if (_ev_data_ready) {
-
-		bool reset = false;
-
-		if (_ev_sample_delayed.reset_counter != _ev_sample_delayed_prev.reset_counter) {
-			reset = true;
-		}
-
-		if (_inhibit_ev_yaw_use) {
-			stopEvYawFusion();
-		}
-
-		// if the ev data is not in a NED reference frame, then the transformation between EV and EKF navigation frames
-		// needs to be calculated and the observations rotated into the EKF frame of reference
-		if ((_params.fusion_mode & SensorFusionMask::ROTATE_EXT_VIS) && ((_params.fusion_mode & SensorFusionMask::USE_EXT_VIS_POS)
-				|| (_params.ev_ctrl & static_cast<int32_t>(EvCtrl::VEL))) && !_control_status.flags.ev_yaw) {
-
-			// rotate EV measurements into the EKF Navigation frame
-			calcExtVisRotMat();
-		}
-
-		// external vision aiding selection logic
-		if (_control_status.flags.tilt_align && _control_status.flags.yaw_align) {
-
-			// check for a external vision measurement that has fallen behind the fusion time horizon
-			if (isNewestSampleRecent(_time_last_ext_vision_buffer_push, 2 * EV_MAX_INTERVAL)) {
-				// turn on use of external vision measurements for position
-				if (_params.fusion_mode & SensorFusionMask::USE_EXT_VIS_POS && !_control_status.flags.ev_pos) {
-					startEvPosFusion();
-				}
-			}
-		}
-
-		// external vision yaw aiding selection logic
-		if (!_inhibit_ev_yaw_use && (_params.fusion_mode & SensorFusionMask::USE_EXT_VIS_YAW) && !_control_status.flags.ev_yaw
-		    && _control_status.flags.tilt_align) {
-
-			// don't start using EV data unless data is arriving frequently
-			if (isNewestSampleRecent(_time_last_ext_vision_buffer_push, 2 * EV_MAX_INTERVAL)) {
-				if (resetYawToEv()) {
-					_control_status.flags.yaw_align = true;
-					startEvYawFusion();
-				}
-			}
-		}
-
-		// determine if we should use the horizontal position observations
-		if (_control_status.flags.ev_pos) {
-			resetEstimatorAidStatus(_aid_src_ev_pos);
-
-			if (reset && _control_status_prev.flags.ev_pos) {
-				if (!_fuse_hpos_as_odom) {
-					resetHorizontalPositionToVision();
-				}
-			}
-
-			Vector3f ev_pos_obs_var;
-
-			// correct position and height for offset relative to IMU
-			const Vector3f pos_offset_body = _params.ev_pos_body - _params.imu_pos_body;
-			const Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
-			_ev_sample_delayed.pos -= pos_offset_earth;
-
-			// Use an incremental position fusion method for EV position data if GPS is also used
-			if (_params.gnss_ctrl & GnssCtrl::HPOS) {
-				_fuse_hpos_as_odom = true;
-
-			} else {
-				_fuse_hpos_as_odom = false;
-			}
-
-			if (_fuse_hpos_as_odom) {
-				if (!_hpos_prev_available) {
-					// no previous observation available to calculate position change
-					_hpos_prev_available = true;
-
-				} else {
-					// calculate the change in position since the last measurement
-					// rotate measurement into body frame is required when fusing with GPS
-					Vector3f ev_delta_pos = _R_ev_to_ekf * Vector3f(_ev_sample_delayed.pos - _ev_sample_delayed_prev.pos);
-
-					// use the change in position since the last measurement
-					_aid_src_ev_pos.observation[0] = ev_delta_pos(0);
-					_aid_src_ev_pos.observation[1] = ev_delta_pos(1);
-
-					_aid_src_ev_pos.innovation[0] = _state.pos(0) - _hpos_pred_prev(0) - ev_delta_pos(0);
-					_aid_src_ev_pos.innovation[1] = _state.pos(1) - _hpos_pred_prev(1) - ev_delta_pos(1);
-
-					// observation 1-STD error, incremental pos observation is expected to have more uncertainty
-					Matrix3f ev_pos_var = matrix::diag(_ev_sample_delayed.posVar);
-					ev_pos_var = _R_ev_to_ekf * ev_pos_var * _R_ev_to_ekf.transpose();
-					ev_pos_obs_var(0) = fmaxf(ev_pos_var(0, 0), sq(0.5f));
-					ev_pos_obs_var(1) = fmaxf(ev_pos_var(1, 1), sq(0.5f));
-
-					_aid_src_ev_pos.observation_variance[0] = ev_pos_obs_var(0);
-					_aid_src_ev_pos.observation_variance[1] = ev_pos_obs_var(1);
-
-					_aid_src_ev_pos.innovation_variance[0] = P(7, 7) + _aid_src_ev_pos.observation_variance[0];
-					_aid_src_ev_pos.innovation_variance[1] = P(8, 8) + _aid_src_ev_pos.observation_variance[1];
-				}
-			} else {
-				// use the absolute position
-				Vector3f ev_pos_meas = _ev_sample_delayed.pos;
-				Matrix3f ev_pos_var = matrix::diag(_ev_sample_delayed.posVar);
-
-				if (_params.fusion_mode & SensorFusionMask::ROTATE_EXT_VIS) {
-					ev_pos_meas = _R_ev_to_ekf * ev_pos_meas;
-					ev_pos_var = _R_ev_to_ekf * ev_pos_var * _R_ev_to_ekf.transpose();
-				}
-
-				_aid_src_ev_pos.observation[0] = ev_pos_meas(0);
-				_aid_src_ev_pos.observation[1] = ev_pos_meas(1);
-
-				_aid_src_ev_pos.observation_variance[0] = fmaxf(ev_pos_var(0, 0), sq(0.01f));
-				_aid_src_ev_pos.observation_variance[1] = fmaxf(ev_pos_var(1, 1), sq(0.01f));
-
-				_aid_src_ev_pos.innovation[0] = _state.pos(0) - _aid_src_ev_pos.observation[0];
-				_aid_src_ev_pos.innovation[1] = _state.pos(1) - _aid_src_ev_pos.observation[1];
-
-				_aid_src_ev_pos.innovation_variance[0] = P(7, 7) + _aid_src_ev_pos.observation_variance[0];
-				_aid_src_ev_pos.innovation_variance[1] = P(8, 8) + _aid_src_ev_pos.observation_variance[1];
-
-				// check if we have been deadreckoning too long
-				if (isTimedOut(_time_last_hor_pos_fuse, _params.reset_timeout_max)) {
-					resetHorizontalPositionToVision();
-				}
-			}
-
-			// innovation gate size
-			const float ev_pos_innov_gate = fmaxf(_params.ev_pos_innov_gate, 1.0f);
-			setEstimatorAidStatusTestRatio(_aid_src_ev_pos, ev_pos_innov_gate);
-
-			_aid_src_ev_pos.timestamp_sample = _ev_sample_delayed.time_us;
-			_aid_src_ev_pos.fusion_enabled = true;
-
-			fuseHorizontalPosition(_aid_src_ev_pos);
-		}
-
-		// determine if we should use the yaw observation
-		resetEstimatorAidStatus(_aid_src_ev_yaw);
-		const float measured_hdg = getEulerYaw(_ev_sample_delayed.quat);
-		const float ev_yaw_obs_var = fmaxf(_ev_sample_delayed.orientation_var(2), 1.e-4f);
-
-		if (PX4_ISFINITE(measured_hdg)) {
-			_aid_src_ev_yaw.timestamp_sample = _ev_sample_delayed.time_us;
-			_aid_src_ev_yaw.observation = measured_hdg;
-			_aid_src_ev_yaw.observation_variance = ev_yaw_obs_var;
-			_aid_src_ev_yaw.fusion_enabled = _control_status.flags.ev_yaw;
-
-			if (_control_status.flags.ev_yaw) {
-				if (reset && _control_status_prev.flags.ev_yaw) {
-					resetYawToEv();
-				}
-
-				const float innovation = wrap_pi(getEulerYaw(_R_to_earth) - measured_hdg);
-
-				fuseYaw(innovation, ev_yaw_obs_var, _aid_src_ev_yaw);
-
-			} else {
-				// populate estimator_aid_src_ev_yaw with delta heading innovations for logging
-				// use the change in yaw since the last measurement
-				const float measured_hdg_prev = getEulerYaw(_ev_sample_delayed_prev.quat);
-
-				// calculate the change in yaw since the last measurement
-				const float ev_delta_yaw = wrap_pi(measured_hdg - measured_hdg_prev);
-
-				_aid_src_ev_yaw.innovation = wrap_pi(getEulerYaw(_R_to_earth) - _yaw_pred_prev - ev_delta_yaw);
-			}
-		}
-
-
-		bool ev_reset = (_ev_sample_delayed.reset_counter != _ev_sample_delayed_prev.reset_counter);
-
-		// determine if we should use the horizontal position observations
-		bool quality_sufficient = (_params.ev_quality_minimum <= 0) || (_ev_sample_delayed.quality >= _params.ev_quality_minimum);
-
-		bool starting_conditions_passing = quality_sufficient
-						   && ((_ev_sample_delayed.time_us - _ev_sample_delayed_prev.time_us) < EV_MAX_INTERVAL)
-						   && ((_params.ev_quality_minimum <= 0) || (_ev_sample_delayed_prev.quality >= _params.ev_quality_minimum)) // previous quality sufficient
-						   && ((_params.ev_quality_minimum <= 0) || (_ext_vision_buffer->get_newest().quality >= _params.ev_quality_minimum)) // newest quality sufficient
-						   && isNewestSampleRecent(_time_last_ext_vision_buffer_push, EV_MAX_INTERVAL);
-
-		// EV velocity
-		controlEvVelFusion(_ev_sample_delayed, starting_conditions_passing, ev_reset, quality_sufficient, _aid_src_ev_vel);
-
-
-		// record observation and estimate for use next time
-		_ev_sample_delayed_prev = _ev_sample_delayed;
-		_hpos_pred_prev = _state.pos.xy();
-		_yaw_pred_prev = getEulerYaw(_state.quat_nominal);
-
-	} else if ((_control_status.flags.ev_pos || _control_status.flags.ev_vel || _control_status.flags.ev_yaw)
-		   && !isRecent(_ev_sample_delayed.time_us, (uint64_t)_params.reset_timeout_max)) {
-
-		// Turn off EV fusion mode if no data has been received
-		stopEvFusion();
-		_warning_events.flags.vision_data_stopped = true;
-		ECL_WARN("vision data stopped");
-	}
 }
 
 void Ekf::controlGpsYawFusion(const gpsSample &gps_sample, bool gps_checks_passing, bool gps_checks_failing)
@@ -561,7 +359,7 @@ void Ekf::controlAirDataFusion()
 	}
 }
 
-void Ekf::controlBetaFusion()
+void Ekf::controlBetaFusion(const imuSample &imu_delayed)
 {
 	_control_status.flags.fuse_beta = _params.beta_fusion_enabled && _control_status.flags.fixed_wing
 		&& _control_status.flags.in_air && !_control_status.flags.fake_pos;
@@ -581,7 +379,7 @@ void Ekf::controlBetaFusion()
 				// activate the wind states
 				_control_status.flags.wind = true;
 				// reset the timeout timers to prevent repeated resets
-				_aid_src_sideslip.time_last_fuse = _imu_sample_delayed.time_us;
+				_aid_src_sideslip.time_last_fuse = imu_delayed.time_us;
 				resetWind();
 			}
 
@@ -595,7 +393,7 @@ void Ekf::controlBetaFusion()
 void Ekf::controlDragFusion()
 {
 	if ((_params.fusion_mode & SensorFusionMask::USE_DRAG) && _drag_buffer &&
-	    !_control_status.flags.fake_pos && _control_status.flags.in_air && !_mag_inhibit_yaw_reset_req) {
+	    !_control_status.flags.fake_pos && _control_status.flags.in_air) {
 
 		if (!_control_status.flags.wind) {
 			// reset the wind states and covariances when starting drag accel fusion
@@ -607,7 +405,7 @@ void Ekf::controlDragFusion()
 
 		dragSample drag_sample;
 
-		if (_drag_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &drag_sample)) {
+		if (_drag_buffer->pop_first_older_than(_time_delayed_us, &drag_sample)) {
 			fuseDrag(drag_sample);
 		}
 	}
@@ -618,7 +416,7 @@ void Ekf::controlAuxVelFusion()
 	if (_auxvel_buffer) {
 		auxVelSample auxvel_sample_delayed;
 
-		if (_auxvel_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &auxvel_sample_delayed)) {
+		if (_auxvel_buffer->pop_first_older_than(_time_delayed_us, &auxvel_sample_delayed)) {
 
 			resetEstimatorAidStatus(_aid_src_aux_vel);
 

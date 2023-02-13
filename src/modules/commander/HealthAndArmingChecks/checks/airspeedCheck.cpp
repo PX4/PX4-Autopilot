@@ -37,7 +37,7 @@
 using namespace time_literals;
 
 AirspeedChecks::AirspeedChecks()
-	: _param_fw_arsp_mode_handle(param_find("FW_ARSP_MODE")), _param_fw_airspd_trim_handle(param_find("FW_AIRSPD_TRIM"))
+	: _param_fw_arsp_mode_handle(param_find("FW_ARSP_MODE")), _param_fw_airspd_max_handle(param_find("FW_AIRSPD_MAX"))
 {
 }
 
@@ -58,10 +58,10 @@ void AirspeedChecks::checkAndReport(const Context &context, Report &reporter)
 
 		reporter.setIsPresent(health_component_t::differential_pressure);
 
-		float airspeed_trim = 10.0f;
-		param_get(_param_fw_airspd_trim_handle, &airspeed_trim);
-
-		const float arming_max_airspeed_allowed = airspeed_trim / 2.0f; // set to half of trim airspeed
+		// Maximally allow the airspeed reading to be at FW_AIRSPD_MAX when arming. This is to catch very badly calibrated
+		// airspeed sensors, but also high wind conditions that prevent a forward flight of the vehicle.
+		float arming_max_airspeed_allowed = 20.f;
+		param_get(_param_fw_airspd_max_handle, &arming_max_airspeed_allowed);
 
 		/*
 		 * Check if airspeed is declared valid or not by airspeed selector.
@@ -79,21 +79,17 @@ void AirspeedChecks::checkAndReport(const Context &context, Report &reporter)
 			}
 		}
 
-		/*
-		 * Check if airspeed is higher than maximally accepted while the vehicle is landed / not flying
-		 * Negative and positive offsets are considered. This check is optional, because the pitot cover
-		 * might have been removed before arming.
-		 */
 		if (!context.isArmed() && _param_com_arm_arsp_en.get()
 		    && fabsf(airspeed_validated.calibrated_airspeed_m_s) > arming_max_airspeed_allowed) {
 			/* EVENT
 			 * @description
-			 * Check the airspeed calibration and the pitot.
+			 * Current airspeed reading too high. Check if wind is below maximum airspeed and redo airspeed
+			 * calibration if the measured airspeed does not correspond to wind conditions.
 			 *
 			 * <profile name="dev">
 			 * Measured: {1:.1m/s}, limit: {2:.1m/s}.
 			 *
-			 * This check can be configured via <param>COM_ARM_ARSP_EN</param> parameter.
+			 * This check can be configured via <param>COM_ARM_ARSP_EN</param> and <param>FW_AIRSPD_MAX</param> parameter.
 			 * </profile>
 			 */
 			reporter.armingCheckFailure<float, float>(NavModes::None, health_component_t::differential_pressure,
@@ -101,7 +97,7 @@ void AirspeedChecks::checkAndReport(const Context &context, Report &reporter)
 					events::Log::Error, "Airspeed too high", airspeed_validated.calibrated_airspeed_m_s, arming_max_airspeed_allowed);
 
 			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Airspeed too high - check cal or pitot");
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Airspeed too high - check airspeed calibration");
 			}
 		}
 

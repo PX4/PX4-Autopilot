@@ -117,13 +117,13 @@ void Ekf::controlGnssHeightFusion(const gpsSample &gps_sample)
 					// reset vertical velocity
 					if (PX4_ISFINITE(gps_sample.vel(2)) && (_params.gnss_ctrl & GnssCtrl::VEL)) {
 						// use 1.5 as a typical ratio of vacc/hacc
-						resetVerticalVelocityTo(gps_sample.vel(2), sq(1.5f * gps_sample.sacc));
+						resetVerticalVelocityTo(gps_sample.vel(2), sq(math::max(1.5f * gps_sample.sacc, _params.gps_vel_noise)));
 
 					} else {
 						resetVerticalVelocityToZero();
 					}
 
-					aid_src.time_last_fuse = _imu_sample_delayed.time_us;
+					aid_src.time_last_fuse = _time_delayed_us;
 
 				} else if (is_fusion_failing) {
 					// Some other height source is still working
@@ -151,7 +151,7 @@ void Ekf::controlGnssHeightFusion(const gpsSample &gps_sample)
 					bias_est.setBias(_state.pos(2) + measurement);
 				}
 
-				aid_src.time_last_fuse = _imu_sample_delayed.time_us;
+				aid_src.time_last_fuse = _time_delayed_us;
 				bias_est.setFusionActive();
 				_control_status.flags.gps_hgt = true;
 			}

@@ -1,0 +1,12 @@
+menuconfig SYSTEMCMDS_BSONDUMP
+	bool "bsondump"
+	default n
+	---help---
+		Enable bsondump
+
+menuconfig USER_BSONDUMP
+	bool "bsondump running as userspace module"
+	default n
+	depends on BOARD_PROTECTED && SYSTEMCMDS_BSONDUMP
+	---help---
+		Put bsondump in userspace memory

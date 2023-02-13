@@ -70,19 +70,19 @@ void FuseBeta(const matrix::Matrix<Scalar, 3, 1>& v_local, const matrix::Matrix<
 
   // Output terms (4)
   if (H != nullptr) {
-    matrix::Matrix<Scalar, 1, 3>& _H = (*H);
+    matrix::Matrix<Scalar, 1, 3>& _h = (*H);
 
-    _H(0, 0) = _tmp17;
-    _H(0, 1) = _tmp18;
-    _H(0, 2) = 0;
+    _h(0, 0) = _tmp17;
+    _h(0, 1) = _tmp18;
+    _h(0, 2) = 0;
   }
 
   if (K != nullptr) {
-    matrix::Matrix<Scalar, 3, 1>& _K = (*K);
+    matrix::Matrix<Scalar, 3, 1>& _k = (*K);
 
-    _K(0, 0) = _tmp22 * (P(0, 1) * _tmp18 + _tmp19);
-    _K(1, 0) = _tmp22 * (P(1, 0) * _tmp17 + _tmp20);
-    _K(2, 0) = _tmp22 * (P(2, 0) * _tmp17 + P(2, 1) * _tmp18);
+    _k(0, 0) = _tmp22 * (P(0, 1) * _tmp18 + _tmp19);
+    _k(1, 0) = _tmp22 * (P(1, 0) * _tmp17 + _tmp20);
+    _k(2, 0) = _tmp22 * (P(2, 0) * _tmp17 + P(2, 1) * _tmp18);
   }
 
   if (innov_var != nullptr) {

@@ -84,6 +84,17 @@ enum class VtFwDifthrEnBits : int32_t {
 	PITCH_BIT = (1 << 2),
 };
 
+enum class QuadchuteReason {
+	None = 0,
+	TransitionTimeout,
+	ExternalCommand,
+	MinimumAltBreached,
+	UncommandedDescent,
+	TransitionAltitudeLoss,
+	MaximumPitchExceeded,
+	MaximumRollExceeded,
+};
+
 class VtolAttitudeControl;
 
 class VtolType : public ModuleParams
@@ -133,6 +144,67 @@ public:
 	virtual void waiting_on_tecs() {}
 
 	/**
+	 *  @brief Indicates if quadchute is enabled.
+	 *
+	 * @return     true if enabled
+	 */
+	bool isQuadchuteEnabled();
+
+	/**
+	 *  @brief Evaluates quadchute conditions and returns a reson for quadchute.
+	 *
+	 * @return     QuadchuteReason, can be None
+	 */
+	QuadchuteReason getQuadchuteReason();
+
+	/**
+	 *  @brief Indicates if the vehicle is lower than VT_FW_MIN_ALT above the local origin.
+	 *
+	 * @return     true if below threshold
+	 */
+	bool isMinAltBreached();
+
+	/**
+	 * @brief Indicates if conditions are met for uncommanded-descent quad-chute.
+	 *
+	 * @return true if integrated height rate error larger than threshold
+	 */
+	bool isUncommandedDescent();
+
+	/**
+	 * @brief Indicates if there is an altitude loss higher than specified threshold during a VTOL transition to FW
+	 *
+	 * @return true if error larger than threshold
+	 */
+	bool isFrontTransitionAltitudeLoss();
+
+	/**
+	 *  @brief Indicates if the absolute value of the vehicle pitch angle exceeds the threshold defined by VT_FW_QC_P
+	 *
+	 * @return     true if exeeded
+	 */
+	bool isPitchExceeded();
+
+	/**
+	 *  @brief Indicates if the absolute value of the vehicle roll angle exceeds the threshold defined by VT_FW_QC_R
+	 *
+	 * @return     true if exeeded
+	 */
+	bool isRollExceeded();
+
+	/**
+	 *  @brief Indicates if the front transition duration has exceeded the timeout definded by VT_TRANS_TIMEOUT
+	 *
+	 * @return     true if exeeded
+	 */
+	bool isFrontTransitionTimeout();
+
+	/**
+	 *  @brief Special handling of QuadchuteReason::ReasonExternal
+	 */
+	void handleSpecialExternalCommandQuadchute();
+
+	/**
 	 * Checks for fixed-wing failsafe condition and issues abort request if needed.
 	 */
 	void check_quadchute_condition();
@@ -149,7 +221,7 @@ public:
 
 	virtual void blendThrottleAfterFrontTransition(float scale) {};
 
-	mode get_mode() {return _vtol_mode;}
+	mode get_mode() {return _common_vtol_mode;}
 
 	/**
 	 * @return Minimum front transition time scaled for air density (if available) [s]
@@ -170,9 +242,15 @@ public:
 	 */
 	void setDt(float dt) {_dt = dt; }
 
+	/**
+	 * @brief Resets the transition timer states.
+	 *
+	 */
+	void resetTransitionStates();
+
 protected:
 	VtolAttitudeControl *_attc;
-	mode _vtol_mode;
+	mode _common_vtol_mode;
 
 	static constexpr const int num_outputs_max = 8;
 
@@ -188,7 +266,7 @@ protected:
 	struct actuator_controls_s			*_actuators_fw_in;			//actuator controls from fw_att_control
 	struct vehicle_local_position_s			*_local_pos;
 	struct vehicle_local_position_setpoint_s	*_local_pos_sp;
-	struct airspeed_validated_s 				*_airspeed_validated;					// airspeed
+	struct airspeed_validated_s 			*_airspeed_validated;					// airspeed
 	struct tecs_status_s				*_tecs_status;
 	struct vehicle_land_detected_s			*_land_detected;
 
@@ -206,16 +284,19 @@ protected:
 	float _thrust_transition = 0.0f;	// thrust value applied during a front transition (tailsitter & tiltrotor only)
 	float _last_thr_in_fw_mode = 0.0f;
 
-	float _ra_hrate = 0.0f;			// rolling average on height rate for quadchute condition
-	float _ra_hrate_sp = 0.0f;		// rolling average on height rate setpoint for quadchute condition
+	float _height_rate_error_integral{0.f};
+
 
 	hrt_abstime _trans_finished_ts = 0;
+	hrt_abstime _transition_start_timestamp{0};
+	float _time_since_trans_start{0};
 
 	bool _tecs_running = false;
 	hrt_abstime _tecs_running_ts = 0;
 
 	hrt_abstime _last_loop_ts = 0;
 	float _transition_dt = 0;
+	hrt_abstime _last_loop_quadchute_timestamp = 0;
 
 	float _accel_to_pitch_integ = 0;
 
@@ -228,12 +309,16 @@ protected:
 
 	float _dt{0.0025f}; // time step [s]
 
+	float _local_position_z_start_of_transition{0.f}; // altitude at start of transition
+
 	DEFINE_PARAMETERS_CUSTOM_PARENT(ModuleParams,
 					(ParamBool<px4::params::VT_ELEV_MC_LOCK>) _param_vt_elev_mc_lock,
 					(ParamFloat<px4::params::VT_FW_MIN_ALT>) _param_vt_fw_min_alt,
-					(ParamFloat<px4::params::VT_FW_ALT_ERR>) _param_vt_fw_alt_err,
+					(ParamFloat<px4::params::VT_QC_HR_ERROR_I>) _param_vt_qc_hr_error_i,
 					(ParamInt<px4::params::VT_FW_QC_P>) _param_vt_fw_qc_p,
 					(ParamInt<px4::params::VT_FW_QC_R>) _param_vt_fw_qc_r,
+					(ParamFloat<px4::params::VT_QC_T_ALT_LOSS>) _param_vt_qc_t_alt_loss,
+					(ParamInt<px4::params::VT_FW_QC_HMAX>) _param_quadchute_max_height,
 					(ParamFloat<px4::params::VT_F_TR_OL_TM>) _param_vt_f_tr_ol_tm,
 					(ParamFloat<px4::params::VT_TRANS_MIN_TM>) _param_vt_trans_min_tm,
 

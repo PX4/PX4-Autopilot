@@ -155,9 +155,6 @@ function(px4_add_common_flags)
 	# CXX only flags
 	set(cxx_flags)
 	list(APPEND cxx_flags
-		-fno-exceptions
-		-fno-threadsafe-statics
-
 		-Wreorder
 
 		# disabled warnings

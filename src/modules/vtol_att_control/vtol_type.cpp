@@ -54,7 +54,7 @@ using namespace matrix;
 VtolType::VtolType(VtolAttitudeControl *att_controller) :
 	ModuleParams(nullptr),
 	_attc(att_controller),
-	_vtol_mode(mode::ROTARY_WING)
+	_common_vtol_mode(mode::ROTARY_WING)
 {
 	_v_att = _attc->get_att();
 	_v_att_sp = _attc->get_att_sp();
@@ -171,6 +171,8 @@ void VtolType::update_transition_state()
 	_last_loop_ts = t_now;
 	_throttle_blend_start_ts = t_now;
 
+	_time_since_trans_start = (float)(t_now - _transition_start_timestamp) * 1e-6f;
+
 	check_quadchute_condition();
 }
 
@@ -210,87 +212,209 @@ bool VtolType::can_transition_on_ground()
 	return !_v_control_mode->flag_armed || _land_detected->landed;
 }
 
-void VtolType::check_quadchute_condition()
+void VtolType::resetTransitionStates()
+{
+	_transition_start_timestamp = hrt_absolute_time();
+	_time_since_trans_start = 0.f;
+	_local_position_z_start_of_transition = _local_pos->z;
+}
+
+bool VtolType::isQuadchuteEnabled()
+{
+	float dist_to_ground = 0.f;
+	const float home_position_z = _attc->get_home_position_z();
+
+	if (_local_pos->dist_bottom_valid) {
+		dist_to_ground = _local_pos->dist_bottom;
+
+	} else if (PX4_ISFINITE(home_position_z)) {
+		dist_to_ground = -(_local_pos->z - home_position_z);
+
+	} else {
+		dist_to_ground = -_local_pos->z;
+
+	}
+
+	const bool above_quadchute_altitude_limit = _param_quadchute_max_height.get() > 0
+			&& dist_to_ground > (float)_param_quadchute_max_height.get();
+
+	return _v_control_mode->flag_armed &&
+	       !_land_detected->landed && !above_quadchute_altitude_limit;
+
+}
+
+bool VtolType::isMinAltBreached()
+{
+	// fixed-wing minimum altitude
+	if (_param_vt_fw_min_alt.get() > FLT_EPSILON) {
+
+		if (-(_local_pos->z) < _param_vt_fw_min_alt.get()) {
+			return true;
+
+		}
+	}
+
+	return false;
+}
+
+bool VtolType::isUncommandedDescent()
+{
+	if (_param_vt_qc_hr_error_i.get() > FLT_EPSILON && _v_control_mode->flag_control_altitude_enabled
+	    && hrt_elapsed_time(&_tecs_status->timestamp) < 1_s) {
+
+		// TODO if TECS publishes local_position_setpoint dependency on tecs_status can be dropped here
+
+		if (_tecs_status->height_rate < -FLT_EPSILON && _tecs_status->height_rate_setpoint > FLT_EPSILON) {
+			// vehicle is currently in uncommended descend, start integrating error
+
+			const hrt_abstime now = hrt_absolute_time();
+			float dt = static_cast<float>(now - _last_loop_quadchute_timestamp) / 1e6f;
+			dt = math::constrain(dt, 0.0001f, 0.1f);
+			_last_loop_quadchute_timestamp = now;
+
+			_height_rate_error_integral += (_tecs_status->height_rate_setpoint - _tecs_status->height_rate) * dt;
+
+		} else {
+			_height_rate_error_integral = 0.f; // reset
+		}
+
+		return (_height_rate_error_integral > _param_vt_qc_hr_error_i.get());
+	}
+
+	return false;
+}
+
+bool VtolType::isFrontTransitionAltitudeLoss()
+{
+	bool result = false;
+
+	if (_param_vt_qc_t_alt_loss.get() > FLT_EPSILON && _common_vtol_mode == mode::TRANSITION_TO_FW && _local_pos->z_valid) {
+
+		if (_local_pos->z <= FLT_EPSILON) {
+			// vehilce is above home
+			result = _local_pos->z - _local_position_z_start_of_transition > _param_vt_qc_t_alt_loss.get();
+
+		} else {
+			// vehilce is below home
+			result = _local_position_z_start_of_transition - _local_pos->z > _param_vt_qc_t_alt_loss.get();
+		}
+	}
+
+	return result;
+}
+
+bool VtolType::isPitchExceeded()
+{
+	// fixed-wing maximum pitch angle
+	if (_param_vt_fw_qc_p.get() > 0) {
+		Eulerf euler = Quatf(_v_att->q);
+
+		if (fabsf(euler.theta()) > fabsf(math::radians(static_cast<float>(_param_vt_fw_qc_p.get())))) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool VtolType::isRollExceeded()
+{
+	// fixed-wing maximum roll angle
+	if (_param_vt_fw_qc_r.get() > 0) {
+		Eulerf euler = Quatf(_v_att->q);
+
+		if (fabsf(euler.phi()) > fabsf(math::radians(static_cast<float>(_param_vt_fw_qc_r.get())))) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool VtolType::isFrontTransitionTimeout()
+{
+	// check front transition timeout
+	if (_param_vt_trans_timeout.get()  > FLT_EPSILON && _common_vtol_mode == mode::TRANSITION_TO_FW) {
+
+		if (_time_since_trans_start > _param_vt_trans_timeout.get()) {
+			// transition timeout occured, abort transition
+			return true;
+		}
+	}
+
+	return false;
+}
+
+QuadchuteReason VtolType::getQuadchuteReason()
+{
+	if (isMinAltBreached()) {
+		return QuadchuteReason::MinimumAltBreached;
+	}
+
+	if (isUncommandedDescent()) {
+		return QuadchuteReason::UncommandedDescent;
+	}
+
+	if (isFrontTransitionAltitudeLoss()) {
+		return QuadchuteReason::TransitionAltitudeLoss;
+	}
+
+	if (isPitchExceeded()) {
+		return QuadchuteReason::MaximumPitchExceeded;
+	}
+
+	if (isRollExceeded()) {
+		return QuadchuteReason::MaximumRollExceeded;
+	}
+
+	if (isFrontTransitionTimeout()) {
+		return QuadchuteReason::TransitionTimeout;
+	}
+
+	return QuadchuteReason::None;
+}
+
+void VtolType::handleSpecialExternalCommandQuadchute()
 {
 	if (_attc->get_transition_command() == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC && _attc->get_immediate_transition()
 	    && !_quadchute_command_treated) {
-		_attc->quadchute(VtolAttitudeControl::QuadchuteReason::ExternalCommand);
+		_attc->quadchute(QuadchuteReason::ExternalCommand);
 		_quadchute_command_treated = true;
 		_attc->reset_immediate_transition();
 
 	} else {
 		_quadchute_command_treated = false;
 	}
+}
 
-	if (!_tecs_running) {
-		// reset the filtered height rate and heigh rate setpoint if TECS is not running
-		_ra_hrate = 0.0f;
-		_ra_hrate_sp = 0.0f;
-	}
+void VtolType::check_quadchute_condition()
+{
+	handleSpecialExternalCommandQuadchute();
 
-	if (_v_control_mode->flag_armed && !_land_detected->landed) {
-		Eulerf euler = Quatf(_v_att->q);
+	if (isQuadchuteEnabled()) {
+		QuadchuteReason reason = getQuadchuteReason();
 
-		// fixed-wing minimum altitude
-		if (_param_vt_fw_min_alt.get() > FLT_EPSILON) {
-
-			if (-(_local_pos->z) < _param_vt_fw_min_alt.get()) {
-				_attc->quadchute(VtolAttitudeControl::QuadchuteReason::MinimumAltBreached);
-			}
-		}
-
-		// adaptive quadchute
-		if (_param_vt_fw_alt_err.get() > FLT_EPSILON && _v_control_mode->flag_control_altitude_enabled) {
-
-			// We use tecs for tracking in FW and local_pos_sp during transitions
-			if (_tecs_running) {
-				// 1 second rolling average
-				_ra_hrate = (49 * _ra_hrate + _tecs_status->height_rate) / 50;
-				_ra_hrate_sp = (49 * _ra_hrate_sp + _tecs_status->height_rate_setpoint) / 50;
-
-				// are we dropping while requesting significant ascend?
-				if (((_tecs_status->altitude_sp - _tecs_status->altitude_filtered) > _param_vt_fw_alt_err.get()) &&
-				    (_ra_hrate < -1.0f) &&
-				    (_ra_hrate_sp > 1.0f)) {
-
-					_attc->quadchute(VtolAttitudeControl::QuadchuteReason::LossOfAlt);
-				}
-
-			} else {
-				const bool height_error = _local_pos->z_valid && ((-_local_pos_sp->z - -_local_pos->z) > _param_vt_fw_alt_err.get());
-				const bool height_rate_error = _local_pos->v_z_valid && (_local_pos->vz > 1.0f) && (_local_pos->z_deriv > 1.0f);
-
-				if (height_error && height_rate_error) {
-					_attc->quadchute(VtolAttitudeControl::QuadchuteReason::LargeAltError);
-				}
-			}
-		}
-
-		// fixed-wing maximum pitch angle
-		if (_param_vt_fw_qc_p.get() > 0) {
-
-			if (fabsf(euler.theta()) > fabsf(math::radians(static_cast<float>(_param_vt_fw_qc_p.get())))) {
-				_attc->quadchute(VtolAttitudeControl::QuadchuteReason::MaximumPitchExceeded);
-			}
-		}
-
-		// fixed-wing maximum roll angle
-		if (_param_vt_fw_qc_r.get() > 0) {
-
-			if (fabsf(euler.phi()) > fabsf(math::radians(static_cast<float>(_param_vt_fw_qc_r.get())))) {
-				_attc->quadchute(VtolAttitudeControl::QuadchuteReason::MaximumRollExceeded);
-			}
+		if (reason != QuadchuteReason::None) {
+			_attc->quadchute(reason);
 		}
 	}
 }
 
 float VtolType::pusher_assist()
 {
-	// Altitude above ground is distance sensor altitude if available, otherwise local z-position
-	float dist_to_ground = -_local_pos->z;
+	// Altitude above ground is local z-position or altitude above home or distance sensor altitude depending on what's available
+	float dist_to_ground = 0.f;
+	const float home_position_z = _attc->get_home_position_z();
 
 	if (_local_pos->dist_bottom_valid) {
 		dist_to_ground = _local_pos->dist_bottom;
+
+	} else if (PX4_ISFINITE(home_position_z)) {
+		dist_to_ground = -(_local_pos->z - home_position_z);
+
+	} else {
+		dist_to_ground = -_local_pos->z;
+
 	}
 
 	// disable pusher assist depending on setting of forward_thrust_enable_mode:
@@ -351,7 +475,7 @@ float VtolType::pusher_assist()
 	}
 
 	// Do not engage pusher assist during a failsafe event (could be a problem with the fixed wing drive)
-	if (_attc->get_vtol_vehicle_status()->vtol_transition_failsafe) {
+	if (_attc->get_vtol_vehicle_status()->fixed_wing_system_failure) {
 		return 0.0f;
 	}
 

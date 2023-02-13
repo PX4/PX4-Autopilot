@@ -46,7 +46,7 @@
 #include "arm_internal.h"
 #include "boot_app_shared.h"
 
-#include <lib/systemlib/crc.h>
+#include <lib/crc/crc.h>
 
 #define BOOTLOADER_COMMON_APP_SIGNATURE         0xB0A04150u
 #define BOOTLOADER_COMMON_BOOTLOADER_SIGNATURE  0xB0A0424Cu

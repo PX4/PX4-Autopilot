@@ -35,5 +35,7 @@
 __BEGIN_DECLS
 
 long PX4_TICKS_PER_SEC = 1000L;
+void fsync(int fd) { return; }
+uint32_t crc32part(const uint8_t *src, size_t len, uint32_t crc32val) { return 1; }
 
 __END_DECLS

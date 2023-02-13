@@ -142,7 +142,7 @@ void Ekf::fuseOptFlow()
 		SparseVector24f<0,1,2,3,4,5,6> Hfusion(H);
 		Vector24f Kfusion = P * Hfusion / _aid_src_optical_flow.innovation_variance[index];
 
-		if (measurementUpdate(Kfusion, Hfusion, _aid_src_optical_flow.innovation[index])) {
+		if (measurementUpdate(Kfusion, _aid_src_optical_flow.innovation_variance[index], _aid_src_optical_flow.innovation[index])) {
 			fused[index] = true;
 		}
 	}
@@ -151,7 +151,7 @@ void Ekf::fuseOptFlow()
 	_fault_status.flags.bad_optflow_Y = !fused[1];
 
 	if (fused[0] && fused[1]) {
-		_aid_src_optical_flow.time_last_fuse = _imu_sample_delayed.time_us;
+		_aid_src_optical_flow.time_last_fuse = _time_delayed_us;
 		_aid_src_optical_flow.fused = true;
 	}
 }

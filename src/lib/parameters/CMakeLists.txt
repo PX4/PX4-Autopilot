@@ -33,8 +33,6 @@
 
 add_compile_options(${MAX_CUSTOM_OPT_LEVEL})
 
-add_subdirectory(tinybson)
-
 if (NOT PARAM_DEFAULT_OVERRIDES)
 	set(PARAM_DEFAULT_OVERRIDES "{}")
 endif()
@@ -59,7 +57,14 @@ if(DISABLE_PARAMS_MODULE_SCOPING)
 		${PX4_SOURCE_DIR}/src/*.yaml
 		)
 	foreach(file_path ${yaml_files})
-		list(APPEND module_config_files "${file_path}")
+		# VOXL2 doesn't support PWM and so it has no timer configurations
+		# that are expected when dealing with certain pwm modules. This will
+		# allow those timer configurations to be skipped.
+		if ((${PX4_BOARD_NAME} MATCHES "MODALAI_VOXL2") AND (file_path MATCHES pwm_out))
+			message(STATUS "Skipping pwm file path ${file_path} for VOXL2")
+		else()
+			list(APPEND module_config_files "${file_path}")
+		endif()
 	endforeach()
 
 	list(REMOVE_DUPLICATES module_config_files)
@@ -172,8 +177,8 @@ if(${PX4_PLATFORM} STREQUAL "nuttx")
 endif()
 
 # TODO: find a better way to do this
-if (NOT "${PX4_BOARD}" MATCHES "px4_io")
-	add_library(parameters
+if(NOT "${PX4_BOARD}" MATCHES "px4_io")
+	add_library(parameters STATIC EXCLUDE_FROM_ALL
 		${SRCS}
 		px4_parameters.hpp
 	)
@@ -188,7 +193,7 @@ if (NOT "${PX4_BOARD}" MATCHES "px4_io")
 			-Wno-sign-compare	# TODO: fix and enable
 	)
 else()
-	add_library(parameters ${PX4_SOURCE_DIR}/platforms/common/empty.c)
+	add_library(parameters STATIC EXCLUDE_FROM_ALL ${PX4_SOURCE_DIR}/platforms/common/empty.c)
 endif()
 add_dependencies(parameters prebuild_targets)
 

@@ -340,6 +340,7 @@ typedef enum PX4_SOC_ARCH_ID_t {
 	PX4_SOC_ARCH_ID_STM32H7        =  0x0006,
 
 	PX4_SOC_ARCH_ID_NXPS32K146     =  0x0007,
+	PX4_SOC_ARCH_ID_NXPS32K344     =  0x0008,
 
 	PX4_SOC_ARCH_ID_EAGLE          =  0x1001,
 	PX4_SOC_ARCH_ID_QURT           =  0x1002,
@@ -349,6 +350,8 @@ typedef enum PX4_SOC_ARCH_ID_t {
 	PX4_SOC_ARCH_ID_SITL           =  0x1006,
 
 	PX4_SOC_ARCH_ID_BBBLUE         =  0x1008,
+
+	PX4_SOC_ARCH_ID_VOXL2          =  0x100A,
 
 } PX4_SOC_ARCH_ID_t;
 

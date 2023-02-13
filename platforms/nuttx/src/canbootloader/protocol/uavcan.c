@@ -49,7 +49,7 @@
 #include "uavcan.h"
 #include "can.h"
 
-#include <lib/systemlib/crc.h>
+#include <lib/crc/crc.h>
 
 #define CAN_REQUEST_TIMEOUT 1000
 #define ANY_NODE_ID 0

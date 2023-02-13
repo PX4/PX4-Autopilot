@@ -79,6 +79,14 @@
 
 const struct peripheral_clock_config_s g_peripheral_clockconfig0[] = {
 	{
+		.clkname = DMAMUX0_CLK,
+#ifdef CONFIG_S32K1XX_EDMA
+		.clkgate = true,
+#else
+		.clkgate = false,
+#endif
+	},
+	{
 		.clkname = FLEXCAN0_CLK,
 #ifdef CONFIG_S32K1XX_FLEXCAN0
 		.clkgate = true,
@@ -192,3 +200,7 @@ const struct peripheral_clock_config_s g_peripheral_clockconfig0[] = {
 		.clkgate = true,
 	},
 };
+
+unsigned int const num_of_peripheral_clocks_0 =
+	sizeof(g_peripheral_clockconfig0) /
+	sizeof(g_peripheral_clockconfig0[0]);

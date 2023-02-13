@@ -1,0 +1,18 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+config BOARD_HAS_PROBES
+	bool "Board provides GPIO or other Hardware for signaling to timing analyze."
+	default y
+	---help---
+		This board provides GPIO PWM-CH0-7 as PROBE_1-8 to provide timing signals from selected drivers.
+
+config BOARD_USE_PROBES
+	bool "Enable the use the board provided PWM-CH0-7 as PROBE_1-8"
+	default n
+	depends on BOARD_HAS_PROBES
+
+	---help---
+		Select to use GPIO PWM-CH0-7 to provide timing signals from selected drivers.

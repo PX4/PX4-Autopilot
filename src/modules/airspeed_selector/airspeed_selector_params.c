@@ -25,7 +25,7 @@ PARAM_DEFINE_FLOAT(ASPD_WIND_NSD, 1.e-2f);
  * @decimal 5
  * @group Airspeed Validator
  */
-PARAM_DEFINE_FLOAT(ASPD_SCALE_NSD, 0.0001f);
+PARAM_DEFINE_FLOAT(ASPD_SCALE_NSD, 1.e-4f);
 
 /**
  * Airspeed Selector: Wind estimator true airspeed measurement noise
@@ -151,15 +151,14 @@ PARAM_DEFINE_INT32(ASPD_PRIMARY, 1);
  * Note that the data missing check is enabled if any of the options is set.
  *
  * @min 0
- * @max 31
+ * @max 15
  * @bit 0 Only data missing check (triggers if more than 1s no data)
  * @bit 1 Data stuck (triggers if data is exactly constant for 2s in FW mode)
  * @bit 2 Innovation check (see ASPD_FS_INNOV)
  * @bit 3 Load factor check (triggers if measurement is below stall speed)
- * @bit 4 Check for data variation in first 10s after sensor connection
  * @group Airspeed Validator
  */
-PARAM_DEFINE_INT32(ASPD_DO_CHECKS, 23);
+PARAM_DEFINE_INT32(ASPD_DO_CHECKS, 7);
 
 /**
  * Enable fallback to sensor-less airspeed estimation

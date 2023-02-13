@@ -1,0 +1,29 @@
+#!/bin/sh
+#
+# NXP MR-CANHUBK3 specific board sensors init
+#------------------------------------------------------------------------------
+
+#board_adc start FIXME no ADC drivers
+
+#FMUv5Xbase board orientation
+
+# Internal SPI bus ICM20649
+icm20649 -s -R 6 start
+
+# Internal SPI bus ICM42688p
+icm42688p -R 6 -s start
+
+# Internal magnetometer on I2c
+bmm150 -I start
+
+# External compass on GPS1/I2C1 (the 3rd external bus): standard Holybro Pixhawk 4 or CUAV V5 GPS/compass puck (with lights, safety button, and buzzer)
+ist8310 -X -b 2 -R 10 start
+
+# External compass on GPS1/I2C1 (the 3rd external bus): Drotek RTK GPS with LIS3MDL Compass
+lis3mdl -X -b 2 -R 2 start
+
+# Disable startup of internal baros if param is set to false
+if param compare SENS_INT_BARO_EN 1
+then
+	bmp388 -I -a 0x77 start
+fi

@@ -72,5 +72,5 @@ float32 vz_max				# maximum vertical speed - set to 0 when limiting not required
 float32 hagl_min			# minimum height above ground level - set to 0 when limiting not required (meters)
 float32 hagl_max			# maximum height above ground level - set to 0 when limiting not required (meters)
 
-# TOPICS vehicle_local_position vehicle_local_position_groundtruth
+# TOPICS vehicle_local_position vehicle_local_position_groundtruth external_ins_local_position
 # TOPICS estimator_local_position

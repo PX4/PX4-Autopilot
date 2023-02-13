@@ -97,6 +97,7 @@
 #include "streams/OBSTACLE_DISTANCE.hpp"
 #include "streams/OPEN_DRONE_ID_BASIC_ID.hpp"
 #include "streams/OPEN_DRONE_ID_LOCATION.hpp"
+#include "streams/OPEN_DRONE_ID_SYSTEM.hpp"
 #include "streams/OPTICAL_FLOW_RAD.hpp"
 #include "streams/ORBIT_EXECUTION_STATUS.hpp"
 #include "streams/PING.hpp"
@@ -436,9 +437,12 @@ static const StreamListItem streams_list[] = {
 #if defined(OPEN_DRONE_ID_BASIC_ID_HPP)
 	create_stream_list_item<MavlinkStreamOpenDroneIdBasicId>(),
 #endif // OPEN_DRONE_ID_BASIC_ID_HPP
-#if defined(OPEN_DRONE_ID_LOCATION)
+#if defined(OPEN_DRONE_ID_LOCATION_HPP)
 	create_stream_list_item<MavlinkStreamOpenDroneIdLocation>(),
-#endif // OPEN_DRONE_ID_LOCATION
+#endif // OPEN_DRONE_ID_LOCATION_HPP
+#if defined(OPEN_DRONE_ID_SYSTEM_HPP)
+	create_stream_list_item<MavlinkStreamOpenDroneIdSystem>(),
+#endif // OPEN_DRONE_ID_SYSTEM_HPP
 #if defined(ESC_INFO_HPP)
 	create_stream_list_item<MavlinkStreamESCInfo>(),
 #endif // ESC_INFO_HPP

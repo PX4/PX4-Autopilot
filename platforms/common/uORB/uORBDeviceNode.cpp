@@ -436,7 +436,7 @@ void uORB::DeviceNode::remove_internal_subscriber()
 }
 
 #ifdef CONFIG_ORB_COMMUNICATOR
-int16_t uORB::DeviceNode::process_add_subscription(int32_t rateInHz)
+int16_t uORB::DeviceNode::process_add_subscription()
 {
 	// if there is already data in the node, send this out to
 	// the remote entity.

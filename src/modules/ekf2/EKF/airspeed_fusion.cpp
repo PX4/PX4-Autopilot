@@ -115,21 +115,19 @@ void Ekf::fuseAirspeed(estimator_aid_source1d_s &airspeed)
 
 	sym::ComputeAirspeedHAndK(getStateAtFusionHorizonAsVector(), P, innov_var, FLT_EPSILON, &H, &K);
 
-	SparseVector24f<4,5,6,22,23> H_sparse(H);
-
 	if (update_wind_only) {
 		for (unsigned row = 0; row <= 21; row++) {
 			K(row) = 0.f;
 		}
 	}
 
-	const bool is_fused = measurementUpdate(K, H_sparse, airspeed.innovation);
+	const bool is_fused = measurementUpdate(K, airspeed.innovation_variance, airspeed.innovation);
 
 	airspeed.fused = is_fused;
 	_fault_status.flags.bad_airspeed = !is_fused;
 
 	if (is_fused) {
-		airspeed.time_last_fuse = _imu_sample_delayed.time_us;
+		airspeed.time_last_fuse = _time_delayed_us;
 	}
 }
 
@@ -159,15 +157,20 @@ void Ekf::resetWindUsingAirspeed()
 	_state.wind_vel(0) = _state.vel(0) - _airspeed_sample_delayed.true_airspeed * cosf(euler_yaw);
 	_state.wind_vel(1) = _state.vel(1) - _airspeed_sample_delayed.true_airspeed * sinf(euler_yaw);
 
+	ECL_INFO("reset wind using airspeed to (%.3f, %.3f)", (double)_state.wind_vel(0), (double)_state.wind_vel(1));
+
 	resetWindCovarianceUsingAirspeed();
 
-	_aid_src_airspeed.time_last_fuse = _imu_sample_delayed.time_us;
+	_aid_src_airspeed.time_last_fuse = _time_delayed_us;
 }
 
 void Ekf::resetWindToZero()
 {
+	ECL_INFO("reset wind to zero");
+
 	// If we don't have an airspeed measurement, then assume the wind is zero
 	_state.wind_vel.setZero();
+
 	// start with a small initial uncertainty to improve the initial estimate
 	P.uncorrelateCovarianceSetVariance<2>(22, _params.initial_wind_uncertainty);
 }

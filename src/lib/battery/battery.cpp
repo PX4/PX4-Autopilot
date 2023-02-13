@@ -118,6 +118,18 @@ void Battery::updateBatteryStatus(const hrt_abstime &timestamp)
 		_current_filter_a.reset(_current_a);
 	}
 
+	// Require minimum voltage toherwise override connected status
+	if (_voltage_filter_v.getState() < 2.1f) {
+		_connected = false;
+	}
+
+	if (!_connected || (_last_unconnected_timestamp == 0)) {
+		_last_unconnected_timestamp = timestamp;
+	}
+
+	// wait with initializing filters to avoid relying on a voltage sample from the rising edge
+	_battery_initialized = _connected && (timestamp > _last_unconnected_timestamp + 2_s);
+
 	sumDischarged(timestamp, _current_a);
 	_state_of_charge_volt_based =
 		calculateStateOfChargeVoltageBased(_voltage_filter_v.getState(), _current_filter_a.getState());
@@ -130,13 +142,6 @@ void Battery::updateBatteryStatus(const hrt_abstime &timestamp)
 
 	if (_connected && _battery_initialized) {
 		_warning = determineWarning(_state_of_charge);
-	}
-
-	if (_voltage_filter_v.getState() > 2.1f) {
-		_battery_initialized = true;
-
-	} else {
-		_connected = false;
 	}
 }
 

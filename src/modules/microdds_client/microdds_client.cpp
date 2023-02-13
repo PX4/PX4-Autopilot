@@ -53,6 +53,8 @@
 #define STREAM_HISTORY  4
 #define BUFFER_SIZE (UXR_CONFIG_SERIAL_TRANSPORT_MTU * STREAM_HISTORY) // MTU==512 by default
 
+#define PARTICIPANT_XML_SIZE 512
+
 using namespace time_literals;
 
 void on_time(uxrSession *session, int64_t current_time, int64_t received_timestamp, int64_t transmit_timestamp,
@@ -182,7 +184,13 @@ void MicroddsClient::run()
 
 		// Session
 		// The key identifier of the Client. All Clients connected to an Agent must have a different key.
-		const uint32_t key = 0xAAAABBBB;
+		const uint32_t key = (uint32_t)_param_xrce_key.get();
+
+		if (key == 0) {
+			PX4_ERR("session key must be different from zero");
+			return;
+		}
+
 		uxrSession session;
 		uxr_init_session(&session, _comm, key);
 
@@ -222,34 +230,46 @@ void MicroddsClient::run()
 		// uint16_t participant_req = uxr_buffer_create_participant_bin(&session, reliable_out, participant_id, domain_id,
 		// 			   participant_name, UXR_REPLACE);
 
-		// TODO: configurable participant name with client namespace?
-		const char *participant_xml = _localhost_only ?
-					      "<dds>"
-					      "<profiles>"
-					      "<transport_descriptors>"
-					      "<transport_descriptor>"
-					      "<transport_id>udp_localhost</transport_id>"
-					      "<type>UDPv4</type>"
-					      "<interfaceWhiteList><address>127.0.0.1</address></interfaceWhiteList>"
-					      "</transport_descriptor>"
-					      "</transport_descriptors>"
-					      "</profiles>"
-					      "<participant>"
-					      "<rtps>"
-					      "<name>px4_micro_xrce_dds</name>"
-					      "<useBuiltinTransports>false</useBuiltinTransports>"
-					      "<userTransports><transport_id>udp_localhost</transport_id></userTransports>"
-					      "</rtps>"
-					      "</participant>"
-					      "</dds>"
-					      :
-					      "<dds>"
-					      "<participant>"
-					      "<rtps>"
-					      "<name>px4_micro_xrce_dds</name>"
-					      "</rtps>"
-					      "</participant>"
-					      "</dds>" ;
+		char participant_xml[PARTICIPANT_XML_SIZE];
+		int ret = snprintf(participant_xml, PARTICIPANT_XML_SIZE, "%s<name>%s/px4_micro_xrce_dds</name>%s",
+				   _localhost_only ?
+				   "<dds>"
+				   "<profiles>"
+				   "<transport_descriptors>"
+				   "<transport_descriptor>"
+				   "<transport_id>udp_localhost</transport_id>"
+				   "<type>UDPv4</type>"
+				   "<interfaceWhiteList><address>127.0.0.1</address></interfaceWhiteList>"
+				   "</transport_descriptor>"
+				   "</transport_descriptors>"
+				   "</profiles>"
+				   "<participant>"
+				   "<rtps>"
+				   :
+				   "<dds>"
+				   "<participant>"
+				   "<rtps>",
+				   _client_namespace != nullptr ?
+				   _client_namespace
+				   :
+				   "",
+				   _localhost_only ?
+				   "<useBuiltinTransports>false</useBuiltinTransports>"
+				   "<userTransports><transport_id>udp_localhost</transport_id></userTransports>"
+				   "</rtps>"
+				   "</participant>"
+				   "</dds>"
+				   :
+				   "</rtps>"
+				   "</participant>"
+				   "</dds>"
+				  );
+
+		if (ret < 0 || ret >= TOPIC_NAME_SIZE) {
+			PX4_ERR("create entities failed: namespace too long");
+			return;
+		}
+
 		uint16_t participant_req = uxr_buffer_create_participant_xml(&session, reliable_out, participant_id, domain_id,
 					   participant_xml, UXR_REPLACE);
 
@@ -351,6 +371,7 @@ void MicroddsClient::run()
 		uxr_delete_session_retries(&session, _connected ? 1 : 0);
 		_last_payload_tx_rate = 0;
 		_last_payload_tx_rate = 0;
+		_subs->reset();
 	}
 }
 

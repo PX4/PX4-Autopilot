@@ -320,18 +320,14 @@ public:
 	 * This function can either initialize the driver at a fixed bit rate, or it can perform
 	 * automatic bit rate detection. For theory please refer to the CiA application note #801.
 	 *
-	 * @param delay_callable    A callable entity that suspends execution for strictly more than one second.
-	 *                          The callable entity will be invoked without arguments.
-	 *                          @ref getRecommendedListeningDelay().
-	 *
-	 * @param inout_bitrate     Fixed bit rate or zero. Zero invokes the bit rate detection process.
+	* @param inout_bitrate     Fixed bit rate or zero. Zero invokes the bit rate detection process.
 	 *                          If auto detection was used, the function will update the argument
 	 *                          with established bit rate. In case of an error the value will be undefined.
 	 *
 	 * @return                  Negative value on error; non-negative on success. Refer to constants Err*.
 	 */
 	template <typename DelayCallable>
-	int init(DelayCallable delay_callable, uavcan::uint32_t &inout_bitrate = BitRateAutoDetect)
+	int init(uavcan::uint32_t &inout_bitrate = BitRateAutoDetect)
 	{
 		if (inout_bitrate > 0) {
 			return driver.init(inout_bitrate, CanIface::NormalMode, enabledInterfaces_);
@@ -349,7 +345,7 @@ public:
 
 				const int res = driver.init(inout_bitrate, CanIface::SilentMode, enabledInterfaces_);
 
-				delay_callable();
+				usleep(1000000);
 
 				if (res >= 0) {
 					for (uavcan::uint8_t iface = 0; iface < driver.getNumIfaces(); iface++) {

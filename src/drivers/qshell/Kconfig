@@ -1,0 +1,4 @@
+menu "qshell"
+depends on PLATFORM_QURT || PLATFORM_POSIX
+rsource "*/Kconfig"
+endmenu #qshell

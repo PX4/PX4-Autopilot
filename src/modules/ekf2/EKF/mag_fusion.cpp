@@ -200,7 +200,7 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bo
 			}
 		}
 
-		if (measurementUpdate(Kfusion, Hfusion, aid_src_mag.innovation[index])) {
+		if (measurementUpdate(Kfusion, aid_src_mag.innovation_variance[index], aid_src_mag.innovation[index])) {
 			fused[index] = true;
 			limitDeclination();
 
@@ -215,7 +215,7 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bo
 
 	if (fused[0] && fused[1] && fused[2]) {
 		aid_src_mag.fused = true;
-		aid_src_mag.time_last_fuse = _imu_sample_delayed.time_us;
+		aid_src_mag.time_last_fuse = _time_delayed_us;
 		return true;
 	}
 
@@ -226,16 +226,15 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bo
 // update quaternion states and covariances using the yaw innovation and yaw observation variance
 bool Ekf::fuseYaw(const float innovation, const float variance, estimator_aid_source1d_s& aid_src_status)
 {
-	aid_src_status.innovation = innovation;
-
 	Vector24f H_YAW;
+	computeYawInnovVarAndH(variance, aid_src_status.innovation_variance, H_YAW);
 
-	if (shouldUse321RotationSequence(_R_to_earth)) {
-		sym::ComputeYaw321InnovVarAndH(getStateAtFusionHorizonAsVector(), P, variance, FLT_EPSILON, &aid_src_status.innovation_variance, &H_YAW);
+	return fuseYaw(innovation, variance, aid_src_status, H_YAW);
+}
 
-	} else {
-		sym::ComputeYaw312InnovVarAndH(getStateAtFusionHorizonAsVector(), P, variance, FLT_EPSILON, &aid_src_status.innovation_variance, &H_YAW);
-	}
+bool Ekf::fuseYaw(const float innovation, const float variance, estimator_aid_source1d_s& aid_src_status, const Vector24f &H_YAW)
+{
+	aid_src_status.innovation = innovation;
 
 	float heading_innov_var_inv = 0.f;
 
@@ -312,13 +311,11 @@ bool Ekf::fuseYaw(const float innovation, const float variance, estimator_aid_so
 		_innov_check_fail_status.flags.reject_yaw = false;
 	}
 
-	SparseVector24f<0,1,2,3> Hfusion(H_YAW);
+	if (measurementUpdate(Kfusion, aid_src_status.innovation_variance, aid_src_status.innovation)) {
 
-	if (measurementUpdate(Kfusion, Hfusion, aid_src_status.innovation)) {
+		_time_last_heading_fuse = _time_delayed_us;
 
-		_time_last_heading_fuse = _imu_sample_delayed.time_us;
-
-		aid_src_status.time_last_fuse = _imu_sample_delayed.time_us;
+		aid_src_status.time_last_fuse = _time_delayed_us;
 		aid_src_status.fused = true;
 
 		_fault_status.flags.bad_hdg = false;
@@ -330,6 +327,16 @@ bool Ekf::fuseYaw(const float innovation, const float variance, estimator_aid_so
 	aid_src_status.fused = false;
 	_fault_status.flags.bad_hdg = true;
 	return false;
+}
+
+void Ekf::computeYawInnovVarAndH(float variance, float &innovation_variance, Vector24f &H_YAW) const
+{
+	if (shouldUse321RotationSequence(_R_to_earth)) {
+		sym::ComputeYaw321InnovVarAndH(getStateAtFusionHorizonAsVector(), P, variance, FLT_EPSILON, &innovation_variance, &H_YAW);
+
+	} else {
+		sym::ComputeYaw312InnovVarAndH(getStateAtFusionHorizonAsVector(), P, variance, FLT_EPSILON, &innovation_variance, &H_YAW);
+	}
 }
 
 bool Ekf::fuseDeclination(float decl_sigma)
@@ -353,7 +360,7 @@ bool Ekf::fuseDeclination(float decl_sigma)
 	// Calculate the Kalman gains
 	Vector24f Kfusion = P * Hfusion / innovation_variance;
 
-	const bool is_fused = measurementUpdate(Kfusion, Hfusion, innovation);
+	const bool is_fused = measurementUpdate(Kfusion, innovation_variance, innovation);
 
 	_fault_status.flags.bad_mag_decl = !is_fused;
 
@@ -429,7 +436,7 @@ float Ekf::calculate_synthetic_mag_z_measurement(const Vector3f &mag_meas, const
 	// of the earth magnetic field vector at the current location
 	const float mag_z_abs = sqrtf(math::max(sq(mag_earth_predicted.length()) - sq(mag_meas(0)) - sq(mag_meas(1)), 0.0f));
 
-	// calculate sign of synthetic magnetomter Z component based on the sign of the predicted magnetomer Z component
+	// calculate sign of synthetic magnetomter Z component based on the sign of the predicted magnetometer Z component
 	const float mag_z_body_pred = mag_earth_predicted.dot(_R_to_earth.col(2));
 
 	return (mag_z_body_pred < 0) ? -mag_z_abs : mag_z_abs;

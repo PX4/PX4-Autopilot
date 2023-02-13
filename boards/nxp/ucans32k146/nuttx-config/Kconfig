@@ -6,12 +6,14 @@ config BOARD_HAS_PROBES
 	bool "Board provides GPIO or other Hardware for signaling to timing analyze."
 	default y
 	---help---
-		This board provides GPIO FMU-CH1-6 as PROBE_1-6 to provide timing signals from selected drivers.
+		This board provides GPIO 6-wr-SPI_INT_N, 6-wr-SPI_CS_N, 6-wr-SPI_RDY_N as
+		PROBE_1-3 to provide timing signals from selected drivers.
 
 config BOARD_USE_PROBES
-	bool "Enable the use the board provided GPIO FMU-CH1-6 as PROBE_1-6 to provide timing signals from selected drivers"
+	bool "Enable the use of the board provided GPIO Probes"
 	default n
 	depends on BOARD_HAS_PROBES
 
 	---help---
-		Select to use GPIO FMU-CH1-6 to provide timing signals from selected drivers.
+		Select to use GPIO GPIO 6-wr-SPI_INT_N, 6-wr-SPI_CS_N, 6-wr-SPI_RDY_N as PROBE_1-3
+		to provide timing signals from selected drivers.

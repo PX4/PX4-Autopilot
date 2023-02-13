@@ -36,9 +36,6 @@ then
 	# IFO GPS LED
 	rgbled_ncp5623c start -X -a 0x38
 
-	# IFO rgb LED
-	pca9685 -X start
-
 	mpu9250 start -s -R 8
 	lis3mdl start -R 2 -X
 fi

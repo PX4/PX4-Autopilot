@@ -132,13 +132,13 @@ void Ekf::fuseGpsYaw()
 	// only calculate gains for states we are using
 	Vector24f Kfusion = P * Hfusion / gnss_yaw.innovation_variance;
 
-	const bool is_fused = measurementUpdate(Kfusion, Hfusion, gnss_yaw.innovation);
+	const bool is_fused = measurementUpdate(Kfusion, gnss_yaw.innovation_variance, gnss_yaw.innovation);
 	_fault_status.flags.bad_hdg = !is_fused;
 	gnss_yaw.fused = is_fused;
 
 	if (is_fused) {
-		_time_last_heading_fuse = _imu_sample_delayed.time_us;
-		gnss_yaw.time_last_fuse = _imu_sample_delayed.time_us;
+		_time_last_heading_fuse = _time_delayed_us;
+		gnss_yaw.time_last_fuse = _time_delayed_us;
 	}
 }
 
@@ -159,7 +159,7 @@ bool Ekf::resetYawToGps(const float gnss_yaw)
 	const float yaw_variance = sq(fmaxf(_params.gps_heading_noise, 1.e-2f));
 	resetQuatStateYaw(measured_yaw, yaw_variance);
 
-	_aid_src_gnss_yaw.time_last_fuse = _imu_sample_delayed.time_us;
+	_aid_src_gnss_yaw.time_last_fuse = _time_delayed_us;
 	_gnss_yaw_signed_test_ratio_lpf.reset(0.f);
 
 	return true;
