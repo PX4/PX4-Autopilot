@@ -42,3 +42,15 @@
  * @value 1 Enabled
   */
 PARAM_DEFINE_INT32(SENS_EN_ARSPDSIM, 0);
+
+/**
+ * Dynamically simulate failure of airspeed sensor instance
+ *
+ * @reboot_required true
+ * @min 0
+ * @max 1
+ * @group Sensors
+ * @value 0 Disabled
+ * @value 1 Enabled
+  */
+PARAM_DEFINE_INT32(SIM_ARSPD_FAIL, 0);
