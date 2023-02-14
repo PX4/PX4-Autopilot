@@ -89,7 +89,7 @@ private:
 
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
-	// DEFINE_PARAMETERS(
-	// 	(ParamInt<px4::params::SIM_GPS_USED>) _sim_gps_used
-	// )
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::SIM_ARSPD_FAIL>) _sim_failure
+	)
 };
