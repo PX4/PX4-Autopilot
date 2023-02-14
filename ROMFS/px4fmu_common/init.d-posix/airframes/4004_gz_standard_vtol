@@ -11,6 +11,8 @@ PX4_SIMULATOR=${PX4_SIMULATOR:=gz}
 PX4_GZ_WORLD=${PX4_GZ_WORLD:=default}
 PX4_SIM_MODEL=${PX4_SIM_MODEL:=standard_vtol}
 
+param set-default SENS_EN_ARSPDSIM 1
+
 # TODO: Enable motor failure detection when the
 # VTOL no longer reports 0A for all ESCs in SITL
 param set-default FD_ACT_EN 0
