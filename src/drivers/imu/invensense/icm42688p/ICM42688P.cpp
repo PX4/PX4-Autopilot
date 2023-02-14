@@ -359,8 +359,8 @@ void ICM42688P::ConfigureCLKIN()
 
 	for (auto &r1 : _register_bank1_cfg) {
 		if (r1.reg == Register::BANK_1::INTF_CONFIG5) {
-			r1.set_bits = PIN9_FUNCTION_BIT::CLKIN;
-			r1.clear_bits = PIN9_FUNCTION_BIT::FSYNC_PIN9;
+			r1.set_bits = INTF_CONFIG5_BIT::PIN9_FUNCTION_CLKIN_SET;
+			r1.clear_bits = INTF_CONFIG5_BIT::PIN9_FUNCTION_CLKIN_CLEAR;
 		}
 	}
 }

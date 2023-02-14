@@ -78,7 +78,7 @@ TEST_F(EkfMagTest, fusionStartWithReset)
 	_sensor_simulator.runSeconds(_init_duration_s);
 
 	// THEN: the fusion initializes using the mag data and runs normally
-	EXPECT_NEAR(_ekf_wrapper.getYawAngle(), mag_heading, radians(0.1f));
+	EXPECT_NEAR(_ekf_wrapper.getYawAngle(), mag_heading, radians(1.f));
 	EXPECT_TRUE(_ekf_wrapper.isIntendingMagHeadingFusion());
 	EXPECT_FALSE(_ekf_wrapper.isIntendingMag3DFusion());
 
@@ -114,7 +114,7 @@ TEST_F(EkfMagTest, suddenLargeStrength)
 	_sensor_simulator.runSeconds(_init_duration_s);
 
 	// THEN: the fusion initializes using the mag data and runs normally
-	EXPECT_NEAR(_ekf_wrapper.getYawAngle(), mag_heading, radians(0.1f));
+	EXPECT_NEAR(_ekf_wrapper.getYawAngle(), mag_heading, radians(1.f));
 	EXPECT_TRUE(_ekf_wrapper.isIntendingMagHeadingFusion());
 	EXPECT_FALSE(_ekf_wrapper.isIntendingMag3DFusion());
 

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,17 +30,12 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#pragma once
 
-
-#include "../../../stm32_common/include/px4_arch/micro_hal.h"
-
-__BEGIN_DECLS
-
-#include <stm32.h>
-#define PX4_SOC_ARCH_ID             PX4_SOC_ARCH_ID_STM32F4
-#define PX4_FLASH_BASE  STM32_FLASH_BASE
-#define PX4_NUMBER_I2C_BUSES STM32_NI2C
-#define PX4_ADC_INTERNAL_TEMP_SENSOR_CHANNEL 16
-
-__END_DECLS
+/**
+ * simulated GPS number of satellites used
+ *
+ * @min 0
+ * @max  50
+ * @group Simulator
+ */
+// PARAM_DEFINE_INT32(SIM_GPS_USED, 10);

@@ -118,8 +118,8 @@ void Battery::updateBatteryStatus(const hrt_abstime &timestamp)
 		_current_filter_a.reset(_current_a);
 	}
 
-	// Require minimum voltage toherwise override connected status
-	if (_voltage_filter_v.getState() < 2.1f) {
+	// Require minimum voltage otherwise override connected status
+	if (_voltage_filter_v.getState() < LITHIUM_BATTERY_RECOGNITION_VOLTAGE) {
 		_connected = false;
 	}
 
