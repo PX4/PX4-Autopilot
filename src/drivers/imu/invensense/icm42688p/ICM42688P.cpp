@@ -364,15 +364,15 @@ void ICM42688P::ConfigureFIFOWatermark(uint8_t samples)
 	for (auto &r : _register_bank0_cfg) {
 		switch (r.reg) {
 		case Register::BANK_0::FIFO_CONFIG2:
-			// FIFO_WM[7:0]  FIFO_CONFIG2
+			// FIFO_CONFIG2 7:0 FIFO_WM[7:0]
 			r.set_bits = fifo_watermark_threshold & 0xFF;
 			r.clear_bits = ~r.set_bits;
 			break;
 
 		case Register::BANK_0::FIFO_CONFIG3:
-			// FIFO_WM[11:8] FIFO_CONFIG3
+			// FIFO_CONFIG3 3:0 FIFO_WM[11:8]
 			r.set_bits = (fifo_watermark_threshold >> 8) & 0x0F;
-			r.clear_bits = ~r.set_bits;
+			r.clear_bits = ~r.set_bits & 0x0F;
 			break;
 
 		default:
