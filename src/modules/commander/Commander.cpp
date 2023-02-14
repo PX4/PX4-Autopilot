@@ -1109,7 +1109,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 	case vehicle_command_s::VEHICLE_CMD_CONTROL_HIGH_LATENCY: {
 			// if no high latency telemetry exists send a failed acknowledge
-			if (_high_latency_datalink_heartbeat > _boot_timestamp) {
+			if (_high_latency_datalink_heartbeat < _boot_timestamp) {
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED;
 				mavlink_log_critical(&_mavlink_log_pub, "Control high latency failed! Telemetry unavailable\t");
 				events::send(events::ID("commander_ctrl_high_latency_failed"), {events::Log::Critical, events::LogInternal::Info},
