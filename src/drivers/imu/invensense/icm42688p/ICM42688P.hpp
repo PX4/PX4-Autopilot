@@ -34,7 +34,7 @@
 /**
  * @file ICM42688P.hpp
  *
- * Driver for the Invensense ICM42688P connected via SPI.
+ * Driver for the Invensense ICM42688P and IIM42652 connected via SPI.
  *
  */
 

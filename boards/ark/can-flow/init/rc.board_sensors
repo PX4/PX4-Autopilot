@@ -13,11 +13,8 @@ fi
 
 if ! icm42688p -R 0 -s start
 then
-	if ! iim42652 -R 0 -s start
-	then
-		bmi088 -A -s -R 4 start
-		bmi088 -G -s -R 4 start
-	fi
+	bmi088 -A -s -R 4 start
+	bmi088 -G -s -R 4 start
 fi
 
 afbrs50 start
