@@ -695,9 +695,9 @@ bool ICM42688P::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
 
 					// rescale any existing data
 					for (int j = 0; j < valid_samples + 1; j++) {
-						sensor_accel_fifo.x[valid_samples] = combine(buffer.f[j].ACCEL_DATA_X1, buffer.f[j].ACCEL_DATA_X0);
-						sensor_accel_fifo.y[valid_samples] = combine(buffer.f[j].ACCEL_DATA_Y1, buffer.f[j].ACCEL_DATA_Y0);
-						sensor_accel_fifo.z[valid_samples] = combine(buffer.f[j].ACCEL_DATA_Z1, buffer.f[j].ACCEL_DATA_Z0);
+						sensor_accel_fifo.x[j] = combine(buffer.f[j].ACCEL_DATA_X1, buffer.f[j].ACCEL_DATA_X0);
+						sensor_accel_fifo.y[j] = combine(buffer.f[j].ACCEL_DATA_Y1, buffer.f[j].ACCEL_DATA_Y0);
+						sensor_accel_fifo.z[j] = combine(buffer.f[j].ACCEL_DATA_Z1, buffer.f[j].ACCEL_DATA_Z0);
 					}
 
 				} else {
