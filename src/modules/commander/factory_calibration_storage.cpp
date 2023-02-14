@@ -43,11 +43,30 @@
 
 static const char *CALIBRATION_STORAGE = "/fs/mtd_caldata";
 
+static bool ends_with(const char *str, const char *suffix)
+{
+	if (!str || !suffix) {
+		return false;
+	}
+
+	size_t len_str = strlen(str);
+	size_t len_suffix = strlen(suffix);
+
+	if (len_suffix > len_str) {
+		return false;
+	}
+
+	return strncmp(str + len_str - len_suffix, suffix, len_suffix) == 0;
+}
+
 static bool filter_calibration_params(param_t handle)
 {
 	const char *name = param_name(handle);
 	// filter all non-calibration params
-	return (strncmp(name, "CAL_", 4) == 0 && strncmp(name, "CAL_MAG_SIDES", 13) != 0) || strncmp(name, "TC_", 3) == 0;
+	return (strncmp(name, "CAL_", 4) == 0
+		&& strcmp(name, "CAL_MAG_SIDES") != 0
+		&& !ends_with(name, "_PRIO"))
+	       || strncmp(name, "TC_", 3) == 0;
 }
 
 FactoryCalibrationStorage::FactoryCalibrationStorage()
