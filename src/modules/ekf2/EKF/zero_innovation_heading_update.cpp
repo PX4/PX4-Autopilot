@@ -49,7 +49,7 @@ void Ekf::controlZeroInnovationHeadingUpdate()
 		float obs_var = _control_status.flags.vehicle_at_rest ? 0.001f : 0.1f;
 		estimator_aid_source1d_s unused;
 		fuseYaw(innovation, obs_var, unused);
-
+		_time_last_heading_fuse = 0;
 		_last_static_yaw = NAN;
 
 	} else if (_control_status.flags.vehicle_at_rest) {
