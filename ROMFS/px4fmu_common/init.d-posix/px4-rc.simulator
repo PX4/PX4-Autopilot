@@ -80,7 +80,10 @@ elif [ "$PX4_SIMULATOR" = "gz" ] || [ "$(param show -q SIM_GZ_EN)" -eq "1" ]; th
 			sensor_baro_sim start
 			sensor_gps_sim start
 			sensor_mag_sim start
-			sensor_airspeed_sim start
+			if param compare -s SENS_EN_ARSPDSIM 1
+			then
+				sensor_airspeed_sim start
+			fi
 
 		else
 			echo "ERROR [init] gz_bridge failed to start"
@@ -94,7 +97,10 @@ elif [ "$PX4_SIMULATOR" = "gz" ] || [ "$(param show -q SIM_GZ_EN)" -eq "1" ]; th
 			sensor_baro_sim start
 			sensor_gps_sim start
 			sensor_mag_sim start
-			sensor_airspeed_sim start
+			if param compare -s SENS_EN_ARSPDSIM 1
+			then
+				sensor_airspeed_sim start
+			fi
 
 		else
 			echo "ERROR [init] gz_bridge failed to start"
@@ -109,7 +115,10 @@ elif [ "$PX4_SIMULATOR" = "gz" ] || [ "$(param show -q SIM_GZ_EN)" -eq "1" ]; th
 			sensor_baro_sim start
 			sensor_gps_sim start
 			sensor_mag_sim start
-			sensor_airspeed_sim start
+			if param compare -s SENS_EN_ARSPDSIM 1
+			then
+				sensor_airspeed_sim start
+			fi
 
 		else
 			echo "ERROR [init] gz_bridge failed to start"
