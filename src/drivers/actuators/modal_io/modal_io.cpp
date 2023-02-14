@@ -154,6 +154,8 @@ int ModalIo::load_params(modal_io_params_t *params, ch_assign_t *map)
 	param_get(param_find("MODAL_IO_RPM_MIN"), &params->rpm_min);
 	param_get(param_find("MODAL_IO_RPM_MAX"), &params->rpm_max);
 
+	param_get(param_find("MODAL_IO_VLOG"),    &params->verbose_logging);
+
 	if (params->rpm_min >= params->rpm_max) {
 		PX4_ERR("Invalid parameter MODAL_IO_RPM_MIN.  Please verify parameters.");
 		params->rpm_min = 0;
@@ -1161,8 +1163,7 @@ bool ModalIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 	//check_for_esc_timeout();
 
 	// publish the actual command that we sent and the feedback received
-	/*
-	if (MODALAI_PUBLISH_ESC_STATUS) {
+	if (_parameters.verbose_logging) {
 		actuator_outputs_s actuator_outputs{};
 		actuator_outputs.noutputs = num_outputs;
 
@@ -1173,9 +1174,9 @@ bool ModalIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 		actuator_outputs.timestamp = hrt_absolute_time();
 
 		_outputs_debug_pub.publish(actuator_outputs);
-		_esc_status_pub.publish(_esc_status);
+
 	}
-	*/
+	_esc_status_pub.publish(_esc_status);
 
 	perf_count(_output_update_perf);
 
