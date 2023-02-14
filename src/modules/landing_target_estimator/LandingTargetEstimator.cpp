@@ -256,10 +256,10 @@ void LandingTargetEstimator::_update_topics()
 			return;
 		}
 
-		/* 		if (!PX4_ISFINITE(_sensorUwbSub.distance)) {
-					PX4_WARN("Position is corrupt!");
-					return;
-				} */
+		if (!PX4_ISFINITE(_sensorUwb.distance)) {
+			PX4_WARN("Data is corrupt!");
+			return;
+		}
 
 		// First we need to catch angle measurements outside of the useable measuring range
 		if ((float)(60.0) <= _sensorUwb.aoa_azimuth_dev || (float)(-60.0) >= _sensorUwb.aoa_azimuth_dev) {
