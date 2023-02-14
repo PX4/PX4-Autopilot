@@ -2,7 +2,6 @@
         "astyle.astylerc": "${workspaceFolder}/Tools/astyle/astylerc",
         "astyle.c.enable": true,
         "astyle.cpp.enable": true,
-        "breadcrumbs.enabled": true,
         "C_Cpp.autoAddFileAssociations": false,
         "C_Cpp.clang_format_fallbackStyle": "none",
         "C_Cpp.default.browse.limitSymbolsToIncludedHeaders": true,
@@ -20,7 +19,6 @@
         "cmakeExplorer.buildDir": "${workspaceFolder}/build/px4_sitl_test",
         "cmakeExplorer.parallelJobs": 1,
         "cmakeExplorer.suiteDelimiter": "-",
-        "cortex-debug.enableTelemetry": false,
         "cSpell.allowCompoundWords": true,
         "cSpell.diagnosticLevel": "Hint",
         "cSpell.showStatus": false,
@@ -31,7 +29,6 @@
         ],
         "debug.toolBarLocation": "docked",
         "editor.defaultFormatter": "chiehyu.vscode-astyle",
-        "editor.dragAndDrop": false,
         "editor.insertSpaces": false,
         "editor.minimap.maxColumn": 120,
         "editor.minimap.renderCharacters": false,
@@ -127,12 +124,7 @@
                 "${workspaceFolder}/build": true
         },
         "search.showLineNumbers": true,
-        "telemetry.enableTelemetry": false,
-        "terminal.integrated.scrollback": 5000,
-        "window.title": "${dirty} ${activeEditorMedium}${separator}${rootName}",
-        "workbench.editor.highlightModifiedTabs": true,
-        "workbench.enableExperiments": false,
-        "workbench.settings.enableNaturalLanguageSearch": false,
+        "terminal.integrated.scrollback": 15000,
         "yaml.schemas": {
                 "${workspaceFolder}/validation/module_schema.yaml": "${workspaceFolder}/src/modules/*/module.yaml"
         }

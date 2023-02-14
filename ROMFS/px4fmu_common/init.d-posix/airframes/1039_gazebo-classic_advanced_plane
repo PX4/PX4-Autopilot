@@ -11,7 +11,7 @@ param set-default EKF2_MAG_YAWLIM 0
 param set-default FW_LND_ANG 8
 param set-default FW_THR_LND_MAX 0
 
-param set-default FW_L1_PERIOD 12
+param set-default NPFG_PERIOD 12
 
 param set-default FW_MAN_P_MAX 30
 

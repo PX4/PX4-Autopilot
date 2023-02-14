@@ -501,6 +501,9 @@ void RTL::set_rtl_item()
 				_mission_item.yaw = _navigator->get_local_position()->heading;
 			}
 
+			_mission_item.vtol_back_transition = true;
+			// acceptance_radius will be overwritten since vtol_back_transition is set,
+			// set as a default value only
 			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 			_mission_item.time_inside = 0.0f;
 			_mission_item.autocontinue = true;
@@ -613,13 +616,7 @@ void RTL::advance_rtl()
 		break;
 
 	case RTL_STATE_RETURN:
-		if (vtol_in_fw_mode || descend_and_loiter) {
-			_rtl_state = RTL_STATE_DESCEND;
-
-		} else {
-			_rtl_state = RTL_STATE_LAND;
-		}
-
+		_rtl_state = RTL_STATE_DESCEND;
 		break;
 
 	case RTL_STATE_DESCEND:
@@ -639,13 +636,12 @@ void RTL::advance_rtl()
 	case RTL_STATE_LOITER:
 
 		if (vtol_in_fw_mode) {
-			_rtl_state = RTL_STATE_TRANSITION_TO_MC;
+			_rtl_state = RTL_STATE_HEAD_TO_CENTER;
 
 		} else {
 			_rtl_state = RTL_STATE_LAND;
 		}
 
-		_rtl_state = RTL_STATE_LAND;
 		break;
 
 	case RTL_STATE_HEAD_TO_CENTER:
@@ -668,6 +664,7 @@ void RTL::advance_rtl()
 
 	case RTL_STATE_LAND:
 		_rtl_state = RTL_STATE_LANDED;
+		_navigator->mode_completed(vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
 		break;
 
 	default:

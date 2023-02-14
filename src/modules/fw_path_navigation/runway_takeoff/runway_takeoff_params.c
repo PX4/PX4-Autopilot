@@ -105,7 +105,7 @@ PARAM_DEFINE_FLOAT(RWTO_PSP, 0.0);
 PARAM_DEFINE_FLOAT(RWTO_RAMP_TIME, 2.0f);
 
 /**
- * L1 period while steering on runway
+ * NPFG period while steering on runway
  *
  * @unit s
  * @min 1.0
@@ -114,7 +114,7 @@ PARAM_DEFINE_FLOAT(RWTO_RAMP_TIME, 2.0f);
  * @increment 0.1
  * @group Runway Takeoff
  */
-PARAM_DEFINE_FLOAT(RWTO_L1_PERIOD, 5.0f);
+PARAM_DEFINE_FLOAT(RWTO_NPFG_PERIOD, 5.0f);
 
 /**
  * Enable use of yaw stick for nudging the wheel during runway ground roll

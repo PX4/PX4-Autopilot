@@ -299,12 +299,10 @@ enum GYRO_CONFIG_STATIC2_BIT : uint8_t {
 	GYRO_NF_DIS  = Bit0, // 1: Disable Notch Filter
 };
 
-// GYRO_CONFIG_STATIC3
-enum GYRO_CONFIG_STATIC3_BIT : uint8_t {
-	// 5:0 GYRO_AAF_DELT
-	//  585 Hz = 13 (0b00'1101)
-	GYRO_AAF_DELT_585HZ_SET   = Bit3 | Bit2 | Bit0,
-	GYRO_AAF_DELT_585HZ_CLEAR = Bit5 | Bit4 | Bit1,
+// PIN9_FUNCTION
+enum PIN9_FUNCTION_BIT : uint8_t {
+	FSYNC_PIN9 = Bit1,
+	CLKIN = Bit2,
 };
 
 // GYRO_CONFIG_STATIC4
@@ -343,13 +341,7 @@ enum INTF_CONFIG5_BIT : uint8_t {
 
 // ACCEL_CONFIG_STATIC2
 enum ACCEL_CONFIG_STATIC2_BIT : uint8_t {
-	// 6:1 ACCEL_AAF_DELT
-	//  585 Hz = 13 (0b00'1101)
-	ACCEL_AAF_DELT_585HZ_SET   = Bit4 | Bit3 | Bit1,
-	ACCEL_AAF_DELT_585HZ_CLEAR = Bit6 | Bit5 | Bit2,
-
-	// 0 ACCEL_AAF_DIS
-	ACCEL_AAF_DIS              = Bit0, // 0: Enable accelerometer anti-aliasing filter (default)
+	ACCEL_AAF_DIS = Bit0,
 };
 
 // ACCEL_CONFIG_STATIC3

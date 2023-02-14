@@ -735,6 +735,7 @@ Mission::set_mission_items()
 		// set mission finished
 		_navigator->get_mission_result()->finished = true;
 		_navigator->set_mission_result_updated();
+		_navigator->mode_completed(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
 
 		if (!user_feedback_done) {
 			/* only tell users that we got no mission if there has not been any

@@ -285,6 +285,8 @@ private:
 	hrt_abstime _status_mag_pub_last{0};
 	hrt_abstime _status_mag_heading_pub_last{0};
 
+	hrt_abstime _status_gravity_pub_last{0};
+
 	hrt_abstime _status_aux_vel_pub_last{0};
 
 	hrt_abstime _status_optical_flow_pub_last{0};
@@ -376,6 +378,8 @@ private:
 	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_mag_heading_pub{ORB_ID(estimator_aid_src_mag_heading)};
 	uORB::PublicationMulti<estimator_aid_source3d_s> _estimator_aid_src_mag_pub{ORB_ID(estimator_aid_src_mag)};
 
+	uORB::PublicationMulti<estimator_aid_source3d_s> _estimator_aid_src_gravity_pub{ORB_ID(estimator_aid_src_gravity)};
+
 	uORB::PublicationMulti<estimator_aid_source2d_s> _estimator_aid_src_aux_vel_pub{ORB_ID(estimator_aid_src_aux_vel)};
 
 	uORB::PublicationMulti<estimator_aid_source2d_s> _estimator_aid_src_optical_flow_pub{ORB_ID(estimator_aid_src_optical_flow)};
@@ -397,6 +401,8 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamExtInt<px4::params::EKF2_PREDICT_US>) _param_ekf2_predict_us,
+		(ParamExtInt<px4::params::EKF2_IMU_CTRL>) _param_ekf2_imu_ctrl,
+
 		(ParamExtFloat<px4::params::EKF2_MAG_DELAY>)
 		_param_ekf2_mag_delay,	///< magnetometer measurement delay relative to the IMU (mSec)
 		(ParamExtFloat<px4::params::EKF2_BARO_DELAY>)
@@ -537,6 +543,9 @@ private:
 		_param_ekf2_evv_gate,	///< external vision velocity innovation consistency gate size (STD)
 		(ParamExtFloat<px4::params::EKF2_EVP_GATE>)
 		_param_ekf2_evp_gate,	///< external vision position innovation consistency gate size (STD)
+
+		(ParamExtFloat<px4::params::EKF2_GRAV_NOISE>)
+		_param_ekf2_grav_noise,	///< default accelerometer noise for gravity fusion measurements (m/s**2)
 
 		// optical flow fusion
 		(ParamExtFloat<px4::params::EKF2_OF_N_MIN>)

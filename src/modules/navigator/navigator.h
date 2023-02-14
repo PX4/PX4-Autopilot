@@ -77,6 +77,7 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/mode_completed.h>
 #include <uORB/uORB.h>
 
 using namespace time_literals;
@@ -323,6 +324,8 @@ public:
 	void 		calculate_breaking_stop(double &lat, double &lon, float &yaw);
 	void        	stop_capturing_images();
 
+	void mode_completed(uint8_t nav_state, uint8_t result = mode_completed_s::RESULT_SUCCESS);
+
 private:
 
 	struct traffic_buffer_s {
@@ -352,6 +355,7 @@ private:
 	uORB::Publication<vehicle_command_ack_s>	_vehicle_cmd_ack_pub{ORB_ID(vehicle_command_ack)};
 	uORB::Publication<vehicle_command_s>		_vehicle_cmd_pub{ORB_ID(vehicle_command)};
 	uORB::Publication<vehicle_roi_s>		_vehicle_roi_pub{ORB_ID(vehicle_roi)};
+	uORB::Publication<mode_completed_s> _mode_completed_pub{ORB_ID(mode_completed)};
 
 	orb_advert_t	_mavlink_log_pub{nullptr};	/**< the uORB advert to send messages over mavlink */
 

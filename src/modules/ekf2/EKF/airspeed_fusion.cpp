@@ -157,6 +157,8 @@ void Ekf::resetWindUsingAirspeed()
 	_state.wind_vel(0) = _state.vel(0) - _airspeed_sample_delayed.true_airspeed * cosf(euler_yaw);
 	_state.wind_vel(1) = _state.vel(1) - _airspeed_sample_delayed.true_airspeed * sinf(euler_yaw);
 
+	ECL_INFO("reset wind using airspeed to (%.3f, %.3f)", (double)_state.wind_vel(0), (double)_state.wind_vel(1));
+
 	resetWindCovarianceUsingAirspeed();
 
 	_aid_src_airspeed.time_last_fuse = _time_delayed_us;
@@ -164,8 +166,11 @@ void Ekf::resetWindUsingAirspeed()
 
 void Ekf::resetWindToZero()
 {
+	ECL_INFO("reset wind to zero");
+
 	// If we don't have an airspeed measurement, then assume the wind is zero
 	_state.wind_vel.setZero();
+
 	// start with a small initial uncertainty to improve the initial estimate
 	P.uncorrelateCovarianceSetVariance<2>(22, _params.initial_wind_uncertainty);
 }
