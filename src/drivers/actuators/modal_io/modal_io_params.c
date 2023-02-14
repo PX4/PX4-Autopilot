@@ -201,3 +201,16 @@ PARAM_DEFINE_INT32(MODAL_IO_T_EXPO, 35);
  * @increment 0.001
  */
 PARAM_DEFINE_FLOAT(MODAL_IO_T_COSP, 0.990);
+
+/**
+ * UART ESC verbose logging
+ *
+ * @reboot_required true
+ *
+ * @group MODAL IO
+ * @value 0 - Disabled
+ * @value 1 - Enabled
+ * @min 0
+ * @max 1
+ */
+PARAM_DEFINE_INT32(MODAL_IO_VLOG, 0);
