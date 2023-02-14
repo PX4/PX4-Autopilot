@@ -32,10 +32,13 @@
  ****************************************************************************/
 
 /**
- * simulated GPS number of satellites used
+ * Enable simulated airspeed sensor instance
  *
+ * @reboot_required true
  * @min 0
- * @max  50
- * @group Simulator
- */
-// PARAM_DEFINE_INT32(SIM_GPS_USED, 10);
+ * @max 1
+ * @group Sensors
+ * @value 0 Disabled
+ * @value 1 Enabled
+  */
+PARAM_DEFINE_INT32(SENS_EN_ARSPDSIM, 0);
