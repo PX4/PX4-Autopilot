@@ -103,12 +103,12 @@ _param_prefix(param_prefix)
 		}
 
 		updateParams();
+		_outputs_pub.advertise();
 
 	} else {
 		_control_allocator_status_pub.advertise();
 	}
 
-	_outputs_pub.advertise();
 }
 
 MixingOutput::~MixingOutput()
@@ -1239,6 +1239,7 @@ int MixingOutput::loadMixer(const char *buf, unsigned len)
 	_mixers->groups_required(_groups_required);
 	PX4_DEBUG("loaded mixers \n%s\n", buf);
 
+	_outputs_pub.advertise();
 	updateParams();
 	_interface.mixerChanged();
 	return ret;
