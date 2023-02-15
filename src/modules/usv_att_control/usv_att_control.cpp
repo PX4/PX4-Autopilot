@@ -92,27 +92,7 @@ void USVAttitudeControl::parameters_update(bool force)
 	}
 }
 
-// void USVAttitudeControl::position_setpoint_triplet_poll()
-// {
-// 	if (_pos_sp_triplet_sub.updated()) {
-// 		_pos_sp_triplet_sub.copy(&_pos_sp_triplet);
-// 	}
-// }
-
-// void USVAttitudeControl::attitude_setpoint_poll()
-// {
-// 	if (_att_sp_sub.updated()) {
-// 		_att_sp_sub.copy(&_att_sp);
-// 	}
-// }
-
-// void USVAttitudeControl::vehicle_attitude_poll()
-// {
-// 	if (_att_sub.updated()) {
-// 		_att_sub.copy(&_vehicle_att);
-// 	}
-// }
-
+// This function seems like invention of UUV controller
 void USVAttitudeControl::constrain_actuator_commands(float roll_u, float pitch_u, float yaw_u,
 		float thrust_x, float thrust_y, float thrust_z)
 {
@@ -165,81 +145,7 @@ void USVAttitudeControl::constrain_actuator_commands(float roll_u, float pitch_u
 	}
 }
 
-void USVAttitudeControl::control_attitude_geo(const vehicle_attitude_s &attitude,
-		const vehicle_attitude_setpoint_s &attitude_setpoint, const vehicle_angular_velocity_s &angular_velocity,
-		const vehicle_rates_setpoint_s &rates_setpoint)
-{
-	/** Geometric Controller
-	 *
-	 * based on
-	 * D. Mellinger, V. Kumar, "Minimum Snap Trajectory Generation and Control for Quadrotors", IEEE ICRA 2011, pp. 2520-2525.
-	 * D. A. Duecker, A. Hackbarth, T. Johannink, E. Kreuzer, and E. Solowjow, “Micro Underwater Vehicle Hydrobatics: A SubmergedFuruta Pendulum,” IEEE ICRA 2018, pp. 7498–7503.
-	 */
-	Eulerf euler_angles(matrix::Quatf(attitude.q));
-
-	float roll_u;
-	float pitch_u;
-	float yaw_u;
-	float thrust_x;
-	float thrust_y;
-	float thrust_z;
-
-	float roll_body = attitude_setpoint.roll_body;
-	float pitch_body = attitude_setpoint.pitch_body;
-	float yaw_body = attitude_setpoint.yaw_body;
-
-	float roll_rate_desired = rates_setpoint.roll;
-	float pitch_rate_desired = rates_setpoint.pitch;
-	float yaw_rate_desired = rates_setpoint.yaw;
-
-	/* get attitude setpoint rotational matrix */
-	Dcmf rot_des = Eulerf(roll_body, pitch_body, yaw_body);
-
-	/* get current rotation matrix from control state quaternions */
-	Quatf q_att(attitude.q);
-	Matrix3f rot_att =  matrix::Dcm<float>(q_att);
-
-	Vector3f e_R_vec;
-	Vector3f torques;
-
-	/* Compute matrix: attitude error */
-	Matrix3f e_R = (rot_des.transpose() * rot_att - rot_att.transpose() * rot_des) * 0.5;
-
-	/* vee-map the error to get a vector instead of matrix e_R */
-	e_R_vec(0) = e_R(2, 1);  /**< Roll  */
-	e_R_vec(1) = e_R(0, 2);  /**< Pitch */
-	e_R_vec(2) = e_R(1, 0);  /**< Yaw   */
-
-	Vector3f omega{angular_velocity.xyz};
-	omega(0) -= roll_rate_desired;
-	omega(1) -= pitch_rate_desired;
-	omega(2) -= yaw_rate_desired;
-
-	/**< P-Control */
-	torques(0) = - e_R_vec(0) * _param_roll_p.get();	/**< Roll  */
-	torques(1) = - e_R_vec(1) * _param_pitch_p.get();	/**< Pitch */
-	torques(2) = - e_R_vec(2) * _param_yaw_p.get();		/**< Yaw   */
-
-	/**< PD-Control */
-	torques(0) = torques(0) - omega(0) * _param_roll_d.get();  /**< Roll  */
-	torques(1) = torques(1) - omega(1) * _param_pitch_d.get(); /**< Pitch */
-	torques(2) = torques(2) - omega(2) * _param_yaw_d.get();   /**< Yaw   */
-
-	roll_u = torques(0);
-	pitch_u = torques(1);
-	yaw_u = torques(2);
-
-	// take thrust as
-	thrust_x = attitude_setpoint.thrust_body[0];
-	thrust_y = attitude_setpoint.thrust_body[1];
-	thrust_z = attitude_setpoint.thrust_body[2];
-
-
-	constrain_actuator_commands(roll_u, pitch_u, yaw_u, thrust_x, thrust_y, thrust_z);
-	/* Geometric Controller END*/
-}
-
-void USVAttitudeControl::control_attitude_turn(const vehicle_attitude_s &attitude,
+void USVAttitudeControl::control_attitude_yaw_only(const vehicle_attitude_s &attitude,
 		const vehicle_attitude_setpoint_s &attitude_setpoint, const vehicle_angular_velocity_s &angular_velocity,
 		const vehicle_rates_setpoint_s &rates_setpoint)
 {
@@ -318,7 +224,7 @@ void USVAttitudeControl::Run()
 	perf_begin(_loop_perf);
 
 	/* check vehicle control mode for changes to publication state */
-	_vcontrol_mode_sub.update(&_vcontrol_mode);
+	_vehicle_control_mode_sub.update(&_vehicle_control_mode);
 
 	/* update parameters from storage */
 	parameters_update();
@@ -331,23 +237,23 @@ void USVAttitudeControl::Run()
 		_angular_velocity_sub.copy(&angular_velocity);
 
 		/* Run geometric attitude controllers if NOT manual mode*/
-		if (!_vcontrol_mode.flag_control_manual_enabled
-		    && _vcontrol_mode.flag_control_attitude_enabled
-		    && _vcontrol_mode.flag_control_rates_enabled) {
+		if (!_vehicle_control_mode.flag_control_manual_enabled
+		    && _vehicle_control_mode.flag_control_attitude_enabled
+		    && _vehicle_control_mode.flag_control_rates_enabled) {
 
 			int input_mode = _param_input_mode.get();
 
 			_vehicle_attitude_setpoint_sub.update(&_attitude_setpoint);
 			_vehicle_rates_setpoint_sub.update(&_rates_setpoint);
 
-			PX4_INFO("got att setpoint?");
+			// PX4_INFO("got att setpoint?");
 
 			if (input_mode == 1) { // process manual data
 				_attitude_setpoint.roll_body = _param_direct_roll.get();
 				_attitude_setpoint.pitch_body = _param_direct_pitch.get();
 				_attitude_setpoint.yaw_body = _param_direct_yaw.get();
 				_attitude_setpoint.thrust_body[0] = _param_direct_thrust.get();
-				_attitude_setpoint.thrust_body[1] = 0.f;
+				_attitude_setpoint.thrust_body[1] = _param_direct_thrust.get();;
 				_attitude_setpoint.thrust_body[2] = 0.f;
 			}
 
@@ -359,7 +265,8 @@ void USVAttitudeControl::Run()
 							    _rates_setpoint.thrust_body[0], _rates_setpoint.thrust_body[1], _rates_setpoint.thrust_body[2]);
 
 			} else {
-				control_attitude_turn(attitude, _attitude_setpoint, angular_velocity, _rates_setpoint);
+				// TODO: This proppably could be simplified
+				control_attitude_yaw_only(attitude, _attitude_setpoint, angular_velocity, _rates_setpoint);
 			}
 		}
 	}
@@ -368,8 +275,7 @@ void USVAttitudeControl::Run()
 	if (_manual_control_setpoint_sub.update(&_manual_control_setpoint)) {
 		// This should be copied even if not in manual mode. Otherwise, the poll(...) call will keep
 		// returning immediately and this loop will eat up resources.
-		PX4_INFO("hello");
-		if (_vcontrol_mode.flag_control_manual_enabled && !_vcontrol_mode.flag_control_rates_enabled) {
+		if (_vehicle_control_mode.flag_control_manual_enabled && !_vehicle_control_mode.flag_control_rates_enabled) {
 			/* manual/direct control */
 			constrain_actuator_commands(_manual_control_setpoint.roll, -_manual_control_setpoint.pitch,
 						    _manual_control_setpoint.yaw,
@@ -381,8 +287,8 @@ void USVAttitudeControl::Run()
 	_actuators.timestamp = hrt_absolute_time();
 
 	/* Only publish if any of the proper modes are enabled */
-	if (_vcontrol_mode.flag_control_manual_enabled ||
-	    _vcontrol_mode.flag_control_attitude_enabled) {
+	if (_vehicle_control_mode.flag_control_manual_enabled ||
+	    _vehicle_control_mode.flag_control_attitude_enabled) {
 		/* publish the actuator controls */
 		_actuator_controls_pub.publish(_actuators);
 		publishTorqueSetpoint(0);
