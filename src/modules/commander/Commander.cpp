@@ -2676,7 +2676,7 @@ void Commander::dataLinkCheck()
 	iridiumsbd_status_s iridium_status;
 
 	if (_iridiumsbd_status_sub.update(&iridium_status)) {
-		_high_latency_datalink_timestamp = iridium_status.last_successful_at_cmd;
+		_high_latency_datalink_timestamp = iridium_status.last_at_ok_timestamp;
 
 		if (_vehicle_status.high_latency_data_link_lost &&
 		    (_high_latency_datalink_timestamp > _high_latency_datalink_lost) &&
