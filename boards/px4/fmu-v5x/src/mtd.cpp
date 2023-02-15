@@ -34,7 +34,7 @@
 #include <nuttx/spi/spi.h>
 #include <px4_platform_common/px4_manifest.h>
 //                                                              KiB BS    nB
-static const px4_mft_device_t spi5 = {             // FM25V02A on FMUM 32K 512 X 64
+static const px4_mft_device_t spi5 = {             // FM25V02A on FMUM 32K 1 X 32768
 	.bus_type = px4_mft_device_t::SPI,
 	.devid    = SPIDEV_FLASH(0)
 };
@@ -55,7 +55,7 @@ static const px4_mtd_entry_t fmum_fram = {
 		{
 			.type = MTD_PARAMETERS,
 			.path = "/fs/mtd_params",
-			.nblocks = 64
+			.nblocks = 32768
 		}
 	},
 };
