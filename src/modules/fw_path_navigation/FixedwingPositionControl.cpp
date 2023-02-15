@@ -1549,7 +1549,12 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 	const float glide_slope_rel_alt = math::min(along_track_dist_to_touchdown * glide_slope,
 					  _landing_approach_entrance_rel_alt);
 
-	const float terrain_alt = getLandingTerrainAltitudeEstimate(now, pos_sp_curr.alt);
+	const bool abort_on_terrain_measurement_timeout = checkLandingAbortBitMask(_param_fw_lnd_abort.get(),
+			position_controller_landing_status_s::TERRAIN_NOT_FOUND);
+	const bool abort_on_terrain_timeout = checkLandingAbortBitMask(_param_fw_lnd_abort.get(),
+					      position_controller_landing_status_s::TERRAIN_TIMEOUT);
+	const float terrain_alt = getLandingTerrainAltitudeEstimate(now, pos_sp_curr.alt, abort_on_terrain_measurement_timeout,
+				  abort_on_terrain_timeout);
 	const float glide_slope_reference_alt = (_param_fw_lnd_useter.get() ==
 						TerrainEstimateUseOnLanding::kFollowTerrainRelativeLandingGlideSlope) ? terrain_alt : pos_sp_curr.alt;
 
@@ -1756,7 +1761,9 @@ FixedwingPositionControl::control_auto_landing_circular(const hrt_abstime &now, 
 		_time_started_landing = now;
 	}
 
-	const float terrain_alt = getLandingTerrainAltitudeEstimate(now, pos_sp_curr.alt);
+	const bool abort_on_terrain_timeout = checkLandingAbortBitMask(_param_fw_lnd_abort.get(),
+					      position_controller_landing_status_s::TERRAIN_TIMEOUT);
+	const float terrain_alt = getLandingTerrainAltitudeEstimate(now, pos_sp_curr.alt, false, abort_on_terrain_timeout);
 
 	// flare at the maximum of the altitude determined by the time before touchdown and a minimum flare altitude
 	const float flare_rel_alt = math::max(_param_fw_lnd_fl_time.get() * _local_pos.vz, _param_fw_lnd_flalt.get());
@@ -2678,7 +2685,8 @@ FixedwingPositionControl::calculateLandingApproachVector() const
 }
 
 float
-FixedwingPositionControl::getLandingTerrainAltitudeEstimate(const hrt_abstime &now, const float land_point_altitude)
+FixedwingPositionControl::getLandingTerrainAltitudeEstimate(const hrt_abstime &now, const float land_point_altitude,
+		const bool abort_on_terrain_measurement_timeout, const bool abort_on_terrain_timeout)
 {
 	if (_param_fw_lnd_useter.get() > TerrainEstimateUseOnLanding::kDisableTerrainEstimation) {
 
@@ -2694,8 +2702,6 @@ FixedwingPositionControl::getLandingTerrainAltitudeEstimate(const hrt_abstime &n
 		if (_last_time_terrain_alt_was_valid == 0) {
 
 			const bool terrain_first_measurement_timed_out = (now - _time_started_landing) > TERRAIN_ALT_FIRST_MEASUREMENT_TIMEOUT;
-			const bool abort_on_terrain_measurement_timeout = checkLandingAbortBitMask(_param_fw_lnd_abort.get(),
-					position_controller_landing_status_s::TERRAIN_NOT_FOUND);
 
 			if (terrain_first_measurement_timed_out && abort_on_terrain_measurement_timeout) {
 				updateLandingAbortStatus(position_controller_landing_status_s::TERRAIN_NOT_FOUND);
@@ -2707,8 +2713,6 @@ FixedwingPositionControl::getLandingTerrainAltitudeEstimate(const hrt_abstime &n
 		if (!_local_pos.dist_bottom_valid) {
 
 			const bool terrain_timed_out = (now - _last_time_terrain_alt_was_valid) > TERRAIN_ALT_TIMEOUT;
-			const bool abort_on_terrain_timeout = checkLandingAbortBitMask(_param_fw_lnd_abort.get(),
-							      position_controller_landing_status_s::TERRAIN_TIMEOUT);
 
 			if (terrain_timed_out && abort_on_terrain_timeout) {
 				updateLandingAbortStatus(position_controller_landing_status_s::TERRAIN_TIMEOUT);

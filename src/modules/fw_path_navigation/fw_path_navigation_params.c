@@ -987,7 +987,7 @@ PARAM_DEFINE_INT32(FW_LND_NUDGE, 2);
  *
  * @min 0
  * @max 3
- * @bit 0 Abort if terrain is not found
+ * @bit 0 Abort if terrain is not found (only applies to mission landings)
  * @bit 1 Abort if terrain times out (after a first successful measurement)
  * @group FW Auto Landing
  */
