@@ -106,7 +106,9 @@ Land::on_active()
 		vcmd.param2 = 1;
 		vcmd.param5 = _navigator->get_global_position()->lat;
 		vcmd.param6 = _navigator->get_global_position()->lon;
-		vcmd.param7 = _navigator->get_global_position()->alt;
+		// as we don't know the landing point altitude assume the worst case (abort at 0m above ground),
+		// and thus always climb MIS_LND_ABRT_ALT
+		vcmd.param7 = _navigator->get_global_position()->alt + _navigator->get_landing_abort_min_alt();
 
 		_navigator->publish_vehicle_cmd(&vcmd);
 	}
