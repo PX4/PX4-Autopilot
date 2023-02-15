@@ -113,6 +113,20 @@ else
 	if mft query -q -k MTD -s MTD_PARAMETERS -v /fs/mtd_params
 	then
 		set PARAM_FILE /fs/mtd_params/parameters.bson
+	else
+		# Revert after the transition period is completed
+		set PARAM_FILE /fs/mtd_params/parameters.bson
+		param select $PARAM_FILE
+		echo "Start parameter transition to LittleFS"
+		if ! param transition
+		then
+			echo "ERROR [init] param transition"
+		else
+			echo "Successful param transition. The system will reboot!"
+			# Wait for UART to send messages
+			usleep 200000
+			reboot
+		fi
 	fi
 
 	#
