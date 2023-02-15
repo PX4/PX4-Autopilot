@@ -41,12 +41,10 @@
 
 #include "FlightTask.hpp"
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
-#include <uORB/SubscriptionInterval.hpp>
-#include <uORB/topics/parameter_update.h>
+#include <uORB/topics/position_setpoint.h>
 #include <drivers/drv_hrt.h>
 
 using namespace time_literals;
-
 
 class FlightTaskTransition : public FlightTask
 {
@@ -55,19 +53,14 @@ public:
 
 	virtual ~FlightTaskTransition() = default;
 	bool activate(const trajectory_setpoint_s &last_setpoint) override;
+	void reActivate() override;
 	bool updateInitialize() override;
 	bool update() override;
 
 private:
-
 	static constexpr float _vel_z_filter_time_const = 2.0f;
 
-	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
-	param_t _param_handle_pitch_cruise_degrees{PARAM_INVALID};
-	float _param_pitch_cruise_degrees{0.f};
+	float _start_alt{0.0f};
 
 	AlphaFilter<float> _vel_z_filter;
-
-	void updateParameters();
-
 };

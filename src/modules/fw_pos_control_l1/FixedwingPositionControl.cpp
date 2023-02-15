@@ -944,7 +944,7 @@ FixedwingPositionControl::control_auto(const float control_interval, const Vecto
 	/* Copy thrust and pitch values from tecs */
 	_att_sp.pitch_body = get_tecs_pitch();
 
-	if (!_vehicle_status.in_transition_to_fw) {
+	if (!_vehicle_status.in_transition_mode) {
 		publishLocalPositionSetpoint(current_sp);
 	}
 }
@@ -1618,7 +1618,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 	_att_sp.roll_body = constrainRollNearGround(_att_sp.roll_body, _current_altitude, _takeoff_ground_alt);
 
-	if (!_vehicle_status.in_transition_to_fw) {
+	if (!_vehicle_status.in_transition_mode) {
 		publishLocalPositionSetpoint(pos_sp_curr);
 	}
 }
@@ -1876,7 +1876,7 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 	_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_LAND;
 	_att_sp.apply_spoilers = vehicle_attitude_setpoint_s::SPOILERS_LAND;
 
-	if (!_vehicle_status.in_transition_to_fw) {
+	if (!_vehicle_status.in_transition_mode) {
 		publishLocalPositionSetpoint(pos_sp_curr);
 	}
 

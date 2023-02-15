@@ -40,39 +40,18 @@
 
 FlightTaskTransition::FlightTaskTransition()
 {
-	_param_handle_pitch_cruise_degrees = param_find("FW_PSP_OFF");
 
-	if (_param_handle_pitch_cruise_degrees != PARAM_INVALID) {
-		param_get(_param_handle_pitch_cruise_degrees, &_param_pitch_cruise_degrees);
-	}
-
-}
-
-bool FlightTaskTransition::updateInitialize()
-{
-
-	updateParameters();
-	return FlightTask::updateInitialize();
-}
-
-void FlightTaskTransition::updateParameters()
-{
-// check for parameter updates
-	if (_parameter_update_sub.updated()) {
-		// clear update
-		parameter_update_s pupdate;
-		_parameter_update_sub.copy(&pupdate);
-
-		// update parameters from storage
-		if (_param_handle_pitch_cruise_degrees != PARAM_INVALID) {
-			param_get(_param_handle_pitch_cruise_degrees, &_param_pitch_cruise_degrees);
-		}
-	}
 }
 
 bool FlightTaskTransition::activate(const trajectory_setpoint_s &last_setpoint)
 {
 	bool ret = FlightTask::activate(last_setpoint);
+
+	_start_alt = _position(2);
+
+	_position_setpoint = _position;
+	_velocity_setpoint = _velocity;
+
 
 	_vel_z_filter.setParameters(math::constrain(_deltatime, 0.01f, 0.1f), _vel_z_filter_time_const);
 
@@ -86,8 +65,24 @@ bool FlightTaskTransition::activate(const trajectory_setpoint_s &last_setpoint)
 	_velocity_setpoint(2) = _vel_z_filter.getState();
 
 	return ret;
+}
 
+void FlightTaskTransition::reActivate()
+{
+	FlightTask::reActivate();
 
+	_position_setpoint = _position;
+	_velocity_setpoint = _velocity;
+}
+
+bool FlightTaskTransition::updateInitialize()
+{
+	bool ret = FlightTask::updateInitialize();
+
+	ret = ret && PX4_ISFINITE(_position(2))
+	      && PX4_ISFINITE(_velocity(2));
+
+	return ret;
 }
 
 bool FlightTaskTransition::update()
@@ -96,13 +91,10 @@ bool FlightTaskTransition::update()
 	// tiltrotors and standard vtol will overrride roll and pitch setpoint but keep vertical thrust setpoint
 	bool ret = FlightTask::update();
 
-	_position_setpoint.setAll(NAN);
+	_position_setpoint = _position;
+	_velocity_setpoint = _velocity;
 
-	// calculate a horizontal acceleration vector which corresponds to an attitude composed of pitch up by _param_pitch_cruise_degrees
-	// and zero roll angle
-	matrix::Vector2f tmp(-1.0f, 0.0f);
-	Sticks::rotateIntoHeadingFrameXY(tmp, _yaw, NAN);
-	_acceleration_setpoint.xy() = tmp * tanf(math::radians(_param_pitch_cruise_degrees)) * CONSTANTS_ONE_G;
+	_position_setpoint(2) = _start_alt;
 
 	// slowly move vertical velocity setpoint to zero
 	_vel_z_filter.setParameters(math::constrain(_deltatime, 0.01f, 0.1f), _vel_z_filter_time_const);
