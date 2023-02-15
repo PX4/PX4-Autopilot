@@ -12,6 +12,10 @@
 PX4_SIMULATOR=${PX4_SIMULATOR:=sihsim}
 PX4_SIM_MODEL=${PX4_SIM_MODEL:=quadx}
 
+param set-default SENS_EN_GPSSIM 1
+param set-default SENS_EN_BAROSIM 1
+param set-default SENS_EN_MAGSIM 1
+
 # disable some checks to allow to fly:
 # - with usb
 param set-default CBRK_USB_CHK 197848
