@@ -107,23 +107,21 @@ private:
 			// uint8_t system_status (MAV_STATE) - System status flag.
 			uint8_t system_status = MAV_STATE_UNINIT;
 
-			switch (vehicle_status.arming_state) {
-			case vehicle_status_s::ARMING_STATE_ARMED:
+			if (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 				system_status = vehicle_status.failsafe ? MAV_STATE_CRITICAL : MAV_STATE_ACTIVE;
-				break;
 
-			case vehicle_status_s::ARMING_STATE_STANDBY:
+			} else if (vehicle_status.calibration_enabled || vehicle_status.rc_calibration_in_progress
+				   || actuator_armed.in_esc_calibration_mode) {
+				system_status = MAV_STATE_CALIBRATING;
+
+			} else if (vehicle_status.pre_flight_checks_pass) {
 				system_status = MAV_STATE_STANDBY;
-				break;
-
-			case vehicle_status_s::ARMING_STATE_SHUTDOWN:
-				system_status = MAV_STATE_POWEROFF;
-				break;
 			}
 
 			// system_status overrides
 			if (actuator_armed.force_failsafe || actuator_armed.lockdown || actuator_armed.manual_lockdown
 			    || vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_TERMINATION) {
+
 				system_status = MAV_STATE_FLIGHT_TERMINATION;
 
 			} else if (vehicle_status.calibration_enabled) {

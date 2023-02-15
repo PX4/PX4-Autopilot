@@ -6,13 +6,8 @@ uint64 armed_time # Arming timestamp (microseconds)
 uint64 takeoff_time # Takeoff timestamp (microseconds)
 
 uint8 arming_state
-uint8 ARMING_STATE_INIT = 0
-uint8 ARMING_STATE_STANDBY = 1
-uint8 ARMING_STATE_ARMED = 2
-uint8 ARMING_STATE_STANDBY_ERROR = 3
-uint8 ARMING_STATE_SHUTDOWN = 4
-uint8 ARMING_STATE_IN_AIR_RESTORE = 5
-uint8 ARMING_STATE_MAX = 6
+uint8 ARMING_STATE_DISARMED = 1
+uint8 ARMING_STATE_ARMED    = 2
 
 uint8 latest_arming_reason
 uint8 latest_disarming_reason
