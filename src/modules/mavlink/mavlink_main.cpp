@@ -2567,7 +2567,15 @@ void Mavlink::handleAndGetCurrentCommandAck(bool &start_ack, bool &stop_ack)
 					msg.target_system = command_ack.target_system;
 					msg.target_component = command_ack.target_component;
 
-					mavlink_msg_command_ack_send_struct(get_channel(), &msg);
+					if (_mode == MAVLINK_MODE_IRIDIUM) {
+						if (command_ack.from_external) {
+							// for MAVLINK_MODE_IRIDIUM send only if external
+							mavlink_msg_command_ack_send_struct(get_channel(), &msg);
+						}
+
+					} else {
+						mavlink_msg_command_ack_send_struct(get_channel(), &msg);
+					}
 
 					if (command_ack.command == vehicle_command_s::VEHICLE_CMD_LOGGING_START) {
 						start_ack = true;
