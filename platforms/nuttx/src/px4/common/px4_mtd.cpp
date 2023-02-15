@@ -507,27 +507,21 @@ int px4_mtd_unmount_littlefs_mount_block_device(void)
 	char blockname[32];
 	snprintf(blockname, sizeof(blockname), "/dev/mtdblock%d", param_block);
 
-	// in case if it is mounted
+	// in case LittleFS is mounted, unmount it
 	nx_umount2(instances[param_instance]->partition_names[param_part], 0);
+	unregister_mtddriver(blockname);
 
-	int ret = unregister_mtddriver(blockname);
+	int ret = ftl_initialize(0, instances[0]->part_dev[0]);
 
 	if (ret < 0) {
-		PX4_ERR("unregister_mtddriver fail: %d", ret);
+		PX4_ERR("ftl_initialize failed: %d", ret);
 
 	} else {
-		ret = ftl_initialize(0, instances[0]->part_dev[0]);
+		ret = bchdev_register(blockname, instances[param_instance]->partition_names[param_part], false);
 
 		if (ret < 0) {
-			PX4_ERR("ftl_initialize failed: %d", ret);
+			PX4_ERR("bchdev_register failed: %d", ret);
 
-		} else {
-			ret = bchdev_register(blockname, instances[param_instance]->partition_names[param_part], false);
-
-			if (ret < 0) {
-				PX4_ERR("bchdev_register failed: %d", ret);
-
-			}
 		}
 	}
 
@@ -551,19 +545,29 @@ int px4_mtd_unmount_block_device_mount_littlefs(void)
 			PX4_ERR("unregister_blockdriver %s failed: %d", blockname, ret);
 
 		} else {
-			ret = register_mtddriver(blockname, instances[param_instance]->part_dev[param_part], 0755, nullptr);
+			ret = px4_mtd_forceformat_littlefs();
+		}
+	}
 
-			if (ret < 0) {
-				PX4_ERR("register_mtddriver %s failed: %d", blockname, ret);
+	return ret;
+}
 
-			} else {
-				ret = nx_mount(blockname, instances[param_instance]->partition_names[param_part], "littlefs", 0, "forceformat");
+int px4_mtd_forceformat_littlefs(void)
+{
+	char blockname[32];
+	snprintf(blockname, sizeof(blockname), "/dev/mtdblock%d", param_block);
 
-				if (ret < 0) {
-					PX4_ERR("nx_mount %s failed: %d", instances[param_instance]->partition_names[param_part], ret);
+	int ret = register_mtddriver(blockname, instances[param_instance]->part_dev[param_part], 0755, nullptr);
 
-				}
-			}
+	if (ret < 0) {
+		PX4_ERR("register_mtddriver %s failed: %d", blockname, ret);
+
+	} else {
+		ret = nx_mount(blockname, instances[param_instance]->partition_names[param_part], "littlefs", 0, "forceformat");
+
+		if (ret < 0) {
+			PX4_ERR("nx_mount %s failed: %d", instances[param_instance]->partition_names[param_part], ret);
+
 		}
 	}
 

@@ -483,18 +483,35 @@ do_transition()
 	if (ret_val < 0) {
 		PX4_ERR("Transition from LittleFS to Blockdriver");
 	} else {
-		ret_val = do_import("/fs/mtd_params");
+		char param_path[] = "/fs/mtd_params";
+		PX4_INFO("Try path: %s", param_path);
+		ret_val = do_import(param_path);
 
-		if (ret_val < 0) {
-			PX4_ERR("Import from blockdriver");
-		} else {
+		if (ret_val == 1) {
+			PX4_WARN("Try path: %s", param_path);
+
+			char param_path_backup[] = "/fs/microsd/parameters_backup.bson";
+			ret_val = do_import(param_path_backup);
+		}
+
+		if (ret_val == 0) {
 			ret_val = px4_mtd_unmount_block_device_mount_littlefs();
 
-			if (ret_val < 0){
+			if (ret_val < 0) {
 				PX4_ERR("Transition from Blockdriver to LittleFS failed");
 			} else {
+
+				PX4_INFO("Exporting params to LittleFS!");
 				ret_val = param_export(param_get_default_file(), nullptr);
+
+				if (ret_val == 0) {
+					PX4_INFO("Successful params transition!");
+				}
 			}
+
+		} else {
+			PX4_INFO("Params are unreadable from any known path. Format partition to LittleFS!");
+			ret_val = px4_mtd_forceformat_littlefs();
 		}
 	}
 

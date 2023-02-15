@@ -122,7 +122,7 @@ else
 		then
 			echo "ERROR [init] param transition"
 		else
-			echo "Successful param transition. The system will reboot!"
+			echo "The system will reboot!"
 			# Wait for UART to send messages
 			usleep 200000
 			reboot
