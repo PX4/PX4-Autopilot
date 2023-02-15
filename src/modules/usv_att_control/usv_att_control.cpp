@@ -277,9 +277,12 @@ void USVAttitudeControl::Run()
 		// returning immediately and this loop will eat up resources.
 		if (_vehicle_control_mode.flag_control_manual_enabled && !_vehicle_control_mode.flag_control_rates_enabled) {
 			/* manual/direct control */
-			constrain_actuator_commands(_manual_control_setpoint.roll, -_manual_control_setpoint.pitch,
+			constrain_actuator_commands(0.0f, 0.0f,
 						    _manual_control_setpoint.yaw,
-						    _manual_control_setpoint.throttle, 0.f, 0.f);
+						    _manual_control_setpoint.throttle,
+						    // TODO: really? Can I setup joystick in QGC to enable moving to the sides? Or is it the common practice
+						    _manual_control_setpoint.roll,
+						    0.0f);
 		}
 
 	}
@@ -316,8 +319,8 @@ void USVAttitudeControl::publishThrustSetpoint(const hrt_abstime &timestamp_samp
 	vehicle_thrust_setpoint_s v_thrust_sp = {};
 	v_thrust_sp.timestamp = hrt_absolute_time();
 	v_thrust_sp.timestamp_sample = timestamp_sample;
-	v_thrust_sp.xyz[0] = 0.0f;
-	v_thrust_sp.xyz[1] = 0.0f;
+	v_thrust_sp.xyz[0] = _actuators.control[actuator_controls_s::INDEX_THROTTLE];
+	v_thrust_sp.xyz[1] = _actuators.control[actuator_controls_s::INDEX_FLAPS];
 	v_thrust_sp.xyz[2] = 0.0f;
 
 	_vehicle_thrust_setpoint_pub.publish(v_thrust_sp);
