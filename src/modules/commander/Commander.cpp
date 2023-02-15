@@ -1109,7 +1109,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 	case vehicle_command_s::VEHICLE_CMD_CONTROL_HIGH_LATENCY: {
 			// if no high latency telemetry exists send a failed acknowledge
-			if (_high_latency_datalink_heartbeat < _boot_timestamp) {
+			if (_high_latency_datalink_timestamp < _boot_timestamp) {
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED;
 				mavlink_log_critical(&_mavlink_log_pub, "Control high latency failed! Telemetry unavailable\t");
 				events::send(events::ID("commander_ctrl_high_latency_failed"), {events::Log::Critical, events::LogInternal::Info},
@@ -2676,13 +2676,13 @@ void Commander::dataLinkCheck()
 	iridiumsbd_status_s iridium_status;
 
 	if (_iridiumsbd_status_sub.update(&iridium_status)) {
-		_high_latency_datalink_heartbeat = iridium_status.last_heartbeat;
+		_high_latency_datalink_timestamp = iridium_status.last_successful_at_cmd;
 
 		if (_vehicle_status.high_latency_data_link_lost &&
-		    (_high_latency_datalink_heartbeat > _high_latency_datalink_lost) &&
+		    (_high_latency_datalink_timestamp > _high_latency_datalink_lost) &&
 		    (_high_latency_datalink_regained == 0)
 		   ) {
-			_high_latency_datalink_regained = _high_latency_datalink_heartbeat;
+			_high_latency_datalink_regained = _high_latency_datalink_timestamp;
 		}
 
 		if (_vehicle_status.high_latency_data_link_lost &&
@@ -2708,10 +2708,10 @@ void Commander::dataLinkCheck()
 
 			case telemetry_status_s::LINK_TYPE_IRIDIUM: {
 
-					if ((_high_latency_datalink_heartbeat > 0) &&
-					    (hrt_elapsed_time(&_high_latency_datalink_heartbeat) > (_param_com_hldl_loss_t.get() * 1_s))) {
+					if ((_high_latency_datalink_timestamp > 0) &&
+					    (hrt_elapsed_time(&_high_latency_datalink_timestamp) > (_param_com_hldl_loss_t.get() * 1_s))) {
 
-						_high_latency_datalink_lost = _high_latency_datalink_heartbeat;
+						_high_latency_datalink_lost = _high_latency_datalink_timestamp;
 						_high_latency_datalink_regained = 0;
 
 						if (!_vehicle_status.high_latency_data_link_lost) {
