@@ -2461,15 +2461,16 @@ void Mavlink::handleStatus()
 
 			if (_mode == MAVLINK_MODE_IRIDIUM) {
 
-				if (_transmitting_enabled && vehicle_status.high_latency_data_link_lost &&
-				    !_transmitting_enabled_commanded && _first_heartbeat_sent) {
+				if (_transmitting_enabled && (!vehicle_status.gcs_connection_lost || (vehicle_status.high_latency_data_link_lost &&
+							      !_transmitting_enabled_commanded && _first_heartbeat_sent))) {
 
 					_transmitting_enabled = false;
 					mavlink_log_info(&_mavlink_log_pub, "Disable transmitting with IRIDIUM mavlink on device %s\t", _device_name);
 					events::send<int8_t>(events::ID("mavlink_iridium_disable"), events::Log::Info,
 							     "Disabling transmitting with IRIDIUM mavlink on instance {1}", _instance_id);
 
-				} else if (!_transmitting_enabled && !vehicle_status.high_latency_data_link_lost) {
+				} else if (!_transmitting_enabled && vehicle_status.gcs_connection_lost
+					   && !vehicle_status.high_latency_data_link_lost) {
 					_transmitting_enabled = true;
 					mavlink_log_info(&_mavlink_log_pub, "Enable transmitting with IRIDIUM mavlink on device %s\t", _device_name);
 					events::send<int8_t>(events::ID("mavlink_iridium_enable"), events::Log::Info,
