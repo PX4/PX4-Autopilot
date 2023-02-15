@@ -1932,6 +1932,7 @@ FixedwingPositionControl::control_auto_landing_circular(const hrt_abstime &now, 
 	}
 
 	landing_status_publish();
+	publishOrbitStatus(pos_sp_curr);
 }
 
 void
