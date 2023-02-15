@@ -756,9 +756,12 @@ private:
 	 *
 	 * @param now Current system time [us]
 	 * @param land_point_altitude Altitude (AMSL) of the land point [m]
+	 * @param abort_on_terrain_measurement_timeout Abort if distance to ground estimation doesn't get valid when we expect it to
+	 * @param abort_on_terrain_timeout Abort if distance to ground estimation is invalid after being valid before
 	 * @return Terrain altitude (AMSL) [m]
 	 */
-	float getLandingTerrainAltitudeEstimate(const hrt_abstime &now, const float land_point_altitude);
+	float getLandingTerrainAltitudeEstimate(const hrt_abstime &now, const float land_point_altitude,
+						const bool abort_on_terrain_measurement_timeout, const bool abort_on_terrain_timeout);
 
 	/**
 	 * @brief Initializes landing states
