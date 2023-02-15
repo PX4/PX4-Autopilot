@@ -183,6 +183,7 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 			echo "${NUTTX_GCC_VERSION} path already set.";
 		else
 			echo $exportline >> $HOME/.profile;
+			source $HOME/.profile; # Allows to directly build NuttX targets in the same terminal
 		fi
 	fi
 fi
