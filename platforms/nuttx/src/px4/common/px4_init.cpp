@@ -140,19 +140,22 @@ int px4_platform_init()
 		I2C_RESET(i2c_dev);
 #endif // CONFIG_I2C_RESET
 
+		// This causes LW20/C distance sensor for some setups to garble up the bus
+		// Disable for now for external bus,
+		// we can investigate if a FW update of the sensor fixes this later
 		// send software reset to all
-		uint8_t buf[1] {};
-		buf[0] = 0x06; // software reset
+		// uint8_t buf[1] {};
+		// buf[0] = 0x06; // software reset
 
-		i2c_msg_s msg{};
-		msg.frequency = I2C_SPEED_STANDARD;
-		msg.addr = 0x00; // general call address
-		msg.buffer = &buf[0];
-		msg.length = 1;
+		// i2c_msg_s msg{};
+		// msg.frequency = I2C_SPEED_STANDARD;
+		// msg.addr = 0x00; // general call address
+		// msg.buffer = &buf[0];
+		// msg.length = 1;
 
-		I2C_TRANSFER(i2c_dev, &msg, 1);
+		// I2C_TRANSFER(i2c_dev, &msg, 1);
 
-		px4_i2cbus_uninitialize(i2c_dev);
+		// px4_i2cbus_uninitialize(i2c_dev);
 	}
 
 #endif // CONFIG_I2C
