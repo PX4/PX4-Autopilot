@@ -331,6 +331,14 @@ hrt_ioctl(unsigned int cmd, unsigned long arg)
 		}
 		break;
 
+	case HRT_ABSTIME_BASE: {
+#ifdef PX4_USERSPACE_HRT
+		*(uintptr_t *)arg = hrt_absolute_time_usr_base();
+#else
+		*(uintptr_t *)arg = NULL;
+#endif
+		}
+		break;
 	default:
 		return -EINVAL;
 	}

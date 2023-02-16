@@ -115,7 +115,10 @@ __BEGIN_DECLS
  */
 
 #define PX4_USERSPACE_HRT
-#define usr_hrt_absolute_time() getreg64(USRIO_START + (MPFS_CLINT_MTIME & RV_MMU_PAGE_MASK))
+static inline uintptr_t hrt_absolute_time_usr_base(void)
+{
+	return USRIO_START + (MPFS_CLINT_MTIME & RV_MMU_PAGE_MASK);
+}
 
 // TODO!
 #  define px4_cache_aligned_data()
