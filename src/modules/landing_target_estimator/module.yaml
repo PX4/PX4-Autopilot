@@ -26,7 +26,7 @@ parameters:
           min: 0.01
           decimal: 2
           unit: (m/s^2)^2
-          default: 10.0f
+          default: 10.0
 
         LTEST_MEAS_UNC:
           description:
@@ -37,7 +37,7 @@ parameters:
           type: float
           decimal: 4
           unit: tan(rad)^2
-          default: 0.005f
+          default: 0.005
 
         LTEST_POS_UNC_IN:
           description:
@@ -47,7 +47,7 @@ parameters:
           min: 0.001
           decimal: 3
           unit: m^2
-          default: 0.1f
+          default: 0.1
 
         LTEST_VEL_UNC_IN:
           description:
@@ -57,7 +57,7 @@ parameters:
           min: 0.001
           decimal: 3
           unit: (m/s)^2
-          default: 0.1f
+          default: 0.1
 
         LTEST_SCALE_X:
           description:
@@ -66,7 +66,7 @@ parameters:
           type: float
           min: 0.01
           decimal: 3
-          default: 1.0f
+          default: 1.0
 
         LTEST_SCALE_Y:
           description:
@@ -75,7 +75,7 @@ parameters:
           type: float
           min: 0.01
           decimal: 3
-          default: 1.0f
+          default: 1.0
 
         LTEST_SENS_ROT:
           description:
@@ -104,7 +104,7 @@ parameters:
           unit: m
           decimal: 3
           reboot_required: true
-          default: 0.0f
+          default: 0.0
 
         LTEST_SENS_POS_Y:
           description:
@@ -114,7 +114,7 @@ parameters:
           unit: m
           decimal: 3
           reboot_required: true
-          default: 0.0f
+          default: 0.0
 
         LTEST_SENS_POS_Z:
           description:
@@ -124,4 +124,4 @@ parameters:
           unit: m
           decimal: 3
           reboot_required: true
-          default: 0.0f
+          default: 0.0
