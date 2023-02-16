@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,8 +46,8 @@ static const px4_mtd_entry_t fmum_fram = {
 		{
 			.type = MTD_PARAMETERS,
 			.path = "/fs/mtd_params",
-			//.nblocks = 128
-			.nblocks = 65536
+			.nblocks = 128
+			//.nblocks = 4096
 		},
 	},
 };
