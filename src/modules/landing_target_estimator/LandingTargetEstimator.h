@@ -64,10 +64,6 @@
 #include <lib/conversion/rotation.h>
 #include "KalmanFilter.h"
 
-#include <uORB/topics/offboard_control_mode.h>
-#include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/actuator_controls.h>
-
 using namespace time_literals;
 
 namespace landing_target_estimator
@@ -128,7 +124,7 @@ private:
 		param_t offset_x;
 		param_t offset_y;
 		param_t offset_z;
-		param_t sensor_rot;
+		param_t sensor_yaw;
 	} _paramHandle;
 
 	struct {
@@ -142,7 +138,7 @@ private:
 		float offset_x;
 		float offset_y;
 		float offset_z;
-		enum Rotation sensor_rot;
+		enum Rotation sensor_yaw;
 	} _params;
 
 	struct {
@@ -160,7 +156,7 @@ private:
 		(ParamInt<px4::params::LTEST_MODE>)  			_mode,
 		(ParamFloat<px4::params::LTEST_SCALE_X>)  		_scale_x,
 		(ParamFloat<px4::params::LTEST_SCALE_Y>)  		_scale_y,
-		(ParamInt<px4::params::LTEST_SENS_ROT>)  		_sensor_rot,
+		(ParamInt<px4::params::LTEST_SENS_ROT>)  		_sensor_yaw,
 		(ParamFloat<px4::params::LTEST_SENS_POS_X>)  		_offset_x,
 		(ParamFloat<px4::params::LTEST_SENS_POS_Y>)  		_offset_y,
 		(ParamFloat<px4::params::LTEST_SENS_POS_Z>)  		_offset_z

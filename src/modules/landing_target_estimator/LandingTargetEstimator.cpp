@@ -221,7 +221,7 @@ void LandingTargetEstimator::_update_topics()
 		sensor_ray(2) = 1.0f;
 
 		// rotate unit ray according to sensor orientation
-		_S_att = get_rot_matrix(_params.sensor_rot);
+		_S_att = get_rot_matrix(_params.sensor_yaw);
 		sensor_ray = _S_att * sensor_ray;
 
 		// rotate the unit ray into the navigation frame
@@ -261,21 +261,19 @@ void LandingTargetEstimator::_update_topics()
 			return;
 		}
 
+		const float aoa_limit = 60.0;
+
 		// First we need to catch angle measurements outside of the useable measuring range
-		if ((float)(60.0) <= _sensorUwb.aoa_azimuth_dev || (float)(-60.0) >= _sensorUwb.aoa_azimuth_dev) {
+		if (aoa_limit  <= _sensorUwb.aoa_azimuth_dev || -aoa_limit  >= _sensorUwb.aoa_azimuth_dev) {
 			return;
 		}
 
-		if ((float) 60.0 <= _sensorUwb.aoa_elevation_dev  || (float) -60.0 >= _sensorUwb.aoa_elevation_dev) {
+		if (aoa_limit  <= _sensorUwb.aoa_elevation_dev  || -aoa_limit  >= _sensorUwb.aoa_elevation_dev) {
 			return;
 		}
 
 		_new_sensorReport = true;
 		_target_position_report.timestamp = _sensorUwb.timestamp;
-
-		const float deg2rad = M_PI / 180.0;
-		float azimuth 	 = _sensorUwb.aoa_azimuth_dev *  deg2rad; 	//subtract yaw offset and convert to rad
-		float elevation = _sensorUwb.aoa_elevation_dev  * deg2rad; 	//subtract pitch offset and convert to rad
 
 		/* ****** Position algorithm ************************************
 		 * this algorithm takes distance and angle measurements (spherical coordinates) and converts them into the cartesian bodyframe expected by the LTE
@@ -302,22 +300,22 @@ void LandingTargetEstimator::_update_topics()
 		 * 	Z -> Y
 		 * Resulting in the following conversion function:
 		 * ******************************************/
-		matrix::Vector3f _position = - matrix::Vector3f{(_sensorUwb.distance  * sinf(azimuth) * cosf(elevation)),
-				 (_sensorUwb.distance  * sinf(elevation)),
-				 (_sensorUwb.distance * cosf(azimuth) * cosf(elevation))};
+		matrix::Vector3f position = - matrix::Vector3f{(_sensorUwb.distance  * sinf(math::radians(_sensorUwb.aoa_azimuth_dev)) * cosf(math::radians(_sensorUwb.aoa_elevation_dev))),
+				 (_sensorUwb.distance  * sinf(math::radians(_sensorUwb.aoa_elevation_dev))),
+				 (_sensorUwb.distance * cosf(math::radians(_sensorUwb.aoa_azimuth_dev)) * cosf(math::radians(_sensorUwb.aoa_elevation_dev)))};
 		// Now the position is the landing point relative to the vehicle.
 		//Rotate around orientation:
-		_position = get_rot_matrix(static_cast<enum Rotation>(_sensorUwb.orientation)) *
-			    _position; //cast the orientatio to Rotation enum
+		position = get_rot_matrix(static_cast<enum Rotation>(_sensorUwb.orientation)) *
+			   position; //cast the orientatio to Rotation enum
 		// And add the initiator offset:
-		_position +=  matrix::Vector3f(_sensorUwb.offset_x,  _sensorUwb.offset_y,  _sensorUwb.offset_z);
+		position +=  matrix::Vector3f(_sensorUwb.offset_x,  _sensorUwb.offset_y,  _sensorUwb.offset_z);
 
 
 
 		// Now we negate every axis to get the Position of the drone relative to the landing spot:
-		_target_position_report.rel_pos_x = _position(0);
-		_target_position_report.rel_pos_y = _position(1);
-		_target_position_report.rel_pos_z = _position(2);
+		_target_position_report.rel_pos_x = position(0);
+		_target_position_report.rel_pos_y = position(1);
+		_target_position_report.rel_pos_z = position(2);
 	}
 }
 
@@ -335,9 +333,9 @@ void LandingTargetEstimator::_update_params()
 	param_get(_paramHandle.scale_x, &_params.scale_x);
 	param_get(_paramHandle.scale_y, &_params.scale_y);
 
-	int32_t sensor_rot = 0;
-	param_get(_paramHandle.sensor_rot, &sensor_rot);
-	_params.sensor_rot = static_cast<enum Rotation>(sensor_rot);
+	int32_t sensor_yaw = 0;
+	param_get(_paramHandle.sensor_yaw, &sensor_yaw);
+	_params.sensor_yaw = static_cast<enum Rotation>(sensor_yaw);
 
 	param_get(_paramHandle.offset_x, &_params.offset_x);
 	param_get(_paramHandle.offset_y, &_params.offset_y);
