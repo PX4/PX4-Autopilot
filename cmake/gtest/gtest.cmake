@@ -46,4 +46,7 @@ add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googletest-src ${CMAKE_CURRENT_BINA
 get_target_property(GTEST_COMPILE_FLAGS gtest COMPILE_OPTIONS)
 list(REMOVE_ITEM GTEST_COMPILE_FLAGS "-include")
 list(REMOVE_ITEM GTEST_COMPILE_FLAGS "visibility.h")
+# Remove float warnings added by PX4 which trigger in gtest-printers.h
+list(REMOVE_ITEM GTEST_COMPILE_FLAGS "-Wdouble-promotion")
+list(REMOVE_ITEM GTEST_COMPILE_FLAGS "-Wfloat-equal")
 set_target_properties(gtest PROPERTIES COMPILE_OPTIONS "${GTEST_COMPILE_FLAGS}")
