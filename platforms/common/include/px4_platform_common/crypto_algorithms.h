@@ -44,3 +44,10 @@ typedef enum {
 	CRYPTO_AES = 3,
 	CRYPTO_RSA_OAEP = 4,
 } px4_crypto_algorithm_t;
+
+/* Define the expected size of the signature for signing algorithms */
+
+#define PX4_SIGNATURE_SIZE(x) PX4_SIGNATURE_SIZE_(x)
+#define PX4_SIGNATURE_SIZE_(x) PX4_SIGNATURE_SIZE_##x
+
+#define PX4_SIGNATURE_SIZE_CRYPTO_ED25519 64
