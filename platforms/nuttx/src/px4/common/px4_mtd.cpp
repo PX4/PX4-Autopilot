@@ -70,10 +70,9 @@ static int num_instances = 0;
 static int total_blocks = 0;
 static mtd_instance_s *instances[MAX_MTD_INSTANCES] = {};
 
-static uint8_t param_instance = 0;
-static uint8_t param_part = 0;
-static uint8_t param_block = 0;
-
+static int8_t param_instance = -1;
+static int8_t param_part = -1;
+static int8_t param_block = -1;
 
 static int ramtron_attach(mtd_instance_s &instance)
 {
@@ -504,6 +503,11 @@ __EXPORT int px4_mtd_query(const char *sub, const char *val, const char **get)
 
 int px4_mtd_unmount_littlefs_mount_block_device(void)
 {
+	if ((param_instance == -1) || (param_part == -1) || (param_block == -1)) {
+		PX4_ERR("MTD_PARAMETERS never initialized");
+		return -1;
+	}
+
 	char blockname[32];
 	snprintf(blockname, sizeof(blockname), "/dev/mtdblock%d", param_block);
 
@@ -511,10 +515,11 @@ int px4_mtd_unmount_littlefs_mount_block_device(void)
 	nx_umount2(instances[param_instance]->partition_names[param_part], 0);
 	unregister_mtddriver(blockname);
 
-	int ret = ftl_initialize(0, instances[0]->part_dev[0]);
+	int ret = ftl_initialize(0, instances[param_instance]->part_dev[param_part]);
 
 	if (ret < 0) {
-		PX4_ERR("ftl_initialize failed: %d", ret);
+		PX4_ERR("ftl_initialize failed with error %d, param_block %d, param_instance %d, param_part %d, block_counts %d",
+			ret, param_block, param_instance, param_part, *instances[param_instance]->partition_block_counts);
 
 	} else {
 		ret = bchdev_register(blockname, instances[param_instance]->partition_names[param_part], false);
@@ -530,6 +535,11 @@ int px4_mtd_unmount_littlefs_mount_block_device(void)
 
 int px4_mtd_unmount_block_device_mount_littlefs(void)
 {
+	if ((param_instance == -1) || (param_part == -1) || (param_block == -1)) {
+		PX4_ERR("MTD_PARAMETERS never initialized");
+		return -1;
+	}
+
 	char blockname[32];
 	snprintf(blockname, sizeof(blockname), "/dev/mtdblock%d", param_block);
 
