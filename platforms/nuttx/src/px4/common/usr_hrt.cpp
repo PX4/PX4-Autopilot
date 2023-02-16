@@ -63,6 +63,10 @@
 static px4_task_t g_usr_hrt_task = -1;
 static px4_hrt_handle_t g_hrt_client_handle;
 
+#ifdef PX4_USERSPACE_HRT
+static uintptr_t g_abstime_base;
+#endif
+
 /**
  * Wrapper for atexit()
  */
@@ -84,7 +88,8 @@ hrt_absolute_time(void)
 	boardctl(HRT_ABSOLUTE_TIME, (uintptr_t)&abstime);
 	return abstime;
 #else
-	return usr_hrt_absolute_time();
+	assert(g_abstime_base);
+	return getreg64(g_abstime_base);
 #endif
 }
 
@@ -132,12 +137,13 @@ void
 hrt_init(void)
 {
 	boardctl(HRT_REGISTER, (uintptr_t)&g_hrt_client_handle);
-
+#ifdef PX4_USERSPACE_HRT
+	boardctl(HRT_ABSTIME_BASE, (uintptr_t)&g_abstime_base);
+#endif
 	if (g_hrt_client_handle) {
 		atexit(hrt_stop);
 		g_usr_hrt_task = px4_task_spawn_cmd("usr_hrt", SCHED_DEFAULT, SCHED_PRIORITY_MAX, PX4_STACK_ADJUSTED(1024),
 						    event_thread, NULL);
-
 	}
 }
 
