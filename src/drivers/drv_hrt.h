@@ -127,6 +127,7 @@ typedef struct latency_boardctl {
 #define HRT_RESET_LATENCY	_HRTIOC(8)
 #define HRT_REGISTER	_HRTIOC(9)
 #define HRT_UNREGISTER	_HRTIOC(10)
+#define HRT_ABSTIME_BASE	_HRTIOC(11)
 
 #endif
 
