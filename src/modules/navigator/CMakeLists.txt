@@ -32,7 +32,6 @@
 ############################################################################
 
 add_subdirectory(GeofenceBreachAvoidance)
-add_subdirectory(MissionFeasibility)
 
 px4_add_module(
 	MODULE modules__navigator
@@ -54,5 +53,4 @@ px4_add_module(
 		geo
 		geofence_breach_avoidance
 		motion_planning
-		mission_feasibility_checker
 	)
