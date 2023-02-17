@@ -216,6 +216,7 @@ void USVAttitudeControl::control_attitude_yaw_only(const vehicle_attitude_s &att
 void USVAttitudeControl::Run()
 {
 	if (should_exit()) {
+		// TODO: unregister callbacks
 		_vehicle_attitude_sub.unregisterCallback();
 		exit_and_cleanup();
 		return;

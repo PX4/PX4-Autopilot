@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,52 +32,64 @@
  ****************************************************************************/
 
 /**
- * USV position controller.
+ *
+ * This module is a modification of the hippocampus control module and is designed for the
+ * BlueROV2.
+ *
+ * All the acknowledgments and credits for the fw wing app are reported in those files.
+ *
+ * @author Tim Hansen <t.hansen@jacobs-university.de>
+ * @author Daniel Duecker <daniel.duecker@tuhh.de>
  */
 
-#pragma once
-
-#include "PositionControl/PositionControl.hpp"
-#include "Takeoff/Takeoff.hpp"
+#include <float.h>
 
 #include <drivers/drv_hrt.h>
-#include <lib/controllib/blocks.hpp>
+#include <lib/geo/geo.h>
+#include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
-#include <lib/slew_rate/SlewRateYaw.hpp>
-#include <lib/systemlib/mavlink_log.h>
+#include <lib/pid/pid.h>
+#include <matrix/math.hpp>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/tasks.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <px4_platform_common/posix.h>
-#include <px4_platform_common/tasks.h>
-#include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
-#include <uORB/topics/hover_thrust_estimate.h>
+#include <uORB/Publication.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/trajectory_setpoint.h>
-#include <uORB/topics/vehicle_attitude_setpoint.h>
-#include <uORB/topics/vehicle_constraints.h>
-#include <uORB/topics/vehicle_control_mode.h>
-#include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/vehicle_angular_velocity.h>
+#include <uORB/topics/vehicle_rates_setpoint.h>
+#include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/actuator_controls.h>
+#include <uORB/uORB.h>
+
+using matrix::Eulerf;
+using matrix::Quatf;
+using matrix::Matrix3f;
+using matrix::Vector3f;
+using matrix::Dcmf;
+
+using uORB::SubscriptionData;
 
 using namespace time_literals;
 
-class USVPositionControl : public ModuleBase<USVPositionControl>, public control::SuperBlock,
-	public ModuleParams, public px4::ScheduledWorkItem
+class USVPositionControl: public ModuleBase<USVPositionControl>, public ModuleParams, public px4::WorkItem
 {
 public:
-	USVPositionControl(bool vtol = false);
-	~USVPositionControl() override;
+	USVPositionControl();
+	~USVPositionControl();
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
 
-	/** @see ModuleBase */
 	static int custom_command(int argc, char *argv[]);
 
 	/** @see ModuleBase */
@@ -86,127 +98,50 @@ public:
 	bool init();
 
 private:
-	void Run() override;
-
-	orb_advert_t _mavlink_log_pub{nullptr};
-
-	uORB::Publication<vehicle_attitude_setpoint_s>	     _vehicle_attitude_setpoint_pub{ORB_ID(vehicle_attitude_setpoint)};
-	uORB::Publication<vehicle_local_position_setpoint_s> _local_pos_sp_pub{ORB_ID(vehicle_local_position_setpoint)};	/**< vehicle local position setpoint publication */
-
-	uORB::SubscriptionCallbackWorkItem _local_pos_sub{this, ORB_ID(vehicle_local_position)};	/**< vehicle local position */
+	uORB::Publication<vehicle_attitude_setpoint_s> _att_sp_pub{ORB_ID(vehicle_attitude_setpoint)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
-	uORB::Subscription _hover_thrust_estimate_sub{ORB_ID(hover_thrust_estimate)};
+	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
-	uORB::Subscription _vehicle_constraints_sub{ORB_ID(vehicle_constraints)};
-	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
-	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
+	uORB::Subscription _vcontrol_mode_sub{ORB_ID(vehicle_control_mode)};
 
-	hrt_abstime _time_stamp_last_loop{0};		/**< time stamp of last loop iteration */
-	hrt_abstime _time_position_control_enabled{0};
+	uORB::SubscriptionCallbackWorkItem _vehicle_local_position_sub{this, ORB_ID(vehicle_local_position)};
 
-	trajectory_setpoint_s _setpoint{PositionControl::empty_trajectory_setpoint};
-	vehicle_control_mode_s _vehicle_control_mode{};
+	vehicle_attitude_s _vehicle_attitude{};
+	trajectory_setpoint_s _trajectory_setpoint{};
+	vehicle_control_mode_s _vcontrol_mode{};
 
-	vehicle_constraints_s _vehicle_constraints {
-		.timestamp = 0,
-		.speed_up = NAN,
-		.speed_down = NAN,
-		.want_takeoff = false,
-	};
-
-	vehicle_land_detected_s _vehicle_land_detected {
-		.timestamp = 0,
-		.freefall = false,
-		.ground_contact = true,
-		.maybe_landed = true,
-		.landed = true,
-	};
+	perf_counter_t	_loop_perf;
 
 	DEFINE_PARAMETERS(
-		// Position Control
-		(ParamFloat<px4::params::USV_XY_P>)         _param_usv_xy_p,
-		(ParamFloat<px4::params::USV_XY_VEL_P_ACC>) _param_usv_xy_vel_p_acc,
-		(ParamFloat<px4::params::USV_XY_VEL_I_ACC>) _param_usv_xy_vel_i_acc,
-		(ParamFloat<px4::params::USV_XY_VEL_D_ACC>) _param_usv_xy_vel_d_acc,
-		(ParamFloat<px4::params::USV_XY_VEL_MAX>)   _param_usv_xy_vel_max,
-		(ParamFloat<px4::params::USV_TILTMAX_AIR>)  _param_usv_tiltmax_air, // TODO: delete, non-relevant
-		(ParamFloat<px4::params::USV_THR_HOVER>)    _param_usv_thr_hover, // TODO: delete, non-relevant
-		(ParamBool<px4::params::USV_USE_HTE>)       _param_usv_use_hte, // WHAT?
+		(ParamFloat<px4::params::USV_GAIN_X_P>) _param_pose_gain_x,
+		(ParamFloat<px4::params::USV_GAIN_Y_P>) _param_pose_gain_y,
+		(ParamFloat<px4::params::USV_GAIN_Z_P>) _param_pose_gain_z,
+		(ParamFloat<px4::params::USV_GAIN_X_D>) _param_pose_gain_d_x,
+		(ParamFloat<px4::params::USV_GAIN_Y_D>) _param_pose_gain_d_y,
+		(ParamFloat<px4::params::USV_GAIN_Z_D>) _param_pose_gain_d_z,
 
-		(ParamFloat<px4::params::USV_VEL_MANUAL>)   _param_usv_vel_manual,
-		(ParamFloat<px4::params::USV_VEL_MAN_BACK>) _param_usv_vel_man_back,
-		(ParamFloat<px4::params::USV_VEL_MAN_SIDE>) _param_usv_vel_man_side,
-		(ParamFloat<px4::params::USV_XY_CRUISE>)    _param_usv_xy_cruise,
-		(ParamFloat<px4::params::USV_LAND_ALT2>)    _param_usv_land_alt2,    /**< downwards speed limited below this altitude */
-		(ParamInt<px4::params::USV_POS_MODE>)       _param_usv_pos_mode,
-		(ParamInt<px4::params::USV_ALT_MODE>)       _param_usv_alt_mode,
-		(ParamFloat<px4::params::USV_TILTMAX_LND>)  _param_usv_tiltmax_lnd,  /**< maximum tilt for landing and smooth takeoff */
-		(ParamFloat<px4::params::USV_THR_MIN>)      _param_usv_thr_min,
-		(ParamFloat<px4::params::USV_THR_MAX>)      _param_usv_thr_max,
-		(ParamFloat<px4::params::USV_THR_XY_MARG>)  _param_usv_thr_xy_marg,
+		(ParamInt<px4::params::USV_INPUT_MODE>) _param_input_mode,
+		(ParamInt<px4::params::USV_STAB_MODE>) _param_stabilization,
+		(ParamInt<px4::params::USV_SKIP_CTRL>) _param_skip_ctrl
+	)
 
-		(ParamFloat<px4::params::SYS_VEHICLE_RESP>) _param_sys_vehicle_resp,
-		(ParamFloat<px4::params::USV_ACC_HOR>)      _param_usv_acc_hor,
-		(ParamFloat<px4::params::USV_ACC_DOWN_MAX>) _param_usv_acc_down_max,
-		(ParamFloat<px4::params::USV_ACC_UP_MAX>)   _param_usv_acc_up_max,
-		(ParamFloat<px4::params::USV_ACC_HOR_MAX>)  _param_usv_acc_hor_max,
-		(ParamFloat<px4::params::USV_JERK_AUTO>)    _param_usv_jerk_auto,
-		(ParamFloat<px4::params::USV_JERK_MAX>)     _param_usv_jerk_max,
-		(ParamFloat<px4::params::USV_MAN_Y_MAX>)    _param_usv_man_y_max,
-		(ParamFloat<px4::params::USV_MAN_Y_TAU>)    _param_usv_man_y_tau,
-
-		(ParamFloat<px4::params::USV_XY_VEL_ALL>)   _param_usv_xy_vel_all,
-	);
-
-	control::BlockDerivative _vel_x_deriv; /**< velocity derivative in x */
-	control::BlockDerivative _vel_y_deriv; /**< velocity derivative in y */
-	// TODO: delete
-	control::BlockDerivative _vel_z_deriv; /**< velocity derivative in z */
-
-	PositionControl _control;  /**< class for core PID position control */
-
-	hrt_abstime _last_warn{0}; /**< timer when the last warn message was sent out */
-
-	bool _hover_thrust_initialized{false};
-
-	/** Timeout in us for trajectory data to get considered invalid */
-	static constexpr uint64_t TRAJECTORY_STREAM_TIMEOUT_US = 500_ms;
-
-	/** During smooth-takeoff, below ALTITUDE_THRESHOLD the yaw-control is turned off and tilt is limited */
-	static constexpr float ALTITUDE_THRESHOLD = 0.3f;
-
-	static constexpr float MAX_SAFE_TILT_DEG = 89.f; // Numerical issues above this value due to tanf
-
-	SlewRate<float> _tilt_limit_slew_rate;
-
-	uint8_t _vxy_reset_counter{0};
-	// TODO: delete
-	uint8_t _vz_reset_counter{0};
-	uint8_t _xy_reset_counter{0};
-	// TODO: delete
-	uint8_t _z_reset_counter{0};
-	uint8_t _heading_reset_counter{0};
-
-	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")};
-
+	void Run() override;
 	/**
 	 * Update our local parameter cache.
-	 * Parameter update can be forced when argument is true.
-	 * @param force forces parameter update.
 	 */
-	void parameters_update(bool force);
+	void parameters_update(bool force = false);
 
 	/**
-	 * Check for validity of positon/velocity states.
+	 * Control Attitude
 	 */
-	PositionControlStates set_vehicle_states(const vehicle_local_position_s &local_pos);
-
-	/**
-	 * Generate setpoint to bridge no executable setpoint being available.
-	 * Used to handle transitions where no proper setpoint was generated yet and when the received setpoint is invalid.
-	 * This should only happen briefly when transitioning and never during mode operation or by design.
-	 */
-	trajectory_setpoint_s generateFailsafeSetpoint(const hrt_abstime &now, const PositionControlStates &states, bool warn);
+	void publish_attitude_setpoint(const float thrust_x, const float thrust_y, const float thrust_z,
+				       const float roll_des, const float pitch_des, const float yaw_des);
+	void pose_controller_6dof(const Vector3f &pos_des,
+				  const float roll_des, const float pitch_des, const float yaw_des,
+				  vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos);
+	void stabilization_controller_6dof(const Vector3f &pos_des,
+					   const float roll_des, const float pitch_des, const float yaw_des,
+					   vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos);
 };

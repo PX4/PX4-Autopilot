@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,45 +31,48 @@
  *
  ****************************************************************************/
 
+/**
+ *
+ * This module is a modification of the hippocampus control module and is designed for the
+ * BlueROV2.
+ *
+ * All the acknowledgments and credits for the fw wing app are reported in those files.
+ *
+ * @author Tim Hansen <t.hansen@jacobs-university.de>
+ * @author Daniel Duecker <daniel.duecker@tuhh.de>
+ */
+
 #include "usv_pos_control.hpp"
 
-#include <float.h>
-#include <lib/mathlib/mathlib.h>
-#include <lib/matrix/matrix/math.hpp>
-#include <px4_platform_common/events.h>
-#include "PositionControl/ControlMath.hpp"
 
-using namespace matrix;
 
-USVPositionControl::USVPositionControl(bool vtol) :
-	// WHAT?
-	SuperBlock(nullptr, "MPC"),
+/**
+ * USV pos_controller app start / stop handling function
+ *
+ * @ingroup apps
+ */
+extern "C" __EXPORT int usv_pos_control_main(int argc, char *argv[]);
+
+
+USVPositionControl::USVPositionControl():
 	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
-	_vehicle_attitude_setpoint_pub(vtol ? ORB_ID(mc_virtual_attitude_setpoint) : ORB_ID(vehicle_attitude_setpoint)),
-	_vel_x_deriv(this, "VELD"),
-	_vel_y_deriv(this, "VELD"),
-	_vel_z_deriv(this, "VELD")
+	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
+	/* performance counters */
+	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
-	parameters_update(true);
-	_tilt_limit_slew_rate.setSlewRate(.2f);
-	_takeoff_status_pub.advertise();
 }
 
 USVPositionControl::~USVPositionControl()
 {
-	perf_free(_cycle_perf);
+	perf_free(_loop_perf);
 }
 
 bool USVPositionControl::init()
 {
-	if (!_local_pos_sub.registerCallback()) {
+	if (!_vehicle_local_position_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;
 	}
-
-	_time_stamp_last_loop = hrt_absolute_time();
-	ScheduleNow();
 
 	return true;
 }
@@ -83,568 +86,126 @@ void USVPositionControl::parameters_update(bool force)
 		_parameter_update_sub.copy(&pupdate);
 
 		// update parameters from storage
-		ModuleParams::updateParams();
-		SuperBlock::updateParams();
-
-		int num_changed = 0;
-
-		if (_param_sys_vehicle_resp.get() >= 0.f) {
-			// make it less sensitive at the lower end
-			float responsiveness = _param_sys_vehicle_resp.get() * _param_sys_vehicle_resp.get();
-
-			num_changed += _param_usv_acc_hor.commit_no_notification(math::lerp(1.f, 15.f, responsiveness));
-			num_changed += _param_usv_acc_hor_max.commit_no_notification(math::lerp(2.f, 15.f, responsiveness));
-			num_changed += _param_usv_man_y_max.commit_no_notification(math::lerp(80.f, 450.f, responsiveness));
-
-			if (responsiveness > 0.6f) {
-				num_changed += _param_usv_man_y_tau.commit_no_notification(0.f);
-
-			} else {
-				num_changed += _param_usv_man_y_tau.commit_no_notification(math::lerp(0.5f, 0.f, responsiveness / 0.6f));
-			}
-
-			if (responsiveness < 0.5f) {
-				num_changed += _param_usv_tiltmax_air.commit_no_notification(45.f);
-
-			} else {
-				num_changed += _param_usv_tiltmax_air.commit_no_notification(math::min(MAX_SAFE_TILT_DEG, math::lerp(45.f, 70.f,
-						(responsiveness - 0.5f) * 2.f)));
-			}
-
-			num_changed += _param_usv_acc_down_max.commit_no_notification(math::lerp(0.8f, 15.f, responsiveness));
-			num_changed += _param_usv_acc_up_max.commit_no_notification(math::lerp(1.f, 15.f, responsiveness));
-			num_changed += _param_usv_jerk_max.commit_no_notification(math::lerp(2.f, 50.f, responsiveness));
-			num_changed += _param_usv_jerk_auto.commit_no_notification(math::lerp(1.f, 25.f, responsiveness));
-		}
-
-		if (_param_usv_xy_vel_all.get() >= 0.f) {
-			float xy_vel = _param_usv_xy_vel_all.get();
-			num_changed += _param_usv_vel_manual.commit_no_notification(xy_vel);
-			num_changed += _param_usv_vel_man_back.commit_no_notification(-1.f);
-			num_changed += _param_usv_vel_man_side.commit_no_notification(-1.f);
-			num_changed += _param_usv_xy_cruise.commit_no_notification(xy_vel);
-			num_changed += _param_usv_xy_vel_max.commit_no_notification(xy_vel);
-		}
-
-		if (_param_usv_z_vel_all.get() >= 0.f) {
-			float z_vel = _param_usv_z_vel_all.get();
-			num_changed += _param_usv_z_v_auto_up.commit_no_notification(z_vel);
-			num_changed += _param_usv_z_vel_max_up.commit_no_notification(z_vel);
-			num_changed += _param_usv_z_v_auto_dn.commit_no_notification(z_vel * 0.75f);
-			num_changed += _param_usv_z_vel_max_dn.commit_no_notification(z_vel * 0.75f);
-			num_changed += _param_usv_tko_speed.commit_no_notification(z_vel * 0.6f);
-			num_changed += _param_usv_land_speed.commit_no_notification(z_vel * 0.5f);
-		}
-
-		if (num_changed > 0) {
-			param_notify_changes();
-		}
-
-		if (_param_usv_tiltmax_air.get() > MAX_SAFE_TILT_DEG) {
-			_param_usv_tiltmax_air.set(MAX_SAFE_TILT_DEG);
-			_param_usv_tiltmax_air.commit();
-			mavlink_log_critical(&_mavlink_log_pub, "Tilt constrained to safe value\t");
-			/* EVENT
-			 * @description <param>MPC_TILTMAX_AIR</param> is set to {1:.0}.
-			 */
-			events::send<float>(events::ID("mc_pos_ctrl_tilt_set"), events::Log::Warning,
-					    "Maximum tilt limit has been constrained to a safe value", MAX_SAFE_TILT_DEG);
-		}
-
-		if (_param_usv_tiltmax_lnd.get() > _param_usv_tiltmax_air.get()) {
-			_param_usv_tiltmax_lnd.set(_param_usv_tiltmax_air.get());
-			_param_usv_tiltmax_lnd.commit();
-			mavlink_log_critical(&_mavlink_log_pub, "Land tilt has been constrained by max tilt\t");
-			/* EVENT
-			 * @description <param>MPC_TILTMAX_LND</param> is set to {1:.0}.
-			 */
-			events::send<float>(events::ID("mc_pos_ctrl_land_tilt_set"), events::Log::Warning,
-					    "Land tilt limit has been constrained by maximum tilt", _param_usv_tiltmax_air.get());
-		}
-
-		_control.setPositionGains(Vector3f(_param_usv_xy_p.get(), _param_usv_xy_p.get(), _param_usv_z_p.get()));
-		_control.setVelocityGains(
-			Vector3f(_param_usv_xy_vel_p_acc.get(), _param_usv_xy_vel_p_acc.get(), _param_usv_z_vel_p_acc.get()),
-			Vector3f(_param_usv_xy_vel_i_acc.get(), _param_usv_xy_vel_i_acc.get(), _param_usv_z_vel_i_acc.get()),
-			Vector3f(_param_usv_xy_vel_d_acc.get(), _param_usv_xy_vel_d_acc.get(), _param_usv_z_vel_d_acc.get()));
-		_control.setHorizontalThrustMargin(_param_usv_thr_xy_marg.get());
-
-		// Check that the design parameters are inside the absolute maximum constraints
-		if (_param_usv_xy_cruise.get() > _param_usv_xy_vel_max.get()) {
-			_param_usv_xy_cruise.set(_param_usv_xy_vel_max.get());
-			_param_usv_xy_cruise.commit();
-			mavlink_log_critical(&_mavlink_log_pub, "Cruise speed has been constrained by max speed\t");
-			/* EVENT
-			 * @description <param>MPC_XY_CRUISE</param> is set to {1:.0}.
-			 */
-			events::send<float>(events::ID("mc_pos_ctrl_cruise_set"), events::Log::Warning,
-					    "Cruise speed has been constrained by maximum speed", _param_usv_xy_vel_max.get());
-		}
-
-		if (_param_usv_vel_manual.get() > _param_usv_xy_vel_max.get()) {
-			_param_usv_vel_manual.set(_param_usv_xy_vel_max.get());
-			_param_usv_vel_manual.commit();
-			mavlink_log_critical(&_mavlink_log_pub, "Manual speed has been constrained by max speed\t");
-			/* EVENT
-			 * @description <param>MPC_VEL_MANUAL</param> is set to {1:.0}.
-			 */
-			events::send<float>(events::ID("mc_pos_ctrl_man_vel_set"), events::Log::Warning,
-					    "Manual speed has been constrained by maximum speed", _param_usv_xy_vel_max.get());
-		}
-
-		if (_param_usv_vel_man_back.get() > _param_usv_vel_manual.get()) {
-			_param_usv_vel_man_back.set(_param_usv_vel_manual.get());
-			_param_usv_vel_man_back.commit();
-			mavlink_log_critical(&_mavlink_log_pub, "Manual backward speed has been constrained by forward speed\t");
-			/* EVENT
-			 * @description <param>MPC_VEL_MAN_BACK</param> is set to {1:.0}.
-			 */
-			events::send<float>(events::ID("mc_pos_ctrl_man_vel_back_set"), events::Log::Warning,
-					    "Manual backward speed has been constrained by forward speed", _param_usv_vel_manual.get());
-		}
-
-		if (_param_usv_vel_man_side.get() > _param_usv_vel_manual.get()) {
-			_param_usv_vel_man_side.set(_param_usv_vel_manual.get());
-			_param_usv_vel_man_side.commit();
-			mavlink_log_critical(&_mavlink_log_pub, "Manual sideways speed has been constrained by forward speed\t");
-			/* EVENT
-			 * @description <param>MPC_VEL_MAN_SIDE</param> is set to {1:.0}.
-			 */
-			events::send<float>(events::ID("mc_pos_ctrl_man_vel_side_set"), events::Log::Warning,
-					    "Manual sideways speed has been constrained by forward speed", _param_usv_vel_manual.get());
-		}
-
-		if (_param_usv_z_v_auto_up.get() > _param_usv_z_vel_max_up.get()) {
-			_param_usv_z_v_auto_up.set(_param_usv_z_vel_max_up.get());
-			_param_usv_z_v_auto_up.commit();
-			mavlink_log_critical(&_mavlink_log_pub, "Ascent speed has been constrained by max speed\t");
-			/* EVENT
-			 * @description <param>MPC_Z_V_AUTO_UP</param> is set to {1:.0}.
-			 */
-			events::send<float>(events::ID("mc_pos_ctrl_up_vel_set"), events::Log::Warning,
-					    "Ascent speed has been constrained by max speed", _param_usv_z_vel_max_up.get());
-		}
-
-		if (_param_usv_z_v_auto_dn.get() > _param_usv_z_vel_max_dn.get()) {
-			_param_usv_z_v_auto_dn.set(_param_usv_z_vel_max_dn.get());
-			_param_usv_z_v_auto_dn.commit();
-			mavlink_log_critical(&_mavlink_log_pub, "Descent speed has been constrained by max speed\t");
-			/* EVENT
-			 * @description <param>MPC_Z_V_AUTO_DN</param> is set to {1:.0}.
-			 */
-			events::send<float>(events::ID("mc_pos_ctrl_down_vel_set"), events::Log::Warning,
-					    "Descent speed has been constrained by max speed", _param_usv_z_vel_max_dn.get());
-		}
-
-		if (_param_usv_thr_hover.get() > _param_usv_thr_max.get() ||
-		    _param_usv_thr_hover.get() < _param_usv_thr_min.get()) {
-			_param_usv_thr_hover.set(math::constrain(_param_usv_thr_hover.get(), _param_usv_thr_min.get(),
-						 _param_usv_thr_max.get()));
-			_param_usv_thr_hover.commit();
-			mavlink_log_critical(&_mavlink_log_pub, "Hover thrust has been constrained by min/max\t");
-			/* EVENT
-			 * @description <param>MPC_THR_HOVER</param> is set to {1:.0}.
-			 */
-			events::send<float>(events::ID("mc_pos_ctrl_hover_thrust_set"), events::Log::Warning,
-					    "Hover thrust has been constrained by min/max thrust", _param_usv_thr_hover.get());
-		}
-
-		if (!_param_usv_use_hte.get() || !_hover_thrust_initialized) {
-			_control.setHoverThrust(_param_usv_thr_hover.get());
-			_hover_thrust_initialized = true;
-		}
-
-		// initialize vectors from params and enforce constraints
-		_param_usv_tko_speed.set(math::min(_param_usv_tko_speed.get(), _param_usv_z_vel_max_up.get()));
-		_param_usv_land_speed.set(math::min(_param_usv_land_speed.get(), _param_usv_z_vel_max_dn.get()));
-
-		_takeoff.setSpoolupTime(_param_com_spoolup_time.get());
-		_takeoff.setTakeoffRampTime(_param_usv_tko_ramp_t.get());
-		_takeoff.generateInitialRampValue(_param_usv_z_vel_p_acc.get());
+		updateParams();
 	}
 }
 
-PositionControlStates USVPositionControl::set_vehicle_states(const vehicle_local_position_s
-		&vehicle_local_position)
+void USVPositionControl::publish_attitude_setpoint(const float thrust_x, const float thrust_y, const float thrust_z,
+		const float roll_des, const float pitch_des, const float yaw_des)
 {
-	PositionControlStates states;
+	//watch if inputs are not to high
+	vehicle_attitude_setpoint_s vehicle_attitude_setpoint = {};
+	vehicle_attitude_setpoint.timestamp = hrt_absolute_time();
 
-	const Vector2f position_xy(vehicle_local_position.x, vehicle_local_position.y);
+	vehicle_attitude_setpoint.roll_body = roll_des;
+	vehicle_attitude_setpoint.pitch_body = pitch_des;
+	vehicle_attitude_setpoint.yaw_body = yaw_des;
 
-	// only set position states if valid and finite
-	if (vehicle_local_position.xy_valid && position_xy.isAllFinite()) {
-		states.position.xy() = position_xy;
+	vehicle_attitude_setpoint.thrust_body[0] = thrust_x;
+	vehicle_attitude_setpoint.thrust_body[1] = thrust_y;
+	vehicle_attitude_setpoint.thrust_body[2] = thrust_z;
 
-	} else {
-		states.position(0) = states.position(1) = NAN;
-	}
 
-	if (PX4_ISFINITE(vehicle_local_position.z) && vehicle_local_position.z_valid) {
-		states.position(2) = vehicle_local_position.z;
+	_att_sp_pub.publish(vehicle_attitude_setpoint);
+}
 
-	} else {
-		states.position(2) = NAN;
-	}
+void USVPositionControl::pose_controller_6dof(const Vector3f &pos_des,
+		const float roll_des, const float pitch_des, const float yaw_des,
+		vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos)
+{
+	//get current rotation of vehicle
+	Quatf q_att(vehicle_attitude.q);
 
-	const Vector2f velocity_xy(vehicle_local_position.vx, vehicle_local_position.vy);
+	Vector3f p_control_output = Vector3f(_param_pose_gain_x.get() * (pos_des(0) - vlocal_pos.x) - _param_pose_gain_d_x.get()
+					     * vlocal_pos.vx,
+					     _param_pose_gain_y.get() * (pos_des(1) - vlocal_pos.y) - _param_pose_gain_d_y.get() * vlocal_pos.vy,
+					     _param_pose_gain_z.get() * (pos_des(2) - vlocal_pos.z) - _param_pose_gain_d_z.get() * vlocal_pos.vz);
 
-	if (vehicle_local_position.v_xy_valid && velocity_xy.isAllFinite()) {
-		states.velocity.xy() = velocity_xy;
-		states.acceleration(0) = _vel_x_deriv.update(velocity_xy(0));
-		states.acceleration(1) = _vel_y_deriv.update(velocity_xy(1));
+	Vector3f rotated_input = q_att.rotateVectorInverse(p_control_output);//rotate the coord.sys (from global to body)
 
-	} else {
-		states.velocity(0) = states.velocity(1) = NAN;
-		states.acceleration(0) = states.acceleration(1) = NAN;
+	publish_attitude_setpoint(rotated_input(0),
+				  rotated_input(1),
+				  rotated_input(2),
+				  roll_des, pitch_des, yaw_des);
 
-		// reset derivatives to prevent acceleration spikes when regaining velocity
-		_vel_x_deriv.reset();
-		_vel_y_deriv.reset();
-	}
+}
 
-	if (PX4_ISFINITE(vehicle_local_position.vz) && vehicle_local_position.v_z_valid) {
-		states.velocity(2) = vehicle_local_position.vz;
-		states.acceleration(2) = _vel_z_deriv.update(states.velocity(2));
+void USVPositionControl::stabilization_controller_6dof(const Vector3f &pos_des,
+		const float roll_des, const float pitch_des, const float yaw_des,
+		vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos)
+{
+	//get current rotation of vehicle
+	Quatf q_att(vehicle_attitude.q);
 
-	} else {
-		states.velocity(2) = NAN;
-		states.acceleration(2) = NAN;
+	Vector3f p_control_output = Vector3f(0,
+					     0,
+					     _param_pose_gain_z.get() * (pos_des(2) - vlocal_pos.z));
+	//potential d controller missing
+	Vector3f rotated_input = q_att.rotateVectorInverse(p_control_output);//rotate the coord.sys (from global to body)
 
-		// reset derivative to prevent acceleration spikes when regaining velocity
-		_vel_z_deriv.reset();
-	}
+	publish_attitude_setpoint(rotated_input(0) + pos_des(0), rotated_input(1) + pos_des(1), rotated_input(2),
+				  roll_des, pitch_des, yaw_des);
 
-	states.yaw = vehicle_local_position.heading;
-
-	return states;
 }
 
 void USVPositionControl::Run()
 {
 	if (should_exit()) {
-		_local_pos_sub.unregisterCallback();
+		_vehicle_local_position_sub.unregisterCallback();
 		exit_and_cleanup();
 		return;
 	}
 
-	// reschedule backup
-	ScheduleDelayed(100_ms);
+	perf_begin(_loop_perf);
 
-	parameters_update(false);
+	/* check vehicle control mode for changes to publication state */
+	_vcontrol_mode_sub.update(&_vcontrol_mode);
 
-	perf_begin(_cycle_perf);
-	vehicle_local_position_s vehicle_local_position;
 
-	if (_local_pos_sub.update(&vehicle_local_position)) {
-		const float dt =
-			math::constrain(((vehicle_local_position.timestamp_sample - _time_stamp_last_loop) * 1e-6f), 0.002f, 0.04f);
-		_time_stamp_last_loop = vehicle_local_position.timestamp_sample;
+	/* update parameters from storage */
+	parameters_update();
 
-		// set _dt in controllib Block for BlockDerivative
-		setDt(dt);
+	//vehicle_attitude_s attitude;
+	vehicle_local_position_s vlocal_pos;
 
-		if (_vehicle_control_mode_sub.updated()) {
-			const bool previous_position_control_enabled = _vehicle_control_mode.flag_multicopter_position_control_enabled;
+	/* only run controller if local_pos changed */
+	if (_vehicle_local_position_sub.update(&vlocal_pos)) {
 
-			if (_vehicle_control_mode_sub.update(&_vehicle_control_mode)) {
-				if (!previous_position_control_enabled && _vehicle_control_mode.flag_multicopter_position_control_enabled) {
-					_time_position_control_enabled = _vehicle_control_mode.timestamp;
+		/* Run geometric attitude controllers if NOT manual mode*/
+		if (!_vcontrol_mode.flag_control_manual_enabled
+		    && _vcontrol_mode.flag_control_attitude_enabled
+		    && _vcontrol_mode.flag_control_rates_enabled) {
 
-				} else if (previous_position_control_enabled && !_vehicle_control_mode.flag_multicopter_position_control_enabled) {
-					// clear existing setpoint when controller is no longer active
-					_setpoint = PositionControl::empty_trajectory_setpoint;
-				}
+			_vehicle_attitude_sub.update(&_vehicle_attitude);//get current vehicle attitude
+			_trajectory_setpoint_sub.update(&_trajectory_setpoint);
+
+			float roll_des = 0;
+			float pitch_des = 0;
+			float yaw_des = _trajectory_setpoint.yaw;
+
+			//stabilization controller(keep pos and hold depth + angle) vs position controller(global + yaw)
+			if (_param_stabilization.get() == 0) {
+				pose_controller_6dof(Vector3f(_trajectory_setpoint.position),
+						     roll_des, pitch_des, yaw_des, _vehicle_attitude, vlocal_pos);
+
+			} else {
+				stabilization_controller_6dof(Vector3f(_trajectory_setpoint.position),
+							      roll_des, pitch_des, yaw_des, _vehicle_attitude, vlocal_pos);
 			}
-		}
-
-		_vehicle_land_detected_sub.update(&_vehicle_land_detected);
-
-		if (_param_usv_use_hte.get()) {
-			hover_thrust_estimate_s hte;
-
-			if (_hover_thrust_estimate_sub.update(&hte)) {
-				if (hte.valid) {
-					_control.updateHoverThrust(hte.hover_thrust);
-				}
-			}
-		}
-
-		_trajectory_setpoint_sub.update(&_setpoint);
-
-		// adjust existing (or older) setpoint with any EKF reset deltas
-		if ((_setpoint.timestamp != 0) && (_setpoint.timestamp < vehicle_local_position.timestamp)) {
-			if (vehicle_local_position.vxy_reset_counter != _vxy_reset_counter) {
-				_setpoint.velocity[0] += vehicle_local_position.delta_vxy[0];
-				_setpoint.velocity[1] += vehicle_local_position.delta_vxy[1];
-			}
-
-			if (vehicle_local_position.vz_reset_counter != _vz_reset_counter) {
-				_setpoint.velocity[2] += vehicle_local_position.delta_vz;
-			}
-
-			if (vehicle_local_position.xy_reset_counter != _xy_reset_counter) {
-				_setpoint.position[0] += vehicle_local_position.delta_xy[0];
-				_setpoint.position[1] += vehicle_local_position.delta_xy[1];
-			}
-
-			if (vehicle_local_position.z_reset_counter != _z_reset_counter) {
-				_setpoint.position[2] += vehicle_local_position.delta_z;
-			}
-
-			if (vehicle_local_position.heading_reset_counter != _heading_reset_counter) {
-				_setpoint.yaw = wrap_pi(_setpoint.yaw + vehicle_local_position.delta_heading);
-			}
-		}
-
-		if (vehicle_local_position.vxy_reset_counter != _vxy_reset_counter) {
-			_vel_x_deriv.reset();
-			_vel_y_deriv.reset();
-		}
-
-		if (vehicle_local_position.vz_reset_counter != _vz_reset_counter) {
-			_vel_z_deriv.reset();
-		}
-
-		// save latest reset counters
-		_vxy_reset_counter = vehicle_local_position.vxy_reset_counter;
-		_vz_reset_counter = vehicle_local_position.vz_reset_counter;
-		_xy_reset_counter = vehicle_local_position.xy_reset_counter;
-		_z_reset_counter = vehicle_local_position.z_reset_counter;
-		_heading_reset_counter = vehicle_local_position.heading_reset_counter;
-
-
-		PositionControlStates states{set_vehicle_states(vehicle_local_position)};
-
-
-		if (_vehicle_control_mode.flag_multicopter_position_control_enabled) {
-			// set failsafe setpoint if there hasn't been a new
-			// trajectory setpoint since position control started
-			if ((_setpoint.timestamp < _time_position_control_enabled)
-			    && (vehicle_local_position.timestamp_sample > _time_position_control_enabled)) {
-
-				_setpoint = generateFailsafeSetpoint(vehicle_local_position.timestamp_sample, states, false);
-			}
-		}
-
-		if (_vehicle_control_mode.flag_multicopter_position_control_enabled
-		    && (_setpoint.timestamp >= _time_position_control_enabled)) {
-
-			// update vehicle constraints and handle smooth takeoff
-			_vehicle_constraints_sub.update(&_vehicle_constraints);
-
-			// fix to prevent the takeoff ramp to ramp to a too high value or get stuck because of NAN
-			// TODO: this should get obsolete once the takeoff limiting moves into the flight tasks
-			if (!PX4_ISFINITE(_vehicle_constraints.speed_up) || (_vehicle_constraints.speed_up > _param_usv_z_vel_max_up.get())) {
-				_vehicle_constraints.speed_up = _param_usv_z_vel_max_up.get();
-			}
-
-			if (_vehicle_control_mode.flag_control_offboard_enabled) {
-
-				const bool want_takeoff = _vehicle_control_mode.flag_armed
-							  && (vehicle_local_position.timestamp_sample < _setpoint.timestamp + 1_s);
-
-				if (want_takeoff && PX4_ISFINITE(_setpoint.position[2])
-				    && (_setpoint.position[2] < states.position(2))) {
-
-					_vehicle_constraints.want_takeoff = true;
-
-				} else if (want_takeoff && PX4_ISFINITE(_setpoint.velocity[2])
-					   && (_setpoint.velocity[2] < 0.f)) {
-
-					_vehicle_constraints.want_takeoff = true;
-
-				} else if (want_takeoff && PX4_ISFINITE(_setpoint.acceleration[2])
-					   && (_setpoint.acceleration[2] < 0.f)) {
-
-					_vehicle_constraints.want_takeoff = true;
-
-				} else {
-					_vehicle_constraints.want_takeoff = false;
-				}
-
-				// override with defaults
-				_vehicle_constraints.speed_up = _param_usv_z_vel_max_up.get();
-				_vehicle_constraints.speed_down = _param_usv_z_vel_max_dn.get();
-			}
-
-			// handle smooth takeoff
-			_takeoff.updateTakeoffState(_vehicle_control_mode.flag_armed, _vehicle_land_detected.landed,
-						    _vehicle_constraints.want_takeoff,
-						    _vehicle_constraints.speed_up, false, vehicle_local_position.timestamp_sample);
-
-			const bool not_taken_off             = (_takeoff.getTakeoffState() < TakeoffState::rampup);
-			const bool flying                    = (_takeoff.getTakeoffState() >= TakeoffState::flight);
-			const bool flying_but_ground_contact = (flying && _vehicle_land_detected.ground_contact);
-
-			if (!flying) {
-				_control.setHoverThrust(_param_usv_thr_hover.get());
-			}
-
-			// make sure takeoff ramp is not amended by acceleration feed-forward
-			if (_takeoff.getTakeoffState() == TakeoffState::rampup && PX4_ISFINITE(_setpoint.velocity[2])) {
-				_setpoint.acceleration[2] = NAN;
-			}
-
-			if (not_taken_off || flying_but_ground_contact) {
-				// we are not flying yet and need to avoid any corrections
-				_setpoint = PositionControl::empty_trajectory_setpoint;
-				_setpoint.timestamp = vehicle_local_position.timestamp_sample;
-				Vector3f(0.f, 0.f, 100.f).copyTo(_setpoint.acceleration); // High downwards acceleration to make sure there's no thrust
-
-				// prevent any integrator windup
-				_control.resetIntegral();
-			}
-
-			// limit tilt during takeoff ramupup
-			const float tilt_limit_deg = (_takeoff.getTakeoffState() < TakeoffState::flight)
-						     ? _param_usv_tiltmax_lnd.get() : _param_usv_tiltmax_air.get();
-			_control.setTiltLimit(_tilt_limit_slew_rate.update(math::radians(tilt_limit_deg), dt));
-
-			const float speed_up = _takeoff.updateRamp(dt,
-					       PX4_ISFINITE(_vehicle_constraints.speed_up) ? _vehicle_constraints.speed_up : _param_usv_z_vel_max_up.get());
-			const float speed_down = PX4_ISFINITE(_vehicle_constraints.speed_down) ? _vehicle_constraints.speed_down :
-						 _param_usv_z_vel_max_dn.get();
-
-			// Allow ramping from zero thrust on takeoff
-			const float minimum_thrust = flying ? _param_usv_thr_min.get() : 0.f;
-
-			_control.setThrustLimits(minimum_thrust, _param_usv_thr_max.get());
-
-			float max_speed_xy = _param_usv_xy_vel_max.get();
-
-			if (PX4_ISFINITE(vehicle_local_position.vxy_max)) {
-				max_speed_xy = math::min(max_speed_xy, vehicle_local_position.vxy_max);
-			}
-
-			_control.setVelocityLimits(
-				max_speed_xy,
-				math::min(speed_up, _param_usv_z_vel_max_up.get()), // takeoff ramp starts with negative velocity limit
-				math::max(speed_down, 0.f));
-
-			_control.setInputSetpoint(_setpoint);
-
-			// update states
-			if (!PX4_ISFINITE(_setpoint.position[2])
-			    && PX4_ISFINITE(_setpoint.velocity[2]) && (fabsf(_setpoint.velocity[2]) > FLT_EPSILON)
-			    && PX4_ISFINITE(vehicle_local_position.z_deriv) && vehicle_local_position.z_valid && vehicle_local_position.v_z_valid) {
-				// A change in velocity is demanded and the altitude is not controlled.
-				// Set velocity to the derivative of position
-				// because it has less bias but blend it in across the landing speed range
-				//  <  MPC_LAND_SPEED: ramp up using altitude derivative without a step
-				//  >= MPC_LAND_SPEED: use altitude derivative
-				float weighting = fminf(fabsf(_setpoint.velocity[2]) / _param_usv_land_speed.get(), 1.f);
-				states.velocity(2) = vehicle_local_position.z_deriv * weighting + vehicle_local_position.vz * (1.f - weighting);
-			}
-
-			_control.setState(states);
-
-			// Run position control
-			if (!_control.update(dt)) {
-				// Failsafe
-				_vehicle_constraints = {0, NAN, NAN, false, {}}; // reset constraints
-
-				_control.setInputSetpoint(generateFailsafeSetpoint(vehicle_local_position.timestamp_sample, states, true));
-				_control.setVelocityLimits(_param_usv_xy_vel_max.get(), _param_usv_z_vel_max_up.get(), _param_usv_z_vel_max_dn.get());
-				_control.update(dt);
-			}
-
-			// Publish internal position control setpoints
-			// on top of the input/feed-forward setpoints these containt the PID corrections
-			// This message is used by other modules (such as Landdetector) to determine vehicle intention.
-			vehicle_local_position_setpoint_s local_pos_sp{};
-			_control.getLocalPositionSetpoint(local_pos_sp);
-			local_pos_sp.timestamp = hrt_absolute_time();
-			_local_pos_sp_pub.publish(local_pos_sp);
-
-			// Publish attitude setpoint output
-			vehicle_attitude_setpoint_s attitude_setpoint{};
-			_control.getAttitudeSetpoint(attitude_setpoint);
-			attitude_setpoint.timestamp = hrt_absolute_time();
-			_vehicle_attitude_setpoint_pub.publish(attitude_setpoint);
-
-		} else {
-			// an update is necessary here because otherwise the takeoff state doesn't get skipped with non-altitude-controlled modes
-			_takeoff.updateTakeoffState(_vehicle_control_mode.flag_armed, _vehicle_land_detected.landed, false, 10.f, true,
-						    vehicle_local_position.timestamp_sample);
-		}
-
-		// Publish takeoff status
-		const uint8_t takeoff_state = static_cast<uint8_t>(_takeoff.getTakeoffState());
-
-		if (takeoff_state != _takeoff_status_pub.get().takeoff_state
-		    || !isEqualF(_tilt_limit_slew_rate.getState(), _takeoff_status_pub.get().tilt_limit)) {
-			_takeoff_status_pub.get().takeoff_state = takeoff_state;
-			_takeoff_status_pub.get().tilt_limit = _tilt_limit_slew_rate.getState();
-			_takeoff_status_pub.get().timestamp = hrt_absolute_time();
-			_takeoff_status_pub.update();
 		}
 	}
 
-	perf_end(_cycle_perf);
-}
-
-trajectory_setpoint_s USVPositionControl::generateFailsafeSetpoint(const hrt_abstime &now,
-		const PositionControlStates &states, bool warn)
-{
-	// rate limit the warnings
-	warn = warn && (now - _last_warn) > 2_s;
-
-	if (warn) {
-		PX4_WARN("invalid setpoints");
-		_last_warn = now;
+	/* Only publish if any of the proper modes are enabled */
+	if (_vcontrol_mode.flag_control_manual_enabled ||
+	    _vcontrol_mode.flag_control_attitude_enabled) {
 	}
 
-	trajectory_setpoint_s failsafe_setpoint = PositionControl::empty_trajectory_setpoint;
-	failsafe_setpoint.timestamp = now;
-
-	if (Vector2f(states.velocity).isAllFinite()) {
-		// don't move along xy
-		failsafe_setpoint.velocity[0] = failsafe_setpoint.velocity[1] = 0.f;
-
-		if (warn) {
-			PX4_WARN("Failsafe: stop and wait");
-		}
-
-	} else {
-		// descend with land speed since we can't stop
-		failsafe_setpoint.acceleration[0] = failsafe_setpoint.acceleration[1] = 0.f;
-		failsafe_setpoint.velocity[2] = _param_usv_land_speed.get();
-
-		if (warn) {
-			PX4_WARN("Failsafe: blind land");
-		}
-	}
-
-	if (PX4_ISFINITE(states.velocity(2))) {
-		// don't move along z if we can stop in all dimensions
-		if (!PX4_ISFINITE(failsafe_setpoint.velocity[2])) {
-			failsafe_setpoint.velocity[2] = 0.f;
-		}
-
-	} else {
-		// emergency descend with a bit below hover thrust
-		failsafe_setpoint.velocity[2] = NAN;
-		failsafe_setpoint.acceleration[2] = .3f;
-
-		if (warn) {
-			PX4_WARN("Failsafe: blind descent");
-		}
-	}
-
-	return failsafe_setpoint;
+	perf_end(_loop_perf);
 }
 
 int USVPositionControl::task_spawn(int argc, char *argv[])
 {
-	bool vtol = false;
-
-	if (argc > 1) {
-		if (strcmp(argv[1], "vtol") == 0) {
-			vtol = true;
-		}
-	}
-
-	USVPositionControl *instance = new USVPositionControl(vtol);
+	USVPositionControl *instance = new USVPositionControl();
 
 	if (instance) {
 		_object.store(instance);
@@ -670,6 +231,7 @@ int USVPositionControl::custom_command(int argc, char *argv[])
 	return print_usage("unknown command");
 }
 
+
 int USVPositionControl::print_usage(const char *reason)
 {
 	if (reason) {
@@ -679,23 +241,27 @@ int USVPositionControl::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-The controller has two loops: a P loop for position error and a PID loop for velocity error.
-Output of the velocity controller is thrust vector that is split to thrust direction
-(i.e. rotation matrix for multicopter orientation) and thrust scalar (i.e. multicopter thrust itself).
-
-The controller doesn't use Euler angles for its work, they are generated only for more human-friendly control and
-logging.
+Controls the attitude of an unmanned underwater vehicle (USV).
+Publishes `actuator_controls_0` messages at a constant 250Hz.
+### Implementation
+Currently, this implementation supports only a few modes:
+ * Full manual: Roll, pitch, yaw, and throttle controls are passed directly through to the actuators
+ * Auto mission: The usv runs missions
+### Examples
+CLI usage example:
+$ usv_pos_control start
+$ usv_pos_control status
+$ usv_pos_control stop
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_NAME("mc_pos_control", "controller");
-	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_ARG("vtol", "VTOL mode", true);
-	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+    PRINT_MODULE_USAGE_NAME("usv_pos_control", "controller");
+    PRINT_MODULE_USAGE_COMMAND("start")
+    PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
-	return 0;
+    return 0;
 }
 
-extern "C" __EXPORT int mc_pos_control_main(int argc, char *argv[])
+int usv_pos_control_main(int argc, char *argv[])
 {
-	return USVPositionControl::main(argc, argv);
+    return USVPositionControl::main(argc, argv);
 }
