@@ -107,6 +107,10 @@ void Ekf::controlMagFusion()
 			_aid_src_mag.timestamp_sample = mag_sample.time_us;
 			mag_observation.copyTo(_aid_src_mag.observation);
 			mag_innov.copyTo(_aid_src_mag.innovation);
+
+		} else if (!isNewestSampleRecent(_time_last_mag_buffer_push, 2 * MAG_MAX_INTERVAL)) {
+			// No data anymore. Stop until it comes back.
+			stopMagFusion();
 		}
 	}
 
