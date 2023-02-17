@@ -414,7 +414,8 @@ MissionBlock::is_mission_item_reached_or_completed()
 	if (_waypoint_position_reached && !_waypoint_yaw_reached) {
 
 		if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
-		    && PX4_ISFINITE(_navigator->get_yaw_acceptance(_mission_item.yaw))) {
+		    && PX4_ISFINITE(_navigator->get_yaw_acceptance(_mission_item.yaw))
+		    && _navigator->get_local_position()->heading_good_for_control) {
 
 			const float yaw_err = wrap_pi(_mission_item.yaw - _navigator->get_local_position()->heading);
 
