@@ -127,18 +127,10 @@ private:
 	DEFINE_PARAMETERS(
 		// Position Control
 		(ParamFloat<px4::params::USV_XY_P>)         _param_usv_xy_p,
-		(ParamFloat<px4::params::USV_Z_P>)          _param_usv_z_p,
 		(ParamFloat<px4::params::USV_XY_VEL_P_ACC>) _param_usv_xy_vel_p_acc,
 		(ParamFloat<px4::params::USV_XY_VEL_I_ACC>) _param_usv_xy_vel_i_acc,
 		(ParamFloat<px4::params::USV_XY_VEL_D_ACC>) _param_usv_xy_vel_d_acc,
-		(ParamFloat<px4::params::USV_Z_VEL_P_ACC>)  _param_usv_z_vel_p_acc,
-		(ParamFloat<px4::params::USV_Z_VEL_I_ACC>)  _param_usv_z_vel_i_acc,
-		(ParamFloat<px4::params::USV_Z_VEL_D_ACC>)  _param_usv_z_vel_d_acc,
 		(ParamFloat<px4::params::USV_XY_VEL_MAX>)   _param_usv_xy_vel_max,
-		(ParamFloat<px4::params::USV_Z_V_AUTO_UP>)  _param_usv_z_v_auto_up,
-		(ParamFloat<px4::params::USV_Z_VEL_MAX_UP>) _param_usv_z_vel_max_up,
-		(ParamFloat<px4::params::USV_Z_V_AUTO_DN>)  _param_usv_z_v_auto_dn,
-		(ParamFloat<px4::params::USV_Z_VEL_MAX_DN>) _param_usv_z_vel_max_dn,
 		(ParamFloat<px4::params::USV_TILTMAX_AIR>)  _param_usv_tiltmax_air,
 		(ParamFloat<px4::params::USV_THR_HOVER>)    _param_usv_thr_hover,
 		(ParamBool<px4::params::USV_USE_HTE>)       _param_usv_use_hte,
@@ -166,11 +158,11 @@ private:
 		(ParamFloat<px4::params::USV_MAN_Y_TAU>)    _param_usv_man_y_tau,
 
 		(ParamFloat<px4::params::USV_XY_VEL_ALL>)   _param_usv_xy_vel_all,
-		(ParamFloat<px4::params::USV_Z_VEL_ALL>)    _param_usv_z_vel_all
 	);
 
 	control::BlockDerivative _vel_x_deriv; /**< velocity derivative in x */
 	control::BlockDerivative _vel_y_deriv; /**< velocity derivative in y */
+	// TODO: delete
 	control::BlockDerivative _vel_z_deriv; /**< velocity derivative in z */
 
 	PositionControl _control;  /**< class for core PID position control */
@@ -190,8 +182,10 @@ private:
 	SlewRate<float> _tilt_limit_slew_rate;
 
 	uint8_t _vxy_reset_counter{0};
+		// TODO: delete
 	uint8_t _vz_reset_counter{0};
 	uint8_t _xy_reset_counter{0};
+	// TODO: delete
 	uint8_t _z_reset_counter{0};
 	uint8_t _heading_reset_counter{0};
 
