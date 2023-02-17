@@ -37,7 +37,7 @@ jobs:
   saluki-v1_default:
     name: build saluki-v1_default
     runs-on: ubuntu-latest
-    if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push'
+    if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     steps:
       - name: Checkout px4-firmware
         uses: actions/checkout@v3
@@ -63,7 +63,7 @@ jobs:
   saluki-v1_bootloader:
     name: build saluki-v1_bootloader
     runs-on: ubuntu-latest
-    if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push'
+    if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     steps:
       - name: Checkout px4-firmware
         uses: actions/checkout@v3
@@ -89,7 +89,7 @@ jobs:
   saluki-v1_amp:
     name: build saluki-v1_amp
     runs-on: ubuntu-latest
-    if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push'
+    if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     steps:
       - name: Checkout px4-firmware
         uses: actions/checkout@v3
@@ -115,7 +115,7 @@ jobs:
   saluki-v1_protected:
     name: build saluki-v1_protected
     runs-on: ubuntu-latest
-    if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push'
+    if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     steps:
       - name: Checkout px4-firmware
         uses: actions/checkout@v3
@@ -141,7 +141,7 @@ jobs:
   saluki-v2_default:
     name: build saluki-v2_default
     runs-on: ubuntu-latest
-    if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push'
+    if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     steps:
       - name: Checkout px4-firmware
         uses: actions/checkout@v3
@@ -167,7 +167,7 @@ jobs:
   saluki-v2_bootloader:
     name: build saluki-v2_bootloader
     runs-on: ubuntu-latest
-    if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push'
+    if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     steps:
       - name: Checkout px4-firmware
         uses: actions/checkout@v3
@@ -193,7 +193,7 @@ jobs:
   saluki-v2_amp:
     name: build saluki-v2_amp
     runs-on: ubuntu-latest
-    if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push'
+    if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     steps:
       - name: Checkout px4-firmware
         uses: actions/checkout@v3
@@ -219,7 +219,7 @@ jobs:
   saluki-v2_protected:
     name: build saluki-v2_protected
     runs-on: ubuntu-latest
-    if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push'
+    if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     steps:
       - name: Checkout px4-firmware
         uses: actions/checkout@v3
