@@ -1601,6 +1601,8 @@ void Logger::initialize_load_output(PrintLoadReason reason)
 
 void Logger::write_load_output()
 {
+	_writer.set_need_reliable_transfer(true, _print_load_reason != PrintLoadReason::Watchdog);
+
 	if (_print_load_reason == PrintLoadReason::Watchdog) {
 		PX4_ERR("Writing watchdog data"); // this is just that we see it easily in the log
 		write_perf_data(PrintLoadReason::Watchdog);
@@ -1611,7 +1613,6 @@ void Logger::write_load_output()
 	callback_data.logger = this;
 	callback_data.counter = 0;
 	callback_data.buffer = buffer;
-	_writer.set_need_reliable_transfer(true);
 	// TODO: maybe we should restrict the output to a selected backend (eg. when file logging is running
 	// and mavlink log is started, this will be added to the file as well)
 	print_load_buffer(buffer, sizeof(buffer), print_load_callback, &callback_data, &_load);
