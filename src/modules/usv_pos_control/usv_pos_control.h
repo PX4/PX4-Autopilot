@@ -88,11 +88,8 @@ public:
 private:
 	void Run() override;
 
-	TakeoffHandling _takeoff; /**< state machine and ramp to bring the vehicle off the ground without jumps */
-
 	orb_advert_t _mavlink_log_pub{nullptr};
 
-	uORB::PublicationData<takeoff_status_s>              _takeoff_status_pub{ORB_ID(takeoff_status)};
 	uORB::Publication<vehicle_attitude_setpoint_s>	     _vehicle_attitude_setpoint_pub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Publication<vehicle_local_position_setpoint_s> _local_pos_sp_pub{ORB_ID(vehicle_local_position_setpoint)};	/**< vehicle local position setpoint publication */
 
@@ -145,12 +142,6 @@ private:
 		(ParamFloat<px4::params::USV_TILTMAX_AIR>)  _param_usv_tiltmax_air,
 		(ParamFloat<px4::params::USV_THR_HOVER>)    _param_usv_thr_hover,
 		(ParamBool<px4::params::USV_USE_HTE>)       _param_usv_use_hte,
-
-		// Takeoff / Land
-		(ParamFloat<px4::params::COM_SPOOLUP_TIME>) _param_com_spoolup_time, /**< time to let motors spool up after arming */
-		(ParamFloat<px4::params::USV_TKO_RAMP_T>)   _param_usv_tko_ramp_t,   /**< time constant for smooth takeoff ramp */
-		(ParamFloat<px4::params::USV_TKO_SPEED>)    _param_usv_tko_speed,
-		(ParamFloat<px4::params::USV_LAND_SPEED>)   _param_usv_land_speed,
 
 		(ParamFloat<px4::params::USV_VEL_MANUAL>)   _param_usv_vel_manual,
 		(ParamFloat<px4::params::USV_VEL_MAN_BACK>) _param_usv_vel_man_back,
