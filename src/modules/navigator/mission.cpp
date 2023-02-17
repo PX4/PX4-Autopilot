@@ -433,11 +433,9 @@ Mission::find_mission_land_start()
 
 		if (missionitem.nav_cmd == NAV_CMD_DO_LAND_START) {
 			found_land_start_marker = true;
-			_land_start_index = i;
 		}
 
-		if (found_land_start_marker && !_land_start_available && i > _land_start_index
-		    && item_contains_position(missionitem)) {
+		if (found_land_start_marker && !_land_start_available && item_contains_position(missionitem)) {
 			// use the position of any waypoint after the land start marker which specifies a position.
 			_landing_start_lat = missionitem.lat;
 			_landing_start_lon = missionitem.lon;
@@ -447,6 +445,7 @@ Mission::find_mission_land_start()
 						  && fabsf(missionitem.loiter_radius) > FLT_EPSILON) ? fabsf(missionitem.loiter_radius) :
 						 _navigator->get_loiter_radius();
 			_land_start_available = true;
+			_land_start_index = i; // set it to the first item containing a position after the land start marker was found
 		}
 
 		if (((missionitem.nav_cmd == NAV_CMD_VTOL_LAND) && _navigator->get_vstatus()->is_vtol) ||
