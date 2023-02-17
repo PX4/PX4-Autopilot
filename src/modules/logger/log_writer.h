@@ -150,11 +150,11 @@ public:
 	 * Indicate to the underlying backend whether future write_message() calls need a reliable
 	 * transfer. Needed for header integrity.
 	 */
-	void set_need_reliable_transfer(bool need_reliable)
+	void set_need_reliable_transfer(bool need_reliable, bool mavlink_backed_too = true)
 	{
 		if (_log_writer_file) { _log_writer_file->set_need_reliable_transfer(need_reliable); }
 
-		if (_log_writer_mavlink) { _log_writer_mavlink->set_need_reliable_transfer(need_reliable); }
+		if (_log_writer_mavlink) { _log_writer_mavlink->set_need_reliable_transfer(need_reliable && mavlink_backed_too); }
 	}
 
 	bool need_reliable_transfer() const
