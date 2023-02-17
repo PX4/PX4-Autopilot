@@ -369,7 +369,8 @@ void LogWriterFile::run()
 			const hrt_abstime now = hrt_absolute_time();
 
 			/* call fsync periodically to minimize potential loss of data */
-			const bool call_fsync = ++poll_count >= 100 || now - last_fsync > 1_s;
+			const bool call_fsync = ++poll_count >= 100 || now - last_fsync > 1_s || _want_fsync.load();
+			_want_fsync.store(false);
 
 			if (call_fsync) {
 				last_fsync = now;
