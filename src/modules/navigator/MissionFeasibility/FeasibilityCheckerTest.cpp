@@ -87,7 +87,7 @@ public:
 
 TEST_F(FeasibilityCheckerTest, instantiation)
 {
-	FeasibilityChecker checker();
+	FeasibilityChecker checker;
 }
 
 TEST_F(FeasibilityCheckerTest, mission_item_validity)
