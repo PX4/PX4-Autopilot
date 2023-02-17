@@ -91,6 +91,8 @@ MulticopterAttitudeControl::parameters_updated()
 						radians(_param_mc_yawrate_max.get())));
 
 	_man_tilt_max = math::radians(_param_mpc_man_tilt_max.get());
+
+	_attitude_input_filter.setParameters(1.f / (_param_mc_man_tilt_tau.get() * 0.707f), 0.707f);
 }
 
 float
@@ -134,20 +136,18 @@ MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt,
 	 * This allows a simple limitation of the tilt angle, the vehicle flies towards the direction that the stick
 	 * points to, and changes of the stick input are linear.
 	 */
-	_man_roll_input_filter.setParameters(dt, _param_mc_man_tilt_tau.get());
-	_man_pitch_input_filter.setParameters(dt, _param_mc_man_tilt_tau.get());
-
 	// we want to fly towards the direction of (roll, pitch)
-	Vector2f v = Vector2f(_man_roll_input_filter.update(_manual_control_setpoint.roll * _man_tilt_max),
-			      -_man_pitch_input_filter.update(_manual_control_setpoint.pitch * _man_tilt_max));
+	Vector2f v = Vector2f((_manual_control_setpoint.roll * _man_tilt_max),
+			      -_manual_control_setpoint.pitch * _man_tilt_max);
 	float v_norm = v.norm(); // the norm of v defines the tilt angle
 
 	if (v_norm > _man_tilt_max) { // limit to the configured maximum tilt angle
 		v *= _man_tilt_max / v_norm;
 	}
 
-	Quatf q_sp_rpy = AxisAnglef(v(0), v(1), 0.f);
-	Eulerf euler_sp = q_sp_rpy;
+	_attitude_input_filter.update(dt, AxisAnglef(v(0), v(1), 0));
+
+	Eulerf euler_sp = _attitude_input_filter.getState();
 	attitude_setpoint.roll_body = euler_sp(0);
 	attitude_setpoint.pitch_body = euler_sp(1);
 	// The axis angle can change the yaw as well (noticeable at higher tilt angles).
@@ -313,8 +313,7 @@ MulticopterAttitudeControl::Run()
 				attitude_setpoint_generated = true;
 
 			} else {
-				_man_roll_input_filter.reset(0.f);
-				_man_pitch_input_filter.reset(0.f);
+				_attitude_input_filter.reset(AxisAnglef(0.f, 0.f, 0.f));
 			}
 
 			Vector3f rates_sp = _attitude_control.update(q);

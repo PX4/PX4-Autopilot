@@ -53,7 +53,7 @@
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_land_detected.h>
-#include <lib/mathlib/math/filter/AlphaFilter.hpp>
+#include <lib/mathlib/math/filter/second_order_reference_model.hpp>
 
 #include <AttitudeControl.hpp>
 
@@ -118,8 +118,7 @@ private:
 	float _man_yaw_sp{0.f};                 /**< current yaw setpoint in manual mode */
 	float _man_tilt_max;                    /**< maximum tilt allowed for manual flight [rad] */
 
-	AlphaFilter<float> _man_roll_input_filter;
-	AlphaFilter<float> _man_pitch_input_filter;
+	math::SecondOrderReferenceModel<matrix::AxisAnglef, matrix::Vector3f> _attitude_input_filter;
 
 	hrt_abstime _last_run{0};
 	hrt_abstime _last_attitude_setpoint{0};
