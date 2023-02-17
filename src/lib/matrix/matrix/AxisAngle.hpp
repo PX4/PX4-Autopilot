@@ -155,6 +155,19 @@ public:
 	{
 		return Vector<Type, 3>::norm();
 	}
+
+	// Perform addition and subtraction on the manifold
+	AxisAngle operator+(const AxisAngle &rhs) const
+	{
+		const AxisAngle &lhs = *this;
+		return AxisAngle(Quaternion<Type>(lhs) * Quaternion<Type>(rhs));
+	}
+
+	AxisAngle operator-(const AxisAngle &rhs) const
+	{
+		const AxisAngle &lhs = *this;
+		return AxisAngle(Quaternion<Type>(rhs).inversed() * Quaternion<Type>(lhs));
+	}
 };
 
 using AxisAnglef = AxisAngle<float>;

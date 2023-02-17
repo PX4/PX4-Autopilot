@@ -43,6 +43,8 @@
 
 using math::SecondOrderReferenceModel;
 using matrix::Vector3f;
+using matrix::AxisAnglef;
+using matrix::Eulerf;
 
 TEST(SecondOrderReferenceModel, FloatDefaultConstructorInitializesStatesToZero)
 {
@@ -129,4 +131,33 @@ TEST(SecondOrderReferenceModel, Vector3Reset)
 	EXPECT_FLOAT_EQ(accel(0), 0.0f);
 	EXPECT_FLOAT_EQ(accel(1), 0.0f);
 	EXPECT_FLOAT_EQ(accel(2), 0.0f);
+}
+
+TEST(SecondOrderReferenceModel, Attitude)
+{
+	SecondOrderReferenceModel<AxisAnglef, Vector3f> sys;
+
+	// reset the system states
+	AxisAnglef init_state(Eulerf(0.f, 0.f, 0.f));
+	Vector3f init_rate(0.f, 0.f, 0.f);
+	sys.reset(init_state, init_rate);
+
+	const float natural_freq = 5.f;
+	const float damping_ratio = 0.707f;
+	sys.setParameters(natural_freq, damping_ratio);
+
+	AxisAnglef desired_state(Eulerf(M_PI_F / 4.f, -M_PI_F / 4.f, 0.f));
+
+	const float dt = 0.01f;
+	const float t_end = 1.f;
+
+	for (float t = 0.f; t <= t_end; t += dt) {
+		sys.update(dt, desired_state);
+	}
+
+	Vector3f rate = sys.getRate();
+	// Synchronous roll and pitch body motion
+	EXPECT_FLOAT_EQ(rate(0), -rate(1));
+	// Induced body rate yaw
+	EXPECT_LT(rate(2), -FLT_EPSILON);
 }

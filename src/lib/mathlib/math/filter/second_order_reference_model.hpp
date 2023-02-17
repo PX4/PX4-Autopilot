@@ -47,7 +47,7 @@
 namespace math
 {
 
-template<typename T>
+template<typename TState, typename T = TState>
 class SecondOrderReferenceModel
 {
 public:
@@ -118,7 +118,7 @@ public:
 	/**
 	 * @return System state [units]
 	 */
-	const T &getState() const { return filter_state_; }
+	const TState &getState() const { return filter_state_; }
 
 	/**
 	 * @return System rate [units/s]
@@ -139,7 +139,7 @@ public:
 	 * @param[in] state_sample New state sample [units]
 	 * @param[in] rate_sample New rate sample, if provided, otherwise defaults to zero(s) [units/s]
 	 */
-	void update(const float time_step, const T &state_sample, const T &rate_sample = T())
+	void update(const float time_step, const TState &state_sample, const T &rate_sample = T())
 	{
 		if ((time_step > max_time_step_) || (time_step < 0.0f)) {
 			// time step is too large or is negative, reset the filter
@@ -164,7 +164,7 @@ public:
 	 * @param[in] state Initial state [units]
 	 * @param[in] rate Initial rate, if provided, otherwise defaults to zero(s) [units/s]
 	 */
-	void reset(const T &state, const T &rate = T())
+	void reset(const TState &state, const T &rate = T())
 	{
 		filter_state_ = state;
 		filter_rate_ = rate;
@@ -188,7 +188,7 @@ private:
 	// cutoff frequency [rad/s]
 	float cutoff_freq_{FLT_EPSILON};
 
-	T filter_state_{}; // [units]
+	TState filter_state_{}; // [units]
 	T filter_rate_{}; // [units/s]
 	T filter_accel_{}; // [units/s^2]
 
@@ -224,7 +224,7 @@ private:
 	 * @param[in] state_sample [units]
 	 * @param[in] rate_sample [units/s]
 	 */
-	void integrateStates(const float time_step, const T &state_sample, const T &rate_sample)
+	void integrateStates(const float time_step, const TState &state_sample, const T &rate_sample)
 	{
 		switch (discretization_method_) {
 		case DiscretizationMethod::kForwardEuler: {
@@ -247,7 +247,7 @@ private:
 	 * @param[in] state_sample [units]
 	 * @param[in] rate_sample [units/s]
 	 */
-	void integrateStatesForwardEuler(const float time_step, const T &state_sample, const T &rate_sample)
+	void integrateStatesForwardEuler(const float time_step, const TState &state_sample, const T &rate_sample)
 	{
 		// general notation for what follows:
 		// c: continuous
@@ -287,7 +287,7 @@ private:
 	 * @param[in] state_sample [units]
 	 * @param[in] rate_sample [units/s]
 	 */
-	void integrateStatesBilinear(const float time_step, const T &state_sample, const T &rate_sample)
+	void integrateStatesBilinear(const float time_step, const TState &state_sample, const T &rate_sample)
 	{
 		const float time_step_squared = time_step * time_step;
 		const float inv_denominator = 1.0f / (0.25f * spring_constant_ * time_step_squared + 0.5f * damping_coefficient_ *
@@ -335,10 +335,10 @@ private:
 	 * @param[in] rate_sample [units/s]
 	 */
 	void transitionStates(const matrix::SquareMatrix<float, 2> &state_matrix,
-			      const matrix::SquareMatrix<float, 2> &input_matrix, const T &state_sample, const T &rate_sample)
+			      const matrix::SquareMatrix<float, 2> &input_matrix, const TState &state_sample, const T &rate_sample)
 	{
-		const T new_state = state_matrix(0, 0) * filter_state_ + state_matrix(0, 1) * filter_rate_ + input_matrix(0,
-				    0) * state_sample + input_matrix(0, 1) * rate_sample;
+		const TState new_state = state_matrix(0, 0) * filter_state_ + state_matrix(0, 1) * filter_rate_ + input_matrix(0,
+					 0) * state_sample + input_matrix(0, 1) * rate_sample;
 		const T new_rate = state_matrix(1, 0) * filter_state_ + state_matrix(1, 1) * filter_rate_ + input_matrix(1,
 				   0) * state_sample + input_matrix(1, 1) * rate_sample;
 		filter_state_ = new_state;
@@ -351,9 +351,9 @@ private:
 	 * @param[in] state_sample [units]
 	 * @param[in] rate_sample [units/s]
 	 */
-	T calculateInstantaneousAcceleration(const T &state_sample, const T &rate_sample) const
+	T calculateInstantaneousAcceleration(const TState &state_sample, const T &rate_sample) const
 	{
-		const T state_error = state_sample - filter_state_;
+		const TState state_error = state_sample - filter_state_;
 		const T rate_error = rate_sample - filter_rate_;
 		return state_error * spring_constant_ + rate_error * damping_coefficient_;
 	}
