@@ -545,9 +545,9 @@ void Navigator::run()
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_LAND_START) {
 
-				/* find NAV_CMD_DO_LAND_START in the mission and
-				 * use MAV_CMD_MISSION_START to start the mission there
-				 */
+				// find NAV_CMD_DO_LAND_START in the mission and
+				// use MAV_CMD_MISSION_START to start the mission from the next item containing a position setpoint
+
 				if (_mission.land_start()) {
 					vehicle_command_s vcmd = {};
 					vcmd.command = vehicle_command_s::VEHICLE_CMD_MISSION_START;
