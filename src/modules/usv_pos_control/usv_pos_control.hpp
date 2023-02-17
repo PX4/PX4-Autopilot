@@ -131,9 +131,9 @@ private:
 		(ParamFloat<px4::params::USV_XY_VEL_I_ACC>) _param_usv_xy_vel_i_acc,
 		(ParamFloat<px4::params::USV_XY_VEL_D_ACC>) _param_usv_xy_vel_d_acc,
 		(ParamFloat<px4::params::USV_XY_VEL_MAX>)   _param_usv_xy_vel_max,
-		(ParamFloat<px4::params::USV_TILTMAX_AIR>)  _param_usv_tiltmax_air,
-		(ParamFloat<px4::params::USV_THR_HOVER>)    _param_usv_thr_hover,
-		(ParamBool<px4::params::USV_USE_HTE>)       _param_usv_use_hte,
+		(ParamFloat<px4::params::USV_TILTMAX_AIR>)  _param_usv_tiltmax_air, // TODO: delete, non-relevant
+		(ParamFloat<px4::params::USV_THR_HOVER>)    _param_usv_thr_hover, // TODO: delete, non-relevant
+		(ParamBool<px4::params::USV_USE_HTE>)       _param_usv_use_hte, // WHAT?
 
 		(ParamFloat<px4::params::USV_VEL_MANUAL>)   _param_usv_vel_manual,
 		(ParamFloat<px4::params::USV_VEL_MAN_BACK>) _param_usv_vel_man_back,
@@ -182,7 +182,7 @@ private:
 	SlewRate<float> _tilt_limit_slew_rate;
 
 	uint8_t _vxy_reset_counter{0};
-		// TODO: delete
+	// TODO: delete
 	uint8_t _vz_reset_counter{0};
 	uint8_t _xy_reset_counter{0};
 	// TODO: delete
