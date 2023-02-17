@@ -171,6 +171,8 @@ private:
 
 		void close_file();
 
+		void reset();
+
 		size_t get_read_ptr(void **ptr, bool *is_part);
 
 		/**
