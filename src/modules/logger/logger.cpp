@@ -36,7 +36,6 @@
 #include "logged_topics.h"
 #include "logger.h"
 #include "messages.h"
-#include "watchdog.h"
 
 #include <dirent.h>
 #include <sys/stat.h>
@@ -84,19 +83,12 @@ using namespace px4::logger;
 using namespace time_literals;
 
 
-struct timer_callback_data_s {
-	px4_sem_t semaphore;
-
-	watchdog_data_t watchdog_data;
-	volatile bool watchdog_triggered = false;
-};
-
 /* This is used to schedule work for the logger (periodic scan for updated topics) */
 static void timer_callback(void *arg)
 {
 	/* Note: we are in IRQ context here (on NuttX) */
 
-	timer_callback_data_s *data = (timer_callback_data_s *)arg;
+	Logger::timer_callback_data_s *data = (Logger::timer_callback_data_s *)arg;
 
 	int semaphore_value = 0;
 
@@ -112,7 +104,7 @@ static void timer_callback(void *arg)
 	bool semaphore_value_saturated = semaphore_value > 100;
 
 	if (watchdog_update(data->watchdog_data, semaphore_value_saturated)) {
-		data->watchdog_triggered = true;
+		data->watchdog_triggered.store(true);
 	}
 
 	if (semaphore_value_saturated) {
@@ -150,6 +142,15 @@ int Logger::custom_command(int argc, char *argv[])
 		print_usage("logger not running");
 		return 1;
 	}
+
+#ifdef __PX4_NUTTX
+
+	if (!strcmp(argv[0], "trigger_watchdog")) {
+		get_instance()->trigger_watchdog_now();
+		return 0;
+	}
+
+#endif
 
 	if (!strcmp(argv[0], "on")) {
 		get_instance()->set_arm_override(true);
@@ -650,10 +651,9 @@ void Logger::run()
 
 	/* init the update timer */
 	struct hrt_call timer_call {};
-	timer_callback_data_s timer_callback_data;
-	px4_sem_init(&timer_callback_data.semaphore, 0, 0);
+	px4_sem_init(&_timer_callback_data.semaphore, 0, 0);
 	/* timer_semaphore use case is a signal */
-	px4_sem_setprotocol(&timer_callback_data.semaphore, SEM_PRIO_NONE);
+	px4_sem_setprotocol(&_timer_callback_data.semaphore, SEM_PRIO_NONE);
 
 	int polling_topic_sub = -1;
 
@@ -673,10 +673,10 @@ void Logger::run()
 
 			// sched_note_start is already called from pthread_create and task_create,
 			// which means we can expect to find the tasks in system_load.tasks, as required in watchdog_initialize
-			watchdog_initialize(pid_self, writer_thread, timer_callback_data.watchdog_data);
+			watchdog_initialize(pid_self, writer_thread, _timer_callback_data.watchdog_data);
 		}
 
-		hrt_call_every(&timer_call, _log_interval, _log_interval, timer_callback, &timer_callback_data);
+		hrt_call_every(&timer_call, _log_interval, _log_interval, timer_callback, &_timer_callback_data);
 	}
 
 	// check for new subscription data
@@ -703,8 +703,8 @@ void Logger::run()
 		/* check for logging command from MAVLink (start/stop streaming) */
 		handle_vehicle_command_update();
 
-		if (timer_callback_data.watchdog_triggered) {
-			timer_callback_data.watchdog_triggered = false;
+		if (_timer_callback_data.watchdog_triggered.load()) {
+			_timer_callback_data.watchdog_triggered.store(false);
 			initialize_load_output(PrintLoadReason::Watchdog);
 		}
 
@@ -916,7 +916,7 @@ void Logger::run()
 			 * And on linux this is quite accurate as well, but under NuttX it is not accurate,
 			 * because usleep() has only a granularity of CONFIG_MSEC_PER_TICK (=1ms).
 			 */
-			while (px4_sem_wait(&timer_callback_data.semaphore) != 0) {}
+			while (px4_sem_wait(&_timer_callback_data.semaphore) != 0) {}
 		}
 	}
 
@@ -926,7 +926,7 @@ void Logger::run()
 	stop_log_file(LogType::Mission);
 
 	hrt_cancel(&timer_call);
-	px4_sem_destroy(&timer_callback_data.semaphore);
+	px4_sem_destroy(&_timer_callback_data.semaphore);
 
 	// stop the writer thread
 	_writer.thread_stop();
@@ -1420,7 +1420,7 @@ void Logger::start_log_file(LogType type)
 	if (type == LogType::Full) {
 		write_parameters(type);
 		write_parameter_defaults(type);
-		write_perf_data(true);
+		write_perf_data(PrintLoadReason::Preflight);
 		write_console_output();
 		write_events_file(LogType::Full);
 		write_excluded_optional_topics(type);
@@ -1448,7 +1448,7 @@ void Logger::stop_log_file(LogType type)
 
 	if (type == LogType::Full) {
 		_writer.set_need_reliable_transfer(true);
-		write_perf_data(false);
+		write_perf_data(PrintLoadReason::Postflight);
 		_writer.set_need_reliable_transfer(false);
 	}
 
@@ -1478,7 +1478,7 @@ void Logger::start_log_mavlink()
 	write_formats(LogType::Full);
 	write_parameters(LogType::Full);
 	write_parameter_defaults(LogType::Full);
-	write_perf_data(true);
+	write_perf_data(PrintLoadReason::Preflight);
 	write_console_output();
 	write_events_file(LogType::Full);
 	write_excluded_optional_topics(LogType::Full);
@@ -1498,7 +1498,7 @@ void Logger::stop_log_mavlink()
 	if (_writer.is_started(LogType::Full, LogWriter::BackendMavlink)) {
 		_writer.select_write_backend(LogWriter::BackendMavlink);
 		_writer.set_need_reliable_transfer(true);
-		write_perf_data(false);
+		write_perf_data(PrintLoadReason::Postflight);
 		_writer.set_need_reliable_transfer(false);
 		_writer.unselect_write_backend();
 		_writer.notify();
@@ -1509,7 +1509,7 @@ void Logger::stop_log_mavlink()
 struct perf_callback_data_t {
 	Logger *logger;
 	int counter;
-	bool preflight;
+	Logger::PrintLoadReason reason;
 	char *buffer;
 };
 
@@ -1522,23 +1522,31 @@ void Logger::perf_iterate_callback(perf_counter_t handle, void *user)
 
 	perf_print_counter_buffer(buffer, buffer_length, handle);
 
-	if (callback_data->preflight) {
+	switch (callback_data->reason) {
+	case PrintLoadReason::Preflight:
+	default:
 		perf_name = "perf_counter_preflight";
+		break;
 
-	} else {
+	case PrintLoadReason::Postflight:
 		perf_name = "perf_counter_postflight";
+		break;
+
+	case PrintLoadReason::Watchdog:
+		perf_name = "perf_counter_watchdog";
+		break;
 	}
 
 	callback_data->logger->write_info_multiple(LogType::Full, perf_name, buffer, callback_data->counter != 0);
 	++callback_data->counter;
 }
 
-void Logger::write_perf_data(bool preflight)
+void Logger::write_perf_data(PrintLoadReason reason)
 {
 	perf_callback_data_t callback_data = {};
 	callback_data.logger = this;
 	callback_data.counter = 0;
-	callback_data.preflight = preflight;
+	callback_data.reason = reason;
 
 	// write the perf counters
 	perf_iterate_all(perf_iterate_callback, &callback_data);
@@ -1580,7 +1588,14 @@ void Logger::print_load_callback(void *user)
 void Logger::initialize_load_output(PrintLoadReason reason)
 {
 	init_print_load(&_load);
-	_next_load_print = hrt_absolute_time() + 1_s;
+
+	if (reason == PrintLoadReason::Watchdog) {
+		_next_load_print = hrt_absolute_time() + 300_ms;
+
+	} else {
+		_next_load_print = hrt_absolute_time() + 1_s;
+	}
+
 	_print_load_reason = reason;
 }
 
@@ -1588,6 +1603,7 @@ void Logger::write_load_output()
 {
 	if (_print_load_reason == PrintLoadReason::Watchdog) {
 		PX4_ERR("Writing watchdog data"); // this is just that we see it easily in the log
+		write_perf_data(PrintLoadReason::Watchdog);
 	}
 
 	perf_callback_data_t callback_data = {};
@@ -2421,6 +2437,9 @@ $ logger on
 	PRINT_MODULE_USAGE_PARAM_FLOAT('c', 1.0, 0.2, 2.0, "Log rate factor (higher is faster)", true);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("on", "start logging now, override arming (logger must be running)");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("off", "stop logging now, override arming (logger must be running)");
+#ifdef __PX4_NUTTX
+	PRINT_MODULE_USAGE_COMMAND_DESCR("trigger_watchdog", "manually trigger the watchdog now");
+#endif
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
