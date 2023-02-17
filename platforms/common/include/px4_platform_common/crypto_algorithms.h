@@ -43,6 +43,8 @@ typedef enum {
 	CRYPTO_XCHACHA20 = 2,
 	CRYPTO_AES = 3,
 	CRYPTO_RSA_OAEP = 4,
+	CRYPTO_ECDSA_P256 = 5,
+	CRYPTO_RSA_SIG = 6,    /* openssl dgst -sha256 -sign */
 } px4_crypto_algorithm_t;
 
 /* Define the expected size of the signature for signing algorithms */
@@ -51,3 +53,5 @@ typedef enum {
 #define PX4_SIGNATURE_SIZE_(x) PX4_SIGNATURE_SIZE_##x
 
 #define PX4_SIGNATURE_SIZE_CRYPTO_ED25519 64
+#define PX4_SIGNATURE_SIZE_CRYPTO_ECDSA_P256 64 /* Raw R+S, both 32 bytes */
+#define PX4_SIGNATURE_SIZE_CRYPTO_RSA_SIG 256   /* Assume key length of 2048 bits */
