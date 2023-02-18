@@ -150,19 +150,6 @@ PARAM_DEFINE_INT32(LTEST_MODEL, 1);
 PARAM_DEFINE_FLOAT(LTEST_BTOUT, 3.0f);
 
 /**
- * Target GPS position uncertainty
- *
- *
- * @unit m^2
- * @min 0.01
- * @decimal 2
- *
- * @group Landing target Estimator
- */
-PARAM_DEFINE_FLOAT(LTEST_GPS_T_UNC, 1.0f);
-
-//TODO: the acc uncertainty should come from the IMUs eventually
-/**
  * Drone acceleration uncertainty
  *
  * Variance of drone's acceleration used for landing target position prediction.

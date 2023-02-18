@@ -65,6 +65,7 @@
 #include <uORB/topics/irlock_report.h>
 #include <uORB/topics/fiducial_marker_pos_report.h>
 #include <uORB/topics/landing_target_gnss.h>
+#include <uORB/topics/landing_target_pose.h>
 #include <uORB/topics/fiducial_marker_yaw_report.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/manual_control_setpoint.h>
@@ -201,6 +202,8 @@ private:
 	uORB::Publication<irlock_report_s>		_irlock_report_pub{ORB_ID(irlock_report)};
 	uORB::Publication<fiducial_marker_pos_report_s>			_fiducial_marker_pos_report_pub{ORB_ID(fiducial_marker_pos_report)};
 	uORB::Publication<landing_target_gnss_s>		_landing_target_gnss_pub{ORB_ID(landing_target_gnss)};
+	uORB::Publication<landing_target_pose_s>		_landing_target_pose_pub{ORB_ID(landing_target_pose)};
+	uORB::Subscription	_vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Publication<fiducial_marker_yaw_report_s>			_fiducial_marker_yaw_report_pub{ORB_ID(fiducial_marker_yaw_report)};
 	uORB::Publication<esc_status_s>			_esc_status_pub{ORB_ID(esc_status)};
 	uORB::Publication<vehicle_odometry_s>		_visual_odometry_pub{ORB_ID(vehicle_visual_odometry)};
@@ -234,7 +237,8 @@ private:
 	void handle_message_hil_sensor(const mavlink_message_t *msg);
 	void handle_message_hil_state_quaternion(const mavlink_message_t *msg);
 	void handle_message_landing_target(const mavlink_message_t *msg);
-	void handle_message_follow_target(const mavlink_message_t *msg);
+	void handle_message_target_relative(const mavlink_message_t *msg);
+	void handle_message_target_absolute(const mavlink_message_t *msg);
 	void handle_message_odometry(const mavlink_message_t *msg);
 	void handle_message_optical_flow(const mavlink_message_t *msg);
 	void handle_message_rc_channels(const mavlink_message_t *msg);
@@ -324,6 +328,7 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::MAV_TYPE>) _param_mav_type,
 		(ParamInt<px4::params::MAV_SYS_ID>) _param_mav_sys_id,
-		(ParamInt<px4::params::MAV_COMP_ID>) _param_mav_comp_id
+		(ParamInt<px4::params::MAV_COMP_ID>) _param_mav_comp_id,
+		(ParamInt<px4::params::LTEST_EN>) _param_ltest_en
 	)
 };

@@ -182,8 +182,9 @@ bool LTEstOrientation::processObsVisionOrientation(const fiducial_marker_yaw_rep
 {
 
 	// TODO complete mavlink message to include orientation
-	float vision_r_theta = wrap_pi(fiducial_marker_orientation.theta_rel_body);
-	float vision_r_theta_unc = 0.1f; // eventually use fiducial_marker_orientation.cov_theta_rel_body
+	float vision_r_theta = wrap_pi(fiducial_marker_orientation.yaw_ned);
+	float vision_r_theta_unc = (fiducial_marker_orientation.yaw_var_ned < (float)1e-6) ? 0.1f :
+				   fiducial_marker_orientation.yaw_var_ned;
 	hrt_abstime vision_timestamp = fiducial_marker_orientation.timestamp;
 
 	/* ORIENTATION */
@@ -192,14 +193,10 @@ bool LTEstOrientation::processObsVisionOrientation(const fiducial_marker_yaw_rep
 
 	} else {
 
-		/* Extract the drone's heading from the attitude of the drone */
-		matrix::Quaternionf quat_att(fiducial_marker_orientation.q);
-		const float drone_yaw_ned = wrap_pi(matrix::Eulerf(quat_att).psi());
-
 		obs.timestamp = vision_timestamp;
 		obs.updated_theta = true;
 		obs.meas_unc_theta = _range_sensor.valid ? (vision_r_theta_unc * _range_sensor.dist_bottom) : (vision_r_theta_unc * 10);
-		obs.meas_theta = wrap_pi(vision_r_theta + drone_yaw_ned);
+		obs.meas_theta = vision_r_theta;
 		obs.meas_h_theta(0) = 1;
 
 		return true;
@@ -247,7 +244,7 @@ bool LTEstOrientation::fuse_orientation(const targetObsOrientation &target_orien
 		target_innov.observation = target_orientation_obs.meas_theta;
 		target_innov.observation_variance = target_orientation_obs.meas_unc_theta;
 		target_innov.timestamp_sample = target_orientation_obs.timestamp;
-		target_innov.timestamp = hrt_absolute_time(); // TODO: check if correct hrt_absolute_time() or _last_predict
+		target_innov.timestamp = hrt_absolute_time();
 
 	} else {
 		// No yaw measurement
@@ -326,7 +323,6 @@ bool LTEstOrientation::selectTargetEstimator()
 	if (init_failed) {
 		PX4_ERR("LTE orientation init failed");
 		return false;
-		// TODO: decide on a behaviour
 
 	} else {
 

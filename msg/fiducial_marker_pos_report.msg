@@ -12,8 +12,4 @@ float32 cov_x_rel_body		# X/Front position variance [meters^2]
 float32 cov_y_rel_body		# Y/Right position variance [meters^2]
 float32 cov_z_rel_body		# Z/Down position variance [meters^2]
 
-float32 cov_x_y_rel_body		# X/Front - Y/East position covariance [meters^2]
-float32 cov_x_z_rel_body		# X/Front - Z/Down position covariance [meters^2]
-float32 cov_y_z_rel_body		# Y/Right - Z/Down position covariance [meters^2]
-
-float32[4] q            # Quaternion rotation from the FRD body frame to the NED earth frame
+float32[4] q            # Quaternion rotation from the sensor frame to the NED earth frame

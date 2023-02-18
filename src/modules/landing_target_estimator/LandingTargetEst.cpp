@@ -186,7 +186,7 @@ void LandingTargetEst::Run()
 
 		localPose local_pose;
 
-		bool local_pose_updated = get_local_pose(local_pose);
+		const bool local_pose_updated = get_local_pose(local_pose);
 
 		/* Update position filter at ltest_pos_UPDATE_RATE_HZ */
 		if (_ltest_position_valid) {
@@ -214,7 +214,7 @@ void LandingTargetEst::Run()
 						_ltest_position->set_range_sensor(local_pose.dist_bottom, local_pose.dist_valid);
 					}
 
-					matrix::Vector3f vehicle_acc_ned_sampled = _vehicle_acc_ned_sum / _loops_count;
+					const matrix::Vector3f vehicle_acc_ned_sampled = _vehicle_acc_ned_sum / _loops_count;
 
 					_ltest_position->update(vehicle_acc_ned_sampled);
 					_last_update_pos = hrt_absolute_time();
@@ -297,8 +297,8 @@ bool LandingTargetEst::get_input(matrix::Vector3f &vehicle_acc_ned)
 	vehicle_attitude_s	vehicle_attitude;
 	vehicle_acceleration_s	vehicle_acceleration;
 
-	bool vehicle_attitude_valid = _vehicle_attitude_sub.update(&vehicle_attitude);
-	bool vehicle_acceleration_valid = _vehicle_acceleration_sub.update(&vehicle_acceleration);
+	const bool vehicle_attitude_valid = _vehicle_attitude_sub.update(&vehicle_attitude);
+	const bool vehicle_acceleration_valid = _vehicle_acceleration_sub.update(&vehicle_acceleration);
 
 	// Minimal requirement: acceleraion (for input) and attitude (to rotate acc in vehicle-carried NED frame)
 	if (!vehicle_attitude_valid || !vehicle_acceleration_valid) {
@@ -307,16 +307,13 @@ bool LandingTargetEst::get_input(matrix::Vector3f &vehicle_acc_ned)
 	} else {
 
 		/* Transform FRD body acc to NED */
-		matrix::Quaternionf quat_att(&vehicle_attitude.q[0]);
-		matrix::Dcmf R_att = matrix::Dcm<float>(quat_att);
+		const matrix::Quaternionf quat_att(&vehicle_attitude.q[0]);
+		const matrix::Dcmf R_att = matrix::Dcm<float>(quat_att);
+		const matrix::Vector3f vehicle_acc{vehicle_acceleration.xyz};
 
-		matrix::Vector3f vehicle_acc{vehicle_acceleration.xyz};
-
-		/* Compensate for gravity: the inverse of a rotation matrix is simply its transposed. */
+		/* Compensate for gravity. */
 		const matrix::Vector3f gravity_ned(0, 0, CONSTANTS_ONE_G);
-		matrix::Vector3f gravity_body = R_att.transpose() * gravity_ned;
-
-		vehicle_acc_ned = R_att * (vehicle_acc + gravity_body);
+		vehicle_acc_ned = R_att * vehicle_acc + gravity_ned;
 	}
 
 	return true;

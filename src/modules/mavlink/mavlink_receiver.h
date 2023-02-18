@@ -177,6 +177,8 @@ private:
 	void handle_message_hil_sensor(mavlink_message_t *msg);
 	void handle_message_hil_state_quaternion(mavlink_message_t *msg);
 	void handle_message_landing_target(mavlink_message_t *msg);
+	void handle_message_target_relative(mavlink_message_t *msg);
+	void handle_message_target_absolute(mavlink_message_t *msg);
 	void handle_message_logging_ack(mavlink_message_t *msg);
 	void handle_message_manual_control(mavlink_message_t *msg);
 	void handle_message_obstacle_distance(mavlink_message_t *msg);
@@ -402,7 +404,8 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::BAT_CRIT_THR>)     _param_bat_crit_thr,
 		(ParamFloat<px4::params::BAT_EMERGEN_THR>)  _param_bat_emergen_thr,
-		(ParamFloat<px4::params::BAT_LOW_THR>)      _param_bat_low_thr
+		(ParamFloat<px4::params::BAT_LOW_THR>)      _param_bat_low_thr,
+		(ParamInt<px4::params::LTEST_EN>) _param_ltest_en
 	);
 
 	// Disallow copy construction and move assignment.

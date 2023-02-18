@@ -283,13 +283,11 @@ private:
 	float _target_acc_unc;
 	float _bias_unc;
 	float _meas_unc;
-	float _gps_target_unc;
 	float _drone_acc_unc;
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::LTEST_AID_MASK>) _param_ltest_aid_mask,
 		(ParamFloat<px4::params::LTEST_BTOUT>) _param_ltest_btout,
-		(ParamFloat<px4::params::LTEST_GPS_T_UNC>) _param_ltest_gps_t_unc,
 		(ParamFloat<px4::params::LTEST_ACC_D_UNC>) _param_ltest_acc_d_unc,
 		(ParamFloat<px4::params::LTEST_ACC_T_UNC>) _param_ltest_acc_t_unc,
 		(ParamFloat<px4::params::LTEST_BIAS_LIM>) _param_ltest_bias_lim,

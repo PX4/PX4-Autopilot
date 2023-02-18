@@ -161,17 +161,17 @@ bool LTEstPosition::initEstimator(Vector3f pos_init, Vector3f vel_init, Vector3f
 		 (double)target_vel_init(2));
 	PX4_INFO("Bias init %.2f %.2f %.2f", (double)bias_init(0), (double)bias_init(1), (double)bias_init(2));
 
-	float state_pos_var = _param_ltest_pos_unc_in.get();
-	float state_vel_var = _param_ltest_vel_unc_in.get();
-	float state_bias_var = _param_ltest_bias_unc_in.get();
-	float state_acc_var = _param_ltest_acc_unc_in.get();
-	float state_target_vel_var = _param_ltest_vel_unc_in.get();
+	const float state_pos_var = _param_ltest_pos_unc_in.get();
+	const float state_vel_var = _param_ltest_vel_unc_in.get();
+	const float state_bias_var = _param_ltest_bias_unc_in.get();
+	const float state_acc_var = _param_ltest_acc_unc_in.get();
+	const float state_target_vel_var = _param_ltest_vel_unc_in.get();
 
-	Vector3f state_pos_var_vect(state_pos_var, state_pos_var, state_pos_var);
-	Vector3f state_vel_var_vect(state_vel_var, state_vel_var, state_vel_var);
-	Vector3f state_bias_var_vect(state_bias_var, state_bias_var, state_bias_var);
-	Vector3f state_acc_var_vect(state_acc_var, state_acc_var, state_acc_var);
-	Vector3f state_target_vel_var_vect(state_target_vel_var, state_target_vel_var, state_target_vel_var);
+	const Vector3f state_pos_var_vect(state_pos_var, state_pos_var, state_pos_var);
+	const Vector3f state_vel_var_vect(state_vel_var, state_vel_var, state_vel_var);
+	const Vector3f state_bias_var_vect(state_bias_var, state_bias_var, state_bias_var);
+	const Vector3f state_acc_var_vect(state_acc_var, state_acc_var, state_acc_var);
+	const Vector3f state_target_vel_var_vect(state_target_vel_var, state_target_vel_var, state_target_vel_var);
 
 	Vector3f state_target_vel;
 
@@ -220,12 +220,12 @@ void LTEstPosition::predictionStep(Vector3f vehicle_acc_ned)
 	// predict target position with the help of accel data
 
 	// Time from last prediciton
-	float dt = (hrt_absolute_time() - _last_predict) / SEC2USEC;
+	const float dt = (hrt_absolute_time() - _last_predict) / SEC2USEC;
 
 	// The rotated input cov (from body to NED R*cov*R^T) is the same as the original input cov since input_cov = acc_unc * Identiy and R*R^T = Identity
-	SquareMatrix<float, 3> input_cov = diag(Vector3f(_drone_acc_unc, _drone_acc_unc, _drone_acc_unc));
-	SquareMatrix<float, 3> target_acc_cov = diag(Vector3f(_target_acc_unc, _target_acc_unc, _target_acc_unc));
-	SquareMatrix<float, 3> bias_cov = diag(Vector3f(_bias_unc, _bias_unc, _bias_unc));
+	const SquareMatrix<float, 3> input_cov = diag(Vector3f(_drone_acc_unc, _drone_acc_unc, _drone_acc_unc));
+	const SquareMatrix<float, 3> target_acc_cov = diag(Vector3f(_target_acc_unc, _target_acc_unc, _target_acc_unc));
+	const SquareMatrix<float, 3> bias_cov = diag(Vector3f(_bias_unc, _bias_unc, _bias_unc));
 
 	if (_target_model == TargetModel::Coupled) {
 
@@ -320,7 +320,8 @@ bool LTEstPosition::update_step(Vector3f vehicle_acc_ned)
 		bool target_GPS_updated = _landing_target_gnss_sub.update(&target_GNSS_report);
 
 		/* TARGET GPS */
-		if ((_ltest_aid_mask & SensorFusionMask::USE_TARGET_GPS_POS) && target_GPS_updated) {
+		if ((_ltest_aid_mask & SensorFusionMask::USE_TARGET_GPS_POS) && target_GPS_updated
+		    && target_GNSS_report.abs_pos_updated) {
 
 			obs_gps_pos_target.type = target_gps_pos;
 
@@ -349,7 +350,8 @@ bool LTEstPosition::update_step(Vector3f vehicle_acc_ned)
 
 		// Keep track of the target GPS velocity
 		_target_gps_vel.timestamp = target_GNSS_report.timestamp;
-		_target_gps_vel.valid = (PX4_ISFINITE(target_GNSS_report.vel_n_m_s) && PX4_ISFINITE(target_GNSS_report.vel_e_m_s)
+		_target_gps_vel.valid = (target_GNSS_report.vel_ned_updated && PX4_ISFINITE(target_GNSS_report.vel_n_m_s)
+					 && PX4_ISFINITE(target_GNSS_report.vel_e_m_s)
 					 && PX4_ISFINITE(target_GNSS_report.vel_d_m_s));
 		_target_gps_vel.xyz(0) = target_GNSS_report.vel_n_m_s;
 		_target_gps_vel.xyz(1) = target_GNSS_report.vel_e_m_s;
@@ -368,8 +370,9 @@ bool LTEstPosition::update_step(Vector3f vehicle_acc_ned)
 			}
 
 			/* RELATIVE GPS velocity */
-			if (_uav_gps_vel.valid && ((target_GPS_updated && _target_mode == TargetMode::Moving) || (vehicle_gps_position_updated
-						   && _target_mode != TargetMode::Moving))) {
+			if (_uav_gps_vel.valid && ((_target_gps_vel.valid && target_GPS_updated && _target_mode == TargetMode::Moving)
+						   || (vehicle_gps_position_updated
+						       && _target_mode != TargetMode::Moving))) {
 
 				obs_gps_vel_rel.type = vel_rel_gps;
 
@@ -382,10 +385,10 @@ bool LTEstPosition::update_step(Vector3f vehicle_acc_ned)
 	}
 
 	// If one pos measurement was updated, return true
-	bool new_pos_sensor = pos_mission_GPS_valid || pos_target_GPS_valid || fiducial_marker_valid || irlock_valid
-			      || uwb_valid;
-	bool new_non_gnss_pos_sensor = fiducial_marker_valid || irlock_valid || uwb_valid;
-	bool new_vel_sensor = vel_rel_GPS_valid || vel_target_GPS_valid;
+	const bool new_pos_sensor = pos_mission_GPS_valid || pos_target_GPS_valid || fiducial_marker_valid || irlock_valid
+				    || uwb_valid;
+	const bool new_non_gnss_pos_sensor = fiducial_marker_valid || irlock_valid || uwb_valid;
+	const bool new_vel_sensor = vel_rel_GPS_valid || vel_target_GPS_valid;
 
 	// Once a position measurement other than the target GPS is available, restart the filter and set the bias.
 	if (!_bias_set && ((_ltest_aid_mask & SensorFusionMask::USE_TARGET_GPS_POS)
@@ -412,7 +415,7 @@ bool LTEstPosition::update_step(Vector3f vehicle_acc_ned)
 			}
 		}
 
-		/* MISSION POS GPS */
+		/*MISSION POS GPS*/
 		if (pos_mission_GPS_valid) {
 
 			if (fuse_meas(vehicle_acc_ned, obs_gps_pos_mission)) {
@@ -513,7 +516,6 @@ bool LTEstPosition::update_step(Vector3f vehicle_acc_ned)
 				}
 			}
 
-			// TODO also init target_vel
 			if (initEstimator(pos_init, vel_init, target_acc_init, bias_init, target_vel_init)) {
 				PX4_INFO("LTE Position Estimator properly initialized.");
 				_estimator_initialized = true;
@@ -535,31 +537,26 @@ bool LTEstPosition::update_step(Vector3f vehicle_acc_ned)
 bool LTEstPosition::processObsVision(const fiducial_marker_pos_report_s &fiducial_marker_pose, targetObsPos &obs)
 {
 	/* Rotate vision observation from body FRD - to vc-NED */
-	matrix::Quaternionf quat_att(fiducial_marker_pose.q);
-	Vector3f vision_body(fiducial_marker_pose.x_rel_body, fiducial_marker_pose.y_rel_body, fiducial_marker_pose.z_rel_body);
-	Vector3f vision_ned = quat_att.rotateVector(vision_body);
+	const matrix::Quaternionf quat_att(fiducial_marker_pose.q);
+	const Vector3f vision_body(fiducial_marker_pose.x_rel_body, fiducial_marker_pose.y_rel_body,
+				   fiducial_marker_pose.z_rel_body);
+	const Vector3f vision_ned = quat_att.rotateVector(vision_body);
 
-	/*
+	const SquareMatrix<float, 3> covMat = diag(Vector3f(fiducial_marker_pose.cov_x_rel_body,
+					      fiducial_marker_pose.cov_y_rel_body,
+					      fiducial_marker_pose.cov_z_rel_body));
+	const matrix::Dcmf R_att = matrix::Dcm<float>(quat_att);
 
-	// TODO: complete mavlink message to include covariance matrix.
+	// Rotate covariance matrix to vc-NED
+	SquareMatrix<float, 3> Cov_rotated = R_att * covMat * R_att.transpose();
 
-	SquareMatrix<float, 3> covMat = diag(Vector3f(fiducial_marker_pose.cov_x_rel_body, fiducial_marker_pose.cov_y_rel_body, fiducial_marker_pose.cov_z_rel_body));
-	covMat(0,1) = fiducial_marker_pose.cov_x_y_rel_body;
-	covMat(0,2) = fiducial_marker_pose.cov_x_z_rel_body;
-	covMat(1,2) = fiducial_marker_pose.cov_y_z_rel_body;
-	covMat(1,0) = covMat(0,1);
-	covMat(2,0) = covMat(0,2);
-	covMat(2,1) = covMat(1,2);
-
-	matrix::Dcmf R_att = matrix::Dcm<float>(quat_att);
-
-	Cov_rotated = R_att * covMat * R_att.transpose();
-
-	*/
-
-	// For now assume that we are at 10m if no distance bottom is valid
-	float meas_uncertainty = _range_sensor.valid ? (_meas_unc * _range_sensor.dist_bottom) : (_meas_unc * 10);
-	SquareMatrix<float, 3> Cov_rotated = diag(Vector3f(meas_uncertainty, meas_uncertainty, meas_uncertainty));
+	// If the variance was not set, use default
+	if (fiducial_marker_pose.cov_x_rel_body < (float)1e-6 && fiducial_marker_pose.cov_y_rel_body < (float)1e-6
+	    && fiducial_marker_pose.cov_z_rel_body < (float)1e-6) {
+		// Uncertainty proportional to the vertical distance
+		const float meas_uncertainty = _range_sensor.valid ? (_meas_unc * _range_sensor.dist_bottom) : (_meas_unc * 10);
+		Cov_rotated = diag(Vector3f(meas_uncertainty, meas_uncertainty, meas_uncertainty));
+	}
 
 	/* RELATIVE POSITION*/
 	if (!PX4_ISFINITE(vision_ned(0)) || !PX4_ISFINITE(vision_ned(1)) || !PX4_ISFINITE(vision_ned(2))) {
@@ -605,15 +602,14 @@ bool LTEstPosition::processObsVision(const fiducial_marker_pos_report_s &fiducia
 			obs.meas_unc_xyz(0) = R_diag(0, 0);
 			obs.meas_unc_xyz(1) = R_diag(1, 1);
 			obs.meas_unc_xyz(2) = R_diag(2, 2);
-			//TODO: replace by obs->meas_unc_xyz = R_diag.diag();
 
 			//Transform measurements:
-			Vector3f Z_transformed = L_inv * vision_ned;
+			const Vector3f Z_transformed = L_inv * vision_ned;
 
 			obs.meas_xyz = Z_transformed;
 
 			//Transform H
-			Matrix<float, 3, 3> H_transformed = L_inv * H_position;
+			const Matrix<float, 3, 3> H_transformed = L_inv * H_position;
 
 			//Bring H_position back to the full H: [rx, ry, rz, r_dotx, r_doty, r_dotz, bx, by, bz, atx, aty, atz]
 			obs.meas_h_xyz(0, 0) = H_transformed(0, 0);
@@ -655,7 +651,6 @@ bool LTEstPosition::processObsGNSSVelRel(const landing_target_gnss_s &target_GNS
 		const sensor_gps_s &vehicle_gps_position, bool vehicle_gps_vel_updated, targetObsPos &obs)
 {
 
-	// TODO: convert .s_variance_m_s from accuracy to variance
 	bool obs_updated = false;
 
 	switch (_target_mode) {
@@ -696,9 +691,9 @@ bool LTEstPosition::processObsGNSSVelRel(const landing_target_gnss_s &target_GNS
 				obs.meas_xyz(1) = vehicle_gps_position.vel_e_m_s - target_GNSS_report.vel_e_m_s;
 				obs.meas_xyz(2) = vehicle_gps_position.vel_d_m_s - target_GNSS_report.vel_d_m_s;
 
-				// TODO: uncomment once the mavlink message is updated with covariances
-				// float unc = vehicle_gps_position.s_variance_m_s + target_GNSS_report.s_variance_m_s;
-				float unc = vehicle_gps_position.s_variance_m_s + _gps_target_unc;
+				const float unc = vehicle_gps_position.s_variance_m_s * vehicle_gps_position.s_variance_m_s +
+						  target_GNSS_report.s_variance_m_s * target_GNSS_report.s_variance_m_s;
+
 				obs.meas_unc_xyz(0) = unc;
 				obs.meas_unc_xyz(1) = unc;
 				obs.meas_unc_xyz(2) = unc;
@@ -766,9 +761,8 @@ bool LTEstPosition::processObsGNSSVelTarget(const landing_target_gnss_s &target_
 		obs.meas_xyz(1) = target_GNSS_report.vel_e_m_s;
 		obs.meas_xyz(2) = target_GNSS_report.vel_d_m_s;
 
-		// TODO: uncomment once the mavlink message is updated with covariances
-		// float unc = vehicle_gps_position.s_variance_m_s + target_GNSS_report.s_variance_m_s;
-		float unc = _gps_target_unc;
+		const float unc = target_GNSS_report.s_variance_m_s * target_GNSS_report.s_variance_m_s;
+
 		obs.meas_unc_xyz(0) = unc;
 		obs.meas_unc_xyz(1) = unc;
 		obs.meas_unc_xyz(2) = unc;
@@ -807,8 +801,8 @@ bool LTEstPosition::processObsGNSSPosMission(const sensor_gps_s &vehicle_gps_pos
 		// Down direction (if the drone is above the target, the relative position is positive)
 		gps_relative_pos(2) = (vehicle_gps_position.alt - _landing_pos.alt) / 1000.f; // transform mm to m
 
-		float gps_unc_horizontal = vehicle_gps_position.eph;
-		float gps_unc_vertical = vehicle_gps_position.epv;
+		const float gps_unc_horizontal = vehicle_gps_position.eph * vehicle_gps_position.eph;
+		const float gps_unc_vertical = vehicle_gps_position.epv * vehicle_gps_position.epv;
 
 		// GPS already in NED, no rotation required.
 		// h_meas = [rx, ry, rz, r_dotx, r_doty, r_dotz, bx, by, bz, atx, aty, atz]
@@ -860,9 +854,9 @@ bool LTEstPosition::processObsGNSSPosTarget(const landing_target_gnss_s &target_
 
 	const float dt_sync_us = fabs(vehicle_gps_position.timestamp - target_GNSS_report.timestamp);
 
-	int target_gps_lat = target_GNSS_report.lat; // 1e-7 [deg]
-	int target_gps_lon = target_GNSS_report.lon; // 1e-7 [deg]
-	float target_gps_alt = target_GNSS_report.alt; // AMSL [mm]
+	const int target_gps_lat = target_GNSS_report.lat; // 1e-7 [deg]
+	const int target_gps_lon = target_GNSS_report.lon; // 1e-7 [deg]
+	const float target_gps_alt = target_GNSS_report.alt; // AMSL [mm]
 
 	if (vehicle_gps_position.lat == 0 || vehicle_gps_position.lon == 0 || !PX4_ISFINITE((float)vehicle_gps_position.alt)) {
 		PX4_WARN("vehicle GPS position is corrupt!");
@@ -878,12 +872,8 @@ bool LTEstPosition::processObsGNSSPosTarget(const landing_target_gnss_s &target_
 
 	} else {
 
-		// TODO: complete mavlink message to include uncertainties.
-		// gps_target_eph = target_GNSS_report.eph;
-		// gps_target_epv = target_GNSS_report.epv;
-
-		float gps_target_eph = _gps_target_unc;
-		float gps_target_epv = _gps_target_unc;
+		const float gps_target_eph = target_GNSS_report.eph;
+		const float gps_target_epv = target_GNSS_report.epv;
 
 		// Obtain GPS relative measurements in NED as target_global - uav_gps_global followed by global2local transformation
 		Vector3f gps_relative_pos;
@@ -895,8 +885,8 @@ bool LTEstPosition::processObsGNSSPosTarget(const landing_target_gnss_s &target_
 		gps_relative_pos(2) = (vehicle_gps_position.alt - target_gps_alt) / 1000.f; // transform mm to m
 
 		// Var(aX - bY) = a^2 Var(X) + b^2Var(Y) - 2ab Cov(X,Y)
-		float gps_unc_horizontal = vehicle_gps_position.eph + gps_target_eph;
-		float gps_unc_vertical = vehicle_gps_position.epv + gps_target_epv;
+		const float gps_unc_horizontal = vehicle_gps_position.eph * vehicle_gps_position.eph + gps_target_eph * gps_target_eph;
+		const float gps_unc_vertical = vehicle_gps_position.epv * vehicle_gps_position.epv + gps_target_epv * gps_target_epv;
 
 		// GPS already in NED, no rotation required.
 		// h_meas = [rx, ry, rz, r_dotx, r_doty, r_dotz, bx, by, bz, atx, aty, atz]
@@ -964,9 +954,9 @@ bool LTEstPosition::processObsUWB(const uwb_distance_s &uwb_distance, targetObsP
 
 		obs.updated_xyz.setAll(true);
 
-		float dist_z = _range_sensor.dist_bottom - _param_ltest_sens_pos_z.get();
+		const float dist_z = _range_sensor.dist_bottom - _param_ltest_sens_pos_z.get();
 
-		float measurement_uncertainty = _meas_unc * dist_z * dist_z;
+		const float measurement_uncertainty = _meas_unc * dist_z * dist_z;
 
 		obs.meas_unc_xyz(0) = measurement_uncertainty;
 		obs.meas_unc_xyz(1) = measurement_uncertainty;
@@ -1001,18 +991,18 @@ bool LTEstPosition::processObsIRlock(const irlock_report_s &irlock_report, targe
 		sensor_ray(1) += _param_ltest_sens_pos_y.get();
 
 		// Rotate the unit ray into the navigation frame.
-		matrix::Quaternionf quat_att(irlock_report.q);
+		const matrix::Quaternionf quat_att(irlock_report.q);
 		sensor_ray = quat_att.rotateVector(sensor_ray);
 
 		// z component of measurement safe, use this measurement
 		if (fabsf(sensor_ray(2)) > 1e-6f) {
 
-			float dist_z = _range_sensor.dist_bottom - _param_ltest_sens_pos_z.get();
+			const float dist_z = _range_sensor.dist_bottom - _param_ltest_sens_pos_z.get();
 
 			// scale the ray s.t. the z component has length of _uncertainty_scale
-			float rel_pos_x = sensor_ray(0) / sensor_ray(2) * dist_z;
-			float rel_pos_y = sensor_ray(1) / sensor_ray(2) * dist_z;
-			float rel_pos_z = dist_z;
+			const float rel_pos_x = sensor_ray(0) / sensor_ray(2) * dist_z;
+			const float rel_pos_y = sensor_ray(1) / sensor_ray(2) * dist_z;
+			const float rel_pos_z = dist_z;
 
 			// Fill the observations for the irlock sensor
 			obs.timestamp = irlock_report.timestamp;
@@ -1029,7 +1019,7 @@ bool LTEstPosition::processObsIRlock(const irlock_report_s &irlock_report, targe
 
 			obs.updated_xyz.setAll(true);
 
-			float measurement_uncertainty = _meas_unc * dist_z * dist_z;
+			const float measurement_uncertainty = _meas_unc * dist_z * dist_z;
 
 			obs.meas_unc_xyz(0) = measurement_uncertainty;
 			obs.meas_unc_xyz(1) = measurement_uncertainty;
@@ -1200,22 +1190,22 @@ void LTEstPosition::publishTarget()
 	if (_target_model == TargetModel::Coupled) {
 
 		// Fill target pose
-		Vector3f pos_vect = _target_estimator_coupled->getPositionVect();
+		const Vector3f pos_vect = _target_estimator_coupled->getPositionVect();
 		target_pose.x_rel = pos_vect(0);
 		target_pose.y_rel = pos_vect(1);
 		target_pose.z_rel = pos_vect(2);
 
-		Vector3f cov_pos_vect = _target_estimator_coupled->getPosVarVect();
+		const Vector3f cov_pos_vect = _target_estimator_coupled->getPosVarVect();
 		target_pose.cov_x_rel = cov_pos_vect(0);
 		target_pose.cov_y_rel = cov_pos_vect(1);
 		target_pose.cov_z_rel = cov_pos_vect(2);
 
-		Vector3f vel_vect = _target_estimator_coupled->getVelocityVect();
+		const Vector3f vel_vect = _target_estimator_coupled->getVelocityVect();
 		target_pose.vx_rel = vel_vect(0);
 		target_pose.vy_rel = vel_vect(1);
 		target_pose.vz_rel = vel_vect(2);
 
-		Vector3f cov_vel_vect = _target_estimator_coupled->getVelVarVect();
+		const Vector3f cov_vel_vect = _target_estimator_coupled->getVelVarVect();
 		target_pose.cov_vx_rel = cov_vel_vect(0);
 		target_pose.cov_vy_rel = cov_vel_vect(1);
 		target_pose.cov_vz_rel = cov_vel_vect(2);
@@ -1223,12 +1213,12 @@ void LTEstPosition::publishTarget()
 		if (_target_mode == TargetMode::MovingAugmented) {
 
 			// Fill target state msg
-			Vector3f vel_target_vect = _target_estimator_coupled->getTargetVel();
+			const Vector3f vel_target_vect = _target_estimator_coupled->getTargetVel();
 			target_estimator_state.vx_target = vel_target_vect(0);
 			target_estimator_state.vy_target = vel_target_vect(1);
 			target_estimator_state.vz_target = vel_target_vect(2);
 
-			Vector3f cov_vel_target_vect = _target_estimator_coupled->getTargetVelVar();
+			const Vector3f cov_vel_target_vect = _target_estimator_coupled->getTargetVelVar();
 			target_estimator_state.cov_vx_target = cov_vel_target_vect(0);
 			target_estimator_state.cov_vy_target = cov_vel_target_vect(1);
 			target_estimator_state.cov_vz_target = cov_vel_target_vect(2);
@@ -1261,24 +1251,24 @@ void LTEstPosition::publishTarget()
 		target_estimator_state.cov_vy_rel = target_pose.cov_vy_rel;
 		target_estimator_state.cov_vz_rel = target_pose.cov_vz_rel;
 
-		Vector3f bias_vect = _target_estimator_coupled->getBiasVect();
+		const Vector3f bias_vect = _target_estimator_coupled->getBiasVect();
 		target_estimator_state.x_bias = bias_vect(0);
 		target_estimator_state.y_bias = bias_vect(1);
 		target_estimator_state.z_bias = bias_vect(2);
 
-		Vector3f cov_bias_vect = _target_estimator_coupled->getBiasVarVect();
+		const Vector3f cov_bias_vect = _target_estimator_coupled->getBiasVarVect();
 		target_estimator_state.cov_x_bias = cov_bias_vect(0);
 		target_estimator_state.cov_y_bias = cov_bias_vect(1);
 		target_estimator_state.cov_z_bias = cov_bias_vect(2);
 
 		if (_target_mode == TargetMode::Moving || _target_mode == TargetMode::MovingAugmented) {
 
-			Vector3f acc_target_vect = _target_estimator_coupled->getAccelerationVect();
+			const Vector3f acc_target_vect = _target_estimator_coupled->getAccelerationVect();
 			target_estimator_state.ax_target = acc_target_vect(0);
 			target_estimator_state.ay_target = acc_target_vect(1);
 			target_estimator_state.az_target = acc_target_vect(2);
 
-			Vector3f cov_acc_target_vect = _target_estimator_coupled->getAccVarVect();
+			const Vector3f cov_acc_target_vect = _target_estimator_coupled->getAccVarVect();
 			target_estimator_state.cov_ax_target = cov_acc_target_vect(0);
 			target_estimator_state.cov_ay_target = cov_acc_target_vect(1);
 			target_estimator_state.cov_az_target = cov_acc_target_vect(2);
@@ -1450,7 +1440,6 @@ void LTEstPosition::updateParams()
 	_target_acc_unc = _param_ltest_acc_t_unc.get();
 	_bias_unc = _param_ltest_bias_unc.get();
 	_meas_unc = _param_ltest_meas_unc.get();
-	_gps_target_unc = _param_ltest_gps_t_unc.get();
 	_drone_acc_unc = _param_ltest_acc_d_unc.get();
 }
 
@@ -1527,7 +1516,6 @@ bool LTEstPosition::selectTargetEstimator()
 	if (init_failed) {
 		PX4_ERR("LTE init failed");
 		return false;
-		// TODO: decide on a behaviour
 
 	} else {
 

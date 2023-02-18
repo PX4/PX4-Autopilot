@@ -12,8 +12,12 @@ int32 alt	            # Altitude above mean see level (AMSL) in 1E-3 meters , (m
 float32 eph			    # GPS horizontal position accuracy (metres)
 float32 epv			    # GPS vertical position accuracy (metres)
 
+bool abs_pos_updated    # True if WGS84 position is updated
+
 float32 vel_n_m_s		# GPS North velocity, (metres/sec)
 float32 vel_e_m_s		# GPS East velocity, (metres/sec)
 float32 vel_d_m_s		# GPS Down velocity, (metres/sec)
 
-float32 s_variance_m_s		# GPS speed accuracy estimate, (metres/sec)
+float32 s_variance_m_s	# GPS speed accuracy estimate, (metres/sec)
+
+bool vel_ned_updated    # True if NED velocity is updated
