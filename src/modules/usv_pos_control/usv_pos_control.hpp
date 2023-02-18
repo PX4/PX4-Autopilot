@@ -41,8 +41,10 @@
  * @author Tim Hansen <t.hansen@jacobs-university.de>
  * @author Daniel Duecker <daniel.duecker@tuhh.de>
  */
-
+#pragma once
 #include <float.h>
+
+#include "../mc_pos_control/PositionControl/PositionControl.hpp"
 
 #include <drivers/drv_hrt.h>
 #include <lib/geo/geo.h>
@@ -115,12 +117,20 @@ private:
 	perf_counter_t	_loop_perf;
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::USV_GAIN_X_P>) _param_pose_gain_x,
-		(ParamFloat<px4::params::USV_GAIN_Y_P>) _param_pose_gain_y,
-		(ParamFloat<px4::params::USV_GAIN_Z_P>) _param_pose_gain_z,
-		(ParamFloat<px4::params::USV_GAIN_X_D>) _param_pose_gain_d_x,
-		(ParamFloat<px4::params::USV_GAIN_Y_D>) _param_pose_gain_d_y,
-		(ParamFloat<px4::params::USV_GAIN_Z_D>) _param_pose_gain_d_z,
+		// Position Control
+		(ParamFloat<px4::params::USV_XY_P>)         _param_usv_xy_p,
+		(ParamFloat<px4::params::USV_XY_VEL_P_ACC>) _param_usv_xy_vel_p_acc,
+		(ParamFloat<px4::params::USV_XY_VEL_I_ACC>) _param_usv_xy_vel_i_acc,
+		(ParamFloat<px4::params::USV_XY_VEL_D_ACC>) _param_usv_xy_vel_d_acc,
+		(ParamFloat<px4::params::USV_XY_VEL_MAX>)   _param_usv_xy_vel_max,
+
+		// TODO: refactor, delete
+		(ParamFloat<px4::params::USV_XY_VEL_P_ACC>) _param_pose_gain_x,
+		(ParamFloat<px4::params::USV_XY_VEL_P_ACC>) _param_pose_gain_y,
+		(ParamFloat<px4::params::USV_XY_VEL_P_ACC>) _param_pose_gain_z,
+		(ParamFloat<px4::params::USV_XY_VEL_D_ACC>) _param_pose_gain_d_x,
+		(ParamFloat<px4::params::USV_XY_VEL_D_ACC>) _param_pose_gain_d_y,
+		(ParamFloat<px4::params::USV_XY_VEL_D_ACC>) _param_pose_gain_d_z,
 
 		(ParamInt<px4::params::USV_INPUT_MODE>) _param_input_mode,
 		(ParamInt<px4::params::USV_STAB_MODE>) _param_stabilization,
