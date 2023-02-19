@@ -31,11 +31,9 @@
  *
  ****************************************************************************/
 
-/*
+/**
  * @file KF_xyzb_decoupled_static.h
- * Simple Kalman Filter for variable gain low-passing
- *
- * State: [r, r_dot, bias]
+ * @brief Filter to estimate the pose of static targets. State: [r, r_dot, bias]
  *
  * @author Jonas Perolini <jonas.perolini@epfl.ch>
  *

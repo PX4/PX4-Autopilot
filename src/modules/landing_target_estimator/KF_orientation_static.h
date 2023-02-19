@@ -31,11 +31,9 @@
  *
  ****************************************************************************/
 
-/*
- * @file KF_xyzb_decoupled_static.h
- * Simple Kalman Filter for variable gain low-passing
- *
- * State: [orientation]
+/**
+ * @file KF_orientation_static.h
+ * @brief Filter to estimate the orientation of static targets. State: [theta]
  *
  * @author Jonas Perolini <jonas.perolini@epfl.ch>
  *

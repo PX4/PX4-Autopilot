@@ -33,7 +33,7 @@
 
 /**
  * @file LandingTargetEst.h
- * Landing target position estimator. Filter and publish the position of a landing target on the ground as observed by an onboard sensor.
+ * @brief Handles the position and orientation estimators.
  *
  * @author Jonas Perolini <jonas.perolini@epfl.ch>
  *

@@ -31,9 +31,9 @@
  *
  ****************************************************************************/
 
-/*
- * @file KF_xyzb_decoupled_static.h
- * Simple Kalman Filter for static target
+/**
+ * @file KF_xyzb_decoupled_static.cpp
+ * @brief Filter to estimate the pose of static targets. State: [r, r_dot, bias]
  *
  * @author Jonas Perolini <jonas.perolini@epfl.ch>
  *
@@ -63,18 +63,18 @@ void KF_xyzb_decoupled_static::predictCov(float dt)
 bool KF_xyzb_decoupled_static::update()
 {
 	// Avoid zero-division
-	if (_innov_cov  <= 0.000001f && _innov_cov  >= -0.000001f)  {
+	if ((float)abs(_innov_cov) < (float)1e-6) {
 		return false;
 	}
 
-	float beta = _innov / _innov_cov * _innov;
+	const float beta = _innov / _innov_cov * _innov;
 
 	// 5% false alarm probability
 	if (beta > 3.84f) {
 		return false;
 	}
 
-	matrix::Matrix<float, 3, 1> kalmanGain = _covariance * _meas_matrix.transpose() / _innov_cov;
+	const matrix::Matrix<float, 3, 1> kalmanGain = _covariance * _meas_matrix.transpose() / _innov_cov;
 
 	_state = _state + kalmanGain * _innov;
 	_covariance = _covariance - kalmanGain * _meas_matrix * _covariance;
@@ -84,9 +84,8 @@ bool KF_xyzb_decoupled_static::update()
 
 void KF_xyzb_decoupled_static::setH(matrix::Vector<float, 15> h_meas, int direction)
 {
-	// h_meas = [rx, ry, rz, r_dotx, r_doty, r_dotz, bx, by, bz, atx, aty, atz]
-
-	// For this filter: [rx, r_dotx, bx]
+	// h_meas = [rx, ry, rz, r_dotx, r_doty, r_dotz, bx, by, bz, atx, aty, atz, vtx, vty, vtz]
+	// idx    = [0,   1,  2,      3,      4,      5,  6,  7,  8,   9,  10,  11,  12,  13,  14]
 
 	if (direction == Directions::x) {
 		_meas_matrix(0, 0) = h_meas(0);

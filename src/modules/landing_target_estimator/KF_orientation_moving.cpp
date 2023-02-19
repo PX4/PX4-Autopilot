@@ -31,9 +31,9 @@
  *
  ****************************************************************************/
 
-/*
- * @file KF_xyzb_decoupled_static.h
- * Simple Kalman Filter for static target
+/**
+ * @file KF_orientation_moving.cpp
+ * @brief Filter to estimate the orientation of moving targets. State: [theta, theta_dot]
  *
  * @author Jonas Perolini <jonas.perolini@epfl.ch>
  *
@@ -65,7 +65,7 @@ void KF_orientation_moving::predictCov(float dt)
 	⎣             dt⋅p(1;1) + p(0;1)                         p(1;1)      ⎦
 	*/
 
-	float off_diag = dt * _covariance(1, 1) + _covariance(0, 1);
+	const float off_diag = dt * _covariance(1, 1) + _covariance(0, 1);
 	_covariance(0, 0) += dt * _covariance(0, 1) + dt * (dt * _covariance(1, 1) + _covariance(0, 1));
 	_covariance(1, 0) = off_diag;
 	_covariance(0, 1) = off_diag;
@@ -75,18 +75,18 @@ void KF_orientation_moving::predictCov(float dt)
 bool KF_orientation_moving::update()
 {
 	// Avoid zero-division
-	if (_innov_cov  <= 0.000001f && _innov_cov  >= -0.000001f)  {
+	if ((float)abs(_innov_cov) < (float)1e-6) {
 		return false;
 	}
 
-	float beta = _innov / _innov_cov * _innov;
+	const float beta = _innov / _innov_cov * _innov;
 
 	// 5% false alarm probability
 	if (beta > 3.84f) {
 		return false;
 	}
 
-	matrix::Matrix<float, 2, 1> kalmanGain = _covariance * _meas_matrix.transpose() / _innov_cov;
+	const matrix::Matrix<float, 2, 1> kalmanGain = _covariance * _meas_matrix.transpose() / _innov_cov;
 
 	_state = _state + kalmanGain * _innov;
 

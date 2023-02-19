@@ -31,11 +31,9 @@
  *
  ****************************************************************************/
 
-/*
+/**
  * @file KF_xyzb_decoupled_moving.h
- * Simple Kalman Filter for variable gain low-passing
- *
- * State: [r, r_dot, bias, target_acc]
+ * @brief Filter to estimate the pose of moving targets. State: [r, r_dot, bias, target_acc]
  *
  * @author Jonas Perolini <jonas.perolini@epfl.ch>
  *

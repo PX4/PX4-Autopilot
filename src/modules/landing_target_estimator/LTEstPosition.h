@@ -31,9 +31,9 @@
  *
  ****************************************************************************/
 
-/*
+/**
  * @file LTEstPosition.h
- * Landing target position estimator. Filter and publish the position of a landing target on the ground as observed by an onboard sensor.
+ * @brief Estimate the state of a target by processessing and fusing sensor data in a Kalman Filter.
  *
  * @author Jonas Perolini <jonas.perolini@epfl.ch>
  *

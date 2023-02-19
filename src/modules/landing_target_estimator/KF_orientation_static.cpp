@@ -31,9 +31,9 @@
  *
  ****************************************************************************/
 
-/*
- * @file KF_orientation_static.h
- * Simple Kalman Filter for static target
+/**
+ * @file KF_orientation_static.cpp
+ * @brief Filter to estimate the orientation of static targets. State: [theta]
  *
  * @author Jonas Perolini <jonas.perolini@epfl.ch>
  *
@@ -58,18 +58,18 @@ void KF_orientation_static::predictCov(float dt)
 bool KF_orientation_static::update()
 {
 	// Avoid zero-division
-	if (_innov_cov  <= 0.000001f && _innov_cov  >= -0.000001f)  {
+	if ((float)abs(_innov_cov) < (float)1e-6) {
 		return false;
 	}
 
-	float beta = _innov / _innov_cov * _innov;
+	const float beta = _innov / _innov_cov * _innov;
 
 	// 5% false alarm probability
 	if (beta > 3.84f) {
 		return false;
 	}
 
-	float kalmanGain = _covariance * _meas_matrix / _innov_cov;
+	const float kalmanGain = _covariance * _meas_matrix / _innov_cov;
 
 	_state = matrix::wrap_pi(_state + kalmanGain * _innov);
 

@@ -31,11 +31,9 @@
  *
  ****************************************************************************/
 
-/*
+/**
  * @file KF_orientation_moving.h
- * Simple Kalman Filter for variable gain low-passing
- *
- * State: [theta, theta_dot]
+ * @brief Filter to estimate the orientation of moving targets. State: [theta, theta_dot]
  *
  * @author Jonas Perolini <jonas.perolini@epfl.ch>
  *

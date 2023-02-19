@@ -32,8 +32,8 @@
  ****************************************************************************/
 
 /**
- * @file target_estimator.cpp
- * @brief Interface for target estimators
+ * @file base_KF_orientation.h
+ * @brief Interface for orientation target estimator
  * @author Jonas Perolini <jonas.perolini@epfl.ch>
  */
 

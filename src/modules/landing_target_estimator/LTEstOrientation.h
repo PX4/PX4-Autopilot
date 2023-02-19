@@ -31,9 +31,9 @@
  *
  ****************************************************************************/
 
-/*
+/**
  * @file LTEstOrientation.h
- * Landing target orientation estimator. Filter and publish the orientation of a landing target on the ground as observed by an onboard sensor.
+ * @brief Estimate the orientation of a target by processessing and fusing sensor data in a Kalman Filter.
  *
  * @author Jonas Perolini <jonas.perolini@epfl.ch>
  *

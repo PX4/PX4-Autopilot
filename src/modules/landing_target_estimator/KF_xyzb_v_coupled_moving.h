@@ -31,11 +31,9 @@
  *
  ****************************************************************************/
 
-/*
+/**
  * @file KF_xyzb_v_coupled_moving.h
- * Simple Kalman Filter for variable gain low-passing
- *
- * State: [rx, ry, rz, r_dotx, r_doty, r_dotz, bx, by, bz, atx, aty, atz, vtx, vty, vtz]
+ * @brief Filter to estimate the pose of moving targets. State: [rx, ry, rz, vdx, vdy, vdz, bx, by, bz, atx, aty, atz, vtx, vty, vtz]
  *
  * @author Jonas Perolini <jonas.perolini@epfl.ch>
  *

@@ -31,8 +31,9 @@
  *
  ****************************************************************************/
 
-/*
+/**
  * @file LTEstPosition.cpp
+ * @brief Estimate the state of a target by processessing and fusing sensor data in a Kalman Filter.
  *
  * @author Jonas Perolini <jonas.perolini@epfl.ch>
  *
@@ -93,6 +94,11 @@ bool LTEstPosition::init()
 		if (_ltest_aid_mask == 0) {
 			PX4_ERR("LTEst: no data fusion enabled. Modify LTEST_AID_MASK and reboot");
 			return false;
+		}
+
+		if ((_ltest_aid_mask & SensorFusionMask::USE_TARGET_GPS_POS) && (_ltest_aid_mask & SensorFusionMask::USE_MISSION_POS)) {
+			PX4_WARN("LTEst both target GPS position and mission land position data fusion enabled. Disabling mission land position fusion.");
+			_ltest_aid_mask -= SensorFusionMask::USE_MISSION_POS;
 		}
 
 		if (_ltest_aid_mask & SensorFusionMask::USE_TARGET_GPS_POS) { PX4_INFO("LTEst target GPS position data fusion enabled");}
@@ -652,6 +658,7 @@ bool LTEstPosition::processObsGNSSVelRel(const landing_target_gnss_s &target_GNS
 {
 
 	bool obs_updated = false;
+	float unc;
 
 	switch (_target_mode) {
 	case TargetMode::Stationary:
@@ -661,10 +668,7 @@ bool LTEstPosition::processObsGNSSVelRel(const landing_target_gnss_s &target_GNS
 			obs.meas_xyz(1) = -vehicle_gps_position.vel_e_m_s;
 			obs.meas_xyz(2) = -vehicle_gps_position.vel_d_m_s;
 
-			obs.meas_unc_xyz(0) = vehicle_gps_position.s_variance_m_s;
-			obs.meas_unc_xyz(1) = vehicle_gps_position.s_variance_m_s;
-			obs.meas_unc_xyz(2) = vehicle_gps_position.s_variance_m_s;
-
+			unc = vehicle_gps_position.s_variance_m_s * vehicle_gps_position.s_variance_m_s;
 			obs_updated = true;
 		}
 
@@ -686,18 +690,13 @@ bool LTEstPosition::processObsGNSSVelRel(const landing_target_gnss_s &target_GNS
 
 			} else {
 
-				// If the target is moving, the relative velocity is expressed as the drone verlocity - the target velocity
-				obs.meas_xyz(0) = vehicle_gps_position.vel_n_m_s - target_GNSS_report.vel_n_m_s;
-				obs.meas_xyz(1) = vehicle_gps_position.vel_e_m_s - target_GNSS_report.vel_e_m_s;
-				obs.meas_xyz(2) = vehicle_gps_position.vel_d_m_s - target_GNSS_report.vel_d_m_s;
+				// If the target is moving, the relative velocity is expressed as the target velocity - drone verlocity
+				obs.meas_xyz(0) = target_GNSS_report.vel_n_m_s - vehicle_gps_position.vel_n_m_s;
+				obs.meas_xyz(1) = target_GNSS_report.vel_e_m_s - vehicle_gps_position.vel_e_m_s;
+				obs.meas_xyz(2) = target_GNSS_report.vel_d_m_s - vehicle_gps_position.vel_d_m_s;
 
-				const float unc = vehicle_gps_position.s_variance_m_s * vehicle_gps_position.s_variance_m_s +
-						  target_GNSS_report.s_variance_m_s * target_GNSS_report.s_variance_m_s;
-
-				obs.meas_unc_xyz(0) = unc;
-				obs.meas_unc_xyz(1) = unc;
-				obs.meas_unc_xyz(2) = unc;
-
+				unc = vehicle_gps_position.s_variance_m_s * vehicle_gps_position.s_variance_m_s +
+				      target_GNSS_report.s_variance_m_s * target_GNSS_report.s_variance_m_s;
 				obs_updated = true;
 			}
 		}
@@ -711,10 +710,7 @@ bool LTEstPosition::processObsGNSSVelRel(const landing_target_gnss_s &target_GNS
 			obs.meas_xyz(1) = vehicle_gps_position.vel_e_m_s;
 			obs.meas_xyz(2) = vehicle_gps_position.vel_d_m_s;
 
-			obs.meas_unc_xyz(0) = vehicle_gps_position.s_variance_m_s;
-			obs.meas_unc_xyz(1) = vehicle_gps_position.s_variance_m_s;
-			obs.meas_unc_xyz(2) = vehicle_gps_position.s_variance_m_s;
-
+			unc = vehicle_gps_position.s_variance_m_s * vehicle_gps_position.s_variance_m_s;
 			obs_updated = true;
 		}
 
@@ -732,6 +728,10 @@ bool LTEstPosition::processObsGNSSVelRel(const landing_target_gnss_s &target_GNS
 		obs.meas_h_xyz(0, 3) = 1; // x direction
 		obs.meas_h_xyz(1, 4) = 1; // y direction
 		obs.meas_h_xyz(2, 5) = 1; // z direction
+
+		obs.meas_unc_xyz(0) = unc;
+		obs.meas_unc_xyz(1) = unc;
+		obs.meas_unc_xyz(2) = unc;
 
 		obs.timestamp = vehicle_gps_position.timestamp;
 
@@ -1185,6 +1185,7 @@ void LTEstPosition::publishTarget()
 	target_pose.rel_pos_valid = (hrt_absolute_time() - _last_update < landing_target_valid_TIMEOUT_US);
 
 	// TODO: eventually set to true, but for testing we don't want to use the target as an external source of velocity in the EKF
+	// Only enable if the variance in the estimation is low enough
 	target_pose.rel_vel_valid = false;
 
 	if (_target_model == TargetModel::Coupled) {

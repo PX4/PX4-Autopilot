@@ -32,8 +32,8 @@
  ****************************************************************************/
 
 /**
- * @file Base_KF_decoupled.cpp
- * @brief Interface for target estimators
+ * @file Base_KF_decoupled.h
+ * @brief Interface for decoupled target estimators
  * @author Jonas Perolini <jonas.perolini@epfl.ch>
  */
 

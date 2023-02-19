@@ -32,8 +32,8 @@
  ****************************************************************************/
 
 /**
- * @file target_estimator_coupled.cpp
- * @brief Interface for target estimators
+ * @file base_KF_coupled.h
+ * @brief Interface for coupled target estimators
  * @author Jonas Perolini <jonas.perolini@epfl.ch>
  */
 
@@ -58,9 +58,6 @@ public:
 	virtual float computeInnov(float meas) = 0;
 
 	virtual bool update() { return true; };
-
-	// Init: x_0
-	//TODO: Rename with "Init": setInitPosition
 
 	//For the coupled Kalman filter, we need to work with vectors.
 	virtual void setPosition(matrix::Vector<float, 3> posVect) = 0;
