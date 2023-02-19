@@ -14,11 +14,11 @@
             "environment": [
                 {
                     "name": "PX4_SIM_MODEL",
-                    "value": "${input:PX4_GZ_MODEL}"
+                    "value": "gz_${input:PX4_GZ_MODEL}"
                 }
             ],
             "externalConsole": false,
-            "postDebugTask": "ign gazebo kill",
+            "postDebugTask": "gazebo kill",
             "linux": {
                 "MIMode": "gdb",
                 "externalConsole": false,
@@ -222,6 +222,9 @@
             "description": "GZ vehicle model",
             "options": [
               "x500",
+              "x500_depth",
+              "rc_cessna",
+              "standard_vtol",
             ],
             "default": "x500"
         }

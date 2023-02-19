@@ -170,7 +170,7 @@
             ]
         },
         {
-            "label": "ign gazebo",
+            "label": "gazebo",
             "type": "shell",
             "options": {
                 "cwd": "${workspaceFolder}",
@@ -178,7 +178,7 @@
                     "IGN_GAZEBO_RESOURCE_PATH": "${workspaceFolder}/Tools/simulation/gz/models",
                 }
             },
-            "command": "ign gazebo -v 4 -r ${workspaceFolder}/Tools/simulation/gz/worlds/${input:gzWorld}.sdf",
+            "command": "gz sim -v 4 -r ${workspaceFolder}/Tools/simulation/gz/worlds/${input:gzWorld}.sdf",
             "isBackground": true,
             "presentation": {
                 "echo": true,
@@ -191,7 +191,7 @@
                 "close": false
             },
             "problemMatcher": [],
-            "dependsOn":["ign gazebo kill"]
+            "dependsOn":["gazebo kill"]
         },
         {
             "label": "gazebo-classic kill",
@@ -211,9 +211,9 @@
             "dependsOn":["px4_sitl_cleanup"]
         },
         {
-            "label": "ign gazebo kill",
+            "label": "gazebo kill",
             "type": "shell",
-            "command": "pkill -9 -f 'ign gazebo' || true",
+            "command": "pkill -9 -f 'gz sim' || true",
             "presentation": {
                 "echo": true,
                 "reveal": "never",
