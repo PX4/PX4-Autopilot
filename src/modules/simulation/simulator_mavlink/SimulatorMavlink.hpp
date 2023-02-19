@@ -328,7 +328,6 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::MAV_TYPE>) _param_mav_type,
 		(ParamInt<px4::params::MAV_SYS_ID>) _param_mav_sys_id,
-		(ParamInt<px4::params::MAV_COMP_ID>) _param_mav_comp_id,
-		(ParamInt<px4::params::LTEST_EN>) _param_ltest_en
+		(ParamInt<px4::params::MAV_COMP_ID>) _param_mav_comp_id
 	)
 };

@@ -728,8 +728,10 @@ void SimulatorMavlink::handle_message_target_relative(const mavlink_message_t *m
 	}
 
 	if (publish_target) {
+		int32_t ltest_enabled;
+		param_get(param_find("LTEST_EN"), &ltest_enabled);
 
-		if (!_param_ltest_en.get()) {
+		if (!ltest_enabled) {
 
 			// If the landing target estimator is disabled, send the target directly to the precision landing algorithm in local NED frame
 			landing_target_pose_s landing_target_pose{};
