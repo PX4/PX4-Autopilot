@@ -64,7 +64,7 @@ static constexpr float CONSTANTS_ONE_G = 9.80665f;  // m/s^2
 
 LandingTargetEst::LandingTargetEst() :
 	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::ltest)
 {
 	_ltest_acc_input_pub.advertise();
 }
@@ -154,6 +154,7 @@ void LandingTargetEst::Run()
 
 		position_setpoint_triplet_s pos_sp_triplet;
 
+		// Start the filter when the next waypoint is of type land
 		if (((hrt_absolute_time() - _land_time) > 5000000) && _pos_sp_triplet_sub.update(&pos_sp_triplet)) {
 			_start_filters = (pos_sp_triplet.next.type == position_setpoint_s::SETPOINT_TYPE_LAND);
 
@@ -162,7 +163,6 @@ void LandingTargetEst::Run()
 				reset_acc_downsample();
 
 				if (_ltest_position_valid) {
-					// TODO: do we want to enable this feature only in mission mode? (_vehicle_status_sub.update(&vehicle_status) && (vehicle_status.nav_state  == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
 					_ltest_position->set_landpoint((int)(pos_sp_triplet.next.lat * 1e7), (int)(pos_sp_triplet.next.lon * 1e7),
 								       pos_sp_triplet.next.alt * 1000.f);
 				}

@@ -306,6 +306,7 @@ MavlinkParametersManager::send()
 		param_find("CAL_MAG2_ROT");
 		param_find("CAL_MAG3_ID");
 		param_find("CAL_MAG3_ROT");
+		param_find("LTEST_EN");
 		param_find("SENS_BOARD_ROT");
 		param_find("SENS_BOARD_X_OFF");
 		param_find("SENS_BOARD_Y_OFF");
