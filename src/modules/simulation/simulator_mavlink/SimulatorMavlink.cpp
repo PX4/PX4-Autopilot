@@ -626,7 +626,7 @@ SimulatorMavlink::handle_message_target_absolute(const mavlink_message_t *msg)
 	bool updated = false;
 
 	// Position: bit 0
-	if (!(target_absolute.est_capabilities & (1 << 0))) {
+	if (!(target_absolute.sensor_capabilities & (1 << 0))) {
 		target_GNSS_report.abs_pos_updated = false;
 
 	} else {
@@ -640,7 +640,7 @@ SimulatorMavlink::handle_message_target_absolute(const mavlink_message_t *msg)
 	}
 
 	// Velocity: bit 1
-	if (!(target_absolute.est_capabilities & (1 << 1))) {
+	if (!(target_absolute.sensor_capabilities & (1 << 1))) {
 		target_GNSS_report.vel_ned_updated = false;
 
 	} else {
