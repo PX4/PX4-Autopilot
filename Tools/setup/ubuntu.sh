@@ -224,7 +224,7 @@ if [[ $INSTALL_SIM == "true" ]]; then
 		# Update list, since new gazebo-stable.list has been added
 		sudo apt-get update -y --quiet
 		sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
-			ignition-fortress \
+			gz-garden \
 			;
 	fi
 
