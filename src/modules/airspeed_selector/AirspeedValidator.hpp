@@ -127,7 +127,6 @@ private:
 	bool _data_stuck_check_enabled{false};
 	bool _innovation_check_enabled{false};
 	bool _load_factor_check_enabled{false};
-	bool _data_variation_check_enabled{false};
 
 	// airspeed scale validity check
 	static constexpr int SCALE_CHECK_SAMPLES = 12; ///< take samples from 12 segments (every 360/12=30°)
