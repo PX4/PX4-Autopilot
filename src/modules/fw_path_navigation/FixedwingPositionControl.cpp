@@ -1000,20 +1000,13 @@ FixedwingPositionControl::handle_setpoint_type(const position_setpoint_s &pos_sp
 					   _current_latitude, _current_longitude, _current_altitude,
 					   &dist_xy, &dist_z);
 
-		float loiter_radius_abs = fabsf(_param_nav_loiter_rad.get());
-
-		if (fabsf(pos_sp_curr.loiter_radius) > FLT_EPSILON) {
-			loiter_radius_abs = fabsf(pos_sp_curr.loiter_radius);
-		}
-
 		if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
 			// Achieve position setpoint altitude via loiter when laterally close to WP.
 			// Detect if system has switchted into a Loiter before (check _position_sp_type), and in that
 			// case remove the dist_xy check (not switch out of Loiter until altitude is reached).
 			if ((!_vehicle_status.in_transition_mode) && (dist >= 0.f)
 			    && (dist_z > _param_nav_fw_alt_rad.get())
-			    && (dist_xy < math::max(acc_rad, loiter_radius_abs)
-				|| _position_sp_type == position_setpoint_s::SETPOINT_TYPE_LOITER)) {
+			    && (dist_xy < acc_rad || _position_sp_type == position_setpoint_s::SETPOINT_TYPE_LOITER)) {
 
 				// SETPOINT_TYPE_POSITION -> SETPOINT_TYPE_LOITER
 				position_sp_type = position_setpoint_s::SETPOINT_TYPE_LOITER;
