@@ -174,15 +174,6 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 		_control_status.flags.rng_kin_consistent = _rng_consistency_check.isKinematicallyConsistent();
 	}
 
-	if (_flow_buffer) {
-		// We don't fuse flow data immediately because we have to wait for the mid integration point to fall behind the fusion time horizon.
-		// This means we stop looking for new data until the old data has been fused, unless we are not fusing optical flow,
-		// in this case we need to empty the buffer
-		if (!_flow_data_ready || (!_control_status.flags.opt_flow && !_hagl_sensor_status.flags.flow)) {
-			_flow_data_ready = _flow_buffer->pop_first_older_than(imu_delayed.time_us, &_flow_sample_delayed);
-		}
-	}
-
 	if (_airspeed_buffer) {
 		_tas_data_ready = _airspeed_buffer->pop_first_older_than(imu_delayed.time_us, &_airspeed_sample_delayed);
 	}
