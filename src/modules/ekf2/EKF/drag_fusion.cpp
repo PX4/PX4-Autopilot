@@ -42,6 +42,27 @@
 
 #include <mathlib/mathlib.h>
 
+void Ekf::controlDragFusion()
+{
+	if ((_params.fusion_mode & SensorFusionMask::USE_DRAG) && _drag_buffer &&
+	    !_control_status.flags.fake_pos && _control_status.flags.in_air) {
+
+		if (!_control_status.flags.wind) {
+			// reset the wind states and covariances when starting drag accel fusion
+			_control_status.flags.wind = true;
+			resetWind();
+
+		}
+
+
+		dragSample drag_sample;
+
+		if (_drag_buffer->pop_first_older_than(_time_delayed_us, &drag_sample)) {
+			fuseDrag(drag_sample);
+		}
+	}
+}
+
 void Ekf::fuseDrag(const dragSample &drag_sample)
 {
 	const float R_ACC = fmaxf(_params.drag_noise, 0.5f); // observation noise variance in specific force drag (m/sec**2)**2
