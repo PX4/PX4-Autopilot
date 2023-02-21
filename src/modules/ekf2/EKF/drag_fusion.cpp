@@ -50,10 +50,8 @@ void Ekf::controlDragFusion()
 		if (!_control_status.flags.wind) {
 			// reset the wind states and covariances when starting drag accel fusion
 			_control_status.flags.wind = true;
-			resetWind();
-
+			resetWindToZero();
 		}
-
 
 		dragSample drag_sample;
 
