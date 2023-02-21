@@ -28,7 +28,6 @@ bool local_position_invalid           # Local position estimate invalid
 bool local_position_invalid_relaxed   # Local position with reduced accuracy requirements invalid (e.g. flying with optical flow)
 bool local_velocity_invalid           # Local velocity estimate invalid
 bool global_position_invalid          # Global position estimate invalid
-bool gps_position_invalid             # GPS position invalid
 bool auto_mission_missing             # No mission available
 bool offboard_control_signal_lost     # Offboard signal lost
 bool home_position_invalid            # No home position available

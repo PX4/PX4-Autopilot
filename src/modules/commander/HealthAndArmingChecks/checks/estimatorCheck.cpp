@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,9 +37,6 @@ using namespace time_literals;
 
 EstimatorChecks::EstimatorChecks()
 {
-	_vehicle_gps_position_valid.set_hysteresis_time_from(false, GPS_VALID_TIME);
-	_vehicle_gps_position_valid.set_hysteresis_time_from(true, 0);
-
 	// initially set to failed
 	_last_lpos_fail_time_us = hrt_absolute_time();
 	_last_lpos_relaxed_fail_time_us = _last_lpos_fail_time_us;
@@ -119,13 +116,9 @@ void EstimatorChecks::checkAndReport(const Context &context, Report &reporter)
 	}
 
 	// set mode requirements
-	const bool condition_gps_position_was_valid = !reporter.failsafeFlags().gps_position_invalid;
 	setModeRequirementFlags(context, pre_flt_fail_innov_heading, pre_flt_fail_innov_vel_horiz, lpos, vehicle_gps_position,
 				reporter.failsafeFlags());
 
-	if (condition_gps_position_was_valid && reporter.failsafeFlags().gps_position_invalid) {
-		gpsNoLongerValid(context, reporter);
-	}
 
 	lowPositionAccuracy(context, reporter, lpos);
 }
@@ -280,7 +273,7 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 	}
 
 	// If GPS aiding is required, declare fault condition if the required GPS quality checks are failing
-	if (!context.isArmed() && _param_sys_has_gps.get()) {
+	if (_param_sys_has_gps.get()) {
 		const bool ekf_gps_fusion = estimator_status.control_mode_flags & (1 << estimator_status_s::CS_GPS);
 		const bool ekf_gps_check_fail = estimator_status.gps_check_fail_flags > 0;
 
@@ -288,7 +281,30 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 			reporter.setIsPresent(health_component_t::gps); // should be based on the sensor data directly
 		}
 
-		if (ekf_gps_check_fail) {
+		if (context.isArmed()) {
+
+			if (_gps_was_fused && !ekf_gps_fusion) {
+				if (reporter.mavlink_log_pub()) {
+					mavlink_log_warning(reporter.mavlink_log_pub(), "GNSS data fusion stopped\t");
+				}
+
+				events::send(events::ID("check_estimator_gnss_fusion_stopped"), {events::Log::Error, events::LogInternal::Info},
+					     "GNSS data fusion stopped");
+
+			} else if (!_gps_was_fused && ekf_gps_fusion) {
+
+				if (reporter.mavlink_log_pub()) {
+					mavlink_log_info(reporter.mavlink_log_pub(), "GNSS data fusion started\t");
+				}
+
+				events::send(events::ID("check_estimator_gnss_fusion_stated"), {events::Log::Info, events::LogInternal::Info},
+					     "GNSS data fusion stated");
+			}
+		}
+
+		_gps_was_fused = ekf_gps_fusion;
+
+		if (!context.isArmed() && ekf_gps_check_fail) {
 			NavModes required_groups_gps = required_groups;
 			events::Log log_level = events::Log::Error;
 
@@ -656,21 +672,6 @@ void EstimatorChecks::checkGps(const Context &context, Report &reporter, const s
 	}
 }
 
-void EstimatorChecks::gpsNoLongerValid(const Context &context, Report &reporter) const
-{
-	PX4_DEBUG("GPS no longer valid");
-
-	// report GPS failure if armed and the global position estimate is still valid
-	if (context.isArmed() && !reporter.failsafeFlags().global_position_invalid) {
-		if (reporter.mavlink_log_pub()) {
-			mavlink_log_warning(reporter.mavlink_log_pub(), "GPS no longer valid\t");
-		}
-
-		events::send(events::ID("check_estimator_gps_lost"), {events::Log::Error, events::LogInternal::Info},
-			     "GPS no longer valid");
-	}
-}
-
 void EstimatorChecks::lowPositionAccuracy(const Context &context, Report &reporter,
 		const vehicle_local_position_s &lpos) const
 {
@@ -798,24 +799,6 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 	}
 
 	failsafe_flags.angular_velocity_invalid = angular_velocity_invalid;
-
-
-	// gps
-	if (vehicle_gps_position.timestamp != 0) {
-		bool time = (now < vehicle_gps_position.timestamp + 1_s);
-
-		bool fix = vehicle_gps_position.fix_type >= 2;
-		bool eph = vehicle_gps_position.eph < _param_com_pos_fs_eph.get();
-		bool epv = vehicle_gps_position.epv < _param_com_pos_fs_epv.get();
-		bool evh = vehicle_gps_position.s_variance_m_s < _param_com_vel_fs_evh.get();
-		bool no_jamming = (vehicle_gps_position.jamming_state != sensor_gps_s::JAMMING_STATE_CRITICAL);
-
-		_vehicle_gps_position_valid.set_state_and_update(time && fix && eph && epv && evh && no_jamming, now);
-		failsafe_flags.gps_position_invalid = !_vehicle_gps_position_valid.get_state();
-
-	} else {
-		failsafe_flags.gps_position_invalid = true;
-	}
 }
 
 bool EstimatorChecks::checkPosVelValidity(const hrt_abstime &now, const bool data_valid, const float data_accuracy,
