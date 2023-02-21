@@ -122,8 +122,7 @@ MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt,
 		   || (_param_mc_airmode.get() == 2)) {
 
 		const float yaw_rate = math::radians(_param_mpc_man_y_max.get());
-		attitude_setpoint.yaw_sp_move_rate = _manual_control_setpoint.yaw * yaw_rate;
-		_man_yaw_sp = wrap_pi(_man_yaw_sp + attitude_setpoint.yaw_sp_move_rate * dt);
+		_man_yaw_sp = wrap_pi(_man_yaw_sp + _manual_control_setpoint.yaw * yaw_rate * dt);
 	}
 
 	/*
@@ -145,16 +144,19 @@ MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt,
 		v *= _man_tilt_max / v_norm;
 	}
 
-	_attitude_input_filter.update(dt, AxisAnglef(v(0), v(1), 0));
+	_attitude_input_filter.update(dt, AxisAnglef(0.f, 0.f, _man_yaw_sp) + AxisAnglef(v(0), v(1), 0));
 
-	Eulerf euler_sp = _attitude_input_filter.getState();
-	attitude_setpoint.roll_body = euler_sp(0);
-	attitude_setpoint.pitch_body = euler_sp(1);
 	// The axis angle can change the yaw as well (noticeable at higher tilt angles).
 	// This is the formula by how much the yaw changes:
 	//   let a := tilt angle, b := atan(y/x) (direction of maximum tilt)
 	//   yaw = atan(-2 * sin(b) * cos(b) * sin^2(a/2) / (1 - 2 * cos^2(b) * sin^2(a/2))).
-	attitude_setpoint.yaw_body = _man_yaw_sp + euler_sp(2);
+	Quatf q_sp = _attitude_input_filter.getState();
+	attitude_setpoint.yaw_sp_move_rate = _attitude_input_filter.getRate()(2);
+
+	Eulerf euler_sp = q_sp;
+	attitude_setpoint.roll_body = euler_sp(0);
+	attitude_setpoint.pitch_body = euler_sp(1);
+	attitude_setpoint.yaw_body = euler_sp(2);
 
 	/* modify roll/pitch only if we're a VTOL */
 	if (_vtol) {
@@ -191,10 +193,11 @@ MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt,
 		// -> valid if roll is not +-pi/2;
 		attitude_setpoint.roll_body = -asinf(z_roll_pitch_sp(1));
 		attitude_setpoint.pitch_body = atan2f(z_roll_pitch_sp(0), z_roll_pitch_sp(2));
+
+		q_sp = Eulerf(attitude_setpoint.roll_body, attitude_setpoint.pitch_body, attitude_setpoint.yaw_body);
 	}
 
 	/* copy quaternion setpoint to attitude setpoint topic */
-	Quatf q_sp = Eulerf(attitude_setpoint.roll_body, attitude_setpoint.pitch_body, attitude_setpoint.yaw_body);
 	q_sp.copyTo(attitude_setpoint.q_d);
 
 	attitude_setpoint.thrust_body[2] = -throttle_curve((_manual_control_setpoint.throttle + 1.f) * .5f);
@@ -313,7 +316,7 @@ MulticopterAttitudeControl::Run()
 				attitude_setpoint_generated = true;
 
 			} else {
-				_attitude_input_filter.reset(AxisAnglef(0.f, 0.f, 0.f));
+				_attitude_input_filter.reset(AxisAnglef(q));
 			}
 
 			Vector3f rates_sp = _attitude_control.update(q);
