@@ -33,6 +33,7 @@
 
 add_library(ecl_EKF
 	airspeed_fusion.cpp
+	auxvel_fusion.cpp
 	baro_height_control.cpp
 	bias_estimator.cpp
 	control.cpp

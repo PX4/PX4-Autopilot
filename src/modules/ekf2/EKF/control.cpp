@@ -217,22 +217,3 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 	// check if we are no longer fusing measurements that directly constrain velocity drift
 	updateDeadReckoningStatus();
 }
-
-void Ekf::controlAuxVelFusion()
-{
-	if (_auxvel_buffer) {
-		auxVelSample auxvel_sample_delayed;
-
-		if (_auxvel_buffer->pop_first_older_than(_time_delayed_us, &auxvel_sample_delayed)) {
-
-			resetEstimatorAidStatus(_aid_src_aux_vel);
-
-			updateVelocityAidSrcStatus(auxvel_sample_delayed.time_us, auxvel_sample_delayed.vel, auxvel_sample_delayed.velVar, fmaxf(_params.auxvel_gate, 1.f), _aid_src_aux_vel);
-
-			if (isHorizontalAidingActive()) {
-				_aid_src_aux_vel.fusion_enabled = true;
-				fuseVelocity(_aid_src_aux_vel);
-			}
-		}
-	}
-}
