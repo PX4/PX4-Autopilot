@@ -70,13 +70,15 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 		_tas_data_ready = _airspeed_buffer->pop_first_older_than(imu_delayed.time_us, &_airspeed_sample_delayed);
 	}
 
+	const airspeedSample &airspeed_sample = _airspeed_sample_delayed;
+
 	if (_tas_data_ready) {
-		updateAirspeed(_airspeed_sample_delayed, _aid_src_airspeed);
+		updateAirspeed(airspeed_sample, _aid_src_airspeed);
 
 		_innov_check_fail_status.flags.reject_airspeed = _aid_src_airspeed.innovation_rejected; // TODO: remove this redundant flag
 
 		const bool continuing_conditions_passing = _control_status.flags.in_air && _control_status.flags.fixed_wing && !_control_status.flags.fake_pos;
-		const bool is_airspeed_significant = _airspeed_sample_delayed.true_airspeed > _params.arsp_thr;
+		const bool is_airspeed_significant = airspeed_sample.true_airspeed > _params.arsp_thr;
 		const bool is_airspeed_consistent = (_aid_src_airspeed.test_ratio > 0.f && _aid_src_airspeed.test_ratio < 1.f);
 		const bool starting_conditions_passing = continuing_conditions_passing && is_airspeed_significant
 		                                         && (is_airspeed_consistent || !_control_status.flags.wind); // if wind isn't already estimated, the states are reset when starting airspeed fusion
@@ -84,7 +86,7 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 		if (_control_status.flags.fuse_aspd) {
 			if (continuing_conditions_passing) {
 				if (is_airspeed_significant) {
-					fuseAirspeed(_aid_src_airspeed);
+					fuseAirspeed(airspeed_sample, _aid_src_airspeed);
 				}
 
 				const bool is_fusion_failing = isTimedOut(_aid_src_airspeed.time_last_fuse, (uint64_t)10e6);
@@ -98,19 +100,29 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 			}
 
 		} else if (starting_conditions_passing) {
-			startAirspeedFusion();
+			ECL_INFO("starting airspeed fusion");
+
+			// If starting wind state estimation, reset the wind states and covariances before fusing any data
+			if (!_control_status.flags.wind) {
+				// activate the wind states
+				_control_status.flags.wind = true;
+				// reset the wind speed states and corresponding covariances
+				resetWindUsingAirspeed(airspeed_sample);
+			}
+
+			_control_status.flags.fuse_aspd = true;
 		}
 
-	} else if (_control_status.flags.fuse_aspd && !isRecent(_airspeed_sample_delayed.time_us, (uint64_t)1e6)) {
+	} else if (_control_status.flags.fuse_aspd && !isRecent(airspeed_sample.time_us, (uint64_t)1e6)) {
 		ECL_WARN("Airspeed data stopped");
 		stopAirspeedFusion();
 	}
 }
 
-void Ekf::updateAirspeed(const airspeedSample &airspeed_sample, estimator_aid_source1d_s &airspeed) const
+void Ekf::updateAirspeed(const airspeedSample &airspeed_sample, estimator_aid_source1d_s &aid_src) const
 {
 	// reset flags
-	resetEstimatorAidStatus(airspeed);
+	resetEstimatorAidStatus(aid_src);
 
 	// Variance for true airspeed measurement - (m/sec)^2
 	const float R = sq(math::constrain(_params.eas_noise, 0.5f, 5.0f) *
@@ -120,37 +132,37 @@ void Ekf::updateAirspeed(const airspeedSample &airspeed_sample, estimator_aid_so
 	float innov_var = 0.f;
 	sym::ComputeAirspeedInnovAndInnovVar(getStateAtFusionHorizonAsVector(), P, airspeed_sample.true_airspeed, R, FLT_EPSILON, &innov, &innov_var);
 
-	airspeed.observation = airspeed_sample.true_airspeed;
-	airspeed.observation_variance = R;
-	airspeed.innovation = innov;
-	airspeed.innovation_variance = innov_var;
+	aid_src.observation = airspeed_sample.true_airspeed;
+	aid_src.observation_variance = R;
+	aid_src.innovation = innov;
+	aid_src.innovation_variance = innov_var;
 
-	airspeed.fusion_enabled = _control_status.flags.fuse_aspd;
+	aid_src.fusion_enabled = _control_status.flags.fuse_aspd;
 
-	airspeed.timestamp_sample = airspeed_sample.time_us;
+	aid_src.timestamp_sample = airspeed_sample.time_us;
 
 	const float innov_gate = fmaxf(_params.tas_innov_gate, 1.f);
-	setEstimatorAidStatusTestRatio(airspeed, innov_gate);
+	setEstimatorAidStatusTestRatio(aid_src, innov_gate);
 }
 
-void Ekf::fuseAirspeed(estimator_aid_source1d_s &airspeed)
+void Ekf::fuseAirspeed(const airspeedSample &airspeed_sample, estimator_aid_source1d_s &aid_src)
 {
-	if (airspeed.innovation_rejected) {
+	if (aid_src.innovation_rejected) {
 		return;
 	}
 
 	// determine if we need the airspeed fusion to correct states other than wind
 	const bool update_wind_only = !_control_status.flags.wind_dead_reckoning;
 
-	const float innov_var = airspeed.innovation_variance;
+	const float innov_var = aid_src.innovation_variance;
 
-	if (innov_var < airspeed.observation_variance || innov_var < FLT_EPSILON) {
+	if (innov_var < aid_src.observation_variance || innov_var < FLT_EPSILON) {
 		// Reset the estimator covariance matrix
 		// if we are getting aiding from other sources, warn and reset the wind states and covariances only
 		const char *action_string = nullptr;
 
 		if (update_wind_only) {
-			resetWindUsingAirspeed();
+			resetWindUsingAirspeed(airspeed_sample);
 			action_string = "wind";
 
 		} else {
@@ -179,13 +191,22 @@ void Ekf::fuseAirspeed(estimator_aid_source1d_s &airspeed)
 		}
 	}
 
-	const bool is_fused = measurementUpdate(K, airspeed.innovation_variance, airspeed.innovation);
+	const bool is_fused = measurementUpdate(K, aid_src.innovation_variance, aid_src.innovation);
 
-	airspeed.fused = is_fused;
+	aid_src.fused = is_fused;
 	_fault_status.flags.bad_airspeed = !is_fused;
 
 	if (is_fused) {
-		airspeed.time_last_fuse = _time_delayed_us;
+		aid_src.time_last_fuse = _time_delayed_us;
+	}
+}
+
+void Ekf::stopAirspeedFusion()
+{
+	if (_control_status.flags.fuse_aspd) {
+		ECL_INFO("stopping airspeed fusion");
+		resetEstimatorAidStatus(_aid_src_airspeed);
+		_control_status.flags.fuse_aspd = false;
 	}
 }
 
@@ -196,30 +217,58 @@ float Ekf::getTrueAirspeed() const
 
 void Ekf::resetWind()
 {
-	if (_control_status.flags.fuse_aspd) {
-		resetWindUsingAirspeed();
+	if (_control_status.flags.fuse_aspd && isRecent(_airspeed_sample_delayed.time_us, 1e6)) {
+		resetWindUsingAirspeed(_airspeed_sample_delayed);
 
 	} else {
 		resetWindToZero();
 	}
 }
 
-/*
- * Reset the wind states using the current airspeed measurement, ground relative nav velocity, yaw angle and assumption of zero sideslip
-*/
-void Ekf::resetWindUsingAirspeed()
+void Ekf::resetWindUsingAirspeed(const airspeedSample &airspeed_sample)
 {
 	const float euler_yaw = getEulerYaw(_R_to_earth);
 
 	// estimate wind using zero sideslip assumption and airspeed measurement if airspeed available
-	_state.wind_vel(0) = _state.vel(0) - _airspeed_sample_delayed.true_airspeed * cosf(euler_yaw);
-	_state.wind_vel(1) = _state.vel(1) - _airspeed_sample_delayed.true_airspeed * sinf(euler_yaw);
+	_state.wind_vel(0) = _state.vel(0) - airspeed_sample.true_airspeed * cosf(euler_yaw);
+	_state.wind_vel(1) = _state.vel(1) - airspeed_sample.true_airspeed * sinf(euler_yaw);
 
 	ECL_INFO("reset wind using airspeed to (%.3f, %.3f)", (double)_state.wind_vel(0), (double)_state.wind_vel(1));
 
-	resetWindCovarianceUsingAirspeed();
+	resetWindCovarianceUsingAirspeed(airspeed_sample);
 
 	_aid_src_airspeed.time_last_fuse = _time_delayed_us;
+}
+
+void Ekf::resetWindCovarianceUsingAirspeed(const airspeedSample &airspeed_sample)
+{
+	// Derived using EKF/matlab/scripts/Inertial Nav EKF/wind_cov.py
+	// TODO: explicitly include the sideslip angle in the derivation
+	const float euler_yaw = getEulerYaw(_R_to_earth);
+	const float R_TAS = sq(math::constrain(_params.eas_noise, 0.5f, 5.0f) * math::constrain(airspeed_sample.eas2tas, 0.9f, 10.0f));
+	constexpr float initial_sideslip_uncertainty = math::radians(15.0f);
+	const float initial_wind_var_body_y = sq(airspeed_sample.true_airspeed * sinf(initial_sideslip_uncertainty));
+	constexpr float R_yaw = sq(math::radians(10.0f));
+
+	const float cos_yaw = cosf(euler_yaw);
+	const float sin_yaw = sinf(euler_yaw);
+
+	// rotate wind velocity into earth frame aligned with vehicle yaw
+	const float Wx = _state.wind_vel(0) * cos_yaw + _state.wind_vel(1) * sin_yaw;
+	const float Wy = -_state.wind_vel(0) * sin_yaw + _state.wind_vel(1) * cos_yaw;
+
+	// it is safer to remove all existing correlations to other states at this time
+	P.uncorrelateCovarianceSetVariance<2>(22, 0.0f);
+
+	P(22, 22) = R_TAS * sq(cos_yaw) + R_yaw * sq(-Wx * sin_yaw - Wy * cos_yaw) + initial_wind_var_body_y * sq(sin_yaw);
+	P(22, 23) = R_TAS * sin_yaw * cos_yaw + R_yaw * (-Wx * sin_yaw - Wy * cos_yaw) * (Wx * cos_yaw - Wy * sin_yaw) -
+		    initial_wind_var_body_y * sin_yaw * cos_yaw;
+	P(23, 22) = P(22, 23);
+	P(23, 23) = R_TAS * sq(sin_yaw) + R_yaw * sq(Wx * cos_yaw - Wy * sin_yaw) + initial_wind_var_body_y * sq(cos_yaw);
+
+	// Now add the variance due to uncertainty in vehicle velocity that was used to calculate the initial wind speed
+	P(22, 22) += P(4, 4);
+	P(23, 23) += P(5, 5);
 }
 
 void Ekf::resetWindToZero()
