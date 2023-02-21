@@ -46,6 +46,10 @@ public:
 	manual_control_setpoint_s &setpoint();
 	int instance() const { return _instance; };
 
+	// ---Sees.ai--- Added this member function to facilitate toggling between control source.
+	void toggleControlSource() {_sees_desired_control = !_sees_desired_control;};
+	bool getSeesDesiredControl() {return _sees_desired_control;};
+
 private:
 	bool isInputValid(const manual_control_setpoint_s &input, uint64_t now) const;
 
@@ -54,4 +58,5 @@ private:
 	int32_t _rc_in_mode{0};
 	int _instance{-1};
 	uint8_t _first_valid_source{manual_control_setpoint_s::SOURCE_UNKNOWN};
+	bool _sees_desired_control{manual_control_setpoint_s::SEES_SOURCE_MAV};
 };

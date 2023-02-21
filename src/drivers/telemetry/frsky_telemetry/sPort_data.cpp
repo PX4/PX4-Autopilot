@@ -61,6 +61,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/manual_control_setpoint.h>
 
 #include <drivers/drv_hrt.h>
 
@@ -76,6 +77,7 @@ struct s_port_subscription_data_s {
 	uORB::SubscriptionData<vehicle_gps_position_s> vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
 	uORB::SubscriptionData<vehicle_local_position_s> vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::SubscriptionData<vehicle_status_s> vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::SubscriptionData<manual_control_setpoint_s> manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::SubscriptionMultiArray<sensor_gps_s> sensor_gps_subs{ORB_ID::sensor_gps};
 	sensor_gps_s sensor_gps_data[GPS_MAX_RECEIVERS];
 };
@@ -114,6 +116,7 @@ void sPort_update_topics()
 	s_port_subscription_data->vehicle_gps_position_sub.update();
 	s_port_subscription_data->vehicle_local_position_sub.update();
 	s_port_subscription_data->vehicle_status_sub.update();
+	s_port_subscription_data->manual_control_setpoint_sub.update();
 
 	for (int i = 0; i < GPS_MAX_RECEIVERS; i++) {
 		s_port_subscription_data->sensor_gps_subs[i].update(&s_port_subscription_data->sensor_gps_data[i]);
@@ -196,9 +199,25 @@ void sPort_send_BATV(int uart)
 // verified scaling
 void sPort_send_CUR(int uart)
 {
-	/* send data */
-	uint32_t current = (int)(10 * s_port_subscription_data->battery_status_sub.get().current_a);
-	sPort_send_data(uart, SMARTPORT_ID_CURR, current);
+	/* Hijacked to send Data Source type (Mav/RC Control)(David @sees.ai) */
+	uint32_t control_source = s_port_subscription_data->manual_control_setpoint_sub.get().data_source;
+
+	// If the input type is RC then set it to 0
+	if (control_source == manual_control_setpoint_s::SOURCE_RC) {
+		control_source = 10 * manual_control_setpoint_s::SEES_SOURCE_RC; // This equates to 0
+	}
+
+	// Else if the input type is Mavlink then set it to 1
+	else if (control_source >= manual_control_setpoint_s::SOURCE_MAVLINK_0
+		 && control_source <= manual_control_setpoint_s::SOURCE_MAVLINK_5) {
+		control_source = 10 * manual_control_setpoint_s::SEES_SOURCE_MAV; // This equates to 1
+	}
+
+	sPort_send_data(uart, SMARTPORT_ID_CURR, control_source);
+
+	// /* send data */
+	// uint32_t current = (int)(10 * s_port_subscription_data->battery_status_sub.get().current_a);
+	// sPort_send_data(uart, SMARTPORT_ID_CURR, current);
 }
 
 // verified scaling for "custom" altitude option

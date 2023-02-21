@@ -235,12 +235,13 @@ PARAM_DEFINE_INT32(COM_HOME_IN_AIR, 0);
  *
  * @group Commander
  * @min 0
- * @max 4
+ * @max 5
  * @value 0 RC Transmitter only
  * @value 1 Joystick only
  * @value 2 RC and Joystick with fallback
  * @value 3 RC or Joystick keep first
  * @value 4 Stick input disabled
+ * @value 5 Sees.ai control selector
  */
 PARAM_DEFINE_INT32(COM_RC_IN_MODE, 3);
 

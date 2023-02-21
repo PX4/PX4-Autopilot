@@ -81,9 +81,15 @@ bool ManualControlSelector::isInputValid(const manual_control_setpoint_s &input,
 	const bool source_first_matched = (_rc_in_mode == 3) &&
 					  (input.data_source == _first_valid_source
 					   || _first_valid_source == manual_control_setpoint_s::SOURCE_UNKNOWN);
+	const bool sees_desired_matched = (_rc_in_mode == 5) &&
+					  ((input.data_source == manual_control_setpoint_s::SOURCE_RC
+					    && _sees_desired_control == manual_control_setpoint_s::SEES_SOURCE_RC)
+					   || (input.data_source >= manual_control_setpoint_s::SOURCE_MAVLINK_0
+					       && input.data_source <= manual_control_setpoint_s::SOURCE_MAVLINK_5
+					       && _sees_desired_control == manual_control_setpoint_s::SEES_SOURCE_MAV));
 
 	return sample_from_the_past && sample_newer_than_timeout
-	       && (source_rc_matched || source_mavlink_matched || source_any_matched || source_first_matched);
+	       && (source_rc_matched || source_mavlink_matched || source_any_matched || source_first_matched || sees_desired_matched);
 }
 
 manual_control_setpoint_s &ManualControlSelector::setpoint()

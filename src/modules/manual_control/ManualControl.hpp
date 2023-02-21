@@ -51,6 +51,7 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include "ManualControlSelector.hpp"
 #include "MovingDiff.hpp"
+#include <systemlib/mavlink_log.h>
 
 using namespace time_literals;
 
@@ -75,6 +76,7 @@ public:
 
 private:
 	static constexpr int MAX_MANUAL_INPUT_COUNT = 3;
+	static constexpr int SEES_SOURCE_SELECTOR_ENABLED = 5;
 
 	void Run() override;
 	void processStickArming(const manual_control_setpoint_s &input);
@@ -143,4 +145,9 @@ private:
 
 	unsigned _image_sequence {0};
 	bool _video_recording {false}; // TODO: hopefully there is a command soon to toggle without keeping state
+
+	bool _mav_control_source_button_prev_state[MAX_MANUAL_INPUT_COUNT] {false};
+	bool _control_source_toggled_rc{false};
+	int _transition_switch_prev_state{};
+	orb_advert_t _mavlink_log_pub{nullptr};
 };

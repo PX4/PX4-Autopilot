@@ -80,19 +80,55 @@ void ManualControl::Run()
 		_selector.setTimeout(_param_com_rc_loss_t.get() * 1_s);
 	}
 
+	manual_control_switches_s switches;
+	bool switches_updated = _manual_control_switches_sub.update(&switches);
+	bool control_source_toggled = false;
+
+	// ---Sees.ai--- Here, we hijacked transition switch as it's not used for our quadcopter.
+	// Toggle control source (between Mav and RC) if transition switch changes state.
+	if (switches_updated && _param_com_rc_in_mode.get() == SEES_SOURCE_SELECTOR_ENABLED) {
+		_control_source_toggled_rc = switches.transition_switch != _transition_switch_prev_state;
+
+		if (_control_source_toggled_rc && _transition_switch_prev_state != manual_control_switches_s::SWITCH_POS_NONE) {
+			_selector.toggleControlSource();
+			control_source_toggled = true;
+		}
+
+		_transition_switch_prev_state = switches.transition_switch;
+	}
+
 	const hrt_abstime now = hrt_absolute_time();
 	_selector.updateValidityOfChosenInput(now);
 
 	for (int i = 0; i < MAX_MANUAL_INPUT_COUNT; i++) {
 		manual_control_setpoint_s manual_control_input;
 
+		// ---Sees.ai--- Toggle control source (between Mav and RC) if rising edge (on Mavlink Joystick A button).
+		// Use parameter value as 'enabled?' check.
 		if (_manual_control_setpoint_subs[i].update(&manual_control_input)) {
+			if (_param_com_rc_in_mode.get() == SEES_SOURCE_SELECTOR_ENABLED) {
+				if (_mav_control_source_button_prev_state[i] == 0 && manual_control_input.toggle_control_source) {
+					_selector.toggleControlSource();
+					control_source_toggled = true;
+				}
+
+				_mav_control_source_button_prev_state[i] = manual_control_input.toggle_control_source;
+			}
+
 			_selector.updateWithNewInputSample(now, manual_control_input, i);
 		}
 	}
 
-	manual_control_switches_s switches;
-	bool switches_updated = _manual_control_switches_sub.update(&switches);
+	if (control_source_toggled) {
+		int sees_desired_control = _selector.getSeesDesiredControl();
+
+		if (sees_desired_control == manual_control_setpoint_s::SEES_SOURCE_RC) {
+			mavlink_log_info(&_mavlink_log_pub, "Switching to RC Control");
+
+		} else if (sees_desired_control == manual_control_setpoint_s::SEES_SOURCE_MAV) {
+			mavlink_log_info(&_mavlink_log_pub, "Switching to MavJoystick Control");
+		}
+	}
 
 	if (_selector.setpoint().valid) {
 		_published_invalid_once = false;
@@ -115,7 +151,10 @@ void ManualControl::Run()
 
 		if (switches_updated) {
 			// Only use switches if current source is RC as well.
-			if (_selector.setpoint().data_source == manual_control_setpoint_s::SOURCE_RC) {
+			// ---Sees.ai--- Modified to check if COM_RC_MODE_IN parameter is set to enable Sees.ai control selector mods.
+			// If it is, then we allow RC switches (such as kill) to work at all times.
+			if (_selector.setpoint().data_source == manual_control_setpoint_s::SOURCE_RC
+			    || _param_com_rc_in_mode.get() == SEES_SOURCE_SELECTOR_ENABLED) {
 				if (_previous_switches_initialized) {
 					if (switches.mode_slot != _previous_switches.mode_slot) {
 						evaluateModeSlot(switches.mode_slot);
