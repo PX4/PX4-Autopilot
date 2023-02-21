@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,6 +41,11 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/failsafe_flags.h>
 
+static constexpr int kHomePositionGPSRequiredFixType = 2;
+static constexpr float kHomePositionGPSRequiredEPH = 5.f;
+static constexpr float kHomePositionGPSRequiredEPV = 10.f;
+static constexpr float kHomePositionGPSRequiredEVH = 1.f;
+
 class HomePosition
 {
 public:
@@ -75,4 +80,5 @@ private:
 	uint8_t							_heading_reset_counter{0};
 	bool							_valid{false};
 	const failsafe_flags_s					&_failsafe_flags;
+	bool							_gps_position_for_home_valid{false};
 };
