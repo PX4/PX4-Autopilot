@@ -887,7 +887,7 @@ private:
 	void run3DMagAndDeclFusions(const Vector3f &mag);
 
 	// control fusion of air data observations
-	void controlAirDataFusion();
+	void controlAirDataFusion(const imuSample &imu_delayed);
 
 	// control fusion of synthetic sideslip observations
 	void controlBetaFusion(const imuSample &imu_delayed);
