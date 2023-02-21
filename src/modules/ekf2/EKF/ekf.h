@@ -682,8 +682,8 @@ private:
 	// apply sensible limits to the declination and length of the NE mag field states estimates
 	void limitDeclination();
 
-	void updateAirspeed(const airspeedSample &airspeed_sample, estimator_aid_source1d_s &airspeed) const;
-	void fuseAirspeed(estimator_aid_source1d_s &airspeed);
+	void updateAirspeed(const airspeedSample &airspeed_sample, estimator_aid_source1d_s &aid_src) const;
+	void fuseAirspeed(const airspeedSample &airspeed_sample, estimator_aid_source1d_s &aid_src);
 
 	// fuse synthetic zero sideslip measurement
 	void updateSideslip(estimator_aid_source1d_s &_aid_src_sideslip) const;
@@ -952,12 +952,15 @@ private:
 	void zeroQuatCov();
 	void resetMagCov();
 
-	// perform a limited reset of the wind state covariances
-	void resetWindCovarianceUsingAirspeed();
-
 	// perform a reset of the wind states and related covariances
 	void resetWind();
-	void resetWindUsingAirspeed();
+
+	// Reset the wind states using the current airspeed measurement, ground relative nav velocity, yaw angle and assumption of zero sideslip
+	void resetWindUsingAirspeed(const airspeedSample &airspeed_sample);
+
+	// perform a limited reset of the wind state covariances
+	void resetWindCovarianceUsingAirspeed(const airspeedSample &airspeed_sample);
+
 	void resetWindToZero();
 
 	// check that the range finder data is continuous
@@ -997,7 +1000,6 @@ private:
 		return (sensor_timestamp != 0) && (sensor_timestamp + acceptance_interval > _time_latest_us);
 	}
 
-	void startAirspeedFusion();
 	void stopAirspeedFusion();
 
 	void stopGpsFusion();

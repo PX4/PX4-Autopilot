@@ -1181,31 +1181,6 @@ void Ekf::loadMagCovData()
 	P(18, 18) = _saved_mag_ef_d_variance;
 }
 
-void Ekf::startAirspeedFusion()
-{
-	if (!_control_status.flags.fuse_aspd) {
-		ECL_INFO("starting airspeed fusion");
-
-		// If starting wind state estimation, reset the wind states and covariances before fusing any data
-		if (!_control_status.flags.wind) {
-			// activate the wind states
-			_control_status.flags.wind = true;
-			// reset the wind speed states and corresponding covariances
-			resetWindUsingAirspeed();
-		}
-
-		_control_status.flags.fuse_aspd = true;
-	}
-}
-
-void Ekf::stopAirspeedFusion()
-{
-	if (_control_status.flags.fuse_aspd) {
-		ECL_INFO("stopping airspeed fusion");
-		_control_status.flags.fuse_aspd = false;
-	}
-}
-
 void Ekf::stopGpsFusion()
 {
 	if (_control_status.flags.gps) {

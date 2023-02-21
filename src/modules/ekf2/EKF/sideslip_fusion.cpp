@@ -68,7 +68,7 @@ void Ekf::controlBetaFusion(const imuSample &imu_delayed)
 				_control_status.flags.wind = true;
 				// reset the timeout timers to prevent repeated resets
 				_aid_src_sideslip.time_last_fuse = imu_delayed.time_us;
-				resetWind();
+				resetWindToZero();
 			}
 
 			if (Vector2f(Vector2f(_state.vel) - _state.wind_vel).longerThan(7.f)) {
