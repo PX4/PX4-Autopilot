@@ -476,3 +476,131 @@ void Ekf::run3DMagAndDeclFusions(const Vector3f &mag)
 		}
 	}
 }
+
+bool Ekf::resetMagHeading()
+{
+	// prevent a reset being performed more than once on the same frame
+	if ((_flt_mag_align_start_time == _time_delayed_us) || (_control_status_prev.flags.yaw_align != _control_status.flags.yaw_align)) {
+		return false;
+	}
+
+	const Vector3f mag_init = _mag_lpf.getState();
+
+	const bool mag_available = (_mag_counter > 1) && !magFieldStrengthDisturbed(mag_init);
+
+	// low pass filtered mag required
+	if (!mag_available) {
+		return false;
+	}
+
+	const bool heading_required_for_navigation = _control_status.flags.gps;
+
+	if ((_params.mag_fusion_type <= MagFuseType::MAG_3D) || ((_params.mag_fusion_type == MagFuseType::INDOOR) && heading_required_for_navigation)) {
+
+		// rotate the magnetometer measurements into earth frame using a zero yaw angle
+		const Dcmf R_to_earth = updateYawInRotMat(0.f, _R_to_earth);
+
+		// the angle of the projection onto the horizontal gives the yaw angle
+		const Vector3f mag_earth_pred = R_to_earth * mag_init;
+
+		// calculate the observed yaw angle and yaw variance
+		float yaw_new = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + getMagDeclination();
+		float yaw_new_variance = sq(fmaxf(_params.mag_heading_noise, 1.e-2f));
+
+		ECL_INFO("reset mag heading %.3f -> %.3f rad (declination %.1f)", (double)getEulerYaw(_R_to_earth), (double)yaw_new, (double)getMagDeclination());
+
+		// update quaternion states and corresponding covarainces
+		resetQuatStateYaw(yaw_new, yaw_new_variance);
+
+		// set the earth magnetic field states using the updated rotation
+		_state.mag_I = _R_to_earth * mag_init;
+
+		resetMagCov();
+
+		// record the time for the magnetic field alignment event
+		_flt_mag_align_start_time = _time_delayed_us;
+
+		return true;
+	}
+
+	return false;
+}
+
+float Ekf::getMagDeclination()
+{
+	// set source of magnetic declination for internal use
+	if (_control_status.flags.mag_aligned_in_flight) {
+		// Use value consistent with earth field state
+		return atan2f(_state.mag_I(1), _state.mag_I(0));
+
+	} else if (_params.mag_declination_source & GeoDeclinationMask::USE_GEO_DECL) {
+		// use parameter value until GPS is available, then use value returned by geo library
+		if (_NED_origin_initialised || PX4_ISFINITE(_mag_declination_gps)) {
+			return _mag_declination_gps;
+
+		} else {
+			return math::radians(_params.mag_declination_deg);
+		}
+
+	} else {
+		// always use the parameter value
+		return math::radians(_params.mag_declination_deg);
+	}
+}
+
+void Ekf::stopMagFusion()
+{
+	if (_control_status.flags.mag_hdg || _control_status.flags.mag_3D) {
+		ECL_INFO("stopping all mag fusion");
+		stopMag3DFusion();
+		stopMagHdgFusion();
+		clearMagCov();
+	}
+}
+
+void Ekf::stopMag3DFusion()
+{
+	// save covariance data for re-use if currently doing 3-axis fusion
+	if (_control_status.flags.mag_3D) {
+		saveMagCovData();
+
+		_control_status.flags.mag_3D = false;
+		_control_status.flags.mag_dec = false;
+
+		_fault_status.flags.bad_mag_x = false;
+		_fault_status.flags.bad_mag_y = false;
+		_fault_status.flags.bad_mag_z = false;
+
+		_fault_status.flags.bad_mag_decl = false;
+	}
+}
+
+void Ekf::stopMagHdgFusion()
+{
+	if (_control_status.flags.mag_hdg) {
+		_control_status.flags.mag_hdg = false;
+
+		_fault_status.flags.bad_hdg = false;
+	}
+}
+
+void Ekf::startMagHdgFusion()
+{
+	if (!_control_status.flags.mag_hdg) {
+		stopMag3DFusion();
+		ECL_INFO("starting mag heading fusion");
+		_control_status.flags.mag_hdg = true;
+	}
+}
+
+void Ekf::startMag3DFusion()
+{
+	if (!_control_status.flags.mag_3D) {
+
+		stopMagHdgFusion();
+
+		zeroMagCov();
+		loadMagCovData();
+		_control_status.flags.mag_3D = true;
+	}
+}
