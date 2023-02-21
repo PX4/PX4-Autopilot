@@ -49,6 +49,60 @@
 
 #include <mathlib/mathlib.h>
 
+void Ekf::controlAirDataFusion()
+{
+	// control activation and initialisation/reset of wind states required for airspeed fusion
+
+	// If both airspeed and sideslip fusion have timed out and we are not using a drag observation model then we no longer have valid wind estimates
+	const bool airspeed_timed_out = isTimedOut(_aid_src_airspeed.time_last_fuse, (uint64_t)10e6);
+	const bool sideslip_timed_out = isTimedOut(_aid_src_sideslip.time_last_fuse, (uint64_t)10e6);
+
+	if (_control_status.flags.fake_pos || (airspeed_timed_out && sideslip_timed_out && !(_params.fusion_mode & SensorFusionMask::USE_DRAG))) {
+		_control_status.flags.wind = false;
+	}
+
+	if (_params.arsp_thr <= 0.f) {
+		stopAirspeedFusion();
+		return;
+	}
+
+	if (_tas_data_ready) {
+		updateAirspeed(_airspeed_sample_delayed, _aid_src_airspeed);
+
+		_innov_check_fail_status.flags.reject_airspeed = _aid_src_airspeed.innovation_rejected; // TODO: remove this redundant flag
+
+		const bool continuing_conditions_passing = _control_status.flags.in_air && _control_status.flags.fixed_wing && !_control_status.flags.fake_pos;
+		const bool is_airspeed_significant = _airspeed_sample_delayed.true_airspeed > _params.arsp_thr;
+		const bool is_airspeed_consistent = (_aid_src_airspeed.test_ratio > 0.f && _aid_src_airspeed.test_ratio < 1.f);
+		const bool starting_conditions_passing = continuing_conditions_passing && is_airspeed_significant
+		                                         && (is_airspeed_consistent || !_control_status.flags.wind); // if wind isn't already estimated, the states are reset when starting airspeed fusion
+
+		if (_control_status.flags.fuse_aspd) {
+			if (continuing_conditions_passing) {
+				if (is_airspeed_significant) {
+					fuseAirspeed(_aid_src_airspeed);
+				}
+
+				const bool is_fusion_failing = isTimedOut(_aid_src_airspeed.time_last_fuse, (uint64_t)10e6);
+
+				if (is_fusion_failing) {
+					stopAirspeedFusion();
+				}
+
+			} else {
+				stopAirspeedFusion();
+			}
+
+		} else if (starting_conditions_passing) {
+			startAirspeedFusion();
+		}
+
+	} else if (_control_status.flags.fuse_aspd && !isRecent(_airspeed_sample_delayed.time_us, (uint64_t)1e6)) {
+		ECL_WARN("Airspeed data stopped");
+		stopAirspeedFusion();
+	}
+}
+
 void Ekf::updateAirspeed(const airspeedSample &airspeed_sample, estimator_aid_source1d_s &airspeed) const
 {
 	// reset flags
