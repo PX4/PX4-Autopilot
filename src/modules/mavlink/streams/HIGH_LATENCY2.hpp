@@ -310,6 +310,10 @@ private:
 				msg->failure_flags |= HL_FAILURE_FLAG_ESTIMATOR;
 			}
 
+			if (estimator_status.gps_check_fail_flags > 0) {
+				msg->failure_flags |= HL_FAILURE_FLAG_GPS;
+			}
+
 			return true;
 		}
 
@@ -448,10 +452,6 @@ private:
 		failsafe_flags_s failsafe_flags;
 
 		if (_failsafe_flags_sub.update(&failsafe_flags)) {
-			if (failsafe_flags.gps_position_invalid) {
-				msg->failure_flags |= HL_FAILURE_FLAG_GPS;
-			}
-
 			if (failsafe_flags.offboard_control_signal_lost) {
 				msg->failure_flags |= HL_FAILURE_FLAG_OFFBOARD_LINK;
 			}
