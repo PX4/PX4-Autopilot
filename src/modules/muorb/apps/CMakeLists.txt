@@ -38,8 +38,10 @@ px4_add_module(
 		-Wno-cast-align # TODO: fix and enable
 	INCLUDES
 		../test
+		../aggregator
 	SRCS
 		uORBAppsProtobufChannel.cpp
 		muorb_main.cpp
 		../test/MUORBTest.cpp
+		../aggregator/mUORBAggregator.cpp
 	)

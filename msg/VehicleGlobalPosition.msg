@@ -25,5 +25,5 @@ bool terrain_alt_valid		# Terrain altitude estimate is valid
 
 bool dead_reckoning		# True if this position is estimated through dead-reckoning
 
-# TOPICS vehicle_global_position vehicle_global_position_groundtruth
+# TOPICS vehicle_global_position vehicle_global_position_groundtruth external_ins_global_position
 # TOPICS estimator_global_position

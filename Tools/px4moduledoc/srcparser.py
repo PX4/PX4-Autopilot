@@ -15,7 +15,7 @@ class ModuleDocumentation(object):
     # TOC in https://github.com/PX4/PX4-user_guide/blob/main/en/SUMMARY.md
     valid_categories = ['driver', 'estimator', 'controller', 'system',
                         'communication', 'command', 'template', 'simulation', 'autotune']
-    valid_subcategories = ['', 'distance_sensor', 'imu', 'airspeed_sensor',
+    valid_subcategories = ['', 'distance_sensor', 'imu', 'ins', 'airspeed_sensor',
                            'magnetometer', 'baro', 'optical_flow', 'rpm_sensor', 'transponder']
 
     max_line_length = 80 # wrap lines that are longer than this

@@ -125,6 +125,22 @@ PARAM_DEFINE_INT32(GPS_UBX_MODE, 0);
  */
 PARAM_DEFINE_INT32(GPS_UBX_BAUD2, 230400);
 
+/**
+ * u-blox protocol configuration for interfaces
+ *
+ * @min 0
+ * @max 32
+ * @bit 0 Enable I2C input protocol UBX
+ * @bit 1 Enable I2C input protocol NMEA
+ * @bit 2 Enable I2C input protocol RTCM3X
+ * @bit 3 Enable I2C output protocol UBX
+ * @bit 4 Enable I2C output protocol NMEA
+ * @bit 5 Enable I2C output protocol RTCM3X
+ *
+ * @reboot_required true
+ * @group GPS
+ */
+PARAM_DEFINE_INT32(GPS_UBX_CFG_INTF, 0);
 
 /**
  * Heading/Yaw offset for dual antenna GPS

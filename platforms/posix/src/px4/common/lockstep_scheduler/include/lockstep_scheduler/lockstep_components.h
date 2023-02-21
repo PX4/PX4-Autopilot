@@ -46,7 +46,7 @@
 class LockstepComponents
 {
 public:
-	LockstepComponents();
+	LockstepComponents(bool no_cleanup_on_destroy = false);
 	~LockstepComponents();
 
 	/**
@@ -69,6 +69,7 @@ public:
 	void wait_for_components();
 
 private:
+	const bool _no_cleanup_on_destroy;
 
 	px4_sem_t _components_sem;
 

@@ -44,6 +44,7 @@
 /*
  * I2C buses
  */
+#define CONFIG_I2C 1
 #define PX4_NUMBER_I2C_BUSES    3
 
 /*
@@ -57,3 +58,8 @@
  */
 #include <system_config.h>
 #include <px4_platform_common/board_common.h>
+
+/*
+ *  Default port for the ESC
+ */
+#define MODAL_IO_DEFAULT_PORT 	"2"

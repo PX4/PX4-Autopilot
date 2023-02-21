@@ -1,5 +1,0 @@
-menuconfig EXAMPLES_HWTEST
-	bool "hwtest"
-	default n
-	---help---
-		Enable support for hwtest

@@ -58,7 +58,7 @@ private:
 
 	uORB::Publication<qshell_req_s>	_qshell_req_pub{ORB_ID(qshell_req)};
 
-	uORB::Subscription		_qshell_retval_sub{ORB_ID(qshell_retval)};
+	static uORB::Subscription	*_qshell_retval_sub;
 
 	static uint32_t			_current_sequence;
 };

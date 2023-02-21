@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "name": "PX4",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "@PX4_BOARD_DIR@/src",
+                "@PX4_SOURCE_DIR@/platforms/nuttx/src/px4/@PX4_CHIP_MANUFACTURER@/@PX4_CHIP@/include",
+                "@PX4_SOURCE_DIR@/platforms/nuttx/NuttX/nuttx/include/"
+            ],
+            "defines": [],
+            "macFrameworkPath": [],
+            "configurationProvider": "ms-vscode.cmake-tools",
+            "cppStandard": "c++14",
+            "cStandard": "c11",
+            "dotConfig": "@PX4_BINARY_DIR@/NuttX/nuttx/.config",
+            "forcedInclude": [
+                 "@PX4_BINARY_DIR@/px4_boardconfig.h",
+                 "@PX4_SOURCE_DIR@/platforms/common/include/px4_platform_common/defines.h"
+                 ]
+        }
+    ],
+    "version": 4
+}

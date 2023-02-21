@@ -211,4 +211,25 @@ bool param_modify_on_import(bson_node_t node)
 	}
 
 	return false;
+
+	//2023-02-08: translate L1 parameters after removing l1 control
+	{
+		if (strcmp("RWTO_L1_PERIOD", node->name) == 0) {
+			strcpy(node->name, "RWTO_NPFG_PERIOD");
+			PX4_INFO("copying %s -> %s", "RWTO_L1_PERIOD", "RWTO_NPFG_PERIOD");
+			return true;
+		}
+
+		if (strcmp("FW_L1_R_SLEW_MAX", node->name) == 0) {
+			strcpy(node->name, "FW_PN_R_SLEW_MAX");
+			PX4_INFO("copying %s -> %s", "FW_L1_R_SLEW_MAX", "FW_PN_R_SLEW_MAX");
+			return true;
+		}
+
+		if (strcmp("FW_L1_PERIOD", node->name) == 0) {
+			strcpy(node->name, "NPFG_PERIOD");
+			PX4_INFO("copying %s -> %s", "FW_L1_PERIOD", "NPFG_PERIOD");
+			return true;
+		}
+	}
 }

@@ -371,6 +371,7 @@ void MicroddsClient::run()
 		uxr_delete_session_retries(&session, _connected ? 1 : 0);
 		_last_payload_tx_rate = 0;
 		_last_payload_tx_rate = 0;
+		_subs->reset();
 	}
 }
 

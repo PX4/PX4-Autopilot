@@ -1,0 +1,9 @@
+#!/bin/sh
+#
+# Holybro KakuteH7Mini specific board sensors init
+#------------------------------------------------------------------------------
+board_adc start
+
+bmi270 -R 6 -s start
+
+bmp280 -X start

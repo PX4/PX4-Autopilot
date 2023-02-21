@@ -72,16 +72,11 @@ void Standard::update_vtol_state()
 
 	float mc_weight = _mc_roll_weight;
 
-	if (_vtol_vehicle_status->vtol_transition_failsafe) {
+	if (_vtol_vehicle_status->fixed_wing_system_failure) {
 		// Failsafe event, engage mc motors immediately
 		_vtol_mode = vtol_mode::MC_MODE;
 		_pusher_throttle = 0.0f;
 		_reverse_output = 0.0f;
-
-		//reset failsafe when FW is no longer requested
-		if (!_attc->is_fixed_wing_requested()) {
-			_vtol_vehicle_status->vtol_transition_failsafe = false;
-		}
 
 	} else if (!_attc->is_fixed_wing_requested()) {
 
@@ -94,8 +89,8 @@ void Standard::update_vtol_state()
 
 		} else if (_vtol_mode == vtol_mode::FW_MODE) {
 			// Regular backtransition
+			resetTransitionStates();
 			_vtol_mode = vtol_mode::TRANSITION_TO_MC;
-			_transition_start_timestamp = hrt_absolute_time();
 			_reverse_output = _param_vt_b_rev_out.get();
 
 		} else if (_vtol_mode == vtol_mode::TRANSITION_TO_FW) {
@@ -131,8 +126,8 @@ void Standard::update_vtol_state()
 			// start transition to fw mode
 			/* NOTE: The failsafe transition to fixed-wing was removed because it can result in an
 			 * unsafe flying state. */
+			resetTransitionStates();
 			_vtol_mode = vtol_mode::TRANSITION_TO_FW;
-			_transition_start_timestamp = hrt_absolute_time();
 
 		} else if (_vtol_mode == vtol_mode::FW_MODE) {
 			// in fw mode

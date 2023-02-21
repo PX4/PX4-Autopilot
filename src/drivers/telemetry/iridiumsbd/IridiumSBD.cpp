@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016-2018, 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -53,9 +53,9 @@ static constexpr const char *satcom_state_string[4] = {"STANDBY", "SIGNAL CHECK"
 
 #define IRIDIUMSBD_DEVICE_PATH	"/dev/iridium"
 
-IridiumSBD::IridiumSBD()
-	: CDev(IRIDIUMSBD_DEVICE_PATH)
+IridiumSBD::IridiumSBD() : CDev(IRIDIUMSBD_DEVICE_PATH)
 {
+	_iridiumsbd_status_pub.advertise();
 }
 
 IridiumSBD::~IridiumSBD()
@@ -1110,7 +1110,7 @@ int IridiumSBD::custom_command(int argc, char *argv[])
 	return print_usage("unknown command");
 }
 
-int iridiumsbd_main(int argc, char *argv[])
+extern "C" __EXPORT int iridiumsbd_main(int argc, char *argv[])
 {
 	if (argc >= 2 && !strcmp(argv[1], "stop") && IridiumSBD::is_running()) {
 		if (!IridiumSBD::can_stop()) {

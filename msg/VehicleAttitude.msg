@@ -8,5 +8,5 @@ float32[4] q                    # Quaternion rotation from the FRD body frame to
 float32[4] delta_q_reset        # Amount by which quaternion has changed during last reset
 uint8 quat_reset_counter        # Quaternion reset counter
 
-# TOPICS vehicle_attitude vehicle_attitude_groundtruth
+# TOPICS vehicle_attitude vehicle_attitude_groundtruth external_ins_attitude
 # TOPICS estimator_attitude

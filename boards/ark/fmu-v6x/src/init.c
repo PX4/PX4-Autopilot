@@ -46,6 +46,7 @@
  ****************************************************************************/
 
 #include "board_config.h"
+#include "spix_sync.h"
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -278,6 +279,10 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	}
 
 #endif /* CONFIG_MMCSD */
+
+	/* Configure the SPIX_SYNC output */
+	spix_sync_servo_init(BOARD_SPIX_SYNC_FREQ);
+	spix_sync_servo_set(0, 150);
 
 	return OK;
 }

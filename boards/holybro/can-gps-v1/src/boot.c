@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015, 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015-2021 PX4 Development Team. All rights reserved.
  *       Author: Ben Dyer <ben_dyer@mac.com>
  *               Pavel Kirienko <pavel.kirienko@zubax.com>
  *               David Sidrane <david_s5@nscdg.com>

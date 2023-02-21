@@ -3,6 +3,11 @@
 # ModalAI FC-v1 specific board sensors init
 #------------------------------------------------------------------------------
 
+if param greater MODAL_IO_CONFIG 0
+then
+	modal_io start
+fi
+
 board_adc start
 
 # Start Digital power monitors

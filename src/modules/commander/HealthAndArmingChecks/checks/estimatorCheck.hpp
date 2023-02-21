@@ -67,6 +67,7 @@ private:
 
 	void checkGps(const Context &context, Report &reporter, const sensor_gps_s &vehicle_gps_position) const;
 	void gpsNoLongerValid(const Context &context, Report &reporter) const;
+	void lowPositionAccuracy(const Context &context, Report &reporter, const vehicle_local_position_s &lpos) const;
 	void setModeRequirementFlags(const Context &context, bool pre_flt_fail_innov_heading, bool pre_flt_fail_innov_vel_horiz,
 				     const vehicle_local_position_s &lpos, const sensor_gps_s &vehicle_gps_position,
 				     failsafe_flags_s &failsafe_flags);
@@ -117,6 +118,7 @@ private:
 					(ParamFloat<px4::params::COM_POS_FS_EPH>) _param_com_pos_fs_eph,
 					(ParamFloat<px4::params::COM_POS_FS_EPV>) _param_com_pos_fs_epv,
 					(ParamFloat<px4::params::COM_VEL_FS_EVH>) _param_com_vel_fs_evh,
-					(ParamInt<px4::params::COM_POS_FS_DELAY>) _param_com_pos_fs_delay
+					(ParamInt<px4::params::COM_POS_FS_DELAY>) _param_com_pos_fs_delay,
+					(ParamFloat<px4::params::COM_POS_LOW_EPH>) _param_com_low_eph
 				       )
 };

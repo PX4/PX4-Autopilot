@@ -106,7 +106,7 @@ int do_mag_calibration(orb_advert_t *mavlink_log_pub)
 	// Collect: As defined by configuration
 	// start with a full mask, all six bits set
 	int32_t cal_mask = (1 << 6) - 1;
-	param_get(param_find("CAL_MAG_SIDES"), &cal_mask);
+	param_get(param_find("SENS_MAG_SIDES"), &cal_mask);
 
 	// Calibrate all mags at the same time
 	if (result == PX4_OK) {
@@ -696,10 +696,10 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 
 	// Attempt to automatically determine external mag rotations
 	if (result == calibrate_return_ok) {
-		int32_t param_cal_mag_rot_auto = 0;
-		param_get(param_find("CAL_MAG_ROT_AUTO"), &param_cal_mag_rot_auto);
+		int32_t param_sens_mag_autorot = 0;
+		param_get(param_find("SENS_MAG_AUTOROT"), &param_sens_mag_autorot);
 
-		if ((worker_data.calibration_sides >= 3) && (param_cal_mag_rot_auto == 1)) {
+		if ((worker_data.calibration_sides >= 3) && (param_sens_mag_autorot == 1)) {
 
 			// find first internal mag to use as reference
 			int internal_index = -1;

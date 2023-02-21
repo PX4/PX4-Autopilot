@@ -91,20 +91,25 @@ px4_add_module(
 		EKF/ekf_helper.cpp
 		EKF/EKFGSF_yaw.cpp
 		EKF/estimator_interface.cpp
+		EKF/ev_control.cpp
 		EKF/ev_height_control.cpp
+		EKF/ev_pos_control.cpp
 		EKF/ev_vel_control.cpp
+		EKF/ev_yaw_control.cpp
 		EKF/fake_height_control.cpp
 		EKF/fake_pos_control.cpp
 		EKF/gnss_height_control.cpp
 		EKF/gps_checks.cpp
 		EKF/gps_control.cpp
 		EKF/gps_yaw_fusion.cpp
+		EKF/gravity_fusion.cpp
 		EKF/height_control.cpp
 		EKF/imu_down_sampler.cpp
 		EKF/mag_control.cpp
 		EKF/mag_fusion.cpp
 		EKF/optical_flow_control.cpp
 		EKF/optflow_fusion.cpp
+		EKF/output_predictor.cpp
 		EKF/range_finder_consistency_check.cpp
 		EKF/range_height_control.cpp
 		EKF/sensor_range_finder.cpp

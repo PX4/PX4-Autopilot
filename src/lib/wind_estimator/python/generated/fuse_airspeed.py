@@ -43,7 +43,7 @@ def fuse_airspeed(v_local, state, P, airspeed, R, epsilon):
     # Intermediate terms (11)
     _tmp0 = -state[0] + v_local[0]
     _tmp1 = -state[1] + v_local[1]
-    _tmp2 = math.sqrt(_tmp0**2 + _tmp1**2 + epsilon + v_local[2] ** 2)
+    _tmp2 = math.sqrt(_tmp0 ** 2 + _tmp1 ** 2 + epsilon + v_local[2] ** 2)
     _tmp3 = state[2] / _tmp2
     _tmp4 = _tmp0 * _tmp3
     _tmp5 = _tmp1 * _tmp3

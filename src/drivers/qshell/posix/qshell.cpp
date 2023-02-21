@@ -47,9 +47,19 @@
 // Static variables
 px4::AppState QShell::appState;
 uint32_t QShell::_current_sequence{0};
+uORB::Subscription *QShell::_qshell_retval_sub{nullptr};
+
 
 int QShell::main(std::vector<std::string> argList)
 {
+	if (_qshell_retval_sub == nullptr) {
+		_qshell_retval_sub = new uORB::Subscription(ORB_ID(qshell_retval));
+
+		if (_qshell_retval_sub == nullptr) {
+			PX4_ERR("Couldn't initialilze Qshell response subscription");
+		}
+	}
+
 	int ret = _send_cmd(argList);
 
 	if (ret != 0) {
@@ -109,7 +119,7 @@ int QShell::_wait_for_retval()
 	memset(&retval, 0, sizeof(qshell_retval_s));
 
 	while (hrt_elapsed_time(&time_started_us) < QSHELL_RESPONSE_WAIT_TIME_US) {
-		if (_qshell_retval_sub.update(&retval)) {
+		if (_qshell_retval_sub->update(&retval)) {
 			if (retval.return_sequence != _current_sequence) {
 				PX4_WARN("Ignoring return value with wrong sequence");
 

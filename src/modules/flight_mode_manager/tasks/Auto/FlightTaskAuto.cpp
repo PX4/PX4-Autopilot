@@ -229,11 +229,13 @@ void FlightTaskAuto::_prepareLandSetpoints()
 	}
 
 	if (_type_previous != WaypointType::land) {
-		// initialize xy-position and yaw to waypoint such that home is reached exactly without user input
-		_land_position = Vector3f(_target(0), _target(1), NAN);
+		// initialize yaw
 		_land_heading = _yaw_setpoint;
 		_stick_acceleration_xy.resetPosition(Vector2f(_target(0), _target(1)));
 	}
+
+	// Update xy-position in case of landing position changes (etc. precision landing)
+	_land_position = Vector3f(_target(0), _target(1), NAN);
 
 	// User input assisted landing
 	if (_param_mpc_land_rc_help.get() && _sticks.checkAndUpdateStickInputs()) {

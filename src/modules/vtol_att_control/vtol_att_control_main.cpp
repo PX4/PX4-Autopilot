@@ -133,6 +133,12 @@ void VtolAttitudeControl::action_request_poll()
 			case action_request_s::ACTION_VTOL_TRANSITION_TO_FIXEDWING:
 				_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
 				_immediate_transition = false;
+
+				// reset fixed_wing_system_failure flag when a new transition to FW is triggered
+				if (_transition_command == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW) {
+					_vtol_vehicle_status.fixed_wing_system_failure = false;
+				}
+
 				break;
 			}
 		}
@@ -162,6 +168,11 @@ void VtolAttitudeControl::vehicle_cmd_poll()
 			} else {
 				_transition_command = transition_command_param1;
 				_immediate_transition = (PX4_ISFINITE(vehicle_command.param2)) ? int(vehicle_command.param2 + 0.5f) : false;
+
+				// reset fixed_wing_system_failure flag when a new transition to FW is triggered
+				if (_transition_command == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW) {
+					_vtol_vehicle_status.fixed_wing_system_failure = false;
+				}
 			}
 
 			if (vehicle_command.from_external) {
@@ -182,48 +193,48 @@ void VtolAttitudeControl::vehicle_cmd_poll()
 void
 VtolAttitudeControl::quadchute(QuadchuteReason reason)
 {
-	if (!_vtol_vehicle_status.vtol_transition_failsafe) {
+	if (!_vtol_vehicle_status.fixed_wing_system_failure) {
 		switch (reason) {
 		case QuadchuteReason::TransitionTimeout:
 			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: transition timeout\t");
 			events::send(events::ID("vtol_att_ctrl_quadchute_tout"), events::Log::Critical,
-				     "Quadchute triggered, due to transition timeout");
+				     "Quad-chute triggered due to transition timeout");
 			break;
 
 		case QuadchuteReason::ExternalCommand:
 			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: external command\t");
 			events::send(events::ID("vtol_att_ctrl_quadchute_ext_cmd"), events::Log::Critical,
-				     "Quadchute triggered, due to external command");
+				     "Quad-chute triggered due to external command");
 			break;
 
 		case QuadchuteReason::MinimumAltBreached:
 			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: minimum altitude breached\t");
 			events::send(events::ID("vtol_att_ctrl_quadchute_min_alt"), events::Log::Critical,
-				     "Quadchute triggered, due to minimum altitude breach");
+				     "Quad-chute triggered due to minimum altitude breach");
 			break;
 
-		case QuadchuteReason::LossOfAlt:
-			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: loss of altitude\t");
+		case QuadchuteReason::UncommandedDescent:
+			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: Uncommanded descent detected\t");
 			events::send(events::ID("vtol_att_ctrl_quadchute_alt_loss"), events::Log::Critical,
-				     "Quadchute triggered, due to loss of altitude");
+				     "Quad-chute triggered due to uncommanded descent detection");
 			break;
 
-		case QuadchuteReason::LargeAltError:
-			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: large altitude error\t");
-			events::send(events::ID("vtol_att_ctrl_quadchute_alt_err"), events::Log::Critical,
-				     "Quadchute triggered, due to large altitude error");
+		case QuadchuteReason::TransitionAltitudeLoss:
+			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: loss of altitude during transition\t");
+			events::send(events::ID("vtol_att_ctrl_quadchute_trans_alt_err"), events::Log::Critical,
+				     "Quad-chute triggered due to loss of altitude during transition");
 			break;
 
 		case QuadchuteReason::MaximumPitchExceeded:
 			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: maximum pitch exceeded\t");
 			events::send(events::ID("vtol_att_ctrl_quadchute_max_pitch"), events::Log::Critical,
-				     "Quadchute triggered, due to maximum pitch angle exceeded");
+				     "Quad-chute triggered due to maximum pitch angle exceeded");
 			break;
 
 		case QuadchuteReason::MaximumRollExceeded:
 			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: maximum roll exceeded\t");
 			events::send(events::ID("vtol_att_ctrl_quadchute_max_roll"), events::Log::Critical,
-				     "Quadchute triggered, due to maximum roll angle exceeded");
+				     "Quad-chute triggered due to maximum roll angle exceeded");
 			break;
 
 		case QuadchuteReason::None:
@@ -231,7 +242,7 @@ VtolAttitudeControl::quadchute(QuadchuteReason reason)
 			return;
 		}
 
-		_vtol_vehicle_status.vtol_transition_failsafe = true;
+		_vtol_vehicle_status.fixed_wing_system_failure = true;
 	}
 }
 

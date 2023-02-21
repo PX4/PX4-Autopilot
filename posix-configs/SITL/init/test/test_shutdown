@@ -29,7 +29,7 @@ flight_mode_manager start
 mc_pos_control start vtol
 mc_att_control start vtol
 mc_rate_control start vtol
-fw_pos_control_l1 start vtol
+fw_path_navigation start vtol
 fw_att_control start vtol
 airspeed_selector start
 
@@ -59,7 +59,7 @@ flight_mode_manager status
 mc_pos_control status
 mc_att_control status
 mc_rate_control status
-fw_pos_control_l1 status
+fw_path_navigation status
 fw_att_control status
 airspeed_selector status
 dataman status
@@ -74,7 +74,7 @@ mc_att_control stop
 fw_att_control stop
 flight_mode_manager stop
 mc_pos_control stop
-fw_pos_control_l1 stop
+fw_path_navigation stop
 navigator stop
 commander stop
 land_detector stop

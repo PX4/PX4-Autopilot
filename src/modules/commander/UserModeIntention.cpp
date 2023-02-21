@@ -43,11 +43,6 @@ UserModeIntention::UserModeIntention(ModuleParams *parent, const vehicle_status_
 bool UserModeIntention::change(uint8_t user_intended_nav_state, bool allow_fallback, bool force)
 {
 	_ever_had_mode_change = true;
-	_had_mode_change = true;
-
-	if (_user_intented_nav_state == user_intended_nav_state) {
-		return true;
-	}
 
 	// Always allow mode change while disarmed
 	bool always_allow = force || !isArmed();
@@ -67,6 +62,7 @@ bool UserModeIntention::change(uint8_t user_intended_nav_state, bool allow_fallb
 	}
 
 	if (allow_change) {
+		_had_mode_change = true;
 		_user_intented_nav_state = user_intended_nav_state;
 
 		if (!_health_and_arming_checks.modePreventsArming(user_intended_nav_state)) {

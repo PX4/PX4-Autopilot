@@ -87,8 +87,6 @@ private:
 	uint8_t		_g{0};
 	uint8_t		_b{0};
 	volatile bool		_running{false};
-	volatile bool		_should_run{true};
-	bool			_leds_enabled{true};
 
 	LedController		_led_controller;
 

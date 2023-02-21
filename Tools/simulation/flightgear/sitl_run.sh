@@ -22,7 +22,7 @@ echo build_path: $build_path
 rootfs="$build_path/rootfs" # this is the working directory
 mkdir -p "$rootfs"
 
-export PX4_SIM_MODEL=${model}
+export PX4_SIM_MODEL=flightgear_${model}
 
 echo "FG setup"
 cd "${src_path}/Tools/simulation/flightgear/flightgear_bridge/"

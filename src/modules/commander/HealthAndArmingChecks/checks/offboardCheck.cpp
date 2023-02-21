@@ -42,7 +42,10 @@ void OffboardChecks::checkAndReport(const Context &context, Report &reporter)
 	offboard_control_mode_s offboard_control_mode;
 
 	if (_offboard_control_mode_sub.copy(&offboard_control_mode)) {
-		bool data_is_recent = hrt_absolute_time() < offboard_control_mode.timestamp + _param_com_of_loss_t.get() * 1_s;
+
+		bool data_is_recent = hrt_absolute_time() < offboard_control_mode.timestamp
+				      + static_cast<hrt_abstime>(_param_com_of_loss_t.get() * 1_s);
+
 		bool offboard_available = (offboard_control_mode.position || offboard_control_mode.velocity
 					   || offboard_control_mode.acceleration || offboard_control_mode.attitude || offboard_control_mode.body_rate
 					   || offboard_control_mode.actuator) && data_is_recent;

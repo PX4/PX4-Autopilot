@@ -132,11 +132,13 @@ def run(logfile):
     rho = 1.15 # air densitiy
     rho15 = 1.225 # air density at 15 degC
 
+    rel_wind_speed = np.sqrt(v_body[0]**2 + v_body[1]**2 + v_body[2]**2)
+
     # x[0]: momentum drag, scales with v
     # x[1]: inverse of ballistic coefficient (X body axis), scales with v^2
     # x[2]: inverse of ballistic coefficient (Y body axis), scales with v^2
-    predict_acc_x = lambda x: -v_body[0] * x[0] - 0.5 * rho * v_body[0]**2 * np.sign(v_body[0]) * x[1]
-    predict_acc_y = lambda x: -v_body[1] * x[0] - 0.5 * rho * v_body[1]**2 * np.sign(v_body[1]) * x[2]
+    predict_acc_x = lambda x: -v_body[0] * x[0] - 0.5 * rho * v_body[0] * rel_wind_speed * x[1]
+    predict_acc_y = lambda x: -v_body[1] * x[0] - 0.5 * rho * v_body[1] * rel_wind_speed * x[2]
 
     J = lambda x: np.sum(np.power(abs(a_body[0]-predict_acc_x(x)), 2.0) + np.power(abs(a_body[1]-predict_acc_y(x)), 2.0)) # cost function
 

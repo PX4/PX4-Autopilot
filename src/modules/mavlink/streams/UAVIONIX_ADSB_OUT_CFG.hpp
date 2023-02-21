@@ -66,6 +66,27 @@ private:
 				_stall_speed = static_cast<uint16_t>(fw_airspd_stall * 100.0f); // convert [m/s] to [cm/s]
 			}
 		}
+
+		int32_t callsign_part1 = _adsb_callsign_part1.get();
+		int32_t callsign_part2 = _adsb_callsign_part2.get();
+
+		bool success = false;
+
+		if (copy_and_check_callsign(_callsign, callsign_part1)) {
+			if (copy_and_check_callsign(_callsign + sizeof(int32_t), callsign_part2)) {
+				success = true;
+			}
+		}
+
+		if (success) {
+			_callsign[sizeof(_callsign) - 1] = '\0';
+
+		} else {
+			_callsign[0] = '\0';
+			events::send(events::ID("uavionix_adsb_out_cfg_unsupported_callsign_format"),
+				     events::Log::Critical, "Unsupported callsign format");
+		}
+
 	}
 
 	DEFINE_PARAMETERS(
@@ -73,10 +94,32 @@ private:
 		(ParamInt<px4::params::ADSB_LEN_WIDTH>)		_adsb_len_width,
 		(ParamInt<px4::params::ADSB_EMIT_TYPE>)		_adsb_emit_type,
 		(ParamInt<px4::params::ADSB_GPS_OFF_LAT>)	_adsb_gps_offset_lat,
-		(ParamInt<px4::params::ADSB_GPS_OFF_LON>)	_adsb_gps_offset_lon
+		(ParamInt<px4::params::ADSB_GPS_OFF_LON>)	_adsb_gps_offset_lon,
+		(ParamInt<px4::params::ADSB_CALLSIGN_1>)	_adsb_callsign_part1,
+		(ParamInt<px4::params::ADSB_CALLSIGN_2>)	_adsb_callsign_part2
 	);
 
 	uint16_t _stall_speed{0}; // [cm/s]
+	char _callsign[9];
+
+	bool copy_and_check_callsign(char *ptr_callsign, int32_t part)
+	{
+		for (uint8_t i = 0; i < sizeof(int32_t); ++i) {
+
+			char character = static_cast<char>(part >>(i * 8));
+
+			if ((character >= 'A' && character <= 'Z') || (character >= '0' && character <= '9') || character == ' '
+			    || character == '\0') {
+
+				ptr_callsign[sizeof(int32_t) - i - 1] = character;
+
+			} else {
+				return false;
+			}
+		}
+
+		return true;
+	}
 
 	bool send() override
 	{
@@ -92,7 +135,8 @@ private:
 			.rfSelect = UAVIONIX_ADSB_OUT_RF_SELECT_TX_ENABLED
 		};
 
-		//memcpy(cfg_msg.callsign, "PX4 UAV ", sizeof(cfg_msg.callsign)); //TODO: add support for callsign
+		static_assert(sizeof(cfg_msg.callsign) == sizeof(_callsign), "Size mismatch");
+		memcpy(cfg_msg.callsign, _callsign, sizeof(cfg_msg.callsign));
 
 		mavlink_msg_uavionix_adsb_out_cfg_send_struct(_mavlink->get_channel(), &cfg_msg);
 

@@ -72,18 +72,18 @@ void ComputeMagYInnovVarAndH(const matrix::Matrix<Scalar, 24, 1>& state,
   }
 
   if (H != nullptr) {
-    matrix::Matrix<Scalar, 24, 1>& _H = (*H);
+    matrix::Matrix<Scalar, 24, 1>& _h = (*H);
 
-    _H.setZero();
+    _h.setZero();
 
-    _H(0, 0) = _tmp3;
-    _H(1, 0) = _tmp5;
-    _H(2, 0) = _tmp7;
-    _H(3, 0) = _tmp6;
-    _H(16, 0) = _tmp8;
-    _H(17, 0) = _tmp10;
-    _H(18, 0) = _tmp9;
-    _H(20, 0) = 1;
+    _h(0, 0) = _tmp3;
+    _h(1, 0) = _tmp5;
+    _h(2, 0) = _tmp7;
+    _h(3, 0) = _tmp6;
+    _h(16, 0) = _tmp8;
+    _h(17, 0) = _tmp10;
+    _h(18, 0) = _tmp9;
+    _h(20, 0) = 1;
   }
 }  // NOLINT(readability/fn_size)
 

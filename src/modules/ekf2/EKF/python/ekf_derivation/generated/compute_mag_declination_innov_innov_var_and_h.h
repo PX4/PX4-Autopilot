@@ -61,12 +61,12 @@ void ComputeMagDeclinationInnovInnovVarAndH(const matrix::Matrix<Scalar, 24, 1>&
   }
 
   if (H != nullptr) {
-    matrix::Matrix<Scalar, 24, 1>& _H = (*H);
+    matrix::Matrix<Scalar, 24, 1>& _h = (*H);
 
-    _H.setZero();
+    _h.setZero();
 
-    _H(16, 0) = -_tmp2;
-    _H(17, 0) = _tmp3;
+    _h(16, 0) = -_tmp2;
+    _h(17, 0) = _tmp3;
   }
 }  // NOLINT(readability/fn_size)
 

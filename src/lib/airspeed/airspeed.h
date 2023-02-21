@@ -130,16 +130,13 @@ __EXPORT float calc_TAS(float total_pressure, float static_pressure, float tempe
 __EXPORT float get_air_density(float static_pressure, float temperature_celsius);
 
 /**
- * Calculate calibrated airspeed (CAS) from true airspeed (TAS).
- * It is the inverse function to calc_TAS_from_CAS()
+ * @brief Calculates calibrated airspeed from true airspeed and air density
  *
- * @param speed_true current true airspeed
- * @param pressure_ambient pressure at the side of the tube/airplane
- * @param temperature_celsius air temperature in degrees Celsius
- * @return CAS in m/s
+ * @param speed_true true airspeed [m/s]
+ * @param air_density air density [kg/m3]
+ * @return calibrated airspeed [m/s]
  */
-__EXPORT float calc_CAS_from_TAS(float speed_true, float pressure_ambient,
-				 float temperature_celsius);
+__EXPORT float calc_calibrated_from_true_airspeed(float speed_true, float air_density);
 
 __END_DECLS
 

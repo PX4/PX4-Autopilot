@@ -50,7 +50,7 @@ private:
 	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};
 
 	const param_t _param_fw_arsp_mode_handle;
-	const param_t _param_fw_airspd_trim_handle;
+	const param_t _param_fw_airspd_max_handle;
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
 					(ParamInt<px4::params::CBRK_AIRSPD_CHK>) _param_cbrk_airspd_chk,

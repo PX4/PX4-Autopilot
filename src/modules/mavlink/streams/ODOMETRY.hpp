@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -49,42 +49,20 @@ public:
 
 	unsigned get_size() override
 	{
-		if (_mavlink->odometry_loopback_enabled()) {
-			return _vodom_sub.advertised() ? MAVLINK_MSG_ID_ODOMETRY_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
-
-		} else {
-			return _odom_sub.advertised() ? MAVLINK_MSG_ID_ODOMETRY_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
-		}
+		return _vehicle_odometry_sub.advertised() ? MAVLINK_MSG_ID_ODOMETRY_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES : 0;
 	}
 
 private:
 	explicit MavlinkStreamOdometry(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
-	uORB::Subscription _odom_sub{ORB_ID(vehicle_odometry)};
-	uORB::Subscription _vodom_sub{ORB_ID(vehicle_visual_odometry)};
+	uORB::Subscription _vehicle_odometry_sub{ORB_ID(vehicle_odometry)};
 
 	bool send() override
 	{
 		vehicle_odometry_s odom;
-		// check if it is to send visual odometry loopback or not
-		bool odom_updated = false;
 
-		mavlink_odometry_t msg{};
-
-		if (_mavlink->odometry_loopback_enabled()) {
-			odom_updated = _vodom_sub.update(&odom);
-
-			// source: external vision system
-			msg.estimator_type = MAV_ESTIMATOR_TYPE_VISION;
-
-		} else {
-			odom_updated = _odom_sub.update(&odom);
-
-			// source: PX4 estimator
-			msg.estimator_type = MAV_ESTIMATOR_TYPE_AUTOPILOT;
-		}
-
-		if (odom_updated) {
+		if (_vehicle_odometry_sub.update(&odom)) {
+			mavlink_odometry_t msg{};
 			msg.time_usec = odom.timestamp_sample;
 
 			// set the frame_id according to the local frame of the data

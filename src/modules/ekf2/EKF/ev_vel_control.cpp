@@ -134,7 +134,8 @@ void Ekf::controlEvVelFusion(const extVisionSample &ev_sample, const bool common
 		continuing_conditions_passing = false;
 	}
 
-	const bool starting_conditions_passing = common_starting_conditions_passing && continuing_conditions_passing
+	const bool starting_conditions_passing = common_starting_conditions_passing
+			&& continuing_conditions_passing
 			&& ((Vector3f(aid_src.test_ratio).max() < 0.1f) || !isHorizontalAidingActive());
 
 	if (_control_status.flags.ev_vel) {
@@ -148,7 +149,7 @@ void Ekf::controlEvVelFusion(const extVisionSample &ev_sample, const bool common
 					ECL_INFO("reset to %s", AID_SRC_NAME);
 					_information_events.flags.reset_vel_to_vision = true;
 					resetVelocityTo(measurement, measurement_var);
-					aid_src.time_last_fuse = _imu_sample_delayed.time_us;
+					aid_src.time_last_fuse = _time_delayed_us;
 
 				} else {
 					// EV has reset, but quality isn't sufficient
@@ -173,7 +174,7 @@ void Ekf::controlEvVelFusion(const extVisionSample &ev_sample, const bool common
 					_information_events.flags.reset_vel_to_vision = true;
 					ECL_WARN("%s fusion failing, resetting", AID_SRC_NAME);
 					resetVelocityTo(measurement, measurement_var);
-					aid_src.time_last_fuse = _imu_sample_delayed.time_us;
+					aid_src.time_last_fuse = _time_delayed_us;
 
 					if (_control_status.flags.in_air) {
 						_nb_ev_vel_reset_available--;
@@ -204,7 +205,7 @@ void Ekf::controlEvVelFusion(const extVisionSample &ev_sample, const bool common
 		if (starting_conditions_passing) {
 			// activate fusion, only reset if necessary
 			if (!isHorizontalAidingActive() || yaw_alignment_changed) {
-				ECL_INFO("starting %s fusion, resetting state", AID_SRC_NAME);
+				ECL_INFO("starting %s fusion, resetting velocity to (%.3f, %.3f, %.3f)", AID_SRC_NAME, (double)measurement(0), (double)measurement(1), (double)measurement(2));
 				_information_events.flags.reset_vel_to_vision = true;
 				resetVelocityTo(measurement, measurement_var);
 
@@ -212,7 +213,7 @@ void Ekf::controlEvVelFusion(const extVisionSample &ev_sample, const bool common
 				ECL_INFO("starting %s fusion", AID_SRC_NAME);
 			}
 
-			aid_src.time_last_fuse = _imu_sample_delayed.time_us;
+			aid_src.time_last_fuse = _time_delayed_us;
 
 			_nb_ev_vel_reset_available = 5;
 			_information_events.flags.starting_vision_vel_fusion = true;

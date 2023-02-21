@@ -1,0 +1,5 @@
+menuconfig DRIVERS_IMU_INVENSENSE_IAM20680HP
+	bool "iam20680hp"
+	default n
+	---help---
+		Enable support for iam20680hp

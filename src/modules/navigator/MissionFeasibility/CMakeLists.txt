@@ -1,0 +1,7 @@
+px4_add_library(mission_feasibility_checker
+	FeasibilityChecker.cpp
+)
+
+target_link_libraries(mission_feasibility_checker PUBLIC modules__navigator modules__dataman)
+
+px4_add_functional_gtest(SRC FeasibilityCheckerTest.cpp LINKLIBS mission_feasibility_checker)

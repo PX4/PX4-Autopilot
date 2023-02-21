@@ -42,6 +42,7 @@
 #include "DataValidator.hpp"
 
 #include <px4_platform_common/log.h>
+#include <drivers/drv_hrt.h>
 
 void DataValidator::put(uint64_t timestamp, float val, uint32_t error_count_in, uint8_t priority_in)
 {

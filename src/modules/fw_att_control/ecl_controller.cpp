@@ -117,18 +117,3 @@ float ECL_Controller::get_integrator()
 {
 	return _integrator;
 }
-
-float ECL_Controller::constrain_airspeed(float airspeed, float minspeed, float maxspeed)
-{
-	float airspeed_result = airspeed;
-
-	if (!PX4_ISFINITE(airspeed)) {
-		/* airspeed is NaN, +- INF or not available, pick center of band */
-		airspeed_result = 0.5f * (minspeed + maxspeed);
-
-	} else if (airspeed < minspeed) {
-		airspeed_result = minspeed;
-	}
-
-	return airspeed_result;
-}

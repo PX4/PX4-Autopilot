@@ -460,17 +460,21 @@ PARAM_DEFINE_FLOAT(MPC_LAND_SPEED, 0.7f);
 PARAM_DEFINE_FLOAT(MPC_LAND_CRWL, 0.3f);
 
 /**
- * Enable user assisted descent speed for autonomous land routine.
+ * Enable user assisted descent for autonomous land routine
  *
  * When enabled, descent speed will be:
  * stick full up - 0
  * stick centered - MPC_LAND_SPEED
  * stick full down - 2 * MPC_LAND_SPEED
  *
+ * Additionally, the vehicle can be yawed and moved laterally using the other sticks.
+ * Manual override during auto modes has to be disabled to use this feature (see COM_RC_OVERRIDE).
+ *
  * @min 0
  * @max 1
  * @value 0 Fixed descent speed of MPC_LAND_SPEED
  * @value 1 User assisted descent speed
+ * @group Multicopter Position Control
  */
 PARAM_DEFINE_INT32(MPC_LAND_RC_HELP, 0);
 

@@ -73,6 +73,13 @@ menu "Toolchain"
         help
             relative path to the ROMFS root directory
 
+    config BOARD_ROOTFSDIR
+        string "Root directory"
+        depends on PLATFORM_POSIX
+        default "."
+        help
+            Configure the root directory in the file system for PX4 files
+
     config BOARD_IO
         string "IO board name"
         default "px4_io-v2_default"
@@ -174,8 +181,8 @@ menu "Serial ports"
     config BOARD_SERIAL_WIFI
         string "WIFI tty port"
 
-    config BOARD_SERIAL_PPB
-        string "PPB (Pixhawk Payload Bus) tty port"
+    config BOARD_SERIAL_EXT2
+        string "EXT2 tty port"
 endmenu
 
 menu "drivers"
@@ -195,5 +202,6 @@ source "src/examples/Kconfig"
 endmenu
 
 menu "platforms"
+depends on PLATFORM_QURT || PLATFORM_POSIX
 source "platforms/common/Kconfig"
 endmenu

@@ -184,7 +184,7 @@ private:
 	// Maximum permissible yaw innovation to pass pre-flight checks when not aiding inertial nav using NE frame observations (rad)
 	static constexpr float _heading_innov_test_lim = 0.52f;
 	// Maximum permissible flow innovation to pass pre-flight checks
-	static constexpr float _flow_innov_test_lim = 0.25f;
+	static constexpr float _flow_innov_test_lim = 0.5f;
 	// Preflight velocity innovation spike limit (m/sec)
 	static constexpr float _vel_innov_spike_lim = 2.0f * _vel_innov_test_lim;
 	// Preflight position innovation spike limit (m)

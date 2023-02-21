@@ -1,10 +1,11 @@
 #!/bin/sh
 #
-# Holybro KakuteH7 specific board sensors init
+# Holybro KakuteH7v1 specific board sensors init
 #------------------------------------------------------------------------------
 board_adc start
 
-# The default IMU is an ICM20689, but there might also be an MPU6000
+# The KakuteH7 v1 comes by default with an ICM20689,
+# but there might also be an MPU6000
 if ! mpu6000 -R 6 -s start
 then
 	icm20689 -R 6 -s start

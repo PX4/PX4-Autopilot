@@ -40,16 +40,18 @@ void VtolChecks::checkAndReport(const Context &context, Report &reporter)
 	vtol_vehicle_status_s vtol_vehicle_status;
 
 	if (_vtol_vehicle_status_sub.copy(&vtol_vehicle_status)) {
-		reporter.failsafeFlags().vtol_transition_failure = vtol_vehicle_status.vtol_transition_failsafe;
+		reporter.failsafeFlags().vtol_fixed_wing_system_failure = vtol_vehicle_status.fixed_wing_system_failure;
 
-		if (reporter.failsafeFlags().vtol_transition_failure) {
+		if (reporter.failsafeFlags().vtol_fixed_wing_system_failure) {
 			/* EVENT
 			 */
-			reporter.armingCheckFailure(NavModes::All, health_component_t::system, events::ID("check_vtol_transition_failure"),
-						    events::Log::Error, "VTOL transition failure");
+			reporter.armingCheckFailure(NavModes::All, health_component_t::system,
+						    events::ID("check_vtol_fixed_wing_system_failure"),
+						    events::Log::Error,
+						    "VTOL fixed-wing system failure detected. Verify reason for failure, and reboot the vehicle once confirmed safe");
 
 			if (reporter.mavlink_log_pub()) {
-				mavlink_log_info(reporter.mavlink_log_pub(), "Preflight Fail: VTOL transition failure\t");
+				mavlink_log_info(reporter.mavlink_log_pub(), "Preflight Fail: VTOL fixed-wing system failure detected\t");
 			}
 		}
 	}

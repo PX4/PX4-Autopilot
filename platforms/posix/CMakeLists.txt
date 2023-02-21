@@ -168,7 +168,7 @@ elseif("${PX4_BOARD}" MATCHES "sitl")
 	# px4 Tools files
 	install(
 		PROGRAMS
-			${PROJECT_SOURCE_DIR}/Tools/simulation/gazebo/setup_gazebo.bash
+			${PROJECT_SOURCE_DIR}/Tools/simulation/gazebo-classic/setup_gazebo.bash
 			${PROJECT_SOURCE_DIR}/Tools/upload_log.py
 		DESTINATION
 			${PROJECT_NAME}/Tools
@@ -182,33 +182,13 @@ elseif("${PX4_BOARD}" MATCHES "sitl")
 			${PROJECT_NAME}/build/px4_sitl_default
 		)
 
-	# sitl_gazebo built plugins
+	# gazebo dirs
 	install(
 		DIRECTORY
-			${PX4_BINARY_DIR}/build_gazebo
+			${PROJECT_SOURCE_DIR}/Tools/simulation/gz/models
+			${PROJECT_SOURCE_DIR}/Tools/simulation/gz/worlds
 		DESTINATION
-			${PROJECT_NAME}/build/px4_sitl_default
-		FILES_MATCHING
-			PATTERN "CMakeFiles" EXCLUDE
-			PATTERN "*.so"
-		)
-
-	# sitl_gazebo dirs
-	install(
-		DIRECTORY
-			${PROJECT_SOURCE_DIR}/Tools/simulation/gazebo/sitl_gazebo/models
-			${PROJECT_SOURCE_DIR}/Tools/simulation/gazebo/sitl_gazebo/worlds
-		DESTINATION
-			${PROJECT_NAME}/Tools/simulation/gazebo/sitl_gazebo
-		)
-
-	# sitl_gazebo files
-	install(
-		FILES
-			${PROJECT_SOURCE_DIR}/Tools/simulation/gazebo/sitl_gazebo/CMakeLists.txt
-			${PROJECT_SOURCE_DIR}/Tools/simulation/gazebo/sitl_gazebo/package.xml
-		DESTINATION
-			${PROJECT_NAME}/Tools/simulation/gazebo/sitl_gazebo
+			${PROJECT_NAME}/Tools/simulation/gazebo-classic/sitl_gazebo-classic
 		)
 
 endif()

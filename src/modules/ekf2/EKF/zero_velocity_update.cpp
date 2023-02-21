@@ -64,7 +64,7 @@ void Ekf::controlZeroVelocityUpdate()
 			fuseVelPosHeight(innovation(1), innov_var(1), 1);
 			fuseVelPosHeight(innovation(2), innov_var(2), 2);
 
-			_time_last_zero_velocity_fuse = _imu_sample_delayed.time_us;
+			_time_last_zero_velocity_fuse = _time_delayed_us;
 		}
 	}
 }

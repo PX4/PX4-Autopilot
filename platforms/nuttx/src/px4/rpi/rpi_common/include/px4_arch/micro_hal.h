@@ -12,7 +12,7 @@ __BEGIN_DECLS
 // This will remove the errors of undefined PX4_BBSRAM_SIZE when logger module is activated.
 // Fixme: using ??
 #define PX4_BBSRAM_SIZE             2048
-#define PX4_BBSRAM_GETDESC_IOCTL    0
+#define PX4_HF_GETDESC_IOCTL        0
 
 // RP2040 doesn't really have a cpu register with unique id.
 // However, there is a function in pico-sdk which can provide
@@ -48,8 +48,6 @@ __BEGIN_DECLS
 /*                                                  Separator    nnn:nnn:nnnn     2 char per byte           term */
 #define PX4_CPU_UUID_WORD32_FORMAT_SIZE         (PX4_CPU_UUID_WORD32_LENGTH-1+(2*PX4_CPU_UUID_BYTE_LENGTH)+1)
 #define PX4_CPU_MFGUID_FORMAT_SIZE              ((2*PX4_CPU_MFGUID_BYTE_LENGTH)+1)
-
-#define px4_savepanic(fileno, context, length)  (0)	// Turn off px4_savepanic for rp2040 as it is not implemented in nuttx
 
 #define PX4_BUS_OFFSET       1                  /* RP2040 buses are 0 based and adjustment is needed */
 #define px4_spibus_initialize(bus_num_1based)   rp2040_spibus_initialize(PX4_BUS_NUMBER_FROM_PX4(bus_num_1based))

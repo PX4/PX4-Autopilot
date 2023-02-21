@@ -18,6 +18,7 @@ menu "Distance sensors"
         select DRIVERS_DISTANCE_SENSOR_VL53L0X
         select DRIVERS_DISTANCE_SENSOR_VL53L1X
         select DRIVERS_DISTANCE_SENSOR_GY_US42
+        select DRIVERS_DISTANCE_SENSOR_TF02PRO
         ---help---
             Enable default set of distance sensor drivers
 

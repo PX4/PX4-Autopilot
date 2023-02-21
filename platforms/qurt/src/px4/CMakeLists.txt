@@ -37,6 +37,7 @@ set(QURT_LAYER_SRCS
 	tasks.cpp
 	px4_qurt_impl.cpp
 	main.cpp
+	qurt_log.cpp
 	)
 
 add_library(px4_layer

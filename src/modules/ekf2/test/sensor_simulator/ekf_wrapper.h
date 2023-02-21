@@ -97,9 +97,7 @@ public:
 	bool isIntendingMagHeadingFusion() const;
 	bool isIntendingMag3DFusion() const;
 	void setMagFuseTypeNone();
-
-	void enableExternalVisionAlignment();
-	void disableExternalVisionAlignment();
+	void enableMagStrengthCheck();
 
 	bool isWindVelocityEstimated() const;
 
@@ -117,6 +115,10 @@ public:
 	int getQuaternionResetCounter() const;
 
 	matrix::Vector3f getDeltaVelBiasVariance() const;
+
+	void enableDragFusion();
+	void disableDragFusion();
+	void setDragFusionParameters(const float &bcoef_x, const float &bcoef_y, const float &mcoef);
 
 private:
 	std::shared_ptr<Ekf> _ekf;

@@ -71,10 +71,10 @@ constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
 		initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortD, GPIO::Pin17})
 	}),
 	initSPIBus(SPI::Bus::SPI4, {
-		initSPIDevice(DRV_IMU_DEVTYPE_ICM42688P, SPI::CS{GPIO::PortA, GPIO::Pin16}, SPI::DRDY{GPIO::PortA, GPIO::Pin15, 551})
+		initSPIDevice(DRV_IMU_DEVTYPE_ICM42688P, SPI::CS{GPIO::PortA, GPIO::Pin16}, SPI::DRDY{PIN_WKPU20})
 	}),
 	initSPIBus(SPI::Bus::SPI5, {
-		initSPIDevice(DRV_IMU_DEVTYPE_ICM20649, SPI::CS{GPIO::PortA, GPIO::Pin14}, SPI::DRDY{GPIO::PortA, GPIO::Pin13, 549})
+		initSPIDevice(DRV_IMU_DEVTYPE_ICM20649, SPI::CS{GPIO::PortA, GPIO::Pin14}, SPI::DRDY{PIN_WKPU4})
 	}),
 };
 

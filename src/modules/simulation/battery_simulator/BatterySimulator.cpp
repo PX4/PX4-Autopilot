@@ -70,6 +70,8 @@ void BatterySimulator::Run()
 		updateParams();
 	}
 
+	updateCommands();
+
 	if (_vehicle_status_sub.updated()) {
 		vehicle_status_s vehicle_status;
 
@@ -99,6 +101,11 @@ void BatterySimulator::Run()
 	_battery_percentage = math::max(_battery_percentage, _param_bat_min_pct.get() / 100.f);
 	float vbatt = math::interpolate(_battery_percentage, 0.f, 1.f, _battery.empty_cell_voltage(),
 					_battery.full_cell_voltage());
+
+	if (_force_empty_battery) {
+		vbatt = _battery.empty_cell_voltage();
+	}
+
 	vbatt *= _battery.cell_count();
 
 	_battery.setConnected(true);
@@ -107,6 +114,60 @@ void BatterySimulator::Run()
 	_battery.updateAndPublishBatteryStatus(now_us);
 
 	perf_end(_loop_perf);
+}
+
+void BatterySimulator::updateCommands()
+{
+	vehicle_command_s vehicle_command;
+
+	while (_vehicle_command_sub.update(&vehicle_command)) {
+		if (vehicle_command.command != vehicle_command_s::VEHICLE_CMD_INJECT_FAILURE) {
+			continue;
+		}
+
+		bool handled = false;
+		bool supported = false;
+
+		const int failure_unit = static_cast<int>(vehicle_command.param1 + 0.5f);
+		const int failure_type = static_cast<int>(vehicle_command.param2 + 0.5f);
+		const int instance = static_cast<int>(vehicle_command.param3 + 0.5f);
+
+		if (failure_unit == vehicle_command_s::FAILURE_UNIT_SYSTEM_BATTERY) {
+
+			if (failure_type == vehicle_command_s::FAILURE_TYPE_OK) {
+				handled = true;
+				PX4_INFO("CMD_INJECT_FAILURE, battery ok");
+				supported = false;
+
+				if (instance == 0) {
+					supported = true;
+					_force_empty_battery = false;
+				}
+
+			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF) {
+				// Force battery empty for FAILURE_TYPE_OFF - not perfectly accurate, but what we want to achieve
+				handled = true;
+				PX4_WARN("CMD_INJECT_FAILURE, battery empty");
+				supported = false;
+
+				if (instance == 0) {
+					supported = true;
+					_force_empty_battery = true;
+				}
+			}
+		}
+
+		if (handled) {
+			vehicle_command_ack_s ack{};
+			ack.command = vehicle_command.command;
+			ack.from_external = false;
+			ack.result = supported ?
+				     vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED :
+				     vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
+			ack.timestamp = hrt_absolute_time();
+			_command_ack_pub.publish(ack);
+		}
+	}
 }
 
 int BatterySimulator::task_spawn(int argc, char *argv[])

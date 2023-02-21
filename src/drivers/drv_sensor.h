@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -80,14 +80,14 @@
 #define DRV_IMU_DEVTYPE_ICM42605 0x29
 #define DRV_IMU_DEVTYPE_ICM42670P 0x2A
 #define DRV_IMU_DEVTYPE_IIM42652 0x2B
-
+#define DRV_IMU_DEVTYPE_IAM20680HP 0x2C
 #define DRV_RNG_DEVTYPE_MB12XX   0x31
 #define DRV_RNG_DEVTYPE_LL40LS   0x32
 #define DRV_ACC_DEVTYPE_MPU6050  0x33
 
 #define DRV_GYR_DEVTYPE_MPU6050  0x35
 #define DRV_IMU_DEVTYPE_MPU6500  0x36
-
+#define DRV_IMU_DEVTYPE_BMI270   0x37
 #define DRV_IMU_DEVTYPE_ICM20602 0x38
 
 #define DRV_IMU_DEVTYPE_ICM20608G 0x3A
@@ -111,11 +111,11 @@
 #define DRV_DIFF_PRESS_DEVTYPE_SDP32     0x4B
 #define DRV_DIFF_PRESS_DEVTYPE_SDP33     0x4C
 
-#define DRV_BARO_DEVTYPE_LPS33HW        0x4C
 #define DRV_BARO_DEVTYPE_TCBP001TA      0x4D
 #define DRV_BARO_DEVTYPE_MS5837         0x4E
 #define DRV_BARO_DEVTYPE_SPL06          0x4F
 
+#define DRV_BARO_DEVTYPE_LPS33HW        0x50
 #define DRV_BARO_DEVTYPE_MPL3115A2	0x51
 #define DRV_ACC_DEVTYPE_FXOS8701C	0x52
 
@@ -124,6 +124,7 @@
 #define DRV_IMU_DEVTYPE_ADIS16448	0x57
 #define DRV_IMU_DEVTYPE_ADIS16470	0x58
 #define DRV_IMU_DEVTYPE_ADIS16477	0x59
+#define DRV_IMU_DEVTYPE_ADIS16507	0x5A
 
 #define DRV_BARO_DEVTYPE_MPC2520	0x5F
 #define DRV_BARO_DEVTYPE_LPS22HB	0x60
@@ -220,6 +221,12 @@
 #define DRV_POWER_DEVTYPE_VOXLPM 0xD2
 #define DRV_POWER_DEVTYPE_INA220 0xD3
 #define DRV_POWER_DEVTYPE_INA238 0xD4
+
+#define DRV_DIST_DEVTYPE_TF02PRO 0xE0
+
+#define DRV_INS_DEVTYPE_VN100 0xE1
+#define DRV_INS_DEVTYPE_VN200 0xE2
+#define DRV_INS_DEVTYPE_VN300 0xE3
 
 #define DRV_DEVTYPE_UNUSED		0xff
 

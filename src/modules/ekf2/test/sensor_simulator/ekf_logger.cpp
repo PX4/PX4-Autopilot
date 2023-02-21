@@ -48,7 +48,7 @@ void EkfLogger::writeStateToFile()
 void EkfLogger::writeState()
 {
 	if (_state_logging_enabled) {
-		uint64_t time = _ekf->get_imu_sample_delayed().time_us;
+		uint64_t time = _ekf->time_delayed_us();
 		_file << time;
 
 		if (_state_logging_enabled) {

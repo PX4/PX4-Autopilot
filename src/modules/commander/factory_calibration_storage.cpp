@@ -47,7 +47,7 @@ static bool filter_calibration_params(param_t handle)
 {
 	const char *name = param_name(handle);
 	// filter all non-calibration params
-	return strncmp(name, "CAL_", 4) == 0 || strncmp(name, "TC_", 3) == 0;
+	return (strncmp(name, "CAL_", 4) == 0 && strncmp(name, "CAL_MAG_SIDES", 13) != 0) || strncmp(name, "TC_", 3) == 0;
 }
 
 FactoryCalibrationStorage::FactoryCalibrationStorage()

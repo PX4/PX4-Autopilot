@@ -1,0 +1,12 @@
+menuconfig MODULES_FW_RATE_CONTROL
+	bool "fw_rate_control"
+	default n
+	---help---
+		Enable support for fw_att_control
+
+menuconfig USER_FW_RATE_CONTROL
+	bool "fw_rate_control running as userspace module"
+	default n
+	depends on BOARD_PROTECTED && MODULES_FW_RATE_CONTROL
+	---help---
+		Put fw_rate_control in userspace memory

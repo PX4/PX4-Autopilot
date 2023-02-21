@@ -371,9 +371,9 @@ bool
 Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 {
 	_read_buffer.reserve(msg_size + 1);
-	char *message = (char *)_read_buffer.data();
+	uint8_t *message = _read_buffer.data();
 	streampos this_message_pos = file.tellg() - (streamoff)ULOG_MSG_HEADER_LEN;
-	file.read(message, msg_size);
+	file.read((char *)message, msg_size);
 	message[msg_size] = 0;
 
 	if (!file) {
@@ -387,8 +387,8 @@ Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 	_subscription_file_pos = file.tellg();
 
 	uint8_t multi_id = *(uint8_t *)message;
-	uint16_t msg_id = ((uint16_t) message[1]) | (((uint16_t) message[2]) << 8);
-	string topic_name(message + 3);
+	uint16_t msg_id = ((uint16_t)message[1]) | (((uint16_t)message[2]) << 8);
+	string topic_name((char *)message + 3);
 	const orb_metadata *orb_meta = findTopic(topic_name);
 
 	if (!orb_meta) {

@@ -164,6 +164,8 @@ const char *get_commands()
 int slpi_entry(int argc, char *argv[])
 {
 	PX4_INFO("Inside slpi_entry");
+	sleep(1); // give time for apps side to finish initialization
+
 	apps_map_type apps;
 	init_app_map(apps);
 	process_commands(apps, get_commands());

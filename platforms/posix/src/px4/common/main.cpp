@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2015-2018 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2015-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -345,22 +345,33 @@ int main(int argc, char **argv)
 
 		ret = run_startup_script(commands_file, absolute_binary_path, instance);
 
+		if (ret == 0) {
+			// We now block here until we need to exit.
+			if (pxh_off) {
+				wait_to_exit();
+
+			} else {
+				px4_daemon::Pxh pxh;
+				pxh.run_pxh();
+			}
+		}
+
+		// delete lock
+		const std::string file_lock_path = std::string(LOCK_FILE_PATH) + '-' + std::to_string(instance);
+		int fd_flock = open(file_lock_path.c_str(), O_RDWR, 0666);
+
+		if (fd_flock >= 0) {
+			unlink(file_lock_path.c_str());
+			flock(fd_flock, LOCK_UN);
+			close(fd_flock);
+		}
+
 		if (ret != 0) {
 			return PX4_ERROR;
 		}
 
-		// We now block here until we need to exit.
-		if (pxh_off) {
-			wait_to_exit();
-
-		} else {
-			px4_daemon::Pxh pxh;
-			pxh.run_pxh();
-		}
-
 		std::string cmd("shutdown");
 		px4_daemon::Pxh::process_line(cmd, true);
-
 	}
 
 	return PX4_OK;
@@ -453,7 +464,7 @@ void register_sig_handler()
 	// SIGINT
 	struct sigaction sig_int {};
 	sig_int.sa_handler = sig_int_handler;
-	sig_int.sa_flags = 0;// not SA_RESTART!
+	sig_int.sa_flags = 0; // not SA_RESTART!
 
 	// SIGPIPE
 	// We want to ignore if a PIPE has been closed.

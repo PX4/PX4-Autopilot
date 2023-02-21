@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -714,32 +714,47 @@ PARAM_DEFINE_INT32(COM_POS_FS_DELAY, 1);
 /**
  * Horizontal position error threshold.
  *
- * This is the horizontal position error (EPH) threshold that will trigger a failsafe. The default is appropriate for a multicopter. Can be increased for a fixed-wing.
+ * This is the horizontal position error (EPH) threshold that will trigger a failsafe.
+ * The default is appropriate for a multicopter. Can be increased for a fixed-wing.
+ * If the previous position error was below this threshold, there is an additional
+ * factor of 2.5 applied (threshold for invalidation 2.5 times the one for validation).
  *
  * @unit m
+ * @min 0
+ * @decimal 1
  * @group Commander
  */
-PARAM_DEFINE_FLOAT(COM_POS_FS_EPH, 5);
+PARAM_DEFINE_FLOAT(COM_POS_FS_EPH, 5.f);
 
 /**
  * Vertical position error threshold.
  *
- * This is the vertical position error (EPV) threshold that will trigger a failsafe. The default is appropriate for a multicopter. Can be increased for a fixed-wing.
+ * This is the vertical position error (EPV) threshold that will trigger a failsafe.
+ * The default is appropriate for a multicopter. Can be increased for a fixed-wing.
+ * If the previous position error was below this threshold, there is an additional
+ * factor of 2.5 applied (threshold for invalidation 2.5 times the one for validation).
  *
  * @unit m
+ * @min 0
+ * @decimal 1
  * @group Commander
  */
-PARAM_DEFINE_FLOAT(COM_POS_FS_EPV, 10);
+PARAM_DEFINE_FLOAT(COM_POS_FS_EPV, 10.f);
 
 /**
  * Horizontal velocity error threshold.
  *
- * This is the horizontal velocity error (EVH) threshold that will trigger a failsafe. The default is appropriate for a multicopter. Can be increased for a fixed-wing.
+ * This is the horizontal velocity error (EVH) threshold that will trigger a failsafe.
+ * The default is appropriate for a multicopter. Can be increased for a fixed-wing.
+ * If the previous velocity error was below this threshold, there is an additional
+ * factor of 2.5 applied (threshold for invalidation 2.5 times the one for validation).
  *
  * @unit m/s
+ * @min 0
+ * @decimal 1
  * @group Commander
  */
-PARAM_DEFINE_FLOAT(COM_VEL_FS_EVH, 1);
+PARAM_DEFINE_FLOAT(COM_VEL_FS_EVH, 1.f);
 
 /**
  * Next flight UUID
@@ -1025,12 +1040,11 @@ PARAM_DEFINE_FLOAT(COM_SPOOLUP_TIME, 1.0f);
  * Wind speed warning threshold
  *
  * A warning is triggered if the currently estimated wind speed is above this value.
- * Warning is sent periodically (every 1min).
+ * Warning is sent periodically (every 1 minute).
  *
- * A negative value disables the feature.
+ * Set to -1 to disable.
  *
  * @min -1
- * @max 30
  * @decimal 1
  * @increment 0.1
  * @group Commander
@@ -1043,32 +1057,51 @@ PARAM_DEFINE_FLOAT(COM_WIND_WARN, -1.f);
  *
  * The vehicle aborts the current operation and returns to launch when
  * the time since takeoff is above this value. It is not possible to resume the
- * mission or switch to any mode other than RTL or Land.
+ * mission or switch to any auto mode other than RTL or Land. Taking over in any manual
+ * mode is still possible.
  *
- * Set a negative value to disable.
+ * Starting from 90% of the maximum flight time, a warning message will be sent
+ * every 1 minute with the remaining time until automatic RTL.
  *
+ * Set to -1 to disable.
  *
  * @unit s
  * @min -1
- * @max 10000
- * @value 0 Disable
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_FLT_TIME_MAX, -1);
 
 /**
- * Wind speed RLT threshold
+ * Wind speed RTL threshold
  *
- * Wind speed threshold above which an automatic return to launch is triggered
- * and enforced as long as the threshold is exceeded.
+ * Wind speed threshold above which an automatic return to launch is triggered.
+ * It is not possible to resume the mission or switch to any auto mode other than
+ * RTL or Land if this threshold is exceeded. Taking over in any manual
+ * mode is still possible.
  *
- * A negative value disables the feature.
+ * Set to -1 to disable.
  *
  * @min -1
- * @max 30
  * @decimal 1
  * @increment 0.1
  * @group Commander
  * @unit m/s
  */
 PARAM_DEFINE_FLOAT(COM_WIND_MAX, -1.f);
+
+/**
+ * EPH threshold for RTL
+ *
+ * Specify the threshold for triggering a warning for low local position accuracy. Additionally triggers
+ * a RTL if currently in Mission or Loiter mode.
+ * Local position has to be still declared valid, which is most of all depending on COM_POS_FS_EPH.
+ * Use this feature on systems with dead-reckoning capabilites (e.g. fixed-wing vehicles with airspeed sensor)
+ * to improve the user notification and failure mitigation when flying in GNSS-denied areas.
+ *
+ * Set to -1 to disable.
+ *
+ * @group Commander
+ * @min -1
+ * @unit m
+ */
+PARAM_DEFINE_FLOAT(COM_POS_LOW_EPH, -1.0f);

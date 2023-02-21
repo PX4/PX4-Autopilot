@@ -70,6 +70,35 @@ static pthread_mutex_t task_mutex;
 extern "C" {
 
 	int pthread_setname_np(pthread_t __target_thread, const char *__name) {	return 0; }
+
+	// This function is in pthread.h but is not, apparently, defined in the
+	// Qurt system image. So, it is being defined here. Unfortunately it doesn't
+	// seem to work. It looks like the Qurt pthread implementation likes to allocate
+	// the stack itself and not give us that ability.
+	// int pthread_attr_setstackaddr(pthread_attr_t *attr, void * stackaddr) {
+	// if (attr == NULL) return -1;
+	// if (stackaddr == NULL) return -1;
+	// attr->stackaddr = stackaddr;
+	// attr->internal_stack = 0;
+	// return 0;
+	// }
+
+	// This function is in pthread.h but is not, apparently, defined in the
+	// Qurt system image. So, it is being defined here.
+	int pthread_attr_setthreadname(pthread_attr_t *attr, const char *name)
+	{
+		if (attr == NULL) { return -1; }
+
+		if (&attr->name[0] == NULL) { return -1; }
+
+		if (name == NULL) { return -1; }
+
+		memcpy(attr->name, name, PTHREAD_NAME_LEN);
+		attr->name[PTHREAD_NAME_LEN - 1] = 0;
+		return 0;
+	}
+
+	// Qurt only has one scheduling policy so this just returns a success
 	int pthread_attr_setschedpolicy(pthread_attr_t *attr, int policy) { return 0; }
 
 }
@@ -172,11 +201,30 @@ static px4_task_t px4_task_spawn_internal(const char *name, int priority, px4_ma
 	strcpy(&taskmap[task_index].name[4], name);
 
 	struct sched_param param;
+
+	// Qurt threads have different priority numbers. 1 is the highest
+	// priority and 255 is the lowest. But we are using the pthread
+	// implementation on Qurt which returns 255 when you call sched_get_priority_max.
+	// However, the Qurt pthread implementation deals with this properly when
+	// creating the underlying Qurt task by mapping the high number into a low number.
+
+	// For high priorities bump everything down a little so that critical Qurt
+	// threads are not impacted.
+	if (priority > 128) {
+		priority -= 16;
+	}
+
+	// Likewise, for low priorities, bump everything up a little.
+	else if (priority < 128) {
+		priority += 10;
+	}
+
 	param.sched_priority = priority;
 
 	pthread_attr_init(&taskmap[task_index].attr);
-	//pthread_attr_setthreadname(&taskmap[task_index].attr, taskmap[task_index].name);
-	//pthread_attr_setstackaddr(&taskmap[task_index].attr, taskmap[task_index].stack);
+	pthread_attr_setthreadname(&taskmap[task_index].attr, taskmap[task_index].name);
+	// See note above about the pthread_attr_setstackaddr function
+	// pthread_attr_setstackaddr(&taskmap[task_index].attr, taskmap[task_index].stack);
 	pthread_attr_setstacksize(&taskmap[task_index].attr, PX4_TASK_STACK_SIZE);
 	pthread_attr_setschedparam(&taskmap[task_index].attr, &param);
 

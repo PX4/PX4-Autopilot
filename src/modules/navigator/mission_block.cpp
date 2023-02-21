@@ -255,7 +255,7 @@ MissionBlock::is_mission_item_reached_or_completed()
 			 * coordinates with a radius equal to the loiter_radius field. It is not flying
 			 * through the waypoint center.
 			 * Therefore the item is marked as reached once the system reaches the loiter
-			 * radius + L1 distance. Time inside and turn count is handled elsewhere.
+			 * radius + navigation switch distance. Time inside and turn count is handled elsewhere.
 			 */
 
 			// check if within loiter radius around wp, if yes then set altitude sp to mission item
@@ -414,7 +414,8 @@ MissionBlock::is_mission_item_reached_or_completed()
 	if (_waypoint_position_reached && !_waypoint_yaw_reached) {
 
 		if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
-		    && PX4_ISFINITE(_navigator->get_yaw_acceptance(_mission_item.yaw))) {
+		    && PX4_ISFINITE(_navigator->get_yaw_acceptance(_mission_item.yaw))
+		    && _navigator->get_local_position()->heading_good_for_control) {
 
 			const float yaw_err = wrap_pi(_mission_item.yaw - _navigator->get_local_position()->heading);
 
@@ -832,7 +833,7 @@ MissionBlock::set_takeoff_item(struct mission_item_s *item, float abs_altitude)
 }
 
 void
-MissionBlock::set_land_item(struct mission_item_s *item, bool at_current_location)
+MissionBlock::set_land_item(struct mission_item_s *item)
 {
 	/* VTOL transition to RW before landing */
 	if (_navigator->force_vtol()) {
@@ -847,18 +848,10 @@ MissionBlock::set_land_item(struct mission_item_s *item, bool at_current_locatio
 	/* set the land item */
 	item->nav_cmd = NAV_CMD_LAND;
 
-	/* use current position */
-	if (at_current_location) {
-		item->lat = (double)NAN; //descend at current position
-		item->lon = (double)NAN; //descend at current position
-		item->yaw = _navigator->get_local_position()->heading;
-
-	} else {
-		/* use home position */
-		item->lat = _navigator->get_home_position()->lat;
-		item->lon = _navigator->get_home_position()->lon;
-		item->yaw = _navigator->get_home_position()->yaw;
-	}
+	// set land item to current position
+	item->lat = _navigator->get_global_position()->lat;
+	item->lon = _navigator->get_global_position()->lon;
+	item->yaw = _navigator->get_local_position()->heading;
 
 	item->altitude = 0;
 	item->altitude_is_relative = false;

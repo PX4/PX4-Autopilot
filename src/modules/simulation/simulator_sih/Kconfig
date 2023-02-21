@@ -1,6 +1,10 @@
 menuconfig MODULES_SIMULATION_SIMULATOR_SIH
 	bool "simulator_sih"
 	default n
+	select MODULES_SIMULATION_PWM_OUT_SIM
+	select MODULES_SIMULATION_SENSOR_BARO_SIM
+	select MODULES_SIMULATION_SENSOR_GPS_SIM
+	select MODULES_SIMULATION_SENSOR_MAG_SIM
 	---help---
 		Enable support for simulator_sih
 

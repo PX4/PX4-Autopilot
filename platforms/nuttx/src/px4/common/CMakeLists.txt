@@ -50,6 +50,7 @@ if(NOT PX4_BOARD MATCHES "io-v2")
 		px4_mtd.cpp
 		px4_24xxxx_mtd.c
 		px4_crypto.cpp
+		progmem_dump.c
 	)
 
 	# Kernel side & nuttx flat build common libraries

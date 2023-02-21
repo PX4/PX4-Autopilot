@@ -88,14 +88,14 @@ void ComputeGnssYawInnonInnovVarAndH(const matrix::Matrix<Scalar, 24, 1>& state,
   }
 
   if (H != nullptr) {
-    matrix::Matrix<Scalar, 24, 1>& _H = (*H);
+    matrix::Matrix<Scalar, 24, 1>& _h = (*H);
 
-    _H.setZero();
+    _h.setZero();
 
-    _H(0, 0) = _tmp26;
-    _H(1, 0) = _tmp25;
-    _H(2, 0) = _tmp27;
-    _H(3, 0) = _tmp19;
+    _h(0, 0) = _tmp26;
+    _h(1, 0) = _tmp25;
+    _h(2, 0) = _tmp27;
+    _h(3, 0) = _tmp19;
   }
 }  // NOLINT(readability/fn_size)
 

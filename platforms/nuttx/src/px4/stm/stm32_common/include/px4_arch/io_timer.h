@@ -58,6 +58,9 @@ __BEGIN_DECLS
 #define MAX_LED_TIMERS			2
 #define MAX_TIMER_LED_CHANNELS	6
 
+#define MAX_SPIX_SYNC_TIMERS		2
+#define MAX_TIMER_SPIX_SYNC_CHANNELS	2
+
 #define IO_TIMER_ALL_MODES_CHANNELS 0
 
 /* TIM_DMA_Base_address TIM DMA Base Address */
@@ -133,6 +136,10 @@ __EXPORT extern const timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNEL
 
 __EXPORT extern const io_timers_t led_pwm_timers[MAX_LED_TIMERS];
 __EXPORT extern const timer_io_channels_t led_pwm_channels[MAX_TIMER_LED_CHANNELS];
+
+__EXPORT extern const io_timers_t spix_sync_timers[MAX_SPIX_SYNC_TIMERS];
+__EXPORT extern const io_timers_channel_mapping_t spix_sync_channel_mapping;
+__EXPORT extern const timer_io_channels_t spix_sync_channels[MAX_TIMER_SPIX_SYNC_CHANNELS];
 
 __EXPORT int io_timer_channel_init(unsigned channel, io_timer_channel_mode_t mode,
 				   channel_handler_t channel_handler, void *context);

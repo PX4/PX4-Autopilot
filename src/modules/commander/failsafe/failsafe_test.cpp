@@ -62,7 +62,7 @@ protected:
 			       ActionOptions(Action::RTL).allowUserTakeover(UserTakeoverAllowed::Never));
 
 		_last_state_test = checkFailsafe(_caller_id_test, _last_state_test, status_flags.fd_motor_failure
-						 && status_flags.fd_critical_failure, Action::Terminate);
+						 && status_flags.fd_critical_failure, ActionOptions(Action::Terminate).cannotBeDeferred());
 	}
 
 	Action checkModeFallback(const failsafe_flags_s &status_flags, uint8_t user_intended_mode) const override
@@ -258,3 +258,114 @@ TEST_F(FailsafeTest, takeover_denied)
 	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Terminate);
 }
 
+TEST_F(FailsafeTest, defer)
+{
+	FailsafeTester failsafe(nullptr);
+
+	failsafe_flags_s failsafe_flags{};
+	FailsafeBase::State state{};
+	state.armed = true;
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_POSCTL;
+	state.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+	hrt_abstime time = 3847124342;
+
+	uint8_t updated_user_intented_mode = failsafe.update(time, state, false, false, failsafe_flags);
+
+	const int defer_timeout_s = 10;
+	failsafe.deferFailsafes(true, defer_timeout_s);
+	ASSERT_TRUE(failsafe.getDeferFailsafes());
+	ASSERT_FALSE(failsafe.failsafeDeferred());
+	// GCS connection lost -> deferred
+	time += 10_ms;
+	failsafe_flags.gcs_connection_lost = true;
+	updated_user_intented_mode = failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
+	ASSERT_TRUE(failsafe.getDeferFailsafes());
+	ASSERT_TRUE(failsafe.failsafeDeferred());
+
+	// Wait a bit, still deferred
+	time += 5_s;
+	state.user_intended_mode = vehicle_status_s::NAVIGATION_STATE_STAB;
+	updated_user_intented_mode = failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(updated_user_intented_mode, state.user_intended_mode);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
+	ASSERT_TRUE(failsafe.getDeferFailsafes());
+	ASSERT_TRUE(failsafe.failsafeDeferred());
+
+	// Wait a bit, don't defer anymore -> failsafe triggered (hold)
+	time += 1_s;
+	failsafe.deferFailsafes(false, 0);
+	ASSERT_FALSE(failsafe.getDeferFailsafes());
+	updated_user_intented_mode = failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(updated_user_intented_mode, state.user_intended_mode);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Hold);
+	ASSERT_FALSE(failsafe.getDeferFailsafes());
+	ASSERT_FALSE(failsafe.failsafeDeferred());
+
+	// Cannot enable while in failsafe
+	ASSERT_FALSE(failsafe.deferFailsafes(true, 0));
+
+	// Still in hold
+	time += 4_s;
+	updated_user_intented_mode = failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Hold);
+
+	// Now changed to descend
+	time += 4_s;
+	updated_user_intented_mode = failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Descend);
+
+	// Clear failsafe
+	failsafe_flags.gcs_connection_lost = false;
+	time += 10_ms;
+	updated_user_intented_mode = failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
+
+
+	// Defer and trigger timeout
+	failsafe.deferFailsafes(true, defer_timeout_s);
+	time += 10_ms;
+	failsafe_flags.wind_limit_exceeded = true;
+	updated_user_intented_mode = failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
+	ASSERT_TRUE(failsafe.failsafeDeferred());
+	time += 1_s * defer_timeout_s + 10_ms;
+	updated_user_intented_mode = failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::RTL);
+	ASSERT_FALSE(failsafe.failsafeDeferred());
+	time += 10_ms;
+	failsafe_flags.wind_limit_exceeded = false;
+	updated_user_intented_mode = failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
+
+	// Defer and clear failsafe -> no action
+	failsafe.deferFailsafes(true, defer_timeout_s);
+	time += 10_ms;
+	failsafe_flags.wind_limit_exceeded = true;
+	updated_user_intented_mode = failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
+	ASSERT_TRUE(failsafe.failsafeDeferred());
+	time += 10_ms;
+	failsafe_flags.wind_limit_exceeded = false;
+	updated_user_intented_mode = failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
+	ASSERT_FALSE(failsafe.failsafeDeferred());
+	failsafe.deferFailsafes(false, defer_timeout_s);
+	time += 10_ms;
+	updated_user_intented_mode = failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
+
+	// Defer and trigger non-deferrable failsafe
+	failsafe.deferFailsafes(true, defer_timeout_s);
+	time += 10_ms;
+	failsafe_flags.wind_limit_exceeded = true;
+	updated_user_intented_mode = failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::None);
+	ASSERT_TRUE(failsafe.failsafeDeferred());
+	time += 10_ms;
+	failsafe_flags.fd_motor_failure = true;
+	failsafe_flags.fd_critical_failure = true;
+	updated_user_intented_mode = failsafe.update(time, state, false, false, failsafe_flags);
+	ASSERT_EQ(failsafe.selectedAction(), FailsafeBase::Action::Terminate);
+	ASSERT_FALSE(failsafe.failsafeDeferred());
+}

@@ -47,8 +47,6 @@ GTAGS
 *.files
 *.includes
 
-Tools/jlink-nuttx.so
-
 # CLion ignores
 .idea
 cmake-build-*/
