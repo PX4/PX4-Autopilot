@@ -174,10 +174,6 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 		_control_status.flags.rng_kin_consistent = _rng_consistency_check.isKinematicallyConsistent();
 	}
 
-	if (_airspeed_buffer) {
-		_tas_data_ready = _airspeed_buffer->pop_first_older_than(imu_delayed.time_us, &_airspeed_sample_delayed);
-	}
-
 	// run EKF-GSF yaw estimator once per imu_delayed update after all main EKF data samples available
 	runYawEKFGSF(imu_delayed);
 
@@ -185,7 +181,7 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 	controlMagFusion();
 	controlOpticalFlowFusion(imu_delayed);
 	controlGpsFusion();
-	controlAirDataFusion();
+	controlAirDataFusion(imu_delayed);
 	controlBetaFusion(imu_delayed);
 	controlDragFusion();
 	controlHeightFusion(imu_delayed);
