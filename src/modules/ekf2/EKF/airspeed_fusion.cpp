@@ -61,18 +61,27 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 		_control_status.flags.wind = false;
 	}
 
+	// clear yaw estimator airspeed (updated later with true airspeed if airspeed fusion is active)
+	if (_control_status.flags.fixed_wing) {
+		if (_control_status.flags.in_air && !_control_status.flags.vehicle_at_rest) {
+			if (!_control_status.flags.fuse_aspd) {
+				_yawEstimator.setTrueAirspeed(_params.EKFGSF_tas_default);
+			}
+
+		} else {
+			_yawEstimator.setTrueAirspeed(0.f);
+		}
+	}
+
 	if (_params.arsp_thr <= 0.f) {
 		stopAirspeedFusion();
 		return;
 	}
 
-	if (_airspeed_buffer) {
-		_tas_data_ready = _airspeed_buffer->pop_first_older_than(imu_delayed.time_us, &_airspeed_sample_delayed);
-	}
+	if (_airspeed_buffer && _airspeed_buffer->pop_first_older_than(imu_delayed.time_us, &_airspeed_sample_delayed)) {
 
-	const airspeedSample &airspeed_sample = _airspeed_sample_delayed;
+		const airspeedSample &airspeed_sample = _airspeed_sample_delayed;
 
-	if (_tas_data_ready) {
 		updateAirspeed(airspeed_sample, _aid_src_airspeed);
 
 		_innov_check_fail_status.flags.reject_airspeed = _aid_src_airspeed.innovation_rejected; // TODO: remove this redundant flag
@@ -88,6 +97,8 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 				if (is_airspeed_significant) {
 					fuseAirspeed(airspeed_sample, _aid_src_airspeed);
 				}
+
+				_yawEstimator.setTrueAirspeed(airspeed_sample.true_airspeed);
 
 				const bool is_fusion_failing = isTimedOut(_aid_src_airspeed.time_last_fuse, (uint64_t)10e6);
 
@@ -113,7 +124,7 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 			_control_status.flags.fuse_aspd = true;
 		}
 
-	} else if (_control_status.flags.fuse_aspd && !isRecent(airspeed_sample.time_us, (uint64_t)1e6)) {
+	} else if (_control_status.flags.fuse_aspd && !isRecent(_airspeed_sample_delayed.time_us, (uint64_t)1e6)) {
 		ECL_WARN("Airspeed data stopped");
 		stopAirspeedFusion();
 	}
@@ -206,6 +217,7 @@ void Ekf::stopAirspeedFusion()
 	if (_control_status.flags.fuse_aspd) {
 		ECL_INFO("stopping airspeed fusion");
 		resetEstimatorAidStatus(_aid_src_airspeed);
+		_yawEstimator.setTrueAirspeed(NAN);
 		_control_status.flags.fuse_aspd = false;
 	}
 }
