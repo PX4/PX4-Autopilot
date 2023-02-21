@@ -380,3 +380,60 @@ void Ekf::controlGpsYawFusion(const gpsSample &gps_sample, bool gps_checks_passi
 		_control_status.flags.yaw_align = false;
 	}
 }
+
+void Ekf::stopGpsFusion()
+{
+	if (_control_status.flags.gps) {
+		stopGpsPosFusion();
+		stopGpsVelFusion();
+
+		_control_status.flags.gps = false;
+	}
+
+	if (_control_status.flags.gps_yaw) {
+		stopGpsYawFusion();
+	}
+
+	// We do not need to know the true North anymore
+	// EV yaw can start again
+	_inhibit_ev_yaw_use = false;
+}
+
+void Ekf::stopGpsPosFusion()
+{
+	if (_control_status.flags.gps) {
+		ECL_INFO("stopping GPS position fusion");
+		_control_status.flags.gps = false;
+
+		resetEstimatorAidStatus(_aid_src_gnss_pos);
+	}
+}
+
+void Ekf::stopGpsVelFusion()
+{
+	ECL_INFO("stopping GPS velocity fusion");
+
+	resetEstimatorAidStatus(_aid_src_gnss_vel);
+}
+
+void Ekf::startGpsYawFusion(const gpsSample &gps_sample)
+{
+	if (!_control_status.flags.gps_yaw && resetYawToGps(gps_sample.yaw)) {
+		ECL_INFO("starting GPS yaw fusion");
+		_control_status.flags.yaw_align = true;
+		_control_status.flags.mag_dec = false;
+		stopEvYawFusion();
+		stopMagHdgFusion();
+		stopMag3DFusion();
+		_control_status.flags.gps_yaw = true;
+	}
+}
+
+void Ekf::stopGpsYawFusion()
+{
+	if (_control_status.flags.gps_yaw) {
+		ECL_INFO("stopping GPS yaw fusion");
+		_control_status.flags.gps_yaw = false;
+		resetEstimatorAidStatus(_aid_src_gnss_yaw);
+	}
+}
