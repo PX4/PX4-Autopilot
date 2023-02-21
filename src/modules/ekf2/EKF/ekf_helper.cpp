@@ -1051,13 +1051,6 @@ void Ekf::loadMagCovData()
 	P(18, 18) = _saved_mag_ef_d_variance;
 }
 
-void Ekf::stopAuxVelFusion()
-{
-	ECL_INFO("stopping aux vel fusion");
-	//_control_status.flags.aux_vel = false;
-	resetEstimatorAidStatus(_aid_src_aux_vel);
-}
-
 void Ekf::resetQuatStateYaw(float yaw, float yaw_variance)
 {
 	// save a copy of the quaternion state for later use in calculating the amount of reset change

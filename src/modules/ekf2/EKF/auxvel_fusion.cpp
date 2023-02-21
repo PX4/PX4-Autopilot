@@ -51,3 +51,10 @@ void Ekf::controlAuxVelFusion()
 		}
 	}
 }
+
+void Ekf::stopAuxVelFusion()
+{
+	ECL_INFO("stopping aux vel fusion");
+	//_control_status.flags.aux_vel = false;
+	resetEstimatorAidStatus(_aid_src_aux_vel);
+}
