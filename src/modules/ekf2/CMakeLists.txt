@@ -82,6 +82,7 @@ px4_add_module(
 		3600
 	SRCS
 		EKF/airspeed_fusion.cpp
+		EKF/auxvel_fusion.cpp
 		EKF/baro_height_control.cpp
 		EKF/bias_estimator.cpp
 		EKF/control.cpp
