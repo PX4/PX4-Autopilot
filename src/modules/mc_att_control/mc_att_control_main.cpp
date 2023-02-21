@@ -92,7 +92,9 @@ MulticopterAttitudeControl::parameters_updated()
 
 	_man_tilt_max = math::radians(_param_mpc_man_tilt_max.get());
 
-	_attitude_input_filter.setParameters(1.f / (_param_mc_man_tilt_tau.get() * 0.707f), 0.707f);
+	constexpr float damping_ratio = 1.f;
+	const float natural_freq = 1.f / fmaxf(_param_mc_man_tilt_tau.get() * damping_ratio, FLT_EPSILON);
+	_attitude_input_filter.setParameters(natural_freq, damping_ratio);
 }
 
 float
