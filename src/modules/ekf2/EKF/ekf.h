@@ -491,8 +491,6 @@ private:
 	bool _flow_data_ready{false};	///< true when the leading edge of the optical flow integration period has fallen behind the fusion time horizon
 	bool _flow_for_terrain_data_ready{false}; /// same flag as "_flow_data_ready" but used for separate terrain estimator
 
-	uint64_t _time_prev_gps_us{0};	///< time stamp of previous GPS data retrieved from the buffer (uSec)
-
 	uint64_t _time_last_horizontal_aiding{0}; ///< amount of time we have been doing inertial only deadreckoning (uSec)
 	uint64_t _time_last_v_pos_aiding{0};
 	uint64_t _time_last_v_vel_aiding{0};
@@ -856,7 +854,7 @@ private:
 	void resetOnGroundMotionForOpticalFlowChecks();
 
 	// control fusion of GPS observations
-	void controlGpsFusion();
+	void controlGpsFusion(const imuSample &imu_delayed);
 	bool shouldResetGpsFusion() const;
 	bool isYawFailure() const;
 
@@ -1037,8 +1035,6 @@ private:
 	HeightBiasEstimator _rng_hgt_b_est{HeightSensor::RANGE, _height_sensor_ref};
 	HeightBiasEstimator _ev_hgt_b_est{HeightSensor::EV, _height_sensor_ref};
 	PositionBiasEstimator _ev_pos_b_est{static_cast<uint8_t>(PositionSensor::EV), _position_sensor_ref};
-
-	void runYawEKFGSF(const imuSample &imu_delayed);
 
 	// Resets the main Nav EKf yaw to the estimator from the EKF-GSF yaw estimator
 	// Resets the horizontal velocity and position to the default navigation sensor

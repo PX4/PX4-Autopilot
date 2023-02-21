@@ -102,41 +102,10 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 		}
 	}
 
-	if (_gps_buffer) {
-		_gps_intermittent = !isNewestSampleRecent(_time_last_gps_buffer_push, 2 * GNSS_MAX_INTERVAL);
-
-		// check for arrival of new sensor data at the fusion time horizon
-		_time_prev_gps_us = _gps_sample_delayed.time_us;
-		_gps_data_ready = _gps_buffer->pop_first_older_than(imu_delayed.time_us, &_gps_sample_delayed);
-
-		if (_gps_data_ready) {
-			// correct velocity for offset relative to IMU
-			const Vector3f pos_offset_body = _params.gps_pos_body - _params.imu_pos_body;
-			const Vector3f vel_offset_body = _ang_rate_delayed_raw % pos_offset_body;
-			const Vector3f vel_offset_earth = _R_to_earth * vel_offset_body;
-			_gps_sample_delayed.vel -= vel_offset_earth;
-
-			// correct position and height for offset relative to IMU
-			const Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
-			_gps_sample_delayed.pos -= pos_offset_earth.xy();
-			_gps_sample_delayed.hgt += pos_offset_earth(2);
-
-			// update GSF yaw estimator velocity (basic sanity check on GNSS velocity data)
-			if ((_gps_sample_delayed.sacc > 0.f) && (_gps_sample_delayed.sacc < _params.req_sacc)
-			    && _gps_sample_delayed.vel.isAllFinite()
-			   ) {
-				_yawEstimator.setVelocity(_gps_sample_delayed.vel.xy(), math::max(_gps_sample_delayed.sacc, _params.gps_vel_noise));
-			}
-		}
-	}
-
-	// run EKF-GSF yaw estimator once per imu_delayed update after all main EKF data samples available
-	runYawEKFGSF(imu_delayed);
-
 	// control use of observations for aiding
 	controlMagFusion();
 	controlOpticalFlowFusion(imu_delayed);
-	controlGpsFusion();
+	controlGpsFusion(imu_delayed);
 	controlAirDataFusion(imu_delayed);
 	controlBetaFusion(imu_delayed);
 	controlDragFusion();

@@ -1346,11 +1346,6 @@ bool Ekf::getDataEKFGSF(float *yaw_composite, float *yaw_variance, float yaw[N_M
 	return _yawEstimator.getLogData(yaw_composite, yaw_variance, yaw, innov_VN, innov_VE, weight);
 }
 
-void Ekf::runYawEKFGSF(const imuSample &imu_delayed)
-{
-	_yawEstimator.update(imu_delayed, _control_status.flags.in_air, getGyroBias());
-}
-
 void Ekf::resetGpsDriftCheckFilters()
 {
 	_gps_velNE_filt.setZero();
