@@ -1188,16 +1188,6 @@ void Ekf::stopAuxVelFusion()
 	resetEstimatorAidStatus(_aid_src_aux_vel);
 }
 
-void Ekf::stopFlowFusion()
-{
-	if (_control_status.flags.opt_flow) {
-		ECL_INFO("stopping optical flow fusion");
-		_control_status.flags.opt_flow = false;
-
-		resetEstimatorAidStatus(_aid_src_optical_flow);
-	}
-}
-
 void Ekf::resetQuatStateYaw(float yaw, float yaw_variance)
 {
 	// save a copy of the quaternion state for later use in calculating the amount of reset change
