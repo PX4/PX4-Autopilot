@@ -48,14 +48,25 @@ bool FlightTask::update()
 void FlightTask::_checkEkfResetCounters()
 {
 	// Check if a reset event has happened
+
+	bool yaw_reset = false;
+
+	if (_sub_vehicle_local_position.get().heading_reset_counter != _reset_counters.heading) {
+		_ekfResetHandlerHeading(_sub_vehicle_local_position.get().delta_heading);
+		_reset_counters.heading = _sub_vehicle_local_position.get().heading_reset_counter;
+		yaw_reset = true;
+	}
+
 	if (_sub_vehicle_local_position.get().xy_reset_counter != _reset_counters.xy) {
 		_ekfResetHandlerPositionXY(matrix::Vector2f{_sub_vehicle_local_position.get().delta_xy});
 		_reset_counters.xy = _sub_vehicle_local_position.get().xy_reset_counter;
 	}
 
-	if (_sub_vehicle_local_position.get().vxy_reset_counter != _reset_counters.vxy) {
-		_ekfResetHandlerVelocityXY(matrix::Vector2f{_sub_vehicle_local_position.get().delta_vxy});
-		_reset_counters.vxy = _sub_vehicle_local_position.get().vxy_reset_counter;
+	if (!yaw_reset) {
+		if (_sub_vehicle_local_position.get().vxy_reset_counter != _reset_counters.vxy) {
+			_ekfResetHandlerVelocityXY(matrix::Vector2f{_sub_vehicle_local_position.get().delta_vxy});
+			_reset_counters.vxy = _sub_vehicle_local_position.get().vxy_reset_counter;
+		}
 	}
 
 	if (_sub_vehicle_local_position.get().z_reset_counter != _reset_counters.z) {
@@ -66,11 +77,6 @@ void FlightTask::_checkEkfResetCounters()
 	if (_sub_vehicle_local_position.get().vz_reset_counter != _reset_counters.vz) {
 		_ekfResetHandlerVelocityZ(_sub_vehicle_local_position.get().delta_vz);
 		_reset_counters.vz = _sub_vehicle_local_position.get().vz_reset_counter;
-	}
-
-	if (_sub_vehicle_local_position.get().heading_reset_counter != _reset_counters.heading) {
-		_ekfResetHandlerHeading(_sub_vehicle_local_position.get().delta_heading);
-		_reset_counters.heading = _sub_vehicle_local_position.get().heading_reset_counter;
 	}
 }
 

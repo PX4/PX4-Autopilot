@@ -706,6 +706,28 @@ void FlightTaskAuto::_ekfResetHandlerVelocityZ(float delta_vz)
 void FlightTaskAuto::_ekfResetHandlerHeading(float delta_psi)
 {
 	_yaw_sp_prev += delta_psi;
+
+	const Quatf q(Eulerf(0.f, 0.f, delta_psi));
+
+	if (_velocity_setpoint.isAllFinite()) {
+		_velocity_setpoint = q.rotateVector(_velocity_setpoint);
+	}
+
+	if (_velocity_setpoint_feedback.isAllFinite()) {
+		_velocity_setpoint_feedback = q.rotateVector(_velocity_setpoint_feedback);
+	}
+
+	if (_acceleration_setpoint.isAllFinite()) {
+		_acceleration_setpoint = q.rotateVector(_acceleration_setpoint);
+	}
+
+	if (_acceleration_setpoint_feedback.isAllFinite()) {
+		_acceleration_setpoint_feedback = q.rotateVector(_acceleration_setpoint_feedback);
+	}
+
+	if (_jerk_setpoint.isAllFinite()) {
+		_jerk_setpoint = q.rotateVector(_jerk_setpoint);
+	}
 }
 
 void FlightTaskAuto::_checkEmergencyBraking()

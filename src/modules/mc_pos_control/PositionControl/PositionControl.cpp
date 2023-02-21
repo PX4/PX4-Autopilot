@@ -260,3 +260,38 @@ void PositionControl::getAttitudeSetpoint(vehicle_attitude_setpoint_s &attitude_
 	ControlMath::thrustToAttitude(_thr_sp, _yaw_sp, attitude_setpoint);
 	attitude_setpoint.yaw_sp_move_rate = _yawspeed_sp;
 }
+
+void PositionControl::resetHeading(const float delta_heading)
+{
+	const Quatf q(Eulerf(0.f, 0.f, delta_heading));
+
+	// States
+	if (_vel.isAllFinite()) {
+		_vel = q.rotateVector(_vel);
+	}
+
+	if (_vel_dot.isAllFinite()) {
+		_vel_dot = q.rotateVector(_vel_dot);
+	}
+
+	if (_vel_int.isAllFinite()) {
+		_vel_int = q.rotateVector(_vel_int);
+	}
+
+	if (PX4_ISFINITE(_yaw)) {
+		_yaw += delta_heading;
+	}
+
+	// Setpoints
+	if (_vel_sp.isAllFinite()) {
+		_vel_sp = q.rotateVector(_vel_sp);
+	}
+
+	if (_acc_sp.isAllFinite()) {
+		_acc_sp = q.rotateVector(_acc_sp);
+	}
+
+	if (PX4_ISFINITE(_yaw_sp)) {
+		_yaw_sp += delta_heading;
+	}
+}

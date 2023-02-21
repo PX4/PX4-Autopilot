@@ -57,6 +57,8 @@ public:
 	void resetPosition(const matrix::Vector2f &position);
 	void resetVelocity(const matrix::Vector2f &velocity);
 	void resetAcceleration(const matrix::Vector2f &acceleration);
+	void resetHeading(const float delta_heading);
+
 	void generateSetpoints(matrix::Vector2f stick_xy, const float yaw, const float yaw_sp, const matrix::Vector3f &pos,
 			       const matrix::Vector2f &vel_sp_feedback, const float dt);
 	void getSetpoints(matrix::Vector3f &pos_sp, matrix::Vector3f &vel_sp, matrix::Vector3f &acc_sp);

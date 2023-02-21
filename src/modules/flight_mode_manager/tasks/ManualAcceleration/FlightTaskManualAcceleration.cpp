@@ -98,3 +98,10 @@ void FlightTaskManualAcceleration::_ekfResetHandlerVelocityXY(const matrix::Vect
 {
 	_stick_acceleration_xy.resetVelocity(_velocity.xy());
 }
+
+void FlightTaskManualAcceleration::_ekfResetHandlerHeading(float delta_psi)
+{
+	FlightTaskManualAltitude::_ekfResetHandlerHeading(delta_psi);
+
+	_stick_acceleration_xy.resetHeading(delta_psi);
+}

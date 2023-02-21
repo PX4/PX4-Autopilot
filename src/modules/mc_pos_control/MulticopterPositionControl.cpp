@@ -372,7 +372,28 @@ void MulticopterPositionControl::Run()
 
 		// adjust existing (or older) setpoint with any EKF reset deltas
 		if ((_setpoint.timestamp != 0) && (_setpoint.timestamp < vehicle_local_position.timestamp)) {
-			if (vehicle_local_position.vxy_reset_counter != _vxy_reset_counter) {
+
+			if (vehicle_local_position.heading_reset_counter != _heading_reset_counter) {
+				_setpoint.yaw = wrap_pi(_setpoint.yaw + vehicle_local_position.delta_heading);
+
+				// rotate setpoints
+				const Quatf q(Eulerf(0.f, 0.f, vehicle_local_position.delta_heading));
+
+				// velocity
+				const Vector3f vel_sp{_setpoint.velocity};
+
+				if (vel_sp.isAllFinite()) {
+					q.rotateVector(vel_sp).copyTo(_setpoint.velocity);
+				}
+
+				// acceleration
+				const Vector3f acc_sp{_setpoint.acceleration};
+
+				if (acc_sp.isAllFinite()) {
+					q.rotateVector(acc_sp).copyTo(_setpoint.acceleration);
+				}
+
+			} else if (vehicle_local_position.vxy_reset_counter != _vxy_reset_counter) {
 				_setpoint.velocity[0] += vehicle_local_position.delta_vxy[0];
 				_setpoint.velocity[1] += vehicle_local_position.delta_vxy[1];
 			}
@@ -390,9 +411,10 @@ void MulticopterPositionControl::Run()
 				_setpoint.position[2] += vehicle_local_position.delta_z;
 			}
 
-			if (vehicle_local_position.heading_reset_counter != _heading_reset_counter) {
-				_setpoint.yaw = wrap_pi(_setpoint.yaw + vehicle_local_position.delta_heading);
-			}
+		}
+
+		if (vehicle_local_position.heading_reset_counter != _heading_reset_counter) {
+			_control.resetHeading(vehicle_local_position.delta_heading);
 		}
 
 		if (vehicle_local_position.vxy_reset_counter != _vxy_reset_counter) {

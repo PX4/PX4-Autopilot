@@ -179,6 +179,8 @@ public:
 	 */
 	void getAttitudeSetpoint(vehicle_attitude_setpoint_s &attitude_setpoint) const;
 
+	void resetHeading(const float delta_heading);
+
 	/**
 	 * All setpoints are set to NAN (uncontrolled). Timestampt zero.
 	 */

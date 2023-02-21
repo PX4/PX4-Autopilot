@@ -56,6 +56,7 @@ public:
 private:
 	void _ekfResetHandlerPositionXY(const matrix::Vector2f &delta_xy) override;
 	void _ekfResetHandlerVelocityXY(const matrix::Vector2f &delta_vxy) override;
+	void _ekfResetHandlerHeading(float delta_psi) override;
 
 	StickAccelerationXY _stick_acceleration_xy{this};
 	StickYaw _stick_yaw;
