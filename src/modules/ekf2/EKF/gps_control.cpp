@@ -39,12 +39,40 @@
 #include "ekf.h"
 #include <mathlib/mathlib.h>
 
-void Ekf::controlGpsFusion()
+void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 {
-	if (!((_params.gnss_ctrl & GnssCtrl::HPOS) || (_params.gnss_ctrl & GnssCtrl::VEL))) {
+	if (!_gps_buffer || !((_params.gnss_ctrl & GnssCtrl::HPOS) || (_params.gnss_ctrl & GnssCtrl::VEL))) {
 		stopGpsFusion();
 		return;
 	}
+
+	_gps_intermittent = !isNewestSampleRecent(_time_last_gps_buffer_push, 2 * GNSS_MAX_INTERVAL);
+
+	// check for arrival of new sensor data at the fusion time horizon
+	_gps_data_ready = _gps_buffer->pop_first_older_than(imu_delayed.time_us, &_gps_sample_delayed);
+
+	if (_gps_data_ready) {
+		// correct velocity for offset relative to IMU
+		const Vector3f pos_offset_body = _params.gps_pos_body - _params.imu_pos_body;
+		const Vector3f vel_offset_body = _ang_rate_delayed_raw % pos_offset_body;
+		const Vector3f vel_offset_earth = _R_to_earth * vel_offset_body;
+		_gps_sample_delayed.vel -= vel_offset_earth;
+
+		// correct position and height for offset relative to IMU
+		const Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
+		_gps_sample_delayed.pos -= pos_offset_earth.xy();
+		_gps_sample_delayed.hgt += pos_offset_earth(2);
+
+		// update GSF yaw estimator velocity (basic sanity check on GNSS velocity data)
+		if ((_gps_sample_delayed.sacc > 0.f) && (_gps_sample_delayed.sacc < _params.req_sacc)
+		    && _gps_sample_delayed.vel.isAllFinite()
+		   ) {
+			_yawEstimator.setVelocity(_gps_sample_delayed.vel.xy(), math::max(_gps_sample_delayed.sacc, _params.gps_vel_noise));
+		}
+	}
+
+	// run EKF-GSF yaw estimator once per imu_delayed update after all main EKF data samples available
+	_yawEstimator.update(imu_delayed, _control_status.flags.in_air, getGyroBias());
 
 	// Check for new GPS data that has fallen behind the fusion time horizon
 	if (_gps_data_ready) {
@@ -236,8 +264,8 @@ bool Ekf::shouldResetGpsFusion() const
 	 * with no aiding we need to do something
 	 */
 	const bool has_horizontal_aiding_timed_out = isTimedOut(_time_last_hor_pos_fuse, _params.reset_timeout_max)
-						     && isTimedOut(_time_last_hor_vel_fuse, _params.reset_timeout_max)
-						     && isTimedOut(_aid_src_optical_flow.time_last_fuse, _params.reset_timeout_max);
+			&& isTimedOut(_time_last_hor_vel_fuse, _params.reset_timeout_max)
+			&& isTimedOut(_aid_src_optical_flow.time_last_fuse, _params.reset_timeout_max);
 
 	const bool is_reset_required = has_horizontal_aiding_timed_out
 				       || isTimedOut(_time_last_hor_pos_fuse, 2 * _params.reset_timeout_max);
@@ -280,7 +308,8 @@ void Ekf::controlGpsYawFusion(const gpsSample &gps_sample, bool gps_checks_passi
 
 		const bool continuing_conditions_passing = !gps_checks_failing;
 
-		const bool is_gps_yaw_data_intermittent = !isNewestSampleRecent(_time_last_gps_yaw_buffer_push, 2 * GNSS_YAW_MAX_INTERVAL);
+		const bool is_gps_yaw_data_intermittent = !isNewestSampleRecent(_time_last_gps_yaw_buffer_push,
+				2 * GNSS_YAW_MAX_INTERVAL);
 
 		const bool starting_conditions_passing = continuing_conditions_passing
 				&& _control_status.flags.tilt_align
@@ -336,7 +365,9 @@ void Ekf::controlGpsYawFusion(const gpsSample &gps_sample, bool gps_checks_passi
 			}
 		}
 
-	} else if (_control_status.flags.gps_yaw && !isNewestSampleRecent(_time_last_gps_yaw_buffer_push, _params.reset_timeout_max)) {
+	} else if (_control_status.flags.gps_yaw
+		   && !isNewestSampleRecent(_time_last_gps_yaw_buffer_push, _params.reset_timeout_max)) {
+
 		// No yaw data in the message anymore. Stop until it comes back.
 		stopGpsYawFusion();
 	}
