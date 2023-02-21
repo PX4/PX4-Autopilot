@@ -1063,11 +1063,13 @@ float Navigator::get_cruising_speed(SpeedType type)
 
 void Navigator::set_cruising_speed(float speed, SpeedType type)
 {
+	// check if horizontal or vertical
+	bool hor_speed_type = (type == SpeedType::AIR_SPEED || type == SpeedType::GROUND_SPEED);
 
 	if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 
 		//airspeed or groundspeed (does not differentiate currently)
-		if (type == SpeedType::AIR_SPEED || type == SpeedType::GROUND_SPEED) {
+		if (hor_speed_type) {
 			_mission_cruising_speed_mc = speed;
 
 		} else if (type == SpeedType::CLIMB_SPEED) {
@@ -1077,7 +1079,7 @@ void Navigator::set_cruising_speed(float speed, SpeedType type)
 			_mission_vertical_down_speed_mc = speed;
 		}
 
-	} else {
+	} else if (hor_speed_type) {
 		_mission_cruising_speed_fw = speed;
 	}
 }
