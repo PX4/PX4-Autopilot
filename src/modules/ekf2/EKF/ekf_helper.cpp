@@ -1348,19 +1348,7 @@ bool Ekf::getDataEKFGSF(float *yaw_composite, float *yaw_variance, float yaw[N_M
 
 void Ekf::runYawEKFGSF(const imuSample &imu_delayed)
 {
-	float TAS = 0.f;
-
-	if (_control_status.flags.fixed_wing) {
-		if (isTimedOut(_airspeed_sample_delayed.time_us, 1000000)) {
-			TAS = _params.EKFGSF_tas_default;
-
-		} else if (_airspeed_sample_delayed.true_airspeed >= _params.arsp_thr) {
-			TAS = _airspeed_sample_delayed.true_airspeed;
-		}
-	}
-
-	const Vector3f imu_gyro_bias = getGyroBias();
-	_yawEstimator.update(imu_delayed, _control_status.flags.in_air, TAS, imu_gyro_bias);
+	_yawEstimator.update(imu_delayed, _control_status.flags.in_air, getGyroBias());
 }
 
 void Ekf::resetGpsDriftCheckFilters()

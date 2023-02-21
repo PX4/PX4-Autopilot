@@ -489,7 +489,6 @@ private:
 	// booleans true when fresh sensor data is available at the fusion time horizon
 	bool _gps_data_ready{false};	///< true when new GPS data has fallen behind the fusion time horizon and is available to be fused
 	bool _flow_data_ready{false};	///< true when the leading edge of the optical flow integration period has fallen behind the fusion time horizon
-	bool _tas_data_ready{false};	///< true when new true airspeed data has fallen behind the fusion time horizon and is available to be fused
 	bool _flow_for_terrain_data_ready{false}; /// same flag as "_flow_data_ready" but used for separate terrain estimator
 
 	uint64_t _time_prev_gps_us{0};	///< time stamp of previous GPS data retrieved from the buffer (uSec)
