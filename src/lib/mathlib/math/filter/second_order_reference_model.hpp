@@ -337,10 +337,18 @@ private:
 	void transitionStates(const matrix::SquareMatrix<float, 2> &state_matrix,
 			      const matrix::SquareMatrix<float, 2> &input_matrix, const TState &state_sample, const T &rate_sample)
 	{
-		const TState new_state = state_matrix(0, 0) * filter_state_ + state_matrix(0, 1) * filter_rate_ + input_matrix(0,
-					 0) * state_sample + input_matrix(0, 1) * rate_sample;
-		const T new_rate = state_matrix(1, 0) * filter_state_ + state_matrix(1, 1) * filter_rate_ + input_matrix(1,
-				   0) * state_sample + input_matrix(1, 1) * rate_sample;
+		// Warning: explicit casting is required here as the addition and subtraction operators can be different
+		// for the state and the rate variables (e.g.: addition of AxisAngle should be done on the manifold and not in the vector space).
+		// Also compute the result of state_sample and filter_state before scaling them to prevent angle wrapping issues.
+		const TState rate_contribution = TState(state_matrix(0, 1) * filter_rate_) + TState(input_matrix(0, 1) * rate_sample);
+		const float alpha = state_matrix(0, 0) + input_matrix(0, 0);
+		const TState new_state = TState(alpha * filter_state_) + TState(input_matrix(0,
+					 0) * (state_sample - filter_state_)) + rate_contribution;
+
+		const float beta = state_matrix(1, 0) + input_matrix(1, 0);
+		T state_contribution = TState(beta * filter_state_) + TState(input_matrix(1, 0) * (state_sample - filter_state_));
+		const T new_rate = state_contribution + state_matrix(1, 1) * filter_rate_ + input_matrix(1, 1) * rate_sample;
+
 		filter_state_ = new_state;
 		filter_rate_ = new_rate;
 	}

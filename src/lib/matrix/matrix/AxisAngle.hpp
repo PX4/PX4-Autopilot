@@ -71,11 +71,14 @@ public:
 		AxisAngle &v = *this;
 		Type mag = q.imag().norm();
 
+		// Avoid eventual problems due to the double cover of q by taking its canonical form
+		Quaternion<Type> q_c = q.canonical();
+
 		if (std::fabs(mag) >= Type(1e-10)) {
-			v = q.imag() * Type(Type(2) * std::atan2(mag, q(0)) / mag);
+			v = q_c.imag() * Type(Type(2) * std::atan2(mag, q_c(0)) / mag);
 
 		} else {
-			v = q.imag() * Type(Type(2) * Type(sign(q(0))));
+			v = q_c.imag() * Type(Type(2) * Type(sign(q_c(0))));
 		}
 	}
 

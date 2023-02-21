@@ -157,7 +157,37 @@ TEST(SecondOrderReferenceModel, Attitude)
 
 	Vector3f rate = sys.getRate();
 	// Synchronous roll and pitch body motion
-	EXPECT_FLOAT_EQ(rate(0), -rate(1));
+	EXPECT_NEAR(rate(0), -rate(1), 1e-5f);
 	// Induced body rate yaw
 	EXPECT_LT(rate(2), -FLT_EPSILON);
+}
+
+TEST(SecondOrderReferenceModel, AngleWrapping)
+{
+	SecondOrderReferenceModel<AxisAnglef, Vector3f> sys;
+
+	// reset the system states
+	AxisAnglef init_state(0.f, 0.f, -M_PI_F + 0.01f);
+	sys.reset(init_state);
+
+	const float natural_freq = 5.f;
+	const float damping_ratio = 0.707f;
+	sys.setParameters(natural_freq, damping_ratio);
+	sys.setDiscretizationMethod(SecondOrderReferenceModel<AxisAnglef, Vector3f>::DiscretizationMethod::kBilinear);
+
+	AxisAnglef desired_state(0.f, 0.f, M_PI_F - 0.01f);
+
+	const float dt = 0.01f;
+	const float t_end = 0.2f;
+
+	for (float t = 0.f; t <= t_end; t += dt) {
+		AxisAnglef state = sys.getState();
+		Vector3f accel = sys.getAccel();
+		Vector3f rate = sys.getRate();
+		AxisAnglef error = desired_state - state;
+		printf("sp: %f, state: %f, error: %f, accel: %f, rate: %f\n", (double)desired_state(2), (double)state(2),
+		       (double)error(2), (double)accel(2), (double)rate(2));
+		sys.update(dt, desired_state);
+		ASSERT_LT(fabsf(accel(2)), 1.f);
+	}
 }
