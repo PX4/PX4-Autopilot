@@ -49,7 +49,7 @@
 
 #include <mathlib/mathlib.h>
 
-void Ekf::controlAirDataFusion()
+void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 {
 	// control activation and initialisation/reset of wind states required for airspeed fusion
 
@@ -64,6 +64,10 @@ void Ekf::controlAirDataFusion()
 	if (_params.arsp_thr <= 0.f) {
 		stopAirspeedFusion();
 		return;
+	}
+
+	if (_airspeed_buffer) {
+		_tas_data_ready = _airspeed_buffer->pop_first_older_than(imu_delayed.time_us, &_airspeed_sample_delayed);
 	}
 
 	if (_tas_data_ready) {
