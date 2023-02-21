@@ -218,37 +218,6 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 	updateDeadReckoningStatus();
 }
 
-void Ekf::controlBetaFusion(const imuSample &imu_delayed)
-{
-	_control_status.flags.fuse_beta = _params.beta_fusion_enabled && _control_status.flags.fixed_wing
-		&& _control_status.flags.in_air && !_control_status.flags.fake_pos;
-
-	if (_control_status.flags.fuse_beta) {
-
-		// Perform synthetic sideslip fusion at regular intervals when in-air and sideslip fusion had been enabled externally:
-		const bool beta_fusion_time_triggered = isTimedOut(_aid_src_sideslip.time_last_fuse, _params.beta_avg_ft_us);
-
-		if (beta_fusion_time_triggered) {
-
-			updateSideslip(_aid_src_sideslip);
-			_innov_check_fail_status.flags.reject_sideslip = _aid_src_sideslip.innovation_rejected;
-
-			// If starting wind state estimation, reset the wind states and covariances before fusing any data
-			if (!_control_status.flags.wind) {
-				// activate the wind states
-				_control_status.flags.wind = true;
-				// reset the timeout timers to prevent repeated resets
-				_aid_src_sideslip.time_last_fuse = imu_delayed.time_us;
-				resetWind();
-			}
-
-			if (Vector2f(Vector2f(_state.vel) - _state.wind_vel).longerThan(7.f)) {
-				fuseSideslip(_aid_src_sideslip);
-			}
-		}
-	}
-}
-
 void Ekf::controlDragFusion()
 {
 	if ((_params.fusion_mode & SensorFusionMask::USE_DRAG) && _drag_buffer &&
