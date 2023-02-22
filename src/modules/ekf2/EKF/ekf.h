@@ -762,10 +762,6 @@ private:
 
 	void controlHaglFakeFusion();
 
-	// reset the heading and magnetic field states using the declination and magnetometer measurements
-	// return true if successful
-	bool resetMagHeading();
-
 	// Return the magnetic declination in radians to be used by the alignment and fusion processing
 	float getMagDeclination();
 
