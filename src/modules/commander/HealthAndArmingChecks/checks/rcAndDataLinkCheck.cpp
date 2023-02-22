@@ -52,6 +52,12 @@ void RcAndDataLinkChecks::checkAndReport(const Context &context, Report &reporte
 			reporter.failsafeFlags().manual_control_signal_lost = true;
 		}
 
+		// Make sure we only get the latest data if there were multiple updates
+		// in the uorb topic queue
+		while (_manual_control_setpoint_sub.updated()) {
+			_manual_control_setpoint_sub.copy(&manual_control_setpoint);
+		}
+
 		// Check if RC is valid
 		if (!manual_control_setpoint.valid
 		    || hrt_elapsed_time(&manual_control_setpoint.timestamp) > _param_com_rc_loss_t.get() * 1_s) {
