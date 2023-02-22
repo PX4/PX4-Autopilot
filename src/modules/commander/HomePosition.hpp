@@ -81,4 +81,9 @@ private:
 	bool							_valid{false};
 	const failsafe_flags_s					&_failsafe_flags;
 	bool							_gps_position_for_home_valid{false};
+	double							_gps_lat{0};
+	double							_gps_lon{0};
+	float							_gps_alt{0.f};
+	float							_gps_eph{0.f};
+	float							_gps_epv{0.f};
 };
