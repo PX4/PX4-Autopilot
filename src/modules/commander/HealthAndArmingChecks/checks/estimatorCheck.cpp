@@ -297,8 +297,8 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 					mavlink_log_info(reporter.mavlink_log_pub(), "GNSS data fusion started\t");
 				}
 
-				events::send(events::ID("check_estimator_gnss_fusion_stated"), {events::Log::Info, events::LogInternal::Info},
-					     "GNSS data fusion stated");
+				events::send(events::ID("check_estimator_gnss_fusion_started"), {events::Log::Info, events::LogInternal::Info},
+					     "GNSS data fusion started");
 			}
 		}
 
