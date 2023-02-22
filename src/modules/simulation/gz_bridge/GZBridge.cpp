@@ -165,8 +165,8 @@ int GZBridge::init()
 #endif
 	// Air pressure: /world/$WORLD/model/$MODEL/link/base_link/sensor/air_pressure_sensor/air_pressure
 	std::string air_pressure_topic = "/world/" + _world_name + "/model/" + _model_name +
-		"/link/base_link/sensor/air_pressure_sensor/air_pressure";
-	if (!_node.Subscribe(air_pressure_topic, &GZBridge::airpressureCallback, this)) {
+					"/link/base_link/sensor/air_pressure_sensor/air_pressure";
+	if (!_node.Subscribe(air_pressure_topic, &GZBridge::barometerCallback, this)) {
 		PX4_ERR("failed to subscribe to %s", air_pressure_topic.c_str());
 		return PX4_ERROR;
 	}
@@ -337,7 +337,7 @@ void GZBridge::clockCallback(const gz::msgs::Clock &clock)
 	pthread_mutex_unlock(&_node_mutex);
 }
 
-void GZBridge::airpressureCallback(const gz::msgs::FluidPressure &air_pressure)
+void GZBridge::barometerCallback(const gz::msgs::FluidPressure &air_pressure)
 {
 	if (hrt_absolute_time() == 0) {
 		return;

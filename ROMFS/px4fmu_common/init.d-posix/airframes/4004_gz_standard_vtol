@@ -12,7 +12,7 @@ PX4_GZ_WORLD=${PX4_GZ_WORLD:=default}
 PX4_SIM_MODEL=${PX4_SIM_MODEL:=standard_vtol}
 
 param set-default SENS_EN_GPSSIM 1
-param set-default SENS_EN_BAROSIM 1
+param set-default SENS_EN_BAROSIM 0
 param set-default SENS_EN_MAGSIM 1
 param set-default SENS_EN_ARSPDSIM 1
 

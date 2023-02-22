@@ -96,7 +96,7 @@ private:
 	void clockCallback(const gz::msgs::Clock &clock);
 
 	// void airspeedCallback(const gz::msgs::AirSpeedSensor &air_pressure);
-	void airpressureCallback(const gz::msgs::FluidPressure &air_pressure);
+	void barometerCallback(const gz::msgs::FluidPressure &air_pressure);
 	void imuCallback(const gz::msgs::IMU &imu);
 	void poseInfoCallback(const gz::msgs::Pose_V &pose);
 
