@@ -866,8 +866,7 @@ private:
 	bool checkHaglYawResetReq();
 	float getTerrainVPos() const { return isTerrainEstimateValid() ? _terrain_vpos : _last_on_ground_posD; }
 
-	void runOnGroundYawReset();
-	void runInAirYawReset();
+	void magReset();
 
 	void checkYawAngleObservability();
 	void checkMagBiasObservability();

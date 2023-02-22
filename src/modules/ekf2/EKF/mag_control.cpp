@@ -216,12 +216,7 @@ void Ekf::controlMagFusion()
 
 			if (_mag_yaw_reset_req || !_control_status.flags.yaw_align || mag_sample.reset || checkHaglYawResetReq()) {
 
-				if (_control_status.flags.in_air) {
-					runInAirYawReset();
-
-				} else {
-					runOnGroundYawReset();
-				}
+				magReset();
 			}
 		}
 
@@ -363,17 +358,7 @@ bool Ekf::checkHaglYawResetReq()
 	return false;
 }
 
-void Ekf::runOnGroundYawReset()
-{
-	const bool has_realigned_yaw = resetMagHeading();
-
-	if (has_realigned_yaw) {
-		_mag_yaw_reset_req = false;
-		_control_status.flags.yaw_align = true;
-	}
-}
-
-void Ekf::runInAirYawReset()
+void Ekf::magReset()
 {
 	// prevent a reset being performed more than once on the same frame
 	if ((_flt_mag_align_start_time == _time_delayed_us)
@@ -426,10 +411,13 @@ void Ekf::runInAirYawReset()
 	if (has_realigned_yaw) {
 		_mag_yaw_reset_req = false;
 		_control_status.flags.yaw_align = true;
-		_control_status.flags.mag_aligned_in_flight = true;
 
-		// record the time for the magnetic field alignment event
-		_flt_mag_align_start_time = _time_delayed_us;
+		if (_control_status.flags.in_air) {
+			_control_status.flags.mag_aligned_in_flight = true;
+
+			// record the time for the magnetic field alignment event
+			_flt_mag_align_start_time = _time_delayed_us;
+		}
 	}
 }
 
