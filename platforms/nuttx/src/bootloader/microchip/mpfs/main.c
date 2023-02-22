@@ -825,7 +825,6 @@ static int loader_main(int argc, char *argv[])
 	loading_status = IN_PROGRESS;
 
 #if defined(CONFIG_MMCSD)
-	ssize_t uboot_size = 0;
 	ssize_t ret = 0;
 
 	if (sdcard_mounted) {
@@ -878,6 +877,7 @@ static int loader_main(int argc, char *argv[])
 #endif
 
 #if defined(CONFIG_OPENSBI) && defined(CONFIG_MMCSD)
+	ssize_t uboot_size = 0;
 
 	if (sdcard_mounted) {
 		uboot_size = load_sdcard_images("/sdcard/boot/"UBOOT_BINARY, CONFIG_MPFS_HART3_ENTRYPOINT);
