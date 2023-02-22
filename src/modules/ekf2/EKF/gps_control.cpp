@@ -170,6 +170,21 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 						 */
 						if (resetYawToEKFGSF()) {
 							ECL_WARN("GPS emergency yaw reset");
+
+							if (_control_status.flags.mag_hdg || _control_status.flags.mag_3D) {
+								// stop using the magnetometer in the main EKF otherwise it's fusion could drag the yaw around
+								// and cause another navigation failure
+								_control_status.flags.mag_fault = true;
+								_warning_events.flags.emergency_yaw_reset_mag_stopped = true;
+
+							} else if (_control_status.flags.gps_yaw) {
+								_control_status.flags.gps_yaw_fault = true;
+								_warning_events.flags.emergency_yaw_reset_gps_yaw_stopped = true;
+
+							} else if (_control_status.flags.ev_yaw) {
+								_inhibit_ev_yaw_use = true;
+							}
+
 							do_vel_pos_reset = true;
 						}
 					}
@@ -232,7 +247,6 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 			} else if (gps_checks_passing && !_control_status.flags.yaw_align && (_params.mag_fusion_type == MagFuseType::NONE)) {
 				// If no mag is used, align using the yaw estimator (if available)
 				if (resetYawToEKFGSF()) {
-					_information_events.flags.yaw_aligned_to_imu_gps = true;
 					ECL_INFO("GPS yaw aligned using IMU, resetting vel and pos");
 
 					// reset velocity

@@ -238,9 +238,14 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bo
 	_fault_status.flags.bad_mag_y = !fused[1];
 	_fault_status.flags.bad_mag_z = !fused[2];
 
-	if (fused[0] && fused[1] && fused[2]) {
+	if (fused[0] && fused[1] && (fused[2] || _control_status.flags.synthetic_mag_z)) {
 		aid_src_mag.fused = true;
 		aid_src_mag.time_last_fuse = _time_delayed_us;
+
+		if (update_all_states) {
+			_time_last_heading_fuse = _time_delayed_us;
+		}
+
 		return true;
 	}
 
@@ -249,7 +254,7 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bo
 }
 
 // update quaternion states and covariances using the yaw innovation and yaw observation variance
-bool Ekf::fuseYaw(const float innovation, const float variance, estimator_aid_source1d_s& aid_src_status)
+bool Ekf::fuseYaw(const float innovation, const float variance, estimator_aid_source1d_s &aid_src_status)
 {
 	Vector24f H_YAW;
 	computeYawInnovVarAndH(variance, aid_src_status.innovation_variance, H_YAW);
@@ -257,7 +262,7 @@ bool Ekf::fuseYaw(const float innovation, const float variance, estimator_aid_so
 	return fuseYaw(innovation, variance, aid_src_status, H_YAW);
 }
 
-bool Ekf::fuseYaw(const float innovation, const float variance, estimator_aid_source1d_s& aid_src_status, const Vector24f &H_YAW)
+bool Ekf::fuseYaw(const float innovation, const float variance, estimator_aid_source1d_s &aid_src_status, const Vector24f &H_YAW)
 {
 	aid_src_status.innovation = innovation;
 
@@ -315,9 +320,9 @@ bool Ekf::fuseYaw(const float innovation, const float variance, estimator_aid_so
 		// we allow to use it when on the ground because the large innovation could be caused
 		// by interference or a large initial gyro bias
 		if (!_control_status.flags.in_air
-		&& isTimedOut(_time_last_in_air, (uint64_t)5e6)
-		&& isTimedOut(aid_src_status.time_last_fuse, (uint64_t)1e6)
-		) {
+		    && isTimedOut(_time_last_in_air, (uint64_t)5e6)
+		    && isTimedOut(aid_src_status.time_last_fuse, (uint64_t)1e6)
+		   ) {
 			// constrain the innovation to the maximum set by the gate
 			// we need to delay this forced fusion to avoid starting it
 			// immediately after touchdown, when the drone is still armed

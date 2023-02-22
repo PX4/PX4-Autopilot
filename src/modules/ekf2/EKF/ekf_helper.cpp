@@ -1064,34 +1064,24 @@ void Ekf::resetQuatStateYaw(float yaw, float yaw_variance)
 	_last_static_yaw = NAN;
 }
 
-// Resets the main Nav EKf yaw to the estimator from the EKF-GSF yaw estimator
-// Resets the horizontal velocity and position to the default navigation sensor
-// Returns true if the reset was successful
 bool Ekf::resetYawToEKFGSF()
 {
 	if (!isYawEmergencyEstimateAvailable()) {
 		return false;
 	}
 
+	// don't allow reset if there's just been a yaw reset
+	const bool yaw_alignment_changed = (_control_status_prev.flags.yaw_align != _control_status.flags.yaw_align);
+	const bool quat_reset = (_state_reset_status.reset_count.quat != _state_reset_count_prev.quat);
+
+	if (yaw_alignment_changed || quat_reset) {
+		return false;
+	}
+
 	resetQuatStateYaw(_yawEstimator.getYaw(), _yawEstimator.getYawVar());
 
-	// record a magnetic field alignment event to prevent possibility of the EKF trying to reset the yaw to the mag later in flight
-	_flt_mag_align_start_time = _time_delayed_us;
 	_control_status.flags.yaw_align = true;
-
-	if (_control_status.flags.mag_hdg || _control_status.flags.mag_3D) {
-		// stop using the magnetometer in the main EKF otherwise it's fusion could drag the yaw around
-		// and cause another navigation failure
-		_control_status.flags.mag_fault = true;
-		_warning_events.flags.emergency_yaw_reset_mag_stopped = true;
-
-	} else if (_control_status.flags.gps_yaw) {
-		_control_status.flags.gps_yaw_fault = true;
-		_warning_events.flags.emergency_yaw_reset_gps_yaw_stopped = true;
-
-	} else if (_control_status.flags.ev_yaw) {
-		_inhibit_ev_yaw_use = true;
-	}
+	_information_events.flags.yaw_aligned_to_imu_gps = true;
 
 	return true;
 }

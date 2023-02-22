@@ -122,7 +122,8 @@ void Ekf::controlMagFusion()
 
 				if (fabsf(yaw_new - yaw_prev) > math::radians(1.f)) {
 
-					ECL_INFO("mag heading init %.3f -> %.3f rad (declination %.1f)", (double)yaw_prev, (double)yaw_new, (double)getMagDeclination());
+					ECL_INFO("mag heading init %.3f -> %.3f rad (declination %.1f)",
+						 (double)yaw_prev, (double)yaw_new, (double)getMagDeclination());
 
 					// update the rotation matrix using the new yaw value
 					_R_to_earth = updateYawInRotMat(yaw_new, Dcmf(_state.quat_nominal));
@@ -144,14 +145,29 @@ void Ekf::controlMagFusion()
 		}
 
 		return;
-	}
 
-	if (!_control_status.flags.tilt_align) {
+	} else if (!_control_status.flags.tilt_align) {
 		stopMag3DFusion();
 		stopMagHdgFusion();
 		stopMagFusion();
 		return;
 	}
+
+
+	// reset mag states if there was an external yaw reset (yaw estimator, GPS yaw, etc)
+	const bool mag_was_disabled = !_control_status.flags.mag_hdg && !_control_status.flags.mag_3D;
+	const bool heading_was_reset = (_state_reset_status.reset_count.quat != _state_reset_count_prev.quat) && _control_status.flags.yaw_align;
+	const bool yaw_estimator_reset = _information_events.flags.yaw_aligned_to_imu_gps && _control_status.flags.yaw_align;
+
+	if (yaw_estimator_reset || (heading_was_reset && mag_was_disabled)) {
+
+		const Vector3f mag_init = _mag_lpf.getState();
+
+		if (mag_init.longerThan(0.f) && (_mag_counter > 0)) {
+			resetMagStates(mag_init);
+		}
+	}
+
 
 	// check mag state observability
 	checkYawAngleObservability();
@@ -216,7 +232,9 @@ void Ekf::controlMagFusion()
 
 			if (_mag_yaw_reset_req || !_control_status.flags.yaw_align || mag_sample.reset || checkHaglYawResetReq()) {
 
-				magReset();
+				if (magReset(_mag_lpf.getState())) {
+					_mag_yaw_reset_req = false;
+				}
 			}
 		}
 
@@ -230,11 +248,14 @@ void Ekf::controlMagFusion()
 
 		const bool mag_3d_forced_always = (_params.mag_fusion_type == MagFuseType::MAG_3D);
 
-		if (_mag_bias_observable
-		    || _yaw_angle_observable
-		    || isRecent(_time_last_mov_3d_mag_suitable, (uint64_t)2e6)
-		    || mag_3d_forced_always
+		if (_control_status.flags.yaw_align
+		    && (_mag_bias_observable || _yaw_angle_observable || isRecent(_time_last_mov_3d_mag_suitable, (uint64_t)2e6) || mag_3d_forced_always)
 		   ) {
+			// mag states could be uninitialized if we've never activated mag fusion
+			if (!_mag_cov_initialized && !_control_status.flags.mag_hdg && !_control_status.flags.mag_3D) {
+				resetMagStates(_mag_lpf.getState());
+			}
+
 			startMagFusion();
 
 		} else {
@@ -358,93 +379,107 @@ bool Ekf::checkHaglYawResetReq()
 	return false;
 }
 
-void Ekf::magReset()
+bool Ekf::magReset(const Vector3f &mag)
 {
 	// prevent a reset being performed more than once on the same frame
-	if ((_flt_mag_align_start_time == _time_delayed_us)
-	    || (_control_status_prev.flags.yaw_align != _control_status.flags.yaw_align)) {
-		return;
+	const bool yaw_alignment_changed = (_control_status_prev.flags.yaw_align != _control_status.flags.yaw_align);
+	const bool quat_reset = (_state_reset_status.reset_count.quat != _state_reset_count_prev.quat);
+
+	if (yaw_alignment_changed || quat_reset) {
+		return false;
 	}
 
 
 	bool has_realigned_yaw = false;
 
 	// use yaw estimator if available
-	if (_control_status.flags.gps && isYawEmergencyEstimateAvailable() &&
-	    (_mag_counter != 0) && isNewestSampleRecent(_time_last_mag_buffer_push, 500'000) // mag LPF available
-	   ) {
+	if (isYawEmergencyEstimateAvailable()) {
+		has_realigned_yaw = resetYawToEKFGSF();
+	}
 
-		resetQuatStateYaw(_yawEstimator.getYaw(), _yawEstimator.getYawVar());
+	if (!has_realigned_yaw) {
 
-		_information_events.flags.yaw_aligned_to_imu_gps = true;
+		// rotate the magnetometer measurements into earth frame using a zero yaw angle
+		const Dcmf R_to_earth = updateYawInRotMat(0.f, _R_to_earth);
 
-		// if world magnetic model (inclination, declination, strength) available then use it to reset mag states
-		if (PX4_ISFINITE(_mag_inclination_gps) && PX4_ISFINITE(_mag_declination_gps) && PX4_ISFINITE(_mag_strength_gps)) {
-			// use predicted earth field to reset states
-			const Vector3f mag_earth_pred = Dcmf(Eulerf(0, -_mag_inclination_gps, _mag_declination_gps)) * Vector3f(_mag_strength_gps, 0, 0);
-			_state.mag_I = mag_earth_pred;
+		// the angle of the projection onto the horizontal gives the yaw angle
+		const Vector3f mag_earth_pred = R_to_earth * mag;
 
-			const Dcmf R_to_body = quatToInverseRotMat(_state.quat_nominal);
-			_state.mag_B = _mag_lpf.getState() - (R_to_body * mag_earth_pred);
+		// calculate the observed yaw angle and yaw variance
+		float yaw_new = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + getMagDeclination();
+		float yaw_new_variance = sq(fmaxf(_params.mag_heading_noise, 1.e-2f));
 
-		} else {
-			// Use the last magnetometer measurements to reset the field states
-			// calculate initial earth magnetic field states
-			_state.mag_I = _R_to_earth * _mag_lpf.getState();
-			_state.mag_B.zero();
-		}
+		ECL_INFO("reset mag heading %.3f -> %.3f rad (declination %.1f)",
+			 (double)getEulerYaw(_R_to_earth), (double)yaw_new, (double)getMagDeclination());
 
-		ECL_DEBUG("resetting mag I: [%.3f, %.3f, %.3f], B: [%.3f, %.3f, %.3f]",
-			  (double)_state.mag_I(0), (double)_state.mag_I(1), (double)_state.mag_I(2),
-			  (double)_state.mag_B(0), (double)_state.mag_B(1), (double)_state.mag_B(2)
-			 );
+		// update quaternion states and corresponding covarainces
+		resetQuatStateYaw(yaw_new, yaw_new_variance);
 
-		resetMagCov();
+		_control_status.flags.yaw_align = true;
 
 		has_realigned_yaw = true;
 	}
 
-	if (!has_realigned_yaw) {
-		const Vector3f mag_init = _mag_lpf.getState();
+	if (has_realigned_yaw) {
+		resetMagStates(mag);
 
-		const bool mag_available = (_mag_counter > 1) && !magFieldStrengthDisturbed(mag_init);
+		_time_last_heading_fuse = _time_delayed_us;
 
-		if (mag_available) {
-
-			// rotate the magnetometer measurements into earth frame using a zero yaw angle
-			const Dcmf R_to_earth = updateYawInRotMat(0.f, _R_to_earth);
-
-			// the angle of the projection onto the horizontal gives the yaw angle
-			const Vector3f mag_earth_pred = R_to_earth * mag_init;
-
-			// calculate the observed yaw angle and yaw variance
-			float yaw_new = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + getMagDeclination();
-			float yaw_new_variance = sq(fmaxf(_params.mag_heading_noise, 1.e-2f));
-
-			ECL_INFO("reset mag heading %.3f -> %.3f rad (declination %.1f)", (double)getEulerYaw(_R_to_earth), (double)yaw_new, (double)getMagDeclination());
-
-			// update quaternion states and corresponding covarainces
-			resetQuatStateYaw(yaw_new, yaw_new_variance);
-
-			// set the earth magnetic field states using the updated rotation
-			_state.mag_I = _R_to_earth * mag_init;
-
-			resetMagCov();
-
-			has_realigned_yaw = true;
-		}
+		return true;
 	}
 
-	if (has_realigned_yaw) {
-		_mag_yaw_reset_req = false;
-		_control_status.flags.yaw_align = true;
+	return false;
+}
 
-		if (_control_status.flags.in_air) {
-			_control_status.flags.mag_aligned_in_flight = true;
+void Ekf::resetMagStates(const Vector3f &mag)
+{
+	// reinit mag states
+	const Vector3f mag_I_before_reset = _state.mag_I;
+	const Vector3f mag_B_before_reset = _state.mag_B;
 
-			// record the time for the magnetic field alignment event
-			_flt_mag_align_start_time = _time_delayed_us;
+	// if world magnetic model (inclination, declination, strength) available then use it to reset mag states
+	if (PX4_ISFINITE(_mag_inclination_gps) && PX4_ISFINITE(_mag_declination_gps) && PX4_ISFINITE(_mag_strength_gps)) {
+		// use expected earth field to reset states
+		const Vector3f mag_earth_pred = Dcmf(Eulerf(0, -_mag_inclination_gps, _mag_declination_gps)) * Vector3f(_mag_strength_gps, 0, 0);
+		_state.mag_I = mag_earth_pred;
+
+		ECL_INFO("resetting mag I [%.3f, %.3f, %.3f] -> [%.3f, %.3f, %.3f]",
+			 (double)mag_I_before_reset(0), (double)mag_I_before_reset(1), (double)mag_I_before_reset(2),
+			 (double)_state.mag_I(0), (double)_state.mag_I(1), (double)_state.mag_I(2)
+			);
+
+		if (_control_status.flags.yaw_align) {
+			const Dcmf R_to_body = quatToInverseRotMat(_state.quat_nominal);
+			_state.mag_B = mag - (R_to_body * mag_earth_pred);
+
+			ECL_INFO("resetting mag B [%.3f, %.3f, %.3f] -> [%.3f, %.3f, %.3f]",
+				 (double)mag_B_before_reset(0), (double)mag_B_before_reset(1), (double)mag_B_before_reset(2),
+				 (double)_state.mag_B(0), (double)_state.mag_B(1), (double)_state.mag_B(2)
+				);
+
+		} else {
+			_state.mag_B.zero();
 		}
+
+	} else {
+		// Use the last magnetometer measurements to reset the field states
+
+		// calculate initial earth magnetic field states
+		_state.mag_I = _R_to_earth * mag;
+		_state.mag_B.zero();
+
+		ECL_INFO("resetting mag I [%.3f, %.3f, %.3f] -> [%.3f, %.3f, %.3f]",
+			 (double)mag_I_before_reset(0), (double)mag_I_before_reset(1), (double)mag_I_before_reset(2),
+			 (double)_state.mag_I(0), (double)_state.mag_I(1), (double)_state.mag_I(2)
+			);
+	}
+
+	resetMagCov();
+
+	// record the start time for the magnetic field alignment
+	if (_control_status.flags.in_air) {
+		_flt_mag_align_start_time = _time_delayed_us;
+		_control_status.flags.mag_aligned_in_flight = true;
 	}
 }
 
