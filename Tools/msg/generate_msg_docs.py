@@ -25,7 +25,7 @@ if __name__ == "__main__":
     if not os.path.isdir(output_dir):
         os.mkdir(output_dir)
 
-    msg_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),"..")
+    msg_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),"../../msg")
     msg_files = get_msgs_list(msg_path)
     msg_files.sort()
 
