@@ -75,7 +75,12 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bo
 		_fault_status.flags.bad_mag_x = true;
 
 		// we need to re-initialise covariances and abort this fusion step
-		resetMagRelatedCovariances();
+		if (update_all_states) {
+			resetQuatCov();
+		}
+
+		resetMagCov();
+
 		ECL_ERR("magX %s", numerical_error_covariance_reset_string);
 		return false;
 	}
@@ -88,7 +93,12 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bo
 		_fault_status.flags.bad_mag_y = true;
 
 		// we need to re-initialise covariances and abort this fusion step
-		resetMagRelatedCovariances();
+		if (update_all_states) {
+			resetQuatCov();
+		}
+
+		resetMagCov();
+
 		ECL_ERR("magY %s", numerical_error_covariance_reset_string);
 		return false;
 	}
@@ -100,7 +110,12 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bo
 		_fault_status.flags.bad_mag_z = true;
 
 		// we need to re-initialise covariances and abort this fusion step
-		resetMagRelatedCovariances();
+		if (update_all_states) {
+			resetQuatCov();
+		}
+
+		resetMagCov();
+
 		ECL_ERR("magZ %s", numerical_error_covariance_reset_string);
 		return false;
 	}
@@ -118,7 +133,7 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bo
 		aid_src_mag.innovation[i] = mag_innov(i);
 	}
 
-	aid_src_mag.fusion_enabled = _control_status.flags.mag_3D && update_all_states;
+	aid_src_mag.fusion_enabled = _control_status.flags.mag && update_all_states;
 
 	// do not use the synthesized measurement for the magnetomter Z component for 3D fusion
 	if (_control_status.flags.synthetic_mag_z) {
@@ -159,7 +174,12 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bo
 				_fault_status.flags.bad_mag_y = true;
 
 				// we need to re-initialise covariances and abort this fusion step
-				resetMagRelatedCovariances();
+				if (update_all_states) {
+					resetQuatCov();
+				}
+
+				resetMagCov();
+
 				ECL_ERR("magY %s", numerical_error_covariance_reset_string);
 				return false;
 			}
@@ -182,7 +202,12 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bo
 				_fault_status.flags.bad_mag_z = true;
 
 				// we need to re-initialise covariances and abort this fusion step
-				resetMagRelatedCovariances();
+				if (update_all_states) {
+					resetQuatCov();
+				}
+
+				resetMagCov();
+
 				ECL_ERR("magZ %s", numerical_error_covariance_reset_string);
 				return false;
 			}

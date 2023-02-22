@@ -154,7 +154,8 @@ void Ekf::controlEvYawFusion(const extVisionSample &ev_sample, const bool common
 
 			} else if (ev_sample.pos_frame == PositionFrame::LOCAL_FRAME_FRD) {
 				// turn on fusion of external vision yaw measurements and disable all other heading fusion
-				stopMagFusion();
+				stopMag3DFusion();
+				stopMagHdgFusion();
 				stopGpsYawFusion();
 				stopGpsFusion();
 

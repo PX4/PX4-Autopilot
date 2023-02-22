@@ -293,8 +293,10 @@ protected:
 	sensor::SensorRangeFinder _range_sensor{};
 	airspeedSample _airspeed_sample_delayed{};
 	flowSample _flow_sample_delayed{};
-	extVisionSample _ev_sample_prev{};
 	dragSample _drag_down_sampled{};	// down sampled drag specific force data (filter prediction rate -> observation rate)
+
+	extVisionSample _ev_sample_prev{};
+	magSample _mag_sample_prev{};
 
 	RangeFinderConsistencyCheck _rng_consistency_check;
 
