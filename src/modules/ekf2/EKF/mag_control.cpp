@@ -116,14 +116,15 @@ void Ekf::controlMagFusion()
 				// rotate the magnetometer measurements into earth frame using a zero yaw angle
 				// the angle of the projection onto the horizontal gives the yaw angle
 				const Vector3f mag_earth_pred = updateYawInRotMat(0.f, _R_to_earth) * _mag_lpf.getState();
-				const float yaw_new = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + getMagDeclination();
+				_mag_heading_last_declination = getMagDeclination();
+				const float yaw_new = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + _mag_heading_last_declination;
 
 				const float yaw_prev = getEulerYaw(_R_to_earth);
 
 				if (fabsf(yaw_new - yaw_prev) > math::radians(1.f)) {
 
 					ECL_INFO("mag heading init %.3f -> %.3f rad (declination %.1f)",
-						 (double)yaw_prev, (double)yaw_new, (double)getMagDeclination());
+						 (double)yaw_prev, (double)yaw_new, (double)_mag_heading_last_declination);
 
 					// update the rotation matrix using the new yaw value
 					_R_to_earth = updateYawInRotMat(yaw_new, Dcmf(_state.quat_nominal));
@@ -230,11 +231,11 @@ void Ekf::controlMagFusion()
 
 		if (_control_status.flags.mag_hdg || _control_status.flags.mag_3D) {
 
-			if (_mag_yaw_reset_req || !_control_status.flags.yaw_align || mag_sample.reset || checkHaglYawResetReq()) {
+			const bool declination_changed = _control_status.flags.mag_hdg
+				&& (fabsf(_mag_heading_last_declination - getMagDeclination()) > math::radians(3.f));
 
-				if (magReset(_mag_lpf.getState())) {
-					_mag_yaw_reset_req = false;
-				}
+			if (!_control_status.flags.yaw_align || mag_sample.reset || declination_changed || checkHaglYawResetReq()) {
+				magReset(_mag_lpf.getState());
 			}
 		}
 
@@ -252,7 +253,7 @@ void Ekf::controlMagFusion()
 		    && (_mag_bias_observable || _yaw_angle_observable || isRecent(_time_last_mov_3d_mag_suitable, (uint64_t)2e6) || mag_3d_forced_always)
 		   ) {
 			// mag states could be uninitialized if we've never activated mag fusion
-			if (!_mag_cov_initialized && !_control_status.flags.mag_hdg && !_control_status.flags.mag_3D) {
+			if (!_mag_decl_cov_reset && !_control_status.flags.mag_hdg && !_control_status.flags.mag_3D) {
 				resetMagStates(_mag_lpf.getState());
 			}
 
@@ -335,7 +336,8 @@ void Ekf::controlMagFusion()
 
 		// the angle of the projection onto the horizontal gives the yaw angle
 		// calculate the yaw innovation and wrap to the interval between +-pi
-		const float measured_hdg = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + getMagDeclination();
+		const float declination = getMagDeclination();
+		const float measured_hdg = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + declination;
 
 		// update aid source status
 		resetEstimatorAidStatus(_aid_src_mag_heading);
@@ -361,6 +363,8 @@ void Ekf::controlMagFusion()
 		// record corresponding mag heading and yaw state for future mag heading delta heading innovation (logging only)
 		_mag_heading_prev = measured_hdg;
 		_mag_heading_pred_prev = getEulerYaw(_state.quat_nominal);
+
+		_mag_heading_last_declination = declination;
 	}
 }
 
@@ -406,11 +410,12 @@ bool Ekf::magReset(const Vector3f &mag)
 		const Vector3f mag_earth_pred = R_to_earth * mag;
 
 		// calculate the observed yaw angle and yaw variance
-		float yaw_new = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + getMagDeclination();
+		_mag_heading_last_declination = getMagDeclination();
+		float yaw_new = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + _mag_heading_last_declination;
 		float yaw_new_variance = sq(fmaxf(_params.mag_heading_noise, 1.e-2f));
 
 		ECL_INFO("reset mag heading %.3f -> %.3f rad (declination %.1f)",
-			 (double)getEulerYaw(_R_to_earth), (double)yaw_new, (double)getMagDeclination());
+			 (double)getEulerYaw(_R_to_earth), (double)yaw_new, (double)_mag_heading_last_declination);
 
 		// update quaternion states and corresponding covarainces
 		resetQuatStateYaw(yaw_new, yaw_new_variance);
