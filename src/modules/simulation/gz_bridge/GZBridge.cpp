@@ -337,7 +337,6 @@ void GZBridge::clockCallback(const gz::msgs::Clock &clock)
 	pthread_mutex_unlock(&_node_mutex);
 }
 
-#if 0
 void GZBridge::airpressureCallback(const gz::msgs::FluidPressure &air_pressure)
 {
 	if (hrt_absolute_time() == 0) {
@@ -360,6 +359,7 @@ void GZBridge::airpressureCallback(const gz::msgs::FluidPressure &air_pressure)
 	pthread_mutex_unlock(&_node_mutex);
 }
 
+#if 0
 void GZBridge::airspeedCallback(const gz::msgs::AirSpeedSensor &air_speed)
 {
 	if (hrt_absolute_time() == 0) {
