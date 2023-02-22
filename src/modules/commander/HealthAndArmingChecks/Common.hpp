@@ -40,6 +40,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/failsafe_flags.h>
 #include <systemlib/mavlink_log.h>
+#include <drivers/drv_hrt.h>
 
 #include <stdint.h>
 #include <limits.h>

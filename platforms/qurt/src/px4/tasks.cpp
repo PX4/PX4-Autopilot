@@ -421,13 +421,13 @@ int px4_sem_timedwait(px4_sem_t *sem, const struct timespec *ts)
 	return 0;
 }
 
-int px4_prctl(int option, const char *arg2, pthread_t pid)
+int px4_prctl(int option, const char *arg2, px4_task_t pid)
 {
 	int rv = -1;
 	pthread_mutex_lock(&task_mutex);
 
 	for (int i = 0; i < PX4_MAX_TASKS; i++) {
-		if (taskmap[i].isused && taskmap[i].tid == pid) {
+		if (taskmap[i].isused && taskmap[i].tid == (pthread_t) pid) {
 			rv = pthread_attr_setthreadname(&taskmap[i].attr, arg2);
 			return rv;
 		}
