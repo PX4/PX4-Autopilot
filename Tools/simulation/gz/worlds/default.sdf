@@ -10,6 +10,7 @@
     <plugin name='ignition::gazebo::systems::SceneBroadcaster' filename='ignition-gazebo-scene-broadcaster-system'/>
     <plugin name='ignition::gazebo::systems::Contact' filename='ignition-gazebo-contact-system'/>
     <plugin name='ignition::gazebo::systems::Imu' filename='ignition-gazebo-imu-system'/>
+    <plugin name='ignition::gazebo::systems::AirPressure' filename='ignition-gazebo-air-pressure-system'/>
     <plugin name='ignition::gazebo::systems::Sensors' filename='ignition-gazebo-sensors-system'>
       <render_engine>ogre2</render_engine>
     </plugin>
