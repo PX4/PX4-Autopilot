@@ -511,13 +511,5 @@ float Tiltrotor::moveLinear(float start, float stop, float progress)
 
 bool Tiltrotor::isFrontTransitionCompletedBase()
 {
-	bool completed = VtolType::isFrontTransitionCompletedBase();
-	const bool airspeed_triggers_transition = PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s)
-			&& !_param_fw_arsp_mode.get();
-
-	if (!airspeed_triggers_transition) {
-		completed &= _tilt_control >= _param_vt_tilt_trans.get();
-	}
-
-	return completed;
+	return VtolType::isFrontTransitionCompletedBase() && _tilt_control >= _param_vt_tilt_trans.get();
 }
