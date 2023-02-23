@@ -101,6 +101,8 @@ public:
 	void printInfo();
 	void updateParams();
 
+	UavcanPublisher *getPublisher(const char *subject_name);
+
 private:
 	void updateDynamicPublications();
 
@@ -116,7 +118,7 @@ private:
 			{
 				return new UavcanGnssPublisher(handle, pmgr, 0);
 			},
-			"gps",
+			"udral.gps",
 			0
 		},
 #endif
@@ -126,7 +128,7 @@ private:
 			{
 				return new UavcanEscController(handle, pmgr);
 			},
-			"esc",
+			"udral.esc",
 			0
 		},
 #endif
@@ -136,7 +138,7 @@ private:
 			{
 				return new UavcanReadinessPublisher(handle, pmgr, 0);
 			},
-			"readiness",
+			"udral.readiness",
 			0
 		},
 #endif

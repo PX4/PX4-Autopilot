@@ -61,6 +61,8 @@ public:
 	void updateParam()
 	{
 		SubjectSubscription *curSubj = &_subj_sub;
+		bool unsubscribeRequired = false;
+		bool subscribeRequired = false;
 
 		while (curSubj != nullptr) {
 			char uavcan_param[90];
@@ -76,28 +78,36 @@ public:
 				if (curSubj->_canard_sub.port_id != new_id) {
 					if (new_id == CANARD_PORT_ID_UNSET) {
 						// Cancel subscription
-						unsubscribe();
+						unsubscribeRequired = true;
 
 					} else {
 						if (curSubj->_canard_sub.port_id != CANARD_PORT_ID_UNSET) {
 							// Already active; unsubscribe first
-							unsubscribe();
+							unsubscribeRequired = true;
 						}
 
 						// Subscribe on the new port ID
 						curSubj->_canard_sub.port_id = (CanardPortID)new_id;
 						PX4_INFO("Subscribing %s%s.%d on port %d", _prefix_name, curSubj->_subject_name, _instance,
 							 curSubj->_canard_sub.port_id);
-						subscribe();
+						subscribeRequired = true;
 					}
 				}
 
 			} else if (curSubj->_canard_sub.port_id != CANARD_PORT_ID_UNSET) { // No valid sub id unsubscribe when neccesary
 				// Already active; unsubscribe first
-				unsubscribe();
+				unsubscribeRequired = true;
 			}
 
 			curSubj = curSubj->next;
+		}
+
+		if (unsubscribeRequired) {
+			unsubscribe();
+		}
+
+		if (subscribeRequired) {
+			subscribe();
 		}
 	};
 
