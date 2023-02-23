@@ -39,23 +39,23 @@
 
 #ifndef __kernel_fsid_t
 typedef struct {
-  int val[2];
+	int val[2];
 } __kernel_fsid_t;
 #endif
 
 struct statfs {
-  unsigned int f_type;
-  unsigned int f_bsize;
-  unsigned int f_blocks;
-  unsigned int f_bfree;
-  unsigned int f_bavail;
-  unsigned int f_files;
-  unsigned int f_ffree;
-  __kernel_fsid_t f_fsid;
-  unsigned int f_namelen;
-  unsigned int f_frsize;
-  unsigned int f_flags;
-  unsigned int f_spare[4];
+	unsigned int f_type;
+	unsigned int f_bsize;
+	unsigned int f_blocks;
+	unsigned int f_bfree;
+	unsigned int f_bavail;
+	unsigned int f_files;
+	unsigned int f_ffree;
+	__kernel_fsid_t f_fsid;
+	unsigned int f_namelen;
+	unsigned int f_frsize;
+	unsigned int f_flags;
+	unsigned int f_spare[4];
 };
 
-int statfs(const char* dir, struct statfs* s) { return 0; }
+int statfs(const char *dir, struct statfs *s) { return 0; }
