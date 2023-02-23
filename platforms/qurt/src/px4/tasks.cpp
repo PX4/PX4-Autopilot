@@ -166,11 +166,12 @@ static px4_task_t px4_task_spawn_internal(const char *name, int priority, px4_ma
 				return -1;
 
 			} else {
-				//px4_clock_gettimemap[task_index].argv_storage[i], argv[i]);
+				strcpy(taskmap[task_index].argv_storage[i], argv[i]);
 				taskmap[task_index].argv[i] = taskmap[task_index].argv_storage[i];
 			}
 
 		} else {
+			// Must add NULL at end of argv
 			taskmap[task_index].argv[i] = nullptr;
 			break;
 		}
@@ -420,13 +421,13 @@ int px4_sem_timedwait(px4_sem_t *sem, const struct timespec *ts)
 	return 0;
 }
 
-int px4_prctl(int option, const char *arg2, pthread_t pid)
+int px4_prctl(int option, const char *arg2, px4_task_t pid)
 {
 	int rv = -1;
 	pthread_mutex_lock(&task_mutex);
 
 	for (int i = 0; i < PX4_MAX_TASKS; i++) {
-		if (taskmap[i].isused && taskmap[i].tid == pid) {
+		if (taskmap[i].isused && taskmap[i].tid == (pthread_t) pid) {
 			rv = pthread_attr_setthreadname(&taskmap[i].attr, arg2);
 			return rv;
 		}

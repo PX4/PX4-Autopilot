@@ -75,7 +75,7 @@ menu "Toolchain"
 
     config BOARD_ROOTFSDIR
         string "Root directory"
-        depends on PLATFORM_POSIX
+        depends on PLATFORM_QURT || PLATFORM_POSIX
         default "."
         help
             Configure the root directory in the file system for PX4 files
