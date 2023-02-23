@@ -35,6 +35,7 @@
 
 #include <uORB/Subscription.hpp>
 
+#include <lib/drivers/device/Device.hpp>
 #include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 
@@ -169,6 +170,14 @@ int GZBridge::init()
 
 	if (!_node.Subscribe(air_pressure_topic, &GZBridge::barometerCallback, this)) {
 		PX4_ERR("failed to subscribe to %s", air_pressure_topic.c_str());
+		return PX4_ERROR;
+	}
+
+	// GPS: /world/$WORLD/model/$MODEL/link/base_link/sensor/navsat_sensor/navsat
+	std::string navsat_topic = "/world/" + _world_name + "/model/" + _model_name +
+		"/link/base_link/sensor/navsat_sensor/navsat";
+	if (!_node.Subscribe(navsat_topic, &GZBridge::navsatCallback, this)) {
+		PX4_ERR("failed to subscribe to %s", navsat_topic.c_str());
 		return PX4_ERROR;
 	}
 
@@ -380,7 +389,7 @@ void GZBridge::airspeedCallback(const gz::msgs::AirSpeedSensor &air_speed)
 	report.device_id = 1377548; // 1377548: DRV_DIFF_PRESS_DEVTYPE_SIM, BUS: 1, ADDR: 5, TYPE: SIMULATION
 	report.differential_pressure_pa = static_cast<float>(air_speed_value); // hPa to Pa;
 	report.temperature = static_cast<float>(air_speed.temperature()) + CONSTANTS_ABSOLUTE_NULL_CELSIUS; // K to C
-	report.timestamp = hrt_absolute_time();;
+	report.timestamp = hrt_absolute_time();
 	_differential_pressure_pub.publish(report);
 
 	this->_temperature = report.temperature;
@@ -388,6 +397,69 @@ void GZBridge::airspeedCallback(const gz::msgs::AirSpeedSensor &air_speed)
 	pthread_mutex_unlock(&_node_mutex);
 }
 #endif
+
+/////////////////////////////////////////////////
+void GZBridge::navsatCallback(const gz::msgs::NavSat &navsat)
+{
+	if (hrt_absolute_time() == 0) {
+		return;
+	}
+
+	pthread_mutex_lock(&_node_mutex);
+
+	const uint64_t time_us = (navsat.header().stamp().sec() * 1000000)
+				 + (navsat.header().stamp().nsec() / 1000);
+
+	sensor_gps_s sensor_gps{};
+
+	// device id
+	device::Device::DeviceId device_id;
+	device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
+	device_id.devid_s.bus = 0;
+	device_id.devid_s.address = 0;
+	device_id.devid_s.devtype = DRV_GPS_DEVTYPE_SIM;
+
+	// fix
+	sensor_gps.fix_type = 3; // 3D fix
+	sensor_gps.s_variance_m_s = 0.5f;
+	sensor_gps.c_variance_rad = 0.1f;
+	sensor_gps.eph = 0.9f;
+	sensor_gps.epv = 1.78f;
+	sensor_gps.hdop = 0.7f;
+	sensor_gps.vdop = 1.1f;
+
+	sensor_gps.timestamp_sample = time_us;
+	sensor_gps.time_utc_usec = 0;
+	sensor_gps.device_id = device_id.devid;
+	sensor_gps.lat = roundf(navsat.latitude_deg() * 1e7); // Latitude in 1E-7 degrees
+	sensor_gps.lon = roundf(navsat.longitude_deg() * 1e7); // Longitude in 1E-7 degrees
+	sensor_gps.alt = roundf(navsat.altitude() * 1000); // Altitude in 1E-3 meters above MSL, (millimetres)
+
+	sensor_gps.alt_ellipsoid = sensor_gps.alt;
+	sensor_gps.noise_per_ms = 0;
+	sensor_gps.jamming_indicator = 0;
+	sensor_gps.vel_m_s = sqrtf(
+		navsat.velocity_east() * navsat.velocity_east() +
+		navsat.velocity_north() * navsat.velocity_north()); // GPS ground speed, (metres/sec)
+	sensor_gps.vel_n_m_s = navsat.velocity_east();
+	sensor_gps.vel_e_m_s = navsat.velocity_north();
+	sensor_gps.vel_d_m_s = navsat.velocity_up();
+	sensor_gps.cog_rad = atan2(navsat.velocity_north(),
+		navsat.velocity_east()); // Course over ground (NOT heading, but direction of movement), -PI..PI, (radians)
+
+	sensor_gps.timestamp_time_relative = 0;
+	sensor_gps.heading = NAN;
+	sensor_gps.heading_offset = NAN;
+	sensor_gps.heading_accuracy = 0;
+	sensor_gps.automatic_gain_control = 0;
+	sensor_gps.jamming_state = 0;
+	sensor_gps.vel_ned_valid = true;
+	sensor_gps.satellites_used = 13;
+	sensor_gps.timestamp = hrt_absolute_time();
+	_sensor_gps_pub.publish(sensor_gps);
+
+	pthread_mutex_unlock(&_node_mutex);
+}
 
 void GZBridge::imuCallback(const gz::msgs::IMU &imu)
 {

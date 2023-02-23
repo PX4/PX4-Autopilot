@@ -231,6 +231,50 @@
         <always_on>1</always_on>
         <update_rate>250</update_rate>
       </sensor>
+      <sensor name="navsat_sensor" type="navsat">
+        <always_on>1</always_on>
+        <update_rate>10</update_rate>
+        <navsat>
+         <velocity_sensing>
+           <horizontal>
+             <noise type="gaussian">
+                 <mean>0.0</mean>
+                 <stddev>0.06</stddev>
+             </noise>
+           </horizontal>
+           <vertical>
+             <noise type="gaussian">
+                 <mean>0.0</mean>
+                 <stddev>0.158</stddev>
+             </noise>
+           </vertical>
+         </velocity_sensing>
+        </navsat>
+      </sensor>
+      <sensor name="magnetometer_sensor" type="magnetometer">
+        <always_on>1</always_on>
+        <update_rate>250</update_rate>
+        <magnetometer>
+          <x>
+            <noise type="gaussian">
+              <mean>0.0</mean>
+              <stddev>0.02</stddev>
+            </noise>
+          </x>
+          <y>
+            <noise type="gaussian">
+              <mean>0.0</mean>
+              <stddev>0.02</stddev>
+            </noise>
+          </y>
+          <z>
+            <noise type="gaussian">
+              <mean>0.0</mean>
+              <stddev>0.03</stddev>
+            </noise>
+          </z>
+        </magnetometer>
+      </sensor>
     </link>
     <link name="rotor_0">
       <gravity>true</gravity>
