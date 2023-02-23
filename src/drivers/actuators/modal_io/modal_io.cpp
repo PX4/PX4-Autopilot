@@ -65,12 +65,13 @@ ModalIo::ModalIo() :
 		_esc_status.esc[i].esc_address     = 0;
 		_esc_status.esc[i].esc_rpm         = 0;
 		_esc_status.esc[i].esc_state       = 0;
-		//_esc_status.esc[i].esc_cmdcount    = 0;
+		_esc_status.esc[i].esc_cmdcount    = 0;
 		_esc_status.esc[i].esc_voltage     = 0;
 		_esc_status.esc[i].esc_current     = 0;
 		_esc_status.esc[i].esc_temperature = 0;
 		_esc_status.esc[i].esc_errorcount  = 0;
 		_esc_status.esc[i].failures        = 0;
+		_esc_status.esc[i].esc_power       = 0;
 	}
 
 	qc_esc_packet_init(&_fb_packet);
@@ -338,9 +339,9 @@ int ModalIo::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
 					_esc_status.esc[id].esc_address  = motor_idx + 1; //remapped motor ID
 					_esc_status.esc[id].timestamp    = tnow;
 					_esc_status.esc[id].esc_rpm      = fb.rpm;
-					//_esc_status.esc[id].esc_power    = fb.power;
+					_esc_status.esc[id].esc_power    = fb.power;
 					_esc_status.esc[id].esc_state    = fb.id_state & 0x0F;
-					//_esc_status.esc[id].esc_cmdcount = fb.cmd_counter;
+					_esc_status.esc[id].esc_cmdcount = fb.cmd_counter;
 					_esc_status.esc[id].esc_voltage  = _esc_chans[id].voltage;
 					_esc_status.esc[id].esc_current  = _esc_chans[id].current;
 					_esc_status.esc[id].failures     = 0; //not implemented
