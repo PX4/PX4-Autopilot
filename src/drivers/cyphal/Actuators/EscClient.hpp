@@ -53,6 +53,7 @@
 #include <lib/perf/perf_counter.h>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/actuator_test.h>
 #include <uORB/topics/esc_status.h>
 #include <drivers/drv_hrt.h>
 #include <lib/mixer_module/mixer_module.hpp>
@@ -69,61 +70,30 @@ public:
 	static constexpr int MAX_ACTUATORS = MixingOutput::MAX_ACTUATORS;
 
 	UavcanEscController(CanardHandle &handle, UavcanParamManager &pmgr) :
-		UavcanPublisher(handle, pmgr, "udral", "esc") { };
+		UavcanPublisher(handle, pmgr, "udral.", "esc") { };
 
 	~UavcanEscController() {};
 
 	void update() override
 	{
+		actuator_test_s actuator_test;
+
+		if (_actuator_test_sub.update(&actuator_test)) {
+			_actuator_test_timestamp = actuator_test.timestamp;
+		}
+
 		if (_armed_sub.updated()) {
 			actuator_armed_s new_arming;
 			_armed_sub.update(&new_arming);
 
 			if (new_arming.armed != _armed.armed) {
 				_armed = new_arming;
-				size_t payload_size = reg_udral_service_common_Readiness_0_1_SERIALIZATION_BUFFER_SIZE_BYTES_;
-
-				// Only publish if we have a valid publication ID set
-				if (_port_id == 0) {
-					return;
-				}
-
-				reg_udral_service_common_Readiness_0_1 msg_arming {};
-
-				if (_armed.armed) {
-					msg_arming.value = reg_udral_service_common_Readiness_0_1_ENGAGED;
-
-				} else if (_armed.prearmed) {
-					msg_arming.value = reg_udral_service_common_Readiness_0_1_STANDBY;
-
-				} else {
-					msg_arming.value = reg_udral_service_common_Readiness_0_1_SLEEP;
-				}
-
-				uint8_t arming_payload_buffer[reg_udral_service_common_Readiness_0_1_SERIALIZATION_BUFFER_SIZE_BYTES_];
-
-				CanardPortID arming_pid = static_cast<CanardPortID>(static_cast<uint32_t>(_port_id) + 1);
-				const CanardTransferMetadata transfer_metadata = {
-					.priority       = CanardPriorityNominal,
-					.transfer_kind  = CanardTransferKindMessage,
-					.port_id        = arming_pid,                // This is the subject-ID.
-					.remote_node_id = CANARD_NODE_ID_UNSET,      // Messages cannot be unicast, so use UNSET.
-					.transfer_id    = _arming_transfer_id,
-				};
-
-				int result = reg_udral_service_common_Readiness_0_1_serialize_(&msg_arming, arming_payload_buffer,
-						&payload_size);
-
-				if (result == 0) {
-					// set the data ready in the buffer and chop if needed
-					++_arming_transfer_id;  // The transfer-ID shall be incremented after every transmission on this subject.
-					result = _canard_handle.TxPush(hrt_absolute_time() + PUBLISHER_DEFAULT_TIMEOUT_USEC,
-								       &transfer_metadata,
-								       payload_size,
-								       &arming_payload_buffer
-								      );
-				}
+				publish_readiness();
 			}
+		}
+
+		if (hrt_absolute_time() > _previous_pub_time + READINESS_PUBLISH_PERIOD) {
+			publish_readiness();
 		}
 	};
 
@@ -131,7 +101,7 @@ public:
 	{
 		if (_port_id > 0) {
 			reg_udral_service_actuator_common_sp_Vector31_0_1 msg_sp {0};
-			size_t payload_size = reg_udral_service_common_Readiness_0_1_SERIALIZATION_BUFFER_SIZE_BYTES_;
+			size_t payload_size = reg_udral_service_actuator_common_sp_Vector31_0_1_SERIALIZATION_BUFFER_SIZE_BYTES_;
 
 			for (uint8_t i = 0; i < MAX_ACTUATORS; i++) {
 				if (i < num_outputs) {
@@ -142,10 +112,6 @@ public:
 					msg_sp.value[i] = NAN;
 				}
 			}
-
-
-			PX4_INFO("Publish %d values %f, %f, %f, %f", num_outputs, (double)msg_sp.value[0], (double)msg_sp.value[1],
-				 (double)msg_sp.value[2], (double)msg_sp.value[3]);
 
 			uint8_t esc_sp_payload_buffer[reg_udral_service_actuator_common_sp_Vector31_0_1_SERIALIZATION_BUFFER_SIZE_BYTES_];
 
@@ -182,10 +148,64 @@ private:
 	 */
 	void esc_status_sub_cb(const CanardRxTransfer &msg);
 
+	void publish_readiness()
+	{
+		const hrt_abstime now = hrt_absolute_time();
+		_previous_pub_time = now;
+
+		size_t payload_size = reg_udral_service_common_Readiness_0_1_SERIALIZATION_BUFFER_SIZE_BYTES_;
+
+		// Only publish if we have a valid publication ID set
+		if (_port_id == 0) {
+			return;
+		}
+
+		reg_udral_service_common_Readiness_0_1 msg_arming {};
+
+		if (_armed.armed || _actuator_test_timestamp + 100_ms > now) {
+			msg_arming.value = reg_udral_service_common_Readiness_0_1_ENGAGED;
+
+		} else if (_armed.prearmed) {
+			msg_arming.value = reg_udral_service_common_Readiness_0_1_STANDBY;
+
+		} else {
+			msg_arming.value = reg_udral_service_common_Readiness_0_1_SLEEP;
+		}
+
+		uint8_t arming_payload_buffer[reg_udral_service_common_Readiness_0_1_SERIALIZATION_BUFFER_SIZE_BYTES_];
+
+		CanardPortID arming_pid = static_cast<CanardPortID>(static_cast<uint32_t>(_port_id) + 1);
+		const CanardTransferMetadata transfer_metadata = {
+			.priority       = CanardPriorityNominal,
+			.transfer_kind  = CanardTransferKindMessage,
+			.port_id        = arming_pid,                // This is the subject-ID.
+			.remote_node_id = CANARD_NODE_ID_UNSET,      // Messages cannot be unicast, so use UNSET.
+			.transfer_id    = _arming_transfer_id,
+		};
+
+		int result = reg_udral_service_common_Readiness_0_1_serialize_(&msg_arming, arming_payload_buffer,
+				&payload_size);
+
+		if (result == 0) {
+			// set the data ready in the buffer and chop if needed
+			++_arming_transfer_id;  // The transfer-ID shall be incremented after every transmission on this subject.
+			result = _canard_handle.TxPush(hrt_absolute_time() + PUBLISHER_DEFAULT_TIMEOUT_USEC,
+						       &transfer_metadata,
+						       payload_size,
+						       &arming_payload_buffer);
+		}
+	};
+
 	uint8_t _rotor_count {0};
+
+	static constexpr hrt_abstime READINESS_PUBLISH_PERIOD = 100000;
+	hrt_abstime _previous_pub_time = 0;
 
 	uORB::Subscription _armed_sub{ORB_ID(actuator_armed)};
 	actuator_armed_s _armed {};
+
+	uORB::Subscription _actuator_test_sub{ORB_ID(actuator_test)};
+	uint64_t _actuator_test_timestamp{0};
 
 	CanardTransferID _arming_transfer_id;
 };
