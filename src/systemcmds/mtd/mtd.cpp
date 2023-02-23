@@ -250,33 +250,71 @@ int mtd_rwtest(const mtd_instance_s &instance)
 		}
 
 		printf("rwtest %s testing %zd bytes\n", instance.partition_names[i], expected_size);
-		int fd = open(instance.partition_names[i], O_RDWR);
 
-		if (fd == -1) {
-			PX4_ERR("Failed to open partition");
-			return 1;
-		}
+		bool run = true;
 
-		while (read(fd, v, sizeof(v)) == sizeof(v)) {
+		while (run) {
+
+			int fd = open(instance.partition_names[i], O_RDWR);
+
+			if (fd == -1) {
+				PX4_ERR("Failed to open partition");
+				return 1;
+			}
+
+			if (read(fd, v, sizeof(v)) != sizeof(v)) {
+				PX4_ERR("read failed");
+				close(fd);
+				return 1;
+			}
+
 			count += sizeof(v);
 
 			if (lseek(fd, offset, SEEK_SET) != offset) {
 				PX4_ERR("seek failed");
+				close(fd);
 				return 1;
 			}
 
 			if (write(fd, v, sizeof(v)) != sizeof(v)) {
 				PX4_ERR("write failed");
+				close(fd);
+				return 1;
+			}
+
+			//sync and close to discard data from the Block Device buffer
+			if (OK != fsync(fd)) {
+				PX4_ERR("Failed to fsync");
+				close(fd);
+				return 1;
+			}
+
+			if (OK != close(fd)) {
+				PX4_ERR("Failed to close partition");
+				return 1;
+			}
+
+			fd = open(instance.partition_names[i], O_RDONLY);
+
+			if (fd == -1) {
+				PX4_ERR("Failed to open partition");
 				return 1;
 			}
 
 			if (lseek(fd, offset, SEEK_SET) != offset) {
 				PX4_ERR("seek failed");
+				close(fd);
 				return 1;
 			}
 
 			if (read(fd, v2, sizeof(v2)) != sizeof(v2)) {
 				PX4_ERR("read failed");
+				close(fd);
+				return 1;
+			}
+
+			if (OK != close(fd)) {
+				PX4_ERR("Failed to close partition");
 				return 1;
 			}
 
@@ -286,14 +324,16 @@ int mtd_rwtest(const mtd_instance_s &instance)
 			}
 
 			offset += sizeof(v);
+
+			if (count >= expected_size) {
+				run = false;
+			}
 		}
 
 		if (count != expected_size) {
 			PX4_ERR("Failed to read partition - got %zd/%zd bytes", count, expected_size);
 			return 1;
 		}
-
-		close(fd);
 	}
 
 	printf("rwtest OK\n");
