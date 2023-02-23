@@ -330,9 +330,9 @@ void VnSearcher_findPorts_LINUX(char*** portNamesOut, int32_t* numPortsFound)
 
 		/* Attempt to open the serial port */
 		portFd = open(portName,
-					  #if __linux__ || __CYGWIN__ || __QNXNTO__ || __NUTTX__
+					  #if __linux__ || __CYGWIN__ || __QNXNTO__
 					  O_RDWR | O_NOCTTY );
-					  #elif __APPLE__
+					  #elif __APPLE__ || __NUTTX__
 					  O_RDWR | O_NOCTTY | O_NONBLOCK);
 					  #else
 					  #error "Unknown System"

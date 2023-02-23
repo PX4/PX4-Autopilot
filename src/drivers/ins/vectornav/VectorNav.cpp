@@ -79,9 +79,6 @@ VectorNav::~VectorNav()
 
 void VectorNav::binaryAsyncMessageReceived(void *userData, VnUartPacket *packet, size_t runningIndex)
 {
-	PX4_INFO("binaryAsyncMessageReceived");
-	//perf_begin(_sample_perf);
-
 	if (VnUartPacket_isError(packet)) {
 		uint8_t error = 0;
 		VnUartPacket_parseError(packet, &error);
@@ -94,8 +91,6 @@ void VectorNav::binaryAsyncMessageReceived(void *userData, VnUartPacket *packet,
 	} else if (userData && (VnUartPacket_type(packet) == PACKETTYPE_BINARY)) {
 		static_cast<VectorNav *>(userData)->sensorCallback(packet);
 	}
-
-	//perf_end(_sample_perf);
 }
 
 void VectorNav::sensorCallback(VnUartPacket *packet)
@@ -120,7 +115,8 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 				      GPSGROUP_NONE)
 	   ) {
 		// TIMEGROUP_TIMESTARTUP
-		//uint64_t time_startup = VnUartPacket_extractUint64(packet);
+		uint64_t time_startup = VnUartPacket_extractUint64(packet);
+		(void)time_startup;
 
 		// IMUGROUP_UNCOMPACCEL
 		vec3f accel = VnUartPacket_extractVec3f(packet);
@@ -146,7 +142,8 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 				      GPSGROUP_NONE)
 	   ) {
 		// TIMEGROUP_TIMESTARTUP
-		//const uint64_t time_startup = VnUartPacket_extractUint64(packet);
+		const uint64_t time_startup = VnUartPacket_extractUint64(packet);
+		(void)time_startup;
 
 		// IMUGROUP_TEMP
 		const float temperature = VnUartPacket_extractFloat(packet);
@@ -281,7 +278,8 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 				      GPSGROUP_NONE)
 	   ) {
 		// TIMEGROUP_TIMESTARTUP
-		//const uint64_t time_startup = VnUartPacket_extractUint64(packet);
+		const uint64_t time_startup = VnUartPacket_extractUint64(packet);
+		(void)time_startup;
 
 		// GPSGROUP_UTC
 		// TimeUtc timeUtc;
@@ -354,28 +352,21 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 
 bool VectorNav::init()
 {
-	PX4_INFO("init");
-
 	// first try default baudrate
 	const uint32_t DEFAULT_BAUDRATE = 115200;
 	const uint32_t DESIRED_BAUDRATE = 921600;
 
 	// first try default baudrate, if that fails try all other supported baudrates
-	PX4_INFO("VnSensor_initialize");
 	VnSensor_initialize(&_vs);
 
-	PX4_INFO("VnSensor_connect port: %s", _port);
-
 	if ((VnSensor_connect(&_vs, _port, DEFAULT_BAUDRATE) != E_NONE) || !VnSensor_verifySensorConnectivity(&_vs)) {
+
+		VnSensor_disconnect(&_vs);
 
 		static constexpr uint32_t BAUDRATES[] {9600, 19200, 38400, 57600, 115200, 128000, 230400, 460800, 921600};
 
 		for (auto &baudrate : BAUDRATES) {
-			PX4_INFO("VnSensor_initialize baud: %d", baudrate);
 			VnSensor_initialize(&_vs);
-
-
-			PX4_INFO("VnSensor_connect");
 
 			if (VnSensor_connect(&_vs, _port, baudrate) == E_NONE && VnSensor_verifySensorConnectivity(&_vs)) {
 				PX4_DEBUG("found baudrate %d", baudrate);
@@ -383,16 +374,23 @@ bool VectorNav::init()
 			}
 
 			// disconnect before trying again
-			PX4_INFO("VnSensor_disconnect");
 			VnSensor_disconnect(&_vs);
 		}
+	}
+
+	if (!VnSensor_verifySensorConnectivity(&_vs)) {
+		PX4_ERR("Error verifying sensor connectivity");
+		VnSensor_disconnect(&_vs);
+		return false;
 	}
 
 	VnError error = E_NONE;
 
 	// change baudrate to max
 	if ((error = VnSensor_changeBaudrate(&_vs, DESIRED_BAUDRATE)) != E_NONE) {
-		PX4_WARN("Error changing baud rate failed: %d", error);
+		PX4_ERR("Error changing baud rate failed: %d", error);
+		VnSensor_disconnect(&_vs);
+		return false;
 	}
 
 	// query the sensor's model number
@@ -400,6 +398,7 @@ bool VectorNav::init()
 
 	if ((error = VnSensor_readModelNumber(&_vs, model_number, sizeof(model_number))) != E_NONE) {
 		PX4_ERR("Error reading model number %d", error);
+		VnSensor_disconnect(&_vs);
 		return false;
 	}
 
@@ -408,6 +407,7 @@ bool VectorNav::init()
 
 	if ((error = VnSensor_readHardwareRevision(&_vs, &hardware_revision)) != E_NONE) {
 		PX4_ERR("Error reading HW revision %d", error);
+		VnSensor_disconnect(&_vs);
 		return false;
 	}
 
@@ -416,6 +416,7 @@ bool VectorNav::init()
 
 	if ((error = VnSensor_readSerialNumber(&_vs, &serial_number)) != E_NONE) {
 		PX4_ERR("Error reading serial number %d", error);
+		VnSensor_disconnect(&_vs);
 		return false;
 	}
 
@@ -424,6 +425,7 @@ bool VectorNav::init()
 
 	if ((error = VnSensor_readFirmwareVersion(&_vs, firmware_version, sizeof(firmware_version))) != E_NONE) {
 		PX4_ERR("Error reading firmware version %d", error);
+		VnSensor_disconnect(&_vs);
 		return false;
 	}
 
@@ -435,7 +437,6 @@ bool VectorNav::init()
 
 bool VectorNav::configure()
 {
-	PX4_INFO("configure");
 	// disable all ASCII messages
 	VnSensor_writeAsyncDataOutputType(&_vs, VNOFF, true);
 
@@ -472,7 +473,6 @@ bool VectorNav::configure()
 		PX4_ERR("Error reading VPE basic control %d", error);
 	}
 
-
 	VnError VnSensor_readImuFilteringConfiguration(VnSensor * sensor, ImuFilteringConfigurationRegister * fields);
 	// VnError VnSensor_writeImuFilteringConfiguration(VnSensor *sensor, ImuFilteringConfigurationRegister fields, bool waitForReply);
 
@@ -495,7 +495,7 @@ bool VectorNav::configure()
 	// binary output 1: max rate IMU
 	BinaryOutputRegister_initialize(
 		&_binary_output_group_1,
-		ASYNCMODE_PORT1,
+		ASYNCMODE_PORT2,
 		1, // divider
 		COMMONGROUP_NONE,
 		TIMEGROUP_TIMESTARTUP,
@@ -518,7 +518,7 @@ bool VectorNav::configure()
 	// binary output 2: medium rate AHRS, INS, baro, mag
 	BinaryOutputRegister_initialize(
 		&_binary_output_group_2,
-		ASYNCMODE_PORT1,
+		ASYNCMODE_PORT2,
 		8, // divider
 		COMMONGROUP_NONE,
 		TIMEGROUP_TIMESTARTUP,
@@ -537,7 +537,7 @@ bool VectorNav::configure()
 	// binary output 3: low rate GNSS
 	BinaryOutputRegister_initialize(
 		&_binary_output_group_3,
-		ASYNCMODE_PORT1,
+		ASYNCMODE_PORT2,
 		80, // divider
 		COMMONGROUP_NONE,
 		TIMEGROUP_TIMESTARTUP,
@@ -562,8 +562,6 @@ bool VectorNav::configure()
 
 void VectorNav::Run()
 {
-	PX4_INFO("Run");
-
 	if (should_exit()) {
 		VnSensor_unregisterAsyncPacketReceivedHandler(&_vs);
 		VnSensor_disconnect(&_vs);

@@ -196,9 +196,9 @@ VnError VnSerialPort_open_internal(VnSerialPort *serialport, char const *portNam
 
 	portFd = open(
 		portName,
-		#if __linux__ || __CYGWIN__ || __QNXNTO__ || __NUTTX__
+		#if __linux__ || __CYGWIN__ || __QNXNTO__
 		O_RDWR | O_NOCTTY);
-		#elif __APPLE__
+		#elif __APPLE__ || __NUTTX__
 		O_RDWR | O_NOCTTY | O_NONBLOCK);
 		#else
 		#error "Unknown System"
@@ -268,9 +268,9 @@ VnError VnSerialPort_open_internal(VnSerialPort *serialport, char const *portNam
 	}
 
 	/* Set baudrate, 8n1, no modem control, enable receiving characters. */
-	#if __linux__ || __QNXNTO__ || __CYGWIN__ || __NUTTX__
+	#if __linux__ || __QNXNTO__ || __CYGWIN__
 	portSettings.c_cflag = baudrateFlag;
-	#elif defined(__APPLE__)
+	#elif defined(__APPLE__) || __NUTTX__
 	cfsetspeed(&portSettings, baudrateFlag);
 	#endif
 	portSettings.c_cflag |= CS8 | CLOCAL | CREAD;
