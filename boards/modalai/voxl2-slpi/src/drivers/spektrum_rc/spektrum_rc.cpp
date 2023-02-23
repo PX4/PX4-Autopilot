@@ -58,7 +58,11 @@
 #include <uORB/topics/input_rc.h>
 
 // Snapdraogon: use J12 (next to J13, power module side)
+#ifdef __PX4_QURT
+#define SPEKTRUM_UART_DEVICE_PATH "7"
+#else
 #define SPEKTRUM_UART_DEVICE_PATH "/dev/tty-3"
+#endif
 
 #define UNUSED(x) (void)(x)
 
@@ -106,7 +110,7 @@ void task_main(int argc, char *argv[])
 
 	int uart_fd = dsm_init(device_path);
 
-	if (uart_fd < 1) {
+	if (uart_fd < 0) {
 		PX4_ERR("dsm init failed");
 		return;
 	} else if (verbose) {

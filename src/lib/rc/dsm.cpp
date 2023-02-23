@@ -498,7 +498,7 @@ int dsm_init(const char *device)
 {
 	if (dsm_fd < 0) {
 #ifdef __PX4_QURT
-		dsm_fd = qurt_uart_open("7", 115200);
+		dsm_fd = qurt_uart_open(device, 115200);
 #else
 		dsm_fd = open(device, O_RDWR | O_NONBLOCK);
 #endif
