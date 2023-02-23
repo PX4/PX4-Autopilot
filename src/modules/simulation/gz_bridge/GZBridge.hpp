@@ -101,7 +101,7 @@ private:
 	void barometerCallback(const gz::msgs::FluidPressure &air_pressure);
 	void imuCallback(const gz::msgs::IMU &imu);
 	void poseInfoCallback(const gz::msgs::Pose_V &pose);
-	void navsatCallback(const gz::msgs::NavSat &_msg);
+	void gpsCallback(const gz::msgs::NavSat &_msg);
 
 	// Subscriptions
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};

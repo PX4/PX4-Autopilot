@@ -176,7 +176,7 @@ int GZBridge::init()
 	// GPS: /world/$WORLD/model/$MODEL/link/base_link/sensor/navsat_sensor/navsat
 	std::string navsat_topic = "/world/" + _world_name + "/model/" + _model_name +
 		"/link/base_link/sensor/navsat_sensor/navsat";
-	if (!_node.Subscribe(navsat_topic, &GZBridge::navsatCallback, this)) {
+	if (!_node.Subscribe(navsat_topic, &GZBridge::gpsCallback, this)) {
 		PX4_ERR("failed to subscribe to %s", navsat_topic.c_str());
 		return PX4_ERROR;
 	}
@@ -399,7 +399,7 @@ void GZBridge::airspeedCallback(const gz::msgs::AirSpeedSensor &air_speed)
 #endif
 
 /////////////////////////////////////////////////
-void GZBridge::navsatCallback(const gz::msgs::NavSat &navsat)
+void GZBridge::gpsCallback(const gz::msgs::NavSat &navsat)
 {
 	if (hrt_absolute_time() == 0) {
 		return;
@@ -441,11 +441,11 @@ void GZBridge::navsatCallback(const gz::msgs::NavSat &navsat)
 	sensor_gps.vel_m_s = sqrtf(
 		navsat.velocity_east() * navsat.velocity_east() +
 		navsat.velocity_north() * navsat.velocity_north()); // GPS ground speed, (metres/sec)
-	sensor_gps.vel_n_m_s = navsat.velocity_east();
-	sensor_gps.vel_e_m_s = navsat.velocity_north();
+	sensor_gps.vel_n_m_s = navsat.velocity_north();
+	sensor_gps.vel_e_m_s = navsat.velocity_east();
 	sensor_gps.vel_d_m_s = navsat.velocity_up();
-	sensor_gps.cog_rad = atan2(navsat.velocity_north(),
-		navsat.velocity_east()); // Course over ground (NOT heading, but direction of movement), -PI..PI, (radians)
+	sensor_gps.cog_rad = atan2(navsat.velocity_east(),
+		navsat.velocity_north()); // Course over ground (NOT heading, but direction of movement), -PI..PI, (radians)
 
 	sensor_gps.timestamp_time_relative = 0;
 	sensor_gps.heading = NAN;
