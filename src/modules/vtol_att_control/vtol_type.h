@@ -303,6 +303,8 @@ protected:
 	bool _quadchute_command_treated{false};
 
 	float update_and_get_backtransition_pitch_sp();
+	bool isFrontTransitionCompleted();
+	virtual bool isFrontTransitionCompletedBase();
 
 	SlewRate<float> _spoiler_setpoint_with_slewrate;
 	SlewRate<float> _flaps_setpoint_with_slewrate;
