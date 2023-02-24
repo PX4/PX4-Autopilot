@@ -288,7 +288,7 @@ TECSControl::STERateLimit TECSControl::_calculateTotalEnergyRateLimit(const Para
 	TECSControl::STERateLimit limit;
 	// Calculate the specific total energy rate limits from the max throttle limits
 	limit.STE_rate_max = math::max(param.max_climb_rate, FLT_EPSILON) * CONSTANTS_ONE_G;
-	limit.STE_rate_min = - math::max(param.max_sink_rate, FLT_EPSILON) * CONSTANTS_ONE_G;
+	limit.STE_rate_min = - math::max(param.min_sink_rate, FLT_EPSILON) * CONSTANTS_ONE_G;
 
 	return limit;
 }
