@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,23 +31,19 @@
  *
  ****************************************************************************/
 
-/**
- * @file StickYaw.cpp
- */
-
 #include "StickYaw.hpp"
 
 #include <px4_platform_common/defines.h>
 
-StickYaw::StickYaw()
-{
-	_yawspeed_slew_rate.setSlewRate(2.f * M_PI_F);
-}
+StickYaw::StickYaw(ModuleParams *parent) :
+	ModuleParams(parent)
+{}
 
-void StickYaw::generateYawSetpoint(float &yawspeed_setpoint, float &yaw_setpoint, const float desired_yawspeed,
+void StickYaw::generateYawSetpoint(float &yawspeed_setpoint, float &yaw_setpoint, const float stick_yaw,
 				   const float yaw, const bool is_yaw_good_for_control, const float deltatime)
 {
-	yawspeed_setpoint = _yawspeed_slew_rate.update(desired_yawspeed, deltatime);
+	_yawspeed_filter.setParameters(deltatime, _param_mpc_man_y_tau.get());
+	yawspeed_setpoint = _yawspeed_filter.update(stick_yaw * math::radians(_param_mpc_man_y_max.get()));
 	yaw_setpoint = updateYawLock(yaw, yawspeed_setpoint, yaw_setpoint, is_yaw_good_for_control);
 }
 

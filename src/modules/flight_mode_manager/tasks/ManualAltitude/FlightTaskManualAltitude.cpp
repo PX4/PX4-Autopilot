@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,10 +41,6 @@
 #include <geo/geo.h>
 
 using namespace matrix;
-
-FlightTaskManualAltitude::FlightTaskManualAltitude() :
-	_sticks(this)
-{}
 
 bool FlightTaskManualAltitude::updateInitialize()
 {
@@ -95,21 +91,13 @@ void FlightTaskManualAltitude::_updateConstraintsFromEstimator()
 void FlightTaskManualAltitude::_scaleSticks()
 {
 	// Use stick input with deadzone, exponential curve and first order lpf for yawspeed
-	const float yawspeed_target = _sticks.getPositionExpo()(3) * math::radians(_param_mpc_man_y_max.get());
-	_yawspeed_setpoint = _applyYawspeedFilter(yawspeed_target);
+	_stick_yaw.generateYawSetpoint(_yawspeed_setpoint, _yaw_setpoint, _sticks.getYawExpo(), _yaw,
+				       _is_yaw_good_for_control, _deltatime);
 
 	// Use sticks input with deadzone and exponential curve for vertical velocity
 	const float vel_max_z = (_sticks.getPosition()(2) > 0.0f) ? _param_mpc_z_vel_max_dn.get() :
 				_param_mpc_z_vel_max_up.get();
 	_velocity_setpoint(2) = vel_max_z * _sticks.getPositionExpo()(2);
-}
-
-float FlightTaskManualAltitude::_applyYawspeedFilter(float yawspeed_target)
-{
-	const float den = math::max(_param_mpc_man_y_tau.get() + _deltatime, 0.001f);
-	const float alpha = _deltatime / den;
-	_yawspeed_filter_state = (1.f - alpha) * _yawspeed_filter_state + alpha * yawspeed_target;
-	return _yawspeed_filter_state;
 }
 
 void FlightTaskManualAltitude::_updateAltitudeLock()

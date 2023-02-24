@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -243,9 +243,9 @@ void FlightTaskAuto::_prepareLandSetpoints()
 		vertical_speed *= (1 + _sticks.getPositionExpo()(2));
 
 		// Only set a yawrate setpoint if weather vane is not active or the yaw stick is out of its dead-zone
-		if (!_weathervane.isActive() || fabsf(_sticks.getPositionExpo()(3)) > FLT_EPSILON) {
-			_stick_yaw.generateYawSetpoint(_yawspeed_setpoint, _land_heading,
-						       _sticks.getPositionExpo()(3) * math::radians(_param_mpc_man_y_max.get()), _yaw, _is_yaw_good_for_control, _deltatime);
+		if (!_weathervane.isActive() || fabsf(_sticks.getYawExpo()) > FLT_EPSILON) {
+			_stick_yaw.generateYawSetpoint(_yawspeed_setpoint, _land_heading, _sticks.getYawExpo(), _yaw, _is_yaw_good_for_control,
+						       _deltatime);
 		}
 
 		_stick_acceleration_xy.generateSetpoints(_sticks.getPositionExpo().slice<2, 1>(0, 0), _yaw, _land_heading, _position,
