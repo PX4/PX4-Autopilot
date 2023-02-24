@@ -26,9 +26,9 @@
 	#endif
 #endif
 
-#ifdef __linux__
+#if defined(__linux__)
 	#include <linux/serial.h>
-#elif defined __APPLE__
+#elif defined __APPLE__ || defined(__NUTTX__)
 	#include <dirent.h>
 #endif
 

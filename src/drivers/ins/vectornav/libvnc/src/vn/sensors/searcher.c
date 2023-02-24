@@ -9,7 +9,7 @@
 #include <stdlib.h>
 
 
-#ifdef __linux__
+#if defined(__linux__) || defined(__NUTTX__)
 #include <errno.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -310,7 +310,7 @@ int32_t VnSearcher_getPortBaud(VnPortInfo* portInfo)
 	return portInfo->baud;
 }
 
-#ifdef __linux__
+#if defined(__linux__) || defined(__NUTTX__)
 void VnSearcher_findPorts_LINUX(char*** portNamesOut, int32_t* numPortsFound)
 {
 	char portName[15] = {0};
@@ -330,9 +330,9 @@ void VnSearcher_findPorts_LINUX(char*** portNamesOut, int32_t* numPortsFound)
 
 		/* Attempt to open the serial port */
 		portFd = open(portName,
-					  #if __linux__ || __CYGWIN__ || __QNXNTO__ || defined __NUTTX__
+					  #if __linux__ || __CYGWIN__ || __QNXNTO__
 					  O_RDWR | O_NOCTTY );
-					  #elif __APPLE__
+					  #elif __APPLE__ || __NUTTX__
 					  O_RDWR | O_NOCTTY | O_NONBLOCK);
 					  #else
 					  #error "Unknown System"
