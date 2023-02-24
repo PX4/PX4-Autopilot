@@ -182,6 +182,15 @@ int GZBridge::init()
 		return PX4_ERROR;
 	}
 
+	// magnetometer: /world/$WORLD/model/$MODEL/link/base_link/sensor/magnetometer_sensor/magnetometer
+	std::string magnetometer_topic = "/world/" + _world_name + "/model/" + _model_name +
+					 "/link/base_link/sensor/magnetometer_sensor/magnetometer";
+
+	if (!_node.Subscribe(magnetometer_topic, &GZBridge::magnetometerCallback, this)) {
+		PX4_ERR("failed to subscribe to %s", magnetometer_topic.c_str());
+		return PX4_ERROR;
+	}
+
 	if (!_mixing_interface_esc.init(_model_name)) {
 		PX4_ERR("failed to init ESC output");
 		return PX4_ERROR;
@@ -398,6 +407,27 @@ void GZBridge::airspeedCallback(const gz::msgs::AirSpeedSensor &air_speed)
 	pthread_mutex_unlock(&_node_mutex);
 }
 #endif
+
+/////////////////////////////////////////////////
+void GZBridge::magnetometerCallback(const gz::msgs::Magnetometer &magnetometer)
+{
+	if (hrt_absolute_time() == 0) {
+		return;
+	}
+
+	pthread_mutex_lock(&_node_mutex);
+
+	gz::math::Vector3d mag(magnetometer.field_tesla().x(),
+                     magnetometer.field_tesla().y(),
+                     magnetometer.field_tesla().z());
+	gz::math::Quaternion q(0.0, 0.0, -1.57);
+	mag = q.RotateVector(mag);
+
+	_px4_mag.update(hrt_absolute_time(),
+                  mag.X(), mag.Y(), mag.Z());
+
+	pthread_mutex_unlock(&_node_mutex);
+}
 
 /////////////////////////////////////////////////
 void GZBridge::gpsCallback(const gz::msgs::NavSat &navsat)

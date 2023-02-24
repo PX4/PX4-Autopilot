@@ -12,6 +12,7 @@
     <plugin name='ignition::gazebo::systems::Imu' filename='ignition-gazebo-imu-system'/>
     <plugin name='ignition::gazebo::systems::AirPressure' filename='ignition-gazebo-air-pressure-system'/>
     <plugin name='ignition::gazebo::systems::NavSat' filename='ignition-gazebo-navsat-system'/>
+    <plugin name='ignition::gazebo::systems::Magnetometer' filename='ignition-gazebo-magnetometer-system'/>
     <plugin name='ignition::gazebo::systems::Sensors' filename='ignition-gazebo-sensors-system'>
       <render_engine>ogre2</render_engine>
     </plugin>

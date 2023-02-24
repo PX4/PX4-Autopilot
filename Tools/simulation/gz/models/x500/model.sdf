@@ -251,6 +251,10 @@
          </velocity_sensing>
         </navsat>
       </sensor>
+      <sensor name="magnetometer_sensor" type="magnetometer">
+        <always_on>1</always_on>
+        <update_rate>10</update_rate>
+      </sensor>
     </link>
     <link name="rotor_0">
       <gravity>true</gravity>
