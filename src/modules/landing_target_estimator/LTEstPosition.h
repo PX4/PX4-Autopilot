@@ -105,6 +105,8 @@ public:
 
 	void set_local_position(const matrix::Vector3f &xyz, const bool valid);
 
+	void set_velocity_offset(const matrix::Vector3f &xyz);
+
 private:
 	struct accInput {
 
@@ -262,6 +264,9 @@ private:
 	vecStamped _uav_gps_vel{};
 	vecStamped _target_gps_vel{};
 	vecStamped _pos_rel_gnss{};
+	vecStamped _velocity_offset_ned{};
+	matrix::Vector3f _gps_pos_offset;
+	bool _gps_pos_is_offset;
 	bool _bias_set;
 
 	uint64_t _new_pos_sensor_acquired_time{0};
@@ -284,6 +289,11 @@ private:
 	float _bias_unc;
 	float _meas_unc;
 	float _drone_acc_unc;
+	float _gps_vel_noise;
+	float _gps_pos_noise;
+	bool  _ev_noise_md;
+	float _ev_angle_noise;
+	float _ev_pos_noise;
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::LTEST_AID_MASK>) _param_ltest_aid_mask,
@@ -297,6 +307,10 @@ private:
 		(ParamFloat<px4::params::LTEST_VEL_UNC_IN>) _param_ltest_vel_unc_in,
 		(ParamFloat<px4::params::LTEST_BIA_UNC_IN>) _param_ltest_bias_unc_in,
 		(ParamFloat<px4::params::LTEST_ACC_UNC_IN>) _param_ltest_acc_unc_in,
+		(ParamFloat<px4::params::LTE_GPS_V_NOISE>) _param_ltest_gps_vel_noise,
+		(ParamFloat<px4::params::LTE_GPS_P_NOISE>) _param_ltest_gps_pos_noise,
+		(ParamInt<px4::params::LTE_EV_NOISE_MD>) _param_ltest_ev_noise_md,
+		(ParamFloat<px4::params::LTE_EVP_NOISE>) _param_ltest_ev_pos_noise,
 		(ParamInt<px4::params::LTEST_MODE>) _param_ltest_mode,
 		(ParamInt<px4::params::LTEST_MODEL>) _param_ltest_model,
 		(ParamFloat<px4::params::LTEST_SCALE_X>) _param_ltest_scale_x,

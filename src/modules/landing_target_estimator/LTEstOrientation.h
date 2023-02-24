@@ -177,12 +177,16 @@ private:
 	uint32_t _ltest_TIMEOUT_US = 3000000; // timeout after which filter is reset if target not seen
 	bool _estimate_orientation;
 	float _yaw_unc;
+	float _ev_angle_noise;
+	bool  _ev_noise_md;
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::LTEST_YAW_UNC_IN>) _param_ltest_yaw_unc_in,
 		(ParamFloat<px4::params::LTEST_BTOUT>) _param_ltest_btout,
 		(ParamInt<px4::params::LTEST_MODE>) _param_ltest_mode,
-		(ParamInt<px4::params::LTEST_YAW_EN>) _param_ltest_yaw_en
+		(ParamInt<px4::params::LTEST_YAW_EN>) _param_ltest_yaw_en,
+		(ParamFloat<px4::params::LTE_EVA_NOISE>) _param_ltest_ev_angle_noise,
+		(ParamInt<px4::params::LTE_EV_NOISE_MD>) _param_ltest_ev_noise_md
 	)
 };
 } // namespace landing_target_estimator

@@ -60,6 +60,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/vehicle_acceleration.h>
+#include <uORB/topics/vehicle_angular_velocity.h>
 
 #include <parameters/param.h>
 #include <px4_platform_common/module_params.h>
@@ -99,7 +100,7 @@ private:
 	void updateParams() override;
 
 	void reset_filters();
-	bool get_input(matrix::Vector3f &acc_ned);
+	bool get_input(matrix::Vector3f &acc_ned, matrix::Vector3f &gps_vel_offset, bool gps_vel_offset_updated = false);
 
 	perf_counter_t _cycle_perf_pos{perf_alloc(PC_ELAPSED, MODULE_NAME": ltest cycle pos")};
 	perf_counter_t _cycle_perf_yaw{perf_alloc(PC_ELAPSED, MODULE_NAME": ltest cycle yaw")};
@@ -114,6 +115,7 @@ private:
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
+	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
 
 	uORB::Publication<vehicle_acceleration_s> _ltest_acc_input_pub{ORB_ID(ltest_acc_input)};
 
@@ -139,6 +141,10 @@ private:
 		float yaw = 0.f;
 	};
 
+	matrix::Vector3f _gps_pos_offset;
+	bool _gps_pos_is_offset;
+
+	bool get_gps_velocity_offset(matrix::Vector3f &vel_offset);
 	bool get_local_pose(localPose &local_pose);
 
 	/* Down sample acceleration data */

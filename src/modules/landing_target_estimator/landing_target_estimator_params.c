@@ -283,6 +283,69 @@ PARAM_DEFINE_FLOAT(LTEST_YAW_UNC_IN, 1.0f);
 PARAM_DEFINE_FLOAT(LTEST_ACC_UNC_IN, 0.1f);
 
 /**
+ * Measurement noise for gps horizontal velocity.
+ *
+ * minimum allowed observation noise for gps velocity fusion (m/sec)
+ *
+ * @min 0.01
+ * @max 5.0
+ * @unit m/s
+ * @decimal 2
+ *
+ * @group Landing target Estimator
+ */
+PARAM_DEFINE_FLOAT(LTE_GPS_V_NOISE, 0.3f);
+
+/**
+ * Measurement noise for gps position.
+ *
+ * minimum allowed observation noise for gps position fusion (m)
+ *
+ * @min 0.01
+ * @max 10.0
+ * @unit m
+ * @decimal 2
+ *
+ * @group Landing target Estimator
+ */
+PARAM_DEFINE_FLOAT(LTE_GPS_P_NOISE, 0.5f);
+
+/**
+ * Whether to set the external vision observation noise from the parameter or from vision message
+ *
+ * If set to true the observation noise is set from the parameters directly, if set to false the measurement noise is taken from the vision message and the parameter are used as a lower bound.
+ *
+ * @boolean
+ *
+ * @group Landing target Estimator
+ */
+PARAM_DEFINE_INT32(LTE_EV_NOISE_MD, 0);
+
+/**
+ * Measurement noise for vision angle observations used to lower bound or replace the uncertainty included in the message
+ *
+ * @min 0.05
+ * @unit rad
+ * @decimal 2
+ *
+ * @group Landing target Estimator
+ */
+PARAM_DEFINE_FLOAT(LTE_EVA_NOISE, 0.05f);
+
+/**
+ * Measurement noise for vision position observations used to lower bound or replace the uncertainty included in the message.
+ *
+ * If used to replace the uncertainty in the message, the measurement noise is lineraly scaled with the altitude i.e. unc = LTE_EVP_NOISE^2 * max(dist_bottom, 1)
+ *
+ * @min 0.01
+ * @unit m
+ * @decimal 2
+ *
+ * @group Landing target Estimator
+ */
+PARAM_DEFINE_FLOAT(LTE_EVP_NOISE, 0.1f);
+
+/**
  * Scale factor for sensor measurements in sensor x axis
  *
  * Landing target x measurements are scaled by this factor before being used

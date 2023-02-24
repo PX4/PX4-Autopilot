@@ -182,10 +182,18 @@ bool LTEstOrientation::processObsVisionOrientation(const fiducial_marker_yaw_rep
 		targetObsOrientation &obs)
 {
 
-	// TODO complete mavlink message to include orientation
-	float vision_r_theta = wrap_pi(fiducial_marker_orientation.yaw_ned);
-	float vision_r_theta_unc = (fiducial_marker_orientation.yaw_var_ned < (float)1e-6) ? 0.1f :
-				   fiducial_marker_orientation.yaw_var_ned;
+	const float vision_r_theta = wrap_pi(fiducial_marker_orientation.yaw_ned);
+
+	float vision_r_theta_unc;
+
+	if (_ev_noise_md) {
+		vision_r_theta_unc = _range_sensor.valid ? (_ev_angle_noise * _ev_angle_noise * fmaxf(_range_sensor.dist_bottom,
+				     1.f)) : (_ev_angle_noise * _ev_angle_noise * 10);
+
+	} else {
+		vision_r_theta_unc = fmaxf(fiducial_marker_orientation.yaw_var_ned, _ev_angle_noise * _ev_angle_noise);
+	}
+
 	hrt_abstime vision_timestamp = fiducial_marker_orientation.timestamp;
 
 	/* ORIENTATION */
@@ -196,7 +204,7 @@ bool LTEstOrientation::processObsVisionOrientation(const fiducial_marker_yaw_rep
 
 		obs.timestamp = vision_timestamp;
 		obs.updated_theta = true;
-		obs.meas_unc_theta = _range_sensor.valid ? (vision_r_theta_unc * _range_sensor.dist_bottom) : (vision_r_theta_unc * 10);
+		obs.meas_unc_theta = vision_r_theta_unc;
 		obs.meas_theta = vision_r_theta;
 		obs.meas_h_theta(0) = 1;
 
@@ -297,6 +305,8 @@ void LTEstOrientation::updateParams()
 	ModuleParams::updateParams();
 
 	_yaw_unc = _param_ltest_yaw_unc_in.get();
+	_ev_angle_noise = _param_ltest_ev_angle_noise.get();
+	_ev_noise_md = _param_ltest_ev_noise_md.get();
 }
 
 void LTEstOrientation::set_range_sensor(const float dist, const bool valid)

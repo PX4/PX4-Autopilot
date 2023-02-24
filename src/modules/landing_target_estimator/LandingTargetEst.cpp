@@ -133,6 +133,18 @@ bool LandingTargetEst::init()
 void LandingTargetEst::updateParams()
 {
 	ModuleParams::updateParams();
+
+	float gps_pos_x;
+	param_get(param_find("EKF2_GPS_POS_X"), &gps_pos_x);
+
+	float gps_pos_y;
+	param_get(param_find("EKF2_GPS_POS_Y"), &gps_pos_y);
+
+	float gps_pos_z;
+	param_get(param_find("EKF2_GPS_POS_Z"), &gps_pos_z);
+
+	_gps_pos_is_offset = (gps_pos_x + gps_pos_y + gps_pos_z > 0.01f);
+	_gps_pos_offset = matrix::Vector3f(gps_pos_x, gps_pos_y, gps_pos_z);
 }
 
 void LandingTargetEst::reset_acc_downsample()
@@ -185,16 +197,18 @@ void LandingTargetEst::Run()
 		}
 
 		localPose local_pose;
-
 		const bool local_pose_updated = get_local_pose(local_pose);
 
 		/* Update position filter at ltest_pos_UPDATE_RATE_HZ */
 		if (_ltest_position_valid) {
 
+			matrix::Vector3f vel_offset;
+			const bool vel_offset_updated = get_gps_velocity_offset(vel_offset);
+
 			matrix::Vector3f vehicle_acc_ned;
 
 			/* Downsample acceleration ned */
-			if (get_input(vehicle_acc_ned)) {
+			if (get_input(vehicle_acc_ned, vel_offset, vel_offset_updated)) {
 
 				/* If the acceleration has been averaged for too long, early return */
 				if ((hrt_absolute_time() - _last_acc_reset) > acc_downsample_TIMEOUT_US) {
@@ -212,6 +226,10 @@ void LandingTargetEst::Run()
 					if (local_pose_updated) {
 						_ltest_position->set_local_position(local_pose.xyz, local_pose.pos_valid);
 						_ltest_position->set_range_sensor(local_pose.dist_bottom, local_pose.dist_valid);
+					}
+
+					if (vel_offset_updated) {
+						_ltest_position->set_velocity_offset(vel_offset);
 					}
 
 					const matrix::Vector3f vehicle_acc_ned_sampled = _vehicle_acc_ned_sum / _loops_count;
@@ -266,6 +284,26 @@ void LandingTargetEst::reset_filters()
 
 }
 
+bool LandingTargetEst::get_gps_velocity_offset(matrix::Vector3f &vel_offset_body)
+{
+	if (!_gps_pos_is_offset) {
+		return false;
+	}
+
+	vehicle_angular_velocity_s vehicle_angular_velocity;
+
+	if (!_vehicle_angular_velocity_sub.update(&vehicle_angular_velocity)) {
+		return false;
+
+	} else {
+
+		// If the GPS antenna is not at the center of mass, when the drone rotates around the center of mass, the GPS will record a velocity.
+		const matrix::Vector3f ang_vel = matrix::Vector3f(vehicle_angular_velocity.xyz);
+		vel_offset_body = ang_vel % _gps_pos_offset; // Get extra velocity from drone's rotation
+		return true;
+	}
+}
+
 bool LandingTargetEst::get_local_pose(localPose &local_pose)
 {
 
@@ -291,7 +329,8 @@ bool LandingTargetEst::get_local_pose(localPose &local_pose)
 	}
 }
 
-bool LandingTargetEst::get_input(matrix::Vector3f &vehicle_acc_ned)
+bool LandingTargetEst::get_input(matrix::Vector3f &vehicle_acc_ned, matrix::Vector3f &vel_offset_rot_ned,
+				 const bool vel_offset_updated)
 {
 
 	vehicle_attitude_s	vehicle_attitude;
@@ -308,12 +347,18 @@ bool LandingTargetEst::get_input(matrix::Vector3f &vehicle_acc_ned)
 
 		/* Transform FRD body acc to NED */
 		const matrix::Quaternionf quat_att(&vehicle_attitude.q[0]);
-		const matrix::Dcmf R_att = matrix::Dcm<float>(quat_att);
+		// const matrix::Dcmf R_att = matrix::Dcm<float>(quat_att);
 		const matrix::Vector3f vehicle_acc{vehicle_acceleration.xyz};
 
 		/* Compensate for gravity. */
 		const matrix::Vector3f gravity_ned(0, 0, CONSTANTS_ONE_G);
-		vehicle_acc_ned = R_att * vehicle_acc + gravity_ned;
+		vehicle_acc_ned = quat_att.rotateVector(vehicle_acc) + gravity_ned;
+		// vehicle_acc_ned = R_att * vehicle_acc + gravity_ned;
+
+		/* Rotate velocity offset into ned frame */
+		if (vel_offset_updated) {
+			vel_offset_rot_ned = quat_att.rotateVector(vel_offset_rot_ned);
+		}
 	}
 
 	return true;
