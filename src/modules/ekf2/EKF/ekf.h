@@ -769,19 +769,46 @@ private:
 	// Return the magnetic declination in radians to be used by the alignment and fusion processing
 	float getMagDeclination();
 
-	bool measurementUpdate(Vector24f &K, float innovation_variance, float innovation)
+	void clearInhibitedStateKalmanGains(Vector24f &K) const
 	{
+		// gyro bias: states 10, 11, 12
 		for (unsigned i = 0; i < 3; i++) {
-			// gyro bias: states 10, 11, 12
 			if (_gyro_bias_inhibit[i]) {
-				K(10 + i) = 0.0f;
-			}
-
-			// accel bias: states 13, 14, 15
-			if (_accel_bias_inhibit[i]) {
-				K(13 + i) = 0.0f;
+				K(10 + i) = 0.f;
 			}
 		}
+
+		// accel bias: states 13, 14, 15
+		for (unsigned i = 0; i < 3; i++) {
+			if (_accel_bias_inhibit[i]) {
+				K(13 + i) = 0.f;
+			}
+		}
+
+		// mag I: states 16, 17, 18
+		if (!_control_status.flags.mag_3D) {
+			K(16) = 0.f;
+			K(17) = 0.f;
+			K(18) = 0.f;
+		}
+
+		// mag B: states 19, 20, 21
+		if (!_control_status.flags.mag_3D) {
+			K(19) = 0.f;
+			K(20) = 0.f;
+			K(21) = 0.f;
+		}
+
+		// wind: states 22, 23
+		if (!_control_status.flags.wind) {
+			K(22) = 0.f;
+			K(23) = 0.f;
+		}
+	}
+
+	bool measurementUpdate(Vector24f &K, float innovation_variance, float innovation)
+	{
+		clearInhibitedStateKalmanGains(K);
 
 		const Vector24f KS = K * innovation_variance;
 		SquareMatrix24f KHP;
