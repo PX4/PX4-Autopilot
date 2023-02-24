@@ -258,22 +258,12 @@ bool Ekf::fuseYaw(const float innovation, const float variance, estimator_aid_so
 	// only calculate gains for states we are using
 	Vector24f Kfusion;
 
-	for (uint8_t row = 0; row <= 15; row++) {
+	for (uint8_t row = 0; row < _k_num_states; row++) {
 		for (uint8_t col = 0; col <= 3; col++) {
 			Kfusion(row) += P(row, col) * H_YAW(col);
 		}
 
 		Kfusion(row) *= heading_innov_var_inv;
-	}
-
-	if (_control_status.flags.wind) {
-		for (uint8_t row = 22; row <= 23; row++) {
-			for (uint8_t col = 0; col <= 3; col++) {
-				Kfusion(row) += P(row, col) * H_YAW(col);
-			}
-
-			Kfusion(row) *= heading_innov_var_inv;
-		}
 	}
 
 	// define the innovation gate size
