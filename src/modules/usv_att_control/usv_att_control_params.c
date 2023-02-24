@@ -123,11 +123,11 @@ PARAM_DEFINE_INT32(USV_INPUT_MODE, 0);
 PARAM_DEFINE_INT32(USV_SKIP_CTRL, 0);
 
 /**
- * Direct roll input
+ * Thrust CAP
  *
  * @group USV Attitude Control
  */
-PARAM_DEFINE_FLOAT(USV_DIRCT_ROLL, 0.0f);
+PARAM_DEFINE_FLOAT(USV_DIRCT_ROLL, 0.5f);
 
 /**
  * Direct pitch input
@@ -149,3 +149,15 @@ PARAM_DEFINE_FLOAT(USV_DIRCT_YAW, 0.0f);
  * @group USV Attitude Control
  */
 PARAM_DEFINE_FLOAT(USV_DIRCT_THRUST, 0.0f);
+
+/**
+ * Max thrust
+ *
+ * @group USV Attitude Control
+ * @unit norm
+ * @min 0.05
+ * @max 1.0
+ * @decimal 2
+ * @increment 0.01
+ */
+PARAM_DEFINE_FLOAT(USV_THR_MAX_AC, 0.5f);

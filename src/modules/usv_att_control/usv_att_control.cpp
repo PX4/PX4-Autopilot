@@ -96,8 +96,10 @@ void USVAttitudeControl::parameters_update(bool force)
 void USVAttitudeControl::constrain_actuator_commands(float roll_u, float pitch_u, float yaw_u,
 		float thrust_x, float thrust_y, float thrust_z)
 {
+	float max = 1.0f;
+	float scaling = _param_max_thrust_ac.get();
 	if (PX4_ISFINITE(roll_u)) {
-		roll_u = math::constrain(roll_u, -1.0f, 1.0f);
+		roll_u = math::constrain(roll_u, -max, max);
 		_actuators.control[actuator_controls_s::INDEX_ROLL] = roll_u;
 
 	} else {
@@ -105,7 +107,7 @@ void USVAttitudeControl::constrain_actuator_commands(float roll_u, float pitch_u
 	}
 
 	if (PX4_ISFINITE(pitch_u)) {
-		pitch_u = math::constrain(pitch_u, -1.0f, 1.0f);
+		pitch_u = math::constrain(pitch_u, -max, max);
 		_actuators.control[actuator_controls_s::INDEX_PITCH] = pitch_u;
 
 	} else {
@@ -113,31 +115,31 @@ void USVAttitudeControl::constrain_actuator_commands(float roll_u, float pitch_u
 	}
 
 	if (PX4_ISFINITE(yaw_u)) {
-		yaw_u = math::constrain(yaw_u, -1.0f, 1.0f);
-		_actuators.control[actuator_controls_s::INDEX_YAW] = yaw_u;
+		yaw_u = math::constrain(yaw_u, -max, max);
+		_actuators.control[actuator_controls_s::INDEX_YAW] = yaw_u * scaling;
 
 	} else {
 		_actuators.control[actuator_controls_s::INDEX_YAW] = 0.0f;
 	}
 
 	if (PX4_ISFINITE(thrust_x)) {
-		thrust_x = math::constrain(thrust_x, -1.0f, 1.0f);
-		_actuators.control[actuator_controls_s::INDEX_THROTTLE] = thrust_x;
+		thrust_x = math::constrain(thrust_x, -max, max);
+		_actuators.control[actuator_controls_s::INDEX_THROTTLE] = thrust_x * scaling;
 
 	} else {
 		_actuators.control[actuator_controls_s::INDEX_THROTTLE] = 0.0f;
 	}
 
 	if (PX4_ISFINITE(thrust_y)) {
-		thrust_y = math::constrain(thrust_y, -1.0f, 1.0f);
-		_actuators.control[actuator_controls_s::INDEX_FLAPS] = thrust_y;
+		thrust_y = math::constrain(thrust_y, -max, max);
+		_actuators.control[actuator_controls_s::INDEX_FLAPS] = thrust_y * scaling;
 
 	} else {
 		_actuators.control[actuator_controls_s::INDEX_FLAPS] = 0.0f;
 	}
 
 	if (PX4_ISFINITE(thrust_z)) {
-		thrust_z = math::constrain(thrust_z, -1.0f, 1.0f);
+		thrust_z = math::constrain(thrust_z, -max, max);
 		_actuators.control[actuator_controls_s::INDEX_SPOILERS] = thrust_z;
 
 	} else {
@@ -248,13 +250,13 @@ void USVAttitudeControl::Run()
 			_vehicle_rates_setpoint_sub.update(&_rates_setpoint);
 
 			// PX4_INFO("got att setpoint?");
-
 			if (input_mode == 1) { // process manual data
-				_attitude_setpoint.roll_body = _param_direct_roll.get();
+				// TODO: NOTE: this is ignored for some reason
+				_attitude_setpoint.roll_body = _param_direct_pitch.get();
 				_attitude_setpoint.pitch_body = _param_direct_pitch.get();
 				_attitude_setpoint.yaw_body = _param_direct_yaw.get();
 				_attitude_setpoint.thrust_body[0] = _param_direct_thrust.get();
-				_attitude_setpoint.thrust_body[1] = _param_direct_thrust.get();;
+				_attitude_setpoint.thrust_body[1] = _param_direct_thrust.get();
 				_attitude_setpoint.thrust_body[2] = 0.f;
 			}
 
@@ -303,6 +305,7 @@ void USVAttitudeControl::Run()
 }
 
 // TODO: timestamp_sample??
+// TODO: do it like mc_rate_control
 void USVAttitudeControl::publishTorqueSetpoint(const hrt_abstime &timestamp_sample)
 {
 	vehicle_torque_setpoint_s v_torque_sp = {};

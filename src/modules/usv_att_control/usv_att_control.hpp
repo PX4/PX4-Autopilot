@@ -137,7 +137,7 @@ private:
 		(ParamInt<px4::params::USV_INPUT_MODE>) _param_input_mode,
 		(ParamInt<px4::params::USV_SKIP_CTRL>) _param_skip_ctrl,
 		// direct access to inputs
-		(ParamFloat<px4::params::USV_DIRCT_ROLL>) _param_direct_roll,
+		(ParamFloat<px4::params::USV_DIRCT_ROLL>) _param_max_thrust_ac,
 		(ParamFloat<px4::params::USV_DIRCT_PITCH>) _param_direct_pitch,
 		(ParamFloat<px4::params::USV_DIRCT_YAW>) _param_direct_yaw,
 		(ParamFloat<px4::params::USV_DIRCT_THRUST>) _param_direct_thrust
