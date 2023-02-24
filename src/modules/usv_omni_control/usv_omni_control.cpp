@@ -42,8 +42,7 @@
  * @author Daniel Duecker <daniel.duecker@tuhh.de>
  */
 
-#include "usv_pos_control.hpp"
-#include "../mc_pos_control/PositionControl/ControlMath.hpp"
+#include "usv_omni_control.hpp"
 
 
 /**
@@ -51,10 +50,10 @@
  *
  * @ingroup apps
  */
-extern "C" __EXPORT int usv_pos_control_main(int argc, char *argv[]);
+extern "C" __EXPORT int usv_omni_control_main(int argc, char *argv[]);
 
 
-USVPositionControl::USVPositionControl():
+USVOmniControl::USVOmniControl():
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
 	/* performance counters */
@@ -62,12 +61,12 @@ USVPositionControl::USVPositionControl():
 {
 }
 
-USVPositionControl::~USVPositionControl()
+USVOmniControl::~USVOmniControl()
 {
 	perf_free(_loop_perf);
 }
 
-bool USVPositionControl::init()
+bool USVOmniControl::init()
 {
 	if (!_vehicle_local_position_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
@@ -77,7 +76,7 @@ bool USVPositionControl::init()
 	return true;
 }
 
-void USVPositionControl::parameters_update(bool force)
+void USVOmniControl::parameters_update(bool force)
 {
 	// check for parameter updates
 	if (_parameter_update_sub.updated() || force) {
@@ -90,7 +89,7 @@ void USVPositionControl::parameters_update(bool force)
 	}
 }
 
-void USVPositionControl::publish_attitude_setpoint(const float thrust_x, const float thrust_y, const float thrust_z,
+void USVOmniControl::publish_attitude_setpoint(const float thrust_x, const float thrust_y, const float thrust_z,
 		const float roll_des, const float pitch_des, const float yaw_des)
 {
 	//watch if inputs are not to high
@@ -109,7 +108,7 @@ void USVPositionControl::publish_attitude_setpoint(const float thrust_x, const f
 	_att_sp_pub.publish(vehicle_attitude_setpoint);
 }
 
-void USVPositionControl::pose_controller_6dof(const Vector3f &pos_des,
+void USVOmniControl::pose_controller_6dof(const Vector3f &pos_des,
 		const float roll_des, const float pitch_des, const float yaw_des,
 		vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos)
 {
@@ -130,7 +129,7 @@ void USVPositionControl::pose_controller_6dof(const Vector3f &pos_des,
 
 }
 
-void USVPositionControl::stabilization_controller_6dof(const Vector3f &pos_des,
+void USVOmniControl::stabilization_controller_6dof(const Vector3f &pos_des,
 		const float roll_des, const float pitch_des, const float yaw_des,
 		vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos)
 {
@@ -148,7 +147,45 @@ void USVPositionControl::stabilization_controller_6dof(const Vector3f &pos_des,
 
 }
 
-void USVPositionControl::Run()
+
+void USVOmniControl::handleManualMode(const manual_control_setpoint_s &manual_control_setpoint)
+{
+    if (_vehicle_control_mode.flag_control_manual_enabled && !_vehicle_control_mode.flag_control_rates_enabled) {
+        /* manual/direct control */
+        constrain_actuator_commands(0.0f, 0.0f,
+                                    manual_control_setpoint.yaw,
+                                    manual_control_setpoint.throttle,
+                                    // TODO: really? Can I setup joystick in QGC to enable moving to the sides? Or is it the common practice
+                                    manual_control_setpoint.roll,
+                                    0.0f);
+	// TODO: to _thrust_setpoint
+    }
+}
+
+
+
+void USVOmniControl::publishTorqueSetpoint(const Vector3f &torque_sp, const hrt_abstime &timestamp_sample)
+{
+	vehicle_torque_setpoint_s vehicle_torque_setpoint{};
+	vehicle_torque_setpoint.timestamp_sample = timestamp_sample;
+	vehicle_torque_setpoint.xyz[0] = (PX4_ISFINITE(torque_sp(0))) ? torque_sp(0) : 0.0f;
+	vehicle_torque_setpoint.xyz[1] = (PX4_ISFINITE(torque_sp(1))) ? torque_sp(1) : 0.0f;
+	// this one only?
+	vehicle_torque_setpoint.xyz[2] = (PX4_ISFINITE(torque_sp(2))) ? torque_sp(2) : 0.0f;
+	vehicle_torque_setpoint.timestamp = hrt_absolute_time();
+	_vehicle_torque_setpoint_pub.publish(vehicle_torque_setpoint);
+}
+
+void USVOmniControl::publishThrustSetpoint(const hrt_abstime &timestamp_sample)
+{
+	vehicle_thrust_setpoint_s vehicle_thrust_setpoint{};
+	vehicle_thrust_setpoint.timestamp_sample = timestamp_sample;
+	_thrust_setpoint.copyTo(vehicle_thrust_setpoint.xyz);
+	vehicle_thrust_setpoint.timestamp = hrt_absolute_time();
+	_vehicle_thrust_setpoint_pub.publish(vehicle_thrust_setpoint);
+}
+
+void USVOmniControl::Run()
 {
 	if (should_exit()) {
 		_vehicle_local_position_sub.unregisterCallback();
@@ -159,7 +196,7 @@ void USVPositionControl::Run()
 	perf_begin(_loop_perf);
 
 	/* check vehicle control mode for changes to publication state */
-	_vcontrol_mode_sub.update(&_vcontrol_mode);
+	_vcontrol_mode_sub.update(&_control_mode);
 
 
 	/* update parameters from storage */
@@ -172,9 +209,9 @@ void USVPositionControl::Run()
 	if (_vehicle_local_position_sub.update(&vlocal_pos)) {
 
 		/* Run geometric attitude controllers if NOT manual mode*/
-		if (!_vcontrol_mode.flag_control_manual_enabled
-		    && _vcontrol_mode.flag_control_attitude_enabled
-		    && _vcontrol_mode.flag_control_rates_enabled) {
+		if (!_control_mode.flag_control_manual_enabled
+		    && _control_mode.flag_control_attitude_enabled
+		    && _control_mode.flag_control_rates_enabled) {
 
 			_vehicle_attitude_sub.update(&_vehicle_attitude);//get current vehicle attitude
 			_trajectory_setpoint_sub.update(&_trajectory_setpoint);
@@ -196,16 +233,16 @@ void USVPositionControl::Run()
 	}
 
 	/* Only publish if any of the proper modes are enabled */
-	if (_vcontrol_mode.flag_control_manual_enabled ||
-	    _vcontrol_mode.flag_control_attitude_enabled) {
+	if (_control_mode.flag_control_manual_enabled ||
+	    _control_mode.flag_control_attitude_enabled) {
 	}
 
 	perf_end(_loop_perf);
 }
 
-int USVPositionControl::task_spawn(int argc, char *argv[])
+int USVOmniControl::task_spawn(int argc, char *argv[])
 {
-	USVPositionControl *instance = new USVPositionControl();
+	USVOmniControl *instance = new USVOmniControl();
 
 	if (instance) {
 		_object.store(instance);
@@ -226,13 +263,13 @@ int USVPositionControl::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int USVPositionControl::custom_command(int argc, char *argv[])
+int USVOmniControl::custom_command(int argc, char *argv[])
 {
 	return print_usage("unknown command");
 }
 
 
-int USVPositionControl::print_usage(const char *reason)
+int USVOmniControl::print_usage(const char *reason)
 {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
@@ -249,19 +286,19 @@ Currently, this implementation supports only a few modes:
  * Auto mission: The usv runs missions
 ### Examples
 CLI usage example:
-$ usv_pos_control start
-$ usv_pos_control status
-$ usv_pos_control stop
+$ usv_omni_control start
+$ usv_omni_control status
+$ usv_omni_control stop
 )DESCR_STR");
 
-    PRINT_MODULE_USAGE_NAME("usv_pos_control", "controller");
+    PRINT_MODULE_USAGE_NAME("usv_omni_control", "controller");
     PRINT_MODULE_USAGE_COMMAND("start")
     PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
     return 0;
 }
 
-int usv_pos_control_main(int argc, char *argv[])
+int usv_omni_control_main(int argc, char *argv[])
 {
-    return USVPositionControl::main(argc, argv);
+    return USVOmniControl::main(argc, argv);
 }

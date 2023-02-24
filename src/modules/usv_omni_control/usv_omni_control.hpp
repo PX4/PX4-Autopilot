@@ -44,8 +44,6 @@
 #pragma once
 #include <float.h>
 
-#include "../mc_pos_control/PositionControl/PositionControl.hpp"
-
 #include <drivers/drv_hrt.h>
 #include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
@@ -62,15 +60,27 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/Publication.hpp>
+
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/trajectory_setpoint.h>
+
+#include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
+
+// huh??
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
+
+#include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_local_position.h>
+
 #include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/vehicle_thrust_setpoint.h>
+#include <uORB/topics/vehicle_torque_setpoint.h>
 #include <uORB/uORB.h>
 
 using matrix::Eulerf;
@@ -83,11 +93,11 @@ using uORB::SubscriptionData;
 
 using namespace time_literals;
 
-class USVPositionControl: public ModuleBase<USVPositionControl>, public ModuleParams, public px4::WorkItem
+class USVOmniControl: public ModuleBase<USVOmniControl>, public ModuleParams, public px4::WorkItem
 {
 public:
-	USVPositionControl();
-	~USVPositionControl();
+	USVOmniControl();
+	~USVOmniControl();
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -101,6 +111,8 @@ public:
 
 private:
 	uORB::Publication<vehicle_attitude_setpoint_s> _att_sp_pub{ORB_ID(vehicle_attitude_setpoint)};
+	uORB::Publication<vehicle_thrust_setpoint_s>	_vehicle_thrust_setpoint_pub{ORB_ID(vehicle_thrust_setpoint)};
+	uORB::Publication<vehicle_torque_setpoint_s>	_vehicle_torque_setpoint_pub{ORB_ID(vehicle_torque_setpoint)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -111,8 +123,19 @@ private:
 	uORB::SubscriptionCallbackWorkItem _vehicle_local_position_sub{this, ORB_ID(vehicle_local_position)};
 
 	vehicle_attitude_s _vehicle_attitude{};
-	trajectory_setpoint_s _trajectory_setpoint{};
-	vehicle_control_mode_s _vcontrol_mode{};
+
+	manual_control_setpoint_s	_manual_control_setpoint{};			    /**< r/c channel data */
+	position_setpoint_triplet_s	_pos_sp_triplet{};		/**< triplet of mission items */
+	vehicle_attitude_setpoint_s	_att_sp{};			/**< attitude setpoint > */
+	vehicle_control_mode_s		_control_mode{};		/**< control mode */
+	vehicle_global_position_s	_global_pos{};			/**< global vehicle position */
+	vehicle_local_position_s	_local_pos{};			/**< global vehicle position */
+	actuator_controls_s		_act_controls{};		/**< direct control of actuators */
+	vehicle_attitude_s		_vehicle_att{};
+	trajectory_setpoint_s 		_trajectory_setpoint{};
+
+	matrix::Vector3f _thrust_setpoint{};
+	// matrix::Vector3f _torque_setpoint{};
 
 	perf_counter_t	_loop_perf;
 
@@ -138,9 +161,7 @@ private:
 	)
 
 	void Run() override;
-	/**
-	 * Update our local parameter cache.
-	 */
+
 	void parameters_update(bool force = false);
 
 	/**
@@ -154,4 +175,10 @@ private:
 	void stabilization_controller_6dof(const Vector3f &pos_des,
 					   const float roll_des, const float pitch_des, const float yaw_des,
 					   vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos);
+
+	// Mode handlers
+	void handleManualMode();
+	// Output setpoints
+	void publishTorqueSetpoint(const Vector3f &torque_sp, const hrt_abstime &timestamp_sample);
+	void publishThrustSetpoint(const hrt_abstime &timestamp_sample);
 };

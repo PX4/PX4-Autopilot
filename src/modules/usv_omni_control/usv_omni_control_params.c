@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file usv_pos_control_params.c
+ * @file usv_omni_control_params.c
  *
  * Parameters defined by the position control task for unmanned underwater vehicles (USVs)
  *
@@ -60,41 +60,9 @@
  * @max 1.0
  * @decimal 2
  * @increment 0.01
- * @group USV Position Control
+ * @group USV Omni Control
  */
 PARAM_DEFINE_FLOAT(USV_THR_MIN, 0.12f);
-
-/**
- * Hover thrust
- *
- * Vertical thrust required to hover.
- * This value is mapped to center stick for manual throttle control.
- * With this value set to the thrust required to hover, transition
- * from manual to Altitude or Position mode while hovering will occur with the
- * throttle stick near center, which is then interpreted as (near)
- * zero demand for vertical speed.
- *
- * This parameter is also important for the landing detection to work correctly.
- *
- * @unit norm
- * @min 0.1
- * @max 0.8
- * @decimal 2
- * @increment 0.01
- * @group USV Position Control
- */
-PARAM_DEFINE_FLOAT(USV_THR_HOVER, 0.5f);
-
-/**
- * Hover thrust source selector
- *
- * Set false to use the fixed parameter USV_THR_HOVER
- * Set true to use the value computed by the hover thrust estimator
- *
- * @boolean
- * @group USV Position Control
- */
-PARAM_DEFINE_INT32(USV_USE_HTE, 1);
 
 /**
  * Thrust curve in Manual Mode
@@ -114,7 +82,7 @@ PARAM_DEFINE_INT32(USV_USE_HTE, 1);
  *
  * @value 0 Rescale to hover thrust
  * @value 1 No Rescale
- * @group USV Position Control
+ * @group USV Omni Control
  */
 PARAM_DEFINE_INT32(USV_THR_CURVE, 0);
 
@@ -129,7 +97,7 @@ PARAM_DEFINE_INT32(USV_THR_CURVE, 0);
  * @max 0.5
  * @decimal 2
  * @increment 0.01
- * @group USV Position Control
+ * @group USV Omni Control
  */
 PARAM_DEFINE_FLOAT(USV_THR_XY_MARG, 0.3f);
 
@@ -143,132 +111,10 @@ PARAM_DEFINE_FLOAT(USV_THR_XY_MARG, 0.3f);
  * @max 1.0
  * @decimal 2
  * @increment 0.01
- * @group USV Position Control
+ * @group USV Omni Control
  */
-PARAM_DEFINE_FLOAT(USV_THR_MAX, 1.0f);
+PARAM_DEFINE_FLOAT(USV_THR_MAX, 0.8f);
 
-/**
- * Minimum manual thrust
- *
- * Minimum vertical thrust. It's recommended to set it > 0 to avoid free fall with zero thrust.
- * With MC_AIRMODE set to 1, this can safely be set to 0.
- *
- * @unit norm
- * @min 0.0
- * @max 1.0
- * @decimal 2
- * @increment 0.01
- * @group USV Position Control
- */
-PARAM_DEFINE_FLOAT(USV_MANTHR_MIN, 0.08f);
-
-/**
- * Proportional gain for vertical position error
- *
- * @min 0.0
- * @max 1.5
- * @decimal 2
- * @group USV Position Control
- */
-PARAM_DEFINE_FLOAT(USV_Z_P, 1.0f);
-
-/**
- * Proportional gain for vertical velocity error
- *
- * defined as correction acceleration in m/s^2 per m/s velocity error
- *
- * @min 2.0
- * @max 15.0
- * @decimal 2
- * @group USV Position Control
- */
-PARAM_DEFINE_FLOAT(USV_Z_VEL_P_ACC, 4.0f);
-
-/**
- * Integral gain for vertical velocity error
- *
- * defined as correction acceleration in m/s^2 per m velocity integral
- *
- * Non zero value allows hovering thrust estimation on stabilized or autonomous takeoff.
- *
- * @min 0.2
- * @max 3.0
- * @decimal 3
- * @group USV Position Control
- */
-PARAM_DEFINE_FLOAT(USV_Z_VEL_I_ACC, 2.0f);
-
-/**
- * Differential gain for vertical velocity error
- *
- * defined as correction acceleration in m/s^2 per m/s^2 velocity derivative
- *
- * @min 0.0
- * @max 2.0
- * @decimal 3
- * @group USV Position Control
- */
-PARAM_DEFINE_FLOAT(USV_Z_VEL_D_ACC, 0.0f);
-
-/**
- * Automatic ascent velocity
- *
- * Ascent velocity in auto modes.
- * For manual modes and offboard, see USV_Z_VEL_MAX_UP
- *
- * @unit m/s
- * @min 0.5
- * @max 8.0
- * @increment 0.1
- * @decimal 1
- * @group USV Position Control
- */
-PARAM_DEFINE_FLOAT(USV_Z_V_AUTO_UP, 3.f);
-
-/**
- * Maximum ascent velocity
- *
- * Ascent velocity in manual modes and offboard.
- * For auto modes, see USV_Z_V_AUTO_UP
- *
- * @unit m/s
- * @min 0.5
- * @max 8.0
- * @increment 0.1
- * @decimal 1
- * @group USV Position Control
- */
-PARAM_DEFINE_FLOAT(USV_Z_VEL_MAX_UP, 3.f);
-
-/**
- * Automatic descent velocity
- *
- * Descent velocity in auto modes.
- * For manual modes and offboard, see USV_Z_VEL_MAX_DN
- *
- * @unit m/s
- * @min 0.5
- * @max 4.0
- * @increment 0.1
- * @decimal 1
- * @group USV Position Control
- */
-PARAM_DEFINE_FLOAT(USV_Z_V_AUTO_DN, 1.5f);
-
-/**
- * Maximum descent velocity
- *
- * Descent velocity in manual modes and offboard.
- * For auto modes, see USV_Z_V_AUTO_DN
- *
- * @unit m/s
- * @min 0.5
- * @max 4.0
- * @increment 0.1
- * @decimal 1
- * @group USV Position Control
- */
-PARAM_DEFINE_FLOAT(USV_Z_VEL_MAX_DN, 1.5f);
 
 /**
  * Proportional gain for horizontal position error
@@ -276,7 +122,7 @@ PARAM_DEFINE_FLOAT(USV_Z_VEL_MAX_DN, 1.5f);
  * @min 0.0
  * @max 2.0
  * @decimal 2
- * @group USV Position Control
+ * @group USV Omni Control
  */
 PARAM_DEFINE_FLOAT(USV_XY_P, 0.95f);
 
@@ -288,7 +134,7 @@ PARAM_DEFINE_FLOAT(USV_XY_P, 0.95f);
  * @min 1.2
  * @max 5.0
  * @decimal 2
- * @group USV Position Control
+ * @group USV Omni Control
  */
 PARAM_DEFINE_FLOAT(USV_XY_VEL_P_ACC, 1.8f);
 
@@ -301,7 +147,7 @@ PARAM_DEFINE_FLOAT(USV_XY_VEL_P_ACC, 1.8f);
  * @min 0.0
  * @max 60.0
  * @decimal 3
- * @group USV Position Control
+ * @group USV Omni Control
  */
 PARAM_DEFINE_FLOAT(USV_XY_VEL_I_ACC, 0.4f);
 
@@ -313,7 +159,7 @@ PARAM_DEFINE_FLOAT(USV_XY_VEL_I_ACC, 0.4f);
  * @min 0.1
  * @max 2.0
  * @decimal 3
- * @group USV Position Control
+ * @group USV Omni Control
  */
 PARAM_DEFINE_FLOAT(USV_XY_VEL_D_ACC, 0.2f);
 
@@ -327,7 +173,7 @@ PARAM_DEFINE_FLOAT(USV_XY_VEL_D_ACC, 0.2f);
  * @max 20.0
  * @increment 1
  * @decimal 2
- * @group USV Position Control
+ * @group USV Omni Control
  */
 PARAM_DEFINE_FLOAT(USV_XY_CRUISE, 5.0f);
 
@@ -337,7 +183,7 @@ PARAM_DEFINE_FLOAT(USV_XY_CRUISE, 5.0f);
  * @min 0.1
  * @max 1.0
  * @decimal 1
- * @group USV Position Control
+ * @group USV Omni Control
  */
 PARAM_DEFINE_FLOAT(USV_XY_TRAJ_P, 0.5f);
 
@@ -355,7 +201,7 @@ PARAM_DEFINE_FLOAT(USV_XY_TRAJ_P, 0.5f);
  * @min 0.1
  * @max 10.0
  * @decimal 1
- * @group USV Position Control
+ * @group USV Omni Control
  */
 PARAM_DEFINE_FLOAT(USV_XY_ERR_MAX, 2.0f);
 
@@ -373,7 +219,7 @@ PARAM_DEFINE_FLOAT(USV_XY_ERR_MAX, 2.0f);
  * @max 20.0
  * @increment 1
  * @decimal 2
- * @group USV Position Control
+ * @group USV Omni Control
  */
 PARAM_DEFINE_FLOAT(USV_VEL_MANUAL, 10.0f);
 
@@ -388,7 +234,7 @@ PARAM_DEFINE_FLOAT(USV_VEL_MANUAL, 10.0f);
  * @max 20.0
  * @increment 0.1
  * @decimal 2
- * @group USV Position Control
+ * @group USV Omni Control
  */
 PARAM_DEFINE_FLOAT(USV_VEL_MAN_SIDE, -1.0f);
 
@@ -403,7 +249,7 @@ PARAM_DEFINE_FLOAT(USV_VEL_MAN_SIDE, -1.0f);
  * @max 20.0
  * @increment 0.1
  * @decimal 2
- * @group USV Position Control
+ * @group USV Omni Control
  */
 PARAM_DEFINE_FLOAT(USV_VEL_MAN_BACK, -1.0f);
 
@@ -418,7 +264,7 @@ PARAM_DEFINE_FLOAT(USV_VEL_MAN_BACK, -1.0f);
  * @max 20.0
  * @increment 1
  * @decimal 2
- * @group USV Position Control
+ * @group USV Omni Control
  */
 PARAM_DEFINE_FLOAT(USV_XY_VEL_MAX, 12.0f);
 
@@ -431,32 +277,10 @@ PARAM_DEFINE_FLOAT(USV_XY_VEL_MAX, 12.0f);
  * @min 20.0
  * @max 89.0
  * @decimal 1
- * @group USV Position Control
+ * @group USV Omni Control
  */
 PARAM_DEFINE_FLOAT(USV_TILTMAX_AIR, 45.0f);
 
-/**
- * Maximum tilt during landing
- *
- * Limits maximum tilt angle on landing.
- *
- * @unit deg
- * @min 10.0
- * @max 89.0
- * @decimal 1
- * @group USV Position Control
- */
-PARAM_DEFINE_FLOAT(USV_TILTMAX_LND, 12.0f);
-
-/**
- * Landing descend rate
- *
- * @unit m/s
- * @min 0.6
- * @decimal 1
- * @group USV Position Control
- */
-PARAM_DEFINE_FLOAT(USV_LAND_SPEED, 0.7f);
 
 /**
  * Land crawl descend rate
@@ -466,7 +290,7 @@ PARAM_DEFINE_FLOAT(USV_LAND_SPEED, 0.7f);
  * @unit m/s
  * @min 0.1
  * @decimal 1
- * @group USV Position Control
+ * @group USV Omni Control
  */
 PARAM_DEFINE_FLOAT(USV_LAND_CRWL, 0.3f);
 
@@ -485,7 +309,7 @@ PARAM_DEFINE_FLOAT(USV_LAND_CRWL, 0.3f);
  * @max 1
  * @value 0 Fixed descent speed of USV_LAND_SPEED
  * @value 1 User assisted descent speed
- * @group USV Position Control
+ * @group USV Omni Control
  */
 PARAM_DEFINE_INT32(USV_LAND_RC_HELP, 0);
 
@@ -496,7 +320,7 @@ PARAM_DEFINE_INT32(USV_LAND_RC_HELP, 0);
  * @min 1
  * @max 5
  * @decimal 2
- * @group USV Position Control
+ * @group USV Omni Control
  */
 PARAM_DEFINE_FLOAT(USV_TKO_SPEED, 1.5f);
 
@@ -507,7 +331,7 @@ PARAM_DEFINE_FLOAT(USV_TKO_SPEED, 1.5f);
  * @min 0.0
  * @max 90.0
  * @decimal 1
- * @group USV Position Control
+ * @group USV Omni Control
  */
 PARAM_DEFINE_FLOAT(USV_MAN_TILT_MAX, 35.0f);
 
@@ -518,7 +342,7 @@ PARAM_DEFINE_FLOAT(USV_MAN_TILT_MAX, 35.0f);
  * @min 0.0
  * @max 400
  * @decimal 1
- * @group USV Position Control
+ * @group USV Omni Control
  */
 PARAM_DEFINE_FLOAT(USV_MAN_Y_MAX, 150.0f);
 
@@ -531,7 +355,7 @@ PARAM_DEFINE_FLOAT(USV_MAN_Y_MAX, 150.0f);
  * @min 0.0
  * @max 5.0
  * @decimal 2
- * @group USV Position Control
+ * @group USV Omni Control
  */
 PARAM_DEFINE_FLOAT(USV_MAN_Y_TAU, 0.08f);
 
@@ -541,7 +365,7 @@ PARAM_DEFINE_FLOAT(USV_MAN_Y_TAU, 0.08f);
  * @min 0.0
  * @max 1.0
  * @decimal 2
- * @group USV Position Control
+ * @group USV Omni Control
  */
 PARAM_DEFINE_FLOAT(USV_HOLD_DZ, 0.1f);
 
@@ -552,7 +376,7 @@ PARAM_DEFINE_FLOAT(USV_HOLD_DZ, 0.1f);
  * @min 0.0
  * @max 3.0
  * @decimal 2
- * @group USV Position Control
+ * @group USV Omni Control
  */
 PARAM_DEFINE_FLOAT(USV_HOLD_MAX_XY, 0.8f);
 
@@ -563,7 +387,7 @@ PARAM_DEFINE_FLOAT(USV_HOLD_MAX_XY, 0.8f);
  * @min 0.0
  * @max 3.0
  * @decimal 2
- * @group USV Position Control
+ * @group USV Omni Control
  */
 PARAM_DEFINE_FLOAT(USV_HOLD_MAX_Z, 0.6f);
 
@@ -574,7 +398,7 @@ PARAM_DEFINE_FLOAT(USV_HOLD_MAX_Z, 0.6f);
  * @min 0.0
  * @max 10
  * @decimal 2
- * @group USV Position Control
+ * @group USV Omni Control
  */
 PARAM_DEFINE_FLOAT(USV_VELD_LP, 5.0f);
 
@@ -591,7 +415,7 @@ PARAM_DEFINE_FLOAT(USV_VELD_LP, 5.0f);
  * @max 15.0
  * @increment 1
  * @decimal 2
- * @group USV Position Control
+ * @group USV Omni Control
  */
 PARAM_DEFINE_FLOAT(USV_ACC_HOR_MAX, 5.0f);
 
@@ -605,7 +429,7 @@ PARAM_DEFINE_FLOAT(USV_ACC_HOR_MAX, 5.0f);
  * @max 15.0
  * @increment 1
  * @decimal 2
- * @group USV Position Control
+ * @group USV Omni Control
  */
 
 PARAM_DEFINE_FLOAT(USV_ACC_HOR, 3.0f);
@@ -618,7 +442,7 @@ PARAM_DEFINE_FLOAT(USV_ACC_HOR, 3.0f);
  * @max 15.0
  * @increment 1
  * @decimal 2
- * @group USV Position Control
+ * @group USV Omni Control
  */
 PARAM_DEFINE_FLOAT(USV_ACC_UP_MAX, 4.0f);
 
@@ -630,7 +454,7 @@ PARAM_DEFINE_FLOAT(USV_ACC_UP_MAX, 4.0f);
  * @max 15.0
  * @increment 1
  * @decimal 2
- * @group USV Position Control
+ * @group USV Omni Control
  */
 PARAM_DEFINE_FLOAT(USV_ACC_DOWN_MAX, 3.0f);
 
@@ -650,7 +474,7 @@ PARAM_DEFINE_FLOAT(USV_ACC_DOWN_MAX, 3.0f);
  * @max 500.0
  * @increment 1
  * @decimal 2
- * @group USV Position Control
+ * @group USV Omni Control
  */
 PARAM_DEFINE_FLOAT(USV_JERK_MAX, 8.0f);
 
@@ -666,7 +490,7 @@ PARAM_DEFINE_FLOAT(USV_JERK_MAX, 8.0f);
  * @max 80.0
  * @increment 1
  * @decimal 1
- * @group USV Position Control
+ * @group USV Omni Control
  */
 PARAM_DEFINE_FLOAT(USV_JERK_AUTO, 4.0f);
 
@@ -688,7 +512,7 @@ PARAM_DEFINE_FLOAT(USV_JERK_AUTO, 4.0f);
  * @value 0 Altitude following
  * @value 1 Terrain following
  * @value 2 Terrain hold
- * @group USV Position Control
+ * @group USV Omni Control
  */
 PARAM_DEFINE_INT32(USV_ALT_MODE, 0);
 
@@ -704,7 +528,7 @@ PARAM_DEFINE_INT32(USV_ALT_MODE, 0);
  * @min 0
  * @max 1
  * @decimal 2
- * @group USV Position Control
+ * @group USV Omni Control
  */
 PARAM_DEFINE_FLOAT(USV_XY_MAN_EXPO, 0.6f);
 
@@ -720,7 +544,7 @@ PARAM_DEFINE_FLOAT(USV_XY_MAN_EXPO, 0.6f);
  * @min 0
  * @max 1
  * @decimal 2
- * @group USV Position Control
+ * @group USV Omni Control
  */
 PARAM_DEFINE_FLOAT(USV_Z_MAN_EXPO, 0.6f);
 
@@ -736,7 +560,7 @@ PARAM_DEFINE_FLOAT(USV_Z_MAN_EXPO, 0.6f);
  * @min 0
  * @max 1
  * @decimal 2
- * @group USV Position Control
+ * @group USV Omni Control
  */
 PARAM_DEFINE_FLOAT(USV_YAW_EXPO, 0.6f);
 
@@ -753,7 +577,7 @@ PARAM_DEFINE_FLOAT(USV_YAW_EXPO, 0.6f);
  * @increment 5
  * @group USV Attitude Control
  */
-PARAM_DEFINE_FLOAT(USV_YAWRAUTO_MAX, 45.0f);
+PARAM_DEFINE_FLOAT(USV_YAWRAUTOMAX, 45.0f);
 
 /**
  * Altitude for 1. step of slow landing (descend)
@@ -766,7 +590,7 @@ PARAM_DEFINE_FLOAT(USV_YAWRAUTO_MAX, 45.0f);
  * @min 0
  * @max 122
  * @decimal 1
- * @group USV Position Control
+ * @group USV Omni Control
  */
 PARAM_DEFINE_FLOAT(USV_LAND_ALT1, 10.0f);
 
@@ -781,7 +605,7 @@ PARAM_DEFINE_FLOAT(USV_LAND_ALT1, 10.0f);
  * @min 0
  * @max 122
  * @decimal 1
- * @group USV Position Control
+ * @group USV Omni Control
  */
 PARAM_DEFINE_FLOAT(USV_LAND_ALT2, 5.0f);
 
@@ -796,7 +620,7 @@ PARAM_DEFINE_FLOAT(USV_LAND_ALT2, 5.0f);
  * @min 0
  * @max 122
  * @decimal 1
- * @group USV Position Control
+ * @group USV Omni Control
  */
 PARAM_DEFINE_FLOAT(USV_LAND_ALT3, 1.0f);
 
@@ -809,7 +633,7 @@ PARAM_DEFINE_FLOAT(USV_LAND_ALT3, 1.0f);
  *
  * @min 0
  * @max 5
- * @group USV Position Control
+ * @group USV Omni Control
  */
 PARAM_DEFINE_FLOAT(USV_TKO_RAMP_T, 3.0f);
 
@@ -826,7 +650,7 @@ PARAM_DEFINE_FLOAT(USV_TKO_RAMP_T, 3.0f);
  * @value 0 Simple position control
  * @value 3 Smooth position control (Jerk optimized)
  * @value 4 Acceleration based input
- * @group USV Position Control
+ * @group USV Omni Control
  */
 PARAM_DEFINE_INT32(USV_POS_MODE, 4);
 
@@ -857,7 +681,7 @@ PARAM_DEFINE_INT32(USV_YAW_MODE, 0);
  * @max 20
  * @decimal 1
  * @increment 1
- * @group USV Position Control
+ * @group USV Omni Control
  */
 PARAM_DEFINE_FLOAT(USV_XY_VEL_ALL, -10.0f);
 
@@ -872,7 +696,7 @@ PARAM_DEFINE_FLOAT(USV_XY_VEL_ALL, -10.0f);
  * @max 8
  * @decimal 1
  * @increment 0.5
- * @group USV Position Control
+ * @group USV Omni Control
  */
 PARAM_DEFINE_FLOAT(USV_Z_VEL_ALL, -3.0f);
 
@@ -882,6 +706,6 @@ PARAM_DEFINE_FLOAT(USV_Z_VEL_ALL, -3.0f);
  *
  * @value 0 Position Control
  * @value 1 Stabilization Mode
- * @group USV Position Control
+ * @group USV Omni Control
  */
 PARAM_DEFINE_INT32(USV_STAB_MODE, 1);

@@ -32,11 +32,11 @@
 ############################################################################
 
 px4_add_module(
-	MODULE modules__usv_pos_control
-	MAIN usv_pos_control
+	MODULE modules__usv_omni_control
+	MAIN usv_omni_control
 	STACK_MAIN 1200
 	COMPILE_FLAGS
 	SRCS
-		usv_pos_control.cpp
+		usv_omni_control.cpp
 	)
 
