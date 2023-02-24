@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,14 +40,15 @@
 #pragma once
 
 #include "FlightTask.hpp"
-#include "Sticks.hpp"
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
+#include "Sticks.hpp"
+#include "StickYaw.hpp"
 #include <uORB/Subscription.hpp>
 
 class FlightTaskManualAltitude : public FlightTask
 {
 public:
-	FlightTaskManualAltitude();
+	FlightTaskManualAltitude() = default;
 	virtual ~FlightTaskManualAltitude() = default;
 	bool activate(const trajectory_setpoint_s &last_setpoint) override;
 	bool updateInitialize() override;
@@ -73,7 +74,8 @@ protected:
 	 */
 	void _updateAltitudeLock();
 
-	Sticks _sticks;
+	Sticks _sticks{this};
+	StickYaw _stick_yaw{this};
 	bool _sticks_data_required = true; ///< let inherited task-class define if it depends on stick data
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
@@ -81,8 +83,6 @@ protected:
 					(ParamInt<px4::params::MPC_ALT_MODE>) _param_mpc_alt_mode,
 					(ParamFloat<px4::params::MPC_HOLD_MAX_XY>) _param_mpc_hold_max_xy,
 					(ParamFloat<px4::params::MPC_Z_P>) _param_mpc_z_p, /**< position controller altitude propotional gain */
-					(ParamFloat<px4::params::MPC_MAN_Y_MAX>) _param_mpc_man_y_max, /**< scaling factor from stick to yaw rate */
-					(ParamFloat<px4::params::MPC_MAN_Y_TAU>) _param_mpc_man_y_tau,
 					(ParamFloat<px4::params::MPC_MAN_TILT_MAX>) _param_mpc_man_tilt_max, /**< maximum tilt allowed for manual flight */
 					(ParamFloat<px4::params::MPC_LAND_ALT1>) _param_mpc_land_alt1, /**< altitude at which to start downwards slowdown */
 					(ParamFloat<px4::params::MPC_LAND_ALT2>) _param_mpc_land_alt2, /**< altitude below which to land with land speed */
@@ -96,14 +96,6 @@ private:
 	bool _isYawInput();
 	void _unlockYaw();
 	void _lockYaw();
-
-	/**
-	 * Filter between stick input and yaw setpoint
-	 *
-	 * @param yawspeed_target yaw setpoint desired by the stick
-	 * @return filtered value from independent filter state
-	 */
-	float _applyYawspeedFilter(float yawspeed_target);
 
 	/**
 	 * Terrain following.
@@ -132,7 +124,6 @@ private:
 
 	void setGearAccordingToSwitch();
 
-	float _yawspeed_filter_state{}; /**< state of low-pass filter in rad/s */
 	uint8_t _reset_counter = 0; /**< counter for estimator resets in z-direction */
 	bool _terrain_follow{false}; /**< true when the vehicle is following the terrain height */
 	bool _terrain_hold{false}; /**< true when vehicle is controlling height above a static ground position */

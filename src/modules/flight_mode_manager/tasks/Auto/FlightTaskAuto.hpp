@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -142,7 +142,7 @@ protected:
 	Vector3f _unsmoothed_velocity_setpoint;
 	Sticks _sticks{this};
 	StickAccelerationXY _stick_acceleration_xy{this};
-	StickYaw _stick_yaw;
+	StickYaw _stick_yaw{this};
 	matrix::Vector3f _land_position;
 	float _land_heading;
 	WaypointType _type_previous{WaypointType::idle}; /**< Previous type of current target triplet. */
@@ -176,8 +176,7 @@ protected:
 					(ParamFloat<px4::params::MPC_Z_V_AUTO_DN>) _param_mpc_z_v_auto_dn,
 					(ParamFloat<px4::params::MPC_TKO_SPEED>) _param_mpc_tko_speed,
 					(ParamFloat<px4::params::MPC_TKO_RAMP_T>)
-					_param_mpc_tko_ramp_t, // time constant for smooth takeoff ramp
-					(ParamFloat<px4::params::MPC_MAN_Y_MAX>) _param_mpc_man_y_max
+					_param_mpc_tko_ramp_t // time constant for smooth takeoff ramp
 				       );
 
 private:
