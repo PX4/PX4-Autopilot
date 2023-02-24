@@ -535,6 +535,19 @@ void UavcanNode::PrintInfo()
 {
 	pthread_mutex_lock(&_node_mutex);
 
+	// Firmware version
+	printf("Hardware and software status:\n");
+	printf("\tNode ID: %d\n", int(_node.getNodeID().get()));
+	printf("\tHardware version: %d.%d\n",
+	       int(_node.getHardwareVersion().major),
+	       int(_node.getHardwareVersion().minor));
+	printf("\tSoftware version: %d.%d.%08x\n",
+	       int(_node.getSoftwareVersion().major),
+	       int(_node.getSoftwareVersion().minor),
+	       int(_node.getSoftwareVersion().vcs_commit));
+
+	printf("\n");
+
 	// Memory status
 	printf("Pool allocator status:\n");
 	printf("\tCapacity hard/soft: %u/%u blocks\n",
