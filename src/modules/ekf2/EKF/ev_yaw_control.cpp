@@ -105,7 +105,7 @@ void Ekf::controlEvYawFusion(const extVisionSample &ev_sample, const bool common
 					// Data seems good, attempt a reset
 					//_information_events.flags.reset_yaw_to_vision = true; // TODO
 					ECL_WARN("%s fusion failing, resetting", AID_SRC_NAME);
-					resetQuatStateYaw(aid_src.innovation, aid_src.observation_variance);
+					resetQuatStateYaw(aid_src.observation, aid_src.observation_variance);
 					aid_src.time_last_fuse = _time_delayed_us;
 
 					if (_control_status.flags.in_air) {
