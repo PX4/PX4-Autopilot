@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -63,7 +63,7 @@ bool Sticks::checkAndUpdateStickInputs()
 		_positions_expo(3) = math::expo_deadzone(_positions(3), _param_mpc_yaw_expo.get(),    _param_mpc_hold_dz.get());
 
 		// valid stick inputs are required
-		_input_available = _positions.isAllFinite();
+		_input_available = manual_control_setpoint.valid && _positions.isAllFinite();
 
 	} else {
 		failsafe_flags_s failsafe_flags;
