@@ -727,21 +727,6 @@ PARAM_DEFINE_INT32(COM_POS_FS_DELAY, 1);
 PARAM_DEFINE_FLOAT(COM_POS_FS_EPH, 5.f);
 
 /**
- * Vertical position error threshold.
- *
- * This is the vertical position error (EPV) threshold that will trigger a failsafe.
- * The default is appropriate for a multicopter. Can be increased for a fixed-wing.
- * If the previous position error was below this threshold, there is an additional
- * factor of 2.5 applied (threshold for invalidation 2.5 times the one for validation).
- *
- * @unit m
- * @min 0
- * @decimal 1
- * @group Commander
- */
-PARAM_DEFINE_FLOAT(COM_POS_FS_EPV, 10.f);
-
-/**
  * Horizontal velocity error threshold.
  *
  * This is the horizontal velocity error (EVH) threshold that will trigger a failsafe.

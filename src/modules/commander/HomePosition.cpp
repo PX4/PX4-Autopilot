@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,6 +37,8 @@
 #include <lib/geo/geo.h>
 #include "commander_helper.h"
 
+using namespace time_literals;
+
 HomePosition::HomePosition(const failsafe_flags_s &failsafe_flags)
 	: _failsafe_flags(failsafe_flags)
 {
@@ -69,20 +71,15 @@ bool HomePosition::hasMovedFromCurrentHomeLocation()
 			eph = gpos.eph;
 			epv = gpos.epv;
 
-		} else if (!_failsafe_flags.gps_position_invalid) {
-			sensor_gps_s gps;
-			_vehicle_gps_position_sub.copy(&gps);
-			const double lat = static_cast<double>(gps.lat) * 1e-7;
-			const double lon = static_cast<double>(gps.lon) * 1e-7;
-			const float alt = static_cast<float>(gps.alt) * 1e-3f;
+		} else if (_gps_position_for_home_valid) {
 
 			get_distance_to_point_global_wgs84(_home_position_pub.get().lat, _home_position_pub.get().lon,
 							   _home_position_pub.get().alt,
-							   lat, lon, alt,
+							   _gps_lat, _gps_lon, _gps_alt,
 							   &home_dist_xy, &home_dist_z);
 
-			eph = gps.eph;
-			epv = gps.epv;
+			eph = _gps_eph;
+			epv = _gps_epv;
 		}
 	}
 
@@ -114,14 +111,9 @@ bool HomePosition::setHomePosition(bool force)
 		setHomePosValid();
 		updated = true;
 
-	} else if (!_failsafe_flags.gps_position_invalid) {
+	} else if (_gps_position_for_home_valid) {
 		// Set home using GNSS position
-		sensor_gps_s gps_pos;
-		_vehicle_gps_position_sub.copy(&gps_pos);
-		const double lat = static_cast<double>(gps_pos.lat) * 1e-7;
-		const double lon = static_cast<double>(gps_pos.lon) * 1e-7;
-		const float alt = static_cast<float>(gps_pos.alt) * 1e-3f;
-		fillGlobalHomePos(home, lat, lon, alt);
+		fillGlobalHomePos(home, _gps_lat, _gps_lon, _gps_alt);
 		setHomePosValid();
 		updated = true;
 
@@ -203,24 +195,18 @@ void HomePosition::setInAirHomePosition()
 			home.timestamp = hrt_absolute_time();
 			_home_position_pub.update();
 
-		} else if (!_failsafe_flags.local_position_invalid && !_failsafe_flags.gps_position_invalid) {
+		} else if (!_failsafe_flags.local_position_invalid && _gps_position_for_home_valid) {
 			// Back-compute lon, lat and alt of home position given the local home position
 			// and current positions in local and global (GNSS raw) frames
 			const vehicle_local_position_s &lpos = _local_position_sub.get();
-			sensor_gps_s gps;
-			_vehicle_gps_position_sub.copy(&gps);
 
-			const double lat = static_cast<double>(gps.lat) * 1e-7;
-			const double lon = static_cast<double>(gps.lon) * 1e-7;
-			const float alt = static_cast<float>(gps.alt) * 1e-3f;
-
-			MapProjection ref_pos{lat, lon};
+			MapProjection ref_pos{_gps_lat, _gps_lon};
 
 			double home_lat;
 			double home_lon;
 			ref_pos.reproject(home.x - lpos.x, home.y - lpos.y, home_lat, home_lon);
 
-			const float home_alt = alt + home.z;
+			const float home_alt = _gps_alt + home.z;
 			fillGlobalHomePos(home, home_lat, home_lon, home_alt);
 
 			setHomePosValid();
@@ -314,6 +300,25 @@ void HomePosition::update(bool set_automatically, bool check_if_changed)
 	_local_position_sub.update();
 	_global_position_sub.update();
 
+	if (_vehicle_gps_position_sub.updated()) {
+		sensor_gps_s vehicle_gps_position;
+		_vehicle_gps_position_sub.copy(&vehicle_gps_position);
+
+		_gps_lat = static_cast<double>(vehicle_gps_position.lat) * 1e-7;
+		_gps_lon = static_cast<double>(vehicle_gps_position.lon) * 1e-7;
+		_gps_alt = static_cast<float>(vehicle_gps_position.alt) * 1e-3f;
+		_gps_eph = vehicle_gps_position.eph;
+		_gps_epv = vehicle_gps_position.epv;
+
+		const hrt_abstime now = hrt_absolute_time();
+		const bool time = (now < vehicle_gps_position.timestamp + 1_s);
+		const bool fix = vehicle_gps_position.fix_type >= kHomePositionGPSRequiredFixType;
+		const bool eph = vehicle_gps_position.eph < kHomePositionGPSRequiredEPH;
+		const bool epv = vehicle_gps_position.epv < kHomePositionGPSRequiredEPV;
+		const bool evh = vehicle_gps_position.s_variance_m_s < kHomePositionGPSRequiredEVH;
+		_gps_position_for_home_valid = time && fix && eph && epv && evh;
+	}
+
 	const vehicle_local_position_s &lpos = _local_position_sub.get();
 	const auto &home = _home_position_pub.get();
 
@@ -328,7 +333,7 @@ void HomePosition::update(bool set_automatically, bool check_if_changed)
 	if (check_if_changed && set_automatically) {
 		const bool can_set_home_lpos_first_time = !home.valid_lpos && !_failsafe_flags.local_position_invalid;
 		const bool can_set_home_gpos_first_time = ((!home.valid_hpos || !home.valid_alt)
-				&& (!_failsafe_flags.global_position_invalid || !_failsafe_flags.gps_position_invalid));
+				&& (!_failsafe_flags.global_position_invalid || _gps_position_for_home_valid));
 		const bool can_set_home_alt_first_time = (!home.valid_alt && lpos.z_global);
 
 		if (can_set_home_lpos_first_time

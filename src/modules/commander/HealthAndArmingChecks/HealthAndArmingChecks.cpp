@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,7 +45,6 @@ HealthAndArmingChecks::HealthAndArmingChecks(ModuleParams *parent, vehicle_statu
 	_failsafe_flags.local_position_invalid_relaxed = true;
 	_failsafe_flags.local_velocity_invalid = true;
 	_failsafe_flags.global_position_invalid = true;
-	_failsafe_flags.gps_position_invalid = true;
 	_failsafe_flags.auto_mission_missing = true;
 	_failsafe_flags.offboard_control_signal_lost = true;
 	_failsafe_flags.home_position_invalid = true;
