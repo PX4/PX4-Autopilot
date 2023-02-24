@@ -418,13 +418,13 @@ void GZBridge::magnetometerCallback(const gz::msgs::Magnetometer &magnetometer)
 	pthread_mutex_lock(&_node_mutex);
 
 	gz::math::Vector3d mag(magnetometer.field_tesla().x(),
-                     magnetometer.field_tesla().y(),
-                     magnetometer.field_tesla().z());
+			       magnetometer.field_tesla().y(),
+			       magnetometer.field_tesla().z());
 	gz::math::Quaternion q(0.0, 0.0, -1.57);
 	mag = q.RotateVector(mag);
 
 	_px4_mag.update(hrt_absolute_time(),
-                  mag.X(), mag.Y(), mag.Z());
+			mag.X(), mag.Y(), mag.Z());
 
 	pthread_mutex_unlock(&_node_mutex);
 }
