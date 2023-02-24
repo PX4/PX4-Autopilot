@@ -118,7 +118,7 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 		float spd_xy = Vector2f(_velocity).length();
 
 		// Use presence of horizontal stick inputs as a transition criteria
-		float stick_xy = Vector2f(_sticks.getPositionExpo().slice<2, 1>(0, 0)).length();
+		float stick_xy = Vector2f(_sticks.getPitchRollExpo()).length();
 		bool stick_input = stick_xy > 0.001f;
 
 		if (_terrain_hold) {
@@ -326,25 +326,8 @@ void FlightTaskManualAltitude::_ekfResetHandlerHeading(float delta_psi)
 void FlightTaskManualAltitude::_updateSetpoints()
 {
 	_updateHeadingSetpoints(); // get yaw setpoint
-
-	// Thrust in xy are extracted directly from stick inputs. A magnitude of
-	// 1 means that maximum thrust along xy is demanded. A magnitude of 0 means no
-	// thrust along xy is demanded. The maximum thrust along xy depends on the thrust
-	// setpoint along z-direction, which is computed in PositionControl.cpp.
-
-	Vector2f sp(_sticks.getPosition().slice<2, 1>(0, 0));
-
-	_man_input_filter.setParameters(_deltatime, _param_mc_man_tilt_tau.get());
-	_man_input_filter.update(sp);
-	sp = _man_input_filter.getState();
-	_rotateIntoHeadingFrame(sp);
-
-	if (sp.longerThan(1.0f)) {
-		sp.normalize();
-	}
-
-	_acceleration_setpoint.xy() = sp * tanf(math::radians(_param_mpc_man_tilt_max.get())) * CONSTANTS_ONE_G;
-
+	_acceleration_setpoint.xy() = _stick_tilt_xy.generateAccelerationSetpoints(_sticks.getPitchRoll(), _deltatime, _yaw,
+				      _yaw_setpoint);
 	_updateAltitudeLock();
 	_respectGroundSlowdown();
 }

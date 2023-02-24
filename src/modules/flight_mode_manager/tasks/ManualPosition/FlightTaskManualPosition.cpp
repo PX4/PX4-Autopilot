@@ -67,7 +67,7 @@ void FlightTaskManualPosition::_scaleSticks()
 	/* Use same scaling as for FlightTaskManualAltitude */
 	FlightTaskManualAltitude::_scaleSticks();
 
-	Vector2f stick_xy = _sticks.getPositionExpo().slice<2, 1>(0, 0);
+	Vector2f stick_xy = _sticks.getPitchRollExpo();
 
 	Sticks::limitStickUnitLengthXY(stick_xy);
 
