@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,6 +38,9 @@
 #pragma once
 
 #include "FlightTask.hpp"
+#include "Sticks.hpp"
+#include "StickTiltXY.hpp"
+#include "StickYaw.hpp"
 
 class FlightTaskDescend : public FlightTask
 {
@@ -46,11 +49,15 @@ public:
 	virtual ~FlightTaskDescend() = default;
 
 	bool update() override;
-	bool activate(const trajectory_setpoint_s &last_setpoint) override;
 
 private:
+	Sticks _sticks{this};
+	StickTiltXY _stick_tilt_xy{this};
+	StickYaw _stick_yaw{this};
+
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
-					(ParamFloat<px4::params::MPC_THR_HOVER>) _param_mpc_thr_hover, ///< thrust at hover equilibrium
-					(ParamFloat<px4::params::MPC_LAND_SPEED>) _param_mpc_land_speed ///< velocity for controlled descend
+					(ParamInt<px4::params::MPC_LAND_RC_HELP>) _param_mpc_land_rc_help,
+					(ParamFloat<px4::params::MPC_LAND_SPEED>) _param_mpc_land_speed, ///< velocity for controlled descend
+					(ParamFloat<px4::params::MPC_THR_HOVER>) _param_mpc_thr_hover ///< thrust at hover equilibrium
 				       )
 };
