@@ -1194,7 +1194,9 @@ FixedwingPositionControl::control_auto_position(const float control_interval, co
 				   tecs_fw_thr_max,
 				   false,
 				   radians(_param_fw_p_lim_min.get()),
-				   _param_sinkrate_target.get());
+				   _param_sinkrate_target.get(),
+				   false,
+				   pos_sp_curr.vz);
 }
 
 void
