@@ -6,7 +6,7 @@ on:
 
 jobs:
   hw-builder-image:
-    name: create docker image for hw build
+    name: create docker builder base image
     runs-on: ubuntu-latest
     steps:
       - name: Checkout px4-firmware
@@ -18,7 +18,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v3
         with:
-          images: ghcr.io/tiiuae/px4-firmware-hw-builder
+          images: ghcr.io/tiiuae/px4-firmware-builder-base
           tags: |
             type=raw,value=latest
             type=sha
@@ -28,43 +28,11 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build hw builder image and push
+      - name: Build builder base image and push
         uses: docker/build-push-action@v3
         with:
           context: .
-          file: ./px4-firmware/packaging/Dockerfile.build_env
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-
-  sitl-builder-image:
-    name: create docker image for sitl build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout px4-firmware
-        uses: actions/checkout@v3
-        with:
-          path: px4-firmware
-          fetch-depth: 0
-      - name: Docker meta
-        id: meta
-        uses: docker/metadata-action@v3
-        with:
-          images: ghcr.io/tiiuae/px4-firmware-sitl-builder
-          tags: |
-            type=raw,value=latest
-            type=sha
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build hw builder image and push
-        uses: docker/build-push-action@v3
-        with:
-          context: .
-          file: ./px4-firmware/packaging/Dockerfile.build_env_sitl
+          file: ./px4-firmware/packaging/Dockerfile.build_env_pre
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
