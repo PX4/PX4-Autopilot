@@ -39,7 +39,7 @@ typedef struct
 	#if _WIN32
 	double pcFrequency;
 	__int64 counterStart;
-	#elif __linux__ || __APPLE__ ||__CYGWIN__ || __QNXNTO__ || defined __NUTTX__
+	#elif __linux__ || __APPLE__ ||__CYGWIN__ || __QNXNTO__ || __NUTTX__
 	double clockStart;
 	#else
 	#error "Unknown System"
