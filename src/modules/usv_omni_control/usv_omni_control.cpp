@@ -89,7 +89,7 @@ void USVOmniControl::parameters_update(bool force)
 	}
 }
 
-void USVOmniControl::publish_attitude_setpoint(const float thrust_x, const float thrust_y, const float thrust_z,
+void USVOmniControl::publishAttitudeSetpoint(const float thrust_x, const float thrust_y, const float thrust_z,
 		const float roll_des, const float pitch_des, const float yaw_des)
 {
 	//watch if inputs are not to high
@@ -150,6 +150,7 @@ void USVOmniControl::stabilization_controller_6dof(const Vector3f &pos_des,
 
 void USVOmniControl::handleManualMode(const manual_control_setpoint_s &manual_control_setpoint)
 {
+	// handle all the different modes that use manual_control_setpoint
 	if (_vehicle_control_mode.flag_control_manual_enabled && !_vehicle_control_mode.flag_control_rates_enabled) {
 		/* manual/direct control */
 		constrain_actuator_commands(

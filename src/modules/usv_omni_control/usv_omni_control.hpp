@@ -173,7 +173,7 @@ private:
 	/**
 	 * Control Attitude
 	 */
-	void publish_attitude_setpoint(const float thrust_x, const float thrust_y, const float thrust_z,
+	void publishAttitudeSetpoint(const float thrust_x, const float thrust_y, const float thrust_z,
 				       const float roll_des, const float pitch_des, const float yaw_des);
 	void pose_controller_6dof(const Vector3f &pos_des,
 				  const float roll_des, const float pitch_des, const float yaw_des,
