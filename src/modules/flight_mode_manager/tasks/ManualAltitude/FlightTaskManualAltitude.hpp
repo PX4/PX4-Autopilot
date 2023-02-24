@@ -42,6 +42,7 @@
 #include "FlightTask.hpp"
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include "Sticks.hpp"
+#include "StickTiltXY.hpp"
 #include "StickYaw.hpp"
 #include <uORB/Subscription.hpp>
 
@@ -75,7 +76,9 @@ protected:
 	void _updateAltitudeLock();
 
 	Sticks _sticks{this};
+	StickTiltXY _stick_tilt_xy{this};
 	StickYaw _stick_yaw{this};
+
 	bool _sticks_data_required = true; ///< let inherited task-class define if it depends on stick data
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
@@ -89,8 +92,7 @@ protected:
 					(ParamFloat<px4::params::MPC_LAND_SPEED>)
 					_param_mpc_land_speed, /**< desired downwards speed when approaching the ground */
 					(ParamFloat<px4::params::MPC_TKO_SPEED>)
-					_param_mpc_tko_speed, /**< desired upwards speed when still close to the ground */
-					(ParamFloat<px4::params::MC_MAN_TILT_TAU>) _param_mc_man_tilt_tau
+					_param_mpc_tko_speed /**< desired upwards speed when still close to the ground */
 				       )
 private:
 	bool _isYawInput();
@@ -138,6 +140,4 @@ private:
 	 * _dist_to_ground_lock.
 	 */
 	float _dist_to_ground_lock = NAN;
-
-	AlphaFilter<matrix::Vector2f> _man_input_filter;
 };
