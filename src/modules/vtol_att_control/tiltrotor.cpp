@@ -134,25 +134,7 @@ void Tiltrotor::update_vtol_state()
 			break;
 
 		case vtol_mode::TRANSITION_FRONT_P1: {
-
-				const bool airspeed_triggers_transition = PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s)
-						&& !_param_fw_arsp_mode.get() ;
-
-				bool transition_to_p2 = false;
-
-				if (_time_since_trans_start > getMinimumFrontTransitionTime()) {
-					if (airspeed_triggers_transition) {
-						transition_to_p2 = _airspeed_validated->calibrated_airspeed_m_s >= _param_vt_arsp_trans.get() ;
-
-					} else {
-						transition_to_p2 = _tilt_control >= _param_vt_tilt_trans.get() &&
-								   _time_since_trans_start > getOpenLoopFrontTransitionTime();
-					}
-				}
-
-				transition_to_p2 |= can_transition_on_ground();
-
-				if (transition_to_p2) {
+				if (isFrontTransitionCompleted()) {
 					_vtol_mode = vtol_mode::TRANSITION_FRONT_P2;
 					resetTransitionStates();
 				}
@@ -525,4 +507,9 @@ float Tiltrotor::timeUntilMotorsAreUp()
 float Tiltrotor::moveLinear(float start, float stop, float progress)
 {
 	return start + progress * (stop - start);
+}
+
+bool Tiltrotor::isFrontTransitionCompletedBase()
+{
+	return VtolType::isFrontTransitionCompletedBase() && _tilt_control >= _param_vt_tilt_trans.get();
 }
