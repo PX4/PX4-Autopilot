@@ -150,39 +150,44 @@ void USVOmniControl::stabilization_controller_6dof(const Vector3f &pos_des,
 
 void USVOmniControl::handleManualMode(const manual_control_setpoint_s &manual_control_setpoint)
 {
-    if (_vehicle_control_mode.flag_control_manual_enabled && !_vehicle_control_mode.flag_control_rates_enabled) {
-        /* manual/direct control */
-        constrain_actuator_commands(0.0f, 0.0f,
-                                    manual_control_setpoint.yaw,
-                                    manual_control_setpoint.throttle,
-                                    // TODO: really? Can I setup joystick in QGC to enable moving to the sides? Or is it the common practice
-                                    manual_control_setpoint.roll,
-                                    0.0f);
-	// TODO: to _thrust_setpoint
-    }
+	if (_vehicle_control_mode.flag_control_manual_enabled && !_vehicle_control_mode.flag_control_rates_enabled) {
+		/* manual/direct control */
+		constrain_actuator_commands(
+			0.0f, 0.0f,
+			manual_control_setpoint.yaw,
+			manual_control_setpoint.throttle,
+			// TODO: really? Can I setup joystick in QGC to enable moving to the sides? Or is it the common practice
+			manual_control_setpoint.roll,
+			0.0f);
+		// TODO: to _thrust_setpoint
+	}
 }
 
 
 
 void USVOmniControl::publishTorqueSetpoint(const Vector3f &torque_sp, const hrt_abstime &timestamp_sample)
 {
-	vehicle_torque_setpoint_s vehicle_torque_setpoint{};
-	vehicle_torque_setpoint.timestamp_sample = timestamp_sample;
-	vehicle_torque_setpoint.xyz[0] = (PX4_ISFINITE(torque_sp(0))) ? torque_sp(0) : 0.0f;
-	vehicle_torque_setpoint.xyz[1] = (PX4_ISFINITE(torque_sp(1))) ? torque_sp(1) : 0.0f;
+	float scaling = _param_max_torque_ac.get();
+	// TODO: do scaling
+	vehicle_torque_setpoint_s result{};
+	result.timestamp_sample = timestamp_sample;
+	result.xyz[0] = (PX4_ISFINITE(torque_sp(0))) ? torque_sp(0) : 0.0f;
+	result.xyz[1] = (PX4_ISFINITE(torque_sp(1))) ? torque_sp(1) : 0.0f;
 	// this one only?
-	vehicle_torque_setpoint.xyz[2] = (PX4_ISFINITE(torque_sp(2))) ? torque_sp(2) : 0.0f;
-	vehicle_torque_setpoint.timestamp = hrt_absolute_time();
-	_vehicle_torque_setpoint_pub.publish(vehicle_torque_setpoint);
+	result.xyz[2] = (PX4_ISFINITE(torque_sp(2))) ? torque_sp(2) : 0.0f;
+	result.timestamp = hrt_absolute_time();
+	_vehicle_torque_setpoint_pub.publish(result);
 }
 
 void USVOmniControl::publishThrustSetpoint(const hrt_abstime &timestamp_sample)
 {
-	vehicle_thrust_setpoint_s vehicle_thrust_setpoint{};
-	vehicle_thrust_setpoint.timestamp_sample = timestamp_sample;
-	_thrust_setpoint.copyTo(vehicle_thrust_setpoint.xyz);
-	vehicle_thrust_setpoint.timestamp = hrt_absolute_time();
-	_vehicle_thrust_setpoint_pub.publish(vehicle_thrust_setpoint);
+	float scaling = _param_max_thrust_ac.get();
+	// TODO: do scaling
+	vehicle_thrust_setpoint_s result{};
+	result.timestamp_sample = timestamp_sample;
+	_thrust_setpoint.copyTo(result.xyz);
+	result.timestamp = hrt_absolute_time();
+	_vehicle_thrust_setpoint_pub.publish(result);
 }
 
 void USVOmniControl::Run()

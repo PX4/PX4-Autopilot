@@ -110,7 +110,9 @@ public:
 	bool init();
 
 private:
+	// for logging maybe?
 	uORB::Publication<vehicle_attitude_setpoint_s> _att_sp_pub{ORB_ID(vehicle_attitude_setpoint)};
+	// the most important
 	uORB::Publication<vehicle_thrust_setpoint_s>	_vehicle_thrust_setpoint_pub{ORB_ID(vehicle_thrust_setpoint)};
 	uORB::Publication<vehicle_torque_setpoint_s>	_vehicle_torque_setpoint_pub{ORB_ID(vehicle_torque_setpoint)};
 
@@ -118,21 +120,22 @@ private:
 
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
-	uORB::Subscription _vcontrol_mode_sub{ORB_ID(vehicle_control_mode)};
+	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};	/**< notification of manual control updates */
+	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};		/**< vehicle status subscription */
 
 	uORB::SubscriptionCallbackWorkItem _vehicle_local_position_sub{this, ORB_ID(vehicle_local_position)};
 
 	vehicle_attitude_s _vehicle_attitude{};
 
-	manual_control_setpoint_s	_manual_control_setpoint{};			    /**< r/c channel data */
-	position_setpoint_triplet_s	_pos_sp_triplet{};		/**< triplet of mission items */
-	vehicle_attitude_setpoint_s	_att_sp{};			/**< attitude setpoint > */
-	vehicle_control_mode_s		_control_mode{};		/**< control mode */
-	vehicle_global_position_s	_global_pos{};			/**< global vehicle position */
-	vehicle_local_position_s	_local_pos{};			/**< global vehicle position */
-	actuator_controls_s		_act_controls{};		/**< direct control of actuators */
-	vehicle_attitude_s		_vehicle_att{};
-	trajectory_setpoint_s 		_trajectory_setpoint{};
+	// Inputs, setpoints
+	manual_control_setpoint_s	_manual_control_sp{};	/**< r/c channel data */
+	position_setpoint_triplet_s	_pos_sp_triplet{};	/**< triplet of mission items */
+	vehicle_attitude_setpoint_s	_att_sp{};		/**< attitude setpoint > */
+	// State
+	vehicle_control_mode_s		_control_mode{};	/**< control mode */
+	vehicle_global_position_s	_global_pos{};		/**< global vehicle position */
+	vehicle_local_position_s	_local_pos{};		/**< local vehicle position */
+	vehicle_attitude_s		_att{};
 
 	matrix::Vector3f _thrust_setpoint{};
 	// matrix::Vector3f _torque_setpoint{};
@@ -140,6 +143,9 @@ private:
 	perf_counter_t	_loop_perf;
 
 	DEFINE_PARAMETERS(
+		// These are used as a hacky way to not oversaturate c
+		(ParamFloat<px4::params::USV_XY_VEL_P_ACC>) _param_scale_thrust_ca,
+		(ParamFloat<px4::params::USV_XY_VEL_P_ACC>) _param_scale_torque_ca,
 		// Position Control
 		(ParamFloat<px4::params::USV_XY_P>)         _param_usv_xy_p,
 		(ParamFloat<px4::params::USV_XY_VEL_P_ACC>) _param_usv_xy_vel_p_acc,
@@ -148,7 +154,7 @@ private:
 		(ParamFloat<px4::params::USV_XY_VEL_MAX>)   _param_usv_xy_vel_max,
 
 		// TODO: refactor, delete
-		(ParamFloat<px4::params::USV_XY_VEL_P_ACC>) _param_pose_gain_x,
+
 		(ParamFloat<px4::params::USV_XY_VEL_P_ACC>) _param_pose_gain_y,
 		(ParamFloat<px4::params::USV_XY_VEL_P_ACC>) _param_pose_gain_z,
 		(ParamFloat<px4::params::USV_XY_VEL_D_ACC>) _param_pose_gain_d_x,
@@ -176,8 +182,21 @@ private:
 					   const float roll_des, const float pitch_des, const float yaw_des,
 					   vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos);
 
-	// Mode handlers
-	void handleManualMode();
+	/**
+	 * Setpoint handlers
+	 */
+	void handleManualInputs();
+	void handleVelocityInputs();
+	void handlePositionInputs();
+
+	/**
+	 * Control
+	 */
+	bool controlPosition(const matrix::Vector2d &global_pos, const matrix::Vector3f &ground_speed,
+					 const position_setpoint_triplet_s &_pos_sp_triplet);
+	void controlVelocity(const matrix::Vector3f &current_velocity);
+	void controlAttitude(const vehicle_attitude_s &att, const vehicle_attitude_setpoint_s &att_sp);
+
 	// Output setpoints
 	void publishTorqueSetpoint(const Vector3f &torque_sp, const hrt_abstime &timestamp_sample);
 	void publishThrustSetpoint(const hrt_abstime &timestamp_sample);
