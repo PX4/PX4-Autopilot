@@ -38,12 +38,14 @@
 #ifdef __PX4_DARWIN
 #include <sys/param.h>
 #include <sys/mount.h>
-#else
+#elif not defined(__PX4_QURT)
 #include <sys/statfs.h>
 #endif
 
 void SdCardChecks::checkAndReport(const Context &context, Report &reporter)
 {
+#ifndef __PX4_QURT
+
 	if (_param_com_arm_sdcard.get() > 0) {
 
 		struct statfs statfs_buf;
@@ -125,4 +127,5 @@ void SdCardChecks::checkAndReport(const Context &context, Report &reporter)
 	}
 
 #endif /* __PX4_NUTTX */
+#endif /* __PX4_QURT */
 }
