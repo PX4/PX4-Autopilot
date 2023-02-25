@@ -299,12 +299,6 @@ int main(int argc, char **argv)
 			}
 		}
 
-		if (is_server_running(instance, true)) {
-			// allow running multiple instances, but the server is only started for the first
-			PX4_INFO("PX4 daemon already running for instance %i (%s)", instance, strerror(errno));
-			return -1;
-		}
-
 		int ret = create_symlinks_if_needed(data_path);
 
 		if (ret != PX4_OK) {
@@ -342,6 +336,13 @@ int main(int argc, char **argv)
 
 		px4::init_once();
 		px4::init(argc, argv, "px4");
+
+		// Don't set this up until PX4 is up and running
+		if (is_server_running(instance, true)) {
+			// allow running multiple instances, but the server is only started for the first
+			PX4_INFO("PX4 daemon already running for instance %i (%s)", instance, strerror(errno));
+			return -1;
+		}
 
 		ret = run_startup_script(commands_file, absolute_binary_path, instance);
 

@@ -40,6 +40,8 @@
 #include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
 #include <uORB/uORB.h>
 
+extern "C" { int muorb_init(); }
+
 int px4_platform_init(void)
 {
 	hrt_init();
@@ -50,6 +52,11 @@ int px4_platform_init(void)
 	usleep(10000);
 
 	uorb_start();
+
+	muorb_init();
+
+	// Give muorb some time to setup the DSP
+	usleep(100000);
 
 	param_init();
 

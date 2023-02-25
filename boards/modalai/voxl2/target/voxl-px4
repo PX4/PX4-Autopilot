@@ -23,13 +23,11 @@ R="SPEKTRUM"
 G="NONE"
 C="ACTUAL"
 
-while getopts "dsmihfrocz" flag
+while getopts "dmihfrocz" flag
 do
     case "${flag}" in
         # Use -d to put PX4 into daemon mode
         d) DAEMON="-d";;
-        # Use -s to run self tests
-        s) S="ON";;
         # Use -m to specify Mateksys M8Q-5883 GPS unit
         m) G="MATEK";;
         # Use -h to specify Holybro GPS unit
@@ -62,4 +60,4 @@ if [ $C = "FAKE" ]; then
 fi
 
 
-TESTMODE=$S GPS=$G RC=$R OSD=$O IMU=$I px4 $DAEMON -s /etc/modalai/voxl-px4.config
+GPS=$G RC=$R OSD=$O IMU=$I px4 $DAEMON -s /etc/modalai/voxl-px4.config
