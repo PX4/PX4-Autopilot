@@ -109,8 +109,9 @@ void VtolType::update_mc_state()
 
 	float spoiler_setpoint_hover = 0.f;
 
-	if (_attc->get_pos_sp_triplet()->current.valid
-	    && _attc->get_pos_sp_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
+	if ((_attc->get_pos_sp_triplet()->current.valid
+	     && _attc->get_pos_sp_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LAND)
+	    || _attc->get_vehicle_status()->nav_state == vehicle_status_s::NAVIGATION_STATE_DESCEND) {
 		spoiler_setpoint_hover = _param_vt_spoiler_mc_ld.get();
 	}
 
@@ -531,8 +532,9 @@ float VtolType::pusher_assist()
 
 	float pitch_setpoint_min = math::radians(_param_vt_pitch_min.get());
 
-	if (_attc->get_pos_sp_triplet()->current.valid
-	    && _attc->get_pos_sp_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
+	if ((_attc->get_pos_sp_triplet()->current.valid
+	     && _attc->get_pos_sp_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LAND)
+	    || _attc->get_vehicle_status()->nav_state == vehicle_status_s::NAVIGATION_STATE_DESCEND) {
 		pitch_setpoint_min = math::radians(
 					     _param_vt_lnd_pitch_min.get()); // set min pitch during LAND (usually lower to generate less lift)
 	}
