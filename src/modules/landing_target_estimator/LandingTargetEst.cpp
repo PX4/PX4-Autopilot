@@ -202,13 +202,14 @@ void LandingTargetEst::Run()
 		/* Update position filter at ltest_pos_UPDATE_RATE_HZ */
 		if (_ltest_position_valid) {
 
+			matrix::Vector3f gps_pos_offset_ned;
 			matrix::Vector3f vel_offset;
 			const bool vel_offset_updated = get_gps_velocity_offset(vel_offset);
 
 			matrix::Vector3f vehicle_acc_ned;
 
 			/* Downsample acceleration ned */
-			if (get_input(vehicle_acc_ned, vel_offset, vel_offset_updated)) {
+			if (get_input(vehicle_acc_ned, gps_pos_offset_ned, vel_offset, vel_offset_updated)) {
 
 				/* If the acceleration has been averaged for too long, early return */
 				if ((hrt_absolute_time() - _last_acc_reset) > acc_downsample_TIMEOUT_US) {
@@ -227,6 +228,8 @@ void LandingTargetEst::Run()
 						_ltest_position->set_local_position(local_pose.xyz, local_pose.pos_valid);
 						_ltest_position->set_range_sensor(local_pose.dist_bottom, local_pose.dist_valid);
 					}
+
+					_ltest_position->set_gps_pos_offset(gps_pos_offset_ned, _gps_pos_is_offset);
 
 					if (vel_offset_updated) {
 						_ltest_position->set_velocity_offset(vel_offset);
@@ -329,7 +332,8 @@ bool LandingTargetEst::get_local_pose(localPose &local_pose)
 	}
 }
 
-bool LandingTargetEst::get_input(matrix::Vector3f &vehicle_acc_ned, matrix::Vector3f &vel_offset_rot_ned,
+bool LandingTargetEst::get_input(matrix::Vector3f &vehicle_acc_ned, matrix::Vector3f &gps_pos_offset_ned,
+				 matrix::Vector3f &vel_offset_rot_ned,
 				 const bool vel_offset_updated)
 {
 
@@ -353,9 +357,17 @@ bool LandingTargetEst::get_input(matrix::Vector3f &vehicle_acc_ned, matrix::Vect
 		const matrix::Vector3f gravity_ned(0, 0, CONSTANTS_ONE_G);
 		vehicle_acc_ned = quat_att.rotateVector(vehicle_acc) + gravity_ned;
 
-		/* Rotate velocity offset into ned frame */
-		if (vel_offset_updated) {
-			vel_offset_rot_ned = quat_att.rotateVector(vel_offset_rot_ned);
+		/* Rotate position and velocity offset into ned frame */
+		if (_gps_pos_is_offset) {
+			gps_pos_offset_ned = quat_att.rotateVector(_gps_pos_offset);
+
+			if (vel_offset_updated) {
+				vel_offset_rot_ned = quat_att.rotateVector(vel_offset_rot_ned);
+			}
+
+		} else {
+			gps_pos_offset_ned.setAll(0.f);
+			vel_offset_rot_ned.setAll(0.f);
 		}
 	}
 

@@ -813,7 +813,15 @@ bool LTEstPosition::processObsGNSSPosMission(const sensor_gps_s &vehicle_gps_pos
 		gps_relative_pos(2) = (vehicle_gps_position.alt - _landing_pos.alt) / 1000.f; // transform mm to m
 
 		// Offset gps relative position to the center of mass:
-		const Vector3f gps_relative_pos_offset = gps_relative_pos + _gps_pos_offset;
+		if (_gps_pos_is_offset) {
+			if ((_gps_pos_offset_ned.valid)
+			    && ((_gps_pos_offset_ned.timestamp - vehicle_gps_position.timestamp) < measurement_updated_TIMEOUT_US)) {
+				gps_relative_pos += _gps_pos_offset_ned.xyz;
+
+			} else {
+				return false;
+			}
+		}
 
 		const float gps_unc_horizontal = fmaxf(vehicle_gps_position.eph * vehicle_gps_position.eph,
 						       _gps_pos_noise * _gps_pos_noise);
@@ -841,7 +849,7 @@ bool LTEstPosition::processObsGNSSPosMission(const sensor_gps_s &vehicle_gps_pos
 
 		obs.timestamp = vehicle_gps_position.timestamp;
 
-		obs.meas_xyz = gps_relative_pos_offset;
+		obs.meas_xyz = gps_relative_pos;
 
 		obs.meas_unc_xyz(0) = gps_unc_horizontal;
 		obs.meas_unc_xyz(1) = gps_unc_horizontal;
@@ -852,9 +860,9 @@ bool LTEstPosition::processObsGNSSPosMission(const sensor_gps_s &vehicle_gps_pos
 		// Keep track of the gps relative position if not already done using the target GPS
 		if ((hrt_absolute_time() - _pos_rel_gnss.timestamp) > measurement_valid_TIMEOUT_US) {
 			_pos_rel_gnss.timestamp = obs.timestamp;
-			_pos_rel_gnss.valid = (PX4_ISFINITE(gps_relative_pos_offset(0)) && PX4_ISFINITE(gps_relative_pos_offset(1))
-					       && PX4_ISFINITE(gps_relative_pos_offset(2)));
-			_pos_rel_gnss.xyz = gps_relative_pos_offset;
+			_pos_rel_gnss.valid = (PX4_ISFINITE(gps_relative_pos(0)) && PX4_ISFINITE(gps_relative_pos(1))
+					       && PX4_ISFINITE(gps_relative_pos(2)));
+			_pos_rel_gnss.xyz = gps_relative_pos;
 		}
 
 		return true;
@@ -901,7 +909,15 @@ bool LTEstPosition::processObsGNSSPosTarget(const landing_target_gnss_s &target_
 		gps_relative_pos(2) = (vehicle_gps_position.alt - target_gps_alt) / 1000.f; // transform mm to m
 
 		// Offset gps relative position to the center of mass:
-		const Vector3f gps_relative_pos_offset = gps_relative_pos + _gps_pos_offset;
+		if (_gps_pos_is_offset) {
+			if ((_gps_pos_offset_ned.valid)
+			    && ((_gps_pos_offset_ned.timestamp - vehicle_gps_position.timestamp) < measurement_updated_TIMEOUT_US)) {
+				gps_relative_pos += _gps_pos_offset_ned.xyz;
+
+			} else {
+				return false;
+			}
+		}
 
 		// Var(aX - bY) = a^2 Var(X) + b^2Var(Y) - 2ab Cov(X,Y)
 		const float gps_unc_horizontal = fmaxf(vehicle_gps_position.eph * vehicle_gps_position.eph,
@@ -930,7 +946,7 @@ bool LTEstPosition::processObsGNSSPosTarget(const landing_target_gnss_s &target_
 
 		obs.timestamp = target_GNSS_report.timestamp;
 
-		obs.meas_xyz = gps_relative_pos_offset;
+		obs.meas_xyz = gps_relative_pos;
 
 		obs.meas_unc_xyz(0) = gps_unc_horizontal;
 		obs.meas_unc_xyz(1) = gps_unc_horizontal;
@@ -940,9 +956,9 @@ bool LTEstPosition::processObsGNSSPosTarget(const landing_target_gnss_s &target_
 
 		// Keep track of the gps relative position
 		_pos_rel_gnss.timestamp = obs.timestamp;
-		_pos_rel_gnss.valid = (PX4_ISFINITE(gps_relative_pos_offset(0)) && PX4_ISFINITE(gps_relative_pos_offset(1))
-				       && PX4_ISFINITE(gps_relative_pos_offset(2)));
-		_pos_rel_gnss.xyz = gps_relative_pos_offset;
+		_pos_rel_gnss.valid = (PX4_ISFINITE(gps_relative_pos(0)) && PX4_ISFINITE(gps_relative_pos(1))
+				       && PX4_ISFINITE(gps_relative_pos(2)));
+		_pos_rel_gnss.xyz = gps_relative_pos;
 
 		return true;
 	}
@@ -1417,6 +1433,15 @@ void LTEstPosition::_check_params(const bool force)
 	}
 }
 
+void LTEstPosition::set_gps_pos_offset(const matrix::Vector3f &xyz, const bool gps_is_offset)
+{
+	_gps_pos_is_offset = gps_is_offset;
+	_gps_pos_offset_ned.xyz = xyz;
+	_gps_pos_offset_ned.valid = (PX4_ISFINITE(_gps_pos_offset_ned.xyz(0)) && PX4_ISFINITE(_gps_pos_offset_ned.xyz(0))
+				     && PX4_ISFINITE(_gps_pos_offset_ned.xyz(2)));
+	_gps_pos_offset_ned.timestamp = hrt_absolute_time();
+}
+
 void LTEstPosition::set_velocity_offset(const matrix::Vector3f &xyz)
 {
 	_velocity_offset_ned.xyz = xyz;
@@ -1475,18 +1500,6 @@ void LTEstPosition::updateParams()
 	_gps_pos_noise = _param_ltest_gps_pos_noise.get();
 	_ev_noise_md = _param_ltest_ev_noise_md.get();
 	_ev_pos_noise = _param_ltest_ev_pos_noise.get();
-
-	float gps_pos_x;
-	param_get(param_find("EKF2_GPS_POS_X"), &gps_pos_x);
-
-	float gps_pos_y;
-	param_get(param_find("EKF2_GPS_POS_Y"), &gps_pos_y);
-
-	float gps_pos_z;
-	param_get(param_find("EKF2_GPS_POS_Z"), &gps_pos_z);
-
-	_gps_pos_offset = matrix::Vector3f(gps_pos_x, gps_pos_y, gps_pos_z);
-	_gps_pos_is_offset = ((gps_pos_x > 0.01f) || (gps_pos_y > 0.01f) || (gps_pos_z > 0.01f));
 }
 
 bool LTEstPosition::selectTargetEstimator()

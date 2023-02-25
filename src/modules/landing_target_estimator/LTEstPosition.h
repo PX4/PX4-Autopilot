@@ -105,6 +105,8 @@ public:
 
 	void set_local_position(const matrix::Vector3f &xyz, const bool valid);
 
+	void set_gps_pos_offset(const matrix::Vector3f &xyz, const bool gps_is_offset);
+
 	void set_velocity_offset(const matrix::Vector3f &xyz);
 
 private:
@@ -265,7 +267,7 @@ private:
 	vecStamped _target_gps_vel{};
 	vecStamped _pos_rel_gnss{};
 	vecStamped _velocity_offset_ned{};
-	matrix::Vector3f _gps_pos_offset;
+	vecStamped _gps_pos_offset_ned{};
 	bool _gps_pos_is_offset;
 	bool _bias_set;
 
