@@ -668,8 +668,6 @@ bool LTEstPosition::processObsGNSSVelRel(const landing_target_gnss_s &target_GNS
 	if (_gps_pos_is_offset) {
 		if ((_velocity_offset_ned.valid)
 		    && ((_velocity_offset_ned.timestamp - vehicle_gps_position.timestamp) < measurement_updated_TIMEOUT_US)) {
-			PX4_INFO("Removing: x: %.2f, y: %.2f, z: %.2f", (double)_velocity_offset_ned.xyz(0),
-				 (double)_velocity_offset_ned.xyz(1), (double)_velocity_offset_ned.xyz(2));
 			vel_uav_ned -= _velocity_offset_ned.xyz;
 
 		} else {
@@ -854,9 +852,9 @@ bool LTEstPosition::processObsGNSSPosMission(const sensor_gps_s &vehicle_gps_pos
 		// Keep track of the gps relative position if not already done using the target GPS
 		if ((hrt_absolute_time() - _pos_rel_gnss.timestamp) > measurement_valid_TIMEOUT_US) {
 			_pos_rel_gnss.timestamp = obs.timestamp;
-			_pos_rel_gnss.valid = (PX4_ISFINITE(gps_relative_pos(0)) && PX4_ISFINITE(gps_relative_pos(1))
-					       && PX4_ISFINITE(gps_relative_pos(2)));
-			_pos_rel_gnss.xyz = gps_relative_pos;
+			_pos_rel_gnss.valid = (PX4_ISFINITE(gps_relative_pos_offset(0)) && PX4_ISFINITE(gps_relative_pos_offset(1))
+					       && PX4_ISFINITE(gps_relative_pos_offset(2)));
+			_pos_rel_gnss.xyz = gps_relative_pos_offset;
 		}
 
 		return true;

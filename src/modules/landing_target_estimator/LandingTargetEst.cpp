@@ -347,13 +347,11 @@ bool LandingTargetEst::get_input(matrix::Vector3f &vehicle_acc_ned, matrix::Vect
 
 		/* Transform FRD body acc to NED */
 		const matrix::Quaternionf quat_att(&vehicle_attitude.q[0]);
-		// const matrix::Dcmf R_att = matrix::Dcm<float>(quat_att);
 		const matrix::Vector3f vehicle_acc{vehicle_acceleration.xyz};
 
 		/* Compensate for gravity. */
 		const matrix::Vector3f gravity_ned(0, 0, CONSTANTS_ONE_G);
 		vehicle_acc_ned = quat_att.rotateVector(vehicle_acc) + gravity_ned;
-		// vehicle_acc_ned = R_att * vehicle_acc + gravity_ned;
 
 		/* Rotate velocity offset into ned frame */
 		if (vel_offset_updated) {
