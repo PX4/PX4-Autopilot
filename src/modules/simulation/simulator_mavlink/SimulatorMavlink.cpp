@@ -735,11 +735,11 @@ void SimulatorMavlink::handle_message_target_relative(const mavlink_message_t *m
 
 			// If the landing target estimator is disabled, send the target directly to the precision landing algorithm in local NED frame
 			landing_target_pose_s landing_target_pose{};
+			landing_target_pose.timestamp = target_relative.timestamp;
 
 			// Measurement already in local NED
 			if (target_relative.frame == TARGET_OBS_FRAME_LOCAL_NED) {
 
-				landing_target_pose.timestamp = target_relative.timestamp;
 				landing_target_pose.x_abs = target_relative.x;
 				landing_target_pose.y_abs = target_relative.y;
 				landing_target_pose.z_abs = target_relative.z;
