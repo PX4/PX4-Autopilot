@@ -143,7 +143,7 @@ void LandingTargetEst::updateParams()
 	float gps_pos_z;
 	param_get(param_find("EKF2_GPS_POS_Z"), &gps_pos_z);
 
-	_gps_pos_is_offset = (gps_pos_x + gps_pos_y + gps_pos_z > 0.01f);
+	_gps_pos_is_offset = ((gps_pos_x > 0.01f) || (gps_pos_y > 0.01f) || (gps_pos_z > 0.01f));
 	_gps_pos_offset = matrix::Vector3f(gps_pos_x, gps_pos_y, gps_pos_z);
 }
 
