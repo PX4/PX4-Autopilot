@@ -46,7 +46,7 @@ class RingBuffer
 public:
 	void push(const T &sample)
 	{
-		uint8_t head_new = _head;
+		size_t head_new = _head;
 
 		if (!_first_write) {
 			head_new = (_head + 1) % SIZE;
@@ -64,14 +64,14 @@ public:
 		}
 	}
 
-	uint8_t get_length() const { return SIZE; }
+	size_t get_length() const { return SIZE; }
 
-	T &operator[](const uint8_t index) { return _buffer[index]; }
+	T &operator[](const size_t index) { return _buffer[index]; }
 
 	const T &get_newest() const { return _buffer[_head]; }
 	const T &get_oldest() const { return _buffer[_tail]; }
 
-	uint8_t get_oldest_index() const { return _tail; }
+	size_t get_oldest_index() const { return _tail; }
 
 	bool peak_first_older_than(const uint64_t &timestamp, T *sample)
 	{
@@ -107,11 +107,11 @@ public:
 	// 	}
 
 	// 	uint64_t closest_time = 0;
-	// 	uint8_t closest_index = 0;
+	// 	size_t closest_index = 0;
 
 	// 	for (size_t i = 0; i < SIZE; i++) {
 
-	// 		uint8_t index = (_tail + i) % SIZE;
+	// 		size_t index = (_tail + i) % SIZE;
 
 	// 		if (_buffer[index].time_us >= timestamp_oldest && _buffer[index].time_us <= timestamp_newest) {
 	// 			if (closest_time == 0 || abs((int64_t)timestamp - (int64_t)_buffer[index].time_us) < abs((int64_t)timestamp - (int64_t)closest_time)) {
@@ -173,7 +173,7 @@ public:
 
 		for (size_t i = 0; i < SIZE; i++) {
 
-			uint8_t index = (_tail + i) % SIZE;
+			size_t index = (_tail + i) % SIZE;
 
 			if (_buffer[index].time_us >= timestamp_oldest && _buffer[index].time_us <= timestamp_newest) {
 				*sample = _buffer[index];
@@ -200,17 +200,27 @@ public:
 
 	bool peek_oldest(const uint64_t &timestamp_oldest, const uint64_t &timestamp_newest, T *sample)
 	{
+		if (_tail == _head) {
+			return false;
+		}
+
 		if (timestamp_oldest >= timestamp_newest) {
 			return false;
 		}
 
 		for (size_t i = 0; i < SIZE; i++) {
 
-			uint8_t index = (_tail + i) % SIZE;
+			size_t index = (_tail + i) % SIZE;
 
 			if (_buffer[index].time_us >= timestamp_oldest && _buffer[index].time_us <= timestamp_newest) {
 				*sample = _buffer[index];
 				return true;
+			}
+
+			if (index == _head) {
+				// we have reached the head and haven't got a
+				// match
+				return false;
 			}
 		}
 
@@ -247,7 +257,7 @@ public:
 
 	int get_total_size() const { return sizeof(*this) + sizeof(T) * SIZE; }
 
-	uint8_t entries() const
+	size_t entries() const
 	{
 		int count = 0;
 
@@ -274,8 +284,8 @@ public:
 private:
 	T _buffer[SIZE] {};
 
-	uint8_t _head{0};
-	uint8_t _tail{0};
+	size_t _head{0};
+	size_t _tail{0};
 
 	bool _first_write{true};
 };
