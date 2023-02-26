@@ -193,6 +193,16 @@ public:
 
 				return true;
 			}
+
+			// If tail equals head we can stop
+			if (index == _head) {
+				return false;
+			}
+
+			// If the sample timetamp is newer than timestamp_newest we can stop
+			if (_buffer[index].time_us > timestamp_newest) {
+				return false;
+			}
 		}
 
 		return false;
