@@ -53,7 +53,7 @@ The PX4 Dev Team syncs up on a [weekly dev call](https://docs.px4.io/main/en/con
 | State Estimation | [Mathieu Bresciani](https://github.com/bresch) / [Paul Riseborough](https://github.com/priseborough) |
 | OS/NuttX | [David Sidrane](https://github.com/davids5) |
 | Drivers | [Daniel Agar](https://github.com/dagar) |
-| QGroundControl | x |
+| Simulation | [Jaeyoung Lim](https://github.com/Jaeyoung-Lim) |
 | Community QnA Call | [Ramon Roche](https://github.com/mrpollo) |
 | [Documentation](https://docs.px4.io/main/en/) | [Hamish Willee](https://github.com/hamishwillee) |
 
