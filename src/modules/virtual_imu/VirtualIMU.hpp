@@ -119,9 +119,8 @@ private:
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 	perf_counter_t _cycle_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": cycle interval")};
-	perf_counter_t _fft_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": virtual_imu")};
-	perf_counter_t _gyro_generation_gap_perf{nullptr};
-	perf_counter_t _gyro_fifo_generation_gap_perf{nullptr};
+	perf_counter_t _gyro_fifo_generation_gap_perf[MAX_SENSOR_COUNT] {nullptr};
+	perf_counter_t _accel_fifo_generation_gap_perf[MAX_SENSOR_COUNT] {nullptr};
 
 	unsigned _gyro_last_generation[MAX_SENSOR_COUNT] {0};
 	unsigned _accel_last_generation[MAX_SENSOR_COUNT] {0};

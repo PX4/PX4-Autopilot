@@ -198,7 +198,8 @@ public:
 		return false;
 	}
 
-	bool peek_oldest(const uint64_t &timestamp_oldest, const uint64_t &timestamp_newest, T *sample) {
+	bool peek_oldest(const uint64_t &timestamp_oldest, const uint64_t &timestamp_newest, T *sample)
+	{
 		if (timestamp_oldest >= timestamp_newest) {
 			return false;
 		}

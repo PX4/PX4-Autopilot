@@ -50,8 +50,11 @@ VirtualIMU::~VirtualIMU()
 {
 	perf_free(_cycle_perf);
 	perf_free(_cycle_interval_perf);
-	perf_free(_gyro_generation_gap_perf);
-	perf_free(_gyro_fifo_generation_gap_perf);
+
+	for (size_t i = 0; i < MAX_SENSOR_COUNT; i++) {
+		perf_free(_accel_fifo_generation_gap_perf[i]);
+		perf_free(_gyro_fifo_generation_gap_perf[i]);
+	}
 }
 
 bool VirtualIMU::init()
@@ -103,6 +106,16 @@ void VirtualIMU::Run()
 			_px4_accel.set_device_id(_accel_device_id);
 			_px4_gyro.set_device_id(_gyro_device_id);
 
+			for (size_t i = 0; i < MAX_SENSOR_COUNT; i++) {
+				if (_gyro_fifo_generation_gap_perf[i] == nullptr) {
+					_gyro_fifo_generation_gap_perf[i] = perf_alloc(PC_COUNT, MODULE_NAME": gyro FIFO data gap");
+				}
+
+				if (_accel_fifo_generation_gap_perf[i] == nullptr) {
+					_accel_fifo_generation_gap_perf[i] = perf_alloc(PC_COUNT, MODULE_NAME": accel FIFO data gap");
+				}
+			}
+
 			_state = STATE::RUN;
 
 			check_newest_timestamp_and_register_callback(sensor_gyro_fifo, sensor_accel_fifo);
@@ -118,6 +131,13 @@ void VirtualIMU::Run()
 		while (_gyro_fifo_subs.updated()) {
 			for (size_t i = 0; i < MAX_SENSOR_COUNT; i++) {
 				if (_gyro_fifo_subs[i].update(&sensor_gyro_fifo[i])) {
+
+					if (_gyro_fifo_subs[i].get_last_generation() != _gyro_last_generation[i] + 1) {
+						perf_count(_gyro_fifo_generation_gap_perf[i]);
+					}
+
+					_gyro_last_generation[i] = _gyro_fifo_subs[i].get_last_generation();
+
 					for (size_t j = 0; j < sensor_gyro_fifo[i].samples; j++) {
 
 						gyroFIFOSample gyro_fifo_sample;
@@ -155,6 +175,13 @@ void VirtualIMU::Run()
 		while (_accel_fifo_subs.updated()) {
 			for (size_t i = 0; i < MAX_SENSOR_COUNT; i++) {
 				if (_accel_fifo_subs[i].update(&sensor_accel_fifo[i])) {
+
+					if (_accel_fifo_subs[i].get_last_generation() != _accel_last_generation[i] + 1) {
+						perf_count(_accel_fifo_generation_gap_perf[i]);
+					}
+
+					_accel_last_generation[i] = _accel_fifo_subs[i].get_last_generation();
+
 					for (size_t j = 0; j < sensor_accel_fifo[i].samples; j++) {
 
 						accelFIFOSample accel_fifo_sample;
@@ -384,7 +411,8 @@ void VirtualIMU::process_gyro()
 		bool gyro_data_available = false;
 
 		for (size_t i = 0; i < MAX_SENSOR_COUNT; i++) {
-			gyro_data_available = _gyro_fifo_buffer[i].peek_oldest(time-_median_gyro_dt_us/2, time+_median_gyro_dt_us/2, &gyro_fifo_sample[i]);
+			gyro_data_available = _gyro_fifo_buffer[i].peek_oldest(time - _median_gyro_dt_us / 2, time + _median_gyro_dt_us / 2,
+					      &gyro_fifo_sample[i]);
 		}
 
 		if (gyro_data_available)  {
@@ -635,7 +663,8 @@ void VirtualIMU::process_accel()
 		bool accel_data_available = false;
 
 		for (size_t i = 0; i < MAX_SENSOR_COUNT; i++) {
-			accel_data_available = _accel_fifo_buffer[i].peek_oldest(time-_median_accel_dt_us/2, time+_median_accel_dt_us/2, &accel_fifo_sample[i]);
+			accel_data_available = _accel_fifo_buffer[i].peek_oldest(time - _median_accel_dt_us / 2, time + _median_accel_dt_us / 2,
+					       &accel_fifo_sample[i]);
 		}
 
 		if (accel_data_available)  {
@@ -818,12 +847,14 @@ int VirtualIMU::task_spawn(int argc, char *argv[])
 
 int VirtualIMU::print_status()
 {
-	//PX4_INFO("gyro sample rate: %.3f Hz", (double)_gyro_sample_rate_hz);
 	perf_print_counter(_cycle_perf);
 	perf_print_counter(_cycle_interval_perf);
-	// perf_print_counter(_fft_perf);
-	// perf_print_counter(_gyro_generation_gap_perf);
-	// perf_print_counter(_gyro_fifo_generation_gap_perf);
+
+	for (size_t i = 0; i < MAX_SENSOR_COUNT; i++) {
+		perf_print_counter(_gyro_fifo_generation_gap_perf[i]);
+		perf_print_counter(_accel_fifo_generation_gap_perf[i]);
+	}
+
 	return 0;
 }
 
