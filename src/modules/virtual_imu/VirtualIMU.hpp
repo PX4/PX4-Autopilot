@@ -103,6 +103,9 @@ private:
 	uint64_t _last_gyro_timestamp{0};
 	uint64_t _last_accel_timestamp{0};
 
+	uint16_t _median_gyro_dt_us{MAX_TIMESTAMP_GYRO_DT_US};
+	uint16_t _median_accel_dt_us{MAX_TIMESTAMP_ACCEL_DT_US};
+
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::SubscriptionMultiArray<sensor_gyro_fifo_s, MAX_SENSOR_COUNT> _gyro_fifo_subs{ORB_ID::sensor_gyro_fifo};
@@ -137,8 +140,8 @@ private:
 		float scale{0.f};
 	};
 
-	RingBuffer<gyroFIFOSample, 128> _gyro_fifo_buffer[MAX_SENSOR_COUNT] {};
-	RingBuffer<accelFIFOSample, 128> _accel_fifo_buffer[MAX_SENSOR_COUNT] {};
+	RingBuffer<gyroFIFOSample, 32 * sensor_gyro_fifo_s::ORB_QUEUE_LENGTH> _gyro_fifo_buffer[MAX_SENSOR_COUNT] {};
+	RingBuffer<accelFIFOSample, 32 * 2> _accel_fifo_buffer[MAX_SENSOR_COUNT] {};
 
 	enum class STATE : uint8_t {
 		CONFIGURE,

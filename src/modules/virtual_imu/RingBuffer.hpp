@@ -95,6 +95,35 @@ public:
 		return false;
 	}
 
+	// Peak the closest sample to timestamp between timestamp_oldest and timestamp_newest
+	bool peak_closest_between(const uint64_t &timestamp, const uint64_t &timestamp_oldest, const uint64_t &timestamp_newest, T *sample) {
+		if (timestamp_oldest >= timestamp_newest) {
+			return false;
+		}
+
+		uint64_t closest_time = 0;
+		uint8_t closest_index = 0;
+
+		for (size_t i = 0; i < SIZE; i++) {
+
+			uint8_t index = (_tail + i) % SIZE;
+
+			if (_buffer[index].time_us >= timestamp_oldest && _buffer[index].time_us <= timestamp_newest) {
+				if (closest_time == 0 || abs((int64_t)timestamp - (int64_t)_buffer[index].time_us) < abs((int64_t)timestamp - (int64_t)closest_time)) {
+					closest_time = _buffer[index].time_us;
+					closest_index = index;
+				}
+			}
+		}
+
+		if (closest_time != 0) {
+			*sample = _buffer[closest_index];
+			return true;
+		}
+
+		return false;
+	}
+
 	bool pop_first_older_than(const uint64_t &timestamp, T *sample)
 	{
 		// start looking from newest observation data
