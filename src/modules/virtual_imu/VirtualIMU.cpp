@@ -384,7 +384,7 @@ void VirtualIMU::process_gyro()
 		bool gyro_data_available = false;
 
 		for (size_t i = 0; i < MAX_SENSOR_COUNT; i++) {
-			gyro_data_available = _gyro_fifo_buffer[i].peak_closest_between(time, time-_median_gyro_dt_us/2, time+_median_gyro_dt_us/2, &gyro_fifo_sample[i]);
+			gyro_data_available = _gyro_fifo_buffer[i].peek_oldest(time-_median_gyro_dt_us/2, time+_median_gyro_dt_us/2, &gyro_fifo_sample[i]);
 		}
 
 		if (gyro_data_available)  {
@@ -635,7 +635,7 @@ void VirtualIMU::process_accel()
 		bool accel_data_available = false;
 
 		for (size_t i = 0; i < MAX_SENSOR_COUNT; i++) {
-			accel_data_available = _accel_fifo_buffer[i].peak_closest_between(time, time-_median_accel_dt_us/2, time+_median_accel_dt_us/2, &accel_fifo_sample[i]);
+			accel_data_available = _accel_fifo_buffer[i].peek_oldest(time-_median_accel_dt_us/2, time+_median_accel_dt_us/2, &accel_fifo_sample[i]);
 		}
 
 		if (accel_data_available)  {
