@@ -543,8 +543,7 @@ class TECS
 public:
 	enum ECL_TECS_MODE {
 		ECL_TECS_MODE_NORMAL = 0,
-		ECL_TECS_MODE_UNDERSPEED,
-		ECL_TECS_MODE_BAD_DESCENT
+		ECL_TECS_MODE_UNDERSPEED
 	};
 
 	struct DebugOutput {
@@ -670,9 +669,6 @@ private:
 	float _equivalent_airspeed_min{3.0f};				///< equivalent airspeed demand lower limit (m/sec)
 	float _equivalent_airspeed_max{30.0f};				///< equivalent airspeed demand upper limit (m/sec)
 
-	// controller mode logic
-	bool _uncommanded_descent_recovery{false};			///< true when a continuous descent caused by an unachievable airspeed demand has been detected
-
 	static constexpr float DT_MIN = 0.001f;				///< minimum allowed value of _dt (sec)
 	static constexpr float DT_MAX = 1.0f;				///< max value of _dt allowed before a filter state reset is performed (sec)
 
@@ -733,11 +729,5 @@ private:
 	 * Update the desired airspeed
 	 */
 	float _update_speed_setpoint(const float tas_min, const float tas_max, const float tas_setpoint, const float tas);
-
-	/**
-	 * Detect an uncommanded descent
-	 */
-	void _detect_uncommanded_descent(float throttle_setpoint_max, float altitude, float altitude_setpoint, float tas,
-					 float tas_setpoint);
 };
 
