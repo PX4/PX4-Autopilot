@@ -73,6 +73,7 @@ echo
 echo "Installing PX4 general dependencies"
 
 sudo apt-get update -y --quiet
+# libfuse2 is a QGroundControl AppImage requirement
 sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
 	astyle \
 	build-essential \
@@ -84,7 +85,7 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends i
 	gdb \
 	git \
 	lcov \
-	libfuse2 \ # QGroundControl AppImage requirement
+	libfuse2 \
 	libxml2-dev \
 	libxml2-utils \
 	make \
