@@ -12,7 +12,6 @@
     <plugin name='ignition::gazebo::systems::Imu' filename='ignition-gazebo-imu-system'/>
     <plugin name='ignition::gazebo::systems::AirPressure' filename='ignition-gazebo-air-pressure-system'/>
     <plugin name='ignition::gazebo::systems::NavSat' filename='ignition-gazebo-navsat-system'/>
-    <plugin name='ignition::gazebo::systems::Magnetometer' filename='ignition-gazebo-magnetometer-system'/>
     <plugin name='ignition::gazebo::systems::Sensors' filename='ignition-gazebo-sensors-system'>
       <render_engine>ogre2</render_engine>
     </plugin>
@@ -20,9 +19,9 @@
     <spherical_coordinates>
       <surface_model>EARTH_WGS84</surface_model>
       <world_frame_orientation>ENU</world_frame_orientation>
-      <latitude_deg>0</latitude_deg>
-      <longitude_deg>0</longitude_deg>
-      <elevation>0</elevation>
+      <latitude_deg>47.397742</latitude_deg>
+      <longitude_deg>8.545594</longitude_deg>
+      <elevation>488.0</elevation>
       <heading_deg>0</heading_deg>
     </spherical_coordinates>
 
