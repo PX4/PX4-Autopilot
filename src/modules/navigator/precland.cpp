@@ -120,6 +120,11 @@ PrecLand::on_active()
 
 	if (_target_pose_updated) {
 		_target_pose_valid = true;
+		_target_pose_stale = false;
+	}
+
+	if ((hrt_elapsed_time(&_target_pose.timestamp) / 1e6f) > 1.5f) {
+		_target_pose_stale = true;
 	}
 
 	if ((hrt_elapsed_time(&_target_pose.timestamp) / 1e6f) > _param_pld_btout.get()) {
@@ -154,6 +159,10 @@ PrecLand::on_active()
 
 	case PrecLandState::Fallback:
 		run_state_fallback();
+		break;
+
+	case PrecLandState::HoldFallback:
+		run_state_hold_fallback();
 		break;
 
 	case PrecLandState::Done:
@@ -282,7 +291,7 @@ PrecLand::run_state_horizontal_approach()
 	// XXX need to transform to GPS coords because mc_pos_control only looks at that
 	_map_ref.reproject(x, y, pos_sp_triplet->current.lat, pos_sp_triplet->current.lon);
 
-	pos_sp_triplet->current.alt = _approach_alt;
+	pos_sp_triplet->current.alt = _target_pose_stale ? _navigator->get_global_position()->alt : _approach_alt;
 	pos_sp_triplet->current.yaw = math::radians(_param_pld_target_yaw.get());
 	pos_sp_triplet->current.yaw_valid = true;
 	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
@@ -309,7 +318,7 @@ PrecLand::run_state_descend_above_target()
 			if (!switch_to_state_start()) {
 				mavlink_log_info(&_mavlink_log_pub, "Precland: Unable to switch to state start, number of search count: %i",
 						 _search_cnt);
-				switch_to_state_fallback();
+				switch_to_state_hold_fallback();
 			}
 		}
 
@@ -340,7 +349,8 @@ PrecLand::run_state_descend_above_target()
 		dt_z = 0.1f;
 	}
 
-	pos_sp_triplet->current.alt = _navigator->get_global_position()->alt - dt_z;
+	pos_sp_triplet->current.alt = _target_pose_stale ? _navigator->get_global_position()->alt :
+				      _navigator->get_global_position()->alt - dt_z;
 	pos_sp_triplet->current.yaw = math::radians(_param_pld_target_yaw.get());
 	pos_sp_triplet->current.yaw_valid = true;
 	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
@@ -386,7 +396,7 @@ PrecLand::run_state_search()
 	if (hrt_absolute_time() - _state_start_time > _param_pld_srch_tout.get()*SEC2USEC) {
 		PX4_WARN("Search timed out");
 		mavlink_log_info(&_mavlink_log_pub, "Search timed out");
-		switch_to_state_fallback();
+		switch_to_state_hold_fallback();
 	}
 }
 
@@ -394,6 +404,12 @@ void
 PrecLand::run_state_fallback()
 {
 	// nothing to do, will land
+}
+
+void
+PrecLand::run_state_hold_fallback()
+{
+	// nothing to do, will hold until pilot intervenes
 }
 
 bool
@@ -495,6 +511,24 @@ PrecLand::switch_to_state_fallback()
 	_navigator->set_position_setpoint_triplet_updated();
 
 	_state = PrecLandState::Fallback;
+	_state_start_time = hrt_absolute_time();
+	return true;
+}
+
+bool
+PrecLand::switch_to_state_hold_fallback()
+{
+	print_state_switch_message("hold fallback");
+	PX4_INFO("Climbing to Hold at search altitude.");
+	mavlink_log_info(&_mavlink_log_pub, "Climbing to Hold at search altitude");
+	vehicle_local_position_s *vehicle_local_position = _navigator->get_local_position();
+
+	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+	pos_sp_triplet->current.alt = vehicle_local_position->ref_alt + _param_pld_srch_alt.get();
+	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+	_navigator->set_position_setpoint_triplet_updated();
+
+	_state = PrecLandState::HoldFallback;
 	_state_start_time = hrt_absolute_time();
 	return true;
 }

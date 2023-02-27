@@ -56,7 +56,8 @@ enum class PrecLandState {
 	FinalApproach, // Final landing approach, even without landing target
 	Search, // Search for landing target
 	Fallback, // Fallback landing method
-	Done // Done landing
+	Done, // Done landing
+	HoldFallback, // Hold at Search altitude
 };
 
 enum class PrecLandMode {
@@ -91,6 +92,7 @@ private:
 	void run_state_final_approach();
 	void run_state_search();
 	void run_state_fallback();
+	void run_state_hold_fallback();
 
 	// attempt to switch to a different state. Returns true if state change was successful, false otherwise
 	bool switch_to_state_start();
@@ -99,6 +101,7 @@ private:
 	bool switch_to_state_final_approach();
 	bool switch_to_state_search();
 	bool switch_to_state_fallback();
+	bool switch_to_state_hold_fallback();
 	bool switch_to_state_done();
 
 	void print_state_switch_message(const char *state_name);
@@ -157,4 +160,6 @@ private:
 	orb_advert_t _mavlink_log_pub{nullptr};
 
 	bool _fappr_tolerance_enabled{false};
+
+	bool _target_pose_stale{false};
 };
