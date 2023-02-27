@@ -149,7 +149,7 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::VIRTUAL_IMU_EN>) _param_virtual_imu_en,
-		(ParamInt<px4::params::GYRO_AXIS_MEDIAN>) _param_gyro_axis_median
+		(ParamInt<px4::params::VIRTUAL_IMU_MED>) _param_virtual_imu_median
 	)
 };
 

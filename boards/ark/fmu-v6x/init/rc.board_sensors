@@ -56,8 +56,11 @@ icm42688p -R 9 -s -b 2 -C 32051 start
 # Internal SPI bus ICM42688p with SPIX measured frequency of 32.051kHz
 icm42688p -R 6 -s -b 3 -C 32051 start
 
-# Start the Virtual IMU
-virtual_imu start
+if param compare VIRTUAL_IMU_EN 1
+then
+	# Start the Virtual IMU
+	virtual_imu start
+fi
 
 # Internal magnetometer on I2C
 bmm150 -I start

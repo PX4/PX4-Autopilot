@@ -430,7 +430,7 @@ void VirtualIMU::process_gyro()
 
 			float median_scale = 0.f;
 
-			if (_param_gyro_axis_median.get() == 1) {
+			if (_param_virtual_imu_median.get() == 1) {
 				// Find the median of each fifo datapoint
 				x_median = median(gyro_fifo_sample[0].data[0] * gyro_fifo_sample[0].scale,
 						  gyro_fifo_sample[1].data[0] * gyro_fifo_sample[1].scale, gyro_fifo_sample[2].data[0] * gyro_fifo_sample[2].scale);
@@ -676,29 +676,62 @@ void VirtualIMU::process_accel()
 				}
 			}
 
-			// Find the median of each fifo datapoint
-			float x_median = median(accel_fifo_sample[0].data[0] * accel_fifo_sample[0].scale,
-						accel_fifo_sample[1].data[0] * accel_fifo_sample[1].scale, accel_fifo_sample[2].data[0] * accel_fifo_sample[2].scale);
+			float x_median = 0.f;
+			float y_median = 0.f;
+			float z_median = 0.f;
 
-			float y_median = median(accel_fifo_sample[0].data[1] * accel_fifo_sample[0].scale,
-						accel_fifo_sample[1].data[1] * accel_fifo_sample[1].scale, accel_fifo_sample[2].data[1] * accel_fifo_sample[2].scale);
+			float median_scale = 0.f;
 
-			float z_median = median(accel_fifo_sample[0].data[2] * accel_fifo_sample[0].scale,
-						accel_fifo_sample[1].data[2] * accel_fifo_sample[1].scale, accel_fifo_sample[2].data[2] * accel_fifo_sample[2].scale);
+			if (_param_virtual_imu_median.get() == 1) {
+				// Find the median of each fifo datapoint
+				x_median = median(accel_fifo_sample[0].data[0] * accel_fifo_sample[0].scale,
+						  accel_fifo_sample[1].data[0] * accel_fifo_sample[1].scale, accel_fifo_sample[2].data[0] * accel_fifo_sample[2].scale);
 
-			// Average the dt and the highest scale value
-			float dt_sum = 0.0f;
+				y_median = median(accel_fifo_sample[0].data[1] * accel_fifo_sample[0].scale,
+						  accel_fifo_sample[1].data[1] * accel_fifo_sample[1].scale, accel_fifo_sample[2].data[1] * accel_fifo_sample[2].scale);
 
-			for (size_t i = 0; i < MAX_SENSOR_COUNT; i++) {
-				dt_sum = dt_sum + accel_fifo_sample[i].dt;
+				z_median = median(accel_fifo_sample[0].data[2] * accel_fifo_sample[0].scale,
+						  accel_fifo_sample[1].data[2] * accel_fifo_sample[1].scale, accel_fifo_sample[2].data[2] * accel_fifo_sample[2].scale);
 
-				if (accel_fifo_sample[i].scale > sensor_accel_fifo_median.scale) {
-					sensor_accel_fifo_median.scale = accel_fifo_sample[i].scale;
+				// Average the dt and the highest scale value
+				float dt_sum = 0.0f;
+
+				for (size_t i = 0; i < MAX_SENSOR_COUNT; i++) {
+					dt_sum = dt_sum + accel_fifo_sample[i].dt;
+
+					if (accel_fifo_sample[i].scale > median_scale) {
+						median_scale = accel_fifo_sample[i].scale;
+					}
 				}
+
+				dt_sum = dt_sum / MAX_SENSOR_COUNT;
+				sensor_accel_fifo_median.dt = sensor_accel_fifo_median.dt + dt_sum;
+
+			} else {
+				// Calculate the magnitude of each vector and find the index of the median
+				float magnitude[MAX_SENSOR_COUNT];
+
+				for (size_t i = 0; i < MAX_SENSOR_COUNT; i++) {
+					float x = accel_fifo_sample[i].data[0] * accel_fifo_sample[i].scale;
+					float y = accel_fifo_sample[i].data[1] * accel_fifo_sample[i].scale;
+					float z = accel_fifo_sample[i].data[2] * accel_fifo_sample[i].scale;
+					magnitude[i] = sqrtf(x * x + y * y + z * z);
+				}
+
+				size_t median_index = find_median_index(magnitude[0], magnitude[1], magnitude[2]);
+
+				x_median = accel_fifo_sample[median_index].data[0] * accel_fifo_sample[median_index].scale;
+				y_median = accel_fifo_sample[median_index].data[1] * accel_fifo_sample[median_index].scale;
+				z_median = accel_fifo_sample[median_index].data[2] * accel_fifo_sample[median_index].scale;
+
+				median_scale = accel_fifo_sample[median_index].scale;
+				sensor_accel_fifo_median.dt = sensor_accel_fifo_median.dt + accel_fifo_sample[median_index].dt;
 			}
 
-			dt_sum = dt_sum / MAX_SENSOR_COUNT;
-			sensor_accel_fifo_median.dt = sensor_accel_fifo_median.dt + dt_sum;
+			// Keep track of the highest scale value
+			if (median_scale > sensor_accel_fifo_median.scale) {
+				sensor_accel_fifo_median.scale = median_scale;
+			}
 
 			// Fill the temporary buffer will adjust for the largest scale later
 			accel_data_median[sensor_accel_fifo_median.samples](0) = x_median;

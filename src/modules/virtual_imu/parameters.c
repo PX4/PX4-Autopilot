@@ -41,7 +41,7 @@
 PARAM_DEFINE_INT32(VIRTUAL_IMU_EN, 0);
 
 /**
-* Virtual IMU median select gyro data across each axis individually.
+* Virtual IMU median select accel and gyro data across each axis individually.
 *
 * Otherwise the median is selected using the magnitude of the 3D vector.
 *
@@ -49,4 +49,4 @@ PARAM_DEFINE_INT32(VIRTUAL_IMU_EN, 0);
 * @reboot_required true
 * @group Sensors
 */
-PARAM_DEFINE_INT32(GYRO_AXIS_MEDIAN, 1);
+PARAM_DEFINE_INT32(VIRTUAL_IMU_MED, 0);
