@@ -473,10 +473,6 @@ FixedwingPositionControl::tecs_status_publish(float alt_sp, float equivalent_air
 	case TECS::ECL_TECS_MODE_UNDERSPEED:
 		t.mode = tecs_status_s::TECS_MODE_UNDERSPEED;
 		break;
-
-	case TECS::ECL_TECS_MODE_BAD_DESCENT:
-		t.mode = tecs_status_s::TECS_MODE_BAD_DESCENT;
-		break;
 	}
 
 	t.altitude_sp = alt_sp;

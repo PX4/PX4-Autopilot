@@ -28,7 +28,3 @@ float32 throttle_trim			# estimated throttle value [0,1] required to fly level a
 uint8 mode
 uint8 TECS_MODE_NORMAL = 0
 uint8 TECS_MODE_UNDERSPEED = 1
-uint8 TECS_MODE_TAKEOFF = 2
-uint8 TECS_MODE_LAND = 3
-uint8 TECS_MODE_LAND_THROTTLELIM = 4
-uint8 TECS_MODE_BAD_DESCENT = 5

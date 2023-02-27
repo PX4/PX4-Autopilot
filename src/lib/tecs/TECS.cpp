@@ -619,12 +619,8 @@ float TECS::_update_speed_setpoint(const float tas_min, const float tas_max, con
 	float new_setpoint{tas_setpoint};
 	const float percent_undersped = _control.getRatioUndersped();
 
-	// Set the TAS demand to the minimum value if an underspeed or
-	// or a uncontrolled descent condition exists to maximise climb rate
-	if (_uncommanded_descent_recovery) {
-		new_setpoint = tas_min;
-
-	} else if (percent_undersped > FLT_EPSILON) {
+	// Set the TAS demand to the minimum value if an underspeed condition exists to maximise climb rate
+	if (percent_undersped > FLT_EPSILON) {
 		// TAS setpoint is reset from external setpoint every time tecs is called, so the interpolation is still
 		// between current setpoint and mininimum airspeed here (it's not feeding the newly adjusted setpoint
 		// from this line back into this method each time).
@@ -636,47 +632,6 @@ float TECS::_update_speed_setpoint(const float tas_min, const float tas_max, con
 	new_setpoint = constrain(new_setpoint, tas_min, tas_max);
 
 	return new_setpoint;
-}
-
-void TECS::_detect_uncommanded_descent(float throttle_setpoint_max, float altitude, float altitude_setpoint, float tas,
-				       float tas_setpoint)
-{
-	/*
-	 * This function detects a condition that can occur when the demanded airspeed is greater than the
-	 * aircraft can achieve in level flight. When this occurs, the vehicle will continue to reduce altitude
-	 * while attempting to maintain speed.
-	*/
-
-	// Calculate specific energy demands in units of (m**2/sec**2)
-	const float SPE_setpoint = altitude_setpoint * CONSTANTS_ONE_G; // potential energy
-	const float SKE_setpoint = 0.5f * altitude_setpoint * altitude_setpoint; // kinetic energy
-
-	// Calculate specific energies in units of (m**2/sec**2)
-	const float SPE_estimate = altitude * CONSTANTS_ONE_G; // potential energy
-	const float SKE_estimate = 0.5f * tas * tas; // kinetic energy
-
-	// Calculate total energy error
-	const float SPE_error = SPE_setpoint - SPE_estimate;
-	const float SKE_error = SKE_setpoint - SKE_estimate;
-	const float STE_error = SPE_error + SKE_error;
-
-	const bool underspeed_detected = _control.getRatioUndersped() > FLT_EPSILON;
-
-	// If total energy is very low and reducing, throttle is high, and we are not in an underspeed condition, then enter uncommanded descent recovery mode
-	const bool enter_mode = !_uncommanded_descent_recovery && !underspeed_detected && (STE_error > 200.0f)
-				&& (_control.getSteRate() < 0.0f)
-				&& (_control.getThrottleSetpoint() >= throttle_setpoint_max * 0.9f);
-
-	// If we enter an underspeed condition or recover the required total energy, then exit uncommanded descent recovery mode
-	const bool exit_mode = _uncommanded_descent_recovery && (underspeed_detected || (STE_error < 0.0f));
-
-	if (enter_mode) {
-		_uncommanded_descent_recovery = true;
-
-	} else if (exit_mode) {
-		_uncommanded_descent_recovery = false;
-
-	}
 }
 
 void TECS::initialize(const float altitude, const float altitude_rate, const float equivalent_airspeed,
@@ -774,10 +729,6 @@ void TECS::update(float pitch, float altitude, float hgt_setpoint, float EAS_set
 
 		_control.update(dt, control_setpoint, control_input, _control_param, _control_flag);
 
-		// Detect an uncommanded descent caused by an unachievable airspeed demand
-		_detect_uncommanded_descent(throttle_setpoint_max, altitude, hgt_setpoint, equivalent_airspeed * eas_to_tas,
-					    control_setpoint.tas_setpoint);
-
 		// Update time stamps
 		_update_timestamp = now;
 
@@ -785,9 +736,6 @@ void TECS::update(float pitch, float altitude, float hgt_setpoint, float EAS_set
 		// Set TECS mode for next frame
 		if (_control.getRatioUndersped() > FLT_EPSILON) {
 			_tecs_mode = ECL_TECS_MODE_UNDERSPEED;
-
-		} else if (_uncommanded_descent_recovery) {
-			_tecs_mode = ECL_TECS_MODE_BAD_DESCENT;
 
 		} else {
 			// This is the default operation mode
