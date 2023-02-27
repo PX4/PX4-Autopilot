@@ -20,7 +20,7 @@ set(CMAKE_EXE_LINKER_FLAGS_INIT "--specs=nosys.specs")
 
 # compiler tools
 find_program(CMAKE_AR ${TOOLCHAIN_PREFIX}-gcc-ar)
-find_program(CMAKE_GDB ${TOOLCHAIN_PREFIX}-gdb)
+find_program(CMAKE_GDB gdb-multiarch)
 find_program(CMAKE_LD ${TOOLCHAIN_PREFIX}-ld)
 find_program(CMAKE_LINKER ${TOOLCHAIN_PREFIX}-ld)
 find_program(CMAKE_NM ${TOOLCHAIN_PREFIX}-gcc-nm)
