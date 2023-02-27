@@ -189,8 +189,6 @@ public:
 					_tail = (index + 1) % SIZE;
 				}
 
-				_buffer[index] = {};
-
 				return true;
 			}
 
