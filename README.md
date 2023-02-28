@@ -44,8 +44,6 @@ The PX4 Dev Team syncs up on a [weekly dev call](https://docs.px4.io/main/en/con
 
 ## Maintenance Team
 
-**Note: Being a Maintainer is an opt-in option, and must be coordinated with each person listed. This list that I (Junwoo) added doesn't reflect individual's consent at this stage**
-
 | Sector | Maintainer |
 |---|---|
 | Founder | [Lorenz Meier](https://github.com/LorenzMeier) |
@@ -54,6 +52,7 @@ The PX4 Dev Team syncs up on a [weekly dev call](https://docs.px4.io/main/en/con
 | OS/NuttX | [David Sidrane](https://github.com/davids5) |
 | Drivers | [Daniel Agar](https://github.com/dagar) |
 | Simulation | [Jaeyoung Lim](https://github.com/Jaeyoung-Lim) |
+| ROS2 | [Beniamino Pozzan](https://github.com/beniaminopozzan) |
 | Community QnA Call | [Ramon Roche](https://github.com/mrpollo) |
 | [Documentation](https://docs.px4.io/main/en/) | [Hamish Willee](https://github.com/hamishwillee) |
 
