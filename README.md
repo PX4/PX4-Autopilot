@@ -44,6 +44,8 @@ The PX4 Dev Team syncs up on a [weekly dev call](https://docs.px4.io/main/en/con
 
 ## Maintenance Team
 
+Note: This is the source of truth for the active maintainers of PX4 ecosystem.
+
 | Sector | Maintainer |
 |---|---|
 | Founder | [Lorenz Meier](https://github.com/LorenzMeier) |
@@ -64,7 +66,7 @@ The PX4 Dev Team syncs up on a [weekly dev call](https://docs.px4.io/main/en/con
 | Boat | x |
 | Rover | x |
 
-See also [maintainers list](https://px4.io/community/maintainers/) (px4.io) and the [contributors list](https://github.com/PX4/PX4-Autopilot/graphs/contributors) (Github).
+See also [maintainers list](https://px4.io/community/maintainers/) (px4.io) and the [contributors list](https://github.com/PX4/PX4-Autopilot/graphs/contributors) (Github). However it may be not up to date.
 
 ## Supported Hardware
 
