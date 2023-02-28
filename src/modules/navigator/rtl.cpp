@@ -80,11 +80,16 @@ void RTL::on_inactive()
 	if ((hrt_absolute_time() - _destination_check_time) > 1_s) {
 		_destination_check_time = hrt_absolute_time();
 
-		if (_navigator->home_global_position_valid()) {
+		const vehicle_global_position_s &global_position = *_navigator->get_global_position();
+
+		const bool global_position_recently_updated = global_position.timestamp > 0
+				&& hrt_elapsed_time(&global_position.timestamp) < 10_s;
+
+		if (_navigator->home_global_position_valid() && global_position_recently_updated) {
 			find_RTL_destination();
 		}
 
-		calc_and_pub_rtl_time_estimate(RTLState::RTL_STATE_NONE);
+		calc_and_pub_rtl_time_estimate(RTLState::RTL_STATE_NONE, global_position_recently_updated);
 	}
 }
 
@@ -312,7 +317,7 @@ void RTL::on_active()
 	// Limit rtl time calculation to 1Hz
 	if ((hrt_absolute_time() - _destination_check_time) > 1_s) {
 		_destination_check_time = hrt_absolute_time();
-		calc_and_pub_rtl_time_estimate(_rtl_state);
+		calc_and_pub_rtl_time_estimate(_rtl_state, true);
 	}
 }
 
@@ -709,13 +714,12 @@ float RTL::calculate_return_alt_from_cone_half_angle(float cone_half_angle_deg)
 	return max(return_altitude_amsl, gpos.alt);
 }
 
-void RTL::calc_and_pub_rtl_time_estimate(const RTLState rtl_state)
+void RTL::calc_and_pub_rtl_time_estimate(const RTLState rtl_state, bool global_position_recently_updated)
 {
 	rtl_time_estimate_s rtl_time_estimate{};
 
-	// Calculate RTL time estimate only when there is a valid home position
-	// TODO: Also check if vehicle position is valid
-	if (!_navigator->home_global_position_valid()) {
+	// Calculate RTL time estimate only when there is a valid home and a recent global position
+	if (!_navigator->home_global_position_valid() || !global_position_recently_updated) {
 		rtl_time_estimate.valid = false;
 
 	} else {
