@@ -47,6 +47,11 @@ then
 	fi
 fi
 
+#Start Auterion Power Module selector for Skynode boards
+if ver hwtypecmp V6X009010 V6X010010
+then
+	pm_selector_auterion start
+fi
 
 if ver hwtypecmp V6X000004 V6X001004 V6X004004 V6X005004
 then
