@@ -115,14 +115,13 @@ void USVOmniControl::pose_controller_6dof(const Vector3f &pos_des,
 	//get current rotation of vehicle
 	Quatf q_att(vehicle_attitude.q);
 
-	Vector3f p_control_output = Vector3f(_param_pose_gain_x.get() * (pos_des(0) - vlocal_pos.x) - _param_pose_gain_d_x.get()
-					     * vlocal_pos.vx,
+	Vector3f p_control_output = Vector3f(_param_pose_gain_x.get() * (pos_des(0) - vlocal_pos.x) - _param_pose_gain_d_x.get() * vlocal_pos.vx,
 					     _param_pose_gain_y.get() * (pos_des(1) - vlocal_pos.y) - _param_pose_gain_d_y.get() * vlocal_pos.vy,
 					     _param_pose_gain_z.get() * (pos_des(2) - vlocal_pos.z) - _param_pose_gain_d_z.get() * vlocal_pos.vz);
 
 	Vector3f rotated_input = q_att.rotateVectorInverse(p_control_output);//rotate the coord.sys (from global to body)
 
-	publish_attitude_setpoint(rotated_input(0),
+	publishAttitudeSetpoint(rotated_input(0),
 				  rotated_input(1),
 				  rotated_input(2),
 				  roll_des, pitch_des, yaw_des);
@@ -142,13 +141,13 @@ void USVOmniControl::stabilization_controller_6dof(const Vector3f &pos_des,
 	//potential d controller missing
 	Vector3f rotated_input = q_att.rotateVectorInverse(p_control_output);//rotate the coord.sys (from global to body)
 
-	publish_attitude_setpoint(rotated_input(0) + pos_des(0), rotated_input(1) + pos_des(1), rotated_input(2),
+	publishAttitudeSetpoint(rotated_input(0) + pos_des(0), rotated_input(1) + pos_des(1), rotated_input(2),
 				  roll_des, pitch_des, yaw_des);
 
 }
 
 
-void USVOmniControl::handleManualMode(const manual_control_setpoint_s &manual_control_setpoint)
+void USVOmniControl::handleManualInputs(const manual_control_setpoint_s &manual_control_setpoint)
 {
 	// handle all the different modes that use manual_control_setpoint
 	if (_vehicle_control_mode.flag_control_manual_enabled && !_vehicle_control_mode.flag_control_rates_enabled) {
@@ -164,6 +163,24 @@ void USVOmniControl::handleManualMode(const manual_control_setpoint_s &manual_co
 	}
 }
 
+void USVOmniControl::handleVelocityInputs()
+{
+}
+
+void USVOmniControl::handlePositionInputs()
+{
+}
+
+
+
+bool USVOmniControl::controlPosition(const matrix::Vector2d & global_pos, const matrix::Vector3f & ground_speed, const position_setpoint_triplet_s & _pos_sp_triplet)
+{
+return false;
+}
+
+void USVOmniControl::controlVelocity(const matrix::Vector3f & current_velocity)
+{
+}
 
 void USVOmniControl::controlAttitude(
 	const vehicle_attitude_s &attitude,
@@ -290,9 +307,27 @@ void USVOmniControl::Run()
 		}
 	}
 
+	/* Manual Control mode (e.g. gamepad,...) - raw feedthrough no assistance */
+	if (_manual_control_setpoint_sub.update(&_manual_control_setpoint)) {
+		// This should be copied even if not in manual mode. Otherwise, the poll(...) call will keep
+		// returning immediately and this loop will eat up resources.
+		handleManualInputs(_manual_control_setpoint);
+	}
+
+			// Respond to an attitude update and run the attitude controller if enabled
+	if (_control_mode.flag_control_attitude_enabled
+		&& !_control_mode.flag_control_position_enabled
+		&& !_control_mode.flag_control_velocity_enabled) {
+		controlAttitude(_att, _att_sp);
+	}
+
 	/* Only publish if any of the proper modes are enabled */
 	if (_control_mode.flag_control_manual_enabled ||
 	    _control_mode.flag_control_attitude_enabled) {
+		hrt_abstime timestamp = hrt_absolute_time();
+		publishTorqueSetpoint(_torque_setpoint, timestamp);
+		publishThrustSetpoint(timestamp);
+
 	}
 
 	perf_end(_loop_perf);

@@ -137,8 +137,8 @@ private:
 	vehicle_local_position_s	_local_pos{};		/**< local vehicle position */
 	vehicle_attitude_s		_att{};
 
-	matrix::Vector3f _thrust_setpoint{};
-	// matrix::Vector3f _torque_setpoint{};
+	//matrix::Vector3f _thrust_setpoint{};
+	matrix::Vector3f _torque_setpoint{};
 
 	perf_counter_t	_loop_perf;
 
@@ -155,6 +155,7 @@ private:
 
 		// TODO: refactor, delete
 
+		(ParamFloat<px4::params::USV_XY_VEL_P_ACC>) _param_pose_gain_x,
 		(ParamFloat<px4::params::USV_XY_VEL_P_ACC>) _param_pose_gain_y,
 		(ParamFloat<px4::params::USV_XY_VEL_P_ACC>) _param_pose_gain_z,
 		(ParamFloat<px4::params::USV_XY_VEL_D_ACC>) _param_pose_gain_d_x,
@@ -174,7 +175,7 @@ private:
 	 * Control Attitude
 	 */
 	void publishAttitudeSetpoint(const float thrust_x, const float thrust_y, const float thrust_z,
-				       const float roll_des, const float pitch_des, const float yaw_des);
+				     const float roll_des, const float pitch_des, const float yaw_des);
 	void pose_controller_6dof(const Vector3f &pos_des,
 				  const float roll_des, const float pitch_des, const float yaw_des,
 				  vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos);
@@ -185,15 +186,17 @@ private:
 	/**
 	 * Setpoint handlers
 	 */
-	void handleManualInputs();
+	void handleManualInputs(const manual_control_setpoint_s &manual_control_setpoint);
 	void handleVelocityInputs();
-	void handlePositionInputs();
+	void handlePositionInputs(const matrix::Vector2d &current_position,
+				  const matrix::Vector3f &ground_speed,
+				  const position_setpoint_triplet_s &pos_sp_triplet);
 
 	/**
 	 * Control
 	 */
 	bool controlPosition(const matrix::Vector2d &global_pos, const matrix::Vector3f &ground_speed,
-					 const position_setpoint_triplet_s &_pos_sp_triplet);
+			     const position_setpoint_triplet_s &_pos_sp_triplet);
 	void controlVelocity(const matrix::Vector3f &current_velocity);
 
 	/// @brief Publishes to torque and thrust setpoints
