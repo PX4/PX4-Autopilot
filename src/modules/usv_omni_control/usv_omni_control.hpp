@@ -195,7 +195,12 @@ private:
 	bool controlPosition(const matrix::Vector2d &global_pos, const matrix::Vector3f &ground_speed,
 					 const position_setpoint_triplet_s &_pos_sp_triplet);
 	void controlVelocity(const matrix::Vector3f &current_velocity);
-	void controlAttitude(const vehicle_attitude_s &att, const vehicle_attitude_setpoint_s &att_sp);
+
+	/// @brief Publishes to torque and thrust setpoints
+	void controlAttitude(const vehicle_attitude_s &att,
+			     const vehicle_attitude_setpoint_s &att_sp,
+			     const vehicle_angular_velocity_s &angular_velocity,
+			     const vehicle_rates_setpoint_s &rates_setpoint);
 
 	// Output setpoints
 	void publishTorqueSetpoint(const Vector3f &torque_sp, const hrt_abstime &timestamp_sample);

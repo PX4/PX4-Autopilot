@@ -165,6 +165,58 @@ void USVOmniControl::handleManualMode(const manual_control_setpoint_s &manual_co
 }
 
 
+void USVOmniControl::controlAttitude(
+	const vehicle_attitude_s &attitude,
+	const vehicle_attitude_setpoint_s &attitude_setpoint,
+	const vehicle_angular_velocity_s &angular_velocity,
+	const vehicle_rates_setpoint_s &rates_setpoint)
+{
+	/* Geometric Controller from UUV*/
+	// IT KINDA WORKS, I GUESS
+	Eulerf euler_angles(matrix::Quatf(attitude.q));
+
+	float yaw_u;
+	// pass through thrust
+	float thrust_x;
+	float thrust_y;
+	float thrust_z;
+
+	float yaw_body = attitude_setpoint.yaw_body;
+	float yaw_rate_desired = rates_setpoint.yaw;
+
+	/* get attitude setpoint rotational matrix */
+	// TODO: simplify
+	Dcmf rot_des = Eulerf(0.0f, 0.0f, yaw_body);
+
+	/* get current rotation matrix from control state quaternions */
+	Quatf q_att(attitude.q);
+	Matrix3f rot_att =  matrix::Dcm<float>(q_att);
+
+	Vector3f e_R_vec;
+	Vector3f torques;
+
+	/* Compute matrix: attitude error */
+	Matrix3f e_R = (rot_des.transpose() * rot_att - rot_att.transpose() * rot_des) * 0.5;
+
+	/* vee-map the error to get a vector instead of matrix e_R */
+	e_R_vec(0) = e_R(2, 1);  /**< Roll  */
+	e_R_vec(1) = e_R(0, 2);  /**< Pitch */
+	e_R_vec(2) = e_R(1, 0);  /**< Yaw   */
+
+	Vector3f omega{angular_velocity.xyz};
+	omega(2) -= yaw_rate_desired;
+
+	torques(2) = - e_R_vec(2) * _param_yaw_p.get(); /**< P-Control */
+	torques(2) = torques(2) - omega(2) * _param_yaw_d.get(); /**< PD-Control */
+	yaw_u = torques(2);
+
+	// take thrust as is
+	thrust_x = attitude_setpoint.thrust_body[0];
+	thrust_y = attitude_setpoint.thrust_body[1];
+	thrust_z = attitude_setpoint.thrust_body[2];
+
+	constrain_actuator_commands(0.0f, 0.0f, yaw_u, thrust_x, thrust_y, thrust_z);
+}
 
 void USVOmniControl::publishTorqueSetpoint(const Vector3f &torque_sp, const hrt_abstime &timestamp_sample)
 {

@@ -7,6 +7,6 @@ menuconfig MODULES_USV_OMNI_CONTROL
 menuconfig USER_USV_OMNI_CONTROL
 	bool "usv_omni_control running as userspace module"
 	default y
-	depends on BOARD_PROTECTED && MODULES_USV_POS_CONTROL
+	depends on BOARD_PROTECTED && MODULES_USV_OMNI_CONTROL
 	---help---
 		Put usv_omni_control in userspace memory
