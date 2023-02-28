@@ -84,7 +84,7 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends i
 	gdb \
 	git \
 	lcov \
-	libfuse2 \ # QGroundControl AppImage requirement
+	libfuse2 \
 	libxml2-dev \
 	libxml2-utils \
 	make \
