@@ -47,6 +47,7 @@ then
 	fi
 fi
 
+
 if ver hwtypecmp V6X000004 V6X001004 V6X004004 V6X005004
 then
 	# Internal SPI bus ICM20649
