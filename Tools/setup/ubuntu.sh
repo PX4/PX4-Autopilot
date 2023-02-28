@@ -159,10 +159,12 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 	fi
 
 	# arm-none-eabi-gcc
-	NUTTX_GCC_VERSION="9-2020-q2-update"
-	NUTTX_GCC_VERSION_SHORT="9-2020q2"
+	NUTTX_GCC_VERSION="10-2020-q4-major"
+	NUTTX_GCC_VERSION_SHORT="10-2020q4"
 
-	source $HOME/.profile # load changed path for the case the script is reran before relogin
+	# load changed path for the case the script is reran before relogin
+	# source $HOME/.profile
+
 	if [ $(which arm-none-eabi-gcc) ]; then
 		GCC_VER_STR=$(arm-none-eabi-gcc --version)
 		GCC_FOUND_VER=$(echo $GCC_VER_STR | grep -c "${NUTTX_GCC_VERSION}")
@@ -183,7 +185,8 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 			echo "${NUTTX_GCC_VERSION} path already set.";
 		else
 			echo $exportline >> $HOME/.profile;
-			source $HOME/.profile; # Allows to directly build NuttX targets in the same terminal
+			# Allows to directly build NuttX targets in the same terminal
+			source $HOME/.profile;
 		fi
 	fi
 fi
