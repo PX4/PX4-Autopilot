@@ -555,6 +555,8 @@ void GZBridge::poseInfoCallback(const gz::msgs::Pose_V &pose)
 			local_position_groundtruth.y = position(1);
 			local_position_groundtruth.z = position(2);
 
+			local_position_groundtruth.heading = euler.psi();
+
 			local_position_groundtruth.ref_lat = _pos_ref.getProjectionReferenceLat(); // Reference point latitude in degrees
 			local_position_groundtruth.ref_lon = _pos_ref.getProjectionReferenceLon(); // Reference point longitude in degrees
 			local_position_groundtruth.ref_alt = _param_sim_home_alt.get();
