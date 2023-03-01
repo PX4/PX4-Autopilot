@@ -89,25 +89,6 @@ void USVOmniControl::parameters_update(bool force)
 	}
 }
 
-void USVOmniControl::publishAttitudeSetpoint(const float thrust_x, const float thrust_y, const float thrust_z,
-		const float roll_des, const float pitch_des, const float yaw_des)
-{
-	//watch if inputs are not to high
-	vehicle_attitude_setpoint_s vehicle_attitude_setpoint = {};
-	vehicle_attitude_setpoint.timestamp = hrt_absolute_time();
-
-	vehicle_attitude_setpoint.roll_body = roll_des;
-	vehicle_attitude_setpoint.pitch_body = pitch_des;
-	vehicle_attitude_setpoint.yaw_body = yaw_des;
-
-	vehicle_attitude_setpoint.thrust_body[0] = thrust_x;
-	vehicle_attitude_setpoint.thrust_body[1] = thrust_y;
-	vehicle_attitude_setpoint.thrust_body[2] = thrust_z;
-
-
-	_att_sp_pub.publish(vehicle_attitude_setpoint);
-}
-
 void USVOmniControl::pose_controller_6dof(const Vector3f &pos_des,
 		const float roll_des, const float pitch_des, const float yaw_des,
 		vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos)
@@ -115,16 +96,15 @@ void USVOmniControl::pose_controller_6dof(const Vector3f &pos_des,
 	//get current rotation of vehicle
 	Quatf q_att(vehicle_attitude.q);
 
-	Vector3f p_control_output = Vector3f(_param_pose_gain_x.get() * (pos_des(0) - vlocal_pos.x) - _param_pose_gain_d_x.get() * vlocal_pos.vx,
-					     _param_pose_gain_y.get() * (pos_des(1) - vlocal_pos.y) - _param_pose_gain_d_y.get() * vlocal_pos.vy,
-					     _param_pose_gain_z.get() * (pos_des(2) - vlocal_pos.z) - _param_pose_gain_d_z.get() * vlocal_pos.vz);
+	Vector3f p_control_output = Vector3f(
+					    _param_pose_gain_x.get() * (pos_des(0) - vlocal_pos.x) - _param_pose_gain_d_x.get() * vlocal_pos.vx,
+					    _param_pose_gain_y.get() * (pos_des(1) - vlocal_pos.y) - _param_pose_gain_d_y.get() * vlocal_pos.vy,
+					    _param_pose_gain_z.get() * (pos_des(2) - vlocal_pos.z) - _param_pose_gain_d_z.get() * vlocal_pos.vz);
 
 	Vector3f rotated_input = q_att.rotateVectorInverse(p_control_output);//rotate the coord.sys (from global to body)
 
-	publishAttitudeSetpoint(rotated_input(0),
-				  rotated_input(1),
-				  rotated_input(2),
-				  roll_des, pitch_des, yaw_des);
+	publishAttitudeSetpoint(rotated_input,
+				0.0f, 0.0f, yaw_des);
 
 }
 
@@ -135,14 +115,16 @@ void USVOmniControl::stabilization_controller_6dof(const Vector3f &pos_des,
 	//get current rotation of vehicle
 	Quatf q_att(vehicle_attitude.q);
 
-	Vector3f p_control_output = Vector3f(0,
-					     0,
-					     _param_pose_gain_z.get() * (pos_des(2) - vlocal_pos.z));
+	Vector3f p_control_output = Vector3f(
+					    0,
+					    0,
+					    _param_pose_gain_z.get() * (pos_des(2) - vlocal_pos.z));
 	//potential d controller missing
 	Vector3f rotated_input = q_att.rotateVectorInverse(p_control_output);//rotate the coord.sys (from global to body)
-
-	publishAttitudeSetpoint(rotated_input(0) + pos_des(0), rotated_input(1) + pos_des(1), rotated_input(2),
-				  roll_des, pitch_des, yaw_des);
+	rotated_input(0) += pos_des(0);
+	rotated_input(1) += pos_des(1);
+	publishAttitudeSetpoint(rotated_input,
+				0.0f, 0.0f, yaw_des);
 
 }
 
@@ -172,12 +154,141 @@ void USVOmniControl::handlePositionInputs()
 
 
 
-bool USVOmniControl::controlPosition(const matrix::Vector2d & global_pos, const matrix::Vector3f & ground_speed, const position_setpoint_triplet_s & _pos_sp_triplet)
+bool USVOmniControl::controlPosition(const matrix::Vector2d &global_pos, const matrix::Vector3f &ground_speed,
+				     const position_setpoint_triplet_s &_pos_sp_triplet)
 {
-return false;
+	float dt = 0.01; // Using non zero value to a avoid division by zero
+
+	if (_control_position_last_called > 0) {
+		dt = hrt_elapsed_time(&_control_position_last_called) * 1e-6f;
+	}
+
+	_control_position_last_called = hrt_absolute_time();
+
+	bool setpoint = true;
+
+	if ((_control_mode.flag_control_auto_enabled ||
+	     _control_mode.flag_control_offboard_enabled) && pos_sp_triplet.current.valid) {
+		/* AUTONOMOUS FLIGHT */
+
+		_control_mode_current = UGV_POSCTRL_MODE_AUTO;
+
+		/* get circle mode */
+		//bool was_circle_mode = _gnd_control.circle_mode();
+
+		/* current waypoint (the one currently heading for) */
+		matrix::Vector2d curr_wp(pos_sp_triplet.current.lat, pos_sp_triplet.current.lon);
+
+		/* previous waypoint */
+		matrix::Vector2d prev_wp = curr_wp;
+
+		if (pos_sp_triplet.previous.valid) {
+			prev_wp(0) = pos_sp_triplet.previous.lat;
+			prev_wp(1) = pos_sp_triplet.previous.lon;
+		}
+
+		matrix::Vector2f ground_speed_2d(ground_speed);
+
+		float mission_throttle = _param_throttle_cruise.get();
+
+		/* Just control the throttle */
+		if (_param_speed_control_mode.get() == 1) {
+			/* control the speed in closed loop */
+
+			float mission_target_speed = _param_gndspeed_trim.get();
+
+			if (PX4_ISFINITE(_pos_sp_triplet.current.cruising_speed) &&
+			    _pos_sp_triplet.current.cruising_speed > 0.1f) {
+				mission_target_speed = _pos_sp_triplet.current.cruising_speed;
+			}
+
+			// Velocity in body frame
+			const Dcmf R_to_body(Quatf(_vehicle_att.q).inversed());
+			const Vector3f vel = R_to_body * Vector3f(ground_speed(0), ground_speed(1), ground_speed(2));
+
+			const float x_vel = vel(0);
+			const float x_acc = _vehicle_acceleration_sub.get().xyz[0];
+
+			// Compute airspeed control out and just scale it as a constant
+			mission_throttle = _param_throttle_speed_scaler.get()
+					   * pid_calculate(&_speed_ctrl, mission_target_speed, x_vel, x_acc, dt);
+
+			// Constrain throttle between min and max
+			mission_throttle = math::constrain(mission_throttle, _param_throttle_min.get(), _param_throttle_max.get());
+
+		} else {
+			/* Just control throttle in open loop */
+			if (PX4_ISFINITE(_pos_sp_triplet.current.cruising_throttle) &&
+			    _pos_sp_triplet.current.cruising_throttle > 0.01f) {
+
+				mission_throttle = _pos_sp_triplet.current.cruising_throttle;
+			}
+		}
+
+		float dist_target = get_distance_to_next_waypoint(_global_pos.lat, _global_pos.lon,
+				    (double)curr_wp(0), (double)curr_wp(1)); // pos_sp_triplet.current.lat, pos_sp_triplet.current.lon);
+
+		PX4_INFO("Setpoint type %d", (int) pos_sp_triplet.current.type);
+		PX4_INFO(" State machine state %d", (int) _pos_ctrl_state);
+		PX4_INFO(" Setpoint Lat %f, Lon %f", (double) curr_wp(0), (double)curr_wp(1));
+		PX4_INFO(" Distance to target %f", (double) dist_target);
+
+		switch (_pos_ctrl_state) {
+		case GOTO_WAYPOINT: {
+				if (dist_target < _param_nav_loiter_rad.get()) {
+					_pos_ctrl_state = STOPPING;  // We are closer than loiter radius to waypoint, stop.
+
+				} else {
+					Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
+					Vector2f curr_wp_local = _global_local_proj_ref.project(curr_wp(0), curr_wp(1));
+					Vector2f prev_wp_local = _global_local_proj_ref.project(prev_wp(0),
+								 prev_wp(1));
+					_gnd_control.navigate_waypoints(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed_2d);
+
+					_act_controls.control[actuator_controls_s::INDEX_THROTTLE] = mission_throttle;
+
+					float desired_r = ground_speed_2d.norm_squared() / math::abs_t(_gnd_control.nav_lateral_acceleration_demand());
+					float desired_theta = (0.5f * M_PI_F) - atan2f(desired_r, _param_wheel_base.get());
+					float control_effort = (desired_theta / _param_max_turn_angle.get()) * sign(
+								       _gnd_control.nav_lateral_acceleration_demand());
+					control_effort = math::constrain(control_effort, -1.0f, 1.0f);
+					_act_controls.control[actuator_controls_s::INDEX_YAW] = control_effort;
+				}
+			}
+			break;
+
+		case STOPPING: {
+				_act_controls.control[actuator_controls_s::INDEX_YAW] = 0.0f;
+				_act_controls.control[actuator_controls_s::INDEX_THROTTLE] = 0.0f;
+				// Note _prev_wp is different to the local prev_wp which is related to a mission waypoint.
+				float dist_between_waypoints = get_distance_to_next_waypoint((double)_prev_wp(0), (double)_prev_wp(1),
+							       (double)curr_wp(0), (double)curr_wp(1));
+
+				if (dist_between_waypoints > 0) {
+					_pos_ctrl_state = GOTO_WAYPOINT; // A new waypoint has arrived go to it
+				}
+
+				PX4_INFO(" Distance between prev and curr waypoints %f", (double)dist_between_waypoints);
+			}
+			break;
+
+		default:
+			PX4_ERR("Unknown Rover State");
+			_pos_ctrl_state = STOPPING;
+			break;
+		}
+
+		_prev_wp = curr_wp;
+
+	} else {
+		_control_mode_current = UGV_POSCTRL_MODE_OTHER;
+		setpoint = false;
+	}
+
+	return setpoint;
 }
 
-void USVOmniControl::controlVelocity(const matrix::Vector3f & current_velocity)
+void USVOmniControl::controlVelocity(const matrix::Vector3f &current_velocity)
 {
 }
 
@@ -255,9 +366,30 @@ void USVOmniControl::publishThrustSetpoint(const hrt_abstime &timestamp_sample)
 	_thrust_setpoint.copyTo(result.xyz);
 	result.xyz[0] = (PX4_ISFINITE(_thrust_setpoint(0))) ? _thrust_setpoint(0) * scaling : 0.0f;
 	result.xyz[1] = (PX4_ISFINITE(_thrust_setpoint(1))) ? _thrust_setpoint(1) * scaling : 0.0f;
-	result.xyz[2] = 0.0f;  // Ignore X axis, because we are never flying
+	result.xyz[2] = 0.0f;  // Ignore Z axis, because we are grounded
 	result.timestamp = hrt_absolute_time();
 	_vehicle_thrust_setpoint_pub.publish(result);
+}
+
+void USVOmniControl::publishAttitudeSetpoint(const Vector3f &thrust_body_sp,
+		const float roll_des, const float pitch_des, const float yaw_des)
+{
+	// I don't think we are doing scaling trick here
+	float scaling = _param_max_thrust_ac.get();
+	//watch if inputs are not to high
+	vehicle_attitude_setpoint_s result = {};
+	result.timestamp = hrt_absolute_time();
+
+	// This is NED frame
+	result.roll_body = roll_des;
+	result.pitch_body = pitch_des;
+	result.yaw_body = yaw_des;
+
+	result.thrust_body[0] = (PX4_ISFINITE(thrust_body_sp(0))) ? thrust_body_sp(0) : 0.0f;
+	result.thrust_body[1] = (PX4_ISFINITE(thrust_body_sp(1))) ? thrust_body_sp(1) : 0.0f;
+	result.thrust_body[2] = 0.0f; // Ignore Z axnis, because we are grounded
+
+	_att_sp_pub.publish(result);
 }
 
 void USVOmniControl::Run()
@@ -314,10 +446,10 @@ void USVOmniControl::Run()
 		handleManualInputs(_manual_control_setpoint);
 	}
 
-			// Respond to an attitude update and run the attitude controller if enabled
+	// Respond to an attitude update and run the attitude controller if enabled
 	if (_control_mode.flag_control_attitude_enabled
-		&& !_control_mode.flag_control_position_enabled
-		&& !_control_mode.flag_control_velocity_enabled) {
+	    && !_control_mode.flag_control_position_enabled
+	    && !_control_mode.flag_control_velocity_enabled) {
 		controlAttitude(_att, _att_sp);
 	}
 
