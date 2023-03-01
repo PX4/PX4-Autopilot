@@ -8,6 +8,14 @@ if [ "$PX4_SIMULATOR" = "sihsim" ] || [ "$(param show -q SYS_AUTOSTART)" -eq "0"
 
 	echo "INFO  [init] SIH simulator"
 
+	if [ ! -z "${PX4_HOME_LAT}" ]; then
+		param set SIH_LOC_LAT0 ${PX4_HOME_LAT}
+	fi
+
+	if [ ! -z "${PX4_HOME_LON}" ]; then
+		param set SIH_LOC_LON0 ${PX4_HOME_LON}
+	fi
+
 	if simulator_sih start; then
 
 		if param compare -s SENS_EN_BAROSIM 1
