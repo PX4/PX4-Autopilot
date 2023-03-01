@@ -119,13 +119,14 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
+	uORB::Subscription _vehicle_attitude_setpoint_sub{ORB_ID(vehicle_attitude_setpoint)};	/**< vehicle attitude setpoint */
+
 	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};	/**< notification of manual control updates */
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};		/**< vehicle status subscription */
 
 	uORB::SubscriptionCallbackWorkItem _vehicle_local_position_sub{this, ORB_ID(vehicle_local_position)};
 
-	vehicle_attitude_s _vehicle_attitude{};
 
 	// Inputs, setpoints
 	manual_control_setpoint_s	_manual_control_sp{};	/**< r/c channel data */
@@ -137,7 +138,7 @@ private:
 	vehicle_local_position_s	_local_pos{};		/**< local vehicle position */
 	vehicle_attitude_s		_att{};
 
-	//matrix::Vector3f _thrust_setpoint{};
+	matrix::Vector3f _thrust_setpoint{};
 	matrix::Vector3f _torque_setpoint{};
 
 	perf_counter_t	_loop_perf;
@@ -153,8 +154,7 @@ private:
 		(ParamFloat<px4::params::USV_XY_VEL_D_ACC>) _param_usv_xy_vel_d_acc,
 		(ParamFloat<px4::params::USV_XY_VEL_MAX>)   _param_usv_xy_vel_max,
 
-		// TODO: refactor, delete
-
+		// TODO: refactor, delete, I thinkd I only need pose z, aka yaw
 		(ParamFloat<px4::params::USV_XY_VEL_P_ACC>) _param_pose_gain_x,
 		(ParamFloat<px4::params::USV_XY_VEL_P_ACC>) _param_pose_gain_y,
 		(ParamFloat<px4::params::USV_XY_VEL_P_ACC>) _param_pose_gain_z,
@@ -187,6 +187,7 @@ private:
 	 * Setpoint handlers
 	 */
 	void handleManualInputs(const manual_control_setpoint_s &manual_control_setpoint);
+	// TODO: change to Trajectory?
 	void handleVelocityInputs();
 	void handlePositionInputs(const matrix::Vector2d &current_position,
 				  const matrix::Vector3f &ground_speed,

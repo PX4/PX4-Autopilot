@@ -149,17 +149,16 @@ void USVOmniControl::stabilization_controller_6dof(const Vector3f &pos_des,
 
 void USVOmniControl::handleManualInputs(const manual_control_setpoint_s &manual_control_setpoint)
 {
+	// TODO: POSITION MODE, MANUAL MODE
 	// handle all the different modes that use manual_control_setpoint
 	if (_vehicle_control_mode.flag_control_manual_enabled && !_vehicle_control_mode.flag_control_rates_enabled) {
 		/* manual/direct control */
-		constrain_actuator_commands(
-			0.0f, 0.0f,
-			manual_control_setpoint.yaw,
-			manual_control_setpoint.throttle,
-			// TODO: really? Can I setup joystick in QGC to enable moving to the sides? Or is it the common practice
-			manual_control_setpoint.roll,
-			0.0f);
-		// TODO: to _thrust_setpoint
+		_thrust_setpoint.setAll(0.0f);
+		_thrust_setpoint(0) = manual_control_setpoint.throttle;
+		_thrust_setpoint(1) = manual_control_setpoint.roll;
+
+		_torque_setpoint.setAll(0.0f);
+		_torque_setpoint(0) = manual_control_setpoint.yaw;
 	}
 }
 
@@ -228,23 +227,22 @@ void USVOmniControl::controlAttitude(
 	yaw_u = torques(2);
 
 	// take thrust as is
-	thrust_x = attitude_setpoint.thrust_body[0];
-	thrust_y = attitude_setpoint.thrust_body[1];
-	thrust_z = attitude_setpoint.thrust_body[2];
+	_thrust_setpoint.setAll(0.0f);
+	_thrust_setpoint(0) = attitude_setpoint.thrust_body[0];
+	_thrust_setpoint(1) = attitude_setpoint.thrust_body[1];
 
-	constrain_actuator_commands(0.0f, 0.0f, yaw_u, thrust_x, thrust_y, thrust_z);
+	_torque_setpoint.setAll(0.0f);
+	_torque_setpoint(0) = yaw_u;
 }
 
 void USVOmniControl::publishTorqueSetpoint(const Vector3f &torque_sp, const hrt_abstime &timestamp_sample)
 {
 	float scaling = _param_max_torque_ac.get();
-	// TODO: do scaling
 	vehicle_torque_setpoint_s result{};
 	result.timestamp_sample = timestamp_sample;
-	result.xyz[0] = (PX4_ISFINITE(torque_sp(0))) ? torque_sp(0) : 0.0f;
-	result.xyz[1] = (PX4_ISFINITE(torque_sp(1))) ? torque_sp(1) : 0.0f;
-	// this one only?
-	result.xyz[2] = (PX4_ISFINITE(torque_sp(2))) ? torque_sp(2) : 0.0f;
+	result.xyz[0] = 0.0f;
+	result.xyz[1] = 0.0f;
+	result.xyz[2] = (PX4_ISFINITE(torque_sp(2))) ? torque_sp(2) * scaling : 0.0f;
 	result.timestamp = hrt_absolute_time();
 	_vehicle_torque_setpoint_pub.publish(result);
 }
@@ -252,10 +250,12 @@ void USVOmniControl::publishTorqueSetpoint(const Vector3f &torque_sp, const hrt_
 void USVOmniControl::publishThrustSetpoint(const hrt_abstime &timestamp_sample)
 {
 	float scaling = _param_max_thrust_ac.get();
-	// TODO: do scaling
 	vehicle_thrust_setpoint_s result{};
 	result.timestamp_sample = timestamp_sample;
 	_thrust_setpoint.copyTo(result.xyz);
+	result.xyz[0] = (PX4_ISFINITE(_thrust_setpoint(0))) ? _thrust_setpoint(0) * scaling : 0.0f;
+	result.xyz[1] = (PX4_ISFINITE(_thrust_setpoint(1))) ? _thrust_setpoint(1) * scaling : 0.0f;
+	result.xyz[2] = 0.0f;  // Ignore X axis, because we are never flying
 	result.timestamp = hrt_absolute_time();
 	_vehicle_thrust_setpoint_pub.publish(result);
 }
