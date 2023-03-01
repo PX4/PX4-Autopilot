@@ -176,10 +176,16 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 
 					if (do_vel_pos_reset) {
 						ECL_WARN("GPS fusion timeout, resetting velocity and position");
+
+						// reset velocity
 						_information_events.flags.reset_vel_to_gps = true;
+						resetVelocityTo(velocity, vel_obs_var);
+						_aid_src_gnss_vel.time_last_fuse = _time_delayed_us;
+
+						// reset position
 						_information_events.flags.reset_pos_to_gps = true;
-						resetVelocityTo(gps_sample.vel, vel_obs_var);
-						resetHorizontalPositionTo(gps_sample.pos, pos_obs_var);
+						resetHorizontalPositionTo(position, pos_obs_var);
+						_aid_src_gnss_pos.time_last_fuse = _time_delayed_us;
 					}
 
 				} else {
