@@ -35,7 +35,9 @@
 #include "CrsfParser.hpp"
 #include "Crc8.hpp"
 
-#include <poll.h>
+// #include <poll.h>
+#include <drivers/device/qurt/uart.h>
+
 #include <termios.h>
 #include <fcntl.h>
 
@@ -50,7 +52,7 @@ using namespace time_literals;
 
 CrsfRc::CrsfRc(const char *device) :
 	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(device))
+	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq("/dev/ttyS0"))
 {
 	if (device) {
 		strncpy(_device, device, sizeof(_device) - 1);
@@ -118,38 +120,46 @@ void CrsfRc::Run()
 {
 	if (should_exit()) {
 		ScheduleClear();
-		::close(_rc_fd);
+		// ::close(_rc_fd);
 		_rc_fd = -1;
 		exit_and_cleanup();
 		return;
 	}
 
 	if (_rc_fd < 0) {
-		_rc_fd = ::open(_device, O_RDWR | O_NONBLOCK);
+		// _rc_fd = ::open(_device, O_RDWR | O_NONBLOCK);
+		_rc_fd = qurt_uart_open(_device, 115200);
+
+		if (_rc_fd < 0) {
+			PX4_ERR("Error opening port: %s", _device);
+			return;
+		}
 
 		if (_rc_fd >= 0) {
-			struct termios t;
+// 			struct termios t;
+// 
+// 			tcgetattr(_rc_fd, &t);
+// 			cfsetspeed(&t, CRSF_BAUDRATE);
+// 			t.c_cflag &= ~(CSTOPB | PARENB | CRTSCTS);
+// 			t.c_lflag &= ~(ECHO | ECHONL | ICANON | IEXTEN | ISIG);
+// 			t.c_iflag &= ~(IGNBRK | BRKINT | ICRNL | INLCR | PARMRK | INPCK | ISTRIP | IXON);
+// 			t.c_oflag = 0;
+// 			tcsetattr(_rc_fd, TCSANOW, &t);
+// 
+// 			if (board_rc_swap_rxtx(_device)) {
+// #if defined(TIOCSSWAP)
+// 				ioctl(_rc_fd, TIOCSSWAP, SER_SWAP_ENABLED);
+// #endif // TIOCSSWAP
+// 			}
+// 
+// 			if (board_rc_singlewire(_device)) {
+// 				_is_singlewire = true;
+// #if defined(TIOCSSINGLEWIRE)
+// 				ioctl(_rc_fd, TIOCSSINGLEWIRE, SER_SINGLEWIRE_ENABLED);
+// #endif // TIOCSSINGLEWIRE
+// 			}
 
-			tcgetattr(_rc_fd, &t);
-			cfsetspeed(&t, CRSF_BAUDRATE);
-			t.c_cflag &= ~(CSTOPB | PARENB | CRTSCTS);
-			t.c_lflag &= ~(ECHO | ECHONL | ICANON | IEXTEN | ISIG);
-			t.c_iflag &= ~(IGNBRK | BRKINT | ICRNL | INLCR | PARMRK | INPCK | ISTRIP | IXON);
-			t.c_oflag = 0;
-			tcsetattr(_rc_fd, TCSANOW, &t);
-
-			if (board_rc_swap_rxtx(_device)) {
-#if defined(TIOCSSWAP)
-				ioctl(_rc_fd, TIOCSSWAP, SER_SWAP_ENABLED);
-#endif // TIOCSSWAP
-			}
-
-			if (board_rc_singlewire(_device)) {
-				_is_singlewire = true;
-#if defined(TIOCSSINGLEWIRE)
-				ioctl(_rc_fd, TIOCSSINGLEWIRE, SER_SINGLEWIRE_ENABLED);
-#endif // TIOCSSINGLEWIRE
-			}
+			_is_singlewire = true;
 
 			PX4_INFO("Crsf serial opened sucessfully");
 
@@ -157,7 +167,7 @@ void CrsfRc::Run()
 				PX4_INFO("Crsf serial is single wire. Telemetry disabled");
 			}
 
-			tcflush(_rc_fd, TCIOFLUSH);
+			// tcflush(_rc_fd, TCIOFLUSH);
 
 			Crc8Init(0xd5);
 		}
@@ -170,24 +180,25 @@ void CrsfRc::Run()
 
 	}
 
-	// poll with 100mS timeout
-	pollfd fds[1];
-	fds[0].fd = _rc_fd;
-	fds[0].events = POLLIN;
-	int ret = ::poll(fds, 1, 100);
-
-	if (ret < 0) {
-		PX4_ERR("poll error");
-		// try again with delay
-		ScheduleDelayed(100_ms);
-		return;
-	}
+	// // poll with 100mS timeout
+	// pollfd fds[1];
+	// fds[0].fd = _rc_fd;
+	// fds[0].events = POLLIN;
+	// int ret = ::poll(fds, 1, 100);
+	// 
+	// if (ret < 0) {
+	// 	PX4_ERR("poll error");
+	// 	// try again with delay
+	// 	ScheduleDelayed(100_ms);
+	// 	return;
+	// }
 
 	const hrt_abstime time_now_us = hrt_absolute_time();
 	perf_count_interval(_cycle_interval_perf, time_now_us);
 
 	// Read all available data from the serial RC input UART
-	int new_bytes = ::read(_rc_fd, &_rcs_buf[0], RC_MAX_BUFFER_SIZE);
+	// int new_bytes = ::read(_rc_fd, &_rcs_buf[0], RC_MAX_BUFFER_SIZE);
+	int new_bytes = qurt_uart_read(_rc_fd, (char *) &_rcs_buf[0], RC_MAX_BUFFER_SIZE, 500);
 
 	if (new_bytes > 0) {
 		_bytes_rx += new_bytes;
