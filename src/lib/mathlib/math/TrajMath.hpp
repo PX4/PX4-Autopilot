@@ -67,7 +67,7 @@ inline float computeMaxSpeedFromDistance(const float jerk, const float accel, co
 	float max_speed = 0.5f * (-b + sqrtf(sqr(b) - 4.0f * c));
 
 	// don't slow down more than the end speed, even if the conservative accel ramp time requests it
-	return max(max_speed, final_speed);
+	return fmaxf(max_speed, final_speed);
 }
 
 /* Compute the maximum tangential speed in a circle defined by two line segments of length "d"
