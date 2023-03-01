@@ -89,9 +89,9 @@ void USVOmniControl::parameters_update(bool force)
 	}
 }
 
-void USVOmniControl::pose_controller_6dof(const Vector3f &pos_des,
-		const float roll_des, const float pitch_des, const float yaw_des,
-		vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos)
+void USVOmniControl::poseController6dof(const Vector3f &pos_des,
+					const float roll_des, const float pitch_des, const float yaw_des,
+					vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos)
 {
 	//get current rotation of vehicle
 	Quatf q_att(vehicle_attitude.q);
@@ -108,7 +108,7 @@ void USVOmniControl::pose_controller_6dof(const Vector3f &pos_des,
 
 }
 
-void USVOmniControl::stabilization_controller_6dof(const Vector3f &pos_des,
+void USVOmniControl::stabilizationController6dof(const Vector3f &pos_des,
 		const float roll_des, const float pitch_des, const float yaw_des,
 		vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos)
 {
@@ -133,7 +133,7 @@ void USVOmniControl::handleManualInputs(const manual_control_setpoint_s &manual_
 {
 	// TODO: POSITION MODE, MANUAL MODE
 	// handle all the different modes that use manual_control_setpoint
-	if (_vehicle_control_mode.flag_control_manual_enabled && !_vehicle_control_mode.flag_control_rates_enabled) {
+	if (_control_mode.flag_control_manual_enabled && !_control_mode.flag_control_rates_enabled) {
 		/* manual/direct control */
 		_thrust_setpoint.setAll(0.0f);
 		_thrust_setpoint(0) = manual_control_setpoint.throttle;
@@ -148,14 +148,18 @@ void USVOmniControl::handleVelocityInputs()
 {
 }
 
-void USVOmniControl::handlePositionInputs()
+void USVOmniControl::handlePositionInputs(
+	const matrix::Vector2d &current_position,
+	const matrix::Vector3f &ground_speed,
+	const position_setpoint_triplet_s &pos_sp_triplet)
 {
 }
 
 
 
-bool USVOmniControl::controlPosition(const matrix::Vector2d &global_pos, const matrix::Vector3f &ground_speed,
-				     const position_setpoint_triplet_s &_pos_sp_triplet)
+bool USVOmniControl::controlPosition(
+	const matrix::Vector2d &global_pos, const matrix::Vector3f &ground_speed,
+	const position_setpoint_triplet_s &pos_sp_triplet)
 {
 	float dt = 0.01; // Using non zero value to a avoid division by zero
 
@@ -181,7 +185,6 @@ bool USVOmniControl::controlPosition(const matrix::Vector2d &global_pos, const m
 
 		/* previous waypoint */
 		matrix::Vector2d prev_wp = curr_wp;
-
 		if (pos_sp_triplet.previous.valid) {
 			prev_wp(0) = pos_sp_triplet.previous.lat;
 			prev_wp(1) = pos_sp_triplet.previous.lon;
@@ -303,11 +306,6 @@ void USVOmniControl::controlAttitude(
 	Eulerf euler_angles(matrix::Quatf(attitude.q));
 
 	float yaw_u;
-	// pass through thrust
-	float thrust_x;
-	float thrust_y;
-	float thrust_z;
-
 	float yaw_body = attitude_setpoint.yaw_body;
 	float yaw_rate_desired = rates_setpoint.yaw;
 
@@ -429,12 +427,12 @@ void USVOmniControl::Run()
 
 			//stabilization controller(keep pos and hold depth + angle) vs position controller(global + yaw)
 			if (_param_stabilization.get() == 0) {
-				pose_controller_6dof(Vector3f(_trajectory_setpoint.position),
-						     roll_des, pitch_des, yaw_des, _vehicle_attitude, vlocal_pos);
+				poseController6dof(Vector3f(_trajectory_setpoint.position),
+						   roll_des, pitch_des, yaw_des, _vehicle_attitude, vlocal_pos);
 
 			} else {
-				stabilization_controller_6dof(Vector3f(_trajectory_setpoint.position),
-							      roll_des, pitch_des, yaw_des, _vehicle_attitude, vlocal_pos);
+				stabilizationController6dof(Vector3f(_trajectory_setpoint.position),
+							    roll_des, pitch_des, yaw_des, _vehicle_attitude, vlocal_pos);
 			}
 		}
 	}

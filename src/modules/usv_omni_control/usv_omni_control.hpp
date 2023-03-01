@@ -142,6 +142,7 @@ private:
 	matrix::Vector3f _torque_setpoint{};
 
 	perf_counter_t	_loop_perf;
+	hrt_abstime _control_position_last_called;
 
 	DEFINE_PARAMETERS(
 		// These are used as a hacky way to not oversaturate c
@@ -172,14 +173,16 @@ private:
 	void parameters_update(bool force = false);
 
 	/**
-	 * Control Attitude
+	 * Things from UUV Position Controller
 	 */
-	void publishAttitudeSetpoint(const float thrust_x, const float thrust_y, const float thrust_z,
+	void publishAttitudeSetpoint(const Vector3f &thrust_body_sp,
 				     const float roll_des, const float pitch_des, const float yaw_des);
-	void pose_controller_6dof(const Vector3f &pos_des,
+	/// @brief position controller(global + yaw)
+	void poseController6dof(const Vector3f &pos_des,
 				  const float roll_des, const float pitch_des, const float yaw_des,
 				  vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos);
-	void stabilization_controller_6dof(const Vector3f &pos_des,
+	/// @brief stabilization controller(keep pos and hold depth + angle)
+	void stabilizationController6dof(const Vector3f &pos_des,
 					   const float roll_des, const float pitch_des, const float yaw_des,
 					   vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos);
 
