@@ -34,7 +34,6 @@ px4_add_module(
 	MODULE drivers__distance_sensor__lightware_sf45_serial
 	MAIN lightware_sf45_serial
 	COMPILE_FLAGS
-		-Wno-cast-align # TODO: fix and enable
 	SRCS
 		lightware_sf45_serial.cpp
 		lightware_sf45_serial.hpp
