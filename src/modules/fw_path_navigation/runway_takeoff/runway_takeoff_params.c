@@ -65,8 +65,6 @@ PARAM_DEFINE_INT32(RWTO_HDG, 0);
 /**
  * Max throttle during runway takeoff.
  *
- * Can be used to test taxi on runway
- *
  * @unit norm
  * @min 0.0
  * @max 1.0

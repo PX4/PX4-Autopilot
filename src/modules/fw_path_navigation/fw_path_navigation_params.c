@@ -180,7 +180,7 @@ PARAM_DEFINE_FLOAT(NPFG_PERIOD_SF, 1.5f);
 /**
  * Trim throttle
  *
- * This is the throttle setting required to achieve FW_AIRSPD_TRIM during level flight. Most airframes have a value of 0.5-0.7.
+ * This is the throttle setting required to achieve FW_AIRSPD_TRIM during level flight.
  *
  * @unit norm
  * @min 0.0
@@ -207,7 +207,7 @@ PARAM_DEFINE_FLOAT(FW_THR_SLEW_MAX, 0.0f);
 /**
  * Minimum pitch angle
  *
- * The minimum pitch angle setpoint for autonomous modes including altitude and position control.
+ * The minimum pitch angle setpoint for a height-rate or altitude controlled mode.
  *
  * @unit deg
  * @min -60.0
@@ -221,7 +221,7 @@ PARAM_DEFINE_FLOAT(FW_P_LIM_MIN, -30.0f);
 /**
  * Maximum pitch angle
  *
- * The maximum pitch angle setpoint for autonomous modes including altitude and position control.
+ * The maximum pitch angle setpoint setpoint for a height-rate or altitude controlled mode.
  *
  * @unit deg
  * @min 0.0
@@ -235,7 +235,7 @@ PARAM_DEFINE_FLOAT(FW_P_LIM_MAX, 30.0f);
 /**
  * Maximum roll angle
  *
- * The maximum roll angle setpoint for autonomous modes including altitude and position control.
+ * The maximum roll angle setpoint for setpoint for a height-rate or altitude controlled mode.
  *
  * @unit deg
  * @min 35.0
@@ -442,8 +442,7 @@ PARAM_DEFINE_FLOAT(FW_LND_AIRSPD, -1.f);
  * Altitude time constant factor for landing
  *
  * Set this parameter to less than 1.0 to make TECS react faster to altitude errors during
- * landing than during normal flight (i.e. giving efficiency and low motor wear at
- * high altitudes but control accuracy during landing). During landing, the TECS
+ * landing than during normal flight. During landing, the TECS
  * altitude time constant (FW_T_ALT_TC) is multiplied by this value.
  *
  * @unit
@@ -464,18 +463,10 @@ PARAM_DEFINE_FLOAT(FW_LND_THRTC_SC, 1.0f);
 /**
  * Maximum climb rate
  *
- * This is the best climb rate that the aircraft can achieve with
+ * This is the maximum climb rate that the aircraft can achieve with
  * the throttle set to THR_MAX and the airspeed set to the
- * default value. For electric aircraft make sure this number can be
+ * trim value. For electric aircraft make sure this number can be
  * achieved towards the end of flight when the battery voltage has reduced.
- * The setting of this parameter can be checked by commanding a positive
- * altitude change of 100m in loiter, RTL or guided mode. If the throttle
- * required to climb is close to THR_MAX and the aircraft is maintaining
- * airspeed, then this parameter is set correctly. If the airspeed starts
- * to reduce, then the parameter is set to high, and if the throttle
- * demand required to climb and maintain speed is noticeably less than
- * FW_THR_MAX, then either FW_T_CLMB_MAX should be increased or
- * FW_THR_MAX reduced.
  *
  * @unit m/s
  * @min 1.0
@@ -663,8 +654,7 @@ PARAM_DEFINE_FLOAT(FW_T_RLL2THR, 15.0f);
  * and ignore height errors. This will normally reduce airspeed errors,
  * but give larger height errors. The default value of 1.0 allows the pitch
  * control to simultaneously control height and speed.
- * Note to Glider Pilots - set this parameter to 2.0 (The glider will
- * adjust its pitch angle to maintain airspeed, ignoring changes in height).
+ * Set to 2 for gliders.
  *
  * @min 0.0
  * @max 2.0
@@ -777,7 +767,6 @@ PARAM_DEFINE_FLOAT(FW_T_SEB_R_FF, 1.0f);
 /**
  * Default target climbrate.
  *
- *
  * The default rate at which the vehicle will climb in autonomous modes to achieve altitude setpoints.
  * In manual modes this defines the maximum rate at which the altitude setpoint can be increased.
  *
@@ -825,7 +814,6 @@ PARAM_DEFINE_INT32(FW_GPSF_LT, 30);
  * GPS failure fixed roll angle
  *
  * Roll in degrees during the loiter after the vehicle has lost GPS in an auto mode (e.g. mission or loiter).
- * Does only apply for fixed-wing vehicles or VTOLs with NAV_FORCE_VT set to 0.
  *
  * @unit deg
  * @min 0.0
