@@ -48,12 +48,6 @@
 
 using matrix::Vector2f;
 
-float ECL_L1_Pos_Controller::switch_distance(float wp_radius)
-{
-	/* following [2], switching on L1 distance */
-	return math::min(wp_radius, _L1_distance);
-}
-
 void
 ECL_L1_Pos_Controller::navigate_waypoints(const Vector2f &vector_A, const Vector2f &vector_B,
 		const Vector2f &vector_curr_position, const Vector2f &ground_speed_vector)

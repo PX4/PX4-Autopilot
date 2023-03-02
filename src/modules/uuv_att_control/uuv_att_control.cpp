@@ -46,9 +46,6 @@
 #include "uuv_att_control.hpp"
 
 
-#define ACTUATOR_PUBLISH_PERIOD_MS 4
-
-
 /**
  * UUV attitude control app start / stop handling function
  *
