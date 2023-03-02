@@ -130,9 +130,10 @@ private:
 
 
 	// Inputs, setpoints
-	manual_control_setpoint_s	_manual_control_sp{};	/**< r/c channel data */
+	// manual_control_setpoint_s	_manual_control_sp{};	/**< r/c channel data */ not used globally,
 	position_setpoint_triplet_s	_pos_sp_triplet{};	/**< triplet of mission items */
 	vehicle_attitude_setpoint_s	_att_sp{};		/**< attitude setpoint > */
+	trajectory_setpoint_s		_trajectory_sp{};	/**< trajectory setpoint > */
 	// State
 	vehicle_control_mode_s		_control_mode{};	/**< control mode */
 	vehicle_global_position_s	_global_pos{};		/**< global vehicle position */
@@ -190,9 +191,13 @@ private:
 		(ParamFloat<px4::params::USV_XY_VEL_P_ACC>) _param_pose_gain_x,
 		(ParamFloat<px4::params::USV_XY_VEL_P_ACC>) _param_pose_gain_y,
 		(ParamFloat<px4::params::USV_XY_VEL_P_ACC>) _param_pose_gain_z,
+		(ParamFloat<px4::params::USV_XY_VEL_P_ACC>) _param_yaw_p,
+
 		(ParamFloat<px4::params::USV_XY_VEL_D_ACC>) _param_pose_gain_d_x,
 		(ParamFloat<px4::params::USV_XY_VEL_D_ACC>) _param_pose_gain_d_y,
 		(ParamFloat<px4::params::USV_XY_VEL_D_ACC>) _param_pose_gain_d_z,
+
+		(ParamFloat<px4::params::USV_XY_VEL_D_ACC>) _param_yaw_d,
 
 		(ParamInt<px4::params::USV_INPUT_MODE>) _param_input_mode,
 		(ParamInt<px4::params::USV_STAB_MODE>) _param_stabilization,

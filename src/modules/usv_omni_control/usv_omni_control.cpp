@@ -146,7 +146,7 @@ void USVOmniControl::handleManualInputs(const manual_control_setpoint_s &manual_
 	// handle all the different modes that use manual_control_setpoint
 	if (_control_mode.flag_control_manual_enabled && !_control_mode.flag_control_rates_enabled) {
 		if (_control_mode.flag_control_attitude_enabled) {
-			/* stabilized control, att_sp -> controlAttitude */
+			/* stabilized yaw, att_sp -> controlAttitude */
 			// STABILIZED mode generate the attitude setpoint from manual user inputs
 			float dt = math::constrain(hrt_elapsed_time(&_manual_setpoint_last_called) * 1e-6f,  0.0002f, 0.04f);
 
@@ -159,16 +159,19 @@ void USVOmniControl::handleManualInputs(const manual_control_setpoint_s &manual_
 			} else {
 				const float yaw_rate = math::radians(_param_gnd_man_y_max.get());
 				_att_sp.yaw_sp_move_rate = manual_control_setpoint.yaw * yaw_rate;
-				_manual_yaw_sp = wrap_pi(_manual_yaw_sp + _att_sp.yaw_sp_move_rate * dt);
+				_manual_yaw_sp = matrix::wrap_pi(_manual_yaw_sp + _att_sp.yaw_sp_move_rate * dt);
 			}
 
 			_att_sp.roll_body = 0.0f;
 			_att_sp.pitch_body = 0.0f;
 			_att_sp.yaw_body = _manual_yaw_sp;
+
+			// TODO(not7cd): Do I need to rotate this to NED frame?
 			_att_sp.thrust_body[0] = normalizeJoystickThrottleInput(manual_control_setpoint.throttle);
 			_att_sp.thrust_body[1] = manual_control_setpoint.roll;
 			_att_sp.thrust_body[2] = 0.0f;
 
+			// TODO(not7cd): is this required? Can I move it to publishAttitudeSetpoint?
 			Quatf q(Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body));
 			q.copyTo(_att_sp.q_d);
 
@@ -287,27 +290,31 @@ bool USVOmniControl::controlPosition(
 					_pos_ctrl_state = STOPPING;  // We are closer than loiter radius to waypoint, stop.
 
 				} else {
-					matrix::Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
-					matrix::Vector2f curr_wp_local = _global_local_proj_ref.project(curr_wp(0), curr_wp(1));
-					matrix::Vector2f prev_wp_local = _global_local_proj_ref.project(prev_wp(0),
-									 prev_wp(1));
-					_gnd_control.navigate_waypoints(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed_2d);
+					// matrix::Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
+					// matrix::Vector2f curr_wp_local = _global_local_proj_ref.project(curr_wp(0), curr_wp(1));
+					// matrix::Vector2f prev_wp_local = _global_local_proj_ref.project(prev_wp(0),
+					// 				 prev_wp(1));
+					// TODO(not7cd): HOW DO I NAVIGATE?
+					// _gnd_control.navigate_waypoints(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed_2d);
 
-					_act_controls.control[actuator_controls_s::INDEX_THROTTLE] = mission_throttle;
+					// TODO(not7cd): Use att_sp?
+					// _act_controls.control[actuator_controls_s::INDEX_THROTTLE] = mission_throttle;
 
-					float desired_r = ground_speed_2d.norm_squared() / math::abs_t(_gnd_control.nav_lateral_acceleration_demand());
-					float desired_theta = (0.5f * M_PI_F) - atan2f(desired_r, _param_wheel_base.get());
-					float control_effort = (desired_theta / _param_max_turn_angle.get()) * sign(
-								       _gnd_control.nav_lateral_acceleration_demand());
-					control_effort = math::constrain(control_effort, -1.0f, 1.0f);
-					_act_controls.control[actuator_controls_s::INDEX_YAW] = control_effort;
+					// float desired_r = ground_speed_2d.norm_squared() / math::abs_t(_gnd_control.nav_lateral_acceleration_demand());
+					// float desired_theta = (0.5f * M_PI_F) - atan2f(desired_r, _param_wheel_base.get());
+					// float control_effort = (desired_theta / _param_max_turn_angle.get()) * sign(
+					// 			       _gnd_control.nav_lateral_acceleration_demand());
+					// TODO(not7cd): Use att_sp?
+					// control_effort = math::constrain(control_effort, -1.0f, 1.0f);
+					// _act_controls.control[actuator_controls_s::INDEX_YAW] = control_effort;
 				}
 			}
 			break;
 
 		case STOPPING: {
-				_act_controls.control[actuator_controls_s::INDEX_YAW] = 0.0f;
-				_act_controls.control[actuator_controls_s::INDEX_THROTTLE] = 0.0f;
+				// TODO(not7cd): Don't act_controls, let CA do it
+				// _act_controls.control[actuator_controls_s::INDEX_YAW] = 0.0f;
+				// _act_controls.control[actuator_controls_s::INDEX_THROTTLE] = 0.0f;
 				// Note _prev_wp is different to the local prev_wp which is related to a mission waypoint.
 				float dist_between_waypoints = get_distance_to_next_waypoint((double)_prev_wp(0), (double)_prev_wp(1),
 							       (double)curr_wp(0), (double)curr_wp(1));
@@ -392,7 +399,7 @@ void USVOmniControl::controlAttitude(
 
 void USVOmniControl::publishTorqueSetpoint(const Vector3f &torque_sp, const hrt_abstime &timestamp_sample)
 {
-	float scaling = _param_max_torque_ac.get();
+	float scaling = _param_scale_torque_ca.get();
 	vehicle_torque_setpoint_s result{};
 	result.timestamp_sample = timestamp_sample;
 	result.xyz[0] = 0.0f;
@@ -404,7 +411,7 @@ void USVOmniControl::publishTorqueSetpoint(const Vector3f &torque_sp, const hrt_
 
 void USVOmniControl::publishThrustSetpoint(const hrt_abstime &timestamp_sample)
 {
-	float scaling = _param_max_thrust_ac.get();
+	float scaling = _param_scale_thrust_ca.get();
 	vehicle_thrust_setpoint_s result{};
 	result.timestamp_sample = timestamp_sample;
 	_thrust_setpoint.copyTo(result.xyz);
@@ -418,8 +425,6 @@ void USVOmniControl::publishThrustSetpoint(const hrt_abstime &timestamp_sample)
 void USVOmniControl::publishAttitudeSetpoint(const Vector3f &thrust_body_sp,
 		const float roll_des, const float pitch_des, const float yaw_des)
 {
-	// I don't think we are doing scaling trick here
-	float scaling = _param_max_thrust_ac.get();
 	//watch if inputs are not to high
 	vehicle_attitude_setpoint_s result = {};
 	result.timestamp = hrt_absolute_time();
@@ -447,7 +452,7 @@ void USVOmniControl::Run()
 	perf_begin(_loop_perf);
 
 	/* check vehicle control mode for changes to publication state */
-	_vcontrol_mode_sub.update(&_control_mode);
+	_vehicle_control_mode_sub.update(&_control_mode);
 
 
 	/* update parameters from storage */
@@ -464,30 +469,34 @@ void USVOmniControl::Run()
 		    && _control_mode.flag_control_attitude_enabled
 		    && _control_mode.flag_control_rates_enabled) {
 
-			_vehicle_attitude_sub.update(&_vehicle_attitude);//get current vehicle attitude
-			_trajectory_setpoint_sub.update(&_trajectory_setpoint);
+			_vehicle_attitude_sub.update(&_att); // current vehicle attitude
+			_trajectory_setpoint_sub.update(&_trajectory_sp);
 
 			float roll_des = 0;
 			float pitch_des = 0;
-			float yaw_des = _trajectory_setpoint.yaw;
+			float yaw_des = _trajectory_sp.yaw;
 
 			//stabilization controller(keep pos and hold depth + angle) vs position controller(global + yaw)
 			if (_param_stabilization.get() == 0) {
-				poseController6dof(Vector3f(_trajectory_setpoint.position),
-						   roll_des, pitch_des, yaw_des, _vehicle_attitude, vlocal_pos);
+				poseController6dof(Vector3f(_trajectory_sp.position),
+						   roll_des, pitch_des, yaw_des, _att, vlocal_pos);
 
 			} else {
-				stabilizationController6dof(Vector3f(_trajectory_setpoint.position),
-							    roll_des, pitch_des, yaw_des, _vehicle_attitude, vlocal_pos);
+				stabilizationController6dof(Vector3f(_trajectory_sp.position),
+							    roll_des, pitch_des, yaw_des, _att, vlocal_pos);
 			}
 		}
 	}
 
 	/* Manual Control mode (e.g. gamepad,...) - raw feedthrough no assistance */
-	if (_manual_control_setpoint_sub.update(&_manual_control_setpoint)) {
+	manual_control_setpoint_s manual_control_sp;
+
+	if (_manual_control_setpoint_sub.update(&manual_control_sp)) {
 		// This should be copied even if not in manual mode. Otherwise, the poll(...) call will keep
 		// returning immediately and this loop will eat up resources.
-		handleManualInputs(_manual_control_setpoint);
+
+		// NOTE: all control remapping could be done here, while handleManualInputs could become generic handler for omni vehicles
+		handleManualInputs(manual_control_sp);
 	}
 
 	// Respond to an attitude update and run the attitude controller if enabled
