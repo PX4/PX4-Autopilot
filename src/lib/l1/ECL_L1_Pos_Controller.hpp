@@ -84,14 +84,6 @@ public:
 	float nav_lateral_acceleration_demand() { return _lateral_accel; }
 
 	/**
-	 * Heading error.
-	 *
-	 * The heading error is either compared to the current track
-	 * or to the tangent of the current loiter radius.
-	 */
-	float bearing_error() { return _bearing_error; }
-
-	/**
 	 * Bearing from aircraft to current target.
 	 *
 	 * @return bearing angle (-pi..pi, in NED frame)
@@ -99,28 +91,11 @@ public:
 	float target_bearing() { return _target_bearing; }
 
 	/**
-	 * Get roll angle setpoint for fixed wing.
-	 *
-	 * @return Roll angle (in NED frame)
-	 */
-	float get_roll_setpoint() { return _roll_setpoint; }
-
-	/**
 	 * Get the current crosstrack error.
 	 *
 	 * @return Crosstrack error in meters.
 	 */
 	float crosstrack_error() { return _crosstrack_error; }
-
-	/**
-	 * Returns true if the loiter waypoint has been reached
-	 */
-	bool reached_loiter_target() { return _circle_mode; }
-
-	/**
-	 * Returns true if following a circle (loiter)
-	 */
-	bool circle_mode() { return _circle_mode; }
 
 	/**
 	 * Get the switch distance
@@ -145,35 +120,6 @@ public:
 	 */
 	void navigate_waypoints(const matrix::Vector2f &vector_A, const matrix::Vector2f &vector_B,
 				const matrix::Vector2f &vector_curr_position, const matrix::Vector2f &ground_speed);
-	/**
-	 * Navigate on an orbit around a loiter waypoint.
-	 *
-	 * This allow orbits smaller than the L1 length,
-	 * this modification was introduced in [2].
-	 *
-	 * @return sets _lateral_accel setpoint
-	 */
-	void navigate_loiter(const matrix::Vector2f &vector_A, const matrix::Vector2f &vector_curr_position, float radius,
-			     const bool loiter_direction_counter_clockwise, const matrix::Vector2f &ground_speed_vector);
-
-	/**
-	 * Navigate on a fixed bearing.
-	 *
-	 * This only holds a certain direction and does not perform cross
-	 * track correction. Helpful for semi-autonomous modes. Introduced
-	 * by [2].
-	 *
-	 * @return sets _lateral_accel setpoint
-	 */
-	void navigate_heading(float navigation_heading, float current_heading, const matrix::Vector2f &ground_speed);
-
-	/**
-	 * Keep the wings level.
-	 *
-	 * This is typically needed for maximum-lift-demand situations,
-	 * such as takeoff or near stall. Introduced in [2].
-	 */
-	void navigate_level_flight(float current_heading);
 
 	/**
 	 * Set the L1 period.
@@ -187,32 +133,11 @@ public:
 	 */
 	void set_l1_damping(float damping);
 
-	/**
-	 * Set the maximum roll angle output in radians
-	 */
-	void set_l1_roll_limit(float roll_lim_rad) { _roll_lim_rad = roll_lim_rad; }
-
-	/**
-	 * Set roll angle slew rate. Set to zero to deactivate.
-	 */
-	void set_roll_slew_rate(float roll_slew_rate) { _roll_slew_rate = roll_slew_rate; }
-
-	/**
-	 * Set control loop dt. The value will be used to apply roll angle setpoint slew rate limiting.
-	 */
-	void set_dt(float dt) { _dt = dt;}
-
-	void reset_has_guidance_updated() { _has_guidance_updated = false; }
-
-	bool has_guidance_updated() { return _has_guidance_updated; }
-
 private:
 
 	float _lateral_accel{0.0f};		///< Lateral acceleration setpoint in m/s^2
 	float _L1_distance{20.0f};		///< L1 lead distance, defined by period and damping
-	bool _circle_mode{false};		///< flag for loiter mode
 	float _nav_bearing{0.0f};		///< bearing to L1 reference point
-	float _bearing_error{0.0f};		///< bearing error
 	float _crosstrack_error{0.0f};	///< crosstrack error in meters
 	float _target_bearing{0.0f};		///< the heading setpoint
 
@@ -221,21 +146,6 @@ private:
 	float _L1_ratio{5.0f};		///< L1 ratio for navigation
 	float _K_L1{2.0f};			///< L1 control gain for _L1_damping
 	float _heading_omega{1.0f};		///< Normalized frequency
-
-	float _roll_lim_rad{math::radians(30.0f)};  ///<maximum roll angle in radians
-	float _roll_setpoint{0.0f};	///< current roll angle setpoint in radians
-	float _roll_slew_rate{0.0f};	///< roll angle setpoint slew rate limit in rad/s
-	float _dt{0};				///< control loop time in seconds
-
-	bool _has_guidance_updated =
-		false;	///< this flag is set to true by any of the guidance methods. This flag has to be manually reset using has_guidance_updated_reset()
-
-	/**
-	 * Update roll angle setpoint. This will also apply slew rate limits if set.
-	 *
-	 */
-	void update_roll_setpoint();
-
 };
 
 
