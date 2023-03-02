@@ -503,11 +503,14 @@ void USVOmniControl::Run()
 	if (_control_mode.flag_control_attitude_enabled
 	    && !_control_mode.flag_control_position_enabled
 	    && !_control_mode.flag_control_velocity_enabled) {
-		if (_angular_velocity_sub.update(&_angular_vel) && _rates_setpoint_sub.update(&_rates_sp)) {
-			controlAttitude(_att, _att_sp, _angular_velocity, _rates_sp);
+		vehicle_angular_velocity_s angular_vel;
+		vehicle_rates_setpoint_s rates_sp;
+
+		if (_vehicle_angular_velocity_sub.update(&angular_vel) && _vehicle_rates_setpoint_sub.update(&rates_sp)) {
+			controlAttitude(_att, _att_sp, angular_vel, rates_sp);
 
 		} else {
-			PX4_ERROR("Failed to pool angular velocity and rates setpoint");
+			PX4_ERR("Failed to pool angular velocity and rates setpoint");
 		}
 	}
 
