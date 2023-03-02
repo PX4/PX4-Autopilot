@@ -128,7 +128,8 @@ void USVOmniControl::stabilizationController6dof(const Vector3f &pos_des,
 
 }
 
-float normalizeJoystickThrottleInput(float manual_control_throttle) {
+float normalizeJoystickThrottleInput(float manual_control_throttle)
+{
 	// thrust normalization for joystick input by afwilkin · Pull Request #20885 · PX4/PX4-Autopilot
 	// https://github.com/PX4/PX4-Autopilot/pull/20885
 	return (manual_control_throttle + 1.f) * .5f
@@ -140,7 +141,35 @@ void USVOmniControl::handleManualInputs(const manual_control_setpoint_s &manual_
 	// handle all the different modes that use manual_control_setpoint
 	if (_control_mode.flag_control_manual_enabled && !_control_mode.flag_control_rates_enabled) {
 		if (_control_mode.flag_control_attitude_enabled) {
-			/* supported control */
+			/* stabilized control, att_sp -> controlAttitude */
+			// STABILIZED mode generate the attitude setpoint from manual user inputs
+			_att_sp.roll_body = 0.0f;
+			_att_sp.pitch_body = 0.0f;
+
+			/* reset yaw setpoint to current position if needed */
+			if (_reset_yaw_sp) {
+				const float vehicle_yaw = Eulerf(Quatf(_att.q)).psi();
+				_manual_yaw_sp = vehicle_yaw;
+				_reset_yaw_sp = false;
+
+			} else {
+				const float yaw_rate = math::radians(_param_gnd_man_y_max.get());
+				_att_sp.yaw_sp_move_rate = _manual_control_setpoint.yaw * yaw_rate;
+				_manual_yaw_sp = wrap_pi(_manual_yaw_sp + _att_sp.yaw_sp_move_rate * dt);
+			}
+
+			_att_sp.yaw_body = _manual_yaw_sp;
+			// TODO(not7cd): Should this be rotated?
+			_att_sp.thrust_body[0] = normalizeJoystickThrottleInput(manual_control_setpoint.throttle);
+			_att_sp.thrust_body[1] = manual_control_setpoint.roll;
+
+			Quatf q(Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body));
+			q.copyTo(_att_sp.q_d);
+
+			_att_sp.timestamp = hrt_absolute_time();
+
+			_att_sp_pub.publish(_att_sp);
+			// TODO: ??? publishAttitudeSetpoint();
 
 		} else {
 			/* direct control */
@@ -195,6 +224,7 @@ bool USVOmniControl::controlPosition(
 
 		/* previous waypoint */
 		matrix::Vector2d prev_wp = curr_wp;
+
 		if (pos_sp_triplet.previous.valid) {
 			prev_wp(0) = pos_sp_triplet.previous.lat;
 			prev_wp(1) = pos_sp_triplet.previous.lon;
@@ -303,6 +333,7 @@ bool USVOmniControl::controlPosition(
 
 void USVOmniControl::controlVelocity(const matrix::Vector3f &current_velocity)
 {
+	// TODO(not7cd): do something with trajectory setpoint here
 }
 
 void USVOmniControl::controlAttitude(
@@ -395,7 +426,7 @@ void USVOmniControl::publishAttitudeSetpoint(const Vector3f &thrust_body_sp,
 
 	result.thrust_body[0] = (PX4_ISFINITE(thrust_body_sp(0))) ? thrust_body_sp(0) : 0.0f;
 	result.thrust_body[1] = (PX4_ISFINITE(thrust_body_sp(1))) ? thrust_body_sp(1) : 0.0f;
-	result.thrust_body[2] = 0.0f; // Ignore Z axnis, because we are grounded
+	result.thrust_body[2] = 0.0f; // Ignore Z axis, because we are grounded
 
 	_att_sp_pub.publish(result);
 }
@@ -458,7 +489,12 @@ void USVOmniControl::Run()
 	if (_control_mode.flag_control_attitude_enabled
 	    && !_control_mode.flag_control_position_enabled
 	    && !_control_mode.flag_control_velocity_enabled) {
-		controlAttitude(_att, _att_sp, _angular_velocity, _rates_sp);
+		if (_angular_velocity_sub.update(&_angular_vel) && _rates_setpoint_sub.update(&_rates_sp)) {
+			controlAttitude(_att, _att_sp, _angular_velocity, _rates_sp);
+
+		} else {
+			PX4_ERROR("Failed to pool angular velocity and rates setpoint");
+		}
 	}
 
 	/* Only publish if any of the proper modes are enabled */
