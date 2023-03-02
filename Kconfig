@@ -175,6 +175,9 @@ menu "Serial ports"
     config BOARD_SERIAL_TEL5
         string "TEL5 tty port"
 
+    config BOARD_SERIAL_USB
+        string "USB tty port"
+
     config BOARD_SERIAL_RC
         string "RC tty port"
 
