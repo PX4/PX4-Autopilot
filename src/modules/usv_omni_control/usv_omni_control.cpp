@@ -134,7 +134,11 @@ void USVOmniControl::handleManualInputs(const manual_control_setpoint_s &manual_
 	// TODO: POSITION MODE, MANUAL MODE
 	// handle all the different modes that use manual_control_setpoint
 	if (_control_mode.flag_control_manual_enabled && !_control_mode.flag_control_rates_enabled) {
-		/* manual/direct control */
+		if (_control_mode.flag_control_attitude_enabled) {
+			/* supported control */
+
+		} else {
+			/* direct control */
 		_thrust_setpoint.setAll(0.0f);
 		_thrust_setpoint(0) = manual_control_setpoint.throttle;
 		_thrust_setpoint(1) = manual_control_setpoint.roll;
@@ -142,6 +146,7 @@ void USVOmniControl::handleManualInputs(const manual_control_setpoint_s &manual_
 		_torque_setpoint.setAll(0.0f);
 		_torque_setpoint(0) = manual_control_setpoint.yaw;
 	}
+}
 }
 
 void USVOmniControl::handleVelocityInputs()
@@ -206,7 +211,7 @@ bool USVOmniControl::controlPosition(
 			}
 
 			// Velocity in body frame
-			const Dcmf R_to_body(Quatf(_vehicle_att.q).inversed());
+			const Dcmf R_to_body(Quatf(_att.q).inversed());
 			const Vector3f vel = R_to_body * Vector3f(ground_speed(0), ground_speed(1), ground_speed(2));
 
 			const float x_vel = vel(0);
@@ -242,9 +247,9 @@ bool USVOmniControl::controlPosition(
 					_pos_ctrl_state = STOPPING;  // We are closer than loiter radius to waypoint, stop.
 
 				} else {
-					Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
-					Vector2f curr_wp_local = _global_local_proj_ref.project(curr_wp(0), curr_wp(1));
-					Vector2f prev_wp_local = _global_local_proj_ref.project(prev_wp(0),
+					matrix::Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
+					matrix::Vector2f curr_wp_local = _global_local_proj_ref.project(curr_wp(0), curr_wp(1));
+					matrix::Vector2f prev_wp_local = _global_local_proj_ref.project(prev_wp(0),
 								 prev_wp(1));
 					_gnd_control.navigate_waypoints(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed_2d);
 
@@ -448,7 +453,7 @@ void USVOmniControl::Run()
 	if (_control_mode.flag_control_attitude_enabled
 	    && !_control_mode.flag_control_position_enabled
 	    && !_control_mode.flag_control_velocity_enabled) {
-		controlAttitude(_att, _att_sp);
+		controlAttitude(_att, _att_sp, _angular_velocity, _rates_sp);
 	}
 
 	/* Only publish if any of the proper modes are enabled */

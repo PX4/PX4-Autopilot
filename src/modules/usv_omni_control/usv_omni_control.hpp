@@ -126,6 +126,7 @@ private:
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};		/**< vehicle status subscription */
 
 	uORB::SubscriptionCallbackWorkItem _vehicle_local_position_sub{this, ORB_ID(vehicle_local_position)};
+	uORB::SubscriptionData<vehicle_acceleration_s>		_vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 
 
 	// Inputs, setpoints
@@ -142,7 +143,34 @@ private:
 	matrix::Vector3f _torque_setpoint{};
 
 	perf_counter_t	_loop_perf;
-	hrt_abstime _control_position_last_called;
+
+	hrt_abstime _control_position_last_called{0}; 	/**<last call of control_position  */
+	hrt_abstime _manual_setpoint_last_called{0};
+
+	MapProjection _global_local_proj_ref{};
+	float                      _global_local_alt0{NAN};
+
+	/* Pid controller for the speed. Here we assume we can control airspeed but the control variable is actually on
+	 the throttle. For now just assuming a proportional scaler between controlled airspeed and throttle output.*/
+	PID_t _speed_ctrl{};
+
+	enum UGV_POSCTRL_MODE {
+		UGV_POSCTRL_MODE_AUTO,
+		UGV_POSCTRL_MODE_OTHER
+	} _control_mode_current{UGV_POSCTRL_MODE_OTHER};
+
+	enum POS_CTRLSTATES {
+		GOTO_WAYPOINT,
+		STOPPING
+	} _pos_ctrl_state {STOPPING};			/// Position control state machine
+
+	/* previous waypoint */
+	matrix::Vector2d _prev_wp{0, 0};
+
+	enum class VelocityFrame {
+		NED,
+		BODY,
+	} _velocity_frame{VelocityFrame::NED};
 
 	DEFINE_PARAMETERS(
 		// These are used as a hacky way to not oversaturate c
@@ -165,7 +193,26 @@ private:
 
 		(ParamInt<px4::params::USV_INPUT_MODE>) _param_input_mode,
 		(ParamInt<px4::params::USV_STAB_MODE>) _param_stabilization,
-		(ParamInt<px4::params::USV_SKIP_CTRL>) _param_skip_ctrl
+		(ParamInt<px4::params::USV_SKIP_CTRL>) _param_skip_ctrl,
+
+		(ParamFloat<px4::params::GND_SPEED_TRIM>) _param_gndspeed_trim,
+		(ParamFloat<px4::params::GND_SPEED_MAX>) _param_gndspeed_max,
+
+		(ParamInt<px4::params::GND_SP_CTRL_MODE>) _param_speed_control_mode,
+		(ParamFloat<px4::params::GND_SPEED_P>) _param_speed_p,
+		(ParamFloat<px4::params::GND_SPEED_I>) _param_speed_i,
+		(ParamFloat<px4::params::GND_SPEED_D>) _param_speed_d,
+		(ParamFloat<px4::params::GND_SPEED_IMAX>) _param_speed_imax,
+		(ParamFloat<px4::params::GND_SPEED_THR_SC>) _param_throttle_speed_scaler,
+
+		(ParamFloat<px4::params::GND_THR_MIN>) _param_throttle_min,
+		(ParamFloat<px4::params::GND_THR_MAX>) _param_throttle_max,
+		(ParamFloat<px4::params::GND_THR_CRUISE>) _param_throttle_cruise,
+
+		(ParamFloat<px4::params::GND_WHEEL_BASE>) _param_wheel_base,
+		(ParamFloat<px4::params::GND_MAX_ANG>) _param_max_turn_angle,
+		(ParamFloat<px4::params::GND_MAN_Y_MAX>) _param_gnd_man_y_max,
+		(ParamFloat<px4::params::NAV_LOITER_RAD>) _param_nav_loiter_rad	/**< loiter radius for Rover */
 	)
 
 	void Run() override;
