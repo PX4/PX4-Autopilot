@@ -76,7 +76,6 @@ void Standard::update_vtol_state()
 		// Failsafe event, engage mc motors immediately
 		_vtol_mode = vtol_mode::MC_MODE;
 		_pusher_throttle = 0.0f;
-		_reverse_output = 0.0f;
 
 	} else if (!_attc->is_fixed_wing_requested()) {
 
@@ -85,20 +84,17 @@ void Standard::update_vtol_state()
 			// in mc mode
 			_vtol_mode = vtol_mode::MC_MODE;
 			mc_weight = 1.0f;
-			_reverse_output = 0.0f;
 
 		} else if (_vtol_mode == vtol_mode::FW_MODE) {
 			// Regular backtransition
 			resetTransitionStates();
 			_vtol_mode = vtol_mode::TRANSITION_TO_MC;
-			_reverse_output = _param_vt_b_rev_out.get();
 
 		} else if (_vtol_mode == vtol_mode::TRANSITION_TO_FW) {
 			// failsafe back to mc mode
 			_vtol_mode = vtol_mode::MC_MODE;
 			mc_weight = 1.0f;
 			_pusher_throttle = 0.0f;
-			_reverse_output = 0.0f;
 
 		} else if (_vtol_mode == vtol_mode::TRANSITION_TO_MC) {
 			// speed exit condition: use ground if valid, otherwise airspeed
@@ -250,12 +246,6 @@ void Standard::update_transition_state()
 
 		_pusher_throttle = 0.0f;
 
-		if (_time_since_trans_start >= _param_vt_b_rev_del.get()) {
-			// Handle throttle reversal for active breaking
-			_pusher_throttle = math::constrain((_time_since_trans_start - _param_vt_b_rev_del.get())
-							   * _param_vt_psher_slew.get(), 0.0f, _param_vt_b_trans_thr.get());
-		}
-
 		// continually increase mc attitude control as we transition back to mc mode
 		if (_param_vt_b_trans_ramp.get() > FLT_EPSILON) {
 			mc_weight = _time_since_trans_start / _param_vt_b_trans_ramp.get();
@@ -335,7 +325,6 @@ void Standard::fill_actuator_outputs()
 		fw_out[actuator_controls_s::INDEX_THROTTLE]     = _pusher_throttle;
 		fw_out[actuator_controls_s::INDEX_FLAPS]        = _flaps_setpoint_with_slewrate.getState();
 		fw_out[actuator_controls_s::INDEX_SPOILERS]    	= _spoiler_setpoint_with_slewrate.getState();
-		fw_out[actuator_controls_s::INDEX_AIRBRAKES]    = _reverse_output;
 
 		break;
 
