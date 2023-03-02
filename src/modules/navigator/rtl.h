@@ -121,7 +121,7 @@ private:
 	void advance_rtl();
 
 	float calculate_return_alt_from_cone_half_angle(float cone_half_angle_deg);
-	void calc_and_pub_rtl_time_estimate(const RTLState rtl_state);
+	void calcRtlTimeEstimate(const RTLState rtl_state, rtl_time_estimate_s &rtl_time_estimate);
 
 	float getCruiseGroundSpeed();
 
