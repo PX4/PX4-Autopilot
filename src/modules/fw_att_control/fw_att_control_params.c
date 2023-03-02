@@ -82,10 +82,7 @@ PARAM_DEFINE_FLOAT(FW_R_TC, 0.4f);
 PARAM_DEFINE_FLOAT(FW_P_TC, 0.4f);
 
 /**
- * Maximum positive / up pitch rate.
- *
- * This limits the maximum pitch up angular rate the controller will output (in
- * degrees per second).
+ * Maximum positive / up pitch rate setpoint
  *
  * @unit deg/s
  * @min 0.0
@@ -97,10 +94,7 @@ PARAM_DEFINE_FLOAT(FW_P_TC, 0.4f);
 PARAM_DEFINE_FLOAT(FW_P_RMAX_POS, 60.0f);
 
 /**
- * Maximum negative / down pitch rate.
- *
- * This limits the maximum pitch down up angular rate the controller will
- * output (in degrees per second).
+ * Maximum negative / down pitch rate setpoint
  *
  * @unit deg/s
  * @min 0.0
@@ -112,10 +106,7 @@ PARAM_DEFINE_FLOAT(FW_P_RMAX_POS, 60.0f);
 PARAM_DEFINE_FLOAT(FW_P_RMAX_NEG, 60.0f);
 
 /**
- * Maximum roll rate
- *
- * This limits the maximum roll rate the controller will output (in degrees per
- * second).
+ * Maximum roll rate setpoint
  *
  * @unit deg/s
  * @min 0.0
@@ -127,10 +118,7 @@ PARAM_DEFINE_FLOAT(FW_P_RMAX_NEG, 60.0f);
 PARAM_DEFINE_FLOAT(FW_R_RMAX, 70.0f);
 
 /**
- * Maximum yaw rate
- *
- * This limits the maximum yaw rate the controller will output (in degrees per
- * second).
+ * Maximum yaw rate setpoint
  *
  * @unit deg/s
  * @min 0.0

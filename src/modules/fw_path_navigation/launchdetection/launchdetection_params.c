@@ -69,8 +69,7 @@ PARAM_DEFINE_FLOAT(FW_LAUN_AC_T, 0.05f);
 /**
  * Motor delay
  *
- * Delay between starting attitude control and powering up the throttle (giving throttle control to the controller)
- * Before this timespan is up the throttle will be set to FW_THR_IDLE, set to 0 to deactivate
+ * Start the motor(s) this amount of seconds after launch is detected.
  *
  * @unit s
  * @min 0.0
