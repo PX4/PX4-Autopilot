@@ -88,32 +88,6 @@ PARAM_DEFINE_FLOAT(VT_FWD_THRUST_SC, 0.7f);
 PARAM_DEFINE_FLOAT(VT_B_TRANS_RAMP, 3.0f);
 
 /**
- * Reverse thrust output during back transition
- *
- * @min 0
- * @max 1
- * @increment 0.01
- * @decimal 2
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_FLOAT(VT_B_REV_OUT, 0.0f);
-
-
-/**
- * Delay in seconds before applying back transition throttle
- *
- * Set this to a value greater than 0 to give the motor time to spin down.
- *
- * @unit s
- * @min 0
- * @max 10
- * @increment 1
- * @decimal 2
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_FLOAT(VT_B_REV_DEL, 0.0f);
-
-/**
  * Pusher throttle ramp up slew rate
  *
  * Defines the slew rate of the puller/pusher throttle during transitions.

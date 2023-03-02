@@ -348,10 +348,9 @@ MissionBlock::is_mission_item_reached_or_completed()
 						       _navigator->get_local_position()->vy * _navigator->get_local_position()->vy);
 
 				const float back_trans_dec = _navigator->get_vtol_back_trans_deceleration();
-				const float reverse_delay = _navigator->get_vtol_reverse_delay();
 
 				if (back_trans_dec > FLT_EPSILON && velocity > FLT_EPSILON) {
-					acceptance_radius = ((velocity / back_trans_dec / 2) * velocity) + reverse_delay * velocity;
+					acceptance_radius = (velocity / back_trans_dec / 2) * velocity;
 
 				}
 
