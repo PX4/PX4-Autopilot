@@ -93,7 +93,6 @@ void RoverPositionControl::parameters_update(bool force)
 
 		_gnd_control.set_l1_damping(_param_l1_damping.get());
 		_gnd_control.set_l1_period(_param_l1_period.get());
-		_gnd_control.set_l1_roll_limit(math::radians(0.0f));
 
 		pid_init(&_speed_ctrl, PID_MODE_DERIVATIV_CALC, 0.01f);
 		pid_set_parameters(&_speed_ctrl,
@@ -214,9 +213,6 @@ RoverPositionControl::control_position(const matrix::Vector2d &current_position,
 		/* AUTONOMOUS FLIGHT */
 
 		_control_mode_current = UGV_POSCTRL_MODE_AUTO;
-
-		/* get circle mode */
-		//bool was_circle_mode = _gnd_control.circle_mode();
 
 		/* current waypoint (the one currently heading for) */
 		matrix::Vector2d curr_wp(pos_sp_triplet.current.lat, pos_sp_triplet.current.lon);
