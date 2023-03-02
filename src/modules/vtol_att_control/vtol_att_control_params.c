@@ -112,9 +112,6 @@ PARAM_DEFINE_FLOAT(VT_F_TRANS_THR, 1.0f);
  *
  * tailsitter, tiltrotor: main throttle
  *
- * Note for standard vtol:
- * For ESCs and mixers that support reverse thrust on low PWM values set this to a negative value to apply active breaking
- * For ESCs that support thrust reversal with a control channel please set VT_B_REV_OUT and set this to a positive value to apply active breaking
  *
  * @min -1
  * @max 1
@@ -128,7 +125,7 @@ PARAM_DEFINE_FLOAT(VT_B_TRANS_THR, 0.0f);
  * Approximate deceleration during back transition
  *
  * The approximate deceleration during a back transition in m/s/s
- * Used to calculate back transition distance in mission mode. A lower value will make the VTOL transition further from the destination waypoint.
+ * Used to calculate back transition distance in an auto mode.
  * For standard vtol and tiltrotors a controller is used to track this value during the transition.
  *
  * @unit m/s^2
@@ -279,11 +276,9 @@ PARAM_DEFINE_INT32(VT_FW_QC_R, 0);
 /**
  * Quad-chute maximum height
  *
- * Maximum height above the ground (if available, otherwhise above home if available, otherwise above the local origin) where triggering a quadchute is possible.
- * Triggering a quadchute always means transitioning the vehicle to hover flight in which generally a lot of energy is consumed.
- * At high altitudes there is therefore a big risk to deplete the battery and therefore crash. Currently, there is no automated
- * re-transition to fixed wing mode implemented and therefore this parameter serves and an intermediate measure to increase safety.
- * Setting this value to 0 deactivates the behavior (always enable quad-chute independently of altitude).
+ * Maximum height above the ground (if available, otherwhise above
+ * home if available, otherwise above the local origin) where triggering a quadchute is possible.
+ * At high altitudes there is a big risk to deplete the battery and therefore crash if in quad-chuting there.
  *
  * @unit m
  * @min 0
@@ -325,8 +320,6 @@ PARAM_DEFINE_INT32(VT_FW_DIFTHR_EN, 0);
 /**
  * Roll differential thrust factor in forward flight
  *
- * Maps the roll control output in forward flight to the actuator differential thrust output.
- *
  * Differential thrust in forward flight is enabled via VT_FW_DIFTHR_EN.
  *
  * @min 0.0
@@ -340,8 +333,6 @@ PARAM_DEFINE_FLOAT(VT_FW_DIFTHR_S_R, 1.f);
 /**
  * Pitch differential thrust factor in forward flight
  *
- * Maps the pitch control output in forward flight to the actuator differential thrust output.
- *
  * Differential thrust in forward flight is enabled via VT_FW_DIFTHR_EN.
  *
  * @min 0.0
@@ -354,8 +345,6 @@ PARAM_DEFINE_FLOAT(VT_FW_DIFTHR_S_P, 1.f);
 
 /**
  * Yaw differential thrust factor in forward flight
- *
- * Maps the yaw control output in forward flight to the actuator differential thrust output.
  *
  * Differential thrust in forward flight is enabled via VT_FW_DIFTHR_EN.
  *
@@ -412,7 +401,7 @@ PARAM_DEFINE_FLOAT(VT_PITCH_MIN, -5.0f);
 /**
  * Minimum pitch angle during hover landing.
  *
- * Overrides  VT_PITCH_MIN when the vehicle is in LAND mode (hovering).
+ * Overrides VT_PITCH_MIN when the vehicle is in LAND mode (hovering).
  * During landing it can be beneficial to allow lower minimum pitch angles as it can avoid the wings
  * generating too much lift and preventing the vehicle from sinking at the desired rate.
  *

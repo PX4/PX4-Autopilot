@@ -41,10 +41,10 @@
 
 
 /**
- * Enable usage of fixed-wing actuators in hover to generate forward force (instead of pitching down).
+ * Use fixed-wing actuation in hover to accelerate forward
  *
- * This feature can be used to avoid the plane having to pitch down in order to move forward,
- * and prevents large, negative lift values being created when facing strong winds.
+ * This feature can be used to avoid the plane having to pitch down in order to move forward.
+ * Prevents large, negative lift from pitching down into wind.
  * Fixed-wing forward actuators refers to puller/pusher (standard VTOL), or forward-tilt (tiltrotor VTOL).
  * Only active if demanded down pitch is below VT_PITCH_MIN.
  * Use VT_FWD_THRUST_SC to tune it.
@@ -64,10 +64,9 @@
 PARAM_DEFINE_INT32(VT_FWD_THRUST_EN, 0);
 
 /**
- * Fixed-wing actuator thrust scale for hover forward flight.
+ * Fixed-wing actuation thrust scale for hover forward flight
  *
  * Scale applied to the demanded down-pitch to get the fixed-wing forward actuation in hover mode.
- * Only active if demaded down pitch is below VT_PITCH_MIN.
  * Enabled via VT_FWD_THRUST_EN.
  *
  * @min 0.0
@@ -89,10 +88,7 @@ PARAM_DEFINE_FLOAT(VT_FWD_THRUST_SC, 0.7f);
 PARAM_DEFINE_FLOAT(VT_B_TRANS_RAMP, 3.0f);
 
 /**
- * Output on airbrakes channel during back transition
- *
- * Used for airbrakes or with ESCs that have reverse thrust enabled on a separate channel.
- * Airbrakes need to be enabled for your selected model/mixer.
+ * Reverse thrust output during back transition
  *
  * @min 0
  * @max 1
