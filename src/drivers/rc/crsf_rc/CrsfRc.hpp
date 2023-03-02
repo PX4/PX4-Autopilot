@@ -103,6 +103,7 @@ private:
 	hrt_abstime _telemetry_update_last{0};
 	static constexpr int num_data_types{4}; ///< number of different telemetry data types
 	int _next_type{0};
+	static uint32_t baudrate;
 	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};

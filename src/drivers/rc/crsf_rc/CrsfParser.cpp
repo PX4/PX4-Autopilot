@@ -43,6 +43,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
+#include <px4_log.h>
+
 #include "QueueBuffer.hpp"
 #include "CrsfParser.hpp"
 #include "Crc8.hpp"
@@ -186,11 +188,22 @@ static bool ProcessChannelData(const uint8_t *data, const uint32_t size, CrsfPac
 	raw_channels[14] = (data[19] >> 2 | data[20] << 6) & 0x07FF;
 	raw_channels[15] = (data[20] >> 5 | data[21] << 3) & 0x07FF;
 
+	static uint32_t debug_counter = 0;
+
 	for (i = 0; i < CRSF_CHANNEL_COUNT; i++) {
 		raw_channels[i] = ConstrainF(raw_channels[i], CRSF_CHANNEL_VALUE_MIN, CRSF_CHANNEL_VALUE_MAX);
+	}
+
+	if ((debug_counter % 2000000) == 0) {
+		PX4_INFO("Constrained RC channels %f %f %f %f", (double) raw_channels[0], (double) raw_channels[1], (double) raw_channels[2], (double) raw_channels[3]);
+	}
+
+	for (i = 0; i < CRSF_CHANNEL_COUNT; i++) {
 		new_packet->channel_data.channels[i] = MapF((float)raw_channels[i], CRSF_CHANNEL_VALUE_MIN, CRSF_CHANNEL_VALUE_MAX,
 						       1000.0f, 2000.0f);
 	}
+
+	debug_counter++;
 
 	return true;
 }

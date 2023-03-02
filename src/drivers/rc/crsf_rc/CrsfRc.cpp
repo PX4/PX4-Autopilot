@@ -48,7 +48,8 @@
 
 using namespace time_literals;
 
-#define CRSF_BAUDRATE 420000
+#define CRSF_BAUDRATE 250000
+uint32_t CrsfRc::baudrate = CRSF_BAUDRATE;
 
 CrsfRc::CrsfRc(const char *device) :
 	ModuleParams(nullptr),
@@ -75,10 +76,15 @@ int CrsfRc::task_spawn(int argc, char *argv[])
 	const char *myoptarg = nullptr;
 	const char *device_name = nullptr;
 
-	while ((ch = px4_getopt(argc, argv, "d:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "d:b:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'd':
 			device_name = myoptarg;
+			break;
+
+		case 'b':
+			baudrate = atoi(myoptarg);
+			PX4_INFO("Setting CRSF baudrate to %u", baudrate);
 			break;
 
 		case '?':
@@ -128,7 +134,7 @@ void CrsfRc::Run()
 
 	if (_rc_fd < 0) {
 		// _rc_fd = ::open(_device, O_RDWR | O_NONBLOCK);
-		_rc_fd = qurt_uart_open(_device, 115200);
+		_rc_fd = qurt_uart_open(_device, baudrate);
 
 		if (_rc_fd < 0) {
 			PX4_ERR("Error opening port: %s", _device);
