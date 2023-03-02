@@ -69,8 +69,6 @@ PARAM_DEFINE_FLOAT(FW_AIRSPD_MIN, 10.0f);
  * Maximum Airspeed (CAS)
  *
  * The maximal airspeed (calibrated airspeed) the user is able to command.
- * Further, if the airspeed is above this value, the TECS controller will try to decrease
- * airspeed more aggressively.
  *
  * @unit m/s
  * @min 0.5
@@ -84,21 +82,20 @@ PARAM_DEFINE_FLOAT(FW_AIRSPD_MAX, 20.0f);
 /**
  * Airspeed mode
  *
- * For small wings or VTOL without airspeed sensor this parameter can be used to
+ * On vehicles without airspeed sensor this parameter can be used to
  * enable flying without an airspeed reading
  *
- * @value 0 Normal (use airspeed if available)
- * @value 1 Airspeed disabled
+ * @value 0 Use airspeed in controller
+ * @value 1 Do not use airspeed in controller
  * @group FW Attitude Control
  */
 PARAM_DEFINE_INT32(FW_ARSP_MODE, 0);
 
 /**
- * Cruise Airspeed (CAS)
+ * Trim (Cruise) Airspeed
  *
  * The trim CAS (calibrated airspeed) of the vehicle. If an airspeed controller is active,
- * this is the default airspeed setpoint that the controller will try to achieve if
- * no other airspeed setpoint sources are present (e.g. through non-centered RC sticks).
+ * this is the default airspeed setpoint that the controller will try to achieve.
  *
  * @unit m/s
  * @min 0.5
@@ -128,8 +125,6 @@ PARAM_DEFINE_FLOAT(FW_AIRSPD_STALL, 7.0f);
 /**
  * Pitch rate proportional gain.
  *
- * Pitch rate proportional gain, i.e. control output for angular speed error 1 rad/s.
- *
  * @unit %/rad/s
  * @min 0.0
  * @max 1.0
@@ -142,7 +137,8 @@ PARAM_DEFINE_FLOAT(FW_PR_P, 0.08f);
 /**
  * Pitch rate derivative gain.
  *
- * Pitch rate differential gain. Small values help reduce fast oscillations. If value is too big oscillations will appear again.
+ * Pitch rate differential gain. Small values help reduce fast oscillations.
+ * If value is too big oscillations will appear again.
  *
  * @unit %/rad/s
  * @min 0.0
@@ -185,8 +181,6 @@ PARAM_DEFINE_FLOAT(FW_PR_IMAX, 0.4f);
 /**
  * Roll rate proportional Gain
  *
- * Roll rate proportional gain, i.e. control output for angular speed error 1 rad/s.
- *
  * @unit %/rad/s
  * @min 0.0
  * @max 1.0
@@ -199,7 +193,8 @@ PARAM_DEFINE_FLOAT(FW_RR_P, 0.05f);
 /**
  * Roll rate derivative Gain
  *
- * Roll rate differential gain. Small values help reduce fast oscillations. If value is too big oscillations will appear again.
+ * Roll rate differential gain. Small values help reduce fast oscillations.
+ * If value is too big oscillations will appear again.
  *
  * @unit %/rad/s
  * @min 0.0
@@ -241,8 +236,6 @@ PARAM_DEFINE_FLOAT(FW_RR_IMAX, 0.2f);
 /**
  * Yaw rate proportional gain
  *
- * Yaw rate proportional gain, i.e. control output for angular speed error 1 rad/s.
- *
  * @unit %/rad/s
  * @min 0.0
  * @max 1.0
@@ -255,7 +248,8 @@ PARAM_DEFINE_FLOAT(FW_YR_P, 0.05f);
 /**
  * Yaw rate derivative gain
  *
- * Yaw rate differential gain. Small values help reduce fast oscillations. If value is too big oscillations will appear again.
+ * Yaw rate differential gain. Small values help reduce fast oscillations.
+ * If value is too big oscillations will appear again.
  *
  * @unit %/rad/s
  * @min 0.0
@@ -353,10 +347,7 @@ PARAM_DEFINE_FLOAT(FW_YR_FF, 0.3f);
 PARAM_DEFINE_FLOAT(FW_ACRO_X_MAX, 90);
 
 /**
- * Acro body y max rate.
- *
- * This is the body y rate the controller is trying to achieve if the user applies full pitch
- * stick input in acro mode.
+ * Acro body pitch max rate setpoint.
  *
  * @min 45
  * @max 720
@@ -366,10 +357,7 @@ PARAM_DEFINE_FLOAT(FW_ACRO_X_MAX, 90);
 PARAM_DEFINE_FLOAT(FW_ACRO_Y_MAX, 90);
 
 /**
- * Acro body z max rate.
- *
- * This is the body z rate the controller is trying to achieve if the user applies full yaw
- * stick input in acro mode.
+ * Acro body yaw max rate setpoint.
  *
  * @min 10
  * @max 180
@@ -379,13 +367,10 @@ PARAM_DEFINE_FLOAT(FW_ACRO_Y_MAX, 90);
 PARAM_DEFINE_FLOAT(FW_ACRO_Z_MAX, 45);
 
 /**
- * Whether to scale throttle by battery power level
+ * Enable throttle scale by battery level
  *
  * This compensates for voltage drop of the battery over time by attempting to
- * normalize performance across the operating range of the battery. The fixed wing
- * should constantly behave as if it was fully charged with reduced max thrust
- * at lower battery percentages. i.e. if cruise speed is at 0.5 throttle at 100% battery,
- * it will still be 0.5 at 60% battery.
+ * normalize performance across the operating range of the battery.
  *
  * @boolean
  * @group FW Rate Control
@@ -630,8 +615,7 @@ PARAM_DEFINE_FLOAT(FW_MAN_Y_SC, 1.0f);
  *
  * This gain can be used to counteract the "adverse yaw" effect for fixed wings.
  * When the plane enters a roll it will tend to yaw the nose out of the turn.
- * This gain enables the use of a yaw actuator (rudder, airbrakes, ...) to counteract
- * this effect.
+ * This gain enables the use of a yaw actuator to counteract this effect.
  *
  * @min 0.0
  * @decimal 1
