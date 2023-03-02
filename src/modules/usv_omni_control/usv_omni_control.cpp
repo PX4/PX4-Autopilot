@@ -128,6 +128,11 @@ void USVOmniControl::stabilizationController6dof(const Vector3f &pos_des,
 
 }
 
+float normalizeJoystickThrottleInput(float manual_control_throttle) {
+	// thrust normalization for joystick input by afwilkin · Pull Request #20885 · PX4/PX4-Autopilot
+	// https://github.com/PX4/PX4-Autopilot/pull/20885
+	return (manual_control_throttle + 1.f) * .5f
+}
 
 void USVOmniControl::handleManualInputs(const manual_control_setpoint_s &manual_control_setpoint)
 {
@@ -139,14 +144,14 @@ void USVOmniControl::handleManualInputs(const manual_control_setpoint_s &manual_
 
 		} else {
 			/* direct control */
-		_thrust_setpoint.setAll(0.0f);
-		_thrust_setpoint(0) = manual_control_setpoint.throttle;
-		_thrust_setpoint(1) = manual_control_setpoint.roll;
+			_thrust_setpoint.setAll(0.0f);
+			_thrust_setpoint(0) = normalizeJoystickThrottleInput(manual_control_setpoint.throttle);
+			_thrust_setpoint(1) = manual_control_setpoint.roll;
 
-		_torque_setpoint.setAll(0.0f);
-		_torque_setpoint(0) = manual_control_setpoint.yaw;
+			_torque_setpoint.setAll(0.0f);
+			_torque_setpoint(0) = manual_control_setpoint.yaw;
+		}
 	}
-}
 }
 
 void USVOmniControl::handleVelocityInputs()
@@ -250,7 +255,7 @@ bool USVOmniControl::controlPosition(
 					matrix::Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
 					matrix::Vector2f curr_wp_local = _global_local_proj_ref.project(curr_wp(0), curr_wp(1));
 					matrix::Vector2f prev_wp_local = _global_local_proj_ref.project(prev_wp(0),
-								 prev_wp(1));
+									 prev_wp(1));
 					_gnd_control.navigate_waypoints(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed_2d);
 
 					_act_controls.control[actuator_controls_s::INDEX_THROTTLE] = mission_throttle;
