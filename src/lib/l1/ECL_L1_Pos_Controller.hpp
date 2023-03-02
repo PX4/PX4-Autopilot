@@ -98,17 +98,6 @@ public:
 	float crosstrack_error() { return _crosstrack_error; }
 
 	/**
-	 * Get the switch distance
-	 *
-	 * This is the distance at which the system will
-	 * switch to the next waypoint. This depends on the
-	 * period and damping
-	 *
-	 * @param waypoint_switch_radius The switching radius the waypoint has set.
-	 */
-	float switch_distance(float waypoint_switch_radius);
-
-	/**
 	 * Navigate between two waypoints
 	 *
 	 * Calling this function with two waypoints results in the
