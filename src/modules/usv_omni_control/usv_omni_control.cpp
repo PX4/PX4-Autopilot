@@ -132,9 +132,14 @@ float normalizeJoystickThrottleInput(float manual_control_throttle)
 {
 	// thrust normalization for joystick input by afwilkin · Pull Request #20885 · PX4/PX4-Autopilot
 	// https://github.com/PX4/PX4-Autopilot/pull/20885
-	return (manual_control_throttle + 1.f) * .5f
+	return (manual_control_throttle + 1.f) * .5f;
 }
 
+/* Custom Joystick mapping
+* Yaw -> Turn right/left
+* Throttle -> Forward/back
+* Roll -> Sideways right/left
+*/
 void USVOmniControl::handleManualInputs(const manual_control_setpoint_s &manual_control_setpoint)
 {
 	// TODO: POSITION MODE, MANUAL MODE
@@ -143,8 +148,7 @@ void USVOmniControl::handleManualInputs(const manual_control_setpoint_s &manual_
 		if (_control_mode.flag_control_attitude_enabled) {
 			/* stabilized control, att_sp -> controlAttitude */
 			// STABILIZED mode generate the attitude setpoint from manual user inputs
-			_att_sp.roll_body = 0.0f;
-			_att_sp.pitch_body = 0.0f;
+			float dt = math::constrain(hrt_elapsed_time(&_manual_setpoint_last_called) * 1e-6f,  0.0002f, 0.04f);
 
 			/* reset yaw setpoint to current position if needed */
 			if (_reset_yaw_sp) {
@@ -154,20 +158,21 @@ void USVOmniControl::handleManualInputs(const manual_control_setpoint_s &manual_
 
 			} else {
 				const float yaw_rate = math::radians(_param_gnd_man_y_max.get());
-				_att_sp.yaw_sp_move_rate = _manual_control_setpoint.yaw * yaw_rate;
+				_att_sp.yaw_sp_move_rate = manual_control_setpoint.yaw * yaw_rate;
 				_manual_yaw_sp = wrap_pi(_manual_yaw_sp + _att_sp.yaw_sp_move_rate * dt);
 			}
 
+			_att_sp.roll_body = 0.0f;
+			_att_sp.pitch_body = 0.0f;
 			_att_sp.yaw_body = _manual_yaw_sp;
-			// TODO(not7cd): Should this be rotated?
 			_att_sp.thrust_body[0] = normalizeJoystickThrottleInput(manual_control_setpoint.throttle);
 			_att_sp.thrust_body[1] = manual_control_setpoint.roll;
+			_att_sp.thrust_body[2] = 0.0f;
 
 			Quatf q(Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body));
 			q.copyTo(_att_sp.q_d);
 
 			_att_sp.timestamp = hrt_absolute_time();
-
 			_att_sp_pub.publish(_att_sp);
 			// TODO: ??? publishAttitudeSetpoint();
 

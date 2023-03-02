@@ -148,7 +148,7 @@ private:
 	hrt_abstime _manual_setpoint_last_called{0};
 
 	MapProjection _global_local_proj_ref{};
-	float                      _global_local_alt0{NAN};
+	float         _global_local_alt0{NAN};
 
 	/* Pid controller for the speed. Here we assume we can control airspeed but the control variable is actually on
 	 the throttle. For now just assuming a proportional scaler between controlled airspeed and throttle output.*/
@@ -171,6 +171,9 @@ private:
 		NED,
 		BODY,
 	} _velocity_frame{VelocityFrame::NED};
+
+	float _manual_yaw_sp{0.0};
+	bool _reset_yaw_sp{true};
 
 	DEFINE_PARAMETERS(
 		// These are used as a hacky way to not oversaturate c
@@ -226,12 +229,12 @@ private:
 				     const float roll_des, const float pitch_des, const float yaw_des);
 	/// @brief position controller(global + yaw)
 	void poseController6dof(const Vector3f &pos_des,
-				  const float roll_des, const float pitch_des, const float yaw_des,
-				  vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos);
+				const float roll_des, const float pitch_des, const float yaw_des,
+				vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos);
 	/// @brief stabilization controller(keep pos and hold depth + angle)
 	void stabilizationController6dof(const Vector3f &pos_des,
-					   const float roll_des, const float pitch_des, const float yaw_des,
-					   vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos);
+					 const float roll_des, const float pitch_des, const float yaw_des,
+					 vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos);
 
 	/**
 	 * Setpoint handlers
