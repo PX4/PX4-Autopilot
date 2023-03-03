@@ -31,6 +31,10 @@
 #
 ############################################################################
 
+if (NOT ${PX4_BOARD_NAME} MATCHES "MODALAI_VOXL2_SLPI")
+	set(SD_CARD_CHECK_SOURCE_FILE checks/sdcardCheck.cpp)
+endif()
+
 px4_add_library(health_and_arming_checks
 	Common.cpp
 	HealthAndArmingChecks.cpp
@@ -50,7 +54,6 @@ px4_add_library(health_and_arming_checks
 	checks/manualControlCheck.cpp
 	checks/modeCheck.cpp
 	checks/cpuResourceCheck.cpp
-	checks/sdcardCheck.cpp
 	checks/parachuteCheck.cpp
 	checks/batteryCheck.cpp
 	checks/windCheck.cpp
@@ -61,6 +64,7 @@ px4_add_library(health_and_arming_checks
 	checks/rcAndDataLinkCheck.cpp
 	checks/vtolCheck.cpp
 	checks/offboardCheck.cpp
+	${SD_CARD_CHECK_SOURCE_FILE}
 )
 add_dependencies(health_and_arming_checks mode_util)
 

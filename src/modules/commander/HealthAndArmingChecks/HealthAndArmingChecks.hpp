@@ -57,7 +57,6 @@
 #include "checks/parachuteCheck.hpp"
 #include "checks/powerCheck.hpp"
 #include "checks/rcCalibrationCheck.hpp"
-#include "checks/sdcardCheck.hpp"
 #include "checks/systemCheck.hpp"
 #include "checks/batteryCheck.hpp"
 #include "checks/windCheck.hpp"
@@ -68,6 +67,9 @@
 #include "checks/vtolCheck.hpp"
 #include "checks/offboardCheck.hpp"
 
+#ifndef __PX4_QURT
+#include "checks/sdcardCheck.hpp"
+#endif
 
 class HealthAndArmingChecks : public ModuleParams
 {
@@ -130,7 +132,9 @@ private:
 	ParachuteChecks _parachute_checks;
 	PowerChecks _power_checks;
 	RcCalibrationChecks _rc_calibration_checks;
+#ifndef __PX4_QURT
 	SdCardChecks _sd_card_checks;
+#endif
 	SystemChecks _system_checks;
 	BatteryChecks _battery_checks;
 	WindChecks _wind_checks;
@@ -161,7 +165,9 @@ private:
 		&_parachute_checks,
 		&_power_checks,
 		&_rc_calibration_checks,
+#ifndef __PX4_QURT
 		&_sd_card_checks,
+#endif
 		&_system_checks, // must be after _estimator_checks & _home_position_checks
 		&_battery_checks,
 		&_wind_checks,
