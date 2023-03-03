@@ -23,8 +23,8 @@ control_allocator start
 #
 # Start UUV Attitude Controller.
 #
-usv_att_control start
-usv_pos_control start
+# usv_att_control start
+usv_omni_control start
 
 #
 # Start UUV Land Detector.
