@@ -44,7 +44,6 @@
 
 void SdCardChecks::checkAndReport(const Context &context, Report &reporter)
 {
-
 	if (_param_com_arm_sdcard.get() > 0) {
 
 		struct statfs statfs_buf;
@@ -126,5 +125,4 @@ void SdCardChecks::checkAndReport(const Context &context, Report &reporter)
 	}
 
 #endif /* __PX4_NUTTX */
-
 }

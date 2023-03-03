@@ -44,9 +44,7 @@ public:
 	void checkAndReport(const Context &context, Report &reporter) override;
 
 private:
-#ifndef __PX4_QURT
-	bool _sdcard_detected {false};
-#endif
+	bool _sdcard_detected{false};
 
 #ifdef __PX4_NUTTX
 	bool _hardfault_checked_once {false};
