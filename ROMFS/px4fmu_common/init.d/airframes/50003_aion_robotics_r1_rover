@@ -54,14 +54,6 @@ param set-default CBRK_AIRSPD_CHK 162128
 # Differential drive acts like ackermann steering with a maximum turn angle of 180 degrees, or pi radians
 param set-default GND_MAX_ANG 3.1415
 
-param set-default RBCLW_BAUD 8
-param set-default RBCLW_COUNTS_REV 1200
-param set-default RBCLW_ADDRESS 128
-# 104 corresponds to Telem 4
-param set-default RBCLW_SER_CFG 104
-# Start this driver after setting parameters, because the driver uses some of those parameters.
-# roboclaw start /dev/ttyS3
-
 # Set geometry & output configration
 param set-default CA_AIRFRAME 6
 param set-default CA_R_REV 3
