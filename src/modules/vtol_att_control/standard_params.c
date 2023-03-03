@@ -43,8 +43,8 @@
 /**
  * Use fixed-wing actuation in hover to accelerate forward
  *
- * This feature can be used to avoid the plane having to pitch down in order to move forward.
- * Prevents large, negative lift from pitching down into wind.
+ * This feature can be used to avoid the plane having to pitch nose down in order to move forward.
+ * Prevents large, negative lift from pitching nose down into wind.
  * Fixed-wing forward actuators refers to puller/pusher (standard VTOL), or forward-tilt (tiltrotor VTOL).
  * Only active if demanded down pitch is below VT_PITCH_MIN.
  * Use VT_FWD_THRUST_SC to tune it.

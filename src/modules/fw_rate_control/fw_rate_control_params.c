@@ -137,8 +137,7 @@ PARAM_DEFINE_FLOAT(FW_PR_P, 0.08f);
 /**
  * Pitch rate derivative gain.
  *
- * Pitch rate differential gain. Small values help reduce fast oscillations.
- * If value is too big oscillations will appear again.
+ * Pitch rate differential gain.
  *
  * @unit %/rad/s
  * @min 0.0
