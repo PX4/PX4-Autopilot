@@ -278,7 +278,7 @@ PARAM_DEFINE_INT32(VT_FW_QC_R, 0);
  *
  * Maximum height above the ground (if available, otherwhise above
  * home if available, otherwise above the local origin) where triggering a quadchute is possible.
- * At high altitudes there is a big risk to deplete the battery and therefore crash if in quad-chuting there.
+ * At high altitudes there is a big risk to deplete the battery and therefore crash if quad-chuting there.
  *
  * @unit m
  * @min 0
