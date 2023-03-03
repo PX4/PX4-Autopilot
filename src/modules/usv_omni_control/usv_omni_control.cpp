@@ -186,7 +186,7 @@ void USVOmniControl::handleManualInputs(const manual_control_setpoint_s &manual_
 			_thrust_setpoint(1) = manual_control_setpoint.roll;
 
 			_torque_setpoint.setAll(0.0f);
-			_torque_setpoint(0) = manual_control_setpoint.yaw;
+			_torque_setpoint(2) = manual_control_setpoint.yaw;
 		}
 	}
 }
