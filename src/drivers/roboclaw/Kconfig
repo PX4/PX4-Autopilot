@@ -1,5 +1,0 @@
-menuconfig DRIVERS_ROBOCLAW
-	bool "roboclaw"
-	default n
-	---help---
-		Enable support for roboclaw
