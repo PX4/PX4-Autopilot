@@ -2449,6 +2449,7 @@ MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 	gps.automatic_gain_control = 0;
 	gps.jamming_indicator = 0;
 	gps.jamming_state = 0;
+	gps.spoofing_state = 0;
 
 	gps.vel_m_s = (float)(hil_gps.vel) / 100.0f; // cm/s -> m/s
 	gps.vel_n_m_s = (float)(hil_gps.vn) / 100.0f; // cm/s -> m/s
