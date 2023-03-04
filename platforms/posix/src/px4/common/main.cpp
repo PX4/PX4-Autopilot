@@ -656,11 +656,13 @@ int get_server_running(int instance, bool *is_server_running)
 	if (fcntl(fd, F_GETLK, &lock) < 0) {
 		PX4_ERR("%s: failed to get check for lock on file: %s, reason=%s", __func__, file_lock_path.c_str(), strerror(errno));
 		status = PX4_ERROR;
+
 	} else {
 		// F_GETLK will set l_type to F_UNLCK if no one had a lock on the file. Otherwise,
 		// it means that the server is running and has a lock on the file
 		if (lock.l_type != F_UNLCK) {
 			*is_server_running = true;
+
 		} else {
 			*is_server_running = false;
 		}
