@@ -152,6 +152,15 @@ int GZBridge::init()
 		return PX4_ERROR;
 	}
 
+
+	// IMU: /world/$WORLD/model/$MODEL/link/base_link/sensor/imu_sensor/imu
+	std::string odometry_topic = "/model/" + _model_name + "/odometry_with_covariance";
+
+	if (!_node.Subscribe(odometry_topic, &GZBridge::odometryCallback, this)) {
+		PX4_ERR("failed to subscribe to %s", odometry_topic.c_str());
+		return PX4_ERROR;
+	}
+
 #if 0
 	// Airspeed: /world/$WORLD/model/$MODEL/link/airspeed_link/sensor/air_speed/air_speed
 	std::string airpressure_topic = "/world/" + _world_name + "/model/" + _model_name +
@@ -586,6 +595,64 @@ void GZBridge::poseInfoCallback(const gz::msgs::Pose_V &pose)
 			return;
 		}
 	}
+
+	pthread_mutex_unlock(&_node_mutex);
+}
+
+void GZBridge::odometryCallback(const gz::msgs::OdometryWithCovariance &odometry)
+{
+	if (hrt_absolute_time() == 0) {
+		return;
+	}
+
+	pthread_mutex_lock(&_node_mutex);
+
+	const uint64_t time_us = (odometry.header().stamp().sec() * 1000000) + (odometry.header().stamp().nsec() / 1000);
+
+	if (time_us > _world_time_us.load()) {
+		updateClock(odometry.header().stamp().sec(), odometry.header().stamp().nsec());
+	}
+
+	vehicle_odometry_s odom{};
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+	odom.timestamp_sample = time_us;
+	odom.timestamp = time_us;
+#else
+	odom.timestamp_sample = hrt_absolute_time();
+	odom.timestamp = hrt_absolute_time();
+#endif
+	odom.pose_frame = vehicle_odometry_s::POSE_FRAME_NED;
+
+	odom.position[0] = odometry.pose_with_covariance().pose().position().y();
+	odom.position[1] = odometry.pose_with_covariance().pose().position().x();
+	odom.position[2] = -odometry.pose_with_covariance().pose().position().z();
+
+	odom.velocity[0] = odometry.twist_with_covariance().twist().linear().y();
+	odom.velocity[1] = odometry.twist_with_covariance().twist().linear().x();
+	odom.velocity[2] = -odometry.twist_with_covariance().twist().linear().z();
+
+	odom.angular_velocity[0] = odometry.twist_with_covariance().twist().angular().y();
+	odom.angular_velocity[1] = odometry.twist_with_covariance().twist().angular().x();
+	odom.angular_velocity[2] = -odometry.twist_with_covariance().twist().angular().z();
+
+	// VISION_POSITION_ESTIMATE covariance
+	//  Row-major representation of pose 6x6 cross-covariance matrix upper right triangle
+	//  (states: x, y, z, roll, pitch, yaw; first six entries are the first ROW, next five entries are the second ROW, etc.).
+	//  If unknown, assign NaN value to first element in the array.
+	odom.position_variance[0] = odometry.pose_with_covariance().covariance().data(0);  // X  row 0, col 0
+	odom.position_variance[1] = odometry.pose_with_covariance().covariance().data(7);  // Y  row 1, col 1
+	odom.position_variance[2] = odometry.pose_with_covariance().covariance().data(14); // Z  row 2, col 2
+
+	odom.orientation_variance[0] = odometry.pose_with_covariance().covariance().data(21); // R  row 3, col 3
+	odom.orientation_variance[1] = odometry.pose_with_covariance().covariance().data(28); // P  row 4, col 4
+	odom.orientation_variance[2] = odometry.pose_with_covariance().covariance().data(35); // Y  row 5, col 5
+
+	odom.velocity_variance[0] = odometry.twist_with_covariance().covariance().data(0); // R  row 3, col 3
+	odom.velocity_variance[1] = odometry.twist_with_covariance().covariance().data(7); // P  row 4, col 4
+	odom.velocity_variance[2] = odometry.twist_with_covariance().covariance().data(14); // Y  row 5, col 5
+
+	// odom.reset_counter = vpe.reset_counter;
+	_visual_odometry_pub.publish(odom);
 
 	pthread_mutex_unlock(&_node_mutex);
 }
