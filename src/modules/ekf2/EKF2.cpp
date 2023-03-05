@@ -710,6 +710,18 @@ void EKF2::VerifyParams()
 				    "GPS enabled by EKF2_HGT_REF", _param_ekf2_gps_ctrl.get());
 	}
 
+	if ((_param_ekf2_hgt_ref.get() == HeightSensor::EV)
+	    && !(_param_ekf2_ev_ctrl.get() & static_cast<int32_t>(EvCtrl::VPOS))) {
+		_param_ekf2_ev_ctrl.set(_param_ekf2_ev_ctrl.get() | static_cast<int32_t>(EvCtrl::VPOS));
+		_param_ekf2_ev_ctrl.commit();
+		mavlink_log_critical(&_mavlink_log_pub, "EV vertical position enabled by EKF2_HGT_REF\n");
+		/* EVENT
+		 * @description <param>EKF2_EV_CTRL</param> is set to {1:.0}.
+		 */
+		events::send<float>(events::ID("ekf2_hgt_ref_ev"), events::Log::Warning,
+				    "EV vertical position enabled by EKF2_HGT_REF", _param_ekf2_ev_ctrl.get());
+	}
+
 	// EV EKF2_AID_MASK -> EKF2_EV_CTRL
 	if ((_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_USE_EXT_VIS_VEL)
 	    || (_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_USE_EXT_VIS_POS)
