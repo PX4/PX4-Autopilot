@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,42 +31,52 @@
  *
  ****************************************************************************/
 
-/**
- * @file param.h
- *
- * Global flash based parameter store.
- *
- * This provides the mechanisms to interface to the PX4
- * parameter system but replace the IO with non file based flash
- * i/o routines. So that the code my be implemented on a SMALL memory
- * foot print device.
- *
- */
+#pragma once
 
-#ifndef _SYSTEMLIB_FLASHPARAMS_FLASHPARAMS_H
-#define _SYSTEMLIB_FLASHPARAMS_FLASHPARAMS_H
+#include "ParamLayer.h"
 
-#include <stdint.h>
-#include <stdbool.h>
-#include <sys/types.h>
-#include "../DynamicSparseLayer.h"
+class ConstLayer : public ParamLayer
+{
+public:
 
-__BEGIN_DECLS
+	ConstLayer() = default;
 
-/*
- * When using the flash based parameter store we have to force
- * the param_values and 2 functions to be global
- */
+	bool store(param_t param, param_value_u value) override
+	{
+		return false;
+	}
 
-__EXPORT extern DynamicSparseLayer user_config;
-__EXPORT int param_set_external(param_t param, const void *val, bool mark_saved, bool notify_changes);
-__EXPORT void param_get_external(param_t param, void *val);
+	bool contains(param_t param) const override
+	{
+		return param < PARAM_COUNT;
+	}
 
-/* The interface hooks to the Flash based storage. The caller is responsible for locking */
-__EXPORT int flash_param_save(param_filter_func filter);
-__EXPORT int flash_param_load();
-__EXPORT int flash_param_import();
+	param_value_u get(param_t param) const override
+	{
+		if (param >= PARAM_COUNT) {
+			return {0};
+		}
 
-__END_DECLS
+		return px4::parameters[param].val;
+	}
 
-#endif /* _SYSTEMLIB_FLASHPARAMS_FLASHPARAMS_H */
+	void reset(param_t param) override
+	{
+		// Do nothing
+	}
+
+	void refresh(param_t param) override
+	{
+		// Do nothing
+	}
+
+	int size() const override
+	{
+		return PARAM_COUNT;
+	}
+
+	int byteSize() const override
+	{
+		return PARAM_COUNT * sizeof(param_info_s);
+	}
+};

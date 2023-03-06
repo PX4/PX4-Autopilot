@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,42 +31,75 @@
  *
  ****************************************************************************/
 
-/**
- * @file param.h
- *
- * Global flash based parameter store.
- *
- * This provides the mechanisms to interface to the PX4
- * parameter system but replace the IO with non file based flash
- * i/o routines. So that the code my be implemented on a SMALL memory
- * foot print device.
- *
- */
+#pragma once
 
-#ifndef _SYSTEMLIB_FLASHPARAMS_FLASHPARAMS_H
-#define _SYSTEMLIB_FLASHPARAMS_FLASHPARAMS_H
+#ifdef __PX4_NUTTX
+#include "px4_platform_common/micro_hal.h"
+#endif
 
-#include <stdint.h>
-#include <stdbool.h>
-#include <sys/types.h>
-#include "../DynamicSparseLayer.h"
+#ifdef __PX4_POSIX
+#include <pthread.h>
 
-__BEGIN_DECLS
+class _MutexHolder
+{
+public:
+	pthread_mutex_t _mutex;
+	pthread_mutexattr_t _mutex_attr;
 
-/*
- * When using the flash based parameter store we have to force
- * the param_values and 2 functions to be global
- */
+	_MutexHolder()
+	{
+		pthread_mutexattr_init(&_mutex_attr);
+		pthread_mutexattr_settype(&_mutex_attr, PTHREAD_MUTEX_RECURSIVE);
+		pthread_mutex_init(&_mutex, &_mutex_attr);
+	}
 
-__EXPORT extern DynamicSparseLayer user_config;
-__EXPORT int param_set_external(param_t param, const void *val, bool mark_saved, bool notify_changes);
-__EXPORT void param_get_external(param_t param, void *val);
+	~_MutexHolder()
+	{
+		pthread_mutex_destroy(&_mutex);
+	}
+};
+#endif
 
-/* The interface hooks to the Flash based storage. The caller is responsible for locking */
-__EXPORT int flash_param_save(param_filter_func filter);
-__EXPORT int flash_param_load();
-__EXPORT int flash_param_import();
 
-__END_DECLS
+class AtomicTransaction
+{
+private:
+#ifdef __PX4_NUTTX
+	irqstate_t _irq_state;
+#endif
 
-#endif /* _SYSTEMLIB_FLASHPARAMS_FLASHPARAMS_H */
+#ifdef __PX4_POSIX
+	static _MutexHolder _mutex_holder;
+#endif
+
+public:
+	AtomicTransaction()
+	{
+		lock();
+	}
+
+	~AtomicTransaction()
+	{
+		unlock();
+	}
+
+	void lock()
+	{
+#ifdef __PX4_NUTTX
+		_irq_state = px4_enter_critical_section();
+#endif
+#ifdef __PX4_POSIX
+		pthread_mutex_lock(&_mutex_holder._mutex);
+#endif
+	}
+
+	void unlock()
+	{
+#ifdef __PX4_NUTTX
+		px4_leave_critical_section(_irq_state);
+#endif
+#ifdef __PX4_POSIX
+		pthread_mutex_unlock(&_mutex_holder._mutex);
+#endif
+	}
+};
