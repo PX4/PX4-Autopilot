@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,42 +31,42 @@
  *
  ****************************************************************************/
 
-/**
- * @file param.h
- *
- * Global flash based parameter store.
- *
- * This provides the mechanisms to interface to the PX4
- * parameter system but replace the IO with non file based flash
- * i/o routines. So that the code my be implemented on a SMALL memory
- * foot print device.
- *
- */
+#ifndef PX4_PARAMLAYER_H
+#define PX4_PARAMLAYER_H
 
-#ifndef _SYSTEMLIB_FLASHPARAMS_FLASHPARAMS_H
-#define _SYSTEMLIB_FLASHPARAMS_FLASHPARAMS_H
+#include "atomic_transaction.h"
+#include "param.h"
+#include <stdlib.h>
 
-#include <stdint.h>
-#include <stdbool.h>
-#include <sys/types.h>
-#include "../DynamicSparseLayer.h"
+class ParamLayer
+{
+public:
+	static constexpr param_t PARAM_COUNT = sizeof(px4::parameters) / sizeof(param_info_s);
 
-__BEGIN_DECLS
+	ParamLayer(ParamLayer *parent = nullptr) : _parent(parent) {}
 
-/*
- * When using the flash based parameter store we have to force
- * the param_values and 2 functions to be global
- */
+	ParamLayer(const ParamLayer &) = delete;
+	ParamLayer &operator=(const ParamLayer &) = delete;
+	ParamLayer(ParamLayer &&) = delete;
+	ParamLayer &operator=(ParamLayer &&) = delete;
 
-__EXPORT extern DynamicSparseLayer user_config;
-__EXPORT int param_set_external(param_t param, const void *val, bool mark_saved, bool notify_changes);
-__EXPORT void param_get_external(param_t param, void *val);
 
-/* The interface hooks to the Flash based storage. The caller is responsible for locking */
-__EXPORT int flash_param_save(param_filter_func filter);
-__EXPORT int flash_param_load();
-__EXPORT int flash_param_import();
+	virtual bool store(param_t param, param_value_u value) = 0;
 
-__END_DECLS
+	virtual bool contains(param_t param) const = 0;
 
-#endif /* _SYSTEMLIB_FLASHPARAMS_FLASHPARAMS_H */
+	virtual param_value_u get(param_t param) const = 0;
+
+	virtual void reset(param_t param) = 0;
+
+	virtual void refresh(param_t param) = 0;
+
+	virtual int size() const = 0;
+
+	virtual int byteSize() const = 0;
+
+protected:
+	ParamLayer *const _parent;
+};
+
+#endif //PX4_PARAMLAYER_H
