@@ -46,6 +46,7 @@
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/shutdown.h>
+#include <parameters/px4_parameters.hpp>
 
 #include <string.h>
 #include <stdbool.h>
@@ -54,7 +55,6 @@
 
 #include <parameters/param.h>
 
-#include "../uthash/utarray.h"
 #include <lib/tinybson/tinybson.h>
 #include "flashparams.h"
 #include "flashfs.h"
@@ -78,7 +78,6 @@ struct param_wbuf_s {
 static int
 param_export_internal(param_filter_func filter)
 {
-	struct param_wbuf_s *s = nullptr;
 	bson_encoder_s encoder{};
 	int     result = -1;
 
@@ -86,28 +85,22 @@ param_export_internal(param_filter_func filter)
 
 	bson_encoder_init_buf(&encoder, nullptr, 0);
 
-	/* no modified parameters -> we are done */
-	if (param_values == nullptr) {
-		result = 0;
-		goto out;
-	}
-
-	while ((s = (struct param_wbuf_s *)utarray_next(param_values, s)) != nullptr) {
+	for (param_t param = 0; param < user_config.PARAM_COUNT; param++) {
 
 		int32_t i;
 		float   f;
 
-		if (filter && !filter(s->param)) {
+		if (filter && !filter(param)) {
 			continue;
 		}
 
 		/* append the appropriate BSON type object */
 
-		switch (param_type(s->param)) {
+		switch (param_type(param)) {
 		case PARAM_TYPE_INT32:
-			i = s->val.i;
+			i = user_config.get(param).i;
 
-			if (bson_encoder_append_int32(&encoder, param_name(s->param), i)) {
+			if (bson_encoder_append_int32(&encoder, param_name(param), i)) {
 				debug("BSON append failed for '%s'", param_name(s->param));
 				goto out;
 			}
@@ -115,9 +108,9 @@ param_export_internal(param_filter_func filter)
 			break;
 
 		case PARAM_TYPE_FLOAT:
-			f = s->val.f;
+			f = user_config.get(param).f;
 
-			if (bson_encoder_append_double(&encoder, param_name(s->param), f)) {
+			if (bson_encoder_append_double(&encoder, param_name(param), (double)f)) {
 				debug("BSON append failed for '%s'", param_name(s->param));
 				goto out;
 			}
