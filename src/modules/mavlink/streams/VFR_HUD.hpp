@@ -97,8 +97,6 @@ private:
 				// VFR_HUD throttle should only be used for operator feedback.
 				// VTOLs switch between vehicle_thrust_setpoint_0 and vehicle_thrust_setpoint_1. During transition there isn't a
 				// a single throttle value, but this should still be a useful heuristic for operator awareness.
-				//
-				// Use ACTUATOR_CONTROL_TARGET if accurate states are needed.
 				msg.throttle = 100 * math::max(
 						       -vehicle_thrust_setpoint_0.xyz[2],
 						       vehicle_thrust_setpoint_1.xyz[0]);
