@@ -187,7 +187,6 @@ private:
 	void handle_message_rc_channels(mavlink_message_t *msg);
 	void handle_message_rc_channels_override(mavlink_message_t *msg);
 	void handle_message_serial_control(mavlink_message_t *msg);
-	void handle_message_set_actuator_control_target(mavlink_message_t *msg);
 	void handle_message_set_attitude_target(mavlink_message_t *msg);
 	void handle_message_set_mode(mavlink_message_t *msg);
 	void handle_message_set_position_target_global_int(mavlink_message_t *msg);
@@ -288,7 +287,6 @@ private:
 	uint16_t _mavlink_status_last_packet_rx_drop_count{0};
 
 	// ORB publications
-	uORB::Publication<actuator_controls_s>			_actuator_controls_pubs[3] {ORB_ID(actuator_controls_0), ORB_ID(actuator_controls_1), ORB_ID(actuator_controls_2)};
 	uORB::Publication<airspeed_s>				_airspeed_pub{ORB_ID(airspeed)};
 	uORB::Publication<battery_status_s>			_battery_pub{ORB_ID(battery_status)};
 	uORB::Publication<camera_status_s>			_camera_status_pub{ORB_ID(camera_status)};
