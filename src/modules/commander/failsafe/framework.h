@@ -112,7 +112,8 @@ public:
 
 		case Action::Terminate: return "Terminate";
 
-		case Action::Count: return "(invalid)";
+		case Action::Count:
+		default: return "(invalid)";
 		}
 	}
 
