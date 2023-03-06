@@ -70,3 +70,6 @@
 [submodule "src/drivers/pfsoc_crypto"]
 	path = src/drivers/pfsoc_crypto
 	url = ../pfsoc_crypto.git
+[submodule "platforms/nuttx/NuttX/extern/pf_crypto"]
+	path = platforms/nuttx/NuttX/extern/pf_crypto
+	url = ../pf_crypto.git
