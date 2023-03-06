@@ -5,12 +5,14 @@ float32 esc_voltage					# Voltage measured from current ESC [V] - if supported
 float32 esc_current					# Current measured from current ESC [A] - if supported
 float32 esc_temperature					# Temperature measured from current ESC [degC] - if supported
 uint8 esc_address					# Address of current ESC (in most cases 1-8 / must be set by driver)
+uint8 esc_cmdcount					# Counter of number of commands
 
 uint8 esc_state					# State of ESC - depend on Vendor
 
 uint8 actuator_function				# actuator output function (one of Motor1...MotorN)
 
 uint16 failures					# Bitmask to indicate the internal ESC faults
+int8 esc_power					# Applied power 0-100 in % (negative values reserved)
 
 uint8 FAILURE_OVER_CURRENT = 0 			# (1 << 0)
 uint8 FAILURE_OVER_VOLTAGE = 1 			# (1 << 1)
