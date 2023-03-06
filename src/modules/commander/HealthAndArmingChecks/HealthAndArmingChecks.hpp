@@ -68,7 +68,6 @@
 #include "checks/vtolCheck.hpp"
 #include "checks/offboardCheck.hpp"
 
-
 class HealthAndArmingChecks : public ModuleParams
 {
 public:
