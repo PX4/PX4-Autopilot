@@ -35,7 +35,7 @@
 
 #include "FunctionProviderBase.hpp"
 
-#include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/gimbal_controls.h>
 
 /**
  * Functions: Gimbal_Roll .. Gimbal_Yaw
@@ -48,18 +48,18 @@ public:
 
 	void update() override
 	{
-		actuator_controls_s actuator_controls;
+		gimbal_controls_s gimbal_controls;
 
-		if (_topic.update(&actuator_controls)) {
-			_data[0] = actuator_controls.control[0];
-			_data[1] = actuator_controls.control[1];
-			_data[2] = actuator_controls.control[2];
+		if (_topic.update(&gimbal_controls)) {
+			_data[0] = gimbal_controls.control[gimbal_controls_s::INDEX_ROLL];
+			_data[1] = gimbal_controls.control[gimbal_controls_s::INDEX_PITCH];
+			_data[2] = gimbal_controls.control[gimbal_controls_s::INDEX_YAW];
 		}
 	}
 
 	float value(OutputFunction func) override { return _data[(int)func - (int)OutputFunction::Gimbal_Roll]; }
 
 private:
-	uORB::Subscription _topic{ORB_ID(actuator_controls_2)};
+	uORB::Subscription _topic{ORB_ID(gimbal_controls)};
 	float _data[3] { NAN, NAN, NAN };
 };
