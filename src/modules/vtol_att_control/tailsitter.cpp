@@ -42,8 +42,6 @@
 #include "tailsitter.h"
 #include "vtol_att_control_main.h"
 
-#include <uORB/topics/landing_gear.h>
-
 #define PITCH_TRANSITION_FRONT_P1 -1.1f	// pitch angle to switch to TRANSITION_P2
 #define PITCH_TRANSITION_BACK -0.25f	// pitch angle to switch to MC
 
@@ -69,7 +67,6 @@ void Tailsitter::update_vtol_state()
 	 * For the backtransition the pitch is controlled in MC mode again and switches to full MC control reaching the sufficient pitch angle.
 	*/
 
-	float pitch = Eulerf(Quatf(_v_att->q)).theta();
 
 	if (_vtol_vehicle_status->fixed_wing_system_failure) {
 		// Failsafe event, switch to MC mode immediately
@@ -92,6 +89,7 @@ void Tailsitter::update_vtol_state()
 			break;
 
 		case vtol_mode::TRANSITION_BACK:
+			const float pitch = Eulerf(Quatf(_v_att->q)).theta();
 
 			// check if we have reached pitch angle to switch to MC mode
 			if (pitch >= PITCH_TRANSITION_BACK || _time_since_trans_start > _param_vt_b_trans_dur.get()) {
@@ -115,23 +113,7 @@ void Tailsitter::update_vtol_state()
 
 		case vtol_mode::TRANSITION_FRONT_P1: {
 
-				const bool airspeed_triggers_transition = PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s)
-						&& !_param_fw_arsp_mode.get() ;
-
-				bool transition_to_fw = false;
-
-				if (pitch <= PITCH_TRANSITION_FRONT_P1) {
-					if (airspeed_triggers_transition) {
-						transition_to_fw = _airspeed_validated->calibrated_airspeed_m_s >= _param_vt_arsp_trans.get() ;
-
-					} else {
-						transition_to_fw = true;
-					}
-				}
-
-				transition_to_fw |= can_transition_on_ground();
-
-				if (transition_to_fw) {
+				if (isFrontTransitionCompleted()) {
 					_vtol_mode = vtol_mode::FW_MODE;
 				}
 
@@ -344,14 +326,6 @@ void Tailsitter::fill_actuator_outputs()
 		_thrust_setpoint_0->xyz[2] = -mc_in[actuator_controls_s::INDEX_THROTTLE];
 	}
 
-	// Landing Gear
-	if (_vtol_mode == vtol_mode::MC_MODE) {
-		mc_out[actuator_controls_s::INDEX_LANDING_GEAR] = landing_gear_s::GEAR_DOWN;
-
-	} else {
-		mc_out[actuator_controls_s::INDEX_LANDING_GEAR] = landing_gear_s::GEAR_UP;
-	}
-
 	if (_param_vt_elev_mc_lock.get() && _vtol_mode == vtol_mode::MC_MODE) {
 		fw_out[actuator_controls_s::INDEX_ROLL]  = 0;
 		fw_out[actuator_controls_s::INDEX_PITCH] = 0;
@@ -369,4 +343,25 @@ void Tailsitter::fill_actuator_outputs()
 	_actuators_out_1->timestamp_sample = _actuators_fw_in->timestamp_sample;
 
 	_actuators_out_0->timestamp = _actuators_out_1->timestamp = hrt_absolute_time();
+}
+
+
+bool Tailsitter::isFrontTransitionCompletedBase()
+{
+	const bool airspeed_triggers_transition = PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s)
+			&& !_param_fw_arsp_mode.get() ;
+
+	bool transition_to_fw = false;
+	const float pitch = Eulerf(Quatf(_v_att->q)).theta();
+
+	if (pitch <= PITCH_TRANSITION_FRONT_P1) {
+		if (airspeed_triggers_transition) {
+			transition_to_fw = _airspeed_validated->calibrated_airspeed_m_s >= _param_vt_arsp_trans.get() ;
+
+		} else {
+			transition_to_fw = true;
+		}
+	}
+
+	return transition_to_fw;
 }

@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2018 - 2020 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2018-2023 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -34,8 +34,9 @@
 px4_add_library(FlightTaskUtility
 	Sticks.cpp
 	StickAccelerationXY.cpp
+	StickTiltXY.cpp
 	StickYaw.cpp
 )
 
-target_link_libraries(FlightTaskUtility PUBLIC FlightTask hysteresis bezier SlewRate motion_planning)
+target_link_libraries(FlightTaskUtility PUBLIC FlightTask hysteresis bezier SlewRate motion_planning mathlib)
 target_include_directories(FlightTaskUtility PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

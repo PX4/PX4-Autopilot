@@ -1,0 +1,5 @@
+menuconfig DRIVERS_DISTANCE_SENSOR_LIGHTWARE_SF45_SERIAL
+	bool "lightware_sf45_serial"
+	default n
+	---help---
+		Enable support for lightware_sf45_serial

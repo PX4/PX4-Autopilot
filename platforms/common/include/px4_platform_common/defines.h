@@ -99,7 +99,10 @@ __END_DECLS
 
 #define PX4_ROOTFSDIR CONFIG_BOARD_ROOTFSDIR
 
+// Qurt doesn't have an SD card for storage
+#ifndef __PX4_QURT
 #define PX4_STORAGEDIR PX4_ROOTFSDIR
+#endif
 
 /****************************************************************************
  * Defines for POSIX and ROS

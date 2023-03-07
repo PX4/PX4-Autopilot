@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -59,10 +59,10 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/control_allocator_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/normalized_unsigned_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/rate_ctrl_status.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
-#include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
@@ -76,9 +76,6 @@ using matrix::Quatf;
 using uORB::SubscriptionData;
 
 using namespace time_literals;
-
-static constexpr float kFlapSlewRate = 1.f; //minimum time from none to full flap deflection [s]
-static constexpr float kSpoilerSlewRate = 1.f; //minimum time from none to full spoiler deflection [s]
 
 class FixedwingRateControl final : public ModuleBase<FixedwingRateControl>, public ModuleParams,
 	public px4::ScheduledWorkItem
@@ -108,7 +105,6 @@ private:
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
-	uORB::Subscription _att_sp_sub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription _rates_sp_sub{ORB_ID(vehicle_rates_setpoint)};
@@ -127,10 +123,11 @@ private:
 	uORB::PublicationMulti<rate_ctrl_status_s>	_rate_ctrl_status_pub{ORB_ID(rate_ctrl_status)};
 	uORB::Publication<vehicle_thrust_setpoint_s>	_vehicle_thrust_setpoint_pub{ORB_ID(vehicle_thrust_setpoint)};
 	uORB::Publication<vehicle_torque_setpoint_s>	_vehicle_torque_setpoint_pub{ORB_ID(vehicle_torque_setpoint)};
+	uORB::Publication<normalized_unsigned_setpoint_s> _flaps_setpoint_pub{ORB_ID(flaps_setpoint)};
+	uORB::Publication<normalized_unsigned_setpoint_s> _spoilers_setpoint_pub{ORB_ID(spoilers_setpoint)};
 
 	actuator_controls_s			_actuator_controls{};
 	manual_control_setpoint_s		_manual_control_setpoint{};
-	vehicle_attitude_setpoint_s		_att_sp{};
 	vehicle_control_mode_s			_vcontrol_mode{};
 	vehicle_rates_setpoint_s		_rates_sp{};
 	vehicle_status_s			_vehicle_status{};
@@ -149,9 +146,6 @@ private:
 	float _control_energy[4] {};
 	float _control_prev[3] {};
 
-	SlewRate<float> _spoiler_setpoint_with_slewrate;
-	SlewRate<float> _flaps_setpoint_with_slewrate;
-
 	bool _in_fw_or_transition_wo_tailsitter_transition{false}; // only run the FW attitude controller in these states
 
 	DEFINE_PARAMETERS(
@@ -169,21 +163,12 @@ private:
 
 		(ParamBool<px4::params::FW_BAT_SCALE_EN>) _param_fw_bat_scale_en,
 
-		(ParamFloat<px4::params::FW_DTRIM_P_FLPS>) _param_fw_dtrim_p_flps,
-		(ParamFloat<px4::params::FW_DTRIM_P_SPOIL>) _param_fw_dtrim_p_spoil,
 		(ParamFloat<px4::params::FW_DTRIM_P_VMAX>) _param_fw_dtrim_p_vmax,
 		(ParamFloat<px4::params::FW_DTRIM_P_VMIN>) _param_fw_dtrim_p_vmin,
-		(ParamFloat<px4::params::FW_DTRIM_R_FLPS>) _param_fw_dtrim_r_flps,
 		(ParamFloat<px4::params::FW_DTRIM_R_VMAX>) _param_fw_dtrim_r_vmax,
 		(ParamFloat<px4::params::FW_DTRIM_R_VMIN>) _param_fw_dtrim_r_vmin,
 		(ParamFloat<px4::params::FW_DTRIM_Y_VMAX>) _param_fw_dtrim_y_vmax,
 		(ParamFloat<px4::params::FW_DTRIM_Y_VMIN>) _param_fw_dtrim_y_vmin,
-
-		(ParamFloat<px4::params::FW_FLAPS_LND_SCL>) _param_fw_flaps_lnd_scl,
-		(ParamFloat<px4::params::FW_FLAPS_TO_SCL>) _param_fw_flaps_to_scl,
-		(ParamFloat<px4::params::FW_SPOILERS_LND>) _param_fw_spoilers_lnd,
-		(ParamFloat<px4::params::FW_SPOILERS_DESC>) _param_fw_spoilers_desc,
-		(ParamInt<px4::params::FW_SPOILERS_MAN>) _param_fw_spoilers_man,
 
 		(ParamFloat<px4::params::FW_MAN_P_MAX>) _param_fw_man_p_max,
 		(ParamFloat<px4::params::FW_MAN_P_SC>) _param_fw_man_p_sc,
@@ -212,24 +197,12 @@ private:
 
 		(ParamFloat<px4::params::TRIM_PITCH>) _param_trim_pitch,
 		(ParamFloat<px4::params::TRIM_ROLL>) _param_trim_roll,
-		(ParamFloat<px4::params::TRIM_YAW>) _param_trim_yaw
+		(ParamFloat<px4::params::TRIM_YAW>) _param_trim_yaw,
+
+		(ParamInt<px4::params::FW_SPOILERS_MAN>) _param_fw_spoilers_man
 	)
 
 	RateControl _rate_control; ///< class for rate control calculations
-
-	/**
-	 * @brief Update flap control setting
-	 *
-	 * @param dt Current time delta [s]
-	 */
-	void controlFlaps(const float dt);
-
-	/**
-	 * @brief Update spoiler control setting
-	 *
-	 * @param dt Current time delta [s]
-	 */
-	void controlSpoilers(const float dt);
 
 	void updateActuatorControlsStatus(float dt);
 

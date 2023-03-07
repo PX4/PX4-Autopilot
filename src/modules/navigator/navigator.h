@@ -314,7 +314,6 @@ public:
 	float get_lndmc_alt_max() const { return _param_lndmc_alt_max.get(); }
 
 	float get_vtol_back_trans_deceleration() const { return _param_back_trans_dec_mss; }
-	float get_vtol_reverse_delay() const { return _param_reverse_delay; }
 
 	bool force_vtol();
 
@@ -401,12 +400,10 @@ private:
 	NavigatorMode *_navigation_mode_array[NAVIGATOR_MODE_ARRAY_SIZE] {};	/**< array of navigation modes */
 
 	param_t _handle_back_trans_dec_mss{PARAM_INVALID};
-	param_t _handle_reverse_delay{PARAM_INVALID};
 	param_t _handle_mpc_jerk_auto{PARAM_INVALID};
 	param_t _handle_mpc_acc_hor{PARAM_INVALID};
 
 	float _param_back_trans_dec_mss{0.f};
-	float _param_reverse_delay{0.f};
 	float _param_mpc_jerk_auto{4.f}; 	/**< initialized with the default jerk auto value to prevent division by 0 if the parameter is accidentally set to 0 */
 	float _param_mpc_acc_hor{3.f};		/**< initialized with the default horizontal acc value to prevent division by 0 if the parameter is accidentally set to 0 */
 

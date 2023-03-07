@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -120,6 +120,7 @@ void BMI088_Accelerometer::RunImpl()
 	case STATE::RESET:
 		// ACC_SOFTRESET: Writing a value of 0xB6 to this register resets the sensor
 		RegisterWrite(Register::ACC_SOFTRESET, 0xB6);
+		DataReadyInterruptDisable();
 		_reset_timestamp = now;
 		_failure_count = 0;
 		_state = STATE::WAIT_FOR_RESET;
@@ -152,21 +153,9 @@ void BMI088_Accelerometer::RunImpl()
 
 	case STATE::CONFIGURE:
 		if (Configure()) {
-			// if configure succeeded then start reading from FIFO
-			_state = STATE::FIFO_READ;
-
-			if (DataReadyInterruptConfigure()) {
-				_data_ready_interrupt_enabled = true;
-
-				// backup schedule as a watchdog timeout
-				ScheduleDelayed(100_ms);
-
-			} else {
-				_data_ready_interrupt_enabled = false;
-				ScheduleOnInterval(_fifo_empty_interval_us, _fifo_empty_interval_us);
-			}
-
-			FIFOReset();
+			// if configure succeeded then reset the FIFO
+			_state = STATE::FIFO_RESET;
+			ScheduleDelayed(10_ms);
 
 		} else {
 			// CONFIGURE not complete
@@ -179,6 +168,25 @@ void BMI088_Accelerometer::RunImpl()
 			}
 
 			ScheduleDelayed(100_ms);
+		}
+
+		break;
+
+	case STATE::FIFO_RESET:
+		// if configure succeeded then start reading from FIFO
+		_state = STATE::FIFO_READ;
+
+		FIFOReset();
+
+		if (DataReadyInterruptConfigure()) {
+			_data_ready_interrupt_enabled = true;
+
+			// backup schedule as a watchdog timeout
+			ScheduleDelayed(100_ms);
+
+		} else {
+			_data_ready_interrupt_enabled = false;
+			ScheduleOnInterval(_fifo_empty_interval_us, _fifo_empty_interval_us);
 		}
 
 		break;

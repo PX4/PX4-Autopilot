@@ -65,6 +65,7 @@ void MagnetometerChecks::checkAndReport(const Context &context, Report &reporter
 
 			if (context.status().hil_state == vehicle_status_s::HIL_STATE_ON) {
 				is_calibration_valid = true;
+				num_enabled_and_valid_calibration++;
 
 			} else {
 				int calibration_index = calibration::FindCurrentCalibrationIndex("MAG", mag_data.device_id);

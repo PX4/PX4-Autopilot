@@ -44,12 +44,8 @@ EKFGSF_yaw::EKFGSF_yaw()
 
 void EKFGSF_yaw::update(const imuSample &imu_sample,
 			bool run_EKF,			// set to true when flying or movement is suitable for yaw estimation
-			float airspeed,			// true airspeed used for centripetal accel compensation - set to 0 when not required.
 			const Vector3f &imu_gyro_bias)  // estimated rate gyro bias (rad/sec)
 {
-	// copy to class variables
-	_true_airspeed = airspeed;
-
 	// to reduce effect of vibration, filter using an LPF whose time constant is 1/10 of the AHRS tilt correction time constant
 	const float filter_coef = fminf(10.f * imu_sample.delta_vel_dt * _tilt_gain, 1.f);
 	const Vector3f accel = imu_sample.delta_vel / fmaxf(imu_sample.delta_vel_dt, 0.001f);
@@ -177,7 +173,7 @@ void EKFGSF_yaw::ahrsPredict(const uint8_t model_index, const Vector3f &delta_an
 
 		Vector3f accel = _ahrs_accel;
 
-		if (_true_airspeed > FLT_EPSILON) {
+		if (PX4_ISFINITE(_true_airspeed) && (_true_airspeed > FLT_EPSILON)) {
 			// Calculate body frame centripetal acceleration with assumption X axis is aligned with the airspeed vector
 			// Use cross product of body rate and body frame airspeed vector
 			const Vector3f centripetal_accel_bf = Vector3f(0.0f, _true_airspeed * ang_rate(2), - _true_airspeed * ang_rate(1));
@@ -428,10 +424,9 @@ float EKFGSF_yaw::ahrsCalcAccelGain() const
 	// see https://www.desmos.com/calculator/dbqbxvnwfg
 
 	float attenuation = 2.f;
-	const bool centripetal_accel_compensation_enabled = (_true_airspeed > FLT_EPSILON);
+	const bool centripetal_accel_compensation_enabled = PX4_ISFINITE(_true_airspeed) && (_true_airspeed > FLT_EPSILON);
 
-	if (centripetal_accel_compensation_enabled
-	    && _ahrs_accel_norm > CONSTANTS_ONE_G) {
+	if (centripetal_accel_compensation_enabled && (_ahrs_accel_norm > CONSTANTS_ONE_G)) {
 		attenuation = 1.f;
 	}
 

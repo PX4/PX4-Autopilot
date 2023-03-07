@@ -45,8 +45,6 @@
 #include "RoverPositionControl.hpp"
 #include <lib/geo/geo.h>
 
-#define ACTUATOR_PUBLISH_PERIOD_MS 4
-
 using namespace matrix;
 
 /**
@@ -93,7 +91,6 @@ void RoverPositionControl::parameters_update(bool force)
 
 		_gnd_control.set_l1_damping(_param_l1_damping.get());
 		_gnd_control.set_l1_period(_param_l1_period.get());
-		_gnd_control.set_l1_roll_limit(math::radians(0.0f));
 
 		pid_init(&_speed_ctrl, PID_MODE_DERIVATIV_CALC, 0.01f);
 		pid_set_parameters(&_speed_ctrl,
@@ -215,9 +212,6 @@ RoverPositionControl::control_position(const matrix::Vector2d &current_position,
 
 		_control_mode_current = UGV_POSCTRL_MODE_AUTO;
 
-		/* get circle mode */
-		//bool was_circle_mode = _gnd_control.circle_mode();
-
 		/* current waypoint (the one currently heading for) */
 		matrix::Vector2d curr_wp(pos_sp_triplet.current.lat, pos_sp_triplet.current.lon);
 
@@ -270,11 +264,6 @@ RoverPositionControl::control_position(const matrix::Vector2d &current_position,
 		float dist_target = get_distance_to_next_waypoint(_global_pos.lat, _global_pos.lon,
 				    (double)curr_wp(0), (double)curr_wp(1)); // pos_sp_triplet.current.lat, pos_sp_triplet.current.lon);
 
-		//PX4_INFO("Setpoint type %d", (int) pos_sp_triplet.current.type );
-		//PX4_INFO(" State machine state %d", (int) _pos_ctrl_state);
-		//PX4_INFO(" Setpoint Lat %f, Lon %f", (double) curr_wp(0), (double)curr_wp(1));
-		//PX4_INFO(" Distance to target %f", (double) dist_target);
-
 		switch (_pos_ctrl_state) {
 		case GOTO_WAYPOINT: {
 				if (dist_target < _param_nav_loiter_rad.get()) {
@@ -309,8 +298,6 @@ RoverPositionControl::control_position(const matrix::Vector2d &current_position,
 				if (dist_between_waypoints > 0) {
 					_pos_ctrl_state = GOTO_WAYPOINT; // A new waypoint has arrived go to it
 				}
-
-				//PX4_INFO(" Distance between prev and curr waypoints %f", (double)dist_between_waypoints);
 			}
 			break;
 
@@ -426,8 +413,6 @@ RoverPositionControl::Run()
 
 				_global_local_proj_ref.initReference(_local_pos.ref_lat, _local_pos.ref_lon,
 								     _local_pos.ref_timestamp);
-
-				_global_local_alt0 = _local_pos.ref_alt;
 			}
 
 			// Convert Local setpoints to global setpoints
@@ -439,7 +424,6 @@ RoverPositionControl::Run()
 					_trajectory_setpoint.position[0], _trajectory_setpoint.position[1],
 					_pos_sp_triplet.current.lat, _pos_sp_triplet.current.lon);
 
-				_pos_sp_triplet.current.alt = _global_local_alt0 - _trajectory_setpoint.position[2];
 				_pos_sp_triplet.current.valid = true;
 			}
 
@@ -455,7 +439,7 @@ RoverPositionControl::Run()
 				if (control_position(current_position, ground_speed, _pos_sp_triplet)) {
 
 					//TODO: check if radius makes sense here
-					float turn_distance = _param_l1_distance.get(); //_gnd_control.switch_distance(100.0f);
+					float turn_distance = _param_l1_distance.get();
 
 					// publish status
 					position_controller_status_s pos_ctrl_status{};

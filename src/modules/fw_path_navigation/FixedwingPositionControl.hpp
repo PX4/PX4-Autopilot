@@ -71,8 +71,10 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/airspeed_validated.h>
+#include <uORB/topics/landing_gear.h>
 #include <uORB/topics/launch_detection_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/normalized_unsigned_setpoint.h>
 #include <uORB/topics/npfg_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_controller_landing_status.h>
@@ -212,6 +214,9 @@ private:
 	uORB::Publication<tecs_status_s> _tecs_status_pub{ORB_ID(tecs_status)};
 	uORB::Publication<launch_detection_status_s> _launch_detection_status_pub{ORB_ID(launch_detection_status)};
 	uORB::PublicationMulti<orbit_status_s> _orbit_status_pub{ORB_ID(orbit_status)};
+	uORB::Publication<landing_gear_s> _landing_gear_pub{ORB_ID(landing_gear)};
+	uORB::Publication<normalized_unsigned_setpoint_s> _flaps_setpoint_pub{ORB_ID(flaps_setpoint)};
+	uORB::Publication<normalized_unsigned_setpoint_s> _spoilers_setpoint_pub{ORB_ID(spoilers_setpoint)};
 
 	manual_control_setpoint_s _manual_control_setpoint{};
 	position_setpoint_triplet_s _pos_sp_triplet{};
@@ -236,7 +241,8 @@ private:
 		FW_POSCTRL_MODE_AUTO_ALTITUDE,
 		FW_POSCTRL_MODE_AUTO_CLIMBRATE,
 		FW_POSCTRL_MODE_AUTO_TAKEOFF,
-		FW_POSCTRL_MODE_AUTO_LANDING,
+		FW_POSCTRL_MODE_AUTO_LANDING_STRAIGHT,
+		FW_POSCTRL_MODE_AUTO_LANDING_CIRCULAR,
 		FW_POSCTRL_MODE_MANUAL_POSITION,
 		FW_POSCTRL_MODE_MANUAL_ALTITUDE,
 		FW_POSCTRL_MODE_OTHER
@@ -412,6 +418,13 @@ private:
 
 	// nonlinear path following guidance - lateral-directional position control
 	NPFG _npfg;
+
+	// LANDING GEAR
+	int8_t _new_landing_gear_position{landing_gear_s::GEAR_KEEP};
+
+	// FLAPS/SPOILERS
+	float _flaps_setpoint{0.f};
+	float _spoilers_setpoint{0.f};
 
 	hrt_abstime _time_in_fixed_bank_loiter{0}; // [us]
 	float _min_current_sp_distance_xy{FLT_MAX};
@@ -596,7 +609,9 @@ private:
 				  const Vector2f &ground_speed, const position_setpoint_s &pos_sp_curr);
 
 	/**
-	 * @brief Controls automatic landing.
+	 * @brief Controls automatic landing with straight approach.
+	 *
+	 * To be used in Missions that contain a loiter down followed by a land waypoint.
 	 *
 	 * @param now Current system time [us]
 	 * @param control_interval Time since last position control call [s]
@@ -605,8 +620,22 @@ private:
 	 * @param pos_sp_prev previous position setpoint
 	 * @param pos_sp_curr current position setpoint
 	 */
-	void control_auto_landing(const hrt_abstime &now, const float control_interval, const Vector2f &ground_speed,
-				  const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
+	void control_auto_landing_straight(const hrt_abstime &now, const float control_interval, const Vector2f &ground_speed,
+					   const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
+
+	/**
+	 * @brief Controls automatic landing with circular final appraoch.
+	 *
+	 * To be used outside of Mission landings. Vehicle will orbit down around the landing position setpoint until flaring.
+	 *
+	 * @param now Current system time [us]
+	 * @param control_interval Time since last position control call [s]
+	 * @param control_interval Time since the last position control update [s]
+	 * @param ground_speed Local 2D ground speed of vehicle [m/s]
+	 * @param pos_sp_curr current position setpoint
+	 */
+	void control_auto_landing_circular(const hrt_abstime &now, const float control_interval, const Vector2f &ground_speed,
+					   const position_setpoint_s &pos_sp_curr);
 
 	/* manual control methods */
 
@@ -739,21 +768,24 @@ private:
 	 *
 	 * @param now Current system time [us]
 	 * @param land_point_altitude Altitude (AMSL) of the land point [m]
+	 * @param abort_on_terrain_measurement_timeout Abort if distance to ground estimation doesn't get valid when we expect it to
+	 * @param abort_on_terrain_timeout Abort if distance to ground estimation is invalid after being valid before
 	 * @return Terrain altitude (AMSL) [m]
 	 */
-	float getLandingTerrainAltitudeEstimate(const hrt_abstime &now, const float land_point_altitude);
+	float getLandingTerrainAltitudeEstimate(const hrt_abstime &now, const float land_point_altitude,
+						const bool abort_on_terrain_measurement_timeout, const bool abort_on_terrain_timeout);
 
 	/**
 	 * @brief Initializes landing states
 	 *
 	 * @param now Current system time [us]
 	 * @param pos_sp_prev Previous position setpoint
-	 * @param pos_sp_curr Current position setpoint
+	 * @param land_point_alt Landing point altitude setpoint AMSL [m]
 	 * @param local_position Local aircraft position (NE) [m]
 	 * @param local_land_point Local land point (NE) [m]
 	 */
 	void initializeAutoLanding(const hrt_abstime &now, const position_setpoint_s &pos_sp_prev,
-				   const position_setpoint_s &pos_sp_curr, const Vector2f &local_position, const Vector2f &local_land_point);
+				   const float land_point_alt, const Vector2f &local_position, const Vector2f &local_land_point);
 
 	/*
 	 * Waypoint handling logic following closely to the ECL_L1_Pos_Controller
@@ -879,6 +911,11 @@ private:
 		(ParamFloat<px4::params::FW_THR_MAX>) _param_fw_thr_max,
 		(ParamFloat<px4::params::FW_THR_MIN>) _param_fw_thr_min,
 		(ParamFloat<px4::params::FW_THR_SLEW_MAX>) _param_fw_thr_slew_max,
+
+		(ParamFloat<px4::params::FW_FLAPS_LND_SCL>) _param_fw_flaps_lnd_scl,
+		(ParamFloat<px4::params::FW_FLAPS_TO_SCL>) _param_fw_flaps_to_scl,
+		(ParamFloat<px4::params::FW_SPOILERS_LND>) _param_fw_spoilers_lnd,
+		(ParamFloat<px4::params::FW_SPOILERS_DESC>) _param_fw_spoilers_desc,
 
 		(ParamInt<px4::params::FW_POS_STK_CONF>) _param_fw_pos_stk_conf,
 

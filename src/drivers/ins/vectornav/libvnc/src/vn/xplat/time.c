@@ -1,5 +1,5 @@
 /* Enable IEEE Std 1003.1b-1993 functionality required for clock_gettime. */
-#ifdef __linux__
+#if defined(__linux__) || defined(__NUTTX__)
 	/* Works for Ubuntu 15.10 */
 	#define _POSIX_C_SOURCE 199309L
 #elif defined __CYGWIN__

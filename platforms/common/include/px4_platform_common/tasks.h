@@ -124,6 +124,13 @@ typedef struct {
 // wait for the sensor hub if its data is coming from it.
 #define SCHED_PRIORITY_ESTIMATOR		(PX4_WQ_HP_BASE - 5)
 
+// Logger watchdog priority, triggered when a task busy-loops (and
+// restored after a short time).
+// The priority is a trade-off between:
+// - ability to capture any busy-looping task below this priority
+// - not having a negative impact on the system itself
+#define SCHED_PRIORITY_LOG_WATCHDOG		(PX4_WQ_HP_BASE - 6)
+
 // Position controllers typically are in a blocking wait on estimator data
 // so when new sensor data is available they will run last. Keeping them
 // on a high priority ensures that they are the first process to be run

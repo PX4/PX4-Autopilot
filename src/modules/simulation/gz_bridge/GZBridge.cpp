@@ -152,17 +152,34 @@ int GZBridge::init()
 		return PX4_ERROR;
 	}
 
+
+	// IMU: /world/$WORLD/model/$MODEL/link/base_link/sensor/imu_sensor/imu
+	std::string odometry_topic = "/model/" + _model_name + "/odometry_with_covariance";
+
+	if (!_node.Subscribe(odometry_topic, &GZBridge::odometryCallback, this)) {
+		PX4_ERR("failed to subscribe to %s", odometry_topic.c_str());
+		return PX4_ERROR;
+	}
+
 #if 0
 	// Airspeed: /world/$WORLD/model/$MODEL/link/airspeed_link/sensor/air_speed/air_speed
 	std::string airpressure_topic = "/world/" + _world_name + "/model/" + _model_name +
 					"/link/airspeed_link/sensor/air_speed/air_speed";
 
-	if (!_node.Subscribe(airpressure_topic, &GZBridge::airpressureCallback, this)) {
+	if (!_node.Subscribe(airpressure_topic, &GZBridge::airspeedCallback, this)) {
 		PX4_ERR("failed to subscribe to %s", airpressure_topic.c_str());
 		return PX4_ERROR;
 	}
 
 #endif
+	// Air pressure: /world/$WORLD/model/$MODEL/link/base_link/sensor/air_pressure_sensor/air_pressure
+	std::string air_pressure_topic = "/world/" + _world_name + "/model/" + _model_name +
+					 "/link/base_link/sensor/air_pressure_sensor/air_pressure";
+
+	if (!_node.Subscribe(air_pressure_topic, &GZBridge::barometerCallback, this)) {
+		PX4_ERR("failed to subscribe to %s", air_pressure_topic.c_str());
+		return PX4_ERROR;
+	}
 
 	if (!_mixing_interface_esc.init(_model_name)) {
 		PX4_ERR("failed to init ESC output");
@@ -185,6 +202,7 @@ int GZBridge::task_spawn(int argc, char *argv[])
 	const char *model_pose = nullptr;
 	const char *model_sim = nullptr;
 	const char *px4_instance = nullptr;
+	std::string model_name_std;
 
 
 	bool error_flag = false;
@@ -248,7 +266,7 @@ int GZBridge::task_spawn(int argc, char *argv[])
 		}
 
 	} else if (!model_name) {
-		std::string model_name_std = std::string(model_sim) + "_" + std::string(px4_instance);
+		model_name_std = std::string(model_sim) + "_" + std::string(px4_instance);
 		model_name = model_name_std.c_str();
 	}
 
@@ -329,27 +347,52 @@ void GZBridge::clockCallback(const gz::msgs::Clock &clock)
 	pthread_mutex_unlock(&_node_mutex);
 }
 
-#if 0
-void GZBridge::airpressureCallback(const gz::msgs::FluidPressure &air_pressure)
+void GZBridge::barometerCallback(const gz::msgs::FluidPressure &air_pressure)
 {
 	if (hrt_absolute_time() == 0) {
 		return;
 	}
 
-	pthread_mutex_lock(&_mutex);
+	pthread_mutex_lock(&_node_mutex);
 
 	const uint64_t time_us = (air_pressure.header().stamp().sec() * 1000000)
 				 + (air_pressure.header().stamp().nsec() / 1000);
 
-	double air_pressure_value = air_pressure.pressure();
+	// publish
+	sensor_baro_s sensor_baro{};
+	sensor_baro.timestamp_sample = time_us;
+	sensor_baro.device_id = 6620172; // 6620172: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 4, TYPE: SIMULATION
+	sensor_baro.pressure = air_pressure.pressure();
+	sensor_baro.temperature = this->_temperature;
+	sensor_baro.timestamp = hrt_absolute_time();
+	_sensor_baro_pub.publish(sensor_baro);
+
+	pthread_mutex_unlock(&_node_mutex);
+}
+
+#if 0
+void GZBridge::airspeedCallback(const gz::msgs::AirSpeedSensor &air_speed)
+{
+	if (hrt_absolute_time() == 0) {
+		return;
+	}
+
+	pthread_mutex_lock(&_node_mutex);
+
+	const uint64_t time_us = (air_speed.header().stamp().sec() * 1000000)
+				 + (air_speed.header().stamp().nsec() / 1000);
+
+	double air_speed_value = air_speed.diff_pressure();
 
 	differential_pressure_s report{};
 	report.timestamp_sample = time_us;
 	report.device_id = 1377548; // 1377548: DRV_DIFF_PRESS_DEVTYPE_SIM, BUS: 1, ADDR: 5, TYPE: SIMULATION
-	report.differential_pressure_pa = static_cast<float>(air_pressure_value); // hPa to Pa;
-	report.temperature = static_cast<float>(air_pressure.variance()) + CONSTANTS_ABSOLUTE_NULL_CELSIUS; // K to C
+	report.differential_pressure_pa = static_cast<float>(air_speed_value); // hPa to Pa;
+	report.temperature = static_cast<float>(air_speed.temperature()) + CONSTANTS_ABSOLUTE_NULL_CELSIUS; // K to C
 	report.timestamp = hrt_absolute_time();;
 	_differential_pressure_pub.publish(report);
+
+	this->_temperature = report.temperature;
 
 	pthread_mutex_unlock(&_node_mutex);
 }
@@ -521,6 +564,8 @@ void GZBridge::poseInfoCallback(const gz::msgs::Pose_V &pose)
 			local_position_groundtruth.y = position(1);
 			local_position_groundtruth.z = position(2);
 
+			local_position_groundtruth.heading = euler.psi();
+
 			local_position_groundtruth.ref_lat = _pos_ref.getProjectionReferenceLat(); // Reference point latitude in degrees
 			local_position_groundtruth.ref_lon = _pos_ref.getProjectionReferenceLon(); // Reference point longitude in degrees
 			local_position_groundtruth.ref_alt = _param_sim_home_alt.get();
@@ -550,6 +595,64 @@ void GZBridge::poseInfoCallback(const gz::msgs::Pose_V &pose)
 			return;
 		}
 	}
+
+	pthread_mutex_unlock(&_node_mutex);
+}
+
+void GZBridge::odometryCallback(const gz::msgs::OdometryWithCovariance &odometry)
+{
+	if (hrt_absolute_time() == 0) {
+		return;
+	}
+
+	pthread_mutex_lock(&_node_mutex);
+
+	const uint64_t time_us = (odometry.header().stamp().sec() * 1000000) + (odometry.header().stamp().nsec() / 1000);
+
+	if (time_us > _world_time_us.load()) {
+		updateClock(odometry.header().stamp().sec(), odometry.header().stamp().nsec());
+	}
+
+	vehicle_odometry_s odom{};
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+	odom.timestamp_sample = time_us;
+	odom.timestamp = time_us;
+#else
+	odom.timestamp_sample = hrt_absolute_time();
+	odom.timestamp = hrt_absolute_time();
+#endif
+	odom.pose_frame = vehicle_odometry_s::POSE_FRAME_NED;
+
+	odom.position[0] = odometry.pose_with_covariance().pose().position().y();
+	odom.position[1] = odometry.pose_with_covariance().pose().position().x();
+	odom.position[2] = -odometry.pose_with_covariance().pose().position().z();
+
+	odom.velocity[0] = odometry.twist_with_covariance().twist().linear().y();
+	odom.velocity[1] = odometry.twist_with_covariance().twist().linear().x();
+	odom.velocity[2] = -odometry.twist_with_covariance().twist().linear().z();
+
+	odom.angular_velocity[0] = odometry.twist_with_covariance().twist().angular().y();
+	odom.angular_velocity[1] = odometry.twist_with_covariance().twist().angular().x();
+	odom.angular_velocity[2] = -odometry.twist_with_covariance().twist().angular().z();
+
+	// VISION_POSITION_ESTIMATE covariance
+	//  Row-major representation of pose 6x6 cross-covariance matrix upper right triangle
+	//  (states: x, y, z, roll, pitch, yaw; first six entries are the first ROW, next five entries are the second ROW, etc.).
+	//  If unknown, assign NaN value to first element in the array.
+	odom.position_variance[0] = odometry.pose_with_covariance().covariance().data(0);  // X  row 0, col 0
+	odom.position_variance[1] = odometry.pose_with_covariance().covariance().data(7);  // Y  row 1, col 1
+	odom.position_variance[2] = odometry.pose_with_covariance().covariance().data(14); // Z  row 2, col 2
+
+	odom.orientation_variance[0] = odometry.pose_with_covariance().covariance().data(21); // R  row 3, col 3
+	odom.orientation_variance[1] = odometry.pose_with_covariance().covariance().data(28); // P  row 4, col 4
+	odom.orientation_variance[2] = odometry.pose_with_covariance().covariance().data(35); // Y  row 5, col 5
+
+	odom.velocity_variance[0] = odometry.twist_with_covariance().covariance().data(0); // R  row 3, col 3
+	odom.velocity_variance[1] = odometry.twist_with_covariance().covariance().data(7); // P  row 4, col 4
+	odom.velocity_variance[2] = odometry.twist_with_covariance().covariance().data(14); // Y  row 5, col 5
+
+	// odom.reset_counter = vpe.reset_counter;
+	_visual_odometry_pub.publish(odom);
 
 	pthread_mutex_unlock(&_node_mutex);
 }

@@ -359,8 +359,8 @@ void ICM42688P::ConfigureCLKIN()
 
 	for (auto &r1 : _register_bank1_cfg) {
 		if (r1.reg == Register::BANK_1::INTF_CONFIG5) {
-			r1.set_bits = PIN9_FUNCTION_BIT::CLKIN;
-			r1.clear_bits = PIN9_FUNCTION_BIT::FSYNC_PIN9;
+			r1.set_bits = INTF_CONFIG5_BIT::PIN9_FUNCTION_CLKIN_SET;
+			r1.clear_bits = INTF_CONFIG5_BIT::PIN9_FUNCTION_CLKIN_CLEAR;
 		}
 	}
 }
@@ -642,7 +642,7 @@ void ICM42688P::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DA
 	accel.timestamp_sample = timestamp_sample;
 	accel.samples = 0;
 
-	// 18-bits of accelerometer data
+	// 18-bits of accelerometer data, sent as 20-bits, 2 least significant bits always 0
 	bool scale_20bit = false;
 
 	// first pass
@@ -738,7 +738,7 @@ void ICM42688P::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DAT
 	gyro.timestamp_sample = timestamp_sample;
 	gyro.samples = 0;
 
-	// 20-bits of gyroscope data
+	// 19-bits of gyroscope data sent as 20-bits, LSB bit is 0
 	bool scale_20bit = false;
 
 	// first pass
@@ -775,6 +775,7 @@ void ICM42688P::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DAT
 			scale_20bit = true;
 		}
 
+		// shift by 1 (least significant bit is always 0)
 		gyro.x[gyro.samples] = gyro_x / 2;
 		gyro.y[gyro.samples] = gyro_y / 2;
 		gyro.z[gyro.samples] = gyro_z / 2;

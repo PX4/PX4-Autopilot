@@ -489,9 +489,10 @@ PARAM_DEFINE_INT32(EKF2_DECL_TYPE, 7);
 /**
  * Type of magnetometer fusion
  *
- * Integer controlling the type of magnetometer fusion used - magnetic heading or 3-component vector. The fuson of magnetometer data as a three component vector enables vehicle body fixed hard iron errors to be learned, but requires a stable earth field.
+ * Integer controlling the type of magnetometer fusion used - magnetic heading or 3-component vector.
+ * The fusion of magnetometer data as a three component vector enables vehicle body fixed hard iron errors to be learned, but requires a stable earth field.
  * If set to 'Automatic' magnetic heading fusion is used when on-ground and 3-axis magnetic field fusion in-flight with fallback to magnetic heading fusion if there is insufficient motion to make yaw or magnetic field states observable.
- * If set to 'Magnetic heading' magnetic heading fusion is used at all times
+ * If set to 'Magnetic heading' magnetic heading fusion is used at all times.
  * If set to '3-axis' 3-axis field fusion is used at all times.
  * If set to 'VTOL custom' the behaviour is the same as 'Automatic', but if fusing airspeed, magnetometer fusion is only allowed to modify the magnetic field states. This can be used by VTOL platforms with large magnetic field disturbances to prevent incorrect bias states being learned during forward flight operation which can adversely affect estimation accuracy after transition to hovering flight.
  * If set to 'MC custom' the behaviour is the same as 'Automatic, but if there are no earth frame position or velocity observations being used, the magnetometer will not be used. This enables vehicles to operate with no GPS in environments where the magnetic field cannot be used to provide a heading reference. Prior to flight, the yaw angle is assumed to be constant if movement tests indicate that the vehicle is static. This allows the vehicle to be placed on the ground to learn the yaw gyro bias prior to flight.

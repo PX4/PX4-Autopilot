@@ -45,7 +45,6 @@
 #include "vtol_att_control_main.h"
 
 #include <float.h>
-#include <uORB/topics/landing_gear.h>
 
 using namespace matrix;
 
@@ -76,7 +75,6 @@ void Standard::update_vtol_state()
 		// Failsafe event, engage mc motors immediately
 		_vtol_mode = vtol_mode::MC_MODE;
 		_pusher_throttle = 0.0f;
-		_reverse_output = 0.0f;
 
 	} else if (!_attc->is_fixed_wing_requested()) {
 
@@ -85,20 +83,17 @@ void Standard::update_vtol_state()
 			// in mc mode
 			_vtol_mode = vtol_mode::MC_MODE;
 			mc_weight = 1.0f;
-			_reverse_output = 0.0f;
 
 		} else if (_vtol_mode == vtol_mode::FW_MODE) {
 			// Regular backtransition
 			resetTransitionStates();
 			_vtol_mode = vtol_mode::TRANSITION_TO_MC;
-			_reverse_output = _param_vt_b_rev_out.get();
 
 		} else if (_vtol_mode == vtol_mode::TRANSITION_TO_FW) {
 			// failsafe back to mc mode
 			_vtol_mode = vtol_mode::MC_MODE;
 			mc_weight = 1.0f;
 			_pusher_throttle = 0.0f;
-			_reverse_output = 0.0f;
 
 		} else if (_vtol_mode == vtol_mode::TRANSITION_TO_MC) {
 			// speed exit condition: use ground if valid, otherwise airspeed
@@ -135,26 +130,8 @@ void Standard::update_vtol_state()
 			mc_weight = 0.0f;
 
 		} else if (_vtol_mode == vtol_mode::TRANSITION_TO_FW) {
-			// continue the transition to fw mode while monitoring airspeed for a final switch to fw mode
 
-			const bool airspeed_triggers_transition = PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s)
-					&& !_param_fw_arsp_mode.get();
-			const bool minimum_trans_time_elapsed = _time_since_trans_start > getMinimumFrontTransitionTime();
-
-			bool transition_to_fw = false;
-
-			if (minimum_trans_time_elapsed) {
-				if (airspeed_triggers_transition) {
-					transition_to_fw = _airspeed_validated->calibrated_airspeed_m_s >= _param_vt_arsp_trans.get();
-
-				} else {
-					transition_to_fw = true;
-				}
-			}
-
-			transition_to_fw |= can_transition_on_ground();
-
-			if (transition_to_fw) {
+			if (isFrontTransitionCompleted()) {
 				_vtol_mode = vtol_mode::FW_MODE;
 
 				// don't set pusher throttle here as it's being ramped up elsewhere
@@ -252,10 +229,6 @@ void Standard::update_transition_state()
 		const Quatf q_sp(Eulerf(_v_att_sp->roll_body, _v_att_sp->pitch_body, _v_att_sp->yaw_body));
 		q_sp.copyTo(_v_att_sp->q_d);
 
-		// set spoiler and flaps to 0
-		_flaps_setpoint_with_slewrate.update(0.f, _dt);
-		_spoiler_setpoint_with_slewrate.update(0.f, _dt);
-
 	} else if (_vtol_mode == vtol_mode::TRANSITION_TO_MC) {
 
 		if (_v_control_mode->flag_control_climb_rate_enabled) {
@@ -267,12 +240,6 @@ void Standard::update_transition_state()
 		q_sp.copyTo(_v_att_sp->q_d);
 
 		_pusher_throttle = 0.0f;
-
-		if (_time_since_trans_start >= _param_vt_b_rev_del.get()) {
-			// Handle throttle reversal for active breaking
-			_pusher_throttle = math::constrain((_time_since_trans_start - _param_vt_b_rev_del.get())
-							   * _param_vt_psher_slew.get(), 0.0f, _param_vt_b_trans_thr.get());
-		}
 
 		// continually increase mc attitude control as we transition back to mc mode
 		if (_param_vt_b_trans_ramp.get() > FLT_EPSILON) {
@@ -320,7 +287,6 @@ void Standard::fill_actuator_outputs()
 		mc_out[actuator_controls_s::INDEX_PITCH]        = mc_in[actuator_controls_s::INDEX_PITCH];
 		mc_out[actuator_controls_s::INDEX_YAW]          = mc_in[actuator_controls_s::INDEX_YAW];
 		mc_out[actuator_controls_s::INDEX_THROTTLE]     = mc_in[actuator_controls_s::INDEX_THROTTLE];
-		mc_out[actuator_controls_s::INDEX_LANDING_GEAR] = landing_gear_s::GEAR_DOWN;
 
 		// FW out = 0, other than roll and pitch depending on elevon lock
 		fw_out[actuator_controls_s::INDEX_ROLL]         = _param_vt_elev_mc_lock.get() ? 0 :
@@ -329,10 +295,6 @@ void Standard::fill_actuator_outputs()
 				fw_in[actuator_controls_s::INDEX_PITCH];
 		fw_out[actuator_controls_s::INDEX_YAW]          = 0;
 		fw_out[actuator_controls_s::INDEX_THROTTLE]     = _pusher_throttle;
-		fw_out[actuator_controls_s::INDEX_FLAPS]        = _flaps_setpoint_with_slewrate.getState();
-		fw_out[actuator_controls_s::INDEX_SPOILERS]    	= _spoiler_setpoint_with_slewrate.getState();
-		fw_out[actuator_controls_s::INDEX_AIRBRAKES]    = 0.f;
-
 		break;
 
 	case vtol_mode::TRANSITION_TO_FW:
@@ -344,16 +306,12 @@ void Standard::fill_actuator_outputs()
 		mc_out[actuator_controls_s::INDEX_PITCH]        = mc_in[actuator_controls_s::INDEX_PITCH]    * _mc_pitch_weight;
 		mc_out[actuator_controls_s::INDEX_YAW]          = mc_in[actuator_controls_s::INDEX_YAW]      * _mc_yaw_weight;
 		mc_out[actuator_controls_s::INDEX_THROTTLE]     = mc_in[actuator_controls_s::INDEX_THROTTLE] * _mc_throttle_weight;
-		mc_out[actuator_controls_s::INDEX_LANDING_GEAR] = landing_gear_s::GEAR_UP;
 
 		// FW out = FW in, with VTOL transition controlling throttle and airbrakes
 		fw_out[actuator_controls_s::INDEX_ROLL]         = fw_in[actuator_controls_s::INDEX_ROLL] * (1.f - _mc_roll_weight);
 		fw_out[actuator_controls_s::INDEX_PITCH]        = fw_in[actuator_controls_s::INDEX_PITCH] * (1.f - _mc_pitch_weight);
 		fw_out[actuator_controls_s::INDEX_YAW]          = fw_in[actuator_controls_s::INDEX_YAW] * (1.f - _mc_yaw_weight);
 		fw_out[actuator_controls_s::INDEX_THROTTLE]     = _pusher_throttle;
-		fw_out[actuator_controls_s::INDEX_FLAPS]        = _flaps_setpoint_with_slewrate.getState();
-		fw_out[actuator_controls_s::INDEX_SPOILERS]    	= _spoiler_setpoint_with_slewrate.getState();
-		fw_out[actuator_controls_s::INDEX_AIRBRAKES]    = _reverse_output;
 
 		break;
 
@@ -363,16 +321,12 @@ void Standard::fill_actuator_outputs()
 		mc_out[actuator_controls_s::INDEX_PITCH]        = 0;
 		mc_out[actuator_controls_s::INDEX_YAW]          = 0;
 		mc_out[actuator_controls_s::INDEX_THROTTLE]     = 0;
-		mc_out[actuator_controls_s::INDEX_LANDING_GEAR] = landing_gear_s::GEAR_UP;
 
 		// FW out = FW in
 		fw_out[actuator_controls_s::INDEX_ROLL]         = fw_in[actuator_controls_s::INDEX_ROLL];
 		fw_out[actuator_controls_s::INDEX_PITCH]        = fw_in[actuator_controls_s::INDEX_PITCH];
 		fw_out[actuator_controls_s::INDEX_YAW]          = fw_in[actuator_controls_s::INDEX_YAW];
 		fw_out[actuator_controls_s::INDEX_THROTTLE]     = fw_in[actuator_controls_s::INDEX_THROTTLE];
-		fw_out[actuator_controls_s::INDEX_FLAPS]        = _flaps_setpoint_with_slewrate.getState();
-		fw_out[actuator_controls_s::INDEX_SPOILERS]    	= _spoiler_setpoint_with_slewrate.getState();
-		fw_out[actuator_controls_s::INDEX_AIRBRAKES]    = 0;
 		break;
 	}
 

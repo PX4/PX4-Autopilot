@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,24 +32,41 @@
  ****************************************************************************/
 
 /**
- * @file tailsitter_params.c
- * Parameters for vtol attitude controller.
- *
- * @author Roman Bapst <bapstroman@gmail.com>
- * @author David Vorsin     <davidvorsin@gmail.com>
+ * @file StickTiltXY.hpp
+ * @brief Generate only horizontal acceleration setpoint from stick input
+ * @author Matthias Grob <maetugr@gmail.com>
  */
 
-/**
- * Duration of front transition phase 2
- *
- * Time in seconds it should take for the rotors to rotate forward completely from the point
- * when the plane has picked up enough airspeed and is ready to go into fixed wind mode.
- *
- * @unit s
- * @min 0.1
- * @max 5.0
- * @increment 0.01
- * @decimal 3
- * @group VTOL Attitude Control
+#pragma once
 
-PARAM_DEFINE_FLOAT(VT_TRANS_P2_DUR, 0.5f);*/
+#include <lib/mathlib/math/filter/AlphaFilter.hpp>
+#include <matrix/math.hpp>
+#include <px4_platform_common/module_params.h>
+
+class StickTiltXY : public ModuleParams
+{
+public:
+	StickTiltXY(ModuleParams *parent);
+	~StickTiltXY() = default;
+
+	/**
+	 * Produce acceleration setpoint to tilt a multicopter based on stick input
+	 *
+	 * Forward pitch stick input pitches the vehicle's pitch e.g. accelerates the vehicle in its nose direction.
+	 *
+	 * @param stick_xy the raw pitch and roll stick positions as input
+	 * @param dt time in seconds since the last execution
+	 * @param yaw the current yaw estimate for frame rotation
+	 * @param yaw_setpoint the current heading setpoint used instead of the estimate if absolute yaw is locked
+	 * @return NED frame horizontal x, y axis acceleration setpoint
+	 */
+	matrix::Vector2f generateAccelerationSetpoints(matrix::Vector2f stick_xy, const float dt, const float yaw,
+			const float yaw_setpoint);
+private:
+	AlphaFilter<matrix::Vector2f> _man_input_filter;
+
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::MPC_MAN_TILT_MAX>) _param_mpc_man_tilt_max, ///< maximum tilt allowed for manual flight
+		(ParamFloat<px4::params::MC_MAN_TILT_TAU>) _param_mc_man_tilt_tau ///< time constant for stick filter
+	)
+};

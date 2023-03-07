@@ -46,9 +46,6 @@
 #include "uuv_att_control.hpp"
 
 
-#define ACTUATOR_PUBLISH_PERIOD_MS 4
-
-
 /**
  * UUV attitude control app start / stop handling function
  *
@@ -126,22 +123,6 @@ void UUVAttitudeControl::constrain_actuator_commands(float roll_u, float pitch_u
 
 	} else {
 		_actuators.control[actuator_controls_s::INDEX_THROTTLE] = 0.0f;
-	}
-
-	if (PX4_ISFINITE(thrust_y)) {
-		thrust_y = math::constrain(thrust_y, -1.0f, 1.0f);
-		_actuators.control[actuator_controls_s::INDEX_FLAPS] = thrust_y;
-
-	} else {
-		_actuators.control[actuator_controls_s::INDEX_FLAPS] = 0.0f;
-	}
-
-	if (PX4_ISFINITE(thrust_z)) {
-		thrust_z = math::constrain(thrust_z, -1.0f, 1.0f);
-		_actuators.control[actuator_controls_s::INDEX_SPOILERS] = thrust_z;
-
-	} else {
-		_actuators.control[actuator_controls_s::INDEX_SPOILERS] = 0.0f;
 	}
 }
 

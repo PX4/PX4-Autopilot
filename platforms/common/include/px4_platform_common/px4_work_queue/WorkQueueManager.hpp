@@ -76,18 +76,18 @@ static constexpr wq_config_t hp_default{"wq:hp_default", 1900, -18};
 
 static constexpr wq_config_t uavcan{"wq:uavcan", 3624, -19};
 
-static constexpr wq_config_t ttyS0{"wq:ttyS0", 1632, -21};
-static constexpr wq_config_t ttyS1{"wq:ttyS1", 1632, -22};
-static constexpr wq_config_t ttyS2{"wq:ttyS2", 1632, -23};
-static constexpr wq_config_t ttyS3{"wq:ttyS3", 1632, -24};
-static constexpr wq_config_t ttyS4{"wq:ttyS4", 1632, -25};
-static constexpr wq_config_t ttyS5{"wq:ttyS5", 1632, -26};
-static constexpr wq_config_t ttyS6{"wq:ttyS6", 1632, -27};
-static constexpr wq_config_t ttyS7{"wq:ttyS7", 1632, -28};
-static constexpr wq_config_t ttyS8{"wq:ttyS8", 1632, -29};
-static constexpr wq_config_t ttyS9{"wq:ttyS9", 1632, -30};
-static constexpr wq_config_t ttyACM0{"wq:ttyACM0", 1632, -31};
-static constexpr wq_config_t ttyUnknown{"wq:ttyUnknown", 1632, -32};
+static constexpr wq_config_t ttyS0{"wq:ttyS0", 1728, -21};
+static constexpr wq_config_t ttyS1{"wq:ttyS1", 1728, -22};
+static constexpr wq_config_t ttyS2{"wq:ttyS2", 1728, -23};
+static constexpr wq_config_t ttyS3{"wq:ttyS3", 1728, -24};
+static constexpr wq_config_t ttyS4{"wq:ttyS4", 1728, -25};
+static constexpr wq_config_t ttyS5{"wq:ttyS5", 1728, -26};
+static constexpr wq_config_t ttyS6{"wq:ttyS6", 1728, -27};
+static constexpr wq_config_t ttyS7{"wq:ttyS7", 1728, -28};
+static constexpr wq_config_t ttyS8{"wq:ttyS8", 1728, -29};
+static constexpr wq_config_t ttyS9{"wq:ttyS9", 1728, -30};
+static constexpr wq_config_t ttyACM0{"wq:ttyACM0", 1728, -31};
+static constexpr wq_config_t ttyUnknown{"wq:ttyUnknown", 1728, -32};
 
 static constexpr wq_config_t lp_default{"wq:lp_default", 1920, -50};
 

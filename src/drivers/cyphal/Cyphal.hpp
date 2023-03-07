@@ -82,11 +82,10 @@ class UavcanMixingInterface : public OutputModuleInterface
 {
 public:
 	UavcanMixingInterface(pthread_mutex_t &node_mutex,
-			      UavcanEscController &esc_controller) //, UavcanServoController &servo_controller)
+			      PublicationManager &pub_manager)
 		: OutputModuleInterface(MODULE_NAME "-actuators", px4::wq_configurations::uavcan),
 		  _node_mutex(node_mutex),
-		  _esc_controller(esc_controller)/*,
-		  _servo_controller(servo_controller)*/ {}
+		  _pub_manager(pub_manager) {}
 
 	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
@@ -103,8 +102,7 @@ protected:
 private:
 	friend class CyphalNode;
 	pthread_mutex_t &_node_mutex;
-	UavcanEscController &_esc_controller;
-	// UavcanServoController &_servo_controller;
+	PublicationManager &_pub_manager;
 	MixingOutput _mixing_output{"UCAN1_ESC", MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
 };
 
@@ -115,7 +113,7 @@ class CyphalNode : public ModuleParams, public px4::ScheduledWorkItem
 	 * Base interval, has to be complemented with events from the CAN driver
 	 * and uORB topics sending data, to decrease response time.
 	 */
-	static constexpr unsigned ScheduleIntervalMs = 10;
+	static constexpr unsigned ScheduleIntervalMs = 3;
 
 public:
 
@@ -178,9 +176,6 @@ private:
 	PublicationManager _pub_manager {_canard_handle, _param_manager};
 	SubscriptionManager _sub_manager {_canard_handle, _param_manager};
 
-	/// TODO: Integrate with PublicationManager
-	UavcanEscController _esc_controller {_canard_handle, _param_manager};
-
-	UavcanMixingInterface _mixing_output {_node_mutex, _esc_controller};
+	UavcanMixingInterface _mixing_output {_node_mutex, _pub_manager};
 
 };

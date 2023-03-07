@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,19 +39,20 @@
 
 #pragma once
 
-#include "SlewRate.hpp"
+#include <lib/mathlib/math/filter/AlphaFilter.hpp>
+#include <px4_platform_common/module_params.h>
 
-class StickYaw
+class StickYaw : public ModuleParams
 {
 public:
-	StickYaw();
+	StickYaw(ModuleParams *parent);
 	~StickYaw() = default;
 
-	void generateYawSetpoint(float &yawspeed_setpoint, float &yaw_setpoint, float desired_yawspeed, float yaw,
+	void generateYawSetpoint(float &yawspeed_setpoint, float &yaw_setpoint, float stick_yaw, float yaw,
 				 bool is_yaw_good_for_control, float deltatime);
 
 private:
-	SlewRate<float> _yawspeed_slew_rate;
+	AlphaFilter<float> _yawspeed_filter;
 
 	/**
 	 * Lock yaw when not currently turning
@@ -65,4 +66,9 @@ private:
 	 * @return yaw setpoint to execute to have a yaw lock at the correct moment in time
 	 */
 	static float updateYawLock(float yaw, float yawspeed_setpoint, float yaw_setpoint, bool is_yaw_good_for_control);
+
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::MPC_MAN_Y_MAX>) _param_mpc_man_y_max, ///< Maximum yaw speed with full stick deflection
+		(ParamFloat<px4::params::MPC_MAN_Y_TAU>) _param_mpc_man_y_tau ///< time constant for yaw speed filtering
+	)
 };

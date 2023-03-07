@@ -110,6 +110,8 @@ pipeline {
                      "raspberrypi_pico_default",
                      "sky-drones_smartap-airlink_default",
                      "spracing_h7extreme_default",
+                     "thepeach_k1_default",
+                     "thepeach_r1_default",
                      "uvify_core_default"
             ],
             image: docker_images.nuttx,

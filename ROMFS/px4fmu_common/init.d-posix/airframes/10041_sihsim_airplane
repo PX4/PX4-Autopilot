@@ -11,6 +11,11 @@
 PX4_SIMULATOR=${PX4_SIMULATOR:=sihsim}
 PX4_SIM_MODEL=${PX4_SIM_MODEL:=airplane}
 
+param set-default SENS_EN_GPSSIM 1
+param set-default SENS_EN_BAROSIM 1
+param set-default SENS_EN_MAGSIM 1
+param set-default SENS_EN_ARSPDSIM 1
+
 # disable some checks to allow to fly:
 # - with usb
 param set-default CBRK_USB_CHK 197848

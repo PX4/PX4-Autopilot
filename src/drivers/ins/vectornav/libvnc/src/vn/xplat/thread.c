@@ -7,6 +7,7 @@
 	#include <unistd.h>
 	#include <stddef.h>
 	#include <pthread.h>
+	#include <sched.h>
 #endif
 
 #undef __cplusplus
@@ -77,10 +78,22 @@ VnError VnThread_startNew(VnThread *thread, VnThread_StartRoutine startRoutine, 
 
 	#elif (defined __linux__ || defined __APPLE__ || defined __CYGWIN__ || defined __QNXNTO__ || defined __NUTTX__)
 
+	pthread_attr_t attr;
+	pthread_attr_init(&attr);
+	pthread_attr_setstacksize(&attr, 5120);
+
+	// schedule policy FIFO
+	pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
+
+	// priority
+	struct sched_param param;
+	pthread_attr_getschedparam(&attr, &param);
+	param.sched_priority = sched_get_priority_max(SCHED_FIFO);
+	pthread_attr_setschedparam(&attr, &param);
 
 	errorCode = pthread_create(
 		&(thread->handle),
-		NULL,
+		&attr,
 		VnThread_intermediateStartRoutine,
 		starter);
 

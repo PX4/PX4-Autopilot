@@ -2,7 +2,7 @@
 
 #if _WIN32
 	/* Nothing to do. */
-#elif __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__ || defined __NUTTX__
+#elif __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__ || __NUTTX__
 	#include <fcntl.h>
 	#include <errno.h>
 	#include <termios.h>
@@ -31,7 +31,7 @@ VnError VnSerialPort_initialize(VnSerialPort *sp)
 	#if _WIN32
 	sp->handle = NULL;
 	VnCriticalSection_initialize(&sp->readWriteCS);
-	#elif __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__ || defined __NUTTX__
+	#elif __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__ || __NUTTX__
 	sp->handle = -1;
 	#else
 	#error "Unknown System"
@@ -196,9 +196,9 @@ VnError VnSerialPort_open_internal(VnSerialPort *serialport, char const *portNam
 
 	portFd = open(
 		portName,
-		#if __linux__ || __CYGWIN__ || __QNXNTO__ || defined __NUTTX__
+		#if __linux__ || __CYGWIN__ || __QNXNTO__
 		O_RDWR | O_NOCTTY);
-		#elif __APPLE__
+		#elif __APPLE__ || __NUTTX__
 		O_RDWR | O_NOCTTY | O_NONBLOCK);
 		#else
 		#error "Unknown System"
@@ -268,9 +268,9 @@ VnError VnSerialPort_open_internal(VnSerialPort *serialport, char const *portNam
 	}
 
 	/* Set baudrate, 8n1, no modem control, enable receiving characters. */
-	#if __linux__ || __QNXNTO__ || __CYGWIN__ || defined __NUTTX__
+	#if __linux__ || __QNXNTO__ || __CYGWIN__
 	portSettings.c_cflag = baudrateFlag;
-	#elif defined(__APPLE__)
+	#elif defined(__APPLE__) || __NUTTX__
 	cfsetspeed(&portSettings, baudrateFlag);
 	#endif
 	portSettings.c_cflag |= CS8 | CLOCAL | CREAD;
@@ -315,7 +315,7 @@ VnError VnSerialPort_close_internal(VnSerialPort *serialport, bool checkAndToggl
 
 	serialport->handle = NULL;
 
-	#elif __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__ || defined __NUTTX__
+	#elif __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__ || __NUTTX__
 
 	if (close(serialport->handle) == -1)
 		return E_UNKNOWN;
@@ -338,7 +338,7 @@ VnError VnSerialPort_closeAfterUserUnpluggedSerialPort(VnSerialPort *serialport)
 
 	serialport->handle = NULL;
 
-	#elif __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__ || defined __NUTTX__
+	#elif __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__ || __NUTTX__
 
 	if (close(serialport->handle) == -1)
 		return E_UNKNOWN;
@@ -361,7 +361,7 @@ bool VnSerialPort_isOpen(VnSerialPort *serialport)
 {
 	#if defined(_WIN32)
 	return serialport->handle != NULL;
-	#elif __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__ || defined __NUTTX__
+	#elif __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__ || __NUTTX__
 	return serialport->handle != -1;
 	#else
 	#error "Unknown System"
@@ -395,7 +395,7 @@ VnError VnSerialPort_read(VnSerialPort *serialport, char *buffer, size_t numOfBy
 	OVERLAPPED overlapped;
 	BOOL result;
 	DWORD numOfBytesTransferred;
-	#elif __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__ || defined __NUTTX__
+	#elif __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__ || __NUTTX__
 	int result;
 	#else
 	#error "Unknown System"
@@ -436,7 +436,7 @@ VnError VnSerialPort_read(VnSerialPort *serialport, char *buffer, size_t numOfBy
 	if (!result)
 		return E_UNKNOWN;
 
-	#elif __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__ || defined __NUTTX__
+	#elif __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__ || __NUTTX__
 
 	result = read(
 		serialport->handle,
@@ -461,7 +461,7 @@ VnError VnSerialPort_write(VnSerialPort *sp, char const *data, size_t length)
 	DWORD numOfBytesWritten;
 	BOOL result;
 	OVERLAPPED overlapped;
-	#elif __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__ || defined __NUTTX__
+	#elif __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__ || __NUTTX__
 	size_t numOfBytesWritten;
 	#else
 	#error "Unknown System"
@@ -508,7 +508,7 @@ VnError VnSerialPort_write(VnSerialPort *sp, char const *data, size_t length)
 	if (!result)
 		return E_UNKNOWN;
 
-	#elif __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__ || defined __NUTTX__
+	#elif __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__ || __NUTTX__
 
 	numOfBytesWritten = write(
 		sp->handle,
@@ -565,7 +565,7 @@ void VnSerialPort_handleSerialPortNotifications(void* routineData)
 		sp->handle,
 		EV_RXCHAR | EV_ERR | EV_RX80FULL);
 
-	#elif __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__ || defined __NUTTX__
+	#elif __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__ || __NUTTX__
 
 	fd_set readfs;
 	int error;
@@ -672,7 +672,7 @@ void VnSerialPort_handleSerialPortNotifications(void* routineData)
 			continue;
 		}
 
-		#elif __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__ || defined __NUTTX__
+		#elif __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__ || __NUTTX__
 
 		FD_ZERO(&readfs);
 		FD_SET(sp->handle, &readfs);

@@ -36,6 +36,7 @@ add_subdirectory(airframes)
 px4_add_romfs_files(
 	rc.airship_apps
 	rc.airship_defaults
+	rc.autostart_ext
 	rc.balloon_apps
 	rc.balloon_defaults
 	rc.boat_defaults

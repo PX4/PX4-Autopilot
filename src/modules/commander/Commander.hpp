@@ -232,9 +232,9 @@ private:
 	hrt_abstime _overload_start{0};		///< time when CPU overload started
 
 #if !defined(CONFIG_ARCH_LEDS) && defined(BOARD_HAS_CONTROL_STATUS_LEDS)
-	hrt_abstime _led_armed_state_toggle{0};
+	hrt_abstime _led_armed_state_toggle {0};
 #endif
-	hrt_abstime _led_overload_toggle{0};
+	hrt_abstime _led_overload_toggle {0};
 
 	hrt_abstime _last_health_and_arming_check{0};
 

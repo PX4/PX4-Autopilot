@@ -120,6 +120,10 @@ public:
 
 	void set_need_reliable_transfer(bool need_reliable)
 	{
+		if (!need_reliable && _need_reliable_transfer) {
+			_want_fsync.store(true);
+		}
+
 		_need_reliable_transfer = need_reliable;
 	}
 
@@ -171,6 +175,8 @@ private:
 
 		void close_file();
 
+		void reset();
+
 		size_t get_read_ptr(void **ptr, bool *is_part);
 
 		/**
@@ -208,6 +214,7 @@ private:
 
 	px4::atomic_bool	_exit_thread{false};
 	bool			_need_reliable_transfer{false};
+	px4::atomic_bool	_want_fsync{false};
 	pthread_mutex_t		_mtx;
 	pthread_cond_t		_cv;
 	pthread_t _thread = 0;

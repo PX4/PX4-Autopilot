@@ -79,9 +79,6 @@ VtolType::VtolType(VtolAttitudeControl *att_controller) :
 
 bool VtolType::init()
 {
-	_flaps_setpoint_with_slewrate.setSlewRate(kFlapSlewRateVtol);
-	_spoiler_setpoint_with_slewrate.setSlewRate(kSpoilerSlewRateVtol);
-
 	return true;
 }
 
@@ -106,16 +103,6 @@ void VtolType::update_mc_state()
 	_mc_pitch_weight = 1.0f;
 	_mc_yaw_weight = 1.0f;
 	_mc_throttle_weight = 1.0f;
-
-	float spoiler_setpoint_hover = 0.f;
-
-	if (_attc->get_pos_sp_triplet()->current.valid
-	    && _attc->get_pos_sp_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
-		spoiler_setpoint_hover = _param_vt_spoiler_mc_ld.get();
-	}
-
-	_spoiler_setpoint_with_slewrate.update(math::constrain(spoiler_setpoint_hover, 0.f, 1.f), _dt);
-	_flaps_setpoint_with_slewrate.update(0.f, _dt);
 }
 
 void VtolType::update_fw_state()
@@ -158,9 +145,6 @@ void VtolType::update_fw_state()
 	}
 
 	check_quadchute_condition();
-
-	_spoiler_setpoint_with_slewrate.update(_actuators_fw_in->control[actuator_controls_s::INDEX_SPOILERS], _dt);
-	_flaps_setpoint_with_slewrate.update(_actuators_fw_in->control[actuator_controls_s::INDEX_FLAPS], _dt);
 }
 
 void VtolType::update_transition_state()
@@ -205,6 +189,35 @@ float VtolType::update_and_get_backtransition_pitch_sp()
 
 	// only allow positive (pitch up) pitch setpoint
 	return math::constrain(pitch_sp_new, 0.f, pitch_lim);
+}
+
+bool VtolType::isFrontTransitionCompleted()
+{
+	bool ret = isFrontTransitionCompletedBase();
+
+	return ret || can_transition_on_ground();
+}
+
+bool VtolType::isFrontTransitionCompletedBase()
+{
+	// continue the transition to fw mode while monitoring airspeed for a final switch to fw mode
+	const bool airspeed_triggers_transition = PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s)
+			&& !_param_fw_arsp_mode.get();
+	const bool minimum_trans_time_elapsed = _time_since_trans_start > getMinimumFrontTransitionTime();
+	const bool openloop_trans_time_elapsed = _time_since_trans_start > getOpenLoopFrontTransitionTime();
+
+	bool transition_to_fw = false;
+
+	if (airspeed_triggers_transition) {
+		transition_to_fw = minimum_trans_time_elapsed
+				   && _airspeed_validated->calibrated_airspeed_m_s >= _param_vt_arsp_trans.get();
+
+	} else {
+		transition_to_fw = openloop_trans_time_elapsed;
+	}
+
+	return transition_to_fw;
+
 }
 
 bool VtolType::can_transition_on_ground()

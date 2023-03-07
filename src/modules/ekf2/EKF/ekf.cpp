@@ -52,6 +52,8 @@ bool Ekf::init(uint64_t timestamp)
 
 void Ekf::reset()
 {
+	ECL_INFO("reset");
+
 	_state.vel.setZero();
 	_state.pos.setZero();
 	_state.delta_ang_bias.setZero();
@@ -196,60 +198,12 @@ bool Ekf::initialiseFilter()
 		_gyro_lpf.update(imu_init.delta_ang / imu_init.delta_ang_dt);
 	}
 
-	// Sum the magnetometer measurements
-	if (_mag_buffer) {
-		magSample mag_sample;
-
-		if (_mag_buffer->pop_first_older_than(_time_delayed_us, &mag_sample)) {
-			if (mag_sample.time_us != 0) {
-				if (_mag_counter == 0) {
-					_mag_lpf.reset(mag_sample.mag);
-
-				} else {
-					_mag_lpf.update(mag_sample.mag);
-				}
-
-				_mag_counter++;
-			}
-		}
-	}
-
 	if (!initialiseTilt()) {
 		return false;
 	}
 
-	// calculate the initial magnetic field and yaw alignment
-	// but do not mark the yaw alignement complete as it needs to be
-	// reset once the leveling phase is done
-	if (_params.mag_fusion_type <= MagFuseType::MAG_3D) {
-		if (_mag_counter > 1) {
-			// rotate the magnetometer measurements into earth frame using a zero yaw angle
-			// the angle of the projection onto the horizontal gives the yaw angle
-			const Vector3f mag_earth_pred = updateYawInRotMat(0.f, _R_to_earth) * _mag_lpf.getState();
-			float yaw_new = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + getMagDeclination();
-
-			// update the rotation matrix using the new yaw value
-			_R_to_earth = updateYawInRotMat(yaw_new, Dcmf(_state.quat_nominal));
-			_state.quat_nominal = _R_to_earth;
-
-			// set the earth magnetic field states using the updated rotation
-			_state.mag_I = _R_to_earth * _mag_lpf.getState();
-			_state.mag_B.zero();
-
-		} else {
-			// not enough mag samples accumulated
-			return false;
-		}
-	}
-
 	// initialise the state covariance matrix now we have starting values for all the states
 	initialiseCovariance();
-
-	// update the yaw angle variance using the variance of the measurement
-	if (_params.mag_fusion_type <= MagFuseType::MAG_3D) {
-		// using magnetic heading tuning parameter
-		increaseQuatYawErrVariance(sq(fmaxf(_params.mag_heading_noise, 1.0e-2f)));
-	}
 
 	// Initialise the terrain estimator
 	initHagl();

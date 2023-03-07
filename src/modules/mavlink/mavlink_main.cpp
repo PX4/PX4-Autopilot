@@ -1507,7 +1507,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("GIMBAL_MANAGER_STATUS", 0.5f);
 		configure_stream_local("GLOBAL_POSITION_INT", 5.0f);
 		configure_stream_local("GPS2_RAW", 1.0f);
-		configure_stream_local("GPS_GLOBAL_ORIGIN", 0.1f);
+		configure_stream_local("GPS_GLOBAL_ORIGIN", 1.0f);
 		configure_stream_local("GPS_RAW_INT", 1.0f);
 		configure_stream_local("GPS_STATUS", 1.0f);
 		configure_stream_local("HOME_POSITION", 0.5f);
@@ -1809,6 +1809,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("ESTIMATOR_STATUS", 1.0f);
 		configure_stream_local("EXTENDED_SYS_STATE", 1.0f);
 		configure_stream_local("GLOBAL_POSITION_INT", 10.0f);
+		configure_stream_local("GPS_GLOBAL_ORIGIN", 1.0f);
 		configure_stream_local("GPS2_RAW", unlimited_rate);
 		configure_stream_local("GPS_RAW_INT", unlimited_rate);
 		configure_stream_local("HOME_POSITION", 0.5f);
@@ -1864,20 +1865,30 @@ Mavlink::task_main(int argc, char *argv[])
 	// use default /dev/null so that these numbers are not used by other other files.
 	if (fcntl(0, F_GETFD) == -1) {
 		int tmp = open("/dev/null", O_RDONLY);
-		dup2(tmp, 0);
-		close(tmp);
+
+		if (tmp != 0) {
+			dup2(tmp, 0);
+			close(tmp);
+		}
+
 	}
 
 	if (fcntl(1, F_GETFD) == -1) {
 		int tmp = open("/dev/null", O_WRONLY);
-		dup2(tmp, 1);
-		close(tmp);
+
+		if (tmp != 1) {
+			dup2(tmp, 1);
+			close(tmp);
+		}
 	}
 
 	if (fcntl(2, F_GETFD) == -1) {
 		int tmp = open("/dev/null", O_WRONLY);
-		dup2(tmp, 2);
-		close(tmp);
+
+		if (tmp != 2) {
+			dup2(tmp, 2);
+			close(tmp);
+		}
 	}
 
 	int ch;

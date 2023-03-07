@@ -36,6 +36,7 @@
 #include "log_writer.h"
 #include "logged_topics.h"
 #include "messages.h"
+#include "watchdog.h"
 #include <containers/Array.hpp>
 #include "util.h"
 #include <px4_platform_common/defines.h>
@@ -91,6 +92,20 @@ public:
 		arm_until_shutdown,
 	};
 
+	enum class PrintLoadReason {
+		Preflight,
+		Postflight,
+		Watchdog
+	};
+
+	struct timer_callback_data_s {
+		px4_sem_t semaphore;
+
+		watchdog_data_t watchdog_data;
+		px4::atomic_bool watchdog_triggered{false};
+	};
+
+
 	Logger(LogWriter::Backend backend, size_t buffer_size, uint32_t log_interval, const char *poll_topic_name,
 	       LogMode log_mode, bool log_name_timestamp, float rate_factor);
 
@@ -131,13 +146,14 @@ public:
 
 	void set_arm_override(bool override) { _manually_logging_override = override; }
 
-private:
+	void trigger_watchdog_now()
+	{
+#ifdef __PX4_NUTTX
+		_timer_callback_data.watchdog_data.manual_watchdog_trigger = true;
+#endif
+	}
 
-	enum class PrintLoadReason {
-		Preflight,
-		Postflight,
-		Watchdog
-	};
+private:
 
 	static constexpr int		MAX_MISSION_TOPICS_NUM = 5; /**< Maximum number of mission topics */
 	static constexpr unsigned	MAX_NO_LOGFILE = 999;	/**< Maximum number of log files */
@@ -229,9 +245,8 @@ private:
 
 	/**
 	 * write performance counters
-	 * @param preflight preflight if true, postflight otherwise
 	 */
-	void write_perf_data(bool preflight);
+	void write_perf_data(PrintLoadReason reason);
 
 	/**
 	 * write bootup console output
@@ -370,6 +385,8 @@ private:
 	int						_lockstep_component{-1};
 
 	uint32_t					_message_gaps{0};
+
+	timer_callback_data_s				_timer_callback_data{};
 
 	uORB::Subscription				_manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription				_vehicle_command_sub{ORB_ID(vehicle_command)};
