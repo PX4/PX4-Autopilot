@@ -104,3 +104,22 @@ PARAM_DEFINE_INT32(MC_AT_APPLY, 1);
  * @group Autotune
  */
 PARAM_DEFINE_FLOAT(MC_AT_RISE_TIME, 0.14);
+
+/**
+ * Tuning axes selection
+ *
+ * Defines which axes will be tuned during the auto-tuning sequence
+ *
+ * Set bits in the following positions to enable:
+ * 0 : Roll
+ * 1 : Pitch
+ * 2 : Yaw
+ *
+ * @bit 0 roll
+ * @bit 1 pitch
+ * @bit 2 yaw
+ * @min 1
+ * @max 7
+ * @group Autotune
+ */
+PARAM_DEFINE_INT32(MC_AT_AXES, 3);
