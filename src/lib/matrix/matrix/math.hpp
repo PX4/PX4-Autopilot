@@ -14,6 +14,7 @@
 #include "Vector4.hpp"
 #include "Euler.hpp"
 #include "Dcm.hpp"
+#include "Dcm2.hpp"
 #include "Scalar.hpp"
 #include "Quaternion.hpp"
 #include "AxisAngle.hpp"
