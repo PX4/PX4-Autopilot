@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -50,6 +50,7 @@ void FeasibilityChecker::reset()
 	_is_landed = false;
 	_home_alt_msl = NAN;
 	_home_lat_lon = matrix::Vector2d((double)NAN, (double)NAN);
+	_current_position_lat_lon = matrix::Vector2d((double)NAN, (double)NAN);
 	_vehicle_type = VehicleType::RotaryWing;
 
 	_mission_validity_failed = false;
@@ -117,6 +118,12 @@ void FeasibilityChecker::updateData()
 	if (_land_detector_sub.updated()) {
 		_land_detector_sub.copy(&land_detected);
 		_is_landed = land_detected.landed;
+	}
+
+	if (_vehicle_global_position_sub.updated()) {
+		vehicle_global_position_s vehicle_global_position = {};
+		_vehicle_global_position_sub.copy(&vehicle_global_position);
+		_current_position_lat_lon = matrix::Vector2d(vehicle_global_position.lat, vehicle_global_position.lon);
 	}
 
 	param_t handle = param_find("FW_LND_ANG");
@@ -189,7 +196,7 @@ void FeasibilityChecker::doCommonChecks(mission_item_s &mission_item, const int 
 	}
 
 	if (!_distance_first_waypoint_failed) {
-		_distance_first_waypoint_failed = !checkDistanceToFirstWaypoint(mission_item);
+		_distance_first_waypoint_failed = !checkHorizontalDistanceToFirstWaypoint(mission_item);
 	}
 
 	if (!_below_home_alt_failed) {
@@ -595,21 +602,29 @@ bool FeasibilityChecker::checkTakeoffLandAvailable()
 }
 
 
-bool FeasibilityChecker::checkDistanceToFirstWaypoint(mission_item_s &mission_item)
+bool FeasibilityChecker::checkHorizontalDistanceToFirstWaypoint(mission_item_s &mission_item)
 {
-	if (_param_mis_dist_1wp <= 0.0f || !_home_lat_lon.isAllFinite()) {
-		/* param not set, check is ok */
-		return true;
+	matrix::Vector2d position_reference = matrix::Vector2d((double)NAN, (double)NAN);
+
+	// take last known vehicle global_position, or Home position if not available
+	if (_current_position_lat_lon.isAllFinite()) {
+		position_reference = _current_position_lat_lon;
+
+	} else if (_home_lat_lon.isAllFinite()) {
+		position_reference = _home_lat_lon;
 	}
 
-	if (!_first_waypoint_found && MissionBlock::item_contains_position(mission_item)) {
+	if (_param_mis_dist_1wp > FLT_EPSILON &&
+	    position_reference.isAllFinite() &&
+	    !_first_waypoint_found &&
+	    MissionBlock::item_contains_position(mission_item)) {
+
 		_first_waypoint_found = true;
 
-
 		/* check distance from current position to item */
-		float dist_to_1wp = get_distance_to_next_waypoint(
-					    mission_item.lat, mission_item.lon,
-					    _home_lat_lon(0), _home_lat_lon(1));
+		const float dist_to_1wp = get_distance_to_next_waypoint(
+						  mission_item.lat, mission_item.lon,
+						  position_reference(0), position_reference(1));
 
 		if (dist_to_1wp < _param_mis_dist_1wp) {
 
@@ -627,7 +642,6 @@ bool FeasibilityChecker::checkDistanceToFirstWaypoint(mission_item_s &mission_it
 		}
 	}
 
-	/* no waypoints found in mission, then we will not fly far away */
 	return true;
 }
 

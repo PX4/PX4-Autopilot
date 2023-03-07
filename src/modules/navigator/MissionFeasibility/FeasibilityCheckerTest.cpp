@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2022-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,8 +33,6 @@
 
 #include <gtest/gtest.h>
 #include "FeasibilityChecker.hpp"
-#include <uORB/topics/home_position.h>
-#include <uORB/topics/vehicle_land_detected.h>
 #include <lib/geo/geo.h>
 
 
@@ -65,6 +63,15 @@ public:
 		home.valid_hpos = true;
 		orb_advert_t home_pub = orb_advertise(ORB_ID(home_position), &home);
 		orb_publish(ORB_ID(home_position), home_pub, &home);
+	}
+
+	void publishCurrentPosition(double lat, double lon)
+	{
+		vehicle_global_position_s gpos = {};
+		gpos.lat = lat;
+		gpos.lon = lon;
+		orb_advert_t gpos_pub = orb_advertise(ORB_ID(vehicle_global_position), &gpos);
+		orb_publish(ORB_ID(vehicle_global_position), gpos_pub, &gpos);
 	}
 
 	void publishLanded(bool landed)
@@ -125,35 +132,72 @@ TEST_F(FeasibilityCheckerTest, mission_item_validity)
 
 TEST_F(FeasibilityCheckerTest, check_dist_first_waypoint)
 {
+	// GIVEN: MIS_DIST_1WP set to 500m
 	TestFeasibilityChecker checker;
 	checker.publishLanded(true);
-	checker.publishHomePosition(0, 0, 0);
-
 	param_t param = param_handle(px4::params::MIS_DIST_1WP);
-
 	float max_dist = 500.0f;
 	param_set(param, &max_dist);
 	checker.paramsChanged();
-
-
 	mission_item_s mission_item = {};
 	mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 	double lat_new, lon_new;
+
+	// GIVEN: no valid Current position, no valid Home
+
+
+	// THEN: always pass
+	checker.processNextItem(mission_item, 0, 1);
+	ASSERT_EQ(checker.someCheckFailed(), false);
+
+	// GIVEN: no valid current position, but valid Home. First WP 501m away from Home
+	checker.reset();
+	checker.publishLanded(true);
+	checker.publishHomePosition(0, 0, 0);
 	waypoint_from_heading_and_distance(mission_item.lat, mission_item.lon, 0, 501, &lat_new, &lon_new);
 	mission_item.lat = lat_new;
 	mission_item.lon = lon_new;
-	checker.processNextItem(mission_item, 0, 1);
 
+	// THEN: check should fail
+	checker.processNextItem(mission_item, 0, 1);
 	ASSERT_EQ(checker.someCheckFailed(), true);
 
+	// BUT WHEN: no valid current position, but valid Home. First WP 499m away from Home
 	checker.reset();
 	checker.publishLanded(true);
 	checker.publishHomePosition(0, 0, 0);
 	waypoint_from_heading_and_distance(0, 0, 0, 499, &lat_new, &lon_new);
 	mission_item.lat = lat_new;
 	mission_item.lon = lon_new;
-	checker.processNextItem(mission_item, 0, 1);
 
+	// THEN: pass
+	checker.processNextItem(mission_item, 0, 1);
+	ASSERT_EQ(checker.someCheckFailed(), false);
+
+	// BUT WHEN: valid current position, valid Home, first WP 501m away from current pos
+	checker.reset();
+	checker.publishLanded(true);
+	checker.publishHomePosition(0, 0, 0);
+	checker.publishCurrentPosition(0, 0);
+	waypoint_from_heading_and_distance(0, 0, 0, 501, &lat_new, &lon_new);
+	mission_item.lat = lat_new;
+	mission_item.lon = lon_new;
+
+	// THEN: fail
+	checker.processNextItem(mission_item, 0, 1);
+	ASSERT_EQ(checker.someCheckFailed(), true);
+
+	// BUT WHEN: valid current position, valid Home, fist WP 499m away from current but more from Home
+	checker.reset();
+	checker.publishLanded(true);
+	checker.publishHomePosition(10, 20, 0); // random position far away
+	checker.publishCurrentPosition(0, 0);
+	waypoint_from_heading_and_distance(0, 0, 0, 499, &lat_new, &lon_new);
+	mission_item.lat = lat_new;
+	mission_item.lon = lon_new;
+
+	// THEN: pass
+	checker.processNextItem(mission_item, 0, 1);
 	ASSERT_EQ(checker.someCheckFailed(), false);
 }
 
