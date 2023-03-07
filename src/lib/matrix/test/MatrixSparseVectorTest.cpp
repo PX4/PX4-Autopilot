@@ -92,11 +92,11 @@ TEST(MatrixSparseVectorTest, setZero)
 
 TEST(MatrixSparseVectorTest, additionWithDenseVector)
 {
-	Vector<float, 4> dense_vec;
+	Vector4f dense_vec;
 	dense_vec.setAll(1.f);
 	const float data[3] = {1.f, 2.f, 3.f};
 	const SparseVectorf<4, 1, 2, 3> sparse_vec(data);
-	const Vector<float, 4> res = sparse_vec + dense_vec;
+	const Vector4f res = sparse_vec + dense_vec;
 	EXPECT_FLOAT_EQ(res(0), 1.f);
 	EXPECT_FLOAT_EQ(res(1), 2.f);
 	EXPECT_FLOAT_EQ(res(2), 3.f);
@@ -115,7 +115,7 @@ TEST(MatrixSparseVectorTest, addScalar)
 
 TEST(MatrixSparseVectorTest, dotProductWithDenseVector)
 {
-	Vector<float, 4> dense_vec;
+	Vector4f dense_vec;
 	dense_vec.setAll(3.f);
 	const float data[3] = {1.f, 2.f, 3.f};
 	const SparseVectorf<4, 1, 2, 3> sparse_vec(data);

@@ -71,13 +71,7 @@ TEST(MatrixVector3Test, Vector3)
 
 	Vector3f h;
 	EXPECT_EQ(h, Vector3f(0, 0, 0));
-
-	Vector<float, 4> j;
-	j(0) = 1;
-	j(1) = 2;
-	j(2) = 3;
-	j(3) = 4;
-
+	Vector4f j(1.f, 2.f, 3.f, 4.f);
 	Vector3f k = j.slice<3, 1>(0, 0);
 	Vector3f k_test(1, 2, 3);
 	EXPECT_EQ(k, k_test);
