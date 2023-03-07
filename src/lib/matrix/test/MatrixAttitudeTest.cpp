@@ -260,7 +260,7 @@ TEST(MatrixAttitudeTest, Attitude)
 
 	// quaterion copy ctors
 	float data_v4[] = {1, 2, 3, 4};
-	Vector<float, 4> v4(data_v4);
+	Vector4f v4(data_v4);
 	Quatf q_from_v(v4);
 	EXPECT_EQ(q_from_v, v4);
 
@@ -270,15 +270,13 @@ TEST(MatrixAttitudeTest, Attitude)
 
 	// quaternion derivative in frame 1
 	Quatf q1(0, 1, 0, 0);
-	Vector<float, 4> q1_dot1 = q1.derivative1(Vector3f(1, 2, 3));
-	float data_q_dot1_check[] = { -0.5f, 0.0f, -1.5f, 1.0f};
-	Vector<float, 4> q1_dot1_check(data_q_dot1_check);
+	Vector4f q1_dot1 = q1.derivative1(Vector3f(1, 2, 3));
+	Vector4f q1_dot1_check(-0.5f, 0.0f, -1.5f, 1.0f);
 	EXPECT_EQ(q1_dot1, q1_dot1_check);
 
 	// quaternion derivative in frame 2
-	Vector<float, 4> q1_dot2 = q1.derivative2(Vector3f(1, 2, 3));
-	float data_q_dot2_check[] = { -0.5f, 0.0f, 1.5f, -1.0f};
-	Vector<float, 4> q1_dot2_check(data_q_dot2_check);
+	Vector4f q1_dot2 = q1.derivative2(Vector3f(1, 2, 3));
+	Vector4f q1_dot2_check(-0.5f, 0.0f, 1.5f, -1.0f);
 	EXPECT_EQ(q1_dot2, q1_dot2_check);
 
 	// quaternion product

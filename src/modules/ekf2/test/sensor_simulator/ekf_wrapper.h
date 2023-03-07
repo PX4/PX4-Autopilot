@@ -111,7 +111,7 @@ public:
 
 	Eulerf getEulerAngles() const;
 	float getYawAngle() const;
-	matrix::Vector<float, 4> getQuaternionVariance() const;
+	matrix::Vector4f getQuaternionVariance() const;
 	int getQuaternionResetCounter() const;
 
 	matrix::Vector3f getDeltaVelBiasVariance() const;
