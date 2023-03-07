@@ -131,12 +131,6 @@ void FeasibilityChecker::updateData()
 		param_get(handle, &_param_mis_dist_1wp);
 	}
 
-	handle = param_find("MIS_DIST_WPS");
-
-	if (handle != PARAM_INVALID) {
-		param_get(handle, &_param_mis_dist_wps);
-	}
-
 	handle = param_find("NAV_ACC_RAD");
 
 	if (handle != PARAM_INVALID) {
@@ -639,12 +633,6 @@ bool FeasibilityChecker::checkDistanceToFirstWaypoint(mission_item_s &mission_it
 
 bool FeasibilityChecker::checkDistancesBetweenWaypoints(const mission_item_s &mission_item)
 {
-	if (_param_mis_dist_wps <= 0.0f) {
-		/* param not set, check is ok */
-		return true;
-	}
-
-
 	/* check only items with valid lat/lon */
 	if (!MissionBlock::item_contains_position(mission_item)) {
 		return true;
@@ -658,24 +646,8 @@ bool FeasibilityChecker::checkDistancesBetweenWaypoints(const mission_item_s &mi
 				_last_lat, _last_lon);
 
 
-		if (dist_between_waypoints > _param_mis_dist_wps) {
-			/* distance between waypoints is too high */
-			mavlink_log_critical(_mavlink_log_pub,
-					     "Distance between waypoints too far: %d meters, %d max.\t",
-					     (int)dist_between_waypoints, (int)_param_mis_dist_wps);
-			events::send<uint32_t, uint32_t>(events::ID("navigator_mis_wp_dist_too_far"), {events::Log::Error, events::LogInternal::Info},
-							 "Distance between waypoints too far: {1m}, (maximum: {2m})", (uint32_t)dist_between_waypoints,
-							 (uint32_t)_param_mis_dist_wps);
-
-
-			return false;
-
-			/* do not allow waypoints that are literally on top of each other */
-
-			/* and do not allow condition gates that are at the same position as a navigation waypoint */
-
-		} else if (dist_between_waypoints < 0.05f &&
-			   (mission_item.nav_cmd == NAV_CMD_CONDITION_GATE || _last_cmd == NAV_CMD_CONDITION_GATE)) {
+		if (dist_between_waypoints < 0.05f &&
+		    (mission_item.nav_cmd == NAV_CMD_CONDITION_GATE || _last_cmd == NAV_CMD_CONDITION_GATE)) {
 
 			/* Waypoints and gate are at the exact same position, which indicates an
 			 * invalid mission and makes calculating the direction from one waypoint
