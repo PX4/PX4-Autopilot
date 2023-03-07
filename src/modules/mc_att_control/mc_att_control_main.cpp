@@ -49,6 +49,8 @@
 #include <mathlib/math/Limits.hpp>
 #include <mathlib/math/Functions.hpp>
 
+#include "AttitudeControl/AttitudeControlMath.hpp"
+
 using namespace matrix;
 
 MulticopterAttitudeControl::MulticopterAttitudeControl(bool vtol) :
@@ -162,21 +164,7 @@ MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt,
 		// an attitude setpoint from the yaw setpoint will lead to unexpected attitude behaviour from
 		// the user's view as the tilt will not be aligned with the heading of the vehicle.
 
-		const Vector3f z_unit(0.f, 0.f, 1.f);
-
-		// Extract yaw from the current attitude
-		Vector3f att_z = q.dcm_z();
-		Quatf q_delta = Quatf(z_unit, att_z);
-		Quatf q_yaw = q_delta.inversed() * q; // This is not euler yaw
-
-		// Find the quaternion that creates a tilt aligned with the body frame
-		// when rotated by the yaw setpoint
-		// To do so, solve q_yaw * q_sp_rp = q_sp_yaw * q_sp_rp_compensated
-		Quatf q_sp_rp_compensated = q_sp_yaw.inversed() * q_yaw * q_sp_rp;
-
-		// Extract the corrected tilt as we still want to include the yaw setpoint
-		Vector3f att_sp_z = q_sp_rp_compensated.dcm_z();
-		q_sp_rp = Quatf(z_unit, att_sp_z);
+		AttitudeControlMath::correctTiltSetpointForYawError(q_sp_rp, q, q_sp_yaw);
 	}
 
 	// Align the desired tilt with the yaw setpoint
