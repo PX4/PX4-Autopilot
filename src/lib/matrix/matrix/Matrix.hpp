@@ -367,10 +367,9 @@ public:
 	{
 		// element: tab, point, 8 digits, 4 scientific notation chars; row: newline; string: \0 end
 		static const size_t n = 15 * N * M + M + 1;
-		char *buf = new char[n];
-		write_string(buf, n);
-		printf("%s\n", buf);
-		delete[] buf;
+		char string[n];
+		write_string(string, n);
+		printf("%s\n", string);
 	}
 
 	Matrix<Type, N, M> transpose() const
@@ -817,11 +816,9 @@ OStream &operator<<(OStream &os, const matrix::Matrix<Type, M, N> &matrix)
 	os << "\n";
 	// element: tab, point, 8 digits, 4 scientific notation chars; row: newline; string: \0 end
 	static const size_t n = 15 * N * M + M + 1;
-	char *buf = new char[n];
-	matrix.write_string(buf, n);
-	os << buf;
-	delete[] buf;
-
+	char string[n];
+	matrix.write_string(string, n);
+	os << string;
 	return os;
 }
 
