@@ -100,7 +100,6 @@ private:
 	// parameters
 	float _param_fw_lnd_ang{0.f};
 	float _param_mis_dist_1wp{0.f};
-	float _param_mis_dist_wps{0.f};
 	float _param_nav_acc_rad{0.f};
 	int32_t _param_mis_takeoff_land_req{0};
 
