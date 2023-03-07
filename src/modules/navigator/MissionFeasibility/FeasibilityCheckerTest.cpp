@@ -123,42 +123,6 @@ TEST_F(FeasibilityCheckerTest, mission_item_validity)
 	ASSERT_EQ(ret, false);
 }
 
-TEST_F(FeasibilityCheckerTest, max_dist_between_waypoints)
-{
-	TestFeasibilityChecker checker;
-	checker.publishLanded(true);
-
-	param_t param = param_handle(px4::params::MIS_DIST_WPS);
-
-	float max_dist = 1000.0f;
-	param_set(param, &max_dist);
-	checker.paramsChanged();
-
-	mission_item_s mission_item = {};
-	mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-
-	checker.processNextItem(mission_item, 0, 3);
-
-	// waypoints are within limits, check should pass
-	double lat_new, lon_new;
-	waypoint_from_heading_and_distance(mission_item.lat, mission_item.lon, 0, 999, &lat_new, &lon_new);
-	mission_item.lat = lat_new;
-	mission_item.lon = lon_new;
-	checker.processNextItem(mission_item, 1, 3);
-
-	ASSERT_EQ(checker.someCheckFailed(), false);
-
-	// waypoints are above limits, check should fail
-	waypoint_from_heading_and_distance(mission_item.lat, mission_item.lon, 0, 1001, &lat_new, &lon_new);
-
-	mission_item.lat = lat_new;
-	mission_item.lon = lon_new;
-	checker.processNextItem(mission_item, 2, 3);
-
-	ASSERT_EQ(checker.someCheckFailed(), true);
-}
-
-
 TEST_F(FeasibilityCheckerTest, check_dist_first_waypoint)
 {
 	TestFeasibilityChecker checker;

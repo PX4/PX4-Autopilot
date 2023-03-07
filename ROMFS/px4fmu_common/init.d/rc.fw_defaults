@@ -46,7 +46,6 @@ param set-default RTL_LAND_DELAY -1
 #
 param set-default NAV_ACC_RAD 10
 
-param set-default MIS_DIST_WPS 5000
 param set-default MIS_TAKEOFF_ALT 25
 param set-default MIS_TKO_LAND_REQ 2
 
