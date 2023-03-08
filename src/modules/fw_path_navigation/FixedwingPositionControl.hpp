@@ -445,7 +445,7 @@ private:
 
 	void status_publish();
 	void landing_status_publish();
-	void tecs_status_publish(float alt_sp, float equivalent_airspeed_sp, float true_airspeed_derivative_raw,
+	void tecs_status_publish(float alt_sp, float equivalent_airspeed_sp, float ground_speed_derivative_raw,
 				 float throttle_trim);
 	void publishLocalPositionSetpoint(const position_setpoint_s &current_waypoint);
 

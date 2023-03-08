@@ -466,7 +466,7 @@ FixedwingPositionControl::adapt_airspeed_setpoint(const float control_interval, 
 
 void
 FixedwingPositionControl::tecs_status_publish(float alt_sp, float equivalent_airspeed_sp,
-		float true_airspeed_derivative_raw, float throttle_trim)
+		float ground_speed_derivative_raw, float throttle_trim)
 {
 	tecs_status_s t{};
 
@@ -491,7 +491,7 @@ FixedwingPositionControl::tecs_status_publish(float alt_sp, float equivalent_air
 	t.true_airspeed_filtered = debug_output.true_airspeed_filtered;
 	t.true_airspeed_derivative_sp = debug_output.control.true_airspeed_derivative_control;
 	t.true_airspeed_derivative = debug_output.true_airspeed_derivative;
-	t.true_airspeed_derivative_raw = true_airspeed_derivative_raw;
+	t.ground_speed_derivative_raw = ground_speed_derivative_raw;
 	t.total_energy_rate = debug_output.control.total_energy_rate_estimate;
 	t.total_energy_balance_rate = debug_output.control.energy_balance_rate_estimate;
 	t.total_energy_rate_sp = debug_output.control.total_energy_rate_sp;
@@ -2553,6 +2553,13 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 	const float throttle_trim_comp = compensateTrimThrottleForDensityAndWeight(_param_fw_thr_trim.get(), throttle_min,
 					 throttle_max);
 
+	const Vector3f local_pos_a = Vector3f{_local_pos.ax, _local_pos.ay, _local_pos.az};
+	const Vector3f groundspee_minus_wind = Vector3f{_local_pos.vx - _wind_vel(0), _local_pos.vy - _wind_vel(1), _local_pos.vz};
+
+	// only do acceleration control in case wind is valid, and otherwise set it to 0
+	const float acceleration_in_direction_of_airspeed_vector = _wind_valid ? groundspee_minus_wind.unit_or_zero().dot(
+				local_pos_a) : 0.f;
+
 	_tecs.update(_pitch - radians(_param_fw_psp_off.get()),
 		     _current_altitude,
 		     alt_sp,
@@ -2566,11 +2573,11 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 		     pitch_max_rad - radians(_param_fw_psp_off.get()),
 		     desired_max_climbrate,
 		     desired_max_sinkrate,
-		     _body_acceleration_x,
+		     acceleration_in_direction_of_airspeed_vector,
 		     -_local_pos.vz,
 		     hgt_rate_sp);
 
-	tecs_status_publish(alt_sp, airspeed_sp, -_local_pos.vz, throttle_trim_comp);
+	tecs_status_publish(alt_sp, airspeed_sp, acceleration_in_direction_of_airspeed_vector, throttle_trim_comp);
 }
 
 float
