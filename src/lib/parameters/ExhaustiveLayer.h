@@ -67,6 +67,11 @@ public:
 		return param < PARAM_COUNT && _ownership_set[param];
 	}
 
+	px4::AtomicBitset<PARAM_COUNT> containedAsBitset() const override
+	{
+		return _ownership_set;
+	}
+
 	param_value_u get(param_t param) const override
 	{
 		if (param >= PARAM_COUNT) {
