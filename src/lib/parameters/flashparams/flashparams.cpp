@@ -84,15 +84,16 @@ param_export_internal(param_filter_func filter)
 	/* Use realloc */
 
 	bson_encoder_init_buf(&encoder, nullptr, 0);
+	auto changed_params = user_config.containedAsBitset();
 
 	for (param_t param = 0; param < user_config.PARAM_COUNT; param++) {
 
-		int32_t i;
-		float   f;
-
-		if (filter && !filter(param)) {
+		if (!changed_params[param] || (filter && !filter(param))) {
 			continue;
 		}
+
+		int32_t i;
+		float   f;
 
 		/* append the appropriate BSON type object */
 

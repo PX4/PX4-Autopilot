@@ -31,9 +31,9 @@
  *
  ****************************************************************************/
 
-#ifndef PX4_PARAMLAYER_H
-#define PX4_PARAMLAYER_H
+#pragma once
 
+#include <px4_platform_common/atomic_bitset.h>
 #include "atomic_transaction.h"
 #include "param.h"
 #include <stdlib.h>
@@ -55,6 +55,8 @@ public:
 
 	virtual bool contains(param_t param) const = 0;
 
+	virtual px4::AtomicBitset<PARAM_COUNT> containedAsBitset() const = 0;
+
 	virtual param_value_u get(param_t param) const = 0;
 
 	virtual void reset(param_t param) = 0;
@@ -68,5 +70,3 @@ public:
 protected:
 	ParamLayer *const _parent;
 };
-
-#endif //PX4_PARAMLAYER_H

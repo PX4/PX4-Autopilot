@@ -1039,6 +1039,7 @@ param_export(const char *filename, param_filter_func filter)
 static int param_export_internal(int fd, param_filter_func filter)
 {
 	PX4_DEBUG("param_export_internal");
+	const auto changed_params = user_config.containedAsBitset();
 
 	int result = -1;
 	bson_encoder_s encoder{};
@@ -1054,7 +1055,7 @@ static int param_export_internal(int fd, param_filter_func filter)
 	}
 
 	for (param_t param = 0; handle_in_range(param); param++) {
-		if (filter && !filter(param)) {
+		if (!changed_params[param] || (filter && !filter(param))) {
 			continue;
 		}
 

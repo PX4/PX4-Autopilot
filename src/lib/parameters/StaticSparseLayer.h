@@ -74,6 +74,18 @@ public:
 		return _getIndex(param) < _next_slot;
 	}
 
+	px4::AtomicBitset<PARAM_COUNT> containedAsBitset() const override
+	{
+		px4::AtomicBitset<PARAM_COUNT> set;
+		const AtomicTransaction transaction;
+
+		for (int i = 0; i < _next_slot; i++) {
+			set.set(_slots[i].param);
+		}
+
+		return set;
+	}
+
 	param_value_u get(param_t param) const override
 	{
 		const AtomicTransaction transaction;
