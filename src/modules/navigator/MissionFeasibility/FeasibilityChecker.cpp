@@ -604,29 +604,33 @@ bool FeasibilityChecker::checkTakeoffLandAvailable()
 
 bool FeasibilityChecker::checkHorizontalDistanceToFirstWaypoint(mission_item_s &mission_item)
 {
-	matrix::Vector2d position_reference = matrix::Vector2d((double)NAN, (double)NAN);
-
-	// take last known vehicle global_position, or Home position if not available
-	if (_current_position_lat_lon.isAllFinite()) {
-		position_reference = _current_position_lat_lon;
-
-	} else if (_home_lat_lon.isAllFinite()) {
-		position_reference = _home_lat_lon;
-	}
-
 	if (_param_mis_dist_1wp > FLT_EPSILON &&
-	    position_reference.isAllFinite() &&
+	    (_current_position_lat_lon.isAllFinite() || _home_lat_lon.isAllFinite()) &&
 	    !_first_waypoint_found &&
 	    MissionBlock::item_contains_position(mission_item)) {
 
 		_first_waypoint_found = true;
 
-		/* check distance from current position to item */
-		const float dist_to_1wp = get_distance_to_next_waypoint(
-						  mission_item.lat, mission_item.lon,
-						  position_reference(0), position_reference(1));
+		/* check distance from current position or Home (whatever is closer) to item */
+		float dist_to_1wp_from_current_pos = 1e6f;
 
-		if (dist_to_1wp < _param_mis_dist_1wp) {
+		if (_current_position_lat_lon.isAllFinite()) {
+			dist_to_1wp_from_current_pos = get_distance_to_next_waypoint(
+							       mission_item.lat, mission_item.lon,
+							       _current_position_lat_lon(0), _current_position_lat_lon(1));
+		}
+
+		float dist_to_1wp_from_home = 1e6f;
+
+		if (_home_lat_lon.isAllFinite()) {
+			dist_to_1wp_from_home = get_distance_to_next_waypoint(
+							mission_item.lat, mission_item.lon,
+							_home_lat_lon(0), _home_lat_lon(1));
+		}
+
+		const float min_dist = math::min(dist_to_1wp_from_current_pos, dist_to_1wp_from_home);
+
+		if (min_dist < _param_mis_dist_1wp) {
 
 			return true;
 
@@ -634,9 +638,9 @@ bool FeasibilityChecker::checkHorizontalDistanceToFirstWaypoint(mission_item_s &
 			/* item is too far from home */
 			mavlink_log_critical(_mavlink_log_pub,
 					     "First waypoint too far away: %dm, %d max\t",
-					     (int)dist_to_1wp, (int)_param_mis_dist_1wp);
+					     (int)min_dist, (int)_param_mis_dist_1wp);
 			events::send<uint32_t, uint32_t>(events::ID("navigator_mis_first_wp_too_far"), {events::Log::Error, events::LogInternal::Info},
-							 "First waypoint too far away: {1m} (maximum: {2m})", (uint32_t)dist_to_1wp, (uint32_t)_param_mis_dist_1wp);
+							 "First waypoint too far away: {1m} (maximum: {2m})", (uint32_t)min_dist, (uint32_t)_param_mis_dist_1wp);
 
 			return false;
 		}
