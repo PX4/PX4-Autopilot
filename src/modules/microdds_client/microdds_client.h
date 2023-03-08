@@ -78,6 +78,17 @@ private:
 	const bool _custom_participant;
 	const char *_client_namespace;
 
+
+	// max port characters (5+'\0')
+	static const uint8_t PORT_MAX_LENGTH = 6;
+	// max agent ip characters (15+'\0')
+	static const uint8_t AGENT_IP_MAX_LENGTH = 16;
+
+#if defined(CONFIG_NET) || defined(__PX4_POSIX)
+	char _port[PORT_MAX_LENGTH];
+	char _agent_ip[AGENT_IP_MAX_LENGTH];
+#endif
+
 	SendTopicsSubs *_subs{nullptr};
 	RcvTopicsPubs *_pubs{nullptr};
 
