@@ -79,7 +79,7 @@ void on_time(uxrSession *session, int64_t current_time, int64_t received_timesta
 	}
 }
 
-MicroddsClient::MicroddsClient(Transport transport, const char *device, int baudrate, const char *host,
+MicroddsClient::MicroddsClient(Transport transport, const char *device, int baudrate, const char *agent_ip,
 			       const char *port, bool localhost_only, bool custom_participant, const char *client_namespace) :
 	ModuleParams(nullptr),
 	_localhost_only(localhost_only), _custom_participant(custom_participant),
@@ -122,9 +122,11 @@ MicroddsClient::MicroddsClient(Transport transport, const char *device, int baud
 
 #if defined(MICRODDS_CLIENT_UDP)
 		_transport_udp = new uxrUDPTransport();
+		strncpy(_port, port, PORT_MAX_LENGTH - 1);
+		strncpy(_agent_ip, agent_ip, AGENT_IP_MAX_LENGTH - 1);
 
 		if (_transport_udp) {
-			if (uxr_init_udp_transport(_transport_udp, UXR_IPv4, host, port)) {
+			if (uxr_init_udp_transport(_transport_udp, UXR_IPv4, _agent_ip, _port)) {
 				_comm = &_transport_udp->comm;
 				_fd = _transport_udp->platform.poll_fd.fd;
 
@@ -546,8 +548,26 @@ int MicroddsClient::task_spawn(int argc, char *argv[])
 int MicroddsClient::print_status()
 {
 	PX4_INFO("Running, %s", _connected ? "connected" : "disconnected");
-	PX4_INFO("Payload tx: %i B/s", _last_payload_tx_rate);
-	PX4_INFO("Payload rx: %i B/s", _last_payload_rx_rate);
+#if defined(MICRODDS_CLIENT_UDP)
+
+	if (_transport_udp != nullptr) {
+		PX4_INFO("Using transport: udp");
+		PX4_INFO("Agent IP: %s", _agent_ip);
+		PX4_INFO("Agent port: %s", _port);
+
+	}
+
+#endif
+
+	if (_transport_serial != nullptr) {
+		PX4_INFO("Using transport: serial");
+	}
+
+	if (_connected) {
+		PX4_INFO("Payload tx: %i B/s", _last_payload_tx_rate);
+		PX4_INFO("Payload rx: %i B/s", _last_payload_rx_rate);
+	}
+
 	return 0;
 }
 
@@ -558,8 +578,28 @@ MicroddsClient *MicroddsClient::instantiate(int argc, char *argv[])
 	int ch;
 	const char *myoptarg = nullptr;
 
+	char port[PORT_MAX_LENGTH];
+	char agent_ip[AGENT_IP_MAX_LENGTH];
+
 #if defined(MICRODDS_CLIENT_UDP)
 	Transport transport = Transport::Udp;
+
+	int32_t port_i = 0;
+	param_get(param_find("XRCE_DDS_PRT"), &port_i);
+
+	if (port_i < 0 || port_i > 65535) {
+		PX4_ERR("port must be between 0 and 65535");
+		return nullptr;
+	}
+
+	snprintf(port, PORT_MAX_LENGTH, "%u", (uint16_t)port_i);
+
+	int32_t ip_i = 0;
+	param_get(param_find("XRCE_DDS_AG_IP"), &ip_i);
+	snprintf(agent_ip, AGENT_IP_MAX_LENGTH, "%u.%u.%u.%u", static_cast<uint8_t>(((ip_i) >> 24) & 0xff),
+		 static_cast<uint8_t>(((ip_i) >> 16) & 0xff),
+		 static_cast<uint8_t>(((ip_i) >> 8) & 0xff),
+		 static_cast<uint8_t>(ip_i & 0xff));
 
 #else
 	Transport transport = Transport::Serial;
@@ -567,10 +607,8 @@ MicroddsClient *MicroddsClient::instantiate(int argc, char *argv[])
 	const char *device = nullptr;
 	int baudrate = 921600;
 
-	const char *port = "8888";
 	bool localhost_only = false;
 	bool custom_participant = false;
-	const char *ip = "127.0.0.1";
 
 	const char *client_namespace = nullptr;//"px4";
 
@@ -605,11 +643,11 @@ MicroddsClient *MicroddsClient::instantiate(int argc, char *argv[])
 #if defined(MICRODDS_CLIENT_UDP)
 
 		case 'h':
-			ip = myoptarg;
+			snprintf(agent_ip, AGENT_IP_MAX_LENGTH, "%s", myoptarg);
 			break;
 
 		case 'p':
-			port = myoptarg;
+			snprintf(port, PORT_MAX_LENGTH, "%s", myoptarg);
 			break;
 
 		case 'l':
@@ -647,7 +685,8 @@ MicroddsClient *MicroddsClient::instantiate(int argc, char *argv[])
 		}
 	}
 
-	return new MicroddsClient(transport, device, baudrate, ip, port, localhost_only, custom_participant, client_namespace);
+	return new MicroddsClient(transport, device, baudrate, agent_ip, port, localhost_only, custom_participant,
+				  client_namespace);
 }
 
 int MicroddsClient::print_usage(const char *reason)
@@ -671,8 +710,8 @@ $ microdds_client start -t udp -h 127.0.0.1 -p 15555
 	PRINT_MODULE_USAGE_PARAM_STRING('t', "udp", "serial|udp", "Transport protocol", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, "<file:dev>", "serial device", true);
 	PRINT_MODULE_USAGE_PARAM_INT('b', 0, 0, 3000000, "Baudrate (can also be p:<param_name>)", true);
-	PRINT_MODULE_USAGE_PARAM_STRING('h', "127.0.0.1", "<IP>", "Host IP", true);
-	PRINT_MODULE_USAGE_PARAM_INT('p', 8888, 0, 65535, "Remote Port", true);
+	PRINT_MODULE_USAGE_PARAM_STRING('h', "nullptr", "<IP>", "Agent IP", true);
+	PRINT_MODULE_USAGE_PARAM_INT('p', -1, 0, 65535, "Agent listening port", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('l', "Restrict to localhost (use in combination with ROS_LOCALHOST_ONLY=1)", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('c', "Use custom participant config (profile_name=\"px4_participant\")", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('n', nullptr, nullptr, "Client DDS namespace", true);
