@@ -199,6 +199,19 @@ TEST_F(FeasibilityCheckerTest, check_dist_first_waypoint)
 	// THEN: pass
 	checker.processNextItem(mission_item, 0, 1);
 	ASSERT_EQ(checker.someCheckFailed(), false);
+
+	// BUT WHEN: valid current position (far away), valid Home, first WP 499 away from Home
+	checker.reset();
+	checker.publishLanded(true);
+	checker.publishHomePosition(0, 0, 0); // random position far away
+	checker.publishCurrentPosition(10, 0);
+	waypoint_from_heading_and_distance(0, 0, 0, 499, &lat_new, &lon_new);
+	mission_item.lat = lat_new;
+	mission_item.lon = lon_new;
+
+	// THEN: pass
+	checker.processNextItem(mission_item, 0, 1);
+	ASSERT_EQ(checker.someCheckFailed(), false);
 }
 
 TEST_F(FeasibilityCheckerTest, check_below_home)
