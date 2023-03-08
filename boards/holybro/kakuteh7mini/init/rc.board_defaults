@@ -40,11 +40,5 @@ param set-default SYS_DM_BACKEND 1
 # Ignore that there is no SD card
 param set-default COM_ARM_SDCARD 0
 
-# Store missions in RAM
-param set-default SYS_DM_BACKEND 1
-
-# Ignore that there is no SD card
-param set-default COM_ARM_SDCARD 0
-
 # Don't try to log onto SD card
 param set-default SDLOG_MODE -1
