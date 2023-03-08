@@ -57,13 +57,24 @@ void StickAccelerationXY::resetPosition(const matrix::Vector2f &position)
 
 void StickAccelerationXY::resetVelocity(const matrix::Vector2f &velocity)
 {
-	_velocity_setpoint = velocity;
+	if (velocity.isAllFinite()) {
+		_velocity_setpoint = velocity;
+
+	} else {
+		_velocity_setpoint.zero();
+	}
 }
 
 void StickAccelerationXY::resetAcceleration(const matrix::Vector2f &acceleration)
 {
-	_acceleration_slew_rate_x.setForcedValue(acceleration(0));
-	_acceleration_slew_rate_y.setForcedValue(acceleration(1));
+	if (acceleration.isAllFinite()) {
+		_acceleration_slew_rate_x.setForcedValue(acceleration(0));
+		_acceleration_slew_rate_y.setForcedValue(acceleration(1));
+
+	} else {
+		_acceleration_slew_rate_x.setForcedValue(0.f);
+		_acceleration_slew_rate_y.setForcedValue(0.f);
+	}
 }
 
 void StickAccelerationXY::generateSetpoints(Vector2f stick_xy, const float yaw, const float yaw_sp, const Vector3f &pos,
@@ -150,7 +161,7 @@ Vector2f StickAccelerationXY::calculateDrag(Vector2f drag_coefficient, const flo
 
 	drag_coefficient *= _brake_boost_filter.getState();
 
-	// increase drag with sqareroot function when velocity is lower than 1m/s
+	// increase drag with squareroot function when velocity is lower than 1m/s
 	const Vector2f velocity_with_sqrt_boost = vel_sp.unit_or_zero() * math::sqrt_linear(vel_sp.norm());
 	return drag_coefficient.emult(velocity_with_sqrt_boost);
 }
