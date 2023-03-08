@@ -263,8 +263,8 @@ private:
 	float _yaw{0.0f};
 	float _yawrate{0.0f};
 
-	matrix::Vector3f _body_acceleration{};
-	matrix::Vector3f _body_velocity{};
+	float _body_acceleration_x{0.f};
+	float _body_velocity_x{0.f};
 
 	MapProjection _global_local_proj_ref{};
 	float _global_local_alt0{NAN};

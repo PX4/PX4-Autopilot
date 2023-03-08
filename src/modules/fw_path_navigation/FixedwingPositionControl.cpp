@@ -367,8 +367,11 @@ FixedwingPositionControl::vehicle_attitude_poll()
 		_pitch = euler_angles(1);
 		_yaw = euler_angles(2);
 
-		_body_acceleration = R.transpose() * Vector3f{_local_pos.ax, _local_pos.ay, _local_pos.az};
-		_body_velocity = R.transpose() * Vector3f{_local_pos.vx, _local_pos.vy, _local_pos.vz};
+		Vector3f body_acceleration = R.transpose() * Vector3f{_local_pos.ax, _local_pos.ay, _local_pos.az};
+		_body_acceleration_x = body_acceleration(0);
+
+		Vector3f body_velocity = R.transpose() * Vector3f{_local_pos.vx, _local_pos.vy, _local_pos.vz};
+		_body_velocity_x = body_velocity(0);
 
 		// load factor due to banking
 		const float load_factor = 1.f / cosf(euler_angles(0));
@@ -410,7 +413,7 @@ FixedwingPositionControl::adapt_airspeed_setpoint(const float control_interval, 
 		 * by wind). Not countering this would lead to a fly-away. Only non-zero in presence
 		 * of sufficient wind. "minimum ground speed undershoot".
 		 */
-		const float ground_speed_body = _body_velocity(0);
+		const float ground_speed_body = _body_velocity_x;
 
 		if (ground_speed_body < _param_fw_gnd_spd_min.get()) {
 			calibrated_airspeed_setpoint += _param_fw_gnd_spd_min.get() - ground_speed_body;
@@ -1414,7 +1417,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 				/* Perform launch detection */
 
 				/* Detect launch using body X (forward) acceleration */
-				_launchDetector.update(control_interval, _body_acceleration(0));
+				_launchDetector.update(control_interval, _body_acceleration_x);
 			}
 
 		} else	{
@@ -2563,7 +2566,7 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 		     pitch_max_rad - radians(_param_fw_psp_off.get()),
 		     desired_max_climbrate,
 		     desired_max_sinkrate,
-		     _body_acceleration(0),
+		     _body_acceleration_x,
 		     -_local_pos.vz,
 		     hgt_rate_sp);
 
