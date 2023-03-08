@@ -1,16 +1,3 @@
-
-
-# parameters to auto start
-#  mode (normal, minimal)
-#  UDP port
-#  max rate
-#  DDS DOMAIN ID
-#
-
-
-# multiple instances?
-
-
 module_name: Micro XRCE-DDS
 serial_config:
     - command: |
@@ -22,13 +9,8 @@ serial_config:
         microdds_client start ${XRCE_DDS_ARGS}
 
       port_config_param:
-        name: XRCE_DDS_${i}_CFG
+        name: XRCE_DDS_CFG
         group: Micro XRCE-DDS
-        # MAVLink instances:
-        # 0: Telem1 Port (Telemetry Link)
-        # 1: Telem2 Port (Companion Link). Disabled by default to reduce RAM usage
-        # 2: Board-specific / no fixed function or port
-        #default: [TEL1, "", ""]
       supports_networking: true
 
 parameters:
@@ -46,7 +28,7 @@ parameters:
 
         XRCE_DDS_KEY:
             description:
-                short: XRCE DDS key
+                short: XRCE DDS Session key
                 long: |
                     XRCE DDS key, must be different from zero.
                     In a single agent - multi client configuration, each client
@@ -56,13 +38,29 @@ parameters:
             reboot_required: true
             default: 1
 
-        XRCE_DDS_UDP_PRT:
+        XRCE_DDS_PRT:
             description:
                 short: Micro DDS UDP Port
                 long: |
                     If ethernet enabled and selected as configuration for micro DDS,
                     selected udp port will be set and used.
             type: int32
+            min: 0
+            max: 65535
             reboot_required: true
             default: 8888
+            requires_ethernet: true
+
+        XRCE_DDS_AG_IP:
+            description:
+                short: Micro DDS Agent IP address
+                long: |
+                    If ethernet enabled and selected as configuration for micro DDS,
+                    selected Agent IP address will be set and used.
+                    Decimal dot notation is not supported. IP address must be provided
+                    in int32 format. For example, 192.168.1.2 is mapped to -1062731518;
+                    127.0.0.1 is mapped to 2130706433.
+            type: int32
+            reboot_required: true
+            default: 2130706433
             requires_ethernet: true
