@@ -112,7 +112,7 @@ extern pthread_mutex_t px4_modules_mutex;
  *      }
  */
 template<class T>
-class ModuleBase
+class ModuleBase  //所有模块的基类，但是只支持单实例模块
 {
 public:
 	ModuleBase() : _task_should_exit{false} {}
@@ -137,19 +137,19 @@ public:
 
 		if (strcmp(argv[1], "start") == 0) {
 			// Pass the 'start' argument too, because later on px4_getopt() will ignore the first argument.
-			return start_command_base(argc - 1, argv + 1);
+			return start_command_base(argc - 1, argv + 1);  //线程启动
 		}
 
 		if (strcmp(argv[1], "status") == 0) {
-			return status_command();
+			return status_command();  //输出线程状态
 		}
 
 		if (strcmp(argv[1], "stop") == 0) {
-			return stop_command();
+			return stop_command();  //终止线程
 		}
 
 		lock_module(); // Lock here, as the method could access _object.
-		int ret = T::custom_command(argc - 1, argv + 1);
+		int ret = T::custom_command(argc - 1, argv + 1);  //FlightModeManager不支持其它命令
 		unlock_module();
 
 		return ret;
@@ -199,15 +199,14 @@ public:
 	static int start_command_base(int argc, char *argv[])
 	{
 		int ret = 0;
-		lock_module();
+		lock_module();  //多线程情况下使用mutex防止死锁
 
-		if (is_running()) {
+		if (is_running()) {  //如果正在执行的话直接返回
 			ret = -1;
 			PX4_ERR("Task already running");
 
 		} else {
-			ret = T::task_spawn(argc, argv);
-
+			ret = T::task_spawn(argc, argv);  //调用派生类的任务启动函数，例如FlightModeManager类的task_spawn
 			if (ret < 0) {
 				PX4_ERR("Task start failed (%i)", ret);
 			}
@@ -231,7 +230,7 @@ public:
 			T *object = _object.load();
 
 			if (object) {
-				object->request_stop();
+				object->request_stop();  //停止模块线程
 
 				unsigned int i = 0;
 
@@ -243,7 +242,7 @@ public:
 					if (++i > 500 && _task_id != -1) { // wait at most 5 sec
 						PX4_ERR("timeout, forcing stop");
 
-						if (_task_id != task_id_is_work_queue) {
+						if (_task_id != task_id_is_work_queue) { //如果任务不在工作队列中
 							px4_task_delete(_task_id);
 						}
 
@@ -255,7 +254,7 @@ public:
 						ret = -1;
 						break;
 					}
-				} while (_task_id != -1);
+				} while (_task_id != -1);  //任务没有停止的话就等待5s，等待任务结束，超时的话强制结束任务
 
 			} else {
 				// In the very unlikely event that can only happen on work queues,
@@ -279,9 +278,9 @@ public:
 		int ret = -1;
 		lock_module();
 
-		if (is_running() && _object.load()) {
+		if (is_running() && _object.load()) {  //如果模块实例正在运行则获取该实例并打印状态
 			T *object = _object.load();
-			ret = object->print_status();
+			ret = object->print_status();  //这里调用的是派生类的print_status
 
 		} else {
 			PX4_INFO("not running");

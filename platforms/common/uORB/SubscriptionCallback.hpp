@@ -154,7 +154,7 @@ public:
 	 */
 	SubscriptionCallbackWorkItem(px4::WorkItem *work_item, const orb_metadata *meta, uint8_t instance = 0) :
 		SubscriptionCallback(meta, 0, instance),	// interval 0
-		_work_item(work_item)
+		_work_item(work_item)  //work_item为传过来的this指向的对象，将其作为参数构造_work_item对象
 	{
 	}
 

@@ -147,6 +147,7 @@ private:
 	uORB::SubscriptionData<home_position_s> _home_position_sub{ORB_ID(home_position)};
 	uORB::SubscriptionData<vehicle_control_mode_s> _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::SubscriptionData<vehicle_land_detected_s> _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
+	//将FlightModemanager对象和vehicle_local_position的句柄传入构造函数，构造_vehicle_local_position_sub
 	uORB::SubscriptionCallbackWorkItem _vehicle_local_position_sub{this, ORB_ID(vehicle_local_position)};
 
 	uORB::SubscriptionData<vehicle_status_s> _vehicle_status_sub{ORB_ID(vehicle_status)};

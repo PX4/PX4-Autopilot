@@ -66,13 +66,13 @@ FlightModeManager::~FlightModeManager()
 
 bool FlightModeManager::init()
 {
-	if (!_vehicle_local_position_sub.registerCallback()) {
+	if (!_vehicle_local_position_sub.registerCallback()) {  //注册回调函数
 		PX4_ERR("callback registration failed");
 		return false;
 	}
 
 	// limit to every other vehicle_local_position update (50 Hz)
-	_vehicle_local_position_sub.set_interval_us(20_ms);
+	_vehicle_local_position_sub.set_interval_us(20_ms);  //每20ms获取一次，并执行回调函数
 	_time_stamp_last_loop = hrt_absolute_time();
 	return true;
 }
@@ -589,13 +589,13 @@ const char *FlightModeManager::errorToString(const FlightTaskError error)
 
 int FlightModeManager::task_spawn(int argc, char *argv[])
 {
-	FlightModeManager *instance = new FlightModeManager();
+	FlightModeManager *instance = new FlightModeManager();  //实例化一个模块
 
 	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
+		_object.store(instance);  //将该模块的实例地址交给_object
+		_task_id = task_id_is_work_queue; //将任务加入工作队列
 
-		if (instance->init()) {
+		if (instance->init()) {  //通过订阅机制获得无人机当前位置
 			return PX4_OK;
 		}
 
@@ -603,7 +603,7 @@ int FlightModeManager::task_spawn(int argc, char *argv[])
 		PX4_ERR("alloc failed");
 	}
 
-	delete instance;
+	delete instance;  //分配失败就删除并还原变量
 	_object.store(nullptr);
 	_task_id = -1;
 
@@ -617,14 +617,14 @@ int FlightModeManager::custom_command(int argc, char *argv[])
 
 int FlightModeManager::print_status()
 {
-	if (isAnyTaskActive()) {
+	if (isAnyTaskActive()) {  //如果有任何飞行模式在执行则输出信息
 		PX4_INFO("Running, active flight task: %" PRIu32, static_cast<uint32_t>(_current_task.index));
 
 	} else {
 		PX4_INFO("Running, no flight task active");
 	}
 
-	perf_print_counter(_loop_perf);
+	perf_print_counter(_loop_perf);  //输出循环时间性能计数器
 	return 0;
 }
 
@@ -651,5 +651,5 @@ and outputs setpoints for controllers.
 
 extern "C" __EXPORT int flight_mode_manager_main(int argc, char *argv[])
 {
-	return FlightModeManager::main(argc, argv);
+	return FlightModeManager::main(argc, argv);  //入口函数
 }
