@@ -532,7 +532,7 @@ PARAM_DEFINE_FLOAT(EKF2_MAG_ACCLIM, 0.5f);
  * @unit rad/s
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(EKF2_MAG_YAWLIM, 0.25f);
+PARAM_DEFINE_FLOAT(EKF2_MAG_YAWLIM, 0.20f);
 
 /**
  * Gate size for barometric and GPS height fusion
