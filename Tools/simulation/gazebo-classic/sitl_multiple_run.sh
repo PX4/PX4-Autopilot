@@ -35,7 +35,20 @@ function spawn_model() {
 	pushd "$working_dir" &>/dev/null
 	echo "starting instance $N in $(pwd)"
 	$build_path/bin/px4 -i $N -d "$build_path/etc" >out.log 2>err.log &
-	python3 ${src_path}/Tools/simulation/gazebo-classic/sitl_gazebo-classic/scripts/jinja_gen.py ${src_path}/Tools/simulation/gazebo-classic/sitl_gazebo-classic/models/${MODEL}/${MODEL}.sdf.jinja ${src_path}/Tools/simulation/gazebo-classic/sitl_gazebo-classic --mavlink_tcp_port $((4560+${N})) --mavlink_udp_port $((14560+${N})) --mavlink_id $((1+${N})) --gst_udp_port $((5600+${N})) --video_uri $((5600+${N})) --mavlink_cam_udp_port $((14530+${N})) --output-file /tmp/${MODEL}_${N}.sdf
+
+	set --
+	set -- ${@} ${src_path}/Tools/simulation/gazebo-classic/sitl_gazebo-classic/scripts/jinja_gen.py
+	set -- ${@} ${src_path}/Tools/simulation/gazebo-classic/sitl_gazebo-classic/models/${MODEL}/${MODEL}.sdf.jinja
+	set -- ${@} ${src_path}/Tools/simulation/gazebo-classic/sitl_gazebo-classic
+	set -- ${@} --mavlink_tcp_port $((4560+${N}))
+	set -- ${@} --mavlink_udp_port $((14560+${N}))
+	set -- ${@} --mavlink_id $((1+${N}))
+	set -- ${@} --gst_udp_port $((5600+${N}))
+	set -- ${@} --video_uri $((5600+${N}))
+	set -- ${@} --mavlink_cam_udp_port $((14530+${N}))
+	set -- ${@} --output-file /tmp/${MODEL}_${N}.sdf
+
+	python3 ${@}
 
 	echo "Spawning ${MODEL}_${N} at ${X} ${Y}"
 
