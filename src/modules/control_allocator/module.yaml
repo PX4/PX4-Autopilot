@@ -27,7 +27,8 @@ parameters:
                 7: Motors (6DOF)
                 8: Multirotor with Tilt
                 9: Custom
-                10: Helicopter
+                10: Helicopter (tail ESC)
+                11: Helicopter (tail Servo)
             default: 0
 
         CA_METHOD:
@@ -1058,7 +1059,7 @@ mixer:
                             advanced: true
                             identifier: 'servo-scale-spoiler'
 
-            10: # Helicopter
+            10: # Helicopter (tail ESC)
                 actuators:
                   - actuator_type: 'motor'
                     count: 1
@@ -1087,3 +1088,31 @@ mixer:
                       - label: 'Throttle spoolup time'
                         name: COM_SPOOLUP_TIME
 
+            11: # Helicopter (tail Servo)
+              actuators:
+                - actuator_type: 'motor'
+                  count: 1
+                  item_label_prefix: ['Rotor']
+                - actuator_type: 'servo'
+                  item_label_prefix: ['Yaw tail Servo']
+                  count: 1
+                - actuator_type: 'servo'
+                  group_label: 'Swash plate servos'
+                  count: 'CA_SP0_COUNT'
+                  per_item_parameters:
+                    extra:
+                      - name: 'CA_SP0_ANG${i}'
+                        label: 'Angle'
+                      - name: 'CA_SP0_ARM_L${i}'
+                        label: 'Arm Length (relative)'
+                      - name: 'CA_SV_CS${i}_TRIM'
+                        label: 'Trim'
+                  parameters:
+                    - label: 'Yaw compensation scale based on collective pitch'
+                      name: CA_HELI_YAW_CP_S
+                    - label: 'Yaw compensation scale based on throttle'
+                      name: CA_HELI_YAW_TH_S
+                    - label: 'Main rotor turns counter-clockwise'
+                      name: CA_HELI_YAW_CCW
+                    - label: 'Throttle spoolup time'
+                      name: COM_SPOOLUP_TIME

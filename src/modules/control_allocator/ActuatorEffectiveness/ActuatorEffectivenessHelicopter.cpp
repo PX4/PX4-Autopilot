@@ -37,8 +37,8 @@
 using namespace matrix;
 using namespace time_literals;
 
-ActuatorEffectivenessHelicopter::ActuatorEffectivenessHelicopter(ModuleParams *parent)
-	: ModuleParams(parent)
+ActuatorEffectivenessHelicopter::ActuatorEffectivenessHelicopter(ModuleParams *parent, ActuatorType tail_actuator_type)
+	: ModuleParams(parent), _tail_actuator_type(tail_actuator_type)
 {
 	for (int i = 0; i < NUM_SWASH_PLATE_SERVOS_MAX; ++i) {
 		char buffer[17];
@@ -115,8 +115,8 @@ ActuatorEffectivenessHelicopter::getEffectivenessMatrix(Configuration &configura
 	// As the allocation is non-linear, we use updateSetpoint() instead of the matrix
 	configuration.addActuator(ActuatorType::MOTORS, Vector3f{}, Vector3f{});
 
-	// Tail (yaw) motor
-	configuration.addActuator(ActuatorType::MOTORS, Vector3f{}, Vector3f{});
+	// Tail (yaw) (either ESC or Servo)
+	configuration.addActuator(_tail_actuator_type, Vector3f{}, Vector3f{});
 
 	// N swash plate servos
 	_first_swash_plate_servo_index = configuration.num_actuators_matrix[0];
