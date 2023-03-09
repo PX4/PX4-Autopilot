@@ -319,5 +319,19 @@ px4io driver is used for main ones.
 
 extern "C" __EXPORT int pwm_out_main(int argc, char *argv[])
 {
+#if defined(CONFIG_BOARD_USE_PROBES)
+#pragma message "warning PWM will not Function when CONFIG_BOARD_USE_PROBES is set"
+  PROBE_INIT(0xff);
+  PROBE(1,1);
+  PROBE(2,1);
+  PROBE(3,1);
+  PROBE(4,1);
+  PROBE(5,1);
+  PROBE(6,1);
+  PROBE(7,1);
+  PROBE(8,1);
+  return 0;
+#else
 	return PWMOut::main(argc, argv);
+#endif
 }
