@@ -138,7 +138,7 @@ RoverPositionControl::manual_control_setpoint_poll()
 					}
 
 					_att_sp.yaw_body = _manual_yaw_sp;
-					_att_sp.thrust_body[0] = (_manual_control_setpoint.throttle + 1.f) * .5f;
+					_att_sp.thrust_body[0] = _manual_control_setpoint.throttle;
 
 					Quatf q(Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body));
 					q.copyTo(_att_sp.q_d);
@@ -155,7 +155,7 @@ RoverPositionControl::manual_control_setpoint_poll()
 					_act_controls.control[actuator_controls_s::INDEX_YAW] =
 						_manual_control_setpoint.roll; // Nominally yaw: _manual_control_setpoint.yaw;
 					// Set throttle from the manual throttle channel
-					_act_controls.control[actuator_controls_s::INDEX_THROTTLE] = (_manual_control_setpoint.throttle + 1.f) * .5f;
+					_act_controls.control[actuator_controls_s::INDEX_THROTTLE] = _manual_control_setpoint.throttle;
 					_reset_yaw_sp = true;
 				}
 
