@@ -167,6 +167,7 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bo
 		} else if (index == 2) {
 			// we do not fuse synthesized magnetomter measurements when doing 3D fusion
 			if (_control_status.flags.synthetic_mag_z) {
+				fused[2] = true;
 				continue;
 			}
 
@@ -216,6 +217,11 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bo
 	if (fused[0] && fused[1] && fused[2]) {
 		aid_src_mag.fused = true;
 		aid_src_mag.time_last_fuse = _time_delayed_us;
+
+		if (update_all_states) {
+			_time_last_heading_fuse = _time_delayed_us;
+		}
+
 		return true;
 	}
 
