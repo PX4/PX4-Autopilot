@@ -115,6 +115,9 @@ static void timer_callback(void *arg)
 
 }
 
+extern "C" int dump_holder(void);
+extern volatile int g_pi_ndx;
+extern volatile int g_pi_sample;
 
 int logger_main(int argc, char *argv[])
 {
@@ -124,6 +127,13 @@ int logger_main(int argc, char *argv[])
 	if (*(char *)&num != 1) {
 		PX4_ERR("Logger only works on little endian!\n");
 		return 1;
+	}
+
+	if (argc == 2 && strcmp(argv[1], "-d") == 0) {
+
+		dump_holder();
+		g_pi_ndx = 0;
+		return 0;
 	}
 
 	return Logger::main(argc, argv);
