@@ -312,8 +312,6 @@ public:
 	const MapProjection &global_origin() const { return _pos_ref; }
 	float getEkfGlobalOriginAltitude() const { return PX4_ISFINITE(_gps_alt_ref) ? _gps_alt_ref : 0.f; }
 
-	void print_status();
-
 	OutputPredictor &output_predictor() { return _output_predictor; };
 
 protected:

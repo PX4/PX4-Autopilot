@@ -348,73 +348,67 @@ void Ekf::updateParameters()
 #endif // CONFIG_EKF2_AUX_GLOBAL_POSITION
 }
 
+template<typename T>
+static void printRingBuffer(const char *name, RingBuffer<T> *rb)
+{
+	if (rb) {
+		printf("%s: %d/%d entries (%d/%d Bytes) (%d Bytes per entry)\n",
+		       name,
+		       rb->entries(), rb->get_length(), rb->get_total_size(), rb->get_total_size(),
+		       sizeof(T));
+	}
+}
+
 void Ekf::print_status()
 {
-	printf("Q: (0-3)\n");
-	_state.quat_nominal.print();
+	printf("\nStates: (%.4f seconds ago)\n", (_time_latest_us - _time_delayed_us) * 1e-6);
+	printf("Orientation (0,1,2,3): [%.4f, %.4f, %.4f, %.4f] (Euler [%.3f, %.3f, %.3f])\n",
+	       (double)_state.quat_nominal(0), (double)_state.quat_nominal(1), (double)_state.quat_nominal(2),
+	       (double)_state.quat_nominal(3),
+	       (double)matrix::Eulerf(_state.quat_nominal).phi(), (double)matrix::Eulerf(_state.quat_nominal).theta(),
+	       (double)matrix::Eulerf(_state.quat_nominal).psi());
 
-	printf("Velocity: (4-6)\n");
-	_state.vel.print();
+	printf("Velocity (states 4,5,6): [%.3f, %.3f, %.3f]\n",
+	       (double)_state.vel(0), (double)_state.vel(1), (double)_state.vel(2));
 
-	printf("Position: (7-9)\n");
-	_state.pos.print();
+	printf("Position (states 7,8,9): [%.3f, %.3f, %.3f]\n",
+	       (double)_state.pos(0), (double)_state.pos(1), (double)_state.pos(2));
 
-	printf("Delta Angle Bias: (10-12)\n");
-	_state.delta_ang_bias.print();
+	printf("Delta Angle Bias (states 10,11,12): [%.6f, %.6f, %.6f] (DT: %.4fs)\n",
+	       (double)_state.delta_ang_bias(0), (double)_state.delta_ang_bias(1), (double)_state.delta_ang_bias(2),
+	       (double)_dt_ekf_avg);
 
-	printf("Delta Velocity Bias: (13-15)\n");
-	_state.delta_vel_bias.print();
+	printf("Delta Velocity Bias (states 13,14,15): [%.6f, %.6f, %.6f] (DT: %.4fs)\n",
+	       (double)_state.delta_vel_bias(0), (double)_state.delta_vel_bias(1), (double)_state.delta_vel_bias(2),
+	       (double)_dt_ekf_avg);
 
-	printf("Magnetic Field: (16-18)\n");
-	_state.mag_I.print();
+	printf("Magnetic Field (states 16,17,18): [%.3f, %.3f, %.3f]\n",
+	       (double)_state.mag_I(0), (double)_state.mag_I(1), (double)_state.mag_I(2));
 
-	printf("Magnetic Bias: (19-21)\n");
-	_state.mag_B.print();
+	printf("Magnetic Bias (states 19,20,21): [%.3f, %.3f, %.3f]\n",
+	       (double)_state.mag_B(0), (double)_state.mag_B(1), (double)_state.mag_B(2));
 
-	printf("Wind: (22-23)\n");
-	_state.wind_vel.print();
+	printf("Wind velocity (states 22,23): [%.3f, %.3f]\n", (double)_state.wind_vel(0), (double)_state.wind_vel(1));
 
-	printf("P:\n");
+	printf("\nP:\n");
 	P.print();
 
 	printf("IMU average dt: %.6f seconds\n", (double)_dt_imu_avg);
 	printf("EKF average dt: %.6f seconds\n", (double)_dt_ekf_avg);
-
-	printf("IMU buffer: %d (%d Bytes)\n", _imu_buffer.get_length(), _imu_buffer.get_total_size());
-
 	printf("minimum observation interval %d us\n", _min_obs_interval_us);
 
-	if (_gps_buffer) {
-		printf("gps buffer: %d/%d (%d Bytes)\n", _gps_buffer->entries(), _gps_buffer->get_length(), _gps_buffer->get_total_size());
-	}
+	printRingBuffer("IMU buffer", &_imu_buffer);
 
-	if (_mag_buffer) {
-		printf("mag buffer: %d/%d (%d Bytes)\n", _mag_buffer->entries(), _mag_buffer->get_length(), _mag_buffer->get_total_size());
-	}
-
-	if (_baro_buffer) {
-		printf("baro buffer: %d/%d (%d Bytes)\n", _baro_buffer->entries(), _baro_buffer->get_length(), _baro_buffer->get_total_size());
-	}
-
-	if (_range_buffer) {
-		printf("range buffer: %d/%d (%d Bytes)\n", _range_buffer->entries(), _range_buffer->get_length(), _range_buffer->get_total_size());
-	}
-
-	if (_airspeed_buffer) {
-		printf("airspeed buffer: %d/%d (%d Bytes)\n", _airspeed_buffer->entries(), _airspeed_buffer->get_length(), _airspeed_buffer->get_total_size());
-	}
-
-	if (_flow_buffer) {
-		printf("flow buffer: %d/%d (%d Bytes)\n", _flow_buffer->entries(), _flow_buffer->get_length(), _flow_buffer->get_total_size());
-	}
-
-	if (_ext_vision_buffer) {
-		printf("vision buffer: %d/%d (%d Bytes)\n", _ext_vision_buffer->entries(), _ext_vision_buffer->get_length(), _ext_vision_buffer->get_total_size());
-	}
-
-	if (_drag_buffer) {
-		printf("drag buffer: %d/%d (%d Bytes)\n", _drag_buffer->entries(), _drag_buffer->get_length(), _drag_buffer->get_total_size());
-	}
+	printRingBuffer("gps buffer", _gps_buffer);
+	printRingBuffer("mag buffer", _mag_buffer);
+	printRingBuffer("baro buffer", _baro_buffer);
+	printRingBuffer("range buffer", _range_buffer);
+	printRingBuffer("airspeed buffer", _airspeed_buffer);
+	printRingBuffer("flow buffer", _flow_buffer);
+	printRingBuffer("ext vision buffer", _ext_vision_buffer);
+	printRingBuffer("drag buffer", _drag_buffer);
+	printRingBuffer("aux vel buffer", _auxvel_buffer);
+	printRingBuffer("system flag buffer", _system_flag_buffer);
 
 	printf("output buffer: %d/%d (%d Bytes)\n", _output_buffer.entries(), _output_buffer.get_length(), _output_buffer.get_total_size());
 	printf("output vert buffer: %d/%d (%d Bytes)\n", _output_vert_buffer.entries(), _output_vert_buffer.get_length(), _output_vert_buffer.get_total_size());

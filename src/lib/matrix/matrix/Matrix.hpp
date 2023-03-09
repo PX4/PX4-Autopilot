@@ -387,6 +387,12 @@ public:
 			for (unsigned j = 0; j < N; j++) {
 				double d = static_cast<double>(self(i, j));
 
+				// Matrix diagonal elements
+				if (N > 1 && M > 1 && i == j) {
+					// make diagonal elements bold (ANSI CSI n 1)
+					printf("\033[1m");
+				}
+
 				// avoid -0.0 for display
 				if (fabs(d - 0.0) < (double)eps) {
 					// print fixed width zero
@@ -394,6 +400,12 @@ public:
 
 				} else {
 					printf("% 6.5f ", d);
+				}
+
+				// Matrix diagonal elements
+				if (N > 1 && M > 1 && i == j) {
+					// reset any formatting (ANSI CSI n 0)
+					printf("\033[0m");
 				}
 			}
 
