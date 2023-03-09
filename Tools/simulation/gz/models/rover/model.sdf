@@ -1,0 +1,388 @@
+<sdf version="1.8">
+  <model name="rover">
+    <pose>0 0 .04 0 0 0</pose>
+    <self_collide>false</self_collide>
+    <static>false</static>
+    <link name="rover/Base">
+      <inertial>
+        <pose>0 0 0 0 0 0</pose>
+        <mass>3.0</mass>
+        <inertia>
+          <ixx>0.0054</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>0.0252</iyy>
+          <iyz>0</iyz>
+          <izz>0.0252</izz>
+        </inertia>
+      </inertial>
+      <visual name="rover/BaseVisual">
+        <pose>.1371 0 -.0115 -0.018 0 1.5707</pose>
+        <geometry>
+          <mesh>
+            <uri>model://rover/meshes/BaseReduced.dae</uri>
+          </mesh>
+        </geometry>
+      </visual>
+      <visual name="rover/TopVisual">
+        <pose>.1371 0 -.0115 -0.018 0 1.5707</pose>
+        <geometry>
+          <mesh>
+            <uri>model://rover/meshes/TopReduced.dae</uri>
+          </mesh>
+        </geometry>
+      </visual>
+      <collision name="rover/BaseCollision">
+        <pose>0 0 .06 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>.3 .09 .12</size>
+          </box>
+        </geometry>
+      </collision>
+      <sensor name="NPUSim/Camera" type="camera">
+        <pose>.16 0 .3 0 0.5 0</pose>
+        <always_on>1</always_on>
+        <update_rate>10</update_rate>
+        <camera>
+          <horizontal_fov>1.5</horizontal_fov>
+          <image>
+            <width>300</width>
+            <height>300</height>
+            <format>R8G8B8</format>
+          </image>
+          <clip>
+            <near>0.1</near>
+            <far>1000</far>
+          </clip>
+        </camera>
+        <topic>NPU/image_sim</topic>
+        <enable_metrics>true</enable_metrics>
+      </sensor>
+      <sensor name="air_pressure_sensor" type="air_pressure">
+        <always_on>1</always_on>
+        <update_rate>50</update_rate>
+        <air_pressure>
+          <pressure>
+            <noise type="gaussian">
+              <mean>0</mean>
+              <stddev>0.01</stddev>
+            </noise>
+          </pressure>
+        </air_pressure>
+      </sensor>
+      <sensor name="imu_sensor" type="imu">
+        <always_on>1</always_on>
+        <update_rate>250</update_rate>
+      </sensor>
+    </link>
+    <link name="rover/FrontRightWheel">
+      <pose relative_to="rover/FrontRightWheelJoint">0 0 0 0 0 0</pose>
+      <inertial>
+        <mass>.05</mass>
+        <inertia>
+          <ixx>0.00003331</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>0.0000204</iyy>
+          <iyz>0</iyz>
+          <izz>0.0000204</izz>
+        </inertia>
+      </inertial>
+      <gravity>true</gravity>
+      <velocity_decay/>
+      <visual name="rover/FrontRightWheelVisual">
+        <pose>0 0 0 0 0 0</pose>
+        <geometry>
+          <mesh>
+            <uri>model://rover/meshes/Wheel.dae</uri>
+          </mesh>
+        </geometry>
+      </visual>
+      <collision name="rover/FrontRightWheelCollision">
+        <pose>0 .015 0 -1.5707 0 0</pose>
+        <geometry>
+          <cylinder>
+            <length>0.03</length>
+            <radius>0.0365</radius>
+          </cylinder>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.5</mu>
+              <mu2>1.0</mu2>
+              <fdir1>0 0 1</fdir1>
+            </ode>
+          </friction>
+        </surface>
+      </collision>
+    </link>
+    <link name="rover/FrontRightWheelSteering">
+      <pose relative_to="rover/FrontRightWheelSteeringJoint">0 0 0 0 0 0</pose>
+      <inertial>
+        <mass>0.005</mass>
+        <inertia>
+          <ixx>0.0000018</ixx>
+          <iyy>0.0000018</iyy>
+          <izz>0.0000018</izz>
+        </inertia>
+      </inertial>
+    </link>
+    <link name="rover/FrontLeftWheel">
+      <pose relative_to="rover/FrontLeftWheelJoint">0 0 0 0 0 0</pose>
+      <inertial>
+        <mass>.05</mass>
+        <inertia>
+          <ixx>0.00003331</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>0.0000204</iyy>
+          <iyz>0</iyz>
+          <izz>0.0000204</izz>
+        </inertia>
+      </inertial>
+      <gravity>true</gravity>
+      <velocity_decay/>
+      <visual name="rover/FrontLeftWheelVisual">
+        <pose>0 0 0 0 0 3.14159</pose>
+        <geometry>
+          <mesh>
+            <uri>model://rover/meshes/Wheel.dae</uri>
+          </mesh>
+        </geometry>
+      </visual>
+      <collision name="rover/FrontLeftWheelCollision">
+        <pose>0 -.015 0 -1.5707 0 0</pose>
+        <geometry>
+          <cylinder>
+            <length>0.03</length>
+            <radius>0.0365</radius>
+          </cylinder>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.5</mu>
+              <mu2>1.0</mu2>
+              <fdir1>0 0 1</fdir1>
+            </ode>
+          </friction>
+        </surface>
+      </collision>
+    </link>
+    <link name="rover/FrontLeftWheelSteering">
+      <pose relative_to="rover/FrontLeftWheelSteeringJoint">0 0 0 0 0 0</pose>
+      <inertial>
+        <mass>0.005</mass>
+        <inertia>
+          <ixx>0.0000018</ixx>
+          <iyy>0.0000018</iyy>
+          <izz>0.0000018</izz>
+        </inertia>
+      </inertial>
+    </link>
+    <link name="rover/RearRightWheel">
+      <pose relative_to="rover/RearRightWheelJoint">0 0 0 0 0 0</pose>
+      <inertial>
+        <mass>.05</mass>
+        <inertia>
+          <ixx>0.00003331</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>0.0000204</iyy>
+          <iyz>0</iyz>
+          <izz>0.0000204</izz>
+        </inertia>
+      </inertial>
+      <gravity>true</gravity>
+      <velocity_decay/>
+      <visual name="rover/RearRightWheelVisual">
+        <pose>0 0 0 0 0 0</pose>
+        <geometry>
+          <mesh>
+            <uri>model://rover/meshes/Wheel.dae</uri>
+          </mesh>
+        </geometry>
+      </visual>
+      <collision name="rover/RearRightWheelCollision">
+        <pose>0 .015 0 -1.5707 0 0</pose>
+        <geometry>
+          <cylinder>
+            <length>0.03</length>
+            <radius>0.0365</radius>
+          </cylinder>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.5</mu>
+              <mu2>1.0</mu2>
+              <fdir1>0 0 1</fdir1>
+            </ode>
+          </friction>
+        </surface>
+      </collision>
+    </link>
+    <link name="rover/RearLeftWheel">
+      <pose relative_to="rover/RearLeftWheelJoint">0 0 0 0 0 0</pose>
+      <inertial>
+        <mass>.05</mass>
+        <inertia>
+          <ixx>0.00003331</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>0.0000204</iyy>
+          <iyz>0</iyz>
+          <izz>0.0000204</izz>
+        </inertia>
+      </inertial>
+      <gravity>true</gravity>
+      <velocity_decay/>
+      <visual name="rover/RearLeftWheelVisual">
+        <pose>0 0 0 0 0 3.14159</pose>
+        <geometry>
+          <mesh>
+            <uri>model://rover/meshes/Wheel.dae</uri>
+          </mesh>
+        </geometry>
+      </visual>
+      <collision name="rover/RearLeftWheelCollision">
+        <pose>0 -.015 0 -1.5707 0 0</pose>
+        <geometry>
+          <cylinder>
+            <length>0.03</length>
+            <radius>0.0365</radius>
+          </cylinder>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.5</mu>
+              <mu2>1.0</mu2>
+              <fdir1>0 0 1</fdir1>
+            </ode>
+          </friction>
+        </surface>
+      </collision>
+    </link>
+    <joint name="rover/FrontRightWheelSteeringJoint" type="revolute">
+      <parent>rover/Base</parent>
+      <child>rover/FrontRightWheelSteering</child>
+      <pose relative_to="rover/Base">.112 -.10 0 0 0 0</pose>
+      <axis>
+        <xyz>0 0 1</xyz>
+        <limit>
+          <lower>-0.6</lower>
+          <upper>0.6</upper>
+          <velocity>1.0</velocity>
+          <effort>25</effort>
+        </limit>
+        <use_parent_model_frame>1</use_parent_model_frame>
+      </axis>
+    </joint>
+    <joint name="rover/FrontRightWheelJoint" type="revolute">
+      <parent>rover/FrontRightWheelSteering</parent>
+      <child>rover/FrontRightWheel</child>
+      <pose relative_to="rover/FrontRightWheelSteeringJoint">0 0 0 0 0 0</pose>
+      <axis>
+        <xyz>0 1 0</xyz>
+        <limit>
+          <lower>-1.79769e+308</lower>
+          <upper>1.79769e+308</upper>
+        </limit>
+        <dynamics>
+          <spring_reference>0</spring_reference>
+          <spring_stiffness>0</spring_stiffness>
+        </dynamics>
+        <use_parent_model_frame>1</use_parent_model_frame>
+      </axis>
+    </joint>
+    <joint name="rover/FrontLeftWheelSteeringJoint" type="revolute">
+      <parent>rover/Base</parent>
+      <child>rover/FrontLeftWheelSteering</child>
+      <pose relative_to="rover/Base">.112 .10 0 0 0 0</pose>
+      <axis>
+        <xyz>0 0 1</xyz>
+        <limit>
+          <lower>-0.6</lower>
+          <upper>0.6</upper>
+          <velocity>1.0</velocity>
+          <effort>25</effort>
+        </limit>
+        <use_parent_model_frame>1</use_parent_model_frame>
+      </axis>
+    </joint>
+    <joint name="rover/FrontLeftWheelJoint" type="revolute">
+      <parent>rover/FrontLeftWheelSteering</parent>
+      <child>rover/FrontLeftWheel</child>
+      <pose relative_to="rover/FrontLeftWheelSteeringJoint">0 0 0 0 0 0</pose>
+      <axis>
+        <xyz>0 1 0</xyz>
+        <limit>
+          <lower>-1.79769e+308</lower>
+          <upper>1.79769e+308</upper>
+        </limit>
+        <dynamics>
+          <spring_reference>0</spring_reference>
+          <spring_stiffness>0</spring_stiffness>
+        </dynamics>
+        <use_parent_model_frame>1</use_parent_model_frame>
+      </axis>
+    </joint>
+    <joint name="rover/RearRightWheelJoint" type="revolute">
+      <parent>rover/Base</parent>
+      <child>rover/RearRightWheel</child>
+      <pose relative_to="rover/Base">-.1135 -.10 0 0 0 0</pose>
+      <axis>
+        <xyz>0 1 0</xyz>
+        <limit>
+          <lower>-1.79769e+308</lower>
+          <upper>1.79769e+308</upper>
+        </limit>
+        <dynamics>
+          <spring_reference>0</spring_reference>
+          <spring_stiffness>0</spring_stiffness>
+        </dynamics>
+        <use_parent_model_frame>1</use_parent_model_frame>
+      </axis>
+    </joint>
+    <joint name="rover/RearLeftWheelJoint" type="revolute">
+      <parent>rover/Base</parent>
+      <child>rover/RearLeftWheel</child>
+      <pose relative_to="rover/Base">-.1135 .10 0 0 0 0</pose>
+      <axis>
+        <xyz>0 1 0</xyz>
+        <limit>
+          <lower>-1.79769e+308</lower>
+          <upper>1.79769e+308</upper>
+        </limit>
+        <dynamics>
+          <spring_reference>0</spring_reference>
+          <spring_stiffness>0</spring_stiffness>
+        </dynamics>
+        <use_parent_model_frame>1</use_parent_model_frame>
+      </axis>
+    </joint>
+    <plugin
+      filename="ignition-gazebo-ackermann-steering-system"
+      name="ignition::gazebo::systems::AckermannSteering">
+      <left_joint>rover/FrontLeftWheelJoint</left_joint>
+      <left_joint>rover/RearLeftWheelJoint</left_joint>
+      <right_joint>rover/FrontRightWheelJoint</right_joint>
+      <right_joint>rover/FrontRightWheelJoint</right_joint>
+      <left_steering_joint>rover/FrontLeftWheelSteeringJoint</left_steering_joint>
+      <right_steering_joint>rover/FrontRightWheelSteeringJoint</right_steering_joint>
+      <kingpin_width>.18</kingpin_width>
+      <steering_limit>0.5</steering_limit>
+      <wheel_base>.2255</wheel_base>
+      <wheel_separation>.2</wheel_separation>
+      <wheel_radius>0.0365</wheel_radius>
+      <min_velocity>-100</min_velocity>
+      <max_velocity>100</max_velocity>
+      <min_acceleration>-5</min_acceleration>
+      <max_acceleration>5</max_acceleration>
+      <topic>/cmd_vel</topic>
+    </plugin>
+  </model>
+</sdf>

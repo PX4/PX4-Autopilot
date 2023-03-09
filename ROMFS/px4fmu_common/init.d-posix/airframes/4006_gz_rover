@@ -1,0 +1,20 @@
+#!/bin/sh
+#
+# @name Gazebo rover
+#
+# @type Rover
+#
+
+. ${R}etc/init.d/rc.rover_defaults
+
+PX4_SIMULATOR=${PX4_SIMULATOR:=gz}
+PX4_GZ_WORLD=${PX4_GZ_WORLD:=default}
+PX4_SIM_MODEL=${PX4_SIM_MODEL:=rover}
+
+param set-default SIM_GZ_EN 1
+
+param set-default SENS_EN_GPSSIM 1
+param set-default SENS_EN_BAROSIM 0
+param set-default SENS_EN_MAGSIM 1
+
+param set-default CA_AIRFRAME 5

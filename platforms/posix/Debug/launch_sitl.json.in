@@ -224,6 +224,7 @@
               "x500",
               "x500_depth",
               "rc_cessna",
+              "rover",
               "standard_vtol",
             ],
             "default": "x500"
