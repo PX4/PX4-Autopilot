@@ -2173,12 +2173,6 @@ Mavlink::task_main(int argc, char *argv[])
 			PX4_ERR("%s already running", _device_name);
 			return PX4_ERROR;
 		}
-
-		PX4_INFO("mode: %s, data rate: %d B/s on %s @ %dB",
-			 mavlink_mode_str(_mode), _datarate, _device_name, _baudrate);
-
-		/* flush stdout in case MAVLink is about to take it over */
-		fflush(stdout);
 	}
 
 #if defined(MAVLINK_UDP)
@@ -2188,9 +2182,6 @@ Mavlink::task_main(int argc, char *argv[])
 			PX4_ERR("port %hu already occupied", _network_port);
 			return PX4_ERROR;
 		}
-
-		PX4_INFO("mode: %s, data rate: %d B/s on udp port %hu remote port %hu",
-			 mavlink_mode_str(_mode), _datarate, _network_port, _remote_port);
 	}
 
 #endif // MAVLINK_UDP
@@ -2302,6 +2293,20 @@ Mavlink::task_main(int argc, char *argv[])
 	_mavlink_start_time = hrt_absolute_time();
 
 	_task_running.store(true);
+
+	if (get_protocol() == Protocol::SERIAL) {
+		PX4_INFO("starting, mode: %s, data rate: %d B/s on %s @ %dB",
+			 mavlink_mode_str(_mode), _datarate, _device_name, _baudrate);
+	}
+
+#if defined(MAVLINK_UDP)
+
+	if (get_protocol() == Protocol::UDP) {
+		PX4_INFO("starting, mode: %s, data rate: %d B/s on udp port %hu remote port %hu",
+			 mavlink_mode_str(_mode), _datarate, _network_port, _remote_port);
+	}
+
+#endif // MAVLINK_UDP
 
 	while (!should_exit()) {
 		/* main loop */

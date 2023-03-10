@@ -1,0 +1,12 @@
+menuconfig SYSTEMCMDS_PX4LOG_TAIL
+	bool "px4log_tail"
+	default n
+	---help---
+		Enable support for px4log_tail
+
+menuconfig USER_PX4LOG_TAIL
+	bool "px4log_tail running as userspace module"
+	default n
+	depends on BOARD_PROTECTED && SYSTEMCMDS_PX4LOG_TAIL
+	---help---
+		Put px4log_tail in userspace memory

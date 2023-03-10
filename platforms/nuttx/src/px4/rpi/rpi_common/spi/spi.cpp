@@ -273,7 +273,7 @@ __EXPORT void board_spi_reset(int ms, int bus_mask)
 
 	// wait for the sensor rail to reach GND
 	usleep(ms * 1000);
-	syslog(LOG_DEBUG, "reset done, %d ms\n", ms);
+	PX4_DEBUG("reset done, %d ms\n", ms);
 
 	/* re-enable power */
 

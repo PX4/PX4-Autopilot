@@ -57,7 +57,6 @@
 #define HRT_TIMER               2  /* use timer 2 for the HRT */
 #define HRT_TIMER_CHANNEL       1  /* use capture/compare channel 1 */
 
-#define BOARD_ENABLE_CONSOLE_BUFFER
 
 __BEGIN_DECLS
 

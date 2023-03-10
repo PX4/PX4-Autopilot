@@ -146,7 +146,6 @@
 		GPIO_CAN1_TX,                     \
 	}
 
-#define BOARD_ENABLE_CONSOLE_BUFFER
 
 #define BOARD_NUM_IO_TIMERS 6
 

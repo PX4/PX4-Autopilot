@@ -129,7 +129,6 @@
 #define SDIO_SLOTNO                    0  /* Only one slot */
 #define SDIO_MINOR                     0
 
-#define BOARD_ENABLE_CONSOLE_BUFFER
 
 #define BOARD_NUM_IO_TIMERS 3
 

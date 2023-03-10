@@ -654,38 +654,27 @@ int I2CSPIDriverBase::module_start(const BusCLIArguments &cli, BusInstanceIterat
 #if defined(CONFIG_I2C)
 
 		case BOARD_I2C_BUS:
-			PX4_INFO_RAW("%s #%i on I2C bus %d", instance->ItemName(), runtime_instance, iterator.bus());
-
 			if (iterator.external()) {
-				PX4_INFO_RAW(" (external)");
-			}
+				PX4_INFO("%s #%i on I2C bus %d (external) address 0x%X, rotation %d", instance->ItemName(), runtime_instance,
+					 iterator.bus(), cli.i2c_address, cli.rotation);
 
-			if (cli.i2c_address != 0) {
-				PX4_INFO_RAW(" address 0x%X", cli.i2c_address);
+			} else {
+				PX4_INFO("%s #%i on I2C bus %d address 0x%X, rotation %d", instance->ItemName(), runtime_instance, iterator.bus(),
+					 cli.i2c_address, cli.rotation);
 			}
-
-			if (cli.rotation != 0) {
-				PX4_INFO_RAW(" rotation %d", cli.rotation);
-			}
-
-			PX4_INFO_RAW("\n");
 
 			break;
 #endif // CONFIG_I2C
 #if defined(CONFIG_SPI)
 
 		case BOARD_SPI_BUS:
-			PX4_INFO_RAW("%s #%i on SPI bus %d", instance->ItemName(), runtime_instance, iterator.bus());
-
 			if (iterator.external()) {
-				PX4_INFO_RAW(" (external, equal to '-b %i')", iterator.externalBusIndex());
-			}
+				PX4_INFO("%s #%i on SPI bus %d rotation %d (external, equal to '-b %i')", instance->ItemName(), runtime_instance,
+					 iterator.bus(), cli.rotation, iterator.externalBusIndex());
 
-			if (cli.rotation != 0) {
-				PX4_INFO_RAW(" rotation %d", cli.rotation);
+			} else {
+				PX4_INFO("%s #%i on SPI bus %d rotation %d", instance->ItemName(), runtime_instance, iterator.bus(), cli.rotation);
 			}
-
-			PX4_INFO_RAW("\n");
 
 			break;
 #endif // CONFIG_SPI

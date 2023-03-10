@@ -11,7 +11,7 @@ if param compare "$PRT" {{ serial_device.index }}; then
 		set PRT_{{ serial_device.tag }}_ 1
 {% if not constrained_flash -%}
 	else
-		echo "Conflicting config for {{ serial_device.device }}"
+		px4log "Conflicting config for {{ serial_device.device }}"
 {% endif -%}
 	fi
 fi

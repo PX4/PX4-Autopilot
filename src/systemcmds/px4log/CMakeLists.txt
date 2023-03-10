@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2023 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,8 +31,11 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE systemcmds__hist
-	MAIN hist
+	MODULE systemcmds__px4log
+	MAIN px4log
+	STACK_MAIN 4096
 	SRCS
-		hist.cpp
-	)
+		px4log.cpp
+	DEPENDS
+		systemlib
+)

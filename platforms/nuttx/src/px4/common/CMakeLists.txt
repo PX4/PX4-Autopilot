@@ -39,7 +39,6 @@ if(NOT PX4_BOARD MATCHES "io-v2")
 		board_dma_alloc.c
 		board_fat_dma_alloc.c
 		cdc_acm_check.cpp
-		console_buffer.cpp
 		cpuload.cpp
 		gpio.c
 		print_load.cpp

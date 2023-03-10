@@ -13,6 +13,8 @@ set +e
 #search path for sourcing px4-rc.*
 PATH="$PATH:${R}etc/init.d-posix"
 
+px4log_tail &
+
 #
 # Main SITL startup script
 #
@@ -40,7 +42,7 @@ then
 
 elif [ -n "$PX4_SYS_AUTOSTART" ]
 then
-	echo "env SYS_AUTOSTART: ${PX4_SYS_AUTOSTART}"
+	px4log "env SYS_AUTOSTART: ${PX4_SYS_AUTOSTART}"
 	SYS_AUTOSTART=${PX4_SYS_AUTOSTART}
 
 elif [ "$PX4_SIM_MODEL" = "none" ] || [ -z $PX4_SIM_MODEL ]
@@ -55,11 +57,11 @@ then
 	# shellcheck disable=SC2012
 	REQUESTED_AUTOSTART=$(ls "${R}etc/init.d-posix/airframes" | sed -n 's/^\([0-9][0-9]*\)_'${PX4_SIM_MODEL}'$/\1/p')
 	if [ -z "$REQUESTED_AUTOSTART" ]; then
-		echo "ERROR [init] Unknown model $PX4_SIM_MODEL (not found by name on ${R}etc/init.d-posix/airframes)"
+		px4log "ERROR [init] Unknown model $PX4_SIM_MODEL (not found by name on ${R}etc/init.d-posix/airframes)"
 		exit 1
 	else
 		SYS_AUTOSTART=$REQUESTED_AUTOSTART
-		echo "INFO  [init] found model autostart file as SYS_AUTOSTART=$REQUESTED_AUTOSTART"
+		px4log "INFO  [init] found model autostart file as SYS_AUTOSTART=$REQUESTED_AUTOSTART"
 	fi
 fi
 
@@ -72,7 +74,7 @@ if [ -f $PARAM_FILE ]; then
 
 	if ! param import
 	then
-		echo "ERROR [init] param import failed"
+		px4log "ERROR [init] param import failed"
 
 		bsondump $PARAM_FILE
 
@@ -82,7 +84,7 @@ if [ -f $PARAM_FILE ]; then
 		# try importing from backup file
 		if [ -f $PARAM_BACKUP_FILE ]
 		then
-			echo "[init] importing from parameter backup"
+			px4log "[init] importing from parameter backup"
 
 			# dump current backup file contents for comparison
 			bsondump $PARAM_BACKUP_FILE
@@ -97,7 +99,7 @@ if [ -f $PARAM_FILE ]; then
 	fi
 
 elif [ -f $PARAM_BACKUP_FILE ]; then
-	echo "ERROR [init] primary param file $PARAM_FILE unavailable, using backup $PARAM_BACKUP_FILE"
+	px4log "ERROR [init] primary param file $PARAM_FILE unavailable, using backup $PARAM_BACKUP_FILE"
 	param import $PARAM_BACKUP_FILE
 fi
 
@@ -191,19 +193,19 @@ param set-default COM_LOW_BAT_ACT 2
 # Adapt timeout parameters if simulation runs faster or slower than realtime.
 if [ -n "$PX4_SIM_SPEED_FACTOR" ]; then
 	COM_DL_LOSS_T_LONGER=$(echo "$PX4_SIM_SPEED_FACTOR * 10" | bc)
-	echo "COM_DL_LOSS_T set to $COM_DL_LOSS_T_LONGER"
+	px4log "COM_DL_LOSS_T set to $COM_DL_LOSS_T_LONGER"
 	param set COM_DL_LOSS_T $COM_DL_LOSS_T_LONGER
 
 	COM_RC_LOSS_T_LONGER=$(echo "$PX4_SIM_SPEED_FACTOR * 0.5" | bc)
-	echo "COM_RC_LOSS_T set to $COM_RC_LOSS_T_LONGER"
+	px4log "COM_RC_LOSS_T set to $COM_RC_LOSS_T_LONGER"
 	param set COM_RC_LOSS_T $COM_RC_LOSS_T_LONGER
 
 	COM_OF_LOSS_T_LONGER=$(echo "$PX4_SIM_SPEED_FACTOR * 0.5" | bc)
-	echo "COM_OF_LOSS_T set to $COM_OF_LOSS_T_LONGER"
+	px4log "COM_OF_LOSS_T set to $COM_OF_LOSS_T_LONGER"
 	param set COM_OF_LOSS_T $COM_OF_LOSS_T_LONGER
 
 	COM_OBC_LOSS_T_LONGER=$(echo "$PX4_SIM_SPEED_FACTOR * 5.0" | bc)
-	echo "COM_OBC_LOSS_T set to $COM_OBC_LOSS_T_LONGER"
+	px4log "COM_OBC_LOSS_T set to $COM_OBC_LOSS_T_LONGER"
 	param set COM_OBC_LOSS_T $COM_OBC_LOSS_T_LONGER
 fi
 
@@ -229,7 +231,7 @@ then
 
 elif [ ! -e "$autostart_file" ] && [ "$SYS_AUTOSTART" -ne "0" ]
 then
-	echo "Error: no autostart file found ($autostart_file)"
+	px4log "Error: no autostart file found ($autostart_file)"
 	exit 1
 fi
 

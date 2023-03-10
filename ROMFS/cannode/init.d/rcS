@@ -51,7 +51,7 @@ fi
 set BOARD_ARCH_RC_DEFAULTS ${R}etc/init.d/rc.board_arch_defaults
 if [ -f $BOARD_ARCH_RC_DEFAULTS ]
 then
-	echo "Board architecture defaults: ${BOARD_ARCH_RC_DEFAULTS}"
+	px4log "Board architecture defaults: ${BOARD_ARCH_RC_DEFAULTS}"
 	. $BOARD_ARCH_RC_DEFAULTS
 fi
 unset BOARD_ARCH_RC_DEFAULTS
@@ -62,7 +62,7 @@ unset BOARD_ARCH_RC_DEFAULTS
 set BOARD_RC_DEFAULTS ${R}etc/init.d/rc.board_defaults
 if [ -f $BOARD_RC_DEFAULTS ]
 then
-	echo "Board defaults: ${BOARD_RC_DEFAULTS}"
+	px4log "Board defaults: ${BOARD_RC_DEFAULTS}"
 	. $BOARD_RC_DEFAULTS
 fi
 unset BOARD_RC_DEFAULTS
@@ -79,7 +79,7 @@ rgbled_ncp5623c start -X -q
 set BOARD_RC_SENSORS ${R}etc/init.d/rc.board_sensors
 if [ -f $BOARD_RC_SENSORS ]
 then
-	echo "Board sensors: ${BOARD_RC_SENSORS}"
+	px4log "Board sensors: ${BOARD_RC_SENSORS}"
 	. $BOARD_RC_SENSORS
 fi
 unset BOARD_RC_SENSORS

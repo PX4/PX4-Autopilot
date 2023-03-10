@@ -183,6 +183,8 @@ public:
 
 	ORB_ID orb_id() const { return _orb_id; }
 
+	void reset() { _last_generation = 0; }
+
 protected:
 
 	friend class SubscriptionCallback;

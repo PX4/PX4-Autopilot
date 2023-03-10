@@ -1,0 +1,8 @@
+#!/bin/sh
+
+px4log_tail &
+
+#
+# Print full system version.
+#
+ver all

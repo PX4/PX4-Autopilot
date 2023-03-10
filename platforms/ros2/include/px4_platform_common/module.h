@@ -128,7 +128,7 @@ public:
 	 */
 	virtual int print_status()
 	{
-		PX4_INFO("running");
+		PX4_INFO_RAW("running");
 		return 0;
 	}
 

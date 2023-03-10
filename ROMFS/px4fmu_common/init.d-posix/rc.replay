@@ -4,12 +4,12 @@
 
 # shellcheck disable=SC2154
 if [ ! -f ${replay} ]; then
-	echo "Invalid replay log file ${replay}"
+	px4log "Invalid replay log file ${replay}"
 	exit 1
 fi
 
 if [ ! -f replay_params.txt ]; then
-	echo "Creating $(pwd)/replay_params.txt"
+	px4log "Creating $(pwd)/replay_params.txt"
 	ulog_params -i "${replay}" -l ' ' | grep -e '^EKF2' > replay_params.txt
 fi
 

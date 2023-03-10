@@ -190,7 +190,6 @@
 		GPIO_SAFETY_SWITCH_IN,            \
 	}
 
-#define BOARD_ENABLE_CONSOLE_BUFFER
 
 #define BOARD_NUM_IO_TIMERS 3
 

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,65 +31,71 @@
  *
  ****************************************************************************/
 
+/**
+ * @file px4log_tail.cpp
+ * Tool similar to UNIX logger command
+ *
+ */
+
 #include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/console_buffer.h>
+#include <stdio.h>
+#include <fcntl.h>
+#include <stdbool.h>
+#include <unistd.h>
+#include <string.h>
+#include <poll.h>
+
+#include <px4_platform/cpuload.h>
+#include <px4_platform_common/printload.h>
+#include <drivers/drv_hrt.h>
 #include <px4_platform_common/module.h>
-#include <px4_platform_common/getopt.h>
 
-#ifndef BOARD_ENABLE_CONSOLE_BUFFER
-#error "This module can only be used on boards that enable BOARD_ENABLE_CONSOLE_BUFFER"
-#endif
+#include <lib/mathlib/mathlib.h>
+#include <uORB/SubscriptionBlocking.hpp>
+#include <uORB/topics/log_message.h>
 
-static void	usage();
+using namespace time_literals;
 
-extern "C" {
-	__EXPORT int dmesg_main(int argc, char *argv[]);
-}
+// static void print_usage()
+// {
+// 	PRINT_MODULE_DESCRIPTION("Monitor running processes and their CPU, stack usage, priority and state");
 
-int
-dmesg_main(int argc, char *argv[])
+// 	PRINT_MODULE_USAGE_NAME_SIMPLE("px4log_tail", "command");
+// }
+
+static constexpr const char *__px4_log_level_color[_PX4_LOG_LEVEL_PANIC + 1] {
+	PX4_ANSI_COLOR_GREEN,  // DEBUG
+	PX4_ANSI_COLOR_RESET,  // INFO
+	PX4_ANSI_COLOR_YELLOW, // WARN
+	PX4_ANSI_COLOR_RED,    // ERROR
+	PX4_ANSI_COLOR_RED     // PANIC
+};
+
+extern "C" __EXPORT int px4log_tail_main(int argc, char *argv[])
 {
-	int myoptind = 1;
-	int ch;
-	const char *myoptarg = nullptr;
-	bool follow = false;
+	uORB::SubscriptionBlocking<log_message_s> sub{ORB_ID(log_message)};
+	sub.reset();
 
-	while ((ch = px4_getopt(argc, argv, "f", &myoptind, &myoptarg)) != EOF) {
-		switch (ch) {
-		case 'f':
-			follow = true;
-			break;
+	while (true) {
+		log_message_s log_message;
 
-		default:
-			usage();
-			return -1;
-			break;
+		if (sub.updateBlocking(log_message, 1_s)) {
+
+			if (log_message.severity == 4) {
+				// WARN
+				printf("%s%s%s\n", PX4_ANSI_COLOR_YELLOW, log_message.text, PX4_ANSI_COLOR_RESET);
+
+			} else if (log_message.severity == 3) {
+				// ERROR
+				printf("%s%s%s\n", PX4_ANSI_COLOR_RED, log_message.text, PX4_ANSI_COLOR_RESET);
+
+			} else {
+				printf("%s\n", log_message.text);
+			}
+
+
 		}
 	}
 
-	px4_console_buffer_print(follow);
-
 	return 0;
-}
-
-static void
-usage()
-{
-
-	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-
-Command-line tool to show bootup console messages.
-Note that output from NuttX's work queues and syslog are not captured.
-
-### Examples
-
-Keep printing all messages in the background:
-$ dmesg -f &
-)DESCR_STR");
-
-	PRINT_MODULE_USAGE_NAME("dmesg", "system");
-	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Follow: wait for new messages", true);
-
 }

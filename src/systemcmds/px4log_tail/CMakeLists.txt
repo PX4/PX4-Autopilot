@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2023 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,8 +31,13 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE systemcmds__dmesg
-	MAIN dmesg
+	MODULE systemcmds__px4log_tail
+	MAIN px4log_tail
+	STACK_MAIN 4096
+	PRIORITY
+		"SCHED_PRIORITY_MIN + 1"
 	SRCS
-		dmesg.cpp
-	)
+		px4log_tail.cpp
+	DEPENDS
+		systemlib
+)

@@ -76,8 +76,7 @@
 /* This board provides a DMA pool and APIs */			// Needs to be figured out
 #define BOARD_DMA_ALLOC_POOL_SIZE 2048
 
-#define BOARD_ENABLE_CONSOLE_BUFFER
-#define BOARD_CONSOLE_BUFFER_SIZE (1024*3)
+
 
 /* USB
  *

@@ -183,7 +183,6 @@
 		GPIO_VTX_ON,                      \
 	}
 
-#define BOARD_ENABLE_CONSOLE_BUFFER
 
 #define FLASH_BASED_PARAMS
 

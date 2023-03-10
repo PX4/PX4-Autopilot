@@ -77,11 +77,11 @@ class RCOutput():
         result += "\n"
         result += "if [ ${AIRFRAME} != none ]\n"
         result += "then\n"
-        result += "\techo \"Loading airframe: /etc/init.d/airframes/${AIRFRAME}\"\n"
+        result += "\tpx4log \"Loading airframe: /etc/init.d/airframes/${AIRFRAME}\"\n"
         result += "\t. /etc/init.d/airframes/${AIRFRAME}\n"
         if not post_start:
             result += "else\n"
-            result += "\techo \"ERROR [init] No file matches SYS_AUTOSTART value found in : /etc/init.d/airframes\"\n"
+            result += "\tpx4log \"ERROR [init] No file matches SYS_AUTOSTART value found in : /etc/init.d/airframes\"\n"
             # Reset the configuration
             result += "\tparam set SYS_AUTOSTART 0\n"
             result += "\ttone_alarm ${TUNE_ERR}\n"

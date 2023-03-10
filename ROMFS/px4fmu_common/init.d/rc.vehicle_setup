@@ -66,6 +66,6 @@ fi
 #
 if [ $VEHICLE_TYPE = none ]
 then
-	echo "No autostart ID found"
+	px4log "No autostart ID found"
 	ekf2 start &
 fi

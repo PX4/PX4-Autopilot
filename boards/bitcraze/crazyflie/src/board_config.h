@@ -155,8 +155,7 @@
 #define HRT_TIMER_CHANNEL	1	/* use capture/compare channel */
 
 
-#define BOARD_ENABLE_CONSOLE_BUFFER
-#define BOARD_CONSOLE_BUFFER_SIZE (1024*3)
+
 
 __BEGIN_DECLS
 

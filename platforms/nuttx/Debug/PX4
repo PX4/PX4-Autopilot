@@ -20,23 +20,6 @@ document px4
 . Use 'help <macro>' for more specific help.
 end
 
-
-define dmesg
-	if g_console_buffer
-		printf "PX4 dmesg:\n"
-		# TODO: respect head and tail
-		printf "%s\n", g_console_buffer._buffer
-	else
-		printf "PX4 dmesg unavailable\n"
-	end
-end
-
-document dmesg
-.    dmesg
-.        Prints dmesg (if available).
-end
-
-
 define _perf_print
 	set $hdr = (struct perf_ctr_header *)$arg0
 	#printf "%p\n", $hdr

@@ -76,6 +76,10 @@
 #include <px4_platform/board_dma_alloc.h>
 #include <px4_platform/gpio/mcp23009.hpp>
 
+#ifndef MODULE_NAME
+# define MODULE_NAME "init"
+#endif
+
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
@@ -116,7 +120,7 @@ __EXPORT void board_peripheral_reset(int ms)
 
 	/* wait for the peripheral rail to reach GND */
 	usleep(ms * 1000);
-	syslog(LOG_DEBUG, "reset done, %d ms\n", ms);
+	PX4_DEBUG("reset done, %d ms\n", ms);
 
 	/* re-enable power */
 
@@ -229,11 +233,10 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	px4_platform_configure();
 
 	if (OK == board_determine_hw_info()) {
-		syslog(LOG_INFO, "[boot] Rev 0x%1x : Ver 0x%1x %s\n", board_get_hw_revision(), board_get_hw_version(),
-		       board_get_hw_type_name());
+		PX4_INFO("Rev 0x%1x : Ver 0x%1x %s", board_get_hw_revision(), board_get_hw_version(), board_get_hw_type_name());
 
 	} else {
-		syslog(LOG_ERR, "[boot] Failed to read HW revision and version\n");
+		PX4_ERR("Failed to read HW revision and version");
 	}
 
 	/* Configure the Actual SPI interfaces (after we determined the HW version)  */
@@ -245,7 +248,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	/* Configure the DMA allocator */
 
 	if (board_dma_alloc_init() < 0) {
-		syslog(LOG_ERR, "[boot] DMA alloc FAILED\n");
+		PX4_ERR("DMA alloc FAILED");
 	}
 
 #if defined(SERIAL_HAVE_RXDMA)

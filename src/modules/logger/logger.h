@@ -247,11 +247,7 @@ private:
 	 * write performance counters
 	 */
 	void write_perf_data(PrintLoadReason reason);
-
-	/**
-	 * write bootup console output
-	 */
-	void write_console_output();
+	void write_log_message();
 
 	/**
 	 * callback to write the performance counters

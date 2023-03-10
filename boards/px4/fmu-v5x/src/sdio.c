@@ -52,6 +52,12 @@
 #include "stm32_gpio.h"
 #include "stm32_sdmmc.h"
 
+#include <px4_platform_common/log.h>
+
+#ifndef MODULE_NAME
+# define MODULE_NAME "init"
+#endif
+
 #ifdef CONFIG_MMCSD
 
 
@@ -141,7 +147,7 @@ int stm32_sdio_initialize(void)
 	sdio_dev = sdio_initialize(SDIO_SLOTNO);
 
 	if (!sdio_dev) {
-		syslog(LOG_ERR, "[boot] Failed to initialize SDIO slot %d\n", SDIO_SLOTNO);
+		PX4_ERR("Failed to initialize SDIO slot %d", SDIO_SLOTNO);
 		return -ENODEV;
 	}
 
@@ -152,7 +158,7 @@ int stm32_sdio_initialize(void)
 	ret = mmcsd_slotinitialize(SDIO_MINOR, sdio_dev);
 
 	if (ret != OK) {
-		syslog(LOG_ERR, "[boot] Failed to bind SDIO to the MMC/SD driver: %d\n", ret);
+		PX4_ERR("Failed to bind SDIO to the MMC/SD driver: %d", ret);
 		return ret;
 	}
 

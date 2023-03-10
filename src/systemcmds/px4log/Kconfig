@@ -1,0 +1,12 @@
+menuconfig SYSTEMCMDS_PX4LOG
+	bool "px4log"
+	default n
+	---help---
+		Enable support for px4log
+
+menuconfig USER_PX4LOG
+	bool "px4log running as userspace module"
+	default n
+	depends on BOARD_PROTECTED && SYSTEMCMDS_PX4LOG
+	---help---
+		Put px4log in userspace memory

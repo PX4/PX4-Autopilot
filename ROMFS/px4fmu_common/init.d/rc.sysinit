@@ -1,0 +1,3 @@
+#!/bin/sh
+# Un comment and use set +e to ignore and set -e to enable 'exit on error control'
+set +e
