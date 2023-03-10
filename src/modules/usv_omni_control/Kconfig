@@ -1,0 +1,12 @@
+menuconfig MODULES_USV_OMNI_CONTROL
+	bool "usv_omni_control"
+	default n
+	---help---
+		Enable support for usv_omni_control
+
+menuconfig USER_USV_OMNI_CONTROL
+	bool "usv_omni_control running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && MODULES_USV_OMNI_CONTROL
+	---help---
+		Put usv_omni_control in userspace memory
