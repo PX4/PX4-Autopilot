@@ -123,9 +123,6 @@ private:
 			    || vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_TERMINATION) {
 
 				system_status = MAV_STATE_FLIGHT_TERMINATION;
-
-			} else if (vehicle_status.calibration_enabled) {
-				system_status = MAV_STATE_CALIBRATING;
 			}
 
 
