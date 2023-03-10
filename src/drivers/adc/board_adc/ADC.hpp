@@ -113,6 +113,9 @@ private:
 	uORB::Publication<adc_report_s>		_to_adc_report{ORB_ID(adc_report)};
 	uORB::Publication<system_power_s>	_to_system_power{ORB_ID(system_power)};
 
+	uint8_t _usb_connected_count{0};
+	bool _usb_connected{false};
+
 #ifdef BOARD_GPIO_VDD_5V_COMP_VALID
 	int _5v_comp_valid_fd {-1};
 #endif
