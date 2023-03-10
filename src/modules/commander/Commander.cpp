@@ -671,20 +671,14 @@ Commander::Commander() :
 	_vehicle_land_detected.landed = true;
 
 	_vehicle_status.arming_state = vehicle_status_s::ARMING_STATE_DISARMED;
-
 	_vehicle_status.system_id = 1;
 	_vehicle_status.component_id = 1;
-
 	_vehicle_status.system_type = 0;
 	_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_UNKNOWN;
-
 	_vehicle_status.nav_state = _user_mode_intention.get();
 	_vehicle_status.nav_state_user_intention = _user_mode_intention.get();
 	_vehicle_status.nav_state_timestamp = hrt_absolute_time();
-
-	/* mark all signals lost as long as they haven't been found */
 	_vehicle_status.gcs_connection_lost = true;
-
 	_vehicle_status.power_input_valid = true;
 
 	// default for vtol is rotary wing
