@@ -41,7 +41,7 @@
  */
 
 #include "ekf.h"
-#include "python/ekf_derivation/generated/compute_gnss_yaw_innon_innov_var_and_h.h"
+#include "python/ekf_derivation/generated/compute_gnss_yaw_pred_innov_var_and_h.h"
 
 #include <mathlib/mathlib.h>
 #include <cstdlib>
@@ -59,17 +59,17 @@ void Ekf::updateGpsYaw(const gpsSample &gps_sample)
 
 		const float R_YAW = sq(fmaxf(gps_sample.yaw_acc, _params.gps_heading_noise));
 
-		float heading_innov;
+		float heading_pred;
 		float heading_innov_var;
 
 		{
 		Vector24f H;
-		sym::ComputeGnssYawInnonInnovVarAndH(getStateAtFusionHorizonAsVector(), P, _gps_yaw_offset, measured_hdg, R_YAW, FLT_EPSILON, &heading_innov, &heading_innov_var, &H);
+		sym::ComputeGnssYawPredInnovVarAndH(getStateAtFusionHorizonAsVector(), P, _gps_yaw_offset, R_YAW, FLT_EPSILON, &heading_pred, &heading_innov_var, &H);
 		}
 
 		gnss_yaw.observation = measured_hdg;
 		gnss_yaw.observation_variance = R_YAW;
-		gnss_yaw.innovation = heading_innov;
+		gnss_yaw.innovation = wrap_pi(heading_pred - measured_hdg);
 		gnss_yaw.innovation_variance = heading_innov_var;
 
 		gnss_yaw.fusion_enabled = _control_status.flags.gps_yaw;
@@ -93,12 +93,12 @@ void Ekf::fuseGpsYaw()
 	Vector24f H;
 
 	{
-	float heading_innov;
+	float heading_pred;
 	float heading_innov_var;
 
 	// Note: we recompute innov and innov_var because it doesn't cost much more than just computing H
 	// making a separate function just for H uses more flash space without reducing CPU load significantly
-	sym::ComputeGnssYawInnonInnovVarAndH(getStateAtFusionHorizonAsVector(), P, _gps_yaw_offset, gnss_yaw.observation, gnss_yaw.observation_variance, FLT_EPSILON, &heading_innov, &heading_innov_var, &H);
+	sym::ComputeGnssYawPredInnovVarAndH(getStateAtFusionHorizonAsVector(), P, _gps_yaw_offset, gnss_yaw.observation_variance, FLT_EPSILON, &heading_pred, &heading_innov_var, &H);
 	}
 
 	const SparseVector24f<0,1,2,3> Hfusion(H);
