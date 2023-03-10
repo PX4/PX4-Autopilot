@@ -123,6 +123,7 @@ set(msg_files
 	ManualControlSwitches.msg
 	MavlinkLog.msg
 	MavlinkTunnel.msg
+	McVelCtrlStatus.msg
 	Mission.msg
 	MissionResult.msg
 	MountOrientation.msg

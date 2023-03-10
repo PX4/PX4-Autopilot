@@ -212,3 +212,39 @@ PARAM_DEFINE_FLOAT(FD_ACT_MOT_C2T, 2.0f);
  * @increment 100
  */
 PARAM_DEFINE_INT32(FD_ACT_MOT_TOUT, 100);
+
+/**
+ * Enable checks on flip during vertical lift off (early takeoff phase)
+ *
+ * @boolean
+ * @reboot_required true
+ *
+ * @group Failure Detector
+ */
+PARAM_DEFINE_INT32(FD_FLIP_EN, 1);
+
+/**
+ * Threshold MC Pitch rate integrator before considering as flipping
+ *
+ *
+ * @group Failure Detector
+ */
+PARAM_DEFINE_FLOAT(FD_FLIP_PR_I_THR, 0.1);
+
+/**
+ * Threshold MC Roll rate integrator before considering as flipping
+ *
+ *
+ * @group Failure Detector
+ */
+PARAM_DEFINE_FLOAT(FD_FLIP_RR_I_THR, 0.1);
+
+/**
+ * A z velocity threshold that must be reached once during takeoff to disable the flip checks
+ *
+ * @min 0.02
+ * @max 5
+ *
+ * @group Failure Detector
+ */
+PARAM_DEFINE_FLOAT(FD_ESCAPE_Z, 0.5);

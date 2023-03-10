@@ -49,12 +49,15 @@
 #include <matrix/matrix/math.hpp>
 #include <px4_platform_common/module_params.h>
 
+
 // subscriptions
 #include <uORB/Subscription.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/topics/actuator_motors.h>
 #include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
@@ -63,6 +66,9 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/pwm_input.h>
+#include <uORB/topics/mc_vel_ctrl_status.h>
+#include <uORB/topics/rate_ctrl_status.h>
+#include <uORB/topics/position_setpoint_triplet.h>
 
 union failure_detector_status_u {
 	struct {
@@ -74,6 +80,7 @@ union failure_detector_status_u {
 		uint16_t battery : 1;
 		uint16_t imbalanced_prop : 1;
 		uint16_t motor : 1;
+		uint16_t flip : 1;
 	} flags;
 	uint16_t value {0};
 };
@@ -112,6 +119,7 @@ private:
 	void updateEscsStatus(const vehicle_status_s &vehicle_status, const esc_status_s &esc_status);
 	void updateMotorStatus(const vehicle_status_s &vehicle_status, const esc_status_s &esc_status);
 	void updateImbalancedPropStatus();
+	void updateFlipStatus();
 
 	failure_detector_status_u _status{};
 
@@ -132,12 +140,22 @@ private:
 	bool _motor_failure_escs_have_current{false}; // true if some ESC had non-zero current (some don't support it)
 	hrt_abstime _motor_failure_undercurrent_start_time[actuator_motors_s::NUM_CONTROLS] {};
 
+	bool in_takeoff{false};
+	bool escaped_z_threshold{false};
+	bool got_home_position{false};
+	float home_z{0.0f};
+
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _esc_status_sub{ORB_ID(esc_status)}; // TODO: multi-instance
 	uORB::Subscription _pwm_input_sub{ORB_ID(pwm_input)};
 	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
 	uORB::Subscription _vehicle_imu_status_sub{ORB_ID(vehicle_imu_status)};
 	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
+	uORB::Subscription _sub_mc_vel_ctrl_status{ORB_ID(mc_vel_ctrl_status)};
+	uORB::Subscription _sub_rate_ctrl_status{ORB_ID(rate_ctrl_status)};
+	uORB::Subscription _sub_pos_sp_triplet{ORB_ID(position_setpoint_triplet)};
+	uORB::Subscription _sub_vehicle_local_position{ORB_ID(vehicle_local_position)};
+	uORB::Subscription _sub_home_position{ORB_ID(home_position)};
 
 	FailureInjector _failure_injector;
 
@@ -150,6 +168,10 @@ private:
 		(ParamInt<px4::params::FD_EXT_ATS_TRIG>) _param_fd_ext_ats_trig,
 		(ParamInt<px4::params::FD_ESCS_EN>) _param_escs_en,
 		(ParamInt<px4::params::FD_IMB_PROP_THR>) _param_fd_imb_prop_thr,
+		(ParamInt<px4::params::FD_FLIP_EN>) _param_flip_en,
+		(ParamFloat<px4::params::FD_FLIP_PR_I_THR>) _param_fd_fail_pri,
+		(ParamFloat<px4::params::FD_FLIP_RR_I_THR>) _param_fd_fail_rri,
+		(ParamFloat<px4::params::FD_ESCAPE_Z>) _param_fd_escape_z,
 
 		// Actuator failure
 		(ParamBool<px4::params::FD_ACT_EN>) _param_fd_actuator_en,

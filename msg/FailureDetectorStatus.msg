@@ -9,6 +9,7 @@ bool fd_arm_escs
 bool fd_battery
 bool fd_imbalanced_prop
 bool fd_motor
+bool fd_flip
 
 float32 imbalanced_prop_metric      # Metric of the imbalanced propeller check (low-passed)
 uint16 motor_failure_mask           # Bit-mask with motor indices, indicating critical motor failures

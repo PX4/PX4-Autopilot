@@ -200,6 +200,13 @@ void PositionControl::_velocityControl(const float dt)
 	_vel_int(2) = math::min(fabsf(_vel_int(2)), CONSTANTS_ONE_G) * sign(_vel_int(2));
 }
 
+void PositionControl::getVelControlStatus(mc_vel_ctrl_status_s &mc_vel_ctrl_status)
+{
+	mc_vel_ctrl_status.vx_integ = _vel_int(0);
+	mc_vel_ctrl_status.vy_integ = _vel_int(1);
+	mc_vel_ctrl_status.vz_integ = _vel_int(2);
+}
+
 void PositionControl::_accelerationControl()
 {
 	// Assume standard acceleration due to gravity in vertical direction for attitude generation
