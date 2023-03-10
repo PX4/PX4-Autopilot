@@ -240,8 +240,6 @@ void TECSControl::initialize(const Setpoint &setpoint, const Input &input, Param
 
 	_throttle_setpoint = _calcThrottleControlOutput(limit, ste_rate, param, flag);
 
-	_ste_rate = ste_rate.estimate;
-
 	// Debug output
 	_debug_output.total_energy_rate_estimate = ste_rate.estimate;
 	_debug_output.total_energy_rate_sp = ste_rate.setpoint;
@@ -502,7 +500,6 @@ void TECSControl::_calcThrottleControl(float dt, const SpecificEnergyRates &spec
 	}
 
 	_throttle_setpoint = constrain(throttle_setpoint, param.throttle_min, param.throttle_max);
-	_ste_rate = ste_rate.estimate;
 
 	// Debug output
 	_debug_output.total_energy_rate_estimate = ste_rate.estimate;
