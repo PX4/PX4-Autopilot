@@ -35,7 +35,7 @@
 #include "EKF/ekf.h"
 #include "test_helper/comparison_helper.h"
 
-#include "../EKF/python/ekf_derivation/generated/compute_gnss_yaw_innon_innov_var_and_h.h"
+#include "../EKF/python/ekf_derivation/generated/compute_gnss_yaw_pred_innov_var_and_h.h"
 
 using namespace matrix;
 
@@ -140,11 +140,11 @@ TEST(GnssYawFusionGenerated, SympyVsSymforce)
 	Vector24f K_sympy;
 	sympyGnssYawInnovVarHAndK(q(0), q(1), q(2), q(3), P, yaw_offset, R_YAW, innov_var_sympy, H_sympy, K_sympy);
 
-	float innov_symforce;
+	float meas_pred_symforce;
 	float innov_var_symforce;
 	Vector24f H_symforce;
-	sym::ComputeGnssYawInnonInnovVarAndH(state_vector, P, yaw_offset, 0.f, R_YAW, FLT_EPSILON, &innov_symforce,
-					     &innov_var_symforce, &H_symforce);
+	sym::ComputeGnssYawPredInnovVarAndH(state_vector, P, yaw_offset, R_YAW, FLT_EPSILON, &meas_pred_symforce,
+					    &innov_var_symforce, &H_symforce);
 
 	// K isn't generated from symbolic anymore to save flash space
 	Vector24f K_symforce = P * H_symforce / innov_var_symforce;
@@ -177,11 +177,11 @@ TEST(GnssYawFusionGenerated, SingularityPitch90)
 	SquareMatrix24f P = createRandomCovarianceMatrix24f();
 	const float R_YAW = sq(0.3f);
 
-	float innov;
+	float meas_pred;
 	float innov_var;
 	Vector24f H;
-	sym::ComputeGnssYawInnonInnovVarAndH(state_vector, P, yaw_offset, 0.f, R_YAW, FLT_EPSILON, &innov,
-					     &innov_var, &H);
+	sym::ComputeGnssYawPredInnovVarAndH(state_vector, P, yaw_offset, R_YAW, FLT_EPSILON, &meas_pred,
+					    &innov_var, &H);
 	Vector24f K = P * H / innov_var;
 
 	// THEN: the arctan is singular, the attitude isn't observable, so the innovation variance
@@ -205,11 +205,11 @@ TEST(GnssYawFusionGenerated, SingularityRoll90)
 	SquareMatrix24f P = createRandomCovarianceMatrix24f();
 	const float R_YAW = sq(0.3f);
 
-	float innov;
+	float meas_pred;
 	float innov_var;
 	Vector24f H;
-	sym::ComputeGnssYawInnonInnovVarAndH(state_vector, P, yaw_offset, 0.f, R_YAW, FLT_EPSILON, &innov,
-					     &innov_var, &H);
+	sym::ComputeGnssYawPredInnovVarAndH(state_vector, P, yaw_offset, R_YAW, FLT_EPSILON, &meas_pred,
+					    &innov_var, &H);
 	Vector24f K = P * H / innov_var;
 
 	// THEN: the arctan is singular, the attitude isn't observable, so the innovation variance
