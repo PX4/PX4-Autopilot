@@ -314,12 +314,6 @@ public:
 	 */
 	float getPitchSetpoint() const {return _pitch_setpoint;};
 	/**
-	 * @brief Get specific total energy rate.
-	 *
-	 * @return the total specific energy rate in [m²/s³].
-	 */
-	float getSteRate() const {return _ste_rate;};
-	/**
 	 * @brief Get the Debug Output
 	 *
 	 * @return the debug outpus struct.
@@ -535,7 +529,6 @@ private:
 	float _pitch_setpoint{0.0f};				///< Controlled pitch setpoint [rad].
 	float _throttle_setpoint{0.0f};				///< Controlled throttle setpoint [0,1].
 	float _ratio_undersped{0.0f};				///< A continuous representation of how "undersped" the TAS is [0,1]
-	float _ste_rate{0.0f};					///< Specific total energy rate [m²/s³].
 };
 
 class TECS
