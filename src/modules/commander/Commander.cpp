@@ -2263,13 +2263,9 @@ void Commander::control_status_leds(bool changed, const uint8_t battery_warning)
 			led_mode = led_control_s::MODE_BLINK_FAST;
 			led_color = led_control_s::COLOR_RED;
 
-		} else if (_vehicle_status.pre_flight_checks_pass) {
+		} else {
 			led_mode = led_control_s::MODE_BREATHE;
 			set_normal_color = true;
-
-		} else {
-			// if in init status it should not be in the error state
-			led_mode = led_control_s::MODE_OFF;
 		}
 
 		if (set_normal_color) {
