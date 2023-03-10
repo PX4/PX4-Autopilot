@@ -59,9 +59,6 @@ void StickAccelerationXY::resetVelocity(const matrix::Vector2f &velocity)
 {
 	if (velocity.isAllFinite()) {
 		_velocity_setpoint = velocity;
-
-	} else {
-		_velocity_setpoint.zero();
 	}
 }
 
@@ -70,10 +67,6 @@ void StickAccelerationXY::resetAcceleration(const matrix::Vector2f &acceleration
 	if (acceleration.isAllFinite()) {
 		_acceleration_slew_rate_x.setForcedValue(acceleration(0));
 		_acceleration_slew_rate_y.setForcedValue(acceleration(1));
-
-	} else {
-		_acceleration_slew_rate_x.setForcedValue(0.f);
-		_acceleration_slew_rate_y.setForcedValue(0.f);
 	}
 }
 
