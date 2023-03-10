@@ -279,6 +279,11 @@ then
 fi
 microdds_client start -t udp -p 8888 $microdds_ns
 
+if param greater -s RIN_ENABLED 0
+then
+	battery_resistance_est start
+fi
+
 if param greater -s MNT_MODE_IN -1
 then
 	gimbal start

@@ -528,6 +528,10 @@ else
 		fi
 	fi
 
+	if param greater -s RIN_ENABLED 0
+	then
+		battery_resistance_est start
+	fi
 #
 # End of autostart.
 #

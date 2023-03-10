@@ -90,6 +90,8 @@ Battery::Battery(int index, ModuleParams *parent, const int sample_interval_us, 
 	snprintf(param_name, sizeof(param_name), "BAT%d_SOURCE", _index);
 	_param_handles.source = param_find(param_name);
 
+	_param_handles.r_in_enabled = param_find("RIN_ENABLED");
+
 	_param_handles.low_thr = param_find("BAT_LOW_THR");
 	_param_handles.crit_thr = param_find("BAT_CRIT_THR");
 	_param_handles.emergen_thr = param_find("BAT_EMERGEN_THR");
@@ -208,22 +210,44 @@ float Battery::calculateStateOfChargeVoltageBased(const float voltage_v, const f
 	// remaining battery capacity based on voltage
 	float cell_voltage = voltage_v / _params.n_cells;
 
-	// correct battery voltage locally for load drop to avoid estimation fluctuations
-	if (_params.r_internal >= 0.f && current_a > FLT_EPSILON) {
-		cell_voltage += _params.r_internal * current_a;
+	if (_params.r_in_enabled == 1) {
 
-	} else {
-		actuator_controls_s actuator_controls{};
-		_actuator_controls_0_sub.copy(&actuator_controls);
-		const float throttle = actuator_controls.control[actuator_controls_s::INDEX_THROTTLE];
-		_throttle_filter.update(throttle);
-
-		if (!_battery_initialized) {
-			_throttle_filter.reset(throttle);
+		if (_internal_resistance_sub.updated()) {
+			_internal_resistance_sub.copy(&_inter_res);
 		}
 
-		// assume linear relation between throttle and voltage drop
-		cell_voltage += throttle * _params.v_load_drop;
+		if (_inter_res.best_r_internal_est >= 0.f) {
+			cell_voltage += _inter_res.best_r_internal_est * current_a;
+
+		} else {
+			actuator_controls_s actuator_controls{};
+			_actuator_controls_0_sub.copy(&actuator_controls);
+			const float throttle = actuator_controls.control[actuator_controls_s::INDEX_THROTTLE];
+			_throttle_filter.update(throttle);
+			// used when initial value of _inter_res.best_r_internal_est is zero or undefined
+			cell_voltage += throttle * _params.v_load_drop;
+		}
+
+	} else {
+
+		// correct battery voltage locally for load drop to avoid estimation fluctuations
+		if (_params.r_internal >= 0.f && current_a > FLT_EPSILON) {
+			cell_voltage += _params.r_internal * current_a;
+
+		} else {
+			actuator_controls_s actuator_controls{};
+			_actuator_controls_0_sub.copy(&actuator_controls);
+			const float throttle = actuator_controls.control[actuator_controls_s::INDEX_THROTTLE];
+			_throttle_filter.update(throttle);
+
+			if (!_battery_initialized) {
+				_throttle_filter.reset(throttle);
+			}
+
+			// assume linear relation between throttle and voltage drop
+			cell_voltage += throttle * _params.v_load_drop;
+		}
+
 	}
 
 	return math::interpolate(cell_voltage, _params.v_empty, _params.v_charged, 0.f, 1.f);
@@ -322,6 +346,7 @@ void Battery::updateParams()
 	param_get(_param_handles.v_load_drop, &_params.v_load_drop);
 	param_get(_param_handles.r_internal, &_params.r_internal);
 	param_get(_param_handles.source, &_params.source);
+	param_get(_param_handles.r_in_enabled, &_params.r_in_enabled);
 	param_get(_param_handles.low_thr, &_params.low_thr);
 	param_get(_param_handles.crit_thr, &_params.crit_thr);
 	param_get(_param_handles.emergen_thr, &_params.emergen_thr);

@@ -85,6 +85,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("landing_target_pose", 1000);
 	add_optional_topic("launch_detection_status", 200);
 	add_optional_topic("magnetometer_bias_estimate", 200);
+	add_topic("internal_resistance", 200);
 	add_topic("manual_control_setpoint", 200);
 	add_topic("manual_control_switches");
 	add_topic("mission_result");
@@ -340,6 +341,7 @@ void LoggedTopics::add_estimator_replay_topics()
 	add_topic("vehicle_status");
 	add_topic("vehicle_visual_odometry");
 	add_topic_multi("distance_sensor");
+	add_topic_multi("battery_status", 0, 2);
 }
 
 void LoggedTopics::add_thermal_calibration_topics()
