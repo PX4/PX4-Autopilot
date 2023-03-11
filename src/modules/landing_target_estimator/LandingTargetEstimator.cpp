@@ -63,7 +63,13 @@ LandingTargetEstimator::LandingTargetEstimator()
 	_paramHandle.offset_x = param_find("LTEST_SENS_POS_X");
 	_paramHandle.offset_y = param_find("LTEST_SENS_POS_Y");
 	_paramHandle.offset_z = param_find("LTEST_SENS_POS_Z");
+	_paramHandle.eulr_phi = param_find("LTEST_EULR_PHI");
+	_paramHandle.eulr_theta = param_find("LTEST_EULR_THETA");
+	_paramHandle.eulr_psi = param_find("LTEST_EULR_PSI");
+	_paramHandle.yaw_alpha = param_find("LTEST_YAW_ALPHA");
+
 	_check_params(true);
+	_alpha_filter_yaw.reset(NAN);
 }
 
 void LandingTargetEstimator::update()
@@ -75,7 +81,7 @@ void LandingTargetEstimator::update()
 	/* predict */
 	if (_estimator_initialized) {
 		if (hrt_absolute_time() - _last_update > landing_target_estimator_TIMEOUT_US) {
-			PX4_WARN("Timeout");
+			PX4_INFO("Target lost");
 			_estimator_initialized = false;
 
 		} else {
@@ -116,6 +122,9 @@ void LandingTargetEstimator::update()
 		_kalman_filter_x.init(_target_position_report.rel_pos_x, vx_init, _params.pos_unc_init, _params.vel_unc_init);
 		_kalman_filter_y.init(_target_position_report.rel_pos_y, vy_init, _params.pos_unc_init, _params.vel_unc_init);
 
+		const float sample_interval = 1.0f;
+		_alpha_filter_yaw.setParameters(sample_interval, 0.f);
+
 		_estimator_initialized = true;
 		_last_update = hrt_absolute_time();
 		_last_predict = _last_update;
@@ -126,10 +135,13 @@ void LandingTargetEstimator::update()
 		bool update_x = _kalman_filter_x.update(_target_position_report.rel_pos_x, measurement_uncertainty);
 		bool update_y = _kalman_filter_y.update(_target_position_report.rel_pos_y, measurement_uncertainty);
 
+		_alpha_filter_yaw.setAlpha(_params.yaw_alpha);
+		_alpha_filter_yaw.update(_last_unwrapped_yaw);
+
 		if (!update_x || !update_y) {
 			if (!_faulty) {
 				_faulty = true;
-				PX4_WARN("Landing target measurement rejected:%s%s", update_x ? "" : " x", update_y ? "" : " y");
+				PX4_INFO("Landing target measurement rejected:%s%s", update_x ? "" : " x", update_y ? "" : " y");
 			}
 
 		} else {
@@ -169,6 +181,14 @@ void LandingTargetEstimator::update()
 				_target_pose.y_abs = y + _vehicleLocalPosition.y;
 				_target_pose.z_abs = _target_position_report.rel_pos_z  + _vehicleLocalPosition.z;
 				_target_pose.abs_pos_valid = true;
+
+				// q should only be filled when abs_pos_valid is set
+				const float yaw_filterd_and_wrapped = matrix::wrap_pi(_alpha_filter_yaw.getState());
+				matrix::Quatf quaternion(matrix::Eulerf(0.f, 0.f, yaw_filterd_and_wrapped));
+				_target_pose.target_yaw_filtered = yaw_filterd_and_wrapped;
+				_target_pose.target_yaw = _last_unwrapped_yaw;
+				quaternion.copyTo(_target_pose.q);
+				_last_unwrapped_yaw = _target_pose.target_yaw;
 
 			} else {
 				_target_pose.abs_pos_valid = false;
@@ -242,6 +262,24 @@ void LandingTargetEstimator::_update_topics()
 			return;
 		}
 
+		// Calculate target yaw [rad] in NED frame from offboard quaternion
+		const matrix::Quatf q_in_camera(_irlockReport.q);
+		const matrix::Quatf rot_camera_to_body = matrix::Eulerf(_params.eulr_phi, _params.eulr_theta, _params.eulr_psi);
+		const matrix::Quatf rot_body_to_ned = q_att;
+		const matrix::Quatf q_in_body = rot_camera_to_body * q_in_camera;
+		const matrix::Quatf q_in_ned = rot_body_to_ned * q_in_body;
+		const float target_yaw_ned = matrix::Eulerf(q_in_ned).psi();
+
+		if (PX4_ISFINITE(target_yaw_ned)) {
+			// _last_unwrapped_yaw = unwrap(_last_unwrapped_yaw, target_yaw_ned, 0.0f, (float)M_PI);
+			_last_unwrapped_yaw = matrix::unwrap_pi(_last_unwrapped_yaw, target_yaw_ned);
+
+			// Initialize yaw lowpass filter if necessary
+			if (!PX4_ISFINITE(_alpha_filter_yaw.getState())) {
+				_alpha_filter_yaw.reset(_last_unwrapped_yaw);
+			}
+		}
+
 		_dist_z = _vehicleLocalPosition.dist_bottom - _params.offset_z;
 
 		// scale the ray s.t. the z component has length of _uncertainty_scale
@@ -302,6 +340,10 @@ void LandingTargetEstimator::_update_params()
 	param_get(_paramHandle.offset_x, &_params.offset_x);
 	param_get(_paramHandle.offset_y, &_params.offset_y);
 	param_get(_paramHandle.offset_z, &_params.offset_z);
+	param_get(_paramHandle.eulr_phi, &_params.eulr_phi);
+	param_get(_paramHandle.eulr_theta, &_params.eulr_theta);
+	param_get(_paramHandle.eulr_psi, &_params.eulr_psi);
+	param_get(_paramHandle.yaw_alpha, &_params.yaw_alpha);
 }
 
 
