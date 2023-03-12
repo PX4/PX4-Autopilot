@@ -56,6 +56,7 @@ transition_result_t ArmStateMachine::arming_state_transition(vehicle_status_s &s
 
 	} else {
 		// Check that we have a valid state transition
+		PX4_WARN("###### Check valid_transition  ######");	// MK: Debugging check
 		bool valid_transition = arming_transitions[new_arming_state][_arm_state];
 
 		// Preflight check
@@ -64,10 +65,11 @@ transition_result_t ArmStateMachine::arming_state_transition(vehicle_status_s &s
 		    && fRunPreArmChecks
 		    && !(status.hil_state == vehicle_status_s::HIL_STATE_ON)
 		    && (_arm_state != vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE)) {
-
+			PX4_WARN("###### Preflight check  ######");	// MK: Debugging check
 			checks.update();
-
+			PX4_WARN("###### status.nav_state = %d ######", status.nav_state);	// MK: Debugging check
 			if (!checks.canArm(status.nav_state)) {
+				PX4_WARN("###### Preflight check report error messages ######");	// MK: Debugging check
 				feedback_provided = true; // Preflight checks report error messages
 				valid_transition = false;
 			}
@@ -91,7 +93,7 @@ transition_result_t ArmStateMachine::arming_state_transition(vehicle_status_s &s
 		// Finish up the state transition
 		if (valid_transition) {
 			ret = TRANSITION_CHANGED;
-
+			PX4_WARN("###### Finish up the state transition ######");	// MK: Debugging check
 			// Record arm/disarm reason
 			if (isArmed() && (new_arming_state != vehicle_status_s::ARMING_STATE_ARMED)) { // disarm transition
 				status.latest_disarming_reason = (uint8_t)calling_reason;
