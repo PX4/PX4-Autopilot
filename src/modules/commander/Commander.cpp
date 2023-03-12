@@ -547,6 +547,7 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 				events::send(events::ID("commander_arm_denied_throttle_center"),
 				{events::Log::Critical, events::LogInternal::Info},
 				"Arming denied: throttle above center");
+				PX4_ERR("###### 1 ######");	// MK: Debugging check
 				tune_negative(true);
 				return TRANSITION_DENIED;
 			}
@@ -558,6 +559,7 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 				events::send(events::ID("commander_arm_denied_throttle_high"),
 				{events::Log::Critical, events::LogInternal::Info},
 				"Arming denied: high throttle");
+				PX4_ERR("###### 2 ######");	// MK: Debugging check
 				tune_negative(true);
 				return TRANSITION_DENIED;
 			}
@@ -569,14 +571,17 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 			events::send(events::ID("commander_arm_denied_not_manual"),
 			{events::Log::Critical, events::LogInternal::Info},
 			"Arming denied: switch to manual mode first");
+			PX4_ERR("###### 3 ######");	// MK: Debugging check
 			tune_negative(true);
 			return TRANSITION_DENIED;
 		}
 	}
 
+	PX4_ERR("###### Before arming_res ######");	// MK: Debugging check
 	transition_result_t arming_res = _arm_state_machine.arming_state_transition(_vehicle_status,
 					 vehicle_status_s::ARMING_STATE_ARMED, _actuator_armed, _health_and_arming_checks, run_preflight_checks,
 					 &_mavlink_log_pub, calling_reason);
+	PX4_ERR("###### After arming_res ######");	// MK: Debugging check
 
 	if (arming_res == TRANSITION_CHANGED) {
 		mavlink_log_info(&_mavlink_log_pub, "Armed by %s\t", arm_disarm_reason_str(calling_reason));
@@ -586,6 +591,7 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 		_status_changed = true;
 
 	} else if (arming_res == TRANSITION_DENIED) {
+		PX4_ERR("###### 4 ######");	// MK: Debugging check
 		tune_negative(true);
 	}
 
@@ -632,6 +638,7 @@ transition_result_t Commander::disarm(arm_disarm_reason_t calling_reason, bool f
 		_status_changed = true;
 
 	} else if (arming_res == TRANSITION_DENIED) {
+		PX4_ERR("###### 5 ######");	// MK: Debugging check
 		tune_negative(true);
 	}
 
@@ -703,6 +710,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 				} else {
 					printRejectMode(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
+					PX4_ERR("###### 1/17: VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED ######");	// MK: Debugging check
 					cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 				}
 
@@ -724,6 +732,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 			} else {
 				printRejectMode(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
+				PX4_ERR("###### 2/17: VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED ######");	// MK: Debugging check
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 			}
 
@@ -838,6 +847,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			} else {
+				PX4_ERR("###### 3/17: VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED ######");	// MK: Debugging check
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 			}
 		}
@@ -866,12 +876,21 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				    && (cmd.source_component == _vehicle_status.component_id)
 				    && (arming_action == vehicle_command_s::ARMING_ACTION_ARM)) {
 					// TODO: replace with a proper allowed transition
+					PX4_ERR("$$$ Have we ever been here? $$$");
 					_arm_state_machine.forceArmState(vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE);
 				}
 
 				transition_result_t arming_res = TRANSITION_DENIED;
 				arm_disarm_reason_t arm_disarm_reason = cmd.from_external ? arm_disarm_reason_t::command_external :
 									arm_disarm_reason_t::command_internal;
+
+				// MK: to check arm_disarm_reason_t
+				if(cmd.from_external){
+					PX4_ERR("###### EX ######");	// MK: Debugging check
+				}
+				else{
+					PX4_ERR("###### INT ######");	// MK: Debugging check
+				}
 
 				if (arming_action == vehicle_command_s::ARMING_ACTION_ARM) {
 					arming_res = arm(arm_disarm_reason, cmd.from_external || !forced);
@@ -882,6 +901,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				}
 
 				if (arming_res == TRANSITION_DENIED) {
+					PX4_ERR("###### 4/17: VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED ######");	// MK: Debugging check
 					cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 
 				} else {
@@ -940,6 +960,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 						cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 					} else {
+						PX4_ERR("###### 5/17: VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED ######");	// MK: Debugging check
 						cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 					}
 
@@ -957,6 +978,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 							cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 						} else {
+							PX4_ERR("###### 6/17: VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED ######");	// MK: Debugging check
 							cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 						}
 
@@ -981,6 +1003,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 			} else {
 				printRejectMode(vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
+				PX4_ERR("###### 7/17: VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED ######");	// MK: Debugging check
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 			}
 		}
@@ -993,6 +1016,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 			} else {
 				printRejectMode(vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF);
+				PX4_ERR("###### 8/17: VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED ######");	// MK: Debugging check
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 			}
 		}
@@ -1006,6 +1030,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 		} else {
 			printRejectMode(vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF);
+			PX4_ERR("###### 9/17: VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED ######");	// MK: Debugging check
 			cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 		}
 
@@ -1020,6 +1045,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 			} else {
 				printRejectMode(vehicle_status_s::NAVIGATION_STATE_AUTO_LAND);
+				PX4_ERR("###### 10/17: VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED ######");	// MK: Debugging check
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 			}
 		}
@@ -1034,6 +1060,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 			} else {
 				printRejectMode(vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND);
+				PX4_ERR("###### 11/17: VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED ######");	// MK: Debugging check
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 			}
 		}
@@ -1057,6 +1084,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 					} else {
 						printRejectMode(vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION);
+						PX4_ERR("###### 12/17: VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED ######");	// MK: Debugging check
 						cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 					}
 				}
@@ -1110,6 +1138,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 			cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 		} else {
+			PX4_ERR("###### 13/17: VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED ######");	// MK: Debugging check
 			cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 			mavlink_log_critical(&_mavlink_log_pub, "Orbit command rejected");
 		}
@@ -1170,6 +1199,8 @@ Commander::handle_command(const vehicle_command_s &cmd)
 			if (_arm_state_machine.isArmed() || _arm_state_machine.isShutdown() || _worker_thread.isBusy()) {
 
 				// reject if armed or shutting down
+				PX4_ERR("###### 1 reject if armed or shutting down ######");	// MK: Debugging check
+				PX4_ERR("###### 14/17: VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED ######");	// MK: Debugging check
 				answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED);
 
 			} else {
@@ -1295,6 +1326,8 @@ Commander::handle_command(const vehicle_command_s &cmd)
 			if (_arm_state_machine.isArmed() || _arm_state_machine.isShutdown() || _worker_thread.isBusy()) {
 
 				// reject if armed or shutting down
+				PX4_ERR("###### 2 reject if armed or shutting down ######");	// MK: Debugging check
+				PX4_ERR("###### 15/17: VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED ######");	// MK: Debugging check
 				answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED);
 
 			} else {
@@ -1330,6 +1363,8 @@ Commander::handle_command(const vehicle_command_s &cmd)
 			if (_arm_state_machine.isArmed() || _arm_state_machine.isShutdown() || _worker_thread.isBusy()) {
 
 				// reject if armed or shutting down
+				PX4_ERR("###### 3 reject if armed or shutting down ######");	// MK: Debugging check
+				PX4_ERR("###### 16/17: VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED ######");	// MK: Debugging check
 				answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED);
 
 			} else {
@@ -2110,6 +2145,7 @@ void Commander::checkWorkerThread()
 				tune_positive(true);
 
 			} else {
+				PX4_ERR("###### 6 ######");	// MK: Debugging check
 				tune_negative(true);
 			}
 		}
@@ -2426,6 +2462,7 @@ void Commander::printRejectMode(uint8_t nav_state)
 
 		/* only buzz if armed, because else we're driving people nuts indoors
 		they really need to look at the leds as well. */
+		PX4_ERR("###### 7 ######");	// MK: Debugging check
 		tune_negative(_arm_state_machine.isArmed());
 
 		_last_print_mode_reject_time = hrt_absolute_time();
@@ -2439,18 +2476,22 @@ void Commander::answer_command(const vehicle_command_s &cmd, uint8_t result)
 		break;
 
 	case vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED:
+		PX4_ERR("###### 8 ######");	// MK: Debugging check
 		tune_negative(true);
 		break;
 
 	case vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED:
+		PX4_ERR("###### 9 ######");	// MK: Debugging check
 		tune_negative(true);
 		break;
 
 	case vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED:
+		PX4_ERR("###### 10 ######");	// MK: Debugging check
 		tune_negative(true);
 		break;
 
 	case vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED:
+		PX4_ERR("###### 11 ######");	// MK: Debugging check
 		tune_negative(true);
 		break;
 

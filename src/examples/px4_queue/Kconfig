@@ -1,0 +1,5 @@
+menuconfig EXAMPLES_PX4_QUEUE
+	bool "px4_item"
+	default n
+	---help---
+		Enable support for px4_item
