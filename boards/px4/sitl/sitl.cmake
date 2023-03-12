@@ -11,5 +11,5 @@ if(REPLAY_FILE)
 elseif(CMAKE_BUILD_TYPE STREQUAL FuzzTesting)
 	set(ENABLE_LOCKSTEP_SCHEDULER no)
 else()
-	set(ENABLE_LOCKSTEP_SCHEDULER yes)
+	set(ENABLE_LOCKSTEP_SCHEDULER no) # MK: I changed it from yes to no.
 endif()

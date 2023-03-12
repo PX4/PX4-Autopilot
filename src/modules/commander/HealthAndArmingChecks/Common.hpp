@@ -183,6 +183,7 @@ public:
 		}
 		bool operator!=(const ArmingCheckResults &other)
 		{
+			// PX4_ERR("###### other.can_arm: %d######", (uint32_t)(other.can_arm));
 			return error != other.error || warning != other.warning ||
 			       can_arm != other.can_arm || can_run != other.can_run || valid != other.valid;
 		}
@@ -201,6 +202,11 @@ public:
 	 */
 	bool canArm(uint8_t nav_state) const
 	{
+		// PX4_ERR("###### First Cond. = %d", _results[_current_result].arming_checks.valid);	// MK: Debugging check
+		// PX4_ERR("###### Second Cond. = %d", (uint32_t)(_results[_current_result].arming_checks.can_arm & getModeGroup(nav_state)));	// MK: Debugging check
+		// PX4_ERR("###### Second Cond. Part 1 = %d", (uint32_t)(_results[_current_result].arming_checks.can_arm));	// MK: Debugging check
+		// PX4_ERR("###### Second Cond. Part 2 = %d", (uint32_t)getModeGroup(nav_state));	// MK: Debugging check
+
 		return _results[_current_result].arming_checks.valid &&
 		       (uint32_t)(_results[_current_result].arming_checks.can_arm & getModeGroup(nav_state)) != 0;
 	}
@@ -276,6 +282,8 @@ private:
 
 		bool operator!=(const Results &other)
 		{
+			// PX4_ERR("###### STATE: %d ######", (uint32_t)(health != other.health || arming_checks != other.arming_checks ||
+			//        num_events != other.num_events || event_id_hash != other.event_id_hash));
 			return health != other.health || arming_checks != other.arming_checks ||
 			       num_events != other.num_events || event_id_hash != other.event_id_hash;
 		}
