@@ -31,24 +31,24 @@
  *
  ****************************************************************************/
 
-#include "WorkItemExample.hpp"
+#include "Px4ItemExample.hpp"
 
-WorkItemExample::WorkItemExample() :
+Px4ItemExample::Px4ItemExample() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::test1)
 {
 }
 
-WorkItemExample::~WorkItemExample()
+Px4ItemExample::~Px4ItemExample()
 {
 	perf_free(_loop_perf);
 	perf_free(_loop_interval_perf);
 }
 
-bool WorkItemExample::init()
+bool Px4ItemExample::init()
 {
 	// execute Run() on every sensor_accel publication
-	if (!_sensor_accel_sub.registerCallback()) {
+	if (!_vehicle_angular_velocity_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;
 	}
@@ -59,7 +59,7 @@ bool WorkItemExample::init()
 	return true;
 }
 
-void WorkItemExample::Run()
+void Px4ItemExample::Run()
 {
 	if (should_exit()) {
 		ScheduleClear();
@@ -70,30 +70,12 @@ void WorkItemExample::Run()
 	perf_begin(_loop_perf);
 	perf_count(_loop_interval_perf);
 
-	orb_test_float_s data{};
-
 	// Check if parameters have changed
 	if (_parameter_update_sub.updated()) {
 		// clear update
 		parameter_update_s param_update;
 		_parameter_update_sub.copy(&param_update);
 		updateParams(); // update module parameters (in DEFINE_PARAMETERS)
-
-		if (_ZZ_MK.get() < 0.3f) {
-			// do something if SYS_AUTOSTART is 1234
-			data.val = 1;
-			data.timestamp = hrt_absolute_time();
-			_orb_test_float_pub.publish(data);
-			_ZZ_MK_CHECK.commit_no_notification(0.1f);
-		}
-		else if (_ZZ_MK.get() >= 0.3f) {
-			// do something if SYS_AUTOSTART is 1234
-			data.val = 5;
-			data.timestamp = hrt_absolute_time();
-			_orb_test_float_pub.publish(data);
-			_ZZ_MK_CHECK.set(0.5f);
-			_ZZ_MK_CHECK.commit();
-		}
 	}
 
 
@@ -118,35 +100,51 @@ void WorkItemExample::Run()
 	}
 
 
+	orb_test_plus_s data{};
 	// Example
 	//  grab latest accelerometer data
-	if (_sensor_accel_sub.updated()) {
-		sensor_accel_s accel;
+	if (_vehicle_angular_velocity_sub.updated()) {
+		vehicle_angular_velocity_s vrad;
 
-		if (_sensor_accel_sub.copy(&accel)) {
+		if (_vehicle_angular_velocity_sub.copy(&vrad)) {
 			// DO WORK
-			// data.val = accel.z + 10;
+			data.val = vrad.xyz[2];
 			// access parameter value (SYS_AUTOSTART)
-			/*
 			if (_param_sys_autostart.get() == 1234) {
 				// do something if SYS_AUTOSTART is 1234
 			}
-			*/
+		}
+	}
+
+	//  grab latest accelerometer data
+	if (_orb_test_float_sub.updated()) {
+		orb_test_float_s grav;
+
+		if (_orb_test_float_sub.copy(&grav)) {
+			// DO WORK
+			data.val += grav.val;
+			// access parameter value (SYS_AUTOSTART)
+			if (_param_sys_autostart.get() == 1234) {
+				// do something if SYS_AUTOSTART is 1234
+			}
 		}
 	}
 
 
+
+
 	// Example
 	//  publish some data
-
+	data.timestamp = hrt_absolute_time();
+	_orb_test_plus_pub.publish(data);
 
 
 	perf_end(_loop_perf);
 }
 
-int WorkItemExample::task_spawn(int argc, char *argv[])
+int Px4ItemExample::task_spawn(int argc, char *argv[])
 {
-	WorkItemExample *instance = new WorkItemExample();
+	Px4ItemExample *instance = new Px4ItemExample();
 
 	if (instance) {
 		_object.store(instance);
@@ -167,19 +165,19 @@ int WorkItemExample::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int WorkItemExample::print_status()
+int Px4ItemExample::print_status()
 {
 	perf_print_counter(_loop_perf);
 	perf_print_counter(_loop_interval_perf);
 	return 0;
 }
 
-int WorkItemExample::custom_command(int argc, char *argv[])
+int Px4ItemExample::custom_command(int argc, char *argv[])
 {
 	return print_usage("unknown command");
 }
 
-int WorkItemExample::print_usage(const char *reason)
+int Px4ItemExample::print_usage(const char *reason)
 {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
@@ -192,14 +190,14 @@ Example of a simple module running out of a work queue.
 
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_NAME("work_item_example", "template");
+	PRINT_MODULE_USAGE_NAME("px4_item_example", "template");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
 }
 
-extern "C" __EXPORT int work_item_example_main(int argc, char *argv[])
+extern "C" __EXPORT int px4_item_example_main(int argc, char *argv[])
 {
-	return WorkItemExample::main(argc, argv);
+	return Px4ItemExample::main(argc, argv);
 }

@@ -126,6 +126,18 @@ void
 MavlinkReceiver::handle_message(mavlink_message_t *msg)
 {
 	switch (msg->msgid) {
+	case MAVLINK_MSG_ID_VEHICLE_TORQUE_SETPOINT_MODE:
+		handle_message_vehicle_torque_setpoint_mode(msg);
+		break;
+
+	case MAVLINK_MSG_ID_VEHICLE_THRUST_SETPOINT_MODE:
+		handle_message_vehicle_thrust_setpoint_mode(msg);
+		break;
+
+	case MAVLINK_MSG_ID_ACTUATOR_MOTORS:
+		handle_message_actuator_motors(msg);
+		break;
+
 	case MAVLINK_MSG_ID_COMMAND_LONG:
 		handle_message_command_long(msg);
 		break;
@@ -366,6 +378,87 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 	/* If we've received a valid message, mark the flag indicating so.
 	   This is used in the '-w' command-line flag. */
 	_mavlink->set_has_received_messages(true);
+}
+
+void
+MavlinkReceiver::handle_message_vehicle_torque_setpoint_mode(mavlink_message_t *msg)
+{
+    mavlink_vehicle_torque_setpoint_mode_t man;
+    mavlink_msg_vehicle_torque_setpoint_mode_decode(msg, &man);
+
+struct vehicle_torque_setpoint_mode_s vcmd = {};
+
+    vcmd.timestamp = hrt_absolute_time();
+    vcmd.xyz[0] = man.xyz[0];
+    vcmd.xyz[1] = man.xyz[1];
+    vcmd.xyz[2] = man.xyz[2];
+
+    if (_vehicle_torque_setpoint_mode_pub == nullptr) {
+        _vehicle_torque_setpoint_mode_pub = orb_advertise(ORB_ID(vehicle_torque_setpoint_mode), &vcmd);
+
+    } else {
+        orb_publish(ORB_ID(vehicle_torque_setpoint_mode), _vehicle_torque_setpoint_mode_pub, &vcmd);
+    }
+}
+
+void
+MavlinkReceiver::handle_message_vehicle_thrust_setpoint_mode(mavlink_message_t *msg)
+{
+    mavlink_vehicle_thrust_setpoint_mode_t man;
+    mavlink_msg_vehicle_thrust_setpoint_mode_decode(msg, &man);
+
+struct vehicle_thrust_setpoint_mode_s vcmd = {};
+
+    vcmd.timestamp = hrt_absolute_time();
+    vcmd.xyz[0] = man.xyz[0];
+    vcmd.xyz[1] = man.xyz[1];
+    vcmd.xyz[2] = man.xyz[2];
+
+    if (_vehicle_thrust_setpoint_mode_pub == nullptr) {
+        _vehicle_thrust_setpoint_mode_pub = orb_advertise(ORB_ID(vehicle_thrust_setpoint_mode), &vcmd);
+
+    } else {
+        orb_publish(ORB_ID(vehicle_thrust_setpoint_mode), _vehicle_thrust_setpoint_mode_pub, &vcmd);
+    }
+}
+
+void
+MavlinkReceiver::handle_message_actuator_motors(mavlink_message_t *msg)
+{
+	mavlink_actuator_motors_t man;
+	mavlink_msg_actuator_motors_decode(msg, &man);
+
+	offboard_control_mode_s offboard_control_mode{};
+	offboard_control_mode.actuator = true;
+	offboard_control_mode.timestamp = hrt_absolute_time();
+	_offboard_control_mode_pub.publish(offboard_control_mode);
+
+	vehicle_status_s vehicle_status{};
+	_vehicle_status_sub.copy(&vehicle_status);
+
+	actuator_motors_s actuator_motors{};
+
+	actuator_motors.timestamp = hrt_absolute_time();
+	actuator_motors.control[0] = man.control[0];
+	actuator_motors.control[1] = man.control[1];
+	actuator_motors.control[2] = man.control[2];
+	actuator_motors.control[3] = man.control[3];
+	actuator_motors.control[4] = man.control[4];
+	actuator_motors.control[5] = man.control[5];
+	actuator_motors.control[6] = man.control[6];
+	actuator_motors.control[7] = man.control[7];
+	actuator_motors.control[8] = man.control[8];
+	actuator_motors.control[9] = man.control[9];
+	actuator_motors.control[10] = man.control[10];
+	actuator_motors.control[11] = man.control[11];
+
+	if (_actuator_motors_pub == nullptr) {
+		_actuator_motors_pub = orb_advertise(ORB_ID(actuator_motors), &actuator_motors);
+
+	} else {
+		orb_publish(ORB_ID(actuator_motors), _actuator_motors_pub, &actuator_motors);
+	}
+
 }
 
 bool

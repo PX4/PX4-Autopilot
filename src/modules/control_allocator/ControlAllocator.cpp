@@ -57,7 +57,7 @@ ControlAllocator::ControlAllocator() :
 	_control_allocator_status_pub[0].advertise();
 	_control_allocator_status_pub[1].advertise();
 
-	_actuator_motors_pub.advertise();
+	_actuator_motors_pub.advertise();	// MK: Commented this to invoke publishing.
 	_actuator_servos_pub.advertise();
 	_actuator_servos_trim_pub.advertise();
 
@@ -672,7 +672,7 @@ ControlAllocator::publish_actuator_controls()
 		actuator_motors.control[i] = NAN;
 	}
 
-	_actuator_motors_pub.publish(actuator_motors);
+	_actuator_motors_pub.publish(actuator_motors); // MK: This part is commented for now to disable publishing to actuator_motors topic
 
 	// servos
 	if (_num_actuators[1] > 0) {
