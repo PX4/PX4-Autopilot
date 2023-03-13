@@ -369,8 +369,7 @@ bool FlightTaskAutoPrecisionLanding::check_state_conditions(PrecLandState state)
 
 		// if we're already in this state, only want to make it invalid if we reached the target but can't see it anymore
 		if (_state == PrecLandState::MoveAboveTarget) {
-			if (Vector2f(Vector2f(_landing_target_pose.x_abs,
-					      _landing_target_pose.y_abs) - _position.xy()).norm() <= _param_pld_hacc_rad.get()) {
+			if (hor_acc_radius_check()) {
 				// we've reached the position where we last saw the target. If we don't see it now, we need to do something
 				return _landing_target_pose_valid && _landing_target_pose.abs_pos_valid;
 
@@ -398,9 +397,7 @@ bool FlightTaskAutoPrecisionLanding::check_state_conditions(PrecLandState state)
 
 		} else {
 			// if not already in this state, need to be above target to enter it
-			return _landing_target_pose.abs_pos_valid
-			       && fabsf(_landing_target_pose.x_abs - _position(0)) < _param_pld_hacc_rad.get()
-			       && fabsf(_landing_target_pose.y_abs - _position(1)) < _param_pld_hacc_rad.get();
+			return _landing_target_pose.abs_pos_valid && hor_acc_radius_check();
 		}
 
 	case PrecLandState::TouchingDown:
@@ -416,6 +413,12 @@ bool FlightTaskAutoPrecisionLanding::check_state_conditions(PrecLandState state)
 	default:
 		return false;
 	}
+}
+
+bool FlightTaskAutoPrecisionLanding::hor_acc_radius_check()
+{
+	return Vector2f(Vector2f(_landing_target_pose.x_abs,
+				 _landing_target_pose.y_abs) - _position.xy()).norm() <= _param_pld_hacc_rad.get();
 }
 
 void FlightTaskAutoPrecisionLanding::slewrate(float &sp_x, float &sp_y)

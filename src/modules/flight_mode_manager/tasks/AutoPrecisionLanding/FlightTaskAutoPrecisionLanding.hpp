@@ -104,6 +104,8 @@ private:
 	bool check_state_conditions(PrecLandState state);
 	void slewrate(float &sp_x, float &sp_y);
 
+	bool hor_acc_radius_check();
+
 	landing_target_pose_s _landing_target_pose{}; /**< precision landing target position */
 
 	uORB::Subscription _landing_target_pose_sub{ORB_ID(landing_target_pose)};
