@@ -256,8 +256,8 @@ FlightTaskAutoPrecisionLanding::run_state_search()
 		if (try_switch_to_state_move_above_target()) {
 			return;
 		}
-	} else
-	if (hrt_absolute_time() - _state_start_time > _param_pld_srch_tout.get()*SEC2USEC) {
+
+	} else if (hrt_absolute_time() - _state_start_time > _param_pld_srch_tout.get()*SEC2USEC) {
 		// Search timed out and go to fallback
 		PX4_WARN("Search timed out");
 
@@ -369,7 +369,8 @@ bool FlightTaskAutoPrecisionLanding::check_state_conditions(PrecLandState state)
 
 		// if we're already in this state, only want to make it invalid if we reached the target but can't see it anymore
 		if (_state == PrecLandState::MoveAboveTarget) {
-			if (Vector2f(Vector2f(_landing_target_pose.x_abs, _landing_target_pose.y_abs) - _position.xy()).norm() <= _param_pld_hacc_rad.get()) {
+			if (Vector2f(Vector2f(_landing_target_pose.x_abs,
+					      _landing_target_pose.y_abs) - _position.xy()).norm() <= _param_pld_hacc_rad.get()) {
 				// we've reached the position where we last saw the target. If we don't see it now, we need to do something
 				return _landing_target_pose_valid && _landing_target_pose.abs_pos_valid;
 
