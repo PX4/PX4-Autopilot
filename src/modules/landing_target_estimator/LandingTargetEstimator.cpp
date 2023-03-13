@@ -75,7 +75,7 @@ void LandingTargetEstimator::update()
 	/* predict */
 	if (_estimator_initialized) {
 		if (hrt_absolute_time() - _last_update > landing_target_estimator_TIMEOUT_US) {
-			PX4_WARN("Timeout");
+			PX4_INFO("Lost sight of Marker");
 			_estimator_initialized = false;
 
 		} else {
@@ -129,7 +129,7 @@ void LandingTargetEstimator::update()
 		if (!update_x || !update_y) {
 			if (!_faulty) {
 				_faulty = true;
-				PX4_WARN("Landing target measurement rejected:%s%s", update_x ? "" : " x", update_y ? "" : " y");
+				PX4_INFO("Landing target measurement rejected:%s%s", update_x ? "" : " x", update_y ? "" : " y");
 			}
 
 		} else {
@@ -264,7 +264,7 @@ void LandingTargetEstimator::_update_topics()
 		}
 
 		if (!matrix::Vector3f(_uwbDistance.position).isAllFinite()) {
-			PX4_WARN("Position is corrupt!");
+			PX4_WARN("Marker position reading invalid!");
 			return;
 		}
 
