@@ -2283,10 +2283,16 @@ void EKF2::UpdateGyroCalibration(const hrt_abstime &timestamp)
 
 void EKF2::UpdateMagCalibration(const hrt_abstime &timestamp)
 {
-	const bool bias_valid = (_ekf.control_status_flags().mag_hdg || _ekf.control_status_flags().mag_3D)
+	const bool bias_valid = (_param_ekf2_mag_type.get() == static_cast<int32_t>(MagFuseType::AUTO)
+				 || _param_ekf2_mag_type.get() == static_cast<int32_t>(MagFuseType::MAG_3D))
+				&& _ekf.control_status_flags().tilt_align
+				&& _ekf.control_status_flags().yaw_align
 				&& _ekf.control_status_flags().mag_aligned_in_flight
+				&& (_ekf.fault_status().value == 0)
 				&& !_ekf.control_status_flags().mag_fault
-				&& !_ekf.control_status_flags().mag_field_disturbed;
+				&& !_ekf.control_status_flags().mag_field_disturbed
+				&& !_ekf.warning_event_flags().stopping_mag_use
+				&& !_ekf.warning_event_flags().emergency_yaw_reset_mag_stopped;
 
 	const bool learning_valid = bias_valid && _ekf.control_status_flags().mag_3D;
 
@@ -2294,7 +2300,7 @@ void EKF2::UpdateMagCalibration(const hrt_abstime &timestamp)
 			  bias_valid, learning_valid);
 
 	// update stored declination value
-	if (!_mag_decl_saved) {
+	if (!_mag_decl_saved && !_ekf.control_status_flags().in_air) {
 		float declination_deg;
 
 		if (_ekf.get_mag_decl_deg(&declination_deg)) {
