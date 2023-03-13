@@ -52,7 +52,7 @@ bool FlightTaskAutoPrecisionLanding::activate(const trajectory_setpoint_s &last_
 	_search_cnt = 0;
 	_last_slewrate_time = 0;
 
-	switch_to_state_start();
+	switch_to_state_auto_rtl();
 
 	return ret;
 }
@@ -70,20 +70,20 @@ bool FlightTaskAutoPrecisionLanding::update()
 	_target_pose_valid = (hrt_elapsed_time(&_target_pose.timestamp) / 1e6f) <= _param_pld_btout.get();
 
 	switch (_state) {
-	case PrecLandState::Start:
-		run_state_start();
+	case PrecLandState::AutoRTL:
+		run_state_auto_rtl();
 		break;
 
-	case PrecLandState::HorizontalApproach:
-		run_state_horizontal_approach();
+	case PrecLandState::MoveAboveTarget:
+		run_state_move_above_target();
 		break;
 
 	case PrecLandState::DescendAboveTarget:
 		run_state_descend_above_target();
 		break;
 
-	case PrecLandState::FinalApproach:
-		run_state_final_approach();
+	case PrecLandState::TouchingDown:
+		run_state_touching_down();
 		break;
 
 	case PrecLandState::Search:
@@ -111,7 +111,7 @@ bool FlightTaskAutoPrecisionLanding::update()
 }
 
 void
-FlightTaskAutoPrecisionLanding::run_state_start()
+FlightTaskAutoPrecisionLanding::run_state_auto_rtl()
 {
 	// In this state simply track the navigator setpoint triplet
 	// This ensures that the behaviour for precision landing during RTL / LAND
@@ -120,7 +120,7 @@ FlightTaskAutoPrecisionLanding::run_state_start()
 	// is in the vertical landing phase.
 	_position_setpoint = _target;
 
-	if (switch_to_state_horizontal_approach()) {
+	if (switch_to_state_move_above_target()) {
 		// If target visible and go to horizontal approach directly
 		return;
 
@@ -136,7 +136,7 @@ FlightTaskAutoPrecisionLanding::run_state_start()
 }
 
 void
-FlightTaskAutoPrecisionLanding::run_state_horizontal_approach()
+FlightTaskAutoPrecisionLanding::run_state_move_above_target()
 {
 	float x = _target_pose.x_abs;
 	float y = _target_pose.y_abs;
@@ -155,7 +155,7 @@ FlightTaskAutoPrecisionLanding::run_state_horizontal_approach()
 	}
 
 	// check if target visible, if not go to start
-	if (!check_state_conditions(PrecLandState::HorizontalApproach)) {
+	if (!check_state_conditions(PrecLandState::MoveAboveTarget)) {
 		PX4_WARN("%s, state: %i", LOST_TARGET_ERROR_MESSAGE, (int) _state);
 
 		// Stay at current position for searching for the landing target
@@ -165,7 +165,7 @@ FlightTaskAutoPrecisionLanding::run_state_horizontal_approach()
 		_position_setpoint = _position;
 		_velocity_setpoint(0) = _velocity_setpoint(1) = _velocity_setpoint(2) = NAN;
 
-		if (!switch_to_state_start()) {
+		if (!switch_to_state_auto_rtl()) {
 			switch_to_state_fallback();
 		}
 
@@ -201,13 +201,13 @@ FlightTaskAutoPrecisionLanding::run_state_descend_above_target()
 
 	// check if target visible
 	if (!check_state_conditions(PrecLandState::DescendAboveTarget)) {
-		if (!switch_to_state_final_approach()) {
+		if (!switch_to_state_touching_down()) {
 			PX4_WARN("%s, state: %i", LOST_TARGET_ERROR_MESSAGE, (int) _state);
 
 			// Stay at current position for searching for the target
 			_position_setpoint = _position;
 
-			if (!switch_to_state_start()) {
+			if (!switch_to_state_auto_rtl()) {
 				switch_to_state_fallback();
 			}
 		}
@@ -217,7 +217,7 @@ FlightTaskAutoPrecisionLanding::run_state_descend_above_target()
 }
 
 void
-FlightTaskAutoPrecisionLanding::run_state_final_approach()
+FlightTaskAutoPrecisionLanding::run_state_touching_down()
 {
 	// Overwrite Auto setpoints in order to land at target's last known location
 	_position_setpoint(0) = _target_pose.x_abs;
@@ -237,7 +237,7 @@ FlightTaskAutoPrecisionLanding::run_state_search()
 	_velocity_setpoint(0) = _velocity_setpoint(1) = _velocity_setpoint(2) = NAN;
 
 	// check if we can see the target
-	if (check_state_conditions(PrecLandState::HorizontalApproach)) {
+	if (check_state_conditions(PrecLandState::MoveAboveTarget)) {
 		if (!_target_acquired_time) {
 			// target just became visible. Stop climbing, but give it some margin so we don't stop too apruptly
 			_target_acquired_time = hrt_absolute_time();
@@ -250,7 +250,7 @@ FlightTaskAutoPrecisionLanding::run_state_search()
 	// stay at that height for a second to allow the vehicle to settle
 	if (_target_acquired_time && (hrt_absolute_time() - _target_acquired_time) > 1000000) {
 		// try to switch to horizontal approach
-		if (switch_to_state_horizontal_approach()) {
+		if (switch_to_state_move_above_target()) {
 			return;
 		}
 	}
@@ -268,20 +268,20 @@ FlightTaskAutoPrecisionLanding::run_state_fallback()
 {
 	// Try switching to horizontal approach. This works if the
 	// target meanwhile became visible
-	switch_to_state_horizontal_approach();
+	switch_to_state_move_above_target();
 	// Otherwise there is nothing to do, except for listening to navigator
 	_position_setpoint = _target;
 }
 
 bool
-FlightTaskAutoPrecisionLanding::switch_to_state_start()
+FlightTaskAutoPrecisionLanding::switch_to_state_auto_rtl()
 {
-	if (check_state_conditions(PrecLandState::Start)) {
+	if (check_state_conditions(PrecLandState::AutoRTL)) {
 		_search_cnt++;
 
 		_point_reached_time = 0;
 
-		_state = PrecLandState::Start;
+		_state = PrecLandState::AutoRTL;
 		_state_start_time = hrt_absolute_time();
 		return true;
 	}
@@ -290,14 +290,14 @@ FlightTaskAutoPrecisionLanding::switch_to_state_start()
 }
 
 bool
-FlightTaskAutoPrecisionLanding::switch_to_state_horizontal_approach()
+FlightTaskAutoPrecisionLanding::switch_to_state_move_above_target()
 {
-	if (check_state_conditions(PrecLandState::HorizontalApproach)) {
+	if (check_state_conditions(PrecLandState::MoveAboveTarget)) {
 		print_state_switch_message("horizontal approach");
 
 		_point_reached_time = 0;
 
-		_state = PrecLandState::HorizontalApproach;
+		_state = PrecLandState::MoveAboveTarget;
 		_state_start_time = hrt_absolute_time();
 		return true;
 	}
@@ -319,11 +319,11 @@ FlightTaskAutoPrecisionLanding::switch_to_state_descend_above_target()
 }
 
 bool
-FlightTaskAutoPrecisionLanding::switch_to_state_final_approach()
+FlightTaskAutoPrecisionLanding::switch_to_state_touching_down()
 {
-	if (check_state_conditions(PrecLandState::FinalApproach)) {
+	if (check_state_conditions(PrecLandState::TouchingDown)) {
 		print_state_switch_message("final approach");
-		_state = PrecLandState::FinalApproach;
+		_state = PrecLandState::TouchingDown;
 		_state_start_time = hrt_absolute_time();
 		return true;
 	}
@@ -359,13 +359,13 @@ void FlightTaskAutoPrecisionLanding::print_state_switch_message(const char *stat
 bool FlightTaskAutoPrecisionLanding::check_state_conditions(PrecLandState state)
 {
 	switch (state) {
-	case PrecLandState::Start:
+	case PrecLandState::AutoRTL:
 		return _search_cnt <= _param_pld_max_srch.get();
 
-	case PrecLandState::HorizontalApproach:
+	case PrecLandState::MoveAboveTarget:
 
 		// if we're already in this state, only want to make it invalid if we reached the target but can't see it anymore
-		if (_state == PrecLandState::HorizontalApproach) {
+		if (_state == PrecLandState::MoveAboveTarget) {
 			if (Vector2f(Vector2f(_target_pose.x_abs, _target_pose.y_abs) - _position.xy()).norm() <= _param_pld_hacc_rad.get()) {
 				// we've reached the position where we last saw the target. If we don't see it now, we need to do something
 				return _target_pose_valid && _target_pose.abs_pos_valid;
@@ -385,7 +385,7 @@ bool FlightTaskAutoPrecisionLanding::check_state_conditions(PrecLandState state)
 		// if we're already in this state, only leave it if target becomes unusable, don't care about horizontal offset to target
 		if (_state == PrecLandState::DescendAboveTarget) {
 			// if we're close to the ground, we're more critical of target timeouts so we quickly go into descend
-			if (check_state_conditions(PrecLandState::FinalApproach)) {
+			if (check_state_conditions(PrecLandState::TouchingDown)) {
 				return hrt_absolute_time() - _target_pose.timestamp < 500000; // 0.5s  // TODO: Magic number!
 
 			} else {
@@ -399,7 +399,7 @@ bool FlightTaskAutoPrecisionLanding::check_state_conditions(PrecLandState state)
 			       && fabsf(_target_pose.y_abs - _position(1)) < _param_pld_hacc_rad.get();
 		}
 
-	case PrecLandState::FinalApproach:
+	case PrecLandState::TouchingDown:
 		return _target_pose_valid && _target_pose.abs_pos_valid
 		       && (_target_pose.z_abs - _position(2)) < _param_pld_fappr_alt.get();
 

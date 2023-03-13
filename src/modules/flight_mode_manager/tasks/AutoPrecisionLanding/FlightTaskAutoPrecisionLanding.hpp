@@ -58,11 +58,11 @@
 // TODO: Get ACCEPTANCE_RADIUS from NAV_ACC_RAD
 
 enum class PrecLandState {
-	Start, // Starting state
-	HorizontalApproach, // Positioning over landing target while maintaining altitude
-	DescendAboveTarget, // Stay over landing target while descending
-	FinalApproach, // Final landing approach, even without landing target
+	AutoRTL, // Starting state
 	Search, // Search for landing target
+	MoveAboveTarget, // Positioning over landing target while maintaining altitude
+	DescendAboveTarget, // Stay over landing target while descending
+	TouchingDown, // Final landing approach, even without landing target
 	Fallback // Fallback landing method
 };
 
@@ -83,19 +83,19 @@ public:
 
 private:
 	// run the control loop for each state
-	void run_state_start();
-	void run_state_horizontal_approach();
-	void run_state_descend_above_target();
-	void run_state_final_approach();
+	void run_state_auto_rtl();
 	void run_state_search();
+	void run_state_move_above_target();
+	void run_state_descend_above_target();
+	void run_state_touching_down();
 	void run_state_fallback();
 
 	// attempt to switch to a different state. Returns true if state change was successful, false otherwise
-	bool switch_to_state_start();
-	bool switch_to_state_horizontal_approach();
-	bool switch_to_state_descend_above_target();
-	bool switch_to_state_final_approach();
+	bool switch_to_state_auto_rtl();
 	void switch_to_state_search();
+	bool switch_to_state_move_above_target();
+	bool switch_to_state_descend_above_target();
+	bool switch_to_state_touching_down();
 	void switch_to_state_fallback();
 
 	void print_state_switch_message(const char *state_name);
@@ -121,7 +121,7 @@ private:
 	matrix::Vector2f _sp_pev;
 	matrix::Vector2f _sp_pev_prev;
 
-	PrecLandState _state{PrecLandState::Start};
+	PrecLandState _state{PrecLandState::AutoRTL};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
 					(ParamFloat<px4::params::MPC_LAND_SPEED>) _param_mpc_land_speed, ///< velocity for controlled descend
