@@ -106,10 +106,10 @@ TEST_F(EKFYawEstimatorTest, inAirYawAlignment)
 	EXPECT_NEAR(yaw_est, yaw, tolerance_rad);
 	EXPECT_LT(yaw_est_var, tolerance_rad);
 
-	// 2 resets: 1 after IMU+GNSS yaw alignment and 1 when starting GNSS aiding
+	// 1 reset when starting GNSS aiding
 	reset_logging_checker.capturePostResetState();
-	EXPECT_TRUE(reset_logging_checker.isHorizontalVelocityResetCounterIncreasedBy(2));
-	EXPECT_TRUE(reset_logging_checker.isHorizontalPositionResetCounterIncreasedBy(2));
+	EXPECT_TRUE(reset_logging_checker.isHorizontalVelocityResetCounterIncreasedBy(1));
+	EXPECT_TRUE(reset_logging_checker.isHorizontalPositionResetCounterIncreasedBy(1));
 
 	EXPECT_TRUE(_ekf->local_position_is_valid());
 	EXPECT_TRUE(_ekf->global_position_is_valid());
