@@ -104,12 +104,12 @@ private:
 	bool check_state_conditions(PrecLandState state);
 	void slewrate(float &sp_x, float &sp_y);
 
-	landing_target_pose_s _target_pose{}; /**< precision landing target position */
+	landing_target_pose_s _landing_target_pose{}; /**< precision landing target position */
 
-	uORB::Subscription _target_pose_sub{ORB_ID(landing_target_pose)};
+	uORB::Subscription _landing_target_pose_sub{ORB_ID(landing_target_pose)};
 	uORB::PublicationMulti<precision_landing_status_s> _precision_landing_status_pub{ORB_ID(precision_landing_status)};
 
-	bool _target_pose_valid{false}; /**< whether we have received a landing target position message */
+	bool _landing_target_pose_valid{false}; /**< whether we have received a landing target position message */
 
 	uint64_t _state_start_time{0}; /**< time when we entered current state */
 	uint64_t _last_slewrate_time{0}; /**< time when we last limited setpoint changes */
