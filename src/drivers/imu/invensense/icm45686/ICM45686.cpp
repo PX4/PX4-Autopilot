@@ -543,9 +543,18 @@ void ICM45686::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DAT
 
 		// sample invalid if -524288
 		if (accel_x != -524288 && accel_y != -524288 && accel_z != -524288) {
-			// check if any values are going to exceed int16 limits
-			static constexpr int16_t max_accel = INT16_MAX;
-			static constexpr int16_t min_accel = INT16_MIN;
+
+			// It's not enough to check if any values are exceeding the
+			// int16 limits because there might be a rotation applied later.
+			// If a rotation is 45 degrees, the new component can be up to
+			// sqrt(2) longer than one component. This means the number has
+			// to be constrained to fit the int16 which then triggers
+			// clipping.
+			//
+			// Therefore, we set the limits at int16_max/min / sqrt(2) plus
+			// a bit of margin.
+			static constexpr int16_t max_accel = static_cast<int16_t>(INT16_MAX / sqrt(2.f)) - 100;
+			static constexpr int16_t min_accel = static_cast<int16_t>(INT16_MIN / sqrt(2.f)) + 100;
 
 			if (accel_x >= max_accel || accel_x <= min_accel) {
 				scale_20bit = true;
@@ -634,9 +643,17 @@ void ICM45686::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DATA
 		int32_t gyro_y = reassemble_20bit(fifo[i].GYRO_DATA_YL, fifo[i].GYRO_DATA_YH, fifo[i].HIGHRES_Y_LSB & 0x0F);
 		int32_t gyro_z = reassemble_20bit(fifo[i].GYRO_DATA_ZL, fifo[i].GYRO_DATA_ZH, fifo[i].HIGHRES_Z_LSB & 0x0F);
 
-		// check if any values are going to exceed int16 limits
-		static constexpr int16_t max_gyro = INT16_MAX;
-		static constexpr int16_t min_gyro = INT16_MIN;
+		// It's not enough to check if any values are exceeding the
+		// int16 limits because there might be a rotation applied later.
+		// If a rotation is 45 degrees, the new component can be up to
+		// sqrt(2) longer than one component. This means the number has
+		// to be constrained to fit the int16 which then triggers
+		// clipping.
+		//
+		// Therefore, we set the limits at int16_max/min / sqrt(2) plus
+		// a bit of margin.
+		static constexpr int16_t max_gyro = static_cast<int16_t>(INT16_MAX / sqrt(2.f)) - 100;
+		static constexpr int16_t min_gyro = static_cast<int16_t>(INT16_MIN / sqrt(2.f)) + 100;
 
 		if (gyro_x >= max_gyro || gyro_x <= min_gyro) {
 			scale_20bit = true;
