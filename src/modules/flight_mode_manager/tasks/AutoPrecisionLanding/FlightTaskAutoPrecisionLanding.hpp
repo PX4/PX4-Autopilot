@@ -91,12 +91,12 @@ private:
 	void run_state_fallback();
 
 	// attempt to switch to a different state. Returns true if state change was successful, false otherwise
-	bool switch_to_state_auto_rtl();
-	void switch_to_state_search();
-	bool switch_to_state_move_above_target();
-	bool switch_to_state_descend_above_target();
-	bool switch_to_state_touching_down();
-	void switch_to_state_fallback();
+	bool try_switch_to_state_auto_rtl();
+	void try_switch_to_state_search();
+	bool try_switch_to_state_move_above_target();
+	bool try_switch_to_state_descend_above_target();
+	bool try_switch_to_state_touching_down();
+	void try_switch_to_state_fallback();
 
 	void print_state_switch_message(const char *state_name);
 
