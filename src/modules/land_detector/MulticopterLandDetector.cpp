@@ -162,7 +162,7 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 
 	const bool lpos_available = ((time_now_us - _vehicle_local_position.timestamp) < 1_s);
 
-	if (lpos_available && _vehicle_local_position.v_z_valid) {
+	if (lpos_available) {
 		// Check if we are moving vertically.
 		// Use wider threshold if currently in "maybe landed" state, as estimation for
 		// vertical speed is often deteriorated when on the ground or due to propeller
@@ -174,7 +174,16 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 			vertical_velocity_threshold *= 2.5f;
 		}
 
-		_vertical_movement = (fabsf(_vehicle_local_position.vz) > vertical_velocity_threshold);
+		if (_vehicle_local_position.v_z_valid && (fabsf(_vehicle_local_position.vz) < vertical_velocity_threshold)) {
+			_vertical_movement = false;
+
+		} else if (_vehicle_local_position.z_valid && (fabsf(_vehicle_local_position.z_deriv) < vertical_velocity_threshold)) {
+			// The Z derivative is often less accurate than VZ but is less affected by biased velocity measurements.
+			_vertical_movement = false;
+
+		} else {
+			_vertical_movement = true;
+		}
 
 	} else {
 		_vertical_movement = true;
