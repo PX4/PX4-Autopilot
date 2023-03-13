@@ -900,10 +900,6 @@ private:
 	void fuseFlowForTerrain(estimator_aid_source2d_s &flow);
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
-	// reset the heading and magnetic field states using the declination and magnetometer measurements
-	// return true if successful
-	bool resetMagHeading();
-
 	// Return the magnetic declination in radians to be used by the alignment and fusion processing
 	float getMagDeclination();
 
@@ -1025,7 +1021,8 @@ private:
 	// control fusion of magnetometer observations
 	void controlMagFusion();
 
-	bool magReset();
+	bool resetMagHeading(const Vector3f &mag);
+	bool resetMagStates(const Vector3f &mag);
 	bool haglYawResetReq();
 
 	void selectMagAuto();
