@@ -46,17 +46,18 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/orb_test_float.h>
+#include <uORB/topics/orb_test_plus.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/sensor_accel.h>
+#include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_status.h>
 
 using namespace time_literals;
 
-class WorkItemExample : public ModuleBase<WorkItemExample>, public ModuleParams, public px4::ScheduledWorkItem
+class Px4ItemExample : public ModuleBase<Px4ItemExample>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
-	WorkItemExample();
-	~WorkItemExample() override;
+	Px4ItemExample();
+	~Px4ItemExample() override;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -75,10 +76,11 @@ private:
 	void Run() override;
 
 	// Publications
-	uORB::Publication<orb_test_float_s> _orb_test_float_pub{ORB_ID(orb_test_float)};
+	uORB::Publication<orb_test_plus_s> _orb_test_plus_pub{ORB_ID(orb_test_plus)};
 
 	// Subscriptions
-	uORB::SubscriptionCallbackWorkItem _sensor_accel_sub{this, ORB_ID(sensor_accel)};        // subscription that schedules WorkItemExample when updated
+	uORB::SubscriptionCallbackWorkItem _vehicle_angular_velocity_sub{this, ORB_ID(vehicle_angular_velocity)};        // subscription that schedules Px4ItemExample when updated
+	uORB::SubscriptionCallbackWorkItem _orb_test_float_sub{this, ORB_ID(orb_test_float)};        // subscription that schedules Px4ItemExample when updated
 	uORB::SubscriptionInterval         _parameter_update_sub{ORB_ID(parameter_update), 1_s}; // subscription limited to 1 Hz updates
 	uORB::Subscription                 _vehicle_status_sub{ORB_ID(vehicle_status)};          // regular subscription for additional data
 
@@ -88,11 +90,8 @@ private:
 
 	// Parameters
 	DEFINE_PARAMETERS(
-		// (ParamInt<px4::params::SYS_AUTOSTART>) _param_sys_autostart,   /**< example parameter */
-		// (ParamInt<px4::params::SYS_AUTOCONFIG>) _param_sys_autoconfig,  /**< another parameter */
-
-		(ParamFloat<px4::params::ZZ_MK>) _ZZ_MK,   /**< example parameter */
-		(ParamFloat<px4::params::ZZ_MK_CHECK>) _ZZ_MK_CHECK   /**< example parameter */
+		(ParamInt<px4::params::SYS_AUTOSTART>) _param_sys_autostart,   /**< example parameter */
+		(ParamInt<px4::params::SYS_AUTOCONFIG>) _param_sys_autoconfig  /**< another parameter */
 	)
 
 

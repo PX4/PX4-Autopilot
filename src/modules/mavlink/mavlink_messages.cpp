@@ -121,6 +121,13 @@
 #include "streams/VFR_HUD.hpp"
 #include "streams/VIBRATION.hpp"
 #include "streams/WIND_COV.hpp"
+#include "streams/VEHICLE_ANGULAR_VELOCITY.hpp"
+#include "streams/VEHICLE_ATTITUDE.hpp"
+#include "streams/VEHICLE_LOCAL_POSITION.hpp"
+#include "streams/VEHICLE_STATUS.hpp"
+#include "streams/VEHICLE_CONTROL_MODE.hpp"
+#include "streams/ACTUATOR_ARMED.hpp"
+#include "streams/ACTUATOR_OUTPUTS.hpp"
 
 #if !defined(CONSTRAINED_FLASH)
 # include "streams/ADSB_VEHICLE.hpp"
@@ -282,6 +289,29 @@ static const StreamListItem streams_list[] = {
 #if defined(VFR_HUD_HPP)
 	create_stream_list_item<MavlinkStreamVFRHUD>(),
 #endif // VFR_HUD_HPP
+
+#if defined(VEHICLE_ANGULAR_VELOCITY_HPP)
+	create_stream_list_item<MavlinkStreamVehicleAngularVelocity>(),
+#endif // VEHICLE_ANGULAR_VELOCITY_HPP
+#if defined(VEHICLE_ATTITUDE_HPP)
+	create_stream_list_item<MavlinkStreamVehicleAttitude>(),
+#endif // VEHICLE_ATTITUDE_HPP
+#if defined(VEHICLE_LOCAL_POSITION_HPP)
+	create_stream_list_item<MavlinkStreamVehicleLocalPosition>(),
+#endif // VEHICLE_LOCAL_POSITION_HPP
+#if defined(VEHICLE_STATUS_HPP)
+	create_stream_list_item<MavlinkStreamVehicleStatus>(),
+#endif // VEHICLE_STATUS_HPP
+#if defined(VEHICLE_CONTROL_MODE_HPP)
+	create_stream_list_item<MavlinkStreamVehicleControlMode>(),
+#endif // VEHICLE_CONTROL_MODE_HPP
+#if defined(ACTUATOR_ARMED_HPP)
+	create_stream_list_item<MavlinkStreamActuatorArmed>(),
+#endif // ACTUATOR_ARMED_HPP
+#if defined(ACTUATOR_OUTPUTS_HPP)
+	create_stream_list_item<MavlinkStreamActuatorOutputs>(),
+#endif // ACTUATOR_OUTPUTS_HPP
+
 #if defined(GPS_GLOBAL_ORIGIN_HPP)
 	create_stream_list_item<MavlinkStreamGpsGlobalOrigin>(),
 #endif // GPS_GLOBAL_ORIGIN_HPP
