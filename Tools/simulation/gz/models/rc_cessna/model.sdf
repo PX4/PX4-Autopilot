@@ -209,7 +209,6 @@
           <spring_reference>0</spring_reference>
           <spring_stiffness>0</spring_stiffness>
         </dynamics>
-        <use_parent_model_frame>1</use_parent_model_frame>
       </axis>
     </joint>
     <link name="left_elevon">
@@ -638,7 +637,6 @@
           <spring_reference>0</spring_reference>
           <spring_stiffness>0</spring_stiffness>
         </dynamics>
-        <use_parent_model_frame>1</use_parent_model_frame>
       </axis>
     </joint>
     <joint name="RightWheelJoint" type="revolute">
@@ -655,7 +653,6 @@
           <spring_reference>0</spring_reference>
           <spring_stiffness>0</spring_stiffness>
         </dynamics>
-        <use_parent_model_frame>1</use_parent_model_frame>
       </axis>
     </joint>
     <joint name="CenterWheelJoint" type="revolute">
@@ -672,7 +669,6 @@
           <spring_reference>0</spring_reference>
           <spring_stiffness>0</spring_stiffness>
         </dynamics>
-        <use_parent_model_frame>1</use_parent_model_frame>
       </axis>
     </joint>
     <plugin filename="gz-sim-lift-drag-system" name="gz::sim::systems::LiftDrag">
@@ -807,7 +803,7 @@
       <sub_topic>servo_3</sub_topic>
       <p_gain>10.0</p_gain>
     </plugin>
-    <plugin filename="ignition-gazebo-multicopter-motor-model-system" name="gz::sim::systems::MulticopterMotorModel">
+    <plugin filename="gz-sim-multicopter-motor-model-system" name="gz::sim::systems::MulticopterMotorModel">
       <jointName>rotor_puller_joint</jointName>
       <linkName>rotor_puller</linkName>
       <turningDirection>cw</turningDirection>
