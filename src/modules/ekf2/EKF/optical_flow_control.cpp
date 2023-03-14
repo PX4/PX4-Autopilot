@@ -111,7 +111,7 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 			// compensate for body motion to give a LOS rate
 			_flow_compensated_XY_rad = _flow_sample_delayed.flow_xy_rad - _flow_sample_delayed.gyro_xyz.xy();
 
-		} else if (!_control_status.flags.in_air) {
+		} else if (!_control_status.flags.in_air && is_tilt_good && _control_status.flags.vehicle_at_rest) {
 
 			if (!is_delta_time_good) {
 				// handle special case of SITL and PX4Flow where dt is forced to
@@ -169,10 +169,12 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 		if ((_params.fusion_mode & SensorFusionMask::USE_OPT_FLOW) // optical flow has been selected by the user
 		    && !_control_status.flags.opt_flow // we are not yet using flow data
 		    && !inhibit_flow_use
-		    && _range_sensor.isDataHealthy()) {
+		    && !isRecent(_aid_src_optical_flow.time_last_fuse, (uint64_t)2e6)
+		   ) {
 
 			// set the flag and reset the fusion timeout
 			ECL_INFO("starting optical flow fusion");
+			updateOptFlow(_aid_src_optical_flow);
 
 			// if we are not using GPS or external vision aiding, then the velocity and position states and covariances need to be set
 			if (!isHorizontalAidingActive()) {
@@ -193,7 +195,6 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 				}
 			}
 
-			updateOptFlow(_aid_src_optical_flow);
 			_aid_src_optical_flow.fusion_enabled = true;
 			_aid_src_optical_flow.test_ratio[0] = 0.f;
 			_aid_src_optical_flow.test_ratio[1] = 0.f;

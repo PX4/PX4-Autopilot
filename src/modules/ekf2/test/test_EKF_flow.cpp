@@ -140,6 +140,8 @@ TEST_F(EkfFlowTest, resetToFlowVelocityInAir)
 
 	// THEN: estimated velocity should match simulated velocity
 	const Vector3f estimated_velocity = _ekf->getVelocity();
+	estimated_velocity.print();
+	simulated_velocity.print();
 	EXPECT_TRUE(isEqual(estimated_velocity, simulated_velocity))
 			<< "estimated vel = " << estimated_velocity(0) << ", "
 			<< estimated_velocity(1);
