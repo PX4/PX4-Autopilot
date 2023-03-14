@@ -61,12 +61,13 @@ static BlockingList<WorkQueue *> *_wq_manager_wqs_list{nullptr};
 static BlockingQueue<const wq_config_t *, 1> *_wq_manager_create_queue{nullptr};
 
 static px4::atomic_bool _wq_manager_should_exit{true};
+static px4::atomic_bool _wq_manager_running{false};
 
 
 static WorkQueue *
 FindWorkQueueByName(const char *name)
 {
-	if (_wq_manager_wqs_list == nullptr) {
+	if (!_wq_manager_running.load()) {
 		PX4_ERR("not running");
 		return nullptr;
 	}
@@ -86,7 +87,7 @@ FindWorkQueueByName(const char *name)
 WorkQueue *
 WorkQueueFindOrCreate(const wq_config_t &new_wq)
 {
-	if (_wq_manager_create_queue == nullptr) {
+	if (!_wq_manager_running.load()) {
 		PX4_ERR("not running");
 		return nullptr;
 	}
@@ -258,6 +259,7 @@ WorkQueueManagerRun(int, char **)
 {
 	_wq_manager_wqs_list = new BlockingList<WorkQueue *>();
 	_wq_manager_create_queue = new BlockingQueue<const wq_config_t *, 1>();
+	_wq_manager_running.store(true);
 
 	while (!_wq_manager_should_exit.load()) {
 		// create new work queues as needed
@@ -361,13 +363,15 @@ WorkQueueManagerRun(int, char **)
 		}
 	}
 
+	_wq_manager_running.store(false);
+
 	return 0;
 }
 
 int
 WorkQueueManagerStart()
 {
-	if (_wq_manager_should_exit.load() && (_wq_manager_create_queue == nullptr)) {
+	if (_wq_manager_should_exit.load() && !_wq_manager_running.load()) {
 
 		_wq_manager_should_exit.store(false);
 
@@ -384,6 +388,18 @@ WorkQueueManagerStart()
 			return -errno;
 		}
 
+		// Wait until initialized
+		int max_tries = 1000;
+
+		while (!_wq_manager_running.load() && --max_tries > 0) {
+			px4_usleep(1000);
+		}
+
+		if (max_tries <= 0) {
+			PX4_ERR("failed to wait for task to start");
+			return PX4_ERROR;
+		}
+
 	} else {
 		PX4_WARN("already running");
 		return PX4_ERROR;
@@ -398,7 +414,7 @@ WorkQueueManagerStop()
 	if (!_wq_manager_should_exit.load()) {
 
 		// error can't shutdown until all WorkItems are removed/stopped
-		if ((_wq_manager_wqs_list != nullptr) && (_wq_manager_wqs_list->size() > 0)) {
+		if (_wq_manager_running.load() && (_wq_manager_wqs_list->size() > 0)) {
 			PX4_ERR("can't shutdown with active WQs");
 			WorkQueueManagerStatus();
 			return PX4_ERROR;
@@ -422,6 +438,7 @@ WorkQueueManagerStop()
 			}
 
 			delete _wq_manager_wqs_list;
+			_wq_manager_wqs_list = nullptr;
 		}
 
 		_wq_manager_should_exit.store(true);
@@ -433,6 +450,7 @@ WorkQueueManagerStop()
 			px4_usleep(10000);
 
 			delete _wq_manager_create_queue;
+			_wq_manager_create_queue = nullptr;
 		}
 
 	} else {
@@ -446,7 +464,7 @@ WorkQueueManagerStop()
 int
 WorkQueueManagerStatus()
 {
-	if (!_wq_manager_should_exit.load() && (_wq_manager_wqs_list != nullptr)) {
+	if (!_wq_manager_should_exit.load() && _wq_manager_running.load()) {
 
 		const size_t num_wqs = _wq_manager_wqs_list->size();
 		PX4_INFO_RAW("\nWork Queue: %-2zu threads                          RATE        INTERVAL\n", num_wqs);
