@@ -267,6 +267,7 @@ px4fmu_firmware: \
 misc_qgc_extra_firmware: \
 	check_nxp_fmuk66-v3_default \
 	check_nxp_fmurt1062-v1_default \
+	check_nxp_imxrt1170-evk_default \
 	check_mro_x21_default \
 	check_bitcraze_crazyflie_default \
 	check_bitcraze_crazyflie21_default \
