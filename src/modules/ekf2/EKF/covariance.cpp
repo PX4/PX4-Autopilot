@@ -444,14 +444,22 @@ void Ekf::fixCovarianceErrors(bool force_symmetry)
 		if (fabsf(down_dvel_bias) > dVel_bias_lim) {
 
 			bool bad_vz_gps = _control_status.flags.gps    && (down_dvel_bias * _aid_src_gnss_vel.innovation[2] < 0.0f);
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
 			bool bad_vz_ev  = _control_status.flags.ev_vel && (down_dvel_bias * _aid_src_ev_vel.innovation[2] < 0.0f);
+#else
+			bool bad_vz_ev  = false;
+#endif // CONFIG_EKF2_EXTERNAL_VISION
 
 			if (bad_vz_gps || bad_vz_ev) {
 				bool bad_z_baro = _control_status.flags.baro_hgt && (down_dvel_bias * _aid_src_baro_hgt.innovation < 0.0f);
 				bool bad_z_gps  = _control_status.flags.gps_hgt  && (down_dvel_bias * _aid_src_gnss_hgt.innovation < 0.0f);
 				bool bad_z_rng  = _control_status.flags.rng_hgt  && (down_dvel_bias * _aid_src_rng_hgt.innovation  < 0.0f);
-				bool bad_z_ev   = _control_status.flags.ev_hgt   && (down_dvel_bias * _aid_src_ev_hgt.innovation   < 0.0f);
 
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
+				bool bad_z_ev   = _control_status.flags.ev_hgt   && (down_dvel_bias * _aid_src_ev_hgt.innovation   < 0.0f);
+#else
+				bool bad_z_ev   = false;
+#endif // CONFIG_EKF2_EXTERNAL_VISION
 
 				if (bad_z_baro || bad_z_gps || bad_z_rng || bad_z_ev) {
 					bad_acc_bias = true;

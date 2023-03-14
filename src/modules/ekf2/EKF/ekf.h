@@ -86,9 +86,11 @@ public:
 	void getGpsVelPosInnovVar(float hvel[2], float &vvel, float hpos[2], float &vpos) const;
 	void getGpsVelPosInnovRatio(float &hvel, float &vvel, float &hpos, float &vpos) const;
 
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	void getEvVelPosInnov(float hvel[2], float &vvel, float hpos[2], float &vpos) const;
 	void getEvVelPosInnovVar(float hvel[2], float &vvel, float hpos[2], float &vpos) const;
 	void getEvVelPosInnovRatio(float &hvel, float &vvel, float &hpos, float &vpos) const;
+#endif // CONFIG_EKF2_EXTERNAL_VISION
 
 	void getBaroHgtInnov(float &baro_hgt_innov) const { baro_hgt_innov = _aid_src_baro_hgt.innovation; }
 	void getBaroHgtInnovVar(float &baro_hgt_innov_var) const { baro_hgt_innov_var = _aid_src_baro_hgt.innovation_variance; }
@@ -140,10 +142,12 @@ public:
 		}
 #endif // CONFIG_EKF2_GNSS_YAW
 
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
 		if (_control_status.flags.ev_yaw) {
 			heading_innov = _aid_src_ev_yaw.innovation;
 			return;
 		}
+#endif // CONFIG_EKF2_EXTERNAL_VISION
 	}
 
 	void getHeadingInnovVar(float &heading_innov_var) const
@@ -165,10 +169,12 @@ public:
 		}
 #endif // CONFIG_EKF2_GNSS_YAW
 
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
 		if (_control_status.flags.ev_yaw) {
 			heading_innov_var = _aid_src_ev_yaw.innovation_variance;
 			return;
 		}
+#endif // CONFIG_EKF2_EXTERNAL_VISION
 	}
 
 	void getHeadingInnovRatio(float &heading_innov_ratio) const
@@ -190,10 +196,12 @@ public:
 		}
 #endif // CONFIG_EKF2_GNSS_YAW
 
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
 		if (_control_status.flags.ev_yaw) {
 			heading_innov_ratio = _aid_src_ev_yaw.test_ratio;
 			return;
 		}
+#endif // CONFIG_EKF2_EXTERNAL_VISION
 	}
 
 	void getMagInnov(float mag_innov[3]) const { memcpy(mag_innov, _aid_src_mag.innovation, sizeof(_aid_src_mag.innovation)); }
@@ -443,9 +451,11 @@ public:
 	const BiasEstimator::status &getBaroBiasEstimatorStatus() const { return _baro_b_est.getStatus(); }
 	const BiasEstimator::status &getGpsHgtBiasEstimatorStatus() const { return _gps_hgt_b_est.getStatus(); }
 	const BiasEstimator::status &getRngHgtBiasEstimatorStatus() const { return _rng_hgt_b_est.getStatus(); }
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	const BiasEstimator::status &getEvHgtBiasEstimatorStatus() const { return _ev_hgt_b_est.getStatus(); }
 
 	const BiasEstimator::status &getEvPosBiasEstimatorStatus(int i) const { return _ev_pos_b_est.getStatus(i); }
+#endif // CONFIG_EKF2_EXTERNAL_VISION
 
 #if defined(CONFIG_EKF2_AIRSPEED)
 	const auto &aid_src_airspeed() const { return _aid_src_airspeed; }
@@ -461,10 +471,12 @@ public:
 	const auto &aid_src_fake_hgt() const { return _aid_src_fake_hgt; }
 	const auto &aid_src_fake_pos() const { return _aid_src_fake_pos; }
 
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	const auto &aid_src_ev_hgt() const { return _aid_src_ev_hgt; }
 	const auto &aid_src_ev_pos() const { return _aid_src_ev_pos; }
 	const auto &aid_src_ev_vel() const { return _aid_src_ev_vel; }
 	const auto &aid_src_ev_yaw() const { return _aid_src_ev_yaw; }
+#endif // CONFIG_EKF2_EXTERNAL_VISION
 
 	const auto &aid_src_gnss_hgt() const { return _aid_src_gnss_hgt; }
 	const auto &aid_src_gnss_pos() const { return _aid_src_gnss_pos; }
@@ -525,9 +537,6 @@ private:
 
 	bool _filter_initialised{false};	///< true when the EKF sttes and covariances been initialised
 
-	float _ev_yaw_pred_prev{};                 ///< previous value of yaw state used by odometry fusion (m)
-	bool _inhibit_ev_yaw_use{false};	///< true when the vision yaw data should not be used (e.g.: NE fusion requires true North)
-
 	// booleans true when fresh sensor data is available at the fusion time horizon
 	bool _gps_data_ready{false};	///< true when new GPS data has fallen behind the fusion time horizon and is available to be fused
 	bool _flow_data_ready{false};	///< true when the leading edge of the optical flow integration period has fallen behind the fusion time horizon
@@ -546,10 +555,6 @@ private:
 	uint64_t _time_last_flow_terrain_fuse{0}; ///< time the last fusion of optical flow measurements for terrain estimation were performed (uSec)
 	uint64_t _time_last_zero_velocity_fuse{0}; ///< last time of zero velocity update (uSec)
 	uint64_t _time_last_healthy_rng_data{0};
-
-	uint8_t _nb_ev_pos_reset_available{0};
-	uint8_t _nb_ev_vel_reset_available{0};
-	uint8_t _nb_ev_yaw_reset_available{0};
 
 	Vector3f _last_known_pos{};		///< last known local position vector (m)
 
@@ -609,10 +614,19 @@ private:
 	estimator_aid_source2d_s _aid_src_fake_pos{};
 	estimator_aid_source1d_s _aid_src_fake_hgt{};
 
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	estimator_aid_source1d_s _aid_src_ev_hgt{};
 	estimator_aid_source2d_s _aid_src_ev_pos{};
 	estimator_aid_source3d_s _aid_src_ev_vel{};
 	estimator_aid_source1d_s _aid_src_ev_yaw{};
+
+	float _ev_yaw_pred_prev{}; ///< previous value of yaw state used by odometry fusion (m)
+
+	uint8_t _nb_ev_pos_reset_available{0};
+	uint8_t _nb_ev_vel_reset_available{0};
+	uint8_t _nb_ev_yaw_reset_available{0};
+#endif // CONFIG_EKF2_EXTERNAL_VISION
+	bool _inhibit_ev_yaw_use{false};	///< true when the vision yaw data should not be used (e.g.: NE fusion requires true North)
 
 	estimator_aid_source1d_s _aid_src_gnss_hgt{};
 	estimator_aid_source2d_s _aid_src_gnss_pos{};
@@ -946,18 +960,21 @@ private:
 	// Control the filter fusion modes
 	void controlFusionModes(const imuSample &imu_delayed);
 
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	// control fusion of external vision observations
 	void controlExternalVisionFusion();
-
 	void controlEvHeightFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient, estimator_aid_source1d_s &aid_src);
-
 	void controlEvPosFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient, estimator_aid_source2d_s &aid_src);
+	void controlEvVelFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient, estimator_aid_source3d_s &aid_src);
+	void controlEvYawFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient, estimator_aid_source1d_s &aid_src);
+
 	void startEvPosFusion(const Vector2f &measurement, const Vector2f &measurement_var, estimator_aid_source2d_s &aid_src);
 	void updateEvPosFusion(const Vector2f &measurement, const Vector2f &measurement_var, bool quality_sufficient, bool reset, estimator_aid_source2d_s &aid_src);
 	void stopEvPosFusion();
-
-	void controlEvVelFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient, estimator_aid_source3d_s &aid_src);
-	void controlEvYawFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient, estimator_aid_source1d_s &aid_src);
+	void stopEvHgtFusion();
+	void stopEvVelFusion();
+	void stopEvYawFusion();
+#endif // CONFIG_EKF2_EXTERNAL_VISION
 
 	// control fusion of optical flow observations
 	void controlOpticalFlowFusion(const imuSample &imu_delayed);
@@ -1029,7 +1046,6 @@ private:
 	void stopBaroHgtFusion();
 	void stopGpsHgtFusion();
 	void stopRngHgtFusion();
-	void stopEvHgtFusion();
 
 	void updateGroundEffect();
 
@@ -1095,9 +1111,6 @@ private:
 	void stopGpsPosFusion();
 	void stopGpsVelFusion();
 
-	void stopEvVelFusion();
-	void stopEvYawFusion();
-
 	void stopFlowFusion();
 
 	void resetFakePosFusion();
@@ -1121,8 +1134,11 @@ private:
 	HeightBiasEstimator _baro_b_est{HeightSensor::BARO, _height_sensor_ref};
 	HeightBiasEstimator _gps_hgt_b_est{HeightSensor::GNSS, _height_sensor_ref};
 	HeightBiasEstimator _rng_hgt_b_est{HeightSensor::RANGE, _height_sensor_ref};
+
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	HeightBiasEstimator _ev_hgt_b_est{HeightSensor::EV, _height_sensor_ref};
 	PositionBiasEstimator _ev_pos_b_est{static_cast<uint8_t>(PositionSensor::EV), _position_sensor_ref};
+#endif // CONFIG_EKF2_EXTERNAL_VISION
 
 	// Resets the main Nav EKf yaw to the estimator from the EKF-GSF yaw estimator
 	// Resets the horizontal velocity and position to the default navigation sensor
