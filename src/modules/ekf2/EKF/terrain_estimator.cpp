@@ -53,6 +53,8 @@ void Ekf::initHagl()
 
 	// use the ground clearance value as our uncertainty
 	_terrain_var = sq(_params.rng_gnd_clearance);
+
+	_time_last_hagl_fuse = _time_delayed_us;
 }
 
 void Ekf::runTerrainEstimator(const imuSample &imu_delayed)
@@ -399,15 +401,19 @@ void Ekf::controlHaglFakeFusion()
 	    && !_hagl_sensor_status.flags.range_finder
 	    && !_hagl_sensor_status.flags.flow) {
 
-		initHagl();
+		if (_control_status.flags.vehicle_at_rest || isTimedOut(_time_last_hagl_fuse, (uint64_t)1e6)) {
+			initHagl();
+		}
 	}
 }
 
 bool Ekf::isTerrainEstimateValid() const
 {
 	// we have been fusing range finder measurements in the last 5 seconds
-	if (_hagl_sensor_status.flags.range_finder && isRecent(_time_last_hagl_fuse, (uint64_t)5e6)) {
-		return true;
+	if (isRecent(_time_last_hagl_fuse, (uint64_t)5e6)) {
+		if (_hagl_sensor_status.flags.range_finder || !_control_status.flags.in_air) {
+			return true;
+		}
 	}
 
 	// we have been fusing optical flow measurements for terrain estimation within the last 5 seconds
