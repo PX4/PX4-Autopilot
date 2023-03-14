@@ -167,12 +167,14 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_bcoef_y(_params->bcoef_y),
 	_param_ekf2_mcoef(_params->mcoef),
 #endif // CONFIG_EKF2_DRAG_FUSION
+#if defined(CONFIG_EKF2_BARO_COMPENSATION)
 	_param_ekf2_aspd_max(_params->max_correction_airspeed),
 	_param_ekf2_pcoef_xp(_params->static_pressure_coef_xp),
 	_param_ekf2_pcoef_xn(_params->static_pressure_coef_xn),
 	_param_ekf2_pcoef_yp(_params->static_pressure_coef_yp),
 	_param_ekf2_pcoef_yn(_params->static_pressure_coef_yn),
 	_param_ekf2_pcoef_z(_params->static_pressure_coef_z),
+#endif // CONFIG_EKF2_BARO_COMPENSATION
 	_param_ekf2_mag_check(_params->check_mag_strength),
 	_param_ekf2_synthetic_mag_z(_params->synthesize_mag_z),
 	_param_ekf2_gsf_tas_default(_params->EKFGSF_tas_default)
