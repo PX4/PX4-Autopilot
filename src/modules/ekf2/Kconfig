@@ -13,6 +13,13 @@ depends on MODULES_EKF2
 	---help---
 		EKF2 support multiple instances and selector.
 
+menuconfig EKF2_DRAG_FUSION
+depends on MODULES_EKF2
+        bool "drag fusion support"
+        default y
+	---help---
+		EKF2 drag fusion support.
+
 menuconfig USER_EKF2
 	bool "ekf2 running as userspace module"
 	default n
