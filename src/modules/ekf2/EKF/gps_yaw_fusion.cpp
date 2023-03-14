@@ -48,10 +48,11 @@
 
 void Ekf::updateGpsYaw(const gpsSample &gps_sample)
 {
-	auto &gnss_yaw = _aid_src_gnss_yaw;
-	resetEstimatorAidStatus(gnss_yaw);
-
 	if (PX4_ISFINITE(gps_sample.yaw)) {
+
+		auto &gnss_yaw = _aid_src_gnss_yaw;
+		resetEstimatorAidStatus(gnss_yaw);
+
 		// initially populate for estimator_aid_src_gnss_yaw logging
 
 		// calculate the observed yaw angle of antenna array, converting a from body to antenna yaw measurement
