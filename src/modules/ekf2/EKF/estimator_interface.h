@@ -90,7 +90,9 @@ public:
 
 	void setBaroData(const baroSample &baro_sample);
 
+#if defined(CONFIG_EKF2_AIRSPEED)
 	void setAirspeedData(const airspeedSample &airspeed_sample);
+#endif // CONFIG_EKF2_AIRSPEED
 
 	void setRangeData(const rangeSample &range_sample);
 
@@ -291,7 +293,9 @@ protected:
 	// measurement samples capturing measurements on the delayed time horizon
 	gpsSample _gps_sample_delayed{};
 	sensor::SensorRangeFinder _range_sensor{};
+#if defined(CONFIG_EKF2_AIRSPEED)
 	airspeedSample _airspeed_sample_delayed{};
+#endif // CONFIG_EKF2_AIRSPEED
 	flowSample _flow_sample_delayed{};
 	extVisionSample _ev_sample_prev{};
 	RangeFinderConsistencyCheck _rng_consistency_check;
@@ -348,7 +352,9 @@ protected:
 	RingBuffer<magSample> *_mag_buffer{nullptr};
 	RingBuffer<baroSample> *_baro_buffer{nullptr};
 	RingBuffer<rangeSample> *_range_buffer{nullptr};
+#if defined(CONFIG_EKF2_AIRSPEED)
 	RingBuffer<airspeedSample> *_airspeed_buffer{nullptr};
+#endif // CONFIG_EKF2_AIRSPEED
 	RingBuffer<flowSample> 	*_flow_buffer{nullptr};
 	RingBuffer<extVisionSample> *_ext_vision_buffer{nullptr};
 	RingBuffer<auxVelSample> *_auxvel_buffer{nullptr};

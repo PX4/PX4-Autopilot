@@ -307,7 +307,6 @@ struct parameters {
 	float mag_delay_ms{0.0f};               ///< magnetometer measurement delay relative to the IMU (mSec)
 	float baro_delay_ms{0.0f};              ///< barometer height measurement delay relative to the IMU (mSec)
 	float gps_delay_ms{110.0f};             ///< GPS measurement delay relative to the IMU (mSec)
-	float airspeed_delay_ms{100.0f};        ///< airspeed measurement delay relative to the IMU (mSec)
 	float flow_delay_ms{5.0f};              ///< optical flow measurement delay relative to the IMU (mSec) - this is to the middle of the optical flow integration interval
 	float range_delay_ms{5.0f};             ///< range finder measurement delay relative to the IMU (mSec)
 	float ev_delay_ms{175.0f};              ///< off-board vision measurement delay relative to the IMU (mSec)
@@ -364,16 +363,21 @@ struct parameters {
 	float gps_heading_noise{0.1f};          ///< measurement noise standard deviation used for GNSS heading fusion (rad)
 #endif // CONFIG_EKF2_GNSS_YAW
 
+#if defined(CONFIG_EKF2_AIRSPEED)
 	// airspeed fusion
+	float airspeed_delay_ms{100.0f};        ///< airspeed measurement delay relative to the IMU (mSec)
 	float tas_innov_gate{5.0f};             ///< True Airspeed innovation consistency gate size (STD)
 	float eas_noise{1.4f};                  ///< EAS measurement noise standard deviation used for airspeed fusion (m/s)
 	float arsp_thr{2.0f};                   ///< Airspeed fusion threshold. A value of zero will deactivate airspeed fusion
+#endif // CONFIG_EKF2_AIRSPEED
 
+#if defined(CONFIG_EKF2_SIDESLIP)
 	// synthetic sideslip fusion
 	int32_t beta_fusion_enabled{0};
 	float beta_innov_gate{5.0f};            ///< synthetic sideslip innovation consistency gate size in standard deviation (STD)
 	float beta_noise{0.3f};                 ///< synthetic sideslip noise (rad)
 	const float beta_avg_ft_us{150000.0f};  ///< The average time between synthetic sideslip measurements (uSec)
+#endif // CONFIG_EKF2_SIDESLIP
 
 	// range finder fusion
 	float range_noise{0.1f};                ///< observation noise for range finder measurements (m)
