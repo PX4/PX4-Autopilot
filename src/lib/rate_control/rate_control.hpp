@@ -95,6 +95,18 @@ public:
 	void resetIntegral() { _rate_int.zero(); }
 
 	/**
+	 * Set the integral term to 0 to prevent windup for each axis
+	 * @param  axis axis: roll 0 / pitch 1 / yaw 2
+	 * @see _rate_int
+	 */
+	void resetIntegral(size_t axis)
+	{
+		if (axis < 3) {
+			_rate_int(axis) = 0.0f;
+		}
+	}
+
+	/**
 	 * Get status message of controller for logging/debugging
 	 * @param rate_ctrl_status status message to fill with internal states
 	 */

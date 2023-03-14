@@ -366,6 +366,16 @@ PARAM_DEFINE_FLOAT(FW_ACRO_Y_MAX, 90);
 PARAM_DEFINE_FLOAT(FW_ACRO_Z_MAX, 45);
 
 /**
+ * Reset for integral of the z axis while rate controller in acro mode.
+ *
+ * This configures the integral of each axis of the rate controller in acro mode
+ *
+ * @boolean
+ * @group FW Rate Control
+ */
+PARAM_DEFINE_INT32(FW_ACRO_Z_IRESET, 1);
+
+/**
  * Enable throttle scale by battery level
  *
  * This compensates for voltage drop of the battery over time by attempting to

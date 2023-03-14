@@ -118,6 +118,10 @@ FixedwingRateControl::vehicle_manual_poll()
 
 				_rate_sp_pub.publish(_rates_sp);
 
+				if (_param_fw_acro_yaw_int_reset.get()) {
+					_rate_control.resetIntegral(2);
+				}
+
 			} else {
 				/* manual/direct control */
 
