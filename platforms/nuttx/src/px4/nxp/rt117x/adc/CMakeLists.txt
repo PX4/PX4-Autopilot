@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2023 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,14 +31,6 @@
 #
 ############################################################################
 
-
-add_subdirectory(adc)
-add_subdirectory(../imxrt/board_critmon board_critmon)
-add_subdirectory(../imxrt/board_hw_info board_hw_info)
-add_subdirectory(../imxrt/board_reset board_reset)
-#add_subdirectory(../imxrt/dshot dshot)
-add_subdirectory(../imxrt/hrt hrt)
-add_subdirectory(../imxrt/led_pwm led_pwm)
-add_subdirectory(io_pins)
-#add_subdirectory(../imxrt/tone_alarm tone_alarm)
-add_subdirectory(../imxrt/version version)
+px4_add_library(arch_adc
+	adc.cpp
+)
