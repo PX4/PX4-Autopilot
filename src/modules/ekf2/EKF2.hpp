@@ -151,7 +151,10 @@ private:
 	void PublishBaroBias(const hrt_abstime &timestamp);
 	void PublishGnssHgtBias(const hrt_abstime &timestamp);
 	void PublishRngHgtBias(const hrt_abstime &timestamp);
+
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	void PublishEvPosBias(const hrt_abstime &timestamp);
+#endif // CONFIG_EKF2_EXTERNAL_VISION
 	estimator_bias_s fillEstimatorBiasMsg(const BiasEstimator::status &status, uint64_t timestamp_sample_us,
 					      uint64_t timestamp, uint32_t device_id = 0);
 	void PublishEventFlags(const hrt_abstime &timestamp);
@@ -278,10 +281,22 @@ private:
 	hrt_abstime _status_fake_hgt_pub_last{0};
 	hrt_abstime _status_fake_pos_pub_last{0};
 
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
+	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_ev_hgt_pub {ORB_ID(estimator_aid_src_ev_hgt)};
+	uORB::PublicationMulti<estimator_aid_source2d_s> _estimator_aid_src_ev_pos_pub{ORB_ID(estimator_aid_src_ev_pos)};
+	uORB::PublicationMulti<estimator_aid_source3d_s> _estimator_aid_src_ev_vel_pub{ORB_ID(estimator_aid_src_ev_vel)};
+	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_ev_yaw_pub{ORB_ID(estimator_aid_src_ev_yaw)};
 	hrt_abstime _status_ev_hgt_pub_last{0};
 	hrt_abstime _status_ev_pos_pub_last{0};
 	hrt_abstime _status_ev_vel_pub_last{0};
 	hrt_abstime _status_ev_yaw_pub_last{0};
+
+	matrix::Vector3f _last_ev_bias_published{};
+
+	uORB::Subscription _ev_odom_sub{ORB_ID(vehicle_visual_odometry)};
+
+	uORB::PublicationMulti<estimator_bias3d_s> _estimator_ev_pos_bias_pub{ORB_ID(estimator_ev_pos_bias)};
+#endif // CONFIG_EKF2_EXTERNAL_VISION
 
 	hrt_abstime _status_gnss_hgt_pub_last{0};
 	hrt_abstime _status_gnss_pos_pub_last{0};
@@ -310,7 +325,6 @@ private:
 	float _last_baro_bias_published{};
 	float _last_gnss_hgt_bias_published{};
 	float _last_rng_hgt_bias_published{};
-	matrix::Vector3f _last_ev_bias_published{};
 
 #if defined(CONFIG_EKF2_AIRSPEED)
 	uORB::Subscription _airspeed_sub {ORB_ID(airspeed)};
@@ -336,7 +350,6 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::Subscription _airdata_sub{ORB_ID(vehicle_air_data)};
-	uORB::Subscription _ev_odom_sub{ORB_ID(vehicle_visual_odometry)};
 	uORB::Subscription _magnetometer_sub{ORB_ID(vehicle_magnetometer)};
 	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
 	uORB::Subscription _status_sub{ORB_ID(vehicle_status)};
@@ -372,7 +385,6 @@ private:
 	uORB::PublicationMulti<estimator_bias_s>             _estimator_baro_bias_pub{ORB_ID(estimator_baro_bias)};
 	uORB::PublicationMulti<estimator_bias_s>             _estimator_gnss_hgt_bias_pub{ORB_ID(estimator_gnss_hgt_bias)};
 	uORB::PublicationMulti<estimator_bias_s>             _estimator_rng_hgt_bias_pub{ORB_ID(estimator_rng_hgt_bias)};
-	uORB::PublicationMulti<estimator_bias3d_s>           _estimator_ev_pos_bias_pub{ORB_ID(estimator_ev_pos_bias)};
 	uORB::PublicationMultiData<estimator_event_flags_s>  _estimator_event_flags_pub{ORB_ID(estimator_event_flags)};
 	uORB::PublicationMulti<estimator_gps_status_s>       _estimator_gps_status_pub{ORB_ID(estimator_gps_status)};
 	uORB::PublicationMulti<estimator_innovations_s>      _estimator_innovation_test_ratios_pub{ORB_ID(estimator_innovation_test_ratios)};
@@ -390,11 +402,6 @@ private:
 
 	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_fake_hgt_pub{ORB_ID(estimator_aid_src_fake_hgt)};
 	uORB::PublicationMulti<estimator_aid_source2d_s> _estimator_aid_src_fake_pos_pub{ORB_ID(estimator_aid_src_fake_pos)};
-
-	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_ev_hgt_pub{ORB_ID(estimator_aid_src_ev_hgt)};
-	uORB::PublicationMulti<estimator_aid_source2d_s> _estimator_aid_src_ev_pos_pub{ORB_ID(estimator_aid_src_ev_pos)};
-	uORB::PublicationMulti<estimator_aid_source3d_s> _estimator_aid_src_ev_vel_pub{ORB_ID(estimator_aid_src_ev_vel)};
-	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_ev_yaw_pub{ORB_ID(estimator_aid_src_ev_yaw)};
 
 	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_gnss_hgt_pub{ORB_ID(estimator_aid_src_gnss_hgt)};
 	uORB::PublicationMulti<estimator_aid_source2d_s> _estimator_aid_src_gnss_pos_pub{ORB_ID(estimator_aid_src_gnss_pos)};
@@ -439,8 +446,6 @@ private:
 		_param_ekf2_of_delay,	///< optical flow measurement delay relative to the IMU (mSec) - this is to the middle of the optical flow integration interval
 		(ParamExtFloat<px4::params::EKF2_RNG_DELAY>)
 		_param_ekf2_rng_delay,	///< range finder measurement delay relative to the IMU (mSec)
-		(ParamExtFloat<px4::params::EKF2_EV_DELAY>)
-		_param_ekf2_ev_delay,	///< off-board vision measurement delay relative to the IMU (mSec)
 
 #if defined(CONFIG_EKF2_AUXVEL)
 		(ParamExtFloat<px4::params::EKF2_AVEL_DELAY>)
@@ -571,21 +576,32 @@ private:
 		(ParamExtFloat<px4::params::EKF2_RNG_K_GATE>)
 		_param_ekf2_rng_k_gate, ///< range finder kinematic consistency gate size (STD)
 
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
 		// vision estimate fusion
+		(ParamExtFloat<px4::params::EKF2_EV_DELAY>)
+		_param_ekf2_ev_delay, ///< off-board vision measurement delay relative to the IMU (mSec)
+
 		(ParamExtInt<px4::params::EKF2_EV_CTRL>) _param_ekf2_ev_ctrl,	 ///< external vision (EV) control selection
-		(ParamInt<px4::params::EKF2_EV_NOISE_MD>)
-		_param_ekf2_ev_noise_md,	///< determine source of vision observation noise
+		(ParamInt<px4::params::EKF2_EV_NOISE_MD>) _param_ekf2_ev_noise_md, ///< determine source of vision observation noise
 		(ParamExtInt<px4::params::EKF2_EV_QMIN>) _param_ekf2_ev_qmin,
 		(ParamExtFloat<px4::params::EKF2_EVP_NOISE>)
-		_param_ekf2_evp_noise,	///< default position observation noise for exernal vision measurements (m)
+		_param_ekf2_evp_noise, ///< default position observation noise for exernal vision measurements (m)
 		(ParamExtFloat<px4::params::EKF2_EVV_NOISE>)
-		_param_ekf2_evv_noise,	///< default velocity observation noise for exernal vision measurements (m/s)
+		_param_ekf2_evv_noise, ///< default velocity observation noise for exernal vision measurements (m/s)
 		(ParamExtFloat<px4::params::EKF2_EVA_NOISE>)
-		_param_ekf2_eva_noise,	///< default angular observation noise for exernal vision measurements (rad)
+		_param_ekf2_eva_noise, ///< default angular observation noise for exernal vision measurements (rad)
 		(ParamExtFloat<px4::params::EKF2_EVV_GATE>)
-		_param_ekf2_evv_gate,	///< external vision velocity innovation consistency gate size (STD)
+		_param_ekf2_evv_gate, ///< external vision velocity innovation consistency gate size (STD)
 		(ParamExtFloat<px4::params::EKF2_EVP_GATE>)
-		_param_ekf2_evp_gate,	///< external vision position innovation consistency gate size (STD)
+		_param_ekf2_evp_gate, ///< external vision position innovation consistency gate size (STD)
+
+		(ParamExtFloat<px4::params::EKF2_EV_POS_X>)
+		_param_ekf2_ev_pos_x, ///< X position of VI sensor focal point in body frame (m)
+		(ParamExtFloat<px4::params::EKF2_EV_POS_Y>)
+		_param_ekf2_ev_pos_y, ///< Y position of VI sensor focal point in body frame (m)
+		(ParamExtFloat<px4::params::EKF2_EV_POS_Z>)
+		_param_ekf2_ev_pos_z, ///< Z position of VI sensor focal point in body frame (m)
+#endif // CONFIG_EKF2_EXTERNAL_VISION
 
 		(ParamExtFloat<px4::params::EKF2_GRAV_NOISE>)
 		_param_ekf2_grav_noise,	///< default accelerometer noise for gravity fusion measurements (m/s**2)
@@ -616,12 +632,6 @@ private:
 		_param_ekf2_of_pos_y,	///< Y position of optical flow sensor focal point in body frame (m)
 		(ParamExtFloat<px4::params::EKF2_OF_POS_Z>)
 		_param_ekf2_of_pos_z,	///< Z position of optical flow sensor focal point in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_EV_POS_X>)
-		_param_ekf2_ev_pos_x,		///< X position of VI sensor focal point in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_EV_POS_Y>)
-		_param_ekf2_ev_pos_y,		///< Y position of VI sensor focal point in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_EV_POS_Z>)
-		_param_ekf2_ev_pos_z,		///< Z position of VI sensor focal point in body frame (m)
 
 		// output predictor filter time constants
 		(ParamFloat<px4::params::EKF2_TAU_VEL>)

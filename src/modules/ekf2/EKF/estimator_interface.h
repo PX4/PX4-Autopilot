@@ -99,8 +99,10 @@ public:
 	// if optical flow sensor gyro delta angles are not available, set gyro_xyz vector fields to NaN and the EKF will use its internal delta angle data instead
 	void setOpticalFlowData(const flowSample &flow);
 
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	// set external vision position and attitude data
 	void setExtVisionData(const extVisionSample &evdata);
+#endif // CONFIG_EKF2_EXTERNAL_VISION
 
 #if defined(CONFIG_EKF2_AUXVEL)
 	void setAuxVelData(const auxVelSample &auxvel_sample);
@@ -295,11 +297,17 @@ protected:
 	// measurement samples capturing measurements on the delayed time horizon
 	gpsSample _gps_sample_delayed{};
 	sensor::SensorRangeFinder _range_sensor{};
+
 #if defined(CONFIG_EKF2_AIRSPEED)
 	airspeedSample _airspeed_sample_delayed{};
 #endif // CONFIG_EKF2_AIRSPEED
+
 	flowSample _flow_sample_delayed{};
+
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	extVisionSample _ev_sample_prev{};
+#endif // CONFIG_EKF2_EXTERNAL_VISION
+
 	RangeFinderConsistencyCheck _rng_consistency_check;
 
 	float _air_density{CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C};		// air density (kg/m**3)
@@ -358,7 +366,11 @@ protected:
 	RingBuffer<airspeedSample> *_airspeed_buffer{nullptr};
 #endif // CONFIG_EKF2_AIRSPEED
 	RingBuffer<flowSample> 	*_flow_buffer{nullptr};
+
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	RingBuffer<extVisionSample> *_ext_vision_buffer{nullptr};
+	uint64_t _time_last_ext_vision_buffer_push{0};
+#endif // CONFIG_EKF2_EXTERNAL_VISION
 #if defined(CONFIG_EKF2_AUXVEL)
 	RingBuffer<auxVelSample> *_auxvel_buffer{nullptr};
 #endif // CONFIG_EKF2_AUXVEL
@@ -368,7 +380,6 @@ protected:
 	uint64_t _time_last_mag_buffer_push{0};
 	uint64_t _time_last_baro_buffer_push{0};
 	uint64_t _time_last_range_buffer_push{0};
-	uint64_t _time_last_ext_vision_buffer_push{0};
 
 	uint64_t _time_last_gnd_effect_on{0};
 
