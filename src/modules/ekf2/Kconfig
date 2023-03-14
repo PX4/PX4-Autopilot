@@ -13,6 +13,13 @@ depends on MODULES_EKF2
 	---help---
 		EKF2 support multiple instances and selector.
 
+menuconfig EKF2_BARO_COMPENSATION
+depends on MODULES_EKF2
+        bool "barometer compensation support"
+        default y
+	---help---
+		EKF2 pressure compensation support.
+
 menuconfig EKF2_DRAG_FUSION
 depends on MODULES_EKF2
         bool "drag fusion support"

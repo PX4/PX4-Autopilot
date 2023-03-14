@@ -438,6 +438,7 @@ struct parameters {
 
 	int32_t valid_timeout_max{5'000'000};     ///< amount of time spent inertial dead reckoning before the estimator reports the state estimates as invalid (uSec)
 
+#if defined(CONFIG_EKF2_BARO_COMPENSATION)
 	// static barometer pressure position error coefficient along body axes
 	float static_pressure_coef_xp{0.0f};    // (-)
 	float static_pressure_coef_xn{0.0f};    // (-)
@@ -447,6 +448,7 @@ struct parameters {
 
 	// upper limit on airspeed used for correction  (m/s**2)
 	float max_correction_airspeed {20.0f};
+#endif // CONFIG_EKF2_BARO_COMPENSATION
 
 #if defined(CONFIG_EKF2_DRAG_FUSION)
 	// multi-rotor drag specific force fusion
