@@ -165,17 +165,26 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 			}
 		}
 
+		// Wait until the midpoint of the flow sample has fallen behind the fusion time horizon
+		const bool flow_delayed = (_time_delayed_us > (_flow_sample_delayed.time_us - uint32_t(1e6f * _flow_sample_delayed.dt) / 2));
+
+		// use a relaxed time criteria to enable it to coast through bad range finder data
+		const bool terrain_available = isTerrainEstimateValid() || isRecent(_time_last_hagl_fuse, (uint64_t)10e6);
+
 		// optical flow fusion mode selection logic
 		if ((_params.fusion_mode & SensorFusionMask::USE_OPT_FLOW) // optical flow has been selected by the user
 		    && !_control_status.flags.opt_flow // we are not yet using flow data
+		    && flow_delayed
 		    && !inhibit_flow_use
 		    && !isRecent(_aid_src_optical_flow.time_last_fuse, (uint64_t)2e6)
-		    && isTerrainEstimateValid()
+		    && terrain_available
 		   ) {
-
 			// set the flag and reset the fusion timeout
 			ECL_INFO("starting optical flow fusion");
 			updateOptFlow(_aid_src_optical_flow);
+
+			_innov_check_fail_status.flags.reject_optflow_X = false;
+			_innov_check_fail_status.flags.reject_optflow_Y = false;
 
 			// if we are not using GPS or external vision aiding, then the velocity and position states and covariances need to be set
 			if (!isHorizontalAidingActive()) {
@@ -194,59 +203,59 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 					ECL_INFO("reset position to last known (%.3f, %.3f)", (double)_last_known_pos(0), (double)_last_known_pos(1));
 					resetHorizontalPositionTo(_last_known_pos.xy(), 0.f);
 				}
+
+				_aid_src_optical_flow.fusion_enabled = true;
+				_aid_src_optical_flow.test_ratio[0] = 0.f;
+				_aid_src_optical_flow.test_ratio[1] = 0.f;
+				_aid_src_optical_flow.innovation_rejected = false;
+				_aid_src_optical_flow.time_last_fuse = _time_delayed_us;
+
+				_control_status.flags.opt_flow = true;
+				return;
 			}
 
-			_aid_src_optical_flow.fusion_enabled = true;
-			_aid_src_optical_flow.test_ratio[0] = 0.f;
-			_aid_src_optical_flow.test_ratio[1] = 0.f;
-			_aid_src_optical_flow.innovation_rejected = false;
-			_aid_src_optical_flow.time_last_fuse = _time_delayed_us;
-
-			_innov_check_fail_status.flags.reject_optflow_X = false;
-			_innov_check_fail_status.flags.reject_optflow_Y = false;
-
+			// otherwise enable opt_flow and continue to fusion
 			_control_status.flags.opt_flow = true;
-
-			return;
 		}
 
 		if (_control_status.flags.opt_flow) {
-			// Wait until the midpoint of the flow sample has fallen behind the fusion time horizon
-			if (_time_delayed_us > (_flow_sample_delayed.time_us - uint32_t(1e6f * _flow_sample_delayed.dt) / 2)) {
-				// Fuse optical flow LOS rate observations into the main filter only if height above ground has been updated recently
-				// but use a relaxed time criteria to enable it to coast through bad range finder data
-				if (isRecent(_time_last_hagl_fuse, (uint64_t)10e6)) {
+
+			if (flow_delayed) {
+				if (terrain_available) {
+					// Fuse optical flow LOS rate observations into the main filter only if height above ground has been updated recently
 					fuseOptFlow();
 					_last_known_pos.xy() = _state.pos.xy();
+
+					// handle the case when we have optical flow, are reliant on it, but have not been using it for an extended period
+					if (isTimedOut(_aid_src_optical_flow.time_last_fuse, _params.no_aid_timeout_max)
+					&& !isOtherSourceOfHorizontalAidingThan(_control_status.flags.opt_flow)
+					) {
+						ECL_INFO("reset velocity to flow");
+						_information_events.flags.reset_vel_to_flow = true;
+						resetHorizontalVelocityTo(_flow_vel_ne, calcOptFlowMeasVar(_flow_sample_delayed));
+
+						// reset position, estimate is relative to initial position in this mode, so we start with zero error
+						ECL_INFO("reset position to last known (%.3f, %.3f)", (double)_last_known_pos(0), (double)_last_known_pos(1));
+						_information_events.flags.reset_pos_to_last_known = true;
+						resetHorizontalPositionTo(_last_known_pos.xy(), 0.f);
+
+						_aid_src_optical_flow.fusion_enabled = true;
+						_aid_src_optical_flow.test_ratio[0] = 0.f;
+						_aid_src_optical_flow.test_ratio[1] = 0.f;
+						_aid_src_optical_flow.innovation_rejected = false;
+						_aid_src_optical_flow.time_last_fuse = _time_delayed_us;
+					}
 				}
 
 				_flow_data_ready = false;
 			}
 
-			// handle the case when we have optical flow, are reliant on it, but have not been using it for an extended period
-			if (isTimedOut(_aid_src_optical_flow.time_last_fuse, _params.no_aid_timeout_max)
-			    && !isOtherSourceOfHorizontalAidingThan(_control_status.flags.opt_flow)
-			    && (_flow_sample_delayed.quality >= _params.flow_qual_min)
-			    && isTerrainEstimateValid()
-			   ) {
-
-				ECL_INFO("reset velocity to flow");
-				_information_events.flags.reset_vel_to_flow = true;
-				resetHorizontalVelocityTo(_flow_vel_ne, calcOptFlowMeasVar(_flow_sample_delayed));
-
-				// reset position, estimate is relative to initial position in this mode, so we start with zero error
-				ECL_INFO("reset position to last known (%.3f, %.3f)", (double)_last_known_pos(0), (double)_last_known_pos(1));
-				_information_events.flags.reset_pos_to_last_known = true;
-				resetHorizontalPositionTo(_last_known_pos.xy(), 0.f);
-
-				_aid_src_optical_flow.time_last_fuse = _time_delayed_us;
+			if (!terrain_available || !isRecent(_aid_src_optical_flow.time_last_fuse, (uint64_t)5e6)) {
+				stopFlowFusion();
 			}
 		}
 
-	} else if (_control_status.flags.opt_flow
-		   && (!isRecent(_flow_sample_delayed.time_us, (uint64_t)10e6)
-		       || !isRecent(_aid_src_optical_flow.time_last_fuse, (uint64_t)10e6))
-		  ) {
+	} else if (_control_status.flags.opt_flow && !isRecent(_flow_sample_delayed.time_us, (uint64_t)10e6)) {
 
 		stopFlowFusion();
 	}
