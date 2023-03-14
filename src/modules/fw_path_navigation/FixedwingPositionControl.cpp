@@ -2554,11 +2554,16 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 					 throttle_max);
 
 	const Vector3f local_pos_a = Vector3f{_local_pos.ax, _local_pos.ay, _local_pos.az};
-	const Vector3f groundspee_minus_wind = Vector3f{_local_pos.vx - _wind_vel(0), _local_pos.vy - _wind_vel(1), _local_pos.vz};
+	const Vector3f groundspeed_minus_wind = Vector3f{_local_pos.vx - _wind_vel(0), _local_pos.vy - _wind_vel(1), _local_pos.vz};
+
+	// additionally only use it if local position has valid velocitis and we're currently in a position-controlled mode, as
+	// then we can assume that local_position has valid fields
+	const bool use_groundspeed_acceleration = wind_valid_extra && _local_pos.v_xy_valid && _local_pos.v_z_valid
+			&& _control_mode.flag_control_position_enabled;
 
 	// only do acceleration control in case wind is valid, and otherwise set it to 0
-	const float acceleration_in_direction_of_airspeed_vector = _wind_valid ? groundspee_minus_wind.unit_or_zero().dot(
-				local_pos_a) : 0.f;
+	const float acceleration_in_direction_of_airspeed_vector = use_groundspeed_acceleration ?
+			groundspeed_minus_wind.unit_or_zero().dot(local_pos_a) : 0.f;
 
 	_tecs.update(_pitch - radians(_param_fw_psp_off.get()),
 		     _current_altitude,
