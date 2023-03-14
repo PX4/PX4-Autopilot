@@ -3,3 +3,10 @@ menuconfig MODULES_UXRCE_DDS_CLIENT
 	default n
 	---help---
 		Enable support for the UXRCE-DDS Client
+
+menuconfig USER_UXRCE_DDS_CLIENT
+	bool "uxrce_dds_client running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && MODULES_UXRCE_DDS_CLIENT
+	---help---
+		Put uxrce_dds_client in userspace memory
