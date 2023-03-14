@@ -13,6 +13,14 @@ depends on MODULES_EKF2
 	---help---
 		EKF2 support multiple instances and selector.
 
+menuconfig EKF2_AIRSPEED
+depends on MODULES_EKF2
+        bool "airspeed fusion support"
+        default y
+	depends on EKF2_SIDESLIP
+	---help---
+		EKF2 airspeed fusion support.
+
 menuconfig EKF2_BARO_COMPENSATION
 depends on MODULES_EKF2
         bool "barometer compensation support"
@@ -33,6 +41,13 @@ depends on MODULES_EKF2
         default y
 	---help---
 		EKF2 GNSS yaw fusion support.
+
+menuconfig EKF2_SIDESLIP
+depends on MODULES_EKF2
+        bool "sideslip fusion support"
+        default y
+	---help---
+		EKF2 sideslip fusion support.
 
 menuconfig USER_EKF2
 	bool "ekf2 running as userspace module"

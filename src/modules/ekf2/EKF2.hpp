@@ -64,8 +64,6 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/SubscriptionMultiArray.hpp>
-#include <uORB/topics/airspeed.h>
-#include <uORB/topics/airspeed_validated.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/ekf2_timestamps.h>
 #include <uORB/topics/estimator_bias.h>
@@ -96,6 +94,11 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/wind.h>
 #include <uORB/topics/yaw_estimator_status.h>
+
+#if defined(CONFIG_EKF2_AIRSPEED)
+# include <uORB/topics/airspeed.h>
+# include <uORB/topics/airspeed_validated.h>
+#endif // CONFIG_EKF2_AIRSPEED
 
 extern pthread_mutex_t ekf2_module_mutex;
 
@@ -165,7 +168,9 @@ private:
 	void PublishWindEstimate(const hrt_abstime &timestamp);
 	void PublishYawEstimatorStatus(const hrt_abstime &timestamp);
 
+#if defined(CONFIG_EKF2_AIRSPEED)
 	void UpdateAirspeedSample(ekf2_timestamps_s &ekf2_timestamps);
+#endif // CONFIG_EKF2_AIRSPEED
 	void UpdateAuxVelSample(ekf2_timestamps_s &ekf2_timestamps);
 	void UpdateBaroSample(ekf2_timestamps_s &ekf2_timestamps);
 	bool UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps);
@@ -227,8 +232,6 @@ private:
 	perf_counter_t _ecl_ekf_update_full_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": ECL full update")};
 	perf_counter_t _msg_missed_imu_perf{perf_alloc(PC_COUNT, MODULE_NAME": IMU message missed")};
 	perf_counter_t _msg_missed_air_data_perf{nullptr};
-	perf_counter_t _msg_missed_airspeed_perf{nullptr};
-	perf_counter_t _msg_missed_airspeed_validated_perf{nullptr};
 	perf_counter_t _msg_missed_distance_sensor_perf{nullptr};
 	perf_counter_t _msg_missed_gps_perf{nullptr};
 	perf_counter_t _msg_missed_landing_target_pose_perf{nullptr};
@@ -265,9 +268,6 @@ private:
 	hrt_abstime _last_sensor_bias_published{0};
 	hrt_abstime _last_gps_status_published{0};
 
-	hrt_abstime _status_airspeed_pub_last{0};
-	hrt_abstime _status_sideslip_pub_last{0};
-
 	hrt_abstime _status_baro_hgt_pub_last{0};
 	hrt_abstime _status_rng_hgt_pub_last{0};
 
@@ -301,16 +301,30 @@ private:
 	float _last_rng_hgt_bias_published{};
 	matrix::Vector3f _last_ev_bias_published{};
 
+#if defined(CONFIG_EKF2_AIRSPEED)
+	uORB::Subscription _airspeed_sub {ORB_ID(airspeed)};
+	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};
+
 	float _airspeed_scale_factor{1.0f}; ///< scale factor correction applied to airspeed measurements
 	hrt_abstime _airspeed_validated_timestamp_last{0};
+
+	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_airspeed_pub {ORB_ID(estimator_aid_src_airspeed)};
+	hrt_abstime _status_airspeed_pub_last{0};
+
+	perf_counter_t _msg_missed_airspeed_perf{nullptr};
+	perf_counter_t _msg_missed_airspeed_validated_perf{nullptr};
+#endif // CONFIG_EKF2_AIRSPEED
+
+#if defined(CONFIG_EKF2_SIDESLIP)
+	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_sideslip_pub {ORB_ID(estimator_aid_src_sideslip)};
+	hrt_abstime _status_sideslip_pub_last {0};
+#endif // CONFIG_EKF2_SIDESLIP
 
 	orb_advert_t _mavlink_log_pub{nullptr};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::Subscription _airdata_sub{ORB_ID(vehicle_air_data)};
-	uORB::Subscription _airspeed_sub{ORB_ID(airspeed)};
-	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};
 	uORB::Subscription _ev_odom_sub{ORB_ID(vehicle_visual_odometry)};
 	uORB::Subscription _landing_target_pose_sub{ORB_ID(landing_target_pose)};
 	uORB::Subscription _magnetometer_sub{ORB_ID(vehicle_magnetometer)};
@@ -361,10 +375,8 @@ private:
 	uORB::PublicationMulti<vehicle_optical_flow_vel_s> _estimator_optical_flow_vel_pub{ORB_ID(estimator_optical_flow_vel)};
 	uORB::PublicationMulti<yaw_estimator_status_s>       _yaw_est_pub{ORB_ID(yaw_estimator_status)};
 
-	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_airspeed_pub{ORB_ID(estimator_aid_src_airspeed)};
-	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_baro_hgt_pub{ORB_ID(estimator_aid_src_baro_hgt)};
+	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_baro_hgt_pub {ORB_ID(estimator_aid_src_baro_hgt)};
 	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_rng_hgt_pub{ORB_ID(estimator_aid_src_rng_hgt)};
-	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_sideslip_pub{ORB_ID(estimator_aid_src_sideslip)};
 
 	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_fake_hgt_pub{ORB_ID(estimator_aid_src_fake_hgt)};
 	uORB::PublicationMulti<estimator_aid_source2d_s> _estimator_aid_src_fake_pos_pub{ORB_ID(estimator_aid_src_fake_pos)};
@@ -419,8 +431,6 @@ private:
 		_param_ekf2_of_delay,	///< optical flow measurement delay relative to the IMU (mSec) - this is to the middle of the optical flow integration interval
 		(ParamExtFloat<px4::params::EKF2_RNG_DELAY>)
 		_param_ekf2_rng_delay,	///< range finder measurement delay relative to the IMU (mSec)
-		(ParamExtFloat<px4::params::EKF2_ASP_DELAY>)
-		_param_ekf2_asp_delay,	///< airspeed measurement delay relative to the IMU (mSec)
 		(ParamExtFloat<px4::params::EKF2_EV_DELAY>)
 		_param_ekf2_ev_delay,	///< off-board vision measurement delay relative to the IMU (mSec)
 		(ParamExtFloat<px4::params::EKF2_AVEL_DELAY>)
@@ -464,19 +474,35 @@ private:
 		_param_ekf2_gps_p_gate,	///< GPS horizontal position innovation consistency gate size (STD)
 		(ParamExtFloat<px4::params::EKF2_GPS_V_GATE>)
 		_param_ekf2_gps_v_gate,	///< GPS velocity innovation consistency gate size (STD)
+
+#if defined(CONFIG_EKF2_AIRSPEED)
+		(ParamExtFloat<px4::params::EKF2_ASP_DELAY>)
+		_param_ekf2_asp_delay, ///< airspeed measurement delay relative to the IMU (mSec)
 		(ParamExtFloat<px4::params::EKF2_TAS_GATE>)
-		_param_ekf2_tas_gate,	///< True Airspeed innovation consistency gate size (STD)
+		_param_ekf2_tas_gate, ///< True Airspeed innovation consistency gate size (STD)
+		(ParamExtFloat<px4::params::EKF2_EAS_NOISE>)
+		_param_ekf2_eas_noise, ///< measurement noise used for airspeed fusion (m/sec)
+
+		// control of airspeed fusion
+		(ParamExtFloat<px4::params::EKF2_ARSP_THR>)
+		_param_ekf2_arsp_thr, ///< A value of zero will disabled airspeed fusion. Any positive value sets the minimum airspeed which will be used (m/sec)
+#endif // CONFIG_EKF2_AIRSPEED
+
+#if defined(CONFIG_EKF2_SIDESLIP)
+		(ParamExtFloat<px4::params::EKF2_BETA_GATE>)
+		_param_ekf2_beta_gate, ///< synthetic sideslip innovation consistency gate size (STD)
+		(ParamExtFloat<px4::params::EKF2_BETA_NOISE>) _param_ekf2_beta_noise, ///< synthetic sideslip noise (rad)
+
+		(ParamExtInt<px4::params::EKF2_FUSE_BETA>)
+		_param_ekf2_fuse_beta, ///< Controls synthetic sideslip fusion, 0 disables, 1 enables
+#endif // CONFIG_EKF2_SIDESLIP
 
 		// control of magnetometer fusion
 		(ParamExtFloat<px4::params::EKF2_HEAD_NOISE>)
 		_param_ekf2_head_noise,	///< measurement noise used for simple heading fusion (rad)
 		(ParamExtFloat<px4::params::EKF2_MAG_NOISE>)
 		_param_ekf2_mag_noise,		///< measurement noise used for 3-axis magnetoemeter fusion (Gauss)
-		(ParamExtFloat<px4::params::EKF2_EAS_NOISE>)
-		_param_ekf2_eas_noise,		///< measurement noise used for airspeed fusion (m/sec)
-		(ParamExtFloat<px4::params::EKF2_BETA_GATE>)
-		_param_ekf2_beta_gate, ///< synthetic sideslip innovation consistency gate size (STD)
-		(ParamExtFloat<px4::params::EKF2_BETA_NOISE>) _param_ekf2_beta_noise,	///< synthetic sideslip noise (rad)
+
 		(ParamExtFloat<px4::params::EKF2_MAG_DECL>) _param_ekf2_mag_decl,///< magnetic declination (degrees)
 		(ParamExtFloat<px4::params::EKF2_HDG_GATE>)
 		_param_ekf2_hdg_gate,///< heading fusion innovation consistency gate size (STD)
@@ -585,12 +611,6 @@ private:
 		_param_ekf2_ev_pos_y,		///< Y position of VI sensor focal point in body frame (m)
 		(ParamExtFloat<px4::params::EKF2_EV_POS_Z>)
 		_param_ekf2_ev_pos_z,		///< Z position of VI sensor focal point in body frame (m)
-
-		// control of airspeed and sideslip fusion
-		(ParamExtFloat<px4::params::EKF2_ARSP_THR>)
-		_param_ekf2_arsp_thr, 	///< A value of zero will disabled airspeed fusion. Any positive value sets the minimum airspeed which will be used (m/sec)
-		(ParamExtInt<px4::params::EKF2_FUSE_BETA>)
-		_param_ekf2_fuse_beta,		///< Controls synthetic sideslip fusion, 0 disables, 1 enables
 
 		// output predictor filter time constants
 		(ParamFloat<px4::params::EKF2_TAU_VEL>)

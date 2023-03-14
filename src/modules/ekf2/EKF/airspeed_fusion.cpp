@@ -222,21 +222,6 @@ void Ekf::stopAirspeedFusion()
 	}
 }
 
-float Ekf::getTrueAirspeed() const
-{
-	return (_state.vel - Vector3f(_state.wind_vel(0), _state.wind_vel(1), 0.f)).norm();
-}
-
-void Ekf::resetWind()
-{
-	if (_control_status.flags.fuse_aspd && isRecent(_airspeed_sample_delayed.time_us, 1e6)) {
-		resetWindUsingAirspeed(_airspeed_sample_delayed);
-
-	} else {
-		resetWindToZero();
-	}
-}
-
 void Ekf::resetWindUsingAirspeed(const airspeedSample &airspeed_sample)
 {
 	const float euler_yaw = getEulerYaw(_R_to_earth);
@@ -281,15 +266,4 @@ void Ekf::resetWindCovarianceUsingAirspeed(const airspeedSample &airspeed_sample
 	// Now add the variance due to uncertainty in vehicle velocity that was used to calculate the initial wind speed
 	P(22, 22) += P(4, 4);
 	P(23, 23) += P(5, 5);
-}
-
-void Ekf::resetWindToZero()
-{
-	ECL_INFO("reset wind to zero");
-
-	// If we don't have an airspeed measurement, then assume the wind is zero
-	_state.wind_vel.setZero();
-
-	// start with a small initial uncertainty to improve the initial estimate
-	P.uncorrelateCovarianceSetVariance<2>(22, _params.initial_wind_uncertainty);
 }

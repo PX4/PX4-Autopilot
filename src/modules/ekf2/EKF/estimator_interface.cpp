@@ -50,7 +50,9 @@ EstimatorInterface::~EstimatorInterface()
 	delete _mag_buffer;
 	delete _baro_buffer;
 	delete _range_buffer;
+#if defined(CONFIG_EKF2_AIRSPEED)
 	delete _airspeed_buffer;
+#endif // CONFIG_EKF2_AIRSPEED
 	delete _flow_buffer;
 	delete _ext_vision_buffer;
 #if defined(CONFIG_EKF2_DRAG_FUSION)
@@ -243,6 +245,7 @@ void EstimatorInterface::setBaroData(const baroSample &baro_sample)
 	}
 }
 
+#if defined(CONFIG_EKF2_AIRSPEED)
 void EstimatorInterface::setAirspeedData(const airspeedSample &airspeed_sample)
 {
 	if (!_initialised) {
@@ -277,6 +280,7 @@ void EstimatorInterface::setAirspeedData(const airspeedSample &airspeed_sample)
 		ECL_WARN("airspeed data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us, _airspeed_buffer->get_newest().time_us, _min_obs_interval_us);
 	}
 }
+#endif // CONFIG_EKF2_AIRSPEED
 
 void EstimatorInterface::setRangeData(const rangeSample &range_sample)
 {
@@ -523,10 +527,12 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 		max_time_delay_ms = math::max(_params.baro_delay_ms, max_time_delay_ms);
 	}
 
+#if defined(CONFIG_EKF2_AIRSPEED)
 	// using airspeed
 	if (_params.arsp_thr > FLT_EPSILON) {
 		max_time_delay_ms = math::max(_params.airspeed_delay_ms, max_time_delay_ms);
 	}
+#endif // CONFIG_EKF2_AIRSPEED
 
 	// mag mode
 	if (_params.mag_fusion_type != MagFuseType::NONE) {
@@ -678,9 +684,11 @@ void EstimatorInterface::print_status()
 		printf("range buffer: %d/%d (%d Bytes)\n", _range_buffer->entries(), _range_buffer->get_length(), _range_buffer->get_total_size());
 	}
 
+#if defined(CONFIG_EKF2_AIRSPEED)
 	if (_airspeed_buffer) {
 		printf("airspeed buffer: %d/%d (%d Bytes)\n", _airspeed_buffer->entries(), _airspeed_buffer->get_length(), _airspeed_buffer->get_total_size());
 	}
+#endif // CONFIG_EKF2_AIRSPEED
 
 	if (_flow_buffer) {
 		printf("flow buffer: %d/%d (%d Bytes)\n", _flow_buffer->entries(), _flow_buffer->get_length(), _flow_buffer->get_total_size());
