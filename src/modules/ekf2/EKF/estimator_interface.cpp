@@ -53,7 +53,9 @@ EstimatorInterface::~EstimatorInterface()
 	delete _airspeed_buffer;
 	delete _flow_buffer;
 	delete _ext_vision_buffer;
+#if defined(CONFIG_EKF2_DRAG_FUSION)
 	delete _drag_buffer;
+#endif // CONFIG_EKF2_DRAG_FUSION
 	delete _auxvel_buffer;
 }
 
@@ -85,7 +87,9 @@ void EstimatorInterface::setIMUData(const imuSample &imu_sample)
 		_min_obs_interval_us = (imu_sample.time_us - _time_delayed_us) / (_obs_buffer_length - 1);
 	}
 
+#if defined(CONFIG_EKF2_DRAG_FUSION)
 	setDragData(imu_sample);
+#endif // CONFIG_EKF2_DRAG_FUSION
 }
 
 void EstimatorInterface::setMagData(const magSample &mag_sample)
@@ -452,6 +456,7 @@ void EstimatorInterface::setSystemFlagData(const systemFlagUpdate &system_flags)
 	}
 }
 
+#if defined(CONFIG_EKF2_DRAG_FUSION)
 void EstimatorInterface::setDragData(const imuSample &imu)
 {
 	// down-sample the drag specific force data by accumulating and calculating the mean when
@@ -502,6 +507,7 @@ void EstimatorInterface::setDragData(const imuSample &imu)
 		}
 	}
 }
+#endif // CONFIG_EKF2_DRAG_FUSION
 
 bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 {
@@ -682,9 +688,11 @@ void EstimatorInterface::print_status()
 		printf("vision buffer: %d/%d (%d Bytes)\n", _ext_vision_buffer->entries(), _ext_vision_buffer->get_length(), _ext_vision_buffer->get_total_size());
 	}
 
+#if defined(CONFIG_EKF2_DRAG_FUSION)
 	if (_drag_buffer) {
 		printf("drag buffer: %d/%d (%d Bytes)\n", _drag_buffer->entries(), _drag_buffer->get_length(), _drag_buffer->get_total_size());
 	}
+#endif // CONFIG_EKF2_DRAG_FUSION
 
 	_output_predictor.print_status();
 }
