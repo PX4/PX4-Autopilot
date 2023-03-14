@@ -96,8 +96,18 @@ public:
 
 	void setRangeData(const rangeSample &range_sample);
 
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	// if optical flow sensor gyro delta angles are not available, set gyro_xyz vector fields to NaN and the EKF will use its internal delta angle data instead
 	void setOpticalFlowData(const flowSample &flow);
+
+	// set sensor limitations reported by the optical flow sensor
+	void set_optical_flow_limits(float max_flow_rate, float min_distance, float max_distance)
+	{
+		_flow_max_rate = max_flow_rate;
+		_flow_min_distance = min_distance;
+		_flow_max_distance = max_distance;
+	}
+#endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	// set external vision position and attitude data
@@ -157,14 +167,6 @@ public:
 	void set_rangefinder_limits(float min_distance, float max_distance)
 	{
 		_range_sensor.setLimits(min_distance, max_distance);
-	}
-
-	// set sensor limitations reported by the optical flow sensor
-	void set_optical_flow_limits(float max_flow_rate, float min_distance, float max_distance)
-	{
-		_flow_max_rate = max_flow_rate;
-		_flow_min_distance = min_distance;
-		_flow_max_distance = max_distance;
 	}
 
 	// the flags considered are opt_flow, gps, ev_vel and ev_pos
@@ -302,8 +304,6 @@ protected:
 	airspeedSample _airspeed_sample_delayed{};
 #endif // CONFIG_EKF2_AIRSPEED
 
-	flowSample _flow_sample_delayed{};
-
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	extVisionSample _ev_sample_prev{};
 #endif // CONFIG_EKF2_EXTERNAL_VISION
@@ -312,10 +312,16 @@ protected:
 
 	float _air_density{CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C};		// air density (kg/m**3)
 
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
+	RingBuffer<flowSample> 	*_flow_buffer{nullptr};
+
+	flowSample _flow_sample_delayed{};
+
 	// Sensor limitations
 	float _flow_max_rate{1.0f}; ///< maximum angular flow rate that the optical flow sensor can measure (rad/s)
 	float _flow_min_distance{0.0f};	///< minimum distance that the optical flow sensor can operate at (m)
 	float _flow_max_distance{10.f};	///< maximum distance that the optical flow sensor can operate at (m)
+#endif // CONFIG_EKF2_OPTICAL_FLOW
 
 	bool _imu_updated{false};      // true if the ekf should update (completed downsampling process)
 	bool _initialised{false};      // true if the ekf interface instance (data buffering) is initialized
@@ -365,7 +371,6 @@ protected:
 #if defined(CONFIG_EKF2_AIRSPEED)
 	RingBuffer<airspeedSample> *_airspeed_buffer{nullptr};
 #endif // CONFIG_EKF2_AIRSPEED
-	RingBuffer<flowSample> 	*_flow_buffer{nullptr};
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	RingBuffer<extVisionSample> *_ext_vision_buffer{nullptr};

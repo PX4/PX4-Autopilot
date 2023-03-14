@@ -274,9 +274,19 @@ bool Ekf::shouldResetGpsFusion() const
 	/* We are relying on aiding to constrain drift so after a specified time
 	 * with no aiding we need to do something
 	 */
-	const bool has_horizontal_aiding_timed_out = isTimedOut(_time_last_hor_pos_fuse, _params.reset_timeout_max)
-			&& isTimedOut(_time_last_hor_vel_fuse, _params.reset_timeout_max)
-			&& isTimedOut(_aid_src_optical_flow.time_last_fuse, _params.reset_timeout_max);
+	bool has_horizontal_aiding_timed_out = isTimedOut(_time_last_hor_pos_fuse, _params.reset_timeout_max)
+			&& isTimedOut(_time_last_hor_vel_fuse, _params.reset_timeout_max);
+
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
+
+	if (has_horizontal_aiding_timed_out) {
+		// horizontal aiding hasn't timed out if optical flow still active
+		if (_control_status.flags.opt_flow && isRecent(_aid_src_optical_flow.time_last_fuse, _params.reset_timeout_max)) {
+			has_horizontal_aiding_timed_out = false;
+		}
+	}
+
+#endif // CONFIG_EKF2_OPTICAL_FLOW
 
 	const bool is_reset_required = has_horizontal_aiding_timed_out
 				       || isTimedOut(_time_last_hor_pos_fuse, 2 * _params.reset_timeout_max);

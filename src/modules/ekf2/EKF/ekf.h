@@ -105,6 +105,7 @@ public:
 	void getAuxVelInnovRatio(float &aux_vel_innov_ratio) const { aux_vel_innov_ratio = math::max(_aid_src_aux_vel.test_ratio[0], _aid_src_aux_vel.test_ratio[1]); }
 #endif // CONFIG_EKF2_AUXVEL
 
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	void getFlowInnov(float flow_innov[2]) const;
 	void getFlowInnovVar(float flow_innov_var[2]) const;
 	void getFlowInnovRatio(float &flow_innov_ratio) const { flow_innov_ratio = math::max(_aid_src_optical_flow.test_ratio[0], _aid_src_optical_flow.test_ratio[1]); }
@@ -121,6 +122,10 @@ public:
 	void getTerrainFlowInnov(float flow_innov[2]) const;
 	void getTerrainFlowInnovVar(float flow_innov_var[2]) const;
 	void getTerrainFlowInnovRatio(float &flow_innov_ratio) const { flow_innov_ratio = math::max(_aid_src_terrain_optical_flow.test_ratio[0], _aid_src_terrain_optical_flow.test_ratio[1]); }
+
+	const auto &aid_src_optical_flow() const { return _aid_src_optical_flow; }
+	const auto &aid_src_terrain_optical_flow() const { return _aid_src_terrain_optical_flow; }
+#endif // CONFIG_EKF2_OPTICAL_FLOW
 
 	void getHeadingInnov(float &heading_innov) const
 	{
@@ -494,9 +499,6 @@ public:
 	const auto &aid_src_aux_vel() const { return _aid_src_aux_vel; }
 #endif // CONFIG_EKF2_AUXVEL
 
-	const auto &aid_src_optical_flow() const { return _aid_src_optical_flow; }
-	const auto &aid_src_terrain_optical_flow() const { return _aid_src_terrain_optical_flow; }
-
 private:
 
 	// set the internal states and status to their default value
@@ -645,8 +647,10 @@ private:
 	estimator_aid_source2d_s _aid_src_aux_vel{};
 #endif // CONFIG_EKF2_AUXVEL
 
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	estimator_aid_source2d_s _aid_src_optical_flow{};
 	estimator_aid_source2d_s _aid_src_terrain_optical_flow{};
+#endif // CONFIG_EKF2_OPTICAL_FLOW
 
 	// variables used for the GPS quality checks
 	Vector3f _gps_pos_deriv_filt{};	///< GPS NED position derivative (m/sec)
@@ -809,12 +813,6 @@ private:
 
 	void resetVerticalVelocityToZero();
 
-	// fuse optical flow line of sight rate measurements
-	void updateOptFlow(estimator_aid_source2d_s &aid_src);
-	void fuseOptFlow();
-	float predictFlowRange();
-	Vector2f predictFlowVelBody();
-
 	// horizontal and vertical position aid source
 	void updateHorizontalPositionAidSrcStatus(const uint64_t &time_us, const Vector2f &obs, const Vector2f &obs_var, const float innov_gate, estimator_aid_source2d_s &aid_src) const;
 	void updateVerticalPositionAidSrcStatus(const uint64_t &time_us, const float obs, const float obs_var, const float innov_gate, estimator_aid_source1d_s &aid_src) const;
@@ -850,12 +848,20 @@ private:
 	void stopHaglRngFusion();
 	float getRngVar();
 
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	// update the terrain vertical position estimate using an optical flow measurement
 	void controlHaglFlowFusion();
 	void startHaglFlowFusion();
 	void resetHaglFlow();
 	void stopHaglFlowFusion();
 	void fuseFlowForTerrain(estimator_aid_source2d_s &flow);
+
+	// fuse optical flow line of sight rate measurements
+	void updateOptFlow(estimator_aid_source2d_s &aid_src);
+	void fuseOptFlow();
+	float predictFlowRange();
+	Vector2f predictFlowVelBody();
+#endif // CONFIG_EKF2_OPTICAL_FLOW
 
 	void controlHaglFakeFusion();
 

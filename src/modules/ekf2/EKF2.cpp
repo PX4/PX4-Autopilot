@@ -63,7 +63,6 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_mag_delay(_params->mag_delay_ms),
 	_param_ekf2_baro_delay(_params->baro_delay_ms),
 	_param_ekf2_gps_delay(_params->gps_delay_ms),
-	_param_ekf2_of_delay(_params->flow_delay_ms),
 	_param_ekf2_rng_delay(_params->range_delay_ms),
 #if defined(CONFIG_EKF2_AUXVEL)
 	_param_ekf2_avel_delay(_params->auxvel_delay_ms),
@@ -145,10 +144,16 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_ev_pos_z(_params->ev_pos_body(2)),
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 	_param_ekf2_grav_noise(_params->gravity_noise),
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
+	_param_ekf2_of_delay(_params->flow_delay_ms),
 	_param_ekf2_of_n_min(_params->flow_noise),
 	_param_ekf2_of_n_max(_params->flow_noise_qual_min),
 	_param_ekf2_of_qmin(_params->flow_qual_min),
 	_param_ekf2_of_gate(_params->flow_innov_gate),
+	_param_ekf2_of_pos_x(_params->flow_pos_body(0)),
+	_param_ekf2_of_pos_y(_params->flow_pos_body(1)),
+	_param_ekf2_of_pos_z(_params->flow_pos_body(2)),
+#endif // CONFIG_EKF2_OPTICAL_FLOW
 	_param_ekf2_imu_pos_x(_params->imu_pos_body(0)),
 	_param_ekf2_imu_pos_y(_params->imu_pos_body(1)),
 	_param_ekf2_imu_pos_z(_params->imu_pos_body(2)),
@@ -158,9 +163,6 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_rng_pos_x(_params->rng_pos_body(0)),
 	_param_ekf2_rng_pos_y(_params->rng_pos_body(1)),
 	_param_ekf2_rng_pos_z(_params->rng_pos_body(2)),
-	_param_ekf2_of_pos_x(_params->flow_pos_body(0)),
-	_param_ekf2_of_pos_y(_params->flow_pos_body(1)),
-	_param_ekf2_of_pos_z(_params->flow_pos_body(2)),
 	_param_ekf2_gbias_init(_params->switch_on_gyro_bias),
 	_param_ekf2_abias_init(_params->switch_on_accel_bias),
 	_param_ekf2_angerr_init(_params->initial_tilt_err),
@@ -217,7 +219,9 @@ EKF2::~EKF2()
 #endif // CONFIG_EKF2_AUXVEL
 	perf_free(_msg_missed_magnetometer_perf);
 	perf_free(_msg_missed_odometry_perf);
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	perf_free(_msg_missed_optical_flow_perf);
+#endif // CONFIG_EKF2_OPTICAL_FLOW
 }
 
 #if defined(CONFIG_EKF2_MULTI_INSTANCE)
@@ -229,7 +233,9 @@ bool EKF2::multi_init(int imu, int mag)
 	_estimator_innovation_test_ratios_pub.advertise();
 	_estimator_innovation_variances_pub.advertise();
 	_estimator_innovations_pub.advertise();
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	_estimator_optical_flow_vel_pub.advertise();
+#endif // CONFIG_EKF2_OPTICAL_FLOW
 	_estimator_sensor_bias_pub.advertise();
 	_estimator_states_pub.advertise();
 	_estimator_status_flags_pub.advertise();
@@ -342,7 +348,9 @@ int EKF2::print_status()
 #endif // CONFIG_EKF2_AUXVEL
 	perf_print_counter(_msg_missed_magnetometer_perf);
 	perf_print_counter(_msg_missed_odometry_perf);
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	perf_print_counter(_msg_missed_optical_flow_perf);
+#endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(DEBUG_BUILD)
 	_ekf.print_status();
@@ -645,7 +653,9 @@ void EKF2::Run()
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 		UpdateExtVisionSample(ekf2_timestamps);
 #endif // CONFIG_EKF2_EXTERNAL_VISION
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
 		UpdateFlowSample(ekf2_timestamps);
+#endif // CONFIG_EKF2_OPTICAL_FLOW
 		UpdateGpsSample(ekf2_timestamps);
 		UpdateMagSample(ekf2_timestamps);
 		UpdateRangeSample(ekf2_timestamps);
@@ -674,7 +684,9 @@ void EKF2::Run()
 			PublishInnovations(now);
 			PublishInnovationTestRatios(now);
 			PublishInnovationVariances(now);
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
 			PublishOpticalFlowVel(now);
+#endif // CONFIG_EKF2_OPTICAL_FLOW
 			PublishStates(now);
 			PublishStatus(now);
 			PublishStatusFlags(now);
@@ -883,10 +895,12 @@ void EKF2::PublishAidSourceStatus(const hrt_abstime &timestamp)
 	PublishAidSourceStatus(_ekf.aid_src_aux_vel(), _status_aux_vel_pub_last, _estimator_aid_src_aux_vel_pub);
 #endif // CONFIG_EKF2_AUXVEL
 
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	// optical flow
 	PublishAidSourceStatus(_ekf.aid_src_optical_flow(), _status_optical_flow_pub_last, _estimator_aid_src_optical_flow_pub);
 	PublishAidSourceStatus(_ekf.aid_src_terrain_optical_flow(), _status_terrain_optical_flow_pub_last,
 			       _estimator_aid_src_terrain_optical_flow_pub);
+#endif // CONFIG_EKF2_OPTICAL_FLOW
 }
 
 void EKF2::PublishAttitude(const hrt_abstime &timestamp)
@@ -1171,7 +1185,10 @@ void EKF2::PublishInnovations(const hrt_abstime &timestamp)
 #if defined(CONFIG_EKF2_AUXVEL)
 	_ekf.getAuxVelInnov(innovations.aux_hvel);
 #endif // CONFIG_EKF2_AUXVEL
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	_ekf.getFlowInnov(innovations.flow);
+	_ekf.getTerrainFlowInnov(innovations.terr_flow);
+#endif // CONFIG_EKF2_OPTICAL_FLOW
 	_ekf.getHeadingInnov(innovations.heading);
 	_ekf.getMagInnov(innovations.mag_field);
 #if defined(CONFIG_EKF2_DRAG_FUSION)
@@ -1185,7 +1202,6 @@ void EKF2::PublishInnovations(const hrt_abstime &timestamp)
 #endif // CONFIG_EKF2_SIDESLIP
 	_ekf.getHaglInnov(innovations.hagl);
 	_ekf.getHaglRateInnov(innovations.hagl_rate);
-	_ekf.getTerrainFlowInnov(innovations.terr_flow);
 	_ekf.getGravityInnov(innovations.gravity);
 	// Not yet supported
 	innovations.aux_vvel = NAN;
@@ -1202,7 +1218,9 @@ void EKF2::PublishInnovations(const hrt_abstime &timestamp)
 	if (!_ekf.control_status_flags().in_air) {
 		// TODO: move to run before publications
 		_preflt_checker.setUsingGpsAiding(_ekf.control_status_flags().gps);
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
 		_preflt_checker.setUsingFlowAiding(_ekf.control_status_flags().opt_flow);
+#endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 		_preflt_checker.setUsingEvPosAiding(_ekf.control_status_flags().ev_pos);
@@ -1235,7 +1253,10 @@ void EKF2::PublishInnovationTestRatios(const hrt_abstime &timestamp)
 #if defined(CONFIG_EKF2_AUXVEL)
 	_ekf.getAuxVelInnovRatio(test_ratios.aux_hvel[0]);
 #endif // CONFIG_EKF2_AUXVEL
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	_ekf.getFlowInnovRatio(test_ratios.flow[0]);
+	_ekf.getTerrainFlowInnovRatio(test_ratios.terr_flow[0]);
+#endif // CONFIG_EKF2_OPTICAL_FLOW
 	_ekf.getHeadingInnovRatio(test_ratios.heading);
 	_ekf.getMagInnovRatio(test_ratios.mag_field[0]);
 #if defined(CONFIG_EKF2_DRAG_FUSION)
@@ -1249,7 +1270,6 @@ void EKF2::PublishInnovationTestRatios(const hrt_abstime &timestamp)
 #endif // CONFIG_EKF2_SIDESLIP
 	_ekf.getHaglInnovRatio(test_ratios.hagl);
 	_ekf.getHaglRateInnovRatio(test_ratios.hagl_rate);
-	_ekf.getTerrainFlowInnovRatio(test_ratios.terr_flow[0]);
 	_ekf.getGravityInnovRatio(test_ratios.gravity[0]);
 	// Not yet supported
 	test_ratios.aux_vvel = NAN;
@@ -1272,7 +1292,10 @@ void EKF2::PublishInnovationVariances(const hrt_abstime &timestamp)
 #if defined(CONFIG_EKF2_AUXVEL)
 	_ekf.getAuxVelInnovVar(variances.aux_hvel);
 #endif // CONFIG_EKF2_AUXVEL
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	_ekf.getFlowInnovVar(variances.flow);
+	_ekf.getTerrainFlowInnovVar(variances.terr_flow);
+#endif // CONFIG_EKF2_OPTICAL_FLOW
 	_ekf.getHeadingInnovVar(variances.heading);
 	_ekf.getMagInnovVar(variances.mag_field);
 #if defined(CONFIG_EKF2_DRAG_FUSION)
@@ -1286,7 +1309,6 @@ void EKF2::PublishInnovationVariances(const hrt_abstime &timestamp)
 #endif // CONFIG_EKF2_SIDESLIP
 	_ekf.getHaglInnovVar(variances.hagl);
 	_ekf.getHaglRateInnovVar(variances.hagl_rate);
-	_ekf.getTerrainFlowInnovVar(variances.terr_flow);
 	_ekf.getGravityInnovVar(variances.gravity);
 	// Not yet supported
 	variances.aux_vvel = NAN;
@@ -1711,6 +1733,7 @@ void EKF2::PublishWindEstimate(const hrt_abstime &timestamp)
 	}
 }
 
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
 void EKF2::PublishOpticalFlowVel(const hrt_abstime &timestamp)
 {
 	const hrt_abstime timestamp_sample = _ekf.aid_src_optical_flow().timestamp_sample;
@@ -1734,6 +1757,7 @@ void EKF2::PublishOpticalFlowVel(const hrt_abstime &timestamp)
 		_estimator_optical_flow_vel_pub.publish(flow_vel);
 	}
 }
+#endif // CONFIG_EKF2_OPTICAL_FLOW
 
 float EKF2::filter_altitude_ellipsoid(float amsl_hgt)
 {
@@ -2055,6 +2079,7 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps)
 }
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
 bool EKF2::UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps)
 {
 	// EKF flow sample
@@ -2113,6 +2138,7 @@ bool EKF2::UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps)
 
 	return new_optical_flow;
 }
+#endif // CONFIG_EKF2_OPTICAL_FLOW
 
 void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 {

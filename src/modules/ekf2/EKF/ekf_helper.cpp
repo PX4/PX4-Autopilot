@@ -355,6 +355,7 @@ void Ekf::getAuxVelInnovVar(float aux_vel_innov_var[2]) const
 }
 #endif // CONFIG_EKF2_AUXVEL
 
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
 void Ekf::getFlowInnov(float flow_innov[2]) const
 {
 	flow_innov[0] = _aid_src_optical_flow.innovation[0];
@@ -378,6 +379,7 @@ void Ekf::getTerrainFlowInnovVar(float flow_innov_var[2]) const
 	flow_innov_var[0] = _aid_src_terrain_optical_flow.innovation_variance[0];
 	flow_innov_var[1] = _aid_src_terrain_optical_flow.innovation_variance[1];
 }
+#endif // CONFIG_EKF2_OPTICAL_FLOW
 
 // get the state vector at the delayed time horizon
 matrix::Vector<float, 24> Ekf::getStateAtFusionHorizonAsVector() const
@@ -519,10 +521,12 @@ void Ekf::get_ekf_vel_accuracy(float *ekf_evh, float *ekf_evv) const
 	if (_horizontal_deadreckon_time_exceeded) {
 		float vel_err_conservative = 0.0f;
 
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
 		if (_control_status.flags.opt_flow) {
 			float gndclearance = math::max(_params.rng_gnd_clearance, 0.1f);
 			vel_err_conservative = math::max((_terrain_vpos - _state.pos(2)), gndclearance) * Vector2f(_aid_src_optical_flow.innovation).norm();
 		}
+#endif // CONFIG_EKF2_OPTICAL_FLOW
 
 		if (_control_status.flags.gps) {
 			vel_err_conservative = math::max(vel_err_conservative, Vector2f(_aid_src_gnss_pos.innovation).norm());
@@ -568,7 +572,6 @@ void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, fl
 
 	// TODO : calculate visual odometry limits
 	const bool relying_on_rangefinder = isOnlyActiveSourceOfVerticalPositionAiding(_control_status.flags.rng_hgt);
-	const bool relying_on_optical_flow = isOnlyActiveSourceOfHorizontalAiding(_control_status.flags.opt_flow);
 
 	// Keep within range sensor limit when using rangefinder as primary height source
 	if (relying_on_rangefinder) {
@@ -576,7 +579,10 @@ void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, fl
 		*hagl_max = rangefinder_hagl_max;
 	}
 
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	// Keep within flow AND range sensor limits when exclusively using optical flow
+	const bool relying_on_optical_flow = isOnlyActiveSourceOfHorizontalAiding(_control_status.flags.opt_flow);
+
 	if (relying_on_optical_flow) {
 		// Calculate optical flow limits
 		const float flow_hagl_min = fmaxf(rangefinder_hagl_min, _flow_min_distance);
@@ -591,6 +597,7 @@ void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, fl
 		*hagl_min = flow_hagl_min;
 		*hagl_max = flow_hagl_max;
 	}
+#endif // CONFIG_EKF2_OPTICAL_FLOW
 }
 
 void Ekf::resetImuBias()
@@ -680,10 +687,12 @@ void Ekf::get_innovation_test_status(uint16_t &status, float &mag, float &vel, f
 	}
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	if (isOnlyActiveSourceOfHorizontalAiding(_control_status.flags.opt_flow)) {
 		float of_vel = sqrtf(Vector2f(_aid_src_optical_flow.test_ratio).max());
 		vel = math::max(of_vel, FLT_MIN);
 	}
+#endif // CONFIG_EKF2_OPTICAL_FLOW
 
 	// return the combined vertical position innovation test ratio
 	float hgt_sum = 0.f;
@@ -802,7 +811,10 @@ void Ekf::updateHorizontalDeadReckoningstatus()
 				  && (isRecent(_time_last_hor_pos_fuse, _params.no_aid_timeout_max)
 				      || isRecent(_time_last_hor_vel_fuse, _params.no_aid_timeout_max));
 
-	const bool optFlowAiding = _control_status.flags.opt_flow && isRecent(_aid_src_optical_flow.time_last_fuse, _params.no_aid_timeout_max);
+	bool optFlowAiding = false;
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
+	optFlowAiding = _control_status.flags.opt_flow && isRecent(_aid_src_optical_flow.time_last_fuse, _params.no_aid_timeout_max);
+#endif // CONFIG_EKF2_OPTICAL_FLOW
 
 	bool airDataAiding = false;
 
