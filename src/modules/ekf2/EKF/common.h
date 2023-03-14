@@ -310,7 +310,6 @@ struct parameters {
 	float mag_delay_ms{0.0f};               ///< magnetometer measurement delay relative to the IMU (mSec)
 	float baro_delay_ms{0.0f};              ///< barometer height measurement delay relative to the IMU (mSec)
 	float gps_delay_ms{110.0f};             ///< GPS measurement delay relative to the IMU (mSec)
-	float flow_delay_ms{5.0f};              ///< optical flow measurement delay relative to the IMU (mSec) - this is to the middle of the optical flow integration interval
 	float range_delay_ms{5.0f};             ///< range finder measurement delay relative to the IMU (mSec)
 
 	// input noise
@@ -412,11 +411,15 @@ struct parameters {
 	// gravity fusion
 	float gravity_noise{1.0f};              ///< accelerometer measurement gaussian noise (m/s**2)
 
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
+	float flow_delay_ms{5.0f};              ///< optical flow measurement delay relative to the IMU (mSec) - this is to the middle of the optical flow integration interval
+
 	// optical flow fusion
 	float flow_noise{0.15f};                ///< observation noise for optical flow LOS rate measurements (rad/sec)
 	float flow_noise_qual_min{0.5f};        ///< observation noise for optical flow LOS rate measurements when flow sensor quality is at the minimum useable (rad/sec)
 	int32_t flow_qual_min{1};               ///< minimum acceptable quality integer from  the flow sensor
 	float flow_innov_gate{3.0f};            ///< optical flow fusion innovation consistency gate size (STD)
+#endif // CONFIG_EKF2_OPTICAL_FLOW
 
 	// these parameters control the strictness of GPS quality checks used to determine if the GPS is
 	// good enough to set a local origin and commence aiding
