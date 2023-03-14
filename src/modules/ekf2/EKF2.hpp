@@ -622,6 +622,7 @@ private:
 		(ParamExtFloat<px4::params::EKF2_MCOEF>) _param_ekf2_mcoef,		///< propeller momentum drag coefficient (1/s)
 #endif // CONFIG_EKF2_DRAG_FUSION
 
+#if defined(CONFIG_EKF2_BARO_COMPENSATION)
 		// Corrections for static pressure position error where Ps_error = Ps_meas - Ps_truth
 		// Coef = Ps_error / Pdynamic, where Pdynamic = 1/2 * density * TAS**2
 		(ParamExtFloat<px4::params::EKF2_ASPD_MAX>)
@@ -636,6 +637,7 @@ private:
 		_param_ekf2_pcoef_yn,	///< static pressure position error coefficient along the negative Y body axis
 		(ParamExtFloat<px4::params::EKF2_PCOEF_Z>)
 		_param_ekf2_pcoef_z,	///< static pressure position error coefficient along the Z body axis
+#endif // CONFIG_EKF2_BARO_COMPENSATION
 
 		(ParamFloat<px4::params::EKF2_REQ_GPS_H>) _param_ekf2_req_gps_h, ///< Required GPS health time
 		(ParamExtInt<px4::params::EKF2_MAG_CHECK>) _param_ekf2_mag_check, ///< Mag field strength check

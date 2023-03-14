@@ -231,6 +231,7 @@ void Ekf::constrainStates()
 
 float Ekf::compensateBaroForDynamicPressure(const float baro_alt_uncompensated) const
 {
+#if defined(CONFIG_EKF2_BARO_COMPENSATION)
 	if (_control_status.flags.wind && local_position_is_valid()) {
 		// calculate static pressure error = Pmeas - Ptruth
 		// model position error sensitivity as a body fixed ellipse with a different scale in the positive and
@@ -258,6 +259,7 @@ float Ekf::compensateBaroForDynamicPressure(const float baro_alt_uncompensated) 
 		// correct baro measurement using pressure error estimate and assuming sea level gravity
 		return baro_alt_uncompensated + pstatic_err / (_air_density * CONSTANTS_ONE_G);
 	}
+#endif // CONFIG_EKF2_BARO_COMPENSATION
 
 	// otherwise return the uncorrected baro measurement
 	return baro_alt_uncompensated;
