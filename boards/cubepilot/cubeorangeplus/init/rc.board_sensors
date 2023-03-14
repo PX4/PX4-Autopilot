@@ -21,9 +21,13 @@ then
 fi
 
 # SPI1, body-fixed
-if ! icm45686 -s -b 1 -R 3 -q start
+if icm45686 -s -b 1 -R 3 -q start
 then
+	# if we detected the ICM45686 we also ought to have an AK09918
+	ak09916 start -I -R 13
+else
 	icm20649 -s -b 1 start
+
 fi
 
 ms5611 -s -b 1 start
