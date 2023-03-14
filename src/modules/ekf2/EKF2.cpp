@@ -66,7 +66,9 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_of_delay(_params->flow_delay_ms),
 	_param_ekf2_rng_delay(_params->range_delay_ms),
 	_param_ekf2_ev_delay(_params->ev_delay_ms),
+#if defined(CONFIG_EKF2_AUXVEL)
 	_param_ekf2_avel_delay(_params->auxvel_delay_ms),
+#endif // CONFIG_EKF2_AUXVEL
 	_param_ekf2_gyr_noise(_params->gyro_noise),
 	_param_ekf2_acc_noise(_params->accel_noise),
 	_param_ekf2_gyr_b_noise(_params->gyro_bias_p_noise),
@@ -208,7 +210,9 @@ EKF2::~EKF2()
 #endif // CONFIG_EKF2_AIRSPEED
 	perf_free(_msg_missed_distance_sensor_perf);
 	perf_free(_msg_missed_gps_perf);
+#if defined(CONFIG_EKF2_AUXVEL)
 	perf_free(_msg_missed_landing_target_pose_perf);
+#endif // CONFIG_EKF2_AUXVEL
 	perf_free(_msg_missed_magnetometer_perf);
 	perf_free(_msg_missed_odometry_perf);
 	perf_free(_msg_missed_optical_flow_perf);
@@ -327,7 +331,9 @@ int EKF2::print_status()
 #endif // CONFIG_EKF2_AIRSPEED
 	perf_print_counter(_msg_missed_distance_sensor_perf);
 	perf_print_counter(_msg_missed_gps_perf);
+#if defined(CONFIG_EKF2_AUXVEL)
 	perf_print_counter(_msg_missed_landing_target_pose_perf);
+#endif // CONFIG_EKF2_AUXVEL
 	perf_print_counter(_msg_missed_magnetometer_perf);
 	perf_print_counter(_msg_missed_odometry_perf);
 	perf_print_counter(_msg_missed_optical_flow_perf);
@@ -626,7 +632,9 @@ void EKF2::Run()
 #if defined(CONFIG_EKF2_AIRSPEED)
 		UpdateAirspeedSample(ekf2_timestamps);
 #endif // CONFIG_EKF2_AIRSPEED
+#if defined(CONFIG_EKF2_AUXVEL)
 		UpdateAuxVelSample(ekf2_timestamps);
+#endif // CONFIG_EKF2_AUXVEL
 		UpdateBaroSample(ekf2_timestamps);
 		UpdateExtVisionSample(ekf2_timestamps);
 		UpdateFlowSample(ekf2_timestamps);
@@ -855,8 +863,10 @@ void EKF2::PublishAidSourceStatus(const hrt_abstime &timestamp)
 	// gravity
 	PublishAidSourceStatus(_ekf.aid_src_gravity(), _status_gravity_pub_last, _estimator_aid_src_gravity_pub);
 
+#if defined(CONFIG_EKF2_AUXVEL)
 	// aux velocity
 	PublishAidSourceStatus(_ekf.aid_src_aux_vel(), _status_aux_vel_pub_last, _estimator_aid_src_aux_vel_pub);
+#endif // CONFIG_EKF2_AUXVEL
 
 	// optical flow
 	PublishAidSourceStatus(_ekf.aid_src_optical_flow(), _status_optical_flow_pub_last, _estimator_aid_src_optical_flow_pub);
@@ -1139,7 +1149,9 @@ void EKF2::PublishInnovations(const hrt_abstime &timestamp)
 	_ekf.getEvVelPosInnov(innovations.ev_hvel, innovations.ev_vvel, innovations.ev_hpos, innovations.ev_vpos);
 	_ekf.getBaroHgtInnov(innovations.baro_vpos);
 	_ekf.getRngHgtInnov(innovations.rng_vpos);
+#if defined(CONFIG_EKF2_AUXVEL)
 	_ekf.getAuxVelInnov(innovations.aux_hvel);
+#endif // CONFIG_EKF2_AUXVEL
 	_ekf.getFlowInnov(innovations.flow);
 	_ekf.getHeadingInnov(innovations.heading);
 	_ekf.getMagInnov(innovations.mag_field);
@@ -1196,7 +1208,9 @@ void EKF2::PublishInnovationTestRatios(const hrt_abstime &timestamp)
 	_ekf.getEvVelPosInnovRatio(test_ratios.ev_hvel[0], test_ratios.ev_vvel, test_ratios.ev_hpos[0], test_ratios.ev_vpos);
 	_ekf.getBaroHgtInnovRatio(test_ratios.baro_vpos);
 	_ekf.getRngHgtInnovRatio(test_ratios.rng_vpos);
+#if defined(CONFIG_EKF2_AUXVEL)
 	_ekf.getAuxVelInnovRatio(test_ratios.aux_hvel[0]);
+#endif // CONFIG_EKF2_AUXVEL
 	_ekf.getFlowInnovRatio(test_ratios.flow[0]);
 	_ekf.getHeadingInnovRatio(test_ratios.heading);
 	_ekf.getMagInnovRatio(test_ratios.mag_field[0]);
@@ -1229,7 +1243,9 @@ void EKF2::PublishInnovationVariances(const hrt_abstime &timestamp)
 	_ekf.getEvVelPosInnovVar(variances.ev_hvel, variances.ev_vvel, variances.ev_hpos, variances.ev_vpos);
 	_ekf.getBaroHgtInnovVar(variances.baro_vpos);
 	_ekf.getRngHgtInnovVar(variances.rng_vpos);
+#if defined(CONFIG_EKF2_AUXVEL)
 	_ekf.getAuxVelInnovVar(variances.aux_hvel);
+#endif // CONFIG_EKF2_AUXVEL
 	_ekf.getFlowInnovVar(variances.flow);
 	_ekf.getHeadingInnovVar(variances.heading);
 	_ekf.getMagInnovVar(variances.mag_field);
@@ -1783,6 +1799,7 @@ void EKF2::UpdateAirspeedSample(ekf2_timestamps_s &ekf2_timestamps)
 }
 #endif // CONFIG_EKF2_AIRSPEED
 
+#if defined(CONFIG_EKF2_AUXVEL)
 void EKF2::UpdateAuxVelSample(ekf2_timestamps_s &ekf2_timestamps)
 {
 	// EKF auxiliary velocity sample
@@ -1810,6 +1827,7 @@ void EKF2::UpdateAuxVelSample(ekf2_timestamps_s &ekf2_timestamps)
 		}
 	}
 }
+#endif // CONFIG_EKF2_AUXVEL
 
 void EKF2::UpdateBaroSample(ekf2_timestamps_s &ekf2_timestamps)
 {

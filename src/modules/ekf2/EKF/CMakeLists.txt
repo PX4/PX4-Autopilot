@@ -33,7 +33,6 @@
 
 set(EKF_SRCS)
 list(APPEND EKF_SRCS
-	auxvel_fusion.cpp
 	baro_height_control.cpp
 	bias_estimator.cpp
 	control.cpp
@@ -71,6 +70,10 @@ list(APPEND EKF_SRCS
 
 if(CONFIG_EKF2_AIRSPEED)
 	list(APPEND EKF_SRCS airspeed_fusion.cpp)
+endif()
+
+if(CONFIG_EKF2_AUXVEL)
+	list(APPEND EKF_SRCS auxvel_fusion.cpp)
 endif()
 
 if(CONFIG_EKF2_DRAG_FUSION)

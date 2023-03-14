@@ -142,7 +142,9 @@ void Ekf::reset()
 	resetEstimatorAidStatus(_aid_src_mag_heading);
 	resetEstimatorAidStatus(_aid_src_mag);
 
+#if defined(CONFIG_EKF2_AUXVEL)
 	resetEstimatorAidStatus(_aid_src_aux_vel);
+#endif // CONFIG_EKF2_AUXVEL
 
 	resetEstimatorAidStatus(_aid_src_optical_flow);
 	resetEstimatorAidStatus(_aid_src_terrain_optical_flow);

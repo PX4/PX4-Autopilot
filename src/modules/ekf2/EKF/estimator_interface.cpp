@@ -58,7 +58,9 @@ EstimatorInterface::~EstimatorInterface()
 #if defined(CONFIG_EKF2_DRAG_FUSION)
 	delete _drag_buffer;
 #endif // CONFIG_EKF2_DRAG_FUSION
+#if defined(CONFIG_EKF2_AUXVEL)
 	delete _auxvel_buffer;
+#endif // CONFIG_EKF2_AUXVEL
 }
 
 // Accumulate imu data and store to buffer at desired rate
@@ -391,6 +393,7 @@ void EstimatorInterface::setExtVisionData(const extVisionSample &evdata)
 	}
 }
 
+#if defined(CONFIG_EKF2_AUXVEL)
 void EstimatorInterface::setAuxVelData(const auxVelSample &auxvel_sample)
 {
 	if (!_initialised) {
@@ -425,6 +428,7 @@ void EstimatorInterface::setAuxVelData(const auxVelSample &auxvel_sample)
 		ECL_WARN("aux velocity data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us, _auxvel_buffer->get_newest().time_us, _min_obs_interval_us);
 	}
 }
+#endif // CONFIG_EKF2_AUXVEL
 
 void EstimatorInterface::setSystemFlagData(const systemFlagUpdate &system_flags)
 {
@@ -520,7 +524,12 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 	// find the maximum time delay the buffers are required to handle
 
 	// it's reasonable to assume that aux velocity device has low delay. TODO: check the delay only if the aux device is used
-	float max_time_delay_ms = math::max((float)_params.sensor_interval_max_ms, _params.auxvel_delay_ms);
+	float max_time_delay_ms = _params.sensor_interval_max_ms;
+
+	// aux vel
+#if defined(CONFIG_EKF2_AUXVEL)
+	max_time_delay_ms = math::max(_params.auxvel_delay_ms, max_time_delay_ms);
+#endif // CONFIG_EKF2_AUXVEL
 
 	// using baro
 	if (_params.baro_ctrl > 0) {
