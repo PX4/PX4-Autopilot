@@ -82,7 +82,9 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 		const bool gps_checks_passing = isTimedOut(_last_gps_fail_us, (uint64_t)5e6);
 		const bool gps_checks_failing = isTimedOut(_last_gps_pass_us, (uint64_t)5e6);
 
+#if defined(CONFIG_EKF2_GNSS_YAW)
 		controlGpsYawFusion(gps_sample, gps_checks_passing, gps_checks_failing);
+#endif // CONFIG_EKF2_GNSS_YAW
 
 		// GNSS velocity
 		const Vector3f velocity{gps_sample.vel};
@@ -297,6 +299,7 @@ bool Ekf::isYawFailure() const
 	return fabsf(yaw_error) > math::radians(25.f);
 }
 
+#if defined(CONFIG_EKF2_GNSS_YAW)
 void Ekf::controlGpsYawFusion(const gpsSample &gps_sample, bool gps_checks_passing, bool gps_checks_failing)
 {
 	if (!(_params.gnss_ctrl & GnssCtrl::YAW)
@@ -387,6 +390,31 @@ void Ekf::controlGpsYawFusion(const gpsSample &gps_sample, bool gps_checks_passi
 	}
 }
 
+void Ekf::startGpsYawFusion(const gpsSample &gps_sample)
+{
+	if (!_control_status.flags.gps_yaw && resetYawToGps(gps_sample.yaw)) {
+		ECL_INFO("starting GPS yaw fusion");
+		_control_status.flags.yaw_align = true;
+		_control_status.flags.mag_dec = false;
+		stopEvYawFusion();
+		stopMagHdgFusion();
+		stopMag3DFusion();
+		_control_status.flags.gps_yaw = true;
+	}
+}
+#endif // CONFIG_EKF2_GNSS_YAW
+
+void Ekf::stopGpsYawFusion()
+{
+#if defined(CONFIG_EKF2_GNSS_YAW)
+	if (_control_status.flags.gps_yaw) {
+		ECL_INFO("stopping GPS yaw fusion");
+		_control_status.flags.gps_yaw = false;
+		resetEstimatorAidStatus(_aid_src_gnss_yaw);
+	}
+#endif // CONFIG_EKF2_GNSS_YAW
+}
+
 void Ekf::stopGpsFusion()
 {
 	if (_control_status.flags.gps) {
@@ -420,26 +448,4 @@ void Ekf::stopGpsVelFusion()
 	ECL_INFO("stopping GPS velocity fusion");
 
 	resetEstimatorAidStatus(_aid_src_gnss_vel);
-}
-
-void Ekf::startGpsYawFusion(const gpsSample &gps_sample)
-{
-	if (!_control_status.flags.gps_yaw && resetYawToGps(gps_sample.yaw)) {
-		ECL_INFO("starting GPS yaw fusion");
-		_control_status.flags.yaw_align = true;
-		_control_status.flags.mag_dec = false;
-		stopEvYawFusion();
-		stopMagHdgFusion();
-		stopMag3DFusion();
-		_control_status.flags.gps_yaw = true;
-	}
-}
-
-void Ekf::stopGpsYawFusion()
-{
-	if (_control_status.flags.gps_yaw) {
-		ECL_INFO("stopping GPS yaw fusion");
-		_control_status.flags.gps_yaw = false;
-		resetEstimatorAidStatus(_aid_src_gnss_yaw);
-	}
 }

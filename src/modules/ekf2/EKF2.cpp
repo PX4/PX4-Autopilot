@@ -264,9 +264,13 @@ bool EKF2::multi_init(int imu, int mag)
 		_estimator_aid_src_gnss_vel_pub.advertise();
 	}
 
+#if defined(CONFIG_EKF2_GNSS_YAW)
+
 	if (_param_ekf2_gps_ctrl.get() & static_cast<int32_t>(GnssCtrl::YAW)) {
 		_estimator_aid_src_gnss_yaw_pub.advertise();
 	}
+
+#endif // CONFIG_EKF2_GNSS_YAW
 
 	// RNG advertise
 	if (_param_ekf2_rng_ctrl.get()) {
@@ -823,7 +827,9 @@ void EKF2::PublishAidSourceStatus(const hrt_abstime &timestamp)
 	PublishAidSourceStatus(_ekf.aid_src_gnss_hgt(), _status_gnss_hgt_pub_last, _estimator_aid_src_gnss_hgt_pub);
 	PublishAidSourceStatus(_ekf.aid_src_gnss_pos(), _status_gnss_pos_pub_last, _estimator_aid_src_gnss_pos_pub);
 	PublishAidSourceStatus(_ekf.aid_src_gnss_vel(), _status_gnss_vel_pub_last, _estimator_aid_src_gnss_vel_pub);
+#if defined(CONFIG_EKF2_GNSS_YAW)
 	PublishAidSourceStatus(_ekf.aid_src_gnss_yaw(), _status_gnss_yaw_pub_last, _estimator_aid_src_gnss_yaw_pub);
+#endif // CONFIG_EKF2_GNSS_YAW
 
 	// mag heading
 	PublishAidSourceStatus(_ekf.aid_src_mag_heading(), _status_mag_heading_pub_last, _estimator_aid_src_mag_heading_pub);

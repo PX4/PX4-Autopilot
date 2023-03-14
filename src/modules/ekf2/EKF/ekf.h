@@ -123,15 +123,24 @@ public:
 	{
 		if (_control_status.flags.mag_hdg) {
 			heading_innov = _aid_src_mag_heading.innovation;
+			return;
+		}
 
-		} else if (_control_status.flags.mag_3D) {
+		if (_control_status.flags.mag_3D) {
 			heading_innov = Vector3f(_aid_src_mag.innovation).max();
+			return;
+		}
 
-		} else if (_control_status.flags.gps_yaw) {
+#if defined(CONFIG_EKF2_GNSS_YAW)
+		if (_control_status.flags.gps_yaw) {
 			heading_innov = _aid_src_gnss_yaw.innovation;
+			return;
+		}
+#endif // CONFIG_EKF2_GNSS_YAW
 
-		} else if (_control_status.flags.ev_yaw) {
+		if (_control_status.flags.ev_yaw) {
 			heading_innov = _aid_src_ev_yaw.innovation;
+			return;
 		}
 	}
 
@@ -139,15 +148,24 @@ public:
 	{
 		if (_control_status.flags.mag_hdg) {
 			heading_innov_var = _aid_src_mag_heading.innovation_variance;
+			return;
+		}
 
-		} else if (_control_status.flags.mag_3D) {
+		if (_control_status.flags.mag_3D) {
 			heading_innov_var = Vector3f(_aid_src_mag.innovation_variance).max();
+			return;
+		}
 
-		} else if (_control_status.flags.gps_yaw) {
+#if defined(CONFIG_EKF2_GNSS_YAW)
+		if (_control_status.flags.gps_yaw) {
 			heading_innov_var = _aid_src_gnss_yaw.innovation_variance;
+			return;
+		}
+#endif // CONFIG_EKF2_GNSS_YAW
 
-		} else if (_control_status.flags.ev_yaw) {
+		if (_control_status.flags.ev_yaw) {
 			heading_innov_var = _aid_src_ev_yaw.innovation_variance;
+			return;
 		}
 	}
 
@@ -155,15 +173,24 @@ public:
 	{
 		if (_control_status.flags.mag_hdg) {
 			heading_innov_ratio = _aid_src_mag_heading.test_ratio;
+			return;
+		}
 
-		} else if (_control_status.flags.mag_3D) {
+		if (_control_status.flags.mag_3D) {
 			heading_innov_ratio = Vector3f(_aid_src_mag.test_ratio).max();
+			return;
+		}
 
-		} else if (_control_status.flags.gps_yaw) {
+#if defined(CONFIG_EKF2_GNSS_YAW)
+		if (_control_status.flags.gps_yaw) {
 			heading_innov_ratio = _aid_src_gnss_yaw.test_ratio;
+			return;
+		}
+#endif // CONFIG_EKF2_GNSS_YAW
 
-		} else if (_control_status.flags.ev_yaw) {
+		if (_control_status.flags.ev_yaw) {
 			heading_innov_ratio = _aid_src_ev_yaw.test_ratio;
+			return;
 		}
 	}
 
@@ -434,7 +461,10 @@ public:
 	const auto &aid_src_gnss_hgt() const { return _aid_src_gnss_hgt; }
 	const auto &aid_src_gnss_pos() const { return _aid_src_gnss_pos; }
 	const auto &aid_src_gnss_vel() const { return _aid_src_gnss_vel; }
+
+#if defined(CONFIG_EKF2_GNSS_YAW)
 	const auto &aid_src_gnss_yaw() const { return _aid_src_gnss_yaw; }
+#endif // CONFIG_EKF2_GNSS_YAW
 
 	const auto &aid_src_mag_heading() const { return _aid_src_mag_heading; }
 	const auto &aid_src_mag() const { return _aid_src_mag; }
@@ -506,7 +536,6 @@ private:
 	uint64_t _time_last_flow_terrain_fuse{0}; ///< time the last fusion of optical flow measurements for terrain estimation were performed (uSec)
 	uint64_t _time_last_zero_velocity_fuse{0}; ///< last time of zero velocity update (uSec)
 	uint64_t _time_last_healthy_rng_data{0};
-	uint8_t _nb_gps_yaw_reset_available{0}; ///< remaining number of resets allowed before switching to another aiding source
 
 	uint8_t _nb_ev_pos_reset_available{0};
 	uint8_t _nb_ev_vel_reset_available{0};
@@ -574,7 +603,11 @@ private:
 	estimator_aid_source1d_s _aid_src_gnss_hgt{};
 	estimator_aid_source2d_s _aid_src_gnss_pos{};
 	estimator_aid_source3d_s _aid_src_gnss_vel{};
+
+#if defined(CONFIG_EKF2_GNSS_YAW)
 	estimator_aid_source1d_s _aid_src_gnss_yaw{};
+	uint8_t _nb_gps_yaw_reset_available{0}; ///< remaining number of resets allowed before switching to another aiding source
+#endif // CONFIG_EKF2_GNSS_YAW
 
 	estimator_aid_source1d_s _aid_src_mag_heading{};
 	estimator_aid_source3d_s _aid_src_mag{};
@@ -668,12 +701,22 @@ private:
 	bool fuseYaw(float innovation, float variance, estimator_aid_source1d_s &aid_src_status, const Vector24f &H_YAW);
 	void computeYawInnovVarAndH(float variance, float &innovation_variance, Vector24f &H_YAW) const;
 
+#if defined(CONFIG_EKF2_GNSS_YAW)
+	void controlGpsYawFusion(const gpsSample &gps_sample, bool gps_checks_passing, bool gps_checks_failing);
+
 	// fuse the yaw angle obtained from a dual antenna GPS unit
 	void fuseGpsYaw();
 
 	// reset the quaternions states using the yaw angle obtained from a dual antenna GPS unit
 	// return true if the reset was successful
 	bool resetYawToGps(const float gnss_yaw);
+
+	void updateGpsYaw(const gpsSample &gps_sample);
+
+	void startGpsYawFusion(const gpsSample &gps_sample);
+
+#endif // CONFIG_EKF2_GNSS_YAW
+	void stopGpsYawFusion();
 
 	// fuse magnetometer declination measurement
 	// argument passed in is the declination uncertainty in radians
@@ -740,8 +783,6 @@ private:
 	// 2d & 3d velocity fusion
 	void fuseVelocity(estimator_aid_source2d_s &vel_aid_src);
 	void fuseVelocity(estimator_aid_source3d_s &vel_aid_src);
-
-	void updateGpsYaw(const gpsSample &gps_sample);
 
 	// calculate optical flow body angular rate compensation
 	// returns false if bias corrected body rate data is unavailable
@@ -894,8 +935,6 @@ private:
 	bool shouldResetGpsFusion() const;
 	bool isYawFailure() const;
 
-	void controlGpsYawFusion(const gpsSample &gps_sample, bool gps_checks_passing, bool gps_checks_failing);
-
 	// control fusion of magnetometer observations
 	void controlMagFusion();
 
@@ -1033,9 +1072,6 @@ private:
 	void stopGpsFusion();
 	void stopGpsPosFusion();
 	void stopGpsVelFusion();
-
-	void startGpsYawFusion(const gpsSample &gps_sample);
-	void stopGpsYawFusion();
 
 	void stopEvVelFusion();
 	void stopEvYawFusion();

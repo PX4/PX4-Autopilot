@@ -312,10 +312,12 @@ protected:
 	MapProjection _pos_ref{}; // Contains WGS-84 position latitude and longitude of the EKF origin
 	MapProjection _gps_pos_prev{}; // Contains WGS-84 position latitude and longitude of the previous GPS message
 	float _gps_alt_prev{0.0f};	// height from the previous GPS message (m)
+#if defined(CONFIG_EKF2_GNSS_YAW)
 	float _gps_yaw_offset{0.0f};	// Yaw offset angle for dual GPS antennas used for yaw estimation (radians).
-
 	// innovation consistency check monitoring ratios
 	AlphaFilter<float> _gnss_yaw_signed_test_ratio_lpf{0.1f}; // average signed test ratio used to detect a bias in the state
+	uint64_t _time_last_gps_yaw_buffer_push{0};
+#endif // CONFIG_EKF2_GNSS_YAW
 
 	float _hagl_test_ratio{};		// height above terrain measurement innovation consistency check ratio
 
@@ -353,7 +355,6 @@ protected:
 	RingBuffer<systemFlagUpdate> *_system_flag_buffer{nullptr};
 
 	uint64_t _time_last_gps_buffer_push{0};
-	uint64_t _time_last_gps_yaw_buffer_push{0};
 	uint64_t _time_last_mag_buffer_push{0};
 	uint64_t _time_last_baro_buffer_push{0};
 	uint64_t _time_last_range_buffer_push{0};
