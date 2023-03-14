@@ -42,9 +42,9 @@ using matrix::Vector3f;
 
 pthread_mutex_t ekf2_module_mutex = PTHREAD_MUTEX_INITIALIZER;
 static px4::atomic<EKF2 *> _objects[EKF2_MAX_INSTANCES] {};
-#if !defined(CONSTRAINED_FLASH)
+#if defined(CONFIG_EKF2_MULTI_INSTANCE)
 static px4::atomic<EKF2Selector *> _ekf2_selector {nullptr};
-#endif // !CONSTRAINED_FLASH
+#endif // CONFIG_EKF2_MULTI_INSTANCE
 
 EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	ModuleParams(nullptr),
@@ -204,6 +204,7 @@ EKF2::~EKF2()
 	perf_free(_msg_missed_optical_flow_perf);
 }
 
+#if defined(CONFIG_EKF2_MULTI_INSTANCE)
 bool EKF2::multi_init(int imu, int mag)
 {
 	// advertise all topics to ensure consistent uORB instance numbering
@@ -295,6 +296,7 @@ bool EKF2::multi_init(int imu, int mag)
 
 	return false;
 }
+#endif // CONFIG_EKF2_MULTI_INSTANCE
 
 int EKF2::print_status()
 {
@@ -391,10 +393,14 @@ void EKF2::Run()
 	}
 
 	if (!_callback_registered) {
+#if defined(CONFIG_EKF2_MULTI_INSTANCE)
+
 		if (_multi_mode) {
 			_callback_registered = _vehicle_imu_sub.registerCallback();
 
-		} else {
+		} else
+#endif // CONFIG_EKF2_MULTI_INSTANCE
+		{
 			_callback_registered = _sensor_combined_sub.registerCallback();
 		}
 
@@ -432,6 +438,8 @@ void EKF2::Run()
 	imuSample imu_sample_new {};
 
 	hrt_abstime imu_dt = 0; // for tracking time slip later
+
+#if defined(CONFIG_EKF2_MULTI_INSTANCE)
 
 	if (_multi_mode) {
 		const unsigned last_generation = _vehicle_imu_sub.get_last_generation();
@@ -492,7 +500,9 @@ void EKF2::Run()
 			}
 		}
 
-	} else {
+	} else
+#endif // CONFIG_EKF2_MULTI_INSTANCE
+	{
 		const unsigned last_generation = _sensor_combined_sub.get_last_generation();
 		sensor_combined_s sensor_combined;
 		imu_updated = _sensor_combined_sub.update(&sensor_combined);
@@ -2325,7 +2335,7 @@ int EKF2::task_spawn(int argc, char *argv[])
 		replay_mode = true;
 	}
 
-#if !defined(CONSTRAINED_FLASH)
+#if defined(CONFIG_EKF2_MULTI_INSTANCE)
 	bool multi_mode = false;
 	int32_t imu_instances = 0;
 	int32_t mag_instances = 0;
@@ -2464,7 +2474,7 @@ int EKF2::task_spawn(int argc, char *argv[])
 
 	} else
 
-#endif // !CONSTRAINED_FLASH
+#endif // CONFIG_EKF2_MULTI_INSTANCE
 
 	{
 		// otherwise launch regular
@@ -2502,10 +2512,10 @@ timestamps from the sensor topics.
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAM_FLAG('r', "Enable replay mode", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
-#if !defined(CONSTRAINED_FLASH)
+#if defined(CONFIG_EKF2_MULTI_INSTANCE)
 	PRINT_MODULE_USAGE_COMMAND_DESCR("select_instance", "Request switch to new estimator instance");
 	PRINT_MODULE_USAGE_ARG("<instance>", "Specify desired estimator instance", false);
-#endif // !CONSTRAINED_FLASH
+#endif // CONFIG_EKF2_MULTI_INSTANCE
 	return 0;
 }
 
@@ -2528,7 +2538,7 @@ extern "C" __EXPORT int ekf2_main(int argc, char *argv[])
 		EKF2::unlock_module();
 		return ret;
 
-#if !defined(CONSTRAINED_FLASH)
+#if defined(CONFIG_EKF2_MULTI_INSTANCE)
 	} else if (strcmp(argv[1], "select_instance") == 0) {
 
 		if (EKF2::trylock_module()) {
@@ -2552,14 +2562,14 @@ extern "C" __EXPORT int ekf2_main(int argc, char *argv[])
 		}
 
 		return 0;
-#endif // !CONSTRAINED_FLASH
+#endif // CONFIG_EKF2_MULTI_INSTANCE
 	} else if (strcmp(argv[1], "status") == 0) {
 		if (EKF2::trylock_module()) {
-#if !defined(CONSTRAINED_FLASH)
+#if defined(CONFIG_EKF2_MULTI_INSTANCE)
 			if (_ekf2_selector.load()) {
 				_ekf2_selector.load()->PrintStatus();
 			}
-#endif // !CONSTRAINED_FLASH
+#endif // CONFIG_EKF2_MULTI_INSTANCE
 
 			for (int i = 0; i < EKF2_MAX_INSTANCES; i++) {
 				if (_objects[i].load()) {
@@ -2600,7 +2610,7 @@ extern "C" __EXPORT int ekf2_main(int argc, char *argv[])
 			// otherwise stop everything
 			bool was_running = false;
 
-#if !defined(CONSTRAINED_FLASH)
+#if defined(CONFIG_EKF2_MULTI_INSTANCE)
 			if (_ekf2_selector.load()) {
 				PX4_INFO("stopping ekf2 selector");
 				_ekf2_selector.load()->Stop();
@@ -2608,7 +2618,7 @@ extern "C" __EXPORT int ekf2_main(int argc, char *argv[])
 				_ekf2_selector.store(nullptr);
 				was_running = true;
 			}
-#endif // !CONSTRAINED_FLASH
+#endif // CONFIG_EKF2_MULTI_INSTANCE
 
 			for (int i = 0; i < EKF2_MAX_INSTANCES; i++) {
 				EKF2 *inst = _objects[i].load();
