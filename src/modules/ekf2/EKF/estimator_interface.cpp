@@ -53,7 +53,9 @@ EstimatorInterface::~EstimatorInterface()
 #if defined(CONFIG_EKF2_AIRSPEED)
 	delete _airspeed_buffer;
 #endif // CONFIG_EKF2_AIRSPEED
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	delete _flow_buffer;
+#endif // _flow_buffer
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	delete _ext_vision_buffer;
 #endif // CONFIG_EKF2_EXTERNAL_VISION
@@ -322,6 +324,7 @@ void EstimatorInterface::setRangeData(const rangeSample &range_sample)
 	}
 }
 
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
 void EstimatorInterface::setOpticalFlowData(const flowSample &flow)
 {
 	if (!_initialised) {
@@ -356,6 +359,7 @@ void EstimatorInterface::setOpticalFlowData(const flowSample &flow)
 		ECL_WARN("optical flow data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us, _flow_buffer->get_newest().time_us, _min_obs_interval_us);
 	}
 }
+#endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 void EstimatorInterface::setExtVisionData(const extVisionSample &evdata)
@@ -560,9 +564,11 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 		max_time_delay_ms = math::max(_params.gps_delay_ms, max_time_delay_ms);
 	}
 
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	if (_params.fusion_mode & SensorFusionMask::USE_OPT_FLOW) {
 		max_time_delay_ms = math::max(_params.flow_delay_ms, max_time_delay_ms);
 	}
+#endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	if (_params.ev_ctrl > 0) {
@@ -704,9 +710,11 @@ void EstimatorInterface::print_status()
 	}
 #endif // CONFIG_EKF2_AIRSPEED
 
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	if (_flow_buffer) {
 		printf("flow buffer: %d/%d (%d Bytes)\n", _flow_buffer->entries(), _flow_buffer->get_length(), _flow_buffer->get_total_size());
 	}
+#endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	if (_ext_vision_buffer) {

@@ -56,6 +56,13 @@ depends on MODULES_EKF2
 	---help---
 		EKF2 GNSS yaw fusion support.
 
+menuconfig EKF2_OPTICAL_FLOW
+depends on MODULES_EKF2
+        bool "optical flow fusion support"
+        default y
+	---help---
+		EKF2 optical flow fusion support.
+
 menuconfig EKF2_SIDESLIP
 depends on MODULES_EKF2
         bool "sideslip fusion support"

@@ -45,7 +45,10 @@
 
 void Ekf::initHagl()
 {
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	stopHaglFlowFusion();
+#endif // CONFIG_EKF2_OPTICAL_FLOW
+
 	stopHaglRngFusion();
 
 	// assume a ground clearance
@@ -66,7 +69,9 @@ void Ekf::runTerrainEstimator(const imuSample &imu_delayed)
 	predictHagl(imu_delayed);
 
 	controlHaglRngFusion();
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	controlHaglFlowFusion();
+#endif // CONFIG_EKF2_OPTICAL_FLOW
 	controlHaglFakeFusion();
 
 	// constrain _terrain_vpos to be a minimum of _params.rng_gnd_clearance larger than _state.pos(2)
@@ -246,6 +251,7 @@ void Ekf::fuseHaglRng()
 	}
 }
 
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
 void Ekf::controlHaglFlowFusion()
 {
 	if (!(_params.terrain_fusion_mode & TerrainFusionMask::TerrainFuseOpticalFlow)) {
@@ -392,6 +398,7 @@ void Ekf::fuseFlowForTerrain(estimator_aid_source2d_s &flow)
 	//_aid_src_optical_flow.time_last_fuse = _time_delayed_us; // TODO: separate aid source status for OF terrain?
 	_aid_src_optical_flow.fused = true;
 }
+#endif // CONFIG_EKF2_OPTICAL_FLOW
 
 void Ekf::controlHaglFakeFusion()
 {

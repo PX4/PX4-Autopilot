@@ -82,6 +82,8 @@ bool PreFlightChecker::preFlightCheckHorizVelFailed(const estimator_innovations_
 		has_failed |= checkInnov2DFailed(vel_ne_innov_lpf, vel_ne_innov, _vel_innov_test_lim, _vel_innov_spike_lim);
 	}
 
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
+
 	if (_is_using_flow_aiding) {
 		const Vector2f flow_innov = Vector2f(innov.flow);
 		Vector2f flow_innov_lpf;
@@ -90,6 +92,7 @@ bool PreFlightChecker::preFlightCheckHorizVelFailed(const estimator_innovations_
 		has_failed |= checkInnov2DFailed(flow_innov_lpf, flow_innov, _flow_innov_test_lim, 5.f * _flow_innov_spike_lim);
 	}
 
+#endif // CONFIG_EKF2_OPTICAL_FLOW
 	return has_failed;
 }
 
@@ -143,7 +146,6 @@ bool PreFlightChecker::checkInnov2DFailed(const Vector2f &innov_lpf, const Vecto
 void PreFlightChecker::reset()
 {
 	_is_using_gps_aiding = false;
-	_is_using_flow_aiding = false;
 	_is_using_ev_pos_aiding = false;
 	_is_using_ev_vel_aiding = false;
 	_is_using_baro_hgt_aiding = false;
@@ -162,6 +164,11 @@ void PreFlightChecker::reset()
 	_filter_rng_hgt_innov.reset();
 	_filter_ev_hgt_innov.reset();
 	_filter_heading_innov.reset();
+
+
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
+	_is_using_flow_aiding = false;
 	_filter_flow_x_innov.reset();
 	_filter_flow_y_innov.reset();
+#endif // CONFIG_EKF2_OPTICAL_FLOW
 }

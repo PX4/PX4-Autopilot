@@ -86,8 +86,6 @@ list(APPEND EKF_SRCS
 	EKF/imu_down_sampler.cpp
 	EKF/mag_control.cpp
 	EKF/mag_fusion.cpp
-	EKF/optical_flow_control.cpp
-	EKF/optflow_fusion.cpp
 	EKF/output_predictor.cpp
 	EKF/range_finder_consistency_check.cpp
 	EKF/range_height_control.cpp
@@ -122,6 +120,13 @@ endif()
 
 if(CONFIG_EKF2_GNSS_YAW)
 	list(APPEND EKF_SRCS EKF/gps_yaw_fusion.cpp)
+endif()
+
+if(CONFIG_EKF2_OPTICAL_FLOW)
+	list(APPEND EKF_SRCS
+		EKF/optical_flow_control.cpp
+		EKF/optflow_fusion.cpp
+	)
 endif()
 
 if(CONFIG_EKF2_SIDESLIP)
