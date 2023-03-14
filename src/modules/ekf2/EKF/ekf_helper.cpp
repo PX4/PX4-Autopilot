@@ -335,6 +335,7 @@ void Ekf::getEvVelPosInnovRatio(float &hvel, float &vvel, float &hpos, float &vp
 	vpos = _aid_src_ev_hgt.test_ratio;
 }
 
+#if defined(CONFIG_EKF2_AUXVEL)
 void Ekf::getAuxVelInnov(float aux_vel_innov[2]) const
 {
 	aux_vel_innov[0] = _aid_src_aux_vel.innovation[0];
@@ -346,6 +347,7 @@ void Ekf::getAuxVelInnovVar(float aux_vel_innov_var[2]) const
 	aux_vel_innov_var[0] = _aid_src_aux_vel.innovation_variance[0];
 	aux_vel_innov_var[1] = _aid_src_aux_vel.innovation_variance[1];
 }
+#endif // CONFIG_EKF2_AUXVEL
 
 void Ekf::getFlowInnov(float flow_innov[2]) const
 {

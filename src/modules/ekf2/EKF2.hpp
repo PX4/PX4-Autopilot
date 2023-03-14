@@ -75,7 +75,6 @@
 #include <uORB/topics/estimator_states.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/estimator_status_flags.h>
-#include <uORB/topics/landing_target_pose.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/sensor_selection.h>
@@ -99,6 +98,10 @@
 # include <uORB/topics/airspeed.h>
 # include <uORB/topics/airspeed_validated.h>
 #endif // CONFIG_EKF2_AIRSPEED
+
+#if defined(CONFIG_EKF2_AUXVEL)
+# include <uORB/topics/landing_target_pose.h>
+#endif // CONFIG_EKF2_AUXVEL
 
 extern pthread_mutex_t ekf2_module_mutex;
 
@@ -171,7 +174,9 @@ private:
 #if defined(CONFIG_EKF2_AIRSPEED)
 	void UpdateAirspeedSample(ekf2_timestamps_s &ekf2_timestamps);
 #endif // CONFIG_EKF2_AIRSPEED
+#if defined(CONFIG_EKF2_AUXVEL)
 	void UpdateAuxVelSample(ekf2_timestamps_s &ekf2_timestamps);
+#endif // CONFIG_EKF2_AUXVEL
 	void UpdateBaroSample(ekf2_timestamps_s &ekf2_timestamps);
 	bool UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps);
 	bool UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps);
@@ -234,7 +239,6 @@ private:
 	perf_counter_t _msg_missed_air_data_perf{nullptr};
 	perf_counter_t _msg_missed_distance_sensor_perf{nullptr};
 	perf_counter_t _msg_missed_gps_perf{nullptr};
-	perf_counter_t _msg_missed_landing_target_pose_perf{nullptr};
 	perf_counter_t _msg_missed_magnetometer_perf{nullptr};
 	perf_counter_t _msg_missed_odometry_perf{nullptr};
 	perf_counter_t _msg_missed_optical_flow_perf{nullptr};
@@ -291,7 +295,14 @@ private:
 
 	hrt_abstime _status_gravity_pub_last{0};
 
+#if defined(CONFIG_EKF2_AUXVEL)
+	uORB::Subscription _landing_target_pose_sub {ORB_ID(landing_target_pose)};
+
+	uORB::PublicationMulti<estimator_aid_source2d_s> _estimator_aid_src_aux_vel_pub{ORB_ID(estimator_aid_src_aux_vel)};
 	hrt_abstime _status_aux_vel_pub_last{0};
+
+	perf_counter_t _msg_missed_landing_target_pose_perf{nullptr};
+#endif // CONFIG_EKF2_AUXVEL
 
 	hrt_abstime _status_optical_flow_pub_last{0};
 	hrt_abstime _status_terrain_optical_flow_pub_last{0};
@@ -326,7 +337,6 @@ private:
 
 	uORB::Subscription _airdata_sub{ORB_ID(vehicle_air_data)};
 	uORB::Subscription _ev_odom_sub{ORB_ID(vehicle_visual_odometry)};
-	uORB::Subscription _landing_target_pose_sub{ORB_ID(landing_target_pose)};
 	uORB::Subscription _magnetometer_sub{ORB_ID(vehicle_magnetometer)};
 	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
 	uORB::Subscription _status_sub{ORB_ID(vehicle_status)};
@@ -398,8 +408,6 @@ private:
 
 	uORB::PublicationMulti<estimator_aid_source3d_s> _estimator_aid_src_gravity_pub{ORB_ID(estimator_aid_src_gravity)};
 
-	uORB::PublicationMulti<estimator_aid_source2d_s> _estimator_aid_src_aux_vel_pub{ORB_ID(estimator_aid_src_aux_vel)};
-
 	uORB::PublicationMulti<estimator_aid_source2d_s> _estimator_aid_src_optical_flow_pub{ORB_ID(estimator_aid_src_optical_flow)};
 	uORB::PublicationMulti<estimator_aid_source2d_s> _estimator_aid_src_terrain_optical_flow_pub{ORB_ID(estimator_aid_src_terrain_optical_flow)};
 
@@ -433,8 +441,11 @@ private:
 		_param_ekf2_rng_delay,	///< range finder measurement delay relative to the IMU (mSec)
 		(ParamExtFloat<px4::params::EKF2_EV_DELAY>)
 		_param_ekf2_ev_delay,	///< off-board vision measurement delay relative to the IMU (mSec)
+
+#if defined(CONFIG_EKF2_AUXVEL)
 		(ParamExtFloat<px4::params::EKF2_AVEL_DELAY>)
 		_param_ekf2_avel_delay,	///< auxiliary velocity measurement delay relative to the IMU (mSec)
+#endif // CONFIG_EKF2_AUXVEL
 
 		(ParamExtFloat<px4::params::EKF2_GYR_NOISE>)
 		_param_ekf2_gyr_noise,	///< IMU angular rate noise used for covariance prediction (rad/sec)
