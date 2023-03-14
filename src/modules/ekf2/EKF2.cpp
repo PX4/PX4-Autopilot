@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -161,10 +161,12 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_abl_gyrlim(_params->acc_bias_learn_gyr_lim),
 	_param_ekf2_abl_tau(_params->acc_bias_learn_tc),
 	_param_ekf2_gyr_b_lim(_params->gyro_bias_lim),
+#if defined(CONFIG_EKF2_DRAG_FUSION)
 	_param_ekf2_drag_noise(_params->drag_noise),
 	_param_ekf2_bcoef_x(_params->bcoef_x),
 	_param_ekf2_bcoef_y(_params->bcoef_y),
 	_param_ekf2_mcoef(_params->mcoef),
+#endif // CONFIG_EKF2_DRAG_FUSION
 	_param_ekf2_aspd_max(_params->max_correction_airspeed),
 	_param_ekf2_pcoef_xp(_params->static_pressure_coef_xp),
 	_param_ekf2_pcoef_xn(_params->static_pressure_coef_xn),
@@ -1118,7 +1120,9 @@ void EKF2::PublishInnovations(const hrt_abstime &timestamp)
 	_ekf.getFlowInnov(innovations.flow);
 	_ekf.getHeadingInnov(innovations.heading);
 	_ekf.getMagInnov(innovations.mag_field);
+#if defined(CONFIG_EKF2_DRAG_FUSION)
 	_ekf.getDragInnov(innovations.drag);
+#endif // CONFIG_EKF2_DRAG_FUSION
 	_ekf.getAirspeedInnov(innovations.airspeed);
 	_ekf.getBetaInnov(innovations.beta);
 	_ekf.getHaglInnov(innovations.hagl);
@@ -1169,7 +1173,9 @@ void EKF2::PublishInnovationTestRatios(const hrt_abstime &timestamp)
 	_ekf.getFlowInnovRatio(test_ratios.flow[0]);
 	_ekf.getHeadingInnovRatio(test_ratios.heading);
 	_ekf.getMagInnovRatio(test_ratios.mag_field[0]);
+#if defined(CONFIG_EKF2_DRAG_FUSION)
 	_ekf.getDragInnovRatio(&test_ratios.drag[0]);
+#endif // CONFIG_EKF2_DRAG_FUSION
 	_ekf.getAirspeedInnovRatio(test_ratios.airspeed);
 	_ekf.getBetaInnovRatio(test_ratios.beta);
 	_ekf.getHaglInnovRatio(test_ratios.hagl);
@@ -1196,7 +1202,9 @@ void EKF2::PublishInnovationVariances(const hrt_abstime &timestamp)
 	_ekf.getFlowInnovVar(variances.flow);
 	_ekf.getHeadingInnovVar(variances.heading);
 	_ekf.getMagInnovVar(variances.mag_field);
+#if defined(CONFIG_EKF2_DRAG_FUSION)
 	_ekf.getDragInnovVar(variances.drag);
+#endif // CONFIG_EKF2_DRAG_FUSION
 	_ekf.getAirspeedInnovVar(variances.airspeed);
 	_ekf.getBetaInnovVar(variances.beta);
 	_ekf.getHaglInnovVar(variances.hagl);

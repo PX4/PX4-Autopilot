@@ -252,10 +252,12 @@ struct extVisionSample {
 	int8_t     quality{};     ///< quality indicator between 0 and 100
 };
 
+#if defined(CONFIG_EKF2_DRAG_FUSION)
 struct dragSample {
 	uint64_t    time_us{};     ///< timestamp of the measurement (uSec)
 	Vector2f    accelXY{};     ///< measured specific force along the X and Y body axes (m/sec**2)
 };
+#endif // CONFIG_EKF2_DRAG_FUSION
 
 struct auxVelSample {
 	uint64_t    time_us{};     ///< timestamp of the measurement (uSec)
@@ -446,11 +448,13 @@ struct parameters {
 	// upper limit on airspeed used for correction  (m/s**2)
 	float max_correction_airspeed {20.0f};
 
+#if defined(CONFIG_EKF2_DRAG_FUSION)
 	// multi-rotor drag specific force fusion
 	float drag_noise{2.5f};                 ///< observation noise variance for drag specific force measurements (m/sec**2)**2
 	float bcoef_x{100.0f};                  ///< bluff body drag ballistic coefficient for the X-axis (kg/m**2)
 	float bcoef_y{100.0f};                  ///< bluff body drag ballistic coefficient for the Y-axis (kg/m**2)
 	float mcoef{0.1f};                      ///< rotor momentum drag coefficient for the X and Y axes (1/s)
+#endif // CONFIG_EKF2_DRAG_FUSION
 
 	// control of accel error detection and mitigation (IMU clipping)
 	const float vert_innov_test_lim{3.0f};          ///< Number of standard deviations of vertical vel/pos innovations allowed before triggering a vertical acceleration failure

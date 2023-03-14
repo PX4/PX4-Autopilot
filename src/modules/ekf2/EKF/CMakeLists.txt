@@ -31,14 +31,14 @@
 #
 ############################################################################
 
-add_library(ecl_EKF
+set(EKF_SRCS)
+list(APPEND EKF_SRCS
 	airspeed_fusion.cpp
 	auxvel_fusion.cpp
 	baro_height_control.cpp
 	bias_estimator.cpp
 	control.cpp
 	covariance.cpp
-	drag_fusion.cpp
 	ekf.cpp
 	ekf_helper.cpp
 	EKFGSF_yaw.cpp
@@ -70,6 +70,14 @@ add_library(ecl_EKF
 	vel_pos_fusion.cpp
 	zero_innovation_heading_update.cpp
 	zero_velocity_update.cpp
+)
+
+if(CONFIG_EKF2_DRAG_FUSION)
+	list(APPEND EKF_SRCS drag_fusion.cpp)
+endif()
+
+add_library(ecl_EKF
+	${EKF_SRCS}
 )
 
 add_dependencies(ecl_EKF prebuild_targets)

@@ -294,8 +294,6 @@ protected:
 	airspeedSample _airspeed_sample_delayed{};
 	flowSample _flow_sample_delayed{};
 	extVisionSample _ev_sample_prev{};
-	dragSample _drag_down_sampled{};	// down sampled drag specific force data (filter prediction rate -> observation rate)
-
 	RangeFinderConsistencyCheck _rng_consistency_check;
 
 	float _air_density{CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C};		// air density (kg/m**3)
@@ -320,7 +318,13 @@ protected:
 	AlphaFilter<float> _gnss_yaw_signed_test_ratio_lpf{0.1f}; // average signed test ratio used to detect a bias in the state
 
 	float _hagl_test_ratio{};		// height above terrain measurement innovation consistency check ratio
+
+#if defined(CONFIG_EKF2_DRAG_FUSION)
+	RingBuffer<dragSample> *_drag_buffer{nullptr};
+	dragSample _drag_down_sampled{};	// down sampled drag specific force data (filter prediction rate -> observation rate)
 	Vector2f _drag_test_ratio{};		// drag innovation consistency check ratio
+#endif // CONFIG_EKF2_DRAG_FUSION
+
 	innovation_fault_status_u _innov_check_fail_status{};
 
 	bool _horizontal_deadreckon_time_exceeded{true};
@@ -345,7 +349,6 @@ protected:
 	RingBuffer<airspeedSample> *_airspeed_buffer{nullptr};
 	RingBuffer<flowSample> 	*_flow_buffer{nullptr};
 	RingBuffer<extVisionSample> *_ext_vision_buffer{nullptr};
-	RingBuffer<dragSample> *_drag_buffer{nullptr};
 	RingBuffer<auxVelSample> *_auxvel_buffer{nullptr};
 	RingBuffer<systemFlagUpdate> *_system_flag_buffer{nullptr};
 
@@ -380,16 +383,18 @@ protected:
 
 private:
 
-	inline void setDragData(const imuSample &imu);
+#if defined(CONFIG_EKF2_DRAG_FUSION)
+	void setDragData(const imuSample &imu);
+
+	// Used by the multi-rotor specific drag force fusion
+	uint8_t _drag_sample_count{0};	// number of drag specific force samples assumulated at the filter prediction rate
+	float _drag_sample_time_dt{0.0f};	// time integral across all samples used to form _drag_down_sampled (sec)
+#endif // CONFIG_EKF2_DRAG_FUSION
 
 	void printBufferAllocationFailed(const char *buffer_name);
 
 	ImuDownSampler _imu_down_sampler{_params.filter_update_interval_us};
 
 	unsigned _min_obs_interval_us{0}; // minimum time interval between observations that will guarantee data is not lost (usec)
-
-	// Used by the multi-rotor specific drag force fusion
-	uint8_t _drag_sample_count{0};	// number of drag specific force samples assumulated at the filter prediction rate
-	float _drag_sample_time_dt{0.0f};	// time integral across all samples used to form _drag_down_sampled (sec)
 };
 #endif // !EKF_ESTIMATOR_INTERFACE_H
