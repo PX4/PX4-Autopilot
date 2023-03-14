@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,26 +31,33 @@
  *
  ****************************************************************************/
 
-#include <px4_platform_common/init.h>
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/defines.h>
-#include <px4_platform_common/log.h>
+#pragma once
+
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/atomic.h>
 #include <drivers/drv_hrt.h>
-#include <lib/parameters/param.h>
-#include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
-#include <uORB/uORB.h>
 
-int px4_platform_init(void)
+class ParamAutosave : public px4::ScheduledWorkItem
 {
-	hrt_init();
+public:
 
-	px4::WorkQueueManagerStart();
+	ParamAutosave();
 
-	param_init();
+	/**
+	 * Automatically save the parameters after a timeout and at limited rate.
+	 */
+	void request();
 
-	uorb_start();
+	void enable(bool enable);
 
-	px4_log_initialize();
+	bool enabled() const { return !_disabled; }
 
-	return PX4_OK;
-}
+	hrt_abstime lastAutosave() const { return _last_timestamp; }
+
+	void Run() override;
+
+private:
+	hrt_abstime _last_timestamp{0};
+	px4::atomic_bool _scheduled{false};
+	bool _disabled{false};
+};
