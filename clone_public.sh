@@ -6,6 +6,7 @@ while read -r repo
 do
   [[ "${repo}" == *saluki-v? ]] || \
   [[ "${repo}" == *pfsoc_crypto ]]  || \
+  [[ "${repo}" == *pfsoc_keystore ]]  || \
   [[ "${repo}" == *pf_crypto ]] && continue
   git submodule update --init --recursive "${repo}"
 done <<< "$(git submodule status | awk '{print $2}')"
