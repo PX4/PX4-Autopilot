@@ -119,6 +119,7 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 						     _aid_src_gnss_pos);
 		_aid_src_gnss_pos.fusion_enabled = (_params.gnss_ctrl & GnssCtrl::HPOS);
 
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
 		// if GPS is otherwise ready to go, but yaw_align is blocked by EV give mag a chance to start
 		if (_control_status.flags.tilt_align && _NED_origin_initialised
 		    && gps_checks_passing && !gps_checks_failing) {
@@ -139,7 +140,7 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 				}
 			}
 		}
-
+#endif // CONFIG_EKF2_EXTERNAL_VISION
 
 		// Determine if we should use GPS aiding for velocity and horizontal position
 		// To start using GPS we need angular alignment completed, the local NED origin set and GPS data that has not failed checks recently
@@ -202,6 +203,7 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 
 		} else {
 			if (starting_conditions_passing) {
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
 				// Do not use external vision for yaw if using GPS because yaw needs to be
 				// defined relative to an NED reference frame
 				if (_control_status.flags.ev_yaw) {
@@ -209,6 +211,7 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 					stopEvYawFusion();
 					_inhibit_ev_yaw_use = true;
 				}
+#endif // CONFIG_EKF2_EXTERNAL_VISION
 
 				ECL_INFO("starting GPS fusion");
 				_information_events.flags.starting_gps_fusion = true;
@@ -396,7 +399,7 @@ void Ekf::startGpsYawFusion(const gpsSample &gps_sample)
 		ECL_INFO("starting GPS yaw fusion");
 		_control_status.flags.yaw_align = true;
 		_control_status.flags.mag_dec = false;
-		stopEvYawFusion();
+
 		stopMagHdgFusion();
 		stopMag3DFusion();
 		_control_status.flags.gps_yaw = true;
