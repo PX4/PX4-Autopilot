@@ -125,7 +125,9 @@ public:
 	static bool trylock_module() { return (pthread_mutex_trylock(&ekf2_module_mutex) == 0); }
 	static void unlock_module() { pthread_mutex_unlock(&ekf2_module_mutex); }
 
+#if defined(CONFIG_EKF2_MULTI_INSTANCE)
 	bool multi_init(int imu, int mag);
+#endif // CONFIG_EKF2_MULTI_INSTANCE
 
 	int instance() const { return _instance; }
 
