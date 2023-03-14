@@ -338,13 +338,16 @@ bool param_value_is_default(param_t param)
 
 	} else {
 		// compare with default value
+		const param_value_u user_config_value = user_config.get(param);
+		const param_value_u runtime_default_value = runtime_defaults.get(param);
+
 		switch (param_type(param)) {
 		case PARAM_TYPE_INT32: {
-				return user_config.get(param).i == runtime_defaults.get(param).i;
+				return user_config_value.i == runtime_default_value.i;
 			}
 
 		case PARAM_TYPE_FLOAT: {
-				return user_config.get(param).f - runtime_defaults.get(param).f < FLT_EPSILON;
+				return user_config_value.f - runtime_default_value.f < FLT_EPSILON;
 			}
 		}
 	}
@@ -383,29 +386,21 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 
 	int result = -1;
 	bool param_changed = false;
-	bool param_store_success = false;
 	perf_begin(param_set_perf);
 
+	const param_value_u user_config_value = user_config.get(param);
+	param_value_u new_value{};
+
 	switch (param_type(param)) {
-	case PARAM_TYPE_INT32: {
-			if (user_config.get(param).i != *(int32_t *)val) {
-				param_changed = true;
-			}
+	case PARAM_TYPE_INT32:
+		param_changed = user_config_value.i != *(int32_t *)val;
+		new_value.i = *(int32_t *)val;
+		break;
 
-			param_store_success = user_config.store(param, param_value_u{.i = *(int32_t *)val});
-			params_unsaved.set(param, !mark_saved);
-			break;
-		}
-
-	case PARAM_TYPE_FLOAT: {
-			if (fabsf(user_config.get(param).f - * (float *) val) > FLT_EPSILON) {
-				param_changed = true;
-			}
-
-			param_store_success = user_config.store(param, param_value_u{.f = *(float *) val});
-			params_unsaved.set(param, !mark_saved);
-			break;
-		}
+	case PARAM_TYPE_FLOAT:
+		param_changed = fabsf(user_config_value.f - * (float *) val) > FLT_EPSILON;
+		new_value.f = *(float *) val;
+		break;
 
 	default: {
 			PX4_ERR("param_set invalid param type for %s", param_name(param));
@@ -413,12 +408,13 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 		}
 	}
 
-	if (!param_store_success) {
-		PX4_ERR("param_set failed to store param %s", param_name(param));
-		result = PX4_ERROR;
+	if (user_config.store(param, new_value)) {
+		params_unsaved.set(param, !mark_saved);
+		result = PX4_OK;
 
 	} else {
-		result = PX4_OK;
+		PX4_ERR("param_set failed to store param %s", param_name(param));
+		result = PX4_ERROR;
 	}
 
 	if ((result == PX4_OK) && param_changed && !mark_saved) { // this is false when importing parameters
@@ -493,14 +489,15 @@ int param_set_default_value(param_t param, const void *val)
 
 	// check if param being set to default value
 	bool setting_to_static_default = false;
+	const param_value_u firmware_default_value = firmware_defaults.get(param);
 
 	switch (param_type(param)) {
 	case PARAM_TYPE_INT32:
-		setting_to_static_default = (firmware_defaults.get(param).i == *(int32_t *)val);
+		setting_to_static_default = (firmware_default_value.i == *(int32_t *)val);
 		break;
 
 	case PARAM_TYPE_FLOAT:
-		setting_to_static_default = (fabsf(firmware_defaults.get(param).f - * (float *)val) <= FLT_EPSILON);
+		setting_to_static_default = (fabsf(firmware_default_value.f - * (float *)val) <= FLT_EPSILON);
 		break;
 	}
 
@@ -510,23 +507,29 @@ int param_set_default_value(param_t param, const void *val)
 		result = PX4_OK;
 
 	} else {
+		param_value_u new_value{};
+
 		switch (param_type(param)) {
 		case PARAM_TYPE_INT32: {
-				const bool store_ok = runtime_defaults.store(param, param_value_u{.i = *(int32_t *) val});
-				user_config.refresh(param);
-				result = store_ok ? PX4_OK : PX4_ERROR;
+				new_value.i = *(int32_t *) val;
 				break;
 			}
 
 		case PARAM_TYPE_FLOAT: {
-				const bool store_ok = runtime_defaults.store(param, param_value_u{.f = *(float *) val});
-				user_config.refresh(param);
-				result = store_ok ? PX4_OK : PX4_ERROR;
+				new_value.f = *(float *) val;
 				break;
 			}
 
 		default:
 			break;
+		}
+
+		if (runtime_defaults.store(param, new_value)) {
+			user_config.refresh(param);
+			result = PX4_OK;
+
+		} else {
+			result = PX4_ERROR;
 		}
 	}
 
@@ -990,26 +993,25 @@ static int param_export_internal(int fd, param_filter_func filter)
 			continue;
 		}
 
+		const param_value_u runtime_default_value = runtime_defaults.get(param);
+		const param_value_u user_config_value = user_config.get(param);
+
 		// don't export default values
 		switch (param_type(param)) {
-		case PARAM_TYPE_INT32: {
-				int32_t default_value = runtime_defaults.get(param).i;
-
-				if (user_config.get(param).i == default_value) {
-					PX4_DEBUG("skipping %s %" PRIi32 " export", param_name(param), default_value);
-					continue;
-				}
+		case PARAM_TYPE_INT32:
+			if (user_config_value.i == runtime_default_value.i) {
+				PX4_DEBUG("skipping %s %" PRIi32 " export", param_name(param), runtime_default_value.i);
+				continue;
 			}
+
 			break;
 
-		case PARAM_TYPE_FLOAT: {
-				float default_value = runtime_defaults.get(param).f;
-
-				if (fabsf(user_config.get(param).f - default_value) <= FLT_EPSILON) {
-					PX4_DEBUG("skipping %s %.3f export", param_name(param), (double)default_value);
-					continue;
-				}
+		case PARAM_TYPE_FLOAT:
+			if (fabsf(user_config_value.f - runtime_default_value.f) <= FLT_EPSILON) {
+				PX4_DEBUG("skipping %s %.3f export", param_name(param), (double)runtime_default_value.f);
+				continue;
 			}
+
 			break;
 		}
 
@@ -1019,7 +1021,7 @@ static int param_export_internal(int fd, param_filter_func filter)
 		/* append the appropriate BSON type object */
 		switch (param_type(param)) {
 		case PARAM_TYPE_INT32: {
-				const int32_t i = user_config.get(param).i;
+				const int32_t i = user_config_value.i;
 				PX4_DEBUG("exporting: %s (%d) size: %lu val: %" PRIi32, name, param, (long unsigned int)size, i);
 
 				if (bson_encoder_append_int32(&encoder, name, i) != 0) {
@@ -1030,7 +1032,7 @@ static int param_export_internal(int fd, param_filter_func filter)
 			break;
 
 		case PARAM_TYPE_FLOAT: {
-				const double f = (double)user_config.get(param).f;
+				const double f = (double)user_config_value.f;
 				PX4_DEBUG("exporting: %s (%d) size: %lu val: %.3f", name, param, (long unsigned int)size, (double)f);
 
 				if (bson_encoder_append_double(&encoder, name, f) != 0) {
