@@ -259,11 +259,13 @@ struct dragSample {
 };
 #endif // CONFIG_EKF2_DRAG_FUSION
 
+#if defined(CONFIG_EKF2_AUXVEL)
 struct auxVelSample {
 	uint64_t    time_us{};     ///< timestamp of the measurement (uSec)
 	Vector2f    vel{};         ///< measured NE velocity relative to the local origin (m/sec)
 	Vector2f    velVar{};      ///< estimated error variance of the NE velocity (m/sec)**2
 };
+#endif // CONFIG_EKF2_AUXVEL
 
 struct systemFlagUpdate {
 	uint64_t time_us{};
@@ -310,7 +312,6 @@ struct parameters {
 	float flow_delay_ms{5.0f};              ///< optical flow measurement delay relative to the IMU (mSec) - this is to the middle of the optical flow integration interval
 	float range_delay_ms{5.0f};             ///< range finder measurement delay relative to the IMU (mSec)
 	float ev_delay_ms{175.0f};              ///< off-board vision measurement delay relative to the IMU (mSec)
-	float auxvel_delay_ms{5.0f};            ///< auxiliary velocity measurement delay relative to the IMU (mSec)
 
 	// input noise
 	float gyro_noise{1.5e-2f};              ///< IMU angular rate noise used for covariance prediction (rad/sec)
@@ -469,9 +470,12 @@ struct parameters {
 	const float vert_innov_test_min{1.0f};          ///< Minimum number of standard deviations of vertical vel/pos innovations required to trigger a vertical acceleration failure
 	const int bad_acc_reset_delay_us{500000};       ///< Continuous time that the vertical position and velocity innovation test must fail before the states are reset (uSec)
 
+#if defined(CONFIG_EKF2_AUXVEL)
 	// auxiliary velocity fusion
+	float auxvel_delay_ms{5.0f};            ///< auxiliary velocity measurement delay relative to the IMU (mSec)
 	const float auxvel_noise{0.5f};         ///< minimum observation noise, uses reported noise if greater (m/s)
 	const float auxvel_gate{5.0f};          ///< velocity fusion innovation consistency gate size (STD)
+#endif // CONFIG_EKF2_AUXVEL
 
 	// compute synthetic magnetomter Z value if possible
 	int32_t synthesize_mag_z{0};

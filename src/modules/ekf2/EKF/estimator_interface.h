@@ -102,7 +102,9 @@ public:
 	// set external vision position and attitude data
 	void setExtVisionData(const extVisionSample &evdata);
 
+#if defined(CONFIG_EKF2_AUXVEL)
 	void setAuxVelData(const auxVelSample &auxvel_sample);
+#endif // CONFIG_EKF2_AUXVEL
 
 	void setSystemFlagData(const systemFlagUpdate &system_flags);
 
@@ -357,7 +359,9 @@ protected:
 #endif // CONFIG_EKF2_AIRSPEED
 	RingBuffer<flowSample> 	*_flow_buffer{nullptr};
 	RingBuffer<extVisionSample> *_ext_vision_buffer{nullptr};
+#if defined(CONFIG_EKF2_AUXVEL)
 	RingBuffer<auxVelSample> *_auxvel_buffer{nullptr};
+#endif // CONFIG_EKF2_AUXVEL
 	RingBuffer<systemFlagUpdate> *_system_flag_buffer{nullptr};
 
 	uint64_t _time_last_gps_buffer_push{0};

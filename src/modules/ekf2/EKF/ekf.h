@@ -98,9 +98,11 @@ public:
 	void getRngHgtInnovVar(float &rng_hgt_innov_var) const { rng_hgt_innov_var = _aid_src_rng_hgt.innovation_variance; }
 	void getRngHgtInnovRatio(float &rng_hgt_innov_ratio) const { rng_hgt_innov_ratio = _aid_src_rng_hgt.test_ratio; }
 
+#if defined(CONFIG_EKF2_AUXVEL)
 	void getAuxVelInnov(float aux_vel_innov[2]) const;
 	void getAuxVelInnovVar(float aux_vel_innov[2]) const;
 	void getAuxVelInnovRatio(float &aux_vel_innov_ratio) const { aux_vel_innov_ratio = math::max(_aid_src_aux_vel.test_ratio[0], _aid_src_aux_vel.test_ratio[1]); }
+#endif // CONFIG_EKF2_AUXVEL
 
 	void getFlowInnov(float flow_innov[2]) const;
 	void getFlowInnovVar(float flow_innov_var[2]) const;
@@ -477,7 +479,9 @@ public:
 
 	const auto &aid_src_gravity() const { return _aid_src_gravity; }
 
+#if defined(CONFIG_EKF2_AUXVEL)
 	const auto &aid_src_aux_vel() const { return _aid_src_aux_vel; }
+#endif // CONFIG_EKF2_AUXVEL
 
 	const auto &aid_src_optical_flow() const { return _aid_src_optical_flow; }
 	const auto &aid_src_terrain_optical_flow() const { return _aid_src_terrain_optical_flow; }
@@ -624,7 +628,9 @@ private:
 
 	estimator_aid_source3d_s _aid_src_gravity{};
 
+#if defined(CONFIG_EKF2_AUXVEL)
 	estimator_aid_source2d_s _aid_src_aux_vel{};
+#endif // CONFIG_EKF2_AUXVEL
 
 	estimator_aid_source2d_s _aid_src_optical_flow{};
 	estimator_aid_source2d_s _aid_src_terrain_optical_flow{};
@@ -996,8 +1002,11 @@ private:
 
 	void controlZeroInnovationHeadingUpdate();
 
+#if defined(CONFIG_EKF2_AUXVEL)
 	// control fusion of auxiliary velocity observations
 	void controlAuxVelFusion();
+	void stopAuxVelFusion();
+#endif // CONFIG_EKF2_AUXVEL
 
 	void checkVerticalAccelerationHealth(const imuSample &imu_delayed);
 	Likelihood estimateInertialNavFallingLikelihood() const;
@@ -1088,8 +1097,6 @@ private:
 
 	void stopEvVelFusion();
 	void stopEvYawFusion();
-
-	void stopAuxVelFusion();
 
 	void stopFlowFusion();
 
