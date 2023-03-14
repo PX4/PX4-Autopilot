@@ -106,8 +106,14 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 	controlMagFusion();
 	controlOpticalFlowFusion(imu_delayed);
 	controlGpsFusion(imu_delayed);
+
+#if defined(CONFIG_EKF2_AIRSPEED)
 	controlAirDataFusion(imu_delayed);
+#endif // CONFIG_EKF2_AIRSPEED
+
+#if defined(CONFIG_EKF2_SIDESLIP)
 	controlBetaFusion(imu_delayed);
+#endif // CONFIG_EKF2_SIDESLIP
 
 #if defined(CONFIG_EKF2_DRAG_FUSION)
 	controlDragFusion();

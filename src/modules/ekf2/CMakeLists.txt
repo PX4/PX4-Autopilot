@@ -68,7 +68,6 @@ add_subdirectory(Utility)
 
 set(EKF_SRCS)
 list(APPEND EKF_SRCS
-	EKF/airspeed_fusion.cpp
 	EKF/auxvel_fusion.cpp
 	EKF/baro_height_control.cpp
 	EKF/bias_estimator.cpp
@@ -99,12 +98,15 @@ list(APPEND EKF_SRCS
 	EKF/range_finder_consistency_check.cpp
 	EKF/range_height_control.cpp
 	EKF/sensor_range_finder.cpp
-	EKF/sideslip_fusion.cpp
 	EKF/terrain_estimator.cpp
 	EKF/vel_pos_fusion.cpp
 	EKF/zero_innovation_heading_update.cpp
 	EKF/zero_velocity_update.cpp
 )
+
+if(CONFIG_EKF2_AIRSPEED)
+	list(APPEND EKF_SRCS EKF/airspeed_fusion.cpp)
+endif()
 
 if(CONFIG_EKF2_DRAG_FUSION)
 	list(APPEND EKF_SRCS EKF/drag_fusion.cpp)
@@ -112,6 +114,10 @@ endif()
 
 if(CONFIG_EKF2_GNSS_YAW)
 	list(APPEND EKF_SRCS EKF/gps_yaw_fusion.cpp)
+endif()
+
+if(CONFIG_EKF2_SIDESLIP)
+	list(APPEND EKF_SRCS EKF/sideslip_fusion.cpp)
 endif()
 
 px4_add_module(

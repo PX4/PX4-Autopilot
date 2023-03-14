@@ -116,8 +116,12 @@ void Ekf::reset()
 
 	resetEstimatorAidStatus(_aid_src_baro_hgt);
 	resetEstimatorAidStatus(_aid_src_rng_hgt);
+#if defined(CONFIG_EKF2_AIRSPEED)
 	resetEstimatorAidStatus(_aid_src_airspeed);
+#endif // CONFIG_EKF2_AIRSPEED
+#if defined(CONFIG_EKF2_SIDESLIP)
 	resetEstimatorAidStatus(_aid_src_sideslip);
+#endif // CONFIG_EKF2_SIDESLIP
 
 	resetEstimatorAidStatus(_aid_src_fake_pos);
 	resetEstimatorAidStatus(_aid_src_fake_hgt);

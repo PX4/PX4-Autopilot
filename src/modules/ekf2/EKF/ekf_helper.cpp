@@ -693,14 +693,18 @@ void Ekf::get_innovation_test_status(uint16_t &status, float &mag, float &vel, f
 		hgt = NAN;
 	}
 
+#if defined(CONFIG_EKF2_AIRSPEED)
 	// return the airspeed fusion innovation test ratio
 	tas = sqrtf(_aid_src_airspeed.test_ratio);
+#endif // CONFIG_EKF2_AIRSPEED
 
 	// return the terrain height innovation test ratio
 	hagl = sqrtf(_hagl_test_ratio);
 
+#if defined(CONFIG_EKF2_SIDESLIP)
 	// return the synthetic sideslip innovation test ratio
 	beta = sqrtf(_aid_src_sideslip.test_ratio);
+#endif // CONFIG_EKF2_SIDESLIP
 }
 
 // return a bitmask integer that describes which state estimates are valid
@@ -775,11 +779,18 @@ void Ekf::updateHorizontalDeadReckoningstatus()
 
 	const bool optFlowAiding = _control_status.flags.opt_flow && isRecent(_aid_src_optical_flow.time_last_fuse, _params.no_aid_timeout_max);
 
-	const bool airDataAiding = _control_status.flags.wind &&
+	bool airDataAiding = false;
+
+#if defined(CONFIG_EKF2_AIRSPEED)
+	airDataAiding = _control_status.flags.wind &&
 				   isRecent(_aid_src_airspeed.time_last_fuse, _params.no_aid_timeout_max) &&
 				   isRecent(_aid_src_sideslip.time_last_fuse, _params.no_aid_timeout_max);
 
 	_control_status.flags.wind_dead_reckoning = !velPosAiding && !optFlowAiding && airDataAiding;
+#else
+	_control_status.flags.wind_dead_reckoning = false;
+#endif // CONFIG_EKF2_AIRSPEED
+
 	_control_status.flags.inertial_dead_reckoning = !velPosAiding && !optFlowAiding && !airDataAiding;
 
 	if (!_control_status.flags.inertial_dead_reckoning) {
@@ -1155,4 +1166,27 @@ void Ekf::resetGpsDriftCheckFilters()
 	_gps_horizontal_position_drift_rate_m_s = NAN;
 	_gps_vertical_position_drift_rate_m_s = NAN;
 	_gps_filtered_horizontal_velocity_m_s = NAN;
+}
+
+void Ekf::resetWind()
+{
+#if defined(CONFIG_EKF2_AIRSPEED)
+	if (_control_status.flags.fuse_aspd && isRecent(_airspeed_sample_delayed.time_us, 1e6)) {
+		resetWindUsingAirspeed(_airspeed_sample_delayed);
+		return;
+	}
+#endif // CONFIG_EKF2_AIRSPEED
+
+	resetWindToZero();
+}
+
+void Ekf::resetWindToZero()
+{
+	ECL_INFO("reset wind to zero");
+
+	// If we don't have an airspeed measurement, then assume the wind is zero
+	_state.wind_vel.setZero();
+
+	// start with a small initial uncertainty to improve the initial estimate
+	P.uncorrelateCovarianceSetVariance<2>(22, _params.initial_wind_uncertainty);
 }

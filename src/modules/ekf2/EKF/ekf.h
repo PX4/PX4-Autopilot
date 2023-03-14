@@ -204,13 +204,17 @@ public:
 	void getDragInnovRatio(float drag_innov_ratio[2]) const { _drag_test_ratio.copyTo(drag_innov_ratio); }
 #endif // CONFIG_EKF2_DRAG_FUSION
 
+#if defined(CONFIG_EKF2_AIRSPEED)
 	void getAirspeedInnov(float &airspeed_innov) const { airspeed_innov = _aid_src_airspeed.innovation; }
 	void getAirspeedInnovVar(float &airspeed_innov_var) const { airspeed_innov_var = _aid_src_airspeed.innovation_variance; }
 	void getAirspeedInnovRatio(float &airspeed_innov_ratio) const { airspeed_innov_ratio = _aid_src_airspeed.test_ratio; }
+#endif // CONFIG_EKF2_AIRSPEED
 
+#if defined(CONFIG_EKF2_SIDESLIP)
 	void getBetaInnov(float &beta_innov) const { beta_innov = _aid_src_sideslip.innovation; }
 	void getBetaInnovVar(float &beta_innov_var) const { beta_innov_var = _aid_src_sideslip.innovation_variance; }
 	void getBetaInnovRatio(float &beta_innov_ratio) const { beta_innov_ratio = _aid_src_sideslip.test_ratio; }
+#endif // CONFIG_EKF2_SIDESLIP
 
 	void getHaglInnov(float &hagl_innov) const { hagl_innov = _hagl_innov; }
 	void getHaglInnovVar(float &hagl_innov_var) const { hagl_innov_var = _hagl_innov_var; }
@@ -232,9 +236,6 @@ public:
 
 	// get the wind velocity var
 	Vector2f getWindVelocityVariance() const { return P.slice<2, 2>(22, 22).diag(); }
-
-	// get the true airspeed in m/s
-	float getTrueAirspeed() const;
 
 	// get the full covariance matrix
 	const matrix::SquareMatrix<float, 24> &covariances() const { return P; }
@@ -444,8 +445,13 @@ public:
 
 	const BiasEstimator::status &getEvPosBiasEstimatorStatus(int i) const { return _ev_pos_b_est.getStatus(i); }
 
+#if defined(CONFIG_EKF2_AIRSPEED)
 	const auto &aid_src_airspeed() const { return _aid_src_airspeed; }
+#endif // CONFIG_EKF2_AIRSPEED
+
+#if defined(CONFIG_EKF2_SIDESLIP)
 	const auto &aid_src_sideslip() const { return _aid_src_sideslip; }
+#endif // CONFIG_EKF2_SIDESLIP
 
 	const auto &aid_src_baro_hgt() const { return _aid_src_baro_hgt; }
 	const auto &aid_src_rng_hgt() const { return _aid_src_rng_hgt; }
@@ -589,8 +595,12 @@ private:
 
 	estimator_aid_source1d_s _aid_src_baro_hgt{};
 	estimator_aid_source1d_s _aid_src_rng_hgt{};
+#if defined(CONFIG_EKF2_AIRSPEED)
 	estimator_aid_source1d_s _aid_src_airspeed{};
+#endif // CONFIG_EKF2_AIRSPEED
+#if defined(CONFIG_EKF2_SIDESLIP)
 	estimator_aid_source1d_s _aid_src_sideslip{};
+#endif // CONFIG_EKF2_SIDESLIP
 
 	estimator_aid_source2d_s _aid_src_fake_pos{};
 	estimator_aid_source1d_s _aid_src_fake_hgt{};
@@ -725,12 +735,30 @@ private:
 	// apply sensible limits to the declination and length of the NE mag field states estimates
 	void limitDeclination();
 
+#if defined(CONFIG_EKF2_AIRSPEED)
+	// control fusion of air data observations
+	void controlAirDataFusion(const imuSample &imu_delayed);
+
 	void updateAirspeed(const airspeedSample &airspeed_sample, estimator_aid_source1d_s &aid_src) const;
 	void fuseAirspeed(const airspeedSample &airspeed_sample, estimator_aid_source1d_s &aid_src);
+
+	void stopAirspeedFusion();
+
+	// Reset the wind states using the current airspeed measurement, ground relative nav velocity, yaw angle and assumption of zero sideslip
+	void resetWindUsingAirspeed(const airspeedSample &airspeed_sample);
+
+	// perform a limited reset of the wind state covariances
+	void resetWindCovarianceUsingAirspeed(const airspeedSample &airspeed_sample);
+#endif // CONFIG_EKF2_AIRSPEED
+
+#if defined(CONFIG_EKF2_SIDESLIP)
+	// control fusion of synthetic sideslip observations
+	void controlBetaFusion(const imuSample &imu_delayed);
 
 	// fuse synthetic zero sideslip measurement
 	void updateSideslip(estimator_aid_source1d_s &_aid_src_sideslip) const;
 	void fuseSideslip(estimator_aid_source1d_s &_aid_src_sideslip);
+#endif // CONFIG_EKF2_SIDESLIP
 
 #if defined(CONFIG_EKF2_DRAG_FUSION)
 	// control fusion of multi-rotor drag specific force observations
@@ -956,12 +984,6 @@ private:
 	void runMagAndMagDeclFusions(const Vector3f &mag);
 	void run3DMagAndDeclFusions(const Vector3f &mag);
 
-	// control fusion of air data observations
-	void controlAirDataFusion(const imuSample &imu_delayed);
-
-	// control fusion of synthetic sideslip observations
-	void controlBetaFusion(const imuSample &imu_delayed);
-
 	// control fusion of fake position observations to constrain drift
 	void controlFakePosFusion();
 
@@ -1021,13 +1043,6 @@ private:
 
 	// perform a reset of the wind states and related covariances
 	void resetWind();
-
-	// Reset the wind states using the current airspeed measurement, ground relative nav velocity, yaw angle and assumption of zero sideslip
-	void resetWindUsingAirspeed(const airspeedSample &airspeed_sample);
-
-	// perform a limited reset of the wind state covariances
-	void resetWindCovarianceUsingAirspeed(const airspeedSample &airspeed_sample);
-
 	void resetWindToZero();
 
 	// check that the range finder data is continuous
@@ -1066,8 +1081,6 @@ private:
 	{
 		return (sensor_timestamp != 0) && (sensor_timestamp + acceptance_interval > _time_latest_us);
 	}
-
-	void stopAirspeedFusion();
 
 	void stopGpsFusion();
 	void stopGpsPosFusion();
