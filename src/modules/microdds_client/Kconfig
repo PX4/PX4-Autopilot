@@ -3,3 +3,10 @@ menuconfig MODULES_MICRODDS_CLIENT
 	default n
 	---help---
 		Enable support for the MicroDDS Client
+
+menuconfig USER_MICRODDS_CLIENT
+	bool "microdds_client running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && MODULES_MICRODDS_CLIENT
+	---help---
+		Put microdds_client in userspace memory
