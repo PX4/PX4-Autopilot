@@ -88,7 +88,6 @@ list(APPEND EKF_SRCS
 	EKF/gnss_height_control.cpp
 	EKF/gps_checks.cpp
 	EKF/gps_control.cpp
-	EKF/gps_yaw_fusion.cpp
 	EKF/gravity_fusion.cpp
 	EKF/height_control.cpp
 	EKF/imu_down_sampler.cpp
@@ -109,6 +108,10 @@ list(APPEND EKF_SRCS
 
 if(CONFIG_EKF2_DRAG_FUSION)
 	list(APPEND EKF_SRCS EKF/drag_fusion.cpp)
+endif()
+
+if(CONFIG_EKF2_GNSS_YAW)
+	list(APPEND EKF_SRCS EKF/gps_yaw_fusion.cpp)
 endif()
 
 px4_add_module(

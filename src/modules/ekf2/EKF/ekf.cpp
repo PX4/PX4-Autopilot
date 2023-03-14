@@ -130,7 +130,10 @@ void Ekf::reset()
 	resetEstimatorAidStatus(_aid_src_gnss_hgt);
 	resetEstimatorAidStatus(_aid_src_gnss_pos);
 	resetEstimatorAidStatus(_aid_src_gnss_vel);
+
+#if defined(CONFIG_EKF2_GNSS_YAW)
 	resetEstimatorAidStatus(_aid_src_gnss_yaw);
+#endif // CONFIG_EKF2_GNSS_YAW
 
 	resetEstimatorAidStatus(_aid_src_mag_heading);
 	resetEstimatorAidStatus(_aid_src_mag);
