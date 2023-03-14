@@ -359,8 +359,10 @@ struct parameters {
 	float mag_acc_gate{0.5f};               ///< when in auto select mode, heading fusion will be used when manoeuvre accel is lower than this (m/sec**2)
 	float mag_yaw_rate_gate{0.20f};         ///< yaw rate threshold used by mode select logic (rad/sec)
 
+#if defined(CONFIG_EKF2_GNSS_YAW)
 	// GNSS heading fusion
 	float gps_heading_noise{0.1f};          ///< measurement noise standard deviation used for GNSS heading fusion (rad)
+#endif // CONFIG_EKF2_GNSS_YAW
 
 	// airspeed fusion
 	float tas_innov_gate{5.0f};             ///< True Airspeed innovation consistency gate size (STD)

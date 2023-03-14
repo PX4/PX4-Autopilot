@@ -27,6 +27,13 @@ depends on MODULES_EKF2
 	---help---
 		EKF2 drag fusion support.
 
+menuconfig EKF2_GNSS_YAW
+depends on MODULES_EKF2
+        bool "GNSS yaw fusion support"
+        default y
+	---help---
+		EKF2 GNSS yaw fusion support.
+
 menuconfig USER_EKF2
 	bool "ekf2 running as userspace module"
 	default n

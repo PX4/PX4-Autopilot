@@ -53,7 +53,6 @@ list(APPEND EKF_SRCS
 	gnss_height_control.cpp
 	gps_checks.cpp
 	gps_control.cpp
-	gps_yaw_fusion.cpp
 	gravity_fusion.cpp
 	height_control.cpp
 	imu_down_sampler.cpp
@@ -74,6 +73,10 @@ list(APPEND EKF_SRCS
 
 if(CONFIG_EKF2_DRAG_FUSION)
 	list(APPEND EKF_SRCS drag_fusion.cpp)
+endif()
+
+if(CONFIG_EKF2_GNSS_YAW)
+	list(APPEND EKF_SRCS gps_yaw_fusion.cpp)
 endif()
 
 add_library(ecl_EKF

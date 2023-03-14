@@ -168,7 +168,17 @@ void EstimatorInterface::setGpsData(const gpsMessage &gps)
 
 		gps_sample_new.hgt = (float)gps.alt * 1e-3f;
 
-		gps_sample_new.yaw = gps.yaw;
+#if defined(CONFIG_EKF2_GNSS_YAW)
+
+		if (PX4_ISFINITE(gps.yaw)) {
+			_time_last_gps_yaw_buffer_push = _time_latest_us;
+			gps_sample_new.yaw = gps.yaw;
+			gps_sample_new.yaw_acc = PX4_ISFINITE(gps.yaw_accuracy) ? gps.yaw_accuracy : 0.f;
+
+		} else {
+			gps_sample_new.yaw = NAN;
+			gps_sample_new.yaw_acc = 0.f;
+		}
 
 		if (PX4_ISFINITE(gps.yaw_offset)) {
 			_gps_yaw_offset = gps.yaw_offset;
@@ -177,12 +187,7 @@ void EstimatorInterface::setGpsData(const gpsMessage &gps)
 			_gps_yaw_offset = 0.0f;
 		}
 
-		if (PX4_ISFINITE(gps.yaw_accuracy)) {
-			gps_sample_new.yaw_acc = gps.yaw_accuracy;
-
-		} else {
-			gps_sample_new.yaw_acc = 0.f;
-		}
+#endif // CONFIG_EKF2_GNSS_YAW
 
 		// Only calculate the relative position if the WGS-84 location of the origin is set
 		if (collect_gps(gps)) {
@@ -196,9 +201,6 @@ void EstimatorInterface::setGpsData(const gpsMessage &gps)
 		_gps_buffer->push(gps_sample_new);
 		_time_last_gps_buffer_push = _time_latest_us;
 
-		if (PX4_ISFINITE(gps.yaw)) {
-			_time_last_gps_yaw_buffer_push = _time_latest_us;
-		}
 
 	} else {
 		ECL_WARN("GPS data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us, _gps_buffer->get_newest().time_us, _min_obs_interval_us);
