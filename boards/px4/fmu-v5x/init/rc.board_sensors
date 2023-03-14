@@ -92,7 +92,7 @@ else
 	icm20602 -R 8 -s start
 
 	# Internal magnetometer on I2c
-	#bmm150 -I -R 6 start
+	bmm150 -I -R 6 start
 
 fi
 
