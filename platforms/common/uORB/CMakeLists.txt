@@ -60,6 +60,7 @@ if ("${PX4_PLATFORM}" MATCHES "posix")
 endif()
 
 target_compile_options(uORB PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
+target_link_libraries(uORB PRIVATE uorb_msgs)
 
 if(PX4_TESTING)
 	add_subdirectory(uORB_tests)

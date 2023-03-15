@@ -127,7 +127,9 @@ int px4_platform_init()
 	hrt_ioctl_init();
 #endif
 
+#ifdef CONFIG_SYSTEMCMDS_PARAM
 	param_init();
+#endif
 
 	/* configure CPU load estimation */
 #ifdef CONFIG_SCHED_INSTRUMENTATION
