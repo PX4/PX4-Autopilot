@@ -140,15 +140,22 @@ void FlightModeManager::start_flight_task()
 	bool task_failure = false;
 	bool should_disable_task = true;
 
-	const bool land_should_be_precland = (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL
-					      ||
-					      _vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND)
-					     && _param_rtl_pld_md.get() > 0;
+	// land/rtl mode is precland
+	const bool land_should_be_precland =
+			(_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL ||
+			_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND)
+			&& _param_rtl_pld_md.get() > 0;
+
+	// Mission item precland
 	const bool precland_mission_item_active = _vehicle_status_sub.get().nav_state ==
 			vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION &&
 			_navigator_mission_item_sub.get().nav_sub_cmd == navigator_mission_item_s::WORK_ITEM_TYPE_PRECISION_LAND;
+
+	// When issuing the auto:precland mode
 	const bool precland_flight_mode = _vehicle_status_sub.get().nav_state ==
 					  vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND;
+
+	// PX4_INFO("start_flight_task: %d %d %d", land_should_be_precland, precland_mission_item_active, precland_flight_mode);
 
 	// Do not run any flight task for VTOLs in fixed-wing mode
 	if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {

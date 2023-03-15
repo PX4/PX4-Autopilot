@@ -215,6 +215,7 @@ void FlightTaskAuto::overrideCruiseSpeed(const float cruise_speed_m_s)
 
 void FlightTaskAuto::_prepareLandSetpoints()
 {
+	// PX4_INFO("FlightTaskAuto::_prepareLandSetpoints");
 	_velocity_setpoint.setNaN(); // Don't take over any smoothed velocity setpoint
 
 	// Slow down automatic descend close to ground
@@ -323,6 +324,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 	// Check if triplet is valid. There must be at least a valid altitude.
 
 	if (!_sub_triplet_setpoint.get().current.valid || !PX4_ISFINITE(_sub_triplet_setpoint.get().current.alt)) {
+		PX4_INFO("forcing setpoint type to loiter");
 		// Best we can do is to just set all waypoints to current state
 		_prev_prev_wp = _triplet_prev_wp = _triplet_target = _triplet_next_wp = _position;
 		_type = WaypointType::loiter;

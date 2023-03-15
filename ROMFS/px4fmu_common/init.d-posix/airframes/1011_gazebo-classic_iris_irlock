@@ -33,6 +33,8 @@ param set-default PWM_MAIN_FUNC4 104
 param set-default LTEST_MODE 1
 param set-default PLD_HACC_RAD 0.1
 param set-default RTL_PLD_MD 2
+param set-default MPC_LAND_SPEED 0.2
+param set-default PLD_SRCH_TOUT 30
 
 # Start up Landing Target Estimator module
 landing_target_estimator start

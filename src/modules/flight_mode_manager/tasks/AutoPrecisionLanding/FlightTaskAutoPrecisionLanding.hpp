@@ -52,18 +52,14 @@
 #include <uORB/topics/landing_target_pose.h>
 #include <uORB/topics/precision_landing_status.h>
 
-#define SEC2USEC 1000000.0f		// TODO: Get the correct define from some header
-#define STATE_TIMEOUT 10000000 		// [us] Maximum time to spend in any state
-#define ACCEPTANCE_RADIUS 0.20f		// Horizontal acceptance radius for the navigation to the landing target
-// TODO: Get ACCEPTANCE_RADIUS from NAV_ACC_RAD
-
 enum class PrecLandState {
-	AutoRTL, // Starting state
-	Search, // Search for landing target
-	MoveAboveTarget, // Positioning over landing target while maintaining altitude
-	DescendAboveTarget, // Stay over landing target while descending
-	TouchingDown, // Final landing approach, even without landing target
-	Fallback // Fallback landing method
+	Idle,
+	Start,
+	HorizontalApproach,
+	DescendAboveTarget,
+	Search,
+	NormalLand,
+	Finished,
 };
 
 enum class PrecLandMode {
@@ -81,49 +77,58 @@ public:
 
 	bool update() override;
 
+	bool updateInitialize() override;
+
 private:
-	// run the control loop for each state
-	void run_state_auto_rtl();
-	void run_state_search();
-	void run_state_move_above_target();
+
+	// Jake:
+	void run_state_idle();
+	void run_state_start();
+	void run_state_horizontal_approach();
 	void run_state_descend_above_target();
-	void run_state_touching_down();
-	void run_state_fallback();
+	void run_state_search();
+	void run_state_normal_land();
+	void run_state_finished();
 
-	// attempt to switch to a different state. Returns true if state change was successful, false otherwise
-	bool try_switch_to_state_auto_rtl();
-	void try_switch_to_state_search();
-	bool try_switch_to_state_move_above_target();
-	bool try_switch_to_state_descend_above_target();
-	bool try_switch_to_state_touching_down();
-	void try_switch_to_state_fallback();
+	void switch_state(PrecLandState state);
+	void state_on_enter(PrecLandState state);
+	void state_on_exit(PrecLandState state);
 
-	void print_state_switch_message(const char *state_name);
-
-	// check if a given state could be changed into. Return true if possible to transition to state, false otherwise
-	bool check_state_conditions(PrecLandState state);
 	void slewrate(float &sp_x, float &sp_y);
-
 	bool hor_acc_radius_check();
-
-	landing_target_pose_s _landing_target_pose{}; /**< precision landing target position */
 
 	uORB::Subscription _landing_target_pose_sub{ORB_ID(landing_target_pose)};
 	uORB::PublicationMulti<precision_landing_status_s> _precision_landing_status_pub{ORB_ID(precision_landing_status)};
 
-	bool _landing_target_pose_valid{false}; /**< whether we have received a landing target position message */
+	landing_target_pose_s _landing_target_pose {}; /**< precision landing target position */
 
-	uint64_t _state_start_time{0}; /**< time when we entered current state */
-	uint64_t _last_slewrate_time{0}; /**< time when we last limited setpoint changes */
-	uint64_t _target_acquired_time{0}; /**< time when we first saw the landing target during search */
-	uint64_t _point_reached_time{0}; /**< time when we reached a setpoint */
+	float _horizontal_approach_alt {};
 
-	int _search_cnt{0}; /**< counter of how many times we had to search for the landing target */
+	// FIX THIS
+	// INFO  [FlightTaskAutoPrecisionLanding] Switching to Start
+	// INFO  [FlightTaskAutoPrecisionLanding] FlightTaskAutoPrecisionLanding::activate
+	// INFO  [FlightTaskAutoPrecisionLanding] run_state_idle: waypoint type: 4
+	// INFO  [FlightTaskAutoPrecisionLanding] Switching to Start
+	// INFO  [FlightTaskAutoPrecisionLanding] FlightTaskAutoPrecisionLanding::activate
+	// INFO  [FlightTaskAutoPrecisionLanding] run_state_idle: waypoint type: 4
+	// INFO  [FlightTaskAutoPrecisionLanding] Switching to Start
+	// INFO  [FlightTaskAutoPrecisionLanding] FlightTaskAutoPrecisionLanding::activate
+	// INFO  [FlightTaskAutoPrecisionLanding] run_state_idle: waypoint type: 4
+	// INFO  [FlightTaskAutoPrecisionLanding] Switching to Start
+	bool _fix_this_activate_update_loop {true};
+
+
+	bool _landing_target_valid {false}; /**< whether we have received a landing target position message */
+
+	hrt_abstime _search_start_time {0};
+
+	uint64_t _last_slewrate_time {0}; /**< time when we last limited setpoint changes */
+	int _search_count {0};
 
 	matrix::Vector2f _sp_pev;
 	matrix::Vector2f _sp_pev_prev;
 
-	PrecLandState _state{PrecLandState::AutoRTL};
+	PrecLandState _state{PrecLandState::Idle};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
 					(ParamFloat<px4::params::MPC_LAND_SPEED>) _param_mpc_land_speed, ///< velocity for controlled descend
