@@ -392,6 +392,7 @@ void AdsbConflict::run_fake_traffic(double &lat_uav, double &lon_uav,
 				    float &alt_uav)
 {
 
+	/*
 	//first conflict
 	fake_traffic("LX001", 5, 1.0f, 0.0f, 0.0f, 90000.0f, 90000.0f,
 		     transponder_report_s::ADSB_EMITTER_TYPE_LIGHT, 1, lat_uav, lon_uav,
@@ -498,4 +499,5 @@ void AdsbConflict::run_fake_traffic(double &lat_uav, double &lon_uav,
 	for (size_t i = 0; i < _traffic_buffer.icao_address.size(); i++) {
 		PX4_INFO("%u ", static_cast<unsigned int>(_traffic_buffer.icao_address[i]));
 	}
+	*/
 }
