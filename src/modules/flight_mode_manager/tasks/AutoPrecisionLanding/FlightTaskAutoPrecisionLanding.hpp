@@ -63,11 +63,14 @@ enum class PrecLandState {
 };
 
 enum class PrecLandMode {
-	Opportunistic = 1, // only do precision landing if landing target visible at the beginning
-	Required = 2 // try to find landing target if not visible at the beginning
+	RegularPrecisionLand,
+	RegularLandOpportunistic,
+	ReturnToLaunchOpportunistic,
+	ReturnToLaunchRequired,
+	MissionPrecisionLand
 };
 
-class FlightTaskAutoPrecisionLanding : public FlightTaskAuto
+class FlightTaskAutoPrecisionLanding : public FlightTask
 {
 public:
 	FlightTaskAutoPrecisionLanding() = default;
@@ -97,26 +100,27 @@ private:
 	void slewrate(float &sp_x, float &sp_y);
 	bool hor_acc_radius_check();
 
-	uORB::Subscription _landing_target_pose_sub{ORB_ID(landing_target_pose)};
-	uORB::PublicationMulti<precision_landing_status_s> _precision_landing_status_pub{ORB_ID(precision_landing_status)};
+	uORB::SubscriptionData<home_position_s>			_sub_home_position {ORB_ID(home_position)};
+	uORB::SubscriptionData<vehicle_status_s>		_sub_vehicle_status {ORB_ID(vehicle_status)};
+	uORB::SubscriptionData<landing_target_pose_s>	_landing_target_pose_sub {ORB_ID(landing_target_pose)};
 
-	landing_target_pose_s _landing_target_pose {}; /**< precision landing target position */
+	uORB::PublicationMulti<precision_landing_status_s> _precision_landing_status_pub {ORB_ID(precision_landing_status)};
+
+	landing_target_pose_s _landing_target_pose {};
 
 	float _horizontal_approach_alt {};
 
 	// FIX THIS
 	// INFO  [FlightTaskAutoPrecisionLanding] Switching to Start
 	// INFO  [FlightTaskAutoPrecisionLanding] FlightTaskAutoPrecisionLanding::activate
-	// INFO  [FlightTaskAutoPrecisionLanding] run_state_idle: waypoint type: 4
 	// INFO  [FlightTaskAutoPrecisionLanding] Switching to Start
 	// INFO  [FlightTaskAutoPrecisionLanding] FlightTaskAutoPrecisionLanding::activate
-	// INFO  [FlightTaskAutoPrecisionLanding] run_state_idle: waypoint type: 4
 	// INFO  [FlightTaskAutoPrecisionLanding] Switching to Start
 	// INFO  [FlightTaskAutoPrecisionLanding] FlightTaskAutoPrecisionLanding::activate
-	// INFO  [FlightTaskAutoPrecisionLanding] run_state_idle: waypoint type: 4
 	// INFO  [FlightTaskAutoPrecisionLanding] Switching to Start
 	bool _fix_this_activate_update_loop {true};
 
+	uint8_t _nav_state {0};
 
 	bool _landing_target_valid {false}; /**< whether we have received a landing target position message */
 
@@ -128,19 +132,20 @@ private:
 	matrix::Vector2f _sp_pev;
 	matrix::Vector2f _sp_pev_prev;
 
-	PrecLandState _state{PrecLandState::Idle};
+	PrecLandMode  _mode  {PrecLandMode::RegularPrecisionLand};
+	PrecLandState _state {PrecLandState::Idle};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
-					(ParamFloat<px4::params::MPC_LAND_SPEED>) _param_mpc_land_speed, ///< velocity for controlled descend
-					(ParamFloat<px4::params::MPC_ACC_HOR>) _param_acceleration_hor,
-					(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_xy_vel_cruise,
-					(ParamFloat<px4::params::PLD_BTOUT>) _param_pld_btout,
-					(ParamFloat<px4::params::PLD_HACC_RAD>) _param_pld_hacc_rad,
-					(ParamFloat<px4::params::PLD_FAPPR_ALT>) _param_pld_fappr_alt,
-					(ParamFloat<px4::params::PLD_SRCH_ALT>) _param_pld_srch_alt,
-					(ParamFloat<px4::params::PLD_SRCH_TOUT>) _param_pld_srch_tout,
-					(ParamInt<px4::params::PLD_MAX_SRCH>) _param_pld_max_srch,
-					(ParamInt<px4::params::RTL_PLD_MD>) _param_rtl_pld_md
-				       )
+		(ParamFloat<px4::params::MPC_LAND_SPEED>) _param_mpc_land_speed, ///< velocity for controlled descend
+		(ParamFloat<px4::params::MPC_ACC_HOR>) _param_acceleration_hor,
+		(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_xy_vel_cruise,
+		(ParamFloat<px4::params::PLD_BTOUT>) _param_pld_btout,
+		(ParamFloat<px4::params::PLD_HACC_RAD>) _param_pld_hacc_rad,
+		(ParamFloat<px4::params::PLD_FAPPR_ALT>) _param_pld_fappr_alt,
+		(ParamFloat<px4::params::PLD_SRCH_ALT>) _param_pld_srch_alt,
+		(ParamFloat<px4::params::PLD_SRCH_TOUT>) _param_pld_srch_tout,
+		(ParamInt<px4::params::PLD_MAX_SRCH>) _param_pld_max_srch,
+		(ParamInt<px4::params::RTL_PLD_MD>) _param_rtl_pld_md
+	)
 
 };

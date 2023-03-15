@@ -146,6 +146,7 @@ void FlightModeManager::start_flight_task()
 			_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND)
 			&& _param_rtl_pld_md.get() > 0;
 
+
 	// Mission item precland
 	const bool precland_mission_item_active = _vehicle_status_sub.get().nav_state ==
 			vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION &&
