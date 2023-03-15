@@ -51,12 +51,12 @@ public:
 	~RateControl() = default;
 
 	/**
-	 * Set the rate control gains
+	 * Set the rate control PID gains
 	 * @param P 3D vector of proportional gains for body x,y,z axis
 	 * @param I 3D vector of integral gains
 	 * @param D 3D vector of derivative gains
 	 */
-	void setGains(const matrix::Vector3f &P, const matrix::Vector3f &I, const matrix::Vector3f &D);
+	void setPidGains(const matrix::Vector3f &P, const matrix::Vector3f &I, const matrix::Vector3f &D);
 
 	/**
 	 * Set the mximum absolute value of the integrator for all axes

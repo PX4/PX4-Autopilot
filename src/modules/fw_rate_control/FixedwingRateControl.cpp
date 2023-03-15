@@ -77,7 +77,7 @@ FixedwingRateControl::parameters_update()
 	const Vector3f rate_i = Vector3f(_param_fw_rr_i.get(), _param_fw_pr_i.get(), _param_fw_yr_i.get());
 	const Vector3f rate_d = Vector3f(_param_fw_rr_d.get(), _param_fw_pr_d.get(), _param_fw_yr_d.get());
 
-	_rate_control.setGains(rate_p, rate_i, rate_d);
+	_rate_control.setPidGains(rate_p, rate_i, rate_d);
 
 	_rate_control.setIntegratorLimit(
 		Vector3f(_param_fw_rr_imax.get(), _param_fw_pr_imax.get(), _param_fw_yr_imax.get()));
