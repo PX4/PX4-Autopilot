@@ -52,9 +52,7 @@ bool FlightTaskManualAcceleration::activate(const trajectory_setpoint_s &last_se
 		_stick_acceleration_xy.resetVelocity(_velocity.xy());
 	}
 
-	if (Vector2f(last_setpoint.acceleration).isAllFinite()) {
-		_stick_acceleration_xy.resetAcceleration(Vector2f(last_setpoint.acceleration));
-	}
+	_stick_acceleration_xy.resetAcceleration(Vector2f(last_setpoint.acceleration));
 
 	return ret;
 }
