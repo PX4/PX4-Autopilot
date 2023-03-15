@@ -1063,3 +1063,23 @@ PARAM_DEFINE_FLOAT(FW_SPOILERS_LND, 0.f);
  * @group FW Attitude Control
  */
 PARAM_DEFINE_FLOAT(FW_SPOILERS_DESC, 0.f);
+
+/**
+ * Wind variance threshold for usage of TAS rate estimate
+ *
+ * The wind estimate is used to determine a 3D airspeed vector which is then used to estimate the
+ * current airspeed derivative, which in turn is an input for TECS.
+ *
+ * To pass the check both the north and east component of the wind estimate need to have reported
+ * variances below this threshold.
+ * Set to 0 if the airspeed rate estimate shouldn't be used at all (not possible to estimate without wind).
+ * If airspeed rate is not estimated, it is assumed to be 0. TECS is then generally slower to reduce
+ * airspeed errors.
+ *
+ * @unit (m/s)^2
+ * @min 0.0
+ * @decimal 2
+ * @increment 0.01
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_WIND_VAR_THLD, 0.1f);

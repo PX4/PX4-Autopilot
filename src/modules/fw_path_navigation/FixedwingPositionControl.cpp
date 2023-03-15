@@ -296,13 +296,11 @@ FixedwingPositionControl::wind_poll()
 		_wind_sub.update(&wind);
 
 		// assumes wind is valid if finite
-		_wind_valid = PX4_ISFINITE(wind.windspeed_north)
-			      && PX4_ISFINITE(wind.windspeed_east);
-
+		_wind_valid = PX4_ISFINITE(wind.windspeed_north) && PX4_ISFINITE(wind.windspeed_east);
 		_time_wind_last_received = hrt_absolute_time();
 
-		_wind_vel(0) = wind.windspeed_north;
-		_wind_vel(1) = wind.windspeed_east;
+		_wind_vel = {wind.windspeed_north, wind.windspeed_east};
+		_wind_var = {wind.variance_north, wind.variance_east};
 
 	} else {
 		// invalidate wind estimate usage (and correspondingly NPFG, if enabled) after subscription timeout
@@ -310,8 +308,7 @@ FixedwingPositionControl::wind_poll()
 	}
 
 	if (!_wind_valid) {
-		_wind_vel(0) = 0.f;
-		_wind_vel(1) = 0.f;
+		_wind_vel.setZero();
 	}
 }
 
@@ -2555,6 +2552,9 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 
 	const Vector3f local_pos_a = Vector3f{_local_pos.ax, _local_pos.ay, _local_pos.az};
 	const Vector3f groundspeed_minus_wind = Vector3f{_local_pos.vx - _wind_vel(0), _local_pos.vy - _wind_vel(1), _local_pos.vz};
+
+	// extra check: wind variance of each component max FW_WIND_VAR_THLD
+	const bool wind_valid_extra = _wind_valid && math::max(_wind_var(0), _wind_var(1)) < _param_fw_wind_var_thld.get();
 
 	// additionally only use it if local position has valid velocitis and we're currently in a position-controlled mode, as
 	// then we can assume that local_position has valid fields

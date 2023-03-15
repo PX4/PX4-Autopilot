@@ -378,8 +378,8 @@ private:
 
 	// WIND
 
-	// [m/s] wind velocity vector
-	Vector2f _wind_vel{0.0f, 0.0f};
+	Vector2f _wind_vel{0.f, 0.f}; // [m/s] wind velocity vector
+	Vector2f _wind_var{0.f, 0.f}; // [(m/s)^2] wind velocity variance
 
 	bool _wind_valid{false};
 
@@ -954,7 +954,8 @@ private:
 		(ParamFloat<px4::params::FW_TKO_AIRSPD>) _param_fw_tko_airspd,
 
 		(ParamFloat<px4::params::RWTO_PSP>) _param_rwto_psp,
-		(ParamBool<px4::params::FW_LAUN_DETCN_ON>) _param_fw_laun_detcn_on
+		(ParamBool<px4::params::FW_LAUN_DETCN_ON>) _param_fw_laun_detcn_on,
+		(ParamFloat<px4::params::FW_WIND_VAR_THLD>) _param_fw_wind_var_thld
 	)
 
 };
