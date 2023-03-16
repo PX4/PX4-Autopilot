@@ -296,13 +296,11 @@ FixedwingPositionControl::wind_poll()
 		_wind_sub.update(&wind);
 
 		// assumes wind is valid if finite
-		_wind_valid = PX4_ISFINITE(wind.windspeed_north)
-			      && PX4_ISFINITE(wind.windspeed_east);
-
+		_wind_valid = PX4_ISFINITE(wind.windspeed_north) && PX4_ISFINITE(wind.windspeed_east);
 		_time_wind_last_received = hrt_absolute_time();
 
-		_wind_vel(0) = wind.windspeed_north;
-		_wind_vel(1) = wind.windspeed_east;
+		_wind_vel = {wind.windspeed_north, wind.windspeed_east};
+		_wind_var = {wind.variance_north, wind.variance_east};
 
 	} else {
 		// invalidate wind estimate usage (and correspondingly NPFG, if enabled) after subscription timeout
@@ -310,8 +308,7 @@ FixedwingPositionControl::wind_poll()
 	}
 
 	if (!_wind_valid) {
-		_wind_vel(0) = 0.f;
-		_wind_vel(1) = 0.f;
+		_wind_vel.setZero();
 	}
 }
 
@@ -367,8 +364,11 @@ FixedwingPositionControl::vehicle_attitude_poll()
 		_pitch = euler_angles(1);
 		_yaw = euler_angles(2);
 
-		_body_acceleration = R.transpose() * Vector3f{_local_pos.ax, _local_pos.ay, _local_pos.az};
-		_body_velocity = R.transpose() * Vector3f{_local_pos.vx, _local_pos.vy, _local_pos.vz};
+		Vector3f body_acceleration = R.transpose() * Vector3f{_local_pos.ax, _local_pos.ay, _local_pos.az};
+		_body_acceleration_x = body_acceleration(0);
+
+		Vector3f body_velocity = R.transpose() * Vector3f{_local_pos.vx, _local_pos.vy, _local_pos.vz};
+		_body_velocity_x = body_velocity(0);
 
 		// load factor due to banking
 		const float load_factor = 1.f / cosf(euler_angles(0));
@@ -410,7 +410,7 @@ FixedwingPositionControl::adapt_airspeed_setpoint(const float control_interval, 
 		 * by wind). Not countering this would lead to a fly-away. Only non-zero in presence
 		 * of sufficient wind. "minimum ground speed undershoot".
 		 */
-		const float ground_speed_body = _body_velocity(0);
+		const float ground_speed_body = _body_velocity_x;
 
 		if (ground_speed_body < _param_fw_gnd_spd_min.get()) {
 			calibrated_airspeed_setpoint += _param_fw_gnd_spd_min.get() - ground_speed_body;
@@ -463,7 +463,7 @@ FixedwingPositionControl::adapt_airspeed_setpoint(const float control_interval, 
 
 void
 FixedwingPositionControl::tecs_status_publish(float alt_sp, float equivalent_airspeed_sp,
-		float true_airspeed_derivative_raw, float throttle_trim)
+		float ground_speed_derivative_raw, float throttle_trim)
 {
 	tecs_status_s t{};
 
@@ -488,7 +488,7 @@ FixedwingPositionControl::tecs_status_publish(float alt_sp, float equivalent_air
 	t.true_airspeed_filtered = debug_output.true_airspeed_filtered;
 	t.true_airspeed_derivative_sp = debug_output.control.true_airspeed_derivative_control;
 	t.true_airspeed_derivative = debug_output.true_airspeed_derivative;
-	t.true_airspeed_derivative_raw = true_airspeed_derivative_raw;
+	t.ground_speed_derivative_raw = ground_speed_derivative_raw;
 	t.total_energy_rate = debug_output.control.total_energy_rate_estimate;
 	t.total_energy_balance_rate = debug_output.control.energy_balance_rate_estimate;
 	t.total_energy_rate_sp = debug_output.control.total_energy_rate_sp;
@@ -1414,7 +1414,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 				/* Perform launch detection */
 
 				/* Detect launch using body X (forward) acceleration */
-				_launchDetector.update(control_interval, _body_acceleration(0));
+				_launchDetector.update(control_interval, _body_acceleration_x);
 			}
 
 		} else	{
@@ -2550,6 +2550,21 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 	const float throttle_trim_comp = compensateTrimThrottleForDensityAndWeight(_param_fw_thr_trim.get(), throttle_min,
 					 throttle_max);
 
+	const Vector3f local_pos_a = Vector3f{_local_pos.ax, _local_pos.ay, _local_pos.az};
+	const Vector3f groundspeed_minus_wind = Vector3f{_local_pos.vx - _wind_vel(0), _local_pos.vy - _wind_vel(1), _local_pos.vz};
+
+	// extra check: wind variance of each component max FW_WIND_VAR_THLD
+	const bool wind_valid_extra = _wind_valid && math::max(_wind_var(0), _wind_var(1)) < _param_fw_wind_var_thld.get();
+
+	// additionally only use it if local position has valid velocitis and we're currently in a position-controlled mode, as
+	// then we can assume that local_position has valid fields
+	const bool use_groundspeed_acceleration = wind_valid_extra && _local_pos.v_xy_valid && _local_pos.v_z_valid
+			&& _control_mode.flag_control_position_enabled;
+
+	// only do acceleration control in case wind is valid, and otherwise set it to 0
+	const float acceleration_in_direction_of_airspeed_vector = use_groundspeed_acceleration ?
+			groundspeed_minus_wind.unit_or_zero().dot(local_pos_a) : 0.f;
+
 	_tecs.update(_pitch - radians(_param_fw_psp_off.get()),
 		     _current_altitude,
 		     alt_sp,
@@ -2563,11 +2578,11 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 		     pitch_max_rad - radians(_param_fw_psp_off.get()),
 		     desired_max_climbrate,
 		     desired_max_sinkrate,
-		     _body_acceleration(0),
+		     acceleration_in_direction_of_airspeed_vector,
 		     -_local_pos.vz,
 		     hgt_rate_sp);
 
-	tecs_status_publish(alt_sp, airspeed_sp, -_local_pos.vz, throttle_trim_comp);
+	tecs_status_publish(alt_sp, airspeed_sp, acceleration_in_direction_of_airspeed_vector, throttle_trim_comp);
 }
 
 float

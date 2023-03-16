@@ -9,7 +9,7 @@ float32 true_airspeed_sp		# True airspeed setpoint [m/s]
 float32 true_airspeed_filtered		# True airspeed filtered [m/s]
 float32 true_airspeed_derivative_sp	# True airspeed derivative setpoint [m/s^2]
 float32 true_airspeed_derivative	# True airspeed derivative [m/s^2]
-float32 true_airspeed_derivative_raw	# True airspeed derivative raw [m/s^2]
+float32 ground_speed_derivative_raw	# Ground speed derivative in direction of travel raw [m/s^2]
 
 float32 total_energy_rate_sp		# Total energy rate setpoint [m^2/s^3]
 float32 total_energy_rate		# Total energy rate estimate [m^2/s^3]
