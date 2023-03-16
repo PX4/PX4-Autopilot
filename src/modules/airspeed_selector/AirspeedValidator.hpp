@@ -59,7 +59,7 @@ struct airspeed_validator_update_data {
 	bool lpos_valid;
 	float lpos_evh;
 	float lpos_evv;
-	float att_q[4];
+	matrix::Quatf q_att;
 	float air_pressure_pa;
 	float air_temperature_celsius;
 	float accel_z;
@@ -179,7 +179,7 @@ private:
 
 	void update_wind_estimator(const uint64_t timestamp, float airspeed_true_raw, bool lpos_valid,
 				   const matrix::Vector3f &vI,
-				   float lpos_evh, float lpos_evv, const float att_q[4]);
+				   float lpos_evh, float lpos_evv, const Quatf &q_att);
 	void update_CAS_scale_validated(bool lpos_valid, const matrix::Vector3f &vI, float airspeed_true_raw);
 	void update_CAS_scale_applied();
 	void update_CAS_TAS(float air_pressure_pa, float air_temperature_celsius);
