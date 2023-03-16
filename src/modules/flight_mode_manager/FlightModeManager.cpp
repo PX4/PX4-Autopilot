@@ -446,6 +446,7 @@ FlightTaskError FlightModeManager::switchTask(FlightTaskIndex new_task_index)
 
 	// activation failed
 	if (!_current_task.task->updateInitialize() || !_current_task.task->activate(last_setpoint)) {
+		PX4_INFO("activate failed");
 		_current_task.task->~FlightTask();
 		_current_task.task = nullptr;
 		_current_task.index = FlightTaskIndex::None;

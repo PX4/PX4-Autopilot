@@ -70,7 +70,7 @@ enum class PrecLandMode {
 	MissionPrecisionLand
 };
 
-class FlightTaskAutoPrecisionLanding : public FlightTask
+class FlightTaskAutoPrecisionLanding : public FlightTaskAuto
 {
 public:
 	FlightTaskAutoPrecisionLanding() = default;
@@ -105,8 +105,6 @@ private:
 	uORB::SubscriptionData<landing_target_pose_s>	_landing_target_pose_sub {ORB_ID(landing_target_pose)};
 
 	uORB::PublicationMulti<precision_landing_status_s> _precision_landing_status_pub {ORB_ID(precision_landing_status)};
-
-	landing_target_pose_s _landing_target_pose {};
 
 	float _horizontal_approach_alt {};
 

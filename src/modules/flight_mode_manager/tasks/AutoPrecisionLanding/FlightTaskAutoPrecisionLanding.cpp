@@ -52,13 +52,8 @@ static constexpr int32_t RTL_PREC_LAND_REQUIRED = 2;
 
 bool FlightTaskAutoPrecisionLanding::activate(const trajectory_setpoint_s &last_setpoint)
 {
-	// PX4_INFO("FlightTaskAutoPrecisionLanding::activate");
-	bool ret = FlightTask::activate(last_setpoint);
-
-	_position_setpoint = _position;
-	_velocity_setpoint = _velocity;
-	_yaw_setpoint = _yaw;
-	_yawspeed_setpoint = 0.0f;
+	PX4_INFO("FlightTaskAutoPrecisionLanding::activate");
+	bool ret = FlightTaskAuto::activate(last_setpoint);
 
 	_search_count = 0;
 	_last_slewrate_time = 0;
@@ -74,15 +69,19 @@ bool FlightTaskAutoPrecisionLanding::activate(const trajectory_setpoint_s &last_
 	// Regular precision land mode and mission precision land mode have the same behavior
 	if (nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND || nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
 		_mode = PrecLandMode::RegularPrecisionLand;
+		PX4_INFO("mode: %d", (int)_mode);
 
 	} else if (nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND && _param_rtl_pld_md.get() >= RTL_PREC_LAND_OPPORTUNISTIC) {
 		_mode = PrecLandMode::RegularLandOpportunistic;
+		PX4_INFO("mode: %d", (int)_mode);
 
 	} else if (nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL && _param_rtl_pld_md.get() == RTL_PREC_LAND_OPPORTUNISTIC) {
 		_mode = PrecLandMode::ReturnToLaunchOpportunistic;
+		PX4_INFO("mode: %d", (int)_mode);
 
 	} else if (nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL && _param_rtl_pld_md.get() == RTL_PREC_LAND_REQUIRED) {
 		_mode = PrecLandMode::ReturnToLaunchRequired;
+		PX4_INFO("mode: %d", (int)_mode);
 	}
 
 	return ret;
@@ -90,7 +89,7 @@ bool FlightTaskAutoPrecisionLanding::activate(const trajectory_setpoint_s &last_
 
 bool FlightTaskAutoPrecisionLanding::updateInitialize()
 {
-	bool ret = FlightTask::updateInitialize();
+	bool ret = FlightTaskAuto::updateInitialize();
 
 	_sub_home_position.update();
 	_sub_vehicle_status.update();
@@ -112,13 +111,9 @@ bool FlightTaskAutoPrecisionLanding::updateInitialize()
 
 bool FlightTaskAutoPrecisionLanding::update()
 {
-	bool ret = FlightTask::update();
+	bool ret = FlightTaskAuto::update();
 
-	if (_landing_target_pose_sub.updated()) {
-		_landing_target_pose_sub.copy(&_landing_target_pose);
-	}
-
-	_landing_target_valid = (hrt_elapsed_time(&_landing_target_pose.timestamp) / 1e6f) <= _param_pld_btout.get();
+	_landing_target_valid = (hrt_elapsed_time(&_landing_target_pose_sub.get().timestamp) / 1e6f) <= _param_pld_btout.get();
 
 	switch (_state) {
 
@@ -173,9 +168,9 @@ void FlightTaskAutoPrecisionLanding::state_on_enter(PrecLandState state)
 		_search_count++;
 		_search_start_time = hrt_absolute_time();
 		break;
-	case PrecLandState::HorizontalApproach:
-		_horizontal_approach_alt = _position(2);
-		break;
+	// case PrecLandState::HorizontalApproach:
+	// 	_horizontal_approach_alt = _position(2);
+	// 	break;
 	default:
 		break;
 	}
@@ -189,22 +184,22 @@ void FlightTaskAutoPrecisionLanding::state_on_exit(PrecLandState state)
 
 void FlightTaskAutoPrecisionLanding::run_state_idle()
 {
-	if (_fix_this_activate_update_loop) {
-		_fix_this_activate_update_loop = false;
-		return;
-	}
+	bool is_rtl = _mode == PrecLandMode::ReturnToLaunchRequired || _mode == PrecLandMode::ReturnToLaunchOpportunistic;
+	bool within_home_acceptance = Vector2f(Vector2f(_sub_home_position.get().x,
+				 _sub_home_position.get().y) - _position.xy()).norm() <= _target_acceptance_radius;
 
-	// PX4_INFO("run_state_idle: waypoint type: %d", (int)_type);
+	// We must wait for RTL to get home before starting
+	if (is_rtl && !within_home_acceptance) {
+		return;
+	} else if (is_rtl && within_home_acceptance) {
+		PX4_INFO("RTL reached home point");
+	}
 
 	switch_state(PrecLandState::Start);
 }
 
 void FlightTaskAutoPrecisionLanding::run_state_start()
 {
-	// Initialize our position setpoint to the current position
-	_position_setpoint = _position;
-
-
 	if (_landing_target_valid) {
 		switch_state(PrecLandState::HorizontalApproach);
 
@@ -212,8 +207,11 @@ void FlightTaskAutoPrecisionLanding::run_state_start()
 
 		PX4_INFO("Target not seen");
 
-		// Check if opportunistic mode is enabled
-		if (_param_rtl_pld_md.get() == RTL_PREC_LAND_REQUIRED) {
+		bool required = _mode == PrecLandMode::RegularPrecisionLand ||
+								 _mode == PrecLandMode::MissionPrecisionLand ||
+								 _mode == PrecLandMode::ReturnToLaunchRequired;
+
+		if (required) {
 			switch_state(PrecLandState::Search);
 
 		} else {
@@ -224,13 +222,15 @@ void FlightTaskAutoPrecisionLanding::run_state_start()
 
 void FlightTaskAutoPrecisionLanding::run_state_normal_land()
 {
-	// Do nothing
+	if (_landing_target_valid) {
+		switch_state(PrecLandState::HorizontalApproach);
+		return;
+	}
 }
 
 void FlightTaskAutoPrecisionLanding::run_state_search()
 {
-	_position_setpoint(2) = _sub_home_position.get().z - _param_pld_srch_alt.get();
-	// _velocity_setpoint(0) = _velocity_setpoint(1) = _velocity_setpoint(2) = NAN;
+	_target(2) = _position_setpoint(2) = _sub_home_position.get().z - _param_pld_srch_alt.get();
 
 	// If target is seen run horizontal approach
 	if (_landing_target_valid) {
@@ -258,17 +258,16 @@ void FlightTaskAutoPrecisionLanding::run_state_horizontal_approach()
 		return;
 	}
 
-	float x = _landing_target_pose.x_abs;
-	float y = _landing_target_pose.y_abs;
+	float x = _landing_target_pose_sub.get().x_abs;
+	float y = _landing_target_pose_sub.get().y_abs;
 	slewrate(x, y); // TODO: Replace this with PX4's AlphaFilter
 
 	// Fly to target XY position, maintain current altitude
-	_position_setpoint(0) = x;
-	_position_setpoint(1) = y;
-	_position_setpoint(2) = _horizontal_approach_alt;
+	_target(0) = _position_setpoint(0) = x;
+	_target(1) = _position_setpoint(1) = y;
 
 	// Check if it's time to descend
-	Vector2f target_position_vector = Vector2f(_landing_target_pose.x_abs,_landing_target_pose.y_abs);
+	Vector2f target_position_vector = Vector2f(_landing_target_pose_sub.get().x_abs,_landing_target_pose_sub.get().y_abs);
 	Vector2f position_delta_vector = Vector2f(target_position_vector - _position.xy());
 
 	if (position_delta_vector.norm() <= _param_pld_hacc_rad.get() ) {
@@ -283,13 +282,12 @@ void FlightTaskAutoPrecisionLanding::run_state_descend_above_target()
 		return;
 	}
 
-	// Let's assume the FlightTask::update() function is preparing our land setpoints.
-	_position_setpoint(0) = _landing_target_pose.x_abs;
-	_position_setpoint(1) = _landing_target_pose.y_abs;
-	_position_setpoint(2) = 0;
+	// FlightTask::update() function is preparing our land setpoints.
+	_target(0) = _position_setpoint(0) = _landing_target_pose_sub.get().x_abs;
+	_target(1) = _position_setpoint(1) = _landing_target_pose_sub.get().y_abs;
 
 	// Check if we're within our final approach altitude
-	if ((_landing_target_pose.z_abs - _position(2)) < _param_pld_fappr_alt.get()) {
+	if ((_landing_target_pose_sub.get().z_abs - _position(2)) < _param_pld_fappr_alt.get()) {
 		switch_state(PrecLandState::Finished);
 	}
 }
@@ -301,8 +299,8 @@ void FlightTaskAutoPrecisionLanding::run_state_finished()
 
 bool FlightTaskAutoPrecisionLanding::hor_acc_radius_check()
 {
-	return Vector2f(Vector2f(_landing_target_pose.x_abs,
-				 _landing_target_pose.y_abs) - _position.xy()).norm() <= _param_pld_hacc_rad.get();
+	return Vector2f(Vector2f(_landing_target_pose_sub.get().x_abs,
+				 _landing_target_pose_sub.get().y_abs) - _position.xy()).norm() <= _param_pld_hacc_rad.get();
 }
 
 void FlightTaskAutoPrecisionLanding::slewrate(float &sp_x, float &sp_y)

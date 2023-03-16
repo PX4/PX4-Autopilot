@@ -104,6 +104,10 @@ bool FlightTaskAuto::updateInitialize()
 
 bool FlightTaskAuto::update()
 {
+	if (_type_previous != _type) {
+		PX4_INFO("_type: %d", (int)_type);
+	}
+
 	bool ret = FlightTask::update();
 	// always reset constraints because they might change depending on the type
 	_setDefaultConstraints();
@@ -324,7 +328,6 @@ bool FlightTaskAuto::_evaluateTriplets()
 	// Check if triplet is valid. There must be at least a valid altitude.
 
 	if (!_sub_triplet_setpoint.get().current.valid || !PX4_ISFINITE(_sub_triplet_setpoint.get().current.alt)) {
-		PX4_INFO("forcing setpoint type to loiter");
 		// Best we can do is to just set all waypoints to current state
 		_prev_prev_wp = _triplet_prev_wp = _triplet_target = _triplet_next_wp = _position;
 		_type = WaypointType::loiter;

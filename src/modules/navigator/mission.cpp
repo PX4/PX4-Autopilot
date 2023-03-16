@@ -971,6 +971,7 @@ Mission::set_mission_items()
 				} else if (_mission_item.nav_cmd == NAV_CMD_LAND
 					   && _work_item_type == navigator_mission_item_s::WORK_ITEM_TYPE_DEFAULT) {
 					if (_mission_item.land_precision > 0 && _mission_item.land_precision < 3) {
+						PX4_INFO("new work item type is PRECISION_LAND");
 						new_work_item_type = navigator_mission_item_s::WORK_ITEM_TYPE_PRECISION_LAND;
 					}
 				}
@@ -980,6 +981,7 @@ Mission::set_mission_items()
 				    new_work_item_type == navigator_mission_item_s::WORK_ITEM_TYPE_DEFAULT) {
 
 					if (_mission_item.land_precision > 0 && _mission_item.land_precision < 3) {
+						PX4_INFO("we just moved to the landing waypoint, now descend");
 						new_work_item_type = navigator_mission_item_s::WORK_ITEM_TYPE_PRECISION_LAND;
 					}
 

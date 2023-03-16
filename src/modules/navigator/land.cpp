@@ -49,6 +49,7 @@ Land::Land(Navigator *navigator) :
 void
 Land::on_activation()
 {
+	PX4_INFO("Land::on_activation");
 	/* set current mission item to Land */
 	set_land_item(&_mission_item);
 	_navigator->get_mission_result()->finished = false;

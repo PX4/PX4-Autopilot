@@ -249,6 +249,8 @@ void RTL::find_RTL_destination()
 
 void RTL::on_activation()
 {
+	PX4_INFO("RTL::on_activation");
+
 	_rtl_state = RTL_STATE_NONE;
 
 	// if a mission landing is desired we should only execute mission navigation mode if we currently are in fw mode
