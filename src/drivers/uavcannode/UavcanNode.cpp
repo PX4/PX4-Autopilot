@@ -438,13 +438,7 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 #endif // CONFIG_UAVCANNODE_RTK_DATA
 
 #if defined(CONFIG_UAVCANNODE_SERVO_ARRAY_COMMAND)
-	int32_t enable_servo_array_command_sub = 0;
-	param_get(param_find("CANNODE_SUB_SERV"), &enable_servo_array_command_sub);
-
-	if (enable_servo_array_command_sub != 0) {
-		_subscriber_list.add(new ServoArrayCommand(_node));
-	}
-
+	_subscriber_list.add(new ServoArrayCommand(_node));
 #endif // CONFIG_UAVCANNODE_SERVO_ARRAY_COMMAND
 
 	for (auto &subscriber : _subscriber_list) {
