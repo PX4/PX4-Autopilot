@@ -2553,6 +2553,10 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 	const float throttle_trim_comp = compensateTrimThrottleForDensityAndWeight(_param_fw_thr_trim.get(), throttle_min,
 					 throttle_max);
 
+	// HOTFIX: the airspeed rate estimate using acceleration in body-forward direction has shown to lead to high biases
+	// when flying tight turns. It's in this case much safer to just set the estimated airspeed rate to 0.
+	const float airspeed_rate_estimate = 0.f;
+
 	_tecs.update(_pitch - radians(_param_fw_psp_off.get()),
 		     _current_altitude,
 		     alt_sp,
@@ -2566,11 +2570,11 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 		     pitch_max_rad - radians(_param_fw_psp_off.get()),
 		     desired_max_climbrate,
 		     desired_max_sinkrate,
-		     _body_acceleration_x,
+		     airspeed_rate_estimate,
 		     -_local_pos.vz,
 		     hgt_rate_sp);
 
-	tecs_status_publish(alt_sp, airspeed_sp, -_local_pos.vz, throttle_trim_comp);
+	tecs_status_publish(alt_sp, airspeed_sp, airspeed_rate_estimate, throttle_trim_comp);
 }
 
 float
