@@ -171,7 +171,7 @@ bool FailureDetector::update(const vehicle_status_s &vehicle_status, const vehic
 	failure_detector_status_u status_prev = _status;
 
 	if (vehicle_control_mode.flag_control_attitude_enabled) {
-		updateAttitudeStatus();
+		updateAttitudeStatus(vehicle_status);
 
 		if (_param_fd_ext_ats_en.get()) {
 			updateExternalAtsStatus();
@@ -206,15 +206,31 @@ bool FailureDetector::update(const vehicle_status_s &vehicle_status, const vehic
 	return _status.value != status_prev.value;
 }
 
-void FailureDetector::updateAttitudeStatus()
+void FailureDetector::updateAttitudeStatus(const vehicle_status_s &vehicle_status)
 {
 	vehicle_attitude_s attitude;
 
 	if (_vehicle_attitude_sub.update(&attitude)) {
 
 		const matrix::Eulerf euler(matrix::Quatf(attitude.q));
-		const float roll(euler.phi());
-		const float pitch(euler.theta());
+		float roll(euler.phi());
+		float pitch(euler.theta());
+
+		// special handling for tailsitter
+		if (vehicle_status.is_vtol_tailsitter) {
+			if (vehicle_status.in_transition_mode) {
+				// disable attitude check during tailsitter transition
+				roll = 0.f;
+				pitch = 0.f;
+
+			} else if (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+				// in FW flight rotate the attitude by 90° around pitch (level FW flight = 0° pitch)
+				const matrix::Eulerf euler_rotated = matrix::Eulerf(matrix::Quatf(attitude.q) * matrix::Quatf(matrix::Eulerf(0.f,
+								     M_PI_2_F, 0.f)));
+				roll = euler_rotated.phi();
+				pitch = euler_rotated.theta();
+			}
+		}
 
 		const float max_roll_deg = _param_fd_fail_r.get();
 		const float max_pitch_deg = _param_fd_fail_p.get();
