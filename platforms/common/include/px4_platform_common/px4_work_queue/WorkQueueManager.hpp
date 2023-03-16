@@ -89,6 +89,8 @@ static constexpr wq_config_t ttyS9{"wq:ttyS9", 1728, -30};
 static constexpr wq_config_t ttyACM0{"wq:ttyACM0", 1728, -31};
 static constexpr wq_config_t ttyUnknown{"wq:ttyUnknown", 1728, -32};
 
+static constexpr wq_config_t navigator{"wq:navigator", 3150, -50}; // Same priority as lp_default
+
 static constexpr wq_config_t lp_default{"wq:lp_default", 1920, -50};
 
 static constexpr wq_config_t test1{"wq:test1", 2000, 0};

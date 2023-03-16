@@ -140,6 +140,14 @@ void FlightModeManager::start_flight_task()
 	bool task_failure = false;
 	bool should_disable_task = true;
 
+	static uint8_t _prev_nav_state = {};
+
+	if (_vehicle_status_sub.get().nav_state != _prev_nav_state) {
+		_prev_nav_state = _vehicle_status_sub.get().nav_state;
+		PX4_INFO("nav_state: %u", _prev_nav_state);
+	}
+
+
 	// land/rtl mode is precland
 	const bool land_should_be_precland =
 			(_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL ||

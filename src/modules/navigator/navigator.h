@@ -55,11 +55,17 @@
 #include "GeofenceBreachAvoidance/geofence_breach_avoidance.h"
 
 #include <lib/perf/perf_counter.h>
+
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+
+#include <uORB/uORB.h>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
+#include <uORB/SubscriptionCallback.hpp>
+
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/mission.h>
@@ -77,7 +83,6 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/mode_completed.h>
-#include <uORB/uORB.h>
 
 using namespace time_literals;
 
@@ -86,7 +91,7 @@ using namespace time_literals;
  */
 #define NAVIGATOR_MODE_ARRAY_SIZE 6
 
-class Navigator : public ModuleBase<Navigator>, public ModuleParams
+class Navigator : public ModuleBase<Navigator>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
 	Navigator();
@@ -99,19 +104,17 @@ public:
 	static int task_spawn(int argc, char *argv[]);
 
 	/** @see ModuleBase */
-	static Navigator *instantiate(int argc, char *argv[]);
-
-	/** @see ModuleBase */
 	static int custom_command(int argc, char *argv[]);
 
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
 
-	/** @see ModuleBase::run() */
-	void run() override;
-
 	/** @see ModuleBase::print_status() */
 	int print_status() override;
+
+	void Run() override;
+
+	bool init();
 
 	/**
 	 * Load fence from file
@@ -299,7 +302,7 @@ public:
 
 	bool abort_landing();
 
-	void geofence_breach_check(bool &have_geofence_position_data);
+	void geofence_breach_check();
 
 	// Param access
 	int get_loiter_min_alt() const { return _param_min_ltr_alt.get(); }
@@ -329,9 +332,10 @@ private:
 		hrt_abstime timestamp;
 	};
 
-	int _local_pos_sub{-1};
-	int _mission_sub{-1};
-	int _vehicle_status_sub{-1};
+	// Jake: more refactoring
+	uORB::SubscriptionCallbackWorkItem _vehicle_local_position_sub{this, ORB_ID(vehicle_local_position)};
+	uORB::Subscription _mission_sub{ORB_ID(mission)};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	uORB::SubscriptionData<position_controller_status_s>	_position_controller_status_sub{ORB_ID(position_controller_status)};
 
@@ -382,7 +386,6 @@ private:
 	bool		_geofence_violation_warning_sent{false};	/**< prevents spaming to mavlink */
 	bool		_can_loiter_at_sp{false};			/**< flags if current position SP can be used to loiter */
 	bool		_pos_sp_triplet_updated{false};			/**< flags if position SP triplet needs to be published */
-	bool 		_pos_sp_triplet_published_invalid_once{false};	/**< flags if position SP triplet has been published once to UORB */
 	bool		_mission_result_updated{false};			/**< flags if mission result has seen an update */
 
 	Mission		_mission;			/**< class that handles the missions */
@@ -393,6 +396,8 @@ private:
 	RTL 		_rtl;				/**< class that handles RTL */
 
 	NavigatorMode *_navigation_mode{nullptr};	/**< abstract pointer to current navigation mode class */
+	NavigatorMode *_prev_navigation_mode{nullptr};	/**< abstract pointer to previous navigation mode class */
+
 	NavigatorMode *_navigation_mode_array[NAVIGATOR_MODE_ARRAY_SIZE] {};	/**< array of navigation modes */
 
 	param_t _handle_back_trans_dec_mss{PARAM_INVALID};
@@ -431,6 +436,11 @@ private:
 	void publish_vehicle_command_ack(const vehicle_command_s &cmd, uint8_t result);
 
 	bool geofence_allows_position(const vehicle_global_position_s &pos);
+
+
+	// Jake: refactoring
+	void process_vehicle_command_updates();
+	void subscriptions_update();
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::NAV_LOITER_RAD>)   _param_nav_loiter_rad,	/**< loiter radius for fixedwing */
