@@ -57,6 +57,8 @@ Loiter::on_inactive()
 void
 Loiter::on_activation()
 {
+	PX4_INFO("Loiter::on_activation");
+
 	if (_navigator->get_reposition_triplet()->current.valid) {
 		reposition();
 
