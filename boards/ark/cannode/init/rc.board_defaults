@@ -3,10 +3,6 @@
 # board specific defaults
 #------------------------------------------------------------------------------
 
-param set-default CANNODE_ARM_STAT 1
-param set-default CANNODE_SUB_ESC 1
-param set-default CANNODE_SUB_SERV 1
-
 pwm_out start
 
 dshot start
