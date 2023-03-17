@@ -236,7 +236,7 @@ LeddarOne::open_serial_port(const speed_t speed)
 	uart_config.c_cflag |= (CS8 | CREAD | CLOCAL);
 
 	// Clear: echo, echo new line, canonical input and extended input.
-	uart_config.c_lflag &= (ECHO | ECHONL | ICANON | IEXTEN);
+	uart_config.c_lflag &= ~(ECHO | ECHONL | ICANON | IEXTEN);
 
 	// Clear ONLCR flag (which appends a CR for every LF).
 	uart_config.c_oflag &= ~ONLCR;
