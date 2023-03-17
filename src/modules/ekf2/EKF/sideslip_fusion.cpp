@@ -87,7 +87,10 @@ void Ekf::updateSideslip(estimator_aid_source1d_s &sideslip) const
 
 	float innov = 0.f;
 	float innov_var = 0.f;
-	sym::ComputeSideslipInnovAndInnovVar(getStateAtFusionHorizonAsVector(), P, R, FLT_EPSILON, &innov, &innov_var);
+
+	const float pitch_offset = _control_status.flags.tailsitter ? M_PI_2_F : 0.f;
+
+	sym::ComputeSideslipInnovAndInnovVar(getStateAtFusionHorizonAsVector(), pitch_offset, P, R, FLT_EPSILON, &innov, &innov_var);
 
 	sideslip.observation = 0.f;
 	sideslip.observation_variance = R;
@@ -138,7 +141,9 @@ void Ekf::fuseSideslip(estimator_aid_source1d_s &sideslip)
 	Vector24f H; // Observation jacobian
 	Vector24f K; // Kalman gain vector
 
-	sym::ComputeSideslipHAndK(getStateAtFusionHorizonAsVector(), P, sideslip.innovation_variance, FLT_EPSILON, &H, &K);
+	const float pitch_offset = _control_status.flags.tailsitter ? M_PI_2_F : 0.f;
+
+	sym::ComputeSideslipHAndK(getStateAtFusionHorizonAsVector(), pitch_offset, P, sideslip.innovation_variance, FLT_EPSILON, &H, &K);
 
 	if (update_wind_only) {
 		for (unsigned row = 0; row <= 21; row++) {

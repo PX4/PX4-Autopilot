@@ -151,12 +151,14 @@ def compute_airspeed_h_and_k(
 
 def predict_sideslip(
         state: VState,
+        pitch_offset: sf.Scalar,
         epsilon: sf.Scalar
 ) -> (sf.Scalar):
 
     vel_rel = sf.V3(state[State.vx] - state[State.wx], state[State.vy] - state[State.wy], state[State.vz])
     q_att = sf.V4(state[State.qw], state[State.qx], state[State.qy], state[State.qz])
-    relative_wind_body = quat_to_rot(q_att).T * vel_rel
+    q_offset = sf.V4(sf.cos(pitch_offset / 2.0), 0.0, sf.sin(pitch_offset / 2.0), 0.0)
+    relative_wind_body = quat_to_rot(quat_mult(q_att, q_offset)).T * vel_rel
 
     # Small angle approximation of side slip model
     # Protect division by zero using epsilon
@@ -166,12 +168,13 @@ def predict_sideslip(
 
 def compute_sideslip_innov_and_innov_var(
         state: VState,
+        pitch_offset: sf.Scalar,
         P: MState,
         R: sf.Scalar,
         epsilon: sf.Scalar
 ) -> (sf.Scalar, sf.Scalar, sf.Scalar):
 
-    sideslip_pred = predict_sideslip(state, epsilon);
+    sideslip_pred = predict_sideslip(state, pitch_offset, epsilon);
 
     innov = sideslip_pred - 0.0
 
@@ -182,12 +185,13 @@ def compute_sideslip_innov_and_innov_var(
 
 def compute_sideslip_h_and_k(
         state: VState,
+        pitch_offset: sf.Scalar,
         P: MState,
         innov_var: sf.Scalar,
         epsilon: sf.Scalar
 ) -> (VState, VState):
 
-    sideslip_pred = predict_sideslip(state, epsilon);
+    sideslip_pred = predict_sideslip(state, pitch_offset, epsilon);
 
     H = sf.V1(sideslip_pred).jacobian(state)
 

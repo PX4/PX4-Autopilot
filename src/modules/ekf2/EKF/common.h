@@ -268,6 +268,7 @@ struct systemFlagUpdate {
 	bool at_rest{false};
 	bool in_air{true};
 	bool is_fixed_wing{false};
+	bool is_tailsitter{false};
 	bool gnd_effect{false};
 };
 
@@ -570,6 +571,7 @@ union filter_control_status_u {
 		uint64_t fake_pos                : 1; ///< 32 - true when fake position measurements are being fused
 		uint64_t fake_hgt                : 1; ///< 33 - true when fake height measurements are being fused
 		uint64_t gravity_vector          : 1; ///< 34 - true when gravity vector measurements are being fused
+		uint64_t tailsitter             : 1; ///< 35 - true when the vehicle is a tailsitter and the sideslip fusion is rotated by 90 degrees
 	} flags;
 	uint64_t value;
 };

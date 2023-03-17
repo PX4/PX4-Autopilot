@@ -1537,6 +1537,7 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 		status_flags.cs_fake_pos                = _ekf.control_status_flags().fake_pos;
 		status_flags.cs_fake_hgt                = _ekf.control_status_flags().fake_hgt;
 		status_flags.cs_gravity_vector          = _ekf.control_status_flags().gravity_vector;
+		status_flags.cs_tailsitter              = _ekf.control_status_flags().tailsitter;
 
 		status_flags.fault_status_changes     = _filter_fault_status_changes;
 		status_flags.fs_bad_mag_x             = _ekf.fault_status_flags().bad_mag_x;
@@ -2195,6 +2196,9 @@ void EKF2::UpdateSystemFlagsSample(ekf2_timestamps_s &ekf2_timestamps)
 
 			// let the EKF know if the vehicle motion is that of a fixed wing (forward flight only relative to wind)
 			flags.is_fixed_wing = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+
+			// let the EKF know about the fixed-wing flight direction for sideslip fusion
+			flags.is_tailsitter = vehicle_status.is_vtol_tailsitter;
 		}
 
 		// vehicle_land_detected

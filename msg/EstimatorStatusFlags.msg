@@ -39,6 +39,7 @@ bool cs_rng_kin_consistent      # 31 - true when the range finder kinematic cons
 bool cs_fake_pos                # 32 - true when fake position measurements are being fused
 bool cs_fake_hgt                # 33 - true when fake height measurements are being fused
 bool cs_gravity_vector          # 34 - true when gravity vector measurements are being fused
+bool cs_tailsitter              # 35 - true when the vehicle is a tailsitter and the sideslip fusion is rotated by 90 degrees
 
 # fault status
 uint32 fault_status_changes   # number of filter fault status (fs) changes

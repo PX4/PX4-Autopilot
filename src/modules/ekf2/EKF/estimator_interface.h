@@ -135,6 +135,8 @@ public:
 	// set vehicle is fixed wing status
 	void set_is_fixed_wing(bool is_fixed_wing) { _control_status.flags.fixed_wing = is_fixed_wing; }
 
+	void set_is_tailsitter(bool is_tailsitter) { _control_status.flags.tailsitter = is_tailsitter; }
+
 	// set flag if static pressure rise due to ground effect is expected
 	// use _params.gnd_effect_deadzone to adjust for expected rise in static pressure
 	// flag will clear after GNDEFFECT_TIMEOUT uSec

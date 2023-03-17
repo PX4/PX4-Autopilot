@@ -204,8 +204,8 @@ TEST(SideslipFusionGenerated, SympyVsSymforce)
 		float innov;
 		float innov_var;
 
-		sym::ComputeSideslipInnovAndInnovVar(state_vector, P, R_BETA, FLT_EPSILON, &innov, &innov_var);
-		sym::ComputeSideslipHAndK(state_vector, P, innov_var, FLT_EPSILON, &Hfusion_symforce, &Kfusion_symforce);
+		sym::ComputeSideslipInnovAndInnovVar(state_vector, 0.f, P, R_BETA, FLT_EPSILON, &innov, &innov_var);
+		sym::ComputeSideslipHAndK(state_vector, 0.f, P, innov_var, FLT_EPSILON, &Hfusion_symforce, &Kfusion_symforce);
 	}
 
 	DiffRatioReport report = computeDiffRatioVector24f(Hfusion_sympy, Hfusion_symforce);
