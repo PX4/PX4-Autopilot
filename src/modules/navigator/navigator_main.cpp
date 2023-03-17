@@ -406,6 +406,8 @@ void Navigator::run()
 					rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
 
 					rep->current.cruising_speed = get_cruising_speed();
+					rep->current.vertical_up_speed = get_cruising_speed(SpeedType::CLIMB_SPEED);
+					rep->current.vertical_down_speed = get_cruising_speed(SpeedType::DESCENT_SPEED);
 					rep->current.cruising_throttle = get_cruising_throttle();
 					rep->current.acceptance_radius = get_acceptance_radius();
 					rep->current.yaw = NAN;
@@ -1165,6 +1167,8 @@ void Navigator::reset_cruising_speed()
 {
 	_mission_cruising_speed_mc = -1.0f;
 	_mission_cruising_speed_fw = -1.0f;
+	_mission_vertical_up_speed_mc = -1.0f;
+	_mission_vertical_down_speed_mc = -1.0f;
 }
 
 void Navigator::reset_triplets()
@@ -1185,6 +1189,8 @@ void Navigator::reset_position_setpoint(position_setpoint_s &sp)
 	sp.loiter_radius = get_loiter_radius();
 	sp.acceptance_radius = get_default_acceptance_radius();
 	sp.cruising_speed = get_cruising_speed();
+	sp.vertical_up_speed = get_cruising_speed(SpeedType::CLIMB_SPEED);
+	sp.vertical_down_speed = get_cruising_speed(SpeedType::DESCENT_SPEED);
 	sp.cruising_throttle = get_cruising_throttle();
 	sp.valid = false;
 	sp.type = position_setpoint_s::SETPOINT_TYPE_IDLE;
