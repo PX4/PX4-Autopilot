@@ -1208,7 +1208,7 @@ GPS::publish()
 
 		if (_report_gps_pos.jamming_state != _jamming_state) {
 
-			if (_report_gps_pos.jamming_state > sensor_gps_s::JAMMING_STATE_OK) {
+			if (_report_gps_pos.jamming_state > sensor_gps_s::JAMMING_STATE_WARNING) {
 				PX4_WARN("GPS jamming detected! (state: %d) (indicator: %d)", _report_gps_pos.jamming_state,
 					 (uint8_t)_report_gps_pos.jamming_indicator);
 			}
