@@ -46,7 +46,9 @@
 #include "ActuatorEffectivenessControlSurfaces.hpp"
 #include "ActuatorEffectivenessTilts.hpp"
 
-#include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/normalized_unsigned_setpoint.h>
+#include <uORB/topics/tiltrotor_extra_controls.h>
+
 #include <uORB/Subscription.hpp>
 
 class ActuatorEffectivenessTiltrotorVTOL : public ModuleParams, public ActuatorEffectiveness
@@ -74,6 +76,8 @@ public:
 
 	void setFlightPhase(const FlightPhase &flight_phase) override;
 
+	void allocateAuxilaryControls(const float dt, int matrix_index, ActuatorVector &actuator_sp) override;
+
 	void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
 			    ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
 			    const matrix::Vector<float, NUM_ACTUATORS> &actuator_max) override;
@@ -98,8 +102,8 @@ protected:
 
 	float _last_collective_tilt_control{NAN};
 
-	uORB::Subscription _actuator_controls_1_sub{ORB_ID(actuator_controls_1)};
-	uORB::Subscription _actuator_controls_0_sub{ORB_ID(actuator_controls_0)};
+	uORB::Subscription _flaps_setpoint_sub{ORB_ID(flaps_setpoint)};
+	uORB::Subscription _spoilers_setpoint_sub{ORB_ID(spoilers_setpoint)};
 
 	struct YawTiltSaturationFlags {
 		bool tilt_yaw_pos;
@@ -107,4 +111,6 @@ protected:
 	};
 
 	YawTiltSaturationFlags _yaw_tilt_saturation_flags{};
+
+	uORB::Subscription _tiltrotor_extra_controls_sub{ORB_ID(tiltrotor_extra_controls)};
 };

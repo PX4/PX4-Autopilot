@@ -387,11 +387,10 @@ def compute_flow_y_innov_var_and_h(
 
     return (innov_var, Hy.T)
 
-def compute_gnss_yaw_innon_innov_var_and_h(
+def compute_gnss_yaw_pred_innov_var_and_h(
         state: VState,
         P: MState,
         antenna_yaw_offset: sf.Scalar,
-        meas: sf.Scalar,
         R: sf.Scalar,
         epsilon: sf.Scalar
 ) -> (sf.Scalar, sf.Scalar, VState):
@@ -411,9 +410,7 @@ def compute_gnss_yaw_innon_innov_var_and_h(
     H = sf.V1(meas_pred).jacobian(state)
     innov_var = (H * P * H.T + R)[0,0]
 
-    innov = meas_pred - meas
-
-    return (innov, innov_var, H.T)
+    return (meas_pred, innov_var, H.T)
 
 def predict_drag(
         state: VState,
@@ -524,7 +521,7 @@ generate_px4_function(compute_yaw_312_innov_var_and_h_alternate, output_names=["
 generate_px4_function(compute_mag_declination_innov_innov_var_and_h, output_names=["innov", "innov_var", "H"])
 generate_px4_function(compute_flow_xy_innov_var_and_hx, output_names=["innov_var", "H"])
 generate_px4_function(compute_flow_y_innov_var_and_h, output_names=["innov_var", "H"])
-generate_px4_function(compute_gnss_yaw_innon_innov_var_and_h, output_names=["innov", "innov_var", "H"])
+generate_px4_function(compute_gnss_yaw_pred_innov_var_and_h, output_names=["meas_pred", "innov_var", "H"])
 generate_px4_function(compute_drag_x_innov_var_and_k, output_names=["innov_var", "K"])
 generate_px4_function(compute_drag_y_innov_var_and_k, output_names=["innov_var", "K"])
 generate_px4_function(compute_gravity_innov_var_and_k_and_h, output_names=["innov", "innov_var", "Kx", "Ky", "Kz"])

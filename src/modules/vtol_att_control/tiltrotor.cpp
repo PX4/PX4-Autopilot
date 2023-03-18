@@ -42,8 +42,6 @@
 #include "tiltrotor.h"
 #include "vtol_att_control_main.h"
 
-#include <uORB/topics/landing_gear.h>
-
 using namespace matrix;
 using namespace time_literals;
 
@@ -134,25 +132,7 @@ void Tiltrotor::update_vtol_state()
 			break;
 
 		case vtol_mode::TRANSITION_FRONT_P1: {
-
-				const bool airspeed_triggers_transition = PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s)
-						&& !_param_fw_arsp_mode.get() ;
-
-				bool transition_to_p2 = false;
-
-				if (_time_since_trans_start > getMinimumFrontTransitionTime()) {
-					if (airspeed_triggers_transition) {
-						transition_to_p2 = _airspeed_validated->calibrated_airspeed_m_s >= _param_vt_arsp_trans.get() ;
-
-					} else {
-						transition_to_p2 = _tilt_control >= _param_vt_tilt_trans.get() &&
-								   _time_since_trans_start > getOpenLoopFrontTransitionTime();
-					}
-				}
-
-				transition_to_p2 |= can_transition_on_ground();
-
-				if (transition_to_p2) {
+				if (isFrontTransitionCompleted()) {
 					_vtol_mode = vtol_mode::TRANSITION_FRONT_P2;
 					resetTransitionStates();
 				}
@@ -319,10 +299,6 @@ void Tiltrotor::update_transition_state()
 		// add minimum throttle for front transition
 		_thrust_transition = math::max(_thrust_transition, FRONTTRANS_THR_MIN);
 
-		// set spoiler and flaps to 0
-		_flaps_setpoint_with_slewrate.update(0.f, _dt);
-		_spoiler_setpoint_with_slewrate.update(0.f, _dt);
-
 	} else if (_vtol_mode == vtol_mode::TRANSITION_FRONT_P2) {
 		// the plane is ready to go into fixed wing mode, tilt the rotors forward completely
 		_tilt_control = math::constrain(_param_vt_tilt_trans.get() +
@@ -338,10 +314,6 @@ void Tiltrotor::update_transition_state()
 		// this line is needed such that the fw rate controller is initialized with the current throttle value.
 		// if this is not then then there is race condition where the fw rate controller still publishes a zero sample throttle after transition
 		_v_att_sp->thrust_body[0] = _thrust_transition;
-
-		// set spoiler and flaps to 0
-		_flaps_setpoint_with_slewrate.update(0.f, _dt);
-		_spoiler_setpoint_with_slewrate.update(0.f, _dt);
 
 	} else if (_vtol_mode == vtol_mode::TRANSITION_BACK) {
 
@@ -402,107 +374,73 @@ void Tiltrotor::waiting_on_tecs()
 	_v_att_sp->thrust_body[0] = _thrust_transition;
 }
 
-/**
-* Write data to actuator output topic.
-*/
 void Tiltrotor::fill_actuator_outputs()
 {
-	auto &mc_in = _actuators_mc_in->control;
-	auto &fw_in = _actuators_fw_in->control;
-
-	auto &mc_out = _actuators_out_0->control;
-	auto &fw_out = _actuators_out_1->control;
 
 	_torque_setpoint_0->timestamp = hrt_absolute_time();
-	_torque_setpoint_0->timestamp_sample = _actuators_mc_in->timestamp_sample;
+	_torque_setpoint_0->timestamp_sample = _vehicle_torque_setpoint_virtual_mc->timestamp_sample;
 	_torque_setpoint_0->xyz[0] = 0.f;
 	_torque_setpoint_0->xyz[1] = 0.f;
 	_torque_setpoint_0->xyz[2] = 0.f;
 
 	_torque_setpoint_1->timestamp = hrt_absolute_time();
-	_torque_setpoint_1->timestamp_sample = _actuators_fw_in->timestamp_sample;
+	_torque_setpoint_1->timestamp_sample = _vehicle_torque_setpoint_virtual_fw->timestamp_sample;
 	_torque_setpoint_1->xyz[0] = 0.f;
 	_torque_setpoint_1->xyz[1] = 0.f;
 	_torque_setpoint_1->xyz[2] = 0.f;
 
 	_thrust_setpoint_0->timestamp = hrt_absolute_time();
-	_thrust_setpoint_0->timestamp_sample = _actuators_mc_in->timestamp_sample;
+	_thrust_setpoint_0->timestamp_sample = _vehicle_thrust_setpoint_virtual_mc->timestamp_sample;
 	_thrust_setpoint_0->xyz[0] = 0.f;
 	_thrust_setpoint_0->xyz[1] = 0.f;
 	_thrust_setpoint_0->xyz[2] = 0.f;
 
 	_thrust_setpoint_1->timestamp = hrt_absolute_time();
-	_thrust_setpoint_1->timestamp_sample = _actuators_fw_in->timestamp_sample;
+	_thrust_setpoint_1->timestamp_sample = _vehicle_thrust_setpoint_virtual_fw->timestamp_sample;
 	_thrust_setpoint_1->xyz[0] = 0.f;
 	_thrust_setpoint_1->xyz[1] = 0.f;
 	_thrust_setpoint_1->xyz[2] = 0.f;
 
 	// Multirotor output
-	mc_out[actuator_controls_s::INDEX_ROLL]  = mc_in[actuator_controls_s::INDEX_ROLL]  * _mc_roll_weight;
-	mc_out[actuator_controls_s::INDEX_PITCH] = mc_in[actuator_controls_s::INDEX_PITCH] * _mc_pitch_weight;
-	mc_out[actuator_controls_s::INDEX_YAW]   = mc_in[actuator_controls_s::INDEX_YAW]   * _mc_yaw_weight;
+	_torque_setpoint_0->xyz[0] = _vehicle_torque_setpoint_virtual_mc->xyz[0] * _mc_roll_weight;
+	_torque_setpoint_0->xyz[1] = _vehicle_torque_setpoint_virtual_mc->xyz[1] * _mc_pitch_weight;
+	_torque_setpoint_0->xyz[2] = _vehicle_torque_setpoint_virtual_mc->xyz[2] * _mc_yaw_weight;
 
-	_torque_setpoint_0->xyz[0] = mc_in[actuator_controls_s::INDEX_ROLL]  * _mc_roll_weight;
-	_torque_setpoint_0->xyz[1] = mc_in[actuator_controls_s::INDEX_PITCH] * _mc_pitch_weight;
-	_torque_setpoint_0->xyz[2] = mc_in[actuator_controls_s::INDEX_YAW]   * _mc_yaw_weight;
+	// Special case tiltrotor: instead of passing a 3D thrust vector (that would mostly have a x-component in FW, and z in MC),
+	// pass the vector magnitude and collective tilt separately. MC also needs collective thrust on z.
+	// Passing 3D thrust plus tilt is not feasible as they
+	// can't be allocated independently, and with the current controller it's not possible to have collective tilt calculated
+	// by the allocator directly.
+	float collective_thrust_normalized_setpoint = 0.f;
 
 	if (_vtol_mode == vtol_mode::FW_MODE) {
 
-		// for the legacy mixing system pubish FW throttle on the MC output
-		mc_out[actuator_controls_s::INDEX_THROTTLE] = fw_in[actuator_controls_s::INDEX_THROTTLE];
-
-		// Special case tiltrotor: instead of passing a 3D thrust vector (that would mostly have a x-component in FW, and z in MC),
-		// pass the vector magnitude as z-component, plus the collective tilt. Passing 3D thrust plus tilt is not feasible as they
-		// can't be allocated independently, and with the current controller it's not possible to have collective tilt calculated
-		// by the allocator directly.
-		_thrust_setpoint_0->xyz[2] = fw_in[actuator_controls_s::INDEX_THROTTLE];
+		collective_thrust_normalized_setpoint = _vehicle_thrust_setpoint_virtual_fw->xyz[0];
+		_thrust_setpoint_0->xyz[2] = -collective_thrust_normalized_setpoint;
 
 		/* allow differential thrust if enabled */
 		if (_param_vt_fw_difthr_en.get() & static_cast<int32_t>(VtFwDifthrEnBits::YAW_BIT)) {
-			mc_out[actuator_controls_s::INDEX_ROLL] = fw_in[actuator_controls_s::INDEX_YAW] * _param_vt_fw_difthr_s_y.get() ;
-			_torque_setpoint_0->xyz[2] = fw_in[actuator_controls_s::INDEX_YAW] * _param_vt_fw_difthr_s_y.get() ;
+			_torque_setpoint_0->xyz[2] = _vehicle_torque_setpoint_virtual_fw->xyz[2] * _param_vt_fw_difthr_s_y.get() ;
 		}
 
 	} else {
-
-		// see comment above for passing magnitude of thrust, not 3D thrust
-		mc_out[actuator_controls_s::INDEX_THROTTLE] = mc_in[actuator_controls_s::INDEX_THROTTLE] * _mc_throttle_weight;
-		_thrust_setpoint_0->xyz[2] = mc_in[actuator_controls_s::INDEX_THROTTLE] * _mc_throttle_weight;
-	}
-
-	// Landing gear
-	if (_vtol_mode == vtol_mode::MC_MODE) {
-		mc_out[actuator_controls_s::INDEX_LANDING_GEAR] = landing_gear_s::GEAR_DOWN;
-
-	} else {
-		mc_out[actuator_controls_s::INDEX_LANDING_GEAR] = landing_gear_s::GEAR_UP;
+		collective_thrust_normalized_setpoint = -_vehicle_thrust_setpoint_virtual_mc->xyz[2] * _mc_throttle_weight;
+		_thrust_setpoint_0->xyz[2] = -collective_thrust_normalized_setpoint;
 	}
 
 	// Fixed wing output
-	fw_out[actuator_controls_s::INDEX_COLLECTIVE_TILT] = _tilt_control;
-
-	if (_param_vt_elev_mc_lock.get()  && _vtol_mode == vtol_mode::MC_MODE) {
-		fw_out[actuator_controls_s::INDEX_ROLL]  = 0;
-		fw_out[actuator_controls_s::INDEX_PITCH] = 0;
-		fw_out[actuator_controls_s::INDEX_YAW]   = 0;
-
-	} else {
-		fw_out[actuator_controls_s::INDEX_ROLL]  = fw_in[actuator_controls_s::INDEX_ROLL];
-		fw_out[actuator_controls_s::INDEX_PITCH] = fw_in[actuator_controls_s::INDEX_PITCH];
-		fw_out[actuator_controls_s::INDEX_YAW]   = fw_in[actuator_controls_s::INDEX_YAW];
-		_torque_setpoint_1->xyz[0] = fw_in[actuator_controls_s::INDEX_ROLL];
-		_torque_setpoint_1->xyz[1] = fw_in[actuator_controls_s::INDEX_PITCH];
-		_torque_setpoint_1->xyz[2] = fw_in[actuator_controls_s::INDEX_YAW];
+	if (!_param_vt_elev_mc_lock.get() || _vtol_mode != vtol_mode::MC_MODE) {
+		_torque_setpoint_1->xyz[0] = _vehicle_torque_setpoint_virtual_fw->xyz[0];
+		_torque_setpoint_1->xyz[1] = _vehicle_torque_setpoint_virtual_fw->xyz[1];
+		_torque_setpoint_1->xyz[2] = _vehicle_torque_setpoint_virtual_fw->xyz[2];
 	}
 
-	fw_out[actuator_controls_s::INDEX_FLAPS]        = _flaps_setpoint_with_slewrate.getState();
-	fw_out[actuator_controls_s::INDEX_SPOILERS]     = _spoiler_setpoint_with_slewrate.getState();
-	fw_out[actuator_controls_s::INDEX_AIRBRAKES]    = 0;
-
-	_actuators_out_0->timestamp_sample = _actuators_mc_in->timestamp_sample;
-	_actuators_out_1->timestamp_sample = _actuators_fw_in->timestamp_sample;
-
-	_actuators_out_0->timestamp = _actuators_out_1->timestamp = hrt_absolute_time();
+	// publish tiltrotor extra controls
+	tiltrotor_extra_controls_s tiltrotor_extra_controls = {};
+	tiltrotor_extra_controls.collective_tilt_normalized_setpoint = _tilt_control;
+	tiltrotor_extra_controls.collective_thrust_normalized_setpoint = collective_thrust_normalized_setpoint;
+	tiltrotor_extra_controls.timestamp = hrt_absolute_time();
+	_tiltrotor_extra_controls_pub.publish(tiltrotor_extra_controls);
 }
 
 void Tiltrotor::blendThrottleAfterFrontTransition(float scale)
@@ -525,4 +463,9 @@ float Tiltrotor::timeUntilMotorsAreUp()
 float Tiltrotor::moveLinear(float start, float stop, float progress)
 {
 	return start + progress * (stop - start);
+}
+
+bool Tiltrotor::isFrontTransitionCompletedBase()
+{
+	return VtolType::isFrontTransitionCompletedBase() && _tilt_control >= _param_vt_tilt_trans.get();
 }

@@ -53,7 +53,6 @@
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
-#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/manual_control_switches.h>
 #include <uORB/topics/input_rc.h>

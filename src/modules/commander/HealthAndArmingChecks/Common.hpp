@@ -40,6 +40,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/failsafe_flags.h>
 #include <systemlib/mavlink_log.h>
+#include <drivers/drv_hrt.h>
 
 #include <stdint.h>
 #include <limits.h>
@@ -245,6 +246,8 @@ public:
 	void armingCheckFailure(NavModes required_modes, HealthComponentIndex component, uint32_t event_id,
 				const events::LogLevels &log_levels, const char *message);
 
+	void clearArmingBits(NavModes modes);
+
 	/**
 	 * Clear can_run bits for certain modes. This will prevent mode switching and trigger failsafe if the
 	 * mode is being run.
@@ -300,8 +303,6 @@ private:
 			unsigned args_size);
 
 	NavModes reportedModes(NavModes required_modes);
-
-	void clearArmingBits(NavModes modes);
 
 	NavModes getModeGroup(uint8_t nav_state) const;
 

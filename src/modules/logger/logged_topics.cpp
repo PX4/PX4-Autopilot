@@ -47,9 +47,6 @@ void LoggedTopics::add_default_topics()
 {
 	add_topic("action_request");
 	add_topic("actuator_armed");
-	add_topic("actuator_controls_0", 50);
-	add_topic("actuator_controls_1", 100);
-	add_topic("actuator_controls_2", 100);
 	add_optional_topic("actuator_controls_status_0", 300);
 	add_topic("airspeed", 1000);
 	add_optional_topic("airspeed_validated", 200);
@@ -68,9 +65,11 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("follow_target", 500);
 	add_optional_topic("follow_target_estimator", 200);
 	add_optional_topic("follow_target_status", 400);
+	add_optional_topic("flaps_setpoint", 1000);
 	add_topic("gimbal_manager_set_attitude", 500);
 	add_optional_topic("generator_status");
 	add_optional_topic("gps_dump");
+	add_optional_topic("gimbal_controls", 200);
 	add_optional_topic("gripper");
 	add_optional_topic("heater_status");
 	add_topic("home_position");
@@ -79,7 +78,8 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("internal_combustion_engine_status", 10);
 	add_optional_topic("iridiumsbd_status", 1000);
 	add_optional_topic("irlock_report", 1000);
-	add_topic("landing_gear_wheel", 10);
+	add_optional_topic("landing_gear", 200);
+	add_optional_topic("landing_gear_wheel", 100);
 	add_optional_topic("landing_target_pose", 1000);
 	add_optional_topic("launch_detection_status", 200);
 	add_optional_topic("magnetometer_bias_estimate", 200);
@@ -102,9 +102,11 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("sensor_gyro_fft", 50);
 	add_topic("sensor_selection");
 	add_topic("sensors_status_imu", 200);
+	add_optional_topic("spoilers_setpoint", 1000);
 	add_topic("system_power", 500);
 	add_optional_topic("takeoff_status", 1000);
 	add_optional_topic("tecs_status", 200);
+	add_optional_topic("tiltrotor_extra_controls", 100);
 	add_topic("trajectory_setpoint", 200);
 	add_topic("transponder_report");
 	add_topic("vehicle_acceleration", 50);
@@ -222,7 +224,7 @@ void LoggedTopics::add_default_topics()
 	// additional control allocation logging
 	add_topic("actuator_motors", 100);
 	add_topic("actuator_servos", 100);
-	add_topic_multi("vehicle_thrust_setpoint", 20, 1);
+	add_topic_multi("vehicle_thrust_setpoint", 20, 2);
 	add_topic_multi("vehicle_torque_setpoint", 20, 2);
 
 	// SYS_HITL: default ground truth logging for simulation
@@ -237,10 +239,12 @@ void LoggedTopics::add_default_topics()
 	}
 
 #ifdef CONFIG_ARCH_BOARD_PX4_SITL
-	add_topic("actuator_controls_virtual_fw");
-	add_topic("actuator_controls_virtual_mc");
 	add_topic("fw_virtual_attitude_setpoint");
 	add_topic("mc_virtual_attitude_setpoint");
+	add_optional_topic("vehicle_torque_setpoint_virtual_mc");
+	add_optional_topic("vehicle_torque_setpoint_virtual_fw");
+	add_optional_topic("vehicle_thrust_setpoint_virtual_mc");
+	add_optional_topic("vehicle_thrust_setpoint_virtual_fw");
 	add_topic("time_offset");
 	add_topic("vehicle_angular_velocity", 10);
 	add_topic("vehicle_angular_velocity_groundtruth", 10);
@@ -376,8 +380,6 @@ void LoggedTopics::add_raw_imu_accel_fifo()
 void LoggedTopics::add_system_identification_topics()
 {
 	// for system id need to log imu and controls at full rate
-	add_topic("actuator_controls_0");
-	add_topic("actuator_controls_1");
 	add_topic("sensor_combined");
 	add_topic("vehicle_angular_velocity");
 	add_topic("vehicle_torque_setpoint");

@@ -131,7 +131,7 @@ void CanardHandle::receive()
 
 		} else if (result == 1) {
 			// A transfer has been received, process it.
-			// PX4_INFO("received Port ID: %d", receive.port_id);
+			// PX4_INFO("received Port ID: %d", receive.metadata.port_id);
 
 			if (subscription != nullptr) {
 				UavcanBaseSubscriber *sub_instance = (UavcanBaseSubscriber *)subscription->user_reference;
@@ -145,7 +145,7 @@ void CanardHandle::receive()
 			_canard_instance.memory_free(&_canard_instance, (void *)receive.payload);
 
 		} else {
-			//PX4_INFO("RX canard %d", result);
+			// PX4_INFO("RX canard %li\n", result);
 		}
 	}
 

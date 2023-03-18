@@ -213,9 +213,11 @@ float Battery::calculateStateOfChargeVoltageBased(const float voltage_v, const f
 		cell_voltage += _params.r_internal * current_a;
 
 	} else {
-		actuator_controls_s actuator_controls{};
-		_actuator_controls_0_sub.copy(&actuator_controls);
-		const float throttle = actuator_controls.control[actuator_controls_s::INDEX_THROTTLE];
+		vehicle_thrust_setpoint_s vehicle_thrust_setpoint{};
+		_vehicle_thrust_setpoint_0_sub.copy(&vehicle_thrust_setpoint);
+		const matrix::Vector3f thrust_setpoint = matrix::Vector3f(vehicle_thrust_setpoint.xyz);
+		const float throttle = thrust_setpoint.length();
+
 		_throttle_filter.update(throttle);
 
 		if (!_battery_initialized) {

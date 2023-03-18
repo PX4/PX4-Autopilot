@@ -45,7 +45,6 @@
 
 #include <drivers/drv_hrt.h>
 #include <lib/mathlib/mathlib.h>
-#include <lib/slew_rate/SlewRate.hpp>
 #include <px4_platform_common/module_params.h>
 
 
@@ -260,10 +259,10 @@ protected:
 	struct vehicle_attitude_setpoint_s *_fw_virtual_att_sp;	// virtual fw attitude setpoint
 	struct vehicle_control_mode_s		*_v_control_mode;	//vehicle control mode
 	struct vtol_vehicle_status_s 		*_vtol_vehicle_status;
-	struct actuator_controls_s			*_actuators_out_0;			//actuator controls going to the mc mixer
-	struct actuator_controls_s			*_actuators_out_1;			//actuator controls going to the fw mixer (used for elevons)
-	struct actuator_controls_s			*_actuators_mc_in;			//actuator controls from mc_rate_control
-	struct actuator_controls_s			*_actuators_fw_in;			//actuator controls from fw_att_control
+	struct vehicle_torque_setpoint_s 		*_vehicle_torque_setpoint_virtual_mc;
+	struct vehicle_torque_setpoint_s 		*_vehicle_torque_setpoint_virtual_fw;
+	struct vehicle_thrust_setpoint_s 		*_vehicle_thrust_setpoint_virtual_mc;
+	struct vehicle_thrust_setpoint_s 		*_vehicle_thrust_setpoint_virtual_fw;
 	struct vehicle_local_position_s			*_local_pos;
 	struct vehicle_local_position_setpoint_s	*_local_pos_sp;
 	struct airspeed_validated_s 			*_airspeed_validated;					// airspeed
@@ -303,9 +302,8 @@ protected:
 	bool _quadchute_command_treated{false};
 
 	float update_and_get_backtransition_pitch_sp();
-
-	SlewRate<float> _spoiler_setpoint_with_slewrate;
-	SlewRate<float> _flaps_setpoint_with_slewrate;
+	bool isFrontTransitionCompleted();
+	virtual bool isFrontTransitionCompletedBase();
 
 	float _dt{0.0025f}; // time step [s]
 
@@ -344,10 +342,7 @@ protected:
 					(ParamInt<px4::params::VT_FWD_THRUST_EN>) _param_vt_fwd_thrust_en,
 					(ParamFloat<px4::params::MPC_LAND_ALT1>) _param_mpc_land_alt1,
 					(ParamFloat<px4::params::MPC_LAND_ALT2>) _param_mpc_land_alt2,
-					(ParamFloat<px4::params::VT_LND_PITCH_MIN>) _param_vt_lnd_pitch_min,
-
-					(ParamFloat<px4::params::VT_SPOILER_MC_LD>) _param_vt_spoiler_mc_ld
-
+					(ParamFloat<px4::params::VT_LND_PITCH_MIN>) _param_vt_lnd_pitch_min
 				       )
 
 private:

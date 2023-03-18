@@ -30,7 +30,7 @@ parameters:
                   Maximum time Gripper will wait while the successful griper actuation isn't recognised.
                   If the gripper has no feedback sensor, it will simply wait for
                   this time before considering gripper actuation successful and publish a
-                  'vehicle_command_ack' signaling successful gripper action
+                  'VehicleCommandAck' signaling successful gripper action
             type: float
             unit: s
             min: 0

@@ -72,7 +72,7 @@ PARAM_DEFINE_FLOAT(VT_TILT_TRANS, 0.3f);
 PARAM_DEFINE_FLOAT(VT_TILT_FW, 1.0f);
 
 /**
- * Tilt actuator control value commanded when disarmed and during the first second after arming.
+ * Tilt when disarmed and in the first second after arming
  *
  * This specific tilt during spin-up is necessary for some systems whose motors otherwise don't
  * spin-up freely.
@@ -80,7 +80,7 @@ PARAM_DEFINE_FLOAT(VT_TILT_FW, 1.0f);
  * @min 0.0
  * @max 1.0
  * @increment 0.01
- * @decimal 3
+ * @decimal 2
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_TILT_SPINUP, 0.0f);
@@ -88,8 +88,7 @@ PARAM_DEFINE_FLOAT(VT_TILT_SPINUP, 0.0f);
 /**
  * Duration of front transition phase 2
  *
- * Time in seconds it should take for the rotors to rotate forward completely from the point
- * when the plane has picked up enough airspeed and is ready to go into fixed wind mode.
+ * Time in seconds it takes to tilt form VT_TILT_TRANS to VT_TILT_FW.
  *
  * @unit s
  * @min 0.1

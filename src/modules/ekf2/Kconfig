@@ -4,6 +4,15 @@ menuconfig MODULES_EKF2
 	---help---
 		Enable support for ekf2
 
+menuconfig EKF2_MULTI_INSTANCE
+depends on MODULES_EKF2
+        bool "multi-EKF support"
+        default y
+	depends on !BOARD_CONSTRAINED_MEMORY
+	depends on !BOARD_CONSTRAINED_FLASH
+	---help---
+		EKF2 support multiple instances and selector.
+
 menuconfig USER_EKF2
 	bool "ekf2 running as userspace module"
 	default n

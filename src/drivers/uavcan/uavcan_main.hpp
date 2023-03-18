@@ -50,6 +50,7 @@
 #include "actuators/hardpoint.hpp"
 #include "actuators/servo.hpp"
 #include "allocator.hpp"
+#include "arming_status.hpp"
 #include "beep.hpp"
 #include "logmessage.hpp"
 #include "rgbled.hpp"
@@ -224,6 +225,7 @@ private:
 	uavcan::Node<>			_node;				///< library instance
 	pthread_mutex_t			_node_mutex;
 
+	UavcanArmingStatus		_arming_status_controller;
 	UavcanBeepController		_beep_controller;
 	UavcanEscController		_esc_controller;
 	UavcanServoController		_servo_controller;

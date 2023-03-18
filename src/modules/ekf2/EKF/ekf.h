@@ -488,12 +488,8 @@ private:
 
 	// booleans true when fresh sensor data is available at the fusion time horizon
 	bool _gps_data_ready{false};	///< true when new GPS data has fallen behind the fusion time horizon and is available to be fused
-	bool _rng_data_ready{false};
 	bool _flow_data_ready{false};	///< true when the leading edge of the optical flow integration period has fallen behind the fusion time horizon
-	bool _tas_data_ready{false};	///< true when new true airspeed data has fallen behind the fusion time horizon and is available to be fused
 	bool _flow_for_terrain_data_ready{false}; /// same flag as "_flow_data_ready" but used for separate terrain estimator
-
-	uint64_t _time_prev_gps_us{0};	///< time stamp of previous GPS data retrieved from the buffer (uSec)
 
 	uint64_t _time_last_horizontal_aiding{0}; ///< amount of time we have been doing inertial only deadreckoning (uSec)
 	uint64_t _time_last_v_pos_aiding{0};
@@ -682,8 +678,8 @@ private:
 	// apply sensible limits to the declination and length of the NE mag field states estimates
 	void limitDeclination();
 
-	void updateAirspeed(const airspeedSample &airspeed_sample, estimator_aid_source1d_s &airspeed) const;
-	void fuseAirspeed(estimator_aid_source1d_s &airspeed);
+	void updateAirspeed(const airspeedSample &airspeed_sample, estimator_aid_source1d_s &aid_src) const;
+	void fuseAirspeed(const airspeedSample &airspeed_sample, estimator_aid_source1d_s &aid_src);
 
 	// fuse synthetic zero sideslip measurement
 	void updateSideslip(estimator_aid_source1d_s &_aid_src_sideslip) const;
@@ -773,19 +769,46 @@ private:
 	// Return the magnetic declination in radians to be used by the alignment and fusion processing
 	float getMagDeclination();
 
-	bool measurementUpdate(Vector24f &K, float innovation_variance, float innovation)
+	void clearInhibitedStateKalmanGains(Vector24f &K) const
 	{
+		// gyro bias: states 10, 11, 12
 		for (unsigned i = 0; i < 3; i++) {
-			// gyro bias: states 10, 11, 12
 			if (_gyro_bias_inhibit[i]) {
-				K(10 + i) = 0.0f;
-			}
-
-			// accel bias: states 13, 14, 15
-			if (_accel_bias_inhibit[i]) {
-				K(13 + i) = 0.0f;
+				K(10 + i) = 0.f;
 			}
 		}
+
+		// accel bias: states 13, 14, 15
+		for (unsigned i = 0; i < 3; i++) {
+			if (_accel_bias_inhibit[i]) {
+				K(13 + i) = 0.f;
+			}
+		}
+
+		// mag I: states 16, 17, 18
+		if (!_control_status.flags.mag_3D) {
+			K(16) = 0.f;
+			K(17) = 0.f;
+			K(18) = 0.f;
+		}
+
+		// mag B: states 19, 20, 21
+		if (!_control_status.flags.mag_3D) {
+			K(19) = 0.f;
+			K(20) = 0.f;
+			K(21) = 0.f;
+		}
+
+		// wind: states 22, 23
+		if (!_control_status.flags.wind) {
+			K(22) = 0.f;
+			K(23) = 0.f;
+		}
+	}
+
+	bool measurementUpdate(Vector24f &K, float innovation_variance, float innovation)
+	{
+		clearInhibitedStateKalmanGains(K);
 
 		const Vector24f KS = K * innovation_variance;
 		SquareMatrix24f KHP;
@@ -858,7 +881,7 @@ private:
 	void resetOnGroundMotionForOpticalFlowChecks();
 
 	// control fusion of GPS observations
-	void controlGpsFusion();
+	void controlGpsFusion(const imuSample &imu_delayed);
 	bool shouldResetGpsFusion() const;
 	bool isYawFailure() const;
 
@@ -867,11 +890,10 @@ private:
 	// control fusion of magnetometer observations
 	void controlMagFusion();
 
-	void checkHaglYawResetReq();
 	float getTerrainVPos() const { return isTerrainEstimateValid() ? _terrain_vpos : _last_on_ground_posD; }
 
-	void runOnGroundYawReset();
-	void runInAirYawReset();
+	bool magReset();
+	bool haglYawResetReq();
 
 	void selectMagAuto();
 	void check3DMagFusionSuitability();
@@ -887,7 +909,7 @@ private:
 	void run3DMagAndDeclFusions(const Vector3f &mag);
 
 	// control fusion of air data observations
-	void controlAirDataFusion();
+	void controlAirDataFusion(const imuSample &imu_delayed);
 
 	// control fusion of synthetic sideslip observations
 	void controlBetaFusion(const imuSample &imu_delayed);
@@ -952,12 +974,15 @@ private:
 	void zeroQuatCov();
 	void resetMagCov();
 
-	// perform a limited reset of the wind state covariances
-	void resetWindCovarianceUsingAirspeed();
-
 	// perform a reset of the wind states and related covariances
 	void resetWind();
-	void resetWindUsingAirspeed();
+
+	// Reset the wind states using the current airspeed measurement, ground relative nav velocity, yaw angle and assumption of zero sideslip
+	void resetWindUsingAirspeed(const airspeedSample &airspeed_sample);
+
+	// perform a limited reset of the wind state covariances
+	void resetWindCovarianceUsingAirspeed(const airspeedSample &airspeed_sample);
+
 	void resetWindToZero();
 
 	// check that the range finder data is continuous
@@ -997,7 +1022,6 @@ private:
 		return (sensor_timestamp != 0) && (sensor_timestamp + acceptance_interval > _time_latest_us);
 	}
 
-	void startAirspeedFusion();
 	void stopAirspeedFusion();
 
 	void stopGpsFusion();
@@ -1037,8 +1061,6 @@ private:
 	HeightBiasEstimator _rng_hgt_b_est{HeightSensor::RANGE, _height_sensor_ref};
 	HeightBiasEstimator _ev_hgt_b_est{HeightSensor::EV, _height_sensor_ref};
 	PositionBiasEstimator _ev_pos_b_est{static_cast<uint8_t>(PositionSensor::EV), _position_sensor_ref};
-
-	void runYawEKFGSF(const imuSample &imu_delayed);
 
 	// Resets the main Nav EKf yaw to the estimator from the EKF-GSF yaw estimator
 	// Resets the horizontal velocity and position to the default navigation sensor

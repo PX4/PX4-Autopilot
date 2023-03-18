@@ -74,6 +74,7 @@ px4_add_romfs_files(
 	4002_gz_x500_depth
 	4003_gz_rc_cessna
 	4004_gz_standard_vtol
+	4005_gz_x500_vision
 
 	6011_gazebo-classic_typhoon_h480
 	6011_gazebo-classic_typhoon_h480.post

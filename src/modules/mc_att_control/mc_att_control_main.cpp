@@ -112,15 +112,18 @@ MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt,
 	vehicle_attitude_setpoint_s attitude_setpoint{};
 	const float yaw = Eulerf(q).psi();
 
-	/* reset yaw setpoint to current position if needed */
+	attitude_setpoint.yaw_sp_move_rate = _manual_control_setpoint.yaw * math::radians(_param_mpc_man_y_max.get());
+
+	// Avoid accumulating absolute yaw error with arming stick gesture in case heading_good_for_control stays true
+	if ((_manual_control_setpoint.throttle < -.9f) && (_param_mc_airmode.get() != 2)) {
+		reset_yaw_sp = true;
+	}
+
+	// Make sure not absolute heading error builds up
 	if (reset_yaw_sp) {
 		_man_yaw_sp = yaw;
 
-	} else if ((_manual_control_setpoint.throttle > -.9f)
-		   || (_param_mc_airmode.get() == 2)) {
-
-		const float yaw_rate = math::radians(_param_mpc_man_y_max.get());
-		attitude_setpoint.yaw_sp_move_rate = _manual_control_setpoint.yaw * yaw_rate;
+	} else {
 		_man_yaw_sp = wrap_pi(_man_yaw_sp + attitude_setpoint.yaw_sp_move_rate * dt);
 	}
 
@@ -272,14 +275,6 @@ MulticopterAttitudeControl::Run()
 		_manual_control_setpoint_sub.update(&_manual_control_setpoint);
 		_vehicle_control_mode_sub.update(&_vehicle_control_mode);
 
-		if (_vehicle_land_detected_sub.updated()) {
-			vehicle_land_detected_s vehicle_land_detected;
-
-			if (_vehicle_land_detected_sub.copy(&vehicle_land_detected)) {
-				_landed = vehicle_land_detected.landed;
-			}
-		}
-
 		if (_vehicle_status_sub.updated()) {
 			vehicle_status_s vehicle_status;
 
@@ -289,6 +284,14 @@ MulticopterAttitudeControl::Run()
 				_vtol_in_transition_mode = vehicle_status.in_transition_mode;
 				_vtol_tailsitter = vehicle_status.is_vtol_tailsitter;
 
+			}
+		}
+
+		if (_vehicle_local_position_sub.updated()) {
+			vehicle_local_position_s vehicle_local_position;
+
+			if (_vehicle_local_position_sub.copy(&vehicle_local_position)) {
+				_heading_good_for_control = vehicle_local_position.heading_good_for_control;
 			}
 		}
 
@@ -345,7 +348,7 @@ MulticopterAttitudeControl::Run()
 
 		// reset yaw setpoint during transitions, tailsitter.cpp generates
 		// attitude setpoint for the transition
-		_reset_yaw_sp = !attitude_setpoint_generated || _landed || (_vtol && _vtol_in_transition_mode);
+		_reset_yaw_sp = !attitude_setpoint_generated || !_heading_good_for_control || (_vtol && _vtol_in_transition_mode);
 	}
 
 	perf_end(_loop_perf);

@@ -50,7 +50,7 @@
 #include <uORB/topics/qshell_retval.h>
 #include <drivers/drv_hrt.h>
 
-#define MAX_ARGS 8 // max number of whitespace separated args after app name
+#define MAX_ARGS 16 // max number of whitespace separated args after app name
 
 px4::AppState QShell::appState;
 

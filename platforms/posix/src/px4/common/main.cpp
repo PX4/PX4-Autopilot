@@ -105,7 +105,8 @@ static int create_dirs();
 static int run_startup_script(const std::string &commands_file, const std::string &absolute_binary_path, int instance);
 static std::string get_absolute_binary_path(const std::string &argv0);
 static void wait_to_exit();
-static bool is_server_running(int instance, bool server);
+static int get_server_running(int instance, bool *is_running);
+static int set_server_running(int instance);
 static void print_usage();
 static bool dir_exists(const std::string &path);
 static bool file_exists(const std::string &name);
@@ -124,12 +125,16 @@ int main(int argc, char **argv)
 {
 	bool is_client = false;
 	bool pxh_off = false;
+	bool server_is_running = false;
 
 	/* Symlinks point to all commands that can be used as a client with a prefix. */
 	const char prefix[] = PX4_SHELL_COMMAND_PREFIX;
 	int path_length = 0;
 
 	std::string absolute_binary_path; // full path to the px4 binary being executed
+
+	int ret = PX4_OK;
+	int instance = 0;
 
 	if (argc > 0) {
 		/* The executed binary name could start with a path, so strip it away */
@@ -146,8 +151,6 @@ int main(int argc, char **argv)
 	}
 
 	if (is_client) {
-		int instance = 0;
-
 		if (argc >= 3 && strcmp(argv[1], "--instance") == 0) {
 			instance = strtoul(argv[2], nullptr, 10);
 			/* update argv so that "--instance <instance>" is not visible anymore */
@@ -160,15 +163,16 @@ int main(int argc, char **argv)
 
 		PX4_DEBUG("instance: %i", instance);
 
-		if (!is_server_running(instance, false)) {
-			if (errno) {
-				PX4_ERR("Failed to communicate with daemon: %s", strerror(errno));
+		ret = get_server_running(instance, &server_is_running);
 
-			} else {
-				PX4_ERR("PX4 daemon not running yet");
-			}
+		if (ret != PX4_OK) {
+			PX4_ERR("PX4 client failed to get server status");
+			return ret;
+		}
 
-			return -1;
+		if (!server_is_running) {
+			PX4_ERR("PX4 server not running");
+			return PX4_ERROR;
 		}
 
 		/* Remove the path and prefix. */
@@ -202,7 +206,6 @@ int main(int argc, char **argv)
 
 		bool working_directory_default = false;
 
-		int instance = 0;
 		bool instance_provided = false;
 
 		int myoptind = 1;
@@ -292,20 +295,27 @@ int main(int argc, char **argv)
 				PX4_INFO("working directory %s", working_directory.c_str());
 			}
 
-			int ret = change_directory(working_directory);
+			ret = change_directory(working_directory);
 
 			if (ret != PX4_OK) {
 				return ret;
 			}
 		}
 
-		if (is_server_running(instance, true)) {
-			// allow running multiple instances, but the server is only started for the first
-			PX4_INFO("PX4 daemon already running for instance %i (%s)", instance, strerror(errno));
-			return -1;
+		ret = get_server_running(instance, &server_is_running);
+
+		if (ret != PX4_OK) {
+			PX4_ERR("Failed to get server status");
+			return ret;
 		}
 
-		int ret = create_symlinks_if_needed(data_path);
+		if (server_is_running) {
+			// allow running multiple instances, but the server is only started for the first
+			PX4_INFO("PX4 server already running for instance %i", instance);
+			return PX4_ERROR;
+		}
+
+		ret = create_symlinks_if_needed(data_path);
 
 		if (ret != PX4_OK) {
 			return ret;
@@ -342,6 +352,13 @@ int main(int argc, char **argv)
 
 		px4::init_once();
 		px4::init(argc, argv, "px4");
+
+		// Don't set this up until PX4 is up and running
+		ret = set_server_running(instance);
+
+		if (ret != PX4_OK) {
+			return ret;
+		}
 
 		ret = run_startup_script(commands_file, absolute_binary_path, instance);
 
@@ -618,39 +635,73 @@ void print_usage()
 	printf("        e.g.: px4-commander status\n");
 }
 
-bool is_server_running(int instance, bool server)
+int get_server_running(int instance, bool *is_server_running)
 {
 	const std::string file_lock_path = std::string(LOCK_FILE_PATH) + '-' + std::to_string(instance);
 	int fd = open(file_lock_path.c_str(), O_RDWR | O_CREAT, 0666);
 
 	if (fd < 0) {
-		PX4_ERR("is_server_running: failed to create lock file: %s, reason=%s", file_lock_path.c_str(), strerror(errno));
-		return false;
+		PX4_ERR("%s: failed to create lock file: %s, reason=%s", __func__, file_lock_path.c_str(), strerror(errno));
+		return PX4_ERROR;
 	}
 
-	bool result = false;
+	int status = PX4_OK;
+	struct flock lock;
+	memset(&lock, 0, sizeof(struct flock));
 
-	// Server is running if the file is already locked.
-	if (flock(fd, LOCK_EX | LOCK_NB) < 0) {
-		if (errno == EWOULDBLOCK) {
-			// a server is running!
-			result = true;
+	// Exclusive write lock, cover the entire file (regardless of size)
+	lock.l_type = F_WRLCK;
+	lock.l_whence = SEEK_SET;
+
+	if (fcntl(fd, F_GETLK, &lock) < 0) {
+		PX4_ERR("%s: failed to get check for lock on file: %s, reason=%s", __func__, file_lock_path.c_str(), strerror(errno));
+		status = PX4_ERROR;
+
+	} else {
+		// F_GETLK will set l_type to F_UNLCK if no one had a lock on the file. Otherwise,
+		// it means that the server is running and has a lock on the file
+		if (lock.l_type != F_UNLCK) {
+			*is_server_running = true;
 
 		} else {
-			PX4_ERR("is_server_running: failed to get lock on file: %s, reason=%s", file_lock_path.c_str(), strerror(errno));
-			result = false;
+			*is_server_running = false;
 		}
 	}
 
-	if (result || !server) {
+	close(fd);
+
+	return status;
+}
+
+int set_server_running(int instance)
+{
+	const std::string file_lock_path = std::string(LOCK_FILE_PATH) + '-' + std::to_string(instance);
+	int fd = open(file_lock_path.c_str(), O_RDWR | O_CREAT, 0666);
+
+	if (fd < 0) {
+		PX4_ERR("%s: failed to create lock file: %s, reason=%s", __func__, file_lock_path.c_str(), strerror(errno));
+		return PX4_ERROR;
+	}
+
+	int status = PX4_OK;
+
+	struct flock lock;
+	memset(&lock, 0, sizeof(struct flock));
+
+	// Exclusive lock, cover the entire file (regardless of size).
+	lock.l_type = F_WRLCK;
+	lock.l_whence = SEEK_SET;
+
+	if (fcntl(fd, F_SETLK, &lock) < 0) {
+		PX4_ERR("%s: failed to set lock on file: %s, reason=%s", __func__, file_lock_path.c_str(), strerror(errno));
+		status = PX4_ERROR;
 		close(fd);
 	}
 
-	// note: server leaks the file handle once, on purpose, in order to keep the lock on the file until the process terminates.
+	// note: server leaks the file handle, on purpose, in order to keep the lock on the file until the process terminates.
 	// In this case we return false so the server code path continues now that we have the lock.
 
-	errno = 0;
-	return result;
+	return status;
 }
 
 bool file_exists(const std::string &name)

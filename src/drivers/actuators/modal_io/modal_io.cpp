@@ -65,12 +65,13 @@ ModalIo::ModalIo() :
 		_esc_status.esc[i].esc_address     = 0;
 		_esc_status.esc[i].esc_rpm         = 0;
 		_esc_status.esc[i].esc_state       = 0;
-		//_esc_status.esc[i].esc_cmdcount    = 0;
+		_esc_status.esc[i].esc_cmdcount    = 0;
 		_esc_status.esc[i].esc_voltage     = 0;
 		_esc_status.esc[i].esc_current     = 0;
 		_esc_status.esc[i].esc_temperature = 0;
 		_esc_status.esc[i].esc_errorcount  = 0;
 		_esc_status.esc[i].failures        = 0;
+		_esc_status.esc[i].esc_power       = 0;
 	}
 
 	qc_esc_packet_init(&_fb_packet);
@@ -151,6 +152,8 @@ int ModalIo::load_params(modal_io_params_t *params, ch_assign_t *map)
 
 	param_get(param_find("MODAL_IO_RPM_MIN"), &params->rpm_min);
 	param_get(param_find("MODAL_IO_RPM_MAX"), &params->rpm_max);
+
+	param_get(param_find("MODAL_IO_VLOG"),    &params->verbose_logging);
 
 	if (params->rpm_min >= params->rpm_max) {
 		PX4_ERR("Invalid parameter MODAL_IO_RPM_MIN.  Please verify parameters.");
@@ -336,9 +339,9 @@ int ModalIo::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
 					_esc_status.esc[id].esc_address  = motor_idx + 1; //remapped motor ID
 					_esc_status.esc[id].timestamp    = tnow;
 					_esc_status.esc[id].esc_rpm      = fb.rpm;
-					//_esc_status.esc[id].esc_power    = fb.power;
+					_esc_status.esc[id].esc_power    = fb.power;
 					_esc_status.esc[id].esc_state    = fb.id_state & 0x0F;
-					//_esc_status.esc[id].esc_cmdcount = fb.cmd_counter;
+					_esc_status.esc[id].esc_cmdcount = fb.cmd_counter;
 					_esc_status.esc[id].esc_voltage  = _esc_chans[id].voltage;
 					_esc_status.esc[id].esc_current  = _esc_chans[id].current;
 					_esc_status.esc[id].failures     = 0; //not implemented
@@ -585,7 +588,7 @@ int ModalIo::custom_command(int argc, char *argv[])
 	}
 
 	if (!strcmp(verb, "reset")) {
-		if (esc_id < 4) {
+		if (esc_id < MODAL_IO_OUTPUT_CHANNELS) {
 			PX4_INFO("Reset ESC: %i", esc_id);
 			cmd.len = qc_esc_create_reset_packet(esc_id, cmd.buf, sizeof(cmd.buf));
 			cmd.response = false;
@@ -597,7 +600,7 @@ int ModalIo::custom_command(int argc, char *argv[])
 		}
 
 	} else if (!strcmp(verb, "version")) {
-		if (esc_id < 4) {
+		if (esc_id < MODAL_IO_OUTPUT_CHANNELS) {
 			PX4_INFO("Request version for ESC: %i", esc_id);
 			cmd.len = qc_esc_create_version_request_packet(esc_id, cmd.buf, sizeof(cmd.buf));
 			cmd.response = true;
@@ -610,7 +613,7 @@ int ModalIo::custom_command(int argc, char *argv[])
 		}
 
 	} else if (!strcmp(verb, "version-ext")) {
-		if (esc_id < 4) {
+		if (esc_id < MODAL_IO_OUTPUT_CHANNELS) {
 			PX4_INFO("Request extended version for ESC: %i", esc_id);
 			cmd.len = qc_esc_create_extended_version_request_packet(esc_id, cmd.buf, sizeof(cmd.buf));
 			cmd.response = true;
@@ -623,14 +626,14 @@ int ModalIo::custom_command(int argc, char *argv[])
 		}
 
 	} else if (!strcmp(verb, "tone")) {
-		if (0 < esc_id && esc_id < 16) {
+		if (esc_id < MODAL_IO_OUTPUT_CHANNELS) {
 			PX4_INFO("Request tone for ESC mask: %i", esc_id);
 			cmd.len = qc_esc_create_sound_packet(period, duration, power, esc_id, cmd.buf, sizeof(cmd.buf));
 			cmd.response = false;
 			return get_instance()->send_cmd_thread_safe(&cmd);
 
 		} else {
-			print_usage("Invalid ESC mask, use 1-15");
+			print_usage("Invalid ESC ID, use 0-3");
 			return 0;
 		}
 
@@ -652,42 +655,20 @@ int ModalIo::custom_command(int argc, char *argv[])
 		}
 
 	}  else if (!strcmp(verb, "rpm")) {
-		if (0 < esc_id && esc_id < 16) {
-			PX4_INFO("Request RPM for ESC bit mask: %i - RPM: %i", esc_id, rate);
-			int16_t rate_req[MODAL_IO_OUTPUT_CHANNELS];
-			int16_t outputs[MODAL_IO_OUTPUT_CHANNELS];
-			outputs[0] = (esc_id & 1) ? rate : 0;
-			outputs[1] = (esc_id & 2) ? rate : 0;
-			outputs[2] = (esc_id & 4) ? rate : 0;
-			outputs[3] = (esc_id & 8) ? rate : 0;
-
-			//the motor mapping is.. if I want to spin Motor 1 (1-4) then i need to provide non-zero rpm for motor map[m-1]
-
-			modal_io_params_t params;
-			ch_assign_t map[MODAL_IO_OUTPUT_CHANNELS];
-			get_instance()->load_params(&params, (ch_assign_t *)&map);
-
-			uint8_t id_fb_raw = 0;
+		if (esc_id < MODAL_IO_OUTPUT_CHANNELS) {
+			PX4_INFO("Request RPM for ESC ID: %i - RPM: %i", esc_id, rate);
+			int16_t rate_req[MODAL_IO_OUTPUT_CHANNELS] = {0, 0, 0, 0};
 			uint8_t id_fb = 0;
 
-			if (esc_id & 1) { id_fb_raw = 0; }
+			if (esc_id == 0xFF) {
+				rate_req[0] = rate;
+				rate_req[1] = rate;
+				rate_req[2] = rate;
+				rate_req[3] = rate;
 
-			else if (esc_id & 2) { id_fb_raw = 1; }
-
-			else if (esc_id & 4) { id_fb_raw = 2; }
-
-			else if (esc_id & 8) { id_fb_raw = 3; }
-
-			for (int i = 0; i < MODAL_IO_OUTPUT_CHANNELS; i++) {
-				int motor_idx = map[i].number - 1; // user defined mapping is 1-4, array is 0-3
-
-				if (motor_idx >= 0 && motor_idx < MODAL_IO_OUTPUT_CHANNELS) {
-					rate_req[i] = outputs[motor_idx] * map[i].direction;
-				}
-
-				if (motor_idx == id_fb_raw) {
-					id_fb = i;
-				}
+			} else {
+				rate_req[esc_id] = rate;
+				id_fb = esc_id;
 			}
 
 			cmd.len = qc_esc_create_rpm_packet4_fb(rate_req[0],
@@ -708,53 +689,31 @@ int ModalIo::custom_command(int argc, char *argv[])
 			cmd.repeat_delay_us = repeat_delay_us;
 			cmd.print_feedback  = true;
 
-			PX4_INFO("ESC map: %d %d %d %d", map[0].number, map[1].number, map[2].number, map[3].number);
-			PX4_INFO("feedback id debug: %i, %i", id_fb_raw, id_fb);
+			PX4_INFO("feedback id debug: %i", id_fb);
 			PX4_INFO("Sending UART ESC RPM command %i", rate);
 
 			return get_instance()->send_cmd_thread_safe(&cmd);
 
 		} else {
-			print_usage("Invalid ESC mask, use 1-15");
+			print_usage("Invalid ESC ID, use 0-3");
 			return 0;
 		}
 
 	} else if (!strcmp(verb, "pwm")) {
-		if (0 < esc_id && esc_id < 16) {
-			PX4_INFO("Request PWM for ESC mask: %i - PWM: %i", esc_id, rate);
-			int16_t rate_req[MODAL_IO_OUTPUT_CHANNELS];
-			int16_t outputs[MODAL_IO_OUTPUT_CHANNELS];
-			outputs[0] = (esc_id & 1) ? rate : 0;
-			outputs[1] = (esc_id & 2) ? rate : 0;
-			outputs[2] = (esc_id & 4) ? rate : 0;
-			outputs[3] = (esc_id & 8) ? rate : 0;
-
-			modal_io_params_t params;
-			ch_assign_t map[MODAL_IO_OUTPUT_CHANNELS];
-			get_instance()->load_params(&params, (ch_assign_t *)&map);
-
-			uint8_t id_fb_raw = 0;
+		if (esc_id < MODAL_IO_OUTPUT_CHANNELS) {
+			PX4_INFO("Request PWM for ESC ID: %i - PWM: %i", esc_id, rate);
+			int16_t rate_req[MODAL_IO_OUTPUT_CHANNELS] = {0, 0, 0, 0};
 			uint8_t id_fb = 0;
 
-			if (esc_id & 1) { id_fb_raw = 0; }
+			if (esc_id == 0xFF) {
+				rate_req[0] = rate;
+				rate_req[1] = rate;
+				rate_req[2] = rate;
+				rate_req[3] = rate;
 
-			else if (esc_id & 2) { id_fb_raw = 1; }
-
-			else if (esc_id & 4) { id_fb_raw = 2; }
-
-			else if (esc_id & 8) { id_fb_raw = 3; }
-
-			for (int i = 0; i < MODAL_IO_OUTPUT_CHANNELS; i++) {
-				int motor_idx = map[i].number - 1; // user defined mapping is 1-4, array is 0-3
-
-				if (motor_idx >= 0 && motor_idx < MODAL_IO_OUTPUT_CHANNELS) {
-					rate_req[i] = outputs[motor_idx] * map[i].direction;
-					PX4_INFO("rate_req[%d]=%d", i, rate_req[i]);
-				}
-
-				if (motor_idx == id_fb_raw) {
-					id_fb = i;
-				}
+			} else {
+				rate_req[esc_id] = rate;
+				id_fb = esc_id;
 			}
 
 			cmd.len = qc_esc_create_pwm_packet4_fb(rate_req[0],
@@ -775,10 +734,8 @@ int ModalIo::custom_command(int argc, char *argv[])
 			cmd.repeat_delay_us = repeat_delay_us;
 			cmd.print_feedback  = true;
 
-			PX4_INFO("ESC map: %d %d %d %d", map[0].number, map[1].number, map[2].number, map[3].number);
-			PX4_INFO("feedback id debug: %i, %i", id_fb_raw, id_fb);
+			PX4_INFO("feedback id debug: %i", id_fb);
 			PX4_INFO("Sending UART ESC power command %i", rate);
-
 
 			return get_instance()->send_cmd_thread_safe(&cmd);
 
@@ -1157,8 +1114,7 @@ bool ModalIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 	//check_for_esc_timeout();
 
 	// publish the actual command that we sent and the feedback received
-	/*
-	if (MODALAI_PUBLISH_ESC_STATUS) {
+	if (_parameters.verbose_logging) {
 		actuator_outputs_s actuator_outputs{};
 		actuator_outputs.noutputs = num_outputs;
 
@@ -1169,9 +1125,10 @@ bool ModalIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 		actuator_outputs.timestamp = hrt_absolute_time();
 
 		_outputs_debug_pub.publish(actuator_outputs);
-		_esc_status_pub.publish(_esc_status);
+
 	}
-	*/
+
+	_esc_status_pub.publish(_esc_status);
 
 	perf_count(_output_update_perf);
 
@@ -1363,7 +1320,9 @@ void ModalIo::Run()
 					}
 
 					if (_current_cmd.response) {
-						read_response(&_current_cmd);
+						if (read_response(&_current_cmd) == 0) {
+							_esc_status_pub.publish(_esc_status);
+						}
 					}
 
 				} else {
@@ -1433,19 +1392,19 @@ $ todo
 	PRINT_MODULE_USAGE_PARAM_INT('i', 0, 0, 3, "ESC ID, 0-3", false);
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("rpm", "Closed-Loop RPM test control request");
-	PRINT_MODULE_USAGE_PARAM_INT('i', 1, 1, 15, "ESC ID bitmask, 1-15", false);
+	PRINT_MODULE_USAGE_PARAM_INT('i', 0, 0, 3, "ESC ID, 0-3", false);
 	PRINT_MODULE_USAGE_PARAM_INT('r', 0, -32768, 32768, "RPM, -32,768 to 32,768", false);
 	PRINT_MODULE_USAGE_PARAM_INT('n', 100, 0, 1<<31, "Command repeat count, 0 to INT_MAX", false);
 	PRINT_MODULE_USAGE_PARAM_INT('t', 10000, 0, 1<<31, "Delay between repeated commands (microseconds), 0 to INT_MAX", false);
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("pwm", "Open-Loop PWM test control request");
-	PRINT_MODULE_USAGE_PARAM_INT('i', 1, 1, 15, "ESC ID bitmask, 1-15", false);
+	PRINT_MODULE_USAGE_PARAM_INT('i', 0, 0, 3, "ESC ID, 0-3", false);
 	PRINT_MODULE_USAGE_PARAM_INT('r', 0, 0, 800, "Duty Cycle value, 0 to 800", false);
 	PRINT_MODULE_USAGE_PARAM_INT('n', 100, 0, 1<<31, "Command repeat count, 0 to INT_MAX", false);
 	PRINT_MODULE_USAGE_PARAM_INT('t', 10000, 0, 1<<31, "Delay between repeated commands (microseconds), 0 to INT_MAX", false);
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("tone", "Send tone generation request to ESC");
-	PRINT_MODULE_USAGE_PARAM_INT('i', 1, 1, 15, "ESC ID bitmask, 1-15", false);
+	PRINT_MODULE_USAGE_PARAM_INT('i', 0, 0, 3, "ESC ID, 0-3", false);
 	PRINT_MODULE_USAGE_PARAM_INT('p', 0, 0, 255, "Period of sound, inverse frequency, 0-255", false);
 	PRINT_MODULE_USAGE_PARAM_INT('d', 0, 0, 255, "Duration of the sound, 0-255, 1LSB = 13ms", false);
 	PRINT_MODULE_USAGE_PARAM_INT('v', 0, 0, 100, "Power (volume) of sound, 0-100", false);

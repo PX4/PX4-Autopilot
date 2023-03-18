@@ -267,7 +267,6 @@ bool FeasibilityChecker::checkMissionItemValidity(mission_item_s &mission_item, 
 	    mission_item.nav_cmd != NAV_CMD_DO_JUMP &&
 	    mission_item.nav_cmd != NAV_CMD_DO_CHANGE_SPEED &&
 	    mission_item.nav_cmd != NAV_CMD_DO_SET_HOME &&
-	    mission_item.nav_cmd != NAV_CMD_DO_SET_SERVO &&
 	    mission_item.nav_cmd != NAV_CMD_DO_LAND_START &&
 	    mission_item.nav_cmd != NAV_CMD_DO_TRIGGER_CONTROL &&
 	    mission_item.nav_cmd != NAV_CMD_DO_DIGICAM_CONTROL &&
@@ -298,28 +297,6 @@ bool FeasibilityChecker::checkMissionItemValidity(mission_item_s &mission_item, 
 		events::send<uint16_t, uint16_t>(events::ID("navigator_mis_unsup_cmd"), {events::Log::Error, events::LogInternal::Warning},
 						 "Mission rejected: item {1}: unsupported command: {2}", current_index + 1, mission_item.nav_cmd);
 		return false;
-	}
-
-	/* Check non navigation item */
-	if (mission_item.nav_cmd == NAV_CMD_DO_SET_SERVO) {
-
-		/* check actuator number */
-		if (mission_item.params[0] < 0 || mission_item.params[0] > 5) {
-			mavlink_log_critical(_mavlink_log_pub, "Actuator number %d is out of bounds 0..5\t",
-					     (int)mission_item.params[0]);
-			events::send<uint32_t>(events::ID("navigator_mis_act_index"), {events::Log::Error, events::LogInternal::Warning},
-					       "Actuator number {1} is out of bounds 0..5", (int)mission_item.params[0]);
-			return false;
-		}
-
-		/* check actuator value */
-		if (mission_item.params[1] < -PWM_DEFAULT_MAX || mission_item.params[1] > PWM_DEFAULT_MAX) {
-			mavlink_log_critical(_mavlink_log_pub,
-					     "Actuator value %d is out of bounds -PWM_DEFAULT_MAX..PWM_DEFAULT_MAX\t", (int)mission_item.params[1]);
-			events::send<uint32_t, uint32_t>(events::ID("navigator_mis_act_range"), {events::Log::Error, events::LogInternal::Warning},
-							 "Actuator value {1} is out of bounds -{2}..{2}", (int)mission_item.params[1], PWM_DEFAULT_MAX);
-			return false;
-		}
 	}
 
 	// check if the mission starts with a land command while the vehicle is landed
@@ -375,7 +352,6 @@ bool FeasibilityChecker::checkTakeoff(mission_item_s &mission_item)
 					     mission_item.nav_cmd != NAV_CMD_DO_JUMP &&
 					     mission_item.nav_cmd != NAV_CMD_DO_CHANGE_SPEED &&
 					     mission_item.nav_cmd != NAV_CMD_DO_SET_HOME &&
-					     mission_item.nav_cmd != NAV_CMD_DO_SET_SERVO &&
 					     mission_item.nav_cmd != NAV_CMD_DO_LAND_START &&
 					     mission_item.nav_cmd != NAV_CMD_DO_TRIGGER_CONTROL &&
 					     mission_item.nav_cmd != NAV_CMD_DO_DIGICAM_CONTROL &&

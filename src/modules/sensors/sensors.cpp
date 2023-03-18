@@ -771,14 +771,14 @@ The sensors module is central to the whole system. It takes low-level output fro
 it into a more usable form, and publishes it for the rest of the system.
 
 The provided functionality includes:
-- Read the output from the sensor drivers (`sensor_gyro`, etc.).
+- Read the output from the sensor drivers (`SensorGyro`, etc.).
   If there are multiple of the same type, do voting and failover handling.
   Then apply the board rotation and temperature calibration (if enabled). And finally publish the data; one of the
-  topics is `sensor_combined`, used by many parts of the system.
+  topics is `SensorCombined`, used by many parts of the system.
 - Make sure the sensor drivers get the updated calibration parameters (scale & offset) when the parameters change or
   on startup. The sensor drivers use the ioctl interface for parameter updates. For this to work properly, the
   sensor drivers must already be running when `sensors` is started.
-- Do sensor consistency checks and publish the `sensors_status_imu` topic.
+- Do sensor consistency checks and publish the `SensorsStatusImu` topic.
 
 ### Implementation
 It runs in its own thread and polls on the currently selected gyro topic.

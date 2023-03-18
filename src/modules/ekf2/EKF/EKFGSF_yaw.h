@@ -62,11 +62,13 @@ public:
 	// Update Filter States - this should be called whenever new IMU data is available
 	void update(const imuSample &imu_sample,
 		    bool run_EKF,  			// set to true when flying or movement is suitable for yaw estimation
-		    float airspeed,			// true airspeed used for centripetal accel compensation - set to 0 when not required.
 		    const Vector3f &imu_gyro_bias); // estimated rate gyro bias (rad/sec)
 
 	void setVelocity(const Vector2f &velocity, // NE velocity measurement (m/s)
 			 float accuracy);	   // 1-sigma accuracy of velocity measurement (m/s)
+
+
+	void setTrueAirspeed(float true_airspeed) { _true_airspeed = true_airspeed; }
 
 	// get solution data for logging
 	bool getLogData(float *yaw_composite,
@@ -77,6 +79,7 @@ public:
 			float weight[N_MODELS_EKFGSF]) const;
 
 	bool isActive() const { return _ekf_gsf_vel_fuse_started; }
+
 	float getYaw() const { return _gsf_yaw; }
 	float getYawVar() const { return _gsf_yaw_variance; }
 
@@ -89,7 +92,7 @@ private:
 	const float _gyro_bias_gain{0.04f};	// gain applied to integral of gyro correction for complementary filter (1/sec)
 
 	// Declarations used by the bank of N_MODELS_EKFGSF AHRS complementary filters
-	float _true_airspeed{};	// true airspeed used for centripetal accel compensation (m/s)
+	float _true_airspeed{NAN};	// true airspeed used for centripetal accel compensation (m/s)
 
 	struct {
 		Dcmf R{matrix::eye<float, 3>()}; // matrix that rotates a vector from body to earth frame

@@ -40,9 +40,9 @@
  *
  * Sampling frequency: ~285Hz, y_data is aligned with the closest next u_data
  *
- * u_data: actuator_controls_0.control[0] (roll control signal, used as the input)
+ * u_data: vehicle_torque_setpoint[0] (roll control signal, used as the input)
  * y_data: vehicle_angular_velocity.xyz[0] (filtered roll angular rate, used as the output)
- * t_data: actuator_controls_0.timestamp
+ * t_data: vehicle_torque_setpoint.timestamp
  */
 
 #pragma once

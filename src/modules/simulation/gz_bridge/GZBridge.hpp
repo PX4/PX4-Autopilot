@@ -54,13 +54,16 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/sensor_baro.h>
+#include <uORB/topics/vehicle_odometry.h>
 
 #include <gz/math.hh>
 #include <gz/msgs.hh>
 #include <gz/transport.hh>
 
-// #include <gz/msgs/fluid_pressure.pb.h>
 #include <gz/msgs/imu.pb.h>
+#include <gz/msgs/fluid_pressure.pb.h>
+#include <gz/msgs/odometry_with_covariance.pb.h>
 
 using namespace time_literals;
 
@@ -94,9 +97,11 @@ private:
 
 	void clockCallback(const gz::msgs::Clock &clock);
 
-	//void airpressureCallback(const gz::msgs::FluidPressure &air_pressure);
+	// void airspeedCallback(const gz::msgs::AirSpeedSensor &air_pressure);
+	void barometerCallback(const gz::msgs::FluidPressure &air_pressure);
 	void imuCallback(const gz::msgs::IMU &imu);
 	void poseInfoCallback(const gz::msgs::Pose_V &pose);
+	void odometryCallback(const gz::msgs::OdometryWithCovariance &odometry);
 
 	// Subscriptions
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
@@ -106,9 +111,11 @@ private:
 	uORB::Publication<vehicle_attitude_s>         _attitude_ground_truth_pub{ORB_ID(vehicle_attitude_groundtruth)};
 	uORB::Publication<vehicle_global_position_s>  _gpos_ground_truth_pub{ORB_ID(vehicle_global_position_groundtruth)};
 	uORB::Publication<vehicle_local_position_s>   _lpos_ground_truth_pub{ORB_ID(vehicle_local_position_groundtruth)};
+	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
 
 	uORB::PublicationMulti<sensor_accel_s> _sensor_accel_pub{ORB_ID(sensor_accel)};
 	uORB::PublicationMulti<sensor_gyro_s>  _sensor_gyro_pub{ORB_ID(sensor_gyro)};
+	uORB::PublicationMulti<vehicle_odometry_s> _visual_odometry_pub{ORB_ID(vehicle_visual_odometry)};
 
 	GZMixingInterfaceESC   _mixing_interface_esc{_node, _node_mutex};
 	GZMixingInterfaceServo _mixing_interface_servo{_node, _node_mutex};
@@ -128,6 +135,8 @@ private:
 	const std::string _model_name;
 	const std::string _model_sim;
 	const std::string _model_pose;
+
+	float _temperature{288.15};  // 15 degrees
 
 	gz::transport::Node _node;
 

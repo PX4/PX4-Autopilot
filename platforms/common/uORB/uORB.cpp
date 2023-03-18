@@ -347,12 +347,12 @@ void orb_print_message_internal(const orb_metadata *meta, const void *data, bool
 					data_offset += sizeof(uint64_t);
 
 				} else if (strcmp(c_type, "float") == 0) {
-					if (!dont_print) { PX4_INFO_RAW("%.4f", (double) * (float *)(data_ptr + data_offset)); }
+					if (!dont_print) { PX4_INFO_RAW("%.5f", (double) * (float *)(data_ptr + data_offset)); }
 
 					data_offset += sizeof(float);
 
 				} else if (strcmp(c_type, "double") == 0) {
-					if (!dont_print) { PX4_INFO_RAW("%.4f", *(double *)(data_ptr + data_offset)); }
+					if (!dont_print) { PX4_INFO_RAW("%.6f", *(double *)(data_ptr + data_offset)); }
 
 					data_offset += sizeof(double);
 

@@ -78,10 +78,13 @@ void SubscriptionManager::updateDynamicSubscriptions()
 
 		while (dynsub != nullptr) {
 			// Check if subscriber has already been created
+			const char *subj_prefix = dynsub->getSubjectPrefix();
 			const char *subj_name = dynsub->getSubjectName();
 			const uint8_t instance = dynsub->getInstance();
+			char subject_name[90];
+			snprintf(subject_name, sizeof(subject_name), "%s%s", subj_prefix, subj_name);
 
-			if (strcmp(subj_name, sub.subject_name) == 0 && instance == sub.instance) {
+			if (strcmp(subject_name, sub.subject_name) == 0 && instance == sub.instance) {
 				found_subscriber = true;
 				break;
 			}

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -52,9 +52,7 @@ bool FlightTaskManualAcceleration::activate(const trajectory_setpoint_s &last_se
 		_stick_acceleration_xy.resetVelocity(_velocity.xy());
 	}
 
-	if (Vector2f(last_setpoint.acceleration).isAllFinite()) {
-		_stick_acceleration_xy.resetAcceleration(Vector2f(last_setpoint.acceleration));
-	}
+	_stick_acceleration_xy.resetAcceleration(Vector2f(last_setpoint.acceleration));
 
 	return ret;
 }
@@ -63,11 +61,10 @@ bool FlightTaskManualAcceleration::update()
 {
 	bool ret = FlightTaskManualAltitudeSmoothVel::update();
 
-	_stick_yaw.generateYawSetpoint(_yawspeed_setpoint, _yaw_setpoint,
-				       _sticks.getPositionExpo()(3) * math::radians(_param_mpc_man_y_max.get()), _yaw, _is_yaw_good_for_control, _deltatime);
+	_stick_yaw.generateYawSetpoint(_yawspeed_setpoint, _yaw_setpoint, _sticks.getYawExpo(), _yaw, _is_yaw_good_for_control,
+				       _deltatime);
 
-	_stick_acceleration_xy.generateSetpoints(_sticks.getPositionExpo().slice<2, 1>(0, 0), _yaw, _yaw_setpoint,
-			_position,
+	_stick_acceleration_xy.generateSetpoints(_sticks.getPitchRollExpo(), _yaw, _yaw_setpoint, _position,
 			_velocity_setpoint_feedback.xy(), _deltatime);
 	_stick_acceleration_xy.getSetpoints(_position_setpoint, _velocity_setpoint, _acceleration_setpoint);
 

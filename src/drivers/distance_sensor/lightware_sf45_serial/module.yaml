@@ -1,0 +1,63 @@
+module_name: Lightware SF45 Rangefinder (serial)
+serial_config:
+    - command: lightware_sf45_serial start -R 0 -d ${SERIAL_DEV}
+      port_config_param:
+        name: SENS_EN_SF45_CFG
+        group: Sensors
+        default: TEL2
+      num_instances: 1
+      supports_networking: false
+
+parameters:
+    - group: Sensors
+      definitions:
+          SF45_UPDATE_CFG:
+              description:
+                  short: Update rate in Hz
+                  long: |
+                      The SF45 sets the update rate in Hz to allow greater resolution
+              type: enum
+              values:
+                  1: 50hz
+                  2: 100hz
+                  3: 200hz
+                  4: 400hz
+                  5: 500hz
+                  6: 625hz
+                  7: 1000hz
+                  8: 1250hz
+                  9: 1538hz
+                  10: 2000hz
+                  11: 2500hz
+                  12: 5000hz
+              reboot_required: true
+              num_instances: 1
+              default: 1
+
+          SF45_ORIENT_CFG:
+              description:
+                  short: Orientation upright or facing downward
+                  long: |
+                      The SF45 mounted facing upward or downward on the frame
+              type: enum
+              values:
+                0: Rotation upward
+                1: Rotation downward
+              reboot_required: true
+              num_instances: 1
+              default: 0
+
+          SF45_YAW_CFG:
+              description:
+                  short: Sensor facing forward or backward
+                  long: |
+                      The usb port on the sensor indicates 180deg, opposite usb is forward facing
+              type: enum
+              values:
+                0: Rotation forward
+                1: Rotation backward
+                2: Rotation right
+                3: Rotation left
+              reboot_required: true
+              num_instances: 1
+              default: 0

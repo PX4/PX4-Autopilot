@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,7 +33,7 @@
 
 /**
  * @file StickAccelerationXY.hpp
- * @brief Generate horizontal position, velocity and acceleration from stick input
+ * @brief Generate horizontal position, velocity and acceleration setpoints from stick input
  * @author Matthias Grob <maetugr@gmail.com>
  */
 
@@ -84,7 +84,6 @@ private:
 		(ParamFloat<px4::params::MPC_VEL_MAN_SIDE>) _param_mpc_vel_man_side,
 		(ParamFloat<px4::params::MPC_VEL_MAN_BACK>) _param_mpc_vel_man_back,
 		(ParamFloat<px4::params::MPC_ACC_HOR>) _param_mpc_acc_hor,
-		(ParamFloat<px4::params::MPC_JERK_MAX>) _param_mpc_jerk_max,
-		(ParamFloat<px4::params::MPC_TILTMAX_AIR>) _param_mpc_tiltmax_air
+		(ParamFloat<px4::params::MPC_JERK_MAX>) _param_mpc_jerk_max
 	)
 };

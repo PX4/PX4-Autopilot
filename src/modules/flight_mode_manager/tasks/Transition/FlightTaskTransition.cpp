@@ -57,7 +57,7 @@ bool FlightTaskTransition::updateInitialize()
 
 void FlightTaskTransition::updateParameters()
 {
-// check for parameter updates
+	// check for parameter updates
 	if (_parameter_update_sub.updated()) {
 		// clear update
 		parameter_update_s pupdate;
@@ -85,9 +85,19 @@ bool FlightTaskTransition::activate(const trajectory_setpoint_s &last_setpoint)
 
 	_velocity_setpoint(2) = _vel_z_filter.getState();
 
+	_sub_vehicle_status.update();
+
+	const bool is_vtol_front_transition = _sub_vehicle_status.get().in_transition_mode
+					      && _sub_vehicle_status.get().in_transition_to_fw;
+
+	if (is_vtol_front_transition) {
+		_gear.landing_gear = landing_gear_s::GEAR_UP;
+
+	} else {
+		_gear.landing_gear = landing_gear_s::GEAR_DOWN;
+	}
+
 	return ret;
-
-
 }
 
 bool FlightTaskTransition::update()
