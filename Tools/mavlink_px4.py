@@ -314,7 +314,7 @@ MAV_CMD_DO_SET_PARAMETER = 180 # Set a system parameter.  Caution!  Use of this 
                         # knowledge of the numeric enumeration value
                         # of the parameter.
 MAV_CMD_DO_SET_RELAY = 181 # Set a relay to a condition.
-MAV_CMD_DO_REPEAT_RELAY = 182 # Cycle a relay on and off for a desired number of cyles with a desired
+MAV_CMD_DO_REPEAT_RELAY = 182 # Cycle a relay on and off for a desired number of cycles with a desired
                         # period.
 MAV_CMD_DO_SET_SERVO = 183 # Set a servo to a desired PWM value.
 MAV_CMD_DO_REPEAT_SERVO = 184 # Cycle a between its nominal setting and a desired PWM for a desired
