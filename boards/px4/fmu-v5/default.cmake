@@ -123,6 +123,7 @@ px4_add_board(
 		work_queue
 	EXAMPLES
 		fake_gps
+		experiment_app
 		#fake_imu
 		#fake_magnetometer
 		#fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control

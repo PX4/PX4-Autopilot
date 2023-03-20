@@ -34,11 +34,18 @@
 #include "FixedwingAttitudeControl.hpp"
 
 #include <vtol_att_control/vtol_type.h>
+#include <uORB/topics/experiment.h>
 
 using namespace time_literals;
 using math::constrain;
 using math::gradual;
 using math::radians;
+
+// Subscribe to experiment topic
+//int experiment_sub = orb_subscribe(ORB_ID(experiment));
+//struct experiment_s experiment_data;
+
+
 
 FixedwingAttitudeControl::FixedwingAttitudeControl(bool vtol) :
 	ModuleParams(nullptr),
@@ -179,13 +186,15 @@ FixedwingAttitudeControl::vehicle_manual_poll()
 
 				} else {
 					/* manual/direct control */
+					_experiment_sub.copy(&experiment_data);
 					_actuators.control[actuator_controls_s::INDEX_ROLL] =
-						_manual_control_setpoint.y * _param_fw_man_r_sc.get() + _param_trim_roll.get();
+						_manual_control_setpoint.y * _param_fw_man_r_sc.get() + _param_trim_roll.get() + experiment_data.control[experiment_s::INDEX_ROLL];
 					_actuators.control[actuator_controls_s::INDEX_PITCH] =
-						-_manual_control_setpoint.x * _param_fw_man_p_sc.get() + _param_trim_pitch.get();
+						-_manual_control_setpoint.x * _param_fw_man_p_sc.get() + _param_trim_pitch.get() + experiment_data.control[experiment_s::INDEX_PITCH];
+					PX4_INFO_RAW("manual control value %f \n",(double)(experiment_data.control[experiment_s::INDEX_PITCH]));
 					_actuators.control[actuator_controls_s::INDEX_YAW] =
-						_manual_control_setpoint.r * _param_fw_man_y_sc.get() + _param_trim_yaw.get();
-					_actuators.control[actuator_controls_s::INDEX_THROTTLE] = math::constrain(_manual_control_setpoint.z, 0.0f, 1.0f);
+						_manual_control_setpoint.r * _param_fw_man_y_sc.get() + _param_trim_yaw.get() + experiment_data.control[experiment_s::INDEX_YAW];
+					_actuators.control[actuator_controls_s::INDEX_THROTTLE] = math::constrain(_manual_control_setpoint.z, 0.0f, 1.0f) + experiment_data.control[experiment_s::INDEX_THROTTLE];
 				}
 			}
 		}

@@ -23,6 +23,7 @@ px4_add_board(
 		#telemetry # all available telemetry drivers
 		tone_alarm
 		#uavcan
+		rc_input
 	MODULES
 		airship_att_control
 		airspeed_selector
@@ -88,6 +89,7 @@ px4_add_board(
 	EXAMPLES
 		dyn_hello # dynamically loading modules example
 		fake_gps
+		experiment_app
 		fake_imu
 		fake_magnetometer
 		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control

@@ -69,6 +69,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("input_rc", 500);
 	add_topic("mag_worker_data");
 	add_topic("manual_control_setpoint", 200);
+	add_topic("experiment");
 	add_topic("manual_control_switches");
 	add_topic("mission");
 	add_topic("mission_result");
