@@ -83,7 +83,9 @@ public:
 
 	void setUsingBaroHgtAiding(bool val) { _is_using_baro_hgt_aiding = val; }
 	void setUsingGpsHgtAiding(bool val) { _is_using_gps_hgt_aiding = val; }
+#if defined(CONFIG_EKF2_RANGE_FINDER)
 	void setUsingRngHgtAiding(bool val) { _is_using_rng_hgt_aiding = val; }
+#endif // CONFIG_EKF2_RANGE_FINDER
 	void setUsingEvHgtAiding(bool val) { _is_using_ev_hgt_aiding = val; }
 
 	bool hasHeadingFailed() const { return _has_heading_failed; }
@@ -157,7 +159,6 @@ private:
 
 	bool _is_using_baro_hgt_aiding{};
 	bool _is_using_gps_hgt_aiding{};
-	bool _is_using_rng_hgt_aiding{};
 	bool _is_using_ev_hgt_aiding{};
 
 	// Low-pass filters for innovation pre-flight checks
@@ -169,8 +170,12 @@ private:
 	// Preflight low pass filter height innovation (m)
 	InnovationLpf _filter_baro_hgt_innov;
 	InnovationLpf _filter_gps_hgt_innov;
-	InnovationLpf _filter_rng_hgt_innov;
 	InnovationLpf _filter_ev_hgt_innov;
+
+#if defined(CONFIG_EKF2_RANGE_FINDER)
+	bool _is_using_rng_hgt_aiding {};
+	InnovationLpf _filter_rng_hgt_innov;
+#endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	bool _is_using_flow_aiding {};

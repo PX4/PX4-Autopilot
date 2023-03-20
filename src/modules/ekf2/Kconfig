@@ -60,8 +60,16 @@ menuconfig EKF2_OPTICAL_FLOW
 depends on MODULES_EKF2
         bool "optical flow fusion support"
         default y
+	depends on EKF2_RANGE_FINDER
 	---help---
 		EKF2 optical flow fusion support.
+
+menuconfig EKF2_RANGE_FINDER
+depends on MODULES_EKF2
+        bool "range finder fusion support"
+        default y
+	---help---
+		EKF2 range finder fusion support.
 
 menuconfig EKF2_SIDESLIP
 depends on MODULES_EKF2
