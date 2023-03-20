@@ -202,7 +202,9 @@ void Ekf::resetVerticalPositionTo(const float new_vert_pos, float new_vert_pos_v
 	_ev_hgt_b_est.setBias(_ev_hgt_b_est.getBias() - delta_z);
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 	_gps_hgt_b_est.setBias(_gps_hgt_b_est.getBias() + delta_z);
+#if defined(CONFIG_EKF2_RANGE_FINDER)
 	_rng_hgt_b_est.setBias(_rng_hgt_b_est.getBias() + delta_z);
+#endif // CONFIG_EKF2_RANGE_FINDER
 
 	// Reset the timout timer
 	_time_last_hgt_fuse = _time_delayed_us;
@@ -564,6 +566,7 @@ void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, fl
 	*hagl_min = NAN;
 	*hagl_max = NAN;
 
+#if defined(CONFIG_EKF2_RANGE_FINDER)
 	// Calculate range finder limits
 	const float rangefinder_hagl_min = _range_sensor.getValidMinVal();
 
@@ -578,6 +581,7 @@ void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, fl
 		*hagl_min = rangefinder_hagl_min;
 		*hagl_max = rangefinder_hagl_max;
 	}
+#endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	// Keep within flow AND range sensor limits when exclusively using optical flow
@@ -708,10 +712,12 @@ void Ekf::get_innovation_test_status(uint16_t &status, float &mag, float &vel, f
 		n_hgt_sources++;
 	}
 
+#if defined(CONFIG_EKF2_RANGE_FINDER)
 	if (_control_status.flags.rng_hgt) {
 		hgt_sum += sqrtf(_aid_src_rng_hgt.test_ratio);
 		n_hgt_sources++;
 	}
+#endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	if (_control_status.flags.ev_hgt) {
@@ -732,8 +738,10 @@ void Ekf::get_innovation_test_status(uint16_t &status, float &mag, float &vel, f
 	tas = sqrtf(_aid_src_airspeed.test_ratio);
 #endif // CONFIG_EKF2_AIRSPEED
 
+#if defined(CONFIG_EKF2_RANGE_FINDER)
 	// return the terrain height innovation test ratio
 	hagl = sqrtf(_hagl_test_ratio);
+#endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_SIDESLIP)
 	// return the synthetic sideslip innovation test ratio
@@ -744,7 +752,7 @@ void Ekf::get_innovation_test_status(uint16_t &status, float &mag, float &vel, f
 // return a bitmask integer that describes which state estimates are valid
 void Ekf::get_ekf_soln_status(uint16_t *status) const
 {
-	ekf_solution_status_u soln_status;
+	ekf_solution_status_u soln_status{};
 	// TODO: Is this accurate enough?
 	soln_status.flags.attitude = _control_status.flags.tilt_align && _control_status.flags.yaw_align && (_fault_status.value == 0);
 	soln_status.flags.velocity_horiz = (isHorizontalAidingActive() || (_control_status.flags.fuse_beta && _control_status.flags.fuse_aspd)) && (_fault_status.value == 0);
@@ -752,7 +760,9 @@ void Ekf::get_ekf_soln_status(uint16_t *status) const
 	soln_status.flags.pos_horiz_rel = (_control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.opt_flow) && (_fault_status.value == 0);
 	soln_status.flags.pos_horiz_abs = (_control_status.flags.gps || _control_status.flags.ev_pos) && (_fault_status.value == 0);
 	soln_status.flags.pos_vert_abs = soln_status.flags.velocity_vert;
+#if defined(CONFIG_EKF2_RANGE_FINDER)
 	soln_status.flags.pos_vert_agl = isTerrainEstimateValid();
+#endif // CONFIG_EKF2_RANGE_FINDER
 	soln_status.flags.const_pos_mode = !soln_status.flags.velocity_horiz;
 	soln_status.flags.pred_pos_horiz_rel = soln_status.flags.pos_horiz_rel;
 	soln_status.flags.pred_pos_horiz_abs = soln_status.flags.pos_horiz_abs;
@@ -1016,12 +1026,15 @@ void Ekf::initialiseQuatCovariances(Vector3f &rot_vec_var)
 void Ekf::updateGroundEffect()
 {
 	if (_control_status.flags.in_air && !_control_status.flags.fixed_wing) {
+#if defined(CONFIG_EKF2_RANGE_FINDER)
 		if (isTerrainEstimateValid()) {
 			// automatically set ground effect if terrain is valid
 			float height = _terrain_vpos - _state.pos(2);
 			_control_status.flags.gnd_effect = (height < _params.gnd_effect_max_hgt);
 
-		} else if (_control_status.flags.gnd_effect) {
+		} else
+#endif // CONFIG_EKF2_RANGE_FINDER
+		if (_control_status.flags.gnd_effect) {
 			// Turn off ground effect compensation if it times out
 			if (isTimedOut(_time_last_gnd_effect_on, GNDEFFECT_TIMEOUT)) {
 				_control_status.flags.gnd_effect = false;
