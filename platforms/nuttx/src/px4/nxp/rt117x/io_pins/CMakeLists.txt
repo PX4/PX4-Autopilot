@@ -36,9 +36,9 @@ add_compile_options(
 	) # TODO: remove once io_timer_handlerX are used
 
 px4_add_library(arch_io_pins
-	io_timer.c
-	pwm_servo.c
-	pwm_trigger.c
-	input_capture.c
+	../../imxrt/io_pins/io_timer.c
+	../../imxrt/io_pins/pwm_servo.c
+	../../imxrt/io_pins/pwm_trigger.c
+	../../imxrt/io_pins/input_capture.c
 	imxrt_pinirq.c
 )
