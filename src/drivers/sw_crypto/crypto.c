@@ -151,6 +151,10 @@ void crypto_init()
 	clear_key_cache();
 }
 
+void crypto_deinit()
+{
+}
+
 crypto_session_handle_t crypto_open(px4_crypto_algorithm_t algorithm)
 {
 	crypto_session_handle_t ret;
