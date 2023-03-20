@@ -391,6 +391,10 @@ jump_to_app()
 
 #endif
 
+#ifdef BOOTLOADER_USE_SECURITY
+	crypto_deinit();
+#endif
+
 	/* just for paranoia's sake */
 	arch_flash_lock();
 
