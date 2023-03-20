@@ -155,7 +155,7 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 
 	if [ -n "$USER" ]; then
 		# add user to dialout group (serial port access)
-		sudo usermod -a -G dialout $USER
+		sudo usermod -aG dialout $USER
 	fi
 
 	# arm-none-eabi-gcc
