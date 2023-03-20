@@ -272,7 +272,8 @@
 /* PWM
  */
 
-#define DIRECT_PWM_OUTPUT_CHANNELS  8
+#define DIRECT_PWM_OUTPUT_CHANNELS  12
+#define BOARD_NUM_IO_TIMERS         12
 
 // Input Capture not supported on MVP
 
@@ -534,7 +535,7 @@ extern void imxrt_usbinitialize(void);
 
 extern void board_peripheral_reset(int ms);
 
-extern void fmurt1062_timer_initialize(void);
+extern void fmurt107x_timer_initialize(void);
 
 #include <px4_platform_common/board_common.h>
 

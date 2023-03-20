@@ -219,7 +219,7 @@ __EXPORT void imxrt_boardinitialize(void)
 
 	imxrt_usb_initialize();
 
-	fmurt1062_timer_initialize();
+	fmurt107x_timer_initialize();
 }
 
 
