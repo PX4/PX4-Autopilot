@@ -46,13 +46,12 @@
 bool MavlinkULog::_init = false;
 MavlinkULog *MavlinkULog::_instance = nullptr;
 px4_sem_t MavlinkULog::_lock;
-const float MavlinkULog::_rate_calculation_delta_t = 0.1f;
 
 
 MavlinkULog::MavlinkULog(int datarate, float max_rate_factor, uint8_t target_system, uint8_t target_component)
 	: _target_system(target_system), _target_component(target_component),
 	  _max_rate_factor(max_rate_factor),
-	  _max_num_messages(math::max(1, (int)ceilf(_rate_calculation_delta_t *_max_rate_factor * datarate /
+	  _max_num_messages(math::max(1, (int)ceilf((_rate_calculation_delta_t / 1e6f) * _max_rate_factor * datarate /
 				      (MAVLINK_MSG_ID_LOGGING_DATA_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES)))),
 	  _current_rate_factor(max_rate_factor)
 {
@@ -63,7 +62,7 @@ MavlinkULog::MavlinkULog(int datarate, float max_rate_factor, uint8_t target_sys
 
 	_waiting_for_initial_ack = true;
 	_last_sent_time = hrt_absolute_time(); //(ab)use this timestamp during initialization
-	_next_rate_check = _last_sent_time + _rate_calculation_delta_t * 1.e6f;
+	_next_rate_check = _last_sent_time + _rate_calculation_delta_t;
 }
 
 MavlinkULog::~MavlinkULog()
@@ -189,9 +188,9 @@ int MavlinkULog::handle_update(mavlink_channel_t channel)
 		}
 
 		_current_num_msgs = 0;
-		_next_rate_check = t + _rate_calculation_delta_t * 1.e6f;
+		_next_rate_check = t + _rate_calculation_delta_t;
 		PX4_DEBUG("current rate=%.3f (max=%i msgs in %.3fs)", (double)_current_rate_factor, _max_num_messages,
-			  (double)_rate_calculation_delta_t);
+			  (double)(_rate_calculation_delta_t / 1e6));
 	}
 
 	return 0;
