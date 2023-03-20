@@ -45,7 +45,9 @@ void Ekf::controlHeightFusion(const imuSample &imu_delayed)
 
 	controlBaroHeightFusion();
 	controlGnssHeightFusion(_gps_sample_delayed);
+#if defined(CONFIG_EKF2_RANGE_FINDER)
 	controlRangeHeightFusion();
+#endif // CONFIG_EKF2_RANGE_FINDER
 
 	checkHeightSensorRefFallback();
 }
@@ -185,9 +187,11 @@ Likelihood Ekf::estimateInertialNavFallingLikelihood() const
 		checks[2] = {ReferenceType::GNSS, _aid_src_gnss_vel.innovation[2], _aid_src_gnss_vel.innovation_variance[2]};
 	}
 
+#if defined(CONFIG_EKF2_RANGE_FINDER)
 	if (_control_status.flags.rng_hgt) {
 		checks[3] = {ReferenceType::GROUND, _aid_src_rng_hgt.innovation, _aid_src_rng_hgt.innovation_variance};
 	}
+#endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	if (_control_status.flags.ev_hgt) {

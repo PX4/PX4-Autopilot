@@ -117,10 +117,14 @@ bool PreFlightChecker::preFlightCheckHeightFailed(const estimator_innovations_s 
 		has_failed |= checkInnovFailed(gps_hgt_innov_lpf, innov.gps_vpos, _hgt_innov_test_lim, _hgt_innov_spike_lim);
 	}
 
+#if defined(CONFIG_EKF2_RANGE_FINDER)
+
 	if (_is_using_rng_hgt_aiding) {
 		const float rng_hgt_innov_lpf = _filter_rng_hgt_innov.update(innov.rng_vpos, alpha, _hgt_innov_spike_lim);
 		has_failed |= checkInnovFailed(rng_hgt_innov_lpf, innov.rng_vpos, _hgt_innov_test_lim, _hgt_innov_spike_lim);
 	}
+
+#endif // CONFIG_EKF2_RANGE_FINDER
 
 	if (_is_using_ev_hgt_aiding) {
 		const float ev_hgt_innov_lpf = _filter_ev_hgt_innov.update(innov.ev_vpos, alpha, _hgt_innov_spike_lim);
@@ -150,7 +154,6 @@ void PreFlightChecker::reset()
 	_is_using_ev_vel_aiding = false;
 	_is_using_baro_hgt_aiding = false;
 	_is_using_gps_hgt_aiding = false;
-	_is_using_rng_hgt_aiding = false;
 	_is_using_ev_hgt_aiding = false;
 	_has_heading_failed = false;
 	_has_horiz_vel_failed = false;
@@ -161,10 +164,13 @@ void PreFlightChecker::reset()
 	_filter_vel_d_innov.reset();
 	_filter_baro_hgt_innov.reset();
 	_filter_gps_hgt_innov.reset();
-	_filter_rng_hgt_innov.reset();
 	_filter_ev_hgt_innov.reset();
 	_filter_heading_innov.reset();
 
+#if defined(CONFIG_EKF2_RANGE_FINDER)
+	_is_using_rng_hgt_aiding = false;
+	_filter_rng_hgt_innov.reset();
+#endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	_is_using_flow_aiding = false;

@@ -87,10 +87,6 @@ list(APPEND EKF_SRCS
 	EKF/mag_control.cpp
 	EKF/mag_fusion.cpp
 	EKF/output_predictor.cpp
-	EKF/range_finder_consistency_check.cpp
-	EKF/range_height_control.cpp
-	EKF/sensor_range_finder.cpp
-	EKF/terrain_estimator.cpp
 	EKF/vel_pos_fusion.cpp
 	EKF/zero_innovation_heading_update.cpp
 	EKF/zero_velocity_update.cpp
@@ -126,6 +122,15 @@ if(CONFIG_EKF2_OPTICAL_FLOW)
 	list(APPEND EKF_SRCS
 		EKF/optical_flow_control.cpp
 		EKF/optflow_fusion.cpp
+	)
+endif()
+
+if(CONFIG_EKF2_RANGE_FINDER)
+	list(APPEND EKF_SRCS
+		EKF/range_finder_consistency_check.cpp
+		EKF/range_height_control.cpp
+		EKF/sensor_range_finder.cpp
+		EKF/terrain_estimator.cpp
 	)
 endif()
 

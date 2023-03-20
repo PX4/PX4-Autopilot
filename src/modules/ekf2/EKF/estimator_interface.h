@@ -64,10 +64,13 @@
 #include "common.h"
 #include "RingBuffer.h"
 #include "imu_down_sampler.hpp"
-#include "range_finder_consistency_check.hpp"
-#include "sensor_range_finder.hpp"
 #include "utils.hpp"
 #include "output_predictor.h"
+
+#if defined(CONFIG_EKF2_RANGE_FINDER)
+# include "range_finder_consistency_check.hpp"
+# include "sensor_range_finder.hpp"
+#endif // CONFIG_EKF2_RANGE_FINDER
 
 #include <lib/geo/geo.h>
 #include <matrix/math.hpp>
@@ -94,7 +97,17 @@ public:
 	void setAirspeedData(const airspeedSample &airspeed_sample);
 #endif // CONFIG_EKF2_AIRSPEED
 
+#if defined(CONFIG_EKF2_RANGE_FINDER)
 	void setRangeData(const rangeSample &range_sample);
+
+	// set sensor limitations reported by the rangefinder
+	void set_rangefinder_limits(float min_distance, float max_distance)
+	{
+		_range_sensor.setLimits(min_distance, max_distance);
+	}
+
+	const rangeSample &get_rng_sample_delayed() { return *(_range_sensor.getSampleAddress()); }
+#endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	// if optical flow sensor gyro delta angles are not available, set gyro_xyz vector fields to NaN and the EKF will use its internal delta angle data instead
@@ -162,12 +175,6 @@ public:
 
 	// set air density used by the multi-rotor specific drag force fusion
 	void set_air_density(float air_density) { _air_density = air_density; }
-
-	// set sensor limitations reported by the rangefinder
-	void set_rangefinder_limits(float min_distance, float max_distance)
-	{
-		_range_sensor.setLimits(min_distance, max_distance);
-	}
 
 	// the flags considered are opt_flow, gps, ev_vel and ev_pos
 	bool isOnlyActiveSourceOfHorizontalAiding(bool aiding_flag) const;
@@ -250,7 +257,6 @@ public:
 	const uint64_t &time_delayed_us() const { return _time_delayed_us; }
 
 	const gpsSample &get_gps_sample_delayed() const { return _gps_sample_delayed; }
-	const rangeSample &get_rng_sample_delayed() { return *(_range_sensor.getSampleAddress()); }
 
 	const bool &global_origin_valid() const { return _NED_origin_initialised; }
 	const MapProjection &global_origin() const { return _pos_ref; }
@@ -298,7 +304,7 @@ protected:
 
 	// measurement samples capturing measurements on the delayed time horizon
 	gpsSample _gps_sample_delayed{};
-	sensor::SensorRangeFinder _range_sensor{};
+
 
 #if defined(CONFIG_EKF2_AIRSPEED)
 	airspeedSample _airspeed_sample_delayed{};
@@ -308,9 +314,13 @@ protected:
 	extVisionSample _ev_sample_prev{};
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
-	RangeFinderConsistencyCheck _rng_consistency_check;
+#if defined(CONFIG_EKF2_RANGE_FINDER)
+	RingBuffer<rangeSample> *_range_buffer{nullptr};
+	uint64_t _time_last_range_buffer_push{0};
 
-	float _air_density{CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C};		// air density (kg/m**3)
+	sensor::SensorRangeFinder _range_sensor{};
+	RangeFinderConsistencyCheck _rng_consistency_check;
+#endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	RingBuffer<flowSample> 	*_flow_buffer{nullptr};
@@ -322,6 +332,8 @@ protected:
 	float _flow_min_distance{0.0f};	///< minimum distance that the optical flow sensor can operate at (m)
 	float _flow_max_distance{10.f};	///< maximum distance that the optical flow sensor can operate at (m)
 #endif // CONFIG_EKF2_OPTICAL_FLOW
+
+	float _air_density{CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C};		// air density (kg/m**3)
 
 	bool _imu_updated{false};      // true if the ekf should update (completed downsampling process)
 	bool _initialised{false};      // true if the ekf interface instance (data buffering) is initialized
@@ -338,8 +350,6 @@ protected:
 	AlphaFilter<float> _gnss_yaw_signed_test_ratio_lpf{0.1f}; // average signed test ratio used to detect a bias in the state
 	uint64_t _time_last_gps_yaw_buffer_push{0};
 #endif // CONFIG_EKF2_GNSS_YAW
-
-	float _hagl_test_ratio{};		// height above terrain measurement innovation consistency check ratio
 
 #if defined(CONFIG_EKF2_DRAG_FUSION)
 	RingBuffer<dragSample> *_drag_buffer{nullptr};
@@ -367,7 +377,7 @@ protected:
 	RingBuffer<gpsSample> *_gps_buffer{nullptr};
 	RingBuffer<magSample> *_mag_buffer{nullptr};
 	RingBuffer<baroSample> *_baro_buffer{nullptr};
-	RingBuffer<rangeSample> *_range_buffer{nullptr};
+
 #if defined(CONFIG_EKF2_AIRSPEED)
 	RingBuffer<airspeedSample> *_airspeed_buffer{nullptr};
 #endif // CONFIG_EKF2_AIRSPEED
@@ -384,7 +394,6 @@ protected:
 	uint64_t _time_last_gps_buffer_push{0};
 	uint64_t _time_last_mag_buffer_push{0};
 	uint64_t _time_last_baro_buffer_push{0};
-	uint64_t _time_last_range_buffer_push{0};
 
 	uint64_t _time_last_gnd_effect_on{0};
 

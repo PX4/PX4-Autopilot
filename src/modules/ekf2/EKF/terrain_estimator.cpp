@@ -199,6 +199,7 @@ void Ekf::resetHaglRng()
 	_terrain_var = getRngVar();
 	_terrain_vpos_reset_counter++;
 	_time_last_hagl_fuse = _time_delayed_us;
+	_time_last_healthy_rng_data = 0;
 }
 
 void Ekf::stopHaglRngFusion()
@@ -212,6 +213,8 @@ void Ekf::stopHaglRngFusion()
 
 		_hagl_sensor_status.flags.range_finder = false;
 	}
+
+	_time_last_healthy_rng_data = 0;
 }
 
 void Ekf::fuseHaglRng()
@@ -417,11 +420,13 @@ bool Ekf::isTerrainEstimateValid() const
 		return true;
 	}
 
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	// we have been fusing optical flow measurements for terrain estimation within the last 5 seconds
 	// this can only be the case if the main filter does not fuse optical flow
 	if (_hagl_sensor_status.flags.flow && isRecent(_time_last_flow_terrain_fuse, (uint64_t)5e6)) {
 		return true;
 	}
+#endif // CONFIG_EKF2_OPTICAL_FLOW
 
 	return false;
 }
