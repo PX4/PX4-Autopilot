@@ -33,12 +33,14 @@
 
 #include <nuttx/random.h>
 
-#if defined(CONFIG_CRYPTO_RANDOM_POOL)
 size_t px4_get_secure_random(uint8_t *out,
 			     size_t outlen)
 {
+#if defined(CONFIG_CRYPTO_RANDOM_POOL)
 	/* TODO: can getrandom fail?? */
 	arc4random_buf(out, outlen);
 	return outlen;
-}
+#else
+	return 0;
 #endif
+}
