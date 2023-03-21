@@ -138,17 +138,16 @@ void create_waypoint_from_line_and_dist(double lat_A, double lon_A, double lat_B
 	}
 }
 
-void waypoint_from_heading_and_distance(const double lat_start, const double lon_start, const float bearing,
-					const float dist, double *lat_target, double *lon_target)
+void waypoint_from_heading_and_distance(double lat_start, double lon_start, float bearing,
+					float dist, double *lat_target, double *lon_target)
 {
-	float heading = wrap_2pi(bearing);
-	double radius_ratio = static_cast<double>(dist) / CONSTANTS_RADIUS_OF_EARTH;
+	const double heading = wrap_2pi(bearing);
+	const double radius_ratio = static_cast<double>(dist) / CONSTANTS_RADIUS_OF_EARTH;
 
-	double lat_start_rad = math::radians(lat_start);
-	double lon_start_rad = math::radians(lon_start);
+	const double lat_start_rad = math::radians(lat_start);
+	const double lon_start_rad = math::radians(lon_start);
 
-	*lat_target = asin(sin(lat_start_rad) * cos(radius_ratio) + cos(lat_start_rad) * sin(radius_ratio) * cos((
-				   double)heading));
+	*lat_target = asin(sin(lat_start_rad) * cos(radius_ratio) + cos(lat_start_rad) * sin(radius_ratio) * cos(heading));
 	*lon_target = lon_start_rad + atan2(sin((double)heading) * sin(radius_ratio) * cos(lat_start_rad),
 					    cos(radius_ratio) - sin(lat_start_rad) * sin(*lat_target));
 
@@ -212,8 +211,6 @@ void add_vector_to_global_position(double lat_now, double lon_now, float v_n, fl
 	*lon_res = math::degrees(lon_now_rad + (double)v_e / (CONSTANTS_RADIUS_OF_EARTH * cos(lat_now_rad)));
 }
 
-// Additional functions - @author Doug Weibel <douglas.weibel@colorado.edu>
-
 int get_distance_to_line(struct crosstrack_error_s &crosstrack_error, double lat_now, double lon_now,
 			 double lat_start, double lon_start, double lat_end, double lon_end)
 {
@@ -246,19 +243,19 @@ int get_distance_to_line(struct crosstrack_error_s &crosstrack_error, double lat
 
 	// before_start is true if before start point of line, past_end is true if past line segment end.
 	if (bearing_diff_to_start < M_PI_2_F || bearing_diff_to_start > -M_PI_2_F) {
-		crosstrack_error->before_start = true;
+		crosstrack_error.before_start = true;
 	}
 
 	if (bearing_diff_to_end > M_PI_2_F || bearing_diff_to_end < -M_PI_2_F) {
-		crosstrack_error->past_end = true;
+		crosstrack_error.past_end = true;
 	}
 
-	crosstrack_error->distance_to_start = get_distance_to_next_waypoint(lat_now, lon_now, lat_start, lon_start);
-	crosstrack_error->distance_to_end   = get_distance_to_next_waypoint(lat_now, lon_now, lat_end, lon_end);
-	crosstrack_error->distance          = dist_to_end * sinf(bearing_diff_to_end);
+	crosstrack_error.distance_to_start = get_distance_to_next_waypoint(lat_now, lon_now, lat_start, lon_start);
+	crosstrack_error.distance_to_end   = get_distance_to_next_waypoint(lat_now, lon_now, lat_end, lon_end);
+	crosstrack_error.distance          = dist_to_end * sinf(bearing_diff_to_end);
 
 	if (sinf(bearing_diff_to_end) >= 0) {
-		crosstrack_error->bearing = wrap_pi(bearing_track - M_PI_2_F);
+		crosstrack_error.bearing = wrap_pi(bearing_track - M_PI_2_F);
 
 	} else {
 		crosstrack_error.bearing = wrap_pi(bearing_track + M_PI_2_F);
@@ -279,12 +276,14 @@ int get_distance_to_arc(struct crosstrack_error_s *crosstrack_error, double lat_
 	// to the arc start and the line from the center to the arc end
 	float bearing_sector_start = 0.0f;
 	float bearing_sector_end = 0.0f;
+
 	float bearing_now = get_bearing_to_next_waypoint(lat_now, lon_now, lat_center, lon_center);
 
 	int return_value = -1;		// Set error flag, cleared when valid result calculated.
+
 	crosstrack_error->past_end = false;
 	crosstrack_error->distance = 0.0f;
-	crosstrack_error->bearing = 0.0f;
+	crosstrack_error->bearing  = 0.0f;
 
 	// Return error if arguments are bad
 	if (radius < 0.1f) {
@@ -345,14 +344,18 @@ int get_distance_to_arc(struct crosstrack_error_s *crosstrack_error, double lat_
 
 		double start_disp_x = (double)radius * sin((double)arc_start_bearing);
 		double start_disp_y = (double)radius * cos((double)arc_start_bearing);
+
 		double end_disp_x = (double)radius * sin((double)wrap_pi(arc_start_bearing + arc_sweep));
 		double end_disp_y = (double)radius * cos((double)wrap_pi(arc_start_bearing + arc_sweep));
+
 		double lon_start = lon_now + start_disp_x / 111111.0;
 		double lat_start = lat_now + start_disp_y * cos(lat_now) / 111111.0;
+
 		double lon_end = lon_now + end_disp_x / 111111.0;
 		double lat_end = lat_now + end_disp_y * cos(lat_now) / 111111.0;
+
 		float dist_to_start = get_distance_to_next_waypoint(lat_now, lon_now, lat_start, lon_start);
-		float dist_to_end = get_distance_to_next_waypoint(lat_now, lon_now, lat_end, lon_end);
+		float dist_to_end   = get_distance_to_next_waypoint(lat_now, lon_now, lat_end, lon_end);
 
 		if (dist_to_start < dist_to_end) {
 			crosstrack_error->distance = dist_to_start;
