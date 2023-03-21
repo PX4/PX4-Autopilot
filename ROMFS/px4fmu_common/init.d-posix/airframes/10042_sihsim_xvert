@@ -11,6 +11,8 @@
 PX4_SIMULATOR=${PX4_SIMULATOR:=sihsim}
 PX4_SIM_MODEL=${PX4_SIM_MODEL:=xvert}
 
+param set-default EKF2_FUSE_BETA 0 # side slip fusion is currently not supported for tailsitters
+
 param set-default SENS_EN_GPSSIM 1
 param set-default SENS_EN_BAROSIM 1
 param set-default SENS_EN_MAGSIM 1
