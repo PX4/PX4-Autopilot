@@ -321,21 +321,19 @@ def compute_yaw_312_innov_var_and_h_alternate(
 
     return (innov_var, H.T)
 
-def compute_mag_declination_innov_innov_var_and_h(
+def compute_mag_declination_pred_innov_var_and_h(
         state: VState,
         P: MState,
-        meas: sf.Scalar,
         R: sf.Scalar,
         epsilon: sf.Scalar
-) -> (sf.Scalar, VState):
+) -> (sf.Scalar, sf.Scalar, VState):
 
     meas_pred = sf.atan2(state[State.iy], state[State.ix], epsilon=epsilon)
-    innov = meas_pred - meas
 
     H = sf.V1(meas_pred).jacobian(state)
     innov_var = (H * P * H.T + R)[0,0]
 
-    return (innov, innov_var, H.T)
+    return (meas_pred, innov_var, H.T)
 
 def predict_opt_flow(state, distance, epsilon):
     q_att = sf.V4(state[State.qw], state[State.qx], state[State.qy], state[State.qz])
@@ -518,7 +516,7 @@ generate_px4_function(compute_yaw_321_innov_var_and_h, output_names=["innov_var"
 generate_px4_function(compute_yaw_321_innov_var_and_h_alternate, output_names=["innov_var", "H"])
 generate_px4_function(compute_yaw_312_innov_var_and_h, output_names=["innov_var", "H"])
 generate_px4_function(compute_yaw_312_innov_var_and_h_alternate, output_names=["innov_var", "H"])
-generate_px4_function(compute_mag_declination_innov_innov_var_and_h, output_names=["innov", "innov_var", "H"])
+generate_px4_function(compute_mag_declination_pred_innov_var_and_h, output_names=["pred", "innov_var", "H"])
 generate_px4_function(compute_flow_xy_innov_var_and_hx, output_names=["innov_var", "H"])
 generate_px4_function(compute_flow_y_innov_var_and_h, output_names=["innov_var", "H"])
 generate_px4_function(compute_gnss_yaw_pred_innov_var_and_h, output_names=["meas_pred", "innov_var", "H"])
