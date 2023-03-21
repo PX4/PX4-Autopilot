@@ -2582,6 +2582,7 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 		     _eas2tas,
 		     throttle_min,
 		     throttle_max,
+		     _param_fw_thr_trim.get(),
 		     throttle_trim_comp,
 		     pitch_min_rad - radians(_param_fw_psp_off.get()),
 		     pitch_max_rad - radians(_param_fw_psp_off.get()),
