@@ -47,7 +47,7 @@
 #include "python/ekf_derivation/generated/compute_mag_z_innov_var_and_h.h"
 #include "python/ekf_derivation/generated/compute_yaw_321_innov_var_and_h.h"
 #include "python/ekf_derivation/generated/compute_yaw_312_innov_var_and_h.h"
-#include "python/ekf_derivation/generated/compute_mag_declination_innov_innov_var_and_h.h"
+#include "python/ekf_derivation/generated/compute_mag_declination_pred_innov_var_and_h.h"
 
 #include <mathlib/mathlib.h>
 
@@ -335,10 +335,12 @@ bool Ekf::fuseDeclination(float decl_sigma)
 	const float R_DECL = sq(decl_sigma);
 
 	Vector24f H;
-	float innovation;
+	float decl_pred;
 	float innovation_variance;
 
-	sym::ComputeMagDeclinationInnovInnovVarAndH(getStateAtFusionHorizonAsVector(), P, getMagDeclination(), R_DECL, FLT_EPSILON, &innovation, &innovation_variance, &H);
+	sym::ComputeMagDeclinationPredInnovVarAndH(getStateAtFusionHorizonAsVector(), P, R_DECL, FLT_EPSILON, &decl_pred, &innovation_variance, &H);
+
+	const float innovation = wrap_pi(decl_pred - getMagDeclination());
 
 	if (innovation_variance < R_DECL) {
 		// variance calculation is badly conditioned
