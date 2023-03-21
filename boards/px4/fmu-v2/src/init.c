@@ -190,6 +190,9 @@ __EXPORT void board_on_reset(int status)
  *
  *  This will return OK on success.
  *
+ *  If PB12 is not returning a consistent result we assume that it's a Cube Black
+ *  with something connected to CAN1 and talking to it.
+ *
  *  hw_type Initial state is {'V','2',0, 0}
  *   V 2    - FMUv2
  *   V 3 0  - FMUv3 2.0
@@ -209,7 +212,7 @@ static int determine_hw_info(int *revision, int *version)
 	up_udelay(10);
 	*version |= stm32_gpioread(HW_VER_PB4) << pos++;
 
-	int votes = 16;
+	int votes = 100;
 	int ones[2] = {0, 0};
 	int zeros[2] = {0, 0};
 
@@ -222,14 +225,26 @@ static int determine_hw_info(int *revision, int *version)
 		stm32_gpioread(HW_VER_PB12) ? ones[1]++ : zeros[1]++;
 	}
 
-	if (ones[0] > zeros[0]) {
-		*version |= 1 << pos;
-	}
+	const int margin = 50;
+	// On Cube the detection does not work as expected when something
+	// is connected to CAN1. In that case, there is no clear winner
+	// between ones and zeros.
 
-	pos++;
+	if (*version == 0x2 && abs(ones[0] - zeros[0]) < margin && abs(ones[1] - zeros[1]) < margin) {
+		*version = HW_VER_FMUV3_STATE;
+		syslog(LOG_DEBUG, "Ambiguous board detection, assuming Pixhawk Cube\n");
 
-	if (ones[1] > zeros[1]) {
-		*version |= 1 << pos;
+	} else {
+
+		if (ones[0] > zeros[0]) {
+			*version |= 1 << pos;
+		}
+
+		pos++;
+
+		if (ones[1] > zeros[1] + margin) {
+			*version |= 1 << pos;
+		}
 	}
 
 	stm32_configgpio(HW_VER_PB4_INIT);
