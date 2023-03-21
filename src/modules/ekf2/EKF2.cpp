@@ -2361,11 +2361,15 @@ void EKF2::UpdateSystemFlagsSample(ekf2_timestamps_s &ekf2_timestamps)
 			// let the EKF know if the vehicle motion is that of a fixed wing (forward flight only relative to wind)
 			flags.is_fixed_wing = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
 
+#if defined(CONFIG_EKF2_SIDESLIP)
+
 			if (vehicle_status.is_vtol_tailsitter && _params->beta_fusion_enabled) {
 				PX4_WARN("Disable EKF beta fusion as unsupported for tailsitter");
 				_param_ekf2_fuse_beta.set(0);
 				_param_ekf2_fuse_beta.commit_no_notification();
 			}
+
+#endif // CONFIG_EKF2_SIDESLIP
 		}
 
 		// vehicle_land_detected
