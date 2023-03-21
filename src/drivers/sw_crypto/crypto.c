@@ -233,7 +233,14 @@ bool crypto_signature_check(crypto_session_handle_t handle,
 
 	switch (handle.algorithm) {
 	case CRYPTO_ED25519:
-		ret = crypto_ed25519_check(signature, public_key, message, message_size) == 0;
+		if (keylen >= 32) {
+			/* In the DER format ed25510 key the raw public key part is always the last 32 bytes.
+			 * This simple "parsing" works for both "raw" key and DER format
+			 */
+			public_key += keylen - 32;
+			ret = crypto_ed25519_check(signature, public_key, message, message_size) == 0;
+		}
+
 		break;
 
 	default:
