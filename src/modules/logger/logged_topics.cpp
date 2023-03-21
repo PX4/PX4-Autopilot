@@ -165,7 +165,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("estimator_innovation_test_ratios", 500);
 	add_topic("estimator_innovation_variances", 500);
 	add_topic("estimator_innovations", 500);
-	add_topic("estimator_optical_flow_vel", 200);
+	// add_topic("estimator_optical_flow_vel", 200);
 	add_topic("estimator_sensor_bias", 0);
 	add_topic("estimator_states", 1000);
 	add_topic("estimator_status", 200);
@@ -178,10 +178,14 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic_multi("estimator_ev_pos_bias", 500, MAX_ESTIMATOR_INSTANCES);
 	add_optional_topic_multi("estimator_event_flags", 0, MAX_ESTIMATOR_INSTANCES);
 	add_optional_topic_multi("estimator_gps_status", 1000, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_innovation_test_ratios", 500, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_innovation_variances", 500, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_innovations", 500, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic_multi("estimator_optical_flow_vel", 200, MAX_ESTIMATOR_INSTANCES);
+	// add_optional_topic_multi("estimator_innovation_test_ratios", 500, MAX_ESTIMATOR_INSTANCES);
+	// add_optional_topic_multi("estimator_innovation_variances", 500, MAX_ESTIMATOR_INSTANCES);
+	// add_optional_topic_multi("estimator_innovations", 500, MAX_ESTIMATOR_INSTANCES);
+	// add_optional_topic_multi("estimator_optical_flow_vel", 200, MAX_ESTIMATOR_INSTANCES);
+	add_topic("estimator_innovation_test_ratios");
+	add_topic("estimator_innovation_variances");
+	add_topic("estimator_innovations");
+	add_topic("estimator_optical_flow_vel");
 	add_optional_topic_multi("estimator_sensor_bias", 0, MAX_ESTIMATOR_INSTANCES);
 	add_optional_topic_multi("estimator_states", 1000, MAX_ESTIMATOR_INSTANCES);
 	add_optional_topic_multi("estimator_status", 200, MAX_ESTIMATOR_INSTANCES);
@@ -203,6 +207,7 @@ void LoggedTopics::add_default_topics()
 	// add_optional_topic_multi("estimator_aid_src_mag_heading", 100, MAX_ESTIMATOR_INSTANCES);
 	// add_optional_topic_multi("estimator_aid_src_mag", 100, MAX_ESTIMATOR_INSTANCES);
 	// add_optional_topic_multi("estimator_aid_src_optical_flow", 100, MAX_ESTIMATOR_INSTANCES);
+	add_optional_topic("estimator_aid_src_optical_flow");
 	// add_optional_topic_multi("estimator_aid_src_terrain_optical_flow", 100, MAX_ESTIMATOR_INSTANCES);
 	// add_optional_topic_multi("estimator_aid_src_ev_yaw", 100, MAX_ESTIMATOR_INSTANCES);
 
@@ -216,13 +221,16 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("sensor_gnss_relative", 1000, 1);
 	add_optional_topic_multi("sensor_gyro", 1000, 4);
 	add_topic_multi("sensor_mag", 1000, 4);
-	add_topic_multi("sensor_optical_flow", 1000, 2);
+	// add_topic_multi("sensor_optical_flow", 1000, 2);
+	add_topic("sensor_optical_flow");
 
 	add_topic_multi("vehicle_imu", 500, 4);
 	add_topic_multi("vehicle_imu_status", 1000, 4);
 	add_optional_topic_multi("vehicle_magnetometer", 500, 4);
-	add_topic("vehicle_optical_flow", 500);
+	//add_topic("vehicle_optical_flow", 500);
+	add_topic("vehicle_optical_flow");
 	//add_optional_topic("vehicle_optical_flow_vel", 100);
+	add_optional_topic("vehicle_optical_flow_vel");
 	add_optional_topic("pps_capture");
 
 	// additional control allocation logging

@@ -208,7 +208,7 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 				// but use a relaxed time criteria to enable it to coast through bad range finder data
 
 				// give much larger timeout (10x) for hagl fuse
-				if (isRecent(_time_last_hagl_fuse, (uint64_t)100e6)) {
+				if (isRecent(_time_last_hagl_fuse, (uint64_t)500e6)) {
 					fuseOptFlow();
 					_last_known_pos.xy() = _state.pos.xy();
 				}
