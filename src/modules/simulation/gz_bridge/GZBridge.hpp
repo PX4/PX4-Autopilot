@@ -103,6 +103,16 @@ private:
 	void poseInfoCallback(const gz::msgs::Pose_V &pose);
 	void odometryCallback(const gz::msgs::OdometryWithCovariance &odometry);
 
+	/**
+	*
+	* Convert a quaterion from FLU_to_ENU frames (ROS convention)
+	* to FRD_to_NED frames (PX4 convention)
+	*
+	* @param q_FRD_to_NED output quaterion in PX4 conventions
+	* @param q_FLU_to_ENU input quaterion in ROS conventions
+	*/
+	static void rotateQuaternion(gz::math::Quaterniond &q_FRD_to_NED, const gz::math::Quaterniond q_FLU_to_ENU);
+
 	// Subscriptions
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
