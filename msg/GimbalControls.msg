@@ -5,5 +5,3 @@ uint8 INDEX_YAW = 2
 
 uint64 timestamp_sample	    # the timestamp the data this control response is based on was sampled
 float32[3] control
-
-float32 retract_gimbal
