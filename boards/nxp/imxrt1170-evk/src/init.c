@@ -253,8 +253,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	int ret = OK;
 
-	//board_spi_reset(10, 0xffff);
-#if 0
+	board_spi_reset(10, 0xffff);
 
 	if (OK == board_determine_hw_info()) {
 		syslog(LOG_INFO, "[boot] Rev 0x%1x : Ver 0x%1x %s\n", board_get_hw_revision(), board_get_hw_version(),
@@ -263,8 +262,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	} else {
 		syslog(LOG_ERR, "[boot] Failed to read HW revision and version\n");
 	}
-
-#endif
 
 	px4_platform_init();
 

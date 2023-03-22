@@ -136,7 +136,7 @@ static int dn_to_ordinal(uint16_t dn)
 static int read_id_dn(int *id, uint32_t gpio_drive, uint32_t gpio_sense, int adc_channel)
 {
 	int rv = -EIO;
-#if 0 //RT7 Has LPADC needs new driver
+
 	const unsigned int samples  = 16;
 	/*
 	 * Step one is there resistors?
@@ -221,13 +221,14 @@ static int read_id_dn(int *id, uint32_t gpio_drive, uint32_t gpio_sense, int adc
 	/*  Turn the drive lines to digital outputs High */
 
 	imxrt_config_gpio(gpio_drive);
-#endif
+
 	return rv;
 }
 
 
 static int determine_hw_info(int *revision, int *version)
 {
+
 	int dn;
 	int rv = read_id_dn(&dn, GPIO_HW_REV_DRIVE, GPIO_HW_REV_SENSE, ADC_HW_REV_SENSE_CHANNEL);
 

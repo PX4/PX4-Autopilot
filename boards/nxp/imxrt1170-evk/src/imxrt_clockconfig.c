@@ -99,14 +99,14 @@ const struct clock_configuration_s g_initial_clkconfig = {
 		.adc1_clk_root =
 		{
 			.enable        = 1,
-			.div           = 1,
-			.mux           = ADC1_CLK_ROOT_OSC_RC_48M_DIV2,
+			.div           = 6,
+			.mux           = ADC1_CLK_ROOT_SYS_PLL2_CLK,
 		},
 		.adc2_clk_root =
 		{
 			.enable        = 1,
-			.div           = 1,
-			.mux           = ADC2_CLK_ROOT_OSC_RC_48M_DIV2,
+			.div           = 6,
+			.mux           = ADC2_CLK_ROOT_SYS_PLL2_CLK,
 		},
 		.acmp_clk_root =
 		{
