@@ -195,6 +195,7 @@ FixedwingAttitudeControl::vehicle_manual_poll()
 					_actuators.control[actuator_controls_s::INDEX_YAW] =
 						_manual_control_setpoint.r * _param_fw_man_y_sc.get() + _param_trim_yaw.get() + experiment_data.control[experiment_s::INDEX_YAW];
 					_actuators.control[actuator_controls_s::INDEX_THROTTLE] = math::constrain(_manual_control_setpoint.z, 0.0f, 1.0f) + experiment_data.control[experiment_s::INDEX_THROTTLE];
+					//PX4_INFO_RAW("manual control value %f \n",(double)(experiment_data.control[experiment_s::INDEX_THROTTLE]));
 				}
 			}
 		}
