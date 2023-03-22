@@ -30,33 +30,37 @@ void ComputeYaw321InnovVarAndH(const matrix::Matrix<Scalar, 24, 1>& state,
                                const matrix::Matrix<Scalar, 24, 24>& P, const Scalar R,
                                const Scalar epsilon, Scalar* const innov_var = nullptr,
                                matrix::Matrix<Scalar, 24, 1>* const H = nullptr) {
-  // Total ops: 74
+  // Total ops: 70
 
   // Input arrays
 
-  // Intermediate terms (11)
-  const Scalar _tmp0 = state(0, 0) * state(3, 0) + state(1, 0) * state(2, 0);
-  const Scalar _tmp1 = std::pow(state(0, 0), Scalar(2)) + std::pow(state(1, 0), Scalar(2)) -
-                       std::pow(state(2, 0), Scalar(2)) - std::pow(state(3, 0), Scalar(2));
-  const Scalar _tmp2 = _tmp1 + epsilon * ((((_tmp1) > 0) - ((_tmp1) < 0)) + Scalar(0.5));
-  const Scalar _tmp3 = std::pow(_tmp2, Scalar(2));
-  const Scalar _tmp4 = 4 * _tmp0 / _tmp3;
-  const Scalar _tmp5 = 2 / _tmp2;
-  const Scalar _tmp6 = _tmp3 / (4 * std::pow(_tmp0, Scalar(2)) + _tmp3);
-  const Scalar _tmp7 = _tmp6 * (_tmp4 * state(2, 0) + _tmp5 * state(1, 0));
-  const Scalar _tmp8 = _tmp6 * (-_tmp4 * state(1, 0) + _tmp5 * state(2, 0));
-  const Scalar _tmp9 = _tmp6 * (-_tmp4 * state(0, 0) + _tmp5 * state(3, 0));
-  const Scalar _tmp10 = _tmp6 * (_tmp4 * state(3, 0) + _tmp5 * state(0, 0));
+  // Intermediate terms (15)
+  const Scalar _tmp0 = 2 * state(3, 0);
+  const Scalar _tmp1 = 2 * state(2, 0);
+  const Scalar _tmp2 = _tmp0 * state(0, 0) + _tmp1 * state(1, 0);
+  const Scalar _tmp3 =
+      -2 * std::pow(state(2, 0), Scalar(2)) - 2 * std::pow(state(3, 0), Scalar(2)) + 1;
+  const Scalar _tmp4 = _tmp3 + epsilon * ((((_tmp3) > 0) - ((_tmp3) < 0)) + Scalar(0.5));
+  const Scalar _tmp5 = std::pow(_tmp4, Scalar(2));
+  const Scalar _tmp6 = Scalar(1.0) / (std::pow(_tmp2, Scalar(2)) + _tmp5);
+  const Scalar _tmp7 = _tmp4 * _tmp6;
+  const Scalar _tmp8 = _tmp0 * _tmp7;
+  const Scalar _tmp9 = _tmp1 * _tmp7;
+  const Scalar _tmp10 = 4 * _tmp2 / _tmp5;
+  const Scalar _tmp11 = 2 / _tmp4;
+  const Scalar _tmp12 = _tmp5 * _tmp6;
+  const Scalar _tmp13 = _tmp12 * (_tmp10 * state(3, 0) + _tmp11 * state(0, 0));
+  const Scalar _tmp14 = _tmp12 * (_tmp10 * state(2, 0) + _tmp11 * state(1, 0));
 
   // Output terms (2)
   if (innov_var != nullptr) {
     Scalar& _innov_var = (*innov_var);
 
-    _innov_var = R +
-                 _tmp10 * (P(0, 3) * _tmp9 + P(1, 3) * _tmp8 + P(2, 3) * _tmp7 + P(3, 3) * _tmp10) +
-                 _tmp7 * (P(0, 2) * _tmp9 + P(1, 2) * _tmp8 + P(2, 2) * _tmp7 + P(3, 2) * _tmp10) +
-                 _tmp8 * (P(0, 1) * _tmp9 + P(1, 1) * _tmp8 + P(2, 1) * _tmp7 + P(3, 1) * _tmp10) +
-                 _tmp9 * (P(0, 0) * _tmp9 + P(1, 0) * _tmp8 + P(2, 0) * _tmp7 + P(3, 0) * _tmp10);
+    _innov_var =
+        R + _tmp13 * (P(0, 3) * _tmp8 + P(1, 3) * _tmp9 + P(2, 3) * _tmp14 + P(3, 3) * _tmp13) +
+        _tmp14 * (P(0, 2) * _tmp8 + P(1, 2) * _tmp9 + P(2, 2) * _tmp14 + P(3, 2) * _tmp13) +
+        _tmp8 * (P(0, 0) * _tmp8 + P(1, 0) * _tmp9 + P(2, 0) * _tmp14 + P(3, 0) * _tmp13) +
+        _tmp9 * (P(0, 1) * _tmp8 + P(1, 1) * _tmp9 + P(2, 1) * _tmp14 + P(3, 1) * _tmp13);
   }
 
   if (H != nullptr) {
@@ -64,10 +68,10 @@ void ComputeYaw321InnovVarAndH(const matrix::Matrix<Scalar, 24, 1>& state,
 
     _h.setZero();
 
-    _h(0, 0) = _tmp9;
-    _h(1, 0) = _tmp8;
-    _h(2, 0) = _tmp7;
-    _h(3, 0) = _tmp10;
+    _h(0, 0) = _tmp8;
+    _h(1, 0) = _tmp9;
+    _h(2, 0) = _tmp14;
+    _h(3, 0) = _tmp13;
   }
 }  // NOLINT(readability/fn_size)
 
