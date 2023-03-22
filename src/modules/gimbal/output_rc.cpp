@@ -51,7 +51,6 @@ OutputRC::OutputRC(const Parameters &parameters)
 void OutputRC::update(const ControlData &control_data, bool new_setpoints)
 {
 	if (new_setpoints) {
-		_retract_gimbal = control_data.gimbal_shutter_retract;
 		_set_angle_setpoints(control_data);
 	}
 
@@ -76,9 +75,6 @@ void OutputRC::update(const ControlData &control_data, bool new_setpoints)
 				(_angle_outputs[2] + math::radians(_parameters.mnt_off_yaw)) *
 				(1.0f / (math::radians(_parameters.mnt_range_yaw / 2.0f))),
 				-1.f, 1.f);
-	gimbal_controls.retract_gimbal = constrain(
-			_retract_gimbal ? _parameters.mnt_ob_lock_mode : _parameters.mnt_ob_norm_mode,
-			-1.f, 1.f);
 	gimbal_controls.timestamp = hrt_absolute_time();
 	_gimbal_controls_pub.publish(gimbal_controls);
 
