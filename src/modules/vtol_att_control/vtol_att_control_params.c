@@ -244,7 +244,7 @@ PARAM_DEFINE_FLOAT(VT_QC_HR_ERROR_I, 0.0f);
  * @decimal 1
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_QC_T_ALT_LOSS, 10.0f);
+PARAM_DEFINE_FLOAT(VT_QC_T_ALT_LOSS, 20.0f);
 
 /**
  * Quad-chute max pitch threshold
