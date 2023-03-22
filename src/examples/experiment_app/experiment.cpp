@@ -41,7 +41,6 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
-//#include <drivers/uavcan/libuavcan/libuavcan/include/uavcan/driver/system_clock.hpp>
 #include "experiment.h"
 #include "params.h"
 
@@ -80,6 +79,10 @@ static struct param_handles ph;
 
 int exp_parameters_init(struct param_handles *handles)
 {
+	handles->magnitude 	=	param_find("EXP_MAG");
+	handles->duration 	=	param_find("EXP_DUR");
+    handles->fstart 	=	param_find("EXP_FSTART");
+    handles->fend 	=	param_find("EXP_FEND");
 	handles->input_type 	=	param_find("EXP_INPUT");
 	handles->output_type 	=	param_find("EXP_OUTPUT");
 	handles->exp_flag 	=	param_find("EXP_FLAG");
@@ -89,6 +92,10 @@ int exp_parameters_init(struct param_handles *handles)
 
 int exp_parameters_update(const struct param_handles *handles, struct params *parameters)
 {
+    param_get(handles->magnitude, &(parameters->magnitude));
+	param_get(handles->duration, &(parameters->duration));
+	param_get(handles->fstart, &(parameters->fstart));
+	param_get(handles->fend, &(parameters->fend));
 	param_get(handles->input_type, &(parameters->input_type));
 	param_get(handles->output_type, &(parameters->output_type));
 	param_get(handles->exp_flag, &(parameters->exp_flag));
@@ -102,12 +109,6 @@ int experiment_thread_main(int argc, char *argv[])
 {
     /* welcome user (warnx prints a line, including an appended\n, with variable arguments */
 	warnx("experiment application started");
-
-    //Input charactertictics
-    const float magnitude = 1; 
-    const float duration = 20;
-    float freq_start = 0.1;
-    float freq_end = 1.0;
 
     /* initialize parameters, first the handles, then the values */
 	exp_parameters_init(&ph);
@@ -130,6 +131,17 @@ int experiment_thread_main(int argc, char *argv[])
     dbg.value = experiment_data.experiment_running;
     orb_publish(ORB_ID(debug_key_value), pub_dbg, &dbg);
 
+    //Input charactertictics
+    float magnitude = pp.magnitude;
+    float duration = pp.duration;
+    float freq_start = pp.fstart;
+    float freq_end = pp.fend;
+    experiment_data.input_parameter[experiment_s::INDEX_MAG] = magnitude;
+    experiment_data.input_parameter[experiment_s::INDEX_DUR] = duration;
+    experiment_data.input_parameter[experiment_s::INDEX_FSTART] = freq_start;
+    experiment_data.input_parameter[experiment_s::INDEX_FEND] = freq_end;
+    orb_publish(ORB_ID(experiment), experiment_pub, &experiment_data);
+
     //Initalize loop variables
     int error_counter = 0;
     double step, doublet, sine_sweep;
@@ -146,7 +158,7 @@ int experiment_thread_main(int argc, char *argv[])
 
     // To activate experiment via RC and publish that experiment is activated
     while (!thread_should_exit) {
-        
+
         int poll_ret = poll(fds, 1, 20);
 
         // If new data is available, read the input_rc topic
@@ -174,7 +186,7 @@ int experiment_thread_main(int argc, char *argv[])
                 experiment = false;
             }
         }
-    
+
         // Publish to experiment topic
         if (experiment != last_state) {
             if(experiment){
@@ -193,13 +205,13 @@ int experiment_thread_main(int argc, char *argv[])
             orb_publish(ORB_ID(debug_key_value), pub_dbg, &dbg);
             exp_parameters_update(&ph, &pp);
             last_state = true;
-        } 
-            
+        }
+
         //To generate the input based on choice
         if (experiment) {
             // Calculate time since last state change
             //if (delta_t<= duration){
-            delta_t = (hrt_absolute_time()) / 1000000.0f - start_time; 
+            delta_t = (hrt_absolute_time()) / 1000000.0f - start_time;
             //PX4_INFO_RAW("delta time at %.4f secs \n",(double)delta_t);
             //} else {
                // delta_t = duration+1;
@@ -232,7 +244,7 @@ int experiment_thread_main(int argc, char *argv[])
                 }
                 input = doublet;
                 experiment_data.injection_input[experiment_s::INDEX_DOUBLET_INPUT] = doublet;
-                //PX4_INFO_RAW("Generating doublet with magnitude %.4f and at %.4f secs \n",(double)doublet, (double)delta_t);
+                PX4_INFO_RAW("Generating doublet with magnitude %.4f and at %.4f secs \n",(double)doublet, (double)delta_t);
             break;
             case 111:
                 // Generate sine sweep input
@@ -264,7 +276,7 @@ int experiment_thread_main(int argc, char *argv[])
                 orb_publish(ORB_ID(experiment), experiment_pub, &experiment_data);
             break;
             case 11:
-                //PX4_INFO("Generating the input in elevator");
+                PX4_INFO("Generating the input in elevator");
                 experiment_data.injection_output[experiment_s::INDEX_ELEVATOR_OUTPUT] = input;
                 experiment_data.timestamp = hrt_absolute_time();
                 experiment_data.control[experiment_s::INDEX_ROLL] = 0.0f;
@@ -286,7 +298,7 @@ int experiment_thread_main(int argc, char *argv[])
             orb_publish(ORB_ID(experiment), experiment_pub, &experiment_data);
             last_state = false;
         }
-            
+
         //To update parameters
         exp_parameters_update(&ph, &pp);
         // Sleep for 20ms

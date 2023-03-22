@@ -7,6 +7,47 @@
 /* Experiment new parameters*/
 
 /**
+ * For magnitude of input
+ *
+ *
+ * @min 0
+ * @max 1
+ *
+ */
+PARAM_DEFINE_FLOAT(EXP_MAG, 0.1);
+
+/**
+ * For duration of input
+ *
+ *
+ * @min 0
+ * @max 20
+ *
+ */
+PARAM_DEFINE_FLOAT(EXP_DUR, 5);
+
+
+/**
+ * For start frequency of sine sweep
+ *
+ *
+ * @min 0.1
+ * @max 6.9
+ *
+ */
+PARAM_DEFINE_FLOAT(EXP_FSTART, 0.1);
+
+/**
+ * For end frequency of sine sweep
+ *
+ *
+ * @min 0.1
+ * @max 7
+ *
+ */
+PARAM_DEFINE_FLOAT(EXP_FEND, 1);
+
+/**
  * To select input to be given 100 - step, 010 - doublet, 001 - sine_sweep.
  *
  *

@@ -4,6 +4,12 @@ bool experiment_running # true if experiment is running, false otherwise
 
 uint8 NUM_ACTUATOR_CONTROLS = 4
 
+float32[4] input_parameter
+uint8 INDEX_MAG = 0
+uint8 INDEX_DUR = 1
+uint8 INDEX_FSTART = 2
+uint8 INDEX_FEND = 3
+
 float32[4] control
 uint8 INDEX_ROLL = 0
 uint8 INDEX_PITCH = 1

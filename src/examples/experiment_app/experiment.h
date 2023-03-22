@@ -56,10 +56,14 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
     DEFINE_PARAMETERS(
-        (ParamInt<px4::params::EXP_INPUT>) _param_experiment_input,   
+        (ParamFloat<px4::params::EXP_MAG>) _param_experiment_mag,
+        (ParamFloat<px4::params::EXP_DUR>) _param_experiment_dur,
+        (ParamFloat<px4::params::EXP_FSTART>) _param_experiment_fstart,
+        (ParamFloat<px4::params::EXP_FEND>) _param_experiment_fend,
+        (ParamInt<px4::params::EXP_INPUT>) _param_experiment_input,
         (ParamInt<px4::params::EXP_OUTPUT>) _param_experiment_output,
         (ParamInt<px4::params::EXP_FLAG>) _param_experiment_flag
     )
 
-    
+
 };
