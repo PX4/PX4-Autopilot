@@ -58,30 +58,59 @@ typedef uint32_t 	adc_chan_t;
 
 #define REG(base_address, _reg)	_REG((base_address) + (_reg))
 
-#define rHC0(base_address)  REG(base_address, IMXRT_ADC_HC0_OFFSET)  /* Control register for hardware triggers */
-#define rHC1(base_address)  REG(base_address, IMXRT_ADC_HC1_OFFSET)  /* Control register for hardware triggers */
-#define rHC2(base_address)  REG(base_address, IMXRT_ADC_HC2_OFFSET)  /* Control register for hardware triggers */
-#define rHC3(base_address)  REG(base_address, IMXRT_ADC_HC3_OFFSET)  /* Control register for hardware triggers */
-#define rHC4(base_address)  REG(base_address, IMXRT_ADC_HC4_OFFSET)  /* Control register for hardware triggers */
-#define rHC5(base_address)  REG(base_address, IMXRT_ADC_HC5_OFFSET)  /* Control register for hardware triggers */
-#define rHC6(base_address)  REG(base_address, IMXRT_ADC_HC6_OFFSET)  /* Control register for hardware triggers */
-#define rHC7(base_address)  REG(base_address, IMXRT_ADC_HC7_OFFSET)  /* Control register for hardware triggers */
-#define rHS(base_address)   REG(base_address, IMXRT_ADC_HS_OFFSET)   /* Status register for HW triggers */
-#define rR0(base_address)   REG(base_address, IMXRT_ADC_R0_OFFSET)   /* Data result register for HW triggers */
-#define rR1(base_address)   REG(base_address, IMXRT_ADC_R1_OFFSET)   /* Data result register for HW triggers */
-#define rR2(base_address)   REG(base_address, IMXRT_ADC_R2_OFFSET)   /* Data result register for HW triggers */
-#define rR3(base_address)   REG(base_address, IMXRT_ADC_R3_OFFSET)   /* Data result register for HW triggers */
-#define rR4(base_address)   REG(base_address, IMXRT_ADC_R4_OFFSET)   /* Data result register for HW triggers */
-#define rR5(base_address)   REG(base_address, IMXRT_ADC_R5_OFFSET)   /* Data result register for HW triggers */
-#define rR6(base_address)   REG(base_address, IMXRT_ADC_R6_OFFSET)   /* Data result register for HW triggers */
-#define rR7(base_address)   REG(base_address, IMXRT_ADC_R7_OFFSET)   /* Data result register for HW triggers */
-#define rCFG(base_address)  REG(base_address, IMXRT_ADC_CFG_OFFSET)  /* Configuration register */
-#define rGC(base_address)   REG(base_address, IMXRT_ADC_GC_OFFSET)   /* General control register */
-#define rGS(base_address)   REG(base_address, IMXRT_ADC_GS_OFFSET)   /* General status register */
-#define rCV(base_address)   REG(base_address, IMXRT_ADC_CV_OFFSET)   /* Compare value register */
-#define rOFS(base_address)  REG(base_address, IMXRT_ADC_OFS_OFFSET)  /* Offset correction value register */
-#define rCAL(base_address)  REG(base_address, IMXRT_ADC_CAL_OFFSET)  /* Calibration value register */
-
+#define rVERID(base_address)   REG(base_address, IMXRT_LPADC_VERID_OFFSET)   /* Version ID Register */
+#define rPARAM(base_address)   REG(base_address, IMXRT_LPADC_PARAM_OFFSET)   /* Parameter Register */
+#define rCTRL(base_address)    REG(base_address, IMXRT_LPADC_CTRL_OFFSET)    /* LPADC Control Register */
+#define rSTAT(base_address)    REG(base_address, IMXRT_LPADC_STAT_OFFSET)    /* LPADC Status Register */
+#define rIE(base_address)      REG(base_address, IMXRT_LPADC_IE_OFFSET)      /* Interrupt Enable Register */
+#define rDE(base_address)      REG(base_address, IMXRT_LPADC_DE_OFFSET)      /* DMA Enable Register */
+#define rCFG(base_address)     REG(base_address, IMXRT_LPADC_CFG_OFFSET)     /* LPADC Configuration Register */
+#define rPAUSE(base_address)   REG(base_address, IMXRT_LPADC_PAUSE_OFFSET)   /* LPADC Pause Register */
+#define rFCTRL(base_address)   REG(base_address, IMXRT_LPADC_FCTRL_OFFSET)   /* LPADC FIFO Control Register */
+#define rSWTRIG(base_address)  REG(base_address, IMXRT_LPADC_SWTRIG_OFFSET)  /* Software Trigger Register */
+#define rCMDL1(base_address)   REG(base_address, IMXRT_LPADC_CMDL1_OFFSET)   /* LPADC Command Low Buffer Register */
+#define rCMDH1(base_address)   REG(base_address, IMXRT_LPADC_CMDH1_OFFSET)   /* LPADC Command High Buffer Register */
+#define rCMDL2(base_address)   REG(base_address, IMXRT_LPADC_CMDL2_OFFSET)   /* LPADC Command Low Buffer Register */
+#define rCMDH2(base_address)   REG(base_address, IMXRT_LPADC_CMDH2_OFFSET)   /* LPADC Command High Buffer Register */
+#define rCMDL3(base_address)   REG(base_address, IMXRT_LPADC_CMDL3_OFFSET)   /* LPADC Command Low Buffer Register */
+#define rCMDH3(base_address)   REG(base_address, IMXRT_LPADC_CMDH3_OFFSET)   /* LPADC Command High Buffer Register */
+#define rCMDL4(base_address)   REG(base_address, IMXRT_LPADC_CMDL4_OFFSET)   /* LPADC Command Low Buffer Register */
+#define rCMDH4(base_address)   REG(base_address, IMXRT_LPADC_CMDH4_OFFSET)   /* LPADC Command High Buffer Register */
+#define rCMDL5(base_address)   REG(base_address, IMXRT_LPADC_CMDL5_OFFSET)   /* LPADC Command Low Buffer Register */
+#define rCMDH5(base_address)   REG(base_address, IMXRT_LPADC_CMDH5_OFFSET)   /* LPADC Command High Buffer Register */
+#define rCMDL6(base_address)   REG(base_address, IMXRT_LPADC_CMDL6_OFFSET)   /* LPADC Command Low Buffer Register */
+#define rCMDH6(base_address)   REG(base_address, IMXRT_LPADC_CMDH6_OFFSET)   /* LPADC Command High Buffer Register */
+#define rCMDL7(base_address)   REG(base_address, IMXRT_LPADC_CMDL7_OFFSET)   /* LPADC Command Low Buffer Register */
+#define rCMDH7(base_address)   REG(base_address, IMXRT_LPADC_CMDH7_OFFSET)   /* LPADC Command High Buffer Register */
+#define rCMDL8(base_address)   REG(base_address, IMXRT_LPADC_CMDL8_OFFSET)   /* LPADC Command Low Buffer Register */
+#define rCMDH8(base_address)   REG(base_address, IMXRT_LPADC_CMDH8_OFFSET)   /* LPADC Command High Buffer Register */
+#define rCMDL9(base_address)   REG(base_address, IMXRT_LPADC_CMDL9_OFFSET)   /* LPADC Command Low Buffer Register */
+#define rCMDH9(base_address)   REG(base_address, IMXRT_LPADC_CMDH9_OFFSET)   /* LPADC Command High Buffer Register */
+#define rCMDL10(base_address)  REG(base_address, IMXRT_LPADC_CMDL10_OFFSET)  /* LPADC Command Low Buffer Register */
+#define rCMDH10(base_address)  REG(base_address, IMXRT_LPADC_CMDH10_OFFSET)  /* LPADC Command High Buffer Register */
+#define rCMDL11(base_address)  REG(base_address, IMXRT_LPADC_CMDL11_OFFSET)  /* LPADC Command Low Buffer Register */
+#define rCMDH11(base_address)  REG(base_address, IMXRT_LPADC_CMDH11_OFFSET)  /* LPADC Command High Buffer Register */
+#define rCMDL12(base_address)  REG(base_address, IMXRT_LPADC_CMDL12_OFFSET)  /* LPADC Command Low Buffer Register */
+#define rCMDH12(base_address)  REG(base_address, IMXRT_LPADC_CMDH12_OFFSET)  /* LPADC Command High Buffer Register */
+#define rCMDL13(base_address)  REG(base_address, IMXRT_LPADC_CMDL13_OFFSET)  /* LPADC Command Low Buffer Register */
+#define rCMDH13(base_address)  REG(base_address, IMXRT_LPADC_CMDH13_OFFSET)  /* LPADC Command High Buffer Register */
+#define rCMDL14(base_address)  REG(base_address, IMXRT_LPADC_CMDL14_OFFSET)  /* LPADC Command Low Buffer Register */
+#define rCMDH14(base_address)  REG(base_address, IMXRT_LPADC_CMDH14_OFFSET)  /* LPADC Command High Buffer Register */
+#define rCMDL15(base_address)  REG(base_address, IMXRT_LPADC_CMDL15_OFFSET)  /* LPADC Command Low Buffer Register */
+#define rCMDH15(base_address)  REG(base_address, IMXRT_LPADC_CMDH15_OFFSET)  /* LPADC Command High Buffer Register */
+#define rRESFIFO(base_address) REG(base_address, IMXRT_LPADC_RESFIFO_OFFSET) /* LPADC Data Result FIFO Register */
+#define rTCTRL0(base_address)  REG(base_address, IMXRT_LPADC_TCTRL0_OFFSET)  /* Trigger Control Register */
+#define rTCTRL1(base_address)  REG(base_address, IMXRT_LPADC_TCTRL1_OFFSET)  /* Trigger Control Register */
+#define rTCTRL2(base_address)  REG(base_address, IMXRT_LPADC_TCTRL2_OFFSET)  /* Trigger Control Register */
+#define rTCTRL3(base_address)  REG(base_address, IMXRT_LPADC_TCTRL3_OFFSET)  /* Trigger Control Register */
+#define rTCTRL4(base_address)  REG(base_address, IMXRT_LPADC_TCTRL4_OFFSET)  /* Trigger Control Register */
+#define rTCTRL5(base_address)  REG(base_address, IMXRT_LPADC_TCTRL5_OFFSET)  /* Trigger Control Register */
+#define rTCTRL6(base_address)  REG(base_address, IMXRT_LPADC_TCTRL6_OFFSET)  /* Trigger Control Register */
+#define rTCTRL7(base_address)  REG(base_address, IMXRT_LPADC_TCTRL7_OFFSET)  /* Trigger Control Register */
+#define rCV1(base_address)     REG(base_address, IMXRT_LPADC_CV1_OFFSET)     /* Compare Value Register */
+#define rCV2(base_address)     REG(base_address, IMXRT_LPADC_CV2_OFFSET)     /* Compare Value Register */
+#define rCV3(base_address)     REG(base_address, IMXRT_LPADC_CV3_OFFSET)     /* Compare Value Register */
+#define rCV4(base_address)     REG(base_address, IMXRT_LPADC_CV4_OFFSET)     /* Compare Value Register */
 
 int px4_arch_adc_init(uint32_t base_address)
 {
@@ -91,67 +120,57 @@ int px4_arch_adc_init(uint32_t base_address)
 
 		once = true;
 
-		/* Input is Buss Clock 144 Mhz We will use /4 for 36 Mhz */
+		/* Input is ADCx_CLK_ROOT_SYS_PLL2_CLK with devide by 6.
+		 *  528 Mhz / 6 = 88 Mhz.
+		 */
+
+
+		if (base_address == IMXRT_LPADC1_BASE) {
+			imxrt_clockall_adc1();
+
+		} else if (base_address == IMXRT_LPADC2_BASE) {
+			imxrt_clockall_adc2();
+		}
+
 
 		irqstate_t flags = px4_enter_critical_section();
+		rCTRL(base_address) |= IMXRT_LPADC_CTRL_RST;
+		rCTRL(base_address) &= ~IMXRT_LPADC_CTRL_RST;
+		rCTRL(base_address) |= IMXRT_LPADC_CTRL_RSTFIFO;
+		rCFG(base_address) =  IMXRT_LPADC_CFG_REFSEL_REFSEL_0 | IMXRT_LPADC_CFG_PWREN | IMXRT_LPADC_CFG_PWRSEL_PWRSEL_3 |
+				      IMXRT_LPADC_CFG_PUDLY(128);
+		rCTRL(base_address) = IMXRT_LPADC_CTRL_ADCEN;
 
-//		imxrt_clockall_adc1();
-
-		rCFG(base_address) = ADC_CFG_ADICLK_IPG | ADC_CFG_MODE_12BIT | \
-				     ADC_CFG_ADIV_DIV4 | ADC_CFG_ADLSMP | ADC_CFG_ADSTS_7_21 | \
-				     ADC_CFG_AVGS_4SMPL | ADC_CFG_OVWREN;
 		px4_leave_critical_section(flags);
 
-		/* Clear the CALF and begin the calibration */
+		/* Read ADC1 vtemp_sensor_plus */
 
-		rGS(base_address) = ADC_GS_CALF;
-		rGC(base_address) = ADC_GC_CAL;
-		uint32_t guard = 100;
+		rCMDL1(base_address) = IMXRT_LPADC_CMDL1_ADCH_ADCH_7;
 
-		while (guard != 0 && (rGS(base_address) & ADC_GC_CAL) == 0) {
-			guard--;
-			usleep(1);
-		}
-
-		while ((rGS(base_address) & ADC_GC_CAL) == ADC_GC_CAL) {
-
-			usleep(100);
-
-			if (rGS(base_address) & ADC_GS_CALF) {
-				return -1;
-			}
-		}
-
-		if ((rHS(base_address) & ADC_HS_COCO0) == 0) {
-			return -2;
-		}
-
-		if (rGS(base_address) & ADC_GS_CALF) {
-			return -3;
-		}
-
-		/* dummy read to clear COCO of calibration */
-
-		int32_t r = rR0(base_address);
-		UNUSED(r);
+		rCMDH1(base_address) = IMXRT_LPADC_CMDH1_STS_STS_5 | IMXRT_LPADC_CMDH1_AVGS_AVGS_2;
+		rTCTRL0(base_address) = IMXRT_LPADC_TCTRL0_TCMD_TCMD_1;
+		rSTAT(base_address) = IMXRT_LPADC_STAT_FOF;
 
 		/* kick off a sample and wait for it to complete */
 		hrt_abstime now = hrt_absolute_time();
-		rGC(base_address) = ADC_GC_AVGE;
-		rHC0(base_address) =  0xd; // VREFSH = internal channel, for ADC self-test, hard connected to VRH internally
 
-		while (!(rHS(base_address) & ADC_HS_COCO0)) {
+		rSWTRIG(base_address) = IMXRT_LPADC_SWTRIG_SWT0;
+
+		while (!(rSTAT(base_address) & IMXRT_LPADC_STAT_RDY)) {
 
 			/* don't wait for more than 500us, since that means something broke -
 			 * should reset here if we see this
 			 */
 
 			if ((hrt_absolute_time() - now) > 500) {
+				rCTRL(base_address) &= ~IMXRT_LPADC_CTRL_ADCEN;
 				return -4;
 			}
 		}
 
-		r = rR0(base_address);
+		int32_t r = rRESFIFO(base_address) & IMXRT_LPADC_RESFIFO_D_MASK;
+		UNUSED(r);
+		rCTRL(base_address) &= ~IMXRT_LPADC_CTRL_ADCEN;
 	} // once
 
 	return 0;
@@ -159,7 +178,14 @@ int px4_arch_adc_init(uint32_t base_address)
 
 void px4_arch_adc_uninit(uint32_t base_address)
 {
-	//imxrt_clockoff_adc1();
+	rCTRL(base_address) &= ~IMXRT_LPADC_CTRL_ADCEN;
+
+	if (base_address == IMXRT_LPADC1_BASE) {
+		imxrt_clockoff_adc1();
+
+	} else if (base_address == IMXRT_LPADC2_BASE) {
+		imxrt_clockoff_adc2();
+	}
 }
 
 uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel)
@@ -167,27 +193,36 @@ uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel)
 
 	irqstate_t flags = px4_enter_critical_section();
 
-	/* clear any previous COCO0 */
+	/* clear any previous results */
 
-	uint16_t result = rR0(base_address);
+	rCTRL(base_address) |= IMXRT_LPADC_CTRL_RSTFIFO;
 
-	rHC0(base_address) =  channel;
+	rCMDL1(base_address) = channel & IMXRT_LPADC_CMDL1_ADCH_MASK;
+	rCMDH1(base_address) = IMXRT_LPADC_CMDH1_STS_STS_5 | IMXRT_LPADC_CMDH1_AVGS_AVGS_2;
+	rTCTRL0(base_address) = IMXRT_LPADC_TCTRL0_TCMD_TCMD_1;
+	rSTAT(base_address) = IMXRT_LPADC_STAT_FOF;
+	rCTRL(base_address) = IMXRT_LPADC_CTRL_ADCEN;
+
+	up_udelay(1);
+	rSWTRIG(base_address) = IMXRT_LPADC_SWTRIG_SWT0;
 
 	/* wait for the conversion to complete */
 	hrt_abstime now = hrt_absolute_time();
 
-	while (!(rHS(base_address) & ADC_HS_COCO0)) {
+	while (!(rSTAT(base_address) & IMXRT_LPADC_STAT_RDY)) {
 		/* don't wait for more than 10us, since that means something broke
 		 *  should reset here if we see this
 		 */
 		if ((hrt_absolute_time() - now) > 30) {
+			rCTRL(base_address) &= ~IMXRT_LPADC_CTRL_ADCEN;
 			px4_leave_critical_section(flags);
 			return UINT32_MAX;
 		}
 	}
 
 	/* read the result and clear  COCO0 */
-	result  = rR0(base_address);
+	uint32_t result = rRESFIFO(base_address) & IMXRT_LPADC_RESFIFO_D_MASK;
+	rCTRL(base_address) &= ~IMXRT_LPADC_CTRL_ADCEN;
 	px4_leave_critical_section(flags);
 
 	return result;
