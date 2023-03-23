@@ -404,7 +404,9 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 	CHECK_FAILSAFE(status_flags, primary_geofence_breached, fromGfActParam(_param_gf_action.get()).cannotBeDeferred());
 
 	// Battery
-	CHECK_FAILSAFE(status_flags, battery_low_remaining_time, ActionOptions(Action::RTL).causedBy(Cause::BatteryLow));
+	ActionOptions battery_low_remaining_time_action = (_param_com_low_bat_act.get() == LowBatteryAction::ReturnOrLand) ?
+			ActionOptions(Action::RTL).causedBy(Cause::BatteryLow) : Action::Warn;
+	CHECK_FAILSAFE(status_flags, battery_low_remaining_time, battery_low_remaining_time_action);
 	CHECK_FAILSAFE(status_flags, battery_unhealthy, Action::Warn);
 
 	switch (status_flags.battery_warning) {
