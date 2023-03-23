@@ -33,8 +33,8 @@ if DRIVERS_UAVCANNODE
         bool "Include GNSS fix"
         default n
 
-    config UAVCANNODE_HYDROMETER_MEASUREMENT
-        bool "Include hydrometer measurement"
+    config UAVCANNODE_HYGROMETER_MEASUREMENT
+        bool "Include hygrometer measurement"
         default n
 
     config UAVCANNODE_LIGHTS_COMMAND

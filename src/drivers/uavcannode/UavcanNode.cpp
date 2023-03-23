@@ -52,9 +52,9 @@
 #include "Publishers/FlowMeasurement.hpp"
 #endif // CONFIG_UAVCANNODE_FLOW_MEASUREMENT
 
-#if defined(CONFIG_UAVCANNODE_HYDROMETER_MEASUREMENT)
+#if defined(UAVCANNODE_HYGROMETER_MEASUREMENT)
 #include "Publishers/HygrometerMeasurement.hpp"
-#endif // CONFIG_UAVCANNODE_HYDROMETER_MEASUREMENT
+#endif // UAVCANNODE_HYGROMETER_MEASUREMENT
 
 #if defined(CONFIG_UAVCANNODE_GNSS_FIX)
 #include "Publishers/GnssFix2.hpp"
@@ -360,9 +360,9 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 	_publisher_list.add(new FlowMeasurement(this, _node));
 #endif // CONFIG_UAVCANNODE_FLOW_MEASUREMENT
 
-#if defined(CONFIG_UAVCANNODE_HYDROMETER_MEASUREMENT)
+#if defined(UAVCANNODE_HYGROMETER_MEASUREMENT)
 	_publisher_list.add(new HygrometerMeasurement(this, _node));
-#endif // CONFIG_UAVCANNODE_HYDROMETER_MEASUREMENT
+#endif // UAVCANNODE_HYGROMETER_MEASUREMENT
 
 #if defined(CONFIG_UAVCANNODE_GNSS_FIX)
 	_publisher_list.add(new GnssFix2(this, _node));
