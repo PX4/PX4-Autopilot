@@ -157,6 +157,7 @@ void crypto_init()
 
 void crypto_deinit()
 {
+	keystore_deinit();
 }
 
 crypto_session_handle_t crypto_open(px4_crypto_algorithm_t algorithm)
