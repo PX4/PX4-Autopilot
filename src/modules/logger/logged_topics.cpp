@@ -207,7 +207,7 @@ void LoggedTopics::add_default_topics()
 	// add_optional_topic_multi("estimator_aid_src_mag_heading", 100, MAX_ESTIMATOR_INSTANCES);
 	// add_optional_topic_multi("estimator_aid_src_mag", 100, MAX_ESTIMATOR_INSTANCES);
 	// add_optional_topic_multi("estimator_aid_src_optical_flow", 100, MAX_ESTIMATOR_INSTANCES);
-	add_optional_topic("estimator_aid_src_optical_flow");
+	add_topic("estimator_aid_src_optical_flow");
 	// add_optional_topic_multi("estimator_aid_src_terrain_optical_flow", 100, MAX_ESTIMATOR_INSTANCES);
 	// add_optional_topic_multi("estimator_aid_src_ev_yaw", 100, MAX_ESTIMATOR_INSTANCES);
 
@@ -250,7 +250,7 @@ void LoggedTopics::add_default_topics()
 		add_topic("vehicle_local_position_groundtruth", 20);
 	}
 
-#ifdef CONFIG_ARCH_BOARD_PX4_SITL
+#if defined(CONFIG_ARCH_BOARD_PX4_SITL) || defined(CONFIG_ARCH_BOARD_MODALAI_SITL)
 	add_topic("actuator_controls_virtual_fw");
 	add_topic("actuator_controls_virtual_mc");
 	add_topic("fw_virtual_attitude_setpoint");
@@ -302,7 +302,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic_multi("estimator_aid_src_terrain_optical_flow", 0, MAX_ESTIMATOR_INSTANCES);
 	add_optional_topic_multi("estimator_aid_src_sideslip", 0, MAX_ESTIMATOR_INSTANCES);
 
-#endif /* CONFIG_ARCH_BOARD_PX4_SITL */
+#endif /* CONFIG_ARCH_BOARD_PX4_SITL || CONFIG_ARCH_BOARD_MODALAI_SITL */
 }
 
 void LoggedTopics::add_high_rate_topics()
