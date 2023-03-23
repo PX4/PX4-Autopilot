@@ -48,6 +48,7 @@ extern "C" {
  */
 
 void keystore_init(void);
+void keystore_deinit(void);
 
 /*
  * Open a session for accessing security keys
