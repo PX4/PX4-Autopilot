@@ -48,7 +48,7 @@
 
 using namespace time_literals;
 
-#define CRSF_BAUDRATE 250000
+#define CRSF_BAUDRATE 420000
 uint32_t CrsfRc::baudrate = CRSF_BAUDRATE;
 
 CrsfRc::CrsfRc(const char *device) :
