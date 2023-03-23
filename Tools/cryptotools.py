@@ -17,7 +17,7 @@ def ed25519_sign(private_key, signee_bin):
     """
 
     # Sign a message with the signing key
-    signed = private_key.sign(signee_bin)
+    signature = private_key.sign(signee_bin)
 
     # Obtain the verify key for a given signing key
     public_key = private_key.public_key()
@@ -26,10 +26,7 @@ def ed25519_sign(private_key, signee_bin):
         format=serialization.PublicFormat.Raw
     )
 
-    # Serialize the verify key to send it to a third party
-    verify_key_hex = binascii.hexlify(verify_key)
-
-    return signed[-64:], verify_key_hex
+    return signature, verify_key
 
 def sign(bin_file_path, key_file_path=None):
     """
@@ -46,14 +43,13 @@ def sign(bin_file_path, key_file_path=None):
         if len(signee_bin)%4 != 0:
             signee_bin += bytearray(b'\xff')*(4-len(signee_bin)%4)
 
-    #try:
-    with open(key_file_path,mode='rb') as f:
-        private_key = serialization.load_pem_private_key(f.read(), None)
+    try:
+        with open(key_file_path,mode='rb') as f:
+            private_key = serialization.load_pem_private_key(f.read(), None)
 
-        #print(keys)
-    #except:
-    #    print('ERROR: Key file',key_file_path,'not  found')
-    #    sys.exit(1)
+    except:
+        print('ERROR: Key file',key_file_path,'not  found')
+        sys.exit(1)
 
     signature, public_key = ed25519_sign(private_key, signee_bin)
 
