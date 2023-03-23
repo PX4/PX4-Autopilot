@@ -45,6 +45,10 @@ void keystore_init(void)
 {
 }
 
+void keystore_deinit(void)
+{
+}
+
 keystore_session_handle_t keystore_open(void)
 {
 	keystore_session_handle_t ret;
