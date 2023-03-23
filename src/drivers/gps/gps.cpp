@@ -512,16 +512,20 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 	return ret;
 
 #else
-	/* For QURT, just use read for now, since this doesn't block, we need to slow it down
-	 * just a bit. */
-	px4_usleep(10000);
+	hrt_abstime now = hrt_absolute_time();
+	int bytes_read = 0;
 
-	#define ASYNC_UART_READ_WAIT_US 2000
-    // The UART read on SLPI is via an asynchronous service so specify a timeout
-    // for the return. The driver will poll periodically until the read comes in
-    // so this may block for a while. However, it will timeout if no read comes in.
-    int bytes_read = qurt_uart_read(_serial_fd, (char*) buf, buf_length, ASYNC_UART_READ_WAIT_US);
-	_num_bytes_read += bytes_read;
+	while (hrt_elapsed_time(&now) < (hrt_abstime)(timeout * 1000)) {
+	    // The UART read on SLPI is via an asynchronous service so specify a timeout
+	    // for the return. The driver will poll periodically until the read comes in
+	    // so this may block for a while. However, it will timeout if no read comes in.
+	    bytes_read = qurt_uart_read(_serial_fd, (char*) buf, buf_length, 2000);
+		if (bytes_read > 0) {
+			_num_bytes_read += bytes_read;
+			break;
+		}
+	}
+
 	return bytes_read;
 #endif
 }
@@ -958,6 +962,8 @@ GPS::run()
 			_report_gps_pos.heading = NAN;
 			_report_gps_pos.heading_offset = heading_offset;
 
+			unsigned receive_timeout = TIMEOUT_5HZ;
+
 			if (_mode == gps_driver_mode_t::UBX) {
 
 				/* GPS is obviously detected successfully, reset statistics */
@@ -988,6 +994,11 @@ GPS::run()
 						set_device_type(DRV_GPS_DEVTYPE_UBX_F9P);
 						break;
 
+					case GPSDriverUBX::Board::u_blox10_MAX_M10S:
+						set_device_type(DRV_GPS_DEVTYPE_UBX_MAX_M10S);
+						receive_timeout = TIMEOUT_1HZ;
+						break;
+
 					default:
 						set_device_type(DRV_GPS_DEVTYPE_UBX);
 						break;
@@ -996,7 +1007,6 @@ GPS::run()
 			}
 
 			int helper_ret;
-			unsigned receive_timeout = TIMEOUT_5HZ;
 
 			if ((ubx_mode == GPSDriverUBX::UBXMode::RoverWithMovingBase)
 			    || (ubx_mode == GPSDriverUBX::UBXMode::RoverWithMovingBaseUART1)) {
