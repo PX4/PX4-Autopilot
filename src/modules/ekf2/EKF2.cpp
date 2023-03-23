@@ -230,7 +230,6 @@ void EKF2::AdvertiseTopics()
 	// advertise expected minimal topic set immediately for logging
 	_attitude_pub.advertise();
 	_local_position_pub.advertise();
-	_estimator_event_flags_pub.advertise();
 	_estimator_sensor_bias_pub.advertise();
 	_estimator_status_pub.advertise();
 	_estimator_status_flags_pub.advertise();
@@ -794,7 +793,7 @@ void EKF2::Run()
 #endif // CONFIG_EKF2_WIND
 
 			// publish status/logging messages
-			PublishEventFlags(now);
+			SendEvents();
 			PublishStatus(now);
 			PublishStatusFlags(now);
 
@@ -1114,7 +1113,7 @@ estimator_bias_s EKF2::fillEstimatorBiasMsg(const BiasEstimator::status &status,
 	return bias;
 }
 
-void EKF2::PublishEventFlags(const hrt_abstime &timestamp)
+void EKF2::SendEvents()
 {
 	// information events
 	uint32_t information_events = _ekf.information_event_status().value;
@@ -1126,40 +1125,145 @@ void EKF2::PublishEventFlags(const hrt_abstime &timestamp)
 	}
 
 	if (information_event_updated) {
-		estimator_event_flags_s event_flags{};
-		event_flags.timestamp_sample = _ekf.time_delayed_us();
+		if (_ekf.information_event_flags().gps_checks_passed) {
+			/* EVENT
+			 * @group ekf2
+			 * @description
+			 * The GNSS checks enabled by <param>EKF2_GPS_CHECK</param> have passed.
+			 */
+			events::send<int32_t>(events::ID("ekf2_gnss_checks_passed"), events::Log::Debug,
+					      "EKF2({1}): GNSS checks passed", _instance);
+		}
 
-		event_flags.information_event_changes           = _filter_information_event_changes;
-		event_flags.gps_checks_passed                   = _ekf.information_event_flags().gps_checks_passed;
-		event_flags.reset_vel_to_gps                    = _ekf.information_event_flags().reset_vel_to_gps;
-		event_flags.reset_vel_to_flow                   = _ekf.information_event_flags().reset_vel_to_flow;
-		event_flags.reset_vel_to_vision                 = _ekf.information_event_flags().reset_vel_to_vision;
-		event_flags.reset_vel_to_zero                   = _ekf.information_event_flags().reset_vel_to_zero;
-		event_flags.reset_pos_to_last_known             = _ekf.information_event_flags().reset_pos_to_last_known;
-		event_flags.reset_pos_to_gps                    = _ekf.information_event_flags().reset_pos_to_gps;
-		event_flags.reset_pos_to_vision                 = _ekf.information_event_flags().reset_pos_to_vision;
-		event_flags.starting_gps_fusion                 = _ekf.information_event_flags().starting_gps_fusion;
-		event_flags.starting_vision_pos_fusion          = _ekf.information_event_flags().starting_vision_pos_fusion;
-		event_flags.starting_vision_vel_fusion          = _ekf.information_event_flags().starting_vision_vel_fusion;
-		event_flags.starting_vision_yaw_fusion          = _ekf.information_event_flags().starting_vision_yaw_fusion;
-		event_flags.yaw_aligned_to_imu_gps              = _ekf.information_event_flags().yaw_aligned_to_imu_gps;
-		event_flags.reset_hgt_to_baro                   = _ekf.information_event_flags().reset_hgt_to_baro;
-		event_flags.reset_hgt_to_gps                    = _ekf.information_event_flags().reset_hgt_to_gps;
-		event_flags.reset_hgt_to_rng                    = _ekf.information_event_flags().reset_hgt_to_rng;
-		event_flags.reset_hgt_to_ev                     = _ekf.information_event_flags().reset_hgt_to_ev;
+		if (_ekf.information_event_flags().reset_vel_to_gps) {
+			/* EVENT
+			 * @group ekf2
+			 */
+			events::send<int32_t>(events::ID("ekf2_reset_vel_to_gnss"), events::Log::Debug,
+					      "EKF2({1}): Reset velocity to GNSS", _instance);
+		}
 
-		event_flags.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
-		_estimator_event_flags_pub.update(event_flags);
+		if (_ekf.information_event_flags().reset_vel_to_flow) {
+			/* EVENT
+			 * @group ekf2
+			 */
+			events::send<int32_t>(events::ID("ekf2_reset_vel_to_flow"), events::Log::Debug,
+					      "EKF2({1}): Reset velocity to optical flow", _instance);
+		}
 
-		_last_event_flags_publish = event_flags.timestamp;
+		if (_ekf.information_event_flags().reset_vel_to_vision) {
+			/* EVENT
+			 * @group ekf2
+			 */
+			events::send<int32_t>(events::ID("ekf2_reset_vel_to_vision"), events::Log::Debug,
+					      "EKF2({1}): Reset velocity vision", _instance);
+		}
+
+		if (_ekf.information_event_flags().reset_vel_to_zero) {
+			/* EVENT
+			 * @group ekf2
+			 */
+			events::send<int32_t>(events::ID("ekf2_reset_vel_to_zero"), events::Log::Debug,
+					      "EKF2({1}): Reset velocity zero", _instance);
+		}
+
+		if (_ekf.information_event_flags().reset_pos_to_last_known) {
+			/* EVENT
+			 * @group ekf2
+			 */
+			events::send<int32_t>(events::ID("ekf2_reset_pos_to_last_known"), events::Log::Debug,
+					      "EKF2({1}): Reset position to last known", _instance);
+		}
+
+		if (_ekf.information_event_flags().reset_pos_to_gps) {
+			/* EVENT
+			 * @group ekf2
+			 */
+			events::send<int32_t>(events::ID("ekf2_reset_pos_to_gnss"), events::Log::Debug,
+					      "EKF2({1}): Reset position to GNSS", _instance);
+		}
+
+		if (_ekf.information_event_flags().reset_pos_to_vision) {
+			/* EVENT
+			 * @group ekf2
+			 */
+			events::send<int32_t>(events::ID("ekf2_reset_pos_to_vision"), events::Log::Debug,
+					      "EKF2({1}): Reset position to vision", _instance);
+		}
+
+		if (_ekf.information_event_flags().starting_gps_fusion) {
+			/* EVENT
+			 * @group ekf2
+			 */
+			events::send<int32_t>(events::ID("ekf2_starting_gnss_fusion"), events::Log::Debug,
+					      "EKF2({1}): Starting GNSS fusion", _instance);
+		}
+
+		if (_ekf.information_event_flags().starting_vision_pos_fusion) {
+			/* EVENT
+			 * @group ekf2
+			 */
+			events::send<int32_t>(events::ID("ekf2_starting_vision_pos_fusion"), events::Log::Debug,
+					      "EKF2({1}): Starting vision position fusion", _instance);
+		}
+
+		if (_ekf.information_event_flags().starting_vision_vel_fusion) {
+			/* EVENT
+			 * @group ekf2
+			 */
+			events::send<int32_t>(events::ID("ekf2_starting_vision_vel_fusion"), events::Log::Debug,
+					      "EKF2({1}): Starting vision velocity fusion", _instance);
+		}
+
+		if (_ekf.information_event_flags().starting_vision_yaw_fusion) {
+			/* EVENT
+			 * @group ekf2
+			 */
+			events::send<int32_t>(events::ID("ekf2_starting_vision_yaw_fusion"), events::Log::Debug,
+					      "EKF2({1}): Starting vision yaw fusion", _instance);
+		}
+
+		if (_ekf.information_event_flags().yaw_aligned_to_imu_gps) {
+			/* EVENT
+			 * @group ekf2
+			 */
+			events::send<int32_t>(events::ID("ekf2_yaw_aligned_to_imu_gnss"), events::Log::Debug,
+					      "EKF2({1}): Yaw aligned using IMU and GNSS", _instance);
+		}
+
+		if (_ekf.information_event_flags().reset_hgt_to_baro) {
+			/* EVENT
+			 * @group ekf2
+			 */
+			events::send<int32_t>(events::ID("ekf2_reset_hgt_to_baro"), events::Log::Debug,
+					      "EKF2({1}): Reset height to baro", _instance);
+		}
+
+		if (_ekf.information_event_flags().reset_hgt_to_gps) {
+			/* EVENT
+			 * @group ekf2
+			 */
+			events::send<int32_t>(events::ID("ekf2_reset_hgt_to_gnss"), events::Log::Debug,
+					      "EKF2({1}): Reset height to GNSS", _instance);
+		}
+
+		if (_ekf.information_event_flags().reset_hgt_to_rng) {
+			/* EVENT
+			 * @group ekf2
+			 */
+			events::send<int32_t>(events::ID("ekf2_reset_hgt_to_rng"), events::Log::Debug,
+					      "EKF2({1}): Reset height to range finder", _instance);
+		}
+
+		if (_ekf.information_event_flags().reset_hgt_to_ev) {
+			/* EVENT
+			 * @group ekf2
+			 */
+			events::send<int32_t>(events::ID("ekf2_reset_hgt_to_ev"), events::Log::Debug,
+					      "EKF2({1}): Reset height to vision", _instance);
+		}
 
 		_ekf.clear_information_events();
-
-	} else if ((_last_event_flags_publish != 0) && (timestamp >= _last_event_flags_publish + 1_s)) {
-		// continue publishing periodically
-		_estimator_event_flags_pub.get().timestamp = _replay_mode ? timestamp : hrt_absolute_time();
-		_estimator_event_flags_pub.update();
-		_last_event_flags_publish = _estimator_event_flags_pub.get().timestamp;
 	}
 }
 

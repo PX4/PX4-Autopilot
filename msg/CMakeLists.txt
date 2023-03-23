@@ -81,7 +81,6 @@ set(msg_files
 	EstimatorAidSource3d.msg
 	EstimatorBias.msg
 	EstimatorBias3d.msg
-	EstimatorEventFlags.msg
 	EstimatorGpsStatus.msg
 	EstimatorInnovations.msg
 	EstimatorSelectorStatus.msg

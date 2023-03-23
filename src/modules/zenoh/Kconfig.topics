@@ -177,10 +177,6 @@ menu "Zenoh publishers/subscribers"
 		bool "estimator_bias3d"
 		default n
 
-	config ZENOH_PUBSUB_ESTIMATOR_EVENT_FLAGS
-		bool "estimator_event_flags"
-		default n
-
 	config ZENOH_PUBSUB_ESTIMATOR_GPS_STATUS
 		bool "estimator_gps_status"
 		default n
@@ -958,7 +954,6 @@ config ZENOH_PUBSUB_ALL_SELECTION
 	select ZENOH_PUBSUB_ESTIMATOR_AID_SOURCE3D
 	select ZENOH_PUBSUB_ESTIMATOR_BIAS
 	select ZENOH_PUBSUB_ESTIMATOR_BIAS3D
-	select ZENOH_PUBSUB_ESTIMATOR_EVENT_FLAGS
 	select ZENOH_PUBSUB_ESTIMATOR_GPS_STATUS
 	select ZENOH_PUBSUB_ESTIMATOR_INNOVATIONS
 	select ZENOH_PUBSUB_ESTIMATOR_SELECTOR_STATUS
