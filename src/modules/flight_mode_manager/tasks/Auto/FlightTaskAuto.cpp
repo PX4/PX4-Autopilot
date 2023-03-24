@@ -355,7 +355,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 		_mc_vertical_down_speed = vertical_down_speed_from_triplet;
 	}
 
-	if (!PX4_ISFINITE(_mc_cruise_speed) || (_mc_cruise_speed < FLT_EPSILON)) {
+	if (!PX4_ISFINITE(_mc_vertical_down_speed) || (_mc_vertical_down_speed < FLT_EPSILON)) {
 		_mc_vertical_down_speed = _param_mpc_z_v_auto_dn.get();
 	}
 
