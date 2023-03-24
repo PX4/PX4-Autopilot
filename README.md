@@ -104,8 +104,9 @@ These boards fully comply with Pixhawk Standard, and are maintained by the PX4-A
 These boards are maintained to be compatible with PX4-Autopilot by the Manufacturers.
 
 * [ARK Electronics ARKV6X](https://docs.px4.io/main/en/flight_controller/arkv6x.html)
-* [Hex Cube Orange](https://docs.px4.io/main/en/flight_controller/cubepilot_cube_orange.html)
-* [Hex Cube Yellow](https://docs.px4.io/main/en/flight_controller/cubepilot_cube_yellow.html)
+* [CubePilot Cube Orange+](https://docs.px4.io/main/en/flight_controller/cubepilot_cube_orangeplus.html)
+* [CubePilot Cube Orange](https://docs.px4.io/main/en/flight_controller/cubepilot_cube_orange.html)
+* [CubePilot Cube Yellow](https://docs.px4.io/main/en/flight_controller/cubepilot_cube_yellow.html)
 * [Holybro Durandal](https://docs.px4.io/main/en/flight_controller/durandal.html)
 * [Airmind MindPX V2.8](http://www.mindpx.net/assets/accessories/UserGuide_MindPX.pdf)
 * [Airmind MindRacer V1.2](http://mindpx.net/assets/accessories/mindracer_user_guide_v1.2.pdf)
