@@ -430,14 +430,11 @@ class Tester:
                         self.verbose)
                     self.active_runners.append(gzclient_runner)
 
-                '''
-                WARNING: DO NOT PLACE PX4 RUNNER BEFORE GAZEBO RUNNER!
                 # We must start the PX4 instance at the end, as starting
-                it in the beginning, then connecting Gazebo server freaks
-                out the PX4 (it needs to have data coming in when started),
-                and can lead to EKF to freak out, or the instance itself
-                to die unexpectedly.
-                '''
+                # it in the beginning, then connecting Gazebo server freaks
+                # out the PX4 (it needs to have data coming in when started),
+                # and can lead to EKF to freak out, or the instance itself
+                # to die unexpectedly.
                 px4_runner = ph.Px4Runner(
                     os.getcwd(),
                     log_dir,
