@@ -46,6 +46,7 @@
 #include <stm32_uart.h>
 #include <arch/board/board.h>
 #include "arm_internal.h"
+#include <px4_platform/gpio.h>
 #include <px4_platform_common/init.h>
 
 extern int sercon_main(int c, char **argv);
@@ -54,6 +55,15 @@ __EXPORT void board_on_reset(int status) {}
 
 __EXPORT void stm32_boardinitialize(void)
 {
+	/* configure pins */
+	const uint32_t list[] = PX4_GPIO_INIT_LIST;
+
+	for (size_t gpio = 0; gpio < arraySize(list); gpio++) {
+		if (list[gpio] != 0) {
+			px4_arch_configgpio(list[gpio]);
+		}
+	}
+
 	/* configure USB interfaces */
 	stm32_usbinitialize();
 }

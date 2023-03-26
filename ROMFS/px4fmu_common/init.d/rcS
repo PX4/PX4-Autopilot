@@ -171,7 +171,7 @@ else
 		param select-backup /fs/microsd/parameters_backup.bson
 	fi
 
-	if ver hwcmp PX4_FMU_V5X PX4_FMU_V6X
+	if ver hwcmp PX4_FMU_V5X PX4_FMU_V6X ARK_FMU_V6X
 	then
 		netman update -i eth0
 	fi
@@ -280,28 +280,6 @@ else
 	if [ $AUTOCNF = yes ]
 	then
 		param set SYS_AUTOCONFIG 0
-	fi
-
-	#
-	# Check if UAVCAN is enabled, default to it for ESCs.
-	#
-	if param greater -s UAVCAN_ENABLE 0
-	then
-		# Start core UAVCAN module.
-		if uavcan start
-		then
-			if param greater UAVCAN_ENABLE 2
-			then
-				set OUTPUT_MODE uavcan_esc
-			fi
-		else
-			tune_control play error
-		fi
-	else
-		if param greater -s UAVCAN_V1_ENABLE 0
-		then
-			uavcan_v1 start
-		fi
 	fi
 
 	#
@@ -555,6 +533,28 @@ else
 		sh $BOARD_BOOTLOADER_UPGRADE
 	fi
 	unset BOARD_BOOTLOADER_UPGRADE
+
+	#
+	# Check if UAVCAN is enabled, default to it for ESCs.
+	#
+	if param greater -s UAVCAN_ENABLE 0
+	then
+		# Start core UAVCAN module.
+		if uavcan start
+		then
+			if param greater UAVCAN_ENABLE 2
+			then
+				set OUTPUT_MODE uavcan_esc
+			fi
+		else
+			tune_control play error
+		fi
+	else
+		if param greater -s UAVCAN_V1_ENABLE 0
+		then
+			uavcan_v1 start
+		fi
+	fi
 
 #
 # End of autostart.

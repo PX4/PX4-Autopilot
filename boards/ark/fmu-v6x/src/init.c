@@ -105,6 +105,7 @@ __EXPORT void board_peripheral_reset(int ms)
 {
 	/* set the peripheral rails off */
 
+	VDD_5V_HIPOWER_EN(false);
 	VDD_5V_PERIPH_EN(false);
 	board_control_spi_sensors_power(false, 0xffff);
 	VDD_3V3_SENSORS4_EN(false);
@@ -123,6 +124,7 @@ __EXPORT void board_peripheral_reset(int ms)
 	VDD_3V3_SPEKTRUM_POWER_EN(last);
 	board_control_spi_sensors_power(true, 0xffff);
 	VDD_3V3_SENSORS4_EN(true);
+	VDD_5V_HIPOWER_EN(true);
 	VDD_5V_PERIPH_EN(true);
 
 }
@@ -209,7 +211,6 @@ stm32_boardinitialize(void)
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
 	/* Power on Interfaces */
-	VDD_3V3_SD_CARD_EN(true);
 	VDD_5V_PERIPH_EN(true);
 	VDD_5V_HIPOWER_EN(true);
 	VDD_3V3_SENSORS4_EN(true);

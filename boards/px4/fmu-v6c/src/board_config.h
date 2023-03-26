@@ -143,12 +143,13 @@
 #define HW_INFO_INIT_VER       3 /* Offset in above string of the VER */
 #define HW_INFO_INIT_REV       4 /* Offset in above string of the REV */
 
-#define BOARD_NUM_SPI_CFG_HW_VERSIONS 2 // Rev 0, 10 Sensor sets
+#define BOARD_NUM_SPI_CFG_HW_VERSIONS 3 // Rev 0, 10 and Mini Sensor sets
 //                 Base/FMUM
 #define V6C00   HW_VER_REV(0x0,0x0) // FMUV6C,                 Rev 0  I2C4 External but with Internal devices
 #define V6C01   HW_VER_REV(0x0,0x1) // FMUV6C,                 Rev 1  I2C4 Internal I2C2 External
 #define V6C10   HW_VER_REV(0x1,0x0) // NO PX4IO,               Rev 0  I2C4 External but with Internal devices
 #define V6C11   HW_VER_REV(0x1,0x1) // NO PX4IO,               Rev 1  I2C4 Internal I2C2 External
+#define V6C21   HW_VER_REV(0x2,0x1) // FMUV6CMini,             Rev 1  I2C4 Internal I2C2 External
 
 
 /* HEATER

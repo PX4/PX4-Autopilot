@@ -1,0 +1,7 @@
+menuconfig DRIVERS_BAROMETER_INVENSENSE_ICP10100
+	bool "icp10100"
+	default n
+	---help---
+		Enable support for icp10100
+
+
