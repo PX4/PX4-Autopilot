@@ -205,6 +205,7 @@ void LoggedTopics::add_high_rate_topics()
 	add_topic("vehicle_attitude");
 	add_topic("vehicle_attitude_setpoint");
 	add_topic("vehicle_rates_setpoint");
+	add_topic("experiment");
 }
 
 void LoggedTopics::add_debug_topics()
@@ -214,6 +215,9 @@ void LoggedTopics::add_debug_topics()
 	add_topic("debug_value");
 	add_topic("debug_vect");
 	add_topic_multi("satellite_info", 1000, 2);
+	add_topic("experiment");
+	add_topic("input_rc", 500);
+	add_topic("manual_control_setpoint", 200);
 }
 
 void LoggedTopics::add_estimator_replay_topics()
@@ -233,6 +237,8 @@ void LoggedTopics::add_estimator_replay_topics()
 	add_topic("vehicle_status");
 	add_topic("vehicle_visual_odometry");
 	add_topic_multi("distance_sensor");
+	add_topic("experiment");
+	add_topic("input_rc", 500);
 }
 
 void LoggedTopics::add_thermal_calibration_topics()
@@ -240,6 +246,7 @@ void LoggedTopics::add_thermal_calibration_topics()
 	add_topic_multi("sensor_accel", 100, 3);
 	add_topic_multi("sensor_baro", 100, 3);
 	add_topic_multi("sensor_gyro", 100, 3);
+	add_topic("experiment");
 }
 
 void LoggedTopics::add_sensor_comparison_topics()
@@ -248,6 +255,7 @@ void LoggedTopics::add_sensor_comparison_topics()
 	add_topic_multi("sensor_baro", 100, 3);
 	add_topic_multi("sensor_gyro", 100, 3);
 	add_topic_multi("sensor_mag", 100, 4);
+	add_topic("experiment");
 }
 
 void LoggedTopics::add_vision_and_avoidance_topics()
@@ -258,6 +266,7 @@ void LoggedTopics::add_vision_and_avoidance_topics()
 	add_topic("vehicle_trajectory_waypoint", 200);
 	add_topic("vehicle_trajectory_waypoint_desired", 200);
 	add_topic("vehicle_visual_odometry", 30);
+	add_topic("experiment");
 }
 
 void LoggedTopics::add_raw_imu_gyro_fifo()
@@ -279,6 +288,10 @@ void LoggedTopics::add_system_identification_topics()
 	add_topic("vehicle_angular_acceleration");
 	add_topic("vehicle_angular_acceleration_setpoint");
 	add_topic("vehicle_torque_setpoint");
+	add_topic("experiment");
+	add_topic("airspeed_validated", 200);
+	add_topic("input_rc", 500);
+	add_topic("manual_control_setpoint", 200);
 }
 
 int LoggedTopics::add_topics_from_file(const char *fname)
