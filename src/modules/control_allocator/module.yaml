@@ -1079,6 +1079,8 @@ mixer:
                           - name: 'CA_SV_CS${i}_TRIM'
                             label: 'Trim'
                     parameters:
+                      - label: 'Collective pitch offset to align least amount of rotor drag'
+                        name: CA_HELI_YAW_CP_O
                       - label: 'Yaw compensation scale based on collective pitch'
                         name: CA_HELI_YAW_CP_S
                       - label: 'Yaw compensation scale based on throttle'
