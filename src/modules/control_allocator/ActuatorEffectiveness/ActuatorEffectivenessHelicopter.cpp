@@ -104,8 +104,7 @@ void ActuatorEffectivenessHelicopter::updateParams()
 	_geometry.yaw_sign = (yaw_ccw == 1) ? -1.f : 1.f;
 }
 
-bool
-ActuatorEffectivenessHelicopter::getEffectivenessMatrix(Configuration &configuration,
+bool ActuatorEffectivenessHelicopter::getEffectivenessMatrix(Configuration &configuration,
 		EffectivenessUpdateReason external_update)
 {
 	if (external_update == EffectivenessUpdateReason::NO_EXTERNAL_UPDATE) {
@@ -221,7 +220,6 @@ void ActuatorEffectivenessHelicopter::setSaturationFlag(float coeff, bool &posit
 
 void ActuatorEffectivenessHelicopter::getUnallocatedControl(int matrix_index, control_allocator_status_s &status)
 {
-
 	// Note: the values '-1', '1' and '0' are just to indicate a negative,
 	// positive or no saturation to the rate controller. The actual magnitude is not used.
 	if (_saturation_flags.roll_pos) {
