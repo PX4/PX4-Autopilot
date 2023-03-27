@@ -266,6 +266,10 @@ ControlAllocator::update_effectiveness_source()
 			tmp = new ActuatorEffectivenessHelicopter(this, ActuatorType::SERVOS);
 			break;
 
+		case EffectivenessSource::HELICOPTER_COAXIAL:
+			tmp = new ActuatorEffectivenessHelicopterCoaxial(this);
+			break;
+
 		default:
 			PX4_ERR("Unknown airframe");
 			break;
