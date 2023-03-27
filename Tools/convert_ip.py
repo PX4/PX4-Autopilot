@@ -39,7 +39,6 @@ if( args.reverse == False ):
     if(ip & 0x80000000):
         ip = -0x100000000 + ip
 
-    print("the int32 conversion of", args.input, "is")
     print(ip)
 
 else:
@@ -49,5 +48,4 @@ else:
         raise ValueError("Not a valid IP")
     if(ip < 0):
         ip = ip + 0x100000000
-    print("the decimal dot conversion of", args.input, "is")
     print('{}.{}.{}.{}'.format(ip>>24, (ip>>16)&0xff, (ip>>8)&0xff, ip&0xff))
