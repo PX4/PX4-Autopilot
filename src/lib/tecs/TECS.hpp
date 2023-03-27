@@ -260,6 +260,7 @@ public:
 	struct Input {
 		float altitude;		///< Current altitude amsl of the UAS [m].
 		float altitude_rate;	///< Current altitude rate of the UAS [m/s].
+		float altitude_rate_sp; ///< Current altitude rate setpoint [m/s]
 		float tas;		///< Current true airspeed of the UAS [m/s].
 		float tas_rate;		///< Current true airspeed rate of the UAS [m/s²].
 	};

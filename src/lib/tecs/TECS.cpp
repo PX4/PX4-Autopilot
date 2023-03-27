@@ -148,6 +148,8 @@ void TECSReferenceModel::update(const float dt, const AltitudeReferenceState &se
 	}
 
 	// Consider the altitude rate setpoint already smooth. No need to filter further, simply hold the value for the altitude rate reference.
+	_alt_rate_ref = setpoint.alt_rate;
+
 	if (PX4_ISFINITE(setpoint.alt_rate)) {
 		_alt_rate_ref = setpoint.alt_rate;
 
@@ -317,9 +319,17 @@ float TECSControl::_calcAirspeedControlOutput(const Setpoint &setpoint, const In
 float TECSControl::_calcAltitudeControlOutput(const Setpoint &setpoint, const Input &input, const Param &param) const
 {
 	float altitude_rate_output;
-	altitude_rate_output = (setpoint.altitude_reference.alt - input.altitude) * param.altitude_error_gain +
-			       param.altitude_setpoint_gain_ff * setpoint.altitude_reference.alt_rate + setpoint.altitude_rate_setpoint;
-	altitude_rate_output = math::constrain(altitude_rate_output, -param.max_sink_rate, param.max_climb_rate);
+
+	if (PX4_ISFINITE(input.altitude_rate_sp)) {
+		// Control only altitude rate if a valid setpoint is specified
+		altitude_rate_output = input.altitude_rate_sp;
+		altitude_rate_output = math::constrain(altitude_rate_output, -param.max_sink_rate, param.max_climb_rate);
+
+	} else {
+		altitude_rate_output = (setpoint.altitude_reference.alt - input.altitude) * param.altitude_error_gain +
+				       param.altitude_setpoint_gain_ff * setpoint.altitude_reference.alt_rate + setpoint.altitude_rate_setpoint;
+		altitude_rate_output = math::constrain(altitude_rate_output, -param.max_sink_rate, param.max_climb_rate);
+	}
 
 	return altitude_rate_output;
 }
@@ -650,6 +660,7 @@ void TECS::initialize(const float altitude, const float altitude_rate, const flo
 
 	const TECSControl::Input control_input{ .altitude = altitude,
 						.altitude_rate = altitude_rate,
+						.altitude_rate_sp = 0.0f,
 						.tas = eas_to_tas * equivalent_airspeed,
 						.tas_rate = 0.0f};
 
@@ -724,6 +735,7 @@ void TECS::update(float pitch, float altitude, float hgt_setpoint, float EAS_set
 
 		const TECSControl::Input control_input{ .altitude = altitude,
 							.altitude_rate = hgt_rate,
+							.altitude_rate_sp = hgt_rate_sp,
 							.tas = eas_to_tas * eas.speed,
 							.tas_rate = eas_to_tas * eas.speed_rate};
 

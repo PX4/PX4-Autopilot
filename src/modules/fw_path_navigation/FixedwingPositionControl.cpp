@@ -1119,7 +1119,9 @@ FixedwingPositionControl::control_auto_position(const float control_interval, co
 				   tecs_fw_thr_min,
 				   tecs_fw_thr_max,
 				   _param_sinkrate_target.get(),
-				   _param_climbrate_target.get());
+				   _param_climbrate_target.get(),
+				   false,
+				   pos_sp_curr.vz);
 }
 
 void
