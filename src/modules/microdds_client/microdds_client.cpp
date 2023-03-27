@@ -265,7 +265,7 @@ void MicroddsClient::run()
 				   "</dds>"
 				  );
 
-		if (ret < 0 || ret >= TOPIC_NAME_SIZE) {
+		if (ret < 0 || ret >= PARTICIPANT_XML_SIZE) {
 			PX4_ERR("create entities failed: namespace too long");
 			return;
 		}
