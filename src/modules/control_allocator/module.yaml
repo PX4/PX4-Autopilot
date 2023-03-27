@@ -416,6 +416,7 @@ parameters:
                 short: Number of swash plates servos
             type: enum
             values:
+                2: '2'
                 3: '3'
                 4: '4'
             default: 3
