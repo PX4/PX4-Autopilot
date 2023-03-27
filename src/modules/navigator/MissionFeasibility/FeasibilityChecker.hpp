@@ -174,8 +174,7 @@ private:
 	bool checkLandPatternValidity(mission_item_s &mission_item, const int current_index, const int last_index);
 
 	/**
-	 * @brief Check distance to first waypoint from current vehicle position.
-	 * 	  Use Home position instead of vehicle position if vehicle position is invalid.
+	 * @brief Check distance to first waypoint from current vehicle position (if available).
 	 *
 	 * @param mission_item The current mission item
 	 * @return False if the check failed.
