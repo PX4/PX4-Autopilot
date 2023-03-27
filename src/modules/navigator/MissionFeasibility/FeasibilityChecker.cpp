@@ -605,13 +605,11 @@ bool FeasibilityChecker::checkTakeoffLandAvailable()
 bool FeasibilityChecker::checkHorizontalDistanceToFirstWaypoint(mission_item_s &mission_item)
 {
 	if (_param_mis_dist_1wp > FLT_EPSILON &&
-	    (_current_position_lat_lon.isAllFinite() || _home_lat_lon.isAllFinite()) &&
-	    !_first_waypoint_found &&
+	    (_current_position_lat_lon.isAllFinite()) && !_first_waypoint_found &&
 	    MissionBlock::item_contains_position(mission_item)) {
 
 		_first_waypoint_found = true;
 
-		/* check distance from current position or Home (whatever is closer) to item */
 		float dist_to_1wp_from_current_pos = 1e6f;
 
 		if (_current_position_lat_lon.isAllFinite()) {
@@ -620,27 +618,18 @@ bool FeasibilityChecker::checkHorizontalDistanceToFirstWaypoint(mission_item_s &
 							       _current_position_lat_lon(0), _current_position_lat_lon(1));
 		}
 
-		float dist_to_1wp_from_home = 1e6f;
-
-		if (_home_lat_lon.isAllFinite()) {
-			dist_to_1wp_from_home = get_distance_to_next_waypoint(
-							mission_item.lat, mission_item.lon,
-							_home_lat_lon(0), _home_lat_lon(1));
-		}
-
-		const float min_dist = math::min(dist_to_1wp_from_current_pos, dist_to_1wp_from_home);
-
-		if (min_dist < _param_mis_dist_1wp) {
+		if (dist_to_1wp_from_current_pos < _param_mis_dist_1wp) {
 
 			return true;
 
 		} else {
-			/* item is too far from home */
+			/* item is too far from current position */
 			mavlink_log_critical(_mavlink_log_pub,
 					     "First waypoint too far away: %dm, %d max\t",
-					     (int)min_dist, (int)_param_mis_dist_1wp);
+					     (int)dist_to_1wp_from_current_pos, (int)_param_mis_dist_1wp);
 			events::send<uint32_t, uint32_t>(events::ID("navigator_mis_first_wp_too_far"), {events::Log::Error, events::LogInternal::Info},
-							 "First waypoint too far away: {1m} (maximum: {2m})", (uint32_t)min_dist, (uint32_t)_param_mis_dist_1wp);
+							 "First waypoint too far away: {1m} (maximum: {2m})", (uint32_t)dist_to_1wp_from_current_pos,
+							 (uint32_t)_param_mis_dist_1wp);
 
 			return false;
 		}

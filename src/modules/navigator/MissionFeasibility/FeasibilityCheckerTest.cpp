@@ -143,41 +143,15 @@ TEST_F(FeasibilityCheckerTest, check_dist_first_waypoint)
 	mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 	double lat_new, lon_new;
 
-	// GIVEN: no valid Current position, no valid Home
-
+	// GIVEN: no valid Current position
 
 	// THEN: always pass
 	checker.processNextItem(mission_item, 0, 1);
 	ASSERT_EQ(checker.someCheckFailed(), false);
 
-	// GIVEN: no valid current position, but valid Home. First WP 501m away from Home
+	// BUT WHEN: valid current position, first WP 501m away from current pos
 	checker.reset();
 	checker.publishLanded(true);
-	checker.publishHomePosition(0, 0, 0);
-	waypoint_from_heading_and_distance(mission_item.lat, mission_item.lon, 0, 501, &lat_new, &lon_new);
-	mission_item.lat = lat_new;
-	mission_item.lon = lon_new;
-
-	// THEN: check should fail
-	checker.processNextItem(mission_item, 0, 1);
-	ASSERT_EQ(checker.someCheckFailed(), true);
-
-	// BUT WHEN: no valid current position, but valid Home. First WP 499m away from Home
-	checker.reset();
-	checker.publishLanded(true);
-	checker.publishHomePosition(0, 0, 0);
-	waypoint_from_heading_and_distance(0, 0, 0, 499, &lat_new, &lon_new);
-	mission_item.lat = lat_new;
-	mission_item.lon = lon_new;
-
-	// THEN: pass
-	checker.processNextItem(mission_item, 0, 1);
-	ASSERT_EQ(checker.someCheckFailed(), false);
-
-	// BUT WHEN: valid current position, valid Home, first WP 501m away from current pos
-	checker.reset();
-	checker.publishLanded(true);
-	checker.publishHomePosition(0, 0, 0);
 	checker.publishCurrentPosition(0, 0);
 	waypoint_from_heading_and_distance(0, 0, 0, 501, &lat_new, &lon_new);
 	mission_item.lat = lat_new;
@@ -187,24 +161,10 @@ TEST_F(FeasibilityCheckerTest, check_dist_first_waypoint)
 	checker.processNextItem(mission_item, 0, 1);
 	ASSERT_EQ(checker.someCheckFailed(), true);
 
-	// BUT WHEN: valid current position, valid Home, fist WP 499m away from current but more from Home
+	// BUT WHEN: valid current position fist WP 499m away from current
 	checker.reset();
 	checker.publishLanded(true);
-	checker.publishHomePosition(10, 20, 0); // random position far away
 	checker.publishCurrentPosition(0, 0);
-	waypoint_from_heading_and_distance(0, 0, 0, 499, &lat_new, &lon_new);
-	mission_item.lat = lat_new;
-	mission_item.lon = lon_new;
-
-	// THEN: pass
-	checker.processNextItem(mission_item, 0, 1);
-	ASSERT_EQ(checker.someCheckFailed(), false);
-
-	// BUT WHEN: valid current position (far away), valid Home, first WP 499 away from Home
-	checker.reset();
-	checker.publishLanded(true);
-	checker.publishHomePosition(0, 0, 0); // random position far away
-	checker.publishCurrentPosition(10, 0);
 	waypoint_from_heading_and_distance(0, 0, 0, 499, &lat_new, &lon_new);
 	mission_item.lat = lat_new;
 	mission_item.lon = lon_new;
