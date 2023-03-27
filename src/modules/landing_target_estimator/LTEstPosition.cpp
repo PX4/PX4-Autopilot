@@ -35,7 +35,7 @@
  * @file LTEstPosition.cpp
  * @brief Estimate the state of a target by processessing and fusing sensor data in a Kalman Filter.
  *
- * @author Jonas Perolini <jonas.perolini@epfl.ch>
+ * @author Jonas Perolini <jonspero@me.com>
  *
  */
 
@@ -74,8 +74,6 @@ LTEstPosition::~LTEstPosition()
 		delete _target_estimator[i];
 	}
 
-	delete _target_estimator_coupled;
-
 	perf_free(_ltest_predict_perf);
 	perf_free(_ltest_update_perf);
 }
@@ -85,7 +83,6 @@ bool LTEstPosition::init()
 	bool return_bool = false;
 
 	_target_mode = (TargetMode)_param_ltest_mode.get();
-	_target_model = (TargetModel)_param_ltest_model.get();
 	_ltest_aid_mask = _param_ltest_aid_mask.get();
 	_ltest_TIMEOUT_US = (uint32_t)(_param_ltest_btout.get() * SEC2USEC);
 
@@ -181,40 +178,21 @@ bool LTEstPosition::initEstimator(Vector3f pos_init, Vector3f vel_init, Vector3f
 
 	Vector3f state_target_vel;
 
-	if (_target_model == TargetModel::Coupled) {
+	for (int i = 0; i < 3; i++) {
 
-		/* Set filter initiaé state */
-		_target_estimator_coupled->setPosition(pos_init);
-		_target_estimator_coupled->setVelocity(vel_init);
-		_target_estimator_coupled->setTargetAcc(target_acc_init);
-		_target_estimator_coupled->setBias(bias_init);
-		_target_estimator_coupled->setTargetVel(state_target_vel);
+		/* Set filter initial state */
+		_target_estimator[i]->setPosition(pos_init(i));
+		_target_estimator[i]->setVelocity(vel_init(i));
+		_target_estimator[i]->setBias(bias_init(i));
+		_target_estimator[i]->setTargetAcc(target_acc_init(i));
+		_target_estimator[i]->setTargetVel(state_target_vel(i));
 
 		/* Set initial state variance */
-		_target_estimator_coupled->setStatePosVar(state_pos_var_vect);
-		_target_estimator_coupled->setStateVelVar(state_vel_var_vect);
-		_target_estimator_coupled->setStateAccVar(state_acc_var_vect);
-		_target_estimator_coupled->setStateBiasVar(state_bias_var_vect);
-		_target_estimator_coupled->setStateTargetVelVar(state_target_vel_var_vect);
-
-	} else {
-
-		for (int i = 0; i < 3; i++) {
-
-			/* Set filter initiaé state */
-			_target_estimator[i]->setPosition(pos_init(i));
-			_target_estimator[i]->setVelocity(vel_init(i));
-			_target_estimator[i]->setBias(bias_init(i));
-			_target_estimator[i]->setTargetAcc(target_acc_init(i));
-			_target_estimator[i]->setTargetVel(state_target_vel(i));
-
-			/* Set initial state variance */
-			_target_estimator[i]->setStatePosVar(state_pos_var_vect(i));
-			_target_estimator[i]->setStateVelVar(state_vel_var_vect(i));
-			_target_estimator[i]->setStateBiasVar(state_bias_var_vect(i));
-			_target_estimator[i]->setStateAccVar(state_acc_var_vect(i));
-			_target_estimator[i]->setStateTargetVelVar(state_target_vel_var_vect(i));
-		}
+		_target_estimator[i]->setStatePosVar(state_pos_var_vect(i));
+		_target_estimator[i]->setStateVelVar(state_vel_var_vect(i));
+		_target_estimator[i]->setStateBiasVar(state_bias_var_vect(i));
+		_target_estimator[i]->setStateAccVar(state_acc_var_vect(i));
+		_target_estimator[i]->setStateTargetVelVar(state_target_vel_var_vect(i));
 	}
 
 	return true;
@@ -233,27 +211,15 @@ void LTEstPosition::predictionStep(Vector3f vehicle_acc_ned)
 	const SquareMatrix<float, 3> target_acc_cov = diag(Vector3f(_target_acc_unc, _target_acc_unc, _target_acc_unc));
 	const SquareMatrix<float, 3> bias_cov = diag(Vector3f(_bias_unc, _bias_unc, _bias_unc));
 
-	if (_target_model == TargetModel::Coupled) {
+	for (int i = 0; i < 3; i++) {
+		//Decoupled dynamics, we neglect the off diag elements.
+		if (_target_mode == TargetMode::Moving) {_target_estimator[i]->setTargetAccVar(target_acc_cov(i, i));}
 
-		if (_target_mode == TargetMode::Moving || _target_mode == TargetMode::MovingAugmented) {_target_estimator_coupled->setTargetAccVar(target_acc_cov);}
+		_target_estimator[i]->setBiasVar(bias_cov(i, i));
+		_target_estimator[i]->setInputAccVar(input_cov(i, i));
 
-		_target_estimator_coupled->setBiasVar(bias_cov);
-		_target_estimator_coupled->setInputAccVar(input_cov);
-
-		_target_estimator_coupled->predictState(dt, vehicle_acc_ned);
-		_target_estimator_coupled->predictCov(dt);
-
-	} else {
-		for (int i = 0; i < 3; i++) {
-			//For decoupled dynamics, we neglect the off diag elements.
-			if (_target_mode == TargetMode::Moving || _target_mode == TargetMode::MovingAugmented) {_target_estimator[i]->setTargetAccVar(target_acc_cov(i, i));}
-
-			_target_estimator[i]->setBiasVar(bias_cov(i, i));
-			_target_estimator[i]->setInputAccVar(input_cov(i, i));
-
-			_target_estimator[i]->predictState(dt, vehicle_acc_ned(i));
-			_target_estimator[i]->predictCov(dt);
-		}
+		_target_estimator[i]->predictState(dt, vehicle_acc_ned(i));
+		_target_estimator[i]->predictCov(dt);
 	}
 }
 
@@ -366,7 +332,7 @@ bool LTEstPosition::update_step(Vector3f vehicle_acc_ned)
 		if ((_ltest_aid_mask & SensorFusionMask::USE_GPS_REL_VEL)) {
 
 			/* TARGET GPS VELOCITY */
-			if (_target_mode == TargetMode::MovingAugmented && target_GPS_updated && _target_gps_vel.valid) {
+			if (_target_mode == TargetMode::Moving && target_GPS_updated && _target_gps_vel.valid) {
 
 				obs_gps_vel_target.type = vel_target_gps;
 
@@ -376,14 +342,11 @@ bool LTEstPosition::update_step(Vector3f vehicle_acc_ned)
 			}
 
 			/* RELATIVE GPS velocity */
-			if (_uav_gps_vel.valid && ((_target_gps_vel.valid && target_GPS_updated && _target_mode == TargetMode::Moving)
-						   || (vehicle_gps_position_updated
-						       && _target_mode != TargetMode::Moving))) {
+			if (_uav_gps_vel.valid && vehicle_gps_position_updated) {
 
 				obs_gps_vel_rel.type = vel_rel_gps;
 
-				if (processObsGNSSVelRel(target_GNSS_report, target_GPS_updated, vehicle_gps_position, vehicle_gps_position_updated,
-							 obs_gps_vel_rel)) {
+				if (processObsGNSSVelRel(vehicle_gps_position, obs_gps_vel_rel)) {
 					vel_rel_GPS_valid = ((hrt_absolute_time() - obs_gps_vel_rel.timestamp) < measurement_valid_TIMEOUT_US);
 				}
 			}
@@ -514,10 +477,7 @@ bool LTEstPosition::update_step(Vector3f vehicle_acc_ned)
 				if (_target_mode == TargetMode::Stationary) {
 					vel_init = -_uav_gps_vel.xyz;
 
-				} else if ((_target_mode == TargetMode::Moving)) {
-					vel_init = target_vel_init - _uav_gps_vel.xyz;
-
-				} else if (_target_mode == TargetMode::MovingAugmented) {
+				} else if (_target_mode == TargetMode::Moving) {
 					vel_init = _uav_gps_vel.xyz;
 				}
 			}
@@ -577,77 +537,19 @@ bool LTEstPosition::processObsVision(const fiducial_marker_pos_report_s &fiducia
 
 		obs.updated_xyz.setAll(true);
 
-		if (_target_model == TargetModel::Coupled) {
+		// Assume noise correlation negligible:
 
-			// Process measurements for sequential update by diagonalizing the measurement covariance matrix
+		// h_meas = [rx, ry, rz, r_dotx, r_doty, r_dotz, bx, by, bz, atx, aty, atz]
+		obs.meas_h_xyz(0, 0) = 1;
+		obs.meas_h_xyz(1, 1) = 1;
+		obs.meas_h_xyz(2, 2) = 1;
 
-			// Sliced state: [r_x,r_y,r_z]; (real state: [pose,vel,bias,acc] or [pose,vel,bias] but assume vision measurements independent of other measurements)
-			Matrix<float, 3, 3> H_position;
-			H_position(0, 0) = 1;
-			H_position(1, 1) = 1;
-			H_position(2, 2) = 1;
+		obs.meas_xyz = vision_ned;
 
-			// Cholesky decomposition R = L*D*L.T() to find L_inv = inv(L) such that R_diag = L_inv*R*L_inv.T() = D is diagonal:
-			Matrix<float, 3, 3> L_inv = matrix::inv(matrix::choleskyLDLT(Cov_rotated));
-
-			// Diagonalize Cov_rotated:
-			Matrix<float, 3, 3> R_diag =  L_inv * Cov_rotated * L_inv.T();
-
-			bool cholesky_failed = false;
-
-			for (int i = 0; i < 3 ; i ++) {
-				// Check if the diagonal matrix has zero or negative entries
-				if (R_diag(i, i) < (float)1e-6) {
-					cholesky_failed = true;
-				}
-			}
-
-			if (cholesky_failed) {
-				PX4_DEBUG("Cholesky decomposition failed, setting Linv to identity matrix");
-				L_inv.identity();
-				R_diag = Cov_rotated;
-			}
-
-			obs.meas_unc_xyz(0) = R_diag(0, 0);
-			obs.meas_unc_xyz(1) = R_diag(1, 1);
-			obs.meas_unc_xyz(2) = R_diag(2, 2);
-
-			//Transform measurements:
-			const Vector3f Z_transformed = L_inv * vision_ned;
-
-			obs.meas_xyz = Z_transformed;
-
-			//Transform H
-			const Matrix<float, 3, 3> H_transformed = L_inv * H_position;
-
-			//Bring H_position back to the full H: [rx, ry, rz, r_dotx, r_doty, r_dotz, bx, by, bz, atx, aty, atz]
-			obs.meas_h_xyz(0, 0) = H_transformed(0, 0);
-			obs.meas_h_xyz(0, 1) = H_transformed(0, 1);
-			obs.meas_h_xyz(0, 2) = H_transformed(0, 2);
-
-			obs.meas_h_xyz(1, 0) = H_transformed(1, 0);
-			obs.meas_h_xyz(1, 1) = H_transformed(1, 1);
-			obs.meas_h_xyz(1, 2) = H_transformed(1, 2);
-
-			obs.meas_h_xyz(2, 0) = H_transformed(2, 0);
-			obs.meas_h_xyz(2, 1) = H_transformed(2, 1);
-			obs.meas_h_xyz(2, 2) = H_transformed(2, 2);
-
-		} else {
-			// Assume noise correlation negligible:
-
-			// h_meas = [rx, ry, rz, r_dotx, r_doty, r_dotz, bx, by, bz, atx, aty, atz]
-			obs.meas_h_xyz(0, 0) = 1;
-			obs.meas_h_xyz(1, 1) = 1;
-			obs.meas_h_xyz(2, 2) = 1;
-
-			obs.meas_xyz = vision_ned;
-
-			// Assume off diag elements ~ 0
-			obs.meas_unc_xyz(0) = Cov_rotated(0, 0);
-			obs.meas_unc_xyz(1) = Cov_rotated(1, 1);
-			obs.meas_unc_xyz(2) = Cov_rotated(2, 2);
-		}
+		// Assume off diag elements ~ 0
+		obs.meas_unc_xyz(0) = Cov_rotated(0, 0);
+		obs.meas_unc_xyz(1) = Cov_rotated(1, 1);
+		obs.meas_unc_xyz(2) = Cov_rotated(2, 2);
 
 		return true;
 	}
@@ -656,81 +558,37 @@ bool LTEstPosition::processObsVision(const fiducial_marker_pos_report_s &fiducia
 }
 
 /*Drone GNSS velocity observation: [r_dotx, r_doty, r_dotz]*/
-bool LTEstPosition::processObsGNSSVelRel(const landing_target_gnss_s &target_GNSS_report, bool target_GPS_updated,
-		const sensor_gps_s &vehicle_gps_position, bool vehicle_gps_vel_updated, targetObsPos &obs)
+bool LTEstPosition::processObsGNSSVelRel(const sensor_gps_s &vehicle_gps_position, targetObsPos &obs)
 {
 
-	bool obs_updated = false;
-	float unc;
+	// Make sure measurement are valid
+	if (!PX4_ISFINITE(vehicle_gps_position.vel_n_m_s) || !PX4_ISFINITE(vehicle_gps_position.vel_e_m_s)
+	    || !PX4_ISFINITE(vehicle_gps_position.vel_d_m_s)) {
+		PX4_WARN("UAV GPS velocity is corrupt!");
+		return false;
 
-	Vector3f vel_uav_ned(vehicle_gps_position.vel_n_m_s, vehicle_gps_position.vel_e_m_s, vehicle_gps_position.vel_d_m_s);
+	} else {
 
-	if (_gps_pos_is_offset) {
-		if ((_velocity_offset_ned.valid)
-		    && ((_velocity_offset_ned.timestamp - vehicle_gps_position.timestamp) < measurement_updated_TIMEOUT_US)) {
-			vel_uav_ned -= _velocity_offset_ned.xyz;
 
-		} else {
-			return false;
-		}
-	}
+		Vector3f vel_uav_ned(vehicle_gps_position.vel_n_m_s, vehicle_gps_position.vel_e_m_s, vehicle_gps_position.vel_d_m_s);
 
-	switch (_target_mode) {
-	case TargetMode::Stationary:
+		if (_gps_pos_is_offset) {
+			if ((_velocity_offset_ned.valid)
+			    && ((_velocity_offset_ned.timestamp - vehicle_gps_position.timestamp) < measurement_updated_TIMEOUT_US)) {
 
-		if (vehicle_gps_vel_updated) {
-			obs.meas_xyz = vel_uav_ned * (-1.f);
-			unc = fmaxf(vehicle_gps_position.s_variance_m_s * vehicle_gps_position.s_variance_m_s, _gps_vel_noise * _gps_vel_noise);
-			obs_updated = true;
-		}
-
-		break;
-
-	case TargetMode::Moving:
-
-		if (target_GPS_updated) {
-			const float dt_sync_us = fabs(vehicle_gps_position.timestamp - target_GNSS_report.timestamp);
-
-			// Make sure measurement makes sense
-			if (!PX4_ISFINITE(target_GNSS_report.vel_n_m_s) || !PX4_ISFINITE(target_GNSS_report.vel_e_m_s)
-			    || !PX4_ISFINITE(target_GNSS_report.vel_d_m_s)) {
-				PX4_WARN("Target GPS velocity is corrupt!");
-
-			} else if (dt_sync_us > measurement_valid_TIMEOUT_US) {
-				PX4_INFO("Target GPS velocity rejected because too old. Time sync: %.2f [ms] > timeout: %.2f [ms]",
-					 (double)(dt_sync_us / 1000), (double)(measurement_valid_TIMEOUT_US / 1000));
+				vel_uav_ned -= _velocity_offset_ned.xyz;
 
 			} else {
-
-				// If the target is moving, the relative velocity is expressed as the target velocity - drone verlocity
-				obs.meas_xyz(0) = target_GNSS_report.vel_n_m_s - vel_uav_ned(0);
-				obs.meas_xyz(1) = target_GNSS_report.vel_e_m_s - vel_uav_ned(1);
-				obs.meas_xyz(2) = target_GNSS_report.vel_d_m_s - vel_uav_ned(2);
-
-				unc = fmaxf(vehicle_gps_position.s_variance_m_s * vehicle_gps_position.s_variance_m_s,
-					    _gps_vel_noise * _gps_vel_noise) +
-				      fmaxf(target_GNSS_report.s_variance_m_s * target_GNSS_report.s_variance_m_s, _gps_vel_noise * _gps_vel_noise);
-				obs_updated = true;
+				return false;
 			}
 		}
 
-		break;
+		if (_target_mode == TargetMode::Stationary) {
+			obs.meas_xyz = vel_uav_ned * (-1.f);
 
-	case TargetMode::MovingAugmented:
-
-		if (vehicle_gps_vel_updated) {
+		} else if (_target_mode == TargetMode::Moving) {
 			obs.meas_xyz = vel_uav_ned;
-			unc = fmaxf(vehicle_gps_position.s_variance_m_s * vehicle_gps_position.s_variance_m_s, _gps_vel_noise * _gps_vel_noise);
-			obs_updated = true;
 		}
-
-		break;
-
-	case TargetMode::NotInit:
-		break;
-	}
-
-	if (obs_updated) {
 
 		// h_meas = [rx, ry, rz, r_dotx, r_doty, r_dotz, bx, by, bz, atx, aty, atz]
 		// Obs: [r_dotx, r_doty, r_dotz]
@@ -739,6 +597,8 @@ bool LTEstPosition::processObsGNSSVelRel(const landing_target_gnss_s &target_GNS
 		obs.meas_h_xyz(1, 4) = 1; // y direction
 		obs.meas_h_xyz(2, 5) = 1; // z direction
 
+		const float unc = fmaxf(vehicle_gps_position.s_variance_m_s * vehicle_gps_position.s_variance_m_s,
+					_gps_vel_noise * _gps_vel_noise);
 		obs.meas_unc_xyz(0) = unc;
 		obs.meas_unc_xyz(1) = unc;
 		obs.meas_unc_xyz(2) = unc;
@@ -812,7 +672,6 @@ bool LTEstPosition::processObsGNSSPosMission(const sensor_gps_s &vehicle_gps_pos
 		// Down direction (if the drone is above the target, the relative position is positive)
 		gps_relative_pos(2) = (vehicle_gps_position.alt - _landing_pos.alt) / 1000.f; // transform mm to m
 
-		// Offset gps relative position to the center of mass:
 		if (_gps_pos_is_offset) {
 			if ((_gps_pos_offset_ned.valid)
 			    && ((_gps_pos_offset_ned.timestamp - vehicle_gps_position.timestamp) < measurement_updated_TIMEOUT_US)) {
@@ -924,6 +783,7 @@ bool LTEstPosition::processObsGNSSPosTarget(const landing_target_gnss_s &target_
 						       _gps_pos_noise * _gps_pos_noise) + fmaxf(gps_target_eph * gps_target_eph, _gps_pos_noise * _gps_pos_noise);
 		const float gps_unc_vertical = fmaxf(vehicle_gps_position.epv * vehicle_gps_position.epv,
 						     _gps_pos_noise * _gps_pos_noise) + fmaxf(gps_target_epv * gps_target_epv, _gps_pos_noise * _gps_pos_noise);
+
 
 		// GPS already in NED, no rotation required.
 		// h_meas = [rx, ry, rz, r_dotx, r_doty, r_dotz, bx, by, bz, atx, aty, atz]
@@ -1105,7 +965,7 @@ bool LTEstPosition::fuse_meas(const Vector3f vehicle_acc_ned, const targetObsPos
 		target_innov.timestamp_sample = target_pos_obs.timestamp;
 		target_innov.timestamp = hrt_absolute_time();
 
-		// Loop over x,y,z directions. Note: even with coupled dynamics we have a sequential update of measurements in x,y,z directions separately
+		// Loop over x,y,z directions.
 		for (int j = 0; j < 3; j++) {
 
 			//If the measurement of this filter (x,y or z) has not been updated:
@@ -1125,30 +985,15 @@ bool LTEstPosition::fuse_meas(const Vector3f vehicle_acc_ned, const targetObsPos
 				//Get the corresponding row of the H matrix.
 				meas_h_row = target_pos_obs.meas_h_xyz.row(j);
 
-				// Sync measurement using the prediction model
-				if (_target_model == TargetModel::Coupled) {
-
-					// Move state back to the measurement time of validity. The state synchronized with the measurement will be used to compute the innovation.
-					_target_estimator_coupled->syncState(dt_sync_s, vehicle_acc_ned);
-					_target_estimator_coupled->setH(meas_h_row);
-					// Compute innovations and fill thet target innovation message
-					target_innov.innovation_variance[j] = _target_estimator_coupled->computeInnovCov(
-							target_pos_obs.meas_unc_xyz(j));
-					target_innov.innovation[j] = _target_estimator_coupled->computeInnov(target_pos_obs.meas_xyz(j));
-					// Update step
-					meas_xyz_fused(j) = _target_estimator_coupled->update();
-
-				} else {
-					// Move state back to the measurement time of validity. The state synchronized with the measurement will be used to compute the innovation.
-					_target_estimator[j]->syncState(dt_sync_s, vehicle_acc_ned(j));
-					_target_estimator[j]->setH(meas_h_row, j);
-					// Compute innovations and fill thet target innovation message
-					target_innov.innovation_variance[j] = _target_estimator[j]->computeInnovCov(
-							target_pos_obs.meas_unc_xyz(j));
-					target_innov.innovation[j] = _target_estimator[j]->computeInnov(target_pos_obs.meas_xyz(j));
-					// Update step
-					meas_xyz_fused(j) = _target_estimator[j]->update();
-				}
+				// Move state back to the measurement time of validity. The state synchronized with the measurement will be used to compute the innovation.
+				_target_estimator[j]->syncState(dt_sync_s, vehicle_acc_ned(j));
+				_target_estimator[j]->setH(meas_h_row, j);
+				// Compute innovations and fill thet target innovation message
+				target_innov.innovation_variance[j] = _target_estimator[j]->computeInnovCov(
+						target_pos_obs.meas_unc_xyz(j));
+				target_innov.innovation[j] = _target_estimator[j]->computeInnov(target_pos_obs.meas_xyz(j));
+				// Update step
+				meas_xyz_fused(j) = _target_estimator[j]->update();
 
 				// Fill the target innovation message
 				target_innov.fusion_enabled[j] = true;
@@ -1225,169 +1070,79 @@ void LTEstPosition::publishTarget()
 	// Only enable if the variance in the estimation is low enough
 	target_pose.rel_vel_valid = false;
 
-	if (_target_model == TargetModel::Coupled) {
+	// Fill target pose
+	target_pose.x_rel = _target_estimator[x]->getPosition();
+	target_pose.y_rel = _target_estimator[y]->getPosition();
+	target_pose.z_rel = _target_estimator[z]->getPosition();
 
-		// Fill target pose
-		const Vector3f pos_vect = _target_estimator_coupled->getPositionVect();
-		target_pose.x_rel = pos_vect(0);
-		target_pose.y_rel = pos_vect(1);
-		target_pose.z_rel = pos_vect(2);
+	target_pose.cov_x_rel = _target_estimator[x]->getPosVar();
+	target_pose.cov_y_rel = _target_estimator[y]->getPosVar();
+	target_pose.cov_z_rel = _target_estimator[z]->getPosVar();
 
-		const Vector3f cov_pos_vect = _target_estimator_coupled->getPosVarVect();
-		target_pose.cov_x_rel = cov_pos_vect(0);
-		target_pose.cov_y_rel = cov_pos_vect(1);
-		target_pose.cov_z_rel = cov_pos_vect(2);
+	target_pose.vx_rel = _target_estimator[x]->getVelocity();
+	target_pose.vy_rel = _target_estimator[y]->getVelocity();
+	target_pose.vz_rel = _target_estimator[z]->getVelocity();
 
-		const Vector3f vel_vect = _target_estimator_coupled->getVelocityVect();
-		target_pose.vx_rel = vel_vect(0);
-		target_pose.vy_rel = vel_vect(1);
-		target_pose.vz_rel = vel_vect(2);
+	target_pose.cov_vx_rel = _target_estimator[x]->getVelVar();
+	target_pose.cov_vy_rel = _target_estimator[y]->getVelVar();
+	target_pose.cov_vz_rel = _target_estimator[z]->getVelVar();
 
-		const Vector3f cov_vel_vect = _target_estimator_coupled->getVelVarVect();
-		target_pose.cov_vx_rel = cov_vel_vect(0);
-		target_pose.cov_vy_rel = cov_vel_vect(1);
-		target_pose.cov_vz_rel = cov_vel_vect(2);
+	if (_target_mode == TargetMode::Moving) {
 
-		if (_target_mode == TargetMode::MovingAugmented) {
+		target_estimator_state.vx_target = _target_estimator[x]->getTargetVel();
+		target_estimator_state.vy_target = _target_estimator[y]->getTargetVel();
+		target_estimator_state.vz_target = _target_estimator[z]->getTargetVel();
 
-			// Fill target state msg
-			const Vector3f vel_target_vect = _target_estimator_coupled->getTargetVel();
-			target_estimator_state.vx_target = vel_target_vect(0);
-			target_estimator_state.vy_target = vel_target_vect(1);
-			target_estimator_state.vz_target = vel_target_vect(2);
+		target_estimator_state.cov_vx_target = _target_estimator[x]->getTargetVelVar();
+		target_estimator_state.cov_vy_target = _target_estimator[y]->getTargetVelVar();
+		target_estimator_state.cov_vz_target = _target_estimator[z]->getTargetVelVar();
 
-			const Vector3f cov_vel_target_vect = _target_estimator_coupled->getTargetVelVar();
-			target_estimator_state.cov_vx_target = cov_vel_target_vect(0);
-			target_estimator_state.cov_vy_target = cov_vel_target_vect(1);
-			target_estimator_state.cov_vz_target = cov_vel_target_vect(2);
+		target_pose.vx_rel = target_estimator_state.vx_target - target_pose.vx_rel;
+		target_pose.vy_rel = target_estimator_state.vy_target - target_pose.vy_rel;
+		target_pose.vz_rel = target_estimator_state.vz_target - target_pose.vz_rel;
 
-			/* Var(aX + bY) = a^2 Var(x) + b^2 Var(y) + 2abCov(X,Y) */
-			target_pose.cov_vx_rel += cov_vel_target_vect(0);
-			target_pose.cov_vy_rel += cov_vel_target_vect(1);
-			target_pose.cov_vz_rel += cov_vel_target_vect(2);
-
-			// Overwrite Target pose msg
-			target_pose.vx_rel = vel_target_vect(0) - vel_vect(0);
-			target_pose.vy_rel = vel_target_vect(1) - vel_vect(1);
-			target_pose.vz_rel = vel_target_vect(2) - vel_vect(2);
-		}
-
-		// Fill target estimator state
-		target_estimator_state.x_rel = target_pose.x_rel;
-		target_estimator_state.y_rel = target_pose.y_rel;
-		target_estimator_state.z_rel = target_pose.z_rel;
-
-		target_estimator_state.cov_x_rel = target_pose.cov_x_rel;
-		target_estimator_state.cov_y_rel = target_pose.cov_y_rel;
-		target_estimator_state.cov_z_rel = target_pose.cov_z_rel;
-
-		target_estimator_state.vx_rel = target_pose.vx_rel;
-		target_estimator_state.vy_rel = target_pose.vy_rel;
-		target_estimator_state.vz_rel = target_pose.vz_rel;
-
-		target_estimator_state.cov_vx_rel = target_pose.cov_vx_rel;
-		target_estimator_state.cov_vy_rel = target_pose.cov_vy_rel;
-		target_estimator_state.cov_vz_rel = target_pose.cov_vz_rel;
-
-		const Vector3f bias_vect = _target_estimator_coupled->getBiasVect();
-		target_estimator_state.x_bias = bias_vect(0);
-		target_estimator_state.y_bias = bias_vect(1);
-		target_estimator_state.z_bias = bias_vect(2);
-
-		const Vector3f cov_bias_vect = _target_estimator_coupled->getBiasVarVect();
-		target_estimator_state.cov_x_bias = cov_bias_vect(0);
-		target_estimator_state.cov_y_bias = cov_bias_vect(1);
-		target_estimator_state.cov_z_bias = cov_bias_vect(2);
-
-		if (_target_mode == TargetMode::Moving || _target_mode == TargetMode::MovingAugmented) {
-
-			const Vector3f acc_target_vect = _target_estimator_coupled->getAccelerationVect();
-			target_estimator_state.ax_target = acc_target_vect(0);
-			target_estimator_state.ay_target = acc_target_vect(1);
-			target_estimator_state.az_target = acc_target_vect(2);
-
-			const Vector3f cov_acc_target_vect = _target_estimator_coupled->getAccVarVect();
-			target_estimator_state.cov_ax_target = cov_acc_target_vect(0);
-			target_estimator_state.cov_ay_target = cov_acc_target_vect(1);
-			target_estimator_state.cov_az_target = cov_acc_target_vect(2);
-		}
-
-	} else {
-
-		// Fill target pose
-		target_pose.x_rel = _target_estimator[x]->getPosition();
-		target_pose.y_rel = _target_estimator[y]->getPosition();
-		target_pose.z_rel = _target_estimator[z]->getPosition();
-
-		target_pose.cov_x_rel = _target_estimator[x]->getPosVar();
-		target_pose.cov_y_rel = _target_estimator[y]->getPosVar();
-		target_pose.cov_z_rel = _target_estimator[z]->getPosVar();
-
-		target_pose.vx_rel = _target_estimator[x]->getVelocity();
-		target_pose.vy_rel = _target_estimator[y]->getVelocity();
-		target_pose.vz_rel = _target_estimator[z]->getVelocity();
-
-		target_pose.cov_vx_rel = _target_estimator[x]->getVelVar();
-		target_pose.cov_vy_rel = _target_estimator[y]->getVelVar();
-		target_pose.cov_vz_rel = _target_estimator[z]->getVelVar();
-
-		if (_target_mode == TargetMode::MovingAugmented) {
-
-			target_estimator_state.vx_target = _target_estimator[x]->getTargetVel();
-			target_estimator_state.vy_target = _target_estimator[y]->getTargetVel();
-			target_estimator_state.vz_target = _target_estimator[z]->getTargetVel();
-
-			target_estimator_state.cov_vx_target = _target_estimator[x]->getTargetVelVar();
-			target_estimator_state.cov_vy_target = _target_estimator[y]->getTargetVelVar();
-			target_estimator_state.cov_vz_target = _target_estimator[z]->getTargetVelVar();
-
-			target_pose.vx_rel = target_estimator_state.vx_target - target_pose.vx_rel;
-			target_pose.vy_rel = target_estimator_state.vy_target - target_pose.vy_rel;
-			target_pose.vz_rel = target_estimator_state.vz_target - target_pose.vz_rel;
-
-			/* Var(aX + bY) = a^2 Var(x) + b^2 Var(y) + 2abCov(X,Y) */
-			target_pose.cov_vx_rel += target_estimator_state.cov_vx_target;
-			target_pose.cov_vy_rel += target_estimator_state.cov_vy_target;
-			target_pose.cov_vz_rel += target_estimator_state.cov_vz_target;
-		}
-
-		// Fill target estimator state
-		target_estimator_state.x_rel = target_pose.x_rel;
-		target_estimator_state.y_rel = target_pose.y_rel;
-		target_estimator_state.z_rel = target_pose.z_rel;
-
-		target_estimator_state.cov_x_rel = target_pose.cov_x_rel;
-		target_estimator_state.cov_y_rel = target_pose.cov_y_rel;
-		target_estimator_state.cov_z_rel = target_pose.cov_z_rel;
-
-		target_estimator_state.vx_rel = target_pose.vx_rel;
-		target_estimator_state.vy_rel = target_pose.vy_rel;
-		target_estimator_state.vz_rel = target_pose.vz_rel;
-
-		target_estimator_state.cov_vx_rel = target_pose.cov_vx_rel;
-		target_estimator_state.cov_vy_rel = target_pose.cov_vy_rel;
-		target_estimator_state.cov_vz_rel = target_pose.cov_vz_rel;
-
-		target_estimator_state.x_bias = _target_estimator[x]->getBias();
-		target_estimator_state.y_bias = _target_estimator[y]->getBias();
-		target_estimator_state.z_bias = _target_estimator[z]->getBias();
-
-		target_estimator_state.cov_x_bias = _target_estimator[x]->getBiasVar();
-		target_estimator_state.cov_y_bias = _target_estimator[y]->getBiasVar();
-		target_estimator_state.cov_z_bias = _target_estimator[z]->getBiasVar();
-
-		if (_target_mode == TargetMode::Moving || _target_mode == TargetMode::MovingAugmented) {
-			target_estimator_state.ax_target = _target_estimator[x]->getAcceleration();
-			target_estimator_state.ay_target = _target_estimator[y]->getAcceleration();
-			target_estimator_state.az_target = _target_estimator[z]->getAcceleration();
-
-			target_estimator_state.cov_ax_target = _target_estimator[x]->getAccVar();
-			target_estimator_state.cov_ay_target = _target_estimator[y]->getAccVar();
-			target_estimator_state.cov_az_target = _target_estimator[z]->getAccVar();
-		}
+		/* Var(aX + bY) = a^2 Var(x) + b^2 Var(y) + 2abCov(X,Y) */
+		target_pose.cov_vx_rel += target_estimator_state.cov_vx_target;
+		target_pose.cov_vy_rel += target_estimator_state.cov_vy_target;
+		target_pose.cov_vz_rel += target_estimator_state.cov_vz_target;
 	}
 
-	// prec land does not check target_pose.abs_pos_valid. Only send the target if bas pose valid.
+	// Fill target estimator state
+	target_estimator_state.x_rel = target_pose.x_rel;
+	target_estimator_state.y_rel = target_pose.y_rel;
+	target_estimator_state.z_rel = target_pose.z_rel;
+
+	target_estimator_state.cov_x_rel = target_pose.cov_x_rel;
+	target_estimator_state.cov_y_rel = target_pose.cov_y_rel;
+	target_estimator_state.cov_z_rel = target_pose.cov_z_rel;
+
+	target_estimator_state.vx_rel = target_pose.vx_rel;
+	target_estimator_state.vy_rel = target_pose.vy_rel;
+	target_estimator_state.vz_rel = target_pose.vz_rel;
+
+	target_estimator_state.cov_vx_rel = target_pose.cov_vx_rel;
+	target_estimator_state.cov_vy_rel = target_pose.cov_vy_rel;
+	target_estimator_state.cov_vz_rel = target_pose.cov_vz_rel;
+
+	target_estimator_state.x_bias = _target_estimator[x]->getBias();
+	target_estimator_state.y_bias = _target_estimator[y]->getBias();
+	target_estimator_state.z_bias = _target_estimator[z]->getBias();
+
+	target_estimator_state.cov_x_bias = _target_estimator[x]->getBiasVar();
+	target_estimator_state.cov_y_bias = _target_estimator[y]->getBiasVar();
+	target_estimator_state.cov_z_bias = _target_estimator[z]->getBiasVar();
+
+	if (_target_mode == TargetMode::Moving) {
+		target_estimator_state.ax_target = _target_estimator[x]->getAcceleration();
+		target_estimator_state.ay_target = _target_estimator[y]->getAcceleration();
+		target_estimator_state.az_target = _target_estimator[z]->getAcceleration();
+
+		target_estimator_state.cov_ax_target = _target_estimator[x]->getAccVar();
+		target_estimator_state.cov_ay_target = _target_estimator[y]->getAccVar();
+		target_estimator_state.cov_az_target = _target_estimator[z]->getAccVar();
+	}
+
+	// Prec land does not check target_pose.abs_pos_valid. Only send the target if abs pose valid.
 	if (_local_position.valid) {
 		target_pose.x_abs = target_pose.x_rel + _local_position.xyz(0);
 		target_pose.y_abs = target_pose.y_rel + _local_position.xyz(1);
@@ -1507,70 +1262,31 @@ bool LTEstPosition::selectTargetEstimator()
 	Base_KF_decoupled *tmp_x = nullptr;
 	Base_KF_decoupled *tmp_y = nullptr;
 	Base_KF_decoupled *tmp_z = nullptr;
-	Base_KF_coupled *tmp_xyz = nullptr;
 
 	switch (_target_mode) {
 	case TargetMode::Stationary:
 
-		if (_target_model == TargetModel::Decoupled) {
-
-			tmp_x = new KF_xyzb_decoupled_static;
-			tmp_y = new KF_xyzb_decoupled_static;
-			tmp_z = new KF_xyzb_decoupled_static;
-			PX4_INFO("Init LTEst: static target, [x,y,z,b] decoupled in three filters.");
-
-		} else {
-
-			tmp_xyz = new KF_xyzb_coupled_static;
-			PX4_INFO("Init LTEst: static target, [x,y,z,b] coupled in one filter.");
-		}
+		tmp_x = new KF_xyzb_decoupled_static;
+		tmp_y = new KF_xyzb_decoupled_static;
+		tmp_z = new KF_xyzb_decoupled_static;
+		PX4_INFO("Init LTEst: static target, [x,y,z,b] decoupled in three filters.");
 
 		break;
 
 	case TargetMode::Moving:
 
-		if (_target_model == TargetModel::Decoupled) {
-
-			tmp_x = new KF_xyzb_decoupled_moving;
-			tmp_y = new KF_xyzb_decoupled_moving;
-			tmp_z = new KF_xyzb_decoupled_moving;
-			PX4_INFO("Init LTEst: moving target, [x,y,z,b] decoupled in three filters.");
-
-		} else {
-
-			tmp_xyz = new KF_xyzb_coupled_moving;
-			PX4_INFO("Init LTEST: moving target, [x,y,z,b] coupled in one filter.");
-		}
+		tmp_x = new KF_xyzb_v_decoupled_moving;
+		tmp_y = new KF_xyzb_v_decoupled_moving;
+		tmp_z = new KF_xyzb_v_decoupled_moving;
+		PX4_INFO("Init LTEst: moving target, [x,y,z,b,v] decoupled in three filters.");
 
 		break;
-
-	case TargetMode::MovingAugmented:
-
-		if (_target_model == TargetModel::Decoupled) {
-
-			tmp_x = new KF_xyzb_v_decoupled_moving;
-			tmp_y = new KF_xyzb_v_decoupled_moving;
-			tmp_z = new KF_xyzb_v_decoupled_moving;
-			PX4_INFO("Init LTEst: moving target, [x,y,z,b,v] decoupled in three filters.");
-
-		} else {
-			tmp_xyz = new KF_xyzb_v_coupled_moving;
-			PX4_INFO("Init LTEST: moving target, [x,y,z,b,v] coupled in one filter.");
-		}
 
 	case TargetMode::NotInit:
 		break;
 	}
 
-	bool init_failed = true;
-
-	if (_target_model == TargetModel::Decoupled) {
-		init_failed = ((tmp_x == nullptr) || (tmp_y == nullptr) || (tmp_z == nullptr));
-
-	} else {
-
-		init_failed = (tmp_xyz == nullptr);
-	}
+	const bool init_failed = ((tmp_x == nullptr) || (tmp_y == nullptr) || (tmp_z == nullptr));
 
 	if (init_failed) {
 		PX4_ERR("LTE init failed");
@@ -1578,28 +1294,13 @@ bool LTEstPosition::selectTargetEstimator()
 
 	} else {
 
-		switch (_target_model) {
-		case TargetModel::Decoupled:
+		delete _target_estimator[x];
+		delete _target_estimator[y];
+		delete _target_estimator[z];
 
-			delete _target_estimator[x];
-			delete _target_estimator[y];
-			delete _target_estimator[z];
-
-			_target_estimator[x] = tmp_x;
-			_target_estimator[y] = tmp_y;
-			_target_estimator[z] = tmp_z;
-
-			break;
-
-		case TargetModel::Coupled:
-			delete _target_estimator_coupled;
-			_target_estimator_coupled = tmp_xyz;
-
-			break;
-
-		case TargetModel::NotInit:
-			break;
-		}
+		_target_estimator[x] = tmp_x;
+		_target_estimator[y] = tmp_y;
+		_target_estimator[z] = tmp_z;
 
 		return true;
 	}

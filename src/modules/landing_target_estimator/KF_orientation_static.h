@@ -35,7 +35,7 @@
  * @file KF_orientation_static.h
  * @brief Filter to estimate the orientation of static targets. State: [theta]
  *
- * @author Jonas Perolini <jonas.perolini@epfl.ch>
+ * @author Jonas Perolini <jonspero@me.com>
  *
  */
 

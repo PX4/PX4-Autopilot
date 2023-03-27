@@ -35,7 +35,7 @@
  * @file KF_xyzb_decoupled_static.cpp
  * @brief Filter to estimate the pose of static targets. State: [r, r_dot, bias]
  *
- * @author Jonas Perolini <jonas.perolini@epfl.ch>
+ * @author Jonas Perolini <jonspero@me.com>
  *
  */
 
@@ -63,7 +63,7 @@ void KF_xyzb_decoupled_static::predictCov(float dt)
 bool KF_xyzb_decoupled_static::update()
 {
 	// Avoid zero-division
-	if ((float)abs(_innov_cov) < (float)1e-6) {
+	if (fabsf(_innov_cov) < 1e-6f) {
 		return false;
 	}
 

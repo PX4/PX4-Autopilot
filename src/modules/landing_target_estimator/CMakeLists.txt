@@ -41,13 +41,9 @@ px4_add_module(
 		LandingTargetEst.cpp
 		LTEstPosition.cpp
 		LTEstOrientation.cpp
-		KF_xyzb_coupled_moving.cpp
-		KF_xyzb_v_coupled_moving.cpp
 		KF_xyzb_v_decoupled_moving.cpp
-		KF_xyzb_decoupled_moving.cpp
 		KF_orientation_moving.cpp
 		KF_xyzb_decoupled_static.cpp
-		KF_xyzb_coupled_static.cpp
 		KF_orientation_static.cpp
 	DEPENDS
 		mathlib

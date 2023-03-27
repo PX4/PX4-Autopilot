@@ -34,7 +34,7 @@
 /**
  * @file base_KF_orientation.h
  * @brief Interface for orientation target estimator
- * @author Jonas Perolini <jonas.perolini@epfl.ch>
+ * @author Jonas Perolini <jonspero@me.com>
  */
 
 #pragma once

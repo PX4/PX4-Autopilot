@@ -35,7 +35,7 @@
  * @file KF_xyzb_v_decoupled_moving.h
  * @brief Filter to estimate the pose of moving targets. State: [r, vd, b, at, vt]
  *
- * @author Jonas Perolini <jonas.perolini@epfl.ch>
+ * @author Jonas Perolini <jonspero@me.com>
  *
  */
 

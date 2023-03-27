@@ -2519,7 +2519,7 @@ MavlinkReceiver::handle_message_target_relative(mavlink_message_t *msg)
 
 	} else {
 		/* Check if the sensor's attitude field is filled. */
-		if ((abs(q_sensor(0)) + abs(q_sensor(1)) + abs(q_sensor(2)) + abs(q_sensor(3))) > (float)1e-6) {
+		if ((fabsf(q_sensor(0)) + fabsf(q_sensor(1)) + fabsf(q_sensor(2)) + fabsf(q_sensor(3))) > (float)1e-6) {
 			publish_target = true;
 
 		} else {

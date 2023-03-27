@@ -35,7 +35,7 @@
  * @file LandingTargetEst.cpp
  * @brief Handles the position and orientation estimators.
  *
- * @author Jonas Perolini <jonas.perolini@epfl.ch>
+ * @author Jonas Perolini <jonspero@me.com>
  *
  */
 
@@ -348,7 +348,6 @@ bool LandingTargetEst::get_input(matrix::Vector3f &vehicle_acc_ned, matrix::Vect
 		return false;
 
 	} else {
-
 		/* Transform FRD body acc to NED */
 		const matrix::Quaternionf quat_att(&vehicle_attitude.q[0]);
 		const matrix::Vector3f vehicle_acc{vehicle_acceleration.xyz};

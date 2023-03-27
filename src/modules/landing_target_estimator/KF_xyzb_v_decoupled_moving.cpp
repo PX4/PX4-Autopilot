@@ -35,7 +35,7 @@
  * @file KF_xyzb_v_decoupled_moving.cpp
  * @brief Filter to estimate the pose of moving targets. State: [r, vd, b, at, vt]
  *
- * @author Jonas Perolini <jonas.perolini@epfl.ch>
+ * @author Jonas Perolini <jonspero@me.com>
  *
  */
 
@@ -69,7 +69,7 @@ void KF_xyzb_v_decoupled_moving::predictCov(float dt)
 bool KF_xyzb_v_decoupled_moving::update()
 {
 	// Avoid zero-division
-	if ((float)abs(_innov_cov) < (float)1e-6) {
+	if (fabsf(_innov_cov) < 1e-6f) {
 		return false;
 	}
 

@@ -35,7 +35,7 @@
  * @file LandingTargetEst.h
  * @brief Handles the position and orientation estimators.
  *
- * @author Jonas Perolini <jonas.perolini@epfl.ch>
+ * @author Jonas Perolini <jonspero@me.com>
  *
  */
 

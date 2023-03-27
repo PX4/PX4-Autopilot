@@ -35,7 +35,7 @@
  * @file KF_orientation_moving.cpp
  * @brief Filter to estimate the orientation of moving targets. State: [theta, theta_dot]
  *
- * @author Jonas Perolini <jonas.perolini@epfl.ch>
+ * @author Jonas Perolini <jonspero@me.com>
  *
  */
 
@@ -75,7 +75,7 @@ void KF_orientation_moving::predictCov(float dt)
 bool KF_orientation_moving::update()
 {
 	// Avoid zero-division
-	if ((float)abs(_innov_cov) < (float)1e-6) {
+	if (fabsf(_innov_cov) < 1e-6f) {
 		return false;
 	}
 

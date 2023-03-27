@@ -34,7 +34,7 @@
 /**
  * @file Base_KF_decoupled.h
  * @brief Interface for decoupled target estimators
- * @author Jonas Perolini <jonas.perolini@epfl.ch>
+ * @author Jonas Perolini <jonspero@me.com>
  */
 
 #pragma once

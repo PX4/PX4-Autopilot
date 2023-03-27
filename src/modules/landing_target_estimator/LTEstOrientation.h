@@ -35,7 +35,7 @@
  * @file LTEstOrientation.h
  * @brief Estimate the orientation of a target by processessing and fusing sensor data in a Kalman Filter.
  *
- * @author Jonas Perolini <jonas.perolini@epfl.ch>
+ * @author Jonas Perolini <jonspero@me.com>
  *
  */
 

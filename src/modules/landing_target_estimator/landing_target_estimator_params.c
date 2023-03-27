@@ -35,7 +35,7 @@
  * @file landing_target_estimator_params.c
  * Landing target estimator algorithm parameters.
  *
- * @author Jonas Perolini <jonas.perolini@epfl.ch>
+ * @author Jonas Perolini <jonspero@me.com>
  * @author Nicolas de Palezieux (Sunflower Labs) <ndepal@gmail.com>
  * @author Mohammed Kabir <kabir@uasys.io>
  *
@@ -101,37 +101,17 @@ PARAM_DEFINE_INT32(LTEST_AID_MASK, 46);
  * Configure the mode of the landing target. Depending on the mode, the state of the estimator (Kalman filter) varies. For static targets, the landing target observations can be used to aid position estimation.
  *
  * Mode Static: The landing target is static, the state of the Kalman filter is: [relative position, relative velocity, bias]. If the observations have a low variance,they can be used to aid position estimation.
- * Mode Moving: The landing target may be moving around, the state of the Kalman filter is: [relative position, relative velocity, bias, target's acceleration]
- * Mode Moving Augmented State: The landing target may be moving around, the state of the Kalman filter is: [relative position, drone velocity, bias, target's acceleration, target's velocity]. The state is augmented to estimate both the drone's velocity and the target's velocity (when comapred to the mocing mode where the relative velocity is estimated).
+ * Mode Moving: The landing target may be moving around, the state of the Kalman filter is: [relative position, drone velocity, bias, target's acceleration, target's velocity].
  *
  * @min 0
  * @max 2
  * @group Landing target Estimator
  * @value 0 Static
  * @value 1 Moving
- * @value 2 Moving Aug. State
  *
  * @group Landing target Estimator
  */
 PARAM_DEFINE_INT32(LTEST_MODE, 1);
-
-/**
- * Landing target model
- *
- * Configure the Kalman Filter model used to predict the state of the filter.
- *
- * Mode decoupled: One KF per direction: x,y,z decoupled
- * Mode coupled: One KF for all directions: [x,y,z] coupled
- *
- * @min 0
- * @max 2
- * @group Landing target Estimator
- * @value 0 Decoupled
- * @value 1 Coupled
- *
- * @group Landing target Estimator
- */
-PARAM_DEFINE_INT32(LTEST_MODEL, 1);
 
 
 /**

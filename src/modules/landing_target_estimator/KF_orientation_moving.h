@@ -35,7 +35,7 @@
  * @file KF_orientation_moving.h
  * @brief Filter to estimate the orientation of moving targets. State: [theta, theta_dot]
  *
- * @author Jonas Perolini <jonas.perolini@epfl.ch>
+ * @author Jonas Perolini <jonspero@me.com>
  *
  */
 

@@ -35,7 +35,7 @@
  * @file LTEstPosition.h
  * @brief Estimate the state of a target by processessing and fusing sensor data in a Kalman Filter.
  *
- * @author Jonas Perolini <jonas.perolini@epfl.ch>
+ * @author Jonas Perolini <jonspero@me.com>
  *
  */
 
@@ -72,11 +72,7 @@
 #include <lib/conversion/rotation.h>
 #include <lib/geo/geo.h>
 #include "KF_xyzb_decoupled_static.h"
-#include "KF_xyzb_decoupled_moving.h"
 #include "KF_xyzb_v_decoupled_moving.h"
-#include "KF_xyzb_coupled_moving.h"
-#include "KF_xyzb_v_coupled_moving.h"
-#include "KF_xyzb_coupled_static.h"
 
 using namespace time_literals;
 
@@ -152,18 +148,10 @@ private:
 	enum class TargetMode {
 		Stationary = 0,
 		Moving = 1,
-		MovingAugmented = 2,
-		NotInit
-	};
-
-	enum class TargetModel {
-		Decoupled = 0,
-		Coupled = 1,
 		NotInit
 	};
 
 	TargetMode _target_mode{TargetMode::NotInit};
-	TargetModel _target_model{TargetModel::NotInit};
 
 	enum ObservationType {
 		target_gps_pos = 0,
@@ -216,9 +204,7 @@ private:
 	bool processObsGNSSPosTarget(const landing_target_gnss_s &target_GNSS_report,
 				     const sensor_gps_s &vehicle_gps_position, targetObsPos &obs);
 	bool processObsGNSSPosMission(const sensor_gps_s &vehicle_gps_position, targetObsPos &obs);
-	bool processObsGNSSVelRel(const landing_target_gnss_s &target_GNSS_report, bool target_GNSS_report_valid,
-				  const sensor_gps_s &vehicle_gps_position, bool vehicle_gps_vel_updated,
-				  targetObsPos &obs);
+	bool processObsGNSSVelRel(const sensor_gps_s &vehicle_gps_position, targetObsPos &obs);
 	bool processObsGNSSVelTarget(const landing_target_gnss_s &target_GNSS_report, targetObsPos &obs);
 
 	bool fuse_meas(const matrix::Vector3f vehicle_acc_ned, const targetObsPos &target_pos_obs);
@@ -277,7 +263,6 @@ private:
 
 	matrix::Quaternionf _q_att; //Quaternion orientation of the body frame
 	Base_KF_decoupled *_target_estimator[nb_directions] {nullptr, nullptr, nullptr};
-	Base_KF_coupled *_target_estimator_coupled {nullptr};
 	hrt_abstime _last_predict{0}; // timestamp of last filter prediction
 	hrt_abstime _last_update{0}; // timestamp of last filter update (used to check timeout)
 
@@ -314,7 +299,6 @@ private:
 		(ParamInt<px4::params::LTE_EV_NOISE_MD>) _param_ltest_ev_noise_md,
 		(ParamFloat<px4::params::LTE_EVP_NOISE>) _param_ltest_ev_pos_noise,
 		(ParamInt<px4::params::LTEST_MODE>) _param_ltest_mode,
-		(ParamInt<px4::params::LTEST_MODEL>) _param_ltest_model,
 		(ParamFloat<px4::params::LTEST_SCALE_X>) _param_ltest_scale_x,
 		(ParamFloat<px4::params::LTEST_SCALE_Y>) _param_ltest_scale_y,
 		(ParamInt<px4::params::LTEST_SENS_ROT>) _param_ltest_sens_rot,
