@@ -1310,8 +1310,6 @@ FixedwingPositionControl::control_auto_path(const float control_interval, const 
 	}
 
 	// waypoint is a plain navigation waypoint
-	float position_sp_alt = pos_sp_curr.alt;
-
 	float target_airspeed = adapt_airspeed_setpoint(control_interval, pos_sp_curr.cruising_speed,
 				_param_fw_airspd_min.get(), ground_speed);
 
@@ -1333,16 +1331,14 @@ FixedwingPositionControl::control_auto_path(const float control_interval, const 
 	_att_sp.yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
 
 	tecs_update_pitch_throttle(control_interval,
-				   position_sp_alt,
+				   pos_sp_curr.alt,
 				   target_airspeed,
 				   radians(_param_fw_p_lim_min.get()),
 				   radians(_param_fw_p_lim_max.get()),
 				   tecs_fw_thr_min,
 				   tecs_fw_thr_max,
 				   _param_sinkrate_target.get(),
-				   _param_climbrate_target.get(),
-				   false,
-				   pos_sp_curr.vz);
+				   _param_climbrate_target.get());
 }
 
 void
