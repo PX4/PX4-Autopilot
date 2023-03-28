@@ -670,11 +670,10 @@ void Navigator::run()
 				case RTL::RTL_TYPE_MISSION_LANDING:
 				case RTL::RTL_TYPE_CLOSEST:
 
-					if (!rtl_activated_now && _rtl.getRTLState() > RTL::RTLState::RTL_STATE_LOITER
-					    && _rtl.getShouldEngageMissionForLanding()) {
+					if (!rtl_activated_now && on_mission_landing() && _rtl.getShouldEngageMissionForLanding()) {
 						_mission.set_execution_mode(mission_result_s::MISSION_EXECUTION_MODE_FAST_FORWARD);
 
-						if (!getMissionLandingInProgress() && _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED
+						if (!on_mission_landing() && _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED
 						    && !get_land_detected()->landed) {
 							start_mission_landing();
 						}
