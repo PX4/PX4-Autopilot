@@ -121,10 +121,11 @@ void imxrt_usbsuspend(FAR struct usbdev_s *dev, bool resume)
  * Returns -  0 if connected.
  *
  ************************************************************************************/
+#undef IMXRT_USB_ANALOG_USB1_VBUS_DETECT_STAT
+#define USB1_VBUS_DET_STAT_OFFSET               0xd0
+#define IMXRT_USB_ANALOG_USB1_VBUS_DETECT_STAT (IMXRT_USBPHY1_BASE + USB1_VBUS_DET_STAT_OFFSET)
 
 int board_read_VBUS_state(void)
 {
-	return 1;
-	/*
-	return (getreg32(IMXRT_USB_ANALOG_USB1_VBUS_DETECT_STAT) & USB_ANALOG_USB_VBUS_DETECT_STAT_VBUS_VALID) ? 0 : 1;*/
+	return (getreg32(IMXRT_USB_ANALOG_USB1_VBUS_DETECT_STAT) & USB_ANALOG_USB_VBUS_DETECT_STAT_VBUS_VALID) ? 0 : 1;
 }
