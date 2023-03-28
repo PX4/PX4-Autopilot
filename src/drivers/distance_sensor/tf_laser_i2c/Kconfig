@@ -1,0 +1,5 @@
+menuconfig DRIVERS_DISTANCE_SENSOR_TF_LASER_I2C
+	bool "tf_laser_i2c"
+	default n
+	---help---
+		Enable support for tf_laser_i2c
