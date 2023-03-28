@@ -348,7 +348,7 @@ private:
 	vehicle_local_position_s			_local_pos{};		/**< local vehicle position */
 	vehicle_status_s				_vstatus{};		/**< vehicle status */
 
-	uint8_t						_previous_nav_state{}; /**< nav_state of the previous iteration*/
+	bool						_rtl_activated{false};
 
 	// Publications
 	geofence_result_s				_geofence_result{};
