@@ -46,7 +46,6 @@ class ActuatorEffectivenessHelicopterCoaxial : public ModuleParams, public Actua
 public:
 
 	static constexpr int NUM_SWASH_PLATE_SERVOS_MAX = 4;
-	static constexpr int NUM_CURVE_POINTS = 5;
 
 	struct SwashPlateGeometry {
 		float angle;
@@ -57,12 +56,6 @@ public:
 	struct Geometry {
 		SwashPlateGeometry swash_plate_servos[NUM_SWASH_PLATE_SERVOS_MAX];
 		int num_swash_plate_servos{0};
-		float throttle_curve[NUM_CURVE_POINTS];
-		float pitch_curve[NUM_CURVE_POINTS];
-		float yaw_collective_pitch_scale;
-		float yaw_collective_pitch_offset;
-		float yaw_throttle_scale;
-		float yaw_sign;
 		float spoolup_time;
 	};
 
@@ -83,7 +76,6 @@ public:
 	void getUnallocatedControl(int matrix_index, control_allocator_status_s &status) override;
 private:
 	float throttleSpoolupProgress();
-	bool mainMotorEnaged();
 
 	void updateParams() override;
 
@@ -107,12 +99,6 @@ private:
 	struct ParamHandles {
 		ParamHandlesSwashPlate swash_plate_servos[NUM_SWASH_PLATE_SERVOS_MAX];
 		param_t num_swash_plate_servos;
-		param_t throttle_curve[NUM_CURVE_POINTS];
-		param_t pitch_curve[NUM_CURVE_POINTS];
-		param_t yaw_collective_pitch_scale;
-		param_t yaw_collective_pitch_offset;
-		param_t yaw_throttle_scale;
-		param_t yaw_ccw;
 		param_t spoolup_time;
 	};
 	ParamHandles _param_handles{};
@@ -128,5 +114,4 @@ private:
 	uint64_t _armed_time{0};
 
 	uORB::Subscription _manual_control_switches_sub{ORB_ID(manual_control_switches)};
-	bool _main_motor_engaged{true};
 };

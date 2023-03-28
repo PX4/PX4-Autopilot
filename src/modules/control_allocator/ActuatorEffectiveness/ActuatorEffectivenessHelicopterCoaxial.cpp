@@ -51,19 +51,6 @@ ActuatorEffectivenessHelicopterCoaxial::ActuatorEffectivenessHelicopterCoaxial(M
 	}
 
 	_param_handles.num_swash_plate_servos = param_find("CA_SP0_COUNT");
-
-	for (int i = 0; i < NUM_CURVE_POINTS; ++i) {
-		char buffer[17];
-		snprintf(buffer, sizeof(buffer), "CA_HELI_THR_C%u", i);
-		_param_handles.throttle_curve[i] = param_find(buffer);
-		snprintf(buffer, sizeof(buffer), "CA_HELI_PITCH_C%u", i);
-		_param_handles.pitch_curve[i] = param_find(buffer);
-	}
-
-	_param_handles.yaw_collective_pitch_scale = param_find("CA_HELI_YAW_CP_S");
-	_param_handles.yaw_collective_pitch_offset = param_find("CA_HELI_YAW_CP_O");
-	_param_handles.yaw_throttle_scale = param_find("CA_HELI_YAW_TH_S");
-	_param_handles.yaw_ccw = param_find("CA_HELI_YAW_CCW");
 	_param_handles.spoolup_time = param_find("COM_SPOOLUP_TIME");
 
 	updateParams();
@@ -90,18 +77,7 @@ void ActuatorEffectivenessHelicopterCoaxial::updateParams()
 		param_get(_param_handles.swash_plate_servos[i].trim, &_geometry.swash_plate_servos[i].trim);
 	}
 
-	for (int i = 0; i < NUM_CURVE_POINTS; ++i) {
-		param_get(_param_handles.throttle_curve[i], &_geometry.throttle_curve[i]);
-		param_get(_param_handles.pitch_curve[i], &_geometry.pitch_curve[i]);
-	}
-
-	param_get(_param_handles.yaw_collective_pitch_scale, &_geometry.yaw_collective_pitch_scale);
-	param_get(_param_handles.yaw_collective_pitch_offset, &_geometry.yaw_collective_pitch_offset);
-	param_get(_param_handles.yaw_throttle_scale, &_geometry.yaw_throttle_scale);
 	param_get(_param_handles.spoolup_time, &_geometry.spoolup_time);
-	int32_t yaw_ccw = 0;
-	param_get(_param_handles.yaw_ccw, &yaw_ccw);
-	_geometry.yaw_sign = (yaw_ccw == 1) ? -1.f : 1.f;
 }
 
 bool ActuatorEffectivenessHelicopterCoaxial::getEffectivenessMatrix(Configuration &configuration,
@@ -112,10 +88,8 @@ bool ActuatorEffectivenessHelicopterCoaxial::getEffectivenessMatrix(Configuratio
 	}
 
 	// As the allocation is non-linear, we use updateSetpoint() instead of the matrix
-	configuration.addActuator(ActuatorType::MOTORS, Vector3f{}, Vector3f{});
-
-	// Tail (yaw) motor
-	configuration.addActuator(ActuatorType::MOTORS, Vector3f{}, Vector3f{});
+	configuration.addActuator(ActuatorType::MOTORS, Vector3f{}, Vector3f{}); // Clockwise rotor
+	configuration.addActuator(ActuatorType::MOTORS, Vector3f{}, Vector3f{}); // Counter-clockwise rotor
 
 	// N swash plate servos
 	_first_swash_plate_servo_index = configuration.num_actuators_matrix[0];
@@ -135,32 +109,28 @@ void ActuatorEffectivenessHelicopterCoaxial::updateSetpoint(const matrix::Vector
 	_saturation_flags = {};
 
 	// throttle/collective pitch curve
-	const float throttle = math::interpolateN(-control_sp(ControlAxis::THRUST_Z),
-			       _geometry.throttle_curve) * throttleSpoolupProgress();
-	const float collective_pitch = math::interpolateN(-control_sp(ControlAxis::THRUST_Z), _geometry.pitch_curve);
+	const float throttle = -control_sp(ControlAxis::THRUST_Z) * throttleSpoolupProgress();
+	const float yaw = control_sp(ControlAxis::YAW);
 
 	// actuator mapping
-	actuator_sp(0) = mainMotorEnaged() ? throttle : NAN;
+	actuator_sp(0) = throttle - yaw; // Clockwise
+	actuator_sp(1) = throttle + yaw; // Counter-clockwise
 
-	actuator_sp(1) = control_sp(ControlAxis::YAW) * _geometry.yaw_sign
-			 + fabsf(collective_pitch - _geometry.yaw_collective_pitch_offset) * _geometry.yaw_collective_pitch_scale
-			 + throttle * _geometry.yaw_throttle_scale;
+	// Saturation check for yaw TODO check saturation
+	// if (actuator_sp(1) < actuator_min(1)) {
+	// 	setSaturationFlag(_geometry.yaw_sign, _saturation_flags.yaw_neg, _saturation_flags.yaw_pos);
 
-	// Saturation check for yaw
-	if (actuator_sp(1) < actuator_min(1)) {
-		setSaturationFlag(_geometry.yaw_sign, _saturation_flags.yaw_neg, _saturation_flags.yaw_pos);
-
-	} else if (actuator_sp(1) > actuator_max(1)) {
-		setSaturationFlag(_geometry.yaw_sign, _saturation_flags.yaw_pos, _saturation_flags.yaw_neg);
-	}
+	// } else if (actuator_sp(1) > actuator_max(1)) {
+	// 	setSaturationFlag(_geometry.yaw_sign, _saturation_flags.yaw_pos, _saturation_flags.yaw_neg);
+	// }
 
 	for (int i = 0; i < _geometry.num_swash_plate_servos; i++) {
 		float roll_coeff = sinf(_geometry.swash_plate_servos[i].angle) * _geometry.swash_plate_servos[i].arm_length;
 		float pitch_coeff = cosf(_geometry.swash_plate_servos[i].angle) * _geometry.swash_plate_servos[i].arm_length;
-		actuator_sp(_first_swash_plate_servo_index + i) = collective_pitch
-				+ control_sp(ControlAxis::PITCH) * pitch_coeff
-				- control_sp(ControlAxis::ROLL) * roll_coeff
-				+ _geometry.swash_plate_servos[i].trim;
+		actuator_sp(_first_swash_plate_servo_index + i) =
+			+ control_sp(ControlAxis::PITCH) * pitch_coeff
+			- control_sp(ControlAxis::ROLL) * roll_coeff
+			+ _geometry.swash_plate_servos[i].trim;
 
 		// Saturation check for roll & pitch
 		if (actuator_sp(_first_swash_plate_servo_index + i) < actuator_min(_first_swash_plate_servo_index + i)) {
@@ -172,18 +142,6 @@ void ActuatorEffectivenessHelicopterCoaxial::updateSetpoint(const matrix::Vector
 			setSaturationFlag(pitch_coeff, _saturation_flags.pitch_pos, _saturation_flags.pitch_neg);
 		}
 	}
-}
-
-bool ActuatorEffectivenessHelicopterCoaxial::mainMotorEnaged()
-{
-	manual_control_switches_s manual_control_switches;
-
-	if (_manual_control_switches_sub.update(&manual_control_switches)) {
-		_main_motor_engaged = manual_control_switches.engage_main_motor_switch == manual_control_switches_s::SWITCH_POS_NONE
-				      || manual_control_switches.engage_main_motor_switch == manual_control_switches_s::SWITCH_POS_ON;
-	}
-
-	return _main_motor_engaged;
 }
 
 float ActuatorEffectivenessHelicopterCoaxial::throttleSpoolupProgress()
