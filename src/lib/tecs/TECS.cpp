@@ -134,7 +134,7 @@ TECSAirspeedFilter::AirspeedFilterState TECSAirspeedFilter::getState() const
 }
 
 void TECSAltitudeReferenceModel::update(const float dt, const AltitudeReferenceState &setpoint, float altitude,
-					const Param &param)
+					float height_rate, const Param &param)
 {
 	// Input checks
 	if (!TIMESTAMP_VALID(dt)) {
@@ -143,40 +143,55 @@ void TECSAltitudeReferenceModel::update(const float dt, const AltitudeReferenceS
 		return;
 	}
 
-	if (!PX4_ISFINITE(altitude)) {
-		altitude = 0.0f;
-	}
+	const float current_alt = PX4_ISFINITE(altitude) ? altitude : 0.f;
 
-	if (PX4_ISFINITE(setpoint.alt_rate)) {
-		_alt_rate_ref = setpoint.alt_rate;
-
-	} else {
-		_alt_rate_ref = 0.0f;
-	}
+	_velocity_control_traj_generator.setMaxJerk(param.jerk_max);
+	_velocity_control_traj_generator.setMaxAccelUp(param.vert_accel_limit);
+	_velocity_control_traj_generator.setMaxAccelDown(param.vert_accel_limit);
+	_velocity_control_traj_generator.setMaxVelUp(param.max_sink_rate); // different convention for FW than for MC
+	_velocity_control_traj_generator.setMaxVelDown(param.max_climb_rate); // different convention for FW than for MC
 
 	// Altitude setpoint reference
-	const bool altitude_control_enable{PX4_ISFINITE(setpoint.alt)};
 	_alt_control_traj_generator.setMaxJerk(param.jerk_max);
 	_alt_control_traj_generator.setMaxAccel(param.vert_accel_limit);
 	_alt_control_traj_generator.setMaxVel(fmax(param.max_climb_rate, param.max_sink_rate));
 
-	if (altitude_control_enable) {
-		const float target_climbrate = math::min(param.target_climbrate, param.max_climb_rate);
-		const float target_sinkrate = math::min(param.target_sinkrate, param.max_sink_rate);
+	_velocity_control_traj_generator.setVelSpFeedback(setpoint.alt_rate);
 
-		const float delta_trajectory_to_target_m = setpoint.alt - _alt_control_traj_generator.getCurrentPosition();
+	bool control_altitude = true;
+	float altitude_setpoint = setpoint.alt;
 
-		float altitude_rate_target = math::signNoZero<float>(delta_trajectory_to_target_m) *
-					     math::trajectory::computeMaxSpeedFromDistance(
-						     param.jerk_max, param.vert_accel_limit, fabsf(delta_trajectory_to_target_m), 0.0f);
-
-		altitude_rate_target = math::constrain(altitude_rate_target, -target_sinkrate, target_climbrate);
-
-		_alt_control_traj_generator.updateDurations(altitude_rate_target);
-		_alt_control_traj_generator.updateTraj(dt);
+	if (PX4_ISFINITE(setpoint.alt_rate)) {
+		// input is height rate (not altitude)
+		_velocity_control_traj_generator.setCurrentPositionEstimate(current_alt);
+		_velocity_control_traj_generator.update(dt, setpoint.alt_rate);
+		altitude_setpoint = _velocity_control_traj_generator.getCurrentPosition();
+		control_altitude = PX4_ISFINITE(altitude_setpoint); // returns true if altitude is locked
 
 	} else {
-		_alt_control_traj_generator.reset(0.0f, 0.0f, altitude);
+		_velocity_control_traj_generator.reset(0, height_rate, altitude_setpoint);
+	}
+
+	if (control_altitude) {
+		const float target_climbrate_m_s = math::min(param.target_climbrate, param.max_climb_rate);
+		const float target_sinkrate_m_s = math::min(param.target_sinkrate, param.max_sink_rate);
+
+		const float delta_trajectory_to_target_m = altitude_setpoint - _alt_control_traj_generator.getCurrentPosition();
+
+		float height_rate_target = math::signNoZero<float>(delta_trajectory_to_target_m) *
+					   math::trajectory::computeMaxSpeedFromDistance(
+						   param.jerk_max, param.vert_accel_limit, fabsf(delta_trajectory_to_target_m), 0.f);
+
+		height_rate_target = math::constrain(height_rate_target, -target_sinkrate_m_s, target_climbrate_m_s);
+
+		_alt_control_traj_generator.updateDurations(height_rate_target);
+		_alt_control_traj_generator.updateTraj(dt);
+		_height_rate_setpoint_direct = NAN;
+
+	} else {
+		_alt_control_traj_generator.setCurrentVelocity(_velocity_control_traj_generator.getCurrentVelocity());
+		_alt_control_traj_generator.setCurrentPosition(current_alt);
+		_height_rate_setpoint_direct = _velocity_control_traj_generator.getCurrentVelocity();
 	}
 }
 
@@ -190,25 +205,12 @@ TECSAltitudeReferenceModel::AltitudeReferenceState TECSAltitudeReferenceModel::g
 	return ref;
 }
 
-float TECSAltitudeReferenceModel::getAltitudeRateReference() const
-{
-	return _alt_rate_ref;
-}
-
 void TECSAltitudeReferenceModel::initialize(const AltitudeReferenceState &state)
 {
-	float init_state_alt{state.alt};
-	_alt_rate_ref = state.alt_rate;
+	const float init_state_alt = PX4_ISFINITE(state.alt) ? state.alt : 0.f;
+	const float init_state_alt_rate = PX4_ISFINITE(state.alt_rate) ? state.alt_rate : 0.f;
 
-	if (!PX4_ISFINITE(state.alt)) {
-		init_state_alt = 0.0f;
-	}
-
-	if (!PX4_ISFINITE(state.alt_rate)) {
-		_alt_rate_ref = 0.0f;
-	}
-
-	_alt_control_traj_generator.reset(0.0f, _alt_rate_ref, init_state_alt);
+	_alt_control_traj_generator.reset(0.0f, init_state_alt_rate, init_state_alt);
 }
 
 void TECSControl::initialize(const Setpoint &setpoint, const Input &input, Param &param, const Flag &flag)
@@ -245,7 +247,6 @@ void TECSControl::initialize(const Setpoint &setpoint, const Input &input, Param
 	_debug_output.energy_balance_rate_estimate = seb_rate.estimate;
 	_debug_output.energy_balance_rate_sp = seb_rate.setpoint;
 	_debug_output.pitch_integrator = _pitch_integ_state;
-
 	_debug_output.altitude_rate_control = control_setpoint.altitude_rate_setpoint;
 	_debug_output.true_airspeed_derivative_control = control_setpoint.tas_rate_setpoint;
 }
@@ -263,7 +264,14 @@ void TECSControl::update(const float dt, const Setpoint &setpoint, const Input &
 
 	control_setpoint.tas_rate_setpoint = _calcAirspeedControlOutput(setpoint, input, param, flag);
 
-	control_setpoint.altitude_rate_setpoint = _calcAltitudeControlOutput(setpoint, input, param);
+	if (PX4_ISFINITE(setpoint.altitude_rate_setpoint_direct)) {
+		// direct height rate control
+		control_setpoint.altitude_rate_setpoint = setpoint.altitude_rate_setpoint_direct;
+
+	} else {
+		// altitude is locked, go through altitude outer loop
+		control_setpoint.altitude_rate_setpoint = _calcAltitudeControlOutput(setpoint, input, param);
+	}
 
 	SpecificEnergyRates specific_energy_rate{_calcSpecificEnergyRates(control_setpoint, input)};
 
@@ -313,8 +321,9 @@ float TECSControl::_calcAirspeedControlOutput(const Setpoint &setpoint, const In
 float TECSControl::_calcAltitudeControlOutput(const Setpoint &setpoint, const Input &input, const Param &param) const
 {
 	float altitude_rate_output;
-	altitude_rate_output = (setpoint.altitude_reference.alt - input.altitude) * param.altitude_error_gain +
-			       param.altitude_setpoint_gain_ff * setpoint.altitude_reference.alt_rate + setpoint.altitude_rate_setpoint;
+	altitude_rate_output = (setpoint.altitude_reference.alt - input.altitude) * param.altitude_error_gain
+			       + param.altitude_setpoint_gain_ff * setpoint.altitude_reference.alt_rate;
+
 	altitude_rate_output = math::constrain(altitude_rate_output, -param.max_sink_rate, param.max_climb_rate);
 
 	return altitude_rate_output;
@@ -637,14 +646,15 @@ void TECS::initialize(const float altitude, const float altitude_rate, const flo
 		      const float eas_to_tas)
 {
 	// Init subclasses
-	TECSAltitudeReferenceModel::AltitudeReferenceState current_state{	.alt = altitude,
+	TECSAltitudeReferenceModel::AltitudeReferenceState current_state{.alt = altitude,
 			.alt_rate = altitude_rate};
 	_altitude_reference_model.initialize(current_state);
 	_airspeed_filter.initialize(equivalent_airspeed);
 
 	TECSControl::Setpoint control_setpoint;
 	control_setpoint.altitude_reference = _altitude_reference_model.getAltitudeReference();
-	control_setpoint.altitude_rate_setpoint = _altitude_reference_model.getAltitudeRateReference();
+	control_setpoint.altitude_rate_setpoint_direct =
+		_altitude_reference_model.getAltitudeReference().alt_rate; // init to reference altitude rate
 	control_setpoint.tas_setpoint = equivalent_airspeed * eas_to_tas;
 
 	const TECSControl::Input control_input{ .altitude = altitude,
@@ -658,9 +668,9 @@ void TECS::initialize(const float altitude, const float altitude_rate, const flo
 	_debug_status.control = _control.getDebugOutput();
 	_debug_status.true_airspeed_filtered = eas_to_tas * _airspeed_filter.getState().speed;
 	_debug_status.true_airspeed_derivative = eas_to_tas * _airspeed_filter.getState().speed_rate;
-	_debug_status.altitude_sp_ref = _altitude_reference_model.getAltitudeReference().alt;
-	_debug_status.altitude_rate_alt_ref = _altitude_reference_model.getAltitudeReference().alt_rate;
-	_debug_status.altitude_rate_feedforward = _altitude_reference_model.getAltitudeRateReference();
+	_debug_status.altitude_reference = _altitude_reference_model.getAltitudeReference().alt;
+	_debug_status.height_rate_reference = _altitude_reference_model.getAltitudeReference().alt_rate;
+	_debug_status.height_rate_direct = _altitude_reference_model.getHeightRateSetpointDirect();
 
 	_update_timestamp = hrt_absolute_time();
 }
@@ -709,11 +719,11 @@ void TECS::update(float pitch, float altitude, float hgt_setpoint, float EAS_set
 		const TECSAltitudeReferenceModel::AltitudeReferenceState setpoint{ .alt = hgt_setpoint,
 				.alt_rate = hgt_rate_sp};
 
-		_altitude_reference_model.update(dt, setpoint, altitude, _reference_param);
+		_altitude_reference_model.update(dt, setpoint, altitude, hgt_rate, _reference_param);
 
 		TECSControl::Setpoint control_setpoint;
 		control_setpoint.altitude_reference = _altitude_reference_model.getAltitudeReference();
-		control_setpoint.altitude_rate_setpoint = _altitude_reference_model.getAltitudeRateReference();
+		control_setpoint.altitude_rate_setpoint_direct = _altitude_reference_model.getHeightRateSetpointDirect();
 
 		// Calculate the demanded true airspeed
 		// TODO this function should not be in the module. Only give feedback that the airspeed can't be achieved.
@@ -744,9 +754,9 @@ void TECS::update(float pitch, float altitude, float hgt_setpoint, float EAS_set
 		_debug_status.control = _control.getDebugOutput();
 		_debug_status.true_airspeed_filtered = eas_to_tas * eas.speed;
 		_debug_status.true_airspeed_derivative = eas_to_tas * eas.speed_rate;
-		_debug_status.altitude_sp_ref = control_setpoint.altitude_reference.alt;
-		_debug_status.altitude_rate_alt_ref = control_setpoint.altitude_reference.alt_rate;
-		_debug_status.altitude_rate_feedforward = control_setpoint.altitude_rate_setpoint;
+		_debug_status.altitude_reference = control_setpoint.altitude_reference.alt;
+		_debug_status.height_rate_reference = control_setpoint.altitude_reference.alt_rate;
+		_debug_status.height_rate_direct = _altitude_reference_model.getHeightRateSetpointDirect();
 	}
 }
 

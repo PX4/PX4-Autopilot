@@ -155,9 +155,10 @@ public:
 	 * @param[in] dt is the update interval in [s].
 	 * @param[in] setpoint are the desired setpoints.
 	 * @param[in] altitude is the altitude amsl in [m].
+	 * @param[in] height_rate is the height rate setpoint in [m/s].
 	 * @param[in] param are the reference model parameters.
 	 */
-	void update(float dt, const AltitudeReferenceState &setpoint, float altitude, const Param &param);
+	void update(float dt, const AltitudeReferenceState &setpoint, float altitude, float height_rate, const Param &param);
 
 	/**
 	 * @brief Get the current altitude reference of altitude reference model.
@@ -167,17 +168,20 @@ public:
 	AltitudeReferenceState getAltitudeReference() const;
 
 	/**
-	 * @brief Get the altitude rate reference of the altitude rate reference model.
+	 * @brief Get the Height Rate Setpoint directly from the velocity trajector generator
 	 *
-	 * @return Current altitude rate reference point.
+	 * @return float direct height rate setpoint [m/s]
 	 */
-	float getAltitudeRateReference() const;
+	float getHeightRateSetpointDirect() const {return _height_rate_setpoint_direct; }
+
 
 private:
 	// State
 	VelocitySmoothing
 	_alt_control_traj_generator;		///< Generates altitude rate and altitude setpoint trajectory when altitude is commanded.
-	float _alt_rate_ref; 			///< Altitude rate reference in [m/s].
+	ManualVelocitySmoothingZ
+	_velocity_control_traj_generator;	///< generates height rate trajectory when height rate is commanded
+	float _height_rate_setpoint_direct{NAN}; ///< generated direct height rate setpoint
 };
 
 class TECSControl
@@ -250,7 +254,7 @@ public:
 	 */
 	struct Setpoint {
 		TECSAltitudeReferenceModel::AltitudeReferenceState altitude_reference;	///< Altitude/height rate reference.
-		float altitude_rate_setpoint;					///< Altitude rate setpoint.
+		float altitude_rate_setpoint_direct;					///< Direct height rate setpoint.
 		float tas_setpoint;						///< True airspeed setpoint.
 	};
 
@@ -544,9 +548,9 @@ public:
 		TECSControl::DebugOutput control;
 		float true_airspeed_filtered;
 		float true_airspeed_derivative;
-		float altitude_sp_ref;
-		float altitude_rate_alt_ref;
-		float altitude_rate_feedforward;
+		float altitude_reference;
+		float height_rate_reference;
+		float height_rate_direct;
 		enum ECL_TECS_MODE tecs_mode;
 	};
 public:
