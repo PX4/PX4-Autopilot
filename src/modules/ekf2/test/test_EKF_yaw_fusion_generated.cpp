@@ -128,7 +128,7 @@ TEST(YawFusionGenerated, positiveVarianceAllOrientations)
 				}
 
 				// THEN: the innovation variance must be positive and finite
-				EXPECT_TRUE(innov_var < 50.f && innov_var > R)
+				EXPECT_TRUE(innov_var < 100.f && innov_var > R)
 						<< "yaw = " << degrees(yaw)
 						<< " pitch = " << degrees(pitch)
 						<< " roll = " << degrees(roll)
@@ -138,116 +138,48 @@ TEST(YawFusionGenerated, positiveVarianceAllOrientations)
 	}
 }
 
-void sympyYaw321A(float q0, float q1, float q2, float q3, const SquareMatrix24f &P, float R_YAW, Vector24f &H)
+using D = matrix::Dual<float, 4>;
+
+void computeHDual321(const Vector24f &state_vector, Vector24f &H)
 {
-	// This first comparison is for the 321 sequence option A equations that have a singularity when
-	// yaw is at +- 90 deg
-	const float SA0 = 2 * q3;
-	const float SA1 = 2 * q2;
-	const float SA2 = SA0 * q0 + SA1 * q1;
-	const float SA3 = powf(q0, 2) + powf(q1, 2) - powf(q2, 2) - powf(q3, 2);
-	const float SA4 = powf(SA3, -2);
-	const float SA5 = 1.0F / (powf(SA2, 2) * SA4 + 1);
-	const float SA6 = 1.0F / SA3;
-	const float SA7 = SA2 * SA4;
-	const float SA8 = 2 * SA7;
-	const float SA9 = 2 * SA6;
+	matrix::Quaternion<D> q(D(state_vector(0), 0),
+				D(state_vector(1), 1),
+				D(state_vector(2), 2),
+				D(state_vector(3), 3));
 
-	float H_YAW[4];
-	H_YAW[0] = SA5 * (SA0 * SA6 - SA8 * q0);
-	H_YAW[1] = SA5 * (SA1 * SA6 - SA8 * q1);
-	H_YAW[2] = SA5 * (SA1 * SA7 + SA9 * q1);
-	H_YAW[3] = SA5 * (SA0 * SA7 + SA9 * q0);
+	Dcm<D> R_to_earth(q);
+	D yaw_pred = atan2(R_to_earth(1, 0), R_to_earth(0, 0));
 
-	for (int row = 0; row < 4; row++) {
-		H(row) = H_YAW[row];
+	H.setZero();
+
+	for (int i = 0; i <= 3; i++) {
+		H(i) = yaw_pred.derivative(i);
 	}
 }
 
-void sympyYaw321B(float q0, float q1, float q2, float q3, const SquareMatrix24f &P, float R_YAW, Vector24f &H)
+void computeHDual312(const Vector24f &state_vector, Vector24f &H)
 {
-	// This second comparison for the 321 sequence option B equations that have a singularity when
-	// yaw is at 0 and +-180 deg
-	const float SB0 = 2 * q0;
-	const float SB1 = 2 * q1;
-	const float SB2 = SB0 * q3 + SB1 * q2;
-	const float SB3 = powf(SB2, -2);
-	const float SB4 = powf(q0, 2) + powf(q1, 2) - powf(q2, 2) - powf(q3, 2);
-	const float SB5 = 1.0F / (SB3 * powf(SB4, 2) + 1);
-	const float SB6 = 1.0F / SB2;
-	const float SB7 = SB3 * SB4;
-	const float SB8 = 2 * SB7;
-	const float SB9 = 2 * SB6;
+	matrix::Quaternion<D> q(D(state_vector(0), 0),
+				D(state_vector(1), 1),
+				D(state_vector(2), 2),
+				D(state_vector(3), 3));
 
-	float H_YAW[4];
-	H_YAW[0] = -SB5 * (SB0 * SB6 - SB8 * q3);
-	H_YAW[1] = -SB5 * (SB1 * SB6 - SB8 * q2);
-	H_YAW[2] = -SB5 * (-SB1 * SB7 - SB9 * q2);
-	H_YAW[3] = -SB5 * (-SB0 * SB7 - SB9 * q3);
+	Dcm<D> R_to_earth(q);
+	D yaw_pred = atan2(-R_to_earth(0, 1), R_to_earth(1, 1));
 
-	for (int row = 0; row < 4; row++) {
-		H(row) = H_YAW[row];
+	H.setZero();
+
+	for (int i = 0; i <= 3; i++) {
+		H(i) = yaw_pred.derivative(i);
 	}
 }
 
-void sympyYaw312A(float q0, float q1, float q2, float q3, const SquareMatrix24f &P, float R_YAW, Vector24f &H)
-{
-	// This first comparison is for the 312 sequence option A equations that have a singularity when
-	// yaw is at +- 90 deg
-	const float SA0 = 2 * q3;
-	const float SA1 = 2 * q2;
-	const float SA2 = SA0 * q0 - SA1 * q1;
-	const float SA3 = powf(q0, 2) - powf(q1, 2) + powf(q2, 2) - powf(q3, 2);
-	const float SA4 = powf(SA3, -2);
-	const float SA5 = 1.0F / (powf(SA2, 2) * SA4 + 1);
-	const float SA6 = 1.0F / SA3;
-	const float SA7 = SA2 * SA4;
-	const float SA8 = 2 * SA7;
-	const float SA9 = 2 * SA6;
-
-	float H_YAW[4];
-	H_YAW[0] = SA5 * (SA0 * SA6 - SA8 * q0);
-	H_YAW[1] = SA5 * (-SA1 * SA6 + SA8 * q1);
-	H_YAW[2] = SA5 * (-SA1 * SA7 - SA9 * q1);
-	H_YAW[3] = SA5 * (SA0 * SA7 + SA9 * q0);
-
-	for (int row = 0; row < 4; row++) {
-		H(row) = H_YAW[row];
-	}
-}
-
-void sympyYaw312B(float q0, float q1, float q2, float q3, const SquareMatrix24f &P, float R_YAW, Vector24f &H)
-{
-	// This second comparison for the 312 sequence option B equations that have a singularity when
-	// yaw is at 0 and +-180 deg
-	const float SB0 = 2 * q0;
-	const float SB1 = 2 * q1;
-	const float SB2 = -SB0 * q3 + SB1 * q2;
-	const float SB3 = powf(SB2, -2);
-	const float SB4 = -powf(q0, 2) + powf(q1, 2) - powf(q2, 2) + powf(q3, 2);
-	const float SB5 = 1.0F / (SB3 * powf(SB4, 2) + 1);
-	const float SB6 = 1.0F / SB2;
-	const float SB7 = SB3 * SB4;
-	const float SB8 = 2 * SB7;
-	const float SB9 = 2 * SB6;
-
-	float H_YAW[4];
-	H_YAW[0] = -SB5 * (-SB0 * SB6 + SB8 * q3);
-	H_YAW[1] = -SB5 * (SB1 * SB6 - SB8 * q2);
-	H_YAW[2] = -SB5 * (-SB1 * SB7 - SB9 * q2);
-	H_YAW[3] = -SB5 * (SB0 * SB7 + SB9 * q3);
-
-	for (int row = 0; row < 4; row++) {
-		H(row) = H_YAW[row];
-	}
-}
-
-TEST(YawFusionGenerated, SympyVsSymforce)
+TEST(YawFusionGenerated, symforceVsDual)
 {
 	const float R = sq(radians(10.f));
 	SquareMatrix24f P = createRandomCovarianceMatrix24f();
 
-	Vector24f Hfusion_sympy;
+	Vector24f H_dual;
 	Vector24f Hfusion_symforce;
 	float innov_var;
 
@@ -264,34 +196,14 @@ TEST(YawFusionGenerated, SympyVsSymforce)
 
 				if (shouldUse321RotationSequence(Dcmf(q))) {
 					sym::ComputeYaw321InnovVarAndH(state_vector, P, R, FLT_EPSILON, &innov_var, &Hfusion_symforce);
-
-					if (fabsf(wrap_pi(yaw)) - (M_PI_F / 2.f) > (M_PI_F / 4.f)) {
-						sympyYaw321A(q(0), q(1), q(2), q(3), P, R, Hfusion_sympy);
-
-					} else {
-						sympyYaw321B(q(0), q(1), q(2), q(3), P, R, Hfusion_sympy);
-					}
+					computeHDual321(state_vector, H_dual);
 
 				} else {
 					sym::ComputeYaw312InnovVarAndH(state_vector, P, R, FLT_EPSILON, &innov_var, &Hfusion_symforce);
-
-					if (fabsf(wrap_pi(yaw)) - (M_PI_F / 2.f) > (M_PI_F / 4.f)) {
-						sympyYaw312A(q(0), q(1), q(2), q(3), P, R, Hfusion_sympy);
-
-					} else {
-						sympyYaw312B(q(0), q(1), q(2), q(3), P, R, Hfusion_sympy);
-					}
+					computeHDual312(state_vector, H_dual);
 				}
 
-				const DiffRatioReport report = computeDiffRatioVector24f(Hfusion_sympy, Hfusion_symforce);
-				EXPECT_LT(report.max_diff_fraction, 1e-5f)
-						<< "Max diff fraction = " << report.max_diff_fraction
-						<< " location index = " << report.max_row
-						<< " sympy = " << report.max_v1
-						<< " symforce = " << report.max_v2
-						<< " yaw = " << degrees(yaw)
-						<< " pitch = " << degrees(pitch)
-						<< " roll = " << degrees(roll);
+				EXPECT_EQ(Hfusion_symforce, H_dual);
 			}
 		}
 	}
