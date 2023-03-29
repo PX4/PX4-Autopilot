@@ -9,7 +9,7 @@ int main() {
     FILE *gp;
     bool experiment;
     int input_type, output_type;
-    double magnitude = 0.1; 
+    double magnitude = 0.1;
     double duration = 20;
     double Ts = 0.02;
     double step, doublet, sine_sweep;
@@ -103,9 +103,9 @@ int main() {
                 }
                 // Plot the signal using gnuplot
                 gp = popen("gnuplot -persistent", "w");
-                fprintf(gp, "set title 'Throttle vs Time'\n");
+                fprintf(gp, "set title 'Doublet vs Time'\n");
                 fprintf(gp, "set xlabel 'Time (s)'\n");
-                fprintf(gp, "set ylabel 'Throttle (V)'\n");
+                fprintf(gp, "set ylabel 'Doublet'\n");
                 fprintf(gp, "plot '-' with lines title 'Throttle'\n");
                 for (int i = 0; i < num_samples; i++) {
                     fprintf(gp, "%f %f\n", time[i], throttle[i]);
@@ -120,9 +120,9 @@ int main() {
                 }
                 // Plot the signal using gnuplot
                 gp = popen("gnuplot -persistent", "w");
-                fprintf(gp, "set title 'Elevator vs Time'\n");
+                fprintf(gp, "set title 'Sine sweep vs Time'\n");
                 fprintf(gp, "set xlabel 'Time (s)'\n");
-                fprintf(gp, "set ylabel 'Elevator (V)'\n");
+                fprintf(gp, "set ylabel 'Sine sweep'\n");
                 fprintf(gp, "plot '-' with lines title 'Elevator'\n");
                 for (int i = 0; i < num_samples; i++) {
                     fprintf(gp, "%f %f\n", time[i], elevator[i]);
@@ -140,4 +140,4 @@ int main() {
     return 0;
 }
 
-// cd "/home/deekshakota/Desktop/just_code/" && gcc code.c -o code -lm  && "/home/deekshakota/Desktop/just_code/"code 
+// cd "/home/deekshakota/Desktop/PX4-Autopilot/test_code_for_inputs/" && gcc code.c -o code -lm && "/home/deekshakota/Desktop/PX4-Autopilot/test_code_for_inputs/"code
