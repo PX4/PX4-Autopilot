@@ -133,7 +133,7 @@ void SensorRangeFinder::updateStuckCheck()
 				_stuck_min_val = _sample.rng;
 			}
 
-			// _is_stuck = true;
+			_is_stuck = true;
 		}
 	}
 }

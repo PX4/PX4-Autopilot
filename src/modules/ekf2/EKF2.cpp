@@ -2103,8 +2103,7 @@ void EKF2::UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps)
 	if (_distance_sensor_selected < 0) {
 
 		// only consider distance sensors that have updated within the last 0.1s
-		// const hrt_abstime timestamp_stale = math::max(ekf2_timestamps.timestamp, 100_ms) - 100_ms;
-		const hrt_abstime timestamp_stale = math::max(ekf2_timestamps.timestamp, 500_ms) - 500_ms;
+		const hrt_abstime timestamp_stale = math::max(ekf2_timestamps.timestamp, 100_ms) - 100_ms;
 
 		if (_distance_sensor_subs.advertised()) {
 			for (unsigned i = 0; i < _distance_sensor_subs.size(); i++) {
