@@ -36,6 +36,15 @@ set SDCARD_FORMAT no
 set STARTUP_TUNE 1
 set VEHICLE_TYPE none
 
+if [ -d "/dev/rptun" ]
+then
+    set LOCAL_IPADDR "192.168.201.101"
+    set REMOTE_IPADDR "192.168.201.240"
+else
+    set LOCAL_IPADDR "192.168.200.101"
+    set REMOTE_IPADDR "192.168.200.100"
+fi
+
 #
 # Optional board path defaults: rc.board_paths
 #
@@ -550,10 +559,14 @@ fi
 
 if [ -d "/dev/rptun" ]
 then
-	echo "Starting RPTUN"
+	echo "Starting RPTUN at ${LOCAL_IPADDR}"
 	rptun start /dev/rptun/mpfs-ihc
-	ifconfig rpnet 192.168.201.101
+	ifconfig rpnet ${LOCAL_IPADDR}
 	ifup rpnet
+
+	# Start uXRCE-DDS client on UDP after rpnet is up & running
+	echo "Starting microdds_client connecting to ${REMOTE_IPADDR}"
+	microdds_client start -t udp -h ${REMOTE_IPADDR} -r 2019 -p 2020
 else
 	echo "No RPTUN device available"
 fi
@@ -576,6 +589,8 @@ unset SDCARD_EXT_PATH
 unset SDCARD_FORMAT
 unset STARTUP_TUNE
 unset VEHICLE_TYPE
+unset LOCAL_IPADDR
+unset REMOTE_IPADDR
 
 #
 # Boot is complete, inform MAVLink app(s) that the system is now fully up and running.
