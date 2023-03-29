@@ -278,8 +278,8 @@ void LTEstOrientation::publishTarget()
 	target_orientation.cov_theta =  _target_estimator_orientation->getPosVar();
 
 	if (_target_mode == TargetMode::Moving || _target_mode == TargetMode::MovingAugmented) {
-		target_orientation.v_theta = _target_estimator_orientation->getVelocity();
-		target_orientation.cov_v_theta =  _target_estimator_orientation->getVelVar();
+		target_orientation.rate = _target_estimator_orientation->getVelocity();
+		target_orientation.cov_rate =  _target_estimator_orientation->getVelVar();
 	}
 
 	_targetOrientationPub.publish(target_orientation);
