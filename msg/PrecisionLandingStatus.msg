@@ -6,4 +6,4 @@ uint8 PRECLAND_STATE_TOUCHING_DOWN = 4         # Same as descend, but if sight o
 uint8 PRECLAND_STATE_FALLBACK = 5              # Fallback to conventional landing, either because of opportunistic precision landing or because maximum number of precland attempts were reached
 
 uint64 timestamp        # time since system start (microseconds)
-uint8 precland_state    # this flight-task's internal state
+uint8 state    # this flight-task's internal state
