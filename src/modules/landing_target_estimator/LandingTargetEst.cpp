@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -143,7 +143,7 @@ void LandingTargetEst::updateParams()
 	float gps_pos_z;
 	param_get(param_find("EKF2_GPS_POS_Z"), &gps_pos_z);
 
-	_gps_pos_is_offset = ((gps_pos_x > 0.01f) || (gps_pos_y > 0.01f) || (gps_pos_z > 0.01f));
+	_gps_pos_is_offset = (fabsf(gps_pos_x) > 0.01f) || (fabsf(gps_pos_y) > 0.01f) || (fabsf(gps_pos_z) > 0.01f);
 	_gps_pos_offset = matrix::Vector3f(gps_pos_x, gps_pos_y, gps_pos_z);
 }
 

@@ -2609,9 +2609,9 @@ MavlinkReceiver::handle_message_target_relative(mavlink_message_t *msg)
 				fiducial_marker_pos_report.y_rel_body = target_relative.y;
 				fiducial_marker_pos_report.z_rel_body = target_relative.z;
 
-				fiducial_marker_pos_report.var_x_rel_body = target_relative.pos_var[0];
-				fiducial_marker_pos_report.var_y_rel_body = target_relative.pos_var[1];
-				fiducial_marker_pos_report.var_z_rel_body = target_relative.pos_var[2];
+				fiducial_marker_pos_report.var_x_rel_body = target_relative.pos_std[0] * target_relative.pos_std[0];
+				fiducial_marker_pos_report.var_y_rel_body = target_relative.pos_std[1] * target_relative.pos_std[1];
+				fiducial_marker_pos_report.var_z_rel_body = target_relative.pos_std[2] * target_relative.pos_std[2];
 
 				q_sensor.copyTo(fiducial_marker_pos_report.q);
 				_fiducial_marker_pos_report_pub.publish(fiducial_marker_pos_report);
@@ -2626,7 +2626,7 @@ MavlinkReceiver::handle_message_target_relative(mavlink_message_t *msg)
 				const float target_yaw_ned = matrix::wrap_pi(matrix::Eulerf(q_in_ned).psi());
 
 				fiducial_marker_yaw_report.yaw_ned = target_yaw_ned;
-				fiducial_marker_yaw_report.yaw_var_ned = target_relative.yaw_var;
+				fiducial_marker_yaw_report.yaw_var_ned = target_relative.yaw_std * target_relative.yaw_std;
 				_fiducial_marker_yaw_report_pub.publish(fiducial_marker_yaw_report);
 
 			}
