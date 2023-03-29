@@ -167,6 +167,18 @@ static constexpr float MANUAL_TOUCHDOWN_NUDGE_INPUT_DEADZONE = 0.15f;
 // [s] time interval after touchdown for ramping in runway clamping constraints (touchdown is assumed at FW_LND_TD_TIME after start of flare)
 static constexpr float POST_TOUCHDOWN_CLAMP_TIME = 0.5f;
 
+enum FW_POSCTRL_MODE {
+	FW_POSCTRL_MODE_AUTO,
+	FW_POSCTRL_MODE_AUTO_ALTITUDE,
+	FW_POSCTRL_MODE_AUTO_CLIMBRATE,
+	FW_POSCTRL_MODE_AUTO_TAKEOFF,
+	FW_POSCTRL_MODE_AUTO_LANDING_STRAIGHT,
+	FW_POSCTRL_MODE_AUTO_LANDING_CIRCULAR,
+	FW_POSCTRL_MODE_MANUAL_POSITION,
+	FW_POSCTRL_MODE_MANUAL_ALTITUDE,
+	FW_POSCTRL_MODE_OTHER
+};
+
 class FixedwingPositionControl final : public ModuleBase<FixedwingPositionControl>, public ModuleParams,
 	public px4::WorkItem
 {
@@ -236,17 +248,7 @@ private:
 
 	uint8_t _position_sp_type{0};
 
-	enum FW_POSCTRL_MODE {
-		FW_POSCTRL_MODE_AUTO,
-		FW_POSCTRL_MODE_AUTO_ALTITUDE,
-		FW_POSCTRL_MODE_AUTO_CLIMBRATE,
-		FW_POSCTRL_MODE_AUTO_TAKEOFF,
-		FW_POSCTRL_MODE_AUTO_LANDING_STRAIGHT,
-		FW_POSCTRL_MODE_AUTO_LANDING_CIRCULAR,
-		FW_POSCTRL_MODE_MANUAL_POSITION,
-		FW_POSCTRL_MODE_MANUAL_ALTITUDE,
-		FW_POSCTRL_MODE_OTHER
-	} _control_mode_current{FW_POSCTRL_MODE_OTHER}; // used to check if the mode has changed
+	FW_POSCTRL_MODE _control_mode_current{FW_POSCTRL_MODE_OTHER}; // used to check if the mode has changed
 
 	enum StickConfig {
 		STICK_CONFIG_SWAP_STICKS_BIT = (1 << 0),
@@ -685,8 +687,10 @@ private:
 	 * May also change the position setpoint type depending on the desired behavior.
 	 *
 	 * @param now Current system time [us]
+	 * @param current_mode Current flight mode
+	 * @return FW_POSCTRL_MODE Next flight mode to transition to
 	 */
-	void set_control_mode_current(const hrt_abstime &now);
+	FW_POSCTRL_MODE set_control_mode_current(const hrt_abstime &now, const FW_POSCTRL_MODE &current_mode);
 
 	/**
 	 * @brief Compensate trim throttle for air density and vehicle weight.

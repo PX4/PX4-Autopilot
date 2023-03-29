@@ -696,16 +696,13 @@ FixedwingPositionControl::updateManualTakeoffStatus()
 	}
 }
 
-void
-FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now)
+FW_POSCTRL_MODE
+FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now, const FW_POSCTRL_MODE &current_mode)
 {
 	/* only run position controller in fixed-wing mode and during transitions for VTOL */
 	if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING && !_vehicle_status.in_transition_mode) {
-		_control_mode_current = FW_POSCTRL_MODE_OTHER;
-		return; // do not publish the setpoint
+		return FW_POSCTRL_MODE_OTHER; // do not publish the setpoint
 	}
-
-	FW_POSCTRL_MODE commanded_position_control_mode = _control_mode_current;
 
 	_skipping_takeoff_detection = false;
 
@@ -715,20 +712,20 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now)
 		if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
 
 			if (_vehicle_status.is_vtol && _vehicle_status.in_transition_mode) {
-				_control_mode_current = FW_POSCTRL_MODE_AUTO;
-
 				// in this case we want the waypoint handled as a position setpoint -- a submode in control_auto()
 				_pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 
-			} else {
-				_control_mode_current = FW_POSCTRL_MODE_AUTO_TAKEOFF;
+				return FW_POSCTRL_MODE_AUTO;
 
-				if (commanded_position_control_mode != FW_POSCTRL_MODE_AUTO_TAKEOFF && !_landed) {
+			} else {
+				if (current_mode != FW_POSCTRL_MODE_AUTO_TAKEOFF && !_landed) {
 					// skip takeoff detection when switching from any other mode, auto or manual,
 					// while already in air.
 					// TODO: find a better place for / way of doing this
 					_skipping_takeoff_detection = true;
 				}
+
+				return FW_POSCTRL_MODE_AUTO_TAKEOFF;
 			}
 
 		} else if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
@@ -739,10 +736,10 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now)
 				// Straight landings are currently only possible in Missions, and there the previous WP
 				// is valid, and circular ones are used outside of Missions, as the land mode sets prev_valid=false.
 				if (_position_setpoint_previous_valid) {
-					_control_mode_current = FW_POSCTRL_MODE_AUTO_LANDING_STRAIGHT;
+					return FW_POSCTRL_MODE_AUTO_LANDING_STRAIGHT;
 
 				} else {
-					_control_mode_current = FW_POSCTRL_MODE_AUTO_LANDING_CIRCULAR;
+					return FW_POSCTRL_MODE_AUTO_LANDING_CIRCULAR;
 				}
 
 			} else {
@@ -751,7 +748,7 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now)
 			}
 
 		} else {
-			_control_mode_current = FW_POSCTRL_MODE_AUTO;
+			return FW_POSCTRL_MODE_AUTO;
 		}
 
 	} else if (_control_mode.flag_control_auto_enabled
@@ -761,33 +758,33 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now)
 
 		// failsafe modes engaged if position estimate is invalidated
 
-		if (commanded_position_control_mode != FW_POSCTRL_MODE_AUTO_ALTITUDE
-		    && commanded_position_control_mode != FW_POSCTRL_MODE_AUTO_CLIMBRATE) {
+		if (current_mode != FW_POSCTRL_MODE_AUTO_ALTITUDE
+		    && current_mode != FW_POSCTRL_MODE_AUTO_CLIMBRATE) {
 			// reset timer the first time we switch into this mode
 			_time_in_fixed_bank_loiter = now;
 		}
 
 		if (hrt_elapsed_time(&_time_in_fixed_bank_loiter) < (_param_nav_gpsf_lt.get() * 1_s)
 		    && !_vehicle_status.in_transition_mode) {
-			if (commanded_position_control_mode != FW_POSCTRL_MODE_AUTO_ALTITUDE) {
+			if (current_mode != FW_POSCTRL_MODE_AUTO_ALTITUDE) {
 				// Need to init because last loop iteration was in a different mode
 				events::send(events::ID("fixedwing_position_control_fb_loiter"), events::Log::Critical,
 					     "Start loiter with fixed bank angle");
 			}
 
-			_control_mode_current = FW_POSCTRL_MODE_AUTO_ALTITUDE;
+			return FW_POSCTRL_MODE_AUTO_ALTITUDE;
 
 		} else {
-			if (commanded_position_control_mode != FW_POSCTRL_MODE_AUTO_CLIMBRATE && !_vehicle_status.in_transition_mode) {
+			if (current_mode != FW_POSCTRL_MODE_AUTO_CLIMBRATE && !_vehicle_status.in_transition_mode) {
 				events::send(events::ID("fixedwing_position_control_descend"), events::Log::Critical, "Start descending");
 			}
 
-			_control_mode_current = FW_POSCTRL_MODE_AUTO_CLIMBRATE;
+			return FW_POSCTRL_MODE_AUTO_CLIMBRATE;
 		}
 
 
 	} else if (_control_mode.flag_control_manual_enabled && _control_mode.flag_control_position_enabled) {
-		if (commanded_position_control_mode != FW_POSCTRL_MODE_MANUAL_POSITION) {
+		if (current_mode != FW_POSCTRL_MODE_MANUAL_POSITION) {
 			/* Need to init because last loop iteration was in a different mode */
 			_hdg_hold_yaw = _yaw; // yaw is not controlled, so set setpoint to current yaw
 			_hdg_hold_enabled = false; // this makes sure the waypoints are reset below
@@ -799,15 +796,15 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now)
 			_att_sp.yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
 		}
 
-		_control_mode_current = FW_POSCTRL_MODE_MANUAL_POSITION;
+		return FW_POSCTRL_MODE_MANUAL_POSITION;
 
 	} else if (_control_mode.flag_control_manual_enabled && _control_mode.flag_control_altitude_enabled) {
 
-		_control_mode_current = FW_POSCTRL_MODE_MANUAL_ALTITUDE;
+		return FW_POSCTRL_MODE_MANUAL_ALTITUDE;
 
-	} else {
-		_control_mode_current = FW_POSCTRL_MODE_OTHER;
 	}
+
+	return FW_POSCTRL_MODE_OTHER;
 }
 
 void
@@ -2279,7 +2276,7 @@ FixedwingPositionControl::Run()
 		Vector2d curr_pos(_current_latitude, _current_longitude);
 		Vector2f ground_speed(_local_pos.vx, _local_pos.vy);
 
-		set_control_mode_current(_local_pos.timestamp);
+		_control_mode_current = set_control_mode_current(_local_pos.timestamp, _control_mode_current);
 
 		update_in_air_states(_local_pos.timestamp);
 
