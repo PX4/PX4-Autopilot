@@ -176,7 +176,7 @@ PARAM_DEFINE_FLOAT(GPS_YAW_OFFSET, 0.f);
  * Auto-detection will probe all protocols, and thus is a bit slower.
  *
  * @min 0
- * @max 5
+ * @max 6
  * @value 0 Auto detect
  * @value 1 u-blox
  * @value 2 MTK
@@ -198,7 +198,7 @@ PARAM_DEFINE_INT32(GPS_1_PROTOCOL, 1);
  * Auto-detection will probe all protocols, and thus is a bit slower.
  *
  * @min 0
- * @max 5
+ * @max 6
  * @value 0 Auto detect
  * @value 1 u-blox
  * @value 2 MTK
