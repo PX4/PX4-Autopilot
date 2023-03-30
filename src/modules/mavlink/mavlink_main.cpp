@@ -1700,6 +1700,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("EXTENDED_SYS_STATE", 0.1f);
 		configure_stream_local("GLOBAL_POSITION_INT", 1.5f);
 		configure_stream_local("GPS_RAW_INT", 0.5f);
+		configure_stream_local("GPS2_RAW", 0.5f);
 		configure_stream_local("HOME_POSITION", 0.1f);
 		configure_stream_local("SYS_STATUS", 0.1f);
 #if !defined(CONSTRAINED_FLASH)
