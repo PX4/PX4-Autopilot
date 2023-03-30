@@ -94,12 +94,22 @@ VtolAttitudeControl::~VtolAttitudeControl()
 bool
 VtolAttitudeControl::init()
 {
-	if (!_actuator_inputs_mc.registerCallback()) {
+	if (!_vehicle_torque_setpoint_virtual_fw_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;
 	}
 
-	if (!_actuator_inputs_fw.registerCallback()) {
+	if (!_vehicle_torque_setpoint_virtual_mc_sub.registerCallback()) {
+		PX4_ERR("callback registration failed");
+		return false;
+	}
+
+	if (!_vehicle_thrust_setpoint_virtual_fw_sub.registerCallback()) {
+		PX4_ERR("callback registration failed");
+		return false;
+	}
+
+	if (!_vehicle_thrust_setpoint_virtual_mc_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;
 	}
@@ -270,8 +280,10 @@ void
 VtolAttitudeControl::Run()
 {
 	if (should_exit()) {
-		_actuator_inputs_fw.unregisterCallback();
-		_actuator_inputs_mc.unregisterCallback();
+		_vehicle_torque_setpoint_virtual_fw_sub.unregisterCallback();
+		_vehicle_torque_setpoint_virtual_mc_sub.unregisterCallback();
+		_vehicle_thrust_setpoint_virtual_fw_sub.unregisterCallback();
+		_vehicle_thrust_setpoint_virtual_mc_sub.unregisterCallback();
 		exit_and_cleanup();
 		return;
 	}
@@ -305,8 +317,10 @@ VtolAttitudeControl::Run()
 
 	perf_begin(_loop_perf);
 
-	const bool updated_fw_in = _actuator_inputs_fw.update(&_actuators_fw_in);
-	const bool updated_mc_in = _actuator_inputs_mc.update(&_actuators_mc_in);
+	bool updated_fw_in = _vehicle_torque_setpoint_virtual_fw_sub.update(&_vehicle_torque_setpoint_virtual_fw);
+	updated_fw_in |= _vehicle_thrust_setpoint_virtual_fw_sub.update(&_vehicle_thrust_setpoint_virtual_fw);
+	bool updated_mc_in = _vehicle_torque_setpoint_virtual_mc_sub.update(&_vehicle_torque_setpoint_virtual_mc);
+	updated_mc_in |= _vehicle_thrust_setpoint_virtual_mc_sub.update(&_vehicle_thrust_setpoint_virtual_mc);
 
 	// run on actuator publications corresponding to VTOL mode
 	bool should_run = false;
@@ -414,8 +428,6 @@ VtolAttitudeControl::Run()
 		}
 
 		_vtol_type->fill_actuator_outputs();
-		_actuator_controls_0_pub.publish(_actuators_out_0);
-		_actuator_controls_1_pub.publish(_actuators_out_1);
 
 		_vehicle_torque_setpoint0_pub.publish(_torque_setpoint_0);
 		_vehicle_torque_setpoint1_pub.publish(_torque_setpoint_1);

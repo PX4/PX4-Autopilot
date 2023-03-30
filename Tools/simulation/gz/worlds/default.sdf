@@ -5,22 +5,22 @@
       <real_time_factor>1.0</real_time_factor>
       <real_time_update_rate>250</real_time_update_rate>
     </physics>
-    <plugin name='ignition::gazebo::systems::Physics' filename='ignition-gazebo-physics-system'/>
-    <plugin name='ignition::gazebo::systems::UserCommands' filename='ignition-gazebo-user-commands-system'/>
-    <plugin name='ignition::gazebo::systems::SceneBroadcaster' filename='ignition-gazebo-scene-broadcaster-system'/>
-    <plugin name='ignition::gazebo::systems::Contact' filename='ignition-gazebo-contact-system'/>
-    <plugin name='ignition::gazebo::systems::Imu' filename='ignition-gazebo-imu-system'/>
-    <plugin name='ignition::gazebo::systems::AirPressure' filename='ignition-gazebo-air-pressure-system'/>
-    <plugin name='ignition::gazebo::systems::Sensors' filename='ignition-gazebo-sensors-system'>
+    <plugin name='gz::sim::systems::Physics' filename='gz-sim-physics-system'/>
+    <plugin name='gz::sim::systems::UserCommands' filename='gz-sim-user-commands-system'/>
+    <plugin name='gz::sim::systems::SceneBroadcaster' filename='gz-sim-scene-broadcaster-system'/>
+    <plugin name='gz::sim::systems::Contact' filename='gz-sim-contact-system'/>
+    <plugin name='gz::sim::systems::Imu' filename='gz-sim-imu-system'/>
+    <plugin name='gz::sim::systems::AirPressure' filename='gz-sim-air-pressure-system'/>
+    <plugin name='gz::sim::systems::Sensors' filename='gz-sim-sensors-system'>
       <render_engine>ogre2</render_engine>
     </plugin>
     <gui fullscreen='false'>
       <plugin name='3D View' filename='GzScene3D'>
-        <ignition-gui>
+        <gz-gui>
           <title>3D View</title>
           <property type='bool' key='showTitleBar'>0</property>
           <property type='string' key='state'>docked</property>
-        </ignition-gui>
+        </gz-gui>
         <engine>ogre2</engine>
         <scene>scene</scene>
         <ambient_light>0.5984631152222222 0.5984631152222222 0.5984631152222222</ambient_light>
@@ -28,7 +28,7 @@
         <camera_pose>-6 0 6 0 0.5 0</camera_pose>
       </plugin>
       <plugin name='World control' filename='WorldControl'>
-        <ignition-gui>
+        <gz-gui>
           <title>World control</title>
           <property type='bool' key='showTitleBar'>0</property>
           <property type='bool' key='resizable'>0</property>
@@ -40,13 +40,13 @@
             <line own='left' target='left'/>
             <line own='bottom' target='bottom'/>
           </anchors>
-        </ignition-gui>
+        </gz-gui>
         <play_pause>1</play_pause>
         <step>1</step>
         <start_paused>1</start_paused>
       </plugin>
       <plugin name='World stats' filename='WorldStats'>
-        <ignition-gui>
+        <gz-gui>
           <title>World stats</title>
           <property type='bool' key='showTitleBar'>0</property>
           <property type='bool' key='resizable'>0</property>
@@ -58,7 +58,7 @@
             <line own='right' target='right'/>
             <line own='bottom' target='bottom'/>
           </anchors>
-        </ignition-gui>
+        </gz-gui>
         <sim_time>1</sim_time>
         <real_time>1</real_time>
         <real_time_factor>1</real_time_factor>

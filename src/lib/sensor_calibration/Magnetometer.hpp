@@ -38,7 +38,6 @@
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/log.h>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
 
 namespace calibration

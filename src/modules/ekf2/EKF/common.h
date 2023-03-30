@@ -108,10 +108,12 @@ enum MagFuseType : uint8_t {
 	NONE    = 5    	///< Do not use magnetometer under any circumstance. Other sources of yaw may be used if selected via the EKF2_AID_MASK parameter.
 };
 
+#if defined(CONFIG_EKF2_RANGE_FINDER)
 enum TerrainFusionMask : uint8_t {
 	TerrainFuseRangeFinder = (1 << 0),
 	TerrainFuseOpticalFlow = (1 << 1)
 };
+#endif // CONFIG_EKF2_RANGE_FINDER
 
 enum HeightSensor : uint8_t {
 	BARO  = 0,
@@ -238,6 +240,7 @@ struct flowSample {
 	uint8_t     quality{};     ///< quality indicator between 0 and 255
 };
 
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
 struct extVisionSample {
 	uint64_t    time_us{};     ///< timestamp of the measurement (uSec)
 	Vector3f    pos{};         ///< XYZ position in external vision's local reference frame (m) - Z must be aligned with down axis
@@ -251,17 +254,22 @@ struct extVisionSample {
 	uint8_t     reset_counter{};
 	int8_t     quality{};     ///< quality indicator between 0 and 100
 };
+#endif // CONFIG_EKF2_EXTERNAL_VISION
 
+#if defined(CONFIG_EKF2_DRAG_FUSION)
 struct dragSample {
 	uint64_t    time_us{};     ///< timestamp of the measurement (uSec)
 	Vector2f    accelXY{};     ///< measured specific force along the X and Y body axes (m/sec**2)
 };
+#endif // CONFIG_EKF2_DRAG_FUSION
 
+#if defined(CONFIG_EKF2_AUXVEL)
 struct auxVelSample {
 	uint64_t    time_us{};     ///< timestamp of the measurement (uSec)
 	Vector2f    vel{};         ///< measured NE velocity relative to the local origin (m/sec)
 	Vector2f    velVar{};      ///< estimated error variance of the NE velocity (m/sec)**2
 };
+#endif // CONFIG_EKF2_AUXVEL
 
 struct systemFlagUpdate {
 	uint64_t time_us{};
@@ -294,10 +302,6 @@ struct parameters {
 	int32_t position_sensor_ref{static_cast<int32_t>(PositionSensor::GNSS)};
 	int32_t baro_ctrl{1};
 	int32_t gnss_ctrl{GnssCtrl::HPOS | GnssCtrl::VEL};
-	int32_t rng_ctrl{RngCtrl::CONDITIONAL};
-	int32_t ev_ctrl{0};
-	int32_t terrain_fusion_mode{TerrainFusionMask::TerrainFuseRangeFinder |
-				    TerrainFusionMask::TerrainFuseOpticalFlow}; ///< aiding source(s) selection bitmask for the terrain estimator
 
 	int32_t sensor_interval_max_ms{10};     ///< maximum time of arrival difference between non IMU sensor updates. Sets the size of the observation buffers. (mSec)
 
@@ -305,11 +309,6 @@ struct parameters {
 	float mag_delay_ms{0.0f};               ///< magnetometer measurement delay relative to the IMU (mSec)
 	float baro_delay_ms{0.0f};              ///< barometer height measurement delay relative to the IMU (mSec)
 	float gps_delay_ms{110.0f};             ///< GPS measurement delay relative to the IMU (mSec)
-	float airspeed_delay_ms{100.0f};        ///< airspeed measurement delay relative to the IMU (mSec)
-	float flow_delay_ms{5.0f};              ///< optical flow measurement delay relative to the IMU (mSec) - this is to the middle of the optical flow integration interval
-	float range_delay_ms{5.0f};             ///< range finder measurement delay relative to the IMU (mSec)
-	float ev_delay_ms{175.0f};              ///< off-board vision measurement delay relative to the IMU (mSec)
-	float auxvel_delay_ms{5.0f};            ///< auxiliary velocity measurement delay relative to the IMU (mSec)
 
 	// input noise
 	float gyro_noise{1.5e-2f};              ///< IMU angular rate noise used for covariance prediction (rad/sec)
@@ -322,10 +321,6 @@ struct parameters {
 	float magb_p_noise{1.0e-4f};            ///< process noise for body magnetic field prediction (Gauss/sec)
 	float wind_vel_nsd{1.0e-2f};        ///< process noise spectral density for wind velocity prediction (m/sec**2/sqrt(Hz))
 	const float wind_vel_nsd_scaler{0.5f};      ///< scaling of wind process noise with vertical velocity
-
-	float terrain_p_noise{5.0f};            ///< process noise for terrain offset (m/sec)
-	float terrain_gradient{0.5f};           ///< gradient of terrain used to estimate process noise due to changing position (m/m)
-	const float terrain_timeout{10.f};      ///< maximum time for invalid bottom distance measurements before resetting terrain estimate (s)
 
 	// initialization errors
 	float switch_on_gyro_bias{0.1f};        ///< 1-sigma gyro bias uncertainty at switch on (rad/sec)
@@ -355,23 +350,37 @@ struct parameters {
 	int32_t mag_declination_source{7};      ///< bitmask used to control the handling of declination data
 	int32_t mag_fusion_type{0};             ///< integer used to specify the type of magnetometer fusion used
 	float mag_acc_gate{0.5f};               ///< when in auto select mode, heading fusion will be used when manoeuvre accel is lower than this (m/sec**2)
-	float mag_yaw_rate_gate{0.25f};         ///< yaw rate threshold used by mode select logic (rad/sec)
+	float mag_yaw_rate_gate{0.20f};         ///< yaw rate threshold used by mode select logic (rad/sec)
 
+#if defined(CONFIG_EKF2_GNSS_YAW)
 	// GNSS heading fusion
 	float gps_heading_noise{0.1f};          ///< measurement noise standard deviation used for GNSS heading fusion (rad)
+#endif // CONFIG_EKF2_GNSS_YAW
 
+#if defined(CONFIG_EKF2_AIRSPEED)
 	// airspeed fusion
+	float airspeed_delay_ms{100.0f};        ///< airspeed measurement delay relative to the IMU (mSec)
 	float tas_innov_gate{5.0f};             ///< True Airspeed innovation consistency gate size (STD)
 	float eas_noise{1.4f};                  ///< EAS measurement noise standard deviation used for airspeed fusion (m/s)
 	float arsp_thr{2.0f};                   ///< Airspeed fusion threshold. A value of zero will deactivate airspeed fusion
+#endif // CONFIG_EKF2_AIRSPEED
 
+#if defined(CONFIG_EKF2_SIDESLIP)
 	// synthetic sideslip fusion
 	int32_t beta_fusion_enabled{0};
 	float beta_innov_gate{5.0f};            ///< synthetic sideslip innovation consistency gate size in standard deviation (STD)
 	float beta_noise{0.3f};                 ///< synthetic sideslip noise (rad)
 	const float beta_avg_ft_us{150000.0f};  ///< The average time between synthetic sideslip measurements (uSec)
+#endif // CONFIG_EKF2_SIDESLIP
 
+#if defined(CONFIG_EKF2_RANGE_FINDER)
 	// range finder fusion
+	int32_t rng_ctrl{RngCtrl::CONDITIONAL};
+
+	int32_t terrain_fusion_mode{TerrainFusionMask::TerrainFuseRangeFinder |
+				    TerrainFusionMask::TerrainFuseOpticalFlow}; ///< aiding source(s) selection bitmask for the terrain estimator
+
+	float range_delay_ms{5.0f};             ///< range finder measurement delay relative to the IMU (mSec)
 	float range_noise{0.1f};                ///< observation noise for range finder measurements (m)
 	float range_innov_gate{5.0f};           ///< range finder fusion innovation consistency gate size (STD)
 	float rng_hgt_bias_nsd{0.13f};          ///< process noise for range height bias estimation (m/s/sqrt(Hz))
@@ -386,7 +395,19 @@ struct parameters {
 	float range_cos_max_tilt{0.7071f};      ///< cosine of the maximum tilt angle from the vertical that permits use of range finder and flow data
 	float range_kin_consistency_gate{1.0f}; ///< gate size used by the range finder kinematic consistency check
 
+	Vector3f rng_pos_body{};                ///< xyz position of range sensor in body frame (m)
+
+	float terrain_p_noise{5.0f};            ///< process noise for terrain offset (m/sec)
+	float terrain_gradient{0.5f};           ///< gradient of terrain used to estimate process noise due to changing position (m/m)
+	const float terrain_timeout{10.f};      ///< maximum time for invalid bottom distance measurements before resetting terrain estimate (s)
+
+#endif // CONFIG_EKF2_RANGE_FINDER
+
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	// vision position fusion
+	int32_t ev_ctrl{0};
+	float ev_delay_ms{175.0f};              ///< off-board vision measurement delay relative to the IMU (mSec)
+
 	float ev_vel_noise{0.1f};               ///< minimum allowed observation noise for EV velocity fusion (m/sec)
 	float ev_pos_noise{0.1f};               ///< minimum allowed observation noise for EV position fusion (m)
 	float ev_att_noise{0.1f};               ///< minimum allowed observation noise for EV attitude fusion (rad/sec)
@@ -395,14 +416,23 @@ struct parameters {
 	float ev_pos_innov_gate{5.0f};          ///< vision position fusion innovation consistency gate size (STD)
 	float ev_hgt_bias_nsd{0.13f};           ///< process noise for vision height bias estimation (m/s/sqrt(Hz))
 
+	Vector3f ev_pos_body{};                 ///< xyz position of VI-sensor focal point in body frame (m)
+#endif // CONFIG_EKF2_EXTERNAL_VISION
+
 	// gravity fusion
 	float gravity_noise{1.0f};              ///< accelerometer measurement gaussian noise (m/s**2)
+
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
+	float flow_delay_ms{5.0f};              ///< optical flow measurement delay relative to the IMU (mSec) - this is to the middle of the optical flow integration interval
 
 	// optical flow fusion
 	float flow_noise{0.15f};                ///< observation noise for optical flow LOS rate measurements (rad/sec)
 	float flow_noise_qual_min{0.5f};        ///< observation noise for optical flow LOS rate measurements when flow sensor quality is at the minimum useable (rad/sec)
 	int32_t flow_qual_min{1};               ///< minimum acceptable quality integer from  the flow sensor
 	float flow_innov_gate{3.0f};            ///< optical flow fusion innovation consistency gate size (STD)
+
+	Vector3f flow_pos_body{};               ///< xyz position of range sensor focal point in body frame (m)
+#endif // CONFIG_EKF2_OPTICAL_FLOW
 
 	// these parameters control the strictness of GPS quality checks used to determine if the GPS is
 	// good enough to set a local origin and commence aiding
@@ -418,9 +448,6 @@ struct parameters {
 	// XYZ offset of sensors in body axes (m)
 	Vector3f imu_pos_body{};                ///< xyz position of IMU in body frame (m)
 	Vector3f gps_pos_body{};                ///< xyz position of the GPS antenna in body frame (m)
-	Vector3f rng_pos_body{};                ///< xyz position of range sensor in body frame (m)
-	Vector3f flow_pos_body{};               ///< xyz position of range sensor focal point in body frame (m)
-	Vector3f ev_pos_body{};                 ///< xyz position of VI-sensor focal point in body frame (m)
 
 	// accel bias learning control
 	float acc_bias_lim{0.4f};               ///< maximum accel bias magnitude (m/sec**2)
@@ -436,6 +463,7 @@ struct parameters {
 
 	int32_t valid_timeout_max{5'000'000};     ///< amount of time spent inertial dead reckoning before the estimator reports the state estimates as invalid (uSec)
 
+#if defined(CONFIG_EKF2_BARO_COMPENSATION)
 	// static barometer pressure position error coefficient along body axes
 	float static_pressure_coef_xp{0.0f};    // (-)
 	float static_pressure_coef_xn{0.0f};    // (-)
@@ -445,21 +473,27 @@ struct parameters {
 
 	// upper limit on airspeed used for correction  (m/s**2)
 	float max_correction_airspeed {20.0f};
+#endif // CONFIG_EKF2_BARO_COMPENSATION
 
+#if defined(CONFIG_EKF2_DRAG_FUSION)
 	// multi-rotor drag specific force fusion
 	float drag_noise{2.5f};                 ///< observation noise variance for drag specific force measurements (m/sec**2)**2
 	float bcoef_x{100.0f};                  ///< bluff body drag ballistic coefficient for the X-axis (kg/m**2)
 	float bcoef_y{100.0f};                  ///< bluff body drag ballistic coefficient for the Y-axis (kg/m**2)
 	float mcoef{0.1f};                      ///< rotor momentum drag coefficient for the X and Y axes (1/s)
+#endif // CONFIG_EKF2_DRAG_FUSION
 
 	// control of accel error detection and mitigation (IMU clipping)
 	const float vert_innov_test_lim{3.0f};          ///< Number of standard deviations of vertical vel/pos innovations allowed before triggering a vertical acceleration failure
 	const float vert_innov_test_min{1.0f};          ///< Minimum number of standard deviations of vertical vel/pos innovations required to trigger a vertical acceleration failure
 	const int bad_acc_reset_delay_us{500000};       ///< Continuous time that the vertical position and velocity innovation test must fail before the states are reset (uSec)
 
+#if defined(CONFIG_EKF2_AUXVEL)
 	// auxiliary velocity fusion
+	float auxvel_delay_ms{5.0f};            ///< auxiliary velocity measurement delay relative to the IMU (mSec)
 	const float auxvel_noise{0.5f};         ///< minimum observation noise, uses reported noise if greater (m/s)
 	const float auxvel_gate{5.0f};          ///< velocity fusion innovation consistency gate size (STD)
+#endif // CONFIG_EKF2_AUXVEL
 
 	// compute synthetic magnetomter Z value if possible
 	int32_t synthesize_mag_z{0};
@@ -593,6 +627,7 @@ union ekf_solution_status_u {
 	uint16_t value;
 };
 
+#if defined(CONFIG_EKF2_RANGE_FINDER)
 union terrain_fusion_status_u {
 	struct {
 		bool range_finder : 1;  ///< 0 - true if we are fusing range finder data
@@ -600,6 +635,7 @@ union terrain_fusion_status_u {
 	} flags;
 	uint8_t value;
 };
+#endif // CONFIG_EKF2_RANGE_FINDER
 
 // define structure used to communicate information events
 union information_event_status_u {

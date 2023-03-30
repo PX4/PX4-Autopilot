@@ -49,6 +49,8 @@
 #include <mathlib/math/Limits.hpp>
 #include <mathlib/math/Functions.hpp>
 
+#include "AttitudeControl/AttitudeControlMath.hpp"
+
 using namespace matrix;
 
 MulticopterAttitudeControl::MulticopterAttitudeControl(bool vtol) :
@@ -149,56 +151,32 @@ MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt,
 		v *= _man_tilt_max / v_norm;
 	}
 
-	Quatf q_sp_rpy = AxisAnglef(v(0), v(1), 0.f);
-	Eulerf euler_sp = q_sp_rpy;
-	attitude_setpoint.roll_body = euler_sp(0);
-	attitude_setpoint.pitch_body = euler_sp(1);
+	Quatf q_sp_rp = AxisAnglef(v(0), v(1), 0.f);
 	// The axis angle can change the yaw as well (noticeable at higher tilt angles).
 	// This is the formula by how much the yaw changes:
 	//   let a := tilt angle, b := atan(y/x) (direction of maximum tilt)
 	//   yaw = atan(-2 * sin(b) * cos(b) * sin^2(a/2) / (1 - 2 * cos^2(b) * sin^2(a/2))).
-	attitude_setpoint.yaw_body = _man_yaw_sp + euler_sp(2);
+	const Quatf q_sp_yaw(cosf(_man_yaw_sp / 2.f), 0.f, 0.f, sinf(_man_yaw_sp / 2.f));
 
-	/* modify roll/pitch only if we're a VTOL */
 	if (_vtol) {
-		// Construct attitude setpoint rotation matrix. Modify the setpoints for roll
-		// and pitch such that they reflect the user's intention even if a large yaw error
-		// (yaw_sp - yaw) is present. In the presence of a yaw error constructing a rotation matrix
-		// from the pure euler angle setpoints will lead to unexpected attitude behaviour from
-		// the user's view as the euler angle sequence uses the  yaw setpoint and not the current
-		// heading of the vehicle.
-		// However there's also a coupling effect that causes oscillations for fast roll/pitch changes
-		// at higher tilt angles, so we want to avoid using this on multicopters.
-		// The effect of that can be seen with:
-		// - roll/pitch into one direction, keep it fixed (at high angle)
-		// - apply a fast yaw rotation
-		// - look at the roll and pitch angles: they should stay pretty much the same as when not yawing
+		// Modify the setpoints for roll and pitch such that they reflect the user's intention even
+		// if a large yaw error(yaw_sp - yaw) is present. In the presence of a yaw error constructing
+		// an attitude setpoint from the yaw setpoint will lead to unexpected attitude behaviour from
+		// the user's view as the tilt will not be aligned with the heading of the vehicle.
 
-		// calculate our current yaw error
-		float yaw_error = wrap_pi(attitude_setpoint.yaw_body - yaw);
-
-		// compute the vector obtained by rotating a z unit vector by the rotation
-		// given by the roll and pitch commands of the user
-		Vector3f zB = {0.0f, 0.0f, 1.0f};
-		Dcmf R_sp_roll_pitch = Eulerf(attitude_setpoint.roll_body, attitude_setpoint.pitch_body, 0.0f);
-		Vector3f z_roll_pitch_sp = R_sp_roll_pitch * zB;
-
-		// transform the vector into a new frame which is rotated around the z axis
-		// by the current yaw error. this vector defines the desired tilt when we look
-		// into the direction of the desired heading
-		Dcmf R_yaw_correction = Eulerf(0.0f, 0.0f, -yaw_error);
-		z_roll_pitch_sp = R_yaw_correction * z_roll_pitch_sp;
-
-		// use the formula z_roll_pitch_sp = R_tilt * [0;0;1]
-		// R_tilt is computed from_euler; only true if cos(roll) not equal zero
-		// -> valid if roll is not +-pi/2;
-		attitude_setpoint.roll_body = -asinf(z_roll_pitch_sp(1));
-		attitude_setpoint.pitch_body = atan2f(z_roll_pitch_sp(0), z_roll_pitch_sp(2));
+		AttitudeControlMath::correctTiltSetpointForYawError(q_sp_rp, q, q_sp_yaw);
 	}
 
-	/* copy quaternion setpoint to attitude setpoint topic */
-	Quatf q_sp = Eulerf(attitude_setpoint.roll_body, attitude_setpoint.pitch_body, attitude_setpoint.yaw_body);
+	// Align the desired tilt with the yaw setpoint
+	Quatf q_sp = q_sp_yaw * q_sp_rp;
+
 	q_sp.copyTo(attitude_setpoint.q_d);
+
+	// Transform to euler angles for logging only
+	const Eulerf euler_sp(q_sp);
+	attitude_setpoint.roll_body = euler_sp(0);
+	attitude_setpoint.pitch_body = euler_sp(1);
+	attitude_setpoint.yaw_body = euler_sp(2);
 
 	attitude_setpoint.thrust_body[2] = -throttle_curve((_manual_control_setpoint.throttle + 1.f) * .5f);
 	attitude_setpoint.timestamp = hrt_absolute_time();

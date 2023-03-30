@@ -39,7 +39,6 @@ include(px4_list_make_absolute)
 set(msg_files
 	ActionRequest.msg
 	ActuatorArmed.msg
-	ActuatorControls.msg
 	ActuatorControlsStatus.msg
 	ActuatorMotors.msg
 	ActuatorOutputs.msg
@@ -100,6 +99,7 @@ set(msg_files
 	GimbalManagerStatus.msg
 	GpsDump.msg
 	GpsInjectData.msg
+	GimbalControls.msg
 	Gripper.msg
 	HealthReport.msg
 	HeaterStatus.msg

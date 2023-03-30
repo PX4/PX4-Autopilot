@@ -49,10 +49,6 @@
 using matrix::wrap_pi;
 using matrix::wrap_2pi;
 
-#ifndef hrt_absolute_time
-# define hrt_absolute_time() (0)
-#endif
-
 /*
  * Azimuthal Equidistant Projection
  * formulas according to: http://mathworld.wolfram.com/AzimuthalEquidistantProjection.html
@@ -146,6 +142,7 @@ void waypoint_from_heading_and_distance(double lat_start, double lon_start, floa
 					double *lat_target, double *lon_target)
 {
 	bearing = wrap_2pi(bearing);
+
 	double radius_ratio = static_cast<double>(dist) / CONSTANTS_RADIUS_OF_EARTH;
 
 	double lat_start_rad = math::radians(lat_start);
@@ -218,7 +215,7 @@ void add_vector_to_global_position(double lat_now, double lon_now, float v_n, fl
 
 // Additional functions - @author Doug Weibel <douglas.weibel@colorado.edu>
 
-int get_distance_to_line(struct crosstrack_error_s *crosstrack_error, double lat_now, double lon_now,
+int get_distance_to_line(struct crosstrack_error_s &crosstrack_error, double lat_now, double lon_now,
 			 double lat_start, double lon_start, double lat_end, double lon_end)
 {
 	// This function returns the distance to the nearest point on the track line.  Distance is positive if current
@@ -226,9 +223,9 @@ int get_distance_to_line(struct crosstrack_error_s *crosstrack_error, double lat
 	// headed towards the end point.
 
 	int return_value = -1;	// Set error flag, cleared when valid result calculated.
-	crosstrack_error->past_end = false;
-	crosstrack_error->distance = 0.0f;
-	crosstrack_error->bearing = 0.0f;
+	crosstrack_error.past_end = false;
+	crosstrack_error.distance = 0.0f;
+	crosstrack_error.bearing = 0.0f;
 
 	float dist_to_end = get_distance_to_next_waypoint(lat_now, lon_now, lat_end, lon_end);
 
@@ -243,18 +240,18 @@ int get_distance_to_line(struct crosstrack_error_s *crosstrack_error, double lat
 
 	// Return past_end = true if past end point of line
 	if (bearing_diff > M_PI_2_F || bearing_diff < -M_PI_2_F) {
-		crosstrack_error->past_end = true;
+		crosstrack_error.past_end = true;
 		return_value = 0;
 		return return_value;
 	}
 
-	crosstrack_error->distance = (dist_to_end) * sinf(bearing_diff);
+	crosstrack_error.distance = (dist_to_end) * sinf(bearing_diff);
 
 	if (sinf(bearing_diff) >= 0) {
-		crosstrack_error->bearing = wrap_pi(bearing_track - M_PI_2_F);
+		crosstrack_error.bearing = wrap_pi(bearing_track - M_PI_2_F);
 
 	} else {
-		crosstrack_error->bearing = wrap_pi(bearing_track + M_PI_2_F);
+		crosstrack_error.bearing = wrap_pi(bearing_track + M_PI_2_F);
 	}
 
 	return_value = 0;

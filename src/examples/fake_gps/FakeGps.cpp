@@ -82,6 +82,7 @@ void FakeGps::Run()
 	sensor_gps.heading_offset = 0.0000;
 	sensor_gps.fix_type = 4;
 	sensor_gps.jamming_state = 0;
+	sensor_gps.spoofing_state = 0;
 	sensor_gps.vel_ned_valid = true;
 	sensor_gps.satellites_used = 14;
 	sensor_gps.timestamp = hrt_absolute_time();

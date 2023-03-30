@@ -30,6 +30,12 @@ uint8 JAMMING_STATE_CRITICAL = 3
 uint8 jamming_state		# indicates whether jamming has been detected or suspected by the receivers. O: Unknown, 1: OK, 2: Warning, 3: Critical
 int32 jamming_indicator		# indicates jamming is occurring
 
+uint8 SPOOFING_STATE_UNKNOWN   = 0
+uint8 SPOOFING_STATE_NONE      = 1
+uint8 SPOOFING_STATE_INDICATED = 2
+uint8 SPOOFING_STATE_MULTIPLE  = 3
+uint8 spoofing_state		# indicates whether spoofing has been detected or suspected by the receivers. O: Unknown, 1: OK, 2: Warning, 3: Critical
+
 float32 vel_m_s			# GPS ground speed, (metres/sec)
 float32 vel_n_m_s		# GPS North velocity, (metres/sec)
 float32 vel_e_m_s		# GPS East velocity, (metres/sec)

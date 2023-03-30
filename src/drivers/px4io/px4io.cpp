@@ -68,7 +68,6 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/actuator_armed.h>
-#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/input_rc.h>
 #include <uORB/topics/vehicle_command.h>

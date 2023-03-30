@@ -4,6 +4,80 @@ menuconfig MODULES_EKF2
 	---help---
 		Enable support for ekf2
 
+menuconfig EKF2_MULTI_INSTANCE
+depends on MODULES_EKF2
+        bool "multi-EKF support"
+        default y
+	depends on !BOARD_CONSTRAINED_MEMORY
+	depends on !BOARD_CONSTRAINED_FLASH
+	---help---
+		EKF2 support multiple instances and selector.
+
+menuconfig EKF2_AIRSPEED
+depends on MODULES_EKF2
+        bool "airspeed fusion support"
+        default y
+	depends on EKF2_SIDESLIP
+	---help---
+		EKF2 airspeed fusion support.
+
+menuconfig EKF2_AUXVEL
+depends on MODULES_EKF2
+        bool "aux velocity fusion support"
+        default y
+	---help---
+		EKF2 auxiliary velocity fusion support.
+
+menuconfig EKF2_BARO_COMPENSATION
+depends on MODULES_EKF2
+        bool "barometer compensation support"
+        default y
+	---help---
+		EKF2 pressure compensation support.
+
+menuconfig EKF2_DRAG_FUSION
+depends on MODULES_EKF2
+        bool "drag fusion support"
+        default y
+	---help---
+		EKF2 drag fusion support.
+
+menuconfig EKF2_EXTERNAL_VISION
+depends on MODULES_EKF2
+        bool "external vision (EV) fusion support"
+        default y
+	---help---
+		EKF2 external vision (EV) fusion support.
+
+menuconfig EKF2_GNSS_YAW
+depends on MODULES_EKF2
+        bool "GNSS yaw fusion support"
+        default y
+	---help---
+		EKF2 GNSS yaw fusion support.
+
+menuconfig EKF2_OPTICAL_FLOW
+depends on MODULES_EKF2
+        bool "optical flow fusion support"
+        default y
+	depends on EKF2_RANGE_FINDER
+	---help---
+		EKF2 optical flow fusion support.
+
+menuconfig EKF2_RANGE_FINDER
+depends on MODULES_EKF2
+        bool "range finder fusion support"
+        default y
+	---help---
+		EKF2 range finder fusion support.
+
+menuconfig EKF2_SIDESLIP
+depends on MODULES_EKF2
+        bool "sideslip fusion support"
+        default y
+	---help---
+		EKF2 sideslip fusion support.
+
 menuconfig USER_EKF2
 	bool "ekf2 running as userspace module"
 	default n

@@ -171,6 +171,7 @@ void SensorGpsSim::Run()
 		sensor_gps.heading_accuracy = 0;
 		sensor_gps.automatic_gain_control = 0;
 		sensor_gps.jamming_state = 0;
+		sensor_gps.spoofing_state = 0;
 		sensor_gps.vel_ned_valid = true;
 		sensor_gps.satellites_used = _sim_gps_used.get();
 

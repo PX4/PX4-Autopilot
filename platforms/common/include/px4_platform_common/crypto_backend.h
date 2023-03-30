@@ -94,6 +94,13 @@ bool keystore_put_key(keystore_session_handle_t handle, uint8_t idx, uint8_t *ke
 void crypto_init(void);
 
 /*
+ * De-initialize hw level crypto
+ * This may be called to shut down hw level crypto
+ */
+
+void crypto_deinit(void);
+
+/*
  * Open a session for performing crypto functions
  * algorithm: The crypto algorithm to be used in this session
  */

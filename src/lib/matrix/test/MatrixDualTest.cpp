@@ -39,12 +39,6 @@
 
 using namespace matrix;
 
-template <typename Scalar, size_t N>
-bool isEqualAll(Dual<Scalar, N> a, Dual<Scalar, N> b)
-{
-	return isEqualF(a.value, b.value) && a.derivative == b.derivative;
-}
-
 template <typename T>
 T testFunction(const Vector<T, 3> &point)
 {
@@ -83,9 +77,9 @@ TEST(MatrixDualTest, Dual)
 		EXPECT_FLOAT_EQ(c.derivative(0), 2.f);
 
 		Dual<float, 1> d = +a;
-		EXPECT_TRUE(isEqualAll(d, a));
+		EXPECT_EQ(d, a);
 		d += b;
-		EXPECT_TRUE(isEqualAll(d, c));
+		EXPECT_EQ(d, c);
 
 		Dual<float, 1> e = a;
 		e += b.value;
@@ -93,7 +87,7 @@ TEST(MatrixDualTest, Dual)
 		EXPECT_EQ(e.derivative, a.derivative);
 
 		Dual<float, 1> f = b.value + a;
-		EXPECT_TRUE(isEqualAll(f, e));
+		EXPECT_EQ(f, e);
 	}
 
 	{
@@ -103,9 +97,9 @@ TEST(MatrixDualTest, Dual)
 		EXPECT_FLOAT_EQ(c.derivative(0), 0.f);
 
 		Dual<float, 1> d = b;
-		EXPECT_TRUE(isEqualAll(d, b));
+		EXPECT_EQ(d, b);
 		d -= a;
-		EXPECT_TRUE(isEqualAll(d, c));
+		EXPECT_EQ(d, c);
 
 		Dual<float, 1> e = b;
 		e -= a.value;
@@ -113,7 +107,7 @@ TEST(MatrixDualTest, Dual)
 		EXPECT_EQ(e.derivative, b.derivative);
 
 		Dual<float, 1> f = a.value - b;
-		EXPECT_TRUE(isEqualAll(f, -e));
+		EXPECT_EQ(f, -e);
 	}
 
 	{
@@ -123,9 +117,9 @@ TEST(MatrixDualTest, Dual)
 		EXPECT_FLOAT_EQ(c.derivative(0), 9.f);
 
 		Dual<float, 1> d = a;
-		EXPECT_TRUE(isEqualAll(d, a));
+		EXPECT_EQ(d, a);
 		d *= b;
-		EXPECT_TRUE(isEqualAll(d, c));
+		EXPECT_EQ(d, c);
 
 		Dual<float, 1> e = a;
 		e *= b.value;
@@ -133,7 +127,7 @@ TEST(MatrixDualTest, Dual)
 		EXPECT_EQ(e.derivative, a.derivative * b.value);
 
 		Dual<float, 1> f = b.value * a;
-		EXPECT_TRUE(isEqualAll(f, e));
+		EXPECT_EQ(f, e);
 	}
 
 	{
@@ -143,9 +137,9 @@ TEST(MatrixDualTest, Dual)
 		EXPECT_FLOAT_EQ(c.derivative(0), -1.f / 3.f);
 
 		Dual<float, 1> d = b;
-		EXPECT_TRUE(isEqualAll(d, b));
+		EXPECT_EQ(d, b);
 		d /= a;
-		EXPECT_TRUE(isEqualAll(d, c));
+		EXPECT_EQ(d, c);
 
 		Dual<float, 1> e = b;
 		e /= a.value;
@@ -153,7 +147,7 @@ TEST(MatrixDualTest, Dual)
 		EXPECT_EQ(e.derivative, b.derivative / a.value);
 
 		Dual<float, 1> f = a.value / b;
-		EXPECT_TRUE(isEqualAll(f, 1.f / e));
+		EXPECT_EQ(f, 1.f / e);
 	}
 
 	{
@@ -170,9 +164,9 @@ TEST(MatrixDualTest, Dual)
 
 	{
 		// abs
-		EXPECT_TRUE(isEqualAll(a, abs(-a)));
-		EXPECT_FALSE(isEqualAll(-a, abs(a)));
-		EXPECT_TRUE(isEqualAll(-a, -abs(a)));
+		EXPECT_EQ(a, abs(-a));
+		EXPECT_NE(-a, abs(a));
+		EXPECT_EQ(-a, -abs(a));
 	}
 
 	{
@@ -197,8 +191,8 @@ TEST(MatrixDualTest, Dual)
 
 	{
 		// max/min
-		EXPECT_TRUE(isEqualAll(b, max(a, b)));
-		EXPECT_TRUE(isEqualAll(a, min(a, b)));
+		EXPECT_EQ(b, max(a, b));
+		EXPECT_EQ(a, min(a, b));
 	}
 
 	{
@@ -248,7 +242,7 @@ TEST(MatrixDualTest, Dual)
 	{
 		// atan2
 		EXPECT_FLOAT_EQ(atan2(a, b).value, atan2(a.value, b.value));
-		EXPECT_TRUE(isEqualAll(atan2(a, Dual<float, 1>(b.value)), atan(a / b.value))); // atan2'(y, x) = atan'(y/x)
+		EXPECT_EQ(atan2(a, Dual<float, 1>(b.value)), atan(a / b.value)); // atan2'(y, x) = atan'(y/x)
 	}
 
 	{

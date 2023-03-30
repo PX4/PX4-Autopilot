@@ -229,9 +229,10 @@ void FlightTaskAuto::_prepareLandSetpoints()
 	}
 
 	if (_type_previous != WaypointType::land) {
-		// initialize yaw
+		// initialize yaw and xy-position
 		_land_heading = _yaw_setpoint;
 		_stick_acceleration_xy.resetPosition(Vector2f(_target(0), _target(1)));
+		_initial_land_position = Vector3f(_target(0), _target(1), NAN);
 	}
 
 	// Update xy-position in case of landing position changes (etc. precision landing)
@@ -248,7 +249,29 @@ void FlightTaskAuto::_prepareLandSetpoints()
 						       _deltatime);
 		}
 
-		_stick_acceleration_xy.generateSetpoints(_sticks.getPitchRollExpo(), _yaw, _land_heading, _position,
+		Vector2f sticks_xy = _sticks.getPitchRollExpo();
+		Vector2f sticks_ne = sticks_xy;
+		Sticks::rotateIntoHeadingFrameXY(sticks_ne, _yaw, _land_heading);
+
+		const float distance_to_circle = math::trajectory::getMaxDistanceToCircle(_position.xy(), _initial_land_position.xy(),
+						 _param_mpc_land_radius.get(), sticks_ne);
+		float max_speed;
+
+		if (PX4_ISFINITE(distance_to_circle)) {
+			max_speed = math::trajectory::computeMaxSpeedFromDistance(_stick_acceleration_xy.getMaxJerk(),
+					_stick_acceleration_xy.getMaxAcceleration(), distance_to_circle, 0.f);
+
+			if (max_speed < 0.5f) {
+				sticks_xy.setZero();
+			}
+
+		} else {
+			max_speed = 0.f;
+			sticks_xy.setZero();
+		}
+
+		_stick_acceleration_xy.setVelocityConstraint(max_speed);
+		_stick_acceleration_xy.generateSetpoints(sticks_xy, _yaw, _land_heading, _position,
 				_velocity_setpoint_feedback.xy(), _deltatime);
 		_stick_acceleration_xy.getSetpoints(_land_position, _velocity_setpoint, _acceleration_setpoint);
 

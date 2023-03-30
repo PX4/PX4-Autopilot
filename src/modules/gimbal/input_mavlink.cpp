@@ -257,7 +257,6 @@ InputMavlinkCmdMount::_process_command(ControlData &control_data, const vehicle_
 
 		switch ((int) vehicle_command.param7) {
 		case vehicle_command_s::VEHICLE_MOUNT_MODE_RETRACT:
-			control_data.gimbal_shutter_retract = true;
 
 		// fallthrough
 		case vehicle_command_s::VEHICLE_MOUNT_MODE_NEUTRAL:
@@ -606,8 +605,6 @@ InputMavlinkGimbalV2::UpdateResult InputMavlinkGimbalV2::_process_set_attitude(C
 InputMavlinkGimbalV2::UpdateResult InputMavlinkGimbalV2::_process_vehicle_roi(ControlData &control_data,
 		const vehicle_roi_s &vehicle_roi)
 {
-	control_data.gimbal_shutter_retract = false;
-
 	if (vehicle_roi.mode == vehicle_roi_s::ROI_NONE) {
 
 		control_data.type = ControlData::Type::Neutral;
@@ -679,7 +676,6 @@ InputMavlinkGimbalV2::_process_command(ControlData &control_data, const vehicle_
 
 		switch ((int) vehicle_command.param7) {
 		case vehicle_command_s::VEHICLE_MOUNT_MODE_RETRACT:
-			control_data.gimbal_shutter_retract = true;
 
 		// fallthrough
 

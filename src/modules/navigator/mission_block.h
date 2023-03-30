@@ -47,7 +47,6 @@
 #include <drivers/drv_hrt.h>
 #include <systemlib/mavlink_log.h>
 #include <uORB/Publication.hpp>
-#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_command.h>
@@ -213,7 +212,4 @@ protected:
 	bool _payload_deploy_ack_successful{false};	// Flag to keep track of whether we received an acknowledgement for a successful payload deployment
 	hrt_abstime _payload_deployed_time{0};		// Last payload deployment start time to handle timeouts
 	float _payload_deploy_timeout_s{0.0f};		// Timeout for payload deployment in Mission class, to prevent endless loop if successful deployment ack is never received
-
-	// Used for MAV_CMD_DO_SET_SERVO command of a Mission item
-	uORB::Publication<actuator_controls_s>	_actuator_pub{ORB_ID(actuator_controls_2)};
 };

@@ -69,16 +69,17 @@ void Ekf::initialiseCovariance()
 	// position
 	P(7,7) = sq(fmaxf(_params.gps_pos_noise, 0.01f));
 	P(8,8) = P(7,7);
+	P(9,9) = sq(fmaxf(_params.baro_noise, 0.01f));
 
+	if (_control_status.flags.gps_hgt) {
+		P(9,9) = sq(fmaxf(1.5f * _params.gps_pos_noise, 0.01f));
+	}
+
+#if defined(CONFIG_EKF2_RANGE_FINDER)
 	if (_control_status.flags.rng_hgt) {
 		P(9,9) = sq(fmaxf(_params.range_noise, 0.01f));
-
-	} else if (_control_status.flags.gps_hgt) {
-		P(9,9) = sq(fmaxf(1.5f * _params.gps_pos_noise, 0.01f));
-
-	} else {
-		P(9,9) = sq(fmaxf(_params.baro_noise, 0.01f));
 	}
+#endif // CONFIG_EKF2_RANGE_FINDER
 
 	// gyro bias
 	_prev_delta_ang_bias_var(0) = P(10,10) = sq(_params.switch_on_gyro_bias * dt);
@@ -444,14 +445,27 @@ void Ekf::fixCovarianceErrors(bool force_symmetry)
 		if (fabsf(down_dvel_bias) > dVel_bias_lim) {
 
 			bool bad_vz_gps = _control_status.flags.gps    && (down_dvel_bias * _aid_src_gnss_vel.innovation[2] < 0.0f);
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
 			bool bad_vz_ev  = _control_status.flags.ev_vel && (down_dvel_bias * _aid_src_ev_vel.innovation[2] < 0.0f);
+#else
+			bool bad_vz_ev  = false;
+#endif // CONFIG_EKF2_EXTERNAL_VISION
 
 			if (bad_vz_gps || bad_vz_ev) {
 				bool bad_z_baro = _control_status.flags.baro_hgt && (down_dvel_bias * _aid_src_baro_hgt.innovation < 0.0f);
 				bool bad_z_gps  = _control_status.flags.gps_hgt  && (down_dvel_bias * _aid_src_gnss_hgt.innovation < 0.0f);
-				bool bad_z_rng  = _control_status.flags.rng_hgt  && (down_dvel_bias * _aid_src_rng_hgt.innovation  < 0.0f);
-				bool bad_z_ev   = _control_status.flags.ev_hgt   && (down_dvel_bias * _aid_src_ev_hgt.innovation   < 0.0f);
 
+#if defined(CONFIG_EKF2_RANGE_FINDER)
+				bool bad_z_rng  = _control_status.flags.rng_hgt  && (down_dvel_bias * _aid_src_rng_hgt.innovation  < 0.0f);
+#else
+				bool bad_z_rng  = false;
+#endif // CONFIG_EKF2_RANGE_FINDER
+
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
+				bool bad_z_ev   = _control_status.flags.ev_hgt   && (down_dvel_bias * _aid_src_ev_hgt.innovation   < 0.0f);
+#else
+				bool bad_z_ev   = false;
+#endif // CONFIG_EKF2_EXTERNAL_VISION
 
 				if (bad_z_baro || bad_z_gps || bad_z_rng || bad_z_ev) {
 					bad_acc_bias = true;

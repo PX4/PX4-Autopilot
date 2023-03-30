@@ -670,6 +670,29 @@ void EstimatorChecks::checkGps(const Context &context, Report &reporter, const s
 			mavlink_log_critical(reporter.mavlink_log_pub(), "GPS reports critical jamming state\t");
 		}
 	}
+
+	if (vehicle_gps_position.spoofing_state == sensor_gps_s::SPOOFING_STATE_INDICATED) {
+		/* EVENT
+		 */
+		reporter.armingCheckFailure(NavModes::None, health_component_t::gps,
+					    events::ID("check_estimator_gps_spoofing_indicated"),
+					    events::Log::Critical, "GPS reports spoofing indicated");
+
+		if (reporter.mavlink_log_pub()) {
+			mavlink_log_critical(reporter.mavlink_log_pub(), "GPS reports spoofing indicated\t");
+		}
+
+	} else if (vehicle_gps_position.spoofing_state == sensor_gps_s::SPOOFING_STATE_MULTIPLE) {
+		/* EVENT
+		 */
+		reporter.armingCheckFailure(NavModes::None, health_component_t::gps,
+					    events::ID("check_estimator_gps_multiple_spoofing_indicated"),
+					    events::Log::Critical, "GPS reports multiple spoofing indicated");
+
+		if (reporter.mavlink_log_pub()) {
+			mavlink_log_critical(reporter.mavlink_log_pub(), "GPS reports multiple spoofing indicated\t");
+		}
+	}
 }
 
 void EstimatorChecks::lowPositionAccuracy(const Context &context, Report &reporter,

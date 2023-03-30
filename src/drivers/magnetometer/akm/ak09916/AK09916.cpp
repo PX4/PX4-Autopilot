@@ -78,6 +78,7 @@ bool AK09916::Reset()
 void AK09916::print_status()
 {
 	I2CSPIDriverBase::print_status();
+	PX4_INFO("Variant: %s", _is_ak09918 ? "AK09918" : "AK09916");
 
 	perf_print_counter(_reset_perf);
 	perf_print_counter(_bad_register_perf);
@@ -94,15 +95,21 @@ int AK09916::probe()
 		const uint8_t WIA2 = RegisterRead(Register::WIA2);
 
 		if ((WIA1 == Company_ID) && (WIA2 == Device_ID)) {
+			_is_ak09918 = false;
+			return PX4_OK;
+		}
+
+		if ((WIA1 == Company_ID) && (WIA2 == Device_ID_AK09918)) {
+			_is_ak09918 = true;
 			return PX4_OK;
 		}
 
 		if (WIA1 != Company_ID) {
-			DEVICE_DEBUG("unexpected WIA1 0x%02x", WIA1);
+			PX4_DEBUG("unexpected WIA1 0x%02x", WIA1);
 		}
 
-		if (WIA2 != Device_ID) {
-			DEVICE_DEBUG("unexpected WIA2 0x%02x", WIA2);
+		if (WIA2 != Device_ID && WIA2 != Device_ID_AK09918) {
+			PX4_DEBUG("unexpected WIA2 0x%02x", WIA2);
 		}
 	}
 
@@ -124,25 +131,28 @@ void AK09916::RunImpl()
 		ScheduleDelayed(100_ms);
 		break;
 
-	case STATE::WAIT_FOR_RESET:
-		if ((RegisterRead(Register::WIA1) == Company_ID) && (RegisterRead(Register::WIA2) == Device_ID)) {
-			// if reset succeeded then configure
-			_state = STATE::CONFIGURE;
-			ScheduleDelayed(100_ms);
+	case STATE::WAIT_FOR_RESET: {
+			uint8_t device_id = _is_ak09918 ? Device_ID_AK09918 : Device_ID;
 
-		} else {
-			// RESET not complete
-			if (hrt_elapsed_time(&_reset_timestamp) > 30_s) {
-				PX4_ERR("Reset failed, retrying");
-				Reset();
+			if ((RegisterRead(Register::WIA1) == Company_ID) && (RegisterRead(Register::WIA2) == device_id)) {
+				// if reset succeeded then configure
+				_state = STATE::CONFIGURE;
+				ScheduleDelayed(100_ms);
 
 			} else {
-				PX4_DEBUG("Reset not complete, check again in 100 ms");
-				ScheduleDelayed(100_ms);
-			}
-		}
+				// RESET not complete
+				if (hrt_elapsed_time(&_reset_timestamp) > 30_s) {
+					PX4_ERR("Reset failed, retrying");
+					Reset();
 
-		break;
+				} else {
+					PX4_DEBUG("Reset not complete, check again in 100 ms");
+					ScheduleDelayed(100_ms);
+				}
+			}
+
+			break;
+		}
 
 	case STATE::CONFIGURE:
 		if (Configure()) {

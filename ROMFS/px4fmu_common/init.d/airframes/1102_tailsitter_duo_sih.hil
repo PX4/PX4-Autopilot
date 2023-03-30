@@ -17,6 +17,8 @@
 
 . ${R}etc/init.d/rc.vtol_defaults
 
+param set-default EKF2_FUSE_BETA 0 # side slip fusion is currently not supported for tailsitters
+
 param set UAVCAN_ENABLE 0
 param set-default VT_ELEV_MC_LOCK 0
 param set-default VT_MOT_COUNT 2

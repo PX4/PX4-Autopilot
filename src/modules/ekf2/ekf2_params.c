@@ -532,7 +532,7 @@ PARAM_DEFINE_FLOAT(EKF2_MAG_ACCLIM, 0.5f);
  * @unit rad/s
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(EKF2_MAG_YAWLIM, 0.25f);
+PARAM_DEFINE_FLOAT(EKF2_MAG_YAWLIM, 0.20f);
 
 /**
  * Gate size for barometric and GPS height fusion
@@ -1073,6 +1073,7 @@ PARAM_DEFINE_FLOAT(EKF2_EV_POS_Z, 0.0f);
 * value will determine the minimum airspeed which will still be fused. Set to about 90% of the vehicles stall speed.
 * Both airspeed fusion and sideslip fusion must be active for the EKF to continue navigating after loss of GPS.
 * Use EKF2_FUSE_BETA to activate sideslip fusion.
+* Note: side slip fusion is currently not supported for tailsitters.
 *
 * @group EKF2
 * @min 0.0

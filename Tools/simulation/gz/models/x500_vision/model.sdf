@@ -2,7 +2,7 @@
 <sdf version='1.9'>
   <model name='x500-vision'>
     <include merge='true'>
-      <uri>https://fuel.gazebosim.org/1.0/RudisLaboratories/models/x500-Base</uri>
+      <uri>x500</uri>
     </include>
       <plugin
         filename="gz-sim-odometry-publisher-system"

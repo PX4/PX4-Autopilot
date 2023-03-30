@@ -60,6 +60,7 @@ static constexpr uint8_t I2C_ADDRESS_DEFAULT = 0b0001100;
 
 static constexpr uint8_t Company_ID = 0x48;
 static constexpr uint8_t Device_ID = 0x09;
+static constexpr uint8_t Device_ID_AK09918 = 0x0C;
 
 enum class Register : uint8_t {
 	WIA1  = 0x00, // Company ID of AKM
