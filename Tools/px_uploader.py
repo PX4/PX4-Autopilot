@@ -551,8 +551,15 @@ class uploader(object):
         self.__drawProgressBar(label, 1, 100)
         expect_crc = fw.crc(self.fw_maxsize)
         self.__send(uploader.GET_CRC + uploader.EOC)
-        time.sleep(0.5)
-        report_crc = self.__recv_int()
+        # wait for maximum 5 seconds for response
+        for i in range(10):
+            time.sleep(0.5)
+            try:
+                report_crc = self.__recv_int()
+                break
+            except:
+                pass
+
         self.__getSync()
         if report_crc != expect_crc:
             print("Expected 0x%x" % expect_crc)
