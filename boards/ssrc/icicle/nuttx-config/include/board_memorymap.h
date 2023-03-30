@@ -65,6 +65,11 @@
 #define USRAM_START     (uintptr_t)&__usram_start
 #define USRAM_SIZE      (uintptr_t)&__usram_size
 
+/* User IO */
+
+#define USRIO_START     (uintptr_t)&__usrio_start
+#define USRIO_SIZE      (uintptr_t)&__usrio_size
+
 /****************************************************************************
  * Public Data
  ****************************************************************************/
@@ -94,5 +99,10 @@ extern uintptr_t        __uflash_size;
 
 extern uintptr_t        __usram_start;
 extern uintptr_t        __usram_size;
+
+/* User IO (R) */
+
+extern uintptr_t        __usrio_start;
+extern uintptr_t        __usrio_size;
 
 #endif /* __BOARDS_RISC_V_MPFS_ICICLE_INCLUDE_BOARD_MEMORYMAP_H */

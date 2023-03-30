@@ -77,17 +77,24 @@ static const px4_hw_mft_item_t device_unsupported = {0, 0, 0};
 
 static const px4_hw_mft_item_t hw_mft_list_v0000[] = {
 	{
-		//  PX4_MFT_PX4IO
 		.present     = 0,
 		.mandatory   = 0,
 		.connection  = px4_hw_con_unknown,
 	},
 };
 
+static const px4_hw_mft_item_t hw_mft_list_v0100[] = {
+	{
+		.present     = 0,
+		.mandatory   = 0,
+		.connection  = px4_hw_con_unknown,
+	},
+};
 
 static px4_hw_mft_list_entry_t mft_lists[] = {
 // ver/rev
 	{0x0000, hw_mft_list_v0000,        arraySize(hw_mft_list_v0000)},
+	{0x0100, hw_mft_list_v0100,        arraySize(hw_mft_list_v0100)},
 };
 
 /************************************************************************************

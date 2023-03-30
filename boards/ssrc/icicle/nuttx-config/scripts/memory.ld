@@ -25,4 +25,5 @@ MEMORY
 
   uflash (rwx) : ORIGIN = 0xACE00000, LENGTH = 2M /* w/ cache */
   usram  (rwx) : ORIGIN = 0xAD200000, LENGTH = 2M /* w/ cache */
+  usrio  (r)   : ORIGIN = 0xAD3F8000, LENGTH = 32K
 }

@@ -59,6 +59,7 @@ struct mpfs_domain {
 	const unsigned n_of_harts;
 	const uintptr_t bootaddress;
 	const bool reset_allowed;
+	const bool domain_enabled;
 };
 
 /****************************************************************************
@@ -82,6 +83,7 @@ static const struct mpfs_domain domains[] = {
 		.n_of_harts = sizeof(linux_harts) / sizeof(linux_harts[0]),
 		.bootaddress = CONFIG_MPFS_HART3_ENTRYPOINT,
 		.reset_allowed = false,
+		.domain_enabled = true,
 	},
 	{
 		.domain_name = "PX4-Ree-Domain",
@@ -89,6 +91,11 @@ static const struct mpfs_domain domains[] = {
 		.n_of_harts = sizeof(px4_harts) / sizeof(px4_harts[0]),
 		.bootaddress = CONFIG_MPFS_HART2_ENTRYPOINT,
 		.reset_allowed = true,
+#ifdef CONFIG_BUILD_KERNEL
+		.domain_enabled = true,
+#else
+		.domain_enabled = false,
+#endif
 	},
 };
 
@@ -147,6 +154,10 @@ int board_domains_init(void)
 	/* Go through the constant configuration list */
 
 	for (i = 0; i < sizeof(domains) / sizeof(domains[0]); i++) {
+
+		if (!domains[i].domain_enabled) {
+			continue;
+		}
 
 		/* Set first hart id in the list as boot hart */
 		mpfs_domains[i].boot_hartid = domains[i].harts[0];

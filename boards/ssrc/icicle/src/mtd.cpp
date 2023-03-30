@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2021 Technology Innovation Institute. All rights reserved.
+ *   Copyright (c) 2022 Technology Innovation Institute. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,29 +31,45 @@
  *
  ****************************************************************************/
 
-#include <px4_arch/spi_hw_description.h>
-#include <drivers/drv_sensor.h>
-#include <nuttx/spi/spi.h>
-
-constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
-	initSPIBusInternal(SPI::Bus::SPI0, {
-		initSPIDevice(DRV_IMU_DEVTYPE_ICM42688P,
-		SPI::CS{GPIO::Bank2, GPIO::Pin8},
-		SPI::DRDY{}),
-		/* NOTE: Not in use
-		initSPIDevice(DRV_IMU_DEVTYPE_ICM42688P,
-		SPI::CS{GPIO::Bank2, GPIO::Pin11},
-		SPI::DRDY{}),
-		*/
-		initSPIDevice(DRV_IMU_DEVTYPE_ICM20649,
-		SPI::CS{GPIO::Bank2, GPIO::Pin9},
-		SPI::DRDY{GPIO::Bank2, GPIO::Pin1})
-	}),
-	initSPIBusInternal(SPI::Bus::SPI1, {
-		initSPIDevice(SPIDEV_FLASH(0),
-		SPI::CS{GPIO::Bank2, GPIO::Pin15},
-		SPI::DRDY{})
-	}),
+#include <px4_platform_common/px4_manifest.h>
+//                                                        KiB BS    nB
+static const px4_mft_device_t i2c0 = { // 24xx64 on Base  8K 32 X   256
+	.bus_type = px4_mft_device_t::I2C,
+	.devid    = PX4_MK_I2C_DEVID(1, 0x50)
 };
 
-static constexpr bool unused = validateSPIConfig(px4_spi_buses);
+static const px4_mtd_entry_t eeprom = {
+	.device = &i2c0,
+	.npart = 1,
+	.partd = {
+		{
+			.type = MTD_PARAMETERS,
+			.path = "/fs/mtd_params",
+			.nblocks = 256
+		}
+	},
+};
+
+static const px4_mtd_manifest_t board_mtd_config = {
+	.nconfigs = 1,
+	.entries  = {
+		&eeprom
+	}
+};
+
+static const px4_mft_entry_s mtd_mft = {
+	.type = MTD,
+	.pmft = (void *) &board_mtd_config,
+};
+
+static const px4_mft_s mft = {
+	.nmft = 1,
+	.mfts = {
+		&mtd_mft
+	}
+};
+
+const px4_mft_s *board_get_manifest(void)
+{
+	return &mft;
+}

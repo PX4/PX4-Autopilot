@@ -61,6 +61,7 @@
 #include <nuttx/mmcsd.h>
 #include <nuttx/analog/adc.h>
 #include <nuttx/mm/gran.h>
+#include <nuttx/eeprom/i2c_xx24xx.h>
 #include <chip.h>
 #include <arch/board/board.h>
 
@@ -174,6 +175,9 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	int ret;
 
 	/* Power on Interfaces */
+#ifdef CONFIG_USBDEV
+	mpfs_usbinitialize();
+#endif
 
 	/* Need hrt running before using the ADC */
 
@@ -266,18 +270,48 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	ret = mpfs_board_spinor_init(mpfs_spibus_initialize(1));
 
 	if (ret < 0) {
-		syslog(LOG_ERR, "ERROR: Failed to init SPI NOR\n");
-
-	} else {
-		/* Mount LFS on the block1 */
-		ret = nx_mount("/dev/mtdblock1", "/fs/lfs", "littlefs", 0, "autoformat");
-	}
-
-	if (ret < 0) {
-		syslog(LOG_ERR, "ERROR: Failed to mount LFS filesystem\n");
+		return ret;
 	}
 
 #endif
+
+#ifdef CONFIG_I2C_EE_24XX
+
+	struct i2c_master_s *bus1 = mpfs_i2cbus_initialize(1); /* carrier board EEPROM is on bus 1 */
+
+	if (!bus1) {
+		syslog(LOG_ERR, "ERROR: Failed to initialize I2C bus 1\n");
+		return -ENODEV;
+	}
+
+	ret = ee24xx_initialize(bus1, 0x51, "/dev/eeprom1", EEPROM_AT24C04, false);
+
+	if (ret < 0) {
+		syslog(LOG_ERR, "ERROR: Failed to init EEPROM of Carrier board\n");
+		mpfs_i2cbus_uninitialize(bus1);
+		return ret;
+	}
+
+#endif
+
+#ifdef CONFIG_MPFS_IHC_CLIENT
+
+	/* Initialize MPFS IHC and register the net rpmsg driver. */
+	if (mpfs_board_ihc_init() != 0) {
+		syslog(LOG_ERR, "ERROR: Failed to initialize IHC");
+	}
+
+#ifdef CONFIG_NET_RPMSG_DRV
+
+	ret = net_rpmsg_drv_init("mpfs-ihc", "rpnet", NET_LL_TUN);
+
+	if (ret < 0) {
+		syslog(LOG_ERR, "ERROR: net_rpmsg_drv_init() failed: %d\n", ret);
+	}
+
+#endif /* CONFIG_NET_RPMSG_DRV */
+
+#endif /* CONFIG_MPFS_IHC_CLIENT */
 
 	/* Configure the HW based on the manifest */
 
@@ -290,3 +324,11 @@ int board_read_VBUS_state(void)
 {
 	return 0;
 }
+
+#ifdef CONFIG_MPFS_PHYINIT
+
+void mpfs_phy_boardinitialize(int arg)
+{
+}
+
+#endif

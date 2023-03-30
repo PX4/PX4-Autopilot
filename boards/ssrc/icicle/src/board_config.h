@@ -46,6 +46,7 @@
 #include <px4_platform_common/px4_config.h>
 #include <nuttx/compiler.h>
 #include <stdint.h>
+#include "board_type.h"
 
 /****************************************************************************************************
  * Definitions
@@ -59,12 +60,11 @@
 /* Icicle GPIOs *************************************************************************************/
 
 #define BOARD_HAS_HW_VERSIONING
+#define BOARD_HAS_MULTIPURPOSE_VERSION_PINS
 #define GPIO_HW_VERSION_PIN1    (GPIO_BANK2 | GPIO_PIN20 | GPIO_INPUT)
 #define GPIO_HW_VERSION_PIN2    (GPIO_BANK2 | GPIO_PIN21 | GPIO_INPUT)
 #define GPIO_HW_VERSION_PIN3    (GPIO_BANK2 | GPIO_PIN22 | GPIO_INPUT)
-#define HW_INFO_INIT            {'S','a','l','u','k','i',' ',' ','.',' ',0}
-#define HW_INFO_INIT_VER        7 // Offset in above string
-#define HW_INFO_INIT_REV        9 // Offset in above string
+#define HW_INFO_INIT_PREFIX     "Icicle "
 
 #define GPIO_nSAFETY_SWITCH_LED_OUT (GPIO_BANK2 | GPIO_PIN26 | GPIO_OUTPUT | GPIO_BUFFER_ENABLE) // GPS safety switch LED
 #define GPIO_LED_SAFETY GPIO_nSAFETY_SWITCH_LED_OUT

@@ -30,6 +30,8 @@ __uflash_start = ORIGIN(uflash);
 __uflash_size = LENGTH(uflash);
 __usram_start = ORIGIN(usram);
 __usram_size = LENGTH(usram);
+__usrio_start = ORIGIN(usrio);
+__usrio_size = LENGTH(usrio);
 
 /* Provide the kernel boundaries as well */
 

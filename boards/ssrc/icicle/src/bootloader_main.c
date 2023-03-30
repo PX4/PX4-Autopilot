@@ -49,7 +49,6 @@
 #include "riscv_internal.h"
 
 extern int sercon_main(int c, char **argv);
-
 __EXPORT void board_on_reset(int status) {}
 
 static void configure_pmp(void)
@@ -73,11 +72,22 @@ static void configure_pmp(void)
 #define MPFS_PMPCFG_MMC_2             (MPFS_MPUCFG_BASE + 0x710)
 #define MPFS_PMPCFG_MMC_3             (MPFS_MPUCFG_BASE + 0x718)
 
+#define MPFS_PMPCFG_ETH0_0   (MPFS_MPUCFG_BASE + 0x400)
+#define MPFS_PMPCFG_ETH0_1   (MPFS_MPUCFG_BASE + 0x408)
+#define MPFS_PMPCFG_ETH0_2   (MPFS_MPUCFG_BASE + 0x410)
+#define MPFS_PMPCFG_ETH0_3   (MPFS_MPUCFG_BASE + 0x418)
+#define MPFS_PMPCFG_ETH1_0   (MPFS_MPUCFG_BASE + 0x500)
+#define MPFS_PMPCFG_ETH1_1   (MPFS_MPUCFG_BASE + 0x508)
+#define MPFS_PMPCFG_ETH1_2   (MPFS_MPUCFG_BASE + 0x510)
+#define MPFS_PMPCFG_ETH1_3   (MPFS_MPUCFG_BASE + 0x518)
 
 	putreg64(0x1f00000fffffffff, MPFS_PMPCFG_MMC_0);
 	putreg64(0x1f00000fffffffff, MPFS_PMPCFG_MMC_1);
 	putreg64(0x1f00000fffffffff, MPFS_PMPCFG_MMC_2);
 	putreg64(0x1f00000fffffffff, MPFS_PMPCFG_MMC_3);
+
+	// Ethernet MPU, MAC 0
+        putreg64(0x1f00000fffffffff, MPFS_PMPCFG_ETH0_0);
 
 #endif
 

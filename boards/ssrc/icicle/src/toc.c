@@ -32,9 +32,11 @@
  ****************************************************************************/
 #include <image_toc.h>
 #include "board_config.h"
+#include "board_type.h"
 
-/* (Maximum) size of the signature */
-#define SIGNATURE_SIZE 64
+/* Size of the signature */
+
+#define SIGNATURE_SIZE PX4_SIGNATURE_SIZE(BOOTLOADER_SIGNING_ALGORITHM)
 
 /* ToC area boundaries */
 extern const uintptr_t _toc_start;
@@ -82,9 +84,9 @@ extern const uintptr_t _boot_signature;
 IMAGE_MAIN_TOC(6) = {
 	{TOC_START_MAGIC, TOC_VERSION},
 	{
-		{"TOC",  TOC_ADDR, TOC_END, 0, 1, 0, 0, TOC_FLAG1_CHECK_SIGNATURE},
+		{"TOC",  TOC_ADDR, TOC_END, 0, 1, TOC_VERIFICATION_KEY, 0, TOC_FLAG1_CHECK_SIGNATURE},
 		{"SIG0", TOCSIG_ADDR, TOCSIG_END, 0, 0, 0, 0, 0},
-		{"BOOT", BOOT_ADDR, BOOT_END, 0, 3, 0, 0, TOC_FLAG1_BOOT | TOC_FLAG1_CHECK_SIGNATURE, PX4_VENDOR_BOOT_FLAGS},
+		{"BOOT", BOOT_ADDR, BOOT_END, 0, 3, BOOT_VERIFICATION_KEY, 0, TOC_FLAG1_BOOT | TOC_FLAG1_CHECK_SIGNATURE, PX4_VENDOR_BOOT_FLAGS},
 		{"SIG1", BOOTSIG_ADDR, BOOTSIG_END, 0, 0, 0, 0, 0},
 		{"RDCT", RDCT_ADDR, RDCT_END, 0, 5, 0, 0, TOC_FLAG1_RDCT | TOC_FLAG1_CHECK_SIGNATURE},
 		{"RDSG", RDCTSIG_ADDR, RDCTSIG_END, 0, 0, 0, 0, 0},

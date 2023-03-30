@@ -33,6 +33,8 @@ __ld_uflash_size = LENGTH(uflash);
 __ld_usram_start = ORIGIN(usram);
 __ld_usram_end = ORIGIN(usram)+ LENGTH(usram);
 __ld_usram_size = LENGTH(usram);
+__usrio_start = ORIGIN(usrio);
+__usrio_size = LENGTH(usrio);
 
 EXTERN(userspace)
     

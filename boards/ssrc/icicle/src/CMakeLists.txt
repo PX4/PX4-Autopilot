@@ -61,20 +61,29 @@ else()
 	add_library(drivers_board
 		init.c
 		led.c
-		toc.c
 		mpfs_emmcsd.c
+		mpfs_ihc.c
 		mpfs_spinor.c
 		mpfs_pwm.c
 		manifest.c
+		mtd.cpp
+		spi_drv.cpp
 	)
 	add_dependencies(drivers_board nuttx_context)
-
-	target_link_libraries(drivers_board
-		PRIVATE
-			drivers__led # drv_led_start
-			nuttx_arch
-			nuttx_drivers
-	)
+	if (CONFIG_OPENAMP)
+		target_link_libraries(drivers_board
+			PRIVATE
+				drivers__led # drv_led_start
+				nuttx_arch
+				nuttx_drivers
+				nuttx_openamp)
+	else()
+		target_link_libraries(drivers_board
+			PRIVATE
+				drivers__led # drv_led_start
+				nuttx_arch
+				nuttx_drivers)
+	endif()
 
 	if (NOT DEFINED CONFIG_BUILD_FLAT)
 		target_link_libraries(drivers_board PRIVATE px4_kernel_layer)

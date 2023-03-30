@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2021 Technology Innovation Institute. All rights reserved.
+ *   Copyright (c) 2022 Technology Innovation Institute. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,29 +31,45 @@
  *
  ****************************************************************************/
 
-#include <px4_arch/spi_hw_description.h>
-#include <drivers/drv_sensor.h>
-#include <nuttx/spi/spi.h>
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
 
-constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
-	initSPIBusInternal(SPI::Bus::SPI0, {
-		initSPIDevice(DRV_IMU_DEVTYPE_ICM42688P,
-		SPI::CS{GPIO::Bank2, GPIO::Pin8},
-		SPI::DRDY{}),
-		/* NOTE: Not in use
-		initSPIDevice(DRV_IMU_DEVTYPE_ICM42688P,
-		SPI::CS{GPIO::Bank2, GPIO::Pin11},
-		SPI::DRDY{}),
-		*/
-		initSPIDevice(DRV_IMU_DEVTYPE_ICM20649,
-		SPI::CS{GPIO::Bank2, GPIO::Pin9},
-		SPI::DRDY{GPIO::Bank2, GPIO::Pin1})
-	}),
-	initSPIBusInternal(SPI::Bus::SPI1, {
-		initSPIDevice(SPIDEV_FLASH(0),
-		SPI::CS{GPIO::Bank2, GPIO::Pin15},
-		SPI::DRDY{})
-	}),
-};
+#include <nuttx/config.h>
 
-static constexpr bool unused = validateSPIConfig(px4_spi_buses);
+#include <debug.h>
+#include <errno.h>
+
+#include "mpfs_ihc.h"
+#include "board_config.h"
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: mpfs_board_ihc_init
+ *
+ * Description:
+ *   Starts the Inter-Hart Communication (IHC) driver.
+ *
+ * Returned Value:
+ *   Zero (OK) is returned on success; A negated errno value is returned
+ *   to indicate any failure.
+ *
+ ****************************************************************************/
+
+int mpfs_board_ihc_init(void)
+{
+	int ret = 0;
+
+	/* With OpenSBI, initilization comes via mpfs_opensbi.c, not here */
+
+#ifndef CONFIG_MPFS_OPENSBI
+
+	ret = mpfs_ihc_init();
+
+#endif
+
+	return ret;
+}
