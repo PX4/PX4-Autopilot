@@ -168,12 +168,13 @@ static constexpr float MANUAL_TOUCHDOWN_NUDGE_INPUT_DEADZONE = 0.15f;
 static constexpr float POST_TOUCHDOWN_CLAMP_TIME = 0.5f;
 
 enum FW_POSCTRL_MODE {
-	FW_POSCTRL_MODE_AUTO,
 	FW_POSCTRL_MODE_AUTO_ALTITUDE,
 	FW_POSCTRL_MODE_AUTO_CLIMBRATE,
 	FW_POSCTRL_MODE_AUTO_TAKEOFF,
 	FW_POSCTRL_MODE_AUTO_LANDING_STRAIGHT,
 	FW_POSCTRL_MODE_AUTO_LANDING_CIRCULAR,
+	FW_POSCTRL_MODE_AUTO_LOITER,
+	FW_POSCTRL_MODE_AUTO_POSITION,
 	FW_POSCTRL_MODE_AUTO_VELOCITY,
 	FW_POSCTRL_MODE_MANUAL_POSITION,
 	FW_POSCTRL_MODE_MANUAL_ALTITUDE,
@@ -531,19 +532,6 @@ private:
 	uint8_t	handle_setpoint_type(const position_setpoint_s &pos_sp_curr);
 
 	/* automatic control methods */
-
-	/**
-	 * @brief Automatic position control for waypoints, orbits, and velocity control
-	 *
-	 * @param control_interval Time since last position control call [s]
-	 * @param curr_pos Current 2D local position vector of vehicle [m]
-	 * @param ground_speed Local 2D ground speed of vehicle [m/s]
-	 * @param pos_sp_prev previous position setpoint
-	 * @param pos_sp_curr current position setpoint
-	 * @param pos_sp_next next position setpoint
-	 */
-	void control_auto(const float control_interval, const Vector2d &curr_pos, const Vector2f &ground_speed,
-			  const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next);
 
 	/**
 	 * @brief Controls altitude and airspeed for a fixed-bank loiter.

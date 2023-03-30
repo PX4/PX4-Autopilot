@@ -868,57 +868,6 @@ FixedwingPositionControl::move_position_setpoint_for_vtol_transition(position_se
 }
 
 void
-FixedwingPositionControl::control_auto(const float control_interval, const Vector2d &curr_pos,
-				       const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr,
-				       const position_setpoint_s &pos_sp_next)
-{
-	position_setpoint_s current_sp = pos_sp_curr;
-	move_position_setpoint_for_vtol_transition(current_sp);
-
-	const uint8_t position_sp_type = handle_setpoint_type(current_sp);
-
-	_position_sp_type = position_sp_type;
-
-	if (position_sp_type == position_setpoint_s::SETPOINT_TYPE_LOITER
-	    || current_sp.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
-		publishOrbitStatus(current_sp);
-	}
-
-	switch (position_sp_type) {
-	case position_setpoint_s::SETPOINT_TYPE_IDLE:
-		_att_sp.thrust_body[0] = 0.0f;
-		_att_sp.roll_body = 0.0f;
-		_att_sp.pitch_body = radians(_param_fw_psp_off.get());
-		break;
-
-	case position_setpoint_s::SETPOINT_TYPE_POSITION:
-		control_auto_position(control_interval, curr_pos, ground_speed, pos_sp_prev, current_sp);
-		break;
-
-	case position_setpoint_s::SETPOINT_TYPE_LOITER:
-		control_auto_loiter(control_interval, curr_pos, ground_speed, pos_sp_prev, current_sp, pos_sp_next);
-		break;
-	}
-
-	/* Copy thrust output for publication, handle special cases */
-	if (position_sp_type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
-
-		_att_sp.thrust_body[0] = 0.0f;
-
-	} else {
-		// when we are landed state we want the motor to spin at idle speed
-		_att_sp.thrust_body[0] = (_landed) ? min(_param_fw_thr_idle.get(), 1.f) : get_tecs_thrust();
-	}
-
-	/* Copy thrust and pitch values from tecs */
-	_att_sp.pitch_body = get_tecs_pitch();
-
-	if (!_vehicle_status.in_transition_to_fw) {
-		publishLocalPositionSetpoint(current_sp);
-	}
-}
-
-void
 FixedwingPositionControl::control_auto_fixed_bank_alt_hold(const float control_interval)
 {
 	// only control altitude and airspeed ("fixed-bank loiter")
@@ -1017,6 +966,8 @@ void
 FixedwingPositionControl::control_auto_position(const float control_interval, const Vector2d &curr_pos,
 		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr)
 {
+	move_position_setpoint_for_vtol_transition(pos_sp_curr);
+
 	const float acc_rad = _npfg.switchDistance(500.0f);
 	Vector2d curr_wp{0, 0};
 	Vector2d prev_wp{0, 0};
@@ -1118,6 +1069,19 @@ FixedwingPositionControl::control_auto_position(const float control_interval, co
 				   tecs_fw_thr_max,
 				   _param_sinkrate_target.get(),
 				   _param_climbrate_target.get());
+
+	if (_landed) {
+		_att_sp.thrust_body[0] = _param_fw_thr_min.get();
+
+	} else {
+		_att_sp.thrust_body[0] = min(get_tecs_thrust(), _param_fw_thr_max.get());
+	}
+
+	_att_sp.pitch_body = get_tecs_pitch();
+
+	if (!_vehicle_status.in_transition_to_fw) {
+		publishLocalPositionSetpoint(pos_sp_curr);
+	}
 }
 
 void
@@ -1176,6 +1140,8 @@ FixedwingPositionControl::control_auto_loiter(const float control_interval, cons
 		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr,
 		const position_setpoint_s &pos_sp_next)
 {
+	move_position_setpoint_for_vtol_transition(pos_sp_curr);
+
 	Vector2d curr_wp{0, 0};
 	Vector2d prev_wp{0, 0};
 
@@ -1275,6 +1241,20 @@ FixedwingPositionControl::control_auto_loiter(const float control_interval, cons
 				   tecs_fw_thr_max,
 				   _param_sinkrate_target.get(),
 				   _param_climbrate_target.get());
+
+
+	if (_landed) {
+		_att_sp.thrust_body[0] = _param_fw_thr_min.get();
+
+	} else {
+		_att_sp.thrust_body[0] = min(get_tecs_thrust(), _param_fw_thr_max.get());
+	}
+
+	_att_sp.pitch_body = get_tecs_pitch();
+
+	if (!_vehicle_status.in_transition_to_fw) {
+		publishLocalPositionSetpoint(pos_sp_curr);
+	}
 }
 
 void
@@ -2313,12 +2293,6 @@ FixedwingPositionControl::Run()
 		_new_landing_gear_position = landing_gear_s::GEAR_KEEP; // is overwritten in Takeoff and Land
 
 		switch (_control_mode_current) {
-		case FW_POSCTRL_MODE_AUTO: {
-				control_auto(control_interval, curr_pos, ground_speed, _pos_sp_triplet.previous, _pos_sp_triplet.current,
-					     _pos_sp_triplet.next);
-				break;
-			}
-
 		case FW_POSCTRL_MODE_AUTO_ALTITUDE: {
 				control_auto_fixed_bank_alt_hold(control_interval);
 				break;
@@ -2337,6 +2311,17 @@ FixedwingPositionControl::Run()
 
 		case FW_POSCTRL_MODE_AUTO_LANDING_CIRCULAR: {
 				control_auto_landing_circular(_local_pos.timestamp, control_interval, ground_speed, _pos_sp_triplet.current);
+				break;
+			}
+
+		case FW_POSCTRL_MODE_AUTO_LOITER: {
+				control_auto_loiter(control_interval, curr_pos, ground_speed, _pos_sp_triplet.previous, _pos_sp_triplet.current,
+						    _pos_sp_triplet.next);
+				break;
+			}
+
+		case FW_POSCTRL_MODE_AUTO_POSITION: {
+				control_auto_position(control_interval, curr_pos, ground_speed, _pos_sp_triplet.previous, _pos_sp_triplet.current);
 				break;
 			}
 
