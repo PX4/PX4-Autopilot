@@ -70,27 +70,28 @@ CameraFeedback::Run()
 
 	camera_trigger_s trig{};
 
-	while (_trigger_sub.update(&trig)) {
+	vehicle_attitude_s att{};
 
+	while (_att_sub.update(&att)) {
 		// update geotagging subscriptions
 		vehicle_global_position_s gpos{};
 		_gpos_sub.copy(&gpos);
 
-		vehicle_attitude_s att{};
 		_att_sub.copy(&att);
+		_trigger_sub.copy(&trig);
 
-		if (trig.timestamp == 0 ||
-		    gpos.timestamp == 0 ||
-		    att.timestamp == 0) {
+		// if (trig.timestamp == 0 ||
+		//     gpos.timestamp == 0 ||
+		//     att.timestamp == 0) {
 
-			// reject until we have valid data
-			continue;
-		}
+		// 	// reject until we have valid data
+		// 	continue;
+		// }
 
-		if ((_cam_cap_fback >= 1) && !trig.feedback) {
-			// Ignore triggers that are not feedback when camera capture feedback is enabled
-			continue;
-		}
+		// if ((_cam_cap_fback >= 1) && !trig.feedback) {
+		// 	// Ignore triggers that are not feedback when camera capture feedback is enabled
+		// 	continue;
+		// }
 
 		camera_capture_s capture{};
 
