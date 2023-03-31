@@ -646,6 +646,7 @@ bool FailsafeBase::modeCanRun(const failsafe_flags_s &status_flags, uint8_t mode
 {
 	uint32_t mode_mask = 1u << mode;
 	// mode_req_wind_and_flight_time_compliance: does not need to be handled here (these are separate failsafe triggers)
+	// mode_req_manual_control: is handled separately
 	return
 		(!status_flags.angular_velocity_invalid || ((status_flags.mode_req_angular_velocity & mode_mask) == 0)) &&
 		(!status_flags.attitude_invalid || ((status_flags.mode_req_attitude & mode_mask) == 0)) &&
@@ -656,7 +657,6 @@ bool FailsafeBase::modeCanRun(const failsafe_flags_s &status_flags, uint8_t mode
 		(!status_flags.auto_mission_missing || ((status_flags.mode_req_mission & mode_mask) == 0)) &&
 		(!status_flags.offboard_control_signal_lost || ((status_flags.mode_req_offboard_signal & mode_mask) == 0)) &&
 		(!status_flags.home_position_invalid || ((status_flags.mode_req_home_position & mode_mask) == 0)) &&
-		(!status_flags.manual_control_signal_lost || ((status_flags.mode_req_manual_control & mode_mask) == 0)) &&
 		((status_flags.mode_req_other & mode_mask) == 0);
 }
 
