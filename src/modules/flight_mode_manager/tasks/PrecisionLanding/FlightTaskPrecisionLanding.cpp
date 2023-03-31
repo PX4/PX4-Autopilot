@@ -32,15 +32,16 @@
  ****************************************************************************/
 
 /**
- * @file FlightTaskAutoPrecisionLanding.cpp
+ * @file FlightTaskPrecisionLanding.cpp
+ *
  */
 
-#include "FlightTaskAutoPrecisionLanding.hpp"
+#include "FlightTaskPrecisionLanding.hpp"
 #include <mathlib/mathlib.h>
 
 using namespace matrix;
 
-bool FlightTaskAutoPrecisionLanding::activate(const trajectory_setpoint_s &last_setpoint)
+bool FlightTaskPrecisionLanding::activate(const trajectory_setpoint_s &last_setpoint)
 {
 	bool ret = FlightTask::activate(last_setpoint);
 	PX4_INFO("precland activated");
@@ -57,19 +58,19 @@ bool FlightTaskAutoPrecisionLanding::activate(const trajectory_setpoint_s &last_
 	return ret;
 }
 
-void FlightTaskAutoPrecisionLanding::do_state_transition(PRECLAND_STATE new_state)
+void FlightTaskPrecisionLanding::do_state_transition(PRECLAND_STATE new_state)
 {
 	_precland_state = new_state;
 	_state_start_time = hrt_absolute_time();
 }
 
-bool FlightTaskAutoPrecisionLanding::inside_acceptance_radius()
+bool FlightTaskPrecisionLanding::inside_acceptance_radius()
 {
-	// TODO: Reuse what FlightTaskAuto has...
-	return Vector3f(_position_setpoint - _position).norm() <= _param_pld_hacc_rad.get();
+	// TODO: Reuse what FlightTask has...
+	return matrix::Vector3f(_position_setpoint - _position).norm() <= _param_pld_hacc_rad.get();
 }
 
-bool FlightTaskAutoPrecisionLanding::precision_target_available()
+bool FlightTaskPrecisionLanding::precision_target_available()
 {
 	// TODO: Add timeout
 	const bool ever_received = _landing_target_pose.timestamp != 0;
@@ -77,9 +78,9 @@ bool FlightTaskAutoPrecisionLanding::precision_target_available()
 	return ever_received && !timed_out;
 }
 
-bool FlightTaskAutoPrecisionLanding::update()
+bool FlightTaskPrecisionLanding::update()
 {
-	// Get setpoints from FlightTaskAuto and later override if necessary
+	// Get setpoints from FlightTask and later override if necessary
 	bool ret = FlightTask::update();
 
 	// Fetch uorb

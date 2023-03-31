@@ -40,7 +40,7 @@
 set(flight_tasks_all)
 list(APPEND flight_tasks_all
 	Auto
-	AutoPrecisionLanding
+	PrecisionLanding
 	Descend
 	Failsafe
 	ManualAcceleration

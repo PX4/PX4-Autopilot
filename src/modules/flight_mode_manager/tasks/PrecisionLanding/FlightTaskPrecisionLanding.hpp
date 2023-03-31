@@ -32,14 +32,14 @@
  ****************************************************************************/
 
 /**
- * @file FlightTaskAutoPrecisionLanding.hpp
+ * @file FlightTaskPrecisionLanding.hpp
  *
  * Flight task for better precision landing
  */
 
 #pragma once
 
-#include "FlightTaskAuto.hpp"
+#include "FlightTask.hpp"
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/landing_target_pose.h>
 #include <uORB/topics/precision_landing_status.h>
@@ -48,16 +48,17 @@
 #include <uORB/topics/follow_target_estimator.h>
 // #include <lib/ecl/geo/geo.h>
 #include <mathlib/mathlib.h>
+#include <lib/matrix/matrix/math.hpp>
 
 // TODO: Get the correct define from some header
 #define SEC2USEC 1000000.0f
 #define HOVER_SPEED_THRESHOLD 0.20f	// If drone has speed under this value it is considered to be hovering in place
 
-class FlightTaskAutoPrecisionLanding : public FlightTask
+class FlightTaskPrecisionLanding : public FlightTask
 {
 public:
-	FlightTaskAutoPrecisionLanding() = default;
-	virtual ~FlightTaskAutoPrecisionLanding() = default;
+	FlightTaskPrecisionLanding() = default;
+	virtual ~FlightTaskPrecisionLanding() = default;
 
 	bool activate(const trajectory_setpoint_s &last_setpoint) override;
 
@@ -102,7 +103,7 @@ private:
 	int _search_count = 0;
 	float _initial_yaw;
 	float _target_yaw;
-	Vector3f _initial_position;
+	matrix::Vector3f _initial_position;
 
 	orb_advert_t	_mavlink_log_pub{nullptr};
 	matrix::Vector3f _precision_target_ned = {NAN, NAN, NAN};

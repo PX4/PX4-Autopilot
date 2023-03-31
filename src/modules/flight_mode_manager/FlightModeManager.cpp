@@ -179,7 +179,7 @@ void FlightModeManager::start_flight_task()
 		// Take-over landing from navigator if precision landing is enabled
 		should_disable_task = false;
 
-		if (switchTask(FlightTaskIndex::AutoPrecisionLanding) != FlightTaskError::NoError) {
+		if (switchTask(FlightTaskIndex::PrecisionLanding) != FlightTaskError::NoError) {
 			PX4_INFO("Switching to precland flight task");
 			task_failure = true;
 		}
