@@ -78,6 +78,9 @@ param set-default BAT2_V_EMPTY 3.5000
 # Enable LL40LS in i2c
 param set-default SENS_EN_LL40LS 2
 
+# Disable internal magnetometer
+param set CAL_MAG0_PRIO 0
+
 # LEDs on TELEMETRY 1
 param set-default SER_TEL1_BAUD 57600
 param set-default MAV_1_CONFIG 101
@@ -102,7 +105,3 @@ param set-default COM_RC_OVERRIDE 0
 
 # Set takeoff ramp to disabled for a more decisive takeoff action
 param set-default MPC_TKO_RAMP_T 0
-
-# Set default logfile encryption key indecies
-param set-default SDLOG_EXCH_KEY 2
-param set-default SDLOG_KEY 3
