@@ -45,11 +45,14 @@ bool FlightTaskAutoPrecisionLanding::activate(const trajectory_setpoint_s &last_
 	bool ret = FlightTask::activate(last_setpoint);
 	PX4_INFO("precland activated");
 
+	_precland_state = PRECLAND_STATE::AUTORTL_CLIMB;
+
 	_position_setpoint = _position;
 	_search_count = 0;
 
 	// TODO: Use target orientation instead
-	_yaw_setpoint = _yaw;
+	_initial_yaw = _yaw;
+	_initial_position = _position;
 
 	return ret;
 }
@@ -62,38 +65,34 @@ void FlightTaskAutoPrecisionLanding::do_state_transition(PRECLAND_STATE new_stat
 
 bool FlightTaskAutoPrecisionLanding::inside_acceptance_radius()
 {
+	// TODO: Reuse what FlightTaskAuto has...
 	return Vector3f(_position_setpoint - _position).norm() <= _param_pld_hacc_rad.get();
+}
+
+bool FlightTaskAutoPrecisionLanding::precision_target_available()
+{
+	// TODO: Add timeout
+	const bool ever_received = _landing_target_pose.timestamp != 0;
+	const bool timed_out =  hrt_absolute_time() - _landing_target_pose.timestamp > _param_pld_btout.get() * SEC2USEC;
+	return ever_received && !timed_out;
 }
 
 bool FlightTaskAutoPrecisionLanding::update()
 {
-	bool ret = FlightTaskAuto::update();
-
-	// printf("state: %u\n", _precland_state);
+	// Get setpoints from FlightTaskAuto and later override if necessary
+	bool ret = FlightTask::update();
 
 	// Fetch uorb
 	if (_landing_target_pose_sub.updated()) {
 		_landing_target_pose_sub.copy(&_landing_target_pose);
 
-		_precision_target_ned(0) = _landing_target_pose.x_rel;
-		_precision_target_ned(1) = _landing_target_pose.y_rel;
-		_precision_target_ned(2) = _landing_target_pose.z_rel;
+		_precision_target_ned(0) = _landing_target_pose.x_abs;
+		_precision_target_ned(1) = _landing_target_pose.y_abs;
+
+		// Supplement precision target altitude with home postion's altitude if necessary
+		_precision_target_ned(2) = PX4_ISFINITE(_landing_target_pose.z_rel) ? _landing_target_pose.z_rel :
+					   _sub_home_position.get().z;
 	}
-
-	// Initialize precision target coordinates with home position if marker has not been spotted yet
-	if (_landing_target_pose.timestamp == 0) {
-		if (_sub_home_position.get().valid_lpos && _sub_home_position.get().valid_alt) {
-			_precision_target_ned(0) = _sub_home_position.get().x;
-			_precision_target_ned(1) = _sub_home_position.get().y;
-			_precision_target_ned(2) = _sub_home_position.get().z; // TODO: I think this is NAN
-		} else {
-			// Nothing to do without valid home location or target position
-			return ret;
-		}
-
-	}
-
-	precision_landing_status_s precision_landing_status{};
 
 	// Fetch runtime parameters
 	const float max_search_duration = _param_pld_srch_tout.get();
@@ -102,44 +101,72 @@ bool FlightTaskAutoPrecisionLanding::update()
 	switch (_precland_state) {
 	case PRECLAND_STATE::AUTORTL_CLIMB:
 		PX4_INFO("AUTORTL_CLIMB");
+		_position_setpoint(0) = _initial_position(0);
+		_position_setpoint(1) = _initial_position(1);
+		_position_setpoint(2) = _sub_home_position.get().z - _param_rtl_return_alt.get();
 
-		_position_setpoint = _position;
-		_position_setpoint(2) = _precision_target_ned(2) - search_rel_altitude;
-		_velocity_setpoint(0) = _velocity_setpoint(1) = _velocity_setpoint(2) = NAN;
+		_velocity_setpoint.setNaN(); // TODO: Is there a RTL climb speed?
+		_acceleration_setpoint.setNaN();
+
+		_yaw_setpoint = _initial_yaw;
 
 		// transition condition
-		// Wait for drone to reach z position setpoint
-		if (abs(_position(2) - _position_setpoint(2)) <= _param_pld_hacc_rad.get()) {
-			mavlink_log_info(&_mavlink_log_pub, "Moving above target");
+		// Wait for drone to reach z position setpoint or be higher
+		if (_position(2) <= _position_setpoint(2) + _param_nav_mc_alt_rad.get()) {
+			mavlink_log_info(&_mavlink_log_pub, "Horizontal approach");
 			do_state_transition(PRECLAND_STATE::AUTORTL_APPROACH);
 		}
 
 		break;
 
-	case PRECLAND_STATE::AUTORTL_APPROACH:
-		PX4_INFO("AUTORTL_APPROACH");
+	case PRECLAND_STATE::AUTORTL_APPROACH: {
+			PX4_INFO("AUTORTL_APPROACH");
 
-		_position_setpoint = _precision_target_ned;
-		_position_setpoint(2) -= search_rel_altitude;
-		_velocity_setpoint(0) = _velocity_setpoint(1) = _velocity_setpoint(2) = NAN;
+			// Horizontal approach to home or precision target
+			if (precision_target_available()) {
+				_position_setpoint(0) = _precision_target_ned(0);
+				_position_setpoint(1) = _precision_target_ned(1);
+				_position_setpoint(2) = _precision_target_ned(2);
 
-		// transition condition
-		// Wait for drone to reach position setpoint
-		if (inside_acceptance_radius()) {
-			mavlink_log_info(&_mavlink_log_pub, "Moving to search center");
-			do_state_transition(PRECLAND_STATE::MOVE_TO_SEARCH_ALTITUDE);
+			} else {
+				PX4_INFO("reverting to HOME...");
+				_position_setpoint(0) = _sub_home_position.get().x;
+				_position_setpoint(1) = _sub_home_position.get().y;
+				_position_setpoint(2) = _sub_home_position.get().z - _param_rtl_return_alt.get();
+			}
+
+			_velocity_setpoint.setNaN();
+
+			// transition condition
+			// Wait for drone to reach position setpoint
+			if (inside_acceptance_radius()) {
+				if (precision_target_available()) {
+					mavlink_log_info(&_mavlink_log_pub, "Moving above target");
+					do_state_transition(PRECLAND_STATE::MOVING_ABOVE_TARGET);
+
+				} else {
+					mavlink_log_info(&_mavlink_log_pub, "Moving to search center");
+					do_state_transition(PRECLAND_STATE::MOVE_TO_SEARCH_ALTITUDE);
+				}
+
+				_target_yaw = _yaw_setpoint;
+			}
+
+			break;
 		}
-
-		break;
 
 	case PRECLAND_STATE::MOVE_TO_SEARCH_ALTITUDE:
 		PX4_INFO("MOVE_TO_SEARCH_ALTITUDE");
 
 		// Ascend/Descend to search altitude
-		_position_setpoint = _precision_target_ned;
-		_position_setpoint(2) -= search_rel_altitude;
-		_velocity_setpoint(0) = _velocity_setpoint(1) = _velocity_setpoint(2) = NAN;
-		_acceleration_setpoint(0) = _acceleration_setpoint(1) = _acceleration_setpoint(2) = NAN;
+		_position_setpoint(0) = _sub_home_position.get().x;
+		_position_setpoint(1) = _sub_home_position.get().y;
+		_position_setpoint(2) = _sub_home_position.get().z - search_rel_altitude;
+
+		_velocity_setpoint.setNaN();
+		_acceleration_setpoint.setNaN();
+
+		_yaw_setpoint = _target_yaw;
 
 		// transition condition
 		if (inside_acceptance_radius()) {
@@ -152,6 +179,8 @@ bool FlightTaskAutoPrecisionLanding::update()
 	case PRECLAND_STATE::SEARCHING_TARGET:
 		PX4_INFO("SEARCHING_TARGET");
 
+		_yaw_setpoint = _target_yaw;
+
 		// Currently no search pattern is implemented. Just wait for target...
 		// Workaround for Orion app making unwanted changes to my parameters
 		if ((hrt_absolute_time() - _state_start_time) > max_search_duration * SEC2USEC) {
@@ -163,12 +192,12 @@ bool FlightTaskAutoPrecisionLanding::update()
 
 			} else {
 				mavlink_log_info(&_mavlink_log_pub, "Moving to search center");
-				do_state_transition(PRECLAND_STATE::MOVE_TO_SEARCH_ALTITUDE);
+				do_state_transition(PRECLAND_STATE::SEARCHING_TARGET);
 			}
 		}
 
 		// transition condition
-		if (hrt_absolute_time() - _landing_target_pose.timestamp <= _param_pld_btout.get()*SEC2USEC) {
+		if (precision_target_available()) {
 			mavlink_log_info(&_mavlink_log_pub, "Moving above target");
 			do_state_transition(PRECLAND_STATE::MOVING_ABOVE_TARGET);
 		}
@@ -177,14 +206,15 @@ bool FlightTaskAutoPrecisionLanding::update()
 
 	case PRECLAND_STATE::MOVING_ABOVE_TARGET:
 		PX4_INFO("MOVING_ABOVE_TARGET");
+		// TODO: Should use current altitude when state was entered as the altitude setpoint
+		_position_setpoint(0) = _precision_target_ned(0);
+		_position_setpoint(1) = _precision_target_ned(1);
+		_position_setpoint(2) = _sub_home_position.get().z - search_rel_altitude;
 
-		_position_setpoint(0) = _landing_target_pose.x_abs;
-		_position_setpoint(1) = _landing_target_pose.y_abs;
-		_position_setpoint(2) = _precision_target_ned(2) - search_rel_altitude;
+		_velocity_setpoint.setNaN();
+		_acceleration_setpoint.setNaN();
 
-		_velocity_setpoint(0) = NAN;
-		_velocity_setpoint(1) = NAN;
-		_velocity_setpoint(2) = 0;
+		_yaw_setpoint = _target_yaw;
 
 		// Transition condition
 		// - Check acceptance radius and
@@ -210,18 +240,21 @@ bool FlightTaskAutoPrecisionLanding::update()
 	case PRECLAND_STATE::LANDING:
 		PX4_INFO("LANDING");
 		// Control XY position and Z velocity
-		_position_setpoint(0) = _landing_target_pose.x_abs;
-		_position_setpoint(1) = _landing_target_pose.y_abs;
+		_position_setpoint(0) = _precision_target_ned(0);
+		_position_setpoint(1) = _precision_target_ned(1);
 		_position_setpoint(2) = NAN;
 
 		_velocity_setpoint(0) = 0;
 		_velocity_setpoint(1) = 0;
 		_velocity_setpoint(2) = _param_mpc_land_speed.get();
 		_acceleration_setpoint(2) = NAN;
+
+		_yaw_setpoint = _target_yaw;
 		break;
 
 	}
 
+	precision_landing_status_s precision_landing_status{};
 	precision_landing_status.timestamp = hrt_absolute_time();
 	precision_landing_status.state = _precland_state;
 	_precision_landing_status_pub.publish(precision_landing_status);

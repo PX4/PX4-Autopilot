@@ -53,7 +53,7 @@
 #define SEC2USEC 1000000.0f
 #define HOVER_SPEED_THRESHOLD 0.20f	// If drone has speed under this value it is considered to be hovering in place
 
-class FlightTaskAutoPrecisionLanding : public FlightTaskAuto
+class FlightTaskAutoPrecisionLanding : public FlightTask
 {
 public:
 	FlightTaskAutoPrecisionLanding() = default;
@@ -64,13 +64,16 @@ public:
 	bool update() override;
 
 private:
+	// TODO: Use ModuleParams
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
 					(ParamFloat<px4::params::MPC_LAND_SPEED>) _param_mpc_land_speed, ///< velocity for controlled descend
 					(ParamFloat<px4::params::PLD_SRCH_ALT>) _param_pld_srch_alt,
 					(ParamFloat<px4::params::PLD_SRCH_TOUT>) _param_pld_srch_tout,
 					(ParamInt<px4::params::PLD_MAX_SRCH>) _param_pld_max_srch,
 					(ParamFloat<px4::params::PLD_HACC_RAD>) _param_pld_hacc_rad,
-					(ParamFloat<px4::params::PLD_BTOUT>) _param_pld_btout
+					(ParamFloat<px4::params::PLD_BTOUT>) _param_pld_btout,
+					(ParamFloat<px4::params::RTL_RETURN_ALT>) _param_rtl_return_alt,
+					(ParamFloat<px4::params::NAV_MC_ALT_RAD>) _param_nav_mc_alt_rad
 				       )
 
 	enum PRECLAND_STATE {
@@ -86,7 +89,9 @@ private:
 
 	bool inside_acceptance_radius();
 
-	PRECLAND_STATE _precland_state = PRECLAND_STATE::AUTORTL_CLIMB;
+	bool precision_target_available();
+
+	PRECLAND_STATE _precland_state;
 
 	uORB::Subscription _landing_target_pose_sub{ORB_ID(landing_target_pose)};
 	landing_target_pose_s _landing_target_pose{}; /**< precision landing target position */
@@ -95,6 +100,9 @@ private:
 
 	uint64_t _state_start_time{0}; /**< time when entering search state */
 	int _search_count = 0;
+	float _initial_yaw;
+	float _target_yaw;
+	Vector3f _initial_position;
 
 	orb_advert_t	_mavlink_log_pub{nullptr};
 	matrix::Vector3f _precision_target_ned = {NAN, NAN, NAN};
