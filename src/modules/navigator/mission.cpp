@@ -490,10 +490,17 @@ Mission::landing()
 	bool on_landing_stage = _land_start_available && _current_mission_index > get_land_start_index();
 
 	// special case: if the land start index is at a LOITER_TO_ALT WP, then we're in the landing sequence already when the
-	// WPs position is reached and we're currently adjusting the altitude (descending)
+	// distance to the WP is below the loiter radius + acceptance.
 	if (_current_mission_index == get_land_start_index() && _mission_item.nav_cmd == NAV_CMD_LOITER_TO_ALT) {
-		position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-		on_landing_stage = pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER;
+		const float d_current = get_distance_to_next_waypoint(_mission_item.lat, _mission_item.lon,
+					_navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
+
+		// consider mission_item.loiter_radius invalid if NAN or 0, use default value in this case.
+		const float mission_item_loiter_radius_abs = (PX4_ISFINITE(_mission_item.loiter_radius)
+				&& fabsf(_mission_item.loiter_radius) > FLT_EPSILON) ? fabsf(_mission_item.loiter_radius) :
+				_navigator->get_loiter_radius();
+
+		on_landing_stage = d_current <= (_navigator->get_acceptance_radius() + mission_item_loiter_radius_abs);
 	}
 
 	return mission_valid && on_landing_stage;
