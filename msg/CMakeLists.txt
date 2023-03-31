@@ -85,8 +85,8 @@ set(msg_files
 	Event.msg
 	FailsafeFlags.msg
 	FailureDetectorStatus.msg
-	fiducial_marker_pos_report.msg
-	fiducial_marker_yaw_report.msg
+	FiducialMarkerPosReport.msg
+	FiducialMarkerYawReport.msg
 	FollowTarget.msg
 	FollowTargetEstimator.msg
 	FollowTargetStatus.msg
@@ -111,8 +111,8 @@ set(msg_files
 	InternalCombustionEngineStatus.msg
 	IridiumsbdStatus.msg
 	IrlockReport.msg
-	landing_target_gnss.msg
-	landing_target_orientation.msg
+	LandingTargetGnss.msg
+	LandingTargetOrientation.msg
 	LandingGear.msg
 	LandingGearWheel.msg
 	LandingTargetPose.msg
