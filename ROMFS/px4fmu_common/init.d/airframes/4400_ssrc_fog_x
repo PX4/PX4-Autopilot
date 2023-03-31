@@ -105,3 +105,7 @@ param set-default COM_RC_OVERRIDE 0
 
 # Set takeoff ramp to disabled for a more decisive takeoff action
 param set-default MPC_TKO_RAMP_T 0
+
+# Set default logfile encryption key indecies
+param set-default SDLOG_EXCH_KEY 2
+param set-default SDLOG_KEY 3
