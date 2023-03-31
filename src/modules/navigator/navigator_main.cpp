@@ -669,16 +669,16 @@ void Navigator::run()
 				switch (_rtl.get_rtl_type()) {
 				case RTL::RTL_TYPE_MISSION_LANDING:
 				case RTL::RTL_TYPE_CLOSEST:
-
-					if (!rtl_activated_now && on_mission_landing() && _rtl.getShouldEngageMissionForLanding()) {
+					if (on_mission_landing() && _rtl.getShouldEngageMissionForLanding()) {
 						_mission.set_execution_mode(mission_result_s::MISSION_EXECUTION_MODE_FAST_FORWARD);
 
-						if (!on_mission_landing() && _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED
-						    && !get_land_detected()->landed) {
-							start_mission_landing();
-						}
-
 						navigation_mode_new = &_mission;
+
+						if (rtl_activated_now) {
+							mavlink_log_info(get_mavlink_log_pub(), "RTL to Mission landing, continue landing\t");
+							events::send(events::ID("rtl_land_at_mission_continue_landing"), events::Log::Info,
+								     "RTL to Mission landing, continue landing");
+						}
 
 					} else {
 						navigation_mode_new = &_rtl;
