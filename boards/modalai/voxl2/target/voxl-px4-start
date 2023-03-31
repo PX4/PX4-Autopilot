@@ -3,6 +3,13 @@
 # (px4-alias.sh is expected to be in the PATH)
 . px4-alias.sh
 
+# Try to source configuration variables from a file.
+# This will override anything already set in the environment.
+VARIABLE_FILE=/etc/modalai/voxl-px4.conf
+if [ -f "$VARIABLE_FILE" ]; then
+    . $VARIABLE_FILE
+fi
+
 # In order to just exit after starting the uorb / muorb modules define
 # the environment variable MINIMAL_PX4. (e.g. export MINIMAL_PX4=1)
 # This is useful for testing / debug where you may want to start drivers

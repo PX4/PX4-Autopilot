@@ -60,4 +60,4 @@ if [ $C = "FAKE" ]; then
 fi
 
 
-GPS=$G RC=$R OSD=$O IMU=$I px4 $DAEMON -s /etc/modalai/voxl-px4.config
+GPS=$G RC=$R OSD=$O IMU=$I px4 $DAEMON -s /usr/bin/voxl-px4-start
