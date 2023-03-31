@@ -92,6 +92,15 @@ private:
 
 	bool precision_target_available();
 
+	void generate_setpoints();
+	void generate_pos_xy_setpoints();
+	void generate_pos_z_setpoints();
+	void generate_vel_setpoints();
+	void generate_acc_setpoints();
+	void generate_yaw_setpoint();
+
+	void check_state_transitions();
+
 	PRECLAND_STATE _precland_state;
 
 	uORB::Subscription _landing_target_pose_sub{ORB_ID(landing_target_pose)};
@@ -106,6 +115,4 @@ private:
 	matrix::Vector3f _initial_position;
 
 	orb_advert_t	_mavlink_log_pub{nullptr};
-	matrix::Vector3f _precision_target_ned = {NAN, NAN, NAN};
-
 };
