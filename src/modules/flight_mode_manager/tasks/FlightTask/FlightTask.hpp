@@ -162,7 +162,7 @@ public:
 		updateParams();
 	}
 
-	virtual void overrideCruiseSpeed(const float cruise_speed_m_s) {}
+	virtual void overrideCruiseSpeed(const float speed_m_s = -1.0f, const uint8_t type = 0) {}
 
 	void updateVelocityControllerFeedback(const matrix::Vector3f &vel_sp,
 					      const matrix::Vector3f &acc_sp)

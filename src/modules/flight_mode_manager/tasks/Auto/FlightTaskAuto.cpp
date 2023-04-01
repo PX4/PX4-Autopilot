@@ -73,7 +73,11 @@ bool FlightTaskAuto::activate(const trajectory_setpoint_s &last_setpoint)
 	_yaw_sp_prev = PX4_ISFINITE(last_setpoint.yaw) ? last_setpoint.yaw : _yaw;
 	_updateTrajConstraints();
 	_is_emergency_braking_active = false;
-	_time_last_cruise_speed_override = 0;
+
+	//initialize array to all zeros
+	_time_last_speed_override[0] = 0;
+	_time_last_speed_override[1] = 0;
+	_time_last_speed_override[2] = 0;
 
 	return ret;
 }
@@ -207,10 +211,20 @@ bool FlightTaskAuto::update()
 	return ret;
 }
 
-void FlightTaskAuto::overrideCruiseSpeed(const float cruise_speed_m_s)
+void FlightTaskAuto::overrideCruiseSpeed(const float speed_m_s, const uint8_t type)
 {
-	_mc_cruise_speed = cruise_speed_m_s;
-	_time_last_cruise_speed_override = hrt_absolute_time();
+
+	//if type if ground or air, override cruise speed
+	if (type == 0 || type == 1) {
+		_mc_cruise_speed = speed_m_s;
+		_time_last_speed_override[0] = hrt_absolute_time();
+	} else if(type == 2){ //vertical up
+		_mc_vertical_up_speed = speed_m_s;
+		_time_last_speed_override[1] = hrt_absolute_time();
+	} else if(type == 3){ //vertical down
+		_mc_vertical_down_speed = speed_m_s;
+		_time_last_speed_override[2] = hrt_absolute_time();
+	}
 }
 
 void FlightTaskAuto::_prepareLandSetpoints()
@@ -342,7 +356,8 @@ bool FlightTaskAuto::_evaluateTriplets()
 
 
 	// UP
-	if (PX4_ISFINITE(vertical_up_speed_from_triplet)) {
+	if (PX4_ISFINITE(vertical_up_speed_from_triplet)
+		&& (_sub_triplet_setpoint.get().current.timestamp > _time_last_speed_override[1])) {
 		_mc_vertical_up_speed = vertical_up_speed_from_triplet;
 	}
 
@@ -351,7 +366,8 @@ bool FlightTaskAuto::_evaluateTriplets()
 	}
 
 	// Down
-	if (PX4_ISFINITE(vertical_down_speed_from_triplet)) {
+	if (PX4_ISFINITE(vertical_down_speed_from_triplet)
+		&& (_sub_triplet_setpoint.get().current.timestamp > _time_last_speed_override[2])) {
 		_mc_vertical_down_speed = vertical_down_speed_from_triplet;
 	}
 
@@ -361,7 +377,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 
 	// Cruise
 	if (PX4_ISFINITE(cruise_speed_from_triplet)
-	    && (_sub_triplet_setpoint.get().current.timestamp > _time_last_cruise_speed_override)) {
+	    && (_sub_triplet_setpoint.get().current.timestamp > _time_last_speed_override[0])) {
 		_mc_cruise_speed = cruise_speed_from_triplet;
 	}
 
@@ -811,12 +827,14 @@ void FlightTaskAuto::_updateTrajConstraints()
 		_constraints.speed_up = math::max(fabsf(_position_smoothing.getCurrentVelocityZ()), _constraints.speed_up);
 
 	} else if (_unsmoothed_velocity_setpoint(2) < 0.f) { // up
+
 		float z_accel_constraint = _param_mpc_acc_up_max.get();
 
 		float z_vel_constraint = _param_mpc_z_v_auto_up.get();
 
 		if (_mc_vertical_up_speed > 0) {
 			z_vel_constraint = math::min(_mc_vertical_up_speed, z_vel_constraint);
+			_constraints.speed_down = 1.2f * z_vel_constraint;
 		}
 
 		// The constraints are broken because they are used as hard limits by the position controller, so put this here
@@ -841,6 +859,7 @@ void FlightTaskAuto::_updateTrajConstraints()
 
 		if (_mc_vertical_down_speed > 0) {
 			z_vel_constraint = math::min(_mc_vertical_down_speed, z_vel_constraint);
+			_constraints.speed_down = 1.2f * z_vel_constraint;
 		}
 
 		_position_smoothing.setMaxAccelerationZ(_param_mpc_acc_down_max.get());
@@ -849,8 +868,16 @@ void FlightTaskAuto::_updateTrajConstraints()
 
 	// Stretch the constraints of the velocity controller to leave some room for an additional
 	// correction required by the altitude/vertical position controller
-	_constraints.speed_down = math::max(_constraints.speed_down, 1.2f * _param_mpc_z_v_auto_dn.get());;
-	_constraints.speed_up = math::max(_constraints.speed_up, 1.2f * _param_mpc_z_v_auto_up.get());;
+
+	// if _mc_vertical_down_speed or _mc_vertical_up_speed are set, the velocity controller is already
+	if(_mc_vertical_down_speed <= 0.f){
+		_constraints.speed_down = math::max(_constraints.speed_down, 1.2f * _param_mpc_z_v_auto_dn.get());;
+	}
+	if(_mc_vertical_up_speed <= 0.f){
+		_constraints.speed_up = math::max(_constraints.speed_up, 1.2f * _param_mpc_z_v_auto_up.get());;
+	}
+
+
 }
 
 bool FlightTaskAuto::_highEnoughForLandingGear()

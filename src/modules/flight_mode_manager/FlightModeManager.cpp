@@ -314,10 +314,14 @@ void FlightModeManager::handleCommand()
 
 		if (_current_task.task) {
 			// check for other commands not related to task switching
-			if ((command.command == vehicle_command_s::VEHICLE_CMD_DO_CHANGE_SPEED)
-			    && (static_cast<uint8_t>(command.param1 + .5f) == vehicle_command_s::SPEED_TYPE_GROUNDSPEED)
-			    && (command.param2 > 0.f)) {
-				_current_task.task->overrideCruiseSpeed(command.param2);
+			if ((command.command == vehicle_command_s::VEHICLE_CMD_DO_CHANGE_SPEED)){
+				//ensure speed type within range 0=Airspeed - 3=Descent Speed
+				if(static_cast<uint8_t>(command.param1 + .5f) >= 1
+					&& static_cast<uint8_t>(command.param1) <= 3
+					&& (command.param2 > 0.f)){
+						_current_task.task->overrideCruiseSpeed(command.param2,static_cast<uint8_t>(command.param1));
+
+				}
 			}
 		}
 	}

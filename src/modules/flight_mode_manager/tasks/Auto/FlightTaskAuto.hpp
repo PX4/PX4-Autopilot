@@ -91,7 +91,7 @@ public:
 	bool updateInitialize() override;
 	bool update() override;
 
-	void overrideCruiseSpeed(const float cruise_speed_m_s) override;
+	void overrideCruiseSpeed(const float speed_m_s = -1.0f, const uint8_t type = 0) override;
 
 protected:
 	void _updateInternalWaypoints(); /**< Depending on state of vehicle, the internal waypoints might differ from target (for instance if offtrack). */
@@ -195,7 +195,7 @@ private:
 	_triplet_next_wp; /**< next triplet from navigator which may differ from the intenal one (_next_wp) depending on the vehicle state.*/
 	matrix::Vector3f _closest_pt; /**< closest point to the vehicle position on the line previous - target */
 
-	hrt_abstime _time_last_cruise_speed_override{0}; ///< timestamp the cruise speed was last time overridden using DO_CHANGE_SPEED
+	hrt_abstime _time_last_speed_override[3]{}; ///< timestamp the speed was last time overridden using DO_CHANGE_SPEED
 
 	MapProjection _reference_position{}; /**< Class used to project lat/lon setpoint into local frame. */
 	float _reference_altitude{NAN}; /**< Altitude relative to ground. */
