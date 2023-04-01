@@ -80,6 +80,7 @@ px4_add_romfs_files(
 	6011_gazebo-classic_typhoon_h480.post
 
 	10016_gazebo-classic_iris
+	10016_gazebo-classic_iris_depth_camera
 	10017_jmavsim_iris
 	10018_gazebo-classic_iris_foggy_lidar
 	10019_gazebo-classic_omnicopter

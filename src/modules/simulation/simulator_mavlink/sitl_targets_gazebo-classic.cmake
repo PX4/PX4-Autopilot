@@ -77,6 +77,7 @@ if(gazebo_FOUND)
 		cloudship
 		glider
 		iris
+		iris_depth_camera
 		iris_dual_gps
 		iris_foggy_lidar
 		iris_irlock
@@ -107,6 +108,7 @@ if(gazebo_FOUND)
 		none
 		baylands
 		empty
+		harbour_mapping
 		ksql_airport
 		mcmillan_airfield
 		sonoma_raceway
