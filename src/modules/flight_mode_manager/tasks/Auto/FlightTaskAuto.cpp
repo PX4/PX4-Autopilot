@@ -834,7 +834,6 @@ void FlightTaskAuto::_updateTrajConstraints()
 
 		if (_mc_vertical_up_speed > 0) {
 			z_vel_constraint = math::min(_mc_vertical_up_speed, z_vel_constraint);
-			_constraints.speed_down = 1.2f * z_vel_constraint;
 		}
 
 		// The constraints are broken because they are used as hard limits by the position controller, so put this here
@@ -859,7 +858,6 @@ void FlightTaskAuto::_updateTrajConstraints()
 
 		if (_mc_vertical_down_speed > 0) {
 			z_vel_constraint = math::min(_mc_vertical_down_speed, z_vel_constraint);
-			_constraints.speed_down = 1.2f * z_vel_constraint;
 		}
 
 		_position_smoothing.setMaxAccelerationZ(_param_mpc_acc_down_max.get());
