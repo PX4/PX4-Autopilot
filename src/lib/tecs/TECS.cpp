@@ -570,17 +570,20 @@ float TECSControl::_calcThrottleControlOutput(const STERateLimit &limit, const C
 	// Specific total energy rate = _STE_rate_max is achieved when throttle is set to _throttle_setpoint_max
 	// Specific total energy rate = 0 at cruise throttle
 	// Specific total energy rate = _STE_rate_min is achieved when throttle is set to _throttle_setpoint_min
+
+	// assume airspeed and density-independent delta_throttle to sink/climb rate mapping:
+	const float throttle_increase_max_STE_rate = limit.STE_rate_max * (param.throttle_max - param.throttle_trim);
+	const float throttle_decrease_min_STE_rate = limit.STE_rate_min * (param.throttle_trim - param.throttle_min);
+
 	float throttle_predicted = 0.0f;
 
 	if (ste_rate.setpoint >= FLT_EPSILON) {
 		// throttle is between trim and maximum
-		throttle_predicted = param.throttle_trim_adjusted + ste_rate.setpoint / limit.STE_rate_max *
-				     (param.throttle_max - param.throttle_trim);
+		throttle_predicted = param.throttle_trim_adjusted + ste_rate.setpoint / throttle_increase_max_STE_rate;
 
 	} else {
 		// throttle is between trim and minimum
-		throttle_predicted = param.throttle_trim_adjusted + ste_rate.setpoint / limit.STE_rate_min *
-				     (param.throttle_min - param.throttle_trim);
+		throttle_predicted = param.throttle_trim_adjusted - ste_rate.setpoint / throttle_decrease_min_STE_rate;
 
 	}
 

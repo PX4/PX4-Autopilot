@@ -2461,12 +2461,11 @@ FixedwingPositionControl::reset_landing_state()
 float FixedwingPositionControl::calculateTrimThrottle(float throttle_min,
 		float throttle_max, float airspeed_sp)
 {
-
-	// drag modelling
-	float throttle_trim = _param_fw_thr_trim.get(); // throttle required at sea level during standard conditions.
+	float throttle_trim =
+		_param_fw_thr_trim.get(); // throttle required for level flight at trim airspeed, at sea level (standard atmosphere)
 
 	// Drag modelling (parasite drag): calculate mapping airspeed-->throttle, assuming a linear relation with different gradient
-	// above and blow trim. This is tunable thorugh FW_THR_ASPD_MIN and FW_THR_ASPD_MAX.
+	// above and below trim. This is tunable thorugh FW_THR_ASPD_MIN and FW_THR_ASPD_MAX.
 	if (PX4_ISFINITE(airspeed_sp) && _param_fw_thr_aspd_min.get() > FLT_EPSILON
 	    && airspeed_sp < _param_fw_airspd_trim.get()) {
 		throttle_trim = _param_fw_thr_trim.get() - (_param_fw_thr_trim.get() - _param_fw_thr_aspd_min.get()) /
@@ -2567,8 +2566,8 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 	}
 
 	/* update TECS vehicle state estimates */
-	const float throttle_trim_comp = calculateTrimThrottle(throttle_min,
-					 throttle_max, airspeed_sp);
+	const float throttle_trim_adjusted = calculateTrimThrottle(throttle_min,
+					     throttle_max, airspeed_sp);
 
 	// HOTFIX: the airspeed rate estimate using acceleration in body-forward direction has shown to lead to high biases
 	// when flying tight turns. It's in this case much safer to just set the estimated airspeed rate to 0.
@@ -2583,7 +2582,7 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 		     throttle_min,
 		     throttle_max,
 		     _param_fw_thr_trim.get(),
-		     throttle_trim_comp,
+		     throttle_trim_adjusted,
 		     pitch_min_rad - radians(_param_fw_psp_off.get()),
 		     pitch_max_rad - radians(_param_fw_psp_off.get()),
 		     desired_max_climbrate,
@@ -2592,7 +2591,7 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 		     -_local_pos.vz,
 		     hgt_rate_sp);
 
-	tecs_status_publish(alt_sp, airspeed_sp, airspeed_rate_estimate, throttle_trim_comp);
+	tecs_status_publish(alt_sp, airspeed_sp, airspeed_rate_estimate, throttle_trim_adjusted);
 }
 
 float
