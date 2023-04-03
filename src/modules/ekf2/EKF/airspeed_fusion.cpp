@@ -114,7 +114,10 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 			ECL_INFO("starting airspeed fusion");
 
 			// If starting wind state estimation, reset the wind states and covariances before fusing any data
-			if (!_control_status.flags.wind) {
+			// Also catch the case where sideslip fusion enabled wind estimation recently and didn't converge yet.
+			const Vector2f wind_var_xy = getWindVelocityVariance();
+
+			if (!_control_status.flags.wind || (wind_var_xy(0) + wind_var_xy(1) > sq(_params.initial_wind_uncertainty))) {
 				// activate the wind states
 				_control_status.flags.wind = true;
 				// reset the wind speed states and corresponding covariances
