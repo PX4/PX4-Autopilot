@@ -6,6 +6,18 @@ uint16 sequence_current          # Sequence of the current mission item
 
 uint16 nav_cmd
 
+# Work Item corresponds to the sub-mode set on the "MAV_CMD_DO_SET_MODE" MAVLink message
+uint8 WORK_ITEM_TYPE_DEFAULT = 0                        # Default mission item
+uint8 WORK_ITEM_TYPE_TAKEOFF = 1                        # Takeoff before moving to waypoint
+uint8 WORK_ITEM_TYPE_MOVE_TO_LAND = 2                   # Move to land waypoint before descent
+uint8 WORK_ITEM_TYPE_ALIGN = 3                          # Align for next waypoint
+uint8 WORK_ITEM_TYPE_TRANSITION_AFTER_TAKEOFF = 4        # VTOL specific
+uint8 WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION = 5  # VTOL specific
+uint8 WORK_ITEM_TYPE_PRECISION_LAND = 6                 # Precision Landing for Multicopters using external aid
+
+uint8 nav_sub_cmd                # Synonymous to "work_item_type" in Navigator. Will be renamed eventually in navigator.
+                                 # sub-command, for example AUTO_PRECLAND in main command AUTO_MISSION
+
 float32 latitude
 float32 longitude
 
