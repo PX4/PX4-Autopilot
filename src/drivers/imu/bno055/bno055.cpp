@@ -67,10 +67,12 @@ int BNO055::init()
 
 	// read chip id
 	ret = read_reg(BNO055_CHIP_ID_ADDR, &chip_id, 1);
+
 	if (ret != OK) {
 		PX4_ERR("Cannot read chip ID: 0x%x", ret);
 		return ret;
 	}
+
 	if (chip_id != 0xA0) {
 		PX4_ERR("Chip ID is wrong, need 0xA0, got 0x%x", chip_id);
 		return -1;
@@ -78,6 +80,7 @@ int BNO055::init()
 
 	// reset sensor, so it will be in default config
 	ret = reset();
+
 	if (ret != OK) {
 		PX4_ERR("Can't reset sensor");
 		return ret;
@@ -90,21 +93,25 @@ int BNO055::init()
 	// force-set the page id to 0 after reset, just in case
 	page_id = 255;
 	set_page_id(0);
-	
+
 	// we should now be in config mode after the reset
 	ret = read_reg(BNO055_OPR_MODE_ADDR, &data, 1);
+
 	if (ret != OK) {
 		PX4_ERR("Sensor did not come online after reset");
 		return ret;
 	}
-	if((data & 0x0F) != BNO055_OPERATION_MODE_CONFIG) {
+
+	if ((data & 0x0F) != BNO055_OPERATION_MODE_CONFIG) {
 		PX4_ERR("Sensor did not reset correctly, mode should be 0 for config, but is 0x%x", data);
 		return -1;
 	}
+
 	// while we are here, check sensor error code
 	data = 255;
 	ret = read_reg(BNO055_SYS_ERR_ADDR, &data, 1);
-	if(ret != OK || data != 0) {
+
+	if (ret != OK || data != 0) {
 		PX4_ERR("Sensor error, code 0x%x", data);
 		return -1;
 	}
@@ -113,45 +120,48 @@ int BNO055::init()
 
 	// all of those are in page 1
 	set_page_id(1);
-	
+
 	ret = read_reg(BNO055_ACCEL_CONFIG_ADDR, &data, 1);
-	if (ret != OK)
-	{
+
+	if (ret != OK) {
 		PX4_ERR("Cannot read accel config");
 		return ret;
 	}
+
 	data = (data & ~BNO055_ACCEL_BW_MSK) | (ACCEL_BW_REGVAL << BNO055_ACCEL_BW_POS);
 	ret = write_reg(BNO055_ACCEL_CONFIG_ADDR, &data, 1);
-	if (ret != OK)
-	{
+
+	if (ret != OK) {
 		PX4_ERR("Cannot write accel config");
 		return ret;
 	}
 
 	ret = read_reg(BNO055_GYRO_CONFIG_ADDR, &data, 1);
-	if (ret != OK)
-	{
+
+	if (ret != OK) {
 		PX4_ERR("Cannot read gyro config");
 		return ret;
 	}
+
 	data = (data & ~BNO055_GYRO_BW_MSK) | (GYRO_BW_REGVAL << BNO055_GYRO_BW_POS);
 	ret = write_reg(BNO055_GYRO_CONFIG_ADDR, &data, 1);
-	if (ret != OK)
-	{
+
+	if (ret != OK) {
 		PX4_ERR("Cannot write gyro config");
 		return ret;
 	}
 
 	ret = read_reg(BNO055_MAG_CONFIG_ADDR, &data, 1);
-	if (ret != OK)
-	{
+
+	if (ret != OK) {
 		PX4_ERR("Cannot read mag config");
 		return ret;
 	}
+
 	data = (data & ~BNO055_MAG_DATA_OUTPUT_RATE_MSK) | MAG_RATE_REGVAL;
 	ret = write_reg(BNO055_MAG_CONFIG_ADDR, &data, 1);
-	if (ret != OK)
-	{
+
+	if (ret != OK) {
 		PX4_ERR("Cannot write mag config");
 		return ret;
 	}
@@ -160,20 +170,22 @@ int BNO055::init()
 	set_page_id(0);
 	data = 0b00000010;
 	ret = write_reg(BNO055_UNIT_SEL_ADDR, &data, 1);
-	if (ret != OK)
-	{
+
+	if (ret != OK) {
 		PX4_ERR("Cannot write unit config");
 		return ret;
 	}
-	
+
 
 	// switch to AMG mode: all sensors, no onboard fusion
 	data = BNO055_OPERATION_MODE_AMG;
 	ret = write_reg(BNO055_OPR_MODE_ADDR, &data, 1);
+
 	if (ret != OK) {
 		PX4_ERR("Cannot enter run mode");
 		return ret;
 	}
+
 	// 20 ms delay for mode switch
 	usleep(20 * 1000);
 
@@ -189,29 +201,34 @@ int BNO055::reset()
 {
 	uint8_t data = 0;
 
-	if(set_page_id(0) != OK) return -1;
+	if (set_page_id(0) != OK) { return -1; }
 
 	// read sys register, set reset bit, write back
-	if(read_reg(BNO055_SYS_TRIGGER_ADDR, &data, 1) != OK) return -2;
+	if (read_reg(BNO055_SYS_TRIGGER_ADDR, &data, 1) != OK) { return -2; }
+
 	data = data | BNO055_SYS_RST_MSK;
-	if(write_reg(BNO055_SYS_TRIGGER_ADDR, &data, 1) != OK) return -3;
+
+	if (write_reg(BNO055_SYS_TRIGGER_ADDR, &data, 1) != OK) { return -3; }
 
 	// we're now reset
 	return 0;
 }
 
-int BNO055::set_page_id(uint8_t p) {
+int BNO055::set_page_id(uint8_t p)
+{
 	// only 0 and 1 are valid page values
-	if (p != 0 && p != 1) return -1;
+	if (p != 0 && p != 1) { return -1; }
 
 	// try to avoid unnecessary transfers
-	if (page_id == p) return 0;
+	if (page_id == p) { return 0; }
 
 	int ret = write_reg(BNO055_PAGE_ID_ADDR, &p, 1);
-	if(ret == OK) {
+
+	if (ret == OK) {
 		// only set if this was successful, so it won't skip a second attempt
 		page_id = p;
 		return OK;
+
 	} else {
 		return -2;
 	}
@@ -243,12 +260,12 @@ int BNO055::get_sensor(BNO055::three_d *out, uint8_t addr, double divide_by)
 	// x y z
 	int16_t accel[3] = { 0, 0, 0 };
 
-	if(set_page_id(0) != OK) {
+	if (set_page_id(0) != OK) {
 		return -1;
 	}
 
 	// data is an array here, so already by-pointer
-	if(read_reg(addr, data, 6) != OK) {
+	if (read_reg(addr, data, 6) != OK) {
 		return -1;
 	}
 
@@ -265,17 +282,17 @@ int BNO055::get_sensor(BNO055::three_d *out, uint8_t addr, double divide_by)
 	return OK;
 }
 
-int BNO055::get_accel(BNO055::three_d *out) 
+int BNO055::get_accel(BNO055::three_d *out)
 {
 	return get_sensor(out, BNO055_ACCEL_DATA_X_LSB_ADDR, 100);
 }
 
-int BNO055::get_gyro(BNO055::three_d *out) 
+int BNO055::get_gyro(BNO055::three_d *out)
 {
 	return get_sensor(out, BNO055_GYRO_DATA_X_LSB_ADDR, 900);
 }
 
-int BNO055::get_mag(BNO055::three_d *out) 
+int BNO055::get_mag(BNO055::three_d *out)
 {
 	return get_sensor(out, BNO055_MAG_DATA_X_LSB_ADDR, 16);
 }
@@ -287,6 +304,7 @@ void BNO055::RunImpl()
 	if (get_accel(&accel_xyz) != OK) {
 		PX4_DEBUG("Reading accel failed, skipping");
 		_px4_accel.increase_error_count();
+
 	} else {
 		_px4_accel.update(current_time, accel_xyz.x, accel_xyz.y, accel_xyz.z);
 	}
@@ -294,6 +312,7 @@ void BNO055::RunImpl()
 	if (get_gyro(&gyro_xyz) != OK) {
 		PX4_DEBUG("Reading gyro failed, skipping");
 		_px4_gyro.increase_error_count();
+
 	} else {
 		_px4_gyro.update(current_time, gyro_xyz.x, gyro_xyz.y, gyro_xyz.z);
 	}
@@ -304,6 +323,7 @@ void BNO055::RunImpl()
 		if (get_mag(&mag_xyz) != OK) {
 			PX4_DEBUG("Reading mag failed, skipping");
 			_px4_mag.increase_error_count();
+
 		} else {
 			// for some reason, I need to do a /100 to make the values fit
 			_px4_mag.update(current_time, mag_xyz.x / 100, mag_xyz.y / 100, mag_xyz.z / 100);

@@ -49,7 +49,7 @@ using namespace time_literals;
 class BNO055 : public device::I2C, public I2CSPIDriver<BNO055>
 {
 public:
-	
+
 	BNO055(const I2CSPIDriverConfig &config);
 	virtual ~BNO055();
 
@@ -120,7 +120,7 @@ private:
 	const uint8_t BNO055_GYRO_DATA_Y_MSB_ADDR = 0X17;
 	const uint8_t BNO055_GYRO_DATA_Z_LSB_ADDR = 0X18;
 	const uint8_t BNO055_GYRO_DATA_Z_MSB_ADDR = 0X19;
-	
+
 
 	const uint8_t BNO055_ACCEL_BW_POS = 0x2;
 	const uint8_t BNO055_ACCEL_BW_MSK = 0x1C;
@@ -156,14 +156,14 @@ private:
 
 	/**
 	 * Switches the sensor register page, if necessary, and updates page_id
-	 * 
+	 *
 	 * @param p 0 (data and basic config) or 1 (some extra config)
 	*/
 	int set_page_id(uint8_t p);
 
 	/**
 	 * Helper function for the get_<x>
-	 * 
+	 *
 	 * @param out already-initialized, floating point result
 	 * @param addr start address for the 6 byte read
 	 * @param divide_by 16bit sensor values will be divided by this, result stored in out
