@@ -43,6 +43,7 @@
 
 #include <board_config.h>
 #include <lib/systemlib/px4_macros.h>
+#include <mpfs_dsn.h>
 
 #ifndef arraySize
 #define arraySize(a) (sizeof((a))/sizeof(((a)[0])))
@@ -63,9 +64,8 @@ static int hw_version = 0;
 static int hw_revision = 0;
 static char hw_info[HW_INFO_SIZE] = {0};
 
-static uint8_t device_serial_number[PX4_CPU_UUID_BYTE_LENGTH] = { 0 };
+static mfguid_t device_serial_number = { 0 };
 
-static void read_dsn(uint8_t *retval);
 static void determine_hw(void);
 
 static const uint16_t soc_arch_id = PX4_SOC_ARCH_ID_MPFS;
@@ -121,16 +121,15 @@ int board_get_px4_guid(px4_guid_t px4_guid)
 {
 	uint8_t *pb = (uint8_t *) &px4_guid[0];
 
-	memset(pb, 0, PX4_GUID_BYTE_LENGTH);
+	memset(pb, 0, sizeof(px4_guid_t));
+
+	static_assert(sizeof(device_serial_number) == MPFS_DSN_LENGTH);
+	static_assert(sizeof(px4_guid_t) >= sizeof(device_serial_number) + 2);
 
 	*pb++ = (soc_arch_id >> 8) & 0xff;
 	*pb++ = (soc_arch_id & 0xff);
 
-	/* NOTE: Copy only first 6 bytes from DSN.
-	 * There is a bug in MPFS and only first 6 bytes
-	 * are not changing over cold boots.
-	 */
-	memcpy(pb, device_serial_number, 6);
+	memcpy(pb, device_serial_number, sizeof(device_serial_number));
 
 	return PX4_GUID_BYTE_LENGTH;
 }
@@ -184,7 +183,7 @@ void determine_hw(void)
 	uint8_t pin1, pin2, pin3;
 
 	/* read device serial number */
-	read_dsn(device_serial_number);
+	mpfs_read_dsn(device_serial_number, sizeof(device_serial_number));
 
 	/* determine hw version number */
 	px4_arch_configgpio(GPIO_HW_VERSION_PIN1);
@@ -209,35 +208,7 @@ void determine_hw(void)
 
 }
 
-void read_dsn(uint8_t *retval)
-{
-	unsigned int reg;
-	uint8_t *serial;
-
-	serial = retval;
-
-	putreg32(SERVICE_CR_REQ, MPFS_SYS_SERVICE_CR);
-
-	/* Need to wait that request is ready and not busy anymore */
-	do {
-		reg = getreg32(MPFS_SYS_SERVICE_CR);
-	} while (SERVICE_CR_REQ == (reg & SERVICE_CR_REQ));
-
-	do {
-		reg = getreg32(MPFS_SYS_SERVICE_SR);
-	} while (SERVICE_SR_BUSY == (reg & SERVICE_SR_BUSY));
-
-	/* Read serial from service mailbox */
-	uint8_t *p = (uint8_t *)MPFS_SYS_SERVICE_MAILBOX;
-
-	for (uint8_t i = 0; i < PX4_CPU_UUID_BYTE_LENGTH; i++) {
-		p = p + i;
-		serial[i] = getreg8(p);
-	}
-}
-
 int board_get_mfguid(mfguid_t mfgid)
 {
-	read_dsn(mfgid);
-	return PX4_CPU_MFGUID_BYTE_LENGTH;
+	return mpfs_read_dsn(mfgid, sizeof(mfguid_t));
 }

@@ -34,3 +34,9 @@
 px4_add_library(arch_version
 	board_mcu_version.c
 )
+
+if (CONFIG_BUILD_FLAT)
+	target_link_libraries(arch_version PRIVATE nuttx_arch)
+else()
+	target_link_libraries(arch_version PRIVATE nuttx_karch)
+endif()
