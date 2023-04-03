@@ -577,7 +577,7 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 			int rv = _servers->init();
 
 			if (rv < 0) {
-				PX4_ERR("UavcanServers init: %d", ret);
+				PX4_ERR("UavcanServers init: %d", rv);
 			}
 		}
 	}
