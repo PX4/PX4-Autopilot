@@ -3,6 +3,18 @@
 # (px4-alias.sh is expected to be in the PATH)
 . px4-alias.sh
 
+echo -e "\n*************************"
+echo "GPS: $GPS"
+echo "RC: $RC"
+echo "IMU ROTATION: $IMU_ROTATION"
+echo "OSD: $OSD"
+echo "EXTRA STEPS:"
+for i in "${EXTRA_STEPS[@]}"
+do
+	echo -e "\t$i"
+done
+echo -e "*************************\n"
+
 # In order to just exit after starting the uorb / muorb modules define
 # the environment variable MINIMAL_PX4. (e.g. export MINIMAL_PX4=1)
 # This is useful for testing / debug where you may want to start drivers
@@ -24,18 +36,21 @@ param load
 
 # Start logging and use timestamps for log files when possible.
 # Add the "-e" option to start logging immediately. Default is
-# to log only when armed
+# to log only when armed. Caution must be used with the "-e" option
+# because if power is removed without stopping the logger gracefully then
+# the log file may be corrupted.
 logger start -t
 
 /bin/sleep 1
 
 # IMU (accelerometer / gyroscope)
-if [ "$IMU" == "ROTATE_IMU_YAW_180" ]; then
-    /bin/echo "Starting IMU driver with yaw 180 rotation"
-    qshell icm42688p start -s -R 4
+if [ "$IMU_ROTATION" != "NONE" ]; then
+    /bin/echo "Starting IMU driver with rotation: $IMU_ROTATION"
+    qshell icm42688p start -s -R $IMU_ROTATION
 else
     qshell icm42688p start -s
 fi
+
 
 /bin/sleep 1
 
@@ -61,7 +76,7 @@ if [ "$GPS" == "MATEK" ]; then
 elif [ "$GPS" == "HOLYBRO" ]; then
     # Only the newer Holybro unit is supported on M0054
     /bin/echo "Starting Holybro GPS"
-    qshell gps start -d 7 -b 115200
+    qshell gps start -b 115200
 fi
 
 # LED driver for the Pixhawk 4 GPS module
@@ -137,7 +152,13 @@ mavlink boot_complete
 
 # Optional MSP OSD driver for DJI goggles
 # This is only supported on M0054 (with M0125 accessory board)
-if [ "$OSD" == "OSD" ]; then
+if [ "$OSD" == "ENABLE" ]; then
     /bin/echo "Starting OSD driver"
     msp_osd start -d /dev/ttyHS1
 fi
+
+# Start optional EXTRA_STEPS
+for i in "${EXTRA_STEPS[@]}"
+do
+	$i
+done
