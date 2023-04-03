@@ -85,6 +85,21 @@ bool EkfWrapper::isIntendingExternalVisionHeightFusion() const
 	return _ekf->control_status_flags().ev_hgt;
 }
 
+void EkfWrapper::enableBetaFusion()
+{
+	_ekf_params->beta_fusion_enabled = true;
+}
+
+void EkfWrapper::disableBetaFusion()
+{
+	_ekf_params->beta_fusion_enabled = false;
+}
+
+bool EkfWrapper::isIntendingBetaFusion() const
+{
+	return _ekf->control_status_flags().fuse_beta;
+}
+
 void EkfWrapper::enableGpsFusion()
 {
 	_ekf_params->gnss_ctrl |= GnssCtrl::HPOS | GnssCtrl::VEL;

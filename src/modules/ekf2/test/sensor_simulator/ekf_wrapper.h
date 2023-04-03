@@ -69,6 +69,10 @@ public:
 	/* void disableExternalVisionHeightFusion(); */
 	bool isIntendingExternalVisionHeightFusion() const;
 
+	void enableBetaFusion();
+	void disableBetaFusion();
+	bool isIntendingBetaFusion() const;
+
 	void enableGpsFusion();
 	void disableGpsFusion();
 	bool isIntendingGpsFusion() const;
