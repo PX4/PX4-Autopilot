@@ -4,7 +4,7 @@ actuator_output:
     - param_prefix: PWM_MAIN
       channel_label: 'MAIN'
       channel_label_module_name_prefix: false
-      num_channels: 8
+      num_channels: 10
       standard_params:
         disarmed: { min: 800, max: 2200, default: 900 }
         min: { min: 800, max: 1400, default: 1000 }

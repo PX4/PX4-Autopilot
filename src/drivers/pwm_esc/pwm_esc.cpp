@@ -71,7 +71,7 @@
 #endif
 
 #ifndef PWMESC_MAX_CHANNELS
-#define PWMESC_MAX_CHANNELS 8
+#define PWMESC_MAX_CHANNELS 10
 #endif
 
 #ifndef PWM_DEFAULT_RATE
