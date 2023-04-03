@@ -180,7 +180,6 @@ void FlightTaskPrecisionLanding::check_state_transitions()
 {
 	switch (_precland_state) {
 	case PRECLAND_STATE::AUTORTL_CLIMB:
-		PX4_INFO("AUTORTL_CLIMB");
 		// transition condition
 		// Wait for drone to reach z position setpoint or be higher
 		if (_position(2) <= _position_setpoint(2) + _param_nav_mc_alt_rad.get()) {
@@ -191,8 +190,6 @@ void FlightTaskPrecisionLanding::check_state_transitions()
 		break;
 
 	case PRECLAND_STATE::AUTORTL_APPROACH: {
-			PX4_INFO("AUTORTL_APPROACH");
-
 			// transition condition
 			// Wait for drone to reach position setpoint
 			if (inside_acceptance_radius()) {
@@ -212,8 +209,6 @@ void FlightTaskPrecisionLanding::check_state_transitions()
 		}
 
 	case PRECLAND_STATE::MOVE_TO_SEARCH_ALTITUDE:
-		PX4_INFO("MOVE_TO_SEARCH_ALTITUDE");
-
 		// transition condition
 		if (inside_acceptance_radius()) {
 			mavlink_log_info(&_mavlink_log_pub, "Starting search");
@@ -224,14 +219,11 @@ void FlightTaskPrecisionLanding::check_state_transitions()
 
 	case PRECLAND_STATE::SEARCHING_TARGET:
 		{
-			PX4_INFO("SEARCHING_TARGET");
 			const float max_search_duration = _param_pld_srch_tout.get();
 
 			// Currently no search pattern is implemented. Just wait for target...
 			// Workaround for Orion app making unwanted changes to my parameters
 			if ((hrt_absolute_time() - _state_start_time) > max_search_duration * SEC2USEC) {
-				mavlink_log_info(&_mavlink_log_pub, "Search timed out");
-
 				if (++_search_count >= _param_pld_max_srch.get()) {
 					mavlink_log_info(&_mavlink_log_pub, "Abandonning search and landing immediately");
 					do_state_transition(PRECLAND_STATE::LANDING);
@@ -252,8 +244,6 @@ void FlightTaskPrecisionLanding::check_state_transitions()
 		}
 
 	case PRECLAND_STATE::MOVING_ABOVE_TARGET:
-		PX4_INFO("MOVING_ABOVE_TARGET");
-
 		// Transition condition
 		// - Check acceptance radius and
 		// - wait long enough to observe if the landing_target_pose timed out before proceeding
@@ -275,7 +265,6 @@ void FlightTaskPrecisionLanding::check_state_transitions()
 		break;
 
 	case PRECLAND_STATE::LANDING:
-		PX4_INFO("LANDING");
 		break;
 	}
 }
