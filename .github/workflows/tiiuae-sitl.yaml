@@ -70,7 +70,7 @@ jobs:
       - uses: jfrog/setup-jfrog-cli@v3
         if: github.event_name == 'push'
         env:
-          JF_ENV_1: ${{ secrets.ARTIFACTORY_TOKEN }}
+          JF_ENV_1: ${{ secrets.ARTIFACTORY_CLOUD_TOKEN }}
 
       - name: Upload to Artifactory (px4-sitl)
         env:
