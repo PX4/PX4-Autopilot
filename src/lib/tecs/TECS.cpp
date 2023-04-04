@@ -639,12 +639,12 @@ void TECS::initialize(const float altitude, const float altitude_rate, const flo
 	// Init subclasses
 	TECSAltitudeReferenceModel::AltitudeReferenceState current_state{	.alt = altitude,
 			.alt_rate = altitude_rate};
-	_reference_model.initialize(current_state);
+	_altitude_reference_model.initialize(current_state);
 	_airspeed_filter.initialize(equivalent_airspeed);
 
 	TECSControl::Setpoint control_setpoint;
-	control_setpoint.altitude_reference = _reference_model.getAltitudeReference();
-	control_setpoint.altitude_rate_setpoint = _reference_model.getAltitudeRateReference();
+	control_setpoint.altitude_reference = _altitude_reference_model.getAltitudeReference();
+	control_setpoint.altitude_rate_setpoint = _altitude_reference_model.getAltitudeRateReference();
 	control_setpoint.tas_setpoint = equivalent_airspeed * eas_to_tas;
 
 	const TECSControl::Input control_input{ .altitude = altitude,
@@ -659,10 +659,10 @@ void TECS::initialize(const float altitude, const float altitude_rate, const flo
 	const TECSAirspeedFilter::AirspeedFilterState eas = _airspeed_filter.getState();
 	_debug_status.true_airspeed_filtered = eas_to_tas * eas.speed;
 	_debug_status.true_airspeed_derivative = eas_to_tas * eas.speed_rate;
-	const TECSAltitudeReferenceModel::AltitudeReferenceState ref_alt{_reference_model.getAltitudeReference()};
+	const TECSAltitudeReferenceModel::AltitudeReferenceState ref_alt{_altitude_reference_model.getAltitudeReference()};
 	_debug_status.altitude_sp_ref = ref_alt.alt;
 	_debug_status.altitude_rate_alt_ref = ref_alt.alt_rate;
-	_debug_status.altitude_rate_feedforward = _reference_model.getAltitudeRateReference();
+	_debug_status.altitude_rate_feedforward = _altitude_reference_model.getAltitudeRateReference();
 
 	_update_timestamp = hrt_absolute_time();
 }
@@ -711,11 +711,11 @@ void TECS::update(float pitch, float altitude, float hgt_setpoint, float EAS_set
 		const TECSAltitudeReferenceModel::AltitudeReferenceState setpoint{ .alt = hgt_setpoint,
 				.alt_rate = hgt_rate_sp};
 
-		_reference_model.update(dt, setpoint, altitude, _reference_param);
+		_altitude_reference_model.update(dt, setpoint, altitude, _reference_param);
 
 		TECSControl::Setpoint control_setpoint;
-		control_setpoint.altitude_reference = _reference_model.getAltitudeReference();
-		control_setpoint.altitude_rate_setpoint = _reference_model.getAltitudeRateReference();
+		control_setpoint.altitude_reference = _altitude_reference_model.getAltitudeReference();
+		control_setpoint.altitude_rate_setpoint = _altitude_reference_model.getAltitudeRateReference();
 
 		// Calculate the demanded true airspeed
 		// TODO this function should not be in the module. Only give feedback that the airspeed can't be achieved.
