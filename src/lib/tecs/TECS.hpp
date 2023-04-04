@@ -249,7 +249,7 @@ public:
 	 *
 	 */
 	struct Setpoint {
-		TECSAltitudeReferenceModel::AltitudeReferenceState altitude_reference;	///< Altitude reference from reference model.
+		TECSAltitudeReferenceModel::AltitudeReferenceState altitude_reference;	///< Altitude/height rate reference.
 		float altitude_rate_setpoint;					///< Altitude rate setpoint.
 		float tas_setpoint;						///< True airspeed setpoint.
 	};
