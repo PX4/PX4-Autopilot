@@ -336,7 +336,7 @@ void DShot::mixerChanged()
 	update_telemetry_num_motors();
 }
 
-bool DShot::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+bool DShot::updateOutputs(bool stop_motors, int16_t outputs[MAX_ACTUATORS],
 			  unsigned num_outputs, unsigned num_control_groups_updated)
 {
 	if (!_outputs_on) {

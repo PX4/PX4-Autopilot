@@ -76,30 +76,30 @@ public:
 
 	static inline void updateValues(uint32_t reversible, float thrust_factor, float *values, int num_values)
 	{
-		if (thrust_factor > 0.f && thrust_factor <= 1.f) {
-			// thrust factor
-			//  rel_thrust = factor * x^2 + (1-factor) * x,
-			const float a = thrust_factor;
-			const float b = (1.f - thrust_factor);
+		// if (thrust_factor > 0.f && thrust_factor <= 1.f) {
+		// 	// thrust factor
+		// 	//  rel_thrust = factor * x^2 + (1-factor) * x,
+		// 	const float a = thrust_factor;
+		// 	const float b = (1.f - thrust_factor);
 
-			// don't recompute for all values (ax^2+bx+c=0)
-			const float tmp1 = b / (2.f * a);
-			const float tmp2 = b * b / (4.f * a * a);
+		// 	// don't recompute for all values (ax^2+bx+c=0)
+		// 	const float tmp1 = b / (2.f * a);
+		// 	const float tmp2 = b * b / (4.f * a * a);
 
-			for (int i = 0; i < num_values; ++i) {
-				float control = values[i];
+		// 	for (int i = 0; i < num_values; ++i) {
+		// 		float control = values[i];
 
-				if (control > 0.f) {
-					values[i] = -tmp1 + sqrtf(tmp2 + (control / a));
+		// 		if (control > 0.f) {
+		// 			values[i] = -tmp1 + sqrtf(tmp2 + (control / a));
 
-				} else if (control < -0.f) {
-					values[i] =  tmp1 - sqrtf(tmp2 - (control / a));
+		// 		} else if (control < -0.f) {
+		// 			values[i] =  tmp1 - sqrtf(tmp2 - (control / a));
 
-				} else {
-					values[i] = 0.f;
-				}
-			}
-		}
+		// 		} else {
+		// 			values[i] = 0.f;
+		// 		}
+		// 	}
+		// }
 
 		for (int i = 0; i < num_values; ++i) {
 			if ((reversible & (1u << i)) == 0) {
@@ -109,6 +109,7 @@ public:
 				} else {
 					// remap from [0, 1] to [-1, 1]
 					values[i] = values[i] * 2.f - 1.f;
+					// values[i] = values[i];
 				}
 			}
 		}

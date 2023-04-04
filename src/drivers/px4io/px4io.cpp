@@ -153,7 +153,7 @@ public:
 
 	uint16_t		system_status() const { return _status; }
 
-	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
+	bool updateOutputs(bool stop_motors, int16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
 			   unsigned num_control_groups_updated) override;
 
 private:
@@ -362,12 +362,19 @@ PX4IO::~PX4IO()
 	perf_free(_interface_write_perf);
 }
 
-bool PX4IO::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+bool PX4IO::updateOutputs(bool stop_motors, int16_t outputs[MAX_ACTUATORS],
 			  unsigned num_outputs, unsigned num_control_groups_updated)
 {
 	if (!_test_fmu_fail) {
+
+		uint16_t unsigned_outputs[MAX_ACTUATORS];
+
+		for (int i = 0; i < MAX_ACTUATORS; i++) {
+
+			unsigned_outputs[i] = outputs[i];
+		}
 		/* output to the servos */
-		io_reg_set(PX4IO_PAGE_DIRECT_PWM, 0, outputs, num_outputs);
+		io_reg_set(PX4IO_PAGE_DIRECT_PWM, 0, unsigned_outputs, num_outputs);
 	}
 
 	return true;

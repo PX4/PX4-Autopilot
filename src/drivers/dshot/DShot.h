@@ -93,7 +93,7 @@ public:
 
 	bool telemetry_enabled() const { return _telemetry != nullptr; }
 
-	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+	bool updateOutputs(bool stop_motors, int16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
 
 private:

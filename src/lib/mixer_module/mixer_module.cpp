@@ -363,7 +363,7 @@ void MixingOutput::setMaxTopicUpdateRate(unsigned max_topic_update_interval_us)
 	}
 }
 
-void MixingOutput::setAllMinValues(uint16_t value)
+void MixingOutput::setAllMinValues(int16_t value)
 {
 	for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
 		_param_handles[i].min = PARAM_INVALID;
@@ -371,7 +371,7 @@ void MixingOutput::setAllMinValues(uint16_t value)
 	}
 }
 
-void MixingOutput::setAllMaxValues(uint16_t value)
+void MixingOutput::setAllMaxValues(int16_t value)
 {
 	for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
 		_param_handles[i].max = PARAM_INVALID;
@@ -379,7 +379,7 @@ void MixingOutput::setAllMaxValues(uint16_t value)
 	}
 }
 
-void MixingOutput::setAllFailsafeValues(uint16_t value)
+void MixingOutput::setAllFailsafeValues(int16_t value)
 {
 	for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
 		_param_handles[i].failsafe = PARAM_INVALID;
@@ -387,7 +387,7 @@ void MixingOutput::setAllFailsafeValues(uint16_t value)
 	}
 }
 
-void MixingOutput::setAllDisarmedValues(uint16_t value)
+void MixingOutput::setAllDisarmedValues(int16_t value)
 {
 	for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
 		_param_handles[i].disarmed = PARAM_INVALID;
@@ -528,7 +528,9 @@ uint16_t MixingOutput::output_limit_calc_single(int i, float value) const
 		value = -1.f * value;
 	}
 
-	uint16_t effective_output = value * (_max_value[i] - _min_value[i]) / 2 + (_max_value[i] + _min_value[i]) / 2;
+	// PX4_INFO("i: %d value: %lf min val: %lf, max val %lf \n", i, (double)value, (double)_min_value[i], (double)_max_value[i]);
+
+	int16_t effective_output = value * (_max_value[i] - _min_value[i]) / 2 + (_max_value[i] + _min_value[i]) / 2;
 
 	// last line of defense against invalid inputs
 	return math::constrain(effective_output, _min_value[i], _max_value[i]);
@@ -649,12 +651,12 @@ MixingOutput::updateLatencyPerfCounter(const actuator_outputs_s &actuator_output
 	}
 }
 
-uint16_t
+int16_t
 MixingOutput::actualFailsafeValue(int index) const
 {
 	uint16_t value = 0;
 
-	if (_failsafe_value[index] == UINT16_MAX) { // if set to default, use the one provided by the function
+	if (_failsafe_value[index] == INT16_MAX) { // if set to default, use the one provided by the function
 		float default_failsafe = NAN;
 
 		if (_functions[index]) {

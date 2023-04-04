@@ -70,7 +70,7 @@ UavcanEscController::init()
 }
 
 void
-UavcanEscController::update_outputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs)
+UavcanEscController::update_outputs(bool stop_motors, int16_t outputs[MAX_ACTUATORS], unsigned num_outputs)
 {
 	/*
 	 * Rate limiting - we don't want to congest the bus
