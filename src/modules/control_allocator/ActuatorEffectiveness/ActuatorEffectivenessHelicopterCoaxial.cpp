@@ -116,13 +116,13 @@ void ActuatorEffectivenessHelicopterCoaxial::updateSetpoint(const matrix::Vector
 	actuator_sp(0) = throttle - yaw; // Clockwise
 	actuator_sp(1) = throttle + yaw; // Counter-clockwise
 
-	// Saturation check for yaw TODO check saturation
-	// if (actuator_sp(1) < actuator_min(1)) {
-	// 	setSaturationFlag(_geometry.yaw_sign, _saturation_flags.yaw_neg, _saturation_flags.yaw_pos);
+	// Saturation check for yaw
+	if ((actuator_sp(0) < actuator_min(0)) || (actuator_sp(1) > actuator_max(1))) {
+		setSaturationFlag(1.f, _saturation_flags.yaw_neg, _saturation_flags.yaw_pos);
 
-	// } else if (actuator_sp(1) > actuator_max(1)) {
-	// 	setSaturationFlag(_geometry.yaw_sign, _saturation_flags.yaw_pos, _saturation_flags.yaw_neg);
-	// }
+	} else if ((actuator_sp(0) > actuator_max(0)) || (actuator_sp(1) < actuator_min(1))) {
+		setSaturationFlag(1.f, _saturation_flags.yaw_pos, _saturation_flags.yaw_neg);
+	}
 
 	for (int i = 0; i < _geometry.num_swash_plate_servos; i++) {
 		float roll_coeff = sinf(_geometry.swash_plate_servos[i].angle) * _geometry.swash_plate_servos[i].arm_length;
