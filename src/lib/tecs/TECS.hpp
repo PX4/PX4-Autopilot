@@ -113,7 +113,7 @@ private:
 	AirspeedFilterState _airspeed_state{.speed = 0.0f, .speed_rate = 0.0f};	///< Complimentary filter state
 };
 
-class TECSReferenceModel
+class TECSAltitudeReferenceModel
 {
 public:
 	/**
@@ -139,8 +139,8 @@ public:
 	};
 
 public:
-	TECSReferenceModel() = default;
-	~TECSReferenceModel() = default;
+	TECSAltitudeReferenceModel() = default;
+	~TECSAltitudeReferenceModel() = default;
 
 	/**
 	 * @brief Initialize reference models.
@@ -249,7 +249,7 @@ public:
 	 *
 	 */
 	struct Setpoint {
-		TECSReferenceModel::AltitudeReferenceState altitude_reference;	///< Altitude reference from reference model.
+		TECSAltitudeReferenceModel::AltitudeReferenceState altitude_reference;	///< Altitude reference from reference model.
 		float altitude_rate_setpoint;					///< Altitude rate setpoint.
 		float tas_setpoint;						///< True airspeed setpoint.
 	};
@@ -638,7 +638,7 @@ public:
 	 */
 	void handle_alt_step(float altitude, float altitude_rate)
 	{
-		TECSReferenceModel::AltitudeReferenceState init_state{ .alt = altitude,
+		TECSAltitudeReferenceModel::AltitudeReferenceState init_state{ .alt = altitude,
 				.alt_rate = altitude_rate};
 
 		// reset altitude reference model.
@@ -654,7 +654,7 @@ public:
 private:
 	TECSControl 		_control;				///< Control submodule.
 	TECSAirspeedFilter 	_airspeed_filter;			///< Airspeed filter submodule.
-	TECSReferenceModel 	_reference_model;			///< Setpoint reference model submodule.
+	TECSAltitudeReferenceModel 	_reference_model;			///< Setpoint reference model submodule.
 
 	enum ECL_TECS_MODE _tecs_mode {ECL_TECS_MODE_NORMAL};		///< Current activated mode.
 
@@ -677,7 +677,7 @@ private:
 		.airspeed_rate_noise_std_dev = 0.02f
 	};
 	/// Reference model parameters.
-	TECSReferenceModel::Param _reference_param{
+	TECSAltitudeReferenceModel::Param _reference_param{
 		.target_climbrate = 2.0f,
 		.target_sinkrate = 2.0f,
 		.jerk_max = 1000.0f,

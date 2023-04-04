@@ -133,8 +133,8 @@ TECSAirspeedFilter::AirspeedFilterState TECSAirspeedFilter::getState() const
 	return _airspeed_state;
 }
 
-void TECSReferenceModel::update(const float dt, const AltitudeReferenceState &setpoint, float altitude,
-				const Param &param)
+void TECSAltitudeReferenceModel::update(const float dt, const AltitudeReferenceState &setpoint, float altitude,
+					const Param &param)
 {
 	// Input checks
 	if (!TIMESTAMP_VALID(dt)) {
@@ -147,14 +147,12 @@ void TECSReferenceModel::update(const float dt, const AltitudeReferenceState &se
 		altitude = 0.0f;
 	}
 
-	// Consider the altitude rate setpoint already smooth. No need to filter further, simply hold the value for the altitude rate reference.
 	if (PX4_ISFINITE(setpoint.alt_rate)) {
 		_alt_rate_ref = setpoint.alt_rate;
 
 	} else {
 		_alt_rate_ref = 0.0f;
 	}
-
 
 	// Altitude setpoint reference
 	const bool altitude_control_enable{PX4_ISFINITE(setpoint.alt)};
@@ -182,9 +180,9 @@ void TECSReferenceModel::update(const float dt, const AltitudeReferenceState &se
 	}
 }
 
-TECSReferenceModel::AltitudeReferenceState TECSReferenceModel::getAltitudeReference() const
+TECSAltitudeReferenceModel::AltitudeReferenceState TECSAltitudeReferenceModel::getAltitudeReference() const
 {
-	TECSReferenceModel::AltitudeReferenceState ref{
+	TECSAltitudeReferenceModel::AltitudeReferenceState ref{
 		.alt = _alt_control_traj_generator.getCurrentPosition(),
 		.alt_rate = _alt_control_traj_generator.getCurrentVelocity(),
 	};
@@ -192,12 +190,12 @@ TECSReferenceModel::AltitudeReferenceState TECSReferenceModel::getAltitudeRefere
 	return ref;
 }
 
-float TECSReferenceModel::getAltitudeRateReference() const
+float TECSAltitudeReferenceModel::getAltitudeRateReference() const
 {
 	return _alt_rate_ref;
 }
 
-void TECSReferenceModel::initialize(const AltitudeReferenceState &state)
+void TECSAltitudeReferenceModel::initialize(const AltitudeReferenceState &state)
 {
 	float init_state_alt{state.alt};
 	_alt_rate_ref = state.alt_rate;
@@ -639,7 +637,7 @@ void TECS::initialize(const float altitude, const float altitude_rate, const flo
 		      const float eas_to_tas)
 {
 	// Init subclasses
-	TECSReferenceModel::AltitudeReferenceState current_state{	.alt = altitude,
+	TECSAltitudeReferenceModel::AltitudeReferenceState current_state{	.alt = altitude,
 			.alt_rate = altitude_rate};
 	_reference_model.initialize(current_state);
 	_airspeed_filter.initialize(equivalent_airspeed);
@@ -661,7 +659,7 @@ void TECS::initialize(const float altitude, const float altitude_rate, const flo
 	const TECSAirspeedFilter::AirspeedFilterState eas = _airspeed_filter.getState();
 	_debug_status.true_airspeed_filtered = eas_to_tas * eas.speed;
 	_debug_status.true_airspeed_derivative = eas_to_tas * eas.speed_rate;
-	const TECSReferenceModel::AltitudeReferenceState ref_alt{_reference_model.getAltitudeReference()};
+	const TECSAltitudeReferenceModel::AltitudeReferenceState ref_alt{_reference_model.getAltitudeReference()};
 	_debug_status.altitude_sp_ref = ref_alt.alt;
 	_debug_status.altitude_rate_alt_ref = ref_alt.alt_rate;
 	_debug_status.altitude_rate_feedforward = _reference_model.getAltitudeRateReference();
@@ -710,7 +708,7 @@ void TECS::update(float pitch, float altitude, float hgt_setpoint, float EAS_set
 		const TECSAirspeedFilter::AirspeedFilterState eas = _airspeed_filter.getState();
 
 		// Update Reference model submodule
-		const TECSReferenceModel::AltitudeReferenceState setpoint{ .alt = hgt_setpoint,
+		const TECSAltitudeReferenceModel::AltitudeReferenceState setpoint{ .alt = hgt_setpoint,
 				.alt_rate = hgt_rate_sp};
 
 		_reference_model.update(dt, setpoint, altitude, _reference_param);
