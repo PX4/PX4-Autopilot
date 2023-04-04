@@ -656,12 +656,10 @@ void TECS::initialize(const float altitude, const float altitude_rate, const flo
 
 	_debug_status.tecs_mode = _tecs_mode;
 	_debug_status.control = _control.getDebugOutput();
-	const TECSAirspeedFilter::AirspeedFilterState eas = _airspeed_filter.getState();
-	_debug_status.true_airspeed_filtered = eas_to_tas * eas.speed;
-	_debug_status.true_airspeed_derivative = eas_to_tas * eas.speed_rate;
-	const TECSAltitudeReferenceModel::AltitudeReferenceState ref_alt{_altitude_reference_model.getAltitudeReference()};
-	_debug_status.altitude_sp_ref = ref_alt.alt;
-	_debug_status.altitude_rate_alt_ref = ref_alt.alt_rate;
+	_debug_status.true_airspeed_filtered = eas_to_tas * _airspeed_filter.getState().speed;
+	_debug_status.true_airspeed_derivative = eas_to_tas * _airspeed_filter.getState().speed_rate;
+	_debug_status.altitude_sp_ref = _altitude_reference_model.getAltitudeReference().alt;
+	_debug_status.altitude_rate_alt_ref = _altitude_reference_model.getAltitudeReference().alt_rate;
 	_debug_status.altitude_rate_feedforward = _altitude_reference_model.getAltitudeRateReference();
 
 	_update_timestamp = hrt_absolute_time();
