@@ -459,8 +459,6 @@ void EstimatorInterface::setSystemFlagData(const systemFlagUpdate &system_flags)
 		}
 	}
 
-	_system_flag_buffer->push(system_flags);
-
 	const int64_t time_us = system_flags.time_us
 				- static_cast<int64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
 
