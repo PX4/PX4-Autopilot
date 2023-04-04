@@ -1,7 +1,7 @@
 uint64 timestamp		# time since system start (microseconds)
 
 float32 altitude_sp			# Altitude setpoint AMSL [m]
-float32 altitude_sp_filtered		# Altitude setpoint filtered AMSL [m]
+float32 altitude_sp_ref			# Altitude setpoint reference AMSL [m]
 float32 height_rate_setpoint		# Height rate setpoint [m/s]
 float32 height_rate			# Height rate [m/s]
 float32 equivalent_airspeed_sp		# Equivalent airspeed setpoint [m/s]
