@@ -83,7 +83,8 @@ private:
 		MOVE_TO_SEARCH_ALTITUDE,
 		SEARCHING_TARGET,
 		MOVING_ABOVE_TARGET,
-		LANDING
+		LANDING_ON_TARGET,
+		FALLBACK_LAND
 	};
 
 	void do_state_transition(PRECLAND_STATE new_state);

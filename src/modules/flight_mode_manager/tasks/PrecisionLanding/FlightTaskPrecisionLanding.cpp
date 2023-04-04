@@ -57,6 +57,7 @@ bool FlightTaskPrecisionLanding::activate(const trajectory_setpoint_s &last_setp
 
 void FlightTaskPrecisionLanding::do_state_transition(PRECLAND_STATE new_state)
 {
+	_initial_yaw = _yaw;
 	_precland_state = new_state;
 	_state_start_time = hrt_absolute_time();
 }
@@ -99,16 +100,24 @@ void FlightTaskPrecisionLanding::generate_pos_xy_setpoints()
 
 	case PRECLAND_STATE::SEARCHING_TARGET:
 	case PRECLAND_STATE::MOVING_ABOVE_TARGET:
-	case PRECLAND_STATE::LANDING:
+	case PRECLAND_STATE::LANDING_ON_TARGET:
 		_position_setpoint(0) = _landing_target_pose.x_abs;
 		_position_setpoint(1) = _landing_target_pose.y_abs;
 		break;
+
+	case PRECLAND_STATE::FALLBACK_LAND:
+               // TODO: might be safer to set only once during state change
+		_position_setpoint(0) = _sub_home_position.get().x;
+		_position_setpoint(1) = _sub_home_position.get().y;
+		break;
 	}
+
 }
 
 void FlightTaskPrecisionLanding::generate_pos_z_setpoints()
 {
 	const float search_rel_altitude = _param_pld_srch_alt.get();
+
 	switch (_precland_state) {
 	case PRECLAND_STATE::AUTORTL_CLIMB:
 	case PRECLAND_STATE::AUTORTL_APPROACH:
@@ -119,16 +128,20 @@ void FlightTaskPrecisionLanding::generate_pos_z_setpoints()
 	case PRECLAND_STATE::MOVE_TO_SEARCH_ALTITUDE:
 	case PRECLAND_STATE::SEARCHING_TARGET:
 	case PRECLAND_STATE::MOVING_ABOVE_TARGET:
+
 		// TODO: Should use current altitude when state was entered as the altitude setpoint
-		if (PX4_ISFINITE(_landing_target_pose.z_abs)){
+		if (PX4_ISFINITE(_landing_target_pose.z_abs)) {
 			// For safety reasons take whichever reference altitude is higher up (lower in NED)
 			_position_setpoint(2) = math::min(_sub_home_position.get().z, _landing_target_pose.z_abs) - search_rel_altitude;
+
 		} else {
 			_position_setpoint(2) = _sub_home_position.get().z - search_rel_altitude;
 		}
+
 		break;
 
-	case PRECLAND_STATE::LANDING:
+	case PRECLAND_STATE::LANDING_ON_TARGET:
+	case PRECLAND_STATE::FALLBACK_LAND:
 		_position_setpoint(2) = NAN;
 		break;
 	}
@@ -145,7 +158,8 @@ void FlightTaskPrecisionLanding::generate_vel_setpoints()
 		_velocity_setpoint.setNaN();
 		break;
 
-	case PRECLAND_STATE::LANDING:
+	case PRECLAND_STATE::LANDING_ON_TARGET:
+	case PRECLAND_STATE::FALLBACK_LAND:
 		_velocity_setpoint(0) = 0;
 		_velocity_setpoint(1) = 0;
 		_velocity_setpoint(2) = _param_mpc_land_speed.get();
@@ -166,12 +180,17 @@ void FlightTaskPrecisionLanding::generate_yaw_setpoint()
 		break;
 
 	case PRECLAND_STATE::AUTORTL_APPROACH:
-		// TODO: Point in direction of flight
+
+	// TODO: Point in direction of flight
 	case PRECLAND_STATE::MOVE_TO_SEARCH_ALTITUDE:
 	case PRECLAND_STATE::SEARCHING_TARGET:
 	case PRECLAND_STATE::MOVING_ABOVE_TARGET:
-	case PRECLAND_STATE::LANDING:
+	case PRECLAND_STATE::LANDING_ON_TARGET:
 		_yaw_setpoint = _target_yaw;
+		break;
+
+	case PRECLAND_STATE::FALLBACK_LAND:
+		// TODO: Keep yaw constant
 		break;
 	}
 }
@@ -180,6 +199,7 @@ void FlightTaskPrecisionLanding::check_state_transitions()
 {
 	switch (_precland_state) {
 	case PRECLAND_STATE::AUTORTL_CLIMB:
+
 		// transition condition
 		// Wait for drone to reach z position setpoint or be higher
 		if (_position(2) <= _position_setpoint(2) + _param_nav_mc_alt_rad.get()) {
@@ -209,6 +229,7 @@ void FlightTaskPrecisionLanding::check_state_transitions()
 		}
 
 	case PRECLAND_STATE::MOVE_TO_SEARCH_ALTITUDE:
+
 		// transition condition
 		if (inside_acceptance_radius()) {
 			mavlink_log_info(&_mavlink_log_pub, "Starting search");
@@ -217,8 +238,7 @@ void FlightTaskPrecisionLanding::check_state_transitions()
 
 		break;
 
-	case PRECLAND_STATE::SEARCHING_TARGET:
-		{
+	case PRECLAND_STATE::SEARCHING_TARGET: {
 			const float max_search_duration = _param_pld_srch_tout.get();
 
 			// Currently no search pattern is implemented. Just wait for target...
@@ -226,7 +246,7 @@ void FlightTaskPrecisionLanding::check_state_transitions()
 			if ((hrt_absolute_time() - _state_start_time) > max_search_duration * SEC2USEC) {
 				if (++_search_count >= _param_pld_max_srch.get()) {
 					mavlink_log_info(&_mavlink_log_pub, "Abandonning search and landing immediately");
-					do_state_transition(PRECLAND_STATE::LANDING);
+					do_state_transition(PRECLAND_STATE::FALLBACK_LAND);
 
 				} else {
 					mavlink_log_info(&_mavlink_log_pub, "Moving to search center");
@@ -244,6 +264,7 @@ void FlightTaskPrecisionLanding::check_state_transitions()
 		}
 
 	case PRECLAND_STATE::MOVING_ABOVE_TARGET:
+
 		// Transition condition
 		// - Check acceptance radius and
 		// - wait long enough to observe if the landing_target_pose timed out before proceeding
@@ -254,7 +275,7 @@ void FlightTaskPrecisionLanding::check_state_transitions()
 
 			if (hrt_absolute_time() - _landing_target_pose.timestamp < _param_pld_btout.get() * SEC2USEC) {
 				mavlink_log_info(&_mavlink_log_pub, "Landing on target...");
-				do_state_transition(PRECLAND_STATE::LANDING);
+				do_state_transition(PRECLAND_STATE::LANDING_ON_TARGET);
 
 			} else {
 				mavlink_log_info(&_mavlink_log_pub, "Lost target, back to searching");
@@ -264,7 +285,8 @@ void FlightTaskPrecisionLanding::check_state_transitions()
 
 		break;
 
-	case PRECLAND_STATE::LANDING:
+	case PRECLAND_STATE::LANDING_ON_TARGET:
+	case PRECLAND_STATE::FALLBACK_LAND:
 		break;
 	}
 }
