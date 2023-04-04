@@ -1,0 +1,12 @@
+menuconfig SYSTEMCMDS_NETCONFIG
+	bool "netconfig"
+	default n
+	---help---
+		Enable support for netconfig
+
+menuconfig USER_NETCONFIG
+	bool "netconfig running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && SYSTEMCMDS_NETCONFIG
+	---help---
+		Put netconfig in userspace memory
