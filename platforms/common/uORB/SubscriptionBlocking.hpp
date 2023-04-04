@@ -151,7 +151,7 @@ public:
 #else
 			hrt_abstime start = hrt_absolute_time();
 			while (hrt_elapsed_time(&start) < timeout_us) {
-				if (updated()) return true;
+				if (updated()) { return true; }
 				px4_usleep(1000);
 			}
 #endif
