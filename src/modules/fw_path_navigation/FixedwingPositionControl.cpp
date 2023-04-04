@@ -468,43 +468,43 @@ void
 FixedwingPositionControl::tecs_status_publish(float alt_sp, float equivalent_airspeed_sp,
 		float true_airspeed_derivative_raw, float throttle_trim)
 {
-	tecs_status_s t{};
+	tecs_status_s tecs_status{};
 
 	const TECS::DebugOutput &debug_output{_tecs.getStatus()};
 
 	switch (_tecs.tecs_mode()) {
 	case TECS::ECL_TECS_MODE_NORMAL:
-		t.mode = tecs_status_s::TECS_MODE_NORMAL;
+		tecs_status.mode = tecs_status_s::TECS_MODE_NORMAL;
 		break;
 
 	case TECS::ECL_TECS_MODE_UNDERSPEED:
-		t.mode = tecs_status_s::TECS_MODE_UNDERSPEED;
+		tecs_status.mode = tecs_status_s::TECS_MODE_UNDERSPEED;
 		break;
 	}
 
-	t.altitude_sp = alt_sp;
-	t.altitude_sp_filtered = debug_output.altitude_sp_ref;
-	t.height_rate_setpoint = debug_output.control.altitude_rate_control;
-	t.height_rate = -_local_pos.vz;
-	t.equivalent_airspeed_sp = equivalent_airspeed_sp;
-	t.true_airspeed_sp = _eas2tas * equivalent_airspeed_sp;
-	t.true_airspeed_filtered = debug_output.true_airspeed_filtered;
-	t.true_airspeed_derivative_sp = debug_output.control.true_airspeed_derivative_control;
-	t.true_airspeed_derivative = debug_output.true_airspeed_derivative;
-	t.true_airspeed_derivative_raw = true_airspeed_derivative_raw;
-	t.total_energy_rate = debug_output.control.total_energy_rate_estimate;
-	t.total_energy_balance_rate = debug_output.control.energy_balance_rate_estimate;
-	t.total_energy_rate_sp = debug_output.control.total_energy_rate_sp;
-	t.total_energy_balance_rate_sp = debug_output.control.energy_balance_rate_sp;
-	t.throttle_integ = debug_output.control.throttle_integrator;
-	t.pitch_integ = debug_output.control.pitch_integrator;
-	t.throttle_sp = _tecs.get_throttle_setpoint();
-	t.pitch_sp_rad = _tecs.get_pitch_setpoint();
-	t.throttle_trim = throttle_trim;
+	tecs_status.altitude_sp = alt_sp;
+	tecs_status.altitude_sp_filtered = debug_output.altitude_sp_ref;
+	tecs_status.height_rate_setpoint = debug_output.control.altitude_rate_control;
+	tecs_status.height_rate = -_local_pos.vz;
+	tecs_status.equivalent_airspeed_sp = equivalent_airspeed_sp;
+	tecs_status.true_airspeed_sp = _eas2tas * equivalent_airspeed_sp;
+	tecs_status.true_airspeed_filtered = debug_output.true_airspeed_filtered;
+	tecs_status.true_airspeed_derivative_sp = debug_output.control.true_airspeed_derivative_control;
+	tecs_status.true_airspeed_derivative = debug_output.true_airspeed_derivative;
+	tecs_status.true_airspeed_derivative_raw = true_airspeed_derivative_raw;
+	tecs_status.total_energy_rate = debug_output.control.total_energy_rate_estimate;
+	tecs_status.total_energy_balance_rate = debug_output.control.energy_balance_rate_estimate;
+	tecs_status.total_energy_rate_sp = debug_output.control.total_energy_rate_sp;
+	tecs_status.total_energy_balance_rate_sp = debug_output.control.energy_balance_rate_sp;
+	tecs_status.throttle_integ = debug_output.control.throttle_integrator;
+	tecs_status.pitch_integ = debug_output.control.pitch_integrator;
+	tecs_status.throttle_sp = _tecs.get_throttle_setpoint();
+	tecs_status.pitch_sp_rad = _tecs.get_pitch_setpoint();
+	tecs_status.throttle_trim = throttle_trim;
 
-	t.timestamp = hrt_absolute_time();
+	tecs_status.timestamp = hrt_absolute_time();
 
-	_tecs_status_pub.publish(t);
+	_tecs_status_pub.publish(tecs_status);
 }
 
 void
