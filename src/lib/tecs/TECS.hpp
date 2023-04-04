@@ -641,7 +641,7 @@ public:
 				.alt_rate = altitude_rate};
 
 		// reset altitude reference model.
-		_reference_model.initialize(init_state);
+		_altitude_reference_model.initialize(init_state);
 	}
 
 	float get_pitch_setpoint() {return _control.getPitchSetpoint();}
@@ -651,9 +651,9 @@ public:
 	ECL_TECS_MODE tecs_mode() { return _tecs_mode; }
 
 private:
-	TECSControl 		_control;				///< Control submodule.
-	TECSAirspeedFilter 	_airspeed_filter;			///< Airspeed filter submodule.
-	TECSAltitudeReferenceModel 	_reference_model;			///< Setpoint reference model submodule.
+	TECSControl 			_control;			///< Control submodule.
+	TECSAirspeedFilter 		_airspeed_filter;		///< Airspeed filter submodule.
+	TECSAltitudeReferenceModel 	_altitude_reference_model;	///< Setpoint reference model submodule.
 
 	enum ECL_TECS_MODE _tecs_mode {ECL_TECS_MODE_NORMAL};		///< Current activated mode.
 
