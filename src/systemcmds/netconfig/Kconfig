@@ -10,3 +10,33 @@ menuconfig USER_NETCONFIG
 	depends on BOARD_PROTECTED && SYSTEMCMDS_NETCONFIG
 	---help---
 		Put netconfig in userspace memory
+
+if SYSTEMCMDS_NETCONFIG
+
+comment "IPv4 Addresses"
+
+config NETCONFIG_IFNAME
+	string "Target net interface"
+	default "eth0"
+	---help---
+		Set the network interface name for the PX4. Default "eth0"
+
+config NETCONFIG_IPSUBNET
+	hex "Target IP subnet"
+	default 0x00c9a8c0
+	---help---
+		Set the subnet for the PX4. The actual IP is generated from this mask and MAV_SYS_ID. Default 192.168.201.0
+
+config NETCONFIG_DRIPADDR
+	hex "Router IPv4 address"
+	default 0x01c9a8c0
+	---help---
+		Set the subnet mask for the PX4. Default 192.168.201.1
+
+config NETCONFIG_NETMASK
+	hex "Target IP subnet mask"
+	default 0x00ffffff
+	---help---
+		Set the subnet mask for the PX4
+
+endif # SYSTEMCMDS_NETCONFIG

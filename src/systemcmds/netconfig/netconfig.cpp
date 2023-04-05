@@ -51,11 +51,7 @@ int netconfig_main(int argc, char *argv[])
 {
 	struct in_addr addr;
 	int mav_id;
-	const char *ifname = argv[1];
-
-	if (argc != 2) {
-		return PX4_ERROR;
-	}
+	const char ifname[] = CONFIG_NETCONFIG_IFNAME;
 
 	param_get(param_find("MAV_SYS_ID"), &mav_id);
 
@@ -63,9 +59,9 @@ int netconfig_main(int argc, char *argv[])
 		return PX4_ERROR;
 	}
 
-	/* IP: 192.168.201.100 + mav_id */
+	/* IP: CONFIG_NETCONFIG_IPSUBNET + mav_id */
 
-	addr.s_addr = 0x00c9a8c0;
+	addr.s_addr = CONFIG_NETCONFIG_IPSUBNET;
 
 	mav_id += 100;
 
@@ -76,14 +72,14 @@ int netconfig_main(int argc, char *argv[])
 	addr.s_addr |= ((uint32_t)mav_id << 24);
 	netlib_set_ipv4addr(ifname, &addr);
 
-	/* GW: 192.168.201.1 */
+	/* GW */
 
-	addr.s_addr = 0x01c9a8c0;
+	addr.s_addr = CONFIG_NETCONFIG_DRIPADDR;
 	netlib_set_dripv4addr(ifname, &addr);
 
-	/* netmask: 255.255.255.0 */
+	/* netmask */
 
-	addr.s_addr = 0x00ffffff;
+	addr.s_addr = CONFIG_NETCONFIG_NETMASK;
 	netlib_set_ipv4netmask(ifname, &addr);
 
 	netlib_ifup(ifname);
