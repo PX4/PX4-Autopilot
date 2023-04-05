@@ -1,11 +1,11 @@
 /*************************************************************************//**
  * @file
- * @brief    	This file is part of the AFBR-S50 API.
- * @details		Defines the device pixel measurement results data structure.
+ * @brief       This file is part of the AFBR-S50 API.
+ * @details     Defines the device pixel measurement results data structure.
  *
  * @copyright
  *
- * Copyright (c) 2021, Broadcom Inc
+ * Copyright (c) 2023, Broadcom Inc.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,34 +36,40 @@
 
 #ifndef ARGUS_PX_H
 #define ARGUS_PX_H
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*!***************************************************************************
- * @addtogroup 	argusres
+ * @addtogroup  argus_res
  * @{
  *****************************************************************************/
 
+#include "argus_def.h"
+
+
 /*! Maximum amplitude value in UQ12.4 format. */
-#define ARGUS_AMPLITUDE_MAX		(0xFFF0U)
+#define ARGUS_AMPLITUDE_MAX     (0xFFF0U)
 
 /*! Maximum range value in Q9.22 format.
  * Also used as a special value to determine no object detected or infinity range. */
 #define ARGUS_RANGE_MAX (Q9_22_MAX)
 
 /*!***************************************************************************
- * @brief	Status flags for the evaluated pixel structure.
+ * @brief   Status flags for the evaluated pixel structure.
  *
  * @details Determines the pixel status. 0 means OK (#PIXEL_OK).
- * 			- [0]: #PIXEL_OFF: Pixel was disabled and not read from the device.
- * 			- [1]: #PIXEL_SAT: The pixel was saturated.
- * 			- [2]: #PIXEL_BIN_EXCL: The pixel was excluded from the 1D result.
- * 			- [3]: #PIXEL_AMPL_MIN: The pixel amplitude has evaluated to 0.
- * 			- [4]: #PIXEL_PREFILTERED: The was pre-filtered by static mask.
- * 			- [5]: #PIXEL_NO_SIGNAL: The pixel has no valid signal.
- * 			- [6]: #PIXEL_OUT_OF_SYNC: The pixel has lost signal trace.
- * 			- [7]: #PIXEL_STALLED: The pixel value is stalled due to errors.
- * 			.
+ *          - [0]: #PIXEL_OFF: Pixel was disabled and not read from the device.
+ *          - [1]: #PIXEL_SAT: The pixel was saturated.
+ *          - [2]: #PIXEL_BIN_EXCL: The pixel was excluded from the 1D result.
+ *          - [3]: #PIXEL_INVALID: The pixel data is invalid.
+ *          - [4]: #PIXEL_PREFILTERED: The was pre-filtered by static mask.
+ *          - [5]: #PIXEL_NO_SIGNAL: The pixel has no valid signal.
+ *          - [6]: #PIXEL_OUT_OF_SYNC: The pixel has lost signal trace.
+ *          - [7]: #PIXEL_STALLED: The pixel value is stalled due to errors.
+ *          .
  *****************************************************************************/
-typedef enum {
+typedef enum argus_px_status_t {
 	/*! 0x00: Pixel status OK. */
 	PIXEL_OK = 0,
 
@@ -77,43 +83,45 @@ typedef enum {
 	/*! 0x04: Pixel is excluded from the pixel binning (1d) result. */
 	PIXEL_BIN_EXCL = 1U << 2U,
 
-	/*! 0x08: Pixel amplitude minimum underrun
-	 *        (i.e. the amplitude calculation yields 0). */
-	PIXEL_AMPL_MIN = 1U << 3U,
+	/*! 0x08: Pixel has invalid data due to miscellaneous reasons, e.g.
+	 *        - Amplitude calculates to 0 (i.e. division by 0)
+	 *        - Golden Pixel is invalid due to other saturated pixel.
+	 *        - Range/distance is negative. */
+	PIXEL_INVALID = 1U << 3U,
 
 	/*! 0x10: Pixel is pre-filtered by the static pixel binning pre-filter mask,
-	 * 	      i.e. the pixel is disabled by software. */
+	 *        i.e. the pixel is disabled by software. */
 	PIXEL_PREFILTERED = 1U << 4U,
 
 	/*! 0x20: Pixel amplitude is below its threshold value. The received signal
-	 *  	  strength is too low to evaluate a valid signal. The range value is
-	 *  	  set to the maximum possible value (approx. 512 m). */
+	 *        strength is too low to evaluate a valid signal. The range value is
+	 *        set to the maximum possible value (approx. 512 m). */
 	PIXEL_NO_SIGNAL = 1U << 5U,
 
 	/*! 0x40: Pixel is not in sync with respect to the dual frequency algorithm.
-	 * 		  I.e. the pixel may have a correct value but is estimated into the
-	 * 		  wrong unambiguous window. */
+	 *        I.e. the pixel may have a correct value but is estimated into the
+	 *        wrong unambiguous window. */
 	PIXEL_OUT_OF_SYNC = 1U << 6U,
 
 	/*! 0x80: Pixel is stalled due to one of the following reasons:
-	 * 		  - #PIXEL_SAT
-	 * 		  - #PIXEL_AMPL_MIN
-	 * 		  - #PIXEL_OUT_OF_SYNC
-	 * 		  - Global Measurement Error
-	 * 		  .
-	 * 		  A stalled pixel does not update its measurement data and keeps the
-	 * 		  previous values. If the issue is resolved, the stall disappears and
-	 * 		  the pixel is updating again. */
+	 *        - #PIXEL_SAT
+	 *        - #PIXEL_INVALID
+	 *        - #PIXEL_OUT_OF_SYNC
+	 *        - Global Measurement Error
+	 *        .
+	 *        A stalled pixel does not update its measurement data and keeps the
+	 *        previous values. If the issue is resolved, the stall disappears and
+	 *        the pixel is updating again. */
 	PIXEL_STALLED = 1U << 7U
 
 } argus_px_status_t;
 
 /*!***************************************************************************
- * @brief	The evaluated measurement results per pixel.
- * @details	This structure contains the evaluated data for a single pixel.\n
- * 			If the amplitude is 0, the pixel is turned off or has invalid data.
+ * @brief   The evaluated measurement results per pixel.
+ * @details This structure contains the evaluated data for a single pixel.\n
+ *          If the amplitude is 0, the pixel is turned off or has invalid data.
  *****************************************************************************/
-typedef struct {
+typedef struct argus_pixel_t {
 	/*! Range Values from the device in meter. It is the actual distance before
 	 *  software adjustments/calibrations. */
 	q9_22_t Range;
@@ -141,14 +149,23 @@ typedef struct {
 /*!***************************************************************************
  * @brief Representation of a correlation vector containing sine/cosine components.
  *****************************************************************************/
-typedef struct {
-	/*! The sine component. */
-	q15_16_t S;
+typedef struct argus_vector_t {
+	union {
+		/*! The sine [0] and cosine [1] components. */
+		q15_16_t SC[2];
 
-	/*! The cosine component. */
-	q15_16_t C;
+		struct {
+			/*! The sine component. */
+			q15_16_t S;
 
+			/*! The cosine component. */
+			q15_16_t C;
+		};
+	};
 } argus_vector_t;
 
 /*! @} */
+#ifdef __cplusplus
+} // extern "C"
+#endif
 #endif /* ARGUS_PX_H */

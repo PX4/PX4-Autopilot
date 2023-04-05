@@ -1,7 +1,7 @@
 /*************************************************************************//**
  * @file
  * @brief       This file is part of the AFBR-S50 API.
- * @details     Defines the Shot Noise Monitor (SNM) setup parameters.
+ * @details     This file provides an exponential function for fixed point type.
  *
  * @copyright
  *
@@ -34,55 +34,36 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
 
-#ifndef ARGUS_SNM_H
-#define ARGUS_SNM_H
+#ifndef FP_EXP_H
+#define FP_EXP_H
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /*!***************************************************************************
- * @defgroup    argus_snm Shot Noise Monitor
- * @ingroup     argus_api
- *
- * @brief       Shot Noise Monitor (SNM) parameter definitions and API functions.
- *
- * @details     The SNM is an algorithm to monitor and react on shot noise
- *              induced by harsh environment conditions like high ambient
- *              light.
- *
- *              The AFBR-S50 API provides three modes:
- *              - Dynamic: Automatic mode, automatically adopts to current
- *                         ambient conditions.
- *              - Static (Outdoor): Static mode, optimized for outdoor applications.
- *              - Static (Indoor): Static mode, optimized for indoor applications.
- *              .
- *
- * @addtogroup  argus_snm
+ * @addtogroup  argus_fp
  * @{
  *****************************************************************************/
 
-/*! The Shot Noise Monitor modes enumeration. */
-typedef enum argus_snm_mode_t {
-	/*! Static Shot Noise Monitoring Mode, optimized for indoor applications.
-	 *  Assumes the best case scenario, i.e. no bad influence from ambient conditions.
-	 *  Thus it uses a fixed setting that will result in the best performance.
-	 *  Equivalent to Shot Noise Monitoring disabled. */
-	SNM_MODE_STATIC_INDOOR = 0U,
+#include "fp_def.h"
 
-	/*! Static Shot Noise Monitoring Mode, optimized for outdoor applications.
-	 *  Assumes the worst case scenario, i.e. it uses a fixed setting that will
-	 *  work under all ambient conditions. */
-	SNM_MODE_STATIC_OUTDOOR = 1U,
-
-	/*! Dynamic Shot Noise Monitoring Mode.
-	 *  Adopts the system performance dynamically to the current ambient conditions. */
-	SNM_MODE_DYNAMIC = 2U,
-
-} argus_snm_mode_t;
-
+/*!***************************************************************************
+ * @brief   Calculates the exponential of an fixed point number Q15.16 format.
+ *
+ * @details Calculates y = exp(x) in fixed point representation.
+ *
+ *          Note that the result might not be 100 % accurate and might contain
+ *          a small error!
+ *
+ *          @see https://www.quinapalus.com/efunc.html
+ *
+ * @param   x The input parameter in unsigned fixed point format Q15.16.
+ * @return  Result y = exp(x) in the UQ16.16 format.
+ *****************************************************************************/
+uq16_16_t fp_exp16(q15_16_t x);
 
 /*! @} */
 #ifdef __cplusplus
 } // extern "C"
 #endif
-#endif /* ARGUS_SNM_H */
+#endif /* FP_DIV_H */
