@@ -406,17 +406,6 @@ else
 	fi
 
 	#
-	# Optional board mavlink streams: rc.board_mavlink
-	#
-	set BOARD_RC_MAVLINK ${R}etc/init.d/rc.board_mavlink
-	if [ -f $BOARD_RC_MAVLINK ]
-	then
-		echo "Board mavlink: ${BOARD_RC_MAVLINK}"
-		. $BOARD_RC_MAVLINK
-	fi
-	unset BOARD_RC_MAVLINK
-
-	#
 	# Start UART/Serial device drivers.
 	# Note: rc.serial is auto-generated from Tools/serial/generate_config.py
 	#
@@ -542,6 +531,17 @@ else
 # End of autostart.
 #
 fi
+
+#
+# Optional board mavlink streams: rc.board_mavlink
+#
+set BOARD_RC_MAVLINK ${R}etc/init.d/rc.board_mavlink
+if [ -f $BOARD_RC_MAVLINK ]
+then
+	echo "Board mavlink: ${BOARD_RC_MAVLINK}"
+	. $BOARD_RC_MAVLINK
+fi
+unset BOARD_RC_MAVLINK
 
 #
 # Unset all script parameters to free RAM.
