@@ -544,19 +544,6 @@ else
 fi
 
 #
-# Start RPTUN
-# This is intentionally the last process to start as this may wait a while.
-#
-
-if [ -d "/dev/rptun" ]
-then
-	echo "Starting RPTUN"
-	rptun start /dev/rptun/mpfs-ihc
-else
-	echo "No RPTUN device available"
-fi
-
-#
 # Unset all script parameters to free RAM.
 #
 unset R
