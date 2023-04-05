@@ -267,8 +267,6 @@ private:
 
 	bool _need_takeoff{true};					/**< if true, then takeoff must be performed before going to the first waypoint (if needed) */
 
-	hrt_abstime _time_mission_deactivated{0};
-
 	enum {
 		MISSION_TYPE_NONE,
 		MISSION_TYPE_MISSION
