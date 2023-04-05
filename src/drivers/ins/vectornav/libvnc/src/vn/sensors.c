@@ -9,7 +9,7 @@
 
 #include "vn/xplat/time.h"
 
-#define UNUSED(x) (void)(sizeof(x))
+//#define UNUSED(x) (void)(sizeof(x))
 
 #define DEFAULT_RESPONSE_TIMEOUT_MS	500
 #define DEFAULT_RETRANSMIT_DELAY_MS	200
