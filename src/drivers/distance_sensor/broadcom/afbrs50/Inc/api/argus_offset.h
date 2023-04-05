@@ -1,7 +1,7 @@
 /*************************************************************************//**
  * @file
- * @brief       This file is part of the AFBR-S50 API.
- * @details     Defines the Shot Noise Monitor (SNM) setup parameters.
+ * @brief       This file is part of the AFBR-S50 hardware API.
+ * @details     Defines the generic device calibration API.
  *
  * @copyright
  *
@@ -34,55 +34,26 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *****************************************************************************/
 
-#ifndef ARGUS_SNM_H
-#define ARGUS_SNM_H
-#ifdef __cplusplus
-extern "C" {
-#endif
+#ifndef ARGUS_OFFSET_H
+#define ARGUS_OFFSET_H
 
 /*!***************************************************************************
- * @defgroup    argus_snm Shot Noise Monitor
- * @ingroup     argus_api
- *
- * @brief       Shot Noise Monitor (SNM) parameter definitions and API functions.
- *
- * @details     The SNM is an algorithm to monitor and react on shot noise
- *              induced by harsh environment conditions like high ambient
- *              light.
- *
- *              The AFBR-S50 API provides three modes:
- *              - Dynamic: Automatic mode, automatically adopts to current
- *                         ambient conditions.
- *              - Static (Outdoor): Static mode, optimized for outdoor applications.
- *              - Static (Indoor): Static mode, optimized for indoor applications.
- *              .
- *
- * @addtogroup  argus_snm
+ * @addtogroup  argus_cal
  * @{
  *****************************************************************************/
 
-/*! The Shot Noise Monitor modes enumeration. */
-typedef enum argus_snm_mode_t {
-	/*! Static Shot Noise Monitoring Mode, optimized for indoor applications.
-	 *  Assumes the best case scenario, i.e. no bad influence from ambient conditions.
-	 *  Thus it uses a fixed setting that will result in the best performance.
-	 *  Equivalent to Shot Noise Monitoring disabled. */
-	SNM_MODE_STATIC_INDOOR = 0U,
+#include "argus_def.h"
 
-	/*! Static Shot Noise Monitoring Mode, optimized for outdoor applications.
-	 *  Assumes the worst case scenario, i.e. it uses a fixed setting that will
-	 *  work under all ambient conditions. */
-	SNM_MODE_STATIC_OUTDOOR = 1U,
+/*!***************************************************************************
+ * @brief   Pixel Range Offset Table.
+ * @details Contains pixel range offset values for all 32 active pixels.
+ *****************************************************************************/
+typedef struct argus_cal_offset_table_t {
+	/*! The offset values per pixel in meter and Q0.15 format. */
+	q0_15_t Table[ARGUS_PIXELS_X][ARGUS_PIXELS_Y];
 
-	/*! Dynamic Shot Noise Monitoring Mode.
-	 *  Adopts the system performance dynamically to the current ambient conditions. */
-	SNM_MODE_DYNAMIC = 2U,
-
-} argus_snm_mode_t;
+} argus_cal_offset_table_t;
 
 
 /*! @} */
-#ifdef __cplusplus
-} // extern "C"
-#endif
-#endif /* ARGUS_SNM_H */
+#endif /* ARGUS_OFFSET_T */
