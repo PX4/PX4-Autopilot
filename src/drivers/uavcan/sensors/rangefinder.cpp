@@ -108,14 +108,13 @@ void UavcanRangefinderBridge::range_sub_cb(const
 		_inited = true;
 	}
 
-	/*
-	 * FIXME HACK
-	 * This code used to rely on msg.getMonotonicTimestamp().toUSec() instead of HRT.
-	 * It stopped working when the time sync feature has been introduced, because it caused libuavcan
-	 * to use an independent time source (based on hardware TIM5) instead of HRT.
-	 * The proper solution is to be developed.
-	 */
-	rangefinder->update(hrt_absolute_time(), msg.range);
+	int8_t quality = -1;
+
+	if (msg.reading_type == uavcan::equipment::range_sensor::Measurement::READING_TYPE_VALID_RANGE) {
+		quality = 100;
+	}
+
+	rangefinder->update(hrt_absolute_time(), msg.range, quality);
 }
 
 int UavcanRangefinderBridge::init_driver(uavcan_bridge::Channel *channel)
