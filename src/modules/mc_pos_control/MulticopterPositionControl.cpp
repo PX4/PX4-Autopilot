@@ -249,7 +249,7 @@ void MulticopterPositionControl::parameters_update(bool force)
 		}
 
 		if (!_param_mpc_use_hte.get() || !_hover_thrust_initialized) {
-			_control.setHoverThrust(_param_mpc_thr_hover.get());
+			_control.setHoverThrust(_param_mpc_thr_hover.get(), false);
 			_hover_thrust_initialized = true;
 		}
 
@@ -363,7 +363,7 @@ void MulticopterPositionControl::Run()
 
 			if (_hover_thrust_estimate_sub.update(&hte)) {
 				if (hte.valid) {
-					_control.updateHoverThrust(hte.hover_thrust);
+					_control.setHoverThrust(hte.hover_thrust, true);
 				}
 			}
 		}
@@ -476,7 +476,7 @@ void MulticopterPositionControl::Run()
 			const bool flying_but_ground_contact = (flying && _vehicle_land_detected.ground_contact);
 
 			if (!flying) {
-				_control.setHoverThrust(_param_mpc_thr_hover.get());
+				_control.setHoverThrust(_param_mpc_thr_hover.get(), false);
 			}
 
 			// make sure takeoff ramp is not amended by acceleration feed-forward

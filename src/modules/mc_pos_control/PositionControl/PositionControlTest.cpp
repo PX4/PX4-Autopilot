@@ -77,7 +77,7 @@ public:
 		_position_control.setThrustLimits(0.1f, MAXIMUM_THRUST);
 		_position_control.setHorizontalThrustMargin(HORIZONTAL_THRUST_MARGIN);
 		_position_control.setTiltLimit(1.f);
-		_position_control.setHoverThrust(.5f);
+		_position_control.setHoverThrust(.5f, false);
 	}
 
 	bool runController()
@@ -339,11 +339,11 @@ TEST_F(PositionControlBasicTest, InvalidState)
 }
 
 
-TEST_F(PositionControlBasicTest, UpdateHoverThrust)
+TEST_F(PositionControlBasicTest, setHoverThrust)
 {
 	// GIVEN: some hover thrust and 0 velocity change
 	const float hover_thrust = 0.6f;
-	_position_control.setHoverThrust(hover_thrust);
+	_position_control.setHoverThrust(hover_thrust, false);
 
 	Vector3f(0.f, 0.f, 0.f).copyTo(_input_setpoint.velocity);
 
@@ -355,7 +355,7 @@ TEST_F(PositionControlBasicTest, UpdateHoverThrust)
 
 	// HOWEVER WHEN: we set a new hover thrust through the update function
 	const float hover_thrust_new = 0.7f;
-	_position_control.updateHoverThrust(hover_thrust_new);
+	_position_control.setHoverThrust(hover_thrust_new, true);
 	EXPECT_TRUE(runController());
 
 	// THEN: the integral is updated to avoid discontinuities and
