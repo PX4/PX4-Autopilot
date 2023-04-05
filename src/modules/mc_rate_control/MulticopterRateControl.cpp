@@ -222,6 +222,7 @@ MulticopterRateControl::Run()
 				if (!_takeoff_time_set && _thrust_setpoint(2) < -0.2f) {
 					_takeoff_time_set = true;
 					_takeoff_time = hrt_absolute_time();
+
 				} else if (_takeoff_time_set) {
 					float rel_time_now = (float)(hrt_absolute_time() - _takeoff_time) / 1.e6f;
 
@@ -243,8 +244,10 @@ MulticopterRateControl::Run()
 
 								if (_param_mc_inject_rpy.get() == 0) {
 									att_control(0) += injection;
+
 								} else if (_param_mc_inject_rpy.get() == 1) {
 									att_control(1) += injection;
+
 								} else if (_param_mc_inject_rpy.get() == 2) {
 									att_control(2) += injection;
 								}
@@ -253,6 +256,7 @@ MulticopterRateControl::Run()
 					}
 				}
 			}
+
 			// END addition of sine injection
 
 			// publish rate controller status
@@ -288,15 +292,9 @@ MulticopterRateControl::Run()
 				}
 			}
 
-<<<<<<< HEAD
 			vehicle_thrust_setpoint.timestamp_sample = angular_velocity.timestamp_sample;
 			vehicle_thrust_setpoint.timestamp = hrt_absolute_time();
 			_vehicle_thrust_setpoint_pub.publish(vehicle_thrust_setpoint);
-=======
-
-			actuators.timestamp = hrt_absolute_time();
-			_actuator_controls_0_pub.publish(actuators);
->>>>>>> ba69569534... add system id - adding sine injection on roll, pitch, or yaw
 
 			vehicle_torque_setpoint.timestamp_sample = angular_velocity.timestamp_sample;
 			vehicle_torque_setpoint.timestamp = hrt_absolute_time();
