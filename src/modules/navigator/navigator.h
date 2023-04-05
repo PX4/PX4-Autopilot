@@ -259,10 +259,6 @@ public:
 
 	void set_mission_failure_heading_timeout();
 
-	void setMissionLandingInProgress(bool in_progress) { _mission_landing_in_progress = in_progress; }
-
-	bool getMissionLandingInProgress() { return _mission_landing_in_progress; }
-
 	bool is_planned_mission() const { return _navigation_mode == &_mission; }
 
 	bool on_mission_landing() { return _mission.landing(); }
@@ -348,7 +344,7 @@ private:
 	vehicle_local_position_s			_local_pos{};		/**< local vehicle position */
 	vehicle_status_s				_vstatus{};		/**< vehicle status */
 
-	uint8_t						_previous_nav_state{}; /**< nav_state of the previous iteration*/
+	bool						_rtl_activated{false};
 
 	// Publications
 	geofence_result_s				_geofence_result{};
@@ -392,9 +388,6 @@ private:
 	float _mission_cruising_speed_mc{-1.0f};
 	float _mission_cruising_speed_fw{-1.0f};
 	float _mission_throttle{NAN};
-
-	bool _mission_landing_in_progress{false};	/**< this flag gets set if the mission is currently executing on a landing pattern
-							 * if mission mode is inactive, this flag will be cleared after 2 seconds */
 
 	traffic_buffer_s _traffic_buffer{};
 

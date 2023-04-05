@@ -152,7 +152,7 @@ void RTL::find_RTL_destination()
 		double dist_squared = coord_dist_sq(dlat, dlon);
 
 		// always find closest destination if in hover and VTOL
-		if (_param_rtl_type.get() == RTL_TYPE_CLOSEST || (vtol_in_rw_mode && !_navigator->getMissionLandingInProgress())) {
+		if (_param_rtl_type.get() == RTL_TYPE_CLOSEST || (vtol_in_rw_mode && !_navigator->on_mission_landing())) {
 
 			// compare home position to landing position to decide which is closer
 			if (dist_squared < min_dist_squared) {
@@ -281,12 +281,6 @@ void RTL::on_activation()
 	if (_navigator->get_land_detected()->landed) {
 		// For safety reasons don't go into RTL if landed.
 		_rtl_state = RTL_STATE_LANDED;
-
-	} else if ((_destination.type == RTL_DESTINATION_MISSION_LANDING) && _navigator->getMissionLandingInProgress()) {
-		// we were just on a mission landing, set _rtl_state past RTL_STATE_LOITER such that navigator will engage mission mode,
-		// which will continue executing the landing
-		_rtl_state = RTL_STATE_LAND;
-
 
 	} else if ((global_position.alt < _destination.alt + _param_rtl_return_alt.get()) || _rtl_alt_min) {
 
