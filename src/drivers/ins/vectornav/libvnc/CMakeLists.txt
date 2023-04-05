@@ -56,7 +56,6 @@ add_library(libvnc ${SOURCES})
 add_dependencies(libvnc prebuild_targets)
 target_compile_options(libvnc
         PRIVATE
-                -Wno-error
                 -Wno-double-promotion
                 -Wno-pointer-sign
                 -Wno-cast-align
