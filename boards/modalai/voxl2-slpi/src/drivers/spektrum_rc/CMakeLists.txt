@@ -32,10 +32,13 @@
 ############################################################################
 
 px4_add_module(
-	MODULE drivers__snapdragon_spektrum_rc
+	MODULE drivers__spektrum_rc
 	MAIN spektrum_rc
+	INCLUDES
+		${PX4_SOURCE_DIR}/src/drivers/rc_input
 	SRCS
 		spektrum_rc.cpp
 	DEPENDS
 		rc
 	)
+
