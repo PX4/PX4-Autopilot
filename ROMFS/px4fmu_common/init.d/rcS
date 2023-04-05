@@ -552,7 +552,7 @@ if [ -d "/dev/rptun" ]
 then
 	echo "Starting RPTUN"
 	rptun start /dev/rptun/mpfs-ihc
-	ifconfig rpnet 192.168.201.101
+	ifconfig rpnet 192.168.200.101
 	ifup rpnet
 else
 	echo "No RPTUN device available"
