@@ -122,15 +122,11 @@ public:
 	/**
 	 * Set the normalized hover thrust
 	 * @param hover_thrust [kHoverThrustMin, kHoverThrustMax] with which the vehicle hovers not accelerating down or up with level orientation
+	 * @param adjust_vel_int If true, update the hover thrust without immediately affecting the output
+	 * 				by adjusting the integrator. This prevents propagating the dynamics
+	 * 				of the hover thrust signal directly to the output of the controller.
 	 */
-	void setHoverThrust(const float hover_thrust) { _hover_thrust = _constrainHoverThrust(hover_thrust); }
-
-	/**
-	 * Update the hover thrust without immediately affecting the output
-	 * by adjusting the integrator. This prevents propagating the dynamics
-	 * of the hover thrust signal directly to the output of the controller.
-	 */
-	void updateHoverThrust(const float hover_thrust_new);
+	void setHoverThrust(const float hover_thrust, bool adjust_vel_int);
 
 	/**
 	 * Pass the current vehicle state to the controller

@@ -70,23 +70,26 @@ void PositionControl::setHorizontalThrustMargin(const float margin)
 	_lim_thr_xy_margin = margin;
 }
 
-void PositionControl::updateHoverThrust(const float hover_thrust_new)
+void PositionControl::setHoverThrust(const float hover_thrust, bool adjust_vel_int)
 {
-	// Given that the equation for thrust is T = a_sp * Th / g - Th
-	// with a_sp = desired acceleration, Th = hover thrust and g = gravity constant,
-	// we want to find the acceleration that needs to be added to the integrator in order obtain
-	// the same thrust after replacing the current hover thrust by the new one.
-	// T' = T => a_sp' * Th' / g - Th' = a_sp * Th / g - Th
-	// so a_sp' = (a_sp - g) * Th / Th' + g
-	// we can then add a_sp' - a_sp to the current integrator to absorb the effect of changing Th by Th'
-	// hover_thrust_new:  needs to be constrained to match the constraint in setHoverThrust()
-	_vel_int(2) += (_acc_sp(2) - CONSTANTS_ONE_G) * _hover_thrust / _constrainHoverThrust(hover_thrust_new)
-		       + CONSTANTS_ONE_G - _acc_sp(2);
+	const float hover_thrust_new = math::constrain(hover_thrust, kHoverThrustMin, kHoverThrustMax);
 
-	// limit thrust integral
-	_constrainVelIntegral_Z();
+	if (adjust_vel_int) {
+		// Given that the equation for thrust is T = a_sp * Th / g - Th
+		// with a_sp = desired acceleration, Th = hover thrust and g = gravity constant,
+		// we want to find the acceleration that needs to be added to the integrator in order obtain
+		// the same thrust after replacing the current hover thrust by the new one.
+		// T' = T => a_sp' * Th' / g - Th' = a_sp * Th / g - Th
+		// so a_sp' = (a_sp - g) * Th / Th' + g
+		// we can then add a_sp' - a_sp to the current integrator to absorb the effect of changing Th by Th'
+		_vel_int(2) += (_acc_sp(2) - CONSTANTS_ONE_G) * _hover_thrust / hover_thrust_new
+			       + CONSTANTS_ONE_G - _acc_sp(2);
 
-	setHoverThrust(hover_thrust_new);
+		// limit thrust integral
+		_constrainVelIntegral_Z();
+	}
+
+	_hover_thrust = hover_thrust_new;
 }
 
 void PositionControl::setState(const PositionControlStates &states)
@@ -209,11 +212,6 @@ void PositionControl::_accelerationControl()
 	collective_thrust /= (Vector3f(0, 0, 1).dot(body_z));
 	collective_thrust = math::min(collective_thrust, -_lim_thr_min);
 	_thr_sp = body_z * collective_thrust;
-}
-
-float PositionControl::_constrainHoverThrust(float hover_thrust)
-{
-	return math::constrain(hover_thrust, kHoverThrustMin, kHoverThrustMax);
 }
 
 void PositionControl::_constrainVelIntegral_Z()

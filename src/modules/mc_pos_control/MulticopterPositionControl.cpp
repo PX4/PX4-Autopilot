@@ -227,7 +227,7 @@ void MulticopterPositionControl::parameters_update(bool force)
 		}
 
 		if (!_param_mpc_use_hte.get() || !_hover_thrust_initialized) {
-			_control.setHoverThrust(_param_mpc_thr_hover.get());
+			_control.setHoverThrust(_param_mpc_thr_hover.get(), false);
 			_hover_thrust_initialized = true;
 		}
 
@@ -329,7 +329,7 @@ void MulticopterPositionControl::Run()
 
 			if (_hover_thrust_estimate_sub.update(&hte)) {
 				if (hte.valid) {
-					_control.updateHoverThrust(hte.hover_thrust);
+					_control.setHoverThrust(hte.hover_thrust, true);
 				}
 			}
 		}
@@ -415,7 +415,7 @@ void MulticopterPositionControl::Run()
 				if (!flying) {
 					_setpoint.acceleration[2] = NAN;
 					// hover_thrust maybe reset on takeoff
-					_control.setHoverThrust(_param_mpc_thr_hover.get());
+					_control.setHoverThrust(_param_mpc_thr_hover.get(), false);
 				}
 
 				const bool not_taken_off             = (_takeoff.getTakeoffState() < TakeoffState::rampup);
