@@ -9,276 +9,22 @@ on:
   workflow_dispatch:
 
 jobs:
-  pixhawk:
-    name: build pixhawk
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout px4-firmware
-        uses: actions/checkout@v3
-        with:
-          path: px4-firmware
-          fetch-depth: 0
-      - name: Run px4-firmware pixhawk build
-        run: |
-          set -eux
-          mkdir -p bin
-          cd px4-firmware/
-          ./clone_public.sh
-          ./build.sh ../bin/ pixhawk
-          ls ../bin
-      - name: Upload pixhawk
-        uses: actions/upload-artifact@v3
-        with:
-          name: pixhawk
-          path: bin/
-          retention-days: 1
-
-  # NOTE: private repo is needed for this build, which is not available for forked PRs
-  saluki-v1_default:
-    name: build saluki-v1_default
-    runs-on: ubuntu-latest
-    if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-    steps:
-      - name: Checkout px4-firmware
-        uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.GH_REPO_TOKEN }}
-          submodules: recursive
-          path: px4-firmware
-          fetch-depth: 0
-      - name: Run px4-firmware saluki-v1_default build
-        run: |
-          set -eux
-          mkdir -p bin
-          cd px4-firmware/
-          ./build.sh ../bin/ saluki-v1_default
-          ls ../bin
-      - name: Upload saluki-v1_default
-        uses: actions/upload-artifact@v3
-        with:
-          name: pixhawk
-          path: bin/
-          retention-days: 1
-
-  saluki-v1_bootloader:
-    name: build saluki-v1_bootloader
-    runs-on: ubuntu-latest
-    if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-    steps:
-      - name: Checkout px4-firmware
-        uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.GH_REPO_TOKEN }}
-          submodules: recursive
-          path: px4-firmware
-          fetch-depth: 0
-      - name: Run px4-firmware saluki-v1_bootloader build
-        run: |
-          set -eux
-          mkdir -p bin
-          cd px4-firmware/
-          ./build.sh ../bin/ saluki-v1_bootloader
-          ls ../bin
-      - name: Upload saluki-v1_bootloader
-        uses: actions/upload-artifact@v3
-        with:
-          name: pixhawk
-          path: bin/
-          retention-days: 1
-
-  saluki-v1_amp:
-    name: build saluki-v1_amp
-    runs-on: ubuntu-latest
-    if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-    steps:
-      - name: Checkout px4-firmware
-        uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.GH_REPO_TOKEN }}
-          submodules: recursive
-          path: px4-firmware
-          fetch-depth: 0
-      - name: Run px4-firmware saluki-v1_amp build
-        run: |
-          set -eux
-          mkdir -p bin
-          cd px4-firmware/
-          ./build.sh ../bin/ saluki-v1_amp
-          ls ../bin
-      - name: Upload saluki-v1_amp
-        uses: actions/upload-artifact@v3
-        with:
-          name: pixhawk
-          path: bin/
-          retention-days: 1
-
-  saluki-v1_protected:
-    name: build saluki-v1_protected
-    runs-on: ubuntu-latest
-    if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-    steps:
-      - name: Checkout px4-firmware
-        uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.GH_REPO_TOKEN }}
-          submodules: recursive
-          path: px4-firmware
-          fetch-depth: 0
-      - name: Run px4-firmware saluki-v1_protected build
-        run: |
-          set -eux
-          mkdir -p bin
-          cd px4-firmware/
-          ./build.sh ../bin/ saluki-v1_protected
-          ls ../bin
-      - name: Upload saluki-v1_protected
-        uses: actions/upload-artifact@v3
-        with:
-          name: pixhawk
-          path: bin/
-          retention-days: 1
-
-  saluki-v2_default:
-    name: build saluki-v2_default
-    runs-on: ubuntu-latest
-    if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-    steps:
-      - name: Checkout px4-firmware
-        uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.GH_REPO_TOKEN }}
-          submodules: recursive
-          path: px4-firmware
-          fetch-depth: 0
-      - name: Checkout PF Athena crypto driver
-        uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.GH_REPO_TOKEN }}
-          repository: tiiuae/pf_crypto
-          path: px4-firmware/platforms/nuttx/NuttX/nuttx/arch/risc-v/src/mpfs/crypto
-      - name: Run px4-firmware saluki-v2_default build
-        run: |
-          set -eux
-          mkdir -p bin
-          cd px4-firmware/
-          ./build.sh ../bin/ saluki-v2_default
-          ls ../bin
-      - name: Upload saluki-v2_default
-        uses: actions/upload-artifact@v3
-        with:
-          name: pixhawk
-          path: bin/
-          retention-days: 1
-
-  saluki-v2_bootloader:
-    name: build saluki-v2_bootloader
-    runs-on: ubuntu-latest
-    if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-    steps:
-      - name: Checkout px4-firmware
-        uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.GH_REPO_TOKEN }}
-          submodules: recursive
-          path: px4-firmware
-          fetch-depth: 0
-      - name: Checkout PF Athena crypto driver
-        uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.GH_REPO_TOKEN }}
-          repository: tiiuae/pf_crypto
-          path: px4-firmware/platforms/nuttx/NuttX/nuttx/arch/risc-v/src/mpfs/crypto
-      - name: Run px4-firmware saluki-v2_bootloader build
-        run: |
-          set -eux
-          mkdir -p bin
-          cd px4-firmware/
-          ./build.sh ../bin/ saluki-v2_bootloader
-          ls ../bin
-      - name: Upload saluki-v2_bootloader
-        uses: actions/upload-artifact@v3
-        with:
-          name: pixhawk
-          path: bin/
-          retention-days: 1
-
-  saluki-v2_amp:
-    name: build saluki-v2_amp
-    runs-on: ubuntu-latest
-    if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-    steps:
-      - name: Checkout px4-firmware
-        uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.GH_REPO_TOKEN }}
-          submodules: recursive
-          path: px4-firmware
-          fetch-depth: 0
-      - name: Checkout PF Athena crypto driver
-        uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.GH_REPO_TOKEN }}
-          repository: tiiuae/pf_crypto
-          path: px4-firmware/platforms/nuttx/NuttX/nuttx/arch/risc-v/src/mpfs/crypto
-      - name: Run px4-firmware saluki-v2_amp build
-        run: |
-          set -eux
-          mkdir -p bin
-          cd px4-firmware/
-          ./build.sh ../bin/ saluki-v2_amp
-          ls ../bin
-      - name: Upload saluki-v2_amp
-        uses: actions/upload-artifact@v3
-        with:
-          name: pixhawk
-          path: bin/
-          retention-days: 1
-
-  saluki-v2_protected:
-    name: build saluki-v2_protected
-    runs-on: ubuntu-latest
-    if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-    steps:
-      - name: Checkout px4-firmware
-        uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.GH_REPO_TOKEN }}
-          submodules: recursive
-          path: px4-firmware
-          fetch-depth: 0
-      - name: Checkout PF Athena crypto driver
-        uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.GH_REPO_TOKEN }}
-          repository: tiiuae/pf_crypto
-          path: px4-firmware/platforms/nuttx/NuttX/nuttx/arch/risc-v/src/mpfs/crypto
-      - name: Run px4-firmware saluki-v2_protected build
-        run: |
-          set -eux
-          mkdir -p bin
-          cd px4-firmware/
-          ./build.sh ../bin/ saluki-v2_protected
-          ls ../bin
-      - name: Upload saluki-v2_protected
-        uses: actions/upload-artifact@v3
-        with:
-          name: pixhawk
-          path: bin/
-          retention-days: 1
+  fc_matrix:
+    strategy:
+      matrix:
+        product: [pixhawk, saluki-v1_default, saluki-v1_bootloader, saluki-v1_amp, saluki-v1_protected, saluki-v2_default, saluki-v2_bootloader, saluki-v2_amp, saluki-v2_protected]
+    uses: ./.github/workflows/tiiuae-pixhawk-and-saluki-builder.yaml
+    with:
+      product: ${{ matrix.product }}
+      # old workflow had condition to run only if PR is done to current repo (or triggered with other event)
+      enabled: ${{ github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
+    secrets: inherit
 
   px4fwupdater:
     name: build px4fwupdater
     runs-on: ubuntu-latest
     needs:
-      - pixhawk
-      - saluki-v1_default
-      - saluki-v1_bootloader
-      - saluki-v1_amp
-      - saluki-v1_protected
-      - saluki-v2_default
-      - saluki-v2_bootloader
-      - saluki-v2_amp
-      - saluki-v2_protected
+      - fc_matrix
     steps:
       - name: Checkout px4-firmware
         uses: actions/checkout@v3
@@ -392,16 +138,8 @@ jobs:
     name: upload builds to artifactory
     runs-on: ubuntu-latest
     needs:
-      - pixhawk
-      - saluki-v1_default
-      - saluki-v1_bootloader
-      - saluki-v1_amp
-      - saluki-v1_protected
-      - saluki-v2_default
-      - saluki-v2_bootloader
-      - saluki-v2_amp
-      - saluki-v2_protected
       - px4fwupdater
+      - fc_matrix
     if: true
     steps:
       - name: Download pixhawk artifacts
@@ -462,16 +200,8 @@ jobs:
     name: upload builds to UAE artifactory
     runs-on: ubuntu-latest
     needs:
-      - pixhawk
-      - saluki-v1_default
-      - saluki-v1_bootloader
-      - saluki-v1_amp
-      - saluki-v1_protected
-      - saluki-v2_default
-      - saluki-v2_bootloader
-      - saluki-v2_amp
-      - saluki-v2_protected
       - px4fwupdater
+      - fc_matrix
     if: true
     steps:
       - name: Download pixhawk artifacts
