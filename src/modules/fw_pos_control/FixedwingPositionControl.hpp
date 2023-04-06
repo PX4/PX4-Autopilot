@@ -33,9 +33,8 @@
 
 
 /**
- * @file fw_path_navigation_main.hpp
- * Implementation of a generic path navigation. Outputs a bank / roll
- * angle, equivalent to a lateral motion (for copters and rovers).
+ * @file fw_pos_control_main.hpp
+ * Implementation of various fixed-wing position level navigation/control modes.
  *
  * The implementation for the controllers is in a separate library. This class only
  * interfaces to the library.

@@ -35,14 +35,14 @@ add_subdirectory(launchdetection)
 add_subdirectory(runway_takeoff)
 
 px4_add_module(
-	MODULE modules__fw_path_navigation
-	MAIN fw_path_navigation
+	MODULE modules__fw_pos_control
+	MAIN fw_pos_control
 	SRCS
 		FixedwingPositionControl.cpp
 		FixedwingPositionControl.hpp
 	DEPENDS
 		launchdetection
-    		npfg
+		npfg
 		runway_takeoff
 		SlewRate
 		tecs
