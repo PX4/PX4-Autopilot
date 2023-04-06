@@ -268,6 +268,7 @@ if (CONFIG_BUILD_KERNEL)
 	# Build and install the px4 processes
 	foreach(module ${module_libraries})
 		get_target_property(MAIN ${module} MAIN)
+		get_target_property(NO_DAEMON ${module} NO_DAEMON)
 
 		# Don't handle modules that don't have a main (entry) function
 		if (NOT MAIN)
@@ -280,6 +281,11 @@ if (CONFIG_BUILD_KERNEL)
 		set_target_properties(${BIN} PROPERTIES OUTPUT_NAME ${BIN})
 		add_dependencies(${BIN} nuttx_crt0 ${module})
 		target_compile_options(${BIN} PRIVATE -Dentry=${MAIN}_main)
+
+		# Disable daemon if the module explicitly tells us to do so
+		if (NO_DAEMON)
+			target_compile_options(${BIN} PRIVATE -DNO_DAEMON)
+		endif()
 
 		target_link_libraries(${BIN} PRIVATE
 
