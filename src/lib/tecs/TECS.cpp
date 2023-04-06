@@ -580,7 +580,7 @@ float TECSControl::_calcThrottleControlOutput(const STERateLimit &limit, const C
 
 	if (ste_rate.setpoint >= FLT_EPSILON) {
 		// throttle is between trim and maximum
-		throttle_predicted = param.throttle_trim_adjusted + ste_rate.setpoint * ste_rate_to_throttle_above_trim;
+		throttle_predicted = param.throttle_trim_adjusted + ste_rate.setpoint * throttle_above_trim_per_ste_rate;
 
 	} else {
 		// throttle is between trim and minimum
