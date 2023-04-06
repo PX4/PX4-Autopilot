@@ -121,6 +121,7 @@ qshell mc_pos_control start
 qshell mc_att_control start
 qshell mc_rate_control start
 qshell mc_hover_thrust_estimator start
+qshell mc_autotune_attitude_control start
 qshell land_detector start multicopter
 qshell manual_control start
 qshell control_allocator start
