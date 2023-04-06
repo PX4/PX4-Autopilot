@@ -185,6 +185,9 @@ void ActuatorEffectivenessHelicopterCoaxial::getUnallocatedControl(int matrix_in
 
 	} else if (_saturation_flags.roll_neg) {
 		status.unallocated_torque[0] = -1.f;
+
+	} else {
+		status.unallocated_torque[0] = 0.f;
 	}
 
 	if (_saturation_flags.pitch_pos) {
@@ -192,6 +195,9 @@ void ActuatorEffectivenessHelicopterCoaxial::getUnallocatedControl(int matrix_in
 
 	} else if (_saturation_flags.pitch_neg) {
 		status.unallocated_torque[1] = -1.f;
+
+	} else {
+		status.unallocated_torque[1] = 0.f;
 	}
 
 	if (_saturation_flags.yaw_pos) {
@@ -199,6 +205,9 @@ void ActuatorEffectivenessHelicopterCoaxial::getUnallocatedControl(int matrix_in
 
 	} else if (_saturation_flags.yaw_neg) {
 		status.unallocated_torque[2] = -1.f;
+
+	} else {
+		status.unallocated_torque[2] = 0.f;
 	}
 
 	if (_saturation_flags.thrust_pos) {
@@ -206,5 +215,8 @@ void ActuatorEffectivenessHelicopterCoaxial::getUnallocatedControl(int matrix_in
 
 	} else if (_saturation_flags.thrust_neg) {
 		status.unallocated_thrust[2] = -1.f;
+
+	} else {
+		status.unallocated_torque[2] = 0.f;
 	}
 }
