@@ -90,8 +90,6 @@ void Ekf::updateOptFlow(estimator_aid_source2d_s &aid_src)
 
 	_innov_check_fail_status.flags.reject_optflow_X = (_aid_src_optical_flow.test_ratio[0] > 1.f);
 	_innov_check_fail_status.flags.reject_optflow_Y = (_aid_src_optical_flow.test_ratio[1] > 1.f);
-
-	// PX4_WARN("updateOptFlow: %f,%f   %f,%f\n", (double)aid_src.innovation[0], (double)aid_src.innovation[1], (double)aid_src.innovation_variance[0], (double)aid_src.innovation_variance[1]);
 }
 
 void Ekf::fuseOptFlow()
