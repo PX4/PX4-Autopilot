@@ -130,8 +130,8 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 	param_get(param_find("COM_ARM_BAD_INOV"), &arm_with_bad_innovation);
 
 	if (!context.isArmed() &&
-		(arm_with_bad_innovation == 0) &&
-		estimator_status.pre_flt_fail_innov_heading) {
+	    (arm_with_bad_innovation == 0) &&
+	    estimator_status.pre_flt_fail_innov_heading) {
 		/* EVENT
 		 */
 		reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
@@ -143,8 +143,8 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 		}
 
 	} else if (!context.isArmed() &&
-			   (arm_with_bad_innovation == 0) &&
-			   estimator_status.pre_flt_fail_innov_vel_horiz) {
+		   (arm_with_bad_innovation == 0) &&
+		   estimator_status.pre_flt_fail_innov_vel_horiz) {
 		/* EVENT
 		 */
 		reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
@@ -156,8 +156,8 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 		}
 
 	} else if (!context.isArmed() &&
-			   (arm_with_bad_innovation == 0) &&
-			   estimator_status.pre_flt_fail_innov_vel_vert) {
+		   (arm_with_bad_innovation == 0) &&
+		   estimator_status.pre_flt_fail_innov_vel_vert) {
 		/* EVENT
 		 */
 		reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
@@ -169,8 +169,8 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 		}
 
 	} else if (!context.isArmed() &&
-			   (arm_with_bad_innovation == 0) &&
-			   estimator_status.pre_flt_fail_innov_height) {
+		   (arm_with_bad_innovation == 0) &&
+		   estimator_status.pre_flt_fail_innov_height) {
 		/* EVENT
 		 */
 		reporter.armingCheckFailure(required_groups, health_component_t::local_position_estimate,
@@ -209,9 +209,10 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 
 	// check vertical position innovation test ratio
 	float hgt_test_ratio_limit = _param_com_arm_ekf_hgt.get();
+
 	if (!context.isArmed() &&
-		(hgt_test_ratio_limit > 0.0f) &&
-		(estimator_status.hgt_test_ratio > hgt_test_ratio_limit)) {
+	    (hgt_test_ratio_limit > 0.0f) &&
+	    (estimator_status.hgt_test_ratio > hgt_test_ratio_limit)) {
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
@@ -231,9 +232,10 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 
 	// check velocity innovation test ratio
 	float vel_test_ratio_limit = _param_com_arm_ekf_vel.get();
+
 	if (!context.isArmed() &&
-		(vel_test_ratio_limit > 0.0f) &&
-		(estimator_status.vel_test_ratio > vel_test_ratio_limit)) {
+	    (vel_test_ratio_limit > 0.0f) &&
+	    (estimator_status.vel_test_ratio > vel_test_ratio_limit)) {
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
@@ -253,9 +255,10 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 
 	// check horizontal position innovation test ratio
 	float pos_test_ratio_limit = _param_com_arm_ekf_pos.get();
+
 	if (!context.isArmed() &&
-		(pos_test_ratio_limit > 0.0f) &&
-		(estimator_status.pos_test_ratio > pos_test_ratio_limit)) {
+	    (pos_test_ratio_limit > 0.0f) &&
+	    (estimator_status.pos_test_ratio > pos_test_ratio_limit)) {
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
@@ -275,9 +278,10 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 
 	// check magnetometer innovation test ratio
 	float mag_test_ratio_limit = _param_com_arm_ekf_yaw.get();
+
 	if (!context.isArmed() &&
-		(mag_test_ratio_limit > 0.0f) &&
-		(estimator_status.mag_test_ratio > mag_test_ratio_limit)) {
+	    (mag_test_ratio_limit > 0.0f) &&
+	    (estimator_status.mag_test_ratio > mag_test_ratio_limit)) {
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
