@@ -1,0 +1,68 @@
+name: SITL Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {model: "iris",          latitude:  "59.617693", longitude: "-151.145316", altitude:  "48", build_type: "RelWithDebInfo" } # Alaska
+    container:
+      image: ghcr.io/tiiuae/px4-firmware-builder-base:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        token: ${{ secrets.GH_REPO_TOKEN }}
+        fetch-depth: 0
+    - name: Install dependencies
+      run: |
+        apt update -y && apt install -y --no-install-recommends wget
+        pip3 install requests
+        git config --global --add safe.directory '*'
+    - name: Download MAVSDK
+      run: wget "https://github.com/mavlink/MAVSDK/releases/download/v$(cat test/mavsdk_tests/MAVSDK_VERSION)/libmavsdk-dev_$(cat test/mavsdk_tests/MAVSDK_VERSION)_ubuntu20.04_amd64.deb"
+    - name: Install MAVSDK
+      run: dpkg -i "libmavsdk-dev_$(cat test/mavsdk_tests/MAVSDK_VERSION)_ubuntu20.04_amd64.deb"
+    - name: check environment
+      env:
+        PX4_HOME_LAT: ${{matrix.config.latitude}}
+        PX4_HOME_LON: ${{matrix.config.longitude}}
+        PX4_HOME_ALT: ${{matrix.config.altitude}}
+        PX4_CMAKE_BUILD_TYPE: ${{matrix.config.build_type}}
+      run: |
+          export
+    - name: Build PX4
+      env:
+        PX4_CMAKE_BUILD_TYPE: ${{matrix.config.build_type}}
+      run: make px4_sitl_default
+    - name: Build SITL Gazebo
+      env:
+        PX4_CMAKE_BUILD_TYPE: ${{matrix.config.build_type}}
+      run: |
+        . /opt/ros/humble/setup.sh
+        make px4_sitl_default sitl_gazebo
+    - name: Build MAVSDK tests
+      env:
+        PX4_CMAKE_BUILD_TYPE: ${{matrix.config.build_type}}
+        DONT_RUN: 1
+      run: make px4_sitl_default gazebo mavsdk_tests
+    - name: Run SITL tests
+      env:
+        PX4_HOME_LAT: ${{matrix.config.latitude}}
+        PX4_HOME_LON: ${{matrix.config.longitude}}
+        PX4_HOME_ALT: ${{matrix.config.altitude}}
+        PX4_CMAKE_BUILD_TYPE: ${{matrix.config.build_type}}
+      run: test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 --abort-early --model ${{matrix.config.model}} --upload test/mavsdk_tests/configs/sitl.json --verbose
+      timeout-minutes: 45

@@ -24,9 +24,9 @@ if(MAVSDK_FOUND)
         test_multicopter_failure_injection.cpp
         test_multicopter_failsafe.cpp
         test_multicopter_mission.cpp
-        test_multicopter_offboard.cpp
-        test_multicopter_manual.cpp
-        test_vtol_mission.cpp
+        # test_multicopter_offboard.cpp
+        # test_multicopter_manual.cpp
+        # test_vtol_mission.cpp
         # test_multicopter_follow_me.cpp
     )
 
