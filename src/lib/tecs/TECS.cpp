@@ -584,7 +584,7 @@ float TECSControl::_calcThrottleControlOutput(const STERateLimit &limit, const C
 
 	} else {
 		// throttle is between trim and minimum
-		throttle_predicted = param.throttle_trim_adjusted - ste_rate.setpoint * ste_rate_to_throttle_below_trim;
+		throttle_predicted = param.throttle_trim_adjusted - ste_rate.setpoint * throttle_below_trim_per_ste_rate;
 
 	}
 
