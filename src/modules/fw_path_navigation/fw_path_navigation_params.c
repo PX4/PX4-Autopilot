@@ -1069,7 +1069,7 @@ PARAM_DEFINE_FLOAT(FW_SPOILERS_DESC, 0.f);
  *
  * Required throttle for level flight at minimum airspeed FW_AIRSPD_MIN (sea level, standard atmosphere)
  *
- * Set to 0 to disable mapping of airspeed to trim throttle.
+ * Set to 0 to disable mapping of airspeed to trim throttle below FW_AIRSPD_TRIM.
  *
  * @min 0
  * @max 1
