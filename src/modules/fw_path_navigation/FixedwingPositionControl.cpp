@@ -2458,9 +2458,25 @@ FixedwingPositionControl::reset_landing_state()
 	}
 }
 
-float FixedwingPositionControl::compensateTrimThrottleForDensityAndWeight(float throttle_trim, float throttle_min,
-		float throttle_max)
+float FixedwingPositionControl::calculateTrimThrottle(float throttle_min,
+		float throttle_max, float airspeed_sp)
 {
+	float throttle_trim =
+		_param_fw_thr_trim.get(); // throttle required for level flight at trim airspeed, at sea level (standard atmosphere)
+
+	// Drag modelling (parasite drag): calculate mapping airspeed-->throttle, assuming a linear relation with different gradient
+	// above and below trim. This is tunable thorugh FW_THR_ASPD_MIN and FW_THR_ASPD_MAX.
+	if (PX4_ISFINITE(airspeed_sp) && _param_fw_thr_aspd_min.get() > FLT_EPSILON
+	    && airspeed_sp < _param_fw_airspd_trim.get()) {
+		throttle_trim = _param_fw_thr_trim.get() - (_param_fw_thr_trim.get() - _param_fw_thr_aspd_min.get()) /
+				(_param_fw_airspd_trim.get() - _param_fw_airspd_min.get()) * (_param_fw_airspd_trim.get() - airspeed_sp);
+
+	} else if (PX4_ISFINITE(airspeed_sp) && _param_fw_thr_aspd_max.get() > FLT_EPSILON
+		   && airspeed_sp > _param_fw_airspd_trim.get()) {
+		throttle_trim = _param_fw_thr_trim.get() + (_param_fw_thr_aspd_max.get() - _param_fw_thr_trim.get()) /
+				(_param_fw_airspd_max.get() - _param_fw_airspd_trim.get()) * (airspeed_sp - _param_fw_airspd_trim.get());
+	}
+
 	float weight_ratio = 1.0f;
 
 	if (_param_weight_base.get() > FLT_EPSILON && _param_weight_gross.get() > FLT_EPSILON) {
@@ -2550,8 +2566,8 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 	}
 
 	/* update TECS vehicle state estimates */
-	const float throttle_trim_comp = compensateTrimThrottleForDensityAndWeight(_param_fw_thr_trim.get(), throttle_min,
-					 throttle_max);
+	const float throttle_trim_adjusted = calculateTrimThrottle(throttle_min,
+					     throttle_max, airspeed_sp);
 
 	// HOTFIX: the airspeed rate estimate using acceleration in body-forward direction has shown to lead to high biases
 	// when flying tight turns. It's in this case much safer to just set the estimated airspeed rate to 0.
@@ -2565,7 +2581,8 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 		     _eas2tas,
 		     throttle_min,
 		     throttle_max,
-		     throttle_trim_comp,
+		     _param_fw_thr_trim.get(),
+		     throttle_trim_adjusted,
 		     pitch_min_rad - radians(_param_fw_psp_off.get()),
 		     pitch_max_rad - radians(_param_fw_psp_off.get()),
 		     desired_max_climbrate,
@@ -2574,7 +2591,7 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 		     -_local_pos.vz,
 		     hgt_rate_sp);
 
-	tecs_status_publish(alt_sp, airspeed_sp, airspeed_rate_estimate, throttle_trim_comp);
+	tecs_status_publish(alt_sp, airspeed_sp, airspeed_rate_estimate, throttle_trim_adjusted);
 }
 
 float

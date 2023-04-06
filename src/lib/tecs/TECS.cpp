@@ -570,17 +570,21 @@ float TECSControl::_calcThrottleControlOutput(const STERateLimit &limit, const C
 	// Specific total energy rate = _STE_rate_max is achieved when throttle is set to _throttle_setpoint_max
 	// Specific total energy rate = 0 at cruise throttle
 	// Specific total energy rate = _STE_rate_min is achieved when throttle is set to _throttle_setpoint_min
+
+	// assume airspeed and density-independent delta_throttle to sink/climb rate mapping
+	// TODO: include air density for thrust mappings
+	const float throttle_increase_max_STE_rate = limit.STE_rate_max * (param.throttle_max - param.throttle_trim);
+	const float throttle_decrease_min_STE_rate = limit.STE_rate_min * (param.throttle_trim - param.throttle_min);
+
 	float throttle_predicted = 0.0f;
 
 	if (ste_rate.setpoint >= FLT_EPSILON) {
 		// throttle is between trim and maximum
-		throttle_predicted = param.throttle_trim + ste_rate.setpoint / limit.STE_rate_max *
-				     (param.throttle_max - param.throttle_trim);
+		throttle_predicted = param.throttle_trim_adjusted + ste_rate.setpoint / throttle_increase_max_STE_rate;
 
 	} else {
 		// throttle is between trim and minimum
-		throttle_predicted = param.throttle_trim + ste_rate.setpoint / limit.STE_rate_min *
-				     (param.throttle_min - param.throttle_trim);
+		throttle_predicted = param.throttle_trim_adjusted - ste_rate.setpoint / throttle_decrease_min_STE_rate;
 
 	}
 
@@ -667,8 +671,8 @@ void TECS::initialize(const float altitude, const float altitude_rate, const flo
 
 void TECS::update(float pitch, float altitude, float hgt_setpoint, float EAS_setpoint, float equivalent_airspeed,
 		  float eas_to_tas, float throttle_min, float throttle_setpoint_max,
-		  float throttle_trim, float pitch_limit_min, float pitch_limit_max, float target_climbrate, float target_sinkrate,
-		  const float speed_deriv_forward, float hgt_rate, float hgt_rate_sp)
+		  float throttle_trim, float throttle_trim_adjusted, float pitch_limit_min, float pitch_limit_max, float target_climbrate,
+		  float target_sinkrate, const float speed_deriv_forward, float hgt_rate, float hgt_rate_sp)
 {
 
 	// Calculate the time since last update (seconds)
@@ -684,6 +688,7 @@ void TECS::update(float pitch, float altitude, float hgt_setpoint, float EAS_set
 	_control_param.pitch_max = pitch_limit_max;
 	_control_param.pitch_min = pitch_limit_min;
 	_control_param.throttle_trim = throttle_trim;
+	_control_param.throttle_trim_adjusted = throttle_trim_adjusted;
 	_control_param.throttle_max = throttle_setpoint_max;
 	_control_param.throttle_min = throttle_min;
 
