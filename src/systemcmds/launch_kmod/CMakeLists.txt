@@ -35,6 +35,7 @@ px4_add_module(
 	MODULE systemcmds__launch_kmod
 	MAIN launch_kmod
 	COMPILE_FLAGS
+	NO_DAEMON
 	SRCS
 		launch_kmod.cpp
 	)
