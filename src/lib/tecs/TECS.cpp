@@ -573,18 +573,18 @@ float TECSControl::_calcThrottleControlOutput(const STERateLimit &limit, const C
 
 	// assume airspeed and density-independent delta_throttle to sink/climb rate mapping
 	// TODO: include air density for thrust mappings
-	const float throttle_increase_max_STE_rate = limit.STE_rate_max * (param.throttle_max - param.throttle_trim);
-	const float throttle_decrease_min_STE_rate = limit.STE_rate_min * (param.throttle_trim - param.throttle_min);
+	const float ste_rate_to_throttle_above_trim = (param.throttle_max - param.throttle_trim) / limit.STE_rate_max;
+	const float ste_rate_to_throttle_below_trim = (param.throttle_trim - param.throttle_min) / limit.STE_rate_min;
 
 	float throttle_predicted = 0.0f;
 
 	if (ste_rate.setpoint >= FLT_EPSILON) {
 		// throttle is between trim and maximum
-		throttle_predicted = param.throttle_trim_adjusted + ste_rate.setpoint / throttle_increase_max_STE_rate;
+		throttle_predicted = param.throttle_trim_adjusted + ste_rate.setpoint * ste_rate_to_throttle_above_trim;
 
 	} else {
 		// throttle is between trim and minimum
-		throttle_predicted = param.throttle_trim_adjusted - ste_rate.setpoint / throttle_decrease_min_STE_rate;
+		throttle_predicted = param.throttle_trim_adjusted - ste_rate.setpoint * ste_rate_to_throttle_below_trim;
 
 	}
 
