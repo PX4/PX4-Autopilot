@@ -67,7 +67,7 @@ void ActuatorEffectivenessHelicopterCoaxial::updateParams()
 		return;
 	}
 
-	_geometry.num_swash_plate_servos = math::constrain((int)count, 3, NUM_SWASH_PLATE_SERVOS_MAX);
+	_geometry.num_swash_plate_servos = math::constrain((int)count, 2, NUM_SWASH_PLATE_SERVOS_MAX);
 
 	for (int i = 0; i < _geometry.num_swash_plate_servos; ++i) {
 		float angle_deg{};
