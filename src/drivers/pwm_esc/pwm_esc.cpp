@@ -325,14 +325,14 @@ PWMESC::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigne
 int
 PWMESC::set_defaults(int fd, unsigned long request)
 {
-	/* Configure PWM to default rate, 0 pulse and start */
+	/* Configure PWM to default rate, 1 as duty and start */
 
 	struct pwm_info_s pwm;
 	memset(&pwm, 0, sizeof(struct pwm_info_s));
 	pwm.frequency = _pwm_rate;
 
 	for (int j = 0; j < PWMESC_MAX_CHANNELS; j++) {
-		pwm.channels[j].duty = 0;
+		pwm.channels[j].duty = 1; /* 0 is not allowed duty cycle value */
 		pwm.channels[j].channel = j + 1;
 	}
 
