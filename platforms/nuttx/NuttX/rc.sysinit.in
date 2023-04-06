@@ -3,3 +3,6 @@ mkdir -p lnk
 
 # The link strings, these are generated
 @kernel_symlinks_string@
+
+# Start all modules as daemons into background
+@daemon_app_strings@
