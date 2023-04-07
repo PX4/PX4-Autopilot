@@ -280,6 +280,7 @@ bool FeasibilityChecker::checkMissionItemValidity(mission_item_s &mission_item, 
 	    mission_item.nav_cmd != NAV_CMD_DO_MOUNT_CONTROL &&
 	    mission_item.nav_cmd != NAV_CMD_DO_GIMBAL_MANAGER_PITCHYAW &&
 	    mission_item.nav_cmd != NAV_CMD_DO_GIMBAL_MANAGER_CONFIGURE &&
+	    mission_item.nav_cmd != NAV_CMD_DO_SET_ACTUATOR &&
 	    mission_item.nav_cmd != NAV_CMD_DO_SET_ROI &&
 	    mission_item.nav_cmd != NAV_CMD_DO_SET_ROI_LOCATION &&
 	    mission_item.nav_cmd != NAV_CMD_DO_SET_ROI_WPNEXT_OFFSET &&
