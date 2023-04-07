@@ -2689,7 +2689,7 @@ RESEND:
 	{
 		char buffer[128];
 		memset(buffer, 0, sizeof(buffer));
-		strFromSensorError(buffer, error);
+		strFromVnError(buffer, error);
 		/* printf("VnSensor_writeFirmwareUpdate: Error %d - %s", error, buffer); */
 	}
 	else
