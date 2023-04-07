@@ -1,0 +1,290 @@
+<?xml version="1.0" ?>
+<!--
+ ...........       ____  _ __
+ |  ,-^-,  |      / __ )(_) /_______________ _____  ___
+ | (  O  ) |     / __  / / __/ ___/ ___/ __ `/_  / / _ \
+ | / ,..´  |    / /_/ / / /_/ /__/ /  / /_/ / / /_/  __/
+    +.......   /_____/_/\__/\___/_/   \__,_/ /___/\___/
+
+MIT License
+
+Copyright (c) 2022 Bitcraze
+-->
+
+<sdf version="1.8">
+    <model name="crazyflie">
+        <pose>0 0 0.0 0 0 3.14</pose>
+        <link name="crazyflie/body">
+        <inertial>
+            <pose>0 0 0 0 0 0</pose>
+            <mass>0.025</mass>
+            <inertia>
+                <ixx>0.000016572</ixx>
+                <ixy>0.00</ixy>
+                <ixz>0.00</ixz>
+                <iyy>0.000016656</iyy>
+                <iyz>0.00000</iyz>
+                <izz>0.000029262</izz>
+            </inertia>
+        </inertial>
+        <collision name="crazyflie/body_collision">
+            <pose>0 0 0 0 0 0</pose>
+            <geometry>
+                <box>
+                    <size>0.10 0.10 0.03</size>
+                </box>
+            </geometry>
+        </collision>
+        <visual name="crazyflie/body_visual">
+            <pose>0 0 0 0 -0 0</pose>
+            <geometry>
+                <mesh>
+                    <scale>1 1 1</scale>
+                    <uri>model://crazyflie/meshes/collada_files/cf2_assembly.dae</uri>
+                </mesh>
+            </geometry>
+        </visual>
+        </link>
+        <link name="crazyflie/m1_prop">
+            <pose>0.031 -0.031 0.021 0 0 0</pose>
+            <inertial>
+                <pose>0 0 0 0 -0 0</pose>
+                <mass>0.0008</mass>
+                <inertia>
+                    <ixx>0.000000002*70</ixx>
+                    <iyy>0.000000167*70</iyy>
+                    <izz>0.000000168*70</izz>
+                    <ixy>0</ixy>
+                    <ixz>0</ixz>
+                    <iyz>0</iyz>
+                </inertia>
+            </inertial>
+            <visual name="crazyflie/m1_visual">
+                <pose>0 0 0 0 -0 0</pose>
+                <geometry>
+                    <mesh>
+                        <scale>1 1 1</scale>
+                        <uri>model://crazyflie/meshes/collada_files/ccw_prop.dae</uri>
+                    </mesh>
+                </geometry>
+            </visual>
+        </link>
+        <link name="crazyflie/m2_prop">
+            <pose>-0.031 -0.031 0.021 0 0 0</pose>
+            <inertial>
+                <pose>0 0 0 0 -0 0</pose>
+                <mass>0.0008</mass>
+                <inertia>
+                    <ixx>0.000000002*50</ixx>
+                    <iyy>0.000000167*50</iyy>
+                    <izz>0.000000168*50</izz>
+                    <ixy>0</ixy>
+                    <ixz>0</ixz>
+                    <iyz>0</iyz>
+                </inertia>
+            </inertial>
+            <visual name="crazyflie/m2_visual">
+                <pose>0 0 0 0 -0 0</pose>
+                <geometry>
+                    <mesh>
+                        <scale>1 1 1</scale>
+                        <uri>model://crazyflie/meshes/collada_files/cw_prop.dae</uri>
+                    </mesh>
+                </geometry>
+            </visual>
+        </link>
+        <link name="crazyflie/m3_prop">
+            <pose >-0.031 0.031 0.021 0 0 0</pose>
+            <inertial>
+                <pose>0 0 0 0 -0 0</pose>
+                <mass>0.0008</mass>
+                <inertia>
+                    <ixx>0.000000002*50</ixx>
+                    <iyy>0.000000167*50</iyy>
+                    <izz>0.000000168*50</izz>
+                    <ixy>0</ixy>
+                    <ixz>0</ixz>
+                    <iyz>0</iyz>
+                </inertia>
+            </inertial>
+            <visual name="crazyflie/m3_visual">
+                <pose>0 0 0 0 -0 0</pose>
+                <geometry>
+                    <mesh>
+                        <scale>1 1 1</scale>
+                        <uri>model://crazyflie/meshes/collada_files/ccw_prop.dae</uri>
+                    </mesh>
+                </geometry>
+            </visual>
+        </link>
+        <link name="crazyflie/m4_prop">
+            <pose>0.031 0.031 0.021 0 0 0</pose>
+            <inertial>
+                <pose>0 0 0 0 -0 0</pose>
+                <mass>0.0008</mass>
+                <inertia>
+                    <ixx>0.000000002*50</ixx>
+                    <iyy>0.000000167*50</iyy>
+                    <izz>0.000000168*50</izz>
+                    <ixy>0</ixy>
+                    <ixz>0</ixz>
+                    <iyz>0</iyz>
+                </inertia>
+            </inertial>
+            <visual name="crazyflie/m4_visual">
+                <pose>0 0 0 0 -0 0</pose>
+                <geometry>
+                    <mesh>
+                        <scale>1 1 1</scale>
+                        <uri>model://crazyflie/meshes/collada_files/cw_prop.dae</uri>
+                    </mesh>
+                </geometry>
+            </visual>
+        </link>
+        <joint name="crazyflie/m1_joint" type="revolute">
+            <child>crazyflie/m1_prop</child>
+            <parent>crazyflie/body</parent>
+            <axis>
+                <xyz>0 0 1</xyz>
+                <limit>
+                    <lower>-1e+16</lower>
+                    <upper>1e+16</upper>
+                </limit>
+                <dynamics>
+                    <spring_reference>0</spring_reference>
+                    <spring_stiffness>0</spring_stiffness>
+                </dynamics>
+            </axis>
+        </joint>
+                <joint name="crazyflie/m2_joint" type="revolute">
+            <child>crazyflie/m2_prop</child>
+            <parent>crazyflie/body</parent>
+            <axis>
+                <xyz>0 0 1</xyz>
+                <limit>
+                    <lower>-1e+16</lower>
+                    <upper>1e+16</upper>
+                </limit>
+                <dynamics>
+                    <spring_reference>0</spring_reference>
+                    <spring_stiffness>0</spring_stiffness>
+                </dynamics>
+            </axis>
+        </joint>
+                <joint name="crazyflie/m3_joint" type="revolute">
+            <child>crazyflie/m3_prop</child>
+            <parent>crazyflie/body</parent>
+            <axis>
+                <xyz>0 0 1</xyz>
+                <limit>
+                    <lower>-1e+16</lower>
+                    <upper>1e+16</upper>
+                </limit>
+                <dynamics>
+                    <spring_reference>0</spring_reference>
+                    <spring_stiffness>0</spring_stiffness>
+                </dynamics>
+            </axis>
+        </joint>
+        <joint name="crazyflie/m4_joint" type="revolute">
+            <child>crazyflie/m4_prop</child>
+            <parent>crazyflie/body</parent>
+            <axis>
+                <xyz>0 0 1</xyz>
+                <limit>
+                    <lower>-1e+16</lower>
+                    <upper>1e+16</upper>
+                </limit>
+                <dynamics>
+                    <spring_reference>0</spring_reference>
+                    <spring_stiffness>0</spring_stiffness>
+                </dynamics>
+            </axis>
+        </joint>
+    <plugin
+        filename="ignition-gazebo-multicopter-motor-model-system"
+        name="gz::sim::systems::MulticopterMotorModel">
+        <robotNamespace>crazyflie</robotNamespace>
+        <jointName>crazyflie/m1_joint</jointName>
+        <linkName>crazyflie/m1_prop</linkName>
+        <turningDirection>ccw</turningDirection>
+        <timeConstantUp>0.0125</timeConstantUp>
+        <timeConstantDown>0.025</timeConstantDown>
+        <maxRotVelocity>2618</maxRotVelocity>
+        <motorConstant>1.28192e-08</motorConstant>
+        <momentConstant>0.005964552</momentConstant>
+        <commandSubTopic>gazebo/command/motor_speed</commandSubTopic>
+        <motorNumber>0</motorNumber>
+        <rotorDragCoefficient>8.06428e-05</rotorDragCoefficient>
+        <rollingMomentCoefficient>0.0000001</rollingMomentCoefficient>
+        <motorSpeedPubTopic>motor_speed/0</motorSpeedPubTopic>
+        <rotorVelocitySlowdownSim>150</rotorVelocitySlowdownSim>
+        <motorType>velocity</motorType>
+      </plugin>
+      <plugin
+        filename="ignition-gazebo-multicopter-motor-model-system"
+        name="gz::sim::systems::MulticopterMotorModel">
+        <robotNamespace>crazyflie</robotNamespace>
+        <jointName>crazyflie/m2_joint</jointName>
+        <linkName>crazyflie/m2_prop</linkName>
+        <turningDirection>cw</turningDirection>
+        <timeConstantUp>0.0125</timeConstantUp>
+        <timeConstantDown>0.025</timeConstantDown>
+        <maxRotVelocity>2618</maxRotVelocity>
+        <motorConstant>1.28192e-08</motorConstant>
+        <momentConstant>0.005964552</momentConstant>
+        <commandSubTopic>gazebo/command/motor_speed</commandSubTopic>
+        <motorNumber>1</motorNumber>
+        <rotorDragCoefficient>8.06428e-05</rotorDragCoefficient>
+        <rollingMomentCoefficient>0.0000001</rollingMomentCoefficient>
+        <motorSpeedPubTopic>motor_speed/1</motorSpeedPubTopic>
+        <rotorVelocitySlowdownSim>150</rotorVelocitySlowdownSim>
+        <motorType>velocity</motorType>
+      </plugin>
+      <plugin
+        filename="ignition-gazebo-multicopter-motor-model-system"
+        name="gz::sim::systems::MulticopterMotorModel">
+        <robotNamespace>crazyflie</robotNamespace>
+        <jointName>crazyflie/m3_joint</jointName>
+        <linkName>crazyflie/m3_prop</linkName>
+        <turningDirection>ccw</turningDirection>
+        <timeConstantUp>0.0125</timeConstantUp>
+        <timeConstantDown>0.025</timeConstantDown>
+        <maxRotVelocity>2618</maxRotVelocity>
+        <motorConstant>1.28192e-08</motorConstant>
+        <momentConstant>0.005964552</momentConstant>
+        <commandSubTopic>gazebo/command/motor_speed</commandSubTopic>
+        <motorNumber>2</motorNumber>
+        <rotorDragCoefficient>8.06428e-05</rotorDragCoefficient>
+        <rollingMomentCoefficient>0.0000001</rollingMomentCoefficient>
+        <motorSpeedPubTopic>motor_speed/2</motorSpeedPubTopic>
+        <rotorVelocitySlowdownSim>150</rotorVelocitySlowdownSim>
+        <motorType>velocity</motorType>
+      </plugin>
+      <plugin
+        filename="ignition-gazebo-multicopter-motor-model-system"
+        name="gz::sim::systems::MulticopterMotorModel">
+        <robotNamespace>crazyflie</robotNamespace>
+        <jointName>crazyflie/m4_joint</jointName>
+        <linkName>crazyflie/m4_prop</linkName>
+        <turningDirection>cw</turningDirection>
+        <timeConstantUp>0.0125</timeConstantUp>
+        <timeConstantDown>0.025</timeConstantDown>
+        <maxRotVelocity>2618</maxRotVelocity>
+        <motorConstant>1.28192e-08</motorConstant>
+        <momentConstant>0.005964552</momentConstant>
+        <commandSubTopic>gazebo/command/motor_speed</commandSubTopic>
+        <motorNumber>3</motorNumber>
+        <rotorDragCoefficient>8.06428e-05</rotorDragCoefficient>
+        <rollingMomentCoefficient>0.000001</rollingMomentCoefficient>
+        <motorSpeedPubTopic>motor_speed/3</motorSpeedPubTopic>
+        <rotorVelocitySlowdownSim>150</rotorVelocitySlowdownSim>
+        <motorType>velocity</motorType>
+      </plugin>
+      <plugin
+        filename="ignition-gazebo-odometry-publisher-system"
+        name="ignition::gazebo::systems::OdometryPublisher">
+        <dimensions>3</dimensions>
+      </plugin>
+    </model>
+</sdf>
