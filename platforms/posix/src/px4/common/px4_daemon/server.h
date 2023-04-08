@@ -54,6 +54,7 @@
 #include <stdbool.h>
 #include <pthread.h>
 #include <map>
+#include <atomic>
 
 #include "sock_protocol.h"
 
@@ -109,6 +110,7 @@ private:
 	pthread_t _server_main_pthread;
 
 	std::map<int, pthread_t> _fd_to_thread;
+	std::map<int, std::atomic<bool>> _fd_to_stop_thread;
 	pthread_mutex_t _mutex; ///< Protects _fd_to_thread.
 
 	pthread_key_t _key;

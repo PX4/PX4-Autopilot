@@ -191,6 +191,9 @@ Server::_server_main()
 					fclose(thread_stdout);
 
 				} else {
+					// Initialize stop_thread to false for the new thread.
+					_fd_to_stop_thread[client] = false;
+
 					// We won't join the thread, so detach to automatically release resources at its end
 					pthread_detach(*thread);
 
@@ -210,10 +213,8 @@ Server::_server_main()
 				auto thread = _fd_to_thread.find(poll_fds[i].fd);
 
 				if (thread != _fd_to_thread.end()) {
-					// Thread is still running, so we cancel it.
-					// TODO: use a more graceful exit method to avoid resource leaks
-					pthread_cancel(thread->second);
-					_fd_to_thread.erase(thread);
+					// Thread is still running, so we set stop_thread to true.
+					_fd_to_stop_thread[poll_fds[i].fd] = true;
 				}
 
 				fclose(stdouts[i - 1]);
@@ -241,8 +242,9 @@ void
 
 	// Read until the end of the incoming stream.
 	std::string cmd;
+	auto &stop_thread = _instance->_fd_to_stop_thread[fd];
 
-	while (true) {
+	while (!stop_thread.load()) {
 		size_t n = cmd.size();
 		cmd.resize(n + 1024);
 		ssize_t n_read = read(fd, &cmd[n], cmd.size() - n);
@@ -302,6 +304,7 @@ Server::_cleanup(int fd)
 {
 	_instance->_lock();
 	_instance->_fd_to_thread.erase(fd);
+	_instance->_fd_to_stop_thread.erase(fd);
 	_instance->_unlock();
 
 	// We can't close() the fd here, since the main thread is probably
