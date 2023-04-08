@@ -11,6 +11,9 @@ publications:
   - topic: /fmu/out/failsafe_flags
     type: px4_msgs::msg::FailsafeFlags
 
+  - topic: /fmu/out/position_setpoint_triplet
+    type: px4_msgs::msg::PositionSetpointTriplet
+
   - topic: /fmu/out/sensor_combined
     type: px4_msgs::msg::SensorCombined
 
