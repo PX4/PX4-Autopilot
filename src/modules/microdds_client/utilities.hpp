@@ -23,6 +23,7 @@ uxrObjectId topic_id_from_orb(ORB_ID orb_id, uint8_t instance = 0)
 		uxrObjectId topic_id = uxr_object_id(id, UXR_TOPIC_ID);
 		return topic_id;
 	}
+
 	return uxrObjectId{};
 }
 
