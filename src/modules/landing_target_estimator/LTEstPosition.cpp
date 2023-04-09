@@ -933,7 +933,7 @@ bool LTEstPosition::fuse_meas(const Vector3f vehicle_acc_ned, const targetObsPos
 {
 	perf_begin(_ltest_update_perf);
 
-	estimator_aid_source_3d_s target_innov;
+	estimator_aid_source3d_s target_innov;
 	Vector<bool, 3> meas_xyz_fused{};
 	bool all_directions_fused = false;
 	Vector<float, 15> meas_h_row;
@@ -949,14 +949,14 @@ bool LTEstPosition::fuse_meas(const Vector3f vehicle_acc_ned, const targetObsPos
 
 		// No measurement update, set to false
 		for (int k = 0; k < 3; k++) {
-			target_innov.fusion_enabled[k] = false;
-			target_innov.fused[k] = false;
+			target_innov.fusion_enabled = false;
+			target_innov.fused = false;
 		}
 
 	} else {
 
 		// For debug: log the time sync
-		target_innov.time_last_fuse[0] = (int)(dt_sync_us / 1000);
+		target_innov.time_last_fuse = (int)(dt_sync_us / 1000);
 
 		// Convert time sync to seconds
 		const float dt_sync_s = dt_sync_us / SEC2USEC;
@@ -965,27 +965,28 @@ bool LTEstPosition::fuse_meas(const Vector3f vehicle_acc_ned, const targetObsPos
 		target_innov.timestamp_sample = target_pos_obs.timestamp;
 		target_innov.timestamp = hrt_absolute_time();
 
-		// Loop over x,y,z directions.
-		for (int j = 0; j < 3; j++) {
+		//If the measurement of this filter (x,y or z) has not been updated:
+		if (!target_pos_obs.updated_xyz(0) || !target_pos_obs.updated_xyz(1) || !target_pos_obs.updated_xyz(2)) {
 
-			//If the measurement of this filter (x,y or z) has not been updated:
-			if (!target_pos_obs.updated_xyz(j)) {
+			// No measurement
+			PX4_DEBUG("Obs i = %d : at least one non-valid observation. x: %d, y: %d, z: %d", target_pos_obs.type,
+				  target_pos_obs.updated_xyz(0),
+				  target_pos_obs.updated_xyz(1), target_pos_obs.updated_xyz(2));
 
-				// No measurement
-				PX4_DEBUG("Obs i = %d : at least one non-valid observation. x: %d, y: %d, z: %d", target_pos_obs.type,
-					  target_pos_obs.updated_xyz(0),
-					  target_pos_obs.updated_xyz(1), target_pos_obs.updated_xyz(2));
+			target_innov.fusion_enabled = false;
+			target_innov.fused = false;
 
-				// Set innovations to zero
-				target_innov.fusion_enabled[j] = false;
-				target_innov.fused[j] = false;
+		}  else {
 
-			} else {
+			target_innov.fusion_enabled = true;
+
+			// Loop over x,y,z directions.
+			for (int j = 0; j < 3; j++) {
 
 				//Get the corresponding row of the H matrix.
 				meas_h_row = target_pos_obs.meas_h_xyz.row(j);
 
-				// Move state back to the measurement time of validity. The state synchronized with the measurement will be used to compute the innovation.
+				// Move state back to the measurement time of validity. The state synchronized with the measurement will be used to compute the innovation only.
 				_target_estimator[j]->syncState(dt_sync_s, vehicle_acc_ned(j));
 				_target_estimator[j]->setH(meas_h_row, j);
 				// Compute innovations and fill thet target innovation message
@@ -995,13 +996,10 @@ bool LTEstPosition::fuse_meas(const Vector3f vehicle_acc_ned, const targetObsPos
 				// Update step
 				meas_xyz_fused(j) = _target_estimator[j]->update();
 
-				// Fill the target innovation message
-				target_innov.fusion_enabled[j] = true;
-				target_innov.innovation_rejected[j] = !meas_xyz_fused(j);
-				target_innov.fused[j] = meas_xyz_fused(j);
-
 				target_innov.observation[j] = target_pos_obs.meas_xyz(j);
 				target_innov.observation_variance[j] = target_pos_obs.meas_unc_xyz(j);
+				// log which direction was fused for debug
+				target_innov.test_ratio[j] = meas_xyz_fused(j);
 			}
 		}
 
@@ -1016,6 +1014,9 @@ bool LTEstPosition::fuse_meas(const Vector3f vehicle_acc_ned, const targetObsPos
 				  meas_xyz_fused(1),
 				  meas_xyz_fused(2));
 		}
+
+		target_innov.fused = all_directions_fused;
+		target_innov.innovation_rejected = !all_directions_fused;
 	}
 
 	perf_end(_ltest_update_perf);

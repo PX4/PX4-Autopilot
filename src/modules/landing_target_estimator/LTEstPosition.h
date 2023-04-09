@@ -63,7 +63,7 @@
 #include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_gps.h>
-#include <uORB/topics/estimator_aid_source_3d.h>
+#include <uORB/topics/estimator_aid_source3d.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <matrix/math.hpp>
@@ -133,13 +133,13 @@ protected:
 	uORB::Publication<target_estimator_state_s> _targetEstimatorStatePub{ORB_ID(target_estimator_state)};
 
 	// publish innovations target_estimator_gps_pos
-	uORB::Publication<estimator_aid_source_3d_s> _ltest_aid_gps_pos_target_pub{ORB_ID(ltest_aid_gps_pos_target)};
-	uORB::Publication<estimator_aid_source_3d_s> _ltest_aid_gps_pos_mission_pub{ORB_ID(ltest_aid_gps_pos_mission)};
-	uORB::Publication<estimator_aid_source_3d_s> _ltest_aid_gps_vel_target_pub{ORB_ID(ltest_aid_gps_vel_target)};
-	uORB::Publication<estimator_aid_source_3d_s> _ltest_aid_gps_vel_rel_pub{ORB_ID(ltest_aid_gps_vel_rel)};
-	uORB::Publication<estimator_aid_source_3d_s> _ltest_aid_fiducial_marker_pub{ORB_ID(ltest_aid_fiducial_marker)};
-	uORB::Publication<estimator_aid_source_3d_s> _ltest_aid_irlock_pub{ORB_ID(ltest_aid_irlock)};
-	uORB::Publication<estimator_aid_source_3d_s> _ltest_aid_uwb_pub{ORB_ID(ltest_aid_uwb)};
+	uORB::Publication<estimator_aid_source3d_s> _ltest_aid_gps_pos_target_pub{ORB_ID(ltest_aid_gps_pos_target)};
+	uORB::Publication<estimator_aid_source3d_s> _ltest_aid_gps_pos_mission_pub{ORB_ID(ltest_aid_gps_pos_mission)};
+	uORB::Publication<estimator_aid_source3d_s> _ltest_aid_gps_vel_target_pub{ORB_ID(ltest_aid_gps_vel_target)};
+	uORB::Publication<estimator_aid_source3d_s> _ltest_aid_gps_vel_rel_pub{ORB_ID(ltest_aid_gps_vel_rel)};
+	uORB::Publication<estimator_aid_source3d_s> _ltest_aid_fiducial_marker_pub{ORB_ID(ltest_aid_fiducial_marker)};
+	uORB::Publication<estimator_aid_source3d_s> _ltest_aid_irlock_pub{ORB_ID(ltest_aid_irlock)};
+	uORB::Publication<estimator_aid_source3d_s> _ltest_aid_uwb_pub{ORB_ID(ltest_aid_uwb)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 

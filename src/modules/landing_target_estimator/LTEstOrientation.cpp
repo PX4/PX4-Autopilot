@@ -219,7 +219,7 @@ bool LTEstOrientation::fuse_orientation(const targetObsOrientation &target_orien
 	// Update step for orientation
 	bool meas_fused = false;
 
-	estimator_aid_source_1d_s target_innov;
+	estimator_aid_source1d_s target_innov;
 
 	// Compute the measurement's time delay (difference between state and measurement time on validity)
 	const float dt_sync_us = (_last_predict - target_orientation_obs.timestamp);

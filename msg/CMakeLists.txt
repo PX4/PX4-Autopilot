@@ -179,6 +179,7 @@ set(msg_files
 	SensorsStatusImu.msg
 	SystemPower.msg
 	TakeoffStatus.msg
+	TargetEstimatorState.msg
 	TaskStackInfo.msg
 	TecsStatus.msg
 	TelemetryStatus.msg

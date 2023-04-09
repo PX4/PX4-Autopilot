@@ -56,7 +56,7 @@
 #include <uORB/topics/target_estimator_state.h>
 #include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/estimator_aid_source_1d.h>
+#include <uORB/topics/estimator_aid_source1d.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <matrix/math.hpp>
@@ -110,7 +110,7 @@ protected:
 	uORB::Publication<landing_target_orientation_s> _targetOrientationPub{ORB_ID(landing_target_orientation)};
 
 	// publish innovations target_estimator_gps_pos
-	uORB::Publication<estimator_aid_source_1d_s> _ltest_aid_ev_yaw_pub{ORB_ID(ltest_aid_ev_yaw)};
+	uORB::Publication<estimator_aid_source1d_s> _ltest_aid_ev_yaw_pub{ORB_ID(ltest_aid_ev_yaw)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
