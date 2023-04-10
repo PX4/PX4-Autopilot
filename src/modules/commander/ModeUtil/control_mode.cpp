@@ -115,11 +115,14 @@ void getVehicleControlMode(bool armed, uint8_t nav_state, uint8_t vehicle_type,
 	case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
 		vehicle_control_mode.flag_control_offboard_enabled = true;
 
-		if (offboard_control_mode.position) {
-			vehicle_control_mode.flag_control_position_enabled = true;
-			vehicle_control_mode.flag_control_velocity_enabled = true;
-			vehicle_control_mode.flag_control_altitude_enabled = true;
-			vehicle_control_mode.flag_control_climb_rate_enabled = true;
+		if (offboard_control_mode.body_rate) {
+			vehicle_control_mode.flag_control_rates_enabled = true;
+
+		} else if (offboard_control_mode.attitude) {
+			vehicle_control_mode.flag_control_rates_enabled = true;
+			vehicle_control_mode.flag_control_attitude_enabled = true;
+
+		} else if (offboard_control_mode.acceleration) {
 			vehicle_control_mode.flag_control_acceleration_enabled = true;
 			vehicle_control_mode.flag_control_rates_enabled = true;
 			vehicle_control_mode.flag_control_attitude_enabled = true;
@@ -132,17 +135,14 @@ void getVehicleControlMode(bool armed, uint8_t nav_state, uint8_t vehicle_type,
 			vehicle_control_mode.flag_control_rates_enabled = true;
 			vehicle_control_mode.flag_control_attitude_enabled = true;
 
-		} else if (offboard_control_mode.acceleration) {
+		} else if (offboard_control_mode.position) {
+			vehicle_control_mode.flag_control_position_enabled = true;
+			vehicle_control_mode.flag_control_velocity_enabled = true;
+			vehicle_control_mode.flag_control_altitude_enabled = true;
+			vehicle_control_mode.flag_control_climb_rate_enabled = true;
 			vehicle_control_mode.flag_control_acceleration_enabled = true;
 			vehicle_control_mode.flag_control_rates_enabled = true;
 			vehicle_control_mode.flag_control_attitude_enabled = true;
-
-		} else if (offboard_control_mode.attitude) {
-			vehicle_control_mode.flag_control_rates_enabled = true;
-			vehicle_control_mode.flag_control_attitude_enabled = true;
-
-		} else if (offboard_control_mode.body_rate) {
-			vehicle_control_mode.flag_control_rates_enabled = true;
 		}
 
 		break;
