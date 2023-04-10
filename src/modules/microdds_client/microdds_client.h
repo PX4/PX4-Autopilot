@@ -101,7 +101,7 @@ private:
 	int _last_payload_rx_rate{}; ///< in B/s
 	bool _connected{false};
 
-	Timesync _timesync{};
+	Timesync _timesync{timesync_status_s::SOURCE_PROTOCOL_DDS};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::XRCE_DDS_DOM_ID>) _param_xrce_dds_dom_id,
