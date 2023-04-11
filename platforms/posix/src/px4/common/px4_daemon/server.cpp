@@ -251,9 +251,9 @@ void
 		FD_SET(fd, &fds);
 		FD_SET(fd_stop_thread, &fds);
 		int nfds = (fd > fd_stop_thread ? fd : fd_stop_thread) + 1;
-		int ret = select(nfds, &fds, NULL, NULL, NULL);
+		int ret = select(nfds, &fds, nullptr, nullptr, nullptr);
 
-		if(ret > 0 && FD_ISSET(fd_stop_thread, &fds)) {
+		if (ret > 0 && FD_ISSET(fd_stop_thread, &fds)) {
 			break;
 		}
 
