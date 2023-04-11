@@ -115,6 +115,7 @@ void Tailsitter::update_vtol_state()
 
 				if (isFrontTransitionCompleted()) {
 					_vtol_mode = vtol_mode::FW_MODE;
+					_trans_finished_ts = hrt_absolute_time();
 				}
 
 				break;
