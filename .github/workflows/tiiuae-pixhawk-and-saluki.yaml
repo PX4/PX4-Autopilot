@@ -12,7 +12,7 @@ jobs:
   fc_matrix:
     strategy:
       matrix:
-        product: [pixhawk, saluki-v1_default, saluki-v1_bootloader, saluki-v1_amp, saluki-v1_protected, saluki-v2_default, saluki-v2_bootloader, saluki-v2_amp, saluki-v2_protected]
+        product: [pixhawk, saluki-v1_default, saluki-v1_bootloader, saluki-v1_amp, saluki-v1_protected, saluki-v2_default, saluki-v2_bootloader, saluki-v2_amp, saluki-v2_protected, saluki-pi_default, saluki-pi_bootloader, saluki-pi_amp, saluki-pi_protected]
     uses: ./.github/workflows/tiiuae-pixhawk-and-saluki-builder.yaml
     with:
       product: ${{ matrix.product }}

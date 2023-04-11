@@ -67,6 +67,9 @@
 [submodule "boards/ssrc/saluki-v2"]
 	path = boards/ssrc/saluki-v2
 	url = ../saluki-v2.git
+[submodule "boards/ssrc/saluki-pi"]
+	path = boards/ssrc/saluki-pi
+	url = ../saluki-pi.git
 [submodule "src/drivers/pfsoc_crypto"]
 	path = src/drivers/pfsoc_crypto
 	url = ../pfsoc_crypto.git

@@ -4,7 +4,7 @@ set -euo pipefail
 
 while read -r repo
 do
-  [[ "${repo}" == *saluki-v? ]] || \
+  [[ "${repo}" == *saluki-?? ]] || \
   [[ "${repo}" == *pfsoc_crypto ]]  || \
   [[ "${repo}" == *pfsoc_keystore ]]  || \
   [[ "${repo}" == *pf_crypto ]] && continue
