@@ -69,4 +69,23 @@ constexpr bool validateSPIConfig(const px4_spi_bus_t spi_busses_conf[SPI_BUS_MAX
 	return false;
 }
 
+constexpr bool validateSPIConfig(const px4_spi_bus_all_hw_t spi_buses_conf[BOARD_NUM_SPI_CFG_HW_VERSIONS])
+{
+	for (int ver = 0; ver < BOARD_NUM_SPI_CFG_HW_VERSIONS; ++ver) {
+		validateSPIConfig(spi_buses_conf[ver].buses);
+	}
+
+	for (int ver = 1; ver < BOARD_NUM_SPI_CFG_HW_VERSIONS; ++ver) {
+		for (int i = 0; i < SPI_BUS_MAX_BUS_ITEMS; ++i) {
+			const bool equal_power_enable_gpio = spi_buses_conf[ver].buses[i].power_enable_gpio == spi_buses_conf[ver -
+							     1].buses[i].power_enable_gpio;
+			// currently board_control_spi_sensors_power_configgpio() depends on that - this restriction can be removed
+			// by ensuring board_control_spi_sensors_power_configgpio() is called after the hw version is determined
+			// and SPI config is initialized.
+			constexpr_assert(equal_power_enable_gpio, "All HW versions must define the same power enable GPIO");
+		}
+	}
+
+	return false;
+}
 #endif // CONFIG_SPI
