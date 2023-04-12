@@ -1513,11 +1513,11 @@ GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 			} else if (!strcmp(myoptarg, "fem")) {
 				mode = gps_driver_mode_t::FEMTOMES;
 
-            } else if (!strcmp(myoptarg, "nmea")) {
-                mode = gps_driver_mode_t::NMEA;
+			} else if (!strcmp(myoptarg, "nmea")) {
+				mode = gps_driver_mode_t::NMEA;
 
-            } else if (!strcmp(myoptarg, "sbf")) {
-                mode = gps_driver_mode_t::SBF;
+			} else if (!strcmp(myoptarg, "sbf")) {
+				mode = gps_driver_mode_t::SBF;
 #endif // CONSTRAINED_FLASH
 			} else {
 				PX4_ERR("unknown protocol: %s", myoptarg);
