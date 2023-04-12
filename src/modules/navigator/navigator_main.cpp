@@ -671,10 +671,12 @@ void Navigator::run()
 				case RTL::RTL_TYPE_CLOSEST: {
 						// If a mission landing is desired we should only execute mission navigation mode if we currently are in fw mode.
 						// In multirotor mode no landing pattern is required so we can just navigate to the land point directly and don't need to run mission.
-						const bool shouldEngageMissionForLanding = _rtl.getRTLDestinationTypeMission()
-								&& _vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+						if (rtl_activated_now) {
+							_shouldEngageMissionForLanding = _rtl.getRTLDestinationTypeMission()
+											 && _vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+						}
 
-						if (shouldEngageMissionForLanding && (on_mission_landing() || _rtl.getRTLState() > RTL::RTL_STATE_CLIMB)) {
+						if (_shouldEngageMissionForLanding && (on_mission_landing() || _rtl.getRTLState() > RTL::RTL_STATE_CLIMB)) {
 
 							// already in a mission landing, we just need to inform the user and stay in mission
 							if (rtl_activated_now) {
