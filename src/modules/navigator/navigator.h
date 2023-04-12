@@ -261,7 +261,7 @@ public:
 
 	bool is_planned_mission() const { return _navigation_mode == &_mission; }
 
-	bool on_mission_landing() { return _mission.landing(); }
+	bool on_mission_landing() { return (_mission.landing() && _navigation_mode == &_mission); }
 
 	bool start_mission_landing() { return _mission.land_start(); }
 
