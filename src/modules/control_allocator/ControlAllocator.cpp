@@ -841,7 +841,7 @@ This implements control allocation. It takes torque and thrust setpoints
 as inputs and outputs actuator setpoint messages.
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_NAME(MODULE_NAME, "controller");
+	PRINT_MODULE_USAGE_NAME("control_allocator", "controller");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
