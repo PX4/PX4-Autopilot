@@ -801,6 +801,7 @@ void Navigator::run()
 
 		if (_vstatus.nav_state != vehicle_status_s::NAVIGATION_STATE_AUTO_RTL) {
 			_rtl_activated = false;
+			_rtl.resetRtlState();
 		}
 
 		// Do not execute any state machine while we are disarmed

@@ -114,6 +114,8 @@ public:
 
 	bool getShouldEngageMissionForLanding() const { return _should_engange_mission_for_landing; }
 
+	void resetRtlState() { _rtl_state = RTL_STATE_NONE; }
+
 private:
 
 	void set_rtl_item();
