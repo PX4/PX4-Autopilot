@@ -60,6 +60,10 @@ if(NOT "${PX4_BOARD}" MATCHES "io-v2")
 	add_subdirectory(uORB)
 endif()
 
+if(NOT "${PX4_PLATFORM}" MATCHES "posix")
+	target_link_libraries(px4_platform board_bus_info)
+endif()
+
 add_subdirectory(px4_work_queue)
 add_subdirectory(work_queue)
 
