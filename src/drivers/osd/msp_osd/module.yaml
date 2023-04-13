@@ -36,11 +36,25 @@ parameters:
                 15: (unused) ESC_TMP
                 16: (unused) PITCH_ANGLE
                 17: (unused) ROLL_ANGLE
-                18: (unused) CROSSHAIRS
+                18: CROSSHAIRS
                 19: AVG_CELL_VOLTAGE
                 20: (unused) HORIZON_SIDEBARS
                 21: POWER
             default: 16383
+
+        # OSD Crosshairs Vertical Position
+        OSD_CH_HEIGHT:
+            description:
+                short: OSD Crosshairs Height
+                long: |
+                  Controls the vertical position of the crosshair display.
+                  Resolution is limited by OSD to 15 discrete values. Negative
+                  values will display the crosshairs below the horizon
+            type: int32
+            default: 0
+            min: -8
+            max: 8
+
 
         # OSD Log Level
         OSD_LOG_LEVEL:
