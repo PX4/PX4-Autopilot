@@ -54,7 +54,7 @@ add_library(px4_platform STATIC
 	spi.cpp
 	${SRCS}
 )
-target_link_libraries(px4_platform prebuild_targets px4_work_queue uorb_msgs board_bus_info)
+target_link_libraries(px4_platform prebuild_targets px4_work_queue uorb_msgs)
 
 if(NOT "${PX4_BOARD}" MATCHES "io-v2")
 	add_subdirectory(uORB)
