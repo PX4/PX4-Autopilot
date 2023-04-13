@@ -300,9 +300,11 @@ void LandingTargetEstimator::_update_topics()
 		 * 	Z -> Y
 		 * Resulting in the following conversion function:
 		 * ******************************************/
-		matrix::Vector3f position = - matrix::Vector3f{(_sensorUwb.distance  * sinf(math::radians(_sensorUwb.aoa_azimuth_dev)) * cosf(math::radians(_sensorUwb.aoa_elevation_dev))),
-				 (_sensorUwb.distance  * sinf(math::radians(_sensorUwb.aoa_elevation_dev))),
-				 (_sensorUwb.distance * cosf(math::radians(_sensorUwb.aoa_azimuth_dev)) * cosf(math::radians(_sensorUwb.aoa_elevation_dev)))};
+		matrix::Vector3f position = -matrix::Vector3f{
+					(_sensorUwb.distance * sinf(math::radians(_sensorUwb.aoa_elevation_dev))),
+					- (_sensorUwb.distance * sinf(math::radians(_sensorUwb.aoa_azimuth_dev)) * cosf(math::radians(_sensorUwb.aoa_elevation_dev))),
+					(_sensorUwb.distance * cosf(math::radians(_sensorUwb.aoa_azimuth_dev)) * cosf(math::radians(_sensorUwb.aoa_elevation_dev)))};
+
 		// Now the position is the landing point relative to the vehicle.
 		//Rotate around orientation:
 		position = get_rot_matrix(static_cast<enum Rotation>(_sensorUwb.orientation)) *
