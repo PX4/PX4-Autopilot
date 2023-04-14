@@ -59,9 +59,24 @@ static sq_queue_t callout_queue;
 static sq_queue_t callout_freelist;
 static sq_queue_t callout_inflight;
 
+/* Check if entry is in list */
+
+static bool entry_inlist(sq_queue_t *queue, sq_entry_t *item)
+{
+	sq_entry_t *queued;
+
+	sq_for_every(queue, queued) {
+		if (queued == item) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
 /* Find (pop) first entry for user from queue, the queue must be locked prior */
 
-struct usr_hrt_call *pop_user(sq_queue_t *queue, const px4_hrt_handle_t handle)
+static struct usr_hrt_call *pop_user(sq_queue_t *queue, const px4_hrt_handle_t handle)
 {
 	sq_entry_t *queued;
 
@@ -79,7 +94,7 @@ struct usr_hrt_call *pop_user(sq_queue_t *queue, const px4_hrt_handle_t handle)
 
 /* Find (pop) entry from queue, the queue must be locked prior */
 
-struct usr_hrt_call *pop_entry(sq_queue_t *queue, const px4_hrt_handle_t handle, struct hrt_call *entry)
+static struct usr_hrt_call *pop_entry(sq_queue_t *queue, const px4_hrt_handle_t handle, struct hrt_call *entry)
 {
 	sq_entry_t *queued;
 
@@ -157,8 +172,12 @@ void hrt_usr_call(void *arg)
 {
 	// This is called from hrt interrupt
 	struct usr_hrt_call *e = (struct usr_hrt_call *)arg;
-	sq_addfirst(&e->list_item, &callout_inflight);
-	px4_sem_post(e->entry.callout_sem);
+
+	// Make sure the event is not already in flight
+	if (!entry_inlist(&callout_inflight, (sq_entry_t *)e)) {
+		sq_addfirst(&e->list_item, &callout_inflight);
+		px4_sem_post(e->entry.callout_sem);
+	}
 }
 
 int hrt_ioctl(unsigned int cmd, unsigned long arg);
