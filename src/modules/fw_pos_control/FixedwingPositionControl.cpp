@@ -2466,17 +2466,20 @@ float FixedwingPositionControl::calculateTrimThrottle(float throttle_min,
 	float throttle_trim =
 		_param_fw_thr_trim.get(); // throttle required for level flight at trim airspeed, at sea level (standard atmosphere)
 
-	// Drag modelling (parasite drag): calculate mapping airspeed-->throttle, assuming a linear relation with different gradient
+	// Drag modelling (parasite drag): calculate mapping airspeed-->throttle, assuming a linear relation with different gradients
 	// above and below trim. This is tunable thorugh FW_THR_ASPD_MIN and FW_THR_ASPD_MAX.
-	if (PX4_ISFINITE(airspeed_sp) && _param_fw_thr_aspd_min.get() > FLT_EPSILON
-	    && airspeed_sp < _param_fw_airspd_trim.get()) {
-		throttle_trim = _param_fw_thr_trim.get() - (_param_fw_thr_trim.get() - _param_fw_thr_aspd_min.get()) /
-				(_param_fw_airspd_trim.get() - _param_fw_airspd_min.get()) * (_param_fw_airspd_trim.get() - airspeed_sp);
+	const float slope_below_trim = (_param_fw_thr_trim.get() - _param_fw_thr_aspd_min.get()) /
+				       (_param_fw_airspd_trim.get() - _param_fw_airspd_min.get());
+	const float slope_above_trim = (_param_fw_thr_aspd_max.get() - _param_fw_thr_trim.get()) /
+				       (_param_fw_airspd_max.get() - _param_fw_airspd_trim.get());
 
-	} else if (PX4_ISFINITE(airspeed_sp) && _param_fw_thr_aspd_max.get() > FLT_EPSILON
+	if (PX4_ISFINITE(airspeed_sp) && PX4_ISFINITE(slope_below_trim) && _param_fw_thr_aspd_min.get() > FLT_EPSILON
+	    && airspeed_sp < _param_fw_airspd_trim.get()) {
+		throttle_trim = _param_fw_thr_trim.get() - slope_below_trim * (_param_fw_airspd_trim.get() - airspeed_sp);
+
+	} else if (PX4_ISFINITE(airspeed_sp) && PX4_ISFINITE(slope_above_trim) && _param_fw_thr_aspd_max.get() > FLT_EPSILON
 		   && airspeed_sp > _param_fw_airspd_trim.get()) {
-		throttle_trim = _param_fw_thr_trim.get() + (_param_fw_thr_aspd_max.get() - _param_fw_thr_trim.get()) /
-				(_param_fw_airspd_max.get() - _param_fw_airspd_trim.get()) * (airspeed_sp - _param_fw_airspd_trim.get());
+		throttle_trim = _param_fw_thr_trim.get() + slope_above_trim * (airspeed_sp - _param_fw_airspd_trim.get());
 	}
 
 	float weight_ratio = 1.0f;
