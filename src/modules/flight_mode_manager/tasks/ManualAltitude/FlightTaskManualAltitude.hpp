@@ -64,11 +64,6 @@ protected:
 	void _updateConstraintsFromEstimator();
 
 	/**
-	 * rotates vector into local frame
-	 */
-	void _rotateIntoHeadingFrame(matrix::Vector2f &vec);
-
-	/**
 	 *  Check and sets for position lock.
 	 *  If sticks are at center position, the vehicle
 	 *  will exit velocity control and enter position control.
