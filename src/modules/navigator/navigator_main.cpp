@@ -668,23 +668,37 @@ void Navigator::run()
 
 				switch (_rtl.get_rtl_type()) {
 				case RTL::RTL_TYPE_MISSION_LANDING:
-				case RTL::RTL_TYPE_CLOSEST:
-					if (on_mission_landing() && _rtl.getShouldEngageMissionForLanding()) {
-						_mission.set_execution_mode(mission_result_s::MISSION_EXECUTION_MODE_FAST_FORWARD);
-
-						navigation_mode_new = &_mission;
-
+				case RTL::RTL_TYPE_CLOSEST: {
+						// If a mission landing is desired we should only execute mission navigation mode if we currently are in fw mode.
+						// In multirotor mode no landing pattern is required so we can just navigate to the land point directly and don't need to run mission.
 						if (rtl_activated_now) {
-							mavlink_log_info(get_mavlink_log_pub(), "RTL to Mission landing, continue landing\t");
-							events::send(events::ID("rtl_land_at_mission_continue_landing"), events::Log::Info,
-								     "RTL to Mission landing, continue landing");
+							_shouldEngageMissionForLanding = _rtl.getRTLDestinationTypeMission()
+											 && _vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
 						}
 
-					} else {
-						navigation_mode_new = &_rtl;
-					}
+						if (_shouldEngageMissionForLanding && (on_mission_landing() || _rtl.getRTLState() > RTL::RTL_STATE_CLIMB)) {
 
-					break;
+							// already in a mission landing, we just need to inform the user and stay in mission
+							if (rtl_activated_now) {
+								mavlink_log_info(get_mavlink_log_pub(), "RTL to Mission landing, continue landing\t");
+								events::send(events::ID("rtl_land_at_mission_continue_landing"), events::Log::Info,
+									     "RTL to Mission landing, continue landing");
+							}
+
+							if (_navigation_mode != &_mission) {
+								// the first time we're here start the mission landig
+								start_mission_landing();
+							}
+
+							_mission.set_execution_mode(mission_result_s::MISSION_EXECUTION_MODE_FAST_FORWARD);
+							navigation_mode_new = &_mission;
+
+						} else {
+							navigation_mode_new = &_rtl;
+						}
+
+						break;
+					}
 
 				case RTL::RTL_TYPE_MISSION_LANDING_REVERSED:
 					if (_mission.get_land_start_available() && !get_land_detected()->landed) {
@@ -801,6 +815,7 @@ void Navigator::run()
 
 		if (_vstatus.nav_state != vehicle_status_s::NAVIGATION_STATE_AUTO_RTL) {
 			_rtl_activated = false;
+			_rtl.resetRtlState();
 		}
 
 		// Do not execute any state machine while we are disarmed
