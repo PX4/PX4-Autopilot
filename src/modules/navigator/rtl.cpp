@@ -253,11 +253,6 @@ void RTL::on_activation()
 {
 	_rtl_state = RTL_STATE_NONE;
 
-	// if a mission landing is desired we should only execute mission navigation mode if we currently are in fw mode
-	// In multirotor mode no landing pattern is required so we can just navigate to the land point directly and don't need to run mission
-	_should_engange_mission_for_landing = (_destination.type == RTL_DESTINATION_MISSION_LANDING)
-					      && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
-
 	// output the correct message, depending on where the RTL destination is
 	switch (_destination.type) {
 	case RTL_DESTINATION_HOME:

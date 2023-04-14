@@ -261,7 +261,7 @@ public:
 
 	bool is_planned_mission() const { return _navigation_mode == &_mission; }
 
-	bool on_mission_landing() { return _mission.landing(); }
+	bool on_mission_landing() { return (_mission.landing() && _navigation_mode == &_mission); }
 
 	bool start_mission_landing() { return _mission.land_start(); }
 
@@ -364,6 +364,8 @@ private:
 	bool		_pos_sp_triplet_updated{false};			/**< flags if position SP triplet needs to be published */
 	bool 		_pos_sp_triplet_published_invalid_once{false};	/**< flags if position SP triplet has been published once to UORB */
 	bool		_mission_result_updated{false};			/**< flags if mission result has seen an update */
+
+	bool		_shouldEngageMissionForLanding{false};
 
 	Mission		_mission;			/**< class that handles the missions */
 	Loiter		_loiter;			/**< class that handles loiter */

@@ -468,7 +468,9 @@ Mission::land_start()
 {
 	// if not currently landing, jump to do_land_start
 	if (_land_start_available) {
-		if (landing()) {
+		// check if we're currently already in mission mode and on landing part, then simply return true.
+		// note: it's not enough to check landing(), as that is not reset until set_current_mission_index(get_land_start_index())
+		if (_navigator->on_mission_landing()) {
 			return true;
 
 		} else {
