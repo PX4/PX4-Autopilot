@@ -361,10 +361,10 @@ void CyphalNode::sendHeartbeat()
 	if (hrt_elapsed_time(&_uavcan_node_heartbeat_last) >= 1_s) {
 
 		uavcan_node_Heartbeat_1_0 heartbeat{};
-		heartbeat.uptime = _uavcan_node_heartbeat_transfer_id; // TODO: use real uptime
+		const hrt_abstime now = hrt_absolute_time();
+		heartbeat.uptime = now / 1000000;
 		heartbeat.health.value = uavcan_node_Health_1_0_NOMINAL;
 		heartbeat.mode.value = uavcan_node_Mode_1_0_OPERATIONAL;
-		const hrt_abstime now = hrt_absolute_time();
 		size_t payload_size = uavcan_node_Heartbeat_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_;
 
 		const CanardTransferMetadata transfer_metadata = {
