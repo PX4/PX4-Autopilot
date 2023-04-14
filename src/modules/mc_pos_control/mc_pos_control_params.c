@@ -181,7 +181,7 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_P_ACC, 4.0f);
  * Non zero value allows hovering thrust estimation on stabilized or autonomous takeoff.
  *
  * @min 0.2
- * @max 3.0
+ * @max 5.0
  * @decimal 3
  * @group Multicopter Position Control
  */
@@ -207,7 +207,7 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_D_ACC, 0.0f);
  *
  * @unit m/s
  * @min 0.5
- * @max 8.0
+ * @max 10.0
  * @increment 0.1
  * @decimal 1
  * @group Multicopter Position Control
@@ -222,7 +222,7 @@ PARAM_DEFINE_FLOAT(MPC_Z_V_AUTO_UP, 3.f);
  *
  * @unit m/s
  * @min 0.5
- * @max 8.0
+ * @max 11.0
  * @increment 0.1
  * @decimal 1
  * @group Multicopter Position Control
@@ -237,7 +237,7 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_UP, 3.f);
  *
  * @unit m/s
  * @min 0.5
- * @max 4.0
+ * @max 11.0
  * @increment 0.1
  * @decimal 1
  * @group Multicopter Position Control
@@ -822,11 +822,13 @@ PARAM_DEFINE_FLOAT(MPC_TKO_RAMP_T, 3.0f);
  * The supported sub-modes are:
  * 0 Simple position control where sticks map directly to velocity setpoints
  *   without smoothing. Useful for velocity control tuning.
+ * 1 Simple velocity control where sticks map directly to velocity setpoints.
  * 3 Smooth position control with maximum acceleration and jerk limits based on
  *   jerk optimized trajectory generator (different algorithm than 1).
  * 4 Smooth position control where sticks map to acceleration and there's a virtual brake drag
  *
  * @value 0 Simple position control
+ * @value 1 Hold position with Velocity Input
  * @value 3 Smooth position control (Jerk optimized)
  * @value 4 Acceleration based input
  * @group Multicopter Position Control
