@@ -56,7 +56,7 @@ __EXPORT void mavlink_vasprintf(int severity, orb_advert_t *mavlink_log_pub, con
 		return;
 	}
 
-	if (mavlink_log_pub == nullptr || !orb_advert_valid(*mavlink_log_pub)) {
+	if (mavlink_log_pub == nullptr) {
 		return;
 	}
 
