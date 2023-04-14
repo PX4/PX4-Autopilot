@@ -230,6 +230,18 @@ PARAM_DEFINE_FLOAT(COM_DISARM_LAND, 2.0f);
 PARAM_DEFINE_FLOAT(COM_DISARM_PRFLT, 10.0f);
 
 /**
+ * Force disarming from external commands.
+ *
+ * Disables the default checks which prevent disarming in unsafe situations,
+ * like when not landed.
+ *
+ * @group Commander
+ * @value 0 Subject external disarm commands to normal checks (e.g. landed)
+ * @value 1 Disable all checks for disarming requests.
+ */
+PARAM_DEFINE_INT32(COM_DISARM_FORCE, 0);
+
+/**
  * Allow arming without GPS
  *
  * The default allows the vehicle to arm without GPS signal.
