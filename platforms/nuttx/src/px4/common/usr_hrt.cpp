@@ -62,6 +62,7 @@
 
 static px4_task_t g_usr_hrt_task = -1;
 static px4_hrt_handle_t g_hrt_client_handle;
+static px4_sem_t g_worker_lock;
 
 #ifdef PX4_USERSPACE_HRT
 static uintptr_t g_abstime_base;
@@ -72,32 +73,18 @@ static uintptr_t g_abstime_base;
  */
 static void hrt_stop(void)
 {
-	px4_task_delete(g_usr_hrt_task);
-	boardctl(HRT_UNREGISTER, (uintptr_t)&g_hrt_client_handle);
-}
+	if (g_usr_hrt_task >= 0) {
+		px4_task_delete(g_usr_hrt_task);
+	}
 
-/**
- * Fetch a never-wrapping absolute time value in microseconds from
- * some arbitrary epoch shortly after system start.
- */
-hrt_abstime
-hrt_absolute_time(void)
-{
-#ifndef PX4_USERSPACE_HRT
-	hrt_abstime abstime = 0;
-	boardctl(HRT_ABSOLUTE_TIME, (uintptr_t)&abstime);
-	return abstime;
-#else
-	assert(g_abstime_base);
-	return getreg64(g_abstime_base);
-#endif
+	px4_sem_destroy(&g_worker_lock);
+	boardctl(HRT_UNREGISTER, (uintptr_t)&g_hrt_client_handle);
 }
 
 /**
  * Event dispatcher thread
  */
-int
-event_thread(int argc, char *argv[])
+static int event_thread(int argc, char *argv[])
 {
 	struct hrt_boardctl ioc_parm {
 		.handle = g_hrt_client_handle,
@@ -121,6 +108,43 @@ event_thread(int argc, char *argv[])
 	return 0;
 }
 
+static void start_worker(void)
+{
+	if (g_usr_hrt_task >= 0) {
+		// Worker is already (for sure) running, get out
+		return;
+	}
+
+	// Ensure only a single thread gets to create the worker, the rest will wait
+	px4_sem_wait(&g_worker_lock);
+
+	if (g_usr_hrt_task < 0) {
+		g_usr_hrt_task = px4_task_spawn_cmd("usr_hrt", SCHED_DEFAULT, SCHED_PRIORITY_MAX,
+						    PX4_STACK_ADJUSTED(1024), event_thread, NULL);
+	}
+
+	px4_sem_post(&g_worker_lock);
+}
+
+/**
+ * Fetch a never-wrapping absolute time value in microseconds from
+ * some arbitrary epoch shortly after system start.
+ */
+hrt_abstime
+hrt_absolute_time(void)
+{
+#ifndef PX4_USERSPACE_HRT
+	hrt_abstime abstime = 0;
+	boardctl(HRT_ABSOLUTE_TIME, (uintptr_t)&abstime);
+	return abstime;
+#else
+	assert(g_abstime_base);
+	return getreg64(g_abstime_base);
+#endif
+}
+
+
+
 /**
  * Request stop.
  */
@@ -140,10 +164,10 @@ hrt_init(void)
 #ifdef PX4_USERSPACE_HRT
 	boardctl(HRT_ABSTIME_BASE, (uintptr_t)&g_abstime_base);
 #endif
+
 	if (g_hrt_client_handle) {
 		atexit(hrt_stop);
-		g_usr_hrt_task = px4_task_spawn_cmd("usr_hrt", SCHED_DEFAULT, SCHED_PRIORITY_MAX, PX4_STACK_ADJUSTED(1024),
-						    event_thread, NULL);
+		px4_sem_init(&g_worker_lock, 0, 1);
 	}
 }
 
@@ -162,6 +186,7 @@ hrt_call_after(struct hrt_call *entry, hrt_abstime delay, hrt_callout callout, v
 		.arg = arg
 	};
 
+	start_worker();
 	boardctl(HRT_CALL_AFTER, (uintptr_t)&ioc_parm);
 }
 
@@ -180,6 +205,7 @@ hrt_call_at(struct hrt_call *entry, hrt_abstime calltime, hrt_callout callout, v
 		.arg = arg
 	};
 
+	start_worker();
 	boardctl(HRT_CALL_AT, (uintptr_t)&ioc_parm);
 }
 
@@ -198,6 +224,7 @@ hrt_call_every(struct hrt_call *entry, hrt_abstime delay, hrt_abstime interval, 
 		.arg = arg,
 	};
 
+	start_worker();
 	boardctl(HRT_CALL_EVERY, (uintptr_t)&ioc_parm);
 }
 
@@ -212,6 +239,7 @@ hrt_cancel(struct hrt_call *entry)
 		.entry = entry,
 	};
 
+	start_worker();
 	boardctl(HRT_CANCEL, (uintptr_t)&ioc_parm);
 }
 
