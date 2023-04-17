@@ -88,6 +88,7 @@ PARAM_DEFINE_INT32(SYS_HITL, 0);
  *
  * Set the group of estimators used for multicopters and VTOLs
  *
+ * @value 0 disabled (onboard estimators not started)
  * @value 1 local_position_estimator, attitude_estimator_q (unsupported)
  * @value 2 ekf2 (recommended)
  * @value 3 Q attitude estimator (no position)

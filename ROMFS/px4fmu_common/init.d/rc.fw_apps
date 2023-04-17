@@ -6,11 +6,6 @@
 #
 
 #
-# Start the attitude and position estimator.
-#
-ekf2 start &
-
-#
 # Start Control Allocator
 #
 control_allocator start

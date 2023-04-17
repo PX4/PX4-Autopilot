@@ -5,6 +5,41 @@
 # NOTE: Script variables are declared/initialized/unset in the rcS script.
 #
 
+# Start the attitude and position estimator.
+if param compare -s SYS_MC_EST_GROUP 1
+then
+	#
+	# Try to start LPE. If it fails, start EKF2 as a default.
+	# Unfortunately we do not build it on px4_fmu-v2 due to a limited flash.
+	#
+	if attitude_estimator_q start
+	then
+		echo "WARN [init] Estimator LPE unsupported, EKF2 recommended."
+		local_position_estimator start
+	else
+		echo "ERROR [init] Estimator LPE not available. Using EKF2"
+		param set SYS_MC_EST_GROUP 2
+		param save
+		reboot
+	fi
+else
+	# Q estimator (attitude estimation only)
+	if param compare -s SYS_MC_EST_GROUP 3
+	then
+		attitude_estimator_q start
+	fi
+fi
+
+if param compare -s SYS_MC_EST_GROUP 2
+then
+	param set EKF2_EN 1
+fi
+
+if param compare -s EKF2_EN 1
+then
+	ekf2 start &
+fi
+
 #
 # Fixed wing setup.
 #
@@ -67,5 +102,4 @@ fi
 if [ $VEHICLE_TYPE = none ]
 then
 	echo "No autostart ID found"
-	ekf2 start &
 fi

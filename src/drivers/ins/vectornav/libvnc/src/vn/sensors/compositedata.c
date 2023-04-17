@@ -234,7 +234,7 @@ void VnCompositeData_processBinaryPacketImuGroup(VnCompositeData* compositeData,
 	if (imuGroup & IMUGROUP_UNCOMPMAG)
 		compositeData->magneticUncompensated = VnUartPacket_extractVec3f(packet);
 
-	if (imuGroup & IMUGROUP_UNCOMPACCEL)
+	if (imuGroup & IMUGROUP_ACCEL)
 		compositeData->accelerationUncompensated = VnUartPacket_extractVec3f(packet);
 
 	if (imuGroup & IMUGROUP_UNCOMPGYRO)
