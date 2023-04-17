@@ -411,8 +411,12 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 		uint32_t lastFUEL_ms = 0;
 		uint32_t lastVSPD_ms = 0;
 		uint32_t lastGPS_ms = 0;
-		uint32_t lastNAV_STATE_ms = 0;
-		uint32_t lastGPS_FIX_ms = 0;
+		// uint32_t lastNAV_STATE_ms = 0;
+		// uint32_t lastGPS_FIX_ms = 0;
+		uint32_t lastDIY_rov_ms = 0;
+		uint32_t lastDIY_mb_ms = 0;
+		uint32_t lastDIY_rcmav_ms = 0;
+		uint32_t lastDIY_flgtmode_ms = 0;
 
 		/* send S.port telemetry */
 		while (!thread_should_exit) {
@@ -590,21 +594,70 @@ static int frsky_telemetry_thread_main(int argc, char *argv[])
 
 			/* FALLTHROUGH */
 
-			case SMARTPORT_POLL_8:
+			// ---Sees.ai---
+			// Removed these vanilla DIY states whilst adding our own instead of hijacking for clarity.
+			// Note: we've added 4 data 'streams' (GPS1, GPS2, RC/Mav, FlightMode) across SmartPort polls 8-11.
+			// Also, at 2Hz some streams were not reliable.
+			// For some reason, 5Hz seems to keep all streams publishing properly, although not sure why.
+			// As a result, we've chosen 5Hz even though it's overkill.
+			// Tried different configurations of number of streams across number of polls.
+			// Ultimately, one per poll proved most reliable.
 
-				/* report nav_state as DIY_NAVSTATE 2Hz */
-				if (now_ms - lastNAV_STATE_ms > 500) {
-					lastNAV_STATE_ms = now_ms;
-					/* send T1 */
-					sPort_send_NAV_STATE(uart);
+			// ---Sees.ai---
+			// Disabled vanilla DIY streams
+			// case SMARTPORT_POLL_8:
+			// /* report nav_state as DIY_NAVSTATE 2Hz */
+			// if (now_ms - lastNAV_STATE_ms > 500) {
+			// 	lastNAV_STATE_ms = now_ms;
+			// 	/* send T1 */
+			// 	sPort_send_NAV_STATE(uart);
+			// 	sentPackets++;
+			// }
+
+			// /* report satcount and fix as DIY_GPSFIX at 2Hz */
+			// else if (now_ms - lastGPS_FIX_ms > 500) {
+			// 	lastGPS_FIX_ms = now_ms;
+			// 	/* send T2 */
+			// 	sPort_send_GPS_FIX(uart);
+			// 	sentPackets++;
+			// }
+			// break;
+
+			case SMARTPORT_POLL_8:
+				if (now_ms - lastDIY_rov_ms > 200) {
+					lastDIY_rov_ms = now_ms;
+					/* sees.ai send GPS1 */
+					sPort_send_DIY_gps_rov(uart);
 					sentPackets++;
 				}
 
-				/* report satcount and fix as DIY_GPSFIX at 2Hz */
-				else if (now_ms - lastGPS_FIX_ms > 500) {
-					lastGPS_FIX_ms = now_ms;
-					/* send T2 */
-					sPort_send_GPS_FIX(uart);
+				break;
+
+			case SMARTPORT_POLL_9:
+				if (now_ms - lastDIY_mb_ms > 200) {
+					lastDIY_mb_ms = now_ms;
+					/* sees.ai send GPS2 */
+					sPort_send_DIY_gps_mb(uart);
+					sentPackets++;
+				}
+
+				break;
+
+			case SMARTPORT_POLL_10:
+				if (now_ms - lastDIY_rcmav_ms > 200) {
+					lastDIY_rcmav_ms = now_ms;
+					/* sees.ai send RcMav control mode */
+					sPort_send_DIY_rcmav(uart);
+					sentPackets++;
+				}
+
+				break;
+
+			case SMARTPORT_POLL_11:
+				if (now_ms - lastDIY_flgtmode_ms > 200) {
+					lastDIY_flgtmode_ms = now_ms;
+					/* sees.ai send Flight mode */
+					sPort_send_DIY_flgt_mode(uart);
 					sentPackets++;
 				}
 

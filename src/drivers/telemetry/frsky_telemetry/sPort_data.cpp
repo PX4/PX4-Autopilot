@@ -375,6 +375,63 @@ void sPort_send_GPS_info(int uart)
 {
 	sensor_gps_s gps_raw;
 	s_port_subscription_data->sensor_gps_subs[0].copy(&gps_raw);
-	// const vehicle_gps_position_s &gps = s_port_subscription_data->vehicle_gps_position_sub.get();
 	sPort_send_data(uart, FRSKY_ID_TEMP2, gps_raw.satellites_used * 10 + gps_raw.fix_type);
+}
+
+
+
+// ---Sees.ai---
+// We've added 4 DIY streams to decouple from the vanilla streams and handle the following additional telemetry:
+// ID 5002 = GPS1
+// ID 5003 = GPS2
+// ID 5004 = RC/MAV
+// ID 5005 = Flight Mode
+// Note: the GPS2 and Flight Mode streams already exist as DIY streams in vanilla PX4 , however for clarity they have
+// been duplicated with small sees.ai modifications to structure and naming. These vanilla streams have been disabled at point of transmission.
+// In the short-term, the 'hijack' modifications to the vanilla streams have been retained to
+// provide cross-compatability with both FRSky controller configurations (Taranis and Horus).
+// Once we finalise a single configuration, the 'hijack' mods will be reverted.
+void sPort_send_DIY_gps_rov(int uart)
+{
+	// GPS 1
+	sensor_gps_s gps_raw_rov;
+	s_port_subscription_data->sensor_gps_subs[0].copy(&gps_raw_rov);
+	sPort_send_data(uart, SMARTPORT_ID_ROV_GPS, gps_raw_rov.satellites_used * 10 + gps_raw_rov.fix_type);
+}
+
+void sPort_send_DIY_gps_mb(int uart)
+{
+	// GPS 2
+	sensor_gps_s gps_raw_mb;
+	s_port_subscription_data->sensor_gps_subs[1].copy(&gps_raw_mb);
+	int32_t gps2_fix_type = (int)gps_raw_mb.fix_type;
+	sPort_send_data(uart, SMARTPORT_ID_MB_GPS, gps2_fix_type);
+
+}
+
+void sPort_send_DIY_rcmav(int uart)
+{
+	// OBManual Control Mode
+	uint32_t control_source = s_port_subscription_data->manual_control_setpoint_sub.get().data_source;
+
+	// If the input type is RC then set it to 0
+	if (control_source == manual_control_setpoint_s::SOURCE_RC) {
+		control_source = manual_control_setpoint_s::SEES_SOURCE_RC; // This equates to 0
+	}
+
+	// Else if the input type is Mavlink then set it to 1
+	else if (control_source >= manual_control_setpoint_s::SOURCE_MAVLINK_0
+		 && control_source <= manual_control_setpoint_s::SOURCE_MAVLINK_5) {
+		control_source = manual_control_setpoint_s::SEES_SOURCE_MAV; // This equates to 1
+	}
+
+	sPort_send_data(uart, SMARTPORT_ID_RCMAV, control_source);
+}
+
+void sPort_send_DIY_flgt_mode(int uart)
+{
+	// Flight Mode
+	int16_t telem_flight_mode = get_telemetry_flight_mode(s_port_subscription_data->vehicle_status_sub.get().nav_state);
+	sPort_send_data(uart, SMARTPORT_ID_FLGT_MODE,
+			telem_flight_mode); // send flight mode as TEMP1. This matches with OpenTX & APM
 }

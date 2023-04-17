@@ -54,6 +54,9 @@
 #define SMARTPORT_POLL_6    0x00
 #define SMARTPORT_POLL_7    0x83
 #define SMARTPORT_POLL_8    0xBA
+#define SMARTPORT_POLL_9    0x67
+#define SMARTPORT_POLL_10   0x48
+#define SMARTPORT_POLL_11   0xE9
 #define SMARTPORT_SENSOR_ID_SP2UR     0xC6 // Sensor ID  6
 
 /* FrSky SmartPort sensor IDs. See more here: https://github.com/opentx/opentx/blob/2.2/radio/src/telemetry/frsky.h */
@@ -83,6 +86,10 @@
 #define SMARTPORT_ID_DIY_LAST      0x50ff  //We have 256 possible ID's for custom values :)
 #define SMARTPORT_ID_DIY_NAVSTATE  0x5000
 #define SMARTPORT_ID_DIY_GPSFIX    0x5001
+#define SMARTPORT_ID_ROV_GPS	   0x5002 // Sees.ai Rover GPS1 Stream
+#define SMARTPORT_ID_MB_GPS	   0x5003 // Sees.ai Moving Base GPS2 Stream
+#define SMARTPORT_ID_RCMAV	   0x5004 // Sees.ai RC/MavJoystick Control Stream
+#define SMARTPORT_ID_FLGT_MODE	   0x5005 // Sees.ai Flight Mode Stream
 
 // Public functions
 bool sPort_init(void);
@@ -106,5 +113,9 @@ void sPort_send_GPS_info(int uart);
 
 void sPort_send_NAV_STATE(int uart);
 void sPort_send_GPS_FIX(int uart);
+void sPort_send_DIY_gps_rov(int uart);
+void sPort_send_DIY_gps_mb(int uart);
+void sPort_send_DIY_rcmav(int uart);
+void sPort_send_DIY_flgt_mode(int uart);
 
 #endif /* _SPORT_TELEMETRY_H */
