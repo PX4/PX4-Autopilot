@@ -59,7 +59,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("camera_trigger");
 	add_topic("cellular_status", 200);
 	add_topic("commander_state");
-	add_topic("cpuload");
+	add_topic("cpuload", 50);
 	add_topic("drag_estimator");
 	add_optional_topic("esc_status", 250);
 	add_topic("failure_detector_status", 100);
@@ -101,7 +101,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("transponder_report");
 	add_topic("vehicle_acceleration", 50);
 	add_topic("vehicle_air_data", 200);
-	add_topic("vehicle_angular_velocity", 20);
+	add_topic("vehicle_angular_velocity", 50);
 	add_topic("vehicle_attitude", 50);
 	add_topic("vehicle_attitude_setpoint", 50);
 	add_topic("vehicle_command");
@@ -113,7 +113,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("vehicle_local_position", 100);
 	add_topic("vehicle_local_position_setpoint", 100);
 	add_topic("vehicle_magnetometer");
-	add_topic("vehicle_rates_setpoint", 20);
+	add_topic("vehicle_rates_setpoint", 50);
 	add_topic("vehicle_roi", 1000);
 	add_topic("vehicle_status");
 	add_topic("vehicle_status_flags");
@@ -143,16 +143,16 @@ void LoggedTopics::add_default_topics()
 
 	// always add the first instance
 	add_topic("estimator_baro_bias", 500);
-	add_topic("estimator_event_flags", 0);
+	add_topic("estimator_event_flags", 50);
 	add_topic("estimator_gps_status", 1000);
 	add_topic("estimator_innovation_test_ratios", 500);
 	add_topic("estimator_innovation_variances", 500);
 	add_topic("estimator_innovations", 500);
 	add_topic("estimator_optical_flow_vel", 200);
-	add_topic("estimator_sensor_bias", 0);
+	add_topic("estimator_sensor_bias", 50);
 	add_topic("estimator_states", 1000);
 	add_topic("estimator_status", 200);
-	add_topic("estimator_status_flags", 0);
+	add_topic("estimator_status_flags", 50);
 	add_topic("estimator_visual_odometry_aligned", 200);
 	add_topic("yaw_estimator_status", 1000);
 
@@ -181,7 +181,7 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("sensor_gnss_relative", 1000, 1);
 	add_optional_topic("pps_capture", 1000);
 	add_optional_topic_multi("sensor_gyro", 1000, 4);
-	add_optional_topic_multi("sensor_mag", 1000, 4);
+	add_topic_multi("sensor_mag", 1000, 4);
 	add_topic_multi("vehicle_imu", 500, 4);
 	add_topic_multi("vehicle_imu_status", 1000, 4);
 	add_optional_topic_multi("vehicle_magnetometer", 500, 4);
@@ -246,17 +246,17 @@ void LoggedTopics::add_default_topics()
 void LoggedTopics::add_high_rate_topics()
 {
 	// maximum rate to analyze fast maneuvers (e.g. for racing)
-	add_topic("actuator_controls_0");
-	add_topic("actuator_outputs");
-	add_topic("manual_control_setpoint");
-	add_topic("rate_ctrl_status", 20);
-	add_topic("rate_ctrl_status_detail");
-	add_topic("sensor_combined");
-	add_topic("vehicle_angular_acceleration");
-	add_topic("vehicle_angular_velocity");
-	add_topic("vehicle_attitude");
-	add_topic("vehicle_attitude_setpoint");
-	add_topic("vehicle_rates_setpoint");
+	add_topic("actuator_controls_0", 50);
+	add_topic("actuator_outputs", 50);
+	add_topic("manual_control_setpoint", 50);
+	add_topic("rate_ctrl_status", 50);
+	add_topic("rate_ctrl_status_detail", 50);
+	add_topic("sensor_combined", 50);
+	add_topic("vehicle_angular_acceleration", 50);
+	add_topic("vehicle_angular_velocity", 50);
+	add_topic("vehicle_attitude", 50);
+	add_topic("vehicle_attitude_setpoint", 50);
+	add_topic("vehicle_rates_setpoint", 50);
 }
 
 void LoggedTopics::add_debug_topics()
@@ -274,20 +274,20 @@ void LoggedTopics::add_debug_topics()
 void LoggedTopics::add_estimator_replay_topics()
 {
 	// for estimator replay (need to be at full rate)
-	add_topic("ekf2_timestamps");
+	add_topic("ekf2_timestamps", 50);
 
 	// current EKF2 subscriptions
-	add_topic("airspeed");
-	add_topic("optical_flow");
-	add_topic("sensor_combined");
-	add_topic("sensor_selection");
-	add_topic("vehicle_air_data");
-	add_topic("vehicle_gps_position");
-	add_topic("vehicle_land_detected");
-	add_topic("vehicle_magnetometer");
-	add_topic("vehicle_status");
-	add_topic("vehicle_visual_odometry");
-	add_topic_multi("distance_sensor");
+	add_topic("airspeed", 50);
+	add_topic("optical_flow", 50);
+	add_topic("sensor_combined", 50);
+	add_topic("sensor_selection", 50);
+	add_topic("vehicle_air_data", 50);
+	add_topic("vehicle_gps_position", 50);
+	add_topic("vehicle_land_detected", 50);
+	add_topic("vehicle_magnetometer", 50);
+	add_topic("vehicle_status", 50);
+	add_topic("vehicle_visual_odometry", 50);
+	add_topic_multi("distance_sensor", 50);
 }
 
 void LoggedTopics::add_thermal_calibration_topics()
