@@ -22,10 +22,7 @@
 param set-default MC_ROLLRATE_D 0.0013
 param set-default MC_PITCHRATE_D 0.0016
 
-param set-default MC_YAW_FF 0.5
-
 param set-default MPC_MANTHR_MAX 0.9
-param set-default MPC_MANTHR_MIN 0.08
 
 # Filter settings
 param set-default IMU_DGYRO_CUTOFF 90
@@ -37,11 +34,8 @@ param set-default SENS_BOARD_ROT 10
 
 # EKF2
 param set-default EKF2_GND_EFF_DZ 6
-param set-default EKF2_HGT_REF 1
 
 # Position control
-param set-default MPC_Z_P 1
-param set-default MPC_Z_VEL_P_ACC 4
 param set-default MPC_Z_VEL_I_ACC 0.4
 
 param set-default MPC_THR_MIN 0.06
@@ -51,7 +45,6 @@ param set-default MIS_TAKEOFF_ALT 1.1
 param set-default MPC_XY_P 1.7
 param set-default MPC_XY_VEL_P_ACC 2.6
 param set-default MPC_XY_VEL_I_ACC 1.2
-param set-default MPC_XY_VEL_D_ACC 0.2
 param set-default MPC_TKO_RAMP_T 1
 param set-default MPC_VEL_MANUAL 3
 
@@ -59,7 +52,6 @@ param set-default BAT1_SOURCE 0
 param set-default BAT1_N_CELLS 4
 param set-default BAT1_V_DIV 10.14
 param set-default BAT1_A_PER_V 18.18
-param set-default COM_DISARM_LAND 2
 
 # Filter settings
 param set-default IMU_GYRO_CUTOFF 90

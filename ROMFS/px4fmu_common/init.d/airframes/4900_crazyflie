@@ -21,7 +21,6 @@ param set-default BAT1_CAPACITY 240
 param set-default BAT1_SOURCE 1
 
 param set-default CBRK_SUPPLY_CHK 894281
-param set-default CBRK_USB_CHK 197848
 param set-default COM_RC_IN_MODE 1
 
 param set-default EKF2_ABL_LIM 2

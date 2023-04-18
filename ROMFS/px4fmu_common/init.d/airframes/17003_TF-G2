@@ -26,7 +26,6 @@ param set-default BAT1_N_CELLS 3
 
 param set-default SENS_BOARD_ROT 4
 
-param set-default FW_AIRSPD_MAX 20
 param set-default FW_AIRSPD_MIN 7
 param set-default FW_AIRSPD_TRIM 13
 param set-default FW_THR_TRIM 0.8
