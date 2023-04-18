@@ -19,7 +19,6 @@
 . ${R}etc/init.d/rc.mc_defaults
 
 param set-default CBRK_SUPPLY_CHK 894281
-param set-default CBRK_USB_CHK 197848
 
 param set-default IMU_GYRO_CUTOFF 100
 param set-default IMU_DGYRO_CUTOFF 60

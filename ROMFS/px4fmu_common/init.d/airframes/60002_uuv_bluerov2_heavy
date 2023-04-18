@@ -24,10 +24,7 @@
 
 
 # companion computer is connected via USB permanently
-param set-default CBRK_USB_CHK 197848
 param set-default CBRK_IO_SAFETY 22027
-
-param set-default COM_PREARM_MODE 0
 
 param set-default MAV_1_CONFIG 102
 
