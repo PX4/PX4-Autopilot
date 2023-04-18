@@ -35,6 +35,7 @@ set SDCARD_EXT_PATH /fs/microsd/ext_autostart
 set SDCARD_FORMAT no
 set STARTUP_TUNE 1
 set VEHICLE_TYPE none
+set SDCARD_DEVPATH /dev/mmcsd0
 
 #
 # Optional board path defaults: rc.board_paths
@@ -55,13 +56,13 @@ ver all
 #
 # Try to mount the microSD card.
 #
-if [ -b "/dev/mmcsd0" ]
+if [ -b $SDCARD_DEVPATH ]
 then
-	if mount -t vfat /dev/mmcsd0 /fs/microsd
+	if mount -t vfat $SDCARD_DEVPATH /fs/microsd
 	then
 		if [ -f "/fs/microsd/.format" ]
 		then
-			echo "INFO [init] format /dev/mmcsd0 requested (/fs/microsd/.format)"
+			echo "INFO [init] format ${SDCARD_DEVPATH} requested (/fs/microsd/.format)"
 			set SDCARD_FORMAT yes
 			rm /fs/microsd/.format
 			umount /fs/microsd
@@ -73,14 +74,14 @@ then
 
 	if [ $SDCARD_AVAILABLE = no -o $SDCARD_FORMAT = yes ]
 	then
-		echo "INFO [init] formatting /dev/mmcsd0"
+		echo "INFO [init] formatting ${SDCARD_DEVPATH}"
 		set STARTUP_TUNE 15 # tune 15 = SD_ERROR (overridden to SD_INIT if format + mount succeeds)
 
-		if mkfatfs -F 32 /dev/mmcsd0
+		if mkfatfs -F 32 $SDCARD_DEVPATH
 		then
 			echo "INFO [init] card formatted"
 
-			if mount -t vfat /dev/mmcsd0 /fs/microsd
+			if mount -t vfat $SDCARD_DEVPATH /fs/microsd
 			then
 				set SDCARD_AVAILABLE yes
 				set STARTUP_TUNE 14 # tune 14 = SD_INIT
@@ -107,6 +108,8 @@ then
 	set PARAM_FILE /fs/microsd/params
 	set PARAM_BACKUP_FILE "/fs/microsd/parameters_backup.bson"
 fi
+
+unset SDCARD_DEVPATH
 
 #
 # Look for an init script on the microSD card.
