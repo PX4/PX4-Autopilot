@@ -113,14 +113,18 @@ else()
 	add_dependencies(microxrceddsclient libmicroxrceddsclient_project)
 	target_include_directories(microxrceddsclient INTERFACE ${microxrceddsclient_build_dir}/include)
 
-
+	set(microxrceddsclient_topics_yaml ${PX4_BOARD_DIR}/src/${CONFIG_UXRCE_DDS_TOPICS_YAML})
+	if(NOT EXISTS "${microxrceddsclient_topics_yaml}")
+		set(microxrceddsclient_topics_yaml ${CMAKE_CURRENT_SOURCE_DIR}/dds_topics.yaml)
+	endif()
+	message(STATUS "microdds_client: use dds topics yaml: '${microxrceddsclient_topics_yaml}'")
 
 	add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/dds_topics.h
 		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/generate_dds_topics.py
 			--camel-case-topic-names
 			--topic-msg-dir ${PX4_SOURCE_DIR}/msg
 			--client-outdir ${CMAKE_CURRENT_BINARY_DIR}
-			--dds-topics-file ${CMAKE_CURRENT_SOURCE_DIR}/dds_topics.yaml
+			--dds-topics-file ${microxrceddsclient_topics_yaml}
 			--template_file ${CMAKE_CURRENT_SOURCE_DIR}/dds_topics.h.em
 		DEPENDS
 			${CMAKE_CURRENT_SOURCE_DIR}/generate_dds_topics.py
