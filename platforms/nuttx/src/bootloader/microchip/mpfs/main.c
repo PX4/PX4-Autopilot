@@ -54,7 +54,6 @@
 #include "riscv_internal.h"
 
 #include <nuttx/mtd/mtd.h>
-#include <nuttx/fs/partition.h>
 #include <nuttx/board.h>
 
 #include <mpfs_entrypoints.h>
@@ -215,12 +214,6 @@ SPI_NOR_CS_FUNC(FAR struct spi_dev_s *dev, uint32_t devid, bool selected)
 #endif
 
 #ifdef CONFIG_MMCSD
-void partition_handler(FAR struct partition_s *part, FAR void *arg)
-{
-	if (part->index == 0) {
-		register_blockpartition("/dev/mmcsd0p0", 0, "/dev/mmcsd0", part->firstblock, part->nblocks);
-	}
-}
 
 static ssize_t load_sdcard_images(const char *name, uint64_t loadaddr)
 {
@@ -289,9 +282,7 @@ board_init(void)
 
 #if defined(CONFIG_MMCSD)
 
-	if (mpfs_board_emmcsd_init() == OK) {
-		/* Parse partitions */
-		parse_block_partition("/dev/mmcsd0", partition_handler, "/sdcard/");
+	if (mpfs_board_emmcsd_init() == OK && mpfs_board_register_partition(0) == OK) {
 
 		/* Mount the sdcard/eMMC */
 		sdcard_mounted = mount("/dev/mmcsd0p0", "/sdcard/", "vfat", 0, NULL) == 0 ? true : false;
