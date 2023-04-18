@@ -41,7 +41,6 @@ param set-default FW_R_RMAX 50
 param set-default FW_THR_TRIM 0.65
 param set-default FW_THR_MIN 0.3
 param set-default FW_THR_SLEW_MAX 0.6
-param set-default FW_T_HRATE_FF 0
 param set-default FW_T_SINK_MAX 15
 param set-default FW_T_SINK_MIN 3
 param set-default FW_YR_P 0.15
