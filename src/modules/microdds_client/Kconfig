@@ -10,3 +10,10 @@ menuconfig USER_MICRODDS_CLIENT
 	depends on BOARD_PROTECTED && MODULES_MICRODDS_CLIENT
 	---help---
 		Put microdds_client in userspace memory
+
+menuconfig MICRODDS_TOPICS_YAML
+	string "dds topics .yaml file name"
+	default "dds_topics.yaml"
+	depends on MODULES_MICRODDS_CLIENT
+	---help---
+		Filename for yaml file for generating topics sources
