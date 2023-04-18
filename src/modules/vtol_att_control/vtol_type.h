@@ -324,7 +324,6 @@ protected:
 					(ParamFloat<px4::params::VT_B_TRANS_DUR>) _param_vt_b_trans_dur,
 					(ParamFloat<px4::params::VT_ARSP_TRANS>) _param_vt_arsp_trans,
 					(ParamFloat<px4::params::VT_F_TRANS_THR>) _param_vt_f_trans_thr,
-					(ParamFloat<px4::params::VT_B_TRANS_THR>) _param_vt_b_trans_thr,
 					(ParamFloat<px4::params::VT_ARSP_BLEND>) _param_vt_arsp_blend,
 					(ParamBool<px4::params::FW_ARSP_MODE>) _param_fw_arsp_mode,
 					(ParamFloat<px4::params::VT_TRANS_TIMEOUT>) _param_vt_trans_timeout,
