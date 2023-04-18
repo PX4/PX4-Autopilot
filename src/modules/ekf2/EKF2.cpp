@@ -1665,6 +1665,9 @@ void EKF2::PublishStatus(const hrt_abstime &timestamp)
 	status.gyro_device_id = _device_id_gyro;
 	status.mag_device_id = _device_id_mag;
 
+	_ekf.get_mag_checks(status.mag_inclination_deg, status.mag_inclination_ref_deg, status.mag_strength_gs,
+			    status.mag_strength_ref_gs);
+
 	status.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 	_estimator_status_pub.publish(status);
 }

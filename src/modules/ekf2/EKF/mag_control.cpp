@@ -448,11 +448,11 @@ bool Ekf::checkMagField(const Vector3f &mag_sample)
 	}
 
 	bool is_check_failing = false;
-	const float mag_strength = mag_sample.length();
+	_mag_strength = mag_sample.length();
 
 	if (_params.mag_check & static_cast<int32_t>(MagCheckMask::STRENGTH)) {
 		if (PX4_ISFINITE(_mag_strength_gps)) {
-			if (!isMeasuredMatchingExpected(mag_strength, _mag_strength_gps, _params.mag_check_strength_tolerance_gs)) {
+			if (!isMeasuredMatchingExpected(_mag_strength, _mag_strength_gps, _params.mag_check_strength_tolerance_gs)) {
 				_control_status.flags.mag_field_disturbed = true;
 				is_check_failing = true;
 			}
@@ -472,12 +472,12 @@ bool Ekf::checkMagField(const Vector3f &mag_sample)
 	}
 
 	const Vector3f mag_earth = _R_to_earth * mag_sample;
-	const float mag_inclination = asin(mag_earth(2) / fmaxf(mag_earth.norm(), 1e-4f));
+	_mag_inclination = asin(mag_earth(2) / fmaxf(mag_earth.norm(), 1e-4f));
 
 	if (_params.mag_check & static_cast<int32_t>(MagCheckMask::INCLINATION)) {
 		if (PX4_ISFINITE(_mag_inclination_gps)) {
 			const float inc_tol_rad = radians(_params.mag_check_inclination_tolerance_deg);
-			const float inc_error_rad = wrap_pi(mag_inclination - _mag_inclination_gps);
+			const float inc_error_rad = wrap_pi(_mag_inclination - _mag_inclination_gps);
 
 			if (fabsf(inc_error_rad) > inc_tol_rad) {
 				_control_status.flags.mag_field_disturbed = true;
