@@ -106,6 +106,5 @@ param set-default NAV_ACC_RAD 5
 
 param set-default VT_FWD_THRUST_EN 4
 param set-default VT_F_TRANS_THR 0.75
-param set-default VT_B_TRANS_DUR 8
 param set-default VT_TYPE 2
 param set-default FD_ESCS_EN 0

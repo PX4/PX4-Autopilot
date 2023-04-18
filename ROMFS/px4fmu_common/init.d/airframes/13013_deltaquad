@@ -117,7 +117,6 @@ param set-default VT_PITCH_MIN 8
 param set-default VT_FW_QC_P 55
 param set-default VT_FW_QC_R 55
 param set-default VT_TRANS_MIN_TM 15
-param set-default VT_B_TRANS_DUR 8
 param set-default VT_FWD_THRUST_SC 4
 param set-default VT_F_TRANS_DUR 1
 param set-default VT_B_TRANS_THR 0.7
