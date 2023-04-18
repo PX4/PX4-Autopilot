@@ -10,3 +10,10 @@ menuconfig USER_UXRCE_DDS_CLIENT
 	depends on BOARD_PROTECTED && MODULES_UXRCE_DDS_CLIENT
 	---help---
 		Put uxrce_dds_client in userspace memory
+
+menuconfig UXRCE_DDS_TOPICS_YAML
+	string "dds topics .yaml file name"
+	default "dds_topics.yaml"
+	depends on MODULES_UXRCE_DDS_CLIENT
+	---help---
+		Filename for yaml file for generating topics sources
