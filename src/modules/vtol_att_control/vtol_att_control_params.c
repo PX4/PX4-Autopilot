@@ -107,22 +107,6 @@ PARAM_DEFINE_FLOAT(VT_B_TRANS_DUR, 10.0f);
 PARAM_DEFINE_FLOAT(VT_F_TRANS_THR, 1.0f);
 
 /**
- * Target throttle value for the transition to hover flight.
- *
- * standard vtol: pusher
- *
- * tailsitter, tiltrotor: main throttle
- *
- *
- * @min -1
- * @max 1
- * @increment 0.01
- * @decimal 2
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_FLOAT(VT_B_TRANS_THR, 0.0f);
-
-/**
  * Approximate deceleration during back transition
  *
  * The approximate deceleration during a back transition in m/s/s
