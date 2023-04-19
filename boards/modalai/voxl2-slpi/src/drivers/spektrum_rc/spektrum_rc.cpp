@@ -46,13 +46,23 @@
 #include <px4_platform_common/getopt.h>
 
 #include <lib/rc/dsm.h>
+#include <px4_log.h>
+#include "drv_rc_input.h"
 #include <drivers/drv_hrt.h>
+
+#ifdef __PX4_QURT
+#include <drivers/device/qurt/uart.h>
+#endif
 
 #include <uORB/uORB.h>
 #include <uORB/topics/input_rc.h>
 
 // Snapdraogon: use J12 (next to J13, power module side)
+#ifdef __PX4_QURT
+#define SPEKTRUM_UART_DEVICE_PATH "7"
+#else
 #define SPEKTRUM_UART_DEVICE_PATH "/dev/tty-3"
+#endif
 
 #define UNUSED(x) (void)(x)
 
@@ -82,11 +92,17 @@ void task_main(int argc, char *argv[])
 	int ch;
 	int myoptind = 1;
 	const char *myoptarg = NULL;
+	bool verbose = false;
 
-	while ((ch = px4_getopt(argc, argv, "d:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "vd:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'd':
 			device_path = myoptarg;
+			break;
+
+		case 'v':
+			PX4_INFO("Spektrum RC: Enabling verbose mode");
+			verbose = true;
 			break;
 
 		default:
@@ -96,9 +112,12 @@ void task_main(int argc, char *argv[])
 
 	int uart_fd = dsm_init(device_path);
 
-	if (uart_fd < 1) {
+	if (uart_fd < 0) {
 		PX4_ERR("dsm init failed");
 		return;
+
+	} else if (verbose) {
+		PX4_INFO("Spektrum RC: dsm_init succeeded");
 	}
 
 	orb_advert_t rc_pub = nullptr;
@@ -109,50 +128,94 @@ void task_main(int argc, char *argv[])
 	_is_running = true;
 	uint16_t raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS];
 	uint16_t raw_rc_count = 0;
+	uint32_t loop_counter = 0;
+	bool     print_msg = false;
+	bool     first_correct_frame_received = false;
+	int      newbytes = 0;
 
 	// Main loop
 	while (!_task_should_exit) {
 
-		int newbytes = ::read(uart_fd, &rx_buf[0], sizeof(rx_buf));
+		if (((loop_counter % 20) == 0) && verbose) { print_msg = true; }
 
-		if (newbytes < 0) {
-			PX4_WARN("read failed");
-			continue;
-		}
+		loop_counter++;
 
-		if (newbytes == 0) {
-			continue;
-		}
+#ifdef __PX4_QURT
+#define ASYNC_UART_READ_WAIT_US 2000
+		// The UART read on SLPI is via an asynchronous service so specify a timeout
+		// for the return. The driver will poll periodically until the read comes in
+		// so this may block for a while. However, it will timeout if no read comes in.
+		newbytes =  qurt_uart_read(uart_fd, (char *) &rx_buf[0], sizeof(rx_buf), ASYNC_UART_READ_WAIT_US);
+#else
+		newbytes = read(uart_fd, &rx_buf[0], sizeof(rx_buf));
+#endif
 
-		const hrt_abstime now = hrt_absolute_time();
+		if (newbytes <= 0) {
+			if (print_msg) { PX4_INFO("Spektrum RC: Read no bytes from UART"); }
 
-		bool dsm_11_bit;
-		unsigned frame_drops;
-		int8_t dsm_rssi;
+		} else if (((newbytes != DSM_FRAME_SIZE) || ((rx_buf[1] & 0x0F) != 0x02)) && (! first_correct_frame_received)) {
+			PX4_ERR("Spektrum RC: Read something other than correct DSM frame on read. Got %d bytes. Protocol byte is 0x%.2x",
+				newbytes, rx_buf[1]);
 
-		// parse new data
-		bool rc_updated = dsm_parse(now, rx_buf, newbytes, &raw_rc_values[0], &raw_rc_count,
-					    &dsm_11_bit, &frame_drops, &dsm_rssi, input_rc_s::RC_INPUT_MAX_CHANNELS);
-		UNUSED(dsm_11_bit);
+		} else {
+			if (print_msg) { PX4_INFO("Spektrum RC: Read %d bytes from UART", newbytes); }
 
-		if (rc_updated) {
+			first_correct_frame_received = true;
 
-			input_rc_s input_rc = {};
+			const hrt_abstime now = hrt_absolute_time();
 
-			fill_input_rc(raw_rc_count, raw_rc_values, now, false, false, frame_drops, dsm_rssi,
-				      input_rc);
+			bool dsm_11_bit;
+			unsigned frame_drops;
+			int8_t dsm_rssi;
 
-			if (rc_pub == nullptr) {
-				rc_pub = orb_advertise(ORB_ID(input_rc), &input_rc);
+			// parse new data
+			bool rc_updated = dsm_parse(now, rx_buf, newbytes, &raw_rc_values[0], &raw_rc_count,
+						    &dsm_11_bit, &frame_drops, &dsm_rssi, input_rc_s::RC_INPUT_MAX_CHANNELS);
+			UNUSED(dsm_11_bit);
 
-			} else {
-				orb_publish(ORB_ID(input_rc), rc_pub, &input_rc);
+			if (rc_updated) {
+				if (print_msg) { PX4_INFO("Spektrum RC: DSM message parsed successfully"); }
+
+				input_rc_s input_rc = {};
+
+				fill_input_rc(raw_rc_count, raw_rc_values, now, false, false, frame_drops, dsm_rssi,
+					      input_rc);
+
+				if (rc_pub == nullptr) {
+					rc_pub = orb_advertise(ORB_ID(input_rc), &input_rc);
+
+				} else {
+					if (print_msg) { PX4_INFO("Spektrum RC: Publishing input_rc"); }
+
+					orb_publish(ORB_ID(input_rc), rc_pub, &input_rc);
+				}
+			}
+
+			if (print_msg) {
+				PX4_INFO("0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x",
+					 rx_buf[0],
+					 rx_buf[1],
+					 rx_buf[2],
+					 rx_buf[3],
+					 rx_buf[4],
+					 rx_buf[5],
+					 rx_buf[6],
+					 rx_buf[7],
+					 rx_buf[8],
+					 rx_buf[9],
+					 rx_buf[10],
+					 rx_buf[11],
+					 rx_buf[12],
+					 rx_buf[13],
+					 rx_buf[14],
+					 rx_buf[15]);
 			}
 		}
 
+		print_msg = false;
+
 		// sleep since no poll for qurt
 		usleep(10000);
-
 	}
 
 	orb_unadvertise(rc_pub);
@@ -204,9 +267,6 @@ void fill_input_rc(uint16_t raw_rc_count, uint16_t raw_rc_values[input_rc_s::RC_
 	input_rc.rc_lost = (valid_chans == 0);
 	input_rc.rc_lost_frame_count = frame_drops;
 	input_rc.rc_total_frame_count = 0;
-
-	input_rc.link_quality = -1;
-	input_rc.rssi_dbm = NAN;
 }
 
 int start(int argc, char *argv[])
