@@ -204,7 +204,7 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 			if (_time_delayed_us > (_flow_sample_delayed.time_us - uint32_t(1e6f * _flow_sample_delayed.dt) / 2)) {
 				// Fuse optical flow LOS rate observations into the main filter only if height above ground has been updated recently
 				// but use a relaxed time criteria to enable it to coast through bad range finder data
-				if (isRecent(_time_last_hagl_fuse, (uint64_t)100e6)) {
+				if (isRecent(_time_last_hagl_fuse, (uint64_t)10e6)) {
 					fuseOptFlow();
 					_last_known_pos.xy() = _state.pos.xy();
 				}
