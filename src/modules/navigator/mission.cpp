@@ -113,8 +113,8 @@ Mission::on_inactive()
 		/* reset the current mission if needed */
 		if (need_to_reset_mission()) {
 			reset_mission(_mission);
-			update_mission();
 			_navigator->reset_cruising_speed();
+			_current_mission_index = 0;
 		}
 
 	} else {
