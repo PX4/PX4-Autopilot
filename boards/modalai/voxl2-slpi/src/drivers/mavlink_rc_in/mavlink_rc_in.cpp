@@ -40,6 +40,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/input_rc.h>
+#include <uORB/topics/radio_status.h>
 #include "uORB/uORBManager.hpp"
 #include <mavlink.h>
 #include <px4_log.h>
@@ -77,6 +78,7 @@ std::string port = "7";
 uint32_t baudrate = 115200;
 
 uORB::PublicationMulti<input_rc_s> _rc_pub{ORB_ID(input_rc)};
+uORB::PublicationMulti<radio_status_s> _radio_status_pub{ORB_ID(radio_status)};
 
 perf_counter_t	_perf_rx_rate = nullptr;
 
@@ -97,6 +99,7 @@ void task_main(int argc, char *argv[]);
 
 void handle_message_dsp(mavlink_message_t *msg);
 void handle_message_rc_channels_override_dsp(mavlink_message_t *msg);
+void handle_message_radio_status_dsp(mavlink_message_t *msg);
 
 void handle_message_dsp(mavlink_message_t *msg)
 {
@@ -115,6 +118,10 @@ void handle_message_dsp(mavlink_message_t *msg)
 	switch (msg->msgid) {
 	case MAVLINK_MSG_ID_RC_CHANNELS_OVERRIDE:
 		handle_message_rc_channels_override_dsp(msg);
+		break;
+
+	case MAVLINK_MSG_ID_RADIO_STATUS:
+		handle_message_radio_status_dsp(msg);
 		break;
 
 	default:
@@ -300,12 +307,33 @@ void task_main(int argc, char *argv[])
 	}
 }
 
+void handle_message_radio_status_dsp(mavlink_message_t *msg)
+{
+	if (debug) { PX4_INFO("Radio status msg received"); }
+
+	mavlink_radio_status_t rstatus;
+	mavlink_msg_radio_status_decode(msg, &rstatus);
+
+	radio_status_s status{};
+
+	status.timestamp = hrt_absolute_time();
+	status.rssi = rstatus.rssi;
+	status.remote_rssi = rstatus.remrssi;
+	status.txbuf = rstatus.txbuf;
+	status.noise = rstatus.noise;
+	status.remote_noise = rstatus.remnoise;
+	status.rxerrors = rstatus.rxerrors;
+	status.fix = rstatus.fixed;
+
+	_radio_status_pub.publish(status);
+}
+
 void handle_message_rc_channels_override_dsp(mavlink_message_t *msg)
 {
 	mavlink_rc_channels_override_t man;
 	mavlink_msg_rc_channels_override_decode(msg, &man);
 
-	// if (debug) PX4_INFO("RC channels override msg received");
+	if (debug) { PX4_INFO("RC channels override msg received"); }
 
 	// Check target
 	if (man.target_system != 0) {

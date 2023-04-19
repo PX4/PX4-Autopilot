@@ -75,15 +75,13 @@ void WorkerThread::startTask(Request request)
 	pthread_attr_init(&low_prio_attr);
 	pthread_attr_setstacksize(&low_prio_attr, PX4_STACK_ADJUSTED(4804));
 
-#ifndef __PX4_QURT
-	// This is not supported by QURT (yet).
 	struct sched_param param;
 	pthread_attr_getschedparam(&low_prio_attr, &param);
 
 	/* low priority */
 	param.sched_priority = SCHED_PRIORITY_DEFAULT - 50;
 	pthread_attr_setschedparam(&low_prio_attr, &param);
-#endif
+
 	int ret = pthread_create(&_thread_handle, &low_prio_attr, &threadEntryTrampoline, this);
 	pthread_attr_destroy(&low_prio_attr);
 
