@@ -40,7 +40,9 @@
 #include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
 #include <uORB/uORB.h>
 
+#if not defined(CONFIG_ARCH_BOARD_PX4_SITL)
 extern "C" { int muorb_init(); }
+#endif
 
 int px4_platform_init(void)
 {
@@ -53,7 +55,9 @@ int px4_platform_init(void)
 
 	uorb_start();
 
+#if not defined(CONFIG_ARCH_BOARD_PX4_SITL)
 	muorb_init();
+#endif
 
 	// Give muorb some time to setup the DSP
 	usleep(100000);
