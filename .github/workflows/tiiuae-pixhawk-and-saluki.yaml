@@ -163,6 +163,11 @@ jobs:
             pr_or_empty="pr/"
           fi
 
+          newline=$'\n'
+          artifactory_links="| target | link |
+          |--------|------|"
+          artifactory_base_url="https://ssrc.jfrog.io/artifactory/"
+
           for pkg in $(find bin -type f); do
 
             file_name=$(basename $pkg)
@@ -179,15 +184,20 @@ jobs:
               continue
             fi
 
+            artifactory_path=$ARTIFACTORY_GEN_REPO/builds/px4-firmware/${target_path}/${pr_or_empty}
+
             jfrog rt u --target-props COMMIT="$GITHUB_SHA" \
               --build-name "$BUILD_NAME_PX4" \
               --build-number "$GITHUB_SHA" \
               "$pkg" \
-              "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/${target_path}/${pr_or_empty}$file_name"
+              "${artifactory_path}$file_name"
 
             jfrog rt cp --flat \
-              "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/${target_path}/${pr_or_empty}$file_name" \
-              "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/${target_path}/${pr_or_empty}latest/${pkg_name}.${ext}"
+              "${artifactory_path}$file_name" \
+              "${artifactory_path}latest/${pkg_name}.${ext}"
+
+              # append every file to artifactory_links
+              artifactory_links+="${newline}| ${pkg_name} | ${artifactory_base_url}${artifactory_path}${file_name} |"
           done
 
           jfrog rt build-publish "$BUILD_NAME_PX4" "$GITHUB_SHA"
@@ -195,6 +205,9 @@ jobs:
                        --status dev \
                        --comment "development build"
 
+          # save upload path to output for later use
+          echo "### Cloud Artifactory links:" >> $GITHUB_STEP_SUMMARY
+          echo "${artifactory_links}" >> $GITHUB_STEP_SUMMARY
 
   artifactory-uae:
     name: upload builds to UAE artifactory
@@ -225,6 +238,11 @@ jobs:
             pr_or_empty="pr/"
           fi
 
+          newline=$'\n'
+          artifactory_links="| target | link |
+          |--------|------|"
+          artifactory_base_url="https://artifactory.ssrcdevops.tii.ae/artifactory/"
+
           for pkg in $(find bin -type f); do
 
             file_name=$(basename $pkg)
@@ -241,21 +259,30 @@ jobs:
               continue
             fi
 
+            artifactory_path=$ARTIFACTORY_GEN_REPO/builds/px4-firmware/${target_path}/${pr_or_empty}
+
             jfrog rt u --target-props COMMIT="$GITHUB_SHA" \
               --build-name "$BUILD_NAME_PX4" \
               --build-number "$GITHUB_SHA" \
               "$pkg" \
-              "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/${target_path}/${pr_or_empty}$file_name"
+              "${artifactory_path}$file_name"
 
             jfrog rt cp --flat \
-              "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/${target_path}/${pr_or_empty}$file_name" \
-              "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/${target_path}/${pr_or_empty}latest/${pkg_name}.${ext}"
+              "${artifactory_path}$file_name" \
+              "${artifactory_path}latest/${pkg_name}.${ext}"
+
+            # append every file to artifactory_links
+            artifactory_links+="${newline}| ${pkg_name} | ${artifactory_base_url}${artifactory_path}${file_name} |"
           done
 
           jfrog rt build-publish "$BUILD_NAME_PX4" "$GITHUB_SHA"
           jfrog rt bpr "$BUILD_NAME_PX4" "$GITHUB_SHA" "$ARTIFACTORY_GEN_REPO" \
                        --status dev \
                        --comment "development build"
+
+          # export artifactory linds as gh step summary
+          echo "### UAE Artifactory links:" >> $GITHUB_STEP_SUMMARY
+          echo "${artifactory_links}" >> $GITHUB_STEP_SUMMARY
 
       - name: Upload px4-fwupdater build to Artifactory
         env:
