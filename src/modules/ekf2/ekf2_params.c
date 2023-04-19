@@ -621,7 +621,7 @@ PARAM_DEFINE_FLOAT(EKF2_TAS_GATE, 3.0f);
  * 5 : Set to true to enable multi-rotor drag specific force fusion
  * 6 : Deprecated, use EKF2_EV_CTRL instead
  * 7 : Deprecated, use EKF2_GPS_CTRL instead
- * 3 : Deprecated, use EKF2_EV_CTRL instead
+ * 8 : Deprecated, use EKF2_EV_CTRL instead
  *
  * @group EKF2
  * @min 0
