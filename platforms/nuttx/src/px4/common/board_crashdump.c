@@ -235,8 +235,8 @@ static uint32_t *__attribute__((noinline)) __sdata_addr(void)
 	return (uint32_t *)(uint32_t)_sdata;
 }
 
-
-__EXPORT void board_crashdump(uintptr_t currentsp, FAR void *tcb, FAR const char *filename, int lineno)
+__EXPORT void board_crashdump(uintptr_t currentsp, FAR struct tcb_s *rtcb, FAR const char *filename, int lineno,
+			      FAR const char *msg)
 {
 #ifndef BOARD_CRASHDUMP_RESET_ONLY
 	/* We need a chunk of ram to save the complete context in.
@@ -249,8 +249,6 @@ __EXPORT void board_crashdump(uintptr_t currentsp, FAR void *tcb, FAR const char
 	fullcontext_s *pdump = (fullcontext_s *)__sdata_addr();
 
 	(void)enter_critical_section();
-
-	struct tcb_s *rtcb = (struct tcb_s *)tcb;
 
 	/* Zero out everything */
 
