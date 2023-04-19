@@ -100,8 +100,6 @@ then
 	spl06 -X -a 0x77 start
 fi
 
-gps start -d /dev/ttyS0 -p ubx
-
 # probe for optional external I2C devices
 icm20948_i2c_passthrough -X -q start
 
