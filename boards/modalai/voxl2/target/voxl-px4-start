@@ -76,7 +76,7 @@ if [ "$GPS" == "MATEK" ]; then
 elif [ "$GPS" == "HOLYBRO" ]; then
     # Only the newer Holybro unit is supported on M0054
     /bin/echo "Starting Holybro GPS"
-    qshell gps start -b 115200
+    qshell gps start
 fi
 
 # LED driver for the Pixhawk 4 GPS module
