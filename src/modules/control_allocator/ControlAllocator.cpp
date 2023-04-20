@@ -429,10 +429,10 @@ ControlAllocator::Run()
 
 			_control_allocation[i]->clipActuatorSetpoint();
 		}
-	}
 
-	// Publish actuator setpoint and allocator status
-	publish_actuator_controls();
+		// Publish actuator setpoint
+		publish_actuator_controls();
+	}
 
 	// Publish status at limited rate, as it's somewhat expensive and we use it for slower dynamics
 	// (i.e. anti-integrator windup)
