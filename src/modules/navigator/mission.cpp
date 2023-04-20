@@ -115,6 +115,8 @@ Mission::on_inactive()
 			reset_mission(_mission);
 			_navigator->reset_cruising_speed();
 			_current_mission_index = 0;
+			_navigator->reset_vroi();
+			set_current_mission_item();
 		}
 
 	} else {
