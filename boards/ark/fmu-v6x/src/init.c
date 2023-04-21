@@ -110,6 +110,7 @@ __EXPORT void board_peripheral_reset(int ms)
 	VDD_5V_PERIPH_EN(false);
 	board_control_spi_sensors_power(false, 0xffff);
 	VDD_3V3_SENSORS4_EN(false);
+	SPI6_RESET(true);
 
 	bool last = READ_VDD_3V3_SPEKTRUM_POWER_EN();
 	/* Keep Spektum on to discharge rail*/
@@ -128,6 +129,8 @@ __EXPORT void board_peripheral_reset(int ms)
 	VDD_5V_HIPOWER_EN(true);
 	VDD_5V_PERIPH_EN(true);
 
+	/* Release SPI6 Reset */
+	SPI6_RESET(false);
 }
 
 /************************************************************************************
@@ -216,6 +219,8 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	VDD_5V_HIPOWER_EN(true);
 	VDD_3V3_SENSORS4_EN(true);
 	VDD_3V3_SPEKTRUM_POWER_EN(true);
+
+	SPI6_RESET(false);
 
 	/* Need hrt running before using the ADC */
 
