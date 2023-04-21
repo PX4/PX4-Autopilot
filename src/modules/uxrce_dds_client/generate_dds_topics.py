@@ -53,7 +53,7 @@ parser.add_argument("-t", "--template_file", dest='template_file', type=str,
                     help="DDS topics template file")
 
 parser.add_argument("-u", "--client-outdir", dest='clientdir', type=str,
-                    help="Client output dir, by default using relative path 'src/modules/microdds_client'", default=None)
+                    help="Client output dir, by default using relative path 'src/modules/uxrce_dds_client'", default=None)
 
 if len(sys.argv) <= 1:
     parser.print_usage()
