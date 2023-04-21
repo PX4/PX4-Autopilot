@@ -58,7 +58,7 @@
 	path = src/lib/crypto/libtommath
 	url = https://github.com/PX4/libtommath.git
 	branch = px4
-[submodule "src/modules/microdds_client/Micro-XRCE-DDS-Client"]
-	path = src/modules/microdds_client/Micro-XRCE-DDS-Client
+[submodule "src/modules/uxrce_dds_client/Micro-XRCE-DDS-Client"]
+	path = src/modules/uxrce_dds_client/Micro-XRCE-DDS-Client
 	url = https://github.com/PX4/Micro-XRCE-DDS-Client.git
 	branch = px4
