@@ -303,14 +303,7 @@ bool VtolType::isFrontTransitionAltitudeLoss()
 
 	if (_param_vt_qc_t_alt_loss.get() > FLT_EPSILON && _common_vtol_mode == mode::TRANSITION_TO_FW && _local_pos->z_valid) {
 
-		if (_local_pos->z <= FLT_EPSILON) {
-			// vehilce is above home
-			result = _local_pos->z - _local_position_z_start_of_transition > _param_vt_qc_t_alt_loss.get();
-
-		} else {
-			// vehilce is below home
-			result = _local_position_z_start_of_transition - _local_pos->z > _param_vt_qc_t_alt_loss.get();
-		}
+		result = _local_pos->z - _local_position_z_start_of_transition > _param_vt_qc_t_alt_loss.get();
 	}
 
 	return result;
