@@ -8,7 +8,7 @@ uint8 ACTION_DO_CONTROL = 1			# enable actuator test mode
 uint8 FUNCTION_MOTOR1 = 101
 uint8 MAX_NUM_MOTORS  = 12
 uint8 FUNCTION_SERVO1 = 201
-uint8 MAX_NUM_SERVOS  = 8
+uint8 MAX_NUM_SERVOS  = 15
 
 uint8 action					# one of ACTION_*
 uint16 function					# actuator output function
