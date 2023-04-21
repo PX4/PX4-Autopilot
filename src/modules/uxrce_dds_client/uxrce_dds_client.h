@@ -36,11 +36,11 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 
-#include <src/modules/microdds_client/dds_topics.h>
+#include <src/modules/uxrce_dds_client/dds_topics.h>
 
 #include <lib/timesync/Timesync.hpp>
 
-class MicroddsClient : public ModuleBase<MicroddsClient>, public ModuleParams
+class UxrceddsClient : public ModuleBase<UxrceddsClient>, public ModuleParams
 {
 public:
 	enum class Transport {
@@ -48,16 +48,16 @@ public:
 		Udp
 	};
 
-	MicroddsClient(Transport transport, const char *device, int baudrate, const char *host, const char *port,
+	UxrceddsClient(Transport transport, const char *device, int baudrate, const char *host, const char *port,
 		       bool localhost_only, bool custom_participant, const char *client_namespace);
 
-	~MicroddsClient();
+	~UxrceddsClient();
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
 
 	/** @see ModuleBase */
-	static MicroddsClient *instantiate(int argc, char *argv[]);
+	static UxrceddsClient *instantiate(int argc, char *argv[]);
 
 	/** @see ModuleBase */
 	static int custom_command(int argc, char *argv[]);
@@ -104,8 +104,7 @@ private:
 	Timesync _timesync{timesync_status_s::SOURCE_PROTOCOL_DDS};
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::XRCE_DDS_DOM_ID>) _param_xrce_dds_dom_id,
-		(ParamInt<px4::params::XRCE_DDS_KEY>) _param_xrce_key
+		(ParamInt<px4::params::UXRCE_DDS_DOM_ID>) _param_xrce_dds_dom_id,
+		(ParamInt<px4::params::UXRCE_DDS_KEY>) _param_xrce_key
 	)
 };
-
