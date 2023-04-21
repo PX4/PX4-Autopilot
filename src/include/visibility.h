@@ -60,7 +60,7 @@
 #endif
 
 
-#define system_exit exit
+#define system_exit _exit
 #define system_clock_gettime clock_gettime
 #define system_clock_settime clock_settime
 #define system_pthread_cond_timedwait pthread_cond_timedwait
