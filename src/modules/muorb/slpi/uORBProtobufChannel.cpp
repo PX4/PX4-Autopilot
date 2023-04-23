@@ -385,8 +385,13 @@ int px4muorb_add_subscriber(const char *topic_name)
 		uORBCommunicator::IChannelRxHandler *rxHandler = channel->GetRxHandler();
 
 		if (rxHandler) {
-			channel->AddRemoteSubscriber(topic_name);
-			// Pick a high message rate of 1000 Hz
+			if (channel->AddRemoteSubscriber(topic_name)) {
+				// Only process this subscription if it is the only one for the topic.
+				// Otherwise it will send some data from the queue and, most likely,
+				// mess up the queue on the remote side.
+				return 0;
+			}
+
 			return rxHandler->process_add_subscription(topic_name);
 
 		} else {

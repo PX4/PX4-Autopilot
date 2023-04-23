@@ -638,7 +638,7 @@ int16_t uORB::Manager::process_remote_topic(const char *topic_name)
 		// Add some queue depth when advertising remote topics. These
 		// topics may get aggregated and thus delivered in a batch that
 		// requires some buffering in a queue.
-		orb_advertise(topic_ptr, nullptr, 5);
+		orb_advertise(topic_ptr, nullptr, 16);
 
 	} else {
 		PX4_INFO("process_remote_topic meta not found for %s\n", topic_name);
