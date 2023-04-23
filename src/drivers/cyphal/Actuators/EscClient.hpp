@@ -56,12 +56,16 @@
 #include <uORB/topics/actuator_test.h>
 #include <uORB/topics/esc_status.h>
 #include <drivers/drv_hrt.h>
+#include "../Subscribers/DynamicPortSubscriber.hpp"
+#include "../Publishers/Publisher.hpp"
 #include <lib/mixer_module/mixer_module.hpp>
+#include <systemlib/mavlink_log.h>
 
 // UDRAL Specification Messages
 using std::isfinite;
 #include <reg/udral/service/actuator/common/sp/Vector31_0_1.h>
 #include <reg/udral/service/common/Readiness_0_1.h>
+
 
 class ReadinessPublisher : public UavcanPublisher
 {
@@ -222,4 +226,65 @@ private:
 	void esc_status_sub_cb(const CanardRxTransfer &msg);
 
 	uint8_t _rotor_count {0};
+};
+
+class UavcanEscFeedbackSubscriber : public UavcanDynamicPortSubscriber
+{
+public:
+	UavcanEscFeedbackSubscriber(CanardHandle &handle, UavcanParamManager &pmgr, uint8_t instance = 0) :
+		UavcanDynamicPortSubscriber(handle, pmgr, "zubax.", "feedback", instance) {}
+
+	void subscribe() override
+	{
+		_canard_handle.RxSubscribe(CanardTransferKindMessage,
+					   _subj_sub._canard_sub.port_id,
+					   reg_udral_service_common_Readiness_0_1_EXTENT_BYTES_,
+					   CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
+					   &_subj_sub._canard_sub);
+	};
+
+	void callback(const CanardRxTransfer &receive) override
+	{
+		const ZubaxCompactFeedback* feedback = ((const ZubaxCompactFeedback*)(receive.payload));
+		uint8_t esc_index = 0;
+		float voltage = 0.2 * feedback->dc_voltage;
+		float current = 0.2 * feedback->dc_current;
+		int32_t velocity = 0.10472 * feedback->velocity;
+
+		mavlink_log_info(&_mavlink_log_pub, "zubax.feedback size is %d", receive.payload_size);
+
+		if (esc_index < esc_status_s::CONNECTED_ESC_MAX) {
+			auto &ref = _esc_status.esc[esc_index];
+
+			ref.timestamp       = hrt_absolute_time();
+			ref.esc_address     = receive.metadata.remote_node_id;
+			ref.esc_voltage     = voltage;
+			ref.esc_current     = current;
+			ref.esc_temperature = NAN;
+			ref.esc_rpm         = velocity;
+			ref.esc_errorcount  = 0;
+
+			_esc_status.esc_count = 4; // _rotor_count;
+			_esc_status.counter += 1;
+			_esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_CAN;
+			_esc_status.esc_online_flags = 7; // check_escs_status();
+			_esc_status.esc_armed_flags = 7 ; // (1 << _rotor_count) - 1;
+			_esc_status.timestamp = hrt_absolute_time();
+			_esc_status_pub.publish(_esc_status);
+		}
+	};
+
+private:
+	// https://telega.zubax.com/interfaces/cyphal.html#compact
+	struct ZubaxCompactFeedback {
+		uint32_t dc_voltage 		: 11;
+		int32_t dc_current 		: 12;
+		int32_t phase_current_amplitude	: 12;
+		int32_t velocity 		: 13;
+		int8_t demand_factor_pct 	: 8;
+	};
+
+	esc_status_s	_esc_status{};
+	uORB::PublicationMulti<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
+	orb_advert_t _mavlink_log_pub{nullptr};
 };
