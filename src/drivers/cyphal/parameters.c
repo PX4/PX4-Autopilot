@@ -163,6 +163,15 @@ PARAM_DEFINE_INT32(UCAN1_UORB_GPS_P, -1);
 PARAM_DEFINE_INT32(UCAN1_ESC_PUB, -1);
 
 /**
+ * Cyphal ESC readiness port ID.
+ *
+ * @min -1
+ * @max 6143
+ * @group Cyphal
+ */
+PARAM_DEFINE_INT32(UCAN1_READ_PUB, -1);
+
+/**
  * Cyphal GPS publication port ID.
  *
  * @min -1
