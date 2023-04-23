@@ -67,7 +67,7 @@
 /* Preprocessor calculation of publisher count */
 
 #define UAVCAN_PUB_COUNT CONFIG_CYPHAL_GNSS_PUBLISHER + \
-	CONFIG_CYPHAL_ESC_CONTROLLER + \
+	2 * CONFIG_CYPHAL_ESC_CONTROLLER + \
 	CONFIG_CYPHAL_READINESS_PUBLISHER + \
 	CONFIG_CYPHAL_UORB_ACTUATOR_OUTPUTS_PUBLISHER + \
 	CONFIG_CYPHAL_UORB_SENSOR_GPS_PUBLISHER
@@ -131,6 +131,14 @@ private:
 				return new UavcanEscController(handle, pmgr);
 			},
 			"udral.esc",
+			0
+		},
+		{
+			[](CanardHandle & handle, UavcanParamManager & pmgr) -> UavcanPublisher *
+			{
+				return new ReadinessPublisher(handle, pmgr);
+			},
+			"udral.readiness",
 			0
 		},
 #endif
