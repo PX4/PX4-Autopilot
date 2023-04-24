@@ -103,6 +103,10 @@ typedef struct {
 	bool is_persistent {true};
 } UavcanParamBinder;
 
+typedef struct {
+	const char *name;
+	const char *value;
+} CyphalTypeRegister;
 
 class UavcanParamManager
 {
@@ -134,5 +138,11 @@ private:
 		{"uavcan.sub.zubax.feedback.0.id",            	"UCAN1_FB_SUB",			px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
 		//{"uavcan.sub.bms.0.id",   "UCAN1_BMS0_SUB"}, //FIXME instancing
 		//{"uavcan.sub.bms.1.id",   "UCAN1_BMS1_SUB"},
+	};
+
+	CyphalTypeRegister _type_registers[3] {
+		{"uavcan.pub.udral.esc.0.type", 		"reg.udral.service.actuator.common.sp.Vector31"},
+		{"uavcan.pub.udral.readiness.0.type", 		"reg.udral.service.common.Readiness.0.1"},
+		{"uavcan.sub.zubax.feedback.0.type", 		"zubax.telega.CompactFeedback.0.1"},
 	};
 };
