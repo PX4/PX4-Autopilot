@@ -166,53 +166,48 @@ public:
 	static constexpr int MAX_ACTUATORS = MixingOutput::MAX_ACTUATORS;
 
 	UavcanEscController(CanardHandle &handle, UavcanParamManager &pmgr) :
-		UavcanPublisher(handle, pmgr, "udral.", "esc") { };
+		UavcanPublisher(handle, pmgr, "udral.", "esc") { }
 
-	~UavcanEscController() {};
+	~UavcanEscController() {}
 
 	void update() override
 	{
-	};
+	}
 
 	void update_outputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs)
 	{
-		if (_port_id > 0 && _port_id != CANARD_PORT_ID_UNSET) {
-			reg_udral_service_actuator_common_sp_Vector31_0_1 msg_sp {0};
-			size_t payload_size = reg_udral_service_actuator_common_sp_Vector31_0_1_SERIALIZATION_BUFFER_SIZE_BYTES_;
+		if (_port_id == 0 || _port_id == CANARD_PORT_ID_UNSET) {
+			return;
+		}
 
-			for (uint8_t i = 0; i < MAX_ACTUATORS; i++) {
-				if (i < num_outputs) {
-					msg_sp.value[i] = static_cast<float>(outputs[i] / 8192.0);
+		uint8_t max_num_outputs = MAX_ACTUATORS > num_outputs ? num_outputs : MAX_ACTUATORS;
 
-				} else {
-					// "unset" values published as NaN
-					msg_sp.value[i] = NAN;
-				}
-			}
-
-			uint8_t esc_sp_payload_buffer[reg_udral_service_actuator_common_sp_Vector31_0_1_SERIALIZATION_BUFFER_SIZE_BYTES_];
-
-			const CanardTransferMetadata transfer_metadata = {
-				.priority       = CanardPriorityNominal,
-				.transfer_kind  = CanardTransferKindMessage,
-				.port_id        = _port_id,                // This is the subject-ID.
-				.remote_node_id = CANARD_NODE_ID_UNSET,       // Messages cannot be unicast, so use UNSET.
-				.transfer_id    = _transfer_id,
-			};
-
-			int result = reg_udral_service_actuator_common_sp_Vector31_0_1_serialize_(&msg_sp, esc_sp_payload_buffer,
-					&payload_size);
-
-			if (result == 0) {
-				// set the data ready in the buffer and chop if needed
-				++_transfer_id;  // The transfer-ID shall be incremented after every transmission on this subject.
-				result = _canard_handle.TxPush(hrt_absolute_time() + PUBLISHER_DEFAULT_TIMEOUT_USEC,
-							       &transfer_metadata,
-							       payload_size,
-							       &esc_sp_payload_buffer);
+		for (int8_t i = max_num_outputs - 1; i >= _max_number_of_nonzero_outputs; i--) {
+			if (outputs[i] != 0) {
+				_max_number_of_nonzero_outputs = i + 1;
+				break;
 			}
 		}
-	};
+
+		uint16_t payload_buffer[reg_udral_service_actuator_common_sp_Vector31_0_1_value_ARRAY_CAPACITY_];
+		for (uint8_t i = 0; i < _max_number_of_nonzero_outputs; i++) {
+			payload_buffer[i] = nunavutFloat16Pack(outputs[i] / 8192.0);
+		}
+
+		const CanardTransferMetadata transfer_metadata = {
+			.priority       = CanardPriorityNominal,
+			.transfer_kind  = CanardTransferKindMessage,
+			.port_id        = _port_id,
+			.remote_node_id = CANARD_NODE_ID_UNSET,
+			.transfer_id    = _transfer_id,
+		};
+
+		++_transfer_id;
+		_canard_handle.TxPush(hrt_absolute_time() + PUBLISHER_DEFAULT_TIMEOUT_USEC,
+				      &transfer_metadata,
+				      _max_number_of_nonzero_outputs * 2,
+				      &payload_buffer);
+	}
 
 	/**
 	 * Sets the number of rotors
@@ -225,7 +220,9 @@ private:
 	 */
 	void esc_status_sub_cb(const CanardRxTransfer &msg);
 
+	uint8_t _max_number_of_nonzero_outputs{1};
 	uint8_t _rotor_count {0};
+	orb_advert_t _mavlink_log_pub{nullptr};
 };
 
 class UavcanEscFeedbackSubscriber : public UavcanDynamicPortSubscriber
@@ -268,7 +265,7 @@ public:
 			_esc_status.counter += 1;
 			_esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_CAN;
 			_esc_status.esc_online_flags = 7; // check_escs_status();
-			_esc_status.esc_armed_flags = 7 ; // (1 << _rotor_count) - 1;
+			_esc_status.esc_armed_flags = 7; // (1 << _rotor_count) - 1;
 			_esc_status.timestamp = hrt_absolute_time();
 			_esc_status_pub.publish(_esc_status);
 		}
