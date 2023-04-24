@@ -39,6 +39,7 @@
 #include <mathlib/mathlib.h>
 #include <lib/geo/geo.h>
 
+
 void TakeoffHandling::generateInitialRampValue(float velocity_p_gain)
 {
 	velocity_p_gain = math::max(velocity_p_gain, 0.01f);
@@ -74,6 +75,9 @@ void TakeoffHandling::updateTakeoffState(const bool armed, const bool landed, co
 			_takeoff_state = TakeoffState::rampup;
 			_takeoff_ramp_progress = 0.f;
 
+		} else if (!landed) {
+			_takeoff_state = TakeoffState::flight;
+
 		} else {
 			break;
 		}
@@ -103,7 +107,6 @@ void TakeoffHandling::updateTakeoffState(const bool armed, const bool landed, co
 		_takeoff_state = TakeoffState::flight;
 	}
 
-	// TODO: need to consider free fall here
 	if (!armed) {
 		_takeoff_state = TakeoffState::disarmed;
 	}
