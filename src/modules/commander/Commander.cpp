@@ -1694,6 +1694,8 @@ void Commander::run()
 
 		safetyButtonUpdate();
 
+		throwLaunchUpdate();
+
 		vtolStatusUpdate();
 
 		_home_position.update(_param_com_home_en.get(), !isArmed() && _vehicle_land_detected.landed);
@@ -1773,7 +1775,8 @@ void Commander::run()
 		_actuator_armed.prearmed = getPrearmState();
 		_actuator_armed.ready_to_arm = _vehicle_status.pre_flight_checks_pass || isArmed();
 		_actuator_armed.lockdown = ((_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_TERMINATION)
-					    || (_vehicle_status.hil_state == vehicle_status_s::HIL_STATE_ON));
+					    || (_vehicle_status.hil_state == vehicle_status_s::HIL_STATE_ON)
+					    || !(_throw_launch_state == ThrowLaunchState::DISABLED || _throw_launch_state == ThrowLaunchState::FLYING));
 		// _actuator_armed.manual_lockdown // action_request_s::ACTION_KILL
 		_actuator_armed.force_failsafe = (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_TERMINATION);
 		// _actuator_armed.in_esc_calibration_mode // VEHICLE_CMD_PREFLIGHT_CALIBRATION
@@ -2027,6 +2030,47 @@ void Commander::safetyButtonUpdate()
 	}
 }
 
+void Commander::throwLaunchUpdate()
+{
+	if (_param_com_throw_en.get()) {
+		if (_vehicle_local_position_sub.updated()) {
+			_vehicle_local_position_sub.copy(&_vehicle_local_position);
+		}
+
+		if (!isArmed() && _throw_launch_state != ThrowLaunchState::IDLE) {
+			mavlink_log_info(&_mavlink_log_pub, "The vehicle is DISARMED with throw launch enabled. Do NOT throw it.\t");
+			_throw_launch_state = ThrowLaunchState::IDLE;
+		}
+
+		if (_throw_launch_state == ThrowLaunchState::IDLE && isArmed()) {
+			mavlink_log_info(&_mavlink_log_pub, "The vehicle is ARMED with throw launch enabled. Throw the vehicle now.\t");
+			_throw_launch_state = ThrowLaunchState::ARMED;
+		}
+
+		float vehicle_speed_squared = (
+						      _vehicle_local_position.vx * _vehicle_local_position.vx +
+						      _vehicle_local_position.vy * _vehicle_local_position.vy +
+						      _vehicle_local_position.vz * _vehicle_local_position.vz
+					      );
+		float min_launch_speed = _param_com_throw_min_speed.get();
+
+		if (_throw_launch_state == ThrowLaunchState::ARMED &&
+		    vehicle_speed_squared >= min_launch_speed * min_launch_speed) {
+			PX4_INFO("Minimum throw speed exceeded; the motors will start when the vehicle starts falling down.");
+			_throw_launch_state = ThrowLaunchState::UNSAFE;
+		}
+
+		if (_throw_launch_state == ThrowLaunchState::UNSAFE && _vehicle_local_position.vz > 0) {
+			PX4_INFO("Throw successful, starting motors.");
+			_throw_launch_state = ThrowLaunchState::FLYING;
+		}
+
+	} else if (_throw_launch_state != ThrowLaunchState::DISABLED) {
+		// make sure everything is reset when the throw launch is disabled
+		_throw_launch_state = ThrowLaunchState::DISABLED;
+	}
+}
+
 void Commander::vtolStatusUpdate()
 {
 	// Make sure that this is only adjusted if vehicle really is of type vtol
@@ -2085,6 +2129,9 @@ void Commander::updateTunes()
 	} else if (_vehicle_status.failsafe && isArmed()) {
 		tune_failsafe(true);
 
+	} else if (_throw_launch_state == ThrowLaunchState::ARMED) {
+		set_tune(tune_control_s::TUNE_ID_ARMING_WARNING);
+
 	} else {
 		set_tune(tune_control_s::TUNE_ID_STOP);
 	}
@@ -2141,7 +2188,10 @@ void Commander::handleAutoDisarm()
 				_auto_disarm_landed.set_state_and_update(true, hrt_absolute_time());
 			}
 
-			if (_auto_disarm_landed.get_state()) {
+			const bool throw_launch_in_progress = (_throw_launch_state == ThrowLaunchState::ARMED
+							       || _throw_launch_state == ThrowLaunchState::UNSAFE);
+
+			if (_auto_disarm_landed.get_state() && !throw_launch_in_progress) {
 				if (_have_taken_off_since_arming) {
 					disarm(arm_disarm_reason_t::auto_disarm_land);
 
@@ -2166,7 +2216,8 @@ void Commander::handleAutoDisarm()
 			if (_actuator_armed.manual_lockdown) {
 				disarm(arm_disarm_reason_t::kill_switch, true);
 
-			} else {
+			} else if (!_param_com_throw_en.get()) {  // don't disarm if throw
+				// launch is enabled
 				disarm(arm_disarm_reason_t::lockdown, true);
 			}
 		}
@@ -2297,6 +2348,10 @@ void Commander::control_status_leds(bool changed, const uint8_t battery_warning)
 		if (overload && (time_now_us >= _overload_start + overload_warn_delay)) {
 			led_mode = led_control_s::MODE_BLINK_FAST;
 			led_color = led_control_s::COLOR_PURPLE;
+
+		} else if (_throw_launch_state == ThrowLaunchState::ARMED) {
+			led_mode = led_control_s::MODE_BLINK_FAST;
+			led_color = led_control_s::COLOR_YELLOW;
 
 		} else if (isArmed()) {
 			led_mode = led_control_s::MODE_ON;

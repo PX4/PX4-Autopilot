@@ -1134,3 +1134,30 @@ PARAM_DEFINE_INT32(COM_ARMABLE, 1);
  * @group Commander
  */
 PARAM_DEFINE_FLOAT(COM_ARM_BAT_MIN, 0.f);
+
+/**
+ * Enable throw-start
+ *
+ * Allows to start the vehicle by throwing it into the air.
+ *
+ * @group Commander
+ * @boolean
+ */
+PARAM_DEFINE_INT32(COM_THROW_EN, 0);
+
+/**
+ * Minimum speed for the throw start
+ *
+ * When the throw launch is enabled, the drone will only arm after this speed is exceeded before detecting
+ * the freefall. This is a safety feature to ensure the drone does not turn on after accidental drop or
+ * a rapid movement before the throw.
+ *
+ * Set to 0 to disable.
+ *
+ * @group Commander
+ * @min 0
+ * @decimal 1
+ * @increment 0.1
+ * @unit m/s
+ */
+PARAM_DEFINE_FLOAT(COM_THROW_SPEED, 5);
