@@ -5,7 +5,7 @@ actuator_output:
       param_prefix: '${PWM_MAIN_OR_AUX}'
       channel_labels: ['${PWM_MAIN_OR_AUX}', '${PWM_MAIN_OR_AUX_CAP}']
       standard_params:
-        disarmed: { min: 800, max: 2200, default: 900 }
+        disarmed: { min: 800, max: 2200, default: 1000 }
         min: { min: 800, max: 1400, default: 1000 }
         max: { min: 1600, max: 2200, default: 2000 }
         failsafe: { min: 800, max: 2200 }

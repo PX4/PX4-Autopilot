@@ -179,6 +179,8 @@ public:
 
 	param_t functionParamHandle(int index) const { return _param_handles[index].function; }
 	param_t disarmedParamHandle(int index) const { return _param_handles[index].disarmed; }
+	param_t minParamHandle(int index) const { return _param_handles[index].min; }
+	param_t maxParamHandle(int index) const { return _param_handles[index].max; }
 
 	/**
 	 * Returns the actual failsafe value taking into account the assigned function
