@@ -63,6 +63,14 @@ parameters:
                 9: Motor 10
                 10: Motor 11
                 11: Motor 12
+                12: Motor 13
+                13: Motor 14
+                14: Motor 15
+                15: Motor 16
+                16: Motor 17
+                17: Motor 18
+                18: Motor 19
+                19: Motor 20
             default: 0
         CA_R${i}_SLEW:
             description:
@@ -120,6 +128,13 @@ parameters:
                 10: '10'
                 11: '11'
                 12: '12'
+                13: '13'
+                14: '14'
+                15: '15'
+                16: '16'
+                17: '17'
+                18: '18'
+                19: '19'
             default: 0
         CA_ROTOR${i}_PX:
             description:
