@@ -702,35 +702,47 @@ void PX4IO::update_params()
 				if ((previously_set_functions & (1u << i)) == 0 && _mixing_output.functionParamHandle(i) != PARAM_INVALID) {
 					int32_t output_function;
 
-					if (param_get(_mixing_output.functionParamHandle(i), &output_function) == 0
-					    && output_function >= (int)OutputFunction::Servo1
-					    && output_function <= (int)OutputFunction::ServoMax) { // Function got set to a servo
-						int32_t val = 1500;
-						PX4_INFO("Setting disarmed to %i for channel %i", (int) val, i);
-						param_set(_mixing_output.disarmedParamHandle(i), &val);
+					if (param_get(_mixing_output.functionParamHandle(i), &output_function) == 0) {
+						if (output_function >= (int)OutputFunction::Servo1
+						    && output_function <= (int)OutputFunction::ServoMax) { // Function got set to a servo
+							int32_t val = 1500;
+							PX4_INFO("Setting channel %i disarmed to %i", (int) val, i);
+							param_set(_mixing_output.disarmedParamHandle(i), &val);
 
-						// If the whole timer group was not set previously, then set the pwm rate to 50 Hz
-						for (int timer = 0; timer < (int)(sizeof(_group_channels) / sizeof(_group_channels[0])); ++timer) {
+							// If the whole timer group was not set previously, then set the pwm rate to 50 Hz
+							for (int timer = 0; timer < (int)(sizeof(_group_channels) / sizeof(_group_channels[0])); ++timer) {
 
-							uint32_t channels = _group_channels[timer];
+								uint32_t channels = _group_channels[timer];
 
-							if ((channels & (1u << i)) == 0) {
-								continue;
-							}
+								if ((channels & (1u << i)) == 0) {
+									continue;
+								}
 
-							if ((channels & previously_set_functions) == 0) { // None of the channels was set
-								char param_name[17];
-								snprintf(param_name, sizeof(param_name), "%s_TIM%u", _mixing_output.paramPrefix(), timer);
+								if ((channels & previously_set_functions) == 0) { // None of the channels was set
+									char param_name[17];
+									snprintf(param_name, sizeof(param_name), "%s_TIM%u", _mixing_output.paramPrefix(), timer);
 
-								int32_t tim_config = 0;
-								param_t handle = param_find(param_name);
+									int32_t tim_config = 0;
+									param_t handle = param_find(param_name);
 
-								if (param_get(handle, &tim_config) == 0 && tim_config == 400) {
-									tim_config = 50;
-									PX4_INFO("setting timer %i to %i Hz", timer, (int) tim_config);
-									param_set(handle, &tim_config);
+									if (param_get(handle, &tim_config) == 0 && tim_config == 400) {
+										tim_config = 50;
+										PX4_INFO("setting timer %i to %i Hz", timer, (int) tim_config);
+										param_set(handle, &tim_config);
+									}
 								}
 							}
+						}
+
+						// Motors need a minimum value that idles the motor
+						if (output_function >= (int)OutputFunction::Motor1
+						    && output_function <= (int)OutputFunction::MotorMax) { // Function got set to a motor
+							int32_t val = 1100;
+							PX4_INFO("Setting channel %i minimum to %i", (int) val, i);
+							param_set(_mixing_output.minParamHandle(i), &val);
+							val = 1900;
+							PX4_INFO("Setting channel %i maximum to %i", (int) val, i);
+							param_set(_mixing_output.maxParamHandle(i), &val);
 						}
 					}
 				}
