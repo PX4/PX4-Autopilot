@@ -228,6 +228,11 @@ public:
 	float getMinimumFrontTransitionTime() const;
 
 	/**
+	 * @return Front transition timeout scaled for air density (if available) [s]
+	*/
+	float getFrontTransitionTimeout() const;
+
+	/**
 	* @return Minimum open-loop front transition time scaled for air density (if available) [s]
 	*/
 	float getOpenLoopFrontTransitionTime() const;
