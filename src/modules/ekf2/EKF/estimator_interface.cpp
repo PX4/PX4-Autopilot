@@ -569,7 +569,7 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 	}
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	if (_params.fusion_mode & SensorFusionMask::USE_OPT_FLOW) {
+	if (_params.flow_ctrl > 0) {
 		max_time_delay_ms = math::max(_params.flow_delay_ms, max_time_delay_ms);
 	}
 #endif // CONFIG_EKF2_OPTICAL_FLOW
