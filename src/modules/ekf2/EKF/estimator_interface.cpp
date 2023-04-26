@@ -480,7 +480,7 @@ void EstimatorInterface::setDragData(const imuSample &imu)
 {
 	// down-sample the drag specific force data by accumulating and calculating the mean when
 	// sufficient samples have been collected
-	if ((_params.fusion_mode & SensorFusionMask::USE_DRAG)) {
+	if (_params.drag_ctrl > 0) {
 
 		// Allocate the required buffer size if not previously done
 		if (_drag_buffer == nullptr) {

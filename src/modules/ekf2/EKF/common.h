@@ -162,7 +162,7 @@ enum SensorFusionMask : uint16_t {
 	DEPRECATED_INHIBIT_ACC_BIAS = (1<<2), ///< set to true to inhibit estimation of accelerometer delta velocity bias
 	DEPRECATED_USE_EXT_VIS_POS = (1<<3), ///< set to true to use external vision position data
 	DEPRECATED_USE_EXT_VIS_YAW = (1<<4), ///< set to true to use external vision quaternion data for yaw
-	USE_DRAG         = (1<<5),      ///< set to true to use the multi-rotor drag model to estimate wind
+	DEPRECATED_USE_DRAG         = (1<<5), ///< set to true to use the multi-rotor drag model to estimate wind
 	DEPRECATED_ROTATE_EXT_VIS  = (1<<6), ///< set to true to if the EV observations are in a non NED reference frame and need to be rotated before being used
 	DEPRECATED_USE_GPS_YAW     = (1<<7), ///< set to true to use GPS yaw data if available (DEPRECATED, use gnss_ctrl)
 	DEPRECATED_USE_EXT_VIS_VEL = (1<<8), ///< set to true to use external vision velocity data
@@ -477,6 +477,7 @@ struct parameters {
 
 #if defined(CONFIG_EKF2_DRAG_FUSION)
 	// multi-rotor drag specific force fusion
+	int32_t drag_ctrl{0};
 	float drag_noise{2.5f};                 ///< observation noise variance for drag specific force measurements (m/sec**2)**2
 	float bcoef_x{100.0f};                  ///< bluff body drag ballistic coefficient for the X-axis (kg/m**2)
 	float bcoef_y{100.0f};                  ///< bluff body drag ballistic coefficient for the Y-axis (kg/m**2)
