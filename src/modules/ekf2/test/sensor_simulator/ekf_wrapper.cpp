@@ -285,12 +285,12 @@ matrix::Vector3f EkfWrapper::getDeltaVelBiasVariance() const
 
 void EkfWrapper::enableDragFusion()
 {
-	_ekf_params->fusion_mode |= SensorFusionMask::USE_DRAG;
+	_ekf_params->drag_ctrl = 1;
 }
 
 void EkfWrapper::disableDragFusion()
 {
-	_ekf_params->fusion_mode &= ~SensorFusionMask::USE_DRAG;
+	_ekf_params->drag_ctrl = 0;
 }
 
 void EkfWrapper::setDragFusionParameters(const float &bcoef_x, const float &bcoef_y, const float &mcoef)
