@@ -158,7 +158,7 @@ enum class EvCtrl : uint8_t {
 enum SensorFusionMask : uint16_t {
 	// Bit locations for fusion_mode
 	DEPRECATED_USE_GPS = (1<<0),    ///< set to true to use GPS data (DEPRECATED, use gnss_ctrl)
-	USE_OPT_FLOW     = (1<<1),      ///< set to true to use optical flow data
+	DEPRECATED_USE_OPT_FLOW     = (1<<1), ///< set to true to use optical flow data
 	DEPRECATED_INHIBIT_ACC_BIAS = (1<<2), ///< set to true to inhibit estimation of accelerometer delta velocity bias
 	DEPRECATED_USE_EXT_VIS_POS = (1<<3), ///< set to true to use external vision position data
 	DEPRECATED_USE_EXT_VIS_YAW = (1<<4), ///< set to true to use external vision quaternion data for yaw
@@ -423,6 +423,7 @@ struct parameters {
 	float gravity_noise{1.0f};              ///< accelerometer measurement gaussian noise (m/s**2)
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
+	int32_t flow_ctrl{0};
 	float flow_delay_ms{5.0f};              ///< optical flow measurement delay relative to the IMU (mSec) - this is to the middle of the optical flow integration interval
 
 	// optical flow fusion
