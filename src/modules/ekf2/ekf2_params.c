@@ -614,7 +614,7 @@ PARAM_DEFINE_FLOAT(EKF2_TAS_GATE, 3.0f);
  *
  * Set bits in the following positions to enable:
  * 0 : Deprecated, use EKF2_GPS_CTRL instead
- * 1 : Set to true to use optical flow data if available
+ * 1 : Deprecated. use EKF2_OF_CTRL instead
  * 2 : Deprecated, use EKF2_IMU_CTRL instead
  * 3 : Deprecated, use EKF2_EV_CTRL instead
  * 4 : Deprecated, use EKF2_EV_CTRL instead
@@ -627,7 +627,7 @@ PARAM_DEFINE_FLOAT(EKF2_TAS_GATE, 3.0f);
  * @min 0
  * @max 511
  * @bit 0 unused
- * @bit 1 use optical flow
+ * @bit 1 unused
  * @bit 2 unused
  * @bit 3 unused
  * @bit 4 unused
@@ -866,6 +866,16 @@ PARAM_DEFINE_FLOAT(EKF2_EVA_NOISE, 0.1f);
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(EKF2_GRAV_NOISE, 1.0f);
+
+/**
+ * Optical flow aiding
+ *
+ * Enable optical flow fusion.
+ *
+ * @group EKF2
+ * @boolean
+ */
+PARAM_DEFINE_INT32(EKF2_OF_CTRL, 0);
 
 /**
  * Measurement noise for the optical flow sensor when it's reported quality metric is at the maximum

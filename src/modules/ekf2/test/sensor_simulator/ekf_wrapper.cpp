@@ -132,12 +132,12 @@ bool EkfWrapper::isIntendingGpsHeadingFusion() const
 
 void EkfWrapper::enableFlowFusion()
 {
-	_ekf_params->fusion_mode |= SensorFusionMask::USE_OPT_FLOW;
+	_ekf_params->flow_ctrl = 1;
 }
 
 void EkfWrapper::disableFlowFusion()
 {
-	_ekf_params->fusion_mode &= ~SensorFusionMask::USE_OPT_FLOW;
+	_ekf_params->flow_ctrl = 0;
 }
 
 bool EkfWrapper::isIntendingFlowFusion() const
