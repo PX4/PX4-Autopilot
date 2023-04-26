@@ -659,7 +659,7 @@ PARAM_DEFINE_INT32(EKF2_HGT_REF, 1);
 /**
  * Barometric sensor height aiding
  *
- * If this parameter is enabled then the estimator will make use of the barometric height measurements to estimate it's height in addition to other
+ * If this parameter is enabled then the estimator will make use of the barometric height measurements to estimate its height in addition to other
  * height sources (if activated).
  *
  * @group EKF2
@@ -714,7 +714,7 @@ PARAM_DEFINE_INT32(EKF2_GPS_CTRL, 7);
  *
  * To en-/disable range finder for terrain height estimation, use EKF2_TERR_MASK instead.
  *
- * If this parameter is enabled then the estimator will make use of the range finder measurements to estimate it's height in addition to other
+ * If this parameter is enabled then the estimator will make use of the range finder measurements to estimate its height in addition to other
  * height sources (if activated). Range sensor aiding can be enabled (i.e.: always use) or set in "conditional" mode.
  *
  * Conditional mode: This enables the range finder to be used during low speed (< EKF2_RNG_A_VMAX) and low altitude (< EKF2_RNG_A_HMAX)
@@ -1177,7 +1177,7 @@ PARAM_DEFINE_FLOAT(EKF2_RNG_PITCH, 0.0f);
  * Maximum horizontal velocity allowed for conditional range aid mode.
  *
  * If the vehicle horizontal speed exceeds this value then the estimator will not fuse range measurements
- * to estimate it's height. This only applies when conditional range aid mode is activated (EKF2_RNG_CTRL = 1).
+ * to estimate its height. This only applies when conditional range aid mode is activated (EKF2_RNG_CTRL = 1).
  *
  * @group EKF2
  * @min 0.1
@@ -1190,7 +1190,7 @@ PARAM_DEFINE_FLOAT(EKF2_RNG_A_VMAX, 1.0f);
  * Maximum absolute altitude (height above ground level) allowed for conditional range aid mode.
  *
  * If the vehicle absolute altitude exceeds this value then the estimator will not fuse range measurements
- * to estimate it's height. This only applies when conditional range aid mode is activated (EKF2_RNG_CTRL = 1).
+ * to estimate its height. This only applies when conditional range aid mode is activated (EKF2_RNG_CTRL = 1).
  *
  * @group EKF2
  * @min 1.0
