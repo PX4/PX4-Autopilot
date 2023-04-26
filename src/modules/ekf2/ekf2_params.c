@@ -618,7 +618,7 @@ PARAM_DEFINE_FLOAT(EKF2_TAS_GATE, 3.0f);
  * 2 : Deprecated, use EKF2_IMU_CTRL instead
  * 3 : Deprecated, use EKF2_EV_CTRL instead
  * 4 : Deprecated, use EKF2_EV_CTRL instead
- * 5 : Set to true to enable multi-rotor drag specific force fusion
+ * 5 : Deprecated. use EKF2_DRAG_CTRL instead
  * 6 : Deprecated, use EKF2_EV_CTRL instead
  * 7 : Deprecated, use EKF2_GPS_CTRL instead
  * 8 : Deprecated, use EKF2_EV_CTRL instead
@@ -631,7 +631,7 @@ PARAM_DEFINE_FLOAT(EKF2_TAS_GATE, 3.0f);
  * @bit 2 unused
  * @bit 3 unused
  * @bit 4 unused
- * @bit 5 multi-rotor drag fusion
+ * @bit 5 unused
  * @bit 6 unused
  * @bit 7 unused
  * @bit 8 unused
@@ -1254,6 +1254,20 @@ PARAM_DEFINE_FLOAT(EKF2_EVV_GATE, 3.0f);
 PARAM_DEFINE_FLOAT(EKF2_EVP_GATE, 5.0f);
 
 /**
+ * Multirotor wind estimation selection
+ *
+ * Activate wind speed estimation using specific-force measurements and
+ * a drag model defined by EKF2_BCOEF_[XY] and EKF2_MCOEF.
+ *
+ * Only use on vehicles that have their thrust aligned with the Z axis and
+ * no thrust in the XY plane.
+ *
+ * @group EKF2
+ * @boolean
+ */
+PARAM_DEFINE_INT32(EKF2_DRAG_CTRL, 0);
+
+/**
  * Specific drag force observation noise variance used by the multi-rotor specific drag force model.
  *
  * Increasing this makes the multi-rotor wind estimates adjust more slowly.
@@ -1269,7 +1283,7 @@ PARAM_DEFINE_FLOAT(EKF2_DRAG_NOISE, 2.5f);
 /**
  * X-axis ballistic coefficient used for multi-rotor wind estimation.
  *
- * This parameter controls the prediction of drag produced by bluff body drag along the forward/reverse axis when flying a multi-copter which enables estimation of wind drift when enabled by the EKF2_AID_MASK parameter. The drag produced by this effect scales with speed squared. The predicted drag from the rotors is specified separately by the EKF2_MCOEF parameter.
+ * This parameter controls the prediction of drag produced by bluff body drag along the forward/reverse axis when flying a multi-copter which enables estimation of wind drift when enabled by the EKF2_DRAG_CTRL parameter. The drag produced by this effect scales with speed squared. The predicted drag from the rotors is specified separately by the EKF2_MCOEF parameter.
  * Set this parameter to zero to turn off the bluff body drag model for this axis.
  *
  * @group EKF2
@@ -1283,7 +1297,7 @@ PARAM_DEFINE_FLOAT(EKF2_BCOEF_X, 100.0f);
 /**
  * Y-axis ballistic coefficient used for multi-rotor wind estimation.
  *
- * This parameter controls the prediction of drag produced by bluff body drag along the right/left axis when flying a multi-copter, which enables estimation of wind drift when enabled by the EKF2_AID_MASK parameter. The drag produced by this effect scales with speed squared. The predicted drag from the rotors is specified separately by the EKF2_MCOEF parameter.
+ * This parameter controls the prediction of drag produced by bluff body drag along the right/left axis when flying a multi-copter, which enables estimation of wind drift when enabled by the EKF2_DRAG_CTRL parameter. The drag produced by this effect scales with speed squared. The predicted drag from the rotors is specified separately by the EKF2_MCOEF parameter.
  * Set this parameter to zero to turn off the bluff body drag model for this axis.
  *
  * @group EKF2
@@ -1297,7 +1311,7 @@ PARAM_DEFINE_FLOAT(EKF2_BCOEF_Y, 100.0f);
 /**
  * Propeller momentum drag coefficient used for multi-rotor wind estimation.
  *
- * This parameter controls the prediction of drag produced by the propellers when flying a multi-copter, which enables estimation of wind drift when enabled by the EKF2_AID_MASK parameter. The drag produced by this effect scales with speed not speed squared and is produced because some of the air velocity normal to the propeller axis of rotation is lost when passing through the rotor disc. This  changes the momentum of the flow which creates a drag reaction force. When comparing un-ducted propellers of the same diameter, the effect is roughly proportional to the area of the propeller blades when viewed side on and changes with propeller selection. Momentum drag is significantly higher for ducted rotors. To account for the drag produced by the body which scales with speed squared, see documentation for the EKF2_BCOEF_X and EKF2_BCOEF_Y parameters.
+ * This parameter controls the prediction of drag produced by the propellers when flying a multi-copter, which enables estimation of wind drift when enabled by the EKF2_DRAG_CTRL parameter. The drag produced by this effect scales with speed not speed squared and is produced because some of the air velocity normal to the propeller axis of rotation is lost when passing through the rotor disc. This  changes the momentum of the flow which creates a drag reaction force. When comparing un-ducted propellers of the same diameter, the effect is roughly proportional to the area of the propeller blades when viewed side on and changes with propeller selection. Momentum drag is significantly higher for ducted rotors. To account for the drag produced by the body which scales with speed squared, see documentation for the EKF2_BCOEF_X and EKF2_BCOEF_Y parameters.
  * Set this parameter to zero to turn off the momentum drag model for both axis.
  *
  * @group EKF2

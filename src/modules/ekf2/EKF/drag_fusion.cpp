@@ -44,7 +44,7 @@
 
 void Ekf::controlDragFusion()
 {
-	if ((_params.fusion_mode & SensorFusionMask::USE_DRAG) && _drag_buffer &&
+	if ((_params.drag_ctrl > 0) && _drag_buffer &&
 	    !_control_status.flags.fake_pos && _control_status.flags.in_air) {
 
 		if (!_control_status.flags.wind) {

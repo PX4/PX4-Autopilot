@@ -174,6 +174,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_abl_tau(_params->acc_bias_learn_tc),
 	_param_ekf2_gyr_b_lim(_params->gyro_bias_lim),
 #if defined(CONFIG_EKF2_DRAG_FUSION)
+	_param_ekf2_drag_ctrl(_params->drag_ctrl),
 	_param_ekf2_drag_noise(_params->drag_noise),
 	_param_ekf2_bcoef_x(_params->bcoef_x),
 	_param_ekf2_bcoef_y(_params->bcoef_y),
@@ -861,6 +862,28 @@ void EKF2::VerifyParams()
 		events::send<float>(events::ID("ekf2_aid_mask_imu"), events::Log::Warning,
 				    "Use EKF2_IMU_CTRL instead", _param_ekf2_aid_mask.get());
 	}
+
+#if defined(CONFIG_EKF2_DRAG_FUSION)
+
+	if (_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_USE_DRAG) {
+		// EKF2_DRAG_CTRL enable drag fusion
+		_param_ekf2_drag_ctrl.set(1);
+
+		// EKF2_AID_MASK clear deprecated bits
+		_param_ekf2_aid_mask.set(_param_ekf2_aid_mask.get() & ~(SensorFusionMask::DEPRECATED_USE_DRAG));
+
+		_param_ekf2_drag_ctrl.commit();
+		_param_ekf2_aid_mask.commit();
+
+		mavlink_log_critical(&_mavlink_log_pub, "EKF2 drag fusion use EKF2_DRAG_CTRL instead of EKF2_AID_MASK\n");
+		/* EVENT
+		 * @description <param>EKF2_AID_MASK</param> is set to {1:.0}.
+		 */
+		events::send<float>(events::ID("ekf2_aid_mask_drag"), events::Log::Warning,
+				    "Use EKF2_DRAG_CTRL instead", _param_ekf2_aid_mask.get());
+	}
+
+#endif // CONFIG_EKF2_DRAG_FUSION
 }
 
 void EKF2::PublishAidSourceStatus(const hrt_abstime &timestamp)
