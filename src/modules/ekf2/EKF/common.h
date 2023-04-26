@@ -105,7 +105,7 @@ enum MagFuseType : uint8_t {
 	MAG_3D  = 2,   	///< Magnetometer 3-axis fusion will always be used. This is more accurate, but more affected by localised earth field distortions
 	UNUSED  = 3,    ///< Not implemented
 	INDOOR  = 4,   	///< The same as option 0, but magnetometer or yaw fusion will not be used unless earth frame external aiding (GPS or External Vision) is being used. This prevents inconsistent magnetic fields associated with indoor operation degrading state estimates.
-	NONE    = 5    	///< Do not use magnetometer under any circumstance. Other sources of yaw may be used if selected via the EKF2_AID_MASK parameter.
+	NONE    = 5    	///< Do not use magnetometer under any circumstance..
 };
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
@@ -153,19 +153,6 @@ enum class EvCtrl : uint8_t {
 	VPOS = (1<<1),
 	VEL  = (1<<2),
 	YAW  = (1<<3)
-};
-
-enum SensorFusionMask : uint16_t {
-	// Bit locations for fusion_mode
-	DEPRECATED_USE_GPS = (1<<0),    ///< set to true to use GPS data (DEPRECATED, use gnss_ctrl)
-	DEPRECATED_USE_OPT_FLOW     = (1<<1), ///< set to true to use optical flow data
-	DEPRECATED_INHIBIT_ACC_BIAS = (1<<2), ///< set to true to inhibit estimation of accelerometer delta velocity bias
-	DEPRECATED_USE_EXT_VIS_POS = (1<<3), ///< set to true to use external vision position data
-	DEPRECATED_USE_EXT_VIS_YAW = (1<<4), ///< set to true to use external vision quaternion data for yaw
-	DEPRECATED_USE_DRAG         = (1<<5), ///< set to true to use the multi-rotor drag model to estimate wind
-	DEPRECATED_ROTATE_EXT_VIS  = (1<<6), ///< set to true to if the EV observations are in a non NED reference frame and need to be rotated before being used
-	DEPRECATED_USE_GPS_YAW     = (1<<7), ///< set to true to use GPS yaw data if available (DEPRECATED, use gnss_ctrl)
-	DEPRECATED_USE_EXT_VIS_VEL = (1<<8), ///< set to true to use external vision velocity data
 };
 
 struct gpsMessage {
@@ -297,7 +284,6 @@ struct parameters {
 	int32_t imu_ctrl{static_cast<int32_t>(ImuCtrl::GyroBias) | static_cast<int32_t>(ImuCtrl::AccelBias)};
 
 	// measurement source control
-	int32_t fusion_mode{};         ///< bitmasked integer that selects some aiding sources
 	int32_t height_sensor_ref{HeightSensor::BARO};
 	int32_t position_sensor_ref{static_cast<int32_t>(PositionSensor::GNSS)};
 	int32_t baro_ctrl{1};
