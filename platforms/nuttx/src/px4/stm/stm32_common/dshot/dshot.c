@@ -431,26 +431,25 @@ void do_capture(DMA_HANDLE handle, uint8_t status, void *arg)
 
 			dshot_handler[timer].dma_size = sizeof(dshot_capture_buffer);
 
-			// TODO: We should probably do this at another level board specific.
-			//       However, right now the dma handles are all hard-coded to the UP(date) source
-			//       rather than the capture compare one.
+			// Instead of using the UP DMA channel, we need to use the CH1-4 channels.
+			// It turns out that we can infer the DMA channel index by starting from the UP channel -5.
 			unsigned timer_channel = timer_io_channels[capture_channel].timer_channel;
 
 			switch (timer_channel) {
 			case 1:
-				dshot_handler[timer].dma_handle = stm32_dmachannel(DMAMAP_DMA12_TIM5CH1_0);
+				dshot_handler[timer].dma_handle = stm32_dmachannel(io_timers[timer].dshot.dmamap - 5 + 1);
 				break;
 
 			case 2:
-				dshot_handler[timer].dma_handle = stm32_dmachannel(DMAMAP_DMA12_TIM5CH2_0);
+				dshot_handler[timer].dma_handle = stm32_dmachannel(io_timers[timer].dshot.dmamap - 5 + 2);
 				break;
 
 			case 3:
-				dshot_handler[timer].dma_handle = stm32_dmachannel(DMAMAP_DMA12_TIM5CH3_0);
+				dshot_handler[timer].dma_handle = stm32_dmachannel(io_timers[timer].dshot.dmamap - 5 + 3);
 				break;
 
 			case 4:
-				dshot_handler[timer].dma_handle = stm32_dmachannel(DMAMAP_DMA12_TIM5CH4_0);
+				dshot_handler[timer].dma_handle = stm32_dmachannel(io_timers[timer].dshot.dmamap - 5 + 4);
 				break;
 			}
 
