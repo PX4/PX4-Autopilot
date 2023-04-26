@@ -40,11 +40,22 @@ set(APPS_DIR ${NUTTX_SRC_DIR}/apps)
 
 configure_file(${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/Make.defs.in ${CMAKE_CURRENT_BINARY_DIR}/nuttx/Make.defs)
 
+set(EXTRA_NUTTX_CONFIG_FILE ${CMAKE_CURRENT_BINARY_DIR}/extra_config_options)
+file(WRITE ${EXTRA_NUTTX_CONFIG_FILE} "")
+if(DEFINED ENV{PX4_EXTRA_NUTTX_CONFIG})
+	message(STATUS "Adding extra nuttx config: $ENV{PX4_EXTRA_NUTTX_CONFIG}")
+	# Allow to specify extra options via 'export PX4_EXTRA_NUTTX_CONFIG="CONFIG_xy=y;CONFIG_z=y"'
+	foreach(OPTION $ENV{PX4_EXTRA_NUTTX_CONFIG})
+		file(APPEND ${EXTRA_NUTTX_CONFIG_FILE} "${OPTION}\n")
+	endforeach ()
+endif()
+
+
 # inflate .config
 add_custom_command(
 	OUTPUT ${NUTTX_DIR}/.config
 	COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/nuttx/Make.defs ${NUTTX_DIR}/Make.defs
-	COMMAND ${CMAKE_COMMAND} -E copy_if_different ${NUTTX_DEFCONFIG} ${NUTTX_DIR}/.config
+	COMMAND cat ${NUTTX_DEFCONFIG} ${EXTRA_NUTTX_CONFIG_FILE} > ${NUTTX_DIR}/.config
 	COMMAND ${CMAKE_COMMAND} -E copy_if_different ${NUTTX_DEFCONFIG} ${NUTTX_DIR}/defconfig
 	COMMAND ${NUTTX_SRC_DIR}/tools/px4_nuttx_make_olddefconfig.sh > ${CMAKE_CURRENT_BINARY_DIR}/nuttx_olddefconfig.log
 	COMMAND ${CMAKE_COMMAND} -E copy_if_different ${NUTTX_DIR}/.config ${CMAKE_CURRENT_BINARY_DIR}/nuttx/.config
@@ -52,6 +63,7 @@ add_custom_command(
 		${NUTTX_DEFCONFIG}
 		${NUTTX_DIR}/defconfig
 		${CMAKE_CURRENT_BINARY_DIR}/nuttx/Make.defs
+		${CMAKE_CURRENT_BINARY_DIR}/../defconfig_inflate_stamp
 	WORKING_DIRECTORY ${NUTTX_DIR}
 	#USES_TERMINAL
 )
