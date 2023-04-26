@@ -69,8 +69,8 @@
 #define DSHOT_DMA_SCR (DMA_SCR_PRIHI | DMA_SCR_MSIZE_32BITS | DMA_SCR_PSIZE_32BITS | DMA_SCR_MINC | \
 		       DMA_SCR_DIR_M2P | DMA_SCR_TCIE | DMA_SCR_HTIE | DMA_SCR_TEIE | DMA_SCR_DMEIE)
 
-#define DSHOT_TELEMETRY_DMA_SCR (DMA_SCR_PRIHI | DMA_SCR_MSIZE_16BITS | DMA_SCR_PSIZE_16BITS | DMA_SCR_MINC | \
-				 DMA_SCR_DIR_P2M | DMA_SCR_TCIE | DMA_SCR_TEIE | DMA_SCR_DMEIE)
+#define DSHOT_BIDIRECTIONAL_DMA_SCR (DMA_SCR_PRIHI | DMA_SCR_MSIZE_16BITS | DMA_SCR_PSIZE_16BITS | DMA_SCR_MINC | \
+				     DMA_SCR_DIR_P2M | DMA_SCR_TCIE | DMA_SCR_TEIE | DMA_SCR_DMEIE)
 
 typedef struct dshot_handler_t {
 	DMA_HANDLE		dma_handle;
@@ -98,13 +98,14 @@ static void do_capture(DMA_HANDLE handle, uint8_t status, void *arg);
 static void process_capture_results(void *arg);
 static unsigned calculate_period(void);
 static int dshot_output_timer_init(unsigned channel);
+static int dshot_output_timer_deinit(unsigned channel);
 
 static uint32_t read_ok = 0;
 static uint32_t read_fail_nibble = 0;
 static uint32_t read_fail_crc = 0;
 static uint32_t read_fail_zero = 0;
 
-static bool enable_bidirectional_dshot = true;
+static bool bidirectional_dshot_enabled = true;
 
 static uint32_t _dshot_frequency = 0;
 static int _timers_init_mask = 0;
@@ -121,34 +122,34 @@ uint8_t nibbles_from_mapped(uint8_t mapped)
 {
 	switch (mapped) {
 	case 0x19:
-		return 0x0;
+		return 0x00;
 
 	case 0x1B:
-		return 0x1;
+		return 0x01;
 
 	case 0x12:
-		return 0x2;
+		return 0x02;
 
 	case 0x13:
-		return 0x3;
+		return 0x03;
 
 	case 0x1D:
-		return 0x4;
+		return 0x04;
 
 	case 0x15:
-		return 0x5;
+		return 0x05;
 
 	case 0x16:
-		return 6;
+		return 0x06;
 
 	case 0x17:
-		return 7;
+		return 0x07;
 
 	case 0x1a:
-		return 8;
+		return 0x08;
 
 	case 0x09:
-		return 9;
+		return 0x09;
 
 	case 0x0A:
 		return 0x0A;
@@ -170,7 +171,7 @@ uint8_t nibbles_from_mapped(uint8_t mapped)
 
 	default:
 		// Unknown mapped
-		return 0xff;
+		return 0xFF;
 	}
 }
 
@@ -256,11 +257,15 @@ unsigned calculate_period(void)
 	return period;
 }
 
+int dshot_output_timer_deinit(unsigned channel)
+{
+	return io_timer_unallocate_channel(channel);
+}
+
 int dshot_output_timer_init(unsigned channel)
 {
-	io_timer_unallocate_channel(channel);
 	int ret = io_timer_channel_init(channel,
-					enable_bidirectional_dshot ? IOTimerChanMode_DshotInverted : IOTimerChanMode_Dshot, NULL, NULL);
+					bidirectional_dshot_enabled ? IOTimerChanMode_DshotInverted : IOTimerChanMode_Dshot, NULL, NULL);
 
 	if (ret == -EBUSY) {
 		// either timer or channel already used - this is not fatal
@@ -271,8 +276,9 @@ int dshot_output_timer_init(unsigned channel)
 	}
 }
 
-int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq)
+int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq, bool enable_bidirectional_dshot)
 {
+	bidirectional_dshot_enabled = enable_bidirectional_dshot;
 	_dshot_frequency = dshot_pwm_freq;
 
 	for (unsigned channel = 0; channel < MAX_TIMER_IO_CHANNELS; channel++) {
@@ -347,7 +353,15 @@ void up_dshot_trigger(void)
 
 	for (unsigned channel = 0; channel < MAX_TIMER_IO_CHANNELS; channel++) {
 		if (_channels_init_mask & (1 << channel)) {
-			int ret = dshot_output_timer_init(channel);
+
+			// For bidirectional dshot we need to re-initialize the timers every time here.
+			// In normal mode, we just do it once.
+			int ret = OK;
+
+			if (bidirectional_dshot_enabled) {
+				dshot_output_timer_deinit(channel);
+				ret = dshot_output_timer_init(channel);
+			}
 
 			if (ret != OK) {
 				// TODO: what to do here?
@@ -389,12 +403,12 @@ void up_dshot_trigger(void)
 			// Clean UDE flag before DMA is started
 			io_timer_update_dma_req(timer, false);
 			// Trigger DMA (DShot Outputs)
-			stm32_dmastart(dshot_handler[timer].dma_handle, do_capture, NULL, false);
+			stm32_dmastart(dshot_handler[timer].dma_handle, bidirectional_dshot_enabled ? do_capture : NULL, NULL, false);
 			io_timer_update_dma_req(timer, true);
 		}
 	}
 
-	io_timer_set_enable(true, enable_bidirectional_dshot ? IOTimerChanMode_DshotInverted : IOTimerChanMode_Dshot,
+	io_timer_set_enable(true, bidirectional_dshot_enabled ? IOTimerChanMode_DshotInverted : IOTimerChanMode_Dshot,
 			    IO_TIMER_ALL_MODES_CHANNELS);
 }
 
@@ -449,7 +463,7 @@ void do_capture(DMA_HANDLE handle, uint8_t status, void *arg)
 					   io_timers[timer].base + STM32_GTIM_DMAR_OFFSET,
 					   (uint32_t) dshot_capture_buffer,
 					   sizeof(dshot_capture_buffer),
-					   DSHOT_TELEMETRY_DMA_SCR);
+					   DSHOT_BIDIRECTIONAL_DMA_SCR);
 
 			io_timer_unallocate_channel(capture_channel);
 			io_timer_channel_init(capture_channel, IOTimerChanMode_CaptureDMA, NULL, NULL);
@@ -494,8 +508,7 @@ void process_capture_results(void *arg)
 	for (unsigned channel = 0; channel < MAX_TIMER_IO_CHANNELS; channel++) {
 		if (_channels_init_mask & (1 << channel)) {
 			io_timer_unallocate_channel(channel);
-			io_timer_channel_init(channel,
-					      enable_bidirectional_dshot ? IOTimerChanMode_DshotInverted : IOTimerChanMode_Dshot, NULL, NULL);
+			io_timer_channel_init(channel, IOTimerChanMode_DshotInverted, NULL, NULL);
 		}
 	}
 
@@ -505,7 +518,6 @@ void process_capture_results(void *arg)
 
 	_motor_to_capture = (_motor_to_capture + 1) % 4;
 }
-
 
 /**
 * bits 	1-11	- throttle value (0-47 are reserved, 48-2047 give 2000 steps of throttle resolution)
@@ -530,7 +542,7 @@ void dshot_motor_data_set(unsigned motor_number, uint16_t throttle, bool telemet
 		csum_data >>= NIBBLES_SIZE;
 	}
 
-	if (enable_bidirectional_dshot) {
+	if (bidirectional_dshot_enabled) {
 		packet |= ((~checksum) & 0x0F);
 
 	} else {
@@ -558,7 +570,7 @@ void dshot_motor_data_set(unsigned motor_number, uint16_t throttle, bool telemet
 
 int up_dshot_arm(bool armed)
 {
-	return io_timer_set_enable(armed, enable_bidirectional_dshot ? IOTimerChanMode_DshotInverted : IOTimerChanMode_Dshot,
+	return io_timer_set_enable(armed, bidirectional_dshot_enabled ? IOTimerChanMode_DshotInverted : IOTimerChanMode_Dshot,
 				   IO_TIMER_ALL_MODES_CHANNELS);
 }
 

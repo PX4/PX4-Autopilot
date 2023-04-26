@@ -151,7 +151,7 @@ void DShot::enable_dshot_outputs(const bool enabled)
 			}
 		}
 
-		int ret = up_dshot_init(_output_mask, dshot_frequency);
+		int ret = up_dshot_init(_output_mask, dshot_frequency, _param_bidirectional_enable.get());
 
 		if (ret < 0) {
 			PX4_ERR("up_dshot_init failed (%i)", ret);
