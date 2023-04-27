@@ -622,6 +622,7 @@ void DShot::erpm_trampoline(uint32_t erpms[], size_t num_erpms, void *context)
 
 void DShot::erpm(uint32_t erpms[], size_t num_erpms)
 {
+	// TODO: this is hard-coded to 4 motors
 	esc_status_s &esc_status = _esc_status_pub.get();
 	esc_status = {};
 	esc_status.timestamp = hrt_absolute_time();

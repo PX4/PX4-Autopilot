@@ -512,7 +512,10 @@ void process_capture_results(void *arg)
 	}
 
 	if (_erpm_callback != NULL) {
-		_erpm_callback(_erpms, 4, _erpm_callback_context);
+		// Only publish every 4th time once all measurements have come in.
+		if (_motor_to_capture == 3) {
+			_erpm_callback(_erpms, 4, _erpm_callback_context);
+		}
 	}
 
 	_motor_to_capture = (_motor_to_capture + 1) % 4;
