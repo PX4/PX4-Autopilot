@@ -204,6 +204,9 @@ Mission::on_activation()
 	cmd.param1 = -1.0f;
 	cmd.param3 = 0.0f;
 	_navigator->publish_vehicle_cmd(&cmd);
+
+	// reset cruise speed
+	_navigator->reset_cruising_speed();
 }
 
 void

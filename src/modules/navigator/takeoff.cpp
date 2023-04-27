@@ -51,6 +51,9 @@ void
 Takeoff::on_activation()
 {
 	set_takeoff_position();
+
+	// reset cruising speed to default
+	_navigator->reset_cruising_speed();
 }
 
 void
