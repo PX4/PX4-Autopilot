@@ -6,6 +6,14 @@
 #
 
 #
+# Start the rover interface CAN driver if airframe is one of SSRC supported rover types (50005, ..)
+#
+if param compare SYS_AUTOSTART 50005
+then
+  ifup can0
+  rover_interface start
+fi
+
 # Start Control Allocator
 #
 control_allocator start
