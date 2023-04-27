@@ -86,7 +86,15 @@ void ActuatorEffectivenessTailsitterVTOL::allocateAuxilaryControls(const float d
 			_control_surfaces.applySpoilers(spoilers_setpoint.normalized_setpoint, _first_control_surface_idx, dt, actuator_sp);
 		}
 	}
+}
 
+void ActuatorEffectivenessTailsitterVTOL::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
+		int matrix_index, ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
+		const matrix::Vector<float, NUM_ACTUATORS> &actuator_max)
+{
+	if (matrix_index == 0) {
+		stopMaskedMotorsWithZeroThrust(_forwards_motors_mask, actuator_sp);
+	}
 }
 
 void ActuatorEffectivenessTailsitterVTOL::setFlightPhase(const FlightPhase &flight_phase)
@@ -97,15 +105,16 @@ void ActuatorEffectivenessTailsitterVTOL::setFlightPhase(const FlightPhase &flig
 
 	ActuatorEffectiveness::setFlightPhase(flight_phase);
 
-	// update stopped motors //TODO: add option to switch off certain motors in FW
+	// update stopped motors
 	switch (flight_phase) {
 	case FlightPhase::FORWARD_FLIGHT:
-		_stopped_motors_mask = 0;
+		_forwards_motors_mask = _mc_rotors.getUpwardsMotors(); // allocation frame they stay upwards
 		break;
 
 	case FlightPhase::HOVER_FLIGHT:
 	case FlightPhase::TRANSITION_FF_TO_HF:
 	case FlightPhase::TRANSITION_HF_TO_FF:
+		_forwards_motors_mask = 0;
 		_stopped_motors_mask = 0;
 		break;
 	}
