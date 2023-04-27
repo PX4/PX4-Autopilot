@@ -63,6 +63,9 @@ Loiter::on_activation()
 	} else {
 		set_loiter_position();
 	}
+
+	// reset cruising speed to default
+	_navigator->reset_cruising_speed();
 }
 
 void
