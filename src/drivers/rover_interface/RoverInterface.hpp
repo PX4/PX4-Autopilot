@@ -25,7 +25,7 @@ class RoverInterface : public ModuleParams, public px4::ScheduledWorkItem
 	 * Base interval, has to be compliant with the rate of the actuator_controls
 	 * topic subscription and CAN bus update rate
 	 */
-	static constexpr uint64_t ScheduleIntervalMs{1_ms};
+	static constexpr uint64_t ScheduleIntervalMs{500_us};
 
 	static constexpr uint64_t RoverStatusPublishIntervalMs{1000_ms};
 
@@ -36,10 +36,12 @@ class RoverInterface : public ModuleParams, public px4::ScheduledWorkItem
 	static constexpr uint64_t ActuatorArmedSubIntervalMs{1000_ms};
 
 public:
-	RoverInterface(uint8_t rover_type, const char *can_iface);
+	static const char *const CAN_IFACE;
+
+	RoverInterface(uint8_t rover_type);
 	~RoverInterface() override;
 
-	static int start(uint8_t rover_type, const char *can_iface);
+	static int start(uint8_t rover_type);
 
 	void print_status();
 
@@ -57,6 +59,8 @@ private:
 	px4::atomic_bool _task_should_exit{false};
 
 	bool _armed{false};
+
+	bool _manual_lockdown{false};
 
 	bool _initialized{false};
 

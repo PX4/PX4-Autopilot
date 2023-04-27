@@ -1,5 +1,4 @@
-#ifndef UTILITIES_HPP
-#define UTILITIES_HPP
+#pragma once
 
 #include <drivers/drv_hrt.h>
 
@@ -27,5 +26,3 @@ public:
 	bool _msg_v2_detected;
 };
 }  // namespace scoutsdk
-
-#endif /* UTILITIES_HPP */

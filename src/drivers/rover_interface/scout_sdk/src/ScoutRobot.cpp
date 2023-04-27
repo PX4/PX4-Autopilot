@@ -28,18 +28,12 @@ ScoutRobot::ScoutRobot(ProtocolVersion protocol, bool is_mini_model)
 	_tx_frame.frame.payload = &_tx_data;
 	_rx_frame.frame.payload = &_rx_data;
 
-	_version_response_msgs.str_version_response = nullptr;
+	_version_response_msgs.str_version_response = (const char *)_version_response_string;
 }
 
 
 ScoutRobot::~ScoutRobot()
 {
-	if	(_version_response_msgs.str_version_response != nullptr)
-	{
-		free((char *)_version_response_msgs.str_version_response);
-		_version_response_msgs.str_version_response = nullptr;
-	}
-
 	Disconnect();
 }
 
@@ -147,19 +141,12 @@ void ScoutRobot::UpdateMotorState(const AgxMessage &status_msg){
 }
 
 
-void ScoutRobot::UpdateVersionResponse(const AgxMessage &status_msg)
+int ScoutRobot::UpdateVersionResponse(const AgxMessage &status_msg)
 {
 	switch (status_msg.type)
 	{
 		case AgxMsgVersionResponse:
 		{
-			// Clear response version string
-			if	(_version_response_msgs.str_version_response != nullptr)
-			{
-				free((char *)_version_response_msgs.str_version_response);
-				_version_response_msgs.str_version_response = nullptr;
-			}
-
 			char temp_version_response[9] = {0};
 			for (int i = 0; i < 8; i++)
 			{
@@ -167,12 +154,13 @@ void ScoutRobot::UpdateVersionResponse(const AgxMessage &status_msg)
 				if(data < 32 || data>126) { data = 32; }
 				snprintf(temp_version_response + i, 2, "%c", data);
 			}
-			_version_response_msgs.str_version_response = strdup(temp_version_response);
-			break;
+			strcpy(_version_response_string, temp_version_response);
+			return PX4_OK;
 		}
 		default:
 			break;
 	}
+	return PX4_ERROR;
 }
 
 
@@ -219,13 +207,6 @@ void ScoutRobot::QuerySystemVersion(const uint64_t timeout_msec)
 	msg.type = AgxMsgVersionRequest;
 	msg.body.version_request_msg.request = 1;
 
-	// Clear current system version string value
-	if	(_version_response_msgs.str_version_response != nullptr)
-	{
-		free((char *)_version_response_msgs.str_version_response);
-		_version_response_msgs.str_version_response = nullptr;
-	}
-
 	const hrt_abstime begin = hrt_absolute_time();
 	while(hrt_elapsed_time(&begin) < timeout_msec)
 	{
@@ -238,10 +219,8 @@ void ScoutRobot::QuerySystemVersion(const uint64_t timeout_msec)
 		AgxMessage status_msg;
 		if (_parser.DecodeMessage(&_rx_frame, &status_msg))
 		{
-			UpdateVersionResponse(status_msg);
+			if(UpdateVersionResponse(status_msg) == PX4_OK) { break; }
 		}
-
-		if(_version_response_msgs.str_version_response != nullptr) { break; }
 	}
 }
 
@@ -254,7 +233,7 @@ void ScoutRobot::SetMotionCommand(float linear_vel, float angular_vel)
 		AgxMessage msg;
 		msg.type = AgxMsgMotionCommand;
 		msg.body.motion_command_msg.linear_velocity = linear_vel;
-		msg.body.motion_command_msg.angular_velocity = angular_vel;
+		msg.body.motion_command_msg.angular_velocity = -angular_vel;
 		msg.body.motion_command_msg.lateral_velocity = 0.0;
 		msg.body.motion_command_msg.steering_angle = 0.0;
 

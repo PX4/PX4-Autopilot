@@ -3,13 +3,15 @@
 
 RoverInterface *RoverInterface::_instance;
 
-RoverInterface::RoverInterface(uint8_t rover_type, const char *can_iface)
+// CAN interface | default is can0
+const char *const RoverInterface::CAN_IFACE = "can0";
+
+RoverInterface::RoverInterface(uint8_t rover_type)
 	: ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rover_interface),
 	_rover_type(rover_type)
 {
 	pthread_mutex_init(&_node_mutex, nullptr);
-	_can_iface = strdup(can_iface);
 }
 
 
@@ -40,7 +42,7 @@ RoverInterface::~RoverInterface()
 }
 
 
-int RoverInterface::start(uint8_t rover_type, const char *can_iface)
+int RoverInterface::start(uint8_t rover_type)
 {
 	if (_instance != nullptr)
 	{
@@ -48,7 +50,7 @@ int RoverInterface::start(uint8_t rover_type, const char *can_iface)
 		return -1;
 	}
 
-	_instance = new RoverInterface(rover_type, can_iface);
+	_instance = new RoverInterface(rover_type);
 
 	if (_instance == nullptr)
 	{
@@ -125,7 +127,7 @@ void RoverInterface::Init()
 	}
 
 	// Finally establish connection to rover
-	_scout->Connect(_can_iface);
+	_scout->Connect(CAN_IFACE);
 	if(!_scout->GetCANConnected())
 	{
 		PX4_ERR("Failed to connect to the rover CAN bus");
@@ -168,12 +170,6 @@ void RoverInterface::Run()
 			_scout = nullptr;
 		}
 
-		if (_can_iface != nullptr)
-		{
-			free((char *)_can_iface);
-			_can_iface = nullptr;
-		}
-
 		_instance = nullptr;
 		pthread_mutex_unlock(&_node_mutex);
 		return;
@@ -200,7 +196,7 @@ void RoverInterface::Run()
 	perf_count(_interval_perf);
 
 	// Check for actuator controls command to rover
-	ActuatorControlsUpdate();
+	if (!_manual_lockdown && _armed) { ActuatorControlsUpdate(); }
 
 	// Check for actuator armed command to rover
 	ActuatorArmedUpdate();
@@ -242,11 +238,20 @@ void RoverInterface::ActuatorArmedUpdate()
 		actuator_armed_s actuator_armed_msg;
 		if (_actuator_armed_sub.copy(&actuator_armed_msg))
 		{
+			// Arm or disarm the rover
 			if (!_armed && actuator_armed_msg.armed)
 			{
 				_scout->SetLightCommand(LightMode::CONST_ON, 0);
 				_armed = true;
 			}
+			else if (_armed && !actuator_armed_msg.armed)
+			{
+				_scout->SetLightCommand(LightMode::BREATH, 0);
+				_armed = false;
+			}
+
+			// Kill switch
+			_manual_lockdown = actuator_armed_msg.manual_lockdown;
 		}
 	}
 }
@@ -292,7 +297,7 @@ void RoverInterface::print_status()
 
 	// CAN connection info
 	PX4_INFO("CAN interface: %s. Status: %s",
-					 _can_iface, _scout->GetCANConnected() ? "connected" : "disconnected");
+					 RoverInterface::CAN_IFACE, _scout->GetCANConnected() ? "connected" : "disconnected");
 
 	// Rover info
 	if (_scout->GetCANConnected())
@@ -302,6 +307,9 @@ void RoverInterface::print_status()
 						 _protocol_version == scoutsdk::ProtocolVersion::AGX_V2 ? "AGX_V2" : "Unknown");
 		PX4_INFO("Rover system version: %s", _scout->GetSystemVersion());
 	}
+
+	// Arm / disarm / kill switch status
+	PX4_INFO("Rover is armed: %s. Manual lockdown: %s", _armed ? "true" : "false", _manual_lockdown ? "true" : "false");
 
 	// Subscription info
 	PX4_INFO("Subscribed to topics: %s, %s",
@@ -344,12 +352,9 @@ extern "C" __EXPORT int rover_interface_main(int argc, char *argv[])
 		int32_t rover_type = 0;
 		param_get(param_find("RI_ROVER_TYPE"), &rover_type);
 
-		// CAN interface | default is can0
-		const char *const can_iface = "can0";
-
 		// Start
-		PX4_INFO("Start Rover Interface to rover type %d at CAN iface %s" , rover_type, can_iface);
-		return RoverInterface::start(static_cast<uint8_t>(rover_type), can_iface);
+		PX4_INFO("Start Rover Interface to rover type %d at CAN iface %s" , rover_type, RoverInterface::CAN_IFACE);
+		return RoverInterface::start(static_cast<uint8_t>(rover_type));
 	}
 
 	/* commands below assume that the app has been already started */

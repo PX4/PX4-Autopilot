@@ -32,18 +32,6 @@
  ****************************************************************************/
 
 /**
- * RoverInterface mode
- *
- *  0 - Rover Interface disabled.
- *  1 - Rover Interface enabled.
- * @value 0 Disabled
- * @value 1 Enabled
- * @reboot_required true
- * @group RoverInterface
- */
-PARAM_DEFINE_INT32(RI_ENABLE, 0);
-
-/**
  * Rover type.
  *
  * @value 0 Scout Mini

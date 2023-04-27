@@ -1,5 +1,4 @@
-#ifndef SCOUT_ROBOT_HPP
-#define SCOUT_ROBOT_HPP
+#pragma once
 
 #include <cstdint>
 #include <time.h>
@@ -72,7 +71,7 @@ private:
 	void UpdateRobotCoreState(const AgxMessage &status_msg);
 	void UpdateActuatorState(const AgxMessage &status_msg);
 	void UpdateMotorState(const AgxMessage &status_msg);
-	void UpdateVersionResponse(const AgxMessage &status_msg);
+	int UpdateVersionResponse(const AgxMessage &status_msg);
 
 	AgileXProtocolV2Parser _parser;
 
@@ -85,6 +84,8 @@ private:
 	ScoutMotorState _motor_state_msgs;
 
 	VersionResponse _version_response_msgs;
+
+	char _version_response_string[9]{};
 
 	// TX buffer
 	uint8_t _tx_data[8]{};
@@ -99,5 +100,3 @@ private:
 	SocketCAN *_can{nullptr};
 };
 } // namespace scoutsdk
-
-#endif /* SCOUT_ROBOT_HPP */
