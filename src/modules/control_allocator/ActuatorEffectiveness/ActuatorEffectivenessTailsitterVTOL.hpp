@@ -72,16 +72,20 @@ public:
 
 	void allocateAuxilaryControls(const float dt, int matrix_index, ActuatorVector &actuator_sp) override;
 
+	void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
+			    ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
+			    const matrix::Vector<float, NUM_ACTUATORS> &actuator_max) override;
+
+
 	void setFlightPhase(const FlightPhase &flight_phase) override;
 
 	const char *name() const override { return "VTOL Tailsitter"; }
 
-	uint32_t getStoppedMotors() const override { return _stopped_motors; }
 protected:
 	ActuatorEffectivenessRotors _mc_rotors;
 	ActuatorEffectivenessControlSurfaces _control_surfaces;
 
-	uint32_t _stopped_motors{}; ///< currently stopped motors
+	uint32_t _forwards_motors_mask{};
 
 	int _first_control_surface_idx{0}; ///< applies to matrix 1
 
