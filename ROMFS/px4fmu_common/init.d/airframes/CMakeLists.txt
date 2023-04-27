@@ -121,6 +121,7 @@ px4_add_romfs_files(
 	50000_generic_ground_vehicle
 	50004_nxpcup_car_dfrobot_gpx
 	50003_aion_robotics_r1_rover
+	50005_ssrc_scout_mini_rover
 
 	# [60000, 61000] (Unmanned) Underwater Robots
 	60000_uuv_generic

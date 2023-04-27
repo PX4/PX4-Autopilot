@@ -1,0 +1,5 @@
+menuconfig DRIVERS_ROVER_INTERFACE
+        bool "rover_interface"
+        default n
+        ---help---
+                Enable support for rover_interface
