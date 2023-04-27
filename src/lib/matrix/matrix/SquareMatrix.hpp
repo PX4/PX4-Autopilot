@@ -148,6 +148,21 @@ public:
 		return self.trace<M>(0);
 	}
 
+	// keep the sub covariance matrix and zero all covariance elements related
+	// to the rest of the matrix
+	template <size_t Width>
+	void uncorrelateCovarianceBlock(size_t first)
+	{
+		static_assert(Width <= M, "Width bigger than matrix");
+		assert(first + Width <= M);
+
+		SquareMatrix<Type, M> &self = *this;
+		SquareMatrix<Type, Width> cov = self.slice<Width, Width>(first, first);
+		self.slice<M, Width>(0, first) = 0.f;
+		self.slice<Width, M>(first, 0) = 0.f;
+		self.slice<Width, Width>(first, first) = cov;
+	}
+
 	// zero all offdiagonal elements and keep corresponding diagonal elements
 	template <size_t Width>
 	void uncorrelateCovariance(size_t first)

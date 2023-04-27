@@ -118,6 +118,16 @@ TEST(MatrixSquareTest, Square)
 	SquareMatrix<float, 4> E_check(data_E_check);
 	EXPECT_EQ(E, E_check);
 
+	SquareMatrix<float, 4> A_block(data_4x4);
+	A_block.uncorrelateCovarianceBlock<2>(1);
+	float data_A_block_check[16] = {1, 0, 0, 4,
+					0, 6, 7, 0,
+					0, 10, 11, 0,
+					13, 0, 0, 16
+				       };
+	SquareMatrix<float, 4> A_block_check(data_A_block_check);
+	EXPECT_EQ(A_block, A_block_check);
+
 	// test symmetric functions
 	SquareMatrix<float, 4> F(data_4x4);
 	F.makeBlockSymmetric<2>(1);
