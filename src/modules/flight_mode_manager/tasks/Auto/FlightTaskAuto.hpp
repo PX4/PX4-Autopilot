@@ -91,7 +91,7 @@ public:
 	bool updateInitialize() override;
 	bool update() override;
 
-	void overrideCruiseSpeed(const float cruise_speed_m_s) override;
+	void overrideCruiseSpeed(const float speed_m_s = -1.0f, const uint8_t type = 0) override;
 
 protected:
 	void _updateInternalWaypoints(); /**< Depending on state of vehicle, the internal waypoints might differ from target (for instance if offtrack). */
@@ -126,6 +126,8 @@ protected:
 	matrix::Vector3f _next_wp{}; /**< The next waypoint after target (local frame). If no next setpoint is available, next is set to target. */
 	bool _next_was_valid{false};
 	float _mc_cruise_speed{NAN}; /**< Requested cruise speed. If not valid, default cruise speed is used. */
+	float _mc_vertical_up_speed{NAN}; /**< Requested vertical up speed. If not valid, default vertical up speed is used. */
+	float _mc_vertical_down_speed{NAN}; /**< Requested vertical down speed. If not valid, default vertical down speed is used. */
 	WaypointType _type{WaypointType::idle}; /**< Type of current target triplet. */
 
 	uORB::SubscriptionData<home_position_s>			_sub_home_position{ORB_ID(home_position)};
@@ -196,7 +198,7 @@ private:
 	_triplet_next_wp; /**< next triplet from navigator which may differ from the intenal one (_next_wp) depending on the vehicle state.*/
 	matrix::Vector3f _closest_pt; /**< closest point to the vehicle position on the line previous - target */
 
-	hrt_abstime _time_last_cruise_speed_override{0}; ///< timestamp the cruise speed was last time overridden using DO_CHANGE_SPEED
+	hrt_abstime _time_last_speed_override[3]{}; ///< timestamp the speed was last time overridden using DO_CHANGE_SPEED
 
 	MapProjection _reference_position{}; /**< Class used to project lat/lon setpoint into local frame. */
 	float _reference_altitude{NAN}; /**< Altitude relative to ground. */

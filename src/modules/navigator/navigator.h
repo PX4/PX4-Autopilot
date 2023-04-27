@@ -88,6 +88,14 @@ using namespace time_literals;
  */
 #define NAVIGATOR_MODE_ARRAY_SIZE 8
 
+// Type of speed to set. As defined in MAV_CMD_DO_CHANGE_SPEED message.
+enum class SpeedType {
+	AIR_SPEED = 0,
+	GROUND_SPEED = 1,
+	CLIMB_SPEED = 2,
+	DESCENT_SPEED = 3
+};
+
 class Navigator : public ModuleBase<Navigator>, public ModuleParams
 {
 public:
@@ -197,9 +205,11 @@ public:
 	/**
 	 * Get the cruising speed
 	 *
+	 * Type: (0=Airspeed, 1=Ground Speed, 2=Climb Speed, 3=Descent Speed)
+	 *
 	 * @return the desired cruising speed for this mission
 	 */
-	float get_cruising_speed();
+	float get_cruising_speed(SpeedType type = SpeedType::AIR_SPEED);
 
 	/**
 	 * Set the cruising speed
@@ -207,10 +217,12 @@ public:
 	 * Passing a negative value or leaving the parameter away will reset the cruising speed
 	 * to its default value.
 	 *
+	 * Type: (0=Airspeed, 1=Ground Speed, 2=Climb Speed, 3=Descent Speed)
+	 *
 	 * For VTOL: sets cruising speed for current mode only (multirotor or fixed-wing).
 	 *
 	 */
-	void set_cruising_speed(float speed = -1.0f);
+	void set_cruising_speed(float speed = -1.0f, SpeedType type = SpeedType::AIR_SPEED);
 
 	/**
 	 * Reset cruising speed to default values
@@ -389,6 +401,8 @@ private:
 
 	float _mission_cruising_speed_mc{-1.0f};
 	float _mission_cruising_speed_fw{-1.0f};
+	float _mission_vertical_up_speed_mc{-1.0f}; 	/** desired vertical climb speed in m/s **/
+	float _mission_vertical_down_speed_mc{-1.0f};	/** desired vertical descent speed in m/s **/
 	float _mission_throttle{NAN};
 
 	traffic_buffer_s _traffic_buffer{};
