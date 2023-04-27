@@ -47,6 +47,7 @@ TEST(MatrixSquareTest, Square)
 
 	EXPECT_EQ(A.diag(), diag_check);
 	EXPECT_FLOAT_EQ(A.trace(), 16);
+	EXPECT_FLOAT_EQ(A.trace<2>(1), 15);
 
 	float data_check[9] = {
 		1.01158503f,  0.02190432f,  0.03238144f,
