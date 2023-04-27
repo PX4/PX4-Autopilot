@@ -13,8 +13,10 @@
 
 . ${R}etc/init.d/rc.rover_defaults
 
+# Rover interface
 param set-default RI_ROVER_TYPE 0
-param set-default RI_MAN_THR_MAX 3.0
+param set-default RI_MAN_THR_MAX 1.0
+param set-default RI_MIS_THR_MAX 1.0
 
 # Battery setting
 param set-default BAT1_N_CELLS 7

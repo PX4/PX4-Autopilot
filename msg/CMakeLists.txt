@@ -154,6 +154,7 @@ set(msg_files
 	RateCtrlStatus.msg
 	RcChannels.msg
 	RcParameterMap.msg
+	RoverStatus.msg
 	Rpm.msg
 	RtlTimeEstimate.msg
 	SatelliteInfo.msg
