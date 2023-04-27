@@ -226,6 +226,8 @@ void Standard::update_transition_state()
 		// ramp up FW_PSP_OFF
 		_v_att_sp->pitch_body = math::radians(_param_fw_psp_off.get()) * (1.0f - mc_weight);
 
+		_v_att_sp->thrust_body[0] = _pusher_throttle;
+
 		const Quatf q_sp(Eulerf(_v_att_sp->roll_body, _v_att_sp->pitch_body, _v_att_sp->yaw_body));
 		q_sp.copyTo(_v_att_sp->q_d);
 
