@@ -126,16 +126,26 @@ public:
 		return res;
 	}
 
-	Type trace() const
+	template <size_t Width>
+	Type trace(size_t first) const
 	{
+		static_assert(Width <= M, "Width bigger than matrix");
+		assert(first + Width <= M);
+
 		Type res = 0;
 		const SquareMatrix<Type, M> &self = *this;
 
-		for (size_t i = 0; i < M; i++) {
+		for (size_t i = first; i < (first + Width); i++) {
 			res += self(i, i);
 		}
 
 		return res;
+	}
+
+	Type trace() const
+	{
+		const SquareMatrix<Type, M> &self = *this;
+		return self.trace<M>(0);
 	}
 
 	// zero all offdiagonal elements and keep corresponding diagonal elements
