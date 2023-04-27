@@ -614,26 +614,25 @@ void DShot::update_params()
 	}
 }
 
-void DShot::erpm_trampoline(uint32_t erpms[], size_t num_erpms, void *context)
+void DShot::erpm_trampoline(int32_t erpms[], size_t num_erpms, void *context)
 {
 	DShot *self = static_cast<DShot *>(context);
 	self->erpm(erpms, num_erpms);
 }
 
-void DShot::erpm(uint32_t erpms[], size_t num_erpms)
+void DShot::erpm(int32_t erpms[], size_t num_erpms)
 {
-	// TODO: this is hard-coded to 4 motors
 	esc_status_s &esc_status = _esc_status_pub.get();
 	esc_status = {};
 	esc_status.timestamp = hrt_absolute_time();
 	esc_status.counter = _esc_status_counter++;
-	esc_status.esc_count = 4;
+	esc_status.esc_count = num_erpms;
 	esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_DSHOT;
 	esc_status.esc_armed_flags = _outputs_on;
 
-	for (unsigned i = 0; i < 4 && i < esc_status_s::CONNECTED_ESC_MAX; ++i) {
+	for (unsigned i = 0; i < num_erpms && i < esc_status_s::CONNECTED_ESC_MAX; ++i) {
 		esc_status.esc[i].timestamp = hrt_absolute_time();
-		esc_status.esc[i].esc_rpm = erpms[i];
+		esc_status.esc[i].esc_rpm = erpms[i] / (_param_mot_pole_count.get() / 2);
 	}
 
 	_esc_status_pub.update();

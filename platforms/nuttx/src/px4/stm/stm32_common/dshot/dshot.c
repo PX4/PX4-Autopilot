@@ -113,9 +113,9 @@ static int _channels_init_mask = 0;
 
 // We only support capture on the first timer (usually 4 channels) for now.
 static uint32_t _motor_to_capture = 0;
-static uint32_t _erpms[4] = {};
+static int32_t _erpms[4] = {};
 
-static void(*_erpm_callback)(uint32_t[], size_t, void *) = NULL;
+static void(*_erpm_callback)(int32_t[], size_t, void *) = NULL;
 static void *_erpm_callback_context = NULL;
 
 uint8_t nibbles_from_mapped(uint8_t mapped)
@@ -500,9 +500,20 @@ void process_capture_results(void *arg)
 			     (uintptr_t)dshot_capture_buffer +
 			     sizeof(dshot_capture_buffer));
 
-	// TODO: fix order
-	// TODO: convert from period to erpm
-	_erpms[_motor_to_capture] = calculate_period();
+	const unsigned period = calculate_period();
+
+	if (period == 0) {
+		// If the parsing failed, we get 0.
+		_erpms[_motor_to_capture] = 0;
+
+	} else if (period == 65408) {
+		// For still, we get this magic 65408 value.
+		_erpms[_motor_to_capture] = 0;
+
+	} else {
+		// from period in us to eRPM
+		_erpms[_motor_to_capture] = 1000000 * 60 / period;
+	}
 
 	for (unsigned channel = 0; channel < MAX_TIMER_IO_CHANNELS; channel++) {
 		if (_channels_init_mask & (1 << channel)) {
@@ -576,7 +587,7 @@ int up_dshot_arm(bool armed)
 				   IO_TIMER_ALL_MODES_CHANNELS);
 }
 
-void up_dshot_set_erpm_callback(void(*callback)(uint32_t[], size_t, void *), void *context)
+void up_dshot_set_erpm_callback(void(*callback)(int32_t[], size_t, void *), void *context)
 {
 	_erpm_callback = callback;
 	_erpm_callback_context = context;
