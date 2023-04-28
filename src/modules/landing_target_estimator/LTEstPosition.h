@@ -226,7 +226,7 @@ private:
 	};
 
 	struct rangeSensor {
-		bool valid;
+		bool valid = false;
 		float dist_bottom;
 		hrt_abstime last_update = 0;
 	};
@@ -254,8 +254,8 @@ private:
 	vecStamped _pos_rel_gnss{};
 	vecStamped _velocity_offset_ned{};
 	vecStamped _gps_pos_offset_ned{};
-	bool _gps_pos_is_offset;
-	bool _bias_set;
+	bool _gps_pos_is_offset{false};
+	bool _bias_set{false};
 
 	uint64_t _new_pos_sensor_acquired_time{0};
 	uint64_t _land_time{0};
@@ -278,7 +278,7 @@ private:
 	float _drone_acc_unc;
 	float _gps_vel_noise;
 	float _gps_pos_noise;
-	bool  _ev_noise_md;
+	bool  _ev_noise_md{false};
 	float _ev_angle_noise;
 	float _ev_pos_noise;
 

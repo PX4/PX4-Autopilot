@@ -155,7 +155,7 @@ private:
 	localOrientation _local_orientation{};
 
 	struct rangeSensor {
-		bool valid;
+		bool valid = false;
 		float dist_bottom;
 		hrt_abstime last_update = 0;
 	};
@@ -175,10 +175,10 @@ private:
 
 	/* parameters */
 	uint32_t _ltest_TIMEOUT_US = 3000000; // timeout after which filter is reset if target not seen
-	bool _estimate_orientation;
+	bool _estimate_orientation{false};
 	float _yaw_unc;
 	float _ev_angle_noise;
-	bool  _ev_noise_md;
+	bool  _ev_noise_md{false};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::LTEST_YAW_UNC_IN>) _param_ltest_yaw_unc_in,
