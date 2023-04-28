@@ -265,6 +265,17 @@ Vector3f ActuatorEffectivenessRotors::tiltedAxis(float tilt_angle, float tilt_di
 	return Dcmf{Eulerf{0.f, -tilt_angle, tilt_direction}} * axis;
 }
 
+uint32_t ActuatorEffectivenessRotors::getMotors() const
+{
+	uint32_t motors = 0;
+
+	for (int i = 0; i < _geometry.num_rotors; ++i) {
+		motors |= 1u << i;
+	}
+
+	return motors;
+}
+
 uint32_t ActuatorEffectivenessRotors::getUpwardsMotors() const
 {
 	uint32_t upwards_motors = 0;
