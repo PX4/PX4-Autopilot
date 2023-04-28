@@ -1,0 +1,12 @@
+menuconfig MODULES_FAKE_EV
+	bool "fake_ev"
+	default y
+	---help---
+		Enable fake external vision publisher
+
+menuconfig USER_FAKE_EV
+	bool "fake_ev running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && MODULES_FAKE_EV
+	---help---
+		Put fake_ev in userspace memory
