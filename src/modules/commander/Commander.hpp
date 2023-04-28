@@ -217,6 +217,8 @@ private:
 
 		(ParamBool<px4::params::COM_OBS_AVOID>) _param_com_obs_avoid,
 
+		(ParamInt<px4::params::COM_PARACHUTE>) _param_com_parachute,
+
 		(ParamInt<px4::params::COM_FLT_PROFILE>) _param_com_flt_profile,
 
 		(ParamFloat<px4::params::COM_OBC_LOSS_T>) _param_com_obc_loss_t,
