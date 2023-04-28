@@ -549,6 +549,7 @@ bool ICM20602::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
 	if ((fifo_count_bytes >= FIFO::SIZE) || (fifo_count_samples > FIFO_MAX_SAMPLES)) {
 		perf_count(_fifo_overflow_perf);
 		FIFOReset();
+
 		return false;
 
 	} else if (fifo_count_samples == 0) {

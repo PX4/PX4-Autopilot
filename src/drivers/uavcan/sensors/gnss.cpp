@@ -452,7 +452,13 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 	report.heading_offset = heading_offset;
 	report.heading_accuracy = heading_accuracy;
 
-	publish(msg.getSrcNodeID().get(), &report);
+	// Sees.ai - Definitely still differentiates NodeIDs 124 and 125 here (else wouldn't be able to publish 2 instances of GPS, but sanity checked with print to be safe)
+	// Now need to determine where the 125/124 gets lost and why.
+	// Temporarily, we only publish the Rover GPS to maintain consistent GPS selection and therefore antenna position for EKF xy offsets.
+	// This will be removed once proper allocation of NodeIDs to uORB instances has been implemented.
+	if (msg.getSrcNodeID().get() == 125) {
+		publish(msg.getSrcNodeID().get(), &report);
+	}
 }
 
 void UavcanGnssBridge::update()
