@@ -62,3 +62,6 @@
 	path = src/modules/microdds_client/Micro-XRCE-DDS-Client
 	url = https://github.com/PX4/Micro-XRCE-DDS-Client.git
 	branch = px4
+[submodule "src/drivers/can_open/can_open_node"]
+	path = src/drivers/can_open/can_open_node
+	url = https://github.com/CANopenNode/CANopenNode.git
