@@ -84,8 +84,6 @@ public:
 
 	const char *name() const override { return "VTOL Tiltrotor"; }
 
-	uint32_t getStoppedMotors() const override { return _stopped_motors; }
-
 	void getUnallocatedControl(int matrix_index, control_allocator_status_s &status) override;
 
 protected:
@@ -94,8 +92,8 @@ protected:
 	ActuatorEffectivenessControlSurfaces _control_surfaces;
 	ActuatorEffectivenessTilts _tilts;
 
-	uint32_t _nontilted_motors{}; ///< motors that are not tiltable
-	uint32_t _stopped_motors{}; ///< currently stopped motors
+	uint32_t _motors{};
+	uint32_t _untiltable_motors{};
 
 	int _first_control_surface_idx{0}; ///< applies to matrix 1
 	int _first_tilt_idx{0}; ///< applies to matrix 0
