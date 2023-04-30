@@ -4,24 +4,42 @@ actuator_output:
     - param_prefix: PCA9685
       channel_label: 'Channel'
       standard_params:
-        disarmed: { min: 800, max: 2200, default: 1000 }
-        min: { min: 800, max: 1400, default: 1000 }
-        max: { min: 1600, max: 2200, default: 2000 }
-        failsafe: { min: 800, max: 2200 }
+        disarmed: { min: 0, max: 4095, default: 1000 }
+        min: { min: 0, max: 4095, default: 1100 }
+        max: { min: 0, max: 4095, default: 1900 }
+        failsafe: { min: 0, max: 4095 }
       num_channels: 16
+
 parameters:
-    - group: PCA9685
-      definitions:
-        PCA9685_RATE:
-            description:
-                short: PWM frequency for PCA9685
-                long: |
-                    Update rate at which the PWM signal is sent to the ESC.
-            type: float
-            decimal: 1
-            increment: 0.1
-            default: 50
-            min: 50
-            max: 450
-            unit: Hz
-            reboot_required: true
+  - group: Actuator Outputs
+    definitions:
+      PCA9685_SCHD_HZ:
+        description:
+          short: PWM update rate
+          long: |
+            Controls the update rate of PWM output.
+            Flight Controller will inform those numbers of update events in a second, to PCA9685.
+            Higher update rate will consume more I2C bandwidth, which may even lead to worse
+            output latency, or completely block I2C bus.
+        type: float
+        decimal: 2
+        min: 50.0
+        max: 400.0
+        default: 50.0
+      PCA9685_PWM_FREQ:
+        description:
+          short: PWM cycle frequency
+          long: |
+            Controls the PWM frequency at timing perspective.
+            This is independent from PWM update frequency, as PCA9685 is capable to output
+            without being continuously commanded by FC.
+            Higher frequency leads to more accurate pulse width, but some ESCs and
+            servos may not support it.
+            This parameter should be set to the same value as PWM update rate in most case.
+            This parameter MUST NOT exceed upper limit of 400.0, if any output of generic 1000~2000us pulse
+            width is desired. Frequency higher than 400 only make sense in duty-cycle mode.
+        type: float
+        decimal: 2
+        min: 23.8
+        max: 1525.87
+        default: 50.0
