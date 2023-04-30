@@ -106,7 +106,7 @@ int PCA9685::updatePWM(const uint16_t *outputs, unsigned num_outputs)
 	memcpy(out, outputs, sizeof(uint16_t) * num_outputs);
 
 	for (unsigned i = 0; i < num_outputs; ++i) {
-		out[i] = (uint16_t)roundl((out[i] * currentFreq * PCA9685_PWM_RES / (float)1e6)); // convert us to 12 bit resolution
+		out[i] = calcRawFromPulse(out[i]);
 	}
 
 	return writePWM(0, out, num_outputs);
@@ -130,6 +130,11 @@ int PCA9685::updateFreq(float freq)
 	PX4_INFO("PCA9685 PWM frequency: target=%.2f real=%.2f", (double)freq, (double)currentFreq);
 
 	return setDivider(divider);
+}
+
+int PCA9685::updateRAW(const uint16_t *outputs, unsigned int num_outputs)
+{
+	return writePWM(0, outputs, num_outputs);
 }
 
 int PCA9685::setAllPWM(uint16_t output)
@@ -188,10 +193,22 @@ int PCA9685::writePWM(uint8_t idx, const uint16_t *value, uint8_t num)
 
 	for (int i = 0; i < num; ++i) {
 		buf[1 + i * PCA9685_REG_LED_INCREMENT] = 0x00;
-		buf[2 + i * PCA9685_REG_LED_INCREMENT] = 0x00;
-		buf[3 + i * PCA9685_REG_LED_INCREMENT] = (uint8_t)(value[i] & (uint8_t)0xFF);
-		buf[4 + i * PCA9685_REG_LED_INCREMENT] = value[i] != 0 ? ((uint8_t)(value[i] >> (uint8_t)8)) :
-				PCA9685_LED_ON_FULL_ON_OFF_MASK;
+
+		if (value[i] == 0) {
+			buf[2 + i * PCA9685_REG_LED_INCREMENT] = 0x00;
+			buf[3 + i * PCA9685_REG_LED_INCREMENT] = 0x00;
+			buf[4 + i * PCA9685_REG_LED_INCREMENT] = PCA9685_LED_ON_FULL_ON_OFF_MASK;
+
+		} else if (value[i] == 4096) {
+			buf[2 + i * PCA9685_REG_LED_INCREMENT] = PCA9685_LED_ON_FULL_ON_OFF_MASK;
+			buf[3 + i * PCA9685_REG_LED_INCREMENT] = 0x00;
+			buf[4 + i * PCA9685_REG_LED_INCREMENT] = 0x00;
+
+		} else {
+			buf[2 + i * PCA9685_REG_LED_INCREMENT] = 0x00;
+			buf[3 + i * PCA9685_REG_LED_INCREMENT] = (uint8_t)(value[i] & 0xFF);
+			buf[4 + i * PCA9685_REG_LED_INCREMENT] = (uint8_t)(value[i] >> 8);
+		}
 	}
 
 	return transfer(buf, num * PCA9685_REG_LED_INCREMENT + 1, nullptr, 0);

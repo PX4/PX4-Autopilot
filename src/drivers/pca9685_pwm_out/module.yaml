@@ -4,10 +4,15 @@ actuator_output:
     - param_prefix: PCA9685
       channel_label: 'Channel'
       standard_params:
-        disarmed: { min: 0, max: 4095, default: 1000 }
-        min: { min: 0, max: 4095, default: 1100 }
-        max: { min: 0, max: 4095, default: 1900 }
-        failsafe: { min: 0, max: 4095 }
+        disarmed: { min: 0, max: 4096, default: 1000 }
+        min: { min: 0, max: 4096, default: 1100 }
+        max: { min: 0, max: 4096, default: 1900 }
+        failsafe: { min: 0, max: 4096 }
+      custom_params:
+        - name: 'DUTY_EN'
+          label: "Duty-Cycle\n Mode"
+          index_offset: -1
+          show_as: bitset
       num_channels: 16
 
 parameters:
@@ -33,13 +38,41 @@ parameters:
             Controls the PWM frequency at timing perspective.
             This is independent from PWM update frequency, as PCA9685 is capable to output
             without being continuously commanded by FC.
-            Higher frequency leads to more accurate pulse width, but some ESCs and
-            servos may not support it.
+            Higher frequency leads to more accurate pulse width, but some ESCs and servos may not support it.
             This parameter should be set to the same value as PWM update rate in most case.
-            This parameter MUST NOT exceed upper limit of 400.0, if any output of generic 1000~2000us pulse
-            width is desired. Frequency higher than 400 only make sense in duty-cycle mode.
+            This parameter MUST NOT exceed upper limit of 400.0, if any outputs as generic 1000~2000us
+            pulse width is desired. Frequency higher than 400 only makes sense in duty-cycle mode.
         type: float
         decimal: 2
         min: 23.8
         max: 1525.87
         default: 50.0
+      PCA9685_DUTY_EN:
+        description:
+          short: Put the selected channels into Duty-Cycle output mode
+          long: |
+            The driver will output standard pulse-width encoded signal without this bit set.
+            To make PCA9685 output in duty-cycle fashion, please enable the corresponding
+            channel bit here and adjusting standard params to suit your need.
+            The driver will have 12bits resolution for duty-cycle output. That means to achieve 0% to 100%
+            output range on one channel, the corresponding params MIN and MAX for the channel should be set
+            to 0 and 4096. Other standard params follows the same rule.
+        type: bitmask
+        bit:
+          0: Put CH1 to Duty-Cycle mode
+          1: Put CH2 to Duty-Cycle mode
+          2: Put CH3 to Duty-Cycle mode
+          3: Put CH4 to Duty-Cycle mode
+          4: Put CH5 to Duty-Cycle mode
+          5: Put CH6 to Duty-Cycle mode
+          6: Put CH7 to Duty-Cycle mode
+          7: Put CH8 to Duty-Cycle mode
+          8: Put CH9 to Duty-Cycle mode
+          9: Put CH10 to Duty-Cycle mode
+          10: Put CH11 to Duty-Cycle mode
+          11: Put CH12 to Duty-Cycle mode
+          12: Put CH13 to Duty-Cycle mode
+          13: Put CH14 to Duty-Cycle mode
+          14: Put CH15 to Duty-Cycle mode
+          15: Put CH16 to Duty-Cycle mode
+        default: 0

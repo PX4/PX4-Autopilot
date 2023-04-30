@@ -99,6 +99,7 @@ private:
 
 	float param_pwm_freq, previous_pwm_freq;
 	float param_schd_rate, previous_schd_rate;
+	uint32_t param_duty_mode;
 
 	void Run() override;
 };
@@ -140,7 +141,19 @@ bool PCA9685Wrapper::updateOutputs(bool stop_motors, uint16_t *outputs, unsigned
 {
 	if (state != STATE::RUNNING) { return false; }
 
-	if (pca9685->updatePWM(outputs, num_outputs) != PX4_OK) {
+	uint16_t low_level_outputs[PCA9685_PWM_CHANNEL_COUNT] = {};
+	num_outputs = num_outputs > PCA9685_PWM_CHANNEL_COUNT ? PCA9685_PWM_CHANNEL_COUNT : num_outputs;
+
+	for (uint8_t i = 0; i < num_outputs; ++i) {
+		if (param_duty_mode & (1 << i)) {
+			low_level_outputs[i] = outputs[i];
+
+		} else {
+			low_level_outputs[i] = pca9685->calcRawFromPulse(outputs[i]);
+		}
+	}
+
+	if (pca9685->updateRAW(low_level_outputs, num_outputs) != PX4_OK) {
 		PX4_ERR("Failed to write PWM to PCA9685");
 		return false;
 	}
@@ -345,6 +358,13 @@ void PCA9685Wrapper::updateParams() {
         param_get(param, &param_pwm_freq);
     } else {
         PX4_ERR("param PCA9685_SCHD_HZ not found");
+    }
+
+    param = param_find("PCA9685_DUTY_EN");
+    if (param != PARAM_INVALID) {
+        param_get(param, (int32_t*)&param_duty_mode);
+    } else {
+        PX4_ERR("param PCA9685_DUTY_EN not found");
     }
 }
 

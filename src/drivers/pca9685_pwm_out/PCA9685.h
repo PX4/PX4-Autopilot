@@ -114,9 +114,21 @@ public:
 	int updateFreq(float freq);
 
 	/*
+	 * Write new PWM value to device, in raw counter value
+	 *
+	 * *output: 0~4095
+	 */
+	int updateRAW(const uint16_t *outputs, unsigned num_outputs);
+
+	/*
 	 * Get the real frequency
 	 */
 	float inline getFreq() {return currentFreq;}
+
+	uint16_t inline calcRawFromPulse(uint16_t pulse_width)
+	{
+		return (uint16_t)roundl((pulse_width * currentFreq * PCA9685_PWM_RES / (float)1e6));
+	}
 
 	/*
 	 * Set PWM value on all channels at once
