@@ -1,17 +1,6 @@
-@###############################################
-@#
-@# EmPy template for generating uORBTopics.hpp file
-@# for logging purposes
-@#
-@###############################################
-@# Start of Template
-@#
-@# Context:
-@#  - topics (List) list of all topic names
-@###############################################
 /****************************************************************************
  *
- *   Copyright (C) 2021-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -42,31 +31,46 @@
  *
  ****************************************************************************/
 
-@{
-topics_count = len(topics)
-topic_names_all = list(set(topics)) # set() filters duplicates
-topic_names_all.sort()
-}@
+/**
+ * @file base_KF_orientation.h
+ * @brief Interface for orientation target estimator
+ * @author Jonas Perolini <jonspero@me.com>
+ */
 
 #pragma once
 
-#include <stddef.h>
+class Base_KF_orientation
+{
+public:
+	Base_KF_orientation() = default;
+	virtual ~Base_KF_orientation() = default;
 
-#include <uORB/uORB.h>
+	//Prediction step:
+	virtual void predictState(float dt) = 0;
+	virtual void predictCov(float dt) = 0;
 
-static constexpr size_t ORB_TOPICS_COUNT{@(topics_count)};
-static constexpr size_t orb_topics_count() { return ORB_TOPICS_COUNT; }
+	// Backwards state prediciton
+	virtual void syncState(float dt) = 0;
 
-/*
- * Returns array of topics metadata
- */
-extern const struct orb_metadata *const *orb_get_topics() __EXPORT;
+	virtual void setH(matrix::Vector<float, 2> h_meas) = 0;
 
-enum class ORB_ID : orb_id_size_t {
-@[for idx, topic_name in enumerate(topic_names_all)]@
-	@(topic_name) = @(idx),
-@[end for]
-	INVALID
+	virtual float computeInnovCov(float measUnc) = 0;
+	virtual float computeInnov(float meas) = 0;
+
+	virtual bool update() { return true; }
+
+	// Init: x_0
+	virtual void setPosition(float pos) = 0;
+	virtual void setVelocity(float vel) = 0;
+
+	// Init: P_0
+	virtual void setStatePosVar(float var) = 0;
+	virtual void setStateVelVar(float var) = 0;
+
+	// Retreive output of filter
+	virtual float getPosition() { return 0.f; };
+	virtual float getVelocity() { return 0.f; };
+
+	virtual float getPosVar() { return 0.f; };
+	virtual float getVelVar() { return 0.f; };
 };
-
-const struct orb_metadata *get_orb_meta(ORB_ID id);

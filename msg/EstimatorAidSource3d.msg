@@ -19,3 +19,5 @@ bool innovation_rejected     # true if the observation has been rejected
 bool fused                   # true if the sample was successfully fused
 
 # TOPICS estimator_aid_src_ev_vel estimator_aid_src_gnss_vel estimator_aid_src_gravity estimator_aid_src_mag
+# TOPICS ltest_aid_gps_pos_target ltest_aid_gps_pos_mission ltest_aid_gps_vel_target ltest_aid_gps_vel_rel
+# TOPICS ltest_aid_fiducial_marker ltest_aid_irlock ltest_aid_uwb

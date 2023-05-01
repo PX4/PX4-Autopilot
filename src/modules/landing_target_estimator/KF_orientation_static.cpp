@@ -1,17 +1,6 @@
-@###############################################
-@#
-@# EmPy template for generating uORBTopics.hpp file
-@# for logging purposes
-@#
-@###############################################
-@# Start of Template
-@#
-@# Context:
-@#  - topics (List) list of all topic names
-@###############################################
 /****************************************************************************
  *
- *   Copyright (C) 2021-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -42,31 +31,78 @@
  *
  ****************************************************************************/
 
-@{
-topics_count = len(topics)
-topic_names_all = list(set(topics)) # set() filters duplicates
-topic_names_all.sort()
-}@
-
-#pragma once
-
-#include <stddef.h>
-
-#include <uORB/uORB.h>
-
-static constexpr size_t ORB_TOPICS_COUNT{@(topics_count)};
-static constexpr size_t orb_topics_count() { return ORB_TOPICS_COUNT; }
-
-/*
- * Returns array of topics metadata
+/**
+ * @file KF_orientation_static.cpp
+ * @brief Filter to estimate the orientation of static targets. State: [theta]
+ *
+ * @author Jonas Perolini <jonspero@me.com>
+ *
  */
-extern const struct orb_metadata *const *orb_get_topics() __EXPORT;
 
-enum class ORB_ID : orb_id_size_t {
-@[for idx, topic_name in enumerate(topic_names_all)]@
-	@(topic_name) = @(idx),
-@[end for]
-	INVALID
-};
+#include "KF_orientation_static.h"
 
-const struct orb_metadata *get_orb_meta(ORB_ID id);
+namespace landing_target_estimator
+{
+
+void KF_orientation_static::predictState(float dt)
+{
+	_state = _state;
+}
+
+void KF_orientation_static::predictCov(float dt)
+{
+	_covariance = _covariance;
+}
+
+
+bool KF_orientation_static::update()
+{
+	// Avoid zero-division
+	if (fabsf(_innov_cov) < 1e-6f) {
+		return false;
+	}
+
+	const float beta = _innov / _innov_cov * _innov;
+
+	// 5% false alarm probability
+	if (beta > 3.84f) {
+		return false;
+	}
+
+	const float kalmanGain = _covariance * _meas_matrix / _innov_cov;
+
+	_state = matrix::wrap_pi(_state + kalmanGain * _innov);
+
+	_covariance = _covariance - kalmanGain * _meas_matrix * _covariance;
+
+	return true;
+}
+
+void KF_orientation_static::setH(matrix::Vector<float, 2> h_meas)
+{
+	// h_meas = [theta, theta_dot]
+
+	// For this filter: [theta]
+
+	_meas_matrix = h_meas(0);
+}
+
+void KF_orientation_static::syncState(float dt)
+{
+	_sync_state = _state;
+}
+
+float KF_orientation_static::computeInnovCov(float meas_unc)
+{
+	_innov_cov = _meas_matrix * _covariance * _meas_matrix + meas_unc;
+	return _innov_cov;
+}
+
+float KF_orientation_static::computeInnov(float meas)
+{
+	/* z - H*x */
+	_innov = matrix::wrap_pi(meas - (_meas_matrix * _sync_state));
+	return _innov;
+}
+
+} // namespace landing_target_estimator

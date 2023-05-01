@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014-2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,31 +35,104 @@
  * @file landing_target_estimator_params.c
  * Landing target estimator algorithm parameters.
  *
+ * @author Jonas Perolini <jonspero@me.com>
  * @author Nicolas de Palezieux (Sunflower Labs) <ndepal@gmail.com>
  * @author Mohammed Kabir <kabir@uasys.io>
  *
  */
 
 /**
- * Landing target mode
+ * Landing target estimator module enable
  *
- * Configure the mode of the landing target. Depending on the mode, the landing target observations are used differently to aid position estimation.
+ * @boolean
  *
- * Mode Moving:     The landing target may be moving around while in the field of view of the vehicle. Landing target measurements are not used to aid positioning.
- * Mode Stationary: The landing target is stationary. Measured velocity w.r.t. the landing target is used to aid velocity estimation.
- *
- * @min 0
- * @max 1
  * @group Landing target Estimator
- * @value 0 Moving
- * @value 1 Stationary
  */
-PARAM_DEFINE_INT32(LTEST_MODE, 0);
+PARAM_DEFINE_INT32(LTEST_EN, 1);
 
 /**
- * Acceleration uncertainty
+ * Landing target estimator module enable orientation estimation
  *
- * Variance of acceleration measurement used for landing target position prediction.
+ * @boolean
+ *
+ * @group Landing target Estimator
+ */
+PARAM_DEFINE_INT32(LTEST_YAW_EN, 0);
+
+/**
+ * Landing target estimator module enable position estimation
+ *
+ * @boolean
+ *
+ * @group Landing target Estimator
+ */
+PARAM_DEFINE_INT32(LTEST_POS_EN, 1);
+
+/**
+ * Integer bitmask controlling data fusion and aiding methods.
+ *
+ * Set bits in the following positions to enable:
+ * 0 : Set to true to use the target's GPS position data if available. (+1)
+ * 1 : Set to true to use the relative GPS velocity data if available. (If the target is moving, a target velocity estimate is required) (+2)
+ * 2 : Set to true to use the target relative position from vision-based data if available (+4)
+ * 3 : Set to true to use the target relative position from irlock data if available (+8)
+ * 4 : Set to true to use the target relative position from uwb data if available (+16)
+ * 5 : Set to true to use the mission landing point. Ignored if target GPS position enabled. (+32)
+ *
+ * @group Landing target Estimator
+ * @min 0
+ * @max 63
+ * @bit 0 target GPS position
+ * @bit 1 relative GPS velocity
+ * @bit 2 vision relative position
+ * @bit 3 irlock relative position
+ * @bit 4 uwb relative position
+ * @bit 5 mission landing position
+ *
+ * @reboot_required true
+ *
+ * @group Landing target Estimator
+ */
+PARAM_DEFINE_INT32(LTEST_AID_MASK, 46);
+
+/**
+ * Landing target mode
+ *
+ * Configure the mode of the landing target. Depending on the mode, the state of the estimator (Kalman filter) varies. For static targets, the landing target observations can be used to aid position estimation.
+ *
+ * Mode Static: The landing target is static, the state of the Kalman filter is: [relative position, relative velocity, bias]. If the observations have a low variance,they can be used to aid position estimation.
+ * Mode Moving: The landing target may be moving around, the state of the Kalman filter is: [relative position, drone velocity, bias, target's acceleration, target's velocity].
+ *
+ * @min 0
+ * @max 2
+ * @group Landing target Estimator
+ * @value 0 Static
+ * @value 1 Moving
+ *
+ * @group Landing target Estimator
+ */
+PARAM_DEFINE_INT32(LTEST_MODE, 1);
+
+
+/**
+ * Landing Target Timeout
+ *
+ * Time after which the landing target is considered lost without any new measurements.
+ *
+ * @unit s
+ * @min 0.0
+ * @max 50
+ * @decimal 1
+ * @increment 0.5
+ *
+ * @group Landing target Estimator
+ */
+PARAM_DEFINE_FLOAT(LTEST_BTOUT, 3.0f);
+
+/**
+ * Drone acceleration uncertainty
+ *
+ * Variance of drone's acceleration used for landing target position prediction.
  * Higher values results in tighter following of the measurements and more lenient outlier rejection
  *
  * @unit (m/s^2)^2
@@ -68,10 +141,51 @@ PARAM_DEFINE_INT32(LTEST_MODE, 0);
  *
  * @group Landing target Estimator
  */
-PARAM_DEFINE_FLOAT(LTEST_ACC_UNC, 10.0f);
+PARAM_DEFINE_FLOAT(LTEST_ACC_D_UNC, 1.0f);
 
 /**
- * Landing target measurement uncertainty
+ * Target acceleration uncertainty
+ *
+ * Variance of target acceleration (in NED frame) used for landing target position prediction.
+ * Higher values results in tighter following of the measurements and more lenient outlier rejection
+ *
+ * @unit (m/s^2)^2
+ * @min 0.01
+ * @decimal 2
+ *
+ * @group Landing target Estimator
+ */
+PARAM_DEFINE_FLOAT(LTEST_ACC_T_UNC, 1.0f);
+
+/**
+ * Bias uncertainty
+ *
+ * Variance of GPS bias used for landing target position prediction.
+ * Higher values results in tighter following of the measurements and more lenient outlier rejection
+ *
+ * @unit m^2
+ * @min 0.01
+ * @decimal 2
+ *
+ * @group Landing target Estimator
+ */
+PARAM_DEFINE_FLOAT(LTEST_BIAS_UNC, 0.05f);
+
+/**
+ * Bias limit
+ *
+ * Maximal bias between drone GPS and landing target GPS.
+ *
+ * @unit m^2
+ * @min 0.01
+ * @decimal 2
+ *
+ * @group Landing target Estimator
+ */
+PARAM_DEFINE_FLOAT(LTEST_BIAS_LIM, 1.f);
+
+/**
+ * Landing target measurement uncertainty for Irlock and uwb sensors
  *
  * Variance of the landing target measurement from the driver.
  * Higher values result in less aggressive following of the measurement and a smoother output as well as fewer rejected measurements.
@@ -81,12 +195,12 @@ PARAM_DEFINE_FLOAT(LTEST_ACC_UNC, 10.0f);
  *
  * @group Landing target Estimator
  */
-PARAM_DEFINE_FLOAT(LTEST_MEAS_UNC, 0.005f);
+PARAM_DEFINE_FLOAT(LTEST_MEAS_UNC, 0.05f);
 
 /**
- * Initial landing target position uncertainty
+ * Initial landing target and drone relative position uncertainty
  *
- * Initial variance of the relative landing target position in x and y direction
+ * Initial variance of the relative landing target position in x,y,z direction
  *
  * @unit m^2
  * @min 0.001
@@ -94,12 +208,12 @@ PARAM_DEFINE_FLOAT(LTEST_MEAS_UNC, 0.005f);
  *
  * @group Landing target Estimator
  */
-PARAM_DEFINE_FLOAT(LTEST_POS_UNC_IN, 0.1f);
+PARAM_DEFINE_FLOAT(LTEST_POS_UNC_IN, 0.5f);
 
 /**
- * Initial landing target velocity uncertainty
+ * Initial landing target and drone relative velocity uncertainty
  *
- * Initial variance of the relative landing target velocity in x and y directions
+ * Initial variance of the relative landing target velocity in x,y,z directions
  *
  * @unit (m/s)^2
  * @min 0.001
@@ -107,7 +221,109 @@ PARAM_DEFINE_FLOAT(LTEST_POS_UNC_IN, 0.1f);
  *
  * @group Landing target Estimator
  */
-PARAM_DEFINE_FLOAT(LTEST_VEL_UNC_IN, 0.1f);
+PARAM_DEFINE_FLOAT(LTEST_VEL_UNC_IN, 0.5f);
+
+/**
+ * Initial GPS bias uncertainty
+ *
+ * Initial variance of the bias between the GPS on the target and the GPS on the drone
+ *
+ * @unit m^2
+ * @min 0.001
+ * @decimal 3
+ *
+ * @group Landing target Estimator
+ */
+PARAM_DEFINE_FLOAT(LTEST_BIA_UNC_IN, 1.0f);
+
+/**
+ * Initial Orientation uncertainty
+ *
+ * Initial variance of the orientation (yaw) of the landing target
+ *
+ * @unit m^2
+ * @min 0.001
+ * @decimal 3
+ *
+ * @group Landing target Estimator
+ */
+PARAM_DEFINE_FLOAT(LTEST_YAW_UNC_IN, 1.0f);
+
+/**
+ * Initial landing target absolute acceleration uncertainty
+ *
+ * Initial variance of the relative landing target acceleration in x,y,z directions
+ *
+ * @unit (m/s^2)^2
+ * @min 0.001
+ * @decimal 3
+ *
+ * @group Landing target Estimator
+ */
+PARAM_DEFINE_FLOAT(LTEST_ACC_UNC_IN, 0.1f);
+
+/**
+ * Measurement noise for gps horizontal velocity.
+ *
+ * minimum allowed observation noise for gps velocity fusion (m/sec)
+ *
+ * @min 0.01
+ * @max 5.0
+ * @unit m/s
+ * @decimal 2
+ *
+ * @group Landing target Estimator
+ */
+PARAM_DEFINE_FLOAT(LTE_GPS_V_NOISE, 0.3f);
+
+/**
+ * Measurement noise for gps position.
+ *
+ * minimum allowed observation noise for gps position fusion (m)
+ *
+ * @min 0.01
+ * @max 10.0
+ * @unit m
+ * @decimal 2
+ *
+ * @group Landing target Estimator
+ */
+PARAM_DEFINE_FLOAT(LTE_GPS_P_NOISE, 0.5f);
+
+/**
+ * Whether to set the external vision observation noise from the parameter or from vision message
+ *
+ * If set to true the observation noise is set from the parameters directly, if set to false the measurement noise is taken from the vision message and the parameter are used as a lower bound.
+ *
+ * @boolean
+ *
+ * @group Landing target Estimator
+ */
+PARAM_DEFINE_INT32(LTE_EV_NOISE_MD, 0);
+
+/**
+ * Measurement noise for vision angle observations used to lower bound or replace the uncertainty included in the message
+ *
+ * @min 0.05
+ * @unit rad
+ * @decimal 2
+ *
+ * @group Landing target Estimator
+ */
+PARAM_DEFINE_FLOAT(LTE_EVA_NOISE, 0.05f);
+
+/**
+ * Measurement noise for vision position observations used to lower bound or replace the uncertainty included in the message.
+ *
+ * If used to replace the uncertainty in the message, the measurement noise is lineraly scaled with the altitude i.e. unc = LTE_EVP_NOISE^2 * max(dist_bottom, 1)
+ *
+ * @min 0.01
+ * @unit m
+ * @decimal 2
+ *
+ * @group Landing target Estimator
+ */
+PARAM_DEFINE_FLOAT(LTE_EVP_NOISE, 0.1f);
 
 /**
  * Scale factor for sensor measurements in sensor x axis

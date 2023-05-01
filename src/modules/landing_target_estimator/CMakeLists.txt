@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2023 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -35,10 +35,18 @@ px4_add_module(
 	MODULE modules__landing_target_estimator
 	MAIN landing_target_estimator
 	COMPILE_FLAGS
+	STACK_MAX
+        3600
 	SRCS
-		landing_target_estimator_main.cpp
-		LandingTargetEstimator.cpp
-		KalmanFilter.cpp
+		LandingTargetEst.cpp
+		LTEstPosition.cpp
+		LTEstOrientation.cpp
+		KF_xyzb_v_decoupled_moving.cpp
+		KF_orientation_moving.cpp
+		KF_xyzb_decoupled_static.cpp
+		KF_orientation_static.cpp
 	DEPENDS
+		mathlib
+		px4_work_queue
 	)
 

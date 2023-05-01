@@ -85,6 +85,8 @@ set(msg_files
 	Event.msg
 	FailsafeFlags.msg
 	FailureDetectorStatus.msg
+	FiducialMarkerPosReport.msg
+	FiducialMarkerYawReport.msg
 	FollowTarget.msg
 	FollowTargetEstimator.msg
 	FollowTargetStatus.msg
@@ -109,9 +111,10 @@ set(msg_files
 	InternalCombustionEngineStatus.msg
 	IridiumsbdStatus.msg
 	IrlockReport.msg
+	LandingTargetGnss.msg
+	LandingTargetOrientation.msg
 	LandingGear.msg
 	LandingGearWheel.msg
-	LandingTargetInnovations.msg
 	LandingTargetPose.msg
 	LaunchDetectionStatus.msg
 	LedControl.msg
@@ -176,6 +179,7 @@ set(msg_files
 	SensorsStatusImu.msg
 	SystemPower.msg
 	TakeoffStatus.msg
+	TargetEstimatorState.msg
 	TaskStackInfo.msg
 	TecsStatus.msg
 	TelemetryStatus.msg
