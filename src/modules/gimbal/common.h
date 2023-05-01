@@ -82,6 +82,7 @@ struct ControlData {
 	uint8_t compid_primary_control = 0; // The MAVLink component ID selected to be in control, 0 for no one.
 	// uint8_t sysid_secondary_control = 0; // The MAVLink system ID selected for additional input, not implemented yet.
 	// uint8_t compid_secondary_control = 0; // The MAVLink component ID selected for additional input, not implemented yet.
+	uint8_t device_compid = 0;
 };
 
 
