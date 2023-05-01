@@ -500,12 +500,12 @@ int CrsfRc::print_status()
 	perf_print_counter(_cycle_interval_perf);
 	perf_print_counter(_publish_interval_perf);
 
-	PX4_INFO("Disposed bytes: %li",  _packet_parser_statistics.disposed_bytes);
-	PX4_INFO("Valid known packet CRCs: %li",  _packet_parser_statistics.crcs_valid_known_packets);
-	PX4_INFO("Valid unknown packet CRCs: %li",  _packet_parser_statistics.crcs_valid_unknown_packets);
-	PX4_INFO("Invalid CRCs: %li",  _packet_parser_statistics.crcs_invalid);
-	PX4_INFO("Invalid known packet sizes: %li",  _packet_parser_statistics.invalid_known_packet_sizes);
-	PX4_INFO("Invalid unknown packet sizes: %li",  _packet_parser_statistics.invalid_unknown_packet_sizes);
+	PX4_INFO("Disposed bytes: %" PRIu32,  _packet_parser_statistics.disposed_bytes);
+	PX4_INFO("Valid known packet CRCs: %" PRIu32,  _packet_parser_statistics.crcs_valid_known_packets);
+	PX4_INFO("Valid unknown packet CRCs: %" PRIu32,  _packet_parser_statistics.crcs_valid_unknown_packets);
+	PX4_INFO("Invalid CRCs: %" PRIu32,  _packet_parser_statistics.crcs_invalid);
+	PX4_INFO("Invalid known packet sizes: %" PRIu32,  _packet_parser_statistics.invalid_known_packet_sizes);
+	PX4_INFO("Invalid unknown packet sizes: %" PRIu32,  _packet_parser_statistics.invalid_unknown_packet_sizes);
 
 	return 0;
 }
