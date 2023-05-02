@@ -266,6 +266,7 @@ else()
 		-fno-exceptions
 		-fno-rtti
 		-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}script.ld
+		-L${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}
 		-Wl,-Map=${PX4_CONFIG}.map
 		-Wl,--warn-common
 		-Wl,--gc-sections
@@ -383,6 +384,9 @@ if(NOT NUTTX_DIR MATCHES "external")
 	if(CONFIG_ARCH_CHIP_MIMXRT1062DVL6A)
 		set(DEBUG_DEVICE "MIMXRT1062XXX6A")
 		set(DEBUG_SVD_FILE "MIMXRT1052.svd")
+	elseif(CONFIG_ARCH_CHIP_MIMXRT1176DVMAA)
+		set(DEBUG_DEVICE "MIMXRT1176DVMAA")
+		set(DEBUG_SVD_FILE "MIMXRT1176_cm7.xml")
 	elseif(CONFIG_ARCH_CHIP_MK66FN2M0VMD18)
 		set(DEBUG_DEVICE "MK66FN2M0xxx18")
 		set(DEBUG_SVD_FILE "MK66F18.svd")
