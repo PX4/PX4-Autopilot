@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2017 PX4 Development Team. All rights reserved.
- *   Author: @author David Sidrane <david_s5@nscdg.com>
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,43 +31,46 @@
  *
  ****************************************************************************/
 
-/**
- * @file board_reset.cpp
- * Implementation of IMXRT based Board RESET API
- */
+#include "arm_internal.h"
+#include "lib/systick.h"
+#include <nvic.h>
 
-#include <px4_platform_common/px4_config.h>
-#include <errno.h>
-#include <nuttx/board.h>
-#include <arm_internal.h>
-#include <hardware/rt117x/imxrt117x_snvs.h>
-
-#define BOOT_RTC_SIGNATURE                0xb007b007
-#define PX4_IMXRT_RTC_REBOOT_REG          3
-#define PX4_IMXRT_RTC_REBOOT_REG_ADDRESS  IMXRT_SNVS_LPGPR3
-
-#if CONFIG_IMXRT_RTC_MAGIC_REG == PX4_IMXRT_RTC_REBOOT_REG
-#  error CONFIG_IMXRT_RTC_MAGIC_REG can nt have the save value as PX4_IMXRT_RTC_REBOOT_REG
-#endif
-
-static int board_reset_enter_bootloader()
+uint8_t systick_get_countflag(void)
 {
-	uint32_t regvalue = BOOT_RTC_SIGNATURE;
-	modifyreg32(IMXRT_SNVS_LPCR, 0, SNVS_LPCR_GPR_Z_DIS);
-	putreg32(regvalue, PX4_IMXRT_RTC_REBOOT_REG_ADDRESS);
-	return OK;
+	return (getreg32(NVIC_SYSTICK_CTRL) & NVIC_SYSTICK_CTRL_COUNTFLAG) ? 1 : 0;
 }
 
-int board_reset(int status)
+// See 2.2.3 SysTick external clock is not HCLK/8
+uint32_t g_divisor = 1;
+void systick_set_reload(uint32_t value)
 {
-	if (status == 1) {
-		board_reset_enter_bootloader();
-	}
+	putreg32((((value * g_divisor) << NVIC_SYSTICK_RELOAD_SHIFT) & NVIC_SYSTICK_RELOAD_MASK), NVIC_SYSTICK_RELOAD);
+}
 
-#if defined(BOARD_HAS_ON_RESET)
-	board_on_reset(status);
-#endif
 
-	up_systemreset();
-	return 0;
+void systick_set_clocksource(uint8_t clocksource)
+{
+	g_divisor = (clocksource == CLKSOURCE_EXTERNAL) ? 8 : 1;
+	modifyreg32(NVIC_SYSTICK_CTRL, NVIC_SYSTICK_CTRL_CLKSOURCE, clocksource & NVIC_SYSTICK_CTRL_CLKSOURCE);
+}
+
+void systick_counter_enable(void)
+{
+	modifyreg32(NVIC_SYSTICK_CTRL, 0, NVIC_SYSTICK_CTRL_ENABLE);
+}
+
+void systick_counter_disable(void)
+{
+	modifyreg32(NVIC_SYSTICK_CTRL, NVIC_SYSTICK_CTRL_ENABLE, 0);
+	putreg32(0, NVIC_SYSTICK_CURRENT);
+}
+
+void systick_interrupt_enable(void)
+{
+	modifyreg32(NVIC_SYSTICK_CTRL, 0, NVIC_SYSTICK_CTRL_TICKINT);
+}
+
+void systick_interrupt_disable(void)
+{
+	modifyreg32(NVIC_SYSTICK_CTRL, NVIC_SYSTICK_CTRL_TICKINT, 0);
 }

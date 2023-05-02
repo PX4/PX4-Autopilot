@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2017 PX4 Development Team. All rights reserved.
- *   Author: @author David Sidrane <david_s5@nscdg.com>
+ *   Copyright (c) 2016, 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,42 +32,84 @@
  ****************************************************************************/
 
 /**
- * @file board_reset.cpp
- * Implementation of IMXRT based Board RESET API
+ * @file led.c
+ *
+ * PX4 fmu-v6rt LED backend.
  */
 
 #include <px4_platform_common/px4_config.h>
-#include <errno.h>
-#include <nuttx/board.h>
-#include <arm_internal.h>
-#include <hardware/rt117x/imxrt117x_snvs.h>
 
-#define BOOT_RTC_SIGNATURE                0xb007b007
-#define PX4_IMXRT_RTC_REBOOT_REG          3
-#define PX4_IMXRT_RTC_REBOOT_REG_ADDRESS  IMXRT_SNVS_LPGPR3
+#include <stdbool.h>
 
-#if CONFIG_IMXRT_RTC_MAGIC_REG == PX4_IMXRT_RTC_REBOOT_REG
-#  error CONFIG_IMXRT_RTC_MAGIC_REG can nt have the save value as PX4_IMXRT_RTC_REBOOT_REG
-#endif
+#include "chip.h"
+#include <hardware/imxrt_gpio.h>
+#include "board_config.h"
 
-static int board_reset_enter_bootloader()
+#include <arch/board/board.h>
+
+/*
+ * Ideally we'd be able to get these from arm_internal.h,
+ * but since we want to be able to disable the NuttX use
+ * of leds for system indication at will and there is no
+ * separate switch, we need to build independent of the
+ * CONFIG_ARCH_LEDS configuration switch.
+ */
+__BEGIN_DECLS
+extern void led_init(void);
+extern void led_on(int led);
+extern void led_off(int led);
+extern void led_toggle(int led);
+__END_DECLS
+
+
+static uint32_t g_ledmap[] = {
+	GPIO_nLED_BLUE,   // Indexed by LED_BLUE
+	GPIO_nLED_RED,    // Indexed by LED_RED, LED_AMBER
+	GPIO_LED_SAFETY,  // Indexed by LED_SAFETY
+	GPIO_nLED_GREEN,  // Indexed by LED_GREEN
+};
+
+__EXPORT void led_init(void)
 {
-	uint32_t regvalue = BOOT_RTC_SIGNATURE;
-	modifyreg32(IMXRT_SNVS_LPCR, 0, SNVS_LPCR_GPR_Z_DIS);
-	putreg32(regvalue, PX4_IMXRT_RTC_REBOOT_REG_ADDRESS);
-	return OK;
+	/* Configure LED GPIOs for output */
+	for (size_t l = 0; l < (sizeof(g_ledmap) / sizeof(g_ledmap[0])); l++) {
+		if (g_ledmap[l] != 0) {
+			imxrt_config_gpio(g_ledmap[l]);
+		}
+	}
 }
 
-int board_reset(int status)
+static void phy_set_led(int led, bool state)
 {
-	if (status == 1) {
-		board_reset_enter_bootloader();
+	/* Drive Low to switch on */
+
+	if (g_ledmap[led] != 0) {
+		imxrt_gpio_write(g_ledmap[led], !state);
+	}
+}
+
+static bool phy_get_led(int led)
+{
+
+	if (g_ledmap[led] != 0) {
+		return imxrt_gpio_read(!g_ledmap[led]);
 	}
 
-#if defined(BOARD_HAS_ON_RESET)
-	board_on_reset(status);
-#endif
+	return false;
+}
 
-	up_systemreset();
-	return 0;
+__EXPORT void led_on(int led)
+{
+	phy_set_led(led, true);
+}
+
+__EXPORT void led_off(int led)
+{
+	phy_set_led(led, false);
+}
+
+__EXPORT void led_toggle(int led)
+{
+
+	phy_set_led(led, !phy_get_led(led));
 }

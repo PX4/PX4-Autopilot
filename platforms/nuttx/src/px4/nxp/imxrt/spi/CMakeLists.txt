@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015-2019 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2023 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,14 +31,9 @@
 #
 ############################################################################
 
-add_compile_options(
-	-Wno-unused-function
-	) # TODO: remove once io_timer_handlerX are used
-
-px4_add_library(arch_io_pins
-	../../imxrt/io_pins/io_timer.c
-	../../imxrt/io_pins/pwm_servo.c
-	../../imxrt/io_pins/pwm_trigger.c
-	../../imxrt/io_pins/input_capture.c
-	imxrt_pinirq.c
+px4_add_library(arch_spi
+	spi.cpp
 )
+target_compile_options(arch_spi PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
+
+target_link_libraries (arch_spi PRIVATE drivers_board) # px4_spi_buses

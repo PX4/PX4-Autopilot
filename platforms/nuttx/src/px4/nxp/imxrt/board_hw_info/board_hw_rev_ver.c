@@ -73,23 +73,26 @@ static char hw_info[HW_INFO_SIZE] = {0};
 
 static int dn_to_ordinal(uint16_t dn)
 {
+	// Refernece is 3.8933 = (1.825f * 64.0f / 30.0f)
+	// LSB is 0.000950521 = 3.8933 / 4096
+	// DN's are V/LSB
 
 	const struct {
 		uint16_t low;  // High(n-1) + 1
 		uint16_t high; // Average High(n)+Low(n+1) EX. 1356 = AVRG(1331,1382)
 	} dn2o[] = {
-		//   R1(up) R2(down)    V min       V Max       DN Min DN Max
-		{0,   0   },   // 0                     No Resistors
-		{1,   579 },   // 1  24.9K   442K   0.166255191  0.44102252    204    553
-		{580, 967 },   // 2  32.4K   174K   0.492349322  0.770203609   605    966
-		{968, 1356},   // 3  38.3K   115K   0.787901749  1.061597759   968    1331
-		{1357, 1756},  // 4  46.4K   84.5K  1.124833577  1.386007306   1382   1738
-		{1757, 2137},  // 5  51.1K   61.9K  1.443393279  1.685367869   1774   2113
-		{2138, 2519},  // 6  61.9K   51.1K  1.758510242  1.974702534   2161   2476
-		{2520, 2919},  // 7  84.5K   46.4K  2.084546498  2.267198261   2562   2842
-		{2920, 3308},  // 8  115K    38.3K  2.437863827  2.57656294    2996   3230
-		{3309, 3699},  // 9  174K    32.4K  2.755223792  2.847933804   3386   3571
-		{3700, 4095},  // 10 442K    24.9K  3.113737849  3.147347506   3827   3946
+		//                   R2(down) R1(up)    V min       V Max       DN Min DN Max
+		{0,    0   },  // 0                     No Resistors
+		{1,    490 },  // 1  24.9K   442K   0.166255191  0.44102252    174	 463
+		{491,  819 },  // 2  32.4K   174K   0.492349322  0.770203609   517	 810
+		{820,  1149},  // 3  38.3K   115K   0.787901749  1.061597759   828	1116
+		{1150, 1488},  // 4  46.4K   84.5K  1.124833577  1.386007306   1183	1458
+		{1489, 1811},  // 5  51.1K   61.9K  1.443393279  1.685367869   1518	1773
+		{1812, 2135},  // 6  61.9K   51.1K  1.758510242  1.974702534   1850	2077
+		{2136, 2474},  // 7  84.5K   46.4K  2.084546498  2.267198261   2193	2385
+		{2475, 2804},  // 8  115K    38.3K  2.437863827  2.57656294    2564	2710
+		{2805, 3135},  // 9  174K    32.4K  2.755223792  2.847933804   2898	2996
+		{3136, 4095},  // 10 442K    24.9K  3.113737849  3.147347506   3275	3311
 	};
 
 	for (unsigned int i = 0; i < arraySize(dn2o); i++) {
@@ -141,44 +144,57 @@ static int read_id_dn(int *id, uint32_t gpio_drive, uint32_t gpio_sense, int adc
 	/*
 	 * Step one is there resistors?
 	 *
-	 * If we set the mid-point of the ladder which is the ADC input to an
-	 * output, then whatever state is driven out should be seen by the GPIO
-	 * that is on the bottom of the ladder that is switched to an input.
-	 * The SENCE line is effectively an output with a high value pullup
-	 * resistor on it driving an input through a series resistor with a pull up.
-	 * If present the series resistor will form a low pass filter due to stray
-	 * capacitance, but this is fine as long as we give it time to settle.
+	 * With the common REV/VER Drive we have to look at the ADC values.
+	 * to determine if the R's are hooked up. This is because the
+	 * the REV and VER pairs will influence each other and not make
+	 * digital thresholds.
+	 *
+	 * I.E
+	 *
+	 *     VDD
+	 *     442K
+	 *       REV is a Float
+	 *     24.9K
+	 *        Drive as input
+	 *     442K
+	 *       VER is 0.
+	 *     24.9K
+	 *     VDD
+	 *
+	 *   This is 466K up and 442K down.
+	 *
+	 *  Driving VER Low and reading DRIVE will result in approximately mid point
+	 *  values not a digital Low.
 	 */
 
-	/*  Turn the drive lines to digital inputs with No pull up */
-
-	imxrt_config_gpio(PX4_MAKE_GPIO_INPUT(gpio_drive) & ~IOMUX_PULL_MASK);
-
-	/*  Turn the sense lines to digital outputs LOW */
-
-	imxrt_config_gpio(PX4_MAKE_GPIO_OUTPUT_CLEAR(gpio_sense));
-
-
-
-	up_udelay(100); /* About 10 TC assuming 485 K */
-
-	/*  Read Drive lines while sense are driven low */
-
-	int low = imxrt_gpio_read(PX4_MAKE_GPIO_INPUT(gpio_drive));
-
-
-	/*  Write the sense lines HIGH */
-
-	imxrt_gpio_write(PX4_MAKE_GPIO_OUTPUT_CLEAR(gpio_sense), 1);
-
-	up_udelay(100); /* About 10 TC assuming 485 K */
-	/*  Read Drive lines while sense are driven high */
-
-	int high = imxrt_gpio_read(PX4_MAKE_GPIO_INPUT(gpio_drive));
-
-	/* restore the pins to ANALOG */
+	uint32_t dn_sum = 0;
+	uint32_t dn = 0;
+	uint32_t high = 0;
+	uint32_t low = 0;
 
 	imxrt_config_gpio(gpio_sense);
+
+	/*  Turn the drive lines to digital outputs High */
+
+	imxrt_config_gpio(gpio_drive);
+
+	up_udelay(100); /* About 10 TC assuming 485 K */
+
+	for (unsigned av = 0; av < samples; av++) {
+		if (px4_arch_adc_init(HW_REV_VER_ADC_BASE) == OK) {
+			dn = px4_arch_adc_sample(HW_REV_VER_ADC_BASE, adc_channel);
+
+			if (dn == UINT32_MAX) {
+				break;
+			}
+
+			dn_sum  += dn;
+		}
+	}
+
+	if (dn != UINT32_MAX) {
+		high = dn_sum / samples;
+	}
 
 	/*  Turn the drive lines to digital outputs LOW */
 
@@ -186,31 +202,28 @@ static int read_id_dn(int *id, uint32_t gpio_drive, uint32_t gpio_sense, int adc
 
 	up_udelay(100); /* About 10 TC assuming 485 K */
 
-	/* Are Resistors in place ?*/
+	dn_sum = 0;
 
-	uint32_t dn_sum = 0;
-	uint32_t dn = 0;
+	for (unsigned av = 0; av < samples; av++) {
 
-	if ((high ^ low) && low == 0) {
-		/* Yes - Fire up the ADC (it has once control) */
-		if (px4_arch_adc_init(HW_REV_VER_ADC_BASE) == OK) {
+		dn = px4_arch_adc_sample(HW_REV_VER_ADC_BASE, adc_channel);
 
-			/* Read the value */
-			for (unsigned av = 0; av < samples; av++) {
-				dn = px4_arch_adc_sample(HW_REV_VER_ADC_BASE, adc_channel);
-
-				if (dn == UINT32_MAX) {
-					break;
-				}
-
-				dn_sum  += dn;
-			}
-
-			if (dn != UINT32_MAX) {
-				*id = dn_sum / samples;
-				rv = OK;
-			}
+		if (dn == UINT32_MAX) {
+			break;
 		}
+
+		dn_sum  += dn;
+	}
+
+	if (dn != UINT32_MAX) {
+		low = dn_sum / samples;
+	}
+
+	if ((high > low) && high > ((px4_arch_adc_dn_fullcount() * 800) / 1000)) {
+
+		*id = low;
+		rv = OK;
+
 
 	} else {
 		/* No - No Resistors is ID 0 */

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2020, 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -47,6 +47,8 @@ typedef struct {
 	int hi;
 } lh_t;
 
+
+#if defined(CONFIG_ARCH_FAMILY_IMXRT106x)
 const lh_t port_to_irq[9] = {
 	{_IMXRT_GPIO1_0_15_BASE, _IMXRT_GPIO1_16_31_BASE}, {_IMXRT_GPIO2_0_15_BASE, _IMXRT_GPIO2_16_31_BASE},
 	{_IMXRT_GPIO3_0_15_BASE, _IMXRT_GPIO3_16_31_BASE}, {_IMXRT_GPIO4_0_15_BASE, _IMXRT_GPIO4_16_31_BASE},
@@ -54,6 +56,41 @@ const lh_t port_to_irq[9] = {
 	{_IMXRT_GPIO7_0_15_BASE, _IMXRT_GPIO7_16_31_BASE}, {_IMXRT_GPIO8_0_15_BASE, _IMXRT_GPIO8_16_31_BASE},
 	{_IMXRT_GPIO9_0_15_BASE, _IMXRT_GPIO9_16_31_BASE},
 };
+#endif
+
+#if defined(CONFIG_ARCH_FAMILY_IMXRT117x)
+const lh_t port_to_irq[13] = {
+	{_IMXRT_GPIO1_0_15_BASE, _IMXRT_GPIO1_16_31_BASE},
+	{_IMXRT_GPIO2_0_15_BASE, _IMXRT_GPIO2_16_31_BASE},
+	{_IMXRT_GPIO3_0_15_BASE, _IMXRT_GPIO3_16_31_BASE},
+	{_IMXRT_GPIO4_0_15_BASE, _IMXRT_GPIO4_16_31_BASE},
+	{_IMXRT_GPIO5_0_15_BASE, _IMXRT_GPIO5_16_31_BASE},
+	{_IMXRT_GPIO6_0_15_BASE, _IMXRT_GPIO6_16_31_BASE},
+	{0, 0}, // GPIO7 Not on CM7
+	{0, 0}, // GPIO8 Not on CM7
+	{0, 0}, // GPIO9 Not on CM7
+	{0, 0}, // GPIO10 Not on CM7
+	{0, 0}, // GPIO11 Not on CM7
+	{0, 0}, // GPIO12 Not on CM7
+	{_IMXRT_GPIO13_BASE, _IMXRT_GPIO13_BASE},
+};
+#endif
+
+static int imxrt_pin_irq(gpio_pinset_t pinset)
+{
+	volatile int irq = -1;
+	volatile int port   = (pinset & GPIO_PORT_MASK) >> GPIO_PORT_SHIFT;
+	volatile int pin    = (pinset & GPIO_PIN_MASK) >> GPIO_PIN_SHIFT;
+
+	lh_t irqlh = port_to_irq[port];
+
+	if (irqlh.low != 0 && irqlh.hi != 0) {
+		irq = (pin < 16) ? irqlh.low : irqlh.hi;
+		irq += pin % 16;
+	}
+
+	return irq;
+}
 
 /****************************************************************************
  * Name: imxrt_pin_irqattach
@@ -75,15 +112,16 @@ const lh_t port_to_irq[9] = {
 
 static int imxrt_pin_irqattach(gpio_pinset_t pinset, xcpt_t func, void *arg)
 {
-	volatile int port   = (pinset & GPIO_PORT_MASK) >> GPIO_PORT_SHIFT;
-	volatile int pin    = (pinset & GPIO_PIN_MASK) >> GPIO_PIN_SHIFT;
-	volatile int irq;
-	lh_t irqlh = port_to_irq[port];
-	irq = (pin < 16) ? irqlh.low : irqlh.hi;
-	irq += pin % 16;
-	irq_attach(irq, func, arg);
-	up_enable_irq(irq);
-	return 0;
+	int rv = -EINVAL;
+	int irq = imxrt_pin_irq(pinset);
+
+	if (irq != -1) {
+		rv = OK;
+		irq_attach(irq, func, arg);
+		up_enable_irq(irq);
+	}
+
+	return rv;
 }
 
 /****************************************************************************
@@ -109,28 +147,31 @@ int imxrt_gpiosetevent(uint32_t pinset, bool risingedge, bool fallingedge,
 		       bool event, xcpt_t func, void *arg)
 {
 	int ret = -ENOSYS;
+	int irq = imxrt_pin_irq(pinset);
 
-	if (func == NULL) {
-		imxrt_gpioirq_disable(pinset);
-		pinset &= ~GPIO_INTCFG_MASK;
-		ret = imxrt_config_gpio(pinset);
+	if (irq != -1) {
+		if (func == NULL) {
+			imxrt_gpioirq_disable(irq);
+			pinset &= ~GPIO_INTCFG_MASK;
+			ret = imxrt_config_gpio(pinset);
 
-	} else {
+		} else {
 
-		pinset &= ~GPIO_INTCFG_MASK;
+			pinset &= ~GPIO_INTCFG_MASK;
 
-		if (risingedge & fallingedge) {
-			pinset |= GPIO_INTBOTH_EDGES;
+			if (risingedge & fallingedge) {
+				pinset |= GPIO_INTBOTH_EDGES;
 
-		} else if (risingedge) {
-			pinset |= GPIO_INT_RISINGEDGE;
+			} else if (risingedge) {
+				pinset |= GPIO_INT_RISINGEDGE;
 
-		} else if (fallingedge) {
-			pinset |= GPIO_INT_FALLINGEDGE;
+			} else if (fallingedge) {
+				pinset |= GPIO_INT_FALLINGEDGE;
+			}
+
+			imxrt_gpioirq_configure(pinset);
+			ret = imxrt_pin_irqattach(pinset, func, arg);
 		}
-
-		imxrt_gpioirq_configure(pinset);
-		ret = imxrt_pin_irqattach(pinset, func, arg);
 	}
 
 	return ret;

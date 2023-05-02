@@ -72,12 +72,20 @@
 #  define TONE_ALARM_CLOCK_ALL()  imxrt_clockall_gpt_bus()         /* The Clock Gating macro for this GPT */
 #elif TONE_ALARM_TIMER == 2
 #  define TONE_ALARM_CLOCK_ALL()  imxrt_clockall_gpt2_bus()        /* The Clock Gating macro for this GPT */
+#elif TONE_ALARM_TIMER == 3
+#  define TONE_ALARM_CLOCK_ALL()  imxrt_clockall_gpt3_bus()        /* The Clock Gating macro for this GPT */
+#elif TONE_ALARM_TIMER == 4
+#  define TONE_ALARM_CLOCK_ALL()  imxrt_clockall_gpt4_bus()        /* The Clock Gating macro for this GPT */
 #endif
 
 #if TONE_ALARM_TIMER == 1 && defined(CONFIG_IMXRT_GPT1)
 #  error must not set CONFIG_IMXRT_GPT1=y and TONE_ALARM_TIMER=1
 #elif   TONE_ALARM_TIMER == 2 && defined(CONFIG_IMXRT_GPT2)
 #  error must not set CONFIG_IMXRT_GPT2=y and TONE_ALARM_TIMER=2
+#elif   TONE_ALARM_TIMER == 3 && defined(CONFIG_IMXRT_GPT3)
+#  error must not set CONFIG_IMXRT_GPT3=y and TONE_ALARM_TIMER=3
+#elif   TONE_ALARM_TIMER == 4 && defined(CONFIG_IMXRT_GPT4)
+#  error must not set CONFIG_IMXRT_GPT4=y and TONE_ALARM_TIMER=4
 #endif
 
 

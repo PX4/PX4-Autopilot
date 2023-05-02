@@ -111,6 +111,8 @@ pipeline {
                      "px4_fmu-v6c_default",
                      "px4_fmu-v6u_default",
                      "px4_fmu-v6x_default",
+                     "px4_fmu-v6xrt_bootloader",
+                     "px4_fmu-v6xrt_default",
                      "px4_io-v2_default",
                      "raspberrypi_pico_default",
                      "sky-drones_smartap-airlink_default",

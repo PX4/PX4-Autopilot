@@ -129,3 +129,8 @@ extern void cinit(void *config, uint8_t interface);
 extern void cfini(void);
 extern int cin(uint32_t devices);
 extern void cout(uint8_t *buf, unsigned len);
+
+#if !defined(APP_VECTOR_OFFSET)
+#  define APP_VECTOR_OFFSET 0
+#endif
+#define APP_VECTOR_OFFSET_WORDS (APP_VECTOR_OFFSET/sizeof(uint32_t))

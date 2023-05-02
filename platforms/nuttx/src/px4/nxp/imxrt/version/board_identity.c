@@ -81,25 +81,8 @@ void board_get_uuid(uuid_byte_t uuid_bytes)
 
 void board_get_uuid32(uuid_uint32_t uuid_words)
 {
-	/* IMXRT_OCOTP_CFG1:0x420[10:0], IMXRT_OCOTP_CFG0:0x410[31:0] LOT_NO_ENC[42:0](SJC_CHALL/UNIQUE_ID[42:0])
-	 *    43 bits  FSL-wide unique,encoded LOT ID STD II/SJC CHALLENGE/ Unique ID
-	 * 0x420[15:11] WAFER_NO[4:0]( SJC_CHALL[47:43] /UNIQUE_ID[47:43])
-	 *     5 bits The wafer number of the wafer on which the device was fabricated/SJC CHALLENGE/ Unique ID
-	 * 0x420[23:16] DIE-YCORDINATE[7:0]( SJC_CHALL[55:48] /UNIQUE_ID[55:48])
-	 *     8 bits The Y-coordinate of the die location on the wafer/SJC CHALLENGE/Unique ID
-	 * 0x420[31:24] DIE-XCORDINATE[7:0]( SJC_CHALL[63:56] /UNIQUE_ID[63:56] )
-	 *    8 bits The X-coordinate of the die location on the wafer/SJC CHALLENGE/Unique ID
-	 *
-	 *         word [0] word[1]
-	 * SJC_CHALL[63:32] [31:00]
-	 */
-#ifdef CONFIG_ARCH_FAMILY_IMXRT117x
-	uuid_words[0] = getreg32(IMXRT_OCOTP_FUSE(0x10));
-	uuid_words[1] = getreg32(IMXRT_OCOTP_FUSE(0x11));
-#else
-	uuid_words[0] = getreg32(IMXRT_OCOTP_CFG1);
-	uuid_words[1] = getreg32(IMXRT_OCOTP_CFG0);
-#endif
+	uuid_words[0] = getreg32(IMXRT_OCOTP_UNIQUE_ID_MSB);
+	uuid_words[1] = getreg32(IMXRT_OCOTP_UNIQUE_ID_LSB);
 }
 
 int board_get_uuid32_formated(char *format_buffer, int size,
