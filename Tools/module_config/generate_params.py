@@ -302,10 +302,10 @@ When set to -1 (default), the value depends on the function (see {:}).
         for key, label, param_suffix, description in standard_params_array:
             if key in standard_params:
 
-                # values must be in range of an uint16_t
-                if standard_params[key]['min'] < 0:
+                # values must be in range of an int16_t
+                if standard_params[key]['min'] <= (-1<<15) :
                     raise Exception('minimum value for {:} expected >= 0 (got {:})'.format(key, standard_params[key]['min']))
-                if standard_params[key]['max'] >= 1<<16:
+                if standard_params[key]['max'] >= 1<<15:
                     raise Exception('maximum value for {:} expected <= {:} (got {:})'.format(key, 1<<16, standard_params[key]['max']))
 
                 if key == 'failsafe':

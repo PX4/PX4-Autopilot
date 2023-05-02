@@ -373,6 +373,7 @@ bool PX4IO::updateOutputs(bool stop_motors, int16_t outputs[MAX_ACTUATORS],
 
 			unsigned_outputs[i] = outputs[i];
 		}
+
 		/* output to the servos */
 		io_reg_set(PX4IO_PAGE_DIRECT_PWM, 0, unsigned_outputs, num_outputs);
 	}
