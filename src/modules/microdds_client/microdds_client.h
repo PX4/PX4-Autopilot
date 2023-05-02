@@ -77,7 +77,7 @@ private:
 	const bool _localhost_only;
 	const bool _custom_participant;
 
-	static const uint8_t CLIENT_NAMESPACE_MAX_LENGTH;
+	static const uint8_t CLIENT_NAMESPACE_MAX_LENGTH = 32;
 	char _client_namespace[CLIENT_NAMESPACE_MAX_LENGTH];
 
 
