@@ -41,7 +41,7 @@ __BEGIN_DECLS
 #// Fixme: using ??
 #define PX4_BBSRAM_SIZE             2048
 #define PX4_BBSRAM_GETDESC_IOCTL    0
-#define PX4_NUMBER_I2C_BUSES        2 //FIXME
+#define PX4_NUMBER_I2C_BUSES        6
 
 #define GPIO_OUTPUT_SET             GPIO_OUTPUT_ONE
 #define GPIO_OUTPUT_CLEAR           GPIO_OUTPUT_ZERO

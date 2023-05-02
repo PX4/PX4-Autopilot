@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2016, 2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,17 +31,39 @@
 #
 ############################################################################
 
+if(CONFIG_IMXRT1170_FLEXSPI_FRAM)
+    list(APPEND SRCS
+		imxrt_flexspi_fram.c
+    )
+endif()
 
-add_subdirectory(adc)
-add_subdirectory(../imxrt/board_critmon board_critmon)
-add_subdirectory(../imxrt/board_hw_info board_hw_info)
-add_subdirectory(../imxrt/board_reset board_reset)
-#add_subdirectory(../imxrt/dshot dshot)
-add_subdirectory(../imxrt/hrt hrt)
-add_subdirectory(../imxrt/led_pwm led_pwm)
-add_subdirectory(../imxrt/io_pins io_pins)
-add_subdirectory(../imxrt/tone_alarm tone_alarm)
-add_subdirectory(../imxrt/version version)
-add_subdirectory(../imxrt/spi spi)
+px4_add_library(drivers_board
+	autoleds.c
+	automount.c
+	#can.c
+	i2c.cpp
+	init.c
+	led.c
+	manifest.c
+	mtd.cpp
+	sdhc.c
+	spi.cpp
+	timer_config.cpp
+	usb.c
+	imxrt_romapi.c
+	imxrt_flexspi_fram.c
+	imxrt_flexspi_nor_boot.c
+	imxrt_flexspi_nor_flash.c
+	imxrt_clockconfig.c
+	${SRCS}
+)
 
-add_subdirectory(px4io_serial)
+target_link_libraries(drivers_board
+	PRIVATE
+		arch_board_hw_info
+		arch_spi
+		drivers__led # drv_led_start
+		nuttx_arch # sdio
+		nuttx_drivers # sdio
+		px4_layer
+)
