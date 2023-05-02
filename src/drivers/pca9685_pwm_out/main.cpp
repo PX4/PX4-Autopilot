@@ -71,7 +71,7 @@ public:
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
 
-	bool updateOutputs(bool stop_motors, uint16_t *outputs, unsigned num_outputs,
+	bool updateOutputs(bool stop_motors, int16_t *outputs, unsigned num_outputs,
 			   unsigned num_control_groups_updated) override;
 
 	PCA9685Wrapper(const PCA9685Wrapper &) = delete;
@@ -142,7 +142,7 @@ int PCA9685Wrapper::init()
 	return PX4_OK;
 }
 
-bool PCA9685Wrapper::updateOutputs(bool stop_motors, uint16_t *outputs, unsigned num_outputs,
+bool PCA9685Wrapper::updateOutputs(bool stop_motors, int16_t *outputs, unsigned num_outputs,
 				   unsigned num_control_groups_updated)
 {
 	return pca9685->updatePWM(outputs, num_outputs) == 0 ? true : false;

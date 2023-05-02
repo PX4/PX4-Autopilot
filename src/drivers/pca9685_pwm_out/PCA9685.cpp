@@ -52,7 +52,7 @@ int PCA9685::Stop()
 	return PX4_OK;
 }
 
-int PCA9685::updatePWM(const uint16_t *outputs, unsigned num_outputs)
+int PCA9685::updatePWM(const int16_t *outputs, unsigned num_outputs)
 {
 	if (num_outputs > PCA9685_PWM_CHANNEL_COUNT) {
 		num_outputs = PCA9685_PWM_CHANNEL_COUNT;

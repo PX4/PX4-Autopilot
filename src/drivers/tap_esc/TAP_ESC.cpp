@@ -158,7 +158,7 @@ int TAP_ESC::init()
 	return 0;
 }
 
-void TAP_ESC::send_esc_outputs(const uint16_t *pwm, const uint8_t motor_cnt)
+void TAP_ESC::send_esc_outputs(const int16_t *pwm, const uint8_t motor_cnt)
 {
 	uint16_t rpm[TAP_ESC_MAX_MOTOR_NUM] {};
 	_led_controller.update(_led_control_data);
@@ -241,11 +241,11 @@ void TAP_ESC::send_tune_packet(EscbusTunePacket &tune_packet)
 	tap_esc_common::send_packet(_uart_fd, buzzer_packet, -1);
 }
 
-bool TAP_ESC::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
+bool TAP_ESC::updateOutputs(bool stop_motors, int16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
 			    unsigned num_control_groups_updated)
 {
 	if (_initialized) {
-		uint16_t motor_out[TAP_ESC_MAX_MOTOR_NUM] {};
+		int16_t motor_out[TAP_ESC_MAX_MOTOR_NUM] {};
 
 		// We need to remap from the system default to what PX4's normal scheme is
 		switch (num_outputs) {

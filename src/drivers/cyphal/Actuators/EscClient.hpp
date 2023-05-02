@@ -97,7 +97,7 @@ public:
 		}
 	};
 
-	void update_outputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs)
+	void update_outputs(bool stop_motors, int16_t outputs[MAX_ACTUATORS], unsigned num_outputs)
 	{
 		if (_port_id > 0) {
 			reg_udral_service_actuator_common_sp_Vector31_0_1 msg_sp {0};

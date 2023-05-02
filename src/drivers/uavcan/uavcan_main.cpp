@@ -963,7 +963,7 @@ void UavcanMixingInterfaceESC::mixerChanged()
 bool UavcanMixingInterfaceServo::updateOutputs(bool stop_servos, int16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
 		unsigned num_control_groups_updated)
 {
-	_servo_controller.update_outputs(stop_motors, outputs, num_outputs);
+	_servo_controller.update_outputs(stop_servos, outputs, num_outputs);
 	return true;
 }
 

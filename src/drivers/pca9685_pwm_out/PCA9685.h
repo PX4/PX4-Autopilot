@@ -108,7 +108,7 @@ public:
 	/*
 	 * outputs formatted to us.
 	 */
-	int updatePWM(const uint16_t *outputs, unsigned num_outputs);
+	int updatePWM(const int16_t *outputs, unsigned num_outputs);
 
 	int setFreq(float freq);
 

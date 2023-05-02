@@ -99,14 +99,14 @@ public:
 
 	int init();
 
-	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+	bool updateOutputs(bool stop_motors, int16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
 
 private:
 
 	void Run() override;
 
-	inline void send_esc_outputs(const uint16_t *pwm, const uint8_t motor_cnt);
+	inline void send_esc_outputs(const int16_t *pwm, const uint8_t motor_cnt);
 	inline void send_tune_packet(EscbusTunePacket &tune_packet);
 
 	MixingOutput _mixing_output;
