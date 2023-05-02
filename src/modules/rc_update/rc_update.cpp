@@ -127,7 +127,6 @@ void RCUpdate::parameters_updated()
 {
 	// rc values
 	for (unsigned int i = 0; i < RC_MAX_CHAN_COUNT; i++) {
-
 		float min = 0.f;
 		param_get(_parameter_handles.min[i], &min);
 		_parameters.min[i] = min;
@@ -154,6 +153,12 @@ void RCUpdate::parameters_updated()
 	}
 
 	update_rc_functions();
+
+	_rc_calibrated = _param_rc_chan_cnt.get() > 0
+			 && (_param_rc_map_throttle.get() > 0
+			     || _param_rc_map_roll.get() > 0
+			     || _param_rc_map_pitch.get() > 0
+			     || _param_rc_map_yaw.get() > 0);
 
 	// deprecated parameters, will be removed post v1.12 once QGC is updated
 	{
@@ -687,6 +692,7 @@ void RCUpdate::UpdateManualControlInput(const hrt_abstime &timestamp_sample)
 	manual_control_input.aux4  = get_rc_value(rc_channels_s::FUNCTION_AUX_4,   -1.f, 1.f);
 	manual_control_input.aux5  = get_rc_value(rc_channels_s::FUNCTION_AUX_5,   -1.f, 1.f);
 	manual_control_input.aux6  = get_rc_value(rc_channels_s::FUNCTION_AUX_6,   -1.f, 1.f);
+	manual_control_input.valid = _rc_calibrated;
 
 	// publish manual_control_input topic
 	manual_control_input.timestamp = hrt_absolute_time();
