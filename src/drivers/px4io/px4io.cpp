@@ -341,6 +341,7 @@ private:
 		(ParamInt<px4::params::RC_RSSI_PWM_MIN>) _param_rc_rssi_pwm_min,
 		(ParamInt<px4::params::SENS_EN_THERMAL>) _param_sens_en_themal,
 		(ParamInt<px4::params::SYS_HITL>) _param_sys_hitl,
+		(ParamInt<px4::params::SYS_KEEP_SAFETY>) _param_sys_keep_safety,
 		(ParamInt<px4::params::SYS_USE_IO>) _param_sys_use_io
 	)
 };
@@ -480,7 +481,7 @@ int PX4IO::init()
 	if (circuit_breaker_enabled("CBRK_IO_SAFETY", CBRK_IO_SAFETY_KEY)) {
 		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FORCE_SAFETY_OFF, PX4IO_FORCE_SAFETY_MAGIC);
 
-	} else {
+	} else if (_param_sys_keep_safety.get() != 1) {
 		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FORCE_SAFETY_ON, PX4IO_FORCE_SAFETY_MAGIC);
 	}
 
