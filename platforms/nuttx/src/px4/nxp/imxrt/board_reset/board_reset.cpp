@@ -41,9 +41,11 @@
 #include <errno.h>
 #include <nuttx/board.h>
 #include <arm_internal.h>
-#include <hardware/imxrt_snvs.h>
+#include <hardware/rt117x/imxrt117x_snvs.h>
 
-#define PX4_IMXRT_RTC_REBOOT_REG 3 // Must be common with bootloader and:
+#define BOOT_RTC_SIGNATURE                0xb007b007
+#define PX4_IMXRT_RTC_REBOOT_REG          3
+#define PX4_IMXRT_RTC_REBOOT_REG_ADDRESS  IMXRT_SNVS_LPGPR3
 
 #if CONFIG_IMXRT_RTC_MAGIC_REG == PX4_IMXRT_RTC_REBOOT_REG
 #  error CONFIG_IMXRT_RTC_MAGIC_REG can nt have the save value as PX4_IMXRT_RTC_REBOOT_REG
@@ -51,8 +53,9 @@
 
 static int board_reset_enter_bootloader()
 {
-	uint32_t regvalue = 0xb007b007;
-	putreg32(regvalue, IMXRT_SNVS_LPGPR(PX4_IMXRT_RTC_REBOOT_REG));
+	uint32_t regvalue = BOOT_RTC_SIGNATURE;
+	modifyreg32(IMXRT_SNVS_LPCR, 0, SNVS_LPCR_GPR_Z_DIS);
+	putreg32(regvalue, PX4_IMXRT_RTC_REBOOT_REG_ADDRESS);
 	return OK;
 }
 
