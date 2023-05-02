@@ -263,9 +263,11 @@ void ICM20602::RunImpl()
 				if (fifo_count >= FIFO::SIZE) {
 					FIFOReset();
 					perf_count(_fifo_overflow_perf);
+					PX4_INFO("Accel error: FIFO overflow 1");
 
 				} else if (fifo_count == 0) {
 					perf_count(_fifo_empty_perf);
+					PX4_INFO("Accel error: FIFO empty 1");
 
 				} else {
 					// FIFO count (size in bytes) should be a multiple of the FIFO::DATA structure
@@ -324,6 +326,7 @@ void ICM20602::RunImpl()
 				} else {
 					// register check failed, force reset
 					perf_count(_bad_register_perf);
+					PX4_INFO("Accel error: bad register check");
 					Reset();
 				}
 			}
@@ -527,6 +530,7 @@ uint16_t ICM20602::FIFOReadCount()
 
 	if (transfer(fifo_count_buf, fifo_count_buf, sizeof(fifo_count_buf)) != PX4_OK) {
 		perf_count(_bad_transfer_perf);
+		PX4_INFO("Accel error: bad transfer on FIFOReadCount");
 		return 0;
 	}
 
@@ -540,6 +544,7 @@ bool ICM20602::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
 
 	if (transfer((uint8_t *)&buffer, (uint8_t *)&buffer, transfer_size) != PX4_OK) {
 		perf_count(_bad_transfer_perf);
+		PX4_INFO("Accel error: bad transfer on FIFORead");
 		return false;
 	}
 
@@ -550,10 +555,13 @@ bool ICM20602::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
 		perf_count(_fifo_overflow_perf);
 		FIFOReset();
 
+		PX4_INFO("Accel error: FIFO overflow 2: size %i/%i, count %i/%i",  int(fifo_count_bytes), int(FIFO::SIZE),
+			 int(fifo_count_samples), int(FIFO_MAX_SAMPLES));
 		return false;
 
 	} else if (fifo_count_samples == 0) {
 		perf_count(_fifo_empty_perf);
+		PX4_INFO("Accel error: FIFO empty 2");
 		return false;
 	}
 
@@ -627,6 +635,7 @@ bool ICM20602::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DAT
 			// no matching accel samples is an error
 			bad_data = true;
 			perf_count(_bad_transfer_perf);
+			PX4_INFO("Accel error: bad transfer on ProcessAccel");
 		}
 	}
 
@@ -695,6 +704,7 @@ bool ICM20602::ProcessTemperature(const FIFO::DATA fifo[], const uint8_t samples
 		// temperature changing wildly is an indication of a transfer error
 		if (fabsf(temperature[i] - temperature_avg) > 1000) {
 			perf_count(_bad_transfer_perf);
+			PX4_INFO("Accel error: bad transfer on fluctuating temperature");
 			return false;
 		}
 	}
@@ -712,6 +722,7 @@ bool ICM20602::ProcessTemperature(const FIFO::DATA fifo[], const uint8_t samples
 
 	} else {
 		perf_count(_bad_transfer_perf);
+		PX4_INFO("Accel error: bad transfer on non-finite temperature");
 	}
 
 	return false;
