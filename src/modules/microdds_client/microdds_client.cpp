@@ -645,7 +645,7 @@ MicroddsClient *MicroddsClient::instantiate(int argc, char *argv[])
 #endif // MICRODDS_CLIENT_UDP
 
 		case 'n':
-			snprintf(client_namespace, CLIENT_NAMESPACE_MAX_LENGTH, "%s", myoptarg)
+			snprintf(client_namespace, CLIENT_NAMESPACE_MAX_LENGTH, "%s", myoptarg);
 			break;
 
 		case '?':
