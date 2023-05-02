@@ -63,3 +63,15 @@ PARAM_DEFINE_INT32(SYS_USE_IO, 1);
  * @group PWM Outputs
  */
 PARAM_DEFINE_INT32(PWM_SBUS_MODE, 0);
+
+/**
+ * Do not force safety on startup
+ *
+ * Disable explicitly setting safety on startup.
+ * This can be used to keep safety off when performing a soft reboot.
+ * May be dependent on hardware.
+ *
+ * @boolean
+ * @group System
+ */
+PARAM_DEFINE_INT32(SYS_KEEP_SAFETY, 0);
