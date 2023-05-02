@@ -56,6 +56,7 @@ jobs:
           nxp_fmuk66-v3,
           nxp_fmurt1062-v1,
           nxp_imxrt1170-evk,
+          nxp_fmurt1170-v1,
           nxp_mr-canhubk3,
           nxp_ucans32k146,
           omnibus_f4sd,
