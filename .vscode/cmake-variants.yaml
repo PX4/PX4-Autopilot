@@ -81,6 +81,16 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: px4_fmu-v6x_bootloader
+    px4_fmu-v6xrt_default:
+      short: px4_fmu-v6xrt
+      buildType: MinSizeRel
+      settings:
+        CONFIG: px4_fmu-v6xrt_default
+    px4_fmu-v6xrt_bootloader:
+      short: px4_fmu-v6xrt_bootloader
+      buildType: MinSizeRel
+      settings:
+        CONFIG: px4_fmu-v6xrt_bootloader
     airmind_mindpx-v2_default:
       short: airmind_mindpx-v2
       buildType: MinSizeRel

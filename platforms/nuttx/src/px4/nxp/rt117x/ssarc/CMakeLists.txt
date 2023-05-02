@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2023 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,13 +31,10 @@
 #
 ############################################################################
 
-
-px4_add_library(ArmStateMachine
-	ArmStateMachine.cpp
+cmake_policy(PUSH)
+cmake_policy(SET CMP0079 NEW)
+px4_add_library(arch_ssarc
+	ssarc_dump.c
 )
-target_include_directories(ArmStateMachine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(ArmStateMachine PUBLIC health_and_arming_checks)
-
-px4_add_functional_gtest(SRC ArmStateMachineTest.cpp
-	LINKLIBS ArmStateMachine health_and_arming_checks hysteresis sensor_calibration ArmAuthorization mode_util
-	)
+target_link_libraries(px4_layer PUBLIC arch_ssarc)
+cmake_policy(POP)

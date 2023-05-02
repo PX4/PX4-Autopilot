@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2017 PX4 Development Team. All rights reserved.
- *   Author: @author David Sidrane <david_s5@nscdg.com>
+ *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,42 +32,30 @@
  ****************************************************************************/
 
 /**
- * @file board_reset.cpp
- * Implementation of IMXRT based Board RESET API
- */
+ * @file bootloader_main.c
+ *
+ * FMU-specific early startup code for bootloader
+*/
 
-#include <px4_platform_common/px4_config.h>
-#include <errno.h>
+#include "board_config.h"
+#include "bl.h"
+
+#include <nuttx/config.h>
 #include <nuttx/board.h>
-#include <arm_internal.h>
-#include <hardware/rt117x/imxrt117x_snvs.h>
+#include <chip.h>
+#include <arch/board/board.h>
+#include "arm_internal.h"
+#include <px4_platform_common/init.h>
 
-#define BOOT_RTC_SIGNATURE                0xb007b007
-#define PX4_IMXRT_RTC_REBOOT_REG          3
-#define PX4_IMXRT_RTC_REBOOT_REG_ADDRESS  IMXRT_SNVS_LPGPR3
+extern int sercon_main(int c, char **argv);
 
-#if CONFIG_IMXRT_RTC_MAGIC_REG == PX4_IMXRT_RTC_REBOOT_REG
-#  error CONFIG_IMXRT_RTC_MAGIC_REG can nt have the save value as PX4_IMXRT_RTC_REBOOT_REG
-#endif
-
-static int board_reset_enter_bootloader()
+void board_late_initialize(void)
 {
-	uint32_t regvalue = BOOT_RTC_SIGNATURE;
-	modifyreg32(IMXRT_SNVS_LPCR, 0, SNVS_LPCR_GPR_Z_DIS);
-	putreg32(regvalue, PX4_IMXRT_RTC_REBOOT_REG_ADDRESS);
-	return OK;
+	sercon_main(0, NULL);
 }
 
-int board_reset(int status)
+extern void sys_tick_handler(void);
+void board_timerhook(void)
 {
-	if (status == 1) {
-		board_reset_enter_bootloader();
-	}
-
-#if defined(BOARD_HAS_ON_RESET)
-	board_on_reset(status);
-#endif
-
-	up_systemreset();
-	return 0;
+	sys_tick_handler();
 }
