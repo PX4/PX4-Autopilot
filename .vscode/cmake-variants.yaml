@@ -281,6 +281,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: nxp_imxrt1170-evk_default
+    nxp_fmurt1170-v1_default:
+      short: nxp_fmurt1170-v1
+      buildType: MinSizeRel
+      settings:
+        CONFIG: nxp_fmurt1170-v1_default
     raspberrypi_pico_default:
       short: raspberrypi_pico
       buildType: MinSizeRel
