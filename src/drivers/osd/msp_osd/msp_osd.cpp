@@ -102,6 +102,7 @@ const uint16_t osd_mah_drawn_pos = 2449;
 
 // Bottom Row 3
 const uint16_t osd_craft_name_pos = 2480;
+const uint16_t osd_crosshairs_pos = 2319;
 
 // Right
 const uint16_t osd_main_batt_voltage_pos = 2073;
@@ -170,13 +171,18 @@ void MspOsd::SendConfig()
 	msp_osd_config.osd_avg_cell_voltage_pos = enabled(SymbolIndex::AVG_CELL_VOLTAGE) ? osd_avg_cell_voltage_pos :
 			LOCATION_HIDDEN;
 
+	// the location of our crosshairs can change
+	msp_osd_config.osd_crosshairs_pos = LOCATION_HIDDEN;
+
+	if (enabled(SymbolIndex::CROSSHAIRS)) {
+		msp_osd_config.osd_crosshairs_pos = osd_crosshairs_pos - 32 * _param_osd_ch_height.get();
+	}
+
 	// possibly available, but not currently used
 	msp_osd_config.osd_flymode_pos = 			LOCATION_HIDDEN;
 	msp_osd_config.osd_esc_tmp_pos = 			LOCATION_HIDDEN;
 	msp_osd_config.osd_pitch_angle_pos = 			LOCATION_HIDDEN;
 	msp_osd_config.osd_roll_angle_pos = 			LOCATION_HIDDEN;
-	msp_osd_config.osd_crosshairs_pos = 			LOCATION_HIDDEN;
-
 	msp_osd_config.osd_horizon_sidebars_pos = 		LOCATION_HIDDEN;
 
 	// Not implemented or not available

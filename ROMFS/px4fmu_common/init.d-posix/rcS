@@ -129,6 +129,7 @@ fi
 # multi-instance setup
 # shellcheck disable=SC2154
 param set MAV_SYS_ID $((px4_instance+1))
+param set XRCE_DDS_KEY $((px4_instance+1))
 
 if [ $AUTOCNF = yes ]
 then
@@ -268,14 +269,20 @@ navigator start
 microdds_ns=""
 if [ "$px4_instance" -ne "0" ]
 then
-	# Assign new xrce dds key based on instance number and set default namespace
-	param set XRCE_DDS_KEY ${px4_instance}
+	# for multi intances setup, add namespace prefix
 	microdds_ns="-n px4_$px4_instance"
 fi
 if [ -n "$PX4_MICRODDS_NS" ]
 then
 	# Override namespace if environment variable is defined
 	microdds_ns="-n $PX4_MICRODDS_NS"
+fi
+if [ -n "$ROS_DOMAIN_ID" ]
+then
+	# Match XRCE_DDS_DOM_ID with ROS_DOMAIN_ID, if defined
+	param set XRCE_DDS_DOM_ID $ROS_DOMAIN_ID
+else
+	param set XRCE_DDS_DOM_ID 0
 fi
 microdds_client start -t udp -h 127.0.0.1 -p 8888 $microdds_ns
 

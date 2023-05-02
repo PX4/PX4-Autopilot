@@ -57,7 +57,7 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 	const bool airspeed_timed_out = isTimedOut(_aid_src_airspeed.time_last_fuse, (uint64_t)10e6);
 	const bool sideslip_timed_out = isTimedOut(_aid_src_sideslip.time_last_fuse, (uint64_t)10e6);
 
-	if (_control_status.flags.fake_pos || (airspeed_timed_out && sideslip_timed_out && !(_params.fusion_mode & SensorFusionMask::USE_DRAG))) {
+	if (_control_status.flags.fake_pos || (airspeed_timed_out && sideslip_timed_out && (_params.drag_ctrl == 0))) {
 		_control_status.flags.wind = false;
 	}
 
@@ -114,7 +114,10 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 			ECL_INFO("starting airspeed fusion");
 
 			// If starting wind state estimation, reset the wind states and covariances before fusing any data
-			if (!_control_status.flags.wind) {
+			// Also catch the case where sideslip fusion enabled wind estimation recently and didn't converge yet.
+			const Vector2f wind_var_xy = getWindVelocityVariance();
+
+			if (!_control_status.flags.wind || (wind_var_xy(0) + wind_var_xy(1) > sq(_params.initial_wind_uncertainty))) {
 				// activate the wind states
 				_control_status.flags.wind = true;
 				// reset the wind speed states and corresponding covariances

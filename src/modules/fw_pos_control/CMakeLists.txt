@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015-2017 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,11 +31,20 @@
 #
 ############################################################################
 
+add_subdirectory(launchdetection)
+add_subdirectory(runway_takeoff)
+
 px4_add_module(
-	MODULE drivers__snapdragon_spektrum_rc
-	MAIN spektrum_rc
+	MODULE modules__fw_pos_control
+	MAIN fw_pos_control
 	SRCS
-		spektrum_rc.cpp
+		FixedwingPositionControl.cpp
+		FixedwingPositionControl.hpp
 	DEPENDS
-		rc
+		launchdetection
+		npfg
+		runway_takeoff
+		SlewRate
+		tecs
+		motion_planning
 	)

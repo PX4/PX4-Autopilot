@@ -96,12 +96,6 @@ void Mission::mission_init()
 void
 Mission::on_inactive()
 {
-	// if we were executing an landing but have been inactive for 2 seconds, then make the landing invalid
-	// this prevents RTL to just continue at the current mission index
-	if (_navigator->getMissionLandingInProgress() && (hrt_absolute_time() - _time_mission_deactivated) > 2_s) {
-		_navigator->setMissionLandingInProgress(false);
-	}
-
 	/* Without home a mission can't be valid yet anyway, let's wait. */
 	if (!_navigator->home_global_position_valid()) {
 		return;
@@ -119,8 +113,10 @@ Mission::on_inactive()
 		/* reset the current mission if needed */
 		if (need_to_reset_mission()) {
 			reset_mission(_mission);
-			update_mission();
 			_navigator->reset_cruising_speed();
+			_current_mission_index = 0;
+			_navigator->reset_vroi();
+			set_current_mission_item();
 		}
 
 	} else {
@@ -180,8 +176,6 @@ Mission::on_inactivation()
 		_navigator->get_precland()->on_inactivation();
 	}
 
-	_time_mission_deactivated = hrt_absolute_time();
-
 	/* reset so current mission item gets restarted if mission was paused */
 	_work_item_type = WORK_ITEM_TYPE_DEFAULT;
 }
@@ -210,6 +204,9 @@ Mission::on_activation()
 	cmd.param1 = -1.0f;
 	cmd.param3 = 0.0f;
 	_navigator->publish_vehicle_cmd(&cmd);
+
+	// reset cruise speed
+	_navigator->reset_cruising_speed();
 }
 
 void
@@ -476,15 +473,14 @@ Mission::land_start()
 {
 	// if not currently landing, jump to do_land_start
 	if (_land_start_available) {
-		if (_navigator->getMissionLandingInProgress()) {
+		// check if we're currently already in mission mode and on landing part, then simply return true.
+		// note: it's not enough to check landing(), as that is not reset until set_current_mission_index(get_land_start_index())
+		if (_navigator->on_mission_landing()) {
 			return true;
 
 		} else {
 			set_current_mission_index(get_land_start_index());
-
-			const bool can_land_now = landing();
-			_navigator->setMissionLandingInProgress(can_land_now);
-			return can_land_now;
+			return landing();
 		}
 	}
 
@@ -495,10 +491,24 @@ bool
 Mission::landing()
 {
 	// vehicle is currently landing if
-	//  mission valid, still flying, and in the landing portion of mission
+	//  mission valid, still flying, and in the landing portion of mission (past land start marker)
 
 	const bool mission_valid = _navigator->get_mission_result()->valid;
-	const bool on_landing_stage = _land_start_available && (_current_mission_index >= get_land_start_index());
+	bool on_landing_stage = _land_start_available && _current_mission_index > get_land_start_index();
+
+	// special case: if the land start index is at a LOITER_TO_ALT WP, then we're in the landing sequence already when the
+	// distance to the WP is below the loiter radius + acceptance.
+	if (_current_mission_index == get_land_start_index() && _mission_item.nav_cmd == NAV_CMD_LOITER_TO_ALT) {
+		const float d_current = get_distance_to_next_waypoint(_mission_item.lat, _mission_item.lon,
+					_navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
+
+		// consider mission_item.loiter_radius invalid if NAN or 0, use default value in this case.
+		const float mission_item_loiter_radius_abs = (PX4_ISFINITE(_mission_item.loiter_radius)
+				&& fabsf(_mission_item.loiter_radius) > FLT_EPSILON) ? fabsf(_mission_item.loiter_radius) :
+				_navigator->get_loiter_radius();
+
+		on_landing_stage = d_current <= (_navigator->get_acceptance_radius() + mission_item_loiter_radius_abs);
+	}
 
 	return mission_valid && on_landing_stage;
 }
@@ -1718,12 +1728,6 @@ Mission::set_mission_item_reached()
 {
 	_navigator->get_mission_result()->seq_reached = _current_mission_index;
 	_navigator->set_mission_result_updated();
-
-	// let the navigator know that we are currently executing the mission landing.
-	// Using the method landing() itself is not accurate as it only give information about the mission index
-	// but the vehicle could still be very far from the actual landing items
-	_navigator->setMissionLandingInProgress(landing());
-
 	reset_mission_item_reached();
 }
 

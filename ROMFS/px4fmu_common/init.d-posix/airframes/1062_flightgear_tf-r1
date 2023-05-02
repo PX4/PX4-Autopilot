@@ -25,11 +25,8 @@ param set-default GND_THR_CRUISE 0.3
 param set-default GND_THR_MAX 0.5
 param set-default GND_THR_MIN 0
 
-param set-default MIS_TAKEOFF_ALT 0.01
 param set-default NAV_ACC_RAD 0.5
 param set-default NAV_LOITER_RAD 2
-
-param set-default CBRK_AIRSPD_CHK 162128
 
 param set-default GND_MAX_ANG 0.6
 param set-default GND_WHEEL_BASE 3.0

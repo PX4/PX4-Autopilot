@@ -71,9 +71,6 @@ int do_level_calibration(orb_advert_t *mavlink_log_pub)
 	param_get(roll_offset_handle, &roll_offset_current);
 	param_get(pitch_offset_handle, &pitch_offset_current);
 
-	int32_t board_rot_current = 0;
-	param_get(param_find("SENS_BOARD_ROT"), &board_rot_current);
-
 	const Dcmf board_rotation_offset{Eulerf{radians(roll_offset_current), radians(pitch_offset_current), 0.f}};
 
 	float roll_mean = 0.f;

@@ -496,7 +496,7 @@ PARAM_DEFINE_INT32(EKF2_DECL_TYPE, 7);
  * If set to '3-axis' 3-axis field fusion is used at all times.
  * If set to 'VTOL custom' the behaviour is the same as 'Automatic', but if fusing airspeed, magnetometer fusion is only allowed to modify the magnetic field states. This can be used by VTOL platforms with large magnetic field disturbances to prevent incorrect bias states being learned during forward flight operation which can adversely affect estimation accuracy after transition to hovering flight.
  * If set to 'MC custom' the behaviour is the same as 'Automatic, but if there are no earth frame position or velocity observations being used, the magnetometer will not be used. This enables vehicles to operate with no GPS in environments where the magnetic field cannot be used to provide a heading reference. Prior to flight, the yaw angle is assumed to be constant if movement tests indicate that the vehicle is static. This allows the vehicle to be placed on the ground to learn the yaw gyro bias prior to flight.
- * If set to 'None' the magnetometer will not be used under any circumstance. If no external source of yaw is available, it is possible to use post-takeoff horizontal movement combined with GPS velocity measurements to align the yaw angle with the timer required (depending on the amount of movement and GPS data quality). Other external sources of yaw may be used if selected via the EKF2_AID_MASK parameter.
+ * If set to 'None' the magnetometer will not be used under any circumstance. If no external source of yaw is available, it is possible to use post-takeoff horizontal movement combined with GPS velocity measurements to align the yaw angle with the timer required (depending on the amount of movement and GPS data quality).
  * @group EKF2
  * @value 0 Automatic
  * @value 1 Magnetic heading
@@ -610,28 +610,28 @@ PARAM_DEFINE_FLOAT(EKF2_GPS_V_GATE, 5.0f);
 PARAM_DEFINE_FLOAT(EKF2_TAS_GATE, 3.0f);
 
 /**
- * Integer bitmask controlling data fusion and aiding methods.
+ * Will be removed after v1.14 release
  *
  * Set bits in the following positions to enable:
  * 0 : Deprecated, use EKF2_GPS_CTRL instead
- * 1 : Set to true to use optical flow data if available
+ * 1 : Deprecated. use EKF2_OF_CTRL instead
  * 2 : Deprecated, use EKF2_IMU_CTRL instead
  * 3 : Deprecated, use EKF2_EV_CTRL instead
  * 4 : Deprecated, use EKF2_EV_CTRL instead
- * 5 : Set to true to enable multi-rotor drag specific force fusion
+ * 5 : Deprecated. use EKF2_DRAG_CTRL instead
  * 6 : Deprecated, use EKF2_EV_CTRL instead
  * 7 : Deprecated, use EKF2_GPS_CTRL instead
- * 3 : Deprecated, use EKF2_EV_CTRL instead
+ * 8 : Deprecated, use EKF2_EV_CTRL instead
  *
  * @group EKF2
  * @min 0
  * @max 511
  * @bit 0 unused
- * @bit 1 use optical flow
+ * @bit 1 unused
  * @bit 2 unused
  * @bit 3 unused
  * @bit 4 unused
- * @bit 5 multi-rotor drag fusion
+ * @bit 5 unused
  * @bit 6 unused
  * @bit 7 unused
  * @bit 8 unused
@@ -659,7 +659,7 @@ PARAM_DEFINE_INT32(EKF2_HGT_REF, 1);
 /**
  * Barometric sensor height aiding
  *
- * If this parameter is enabled then the estimator will make use of the barometric height measurements to estimate it's height in addition to other
+ * If this parameter is enabled then the estimator will make use of the barometric height measurements to estimate its height in addition to other
  * height sources (if activated).
  *
  * @group EKF2
@@ -714,7 +714,7 @@ PARAM_DEFINE_INT32(EKF2_GPS_CTRL, 7);
  *
  * To en-/disable range finder for terrain height estimation, use EKF2_TERR_MASK instead.
  *
- * If this parameter is enabled then the estimator will make use of the range finder measurements to estimate it's height in addition to other
+ * If this parameter is enabled then the estimator will make use of the range finder measurements to estimate its height in addition to other
  * height sources (if activated). Range sensor aiding can be enabled (i.e.: always use) or set in "conditional" mode.
  *
  * Conditional mode: This enables the range finder to be used during low speed (< EKF2_RNG_A_VMAX) and low altitude (< EKF2_RNG_A_HMAX)
@@ -866,6 +866,16 @@ PARAM_DEFINE_FLOAT(EKF2_EVA_NOISE, 0.1f);
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(EKF2_GRAV_NOISE, 1.0f);
+
+/**
+ * Optical flow aiding
+ *
+ * Enable optical flow fusion.
+ *
+ * @group EKF2
+ * @boolean
+ */
+PARAM_DEFINE_INT32(EKF2_OF_CTRL, 0);
 
 /**
  * Measurement noise for the optical flow sensor when it's reported quality metric is at the maximum
@@ -1167,7 +1177,7 @@ PARAM_DEFINE_FLOAT(EKF2_RNG_PITCH, 0.0f);
  * Maximum horizontal velocity allowed for conditional range aid mode.
  *
  * If the vehicle horizontal speed exceeds this value then the estimator will not fuse range measurements
- * to estimate it's height. This only applies when conditional range aid mode is activated (EKF2_RNG_CTRL = 1).
+ * to estimate its height. This only applies when conditional range aid mode is activated (EKF2_RNG_CTRL = 1).
  *
  * @group EKF2
  * @min 0.1
@@ -1180,7 +1190,7 @@ PARAM_DEFINE_FLOAT(EKF2_RNG_A_VMAX, 1.0f);
  * Maximum absolute altitude (height above ground level) allowed for conditional range aid mode.
  *
  * If the vehicle absolute altitude exceeds this value then the estimator will not fuse range measurements
- * to estimate it's height. This only applies when conditional range aid mode is activated (EKF2_RNG_CTRL = 1).
+ * to estimate its height. This only applies when conditional range aid mode is activated (EKF2_RNG_CTRL = 1).
  *
  * @group EKF2
  * @min 1.0
@@ -1254,6 +1264,20 @@ PARAM_DEFINE_FLOAT(EKF2_EVV_GATE, 3.0f);
 PARAM_DEFINE_FLOAT(EKF2_EVP_GATE, 5.0f);
 
 /**
+ * Multirotor wind estimation selection
+ *
+ * Activate wind speed estimation using specific-force measurements and
+ * a drag model defined by EKF2_BCOEF_[XY] and EKF2_MCOEF.
+ *
+ * Only use on vehicles that have their thrust aligned with the Z axis and
+ * no thrust in the XY plane.
+ *
+ * @group EKF2
+ * @boolean
+ */
+PARAM_DEFINE_INT32(EKF2_DRAG_CTRL, 0);
+
+/**
  * Specific drag force observation noise variance used by the multi-rotor specific drag force model.
  *
  * Increasing this makes the multi-rotor wind estimates adjust more slowly.
@@ -1269,7 +1293,7 @@ PARAM_DEFINE_FLOAT(EKF2_DRAG_NOISE, 2.5f);
 /**
  * X-axis ballistic coefficient used for multi-rotor wind estimation.
  *
- * This parameter controls the prediction of drag produced by bluff body drag along the forward/reverse axis when flying a multi-copter which enables estimation of wind drift when enabled by the EKF2_AID_MASK parameter. The drag produced by this effect scales with speed squared. The predicted drag from the rotors is specified separately by the EKF2_MCOEF parameter.
+ * This parameter controls the prediction of drag produced by bluff body drag along the forward/reverse axis when flying a multi-copter which enables estimation of wind drift when enabled by the EKF2_DRAG_CTRL parameter. The drag produced by this effect scales with speed squared. The predicted drag from the rotors is specified separately by the EKF2_MCOEF parameter.
  * Set this parameter to zero to turn off the bluff body drag model for this axis.
  *
  * @group EKF2
@@ -1283,7 +1307,7 @@ PARAM_DEFINE_FLOAT(EKF2_BCOEF_X, 100.0f);
 /**
  * Y-axis ballistic coefficient used for multi-rotor wind estimation.
  *
- * This parameter controls the prediction of drag produced by bluff body drag along the right/left axis when flying a multi-copter, which enables estimation of wind drift when enabled by the EKF2_AID_MASK parameter. The drag produced by this effect scales with speed squared. The predicted drag from the rotors is specified separately by the EKF2_MCOEF parameter.
+ * This parameter controls the prediction of drag produced by bluff body drag along the right/left axis when flying a multi-copter, which enables estimation of wind drift when enabled by the EKF2_DRAG_CTRL parameter. The drag produced by this effect scales with speed squared. The predicted drag from the rotors is specified separately by the EKF2_MCOEF parameter.
  * Set this parameter to zero to turn off the bluff body drag model for this axis.
  *
  * @group EKF2
@@ -1297,7 +1321,7 @@ PARAM_DEFINE_FLOAT(EKF2_BCOEF_Y, 100.0f);
 /**
  * Propeller momentum drag coefficient used for multi-rotor wind estimation.
  *
- * This parameter controls the prediction of drag produced by the propellers when flying a multi-copter, which enables estimation of wind drift when enabled by the EKF2_AID_MASK parameter. The drag produced by this effect scales with speed not speed squared and is produced because some of the air velocity normal to the propeller axis of rotation is lost when passing through the rotor disc. This  changes the momentum of the flow which creates a drag reaction force. When comparing un-ducted propellers of the same diameter, the effect is roughly proportional to the area of the propeller blades when viewed side on and changes with propeller selection. Momentum drag is significantly higher for ducted rotors. To account for the drag produced by the body which scales with speed squared, see documentation for the EKF2_BCOEF_X and EKF2_BCOEF_Y parameters.
+ * This parameter controls the prediction of drag produced by the propellers when flying a multi-copter, which enables estimation of wind drift when enabled by the EKF2_DRAG_CTRL parameter. The drag produced by this effect scales with speed not speed squared and is produced because some of the air velocity normal to the propeller axis of rotation is lost when passing through the rotor disc. This  changes the momentum of the flow which creates a drag reaction force. When comparing un-ducted propellers of the same diameter, the effect is roughly proportional to the area of the propeller blades when viewed side on and changes with propeller selection. Momentum drag is significantly higher for ducted rotors. To account for the drag produced by the body which scales with speed squared, see documentation for the EKF2_BCOEF_X and EKF2_BCOEF_Y parameters.
  * Set this parameter to zero to turn off the momentum drag model for both axis.
  *
  * @group EKF2

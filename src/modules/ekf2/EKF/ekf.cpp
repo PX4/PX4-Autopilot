@@ -243,12 +243,8 @@ bool Ekf::initialiseTilt()
 		return false;
 	}
 
-	// get initial roll and pitch estimate from delta velocity vector, assuming vehicle is static
-	const Vector3f gravity_in_body = _accel_lpf.getState().normalized();
-	const float pitch = asinf(gravity_in_body(0));
-	const float roll = atan2f(-gravity_in_body(1), -gravity_in_body(2));
-
-	_state.quat_nominal = Quatf{Eulerf{roll, pitch, 0.0f}};
+	// get initial tilt estimate from delta velocity vector, assuming vehicle is static
+	_state.quat_nominal = Quatf(_accel_lpf.getState(), Vector3f(0.f, 0.f, -1.f));
 	_R_to_earth = Dcmf(_state.quat_nominal);
 
 	return true;

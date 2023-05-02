@@ -33,9 +33,8 @@
 
 
 /**
- * @file fw_path_navigation_main.hpp
- * Implementation of a generic path navigation. Outputs a bank / roll
- * angle, equivalent to a lateral motion (for copters and rovers).
+ * @file fw_pos_control_main.hpp
+ * Implementation of various fixed-wing position level navigation/control modes.
  *
  * The implementation for the controllers is in a separate library. This class only
  * interfaces to the library.
@@ -689,14 +688,15 @@ private:
 	void set_control_mode_current(const hrt_abstime &now);
 
 	/**
-	 * @brief Compensate trim throttle for air density and vehicle weight.
+	 * @brief Estimate trim throttle for air density, vehicle weight and current airspeed
 	 *
-	 * @param trim throttle required at sea level during standard conditions.
 	 * @param throttle_min Minimum allowed trim throttle.
 	 * @param throttle_max Maximum allowed trim throttle.
-	 * @return Trim throttle compensated for air density and vehicle weight.
+	 * @param airspeed_sp Current airspeed setpoint (CAS) [m/s]
+	 * @return Estimated trim throttle
 	 */
-	float compensateTrimThrottleForDensityAndWeight(float throttle_trim, float throttle_min, float throttle_max);
+	float calculateTrimThrottle(float throttle_min, float throttle_max,
+				    float airspeed_sp);
 
 	void publishOrbitStatus(const position_setpoint_s pos_sp);
 
@@ -905,6 +905,9 @@ private:
 		(ParamFloat<px4::params::FW_T_SPD_STD>) _param_speed_standard_dev,
 		(ParamFloat<px4::params::FW_T_SPD_DEV_STD>) _param_speed_rate_standard_dev,
 		(ParamFloat<px4::params::FW_T_SPD_PRC_STD>) _param_process_noise_standard_dev,
+
+		(ParamFloat<px4::params::FW_THR_ASPD_MIN>) _param_fw_thr_aspd_min,
+		(ParamFloat<px4::params::FW_THR_ASPD_MAX>) _param_fw_thr_aspd_max,
 
 		(ParamFloat<px4::params::FW_THR_TRIM>) _param_fw_thr_trim,
 		(ParamFloat<px4::params::FW_THR_IDLE>) _param_fw_thr_idle,

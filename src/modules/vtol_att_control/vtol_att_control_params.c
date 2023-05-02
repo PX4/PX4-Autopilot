@@ -77,9 +77,10 @@ PARAM_DEFINE_INT32(VT_ELEV_MC_LOCK, 1);
 PARAM_DEFINE_FLOAT(VT_F_TRANS_DUR, 5.0f);
 
 /**
- * Duration of a back transition
+ * Maximum duration of a back transition
  *
- * Time in seconds used for a back transition
+ * Time in seconds used for a back transition maximally.
+ * Transition is also declared over if the groundspeed drops below MPC_XY_CRUISE.
  *
  * @unit s
  * @min 0.1
@@ -88,7 +89,7 @@ PARAM_DEFINE_FLOAT(VT_F_TRANS_DUR, 5.0f);
  * @decimal 2
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_B_TRANS_DUR, 4.0f);
+PARAM_DEFINE_FLOAT(VT_B_TRANS_DUR, 10.0f);
 
 /**
  * Target throttle value for the transition to fixed-wing flight.
@@ -104,22 +105,6 @@ PARAM_DEFINE_FLOAT(VT_B_TRANS_DUR, 4.0f);
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_F_TRANS_THR, 1.0f);
-
-/**
- * Target throttle value for the transition to hover flight.
- *
- * standard vtol: pusher
- *
- * tailsitter, tiltrotor: main throttle
- *
- *
- * @min -1
- * @max 1
- * @increment 0.01
- * @decimal 2
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_FLOAT(VT_B_TRANS_THR, 0.0f);
 
 /**
  * Approximate deceleration during back transition

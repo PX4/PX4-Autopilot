@@ -71,7 +71,7 @@ private:
 
 			msg.time_boot_ms = gimbal_manager_information.timestamp / 1000;
 			msg.cap_flags = gimbal_manager_information.cap_flags;
-			msg.gimbal_device_id = 0;
+			msg.gimbal_device_id = gimbal_manager_information.gimbal_device_id;
 			msg.roll_min = gimbal_manager_information.roll_min;
 			msg.roll_max = gimbal_manager_information.roll_max;
 			msg.pitch_min = gimbal_manager_information.pitch_min;

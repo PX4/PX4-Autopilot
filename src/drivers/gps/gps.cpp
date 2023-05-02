@@ -75,6 +75,8 @@
 # include "devices/src/mtk.h"
 # include "devices/src/femtomes.h"
 # include "devices/src/nmea.h"
+# include "devices/src/sbf.h"
+
 #endif // CONSTRAINED_FLASH
 #include "devices/src/ubx.h"
 
@@ -95,7 +97,8 @@ enum class gps_driver_mode_t {
 	ASHTECH,
 	EMLIDREACH,
 	FEMTOMES,
-	NMEA
+	NMEA,
+	SBF
 };
 
 enum class gps_dump_comm_mode_t : int32_t {
@@ -109,7 +112,7 @@ struct GPS_Sat_Info {
 	satellite_info_s _data;
 };
 
-static constexpr int TASK_STACK_SIZE = PX4_STACK_ADJUSTED(1760);
+static constexpr int TASK_STACK_SIZE = PX4_STACK_ADJUSTED(2040);
 
 
 class GPS : public ModuleBase<GPS>, public device::Device
@@ -353,6 +356,8 @@ GPS::GPS(const char *path, gps_driver_mode_t mode, GPSHelper::Interface interfac
 		case 5: _mode = gps_driver_mode_t::FEMTOMES; break;
 
 		case 6: _mode = gps_driver_mode_t::NMEA; break;
+
+		case 7: _mode = gps_driver_mode_t::SBF; break;
 #endif // CONSTRAINED_FLASH
 		}
 	}
@@ -783,6 +788,13 @@ GPS::run()
 		heading_offset = matrix::wrap_pi(math::radians(heading_offset));
 	}
 
+	handle = param_find("GPS_PITCH_OFFSET");
+	float pitch_offset = 0.f;
+
+	if (handle != PARAM_INVALID) {
+		param_get(handle, &pitch_offset);
+	}
+
 	int32_t gps_ubx_dynmodel = 7; // default to 7: airborne with <2g acceleration
 	handle = param_find("GPS_UBX_DYNMODEL");
 
@@ -931,6 +943,11 @@ GPS::run()
 			_helper = new GPSDriverNMEA(&GPS::callback, this, &_report_gps_pos, _p_report_sat_info, heading_offset);
 			set_device_type(DRV_GPS_DEVTYPE_NMEA);
 			break;
+
+		case gps_driver_mode_t::SBF:
+			_helper = new GPSDriverSBF(&GPS::callback, this, &_report_gps_pos, _p_report_sat_info, heading_offset, pitch_offset);
+			set_device_type(DRV_GPS_DEVTYPE_SBF);
+			break;
 #endif // CONSTRAINED_FLASH
 
 		default:
@@ -996,7 +1013,7 @@ GPS::run()
 						set_device_type(DRV_GPS_DEVTYPE_UBX_F9P);
 						break;
 
-					case GPSDriverUBX::Board::u_blox10_MAX_M10S:
+					case GPSDriverUBX::Board::u_blox10:
 						set_device_type(DRV_GPS_DEVTYPE_UBX_MAX_M10S);
 						receive_timeout = TIMEOUT_1HZ;
 						break;
@@ -1109,6 +1126,10 @@ GPS::run()
 				break;
 
 			case gps_driver_mode_t::FEMTOMES:
+				_mode = gps_driver_mode_t::SBF;
+				break;
+
+			case gps_driver_mode_t::SBF:
 			case gps_driver_mode_t::NMEA: // skip NMEA for auto-detection to avoid false positive matching
 #endif // CONSTRAINED_FLASH
 				_mode = gps_driver_mode_t::UBX;
@@ -1170,6 +1191,9 @@ GPS::print_status()
 	case gps_driver_mode_t::NMEA:
 		PX4_INFO("protocol: NMEA");
 		break;
+
+	case gps_driver_mode_t::SBF:
+		PX4_INFO("protocol: SBF");
 #endif // CONSTRAINED_FLASH
 
 	default:
@@ -1545,6 +1569,9 @@ GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 
 			} else if (!strcmp(myoptarg, "nmea")) {
 				mode = gps_driver_mode_t::NMEA;
+
+			} else if (!strcmp(myoptarg, "sbf")) {
+				mode = gps_driver_mode_t::SBF;
 #endif // CONSTRAINED_FLASH
 			} else {
 				PX4_ERR("unknown protocol: %s", myoptarg);

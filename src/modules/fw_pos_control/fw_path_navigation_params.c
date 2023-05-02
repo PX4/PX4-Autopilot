@@ -1063,3 +1063,33 @@ PARAM_DEFINE_FLOAT(FW_SPOILERS_LND, 0.f);
  * @group FW Attitude Control
  */
 PARAM_DEFINE_FLOAT(FW_SPOILERS_DESC, 0.f);
+
+/**
+ * Throttle at min airspeed
+ *
+ * Required throttle for level flight at minimum airspeed FW_AIRSPD_MIN (sea level, standard atmosphere)
+ *
+ * Set to 0 to disable mapping of airspeed to trim throttle below FW_AIRSPD_TRIM.
+ *
+ * @min 0
+ * @max 1
+ * @decimal 2
+ * @increment 0.01
+ * @group FW TECS
+ */
+PARAM_DEFINE_FLOAT(FW_THR_ASPD_MIN, 0.f);
+
+/**
+ * Throttle at max airspeed
+ *
+ * Required throttle for level flight at maximum airspeed FW_AIRSPD_MAX (sea level, standard atmosphere)
+ *
+ * Set to 0 to disable mapping of airspeed to trim throttle.
+ *
+ * @min 0
+ * @max 1
+ * @decimal 2
+ * @increment 0.01
+ * @group FW TECS
+ */
+PARAM_DEFINE_FLOAT(FW_THR_ASPD_MAX, 0.f);

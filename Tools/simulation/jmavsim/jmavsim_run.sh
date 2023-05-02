@@ -12,7 +12,7 @@ baudrate=921600
 device=
 ip="127.0.0.1"
 protocol="tcp"
-while getopts ":b:d:u:p:qsr:f:i:loat" opt; do
+while getopts "b:d:ui:p:qsr:loat" opt; do
 	case $opt in
 		b)
 			baudrate=$OPTARG

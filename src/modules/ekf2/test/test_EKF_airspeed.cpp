@@ -131,3 +131,38 @@ TEST_F(EkfAirspeedTest, testWindVelocityEstimation)
 	EXPECT_NEAR(height_after_pressure_correction, expected_height_after_pressure_correction, 1e-2f);
 
 }
+
+TEST_F(EkfAirspeedTest, testResetWindUsingAirspeed)
+{
+	const Vector3f simulated_velocity_earth(-3.6f, 8.f, 0.0f);
+	const Vector2f airspeed_body(15.f, 0.0f);
+	_ekf_wrapper.enableGpsFusion();
+	_sensor_simulator._gps.setVelocity(simulated_velocity_earth);
+	_sensor_simulator.startGps();
+	_sensor_simulator.runSeconds(11);
+
+	_ekf->set_in_air_status(true);
+	_ekf->set_vehicle_at_rest(false);
+	_ekf->set_is_fixed_wing(true);
+
+	// Simulate the fact that the sideslip can start immediately, without
+	// waiting for a measurement sample.
+	_ekf_wrapper.enableBetaFusion();
+	_sensor_simulator.runSeconds(0.1);
+	EXPECT_TRUE(_ekf_wrapper.isIntendingBetaFusion());
+
+	_sensor_simulator.startAirspeedSensor();
+	_sensor_simulator._airspeed.setData(airspeed_body(0), airspeed_body(0));
+	_sensor_simulator.runSeconds(0.1);
+
+	EXPECT_TRUE(_ekf_wrapper.isWindVelocityEstimated());
+
+	const Vector2f vel_wind_earth = _ekf->getWindVelocity();
+
+	const Dcmf R_to_earth_sim(_quat_sim);
+	const Vector3f vel_wind_expected = simulated_velocity_earth - R_to_earth_sim * (Vector3f(airspeed_body(0),
+					   airspeed_body(1), 0.0f));
+
+	EXPECT_NEAR(vel_wind_earth(0), vel_wind_expected(0), 1.f);
+	EXPECT_NEAR(vel_wind_earth(1), vel_wind_expected(1), 1.f);
+}

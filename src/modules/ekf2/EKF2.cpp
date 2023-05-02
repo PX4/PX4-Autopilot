@@ -110,7 +110,6 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_req_pdop(_params->req_pdop),
 	_param_ekf2_req_hdrift(_params->req_hdrift),
 	_param_ekf2_req_vdrift(_params->req_vdrift),
-	_param_ekf2_aid_mask(_params->fusion_mode),
 	_param_ekf2_hgt_ref(_params->height_sensor_ref),
 	_param_ekf2_baro_ctrl(_params->baro_ctrl),
 	_param_ekf2_gps_ctrl(_params->gnss_ctrl),
@@ -150,6 +149,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 	_param_ekf2_grav_noise(_params->gravity_noise),
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
+	_param_ekf2_of_ctrl(_params->flow_ctrl),
 	_param_ekf2_of_delay(_params->flow_delay_ms),
 	_param_ekf2_of_n_min(_params->flow_noise),
 	_param_ekf2_of_n_max(_params->flow_noise_qual_min),
@@ -174,6 +174,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_abl_tau(_params->acc_bias_learn_tc),
 	_param_ekf2_gyr_b_lim(_params->gyro_bias_lim),
 #if defined(CONFIG_EKF2_DRAG_FUSION)
+	_param_ekf2_drag_ctrl(_params->drag_ctrl),
 	_param_ekf2_drag_noise(_params->drag_noise),
 	_param_ekf2_bcoef_x(_params->bcoef_x),
 	_param_ekf2_bcoef_y(_params->bcoef_y),
@@ -861,6 +862,51 @@ void EKF2::VerifyParams()
 		events::send<float>(events::ID("ekf2_aid_mask_imu"), events::Log::Warning,
 				    "Use EKF2_IMU_CTRL instead", _param_ekf2_aid_mask.get());
 	}
+
+#if defined(CONFIG_EKF2_DRAG_FUSION)
+
+	if (_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_USE_DRAG) {
+		// EKF2_DRAG_CTRL enable drag fusion
+		_param_ekf2_drag_ctrl.set(1);
+
+		// EKF2_AID_MASK clear deprecated bits
+		_param_ekf2_aid_mask.set(_param_ekf2_aid_mask.get() & ~(SensorFusionMask::DEPRECATED_USE_DRAG));
+
+		_param_ekf2_drag_ctrl.commit();
+		_param_ekf2_aid_mask.commit();
+
+		mavlink_log_critical(&_mavlink_log_pub, "EKF2 drag fusion use EKF2_DRAG_CTRL instead of EKF2_AID_MASK\n");
+		/* EVENT
+		 * @description <param>EKF2_AID_MASK</param> is set to {1:.0}.
+		 */
+		events::send<float>(events::ID("ekf2_aid_mask_drag"), events::Log::Warning,
+				    "Use EKF2_DRAG_CTRL instead", _param_ekf2_aid_mask.get());
+	}
+
+#endif // CONFIG_EKF2_DRAG_FUSION
+
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
+
+	// IMU EKF2_AID_MASK -> EKF2_OF_CTRL (2023-04-26)
+	if (_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_USE_OPT_FLOW) {
+		// EKF2_OF_CTRL enable flow fusion
+		_param_ekf2_of_ctrl.set(1);
+
+		// EKF2_AID_MASK clear deprecated bit
+		_param_ekf2_aid_mask.set(_param_ekf2_aid_mask.get() & ~(SensorFusionMask::DEPRECATED_USE_OPT_FLOW));
+
+		_param_ekf2_of_ctrl.commit();
+		_param_ekf2_aid_mask.commit();
+
+		mavlink_log_critical(&_mavlink_log_pub, "EKF2 optical flow use EKF2_OF_CTRL instead of EKF2_AID_MASK\n");
+		/* EVENT
+		 * @description <param>EKF2_AID_MASK</param> is set to {1:.0}.
+		 */
+		events::send<float>(events::ID("ekf2_aid_mask_opt_flow"), events::Log::Warning,
+				    "Use EKF2_OF_CTRL instead", _param_ekf2_aid_mask.get());
+	}
+
+#endif // CONFIG_EKF2_OPTICAL_FLOW
 }
 
 void EKF2::PublishAidSourceStatus(const hrt_abstime &timestamp)

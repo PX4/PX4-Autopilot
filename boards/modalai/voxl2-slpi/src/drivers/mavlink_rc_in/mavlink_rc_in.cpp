@@ -309,7 +309,7 @@ void task_main(int argc, char *argv[])
 
 void handle_message_radio_status_dsp(mavlink_message_t *msg)
 {
-	if (debug) PX4_INFO("Radio status msg received");
+	if (debug) { PX4_INFO("Radio status msg received"); }
 
 	mavlink_radio_status_t rstatus;
 	mavlink_msg_radio_status_decode(msg, &rstatus);
@@ -333,7 +333,7 @@ void handle_message_rc_channels_override_dsp(mavlink_message_t *msg)
 	mavlink_rc_channels_override_t man;
 	mavlink_msg_rc_channels_override_decode(msg, &man);
 
-	if (debug) PX4_INFO("RC channels override msg received");
+	if (debug) { PX4_INFO("RC channels override msg received"); }
 
 	// Check target
 	if (man.target_system != 0) {

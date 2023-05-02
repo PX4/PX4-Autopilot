@@ -259,13 +259,9 @@ public:
 
 	void set_mission_failure_heading_timeout();
 
-	void setMissionLandingInProgress(bool in_progress) { _mission_landing_in_progress = in_progress; }
-
-	bool getMissionLandingInProgress() { return _mission_landing_in_progress; }
-
 	bool is_planned_mission() const { return _navigation_mode == &_mission; }
 
-	bool on_mission_landing() { return _mission.landing(); }
+	bool on_mission_landing() { return (_mission.landing() && _navigation_mode == &_mission); }
 
 	bool start_mission_landing() { return _mission.land_start(); }
 
@@ -348,7 +344,7 @@ private:
 	vehicle_local_position_s			_local_pos{};		/**< local vehicle position */
 	vehicle_status_s				_vstatus{};		/**< vehicle status */
 
-	uint8_t						_previous_nav_state{}; /**< nav_state of the previous iteration*/
+	bool						_rtl_activated{false};
 
 	// Publications
 	geofence_result_s				_geofence_result{};
@@ -368,6 +364,8 @@ private:
 	bool		_pos_sp_triplet_updated{false};			/**< flags if position SP triplet needs to be published */
 	bool 		_pos_sp_triplet_published_invalid_once{false};	/**< flags if position SP triplet has been published once to UORB */
 	bool		_mission_result_updated{false};			/**< flags if mission result has seen an update */
+
+	bool		_shouldEngageMissionForLanding{false};
 
 	Mission		_mission;			/**< class that handles the missions */
 	Loiter		_loiter;			/**< class that handles loiter */
@@ -392,9 +390,6 @@ private:
 	float _mission_cruising_speed_mc{-1.0f};
 	float _mission_cruising_speed_fw{-1.0f};
 	float _mission_throttle{NAN};
-
-	bool _mission_landing_in_progress{false};	/**< this flag gets set if the mission is currently executing on a landing pattern
-							 * if mission mode is inactive, this flag will be cleared after 2 seconds */
 
 	traffic_buffer_s _traffic_buffer{};
 

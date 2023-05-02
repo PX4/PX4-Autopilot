@@ -30,10 +30,10 @@ param set-default PWM_MAIN_FUNC3 103
 param set-default PWM_MAIN_FUNC4 104
 
 # EKF2
-param set-default EKF2_AID_MASK 2
 param set-default EKF2_GPS_CTRL 0
 param set-default EKF2_EVP_NOISE 0.05
 param set-default EKF2_EVA_NOISE 0.05
+param set-default EKF2_OF_CTRL 1
 
 # LPE: Flow-only mode
 param set-default LPE_FUSION 242

@@ -95,7 +95,7 @@ extern "C" {
 
 		size_t name_len = strlen(name);
 
-		if (name_len > PX4_TASK_MAX_NAME_LENGTH) name_len = PX4_TASK_MAX_NAME_LENGTH;
+		if (name_len > PX4_TASK_MAX_NAME_LENGTH) { name_len = PX4_TASK_MAX_NAME_LENGTH; }
 
 		memcpy(attr->name, name, name_len);
 		attr->name[name_len] = 0;
@@ -430,9 +430,10 @@ int px4_prctl(int option, const char *arg2, px4_task_t pid)
 {
 	int rv = -1;
 
-	if (option != PR_SET_NAME) return rv;
+	if (option != PR_SET_NAME) { return rv; }
 
 	pthread_mutex_lock(&task_mutex);
+
 	for (int i = 0; i < PX4_MAX_TASKS; i++) {
 		if (taskmap[i].isused && taskmap[i].tid == (pthread_t) pid) {
 			rv = pthread_attr_setthreadname(&taskmap[i].attr, arg2);
@@ -440,6 +441,7 @@ int px4_prctl(int option, const char *arg2, px4_task_t pid)
 			return rv;
 		}
 	}
+
 	pthread_mutex_unlock(&task_mutex);
 
 	return rv;

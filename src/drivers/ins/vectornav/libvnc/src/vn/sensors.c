@@ -9,7 +9,7 @@
 
 #include "vn/xplat/time.h"
 
-#define UNUSED(x) (void)(sizeof(x))
+//#define UNUSED(x) (void)(sizeof(x))
 
 #define DEFAULT_RESPONSE_TIMEOUT_MS	500
 #define DEFAULT_RETRANSMIT_DELAY_MS	200
@@ -2689,7 +2689,7 @@ RESEND:
 	{
 		char buffer[128];
 		memset(buffer, 0, sizeof(buffer));
-		strFromSensorError(buffer, error);
+		strFromVnError(buffer, error);
 		/* printf("VnSensor_writeFirmwareUpdate: Error %d - %s", error, buffer); */
 	}
 	else

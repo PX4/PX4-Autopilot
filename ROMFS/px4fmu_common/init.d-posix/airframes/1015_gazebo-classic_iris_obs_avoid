@@ -30,5 +30,3 @@ param set-default PWM_MAIN_FUNC3 103
 param set-default PWM_MAIN_FUNC4 104
 
 param set-default COM_OBS_AVOID 1
-param set-default MPC_XY_CRUISE 5.0
-

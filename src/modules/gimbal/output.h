@@ -55,7 +55,7 @@ public:
 	explicit OutputBase(const Parameters &parameters);
 	virtual ~OutputBase() = default;
 
-	virtual void update(const ControlData &control_data, bool new_setpoints) = 0;
+	virtual void update(ControlData &control_data, bool new_setpoints) = 0;
 
 	virtual void print_status() const = 0;
 
