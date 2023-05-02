@@ -211,7 +211,13 @@ void FlightModeManager::start_flight_task()
 
 		case 4:
 		default:
-			if (_param_mpc_pos_mode.get() != 4) {
+			// MPC_POS_MODE is used for both position mode and altitude mode. When
+			// a new sub-mode is added for altitude mode then it also has to be dealt with here.
+			// Perhaps there should be a new parameter just for the altitude sub modes?
+			// or as a separate case statement above?
+			int current_mpc_pos_submode = _param_mpc_pos_mode.get();
+
+			if ((current_mpc_pos_submode != 4) && (current_mpc_pos_submode != 1)) {
 				PX4_ERR("MPC_POS_MODE %" PRId32 " invalid, resetting", _param_mpc_pos_mode.get());
 				_param_mpc_pos_mode.set(4);
 				_param_mpc_pos_mode.commit();
@@ -233,6 +239,10 @@ void FlightModeManager::start_flight_task()
 		switch (_param_mpc_pos_mode.get()) {
 		case 0:
 			error = switchTask(FlightTaskIndex::ManualAltitude);
+			break;
+
+		case 1:
+			error = switchTask(FlightTaskIndex::ManualAltitudeCommandVel);
 			break;
 
 		case 3:
