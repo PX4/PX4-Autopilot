@@ -158,6 +158,7 @@ public:
 		return res;
 	}
 
+	// Element-wise multiplication
 	Matrix<Type, M, N> emult(const Matrix<Type, M, N> &other) const
 	{
 		Matrix<Type, M, N> res;
@@ -172,6 +173,7 @@ public:
 		return res;
 	}
 
+	// Element-wise division
 	Matrix<Type, M, N> edivide(const Matrix<Type, M, N> &other) const
 	{
 		Matrix<Type, M, N> res;
