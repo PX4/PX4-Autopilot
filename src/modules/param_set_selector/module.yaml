@@ -1,0 +1,71 @@
+module_name: param_set_selector
+
+# hardcoded maximum allowed number of parameter sets
+__max_param_sets: &max_param_sets 5
+
+parameters:
+    - group: Selector
+      definitions:
+
+        SELECTOR_ENABLED:
+            description:
+                short: Enable dynaic parameter set selection.
+                long: |
+                    If set to TRUE / 1 this will autostart the module.
+            type: boolean
+            reboot_required: true
+            default: 1
+
+        PARAM_SET:
+            description:
+                short: Selected Parameter Set
+                long: |
+                    This selects and sets the desired collection (set) of parameters.
+
+                    Note: this operation only triggers on parameter change, so changes
+                        can be overridden by other modules and/or user dynamic parameter
+                        reconfiguration.
+            type: enum
+            values:
+                0: DISABLED
+                1: ACRO_FAST
+                2: ALT_FAST
+                3: ALT_SLOW
+                4: RESERVED4
+                5: RESERVED5
+            reboot_required: false
+            default: 0
+
+        PARAM_SET_CHANL:
+            description:
+                short: RC Channel used to set the PARAM_SET parameter.
+                long: |
+                    If enabled, this param will be used to set the PARAM_SET parameter.
+
+                    This enables mapping an RC switch to a set of parameter changes. The
+                    existing method for doing this (RC_MAP_PARAM*) only supports dials
+                    and knobs, i.e. physical switches which map smoothly to a continuous
+                    floating point distribution.
+            type: enum
+            values:
+                0: UNASSIGNED
+                1: CHANNEL1
+                2: CHANNEL2
+                3: CHANNEL3
+                4: CHANNEL4
+                5: CHANNEL5
+                6: CHANNEL6
+                7: CHANNEL7
+                8: CHANNEL8
+                9: CHANNEL9
+                10: CHANNEL10
+                11: CHANNEL11
+                12: CHANNEL12
+                13: CHANNEL13
+                14: CHANNEL14
+                15: CHANNEL15
+                16: CHANNEL16
+                17: CHANNEL17
+                18: CHANNEL18
+            reboot_required: true
+            default: 0
