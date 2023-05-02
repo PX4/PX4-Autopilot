@@ -37,11 +37,7 @@
 __BEGIN_DECLS
 
 #define PX4_SOC_ARCH_ID             PX4_SOC_ARCH_ID_NXPIMXRT1176
-
-#// Fixme: using ??
-#define PX4_BBSRAM_SIZE             2048
-#define PX4_BBSRAM_GETDESC_IOCTL    0
-#define PX4_NUMBER_I2C_BUSES        2 //FIXME
+#define PX4_NUMBER_I2C_BUSES        6
 
 #define GPIO_OUTPUT_SET             GPIO_OUTPUT_ONE
 #define GPIO_OUTPUT_CLEAR           GPIO_OUTPUT_ZERO
@@ -87,6 +83,19 @@ __BEGIN_DECLS
 
 #define PX4_BUS_OFFSET       0                  /* imxrt buses are 1 based no adjustment needed */
 
+#define px4_savepanic(fileno, context, length)  ssarc_dump_savepanic(fileno, context, length)
+
+#if defined(CONFIG_BOARD_CRASHDUMP)
+#  define HAS_SSARC             1
+#  define PX4_HF_GETDESC_IOCTL  SSARC_DUMP_GETDESC_IOCTL
+#  define PX4_SSARC_DUMP_BASE   IMXRT_SSARC_HP_BASE
+#  define PX4_SSARC_DUMP_SIZE   9216
+#  define PX4_SSARC_BLOCK_SIZE  16
+#  define PX4_SSARC_BLOCK_DATA  9
+#  define PX4_SSARC_HEADER_SIZE 27
+#endif
+
+
 #define px4_spibus_initialize(bus_num_1based)   imxrt_lpspibus_initialize(PX4_BUS_NUMBER_FROM_PX4(bus_num_1based))
 
 #define px4_i2cbus_initialize(bus_num_1based)   imxrt_i2cbus_initialize(PX4_BUS_NUMBER_FROM_PX4(bus_num_1based))
@@ -102,7 +111,12 @@ int imxrt_gpiosetevent(uint32_t pinset, bool risingedge, bool fallingedge, bool 
 #define px4_arch_gpiosetevent(pinset,r,f,e,fp,a)  imxrt_gpiosetevent(pinset,r,f,e,fp,a)
 
 #define PX4_MAKE_GPIO_INPUT(gpio) (((gpio) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_INPUT ))
+#define PX4_MAKE_GPIO_PULLED_INPUT(gpio, pull) (PX4_MAKE_GPIO_INPUT((gpio)) | (pull))
 #define PX4_MAKE_GPIO_OUTPUT_CLEAR(gpio) (((gpio) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_OUTPUT | GPIO_OUTPUT_ZERO | IOMUX_CMOS_OUTPUT | IOMUX_PULL_KEEP  | IOMUX_SLEW_FAST))
 #define PX4_MAKE_GPIO_OUTPUT_SET(gpio) (((gpio) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_OUTPUT | GPIO_OUTPUT_ONE | IOMUX_CMOS_OUTPUT | IOMUX_PULL_KEEP   | IOMUX_SLEW_FAST))
+
+#if defined(CONFIG_IMXRT_FLEXSPI)
+#  define HAS_FLEXSPI
+#endif
 
 __END_DECLS
