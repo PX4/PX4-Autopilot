@@ -615,8 +615,21 @@ bool DatamanCache::load(dm_item_t item, uint32_t index)
 	}
 
 	bool success = false;
+	bool duplicate = false;
 
-	if (_item_counter < _num_items) {
+	//Prevent duplicates
+	for (uint32_t i = 0; i < _num_items; ++i) {
+
+		if (_items[i].cache_state != State::Idle &&
+		    _items[i].cache_state != State::Error &&
+		    _items[i].response.item == item &&
+		    _items[i].response.index == index) {
+			duplicate = true;
+			break;
+		}
+	}
+
+	if (!duplicate && (_item_counter < _num_items)) {
 
 		_items[_load_index].cache_state = State::RequestPrepared;
 		_items[_load_index].response.item = item;
