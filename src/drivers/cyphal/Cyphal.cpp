@@ -62,6 +62,8 @@ using namespace time_literals;
 
 CyphalNode *CyphalNode::_instance;
 
+esc_status_s UavcanEscFeedbackSubscriber::_esc_status;
+
 CyphalNode::CyphalNode(uint32_t node_id, size_t capacity, size_t mtu_bytes) :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::uavcan),

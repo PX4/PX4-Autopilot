@@ -98,13 +98,16 @@ bool UavcanParamManager::GetParamName(uint32_t id, uavcan_register_Name_1_0 &nam
 {
 	size_t number_of_integer_registers = sizeof(_uavcan_params) / sizeof(UavcanParamBinder);
 	size_t number_of_type_registers = sizeof(_type_registers) / sizeof(CyphalTypeRegister);
+
 	if (id < sizeof(_uavcan_params) / sizeof(UavcanParamBinder)) {
 		strncpy((char *)name.name.elements, _uavcan_params[id].uavcan_name, uavcan_register_Name_1_0_name_ARRAY_CAPACITY_);
 		name.name.count = strlen(_uavcan_params[id].uavcan_name);
+
 	} else if (id < number_of_integer_registers + number_of_type_registers) {
 		id -= number_of_integer_registers;
 		strncpy((char *)name.name.elements, _type_registers[id].name, strlen(_type_registers[id].name));
 		name.name.count = strlen(_type_registers[id].name);
+
 	} else {
 		return false;
 	}
