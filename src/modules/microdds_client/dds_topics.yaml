@@ -7,7 +7,127 @@ publications:
 
   - topic: /fmu/out/collision_constraints
     type: px4_msgs::msg::CollisionConstraints
+    
+  - topic: /fmu/out/actuator_outputs
+    type: px4_msgs::msg::ActuatorOutputs
 
+  - topic: /fmu/out/actuator_servos
+    type: px4_msgs::msg::ActuatorServos
+   
+  - topic: /fmu/out/actuator_servos_trim
+    type: px4_msgs::msg::ActuatorServosTrim
+    
+  - topic: /fmu/out/airspeed
+    type: px4_msgs::msg::Airspeed
+    
+  - topic: /fmu/out/cellular_status
+    type: px4_msgs::msg::CellularStatus
+      
+  - topic: /fmu/out/collision_report
+    type: px4_msgs::msg::CollisionReport
+      
+  - topic: /fmu/out/differential_pressure
+    type: px4_msgs::msg::DifferentialPressure
+    
+  - topic: /fmu/out/distance_sensor
+    type: px4_msgs::msg::DistanceSensor
+    
+  - topic: /fmu/out/failure_detector_status
+    type: px4_msgs::msg::FailureDetectorStatus
+    
+  - topic: /fmu/out/follow_target
+    type: px4_msgs::msg::FollowTarget
+
+  - topic: /fmu/out/follow_target_estimator
+    type: px4_msgs::msg::FollowTargetEstimator
+    
+  - topic: /fmu/out/follow_target_status
+    type: px4_msgs::msg::FollowTargetStatus
+    
+  - topic: /fmu/out/position_controller_status
+    type: px4_msgs::msg::PositionControllerStatus
+    
+  - topic: /fmu/out/position_controller_landing_status
+    type: px4_msgs::msg::PositionControllerLandingStatus
+    
+  - topic: /fmu/out/position_setpoint
+    type: px4_msgs::msg::PositionSetpoint
+  
+  - topic: /fmu/out/sensor_accel
+    type: px4_msgs::msg::SensorAccel
+    
+  - topic: /fmu/out/sensor_baro
+    type: px4_msgs::msg::SensorBaro
+    
+  - topic: /fmu/out/sensor_gps
+    type: px4_msgs::msg::SensorGps
+    
+  - topic: /fmu/out/sensor_gyro
+    type: px4_msgs::msg::SensorGyro
+
+  - topic: /fmu/out/sensor_hygrometer
+    type: px4_msgs::msg::SensorHygrometer
+  
+  - topic: /fmu/out/wind
+    type: px4_msgs::msg::Wind  
+    
+  - topic: /fmu/out/sensor_mag
+    type: px4_msgs::msg::SensorMag
+    
+  - topic: /fmu/out/sensor_optical_flow
+    type: px4_msgs::msg::SensorOpticalFlow
+    
+  - topic: /fmu/out/tecs_status
+    type: px4_msgs::msg::TecsStatus
+    
+  - topic: /fmu/out/yaw_estimator_status
+    type: px4_msgs::msg::YawEstimatorStatus
+    
+  - topic: /fmu/out/landing_target_pose
+    type: px4_msgs::msg::LandingTargetPose
+    
+  - topic: /fmu/out/launch_detection_status
+    type: px4_msgs::msg::LaunchDetectionStatus
+    
+  - topic: /fmu/out/manual_control_setpoint
+    type: px4_msgs::msg::ManualControlSetpoint
+    
+  - topic: /fmu/out/manual_control_switches
+    type: px4_msgs::msg::ManualControlSwitches
+    
+  - topic: /fmu/out/obstacle_distance
+    type: px4_msgs::msg::ObstacleDistance
+    
+  - topic: /fmu/out/onboard_computer_status
+    type: px4_msgs::msg::OnboardComputerStatus
+    
+  - topic: /fmu/out/vehicle_air_data
+    type: px4_msgs::msg::VehicleAirData
+    
+  - topic: /fmu/out/vehicle_acceleration
+    type: px4_msgs::msg::VehicleAcceleration
+  
+  - topic: /fmu/out/vehicle_imu
+    type: px4_msgs::msg::VehicleImu
+    
+  - topic: /fmu/out/vehicle_land_detected
+    type: px4_msgs::msg::VehicleLandDetected
+    
+  - topic: /fmu/out/vehicle_optical_flow_vel
+    type: px4_msgs::msg::VehicleOpticalFlow
+
+  - topic: /fmu/out/vehicle_optical_flow
+    type: px4_msgs::msg::VehicleOpticalFlowVel
+ 
+  - topic: /fmu/out/vehicle_roi
+    type: px4_msgs::msg::VehicleRoi
+    
+  - topic: /fmu/in/vehicle_thrust_setpoint
+    type: px4_msgs::msg::VehicleThrustSetpoint
+  
+  - topic: /fmu/in/vehicle_torque_setpoint
+    type: px4_msgs::msg::VehicleTorqueSetpoint
+    
   - topic: /fmu/out/failsafe_flags
     type: px4_msgs::msg::FailsafeFlags
 
@@ -20,11 +140,11 @@ publications:
   - topic: /fmu/out/timesync_status
     type: px4_msgs::msg::TimesyncStatus
 
-  # - topic: /fmu/out/vehicle_angular_velocity
-  #   type: px4_msgs::msg::VehicleAngularVelocity
+  - topic: /fmu/out/vehicle_angular_velocity
+    type: px4_msgs::msg::VehicleAngularVelocity
 
   - topic: /fmu/out/vehicle_attitude
-    type: px4_msgs::msg::VehicleAttitude
+    type: px4_msgs::msg::vehicleAttitude
 
   - topic: /fmu/out/vehicle_control_mode
     type: px4_msgs::msg::VehicleControlMode
@@ -42,10 +162,14 @@ publications:
     type: px4_msgs::msg::VehicleOdometry
 
   - topic: /fmu/out/vehicle_status
-    type: px4_msgs::msg::VehicleStatus
+    type: px4_msgs::msg::vehicleStatus
 
   - topic: /fmu/out/vehicle_trajectory_waypoint_desired
     type: px4_msgs::msg::VehicleTrajectoryWaypoint
+
+ 
+
+
 
 subscriptions:
 
@@ -87,3 +211,25 @@ subscriptions:
 
   - topic: /fmu/in/vehicle_trajectory_waypoint
     type: px4_msgs::msg::VehicleTrajectoryWaypoint
+
+  - topic: /fmu/in/actuator_outputs
+    type: px4_msgs::msg::ActuatorOutputs
+
+  - topic: /fmu/in/actuator_servos
+    type: px4_msgs::msg::ActuatorServos
+   
+  - topic: /fmu/in/actuator_servos_trim
+    type: px4_msgs::msg::ActuatorServosTrim
+    
+  - topic: /fmu/in/vehicle_global_position
+    type: px4_msgs::msg::VehicleGlobalPosition
+  
+  - topic: /fmu/in/vehicle_local_position
+    type: px4_msgs::msg::VehicleLocalPosition
+    
+  - topic: /fmu/in/led_control
+    type: px4_msgs::msg::LedControl
+    
+
+
+        
