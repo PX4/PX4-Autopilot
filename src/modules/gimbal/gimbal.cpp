@@ -274,7 +274,7 @@ static int gimbal_thread_main(int argc, char *argv[])
 			// Update output
 			thread_data.output_obj->update(
 				thread_data.control_data,
-				update_result != InputBase::UpdateResult::NoUpdate);
+				update_result != InputBase::UpdateResult::NoUpdate, thread_data.control_data.device_compid);
 
 			// Only publish the mount orientation if the mode is not mavlink v1 or v2
 			// If the gimbal speaks mavlink it publishes its own orientation.

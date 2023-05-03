@@ -50,7 +50,7 @@ public:
 	explicit OutputRC(const Parameters &parameters);
 	virtual ~OutputRC() = default;
 
-	virtual void update(ControlData &control_data, bool new_setpoints);
+	virtual void update(const ControlData &control_data, bool new_setpoints, uint8_t &gimbal_device_id);
 	virtual void print_status() const;
 
 private:
