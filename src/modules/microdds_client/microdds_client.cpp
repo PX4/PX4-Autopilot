@@ -82,9 +82,10 @@ void on_time(uxrSession *session, int64_t current_time, int64_t received_timesta
 MicroddsClient::MicroddsClient(Transport transport, const char *device, int baudrate, const char *agent_ip,
 			       const char *port, bool localhost_only, bool custom_participant, const char *client_namespace) :
 	ModuleParams(nullptr),
-	_localhost_only(localhost_only), _custom_participant(custom_participant),
-	_client_namespace(client_namespace)
+	_localhost_only(localhost_only), _custom_participant(custom_participant)
 {
+	strncpy(_client_namespace, client_namespace, CLIENT_NAMESPACE_MAX_LENGTH - 1);
+
 	if (transport == Transport::Serial) {
 
 		int fd = -1;
@@ -568,6 +569,8 @@ int MicroddsClient::print_status()
 		PX4_INFO("Payload rx: %i B/s", _last_payload_rx_rate);
 	}
 
+	PX4_INFO("Namespace: %s", _client_namespace);
+
 	return 0;
 }
 
@@ -592,7 +595,7 @@ MicroddsClient *MicroddsClient::instantiate(int argc, char *argv[])
 	bool localhost_only = false;
 	bool custom_participant = false;
 
-	const char *client_namespace = nullptr;//"px4";
+	char client_namespace[CLIENT_NAMESPACE_MAX_LENGTH] = {0};
 
 	while ((ch = px4_getopt(argc, argv, "t:d:b:h:p:lcn:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
@@ -642,7 +645,7 @@ MicroddsClient *MicroddsClient::instantiate(int argc, char *argv[])
 #endif // MICRODDS_CLIENT_UDP
 
 		case 'n':
-			client_namespace = myoptarg;
+			snprintf(client_namespace, CLIENT_NAMESPACE_MAX_LENGTH, "%s", myoptarg);
 			break;
 
 		case '?':
@@ -682,6 +685,14 @@ MicroddsClient *MicroddsClient::instantiate(int argc, char *argv[])
 	}
 
 #endif // MICRODDS_CLIENT_UDP
+
+	if (client_namespace[0] == '\0') {
+		// no client namespace specified, use px4_{MAV_SYS_ID}
+
+		int32_t mav_sys_id = 0;
+		param_get(param_find("MAV_SYS_ID"), &mav_sys_id);
+		snprintf(client_namespace, CLIENT_NAMESPACE_MAX_LENGTH, "px4_%u", static_cast<uint8_t>(mav_sys_id));
+	}
 
 	if (error_flag) {
 		return nullptr;
