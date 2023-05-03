@@ -371,7 +371,7 @@ PARAM_DEFINE_FLOAT(EKF2_GPS_P_NOISE, 0.5f);
  *
  * @group EKF2
  * @min 0.5
- * @max 50.0
+ * @max 1000.0
  * @unit m
  * @decimal 1
  */
