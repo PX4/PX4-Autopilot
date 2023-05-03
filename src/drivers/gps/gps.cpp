@@ -526,7 +526,6 @@ void GPS::handleInjectDataTopic()
 
 	// If there has not been a valid RTCM message for a while, try to switch to a different RTCM link
 	if ((hrt_absolute_time() - _last_rtcm_injection_time) > 5_s) {
-		_last_rtcm_injection_time = hrt_absolute_time();
 
 		for (uint8_t i = 0; i < gps_inject_data_s::MAX_INSTANCES; i++) {
 			if (_orb_inject_data_sub.ChangeInstance(i)) {
