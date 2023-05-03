@@ -54,6 +54,8 @@
 
 #include <drivers/drv_hrt.h>
 
+using namespace time_literals;
+
 #define MAX_NOTE_ITERATION 50
 
 static void usage();
@@ -202,7 +204,7 @@ extern "C" __EXPORT int tune_control_main(int argc, char *argv[])
 			PX4_INFO("frequency: %d, duration %d, silence %d, volume %d",
 				 frequency, duration, silence, volume);
 
-			px4_usleep(500000);
+			px4_usleep(500_ms);
 			exit_counter++;
 
 			// exit if the loop is doing too many iterations

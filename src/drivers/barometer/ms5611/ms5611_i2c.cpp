@@ -39,6 +39,8 @@
 
 #include <drivers/device/i2c.h>
 
+using namespace time_literals;
+
 #if defined(CONFIG_I2C)
 
 #include "ms5611.h"
@@ -208,7 +210,7 @@ MS5611_I2C::_read_prom()
 	 * Wait for PROM contents to be in the device (2.8 ms) in the case we are
 	 * called immediately after reset.
 	 */
-	px4_usleep(3000);
+	px4_usleep(3_ms);
 
 	uint8_t last_val = 0;
 	bool bits_stuck = true;

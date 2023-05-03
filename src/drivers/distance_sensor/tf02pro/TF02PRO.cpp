@@ -82,7 +82,7 @@ int TF02PRO::init()
 		return PX4_ERROR;
 	}
 
-	px4_usleep(100000);
+	px4_usleep(100_ms);
 
 	int ret = measure();
 

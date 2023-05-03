@@ -308,7 +308,7 @@ int ADC::test()
 	uORB::Subscription	adc_sub_test{ORB_ID(adc_report)};
 	adc_report_s adc;
 
-	px4_usleep(20000);	// sleep 20ms and wait for adc report
+	px4_usleep(20_ms);	// sleep 20ms and wait for adc report
 
 	if (adc_sub_test.update(&adc)) {
 		PX4_INFO_RAW("DeviceID: %" PRId32 "\n", adc.device_id);
@@ -323,7 +323,7 @@ int ADC::test()
 			}
 
 			PX4_INFO_RAW("\n");
-			px4_usleep(500000);
+			px4_usleep(500_ms);
 
 			if (!adc_sub_test.update(&adc)) {
 				PX4_INFO_RAW("\t ADC test failed.\n");

@@ -50,10 +50,12 @@
 #include <parameters/param.h>
 #include <systemlib/err.h>
 
+using namespace time_literals;
+
 int do_trim_calibration(orb_advert_t *mavlink_log_pub)
 {
 	uORB::Subscription manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
-	px4_usleep(400000);
+	px4_usleep(400_ms);
 	manual_control_setpoint_s manual_control_setpoint{};
 	bool changed = manual_control_setpoint_sub.updated();
 

@@ -53,6 +53,7 @@
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/tasks.h>
 
+using namespace time_literals;
 
 #define PGA460_DEFAULT_PORT "/dev/ttyS6"
 #define MAX_DETECTABLE_DISTANCE          3.0f

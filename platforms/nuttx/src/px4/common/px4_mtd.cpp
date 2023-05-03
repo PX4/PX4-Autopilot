@@ -58,6 +58,8 @@
 #include <nuttx/spi/spi.h>
 #include <nuttx/mtd/mtd.h>
 
+using namespace time_literals;
+
 extern "C" {
 	struct mtd_dev_s *ramtron_initialize(FAR struct spi_dev_s *dev);
 	struct mtd_dev_s *mtd_partition(FAR struct mtd_dev_s *mtd,
@@ -109,7 +111,7 @@ static int ramtron_attach(mtd_instance_s &instance)
 
 		// try reducing speed for next attempt
 		spi_speed_mhz--;
-		px4_usleep(10000);
+		px4_usleep(10_ms);
 	}
 
 	/* if last attempt is still unsuccessful, abort */

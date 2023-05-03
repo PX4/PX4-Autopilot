@@ -45,6 +45,8 @@
 #include <px4_platform_common/shutdown.h>
 #include <string.h>
 
+using namespace time_literals;
+
 static void print_usage()
 {
 	PRINT_MODULE_DESCRIPTION("Reboot the system");
@@ -105,7 +107,7 @@ extern "C" __EXPORT int reboot_main(int argc, char *argv[])
 		return -1;
 	}
 
-	while (1) { px4_usleep(1); } // this command should not return on success
+	while (1) { px4_usleep(1_us); } // this command should not return on success
 
 	return 0;
 }

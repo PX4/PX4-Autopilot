@@ -178,7 +178,7 @@ int SHT3X::init()
 int SHT3X::init_sensor()
 {
 	set_pointer(SHT3X_CMD_CLEAR_STATUS);
-	px4_usleep(2000);
+	px4_usleep(2_ms);
 
 	// Get sensor serial number
 	uint8_t serial[4];
@@ -190,7 +190,7 @@ int SHT3X::init_sensor()
 				   | (uint32_t)serial[3]);
 
 	set_pointer(SHT3x_CMD_PERIODIC_2HZ_MEDIUM);
-	px4_usleep(2000);
+	px4_usleep(2_ms);
 	probe();
 
 	PX4_INFO("Connected to SHT3x sensor, SN: %ld", _sht_info.serial_number);

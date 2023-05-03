@@ -46,6 +46,8 @@
 #include <drivers/drv_hrt.h>
 #include <lib/perf/perf_counter.h>
 
+using namespace time_literals;
+
 /* Configuration Constants */
 #define SRF02_BASEADDR 				0x70 	// 7-bit address. 8-bit address is 0xE0.
 

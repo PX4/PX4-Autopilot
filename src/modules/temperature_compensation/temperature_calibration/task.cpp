@@ -57,6 +57,8 @@
 #include "baro.h"
 #include "gyro.h"
 
+using namespace time_literals;
+
 class TemperatureCalibration;
 
 namespace temperature_calibration
@@ -185,7 +187,7 @@ void TemperatureCalibration::task_main()
 
 		if (ret < 0) {
 			// Poll error, sleep and try again
-			px4_usleep(10000);
+			px4_usleep(10_ms);
 			continue;
 
 		} else if (ret == 0) {

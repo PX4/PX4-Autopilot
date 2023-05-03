@@ -418,7 +418,7 @@ WorkQueueManagerStop()
 
 			// wait until they're all stopped (empty list)
 			while (_wq_manager_wqs_list->size() > 0) {
-				px4_usleep(1000);
+				px4_usleep(1_ms);
 			}
 
 			delete _wq_manager_wqs_list;
@@ -430,7 +430,7 @@ WorkQueueManagerStop()
 			// push nullptr to wake the wq manager task
 			_wq_manager_create_queue->push(nullptr);
 
-			px4_usleep(10000);
+			px4_usleep(10_ms);
 
 			delete _wq_manager_create_queue;
 		}

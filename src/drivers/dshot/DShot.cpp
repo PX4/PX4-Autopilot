@@ -274,7 +274,7 @@ int DShot::send_command_thread_safe(const dshot_command_t command, const int num
 	while (_new_command.load()) {
 
 		if (hrt_elapsed_time(&timestamp_for_timeout) < 2_s) {
-			px4_usleep(1000);
+			px4_usleep(1_ms);
 
 		} else {
 			_new_command.store(nullptr);
@@ -302,7 +302,7 @@ void DShot::retrieve_and_print_esc_info_thread_safe(const int motor_index)
 	int max_time = 1000;
 
 	while (_request_esc_info.load() != nullptr && max_time-- > 0) {
-		px4_usleep(1000);
+		px4_usleep(1_ms);
 	}
 
 	_request_esc_info.store(nullptr); // just in case we time out...

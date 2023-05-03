@@ -134,7 +134,7 @@ int QShell::_wait_for_retval()
 			}
 		}
 
-		px4_usleep(1000);
+		px4_usleep(1_ms);
 	}
 
 	PX4_ERR("command timed out");
