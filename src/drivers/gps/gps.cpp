@@ -522,6 +522,9 @@ void GPS::handleInjectDataTopic()
 		return;
 	}
 
+	// We don't want to call copy again further down if we have already done a
+	// copy in the selection process.
+	bool already_copied = false;
 	gps_inject_data_s msg;
 
 	// If there has not been a valid RTCM message for a while, try to switch to a different RTCM link
@@ -531,6 +534,8 @@ void GPS::handleInjectDataTopic()
 			if (_orb_inject_data_sub.ChangeInstance(i)) {
 				if (_orb_inject_data_sub.copy(&msg)) {
 					if ((hrt_absolute_time() - msg.timestamp) < 5_s) {
+						// Remember that we already did a copy on this instance.
+						already_copied = true;
 						_selected_rtcm_instance = i;
 						break;
 					}
@@ -554,25 +559,26 @@ void GPS::handleInjectDataTopic()
 
 	do {
 		num_injections++;
-		updated = _orb_inject_data_sub.updated();
+
+		updated = already_copied || _orb_inject_data_sub.update(&msg);
 
 		if (updated) {
+			// Prevent injection of data from self
+			if (msg.device_id != get_device_id()) {
+				/* Write the message to the gps device. Note that the message could be fragmented.
+				* But as we don't write anywhere else to the device during operation, we don't
+				* need to assemble the message first.
+				*/
+				injectData(msg.data, msg.len);
 
-			if (_orb_inject_data_sub.copy(&msg)) {
-
-				// Prevent injection of data from self
-				if (msg.device_id != get_device_id()) {
-					/* Write the message to the gps device. Note that the message could be fragmented.
-					* But as we don't write anywhere else to the device during operation, we don't
-					* need to assemble the message first.
-					*/
-					injectData(msg.data, msg.len);
-
-					++_last_rate_rtcm_injection_count;
-					_last_rtcm_injection_time = hrt_absolute_time();
-				}
+				++_last_rate_rtcm_injection_count;
+				_last_rtcm_injection_time = hrt_absolute_time();
 			}
 		}
+
+		// Reset the flag, it's only used once.
+		already_copied = false;
+
 	} while (updated && num_injections < max_num_injections);
 }
 
