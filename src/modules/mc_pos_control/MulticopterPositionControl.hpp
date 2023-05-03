@@ -128,6 +128,8 @@ private:
 	};
 
 	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::MODALAI_CONFIG>)     _param_modalai_config,
+
 		// Position Control
 		(ParamFloat<px4::params::MPC_XY_P>)         _param_mpc_xy_p,
 		(ParamFloat<px4::params::MPC_Z_P>)          _param_mpc_z_p,
