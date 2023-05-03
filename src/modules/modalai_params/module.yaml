@@ -1,0 +1,16 @@
+module_name: ModalAI Configuration
+
+parameters:
+    - group: ModalAI Custom Configuration
+      definitions:
+        MODALAI_CONFIG:
+            description:
+                short: Custom configuration for ModalAI drones
+                long: |
+                    This can be set to indicate that drone behavior
+                    needs to be changed to match a custom setting
+            type: int32
+            reboot_required: true
+            num_instances: 1
+            instance_start: 1
+            default: 0
