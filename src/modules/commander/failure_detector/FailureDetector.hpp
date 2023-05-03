@@ -52,6 +52,7 @@
 // subscriptions
 #include <uORB/Subscription.hpp>
 #include <uORB/Publication.hpp>
+#include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/actuator_motors.h>
 #include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
@@ -60,6 +61,7 @@
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_imu_status.h>
+#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/pwm_input.h>
@@ -113,6 +115,8 @@ private:
 	void updateMotorStatus(const vehicle_status_s &vehicle_status, const esc_status_s &esc_status);
 	void updateImbalancedPropStatus();
 
+	uORB::SubscriptionInterval _vehicle_local_position_sub{ORB_ID(vehicle_local_position), 100}; // Update interval: 100 ms
+
 	failure_detector_status_u _status{};
 
 	systemlib::Hysteresis _roll_failure_hysteresis{false};
@@ -146,6 +150,11 @@ private:
 		(ParamInt<px4::params::FD_FAIL_R>) _param_fd_fail_r,
 		(ParamFloat<px4::params::FD_FAIL_R_TTRI>) _param_fd_fail_r_ttri,
 		(ParamFloat<px4::params::FD_FAIL_P_TTRI>) _param_fd_fail_p_ttri,
+		(ParamInt<px4::params::FD_FAIL_LOW_P>) _param_fd_fail_low_p,
+		(ParamInt<px4::params::FD_FAIL_LOW_R>) _param_fd_fail_low_r,
+		(ParamFloat<px4::params::FD_FAIL_LOW_R_TR>) _param_fd_fail_low_r_ttri,
+		(ParamFloat<px4::params::FD_FAIL_LOW_P_TR>) _param_fd_fail_low_p_ttri,
+		(ParamFloat<px4::params::FD_FAIL_LOW_ALT>) _param_fd_fail_low_alt,
 		(ParamBool<px4::params::FD_EXT_ATS_EN>) _param_fd_ext_ats_en,
 		(ParamInt<px4::params::FD_EXT_ATS_TRIG>) _param_fd_ext_ats_trig,
 		(ParamInt<px4::params::FD_ESCS_EN>) _param_escs_en,
