@@ -247,7 +247,7 @@ ControlAllocator::update_effectiveness_source()
 			break;
 
 		case EffectivenessSource::MOTORS_6DOF: // just a different UI from MULTIROTOR
-			tmp = new ActuatorEffectivenessRotors(this);
+			tmp = new ActuatorEffectivenessUUV(this);
 			break;
 
 		case EffectivenessSource::MULTIROTOR_WITH_TILT:
