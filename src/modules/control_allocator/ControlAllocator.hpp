@@ -51,6 +51,7 @@
 #include <ActuatorEffectivenessFixedWing.hpp>
 #include <ActuatorEffectivenessMCTilt.hpp>
 #include <ActuatorEffectivenessCustom.hpp>
+#include <ActuatorEffectivenessUUV.hpp>
 #include <ActuatorEffectivenessHelicopter.hpp>
 
 #include <ControlAllocation.hpp>
