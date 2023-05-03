@@ -46,7 +46,7 @@ OutputMavlinkV1::OutputMavlinkV1(const Parameters &parameters)
 	: OutputBase(parameters)
 {}
 
-void OutputMavlinkV1::update(ControlData &control_data, bool new_setpoints)
+void OutputMavlinkV1::update(const ControlData &control_data, bool new_setpoints, uint8_t &gimbal_device_id)
 {
 	vehicle_command_s vehicle_command{};
 	vehicle_command.timestamp = hrt_absolute_time();
@@ -142,7 +142,7 @@ OutputMavlinkV2::OutputMavlinkV2(const Parameters &parameters)
 {
 }
 
-void OutputMavlinkV2::update(ControlData &control_data, bool new_setpoints)
+void OutputMavlinkV2::update(const ControlData &control_data, bool new_setpoints, uint8_t &gimbal_device_id)
 {
 	_check_for_gimbal_device_information();
 
@@ -162,7 +162,7 @@ void OutputMavlinkV2::update(ControlData &control_data, bool new_setpoints)
 			_last_update = t;
 		}
 
-		control_data.device_compid = _gimbal_device_found ? _gimbal_device_compid : 0;
+		gimbal_device_id = _gimbal_device_found ? _gimbal_device_compid : 0;
 
 		_publish_gimbal_device_set_attitude();
 	}

@@ -48,7 +48,7 @@ OutputRC::OutputRC(const Parameters &parameters)
 {
 }
 
-void OutputRC::update(ControlData &control_data, bool new_setpoints)
+void OutputRC::update(const ControlData &control_data, bool new_setpoints, uint8_t &gimbal_device_id)
 {
 	if (new_setpoints) {
 		_set_angle_setpoints(control_data);
@@ -61,8 +61,7 @@ void OutputRC::update(ControlData &control_data, bool new_setpoints)
 
 	_stream_device_attitude_status();
 
-	// If the output is RC, then it means we are also the gimbal device.
-	control_data.device_compid = (uint8_t)_parameters.mnt_mav_compid_v1;
+	// If the output is RC, then it means we are also the gimbal device. gimbal_device_id = (uint8_t)_parameters.mnt_mav_compid_v1;
 
 	// _angle_outputs are in radians, gimbal_controls are in [-1, 1]
 	gimbal_controls_s gimbal_controls{};
