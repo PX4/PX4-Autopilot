@@ -82,6 +82,10 @@ MulticopterLandDetector::MulticopterLandDetector()
 	_paramHandle.landSpeed = param_find("MPC_LAND_SPEED");
 	_paramHandle.crawlSpeed = param_find("MPC_LAND_CRWL");
 	_minimum_thrust_8s_hysteresis.set_hysteresis_time_from(false, 8_s);
+
+	if (_param_modalai_config.get() > 0) {
+		_close_to_ground_or_skipped_check = true;
+	}
 }
 
 void MulticopterLandDetector::_update_topics()
@@ -244,6 +248,10 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 	// we already increased the hysteresis for the land detection states in order to reduce the chance of false positives.
 	const bool skip_close_to_ground_check = !_dist_bottom_is_observable || !_vehicle_local_position.dist_bottom_valid;
 	_close_to_ground_or_skipped_check = _is_close_to_ground() || skip_close_to_ground_check;
+
+	if (_param_modalai_config.get() > 0) {
+		_close_to_ground_or_skipped_check = true;
+	}
 
 	// TODO: we need an accelerometer based check for vertical movement for flying without GPS
 	return !_armed ||
