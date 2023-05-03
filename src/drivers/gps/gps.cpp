@@ -540,6 +540,9 @@ void GPS::handleInjectDataTopic()
 		}
 	}
 
+	// Reset instance in case we didn't actually want to switch
+	_orb_inject_data_sub.ChangeInstance(_selected_rtcm_instance);
+
 	bool updated = false;
 
 	// Limit maximum number of GPS injections to 8 since usually
