@@ -69,7 +69,7 @@
 
 #define UAVCAN_SUB_COUNT CONFIG_CYPHAL_ESC_SUBSCRIBER + \
 	CONFIG_CYPHAL_GNSS_SUBSCRIBER_0 + \
-	CONFIG_CYPHAL_ESC_CONTROLLER + \
+	8 * CONFIG_CYPHAL_ESC_CONTROLLER + \
 	CONFIG_CYPHAL_GNSS_SUBSCRIBER_1 + \
 	CONFIG_CYPHAL_BMS_SUBSCRIBER + \
 	CONFIG_CYPHAL_UORB_SENSOR_GPS_SUBSCRIBER
@@ -146,6 +146,62 @@ private:
 			},
 			"zubax.feedback",
 			0
+		},
+		{
+			[](CanardHandle & handle, UavcanParamManager & pmgr) -> UavcanDynamicPortSubscriber *
+			{
+				return new UavcanEscFeedbackSubscriber(handle, pmgr, 1);
+			},
+			"zubax.feedback",
+			1
+		},
+		{
+			[](CanardHandle & handle, UavcanParamManager & pmgr) -> UavcanDynamicPortSubscriber *
+			{
+				return new UavcanEscFeedbackSubscriber(handle, pmgr, 2);
+			},
+			"zubax.feedback",
+			2
+		},
+		{
+			[](CanardHandle & handle, UavcanParamManager & pmgr) -> UavcanDynamicPortSubscriber *
+			{
+				return new UavcanEscFeedbackSubscriber(handle, pmgr, 3);
+			},
+			"zubax.feedback",
+			3
+		},
+		{
+			[](CanardHandle & handle, UavcanParamManager & pmgr) -> UavcanDynamicPortSubscriber *
+			{
+				return new UavcanEscFeedbackSubscriber(handle, pmgr, 4);
+			},
+			"zubax.feedback",
+			4
+		},
+		{
+			[](CanardHandle & handle, UavcanParamManager & pmgr) -> UavcanDynamicPortSubscriber *
+			{
+				return new UavcanEscFeedbackSubscriber(handle, pmgr, 5);
+			},
+			"zubax.feedback",
+			5
+		},
+		{
+			[](CanardHandle & handle, UavcanParamManager & pmgr) -> UavcanDynamicPortSubscriber *
+			{
+				return new UavcanEscFeedbackSubscriber(handle, pmgr, 6);
+			},
+			"zubax.feedback",
+			6
+		},
+		{
+			[](CanardHandle & handle, UavcanParamManager & pmgr) -> UavcanDynamicPortSubscriber *
+			{
+				return new UavcanEscFeedbackSubscriber(handle, pmgr, 7);
+			},
+			"zubax.feedback",
+			7
 		},
 #endif
 #if CONFIG_CYPHAL_GNSS_SUBSCRIBER_0
