@@ -81,14 +81,11 @@ void PositionControl::updateHoverThrust(const float hover_thrust_new)
 	// T' = T => a_sp' * Th' / g - Th' = a_sp * Th / g - Th
 	// so a_sp' = (a_sp - g) * Th / Th' + g
 	// we can then add a_sp' - a_sp to the current integrator to absorb the effect of changing Th by Th'
-	// hover_thrust_new:  needs to be constrained to match the constraint in setHoverThrust()
-	_vel_int(2) += (_acc_sp(2) - CONSTANTS_ONE_G) * _hover_thrust / _constrainHoverThrust(hover_thrust_new)
-		       + CONSTANTS_ONE_G - _acc_sp(2);
-
-	// limit thrust integral
-	_constrainVelIntegralZ();
-
+	const float previous_hover_thrust = _hover_thrust;
 	setHoverThrust(hover_thrust_new);
+
+	_vel_int(2) += (_acc_sp(2) - CONSTANTS_ONE_G) * previous_hover_thrust / _hover_thrust
+		       + CONSTANTS_ONE_G - _acc_sp(2);
 }
 
 void PositionControl::setState(const PositionControlStates &states)
@@ -142,6 +139,9 @@ void PositionControl::_positionControl()
 
 void PositionControl::_velocityControl(const float dt)
 {
+	// Constrain vertical velocity integral
+	_vel_int(2) = math::constrain(_vel_int(2), -CONSTANTS_ONE_G, CONSTANTS_ONE_G);
+
 	// PID velocity control
 	Vector3f vel_error = _vel_sp - _vel;
 	Vector3f acc_sp_velocity = vel_error.emult(_gain_vel_p) + _vel_int - _vel_dot.emult(_gain_vel_d);
@@ -199,8 +199,6 @@ void PositionControl::_velocityControl(const float dt)
 	ControlMath::setZeroIfNanVector3f(vel_error);
 	// Update integral part of velocity control
 	_vel_int += vel_error.emult(_gain_vel_i) * dt;
-
-	_constrainVelIntegralZ();
 }
 
 void PositionControl::_accelerationControl()
@@ -214,16 +212,6 @@ void PositionControl::_accelerationControl()
 	collective_thrust /= (Vector3f(0, 0, 1).dot(body_z));
 	collective_thrust = math::min(collective_thrust, -_lim_thr_min);
 	_thr_sp = body_z * collective_thrust;
-}
-
-float PositionControl::_constrainHoverThrust(float hover_thrust)
-{
-	return math::constrain(hover_thrust, kHoverThrustMin, kHoverThrustMax);
-}
-
-void PositionControl::_constrainVelIntegralZ()
-{
-	_vel_int(2) = math::constrain(_vel_int(2), -CONSTANTS_ONE_G, CONSTANTS_ONE_G);
 }
 
 bool PositionControl::_inputValid()

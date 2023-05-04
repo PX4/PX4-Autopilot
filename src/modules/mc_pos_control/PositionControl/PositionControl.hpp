@@ -122,9 +122,9 @@ public:
 
 	/**
 	 * Set the normalized hover thrust
-	 * @param hover_thrust [kHoverThrustMin, kHoverThrustMax] with which the vehicle hovers not accelerating down or up with level orientation
+	 * @param hover_thrust [HOVER_THRUST_MIN, HOVER_THRUST_MAX] with which the vehicle hovers not accelerating down or up with level orientation
 	 */
-	void setHoverThrust(const float hover_thrust) { _hover_thrust = _constrainHoverThrust(hover_thrust); }
+	void setHoverThrust(const float hover_thrust) { _hover_thrust = math::constrain(hover_thrust, HOVER_THRUST_MIN, HOVER_THRUST_MAX); }
 
 	/**
 	 * Update the hover thrust without immediately affecting the output
@@ -185,18 +185,15 @@ public:
 	static const trajectory_setpoint_s empty_trajectory_setpoint;
 
 private:
-	// The minimum and maximum levels of hover thrust for constraining the hover thrust estimate
-	static constexpr float kHoverThrustMin = 0.01f;
-	static constexpr float kHoverThrustMax = 0.9f;
+	// The range limits of the hover thrust configuration/estimate
+	static constexpr float HOVER_THRUST_MIN = 0.05f;
+	static constexpr float HOVER_THRUST_MAX = 0.9f;
 
 	bool _inputValid();
 
 	void _positionControl(); ///< Position proportional control
 	void _velocityControl(const float dt); ///< Velocity PID control
 	void _accelerationControl(); ///< Acceleration setpoint processing
-
-	float _constrainHoverThrust(float hover_thrust);
-	void _constrainVelIntegralZ();
 
 	// Gains
 	matrix::Vector3f _gain_pos_p; ///< Position control proportional gain
@@ -213,7 +210,7 @@ private:
 	float _lim_thr_xy_margin{}; ///< Margin to keep for horizontal control when saturating prioritized vertical thrust
 	float _lim_tilt{}; ///< Maximum tilt from level the output attitude is allowed to have
 
-	float _hover_thrust{}; ///< Thrust [kHoverThrustMin, kHoverThrustMax] with which the vehicle hovers not accelerating down or up with level orientation
+	float _hover_thrust{}; ///< Thrust [HOVER_THRUST_MIN, HOVER_THRUST_MAX] with which the vehicle hovers not accelerating down or up with level orientation
 
 	// States
 	matrix::Vector3f _pos; /**< current position */
