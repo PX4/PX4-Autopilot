@@ -40,7 +40,7 @@ px4_add_module(
 
 		ecl_controller.cpp
 		ecl_pitch_controller.cpp
-		ecl_roll_controller.cpp
+		fw_roll_controller.cpp
 		ecl_wheel_controller.cpp
 		ecl_yaw_controller.cpp
 	DEPENDS

@@ -341,7 +341,8 @@ void FixedwingAttitudeControl::Run()
 
 			if (_vcontrol_mode.flag_control_attitude_enabled && _in_fw_or_transition_wo_tailsitter_transition) {
 				if (PX4_ISFINITE(_att_sp.roll_body) && PX4_ISFINITE(_att_sp.pitch_body)) {
-					_roll_ctrl.control_attitude(dt, control_input);
+					_roll_ctrl.control_roll(_att_sp.roll_body, _yaw_ctrl.get_euler_rate_setpoint(), euler_angles.phi(),
+								euler_angles.theta());
 					_pitch_ctrl.control_attitude(dt, control_input);
 					_yaw_ctrl.control_attitude(dt, control_input);
 
