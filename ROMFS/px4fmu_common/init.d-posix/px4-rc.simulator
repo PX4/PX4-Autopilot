@@ -36,7 +36,7 @@ if [ "$PX4_SIMULATOR" = "sihsim" ] || [ "$(param show -q SYS_AUTOSTART)" -eq "0"
 		exit 1
 	fi
 
-elif [ "$PX4_SIMULATOR" = "gz" ] || [ "$(param show -q SIM_GZ_EN)" -eq "1" ]; then
+elif [ "$PX4_SIMULATOR" = "gz" ] || [ "$(param show -q SIM_GZ_EN)" = "1" ]; then
 
 	# allow starting of gz sim optionally
 	if [ "$(param show -q SIM_GZ_RUN_GZSIM)" -eq "1" ];
