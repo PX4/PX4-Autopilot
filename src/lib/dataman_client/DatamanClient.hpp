@@ -51,20 +51,142 @@ public:
 	DatamanClient(const DatamanClient &) = delete;
 	DatamanClient &operator=(const DatamanClient &) = delete;
 
+	/**
+	 * @brief Reads data synchronously from the dataman for the specified item and index.
+	 *
+	 * @param[in] item The item to read data from.
+	 * @param[in] index The index of the item to read data from.
+	 * @param[out] buffer Pointer to the buffer to store the read data.
+	 * @param[in] length The length of the data to read.
+	 * @param[in] timeout The timeout in microseconds for waiting for the response.
+	 *
+	 * @return true if data was read successfully within the timeout, false otherwise.
+	 */
 	bool readSync(dm_item_t item, uint32_t index, uint8_t *buffer, uint32_t length, hrt_abstime timeout = 1000_ms);
+
+	/**
+	 * @brief Write data to the dataman synchronously.
+	 *
+	 * @param[in] item The data item type to write.
+	 * @param[in] index The index of the data item.
+	 * @param[in] buffer The buffer that contains the data to write.
+	 * @param[in] length The length of the data to write.
+	 * @param[in] timeout The maximum time in microseconds to wait for the response.
+	 *
+	 * @return True if the write operation succeeded, false otherwise.
+	 */
 	bool writeSync(dm_item_t item, uint32_t index, uint8_t *buffer, uint32_t length, hrt_abstime timeout = 1000_ms);
+
+	/**
+	 * @brief Clears the data in the specified dataman item.
+	 *
+	 * @param[in] item The dataman item to clear.
+	 * @param[in] timeout The timeout for the operation.
+	 *
+	 * @return True if the operation was successful, false otherwise.
+	 */
 	bool clearSync(dm_item_t item, hrt_abstime timeout = 1000_ms);
+
+	/**
+	 * @brief Locks an item in the dataman for exclusive access.
+	 *
+	 * This function sends a DM_LOCK request to the dataman to lock an item for exclusive access.
+	 * If the item is already locked, it will wait and retry until it can obtain the lock or the timeout
+	 * is reached. Once the lock is obtained, the item can be safely modified.
+	 *
+	 * @param[in] item The item to be locked.
+	 * @param[in] timeout The maximum time to wait for the lock in microseconds.
+	 * @return true if the item is locked successfully, false otherwise.
+	 */
 	bool lockSync(dm_item_t item, hrt_abstime timeout = 1000_ms);
+
+	/**
+	 * Unlock an item in dataman.
+	 *
+	 * @param[in] item: The item to unlock.
+	 * @param[in] timeout: The timeout for the operation.
+	 * @return True if the unlock operation was successful, false otherwise.
+	 */
 	bool unlockSync(dm_item_t item, hrt_abstime timeout = 1000_ms);
 
+	/**
+	 * @brief Initiates an asynchronous request to read the data from dataman for a specific item and index.
+	 *
+	 * @param[in] item The item to read from.
+	 * @param[in] index The index within the item to read from.
+	 * @param[out] buffer The buffer to store the read data in.
+	 * @param[in] length The length of the data to read.
+	 *
+	 * @return True if the read request was successfully queued, false otherwise.
+	 *
+	 * @note The buffer must be kept alive as long as the request did not finish.
+	 *       The completion status of the request can be obtained with the
+	 *       lastOperationCompleted() function.
+	 */
 	bool readAsync(dm_item_t item, uint32_t index, uint8_t *buffer, uint32_t length);
+
+	/**
+	 * @brief Initiates an asynchronous request to write the data to dataman for a specific item and index.
+	 *
+	 * @param[in] item The item to write data to.
+	 * @param[in] index The index of the item to write data to.
+	 * @param[in] buffer The buffer containing the data to write.
+	 * @param[in] length The length of the data to write.
+	 *
+	 * @return True if the write request was successfully sent, false otherwise.
+	 *
+	 * @note The buffer must be kept alive as long as the request did not finish.
+	 *       The completion status of the request can be obtained with the
+	 *       lastOperationCompleted() function.
+	 */
 	bool writeAsync(dm_item_t item, uint32_t index, uint8_t *buffer, uint32_t length);
+
+	/**
+	 * @brief Initiates an asynchronous request to clear an item in dataman.
+	 *
+	 * The request is only initiated if the DatamanClient is in the Idle state.
+	 *
+	 * @param[in] item The item to clear.
+	 * @return True if the request was successfully initiated, false otherwise.
+	 */
 	bool clearAsync(dm_item_t item);
+
+	/**
+	 * @brief Locks a dataman item asynchronously.
+	 *
+	 * This function sends a lock request to the dataman service, asking it to lock the specified item.
+	 * The function returns immediately, without waiting for the lock operation to complete.
+	 *
+	 * @param[in] item The dataman item to be locked.
+	 * @return True if the lock request was successfully sent, false otherwise.
+	 */
 	bool lockAsync(dm_item_t item);
+
+	/**
+	 * @brief Unlocks the specified dataman item asynchronously.
+	 *
+	 * @param[in] item The item to unlock.
+	 * @return true if the request was successfully queued, false otherwise.
+	 */
 	bool unlockAsync(dm_item_t item);
 
+	/**
+	 * @brief Updates the state of the dataman client for asynchronous functions.
+	 *
+	 * This function shall be called regularly. It checks if there is any response from the dataman,
+	 * and updates the state accordingly. If there is no response for a request, it retries the
+	 * request after a timeout.
+	 *
+	 * @see readAsync(), writeAsync(), clearAsync(), lockAsync(), unlockAsync(), lastOperationCompleted()
+	 */
 	void update();
 
+	/**
+	 * @brief Check if the last dataman operation has completed and whether it was successful.
+	 *
+	 * @param[out] success Output parameter indicating whether the last operation was successful.
+	 * @return true if the last operation has completed, false otherwise.
+	 */
 	bool lastOperationCompleted(bool &success);
 
 	/**
@@ -114,14 +236,55 @@ public:
 	DatamanCache(const char *cache_miss_perf_counter_name, uint32_t num_items);
 	~DatamanCache();
 
+	/**
+	 * @brief Resizes the cache to hold the specified number of items.
+	 *
+	 * @param[in] num_items The number of items the cache should hold.
+	 */
 	void resize(uint32_t num_items);
 
+	/**
+	 * @brief Invalidates all cached items in the cache by resetting their cache_state to Idle.
+	 */
 	void invalidate();
 
+	/**
+	 * @brief Adds an index for items to be cached.
+	 *
+	 * Calling this function will exit immediately. Data shall be acquired with 'update()' function and
+	 * it will be cached at full size. Later it can be retrieved with 'loadWait()' function.
+	 *
+	 * @param[in] item The item to load.
+	 * @param[in] index The index of the item to load.
+	 *
+	 * @return true if the item was added to be cached, false otherwise if the size of the cache is reached.
+	 */
 	bool load(dm_item_t item, uint32_t index);
 
+	/**
+	 * @brief Loads for a specific item from the cache or acquires and wait for it if not found in the cache.
+	 *
+	 * @param[in] item   Dataman item type
+	 * @param[in] index  Item index
+	 * @param[out] buffer Buffer for the data to be stored
+	 * @param[in] length Length of the buffer in bytes to be stored
+	 * @param[in] timeout Maximum time to wait for the item to be available in microseconds, 0 to return immediately
+	 *
+	 * @return true if item was successfully loaded from cache or acquired through the client, false otherwise.
+	 *
+	 * @note This function will block if timeout is set differently than 0 and data doesn't exist in cache.
+	 */
 	bool loadWait(dm_item_t item, uint32_t index, uint8_t *buffer, uint32_t length, hrt_abstime timeout = 0);
 
+	/**
+	 * @brief Updates the dataman cache by checking for responses from the DatamanClient and processing them.
+	 *
+	 * If there are items in the cache, this function will call the DatamanClient's 'update()' function to check for responses.
+	 * Depending on the state of each item, it will either send a request, wait for a response, or report an error.
+	 * If a response is received for an item, it will be marked as "response received" and the update index will be changed
+	 * to the next item in the cache. This function does not block and returns immediately.
+	 * The data can be acquired with the 'loadWait()' function after it has been cached.
+	 */
 	void update();
 
 	/**
@@ -129,8 +292,13 @@ public:
 	 *
 	 * @return true if there are items to be processed.
 	 */
-	bool isLoading() {return (_item_counter > 0);}
+	bool isLoading() { return (_item_counter > 0); }
 
+	/**
+	 * @brief Returns a reference to the DatamanClient instance used by the DatamanCache.
+	 *
+	 * @return A reference to the DatamanClient instance used by the DatamanCache.
+	 */
 	DatamanClient &client() { return _client; }
 
 	int size() const { return _num_items; }
@@ -156,7 +324,7 @@ private:
 	uint32_t _load_index{0};	///< index for tracking last index used by load function
 	uint32_t _update_index{0};	///< index for tracking last index used by update function
 	uint32_t _item_counter{0};	///< number of items to process with update function
-	uint32_t _num_items{0};
+	uint32_t _num_items{0};		///< number of items that cache can store
 
 	DatamanClient _client{};
 
