@@ -81,20 +81,18 @@ public:
 	 */
 	virtual float control_attitude(const float dt, const ECL_ControlData &ctl_data) = 0;
 
-	/* Setters */
-	void set_time_constant(float time_constant);
-	void set_k_p(float k_p);
-	void set_k_i(float k_i);
-	void set_k_ff(float k_ff);
-	void set_integrator_max(float max);
-	void set_max_rate(float max_rate);
+	void set_time_constant(float time_constant) { _tc = time_constant; }
+	void set_k_p(float k_p) { _k_p = k_p; }
+	void set_k_i(float k_i) { _k_i = k_i; }
+	void set_k_ff(float k_ff) { _k_ff = k_ff; }
+	void set_integrator_max(float max) { _integrator_max = max; }
+	void set_max_rate(float max_rate) { _max_rate = max_rate; }
 
-	/* Getters */
-	float get_euler_rate_setpoint();
-	float get_body_rate_setpoint();
-	float get_integrator();
+	float get_euler_rate_setpoint() { return _euler_rate_setpoint; }
+	float get_body_rate_setpoint() { return _body_rate_setpoint; }
+	float get_integrator() { return _integrator; }
 
-	void reset_integrator();
+	void reset_integrator() { _integrator = 0.f; }
 
 protected:
 	uint64_t _last_run;
