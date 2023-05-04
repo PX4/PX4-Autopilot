@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -205,6 +205,9 @@ private:
 		int32_t air_cmodel;
 		float air_tube_length;
 		float air_tube_diameter_mm;
+		float air_venturi_crossection_diameter_out;
+		float air_venturi_crossection_diameter_1st;
+		float air_venturi_crossection_diameter_2nd;
 	} _parameters{}; /**< local copies of interesting parameters */
 
 	struct ParameterHandles {
@@ -216,6 +219,9 @@ private:
 		param_t air_cmodel;
 		param_t air_tube_length;
 		param_t air_tube_diameter_mm;
+		param_t air_venturi_crossection_diameter_out;
+		param_t air_venturi_crossection_diameter_1st;
+		param_t air_venturi_crossection_diameter_2nd;
 	} _parameter_handles{};		/**< handles for interesting parameters */
 #endif // CONFIG_SENSORS_VEHICLE_AIRSPEED
 

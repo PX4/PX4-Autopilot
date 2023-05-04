@@ -80,6 +80,42 @@ PARAM_DEFINE_FLOAT(CAL_AIR_TUBELEN, 0.2f);
 PARAM_DEFINE_FLOAT(CAL_AIR_TUBED_MM, 1.5f);
 
 /**
+ * Venturi tube sensor
+ *
+ * @min 0
+ * @max 10000
+ * @unit mm
+ *
+*/
+
+PARAM_DEFINE_FLOAT(CAL_AIR_ENT_CRS, 1600);
+
+
+/**
+ * Venturi tube sensor
+ *
+ * @min 0
+ * @max 10000
+ * @unit mm
+ *
+*/
+
+PARAM_DEFINE_FLOAT(CAL_AIR_SMP1_CRS, 600);
+
+
+/**
+ * Venturi tube sensor
+ *
+ * @min 0
+ * @max 10000
+ * @unit mm
+ *
+*/
+
+PARAM_DEFINE_FLOAT(CAL_AIR_SMP2_CRS, 400);
+
+
+/**
  * Differential pressure sensor offset
  *
  * The offset (zero-reading) in Pascal

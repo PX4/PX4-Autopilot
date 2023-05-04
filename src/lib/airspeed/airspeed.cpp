@@ -49,7 +49,8 @@ using atmosphere::getDensityFromPressureAndTemp;
 using atmosphere::kAirDensitySeaLevelStandardAtmos;
 
 float calc_IAS_corrected(enum AIRSPEED_COMPENSATION_MODEL pmodel, enum AIRSPEED_SENSOR_MODEL smodel,
-			 float tube_len, float tube_dia_mm, float differential_pressure, float pressure_ambient, float temperature_celsius)
+			 float tube_len, float tube_dia_mm, float venturi_input_crs, float venturi_1st_crs,
+			 float venturi_2nd_crs, float differential_pressure, float pressure_ambient, float temperature_celsius)
 {
 	if (!PX4_ISFINITE(temperature_celsius)) {
 		temperature_celsius = 15.f; // ICAO Standard Atmosphere 15 degrees Celsius
@@ -181,18 +182,28 @@ float calc_IAS_corrected(enum AIRSPEED_COMPENSATION_MODEL pmodel, enum AIRSPEED_
 		break;
 	}
 
-	// computed airspeed without correction for inflow-speed at tip of pitot-tube
-	const float airspeed_uncorrected = sqrtf(2.0f * dp_tot / kAirDensitySeaLevelStandardAtmos);
-
-	// corrected airspeed
-	const float airspeed_corrected = airspeed_uncorrected + dv;
 
 	// return result with correct sign
 	if (pmodel == AIRSPEED_COMPENSATION_TFSLOT) {
+		// computed airspeed without correction for inflow-speed at tip of pitot-tube
+		const float airspeed_uncorrected = sqrtf(((2.0f * dp_tot) / (rho_air * powf((venturi_1st_crs / venturi_2nd_crs),
+						   4) - 1)));
+
+		// corrected airspeed
+		const float airspeed_corrected = airspeed_uncorrected + dv;
+
 		// TFSLOT has reversed polarity
 		return (differential_pressure > 0.0f) ? - airspeed_corrected : airspeed_corrected;
 
 	} else {
+
+
+		// computed airspeed without correction for inflow-speed at tip of pitot-tube
+		const float airspeed_uncorrected = sqrtf(2.0f * dp_tot / CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C);
+
+		// corrected airspeed
+		const float airspeed_corrected = airspeed_uncorrected + dv;
+
 		return (differential_pressure > 0.0f) ? airspeed_corrected : -airspeed_corrected;
 	}
 }
