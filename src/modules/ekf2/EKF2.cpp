@@ -2203,20 +2203,22 @@ bool EKF2::UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps)
 			new_optical_flow = true;
 		}
 
-		// use optical_flow distance as range sample if distance_sensor unavailable
-		if (PX4_ISFINITE(optical_flow.distance_m) && ((ekf2_timestamps.timestamp - _last_range_sensor_update) > 1_s)) {
+		if (_param_modalai_config.get() == 0) {
+			// use optical_flow distance as range sample if distance_sensor unavailable
+			if (PX4_ISFINITE(optical_flow.distance_m) && ((ekf2_timestamps.timestamp - _last_range_sensor_update) > 1_s)) {
 
-			int8_t quality = static_cast<float>(optical_flow.quality) / static_cast<float>(UINT8_MAX) * 100.f;
+				int8_t quality = static_cast<float>(optical_flow.quality) / static_cast<float>(UINT8_MAX) * 100.f;
 
-			rangeSample range_sample {
-				.time_us = optical_flow.timestamp_sample,
-				.rng = optical_flow.distance_m,
-				.quality = quality,
-			};
-			_ekf.setRangeData(range_sample);
+				rangeSample range_sample {
+					.time_us = optical_flow.timestamp_sample,
+					.rng = optical_flow.distance_m,
+					.quality = quality,
+				};
+				_ekf.setRangeData(range_sample);
 
-			// set sensor limits
-			_ekf.set_rangefinder_limits(optical_flow.min_ground_distance, optical_flow.max_ground_distance);
+				// set sensor limits
+				_ekf.set_rangefinder_limits(optical_flow.min_ground_distance, optical_flow.max_ground_distance);
+			}
 		}
 
 		ekf2_timestamps.optical_flow_timestamp_rel = (int16_t)((int64_t)optical_flow.timestamp / 100 -
@@ -2323,7 +2325,11 @@ void EKF2::UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps)
 	if (_distance_sensor_selected < 0) {
 
 		// only consider distance sensors that have updated within the last 0.1s
-		const hrt_abstime timestamp_stale = math::max(ekf2_timestamps.timestamp, 100_ms) - 100_ms;
+		hrt_abstime timestamp_stale = math::max(ekf2_timestamps.timestamp, 100_ms) - 100_ms;
+
+		if (_param_modalai_config.get() > 0) {
+			timestamp_stale = math::max(ekf2_timestamps.timestamp, 500_ms) - 500_ms;
+		}
 
 		if (_distance_sensor_subs.advertised()) {
 			for (unsigned i = 0; i < _distance_sensor_subs.size(); i++) {

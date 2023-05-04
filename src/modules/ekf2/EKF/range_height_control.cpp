@@ -47,6 +47,11 @@ void Ekf::controlRangeHeightFusion()
 	if (_range_buffer) {
 		// Get range data from buffer and check validity
 		rng_data_ready = _range_buffer->pop_first_older_than(_time_delayed_us, _range_sensor.getSampleAddress());
+
+		if (_modalai_config > 0) {
+			rng_data_ready = true;
+		}
+
 		_range_sensor.setDataReadiness(rng_data_ready);
 
 		// update range sensor angle parameters in case they have changed

@@ -61,6 +61,8 @@ public:
 	bool isDataReady() const { return _is_sample_ready; }
 	bool isRegularlySendingData() const override { return _is_regularly_sending_data; }
 
+	void setModalAIConfig(int32_t config) { _modalai_config = config; }
+
 	void setSample(const rangeSample &sample)
 	{
 		_sample = sample;
@@ -120,6 +122,8 @@ private:
 	void updateStuckCheck();
 
 	rangeSample _sample{};
+
+	int32_t _modalai_config{0};
 
 	bool _is_sample_ready{};	///< true when new range finder data has fallen behind the fusion time horizon and is available to be fused
 	bool _is_sample_valid{};	///< true if range finder sample retrieved from buffer is valid

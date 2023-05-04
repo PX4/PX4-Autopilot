@@ -105,9 +105,13 @@ void Ekf::controlHaglRngFusion()
 	}
 
 	if (_range_sensor.isDataHealthy()) {
-		const bool continuing_conditions_passing = _control_status.flags.in_air && _rng_consistency_check.isKinematicallyConsistent();
+		bool continuing_conditions_passing = _control_status.flags.in_air && _rng_consistency_check.isKinematicallyConsistent();
 		//const bool continuing_conditions_passing = _control_status.flags.in_air && !_control_status.flags.rng_hgt; // TODO: should not be fused when using range height
-		const bool starting_conditions_passing = continuing_conditions_passing && _range_sensor.isRegularlySendingData() && (_rng_consistency_check.getTestRatio() < 1.f);
+		bool starting_conditions_passing = continuing_conditions_passing && _range_sensor.isRegularlySendingData() && (_rng_consistency_check.getTestRatio() < 1.f);
+
+		if (_modalai_config > 0) {
+			continuing_conditions_passing = starting_conditions_passing = _control_status.flags.in_air;
+		}
 
 		_time_last_healthy_rng_data = _time_delayed_us;
 

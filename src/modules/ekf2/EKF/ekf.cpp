@@ -42,11 +42,16 @@
 #include "ekf.h"
 
 #include <mathlib/mathlib.h>
+#include <lib/parameters/param.h>
 
 bool Ekf::init(uint64_t timestamp)
 {
 	bool ret = initialise_interface(timestamp);
 	reset();
+
+	param_get(param_find("MODALAI_CONFIG"), &_modalai_config);
+	_range_sensor.setModalAIConfig(_modalai_config);
+
 	return ret;
 }
 

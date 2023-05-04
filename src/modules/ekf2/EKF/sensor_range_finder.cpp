@@ -136,6 +136,10 @@ void SensorRangeFinder::updateStuckCheck()
 			_is_stuck = true;
 		}
 	}
+
+	if (_modalai_config > 0) {
+		_is_stuck = false;
+	}
 }
 
 } // namespace sensor
