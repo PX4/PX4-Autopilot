@@ -35,7 +35,7 @@
 
 #include <drivers/drv_hrt.h>
 #include "ecl_pitch_controller.h"
-#include "ecl_roll_controller.h"
+#include "fw_roll_controller.h"
 #include "ecl_wheel_controller.h"
 #include "ecl_yaw_controller.h"
 #include <lib/mathlib/mathlib.h>
@@ -159,7 +159,7 @@ private:
 
 	)
 
-	ECL_RollController _roll_ctrl;
+	RollController _roll_ctrl;
 	ECL_PitchController _pitch_ctrl;
 	ECL_YawController _yaw_ctrl;
 	ECL_WheelController _wheel_ctrl;
