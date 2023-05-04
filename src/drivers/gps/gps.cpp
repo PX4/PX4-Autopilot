@@ -547,7 +547,7 @@ void GPS::handleInjectDataTopic()
 	// Reset instance in case we didn't actually want to switch
 	_orb_inject_data_sub.ChangeInstance(_selected_rtcm_instance);
 
-	bool updated = false;
+	bool updated = already_copied;
 
 	// Limit maximum number of GPS injections to 8 since usually
 	// GPS injections should consist of 1-4 packets (GPS, Glonass, BeiDou, Galileo).
@@ -558,11 +558,9 @@ void GPS::handleInjectDataTopic()
 	size_t num_injections = 0;
 
 	do {
-		num_injections++;
-
-		updated = already_copied || _orb_inject_data_sub.update(&msg);
-
 		if (updated) {
+			num_injections++;
+
 			// Prevent injection of data from self
 			if (msg.device_id != get_device_id()) {
 				/* Write the message to the gps device. Note that the message could be fragmented.
@@ -576,8 +574,7 @@ void GPS::handleInjectDataTopic()
 			}
 		}
 
-		// Reset the flag, it's only used once.
-		already_copied = false;
+		updated = _orb_inject_data_sub.update(&msg);
 
 	} while (updated && num_injections < max_num_injections);
 }
