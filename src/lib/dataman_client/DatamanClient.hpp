@@ -80,12 +80,6 @@ private:
 		ResponseReceived
 	};
 
-	enum class Status {
-		Idle,
-		RequestSent,
-		ResponseReceived
-	};
-
 	struct Request {
 		hrt_abstime timestamp;
 		dm_function_t request_type;
@@ -117,27 +111,54 @@ private:
 class DatamanCache
 {
 public:
-	DatamanCache(int num_items);
-	~DatamanCache() = default;
+	DatamanCache(const char *cache_miss_perf_counter_name, uint32_t num_items);
+	~DatamanCache();
 
-	void resize(int num_items);
+	void resize(uint32_t num_items);
 
 	void invalidate();
 
-	bool load(dm_item_t item, unsigned index);
+	bool load(dm_item_t item, uint32_t index);
 
-	bool loadWait(dm_item_t item, unsigned index, uint8_t *buffer, hrt_abstime timeout);
+	bool loadWait(dm_item_t item, uint32_t index, uint8_t *buffer, uint32_t length, hrt_abstime timeout = 0);
 
 	void update();
 
+	/**
+	 * @brief Function providing info if there items to be loaded to dataman cache.
+	 *
+	 * @return true if there are items to be processed.
+	 */
+	bool isLoading() {return (_item_counter > 0);}
+
 	DatamanClient &client() { return _client; }
 
-private:
-	struct Item {
-		dataman_response_s data;
-		//State cache_state;
-	};
-	Item *_items{nullptr};
+	int size() const { return _num_items; }
 
-	DatamanClient _client;
+private:
+
+	enum class State {
+		Idle,
+		RequestPrepared,
+		RequestSent,
+		ResponseReceived,
+		Error
+	};
+
+	struct Item {
+		dataman_response_s response;
+		State cache_state;
+	};
+
+	inline void changeUpdateIndex();
+
+	Item *_items{nullptr};
+	uint32_t _load_index{0};	///< index for tracking last index used by load function
+	uint32_t _update_index{0};	///< index for tracking last index used by update function
+	uint32_t _item_counter{0};	///< number of items to process with update function
+	uint32_t _num_items{0};
+
+	DatamanClient _client{};
+
+	perf_counter_t	_cache_miss_perf;
 };
