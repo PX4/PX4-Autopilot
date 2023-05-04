@@ -100,13 +100,13 @@ void ActuatorEffectivenessTailsitterVTOL::setFlightPhase(const FlightPhase &flig
 	// update stopped motors //TODO: add option to switch off certain motors in FW
 	switch (flight_phase) {
 	case FlightPhase::FORWARD_FLIGHT:
-		_stopped_motors = 0;
+		_stopped_motors_mask = 0;
 		break;
 
 	case FlightPhase::HOVER_FLIGHT:
 	case FlightPhase::TRANSITION_FF_TO_HF:
 	case FlightPhase::TRANSITION_HF_TO_FF:
-		_stopped_motors = 0;
+		_stopped_motors_mask = 0;
 		break;
 	}
 }
