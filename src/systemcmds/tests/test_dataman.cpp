@@ -96,6 +96,9 @@ private:
 	bool testAsyncWriteReadAllItemsMaxSize();
 	bool testAsyncClearAll();
 
+	//Cache
+	bool testCache();
+
 	//The last test will reset the items so that FMU can boot without Dataman errors.
 	bool testResetItems();
 
@@ -107,6 +110,9 @@ private:
 	DatamanClient _dataman_client_thread1{};
 	DatamanClient _dataman_client_thread2{};
 	DatamanClient _dataman_client_thread3{};
+
+	uint32_t _cache_size = 10;
+	DatamanCache _dataman_cache{_cache_size};
 
 	static void *testAsyncNoLocksThread(void *arg);
 	static void *testAsyncWithLocksThread(void *arg);
@@ -1339,6 +1345,166 @@ DatamanTest::testAsyncClearAll()
 	return true;
 }
 
+//Cache
+bool
+DatamanTest::testCache()
+{
+	bool success = false;
+	dm_item_t item = DM_KEY_WAYPOINTS_OFFBOARD_0;
+	uint32_t uniq_number = 13; // Use this to make sure stored data is from this test
+
+	for (uint32_t index = 0; index < 15; ++index) {
+		uint8_t value = index + uniq_number;
+		memset(_buffer_write, value, sizeof(_buffer_write));
+		success = _dataman_cache.client().writeSync(item, index, _buffer_write, sizeof(_buffer_write));
+
+		if (!success) {
+			return false;
+		}
+	}
+
+	// Write one extra for loadWait with timeout
+	uint32_t extra_index = 100;
+	_buffer_write[0] = 123;
+	success = _dataman_cache.client().writeSync(item, extra_index, _buffer_write, sizeof(_buffer_write));
+
+	if (!success) {
+		return false;
+	}
+
+	// Load cache
+	for (uint32_t index = 0; index < _cache_size; ++index) {
+		_dataman_cache.load(item, index);
+	}
+
+	hrt_abstime start_time = hrt_absolute_time();
+
+	// loop represents the task, we collect the data
+	while (hrt_elapsed_time(&start_time) < 500_ms) {
+
+		px4_usleep(1_ms);
+		_dataman_cache.update();
+	}
+
+	// check cached data
+	for (uint32_t index = 0; index < _cache_size; ++index) {
+		uint8_t value = index + uniq_number;
+		success = _dataman_cache.loadWait(item, index, _buffer_read, sizeof(_buffer_read));
+
+		if (!success) {
+			PX4_ERR("Failed loadWait at index %" PRIu32, index);
+			return false;
+		}
+
+		for (uint32_t i = 0; i < sizeof(_buffer_read); ++i) {
+			if (_buffer_read[i] != value) {
+				PX4_ERR("Wrong data recived %" PRIu8" , expected %" PRIu8, _buffer_read[i], value);
+				return false;
+			}
+		}
+	}
+
+	// expected to fail without timeout set
+	success = _dataman_cache.loadWait(item, extra_index, _buffer_read, sizeof(_buffer_read));
+
+	if (success) {
+		PX4_ERR("loadWait unexpectedly succeeded");
+		return false;
+	}
+
+	// expected to success with timeout set
+	success = _dataman_cache.loadWait(item, extra_index, _buffer_read, sizeof(_buffer_read), 100_ms);
+
+	if (!success) {
+		PX4_ERR("loadWait failed");
+		return false;
+	}
+
+	uint32_t old_cache_size = _cache_size;
+	_cache_size = 5;
+	_dataman_cache.resize(_cache_size);
+
+	// check cached data after resize (reduced)
+	for (uint32_t index = 0; index < _cache_size; ++index) {
+		uint8_t value = index + uniq_number;
+		success = _dataman_cache.loadWait(item, index, _buffer_read, sizeof(_buffer_read));
+
+		if (!success) {
+			PX4_ERR("Failed loadWait at index %" PRIu32, index);
+			return false;
+		}
+
+		for (uint32_t i = 0; i < sizeof(_buffer_read); ++i) {
+			if (_buffer_read[i] != value) {
+				PX4_ERR("Wrong data recived %" PRIu8" , expected %" PRIu8, _buffer_read[i], value);
+				return false;
+			}
+		}
+	}
+
+	for (uint32_t index = _cache_size; index < old_cache_size; ++index) {
+		uint8_t value = index + uniq_number;
+		success = _dataman_cache.loadWait(item, index, _buffer_read, sizeof(_buffer_read));
+
+		if (success) {
+			PX4_ERR("loadWait unexpectedly succeeded at index %" PRIu32, index);
+			return false;
+		}
+	}
+
+	_cache_size = 15;
+	_dataman_cache.resize(_cache_size);
+
+	// Load cache
+	for (uint32_t index = 0; index < _cache_size; ++index) {
+		_dataman_cache.load(item, index);
+	}
+
+	start_time = hrt_absolute_time();
+
+	// loop represents the task, we collect the data
+	while (hrt_elapsed_time(&start_time) < 500_ms) {
+
+		px4_usleep(1_ms);
+		_dataman_cache.update();
+	}
+
+	// check cached data
+	for (uint32_t index = 0; index < _cache_size; ++index) {
+		uint8_t value = index + uniq_number;
+		success = _dataman_cache.loadWait(item, index, _buffer_read, sizeof(_buffer_read));
+
+		if (!success) {
+			PX4_ERR("Failed loadWait at index %" PRIu32, index);
+			return false;
+		}
+
+		for (uint32_t i = 0; i < sizeof(_buffer_read); ++i) {
+			if (_buffer_read[i] != value) {
+				PX4_ERR("Wrong data recived %" PRIu8" , expected %" PRIu8, _buffer_read[i], value);
+				return false;
+			}
+		}
+	}
+
+	// invalidate and check cached data
+	_dataman_cache.invalidate();
+
+	for (uint32_t index = 0; index < _cache_size; ++index) {
+		uint8_t value = index + uniq_number;
+		success = _dataman_cache.loadWait(item, index, _buffer_read, sizeof(_buffer_read));
+
+		// expected to fail
+		if (success) {
+			PX4_ERR("loadWait unexpectedly succeeded at index %" PRIu32, index);
+			return false;
+		}
+
+	}
+
+	return true;
+}
+
 bool
 DatamanTest::testResetItems()
 {
@@ -1409,6 +1575,8 @@ bool DatamanTest::run_tests()
 	ut_run_test(testAsyncMutipleClientsWithLocks);
 	ut_run_test(testAsyncWriteReadAllItemsMaxSize);
 	ut_run_test(testAsyncClearAll);
+
+	ut_run_test(testCache);
 
 	ut_run_test(testResetItems);
 
