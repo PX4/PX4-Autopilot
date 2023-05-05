@@ -282,7 +282,13 @@ void Navigator::run()
 
 					// If no argument for ground speed, use default value.
 					if (cmd.param1 <= 0 || !PX4_ISFINITE(cmd.param1)) {
-						rep->current.cruising_speed = get_cruising_speed();
+						// on entering Loiter mode, reset speed setpoint to default
+						if (_navigation_mode != &_loiter) {
+							rep->current.cruising_speed = -1.f;
+
+						} else {
+							rep->current.cruising_speed = get_cruising_speed();
+						}
 
 					} else {
 						rep->current.cruising_speed = cmd.param1;
@@ -403,7 +409,14 @@ void Navigator::run()
 
 					rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
 
-					rep->current.cruising_speed = get_cruising_speed();
+					// on entering Loiter mode, reset speed setpoint to default
+					if (_navigation_mode != &_loiter) {
+						rep->current.cruising_speed = -1.f;
+
+					} else {
+						rep->current.cruising_speed = get_cruising_speed();
+					}
+
 					rep->current.cruising_throttle = get_cruising_throttle();
 					rep->current.acceptance_radius = get_acceptance_radius();
 					rep->current.yaw = NAN;
@@ -468,8 +481,15 @@ void Navigator::run()
 					rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
 					rep->current.loiter_radius = get_loiter_radius();
 					rep->current.loiter_direction_counter_clockwise = false;
-					rep->current.cruising_speed = get_cruising_speed();
 					rep->current.cruising_throttle = get_cruising_throttle();
+
+					// on entering Loiter mode, reset speed setpoint to default
+					if (_navigation_mode != &_loiter) {
+						rep->current.cruising_speed = -1.f;
+
+					} else {
+						rep->current.cruising_speed = get_cruising_speed();
+					}
 
 					if (PX4_ISFINITE(cmd.param1)) {
 						rep->current.loiter_radius = fabsf(cmd.param1);
@@ -499,6 +519,7 @@ void Navigator::run()
 				rep->current.loiter_radius = get_loiter_radius();
 				rep->current.loiter_direction_counter_clockwise = false;
 				rep->current.type = position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
+				rep->current.cruising_speed = -1.f; // reset to default
 
 				if (home_global_position_valid()) {
 					// Only set yaw if we know the true heading
