@@ -132,6 +132,12 @@ then
 	fi
 fi
 
+# ADIS16507 spi external IMU
+if param greater -s SENS_EN_ADIS165X 0
+then
+	adis16507 -S start
+fi
+
 # Eagle Tree airspeed sensor external I2C
 if param compare -s SENS_EN_ETSASPD 1
 then
