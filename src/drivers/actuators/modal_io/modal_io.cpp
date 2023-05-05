@@ -38,9 +38,6 @@
 #include "modal_io.hpp"
 #include "modal_io_serial.hpp"
 
-// utility for running on VOXL and using driver as a bridge
-#define MODAL_IO_VOXL_BRIDGE_PORT	"/dev/ttyS4"
-
 // future use:
 #define MODALAI_PUBLISH_ESC_STATUS	0
 
@@ -77,9 +74,10 @@ ModalIo::ModalIo() :
 	}
 
 	qc_esc_packet_init(&_fb_packet);
-	qc_esc_packet_init(&_uart_bridge_packet);
 
 	_fb_idx = 0;
+
+	memset(&_battery_status_report, 0, sizeof(_battery_status_report));
 }
 
 ModalIo::~ModalIo()
@@ -89,11 +87,6 @@ ModalIo::~ModalIo()
 	if (_uart_port) {
 		_uart_port->uart_close();
 		_uart_port = nullptr;
-	}
-
-	if (_uart_port_bridge) {
-		_uart_port_bridge->uart_close();
-		_uart_port_bridge = nullptr;
 	}
 
 	perf_free(_cycle_perf);
@@ -111,7 +104,6 @@ int ModalIo::init()
 	}
 
 	_uart_port = new ModalIoSerial();
-	_uart_port_bridge = new ModalIoSerial();
 	memset(&_esc_chans, 0x00, sizeof(_esc_chans));
 
 	//get_instance()->ScheduleOnInterval(10000); //100hz
@@ -334,9 +326,9 @@ int ModalIo::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
 					_esc_chans[id].power_applied = fb.power;
 					_esc_chans[id].state         = fb.id_state & 0x0F;
 					_esc_chans[id].cmd_counter   = fb.cmd_counter;
-					_esc_chans[id].voltage       = fb.voltage * 0.001;
-					_esc_chans[id].current       = fb.current * 0.008;
-					_esc_chans[id].temperature   = fb.temperature * 0.01;
+					_esc_chans[id].voltage       = fb.voltage * 0.001f;
+					_esc_chans[id].current       = fb.current * 0.008f;
+					_esc_chans[id].temperature   = fb.temperature * 0.01f;
 					_esc_chans[id].feedback_time = tnow;
 
 					// also update our internal report for logging
@@ -399,6 +391,20 @@ int ModalIo::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
 
 				PX4_INFO("\tFirmware   : version %4d, hash %.12s", ver.sw_version, ver.firmware_git_version);
 				PX4_INFO("\tBootloader : version %4d, hash %.12s", ver.bootloader_version, ver.bootloader_git_version);
+			} else if (packet_type == ESC_PACKET_TYPE_FB_POWER_STATUS && packet_size == sizeof(QC_ESC_FB_POWER_STATUS)) {
+				QC_ESC_FB_POWER_STATUS packet;
+				memcpy(&packet,_fb_packet.buffer, packet_size);
+				
+				float voltage = packet.voltage * 0.001f;
+				float current = packet.current * 0.008f;
+
+				_battery_status_report.timestamp           = hrt_absolute_time();
+                		_battery_status_report.connected           = true;
+				_battery_status_report.voltage_v           = voltage;
+				_battery_status_report.voltage_filtered_v  = voltage;  //FIXME: should we filter voltage?
+				_battery_status_report.current_a           = current;
+				_battery_status_report.current_filtered_a  = _battery_status_report.current_filtered_a * 0.95f + current * 0.05f;  //FIXME: hardcoded filter constant
+				_battery_status_pub.publish(_battery_status_report);
 			}
 
 		} else { //parser error
@@ -414,51 +420,6 @@ int ModalIo::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
 			}
 		}
 	}
-
-	/*
-		if (len < 4 || buf[0] != ESC_PACKET_HEADER) {
-			return -1;
-		}
-
-		switch (buf[2]) {
-		case ESC_PACKET_TYPE_VERSION_RESPONSE:
-			if (len != sizeof(QC_ESC_VERSION_INFO)) {
-				return -1;
-
-			} else {
-				QC_ESC_VERSION_INFO ver;
-				memcpy(&ver, buf, len);
-				PX4_INFO("ESC ID: %i", ver.id);
-				PX4_INFO("HW Version: %i", ver.hw_version);
-				PX4_INFO("SW Version: %i", ver.sw_version);
-				PX4_INFO("Unique ID: %i", ver.unique_id);
-			}
-
-			break;
-
-		case ESC_PACKET_TYPE_FB_RESPONSE:
-			if (len != sizeof(QC_ESC_FB_RESPONSE)) {
-				return -1;
-
-			} else {
-				QC_ESC_FB_RESPONSE fb;
-				memcpy(&fb, buf, len);
-				uint8_t id = (fb.state & 0xF0) >> 4;
-
-				if (id < MODAL_IO_OUTPUT_CHANNELS) {
-					_esc_chans[id].rate_meas = fb.rpm;
-					_esc_chans[id].state = fb.state & 0x0F;
-					_esc_chans[id].cmd_counter = fb.cmd_counter;
-					_esc_chans[id].voltage = 9.0 + fb.voltage / 34.0;
-				}
-			}
-
-			break;
-
-		default:
-			return -1;
-		}
-	*/
 
 	return 0;
 }
@@ -664,7 +625,7 @@ int ModalIo::custom_command(int argc, char *argv[])
 			int16_t rate_req[MODAL_IO_OUTPUT_CHANNELS] = {0, 0, 0, 0};
 			uint8_t id_fb = 0;
 
-			if (esc_id == 0xFF) {
+			if (esc_id == 0xFF) {  //WARNING: this condition is not possible due to check 'if (esc_id < MODAL_IO_OUTPUT_CHANNELS)'.
 				rate_req[0] = rate;
 				rate_req[1] = rate;
 				rate_req[2] = rate;
@@ -709,7 +670,7 @@ int ModalIo::custom_command(int argc, char *argv[])
 			int16_t rate_req[MODAL_IO_OUTPUT_CHANNELS] = {0, 0, 0, 0};
 			uint8_t id_fb = 0;
 
-			if (esc_id == 0xFF) {
+			if (esc_id == 0xFF) {  //WARNING: this condition is not possible due to check 'if (esc_id < MODAL_IO_OUTPUT_CHANNELS)'.
 				rate_req[0] = rate;
 				rate_req[1] = rate;
 				rate_req[2] = rate;
@@ -744,7 +705,7 @@ int ModalIo::custom_command(int argc, char *argv[])
 			return get_instance()->send_cmd_thread_safe(&cmd);
 
 		} else {
-			print_usage("Invalid ESC mask, use 1-15");
+			print_usage("Invalid ESC ID, use 0-3");
 			return 0;
 		}
 	}
@@ -1054,6 +1015,10 @@ void ModalIo::mix_turtle_mode(uint16_t outputs[MAX_ACTUATORS])
 bool ModalIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			    unsigned num_outputs, unsigned num_control_groups_updated)
 {
+	//in Run() we call _mixing_output.update(), which calls MixingOutput::limitAndUpdateOutputs which calls _interface.updateOutputs (this function)
+	//So, if Run() is blocked by a custom command, this function will not be called until Run is running again
+
+
 	if (num_outputs != MODAL_IO_OUTPUT_CHANNELS) {
 		return false;
 	}
@@ -1097,16 +1062,16 @@ bool ModalIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 		return false;
 	}
 
-	// round robin
+	// increment ESC id from which to request feedback in round robin order
 	_fb_idx = (_fb_idx + 1) % MODAL_IO_OUTPUT_CHANNELS;
 
 
 	/*
-	 * Here we parse the feedback response.  Rarely the packet is mangled
-	 * but this means we simply miss a feedback response and will come back
-	 * around in roughly 8ms for another... so don't freak out and keep on
-	 * trucking I say
+	 * Here we read and parse response from ESCs. Since the latest command has just been sent out,
+	 * the response packet we may read here is probabaly from previous iteration, but it is totally ok.
+	 * uart_read is non-blocking and we will just parse whatever bytes came in up until this point
 	 */
+
 	int res = _uart_port->uart_read(_read_buf, sizeof(_read_buf));
 
 	if (res > 0) {
@@ -1163,23 +1128,7 @@ void ModalIo::Run()
 		}
 	}
 
-	/*
-		for (int ii=0; ii<9; ii++)
-		{
-		  const char * test_str = "Hello World!";
-		  _uart_port_bridge->uart_write((char*)test_str,12);
-	    px4_usleep(10000);
-		}
-	*/
-	/*
-	uint8_t echo_buf[16];
-	int bytes_read = _uart_port_bridge->uart_read(echo_buf,sizeof(echo_buf));
-	if (bytes_read > 0)
-	  _uart_port_bridge->uart_write(echo_buf,bytes_read);
-	*/
-
-
-	_mixing_output.update();
+	_mixing_output.update();  //calls MixingOutput::limitAndUpdateOutputs which calls updateOutputs in this module
 
 	/* update output status if armed */
 	_outputs_on = _mixing_output.armed().armed;
@@ -1239,68 +1188,6 @@ void ModalIo::Run()
 			}
 		}
 
-		if (_parameters.mode == MODAL_IO_MODE_UART_BRIDGE) {
-			if (!_uart_port_bridge->is_open()) {
-				if (_uart_port_bridge->uart_open(MODAL_IO_VOXL_BRIDGE_PORT, 230400) == PX4_OK) {
-					PX4_INFO("Opened UART ESC Bridge device");
-
-				} else {
-					PX4_ERR("Failed openening UART ESC Bridge device");
-					return;
-				}
-			}
-
-			//uart passthrough test code
-			//run 9 times because i just don't know how to change update rate of the module from 10hz to 100hz..
-			for (int ii = 0; ii < 9; ii++) {
-				uint8_t uart_buf[128];
-				int bytes_read = _uart_port_bridge->uart_read(uart_buf, sizeof(uart_buf));
-
-				if (bytes_read > 0) {
-					_uart_port->uart_write(uart_buf, bytes_read);
-
-					for (int i = 0; i < bytes_read; i++) {
-						int16_t ret = qc_esc_packet_process_char(uart_buf[i], &_uart_bridge_packet);
-
-						if (ret > 0) {
-							//PX4_INFO("got packet of length %i",ret);
-							uint8_t packet_type = qc_esc_packet_get_type(&_uart_bridge_packet);
-
-							//uint8_t packet_size = qc_esc_packet_get_size(&_uart_bridge_packet);
-							//if we received a command for ESC to reset, most likely firmware update is coming, switch to bootloader baud rate
-							if (packet_type == ESC_PACKET_TYPE_RESET_CMD) {
-								int bootloader_baud_rate = 230400;
-
-								if (_uart_port->uart_get_baud() != bootloader_baud_rate) {
-									px4_usleep(5000);
-									_uart_port->uart_set_baud(bootloader_baud_rate);
-								}
-
-							} else {
-								if (_uart_port->uart_get_baud() != _parameters.baud_rate) {
-									px4_usleep(5000);
-									_uart_port->uart_set_baud(_parameters.baud_rate);  //restore normal baud rate
-								}
-							}
-						}
-					}
-				}
-
-				bytes_read = _uart_port->uart_read(uart_buf, sizeof(uart_buf));
-
-				if (bytes_read > 0) {
-					_uart_port_bridge->uart_write(uart_buf, bytes_read);
-				}
-
-				px4_usleep(10000);
-			}
-		}
-
-	} else {
-		if (_uart_port_bridge->is_open()) {
-			PX4_INFO("Closed UART ESC Bridge device");
-			_uart_port_bridge->uart_close();
-		}
 	}
 
 	if (!_outputs_on) {

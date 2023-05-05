@@ -47,6 +47,7 @@
 #include <uORB/topics/led_control.h>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/actuator_test.h>
+#include <uORB/topics/battery_status.h>
 
 #include "modal_io_serial.hpp"
 
@@ -121,13 +122,11 @@ private:
 	static constexpr uint32_t MODAL_IO_MODE = 0;
 	static constexpr uint32_t MODAL_IO_MODE_TURTLE_AUX1 = 1;
 	static constexpr uint32_t MODAL_IO_MODE_TURTLE_AUX2 = 2;
-	static constexpr uint32_t MODAL_IO_MODE_UART_BRIDGE = 3;
 
 	//static constexpr uint16_t max_pwm(uint16_t pwm) { return math::min(pwm, MODAL_IO_PWM_MAX); }
 	//static constexpr uint16_t max_rpm(uint16_t rpm) { return math::min(rpm, MODAL_IO_RPM_MAX); }
 
 	ModalIoSerial 		*_uart_port;
-	ModalIoSerial		*_uart_port_bridge;
 
 	typedef struct {
 		int32_t		config{MODAL_IO_UART_CONFIG};
@@ -191,6 +190,7 @@ private:
 
 	uORB::Publication<actuator_outputs_s> _outputs_debug_pub{ORB_ID(actuator_outputs_debug)};
 	uORB::Publication<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
+	uORB::Publication<battery_status_s> _battery_status_pub{ORB_ID(battery_status)};
 
 	modal_io_params_t	_parameters;
 	int			update_params();
@@ -209,7 +209,8 @@ private:
 	Command			_esc_cmd;
 	esc_status_s		_esc_status;
 	EscPacket		_fb_packet;
-	EscPacket		_uart_bridge_packet;
+
+	battery_status_s _battery_status_report{};
 
 	led_rsc_t	 	_led_rsc;
 	int			_fb_idx;
