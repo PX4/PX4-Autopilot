@@ -177,3 +177,4 @@ parameters:
                 2: Auto-detected
             num_instances: *max_num_config_instances
             default: [2, 2, 2]
+            reboot_required: true
