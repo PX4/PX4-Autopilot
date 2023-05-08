@@ -41,6 +41,7 @@ ManualControl::ManualControl() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
 {
+	updateParams();
 }
 
 ManualControl::~ManualControl()
@@ -83,60 +84,6 @@ void ManualControl::Run()
 		_parameter_update_sub.copy(&param_update);
 
 		updateParams();
-
-		_stick_arm_hysteresis.set_hysteresis_time_from(false, _param_com_rc_arm_hyst.get() * 1_ms);
-		_stick_disarm_hysteresis.set_hysteresis_time_from(false, _param_com_rc_arm_hyst.get() * 1_ms);
-		_button_hysteresis.set_hysteresis_time_from(false, _param_com_rc_arm_hyst.get() * 1_ms);
-
-		_selector.setRcInMode(_param_com_rc_in_mode.get());
-		_selector.setTimeout(_param_com_rc_loss_t.get() * 1_s);
-
-		// MAN_ARM_GESTURE
-		if (_param_man_arm_gesture.get() == 1) {
-			// RC_MAP_ARM_SW & MAN_ARM_GESTURE: disable arm gesture if an arm switch is configured
-			param_t param_rc_map_arm_sw = param_find("RC_MAP_ARM_SW");
-
-			if (param_rc_map_arm_sw != PARAM_INVALID) {
-				int32_t rc_map_arm_sw = 0;
-				param_get(param_rc_map_arm_sw, &rc_map_arm_sw);
-
-				if (rc_map_arm_sw > 0) {
-					_param_man_arm_gesture.set(0); // disable arm gesture
-					_param_man_arm_gesture.commit();
-
-					orb_advert_t mavlink_log_pub = nullptr;
-					mavlink_log_critical(&mavlink_log_pub, "Arm stick gesture disabled if arm switch in use\t")
-					/* EVENT
-					* @description <param>MAN_ARM_GESTURE</param> is now set to disable arm/disarm stick gesture.
-					*/
-					events::send(events::ID("rc_update_arm_stick_gesture_disabled_with_switch"), {events::Log::Info, events::LogInternal::Disabled},
-						     "Arm stick gesture disabled if arm switch in use");
-				}
-			}
-
-			// MC_AIRMODE & MAN_ARM_GESTURE: check for unsafe Airmode settings: yaw airmode requires disabling the stick arm gesture
-			if ((_param_man_arm_gesture.get() == 1) && (_rotary_wing || _vtol)) {
-				param_t param_mc_airmode = param_find("MC_AIRMODE");
-
-				if (param_mc_airmode != PARAM_INVALID) {
-					int32_t airmode = 0;
-					param_get(param_mc_airmode, &airmode);
-
-					if (airmode == 2) {
-						airmode = 1; // change to roll/pitch airmode
-						param_set(param_mc_airmode, &airmode);
-
-						orb_advert_t mavlink_log_pub = nullptr;
-						mavlink_log_critical(&mavlink_log_pub, "Yaw Airmode requires disabling the stick arm gesture\t")
-						/* EVENT
-						* @description <param>MC_AIRMODE</param> is now set to roll/pitch airmode.
-						*/
-						events::send(events::ID("commander_airmode_requires_no_arm_gesture"), {events::Log::Error, events::LogInternal::Disabled},
-							     "Yaw Airmode requires disabling the stick arm gesture");
-					}
-				}
-			}
-		}
 	}
 
 	const hrt_abstime now = hrt_absolute_time();
@@ -325,6 +272,65 @@ void ManualControl::Run()
 	ScheduleDelayed(200_ms);
 
 	perf_end(_loop_perf);
+}
+
+void ManualControl::updateParams()
+{
+	ModuleParams::updateParams();
+
+	_stick_arm_hysteresis.set_hysteresis_time_from(false, _param_com_rc_arm_hyst.get() * 1_ms);
+	_stick_disarm_hysteresis.set_hysteresis_time_from(false, _param_com_rc_arm_hyst.get() * 1_ms);
+	_button_hysteresis.set_hysteresis_time_from(false, _param_com_rc_arm_hyst.get() * 1_ms);
+
+	_selector.setRcInMode(_param_com_rc_in_mode.get());
+	_selector.setTimeout(_param_com_rc_loss_t.get() * 1_s);
+
+	// MAN_ARM_GESTURE
+	if (_param_man_arm_gesture.get() == 1) {
+		// RC_MAP_ARM_SW & MAN_ARM_GESTURE: disable arm gesture if an arm switch is configured
+		param_t param_rc_map_arm_sw = param_find("RC_MAP_ARM_SW");
+
+		if (param_rc_map_arm_sw != PARAM_INVALID) {
+			int32_t rc_map_arm_sw = 0;
+			param_get(param_rc_map_arm_sw, &rc_map_arm_sw);
+
+			if (rc_map_arm_sw > 0) {
+				_param_man_arm_gesture.set(0); // disable arm gesture
+				_param_man_arm_gesture.commit();
+
+				orb_advert_t mavlink_log_pub = nullptr;
+				mavlink_log_critical(&mavlink_log_pub, "Arm stick gesture disabled if arm switch in use\t")
+				/* EVENT
+				* @description <param>MAN_ARM_GESTURE</param> is now set to disable arm/disarm stick gesture.
+				*/
+				events::send(events::ID("rc_update_arm_stick_gesture_disabled_with_switch"), {events::Log::Info, events::LogInternal::Disabled},
+					     "Arm stick gesture disabled if arm switch in use");
+			}
+		}
+
+		// MC_AIRMODE & MAN_ARM_GESTURE: check for unsafe Airmode settings: yaw airmode requires disabling the stick arm gesture
+		if ((_param_man_arm_gesture.get() == 1) && (_rotary_wing || _vtol)) {
+			param_t param_mc_airmode = param_find("MC_AIRMODE");
+
+			if (param_mc_airmode != PARAM_INVALID) {
+				int32_t airmode = 0;
+				param_get(param_mc_airmode, &airmode);
+
+				if (airmode == 2) {
+					airmode = 1; // change to roll/pitch airmode
+					param_set(param_mc_airmode, &airmode);
+
+					orb_advert_t mavlink_log_pub = nullptr;
+					mavlink_log_critical(&mavlink_log_pub, "Yaw Airmode requires disabling the stick arm gesture\t")
+					/* EVENT
+					* @description <param>MC_AIRMODE</param> is now set to roll/pitch airmode.
+					*/
+					events::send(events::ID("commander_airmode_requires_no_arm_gesture"), {events::Log::Error, events::LogInternal::Disabled},
+						     "Yaw Airmode requires disabling the stick arm gesture");
+				}
+			}
+		}
+	}
 }
 
 void ManualControl::processStickArming(const manual_control_setpoint_s &input)

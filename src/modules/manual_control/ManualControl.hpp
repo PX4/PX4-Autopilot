@@ -78,6 +78,7 @@ private:
 	static constexpr int MAX_MANUAL_INPUT_COUNT = 3;
 
 	void Run() override;
+	void updateParams() override;
 	void processStickArming(const manual_control_setpoint_s &input);
 
 	static int8_t navStateFromParam(int32_t param_value);
