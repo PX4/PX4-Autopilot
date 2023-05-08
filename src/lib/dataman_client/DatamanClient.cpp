@@ -89,7 +89,7 @@ bool DatamanClient::syncHandler(const dataman_request_s &request, dataman_respon
 
 	while (!response_received && (time_elapsed < timeout)) {
 
-		uint32_t timeout_ms = 1;
+		uint32_t timeout_ms = 100;
 		ret = px4_poll(&_fds, 1, timeout_ms);
 
 		if (ret < 0) {
