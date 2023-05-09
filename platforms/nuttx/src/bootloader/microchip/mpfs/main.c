@@ -282,17 +282,7 @@ board_init(void)
 
 #if defined(CONFIG_MMCSD)
 
-	if (mpfs_board_emmcsd_init() == OK && mpfs_board_register_partition(0) == OK) {
-
-		/* Mount the sdcard/eMMC */
-		sdcard_mounted = mount("/dev/mmcsd0p0", "/sdcard/", "vfat", 0, NULL) == 0 ? true : false;
-
-		if (!sdcard_mounted) {
-			_alert("SD/eMMC mount failed\n");
-
-		} else {
-			_alert("SD/eMMC mounted\n");
-		}
+	if (mpfs_board_emmcsd_init() == OK) {
 
 #  if defined(CONFIG_USBMSC_COMPOSITE)
 
@@ -306,6 +296,19 @@ board_init(void)
 		}
 
 #  endif
+
+		if (mpfs_board_register_partition(0) == OK) {
+
+			/* Mount the sdcard/eMMC */
+			sdcard_mounted = mount("/dev/mmcsd0p0", "/sdcard/", "vfat", 0, NULL) == 0 ? true : false;
+
+			if (!sdcard_mounted) {
+				_alert("SD/eMMC mount failed\n");
+
+			} else {
+				_alert("SD/eMMC mounted\n");
+			}
+		}
 
 	} else {
 		_alert("ERROR: Failed to initialize SD card");
