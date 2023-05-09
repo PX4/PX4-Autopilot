@@ -310,25 +310,263 @@ bool DatamanClient::unlockSync(dm_item_t item, hrt_abstime timeout)
 	return success;
 }
 
-bool DatamanClient::readAsync(dm_item_t item, uint32_t index, uint8_t *buffer)
+bool DatamanClient::readAsync(dm_item_t item, uint32_t index, uint8_t *buffer, uint32_t length)
 {
+	if (length > g_per_item_size[item]) {
+		PX4_ERR("Length  %" PRIu32 " can't fit in data size for item  %" PRIi8, length, static_cast<uint8_t>(item));
+		return false;
+	}
+
 	bool success = false;
+
+	if (_state == State::Idle) {
+
+		hrt_abstime timestamp = hrt_absolute_time();
+
+		dataman_request_s request = {
+			.timestamp = timestamp,
+			.index = index,
+			.data_length = length,
+			.client_id = _client_id,
+			.request_type = DM_READ,
+			.item = item
+		};
+
+		_active_request.timestamp = timestamp;
+		_active_request.request_type = DM_READ;
+		_active_request.item = item;
+		_active_request.index = index;
+		_active_request.buffer = buffer;
+		_active_request.length = length;
+
+		_state = State::RequestSent;
+
+		_dataman_request_pub.publish(request);
+
+		success = true;
+	}
+
 	return success;
 }
 
-bool DatamanClient::writeAsync(dm_item_t item, uint32_t index, uint8_t *buffer)
+bool DatamanClient::writeAsync(dm_item_t item, uint32_t index, uint8_t *buffer, uint32_t length)
+{
+	if (length > g_per_item_size[item]) {
+		PX4_ERR("Length  %" PRIu32 " can't fit in data size for item  %" PRIi8, length, static_cast<uint8_t>(item));
+		return false;
+	}
+
+	bool success = false;
+
+	if (_state == State::Idle) {
+
+		hrt_abstime timestamp = hrt_absolute_time();
+
+		dataman_request_s request = {
+			.timestamp = timestamp,
+			.index = index,
+			.data_length = length,
+			.client_id = _client_id,
+			.request_type = DM_WRITE,
+			.item = item
+		};
+
+		memcpy(request.data, buffer, length);
+
+		_active_request.timestamp = timestamp;
+		_active_request.request_type = DM_WRITE;
+		_active_request.item = item;
+		_active_request.index = index;
+		_active_request.buffer = buffer;
+		_active_request.length = length;
+
+		_state = State::RequestSent;
+
+		_dataman_request_pub.publish(request);
+
+		success = true;
+	}
+
+	return success;
+}
+
+bool DatamanClient::clearAsync(dm_item_t item)
 {
 	bool success = false;
+
+	if (_state == State::Idle) {
+
+		hrt_abstime timestamp = hrt_absolute_time();
+
+		dataman_request_s request = {
+			.timestamp = timestamp,
+			.client_id = _client_id,
+			.request_type = DM_CLEAR,
+			.item = item
+		};
+
+		_active_request.timestamp = timestamp;
+		_active_request.request_type = DM_CLEAR;
+		_active_request.item = item;
+		_state = State::RequestSent;
+
+		_dataman_request_pub.publish(request);
+
+		success = true;
+	}
+
+	return success;
+}
+
+bool DatamanClient::lockAsync(dm_item_t item)
+{
+	bool success = false;
+
+	if (_state == State::Idle) {
+
+		hrt_abstime timestamp = hrt_absolute_time();
+
+		dataman_request_s request = {
+			.timestamp = timestamp,
+			.client_id = _client_id,
+			.request_type = DM_LOCK,
+			.item = item
+		};
+
+		_active_request.timestamp = timestamp;
+		_active_request.request_type = DM_LOCK;
+		_active_request.item = item;
+		_state = State::RequestSent;
+
+		_dataman_request_pub.publish(request);
+
+		success = true;
+	}
+
+	return success;
+}
+
+bool DatamanClient::unlockAsync(dm_item_t item)
+{
+	bool success = false;
+
+	if (_state == State::Idle) {
+
+		hrt_abstime timestamp = hrt_absolute_time();
+
+		dataman_request_s request = {
+			.timestamp = timestamp,
+			.client_id = _client_id,
+			.request_type = DM_UNLOCK,
+			.item = item
+		};
+
+		_active_request.timestamp = timestamp;
+		_active_request.request_type = DM_UNLOCK;
+		_active_request.item = item;
+		_state = State::RequestSent;
+
+		_dataman_request_pub.publish(request);
+
+		success = true;
+	}
+
 	return success;
 }
 
 void DatamanClient::update()
 {
+	if (_state == State::RequestSent) {
+
+		bool updated = false;
+		orb_check(_dataman_response_sub, &updated);
+
+		dataman_response_s response;
+
+		if (updated) {
+			orb_copy(ORB_ID(dataman_response), _dataman_response_sub, &response);
+
+			if ((response.client_id == _client_id) &&
+			    (response.request_type == _active_request.request_type) &&
+			    (response.item == _active_request.item) &&
+			    (response.index == _active_request.index)) {
+
+				if (response.request_type == DM_READ) {
+					memcpy(_active_request.buffer, response.data, _active_request.length);
+				}
+
+				_response_status = response.status;
+
+				if ((_response_status != dataman_response_s::STATUS_SUCCESS) &&
+				    (_response_status != dataman_response_s::STATUS_ALREADY_LOCKED) &&
+				    (_response_status != dataman_response_s::STATUS_ALREADY_UNLOCKED)) {
+
+					PX4_ERR("Async request type %" PRIu8 " failed! status=%" PRIu8 " item=%" PRIu8 " index=%" PRIu32,
+						response.request_type, response.status, static_cast<uint8_t>(_active_request.item), _active_request.index);
+				}
+
+				if (_response_status != dataman_response_s::STATUS_ALREADY_LOCKED) {
+					_state = State::ResponseReceived;
+				}
+			}
+		}
+
+		if (_state == State::RequestSent) {
+
+			/* Retry the request if there is no answer or if already locked. */
+			if (((_active_request.request_type != DM_CLEAR) && (hrt_elapsed_time(&_active_request.timestamp) > 100_ms)) ||
+			    (hrt_elapsed_time(&_active_request.timestamp) > 1000_ms)
+			   ) {
+
+				hrt_abstime timestamp = hrt_absolute_time();
+
+				_active_request.timestamp = timestamp;
+
+				dataman_request_s request = {
+					.timestamp = timestamp,
+					.index = _active_request.index,
+					.data_length = _active_request.length,
+					.client_id = _client_id,
+					.request_type = _active_request.request_type,
+					.item = _active_request.item
+				};
+
+				if (_active_request.request_type == DM_WRITE) {
+					memcpy(request.data, _active_request.buffer, _active_request.length);
+				}
+
+				_dataman_request_pub.publish(request);
+
+				_state = State::RequestSent;
+			}
+		}
+	}
 }
 
 bool DatamanClient::lastOperationCompleted(bool &success)
 {
-	return true;
+	bool completed = false;
+
+	if (_state == State::ResponseReceived) {
+
+		if ((_response_status == dataman_response_s::STATUS_SUCCESS) ||
+		    (_response_status == dataman_response_s::STATUS_ALREADY_UNLOCKED)) {
+			success = true;
+
+		} else {
+			success = false;
+		}
+
+		_state = State::Idle;
+		completed = true;
+	}
+
+	return completed;
+}
+
+void DatamanClient::abortCurrentOperation()
+{
+	_state = State::Idle;
 }
 
 DatamanCache::DatamanCache(int num_items)
