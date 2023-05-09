@@ -36,7 +36,7 @@ set(srcs
 	test_bezierQuad.cpp
 	test_bitset.cpp
 	test_bson.cpp
-	test_dataman.c
+	test_dataman.cpp
 	test_file.c
 	test_file2.c
 	test_float.cpp
@@ -93,6 +93,7 @@ px4_add_module(
 	SRCS
 		${srcs}
 	DEPENDS
+		dataman_client
 		version
 	)
 
