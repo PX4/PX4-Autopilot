@@ -2023,14 +2023,18 @@ void Mission::publish_navigator_mission_item()
 bool Mission::getPreviousPositionItemIndex(const mission_s &mission, int inactivation_index,
 		unsigned &prev_pos_index) const
 {
-	struct mission_item_s missionitem = {};
 
 	for (int index = inactivation_index; index >= 0; index--) {
-		if (!readMissionItemAtIndex(mission, index, missionitem)) {
+		mission_item_s mission_item;
+		const dm_item_t dm_current = (dm_item_t)mission.dataman_id;
+		bool success = _dataman_client.readSync(dm_current, index, reinterpret_cast<uint8_t *>(&mission_item),
+							sizeof(mission_item), 500_ms);
+
+		if (!success) {
 			break;
 		}
 
-		if (MissionBlock::item_contains_position(missionitem)) {
+		if (MissionBlock::item_contains_position(mission_item)) {
 			prev_pos_index = index;
 			return true;
 		}
@@ -2039,10 +2043,16 @@ bool Mission::getPreviousPositionItemIndex(const mission_s &mission, int inactiv
 	return false;
 }
 
-bool Mission::getNextPositionMissionItem(const mission_s &mission, int start_index, mission_item_s &mission_item) const
+bool Mission::getNextPositionMissionItem(const mission_s &mission, int start_index, mission_item_s &mission_item)
 {
+	const dm_item_t dm_current = (dm_item_t)mission.dataman_id;
+
 	while (start_index < mission.count) {
-		if (readMissionItemAtIndex(mission, start_index, mission_item) && MissionBlock::item_contains_position(mission_item)) {
+		// start_index is expected to be after _current_mission_index, and the item should therefore be cached
+		bool success = _dataman_cache.loadWait(dm_current, start_index, reinterpret_cast<uint8_t *>(&mission_item),
+						       sizeof(mission_item), 500_ms);
+
+		if (success && MissionBlock::item_contains_position(mission_item)) {
 			return true;
 		}
 
@@ -2050,19 +2060,6 @@ bool Mission::getNextPositionMissionItem(const mission_s &mission, int start_ind
 	}
 
 	return false;
-}
-
-bool Mission::readMissionItemAtIndex(const mission_s &mission, const int index, mission_item_s &missionitem) const
-{
-	bool success = false;
-
-	if (index >= 0 && index < mission.count) {
-		const dm_item_t dm_current = (dm_item_t)mission.dataman_id;
-		const ssize_t len = sizeof(missionitem);
-		success = (dm_read(dm_current, index, &missionitem, len) == len);
-	}
-
-	return success;
 }
 
 void Mission::cacheItem(const mission_item_s &mission_item)
@@ -2145,9 +2142,12 @@ bool Mission::cameraWasTriggering()
 void Mission::updateCachedItemsUpToIndex(const int end_index)
 {
 	for (int i = 0; i <= end_index; i++) {
-		mission_item_s mission_item = {};
+		mission_item_s mission_item;
+		const dm_item_t dm_current = (dm_item_t)_mission.dataman_id;
+		bool success = _dataman_client.readSync(dm_current, i, reinterpret_cast<uint8_t *>(&mission_item),
+							sizeof(mission_item), 500_ms);
 
-		if (readMissionItemAtIndex(_mission, i, mission_item)) {
+		if (success) {
 			cacheItem(mission_item);
 		}
 	}
