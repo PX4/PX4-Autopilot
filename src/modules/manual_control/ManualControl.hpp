@@ -104,7 +104,7 @@ private:
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	int _previous_manual_control_input_instance{-1};
-	uORB::SubscriptionCallbackWorkItem _manual_control_setpoint_subs[MAX_MANUAL_INPUT_COUNT] {
+	uORB::SubscriptionCallbackWorkItem _manual_control_input_subs[MAX_MANUAL_INPUT_COUNT] {
 		{this, ORB_ID(manual_control_input), 0},
 		{this, ORB_ID(manual_control_input), 1},
 		{this, ORB_ID(manual_control_input), 2},
