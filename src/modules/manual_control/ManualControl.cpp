@@ -86,7 +86,16 @@ void ManualControl::Run()
 		updateParams();
 	}
 
-	const hrt_abstime now = hrt_absolute_time();
+	processInput(hrt_absolute_time());
+
+	// reschedule timeout
+	ScheduleDelayed(200_ms);
+
+	perf_end(_loop_perf);
+}
+
+void ManualControl::processInput(hrt_abstime now)
+{
 	_selector.updateValidityOfChosenInput(now);
 
 	for (int i = 0; i < MAX_MANUAL_INPUT_COUNT; i++) {
@@ -267,11 +276,6 @@ void ManualControl::Run()
 	}
 
 	_last_time = now;
-
-	// reschedule timeout
-	ScheduleDelayed(200_ms);
-
-	perf_end(_loop_perf);
 }
 
 void ManualControl::updateParams()
