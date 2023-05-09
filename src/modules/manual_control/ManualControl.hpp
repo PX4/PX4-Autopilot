@@ -75,7 +75,9 @@ public:
 	int print_status() override;
 
 protected:
-	void processInput(hrt_abstime now); // protected for testing
+	// protected for testing
+	void processInput(hrt_abstime now);
+	static int8_t navStateFromParam(int32_t param_value);
 
 private:
 	static constexpr int MAX_MANUAL_INPUT_COUNT = 3;
@@ -84,8 +86,6 @@ private:
 	void updateParams() override;
 	void processStickArming(const manual_control_setpoint_s &input);
 	void processSwitches(hrt_abstime &now);
-
-	static int8_t navStateFromParam(int32_t param_value);
 
 	void evaluateModeSlot(uint8_t mode_slot);
 	void sendActionRequest(int8_t action, int8_t source, int8_t mode = 0);

@@ -46,4 +46,5 @@ px4_add_module(
 		px4_work_queue
 	)
 
+px4_add_functional_gtest(SRC ManualControlTest.cpp LINKLIBS modules__manual_control)
 px4_add_unit_gtest(SRC ManualControlSelectorTest.cpp LINKLIBS modules__manual_control)
