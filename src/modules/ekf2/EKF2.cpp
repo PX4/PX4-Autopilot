@@ -2204,7 +2204,7 @@ bool EKF2::UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps)
 		}
 
 		// use optical_flow distance as range sample if distance_sensor unavailable
-		if (PX4_ISFINITE(optical_flow.distance_m) && ((ekf2_timestamps.timestamp - _last_range_sensor_update) > 1_s)) {
+		if (PX4_ISFINITE(optical_flow.distance_m) && (ekf2_timestamps.timestamp > _last_range_sensor_update + 1_s)) {
 
 			int8_t quality = static_cast<float>(optical_flow.quality) / static_cast<float>(UINT8_MAX) * 100.f;
 
@@ -2373,7 +2373,7 @@ void EKF2::UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps)
 			// Save sensor limits reported by the rangefinder
 			_ekf.set_rangefinder_limits(distance_sensor.min_distance, distance_sensor.max_distance);
 
-			_last_range_sensor_update = distance_sensor.timestamp;
+			_last_range_sensor_update = ekf2_timestamps.timestamp;
 		}
 
 		ekf2_timestamps.distance_sensor_timestamp_rel = (int16_t)((int64_t)distance_sensor.timestamp / 100 -
