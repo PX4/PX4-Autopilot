@@ -40,6 +40,21 @@ constexpr bool validateSPIConfig(const px4_spi_bus_t spi_busses_conf[SPI_BUS_MAX
 {
 	const bool nuttx_enabled_spi_buses[] = {
 
+#ifdef CONFIG_MPFS_CORESPI
+		true,
+#if MPFS_CORESPI_INSTANCES >= 2
+		true,
+#endif
+#if MPFS_CORESPI_INSTANCES >= 3
+		true,
+#endif
+#if MPFS_CORESPI_INSTANCES >= 4
+		true,
+#endif
+#if MPFS_CORESPI_INSTANCES >= 5
+		true,
+#endif
+#else /* !CONFIG_MPFS_CORESPI */
 #ifdef CONFIG_MPFS_SPI0
 		true,
 #else
@@ -50,6 +65,7 @@ constexpr bool validateSPIConfig(const px4_spi_bus_t spi_busses_conf[SPI_BUS_MAX
 #else
 		false,
 #endif
+#endif /* CONFIG_MPFS_CORESPI */
 
 	};
 

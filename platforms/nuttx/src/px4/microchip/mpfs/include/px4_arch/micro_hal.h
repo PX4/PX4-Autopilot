@@ -47,6 +47,7 @@ __BEGIN_DECLS
 #include <chip.h>
 #include <mpfs_i2c.h>
 #include <mpfs_spi.h>
+#include <mpfs_corespi.h>
 #include <arch/board/board_memorymap.h>
 
 #include "riscv_mmu.h"
@@ -91,9 +92,18 @@ __BEGIN_DECLS
 #define PX4_CPU_UUID_WORD32_UNIQUE_L            1 /* Middle Low significant digits */
 #define PX4_CPU_UUID_WORD32_UNIQUE_N            0 /* Most significant digits change the least */
 
+static inline struct spi_dev_s *mpfs_spibus_initialize_wrap(int port)
+{
+#if defined(CONFIG_MPFS_CORESPI)
+	return mpfs_corespibus_initialize(port);
+#else
+	return mpfs_spibus_initialize(port);
+#endif
+}
+
 #define PX4_BUS_OFFSET       1                  /* MPFS buses are 0 based, so adjustment needed */
 #define px4_savepanic(fileno, context, length)  mpfs_bbsram_savepanic(fileno, context, length)
-#define px4_spibus_initialize(bus_num_1based)   mpfs_spibus_initialize(PX4_BUS_NUMBER_FROM_PX4(bus_num_1based))
+#define px4_spibus_initialize(bus_num_1based)   mpfs_spibus_initialize_wrap(PX4_BUS_NUMBER_FROM_PX4(bus_num_1based))
 
 #define px4_i2cbus_initialize(bus_num_1based)   mpfs_i2cbus_initialize(PX4_BUS_NUMBER_FROM_PX4(bus_num_1based))
 #define px4_i2cbus_uninitialize(pdev)           mpfs_i2cbus_uninitialize(pdev)
