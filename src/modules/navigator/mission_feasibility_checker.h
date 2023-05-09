@@ -42,7 +42,7 @@
 
 #pragma once
 
-#include <dataman/dataman.h>
+#include <dataman_client/DatamanClient.hpp>
 #include <uORB/topics/mission.h>
 #include <px4_platform_common/module_params.h>
 #include "MissionFeasibility/FeasibilityChecker.hpp"
@@ -75,4 +75,6 @@ public:
 	 * Returns true if mission is feasible and false otherwise
 	 */
 	bool checkMissionFeasible(const mission_s &mission);
+
+	DatamanClient _dataman_client{};
 };

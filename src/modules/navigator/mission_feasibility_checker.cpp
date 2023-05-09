@@ -78,9 +78,11 @@ MissionFeasibilityChecker::checkMissionFeasible(const mission_s &mission)
 
 	for (size_t i = 0; i < mission.count; i++) {
 		struct mission_item_s missionitem = {};
-		const ssize_t len = sizeof(struct mission_item_s);
 
-		if (dm_read((dm_item_t)mission.dataman_id, i, &missionitem, len) != len) {
+		bool success = _dataman_client.readSync((dm_item_t)mission.dataman_id, i, reinterpret_cast<uint8_t *>(&missionitem),
+							sizeof(mission_item_s));
+
+		if (!success) {
 			_navigator->get_mission_result()->warning = true;
 			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
 			return false;
@@ -116,9 +118,11 @@ MissionFeasibilityChecker::checkGeofence(const mission_s &mission, float home_al
 	if (_navigator->get_geofence().valid()) {
 		for (size_t i = 0; i < mission.count; i++) {
 			struct mission_item_s missionitem = {};
-			const ssize_t len = sizeof(missionitem);
 
-			if (dm_read((dm_item_t)mission.dataman_id, i, &missionitem, len) != len) {
+			bool success = _dataman_client.readSync((dm_item_t)mission.dataman_id, i, reinterpret_cast<uint8_t *>(&missionitem),
+								sizeof(mission_item_s));
+
+			if (!success) {
 				/* not supposed to happen unless the datamanager can't access the SD card, etc. */
 				return false;
 			}

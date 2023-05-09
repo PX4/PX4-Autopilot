@@ -42,6 +42,7 @@
 
 #include <float.h>
 
+#include <dataman_client/DatamanClient.hpp>
 #include <lib/mathlib/mathlib.h>
 #include <px4_platform_common/module_params.h>
 #include <drivers/drv_hrt.h>
@@ -165,6 +166,8 @@ private:
 
 	Navigator   *_navigator{nullptr};
 	PolygonInfo *_polygons{nullptr};
+
+	DatamanClient _dataman_client{};
 
 	hrt_abstime _last_horizontal_range_warning{0};
 	hrt_abstime _last_vertical_range_warning{0};

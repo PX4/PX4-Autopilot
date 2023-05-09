@@ -60,6 +60,8 @@ set(msg_files
 	CollisionReport.msg
 	ControlAllocatorStatus.msg
 	Cpuload.msg
+	DatamanRequest.msg
+	DatamanResponse.msg
 	DebugArray.msg
 	DebugKeyValue.msg
 	DebugValue.msg
