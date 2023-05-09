@@ -71,8 +71,6 @@ public:
 
 		// THEN: we receive the expected mode slot
 		uORB::SubscriptionData<manual_control_switches_s> manual_control_switches_sub{ORB_ID(manual_control_switches)};
-		manual_control_switches_sub.update();
-
 		EXPECT_EQ(manual_control_switches_sub.get().mode_slot, expected_slot);
 	}
 
@@ -102,8 +100,6 @@ public:
 
 		// THEN: we receive the expected mode slot
 		uORB::SubscriptionData<manual_control_switches_s> manual_control_switches_sub{ORB_ID(manual_control_switches)};
-		manual_control_switches_sub.update();
-
 		EXPECT_EQ(manual_control_switches_sub.get().mode_slot, expected_slot);
 
 		// Reset channel value for the next test
@@ -129,8 +125,6 @@ public:
 
 		// THEN: we receive the expected mode slot
 		uORB::SubscriptionData<manual_control_switches_s> manual_control_switches_sub{ORB_ID(manual_control_switches)};
-		manual_control_switches_sub.update();
-
 		EXPECT_EQ(manual_control_switches_sub.get().return_switch, expected_position);
 	}
 
@@ -155,8 +149,6 @@ TEST_F(RCUpdateTest, ModeSlotUnassigned)
 
 	// THEN: we receive no mode slot
 	uORB::SubscriptionData<manual_control_switches_s> manual_control_switches_sub{ORB_ID(manual_control_switches)};
-	manual_control_switches_sub.update();
-
 	EXPECT_EQ(manual_control_switches_sub.get().mode_slot, 0); // manual_control_switches_s::MODE_SLOT_NONE
 }
 
@@ -198,8 +190,6 @@ TEST_F(RCUpdateTest, ReturnSwitchUnassigned)
 
 	// THEN: we receive an unmapped return switch state
 	uORB::SubscriptionData<manual_control_switches_s> manual_control_switches_sub{ORB_ID(manual_control_switches)};
-	manual_control_switches_sub.update();
-
 	EXPECT_EQ(manual_control_switches_sub.get().return_switch, 0); // manual_control_switches_s::SWITCH_POS_NONE
 }
 
