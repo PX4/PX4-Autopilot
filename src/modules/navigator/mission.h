@@ -263,17 +263,7 @@ private:
 	 * @param mission_item The mission item to populate
 	 * @return true if successful
 	 */
-	bool getNextPositionMissionItem(const mission_s &mission, int start_index, mission_item_s &mission_item) const;
-
-	/**
-	 * @brief Read the mission item at the given index
-	 *
-	 * @param mission The mission to read from
-	 * @param index The index to read
-	 * @param missionitem The mission item to populate
-	 * @return true if successful
-	 */
-	bool readMissionItemAtIndex(const mission_s &mission, const int index, mission_item_s &missionitem) const;
+	bool getNextPositionMissionItem(const mission_s &mission, int start_index, mission_item_s &mission_item);
 
 	/**
 	 * @brief Cache the mission items containing gimbal, camera mode and trigger commands
