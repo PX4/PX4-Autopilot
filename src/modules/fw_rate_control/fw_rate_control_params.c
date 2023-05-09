@@ -565,3 +565,19 @@ PARAM_DEFINE_FLOAT(FW_RLL_TO_YAW_FF, 0.0f);
  * @group FW Attitude Control
  */
 PARAM_DEFINE_INT32(FW_SPOILERS_MAN, 0);
+
+/**
+ * Acro rate controlled axes
+ *
+ * Controls which axes are controlled by the rate controller in Acro mode.
+ * If not set, then the manual control setpoint of the corresponding axis is
+ * directly applied as torque setpoint.
+ *
+ * @min 0
+ * @max 7
+ * @bit 0 Roll
+ * @bit 1 Pitch
+ * @bit 2 Yaw
+ * @group FW Rate Control
+ */
+PARAM_DEFINE_INT32(FW_ACRO_AXS_CTRL, 3);

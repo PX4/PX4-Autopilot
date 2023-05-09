@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,6 +43,13 @@
 
 #include <mathlib/mathlib.h>
 #include <uORB/topics/rate_ctrl_status.h>
+
+enum RateControllerAxis {
+	ENABLE_CONTROLLER_X = (1 << 0),
+	ENABLE_CONTROLLER_Y = (1 << 1),
+	ENABLE_CONTROLLER_Z = (1 << 2),
+	ENABLE_CONTROLLER_ALL = 7
+};
 
 class RateControl
 {
@@ -93,6 +100,18 @@ public:
 	 * @see _rate_int
 	 */
 	void resetIntegral() { _rate_int.zero(); }
+
+	/**
+	 * Set the integral term to 0 for specific axes
+	 * @param  axis axis: roll 0 / pitch 1 / yaw 2
+	 * @see _rate_int
+	 */
+	void resetIntegral(size_t axis)
+	{
+		if (axis < 3) {
+			_rate_int(axis) = 0.f;
+		}
+	}
 
 	/**
 	 * Get status message of controller for logging/debugging
