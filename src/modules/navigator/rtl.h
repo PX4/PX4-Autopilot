@@ -96,6 +96,11 @@ public:
 		RTL_STATE_HEAD_TO_CENTER,
 	};
 
+	/**
+	 * @brief function to call regularly to do background work
+	 */
+	void run();
+
 	void on_inactivation() override;
 	void on_inactive() override;
 	void on_activation() override;
@@ -138,6 +143,14 @@ private:
 
 	RTLState _rtl_state{RTL_STATE_NONE};
 
+	enum class DatamanState {
+		UpdateRequestWait,
+		Read,
+		ReadWait,
+		Load,
+		Error
+	};
+
 	struct RTLPosition {
 		double lat;
 		double lon;
@@ -157,7 +170,15 @@ private:
 		}
 	};
 
-	DatamanClient _dataman_client{};
+	DatamanState _dataman_state{DatamanState::UpdateRequestWait};
+	DatamanState _error_state{DatamanState::UpdateRequestWait};
+	uint16_t _update_counter{0}; ///< dataman update counter: if it does not match, safe points data was updated
+	bool _safe_points_updated{false}; ///< flag indicating if safe points are updated to dataman cache
+	DatamanCache _dataman_cache{"rtl_dm_cache_miss", 4};
+	DatamanClient	&_dataman_client = _dataman_cache.client();
+	bool _initiate_safe_points_updated{true}; ///< flag indicating if safe points update is needed
+
+	mission_stats_entry_s _stats;
 
 	RTLPosition _destination{}; ///< the RTL position to fly to (typically the home position or a safe point)
 
