@@ -42,7 +42,7 @@
 
 #include "rtl.h"
 #include "navigator.h"
-#include <dataman/dataman.h>
+#include <dataman_client/DatamanClient.hpp>
 #include <px4_platform_common/events.h>
 
 #include <lib/geo/geo.h>
@@ -181,10 +181,11 @@ void RTL::find_RTL_destination()
 	// compare to safe landing positions
 	mission_safe_point_s closest_safe_point {};
 	mission_stats_entry_s stats;
-	int ret = dm_read(DM_KEY_SAFE_POINTS, 0, &stats, sizeof(mission_stats_entry_s));
+	bool success = _dataman_client.readSync(DM_KEY_SAFE_POINTS, 0, reinterpret_cast<uint8_t *>(&stats),
+						sizeof(mission_stats_entry_s));
 	int num_safe_points = 0;
 
-	if (ret == sizeof(mission_stats_entry_s)) {
+	if (success) {
 		num_safe_points = stats.num_items;
 	}
 
@@ -194,8 +195,10 @@ void RTL::find_RTL_destination()
 	for (int current_seq = 1; current_seq <= num_safe_points; ++current_seq) {
 		mission_safe_point_s mission_safe_point;
 
-		if (dm_read(DM_KEY_SAFE_POINTS, current_seq, &mission_safe_point, sizeof(mission_safe_point_s)) !=
-		    sizeof(mission_safe_point_s)) {
+		success = _dataman_client.readSync(DM_KEY_SAFE_POINTS, current_seq, reinterpret_cast<uint8_t *>(&mission_safe_point),
+						   sizeof(mission_safe_point_s));
+
+		if (!success) {
 			PX4_ERR("dm_read failed");
 			continue;
 		}

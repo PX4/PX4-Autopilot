@@ -131,6 +131,7 @@ px4_add_module(
 		adsb
 		airspeed
 		component_general_json # for checksums.h
+		dataman_client
 		drivers_accelerometer
 		drivers_gyroscope
 		drivers_magnetometer

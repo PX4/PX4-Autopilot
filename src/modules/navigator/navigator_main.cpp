@@ -48,7 +48,7 @@
 #include <float.h>
 #include <sys/stat.h>
 
-#include <dataman/dataman.h>
+#include <dataman_client/DatamanClient.hpp>
 #include <drivers/drv_hrt.h>
 #include <lib/geo/geo.h>
 #include <lib/adsb/AdsbConflict.h>

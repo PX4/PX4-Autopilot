@@ -50,7 +50,7 @@
 
 #include <string.h>
 #include <drivers/drv_hrt.h>
-#include <dataman/dataman.h>
+#include <dataman_client/DatamanClient.hpp>
 #include <systemlib/mavlink_log.h>
 #include <systemlib/err.h>
 #include <lib/geo/geo.h>
@@ -75,7 +75,7 @@ void Mission::mission_init()
 	// init mission state, do it here to allow navigator to use stored mission even if mavlink failed to start
 	mission_s mission{};
 
-	if (dm_read(DM_KEY_MISSION_STATE, 0, &mission, sizeof(mission_s)) == sizeof(mission_s)) {
+	if (_dataman_client.readSync(DM_KEY_MISSION_STATE, 0, reinterpret_cast<uint8_t *>(&mission), sizeof(mission_s))) {
 		if ((mission.timestamp != 0)
 		    && (mission.dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 || mission.dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_1)) {
 			if (mission.count > 0) {
@@ -88,7 +88,7 @@ void Mission::mission_init()
 			// initialize mission state in dataman
 			mission.dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
 			mission.timestamp = hrt_absolute_time();
-			dm_write(DM_KEY_MISSION_STATE, 0, &mission, sizeof(mission_s));
+			_dataman_client.writeSync(DM_KEY_MISSION_STATE, 0, reinterpret_cast<uint8_t *>(&mission), sizeof(mission_s));
 		}
 	}
 }
@@ -124,14 +124,11 @@ Mission::on_inactive()
 		/* load missions from storage */
 		mission_s mission_state = {};
 
-		dm_lock(DM_KEY_MISSION_STATE);
-
 		/* read current state */
-		int read_res = dm_read(DM_KEY_MISSION_STATE, 0, &mission_state, sizeof(mission_s));
+		bool success = _dataman_client.readSync(DM_KEY_MISSION_STATE, 0, reinterpret_cast<uint8_t *>(&mission_state),
+							sizeof(mission_s));
 
-		dm_unlock(DM_KEY_MISSION_STATE);
-
-		if (read_res == sizeof(mission_s)) {
+		if (success) {
 			_mission.dataman_id = mission_state.dataman_id;
 			_mission.count = mission_state.count;
 			_current_mission_index = mission_state.current_seq;
@@ -464,10 +461,12 @@ Mission::find_mission_land_start()
 	bool found_land_start_marker = false;
 
 	for (size_t i = 1; i < _mission.count; i++) {
-		const ssize_t len = sizeof(missionitem);
 		missionitem_prev = missionitem; // store the last mission item before reading a new one
 
-		if (dm_read(dm_current, i, &missionitem, len) != len) {
+		bool success = _dataman_client.readSync(dm_current, i, reinterpret_cast<uint8_t *>(&missionitem),
+							sizeof(mission_item_s));
+
+		if (!success) {
 			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
 			PX4_ERR("dataman read failure");
 			break;
@@ -668,9 +667,11 @@ Mission::advance_mission()
 
 				for (int32_t i = _current_mission_index - 1; i >= 0; i--) {
 					struct mission_item_s missionitem = {};
-					const ssize_t len = sizeof(missionitem);
 
-					if (dm_read(dm_current, i, &missionitem, len) != len) {
+					bool success = _dataman_client.readSync(dm_current, i, reinterpret_cast<uint8_t *>(&missionitem),
+										sizeof(mission_item_s));
+
+					if (!success) {
 						/* not supposed to happen unless the datamanager can't access the SD card, etc. */
 						PX4_ERR("dataman read failure");
 						break;
@@ -1641,13 +1642,14 @@ Mission::read_mission_item(int offset, struct mission_item_s *mission_item)
 			return false;
 		}
 
-		const ssize_t len = sizeof(struct mission_item_s);
-
 		/* read mission item to temp storage first to not overwrite current mission item if data damaged */
 		struct mission_item_s mission_item_tmp;
 
 		/* read mission item from datamanager */
-		if (dm_read(dm_item, *mission_index_ptr, &mission_item_tmp, len) != len) {
+		bool success = _dataman_client.readSync(dm_item, *mission_index_ptr, reinterpret_cast<uint8_t *>(&mission_item_tmp),
+							sizeof(mission_item_s));
+
+		if (!success) {
 			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
 			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Waypoint could not be read.\t");
 			events::send<uint16_t>(events::ID("mission_failed_to_read_wp"), events::Log::Error,
@@ -1668,7 +1670,10 @@ Mission::read_mission_item(int offset, struct mission_item_s *mission_item)
 					(mission_item_tmp.do_jump_current_count)++;
 
 					/* save repeat count */
-					if (dm_write(dm_item, *mission_index_ptr, &mission_item_tmp, len) != len) {
+					success = _dataman_client.writeSync(dm_item, *mission_index_ptr, reinterpret_cast<uint8_t *>(&mission_item_tmp),
+									    sizeof(struct mission_item_s));
+
+					if (!success) {
 						/* not supposed to happen unless the datamanager can't access the dataman */
 						mavlink_log_critical(_navigator->get_mavlink_log_pub(), "DO JUMP waypoint could not be written.\t");
 						events::send(events::ID("mission_failed_to_write_do_jump"), events::Log::Error,
@@ -1718,16 +1723,17 @@ Mission::save_mission_state()
 	mission_s mission_state = {};
 
 	/* lock MISSION_STATE item */
-	int dm_lock_ret = dm_lock(DM_KEY_MISSION_STATE);
+	bool success_lock = _dataman_client.lockSync(DM_KEY_MISSION_STATE);
 
-	if (dm_lock_ret != 0) {
+	if (!success_lock) {
 		PX4_ERR("DM_KEY_MISSION_STATE lock failed");
 	}
 
 	/* read current state */
-	int read_res = dm_read(DM_KEY_MISSION_STATE, 0, &mission_state, sizeof(mission_s));
+	bool success = _dataman_client.readSync(DM_KEY_MISSION_STATE, 0, reinterpret_cast<uint8_t *>(&mission_state),
+						sizeof(mission_s));
 
-	if (read_res == sizeof(mission_s)) {
+	if (success) {
 		/* data read successfully, check dataman ID and items count */
 		if (mission_state.dataman_id == _mission.dataman_id && mission_state.count == _mission.count) {
 			/* navigator may modify only sequence, write modified state only if it changed */
@@ -1735,7 +1741,10 @@ Mission::save_mission_state()
 				mission_state.current_seq = _current_mission_index;
 				mission_state.timestamp = hrt_absolute_time();
 
-				if (dm_write(DM_KEY_MISSION_STATE, 0, &mission_state, sizeof(mission_s)) != sizeof(mission_s)) {
+				success = _dataman_client.writeSync(DM_KEY_MISSION_STATE, 0, reinterpret_cast<uint8_t *>(&mission_state),
+								    sizeof(mission_s));
+
+				if (!success) {
 
 					PX4_ERR("Can't save mission state");
 				}
@@ -1756,15 +1765,18 @@ Mission::save_mission_state()
 		events::send(events::ID("mission_invalid_mission_state"), events::Log::Error, "Invalid mission state");
 
 		/* write modified state only if changed */
-		if (dm_write(DM_KEY_MISSION_STATE, 0, &mission_state, sizeof(mission_s)) != sizeof(mission_s)) {
+		success = _dataman_client.writeSync(DM_KEY_MISSION_STATE, 0, reinterpret_cast<uint8_t *>(&mission_state),
+						    sizeof(mission_s));
+
+		if (!success) {
 
 			PX4_ERR("Can't save mission state");
 		}
 	}
 
 	/* unlock MISSION_STATE item */
-	if (dm_lock_ret == 0) {
-		dm_unlock(DM_KEY_MISSION_STATE);
+	if (success_lock) {
+		_dataman_client.unlockSync(DM_KEY_MISSION_STATE);
 	}
 }
 
@@ -1821,9 +1833,9 @@ Mission::check_mission_valid(bool force)
 void
 Mission::reset_mission(struct mission_s &mission)
 {
-	dm_lock(DM_KEY_MISSION_STATE);
+	_dataman_client.lockSync(DM_KEY_MISSION_STATE);
 
-	if (dm_read(DM_KEY_MISSION_STATE, 0, &mission, sizeof(mission_s)) == sizeof(mission_s)) {
+	if (_dataman_client.readSync(DM_KEY_MISSION_STATE, 0, reinterpret_cast<uint8_t *>(&mission), sizeof(mission_s))) {
 		if (mission.dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 || mission.dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_1) {
 			/* set current item to 0 */
 			mission.current_seq = 0;
@@ -1836,7 +1848,9 @@ Mission::reset_mission(struct mission_s &mission)
 					struct mission_item_s item;
 					const ssize_t len = sizeof(struct mission_item_s);
 
-					if (dm_read(dm_current, index, &item, len) != len) {
+					bool success = _dataman_client.readSync(dm_current, index, reinterpret_cast<uint8_t *>(&item), sizeof(mission_item_s));
+
+					if (!success) {
 						PX4_WARN("could not read mission item during reset");
 						break;
 					}
@@ -1844,7 +1858,9 @@ Mission::reset_mission(struct mission_s &mission)
 					if (item.nav_cmd == NAV_CMD_DO_JUMP) {
 						item.do_jump_current_count = 0;
 
-						if (dm_write(dm_current, index, &item, len) != len) {
+						success = _dataman_client.writeSync(dm_current, index, reinterpret_cast<uint8_t *>(&item), len);
+
+						if (!success) {
 							PX4_WARN("could not save mission item during reset");
 							break;
 						}
@@ -1863,10 +1879,10 @@ Mission::reset_mission(struct mission_s &mission)
 			mission.current_seq = 0;
 		}
 
-		dm_write(DM_KEY_MISSION_STATE, 0, &mission, sizeof(mission_s));
+		_dataman_client.writeSync(DM_KEY_MISSION_STATE, 0, reinterpret_cast<uint8_t *>(&mission), sizeof(mission_s));
 	}
 
-	dm_unlock(DM_KEY_MISSION_STATE);
+	_dataman_client.unlockSync(DM_KEY_MISSION_STATE);
 }
 
 bool
@@ -1883,7 +1899,7 @@ Mission::need_to_reset_mission()
 }
 
 int32_t
-Mission::index_closest_mission_item() const
+Mission::index_closest_mission_item()
 {
 	int32_t min_dist_index(0);
 	float min_dist(FLT_MAX), dist_xy(FLT_MAX), dist_z(FLT_MAX);
@@ -1892,9 +1908,11 @@ Mission::index_closest_mission_item() const
 
 	for (size_t i = 0; i < _mission.count; i++) {
 		struct mission_item_s missionitem = {};
-		const ssize_t len = sizeof(missionitem);
 
-		if (dm_read(dm_current, i, &missionitem, len) != len) {
+		bool success = _dataman_client.readSync(dm_current, i, reinterpret_cast<uint8_t *>(&missionitem),
+							sizeof(mission_item_s));
+
+		if (!success) {
 			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
 			PX4_ERR("dataman read failure");
 			break;

@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2023 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,30 +31,4 @@
 #
 ############################################################################
 
-add_subdirectory(GeofenceBreachAvoidance)
-add_subdirectory(MissionFeasibility)
-
-px4_add_module(
-	MODULE modules__navigator
-	MAIN navigator
-	SRCS
-		navigator_main.cpp
-		navigator_mode.cpp
-		mission_block.cpp
-		mission.cpp
-		loiter.cpp
-		rtl.cpp
-		takeoff.cpp
-		land.cpp
-		precland.cpp
-		mission_feasibility_checker.cpp
-		geofence.cpp
-		vtol_takeoff.cpp
-	DEPENDS
-		dataman_client
-		geo
-		adsb
-		geofence_breach_avoidance
-		motion_planning
-		mission_feasibility_checker
-	)
+px4_add_library(dataman_client DatamanClient.cpp)

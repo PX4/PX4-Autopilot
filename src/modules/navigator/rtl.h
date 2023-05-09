@@ -53,6 +53,7 @@
 #include <uORB/topics/wind.h>
 #include <matrix/math.hpp>
 #include <lib/geo/geo.h>
+#include <dataman_client/DatamanClient.hpp>
 
 class Navigator;
 
@@ -155,6 +156,8 @@ private:
 			type = RTL_DESTINATION_HOME;
 		}
 	};
+
+	DatamanClient _dataman_client{};
 
 	RTLPosition _destination{}; ///< the RTL position to fly to (typically the home position or a safe point)
 
