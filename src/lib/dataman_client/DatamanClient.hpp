@@ -57,33 +57,51 @@ public:
 	bool lockSync(dm_item_t item, hrt_abstime timeout = 1000_ms);
 	bool unlockSync(dm_item_t item, hrt_abstime timeout = 1000_ms);
 
-	bool readAsync(dm_item_t item, uint32_t index, uint8_t *buffer);
-	bool writeAsync(dm_item_t item, uint32_t index, uint8_t *buffer);
+	bool readAsync(dm_item_t item, uint32_t index, uint8_t *buffer, uint32_t length);
+	bool writeAsync(dm_item_t item, uint32_t index, uint8_t *buffer, uint32_t length);
+	bool clearAsync(dm_item_t item);
+	bool lockAsync(dm_item_t item);
+	bool unlockAsync(dm_item_t item);
 
 	void update();
 
 	bool lastOperationCompleted(bool &success);
 
+	/**
+	 * Abort any async operation currently in progress
+	 */
+	void abortCurrentOperation();
+
 private:
 
 	enum class State {
 		Idle,
-		RequestSent
+		RequestSent,
+		ResponseReceived
+	};
+
+	enum class Status {
+		Idle,
+		RequestSent,
+		ResponseReceived
 	};
 
 	struct Request {
+		hrt_abstime timestamp;
+		dm_function_t request_type;
 		dm_item_t item;
-		unsigned index;
+		uint32_t index;
 		uint8_t *buffer;
+		uint32_t length;
 	};
 
 	/* Synchronous response/request handler */
 	bool syncHandler(const dataman_request_s &request, dataman_response_s &response,
 			 const hrt_abstime &start_time, hrt_abstime timeout);
 
-
-	//State _state{State::Idle};
-	//Request _active_request{};
+	State _state{State::Idle};
+	Request _active_request{};
+	uint8_t _response_status{};
 
 	int32_t _dataman_response_sub{};
 	uORB::Publication<dataman_request_s> _dataman_request_pub{ORB_ID(dataman_request)};
