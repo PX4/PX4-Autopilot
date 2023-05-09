@@ -284,7 +284,14 @@ then
 else
 	param set UXRCE_DDS_DOM_ID 0
 fi
-uxrce_dds_client start -t udp -h 127.0.0.1 -p 8888 $uxrce_dds_ns
+uxrce_dds_port=8888
+if [ -n "$PX4_UXRCE_DDS_PORT" ]
+then
+	# Override port if environment variable is defined
+	uxrce_dds_port="$PX4_UXRCE_DDS_PORT"
+fi
+
+uxrce_dds_client start -t udp -h 127.0.0.1 -p $uxrce_dds_port $uxrce_dds_ns
 
 if param greater -s MNT_MODE_IN -1
 then
