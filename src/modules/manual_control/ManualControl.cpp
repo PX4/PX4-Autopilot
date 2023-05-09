@@ -92,7 +92,7 @@ void ManualControl::Run()
 	for (int i = 0; i < MAX_MANUAL_INPUT_COUNT; i++) {
 		manual_control_setpoint_s manual_control_input;
 
-		if (_manual_control_setpoint_subs[i].update(&manual_control_input)) {
+		if (_manual_control_input_subs[i].update(&manual_control_input)) {
 			_selector.updateWithNewInputSample(now, manual_control_input, i);
 		}
 	}
@@ -239,11 +239,11 @@ void ManualControl::Run()
 		if (instance != _previous_manual_control_input_instance) {
 			if ((0 <= _previous_manual_control_input_instance)
 			    && (_previous_manual_control_input_instance < MAX_MANUAL_INPUT_COUNT)) {
-				_manual_control_setpoint_subs[_previous_manual_control_input_instance].unregisterCallback();
+				_manual_control_input_subs[_previous_manual_control_input_instance].unregisterCallback();
 			}
 
 			if ((0 <= instance) && (instance < MAX_MANUAL_INPUT_COUNT)) {
-				_manual_control_setpoint_subs[instance].registerCallback();
+				_manual_control_input_subs[instance].registerCallback();
 			}
 
 			_previous_manual_control_input_instance = instance;
