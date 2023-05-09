@@ -74,6 +74,9 @@ public:
 
 	int print_status() override;
 
+protected:
+	void processInput(hrt_abstime now);
+
 private:
 	static constexpr int MAX_MANUAL_INPUT_COUNT = 3;
 
