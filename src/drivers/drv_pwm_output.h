@@ -48,7 +48,7 @@
 
 __BEGIN_DECLS
 
-#define PWM_OUTPUT_MAX_CHANNELS 20
+#define PWM_OUTPUT_MAX_CHANNELS 16
 
 /* Use defaults unless the board override the defaults by providing
  * PX4_PWM_ALTERNATE_RANGES and a replacement set of

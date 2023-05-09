@@ -1,4 +1,4 @@
-__max_num_mc_motors: &max_num_mc_motors 20
+__max_num_mc_motors: &max_num_mc_motors 16
 __max_num_servos: &max_num_servos 15
 __max_num_tilts: &max_num_tilts 4
 
@@ -67,10 +67,6 @@ parameters:
                 13: Motor 14
                 14: Motor 15
                 15: Motor 16
-                16: Motor 17
-                17: Motor 18
-                18: Motor 19
-                19: Motor 20
             default: 0
         CA_R${i}_SLEW:
             description:
@@ -132,9 +128,6 @@ parameters:
                 14: '14'
                 15: '15'
                 16: '16'
-                17: '17'
-                18: '18'
-                19: '19'
             default: 0
         CA_ROTOR${i}_PX:
             description:
