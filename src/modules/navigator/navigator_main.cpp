@@ -911,6 +911,7 @@ void Navigator::run()
 
 		_mission.run();
 		_geofence.run();
+		_rtl.run();
 
 		perf_end(_loop_perf);
 	}
