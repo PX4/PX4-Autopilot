@@ -52,7 +52,7 @@
 
 #include <float.h>
 
-#include <dataman/dataman.h>
+#include <dataman_client/DatamanClient.hpp>
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/module_params.h>
 #include <uORB/Subscription.hpp>
@@ -234,7 +234,7 @@ private:
 	/**
 	 * Return the index of the closest mission item to the current global position.
 	 */
-	int32_t index_closest_mission_item() const;
+	int32_t index_closest_mission_item();
 
 	bool position_setpoint_equal(const position_setpoint_s *p1, const position_setpoint_s *p2) const;
 
@@ -323,6 +323,7 @@ private:
 
 	uORB::Subscription	_mission_sub{ORB_ID(mission)};		/**< mission subscription */
 	mission_s		_mission {};
+	DatamanClient	_dataman_client{};
 
 	int32_t _current_mission_index{-1};
 
