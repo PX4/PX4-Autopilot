@@ -56,21 +56,47 @@ public:
 	virtual bool run_tests();
 
 private:
+
+	enum class State {
+		Write,
+		WriteWait,
+		Read,
+		ReadWait,
+		Clear,
+		ClearWait,
+		Lock,
+		LockWait,
+		Unlock,
+		UnlockWait,
+		OperationCompleted,
+		CompareBuffers,
+		Exit
+	};
+
+	//Sync
 	bool testSyncReadInvalidItem();
 	bool testSyncWriteInvalidItem();
-
 	bool testSyncReadInvalidIndex();
 	bool testSyncWriteInvalidIndex();
-
 	bool testSyncReadBufferOverflow();
 	bool testSyncWriteBufferOverflow();
-
-	bool testMutipleClients();
-
+	bool testSyncMutipleClients();
 	bool testSyncWriteReadAllItemsMaxSize();
-
 	bool testSyncClearAll();
 
+	//Async
+	bool testAsyncReadInvalidItem();
+	bool testAsyncWriteInvalidItem();
+	bool testAsyncReadInvalidIndex();
+	bool testAsyncWriteInvalidIndex();
+	bool testAsyncReadBufferOverflow();
+	bool testAsyncWriteBufferOverflow();
+	bool testAsyncMutipleClientsNoLocks();
+	bool testAsyncMutipleClientsWithLocks();
+	bool testAsyncWriteReadAllItemsMaxSize();
+	bool testAsyncClearAll();
+
+	//The last test will reset the items so that FMU can boot without Dataman errors.
 	bool testResetItems();
 
 	static void *testLockThread(void *arg);
@@ -79,12 +105,22 @@ private:
 	DatamanClient _dataman_client2{};
 	DatamanClient _dataman_client3{};
 	DatamanClient _dataman_client_thread1{};
+	DatamanClient _dataman_client_thread2{};
+	DatamanClient _dataman_client_thread3{};
+
+	static void *testAsyncNoLocksThread(void *arg);
+	static void *testAsyncWithLocksThread(void *arg);
 
 	static constexpr uint32_t DM_MAX_DATA_SIZE{MISSION_ITEM_SIZE};
 	static_assert(sizeof(dataman_response_s::data) == DM_MAX_DATA_SIZE, "data size != DM_MAX_DATA_SIZE");
 
 	uint8_t _buffer_read[DM_MAX_DATA_SIZE];
 	uint8_t _buffer_write[DM_MAX_DATA_SIZE];
+
+	bool _response_success{false};
+
+	uint32_t _thread_index;
+	bool _thread_tests_success;
 
 	static constexpr uint32_t OVERFLOW_LENGTH = sizeof(_buffer_write) + 1;
 };
@@ -134,7 +170,7 @@ DatamanTest::testSyncWriteBufferOverflow()
 }
 
 bool
-DatamanTest::testMutipleClients()
+DatamanTest::testSyncMutipleClients()
 {
 	bool success = _dataman_client1.writeSync(DM_KEY_WAYPOINTS_OFFBOARD_0, 0x11, _buffer_write, sizeof(_buffer_write));
 
@@ -257,6 +293,7 @@ DatamanTest::testMutipleClients()
 	success = _dataman_client1.lockSync(DM_KEY_MISSION_STATE, 10_ms);
 
 	if (success) {
+		pthread_join(thread, nullptr);
 		return false;
 	}
 
@@ -264,12 +301,14 @@ DatamanTest::testMutipleClients()
 	success = _dataman_client1.lockSync(DM_KEY_MISSION_STATE);
 
 	if (!success) {
+		pthread_join(thread, nullptr);
 		return false;
 	}
 
 	success = _dataman_client1.unlockSync(DM_KEY_MISSION_STATE);
 
 	if (!success) {
+		pthread_join(thread, nullptr);
 		return false;
 	}
 
@@ -314,7 +353,7 @@ DatamanTest::testSyncWriteReadAllItemsMaxSize()
 		}
 
 		// readSync
-		for (volatile uint32_t index = 0U; index < g_per_item_max_index[item]; ++index) {
+		for (uint32_t index = 0U; index < g_per_item_max_index[item]; ++index) {
 
 			success = _dataman_client1.readSync((dm_item_t)item, index, _buffer_read, g_per_item_size[item]);
 
@@ -324,21 +363,20 @@ DatamanTest::testSyncWriteReadAllItemsMaxSize()
 			}
 
 			// Check read buffer
-			for (volatile uint32_t i = 0U; i < g_per_item_size[item]; ++i) {
+			for (uint32_t i = 0U; i < g_per_item_size[item]; ++i) {
 
 				uint8_t expected_value = (index % UINT8_MAX);
 
 				if (expected_value != _buffer_read[i]) {
 					PX4_ERR("readSync failed at item = %" PRIu32 ", index =  %" PRIu32 ", element= %" PRIu32 ", expected:  %" PRIu8
-						", received:  %" PRIu8,
-						item, index, i, expected_value, _buffer_read[i]);
+						", received:  %" PRIu8, item, index, i, expected_value, _buffer_read[i]);
 					return false;
 				}
 			}
 		}
 	}
 
-	return true;;
+	return true;
 }
 
 bool
@@ -358,6 +396,947 @@ DatamanTest::testSyncClearAll()
 	}
 
 	return success;
+}
+
+bool
+DatamanTest::testAsyncReadInvalidItem()
+{
+	bool success = true;
+
+	State state = State::Read;
+	hrt_abstime start_time = hrt_absolute_time();
+
+	//While loop represents a task
+	while (state != State::Exit) {
+
+		_dataman_client1.update();
+
+
+		switch (state) {
+
+		case State::Read:
+
+			state = State::ReadWait;
+			success = _dataman_client1.readAsync(DM_KEY_NUM_KEYS, 0, _buffer_read, sizeof(_buffer_read));
+
+			if (!success) {
+				return false;
+			}
+
+			break;
+
+		case State::ReadWait:
+			if (_dataman_client1.lastOperationCompleted(_response_success)) {
+				state = State::OperationCompleted;
+
+				if (!_response_success) {
+					//Test ends here
+					return true;
+				}
+			}
+
+			break;
+
+		default:
+			break;
+
+		}
+
+		if (hrt_elapsed_time(&start_time) > 1_s) {
+			PX4_ERR("Test timeout!");
+			return false;
+		}
+
+		//Simulate rescheduling the task after a 1 ms delay to allow time for the dataman task to operate.
+		px4_usleep(1_ms);
+	}
+
+	return false;
+}
+
+bool
+DatamanTest::testAsyncWriteInvalidItem()
+{
+	bool success = true;
+
+	State state = State::Write;
+	hrt_abstime start_time = hrt_absolute_time();
+
+	//While loop represents a task
+	while (state != State::Exit) {
+
+		_dataman_client1.update();
+
+
+		switch (state) {
+
+		case State::Write:
+
+			state = State::WriteWait;
+			success = _dataman_client1.writeAsync(DM_KEY_NUM_KEYS, 0, _buffer_write, sizeof(_buffer_write));
+
+			if (!success) {
+				return false;
+			}
+
+			break;
+
+		case State::WriteWait:
+			if (_dataman_client1.lastOperationCompleted(_response_success)) {
+				state = State::OperationCompleted;
+
+				if (!_response_success) {
+					//Test ends here
+					return true;
+				}
+			}
+
+			break;
+
+		default:
+			break;
+
+		}
+
+		if (hrt_elapsed_time(&start_time) > 1_s) {
+			PX4_ERR("Test timeout!");
+			return false;
+		}
+
+		//Simulate rescheduling the task after a 1 ms delay to allow time for the dataman task to operate.
+		px4_usleep(1_ms);
+	}
+
+	return false;
+}
+
+bool
+DatamanTest::testAsyncReadInvalidIndex()
+{
+	bool success = true;
+
+	State state = State::Read;
+	hrt_abstime start_time = hrt_absolute_time();
+
+	//While loop represents a task
+	while (state != State::Exit) {
+
+		_dataman_client1.update();
+
+
+		switch (state) {
+
+		case State::Read:
+
+			state = State::ReadWait;
+			success = _dataman_client1.readAsync(DM_KEY_SAFE_POINTS, DM_KEY_SAFE_POINTS_MAX, _buffer_read, 2);
+
+			if (!success) {
+				return false;
+			}
+
+			break;
+
+		case State::ReadWait:
+			if (_dataman_client1.lastOperationCompleted(_response_success)) {
+				state = State::OperationCompleted;
+
+				if (!_response_success) {
+					//Test ends here
+					return true;
+				}
+			}
+
+			break;
+
+		default:
+			break;
+
+		}
+
+		if (hrt_elapsed_time(&start_time) > 1_s) {
+			PX4_ERR("Test timeout!");
+			return false;
+		}
+
+		//Simulate rescheduling the task after a 1 ms delay to allow time for the dataman task to operate.
+		px4_usleep(1_ms);
+	}
+
+	return false;
+}
+
+bool
+DatamanTest::testAsyncWriteInvalidIndex()
+{
+	bool success = true;
+
+	State state = State::Write;
+	hrt_abstime start_time = hrt_absolute_time();
+
+	//While loop represents a task
+	while (state != State::Exit) {
+
+		_dataman_client1.update();
+
+
+		switch (state) {
+
+		case State::Write:
+
+			state = State::WriteWait;
+			success = _dataman_client1.writeAsync(DM_KEY_SAFE_POINTS, DM_KEY_SAFE_POINTS_MAX, _buffer_write, 2);
+
+			if (!success) {
+				return false;
+			}
+
+			break;
+
+		case State::WriteWait:
+			if (_dataman_client1.lastOperationCompleted(_response_success)) {
+				state = State::OperationCompleted;
+
+				if (!_response_success) {
+					//Test ends here
+					return true;
+				}
+			}
+
+			break;
+
+		default:
+			break;
+
+		}
+
+		if (hrt_elapsed_time(&start_time) > 1_s) {
+			PX4_ERR("Test timeout!");
+			return false;
+		}
+
+		//Simulate rescheduling the task after a 1 ms delay to allow time for the dataman task to operate.
+		px4_usleep(1_ms);
+	}
+
+	return false;
+}
+
+bool
+DatamanTest::testAsyncReadBufferOverflow()
+{
+	bool success = _dataman_client1.readAsync(DM_KEY_SAFE_POINTS, DM_KEY_SAFE_POINTS_MAX, _buffer_read, OVERFLOW_LENGTH);
+
+	if (success) {
+		return false;
+	}
+
+	return !success;
+}
+
+bool
+DatamanTest::testAsyncWriteBufferOverflow()
+{
+	bool success = _dataman_client1.writeAsync(DM_KEY_SAFE_POINTS, DM_KEY_SAFE_POINTS_MAX, _buffer_write, OVERFLOW_LENGTH);
+
+	if (success) {
+		return false;
+	}
+
+	return !success;
+}
+
+bool
+DatamanTest::testAsyncMutipleClientsNoLocks()
+{
+	pthread_t thread1{};
+	pthread_t thread2{};
+	pthread_t thread3{};
+
+	_thread_tests_success = true;
+	_thread_index = 0x0;
+
+	// Test multiple dataman clients without locks
+	uint32_t ret = pthread_create(&thread1, NULL, &testAsyncNoLocksThread, this);
+
+	if (ret != 0) {
+		printf("pthread_create failed: %" PRIu32 "\n", ret);
+		_thread_tests_success = false;
+	}
+
+	ret = pthread_create(&thread2, NULL, &testAsyncNoLocksThread, this);
+
+	if (ret != 0) {
+		printf("pthread_create failed: %" PRIu32 "\n", ret);
+		_thread_tests_success = false;
+	}
+
+	ret = pthread_create(&thread3, NULL, &testAsyncNoLocksThread, this);
+
+	if (ret != 0) {
+		printf("pthread_create failed: %" PRIu32 "\n", ret);
+		_thread_tests_success = false;
+	}
+
+	pthread_join(thread1, nullptr);
+	pthread_join(thread2, nullptr);
+	pthread_join(thread3, nullptr);
+
+	return _thread_tests_success;
+}
+
+void *DatamanTest::testAsyncNoLocksThread(void *arg)
+{
+	DatamanTest *dataman_test = (DatamanTest *)arg;
+	uint32_t index = (dataman_test->_thread_index)++;
+	State state = State::Write;
+
+	hrt_abstime start_time = hrt_absolute_time();
+
+	uint8_t buffer_read[DM_MAX_DATA_SIZE] = {};
+	uint8_t buffer_write[DM_MAX_DATA_SIZE] = {};
+
+	bool success;
+	bool response_success;
+
+	// Prepare write buffer
+	for (uint8_t i = 0; i < g_per_item_size[DM_KEY_WAYPOINTS_OFFBOARD_0]; ++i) {
+		buffer_write[i] = i * index;
+	}
+
+	DatamanClient *dataman_client{nullptr};
+
+	if (dataman_test->_thread_index == 1) {
+		dataman_client = &(dataman_test->_dataman_client_thread1);
+
+	} else if (dataman_test->_thread_index == 2) {
+		dataman_client = &(dataman_test->_dataman_client_thread2);
+
+	} else if (dataman_test->_thread_index == 3) {
+		dataman_client = &(dataman_test->_dataman_client_thread3);
+
+	} else {
+		PX4_ERR("Unknown thread %" PRIu32 "!", dataman_test->_thread_index);
+		return nullptr;
+	}
+
+	while (state != State::Exit) {
+
+		dataman_client->update();
+
+		switch (state) {
+
+		case State::Write:
+
+			state = State::WriteWait;
+			success = dataman_client->writeAsync(DM_KEY_WAYPOINTS_OFFBOARD_0, index, buffer_write, sizeof(buffer_write));
+
+			if (!success) {
+				PX4_ERR("writeAsync failed for index %" PRIu32 "!", index);
+				state = State::Exit;
+				dataman_test->_thread_tests_success = false;
+			}
+
+			break;
+
+		case State::WriteWait:
+
+			if (dataman_client->lastOperationCompleted(response_success)) {
+				state = State::Read;
+
+				if (!response_success) {
+					PX4_ERR("writeAsync failed to get success operation complete for the index %" PRIu32 "!", index);
+					state = State::Exit;
+					dataman_test->_thread_tests_success = false;
+				}
+			}
+
+			break;
+
+		case State::Read:
+
+			state = State::ReadWait;
+			success = dataman_client->readAsync(DM_KEY_WAYPOINTS_OFFBOARD_0, index, buffer_read, sizeof(buffer_read));
+
+			if (!success) {
+				PX4_ERR("readAsync failed for index %" PRIu32 "!", index);
+				state = State::Exit;
+				dataman_test->_thread_tests_success = false;
+			}
+
+			break;
+
+		case State::ReadWait:
+			if (dataman_client->lastOperationCompleted(response_success)) {
+				state = State::CompareBuffers;
+
+				if (!response_success) {
+					PX4_ERR("readAsync failed to get success operation complete for the index %" PRIu32 "!", index);
+					state = State::Exit;
+					dataman_test->_thread_tests_success = false;
+				}
+			}
+
+			break;
+
+		case State::CompareBuffers:
+
+			for (uint32_t i = 0; i < g_per_item_size[DM_KEY_WAYPOINTS_OFFBOARD_0]; ++i) {
+				if (buffer_write[i] != buffer_read[i]) {
+					PX4_ERR("buffer are not the same for index %" PRIu32 "!", index);
+					dataman_test->_thread_tests_success = false;
+					break;
+				}
+			}
+
+			state = State::Exit;
+			break;
+
+		default:
+			break;
+
+		}
+
+		if (hrt_elapsed_time(&start_time) > 2_s) {
+			PX4_ERR("Test timeout! index=%" PRIu32, index);
+			state = State::Exit;
+			dataman_test->_thread_tests_success = false;
+		}
+
+		//Simulate rescheduling the task after a 1 ms delay to allow time for the dataman task to operate.
+		px4_usleep(1_ms);
+	}
+
+	PX4_INFO("Thread %" PRIu32 " finished!", dataman_test->_thread_index);
+	px4_usleep(200_ms);
+
+	return nullptr;
+}
+
+bool
+DatamanTest::testAsyncMutipleClientsWithLocks()
+{
+	pthread_t thread1{};
+
+	_thread_tests_success = true;
+	_thread_index = 0x0;
+
+	// Lock the item in the thread and then do other tests from this scope
+	uint32_t ret = pthread_create(&thread1, NULL, &testAsyncWithLocksThread, this);
+
+	if (ret != 0) {
+		printf("pthread_create failed: %" PRIu32 "\n", ret);
+		_thread_tests_success = false;
+	}
+
+	px4_usleep(10_ms); //give thread1 time to lock the item
+
+	hrt_abstime start_time = hrt_absolute_time();
+	bool completed;
+	bool response_success;
+	bool test_success = false;
+
+	// Try lockAsync for already locked item
+	_dataman_client1.lockAsync(DM_KEY_WAYPOINTS_OFFBOARD_0);
+
+	while (true) {
+
+		_dataman_client1.update();
+		completed = _dataman_client1.lastOperationCompleted(response_success);
+
+		if (completed) {
+
+			if (response_success) {
+				PX4_ERR("lockAsync successful, expected to fail!");
+
+			} else {
+				test_success = true;
+			}
+
+			break;
+		}
+
+		if (hrt_elapsed_time(&start_time) > 2_s) {
+			PX4_ERR("Test timeout!");
+			break;
+		}
+
+		//Simulate rescheduling the task after a 1 ms delay to allow time for the dataman task to operate.
+		px4_usleep(1_ms);
+	}
+
+	if (!test_success) {
+		pthread_join(thread1, nullptr);
+		return false;
+	}
+
+	// Try writeAsync for already locked item
+	_dataman_client1.writeAsync(DM_KEY_WAYPOINTS_OFFBOARD_0, 0, _buffer_write, sizeof(_buffer_write));
+
+	while (true) {
+
+		_dataman_client1.update();
+		completed = _dataman_client1.lastOperationCompleted(response_success);
+
+		if (completed) {
+
+			if (response_success) {
+				PX4_ERR("writeAsync successful, expected to fail!");
+
+			} else {
+				test_success = true;
+			}
+
+			break;
+		}
+
+		if (hrt_elapsed_time(&start_time) > 2_s) {
+			PX4_ERR("Test timeout!");
+			break;
+		}
+
+		//Simulate rescheduling the task after a 1 ms delay to allow time for the dataman task to operate.
+		px4_usleep(1_ms);
+	}
+
+	if (!test_success) {
+		pthread_join(thread1, nullptr);
+		return false;
+	}
+
+	// Try readAsync for already locked item
+	_dataman_client1.readAsync(DM_KEY_WAYPOINTS_OFFBOARD_0, 0, _buffer_read, sizeof(_buffer_read));
+
+	while (true) {
+
+		_dataman_client1.update();
+		completed = _dataman_client1.lastOperationCompleted(response_success);
+
+		if (completed) {
+
+			if (response_success) {
+				PX4_ERR("readAsync successful, expected to fail!");
+
+			} else {
+				test_success = true;
+			}
+
+			break;
+		}
+
+		if (hrt_elapsed_time(&start_time) > 2_s) {
+			PX4_ERR("Test timeout!");
+			break;
+		}
+
+		//Simulate rescheduling the task after a 1 ms delay to allow time for the dataman task to operate.
+		px4_usleep(1_ms);
+	}
+
+	if (!test_success) {
+		pthread_join(thread1, nullptr);
+		return false;
+	}
+
+	// Try unlockAsync for already locked item
+	_dataman_client1.unlockAsync(DM_KEY_WAYPOINTS_OFFBOARD_0);
+
+	while (true) {
+
+		_dataman_client1.update();
+		completed = _dataman_client1.lastOperationCompleted(response_success);
+
+		if (completed) {
+
+			if (response_success) {
+				PX4_ERR("unlockAsync successful, expected to fail!");
+
+			} else {
+				test_success = true;
+			}
+
+			break;
+		}
+
+		if (hrt_elapsed_time(&start_time) > 2_s) {
+			PX4_ERR("Test timeout!");
+			break;
+		}
+
+		//Simulate rescheduling the task after a 1 ms delay to allow time for the dataman task to operate.
+		px4_usleep(1_ms);
+	}
+
+	if (!test_success) {
+		pthread_join(thread1, nullptr);
+		return false;
+	}
+
+	pthread_join(thread1, nullptr);
+
+	return _thread_tests_success;
+}
+
+void *DatamanTest::testAsyncWithLocksThread(void *arg)
+{
+	DatamanTest *dataman_test = (DatamanTest *)arg;
+	uint32_t index = (dataman_test->_thread_index)++;
+	State state = State::Lock;
+	hrt_abstime start_time = hrt_absolute_time();
+
+	uint8_t buffer_read[DM_MAX_DATA_SIZE] = {};
+	uint8_t buffer_write[DM_MAX_DATA_SIZE] = {};
+
+	bool success;
+	bool response_success;
+
+	DatamanClient *dataman_client{nullptr};
+
+	if (dataman_test->_thread_index == 1) {
+		dataman_client = &(dataman_test->_dataman_client_thread1);
+
+	} else if (dataman_test->_thread_index == 2) {
+		dataman_client = &(dataman_test->_dataman_client_thread2);
+
+	} else if (dataman_test->_thread_index == 3) {
+		dataman_client = &(dataman_test->_dataman_client_thread3);
+
+	} else {
+		PX4_ERR("Unknown thread %" PRIu32 "!", dataman_test->_thread_index);
+		return nullptr;
+	}
+
+	// Prepare write buffer
+	for (uint8_t i = 0; i < g_per_item_size[DM_KEY_WAYPOINTS_OFFBOARD_0]; ++i) {
+		buffer_write[i] = i + 1;
+	}
+
+	while (state != State::Exit) {
+
+		dataman_client->update();
+
+		switch (state) {
+
+		case State::Lock:
+
+			state = State::LockWait;
+			success = dataman_client->lockAsync(DM_KEY_WAYPOINTS_OFFBOARD_0);
+
+			if (!success) {
+				PX4_ERR("lockAsync failed!");
+				state = State::Exit;
+				dataman_test->_thread_tests_success = false;
+			}
+
+			break;
+
+		case State::LockWait:
+
+			if (dataman_client->lastOperationCompleted(response_success)) {
+				state = State::Write;
+
+				if (!response_success) {
+					PX4_ERR("lockAsync failed to get success operation complete!");
+					state = State::Exit;
+					dataman_test->_thread_tests_success = false;
+				}
+			}
+
+			break;
+
+		case State::Write:
+
+			state = State::WriteWait;
+			success = dataman_client->writeAsync(DM_KEY_WAYPOINTS_OFFBOARD_0, index, buffer_write, sizeof(buffer_write));
+
+			if (!success) {
+				PX4_ERR("writeAsync failed for index %" PRIu32 "!", index);
+				state = State::Exit;
+				dataman_test->_thread_tests_success = false;
+			}
+
+			break;
+
+		case State::WriteWait:
+
+			if (dataman_client->lastOperationCompleted(response_success)) {
+				state = State::Read;
+
+				if (!response_success) {
+					PX4_ERR("writeAsync failed to get success operation complete for the index %" PRIu32 "!", index);
+					state = State::Exit;
+					dataman_test->_thread_tests_success = false;
+				}
+			}
+
+			break;
+
+		case State::Read:
+
+			state = State::ReadWait;
+			success = dataman_client->readAsync(DM_KEY_WAYPOINTS_OFFBOARD_0, index, buffer_read, sizeof(buffer_read));
+
+			if (!success) {
+				PX4_ERR("readAsync failed for index %" PRIu32 "!", index);
+				state = State::Exit;
+				dataman_test->_thread_tests_success = false;
+			}
+
+			break;
+
+		case State::ReadWait:
+			if (dataman_client->lastOperationCompleted(response_success)) {
+				state = State::CompareBuffers;
+
+				if (!response_success) {
+					PX4_ERR("readAsync failed to get success operation complete for the index %" PRIu32 "!", index);
+					state = State::Exit;
+					dataman_test->_thread_tests_success = false;
+				}
+			}
+
+			break;
+
+		case State::CompareBuffers:
+
+			for (uint32_t i = 0; i < g_per_item_size[DM_KEY_WAYPOINTS_OFFBOARD_0]; ++i) {
+				if (buffer_write[i] != buffer_read[i]) {
+					PX4_ERR("buffer are not the same for index %" PRIu32 "!", index);
+					dataman_test->_thread_tests_success = false;
+					break;
+				}
+			}
+
+			state = State::Unlock;
+			break;
+
+		case State::Unlock:
+			// Wait before unlocking so that we can perform the tests from another scope
+			px4_usleep(500_ms);
+			state = State::UnlockWait;
+			success = dataman_client->unlockAsync(DM_KEY_WAYPOINTS_OFFBOARD_0);
+
+			if (!success) {
+				PX4_ERR("unlockAsync failed!");
+				state = State::Exit;
+				dataman_test->_thread_tests_success = false;
+			}
+
+			break;
+
+		case State::UnlockWait:
+
+			// Please wait some time before unlocking so that we can perform the test from another scope
+			if (dataman_client->lastOperationCompleted(response_success)) {
+				state = State::Exit;
+
+				if (!response_success) {
+					PX4_ERR("unlockAsync failed to get success operation complete!");
+					dataman_test->_thread_tests_success = false;
+				}
+			}
+
+			break;
+
+		default:
+			break;
+
+		}
+
+		if (hrt_elapsed_time(&start_time) > 2_s) {
+			PX4_ERR("Test timeout! index=%" PRIu32, index);
+			state = State::Exit;
+			dataman_test->_thread_tests_success = false;
+		}
+
+		//Simulate rescheduling the task after a 1 ms delay to allow time for the dataman task to operate.
+		px4_usleep(1_ms);
+	}
+
+	PX4_INFO("Thread %" PRIu32 " finished!", dataman_test->_thread_index);
+	px4_usleep(200_ms);
+
+	return nullptr;
+}
+
+bool
+DatamanTest::testAsyncWriteReadAllItemsMaxSize()
+{
+	bool success = false;
+	State state = State::Write;
+
+	volatile uint32_t item = DM_KEY_SAFE_POINTS;
+	volatile uint32_t index = 0U;
+
+	hrt_abstime start_time = hrt_absolute_time();
+
+	//While loop represents a task
+	while (state != State::Exit) {
+
+		_dataman_client1.update();
+
+		switch (state) {
+
+		case State::Write:
+
+			state = State::WriteWait;
+
+			// Prepare write buffer
+			for (uint32_t i = 0; i < g_per_item_size[item]; ++i) {
+				_buffer_write[i] = (uint8_t)(index % UINT8_MAX);
+			}
+
+			success = _dataman_client1.writeAsync((dm_item_t)item, index, _buffer_write, g_per_item_size[item]);
+
+			if (!success) {
+				return false;
+			}
+
+			break;
+
+		case State::Read:
+			state = State::ReadWait;
+			success = _dataman_client1.readAsync((dm_item_t)item, index, _buffer_read, g_per_item_size[item]);
+
+			if (!success) {
+				return false;
+			}
+
+			break;
+
+		case State::ReadWait:
+			if (_dataman_client1.lastOperationCompleted(_response_success)) {
+				if (!_response_success) {
+					return false;
+				}
+
+				state = State::CompareBuffers;
+			}
+
+			break;
+
+		case State::WriteWait:
+			if (_dataman_client1.lastOperationCompleted(_response_success)) {
+				if (!_response_success) {
+					return false;
+				}
+
+				state = State::Read;
+			}
+
+			break;
+
+		case State::CompareBuffers:
+			state = State::Write;
+
+			for (uint32_t i = 0U; i < g_per_item_size[item]; ++i) {
+
+				if (_buffer_write[i] != _buffer_read[i]) {
+					PX4_ERR("readAsync failed at item = %" PRIu32 ", index =  %" PRIu32 ", element= %" PRIu32 ", expected:  %" PRIu8
+						", received:  %" PRIu8, item, index, i, _buffer_write[i], _buffer_read[i]);
+					return false;
+				}
+			}
+
+			if (index < g_per_item_max_index[item] - 1) {
+				++index;
+
+			} else {
+
+				if (item < DM_KEY_NUM_KEYS - 1) {
+					index = 0U;
+					++item;
+
+				} else {
+					state = State::Exit;
+				}
+			}
+
+			break;
+
+		default:
+			break;
+		}
+
+		if (hrt_elapsed_time(&start_time) > 20_s) {
+			PX4_ERR("Test timeout!");
+			return false;
+		}
+
+		//Simulate rescheduling the task after a 1 ms delay to allow time for the dataman task to operate.
+		px4_usleep(1_ms);
+
+	}
+
+	return success;
+}
+
+bool
+DatamanTest::testAsyncClearAll()
+{
+	bool success = true;
+
+	State state = State::Clear;
+	hrt_abstime start_time = hrt_absolute_time();
+	volatile uint32_t item = DM_KEY_SAFE_POINTS;
+
+	//While loop represents a task
+	while (state != State::Exit) {
+
+		_dataman_client1.update();
+
+		switch (state) {
+
+		case State::Clear:
+
+			state = State::ClearWait;
+			success = _dataman_client1.clearAsync((dm_item_t)item);
+
+			if (!success) {
+				PX4_ERR("Failed at item %" PRIu32, item);
+				return false;
+			}
+
+			break;
+
+		case State::ClearWait:
+			if (_dataman_client1.lastOperationCompleted(_response_success)) {
+				state = State::OperationCompleted;
+
+				if (!_response_success) {
+					PX4_ERR("Failed at item %" PRIu32, item);
+					return false;
+				}
+			}
+
+			break;
+
+		case State::OperationCompleted:
+			if (item < DM_KEY_NUM_KEYS - 1) {
+				state = State::Clear;
+				++item;
+
+			} else {
+				state = State::Exit;
+			}
+
+			break;
+
+		default:
+			break;
+
+		}
+
+		if (hrt_elapsed_time(&start_time) > 5_s) {
+			PX4_ERR("Test timeout!");
+			return false;
+		}
+
+		//Simulate rescheduling the task after a 1 ms delay to allow time for the dataman task to operate.
+		px4_usleep(1_ms);
+	}
+
+	return true;
 }
 
 bool
@@ -412,18 +1391,24 @@ bool DatamanTest::run_tests()
 {
 	ut_run_test(testSyncReadInvalidItem);
 	ut_run_test(testSyncWriteInvalidItem);
-
 	ut_run_test(testSyncReadInvalidIndex);
 	ut_run_test(testSyncWriteInvalidIndex);
-
 	ut_run_test(testSyncReadBufferOverflow);
 	ut_run_test(testSyncWriteBufferOverflow);
-
-	ut_run_test(testMutipleClients);
-
+	ut_run_test(testSyncMutipleClients);
 	ut_run_test(testSyncWriteReadAllItemsMaxSize);
-
 	ut_run_test(testSyncClearAll);
+
+	ut_run_test(testAsyncReadInvalidItem);
+	ut_run_test(testAsyncWriteInvalidItem);
+	ut_run_test(testAsyncReadInvalidIndex);
+	ut_run_test(testAsyncWriteInvalidIndex);
+	ut_run_test(testAsyncReadBufferOverflow);
+	ut_run_test(testAsyncWriteBufferOverflow);
+	ut_run_test(testAsyncMutipleClientsNoLocks);
+	ut_run_test(testAsyncMutipleClientsWithLocks);
+	ut_run_test(testAsyncWriteReadAllItemsMaxSize);
+	ut_run_test(testAsyncClearAll);
 
 	ut_run_test(testResetItems);
 
