@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,48 +31,67 @@
  *
  ****************************************************************************/
 
-/**
- * @file mavlink_messages.h
- * MAVLink 1.0 message formatters definition.
- *
- * @author Anton Babushkin <anton.babushkin@me.com>
- */
+#pragma once
 
-#ifndef MAVLINK_MESSAGES_H_
-#define MAVLINK_MESSAGES_H_
+#include <uORB/topics/vehicle_status.h>
 
-#include "mavlink_stream.h"
+#include <stdint.h>
 
-#define DEFINE_GET_PX4_CUSTOM_MODE
-#include <commander/px4_custom_mode.h>
-
-class StreamListItem
+namespace mode_util
 {
 
-public:
-	MavlinkStream *(*new_instance)(Mavlink *mavlink);
-	const char *name;
-	uint16_t id;
-
-	StreamListItem(MavlinkStream * (*inst)(Mavlink *mavlink), const char *_name, uint16_t _id) :
-		new_instance(inst),
-		name(_name),
-		id(_id) {}
-
-	const char *get_name() const { return name; }
-	uint16_t get_id() const { return id; }
+// This matches the definition from MAVLink MAV_STANDARD_MODE
+enum class StandardMode : uint8_t {
+	NON_STANDARD = 0,
+	POSITION_HOLD = 1,
+	ORBIT = 2,
+	CRUISE = 3,
+	ALTITUDE_HOLD = 4,
+	RETURN_HOME = 5,
+	SAFE_RECOVERY = 6,
+	MISSION = 7,
+	LAND = 8,
+	TAKEOFF = 9,
 };
 
-template <class T>
-static StreamListItem create_stream_list_item()
+/**
+ * @return Get MAVLink standard mode from nav_state
+ */
+static inline StandardMode getStandardModeFromNavState(uint8_t nav_state)
 {
-	return StreamListItem(&T::new_instance, T::get_name_static(), T::get_id_static());
+	switch (nav_state) {
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL: return StandardMode::RETURN_HOME;
+
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION: return StandardMode::MISSION;
+
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND: return StandardMode::LAND;
+
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF: return StandardMode::TAKEOFF;
+		// Note: all other standard modes do not directly map, or are vehicle-type specific
+	}
+
+	return StandardMode::NON_STANDARD;
 }
 
-const char *get_stream_name(const uint16_t msg_id);
+/**
+ * @return Get nav_state from a standard mode, or vehicle_status_s::NAVIGATION_STATE_MAX if not supported
+ */
+static inline uint8_t getNavStateFromStandardMode(StandardMode mode)
+{
+	switch (mode) {
+	case StandardMode::RETURN_HOME: return vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
 
-MavlinkStream *create_mavlink_stream(const char *stream_name, Mavlink *mavlink);
+	case StandardMode::MISSION: return vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
 
-MavlinkStream *create_mavlink_stream(const uint16_t msg_id, Mavlink *mavlink);
+	case StandardMode::LAND: return vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
 
-#endif /* MAVLINK_MESSAGES_H_ */
+	case StandardMode::TAKEOFF: return vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF;
+
+	default: break;
+	}
+
+	return vehicle_status_s::NAVIGATION_STATE_MAX;
+}
+
+
+} // namespace mode_util

@@ -154,6 +154,7 @@ public:
 
 	void printStatus() const;
 
+	void getModeStatus(uint32_t &valid_nav_state_mask, uint32_t &can_set_nav_state_mask) const;
 
 	void updateActiveConfigOverrides(uint8_t nav_state, config_overrides_s &overrides_in_out);
 

@@ -516,4 +516,24 @@ void ModeManagement::checkConfigOverrides()
 	}
 }
 
+void ModeManagement::getModeStatus(uint32_t &valid_nav_state_mask, uint32_t &can_set_nav_state_mask) const
+{
+	valid_nav_state_mask = mode_util::getValidNavStates();
+	can_set_nav_state_mask = valid_nav_state_mask & ~(1u << vehicle_status_s::NAVIGATION_STATE_TERMINATION);
+
+	// Add external modes
+	for (int i = Modes::FIRST_EXTERNAL_NAV_STATE; i <= Modes::LAST_EXTERNAL_NAV_STATE; ++i) {
+		if (_modes.valid(i)) {
+			valid_nav_state_mask |= 1u << i;
+			can_set_nav_state_mask |= 1u << i;
+			const Modes::Mode &cur_mode = _modes.mode(i);
+
+			if (cur_mode.replaces_nav_state != Modes::Mode::REPLACES_NAV_STATE_NONE) {
+				// Hide the internal mode if it's replaced
+				can_set_nav_state_mask &= ~(1u << cur_mode.replaces_nav_state);
+			}
+		}
+	}
+}
+
 #endif /* CONSTRAINED_FLASH */

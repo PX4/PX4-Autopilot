@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,48 +31,48 @@
  *
  ****************************************************************************/
 
-/**
- * @file mavlink_messages.h
- * MAVLink 1.0 message formatters definition.
- *
- * @author Anton Babushkin <anton.babushkin@me.com>
- */
+#ifndef CURRENT_MODE_HPP
+#define CURRENT_MODE_HPP
 
-#ifndef MAVLINK_MESSAGES_H_
-#define MAVLINK_MESSAGES_H_
+#include <uORB/topics/vehicle_status.h>
+#include <commander/ModeUtil/standard_modes.hpp>
 
-#include "mavlink_stream.h"
-
-#define DEFINE_GET_PX4_CUSTOM_MODE
-#include <commander/px4_custom_mode.h>
-
-class StreamListItem
+class MavlinkStreamCurrentMode : public MavlinkStream
 {
-
 public:
-	MavlinkStream *(*new_instance)(Mavlink *mavlink);
-	const char *name;
-	uint16_t id;
+	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamCurrentMode(mavlink); }
 
-	StreamListItem(MavlinkStream * (*inst)(Mavlink *mavlink), const char *_name, uint16_t _id) :
-		new_instance(inst),
-		name(_name),
-		id(_id) {}
+	static constexpr const char *get_name_static() { return "CURRENT_MODE"; }
+	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_CURRENT_MODE; }
 
-	const char *get_name() const { return name; }
-	uint16_t get_id() const { return id; }
+	const char *get_name() const override { return get_name_static(); }
+	uint16_t get_id() override { return get_id_static(); }
+
+	unsigned get_size() override
+	{
+		return MAVLINK_MSG_ID_CURRENT_MODE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+	}
+
+private:
+	explicit MavlinkStreamCurrentMode(Mavlink *mavlink) : MavlinkStream(mavlink) {}
+
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+
+	bool send() override
+	{
+		vehicle_status_s vehicle_status;
+
+		if (_vehicle_status_sub.update(&vehicle_status)) {
+			mavlink_current_mode_t current_mode{};
+			current_mode.custom_mode = get_px4_custom_mode(vehicle_status.nav_state).data;
+			current_mode.intended_custom_mode = get_px4_custom_mode(vehicle_status.nav_state_user_intention).data;
+			current_mode.standard_mode = (uint8_t) mode_util::getStandardModeFromNavState(vehicle_status.nav_state);
+			mavlink_msg_current_mode_send_struct(_mavlink->get_channel(), &current_mode);
+			return true;
+		}
+
+		return false;
+	}
 };
 
-template <class T>
-static StreamListItem create_stream_list_item()
-{
-	return StreamListItem(&T::new_instance, T::get_name_static(), T::get_id_static());
-}
-
-const char *get_stream_name(const uint16_t msg_id);
-
-MavlinkStream *create_mavlink_stream(const char *stream_name, Mavlink *mavlink);
-
-MavlinkStream *create_mavlink_stream(const uint16_t msg_id, Mavlink *mavlink);
-
-#endif /* MAVLINK_MESSAGES_H_ */
+#endif // CURRENT_MODE_HPP

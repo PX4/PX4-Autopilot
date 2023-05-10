@@ -121,6 +121,11 @@
 #include "streams/VIBRATION.hpp"
 #include "streams/WIND_COV.hpp"
 
+#ifdef MAVLINK_MSG_ID_AVAILABLE_MODES // Only defined if development.xml is used
+#include "streams/AVAILABLE_MODES.hpp"
+#include "streams/CURRENT_MODE.hpp"
+#endif
+
 #if !defined(CONSTRAINED_FLASH)
 # include "streams/ADSB_VEHICLE.hpp"
 # include "streams/AUTOPILOT_STATE_FOR_GIMBAL_DEVICE.hpp"
@@ -481,8 +486,14 @@ static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamUavionixADSBOutCfg>(),
 #endif // UAVIONIX_ADSB_OUT_CFG_HPP
 #if defined(UAVIONIX_ADSB_OUT_DYNAMIC_HPP)
-	create_stream_list_item<MavlinkStreamUavionixADSBOutDynamic>()
+	create_stream_list_item<MavlinkStreamUavionixADSBOutDynamic>(),
 #endif // UAVIONIX_ADSB_OUT_DYNAMIC_HPP
+#if defined(AVAILABLE_MODES_HPP)
+	create_stream_list_item<MavlinkStreamAvailableModes>(),
+#endif // AVAILABLE_MODES_HPP
+#if defined(CURRENT_MODE_HPP)
+	create_stream_list_item<MavlinkStreamCurrentMode>(),
+#endif // CURRENT_MODE_HPP
 };
 
 const char *get_stream_name(const uint16_t msg_id)
