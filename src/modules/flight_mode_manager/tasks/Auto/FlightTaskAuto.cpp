@@ -321,12 +321,12 @@ void FlightTaskAuto::_limitYawRate()
 		if (!PX4_ISFINITE(_yawspeed_setpoint) && (_deltatime > FLT_EPSILON)) {
 			// Create a feedforward using the filtered derivative
 			_yawspeed_filter.setParameters(_deltatime, .2f);
-			_yawspeed_filter.update(dyaw);
-			_yawspeed_setpoint = _yawspeed_filter.getState() / _deltatime;
+			_yawspeed_filter.update(dyaw / _deltatime);
+			_yawspeed_setpoint = _yawspeed_filter.getState();
 		}
 	}
 
-	_yaw_sp_prev = _yaw_setpoint;
+	_yaw_sp_prev = PX4_ISFINITE(_yaw_setpoint) ? _yaw_setpoint : _yaw;
 
 	if (PX4_ISFINITE(_yawspeed_setpoint)) {
 		// The yaw setpoint is aligned when its rate is not saturated
