@@ -17,8 +17,7 @@ param set-default SENS_EN_BAROSIM 0
 param set-default SENS_EN_MAGSIM 1
 param set-default SENS_EN_ARSPDSIM 1
 
-param set-default EKF2_MAG_ACCLIM 0
-param set-default EKF2_MAG_YAWLIM 0
+
 
 param set-default FW_LND_ANG 8
 
