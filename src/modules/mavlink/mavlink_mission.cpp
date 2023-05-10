@@ -138,44 +138,22 @@ MavlinkMissionManager::load_safepoint_stats()
 /**
  * Publish mission topic to notify navigator about changes.
  */
-int
+void
 MavlinkMissionManager::update_active_mission(dm_item_t dataman_id, uint16_t count, int32_t seq)
 {
-	// We want to make sure the whole struct is initialized including padding before getting written by dataman.
 	mission_s mission{};
 	mission.timestamp = hrt_absolute_time();
 	mission.dataman_id = dataman_id;
 	mission.count = count;
 	mission.current_seq = seq;
 
-	/* update mission state in dataman */
+	/* update active mission state */
+	_dataman_id = dataman_id;
+	_count[MAV_MISSION_TYPE_MISSION] = count;
+	_current_seq = seq;
+	_my_dataman_id = _dataman_id;
 
-	bool success = _dataman_client.writeSync(DM_KEY_MISSION_STATE, 0, reinterpret_cast<uint8_t *>(&mission),
-			sizeof(mission_s));
-
-	if (success) {
-		/* update active mission state */
-		_dataman_id = dataman_id;
-		_count[MAV_MISSION_TYPE_MISSION] = count;
-		_current_seq = seq;
-		_my_dataman_id = _dataman_id;
-
-		/* mission state saved successfully, publish offboard_mission topic */
-		_offboard_mission_pub.publish(mission);
-
-		return PX4_OK;
-
-	} else {
-		PX4_ERR("WPM: can't save mission state");
-
-		if (_filesystem_errcount++ < FILESYSTEM_ERRCOUNT_NOTIFY_LIMIT) {
-			_mavlink->send_statustext_critical("Mission storage: Unable to write to microSD\t");
-			events::send(events::ID("mavlink_mission_storage_write_failure"), events::Log::Critical,
-				     "Mission: Unable to write to storage");
-		}
-
-		return PX4_ERROR;
-	}
+	_offboard_mission_pub.publish(mission);
 }
 
 int
@@ -659,16 +637,7 @@ MavlinkMissionManager::handle_mission_set_current(const mavlink_message_t *msg)
 			_time_last_recv = hrt_absolute_time();
 
 			if (wpc.seq < _count[MAV_MISSION_TYPE_MISSION]) {
-				if (update_active_mission(_dataman_id, _count[MAV_MISSION_TYPE_MISSION], wpc.seq) == PX4_OK) {
-					PX4_DEBUG("WPM: MISSION_SET_CURRENT seq=%d OK", wpc.seq);
-
-				} else {
-					PX4_DEBUG("WPM: MISSION_SET_CURRENT seq=%d ERROR", wpc.seq);
-
-					_mavlink->send_statustext_critical("WPM: WP CURR CMD: Error setting ID\t");
-					events::send(events::ID("mavlink_mission_err_id"), events::Log::Error,
-						     "Failed to write current mission ID to storage");
-				}
+				update_active_mission(_dataman_id, _count[MAV_MISSION_TYPE_MISSION], wpc.seq);
 
 			} else {
 				PX4_ERR("WPM: MISSION_SET_CURRENT seq=%d ERROR: not in list", wpc.seq);
@@ -1182,7 +1151,7 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 
 			switch (_mission_type) {
 			case MAV_MISSION_TYPE_MISSION:
-				ret = update_active_mission(_transfer_dataman_id, _transfer_count, _transfer_current_seq);
+				update_active_mission(_transfer_dataman_id, _transfer_count, _transfer_current_seq);
 				break;
 
 			case MAV_MISSION_TYPE_FENCE:
@@ -1236,8 +1205,8 @@ MavlinkMissionManager::handle_mission_clear_all(const mavlink_message_t *msg)
 
 			switch (wpca.mission_type) {
 			case MAV_MISSION_TYPE_MISSION:
-				ret = update_active_mission(_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 ? DM_KEY_WAYPOINTS_OFFBOARD_1 :
-							    DM_KEY_WAYPOINTS_OFFBOARD_0, 0, 0);
+				update_active_mission(_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 ? DM_KEY_WAYPOINTS_OFFBOARD_1 :
+						      DM_KEY_WAYPOINTS_OFFBOARD_0, 0, 0);
 				break;
 
 			case MAV_MISSION_TYPE_FENCE:
@@ -1249,9 +1218,9 @@ MavlinkMissionManager::handle_mission_clear_all(const mavlink_message_t *msg)
 				break;
 
 			case MAV_MISSION_TYPE_ALL:
-				ret = update_active_mission(_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 ? DM_KEY_WAYPOINTS_OFFBOARD_1 :
-							    DM_KEY_WAYPOINTS_OFFBOARD_0, 0, 0);
-				ret = update_geofence_count(0) || ret;
+				update_active_mission(_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 ? DM_KEY_WAYPOINTS_OFFBOARD_1 :
+						      DM_KEY_WAYPOINTS_OFFBOARD_0, 0, 0);
+				ret = update_geofence_count(0);
 				ret = update_safepoint_count(0) || ret;
 				break;
 
