@@ -288,7 +288,7 @@ void Tailsitter::fill_actuator_outputs()
 
 		/* allow differential thrust if enabled */
 		if (_param_vt_fw_difthr_en.get() & static_cast<int32_t>(VtFwDifthrEnBits::YAW_BIT)) {
-			_torque_setpoint_0->xyz[0] = _vehicle_torque_setpoint_virtual_fw->xyz[2] * _param_vt_fw_difthr_s_y.get();
+			_torque_setpoint_0->xyz[0] = _vehicle_torque_setpoint_virtual_fw->xyz[0] * _param_vt_fw_difthr_s_y.get();
 		}
 
 		if (_param_vt_fw_difthr_en.get() & static_cast<int32_t>(VtFwDifthrEnBits::PITCH_BIT)) {
@@ -296,7 +296,7 @@ void Tailsitter::fill_actuator_outputs()
 		}
 
 		if (_param_vt_fw_difthr_en.get() & static_cast<int32_t>(VtFwDifthrEnBits::ROLL_BIT)) {
-			_torque_setpoint_0->xyz[2] = -_vehicle_torque_setpoint_virtual_fw->xyz[0] * _param_vt_fw_difthr_s_r.get();
+			_torque_setpoint_0->xyz[2] = _vehicle_torque_setpoint_virtual_fw->xyz[2] * _param_vt_fw_difthr_s_r.get();
 		}
 
 	} else {
