@@ -74,6 +74,11 @@ public:
 	Mission(Navigator *navigator);
 	~Mission() override = default;
 
+	/**
+	 * @brief function to call regularly to do background work
+	 */
+	void run();
+
 	void on_inactive() override;
 	void on_inactivation() override;
 	void on_activation() override;
@@ -323,8 +328,11 @@ private:
 
 	uORB::Subscription	_mission_sub{ORB_ID(mission)};		/**< mission subscription */
 	mission_s		_mission {};
-	DatamanClient	_dataman_client{};
 
+	static constexpr uint32_t DATAMAN_CACHE_SIZE = 10;
+	DatamanCache _dataman_cache{"mission_dm_cache_miss", DATAMAN_CACHE_SIZE};
+	DatamanClient	&_dataman_client = _dataman_cache.client();
+	int32_t _load_mission_index{-1};
 	int32_t _current_mission_index{-1};
 
 	// track location of planned mission landing
