@@ -54,14 +54,16 @@ class MissionFeasibilityChecker: public ModuleParams
 {
 private:
 	Navigator *_navigator{nullptr};
+	DatamanClient &_dataman_client;
 	FeasibilityChecker _feasibility_checker;
 
 	bool checkGeofence(const mission_s &mission, float home_alt, bool home_valid);
 
 public:
-	MissionFeasibilityChecker(Navigator *navigator) :
+	MissionFeasibilityChecker(Navigator *navigator, DatamanClient &dataman_client) :
 		ModuleParams(nullptr),
 		_navigator(navigator),
+		_dataman_client(dataman_client),
 		_feasibility_checker()
 	{
 
@@ -75,6 +77,4 @@ public:
 	 * Returns true if mission is feasible and false otherwise
 	 */
 	bool checkMissionFeasible(const mission_s &mission);
-
-	DatamanClient _dataman_client{};
 };
