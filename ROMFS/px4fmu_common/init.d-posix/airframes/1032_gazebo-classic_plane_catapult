@@ -5,7 +5,8 @@
 
 . ${R}etc/init.d/rc.fw_defaults
 
-
+param set-default FW_LAUN_DETCN_ON 1
+param set-default FW_THR_IDLE 0.1 # needs to be running before throw as that's how gazebo detects arming
 
 param set-default FW_LND_ANG 8
 
