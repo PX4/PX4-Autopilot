@@ -67,6 +67,16 @@ void ManualControl::Run()
 	perf_begin(_loop_perf);
 	perf_count(_loop_interval_perf);
 
+	processInput(hrt_absolute_time());
+
+	// reschedule to detect timeouts
+	ScheduleDelayed(200_ms);
+
+	perf_end(_loop_perf);
+}
+
+void ManualControl::processInput(hrt_abstime now)
+{
 	if (_vehicle_status_sub.updated()) {
 		vehicle_status_s vehicle_status;
 
@@ -86,16 +96,6 @@ void ManualControl::Run()
 		updateParams();
 	}
 
-	processInput(hrt_absolute_time());
-
-	// reschedule timeout
-	ScheduleDelayed(200_ms);
-
-	perf_end(_loop_perf);
-}
-
-void ManualControl::processInput(hrt_abstime now)
-{
 	_selector.updateValidityOfChosenInput(now);
 
 	for (int i = 0; i < MAX_MANUAL_INPUT_COUNT; i++) {
@@ -106,16 +106,13 @@ void ManualControl::processInput(hrt_abstime now)
 		}
 	}
 
-	manual_control_switches_s switches;
-	bool switches_updated = _manual_control_switches_sub.update(&switches);
-
 	if (_selector.setpoint().valid) {
 		_published_invalid_once = false;
 
 		processStickArming(_selector.setpoint());
 
 		// User override by stick
-		const float dt_s = (now - _last_time) / 1e6f;
+		const float dt_s = (now - _timestamp_last_loop) / 1e6f;
 		const float minimum_stick_change = 0.01f * _param_com_rc_stick_ov.get();
 
 		_selector.setpoint().sticks_moving = (fabsf(_roll_diff.update(_selector.setpoint().roll, dt_s)) > minimum_stick_change)
@@ -123,128 +120,12 @@ void ManualControl::processInput(hrt_abstime now)
 						     || (fabsf(_yaw_diff.update(_selector.setpoint().yaw, dt_s)) > minimum_stick_change)
 						     || (fabsf(_throttle_diff.update(_selector.setpoint().throttle, dt_s)) > minimum_stick_change);
 
-		if (switches_updated) {
-			// Only use switches if current source is RC as well.
-			if (_selector.setpoint().data_source == manual_control_setpoint_s::SOURCE_RC) {
-				if (_previous_switches_initialized) {
-					if (switches.mode_slot != _previous_switches.mode_slot) {
-						evaluateModeSlot(switches.mode_slot);
-					}
-
-					if (_param_com_arm_swisbtn.get()) {
-						// Arming button
-						const bool previous_button_hysteresis = _button_hysteresis.get_state();
-						_button_hysteresis.set_state_and_update(switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON, now);
-
-						if (!previous_button_hysteresis && _button_hysteresis.get_state()) {
-							sendActionRequest(action_request_s::ACTION_TOGGLE_ARMING, action_request_s::SOURCE_RC_BUTTON);
-						}
-
-					} else {
-						// Arming switch
-						if (switches.arm_switch != _previous_switches.arm_switch) {
-							if (switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON) {
-								sendActionRequest(action_request_s::ACTION_ARM, action_request_s::SOURCE_RC_SWITCH);
-
-							} else if (switches.arm_switch == manual_control_switches_s::SWITCH_POS_OFF) {
-								sendActionRequest(action_request_s::ACTION_DISARM, action_request_s::SOURCE_RC_SWITCH);
-							}
-						}
-					}
-
-					if (switches.return_switch != _previous_switches.return_switch) {
-						if (switches.return_switch == manual_control_switches_s::SWITCH_POS_ON) {
-							sendActionRequest(action_request_s::ACTION_SWITCH_MODE, action_request_s::SOURCE_RC_SWITCH,
-									  vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
-
-						} else if (switches.return_switch == manual_control_switches_s::SWITCH_POS_OFF) {
-							evaluateModeSlot(switches.mode_slot);
-						}
-					}
-
-					if (switches.loiter_switch != _previous_switches.loiter_switch) {
-						if (switches.loiter_switch == manual_control_switches_s::SWITCH_POS_ON) {
-							sendActionRequest(action_request_s::ACTION_SWITCH_MODE, action_request_s::SOURCE_RC_SWITCH,
-									  vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
-
-						} else if (switches.loiter_switch == manual_control_switches_s::SWITCH_POS_OFF) {
-							evaluateModeSlot(switches.mode_slot);
-						}
-					}
-
-					if (switches.offboard_switch != _previous_switches.offboard_switch) {
-						if (switches.offboard_switch == manual_control_switches_s::SWITCH_POS_ON) {
-							sendActionRequest(action_request_s::ACTION_SWITCH_MODE, action_request_s::SOURCE_RC_SWITCH,
-									  vehicle_status_s::NAVIGATION_STATE_OFFBOARD);
-
-						} else if (switches.offboard_switch == manual_control_switches_s::SWITCH_POS_OFF) {
-							evaluateModeSlot(switches.mode_slot);
-						}
-					}
-
-					if (switches.kill_switch != _previous_switches.kill_switch) {
-						if (switches.kill_switch == manual_control_switches_s::SWITCH_POS_ON) {
-							sendActionRequest(action_request_s::ACTION_KILL, action_request_s::SOURCE_RC_SWITCH);
-
-						} else if (switches.kill_switch == manual_control_switches_s::SWITCH_POS_OFF) {
-							sendActionRequest(action_request_s::ACTION_UNKILL, action_request_s::SOURCE_RC_SWITCH);
-						}
-					}
-
-					if (switches.gear_switch != _previous_switches.gear_switch
-					    && _previous_switches.gear_switch != manual_control_switches_s::SWITCH_POS_NONE) {
-
-						if (switches.gear_switch == manual_control_switches_s::SWITCH_POS_ON) {
-							publishLandingGear(landing_gear_s::GEAR_UP);
-
-						} else if (switches.gear_switch == manual_control_switches_s::SWITCH_POS_OFF) {
-							publishLandingGear(landing_gear_s::GEAR_DOWN);
-						}
-					}
-
-					if (switches.transition_switch != _previous_switches.transition_switch) {
-						if (switches.transition_switch == manual_control_switches_s::SWITCH_POS_ON) {
-							sendActionRequest(action_request_s::ACTION_VTOL_TRANSITION_TO_FIXEDWING, action_request_s::SOURCE_RC_SWITCH);
-
-						} else if (switches.transition_switch == manual_control_switches_s::SWITCH_POS_OFF) {
-							sendActionRequest(action_request_s::ACTION_VTOL_TRANSITION_TO_MULTICOPTER, action_request_s::SOURCE_RC_SWITCH);
-						}
-					}
-
-					if (switches.photo_switch != _previous_switches.photo_switch) {
-						if (switches.photo_switch == manual_control_switches_s::SWITCH_POS_ON) {
-							send_camera_mode_command(CameraMode::Image);
-							send_photo_command();
-						}
-					}
-
-					if (switches.video_switch != _previous_switches.video_switch) {
-						if (switches.video_switch == manual_control_switches_s::SWITCH_POS_ON) {
-							send_camera_mode_command(CameraMode::Video);
-							send_video_command();
-						}
-					}
-
-				} else {
-					// Send an initial request to switch to the mode requested by RC
-					evaluateModeSlot(switches.mode_slot);
-				}
-
-				_previous_switches_initialized = true;
-				_previous_switches = switches;
-
-			} else {
-				_previous_switches_initialized = false;
-			}
-		}
-
 		_selector.setpoint().timestamp = now;
 		_manual_control_setpoint_pub.publish(_selector.setpoint());
 
-		// If it's valid, this should really be valid but better safe than sorry.
+		// Attach scheduling to new samples of the chosen input
 		const int instance = _selector.instance();
 
-		// Attach scheduling to new samples of the chosen input
 		if (instance != _previous_manual_control_input_instance) {
 			if ((0 <= _previous_manual_control_input_instance)
 			    && (_previous_manual_control_input_instance < MAX_MANUAL_INPUT_COUNT)) {
@@ -275,7 +156,132 @@ void ManualControl::processInput(hrt_abstime now)
 		_button_hysteresis.set_state_and_update(false, now);
 	}
 
-	_last_time = now;
+	processSwitches(now);
+
+	_timestamp_last_loop = now;
+}
+
+void ManualControl::processSwitches(hrt_abstime &now)
+{
+	manual_control_switches_s switches;
+	const bool switches_updated = _manual_control_switches_sub.update(&switches);
+
+	// Only use switches if the currently valid source is RC as well
+	if (_selector.setpoint().valid
+	    && _selector.setpoint().data_source == manual_control_setpoint_s::SOURCE_RC) {
+		if (switches_updated) {
+			if (_previous_switches_initialized) {
+				if (switches.mode_slot != _previous_switches.mode_slot) {
+					evaluateModeSlot(switches.mode_slot);
+				}
+
+				if (_param_com_arm_swisbtn.get()) {
+					// Arming button
+					const bool previous_button_hysteresis = _button_hysteresis.get_state();
+					_button_hysteresis.set_state_and_update(switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON, now);
+
+					if (!previous_button_hysteresis && _button_hysteresis.get_state()) {
+						sendActionRequest(action_request_s::ACTION_TOGGLE_ARMING, action_request_s::SOURCE_RC_BUTTON);
+					}
+
+				} else {
+					// Arming switch
+					if (switches.arm_switch != _previous_switches.arm_switch) {
+						if (switches.arm_switch == manual_control_switches_s::SWITCH_POS_ON) {
+							sendActionRequest(action_request_s::ACTION_ARM, action_request_s::SOURCE_RC_SWITCH);
+
+						} else if (switches.arm_switch == manual_control_switches_s::SWITCH_POS_OFF) {
+							sendActionRequest(action_request_s::ACTION_DISARM, action_request_s::SOURCE_RC_SWITCH);
+						}
+					}
+				}
+
+				if (switches.return_switch != _previous_switches.return_switch) {
+					if (switches.return_switch == manual_control_switches_s::SWITCH_POS_ON) {
+						sendActionRequest(action_request_s::ACTION_SWITCH_MODE, action_request_s::SOURCE_RC_SWITCH,
+								  vehicle_status_s::NAVIGATION_STATE_AUTO_RTL);
+
+					} else if (switches.return_switch == manual_control_switches_s::SWITCH_POS_OFF) {
+						evaluateModeSlot(switches.mode_slot);
+					}
+				}
+
+				if (switches.loiter_switch != _previous_switches.loiter_switch) {
+					if (switches.loiter_switch == manual_control_switches_s::SWITCH_POS_ON) {
+						sendActionRequest(action_request_s::ACTION_SWITCH_MODE, action_request_s::SOURCE_RC_SWITCH,
+								  vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
+
+					} else if (switches.loiter_switch == manual_control_switches_s::SWITCH_POS_OFF) {
+						evaluateModeSlot(switches.mode_slot);
+					}
+				}
+
+				if (switches.offboard_switch != _previous_switches.offboard_switch) {
+					if (switches.offboard_switch == manual_control_switches_s::SWITCH_POS_ON) {
+						sendActionRequest(action_request_s::ACTION_SWITCH_MODE, action_request_s::SOURCE_RC_SWITCH,
+								  vehicle_status_s::NAVIGATION_STATE_OFFBOARD);
+
+					} else if (switches.offboard_switch == manual_control_switches_s::SWITCH_POS_OFF) {
+						evaluateModeSlot(switches.mode_slot);
+					}
+				}
+
+				if (switches.kill_switch != _previous_switches.kill_switch) {
+					if (switches.kill_switch == manual_control_switches_s::SWITCH_POS_ON) {
+						sendActionRequest(action_request_s::ACTION_KILL, action_request_s::SOURCE_RC_SWITCH);
+
+					} else if (switches.kill_switch == manual_control_switches_s::SWITCH_POS_OFF) {
+						sendActionRequest(action_request_s::ACTION_UNKILL, action_request_s::SOURCE_RC_SWITCH);
+					}
+				}
+
+				if (switches.gear_switch != _previous_switches.gear_switch
+				    && _previous_switches.gear_switch != manual_control_switches_s::SWITCH_POS_NONE) {
+
+					if (switches.gear_switch == manual_control_switches_s::SWITCH_POS_ON) {
+						publishLandingGear(landing_gear_s::GEAR_UP);
+
+					} else if (switches.gear_switch == manual_control_switches_s::SWITCH_POS_OFF) {
+						publishLandingGear(landing_gear_s::GEAR_DOWN);
+					}
+				}
+
+				if (switches.transition_switch != _previous_switches.transition_switch) {
+					if (switches.transition_switch == manual_control_switches_s::SWITCH_POS_ON) {
+						sendActionRequest(action_request_s::ACTION_VTOL_TRANSITION_TO_FIXEDWING, action_request_s::SOURCE_RC_SWITCH);
+
+					} else if (switches.transition_switch == manual_control_switches_s::SWITCH_POS_OFF) {
+						sendActionRequest(action_request_s::ACTION_VTOL_TRANSITION_TO_MULTICOPTER, action_request_s::SOURCE_RC_SWITCH);
+					}
+				}
+
+				if (switches.photo_switch != _previous_switches.photo_switch) {
+					if (switches.photo_switch == manual_control_switches_s::SWITCH_POS_ON) {
+						send_camera_mode_command(CameraMode::Image);
+						send_photo_command();
+					}
+				}
+
+				if (switches.video_switch != _previous_switches.video_switch) {
+					if (switches.video_switch == manual_control_switches_s::SWITCH_POS_ON) {
+						send_camera_mode_command(CameraMode::Video);
+						send_video_command();
+					}
+				}
+
+			} else {
+				// Send an initial request to switch to the mode requested by RC
+				evaluateModeSlot(switches.mode_slot);
+			}
+
+			_previous_switches = switches;
+			_previous_switches_initialized = true;
+		}
+
+	} else {
+		// Don't react on switch changes while RC was not in use
+		_previous_switches_initialized = false;
+	}
 }
 
 void ManualControl::updateParams()
