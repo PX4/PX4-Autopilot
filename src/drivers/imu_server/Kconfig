@@ -1,0 +1,6 @@
+menuconfig DRIVERS_IMU_SERVER
+	bool "imu_server"
+	default n
+	---help---
+		Enable support for RB5 IMU server
+

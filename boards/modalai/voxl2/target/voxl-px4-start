@@ -139,6 +139,9 @@ qshell flight_mode_manager start
 dataman start
 navigator start
 
+# Only do this on RB5?
+imu_server start
+
 # start the onboard fast link to connect to voxl-mavlink-server
 mavlink start -x -u 14556 -o 14557 -r 100000 -n lo -m onboard
 
@@ -161,6 +164,7 @@ if [ "$OSD" == "ENABLE" ]; then
     /bin/echo "Starting OSD driver"
     msp_osd start -d /dev/ttyHS1
 fi
+
 
 # Start optional EXTRA_STEPS
 for i in "${EXTRA_STEPS[@]}"
