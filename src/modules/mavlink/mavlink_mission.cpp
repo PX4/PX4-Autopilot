@@ -83,21 +83,9 @@ MavlinkMissionManager::init_offboard_mission()
 	if (!_dataman_init) {
 		_dataman_init = true;
 
-		/* lock MISSION_STATE item */
-		bool success_lock = _dataman_client.lockSync(DM_KEY_MISSION_STATE);
-
-		if (!success_lock) {
-			PX4_ERR("DM_KEY_MISSION_STATE lock failed");
-		}
-
 		mission_s mission_state;
 		bool success = _dataman_client.readSync(DM_KEY_MISSION_STATE, 0, reinterpret_cast<uint8_t *>(&mission_state),
 							sizeof(mission_s));
-
-		/* unlock MISSION_STATE item */
-		if (success_lock) {
-			_dataman_client.unlockSync(DM_KEY_MISSION_STATE);
-		}
 
 		if (success) {
 			_dataman_id = (dm_item_t)mission_state.dataman_id;
@@ -162,20 +150,8 @@ MavlinkMissionManager::update_active_mission(dm_item_t dataman_id, uint16_t coun
 
 	/* update mission state in dataman */
 
-	/* lock MISSION_STATE item */
-	bool success_lock = _dataman_client.lockSync(DM_KEY_MISSION_STATE);
-
-	if (!success_lock) {
-		PX4_ERR("DM_KEY_MISSION_STATE lock failed");
-	}
-
 	bool success = _dataman_client.writeSync(DM_KEY_MISSION_STATE, 0, reinterpret_cast<uint8_t *>(&mission),
 			sizeof(mission_s));
-
-	/* unlock MISSION_STATE item */
-	if (success_lock) {
-		_dataman_client.unlockSync(DM_KEY_MISSION_STATE);
-	}
 
 	if (success) {
 		/* update active mission state */
@@ -960,21 +936,6 @@ MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 						DM_KEY_WAYPOINTS_OFFBOARD_0);	// use inactive storage for transmission
 			_transfer_current_seq = -1;
 
-			if (_mission_type == MAV_MISSION_TYPE_FENCE) {
-				// We're about to write new geofence items, so take the lock. It will be released when
-				// switching back to idle
-				PX4_DEBUG("locking fence dataman items");
-
-				bool success = _dataman_client.lockSync(DM_KEY_FENCE_POINTS);
-
-				if (success) {
-					_geofence_locked = true;
-
-				} else {
-					PX4_ERR("locking failed (%i)", errno);
-				}
-			}
-
 		} else if (_state == MAVLINK_WPM_STATE_GETLIST) {
 			_time_last_recv = hrt_absolute_time();
 
@@ -1010,15 +971,6 @@ MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 void
 MavlinkMissionManager::switch_to_idle_state()
 {
-	// when switching to idle, we *always* check if the lock was held and release it.
-	// This is to ensure we don't end up in a state where we forget to release it.
-	if (_geofence_locked) {
-		if (_dataman_client.unlockSync(DM_KEY_FENCE_POINTS)) {
-			_geofence_locked = false;
-			PX4_DEBUG("unlocking geofence");
-		}
-	}
-
 	_state = MAVLINK_WPM_STATE_IDLE;
 }
 
@@ -1133,9 +1085,8 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 					check_failed = true;
 
 				} else {
-					dm_item_t dm_item = _transfer_dataman_id;
 
-					write_failed = !_dataman_client.writeSync(dm_item, wp.seq, reinterpret_cast<uint8_t *>(&mission_item),
+					write_failed = !_dataman_client.writeSync(_transfer_dataman_id, wp.seq, reinterpret_cast<uint8_t *>(&mission_item),
 							sizeof(struct mission_item_s));
 
 					if (!write_failed) {
@@ -1186,7 +1137,7 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 				mission_safe_point.alt = mission_item.altitude;
 				mission_safe_point.frame = mission_item.frame;
 				write_failed = !_dataman_client.writeSync(DM_KEY_SAFE_POINTS, wp.seq + 1,
-						reinterpret_cast<uint8_t *>(&mission_safe_point), sizeof(mission_safe_point_s));
+						reinterpret_cast<uint8_t *>(&mission_safe_point), sizeof(mission_safe_point_s), 2_s);
 			}
 			break;
 
