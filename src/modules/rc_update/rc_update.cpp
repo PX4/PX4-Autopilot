@@ -210,8 +210,9 @@ void RCUpdate::parameters_updated()
 		const uint16_t throttle_min = _parameters.min[throttle_channel];
 		const uint16_t throttle_trim = _parameters.trim[throttle_channel];
 		const uint16_t throttle_max = _parameters.max[throttle_channel];
+		const uint16_t throttle_rev = _parameters.rev[throttle_channel];
 
-		if (throttle_min == throttle_trim) {
+		if (throttle_min == throttle_trim || (throttle_rev && throttle_max == throttle_trim)) {
 			const uint16_t new_throttle_trim = (throttle_min + throttle_max) / 2;
 			_parameters.trim[throttle_channel] = new_throttle_trim;
 		}
