@@ -46,7 +46,7 @@ void ManualControlSelector::updateWithNewInputSample(uint64_t now, const manual_
 	// First check if the chosen input got invalid, so it can get replaced
 	updateValidityOfChosenInput(now);
 
-	const bool update_existing_input = _setpoint.valid && input.data_source == _setpoint.data_source;
+	const bool update_existing_input = _setpoint.valid && (input.data_source == _setpoint.data_source);
 	const bool start_using_new_input = !_setpoint.valid;
 
 	// Switch to new input if it's valid and we don't already have a valid one
