@@ -120,24 +120,15 @@ FixedwingRateControl::vehicle_manual_poll()
 				_rate_sp_pub.publish(_rates_sp);
 
 			} else {
-				/* manual/direct control */
+				// Manual/direct control, filled in FW-frame. Note that setpoints will get transformed to body frame prior publishing.
 
-				if (_vehicle_status.is_vtol_tailsitter && _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
-					// the controls must always be published in body (hover) frame
-					_vehicle_torque_setpoint.xyz[0] = math::constrain(_manual_control_setpoint.yaw * _param_fw_man_y_sc.get() +
-									  _param_trim_yaw.get(), -1.f, 1.f);
-					_vehicle_torque_setpoint.xyz[2] = math::constrain(_manual_control_setpoint.roll * _param_fw_man_r_sc.get() +
-									  _param_trim_roll.get(), -1.f, 1.f);
-
-				} else {
-					_vehicle_torque_setpoint.xyz[0] = math::constrain(_manual_control_setpoint.roll * _param_fw_man_r_sc.get() +
-									  _param_trim_roll.get(), -1.f, 1.f);
-					_vehicle_torque_setpoint.xyz[2] = math::constrain(_manual_control_setpoint.yaw * _param_fw_man_y_sc.get() +
-									  _param_trim_yaw.get(), -1.f, 1.f);
-				}
-
+				_vehicle_torque_setpoint.xyz[0] = math::constrain(_manual_control_setpoint.roll * _param_fw_man_r_sc.get() +
+								  _param_trim_roll.get(), -1.f, 1.f);
 				_vehicle_torque_setpoint.xyz[1] = math::constrain(-_manual_control_setpoint.pitch * _param_fw_man_p_sc.get() +
 								  _param_trim_pitch.get(), -1.f, 1.f);
+				_vehicle_torque_setpoint.xyz[2] = math::constrain(_manual_control_setpoint.yaw * _param_fw_man_y_sc.get() +
+								  _param_trim_yaw.get(), -1.f, 1.f);
+
 				_vehicle_thrust_setpoint.xyz[0] = math::constrain((_manual_control_setpoint.throttle + 1.f) * .5f, 0.f, 1.f);
 			}
 		}
