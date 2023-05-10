@@ -917,6 +917,8 @@ void Navigator::run()
 			publish_mission_result();
 		}
 
+		_mission.run();
+
 		perf_end(_loop_perf);
 	}
 }
