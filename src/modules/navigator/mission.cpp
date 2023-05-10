@@ -595,6 +595,14 @@ Mission::update_mission()
 	const mission_s old_mission = _mission;
 
 	if (_mission_sub.copy(&_mission)) {
+
+		bool success = _dataman_client.writeSync(DM_KEY_MISSION_STATE, 0, reinterpret_cast<uint8_t *>(&_mission),
+				sizeof(mission_s));
+
+		if (!success) {
+			PX4_ERR("Can't update mission state in Dataman");
+		}
+
 		/* determine current index */
 		if (_mission.current_seq >= 0 && _mission.current_seq < (int)_mission.count) {
 			_current_mission_index = _mission.current_seq;
