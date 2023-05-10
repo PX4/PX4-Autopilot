@@ -1466,7 +1466,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 			tecs_update_pitch_throttle(control_interval,
 						   altitude_setpoint_amsl,
 						   target_airspeed,
-						   radians(_param_fw_p_lim_min.get()),
+						   radians(_takeoff_pitch_min.get()),
 						   radians(_param_fw_p_lim_max.get()),
 						   _param_fw_thr_min.get(),
 						   max_takeoff_throttle,
