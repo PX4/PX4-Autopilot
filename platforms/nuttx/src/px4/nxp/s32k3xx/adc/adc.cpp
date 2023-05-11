@@ -38,143 +38,75 @@
 
 #include <nuttx/analog/adc.h>
 
-#include <hardware/s32k1xx_sim.h>
-
-//todo S32K add ADC fior now steal the kinetis one
-#include <kinetis.h>
-#include <hardware/kinetis_adc.h>
-
-
-#define _REG(_addr)	(*(volatile uint32_t *)(_addr))
-
-/* ADC register accessors */
-
-#define REG(a, _reg)	_REG(KINETIS_ADC##a##_BASE + (_reg))
-
-#define rSC1A(adc)  REG(adc, KINETIS_ADC_SC1A_OFFSET) /* ADC status and control registers 1 */
-#define rSC1B(adc)  REG(adc, KINETIS_ADC_SC1B_OFFSET) /* ADC status and control registers 1 */
-#define rCFG1(adc)  REG(adc, KINETIS_ADC_CFG1_OFFSET) /* ADC configuration register 1 */
-#define rCFG2(adc)  REG(adc, KINETIS_ADC_CFG2_OFFSET) /* Configuration register 2 */
-#define rRA(adc)    REG(adc, KINETIS_ADC_RA_OFFSET)   /* ADC data result register */
-#define rRB(adc)    REG(adc, KINETIS_ADC_RB_OFFSET)   /* ADC data result register */
-#define rCV1(adc)   REG(adc, KINETIS_ADC_CV1_OFFSET)  /* Compare value registers */
-#define rCV2(adc)   REG(adc, KINETIS_ADC_CV2_OFFSET)  /* Compare value registers */
-#define rSC2(adc)   REG(adc, KINETIS_ADC_SC2_OFFSET)  /* Status and control register 2 */
-#define rSC3(adc)   REG(adc, KINETIS_ADC_SC3_OFFSET)  /* Status and control register 3 */
-#define rOFS(adc)   REG(adc, KINETIS_ADC_OFS_OFFSET)  /* ADC offset correction register */
-#define rPG(adc)    REG(adc, KINETIS_ADC_PG_OFFSET)   /* ADC plus-side gain register */
-#define rMG(adc)    REG(adc, KINETIS_ADC_MG_OFFSET)   /* ADC minus-side gain register */
-#define rCLPD(adc)  REG(adc, KINETIS_ADC_CLPD_OFFSET) /* ADC plus-side general calibration value register */
-#define rCLPS(adc)  REG(adc, KINETIS_ADC_CLPS_OFFSET) /* ADC plus-side general calibration value register */
-#define rCLP4(adc)  REG(adc, KINETIS_ADC_CLP4_OFFSET) /* ADC plus-side general calibration value register */
-#define rCLP3(adc)  REG(adc, KINETIS_ADC_CLP3_OFFSET) /* ADC plus-side general calibration value register */
-#define rCLP2(adc)  REG(adc, KINETIS_ADC_CLP2_OFFSET) /* ADC plus-side general calibration value register */
-#define rCLP1(adc)  REG(adc, KINETIS_ADC_CLP1_OFFSET) /* ADC plus-side general calibration value register */
-#define rCLP0(adc)  REG(adc, KINETIS_ADC_CLP0_OFFSET) /* ADC plus-side general calibration value register */
-#define rCLMD(adc)  REG(adc, KINETIS_ADC_CLMD_OFFSET) /* ADC minus-side general calibration value register */
-#define rCLMS(adc)  REG(adc, KINETIS_ADC_CLMS_OFFSET) /* ADC minus-side general calibration value register */
-#define rCLM4(adc)  REG(adc, KINETIS_ADC_CLM4_OFFSET) /* ADC minus-side general calibration value register */
-#define rCLM3(adc)  REG(adc, KINETIS_ADC_CLM3_OFFSET) /* ADC minus-side general calibration value register */
-#define rCLM2(adc)  REG(adc, KINETIS_ADC_CLM2_OFFSET) /* ADC minus-side general calibration value register */
-#define rCLM1(adc)  REG(adc, KINETIS_ADC_CLM1_OFFSET) /* ADC minus-side general calibration value register */
-#define rCLM0(adc)  REG(adc, KINETIS_ADC_CLM0_OFFSET) /* ADC minus-side general calibration value register */
+#include <hardware/s32k3xx_adc.h>
+#include <hardware/s32k344_pinmux.h>
 
 int px4_arch_adc_init(uint32_t base_address)
 {
-	/* Input is Buss Clock 56 Mhz We will use /8 for 7 Mhz */
+	uint32_t regval;
 
-	irqstate_t flags = px4_enter_critical_section();
+	/* Configure and perform calibration */
+	putreg32(ADC_MCR_ADCLKSEL_DIV4, S32K3XX_ADC2_MCR);
 
-	_REG(KINETIS_SIM_SCGC3) |= SIM_SCGC3_ADC1;
-	rCFG1(1) = ADC_CFG1_ADICLK_BUSCLK | ADC_CFG1_MODE_1213BIT | ADC_CFG1_ADIV_DIV8;
-	rCFG2(1) = 0;
-	rSC2(1) = ADC_SC2_REFSEL_DEFAULT;
+	regval = getreg32(S32K3XX_ADC2_AMSIO);
+	regval |= ADC_AMSIO_HSEN_MASK;
+	putreg32(regval, S32K3XX_ADC2_AMSIO);
 
-	px4_leave_critical_section(flags);
+	regval = getreg32(S32K3XX_ADC2_CAL2);
+	regval &= ~ADC_CAL2_ENX;
+	putreg32(regval, S32K3XX_ADC2_CAL2);
 
-	/* Clear the CALF and begin the calibration */
+	regval = getreg32(S32K3XX_ADC2_CALBISTREG);
+	regval &= ~(ADC_CALBISTREG_TEST_EN | ADC_CALBISTREG_AVG_EN | ADC_CALBISTREG_NR_SMPL_MASK |
+		    ADC_CALBISTREG_CALSTFUL | ADC_CALBISTREG_TSAMP_MASK | ADC_CALBISTREG_RESN_MASK);
+	regval |= ADC_CALBISTREG_TEST_EN | ADC_CALBISTREG_AVG_EN | ADC_CALBISTREG_NR_SMPL_4SMPL |
+		  ADC_CALBISTREG_CALSTFUL | ADC_CALBISTREG_RESN_14BIT;
+	putreg32(regval, S32K3XX_ADC2_CALBISTREG);
 
-	rSC3(1) = ADC_SC3_CAL | ADC_SC3_CALF;
+	while (getreg32(S32K3XX_ADC2_CALBISTREG) & ADC_CALBISTREG_C_T_BUSY) {};
 
-	while ((rSC1A(1) & ADC_SC1_COCO) == 0) {
-		usleep(100);
+	putreg32(ADC_MCR_PWDN, S32K3XX_ADC2_MCR);
 
-		if (rSC3(1) & ADC_SC3_CALF) {
-			return -1;
-		}
-	}
+	putreg32(22, S32K3XX_ADC2_CTR0);
 
-	/* dummy read to clear COCO of calibration */
+	putreg32(22, S32K3XX_ADC2_CTR1);
 
-	int32_t r = rRA(1);
+	putreg32(0, S32K3XX_ADC2_DMAE);
 
-	/* Check the state of CALF at the end of calibration */
+	putreg32(ADC_MCR_ADCLKSEL_DIV4 | ADC_MCR_AVGS_32CONV | ADC_MCR_AVGEN | ADC_MCR_BCTU_MODE | ADC_MCR_MODE,
+		 S32K3XX_ADC2_MCR);
 
-	if (rSC3(1) & ADC_SC3_CALF) {
-		return -1;
-	}
+	putreg32(0x10, S32K3XX_ADC2_NCMR0);
 
-	/* Calculate the calibration values for single ended positive */
+	putreg32(0x10, S32K3XX_ADC2_NCMR1);
 
-	r = rCLP0(1) + rCLP1(1)  + rCLP2(1)  + rCLP3(1)  + rCLP4(1)  + rCLPS(1) ;
-	r = 0x8000U | (r >> 1U);
-	rPG(1) = r;
+	regval = getreg32(S32K3XX_ADC2_MCR);
 
-	/* Calculate the calibration values for double ended Negitive */
+	regval |= ADC_MCR_NSTART;
 
-	r = rCLM0(1) + rCLM1(1)  + rCLM2(1)  + rCLM3(1)  + rCLM4(1)  + rCLMS(1) ;
-	r = 0x8000U | (r >> 1U);
-	rMG(1) = r;
-
-	/* kick off a sample and wait for it to complete */
-	hrt_abstime now = hrt_absolute_time();
-
-	rSC1A(1) =  ADC_SC1_ADCH(ADC_SC1_ADCH_TEMP);
-
-	while (!(rSC1A(1) & ADC_SC1_COCO)) {
-
-		/* don't wait for more than 500us, since that means something broke - should reset here if we see this */
-		if ((hrt_absolute_time() - now) > 500) {
-			return -1;
-		}
-	}
+	putreg32(regval, S32K3XX_ADC2_MCR);
 
 	return 0;
 }
 
 void px4_arch_adc_uninit(uint32_t base_address)
 {
-	irqstate_t flags = px4_enter_critical_section();
-	_REG(KINETIS_SIM_SCGC3) &= ~SIM_SCGC3_ADC1;
-	px4_leave_critical_section(flags);
 }
 
 uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel)
 {
-	irqstate_t flags = px4_enter_critical_section();
+	uint32_t result = 0;
 
-	/* clear any previous COCC */
-	rRA(1);
+	if (channel == 0) {
+		result = getreg32(S32K3XX_ADC2_PCDR4);
 
-	/* run a single conversion right now - should take about 35 cycles (5 microseconds) max */
-	rSC1A(1) = ADC_SC1_ADCH(channel);
+		if ((result & ADC_PCDR_VALID) == ADC_PCDR_VALID) {
+			result = result & 0xFFFF;
 
-	/* wait for the conversion to complete */
-	const hrt_abstime now = hrt_absolute_time();
-
-	while (!(rSC1A(1) & ADC_SC1_COCO)) {
-
-		/* don't wait for more than 10us, since that means something broke - should reset here if we see this */
-		if ((hrt_absolute_time() - now) > 10) {
-			px4_leave_critical_section(flags);
-			return 0xffff;
+		} else {
+			result = 0;
 		}
 	}
-
-	/* read the result and clear EOC */
-	uint32_t result = rRA(1);
-
-	px4_leave_critical_section(flags);
 
 	return result;
 }
@@ -186,10 +118,10 @@ float px4_arch_adc_reference_v()
 
 uint32_t px4_arch_adc_temp_sensor_mask()
 {
-	return 1 << (ADC_SC1_ADCH_TEMP >> ADC_SC1_ADCH_SHIFT);
+	return 0; // No temp sensor
 }
 
 uint32_t px4_arch_adc_dn_fullcount()
 {
-	return 1 << 12; // 12 bit ADC
+	return 1 << 15; // 15 bit conversion data
 }

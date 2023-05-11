@@ -152,6 +152,18 @@
 #define PIN_LPUART1_RX    (PIN_LPUART1_RX_3 | PIN_INPUT_PULLUP)   /* PTC6 */
 #define PIN_LPUART1_TX    PIN_LPUART1_TX_3   /* PTC7 */
 
+
+/* LPUART4 /dev/ttyS3  P8B 3X7 Pin 3 Single wire RC UART */
+
+#define PIN_LPUART4_RX    PIN_LPUART4_TX_3   /* Dummy since it's Single Wire TX-only */
+#define PIN_LPUART4_TX    PIN_LPUART4_TX_3   /* PTE11 */
+
+
+/* LPUART7 /dev/ttyS4  P8B 3X7 Pin 3 and Pin 8 */
+
+#define PIN_LPUART7_RX    (PIN_LPUART7_RX_3 | PIN_INPUT_PULLUP)   /* PTE0 */
+#define PIN_LPUART7_TX    PIN_LPUART7_TX_3   /* PTE1 */
+
 /* LPUART9   P24 UART connector */
 
 #define PIN_LPUART9_RX    (PIN_LPUART9_RX_1 | PIN_INPUT_PULLUP)   /* PTB2 */
@@ -209,7 +221,8 @@
 #define PIN_LPSPI4_PCS0   PIN_LPSPI4_PCS0_1  /* PTB8  */
 #define PIN_LPSPI4_PCS3   PIN_LPSPI4_PCS3_1  /* PTA16 */
 
-#define PIN_LPSPI4_PCS    (PIN_PTA16 | GPIO_LOWDRIVE | GPIO_OUTPUT_ONE)  /* PTA16 */
+#define PIN_LPSPI4_CS_P26 (PIN_PTA16 | GPIO_LOWDRIVE | GPIO_OUTPUT_ONE)  /* PTA16 */
+#define PIN_LPSPI4_CS_P8B (PIN_PTB8 | GPIO_LOWDRIVE | GPIO_OUTPUT_ONE)   /* PTB8 */
 
 /* LPSPI5  P26 external IMU connector */
 
