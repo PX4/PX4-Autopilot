@@ -337,11 +337,13 @@ void MicroddsClient::run()
 		if (_subs) {
 			delete _subs;
 		}
+
 		_subs = new SendTopicsSubs();
 
 		if (_pubs) {
 			delete _pubs;
 		}
+
 		_pubs = new RcvTopicsPubs();
 
 		if (!_subs || !_pubs) {
