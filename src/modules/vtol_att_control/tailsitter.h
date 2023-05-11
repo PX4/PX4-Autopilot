@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -48,6 +48,12 @@
 #include <drivers/drv_hrt.h>
 #include <matrix/matrix/math.hpp>
 
+// [rad] Pitch threshold required for completing transition to fixed-wing in automatic transitions
+static constexpr float PITCH_THRESHOLD_AUTO_TRANSITION_TO_FW = -1.05f; // -60°
+
+// [rad] Pitch threshold required for completing transition to hover in automatic transitions
+static constexpr float PITCH_THRESHOLD_AUTO_TRANSITION_TO_MC = -0.26f; // -15°
+
 class Tailsitter : public VtolType
 {
 
@@ -82,7 +88,8 @@ private:
 	bool isFrontTransitionCompletedBase() override;
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(VtolType,
-					(ParamFloat<px4::params::FW_PSP_OFF>) _param_fw_psp_off
+					(ParamFloat<px4::params::FW_PSP_OFF>) _param_fw_psp_off,
+					(ParamFloat<px4::params::MPC_MAN_TILT_MAX>) _param_mpc_tilt_max
 				       )
 
 

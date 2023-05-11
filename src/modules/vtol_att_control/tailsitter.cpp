@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,9 +41,6 @@
 
 #include "tailsitter.h"
 #include "vtol_att_control_main.h"
-
-#define PITCH_TRANSITION_FRONT_P1 -1.1f	// pitch angle to switch to TRANSITION_P2
-#define PITCH_TRANSITION_BACK -0.25f	// pitch angle to switch to MC
 
 using namespace matrix;
 
@@ -91,8 +88,15 @@ void Tailsitter::update_vtol_state()
 		case vtol_mode::TRANSITION_BACK:
 			const float pitch = Eulerf(Quatf(_v_att->q)).theta();
 
+			float pitch_threshold_mc = PITCH_THRESHOLD_AUTO_TRANSITION_TO_MC;
+
+			// if doing transition in Stabilized mode set threshold to max angle plus 5° margin
+			if (!_v_control_mode->flag_control_altitude_enabled) {
+				pitch_threshold_mc = math::radians(-_param_mpc_tilt_max.get() - 5.f);
+			}
+
 			// check if we have reached pitch angle to switch to MC mode
-			if (pitch >= PITCH_TRANSITION_BACK || _time_since_trans_start > _param_vt_b_trans_dur.get()) {
+			if (pitch >= pitch_threshold_mc || _time_since_trans_start > _param_vt_b_trans_dur.get()) {
 				_vtol_mode = vtol_mode::MC_MODE;
 			}
 
@@ -325,7 +329,14 @@ bool Tailsitter::isFrontTransitionCompletedBase()
 	bool transition_to_fw = false;
 	const float pitch = Eulerf(Quatf(_v_att->q)).theta();
 
-	if (pitch <= PITCH_TRANSITION_FRONT_P1) {
+	float pitch_threshold_fw = PITCH_THRESHOLD_AUTO_TRANSITION_TO_FW;
+
+	// if doing transition in Stabilized mode set threshold to max angle minus 5° margin
+	if (!_v_control_mode->flag_control_altitude_enabled) {
+		pitch_threshold_fw = math::radians(-_param_mpc_tilt_max.get() + 5.f);
+	}
+
+	if (pitch <= pitch_threshold_fw) {
 		if (airspeed_triggers_transition) {
 			transition_to_fw = _airspeed_validated->calibrated_airspeed_m_s >= _param_vt_arsp_trans.get() ;
 
