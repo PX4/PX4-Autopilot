@@ -24,6 +24,32 @@ if [ ! -z $MINIMAL_PX4 ]; then
     exit 0
 fi
 
+# Figure out what platform we are running on.
+PLATFORM=`/usr/bin/voxl-platform 2> /dev/null`
+RETURNCODE=$?
+if [ $RETURNCODE -ne 0 ]; then
+    # If we couldn't get the platform from the voxl-platform utility then check
+    # /etc/version to see if there is an M0052 substring in the version string. If so,
+    # then we assume that we are on M0052.
+    VERSIONSTRING=$(</etc/version)
+    M0052SUBSTRING="M0052"
+    if [[ "$VERSIONSTRING" == *"$M0052SUBSTRING"* ]]; then
+        PLATFORM="M0052"
+    fi
+fi
+
+# We can only run on M0052, M0054, or M0104 so exit with error if that is not the case
+if [ $PLATFORM = "M0052" ]; then
+    /bin/echo "Running on M0052"
+elif [ $PLATFORM = "M0054" ]; then
+    /bin/echo "Running on M0054"
+elif [ $PLATFORM = "M0104" ]; then
+    /bin/echo "Running on M0104"
+else
+    /bin/echo "Error, cannot determine platform!"
+    exit 0
+fi
+
 # Sleep a little here. A lot happens when the uorb and muorb start
 # and we need to make sure that it all completes successfully to avoid
 # any possible race conditions.
@@ -69,13 +95,11 @@ elif [ "$GPS" == "HOLYBRO" ]; then
 fi
 
 # GPS
-if [ "$GPS" == "MATEK" ]; then
-    # Use this gps start line instead for Matek Systems M8Q-5883 module
-    /bin/echo "Starting Mateksys M8Q-5883 GPS"
-    qshell gps start
-elif [ "$GPS" == "HOLYBRO" ]; then
-    # Only the newer Holybro unit is supported on M0054
-    /bin/echo "Starting Holybro GPS"
+# On M0052 the GPS driver runs on the apps processor
+if [ $PLATFORM = "M0052" ]; then
+    gps start -d /dev/ttyHS2
+# On M0054 and M0104 the GPS driver runs on SLPI DSP
+else
     qshell gps start
 fi
 
@@ -95,6 +119,7 @@ qshell modal_io start
 
 /bin/sleep 1
 
+# RC driver
 if [ "$RC" == "FAKE_RC_INPUT" ]; then
     /bin/echo "Starting fake RC driver"
     qshell rc_controller start
@@ -106,7 +131,13 @@ elif [ "$RC" == "CRSF_MAV" ]; then
     qshell mavlink_rc_in start -m -p 7 -b 115200
 elif [ "$RC" == "SPEKTRUM" ]; then
     /bin/echo "Starting Spektrum RC"
-    qshell spektrum_rc start
+	# On M0052 the RC driver runs on the apps processor
+	if [ $PLATFORM = "M0052" ]; then
+        rc_input start -d /dev/ttyHS1
+	# On M0054 and M0104 the RC driver runs on SLPI DSP
+	else
+        qshell spektrum_rc start
+	fi
 fi
 
 /bin/sleep 1
@@ -138,6 +169,12 @@ qshell flight_mode_manager start
 # Start all of the processing modules on the applications processor
 dataman start
 navigator start
+
+# On M0052 there is only one IMU. So, PX4 needs to
+# publish IMU samples externally for VIO to use.
+if [ $PLATFORM = "M0052" ]; then
+	imu_server start
+fi
 
 # start the onboard fast link to connect to voxl-mavlink-server
 mavlink start -x -u 14556 -o 14557 -r 100000 -n lo -m onboard
