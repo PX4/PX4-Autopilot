@@ -1121,18 +1121,21 @@ UavcanNode::cb_getset(const uavcan::ServiceCallResult<uavcan::protocol::param::G
 				response.param_type = uavcan_parameter_request_s::PARAM_TYPE_UINT8;
 				response.int_value = param.value.to<uavcan::protocol::param::Value::Tag::boolean_value>();
 			}
+
 			PX4_DEBUG("Got node : %d, param index %d", response.node_id, response.param_index);
 			_param_response_pub.publish(response);
 
 		} else {
-			PX4_ERR("GetSet error at node : %d, param index %d, need resend...", result.getCallID().server_node_id.get(), _param_index);
+			PX4_ERR("GetSet error at node : %d, param index %d, need resend...", result.getCallID().server_node_id.get(),
+				_param_index);
 
 			uavcan::protocol::param::GetSet::Request req;
 
 			req.index = _param_index;
 
 			int call_res = _param_getset_client.call(result.getCallID().server_node_id.get(), req);
-			if(call_res < 0){
+
+			if (call_res < 0) {
 				PX4_ERR("resend failed");
 			}
 
