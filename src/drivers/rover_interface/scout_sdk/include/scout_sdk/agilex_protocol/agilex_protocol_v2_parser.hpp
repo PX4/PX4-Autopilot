@@ -11,7 +11,7 @@ enum class ProtocolVersion { UNKNOWN, AGX_V1, AGX_V2 };
 
 class AgileXProtocolV2Parser
 {
- public:
+public:
 	bool DecodeMessage(const RxFrame *rxf, AgxMessage *msg);
 	bool EncodeMessage(const AgxMessage *msg, TxFrame *txf);
 	uint8_t CalculateChecksum(uint16_t id, uint8_t *data, uint8_t dlc);

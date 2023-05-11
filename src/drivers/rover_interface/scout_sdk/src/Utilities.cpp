@@ -12,17 +12,17 @@ ProtocolDetector::ProtocolDetector() : _can(nullptr), _msg_v1_detected(false), _
 
 ProtocolDetector::~ProtocolDetector()
 {
-	if (_can != nullptr)
-	{
+	if (_can != nullptr) {
 		_can->Close();
 		delete _can;
 		_can = nullptr;
 	}
 }
 
-bool ProtocolDetector::Connect(const char* const _canname)
+bool ProtocolDetector::Connect(const char *const _canname)
 {
 	_can = new SocketCAN();
+
 	if (_can->Init(_canname) == PX4_OK) { return true; } else { return false; }
 }
 
@@ -32,8 +32,8 @@ ProtocolVersion ProtocolDetector::DetectProtocolVersion(const uint64_t timeout_m
 	_msg_v2_detected = false;
 
 	const hrt_abstime start_time = hrt_absolute_time();
-	while (hrt_elapsed_time(&start_time) < timeout_msec)
-	{
+
+	while (hrt_elapsed_time(&start_time) < timeout_msec) {
 		//ParseCANFrame();
 		if (_msg_v1_detected || _msg_v2_detected) { break; }
 	}
@@ -42,20 +42,16 @@ ProtocolVersion ProtocolDetector::DetectProtocolVersion(const uint64_t timeout_m
 	_msg_v2_detected = true;
 
 	// make sure only one version is detected
-	if (_msg_v1_detected && _msg_v2_detected)
-	{
+	if (_msg_v1_detected && _msg_v2_detected) {
 		return ProtocolVersion::UNKNOWN;
-	}
-	else if (_msg_v1_detected)
-	{
+
+	} else if (_msg_v1_detected) {
 		return ProtocolVersion::AGX_V1;
-	}
-	else if (_msg_v2_detected)
-	{
+
+	} else if (_msg_v2_detected) {
 		return ProtocolVersion::AGX_V2;
-	}
-	else
-	{
+
+	} else {
 		return ProtocolVersion::UNKNOWN;
 	}
 };
@@ -66,23 +62,21 @@ void ProtocolDetector::ParseCANFrame()
 	RxFrame rxf{};
 	rxf.frame.payload = &data;
 
-	if(_can->ReceiveFrame(&rxf) <= 0) { return; }
+	if (_can->ReceiveFrame(&rxf) <= 0) { return; }
 
-	switch (rxf.frame.can_id)
-	{
-		// state feedback frame with id 0x151 is unique to V1 protocol
-		case 0x151:
-		{
+	switch (rxf.frame.can_id) {
+	// state feedback frame with id 0x151 is unique to V1 protocol
+	case 0x151: {
 			PX4_INFO("Protocol V1 detected");
 			_msg_v1_detected = true;
 			break;
 		}
 
-		// motion control feedback frame with id 0x221 is unique to V2 protocol
-		case 0x221:
-		// rc state feedback frame with id 0x241 is unique to V2 protocol
-		case 0x241:
-		{
+	// motion control feedback frame with id 0x221 is unique to V2 protocol
+	case 0x221:
+
+	// rc state feedback frame with id 0x241 is unique to V2 protocol
+	case 0x241: {
 			PX4_INFO("Protocol V2 detected");
 			_msg_v2_detected = true;
 			break;

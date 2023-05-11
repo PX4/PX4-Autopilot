@@ -117,92 +117,92 @@ extern "C" {
 
 #ifdef USE_LITTLE_ENDIAN
 typedef struct {
-  uint8_t high_byte;
-  uint8_t low_byte;
+	uint8_t high_byte;
+	uint8_t low_byte;
 } struct16_t;
 typedef struct {
-  uint8_t msb;
-  uint8_t high_byte;
-  uint8_t low_byte;
-  uint8_t lsb;
+	uint8_t msb;
+	uint8_t high_byte;
+	uint8_t low_byte;
+	uint8_t lsb;
 } struct32_t;
 #elif defined(USE_BIG_ENDIAN)
 typedef struct {
-  uint8_t low_byte;
-  uint8_t high_byte;
+	uint8_t low_byte;
+	uint8_t high_byte;
 } struct16_t;
 typedef struct {
-  uint8_t lsb;
-  uint8_t low_byte;
-  uint8_t high_byte;
-  uint8_t msb;
+	uint8_t lsb;
+	uint8_t low_byte;
+	uint8_t high_byte;
+	uint8_t msb;
 } struct32_t;
 #endif
 
 // Control messages
 typedef struct {
-  struct16_t linear_velocity;
-  struct16_t angular_velocity;
-  struct16_t lateral_velocity;
-  struct16_t steering_angle;
+	struct16_t linear_velocity;
+	struct16_t angular_velocity;
+	struct16_t lateral_velocity;
+	struct16_t steering_angle;
 } MotionCommandFrame;
 
 #define LIGHT_ENABLE_CMD_CTRL ((uint8_t)0x01)
 #define LIGHT_DISABLE_CMD_CTRL ((uint8_t)0x00)
 
 typedef struct {
-  uint8_t enable_cmd_ctrl;
-  uint8_t front_mode;
-  uint8_t front_custom;
-  uint8_t rear_mode;
-  uint8_t rear_custom;
-  uint8_t reserved0;
-  uint8_t reserved1;
-  uint8_t count;
+	uint8_t enable_cmd_ctrl;
+	uint8_t front_mode;
+	uint8_t front_custom;
+	uint8_t rear_mode;
+	uint8_t rear_custom;
+	uint8_t reserved0;
+	uint8_t reserved1;
+	uint8_t count;
 } LightCommandFrame;
 
 typedef struct {
-  uint8_t enable_brake;
-  uint8_t count;
+	uint8_t enable_brake;
+	uint8_t count;
 } BrakingCommandFrame;
 
 typedef struct {
-  uint8_t motion_mode;
-  uint8_t reserved0;
-  uint8_t reserved1;
-  uint8_t reserved2;
-  uint8_t reserved3;
-  uint8_t reserved4;
-  uint8_t reserved5;
-  uint8_t reserved6;
+	uint8_t motion_mode;
+	uint8_t reserved0;
+	uint8_t reserved1;
+	uint8_t reserved2;
+	uint8_t reserved3;
+	uint8_t reserved4;
+	uint8_t reserved5;
+	uint8_t reserved6;
 } SetMotionModeFrame;
 
 // State feedback messages
 typedef struct {
-  uint8_t vehicle_state;
-  uint8_t control_mode;
-  struct16_t battery_voltage;
-  struct16_t error_code;
-  uint8_t reserved0;
-  uint8_t count;
+	uint8_t vehicle_state;
+	uint8_t control_mode;
+	struct16_t battery_voltage;
+	struct16_t error_code;
+	uint8_t reserved0;
+	uint8_t count;
 } SystemStateFrame;
 
 typedef struct {
-  struct16_t linear_velocity;
-  struct16_t angular_velocity;
-  struct16_t lateral_velocity;
-  struct16_t steering_angle;
+	struct16_t linear_velocity;
+	struct16_t angular_velocity;
+	struct16_t lateral_velocity;
+	struct16_t steering_angle;
 } MotionStateFrame;
 
 typedef struct {
-  uint8_t enable_cmd_ctrl;
-  uint8_t front_mode;
-  uint8_t front_custom;
-  uint8_t rear_mode;
-  uint8_t rear_custom;
-  uint8_t reserved0;
-  uint8_t reserved1;
-  uint8_t count;
+	uint8_t enable_cmd_ctrl;
+	uint8_t front_mode;
+	uint8_t front_custom;
+	uint8_t rear_mode;
+	uint8_t rear_custom;
+	uint8_t reserved0;
+	uint8_t reserved1;
+	uint8_t count;
 } LightStateFrame;
 
 #define RC_SWA_MASK ((uint8_t)0b00000011)
@@ -224,105 +224,105 @@ typedef struct {
 #define RC_SWD_DOWN_MASK ((uint8_t)0b11000000)
 
 typedef struct {
-  uint8_t sws;
-  int8_t stick_right_h;
-  int8_t stick_right_v;
-  int8_t stick_left_v;
-  int8_t stick_left_h;
-  int8_t var_a;
-  uint8_t reserved0;
-  uint8_t count;
+	uint8_t sws;
+	int8_t stick_right_h;
+	int8_t stick_right_v;
+	int8_t stick_left_v;
+	int8_t stick_left_h;
+	int8_t var_a;
+	uint8_t reserved0;
+	uint8_t count;
 } RcStateFrame;
 
 typedef struct {
-  struct16_t rpm;
-  struct16_t current;
-  struct32_t pulse_count;
+	struct16_t rpm;
+	struct16_t current;
+	struct32_t pulse_count;
 } ActuatorHSStateFrame;
 
 typedef struct {
-  struct16_t driver_voltage;
-  struct16_t driver_temp;
-  int8_t motor_temp;
-  uint8_t driver_state;
-  uint8_t reserved0;
-  uint8_t reserved1;
+	struct16_t driver_voltage;
+	struct16_t driver_temp;
+	int8_t motor_temp;
+	uint8_t driver_state;
+	uint8_t reserved0;
+	uint8_t reserved1;
 } ActuatorLSStateFrame;
 
 // 0x291
 typedef struct {
-  uint8_t motion_mode;
-  uint8_t mode_changing;
+	uint8_t motion_mode;
+	uint8_t mode_changing;
 } MotionModeStateFrame;
 
 // sensors
 typedef struct {
-  struct32_t left_wheel;
-  struct32_t right_wheel;
+	struct32_t left_wheel;
+	struct32_t right_wheel;
 } OdometryFrame;
 
 typedef struct {
-  struct16_t accel_x;
-  struct16_t accel_y;
-  struct16_t accel_z;
-  uint8_t reserverd0;
-  uint8_t count;
+	struct16_t accel_x;
+	struct16_t accel_y;
+	struct16_t accel_z;
+	uint8_t reserverd0;
+	uint8_t count;
 } ImuAccelFrame;
 
 typedef struct {
-  struct16_t gyro_x;
-  struct16_t gyro_y;
-  struct16_t gyro_z;
-  uint8_t reserverd0;
-  uint8_t count;
+	struct16_t gyro_x;
+	struct16_t gyro_y;
+	struct16_t gyro_z;
+	uint8_t reserverd0;
+	uint8_t count;
 } ImuGyroFrame;
 
 typedef struct {
-  struct16_t yaw;
-  struct16_t pitch;
-  struct16_t roll;
-  uint8_t reserverd0;
-  uint8_t count;
+	struct16_t yaw;
+	struct16_t pitch;
+	struct16_t roll;
+	uint8_t reserverd0;
+	uint8_t count;
 } ImuEulerFrame;
 
 typedef struct {
-  uint8_t trigger_state;
-  uint8_t reserved0;
-  uint8_t reserved1;
-  uint8_t reserved2;
-  uint8_t reserved3;
-  uint8_t reserved4;
-  uint8_t reserved5;
-  uint8_t reserved6;
+	uint8_t trigger_state;
+	uint8_t reserved0;
+	uint8_t reserved1;
+	uint8_t reserved2;
+	uint8_t reserved3;
+	uint8_t reserved4;
+	uint8_t reserved5;
+	uint8_t reserved6;
 } SafetyBumperFrame;
 
 typedef struct {
-  uint8_t distance[8];
+	uint8_t distance[8];
 } UltrasonicFrame;
 
 typedef struct {
-  struct16_t relative_distance;
-  struct16_t relative_angle;
-  uint8_t is_normal;
-  int8_t channels[3];
+	struct16_t relative_distance;
+	struct16_t relative_angle;
+	uint8_t is_normal;
+	int8_t channels[3];
 } UwbFrame;
 
 typedef struct {
-  uint8_t battery_soc;
-  uint8_t battery_soh;
-  struct16_t voltage;
-  struct16_t current;
-  struct16_t temperature;
+	uint8_t battery_soc;
+	uint8_t battery_soh;
+	struct16_t voltage;
+	struct16_t current;
+	struct16_t temperature;
 } BmsBasicFrame;
 
 typedef struct {
-  uint8_t protection_code1;
-  uint8_t protection_code2;
-  uint8_t protection_code3;
-  uint8_t protection_code4;
-  uint8_t battery_max_teperature;
-  uint8_t battery_min_teperature;
-  struct16_t count;
+	uint8_t protection_code1;
+	uint8_t protection_code2;
+	uint8_t protection_code3;
+	uint8_t protection_code4;
+	uint8_t battery_max_teperature;
+	uint8_t battery_min_teperature;
+	struct16_t count;
 } BmsExtendedFrame;
 
 // query/config
@@ -332,14 +332,14 @@ typedef struct {
 #define STEER_NEUTRAL_RESPONSE_FAILURE_VALUE ((uint8_t)0xff)
 
 typedef struct {
-  uint8_t request;
-  uint8_t reserved0;
-  uint8_t reserved1;
-  uint8_t reserved2;
-  uint8_t reserved3;
-  uint8_t reserved4;
-  uint8_t reserved5;
-  uint8_t reserved6;
+	uint8_t request;
+	uint8_t reserved0;
+	uint8_t reserved1;
+	uint8_t reserved2;
+	uint8_t reserved3;
+	uint8_t reserved4;
+	uint8_t reserved5;
+	uint8_t reserved6;
 } VersionRequestFrame;
 
 //typedef struct {
@@ -350,84 +350,84 @@ typedef struct {
 //} VersionResponseFrame;
 
 typedef struct {
-  uint8_t res0;
-  uint8_t res1;
-  uint8_t res2;
-  uint8_t res3;
-  uint8_t res4;
-  uint8_t res5;
-  uint8_t res6;
-  uint8_t res7;
+	uint8_t res0;
+	uint8_t res1;
+	uint8_t res2;
+	uint8_t res3;
+	uint8_t res4;
+	uint8_t res5;
+	uint8_t res6;
+	uint8_t res7;
 } VersionResponseFrame;
 
 
 typedef struct {
-  uint8_t mode;
-  uint8_t reserved0;
-  uint8_t reserved1;
-  uint8_t reserved2;
-  uint8_t reserved3;
-  uint8_t reserved4;
-  uint8_t reserved5;
-  uint8_t reserved6;
+	uint8_t mode;
+	uint8_t reserved0;
+	uint8_t reserved1;
+	uint8_t reserved2;
+	uint8_t reserved3;
+	uint8_t reserved4;
+	uint8_t reserved5;
+	uint8_t reserved6;
 } ControlModeConfigFrame;
 
 typedef struct {
-  uint8_t mode;
-  uint8_t reserved0;
-  uint8_t reserved1;
-  uint8_t reserved2;
-  uint8_t reserved3;
-  uint8_t reserved4;
-  uint8_t reserved5;
-  uint8_t reserved6;
+	uint8_t mode;
+	uint8_t reserved0;
+	uint8_t reserved1;
+	uint8_t reserved2;
+	uint8_t reserved3;
+	uint8_t reserved4;
+	uint8_t reserved5;
+	uint8_t reserved6;
 } BrakeModeConfigFrame;
 
 typedef struct {
-  uint8_t set_as_neutral;
-  uint8_t reserved0;
-  uint8_t reserved1;
-  uint8_t reserved2;
-  uint8_t reserved3;
-  uint8_t reserved4;
-  uint8_t reserved5;
-  uint8_t reserved6;
+	uint8_t set_as_neutral;
+	uint8_t reserved0;
+	uint8_t reserved1;
+	uint8_t reserved2;
+	uint8_t reserved3;
+	uint8_t reserved4;
+	uint8_t reserved5;
+	uint8_t reserved6;
 } SteerNeutralRequestFrame;
 
 typedef struct {
-  uint8_t neutral_set_successful;
-  uint8_t reserved0;
-  uint8_t reserved1;
-  uint8_t reserved2;
-  uint8_t reserved3;
-  uint8_t reserved4;
-  uint8_t reserved5;
-  uint8_t reserved6;
+	uint8_t neutral_set_successful;
+	uint8_t reserved0;
+	uint8_t reserved1;
+	uint8_t reserved2;
+	uint8_t reserved3;
+	uint8_t reserved4;
+	uint8_t reserved5;
+	uint8_t reserved6;
 } SteerNeutralResponseFrame;
 
 typedef struct {
-  uint8_t error_clear_byte;
-  uint8_t reserved0;
-  uint8_t reserved1;
-  uint8_t reserved2;
-  uint8_t reserved3;
-  uint8_t reserved4;
-  uint8_t reserved5;
-  uint8_t reserved6;
+	uint8_t error_clear_byte;
+	uint8_t reserved0;
+	uint8_t reserved1;
+	uint8_t reserved2;
+	uint8_t reserved3;
+	uint8_t reserved4;
+	uint8_t reserved5;
+	uint8_t reserved6;
 } StateResetConfigFrame;
 
 typedef struct {
-  struct16_t angle_5;
-  struct16_t angle_6;
-  struct16_t angle_7;
-  struct16_t angle_8;
+	struct16_t angle_5;
+	struct16_t angle_6;
+	struct16_t angle_7;
+	struct16_t angle_8;
 } MoterAngleFrame;
 
 typedef struct {
-  struct16_t speed_1;
-  struct16_t speed_2;
-  struct16_t speed_3;
-  struct16_t speed_4;
+	struct16_t speed_1;
+	struct16_t speed_2;
+	struct16_t speed_3;
+	struct16_t speed_4;
 } MoterSpeedFrame;
 
 #pragma pack(pop)

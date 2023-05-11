@@ -8,8 +8,8 @@ const char *const RoverInterface::CAN_IFACE = "can0";
 
 RoverInterface::RoverInterface(uint8_t rover_type)
 	: ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rover_interface),
-	_rover_type(rover_type)
+	  ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rover_interface),
+	  _rover_type(rover_type)
 {
 	pthread_mutex_init(&_node_mutex, nullptr);
 }
@@ -24,8 +24,7 @@ RoverInterface::~RoverInterface()
 
 		unsigned i = 1000;
 
-		do
-		{
+		do {
 			// Wait for it to exit or timeout
 			usleep(5000);
 
@@ -44,16 +43,14 @@ RoverInterface::~RoverInterface()
 
 int RoverInterface::start(uint8_t rover_type)
 {
-	if (_instance != nullptr)
-	{
+	if (_instance != nullptr) {
 		PX4_ERR("Already started");
 		return -1;
 	}
 
 	_instance = new RoverInterface(rover_type);
 
-	if (_instance == nullptr)
-	{
+	if (_instance == nullptr) {
 		PX4_ERR("Failed to allocate RoverInterface object");
 		return -1;
 	}
@@ -69,37 +66,31 @@ void RoverInterface::Init()
 	_initialized = false;
 
 	// Check rover type
-	if (_rover_type == 0)
-	{
+	if (_rover_type == 0) {
 		// Scout Mini
 		PX4_INFO("Scout Mini (rover type 0) is supported. Initializing...");
-	}
-	else if (_rover_type == 1)
-	{
+
+	} else if (_rover_type == 1) {
 		// Scout
 		PX4_INFO("Scout (rover type 1) is not supported. Aborted");
 		return;
-	}
-	else if (_rover_type == 2)
-	{
+
+	} else if (_rover_type == 2) {
 		// Scout Pro
 		PX4_INFO("Scout Pro (rover type 0) is not supported. Aborted");
 		return;
-	}
-	else if (_rover_type == 3)
-	{
+
+	} else if (_rover_type == 3) {
 		// Scout 2
 		PX4_INFO("Scout 2 (rover type 3) is not supported. Aborted");
 		return;
-	}
-	else if (_rover_type == 4)
-	{
+
+	} else if (_rover_type == 4) {
 		// Scout 2 Pro
 		PX4_INFO("Scout 2 Pro (rover type 4) is not supported. Aborted");
 		return;
-	}
-	else
-	{
+
+	} else {
 		// Unknown Rover type
 		PX4_INFO("Unknown rover type. Aborted");
 		return;
@@ -107,29 +98,26 @@ void RoverInterface::Init()
 
 
 	// Check protocol version and create ScoutRobot object
-	if (_protocol_version == scoutsdk::ProtocolVersion::AGX_V1)
-	{
+	if (_protocol_version == scoutsdk::ProtocolVersion::AGX_V1) {
 		PX4_INFO("AGX V1 protocol version is not supported. Aborted");
-	}
-	else if (_protocol_version == scoutsdk::ProtocolVersion::AGX_V2)
-	{
+
+	} else if (_protocol_version == scoutsdk::ProtocolVersion::AGX_V2) {
 		PX4_INFO("Detected AGX V2 protocol");
 		_scout = new scoutsdk::ScoutRobot(scoutsdk::ProtocolVersion::AGX_V2, true);
-	}
-	else
-	{
+
+	} else {
 		PX4_INFO("Unknown protocol version");
 	}
-	if (_scout == nullptr)
-	{
+
+	if (_scout == nullptr) {
 		PX4_ERR("Failed to create the ScoutRobot object. Aborted");
 		return;
 	}
 
 	// Finally establish connection to rover
 	_scout->Connect(CAN_IFACE);
-	if(!_scout->GetCANConnected())
-	{
+
+	if (!_scout->GetCANConnected()) {
 		PX4_ERR("Failed to connect to the rover CAN bus");
 		return;
 	}
@@ -141,8 +129,7 @@ void RoverInterface::Init()
 	_scout->QuerySystemVersion(SystemVersionQueryLimitMs);
 
 	// Setup rover state publisher
-	if (!orb_advert_valid(_rover_status_pub))
-	{
+	if (!orb_advert_valid(_rover_status_pub)) {
 		_rover_status_pub = orb_advertise(ORB_ID(rover_status), &_rover_status_msg);
 	}
 
@@ -157,15 +144,13 @@ void RoverInterface::Run()
 {
 	pthread_mutex_lock(&_node_mutex);
 
-	if (_instance != nullptr && _task_should_exit.load())
-	{
+	if (_instance != nullptr && _task_should_exit.load()) {
 		ScheduleClear();
 
 		if (_initialized) { _initialized = false; }
 
 		// Clean up
-		if (_scout != nullptr)
-		{
+		if (_scout != nullptr) {
 			delete _scout;
 			_scout = nullptr;
 		}
@@ -175,18 +160,15 @@ void RoverInterface::Run()
 		return;
 	}
 
-	if (_instance != nullptr && !_initialized)
-	{
+	if (_instance != nullptr && !_initialized) {
 		// Try initializing for the first time
-		if (!_init_try_count)
-		{
+		if (!_init_try_count) {
 			Init();
 			_init_try_count++;
 		}
 
 		// Return early if still not initialized
-		if (!_initialized)
-		{
+		if (!_initialized) {
 			pthread_mutex_unlock(&_node_mutex);
 			return;
 		}
@@ -205,8 +187,7 @@ void RoverInterface::Run()
 	_scout->CheckUpdateFromRover();
 
 	// Update from rover and publish the rover state
-	if (hrt_elapsed_time(&_last_rover_status_publish_time) > RoverStatusPublishIntervalMs)
-	{
+	if (hrt_elapsed_time(&_last_rover_status_publish_time) > RoverStatusPublishIntervalMs) {
 		PublishRoverState();
 	}
 
@@ -218,11 +199,10 @@ void RoverInterface::Run()
 
 void RoverInterface::ActuatorControlsUpdate()
 {
-	if (_actuator_controls_sub.updated())
-	{
+	if (_actuator_controls_sub.updated()) {
 		actuator_controls_s actuator_controls_msg;
-		if (_actuator_controls_sub.copy(&actuator_controls_msg))
-		{
+
+		if (_actuator_controls_sub.copy(&actuator_controls_msg)) {
 			auto throttle = actuator_controls_msg.control[actuator_controls_s::INDEX_THROTTLE];
 			auto steering = actuator_controls_msg.control[actuator_controls_s::INDEX_YAW];
 			_scout->SetMotionCommand(throttle, steering);
@@ -233,19 +213,16 @@ void RoverInterface::ActuatorControlsUpdate()
 
 void RoverInterface::ActuatorArmedUpdate()
 {
-	if (_actuator_armed_sub.updated())
-	{
+	if (_actuator_armed_sub.updated()) {
 		actuator_armed_s actuator_armed_msg;
-		if (_actuator_armed_sub.copy(&actuator_armed_msg))
-		{
+
+		if (_actuator_armed_sub.copy(&actuator_armed_msg)) {
 			// Arm or disarm the rover
-			if (!_armed && actuator_armed_msg.armed)
-			{
+			if (!_armed && actuator_armed_msg.armed) {
 				_scout->SetLightCommand(LightMode::CONST_ON, 0);
 				_armed = true;
-			}
-			else if (_armed && !actuator_armed_msg.armed)
-			{
+
+			} else if (_armed && !actuator_armed_msg.armed) {
 				_scout->SetLightCommand(LightMode::BREATH, 0);
 				_armed = false;
 			}
@@ -260,7 +237,7 @@ void RoverInterface::ActuatorArmedUpdate()
 void RoverInterface::PublishRoverState()
 {
 	// Get rover state
-	auto& robot_state = _scout->GetRobotState();
+	auto &robot_state = _scout->GetRobotState();
 
 	// Assign the values to the PX4 side ORB msg
 	_rover_status_msg.timestamp = hrt_absolute_time();
@@ -276,8 +253,7 @@ void RoverInterface::PublishRoverState()
 	_rover_status_msg.rear_light_mode = robot_state.light_state.rear_light.mode;
 	_rover_status_msg.rear_light_custom_value = robot_state.light_state.rear_light.custom_value;
 
-	if (orb_advert_valid(_rover_status_pub))
-	{
+	if (orb_advert_valid(_rover_status_pub)) {
 		orb_publish(ORB_ID(rover_status), &_rover_status_pub, &_rover_status_msg);
 		_last_rover_status_publish_time = _rover_status_msg.timestamp;
 	}
@@ -288,8 +264,7 @@ void RoverInterface::print_status()
 {
 	pthread_mutex_lock(&_node_mutex);
 
-	if (_scout == nullptr)
-	{
+	if (_scout == nullptr) {
 		PX4_ERR("Scout Robot object not initialized");
 		pthread_mutex_unlock(&_node_mutex);
 		return;
@@ -297,14 +272,13 @@ void RoverInterface::print_status()
 
 	// CAN connection info
 	PX4_INFO("CAN interface: %s. Status: %s",
-					 RoverInterface::CAN_IFACE, _scout->GetCANConnected() ? "connected" : "disconnected");
+		 RoverInterface::CAN_IFACE, _scout->GetCANConnected() ? "connected" : "disconnected");
 
 	// Rover info
-	if (_scout->GetCANConnected())
-	{
+	if (_scout->GetCANConnected()) {
 		PX4_INFO("Rover Type: %s. Protocol Version: %s",
-						 _rover_type == 0 ? "Scout Mini" : "Unknown",
-						 _protocol_version == scoutsdk::ProtocolVersion::AGX_V2 ? "AGX_V2" : "Unknown");
+			 _rover_type == 0 ? "Scout Mini" : "Unknown",
+			 _protocol_version == scoutsdk::ProtocolVersion::AGX_V2 ? "AGX_V2" : "Unknown");
 		PX4_INFO("Rover system version: %s", _scout->GetSystemVersion());
 	}
 
@@ -313,8 +287,8 @@ void RoverInterface::print_status()
 
 	// Subscription info
 	PX4_INFO("Subscribed to topics: %s, %s",
-					 _actuator_controls_sub.get_topic()->o_name,
-					 _actuator_armed_sub.get_topic()->o_name);
+		 _actuator_controls_sub.get_topic()->o_name,
+		 _actuator_armed_sub.get_topic()->o_name);
 
 	// Publication info
 	if (orb_advert_valid(_rover_status_pub)) { PX4_INFO("Publishing rover_status topic"); }
@@ -340,10 +314,8 @@ extern "C" __EXPORT int rover_interface_main(int argc, char *argv[])
 		return 1;
 	}
 
-	if (!strcmp(argv[1], "start"))
-	{
-		if (RoverInterface::instance())
-		{
+	if (!strcmp(argv[1], "start")) {
+		if (RoverInterface::instance()) {
 			PX4_ERR("Already started");
 			return 1;
 		}
@@ -353,27 +325,24 @@ extern "C" __EXPORT int rover_interface_main(int argc, char *argv[])
 		param_get(param_find("RI_ROVER_TYPE"), &rover_type);
 
 		// Start
-		PX4_INFO("Start Rover Interface to rover type %d at CAN iface %s" , rover_type, RoverInterface::CAN_IFACE);
+		PX4_INFO("Start Rover Interface to rover type %d at CAN iface %s", rover_type, RoverInterface::CAN_IFACE);
 		return RoverInterface::start(static_cast<uint8_t>(rover_type));
 	}
 
 	/* commands below assume that the app has been already started */
 	RoverInterface *const inst = RoverInterface::instance();
 
-	if (!inst)
-	{
+	if (!inst) {
 		PX4_ERR("Application not running");
 		return 1;
 	}
 
-	if (!strcmp(argv[1], "status") || !strcmp(argv[1], "info"))
-	{
+	if (!strcmp(argv[1], "status") || !strcmp(argv[1], "info")) {
 		inst->print_status();
 		return 0;
 	}
 
-	if (!strcmp(argv[1], "stop"))
-	{
+	if (!strcmp(argv[1], "stop")) {
 		delete inst;
 		return 0;
 	}

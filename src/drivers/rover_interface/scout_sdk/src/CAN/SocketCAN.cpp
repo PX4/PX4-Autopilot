@@ -52,7 +52,7 @@ uint64_t getMonotonicTimestampUSec(void)
 
 namespace scoutsdk
 {
-int SocketCAN::Init(const char* const can_iface_name)
+int SocketCAN::Init(const char *const can_iface_name)
 {
 	struct sockaddr_can addr;
 	struct ifreq ifr;
@@ -63,8 +63,7 @@ int SocketCAN::Init(const char* const can_iface_name)
 	_can_fd = can_fd;
 
 	/* Open socket */
-	if ((_fd = socket(PF_CAN, SOCK_RAW, CAN_RAW)) < 0)
-	{
+	if ((_fd = socket(PF_CAN, SOCK_RAW, CAN_RAW)) < 0) {
 		PX4_ERR("Opening socket failed");
 		return -1;
 	}
@@ -73,8 +72,7 @@ int SocketCAN::Init(const char* const can_iface_name)
 	ifr.ifr_name[IFNAMSIZ - 1] = '\0';
 	ifr.ifr_ifindex = if_nametoindex(ifr.ifr_name);
 
-	if (!ifr.ifr_ifindex)
-	{
+	if (!ifr.ifr_ifindex) {
 		PX4_ERR("if_nametoindex");
 		return -1;
 	}
@@ -86,8 +84,7 @@ int SocketCAN::Init(const char* const can_iface_name)
 	const int on = 1;
 	/* RX Timestamping */
 
-	if (setsockopt(_fd, SOL_SOCKET, SO_TIMESTAMP, &on, sizeof(on)) < 0)
-	{
+	if (setsockopt(_fd, SOL_SOCKET, SO_TIMESTAMP, &on, sizeof(on)) < 0) {
 		PX4_ERR("SO_TIMESTAMP is disabled");
 		return -1;
 	}
@@ -96,23 +93,19 @@ int SocketCAN::Init(const char* const can_iface_name)
 	 * When a deadline occurs the driver will remove the CAN frame
 	 */
 
-	if (setsockopt(_fd, SOL_CAN_RAW, CAN_RAW_TX_DEADLINE, &on, sizeof(on)) < 0)
-	{
+	if (setsockopt(_fd, SOL_CAN_RAW, CAN_RAW_TX_DEADLINE, &on, sizeof(on)) < 0) {
 		PX4_ERR("CAN_RAW_TX_DEADLINE is disabled");
 		return -1;
 	}
 
-	if (can_fd)
-	{
-		if (setsockopt(_fd, SOL_CAN_RAW, CAN_RAW_FD_FRAMES, &on, sizeof(on)) < 0)
-		{
+	if (can_fd) {
+		if (setsockopt(_fd, SOL_CAN_RAW, CAN_RAW_FD_FRAMES, &on, sizeof(on)) < 0) {
 			PX4_ERR("no CAN FD support");
 			return -1;
 		}
 	}
 
-	if (bind(_fd, (struct sockaddr *)&addr, sizeof(addr)) < 0)
-	{
+	if (bind(_fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
 		PX4_ERR("bind");
 		return -1;
 	}
@@ -121,6 +114,7 @@ int SocketCAN::Init(const char* const can_iface_name)
 	_send_iov.iov_base = &_send_frame;
 
 	if (_can_fd) { _send_iov.iov_len = sizeof(struct canfd_frame); }
+
 	else { _send_iov.iov_len = sizeof(struct can_frame); }
 
 	memset(&_send_control, 0x00, sizeof(_send_control));
@@ -140,6 +134,7 @@ int SocketCAN::Init(const char* const can_iface_name)
 	_recv_iov.iov_base = &_recv_frame;
 
 	if (can_fd) { _recv_iov.iov_len = sizeof(struct canfd_frame); }
+
 	else { _recv_iov.iov_len = sizeof(struct can_frame); }
 
 	memset(_recv_control, 0x00, sizeof(_recv_control));
@@ -155,8 +150,8 @@ int SocketCAN::Init(const char* const can_iface_name)
 	ifr.ifr_ifru.ifru_can_filter.fid2 = 0x231;	// higher end
 	ifr.ifr_ifru.ifru_can_filter.ftype = CAN_FILTER_RANGE;
 	ifr.ifr_ifru.ifru_can_filter.fprio = CAN_MSGPRIO_LOW;
-	if (ioctl(_fd, SIOCACANSTDFILTER, &ifr) < 0)
-	{
+
+	if (ioctl(_fd, SIOCACANSTDFILTER, &ifr) < 0) {
 		PX4_ERR("Setting RX range filter failed");
 		return -1;
 	}
@@ -166,8 +161,8 @@ int SocketCAN::Init(const char* const can_iface_name)
 	ifr.ifr_ifru.ifru_can_filter.fid2 = 0x7FF;	// mask
 	ifr.ifr_ifru.ifru_can_filter.ftype = CAN_FILTER_MASK;
 	ifr.ifr_ifru.ifru_can_filter.fprio = CAN_MSGPRIO_LOW;
-	if (ioctl(_fd, SIOCACANSTDFILTER, &ifr) < 0)
-	{
+
+	if (ioctl(_fd, SIOCACANSTDFILTER, &ifr) < 0) {
 		PX4_ERR("Setting RX bit filter A failed");
 		return -1;
 	}
@@ -178,15 +173,12 @@ int SocketCAN::Init(const char* const can_iface_name)
 int16_t SocketCAN::SendFrame(const TxFrame &txf, int timeout_ms)
 {
 	/* Copy Frame to can_frame/canfd_frame */
-	if (_can_fd)
-	{
+	if (_can_fd) {
 		_send_frame.can_id = txf.frame.can_id | CAN_EFF_FLAG;
 		_send_frame.len = txf.frame.payload_size;
 		memcpy(&_send_frame.data, txf.frame.payload, txf.frame.payload_size);
 
-	}
-	else
-	{
+	} else {
 		struct can_frame *frame = (struct can_frame *)&_send_frame;
 		//frame->can_id = txf.frame.can_id | CAN_EFF_FLAG;
 		frame->can_id = txf.frame.can_id;
@@ -196,7 +188,7 @@ int16_t SocketCAN::SendFrame(const TxFrame &txf, int timeout_ms)
 	}
 
 	uint64_t deadline_systick = getMonotonicTimestampUSec() + (txf.tx_deadline_usec - hrt_absolute_time()) +
-						CONFIG_USEC_PER_TICK; // Compensate for precision loss when converting hrt to systick
+				    CONFIG_USEC_PER_TICK; // Compensate for precision loss when converting hrt to systick
 
 	/* Set CAN_RAW_TX_DEADLINE timestamp  */
 	_send_tv->tv_usec = deadline_systick % 1000000ULL;
@@ -215,23 +207,21 @@ int16_t SocketCAN::ReceiveFrame(RxFrame *rxf)
 
 	/* Copy CAN frame to Frame */
 
-	if (_can_fd)
-	{
+	if (_can_fd) {
 		struct canfd_frame *recv_frame = (struct canfd_frame *)&_recv_frame;
 		rxf->frame.can_id = recv_frame->can_id & CAN_EFF_MASK;
 		rxf->frame.payload_size = recv_frame->len;
-		if (recv_frame->len > 0)
-		{
+
+		if (recv_frame->len > 0) {
 			memcpy(rxf->frame.payload, &recv_frame->data, recv_frame->len);
 		}
-		}
-	else
-	{
+
+	} else {
 		struct can_frame *recv_frame = (struct can_frame *)&_recv_frame;
 		rxf->frame.can_id = recv_frame->can_id & CAN_SFF_MASK;
 		rxf->frame.payload_size = recv_frame->can_dlc;
-		if (recv_frame->can_dlc > 0 && recv_frame->can_dlc <= CAN_MAX_DLEN)
-		{
+
+		if (recv_frame->can_dlc > 0 && recv_frame->can_dlc <= CAN_MAX_DLEN) {
 			rxf->frame.payload_size = recv_frame->can_dlc;
 			memcpy(rxf->frame.payload, &recv_frame->data, recv_frame->can_dlc);
 			PX4_DEBUG("can len %d; can_id: %03x", recv_frame->can_dlc, recv_frame->can_id);
@@ -240,8 +230,7 @@ int16_t SocketCAN::ReceiveFrame(RxFrame *rxf)
 
 	/* Read SO_TIMESTAMP value */
 
-	if (_recv_cmsg->cmsg_level == SOL_SOCKET && _recv_cmsg->cmsg_type == SO_TIMESTAMP)
-	{
+	if (_recv_cmsg->cmsg_level == SOL_SOCKET && _recv_cmsg->cmsg_type == SO_TIMESTAMP) {
 		struct timeval *tv = (struct timeval *)CMSG_DATA(_recv_cmsg);
 		rxf->timestamp_usec = tv->tv_sec * 1000000ULL + tv->tv_usec;
 	}

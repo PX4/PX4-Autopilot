@@ -28,15 +28,16 @@ struct ScoutMotorState {
 };
 
 struct VersionResponse {
-	const char* str_version_response;
+	const char *str_version_response;
 	VersionResponseMessage version_response;
 };
 
 
-class ScoutRobot {
+class ScoutRobot
+{
 public:
 	ScoutRobot(ProtocolVersion protocol = ProtocolVersion::AGX_V2,
-						 bool is_mini_model = false);
+		   bool is_mini_model = false);
 	~ScoutRobot();
 
 	// do not allow copy or assignment
@@ -52,7 +53,7 @@ public:
 	void QuerySystemVersion(const uint64_t timeout_msec);
 	void SetMotionCommand(float linear_vel, float angular_vel);
 	void SetLightCommand(LightMode f_mode, uint8_t f_value,
-											 LightMode r_mode = LightMode::CONST_ON, uint8_t r_value = 0);
+			     LightMode r_mode = LightMode::CONST_ON, uint8_t r_value = 0);
 	void DisableLightControl();
 
 	// Receive status from rover
@@ -60,12 +61,12 @@ public:
 
 	// Get connection and rover general info
 	bool GetCANConnected() const { return _can_connected; }
-	const char* GetSystemVersion() const { return _version_response_msgs.str_version_response; }
+	const char *GetSystemVersion() const { return _version_response_msgs.str_version_response; }
 
 	// Return rover states
-	const ScoutCoreState& GetRobotState() const { return _core_state_msgs; }
-	const ScoutActuatorState& GetActuatorState() const { return _actuator_state_msgs; }
-	const ScoutMotorState& GetMotorState() const { return _motor_state_msgs; }
+	const ScoutCoreState &GetRobotState() const { return _core_state_msgs; }
+	const ScoutActuatorState &GetActuatorState() const { return _actuator_state_msgs; }
+	const ScoutMotorState &GetMotorState() const { return _motor_state_msgs; }
 
 private:
 	void UpdateRobotCoreState(const AgxMessage &status_msg);
@@ -85,14 +86,14 @@ private:
 
 	VersionResponse _version_response_msgs;
 
-	char _version_response_string[9]{};
+	char _version_response_string[9] {};
 
 	// TX buffer
-	uint8_t _tx_data[8]{};
+	uint8_t _tx_data[8] {};
 	TxFrame _tx_frame{};
 
 	// RX buffer
-	uint8_t _rx_data[8]{};
+	uint8_t _rx_data[8] {};
 	RxFrame _rx_frame{};
 
 	// Communication interface

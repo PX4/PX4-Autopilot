@@ -74,7 +74,7 @@ private:
 
 	scoutsdk::ProtocolVersion _protocol_version{scoutsdk::ProtocolVersion::AGX_V2};
 
-	const char* _can_iface{nullptr};
+	const char *_can_iface{nullptr};
 
 	scoutsdk::ScoutRobot *_scout{nullptr};
 

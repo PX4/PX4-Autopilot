@@ -13,11 +13,11 @@ public:
 	ProtocolDetector();
 	~ProtocolDetector();
 
-	bool Connect(const char* const can_name);
+	bool Connect(const char *const can_name);
 
 	ProtocolVersion DetectProtocolVersion(const uint64_t timeout_sec);
 
- private:
+private:
 	SocketCAN *_can;
 	void ParseCANFrame();
 	AgileXProtocolV2Parser _parser;

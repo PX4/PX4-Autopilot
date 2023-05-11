@@ -42,7 +42,7 @@ public:
 	/// Also sets up the message structures required for socketcanTransmit & socketcanReceive
 	/// can_fd determines to use CAN FD frame when is 1, and classical CAN frame when is 0
 	/// The return value is 0 on success and -1 on error
-	int Init(const char* const can_iface_name);
+	int Init(const char *const can_iface_name);
 
 	/// Close socket connection
 	int Close()
