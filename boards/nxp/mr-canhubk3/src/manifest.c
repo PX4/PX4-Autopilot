@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,9 +31,49 @@
  *
  ****************************************************************************/
 
-#include <px4_arch/i2c_hw_description.h>
+/**
+ * @file manifest.c
+ *
+ * This module supplies the interface to the manifest of hardware that is
+ * optional and dependent on the HW REV and HW VER IDs
+ *
+ * The manifest allows the system to know whether a hardware option
+ * say for example the PX4IO is an no-pop option vs it is broken.
+ *
+ */
 
-constexpr px4_i2c_bus_t px4_i2c_buses[I2C_BUS_MAX_BUS_ITEMS] = {
-	initI2CBusExternal(PX4_BUS_NUMBER_TO_PX4(0)),
-	initI2CBusInternal(PX4_BUS_NUMBER_TO_PX4(1)),
-};
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
+
+#include <px4_platform_common/px4_config.h>
+#include <stdbool.h>
+#include <syslog.h>
+
+#include "systemlib/px4_macros.h"
+#include "px4_log.h"
+
+/****************************************************************************
+ * Pre-Processor Definitions
+ ****************************************************************************/
+
+
+/************************************************************************************
+ * Name: board_query_manifest
+ *
+ * Description:
+ *   Optional returns manifest item.
+ *
+ * Input Parameters:
+ *   manifest_id - the ID for the manifest item to retrieve
+ *
+ * Returned Value:
+ *   0 - item is not in manifest => assume legacy operations
+ *   pointer to a manifest item
+ *
+ ************************************************************************************/
+
+__EXPORT px4_hw_mft_item board_query_manifest(px4_hw_mft_item_id_t id)
+{
+	return px4_hw_mft_unsupported;
+}

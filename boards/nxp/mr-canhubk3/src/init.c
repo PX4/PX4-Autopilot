@@ -44,6 +44,7 @@
 #include "board_config.h"
 
 #include <px4_platform_common/init.h>
+#include <px4_platform/board_determine_hw_info.h>
 
 #if defined(CONFIG_S32K3XX_LPSPI1) && defined(CONFIG_MMCSD)
 #include <nuttx/mmcsd.h>
@@ -95,6 +96,8 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 #else
 
 	int rv;
+
+	board_determine_hw_info();
 
 
 #if defined(CONFIG_S32K3XX_LPSPI1) && defined(CONFIG_MMCSD)
