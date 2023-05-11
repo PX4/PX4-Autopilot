@@ -1,0 +1,18 @@
+# Make check_format before PULLREQUEST.
+
+
+name: check_format
+
+on: [pull_request]
+
+jobs:
+  main:
+    name: Validate testfile
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Lint
+      run:  |
+            sudo apt update -y && sudo apt install -y --no-install-recommends make astyle
+            make check_format
