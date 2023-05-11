@@ -698,31 +698,6 @@ _file_clear(dm_item_t item)
 static int
 _file_initialize(unsigned max_offset)
 {
-	/* See if the data manage file exists and is a multiple of the sector size */
-	dm_operations_data.file.fd = open(k_data_manager_device_path, O_RDONLY | O_BINARY);
-
-	if (dm_operations_data.file.fd >= 0) {
-		// Read the mission state and check the hash
-		struct dataman_compat_s compat_state;
-		dm_operations_data.silence = true;
-		int ret = g_dm_ops->read(DM_KEY_COMPAT, 0, &compat_state, sizeof(compat_state));
-		dm_operations_data.silence = false;
-
-		bool incompat = true;
-
-		if (ret == sizeof(compat_state)) {
-			if (compat_state.key == DM_COMPAT_KEY) {
-				incompat = false;
-			}
-		}
-
-		close(dm_operations_data.file.fd);
-
-		if (incompat) {
-			unlink(k_data_manager_device_path);
-		}
-	}
-
 	/* Open or create the data manager file */
 	dm_operations_data.file.fd = open(k_data_manager_device_path, O_RDWR | O_CREAT | O_BINARY, PX4_O_MODE_666);
 
@@ -739,16 +714,43 @@ _file_initialize(unsigned max_offset)
 		return -1;
 	}
 
-	/* Write current compat info */
 	struct dataman_compat_s compat_state;
-	compat_state.key = DM_COMPAT_KEY;
-	int ret = g_dm_ops->write(DM_KEY_COMPAT, 0, &compat_state, sizeof(compat_state));
 
-	if (ret != sizeof(compat_state)) {
-		PX4_ERR("Failed writing compat: %d", ret);
+	dm_operations_data.silence = true;
+
+	g_dm_ops->read(DM_KEY_COMPAT, 0, &compat_state, sizeof(compat_state));
+
+	dm_operations_data.silence = false;
+
+	if (compat_state.key != DM_COMPAT_KEY) {
+
+		/* Write current compat info */
+		compat_state.key = DM_COMPAT_KEY;
+		int ret = g_dm_ops->write(DM_KEY_COMPAT, 0, &compat_state, sizeof(compat_state));
+
+		if (ret != sizeof(compat_state)) {
+			PX4_ERR("Failed writing compat: %d", ret);
+		}
+
+		for (uint32_t item = DM_KEY_SAFE_POINTS; item <= DM_KEY_MISSION_STATE; ++item) {
+			g_dm_ops->clear((dm_item_t)item);
+		}
+
+		mission_s mission{};
+		mission.timestamp = hrt_absolute_time();
+		mission.dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+		mission.count = 0;
+		mission.current_seq = 0;
+
+		mission_stats_entry_s stats;
+		stats.num_items = 0;
+		stats.update_counter = 1;
+
+		g_dm_ops->write(DM_KEY_MISSION_STATE, 0, reinterpret_cast<uint8_t *>(&mission), sizeof(mission_s));
+		g_dm_ops->write(DM_KEY_FENCE_POINTS, 0, reinterpret_cast<uint8_t *>(&stats), sizeof(mission_stats_entry_s));
+		g_dm_ops->write(DM_KEY_SAFE_POINTS, 0, reinterpret_cast<uint8_t *>(&stats), sizeof(mission_stats_entry_s));
 	}
 
-	fsync(dm_operations_data.file.fd);
 	dm_operations_data.running = true;
 
 	return 0;
