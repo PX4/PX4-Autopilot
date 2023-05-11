@@ -669,10 +669,11 @@ private:
 	 * @param calibrated_airspeed_setpoint Calibrated airspeed septoint (generally from the position setpoint) [m/s]
 	 * @param calibrated_min_airspeed Minimum calibrated airspeed [m/s]
 	 * @param ground_speed Vehicle ground velocity vector (NE) [m/s]
+	 * @param in_takeoff_situation Vehicle is currently in a takeoff situation
 	 * @return Adjusted calibrated airspeed setpoint [m/s]
 	 */
 	float adapt_airspeed_setpoint(const float control_interval, float calibrated_airspeed_setpoint,
-				      float calibrated_min_airspeed, const Vector2f &ground_speed);
+				      float calibrated_min_airspeed, const Vector2f &ground_speed, bool in_takeoff_situation = false);
 
 	void reset_takeoff_state();
 	void reset_landing_state();
