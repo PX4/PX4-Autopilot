@@ -87,7 +87,7 @@ static void configure_pmp(void)
 	putreg64(0x1f00000fffffffff, MPFS_PMPCFG_MMC_3);
 
 	// Ethernet MPU, MAC 0
-        putreg64(0x1f00000fffffffff, MPFS_PMPCFG_ETH0_0);
+	putreg64(0x1f00000fffffffff, MPFS_PMPCFG_ETH0_0);
 
 #endif
 
