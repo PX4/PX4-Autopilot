@@ -107,6 +107,9 @@ int s32k3xx_bringup(void)
 	s32k3xx_spidev_initialize();
 #endif
 
+	s32k3xx_pinconfig(GPIO_LED_SAFETY);
+	s32k3xx_pinconfig(GPIO_BTN_SAFETY);
+
 #ifdef CONFIG_INPUT_BUTTONS
 	/* Register the BUTTON driver */
 
