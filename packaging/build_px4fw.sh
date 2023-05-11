@@ -9,10 +9,10 @@ if [ -z "$1" ]; then
 else
     # go through all given arguments and build them
     for arg in "$@"; do
-        echo "BUILDING $1"
+        echo "BUILDING ${arg}"
 
         # extract the middle part of the name between the "_"'s
-        NAME=$1
+        NAME=${arg}
         NAME=${NAME%_*}
         NAME=${NAME##*_}
 
@@ -28,8 +28,8 @@ else
         fi
 
         # Remove old build output
-        rm -Rf build/$1
+        rm -Rf build/${arg}
         # Build
-        make $1
+        make ${arg}
     done
 fi
