@@ -120,7 +120,7 @@ static void start_worker(void)
 
 	if (g_usr_hrt_task < 0) {
 		g_usr_hrt_task = px4_task_spawn_cmd("usr_hrt", SCHED_DEFAULT, SCHED_PRIORITY_MAX,
-				PX4_STACK_ADJUSTED(1024), event_thread, NULL);
+						    PX4_STACK_ADJUSTED(1024), event_thread, NULL);
 	}
 
 	px4_sem_post(&g_worker_lock);
@@ -164,6 +164,7 @@ hrt_init(void)
 #ifdef PX4_USERSPACE_HRT
 	boardctl(HRT_ABSTIME_BASE, (uintptr_t)&g_abstime_base);
 #endif
+
 	if (g_hrt_client_handle) {
 		atexit(hrt_stop);
 		px4_sem_init(&g_worker_lock, 0, 1);
