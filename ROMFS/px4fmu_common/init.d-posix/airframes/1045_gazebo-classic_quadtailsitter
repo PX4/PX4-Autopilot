@@ -34,10 +34,10 @@ param set-default PWM_MAIN_FUNC4 104
 param set-default PWM_MAIN_FUNC5 0
 
 param set-default FW_PR_I 0.2
-param set-default FW_PR_P 0.2
+param set-default FW_PR_P 0.4
 param set-default FW_PSP_OFF 2
-param set-default FW_P_LIM_MIN -15
-param set-default FW_RR_P 0.2
+param set-default FW_RR_P 0.4
+param set-default FW_YR_P 0.2
 param set-default FW_THR_TRIM 0.33
 param set-default FW_THR_MAX 0.6
 param set-default FW_THR_MIN 0.05
@@ -47,10 +47,20 @@ param set-default FW_T_HRATE_FF 0.5
 param set-default FW_T_SINK_MAX 2.7
 param set-default FW_T_SINK_MIN 2.2
 param set-default FW_T_TAS_TC 2
+param set-default FW_R_TC 0.1
+param set-default FW_P_TC 0.1
+param set-default FW_R_LIM 60.0
+param set-default FW_AIRSPD_STALL 10
+param set-default FW_AIRSPD_MIN 14
+param set-default FW_AIRSPD_TRIM 18
+param set-default FW_AIRSPD_MAX 22
 
-param set-default MC_AIRMODE 1
-param set-default MC_PITCH_P 5
+param set-default MC_AIRMODE 2
+param set-default MAN_ARM_GESTURE 0 # required for yaw airmode
+param set-default MC_ROLL_P 3
+param set-default MC_PITCH_P 3
 param set-default MC_ROLLRATE_P 0.3
+param set-default MC_PITCHRATE_P 0.3
 
 param set-default MPC_ACC_HOR_MAX 2
 param set-default MPC_XY_P 0.8
@@ -58,7 +68,8 @@ param set-default MPC_XY_VEL_P_ACC 3
 param set-default MPC_XY_VEL_I_ACC 4
 param set-default MPC_XY_VEL_D_ACC 0.1
 
-param set-default NAV_ACC_RAD 5
+param set-default NPFG_PERIOD 10
+param set-default NAV_ACC_RAD 10
 
 param set-default VT_FW_DIFTHR_EN 7
 param set-default VT_FW_DIFTHR_S_R 0.5
