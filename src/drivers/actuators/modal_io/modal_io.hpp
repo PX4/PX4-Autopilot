@@ -219,6 +219,8 @@ private:
 	uint8_t			_read_buf[READ_BUF_SIZE];
 
 	Battery 		_battery;
+	static constexpr unsigned _battery_report_interval{100_ms};
+	hrt_abstime		_last_battery_report_time;
 
 	void 			update_leds(vehicle_control_mode_s mode, led_control_s control);
 

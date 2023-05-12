@@ -400,7 +400,13 @@ int ModalIo::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
 				_battery.setConnected(true);
 				_battery.updateVoltage(voltage);
 				_battery.updateCurrent(current);
-				_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
+
+				// Limit the frequency of battery status reports
+				hrt_abstime current_time = hrt_absolute_time();
+				if ((current_time - _last_battery_report_time) >= _battery_report_interval) {
+					_last_battery_report_time = current_time;
+					_battery.updateAndPublishBatteryStatus(current_time);
+				}
 			}
 
 		} else { //parser error
