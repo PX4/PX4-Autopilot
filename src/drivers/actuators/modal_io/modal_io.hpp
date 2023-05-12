@@ -41,13 +41,14 @@
 #include <px4_log.h>
 #include <px4_platform_common/module.h>
 
+#include <battery/battery.h>
+
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/led_control.h>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/actuator_test.h>
-#include <uORB/topics/battery_status.h>
 
 #include "modal_io_serial.hpp"
 
@@ -190,7 +191,6 @@ private:
 
 	uORB::Publication<actuator_outputs_s> _outputs_debug_pub{ORB_ID(actuator_outputs_debug)};
 	uORB::Publication<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
-	uORB::Publication<battery_status_s> _battery_status_pub{ORB_ID(battery_status)};
 
 	modal_io_params_t	_parameters;
 	int			update_params();
@@ -210,8 +210,6 @@ private:
 	esc_status_s		_esc_status;
 	EscPacket		_fb_packet;
 
-	battery_status_s _battery_status_report{};
-
 	led_rsc_t	 	_led_rsc;
 	int			_fb_idx;
 	uint32_t		_rx_crc_error_count{0};
@@ -219,6 +217,8 @@ private:
 
 	static const uint8_t 	READ_BUF_SIZE = 128;
 	uint8_t			_read_buf[READ_BUF_SIZE];
+
+	Battery 		_battery;
 
 	void 			update_leds(vehicle_control_mode_s mode, led_control_s control);
 

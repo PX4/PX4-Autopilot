@@ -46,6 +46,7 @@ px4_add_module(
 		qc_esc_packet.c
 		qc_esc_packet.h
 	DEPENDS
+		battery
 		px4_work_queue
 		mixer_module
 	MODULE_CONFIG
