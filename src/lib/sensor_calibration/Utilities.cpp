@@ -64,7 +64,7 @@ int8_t FindCurrentCalibrationIndex(const char *sensor_type, uint32_t device_id)
 
 	for (unsigned i = 0; i < MAX_SENSOR_COUNT; ++i) {
 		char str[20] {};
-		sprintf(str, "CAL_%s%u_ID", sensor_type, i);
+		snprintf(str, sizeof(str), "CAL_%s%u_ID", sensor_type, i);
 
 		int32_t device_id_val = 0;
 
@@ -103,7 +103,7 @@ int8_t FindAvailableCalibrationIndex(const char *sensor_type, uint32_t device_id
 
 	for (unsigned i = 0; i < MAX_SENSOR_COUNT; ++i) {
 		char str[20] {};
-		sprintf(str, "CAL_%s%u_ID", sensor_type, i);
+		snprintf(str, sizeof(str), "CAL_%s%u_ID", sensor_type, i);
 		int32_t device_id_val = 0;
 
 		if (param_get(param_find_no_notification(str), &device_id_val) == PX4_OK) {
@@ -138,7 +138,7 @@ int32_t GetCalibrationParamInt32(const char *sensor_type, const char *cal_type, 
 {
 	// eg CAL_MAGn_ID/CAL_MAGn_ROT
 	char str[20] {};
-	sprintf(str, "CAL_%s%" PRIu8 "_%s", sensor_type, instance, cal_type);
+	snprintf(str, sizeof(str), "CAL_%s%" PRIu8 "_%s", sensor_type, instance, cal_type);
 
 	int32_t value = 0;
 
@@ -153,7 +153,7 @@ float GetCalibrationParamFloat(const char *sensor_type, const char *cal_type, ui
 {
 	// eg CAL_BAROn_OFF
 	char str[20] {};
-	sprintf(str, "CAL_%s%" PRIu8 "_%s", sensor_type, instance, cal_type);
+	snprintf(str, sizeof(str), "CAL_%s%" PRIu8 "_%s", sensor_type, instance, cal_type);
 
 	float value = NAN;
 
@@ -174,7 +174,7 @@ Vector3f GetCalibrationParamsVector3f(const char *sensor_type, const char *cal_t
 		char axis_char = 'X' + axis;
 
 		// eg CAL_MAGn_{X,Y,Z}OFF
-		sprintf(str, "CAL_%s%" PRIu8 "_%c%s", sensor_type, instance, axis_char, cal_type);
+		snprintf(str, sizeof(str), "CAL_%s%" PRIu8 "_%c%s", sensor_type, instance, axis_char, cal_type);
 
 		if (param_get(param_find(str), &values(axis)) != 0) {
 			PX4_ERR("failed to get %s", str);
@@ -193,7 +193,7 @@ bool SetCalibrationParamsVector3f(const char *sensor_type, const char *cal_type,
 		char axis_char = 'X' + axis;
 
 		// eg CAL_MAGn_{X,Y,Z}OFF
-		sprintf(str, "CAL_%s%" PRIu8 "_%c%s", sensor_type, instance, axis_char, cal_type);
+		snprintf(str, sizeof(str), "CAL_%s%" PRIu8 "_%c%s", sensor_type, instance, axis_char, cal_type);
 
 		if (param_set_no_notification(param_find(str), &values(axis)) != 0) {
 			PX4_ERR("failed to set %s = %.4f", str, (double)values(axis));
