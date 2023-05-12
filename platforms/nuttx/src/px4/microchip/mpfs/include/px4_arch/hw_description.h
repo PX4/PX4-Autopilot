@@ -198,12 +198,14 @@ static inline constexpr uint32_t getGPIOPin(GPIO::Pin pin)
 	return 0;
 }
 
-
 namespace SPI
 {
 enum class Bus {
 	SPI0 = 1,
 	SPI1 = 2,
+	SPI2 = 3,
+	SPI3 = 4,
+	SPI4 = 5,
 };
 
 using CS = GPIO::GPIOPin; ///< chip-select pin
