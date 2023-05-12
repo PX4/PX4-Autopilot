@@ -23,11 +23,15 @@ then
 	set LOGGER_ARGS "${LOGGER_ARGS} -x"
 fi
 
+if [ $SDCARD_AVAILABLE = no ]
+then
+	set LOGGER_ARGS "${LOGGER_ARGS} -m mavlink"
+fi
+
 if param compare SDLOG_MODE 4
 then
 	set LOGGER_ARGS "${LOGGER_ARGS} -a"
 fi
-
 
 if ! param compare SDLOG_MODE -1
 then
