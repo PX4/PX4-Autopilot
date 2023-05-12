@@ -59,25 +59,25 @@ int TemperatureCompensation::initialize_parameter_handles(ParameterHandles &para
 
 	if (ret == PX4_OK && gyro_tc_enabled) {
 		for (unsigned j = 0; j < GYRO_COUNT_MAX; j++) {
-			sprintf(nbuf, "TC_G%d_ID", j);
+			snprintf(nbuf, sizeof(nbuf), "TC_G%d_ID", j);
 			parameter_handles.gyro_cal_handles[j].ID = param_find(nbuf);
 
 			for (unsigned i = 0; i < 3; i++) {
-				sprintf(nbuf, "TC_G%d_X3_%d", j, i);
+				snprintf(nbuf, sizeof(nbuf), "TC_G%d_X3_%d", j, i);
 				parameter_handles.gyro_cal_handles[j].x3[i] = param_find(nbuf);
-				sprintf(nbuf, "TC_G%d_X2_%d", j, i);
+				snprintf(nbuf, sizeof(nbuf), "TC_G%d_X2_%d", j, i);
 				parameter_handles.gyro_cal_handles[j].x2[i] = param_find(nbuf);
-				sprintf(nbuf, "TC_G%d_X1_%d", j, i);
+				snprintf(nbuf, sizeof(nbuf), "TC_G%d_X1_%d", j, i);
 				parameter_handles.gyro_cal_handles[j].x1[i] = param_find(nbuf);
-				sprintf(nbuf, "TC_G%d_X0_%d", j, i);
+				snprintf(nbuf, sizeof(nbuf), "TC_G%d_X0_%d", j, i);
 				parameter_handles.gyro_cal_handles[j].x0[i] = param_find(nbuf);
 			}
 
-			sprintf(nbuf, "TC_G%d_TREF", j);
+			snprintf(nbuf, sizeof(nbuf), "TC_G%d_TREF", j);
 			parameter_handles.gyro_cal_handles[j].ref_temp = param_find(nbuf);
-			sprintf(nbuf, "TC_G%d_TMIN", j);
+			snprintf(nbuf, sizeof(nbuf), "TC_G%d_TMIN", j);
 			parameter_handles.gyro_cal_handles[j].min_temp = param_find(nbuf);
-			sprintf(nbuf, "TC_G%d_TMAX", j);
+			snprintf(nbuf, sizeof(nbuf), "TC_G%d_TMAX", j);
 			parameter_handles.gyro_cal_handles[j].max_temp = param_find(nbuf);
 		}
 	}
@@ -89,25 +89,25 @@ int TemperatureCompensation::initialize_parameter_handles(ParameterHandles &para
 
 	if (ret == PX4_OK && accel_tc_enabled) {
 		for (unsigned j = 0; j < ACCEL_COUNT_MAX; j++) {
-			sprintf(nbuf, "TC_A%d_ID", j);
+			snprintf(nbuf, sizeof(nbuf), "TC_A%d_ID", j);
 			parameter_handles.accel_cal_handles[j].ID = param_find(nbuf);
 
 			for (unsigned i = 0; i < 3; i++) {
-				sprintf(nbuf, "TC_A%d_X3_%d", j, i);
+				snprintf(nbuf, sizeof(nbuf), "TC_A%d_X3_%d", j, i);
 				parameter_handles.accel_cal_handles[j].x3[i] = param_find(nbuf);
-				sprintf(nbuf, "TC_A%d_X2_%d", j, i);
+				snprintf(nbuf, sizeof(nbuf), "TC_A%d_X2_%d", j, i);
 				parameter_handles.accel_cal_handles[j].x2[i] = param_find(nbuf);
-				sprintf(nbuf, "TC_A%d_X1_%d", j, i);
+				snprintf(nbuf, sizeof(nbuf), "TC_A%d_X1_%d", j, i);
 				parameter_handles.accel_cal_handles[j].x1[i] = param_find(nbuf);
-				sprintf(nbuf, "TC_A%d_X0_%d", j, i);
+				snprintf(nbuf, sizeof(nbuf), "TC_A%d_X0_%d", j, i);
 				parameter_handles.accel_cal_handles[j].x0[i] = param_find(nbuf);
 			}
 
-			sprintf(nbuf, "TC_A%d_TREF", j);
+			snprintf(nbuf, sizeof(nbuf), "TC_A%d_TREF", j);
 			parameter_handles.accel_cal_handles[j].ref_temp = param_find(nbuf);
-			sprintf(nbuf, "TC_A%d_TMIN", j);
+			snprintf(nbuf, sizeof(nbuf), "TC_A%d_TMIN", j);
 			parameter_handles.accel_cal_handles[j].min_temp = param_find(nbuf);
-			sprintf(nbuf, "TC_A%d_TMAX", j);
+			snprintf(nbuf, sizeof(nbuf), "TC_A%d_TMAX", j);
 			parameter_handles.accel_cal_handles[j].max_temp = param_find(nbuf);
 		}
 	}
@@ -119,25 +119,25 @@ int TemperatureCompensation::initialize_parameter_handles(ParameterHandles &para
 
 	if (ret == PX4_OK && baro_tc_enabled) {
 		for (unsigned j = 0; j < BARO_COUNT_MAX; j++) {
-			sprintf(nbuf, "TC_B%d_ID", j);
+			snprintf(nbuf, sizeof(nbuf), "TC_B%d_ID", j);
 			parameter_handles.baro_cal_handles[j].ID = param_find(nbuf);
-			sprintf(nbuf, "TC_B%d_X5", j);
+			snprintf(nbuf, sizeof(nbuf), "TC_B%d_X5", j);
 			parameter_handles.baro_cal_handles[j].x5 = param_find(nbuf);
-			sprintf(nbuf, "TC_B%d_X4", j);
+			snprintf(nbuf, sizeof(nbuf), "TC_B%d_X4", j);
 			parameter_handles.baro_cal_handles[j].x4 = param_find(nbuf);
-			sprintf(nbuf, "TC_B%d_X3", j);
+			snprintf(nbuf, sizeof(nbuf), "TC_B%d_X3", j);
 			parameter_handles.baro_cal_handles[j].x3 = param_find(nbuf);
-			sprintf(nbuf, "TC_B%d_X2", j);
+			snprintf(nbuf, sizeof(nbuf), "TC_B%d_X2", j);
 			parameter_handles.baro_cal_handles[j].x2 = param_find(nbuf);
-			sprintf(nbuf, "TC_B%d_X1", j);
+			snprintf(nbuf, sizeof(nbuf), "TC_B%d_X1", j);
 			parameter_handles.baro_cal_handles[j].x1 = param_find(nbuf);
-			sprintf(nbuf, "TC_B%d_X0", j);
+			snprintf(nbuf, sizeof(nbuf), "TC_B%d_X0", j);
 			parameter_handles.baro_cal_handles[j].x0 = param_find(nbuf);
-			sprintf(nbuf, "TC_B%d_TREF", j);
+			snprintf(nbuf, sizeof(nbuf), "TC_B%d_TREF", j);
 			parameter_handles.baro_cal_handles[j].ref_temp = param_find(nbuf);
-			sprintf(nbuf, "TC_B%d_TMIN", j);
+			snprintf(nbuf, sizeof(nbuf), "TC_B%d_TMIN", j);
 			parameter_handles.baro_cal_handles[j].min_temp = param_find(nbuf);
-			sprintf(nbuf, "TC_B%d_TMAX", j);
+			snprintf(nbuf, sizeof(nbuf), "TC_B%d_TMAX", j);
 			parameter_handles.baro_cal_handles[j].max_temp = param_find(nbuf);
 		}
 	}
