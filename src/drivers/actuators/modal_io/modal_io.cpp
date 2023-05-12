@@ -47,7 +47,8 @@ ModalIo::ModalIo() :
 	OutputModuleInterface(MODULE_NAME, px4::serial_port_to_wq(MODAL_IO_DEFAULT_PORT)),
 	_mixing_output{"MODAL_IO", MODAL_IO_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false},
 	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
-	_output_update_perf(perf_alloc(PC_INTERVAL, MODULE_NAME": output update interval"))
+	_output_update_perf(perf_alloc(PC_INTERVAL, MODULE_NAME": output update interval")),
+	_battery(1, nullptr, 10000, battery_status_s::BATTERY_SOURCE_POWER_MODULE)
 {
 	_device = MODAL_IO_DEFAULT_PORT;
 
@@ -76,8 +77,6 @@ ModalIo::ModalIo() :
 	qc_esc_packet_init(&_fb_packet);
 
 	_fb_idx = 0;
-
-	memset(&_battery_status_report, 0, sizeof(_battery_status_report));
 }
 
 ModalIo::~ModalIo()
@@ -398,13 +397,10 @@ int ModalIo::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
 				float voltage = packet.voltage * 0.001f;
 				float current = packet.current * 0.008f;
 
-				_battery_status_report.timestamp           = hrt_absolute_time();
-                		_battery_status_report.connected           = true;
-				_battery_status_report.voltage_v           = voltage;
-				_battery_status_report.voltage_filtered_v  = voltage;  //FIXME: should we filter voltage?
-				_battery_status_report.current_a           = current;
-				_battery_status_report.current_filtered_a  = _battery_status_report.current_filtered_a * 0.95f + current * 0.05f;  //FIXME: hardcoded filter constant
-				_battery_status_pub.publish(_battery_status_report);
+				_battery.setConnected(true);
+				_battery.updateVoltage(voltage);
+				_battery.updateCurrent(current);
+				_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
 			}
 
 		} else { //parser error
