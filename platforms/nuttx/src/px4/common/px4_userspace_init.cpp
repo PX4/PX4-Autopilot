@@ -50,7 +50,11 @@ extern "C" void px4_userspace_init(void)
 
 	px4_set_spi_buses_from_hw_version();
 
+	// Do lazy init of wq:manager for kernel. This saves a considerable amount
+	// of scheduling time due to unnecessary threads.
+#ifndef CONFIG_BUILD_KERNEL
 	px4::WorkQueueManagerStart();
+#endif
 
 	px4_log_initialize();
 
