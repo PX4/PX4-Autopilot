@@ -197,7 +197,7 @@ int TemperatureCalibrationBaro::finish_sensor_instance(PerSensorData &data, int 
 	set_parameter("TC_B%d_ID", sensor_index, &data.device_id);
 
 	for (unsigned coef_index = 0; coef_index <= POLYFIT_ORDER; coef_index++) {
-		sprintf(str, "TC_B%d_X%d", sensor_index, (POLYFIT_ORDER - coef_index));
+		snprintf(str, sizeof(str), "TC_B%d_X%d", sensor_index, (POLYFIT_ORDER - coef_index));
 		param = (float)res[coef_index];
 		result = param_set_no_notification(param_find(str), &param);
 
