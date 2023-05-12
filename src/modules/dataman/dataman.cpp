@@ -711,8 +711,10 @@ task_main(int argc, char *argv[])
 				case DM_WRITE:
 
 					g_func_counts[DM_WRITE]++;
+					perf_begin(_dm_write_perf);
 					result = g_dm_ops->write(static_cast<dm_item_t>(request.item), request.index,
 								 &(request.data), request.data_length);
+					perf_end(_dm_write_perf);
 
 					if (result > 0) {
 						response.status = dataman_response_s::STATUS_SUCCESS;
@@ -726,8 +728,11 @@ task_main(int argc, char *argv[])
 				case DM_READ:
 
 					g_func_counts[DM_READ]++;
+					perf_begin(_dm_read_perf);
 					result = g_dm_ops->read(static_cast<dm_item_t>(request.item), request.index,
 								&(response.data), request.data_length);
+
+					perf_end(_dm_read_perf);
 
 					if (result > 0) {
 						response.status = dataman_response_s::STATUS_SUCCESS;
