@@ -62,6 +62,33 @@ static BlockingQueue<const wq_config_t *, 1> *_wq_manager_create_queue{nullptr};
 
 static px4::atomic_bool _wq_manager_should_exit{true};
 
+#if defined(__PX4_NUTTX) && defined(CONFIG_BUILD_KERNEL)
+static void WorkQueueManagerLazyStart(void)
+{
+	static px4::atomic_int _wq_manager_start_issued{0};
+
+	// Start the manager if it is not running yet
+	if (_wq_manager_create_queue == nullptr) {
+		int ret = PX4_OK;
+
+		// Only the first one to arrive gets to do this, others block
+		if (_wq_manager_start_issued.fetch_or(1) == 0) {
+			ret = WorkQueueManagerStart();
+
+		}
+
+		// Start command issued, wait until it is running
+		if (ret == PX4_OK) {
+			int retries = 0;
+
+			// Ok make sure the manager is truly running
+			while (_wq_manager_create_queue == nullptr && retries++ < 100) {
+				px4_usleep(1_ms);
+			}
+		}
+	}
+}
+#endif
 
 static WorkQueue *
 FindWorkQueueByName(const char *name)
@@ -86,6 +113,10 @@ FindWorkQueueByName(const char *name)
 WorkQueue *
 WorkQueueFindOrCreate(const wq_config_t &new_wq)
 {
+#if defined(__PX4_NUTTX) && defined(CONFIG_BUILD_KERNEL)
+	WorkQueueManagerLazyStart();
+#endif
+
 	if (_wq_manager_create_queue == nullptr) {
 		PX4_ERR("not running");
 		return nullptr;
