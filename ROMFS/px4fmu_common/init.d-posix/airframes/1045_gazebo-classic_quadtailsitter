@@ -62,21 +62,16 @@ param set-default MC_PITCH_P 3
 param set-default MC_ROLLRATE_P 0.3
 param set-default MC_PITCHRATE_P 0.3
 
-param set-default MPC_ACC_HOR_MAX 2
 param set-default MPC_XY_P 0.8
 param set-default MPC_XY_VEL_P_ACC 3
 param set-default MPC_XY_VEL_I_ACC 4
 param set-default MPC_XY_VEL_D_ACC 0.1
-
-param set-default NPFG_PERIOD 10
-param set-default NAV_ACC_RAD 10
 
 param set-default VT_FW_DIFTHR_EN 7
 param set-default VT_FW_DIFTHR_S_R 0.5
 param set-default VT_FW_DIFTHR_S_P 0.5
 param set-default VT_FW_DIFTHR_S_Y 0.5
 param set-default VT_F_TRANS_DUR 1.5
-param set-default VT_F_TRANS_THR 0.7
 param set-default VT_TYPE 0
 
 param set-default WV_EN 0
