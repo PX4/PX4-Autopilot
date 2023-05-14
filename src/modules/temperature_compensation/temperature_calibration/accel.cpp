@@ -212,7 +212,7 @@ int TemperatureCalibrationAccel::finish_sensor_instance(PerSensorData &data, int
 
 	for (unsigned axis_index = 0; axis_index < 3; axis_index++) {
 		for (unsigned coef_index = 0; coef_index <= 3; coef_index++) {
-			sprintf(str, "TC_A%d_X%d_%d", sensor_index, 3 - coef_index, axis_index);
+			snprintf(str, sizeof(str), "TC_A%d_X%d_%d", sensor_index, 3 - coef_index, axis_index);
 			param = (float)res[axis_index][coef_index];
 			result = param_set_no_notification(param_find(str), &param);
 
