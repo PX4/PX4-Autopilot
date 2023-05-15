@@ -76,6 +76,12 @@ using uORB::SubscriptionData;
 
 using namespace time_literals;
 
+enum RateControllerAxis {
+	ENABLE_CONTROLLER_X = (1 << 0),
+	ENABLE_CONTROLLER_Y = (1 << 1),
+	ENABLE_CONTROLLER_Z = (1 << 2)
+};
+
 class FixedwingRateControl final : public ModuleBase<FixedwingRateControl>, public ModuleParams,
 	public px4::ScheduledWorkItem
 {
@@ -148,7 +154,7 @@ private:
 		(ParamFloat<px4::params::FW_ACRO_X_MAX>) _param_fw_acro_x_max,
 		(ParamFloat<px4::params::FW_ACRO_Y_MAX>) _param_fw_acro_y_max,
 		(ParamFloat<px4::params::FW_ACRO_Z_MAX>) _param_fw_acro_z_max,
-		(ParamInt<px4::params::FW_ACRO_AXS_CTRL>) _param_fw_acro_axs_ctrl,
+		(ParamInt<px4::params::FW_ACRO_AXES_CTL>) _param_fw_acro_axes_ctl,
 
 		(ParamFloat<px4::params::FW_AIRSPD_MAX>) _param_fw_airspd_max,
 		(ParamFloat<px4::params::FW_AIRSPD_MIN>) _param_fw_airspd_min,

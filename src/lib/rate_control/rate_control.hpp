@@ -44,13 +44,6 @@
 #include <mathlib/mathlib.h>
 #include <uORB/topics/rate_ctrl_status.h>
 
-enum RateControllerAxis {
-	ENABLE_CONTROLLER_X = (1 << 0),
-	ENABLE_CONTROLLER_Y = (1 << 1),
-	ENABLE_CONTROLLER_Z = (1 << 2),
-	ENABLE_CONTROLLER_ALL = 7
-};
-
 class RateControl
 {
 public:
@@ -103,7 +96,7 @@ public:
 
 	/**
 	 * Set the integral term to 0 for specific axes
-	 * @param  axis axis: roll 0 / pitch 1 / yaw 2
+	 * @param  axis roll 0 / pitch 1 / yaw 2
 	 * @see _rate_int
 	 */
 	void resetIntegral(size_t axis)

@@ -345,12 +345,8 @@ void FixedwingRateControl::Run()
 				}
 
 				// Run attitude RATE controllers which need the desired attitudes from above, add trim.
-				// In Acro (flag_control_attitude_enabled is not set) check for FW_ACRO_AXS_CTRL and only control enabled axes
-				const int controlled_axes = _vcontrol_mode.flag_control_attitude_enabled ? static_cast<u_int8_t>
-							    (RateControllerAxis::ENABLE_CONTROLLER_ALL) : _param_fw_acro_axs_ctrl.get();
-
 				const Vector3f angular_acceleration_setpoint = _rate_control.update(rates, body_rates_setpoint, angular_accel, dt,
-						_landed, controlled_axes);
+						_landed);
 
 				const float roll_feedforward = _param_fw_rr_ff.get() * _airspeed_scaling * body_rates_setpoint(0);
 				const float pitch_feedforward = _param_fw_pr_ff.get() * _airspeed_scaling * body_rates_setpoint(1);
@@ -360,7 +356,10 @@ void FixedwingRateControl::Run()
 				float pitch_u = 0.f;
 				float yaw_u = 0.f;
 
-				if (controlled_axes & RateControllerAxis::ENABLE_CONTROLLER_X) {
+				// In Acro (flag_control_attitude_enabled is not set) check for FW_ACRO_AXES_CTL and only control enabled axes
+
+				if (_vcontrol_mode.flag_control_attitude_enabled
+				    || _param_fw_acro_axes_ctl.get() & RateControllerAxis::ENABLE_CONTROLLER_X) {
 					roll_u = angular_acceleration_setpoint(0) * _airspeed_scaling * _airspeed_scaling + roll_feedforward;
 
 				} else {
@@ -368,7 +367,8 @@ void FixedwingRateControl::Run()
 					_rate_control.resetIntegral(0);
 				}
 
-				if (controlled_axes & RateControllerAxis::ENABLE_CONTROLLER_Y) {
+				if (_vcontrol_mode.flag_control_attitude_enabled
+				    || _param_fw_acro_axes_ctl.get() & RateControllerAxis::ENABLE_CONTROLLER_Y) {
 					pitch_u = angular_acceleration_setpoint(1) * _airspeed_scaling * _airspeed_scaling + pitch_feedforward;
 
 				} else {
@@ -376,7 +376,8 @@ void FixedwingRateControl::Run()
 					_rate_control.resetIntegral(1);
 				}
 
-				if (controlled_axes & RateControllerAxis::ENABLE_CONTROLLER_Z) {
+				if (_vcontrol_mode.flag_control_attitude_enabled
+				    || _param_fw_acro_axes_ctl.get() & RateControllerAxis::ENABLE_CONTROLLER_Z) {
 					yaw_u = angular_acceleration_setpoint(2) * _airspeed_scaling * _airspeed_scaling + yaw_feedforward;
 
 				} else {
