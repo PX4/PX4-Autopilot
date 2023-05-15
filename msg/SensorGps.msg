@@ -55,4 +55,11 @@ float32 heading_accuracy	# heading accuracy (rad, [0, 2PI])
 float32 rtcm_injection_rate	# RTCM message injection rate Hz
 uint8 selected_rtcm_instance	# uorb instance that is being used for RTCM corrections
 
+bool rtcm_crc_failed		# RTCM message CRC failure detected
+
+uint8 RTCM_MSG_USED_UNKNOWN = 0
+uint8 RTCM_MSG_USED_NOT_USED = 1
+uint8 RTCM_MSG_USED_USED = 2
+uint8 rtcm_msg_used		# Indicates if the RTCM message was used successfully by the receiver
+
 # TOPICS sensor_gps vehicle_gps_position
