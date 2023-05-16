@@ -134,6 +134,7 @@ void Tiltrotor::update_vtol_state()
 		case vtol_mode::TRANSITION_FRONT_P1: {
 				if (isFrontTransitionCompleted()) {
 					_vtol_mode = vtol_mode::TRANSITION_FRONT_P2;
+					_trans_finished_ts = hrt_absolute_time();
 					resetTransitionStates();
 				}
 

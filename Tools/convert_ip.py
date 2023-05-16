@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Converts IP address given in decimal dot notation to int32 to be used in XRCE_DDS_0_CFG parameter
+Converts IP address given in decimal dot notation to int32 to be used in UXRCE_DDS_CFG parameter
 and vice-versa
 
 @author: Beniamino Pozzan (beniamino.pozzan@phd.unipd.it)

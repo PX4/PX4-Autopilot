@@ -1,36 +1,36 @@
-module_name: Micro XRCE-DDS
+module_name: UXRCE-DDS Client
 serial_config:
     - command: |
         if [ $SERIAL_DEV != ethernet ]; then
-            set XRCE_DDS_ARGS "-t serial -d ${SERIAL_DEV} -b p:${BAUD_PARAM}"
+            set UXRCE_DDS_ARGS "-t serial -d ${SERIAL_DEV} -b p:${BAUD_PARAM}"
         else
-            set XRCE_DDS_ARGS "-t udp"
+            set UXRCE_DDS_ARGS "-t udp"
         fi
-        microdds_client start ${XRCE_DDS_ARGS}
+        uxrce_dds_client start ${UXRCE_DDS_ARGS}
 
       port_config_param:
-        name: XRCE_DDS_CFG
-        group: Micro XRCE-DDS
+        name: UXRCE_DDS_CFG
+        group: UXRCE-DDS Client
       supports_networking: true
 
 parameters:
-    - group: Micro XRCE-DDS
+    - group: UXRCE-DDS Client
       definitions:
 
-        XRCE_DDS_DOM_ID:
+        UXRCE_DDS_DOM_ID:
             description:
-                short: XRCE DDS domain ID
-                long: XRCE DDS domain ID
+                short: uXRCE-DDS domain ID
+                long: uXRCE-DDS domain ID
             category: System
             type: int32
             reboot_required: true
             default: 0
 
-        XRCE_DDS_KEY:
+        UXRCE_DDS_KEY:
             description:
-                short: XRCE DDS Session key
+                short: uXRCE-DDS Session key
                 long: |
-                    XRCE DDS key, must be different from zero.
+                    uXRCE-DDS key, must be different from zero.
                     In a single agent - multi client configuration, each client
                     must have a unique session key.
             category: System
@@ -38,11 +38,11 @@ parameters:
             reboot_required: true
             default: 1
 
-        XRCE_DDS_PRT:
+        UXRCE_DDS_PRT:
             description:
-                short: Micro DDS UDP Port
+                short: uXRCE-DDS UDP Port
                 long: |
-                    If ethernet enabled and selected as configuration for micro DDS,
+                    If ethernet enabled and selected as configuration for uXRCE-DDS,
                     selected udp port will be set and used.
             type: int32
             min: 0
@@ -51,11 +51,11 @@ parameters:
             default: 8888
             requires_ethernet: true
 
-        XRCE_DDS_AG_IP:
+        UXRCE_DDS_AG_IP:
             description:
-                short: Micro DDS Agent IP address
+                short: uXRCE-DDS Agent IP address
                 long: |
-                    If ethernet enabled and selected as configuration for micro DDS,
+                    If ethernet enabled and selected as configuration for uXRCE-DDS,
                     selected Agent IP address will be set and used.
                     Decimal dot notation is not supported. IP address must be provided
                     in int32 format. For example, 192.168.1.2 is mapped to -1062731518;

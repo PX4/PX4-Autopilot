@@ -1,0 +1,5 @@
+menuconfig DRIVERS_LIGHTS_RGBLED_IS31FL3195
+	bool "rgbled is31fl3195"
+	default n
+	---help---
+		Enable support for rgbled IS3FL3195 driver

@@ -5,10 +5,8 @@
 
 . ${R}etc/init.d/rc.fw_defaults
 
-param set-default EKF2_MAG_ACCLIM 0
-param set-default EKF2_MAG_YAWLIM 0
 
-param set-default FW_LND_AIRSPD_SC 1
+
 param set-default FW_LND_ANG 8
 
 param set-default NPFG_PERIOD 12

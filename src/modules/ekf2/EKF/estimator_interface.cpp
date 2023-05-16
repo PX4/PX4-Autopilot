@@ -480,7 +480,7 @@ void EstimatorInterface::setDragData(const imuSample &imu)
 {
 	// down-sample the drag specific force data by accumulating and calculating the mean when
 	// sufficient samples have been collected
-	if ((_params.fusion_mode & SensorFusionMask::USE_DRAG)) {
+	if (_params.drag_ctrl > 0) {
 
 		// Allocate the required buffer size if not previously done
 		if (_drag_buffer == nullptr) {
@@ -569,7 +569,7 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 	}
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	if (_params.fusion_mode & SensorFusionMask::USE_OPT_FLOW) {
+	if (_params.flow_ctrl > 0) {
 		max_time_delay_ms = math::max(_params.flow_delay_ms, max_time_delay_ms);
 	}
 #endif // CONFIG_EKF2_OPTICAL_FLOW

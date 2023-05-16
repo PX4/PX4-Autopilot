@@ -506,7 +506,6 @@ void MulticopterPositionControl::Run()
 
 			// Allow ramping from zero thrust on takeoff
 			const float minimum_thrust = flying ? _param_mpc_thr_min.get() : 0.f;
-
 			_control.setThrustLimits(minimum_thrust, _param_mpc_thr_max.get());
 
 			float max_speed_xy = _param_mpc_xy_vel_max.get();

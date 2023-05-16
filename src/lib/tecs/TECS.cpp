@@ -211,6 +211,7 @@ void TECSAltitudeReferenceModel::initialize(const AltitudeReferenceState &state)
 	const float init_state_alt_rate = PX4_ISFINITE(state.alt_rate) ? state.alt_rate : 0.f;
 
 	_alt_control_traj_generator.reset(0.0f, init_state_alt_rate, init_state_alt);
+	_velocity_control_traj_generator.reset(0.f, init_state_alt_rate, init_state_alt);
 }
 
 void TECSControl::initialize(const Setpoint &setpoint, const Input &input, Param &param, const Flag &flag)

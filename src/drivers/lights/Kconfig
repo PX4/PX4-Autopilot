@@ -4,6 +4,7 @@ menu "Lights"
         default n
         select DRIVERS_LIGHTS_RGBLED
         select DRIVERS_LIGHTS_RGBLED_NCP5623C
+        select DRIVERS_LIGHTS_RGBLED_IS31FL3195
         ---help---
             Enable default set of light drivers
     rsource "*/Kconfig"
