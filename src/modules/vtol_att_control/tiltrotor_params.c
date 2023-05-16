@@ -50,7 +50,7 @@
 PARAM_DEFINE_FLOAT(VT_TILT_MC, 0.0f);
 
 /**
- * Normalized tilt transition to FW
+ * Normalized tilt in transition to FW
  *
  * @min 0.0
  * @max 1.0
