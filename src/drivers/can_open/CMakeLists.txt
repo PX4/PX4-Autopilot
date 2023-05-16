@@ -81,7 +81,7 @@ if(${OD} MATCHES "demo_device")
 endif()
 
 px4_add_module(
-	MODULE drivers__can_open_node
+	MODULE drivers__can_open
 	MAIN canopen
 	STACK_MAIN 4096
 	COMPILE_FLAGS

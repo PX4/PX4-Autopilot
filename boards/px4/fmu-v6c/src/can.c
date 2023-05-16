@@ -32,51 +32,16 @@
  ****************************************************************************/
 
 /**
- * @file px4fmu_can.c
+ * @file can.c
  *
  * Board-specific CAN functions.
  */
 
-#ifdef CONFIG_CAN
 
-#include <errno.h>
-#include <debug.h>
-
+#ifdef CONFIG_NET_CAN
 #include <nuttx/can/can.h>
-#include <arch/board/board.h>
+#include "stm32_fdcan_sock.h"
 
-#include "chip.h"
-#include "arm_internal.h"
-
-#include "chip.h"
-#include "stm32_can.h"
-#include "board_config.h"
-
-#ifdef CONFIG_CAN
-
-/************************************************************************************
- * Pre-processor Definitions
- ************************************************************************************/
-/* Configuration ********************************************************************/
-
-#if defined(CONFIG_STM32_CAN1) && defined(CONFIG_STM32_CAN2)
-#  warning "Both CAN1 and CAN2 are enabled.  Assuming only CAN1."
-#  undef CONFIG_STM32_CAN2
-#endif
-
-#ifdef CONFIG_STM32_CAN1
-#  define CAN_PORT 1
-#else
-#  define CAN_PORT 2
-#endif
-
-/************************************************************************************
- * Private Functions
- ************************************************************************************/
-
-/************************************************************************************
- * Public Functions
- ************************************************************************************/
 int can_devinit(void);
 
 /************************************************************************************
@@ -87,31 +52,16 @@ int can_devinit(void);
  *   examples/can.
  *
  ************************************************************************************/
-
 int can_devinit(void)
 {
 	static bool initialized = false;
-	struct can_dev_s *can;
 	int ret;
 
 	/* Check if we have already initialized */
 
 	if (!initialized) {
-		/* Call stm32_caninitialize() to get an instance of the CAN interface */
-
-		can = stm32_caninitialize(CAN_PORT);
-
-		if (can == NULL) {
-			canerr("ERROR:  Failed to get CAN interface\n");
-			return -ENODEV;
-		}
-
-		/* Register the CAN driver at "/dev/can0" */
-
-		ret = can_register("/dev/can0", can);
-
+		ret = stm32_fdcansockinitialize(0);
 		if (ret < 0) {
-			canerr("ERROR: can_register failed: %d\n", ret);
 			return ret;
 		}
 
@@ -123,6 +73,4 @@ int can_devinit(void)
 	return OK;
 }
 
-#endif
-
-#endif /* CONFIG_CAN */
+#endif /* CONFIG_NET_CAN */
