@@ -65,6 +65,7 @@ param set-default MC_ROLLRATE_P 0.3
 param set-default MC_PITCHRATE_P 0.3
 
 param set-default VT_ARSP_TRANS 15
+param set-default VT_B_TRANS_DUR 5
 param set-default VT_FW_DIFTHR_EN 7
 param set-default VT_FW_DIFTHR_S_Y 1
 param set-default VT_F_TRANS_DUR 1.5
