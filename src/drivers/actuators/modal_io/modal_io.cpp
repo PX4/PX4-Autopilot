@@ -48,7 +48,7 @@ ModalIo::ModalIo() :
 	_mixing_output{"MODAL_IO", MODAL_IO_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false},
 	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
 	_output_update_perf(perf_alloc(PC_INTERVAL, MODULE_NAME": output update interval")),
-	_battery(1, nullptr, 10000, battery_status_s::BATTERY_SOURCE_POWER_MODULE)
+	_battery(1, nullptr, _battery_report_interval, battery_status_s::BATTERY_SOURCE_POWER_MODULE)
 {
 	_device = MODAL_IO_DEFAULT_PORT;
 
