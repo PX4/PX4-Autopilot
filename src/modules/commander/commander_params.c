@@ -50,8 +50,8 @@
  * copying them using the GCS.
  *
  * @group Radio Calibration
- * @min -0.25
- * @max 0.25
+ * @min -0.5
+ * @max 0.5
  * @decimal 2
  * @increment 0.01
  */
@@ -66,8 +66,8 @@ PARAM_DEFINE_FLOAT(TRIM_ROLL, 0.0f);
  * copying them using the GCS.
  *
  * @group Radio Calibration
- * @min -0.25
- * @max 0.25
+ * @min -0.5
+ * @max 0.5
  * @decimal 2
  * @increment 0.01
  */
@@ -82,8 +82,8 @@ PARAM_DEFINE_FLOAT(TRIM_PITCH, 0.0f);
  * copying them using the GCS.
  *
  * @group Radio Calibration
- * @min -0.25
- * @max 0.25
+ * @min -0.5
+ * @max 0.5
  * @decimal 2
  * @increment 0.01
  */
