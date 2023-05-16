@@ -80,7 +80,7 @@ PARAM_DEFINE_FLOAT(FW_AIRSPD_MAX, 20.0f);
  *
  * @value 0 Use airspeed in controller
  * @value 1 Do not use airspeed in controller
- * @group FW Attitude Control
+ * @group FW Rate Control
  */
 PARAM_DEFINE_INT32(FW_ARSP_MODE, 0);
 
@@ -471,7 +471,7 @@ PARAM_DEFINE_FLOAT(FW_DTRIM_Y_VMAX, 0.0f);
  * @max 1.0
  * @decimal 2
  * @increment 0.01
- * @group FW Attitude Control
+ * @group FW Rate Control
  */
 PARAM_DEFINE_FLOAT(FW_MAN_R_SC, 1.0f);
 
@@ -485,7 +485,7 @@ PARAM_DEFINE_FLOAT(FW_MAN_R_SC, 1.0f);
  * @min 0.0
  * @decimal 2
  * @increment 0.01
- * @group FW Attitude Control
+ * @group FW Rate Control
  */
 PARAM_DEFINE_FLOAT(FW_MAN_P_SC, 1.0f);
 
@@ -499,7 +499,7 @@ PARAM_DEFINE_FLOAT(FW_MAN_P_SC, 1.0f);
  * @min 0.0
  * @decimal 2
  * @increment 0.01
- * @group FW Attitude Control
+ * @group FW Rate Control
  */
 PARAM_DEFINE_FLOAT(FW_MAN_Y_SC, 1.0f);
 
@@ -513,7 +513,7 @@ PARAM_DEFINE_FLOAT(FW_MAN_Y_SC, 1.0f);
  * @min 0.0
  * @decimal 1
  * @increment 0.01
- * @group FW Attitude Control
+ * @group FW Rate Control
  */
 PARAM_DEFINE_FLOAT(FW_RLL_TO_YAW_FF, 0.0f);
 
@@ -525,7 +525,7 @@ PARAM_DEFINE_FLOAT(FW_RLL_TO_YAW_FF, 0.0f);
  * @value 0 Disabled
  * @value 1 Flaps channel
  * @value 2 Aux1
- * @group FW Attitude Control
+ * @group FW Rate Control
  */
 PARAM_DEFINE_INT32(FW_SPOILERS_MAN, 0);
 
