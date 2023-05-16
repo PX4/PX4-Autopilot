@@ -54,26 +54,23 @@ if(${PX4_PLATFORM} MATCHES "nuttx")
 	endif()
 
 	list(APPEND SRCS
-		CO_driver_nuttx.h
+		CO_driver_target.h
 		CO_storage_nuttx.c
 		CO_storage_nuttx.h
 	)
 endif()
 
-
 if(${OD} MATCHES "demo_device")
     list(APPEND SRCS
-		can_open_demo/demo/demoDevice/OD_demoDevice.h
-                can_open_demo/demo/demoDevice/OD_demoDevice.c
-     	        can_open_demo/demo/demoDevice/objectAccessOD.c
-                can_open_demo/demo/demoDevice/objectAccessOD.h
-                can_open_demo/demo/demoDevice/domainDemo.c
-                can_open_demo/demo/demoDevice/domainDemo.h
-                can_open_demo/demo/demoDevice/CO_identificators.c
-                can_open_demo/demo/demoDevice/CO_identificators.h
-                can_open_demo/demo/demoDevice/CO_ident_defs.h
-                can_open_demo/demo/demoDevice/CO_application.c
-                can_open_demo/demo/demoDevice/CO_application.h
+		can_open_demo/demo/OD.h
+                can_open_demo/demo/OD.c
+     	        can_open_demo/demo/objectAccessOD.c
+                can_open_demo/demo/objectAccessOD.h
+                can_open_demo/demo/domainDemo.c
+                can_open_demo/demo/domainDemo.h
+                can_open_demo/demo/CO_identificators.c
+                can_open_demo/demo/CO_identificators.h
+                can_open_demo/demo/CO_application.c
     )
     add_definitions(
 	-DCANOPENNODE_DEMO_DEVICE
