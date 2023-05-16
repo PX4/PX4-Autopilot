@@ -323,8 +323,13 @@ board_deinit(void)
 {
 
 #if INTERFACE_USART
+#ifdef CONFIG_MPFS_FPGA_UART
+	up_disable_irq(MPFS_IRQ_FABRIC_F2H_12);
+	up_disable_irq(MPFS_IRQ_FABRIC_F2H_13);
+#else
 	up_disable_irq(MPFS_IRQ_MMUART0);
 	up_disable_irq(MPFS_IRQ_MMUART1);
+#endif
 #endif
 
 #ifdef CONFIG_MMCSD
@@ -366,7 +371,6 @@ board_deinit(void)
 #if defined(CONFIG_USBDEV)
 	up_disable_irq(MPFS_IRQ_USB_MC);
 #endif
-
 }
 
 static inline void
