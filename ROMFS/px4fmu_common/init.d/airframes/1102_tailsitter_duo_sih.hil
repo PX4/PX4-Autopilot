@@ -20,6 +20,7 @@
 param set-default EKF2_FUSE_BETA 0 # side slip fusion is currently not supported for tailsitters
 
 param set UAVCAN_ENABLE 0
+param set-default VT_B_TRANS_DUR 5
 param set-default VT_ELEV_MC_LOCK 0
 param set-default VT_MOT_COUNT 2
 param set-default VT_TYPE 0
