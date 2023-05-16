@@ -86,7 +86,7 @@ uavcan::uint32_t CanIface::socketInit(uint32_t index)
 		return -1;
 	}
 
-	snprintf(ifr.ifr_name, IFNAMSIZ, "can%li", index);
+	snprintf(ifr.ifr_name, IFNAMSIZ, "can%" PRIu32, index);
 	ifr.ifr_name[IFNAMSIZ - 1] = '\0';
 	ifr.ifr_ifindex = if_nametoindex(ifr.ifr_name);
 
