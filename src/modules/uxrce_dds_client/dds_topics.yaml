@@ -1,6 +1,6 @@
 #####
 #
-# This file maps all the topics that are to be used on the micro DDS client.
+# This file maps all the topics that are to be used on the uXRCE-DDS client.
 #
 #####
 publications:

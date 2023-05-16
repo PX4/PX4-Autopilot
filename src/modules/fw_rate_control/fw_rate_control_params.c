@@ -485,20 +485,6 @@ PARAM_DEFINE_FLOAT(FW_DTRIM_Y_VMAX, 0.0f);
 PARAM_DEFINE_FLOAT(FW_MAN_R_SC, 1.0f);
 
 /**
- * Maximum manual pitch angle
- *
- * Maximum manual pitch angle setpoint (positive & negative) in manual attitude-only stabilized mode
- *
- * @unit deg
- * @min 0.0
- * @max 90.0
- * @decimal 1
- * @increment 0.5
- * @group FW Attitude Control
- */
-PARAM_DEFINE_FLOAT(FW_MAN_P_MAX, 30.0f);
-
-/**
  * Manual pitch scale
  *
  * Scale factor applied to the desired pitch actuator command in full manual mode. This parameter allows
@@ -511,20 +497,6 @@ PARAM_DEFINE_FLOAT(FW_MAN_P_MAX, 30.0f);
  * @group FW Attitude Control
  */
 PARAM_DEFINE_FLOAT(FW_MAN_P_SC, 1.0f);
-
-/**
- * Maximum manual roll angle
- *
- * Maximum manual roll angle setpoint (positive & negative) in manual attitude-only stabilized mode
- *
- * @unit deg
- * @min 0.0
- * @max 90.0
- * @decimal 1
- * @increment 0.5
- * @group FW Attitude Control
- */
-PARAM_DEFINE_FLOAT(FW_MAN_R_MAX, 45.0f);
 
 /**
  * Manual yaw scale

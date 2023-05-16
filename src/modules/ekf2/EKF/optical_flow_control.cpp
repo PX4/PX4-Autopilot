@@ -158,7 +158,7 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 
 		// Handle cases where we are using optical flow but we should not use it anymore
 		if (_control_status.flags.opt_flow) {
-			if (!(_params.fusion_mode & SensorFusionMask::USE_OPT_FLOW)
+			if (!(_params.flow_ctrl == 1)
 			    || inhibit_flow_use) {
 
 				stopFlowFusion();
@@ -167,7 +167,7 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 		}
 
 		// optical flow fusion mode selection logic
-		if ((_params.fusion_mode & SensorFusionMask::USE_OPT_FLOW) // optical flow has been selected by the user
+		if ((_params.flow_ctrl == 1) // optical flow has been selected by the user
 		    && !_control_status.flags.opt_flow // we are not yet using flow data
 		    && !inhibit_flow_use) {
 

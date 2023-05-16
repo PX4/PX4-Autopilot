@@ -166,9 +166,7 @@ private:
 		(ParamFloat<px4::params::FW_DTRIM_Y_VMAX>) _param_fw_dtrim_y_vmax,
 		(ParamFloat<px4::params::FW_DTRIM_Y_VMIN>) _param_fw_dtrim_y_vmin,
 
-		(ParamFloat<px4::params::FW_MAN_P_MAX>) _param_fw_man_p_max,
 		(ParamFloat<px4::params::FW_MAN_P_SC>) _param_fw_man_p_sc,
-		(ParamFloat<px4::params::FW_MAN_R_MAX>) _param_fw_man_r_max,
 		(ParamFloat<px4::params::FW_MAN_R_SC>) _param_fw_man_r_sc,
 		(ParamFloat<px4::params::FW_MAN_Y_SC>) _param_fw_man_y_sc,
 

@@ -51,7 +51,7 @@ public:
 	OutputMavlinkV1(const Parameters &parameters);
 	virtual ~OutputMavlinkV1() = default;
 
-	virtual void update(const ControlData &control_data, bool new_setpoints);
+	virtual void update(const ControlData &control_data, bool new_setpoints, uint8_t &gimbal_device_id);
 
 	virtual void print_status() const;
 
@@ -69,7 +69,7 @@ public:
 	OutputMavlinkV2(const Parameters &parameters);
 	virtual ~OutputMavlinkV2() = default;
 
-	virtual void update(const ControlData &control_data, bool new_setpoints);
+	virtual void update(const ControlData &control_data, bool new_setpoints, uint8_t &gimbal_device_id);
 
 	virtual void print_status() const;
 

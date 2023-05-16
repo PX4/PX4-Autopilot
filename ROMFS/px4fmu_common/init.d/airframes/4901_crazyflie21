@@ -19,7 +19,7 @@
 
 param set-default SYS_MC_EST_GROUP 2
 param set-default SYS_HAS_MAG 0
-param set-default EKF2_AID_MASK 2
+param set-default EKF2_OF_CTRL 1
 param set-default EKF2_GPS_CTRL 0
 param set-default EKF2_MAG_TYPE 5
 

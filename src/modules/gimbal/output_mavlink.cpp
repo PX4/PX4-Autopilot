@@ -46,7 +46,7 @@ OutputMavlinkV1::OutputMavlinkV1(const Parameters &parameters)
 	: OutputBase(parameters)
 {}
 
-void OutputMavlinkV1::update(const ControlData &control_data, bool new_setpoints)
+void OutputMavlinkV1::update(const ControlData &control_data, bool new_setpoints, uint8_t &gimbal_device_id)
 {
 	vehicle_command_s vehicle_command{};
 	vehicle_command.timestamp = hrt_absolute_time();
@@ -142,7 +142,7 @@ OutputMavlinkV2::OutputMavlinkV2(const Parameters &parameters)
 {
 }
 
-void OutputMavlinkV2::update(const ControlData &control_data, bool new_setpoints)
+void OutputMavlinkV2::update(const ControlData &control_data, bool new_setpoints, uint8_t &gimbal_device_id)
 {
 	_check_for_gimbal_device_information();
 
@@ -161,6 +161,8 @@ void OutputMavlinkV2::update(const ControlData &control_data, bool new_setpoints
 			_handle_position_update(control_data);
 			_last_update = t;
 		}
+
+		gimbal_device_id = _gimbal_device_found ? _gimbal_device_compid : 0;
 
 		_publish_gimbal_device_set_attitude();
 	}
@@ -206,6 +208,13 @@ void OutputMavlinkV2::print_status() const
 		     (double)_angle_velocity[0],
 		     (double)_angle_velocity[1],
 		     (double)_angle_velocity[2]);
+
+	if (_gimbal_device_found) {
+		PX4_INFO_RAW("  gimbal device compid found: %d\n", _gimbal_device_compid);
+
+	} else {
+		PX4_INFO_RAW("  gimbal device compid not found\n");
+	}
 }
 
 void OutputMavlinkV2::_publish_gimbal_device_set_attitude()

@@ -32,7 +32,7 @@
 ############################################################################
 
 if(${CMAKE_VERSION} VERSION_LESS "3.11")
-    message(WARNING "skipping microdds_client, Micro-XRCE-DDS-Client needs to be fixed to work with CMAKE_VERSION ${CMAKE_VERSION}")
+    message(WARNING "skipping uxrce_dds_client, Micro-XRCE-DDS-Client needs to be fixed to work with CMAKE_VERSION ${CMAKE_VERSION}")
 
 else()
 	px4_add_git_submodule(TARGET git_micro_xrce_dds_client PATH "${CMAKE_CURRENT_LIST_DIR}/Micro-XRCE-DDS-Client")
@@ -130,8 +130,8 @@ else()
 	add_custom_target(topic_bridge_files DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/dds_topics.h)
 
 	px4_add_module(
-		MODULE modules__microdds_client
-		MAIN microdds_client
+		MODULE modules__uxrce_dds_client
+		MAIN uxrce_dds_client
 		STACK_MAIN 9000
 		INCLUDES
 			${CMAKE_CURRENT_SOURCE_DIR}
@@ -140,8 +140,8 @@ else()
 			${MAX_CUSTOM_OPT_LEVEL}
 		SRCS
 			${CMAKE_CURRENT_BINARY_DIR}/dds_topics.h
-			microdds_client.cpp
-			microdds_client.h
+			uxrce_dds_client.cpp
+			uxrce_dds_client.h
 		DEPENDS
 			microxrceddsclient
 			libmicroxrceddsclient

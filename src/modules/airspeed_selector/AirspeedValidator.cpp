@@ -59,7 +59,7 @@ AirspeedValidator::update_airspeed_validator(const airspeed_validator_update_dat
 	check_airspeed_data_stuck(input_data.timestamp);
 	check_load_factor(input_data.accel_z);
 	check_airspeed_innovation(input_data.timestamp, input_data.vel_test_ratio, input_data.mag_test_ratio,
-				  input_data.ground_velocity);
+				  input_data.ground_velocity, input_data.lpos_valid);
 	update_airspeed_valid_status(input_data.timestamp);
 }
 
@@ -212,7 +212,7 @@ AirspeedValidator::check_airspeed_data_stuck(uint64_t time_now)
 
 void
 AirspeedValidator::check_airspeed_innovation(uint64_t time_now, float estimator_status_vel_test_ratio,
-		float estimator_status_mag_test_ratio, const matrix::Vector3f &vI)
+		float estimator_status_mag_test_ratio, const matrix::Vector3f &vI, bool lpos_valid)
 {
 	// Check normalised innovation levels with requirement for continuous data and use of hysteresis
 	// to prevent false triggering.
@@ -228,7 +228,7 @@ AirspeedValidator::check_airspeed_innovation(uint64_t time_now, float estimator_
 		_time_last_tas_pass = time_now;
 		_apsd_innov_integ_state = 0.f;
 
-	} else if (estimator_status_vel_test_ratio > 1.f || estimator_status_mag_test_ratio > 1.f) {
+	} else if (!lpos_valid || estimator_status_vel_test_ratio > 1.f || estimator_status_mag_test_ratio > 1.f) {
 		//nav velocity data is likely not good
 		//don't run the test but don't reset the check if it had previously failed when nav velocity data was still likely good
 		_time_last_tas_pass = time_now;
