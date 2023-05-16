@@ -87,7 +87,7 @@ TEST_F(GeofenceBreachAvoidanceTest, generateLoiterPointForFixedWing)
 	Vector2d home_global(42.1, 8.2);
 	MapProjection ref{home_global(0), home_global(1)};
 
-	geofence_violation_type_u gf_violation;
+	geofence_violation_type_u gf_violation{};
 	gf_violation.flags.fence_violation = true;
 
 	gf_avoidance.setHorizontalTestPointDistance(20.0f);
@@ -147,7 +147,7 @@ TEST_F(GeofenceBreachAvoidanceTest, generateLoiterPointForMultirotor)
 	value = 8;
 	param_set(param, &value);
 
-	geofence_violation_type_u gf_violation;
+	geofence_violation_type_u gf_violation{};
 	gf_violation.flags.fence_violation = true;
 
 	gf_avoidance.setHorizontalTestPointDistance(30.0f);
@@ -197,7 +197,7 @@ TEST_F(GeofenceBreachAvoidanceTest, generateLoiterAltitudeForFixedWing)
 
 	gf_avoidance.setVerticalTestPointDistance(vertical_test_point_dist);
 	gf_avoidance.setCurrentPosition(0, 0, current_alt_amsl); // just care about altitude
-	geofence_violation_type_u gf_violation;
+	geofence_violation_type_u gf_violation{};
 	gf_violation.flags.max_altitude_exceeded = true;
 
 	float loiter_alt = gf_avoidance.generateLoiterAltitudeForFixedWing(gf_violation);
@@ -216,7 +216,7 @@ TEST_F(GeofenceBreachAvoidanceTest, generateLoiterAltitudeForMulticopter)
 	GeofenceBreachAvoidance gf_avoidance(nullptr);
 	const float climbrate = 10.0f;
 	const float current_alt_amsl = 100.0f;
-	geofence_violation_type_u gf_violation;
+	geofence_violation_type_u gf_violation{};
 	gf_violation.flags.max_altitude_exceeded = true;
 
 	gf_avoidance.setClimbRate(climbrate);
@@ -241,7 +241,7 @@ TEST_F(GeofenceBreachAvoidanceTest, maxDistToHomeViolationMulticopter)
 	FakeGeofence geo;
 	Vector2d home_global(42.1, 8.2);
 	MapProjection ref{home_global(0), home_global(1)};
-	geofence_violation_type_u gf_violation;
+	geofence_violation_type_u gf_violation{};
 	gf_violation.flags.dist_to_home_exceeded = true;
 
 	const float hor_vel = 8.0f;
@@ -273,7 +273,7 @@ TEST_F(GeofenceBreachAvoidanceTest, maxDistToHomeViolationFixedWing)
 	FakeGeofence geo;
 	Vector2d home_global(42.1, 8.2);
 	MapProjection ref{home_global(0), home_global(1)};
-	geofence_violation_type_u gf_violation;
+	geofence_violation_type_u gf_violation{};
 	gf_violation.flags.dist_to_home_exceeded = true;
 
 	const float test_point_distance = 30.0f;
