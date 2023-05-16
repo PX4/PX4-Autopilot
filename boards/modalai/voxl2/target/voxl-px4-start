@@ -6,7 +6,6 @@
 echo -e "\n*************************"
 echo "GPS: $GPS"
 echo "RC: $RC"
-echo "IMU ROTATION: $IMU_ROTATION"
 echo "OSD: $OSD"
 echo "EXTRA STEPS:"
 for i in "${EXTRA_STEPS[@]}"
@@ -70,10 +69,11 @@ logger start -t
 /bin/sleep 1
 
 # IMU (accelerometer / gyroscope)
-if [ "$IMU_ROTATION" != "NONE" ]; then
-    /bin/echo "Starting IMU driver with rotation: $IMU_ROTATION"
-    qshell icm42688p start -s -R $IMU_ROTATION
+if [ "$PLATFORM" == "M0104" ]; then
+    /bin/echo "Starting IMU driver with rotation 12"
+    qshell icm42688p start -s -R 12
 else
+    /bin/echo "Starting IMU driver with no rotation"
     qshell icm42688p start -s
 fi
 
