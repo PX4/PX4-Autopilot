@@ -42,7 +42,7 @@ px4_add_module(
 		fw_pitch_controller.cpp
 		fw_roll_controller.cpp
 		ecl_wheel_controller.cpp
-		ecl_yaw_controller.cpp
+		fw_yaw_controller.cpp
 	DEPENDS
 		px4_work_queue
 	)
