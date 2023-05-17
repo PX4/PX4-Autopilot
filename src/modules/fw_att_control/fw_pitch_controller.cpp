@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2020 Estimation and Control Library (ECL). All rights reserved.
+ *   Copyright (c) 2020-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,38 +32,34 @@
  ****************************************************************************/
 
 /**
- * @file ecl_pitch_controller.cpp
- * Implementation of a simple orthogonal pitch PID controller.
- *
- * Authors and acknowledgements in header.
+ * @file fw_pitch_controller.cpp
+ * Implementation of a simple pitch P controller.
  */
 
-#include "ecl_pitch_controller.h"
+#include "fw_pitch_controller.h"
 #include <float.h>
 #include <lib/geo/geo.h>
 #include <mathlib/mathlib.h>
 
-float ECL_PitchController::control_attitude(const float dt, const ECL_ControlData &ctl_data)
+float PitchController::control_pitch(float pitch_setpoint, float euler_yaw_rate_setpoint, float roll, float pitch)
 {
 	/* Do not calculate control signal with bad inputs */
-	if (!(PX4_ISFINITE(ctl_data.pitch_setpoint) &&
-	      PX4_ISFINITE(ctl_data.roll) &&
-	      PX4_ISFINITE(ctl_data.pitch) &&
-	      PX4_ISFINITE(ctl_data.euler_yaw_rate_setpoint))) {
+	if (!(PX4_ISFINITE(pitch_setpoint) &&
+	      PX4_ISFINITE(euler_yaw_rate_setpoint) &&
+	      PX4_ISFINITE(pitch) &&
+	      PX4_ISFINITE(roll))) {
 
 		return _body_rate_setpoint;
 	}
 
-	/* Calculate the error */
-	float pitch_error = ctl_data.pitch_setpoint - ctl_data.pitch;
-
-	/*  Apply P controller: rate setpoint from current error and time constant */
-	_euler_rate_setpoint =  pitch_error / _tc;
+	const float pitch_error = pitch_setpoint - pitch;
+	_euler_rate_setpoint = pitch_error / _tc;
 
 	/* Transform setpoint to body angular rates (jacobian) */
-	const float pitch_body_rate_setpoint_raw = cosf(ctl_data.roll) * _euler_rate_setpoint +
-			cosf(ctl_data.pitch) * sinf(ctl_data.roll) * ctl_data.euler_yaw_rate_setpoint;
-	_body_rate_setpoint = math::constrain(pitch_body_rate_setpoint_raw, -_max_rate_neg, _max_rate);
+	const float pitch_body_rate_setpoint_raw = cosf(roll) * _euler_rate_setpoint +
+			cosf(pitch) * sinf(roll) * euler_yaw_rate_setpoint;
+
+	_body_rate_setpoint = math::constrain(pitch_body_rate_setpoint_raw, -_max_rate_neg, _max_rate_pos);
 
 	return _body_rate_setpoint;
 }
