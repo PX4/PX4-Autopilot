@@ -343,7 +343,8 @@ void FixedwingAttitudeControl::Run()
 				if (PX4_ISFINITE(_att_sp.roll_body) && PX4_ISFINITE(_att_sp.pitch_body)) {
 					_roll_ctrl.control_roll(_att_sp.roll_body, _yaw_ctrl.get_euler_rate_setpoint(), euler_angles.phi(),
 								euler_angles.theta());
-					_pitch_ctrl.control_attitude(dt, control_input);
+					_pitch_ctrl.control_pitch(_att_sp.pitch_body, _yaw_ctrl.get_euler_rate_setpoint(), euler_angles.phi(),
+								  euler_angles.theta());
 					_yaw_ctrl.control_attitude(dt, control_input);
 
 					if (wheel_control) {
