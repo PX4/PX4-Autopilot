@@ -142,7 +142,7 @@ bool VehicleMagnetometer::ParametersUpdate(bool force)
 		_mag_comp_type = mag_comp_typ;
 
 
-		if (!_armed) {
+		if (!_vehicle_control_mode_armed_sub.get()) {
 			bool calibration_updated = false;
 
 			// update mag priority (CAL_MAGx_PRIO)
@@ -219,7 +219,7 @@ void VehicleMagnetometer::UpdateMagBiasEstimate()
 					_calibration_estimator_bias[mag_index] = bias;
 
 					// set initial mag calibration if disarmed, mag uncalibrated, and valid estimated bias available
-					if (_param_sens_mag_autocal.get() && !_armed && mag_bias_est.stable[mag_index]
+					if (_param_sens_mag_autocal.get() && !_vehicle_control_mode_armed_sub.get() && mag_bias_est.stable[mag_index]
 					    && (_calibration[mag_index].device_id() != 0) && !_calibration[mag_index].calibrated()) {
 
 						const Vector3f old_offset = _calibration[mag_index].offset();
@@ -263,7 +263,7 @@ void VehicleMagnetometer::UpdateMagCalibration()
 	static constexpr float min_var_allowed = magb_vref * 0.01f;
 	static constexpr float max_var_allowed = magb_vref * 500.f;
 
-	if (_armed) {
+	if (_vehicle_control_mode_armed_sub.get()) {
 		static constexpr uint8_t mag_cal_size = sizeof(_mag_cal) / sizeof(_mag_cal[0]);
 
 		for (int i = 0; i < math::min(_estimator_sensor_bias_subs.size(), mag_cal_size); i++) {
@@ -363,7 +363,7 @@ void VehicleMagnetometer::UpdatePowerCompensation()
 {
 	if (_mag_comp_type != MagCompensationType::Disabled) {
 		// update power signal for mag compensation
-		if (_armed && (_mag_comp_type == MagCompensationType::Throttle)) {
+		if (_vehicle_control_mode_armed_sub.get() && (_mag_comp_type == MagCompensationType::Throttle)) {
 			vehicle_thrust_setpoint_s vehicle_thrust_setpoint;
 
 			if (_vehicle_thrust_setpoint_0_sub.update(&vehicle_thrust_setpoint)) {
@@ -403,14 +403,8 @@ void VehicleMagnetometer::Run()
 
 	const bool parameter_update = ParametersUpdate();
 
-	// check vehicle status for changes to armed state
-	if (_vehicle_control_mode_sub.updated()) {
-		vehicle_control_mode_s vehicle_control_mode;
-
-		if (_vehicle_control_mode_sub.copy(&vehicle_control_mode)) {
-			_armed = vehicle_control_mode.flag_armed;
-		}
-	}
+	// update armed state
+	_vehicle_control_mode_armed_sub.update();
 
 	UpdatePowerCompensation();
 
@@ -569,7 +563,7 @@ void VehicleMagnetometer::Run()
 		CheckFailover(time_now_us);
 	}
 
-	if (!_armed) {
+	if (!_vehicle_control_mode_armed_sub.get()) {
 		calcMagInconsistency();
 	}
 

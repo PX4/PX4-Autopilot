@@ -72,19 +72,13 @@ void BatterySimulator::Run()
 
 	updateCommands();
 
-	if (_vehicle_status_sub.updated()) {
-		vehicle_status_s vehicle_status;
-
-		if (_vehicle_status_sub.copy(&vehicle_status)) {
-			_armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
-		}
-	}
-
 	const hrt_abstime now_us = hrt_absolute_time();
 
 	const float discharge_interval_us = _param_sim_bat_drain.get() * 1000 * 1000;
 
-	if (_armed) {
+	_vehicle_status_arming_state_sub.update();
+
+	if (_vehicle_status_arming_state_sub.get() == vehicle_status_s::ARMING_STATE_ARMED) {
 		if (_last_integration_us != 0) {
 			_battery_percentage -= (now_us - _last_integration_us) / discharge_interval_us;
 		}

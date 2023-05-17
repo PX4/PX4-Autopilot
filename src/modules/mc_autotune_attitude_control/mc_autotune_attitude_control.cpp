@@ -96,13 +96,7 @@ void McAutotuneAttitudeControl::Run()
 		return;
 	}
 
-	if (_vehicle_status_sub.updated()) {
-		vehicle_status_s vehicle_status;
-
-		if (_vehicle_status_sub.copy(&vehicle_status)) {
-			_armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
-		}
-	}
+	_vehicle_status_arming_state_sub.update();
 
 	if (_actuator_controls_status_sub.updated()) {
 		actuator_controls_status_s controls_status;
@@ -399,7 +393,7 @@ void McAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 		break;
 
 	case state::wait_for_disarm:
-		if (!_armed) {
+		if (!(_vehicle_status_arming_state_sub.get() == vehicle_status_s::ARMING_STATE_ARMED)) {
 			saveGainsToParams();
 			_state = state::complete;
 			_state_start_time = now;

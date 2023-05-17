@@ -138,15 +138,12 @@ private:
 
 	uORB::Subscription	_adc_report_sub{ORB_ID(adc_report)};
 	uORB::Subscription	_vehicle_cmd_sub{ORB_ID(vehicle_command)};
-	uORB::Subscription	_vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::SubscriptionSelection<&vehicle_status_s::arming_state>	_vehicle_status_arming_state_sub{ORB_ID(vehicle_status)};
 
 	input_rc_s	_rc_in{};
 
 	float		_analog_rc_rssi_volt{-1.0f};
 	bool		_analog_rc_rssi_stable{false};
-
-	bool _armed{false};
-
 
 	uORB::PublicationMulti<input_rc_s>	_to_input_rc{ORB_ID(input_rc)};
 
