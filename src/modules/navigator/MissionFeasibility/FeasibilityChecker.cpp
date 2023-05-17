@@ -206,6 +206,10 @@ void FeasibilityChecker::doCommonChecks(mission_item_s &mission_item, const int 
 	if (!_takeoff_failed) {
 		_takeoff_failed = !checkTakeoff(mission_item);
 	}
+
+	if (!_items_fit_to_vehicle_type_failed) {
+		_items_fit_to_vehicle_type_failed = !checkItemsFitToVehicleType(mission_item);
+	}
 }
 
 void FeasibilityChecker::doVtolChecks(mission_item_s &mission_item, const int current_index, const int last_index)
@@ -686,11 +690,25 @@ bool FeasibilityChecker::checkIfBelowHomeAltitude(const mission_item_s &mission_
 
 	if (PX4_ISFINITE(_home_alt_msl) && _home_alt_msl > wp_alt && MissionBlock::item_contains_position(mission_item)) {
 
-
-
 		mavlink_log_critical(_mavlink_log_pub, "Warning: Waypoint %d below home\t", current_index + 1);
 		events::send<int16_t>(events::ID("navigator_mis_wp_below_home"), {events::Log::Warning, events::LogInternal::Info},
 				      "Waypoint {1} below home", current_index + 1);
+	}
+
+	return true;
+}
+
+bool FeasibilityChecker::checkItemsFitToVehicleType(const mission_item_s &mission_item)
+{
+	if (_vehicle_type != VehicleType::Vtol &&
+	    (mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF || mission_item.nav_cmd == NAV_CMD_VTOL_LAND
+	     || mission_item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION)) {
+
+		mavlink_log_critical(_mavlink_log_pub, "Mission rejected: Mission contains VTOL items but vehicle is not a VTOL\t");
+		events::send(events::ID("navigator_mis_vtol_items"), {events::Log::Error, events::LogInternal::Info},
+			     "Mission rejected: Mission contains VTOL items but vehicle is not a VTOL");
+
+		return false;
 	}
 
 	return true;
