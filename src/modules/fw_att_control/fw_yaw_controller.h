@@ -32,11 +32,8 @@
  ****************************************************************************/
 
 /**
- * @file ecl_yaw_controller.h
- * Definition of a simple orthogonal coordinated turn yaw PID controller.
- *
- * @author Lorenz Meier <lm@inf.ethz.ch>
- * @author Thomas Gubler <thomasgubler@gmail.com>
+ * @file fw_yaw_controller.h
+ * Definition of a simple coordinated turn controller.
  *
  * Acknowledgements:
  *
@@ -46,27 +43,37 @@
  *   Jonathan Challinger, 2012.
  */
 
-#ifndef ECL_YAW_CONTROLLER_H
-#define ECL_YAW_CONTROLLER_H
+#ifndef FW_YAW_CONTROLLER_H
+#define FW_YAW_CONTROLLER_H
 
-#include "ecl_controller.h"
-
-class ECL_YawController :
-	public ECL_Controller
+class YawController
 {
 public:
-	ECL_YawController() = default;
-	~ECL_YawController() = default;
+	YawController() = default;
+	~YawController() = default;
 
 	/**
-	 * @brief Calculates both euler and body yaw rate setpoints.
+	 * @brief Calculates both euler and body yaw rate setpoints for coordinated turn based on current attitude and airspeed
 	 *
-	 * @param dt Time step [s]
-	 * @param ctrl_data Various control inputs (attitude, body rates, attitdue stepoints, euler rate setpoints, current speeed)
-	 * @return Yaw body rate setpoint [rad/s]
+	 * @param roll_setpoint roll setpoint [rad]
+	 * @param euler_pitch_rate_setpoint euler pitch rate setpoint [rad/s]
+	 * @param roll estimated roll [rad]
+	 * @param pitch estimated pitch [rad]
+	 * @param airspeed airspeed [m/s]
+	 * @return Roll body rate setpoint [rad/s]
 	 */
-	float control_attitude(const float dt, const ECL_ControlData &ctl_data) override;
+	float control_yaw(float roll_setpoint, float euler_pitch_rate_setpoint, float roll, float pitch,
+			  float airspeed);
 
+	void set_max_rate(float max_rate) { _max_rate = max_rate; }
+
+	float get_euler_rate_setpoint() { return _euler_rate_setpoint; }
+	float get_body_rate_setpoint() { return _body_rate_setpoint; }
+
+private:
+	float _max_rate;
+	float _euler_rate_setpoint;
+	float _body_rate_setpoint;
 };
 
-#endif // ECL_YAW_CONTROLLER_H
+#endif // FW_YAW_CONTROLLER_H
