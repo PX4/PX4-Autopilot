@@ -697,7 +697,7 @@ param_control_autosave(bool enable)
 
 #if defined(CONFIG_PARAM_SERVER) || defined(CONFIG_PARAM_CLIENT)
 static int
-param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_changes, bool remote_update = true)
+param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_changes, bool remote_update = true, bool from_file = false)
 #else
 static int
 param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_changes)
@@ -798,7 +798,7 @@ out:
 
 	// If this is the parameter server, make sure that the client is updated
 	// TODO: Handle the possibility that this fails.
-	if (param_changed && remote_update) { param_server_set(param, val); }
+	if (param_changed && remote_update) { param_server_set(param, val, from_file); }
 
 #endif
 
@@ -1594,7 +1594,7 @@ param_import_callback(bson_decoder_t decoder, bson_node_t node)
 	case BSON_INT32: {
 			if (param_type(param) == PARAM_TYPE_INT32) {
 				int32_t i = node->i32;
-				param_set_internal(param, &i, true, true);
+				param_set_internal(param, &i, true, true, true, true);
 				PX4_DEBUG("Imported %s with value %" PRIi32, param_name(param), i);
 
 			} else {
@@ -1606,7 +1606,7 @@ param_import_callback(bson_decoder_t decoder, bson_node_t node)
 	case BSON_DOUBLE: {
 			if (param_type(param) == PARAM_TYPE_FLOAT) {
 				float f = node->d;
-				param_set_internal(param, &f, true, true);
+				param_set_internal(param, &f, true, true, true, true);
 				PX4_DEBUG("Imported %s with value %f", param_name(param), (double)f);
 
 			} else {

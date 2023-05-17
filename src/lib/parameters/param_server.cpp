@@ -31,8 +31,13 @@
  *
  ****************************************************************************/
 
+#include <algorithm>
+#include <string>
+#include <sstream>
 #include <string.h>
 #include <stdbool.h>
+#include <fstream>
+#include <iostream>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/tasks.h>
 
@@ -65,6 +70,82 @@ static int param_reset_rsp_fd = PX4_ERROR;
 
 static px4_task_t   sync_thread_tid;
 static const char  *sync_thread_name = "server_sync_thread";
+
+using namespace std;
+
+static void save_calibration_parameter_to_file(const char *name, param_type_t type, param_value_u value) {
+	// If the parameter being set is a calibration parameter then save it out to
+	// a separate calibration file so that they can be preserved and reloaded
+	// after system updates
+	string cal_file_name = param_get_default_file();
+	string cal_file_append;
+	string param_name(name);
+	string cal_strings[] = {"CAL_GYRO", "CAL_MAG", "CAL_BARO", "CAL_ACC"};
+	for (auto i: cal_strings) {
+		// Check to see if the parameter is one of the desired calibration parameters
+		if (param_name.substr(0, i.size()) == i) {
+			// We want the filename to be the standard parameters file name with
+			// the calibration type appended to it.
+			cal_file_append = i.substr(3, i.size());
+			// Make sure it is lowercase
+			transform(cal_file_append.begin(), cal_file_append.end(), cal_file_append.begin(), ::tolower);
+			// And add a cal file extension
+			cal_file_append += ".cal";
+			break;
+		}
+	}
+
+	// Check for level horizon calibration parameters
+	if (cal_file_append.empty() &&
+		(param_name == "SENS_BOARD_X_OFF" || param_name == "SENS_BOARD_Y_OFF")) {
+		cal_file_append = "_level.cal";
+	}
+
+	// Check for RC calibration parameters
+	if (cal_file_append.empty() && name[0] == 'R' && name[1] == 'C' && isdigit(name[2])) {
+		cal_file_append = "_rc.cal";
+	}
+
+	if (! cal_file_append.empty()) {
+		cal_file_name += cal_file_append;
+
+		stringstream param_data_stream;
+
+		switch (type) {
+		case PARAM_TYPE_INT32:
+			param_data_stream << value.i;
+			param_data_stream << "\t" << 6;
+			break;
+
+		case PARAM_TYPE_FLOAT:
+			param_data_stream << value.f;
+			param_data_stream << "\t" << 9;
+			break;
+
+		default:
+			PX4_ERR("Calibration parameter must be either int or float");
+			break;
+		}
+
+		string param_data;
+		param_data += "1\t1\t";
+		param_data += param_name;
+		param_data += "\t";
+		param_data += param_data_stream.str();
+
+		PX4_INFO("Writing %s to file %s", param_data.c_str(), cal_file_name.c_str());
+
+		// open a file in write (append) mode.
+		ofstream cal_file;
+		cal_file.open(cal_file_name, ios_base::app);
+		if (cal_file) {
+			cal_file << param_data << endl;
+			cal_file.close();
+		} else {
+			PX4_ERR("Couldn't open %s for writing calibration value", cal_file_name.c_str());
+		}
+	}
+}
 
 static int param_sync_thread(int argc, char *argv[])
 {
@@ -116,14 +197,19 @@ static int param_sync_thread(int argc, char *argv[])
 			orb_copy(ORB_ID(parameter_server_set_value_request), parameter_server_set_value_fd, &v_req);
 			PX4_DEBUG("Got parameter_server_set_value_request for %s", v_req.parameter_name);
 			param_t param = param_find(v_req.parameter_name);
+			param_value_u value;
+			value.i = 0;
+			value.f = 0.0f;
 
 			switch (param_type(param)) {
 			case PARAM_TYPE_INT32:
 				param_set_no_remote_update(param, (const void *) &v_req.int_value, true);
+				value.i = v_req.int_value;
 				break;
 
 			case PARAM_TYPE_FLOAT:
 				param_set_no_remote_update(param, (const void *) &v_req.float_value, true);
+				value.f =v_req.float_value;
 				break;
 
 			default:
@@ -139,6 +225,8 @@ static int param_sync_thread(int argc, char *argv[])
 			} else {
 				orb_publish(ORB_ID(parameter_server_set_value_response), param_set_value_rsp_h, &v_rsp);
 			}
+
+			save_calibration_parameter_to_file(v_req.parameter_name, param_type(param), value);
 		}
 	}
 
@@ -155,17 +243,21 @@ void param_server_init()
 					     NULL);
 }
 
-void param_server_set(param_t param, const void *val)
+void param_server_set(param_t param, const void *val, bool from_file)
 {
 	bool send_request = true;
 	struct parameter_client_set_value_request_s req;
 	req.timestamp = hrt_absolute_time();
 	strncpy(req.parameter_name, param_name(param), 16);
 	req.parameter_name[16] = 0;
+	param_value_u value;
+	value.i = 0;
+	value.f = 0.0f;
 
 	switch (param_type(param)) {
 	case PARAM_TYPE_INT32:
 		req.int_value = *(int32_t *)val;
+		value.i = req.int_value;
 
 		if (debug) { PX4_INFO("*** Setting %s to %d ***", req.parameter_name, req.int_value); }
 
@@ -173,6 +265,7 @@ void param_server_set(param_t param, const void *val)
 
 	case PARAM_TYPE_FLOAT:
 		req.float_value = *(float *)val;
+		value.f = req.float_value;
 
 		if (debug) { PX4_INFO("*** Setting %s to %f ***", req.parameter_name, (double) req.float_value); }
 
@@ -182,6 +275,10 @@ void param_server_set(param_t param, const void *val)
 		PX4_ERR("Parameter must be either int or float");
 		send_request = false;
 		break;
+	}
+
+	if (! from_file) {
+		save_calibration_parameter_to_file(req.parameter_name, param_type(param), value);
 	}
 
 	if (param_set_rsp_fd == PX4_ERROR) {
