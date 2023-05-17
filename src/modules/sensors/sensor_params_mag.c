@@ -86,7 +86,7 @@ PARAM_DEFINE_INT32(CAL_MAG_COMP_TYP, 0);
  * @boolean
  * @group Sensors
  */
-PARAM_DEFINE_INT32(SENS_MAG_AUTOROT, 1);
+PARAM_DEFINE_INT32(SENS_MAG_AUTOROT, 0);
 
 /**
  * Magnetometer max rate.
@@ -126,4 +126,4 @@ PARAM_DEFINE_INT32(SENS_MAG_MODE, 1);
  * @category system
  * @group Sensors
  */
-PARAM_DEFINE_INT32(SENS_MAG_AUTOCAL, 1);
+PARAM_DEFINE_INT32(SENS_MAG_AUTOCAL, 0);
