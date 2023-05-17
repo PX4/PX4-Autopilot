@@ -136,6 +136,7 @@ private:
 	unsigned _image_sequence{0};
 	bool _video_recording{false};
 
+	bool _armed{false};
 	uint8_t _system_id{1};
 	bool _rotary_wing{false};
 	bool _vtol{false};

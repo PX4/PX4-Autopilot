@@ -81,6 +81,7 @@ void ManualControl::processInput(hrt_abstime now)
 		vehicle_status_s vehicle_status;
 
 		if (_vehicle_status_sub.copy(&vehicle_status)) {
+			_armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
 			_system_id = vehicle_status.system_id;
 			_rotary_wing = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 			_vtol = vehicle_status.is_vtol;
@@ -269,8 +270,8 @@ void ManualControl::processSwitches(hrt_abstime &now)
 					}
 				}
 
-			} else {
-				// Send an initial request to switch to the mode requested by RC
+			} else if (!_armed) {
+				// Directly initialize mode using RC switch but only before arming
 				evaluateModeSlot(switches.mode_slot);
 			}
 
