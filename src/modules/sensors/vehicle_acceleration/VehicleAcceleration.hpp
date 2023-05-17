@@ -65,6 +65,8 @@ public:
 	bool Start();
 	void Stop();
 
+	matrix::Vector3f getLastAccel();
+
 	void PrintStatus();
 
 private:

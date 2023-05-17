@@ -693,7 +693,7 @@ int Sensors::print_status()
 
 	if (_vehicle_magnetometer) {
 		PX4_INFO_RAW("\n");
-		_vehicle_magnetometer->PrintStatus();
+		_vehicle_magnetometer->PrintStatus(_vehicle_acceleration.getLastAccel());
 	}
 
 #endif // CONFIG_SENSORS_VEHICLE_MAGNETOMETER
