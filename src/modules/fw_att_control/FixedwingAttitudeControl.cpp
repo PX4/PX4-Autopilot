@@ -345,7 +345,8 @@ void FixedwingAttitudeControl::Run()
 								euler_angles.theta());
 					_pitch_ctrl.control_pitch(_att_sp.pitch_body, _yaw_ctrl.get_euler_rate_setpoint(), euler_angles.phi(),
 								  euler_angles.theta());
-					_yaw_ctrl.control_attitude(dt, control_input);
+					_yaw_ctrl.control_yaw(_att_sp.roll_body, _pitch_ctrl.get_euler_rate_setpoint(), euler_angles.phi(),
+							      euler_angles.theta(), get_airspeed_constrained());
 
 					if (wheel_control) {
 						_wheel_ctrl.control_attitude(dt, control_input);
