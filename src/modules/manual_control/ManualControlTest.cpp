@@ -282,3 +282,50 @@ TEST_F(SwitchTest, ModeSwitch)
 	EXPECT_EQ(_action_request_sub.get().action, ACTION_SWITCH_MODE);
 	EXPECT_EQ(_action_request_sub.get().mode, TestManualControl::navStateFromParam(NAVIGATION_STATE_AUTO_MISSION));
 }
+
+TEST_F(SwitchTest, ModeSwitchInitialization)
+{
+	// GIVEN: the mode switch is already in position 1 but there's no valid RC stick input yet
+	_manual_control_switches_pub.publish({.timestamp_sample = _timestamp, .mode_slot = manual_control_switches_s::MODE_SLOT_1});
+	_manual_control.processInput(_timestamp += 10_ms);
+	// THEN: there is no action requested
+	EXPECT_FALSE(_action_request_sub.update());
+
+	// GIVEN: new valid stick input from RC
+	_manual_control_input_pub.publish({.timestamp_sample = _timestamp, .valid = true, .data_source = manual_control_setpoint_s::SOURCE_RC});
+	_manual_control.processInput(_timestamp += 10_ms);
+	// THEN: there is still no action requested because the switches were not updated yet
+	EXPECT_FALSE(_action_request_sub.update());
+
+	// GIVEN: switch update with the same positions
+	_manual_control_switches_pub.publish({.timestamp_sample = _timestamp, .mode_slot = manual_control_switches_s::MODE_SLOT_1});
+	_manual_control.processInput(_timestamp += 10_ms);
+	// THEN: the mode switch is requested
+	EXPECT_TRUE(_action_request_sub.update());
+	EXPECT_EQ(_action_request_sub.get().action, ACTION_SWITCH_MODE);
+	EXPECT_EQ(_action_request_sub.get().mode, TestManualControl::navStateFromParam(NAVIGATION_STATE_ACRO));
+}
+
+TEST_F(SwitchTest, ModeSwitchInitializationArmed)
+{
+	// GIVEN: vehicle is armed
+	uORB::Publication<vehicle_status_s> vehicle_status_pub{ORB_ID(vehicle_status)};
+	vehicle_status_pub.publish({.arming_state = vehicle_status_s::ARMING_STATE_ARMED});
+
+	// GIVEN: valid stick input from RC
+	_manual_control_input_pub.publish({.timestamp_sample = _timestamp, .valid = true, .data_source = manual_control_setpoint_s::SOURCE_RC});
+	// and mode switch in position 1
+	_manual_control_switches_pub.publish({.timestamp_sample = _timestamp, .mode_slot = manual_control_switches_s::MODE_SLOT_1});
+	_manual_control.processInput(_timestamp += 10_ms);
+
+	// THEN: no action requested because the vehicle is flying
+	EXPECT_FALSE(_action_request_sub.update());
+
+	// GIVEN: the switch changes position
+	_manual_control_switches_pub.publish({.timestamp_sample = _timestamp, .mode_slot = manual_control_switches_s::MODE_SLOT_2});
+	_manual_control.processInput(_timestamp += 10_ms);
+	// THEN: the mode switch is requested
+	EXPECT_TRUE(_action_request_sub.update());
+	EXPECT_EQ(_action_request_sub.get().action, ACTION_SWITCH_MODE);
+	EXPECT_EQ(_action_request_sub.get().mode, TestManualControl::navStateFromParam(NAVIGATION_STATE_MANUAL));
+}
