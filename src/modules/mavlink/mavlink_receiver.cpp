@@ -3157,6 +3157,11 @@ MavlinkReceiver::run()
 
 						PX4_INFO("partner IP: %s", inet_ntoa(srcaddr.sin_addr));
 					}
+
+				} else if (srcaddr_last.sin_addr.s_addr == srcaddr.sin_addr.s_addr &&
+					   srcaddr_last.sin_port == srcaddr.sin_port) {
+					// The client is still around, so confirm it.
+					_mavlink->set_client_source_initialized();
 				}
 			}
 

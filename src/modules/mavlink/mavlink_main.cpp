@@ -2639,6 +2639,10 @@ Mavlink::task_main(int argc, char *argv[])
 			publish_telemetry_status();
 		}
 
+#if defined(MAVLINK_UDP)
+		check_client_source_timed_out();
+#endif // MAVLINK_UDP
+
 		perf_end(_loop_perf);
 	}
 

@@ -466,9 +466,20 @@ public:
 
 	struct sockaddr_in 	&get_client_source_address() { return _src_addr; }
 
-	void			set_client_source_initialized() { _src_addr_initialized = true; }
+	void			set_client_source_initialized()
+	{
+		_src_addr_initialized = true;
+		_time_src_addr_last_initialized = hrt_absolute_time();
+	}
 
 	bool			get_client_source_initialized() { return _src_addr_initialized; }
+
+	void			check_client_source_timed_out()
+	{
+		if (_src_addr_initialized && hrt_elapsed_time(&_time_src_addr_last_initialized) > 3000000) {
+			_src_addr_initialized = false;
+		}
+	}
 #endif
 
 	uint64_t		get_start_time() { return _mavlink_start_time; }
@@ -626,6 +637,7 @@ private:
 	sockaddr_in		_src_addr {};
 	sockaddr_in		_bcast_addr {};
 
+	hrt_abstime		_time_src_addr_last_initialized{0};
 	bool			_src_addr_initialized{false};
 	bool			_broadcast_address_found{false};
 	bool			_broadcast_address_not_found_warned{false};
