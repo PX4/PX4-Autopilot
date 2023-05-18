@@ -268,7 +268,7 @@ MulticopterRateControl::Run()
 							float freq_now = _param_mc_inject_start.get() + _param_mc_inject_inc.get() * freq_idx;
 
 							if (freq_time < sine_time) {
-								float injection = _param_mc_inject_amp.get() * sin(freq_now * M_TWOPI_F * freq_time);
+								float injection = _param_mc_inject_amp.get() * (float) sin(freq_now * M_TWOPI_F * freq_time);
 
 								if (_param_mc_inject_rpy.get() == 0) {
 									att_control(0) += injection;
