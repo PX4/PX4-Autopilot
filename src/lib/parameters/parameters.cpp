@@ -1594,7 +1594,11 @@ param_import_callback(bson_decoder_t decoder, bson_node_t node)
 	case BSON_INT32: {
 			if (param_type(param) == PARAM_TYPE_INT32) {
 				int32_t i = node->i32;
+#if defined(CONFIG_PARAM_SERVER)
 				param_set_internal(param, &i, true, true, true, true);
+#else
+				param_set_internal(param, &i, true, true);
+#endif
 				PX4_DEBUG("Imported %s with value %" PRIi32, param_name(param), i);
 
 			} else {
@@ -1606,7 +1610,11 @@ param_import_callback(bson_decoder_t decoder, bson_node_t node)
 	case BSON_DOUBLE: {
 			if (param_type(param) == PARAM_TYPE_FLOAT) {
 				float f = node->d;
+#if defined(CONFIG_PARAM_SERVER)
 				param_set_internal(param, &f, true, true, true, true);
+#else
+				param_set_internal(param, &f, true, true);
+#endif
 				PX4_DEBUG("Imported %s with value %f", param_name(param), (double)f);
 
 			} else {
