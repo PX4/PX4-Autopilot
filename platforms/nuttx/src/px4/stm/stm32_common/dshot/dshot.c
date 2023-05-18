@@ -370,6 +370,9 @@ void up_dshot_trigger(void)
 		}
 	}
 
+	io_timer_set_enable(true, bidirectional_dshot_enabled ? IOTimerChanMode_DshotInverted : IOTimerChanMode_Dshot,
+			    IO_TIMER_ALL_MODES_CHANNELS);
+
 	for (unsigned timer = 0; timer < DSHOT_TIMERS; ++timer) {
 		if (_timers_init_mask & (1 << timer)) {
 
@@ -407,9 +410,6 @@ void up_dshot_trigger(void)
 			io_timer_update_dma_req(timer, true);
 		}
 	}
-
-	io_timer_set_enable(true, bidirectional_dshot_enabled ? IOTimerChanMode_DshotInverted : IOTimerChanMode_Dshot,
-			    IO_TIMER_ALL_MODES_CHANNELS);
 }
 
 void do_capture(DMA_HANDLE handle, uint8_t status, void *arg)
