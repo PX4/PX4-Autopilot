@@ -195,7 +195,8 @@ unsigned calculate_period(void)
 				break;
 			}
 
-			// TODO: Doesn't cope with DShot frequency other than 600
+			// This seemss to work with dshot 150, 300, 600, 1200
+			// The values were found by trial and error to get the quantization just right.
 			const uint32_t bits = (dshot_capture_buffer[i] - previous + 5) / 20;
 
 			for (unsigned bit = 0; bit < bits; ++bit) {
