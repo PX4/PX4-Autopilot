@@ -59,8 +59,6 @@ typedef enum {
 	DM_WRITE,			///< Write index for given item
 	DM_READ,			///< Read index for given item
 	DM_CLEAR,			///< Clear all index for given item
-	DM_LOCK,			///< Lock all items for given item types
-	DM_UNLOCK,			///< Unlock all items for given item types
 	DM_NUMBER_OF_FUNCS
 } dm_function_t;
 
