@@ -2285,7 +2285,6 @@ void EKF2::UpdateMagCalibration(const hrt_abstime &timestamp)
 {
 	const bool bias_valid = (_param_ekf2_mag_type.get() == static_cast<int32_t>(MagFuseType::AUTO)
 				 || _param_ekf2_mag_type.get() == static_cast<int32_t>(MagFuseType::MAG_3D))
-				&& _ekf.control_status_flags().tilt_align
 				&& _ekf.control_status_flags().yaw_align
 				&& _ekf.control_status_flags().mag_aligned_in_flight
 				&& (_ekf.fault_status().value == 0)
