@@ -107,10 +107,22 @@ vehicle_odometry_s FakeEV::gpsToOdom(const sensor_gps_s &gps)
 	/* odom.timestamp_sample = gps.timestamp_sample; */ // gps timestamp_sample isn't set in SITL
 	odom.timestamp_sample = gps.timestamp;
 
+	const hrt_abstime now = odom.timestamp_sample;
+	const float dt = math::constrain(((now - _last_run) * 1e-6f), 0.000125f, 0.5f);
+	_last_run = now;
+
 	if (gps.fix_type >= 3) {
 		if (PX4_ISFINITE(_alt_ref)) {
-			const matrix::Vector2f hpos = _pos_ref.project(gps.lat / 1.0e7, gps.lon / 1.0e7);
-			const float vpos = (float)gps.alt * 1e-3f - _alt_ref;
+			matrix::Vector2f hpos = _hpos_prev;
+
+			if (!_param_fev_stale.get()) {
+				hpos = _pos_ref.project(gps.lat / 1.0e7, gps.lon / 1.0e7);
+				_hpos_prev = hpos;
+			}
+
+			_h_drift += _param_fev_h_drift_rate.get() * dt;
+			hpos += matrix::Vector2f(_h_drift, _h_drift);
+			const float vpos = -((float)gps.alt * 1e-3f - _alt_ref);
 			matrix::Vector3f(hpos(0), hpos(1), vpos).copyTo(odom.position);
 
 			const float hvar = std::pow(gps.eph, 2.f);
