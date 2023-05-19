@@ -687,6 +687,25 @@ PARAM_DEFINE_INT32(EKF2_BARO_CTRL, 1);
 PARAM_DEFINE_INT32(EKF2_EV_CTRL, 15);
 
 /**
+ * (Alt)External vision (EV) sensor aiding
+ *
+ * Set bits in the following positions to enable:
+ * 0 : Horizontal position fusion
+ * 1 : Vertical position fusion
+ * 2 : 3D velocity fusion
+ * 3 : Yaw
+ *
+ * @group EKF2
+ * @min 0
+ * @max 15
+ * @bit 0 Horizontal position
+ * @bit 1 Vertical position
+ * @bit 2 3D velocity
+ * @bit 3 Yaw
+ */
+PARAM_DEFINE_INT32(EKF2_1_EV_CTRL, 15);
+
+/**
  * GNSS sensor aiding
  *
  * Set bits in the following positions to enable:
@@ -704,6 +723,25 @@ PARAM_DEFINE_INT32(EKF2_EV_CTRL, 15);
  * @bit 3 Dual antenna heading
  */
 PARAM_DEFINE_INT32(EKF2_GPS_CTRL, 7);
+
+/**
+ * (Alt)GNSS sensor aiding
+ *
+ * Set bits in the following positions to enable:
+ * 0 : Longitude and latitude fusion
+ * 1 : Altitude fusion
+ * 2 : 3D velocity fusion
+ * 3 : Dual antenna heading fusion
+ *
+ * @group EKF2
+ * @min 0
+ * @max 15
+ * @bit 0 Lon/lat
+ * @bit 1 Altitude
+ * @bit 2 3D velocity
+ * @bit 3 Dual antenna heading
+ */
+PARAM_DEFINE_INT32(EKF2_1_GPS_CTRL, 7);
 
 /**
  * Range sensor height aiding

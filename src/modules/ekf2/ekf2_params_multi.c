@@ -56,3 +56,17 @@ PARAM_DEFINE_INT32(EKF2_MULTI_IMU, 0);
  * @max 4
  */
 PARAM_DEFINE_INT32(EKF2_MULTI_MAG, 0);
+
+/**
+ * Multi-EKF Configurations.
+ *
+ * Select the number of configurations to use for Multi-EKF.
+ * Multiple configurations can be used with the same IMU/mag
+ * Requires SENS_IMU_MODE > 0
+ *
+ * @group EKF2
+ * @reboot_required true
+ * @min 1
+ * @max 2
+ */
+PARAM_DEFINE_INT32(EKF2_MULTI_CONF, 1);
