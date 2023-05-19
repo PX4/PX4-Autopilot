@@ -2290,9 +2290,7 @@ void EKF2::UpdateMagCalibration(const hrt_abstime &timestamp)
 				&& _ekf.control_status_flags().mag_aligned_in_flight
 				&& (_ekf.fault_status().value == 0)
 				&& !_ekf.control_status_flags().mag_fault
-				&& !_ekf.control_status_flags().mag_field_disturbed
-				&& !_ekf.warning_event_flags().stopping_mag_use
-				&& !_ekf.warning_event_flags().emergency_yaw_reset_mag_stopped;
+				&& !_ekf.control_status_flags().mag_field_disturbed;
 
 	const bool learning_valid = bias_valid && _ekf.control_status_flags().mag_3D;
 
