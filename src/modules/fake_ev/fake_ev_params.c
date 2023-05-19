@@ -34,3 +34,37 @@
 /**
  * @file fake_ev_params.c
  */
+
+
+/**
+ * Enable fake EV
+ *
+ * Generates fake vision output based on GNSS data
+ *
+ * @boolean
+ * @group Fake EV
+ */
+PARAM_DEFINE_INT32(FEV_EN, 1);
+
+/**
+ * Stale sensor
+ *
+ * Enable to freeze the current output
+ *
+ * @boolean
+ * @group Fake EV
+ */
+PARAM_DEFINE_INT32(FEV_STALE, 0);
+
+/**
+ * Drift rate
+ *
+ * Set the horizontal drift rate
+ *
+ * @min 0
+ * @max 5
+ * @decimal 2
+ * @unit m/s
+ * @group Fake EV
+ */
+PARAM_DEFINE_FLOAT(FEV_H_DRIFT_RATE, 0);

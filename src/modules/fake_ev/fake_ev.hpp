@@ -108,5 +108,18 @@ private:
 	MapProjection _pos_ref{}; // Contains WGS-84 position latitude and longitude
 	float _alt_ref{NAN};
 
+	hrt_abstime _last_run{0};
+	float _h_drift{0.f};
+	float _h_drift_rate{0.05f};
+
+	bool _is_stale{false};
+	matrix::Vector2f _hpos_prev;
+
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")};
+
+	DEFINE_PARAMETERS(
+		(ParamBool<px4::params::FEV_EN>) _param_fev_en,
+		(ParamBool<px4::params::FEV_STALE>) _param_fev_stale,
+		(ParamFloat<px4::params::FEV_H_DRIFT_RATE>) _param_fev_h_drift_rate
+	)
 };
