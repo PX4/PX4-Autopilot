@@ -102,6 +102,16 @@ VectorNav::~VectorNav()
 
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
+
+	perf_free(_accel_pub_interval_perf);
+	perf_free(_gyro_pub_interval_perf);
+	perf_free(_mag_pub_interval_perf);
+	perf_free(_gnss_pub_interval_perf);
+	perf_free(_baro_pub_interval_perf);
+
+	perf_free(_attitude_pub_interval_perf);
+	perf_free(_local_position_pub_interval_perf);
+	perf_free(_global_position_pub_interval_perf);
 }
 
 void VectorNav::binaryAsyncMessageReceived(void *userData, VnUartPacket *packet, size_t runningIndex)
@@ -153,9 +163,11 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 
 		// publish sensor_accel
 		_px4_accel.update(time_now_us, accel.c[0], accel.c[1], accel.c[2]);
+		perf_count(_accel_pub_interval_perf);
 
 		// publish sensor_gyro
 		_px4_gyro.update(time_now_us, angular_rate.c[0], angular_rate.c[1], angular_rate.c[2]);
+		perf_count(_gyro_pub_interval_perf);
 
 		_time_last_valid_imu_us.store(hrt_absolute_time());
 	}
@@ -217,9 +229,11 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 		sensor_baro.temperature = temperature;
 		sensor_baro.timestamp = hrt_absolute_time();
 		_sensor_baro_pub.publish(sensor_baro);
+		perf_count(_baro_pub_interval_perf);
 
 		// publish sensor_mag
 		_px4_mag.update(time_now_us, mag.c[0], mag.c[1], mag.c[2]);
+		perf_count(_mag_pub_interval_perf);
 
 		// publish attitude
 		vehicle_attitude_s attitude{};
@@ -230,13 +244,14 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 		attitude.q[3] = quaternion.c[2];
 		attitude.timestamp = hrt_absolute_time();
 		_attitude_pub.publish(attitude);
+		perf_count(_attitude_pub_interval_perf);
 
 		// mode
 		const uint16_t mode = (insStatus & 0b11);
 		//const bool mode_initializing = (mode == 0b00);
 		const bool mode_aligning     = (mode == 0b01);
 		const bool mode_tracking     = (mode == 0b10);
-		const bool mode_loss_gnss    = (mode == 0b11);
+		//const bool mode_loss_gnss    = (mode == 0b11);
 
 
 		// mode_initializing
@@ -257,8 +272,7 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 		//  - attitude is good
 		//  - treat as mode 0
 
-
-		if ((mode_aligning || mode_tracking) && !mode_loss_gnss) {
+		if (mode_aligning || mode_tracking) {
 			// publish local_position
 
 			const double lat = positionEstimatedLla.c[0];
@@ -275,10 +289,10 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 			vehicle_local_position_s local_position{};
 			local_position.timestamp_sample = time_now_us;
 
-			local_position.xy_valid = !mode_loss_gnss;
-			local_position.z_valid = !mode_loss_gnss;
-			local_position.v_xy_valid = !mode_loss_gnss;
-			local_position.v_z_valid = !mode_loss_gnss;
+			local_position.xy_valid = true;
+			local_position.z_valid = true;
+			local_position.v_xy_valid = true;
+			local_position.v_z_valid = true;
 
 			local_position.x = pos_ned(0);
 			local_position.y = pos_ned(1);
@@ -297,13 +311,14 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 			local_position.heading = matrix::Eulerf{q}.psi();
 			local_position.heading_good_for_control = mode_tracking;
 
-			local_position.xy_global = mode_loss_gnss;
-			local_position.z_global = mode_loss_gnss;
-
-			local_position.ref_timestamp = _pos_ref.getProjectionReferenceTimestamp();
-			local_position.ref_lat = _pos_ref.getProjectionReferenceLat();
-			local_position.ref_lon = _pos_ref.getProjectionReferenceLon();
-			local_position.ref_alt = _gps_alt_ref;
+			if (_pos_ref.isInitialized()) {
+				local_position.xy_global = true;
+				local_position.z_global = true;
+				local_position.ref_timestamp = _pos_ref.getProjectionReferenceTimestamp();
+				local_position.ref_lat = _pos_ref.getProjectionReferenceLat();
+				local_position.ref_lon = _pos_ref.getProjectionReferenceLon();
+				local_position.ref_alt = _gps_alt_ref;
+			}
 
 			local_position.dist_bottom_valid = false;
 
@@ -312,11 +327,16 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 			local_position.evh = velocityUncertaintyEstimated;
 			local_position.evv = velocityUncertaintyEstimated;
 
-			local_position.dead_reckoning = mode_loss_gnss;
+			local_position.dead_reckoning = false;
+
+			local_position.vxy_max = INFINITY;
+			local_position.vz_max = INFINITY;
+			local_position.hagl_min = INFINITY;
+			local_position.hagl_max = INFINITY;
 
 			local_position.timestamp = hrt_absolute_time();
 			_local_position_pub.publish(local_position);
-
+			perf_count(_local_position_pub_interval_perf);
 
 
 			// publish global_position
@@ -332,6 +352,7 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 
 			global_position.timestamp = hrt_absolute_time();
 			_global_position_pub.publish(global_position);
+			perf_count(_global_position_pub_interval_perf);
 		}
 	}
 
@@ -409,6 +430,7 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 
 			sensor_gps.timestamp = hrt_absolute_time();
 			_sensor_gps_pub.publish(sensor_gps);
+			perf_count(_gnss_pub_interval_perf);
 		}
 	}
 }

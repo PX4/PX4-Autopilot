@@ -143,6 +143,16 @@ private:
 	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": com_err")};
 	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};
 
+	perf_counter_t _accel_pub_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": accel publish interval")};
+	perf_counter_t _gyro_pub_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": gyro publish interval")};
+	perf_counter_t _mag_pub_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": mag publish interval")};
+	perf_counter_t _gnss_pub_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": GNSS publish interval")};
+	perf_counter_t _baro_pub_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": baro publish interval")};
+
+	perf_counter_t _attitude_pub_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": attitude publish interval")};
+	perf_counter_t _local_position_pub_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": local position publish interval")};
+	perf_counter_t _global_position_pub_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": global position publish interval")};
+
 
 	// TODO: params for GNSS antenna offsets
 	// A
