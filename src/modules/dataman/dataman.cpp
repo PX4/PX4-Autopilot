@@ -200,6 +200,10 @@ calculate_offset(dm_item_t item, unsigned index)
 /* write to the data manager RAM buffer  */
 static ssize_t _ram_write(dm_item_t item, unsigned index, const void *buf, size_t count)
 {
+	if (item >= DM_KEY_NUM_KEYS) {
+		return -1;
+	}
+
 	/* Get the offset for this item */
 	int offset = calculate_offset(item, index);
 
@@ -237,6 +241,10 @@ static ssize_t _ram_write(dm_item_t item, unsigned index, const void *buf, size_
 static ssize_t
 _file_write(dm_item_t item, unsigned index, const void *buf, size_t count)
 {
+	if (item >= DM_KEY_NUM_KEYS) {
+		return -1;
+	}
+
 	unsigned char buffer[g_per_item_size_with_hdr[item]];
 
 	/* Get the offset for this item */
@@ -310,6 +318,10 @@ _file_write(dm_item_t item, unsigned index, const void *buf, size_t count)
 /* Retrieve from the data manager RAM buffer*/
 static ssize_t _ram_read(dm_item_t item, unsigned index, void *buf, size_t count)
 {
+	if (item >= DM_KEY_NUM_KEYS) {
+		return -1;
+	}
+
 	/* Get the offset for this item */
 	int offset = calculate_offset(item, index);
 
@@ -426,6 +438,10 @@ _file_read(dm_item_t item, unsigned index, void *buf, size_t count)
 
 static int  _ram_clear(dm_item_t item)
 {
+	if (item >= DM_KEY_NUM_KEYS) {
+		return -1;
+	}
+
 	int i;
 	int result = 0;
 
@@ -456,6 +472,10 @@ static int  _ram_clear(dm_item_t item)
 static int
 _file_clear(dm_item_t item)
 {
+	if (item >= DM_KEY_NUM_KEYS) {
+		return -1;
+	}
+
 	int i, result = 0;
 
 	/* Get the offset of 1st item of this type */
