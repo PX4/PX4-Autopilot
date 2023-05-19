@@ -140,10 +140,6 @@ static constexpr size_t g_per_item_size_with_hdr[DM_KEY_NUM_KEYS] = {
 /* Table of offset for index 0 of each item type */
 static unsigned int g_key_offsets[DM_KEY_NUM_KEYS];
 
-/* Item type lock for dataman client id*/
-static uint8_t g_item_locks[DM_KEY_NUM_KEYS];
-
-constexpr uint8_t NOT_LOCKED = 0; // dataman client id reserved for unlock state
 static uint8_t dataman_clients_count = 1;
 
 static perf_counter_t _dm_read_perf{nullptr};
@@ -633,10 +629,6 @@ task_main(int argc, char *argv[])
 		g_func_counts[i] = 0;
 	}
 
-	for (uint32_t i = 0; i < DM_KEY_NUM_KEYS; i++) {
-		g_item_locks[i] = false;
-	}
-
 	g_task_should_exit = false;
 
 	uORB::Publication<dataman_response_s> dataman_response_pub{ORB_ID(dataman_response)};
@@ -704,7 +696,7 @@ task_main(int argc, char *argv[])
 				switch (request.request_type) {
 
 				case DM_GET_ID:
-					if ((dataman_clients_count < UINT8_MAX) && (dataman_clients_count > NOT_LOCKED)) {
+					if (dataman_clients_count < UINT8_MAX) {
 						response.client_id = dataman_clients_count++;
 						/* Send the timestamp of the request over the data buffer so that the "dataman client"
 						 * can distinguish whether the request was made by it. */
@@ -718,100 +710,51 @@ task_main(int argc, char *argv[])
 
 				case DM_WRITE:
 
-					if ((g_item_locks[request.item] == NOT_LOCKED) ||
-					    (g_item_locks[request.item] == request.client_id)) {
+					g_func_counts[DM_WRITE]++;
+					result = g_dm_ops->write(static_cast<dm_item_t>(request.item), request.index,
+								 &(request.data), request.data_length);
 
-						g_func_counts[DM_WRITE]++;
-						result = g_dm_ops->write(static_cast<dm_item_t>(request.item), request.index,
-									 &(request.data), request.data_length);
-
-						if (result > 0) {
-							response.status = dataman_response_s::STATUS_SUCCESS;
-
-						} else if (result < 0) {
-							response.status = dataman_response_s::STATUS_FAILURE_WRITE_FAILED;
-						}
+					if (result > 0) {
+						response.status = dataman_response_s::STATUS_SUCCESS;
 
 					} else {
-						response.status = dataman_response_s::STATUS_ITEM_LOCKED;
+						response.status = dataman_response_s::STATUS_FAILURE_WRITE_FAILED;
 					}
 
 					break;
 
 				case DM_READ:
 
-					if ((g_item_locks[request.item] == NOT_LOCKED) ||
-					    (g_item_locks[request.item] == request.client_id)) {
+					g_func_counts[DM_READ]++;
+					result = g_dm_ops->read(static_cast<dm_item_t>(request.item), request.index,
+								&(response.data), request.data_length);
 
-						g_func_counts[DM_READ]++;
-						result = g_dm_ops->read(static_cast<dm_item_t>(request.item), request.index,
-									&(response.data), request.data_length);
-
-						if (result > 0) {
-							response.status = dataman_response_s::STATUS_SUCCESS;
-
-						} else if (result < 0) {
-							response.status = dataman_response_s::STATUS_FAILURE_READ_FAILED;
-						}
+					if (result > 0) {
+						response.status = dataman_response_s::STATUS_SUCCESS;
 
 					} else {
-						response.status = dataman_response_s::STATUS_ITEM_LOCKED;
+						response.status = dataman_response_s::STATUS_FAILURE_READ_FAILED;
 					}
 
 					break;
 
 				case DM_CLEAR:
 
-					if ((g_item_locks[request.item] == NOT_LOCKED) ||
-					    (g_item_locks[request.item] == request.client_id)) {
+					g_func_counts[DM_CLEAR]++;
+					result = g_dm_ops->clear(static_cast<dm_item_t>(request.item));
 
-						g_func_counts[DM_CLEAR]++;
-						result = g_dm_ops->clear(static_cast<dm_item_t>(request.item));
-
-						if (result == 0) {
-							response.status = dataman_response_s::STATUS_SUCCESS;
-
-						} else {
-							response.status = dataman_response_s::STATUS_FAILURE_CLEAR_FAILED;
-						}
-
-					} else {
-						response.status = dataman_response_s::STATUS_ITEM_LOCKED;
-					}
-
-					break;
-
-				case DM_LOCK:
-
-					if (g_item_locks[request.item] == NOT_LOCKED ||
-					    (g_item_locks[request.item] == request.client_id)) {
-						g_func_counts[DM_LOCK]++;
-						g_item_locks[request.item] = request.client_id;
+					if (result == 0) {
 						response.status = dataman_response_s::STATUS_SUCCESS;
 
 					} else {
-						response.status = dataman_response_s::STATUS_ALREADY_LOCKED;
-					}
-
-					break;
-
-				case DM_UNLOCK:
-
-					if (g_item_locks[request.item] == request.client_id) {
-						g_func_counts[DM_UNLOCK]++;
-						g_item_locks[request.item] = NOT_LOCKED;
-						response.status = dataman_response_s::STATUS_SUCCESS;
-
-					} else if (g_item_locks[request.item] != request.client_id) {
-
-						response.status = dataman_response_s::STATUS_ALREADY_UNLOCKED;
-
+						response.status = dataman_response_s::STATUS_FAILURE_CLEAR_FAILED;
 					}
 
 					break;
 
 				default:
 					break;
+
 				}
 
 				response.timestamp = hrt_absolute_time();
@@ -875,8 +818,6 @@ status()
 	PX4_INFO("Writes   %u", g_func_counts[DM_WRITE]);
 	PX4_INFO("Reads    %u", g_func_counts[DM_READ]);
 	PX4_INFO("Clears   %u", g_func_counts[DM_CLEAR]);
-	PX4_INFO("Locks    %u", g_func_counts[DM_LOCK]);
-	PX4_INFO("Unlocks  %u", g_func_counts[DM_LOCK]);
 
 	perf_print_counter(_dm_read_perf);
 	perf_print_counter(_dm_write_perf);
@@ -904,13 +845,11 @@ It is used to store structured data of different types: mission waypoints, missi
 Each type has a specific type and a fixed maximum amount of storage items, so that fast random access is possible.
 
 ### Implementation
-Reading and writing a single item is always atomic. If multiple items need to be read/modified atomically, there is
-an additional lock per item type via `dm_lock`.
+Reading and writing a single item is always atomic.
 
 **DM_KEY_FENCE_POINTS** and **DM_KEY_SAFE_POINTS** items: the first data element is a `mission_stats_entry_s` struct,
 which stores the number of items for these types. These items are always updated atomically in one transaction (from
-the mavlink mission manager). During that time, navigator will try to acquire the geofence item lock, fail, and will not
-check for geofence violations.
+the mavlink mission manager).
 
 )DESCR_STR");
 
