@@ -47,8 +47,6 @@ param set-default PWM_MAIN_REV 96 # invert both elevons
 # Single-EKF (for replay)
 param set-default EKF2_MULTI_IMU 0
 param set-default SENS_IMU_MODE 1
-param set-default EKF2_MULTI_MAG 0
-param set-default SENS_MAG_MODE 1
 
 param set-default NPFG_PERIOD 12
 param set-default FW_PR_I 0.2
