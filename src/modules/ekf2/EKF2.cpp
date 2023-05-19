@@ -46,11 +46,12 @@ static px4::atomic<EKF2 *> _objects[EKF2_MAX_INSTANCES] {};
 static px4::atomic<EKF2Selector *> _ekf2_selector {nullptr};
 #endif // CONFIG_EKF2_MULTI_INSTANCE
 
-EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
+EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode, int config_param):
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, config),
 	_replay_mode(replay_mode && !multi_mode),
 	_multi_mode(multi_mode),
+	_config_param(config_param),
 	_instance(multi_mode ? -1 : 0),
 	_attitude_pub(multi_mode ? ORB_ID(estimator_attitude) : ORB_ID(vehicle_attitude)),
 	_local_position_pub(multi_mode ? ORB_ID(estimator_local_position) : ORB_ID(vehicle_local_position)),
@@ -112,7 +113,6 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_req_vdrift(_params->req_vdrift),
 	_param_ekf2_hgt_ref(_params->height_sensor_ref),
 	_param_ekf2_baro_ctrl(_params->baro_ctrl),
-	_param_ekf2_gps_ctrl(_params->gnss_ctrl),
 	_param_ekf2_noaid_tout(_params->valid_timeout_max),
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	_param_ekf2_rng_ctrl(_params->rng_ctrl),
@@ -136,7 +136,6 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 #endif // CONFIG_EKF2_RANGE_FINDER
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	_param_ekf2_ev_delay(_params->ev_delay_ms),
-	_param_ekf2_ev_ctrl(_params->ev_ctrl),
 	_param_ekf2_ev_qmin(_params->ev_quality_minimum),
 	_param_ekf2_evp_noise(_params->ev_pos_noise),
 	_param_ekf2_evv_noise(_params->ev_vel_noise),
@@ -440,6 +439,22 @@ void EKF2::Run()
 				}
 			}
 		}
+
+		if (_config_param == 1) {
+			_params->gnss_ctrl = _param_ekf2_1_gps_ctrl.get();
+
+		} else {
+			_params->gnss_ctrl = _param_ekf2_gps_ctrl.get();
+		}
+
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
+		if (_config_param == 1) {
+			_params->ev_ctrl = _param_ekf2_1_ev_ctrl.get();
+
+		} else {
+			_params->ev_ctrl = _param_ekf2_ev_ctrl.get();
+		}
+#endif // CONFIG_EKF2_EXTERNAL_VISION
 	}
 
 	if (!_callback_registered) {
@@ -2560,6 +2575,8 @@ int EKF2::task_spawn(int argc, char *argv[])
 	bool multi_mode = false;
 	int32_t imu_instances = 0;
 	int32_t mag_instances = 0;
+	int32_t conf_instances = 0;
+	param_get(param_find("EKF2_MULTI_CONF"), &conf_instances);
 
 	int32_t sens_imu_mode = 1;
 	param_get(param_find("SENS_IMU_MODE"), &sens_imu_mode);
@@ -2624,13 +2641,13 @@ int EKF2::task_spawn(int argc, char *argv[])
 		}
 
 		const hrt_abstime time_started = hrt_absolute_time();
-		const int multi_instances = math::min(imu_instances * mag_instances, static_cast<int32_t>(EKF2_MAX_INSTANCES));
+		const int multi_instances = math::min(imu_instances * mag_instances * conf_instances, static_cast<int32_t>(EKF2_MAX_INSTANCES));
 		int multi_instances_allocated = 0;
 
 		// allocate EKF2 instances until all found or arming
 		uORB::SubscriptionData<vehicle_status_s> vehicle_status_sub{ORB_ID(vehicle_status)};
 
-		bool ekf2_instance_created[MAX_NUM_IMUS][MAX_NUM_MAGS] {}; // IMUs * mags
+		bool ekf2_instance_created[MAX_NUM_IMUS][MAX_NUM_MAGS][MAX_NUM_CONFS] {}; // IMUs * mags * configs
 
 		while ((multi_instances_allocated < multi_instances)
 		       && (vehicle_status_sub.get().arming_state != vehicle_status_s::ARMING_STATE_ARMED)
@@ -2650,34 +2667,36 @@ int EKF2::task_spawn(int argc, char *argv[])
 					// Mag & IMU data must be valid, first mag can be ignored initially
 					if ((vehicle_mag_sub.advertised() || mag == 0) && (vehicle_imu_sub.advertised())) {
 
-						if (!ekf2_instance_created[imu][mag]) {
-							EKF2 *ekf2_inst = new EKF2(true, px4::ins_instance_to_wq(imu), false);
+						for (uint8_t conf = 0; conf < conf_instances; conf++) {
+							if (!ekf2_instance_created[imu][mag][conf]) {
+								EKF2 *ekf2_inst = new EKF2(true, px4::ins_instance_to_wq(imu), false, conf);
 
-							if (ekf2_inst && ekf2_inst->multi_init(imu, mag)) {
-								int actual_instance = ekf2_inst->instance(); // match uORB instance numbering
+								if (ekf2_inst && ekf2_inst->multi_init(imu, mag)) {
+									int actual_instance = ekf2_inst->instance(); // match uORB instance numbering
 
-								if ((actual_instance >= 0) && (_objects[actual_instance].load() == nullptr)) {
-									_objects[actual_instance].store(ekf2_inst);
-									success = true;
-									multi_instances_allocated++;
-									ekf2_instance_created[imu][mag] = true;
+									if ((actual_instance >= 0) && (_objects[actual_instance].load() == nullptr)) {
+										_objects[actual_instance].store(ekf2_inst);
+										success = true;
+										multi_instances_allocated++;
+										ekf2_instance_created[imu][mag][conf] = true;
 
-									PX4_DEBUG("starting instance %d, IMU:%" PRIu8 " (%" PRIu32 "), MAG:%" PRIu8 " (%" PRIu32 ")", actual_instance,
-										  imu, vehicle_imu_sub.get().accel_device_id,
-										  mag, vehicle_mag_sub.get().device_id);
+										PX4_DEBUG("starting instance %d, IMU:%" PRIu8 " (%" PRIu32 "), MAG:%" PRIu8 " (%" PRIu32 ")", actual_instance,
+											  imu, vehicle_imu_sub.get().accel_device_id,
+											  mag, vehicle_mag_sub.get().device_id);
 
-									_ekf2_selector.load()->ScheduleNow();
+										_ekf2_selector.load()->ScheduleNow();
+
+									} else {
+										PX4_ERR("instance numbering problem instance: %d", actual_instance);
+										delete ekf2_inst;
+										break;
+									}
 
 								} else {
-									PX4_ERR("instance numbering problem instance: %d", actual_instance);
-									delete ekf2_inst;
+									PX4_ERR("alloc and init failed imu: %" PRIu8 " mag:%" PRIu8, imu, mag);
+									px4_usleep(100000);
 									break;
 								}
-
-							} else {
-								PX4_ERR("alloc and init failed imu: %" PRIu8 " mag:%" PRIu8, imu, mag);
-								px4_usleep(100000);
-								break;
 							}
 						}
 
@@ -2699,7 +2718,7 @@ int EKF2::task_spawn(int argc, char *argv[])
 
 	{
 		// otherwise launch regular
-		EKF2 *ekf2_inst = new EKF2(false, px4::wq_configurations::INS0, replay_mode);
+		EKF2 *ekf2_inst = new EKF2(false, px4::wq_configurations::INS0, replay_mode, 0);
 
 		if (ekf2_inst) {
 			_objects[0].store(ekf2_inst);

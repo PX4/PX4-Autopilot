@@ -115,7 +115,7 @@ class EKF2 final : public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
 	EKF2() = delete;
-	EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode);
+	EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode, int config_param);
 	~EKF2() override;
 
 	/** @see ModuleBase */
@@ -160,6 +160,7 @@ private:
 
 	static constexpr uint8_t MAX_NUM_IMUS = 4;
 	static constexpr uint8_t MAX_NUM_MAGS = 4;
+	static constexpr uint8_t MAX_NUM_CONFS = 2;
 
 	void Run() override;
 
@@ -257,6 +258,7 @@ private:
 
 	const bool _replay_mode{false};			///< true when we use replay data from a log
 	const bool _multi_mode;
+	const int _config_param{0};
 	int _instance{0};
 
 	px4::atomic_bool _task_should_exit{false};
@@ -578,7 +580,8 @@ private:
 		_param_ekf2_aid_mask,		///< bitmasked integer that selects which of the GPS and optical flow aiding sources will be used
 		(ParamExtInt<px4::params::EKF2_HGT_REF>) _param_ekf2_hgt_ref,    ///< selects the primary source for height data
 		(ParamExtInt<px4::params::EKF2_BARO_CTRL>) _param_ekf2_baro_ctrl,///< barometer control selection
-		(ParamExtInt<px4::params::EKF2_GPS_CTRL>) _param_ekf2_gps_ctrl,  ///< GPS control selection
+		(ParamInt<px4::params::EKF2_GPS_CTRL>) _param_ekf2_gps_ctrl,  ///< GPS control selection
+		(ParamInt<px4::params::EKF2_1_GPS_CTRL>) _param_ekf2_1_gps_ctrl,  ///< Alternate GPS control selection
 
 		(ParamExtInt<px4::params::EKF2_NOAID_TOUT>)
 		_param_ekf2_noaid_tout,	///< maximum lapsed time from last fusion of measurements that constrain drift before the EKF will report the horizontal nav solution invalid (uSec)
@@ -626,7 +629,8 @@ private:
 		(ParamExtFloat<px4::params::EKF2_EV_DELAY>)
 		_param_ekf2_ev_delay, ///< off-board vision measurement delay relative to the IMU (mSec)
 
-		(ParamExtInt<px4::params::EKF2_EV_CTRL>) _param_ekf2_ev_ctrl,	 ///< external vision (EV) control selection
+		(ParamInt<px4::params::EKF2_EV_CTRL>) _param_ekf2_ev_ctrl,	 ///< external vision (EV) control selection
+		(ParamInt<px4::params::EKF2_1_EV_CTRL>) _param_ekf2_1_ev_ctrl,	 ///< Alternate external vision (EV) control selection
 		(ParamInt<px4::params::EKF2_EV_NOISE_MD>) _param_ekf2_ev_noise_md, ///< determine source of vision observation noise
 		(ParamExtInt<px4::params::EKF2_EV_QMIN>) _param_ekf2_ev_qmin,
 		(ParamExtFloat<px4::params::EKF2_EVP_NOISE>)
