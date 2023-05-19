@@ -198,8 +198,8 @@ PARAM_DEFINE_FLOAT(VT_FW_MIN_ALT, 0.0f);
  * Quad-chute uncommanded descent threshold
  *
  * Altitude error threshold for quad-chute triggering during fixed-wing flight.
- * The check is only active if the vehicle is below the current altitude reference and the error
- * is relative to the highest altitude the vehicle has achieved since it has flown below the current
+ * The check is only active if altitude is controlled and the vehicle is below the current altitude reference.
+ * The altitude error is relative to the highest altitude the vehicle has achieved since it has flown below the current
  * altitude reference.
  *
  * Set to 0 do disable.
@@ -211,7 +211,7 @@ PARAM_DEFINE_FLOAT(VT_FW_MIN_ALT, 0.0f);
  * @decimal 1
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_QC_ALT_LOSS, 30.0f);
+PARAM_DEFINE_FLOAT(VT_QC_ALT_LOSS, 0.0f);
 
 /**
  * Quad-chute transition altitude loss threshold
