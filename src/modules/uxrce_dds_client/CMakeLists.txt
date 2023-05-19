@@ -113,7 +113,10 @@ else()
 	add_dependencies(microxrceddsclient libmicroxrceddsclient_project)
 	target_include_directories(microxrceddsclient INTERFACE ${microxrceddsclient_build_dir}/include)
 
-
+        option(WITH_ROS_DDS_TYPES "Generate XRCE-DDS type names modified for ROS2 compatibility" ON)
+        if (WITH_ROS_DDS_TYPES)
+          set(GENERATE_ROS_DDS_TYPES_ARG "--typeros2")
+        endif()
 
 	add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/dds_topics.h
 		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/generate_dds_topics.py
@@ -121,6 +124,7 @@ else()
 			--client-outdir ${CMAKE_CURRENT_BINARY_DIR}
 			--dds-topics-file ${CMAKE_CURRENT_SOURCE_DIR}/dds_topics.yaml
 			--template_file ${CMAKE_CURRENT_SOURCE_DIR}/dds_topics.h.em
+                        ${GENERATE_ROS_DDS_TYPES_ARG}
 		DEPENDS
 			${CMAKE_CURRENT_SOURCE_DIR}/generate_dds_topics.py
 			${CMAKE_CURRENT_SOURCE_DIR}/dds_topics.yaml

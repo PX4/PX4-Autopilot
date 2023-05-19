@@ -55,6 +55,9 @@ parser.add_argument("-t", "--template_file", dest='template_file', type=str,
 parser.add_argument("-u", "--client-outdir", dest='clientdir', type=str,
                     help="Client output dir, by default using relative path 'src/modules/uxrce_dds_client'", default=None)
 
+parser.add_argument("-r", "--typeros2", dest='typeros2', type=bool,
+                    help="generate ROS2-compatible DDS type names (as opposed to vanilla)", default=False)
+
 if len(sys.argv) <= 1:
     parser.print_usage()
     exit(-1)
@@ -96,9 +99,13 @@ for p in msg_map['publications']:
     # simple_base_type: eg vehicle_status
     p['simple_base_type'] = base_type_name_snake_case
 
-    # dds_type: eg px4_msgs::msg::dds_::VehicleStatus_
-    p['dds_type'] = p['type'].replace("::msg::", "::msg::dds_::") + "_"
-
+    # the dds type name created by e.g. fastddsgen *without* fastddsgen's '-typeros2' flag
+    # would be e.g. px4_msgs::msg::Ping
+    # the type that ros2 expects to see is
+    # e.g. px4_msgs::msg::dds_::Ping_
+    p['dds_type'] = p['type']
+    if args.ros2types:
+        p['dds_type'].replace("::msg::", "::msg::dds_::") + "_"
     # topic_simple: eg vehicle_status
     p['topic_simple'] = p['topic'].split('/')[-1]
 
@@ -117,7 +124,9 @@ for s in msg_map['subscriptions']:
     s['simple_base_type'] = base_type_name_snake_case
 
     # dds_type: eg px4_msgs::msg::dds_::VehicleStatus_
-    s['dds_type'] = s['type'].replace("::msg::", "::msg::dds_::") + "_"
+    s['dds_type'] = s['type']
+    if args.ros2types:
+        p['dds_type'].replace("::msg::", "::msg::dds_::") + "_"
 
     # topic_simple: eg vehicle_status
     s['topic_simple'] = s['topic'].split('/')[-1]
