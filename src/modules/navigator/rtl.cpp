@@ -175,6 +175,13 @@ void RTL::find_RTL_destination()
 
 	// do not consider rally point if RTL type is set to RTL_TYPE_MISSION_LANDING_REVERSED, so exit function and use either home or mission landing
 	if (_param_rtl_type.get() == RTL_TYPE_MISSION_LANDING_REVERSED) {
+                if (_param_rtl_cone_half_angle_deg.get() > 0
+                    && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+                        _rtl_alt = calculate_return_alt_from_cone_half_angle((float)_param_rtl_cone_half_angle_deg.get());
+
+                } else {
+                        _rtl_alt = max(global_position.alt, _destination.alt + _param_rtl_return_alt.get());
+                }
 		return;
 	}
 
