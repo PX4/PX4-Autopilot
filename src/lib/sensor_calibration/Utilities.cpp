@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -63,24 +63,21 @@ int8_t FindCurrentCalibrationIndex(const char *sensor_type, uint32_t device_id)
 	}
 
 	for (unsigned i = 0; i < MAX_SENSOR_COUNT; ++i) {
-		char str[20] {};
-		sprintf(str, "CAL_%s%u_ID", sensor_type, i);
+		char str[16 + 1];
+		snprintf(str, sizeof(str), "CAL_%s%u_ID", sensor_type, i);
 
-		int32_t device_id_val = 0;
-
-		param_t param_handle = param_find_no_notification(str);
+		param_t param_handle = param_find(str);
 
 		if (param_handle == PARAM_INVALID) {
 			continue;
 		}
 
-		// find again and get value, but this time mark it active
-		if (param_get(param_find(str), &device_id_val) != OK) {
-			continue;
-		}
+		int32_t device_id_val;
 
-		if ((uint32_t)device_id_val == device_id) {
-			return i;
+		if (param_get(param_handle, &device_id_val) == PX4_OK) {
+			if (static_cast<uint32_t>(device_id_val) == device_id) {
+				return i;
+			}
 		}
 	}
 
