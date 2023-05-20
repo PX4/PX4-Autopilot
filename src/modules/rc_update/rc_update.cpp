@@ -69,26 +69,26 @@ RCUpdate::RCUpdate() :
 {
 	// initialize parameter handles
 	for (unsigned i = 0; i < RC_MAX_CHAN_COUNT; i++) {
-		char nbuf[16];
+		char nbuf[16 + 1];
 
 		/* min values */
-		sprintf(nbuf, "RC%d_MIN", i + 1);
+		snprintf(nbuf, sizeof(nbuf), "RC%d_MIN", i + 1);
 		_parameter_handles.min[i] = param_find(nbuf);
 
 		/* trim values */
-		sprintf(nbuf, "RC%d_TRIM", i + 1);
+		snprintf(nbuf, sizeof(nbuf), "RC%d_TRIM", i + 1);
 		_parameter_handles.trim[i] = param_find(nbuf);
 
 		/* max values */
-		sprintf(nbuf, "RC%d_MAX", i + 1);
+		snprintf(nbuf, sizeof(nbuf), "RC%d_MAX", i + 1);
 		_parameter_handles.max[i] = param_find(nbuf);
 
 		/* channel reverse */
-		sprintf(nbuf, "RC%d_REV", i + 1);
+		snprintf(nbuf, sizeof(nbuf), "RC%d_REV", i + 1);
 		_parameter_handles.rev[i] = param_find(nbuf);
 
 		/* channel deadzone */
-		sprintf(nbuf, "RC%d_DZ", i + 1);
+		snprintf(nbuf, sizeof(nbuf), "RC%d_DZ", i + 1);
 		_parameter_handles.dz[i] = param_find(nbuf);
 	}
 

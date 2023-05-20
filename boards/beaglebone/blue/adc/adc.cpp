@@ -74,7 +74,7 @@ uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel)
 		// ADC_SYSFS_PATH
 		char channel_path[strlen(ADC_SYSFS_PATH) + 20] {};
 
-		if (sprintf(channel_path, "%s/in_voltage%d_raw", ADC_SYSFS_PATH, channel) == -1) {
+		if (snprintf(channel_path, sizeof(channel_path), "%s/in_voltage%d_raw", ADC_SYSFS_PATH, channel) == -1) {
 			PX4_ERR("adc channel: %d\n", channel);
 			return UINT32_MAX; // error
 		}

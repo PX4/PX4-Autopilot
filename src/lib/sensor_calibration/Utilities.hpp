@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -85,10 +85,10 @@ float GetCalibrationParamFloat(const char *sensor_type, const char *cal_type, ui
 template<typename T>
 bool SetCalibrationParam(const char *sensor_type, const char *cal_type, uint8_t instance, T value)
 {
-	char str[20] {};
+	char str[16 + 1] {};
 
 	// eg CAL_MAGn_ID/CAL_MAGn_ROT
-	sprintf(str, "CAL_%s%u_%s", sensor_type, instance, cal_type);
+	snprintf(str, sizeof(str), "CAL_%s%u_%s", sensor_type, instance, cal_type);
 
 	int ret = param_set_no_notification(param_find(str), &value);
 
