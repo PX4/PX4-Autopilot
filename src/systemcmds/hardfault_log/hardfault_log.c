@@ -217,17 +217,6 @@ static int format_fault_file_name(struct timespec *ts, char *buffer, unsigned in
 }
 
 /****************************************************************************
- * identify
- ****************************************************************************/
-static void identify(const char *caller)
-{
-	if (caller) {
-		syslog(LOG_INFO, "[%s] ", caller);
-	}
-}
-
-
-/****************************************************************************
  * hardfault_get_desc
  ****************************************************************************/
 static int hardfault_get_desc(char *caller, dump_s *desc, bool silent)
@@ -237,8 +226,7 @@ static int hardfault_get_desc(char *caller, dump_s *desc, bool silent)
 
 	if (fd < 0) {
 		if (!silent) {
-			identify(caller);
-			hfsyslog(LOG_INFO, "Failed to open Fault Log file [%s] (%d)\n", HARDFAULT_PATH, fd);
+			PX4_ERR("Failed to open Fault Log file [%s] (%d)", HARDFAULT_PATH, fd);
 		}
 
 	} else {
@@ -249,8 +237,7 @@ static int hardfault_get_desc(char *caller, dump_s *desc, bool silent)
 			ret = fd;
 
 		} else {
-			identify(caller);
-			hfsyslog(LOG_INFO, "Failed to get Fault Log descriptor (%d)\n", rv);
+			PX4_ERR("Failed to get Fault Log descriptor (%d)", rv);
 		}
 	}
 
@@ -261,7 +248,7 @@ static int hardfault_get_desc(char *caller, dump_s *desc, bool silent)
 /****************************************************************************
  * hardfault_clear
  ****************************************************************************/
-static int hardfault_clear(char *caller, bool silent)
+static int hardfault_clear(bool silent)
 {
 	int ret = -ENOENT;
 	int fd = open(HARDFAULT_PATH, O_RDONLY);
@@ -269,8 +256,7 @@ static int hardfault_clear(char *caller, bool silent)
 
 	if (fd < 0) {
 		if (!silent) {
-			identify(caller);
-			hfsyslog(LOG_INFO, "Failed to open Fault Log file to clear [%s] (%d)\n", HARDFAULT_PATH, fd);
+			PX4_ERR("Failed to open Fault Log file to clear [%s] (%d)", HARDFAULT_PATH, fd);
 		}
 
 	} else {
@@ -281,8 +267,7 @@ static int hardfault_clear(char *caller, bool silent)
 			ret = fd;
 
 		} else {
-			identify(caller);
-			hfsyslog(LOG_INFO, "Failed to clear progmem sector (%d)\n", rv);
+			PX4_ERR("Failed to clear progmem sector (%d)", rv);
 		}
 	}
 
@@ -293,10 +278,8 @@ static int hardfault_clear(char *caller, bool silent)
 /****************************************************************************
  * write_stack_detail
  ****************************************************************************/
-static int write_stack_detail(bool inValid, _stack_s *si, char *sp_name,
-			      char *buffer, int max, int fd)
+static int write_stack_detail(bool inValid, _stack_s *si, char *sp_name, char *buffer, int max, int fd)
 {
-
 	int n = 0;
 	uint32_t sbot = si->top - si->size;
 	n =   snprintf(&buffer[n], max - n, " %s stack: \n", sp_name);
@@ -731,8 +714,7 @@ static int hardfault_append_to_ulog(const char *caller, int fdin)
 		return -ENOENT;
 	}
 
-	identify(caller);
-	syslog(LOG_INFO, "Appending to ULog %s\n", ulog_file_name);
+	PX4_INFO("Appending to ULog %s", ulog_file_name);
 
 	// get the ulog file size
 	struct stat st;
@@ -763,8 +745,7 @@ static int hardfault_append_to_ulog(const char *caller, int fdin)
 	magic[6] = 0x35;
 
 	if (read(ulog_fd, chunk, 8) != 8) {
-		identify(caller);
-		hfsyslog(LOG_INFO, "Reading ULog header failed\n");
+		PX4_ERR("Reading ULog header failed");
 		return -EINVAL;
 	}
 
@@ -818,8 +799,7 @@ static int hardfault_append_to_ulog(const char *caller, int fdin)
 	}
 
 	if (!found) {
-		identify(caller);
-		hfsyslog(LOG_ERR, "Cannot append more data to ULog (no offsets left)\n");
+		PX4_ERR("Cannot append more data to ULog (no offsets left)");
 		ret = -EINVAL;
 		goto out;
 	}
@@ -864,8 +844,7 @@ static int hardfault_append_to_ulog(const char *caller, int fdin)
 			num_read = read(fdin, chunk, max_read);
 
 			if (num_read <= 0) {
-				identify(caller);
-				hfsyslog(LOG_ERR, "read() failed: %i, %i\n", num_read, errno);
+				PX4_ERR("read() failed: %i, %i", num_read, errno);
 				ret = -1;
 				goto out;
 			}
@@ -909,14 +888,12 @@ static int hardfault_commit(char *caller)
 		int rv = close(fd);
 
 		if (rv < 0) {
-			identify(caller);
-			hfsyslog(LOG_INFO, "Failed to Close Fault Log (%d)\n", rv);
+			PX4_ERR("Failed to Close Fault Log (%d)", rv);
 
 		} else {
 
 			if (state != OK) {
-				identify(caller);
-				hfsyslog(LOG_INFO, "Nothing to save\n");
+				PX4_ERR("Nothing to save");
 				ret = -ENOENT;
 
 			} else {
@@ -926,31 +903,28 @@ static int hardfault_commit(char *caller)
 					int fdout = open(path, O_RDWR | O_CREAT);
 
 					if (fdout >= 0) {
-						identify(caller);
-						syslog(LOG_INFO, "Saving Fault Log file %s\n", path);
+						PX4_INFO("Saving Fault Log file %s", path);
 						ret = hardfault_write(caller, fdout, HARDFAULT_FILE_FORMAT, false);
-						identify(caller);
-						hfsyslog(LOG_INFO, "Done saving Fault Log file\n");
+						PX4_INFO("Done saving Fault Log file");
 
 						// now save the same data to the last ulog file by copying from the txt file
 						// (not the fastest, but a simple way to do it). We also want to keep a separate
 						// .txt file around, since that is a bit less prone to FS errors than the ULog
 						if (ret == OK) {
 							ret = hardfault_append_to_ulog(caller, fdout);
-							identify(caller);
 
 							switch (ret) {
 							case OK:
-								hfsyslog(LOG_INFO, "Successfully appended to ULog\n");
+								PX4_INFO("Successfully appended to ULog");
 								break;
 
 							case -ENOENT:
-								hfsyslog(LOG_INFO, "No ULog to append to\n");
+								PX4_WARN("No ULog to append to");
 								ret = OK;
 								break;
 
 							default:
-								hfsyslog(LOG_INFO, "Failed to append to ULog (%i)\n", ret);
+								PX4_ERR("Failed to append to ULog (%i)", ret);
 								break;
 							}
 						}
@@ -985,8 +959,7 @@ static int hardfault_dowrite(char *caller, int infd, int outfd,
 			ret = read(infd, info, sizeof(info_s));
 
 			if (ret < 0) {
-				identify(caller);
-				hfsyslog(LOG_INFO, "Failed to read Fault Log file [%s] (%d)\n", HARDFAULT_PATH, ret);
+				PX4_ERR("Failed to read Fault Log file [%s] (%d)", HARDFAULT_PATH, ret);
 				ret = -EIO;
 
 			} else {
@@ -1083,13 +1056,11 @@ __EXPORT int hardfault_rearm(char *caller)
 	int rv = unlink(HARDFAULT_PATH);
 
 	if (rv < 0) {
-		identify(caller);
-		hfsyslog(LOG_INFO, "Failed to re arming Fault Log (%d)\n", rv);
+		PX4_ERR("Failed to re arming Fault Log (%d)", rv);
 		ret = -EIO;
 
 	} else {
-		identify(caller);
-		syslog(LOG_INFO, "Fault Log is Armed\n");
+		PX4_INFO("Fault Log is Armed");
 	}
 
 	return ret;
@@ -1105,13 +1076,11 @@ __EXPORT int hardfault_check_status(char *caller)
 	int ret = hardfault_get_desc(caller, &desc, true);
 
 	if (ret < 0) {
-		identify(caller);
-
 		if (ret == -ENOENT) {
-			hfsyslog(LOG_INFO, "Fault Log is Armed\n");
+			PX4_INFO("Fault Log is Armed");
 
 		} else {
-			hfsyslog(LOG_INFO, "Failed to open Fault Log file [%s] (%d)\n", HARDFAULT_PATH, ret);
+			PX4_ERR("Failed to open Fault Log file [%s] (%d)", HARDFAULT_PATH, ret);
 		}
 
 	} else {
@@ -1120,20 +1089,17 @@ __EXPORT int hardfault_check_status(char *caller)
 		int rv = close(fd);
 
 		if (rv < 0) {
-			identify(caller);
-			hfsyslog(LOG_INFO, "Failed to Close Fault Log (%d)\n", rv);
+			PX4_ERR("Failed to Close Fault Log (%d)", rv);
 
 		} else {
 			ret = state;
-			identify(caller);
-			hfsyslog(LOG_INFO, "Fault Log info File No %" PRIu8 " Length %" PRIu16 " flags:0x%02" PRIx16 " state:%d\n",
-				 desc.fileno, desc.len, desc.flags, state);
+			PX4_INFO("Fault Log info File No %" PRIu8 " Length %" PRIu16 " flags:0x%02" PRIx16 " state:%d", desc.fileno, desc.len,
+				 desc.flags, state);
 
 			if (state == OK) {
 				char buf[TIME_FMT_LEN + 1];
 				format_fault_time(HEADER_TIME_FMT, &desc.lastwrite, buf, arraySize(buf));
-				identify(caller);
-				hfsyslog(LOG_INFO, "Fault Logged on %s - Valid\n", buf);
+				PX4_INFO("Fault Logged on %s - Valid", buf);
 
 			} else {
 				rv = hardfault_rearm(caller);
@@ -1158,8 +1124,7 @@ __EXPORT int hardfault_increment_reboot(char *caller, bool reset)
 	int fd = open(HARDFAULT_REBOOT_PATH, O_RDWR | O_CREAT);
 
 	if (fd < 0) {
-		identify(caller);
-		hfsyslog(LOG_INFO, "Failed to open Fault reboot count file [%s] (%d)\n", HARDFAULT_REBOOT_PATH, ret);
+		PX4_ERR("Failed to open Fault reboot count file [%s] (%d)", HARDFAULT_REBOOT_PATH, ret);
 
 	} else {
 
@@ -1226,17 +1191,14 @@ __EXPORT int hardfault_write(char *caller, int fd, int format, bool rearm)
 		ret = close(hffd);
 
 		if (ret < 0) {
-			identify(caller);
-			hfsyslog(LOG_INFO, "Failed to Close Fault Log (%d)\n", ret);
-
+			PX4_ERR("Failed to Close Fault Log (%d)", ret);
 		}
 
 		if (rv == OK && rearm) {
 			ret = hardfault_rearm(caller);
 
 			if (ret < 0) {
-				identify(caller);
-				hfsyslog(LOG_INFO, "Failed to re-arm Fault Log (%d)\n", ret);
+				PX4_ERR("Failed to re-arm Fault Log (%d)", ret);
 			}
 		}
 
@@ -1245,8 +1207,7 @@ __EXPORT int hardfault_write(char *caller, int fd, int format, bool rearm)
 		}
 
 		if (ret != OK) {
-			identify(caller);
-			hfsyslog(LOG_INFO, "Failed to Write Fault Log (%d)\n", ret);
+			PX4_ERR("Failed to Write Fault Log (%d)", ret);
 		}
 	}
 

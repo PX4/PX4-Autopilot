@@ -7,5 +7,5 @@ if [ -e ${SDCARD_EXT_PATH}/rc.autostart ]
 then
 	. ${SDCARD_EXT_PATH}/rc.autostart
 else
-	echo "Error: ${SDCARD_EXT_PATH}/rc.autostart does not exist"
+	px4log "Error: ${SDCARD_EXT_PATH}/rc.autostart does not exist"
 fi

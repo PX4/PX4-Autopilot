@@ -121,7 +121,7 @@ __EXPORT void board_peripheral_reset(int ms)
 
 	// Wait for the peripheral rail to reach GND.
 	usleep(ms * 1000);
-	syslog(LOG_DEBUG, "reset done, %d ms\n", ms);
+	PX4_DEBUG("reset done, %d ms\n", ms);
 
 	// Re-enable power.
 	// Switch the peripheral rail back on.

@@ -91,7 +91,6 @@ __BEGIN_DECLS
 #define RC_SERIAL_SINGLEWIRE
 #define RC_SERIAL_INVERT_RX_ONLY
 
-#define BOARD_ENABLE_CONSOLE_BUFFER
 
 /*
  * Hardfault log to progmem

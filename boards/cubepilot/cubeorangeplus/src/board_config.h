@@ -160,7 +160,6 @@
 
 
 
-#define BOARD_ENABLE_CONSOLE_BUFFER
 
 #define PX4_GPIO_INIT_LIST { \
 		PX4_ADC_GPIO,                     \

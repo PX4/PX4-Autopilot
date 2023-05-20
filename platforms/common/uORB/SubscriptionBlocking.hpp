@@ -161,6 +161,8 @@ public:
 		return false;
 	}
 
+	void reset() { _subscription.reset(); }
+
 private:
 
 	pthread_mutex_t _mutex = PTHREAD_MUTEX_INITIALIZER;

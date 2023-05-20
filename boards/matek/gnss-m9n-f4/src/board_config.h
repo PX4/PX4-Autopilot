@@ -83,7 +83,6 @@
 #define HRT_TIMER                    3 /* use timer 3 as HRT */
 #define HRT_TIMER_CHANNEL            4 /* use capture/compare channel 4 */
 
-#define BOARD_ENABLE_CONSOLE_BUFFER
 
 /* This board provides a DMA pool and APIs */
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120

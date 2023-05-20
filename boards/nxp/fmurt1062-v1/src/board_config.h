@@ -432,7 +432,6 @@
 		GPIO_SAFETY_SWITCH_IN             \
 	}
 
-#define BOARD_ENABLE_CONSOLE_BUFFER
 __BEGIN_DECLS
 
 /****************************************************************************************************

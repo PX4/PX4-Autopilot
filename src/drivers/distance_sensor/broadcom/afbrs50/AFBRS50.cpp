@@ -145,7 +145,7 @@ int AFBRS50::init()
 		uint8_t a = (value >> 24) & 0xFFU;
 		uint8_t b = (value >> 16) & 0xFFU;
 		uint8_t c = value & 0xFFFFU;
-		PX4_INFO_RAW("AFBR-S50 Chip ID: %u, API Version: %u v%d.%d.%d\n", (uint)id, (uint)value, a, b, c);
+		PX4_INFO("Chip ID: %u, API Version: %u v%d.%d.%d\n", (uint)id, (uint)value, a, b, c);
 
 		argus_module_version_t mv = Argus_GetModuleVersion(_hnd);
 		argus_laser_type_t lt = Argus_GetLaserType(_hnd);
@@ -163,7 +163,7 @@ int AFBRS50::init()
 			_px4_rangefinder.set_min_distance(_min_distance);
 			_px4_rangefinder.set_max_distance(_max_distance);
 			_px4_rangefinder.set_fov(math::radians(6.f));
-			PX4_INFO_RAW("AFBR-S50MV85G\n");
+			PX4_INFO("AFBR-S50MV85G");
 			break;
 
 		case AFBR_S50LV85D_V1:
@@ -171,11 +171,11 @@ int AFBRS50::init()
 
 			if (lt == LASER_H_V2X) {
 				_max_distance = 50.f;
-				PX4_INFO_RAW("AFBR-S50LX85D (v2)\n");
+				PX4_INFO("AFBR-S50LX85D (v2)");
 
 			} else {
 				_max_distance = 30.f;
-				PX4_INFO_RAW("AFBR-S50LV85D (v1)\n");
+				PX4_INFO("AFBR-S50LV85D (v1)");
 			}
 
 			_px4_rangefinder.set_min_distance(_min_distance);
@@ -189,7 +189,7 @@ int AFBRS50::init()
 			_px4_rangefinder.set_min_distance(_min_distance);
 			_px4_rangefinder.set_max_distance(_max_distance);
 			_px4_rangefinder.set_fov(math::radians(1.f));
-			PX4_INFO_RAW("AFBR-S50MV68B (v1)\n");
+			PX4_INFO("AFBR-S50MV68B (v1)");
 			break;
 
 		case AFBR_S50MV85I_V1:
@@ -198,7 +198,7 @@ int AFBRS50::init()
 			_px4_rangefinder.set_min_distance(_min_distance);
 			_px4_rangefinder.set_max_distance(_max_distance);
 			_px4_rangefinder.set_fov(math::radians(6.f));
-			PX4_INFO_RAW("AFBR-S50MV85I (v1)\n");
+			PX4_INFO("AFBR-S50MV85I (v1)");
 			break;
 
 		case AFBR_S50SV85K_V1:
@@ -207,7 +207,7 @@ int AFBRS50::init()
 			_px4_rangefinder.set_min_distance(_min_distance);
 			_px4_rangefinder.set_max_distance(_max_distance);
 			_px4_rangefinder.set_fov(math::radians(4.f));
-			PX4_INFO_RAW("AFBR-S50SV85K (v1)\n");
+			PX4_INFO("AFBR-S50SV85K (v1)");
 			break;
 
 		default:

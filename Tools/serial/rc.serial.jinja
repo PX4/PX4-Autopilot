@@ -14,7 +14,7 @@ set i {{ command.instance }}
 . $PRT_F
 if [ $SERIAL_DEV != none ]; then
 {% if not constrained_flash -%}
-	echo "Starting {{ command.label }} on $SERIAL_DEV"
+	px4log "Starting {{ command.label }} on $SERIAL_DEV"
 {% endif -%}
 	{{ command.command }}
 fi

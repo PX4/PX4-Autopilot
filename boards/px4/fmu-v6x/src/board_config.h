@@ -480,7 +480,6 @@
 		GPIO_nARMED_INIT                  \
 	}
 
-#define BOARD_ENABLE_CONSOLE_BUFFER
 
 #define PX4_I2C_BUS_MTD      4,5
 

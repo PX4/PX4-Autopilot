@@ -69,7 +69,7 @@ def main():
             file_path = os.path.join(root, file)
 
             # delete hidden files
-            if file.startswith("."):
+            if file.startswith(".") and not ".nshrc" in file:
                 os.remove(file_path)
                 continue
 

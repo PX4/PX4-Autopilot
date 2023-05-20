@@ -32,7 +32,6 @@
  ****************************************************************************/
 
 #include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/console_buffer.h>
 #include "logged_topics.h"
 #include "logger.h"
 #include "messages.h"
@@ -793,26 +792,7 @@ void Logger::run()
 			// check for new events
 			handle_event_updates(total_bytes);
 
-			// check for new logging message(s)
-			log_message_s log_message;
-
-			if (_log_message_sub.update(&log_message)) {
-				const char *message = (const char *)log_message.text;
-				int message_len = strlen(message);
-
-				if (message_len > 0) {
-					uint16_t write_msg_size = sizeof(ulog_message_logging_s) - sizeof(ulog_message_logging_s::message)
-								  - ULOG_MSG_HEADER_LEN + message_len;
-					_msg_buffer[0] = (uint8_t)write_msg_size;
-					_msg_buffer[1] = (uint8_t)(write_msg_size >> 8);
-					_msg_buffer[2] = static_cast<uint8_t>(ULogMessageType::LOGGING);
-					_msg_buffer[3] = log_message.severity + '0';
-					memcpy(_msg_buffer + 4, &log_message.timestamp, sizeof(ulog_message_logging_s::timestamp));
-					strncpy((char *)(_msg_buffer + 12), message, sizeof(ulog_message_logging_s::message));
-
-					write_message(LogType::Full, _msg_buffer, write_msg_size + ULOG_MSG_HEADER_LEN);
-				}
-			}
+			write_log_message();
 
 			// Add sync magic
 			if (loop_time - _last_sync_time > 500_ms) {
@@ -1421,12 +1401,14 @@ void Logger::start_log_file(LogType type)
 		write_parameters(type);
 		write_parameter_defaults(type);
 		write_perf_data(PrintLoadReason::Preflight);
-		write_console_output();
 		write_events_file(LogType::Full);
 		write_excluded_optional_topics(type);
 	}
 
 	write_all_add_logged_msg(type);
+
+	write_log_message();
+
 	_writer.set_need_reliable_transfer(false);
 	_writer.unselect_write_backend();
 	_writer.notify();
@@ -1437,7 +1419,6 @@ void Logger::start_log_file(LogType type)
 	}
 
 	_statistics[(int)type].start_time_file = hrt_absolute_time();
-
 }
 
 void Logger::stop_log_file(LogType type)
@@ -1479,10 +1460,12 @@ void Logger::start_log_mavlink()
 	write_parameters(LogType::Full);
 	write_parameter_defaults(LogType::Full);
 	write_perf_data(PrintLoadReason::Preflight);
-	write_console_output();
 	write_events_file(LogType::Full);
 	write_excluded_optional_topics(LogType::Full);
 	write_all_add_logged_msg(LogType::Full);
+
+	write_log_message();
+
 	_writer.set_need_reliable_transfer(false);
 	_writer.unselect_write_backend();
 	_writer.notify();
@@ -1620,26 +1603,28 @@ void Logger::write_load_output()
 	_writer.set_need_reliable_transfer(false);
 }
 
-void Logger::write_console_output()
+void Logger::write_log_message()
 {
-	const int buffer_length = 220;
-	char buffer[buffer_length];
-	int size = px4_console_buffer_size();
-	int offset = -1;
-	bool first = true;
+	// check for new logging message(s)
+	log_message_s log_message;
 
-	while (size > 0) {
-		int read_size = px4_console_buffer_read(buffer, buffer_length - 1, &offset);
+	while (_log_message_sub.update(&log_message)) {
+		const char *message = (const char *)log_message.text;
+		int message_len = strlen(message);
 
-		if (read_size <= 0) { break; }
+		if (message_len > 0) {
+			uint16_t write_msg_size = sizeof(ulog_message_logging_s) - sizeof(ulog_message_logging_s::message)
+						  - ULOG_MSG_HEADER_LEN + message_len;
+			_msg_buffer[0] = (uint8_t)write_msg_size;
+			_msg_buffer[1] = (uint8_t)(write_msg_size >> 8);
+			_msg_buffer[2] = static_cast<uint8_t>(ULogMessageType::LOGGING);
+			_msg_buffer[3] = log_message.severity + '0';
+			memcpy(_msg_buffer + 4, &log_message.timestamp, sizeof(ulog_message_logging_s::timestamp));
+			strncpy((char *)(_msg_buffer + 12), message, sizeof(ulog_message_logging_s::message));
 
-		buffer[math::min(read_size, size)] = '\0';
-		write_info_multiple(LogType::Full, "boot_console_output", buffer, !first);
-
-		size -= read_size;
-		first = false;
+			write_message(LogType::Full, _msg_buffer, write_msg_size + ULOG_MSG_HEADER_LEN);
+		}
 	}
-
 }
 
 void Logger::write_format(LogType type, const orb_metadata &meta, WrittenFormats &written_formats,

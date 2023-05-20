@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,38 +31,58 @@
  *
  ****************************************************************************/
 
-#pragma once
+/**
+ * @file px4log.cpp
+ * Tool similar to UNIX logger command
+ *
+ */
 
 #include <px4_platform_common/px4_config.h>
-
-#if defined(BOARD_ENABLE_LOG_HISTORY)
 #include <stdio.h>
-#include <px4_platform_common/sem.h>
+#include <fcntl.h>
+#include <stdbool.h>
+#include <unistd.h>
+#include <string.h>
+#include <poll.h>
 
-#ifndef BOARD_LOG_HISTORY_SIZE
-#define BOARD_LOG_HISTORY_SIZE (1024*4) // default buffer size
-#endif
+#include <px4_platform/cpuload.h>
+#include <px4_platform_common/printload.h>
+#include <drivers/drv_hrt.h>
+#include <px4_platform_common/module.h>
 
-class LogHistory
+#include <lib/mathlib/mathlib.h>
+#include <uORB/Publication.hpp>
+#include <uORB/topics/log_message.h>
+
+// static void print_usage()
+// {
+// 	PRINT_MODULE_DESCRIPTION("Monitor running processes and their CPU, stack usage, priority and state");
+
+// 	PRINT_MODULE_USAGE_NAME_SIMPLE("px4log", "command");
+// }
+
+extern "C" __EXPORT int px4log_main(int argc, char *argv[])
 {
-public:
-	LogHistory() { px4_sem_init(&_lock, 0, 1); }
-	~LogHistory() { px4_sem_destroy(&_lock); }
+	if (argc > 1) {
+		uORB::Publication<log_message_s> log_message_pub{ORB_ID(log_message)};
 
-	void write(const char *buffer);
-	void print(FILE *out);
+		static constexpr ssize_t kMaxLength = sizeof(log_message_s::text);
 
-private:
-	void lock() { do {} while (px4_sem_wait(&_lock) != 0); }
-	void unlock() { px4_sem_post(&_lock); }
+		log_message_s log_message{};
+		log_message.severity = 6; // info
 
-	int size();
-	int read(char *buffer, int buffer_length, int *offset);
+		ssize_t pos = 0;
 
-	char _log_history[BOARD_LOG_HISTORY_SIZE];
-	int _head{0};
-	int _tail{0};
-	px4_sem_t _lock;
-};
+		for (int i = 1; i < argc; i++) {
+			pos += snprintf((char *)log_message.text + pos, math::max(kMaxLength - pos, (ssize_t)0), "%s ", argv[i]);
+		}
 
-#endif
+		log_message.timestamp = hrt_absolute_time();
+
+
+
+		log_message_pub.publish(log_message);
+	}
+
+	return 0;
+}

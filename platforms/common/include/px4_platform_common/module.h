@@ -284,7 +284,7 @@ public:
 			ret = object->print_status();
 
 		} else {
-			PX4_INFO("not running");
+			PX4_INFO_RAW("not running\n");
 		}
 
 		unlock_module();
@@ -298,7 +298,7 @@ public:
 	 */
 	virtual int print_status()
 	{
-		PX4_INFO("running");
+		PX4_INFO_RAW("running\n");
 		return 0;
 	}
 

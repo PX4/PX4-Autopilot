@@ -35,7 +35,6 @@
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/px4_manifest.h>
-#include <px4_platform_common/console_buffer.h>
 #include <px4_platform_common/defines.h>
 #include <drivers/drv_hrt.h>
 #include <lib/parameters/param.h>
@@ -102,21 +101,6 @@ int px4_platform_init()
 	kernel_ioctl_initialize();
 #endif
 
-	int ret = px4_console_buffer_init();
-
-	if (ret < 0) {
-		return ret;
-	}
-
-	// replace stdout with our buffered console
-	int fd_buf = open(CONSOLE_BUFFER_DEVICE, O_WRONLY);
-
-	if (fd_buf >= 0) {
-		dup2(fd_buf, 1);
-		// keep stderr(2) untouched: the buffered console will use it to output to the original console
-		close(fd_buf);
-	}
-
 #if defined(PX4_CRYPTO)
 	PX4Crypto::px4_crypto_init();
 #endif
@@ -165,7 +149,7 @@ int px4_platform_init()
 #if defined(CONFIG_FS_PROCFS)
 	int ret_mount_procfs = mount(nullptr, "/proc", "procfs", 0, nullptr);
 
-	if (ret < 0) {
+	if (ret_mount_procfs < 0) {
 		syslog(LOG_ERR, "ERROR: Failed to mount procfs at /proc: %d\n", ret_mount_procfs);
 	}
 

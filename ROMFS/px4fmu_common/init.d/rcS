@@ -37,11 +37,6 @@ set STARTUP_TUNE 1
 set VEHICLE_TYPE none
 
 #
-# Print full system version.
-#
-ver all
-
-#
 # Try to mount the microSD card.
 #
 if [ -b "/dev/mmcsd0" ]
@@ -50,7 +45,7 @@ then
 	then
 		if [ -f "/fs/microsd/.format" ]
 		then
-			echo "INFO [init] format /dev/mmcsd0 requested (/fs/microsd/.format)"
+			px4log "INFO [init] format /dev/mmcsd0 requested (/fs/microsd/.format)"
 			set SDCARD_FORMAT yes
 			rm /fs/microsd/.format
 			umount /fs/microsd
@@ -62,22 +57,22 @@ then
 
 	if [ $SDCARD_AVAILABLE = no -o $SDCARD_FORMAT = yes ]
 	then
-		echo "INFO [init] formatting /dev/mmcsd0"
+		px4log "INFO [init] formatting /dev/mmcsd0"
 		set STARTUP_TUNE 15 # tune 15 = SD_ERROR (overridden to SD_INIT if format + mount succeeds)
 
 		if mkfatfs -F 32 /dev/mmcsd0
 		then
-			echo "INFO [init] card formatted"
+			px4log "INFO [init] card formatted"
 
 			if mount -t vfat /dev/mmcsd0 /fs/microsd
 			then
 				set SDCARD_AVAILABLE yes
 				set STARTUP_TUNE 14 # tune 14 = SD_INIT
 			else
-				echo "ERROR [init] card mount failed"
+				px4log "ERROR [init] card mount failed"
 			fi
 		else
-			echo "ERROR [init] format failed"
+			px4log "ERROR [init] format failed"
 		fi
 	fi
 
@@ -127,7 +122,7 @@ else
 	param select $PARAM_FILE
 	if ! param import
 	then
-		echo "ERROR [init] param import failed"
+		px4log "ERROR [init] param import failed"
 		set STARTUP_TUNE 2 # tune 2 = ERROR_TUNE
 
 		bsondump $PARAM_FILE
@@ -140,7 +135,7 @@ else
 			# try importing from backup file
 			if [ -f $PARAM_BACKUP_FILE ]
 			then
-				echo "[init] importing from parameter backup"
+				px4log "[init] importing from parameter backup"
 
 				# dump current backup file contents for comparison
 				bsondump $PARAM_BACKUP_FILE
@@ -182,7 +177,7 @@ else
 	set BOARD_ARCH_RC_DEFAULTS ${R}etc/init.d/rc.board_arch_defaults
 	if [ -f $BOARD_ARCH_RC_DEFAULTS ]
 	then
-		echo "Board architecture defaults: ${BOARD_ARCH_RC_DEFAULTS}"
+		px4log "Board architecture defaults: ${BOARD_ARCH_RC_DEFAULTS}"
 		. $BOARD_ARCH_RC_DEFAULTS
 	fi
 	unset BOARD_ARCH_RC_DEFAULTS
@@ -193,7 +188,7 @@ else
 	set BOARD_RC_DEFAULTS ${R}etc/init.d/rc.board_defaults
 	if [ -f $BOARD_RC_DEFAULTS ]
 	then
-		echo "Board defaults: ${BOARD_RC_DEFAULTS}"
+		px4log "Board defaults: ${BOARD_RC_DEFAULTS}"
 		. $BOARD_RC_DEFAULTS
 	fi
 	unset BOARD_RC_DEFAULTS
@@ -211,7 +206,7 @@ else
 			then
 				set AUTOSTART_PATH etc/init.d/rc.autostart_ext
 			else
-				echo "ERROR [init] SD card not mounted - trying to load airframe from ROMFS"
+				px4log "ERROR [init] SD card not mounted - trying to load airframe from ROMFS"
 			fi
 		fi
 		. ${R}$AUTOSTART_PATH
@@ -260,7 +255,7 @@ else
 	#
 	if [ -f $FCONFIG ]
 	then
-		echo "Custom: ${FCONFIG}"
+		px4log "Custom: ${FCONFIG}"
 		. $FCONFIG
 	fi
 
@@ -295,7 +290,7 @@ else
 
 		if ! px4io start
 		then
-			echo "PX4IO start failed"
+			px4log "PX4IO start failed"
 			set STARTUP_TUNE 2 # tune 2 = ERROR_TUNE
 		fi
 	fi
@@ -360,7 +355,7 @@ else
 		set BOARD_RC_SENSORS ${R}etc/init.d/rc.board_sensors
 		if [ -f $BOARD_RC_SENSORS ]
 		then
-			echo "Board sensors: ${BOARD_RC_SENSORS}"
+			px4log "Board sensors: ${BOARD_RC_SENSORS}"
 			. $BOARD_RC_SENSORS
 		fi
 		unset BOARD_RC_SENSORS
@@ -401,7 +396,7 @@ else
 	set BOARD_RC_MAVLINK ${R}etc/init.d/rc.board_mavlink
 	if [ -f $BOARD_RC_MAVLINK ]
 	then
-		echo "Board mavlink: ${BOARD_RC_MAVLINK}"
+		px4log "Board mavlink: ${BOARD_RC_MAVLINK}"
 		. $BOARD_RC_MAVLINK
 	fi
 	unset BOARD_RC_MAVLINK
@@ -476,7 +471,7 @@ else
 	set BOARD_RC_EXTRAS ${R}etc/init.d/rc.board_extras
 	if [ -f $BOARD_RC_EXTRAS ]
 	then
-		echo "Board extras: ${BOARD_RC_EXTRAS}"
+		px4log "Board extras: ${BOARD_RC_EXTRAS}"
 		. $BOARD_RC_EXTRAS
 	fi
 	unset BOARD_RC_EXTRAS
@@ -486,7 +481,7 @@ else
 	#
 	if [ -f $FEXTRAS ]
 	then
-		echo "Addons script: ${FEXTRAS}"
+		px4log "Addons script: ${FEXTRAS}"
 		. $FEXTRAS
 	fi
 
