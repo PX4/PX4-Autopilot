@@ -258,13 +258,13 @@ that can be accepted by most ESCs and servos.
 
 ### Examples
 It is typically started with:
-$ pca9685_pwm_out start -a 64 -b 1
+$ pca9685_pwm_out start -a 0x40 -b 1
 
 )DESCR_STR");
 
     PRINT_MODULE_USAGE_NAME("pca9685_pwm_out", "driver");
     PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the task");
-    PRINT_MODULE_USAGE_PARAM_INT('a',64,0,255,"device address on this bus",true);
+    PRINT_MODULE_USAGE_PARAM_STRING('a',"0x40","<addr>","7-bits I2C address of PCA9685",true);
 	PRINT_MODULE_USAGE_PARAM_INT('b',1,0,255,"bus that pca9685 is connected to",true);
     PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
@@ -295,11 +295,20 @@ int PCA9685Wrapper::task_spawn(int argc, char **argv) {
 	while ((ch = px4_getopt(argc, argv, "a:b:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 			case 'a':
-				address = atoi(myoptarg);
+                errno = 0;
+				address = strtol(myoptarg, nullptr, 16);
+                if (errno != 0) {
+                    PX4_WARN("Invalid address");
+                    return PX4_ERROR;
+                }
 				break;
 
 			case 'b':
-				iicbus = atoi(myoptarg);
+				iicbus = strtol(myoptarg, nullptr, 10);
+                if (errno != 0) {
+                    PX4_WARN("Invalid bus");
+                    return PX4_ERROR;
+                }
 				break;
 
 			case '?':
