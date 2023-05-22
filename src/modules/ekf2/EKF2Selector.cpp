@@ -754,7 +754,16 @@ void EKF2Selector::Run()
 			}
 		}
 
-		if (!_instance[_selected_instance].healthy.get_state()) {
+		if (_param_ekf2_sel_rc_map.get() > 0) {
+			// Manual instance selection through RC
+			if (isRcOverride()) {
+				SelectInstance(_param_ekf2_sel_rc_inst.get());
+
+			} else {
+				SelectInstance(0);
+			}
+
+		} else if (!_instance[_selected_instance].healthy.get_state()) {
 			// prefer the best healthy instance using a different IMU
 			if (!SelectInstance(best_ekf_different_imu)) {
 				// otherwise switch to the healthy instance with best overall test ratio
@@ -805,6 +814,48 @@ void EKF2Selector::Run()
 
 	// re-schedule as backup timeout
 	ScheduleDelayed(FILTER_UPDATE_PERIOD);
+}
+
+bool EKF2Selector::isRcOverride()
+{
+	manual_control_setpoint_s manual_control_setpoint{};
+	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
+
+	float channel = 0;
+
+	switch (_param_ekf2_sel_rc_map.get()) {
+	case 0:
+		return false;
+
+	case 1:
+		channel = manual_control_setpoint.aux1;
+		break;
+
+	case 2:
+		channel = manual_control_setpoint.aux2;
+		break;
+
+	case 3:
+		channel = manual_control_setpoint.aux3;
+		break;
+
+	case 4:
+		channel = manual_control_setpoint.aux4;
+		break;
+
+	case 5:
+		channel = manual_control_setpoint.aux5;
+		break;
+
+	case 6:
+		channel = manual_control_setpoint.aux6;
+		break;
+
+	default:
+		return false;
+	}
+
+	return channel > .5f;
 }
 
 void EKF2Selector::PublishEstimatorSelectorStatus()

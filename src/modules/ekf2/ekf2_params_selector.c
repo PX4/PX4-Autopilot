@@ -79,3 +79,39 @@ PARAM_DEFINE_FLOAT(EKF2_SEL_IMU_ACC, 1.0f);
  * @unit m/s
  */
 PARAM_DEFINE_FLOAT(EKF2_SEL_IMU_VEL, 2.0f);
+
+/**
+ * Manual instance selection channel
+ *
+ * Defines which RC_MAP_AUXn parameter maps the RC channel used to select a desired
+ * EKF2 instance.
+ * Use EKF2_SEL_RC_INST to define which instance is selected when this switch is active.
+ * When manual selection is active and the switch is off, instance 0 is selected.
+ * Manual selection overrides automatic instance switch.
+ *
+ * @value 0 Disable
+ * @value 1 Aux1
+ * @value 2 Aux2
+ * @value 3 Aux3
+ * @value 4 Aux4
+ * @value 5 Aux5
+ * @value 6 Aux6
+ * @min 0
+ * @max 6
+ * @group EKF2
+ */
+PARAM_DEFINE_INT32(EKF2_SEL_RC_MAP, 0);
+
+/**
+ * Manual instance selection
+ *
+ * Defines which estimator instance is used when manual switch is active.
+ * Use EKF2_SEL_RC_MAP to define which aux switch is used to trigger the switch.
+ * When manual selection is active and the switch is off, instance 0 is selected.
+ * Manual selection overrides automatic instance switch.
+ *
+ * @min 0
+ * @max 10
+ * @group EKF2
+ */
+PARAM_DEFINE_INT32(EKF2_SEL_RC_INST, 0);
