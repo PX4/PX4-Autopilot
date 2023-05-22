@@ -326,9 +326,6 @@ static const StreamListItem streams_list[] = {
 #if defined(SYS_STATUS_HPP)
 	create_stream_list_item<MavlinkStreamSysStatus>(),
 #endif // SYS_STATUS_HPP
-#if defined(SYSTEM_TIME_HPP)
-	create_stream_list_item<MavlinkStreamSystemTime>(),
-#endif // SYSTEM_TIME_HPP
 	create_stream_list_item<MavlinkStreamBatteryStatus>(),
 #if defined(SMART_BATTERY_INFO_HPP)
 	create_stream_list_item<MavlinkStreamSmartBatteryInfo>(),
