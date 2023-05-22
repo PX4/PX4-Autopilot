@@ -154,7 +154,7 @@ class UavcanNode : public px4::ScheduledWorkItem, public ModuleParams
 	static constexpr unsigned FramePerSecond	= MaxBitRatePerSec / bitPerFrame;
 	static constexpr unsigned FramePerMSecond	= ((FramePerSecond / 1000) + 1);
 
-	static constexpr unsigned ScheduleIntervalMs		= 3;
+	static constexpr unsigned ScheduleIntervalMs		= 1;
 
 
 	/*
@@ -267,7 +267,7 @@ private:
 
 	uORB::SubscriptionInterval	_parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _vcmd_sub{ORB_ID(vehicle_command)};
-	uORB::SubscriptionInterval _param_request_sub{ORB_ID(uavcan_parameter_request), 100_us};
+	uORB::SubscriptionInterval _param_request_sub{ORB_ID(uavcan_parameter_request), 50_ms};
 
 	uORB::Publication<uavcan_parameter_value_s> _param_response_pub{ORB_ID(uavcan_parameter_value)};
 	uORB::Publication<vehicle_command_ack_s>	_command_ack_pub{ORB_ID(vehicle_command_ack)};
