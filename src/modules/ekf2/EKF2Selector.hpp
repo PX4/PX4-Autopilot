@@ -47,6 +47,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/estimator_selector_status.h>
 #include <uORB/topics/estimator_status.h>
+#include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/sensors_status_imu.h>
@@ -81,6 +82,8 @@ private:
 	static constexpr uint64_t FILTER_UPDATE_PERIOD{10_ms};
 
 	void Run() override;
+
+	bool isRcOverride();
 
 	void PrintInstanceChange(const uint8_t old_instance, uint8_t new_instance);
 
@@ -228,6 +231,7 @@ private:
 	uint8_t _global_position_instance_prev{INVALID_INSTANCE};
 	uint8_t _odometry_instance_prev{INVALID_INSTANCE};
 
+	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _sensors_status_imu{ORB_ID(sensors_status_imu)};
 
@@ -245,7 +249,9 @@ private:
 		(ParamFloat<px4::params::EKF2_SEL_IMU_RAT>) _param_ekf2_sel_imu_angle_rate,
 		(ParamFloat<px4::params::EKF2_SEL_IMU_ANG>) _param_ekf2_sel_imu_angle,
 		(ParamFloat<px4::params::EKF2_SEL_IMU_ACC>) _param_ekf2_sel_imu_accel,
-		(ParamFloat<px4::params::EKF2_SEL_IMU_VEL>) _param_ekf2_sel_imu_velocity
+		(ParamFloat<px4::params::EKF2_SEL_IMU_VEL>) _param_ekf2_sel_imu_velocity,
+		(ParamInt<px4::params::EKF2_SEL_RC_MAP>) _param_ekf2_sel_rc_map,
+		(ParamInt<px4::params::EKF2_SEL_RC_INST>) _param_ekf2_sel_rc_inst
 	)
 };
 #endif // !EKF2SELECTOR_HPP
