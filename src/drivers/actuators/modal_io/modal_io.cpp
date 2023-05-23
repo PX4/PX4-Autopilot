@@ -48,7 +48,6 @@ const char *_device;
 
 ModalIo::ModalIo() :
 	OutputModuleInterface(MODULE_NAME, px4::serial_port_to_wq(MODAL_IO_DEFAULT_PORT)),
-	_mixing_output{"MODAL_IO", MODAL_IO_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false},
 	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
 	_output_update_perf(perf_alloc(PC_INTERVAL, MODULE_NAME": output update interval"))
 {
