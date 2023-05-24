@@ -452,13 +452,16 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 	report.heading_offset = heading_offset;
 	report.heading_accuracy = heading_accuracy;
 
-	// Sees.ai - Definitely still differentiates NodeIDs 124 and 125 here (else wouldn't be able to publish 2 instances of GPS, but sanity checked with print to be safe)
-	// Now need to determine where the 125/124 gets lost and why.
-	// Temporarily, we only publish the Rover GPS to maintain consistent GPS selection and therefore antenna position for EKF xy offsets.
-	// This will be removed once proper allocation of NodeIDs to uORB instances has been implemented.
-	if (msg.getSrcNodeID().get() == 125) {
-		publish(msg.getSrcNodeID().get(), &report);
+	// ---sees.ai---
+	// CAN node IDs are persistent, however uorb instance numbering is not (i.e GPS 124 can initialise as uorb instance 0 or 1).
+	// To solve this, we ensure that GPS on CAN node ID 124 does not initialise until the other GPS (125) has first.
+	// This ensure Rover is always instance 0 and, subsequently, moving base is always instance 1.
+	if (OK != orb_exists(ORB_ID(sensor_gps), 0) && msg.getSrcNodeID().get() == 124) {
+		PX4_INFO("Sensor gps instance 0 not available, not initializing node ID 124");
+		return;
 	}
+
+	publish(msg.getSrcNodeID().get(), &report);
 }
 
 void UavcanGnssBridge::update()
