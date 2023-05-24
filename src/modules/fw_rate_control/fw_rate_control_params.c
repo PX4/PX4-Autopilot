@@ -567,17 +567,14 @@ PARAM_DEFINE_FLOAT(FW_RLL_TO_YAW_FF, 0.0f);
 PARAM_DEFINE_INT32(FW_SPOILERS_MAN, 0);
 
 /**
- * Acro rate controlled axes
+ * Enable yaw rate controller in Acro
  *
- * Controls which axes are controlled by the rate controller in Acro mode.
- * If not set, then the manual control setpoint of the corresponding axis is
- * directly applied as torque setpoint.
+ * If this parameter is set to 1, the yaw rate controller is enabled in Fixed-wing Acro mode.
+ * Otherwise the pilot commands directly the yaw actuator.
+ * It is disabled by default because an active yaw rate controller will fight against the
+ * natural turn coordination of the plane.
  *
- * @min 0
- * @max 7
- * @bit 0 Roll
- * @bit 1 Pitch
- * @bit 2 Yaw
+ * @boolean
  * @group FW Rate Control
  */
-PARAM_DEFINE_INT32(FW_ACRO_AXES_CTL, 3);
+PARAM_DEFINE_INT32(FW_ACRO_YAW_EN, 0);

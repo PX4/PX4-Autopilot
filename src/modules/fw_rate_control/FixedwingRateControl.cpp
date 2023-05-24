@@ -352,32 +352,13 @@ void FixedwingRateControl::Run()
 				const float pitch_feedforward = _param_fw_pr_ff.get() * _airspeed_scaling * body_rates_setpoint(1);
 				const float yaw_feedforward = _param_fw_yr_ff.get() * _airspeed_scaling * body_rates_setpoint(2);
 
-				float roll_u = 0.f;
-				float pitch_u = 0.f;
+				const float roll_u = angular_acceleration_setpoint(0) * _airspeed_scaling * _airspeed_scaling + roll_feedforward;
+				const float pitch_u = angular_acceleration_setpoint(1) * _airspeed_scaling * _airspeed_scaling + pitch_feedforward;
+
+				// Special case yaw in Acro: if the parameter FW_ACRO_YAW_CTL is not set then don't control yaw
 				float yaw_u = 0.f;
 
-				// In Acro (flag_control_attitude_enabled is not set) check for FW_ACRO_AXES_CTL and only control enabled axes
-
-				if (_vcontrol_mode.flag_control_attitude_enabled
-				    || _param_fw_acro_axes_ctl.get() & RateControllerAxis::ENABLE_CONTROLLER_X) {
-					roll_u = angular_acceleration_setpoint(0) * _airspeed_scaling * _airspeed_scaling + roll_feedforward;
-
-				} else {
-					roll_u = _manual_control_setpoint.roll * _param_fw_man_r_sc.get();
-					_rate_control.resetIntegral(0);
-				}
-
-				if (_vcontrol_mode.flag_control_attitude_enabled
-				    || _param_fw_acro_axes_ctl.get() & RateControllerAxis::ENABLE_CONTROLLER_Y) {
-					pitch_u = angular_acceleration_setpoint(1) * _airspeed_scaling * _airspeed_scaling + pitch_feedforward;
-
-				} else {
-					pitch_u = _manual_control_setpoint.pitch * _param_fw_man_p_sc.get();
-					_rate_control.resetIntegral(1);
-				}
-
-				if (_vcontrol_mode.flag_control_attitude_enabled
-				    || _param_fw_acro_axes_ctl.get() & RateControllerAxis::ENABLE_CONTROLLER_Z) {
+				if (_vcontrol_mode.flag_control_attitude_enabled || _param_fw_acro_yaw_en.get()) {
 					yaw_u = angular_acceleration_setpoint(2) * _airspeed_scaling * _airspeed_scaling + yaw_feedforward;
 
 				} else {
