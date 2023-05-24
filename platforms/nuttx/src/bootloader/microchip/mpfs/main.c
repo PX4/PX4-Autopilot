@@ -732,7 +732,6 @@ arch_do_jump(const uint32_t *app_base)
 	/* PX4 on hart 2 */
 #if CONFIG_MPFS_HART2_ENTRYPOINT != 0xFFFFFFFFFFFFFFFF
 	bool use_sbi = info_bits & INFO_BIT_USE_SBI ? true : false;
-	_alert("Jump to PX4 0x%lx %s\n", (uint64_t)app_base, use_sbi ? "via SBI" : "");
 	mpfs_set_use_sbi(2, use_sbi);
 	mpfs_set_entrypt(2, (uintptr_t)app_base);
 	*(volatile uint32_t *)MPFS_CLINT_MSIP2 = 0x01U;
@@ -741,7 +740,6 @@ arch_do_jump(const uint32_t *app_base)
 	/* Linux on harts 1, 3 and 4 */
 	if (u_boot_loaded) {
 #if CONFIG_MPFS_HART3_ENTRYPOINT != 0xFFFFFFFFFFFFFFFF
-		_alert("Jump to Hart 3 U-boot 0x%lx\n", CONFIG_MPFS_HART3_ENTRYPOINT);
 		*(volatile uint32_t *)MPFS_CLINT_MSIP3 = 0x01U;
 #endif
 
@@ -749,14 +747,12 @@ arch_do_jump(const uint32_t *app_base)
 // cores (Hart 1 and 4), so they should not be booted here
 #if BOOTLOADER_BOOT_HART_1
 #if CONFIG_MPFS_HART1_ENTRYPOINT != 0xFFFFFFFFFFFFFFFF
-		_alert("Jump to Hart 1 U-boot 0x%lx\n", CONFIG_MPFS_HART1_ENTRYPOINT);
 		*(volatile uint32_t *)MPFS_CLINT_MSIP1 = 0x01U;
 #endif
 #endif
 
 #if BOOTLOADER_BOOT_HART_4
 #if CONFIG_MPFS_HART4_ENTRYPOINT != 0xFFFFFFFFFFFFFFFF
-		_alert("Jump to Hart 4 U-boot 0x%lx\n", CONFIG_MPFS_HART4_ENTRYPOINT);
 		*(volatile uint32_t *)MPFS_CLINT_MSIP4 = 0x01U;
 #endif
 #endif
