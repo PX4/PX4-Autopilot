@@ -141,11 +141,11 @@ void ADS1115::print_usage()
 
 Driver to enable an external [ADS1115](https://www.adafruit.com/product/1085) ADC connected via I2C.
 
-This is included by default in firmware for boards that do not have an internal analog to digital converter,
+The driver is included by default in firmware for boards that do not have an internal analog to digital converter,
 such as [PilotPi](../flight_controller/raspberry_pi_pilotpi.md) or [CUAV Nora](../flight_controller/cuav_nora.md)
 (search for `CONFIG_DRIVERS_ADC_ADS1115` in board configuration files).
 
-It can be enabled with the [ADC_ADS1115_EN](../advanced_config/parameter_reference.md#ADC_ADS1115_EN) parameter.
+It is enabled/disabled using the [ADC_ADS1115_EN](../advanced_config/parameter_reference.md#ADC_ADS1115_EN) parameter, and is disabled by default.
 If enabled, internal ADCs are not used.
 
 )DESCR_STR");
