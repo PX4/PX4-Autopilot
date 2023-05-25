@@ -40,8 +40,13 @@
  *
  */
 
+#ifndef MODULE_NAME
+#define MODULE_NAME "usr_hrt"
+#endif
+
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
+#include <px4_platform_common/log.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/shutdown.h>
 
@@ -138,12 +143,17 @@ hrt_absolute_time(void)
 	boardctl(HRT_ABSOLUTE_TIME, (uintptr_t)&abstime);
 	return abstime;
 #else
-	assert(g_abstime_base);
-	return getreg64(g_abstime_base);
+
+	if (g_abstime_base)	{
+		return getreg64(g_abstime_base);
+
+	} else {
+		PX4_ERR("g_abstime_base is NULL\n");
+		return 0;
+	}
+
 #endif
 }
-
-
 
 /**
  * Request stop.
