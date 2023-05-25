@@ -40,3 +40,6 @@ px4_add_library(px4_daemon
 		sock_protocol.cpp
 	)
 
+add_subdirectory(linenoise)
+
+target_link_libraries(px4_daemon PRIVATE linenoise)
