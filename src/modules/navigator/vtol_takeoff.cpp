@@ -117,8 +117,9 @@ VtolTakeoff::on_active()
 				// we need the vehicle to loiter indefinitely but also we want this mission item to be reached as soon
 				// as the loiter is established. therefore, set a small loiter time so that the mission item will be reached quickly,
 				// however it will just continue loitering as there is no next mission item
-				_mission_item.time_inside = 1;
+				_mission_item.time_inside = 1.f;
 				_mission_item.loiter_radius = _navigator->get_loiter_radius();
+				_mission_item.acceptance_radius  = _navigator->get_acceptance_radius();
 				_mission_item.altitude = _navigator->get_home_position()->alt + _param_loiter_alt.get();
 
 				mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
