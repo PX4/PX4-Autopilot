@@ -77,7 +77,7 @@ FixedwingRateControl::parameters_update()
 	const Vector3f rate_i = Vector3f(_param_fw_rr_i.get(), _param_fw_pr_i.get(), _param_fw_yr_i.get());
 	const Vector3f rate_d = Vector3f(_param_fw_rr_d.get(), _param_fw_pr_d.get(), _param_fw_yr_d.get());
 
-	_rate_control.setGains(rate_p, rate_i, rate_d);
+	_rate_control.setPidGains(rate_p, rate_i, rate_d);
 
 	_rate_control.setIntegratorLimit(
 		Vector3f(_param_fw_rr_imax.get(), _param_fw_pr_imax.get(), _param_fw_yr_imax.get()));
@@ -335,26 +335,35 @@ void FixedwingRateControl::Run()
 					body_rates_setpoint = Vector3f(-_rates_sp.yaw, _rates_sp.pitch, _rates_sp.roll);
 				}
 
-				/* Run attitude RATE controllers which need the desired attitudes from above, add trim */
+				// Run attitude RATE controllers which need the desired attitudes from above, add trim.
 				const Vector3f angular_acceleration_setpoint = _rate_control.update(rates, body_rates_setpoint, angular_accel, dt,
 						_landed);
 
-				float roll_feedforward = _param_fw_rr_ff.get() * _airspeed_scaling * body_rates_setpoint(0);
-				float roll_u = angular_acceleration_setpoint(0) * _airspeed_scaling * _airspeed_scaling + roll_feedforward;
-				_vehicle_torque_setpoint.xyz[0] = PX4_ISFINITE(roll_u) ? math::constrain(roll_u + trim_roll, -1.f, 1.f) : trim_roll;
-
-				float pitch_feedforward = _param_fw_pr_ff.get() * _airspeed_scaling * body_rates_setpoint(1);
-				float pitch_u = angular_acceleration_setpoint(1) * _airspeed_scaling * _airspeed_scaling + pitch_feedforward;
-				_vehicle_torque_setpoint.xyz[1] = PX4_ISFINITE(pitch_u) ? math::constrain(pitch_u + trim_pitch, -1.f, 1.f) : trim_pitch;
-
+				const float roll_feedforward = _param_fw_rr_ff.get() * _airspeed_scaling * body_rates_setpoint(0);
+				const float pitch_feedforward = _param_fw_pr_ff.get() * _airspeed_scaling * body_rates_setpoint(1);
 				const float yaw_feedforward = _param_fw_yr_ff.get() * _airspeed_scaling * body_rates_setpoint(2);
-				float yaw_u = angular_acceleration_setpoint(2) * _airspeed_scaling * _airspeed_scaling + yaw_feedforward;
 
-				_vehicle_torque_setpoint.xyz[2] = PX4_ISFINITE(yaw_u) ? math::constrain(yaw_u + trim_yaw, -1.f, 1.f) : trim_yaw;
+				const float roll_u = angular_acceleration_setpoint(0) * _airspeed_scaling * _airspeed_scaling + roll_feedforward;
+				const float pitch_u = angular_acceleration_setpoint(1) * _airspeed_scaling * _airspeed_scaling + pitch_feedforward;
+
+				// Special case yaw in Acro: if the parameter FW_ACRO_YAW_CTL is not set then don't control yaw
+				float yaw_u = 0.f;
+
+				if (_vcontrol_mode.flag_control_attitude_enabled || _param_fw_acro_yaw_en.get()) {
+					yaw_u = angular_acceleration_setpoint(2) * _airspeed_scaling * _airspeed_scaling + yaw_feedforward;
+
+				} else {
+					yaw_u = _manual_control_setpoint.yaw * _param_fw_man_y_sc.get();
+					_rate_control.resetIntegral(2);
+				}
 
 				if (!PX4_ISFINITE(roll_u) || !PX4_ISFINITE(pitch_u) || !PX4_ISFINITE(yaw_u)) {
 					_rate_control.resetIntegral();
 				}
+
+				_vehicle_torque_setpoint.xyz[0] = PX4_ISFINITE(roll_u) ? math::constrain(roll_u + trim_roll, -1.f, 1.f) : trim_roll;
+				_vehicle_torque_setpoint.xyz[1] = PX4_ISFINITE(pitch_u) ? math::constrain(pitch_u + trim_pitch, -1.f, 1.f) : trim_pitch;
+				_vehicle_torque_setpoint.xyz[2] = PX4_ISFINITE(yaw_u) ? math::constrain(yaw_u + trim_yaw, -1.f, 1.f) : trim_yaw;
 
 				/* throttle passed through if it is finite */
 				_vehicle_thrust_setpoint.xyz[0] = PX4_ISFINITE(_rates_sp.thrust_body[0]) ? _rates_sp.thrust_body[0] : 0.0f;
