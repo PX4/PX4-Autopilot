@@ -254,7 +254,6 @@ PrecLand::run_state_horizontal_approach()
 	// check if target visible, if not go to start
 	if (!check_state_conditions(PrecLandState::HorizontalApproach)) {
 		PX4_WARN("%s, state: %i", LOST_TARGET_ERROR_MESSAGE, (int) _state);
-		mavlink_log_info(&_mavlink_log_pub, "%s, state: %i", LOST_TARGET_ERROR_MESSAGE, (int) _state);
 
 		// Stay at current position for searching for the landing target
 		pos_sp_triplet->current.lat = _navigator->get_global_position()->lat;
@@ -292,8 +291,12 @@ PrecLand::run_state_horizontal_approach()
 	_map_ref.reproject(x, y, pos_sp_triplet->current.lat, pos_sp_triplet->current.lon);
 
 	pos_sp_triplet->current.alt = _target_pose_stale ? _navigator->get_global_position()->alt : _approach_alt;
-	pos_sp_triplet->current.yaw = math::radians(_param_pld_target_yaw.get());
-	pos_sp_triplet->current.yaw_valid = true;
+
+	if (_param_pld_target_yaw.get() >= 0 && _param_pld_target_yaw.get() < 360)  {
+		pos_sp_triplet->current.yaw = math::radians(_param_pld_target_yaw.get());
+		pos_sp_triplet->current.yaw_valid = true;
+	}
+
 	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 
 	_navigator->set_position_setpoint_triplet_updated();
@@ -308,7 +311,6 @@ PrecLand::run_state_descend_above_target()
 	if (!check_state_conditions(PrecLandState::DescendAboveTarget)) {
 		if (!switch_to_state_final_approach()) {
 			PX4_WARN("%s, state: %i", LOST_TARGET_ERROR_MESSAGE, (int) _state);
-			mavlink_log_info(&_mavlink_log_pub, "%s, state: %i", LOST_TARGET_ERROR_MESSAGE, (int) _state);
 
 			// Stay at current position for searching for the target
 			pos_sp_triplet->current.lat = _navigator->get_global_position()->lat;
@@ -316,8 +318,6 @@ PrecLand::run_state_descend_above_target()
 			pos_sp_triplet->current.alt = _navigator->get_global_position()->alt;
 
 			if (!switch_to_state_start()) {
-				mavlink_log_info(&_mavlink_log_pub, "Precland: Unable to switch to state start, number of search count: %i",
-						 _search_cnt);
 				switch_to_state_hold_fallback();
 			}
 		}
@@ -351,8 +351,12 @@ PrecLand::run_state_descend_above_target()
 
 	pos_sp_triplet->current.alt = _target_pose_stale ? _navigator->get_global_position()->alt :
 				      _navigator->get_global_position()->alt - dt_z;
-	pos_sp_triplet->current.yaw = math::radians(_param_pld_target_yaw.get());
-	pos_sp_triplet->current.yaw_valid = true;
+
+	if (_param_pld_target_yaw.get() >= 0 && _param_pld_target_yaw.get() < 360)  {
+		pos_sp_triplet->current.yaw = math::radians(_param_pld_target_yaw.get());
+		pos_sp_triplet->current.yaw_valid = true;
+	}
+
 	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 
 	_navigator->set_position_setpoint_triplet_updated();
@@ -395,7 +399,7 @@ PrecLand::run_state_search()
 	// check if search timed out and go to fallback
 	if (hrt_absolute_time() - _state_start_time > _param_pld_srch_tout.get()*SEC2USEC) {
 		PX4_WARN("Search timed out");
-		mavlink_log_info(&_mavlink_log_pub, "Search timed out");
+
 		switch_to_state_hold_fallback();
 	}
 }
@@ -416,7 +420,6 @@ bool
 PrecLand::switch_to_state_start()
 {
 	if (check_state_conditions(PrecLandState::Start)) {
-		print_state_switch_message("start");
 		position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 		pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 		_navigator->set_position_setpoint_triplet_updated();
@@ -482,9 +485,7 @@ PrecLand::switch_to_state_final_approach()
 bool
 PrecLand::switch_to_state_search()
 {
-	print_state_switch_message("search");
 	PX4_INFO("Climbing to search altitude.");
-	mavlink_log_info(&_mavlink_log_pub, "Climbing to search altitude");
 	vehicle_local_position_s *vehicle_local_position = _navigator->get_local_position();
 
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
@@ -520,7 +521,6 @@ PrecLand::switch_to_state_hold_fallback()
 {
 	print_state_switch_message("hold fallback");
 	PX4_INFO("Climbing to Hold at search altitude.");
-	mavlink_log_info(&_mavlink_log_pub, "Climbing to Hold at search altitude");
 	vehicle_local_position_s *vehicle_local_position = _navigator->get_local_position();
 
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
@@ -544,7 +544,6 @@ PrecLand::switch_to_state_done()
 void PrecLand::print_state_switch_message(const char *state_name)
 {
 	PX4_INFO("Precland: switching to %s", state_name);
-	mavlink_log_info(&_mavlink_log_pub, "Precland: switching to %s", state_name);
 }
 
 bool PrecLand::check_state_conditions(PrecLandState state)
@@ -580,9 +579,6 @@ bool PrecLand::check_state_conditions(PrecLandState state)
 		if (_state == PrecLandState::DescendAboveTarget) {
 			// if we're close to the ground, we're more critical of target timeouts so we quickly go into descend
 			if (check_state_conditions(PrecLandState::FinalApproach)) {
-				float current_timeout = float(hrt_absolute_time() - _target_pose.timestamp) / 1e6f;
-				mavlink_log_info(&_mavlink_log_pub, "Precland: descend above target close to ground, current timeout: %f s",
-						 (double)current_timeout);
 				return hrt_absolute_time() - _target_pose.timestamp > 500000; // 0.5s
 
 			} else {
@@ -600,9 +596,6 @@ bool PrecLand::check_state_conditions(PrecLandState state)
 
 		// allow certain error in tolerance of distance z calculation in final approach (2.5 cm)
 		if (_fappr_tolerance_enabled) {
-			float z_diff = _target_pose.z_abs - vehicle_local_position->z;
-			mavlink_log_info(&_mavlink_log_pub, "Precland: distance between target and current local position in z: %f m",
-					 (double)z_diff);
 			return _target_pose_valid && _target_pose.abs_pos_valid
 			       && (_target_pose.z_abs - vehicle_local_position->z - 0.025f) < _param_pld_fappr_alt.get();
 

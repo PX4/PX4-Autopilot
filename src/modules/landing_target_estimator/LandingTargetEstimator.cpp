@@ -42,7 +42,6 @@
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
 #include <drivers/drv_hrt.h>
-#include <lib/systemlib/mavlink_log.h>
 
 #include "LandingTargetEstimator.h"
 
@@ -131,8 +130,6 @@ void LandingTargetEstimator::update()
 			if (!_faulty) {
 				_faulty = true;
 				PX4_WARN("Landing target measurement rejected:%s%s", update_x ? "" : " x", update_y ? "" : " y");
-				mavlink_log_info(&_mavlink_log_pub, "Landing target measurement rejected:%s%s", update_x ? "" : " x",
-						 update_y ? "" : " y");
 			}
 
 		} else {

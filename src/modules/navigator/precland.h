@@ -157,8 +157,6 @@ private:
 	float   _param_mpc_land_alt2{0.0f};
 	float   _param_mpc_land_alt3{0.0f};
 
-	orb_advert_t _mavlink_log_pub{nullptr};
-
 	bool _fappr_tolerance_enabled{false};
 
 	bool _target_pose_stale{false};

@@ -64,4 +64,4 @@ PARAM_DEFINE_FLOAT(DE_CUTOFF, 5.f);
  * @increment 0.01
  * @group Drag Estimator
  */
-PARAM_DEFINE_FLOAT(DE_COG_Z_OFFSET, -0.1f);
+PARAM_DEFINE_FLOAT(DE_COG_Z_OFFSET, 0.f);
