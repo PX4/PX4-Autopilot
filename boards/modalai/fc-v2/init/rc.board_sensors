@@ -20,8 +20,8 @@ icm42688p -s -b 1 -R 12 start
 # Internal SPI2 ICM-42688
 icm42688p -s -b 2 -R 12 start
 
-# Internal I2C mag
-bmm150 -I start
+# Don't start Internal I2C mag
+# bmm150 -I start
 
 # Internal I2C baro
 icp201xx -I start
