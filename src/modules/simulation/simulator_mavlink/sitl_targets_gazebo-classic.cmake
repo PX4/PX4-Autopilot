@@ -91,6 +91,7 @@ if(gazebo_FOUND)
 		plane_catapult
 		plane_lidar
 		px4vision
+		quadtailsitter
 		r1_rover
 		rover
 		standard_vtol
