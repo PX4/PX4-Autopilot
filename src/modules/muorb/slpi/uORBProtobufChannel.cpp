@@ -275,6 +275,7 @@ int px4muorb_orb_initialize(fc_func_ptrs *func_ptrs, int32_t clock_offset_us)
 		uORB::Manager::get_instance()->set_uorb_communicator(
 			uORB::ProtobufChannel::GetInstance());
 
+		perf_init();
 		param_init();
 
 		px4::WorkQueueManagerStart();
