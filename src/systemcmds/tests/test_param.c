@@ -57,7 +57,10 @@ test_param(int argc, char *argv[])
 		return 1;
 	}
 
-	if (param_reset(p) != OK) {
+	// default value 12345678
+	int32_t test_params_default_value = 12345678;
+
+	if (param_set(p, &test_params_default_value) != OK) {
 		warnx("failed param reset");
 		return 1;
 	}

@@ -152,20 +152,6 @@ int param_set_default_value(param_t param, const void *val)
 	return data.ret;
 }
 
-int param_reset(param_t param)
-{
-	paramiocreset_t data = {param, true, PX4_ERROR};
-	boardctl(PARAMIOCRESET, reinterpret_cast<unsigned long>(&data));
-	return data.ret;
-}
-
-int param_reset_no_notification(param_t param)
-{
-	paramiocreset_t data = {param, false, PX4_ERROR};
-	boardctl(PARAMIOCRESET, reinterpret_cast<unsigned long>(&data));
-	return data.ret;
-}
-
 void
 param_reset_all()
 {

@@ -143,12 +143,6 @@ public:
 
 	void set(float val) { _val = val; }
 
-	void reset()
-	{
-		//param_reset_no_notification(handle()); // TODO
-		update();
-	}
-
 	bool update()
 	{
 		return true; // TODO
@@ -207,12 +201,6 @@ public:
 
 	void set(float val) { _val = val; }
 
-	void reset()
-	{
-		//param_reset_no_notification(handle());
-		update();
-	}
-
 	bool update()
 	{
 		return true;
@@ -268,12 +256,6 @@ public:
 	}
 
 	void set(int32_t val) { _val = val; }
-
-	void reset()
-	{
-		//param_reset_no_notification(handle());
-		update();
-	}
 
 	bool update()
 	{
@@ -333,12 +315,6 @@ public:
 
 	void set(int32_t val) { _val = val; }
 
-	void reset()
-	{
-		//param_reset_no_notification(handle());
-		update();
-	}
-
 	bool update()
 	{
 		//return param_get(handle(), &_val) == 0;
@@ -396,12 +372,6 @@ public:
 	}
 
 	void set(bool val) { _val = val; }
-
-	void reset()
-	{
-		//param_reset_no_notification(handle());
-		update();
-	}
 
 	bool update()
 	{
