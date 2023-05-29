@@ -57,8 +57,9 @@ void OpenDroneIDChecks::checkAndReport(const Context &context, Report &reporter)
 		 * This check can be configured via <param>COM_ARM_ODID</param> parameter.
 		 * </profile>
 		 */
-		reporter.armingCheckFailure(affected_modes, health_component_t::open_drone_id, events::ID("check_open_drone_id_missing"),
-				       events::Log::Error, "Open Drone ID system missing");
+		reporter.armingCheckFailure(affected_modes, health_component_t::open_drone_id,
+					    events::ID("check_open_drone_id_missing"),
+					    events::Log::Error, "Open Drone ID system missing");
 
 		if (reporter.mavlink_log_pub()) {
 			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Open Drone ID system missing");
@@ -73,8 +74,9 @@ void OpenDroneIDChecks::checkAndReport(const Context &context, Report &reporter)
 		 * This check can be configured via <param>COM_ARM_ODID</param> parameter.
 		 * </profile>
 		 */
-		reporter.armingCheckFailure(affected_modes, health_component_t::open_drone_id, events::ID("check_open_drone_id_unhealthy"),
-				       events::Log::Error, "Open Drone ID system not ready");
+		reporter.armingCheckFailure(affected_modes, health_component_t::open_drone_id,
+					    events::ID("check_open_drone_id_unhealthy"),
+					    events::Log::Error, "Open Drone ID system not ready");
 
 		if (reporter.mavlink_log_pub()) {
 			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Open Drone ID system not ready");
