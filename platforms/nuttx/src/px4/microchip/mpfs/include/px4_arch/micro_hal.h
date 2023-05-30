@@ -40,10 +40,14 @@ __BEGIN_DECLS
 #define PX4_SOC_ARCH_ID             PX4_SOC_ARCH_ID_MPFS
 
 /* Some of the boards have 3+ I2C buses on FPGA. Others have always just 2 as SoC hard-ip blocks */
-#ifdef CONFIG_MPFS_COREI2C2
-#define PX4_NUMBER_I2C_BUSES        3
+#ifdef CONFIG_MPFS_COREI2C
+#  define PX4_NUMBER_I2C_BUSES      CONFIG_MPFS_COREI2C_INSTANCES
 #else
-#define PX4_NUMBER_I2C_BUSES        2
+#  if defined(CONFIG_MPFS_I2C0) && defined(CONFIG_MPFS_I2C1)
+#    define PX4_NUMBER_I2C_BUSES    2
+#  else
+#    define PX4_NUMBER_I2C_BUSES    1
+#  endif
 #endif
 
 #define GPIO_OUTPUT_SET             GPIO_OUTPUT_ONE
