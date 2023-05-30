@@ -1015,7 +1015,7 @@ PARAM_DEFINE_INT32(COM_ARM_HFLT_CHK, 1);
  * @value 1 Warning only
  * @value 2 Enforce Open Drone ID system presence
  */
-PARAM_DEFINE_INT32(COM_ARM_ODID, 2);
+PARAM_DEFINE_INT32(COM_ARM_ODID, 0);
 
 /**
  * Enforced delay between arming and further navigation

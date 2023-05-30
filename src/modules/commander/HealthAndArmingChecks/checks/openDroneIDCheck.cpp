@@ -51,7 +51,7 @@ void OpenDroneIDChecks::checkAndReport(const Context &context, Report &reporter)
 	if (!context.status().open_drone_id_system_present) {
 		/* EVENT
 		 * @description
-		 * Open Drone ID system failed to report. Make sure it it setup and installed properly.
+		 * Open Drone ID system failed to report. Make sure it is setup and installed properly.
 		 *
 		 * <profile name="dev">
 		 * This check can be configured via <param>COM_ARM_ODID</param> parameter.
