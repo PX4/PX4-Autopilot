@@ -711,7 +711,7 @@ void PX4IO::update_params()
 					    && output_function >= (int)OutputFunction::Servo1
 					    && output_function <= (int)OutputFunction::ServoMax) { // Function got set to a servo
 						int32_t val = 1500;
-						PX4_INFO("Setting disarmed to %i for channel %i", (int) val, i);
+						PX4_INFO("Setting disarmed to %i for channel %zu", (int) val, i);
 						param_set(_mixing_output.disarmedParamHandle(i), &val);
 
 						// If the whole timer group was not set previously, then set the pwm rate to 50 Hz
