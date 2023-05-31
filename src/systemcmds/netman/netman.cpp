@@ -407,7 +407,7 @@ static void usage(const char *reason)
   system rebooted.
   
   ### update
-  On subsequent boots, the `update` option will check for the existence of
+  `netman update` is run automatically by the startup script.  the `update` option will check for the existence of
   `net.cfg` in the root of the SD Card. It will saves the network settings
   from `net.cfg` in non-volatile memory, delete the file and reboot the system.
 
@@ -416,7 +416,7 @@ static void usage(const char *reason)
   Use this to edit the settings. 
   save does not immediately apply the network settings; it depends on the
   user rebooting; Where the `update` command is run in the start-up sequence and saves the settings.
-  and apply the network configuration.
+  
     
   ### show
   The `show` option will display the network settings in `net.cfg` to the console.
