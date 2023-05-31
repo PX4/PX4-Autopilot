@@ -22,3 +22,6 @@ param set CBRK_IO_SAFETY 22027
 
 # Disable RC controller check
 param set NAV_RCL_ACT 0
+
+# Disable ekf2 multi-imu, because gazebo provides only one
+param set EKF2_MULTI_IMU 1
