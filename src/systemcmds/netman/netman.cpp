@@ -405,12 +405,21 @@ static void usage(const char *reason)
   memory. On boot the `update` option will be run. If a network configuration
   does not exist. The default setting will be saved in non-volatile and the
   system rebooted.
-  On Subsequent boots, the `update` option will check for the existence of
-  `net.cfg` in the root of the SD Card.  It will saves the network settings
+  
+  ### update
+  On subsequent boots, the `update` option will check for the existence of
+  `net.cfg` in the root of the SD Card. It will saves the network settings
   from `net.cfg` in non-volatile memory, delete the file and reboot the system.
 
-  The `save` option will `net.cfg` on the SD Card. Use this to edit the settings.
-  The  `show` option will display the network settings  to the console.
+  ### save
+  The `save` option will write settings to the `net.cfg` file on the SD Card filesystem.
+  Use this to edit the settings. The main difference with `update` is that
+  save does not immediately apply the network settings; it depends on the
+  user rebooting; at this point, the system will load the settings from the file,
+  and apply the network configuration.
+    
+  ### show
+  The `show` option will display the network settings in `net.cfg` to the console.
 
   ### Examples
   $ netman save           # Save the parameters to the SD card.
