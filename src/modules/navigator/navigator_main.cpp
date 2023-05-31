@@ -1304,6 +1304,9 @@ void Navigator::check_traffic()
 			}
 		}
 	}
+
+	_adsb_conflict.remove_expired_conflicts();
+
 }
 
 bool Navigator::abort_landing()
