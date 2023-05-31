@@ -82,7 +82,7 @@ float ECL_YawController::control_attitude(const float dt, const ECL_ControlData 
 
 	if (!inverted) {
 		/* Calculate desired yaw rate from coordinated turn constraint / (no side forces) */
-		_euler_rate_setpoint = tanf(constrained_roll) * cosf(ctl_data.pitch) * CONSTANTS_ONE_G / ctl_data.airspeed_constrained;
+		_euler_rate_setpoint = tanf(constrained_roll) * CONSTANTS_ONE_G / ctl_data.airspeed_constrained;
 
 		/* Transform setpoint to body angular rates (jacobian) */
 		const float yaw_body_rate_setpoint_raw = -sinf(ctl_data.roll) * ctl_data.euler_pitch_rate_setpoint +
