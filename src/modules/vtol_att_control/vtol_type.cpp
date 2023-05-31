@@ -272,26 +272,21 @@ bool VtolType::isMinAltBreached()
 
 bool VtolType::isUncommandedDescent()
 {
-	if (_param_vt_qc_hr_error_i.get() > FLT_EPSILON && _v_control_mode->flag_control_altitude_enabled
+	const float current_altitude = -_local_pos->z + _local_pos->ref_alt;
+
+	if (_param_vt_qc_alt_loss.get() > FLT_EPSILON && _local_pos->z_valid && _local_pos->z_global
+	    && _v_control_mode->flag_control_altitude_enabled
+	    && PX4_ISFINITE(_tecs_status->altitude_reference)
+	    && (current_altitude < _tecs_status->altitude_reference)
 	    && hrt_elapsed_time(&_tecs_status->timestamp) < 1_s) {
 
-		// TODO if TECS publishes local_position_setpoint dependency on tecs_status can be dropped here
+		_quadchute_ref_alt = math::min(math::max(_quadchute_ref_alt, current_altitude),
+					       _tecs_status->altitude_reference);
 
-		if (_tecs_status->height_rate < -FLT_EPSILON && _tecs_status->height_rate_setpoint > FLT_EPSILON) {
-			// vehicle is currently in uncommended descend, start integrating error
+		return (_quadchute_ref_alt - current_altitude) > _param_vt_qc_alt_loss.get();
 
-			const hrt_abstime now = hrt_absolute_time();
-			float dt = static_cast<float>(now - _last_loop_quadchute_timestamp) / 1e6f;
-			dt = math::constrain(dt, 0.0001f, 0.1f);
-			_last_loop_quadchute_timestamp = now;
-
-			_height_rate_error_integral += (_tecs_status->height_rate_setpoint - _tecs_status->height_rate) * dt;
-
-		} else {
-			_height_rate_error_integral = 0.f; // reset
-		}
-
-		return (_height_rate_error_integral > _param_vt_qc_hr_error_i.get());
+	} else {
+		_quadchute_ref_alt = -MAXFLOAT;
 	}
 
 	return false;

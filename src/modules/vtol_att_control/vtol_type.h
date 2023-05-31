@@ -288,9 +288,6 @@ protected:
 	float _thrust_transition = 0.0f;	// thrust value applied during a front transition (tailsitter & tiltrotor only)
 	float _last_thr_in_fw_mode = 0.0f;
 
-	float _height_rate_error_integral{0.f};
-
-
 	hrt_abstime _trans_finished_ts = 0;
 	hrt_abstime _transition_start_timestamp{0};
 	float _time_since_trans_start{0};
@@ -300,7 +297,8 @@ protected:
 
 	hrt_abstime _last_loop_ts = 0;
 	float _transition_dt = 0;
-	hrt_abstime _last_loop_quadchute_timestamp = 0;
+
+	float _quadchute_ref_alt{-MAXFLOAT};	// altitude (AMSL) reference to compute quad-chute altitude loss condition
 
 	float _accel_to_pitch_integ = 0;
 
@@ -317,7 +315,7 @@ protected:
 	DEFINE_PARAMETERS_CUSTOM_PARENT(ModuleParams,
 					(ParamBool<px4::params::VT_ELEV_MC_LOCK>) _param_vt_elev_mc_lock,
 					(ParamFloat<px4::params::VT_FW_MIN_ALT>) _param_vt_fw_min_alt,
-					(ParamFloat<px4::params::VT_QC_HR_ERROR_I>) _param_vt_qc_hr_error_i,
+					(ParamFloat<px4::params::VT_QC_ALT_LOSS>) _param_vt_qc_alt_loss,
 					(ParamInt<px4::params::VT_FW_QC_P>) _param_vt_fw_qc_p,
 					(ParamInt<px4::params::VT_FW_QC_R>) _param_vt_fw_qc_r,
 					(ParamFloat<px4::params::VT_QC_T_ALT_LOSS>) _param_vt_qc_t_alt_loss,
