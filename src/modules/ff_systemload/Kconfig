@@ -1,0 +1,5 @@
+menuconfig MODULES_FF_SYSTEMLOAD
+	bool "freefly_systemload"
+	default n
+	---help---
+		Enable support for freefly Systemload
