@@ -707,6 +707,22 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now)
 		return; // do not publish the setpoint
 	}
 
+	if (_control_mode.flag_control_auto_enabled && _vehicle_status.is_vtol && _vehicle_status.in_transition_mode) {
+		if (_control_mode.flag_control_position_enabled) {
+			_control_mode_current = FW_POSCTRL_MODE_AUTO_VTOL_TRANSITION_POSITION;
+
+		} else {
+			_control_mode_current = FW_POSCTRL_MODE_AUTO_VTOL_TRANSITION_FIXED;
+		}
+
+		return;
+	}
+
+	if (_control_mode.flag_control_manual_enabled && _vehicle_status.is_vtol && _vehicle_status.in_transition_mode) {
+		_control_mode_current = FW_POSCTRL_MODE_MANUAL_VTOL_TRANSITION;
+		return;
+	}
+
 	FW_POSCTRL_MODE commanded_position_control_mode = _control_mode_current;
 
 	_skipping_takeoff_detection = false;
@@ -716,40 +732,24 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now)
 
 		if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
 
-			if (_vehicle_status.is_vtol && _vehicle_status.in_transition_mode) {
-				_control_mode_current = FW_POSCTRL_MODE_AUTO;
+			_control_mode_current = FW_POSCTRL_MODE_AUTO_TAKEOFF;
 
-				// in this case we want the waypoint handled as a position setpoint -- a submode in control_auto()
-				_pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
-
-			} else {
-				_control_mode_current = FW_POSCTRL_MODE_AUTO_TAKEOFF;
-
-				if (commanded_position_control_mode != FW_POSCTRL_MODE_AUTO_TAKEOFF && !_landed) {
-					// skip takeoff detection when switching from any other mode, auto or manual,
-					// while already in air.
-					// TODO: find a better place for / way of doing this
-					_skipping_takeoff_detection = true;
-				}
+			if (commanded_position_control_mode != FW_POSCTRL_MODE_AUTO_TAKEOFF && !_landed) {
+				// skip takeoff detection when switching from any other mode, auto or manual,
+				// while already in air.
+				// TODO: find a better place for / way of doing this
+				_skipping_takeoff_detection = true;
 			}
 
 		} else if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
-
-			if (!_vehicle_status.in_transition_mode) {
-
-				// Use _position_setpoint_previous_valid to determine if landing should be straight or circular.
-				// Straight landings are currently only possible in Missions, and there the previous WP
-				// is valid, and circular ones are used outside of Missions, as the land mode sets prev_valid=false.
-				if (_position_setpoint_previous_valid) {
-					_control_mode_current = FW_POSCTRL_MODE_AUTO_LANDING_STRAIGHT;
-
-				} else {
-					_control_mode_current = FW_POSCTRL_MODE_AUTO_LANDING_CIRCULAR;
-				}
+			// Use _position_setpoint_previous_valid to determine if landing should be straight or circular.
+			// Straight landings are currently only possible in Missions, and there the previous WP
+			// is valid, and circular ones are used outside of Missions, as the land mode sets prev_valid=false.
+			if (_position_setpoint_previous_valid) {
+				_control_mode_current = FW_POSCTRL_MODE_AUTO_LANDING_STRAIGHT;
 
 			} else {
-				// in this case we want the waypoint handled as a position setpoint -- a submode in control_auto()
-				_pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+				_control_mode_current = FW_POSCTRL_MODE_AUTO_LANDING_CIRCULAR;
 			}
 
 		} else {
@@ -769,8 +769,7 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now)
 			_time_in_fixed_bank_loiter = now;
 		}
 
-		if (hrt_elapsed_time(&_time_in_fixed_bank_loiter) < (_param_nav_gpsf_lt.get() * 1_s)
-		    && !_vehicle_status.in_transition_mode) {
+		if (hrt_elapsed_time(&_time_in_fixed_bank_loiter) < (_param_nav_gpsf_lt.get() * 1_s)) {
 			if (commanded_position_control_mode != FW_POSCTRL_MODE_AUTO_ALTITUDE) {
 				// Need to init because last loop iteration was in a different mode
 				events::send(events::ID("fixedwing_position_control_fb_loiter"), events::Log::Critical,
@@ -833,36 +832,24 @@ FixedwingPositionControl::update_in_air_states(const hrt_abstime now)
 }
 
 void
-FixedwingPositionControl::move_position_setpoint_for_vtol_transition(position_setpoint_s &current_sp)
+FixedwingPositionControl::set_position_setpoint_for_vtol_transition(const position_setpoint_s &current_sp)
 {
 	// TODO: velocity, altitude, or just a heading hold position mode should be used for this, not position
 	// shifting hacks
 
-	if (_vehicle_status.in_transition_to_fw) {
+	if (!PX4_ISFINITE(_transition_waypoint(0))) {
+		double lat_transition, lon_transition;
 
-		if (!PX4_ISFINITE(_transition_waypoint(0))) {
-			double lat_transition, lon_transition;
+		// Create a virtual waypoint HDG_HOLD_DIST_NEXT meters in front of the vehicle which the path navigation controller can track
+		// during the transition. Use the current yaw setpoint to determine the transition heading, as that one in turn
+		// is set to the transition heading by Navigator, or current yaw if setpoint is not valid.
+		const float transition_heading = PX4_ISFINITE(current_sp.yaw) ? current_sp.yaw : _yaw;
+		waypoint_from_heading_and_distance(_current_latitude, _current_longitude, transition_heading, HDG_HOLD_DIST_NEXT,
+						   &lat_transition,
+						   &lon_transition);
 
-			// Create a virtual waypoint HDG_HOLD_DIST_NEXT meters in front of the vehicle which the path navigation controller can track
-			// during the transition. Use the current yaw setpoint to determine the transition heading, as that one in turn
-			// is set to the transition heading by Navigator, or current yaw if setpoint is not valid.
-			const float transition_heading = PX4_ISFINITE(current_sp.yaw) ? current_sp.yaw : _yaw;
-			waypoint_from_heading_and_distance(_current_latitude, _current_longitude, transition_heading, HDG_HOLD_DIST_NEXT,
-							   &lat_transition,
-							   &lon_transition);
-
-			_transition_waypoint(0) = lat_transition;
-			_transition_waypoint(1) = lon_transition;
-		}
-
-
-		current_sp.lat = _transition_waypoint(0);
-		current_sp.lon = _transition_waypoint(1);
-
-	} else {
-		/* reset transition waypoint, will be set upon entering front transition */
-		_transition_waypoint(0) = static_cast<double>(NAN);
-		_transition_waypoint(1) = static_cast<double>(NAN);
+		_transition_waypoint(0) = lat_transition;
+		_transition_waypoint(1) = lon_transition;
 	}
 }
 
@@ -871,16 +858,13 @@ FixedwingPositionControl::control_auto(const float control_interval, const Vecto
 				       const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr,
 				       const position_setpoint_s &pos_sp_next)
 {
-	position_setpoint_s current_sp = pos_sp_curr;
-	move_position_setpoint_for_vtol_transition(current_sp);
-
-	const uint8_t position_sp_type = handle_setpoint_type(current_sp);
+	const uint8_t position_sp_type = handle_setpoint_type(pos_sp_curr);
 
 	_position_sp_type = position_sp_type;
 
 	if (position_sp_type == position_setpoint_s::SETPOINT_TYPE_LOITER
-	    || current_sp.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
-		publishOrbitStatus(current_sp);
+	    || pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
+		publishOrbitStatus(pos_sp_curr);
 	}
 
 	switch (position_sp_type) {
@@ -891,15 +875,15 @@ FixedwingPositionControl::control_auto(const float control_interval, const Vecto
 		break;
 
 	case position_setpoint_s::SETPOINT_TYPE_POSITION:
-		control_auto_position(control_interval, curr_pos, ground_speed, pos_sp_prev, current_sp);
+		control_auto_position(control_interval, curr_pos, ground_speed, pos_sp_prev, pos_sp_curr);
 		break;
 
 	case position_setpoint_s::SETPOINT_TYPE_VELOCITY:
-		control_auto_velocity(control_interval, curr_pos, ground_speed, current_sp);
+		control_auto_velocity(control_interval, curr_pos, ground_speed, pos_sp_curr);
 		break;
 
 	case position_setpoint_s::SETPOINT_TYPE_LOITER:
-		control_auto_loiter(control_interval, curr_pos, ground_speed, pos_sp_prev, current_sp, pos_sp_next);
+		control_auto_loiter(control_interval, curr_pos, ground_speed, pos_sp_prev, pos_sp_curr, pos_sp_next);
 		break;
 	}
 
@@ -917,8 +901,58 @@ FixedwingPositionControl::control_auto(const float control_interval, const Vecto
 	_att_sp.pitch_body = get_tecs_pitch();
 
 	if (!_vehicle_status.in_transition_to_fw) {
-		publishLocalPositionSetpoint(current_sp);
+		publishLocalPositionSetpoint(pos_sp_curr);
 	}
+}
+
+void FixedwingPositionControl::control_auto_transition_position(const Vector2d &curr_pos, const Vector2f &ground_speed,
+		const position_setpoint_s &pos_sp_curr)
+{
+	set_position_setpoint_for_vtol_transition(pos_sp_curr);
+
+	Vector2d curr_wp = Vector2d(_transition_waypoint(0), _transition_waypoint(1));
+	Vector2d prev_wp{curr_pos};
+
+	Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
+	Vector2f curr_wp_local = _global_local_proj_ref.project(curr_wp(0), curr_wp(1));
+	Vector2f prev_wp_local = _global_local_proj_ref.project(prev_wp(0), prev_wp(1));
+
+	_npfg.setAirspeedNom(_airspeed); // We stop the motor, so use the current airspeed as estimation.
+	_npfg.setAirspeedMax(_airspeed);
+
+	navigateWaypoints(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
+
+	_att_sp.roll_body = _npfg.getRollSetpoint();
+
+	_att_sp.yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
+
+	_att_sp.pitch_body = radians(_param_fw_psp_off.get()); // set constant pitch angle
+
+	_att_sp.thrust_body[0] = 0.0f;
+
+
+}
+
+void FixedwingPositionControl::control_auto_transition_fixed()
+{
+	_att_sp.roll_body = radians(_param_nav_gpsf_r.get()); // open loop loiter bank angle
+
+	_att_sp.yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
+
+	_att_sp.pitch_body = radians(_param_fw_psp_off.get()); // set constant pitch angle
+
+	_att_sp.thrust_body[0] = 0.0f;
+}
+
+void FixedwingPositionControl::control_manual_transition()
+{
+	_att_sp.roll_body = _manual_control_setpoint.roll * radians(_param_fw_r_lim.get());
+
+	_att_sp.yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
+
+	_att_sp.pitch_body = radians(_param_fw_psp_off.get()); // set constant pitch angle
+
+	_att_sp.thrust_body[0] = 0.0f;
 }
 
 void
@@ -2092,23 +2126,14 @@ FixedwingPositionControl::control_manual_position(const float control_interval, 
 float
 FixedwingPositionControl::get_tecs_pitch()
 {
-	if (_tecs_is_running) {
-		return _tecs.get_pitch_setpoint() + radians(_param_fw_psp_off.get());
-	}
+	return _tecs.get_pitch_setpoint() + radians(_param_fw_psp_off.get());
 
-	// return level flight pitch offset to prevent stale tecs state when it's not running
-	return radians(_param_fw_psp_off.get());
 }
 
 float
 FixedwingPositionControl::get_tecs_thrust()
 {
-	if (_tecs_is_running) {
-		return min(_tecs.get_throttle_setpoint(), 1.f);
-	}
-
-	// return 0 to prevent stale tecs state when it's not running
-	return 0.0f;
+	return min(_tecs.get_throttle_setpoint(), 1.f);
 }
 
 void
@@ -2301,6 +2326,12 @@ FixedwingPositionControl::Run()
 		_flaps_setpoint = 0.f;
 		_spoilers_setpoint = 0.f;
 
+		/* reset transition waypoint, will be set upon entering transition */
+		if (_control_mode_current != FW_POSCTRL_MODE_AUTO_VTOL_TRANSITION_POSITION) {
+			_transition_waypoint(0) = static_cast<double>(NAN);
+			_transition_waypoint(1) = static_cast<double>(NAN);
+		}
+
 		// by default we don't want yaw to be contoller directly with rudder
 		_att_sp.fw_control_yaw_wheel = false;
 
@@ -2352,6 +2383,16 @@ FixedwingPositionControl::Run()
 				break;
 			}
 
+		case FW_POSCTRL_MODE_AUTO_VTOL_TRANSITION_FIXED: {
+				control_auto_transition_fixed();
+				break;
+			}
+
+		case FW_POSCTRL_MODE_AUTO_VTOL_TRANSITION_POSITION: {
+				control_auto_transition_position(curr_pos, ground_speed, _pos_sp_triplet.current);
+				break;
+			}
+
 		case FW_POSCTRL_MODE_MANUAL_POSITION: {
 				control_manual_position(control_interval, curr_pos, ground_speed);
 				break;
@@ -2359,6 +2400,11 @@ FixedwingPositionControl::Run()
 
 		case FW_POSCTRL_MODE_MANUAL_ALTITUDE: {
 				control_manual_altitude(control_interval, curr_pos, ground_speed);
+				break;
+			}
+
+		case FW_POSCTRL_MODE_MANUAL_VTOL_TRANSITION: {
+				control_manual_transition();
 				break;
 			}
 
@@ -2508,15 +2554,10 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 		const float desired_max_sinkrate, const float desired_max_climbrate,
 		bool disable_underspeed_detection, float hgt_rate_sp)
 {
-	_tecs_is_running = true;
 
 	// do not run TECS if vehicle is a VTOL and we are in rotary wing mode or in transition
 	// (it should also not run during VTOL blending because airspeed is too low still)
 	if (_vehicle_status.is_vtol) {
-		if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING || _vehicle_status.in_transition_mode) {
-			_tecs_is_running = false;
-		}
-
 		if (_vehicle_status.in_transition_mode) {
 			// we're in transition
 			_was_in_transition = true;
@@ -2545,12 +2586,6 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 				_airspeed_after_transition = 0.0f;
 			}
 		}
-	}
-
-	if (!_tecs_is_running) {
-		// next time we run TECS we should reinitialize states
-		_reinitialize_tecs = true;
-		return;
 	}
 
 	// We need an altitude lock to calculate the TECS control

@@ -242,8 +242,11 @@ private:
 		FW_POSCTRL_MODE_AUTO_TAKEOFF,
 		FW_POSCTRL_MODE_AUTO_LANDING_STRAIGHT,
 		FW_POSCTRL_MODE_AUTO_LANDING_CIRCULAR,
+		FW_POSCTRL_MODE_AUTO_VTOL_TRANSITION_POSITION,
+		FW_POSCTRL_MODE_AUTO_VTOL_TRANSITION_FIXED,
 		FW_POSCTRL_MODE_MANUAL_POSITION,
 		FW_POSCTRL_MODE_MANUAL_ALTITUDE,
+		FW_POSCTRL_MODE_MANUAL_VTOL_TRANSITION,
 		FW_POSCTRL_MODE_OTHER
 	} _control_mode_current{FW_POSCTRL_MODE_OTHER}; // used to check if the mode has changed
 
@@ -390,7 +393,6 @@ private:
 	TECS _tecs;
 
 	bool _reinitialize_tecs{true};
-	bool _tecs_is_running{false};
 	hrt_abstime _time_last_tecs_update{0}; // [us]
 
 	// VTOL / TRANSITION
@@ -511,12 +513,12 @@ private:
 	void update_in_air_states(const hrt_abstime now);
 
 	/**
-	 * @brief Moves the current position setpoint to a value far ahead of the current vehicle yaw when in  a VTOL
+	 * @brief Set the current position setpoint to a value far ahead of the current vehicle yaw when in  a VTOL
 	 * transition.
 	 *
 	 * @param[in,out] current_sp Current position setpoint
 	 */
-	void move_position_setpoint_for_vtol_transition(position_setpoint_s &current_sp);
+	void set_position_setpoint_for_vtol_transition(const position_setpoint_s &current_sp);
 
 	/**
 	 * @brief Changes the position setpoint type to achieve the desired behavior in some instances.
@@ -540,6 +542,26 @@ private:
 	 */
 	void control_auto(const float control_interval, const Vector2d &curr_pos, const Vector2f &ground_speed,
 			  const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next);
+
+	/**
+	 * @brief Automatic position control for VTOL transition
+	 *
+	 * @param curr_pos Current 2D local position vector of vehicle [m]
+	 * @param ground_speed Local 2D ground speed of vehicle [m/s]
+	 * @param pos_sp_curr current position setpoint
+	 */
+	void control_auto_transition_position(const Vector2d &curr_pos, const Vector2f &ground_speed,
+					      const position_setpoint_s &pos_sp_curr);
+
+	/**
+	 * @brief Automatic fixed bank control for VTOL transition
+	 */
+	void control_auto_transition_fixed();
+
+	/**
+	 * @brief Manual control for for VTOL transition
+	 */
+	void control_manual_transition();
 
 	/**
 	 * @brief Controls altitude and airspeed for a fixed-bank loiter.
