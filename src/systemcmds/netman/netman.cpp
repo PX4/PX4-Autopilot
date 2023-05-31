@@ -412,7 +412,7 @@ static void usage(const char *reason)
   from `net.cfg` in non-volatile memory, delete the file and reboot the system.
 
   ### save
-  The `save` option will write settings to the `net.cfg` file on the SD Card filesystem.
+  The `save` option will save settings from non-volatile memory to a file named `net.cfg` on the SD Card filesystem for editing.
   Use this to edit the settings. The main difference with `update` is that
   save does not immediately apply the network settings; it depends on the
   user rebooting; at this point, the system will load the settings from the file,
