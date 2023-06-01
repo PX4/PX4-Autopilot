@@ -7,7 +7,7 @@ pipeline {
     stage('Analysis') {
       when {
         anyOf {
-          branch 'main'
+          branch 'New-Branch'
           branch 'master' // should be removed, but in case there is something going on...
           branch 'pr-jenkins' // for testing
         }
