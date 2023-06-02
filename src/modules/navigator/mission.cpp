@@ -982,7 +982,10 @@ Mission::set_mission_items()
 					_mission_item.altitude_is_relative = false;
 					_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 					_mission_item.autocontinue = true;
-					_mission_item.time_inside = 0.0f;
+
+					// have to reset here because these field were used in set_vtol_transition_item
+					_mission_item.time_inside = 0.f;
+					_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 
 					// make previous setpoint invalid, such that there will be no prev-current line following.
 					// if the vehicle drifted off the path during back-transition it should just go straight to the landing point
