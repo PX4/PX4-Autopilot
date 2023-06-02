@@ -33,6 +33,12 @@
  *
  ****************************************************************************/
 
+/**
+ * @file ASP5033.cpp
+ *
+ *@author Denislav Petrov <denislavamitoba@gmail.com>
+ */
+
 
 
 #include "ASP5033.hpp"

@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 /**
+ * @file ASP5033.hpp
  *
  * Driver for ASP5033 connected via I2C.
  *
@@ -42,7 +43,7 @@
  * Interface application notes:
  *
  *
- *
+ *@author Denislav Petrov <denislavamitoba@gmail.com>
  */
 
 #pragma once
