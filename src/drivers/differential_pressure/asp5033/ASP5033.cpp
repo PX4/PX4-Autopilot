@@ -75,29 +75,30 @@ int ASP5033::init()
 }
 
 
-int ASP5033::get_differential_pressure()
+/**
+ * @brief calculation of the differential pressure in this way:
+ * it collect all measured pressure and store it into press_sum,
+ * count the value of collected times-press_count, then divide both
+ * and get the actual value of differential pressure - _pressure
+ *
+ * @return true if pressure is valid and no errors, false if not
+ */
+bool ASP5033::get_differential_pressure()
 {
 	if (hrt_elapsed_time(&last_sample_time) > 100_ms){
-		return 0;
+		return false;
 	}
 
 	if(press_count == 0) {
-		_pressure =_pressure_prev;
-        	return 0;
+        	return false;
     	}
 
 	//calculation differential pressure
 	_pressure= press_sum / press_count;
 
-	if((int)_pressure !=0){
-		_pressure_prev=_pressure;
-	}
-
 	press_sum=0.;
 	press_count=0.;
-	return 1;
-
-
+	return true;
 
 }
 
@@ -198,35 +199,29 @@ int ASP5033::collect()
 	// k is a shift based on the pressure range of the device. See
 	// table in the datasheet
 	constexpr uint8_t k = 7;
-	constexpr float press_scale = 1.0 / (1U<<k);
+	constexpr float press_scale = 1.0f / (1U<<k);
 	press_sum += press * press_scale;
 	press_count++;
 
 	// temperature is 16 bit signed in units of 1/256 C
 	const int16_t temp = (val[3]<<8) | val[4];
-	constexpr float temp_scale = 1.0 / 256;
+	constexpr float temp_scale = 1.0f / 256;
 	_temperature= temp *temp_scale;
-	if ((int)_temperature !=0){
-		_temperaute_prev=_temperature;
-	}
-
 	last_sample_time= hrt_absolute_time();
-	int status=get_differential_pressure();
-	if ((int)_temperature==0 || (int)_pressure==0 || status ==0){
-		_pressure=_pressure_prev;
-		_temperature=_temperaute_prev;
+	bool status=get_differential_pressure();
+	if(status==true && (int)_temperature!=0){
+		// publish values
+		differential_pressure_s differential_pressure{};
+		differential_pressure.timestamp_sample = timestamp_sample;
+		differential_pressure.device_id = get_device_id();
+		differential_pressure.differential_pressure_pa =_pressure;
+		differential_pressure.temperature = _temperature ;
+		differential_pressure.error_count = perf_event_count(_comms_errors);
+		differential_pressure.timestamp = timestamp_sample;
+		_differential_pressure_pub.publish(differential_pressure);
+
 	}
 
-
-	// publish values
-	differential_pressure_s differential_pressure{};
-	differential_pressure.timestamp_sample = timestamp_sample;
-	differential_pressure.device_id = get_device_id();
-	differential_pressure.differential_pressure_pa =_pressure;
-	differential_pressure.temperature = _temperature ;
-	differential_pressure.error_count = perf_event_count(_comms_errors);
-	differential_pressure.timestamp = timestamp_sample;
-	_differential_pressure_pub.publish(differential_pressure);
 
 	perf_end(_sample_perf);
 

@@ -110,7 +110,7 @@ private:
 	int measure();
 	int collect();
 
-	int get_differential_pressure();
+	bool get_differential_pressure();
 	hrt_abstime last_sample_time= hrt_absolute_time();
 	orb_advert_t 	_mavlink_log_pub {nullptr}; //log send to
 
