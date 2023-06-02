@@ -544,6 +544,10 @@ void RTL::set_rtl_item()
 			_mission_item.altitude = loiter_altitude;
 			_mission_item.altitude_is_relative = false;
 
+			// have to reset here because these field were used in set_vtol_transition_item
+			_mission_item.time_inside = 0.f;
+			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
+
 			if (rtl_heading_mode == RTLHeadingMode::RTL_NAVIGATION_HEADING) {
 				_mission_item.yaw = get_bearing_to_next_waypoint(gpos.lat, gpos.lon, _destination.lat, _destination.lon);
 
@@ -554,7 +558,6 @@ void RTL::set_rtl_item()
 				_mission_item.yaw = _navigator->get_local_position()->heading;
 			}
 
-			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 			_mission_item.origin = ORIGIN_ONBOARD;
 			break;
 		}
