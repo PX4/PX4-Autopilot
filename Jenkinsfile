@@ -8,7 +8,7 @@ pipeline {
       when {
         anyOf {
           branch 'New-Branch'
-          branch 'master' // should be removed, but in case there is something going on...
+          
           branch 'pr-jenkins' // for testing
         }
       }
@@ -180,8 +180,8 @@ pipeline {
           }
           when {
             anyOf {
-              branch 'main'
-              branch 'master' // should be removed, but in case there is something going on...
+               branch 'New-Branch'
+             
               branch 'pr-jenkins' // for testing
             }
           }
@@ -209,8 +209,8 @@ pipeline {
           }
           when {
             anyOf {
-              branch 'main'
-              branch 'master' // should be removed, but in case there is something going on...
+              branch 'New-Branch'
+              
               branch 'pr-jenkins' // for testing
             }
           }
@@ -238,7 +238,7 @@ pipeline {
           }
           when {
             anyOf {
-              branch 'main'
+            branch 'New-Branch'
             }
           }
         }
@@ -260,8 +260,8 @@ pipeline {
           }
           when {
             anyOf {
-              branch 'main'
-              branch 'master' // should be removed, but in case there is something going on...
+              branch 'New-Branch'
+
               branch 'pr-jenkins' // for testing
             }
           }
