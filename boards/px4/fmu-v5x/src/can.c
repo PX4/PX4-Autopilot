@@ -77,8 +77,8 @@ uint16_t board_get_can_interfaces(void)
 /* Configuration ********************************************************************/
 
 #if defined(CONFIG_STM32F7_CAN1) && defined(CONFIG_STM32F7_CAN2)
-#  warning "Both CAN1 and CAN2 are enabled.  Assuming only CAN1."
-#  undef CONFIG_STM32F7_CAN2
+// FREEFLY CUSTOM
+#  define CAN_SECOND_PORT 2
 #endif
 
 #ifdef CONFIG_STM32F7_CAN1
@@ -132,6 +132,28 @@ int can_devinit(void)
 			return ret;
 		}
 
+// FREEFLY CUSTOM - initialize second can port for smart battery
+#ifdef CAN_SECOND_PORT
+
+		/* Call stm32_caninitialize() to get an instance of the CAN interface */
+
+		can = stm32_caninitialize(CAN_SECOND_PORT);
+
+		if (can == NULL) {
+			canerr("ERROR: Failed to get CAN interface\n");
+			return -ENODEV;
+		}
+
+		/* Register the CAN driver at "/dev/can1 */
+
+		ret = can_register("/dev/can1", can);
+
+		if (ret < 0) {
+			canerr("ERROR: can_register failed: %d\n", ret);
+			return ret;
+		}
+
+#endif
 		/* Now we are initialized */
 
 		initialized = true;

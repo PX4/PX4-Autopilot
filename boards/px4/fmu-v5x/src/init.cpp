@@ -92,6 +92,10 @@ __BEGIN_DECLS
 extern void led_init(void);
 extern void led_on(int led);
 extern void led_off(int led);
+
+// FREEFLY CUSTOM
+extern int can_devinit(void);
+
 __END_DECLS
 
 
@@ -285,6 +289,14 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	}
 
 #endif /* CONFIG_MMCSD */
+
+	// FREEFLY CUSTOM
+	if (OK == can_devinit()) {
+		syslog(LOG_INFO, "CAN: Successfully registered\n");
+
+	} else {
+		syslog(LOG_ERR, "CAN: Initialization failed\n");
+	}
 
 	return OK;
 }

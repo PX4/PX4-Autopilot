@@ -52,3 +52,11 @@ if ver hwbasecmp 00a 008
 then
 	mcp23009 start -b 3 -X -D 0xf1 -O 0xf0 -P 0x0f -M 0 -U 10
 fi
+
+# FREEFLY CUSTOM
+if param compare SYS_AUTOSTART 0
+then
+	# Select Astro airframe by default
+	echo "[Freefly] - Airframe automatic configuration to Astro"
+	param set SYS_AUTOSTART 1002003
+fi

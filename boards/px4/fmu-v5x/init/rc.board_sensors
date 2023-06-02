@@ -17,50 +17,29 @@ else
 	board_adc start
 fi
 
-
-if param compare SENS_EN_INA226 1
-then
-	# Start Digital power monitors
-	ina226 -X -b 1 -t 1 -k start
-
-	if [ $HAVE_PM2 = yes ]
-	then
-		ina226 -X -b 2 -t 2 -k start
-	fi
-fi
-
-if param compare SENS_EN_INA228 1
-then
-	# Start Digital power monitors
-	ina228 -X -b 1 -t 1 -k start
-	if [ $HAVE_PM2 = yes ]
-	then
-		ina228 -X -b 2 -t 2 -k start
-	fi
-fi
-
-if param compare SENS_EN_INA238 1
-then
-	# Start Digital power monitors
-	ina238 -X -b 1 -t 1 -k start
-	if [ $HAVE_PM2 = yes ]
-	then
-		ina238 -X -b 2 -t 2 -k start
-	fi
-fi
-
 if ver hwbasecmp 008 009 00a 010 011
 then
+	# FREEFLY CUSTOM
+	# Freefly Skynode:
+	# HW type: V5X009000
+	# HW version: 0x009
+	# HW revision: 0x000
+	echo "[Freefly] Skynode Board detected! Starting sensors"
+
+	# setup sensor priorities in this order 1: MPU6000, 2: BMI088, 3: icm20602
+
+	# Internal MPU6000 on Freefly Skynode (soft mounted) - highest priority
+	mpu6000 -s start
+
 	#SKYNODE base fmu board orientation
 
-	# Internal SPI BMI088
+	# Internal SPI BMI088 (soft mounted) - fallback
 	bmi088 -A -R 2 -s start
 	bmi088 -G -R 2 -s start
 
-	# Internal SPI bus ICM42688p
-	icm42688p -R 4 -s start
+	# Freefly replaced the icm42688p with mpu6000 that is started with higher priority above
 
-	# Internal SPI bus ICM-20602 (hard-mounted)
+	# Internal SPI bus ICM-20602 (hard-mounted on base board)
 	icm20602 -R 8 -s start
 
 	# Internal magnetometer on I2c
