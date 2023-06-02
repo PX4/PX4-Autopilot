@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
+ * Copyright (c) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -75,11 +75,11 @@ static constexpr uint32_t I2C_SPEED = 100 * 1000; // 100 kHz I2C serial interfac
 #define CMD_MEASURE_ASP5033 0X0A  //0x0A
 
 
-class ASP5033Driver : public device::I2C , public I2CSPIDriver<ASP5033Driver>
+class ASP5033 : public device::I2C , public I2CSPIDriver<ASP5033>
 {
 public:
-	ASP5033Driver(const I2CSPIDriverConfig &config);
-	~ASP5033Driver() override;
+	ASP5033(const I2CSPIDriverConfig &config);
+	~ASP5033() override;
 
 	static void print_usage();
 	void print_status() override;

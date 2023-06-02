@@ -1,6 +1,8 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
+ *
+ * Copyright (c) 2023 PX4 Development Team. All rights reserved.
+ *
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,9 +35,9 @@
 
 
 
-#include "ASP5033Driver.hpp"
+#include "ASP5033.hpp"
 
-ASP5033Driver::ASP5033Driver(const I2CSPIDriverConfig &config) :
+ASP5033::ASP5033(const I2CSPIDriverConfig &config) :
 	I2C(config),
 	I2CSPIDriver(config)
 
@@ -44,14 +46,14 @@ ASP5033Driver::ASP5033Driver(const I2CSPIDriverConfig &config) :
 
 }
 
-ASP5033Driver::~ASP5033Driver()
+ASP5033::~ASP5033()
 {
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
 	perf_free(_fault_perf);
 }
 
-int ASP5033Driver::probe()
+int ASP5033::probe()
 {
 	uint8_t cmd=REG_CMD_ASP5033;
 	int ret = transfer(&cmd, 1, nullptr, 0);
@@ -59,7 +61,7 @@ int ASP5033Driver::probe()
 
 }
 
-int ASP5033Driver::init()
+int ASP5033::init()
 {
 	int ret = I2C::init();
 	if (ret != PX4_OK) {
@@ -76,7 +78,7 @@ int ASP5033Driver::init()
 }
 
 
-int ASP5033Driver::get_differential_pressure()
+int ASP5033::get_differential_pressure()
 {
 	if(((double)(clock()-last_sample_time)/CLOCKS_PER_SEC)>0.1){
 		return 0;
@@ -103,7 +105,7 @@ int ASP5033Driver::get_differential_pressure()
 }
 
 
-void ASP5033Driver::print_status()
+void ASP5033::print_status()
 {
 
 	I2CSPIDriverBase::print_status();
@@ -113,7 +115,7 @@ void ASP5033Driver::print_status()
 	perf_print_counter(_fault_perf);
 }
 
-void ASP5033Driver::RunImpl()
+void ASP5033::RunImpl()
 {
 	int ret = PX4_ERROR;
 
@@ -161,7 +163,7 @@ void ASP5033Driver::RunImpl()
 }
 
 
-int ASP5033Driver::measure()
+int ASP5033::measure()
 {
 	// Send the command to begin a measurement.
 	uint8_t cmd_1 = CMD_MEASURE_ASP5033;
@@ -180,7 +182,7 @@ int ASP5033Driver::measure()
 	return ret;
 }
 
-int ASP5033Driver::collect()
+int ASP5033::collect()
 {
 	perf_begin(_sample_perf);
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
