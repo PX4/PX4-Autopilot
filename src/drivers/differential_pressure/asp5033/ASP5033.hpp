@@ -42,6 +42,7 @@
  * Interface application notes:
  *
  *
+ *
  */
 
 #pragma once
@@ -54,7 +55,7 @@
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/differential_pressure.h>
 
-#include <px4_platform_common/module.h> //deni
+#include <px4_platform_common/module.h>
 #include <lib/systemlib/mavlink_log.h>
 
 
@@ -74,6 +75,8 @@ static constexpr uint32_t I2C_SPEED = 100 * 1000; // 100 kHz I2C serial interfac
 #define REG_TEMP_DATA_ASP5033 0X09
 #define CMD_MEASURE_ASP5033 0X0A  //0x0A
 
+using namespace time_literals;
+
 
 class ASP5033 : public device::I2C , public I2CSPIDriver<ASP5033>
 {
@@ -89,25 +92,26 @@ public:
 
 	int init() override;
 
-	float PRESSURE = 0.; //int16_t
-	float TEMPERATURE = 0.;
-	float PRESSURE_PREV = 0.;
-	float TEMPERATURE_PREV = 0.;
+
 
 	float press_sum;
 	uint32_t press_count;
 
 
 private:
+
+	float _pressure= 0.f;
+	float _temperature = 0.f;
+	float _pressure_prev = 0.f;
+	float _temperaute_prev = 0.f;
+
 	int probe() override;
 
 	int measure();
 	int collect();
 
 	int get_differential_pressure();
-	clock_t last_sample_time=clock();
-
-
+	hrt_abstime last_sample_time= hrt_absolute_time();
 	orb_advert_t 	_mavlink_log_pub {nullptr}; //log send to
 
 

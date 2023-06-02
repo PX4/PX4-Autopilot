@@ -40,10 +40,7 @@
 ASP5033::ASP5033(const I2CSPIDriverConfig &config) :
 	I2C(config),
 	I2CSPIDriver(config)
-
 {
-	_differential_pressure_pub.advertise();
-
 }
 
 ASP5033::~ASP5033()
@@ -80,25 +77,25 @@ int ASP5033::init()
 
 int ASP5033::get_differential_pressure()
 {
-	if(((double)(clock()-last_sample_time)/CLOCKS_PER_SEC)>0.1){
+	if (hrt_elapsed_time(&last_sample_time) > 100_ms){
 		return 0;
 	}
 
 	if(press_count == 0) {
-		PRESSURE =PRESSURE_PREV;
+		_pressure =_pressure_prev;
         	return 0;
     	}
 
 	//calculation differential pressure
-	PRESSURE= press_sum / press_count;
+	_pressure= press_sum / press_count;
 
-	if((int)PRESSURE !=0){
-		PRESSURE_PREV=PRESSURE;
+	if((int)_pressure !=0){
+		_pressure_prev=_pressure;
 	}
 
 	press_sum=0.;
 	press_count=0.;
-	return (int)PRESSURE;
+	return 1;
 
 
 
@@ -208,16 +205,16 @@ int ASP5033::collect()
 	// temperature is 16 bit signed in units of 1/256 C
 	const int16_t temp = (val[3]<<8) | val[4];
 	constexpr float temp_scale = 1.0 / 256;
-	TEMPERATURE= temp *temp_scale;
-	if ((int)TEMPERATURE !=0){
-		TEMPERATURE_PREV=TEMPERATURE;
+	_temperature= temp *temp_scale;
+	if ((int)_temperature !=0){
+		_temperaute_prev=_temperature;
 	}
 
-	last_sample_time=clock();
+	last_sample_time= hrt_absolute_time();
 	int status=get_differential_pressure();
-	if ((int)TEMPERATURE==0 || (int)PRESSURE==0 || status ==0){
-		PRESSURE=PRESSURE_PREV;
-		TEMPERATURE=TEMPERATURE_PREV;
+	if ((int)_temperature==0 || (int)_pressure==0 || status ==0){
+		_pressure=_pressure_prev;
+		_temperature=_temperaute_prev;
 	}
 
 
@@ -225,10 +222,10 @@ int ASP5033::collect()
 	differential_pressure_s differential_pressure{};
 	differential_pressure.timestamp_sample = timestamp_sample;
 	differential_pressure.device_id = get_device_id();
-	differential_pressure.differential_pressure_pa =PRESSURE;
-	differential_pressure.temperature = TEMPERATURE ;
+	differential_pressure.differential_pressure_pa =_pressure;
+	differential_pressure.temperature = _temperature ;
 	differential_pressure.error_count = perf_event_count(_comms_errors);
-	differential_pressure.timestamp = hrt_absolute_time();
+	differential_pressure.timestamp = timestamp_sample;
 	_differential_pressure_pub.publish(differential_pressure);
 
 	perf_end(_sample_perf);
