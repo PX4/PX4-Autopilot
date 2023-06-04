@@ -61,6 +61,7 @@ class Parameter(object):
         self.category = ""
         self.volatile = False
         self.boolean = False
+        self.path = ""
 
     def GetName(self):
         return self.name
@@ -116,6 +117,12 @@ class Parameter(object):
         """
         self.category = category
 
+    def SetPath(self, path):
+        """
+        Set param file path
+        """
+        self.path = path
+
     def GetFieldCodes(self):
         """
         Return list of existing field codes in convenient order
@@ -168,6 +175,12 @@ class Parameter(object):
                 return ""
         return fv.strip()
 
+    def GetPath(self):
+        """
+        Return value of the file path in which the parameter was defined.
+        """
+        return self.path
+
 class SourceParser(object):
     """
     Parses provided data and stores all found parameters internally.
@@ -197,7 +210,7 @@ class SourceParser(object):
     def __init__(self):
         self.param_groups = {}
 
-    def Parse(self, contents):
+    def Parse(self, contents, file):
         """
         Incrementally parse program contents and append all found parameters
         to the list.
@@ -299,6 +312,7 @@ class SourceParser(object):
                     if defval != "" and self.re_is_a_number.match(defval):
                         defval = self.re_cut_type_specifier.sub('', defval)
                     param = Parameter(name, tp, defval)
+                    param.SetPath(file)
                     param.SetField("short_desc", name)
                     # If comment was found before the parameter declaration,
                     # inject its data into the newly created parameter.
