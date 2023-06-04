@@ -110,9 +110,9 @@ bool GHSTTelemetry::send_gps1_status()
 		return false;
 	}
 
-	int32_t latitude = vehicle_gps_position.lat;				// 1e-7 degrees
-	int32_t longitude = vehicle_gps_position.lon;				// 1e-7 degrees
-	uint16_t altitude = vehicle_gps_position.alt / 1000;			// mm -> m
+	int32_t latitude = static_cast<int32_t>(round(vehicle_gps_position.latitude_deg * 1e7));        // 1e-7 degrees
+	int32_t longitude = static_cast<int32_t>(round(vehicle_gps_position.longitude_deg * 1e7));      // 1e-7 degrees
+	uint16_t altitude = static_cast<int16_t>(round(vehicle_gps_position.altitude_msl_m));           // meters
 
 	return ghst_send_telemetry_gps1_status(_uart_fd, latitude, longitude, altitude);
 }
