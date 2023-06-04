@@ -35,12 +35,12 @@
 
 using namespace time_literals;
 
-FakeGps::FakeGps(double latitude_deg, double longitude_deg, float altitude_m) :
+FakeGps::FakeGps(double latitude_deg, double longitude_deg, double altitude_m) :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default),
-	_latitude(latitude_deg * 10e6),
-	_longitude(longitude_deg * 10e6),
-	_altitude(altitude_m * 10e2f)
+	_latitude(latitude_deg),
+	_longitude(longitude_deg),
+	_altitude(altitude_m)
 {
 }
 
@@ -60,10 +60,10 @@ void FakeGps::Run()
 
 	sensor_gps_s sensor_gps{};
 	sensor_gps.time_utc_usec = hrt_absolute_time() + 1613692609599954;
-	sensor_gps.lat = _latitude;
-	sensor_gps.lon = _longitude;
-	sensor_gps.alt = _altitude;
-	sensor_gps.alt_ellipsoid = _altitude;
+	sensor_gps.latitude_deg = _latitude;
+	sensor_gps.longitude_deg = _longitude;
+	sensor_gps.altitude_msl_m = _altitude;
+	sensor_gps.altitude_ellipsoid_m = _altitude;
 	sensor_gps.s_variance_m_s = 0.3740f;
 	sensor_gps.c_variance_rad = 0.6737f;
 	sensor_gps.eph = 2.1060f;
