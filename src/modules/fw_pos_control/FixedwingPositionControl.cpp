@@ -724,6 +724,10 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now)
 				_control_mode_current = FW_POSCTRL_MODE_AUTO;
 				return;
 			}
+
+		} else if (_control_mode.flag_control_velocity_enabled) {
+			_control_mode_current = FW_POSCTRL_MODE_AUTO_VELOCITY;
+			return;
 		}
 	}
 
@@ -910,10 +914,6 @@ FixedwingPositionControl::control_auto(const float control_interval, const Vecto
 		control_auto_position(control_interval, curr_pos, ground_speed, pos_sp_prev, current_sp);
 		break;
 
-	case position_setpoint_s::SETPOINT_TYPE_VELOCITY:
-		control_auto_velocity(control_interval, curr_pos, ground_speed, current_sp);
-		break;
-
 	case position_setpoint_s::SETPOINT_TYPE_LOITER:
 		control_auto_loiter(control_interval, curr_pos, ground_speed, pos_sp_prev, current_sp, pos_sp_next);
 		break;
@@ -996,10 +996,6 @@ uint8_t
 FixedwingPositionControl::handle_setpoint_type(const position_setpoint_s &pos_sp_curr)
 {
 	uint8_t position_sp_type = pos_sp_curr.type;
-
-	if (!_control_mode.flag_control_position_enabled && _control_mode.flag_control_velocity_enabled) {
-		return position_setpoint_s::SETPOINT_TYPE_VELOCITY;
-	}
 
 	Vector2d curr_wp{0, 0};
 
@@ -1159,7 +1155,7 @@ FixedwingPositionControl::control_auto_velocity(const float control_interval, co
 	Vector2f target_velocity{pos_sp_curr.vx, pos_sp_curr.vy};
 	_target_bearing = wrap_pi(atan2f(target_velocity(1), target_velocity(0)));
 
-	float target_airspeed = adapt_airspeed_setpoint(control_interval, pos_sp_curr.cruising_speed,
+	float target_airspeed = adapt_airspeed_setpoint(control_interval, target_velocity.norm(),
 				_param_fw_airspd_min.get(), ground_speed);
 
 	Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
@@ -1172,7 +1168,7 @@ FixedwingPositionControl::control_auto_velocity(const float control_interval, co
 	_att_sp.yaw_body = _yaw;
 
 	tecs_update_pitch_throttle(control_interval,
-				   position_sp_alt,
+				   NAN,
 				   target_airspeed,
 				   radians(_param_fw_p_lim_min.get()),
 				   radians(_param_fw_p_lim_max.get()),
@@ -2411,6 +2407,11 @@ FixedwingPositionControl::Run()
 
 		case FW_POSCTRL_MODE_AUTO_TAKEOFF: {
 				control_auto_takeoff(_local_pos.timestamp, control_interval, curr_pos, ground_speed, _pos_sp_triplet.current);
+				break;
+			}
+
+		case FW_POSCTRL_MODE_AUTO_VELOCITY: {
+				control_auto_velocity(control_interval, curr_pos, ground_speed, _pos_sp_triplet.current);
 				break;
 			}
 
