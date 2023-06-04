@@ -2245,9 +2245,9 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 
 		gpsMessage gps_msg{
 			.time_usec = vehicle_gps_position.timestamp,
-			.lat = vehicle_gps_position.lat,
-			.lon = vehicle_gps_position.lon,
-			.alt = vehicle_gps_position.alt,
+			.lat = static_cast<int32_t>(round(vehicle_gps_position.latitude_deg * 1e7)),
+			.lon = static_cast<int32_t>(round(vehicle_gps_position.longitude_deg * 1e7)),
+			.alt = static_cast<int32_t>(round(vehicle_gps_position.altitude_msl_m * 1e3)),
 			.yaw = vehicle_gps_position.heading,
 			.yaw_offset = vehicle_gps_position.heading_offset,
 			.yaw_accuracy = vehicle_gps_position.heading_accuracy,
@@ -2269,7 +2269,7 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 		_ekf.setGpsData(gps_msg);
 
 		_gps_time_usec = gps_msg.time_usec;
-		_gps_alttitude_ellipsoid = vehicle_gps_position.alt_ellipsoid;
+		_gps_alttitude_ellipsoid = static_cast<int32_t>(round(vehicle_gps_position.altitude_ellipsoid_m * 1e3));
 	}
 }
 

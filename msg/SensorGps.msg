@@ -5,10 +5,10 @@ uint64 timestamp_sample
 
 uint32 device_id                # unique device ID for the sensor that does not change between power cycles
 
-int32 lat			# Latitude in 1E-7 degrees
-int32 lon			# Longitude in 1E-7 degrees
-int32 alt			# Altitude in 1E-3 meters above MSL, (millimetres)
-int32 alt_ellipsoid 		# Altitude in 1E-3 meters bove Ellipsoid, (millimetres)
+float64 latitude_deg		# Latitude in degrees, allows centimeter level RTK precision
+float64 longitude_deg		# Longitude in degrees, allows centimeter level RTK precision
+float64 altitude_msl_m		# Altitude above MSL, meters
+float64 altitude_ellipsoid_m	# Altitude above Ellipsoid, meters
 
 float32 s_variance_m_s		# GPS speed accuracy estimate, (metres/sec)
 float32 c_variance_rad		# GPS course accuracy estimate, (radians)

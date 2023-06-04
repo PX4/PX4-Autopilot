@@ -2103,7 +2103,8 @@ void Logger::write_version(LogType type)
 
 	// data versioning: increase this on every larger data change (format/semantic)
 	// 1: switch to FIFO drivers (disabled on-chip DLPF)
-	write_info(type, "ver_data_format", static_cast<uint32_t>(1));
+	// 2: changed lat/lon/alt* to double to accommodate RTK GPS centimeter level precision
+	write_info(type, "ver_data_format", static_cast<uint32_t>(2));
 
 #ifndef BOARD_HAS_NO_UUID
 

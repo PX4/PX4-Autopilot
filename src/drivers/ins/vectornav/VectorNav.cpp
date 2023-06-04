@@ -320,10 +320,10 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 
 			sensor_gps.fix_type = gpsFix;
 
-			sensor_gps.lat = positionGpsLla.c[0] * 1e7;
-			sensor_gps.lon = positionGpsLla.c[1] * 1e7;
-			sensor_gps.alt = positionGpsLla.c[2] * 1e3;
-			sensor_gps.alt_ellipsoid = sensor_gps.alt;
+			sensor_gps.latitude_deg = positionGpsLla.c[0];
+			sensor_gps.longitude_deg = positionGpsLla.c[1];
+			sensor_gps.altitude_msl_m = positionGpsLla.c[2];
+			sensor_gps.altitude_ellipsoid_m = sensor_gps.altitude_msl_m;
 
 			sensor_gps.vel_ned_valid = true;
 			sensor_gps.vel_n_m_s = velocityGpsNed.c[0];
