@@ -69,12 +69,12 @@ static constexpr uint32_t I2C_SPEED = 100 * 1000; // 100 kHz I2C serial interfac
 
 
 /* Configuration Constants */
-#define ASP5033_BASEADDR         0x6D  // Adresse for communication to Pixhawk 0x6D
+#define ASP5033_BASEADDR         0x6D  // Adresse for communication to ASP5033
 
 #define REG_CMD_ASP5033  0x30;
 #define REG_PRESS_DATA_ASP5033 0X06
 #define REG_TEMP_DATA_ASP5033 0X09
-#define CMD_MEASURE_ASP5033 0X0A  //0x0A
+#define CMD_MEASURE_ASP5033 0X0A
 
 using namespace time_literals;
 

@@ -71,12 +71,7 @@ int ASP5033::init()
 		DEVICE_DEBUG("I2C::init failed (%i)", ret);
 		return ret;
 	}
-
-	if (ret == PX4_OK) {
-		DEVICE_DEBUG("I2C::init successed (%i)", ret);
-		ScheduleNow();
-	}
-
+	ScheduleNow();
 	return ret;
 }
 
