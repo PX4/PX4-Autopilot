@@ -63,8 +63,7 @@
 #define gps_absolute_time hrt_absolute_time
 typedef hrt_abstime gps_abstime;
 
-
-// TODO: this functionality is not available on the Snapdragon yet
 #ifdef __PX4_QURT
-#define NO_MKTIME
+// QuRT provides gmtime_r(), but not timegm().
+#define GPS_NO_TIMEGM
 #endif
