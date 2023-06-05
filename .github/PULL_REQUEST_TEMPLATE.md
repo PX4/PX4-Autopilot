@@ -23,7 +23,7 @@ For release notes:
 ```
 Feature/Bugfix XYZ
 New parameter: XYZ_Z
-Documentation: Need to clarfiy page ... / done, read docs.px4.io/...
+Documentation: Need to clarify page ... / done, read docs.px4.io/...
 ```
 
 ### Alternatives
