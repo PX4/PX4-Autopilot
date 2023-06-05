@@ -155,7 +155,7 @@ private:
 
 	uORB::Subscription _actuator_armed_sub{ORB_ID(actuator_armed)};
 
-	MixingOutput _mixing_output{"PWM_MAIN", PWMESC_MAX_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, true};
+	MixingOutput _mixing_output{PARAM_PREFIX, PWMESC_MAX_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, true};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1000000};
 
