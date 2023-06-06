@@ -343,4 +343,10 @@ void HomePosition::update(bool set_automatically, bool check_if_changed)
 			setHomePosition();
 		}
 	}
+
+	// periodically republish home position if valid
+	if (home.valid_alt && (hrt_elapsed_time(&home.timestamp) > 5_s)) {
+		_home_position_pub.get().timestamp = hrt_absolute_time();
+		_home_position_pub.update();
+	}
 }
