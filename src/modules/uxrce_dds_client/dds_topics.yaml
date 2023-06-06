@@ -8,8 +8,47 @@ publications:
   - topic: /fmu/out/collision_constraints
     type: px4_msgs::msg::CollisionConstraints
 
+  - topic: /fmu/out/estimator_aid_src_baro_hgt
+    type: px4_msgs::msg::EstimatorAidSource1d
+
+  - topic: /fmu/out/estimator_aid_src_ev_hgt
+    type: px4_msgs::msg::EstimatorAidSource1d
+
+  - topic: /fmu/out/estimator_aid_src_gnss_hgt
+    type: px4_msgs::msg::EstimatorAidSource1d
+
+  - topic: /fmu/out/estimator_aid_src_mag_heading
+    type: px4_msgs::msg::EstimatorAidSource1d
+
+  - topic: /fmu/out/estimator_aid_src_ev_yaw
+    type: px4_msgs::msg::EstimatorAidSource1d
+
+  - topic: /fmu/out/estimator_aid_src_ev_pos
+    type: px4_msgs::msg::EstimatorAidSource2d
+
+  - topic: /fmu/out/estimator_aid_src_gnss_pos
+    type: px4_msgs::msg::EstimatorAidSource2d
+
+  - topic: /fmu/out/estimator_aid_src_gnss_vel
+    type: px4_msgs::msg::EstimatorAidSource3d
+
+  - topic: /fmu/out/estimator_aid_src_mag
+    type: px4_msgs::msg::EstimatorAidSource3d
+
+  - topic: /fmu/out/estimator_gps_status
+    type: px4_msgs::msg::EstimatorGpsStatus
+
+  - topic: /fmu/out/estimator_innovations
+    type: px4_msgs::msg::EstimatorInnovations
+
+  - topic: /fmu/out/estimator_status_flags
+    type: px4_msgs::msg::EstimatorStatusFlags
+
   - topic: /fmu/out/failsafe_flags
     type: px4_msgs::msg::FailsafeFlags
+
+  - topic: /fmu/out/home_position
+    type: px4_msgs::msg::HomePosition
 
   - topic: /fmu/out/position_setpoint_triplet
     type: px4_msgs::msg::PositionSetpointTriplet
