@@ -130,7 +130,7 @@ PARAM_DEFINE_FLOAT(GF_MAX_VER_DIST, 0);
 /**
  * [EXPERIMENTAL] Use Pre-emptive geofence triggering
  *
- * NOTE: This is an experimental feature and is known for causing flyaways on vehicles. Use at your own risk.
+ * WARNING: This experimental feature may cause flyaways. Use at your own risk.
  *
  * Predict the motion of the vehicle and trigger the breach if it is determined that the current trajectory
  * would result in a breach happening before the vehicle can make evasive maneuvers.
