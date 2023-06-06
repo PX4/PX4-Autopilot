@@ -5,7 +5,7 @@
 board_adc start
 
 # Internal ICM-20602
-icm20602 -s -b 1 -R 8 start
+#icm20602 -s -b 1 -R 8 start
 
 # Internal SPI bus BMI088 accel & gyro
 bmi088 -A -s -b 5 -R 8 start
