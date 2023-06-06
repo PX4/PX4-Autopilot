@@ -380,7 +380,6 @@ bool FeasibilityChecker::checkTakeoff(mission_item_s &mission_item)
 					     mission_item.nav_cmd != NAV_CMD_SET_CAMERA_MODE &&
 					     mission_item.nav_cmd != NAV_CMD_SET_CAMERA_ZOOM &&
 					     mission_item.nav_cmd != NAV_CMD_SET_CAMERA_FOCUS &&
-					     mission_item.nav_cmd != NAV_CMD_SET_CAMERA_FOCUS &&
 					     mission_item.nav_cmd != NAV_CMD_DO_VTOL_TRANSITION);
 	}
 
