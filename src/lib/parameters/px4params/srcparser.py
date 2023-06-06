@@ -61,7 +61,7 @@ class Parameter(object):
         self.category = ""
         self.volatile = False
         self.boolean = False
-        self.path = ""
+        self.file = ""
 
     def GetName(self):
         return self.name
@@ -117,11 +117,11 @@ class Parameter(object):
         """
         self.category = category
 
-    def SetPath(self, path):
+    def SetSourceFile(self, file):
         """
-        Set param file path
+        Set file path of parameter definition (relative to repo root).
         """
-        self.path = path
+        self.file = file
 
     def GetFieldCodes(self):
         """
@@ -175,11 +175,11 @@ class Parameter(object):
                 return ""
         return fv.strip()
 
-    def GetPath(self):
+    def GetSourceFile(self):
         """
-        Return value of the file path in which the parameter was defined.
+        Return value of source file for parameter definition (relative to repo root).
         """
-        return self.path
+        return self.file
 
 class SourceParser(object):
     """
@@ -312,7 +312,6 @@ class SourceParser(object):
                     if defval != "" and self.re_is_a_number.match(defval):
                         defval = self.re_cut_type_specifier.sub('', defval)
                     param = Parameter(name, tp, defval)
-                    param.SetPath(file)
                     param.SetField("short_desc", name)
                     # If comment was found before the parameter declaration,
                     # inject its data into the newly created parameter.
@@ -345,6 +344,16 @@ class SourceParser(object):
                             param.SetEnumValue(def_value, def_values[def_value])
                         for def_bit in def_bitmask:
                             param.SetBitmaskBit(def_bit, def_bitmask[def_bit])
+
+                    # Add source file of parameter
+                    try:
+                        #Only works for non-yaml sources
+                        filefromRoot = file.split('/src/')[1]
+                        filefromRoot = f'src/{filefromRoot}'
+                        param.SetSourceFile(filefromRoot)
+                    except:
+                        pass
+
                     # Store the parameter
                     if group not in self.param_groups:
                         self.param_groups[group] = ParameterGroup(group)
