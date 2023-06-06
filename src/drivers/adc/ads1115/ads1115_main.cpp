@@ -134,7 +134,7 @@ void ADS1115::RunImpl()
 
 void ADS1115::print_usage()
 {
-	
+
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
