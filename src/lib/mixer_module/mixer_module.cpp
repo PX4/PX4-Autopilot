@@ -526,21 +526,6 @@ MixingOutput::output_limit_calc(const bool armed, const int num_channels, const 
 
 	/* first evaluate state changes */
 	switch (_output_state) {
-	case OutputLimitState::INIT:
-		if (armed) {
-			// set arming time for the first call
-			if (_output_time_armed == 0) {
-				_output_time_armed = hrt_absolute_time();
-			}
-
-			// time for the ESCs to initialize (this is not actually needed if the signal is sent right after boot)
-			if (hrt_elapsed_time(&_output_time_armed) >= 50_ms) {
-				_output_state = OutputLimitState::OFF;
-			}
-		}
-
-		break;
-
 	case OutputLimitState::OFF:
 		if (armed) {
 			if (_output_ramp_up) {
@@ -589,7 +574,6 @@ MixingOutput::output_limit_calc(const bool armed, const int num_channels, const 
 	// then set _current_output_value based on state
 	switch (local_limit_state) {
 	case OutputLimitState::OFF:
-	case OutputLimitState::INIT:
 		for (int i = 0; i < num_channels; i++) {
 			_current_output_value[i] = _disarmed_value[i];
 		}
