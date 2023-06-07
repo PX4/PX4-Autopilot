@@ -145,7 +145,9 @@ The driver is included by default in firmware for boards that do not have an int
 such as [PilotPi](../flight_controller/raspberry_pi_pilotpi.md) or [CUAV Nora](../flight_controller/cuav_nora.md)
 (search for `CONFIG_DRIVERS_ADC_ADS1115` in board configuration files).
 
-It is enabled/disabled using the [ADC_ADS1115_EN](../advanced_config/parameter_reference.md#ADC_ADS1115_EN) parameter, and is disabled by default.
+It is enabled/disabled using the
+[ADC_ADS1115_EN](../advanced_config/parameter_reference.md#ADC_ADS1115_EN)
+parameter, and is disabled by default.
 If enabled, internal ADCs are not used.
 
 )DESCR_STR");
