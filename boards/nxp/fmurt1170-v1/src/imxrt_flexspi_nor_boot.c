@@ -42,8 +42,8 @@ const struct ivt_s g_image_vector_table = {
 
 locate_data(".boot_hdr.boot_data")
 const struct boot_data_s g_boot_data = {
-	BOOT_IMAGE_BASE,                    /* boot start location */
-	BOOT_IMAGE_SIZE,                    /* size */
+	IMAGE_DEST,                         /* boot start location */
+	(IMAGE_DEST_END - IMAGE_DEST),      /* size */
 	PLUGIN_FLAG,                        /* Plugin flag */
 	0xffffffff                          /* empty - extra data word */
 };
