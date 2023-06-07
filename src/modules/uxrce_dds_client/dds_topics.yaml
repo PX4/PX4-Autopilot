@@ -53,6 +53,9 @@ publications:
   - topic: /fmu/out/vehicle_odometry
     type: px4_msgs::msg::VehicleOdometry
 
+  - topic: /fmu/out/vehicle_fake_visual_odometry
+    type: px4_msgs::msg::VehicleOdometry
+
   - topic: /fmu/out/vehicle_status
     type: px4_msgs::msg::VehicleStatus
 

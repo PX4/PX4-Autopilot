@@ -97,7 +97,7 @@ private:
 
 	vehicle_odometry_s gpsToOdom(const sensor_gps_s &gps);
 
-	uORB::Publication<vehicle_odometry_s> _vehicle_visual_odometry_pub{ORB_ID(vehicle_visual_odometry)};
+	uORB::Publication<vehicle_odometry_s> _vehicle_visual_odometry_pub{ORB_ID(vehicle_fake_visual_odometry)};
 
 	uORB::SubscriptionCallbackWorkItem _vehicle_gps_position_sub{this, ORB_ID(vehicle_gps_position)};
 
