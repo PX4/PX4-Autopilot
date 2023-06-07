@@ -58,8 +58,8 @@
 #define DCD_VERSION                 (0x40)
 #define DCD_ARRAY_SIZE              1
 
-#define BOOT_IMAGE_BASE             0x30000000
-#define BOOT_IMAGE_SIZE             ((uint32_t)_boot_size)
+#define FLASH_BASE                  0x30000000
+#define FLASH_END                   FLASH_BASE + (3 * (1024*1024)) // We have 64M but we do not want to wait to program it all
 
 /* This needs to take into account  the memory configuration at boot bootloader */
 
@@ -70,7 +70,7 @@
 
 #define SCLK 1
 #if defined(CONFIG_BOOT_RUNFROMFLASH)
-#  define IMAGE_DEST                BOOT_IMAGE_BASE
+#  define IMAGE_DEST                FLASH_BASE
 #  define IMAGE_DEST_END            FLASH_END
 #  define IMAGE_DEST_OFFSET         0
 #else
@@ -79,8 +79,8 @@
 #  define IMAGE_DEST_OFFSET         IVT_SIZE
 #endif
 
-#define LOCATE_IN_DEST(x)           (((uint32_t)(x)) - BOOT_IMAGE_BASE + IMAGE_DEST)
-#define LOCATE_IN_SRC(x)            (((uint32_t)(x)) - IMAGE_DEST + BOOT_IMAGE_BASE)
+#define LOCATE_IN_DEST(x)           (((uint32_t)(x)) - FLASH_BASE + IMAGE_DEST)
+#define LOCATE_IN_SRC(x)            (((uint32_t)(x)) - IMAGE_DEST + FLASH_BASE)
 
 #define DCD_ADDRESS                 0
 #define BOOT_DATA_ADDRESS           LOCATE_IN_DEST(&g_boot_data)
@@ -154,7 +154,5 @@ struct boot_data_s {
 extern const struct boot_data_s g_boot_data;
 extern const uint8_t g_dcd_data[];
 extern const uint32_t  _vectors[];
-extern  const uint32_t  _boot_loadaddr[];
-extern  const uint32_t  _boot_size[];
 
 #endif /* __BOARDS_ARM_IMXRT_IMXRT1170_SRC_IMXRT_FLEXSPI_NOR_BOOT_H */

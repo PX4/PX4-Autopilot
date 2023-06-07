@@ -22,7 +22,7 @@
 
 MEMORY
 {
-  flash (rx)  : ORIGIN = 0x30000000, LENGTH = 16M
+  flash (rx)  : ORIGIN = 0x30000000, LENGTH = 3M /* We have 64M but we do not want to wait to program it all */
   sram  (rwx) : ORIGIN = 0x20240000 + 0xBFFF, LENGTH = 1024K - 0xBFFF /* OCRAM1 + OCRAM2*/
   itcm  (rwx) : ORIGIN = 0x00000000, LENGTH = 256K   /* TODO FlexRAM partition */
   dtcm  (rwx) : ORIGIN = 0x20000000, LENGTH = 256K
