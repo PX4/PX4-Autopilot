@@ -474,11 +474,14 @@ void VehicleMagnetometer::Run()
 
 						const float filter_freq = _param_sens_mag_lp_cut.get();
 
-						if (filter_freq > (0.5f * sample_freq) && (hrt_absolute_time() - _sampling_warning_last) > 10'000'000) {
-							mavlink_log_warning(&_mavlink_log_pub,
-									    "Warning, magnetometer filter freq too high. Sampling Freq = %f, Filter Freq = %f.", double(sample_freq),
-									    double(filter_freq));
-							_sampling_warning_last = hrt_absolute_time();
+						if (filter_freq > (0.5f * sample_freq) && (hrt_absolute_time() - _sampling_warning_last[uorb_index]) > 10'000'000) {
+							if (uorb_index == _selected_sensor_sub_index) {
+								mavlink_log_warning(&_mavlink_log_pub,
+										    "Warning, primary magnetometer (%i) filter freq too high. Sampling Freq = %f, Filter Freq = %f.",
+										    uorb_index, double(sample_freq), double(filter_freq));
+							}
+
+							_sampling_warning_last[uorb_index] = hrt_absolute_time();
 							_sees_filtering[uorb_index] = false;
 
 						} else {

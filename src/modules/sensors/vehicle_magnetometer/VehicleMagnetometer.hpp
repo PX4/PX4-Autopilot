@@ -241,7 +241,7 @@ private:
 	RMSNoiseCalculator _rms_calculator_raw[MAX_SENSOR_COUNT] {};
 	RMSNoiseCalculator _rms_calculator_filtered[MAX_SENSOR_COUNT] {};
 	hrt_abstime _mag_filtered_timestamp[MAX_SENSOR_COUNT] {};
-	hrt_abstime _sampling_warning_last{};
+	hrt_abstime _sampling_warning_last[MAX_SENSOR_COUNT] {};
 	matrix::Vector3f _mag_filtered[MAX_SENSOR_COUNT] {};
 	bool _sees_filtering[MAX_SENSOR_COUNT] {false};
 
