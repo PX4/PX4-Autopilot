@@ -1812,8 +1812,9 @@ Mission::reset_mission(struct mission_s &mission)
 bool
 Mission::need_to_reset_mission()
 {
-	/* reset mission state when disarmed */
-	if (_navigator->get_vstatus()->arming_state != vehicle_status_s::ARMING_STATE_ARMED && _need_mission_reset) {
+	// reset mission when disarmed, mission was actually started and we reached the last mission item
+	if (_navigator->get_vstatus()->arming_state != vehicle_status_s::ARMING_STATE_ARMED && _need_mission_reset
+	    && (_current_mission_index == _mission.count - 1)) {
 		_need_mission_reset = false;
 		return true;
 	}
