@@ -72,6 +72,7 @@ px4_add_romfs_files(
 
 	# [5000, 5999] Quadrotor +"
 	5001_quad_+
+	5002_rover_r1
 
 	# [6000, 6999] Hexarotor x"
 	6001_hexa_x
