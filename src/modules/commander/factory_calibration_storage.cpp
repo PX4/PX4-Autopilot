@@ -43,6 +43,12 @@
 
 static const char *CALIBRATION_STORAGE = "/fs/mtd_caldata";
 
+enum class FactoryCalibrationMode : uint32_t {
+	Disabled = 0,
+	AllSensors,
+	AllSensorsExceptMag,
+};
+
 static bool ends_with(const char *str, const char *suffix)
 {
 	if (!str || !suffix) {
@@ -59,9 +65,18 @@ static bool ends_with(const char *str, const char *suffix)
 	return strncmp(str + len_str - len_suffix, suffix, len_suffix) == 0;
 }
 
+static FactoryCalibrationMode factory_calibration_mode{FactoryCalibrationMode::Disabled};
+
 static bool filter_calibration_params(param_t handle)
 {
 	const char *name = param_name(handle);
+
+	if (factory_calibration_mode == FactoryCalibrationMode::AllSensorsExceptMag) {
+		if (strncmp(name, "CAL_MAG", 7) == 0) {
+			return false;
+		}
+	}
+
 	// filter all non-calibration params
 	return (strncmp(name, "CAL_", 4) == 0
 		&& strcmp(name, "CAL_MAG_SIDES") != 0
@@ -73,7 +88,8 @@ FactoryCalibrationStorage::FactoryCalibrationStorage()
 {
 	int32_t param = 0;
 	param_get(param_find("SYS_FAC_CAL_MODE"), &param);
-	_enabled = param == 1;
+	_enabled = param >= 1;
+	factory_calibration_mode = (FactoryCalibrationMode)param;
 }
 
 int FactoryCalibrationStorage::open()
