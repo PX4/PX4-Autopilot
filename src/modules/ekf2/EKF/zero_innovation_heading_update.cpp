@@ -48,6 +48,8 @@ void Ekf::controlZeroInnovationHeadingUpdate()
 	    && !yaw_aiding
 	    && isTimedOut(_time_last_heading_fuse, (uint64_t)200'000)) {
 
+		// Use an observation variance larger than usual but small enough
+		// to constrain the yaw variance just below the threshold
 		float obs_var = 0.25f;
 		estimator_aid_source1d_s aid_src_status;
 		Vector24f H_YAW;
