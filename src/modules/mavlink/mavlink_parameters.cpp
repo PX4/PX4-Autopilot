@@ -219,7 +219,8 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 				strncpy(req.param_id, req_read.param_id, MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN + 1);
 				req.param_id[MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN] = '\0';
 
-				// Enque the request and forward the first to the uavcan node
+				// Dequeue and Enque the request and forward the first to the uavcan node
+				dequeue_uavcan_request();
 				enque_uavcan_request(&req);
 				request_next_uavcan_parameter();
 			}
