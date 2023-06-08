@@ -1527,6 +1527,18 @@ void Navigator::mode_completed(uint8_t nav_state, uint8_t result)
 	_mode_completed_pub.publish(mode_completed);
 }
 
+
+void Navigator::disable_camera_trigger()
+{
+	// Disable camera trigger
+	vehicle_command_s cmd {};
+	cmd.command = vehicle_command_s::VEHICLE_CMD_DO_TRIGGER_CONTROL;
+	// Pause trigger
+	cmd.param1 = -1.0f;
+	cmd.param3 = 1.0f;
+	publish_vehicle_cmd(&cmd);
+}
+
 int Navigator::print_usage(const char *reason)
 {
 	if (reason) {

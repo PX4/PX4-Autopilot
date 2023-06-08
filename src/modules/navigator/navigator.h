@@ -302,8 +302,10 @@ public:
 	void acquire_gimbal_control();
 	void release_gimbal_control();
 
-	void 		calculate_breaking_stop(double &lat, double &lon, float &yaw);
-	void        	stop_capturing_images();
+	void calculate_breaking_stop(double &lat, double &lon, float &yaw);
+
+	void stop_capturing_images();
+	void disable_camera_trigger();
 
 	void mode_completed(uint8_t nav_state, uint8_t result = mode_completed_s::RESULT_SUCCESS);
 
