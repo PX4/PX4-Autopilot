@@ -31,13 +31,10 @@
  *
  ****************************************************************************/
 
-#ifndef OD_H
-#define OD_H
+#pragma once
 
 #if defined(CANOPENNODE_DEMO_DEVICE)
 #include "can_open_demo/demo/OD.h"
 #else
 #error No Object Dictionary Selected!
 #endif
-
-#endif /* OD_H */

@@ -52,6 +52,7 @@
 
 #include "CANopen.h"
 #include "CO_storage_nuttx.h"
+#include "ODRecord.hpp"
 
 using namespace time_literals;
 

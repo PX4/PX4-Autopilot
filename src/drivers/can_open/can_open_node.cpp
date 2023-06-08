@@ -32,7 +32,6 @@
  ****************************************************************************/
 
 // CanOpenNode implementation for PX4
-
 #include <stdio.h>
 
 #include "can_open_node.hpp"
@@ -158,6 +157,11 @@ void CanOpenNode::init()
 {
 	CO_ReturnError_t err;
 
+	// these are unused.  They are here as a hack because
+	// app_programStart is expecting them.
+	uint16_t bitrate;
+	uint8_t node_id;
+
 	if (_CO_instance == nullptr) {
 		PX4_ERR("init called with CO_instance nullptr");
 		return;
@@ -171,7 +175,7 @@ void CanOpenNode::init()
 
 #if defined(CANOPENNODE_DEMO_DEVICE)
 	/* Execute optional external application code */
-	err = app_programStart(&_err_info_app);
+	err = app_programStart(&bitrate, &node_id, &_err_info_app);
 
 	if (err != CO_ERROR_NO) {
 		PX4_ERR("app_programStart error: 0x%x", err);
@@ -354,7 +358,7 @@ void CanOpenNode::Run()
 		}
 
 #if defined(CANOPENNODE_DEMO_DEVICE)
-		app_demoProcess(_CO_instance, _medium_pri_timer);
+		app_programRt(_CO_instance, _medium_pri_timer);
 #else
 		_mixing_output.update();
 		_mixing_output.updateSubscriptions();

@@ -77,6 +77,11 @@ if(${OD} MATCHES "demo_device")
     )
 endif()
 
+add_compile_options(
+	# todo: needs a fix in canopennode code.
+	-Wno-bad-function-cast
+)
+
 px4_add_module(
 	MODULE drivers__can_open
 	MAIN canopen
@@ -86,12 +91,10 @@ px4_add_module(
 	INCLUDES
 		${CMAKE_CURRENT_SOURCE_DIR}
 		${CMAKE_CURRENT_SOURCE_DIR}/demoDevice
-		${CMAKE_CURRENT_SOURCE_DIR}/can_open_node/301
-		${CMAKE_CURRENT_SOURCE_DIR}/can_open_node/303
-		${CMAKE_CURRENT_SOURCE_DIR}/can_open_node/304
-		${CMAKE_CURRENT_SOURCE_DIR}/can_open_node/305
-		${CMAKE_CURRENT_SOURCE_DIR}/can_open_node/309
+		${CMAKE_CURRENT_SOURCE_DIR}/can_open_node
 		${CMAKE_CURRENT_SOURCE_DIR}/can_open_node/storage
+		${CMAKE_CURRENT_SOURCE_DIR}/can_open_demo/demo
+		${CMAKE_CURRENT_SOURCE_DIR}/can_open_demo/demo/linux
 	SRCS
 		OD.h
 		can_open_node/CANopen.c
