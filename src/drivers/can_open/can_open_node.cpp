@@ -80,7 +80,7 @@ CanOpenNode::CanOpenNode(uint8_t node_id, int32_t bitrate) :
 				    &_storage_error);
 
 	if (err != CO_ERROR_NO) {
-		PX4_ERR("CO_storage_nuttx_init error: %d, _storage_error: %d", err, _storage_error);
+		PX4_ERR("CO_storage_nuttx_init error: %d, _storage_error: %lu", err, _storage_error);
 	}
 
 #endif
@@ -219,7 +219,6 @@ void CanOpenNode::init()
 	CO_EM_initCallbackRx(_CO_instance->em, can_open_error_cb);
 
 #if (CO_CONFIG_STORAGE) & CO_CONFIG_STORAGE_ENABLE
-
 	if (_storage_error != 0) {
 		CO_errorReport(_CO_instance->em, CO_EM_NON_VOLATILE_MEMORY,
 			       CO_EMC_HARDWARE, _storage_error);
