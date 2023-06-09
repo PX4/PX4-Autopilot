@@ -82,8 +82,8 @@ if(${OD} MATCHES "example_application")
 		example_application/OD.h
 		example_application/OD.c
 		example_application/CO_example_app.cpp
-		example_application/motor_controller_command.hpp
-		example_application/motor_controller_telemetry.hpp
+		example_application/mixing_interface_esc.hpp
+		example_application/telemetry_esc.hpp
 	)
 	add_definitions(
 		-DCANOPEN_EXAMPLE_APPLICATION

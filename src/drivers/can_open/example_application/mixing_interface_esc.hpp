@@ -44,12 +44,12 @@
 #include "OD.h"
 #include "ODRecord.hpp"
 
-class MotorControllerCommand : public OutputModuleInterface, public ODRecord
+class COMixingInterfaceESC : public OutputModuleInterface, public ODRecord
 {
 public:
-	MotorControllerCommand() :
-		OutputModuleInterface(MODULE_NAME, px4::wq_configurations::can), ODRecord(UORB_TO_OD_RECORD) { };
-	~MotorControllerCommand() {};
+	COMixingInterfaceESC() :
+		OutputModuleInterface(MODULE_NAME "-actuators-esc", px4::wq_configurations::can), ODRecord(UORB_TO_OD_RECORD) { };
+	~COMixingInterfaceESC() {};
 
 	void update()
 	{

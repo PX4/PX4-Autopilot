@@ -267,6 +267,16 @@ void CanOpenNode::CO_high_pri_work(uint32_t time_difference_us)
 
 }
 
+void CanOpenNode::CO_medium_pri_work(uint32_t time_difference_us)
+{
+#if defined(CANOPEN_DEMO_DEVICE)
+	app_programRt(_CO_instance, _medium_pri_timer);
+#else
+	_mixing_interface_esc.update();
+	_telemetry_esc.update();
+#endif
+}
+
 void CanOpenNode::CO_low_pri_work(uint32_t time_difference_us)
 {
 #if (CO_CONFIG_STORAGE) & CO_CONFIG_STORAGE_ENABLE
@@ -331,7 +341,7 @@ void CanOpenNode::Run()
 			}
 		}
 
-		app_programRt(_CO_instance, _medium_pri_timer);
+		CO_medium_pri_work(_medium_pri_timer);
 		_medium_pri_timer = 0;
 	}
 

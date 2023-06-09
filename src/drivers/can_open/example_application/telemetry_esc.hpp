@@ -48,15 +48,15 @@
 
 using namespace time_literals;
 
-class MotorControllerTelemetry : public ODRecord
+class COTelemetryESC : public ODRecord
 {
 public:
-	MotorControllerTelemetry() : ODRecord(OD_RECORD_TO_UORB)
+	COTelemetryESC() : ODRecord(OD_RECORD_TO_UORB)
 	{
-		OD_extension_init(OD_ENTRY_H5020_motorControllerTelemetry, &_OD_motor_controller_telemetry_extension);
+		OD_extension_init(OD_ENTRY_H5020_motorControllerTelemetry, &_OD_telemetry_esc_extension);
 	};
 
-	~MotorControllerTelemetry()
+	~COTelemetryESC()
 	{
 		OD_extension_init(OD_ENTRY_H5020_motorControllerTelemetry, nullptr);
 	};
@@ -98,21 +98,21 @@ public:
 	};
 
 private:
-	enum motor_controller_telemetry_subidx {
+	enum esc_telemetry_subidx {
 		SUBIDX_MOTOR_VELOCITY = 1,
 		SUBIDX_TEMPERATURE,
 		SUBIDX_DEADMAN_SWITCH,
 	};
 
-	OD_extension_t _OD_motor_controller_telemetry_extension = {
+	OD_extension_t _OD_telemetry_esc_extension = {
 		.object = (void *)&_esc_status.timestamp,
 		.read = od_read_record,
 		.write = od_write_record
 	};
 
-	static constexpr uint32_t				PUBLISH_INTERVAL = 100_ms;
+	static constexpr uint32_t		PUBLISH_INTERVAL = 100_ms;
 
-	esc_status_s 							_esc_status{};
+	esc_status_s 				_esc_status{};
 	uORB::PublicationMulti<esc_status_s> 	_esc_status_pub{ORB_ID(esc_status)};
-	uint64_t								_last_published{0};
+	uint64_t				_last_published{0};
 };

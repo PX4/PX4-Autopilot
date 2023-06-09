@@ -53,6 +53,9 @@
 #include "CO_storage_nuttx.h"
 #include "ODRecord.hpp"
 
+#include "mixing_interface_esc.hpp"
+#include "telemetry_esc.hpp"
+
 using namespace time_literals;
 
 
@@ -88,6 +91,7 @@ private:
 	void Run() override;
 
 	void CO_high_pri_work(uint32_t time_difference_us);
+	void CO_medium_pri_work(uint32_t time_difference_us);
 	void CO_low_pri_work(uint32_t time_difference_us);
 
 	px4::atomic_bool _task_should_exit{false};	///< flag to indicate to tear down the CAN driver
@@ -113,6 +117,9 @@ private:
 	hrt_abstime _run_end{0};
 	uint32_t _medium_pri_timer{0};
 	uint32_t _low_pri_timer{0};
+
+	COMixingInterfaceESC _mixing_interface_esc;
+	COTelemetryESC _telemetry_esc;
 
 	// Parameters
 	DEFINE_PARAMETERS(

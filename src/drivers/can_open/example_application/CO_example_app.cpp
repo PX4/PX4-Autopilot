@@ -35,13 +35,11 @@
 #include <stdio.h>
 
 #include "CO_application.h"
-#include "motor_controller_telemetry.hpp"
-#include "motor_controller_command.hpp"
+//#include "motor_controller_telemetry.hpp"
+//#include "motor_controller_command.hpp"
 
-using namespace time_literals;
-
-MotorControllerTelemetry MotorTelem;
-MotorControllerCommand MotorCommand;
+//MotorControllerTelemetry MotorTelem;
+//MotorControllerCommand MotorCommand;
 
 extern "C" CO_ReturnError_t app_programStart(uint16_t *bitRate,
 				  uint8_t *nodeId,
@@ -74,6 +72,6 @@ extern "C" void app_programAsync(CO_t *co, uint32_t timer1usDiff)
 
 extern "C" void app_programRt(CO_t *co, uint32_t timer1usDiff)
 {
-	MotorCommand.update();
-	MotorTelem.update();
+//	MotorCommand.update();
+//	MotorTelem.update();
 }
