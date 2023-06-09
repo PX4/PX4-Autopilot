@@ -34,20 +34,20 @@ set(OD "demo_device")
 
 if(${PX4_PLATFORM} MATCHES "nuttx")
 	if(${CONFIG_NET_CAN} MATCHES "y")
-		set(CANOPENNODE_DRIVER "socket_can")
+		set(CANOPEN_DRIVER "socket_can")
 	elseif(${CONFIG_CAN} MATCHES "y")
-		set(CANOPENNODE_DRIVER "char_can")
+		set(CANOPEN_DRIVER "char_can")
 	endif()
 
-	if(NOT DEFINED CANOPENNODE_DRIVER)
-		message(FATAL_ERROR "CANOPENNODE_DRIVER not set")
+	if(NOT DEFINED CANOPEN_DRIVER)
+		message(FATAL_ERROR "CANOPEN_DRIVER not set")
 	endif()
 
-	if(${CANOPENNODE_DRIVER} MATCHES "socket_can")
+	if(${CANOPEN_DRIVER} MATCHES "socket_can")
 		list(APPEND SRCS
 			CO_driver_nuttx_socket.c
 		)
-	elseif(${CANOPENNODE_DRIVER} MATCHES "char_can")
+	elseif(${CANOPEN_DRIVER} MATCHES "char_can")
 		list(APPEND SRCS
 			CO_driver_nuttx_char.c
 		)
