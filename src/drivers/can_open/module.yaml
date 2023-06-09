@@ -52,4 +52,4 @@ parameters:
             type: int32
             min: 0
             max: 125
-            default: 8
+            default: 4

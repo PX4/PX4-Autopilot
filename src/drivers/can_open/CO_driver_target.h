@@ -200,7 +200,7 @@ typedef struct {
 
 /* Data storage: Maximum file name length including path */
 #ifndef CO_STORAGE_PATH_MAX
-#define CO_STORAGE_PATH_MAX 255
+#define CO_STORAGE_PATH_MAX 100
 #endif
 
 /* Data storage object for one entry */

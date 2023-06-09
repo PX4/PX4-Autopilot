@@ -347,7 +347,7 @@ void CanOpenNode::Run()
 		reset = CO_process(_CO_instance, false, _medium_pri_timer, NULL);
 
 		if (reset != CO_RESET_NOT) {
-			if (reset == CO_RESET_COMM) {
+			if (reset == CO_RESET_COMM || reset == CO_RESET_APP) {
 				_initialized = false;
 				PX4_DEBUG("CanOpen - resetting stack");
 

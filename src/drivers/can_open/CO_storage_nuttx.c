@@ -36,6 +36,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <libgen.h>
+#include <sys/stat.h>
 
 #include "CO_storage_nuttx.h"
 #include "301/crc16-ccitt.h"
@@ -171,7 +173,6 @@ static ODR_t restore_nuttx(CO_storage_entry_t *entry, CO_CANmodule_t *CANmodule)
 	return ret;
 }
 
-
 CO_ReturnError_t CO_storage_nuttx_init(CO_storage_t *storage,
 									   CO_CANmodule_t *CANmodule,
 									   OD_entry_t *OD_1010_StoreParameters,
@@ -209,6 +210,7 @@ CO_ReturnError_t CO_storage_nuttx_init(CO_storage_t *storage,
 		CO_storage_entry_t *entry = &entries[i];
 		bool_t dataCorrupt = false;
 		char *writeFileAccess = "w";
+		struct stat sb;
 
 		/* verify arguments */
 		if (entry->addr == NULL || entry->len == 0 || entry->subIndexOD < 2
@@ -216,6 +218,19 @@ CO_ReturnError_t CO_storage_nuttx_init(CO_storage_t *storage,
 			*storageInitError = i;
 			return CO_ERROR_ILLEGAL_ARGUMENT;
 		}
+
+		char *full_path = strdup(entry->filename);
+		char *directory = dirname(full_path);
+		if(directory == NULL) {
+			return CO_ERROR_SYSCALL;
+		}
+		if (stat(directory, &sb) != 0 || !S_ISDIR(sb.st_mode)) {
+			int rv = mkdir(directory, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
+			if (rv != 0) {
+				return CO_ERROR_SYSCALL;
+			}
+		}
+		free(full_path);
 
 		/* Open file, check existence and create temporary buffer */
 		uint8_t *buf = NULL;
@@ -239,7 +254,7 @@ CO_ReturnError_t CO_storage_nuttx_init(CO_storage_t *storage,
 
 		/* If file is empty, just skip loading, default values will be used,
 			* no error. Otherwise verify length and crc and copy data. */
-		if (!(cnt == 2 && buf[0] == '-')) {
+		if (!((cnt == 2 && buf[0] == '-') || cnt == 0)) {
 			uint16_t crc1, crc2;
 			crc1 = crc16_ccitt(buf, entry->len, 0);
 			memcpy(&crc2, &buf[entry->len], sizeof(crc2));
