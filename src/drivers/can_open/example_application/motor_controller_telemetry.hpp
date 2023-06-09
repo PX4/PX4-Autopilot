@@ -40,6 +40,7 @@
 #include <uORB/PublicationMulti.hpp>
 
 #include <uORB/topics/esc_status.h>
+#include <uORB/topics/actuator_motors.h>
 
 #include "CANopen.h"
 #include "OD.h"
@@ -63,9 +64,7 @@ public:
 	bool update()
 	{
 		int32_t rpm;
-		int16_t current, act_throttle, motor_temp;
 		int8_t controller_temp;
-		uint16_t voltage;
 		uint8_t deadman_switch;
 
 		if((_esc_status.timestamp - _last_published) > PUBLISH_INTERVAL) {
@@ -74,23 +73,15 @@ public:
 
 			/* Get various data from CAN and publish in uOrb */
 			OD_get_i32(OD_ENTRY_H5020_motorControllerTelemetry, SUBIDX_MOTOR_VELOCITY, &rpm, false);
-			OD_get_i16(OD_ENTRY_H5020_motorControllerTelemetry, SUBIDX_BATTERY_CURRENT, &current, false);
-			OD_get_i16(OD_ENTRY_H5020_motorControllerTelemetry, SUBIDX_ACTUAL_THROTTLE, &act_throttle, false);
-			OD_get_i16(OD_ENTRY_H5020_motorControllerTelemetry, SUBIDX_MOTOR_TEMPERATURE, &motor_temp, false);
 			OD_get_i8(OD_ENTRY_H5020_motorControllerTelemetry, SUBIDX_TEMPERATURE, &controller_temp, false);
-			OD_get_u16(OD_ENTRY_H5020_motorControllerTelemetry, SUBIDX_CAPACITOR_VOLTAGE, &voltage, false);
 			OD_get_u8(OD_ENTRY_H5020_motorControllerTelemetry, SUBIDX_DEADMAN_SWITCH, &deadman_switch, false);
 
 			_esc_status.esc_count++;
 			_esc_status.esc[0].timestamp = _esc_status.timestamp;
-			_esc_status.esc[0].esc_current = (float32_t)current / 16;
 			_esc_status.esc[0].esc_rpm = rpm;
-			_esc_status.esc[0].esc_throttle = (float32_t)act_throttle / 32767;
 			_esc_status.esc[0].esc_address = 0;
 			_esc_status.esc[0].actuator_function = actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1 + _esc_status.esc[0].esc_address;
-			_esc_status.esc[0].esc_voltage = (float32_t)voltage / 16;
 			_esc_status.esc[0].esc_temperature = (float32_t)controller_temp;
-			_esc_status.esc[0].motor_temperature = (float32_t)motor_temp;
 			if(deadman_switch > 0) {
 				_esc_status.esc[0].esc_state = 1;
 			} else {
@@ -108,12 +99,8 @@ public:
 
 private:
 	enum motor_controller_telemetry_subidx {
-		SUBIDX_ACTUAL_THROTTLE = 1,
-		SUBIDX_MOTOR_VELOCITY,
-		SUBIDX_MOTOR_TEMPERATURE,
+		SUBIDX_MOTOR_VELOCITY = 1,
 		SUBIDX_TEMPERATURE,
-		SUBIDX_CAPACITOR_VOLTAGE,
-		SUBIDX_BATTERY_CURRENT,
 		SUBIDX_DEADMAN_SWITCH,
 	};
 
@@ -123,6 +110,9 @@ private:
 		.write = od_write_record
 	};
 
+	static constexpr uint32_t				PUBLISH_INTERVAL = 100_ms;
+
 	esc_status_s 							_esc_status{};
 	uORB::PublicationMulti<esc_status_s> 	_esc_status_pub{ORB_ID(esc_status)};
+	uint64_t								_last_published{0};
 };

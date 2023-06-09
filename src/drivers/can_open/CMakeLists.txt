@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-set(OD "demo_device")
+set(OD "example_application")
 
 if(${PX4_PLATFORM} MATCHES "nuttx")
 	if(${CONFIG_NET_CAN} MATCHES "y")

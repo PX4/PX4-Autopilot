@@ -1,0 +1,898 @@
+[FileInfo]
+FileName=example.eds
+FileVersion=1
+FileRevision=1
+LastEDS=/home/jerrymailloux/Documents/example.eds
+EDSVersion=4.0
+Description=
+CreationTime=7:00AM
+CreationDate=11-23-2020
+CreatedBy=Jerry Mailloux
+ModificationTime=4:01PM
+ModificationDate=06-09-2023
+ModifiedBy=
+
+[DeviceInfo]
+VendorName=enVgo
+VendorNumber=1
+ProductName=Pickerel
+ProductNumber=1
+RevisionNumber=0
+BaudRate_10=1
+BaudRate_20=1
+BaudRate_50=1
+BaudRate_125=1
+BaudRate_250=1
+BaudRate_500=1
+BaudRate_800=1
+BaudRate_1000=1
+SimpleBootUpMaster=0
+SimpleBootUpSlave=0
+Granularity=8
+DynamicChannelsSupported=0
+CompactPDO=0
+GroupMessaging=0
+NrOfRXPDO=1
+NrOfTXPDO=1
+LSS_Supported=0
+
+[DummyUsage]
+Dummy0001=0
+Dummy0002=1
+Dummy0003=1
+Dummy0004=1
+Dummy0005=1
+Dummy0006=1
+Dummy0007=1
+
+[Comments]
+Lines=0
+
+[MandatoryObjects]
+SupportedObjects=3
+1=0x1000
+2=0x1001
+3=0x1018
+
+[1000]
+ParameterName=Device type
+ObjectType=0x7
+;StorageLocation=PERSIST_COMM
+DataType=0x0007
+AccessType=ro
+DefaultValue=0x00000000
+PDOMapping=0
+
+[1001]
+ParameterName=Error register
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0005
+AccessType=ro
+DefaultValue=0x00
+PDOMapping=1
+
+[1018]
+ParameterName=Identity
+ObjectType=0x9
+;StorageLocation=PERSIST_COMM
+SubNumber=0x5
+
+[1018sub0]
+ParameterName=Highest sub-index supported
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0005
+AccessType=ro
+DefaultValue=0x04
+PDOMapping=0
+
+[1018sub1]
+ParameterName=Vendor-ID
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0007
+AccessType=ro
+DefaultValue=0x00000000
+PDOMapping=0
+
+[1018sub2]
+ParameterName=Product code
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0007
+AccessType=ro
+DefaultValue=0x00000000
+PDOMapping=0
+
+[1018sub3]
+ParameterName=Revision number
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0007
+AccessType=ro
+DefaultValue=0x00000000
+PDOMapping=0
+
+[1018sub4]
+ParameterName=Serial number
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0007
+AccessType=ro
+DefaultValue=0x00000000
+PDOMapping=0
+
+[OptionalObjects]
+SupportedObjects=18
+1=0x1003
+2=0x1005
+3=0x1006
+4=0x1007
+5=0x1010
+6=0x1011
+7=0x1012
+8=0x1014
+9=0x1015
+10=0x1016
+11=0x1017
+12=0x1019
+13=0x1200
+14=0x1280
+15=0x1400
+16=0x1600
+17=0x1800
+18=0x1A00
+
+[1003]
+ParameterName=Pre-defined error field
+ObjectType=0x8
+;StorageLocation=RAM
+SubNumber=0x11
+
+[1003sub0]
+ParameterName=Number of errors
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0005
+AccessType=rw
+DefaultValue=
+PDOMapping=0
+
+[1003sub1]
+ParameterName=Standard error field
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0007
+AccessType=ro
+DefaultValue=
+PDOMapping=0
+
+[1003sub2]
+ParameterName=Standard error field
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0007
+AccessType=ro
+DefaultValue=
+PDOMapping=0
+
+[1003sub3]
+ParameterName=Standard error field
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0007
+AccessType=ro
+DefaultValue=
+PDOMapping=0
+
+[1003sub4]
+ParameterName=Standard error field
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0007
+AccessType=ro
+DefaultValue=
+PDOMapping=0
+
+[1003sub5]
+ParameterName=Standard error field
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0007
+AccessType=ro
+DefaultValue=
+PDOMapping=0
+
+[1003sub6]
+ParameterName=Standard error field
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0007
+AccessType=ro
+DefaultValue=
+PDOMapping=0
+
+[1003sub7]
+ParameterName=Standard error field
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0007
+AccessType=ro
+DefaultValue=
+PDOMapping=0
+
+[1003sub8]
+ParameterName=Standard error field
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0007
+AccessType=ro
+DefaultValue=
+PDOMapping=0
+
+[1003sub9]
+ParameterName=Standard error field
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0007
+AccessType=ro
+DefaultValue=
+PDOMapping=0
+
+[1003subA]
+ParameterName=Standard error field
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0007
+AccessType=ro
+DefaultValue=
+PDOMapping=0
+
+[1003subB]
+ParameterName=Standard error field
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0007
+AccessType=ro
+DefaultValue=
+PDOMapping=0
+
+[1003subC]
+ParameterName=Standard error field
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0007
+AccessType=ro
+DefaultValue=
+PDOMapping=0
+
+[1003subD]
+ParameterName=Standard error field
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0007
+AccessType=ro
+DefaultValue=
+PDOMapping=0
+
+[1003subE]
+ParameterName=Standard error field
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0007
+AccessType=ro
+DefaultValue=
+PDOMapping=0
+
+[1003subF]
+ParameterName=Standard error field
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0007
+AccessType=ro
+DefaultValue=
+PDOMapping=0
+
+[1003sub10]
+ParameterName=Standard error field
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0007
+AccessType=ro
+DefaultValue=
+PDOMapping=0
+
+[1005]
+ParameterName=COB-ID SYNC message
+ObjectType=0x7
+;StorageLocation=PERSIST_COMM
+DataType=0x0007
+AccessType=rw
+DefaultValue=0x00000080
+PDOMapping=0
+
+[1006]
+ParameterName=Communication cycle period
+ObjectType=0x7
+;StorageLocation=PERSIST_COMM
+DataType=0x0007
+AccessType=rw
+DefaultValue=0
+PDOMapping=0
+
+[1007]
+ParameterName=Synchronous window length
+ObjectType=0x7
+;StorageLocation=PERSIST_COMM
+DataType=0x0007
+AccessType=rw
+DefaultValue=0
+PDOMapping=0
+
+[1010]
+ParameterName=Store parameters
+ObjectType=0x8
+;StorageLocation=RAM
+SubNumber=0x5
+
+[1010sub0]
+ParameterName=Highest sub-index supported
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0005
+AccessType=ro
+DefaultValue=0x04
+PDOMapping=0
+
+[1010sub1]
+ParameterName=Save all parameters
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0007
+AccessType=rw
+DefaultValue=0x00000001
+PDOMapping=0
+
+[1010sub2]
+ParameterName=Save communication parameters
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0007
+AccessType=rw
+DefaultValue=0x00000001
+PDOMapping=0
+
+[1010sub3]
+ParameterName=Save application parameters
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0007
+AccessType=rw
+DefaultValue=0x00000001
+PDOMapping=0
+
+[1010sub4]
+ParameterName=Save manufacturer defined parameters
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0007
+AccessType=rw
+DefaultValue=0x00000001
+PDOMapping=0
+
+[1011]
+ParameterName=Restore default parameters
+ObjectType=0x8
+;StorageLocation=RAM
+SubNumber=0x5
+
+[1011sub0]
+ParameterName=Highest sub-index supported
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0005
+AccessType=ro
+DefaultValue=0x04
+PDOMapping=0
+
+[1011sub1]
+ParameterName=Restore all default parameters
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0007
+AccessType=rw
+DefaultValue=0x00000001
+PDOMapping=0
+
+[1011sub2]
+ParameterName=Restore communication default parameters
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0007
+AccessType=rw
+DefaultValue=0x00000001
+PDOMapping=0
+
+[1011sub3]
+ParameterName=Restore application default parameters
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0007
+AccessType=rw
+DefaultValue=0x00000001
+PDOMapping=0
+
+[1011sub4]
+ParameterName=Restore manufacturer defined default parameters
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0007
+AccessType=rw
+DefaultValue=0x00000001
+PDOMapping=0
+
+[1012]
+ParameterName=COB-ID time stamp object
+ObjectType=0x7
+;StorageLocation=PERSIST_COMM
+DataType=0x0007
+AccessType=rw
+DefaultValue=0x00000100
+PDOMapping=0
+
+[1014]
+ParameterName=COB-ID EMCY
+ObjectType=0x7
+;StorageLocation=PERSIST_COMM
+DataType=0x0007
+AccessType=rw
+DefaultValue=0x80+$NODEID
+PDOMapping=0
+
+[1015]
+ParameterName=Inhibit time EMCY
+ObjectType=0x7
+;StorageLocation=PERSIST_COMM
+DataType=0x0006
+AccessType=rw
+DefaultValue=0
+PDOMapping=0
+
+[1016]
+ParameterName=Consumer heartbeat time
+ObjectType=0x8
+;StorageLocation=PERSIST_COMM
+SubNumber=0x9
+
+[1016sub0]
+ParameterName=Highest sub-index supported
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0005
+AccessType=ro
+DefaultValue=0x08
+PDOMapping=0
+
+[1016sub1]
+ParameterName=Consumer heartbeat time
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0007
+AccessType=rw
+DefaultValue=0x00000000
+PDOMapping=0
+
+[1016sub2]
+ParameterName=Consumer heartbeat time
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0007
+AccessType=rw
+DefaultValue=0x00000000
+PDOMapping=0
+
+[1016sub3]
+ParameterName=Consumer heartbeat time
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0007
+AccessType=rw
+DefaultValue=0x00000000
+PDOMapping=0
+
+[1016sub4]
+ParameterName=Consumer heartbeat time
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0007
+AccessType=rw
+DefaultValue=0x00000000
+PDOMapping=0
+
+[1016sub5]
+ParameterName=Consumer heartbeat time
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0007
+AccessType=rw
+DefaultValue=0x00000000
+PDOMapping=0
+
+[1016sub6]
+ParameterName=Consumer heartbeat time
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0007
+AccessType=rw
+DefaultValue=0x00000000
+PDOMapping=0
+
+[1016sub7]
+ParameterName=Consumer heartbeat time
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0007
+AccessType=rw
+DefaultValue=0x00000000
+PDOMapping=0
+
+[1016sub8]
+ParameterName=Consumer heartbeat time
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0007
+AccessType=rw
+DefaultValue=0x00000000
+PDOMapping=0
+
+[1017]
+ParameterName=Producer heartbeat time
+ObjectType=0x7
+;StorageLocation=PERSIST_COMM
+DataType=0x0006
+AccessType=rw
+DefaultValue=1000
+PDOMapping=0
+
+[1019]
+ParameterName=Synchronous counter overflow value
+ObjectType=0x7
+;StorageLocation=PERSIST_COMM
+DataType=0x0005
+AccessType=rw
+DefaultValue=0
+PDOMapping=0
+
+[1200]
+ParameterName=SDO server parameter
+ObjectType=0x9
+;StorageLocation=RAM
+SubNumber=0x3
+
+[1200sub0]
+ParameterName=Highest sub-index supported
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0005
+AccessType=ro
+DefaultValue=2
+PDOMapping=0
+
+[1200sub1]
+ParameterName=COB-ID client to server (rx)
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0007
+AccessType=ro
+DefaultValue=0x600+$NODEID
+PDOMapping=1
+
+[1200sub2]
+ParameterName=COB-ID server to client (tx)
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0007
+AccessType=ro
+DefaultValue=0x580+$NODEID
+PDOMapping=1
+
+[1280]
+ParameterName=SDO client parameter
+ObjectType=0x9
+;StorageLocation=PERSIST_COMM
+SubNumber=0x4
+
+[1280sub0]
+ParameterName=Highest sub-index supported
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0005
+AccessType=ro
+DefaultValue=0x03
+PDOMapping=0
+
+[1280sub1]
+ParameterName=COB-ID client to server (tx)
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0007
+AccessType=rw
+DefaultValue=0x80000000
+PDOMapping=1
+
+[1280sub2]
+ParameterName=COB-ID server to client (rx)
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0007
+AccessType=rw
+DefaultValue=0x80000000
+PDOMapping=1
+
+[1280sub3]
+ParameterName=Node-ID of the SDO server
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0005
+AccessType=rw
+DefaultValue=0x01
+PDOMapping=0
+
+[1400]
+ParameterName=RPDO communication parameter
+ObjectType=0x9
+;StorageLocation=PERSIST_COMM
+SubNumber=0x3
+
+[1400sub0]
+ParameterName=max sub-index
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0005
+AccessType=ro
+DefaultValue=2
+PDOMapping=0
+
+[1400sub1]
+ParameterName=COB-ID used by RPDO
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0007
+AccessType=rw
+DefaultValue=0x181
+PDOMapping=0
+
+[1400sub2]
+ParameterName=transmission type
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0005
+AccessType=rw
+DefaultValue=254
+PDOMapping=0
+
+[1600]
+ParameterName=RPDO mapping parameter
+ObjectType=0x9
+;StorageLocation=PERSIST_COMM
+SubNumber=0x4
+
+[1600sub0]
+ParameterName=Number of mapped objects
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0005
+AccessType=ro
+DefaultValue=0x03
+PDOMapping=0
+
+[1600sub1]
+ParameterName=Mapped object 1
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0007
+AccessType=rw
+DefaultValue=0x50200120
+PDOMapping=0
+
+[1600sub2]
+ParameterName=Mapped object 2
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0007
+AccessType=rw
+DefaultValue=0x50200208
+PDOMapping=0
+
+[1600sub3]
+ParameterName=Mapped object 3
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0007
+AccessType=rw
+DefaultValue=0x50200308
+PDOMapping=0
+
+[1800]
+ParameterName=TPDO communication parameter
+ObjectType=0x9
+;StorageLocation=PERSIST_COMM
+SubNumber=0x7
+
+[1800sub0]
+ParameterName=max sub-index
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0005
+AccessType=ro
+DefaultValue=6
+PDOMapping=0
+
+[1800sub1]
+ParameterName=COB-ID used by TPDO
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0007
+AccessType=rw
+DefaultValue=0x180
+PDOMapping=0
+
+[1800sub2]
+ParameterName=transmission type
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0005
+AccessType=rw
+DefaultValue=1
+PDOMapping=0
+
+[1800sub3]
+ParameterName=inhibit time
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0006
+AccessType=rw
+DefaultValue=0
+PDOMapping=0
+
+[1800sub4]
+ParameterName=compatibility entry
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0005
+AccessType=rw
+DefaultValue=0
+PDOMapping=0
+
+[1800sub5]
+ParameterName=event timer
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0006
+AccessType=rw
+DefaultValue=0
+PDOMapping=0
+
+[1800sub6]
+ParameterName=SYNC start value
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0005
+AccessType=rw
+DefaultValue=0
+PDOMapping=0
+
+[1A00]
+ParameterName=TPDO mapping parameter
+ObjectType=0x9
+;StorageLocation=PERSIST_COMM
+SubNumber=0x3
+
+[1A00sub0]
+ParameterName=Number of mapped objects
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0005
+AccessType=ro
+DefaultValue=2
+PDOMapping=0
+
+[1A00sub1]
+ParameterName=Mapped object 1
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0007
+AccessType=rw
+DefaultValue=0x50210110
+PDOMapping=0
+
+[1A00sub2]
+ParameterName=Mapped object 2
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0007
+AccessType=rw
+DefaultValue=0x50210208
+PDOMapping=0
+
+[ManufacturerObjects]
+SupportedObjects=2
+1=0x5020
+2=0x5021
+
+[5020]
+ParameterName=Motor Controller Telemetry
+ObjectType=0x9
+;StorageLocation=RAM
+SubNumber=0x4
+
+[5020sub0]
+ParameterName=Highest sub-index supported
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0005
+AccessType=ro
+DefaultValue=0x03
+PDOMapping=0
+
+[5020sub1]
+ParameterName=Motor Velocity
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0004
+AccessType=ro
+DefaultValue=0
+PDOMapping=1
+
+[5020sub2]
+ParameterName=Temperature
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0002
+AccessType=ro
+DefaultValue=0
+PDOMapping=1
+
+[5020sub3]
+ParameterName=Deadman Switch
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0005
+AccessType=ro
+DefaultValue=0
+PDOMapping=1
+
+[5021]
+ParameterName=Motor Controller Command
+ObjectType=0x9
+;StorageLocation=RAM
+SubNumber=0x3
+
+[5021sub0]
+ParameterName=Highest sub-index supported
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0005
+AccessType=ro
+DefaultValue=0x02
+PDOMapping=0
+
+[5021sub1]
+ParameterName=Desired Throttle
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0003
+AccessType=rww
+DefaultValue=0
+PDOMapping=1
+
+[5021sub2]
+ParameterName=Direction
+ObjectType=0x7
+;StorageLocation=RAM
+DataType=0x0005
+AccessType=rww
+DefaultValue=0
+PDOMapping=1
+

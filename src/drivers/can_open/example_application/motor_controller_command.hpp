@@ -36,6 +36,7 @@
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/defines.h>
+#include <lib/mixer_module/mixer_module.hpp>
 
 #include <uORB/Subscription.hpp>
 
@@ -56,6 +57,12 @@ public:
 		_mixing_output.updateSubscriptions();
 	}
 
+protected:
+	void Run() override
+	{
+		PX4_ERR("Run called");
+	};
+
 private:
 	enum motor_controller_cmd_subidx {
 		SUBIDX_DESIRED_THROTTLE = 1,
@@ -74,10 +81,16 @@ private:
 	{
 		int16_t des_throttle;
 		uint8_t des_gear;
-		const int16_t midpt = (mixing_output.maxValue(0) - mixing_output.minValue(0) + 1)/ 2;
+		const int16_t midpt = (_mixing_output.maxValue(0) - _mixing_output.minValue(0) + 1)/ 2;
+		const int16_t output = outputs[0];
 
-		if(stop_motors || (output == mixing_output.disarmedValue(0)) ||
-				  (output == mixing_output.failsafeValue(0))){
+		if(num_outputs != 1) {
+			PX4_ERR("Invalid number of outputs: %u", num_outputs);
+			return false;
+		}
+
+		if(stop_motors || (output == _mixing_output.disarmedValue(0)) ||
+				  (output == _mixing_output.failsafeValue(0))){
 			des_throttle = 0;
 			des_gear = GEAR_NEUTRAL;
 		} else {
@@ -93,5 +106,6 @@ private:
 		}
 		OD_set_i16(OD_ENTRY_H5021_motorControllerCommand, SUBIDX_DESIRED_THROTTLE, des_throttle, false);
 		OD_set_u8(OD_ENTRY_H5021_motorControllerCommand, SUBIDX_DESIRED_GEAR, des_gear, false);
+		return true;
 	};
 };

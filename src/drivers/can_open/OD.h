@@ -35,7 +35,7 @@
 
 #if defined(CANOPEN_DEMO_DEVICE)
 #include "can_open_demo/demo/OD.h"
-#elif defined(CANOPEN_EXAMPLE_APPLICATON)
+#elif defined(CANOPEN_EXAMPLE_APPLICATION)
 #include "example_application/OD.h"
 #else
 #error No Object Dictionary Selected!

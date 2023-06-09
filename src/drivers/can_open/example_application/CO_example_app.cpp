@@ -50,6 +50,7 @@ extern "C" CO_ReturnError_t app_programStart(uint16_t *bitRate,
 	(void)bitRate;
 	(void)nodeId;
 	(void)errInfo;
+	return CO_ERROR_NO;
 }
 
 extern "C" void app_communicationReset(CO_t *co)
