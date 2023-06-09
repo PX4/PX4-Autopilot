@@ -44,7 +44,6 @@
 
 #include <drivers/drv_hrt.h>
 #include <systemlib/ppm_decode.h>
-#include <rc/st24.h>
 #include <rc/sumd.h>
 #include <rc/sbus.h>
 #include <rc/dsm.h>
@@ -57,7 +56,7 @@
 #include "px4io.h"
 
 static bool	ppm_input(uint16_t *values, uint16_t *num_values, uint16_t *frame_len);
-static bool	dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated, bool *sumd_updated);
+static bool	dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *sumd_updated);
 
 #if defined(PX4IO_PERF)
 static perf_counter_t c_gather_dsm;
@@ -77,7 +76,7 @@ static unsigned _rssi_adc_counts = 0;
 static uint16_t _rssi = 0;
 static unsigned _frame_drops = 0;
 
-bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated, bool *sumd_updated)
+bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *sumd_updated)
 {
 #if defined(PX4IO_PERF)
 	perf_begin(c_gather_dsm);
@@ -122,35 +121,6 @@ bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated, bool 
 	perf_end(c_gather_dsm);
 #endif
 
-	/* get data from FD and attempt to parse with DSM and ST24 libs */
-	uint8_t st24_rssi, lost_count;
-	uint16_t st24_channel_count = 0;
-
-	*st24_updated = false;
-
-	if (!(r_status_flags & (PX4IO_P_STATUS_FLAGS_RC_DSM | PX4IO_P_STATUS_FLAGS_RC_SUMD))) {
-		for (unsigned i = 0; i < n_bytes; i++) {
-			/* set updated flag if one complete packet was parsed */
-			st24_rssi = input_rc_s::RSSI_MAX;
-			*st24_updated |= (OK == st24_decode(bytes[i], &st24_rssi, &lost_count,
-							    &st24_channel_count, r_raw_rc_values, PX4IO_RC_INPUT_CHANNELS));
-		}
-	}
-
-	if (*st24_updated && lost_count == 0) {
-
-		/* ensure ADC RSSI is disabled */
-		r_setup_features &= ~(PX4IO_P_SETUP_FEATURES_ADC_RSSI);
-
-		*rssi = st24_rssi;
-		r_raw_rc_count = st24_channel_count;
-
-		atomic_modify_or(&r_status_flags, PX4IO_P_STATUS_FLAGS_RC_ST24);
-		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FRAME_DROP);
-		r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_FAILSAFE);
-	}
-
-
 	/* get data from FD and attempt to parse with SUMD libs */
 	uint8_t sumd_rssi, sumd_rx_count;
 	uint16_t sumd_channel_count = 0;
@@ -158,7 +128,7 @@ bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated, bool 
 
 	*sumd_updated = false;
 
-	if (!(r_status_flags & (PX4IO_P_STATUS_FLAGS_RC_DSM | PX4IO_P_STATUS_FLAGS_RC_ST24))) {
+	if (!(r_status_flags & (PX4IO_P_STATUS_FLAGS_RC_DSM))) {
 		for (unsigned i = 0; i < n_bytes; i++) {
 			/* set updated flag if one complete packet was parsed */
 			sumd_rssi = input_rc_s::RSSI_MAX;
@@ -183,7 +153,7 @@ bool dsm_port_input(uint16_t *rssi, bool *dsm_updated, bool *st24_updated, bool 
 		}
 	}
 
-	return (*dsm_updated | *st24_updated | *sumd_updated);
+	return (*dsm_updated | *sumd_updated);
 }
 
 void
@@ -250,7 +220,7 @@ controls_tick()
 
 	bool sbus_updated = false;
 
-	if (!(r_status_flags & (PX4IO_P_STATUS_FLAGS_RC_DSM | PX4IO_P_STATUS_FLAGS_RC_ST24 | PX4IO_P_STATUS_FLAGS_RC_SUMD))) {
+	if (!(r_status_flags & (PX4IO_P_STATUS_FLAGS_RC_DSM | PX4IO_P_STATUS_FLAGS_RC_SUMD))) {
 		bool sbus_failsafe, sbus_frame_drop;
 		sbus_updated = sbus_input(_sbus_fd, r_raw_rc_values, &r_raw_rc_count, &sbus_failsafe, &sbus_frame_drop,
 					  PX4IO_RC_INPUT_CHANNELS);
@@ -307,21 +277,17 @@ controls_tick()
 	perf_end(c_gather_ppm);
 #endif
 
-	bool dsm_updated = false, st24_updated = false, sumd_updated = false;
+	bool dsm_updated = false, sumd_updated = false;
 
 	if (!(r_status_flags & (PX4IO_P_STATUS_FLAGS_RC_SBUS | PX4IO_P_STATUS_FLAGS_RC_PPM))) {
 #if defined(PX4IO_PERF)
 		perf_begin(c_gather_dsm);
 #endif
 
-		(void)dsm_port_input(&_rssi, &dsm_updated, &st24_updated, &sumd_updated);
+		(void)dsm_port_input(&_rssi, &dsm_updated, &sumd_updated);
 
 		if (dsm_updated) {
 			atomic_modify_or(&r_status_flags, PX4IO_P_STATUS_FLAGS_RC_DSM);
-		}
-
-		if (st24_updated) {
-			atomic_modify_or(&r_status_flags, PX4IO_P_STATUS_FLAGS_RC_ST24);
 		}
 
 		if (sumd_updated) {
@@ -350,7 +316,7 @@ controls_tick()
 	/*
 	 * If we received a new frame from any of the RC sources, process it.
 	 */
-	if (dsm_updated || sbus_updated || ppm_updated || st24_updated || sumd_updated) {
+	if (dsm_updated || sbus_updated || ppm_updated || sumd_updated) {
 
 		/* record a bitmask of channels assigned */
 		unsigned assigned_channels = 0;
@@ -385,7 +351,6 @@ controls_tick()
 					    PX4IO_P_STATUS_FLAGS_RC_PPM |
 					    PX4IO_P_STATUS_FLAGS_RC_DSM |
 					    PX4IO_P_STATUS_FLAGS_RC_SBUS |
-					    PX4IO_P_STATUS_FLAGS_RC_ST24 |
 					    PX4IO_P_STATUS_FLAGS_RC_SUMD));
 
 	}

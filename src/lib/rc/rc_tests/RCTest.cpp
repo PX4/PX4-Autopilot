@@ -11,7 +11,6 @@
 #define DSM_DEBUG
 #include <lib/rc/sbus.h>
 #include <lib/rc/dsm.h>
-#include <lib/rc/st24.h>
 #include <lib/rc/sumd.h>
 #include <lib/rc/crsf.h>
 #include <lib/rc/ghst.hpp>
@@ -38,7 +37,6 @@ private:
 	bool dsmTest22msDSMX16Ch();
 	bool dsmTestOrangeDsmx();
 	bool sbus2Test();
-	bool st24Test();
 	bool sumdTest();
 };
 
@@ -51,7 +49,6 @@ bool RCTest::run_tests()
 	ut_run_test(dsmTest22msDSMX16Ch);
 	ut_run_test(dsmTestOrangeDsmx);
 	ut_run_test(sbus2Test);
-	ut_run_test(st24Test);
 	ut_run_test(sumdTest);
 
 	return (_tests_failed == 0);
@@ -391,67 +388,6 @@ bool RCTest::sbus2Test()
 		}
 
 		rate_limiter++;
-	}
-
-	ut_test(ret == EOF);
-
-	return true;
-}
-
-bool RCTest::st24Test()
-{
-	const char *filepath = TEST_DATA_PATH "st24_data.txt";
-
-	//PX4_INFO("loading data from: %s", filepath);
-
-	FILE *fp;
-
-	fp = fopen(filepath, "rt");
-	ut_test(fp);
-
-	float f;
-	unsigned x;
-	int ret;
-
-	// Trash the first 20 lines
-	for (unsigned i = 0; i < 20; i++) {
-		char buf[200];
-		(void)fgets(buf, sizeof(buf), fp);
-	}
-
-	float last_time = 0;
-
-	while (EOF != (ret = fscanf(fp, "%f,%x,,", &f, &x))) {
-
-		if (ret <= 0) {
-			fclose(fp);
-			ut_test(ret > 0);
-		}
-
-		if (((f - last_time) * 1000 * 1000) > 3000) {
-			// PX4_INFO("FRAME RESET\n\n");
-		}
-
-		uint8_t b = static_cast<uint8_t>(x);
-
-		last_time = f;
-
-		// Pipe the data into the parser
-		//hrt_abstime now = hrt_absolute_time();
-
-		uint8_t rssi;
-		uint8_t rx_count;
-		uint16_t channel_count;
-		uint16_t channels[20];
-
-		if (!st24_decode(b, &rssi, &rx_count, &channel_count, channels, sizeof(channels) / sizeof(channels[0]))) {
-			//PX4_INFO("decoded: %u channels (converted to PPM range)", (unsigned)channel_count);
-
-			for (unsigned i = 0; i < channel_count; i++) {
-				//int16_t val = channels[i];
-				//PX4_INFO("channel %u: %d 0x%03X", i, static_cast<int>(val), static_cast<int>(val));
-			}
-		}
 	}
 
 	ut_test(ret == EOF);

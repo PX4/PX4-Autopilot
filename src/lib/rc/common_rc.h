@@ -7,7 +7,6 @@
 #include "dsm.h"
 #include "ghst.hpp"
 #include "sbus.h"
-#include "st24.h"
 #include "sumd.h"
 
 #pragma pack(push, 1)
@@ -17,7 +16,6 @@ typedef  struct rc_decode_buf_ {
 		ghst_frame_t ghst_frame;
 		dsm_decode_t dsm;
 		sbus_frame_t sbus_frame;
-		ReceiverFcPacket _strxpacket;
 		ReceiverFcPacketHoTT _hottrxpacket;
 	};
 } rc_decode_buf_t;

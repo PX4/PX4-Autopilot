@@ -34,7 +34,6 @@
 add_library(rc
 	crsf.cpp
 	ghst.cpp
-	st24.cpp
 	sumd.cpp
 	sbus.cpp
 	dsm.cpp

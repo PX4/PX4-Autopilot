@@ -43,7 +43,6 @@
 #include <lib/rc/ghst.hpp>
 #include <lib/rc/dsm.h>
 #include <lib/rc/sbus.h>
-#include <lib/rc/st24.h>
 #include <lib/rc/sumd.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/getopt.h>
@@ -95,10 +94,9 @@ private:
 		RC_SCAN_PPM  = 1,
 		RC_SCAN_SBUS = 2,
 		RC_SCAN_DSM  = 3,
-		RC_SCAN_ST24 = 5,
 		RC_SCAN_SUMD = 4,
-		RC_SCAN_CRSF = 6,
-		RC_SCAN_GHST = 7,
+		RC_SCAN_CRSF = 5,
+		RC_SCAN_GHST = 6,
 	} _rc_scan_state{RC_SCAN_SBUS};
 
 	static constexpr char const *RC_SCAN_STRING[] {
@@ -106,7 +104,6 @@ private:
 		"PPM",
 		"SBUS",
 		"DSM",
-		"ST24",
 		"SUMD",
 		"CRSF",
 		"GHST"

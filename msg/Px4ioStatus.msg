@@ -17,7 +17,6 @@ bool status_rc_ok
 bool status_rc_dsm
 bool status_rc_ppm
 bool status_rc_sbus
-bool status_rc_st24
 bool status_rc_sumd
 bool status_safety_button_event # px4io safety button was pressed for longer than 1 second
 

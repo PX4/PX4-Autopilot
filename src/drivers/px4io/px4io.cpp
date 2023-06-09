@@ -965,7 +965,6 @@ int PX4IO::io_get_status()
 		status.status_rc_ppm          = STATUS_FLAGS & PX4IO_P_STATUS_FLAGS_RC_PPM;
 		status.status_rc_dsm          = STATUS_FLAGS & PX4IO_P_STATUS_FLAGS_RC_DSM;
 		status.status_rc_sbus         = STATUS_FLAGS & PX4IO_P_STATUS_FLAGS_RC_SBUS;
-		status.status_rc_st24         = STATUS_FLAGS & PX4IO_P_STATUS_FLAGS_RC_ST24;
 		status.status_rc_sumd         = STATUS_FLAGS & PX4IO_P_STATUS_FLAGS_RC_SUMD;
 		status.status_fmu_initialized = STATUS_FLAGS & PX4IO_P_STATUS_FLAGS_FMU_INITIALIZED;
 		status.status_fmu_ok          = STATUS_FLAGS & PX4IO_P_STATUS_FLAGS_FMU_OK;
@@ -1134,9 +1133,6 @@ int PX4IO::io_publish_raw_rc()
 
 	} else if (_status & PX4IO_P_STATUS_FLAGS_RC_SBUS) {
 		input_rc.input_source = input_rc_s::RC_INPUT_SOURCE_PX4IO_SBUS;
-
-	} else if (_status & PX4IO_P_STATUS_FLAGS_RC_ST24) {
-		input_rc.input_source = input_rc_s::RC_INPUT_SOURCE_PX4IO_ST24;
 	}
 
 	if (input_rc.input_source != input_rc_s::RC_INPUT_SOURCE_UNKNOWN) {

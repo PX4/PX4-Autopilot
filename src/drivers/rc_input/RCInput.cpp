@@ -515,57 +515,6 @@ void RCInput::Run()
 
 			} else {
 				// Scan the next protocol
-				set_rc_scan_state(RC_SCAN_ST24);
-			}
-
-			break;
-
-		case RC_SCAN_ST24:
-			if (_rc_scan_begin == 0) {
-				_rc_scan_begin = cycle_timestamp;
-				// Configure serial port for DSM
-				dsm_config(_rcs_fd);
-
-				// flush serial buffer and any existing buffered data
-				tcflush(_rcs_fd, TCIOFLUSH);
-				memset(_rcs_buf, 0, sizeof(_rcs_buf));
-
-			} else if (_rc_scan_locked
-				   || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
-
-				if (newBytes > 0) {
-					// parse new data
-					uint8_t st24_rssi, lost_count;
-
-					rc_updated = false;
-
-					for (unsigned i = 0; i < (unsigned)newBytes; i++) {
-						/* set updated flag if one complete packet was parsed */
-						st24_rssi = input_rc_s::RSSI_MAX;
-						rc_updated = (OK == st24_decode(_rcs_buf[i], &st24_rssi, &lost_count,
-										&_raw_rc_count, _raw_rc_values, input_rc_s::RC_INPUT_MAX_CHANNELS));
-					}
-
-					// The st24 will keep outputting RC channels and RSSI even if RC has been lost.
-					// The only way to detect RC loss is therefore to look at the lost_count.
-
-					if (rc_updated) {
-						if (lost_count == 0) {
-							// we have a new ST24 frame. Publish it.
-							_input_rc.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_ST24;
-							fill_rc_in(_raw_rc_count, _raw_rc_values, cycle_timestamp,
-								   false, false, frame_drops, st24_rssi);
-							_rc_scan_locked = true;
-
-						} else {
-							// if the lost count > 0 means that there is an RC loss
-							_input_rc.rc_lost = true;
-						}
-					}
-				}
-
-			} else {
-				// Scan the next protocol
 				set_rc_scan_state(RC_SCAN_SUMD);
 			}
 
@@ -889,10 +838,6 @@ int RCInput::print_status()
 		case RC_SCAN_SUMD:
 			// SUMD status output
 			break;
-
-		case RC_SCAN_ST24:
-			// SUMD status output
-			break;
 		}
 	}
 
@@ -929,7 +874,6 @@ This module does the RC input parsing and auto-selecting the method. Supported m
 - SBUS
 - DSM
 - SUMD
-- ST24
 - TBS Crossfire (CRSF)
 
 )DESCR_STR");
