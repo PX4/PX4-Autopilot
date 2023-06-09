@@ -291,30 +291,30 @@ void LandingTargetEstimator::_update_topics()
 		 * To change POV we negate rotate the position with Eulerangles[XYZ] = [-90 0 -90]:
 		 *
 		 * rotation_matrix = (0, 1, 0,
-					0, 0, 1;
-					-1, 0, 0);
+					0, 0, -1;
+					1, 0, 0);
 		 *
 		 * This step can also be skipped if we rearrange the position calculation like this:
-		 * 	X -> -Z
+		 * 	X -> Z
 		 * 	Y -> X
 		 * 	Z -> Y
 		 * Resulting in the following conversion function:
 		 * ******************************************/
-		matrix::Vector3f position = -matrix::Vector3f{
-					(_sensorUwb.distance * sinf(math::radians(_sensorUwb.aoa_elevation_dev))),
-					- (_sensorUwb.distance * sinf(math::radians(_sensorUwb.aoa_azimuth_dev)) * cosf(math::radians(_sensorUwb.aoa_elevation_dev))),
-					(_sensorUwb.distance * cosf(math::radians(_sensorUwb.aoa_azimuth_dev)) * cosf(math::radians(_sensorUwb.aoa_elevation_dev)))};
+		matrix::Vector3f position = matrix::Vector3f{
+			(_sensorUwb.distance * sinf(math::radians(_sensorUwb.aoa_elevation_dev))),
+			(-_sensorUwb.distance * sinf(math::radians(_sensorUwb.aoa_azimuth_dev)) * cosf(math::radians(_sensorUwb.aoa_elevation_dev))),
+			(_sensorUwb.distance * cosf(math::radians(_sensorUwb.aoa_azimuth_dev)) * cosf(math::radians(_sensorUwb.aoa_elevation_dev)))};
 
 		// Now the position is the landing point relative to the vehicle.
-		//Rotate around orientation:
+		//Rotate around orientation off the initiator:
 		position = get_rot_matrix(static_cast<enum Rotation>(_sensorUwb.orientation)) *
-			   position; //cast the orientatio to Rotation enum
+			   position; //cast the orientation to Rotation enum
 		// And add the initiator offset:
 		position +=  matrix::Vector3f(_sensorUwb.offset_x,  _sensorUwb.offset_y,  _sensorUwb.offset_z);
 
 
 
-		// Now we negate every axis to get the Position of the drone relative to the landing spot:
+		// Now we have the Position of the landing spot in relation to the Drone in NED:
 		_target_position_report.rel_pos_x = position(0);
 		_target_position_report.rel_pos_y = position(1);
 		_target_position_report.rel_pos_z = position(2);
