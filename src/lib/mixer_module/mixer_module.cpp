@@ -490,6 +490,24 @@ MixingOutput::limitAndUpdateOutputs(float outputs[MAX_ACTUATORS], bool has_updat
 		output_limit_calc(_throttle_armed || _actuator_test.inTestMode(), _max_num_outputs, outputs);
 	}
 
+	// We must calibrate the PWM and Oneshot ESCs to a consistent range of 1000-2000us (gets mapped to 125-250us for Oneshot)
+	// Doing so makes calibrations consistent among different configurations and hence PWM minimum and maximum have a consistent effect
+	// hence the defaults for these parameters also make most setups work out of the box
+	if (_armed.in_esc_calibration_mode) {
+		static constexpr uint16_t PWM_CALIBRATION_LOW = 1000;
+		static constexpr uint16_t PWM_CALIBRATION_HIGH = 2000;
+
+		for (int i = 0; i < _max_num_outputs; i++) {
+			if (_current_output_value[i] == _min_value[i]) {
+				_current_output_value[i] = PWM_CALIBRATION_LOW;
+			}
+
+			if (_current_output_value[i] == _max_value[i]) {
+				_current_output_value[i] = PWM_CALIBRATION_HIGH;
+			}
+		}
+	}
+
 	/* now return the outputs to the driver */
 	if (_interface.updateOutputs(stop_motors, _current_output_value, _max_num_outputs, has_updates)) {
 		actuator_outputs_s actuator_outputs{};
