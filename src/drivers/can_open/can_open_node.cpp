@@ -411,7 +411,7 @@ void CanOpenNode::print_info()
 static void print_usage()
 {
 	PX4_INFO("usage: \n"
-		 "\tcanopennode {start|status|stop|start_sensors|stop_sensors}");
+		 "\tcanopen {start|status|stop|start_sensors|stop_sensors}");
 }
 
 extern "C" __EXPORT int canopen_main(int argc, char *argv[])
