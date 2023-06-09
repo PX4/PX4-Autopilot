@@ -45,36 +45,49 @@ if(${PX4_PLATFORM} MATCHES "nuttx")
 
 	if(${CANOPEN_DRIVER} MATCHES "socket_can")
 		list(APPEND SRCS
-			CO_driver_nuttx_socket.c
+			nuttx/CO_driver_nuttx_socket.c
 		)
 	elseif(${CANOPEN_DRIVER} MATCHES "char_can")
 		list(APPEND SRCS
-			CO_driver_nuttx_char.c
+			nuttx/CO_driver_nuttx_char.c
 		)
 	endif()
 
 	list(APPEND SRCS
 		CO_driver_target.h
-		CO_storage_nuttx.c
-		CO_storage_nuttx.h
+		nuttx/CO_storage_nuttx.c
+		nuttx/CO_storage_nuttx.h
 	)
 endif()
 
 if(${OD} MATCHES "demo_device")
-    list(APPEND SRCS
+	list(APPEND SRCS
 		can_open_demo/demo/OD.h
-                can_open_demo/demo/OD.c
-     	        can_open_demo/demo/objectAccessOD.c
-                can_open_demo/demo/objectAccessOD.h
-                can_open_demo/demo/domainDemo.c
-                can_open_demo/demo/domainDemo.h
-                can_open_demo/demo/CO_identificators.c
-                can_open_demo/demo/CO_identificators.h
-                can_open_demo/demo/CO_application.c
-    )
-    add_definitions(
-	-DCANOPENNODE_DEMO_DEVICE
-    )
+		can_open_demo/demo/OD.c
+		can_open_demo/demo/objectAccessOD.c
+		can_open_demo/demo/objectAccessOD.h
+		can_open_demo/demo/domainDemo.c
+		can_open_demo/demo/domainDemo.h
+		can_open_demo/demo/CO_identificators.c
+		can_open_demo/demo/CO_identificators.h
+		can_open_demo/demo/CO_application.c
+	)
+	add_definitions(
+		-DCANOPEN_DEMO_DEVICE
+	)
+endif()
+
+if(${OD} MATCHES "example_application")
+	list(APPEND SRCS
+		example_application/OD.h
+		example_application/OD.c
+		example_application/CO_example_app.cpp
+		example_application/motor_controller_command.hpp
+		example_application/motor_controller_telemetry.hpp
+	)
+	add_definitions(
+		-DCANOPEN_EXAMPLE_APPLICATION
+	)
 endif()
 
 add_compile_options(
@@ -90,11 +103,13 @@ px4_add_module(
 		-DDEBUG_BUILD
 	INCLUDES
 		${CMAKE_CURRENT_SOURCE_DIR}
-		${CMAKE_CURRENT_SOURCE_DIR}/demoDevice
+		${CMAKE_CURRENT_SOURCE_DIR}/nuttx
 		${CMAKE_CURRENT_SOURCE_DIR}/can_open_node
 		${CMAKE_CURRENT_SOURCE_DIR}/can_open_node/storage
 		${CMAKE_CURRENT_SOURCE_DIR}/can_open_demo/demo
 		${CMAKE_CURRENT_SOURCE_DIR}/can_open_demo/demo/linux
+		${CMAKE_CURRENT_SOURCE_DIR}/example_application
+
 	SRCS
 		OD.h
 		can_open_node/CANopen.c

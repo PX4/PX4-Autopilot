@@ -45,7 +45,7 @@ can_open_node_error_s CanOpenNode::_can_open_node_error[2]{0};
 uint64_t ODRecord::_current_timestamp;
 
 CanOpenNode::CanOpenNode(uint8_t node_id, int32_t bitrate) :
-	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::can)
+	px4::ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::can), ModuleParams(nullptr)
 {
 #if (CO_CONFIG_STORAGE) & CO_CONFIG_STORAGE_ENABLE
 	uint8_t storageEntriesCount = sizeof(_storage_entries) / sizeof(_storage_entries[0]);
@@ -173,7 +173,6 @@ void CanOpenNode::init()
 	/* Enter CAN configuration. */
 	CO_CANmodule_disable(_CO_instance->CANmodule);
 
-#if defined(CANOPENNODE_DEMO_DEVICE)
 	/* Execute optional external application code */
 	err = app_programStart(&bitrate, &node_id, &_err_info_app);
 
@@ -181,7 +180,6 @@ void CanOpenNode::init()
 		PX4_ERR("app_programStart error: 0x%x", err);
 		return;
 	}
-#endif
 
 	/* initialize CANopen */
 	err = CO_CANinit(_CO_instance, NULL, _bitrate / 1000);
@@ -256,7 +254,6 @@ void CanOpenNode::init()
 void CanOpenNode::CO_high_pri_work(uint32_t time_difference_us)
 {
 	bool_t syncWas = false;
-	static hrt_abstime delay = 0;
 
 #if (CO_CONFIG_SYNC) & CO_CONFIG_SYNC_ENABLE
 	syncWas = CO_process_SYNC(_CO_instance, time_difference_us, NULL);
@@ -265,23 +262,8 @@ void CanOpenNode::CO_high_pri_work(uint32_t time_difference_us)
 	CO_process_RPDO(_CO_instance, syncWas, time_difference_us, NULL);
 #endif
 #if (CO_CONFIG_PDO) & CO_CONFIG_TPDO_ENABLE
-	// don't start sending the controller commands until
-	// 400ms after it sends something to us.  If we send something too
-	// early, the motor controller doesn't like it and it gets into
-	// a messed up state.  Too late, and it triggers its error response.
-	if (_received_motor_telem) {
-		if(delay < 400_ms) {
-			delay += time_difference_us;
-		} else {
-			CO_process_TPDO(_CO_instance, syncWas, time_difference_us, NULL);
-		}
-	}
+	CO_process_TPDO(_CO_instance, syncWas, time_difference_us, NULL);
 #endif
-
-}
-
-void CanOpenNode::CO_app_process(CO_t *co, uint32_t time_difference_us)
-{
 
 }
 
@@ -302,12 +284,6 @@ void CanOpenNode::CO_low_pri_work(uint32_t time_difference_us)
 
 	_storage_error_prev = mask;
 #endif
-}
-
-bool CanOpenNode::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
-				unsigned num_outputs, unsigned num_control_groups_updated)
-{
-	return false;
 }
 
 void CanOpenNode::Run()
@@ -339,7 +315,6 @@ void CanOpenNode::Run()
 	CO_driver_receive(_CO_instance->CANmodule);
 	CO_high_pri_work(SCHEDULE_INTERVAL);
 
-
 	if (_medium_pri_timer >= 10_ms) {
 		CO_NMT_reset_cmd_t reset;
 
@@ -356,17 +331,11 @@ void CanOpenNode::Run()
 			}
 		}
 
-#if defined(CANOPENNODE_DEMO_DEVICE)
 		app_programRt(_CO_instance, _medium_pri_timer);
-#else
-		_mixing_output.update();
-		_mixing_output.updateSubscriptions();
-		CO_app_process(_CO_instance, _medium_pri_timer);
-#endif
 		_medium_pri_timer = 0;
 	}
 
-	if (_low_pri_timer >= 5_s) { // 5s
+	if (_low_pri_timer >= 5_s) {
 		CO_low_pri_work(_low_pri_timer);
 		_low_pri_timer = 0;
 	}
@@ -404,8 +373,6 @@ void CanOpenNode::print_info()
 
 	perf_print_counter(_cycle_perf);
 	perf_print_counter(_interval_perf);
-
-	_mixing_output.printStatus();
 }
 
 static void print_usage()

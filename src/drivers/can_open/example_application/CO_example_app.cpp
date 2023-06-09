@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,12 +31,48 @@
  *
  ****************************************************************************/
 
-#pragma once
+// CanOpenNode implementation for PX4
+#include <stdio.h>
 
-#if defined(CANOPEN_DEMO_DEVICE)
-#include "can_open_demo/demo/OD.h"
-#elif defined(CANOPEN_EXAMPLE_APPLICATON)
-#include "example_application/OD.h"
-#else
-#error No Object Dictionary Selected!
-#endif
+#include "CO_application.h"
+#include "motor_controller_telemetry.hpp"
+#include "motor_controller_command.hpp"
+
+using namespace time_literals;
+
+MotorControllerTelemetry MotorTelem;
+MotorControllerCommand MotorCommand;
+
+extern "C" CO_ReturnError_t app_programStart(uint16_t *bitRate,
+				  uint8_t *nodeId,
+				  uint32_t *errInfo)
+{
+	(void)bitRate;
+	(void)nodeId;
+	(void)errInfo;
+}
+
+extern "C" void app_communicationReset(CO_t *co)
+{
+	(void)co;
+}
+
+
+extern "C" void app_programEnd(void)
+{
+
+}
+
+
+extern "C" void app_programAsync(CO_t *co, uint32_t timer1usDiff)
+{
+	(void)co;
+	(void)timer1usDiff;
+}
+
+
+extern "C" void app_programRt(CO_t *co, uint32_t timer1usDiff)
+{
+	MotorCommand.update();
+	MotorTelem.update();
+}

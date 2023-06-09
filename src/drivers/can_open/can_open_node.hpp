@@ -64,7 +64,7 @@ typedef struct {
 	uint32_t info_code;
 } can_open_node_error_s;
 
-class CanOpenNode : public OutputModuleInterface
+class CanOpenNode : public px4::ScheduledWorkItem, public ModuleParams
 {
 	/*
 	 * Base interval, has to be complemented with events from the CAN driver
@@ -88,15 +88,8 @@ private:
 	void init();
 	void Run() override;
 
-	MixingOutput _mixing_output{"CO_EC", 5, *this, MixingOutput::SchedulingPolicy::Disabled, false, false};
-
-
-	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
-			   unsigned num_outputs, unsigned num_control_groups_updated) override;
-
 	void CO_high_pri_work(uint32_t time_difference_us);
 	void CO_low_pri_work(uint32_t time_difference_us);
-	void CO_app_process(CO_t *co, uint32_t time_difference_us);
 
 	px4::atomic_bool _task_should_exit{false};	///< flag to indicate to tear down the CAN driver
 
@@ -114,7 +107,6 @@ private:
 	int32_t _bitrate{0};
 
 	bool _initialized{false};
-	bool _received_motor_telem{false};
 
 	static CanOpenNode *_instance;
 	static can_open_node_error_s _can_open_node_error[2];
@@ -128,9 +120,7 @@ private:
 		(ParamInt<px4::params::CANOPEN_ENABLE>) _param_canopen_enable,
 		(ParamInt<px4::params::CANOPEN_BITRATE>) _param_canopen_bitrate,
 		(ParamInt<px4::params::CANOPEN_NODE_ID>) _param_canopen_nodeid
-
 	)
-
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")};
 	perf_counter_t _interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": cycle interval")};
 };
