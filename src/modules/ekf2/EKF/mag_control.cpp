@@ -150,8 +150,6 @@ void Ekf::controlMagFusion()
 
 					_aid_src_mag_heading.time_last_fuse = _time_delayed_us;
 					_time_last_heading_fuse = _time_delayed_us;
-
-					_last_static_yaw = NAN;
 				}
 			}
 		}

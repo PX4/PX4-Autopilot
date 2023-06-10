@@ -54,6 +54,7 @@ list(APPEND EKF_SRCS
 	output_predictor.cpp
 	vel_pos_fusion.cpp
 	zero_innovation_heading_update.cpp
+	zero_gyro_update.cpp
 	zero_velocity_update.cpp
 )
 

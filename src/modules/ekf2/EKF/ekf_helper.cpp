@@ -1155,8 +1155,6 @@ void Ekf::resetQuatStateYaw(float yaw, float yaw_variance)
 	_state_reset_status.reset_count.quat++;
 
 	_time_last_heading_fuse = _time_delayed_us;
-
-	_last_static_yaw = NAN;
 }
 
 // Resets the main Nav EKf yaw to the estimator from the EKF-GSF yaw estimator
