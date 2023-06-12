@@ -190,7 +190,8 @@ Mission::on_activation()
 	// we already reset the mission items
 	_execution_mode_changed = false;
 
-	// reset the cache and fill it with the camera and gimbal items up to the previous item
+	// reset the cache and fill it with the items up to the previous item. The cache contains
+	// commands that are valid for the whole mission, not just a sinlge waypoint.
 	if (_current_mission_index > 0) {
 		resetItemCache();
 		updateCachedItemsUpToIndex(_current_mission_index - 1);
@@ -280,6 +281,8 @@ Mission::on_active()
 	if (cameraWasTriggering() && is_mission_item_reached_or_completed()) {
 		replayCachedTriggerItems();
 	}
+
+	replayCachedSpeedChangeItems();
 
 	/* lets check if we reached the current mission item */
 	if (_mission_type != MISSION_TYPE_NONE && is_mission_item_reached_or_completed()) {
@@ -2061,6 +2064,15 @@ void Mission::cacheItem(const mission_item_s &mission_item)
 		_last_camera_trigger_item = mission_item;
 		break;
 
+	case NAV_CMD_DO_CHANGE_SPEED:
+		_last_speed_change_item = mission_item;
+		break;
+
+	case NAV_CMD_DO_VTOL_TRANSITION:
+		// delete speed changes after a VTOL transition
+		_last_speed_change_item = {};
+		break;
+
 	default:
 		break;
 	}
@@ -2089,6 +2101,14 @@ void Mission::replayCachedTriggerItems()
 	if (_last_camera_trigger_item.nav_cmd > 0) {
 		issue_command(_last_camera_trigger_item);
 		_last_camera_trigger_item = {}; // delete cached item
+	}
+}
+
+void Mission::replayCachedSpeedChangeItems()
+{
+	if (_last_speed_change_item.nav_cmd > 0) {
+		issue_command(_last_speed_change_item);
+		_last_speed_change_item = {}; // delete cached item
 	}
 }
 
