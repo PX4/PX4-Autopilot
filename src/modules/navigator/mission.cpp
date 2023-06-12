@@ -1483,17 +1483,18 @@ Mission::heading_sp_update()
 void
 Mission::cruising_speed_sp_update()
 {
+	// allows speed changes made via mavlink to be applied immediately in a mission
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
-	const float cruising_speed = _navigator->get_cruising_speed();
+	const float new_cruising_speed_setpoint = _navigator->get_cruising_speed();
 
 	/* Don't change setpoint if the current waypoint is not valid */
 	if (!pos_sp_triplet->current.valid ||
-	    fabsf(pos_sp_triplet->current.cruising_speed - cruising_speed) < FLT_EPSILON) {
+	    fabsf(pos_sp_triplet->current.cruising_speed - new_cruising_speed_setpoint) < FLT_EPSILON) {
 		return;
 	}
 
-	pos_sp_triplet->current.cruising_speed = cruising_speed;
+	pos_sp_triplet->current.cruising_speed = new_cruising_speed_setpoint;
 
 	publish_navigator_mission_item();
 	_navigator->set_position_setpoint_triplet_updated();
