@@ -38,15 +38,19 @@ __BEGIN_DECLS
 #include <board_config.h>
 #include <arch/board/board.h>
 #include <syslog.h>
+#include <nuttx/config.h>
 #include <nuttx/wqueue.h>
 #include <builtin/builtin.h>
 
 #include <termios.h>
 #include <sys/ioctl.h>
+#include <sys/boardctl.h>
 #include <fcntl.h>
+#include <libgen.h>
+#include <spawn.h>
 
-extern int sercon_main(int c, char **argv);
-extern int serdis_main(int c, char **argv);
+#include <stdio.h>
+
 __END_DECLS
 
 #include <px4_platform_common/shutdown.h>
@@ -77,6 +81,7 @@ __END_DECLS
 static struct work_s usb_serial_work;
 static bool vbus_present_prev = false;
 static int ttyacm_fd = -1;
+static void *usb_handle;
 
 enum class UsbAutoStartState {
 	disconnected,
@@ -85,6 +90,77 @@ enum class UsbAutoStartState {
 	disconnecting,
 } usb_auto_start_state{UsbAutoStartState::disconnected};
 
+// Forklifted from apps/system/cdcacm/cdcacm_main.c
+static int serial_connect(void)
+{
+	struct boardioc_usbdev_ctrl_s ctrl = {
+		.usbdev = BOARDIOC_USBDEV_CDCACM,
+		.action = BOARDIOC_USBDEV_CONNECT,
+		.instance = CONFIG_SYSTEM_CDCACM_DEVMINOR,
+		.handle = &usb_handle,
+	};
+
+	return boardctl(BOARDIOC_USBDEV_CONTROL, (uintptr_t)&ctrl);
+}
+
+static int serial_disconnect(void)
+{
+	struct boardioc_usbdev_ctrl_s ctrl = {
+		.usbdev = BOARDIOC_USBDEV_CDCACM,
+		.action = BOARDIOC_USBDEV_DISCONNECT,
+		.instance = CONFIG_SYSTEM_CDCACM_DEVMINOR,
+		.handle = &usb_handle,
+	};
+
+	boardctl(BOARDIOC_USBDEV_CONTROL, (uintptr_t)&ctrl);
+	usb_handle = NULL;
+
+	return 0;
+}
+
+static int exec_wrap(const char *appname, char *const *argv, const char *redirfile, int oflags)
+{
+#ifdef CONFIG_BUILTIN
+	return exec_builtin(appname, argv, redirfile, oflags);
+#else
+	char path[CONFIG_PATH_MAX];
+	posix_spawn_file_actions_t file_actions;
+	posix_spawnattr_t attr;
+	pid_t pid;
+	int ret;
+
+	/* We launch processes from the /bin/ folder only */
+
+	sprintf(path, "/bin/");
+	strcat(path, basename((char *)appname));
+
+	/* Return ERROR if spawn fails */
+
+	pid = (pid_t)ERROR;
+
+	/* Initialize the attributes file actions structure */
+
+	ret = posix_spawn_file_actions_init(&file_actions);
+
+	if (ret != 0) {
+		goto errout;
+	}
+
+	ret = posix_spawnattr_init(&attr);
+
+	if (ret != 0) {
+		goto errout;
+	}
+
+	ret = posix_spawnp(&pid, path, &file_actions, &attr, argv, environ);
+
+errout:
+	posix_spawn_file_actions_destroy(&file_actions);
+	posix_spawnattr_destroy(&attr);
+
+	return (int)pid;
+#endif
+}
 
 static void mavlink_usb_check(void *arg)
 {
@@ -116,7 +192,7 @@ static void mavlink_usb_check(void *arg)
 		switch (usb_auto_start_state) {
 		case UsbAutoStartState::disconnected:
 			if (vbus_present && vbus_present_prev) {
-				if (sercon_main(0, nullptr) == EXIT_SUCCESS) {
+				if (serial_connect() == 0) {
 					usb_auto_start_state = UsbAutoStartState::connecting;
 					rescheduled = work_queue(LPWORK, &usb_serial_work, mavlink_usb_check, nullptr, USEC2TICK(100000));
 				}
@@ -305,7 +381,7 @@ static void mavlink_usb_check(void *arg)
 								else if (launch_passthru) {
 									sched_lock();
 									exec_argv = (char **)gps_argv;
-									exec_builtin(exec_argv[0], exec_argv, nullptr, 0);
+									exec_wrap(exec_argv[0], exec_argv, nullptr, 0);
 									sched_unlock();
 									exec_argv = (char **)passthru_argv;
 								}
@@ -314,7 +390,7 @@ static void mavlink_usb_check(void *arg)
 
 								sched_lock();
 
-								if (exec_builtin(exec_argv[0], exec_argv, nullptr, 0) > 0) {
+								if (exec_wrap(exec_argv[0], exec_argv, nullptr, 0) > 0) {
 									usb_auto_start_state = UsbAutoStartState::connected;
 
 								} else {
@@ -342,9 +418,8 @@ static void mavlink_usb_check(void *arg)
 		case UsbAutoStartState::connected:
 			if (!vbus_present && !vbus_present_prev) {
 				sched_lock();
-				static const char app[] {"mavlink"};
 				static const char *stop_argv[] {"mavlink", "stop", "-d", USB_DEVICE_PATH, NULL};
-				exec_builtin(app, (char **)stop_argv, NULL, 0);
+				exec_wrap(stop_argv[0], (char **)stop_argv, NULL, 0);
 				sched_unlock();
 
 				usb_auto_start_state = UsbAutoStartState::disconnecting;
@@ -354,7 +429,7 @@ static void mavlink_usb_check(void *arg)
 
 		case UsbAutoStartState::disconnecting:
 			// serial disconnect if unused
-			serdis_main(0, NULL);
+			serial_disconnect();
 			usb_auto_start_state = UsbAutoStartState::disconnected;
 			break;
 		}
@@ -370,6 +445,10 @@ static void mavlink_usb_check(void *arg)
 
 void cdcacm_init(void)
 {
+#ifdef CONFIG_BUILD_KERNEL
+	// Must start the worker as it is not automatically started by the system
+	work_usrstart();
+#endif
 	work_queue(LPWORK, &usb_serial_work, mavlink_usb_check, nullptr, 0);
 }
 
