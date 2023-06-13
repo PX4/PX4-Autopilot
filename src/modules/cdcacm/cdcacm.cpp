@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2022 Technology Innovation Institute. All rights reserved.
+ *   Copyright (c) 2023 Technology Innovation Institute. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,29 +32,88 @@
  ****************************************************************************/
 
 /**
- * @file px4_userspace_init.cpp
- *
- * Initialize px4 userspace in NuttX protected build
+ * @file cdcacm.cpp
+ * Main thread of CDC ACM connection monitor
  */
-
-#include <drivers/drv_hrt.h>
-#include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
-#include <px4_platform_common/spi.h>
-#include <px4_platform_common/log.h>
+#include "cdcacm.hpp"
 
 extern void cdcacm_init(void);
 
-extern "C" void px4_userspace_init(void)
+CdcAcm::CdcAcm()
 {
-	hrt_init();
+	px4_sem_init(&_exit_wait, 0, 0);
+}
 
-	px4_set_spi_buses_from_hw_version();
+int CdcAcm::task_spawn(int argc, char *argv[])
+{
+	_task_id = px4_task_spawn_cmd("cdcacm",
+				      SCHED_DEFAULT,
+				      SCHED_PRIORITY_DEFAULT,
+				      2048,
+				      (px4_main_t)&run_trampoline,
+				      (char *const *)argv);
 
-	px4::WorkQueueManagerStart();
+	if (_task_id < 0) {
+		_task_id = -1;
+		return -errno;
+	}
 
-	px4_log_initialize();
+	// wait until task is up & running
+	if (wait_until_running() < 0) {
+		_task_id = -1;
+		return -1;
+	}
 
-#if defined(CONFIG_SYSTEM_CDCACM) && defined(CONFIG_BUILD_PROTECTED)
+	return 0;
+}
+
+CdcAcm *CdcAcm::instantiate(int argc, char *argv[])
+{
+	CdcAcm *instance = new CdcAcm();
+	return instance;
+}
+
+int CdcAcm::custom_command(int argc, char *argv[])
+{
+	return print_usage("unknown command");
+}
+
+void CdcAcm::request_stop()
+{
+	ModuleBase::request_stop();
+	px4_sem_post(&_exit_wait);
+}
+
+void CdcAcm::run()
+{
 	cdcacm_init();
-#endif
+
+	while (!should_exit()) {
+		px4_sem_wait(&_exit_wait);
+	}
+}
+
+int CdcAcm::print_usage(const char *reason)
+{
+	if (reason) {
+		PX4_WARN("%s\n", reason);
+	}
+
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+CDC ACM monitor process, used as host for cdc_acm_check().
+
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("cdcacm", "system");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+
+	return 0;
+}
+
+extern "C" __EXPORT int cdcacm_main(int argc, char *argv[])
+{
+	return CdcAcm::main(argc, argv);
 }

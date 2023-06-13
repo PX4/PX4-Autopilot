@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2022 Technology Innovation Institute. All rights reserved.
+ *   Copyright (c) 2023 Technology Innovation Institute. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,30 +31,35 @@
  *
  ****************************************************************************/
 
-/**
- * @file px4_userspace_init.cpp
- *
- * Initialize px4 userspace in NuttX protected build
- */
+#pragma once
 
-#include <drivers/drv_hrt.h>
-#include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
-#include <px4_platform_common/spi.h>
-#include <px4_platform_common/log.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/sem.h>
+#include <px4_platform_common/module.h>
 
-extern void cdcacm_init(void);
-
-extern "C" void px4_userspace_init(void)
+class CdcAcm : public ModuleBase<CdcAcm>
 {
-	hrt_init();
+public:
+	CdcAcm();
+	~CdcAcm() = default;
 
-	px4_set_spi_buses_from_hw_version();
+	/** @see ModuleBase */
+	static int task_spawn(int argc, char *argv[]);
 
-	px4::WorkQueueManagerStart();
+	/** @see ModuleBase */
+	static CdcAcm *instantiate(int argc, char *argv[]);
 
-	px4_log_initialize();
+	/** @see ModuleBase */
+	static int custom_command(int argc, char *argv[]);
 
-#if defined(CONFIG_SYSTEM_CDCACM) && defined(CONFIG_BUILD_PROTECTED)
-	cdcacm_init();
-#endif
-}
+	/** @see ModuleBase */
+	static int print_usage(const char *reason = nullptr);
+
+	void request_stop() override;
+
+	/** @see ModuleBase::run() */
+	void run() override;
+private:
+	px4_sem_t _exit_wait;
+};

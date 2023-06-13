@@ -530,6 +530,11 @@ else
 		fi
 	fi
 
+	#
+	# Start the CDC ACM monitor
+	#
+	cdcacm start
+
 #
 # End of autostart.
 #
