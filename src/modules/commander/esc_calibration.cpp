@@ -133,8 +133,9 @@ int do_esc_calibration(orb_advert_t *mavlink_log_pub)
 		}
 
 		if ((now - timeout_start) > 6_s) {
-			// Timeout, we abort here
-			calibration_failed = true;
+			// Timeout, we continue since maybe the battery cannot be detected properly
+			// If we abort here and the ESCs are infact connected and started calibrating
+			// they will measure the disarmed value as the lower limit instead of the fixed 1000us
 			break;
 		}
 
