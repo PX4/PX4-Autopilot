@@ -246,6 +246,8 @@ void CanOpenNode::init()
 	CO_CANsetNormalMode(_CO_instance->CANmodule);
 	CO_port_set_baud_rate(_CO_instance->CANmodule, _bitrate);
 
+	app_communicationReset(_CO_instance);
+
 	_run_end = hrt_absolute_time();
 	_initialized = true;
 	PX4_DEBUG("CANopenNode - Init Complete");
@@ -269,7 +271,7 @@ void CanOpenNode::CO_high_pri_work(uint32_t time_difference_us)
 
 void CanOpenNode::CO_medium_pri_work(uint32_t time_difference_us)
 {
-	app_programRt(_CO_instance, _medium_pri_timer);
+	app_programRt(_CO_instance, time_difference_us);
 	_app.update();
 }
 
@@ -290,6 +292,7 @@ void CanOpenNode::CO_low_pri_work(uint32_t time_difference_us)
 
 	_storage_error_prev = mask;
 #endif
+	app_programAsync(_CO_instance, time_difference_us);
 }
 
 void CanOpenNode::Run()
