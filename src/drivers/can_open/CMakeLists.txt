@@ -72,6 +72,10 @@ if(${OD} MATCHES "demo_device")
 		can_open_demo/demo/CO_identificators.h
 		can_open_demo/demo/CO_application.c
 	)
+	list(APPEND INCLUDES
+		${CMAKE_CURRENT_SOURCE_DIR}/can_open_demo/demo
+		${CMAKE_CURRENT_SOURCE_DIR}/can_open_demo/demo/linux
+	)
 	add_definitions(
 		-DCANOPEN_DEMO_DEVICE
 	)
@@ -85,6 +89,9 @@ if(${OD} MATCHES "example_application")
 		example_application/co_example_app.hpp
 		example_application/mixing_interface_esc.hpp
 		example_application/telemetry_esc.hpp
+	)
+	list(APPEND INCLUDES
+		${CMAKE_CURRENT_SOURCE_DIR}/example_application
 	)
 	add_definitions(
 		-DCANOPEN_EXAMPLE_APPLICATION
@@ -105,9 +112,7 @@ px4_add_module(
 		${CMAKE_CURRENT_SOURCE_DIR}/nuttx
 		${CMAKE_CURRENT_SOURCE_DIR}/can_open_node
 		${CMAKE_CURRENT_SOURCE_DIR}/can_open_node/storage
-		${CMAKE_CURRENT_SOURCE_DIR}/can_open_demo/demo
-		${CMAKE_CURRENT_SOURCE_DIR}/can_open_demo/demo/linux
-		${CMAKE_CURRENT_SOURCE_DIR}/example_application
+		${INCLUDES}
 
 	SRCS
 		OD.h
