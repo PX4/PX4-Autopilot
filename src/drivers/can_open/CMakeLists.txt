@@ -36,7 +36,7 @@
 # You can run a suite of tests on Linux with Pixhawk being a node on the bus.
 # Example application has a minimal object dictionary that shows how to use
 # TPDOs and RPDOs
-set(OD "example_application")
+set(OD "demo_device")
 
 if(${PX4_PLATFORM} MATCHES "nuttx")
 	if(${CONFIG_NET_CAN} MATCHES "y")

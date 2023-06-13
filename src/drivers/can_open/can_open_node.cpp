@@ -271,7 +271,9 @@ void CanOpenNode::CO_high_pri_work(uint32_t time_difference_us)
 void CanOpenNode::CO_medium_pri_work(uint32_t time_difference_us)
 {
 	app_programRt(_CO_instance, time_difference_us);
+#if defined(CANOPEN_EXAMPLE_APPLICATION)
 	_app.update();
+#endif
 }
 
 void CanOpenNode::CO_low_pri_work(uint32_t time_difference_us)
@@ -350,7 +352,9 @@ void CanOpenNode::Run()
 
 	if (_task_should_exit.load()) {
 		app_programEnd();
+#if defined(CANOPEN_EXAMPLE_APPLICATION)
 		_app.shutdown();
+#endif
 		ScheduleClear();
 
 		if (_initialized) {

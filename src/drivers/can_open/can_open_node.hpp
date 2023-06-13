@@ -58,7 +58,9 @@
 #include "co_storage_nuttx.h"
 #include "od_record.hpp"
 
+#if defined(CANOPEN_EXAMPLE_APPLICATION)
 #include "co_example_app.hpp"
+#endif
 
 using namespace time_literals;
 
@@ -122,7 +124,9 @@ private:
 	uint32_t _medium_pri_timer{0};
 	uint32_t _low_pri_timer{0};
 
+#if defined(CANOPEN_EXAMPLE_APPLICATION)
 	COExampleApp _app{};
+#endif
 
 	// Parameters
 	DEFINE_PARAMETERS(
