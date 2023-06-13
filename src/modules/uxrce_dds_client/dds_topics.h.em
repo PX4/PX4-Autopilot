@@ -32,6 +32,9 @@ struct SendTopicsSubs {
 @[    for pub in publications]@
 	uORB::Subscription @(pub['topic_simple'])_sub{ORB_ID(@(pub['topic_simple']))};
 	uxrObjectId @(pub['topic_simple'])_data_writer{};
+@[    if pub['period_us']!=0]@
+	hrt_abstime @(pub['topic_simple'])_last_write_time{0};
+@[    end if]@
 @[    end for]@
 
 	uint32_t num_payload_sent{};
@@ -50,8 +53,12 @@ void SendTopicsSubs::reset() {
 void SendTopicsSubs::update(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrStreamId best_effort_stream_id, uxrObjectId participant_id, const char *client_namespace)
 {
 	int64_t time_offset_us = session->time_offset / 1000; // ns -> us
+	hrt_abstime now = hrt_absolute_time();
 @[    for idx, pub in enumerate(publications)]@
 
+@[    if pub['period_us']!=0]@
+	if(now - @(pub['topic_simple'])_last_write_time > @(int(pub['period_us'])))
+@[    end if]@
 	{
 		@(pub['simple_base_type'])_s data;
 
@@ -71,6 +78,9 @@ void SendTopicsSubs::update(uxrSession *session, uxrStreamId reliable_out_stream
 					// TODO: fill up the MTU and then flush, which reduces the packet overhead
 					uxr_flash_output_streams(session);
 					num_payload_sent += topic_size;
+@[    if pub['period_us']!=0]@
+					@(pub['topic_simple'])_last_write_time = now;
+@[    end if]@
 
 				} else {
 					//PX4_ERR("Error uxr_prepare_output_stream UXR_INVALID_REQUEST_ID @(pub['topic_simple'])");

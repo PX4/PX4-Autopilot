@@ -102,6 +102,11 @@ for p in msg_map['publications']:
     # topic_simple: eg vehicle_status
     p['topic_simple'] = p['topic'].split('/')[-1]
 
+    # period
+    if 'rate' in p:
+        p['period_us'] = int(1e6 / float(p['rate']))
+    else:
+        p['period_us'] = 0
 
 merged_em_globals['publications'] = msg_map['publications']
 
