@@ -30,7 +30,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
+/*
+	Translates an RPDO into an esc_status message.
+*/
 #pragma once
 
 #include <px4_platform_common/px4_config.h>

@@ -30,6 +30,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
+# This is used to select the application to be used with
+# can_open_node.  demo_device is a good hello world project.
+# You can run a suite of tests on Linux with Pixhawk being a node on the bus.
+# Example application has a minimal object dictionary that shows how to use
+# TPDOs and RPDOs
 set(OD "example_application")
 
 if(${PX4_PLATFORM} MATCHES "nuttx")

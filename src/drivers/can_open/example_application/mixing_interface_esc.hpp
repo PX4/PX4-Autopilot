@@ -30,7 +30,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
+/*
+	Uses the mixer and object dictionary to send TPDOs on CAN bus
+*/
 #pragma once
 
 #include <px4_platform_common/px4_config.h>
