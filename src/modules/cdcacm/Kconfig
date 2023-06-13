@@ -1,0 +1,12 @@
+menuconfig MODULES_CDCACM
+	bool "CDC ACM monitor process"
+	default n
+	---help---
+		Enable support for CDC ACM monitor
+
+menuconfig USER_CDCACM
+	bool "CDC ACM monitor running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && MODULES_CDCACM
+	---help---
+		Put CDC ACM monitor in userspace memory
