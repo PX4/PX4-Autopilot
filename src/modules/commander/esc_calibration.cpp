@@ -132,7 +132,7 @@ int do_esc_calibration(orb_advert_t *mavlink_log_pub)
 			break;
 		}
 
-		if ((now - timeout_start) > 10_s) {
+		if ((now - timeout_start) > 6_s) {
 			// Timeout, we abort here
 			calibration_failed = true;
 			break;
@@ -144,7 +144,7 @@ int do_esc_calibration(orb_advert_t *mavlink_log_pub)
 	// 4 Wait for ESCs to measure high signal
 	if (!calibration_failed) {
 		calibration_log_info(mavlink_log_pub, "[cal] Battery connected");
-		px4_usleep(8_s);
+		px4_usleep(3_s);
 	}
 
 	// 5 Set motors to low
@@ -154,7 +154,7 @@ int do_esc_calibration(orb_advert_t *mavlink_log_pub)
 
 	// 6 Wait for ESCs to measure low signal
 	if (!calibration_failed) {
-		px4_usleep(8_s);
+		px4_usleep(5_s);
 	}
 
 	// 7 release control
