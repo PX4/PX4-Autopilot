@@ -42,7 +42,7 @@
 
 #include "CANopen.h"
 #include "OD.h"
-#include "ODRecord.hpp"
+#include "od_record.hpp"
 
 class COMixingInterfaceESC : public OutputModuleInterface, public ODRecord
 {

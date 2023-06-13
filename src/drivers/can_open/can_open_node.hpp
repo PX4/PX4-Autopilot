@@ -50,8 +50,8 @@
 #include "OD.h"
 
 #include "CANopen.h"
-#include "CO_storage_nuttx.h"
-#include "ODRecord.hpp"
+#include "co_storage_nuttx.h"
+#include "od_record.hpp"
 
 #include "co_example_app.hpp"
 

@@ -44,7 +44,7 @@
 
 #include "CANopen.h"
 #include "OD.h"
-#include "ODRecord.hpp"
+#include "od_record.hpp"
 
 using namespace time_literals;
 

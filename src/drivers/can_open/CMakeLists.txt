@@ -45,18 +45,18 @@ if(${PX4_PLATFORM} MATCHES "nuttx")
 
 	if(${CANOPEN_DRIVER} MATCHES "socket_can")
 		list(APPEND SRCS
-			nuttx/CO_driver_nuttx_socket.c
+			nuttx/co_driver_nuttx_socket.c
 		)
 	elseif(${CANOPEN_DRIVER} MATCHES "char_can")
 		list(APPEND SRCS
-			nuttx/CO_driver_nuttx_char.c
+			nuttx/co_driver_nuttx_char.c
 		)
 	endif()
 
 	list(APPEND SRCS
 		CO_driver_target.h
-		nuttx/CO_storage_nuttx.c
-		nuttx/CO_storage_nuttx.h
+		nuttx/co_storage_nuttx.c
+		nuttx/co_storage_nuttx.h
 	)
 endif()
 
@@ -141,6 +141,7 @@ px4_add_module(
 		can_open_node/storage/CO_storage.h
 		can_open_node.cpp
 		can_open_node.hpp
+		od_record.hpp
 		${SRCS}
 
 
