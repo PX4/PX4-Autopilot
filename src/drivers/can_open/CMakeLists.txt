@@ -98,8 +98,8 @@ if(${OD} MATCHES "example_application")
 	)
 endif()
 
-# todo: needs a fix in canopennode code.
-#add_compile_options("$<$<COMPILE_LANGUAGE:C>:-Wno-bad-function-cast")
+# This can be removed once the warning is fixed upstream.
+set_source_files_properties(can_open_node/301/CO_SDOserver.c PROPERTIES COMPILE_OPTIONS -Wno-bad-function-cast)
 
 px4_add_module(
 	MODULE drivers__can_open
