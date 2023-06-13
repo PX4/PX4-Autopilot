@@ -104,8 +104,8 @@ private:
 
 	CO_t *_CO_instance{nullptr};
 #if (CO_CONFIG_STORAGE) & CO_CONFIG_STORAGE_ENABLE
-	CO_storage_t _storage;
-	CO_storage_entry_t _storage_entries[1];
+	CO_storage_t _storage{0};
+	CO_storage_entry_t _storage_entries[1]{0};
 #endif
 	uint32_t _err_info_stack{0};
 	uint32_t _err_info_app{0};

@@ -174,12 +174,12 @@ static ODR_t restore_nuttx(CO_storage_entry_t *entry, CO_CANmodule_t *CANmodule)
 }
 
 CO_ReturnError_t CO_storage_nuttx_init(CO_storage_t *storage,
-									   CO_CANmodule_t *CANmodule,
-									   OD_entry_t *OD_1010_StoreParameters,
-									   OD_entry_t *OD_1011_RestoreDefaultParam,
-									   CO_storage_entry_t *entries,
-									   uint8_t entriesCount,
-									   uint32_t *storageInitError)
+				       CO_CANmodule_t *CANmodule,
+				       OD_entry_t *OD_1010_StoreParameters,
+				       OD_entry_t *OD_1011_RestoreDefaultParam,
+				       CO_storage_entry_t *entries,
+				       uint8_t entriesCount,
+				       uint32_t *storageInitError)
 {
 	CO_ReturnError_t ret;
 
@@ -192,14 +192,15 @@ CO_ReturnError_t CO_storage_nuttx_init(CO_storage_t *storage,
 	storage->enabled = false;
 
 	/* initialize storage and OD extensions */
-	ret = CO_storage_init(storage,
-						  CANmodule,
-						  OD_1010_StoreParameters,
-						  OD_1011_RestoreDefaultParam,
-						  store_nuttx,
-						  restore_nuttx,
-						  entries,
-						  entriesCount);
+	ret = CO_storage_init(	storage,
+				CANmodule,
+				OD_1010_StoreParameters,
+				OD_1011_RestoreDefaultParam,
+				store_nuttx,
+				restore_nuttx,
+				entries,
+				entriesCount);
+
 	if (ret != CO_ERROR_NO) {
 		return ret;
 	}
@@ -225,7 +226,7 @@ CO_ReturnError_t CO_storage_nuttx_init(CO_storage_t *storage,
 			return CO_ERROR_SYSCALL;
 		}
 		if (stat(directory, &sb) != 0 || !S_ISDIR(sb.st_mode)) {
-			int rv = mkdir(directory, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
+			int rv = mkdir(directory, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 			if (rv != 0) {
 				return CO_ERROR_SYSCALL;
 			}
@@ -237,10 +238,14 @@ CO_ReturnError_t CO_storage_nuttx_init(CO_storage_t *storage,
 		FILE * fp = fopen(entry->filename, "r");
 		if (fp == NULL) {
 			// no file
-			fp = fopen(entry->filename, writeFileAccess);
+			fp = fopen(entry->filename, "w");
 			if (fp == NULL) {
 				return CO_ERROR_SYSCALL;
 			}
+			// initialize file
+			fputs("-\n", fp);
+			fclose(fp);
+			fp = fopen(entry->filename, "r");
 		}
 		buf = malloc(entry->len + sizeof(uint16_t));
 		if (buf == NULL) {
@@ -253,8 +258,8 @@ CO_ReturnError_t CO_storage_nuttx_init(CO_storage_t *storage,
 		size_t cnt = fread(buf, 1, entry->len + sizeof(uint16_t), fp);
 
 		/* If file is empty, just skip loading, default values will be used,
-			* no error. Otherwise verify length and crc and copy data. */
-		if (!((cnt == 2 && buf[0] == '-') || cnt == 0)) {
+		 * no error. Otherwise verify length and crc and copy data. */
+		if (!(cnt == 2 && buf[0] == '-')) {
 			uint16_t crc1, crc2;
 			crc1 = crc16_ccitt(buf, entry->len, 0);
 			memcpy(&crc2, &buf[entry->len], sizeof(crc2));
@@ -295,8 +300,7 @@ CO_ReturnError_t CO_storage_nuttx_init(CO_storage_t *storage,
 }
 
 
-uint32_t CO_storage_nuttx_auto_process(CO_storage_t *storage,
-									bool_t closeFiles)
+uint32_t CO_storage_nuttx_auto_process(CO_storage_t *storage, bool_t closeFiles)
 {
 	uint32_t storageError = 0;
 

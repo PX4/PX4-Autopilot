@@ -37,7 +37,7 @@
 
 using namespace time_literals;
 
-CanOpenNode *CanOpenNode::_instance;
+CanOpenNode *CanOpenNode::_instance{nullptr};
 
 can_open_node_error_s CanOpenNode::_can_open_node_error[2]{0};
 
@@ -46,11 +46,6 @@ uint64_t ODRecord::_current_timestamp;
 CanOpenNode::CanOpenNode(uint8_t node_id, int32_t bitrate) :
 	px4::ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::can), ModuleParams(nullptr)
 {
-#if (CO_CONFIG_STORAGE) & CO_CONFIG_STORAGE_ENABLE
-	uint8_t storageEntriesCount = sizeof(_storage_entries) / sizeof(_storage_entries[0]);
-	CO_ReturnError_t err;
-#endif
-
 	_CO_instance = CO_new(NULL, &_heap_memory_used);
 
 	if (_CO_instance == NULL) {
@@ -63,27 +58,6 @@ CanOpenNode::CanOpenNode(uint8_t node_id, int32_t bitrate) :
 	_node_id = node_id;
 	_bitrate = bitrate;
 	_run_end = hrt_absolute_time();
-
-#if (CO_CONFIG_STORAGE) & CO_CONFIG_STORAGE_ENABLE
-	_storage_entries[0].addr = &OD_PERSIST_COMM;
-	_storage_entries[0].len = sizeof(OD_PERSIST_COMM);
-	_storage_entries[0].subIndexOD = 2;
-	_storage_entries[0].attr = CO_storage_cmd | CO_storage_auto | CO_storage_restore;
-	strncpy(_storage_entries[0].filename, PX4_STORAGEDIR"/canopen/od_comm.persist", CO_STORAGE_PATH_MAX);
-	err = CO_storage_nuttx_init(&_storage,
-				    _CO_instance->CANmodule,
-				    OD_ENTRY_H1010_storeParameters,
-				    OD_ENTRY_H1011_restoreDefaultParameters,
-				    _storage_entries,
-				    storageEntriesCount,
-				    &_storage_error);
-
-	if (err != CO_ERROR_NO) {
-		PX4_ERR("CO_storage_nuttx_init error: %d, _storage_error: %lu", err, _storage_error);
-	}
-
-#endif
-
 }
 
 CanOpenNode::~CanOpenNode()
@@ -169,9 +143,6 @@ void CanOpenNode::init()
 	/* CANopen communication reset - initialize CANopen objects *******************/
 	PX4_DEBUG("CANopenNode - Reset communication...");
 
-	/* Enter CAN configuration. */
-	CO_CANmodule_disable(_CO_instance->CANmodule);
-
 	/* Execute optional external application code */
 	err = app_programStart(&bitrate, &node_id, &_err_info_app);
 
@@ -216,6 +187,26 @@ void CanOpenNode::init()
 	CO_EM_initCallbackRx(_CO_instance->em, can_open_error_cb);
 
 #if (CO_CONFIG_STORAGE) & CO_CONFIG_STORAGE_ENABLE
+	uint8_t storageEntriesCount = sizeof(_storage_entries) / sizeof(_storage_entries[0]);
+
+	_storage_entries[0].addr = &OD_PERSIST_COMM;
+	_storage_entries[0].len = sizeof(OD_PERSIST_COMM);
+	_storage_entries[0].subIndexOD = 2;
+	_storage_entries[0].attr = CO_storage_cmd | CO_storage_auto | CO_storage_restore;
+	//_storage_entries[0].attr = CO_storage_cmd | CO_storage_restore;
+	strncpy(_storage_entries[0].filename, PX4_STORAGEDIR"/canopen/od_comm.persist", CO_STORAGE_PATH_MAX);
+	err = CO_storage_nuttx_init(&_storage,
+				    _CO_instance->CANmodule,
+				    OD_ENTRY_H1010_storeParameters,
+				    OD_ENTRY_H1011_restoreDefaultParameters,
+				    _storage_entries,
+				    storageEntriesCount,
+				    &_storage_error);
+
+	if (err != CO_ERROR_NO) {
+		PX4_ERR("CO_storage_nuttx_init error: %d, _storage_error: %lu", err, _storage_error);
+	}
+
 	if (_storage_error != 0) {
 		CO_errorReport(_CO_instance->em, CO_EM_NON_VOLATILE_MEMORY,
 			       CO_EMC_HARDWARE, _storage_error);
