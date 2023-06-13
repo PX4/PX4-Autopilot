@@ -31,7 +31,7 @@
  *
  ****************************************************************************/
 
-// NuttX storage wrapper for CanOpenNode
+// NuttX storage wrapper for can_open_node
 
 #include <stdio.h>
 #include <string.h>

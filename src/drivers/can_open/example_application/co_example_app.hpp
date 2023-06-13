@@ -31,7 +31,9 @@
  *
  ****************************************************************************/
 
-// Can Open app
+/*
+	This class is used by CanOpenNode.  The update function will be called
+	every 10ms.  */
 
 #pragma once
 

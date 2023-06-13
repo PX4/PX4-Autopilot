@@ -31,7 +31,12 @@
  *
  ****************************************************************************/
 
-// CanOpenNode implementation for PX4
+/*
+	This function provides C stubs that are called by CanOpenNode.
+	Main reason this is here is to maintain compatibility with the
+	can_open_node project.  Most people will add custom code to
+	co_example_app.hpp as it provides more functionality.
+*/
 #include <stdio.h>
 
 #include "CO_application.h"

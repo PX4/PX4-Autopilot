@@ -31,7 +31,6 @@
  *
  ****************************************************************************/
 
-// CanOpenNode implementation for PX4
 #include <stdio.h>
 
 #include "can_open_node.hpp"

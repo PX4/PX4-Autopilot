@@ -31,7 +31,7 @@
  *
  ****************************************************************************/
 
-// NuttX CAN character device driver wrapper for CanOpenNode
+// NuttX CAN character device driver wrapper for can_open_node
 
 #include "301/CO_driver.h"
 

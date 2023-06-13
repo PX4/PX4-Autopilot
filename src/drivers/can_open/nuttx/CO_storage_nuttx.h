@@ -31,7 +31,7 @@
  *
  ****************************************************************************/
 
-// NuttX storage wrapper for CanOpenNode
+// NuttX storage wrapper for can_open_node
 
 #ifndef CO_STORAGE_NUTTX_H
 #define CO_STORAGE_NUTTX_H

@@ -31,7 +31,12 @@
  *
  ****************************************************************************/
 
-// CanOpenNode implementation for PX4
+/*
+	This is the canopen driver for PX4 - leveraging can_open_node
+	source.  It runs as a scheduled work item.
+	Application specific code should go in a separate class.
+	See co_example_app.hpp.
+*/
 
 #pragma once
 
