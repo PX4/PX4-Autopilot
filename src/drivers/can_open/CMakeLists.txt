@@ -81,7 +81,8 @@ if(${OD} MATCHES "example_application")
 	list(APPEND SRCS
 		example_application/OD.h
 		example_application/OD.c
-		example_application/CO_example_app.cpp
+		example_application/CO_application.c
+		example_application/co_example_app.hpp
 		example_application/mixing_interface_esc.hpp
 		example_application/telemetry_esc.hpp
 	)
@@ -90,10 +91,8 @@ if(${OD} MATCHES "example_application")
 	)
 endif()
 
-add_compile_options(
-	# todo: needs a fix in canopennode code.
-	-Wno-bad-function-cast
-)
+# todo: needs a fix in canopennode code.
+#add_compile_options("$<$<COMPILE_LANGUAGE:C>:-Wno-bad-function-cast")
 
 px4_add_module(
 	MODULE drivers__can_open
@@ -114,7 +113,6 @@ px4_add_module(
 		OD.h
 		can_open_node/CANopen.c
 		can_open_node/CANopen.h
-		${SRCS}
 		can_open_node/301/CO_config.h
 		can_open_node/301/CO_driver.h
 		can_open_node/301/CO_ODinterface.c
@@ -143,6 +141,8 @@ px4_add_module(
 		can_open_node/storage/CO_storage.h
 		can_open_node.cpp
 		can_open_node.hpp
+		${SRCS}
+
 
 	MODULE_CONFIG
 		module.yaml

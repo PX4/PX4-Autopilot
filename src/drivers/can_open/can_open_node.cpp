@@ -269,12 +269,8 @@ void CanOpenNode::CO_high_pri_work(uint32_t time_difference_us)
 
 void CanOpenNode::CO_medium_pri_work(uint32_t time_difference_us)
 {
-#if defined(CANOPEN_DEMO_DEVICE)
 	app_programRt(_CO_instance, _medium_pri_timer);
-#else
-	_mixing_interface_esc.update();
-	_telemetry_esc.update();
-#endif
+	_app.update();
 }
 
 void CanOpenNode::CO_low_pri_work(uint32_t time_difference_us)
@@ -350,7 +346,9 @@ void CanOpenNode::Run()
 		_low_pri_timer = 0;
 	}
 
-	if (_instance && _task_should_exit.load()) {
+	if (_task_should_exit.load()) {
+		app_programEnd();
+		_app.shutdown();
 		ScheduleClear();
 
 		if (_initialized) {

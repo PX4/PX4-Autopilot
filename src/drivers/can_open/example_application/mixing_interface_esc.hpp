@@ -49,13 +49,14 @@ class COMixingInterfaceESC : public OutputModuleInterface, public ODRecord
 public:
 	COMixingInterfaceESC() :
 		OutputModuleInterface(MODULE_NAME "-actuators-esc", px4::wq_configurations::can), ODRecord(UORB_TO_OD_RECORD) { };
-	~COMixingInterfaceESC() {};
 
 	void update()
 	{
 		_mixing_output.update();
 		_mixing_output.updateSubscriptions();
 	}
+
+	MixingOutput &mixingOutput() { return _mixing_output; }
 
 protected:
 	void Run() override

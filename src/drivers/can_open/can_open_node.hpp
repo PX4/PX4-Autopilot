@@ -53,8 +53,7 @@
 #include "CO_storage_nuttx.h"
 #include "ODRecord.hpp"
 
-#include "mixing_interface_esc.hpp"
-#include "telemetry_esc.hpp"
+#include "co_example_app.hpp"
 
 using namespace time_literals;
 
@@ -118,8 +117,7 @@ private:
 	uint32_t _medium_pri_timer{0};
 	uint32_t _low_pri_timer{0};
 
-	COMixingInterfaceESC _mixing_interface_esc;
-	COTelemetryESC _telemetry_esc;
+	COExampleApp _app{};
 
 	// Parameters
 	DEFINE_PARAMETERS(

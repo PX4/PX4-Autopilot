@@ -31,47 +31,43 @@
  *
  ****************************************************************************/
 
-// CanOpenNode implementation for PX4
-#include <stdio.h>
+// Can Open app
 
-#include "CO_application.h"
-//#include "motor_controller_telemetry.hpp"
-//#include "motor_controller_command.hpp"
+#pragma once
 
-//MotorControllerTelemetry MotorTelem;
-//MotorControllerCommand MotorCommand;
 
-extern "C" CO_ReturnError_t app_programStart(uint16_t *bitRate,
-				  uint8_t *nodeId,
-				  uint32_t *errInfo)
+#include "mixing_interface_esc.hpp"
+#include "telemetry_esc.hpp"
+
+using namespace time_literals;
+
+
+class COExampleApp
 {
-	(void)bitRate;
-	(void)nodeId;
-	(void)errInfo;
-	return CO_ERROR_NO;
-}
+public:
+	COExampleApp()
+	{
 
-extern "C" void app_communicationReset(CO_t *co)
-{
-	(void)co;
-}
+	};
 
+	~COExampleApp()
+	{
 
-extern "C" void app_programEnd(void)
-{
+	};
 
-}
+	void update()
+	{
+		_esc_mixing_interface.update();
+		_esc_telemetry.update();
+	};
 
+	void shutdown()
+	{
+		_esc_mixing_interface.mixingOutput().unregister();
+		_esc_mixing_interface.ScheduleClear();
+	}
 
-extern "C" void app_programAsync(CO_t *co, uint32_t timer1usDiff)
-{
-	(void)co;
-	(void)timer1usDiff;
-}
-
-
-extern "C" void app_programRt(CO_t *co, uint32_t timer1usDiff)
-{
-//	MotorCommand.update();
-//	MotorTelem.update();
-}
+private:
+	COMixingInterfaceESC _esc_mixing_interface;
+	COTelemetryESC _esc_telemetry;
+};
