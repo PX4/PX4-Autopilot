@@ -63,6 +63,8 @@ public:
 protected:
 	void Run() override
 	{
+		// run shouldn't be called because mixer is instantiated with
+		// scheduling policy disabled.
 		PX4_ERR("Run called");
 	};
 
