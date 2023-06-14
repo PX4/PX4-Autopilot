@@ -69,7 +69,7 @@ static constexpr uint32_t I2C_SPEED = 100 * 1000; // 100 kHz I2C serial interfac
 
 
 /* Configuration Constants */
-#define ASP5033_BASEADDR         0x6D  // Adresse for communication to ASP5033
+static constexpr uint8_t I2C_ADDRESS_DEFAULT = 0x6D; /* 0xE4 */
 
 #define REG_CMD_ASP5033  0x30;
 #define REG_PRESS_DATA_ASP5033 0X06
@@ -79,7 +79,7 @@ static constexpr uint32_t I2C_SPEED = 100 * 1000; // 100 kHz I2C serial interfac
 using namespace time_literals;
 
 
-class ASP5033 : public device::I2C , public I2CSPIDriver<ASP5033>
+class ASP5033 : public device::I2C, public I2CSPIDriver<ASP5033>
 {
 public:
 	ASP5033(const I2CSPIDriverConfig &config);
@@ -101,7 +101,7 @@ public:
 
 private:
 
-	float _pressure= 0.f;
+	float _pressure = 0.f;
 	float _temperature = 0.f;
 	float _pressure_prev = 0.f;
 	float _temperaute_prev = 0.f;
@@ -112,7 +112,7 @@ private:
 	int collect();
 
 	bool get_differential_pressure();
-	hrt_abstime last_sample_time= hrt_absolute_time();
+	hrt_abstime last_sample_time = hrt_absolute_time();
 	orb_advert_t 	_mavlink_log_pub {nullptr}; //log send to
 
 

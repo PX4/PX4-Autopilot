@@ -58,7 +58,7 @@ ASP5033::~ASP5033()
 
 int ASP5033::probe()
 {
-	uint8_t cmd=REG_CMD_ASP5033;
+	uint8_t cmd = REG_CMD_ASP5033;
 	int ret = transfer(&cmd, 1, nullptr, 0);
 	return ret;
 
@@ -67,10 +67,12 @@ int ASP5033::probe()
 int ASP5033::init()
 {
 	int ret = I2C::init();
+
 	if (ret != PX4_OK) {
 		DEVICE_DEBUG("I2C::init failed (%i)", ret);
 		return ret;
 	}
+
 	ScheduleNow();
 	return ret;
 }
@@ -86,19 +88,19 @@ int ASP5033::init()
  */
 bool ASP5033::get_differential_pressure()
 {
-	if (hrt_elapsed_time(&last_sample_time) > 100_ms){
+	if (hrt_elapsed_time(&last_sample_time) > 100_ms) {
 		return false;
 	}
 
-	if(press_count == 0) {
-        	return false;
-    	}
+	if (press_count == 0) {
+		return false;
+	}
 
 	//calculation differential pressure
-	_pressure= press_sum / press_count;
+	_pressure = press_sum / press_count;
 
-	press_sum=0.;
-	press_count=0.;
+	press_sum = 0.;
+	press_count = 0.;
 	return true;
 
 }
@@ -172,7 +174,7 @@ int ASP5033::measure()
 	uint8_t cmd[2];
 	cmd[0] = static_cast<uint8_t>(cmd_2);
 	cmd[1] = static_cast<uint8_t>(cmd_1);
-	int ret=transfer(&cmd[0], 2, nullptr, 0);
+	int ret = transfer(&cmd[0], 2, nullptr, 0);
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
@@ -188,34 +190,35 @@ int ASP5033::collect()
 
 
 	// Read pressure and temperature as one block
-	uint8_t val[5] {0,0,0,0,0};
-	uint8_t cmd=REG_PRESS_DATA_ASP5033;
+	uint8_t val[5] {0, 0, 0, 0, 0};
+	uint8_t cmd = REG_PRESS_DATA_ASP5033;
 	transfer(&cmd, 1, &val[0], sizeof(val));
 
 	//Pressure is a signed 24-bit value
-	int32_t press = (val[0]<<24) | (val[1]<<16) | (val[2]<<8);
+	int32_t press = (val[0] << 24) | (val[1] << 16) | (val[2] << 8);
 	// convert back to 24 bit
 	press >>= 8;
 
 	// k is a shift based on the pressure range of the device. See
 	// table in the datasheet
 	constexpr uint8_t k = 7;
-	constexpr float press_scale = 1.0f / (1U<<k);
+	constexpr float press_scale = 1.0f / (1U << k);
 	press_sum += press * press_scale;
 	press_count++;
 
 	// temperature is 16 bit signed in units of 1/256 C
-	const int16_t temp = (val[3]<<8) | val[4];
+	const int16_t temp = (val[3] << 8) | val[4];
 	constexpr float temp_scale = 1.0f / 256;
-	_temperature= temp *temp_scale;
-	last_sample_time= hrt_absolute_time();
-	bool status=get_differential_pressure();
-	if(status==true && (int)_temperature!=0){
+	_temperature = temp * temp_scale;
+	last_sample_time = hrt_absolute_time();
+	bool status = get_differential_pressure();
+
+	if (status == true && (int)_temperature != 0) {
 		// publish values
 		differential_pressure_s differential_pressure{};
 		differential_pressure.timestamp_sample = timestamp_sample;
 		differential_pressure.device_id = get_device_id();
-		differential_pressure.differential_pressure_pa =_pressure;
+		differential_pressure.differential_pressure_pa = _pressure;
 		differential_pressure.temperature = _temperature ;
 		differential_pressure.error_count = perf_event_count(_comms_errors);
 		differential_pressure.timestamp = timestamp_sample;
