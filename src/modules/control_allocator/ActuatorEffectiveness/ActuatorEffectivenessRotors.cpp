@@ -95,15 +95,7 @@ void ActuatorEffectivenessRotors::updateParams()
 		return;
 	}
 
-#if defined(__GNUC__) && __GNUC__ >= 12
-	#pragma GCC diagnostic ignored "-Wdangling-pointer"
-#endif
-
 	_geometry.num_rotors = math::min(NUM_ROTORS_MAX, (int)count);
-
-#if defined(__GNUC__) && __GNUC__ >= 12
-	#pragma GCC diagnostic warning "-Wdangling-pointer"
-#endif
 
 	for (int i = 0; i < _geometry.num_rotors; ++i) {
 		Vector3f &position = _geometry.rotors[i].position;
