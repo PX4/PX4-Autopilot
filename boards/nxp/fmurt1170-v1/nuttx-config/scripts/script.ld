@@ -34,7 +34,7 @@ EXTERN(g_flash_config)
 EXTERN(g_image_vector_table)
 EXTERN(g_boot_data)
 
-ENTRY(_stext)
+ENTRY(__start)
 
 SECTIONS
 {
