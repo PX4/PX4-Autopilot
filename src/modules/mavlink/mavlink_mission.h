@@ -53,6 +53,10 @@
 #include "mavlink_bridge_header.h"
 #include "mavlink_rate_limiter.h"
 
+#include <drivers/drv_hrt.h>
+
+using namespace time_literals;
+
 enum MAVLINK_WPM_STATES {
 	MAVLINK_WPM_STATE_IDLE = 0,
 	MAVLINK_WPM_STATE_SENDLIST,
@@ -139,7 +143,8 @@ private:
 	static uint16_t		_safepoint_update_counter;
 	bool			_geofence_locked{false};		///< if true, we currently hold the dm_lock for the geofence (transaction in progress)
 
-	MavlinkRateLimiter	_slow_rate_limiter{100 * 1000};		///< Rate limit sending of the current WP sequence to 10 Hz
+	MavlinkRateLimiter	_slow_rate_limiter{100_ms};		///< Rate limit sending of the current WP sequence to 10 Hz
+	MavlinkRateLimiter 	_checksum_rate_limiter{1_s};		///< Rate limit sending the checksum of current mission, rally point and geofence
 
 	Mavlink *_mavlink;
 

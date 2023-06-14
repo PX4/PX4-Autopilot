@@ -50,6 +50,7 @@
 #include <px4_platform_common/events.h>
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
+#include <mavlink.h>
 #include <navigator/navigation.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
@@ -67,7 +68,15 @@ constexpr uint16_t MavlinkMissionManager::MAX_COUNT[];
 uint16_t MavlinkMissionManager::_geofence_update_counter = 0;
 uint16_t MavlinkMissionManager::_safepoint_update_counter = 0;
 
-static constexpr int MISSION_ITEM_CRC_SIZE = 32;
+typedef struct __attribute__((packed)) CrcMissionItem {
+	uint8_t frame;
+	uint16_t command;
+	uint8_t autocontinue;
+	float params[7];
+} CrcMissionItem_t;
+
+static constexpr int MISSION_ITEM_CRC_SIZE = sizeof(CrcMissionItem_t);
+
 
 #define CHECK_SYSID_COMPID_MISSION(_msg)		(_msg.target_system == mavlink_system.sysid && \
 		((_msg.target_component == mavlink_system.compid) || \
@@ -78,15 +87,22 @@ static constexpr int MISSION_ITEM_CRC_SIZE = 32;
 static uint32_t crc32_for_mission_item(const mavlink_mission_item_t &mission_item, uint32_t prev_crc32)
 {
 	union {
-		struct __attribute__((packed)) {
-			uint8_t frame;
-			uint16_t command;
-			uint8_t autocontinue;
-			float params[7];
-		} item;
+		CrcMissionItem_t item;
 		uint8_t raw[MISSION_ITEM_CRC_SIZE];
 	} u;
 
+#if MAVLINK_NEED_BYTE_SWAP
+	_mav_put_uint8_t(u.raw, 0, mission_item.frame);
+	_mav_put_uint16_t(u.raw, 1, mission_item.command);
+	_mav_put_uint8_t(u.raw, 3, mission_item.autocontinue);
+	_mav_put_float(u.raw, 4, mission_item.param1);
+	_mav_put_float(u.raw, 8, mission_item.param2);
+	_mav_put_float(u.raw, 12, mission_item.param3);
+	_mav_put_float(u.raw, 16, mission_item.param4);
+	_mav_put_float(u.raw, 20, mission_item.x);
+	_mav_put_float(u.raw, 24, mission_item.y);
+	_mav_put_float(u.raw, 28, mission_item.z);
+#else
 	u.item.frame = mission_item.frame;
 	u.item.command = mission_item.command;
 	u.item.autocontinue = mission_item.autocontinue;
@@ -97,6 +113,7 @@ static uint32_t crc32_for_mission_item(const mavlink_mission_item_t &mission_ite
 	u.item.params[4] = mission_item.x;
 	u.item.params[5] = mission_item.y;
 	u.item.params[6] = mission_item.z;
+#endif
 
 	return crc32part(u.raw, sizeof(u), prev_crc32);
 }
@@ -569,6 +586,8 @@ MavlinkMissionManager::send()
 		return;
 	}
 
+	hrt_abstime t_now{hrt_absolute_time()};
+
 	mission_result_s mission_result{};
 
 	if (_mission_result_sub.update(&mission_result)) {
@@ -615,7 +634,7 @@ MavlinkMissionManager::send()
 			}
 		}
 
-	} else if (_slow_rate_limiter.check(hrt_absolute_time())) {
+	} else if (_slow_rate_limiter.check(t_now)) {
 		if ((_count[MAV_MISSION_TYPE_MISSION] > 0) && (_current_seq >= 0)) {
 
 			send_mission_current(_current_seq);
@@ -626,6 +645,13 @@ MavlinkMissionManager::send()
 				_reached_sent_count++;
 			}
 		}
+	}
+
+	/* Send mission checksum at a low rate */
+	if (_checksum_rate_limiter.check(t_now)) {
+		send_mission_checksum(MAV_MISSION_TYPE_MISSION);
+		send_mission_checksum(MAV_MISSION_TYPE_FENCE);
+		send_mission_checksum(MAV_MISSION_TYPE_RALLY);
 	}
 
 	/* check for timed-out operations */
@@ -694,9 +720,6 @@ MavlinkMissionManager::handle_message(const mavlink_message_t *msg)
 
 	case MAVLINK_MSG_ID_MISSION_CLEAR_ALL:
 		handle_mission_clear_all(msg);
-		break;
-
-	case MAVLINK_MSG_ID_COMMAND_INT:
 		break;
 
 	default:

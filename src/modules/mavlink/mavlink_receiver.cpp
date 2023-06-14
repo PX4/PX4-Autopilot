@@ -534,7 +534,7 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 
 		if (message_id == MAVLINK_MSG_ID_MISSION_CHECKSUM) {
 			result = _mission_manager.send_mission_checksum((MAV_MISSION_TYPE)roundf(vehicle_command.param2)) ?
-				 vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED : vehicle_command_ack_s::VEHICLE_RESULT_DENIED;
+				 vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED : vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED;
 
 		} else {
 #else
