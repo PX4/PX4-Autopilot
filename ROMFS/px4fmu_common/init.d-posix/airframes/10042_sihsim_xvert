@@ -17,6 +17,7 @@ param set-default SENS_EN_GPSSIM 1
 param set-default SENS_EN_BAROSIM 1
 param set-default SENS_EN_MAGSIM 1
 
+param set-default VT_B_TRANS_DUR 5
 param set-default VT_ELEV_MC_LOCK 0
 param set-default VT_TYPE 0
 param set-default VT_FW_DIFTHR_EN 1

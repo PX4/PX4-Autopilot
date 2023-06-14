@@ -1428,7 +1428,7 @@ void Navigator::publish_vehicle_cmd(vehicle_command_s *vcmd)
 		break;
 
 	default:
-		vcmd->target_component = _vstatus.component_id;
+		vcmd->target_component = 0;
 		break;
 	}
 

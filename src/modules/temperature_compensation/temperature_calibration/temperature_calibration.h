@@ -36,4 +36,4 @@
 
 /** start temperature calibration in a new task for one or multiple sensors
  * @return 0 on success, <0 error otherwise  */
-int run_temperature_calibration(bool accel, bool baro, bool gyro);
+int run_temperature_calibration(bool accel, bool gyro, bool mag, bool baro);

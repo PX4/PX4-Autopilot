@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *  Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,24 +31,25 @@
  *
  ****************************************************************************/
 
-#include <px4_arch/io_timer_hw_description.h>
+#pragma once
 
-constexpr io_timers_t io_timers[MAX_IO_TIMERS] = {
-	initIOTimer(Timer::Timer2),
-	initIOTimer(Timer::Timer3),
-	initIOTimer(Timer::Timer4),
+#include "common.h"
+#include "polyfit.hpp"
+
+class TemperatureCalibrationMag : public TemperatureCalibrationCommon<3, 3>
+{
+public:
+	TemperatureCalibrationMag(float min_temperature_rise, float min_start_temperature, float max_start_temperature);
+	virtual ~TemperatureCalibrationMag();
+
+	/**
+	 * @see TemperatureCalibrationBase::finish()
+	 */
+	int finish();
+
+private:
+
+	virtual inline int update_sensor_instance(PerSensorData &data, int sensor_sub);
+
+	inline int finish_sensor_instance(PerSensorData &data, int sensor_index);
 };
-
-constexpr timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
-	initIOTimerChannel(io_timers, {Timer::Timer2, Timer::Channel1}, {GPIO::PortA, GPIO::Pin0}),
-	initIOTimerChannel(io_timers, {Timer::Timer2, Timer::Channel2}, {GPIO::PortA, GPIO::Pin1}),
-	initIOTimerChannel(io_timers, {Timer::Timer4, Timer::Channel3}, {GPIO::PortB, GPIO::Pin8}),
-	initIOTimerChannel(io_timers, {Timer::Timer4, Timer::Channel4}, {GPIO::PortB, GPIO::Pin9}),
-	initIOTimerChannel(io_timers, {Timer::Timer3, Timer::Channel1}, {GPIO::PortA, GPIO::Pin6}),
-	initIOTimerChannel(io_timers, {Timer::Timer3, Timer::Channel2}, {GPIO::PortA, GPIO::Pin7}),
-	initIOTimerChannel(io_timers, {Timer::Timer3, Timer::Channel3}, {GPIO::PortB, GPIO::Pin0}),
-	initIOTimerChannel(io_timers, {Timer::Timer3, Timer::Channel4}, {GPIO::PortB, GPIO::Pin1}),
-};
-
-constexpr io_timers_channel_mapping_t io_timers_channel_mapping =
-	initIOTimerChannelMapping(io_timers, timer_io_channels);

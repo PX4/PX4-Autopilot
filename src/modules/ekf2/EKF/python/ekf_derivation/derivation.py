@@ -69,6 +69,12 @@ class VState(sf.Matrix):
 class MState(sf.Matrix):
     SHAPE = (State.n_states, State.n_states)
 
+def state_to_quat(state: VState) -> sf.Quaternion:
+    return sf.Quaternion(sf.V3(state[State.qx], state[State.qy], state[State.qz]), state[State.qw])
+
+def state_to_rot3(state: VState) -> sf.Rot3:
+    return sf.Rot3(state_to_quat(state))
+
 def predict_covariance(
         state: VState,
         P: MState,
@@ -86,17 +92,17 @@ def predict_covariance(
     d_ang_b = sf.V3(state[State.d_ang_bx], state[State.d_ang_by], state[State.d_ang_bz])
     d_ang_true = d_ang - d_ang_b
 
-    q = sf.V4(state[State.qw], state[State.qx], state[State.qy], state[State.qz])
-    R_to_earth = quat_to_rot_simplified(q)
+    q = state_to_quat(state)
+    R_to_earth = sf.Rot3(q)
     v = sf.V3(state[State.vx], state[State.vy], state[State.vz])
     p = sf.V3(state[State.px], state[State.py], state[State.pz])
 
-    q_new = quat_mult(q, sf.V4(1, 0.5 * d_ang_true[0],  0.5 * d_ang_true[1],  0.5 * d_ang_true[2]))
+    q_new = q * sf.Quaternion(sf.V3(0.5 * d_ang_true[0],  0.5 * d_ang_true[1],  0.5 * d_ang_true[2]), 1)
     v_new = v + R_to_earth * d_vel_true + sf.V3(0 ,0 ,g) * dt
     p_new = p + v * dt
 
     # Predicted state vector at time t + dt
-    state_new = VState.block_matrix([[q_new], [v_new], [p_new], [sf.Matrix(state[State.d_ang_bx:State.n_states])]])
+    state_new = VState.block_matrix([[sf.V4(q_new.w, q_new.x, q_new.y, q_new.z)], [v_new], [p_new], [sf.Matrix(state[State.d_ang_bx:State.n_states])]])
 
     # State propagation jacobian
     A = state_new.jacobian(state)
@@ -155,8 +161,7 @@ def predict_sideslip(
 ) -> (sf.Scalar):
 
     vel_rel = sf.V3(state[State.vx] - state[State.wx], state[State.vy] - state[State.wy], state[State.vz])
-    q_att = sf.V4(state[State.qw], state[State.qx], state[State.qy], state[State.qz])
-    relative_wind_body = quat_to_rot(q_att).T * vel_rel
+    relative_wind_body = state_to_rot3(state).inverse() * vel_rel
 
     # Small angle approximation of side slip model
     # Protect division by zero using epsilon
@@ -196,11 +201,10 @@ def compute_sideslip_h_and_k(
     return (H.T, K)
 
 def predict_mag_body(state) -> sf.V3:
-    q_att = sf.V4(state[State.qw], state[State.qx], state[State.qy], state[State.qz])
     mag_field_earth = sf.V3(state[State.ix], state[State.iy], state[State.iz])
     mag_bias_body = sf.V3(state[State.ibx], state[State.iby], state[State.ibz])
 
-    mag_body = quat_to_rot(q_att).T * mag_field_earth + mag_bias_body
+    mag_body = state_to_rot3(state).inverse() * mag_field_earth + mag_bias_body
     return mag_body
 
 def compute_mag_innov_innov_var_and_hx(
@@ -260,8 +264,7 @@ def compute_yaw_321_innov_var_and_h(
         epsilon: sf.Scalar
 ) -> (sf.Scalar, VState):
 
-    q_att = sf.V4(state[State.qw], state[State.qx], state[State.qy], state[State.qz])
-    R_to_earth = quat_to_rot(q_att)
+    R_to_earth = state_to_rot3(state).to_rotation_matrix()
     # Fix the singularity at pi/2 by inserting epsilon
     meas_pred = sf.atan2(R_to_earth[1,0], R_to_earth[0,0], epsilon=epsilon)
 
@@ -277,8 +280,7 @@ def compute_yaw_321_innov_var_and_h_alternate(
         epsilon: sf.Scalar
 ) -> (sf.Scalar, VState):
 
-    q_att = sf.V4(state[State.qw], state[State.qx], state[State.qy], state[State.qz])
-    R_to_earth = quat_to_rot(q_att)
+    R_to_earth = state_to_rot3(state).to_rotation_matrix()
     # Alternate form that has a singularity at yaw 0 instead of pi/2
     meas_pred = sf.pi/2 - sf.atan2(R_to_earth[0,0], R_to_earth[1,0], epsilon=epsilon)
 
@@ -294,8 +296,7 @@ def compute_yaw_312_innov_var_and_h(
         epsilon: sf.Scalar
 ) -> (sf.Scalar, VState):
 
-    q_att = sf.V4(state[State.qw], state[State.qx], state[State.qy], state[State.qz])
-    R_to_earth = quat_to_rot(q_att)
+    R_to_earth = state_to_rot3(state).to_rotation_matrix()
     # Alternate form to be used when close to pitch +-pi/2
     meas_pred = sf.atan2(-R_to_earth[0,1], R_to_earth[1,1], epsilon=epsilon)
 
@@ -311,8 +312,7 @@ def compute_yaw_312_innov_var_and_h_alternate(
         epsilon: sf.Scalar
 ) -> (sf.Scalar, VState):
 
-    q_att = sf.V4(state[State.qw], state[State.qx], state[State.qy], state[State.qz])
-    R_to_earth = quat_to_rot(q_att)
+    R_to_earth = state_to_rot3(state).to_rotation_matrix()
     # Alternate form to be used when close to pitch +-pi/2
     meas_pred = sf.pi/2 - sf.atan2(-R_to_earth[1,1], R_to_earth[0,1], epsilon=epsilon)
 
@@ -336,9 +336,7 @@ def compute_mag_declination_pred_innov_var_and_h(
     return (meas_pred, innov_var, H.T)
 
 def predict_opt_flow(state, distance, epsilon):
-    q_att = sf.V4(state[State.qw], state[State.qx], state[State.qy], state[State.qz])
-    R_to_earth = quat_to_rot(q_att)
-    R_to_body = R_to_earth.T
+    R_to_body = state_to_rot3(state).inverse()
 
     # Calculate earth relative velocity in a non-rotating sensor frame
     v = sf.V3(state[State.vx], state[State.vy], state[State.vz])
@@ -393,8 +391,7 @@ def compute_gnss_yaw_pred_innov_var_and_h(
         epsilon: sf.Scalar
 ) -> (sf.Scalar, sf.Scalar, VState):
 
-    q_att = sf.V4(state[State.qw], state[State.qx], state[State.qy], state[State.qz])
-    R_to_earth = quat_to_rot(q_att)
+    R_to_earth = state_to_rot3(state)
 
     # define antenna vector in body frame
     ant_vec_bf = sf.V3(sf.cos(antenna_yaw_offset), sf.sin(antenna_yaw_offset), 0)
@@ -417,9 +414,7 @@ def predict_drag(
         cm: sf.Scalar,
         epsilon: sf.Scalar
         ):
-    q_att = sf.V4(state[State.qw], state[State.qx], state[State.qy], state[State.qz])
-    R_to_earth = quat_to_rot(q_att)
-    R_to_body = R_to_earth.T
+    R_to_body = state_to_rot3(state).inverse()
 
     vel_rel = sf.V3(state[State.vx] - state[State.wx],
                     state[State.vy] - state[State.wy],
@@ -481,8 +476,7 @@ def compute_gravity_innov_var_and_k_and_h(
 ) -> (sf.V3, sf.V3, VState, VState, VState):
 
     # get transform from earth to body frame
-    q_att = sf.V4(state[State.qw], state[State.qx], state[State.qy], state[State.qz])
-    R_to_body = quat_to_rot(q_att).T
+    R_to_body = state_to_rot3(state).inverse()
 
     # the innovation is the error between measured acceleration
     #  and predicted (body frame), assuming no body acceleration

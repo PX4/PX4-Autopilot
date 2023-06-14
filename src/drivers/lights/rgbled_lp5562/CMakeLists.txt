@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2023 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,12 +31,12 @@
 #
 ############################################################################
 
-add_library(drivers_board
-	init.c
-	timer_config.cpp
-)
-
-target_link_libraries(drivers_board
-	PRIVATE
-		nuttx_arch
-)
+px4_add_module(
+	MODULE drivers__rgbled_lp5562
+	MAIN rgbled_lp5562
+	SRCS
+		rgbled_lp5562.cpp
+	DEPENDS
+		drivers__device
+		led
+	)

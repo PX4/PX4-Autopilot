@@ -315,6 +315,8 @@ private:
 	void handle_vehicle_command_update();
 	void ack_vehicle_command(vehicle_command_s *cmd, uint32_t result);
 
+	void handle_file_write_error();
+
 	/**
 	 * initialize the output for the process load, so that ~1 second later it will be written to the log
 	 */
@@ -346,7 +348,7 @@ private:
 
 	LogFileName					_file_name[(int)LogType::Count];
 
-	bool						_prev_state{false}; ///< previous state depending on logging mode (arming or aux1 state)
+	bool						_prev_file_log_start_state{false}; ///< previous state depending on logging mode (arming or aux1 state)
 	bool						_manually_logging_override{false};
 
 	Statistics					_statistics[(int)LogType::Count];

@@ -79,7 +79,7 @@ public:
 
 	void thread_stop();
 
-	void start_log(LogType type, const char *filename);
+	bool start_log(LogType type, const char *filename);
 
 	void stop_log(LogType type);
 
@@ -131,6 +131,8 @@ public:
 	{
 		return _need_reliable_transfer;
 	}
+
+	bool had_write_error() const { return _buffers[(int)LogType::Full]._had_write_error.load(); }
 
 	pthread_t thread_id() const { return _thread; }
 
@@ -199,6 +201,7 @@ private:
 		size_t count() const { return _count; }
 
 		bool _should_run = false;
+		px4::atomic_bool _had_write_error{false};
 	private:
 		const size_t _buffer_size;
 		int	_fd = -1;

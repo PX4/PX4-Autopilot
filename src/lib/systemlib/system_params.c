@@ -239,7 +239,9 @@ PARAM_DEFINE_INT32(SYS_HAS_NUM_DIST, 0);
  * Note: this is only supported on boards with a separate calibration storage
  * /fs/mtd_caldata.
  *
- * @boolean
+ * @value 0 Disabled
+ * @value 1 All sensors
+ * @value 2 All sensors except mag
  * @group System
  */
 PARAM_DEFINE_INT32(SYS_FAC_CAL_MODE, 0);

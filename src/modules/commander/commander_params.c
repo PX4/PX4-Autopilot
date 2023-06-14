@@ -50,8 +50,8 @@
  * copying them using the GCS.
  *
  * @group Radio Calibration
- * @min -0.25
- * @max 0.25
+ * @min -0.5
+ * @max 0.5
  * @decimal 2
  * @increment 0.01
  */
@@ -66,8 +66,8 @@ PARAM_DEFINE_FLOAT(TRIM_ROLL, 0.0f);
  * copying them using the GCS.
  *
  * @group Radio Calibration
- * @min -0.25
- * @max 0.25
+ * @min -0.5
+ * @max 0.5
  * @decimal 2
  * @increment 0.01
  */
@@ -82,8 +82,8 @@ PARAM_DEFINE_FLOAT(TRIM_PITCH, 0.0f);
  * copying them using the GCS.
  *
  * @group Radio Calibration
- * @min -0.25
- * @max 0.25
+ * @min -0.5
+ * @max 0.5
  * @decimal 2
  * @increment 0.01
  */
@@ -1002,6 +1002,20 @@ PARAM_DEFINE_INT32(COM_ARM_SDCARD, 1);
  * @boolean
  */
 PARAM_DEFINE_INT32(COM_ARM_HFLT_CHK, 1);
+
+/**
+ * Enable Drone ID system detection and health check
+ *
+ * This check detects if the Open Drone ID system is missing.
+ * Depending on the value of the parameter, the check can be
+ * disabled, warn only or deny arming.
+ *
+ * @group Commander
+ * @value 0 Disabled
+ * @value 1 Warning only
+ * @value 2 Enforce Open Drone ID system presence
+ */
+PARAM_DEFINE_INT32(COM_ARM_ODID, 0);
 
 /**
  * Enforced delay between arming and further navigation

@@ -34,53 +34,54 @@ void ComputeGnssYawPredInnovVarAndH(const matrix::Matrix<Scalar, 24, 1>& state,
                                     const Scalar epsilon, Scalar* const meas_pred = nullptr,
                                     Scalar* const innov_var = nullptr,
                                     matrix::Matrix<Scalar, 24, 1>* const H = nullptr) {
-  // Total ops: 101
+  // Total ops: 105
 
   // Input arrays
 
-  // Intermediate terms (26)
-  const Scalar _tmp0 = std::pow(state(2, 0), Scalar(2));
-  const Scalar _tmp1 = std::pow(state(1, 0), Scalar(2));
-  const Scalar _tmp2 = std::pow(state(0, 0), Scalar(2)) - std::pow(state(3, 0), Scalar(2));
-  const Scalar _tmp3 = std::sin(antenna_yaw_offset);
-  const Scalar _tmp4 = state(0, 0) * state(3, 0);
-  const Scalar _tmp5 = state(1, 0) * state(2, 0);
-  const Scalar _tmp6 = std::cos(antenna_yaw_offset);
-  const Scalar _tmp7 = 2 * _tmp6;
-  const Scalar _tmp8 = _tmp3 * (_tmp0 - _tmp1 + _tmp2) + _tmp7 * (_tmp4 + _tmp5);
-  const Scalar _tmp9 = 2 * _tmp3;
-  const Scalar _tmp10 = _tmp6 * (-_tmp0 + _tmp1 + _tmp2) + _tmp9 * (-_tmp4 + _tmp5);
-  const Scalar _tmp11 = _tmp10 + epsilon * ((((_tmp10) > 0) - ((_tmp10) < 0)) + Scalar(0.5));
-  const Scalar _tmp12 = _tmp7 * state(0, 0) - _tmp9 * state(3, 0);
-  const Scalar _tmp13 = Scalar(1.0) / (_tmp11);
-  const Scalar _tmp14 = _tmp7 * state(3, 0);
-  const Scalar _tmp15 = _tmp9 * state(0, 0);
-  const Scalar _tmp16 = std::pow(_tmp11, Scalar(2));
-  const Scalar _tmp17 = _tmp8 / _tmp16;
-  const Scalar _tmp18 = _tmp16 / (_tmp16 + std::pow(_tmp8, Scalar(2)));
-  const Scalar _tmp19 = _tmp18 * (_tmp12 * _tmp13 - _tmp17 * (-_tmp14 - _tmp15));
-  const Scalar _tmp20 = _tmp7 * state(1, 0) + _tmp9 * state(2, 0);
-  const Scalar _tmp21 = _tmp9 * state(1, 0);
-  const Scalar _tmp22 = _tmp7 * state(2, 0);
-  const Scalar _tmp23 = _tmp18 * (_tmp13 * (-_tmp21 + _tmp22) - _tmp17 * _tmp20);
-  const Scalar _tmp24 = _tmp18 * (-_tmp12 * _tmp17 + _tmp13 * (_tmp14 + _tmp15));
-  const Scalar _tmp25 = _tmp18 * (_tmp13 * _tmp20 - _tmp17 * (_tmp21 - _tmp22));
+  // Intermediate terms (22)
+  const Scalar _tmp0 = 1 - 2 * std::pow(state(3, 0), Scalar(2));
+  const Scalar _tmp1 = std::sin(antenna_yaw_offset);
+  const Scalar _tmp2 = 2 * state(0, 0) * state(3, 0);
+  const Scalar _tmp3 = 2 * state(1, 0) * state(2, 0);
+  const Scalar _tmp4 = std::cos(antenna_yaw_offset);
+  const Scalar _tmp5 =
+      _tmp1 * (_tmp0 - 2 * std::pow(state(1, 0), Scalar(2))) + _tmp4 * (_tmp2 + _tmp3);
+  const Scalar _tmp6 =
+      _tmp1 * (-_tmp2 + _tmp3) + _tmp4 * (_tmp0 - 2 * std::pow(state(2, 0), Scalar(2)));
+  const Scalar _tmp7 = _tmp6 + epsilon * ((((_tmp6) > 0) - ((_tmp6) < 0)) + Scalar(0.5));
+  const Scalar _tmp8 = 4 * _tmp1;
+  const Scalar _tmp9 = 2 * _tmp4;
+  const Scalar _tmp10 = Scalar(1.0) / (_tmp7);
+  const Scalar _tmp11 = 4 * _tmp4;
+  const Scalar _tmp12 = 2 * _tmp1;
+  const Scalar _tmp13 = std::pow(_tmp7, Scalar(2));
+  const Scalar _tmp14 = _tmp5 / _tmp13;
+  const Scalar _tmp15 = _tmp13 / (_tmp13 + std::pow(_tmp5, Scalar(2)));
+  const Scalar _tmp16 = _tmp15 * (_tmp10 * (-_tmp8 * state(3, 0) + _tmp9 * state(0, 0)) -
+                                  _tmp14 * (-_tmp11 * state(3, 0) - _tmp12 * state(0, 0)));
+  const Scalar _tmp17 = _tmp12 * _tmp14;
+  const Scalar _tmp18 = _tmp10 * _tmp9;
+  const Scalar _tmp19 = _tmp15 * (_tmp17 * state(3, 0) + _tmp18 * state(3, 0));
+  const Scalar _tmp20 =
+      _tmp15 * (-_tmp14 * (-_tmp11 * state(2, 0) + _tmp12 * state(1, 0)) + _tmp18 * state(1, 0));
+  const Scalar _tmp21 =
+      _tmp15 * (_tmp10 * (-_tmp8 * state(1, 0) + _tmp9 * state(2, 0)) - _tmp17 * state(2, 0));
 
   // Output terms (3)
   if (meas_pred != nullptr) {
     Scalar& _meas_pred = (*meas_pred);
 
-    _meas_pred = std::atan2(_tmp8, _tmp11);
+    _meas_pred = std::atan2(_tmp5, _tmp7);
   }
 
   if (innov_var != nullptr) {
     Scalar& _innov_var = (*innov_var);
 
     _innov_var =
-        R + _tmp19 * (P(0, 3) * _tmp24 + P(1, 3) * _tmp23 + P(2, 3) * _tmp25 + P(3, 3) * _tmp19) +
-        _tmp23 * (P(0, 1) * _tmp24 + P(1, 1) * _tmp23 + P(2, 1) * _tmp25 + P(3, 1) * _tmp19) +
-        _tmp24 * (P(0, 0) * _tmp24 + P(1, 0) * _tmp23 + P(2, 0) * _tmp25 + P(3, 0) * _tmp19) +
-        _tmp25 * (P(0, 2) * _tmp24 + P(1, 2) * _tmp23 + P(2, 2) * _tmp25 + P(3, 2) * _tmp19);
+        R + _tmp16 * (P(0, 3) * _tmp19 + P(1, 3) * _tmp21 + P(2, 3) * _tmp20 + P(3, 3) * _tmp16) +
+        _tmp19 * (P(0, 0) * _tmp19 + P(1, 0) * _tmp21 + P(2, 0) * _tmp20 + P(3, 0) * _tmp16) +
+        _tmp20 * (P(0, 2) * _tmp19 + P(1, 2) * _tmp21 + P(2, 2) * _tmp20 + P(3, 2) * _tmp16) +
+        _tmp21 * (P(0, 1) * _tmp19 + P(1, 1) * _tmp21 + P(2, 1) * _tmp20 + P(3, 1) * _tmp16);
   }
 
   if (H != nullptr) {
@@ -88,10 +89,10 @@ void ComputeGnssYawPredInnovVarAndH(const matrix::Matrix<Scalar, 24, 1>& state,
 
     _h.setZero();
 
-    _h(0, 0) = _tmp24;
-    _h(1, 0) = _tmp23;
-    _h(2, 0) = _tmp25;
-    _h(3, 0) = _tmp19;
+    _h(0, 0) = _tmp19;
+    _h(1, 0) = _tmp21;
+    _h(2, 0) = _tmp20;
+    _h(3, 0) = _tmp16;
   }
 }  // NOLINT(readability/fn_size)
 

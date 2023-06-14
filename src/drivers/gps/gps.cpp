@@ -60,6 +60,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/gps_dump.h>
 #include <uORB/topics/gps_inject_data.h>
 #include <uORB/topics/sensor_gps.h>
@@ -203,7 +204,7 @@ private:
 
 	const Instance 			_instance;
 
-	uORB::Subscription		     _orb_inject_data_sub{ORB_ID(gps_inject_data)};
+	uORB::SubscriptionMultiArray<gps_inject_data_s, gps_inject_data_s::MAX_INSTANCES> _orb_inject_data_sub{ORB_ID::gps_inject_data};
 	uORB::Publication<gps_inject_data_s> _gps_inject_data_pub{ORB_ID(gps_inject_data)};
 	uORB::Publication<gps_dump_s>	     _dump_communication_pub{ORB_ID(gps_dump)};
 	gps_dump_s			     *_dump_to_device{nullptr};
@@ -530,22 +531,21 @@ void GPS::handleInjectDataTopic()
 	// If there has not been a valid RTCM message for a while, try to switch to a different RTCM link
 	if ((hrt_absolute_time() - _last_rtcm_injection_time) > 5_s) {
 
-		for (uint8_t i = 0; i < gps_inject_data_s::MAX_INSTANCES; i++) {
-			if (_orb_inject_data_sub.ChangeInstance(i)) {
-				if (_orb_inject_data_sub.copy(&msg)) {
+		for (int instance = 0; instance < _orb_inject_data_sub.size(); instance++) {
+			const bool exists = _orb_inject_data_sub[instance].advertised();
+
+			if (exists) {
+				if (_orb_inject_data_sub[instance].copy(&msg)) {
 					if ((hrt_absolute_time() - msg.timestamp) < 5_s) {
 						// Remember that we already did a copy on this instance.
 						already_copied = true;
-						_selected_rtcm_instance = i;
+						_selected_rtcm_instance = instance;
 						break;
 					}
 				}
 			}
 		}
 	}
-
-	// Reset instance in case we didn't actually want to switch
-	_orb_inject_data_sub.ChangeInstance(_selected_rtcm_instance);
 
 	bool updated = already_copied;
 
@@ -574,7 +574,7 @@ void GPS::handleInjectDataTopic()
 			}
 		}
 
-		updated = _orb_inject_data_sub.update(&msg);
+		updated = _orb_inject_data_sub[_selected_rtcm_instance].update(&msg);
 
 	} while (updated && num_injections < max_num_injections);
 }
