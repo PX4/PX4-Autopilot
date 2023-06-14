@@ -127,6 +127,7 @@ private:
 
 	void rc_io_invert(bool invert);
 
+	input_rc_s _input_rc{};
 	hrt_abstime _rc_scan_begin{0};
 
 	bool _initialized{false};
@@ -140,15 +141,12 @@ private:
 	uORB::Subscription	_vehicle_cmd_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription	_vehicle_status_sub{ORB_ID(vehicle_status)};
 
-	input_rc_s	_rc_in{};
+	uORB::PublicationMulti<input_rc_s> _input_rc_pub{ORB_ID(input_rc)};
 
 	float		_analog_rc_rssi_volt{-1.0f};
 	bool		_analog_rc_rssi_stable{false};
 
 	bool _armed{false};
-
-
-	uORB::PublicationMulti<input_rc_s>	_to_input_rc{ORB_ID(input_rc)};
 
 	int		_rcs_fd{-1};
 	char		_device[20] {};					///< device / serial port path

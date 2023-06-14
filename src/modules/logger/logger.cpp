@@ -887,6 +887,8 @@ void Logger::run()
 			was_started = false;
 		}
 
+		handle_file_write_error();
+
 		update_params();
 
 		// wait for next loop iteration...
@@ -1117,8 +1119,8 @@ bool Logger::start_stop_logging()
 
 		if (_vehicle_status_sub.update(&vehicle_status)) {
 
-			desired_state = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) || (_prev_state
-					&& _log_mode == LogMode::arm_until_shutdown);
+			desired_state = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) ||
+					(_prev_file_log_start_state && _log_mode == LogMode::arm_until_shutdown);
 			updated = true;
 		}
 	}
@@ -1126,8 +1128,8 @@ bool Logger::start_stop_logging()
 	desired_state = desired_state || _manually_logging_override;
 
 	// only start/stop if this is a state transition
-	if (updated && _prev_state != desired_state) {
-		_prev_state = desired_state;
+	if (updated && _prev_file_log_start_state != desired_state) {
+		_prev_file_log_start_state = desired_state;
 
 		if (desired_state) {
 			if (_should_stop_file_log) { // happens on quick stop/start toggling
@@ -1394,6 +1396,7 @@ void Logger::start_log_file(LogType type)
 	}
 
 	PX4_INFO("Start file log (type: %s)", log_type_str(type));
+	_statistics[(int) type].start_time_file = 0;
 
 	char file_name[LOG_DIR_LEN] = "";
 
@@ -1409,34 +1412,35 @@ void Logger::start_log_file(LogType type)
 		_param_sdlog_crypto_exchange_key.get());
 #endif
 
-	_writer.start_log_file(type, file_name);
-	_writer.select_write_backend(LogWriter::BackendFile);
-	_writer.set_need_reliable_transfer(true);
+	if (_writer.start_log_file(type, file_name)) {
+		_writer.select_write_backend(LogWriter::BackendFile);
+		_writer.set_need_reliable_transfer(true);
 
-	write_header(type);
-	write_version(type);
-	write_formats(type);
+		write_header(type);
+		write_version(type);
+		write_formats(type);
 
-	if (type == LogType::Full) {
-		write_parameters(type);
-		write_parameter_defaults(type);
-		write_perf_data(PrintLoadReason::Preflight);
-		write_console_output();
-		write_events_file(LogType::Full);
-		write_excluded_optional_topics(type);
+		if (type == LogType::Full) {
+			write_parameters(type);
+			write_parameter_defaults(type);
+			write_perf_data(PrintLoadReason::Preflight);
+			write_console_output();
+			write_events_file(LogType::Full);
+			write_excluded_optional_topics(type);
+		}
+
+		write_all_add_logged_msg(type);
+		_writer.set_need_reliable_transfer(false);
+		_writer.unselect_write_backend();
+		_writer.notify();
+
+		if (type == LogType::Full) {
+			/* reset performance counters to get in-flight min and max values in post flight log */
+			perf_reset_all();
+		}
+
+		_statistics[(int) type].start_time_file = hrt_absolute_time();
 	}
-
-	write_all_add_logged_msg(type);
-	_writer.set_need_reliable_transfer(false);
-	_writer.unselect_write_backend();
-	_writer.notify();
-
-	if (type == LogType::Full) {
-		/* reset performance counters to get in-flight min and max values in post flight log */
-		perf_reset_all();
-	}
-
-	_statistics[(int)type].start_time_file = hrt_absolute_time();
 
 }
 
@@ -1512,6 +1516,19 @@ struct perf_callback_data_t {
 	Logger::PrintLoadReason reason;
 	char *buffer;
 };
+
+void Logger::handle_file_write_error()
+{
+	// Check for write errors, but do not immediately retry
+	if (_writer.had_file_write_error() && !_writer.is_started(LogType::Full, LogWriter::BackendFile)
+	    && _prev_file_log_start_state) {
+		if (_statistics[(int)LogType::Full].start_time_file != 0
+		    && hrt_absolute_time() > _statistics[(int)LogType::Full].start_time_file + 10_s) {
+			PX4_DEBUG("Restarting due to write failure");
+			start_log_file(LogType::Full);
+		}
+	}
+}
 
 void Logger::perf_iterate_callback(perf_counter_t handle, void *user)
 {
@@ -2074,12 +2091,6 @@ void Logger::write_version(LogType type)
 	write_info(type, "sys_os_ver_release", px4_os_version());
 	write_info(type, "sys_toolchain", px4_toolchain_name());
 	write_info(type, "sys_toolchain_ver", px4_toolchain_version());
-
-	const char *ecl_version = px4_ecl_lib_version_string();
-
-	if (ecl_version && ecl_version[0]) {
-		write_info(type, "sys_lib_ecl_ver", ecl_version);
-	}
 
 	char revision = 'U';
 	const char *chip_name = nullptr;

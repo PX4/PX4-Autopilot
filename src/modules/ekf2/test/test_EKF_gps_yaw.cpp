@@ -335,6 +335,6 @@ TEST_F(EkfGpsHeadingTest, stopOnGround)
 	_sensor_simulator.runSeconds(20.0);
 	const matrix::Vector4f quat_variance_after = _ekf_wrapper.getQuaternionVariance();
 
-	// THEN: the yaw variance is constrained by fusing constant data
-	EXPECT_LT(quat_variance_after(3), quat_variance_before(3));
+	// THEN: the yaw variance increases
+	EXPECT_GT(quat_variance_after(3), quat_variance_before(3));
 }

@@ -49,6 +49,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <sys/types.h>
+#include "../DynamicSparseLayer.h"
 
 __BEGIN_DECLS
 
@@ -57,9 +58,9 @@ __BEGIN_DECLS
  * the param_values and 2 functions to be global
  */
 
-__EXPORT extern UT_array        *param_values;
+__EXPORT extern DynamicSparseLayer user_config;
 __EXPORT int param_set_external(param_t param, const void *val, bool mark_saved, bool notify_changes);
-__EXPORT const void *param_get_value_ptr_external(param_t param);
+__EXPORT void param_get_external(param_t param, void *val);
 
 /* The interface hooks to the Flash based storage. The caller is responsible for locking */
 __EXPORT int flash_param_save(param_filter_func filter);

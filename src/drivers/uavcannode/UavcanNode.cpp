@@ -58,6 +58,7 @@
 
 #if defined(CONFIG_UAVCANNODE_GNSS_FIX)
 #include "Publishers/GnssFix2.hpp"
+#include "Publishers/GnssAuxiliary.hpp"
 #endif // CONFIG_UAVCANNODE_GNSS_FIX
 
 #if defined(CONFIG_UAVCANNODE_MAGNETIC_FIELD_STRENGTH)
@@ -366,6 +367,7 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 
 #if defined(CONFIG_UAVCANNODE_GNSS_FIX)
 	_publisher_list.add(new GnssFix2(this, _node));
+	_publisher_list.add(new GnssAuxiliary(this, _node));
 #endif // CONFIG_UAVCANNODE_GNSS_FIX
 
 #if defined(CONFIG_UAVCANNODE_MAGNETIC_FIELD_STRENGTH)

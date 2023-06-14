@@ -445,7 +445,7 @@ PARAM_DEFINE_FLOAT(EKF2_BETA_GATE, 5.0f);
 PARAM_DEFINE_FLOAT(EKF2_BETA_NOISE, 0.3f);
 
 /**
- * Gate size for magnetic heading fusion
+ * Gate size for heading fusion
  *
  * Sets the number of standard deviations used by the innovation consistency test.
  *
