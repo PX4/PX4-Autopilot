@@ -255,6 +255,7 @@ else
 	rgbled start -X -q
 	rgbled_ncp5623c start -X -q
 	rgbled_lp5562 start -X -q
+	rgbled_is31fl3195 start -X -q
 
 	#
 	# Override parameters from user configuration file.
