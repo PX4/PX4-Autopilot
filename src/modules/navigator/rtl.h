@@ -122,6 +122,8 @@ public:
 
 	void resetRtlState() { _rtl_state = RTL_STATE_NONE; }
 
+	void updateSafePoints() { _initiate_safe_points_updated = true; }
+
 private:
 
 	void set_rtl_item();
