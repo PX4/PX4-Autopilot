@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2016, 2019 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2023 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,39 +31,9 @@
 #
 ############################################################################
 
-if(CONFIG_IMXRT1170_FLEXSPI_FRAM)
-    list(APPEND SRCS
-		imxrt_flexspi_fram.c
-    )
-endif()
-
-px4_add_library(drivers_board
-	autoleds.c
-	automount.c
-	#can.c
-	i2c.cpp
-	init.c
-	led.c
-	manifest.c
-	mtd.cpp
-	sdhc.c
+px4_add_library(arch_spi
 	spi.cpp
-	timer_config.cpp
-	usb.c
-	imxrt_flexspi_fram.c
-	imxrt_flexspi_nor_boot.c
-	imxrt_flexspi_nor_flash.c
-	imxrt_clockconfig.c
-	imxrt_ethernet.c
-	${SRCS}
 )
+target_compile_options(arch_spi PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
 
-target_link_libraries(drivers_board
-	PRIVATE
-		arch_board_hw_info
-		arch_spi
-		drivers__led # drv_led_start
-		nuttx_arch # sdio
-		nuttx_drivers # sdio
-		px4_layer
-)
+target_link_libraries (arch_spi PRIVATE drivers_board) # px4_spi_buses

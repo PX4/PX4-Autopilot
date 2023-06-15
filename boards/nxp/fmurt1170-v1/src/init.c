@@ -211,10 +211,6 @@ __EXPORT void imxrt_boardinitialize(void)
 	const uint32_t gpio[] = PX4_GPIO_INIT_LIST;
 	px4_gpio_init(gpio, arraySize(gpio));
 
-	/* configure SPI interfaces */
-
-	imxrt_spidev_initialize();
-
 	imxrt_usb_initialize();
 
 	fmurt107x_timer_initialize();
@@ -251,7 +247,17 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	int ret = OK;
 
-	board_spi_reset(10, 0xffff);
+	/* Need hrt running before using the ADC */
+
+	px4_platform_init();
+
+	// Use the default HW_VER_REV(0x0,0x0) for Ramtron
+
+	imxrt_spiinitialize();
+
+	/* Configure the HW based on the manifest */
+
+	px4_platform_configure();
 
 	if (OK == board_determine_hw_info()) {
 		syslog(LOG_INFO, "[boot] Rev 0x%1x : Ver 0x%1x %s\n", board_get_hw_revision(), board_get_hw_version(),
@@ -261,7 +267,12 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		syslog(LOG_ERR, "[boot] Failed to read HW revision and version\n");
 	}
 
-	px4_platform_init();
+
+	/* Configure the Actual SPI interfaces (after we determined the HW version)  */
+
+	imxrt_spiinitialize();
+
+	board_spi_reset(10, 0xffff);
 
 	/* configure the DMA allocator */
 
