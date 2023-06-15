@@ -146,6 +146,8 @@ MavlinkMissionManager::update_active_mission(dm_item_t dataman_id, uint16_t coun
 	mission.dataman_id = dataman_id;
 	mission.count = count;
 	mission.current_seq = seq;
+	mission.geofence_update_counter = _geofence_update_counter;
+	mission.safe_points_update_counter = _safepoint_update_counter;
 
 	/* update active mission state */
 	_dataman_id = dataman_id;
@@ -161,7 +163,7 @@ MavlinkMissionManager::update_geofence_count(unsigned count)
 {
 	mission_stats_entry_s stats;
 	stats.num_items = count;
-	stats.update_counter = ++_geofence_update_counter; // this makes sure navigator will reload the fence data
+	stats.update_counter = ++_geofence_update_counter;
 
 	/* update stats in dataman */
 	bool success = _dataman_client.writeSync(DM_KEY_FENCE_POINTS, 0, reinterpret_cast<uint8_t *>(&stats),
@@ -181,6 +183,7 @@ MavlinkMissionManager::update_geofence_count(unsigned count)
 		return PX4_ERROR;
 	}
 
+	update_active_mission(_dataman_id, _count[MAV_MISSION_TYPE_MISSION], _current_seq);
 	return PX4_OK;
 }
 
@@ -209,6 +212,7 @@ MavlinkMissionManager::update_safepoint_count(unsigned count)
 		return PX4_ERROR;
 	}
 
+	update_active_mission(_dataman_id, _count[MAV_MISSION_TYPE_MISSION], _current_seq);
 	return PX4_OK;
 }
 
