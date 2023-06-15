@@ -60,7 +60,6 @@
 #include <lib/systemlib/mavlink_log.h>
 
 
-static constexpr uint32_t I2C_SPEED = 100 * 1000; // 100 kHz I2C serial interface
 
 
 /* Measurement rate is 100Hz */
@@ -69,7 +68,9 @@ static constexpr uint32_t I2C_SPEED = 100 * 1000; // 100 kHz I2C serial interfac
 
 
 /* Configuration Constants */
-static constexpr uint8_t I2C_ADDRESS_DEFAULT = 0x6D; /* 0xE4 */
+static constexpr uint8_t I2C_ADDRESS_DEFAULT = 0x6D; /* 0x6D 0xE4 */
+static constexpr uint32_t I2C_SPEED = 100 * 1000; // 100 kHz I2C serial interface
+
 
 #define REG_CMD_ASP5033  0x30;
 #define REG_PRESS_DATA_ASP5033 0X06

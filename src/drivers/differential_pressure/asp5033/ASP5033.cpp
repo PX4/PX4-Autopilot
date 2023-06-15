@@ -88,7 +88,7 @@ int ASP5033::init()
  */
 bool ASP5033::get_differential_pressure()
 {
-	if (hrt_elapsed_time(&last_sample_time) > 100_ms) {
+	if (hrt_elapsed_time(&last_sample_time) > 200_ms) {
 		return false;
 	}
 
@@ -100,7 +100,7 @@ bool ASP5033::get_differential_pressure()
 	_pressure = press_sum / press_count;
 
 	press_sum = 0.;
-	press_count = 0.;
+	press_count = 0;
 	return true;
 
 }
@@ -201,8 +201,8 @@ int ASP5033::collect()
 
 	// k is a shift based on the pressure range of the device. See
 	// table in the datasheet
-	constexpr uint8_t k = 7;
-	constexpr float press_scale = 1.0f / (1U << k);
+	constexpr uint8_t k = 8;
+	constexpr float press_scale = 1.0f / (1U << k); //= 1.0f / (1U << k);
 	press_sum += press * press_scale;
 	press_count++;
 
@@ -225,7 +225,6 @@ int ASP5033::collect()
 		_differential_pressure_pub.publish(differential_pressure);
 
 	}
-
 
 	perf_end(_sample_perf);
 
