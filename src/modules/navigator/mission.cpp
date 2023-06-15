@@ -122,6 +122,10 @@ Mission::on_inactive()
 		return;
 	}
 
+	if (_need_mission_save && _navigator->get_vstatus()->arming_state != vehicle_status_s::ARMING_STATE_ARMED) {
+		save_mission_state();
+	}
+
 	if (_inited) {
 		if (_mission_sub.updated()) {
 			update_mission();
@@ -1752,6 +1756,13 @@ Mission::read_mission_item(int offset, struct mission_item_s *mission_item)
 void
 Mission::save_mission_state()
 {
+	if (_navigator->get_vstatus()->arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+		// Save only while disarmed, as this is a blocking operation
+		_need_mission_save = true;
+		return;
+	}
+
+	_need_mission_save = false;
 	mission_s mission_state = {};
 
 	/* read current state */
