@@ -348,6 +348,7 @@ private:
 	bool _inited{false};
 	bool _home_inited{false};
 	bool _need_mission_reset{false};
+	bool _need_mission_save{false};
 	bool _mission_waypoints_changed{false};
 	bool _mission_changed{false}; /** < true if the mission changed since the mission mode was active */
 
