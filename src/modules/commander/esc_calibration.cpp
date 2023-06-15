@@ -61,7 +61,7 @@ bool check_battery_disconnected(orb_advert_t *mavlink_log_pub)
 	uORB::SubscriptionData<battery_status_s> battery_status_sub{ORB_ID(battery_status)};
 	battery_status_sub.update();
 
-	const bool recent_battery_measurement = (hrt_absolute_time() - battery_status_sub.get().timestamp) < 1_s;
+	const bool recent_battery_measurement = hrt_absolute_time() < (battery_status_sub.get().timestamp + 1_s);
 
 	if (!recent_battery_measurement) {
 		// We have to send this message for now because "battery unavailable" gets ignored by QGC
@@ -121,7 +121,7 @@ int do_esc_calibration(orb_advert_t *mavlink_log_pub)
 		hrt_abstime now = hrt_absolute_time();
 		battery_status_sub.update();
 
-		if ((now - timeout_start) < 1_s && (battery_status_sub.get().current_a > current_before_calibration + 1.f)) {
+		if (now > (timeout_start + 1_s) && (battery_status_sub.get().current_a > current_before_calibration + 1.f)) {
 			// Safety termination, current rises immediately, user didn't unplug power before
 			calibration_failed = true;
 			break;
@@ -132,7 +132,7 @@ int do_esc_calibration(orb_advert_t *mavlink_log_pub)
 			break;
 		}
 
-		if ((now - timeout_start) > 6_s) {
+		if (now > (timeout_start + 6_s)) {
 			// Timeout, we continue since maybe the battery cannot be detected properly
 			// If we abort here and the ESCs are infact connected and started calibrating
 			// they will measure the disarmed value as the lower limit instead of the fixed 1000us
