@@ -600,26 +600,6 @@ __BEGIN_DECLS
 
 int fmurt1170_usdhc_initialize(void);
 
-/****************************************************************************************************
- * Name: imxrt_spidev_initialize
- *
- * Description:
- *   Called to configure SPI chip select GPIO pins for the PX4FMU board.
- *
- ****************************************************************************************************/
-
-extern void imxrt_spidev_initialize(void);
-
-/************************************************************************************
- * Name: imxrt_spi_bus_initialize
- *
- * Description:
- *   Called to configure SPI Buses.
- *
- ************************************************************************************/
-
-extern int imxrt1176_spi_bus_initialize(void);
-
 /************************************************************************************
  * Name: imxrt_usb_initialize
  *
@@ -629,6 +609,17 @@ extern int imxrt1176_spi_bus_initialize(void);
  ************************************************************************************/
 
 extern int imxrt_usb_initialize(void);
+
+/****************************************************************************************************
+ * Name: nxp_spiinitialize
+ *
+ * Description:
+ *   Called to configure SPI chip select GPIO pins for the PX4FMU board.
+ *
+ ****************************************************************************************************/
+
+extern void imxrt_spiinitialize(void);
+
 
 extern void imxrt_usbinitialize(void);
 
