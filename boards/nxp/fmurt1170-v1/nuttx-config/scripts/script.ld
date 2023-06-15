@@ -33,6 +33,7 @@ EXTERN(_vectors)
 EXTERN(g_flash_config)
 EXTERN(g_image_vector_table)
 EXTERN(g_boot_data)
+EXTERN(board_get_manifest)
 
 ENTRY(__start)
 
