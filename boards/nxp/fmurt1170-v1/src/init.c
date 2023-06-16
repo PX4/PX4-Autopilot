@@ -161,29 +161,36 @@ __EXPORT void board_on_reset(int status)
 
 __EXPORT void imxrt_ocram_initialize(void)
 {
-	const uint32_t *src;
-	uint32_t *dest;
 	uint32_t regval;
 
-	/* Reallocate 128K of Flex RAM from ITCM to OCRAM
+	/* Reallocate
 	 * Final Configuration is
-	 *    128 DTCM
-	 *
-	 *    128 FlexRAM OCRAM  (202C:0000-202D:ffff)
-	 *    256 FlexRAM OCRAM  (2028:0000-202B:ffff)
-	 *    512 System  OCRAM2 (2020:0000-2027:ffff)
-	 * */
+	 *    No DTCM
+	 *    512k  OCRAM M7 (FlexRAM)          (2038:0000-203f:ffff)
+	*    128k  OCRAMM7 FlexRAM ECC         (2036:0000-2037:ffff)
+	*    64k   OCRAM2 ECC parity           (2035:0000-2035:ffff)
+	*    64k   OCRAM1 ECC parity           (2034:0000-2034:ffff)
+	*    512k  FlexRAM OCRAM2              (202C:0000-2033:ffff)
+	 *    512k  FlexRAM OCRAM1              (2024:0000-202B:ffff)
+	 *    256k  System  OCRAM M4            (2020:0000-2023:ffff)
+	 */
 
 	putreg32(0x00005555, IMXRT_IOMUXC_GPR_GPR17);
-	putreg32(0x0000aa55, IMXRT_IOMUXC_GPR_GPR18);
+	putreg32(0x00005555, IMXRT_IOMUXC_GPR_GPR18);
 	regval = getreg32(IMXRT_IOMUXC_GPR_GPR16);
 	putreg32(regval | GPR_GPR16_FLEXRAM_BANK_CFG_SEL_REG, IMXRT_IOMUXC_GPR_GPR16);
+
+#if defined(CONFIG_BOOT_RUNFROMISRAM)
+	const uint32_t *src;
+	uint32_t *dest;
 
 	for (src = (uint32_t *)(LOCATE_IN_SRC(g_boot_data.start) + g_boot_data.size),
 	     dest = (uint32_t *)(g_boot_data.start + g_boot_data.size);
 	     dest < (uint32_t *) &_etext;) {
 		*dest++ = *src++;
 	}
+
+#endif
 }
 
 /****************************************************************************
@@ -200,6 +207,10 @@ __EXPORT void imxrt_ocram_initialize(void)
 __EXPORT void imxrt_boardinitialize(void)
 {
 
+#if !defined(CONFIG_BOOT_RUNFROMISRAM)
+	imxrt_ocram_initialize();
+#endif
+
 	board_on_reset(-1); /* Reset PWM first thing */
 
 	/* configure LEDs */
@@ -214,6 +225,7 @@ __EXPORT void imxrt_boardinitialize(void)
 	imxrt_usb_initialize();
 
 	fmurt107x_timer_initialize();
+	VDD_3V3_ETH_POWER_EN(true);
 }
 
 
@@ -244,6 +256,12 @@ __EXPORT void imxrt_boardinitialize(void)
 
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
+	VDD_3V3_SD_CARD_EN(true);
+	VDD_5V_PERIPH_EN(true);
+	VDD_5V_HIPOWER_EN(true);
+	VDD_3V3_SENSORS4_EN(true);
+	VDD_3V3_SPEKTRUM_POWER_EN(true);
+
 
 	int ret = OK;
 
@@ -308,18 +326,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		syslog(LOG_ERR,
 		       "ERROR: imxrt_flexspi_nor_initialize failed: %d\n", ret);
 	}
-
-	/* Configure SPI-based devices */
-
-	ret = imxrt1176_spi_bus_initialize();
-
-	if (ret != OK) {
-		led_on(LED_RED);
-	}
-
-	/* Configure the HW based on the manifest */
-
-	px4_platform_configure();
 
 	return ret;
 }
