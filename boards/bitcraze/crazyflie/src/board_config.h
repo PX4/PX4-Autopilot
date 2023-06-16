@@ -140,15 +140,7 @@
 
 #define PX4_PWM_ALTERNATE_RANGES
 #define PWM_LOWEST_MIN 0
-#define PWM_MOTOR_OFF	0
-#define PWM_SERVO_STOP	0
-#define PWM_DEFAULT_MIN 20
-#define PWM_HIGHEST_MIN 0
 #define PWM_HIGHEST_MAX 255
-#define PWM_DEFAULT_MAX 255
-#define PWM_LOWEST_MAX 255
-#define PWM_DEFAULT_TRIM 1500
-
 
 /* High-resolution timer */
 #define HRT_TIMER		8	/* use timer8 for the HRT */
