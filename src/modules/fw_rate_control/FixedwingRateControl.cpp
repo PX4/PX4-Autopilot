@@ -48,6 +48,8 @@ FixedwingRateControl::FixedwingRateControl(bool vtol) :
 	_vehicle_thrust_setpoint_pub(vtol ? ORB_ID(vehicle_thrust_setpoint_virtual_fw) : ORB_ID(vehicle_thrust_setpoint)),
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
+	_handle_param_vt_fw_difthr_en = param_find("VT_FW_DIFTHR_EN");
+
 	/* fetch initial parameter values */
 	parameters_update();
 
@@ -85,6 +87,10 @@ FixedwingRateControl::parameters_update()
 	_rate_control.setFeedForwardGain(
 		// set FF gains to 0 as we add the FF control outside of the rate controller
 		Vector3f(0.f, 0.f, 0.f));
+
+	if (_handle_param_vt_fw_difthr_en != PARAM_INVALID) {
+		param_get(_handle_param_vt_fw_difthr_en, &_param_vt_fw_difthr_en);
+	}
 
 
 	return PX4_OK;
@@ -281,9 +287,9 @@ void FixedwingRateControl::Run()
 			// Update saturation status from control allocation feedback
 			// TODO: send the unallocated value directly for better anti-windup
 			Vector3<bool> diffthr_enabled(
-				_param_vt_fw_difthr_en.get() & static_cast<int32_t>(VTOLFixedWingDifferentialThrustEnabledBit::ROLL_BIT),
-				_param_vt_fw_difthr_en.get() & static_cast<int32_t>(VTOLFixedWingDifferentialThrustEnabledBit::PITCH_BIT),
-				_param_vt_fw_difthr_en.get() & static_cast<int32_t>(VTOLFixedWingDifferentialThrustEnabledBit::YAW_BIT)
+				_param_vt_fw_difthr_en & static_cast<int32_t>(VTOLFixedWingDifferentialThrustEnabledBit::ROLL_BIT),
+				_param_vt_fw_difthr_en & static_cast<int32_t>(VTOLFixedWingDifferentialThrustEnabledBit::PITCH_BIT),
+				_param_vt_fw_difthr_en & static_cast<int32_t>(VTOLFixedWingDifferentialThrustEnabledBit::YAW_BIT)
 			);
 
 			if (_vehicle_status.is_vtol_tailsitter) {
