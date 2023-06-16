@@ -65,6 +65,17 @@ static inline uint32_t getValidNavStates()
 	static_assert(vehicle_status_s::NAVIGATION_STATE_MAX  == 31, "code requires update");
 }
 
+/**
+ * @return Bitmask with all selectable modes
+ */
+static inline uint32_t getSelectableNavStates()
+{
+	return (1u << vehicle_status_s::NAVIGATION_STATE_ALTCTL) |
+	       (1u << vehicle_status_s::NAVIGATION_STATE_POSCTL);
+
+	static_assert(vehicle_status_s::NAVIGATION_STATE_MAX  == 31, "code requires update");
+}
+
 const char *const nav_state_names[vehicle_status_s::NAVIGATION_STATE_MAX] = {
 	"Manual",
 	"Altitude",
