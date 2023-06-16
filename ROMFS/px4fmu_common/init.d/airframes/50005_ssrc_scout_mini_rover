@@ -40,10 +40,11 @@ param set-default GND_WHEEL_BASE 0.45
 # TODO: Set to -1.0, to allow reversing. This will require many changes in the codebase
 # to support negative throttle.
 param set-default GND_THR_MIN 0
-param set-default GND_SPEED_P 3
-param set-default GND_SPEED_I 3
+param set-default GND_SPEED_P 0.4
+param set-default GND_SPEED_I 1
 param set-default GND_SPEED_D 0.001
 param set-default GND_SPEED_IMAX 1
+param set-default GND_SPEED_MAX 1
 param set-default GND_SPEED_THR_SC 1
 
 param set-default MIS_TAKEOFF_ALT 0.01
@@ -58,6 +59,9 @@ param set-default CA_AIRFRAME 6
 
 
 ###### ROVER/DRONE COMMON PARAMS ######
+# Disable internal magnetometer
+param set-default CAL_MAG0_PRIO 0
+
 # LEDs on TELEMETRY 1
 param set-default SER_TEL1_BAUD 57600
 param set-default MAV_1_CONFIG 101
