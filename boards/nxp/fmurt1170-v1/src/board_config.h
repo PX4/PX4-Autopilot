@@ -39,7 +39,6 @@
 
 #pragma once
 
-//#define ON_1170EVK 1
 /****************************************************************************************************
  * Included Files
  ****************************************************************************************************/
@@ -63,7 +62,6 @@
 
 /* PX4IO connection configuration */
 // This requires serial DMA driver
-#if !defined(ON_1170EVK)
 #define BOARD_USES_PX4IO_VERSION       2
 #define PX4IO_SERIAL_DEVICE            "/dev/ttyS5"
 #define PX4IO_SERIAL_TX_GPIO           GPIO_LPUART6_TX
@@ -74,7 +72,6 @@
 #define PX4IO_SERIAL_RX_DMAMAP         IMXRT_DMACHAN_LPUART6_RX
 #define PX4IO_SERIAL_CLOCK_OFF         imxrt_clockoff_lpuart6
 #define PX4IO_SERIAL_BITRATE           1500000               /* 1.5Mbps -> max rate for IO */
-#endif
 
 /* Configuration ************************************************************************************/
 
@@ -94,13 +91,11 @@
 #define LED_IOMUX (IOMUX_OPENDRAIN | IOMUX_PULL_NONE)
 #define GPIO_nLED_RED   /* GPIO_DISP_B2_00 GPIO5_IO01 */ (GPIO_PORT5 | GPIO_PIN1  | GPIO_OUTPUT | GPIO_OUTPUT_ZERO | LED_IOMUX)
 #define GPIO_nLED_GREEN /* GPIO_DISP_B2_01 GPIO5_IO02 */ (GPIO_PORT5 | GPIO_PIN2  | GPIO_OUTPUT | GPIO_OUTPUT_ZERO | LED_IOMUX)
-#if !defined(ON_1170EVK)
 #define GPIO_nLED_BLUE  /* GPIO_EMC_B1_13  GPIO1_IO13 */ (GPIO_PORT1 | GPIO_PIN13 | GPIO_OUTPUT | GPIO_OUTPUT_ZERO | LED_IOMUX)
 
 #define BOARD_HAS_CONTROL_STATUS_LEDS   1
 #define BOARD_OVERLOAD_LED              LED_RED
 #define BOARD_ARMED_STATE_LED           LED_BLUE
-#endif
 
 /* I2C busses */
 
@@ -278,7 +273,7 @@
 #define GPIO_HW_VER_REV_DRIVE /* GPIO_GPIO_EMC_B1_26 GPIO1_IO26   */  (GPIO_PORT1 | GPIO_PIN26 | GPIO_OUTPUT | GPIO_OUTPUT_ONE | HW_IOMUX)
 #define GPIO_HW_REV_SENSE     /* GPIO_AD_22 GPIO9 Pin 21 */  ADC_GPIO(4, 21)
 #define GPIO_HW_VER_SENSE     /* GPIO_AD_23 GPIO9 Pin 22 */  ADC_GPIO(5, 22)
-#define HW_INFO_INIT_PREFIX   "1170EVK"
+#define HW_INFO_INIT_PREFIX   "RT1176V6X"
 #define EVK1170_00  HW_VER_REV(0x0,0x0) // Not supported
 
 #define UAVCAN_NUM_IFACES_RUNTIME 1
@@ -398,14 +393,13 @@
 
 /* Define True logic Power Control in arch agnostic form */
 
-#define VDD_5V_PERIPH_EN(on_true)          px4_arch_gpiowrite(GPIO_nVDD_5V_PERIPH_EN, !(on_true))
-#define VDD_5V_HIPOWER_EN(on_true)         px4_arch_gpiowrite(GPIO_nVDD_5V_HIPOWER_EN, !(on_true))
-#define VDD_3V3_SENSORS_EN(on_true)        px4_arch_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, (on_true))
+#define VDD_5V_PERIPH_EN(on_true)          px4_arch_gpiowrite(GPIO_VDD_5V_PERIPH_nEN, !(on_true))
+#define VDD_5V_HIPOWER_EN(on_true)         px4_arch_gpiowrite(GPIO_VDD_5V_HIPOWER_nEN, !(on_true))
+#define VDD_3V3_SENSORS4_EN(on_true)       px4_arch_gpiowrite(GPIO_VDD_3V3_SENSORS4_EN, (on_true))
 #define VDD_3V3_SPEKTRUM_POWER_EN(on_true) px4_arch_gpiowrite(GPIO_VDD_3V3_SPEKTRUM_POWER_EN, (on_true))
 #define READ_VDD_3V3_SPEKTRUM_POWER_EN()   px4_arch_gpioread(GPIO_VDD_3V3_SPEKTRUM_POWER_EN)
-#define VDD_5V_RC_EN(on_true)              px4_arch_gpiowrite(GPIO_VDD_5V_RC_EN, (on_true))
-#define VDD_5V_WIFI_EN(on_true)            px4_arch_gpiowrite(GPIO_VDD_5V_WIFI_EN, (on_true))
 #define VDD_3V3_SD_CARD_EN(on_true)        px4_arch_gpiowrite(GPIO_VDD_3V3_SD_CARD_EN, (on_true))
+#define VDD_3V3_ETH_POWER_EN(on_true)      px4_arch_gpiowrite(GPIO_ETH_POWER_EN, (on_true))
 
 /* Tone alarm output */
 
@@ -574,6 +568,8 @@
 	}
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
+#define PX4_I2C_BUS_MTD      1
+
 __BEGIN_DECLS
 
 /****************************************************************************************************
