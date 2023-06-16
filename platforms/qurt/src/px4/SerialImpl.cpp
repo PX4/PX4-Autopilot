@@ -19,12 +19,13 @@ SerialImpl::SerialImpl(const char *port, uint32_t baudrate, ByteSize bytesize, P
 	if (port) {
 		strncpy(_port, port, sizeof(_port) - 1);
 		_port[sizeof(_port) - 1] = '\0';
+
 	} else {
 		_port[0] = 0;
 	}
 
 	// Start off with a valid bitrate to make sure open can succeed
-	if (_baudrate == 0) _baudrate = 9600;
+	if (_baudrate == 0) { _baudrate = 9600; }
 
 }
 
@@ -69,6 +70,7 @@ bool SerialImpl::open()
 	if (serial_fd < 0) {
 		PX4_ERR("failed to open %s, fd returned: %d", _port, serial_fd);
 		return false;
+
 	} else {
 		PX4_INFO("Successfully opened UART %s with baudrate %u", _port, _baudrate);
 	}
@@ -104,7 +106,7 @@ ssize_t SerialImpl::read(uint8_t *buffer, size_t buffer_size)
 		return -1;
 	}
 
-	int ret_read = qurt_uart_read(_serial_fd, (char*) buffer, buffer_size, 500);
+	int ret_read = qurt_uart_read(_serial_fd, (char *) buffer, buffer_size, 500);
 
 	if (ret_read < 0) {
 		PX4_DEBUG("%s read error %d", _port, ret_read);
@@ -144,7 +146,7 @@ ssize_t SerialImpl::readAtLeast(uint8_t *buffer, size_t buffer_size, size_t char
 				return total_bytes_read;
 			}
 		}
-	
+
 		int current_bytes_read = read(&buffer[total_bytes_read], buffer_size - total_bytes_read);
 
 		if (current_bytes_read < 0) {
@@ -169,8 +171,9 @@ ssize_t SerialImpl::readAtLeast(uint8_t *buffer, size_t buffer_size, size_t char
 		const uint64_t elapsed_us = hrt_elapsed_time(&start_time_us);
 		int64_t time_until_timeout = timeout_us - elapsed_us;
 		uint64_t time_to_sleep = 5000;
+
 		if ((time_until_timeout >= 0) &&
-			(time_until_timeout < (int64_t) time_to_sleep)) {
+		    (time_until_timeout < (int64_t) time_to_sleep)) {
 			time_to_sleep = time_until_timeout;
 		}
 
@@ -187,7 +190,7 @@ ssize_t SerialImpl::write(const void *buffer, size_t buffer_size)
 		return -1;
 	}
 
-	int ret_write = qurt_uart_write(_serial_fd, (const char*) buffer, buffer_size);
+	int ret_write = qurt_uart_write(_serial_fd, (const char *) buffer, buffer_size);
 
 	if (ret_write < 0) {
 		PX4_ERR("%s write error %d", _port, ret_write);

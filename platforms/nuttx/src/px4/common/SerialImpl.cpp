@@ -24,6 +24,7 @@ SerialImpl::SerialImpl(const char *port, uint32_t baudrate, ByteSize bytesize, P
 	if (port) {
 		strncpy(_port, port, sizeof(_port) - 1);
 		_port[sizeof(_port) - 1] = '\0';
+
 	} else {
 		_port[0] = 0;
 	}
@@ -37,7 +38,8 @@ SerialImpl::~SerialImpl()
 	}
 }
 
-bool SerialImpl::configure() {
+bool SerialImpl::configure()
+{
 	/* process baud rate */
 	int speed;
 
@@ -72,6 +74,7 @@ bool SerialImpl::configure() {
 	}
 
 	struct termios uart_config;
+
 	int termios_state;
 
 	/* fill the struct for the new configuration */
@@ -148,7 +151,7 @@ bool SerialImpl::open()
 
 	// Configure the serial port if a baudrate has been configured
 	if (_baudrate) {
-		if ( ! configure()) {
+		if (! configure()) {
 			PX4_ERR("failed to configure %s err: %d", _port, errno);
 			return false;
 		}
@@ -220,7 +223,8 @@ ssize_t SerialImpl::readAtLeast(uint8_t *buffer, size_t buffer_size, size_t char
 		fds[0].events = POLLIN;
 
 		hrt_abstime remaining_time = timeout_us - hrt_elapsed_time(&start_time_us);
-		if (remaining_time <= 0) break;
+
+		if (remaining_time <= 0) { break; }
 
 		int ret = poll(fds, sizeof(fds) / sizeof(fds[0]), remaining_time);
 
