@@ -20,10 +20,22 @@
 
 /* Specify the memory areas */
 
+ /* Reallocate
+  * Final Configuration is
+  *    No DTCM
+  *    512k  OCRAM M7 (FlexRAM)          (2038:0000-203f:ffff)
+  *    128k  OCRAMM7 FlexRAM ECC         (2036:0000-2037:ffff)
+  *    64k   OCRAM2 ECC parity           (2035:0000-2035:ffff)
+  *    64k   OCRAM1 ECC parity           (2034:0000-2034:ffff)
+  *    512k  FlexRAM OCRAM2              (202C:0000-2033:ffff)
+  *    512k  FlexRAM OCRAM1              (2024:0000-202B:ffff)
+  *    256k  System  OCRAM M4            (2020:0000-2023:ffff)
+  */
+
 MEMORY
 {
   flash (rx)  : ORIGIN = 0x30000000, LENGTH = 3M /* We have 64M but we do not want to wait to program it all */
-  sram  (rwx) : ORIGIN = 0x20240000 + 0xBFFF, LENGTH = 1024K - 0xBFFF /* OCRAM1 + OCRAM2*/
+  sram  (rwx) : ORIGIN = 0x20240000, LENGTH = 2M-256k
   itcm  (rwx) : ORIGIN = 0x00000000, LENGTH = 256K   /* TODO FlexRAM partition */
   dtcm  (rwx) : ORIGIN = 0x20000000, LENGTH = 256K
 }
