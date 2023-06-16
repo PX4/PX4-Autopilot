@@ -102,6 +102,7 @@ private:
 	bool _position_reliant_on_optical_flow{false};
 
 	bool _gps_was_fused{false};
+	bool _ev_was_fused{false};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
 					(ParamInt<px4::params::SYS_MC_EST_GROUP>) _param_sys_mc_est_group,
