@@ -71,9 +71,7 @@ void Ekf::controlBetaFusion(const imuSample &imu_delayed)
 				resetWindToZero();
 			}
 
-			if (Vector2f(Vector2f(_state.vel) - _state.wind_vel).longerThan(7.f)) {
-				fuseSideslip(_aid_src_sideslip);
-			}
+			fuseSideslip(_aid_src_sideslip);
 		}
 	}
 }
