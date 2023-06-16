@@ -6,10 +6,11 @@ RoverInterface *RoverInterface::_instance;
 // CAN interface | default is can0
 const char *const RoverInterface::CAN_IFACE = "can0";
 
-RoverInterface::RoverInterface(uint8_t rover_type)
+RoverInterface::RoverInterface(uint8_t rover_type, uint32_t bitrate)
 	: ModuleParams(nullptr),
 	  ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rover_interface),
-	  _rover_type(rover_type)
+	  _rover_type(rover_type),
+	  _bitrate(bitrate)
 {
 	pthread_mutex_init(&_node_mutex, nullptr);
 }
@@ -41,14 +42,14 @@ RoverInterface::~RoverInterface()
 }
 
 
-int RoverInterface::start(uint8_t rover_type)
+int RoverInterface::start(uint8_t rover_type, uint32_t bitrate)
 {
 	if (_instance != nullptr) {
 		PX4_ERR("Already started");
 		return -1;
 	}
 
-	_instance = new RoverInterface(rover_type);
+	_instance = new RoverInterface(rover_type, bitrate);
 
 	if (_instance == nullptr) {
 		PX4_ERR("Failed to allocate RoverInterface object");
@@ -115,7 +116,7 @@ void RoverInterface::Init()
 	}
 
 	// Finally establish connection to rover
-	_scout->Connect(CAN_IFACE);
+	_scout->Connect(CAN_IFACE, _bitrate);
 
 	if (!_scout->GetCANConnected()) {
 		PX4_ERR("Failed to connect to the rover CAN bus");
@@ -324,9 +325,14 @@ extern "C" __EXPORT int rover_interface_main(int argc, char *argv[])
 		int32_t rover_type = 0;
 		param_get(param_find("RI_ROVER_TYPE"), &rover_type);
 
+		// Rover interface CAN bitrate | default is 500Kbit/s
+		int32_t can_bitrate = 0;
+		param_get(param_find("RI_CAN_BITRATE"), &can_bitrate);
+
 		// Start
-		PX4_INFO("Start Rover Interface to rover type %d at CAN iface %s", rover_type, RoverInterface::CAN_IFACE);
-		return RoverInterface::start(static_cast<uint8_t>(rover_type));
+		PX4_INFO("Start Rover Interface to rover type %d at CAN iface %s with bitrate %d bit/s",
+			 rover_type, RoverInterface::CAN_IFACE, can_bitrate);
+		return RoverInterface::start(static_cast<uint8_t>(rover_type), can_bitrate);
 	}
 
 	/* commands below assume that the app has been already started */

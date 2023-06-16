@@ -13,7 +13,7 @@ public:
 	ProtocolDetector();
 	~ProtocolDetector();
 
-	bool Connect(const char *const can_name);
+	bool Connect(const char *const can_name, const uint32_t bitrate);
 
 	ProtocolVersion DetectProtocolVersion(const uint64_t timeout_sec);
 

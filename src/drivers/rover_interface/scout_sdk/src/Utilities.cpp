@@ -19,11 +19,11 @@ ProtocolDetector::~ProtocolDetector()
 	}
 }
 
-bool ProtocolDetector::Connect(const char *const _canname)
+bool ProtocolDetector::Connect(const char *const _canname, const uint32_t bitrate)
 {
 	_can = new SocketCAN();
 
-	if (_can->Init(_canname) == PX4_OK) { return true; } else { return false; }
+	if (_can->Init(_canname, bitrate) == PX4_OK) { return true; } else { return false; }
 }
 
 ProtocolVersion ProtocolDetector::DetectProtocolVersion(const uint64_t timeout_msec)

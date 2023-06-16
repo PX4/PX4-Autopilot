@@ -52,7 +52,7 @@ uint64_t getMonotonicTimestampUSec(void)
 
 namespace scoutsdk
 {
-int SocketCAN::Init(const char *const can_iface_name)
+int SocketCAN::Init(const char *const can_iface_name, const uint32_t can_bitrate)
 {
 	struct sockaddr_can addr;
 	struct ifreq ifr;
@@ -144,6 +144,17 @@ int SocketCAN::Init(const char *const can_iface_name)
 	_recv_msg.msg_control = &_recv_control;
 	_recv_msg.msg_controllen = sizeof(_recv_control);
 	_recv_cmsg = CMSG_FIRSTHDR(&_recv_msg);
+
+	// Setup bitrate
+	ifr.ifr_ifru.ifru_can_data.arbi_bitrate = can_bitrate / 1000;
+	ifr.ifr_ifru.ifru_can_data.arbi_samplep = 88;
+	ifr.ifr_ifru.ifru_can_data.data_bitrate = 4 * can_bitrate / 1000;
+	ifr.ifr_ifru.ifru_can_data.data_samplep = 75;
+
+	if (ioctl(_fd, SIOCSCANBITRATE, &ifr) < 0) {
+		PX4_ERR("Setting CAN bitrate to %d bit/s failed", can_bitrate);
+		return -1;
+	}
 
 	// Setup RX range filter [ RANGE FILTER NEEDS TO BE SET BEFORE ANY BIT FILTER]
 	ifr.ifr_ifru.ifru_can_filter.fid1 = 0x211;	// lower end

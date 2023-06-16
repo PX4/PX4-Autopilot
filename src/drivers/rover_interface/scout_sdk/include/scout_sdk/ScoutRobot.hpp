@@ -45,7 +45,7 @@ public:
 	ScoutRobot &operator=(const ScoutRobot &robot) = delete;
 
 	// CAN connection
-	void Connect(const char *const can_dev);
+	void Connect(const char *const can_dev, const uint32_t can_bitrate);
 	void Disconnect();
 
 	// Send commands

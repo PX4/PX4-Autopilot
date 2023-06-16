@@ -42,3 +42,14 @@
  * @group RoverInterface
  */
 PARAM_DEFINE_INT32(RI_ROVER_TYPE, 0);
+
+/**
+ * Rover interface CAN bitrate.
+ *
+ * @unit bit/s
+ * @min 20000
+ * @max 1000000
+ * @reboot_required true
+ * @group RoverInterface
+ */
+PARAM_DEFINE_INT32(RI_CAN_BITRATE, 500000);

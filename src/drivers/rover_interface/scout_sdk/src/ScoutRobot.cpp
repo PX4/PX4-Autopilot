@@ -34,11 +34,11 @@ ScoutRobot::~ScoutRobot()
 }
 
 
-void ScoutRobot::Connect(const char *const can_dev)
+void ScoutRobot::Connect(const char *const can_dev, const uint32_t can_bitrate)
 {
 	_can = new SocketCAN();
 
-	if (_can->Init(can_dev) == PX4_OK) { _can_connected = true; }
+	if (_can->Init(can_dev, can_bitrate) == PX4_OK) { _can_connected = true; }
 }
 
 

@@ -38,10 +38,10 @@ class RoverInterface : public ModuleParams, public px4::ScheduledWorkItem
 public:
 	static const char *const CAN_IFACE;
 
-	RoverInterface(uint8_t rover_type);
+	RoverInterface(uint8_t rover_type, uint32_t bitrate);
 	~RoverInterface() override;
 
-	static int start(uint8_t rover_type);
+	static int start(uint8_t rover_type, uint32_t bitrate);
 
 	void print_status();
 
@@ -71,6 +71,8 @@ private:
 	pthread_mutex_t _node_mutex;
 
 	uint8_t _rover_type;
+
+	uint32_t _bitrate;
 
 	scoutsdk::ProtocolVersion _protocol_version{scoutsdk::ProtocolVersion::AGX_V2};
 
