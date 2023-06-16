@@ -59,7 +59,7 @@ elif [ "$PX4_SIMULATOR" = "gz" ] || [ "$(param show -q SIM_GZ_EN)" -eq "1" ]; th
 	fi
 
 	# look for running ${gz_command} gazebo world
-	gz_world=$( ${gz_command} topic -l | grep -m 1 -e "/world/.*/clock" | sed 's/\/world\///g; s/\/clock//g' )
+	gz_world=$( ${gz_command} topic -l | grep -m 1 -e "^/world/.*/clock" | sed 's/\/world\///g; s/\/clock//g' )
 
 	# shellcheck disable=SC2153
 	if [ -z "${gz_world}" ] && [ -n "${PX4_GZ_WORLDS}" ] && [ -n "${PX4_GZ_WORLD}" ]; then
