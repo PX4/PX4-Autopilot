@@ -90,6 +90,7 @@ set(msg_files
 	FollowTargetStatus.msg
 	GeneratorStatus.msg
 	GeofenceResult.msg
+	GimbalControls.msg
 	GimbalDeviceAttitudeStatus.msg
 	GimbalDeviceInformation.msg
 	GimbalDeviceSetAttitude.msg
@@ -97,9 +98,12 @@ set(msg_files
 	GimbalManagerSetAttitude.msg
 	GimbalManagerSetManualControl.msg
 	GimbalManagerStatus.msg
+	GpioConfig.msg
+	GpioIn.msg
+	GpioOut.msg
+	GpioRequest.msg
 	GpsDump.msg
 	GpsInjectData.msg
-	GimbalControls.msg
 	Gripper.msg
 	HealthReport.msg
 	HeaterStatus.msg
