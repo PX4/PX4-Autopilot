@@ -272,9 +272,10 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 		}
 	}
 
-	// If GPS aiding is required, declare fault condition if the required GPS quality checks are failing
-	if (_param_sys_has_gps.get()) {
+		// If GPS aiding is required, declare fault condition if the required GPS quality checks are failing
+		if (_param_sys_has_gps.get()) {
 		const bool ekf_gps_fusion = estimator_status.control_mode_flags & (1 << estimator_status_s::CS_GPS);
+		const bool ekf_ev_fusion = estimator_status.control_mode_flags & (1 << estimator_status_s::CS_EV_POS);
 		const bool ekf_gps_check_fail = estimator_status.gps_check_fail_flags > 0;
 
 		if (ekf_gps_fusion) {
@@ -284,26 +285,45 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 		if (context.isArmed()) {
 
 			if (_gps_was_fused && !ekf_gps_fusion) {
-				if (reporter.mavlink_log_pub()) {
-					mavlink_log_warning(reporter.mavlink_log_pub(), "GNSS data fusion stopped\t");
-				}
+			if (reporter.mavlink_log_pub()) {
+				mavlink_log_warning(reporter.mavlink_log_pub(), "GNSS data fusion stopped\t");
+			}
 
-				events::send(events::ID("check_estimator_gnss_fusion_stopped"), {events::Log::Error, events::LogInternal::Info},
-					     "GNSS data fusion stopped");
+			events::send(events::ID("check_estimator_gnss_fusion_stopped"), {events::Log::Error, events::LogInternal::Info},
+					"GNSS data fusion stopped");
 
 			} else if (!_gps_was_fused && ekf_gps_fusion) {
 
-				if (reporter.mavlink_log_pub()) {
-					mavlink_log_info(reporter.mavlink_log_pub(), "GNSS data fusion started\t");
-				}
+			if (reporter.mavlink_log_pub()) {
+				mavlink_log_info(reporter.mavlink_log_pub(), "GNSS data fusion started\t");
+			}
 
-				events::send(events::ID("check_estimator_gnss_fusion_started"), {events::Log::Info, events::LogInternal::Info},
-					     "GNSS data fusion started");
+			events::send(events::ID("check_estimator_gnss_fusion_started"), {events::Log::Info, events::LogInternal::Info},
+					"GNSS data fusion started");
+			}
+
+			if (_ev_was_fused && !ekf_ev_fusion) {
+			if (reporter.mavlink_log_pub()) {
+				mavlink_log_warning(reporter.mavlink_log_pub(), "EV data fusion stopped\t");
+			}
+
+			events::send(events::ID("check_estimator_ev_fusion_stopped"), {events::Log::Error, events::LogInternal::Info},
+					"EV data fusion stopped");
+
+			} else if (!_ev_was_fused && ekf_ev_fusion) {
+
+			if (reporter.mavlink_log_pub()) {
+				mavlink_log_info(reporter.mavlink_log_pub(), "EV data fusion started\t");
+			}
+
+			events::send(events::ID("check_estimator_ev_fusion_started"), {events::Log::Info, events::LogInternal::Info},
+					"EV data fusion started");
 			}
 		}
 
 		_gps_was_fused = ekf_gps_fusion;
-
+		_ev_was_fused = ekf_ev_fusion;
+			
 		if (!context.isArmed() && ekf_gps_check_fail) {
 			NavModes required_groups_gps = required_groups;
 			events::Log log_level = events::Log::Error;
