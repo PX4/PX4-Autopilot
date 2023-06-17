@@ -287,6 +287,8 @@ __EXPORT void imxrt_boardinitialize(void)
  *   any failure to indicate the nature of the failure.
  *
  ****************************************************************************/
+static volatile bool g_debug = false;
+volatile bool g_debug_loop_on_fault = true;
 
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
@@ -332,7 +334,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		syslog(LOG_ERR, "[boot] DMA alloc FAILED\n");
 	}
 
-#if defined(SERIAL_HAVE_RXDMA)
+#if defined(SERIAL_HAVE_RXDMA) // Needed???
 	// set up the serial DMA polling at 1ms intervals for received bytes that have not triggered a DMA event.
 	static struct hrt_call serial_dma_call;
 	hrt_call_every(&serial_dma_call, 1000, 1000, (hrt_callout)imxrt_serial_dma_poll, NULL);
@@ -345,14 +347,16 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	led_off(LED_GREEN);
 	led_off(LED_BLUE);
 
+	if (g_debug) {
 #if defined(CONFIG_IMXRT_USDHC)
-	ret = fmurt1170_usdhc_initialize();
+		ret = fmurt1170_usdhc_initialize();
 
-	if (ret != OK) {
-		led_on(LED_RED);
-	}
+		if (ret != OK) {
+			led_on(LED_RED);
+		}
 
 #endif
+	}
 
 	ret = imxrt_flexspi_fram_initialize();
 
