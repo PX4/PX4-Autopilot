@@ -50,6 +50,7 @@ px4_add_library(drivers_board
 	spi.cpp
 	timer_config.cpp
 	usb.c
+	imxrt_romapi.c
 	imxrt_flexspi_fram.c
 	imxrt_flexspi_nor_boot.c
 	imxrt_flexspi_nor_flash.c

@@ -39,3 +39,21 @@ config BOARD_FORCE_ALIGNMENT
 		Adds -mno-unaligned-access to build flags. to force alignment.
 		This can be needed if data is stored in a region of memory, that
 		is Strongly ordered and dcache is off.
+
+config BOARD_BOOTLOADER_INVALID_FCB
+	bool "Disables the FCB header"
+	default n
+
+	---help---
+		This can be used to keep the ROM bootloader in the serial Download mode.
+		Thus preventing bootlooping on `is_debug_pending` in the lame Rev B
+		silicon ROM bootloader. You can not cold boot (Power cycle) but can
+		Jtag from Load and be abel to reset it.
+
+config BOARD_BOOTLOADER_FIXUP
+	bool "Restores OCTAL Flash when No FCB"
+	default n
+	select ARCH_RAMFUNCS
+
+	---help---
+		Restores OCTAL Flash when FCB is invalid.
