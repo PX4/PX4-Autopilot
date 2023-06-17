@@ -101,6 +101,7 @@ void HMC5883::print_usage()
 
 extern "C" int hmc5883_main(int argc, char *argv[])
 {
+  return 0;
 	using ThisDriver = HMC5883;
 	int ch;
 	BusCLIArguments cli{true, true};
