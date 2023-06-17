@@ -47,6 +47,7 @@
 
 #include "board_config.h"
 
+#include <barriers.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
@@ -64,8 +65,9 @@
 #include <nuttx/mm/gran.h>
 
 #include "arm_internal.h"
-#include "arm_internal.h"
 #include "imxrt_flexspi_nor_boot.h"
+#include "imxrt_flexspi_nor_flash.h"
+#include "imxrt_romapi.h"
 #include "imxrt_iomuxc.h"
 #include <chip.h>
 #include "board_config.h"
@@ -149,7 +151,39 @@ __EXPORT void board_on_reset(int status)
 	}
 }
 
+#if defined(CONFIG_BOARD_BOOTLOADER_FIXUP)
+/****************************************************************************
+ * Name: imxrt_octl_flash_initialize
+ *
+ * Description:
+ *
+ ****************************************************************************/
 
+locate_code(".ramfunc")
+void imxrt_octl_flash_initialize(void)
+{
+	const uint32_t instance =  1;
+	serial_nor_config_option_t option_1_8bit = {
+		.option0.U = 0xC0403007,
+		.option1.U = 0U,
+	};
+
+	struct flexspi_nor_config_s norConfig;
+
+	ROM_API_Init();
+
+
+	int32_t status = ROM_FLEXSPI_NorFlash_GetConfig(instance, &norConfig, &option_1_8bit);
+
+	if (status == OK) {
+		status = ROM_FLEXSPI_NorFlash_Init(instance, &norConfig);
+	}
+
+	ARM_DSB();
+	ARM_ISB();
+	ARM_DMB();
+}
+#endif
 /****************************************************************************
  * Name: imxrt_ocram_initialize
  *
@@ -206,10 +240,10 @@ __EXPORT void imxrt_ocram_initialize(void)
 
 __EXPORT void imxrt_boardinitialize(void)
 {
-
-#if !defined(CONFIG_BOOT_RUNFROMISRAM)
-	imxrt_ocram_initialize();
+#if defined(CONFIG_BOARD_BOOTLOADER_FIXUP)
+	imxrt_octl_flash_initialize();
 #endif
+
 
 	board_on_reset(-1); /* Reset PWM first thing */
 
