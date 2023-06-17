@@ -33,18 +33,18 @@ fi
 if param compare SENS_EN_INA226 1
 then
 	# Start Digital power monitors
-	ina226 -X -b 1 -t 1 -k start
+#	ina226 -X -b 1 -t 1 -k start
 
 	if [ $HAVE_PM2 = yes ]
 	then
-		ina226 -X -b 2 -t 2 -k start
+#		ina226 -X -b 2 -t 2 -k start
 	fi
 fi
 
 if param compare SENS_EN_INA228 1
 then
 	# Start Digital power monitors
-	ina228 -X -b 1 -t 1 -k start
+#	ina228 -X -b 1 -t 1 -k start
 	if [ $HAVE_PM2 = yes ]
 	then
 		ina228 -X -b 2 -t 2 -k start
@@ -54,38 +54,38 @@ fi
 if param compare SENS_EN_INA238 1
 then
 	# Start Digital power monitors
-	ina238 -X -b 1 -t 1 -k start
+#	ina238 -X -b 1 -t 1 -k start
 	if [ $HAVE_PM2 = yes ]
 	then
-		ina238 -X -b 2 -t 2 -k start
+#		ina238 -X -b 2 -t 2 -k start
 	fi
 fi
 
 	#FMUv5Xbase board orientation
 
 # Internal SPI BMI088
-bmi088 -A -R 4 -s start
-bmi088 -G -R 4 -s start
+#bmi088 -A -R 4 -s start
+#bmi088 -G -R 4 -s start
 
 # Internal SPI bus ICM42688p
-icm42688p -R 6 -s start
+#icm42688p -R 6 -s start
 
 # Internal SPI bus ICM-20602 (hard-mounted)
-icm20602 -R 8 -s start
+#icm20602 -R 8 -s start
 
 # Internal magnetometer on I2c
-bmm150 -I start
+#bmm150 -I start
 
 
 # External compass on GPS1/I2C1 (the 3rd external bus): standard Holybro Pixhawk 4 or CUAV V5 GPS/compass puck (with lights, safety button, and buzzer)
-ist8310 -X -b 1 -R 10 start
+#ist8310 -X -b 1 -R 10 start
 
 # Possible internal Baro
 
 # Disable startup of internal baros if param is set to false
 if param compare SENS_INT_BARO_EN 1
 then
-	bmp388 -I -a 0x77 start
-	bmp388 -X -b 2 start
+#	bmp388 -I -a 0x77 start
+#	bmp388 -X -b 2 start
 fi
 unset HAVE_PM2
