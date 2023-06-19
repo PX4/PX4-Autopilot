@@ -34,14 +34,14 @@
 /**
  * Maximum horizontal velocity
  *
- * Maximum horizontal velocity in AUTO mode. If higher speeds
- * are commanded in a mission they will be capped to this velocity.
+ * Absolute maximum for all velocity controlled modes.
+ * Any higher value is truncated.
  *
  * @unit m/s
  * @min 0.0
  * @max 20.0
+ * @decimal 0
  * @increment 1
- * @decimal 2
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_XY_VEL_MAX, 12.0f);
@@ -49,38 +49,41 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_MAX, 12.0f);
 /**
  * Maximum tilt angle in air
  *
- * Limits maximum tilt in AUTO and POSCTRL modes during flight.
+ * Absolute maximum for all velocity or acceleration controlled modes.
+ * Any higher value is truncated.
  *
  * @unit deg
  * @min 20.0
  * @max 89.0
- * @decimal 1
+ * @decimal 0
+ * @increment 1
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_TILTMAX_AIR, 45.0f);
 
 /**
- * Maximum tilt during landing
+ * Maximum tilt during inital takeoff ramp
  *
- * Limits maximum tilt angle on landing.
+ * Tighter tilt limit during takeoff to avoid tip over.
  *
  * @unit deg
- * @min 10.0
+ * @min 5.0
  * @max 89.0
- * @decimal 1
+ * @decimal 0
+ * @increment 1
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_TILTMAX_LND, 12.0f);
 
 /**
- * Minimum collective thrust in auto thrust control
+ * Minimum collective thrust in climb rate controlled modes
  *
- * It's recommended to set it > 0 to avoid free fall with zero thrust.
- * Note: Without airmode zero thrust leads to zero roll/pitch control authority. (see MC_AIRMODE)
+ * Too low thrust leads to loss of roll/pitch/yaw torque control authority.
+ * Airmode is used to keep torque authority even with zero thrust (see MC_AIRMODE).
  *
  * @unit norm
  * @min 0.05
- * @max 1.0
+ * @max 0.5
  * @decimal 2
  * @increment 0.01
  * @group Multicopter Position Control
@@ -88,15 +91,15 @@ PARAM_DEFINE_FLOAT(MPC_TILTMAX_LND, 12.0f);
 PARAM_DEFINE_FLOAT(MPC_THR_MIN, 0.12f);
 
 /**
- * Maximum thrust in auto thrust control
+ * Maximum collective thrust in climb rate controlled modes
  *
- * Limit max allowed thrust
+ * Limit allowed thrust e.g. for indoor test of overpowered vehicle.
  *
  * @unit norm
  * @min 0.0
  * @max 1.0
  * @decimal 2
- * @increment 0.01
+ * @increment 0.05
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_THR_MAX, 1.0f);

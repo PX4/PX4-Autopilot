@@ -32,76 +32,72 @@
  ****************************************************************************/
 
 /**
- * Default horizontal velocity in mission
+ * Default horizontal velocity in autonomous modes
  *
- * Horizontal velocity used when flying autonomously in e.g. Missions, RTL, Goto.
+ * e.g. in Missions, RTL, Goto if the waypoint does not specify differently
  *
  * @unit m/s
  * @min 3.0
  * @max 20.0
+ * @decimal 0
  * @increment 1
- * @decimal 2
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_XY_CRUISE, 5.0f);
 
 /**
- * Automatic ascent velocity
+ * Ascent velocity in autonomous modes
  *
- * Ascent velocity in auto modes.
- * For manual modes and offboard, see MPC_Z_VEL_MAX_UP
+ * For manually controlled modes and offboard see MPC_Z_VEL_MAX_UP
  *
  * @unit m/s
  * @min 0.5
  * @max 8.0
- * @increment 0.1
  * @decimal 1
+ * @increment 0.5
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_Z_V_AUTO_UP, 3.f);
 
 /**
- * Automatic descent velocity
+ * Descent velocity in autonomous modes
  *
- * Descent velocity in auto modes.
  * For manual modes and offboard, see MPC_Z_VEL_MAX_DN
  *
  * @unit m/s
  * @min 0.5
  * @max 4.0
- * @increment 0.1
  * @decimal 1
+ * @increment 0.5
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_Z_V_AUTO_DN, 1.5f);
 
 /**
- * Acceleration for auto and for manual
+ * Acceleration for autonomous and for manual modes
  *
- * Note: In manual, this parameter is only used in MPC_POS_MODE 4.
+ * When piloting manually, this parameter is only used in MPC_POS_MODE 4.
  *
  * @unit m/s^2
  * @min 2.0
  * @max 15.0
+ * @decimal 1
  * @increment 1
- * @decimal 2
  * @group Multicopter Position Control
  */
-
 PARAM_DEFINE_FLOAT(MPC_ACC_HOR, 3.0f);
 
 /**
- * Jerk limit in auto mode
+ * Jerk limit in autonomous modes
  *
  * Limit the maximum jerk of the vehicle (how fast the acceleration can change).
- * A lower value leads to smoother vehicle motions, but it also limits its
- * agility.
+ * A lower value leads to smoother vehicle motions but also limited agility.
  *
  * @unit m/s^3
  * @min 1.0
  * @max 80.0
- * @increment 1
  * @decimal 1
+ * @increment 1
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_JERK_AUTO, 4.0f);
@@ -112,6 +108,7 @@ PARAM_DEFINE_FLOAT(MPC_JERK_AUTO, 4.0f);
  * @min 0.1
  * @max 1.0
  * @decimal 1
+ * @increment 0.1
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_XY_TRAJ_P, 0.5f);
@@ -130,29 +127,28 @@ PARAM_DEFINE_FLOAT(MPC_XY_TRAJ_P, 0.5f);
  * @min 0.1
  * @max 10.0
  * @decimal 1
+ * @increment 1
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_XY_ERR_MAX, 2.0f);
 
 /**
- * Max yaw rate in auto mode
+ * Max yaw rate in autonomous modes
  *
- * Limit the rate of change of the yaw setpoint in autonomous mode
- * to avoid large control output and mixer saturation.
+ * Limits the rate of change of the yaw setpoint to avoid large
+ * control output and mixer saturation.
  *
  * @unit deg/s
  * @min 0.0
  * @max 360.0
- * @decimal 1
+ * @decimal 0
  * @increment 5
  * @group Multicopter Attitude Control
  */
 PARAM_DEFINE_FLOAT(MPC_YAWRAUTO_MAX, 45.0f);
 
 /**
- * Yaw mode.
- *
- * Specifies the heading in Auto.
+ * Heading behavior in autonomous modes
  *
  * @min 0
  * @max 4

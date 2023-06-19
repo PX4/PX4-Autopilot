@@ -32,16 +32,12 @@
  ****************************************************************************/
 
 /**
- * Hover thrust
+ * Vertical thrust required to hover
  *
- * Vertical thrust required to hover.
- * This value is mapped to center stick for manual throttle control.
- * With this value set to the thrust required to hover, transition
- * from manual to Altitude or Position mode while hovering will occur with the
- * throttle stick near center, which is then interpreted as (near)
- * zero demand for vertical speed.
- *
- * This parameter is also important for the landing detection to work correctly.
+ * Mapped to center throttle stick in Stabilized mode (see MPC_THR_CURVE).
+ * Used for initialization of the hover thrust estimator (see MPC_USE_HTE).
+ * The estimated hover thrust is used as base for zero vertical acceleration in altitude control.
+ * The hover thrust is important for land detection to work correctly.
  *
  * @unit norm
  * @min 0.1
@@ -53,10 +49,10 @@
 PARAM_DEFINE_FLOAT(MPC_THR_HOVER, 0.5f);
 
 /**
- * Hover thrust source selector
+ * Hover thrust estimator
  *
- * Set false to use the fixed parameter MPC_THR_HOVER
- * Set true to use the value computed by the hover thrust estimator
+ * Disable to use the fixed parameter MPC_THR_HOVER
+ * Enable to use the hover thrust estimator
  *
  * @boolean
  * @group Multicopter Position Control
@@ -66,7 +62,7 @@ PARAM_DEFINE_INT32(MPC_USE_HTE, 1);
 /**
  * Horizontal thrust margin
  *
- * Margin that is kept for horizontal control when prioritizing vertical thrust.
+ * Margin that is kept for horizontal control when higher priority vertical thrust is saturated.
  * To avoid completely starving horizontal control with high vertical error.
  *
  * @unit norm
@@ -79,12 +75,13 @@ PARAM_DEFINE_INT32(MPC_USE_HTE, 1);
 PARAM_DEFINE_FLOAT(MPC_THR_XY_MARG, 0.3f);
 
 /**
- * Low pass filter cut freq. for numerical velocity derivative
+ * Numerical velocity derivative low pass cutoff frequency
  *
  * @unit Hz
  * @min 0.0
  * @max 10
- * @decimal 2
+ * @decimal 1
+ * @increment 0.5
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_VELD_LP, 5.0f);

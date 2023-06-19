@@ -32,32 +32,36 @@
  ****************************************************************************/
 
 /**
- * Maximal tilt angle in manual or altitude mode
+ * Maximal tilt angle in Stabilized or Altitude mode
  *
  * @unit deg
- * @min 0.0
- * @max 90.0
- * @decimal 1
+ * @min 0
+ * @max 90
+ * @decimal 0
+ * @increment 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_MAN_TILT_MAX, 35.0f);
+PARAM_DEFINE_FLOAT(MPC_MAN_TILT_MAX, 35.f);
 
 /**
- * Max manual yaw rate
+ * Max manual yaw rate for Stabilized, Altitude, Position mode
  *
  * @unit deg/s
- * @min 0.0
+ * @min 0
  * @max 400
- * @decimal 1
+ * @decimal 0
+ * @increment 10
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_MAN_Y_MAX, 150.0f);
+PARAM_DEFINE_FLOAT(MPC_MAN_Y_MAX, 150.f);
 
 /**
- * Minimum manual thrust
+ * Minimum collective thrust in Stabilized mode
  *
- * Minimum vertical thrust. It's recommended to set it > 0 to avoid free fall with zero thrust.
- * With MC_AIRMODE set to 1, this can safely be set to 0.
+ * The value is mapped to the lowest throttle stick position in Stabilized mode.
+ *
+ * Too low collective thrust leads to loss of roll/pitch/yaw torque control authority.
+ * Airmode is used to keep torque authority with zero thrust (see MC_AIRMODE).
  *
  * @unit norm
  * @min 0.0
@@ -69,17 +73,17 @@ PARAM_DEFINE_FLOAT(MPC_MAN_Y_MAX, 150.0f);
 PARAM_DEFINE_FLOAT(MPC_MANTHR_MIN, 0.08f);
 
 /**
- * Thrust curve in Manual Mode
+ * Thrust curve mapping in Stabilized Mode
  *
- * This parameter defines how the throttle stick input is mapped to commanded thrust
- * in Manual/Stabilized flight mode.
+ * This parameter defines how the throttle stick input is mapped to collective thrust
+ * in Stabilized mode.
  *
  * In case the default is used ('Rescale to hover thrust'), the stick input is linearly
  * rescaled, such that a centered stick corresponds to the hover throttle (see MPC_THR_HOVER).
  *
  * Select 'No Rescale' to directly map the stick 1:1 to the output. This can be useful
  * in case the hover thrust is very low and the default would lead to too much distortion
- * (e.g. if hover thrust is set to 20%, 80% of the upper thrust range is squeezed into the
+ * (e.g. if hover thrust is set to 20%, then 80% of the upper thrust range is squeezed into the
  * upper half of the stick range).
  *
  * Note: In case MPC_THR_HOVER is set to 50%, the modes 0 and 1 are the same.

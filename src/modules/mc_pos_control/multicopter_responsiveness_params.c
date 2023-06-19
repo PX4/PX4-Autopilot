@@ -62,7 +62,7 @@ PARAM_DEFINE_FLOAT(SYS_VEHICLE_RESP, -0.4f);
  * @increment 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_XY_VEL_ALL, -10.0f);
+PARAM_DEFINE_FLOAT(MPC_XY_VEL_ALL, -10.f);
 
 /**
  * Overall Vertical Velocity Limit
@@ -77,4 +77,4 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_ALL, -10.0f);
  * @increment 0.5
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_Z_VEL_ALL, -3.0f);
+PARAM_DEFINE_FLOAT(MPC_Z_VEL_ALL, -3.f);
