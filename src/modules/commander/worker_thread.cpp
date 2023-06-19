@@ -158,7 +158,7 @@ void WorkerThread::threadEntry()
 		break;
 
 	case Request::ParamSaveDefault:
-		_ret_value = param_save_default();
+		_ret_value = param_save_default(true);
 
 		if (_ret_value != 0) {
 			mavlink_log_critical(&_mavlink_log_pub, "Error saving settings\t");
@@ -175,7 +175,7 @@ void WorkerThread::threadEntry()
 	case Request::ParamResetSensorFactory: {
 			const char *reset_cal[] = { "CAL_ACC*", "CAL_GYRO*", "CAL_MAG*" };
 			param_reset_specific(reset_cal, sizeof(reset_cal) / sizeof(reset_cal[0]));
-			_ret_value = param_save_default();
+			_ret_value = param_save_default(true);
 #if defined(CONFIG_BOARDCTL_RESET)
 			px4_reboot_request(false, 400_ms);
 #endif // CONFIG_BOARDCTL_RESET

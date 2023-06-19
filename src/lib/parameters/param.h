@@ -400,13 +400,17 @@ __EXPORT const char	*param_get_backup_file(void);
 
 /**
  * Save parameters to the default file.
+ *
  * Note: this method requires a large amount of stack size!
  *
  * This function saves all parameters with non-default values.
  *
- * @return		Zero on success.
+ * @param blocking	If true, in case the default file is busy, the function blocks
+ * 			until the file is available for writing.
+ *
+ * @return		Zero on success, -EWOULDBLOCK if the file is busy and blocking is false.
  */
-__EXPORT int 		param_save_default(void);
+__EXPORT int 		param_save_default(bool blocking);
 
 /**
  * Load parameters from the default parameter file.
