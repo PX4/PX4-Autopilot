@@ -79,7 +79,6 @@ PARAM_DEFINE_FLOAT(VT_F_TRANS_DUR, 5.0f);
 /**
  * Maximum duration of a back transition
  *
- * Time in seconds used for a back transition maximally.
  * Transition is also declared over if the groundspeed drops below MPC_XY_CRUISE.
  *
  * @unit s
@@ -94,10 +93,6 @@ PARAM_DEFINE_FLOAT(VT_B_TRANS_DUR, 10.0f);
 /**
  * Target throttle value for the transition to fixed-wing flight.
  *
- * standard vtol: pusher
- *
- * tailsitter, tiltrotor: main throttle
- *
  * @min 0.0
  * @max 1.0
  * @increment 0.01
@@ -109,7 +104,6 @@ PARAM_DEFINE_FLOAT(VT_F_TRANS_THR, 1.0f);
 /**
  * Approximate deceleration during back transition
  *
- * The approximate deceleration during a back transition in m/s/s
  * Used to calculate back transition distance in an auto mode.
  * For standard vtol and tiltrotors a controller is used to track this value during the transition.
  *
@@ -373,9 +367,8 @@ PARAM_DEFINE_FLOAT(VT_B_DEC_I, 0.1f);
 /**
  * Minimum pitch angle during hover.
  *
- * Minimum pitch angle during hover flight. If the desired pitch angle is is lower than this value
- * then the fixed-wing forward actuation can be used to compensate for the missing thrust in forward direction
- * (see VT_FW_TRHUST_EN)
+ * Any pitch setpoint below this value is translated to a forward force by the fixed-wing forward actuation if
+ * VT_FW_TRHUST_EN is set to 1.
  *
  * @unit deg
  * @min -10.0
