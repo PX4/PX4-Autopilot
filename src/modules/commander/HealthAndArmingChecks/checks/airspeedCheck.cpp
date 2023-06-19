@@ -79,8 +79,7 @@ void AirspeedChecks::checkAndReport(const Context &context, Report &reporter)
 			}
 		}
 
-		if (!context.isArmed() && _param_com_arm_arsp_en.get()
-		    && fabsf(airspeed_validated.calibrated_airspeed_m_s) > arming_max_airspeed_allowed) {
+		if (!context.isArmed() && fabsf(airspeed_validated.calibrated_airspeed_m_s) > arming_max_airspeed_allowed) {
 			/* EVENT
 			 * @description
 			 * Current airspeed reading too high. Check if wind is below maximum airspeed and redo airspeed
@@ -89,7 +88,7 @@ void AirspeedChecks::checkAndReport(const Context &context, Report &reporter)
 			 * <profile name="dev">
 			 * Measured: {1:.1m/s}, limit: {2:.1m/s}.
 			 *
-			 * This check can be configured via <param>COM_ARM_ARSP_EN</param> and <param>FW_AIRSPD_MAX</param> parameter.
+			 * This check can be configured via <param>FW_AIRSPD_MAX</param> parameter.
 			 * </profile>
 			 */
 			reporter.armingCheckFailure<float, float>(NavModes::None, health_component_t::differential_pressure,

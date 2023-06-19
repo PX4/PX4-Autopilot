@@ -956,18 +956,6 @@ PARAM_DEFINE_INT32(COM_POWER_COUNT, 1);
 PARAM_DEFINE_FLOAT(COM_LKDOWN_TKO, 3.0f);
 
 /**
-* Enable preflight check for maximal allowed airspeed when arming.
-*
-* Deny arming if the current airspeed measurement is greater than half the cruise airspeed (FW_AIRSPD_TRIM).
-* Excessive airspeed measurements on ground are either caused by wind or bad airspeed calibration.
-*
-* @group Commander
-* @value 0 Disabled
-* @value 1 Enabled
-*/
-PARAM_DEFINE_INT32(COM_ARM_ARSP_EN, 1);
-
-/**
  * Enable FMU SD card detection check
  *
  * This check detects if the FMU SD card is missing.
