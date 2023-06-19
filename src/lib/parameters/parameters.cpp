@@ -698,14 +698,19 @@ const char *param_get_backup_file()
 static int param_export_internal(int fd, param_filter_func filter);
 static int param_verify(int fd);
 
-int param_save_default()
+int param_save_default(bool blocking)
 {
 	PX4_DEBUG("param_save_default");
 
 	// take the file lock
-	if (pthread_mutex_trylock(&file_mutex) != 0) {
-		PX4_ERR("param_save_default: file lock failed (already locked)");
-		return PX4_ERROR;
+	if (blocking) {
+		pthread_mutex_lock(&file_mutex);
+
+	} else {
+		if (pthread_mutex_trylock(&file_mutex) != 0) {
+			PX4_DEBUG("param_save_default: file lock failed (already locked)");
+			return -EWOULDBLOCK;
+		}
 	}
 
 	int shutdown_lock_ret = px4_shutdown_lock();

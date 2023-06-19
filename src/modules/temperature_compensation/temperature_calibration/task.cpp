@@ -284,7 +284,7 @@ void TemperatureCalibration::task_main()
 		}
 
 		param_notify_changes();
-		int ret = param_save_default();
+		int ret = param_save_default(true);
 
 		if (ret != 0) {
 			PX4_ERR("Failed to save params (%i)", ret);

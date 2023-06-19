@@ -187,9 +187,9 @@ param_reset_specific(const char *resets[], int num_resets)
 	boardctl(PARAMIOCRESETGROUP, reinterpret_cast<unsigned long>(&data));
 }
 
-int param_save_default()
+int param_save_default(bool blocking)
 {
-	paramiocsavedefault_t data = {PX4_ERROR};
+	paramiocsavedefault_t data = {blocking, PX4_ERROR};
 	boardctl(PARAMIOCSAVEDEFAULT, reinterpret_cast<unsigned long>(&data));
 	return data.ret;
 }
