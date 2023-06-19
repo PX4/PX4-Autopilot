@@ -45,9 +45,7 @@
  * Roll trim
  *
  * The trim value is the actuator control value the system needs
- * for straight and level flight. It can be calibrated by
- * flying manually straight and level using the RC trims and
- * copying them using the GCS.
+ * for straight and level flight.
  *
  * @group Radio Calibration
  * @min -0.5
@@ -61,9 +59,7 @@ PARAM_DEFINE_FLOAT(TRIM_ROLL, 0.0f);
  * Pitch trim
  *
  * The trim value is the actuator control value the system needs
- * for straight and level flight. It can be calibrated by
- * flying manually straight and level using the RC trims and
- * copying them using the GCS.
+ * for straight and level flight.
  *
  * @group Radio Calibration
  * @min -0.5
@@ -77,9 +73,7 @@ PARAM_DEFINE_FLOAT(TRIM_PITCH, 0.0f);
  * Yaw trim
  *
  * The trim value is the actuator control value the system needs
- * for straight and level flight. It can be calibrated by
- * flying manually straight and level using the RC trims and
- * copying them using the GCS.
+ * for straight and level flight.
  *
  * @group Radio Calibration
  * @min -0.5
@@ -231,8 +225,6 @@ PARAM_DEFINE_FLOAT(COM_DISARM_PRFLT, 10.0f);
 
 /**
  * Allow arming without GPS
- *
- * The default allows the vehicle to arm without GPS signal.
  *
  * @group Commander
  * @value 0 Require GPS lock to arm
@@ -597,9 +589,6 @@ PARAM_DEFINE_INT32(COM_ARM_MAG_STR, 2);
  * immediately gives control back to the pilot by switching to Position mode and
  * if position is unavailable Altitude mode.
  * Note: Only has an effect on multicopters, and VTOLs in multicopter mode.
- *
- * This parameter is not considered in case of a GPS failure (Descend flight mode), where stick
- * override is always enabled.
  *
  * @min 0
  * @max 3
