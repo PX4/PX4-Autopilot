@@ -32,12 +32,13 @@
  ****************************************************************************/
 
 /**
- * Position control smooth takeoff ramp time constant
+ * Smooth takeoff ramp time constant
  *
- * Increasing this value will make automatic and manual takeoff slower.
+ * Increasing this value will make climb rate controlled takeoff slower.
  * If it's too slow the drone might scratch the ground and tip over.
  * A time constant of 0 disables the ramp
  *
+ * @unit s
  * @min 0
  * @max 5
  * @group Multicopter Position Control

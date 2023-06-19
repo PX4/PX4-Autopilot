@@ -32,18 +32,19 @@
  ****************************************************************************/
 
 /**
- * Manual-Position control sub-mode
+ * Position/Altitude mode variant
  *
  * The supported sub-modes are:
- * 0 Simple position control where sticks map directly to velocity setpoints
- *   without smoothing. Useful for velocity control tuning.
- * 3 Smooth position control with maximum acceleration and jerk limits based on
+ * 0 Sticks directly map to velocity setpoints without smoothing.
+ *   Also applies to vertical direction and Altitude mode.
+ *   Useful for velocity control tuning.
+ * 3 Sticks map to velocity but with maximum acceleration and jerk limits based on
  *   jerk optimized trajectory generator (different algorithm than 1).
- * 4 Smooth position control where sticks map to acceleration and there's a virtual brake drag
+ * 4 Sticks map to acceleration and there's a virtual brake drag
  *
- * @value 0 Simple position control
- * @value 3 Smooth position control (Jerk optimized)
- * @value 4 Acceleration based input
+ * @value 0 Direct velocity
+ * @value 3 Smoothed velocity
+ * @value 4 Acceleration based
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_INT32(MPC_POS_MODE, 4);
@@ -51,8 +52,7 @@ PARAM_DEFINE_INT32(MPC_POS_MODE, 4);
 /**
  * Maximum horizontal velocity setpoint in Position mode
  *
- * If velocity setpoint larger than MPC_XY_VEL_MAX is set, then
- * the setpoint will be capped to MPC_XY_VEL_MAX
+ * Must be smaller than MPC_XY_VEL_MAX.
  *
  * The maximum sideways and backward speed can be set differently
  * using MPC_VEL_MAN_SIDE and MPC_VEL_MAN_BACK, respectively.
@@ -61,7 +61,7 @@ PARAM_DEFINE_INT32(MPC_POS_MODE, 4);
  * @min 3.0
  * @max 20.0
  * @increment 1
- * @decimal 2
+ * @decimal 0
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_VEL_MANUAL, 10.0f);
@@ -75,8 +75,8 @@ PARAM_DEFINE_FLOAT(MPC_VEL_MANUAL, 10.0f);
  * @unit m/s
  * @min -1.0
  * @max 20.0
- * @increment 0.1
- * @decimal 2
+ * @increment 1
+ * @decimal 0
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_VEL_MAN_SIDE, -1.0f);
@@ -90,17 +90,16 @@ PARAM_DEFINE_FLOAT(MPC_VEL_MAN_SIDE, -1.0f);
  * @unit m/s
  * @min -1.0
  * @max 20.0
- * @increment 0.1
- * @decimal 2
+ * @increment 1
+ * @decimal 0
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_VEL_MAN_BACK, -1.0f);
 
 /**
- * Maximum ascent velocity
+ * Maximum ascent velocity in manually piloted climb rate controlled modes and offboard
  *
- * Ascent velocity in manual modes and offboard.
- * For auto modes, see MPC_Z_V_AUTO_UP
+ * For autonomous modes see MPC_Z_V_AUTO_UP
  *
  * @unit m/s
  * @min 0.5
@@ -112,10 +111,9 @@ PARAM_DEFINE_FLOAT(MPC_VEL_MAN_BACK, -1.0f);
 PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_UP, 3.f);
 
 /**
- * Maximum descent velocity
+ * Maximum descent velocity in manually piloted climb rate controlled modes and offboard
  *
- * Descent velocity in manual modes and offboard.
- * For auto modes, see MPC_Z_V_AUTO_DN
+ * For autonomous modes, see MPC_Z_V_AUTO_DN
  *
  * @unit m/s
  * @min 0.5
@@ -127,12 +125,12 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_UP, 3.f);
 PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_DN, 1.5f);
 
 /**
- * Maximum horizontal acceleration for auto mode and for manual mode
+ * Maximum horizontal acceleration
  *
  * MPC_POS_MODE
  * 1 just deceleration
  * 3 acceleration and deceleration
- * 4 just acceleration
+ * 4 use MPC_ACC_HOR instead
  *
  * @unit m/s^2
  * @min 2.0
@@ -144,31 +142,34 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_DN, 1.5f);
 PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAX, 5.0f);
 
 /**
- * Maximum jerk limit
+ * Maximum horizontal and vertical jerk in Position/Altitude mode
  *
  * Limit the maximum jerk of the vehicle (how fast the acceleration can change).
- * A lower value leads to smoother vehicle motions, but it also limits its
- * agility (how fast it can change directions or break).
+ * A lower value leads to smoother motions but limits agility
+ * (how fast it can change directions or break).
  *
  * Setting this to the maximum value essentially disables the limit.
  *
- * Note: This is only used when MPC_POS_MODE is set to a smoothing mode 3 or 4.
+ * Only used with smooth MPC_POS_MODE 3 and 4.
  *
  * @unit m/s^3
  * @min 0.5
  * @max 500.0
+ * @decimal 0
  * @increment 1
- * @decimal 2
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_JERK_MAX, 8.0f);
 
 /**
- * Deadzone of sticks where position hold is enabled
+ * Deadzone for sticks in manual piloted modes
+ *
+ * Does not apply to manual throttle and direct attitude piloting by stick.
  *
  * @min 0.0
  * @max 1.0
  * @decimal 2
+ * @increment 0.01
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_HOLD_DZ, 0.1f);
@@ -179,12 +180,13 @@ PARAM_DEFINE_FLOAT(MPC_HOLD_DZ, 0.1f);
  * The higher the value the less sensitivity the stick has around zero
  * while still reaching the maximum value with full stick deflection.
  *
- * 0 Purely linear input curve (default)
+ * 0 Purely linear input curve
  * 1 Purely cubic input curve
  *
  * @min 0
  * @max 1
  * @decimal 2
+ * @increment 0.01
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_XY_MAN_EXPO, 0.6f);
@@ -195,12 +197,13 @@ PARAM_DEFINE_FLOAT(MPC_XY_MAN_EXPO, 0.6f);
  * The higher the value the less sensitivity the stick has around zero
  * while still reaching the maximum value with full stick deflection.
  *
- * 0 Purely linear input curve (default)
+ * 0 Purely linear input curve
  * 1 Purely cubic input curve
  *
  * @min 0
  * @max 1
  * @decimal 2
+ * @increment 0.01
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_Z_MAN_EXPO, 0.6f);
@@ -211,12 +214,13 @@ PARAM_DEFINE_FLOAT(MPC_Z_MAN_EXPO, 0.6f);
  * The higher the value the less sensitivity the stick has around zero
  * while still reaching the maximum value with full stick deflection.
  *
- * 0 Purely linear input curve (default)
+ * 0 Purely linear input curve
  * 1 Purely cubic input curve
  *
  * @min 0
  * @max 1
  * @decimal 2
+ * @increment 0.01
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_YAW_EXPO, 0.6f);

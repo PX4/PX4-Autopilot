@@ -32,20 +32,20 @@
  ****************************************************************************/
 
 /**
- * Enable user assisted descent for autonomous land routine
+ * Enable nudging based on user input during autonomous land routine
  *
- * When enabled, descent speed will be:
+ * Using stick input the vehicle can be moved horizontally and yawed.
+ * The descend speed is amended:
  * stick full up - 0
  * stick centered - MPC_LAND_SPEED
  * stick full down - 2 * MPC_LAND_SPEED
  *
- * Additionally, the vehicle can be yawed and moved laterally using the other sticks.
  * Manual override during auto modes has to be disabled to use this feature (see COM_RC_OVERRIDE).
  *
  * @min 0
  * @max 1
- * @value 0 Fixed descent speed of MPC_LAND_SPEED
- * @value 1 User assisted descent speed
+ * @value 0 Nudging disabled
+ * @value 1 Nudging enabled
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_INT32(MPC_LAND_RC_HELP, 0);
@@ -53,13 +53,13 @@ PARAM_DEFINE_INT32(MPC_LAND_RC_HELP, 0);
 /**
  * User assisted landing radius
  *
- * When user assisted descent is enabled (see MPC_LAND_RC_HELP),
- * this parameter controls the maximum position adjustment
- * allowed from the original landing point.
+ * When nudging is enabled (see MPC_LAND_RC_HELP), this controls
+ * the maximum allowed horizontal displacement from the original landing point.
  *
  * @unit m
  * @min 0
- * @decimal 1
+ * @decimal 0
+ * @increment 1
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_LAND_RADIUS, 1000.f);

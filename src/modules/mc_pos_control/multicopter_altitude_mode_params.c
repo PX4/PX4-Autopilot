@@ -32,25 +32,25 @@
  ****************************************************************************/
 
 /**
- * Maximum vertical acceleration in velocity controlled modes upward
+ * Maximum upwards acceleration in climb rate controlled modes
  *
  * @unit m/s^2
  * @min 2.0
  * @max 15.0
+ * @decimal 1
  * @increment 1
- * @decimal 2
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_ACC_UP_MAX, 4.0f);
 
 /**
- * Maximum vertical acceleration in velocity controlled modes down
+ * Maximum downwards acceleration in climb rate controlled modes
  *
  * @unit m/s^2
  * @min 2.0
  * @max 15.0
+ * @decimal 1
  * @increment 1
- * @decimal 2
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_ACC_DOWN_MAX, 3.0f);
@@ -58,18 +58,20 @@ PARAM_DEFINE_FLOAT(MPC_ACC_DOWN_MAX, 3.0f);
 /**
  * Manual yaw rate input filter time constant
  *
+ * Not used in Stabilized mode
  * Setting this parameter to 0 disables the filter
  *
  * @unit s
  * @min 0.0
  * @max 5.0
  * @decimal 2
+ * @increment 0.2
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_MAN_Y_TAU, 0.08f);
 
 /**
- * Altitude control mode.
+ * Altitude reference mode
  *
  * Set to 0 to control height relative to the earth frame origin. This origin may move up and down in
  * flight due to sensor drift.
@@ -93,9 +95,11 @@ PARAM_DEFINE_INT32(MPC_ALT_MODE, 0);
 /**
  * Maximum horizontal velocity for which position hold is enabled (use 0 to disable check)
  *
+ * Only used with MPC_POS_MODE 0 or MPC_ALT_MODE 2
+ *
  * @unit m/s
- * @min 0.0
- * @max 3.0
+ * @min 0
+ * @max 3
  * @decimal 2
  * @group Multicopter Position Control
  */
@@ -104,9 +108,11 @@ PARAM_DEFINE_FLOAT(MPC_HOLD_MAX_XY, 0.8f);
 /**
  * Maximum vertical velocity for which position hold is enabled (use 0 to disable check)
  *
+ * Only used with MPC_ALT_MODE 1
+ *
  * @unit m/s
- * @min 0.0
- * @max 3.0
+ * @min 0
+ * @max 3
  * @decimal 2
  * @group Multicopter Position Control
  */
