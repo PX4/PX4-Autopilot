@@ -430,6 +430,9 @@ _file_read(dm_item_t item, unsigned index, void *buf, size_t count)
 
 		/* Looks good, copy it to the caller's buffer */
 		memcpy(buf, buffer + DM_SECTOR_HDR_SIZE, buffer[0]);
+
+	} else {
+		memset(buf, 0, count);
 	}
 
 	/* Return the number of bytes of caller data read */
@@ -754,7 +757,7 @@ task_main(int argc, char *argv[])
 
 					perf_end(_dm_read_perf);
 
-					if (result > 0) {
+					if (result >= 0) {
 						response.status = dataman_response_s::STATUS_SUCCESS;
 
 					} else {
