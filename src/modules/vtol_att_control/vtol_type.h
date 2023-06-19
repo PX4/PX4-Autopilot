@@ -335,7 +335,6 @@ protected:
 					(ParamFloat<px4::params::VT_FW_DIFTHR_S_Y>) _param_vt_fw_difthr_s_y,
 					(ParamFloat<px4::params::VT_FW_DIFTHR_S_P>) _param_vt_fw_difthr_s_p,
 					(ParamFloat<px4::params::VT_FW_DIFTHR_S_R>) _param_vt_fw_difthr_s_r,
-					(ParamFloat<px4::params::VT_B_DEC_FF>) _param_vt_b_dec_ff,
 					(ParamFloat<px4::params::VT_B_DEC_I>) _param_vt_b_dec_i,
 					(ParamFloat<px4::params::VT_B_DEC_MSS>) _param_vt_b_dec_mss,
 
