@@ -176,6 +176,7 @@ void imxrt_octl_flash_initialize(void)
 	int32_t status = ROM_FLEXSPI_NorFlash_GetConfig(instance, &norConfig, &option_1_8bit);
 
 	if (status == OK) {
+		norConfig.memConfig.serialClkFreq = kFlexSpiSerialClk_200MHz;
 		status = ROM_FLEXSPI_NorFlash_Init(instance, &norConfig);
 	}
 
