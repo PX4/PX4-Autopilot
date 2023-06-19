@@ -322,6 +322,19 @@ SquareMatrix<Type, M> expm(const Matrix<Type, M, M> &A, size_t order = 5)
 	return res;
 }
 
+/**
+ * Deal with the special case where the square matrix is 1
+ */
+template<typename Type>
+bool inv(const SquareMatrix<Type, 1> &A, SquareMatrix<Type, 1> &inv, size_t rank = 1)
+{
+	if (std::fabs(A(0, 0)) < Type(FLT_EPSILON)) {
+		return false;
+	}
+
+	inv(0, 0) = Type(1) / A(0, 0);
+	return true;
+}
 
 /**
  * inverse based on LU factorization with partial pivotting
