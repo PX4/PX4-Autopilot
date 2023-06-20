@@ -295,9 +295,27 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	VDD_3V3_SD_CARD_EN(true);
 	VDD_5V_PERIPH_EN(true);
 	VDD_5V_HIPOWER_EN(true);
-	VDD_3V3_SENSORS4_EN(true);
 	VDD_3V3_SPEKTRUM_POWER_EN(true);
 
+	/*
+	 *  We have BOARD_I2C_LATEINIT Defined to hold off the I2C init
+	 * To enable SE050 driveHW_VER_REV_DRIVE low. But we have to ensure the
+	 * EEROM version can be read first.
+	 * Power on sequence:
+	 * 1) Drive I2C4 lines to output low (avoid backfeeding SE050)
+	 * 2) DoHWversioning withVDD_3V3_SENSORS4 off. LeaveHW_VER_REV_DRIVE high (SE050 disabled) on exit.
+	 * 3) Then set HW_VER_REV_DRIVE low (SE050 enabled).
+	 * 4) Then power onVDD_3V3_SENSORS4.
+	 * 5) HW_VER_REV_DRIVE can be used to toggle SE050_ENAlater if needed.
+	 */
+
+
+	/* Step 1 */
+
+	px4_arch_gpiowrite(GPIO_LPI2C3_SCL, 0);
+	px4_arch_gpiowrite(GPIO_LPI2C3_SDA, 0);
+	px4_arch_gpiowrite(GPIO_HW_VER_REV_DRIVE, 1);
+	VDD_3V3_SENSORS4_EN(true);
 
 	int ret = OK;
 
@@ -316,9 +334,14 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	imxrt_spiinitialize();
 
-	/* Configure the HW based on the manifest */
+	/* Configure the HW based on the manifest
+	 * This will use I2C busses so VDD_3V3_SENSORS4_EN
+	 * needs to be up.
+	 */
 
 	px4_platform_configure();
+
+	/* Step 2 */
 
 	if (OK == board_determine_hw_info()) {
 		syslog(LOG_INFO, "[boot] Rev 0x%1x : Ver 0x%1x %s\n", board_get_hw_revision(), board_get_hw_version(),
@@ -328,6 +351,32 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		syslog(LOG_ERR, "[boot] Failed to read HW revision and version\n");
 	}
 
+	/* Step 3 reset the SE550
+	 * Power it down, prevetn back feeding
+	 * and let it settle
+	 */
+
+	VDD_3V3_SENSORS4_EN(false);
+	px4_arch_gpiowrite(GPIO_LPI2C3_SCL, 0);
+	px4_arch_gpiowrite(GPIO_LPI2C3_SDA, 0);
+	px4_arch_gpiowrite(GPIO_HW_VER_REV_DRIVE, 1);
+
+	usleep(125000);
+
+	/* Step 4 */
+
+	VDD_3V3_SENSORS4_EN(true);
+	px4_arch_configgpio(GPIO_LPI2C3_SCL);
+	px4_arch_configgpio(GPIO_LPI2C3_SDA);
+
+	/* Enable the SE550 */
+
+	px4_arch_gpiowrite(GPIO_HW_VER_REV_DRIVE, 0);
+
+
+	/* Do the I2C init late BOARD_I2C_LATEINIT */
+
+	px4_platform_i2c_init();
 
 	/* Configure the Actual SPI interfaces (after we determined the HW version)  */
 
