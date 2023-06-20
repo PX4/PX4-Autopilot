@@ -3392,9 +3392,9 @@ $ mavlink stream -u 14556 -s HIGHRES_IMU -r 50
 					 "Enable sending of messages. (Must be) called as last step in startup script.");
 
 }
-
 extern "C" __EXPORT int mavlink_main(int argc, char *argv[])
 {
+	return 0;
 	if (argc < 2) {
 		usage();
 		return 1;
