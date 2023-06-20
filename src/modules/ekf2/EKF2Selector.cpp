@@ -656,6 +656,7 @@ void EKF2Selector::Run()
 			if ((_instance[i].accel_device_id != 0)
 			    && (_instance[i].gyro_device_id != 0)) {
 				_ekf_change_reason = EKFChangeReason::INIT;
+
 				if (SelectInstance(i)) {
 					break;
 				}
@@ -719,6 +720,7 @@ void EKF2Selector::Run()
 
 		if (!_instance[_selected_instance].healthy.get_state()) {
 			_ekf_change_reason = CalculateHealthChangeReason();
+
 			// prefer the best healthy instance using a different IMU
 			if (!SelectInstance(best_ekf_different_imu)) {
 				// otherwise switch to the healthy instance with best overall test ratio
@@ -861,29 +863,35 @@ void EKF2Selector::PrintInstanceChange(const uint8_t old_instance, uint8_t new_i
 
 	if (_ekf_change_reason == EKFChangeReason::NONE || _ekf_change_reason == EKFChangeReason::INIT) {return;}
 
-	switch (_ekf_change_reason)
-	{
+	switch (_ekf_change_reason) {
 	case FILTER_FAULT:
 		reason = "(filter fault)";
 		break;
+
 	case TIMEOUT:
 		reason = "(timeout)";
 		break;
+
 	case GYRO_FAULT:
 		reason = "(gyro fault)";
 		break;
+
 	case ACCEL_FAULT:
 		reason = "(accel fault)";
 		break;
+
 	case UNHEALTHY:
 		reason = "(unhealthy)";
 		break;
+
 	case LOWER_ERROR_AVAILABLE:
 		reason = "(lower error available)";
 		break;
+
 	case USER_SELECTED:
 		reason = "(user selected)";
 		break;
+
 	case UNKNOWN:
 	default:
 		reason = "(unknown)";
