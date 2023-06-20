@@ -649,10 +649,6 @@ int imxrt_flexspi_fram_initialize(void)
 	struct mtd_dev_s *mtd_dev = &g_flexspi_nor.mtd;
 	int ret = -1;
 
-	/* Disable SDRAM CS */
-	imxrt_config_gpio(GPIO_SDRAM_CS);
-	imxrt_config_gpio(GPIO_SDRAM_CLK);
-
 	/* Configure multiplexed pins as connected on the board */
 
 	imxrt_config_gpio(GPIO_FLEXSPI2_CS);
