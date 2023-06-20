@@ -34,6 +34,7 @@
 __BEGIN_DECLS
 
 int px4_platform_init(void);
+void px4_platform_i2c_init(void);
 int px4_platform_console_init(void);
 int px4_platform_configure(void);
 
