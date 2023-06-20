@@ -1104,3 +1104,15 @@ PARAM_DEFINE_FLOAT(COM_WIND_MAX, -1.f);
  * @unit m
  */
 PARAM_DEFINE_FLOAT(COM_POS_LOW_EPH, -1.0f);
+
+/**
+ * Flag to allow arming
+ *
+ * Set 0 to prevent accidental use of the vehicle e.g. for safety or maintenance reasons.
+ *
+ * @boolean
+ * @value 0 Disallow arming
+ * @value 1 Allow arming
+ * @group Commander
+ */
+PARAM_DEFINE_INT32(COM_ARMABLE, 1);

@@ -42,6 +42,7 @@
 
 #include "checks/accelerometerCheck.hpp"
 #include "checks/airspeedCheck.hpp"
+#include "checks/armPermissionCheck.hpp"
 #include "checks/baroCheck.hpp"
 #include "checks/cpuResourceCheck.hpp"
 #include "checks/distanceSensorChecks.hpp"
@@ -115,6 +116,7 @@ private:
 	// all checks
 	AccelerometerChecks _accelerometer_checks;
 	AirspeedChecks _airspeed_checks;
+	ArmPermissionChecks _arm_permission_checks;
 	BaroChecks _baro_checks;
 	CpuResourceChecks _cpu_resource_checks;
 	DistanceSensorChecks _distance_sensor_checks;
@@ -145,6 +147,7 @@ private:
 	HealthAndArmingCheckBase *_checks[31] = {
 		&_accelerometer_checks,
 		&_airspeed_checks,
+		&_arm_permission_checks,
 		&_baro_checks,
 		&_cpu_resource_checks,
 		&_distance_sensor_checks,
