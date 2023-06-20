@@ -198,12 +198,6 @@ const struct clock_configuration_s g_initial_clkconfig = {
 			.div           = 22,
 			.mux           = LPUART1_CLK_ROOT_SYS_PLL2_CLK,
 		},
-		.lpuart2_clk_root =
-		{
-			.enable        = 1,
-			.div           = 22,
-			.mux           = LPUART2_CLK_ROOT_SYS_PLL2_CLK,
-		},
 		.lpuart3_clk_root =
 		{
 			.enable        = 1,
@@ -228,23 +222,11 @@ const struct clock_configuration_s g_initial_clkconfig = {
 			.div           = 1,
 			.mux           = LPUART6_CLK_ROOT_OSC_RC_48M_DIV2,
 		},
-		.lpuart7_clk_root =
-		{
-			.enable        = 1,
-			.div           = 1,
-			.mux           = LPUART7_CLK_ROOT_OSC_RC_48M_DIV2,
-		},
 		.lpuart8_clk_root =
 		{
 			.enable        = 1,
 			.div           = 1,
 			.mux           = LPUART8_CLK_ROOT_OSC_RC_48M_DIV2,
-		},
-		.lpuart9_clk_root =
-		{
-			.enable        = 1,
-			.div           = 1,
-			.mux           = LPUART9_CLK_ROOT_OSC_RC_48M_DIV2,
 		},
 		.lpuart10_clk_root =
 		{
@@ -257,12 +239,6 @@ const struct clock_configuration_s g_initial_clkconfig = {
 			.enable        = 1,
 			.div           = 1,
 			.mux           = LPUART11_CLK_ROOT_OSC_RC_48M_DIV2,
-		},
-		.lpuart12_clk_root =
-		{
-			.enable        = 1,
-			.div           = 1,
-			.mux           = LPUART12_CLK_ROOT_OSC_RC_48M_DIV2,
 		},
 		.lpi2c1_clk_root =
 		{
@@ -281,18 +257,6 @@ const struct clock_configuration_s g_initial_clkconfig = {
 			.enable        = 1,
 			.div           = 1,
 			.mux           = LPI2C3_CLK_ROOT_OSC_RC_48M_DIV2,
-		},
-		.lpi2c4_clk_root =
-		{
-			.enable        = 1,
-			.div           = 1,
-			.mux           = LPI2C4_CLK_ROOT_OSC_RC_48M_DIV2,
-		},
-		.lpi2c5_clk_root =
-		{
-			.enable        = 1,
-			.div           = 1,
-			.mux           = LPI2C5_CLK_ROOT_OSC_RC_48M_DIV2,
 		},
 		.lpi2c6_clk_root =
 		{
@@ -317,18 +281,6 @@ const struct clock_configuration_s g_initial_clkconfig = {
 			.enable        = 1,
 			.div           = 1,
 			.mux           = LPSPI3_CLK_ROOT_OSC_RC_48M_DIV2,
-		},
-		.lpspi4_clk_root =
-		{
-			.enable        = 1,
-			.div           = 1,
-			.mux           = LPSPI4_CLK_ROOT_OSC_RC_48M_DIV2,
-		},
-		.lpspi5_clk_root =
-		{
-			.enable        = 1,
-			.div           = 1,
-			.mux           = LPSPI5_CLK_ROOT_OSC_RC_48M_DIV2,
 		},
 		.lpspi6_clk_root =
 		{
@@ -357,8 +309,8 @@ const struct clock_configuration_s g_initial_clkconfig = {
 		.enet2_clk_root =
 		{
 			.enable        = 1,
-			.div           = 1,
-			.mux           = ENET2_CLK_ROOT_OSC_RC_48M_DIV2,
+			.div           = 10,
+			.mux           = ENET2_CLK_ROOT_SYS_PLL1_DIV2,
 		},
 		.enet_qos_clk_root =
 		{
