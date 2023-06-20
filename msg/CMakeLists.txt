@@ -145,6 +145,7 @@ set(msg_files
 	Ping.msg
 	PositionControllerLandingStatus.msg
 	PositionControllerStatus.msg
+	PositionModeLimits.msg
 	PositionSetpoint.msg
 	PositionSetpointTriplet.msg
 	PowerButtonState.msg

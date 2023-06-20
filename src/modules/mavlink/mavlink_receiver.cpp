@@ -323,6 +323,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_gimbal_device_attitude_status(msg);
 		break;
 
+	case MAVLINK_MSG_ID_VELOCITY_LIMIT:
+		handle_message_velocity_limit(msg);
+		break;
+
 	default:
 		break;
 	}
@@ -3068,6 +3072,18 @@ MavlinkReceiver::handle_message_gimbal_device_attitude_status(mavlink_message_t 
 	gimbal_attitude_status.received_from_mavlink = true;
 
 	_gimbal_device_attitude_status_pub.publish(gimbal_attitude_status);
+}
+
+void MavlinkReceiver::handle_message_velocity_limit(mavlink_message_t *msg)
+{
+	mavlink_velocity_limit_t velocity_limit;
+	mavlink_msg_velocity_limit_decode(msg, &velocity_limit);
+
+	position_mode_limits_s position_mode_limits{};
+	position_mode_limits.timestamp = hrt_absolute_time();
+	position_mode_limits.horizontal_velocity_limit = velocity_limit.horizontal_speed;
+
+	_position_mode_limits_pub.publish(position_mode_limits);
 }
 
 void

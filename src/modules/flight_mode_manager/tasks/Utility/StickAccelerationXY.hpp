@@ -43,6 +43,7 @@
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <matrix/math.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/topics/position_mode_limits.h>
 #include <uORB/topics/takeoff_status.h>
 
 #include "SlewRate.hpp"
@@ -71,6 +72,7 @@ private:
 	void applyTiltLimit(matrix::Vector2f &acceleration);
 	void lockPosition(const matrix::Vector3f &pos, const matrix::Vector2f &vel_sp_feedback, const float dt);
 
+	uORB::Subscription _position_mode_limits_sub{ORB_ID(position_mode_limits)};
 	uORB::Subscription _takeoff_status_sub{ORB_ID(takeoff_status)};
 
 	SlewRate<float> _acceleration_slew_rate_x;
