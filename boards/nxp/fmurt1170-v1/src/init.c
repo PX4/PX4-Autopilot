@@ -197,12 +197,13 @@ void imxrt_octl_flash_initialize(void)
 }
 #endif
 
+locate_code(".ramfunc")
 void imxrt_flash_setup_prefetch_partition(void)
 {
-	putreg32((uint32_t)&_srodata, 0x400CC440);
-	putreg32((uint32_t)&_erodata, 0x400CC444);
-	putreg32((uint32_t)&_stext, 0x400CC448);
-	putreg32((uint32_t)&_etext, 0x400CC44C);
+	putreg32((uint32_t)&_srodata, IMXRT_FLEXSPI1_AHBBUFREGIONSTART0);
+	putreg32((uint32_t)&_erodata, IMXRT_FLEXSPI1_AHBBUFREGIONEND0);
+	putreg32((uint32_t)&_stext, IMXRT_FLEXSPI1_AHBBUFREGIONSTART1);
+	putreg32((uint32_t)&_etext, IMXRT_FLEXSPI1_AHBBUFREGIONEND1);
 
 	struct flexspi_type_s *g_flexspi = (struct flexspi_type_s *)IMXRT_FLEXSPIC_BASE;
 	/* RODATA */
@@ -218,7 +219,9 @@ void imxrt_flash_setup_prefetch_partition(void)
 				    FLEXSPI_AHBRXBUFCR0_PREFETCHEN(1) |
 				    FLEXSPI_AHBRXBUFCR0_REGIONEN(1);
 
-
+	ARM_DSB();
+	ARM_ISB();
+	ARM_DMB();
 }
 /****************************************************************************
  * Name: imxrt_ocram_initialize
