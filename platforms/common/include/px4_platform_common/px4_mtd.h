@@ -82,4 +82,6 @@ int px4_at24c_initialize(FAR struct i2c_master_s *dev,
 
 void px4_at24c_deinitialize(void);
 
+weak_function int flexspi_attach(mtd_instance_s *instance);
+
 __END_DECLS
