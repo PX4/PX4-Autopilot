@@ -35,8 +35,8 @@ const struct flexspi_nor_config_s g_flash_config = {
 		.tag                 = FLEXSPI_CFG_BLK_TAG,
 		.version             = FLEXSPI_CFG_BLK_VERSION,
 		.readSampleClkSrc    = kFlexSPIReadSampleClk_ExternalInputFromDqsPad,
-		.csHoldTime          = 3,
-		.csSetupTime         = 3,
+		.csHoldTime          = 1,
+		.csSetupTime         = 1,
 		.deviceModeCfgEnable = 1,
 		.deviceModeType      = kDeviceConfigCmdType_Spi2Xpi,
 		.waitTimeCfgCommands = 1,
@@ -51,7 +51,7 @@ const struct flexspi_nor_config_s g_flash_config = {
 		(1u << kFlexSpiMiscOffset_SafeConfigFreqEnable) | (1u << kFlexSpiMiscOffset_DdrModeEnable),
 		.deviceType    = kFlexSpiDeviceType_SerialNOR,
 		.sflashPadType = kSerialFlash_8Pads,
-		.serialClkFreq = kFlexSpiSerialClk_133MHz,
+		.serialClkFreq = kFlexSpiSerialClk_200MHz,
 		.sflashA1Size  = 64ul * 1024u * 1024u,
 		.dataValidTime =
 		{
@@ -61,10 +61,11 @@ const struct flexspi_nor_config_s g_flash_config = {
 		.busyBitPolarity = 0u,
 		.lookupTable =
 		{
-			/* Read */// EEH+11H+32bit addr+20dummy cycles+ 4Bytes read data    //133Mhz 20 dummy=10+10
-			[0 + 0] = FLEXSPI_LUT_SEQ(CMD_DDR, FLEXSPI_8PAD, 0xEE, CMD_DDR, FLEXSPI_8PAD, 0x11),  //0x871187ee,
+			/* Read */// EEH+11H+32bit addr+20dummy cycles+ 4Bytes read data    //200Mhz 18 dummy=10+8
+			[0 + 0] = FLEXSPI_LUT_SEQ(CMD_DDR, FLEXSPI_8PAD, 0xEE, CMD_DDR, FLEXSPI_8PAD, 0x11),    //0x871187ee,
 			[0 + 1] = FLEXSPI_LUT_SEQ(RADDR_DDR, FLEXSPI_8PAD, 0x20, DUMMY_DDR, FLEXSPI_8PAD, 0x0a),//0xb30a8b20,
-			[0 + 2] = FLEXSPI_LUT_SEQ(DUMMY_DDR, FLEXSPI_8PAD, 0x0A, READ_DDR, FLEXSPI_8PAD, 0x04),//0xa704b30a,
+			[0 + 2] = FLEXSPI_LUT_SEQ(DUMMY_DDR, FLEXSPI_8PAD, 0x08, READ_DDR, FLEXSPI_8PAD, 0x04), //0xa704b30a,
+			[0 + 3] = 0x2401, // jump to address instruction
 
 			/* Read Status SPI */// SPI 05h+ status data 0X24 maybe 0X04
 			[4 * 1 + 0] = FLEXSPI_LUT_SEQ(CMD_SDR, FLEXSPI_1PAD, 0x05, READ_SDR, FLEXSPI_1PAD, 0x24),//0x24040405,
@@ -107,4 +108,7 @@ const struct flexspi_nor_config_s g_flash_config = {
 	.sectorSize         = 4u * 1024u,
 	.blockSize          = 64u * 1024u,
 	.isUniformBlockSize = false,
+	.ipcmdSerialClkFreq = 1,
+	.serialNorType = 2,
+	.reserve2[0] = 0x7008200,
 };
