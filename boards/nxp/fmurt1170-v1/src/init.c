@@ -104,6 +104,9 @@ __BEGIN_DECLS
 extern void led_init(void);
 extern void led_on(int led);
 extern void led_off(int led);
+
+extern uint32_t _srodata;            /* Start of .rodata */
+extern uint32_t _erodata;            /* End of .rodata */
 __END_DECLS
 
 /************************************************************************************
@@ -193,6 +196,30 @@ void imxrt_octl_flash_initialize(void)
 	ARM_DMB();
 }
 #endif
+
+void imxrt_flash_setup_prefetch_partition(void)
+{
+	putreg32((uint32_t)&_srodata, 0x400CC440);
+	putreg32((uint32_t)&_erodata, 0x400CC444);
+	putreg32((uint32_t)&_stext, 0x400CC448);
+	putreg32((uint32_t)&_etext, 0x400CC44C);
+
+	struct flexspi_type_s *g_flexspi = (struct flexspi_type_s *)IMXRT_FLEXSPIC_BASE;
+	/* RODATA */
+	g_flexspi->AHBRXBUFCR0[0] = FLEXSPI_AHBRXBUFCR0_BUFSZ(16) |
+				    FLEXSPI_AHBRXBUFCR0_MSTRID(7) |
+				    FLEXSPI_AHBRXBUFCR0_PREFETCHEN(1) |
+				    FLEXSPI_AHBRXBUFCR0_REGIONEN(1);
+
+
+	/* All Text */
+	g_flexspi->AHBRXBUFCR0[1] = FLEXSPI_AHBRXBUFCR0_BUFSZ(48) |
+				    FLEXSPI_AHBRXBUFCR0_MSTRID(7) |
+				    FLEXSPI_AHBRXBUFCR0_PREFETCHEN(1) |
+				    FLEXSPI_AHBRXBUFCR0_REGIONEN(1);
+
+
+}
 /****************************************************************************
  * Name: imxrt_ocram_initialize
  *
@@ -253,6 +280,8 @@ __EXPORT void imxrt_boardinitialize(void)
 #if defined(CONFIG_BOARD_BOOTLOADER_FIXUP)
 	imxrt_octl_flash_initialize();
 #endif
+
+	imxrt_flash_setup_prefetch_partition();
 
 	board_on_reset(-1); /* Reset PWM first thing */
 
