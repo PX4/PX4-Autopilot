@@ -59,7 +59,14 @@ then
 	. ${R}etc/init.d/rc.uuv_apps
 fi
 
-
+#
+# SR setup
+#
+if [ $VEHICLE_TYPE = sr ]
+then
+	# Start standard sr apps.
+	. ${R}etc/init.d/rc.sr_apps
+fi
 
 #
 # Generic setup (autostart ID not found).

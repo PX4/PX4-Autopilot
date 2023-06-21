@@ -17,7 +17,7 @@ serial_config:
         if [ $SERIAL_DEV != ethernet ]; then
             set XRCE_DDS_ARGS "-t serial -d ${SERIAL_DEV} -b p:${BAUD_PARAM}"
         else
-            set XRCE_DDS_ARGS "-t udp"
+            set XRCE_DDS_ARGS "-t udp -h 192.168.0.1"
         fi
         microdds_client start ${XRCE_DDS_ARGS}
 

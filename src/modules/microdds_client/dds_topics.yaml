@@ -44,6 +44,9 @@ publications:
   - topic: /fmu/out/vehicle_trajectory_waypoint_desired
     type: px4_msgs::msg::VehicleTrajectoryWaypoint
 
+  - topic: /fmu/out/actuator_motors
+    type: px4_msgs::msg::ActuatorMotors
+
 subscriptions:
 
   - topic: /fmu/in/offboard_control_mode
@@ -84,3 +87,6 @@ subscriptions:
 
   - topic: /fmu/in/vehicle_trajectory_waypoint
     type: px4_msgs::msg::VehicleTrajectoryWaypoint
+
+  - topic: /fmu/in/actuator_motors
+    type: px4_msgs::msg::ActuatorMotors

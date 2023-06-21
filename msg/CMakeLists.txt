@@ -179,6 +179,7 @@ set(msg_files
 	TaskStackInfo.msg
 	TecsStatus.msg
 	TelemetryStatus.msg
+	ThrusterCommand.msg
 	TiltrotorExtraControls.msg
 	TimesyncStatus.msg
 	TrajectoryBezier.msg
