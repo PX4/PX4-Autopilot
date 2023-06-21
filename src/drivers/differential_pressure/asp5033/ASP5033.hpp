@@ -63,12 +63,12 @@
 
 
 /* Measurement rate is 100Hz */
-#define MEAS_RATE 100 //100
+#define MEAS_RATE 100
 #define CONVERSION_INTERVAL	(1000000 / MEAS_RATE)	/* microseconds */
 
 
 /* Configuration Constants */
-static constexpr uint8_t I2C_ADDRESS_DEFAULT = 0x6d; /* 0x6D 0xE4 */
+static constexpr uint8_t I2C_ADDRESS_DEFAULT = 0x6D; /* 0x6D 0xE4 */
 static constexpr uint32_t I2C_SPEED = 100 * 1000; // 100 kHz I2C serial interface
 
 
