@@ -88,10 +88,11 @@ SECTIONS
         *(.got)
         *(.gcc_except_table)
         *(.gnu.linkonce.r.*)
-        _etext = ABSOLUTE(.);
         . = ALIGN(4096);
+        _etext = ABSOLUTE(.);
         _srodata = ABSOLUTE(.);
         *(.rodata .rodata.*)
+        . = ALIGN(4096);
         _erodata = ABSOLUTE(.);
     } > flash
 
