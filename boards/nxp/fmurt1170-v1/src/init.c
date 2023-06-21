@@ -180,14 +180,18 @@ void imxrt_octl_flash_initialize(void)
 
 	int32_t status = ROM_FLEXSPI_NorFlash_GetConfig(instance, &norConfig, &option_1_8bit);
 
-
-	memcpy(norConfig.memConfig.lookupTable, g_flash_config.memConfig.lookupTable,
-	       sizeof(norConfig.memConfig.lookupTable));
+	// memcpy(norConfig.memConfig.lookupTable, g_flash_config.memConfig.lookupTable,sizeof(norConfig.memConfig.lookupTable));
 
 	if (status == OK) {
+
 		norConfig.memConfig.serialClkFreq = g_flash_config.memConfig.serialClkFreq;
 		norConfig.memConfig.csHoldTime = g_flash_config.memConfig.csHoldTime;
 		norConfig.memConfig.csSetupTime = g_flash_config.memConfig.csSetupTime;
+
+		norConfig.ipcmdSerialClkFreq = g_flash_config.ipcmdSerialClkFreq;
+		norConfig.serialNorType = g_flash_config.serialNorType;
+		norConfig.reserve2[0] = g_flash_config.reserve2[0];
+
 		status = ROM_FLEXSPI_NorFlash_Init(instance, &norConfig);
 	}
 
