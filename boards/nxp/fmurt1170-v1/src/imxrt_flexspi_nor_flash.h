@@ -349,5 +349,6 @@ struct flexspi_nor_config_s {
 	uint32_t reserve2[11];          //!< Reserved for future use
 };
 
+extern const struct flexspi_nor_config_s g_flash_config;
 
 #endif /* __BOARDS_ARM_IMXRT_IMXRT1170_EVK_SRC_IMXRT_FLEXSPI_NOR_FLASH_H */

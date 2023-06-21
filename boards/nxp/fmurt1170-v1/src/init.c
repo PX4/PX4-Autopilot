@@ -73,6 +73,8 @@
 #include "board_config.h"
 
 #include <hardware/imxrt_lpuart.h>
+#undef FLEXSPI_LUT_COUNT
+#include <hardware/imxrt_flexspi.h>
 
 #include <arch/board/board.h>
 
@@ -175,8 +177,14 @@ void imxrt_octl_flash_initialize(void)
 
 	int32_t status = ROM_FLEXSPI_NorFlash_GetConfig(instance, &norConfig, &option_1_8bit);
 
+
+	memcpy(norConfig.memConfig.lookupTable, g_flash_config.memConfig.lookupTable,
+	       sizeof(norConfig.memConfig.lookupTable));
+
 	if (status == OK) {
-		norConfig.memConfig.serialClkFreq = kFlexSpiSerialClk_200MHz;
+		norConfig.memConfig.serialClkFreq = g_flash_config.memConfig.serialClkFreq;
+		norConfig.memConfig.csHoldTime = g_flash_config.memConfig.csHoldTime;
+		norConfig.memConfig.csSetupTime = g_flash_config.memConfig.csSetupTime;
 		status = ROM_FLEXSPI_NorFlash_Init(instance, &norConfig);
 	}
 

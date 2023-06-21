@@ -82,7 +82,6 @@ SECTIONS
         *(.text .text.*)
         *(.fixup)
         *(.gnu.warning)
-        *(.rodata .rodata.*)
         *(.gnu.linkonce.t.*)
         *(.glue_7)
         *(.glue_7t)
@@ -90,6 +89,10 @@ SECTIONS
         *(.gcc_except_table)
         *(.gnu.linkonce.r.*)
         _etext = ABSOLUTE(.);
+        . = ALIGN(4096);
+        _srodata = ABSOLUTE(.);
+        *(.rodata .rodata.*)
+        _erodata = ABSOLUTE(.);
     } > flash
 
     .init_section :
