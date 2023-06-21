@@ -56,6 +56,12 @@ ASP5033::~ASP5033()
 	perf_free(_fault_perf);
 }
 
+int ASP5033::probe()
+{
+	_retries = 1;
+	int ret = measure();
+	return ret;
+}
 
 int ASP5033::init()
 {
