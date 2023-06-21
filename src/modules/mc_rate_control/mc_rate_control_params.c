@@ -482,3 +482,26 @@ PARAM_DEFINE_FLOAT(MC_INJECT_INC, 1.0f);
  * @group Multicopter Rate Control
  */
 PARAM_DEFINE_FLOAT(MC_INJECT_AMP, 0.05f);
+
+/**
+ * Thrust curve in Acro Mode
+ *
+ * This parameter defines how the throttle stick input is mapped to commanded thrust
+ * in Acro flight mode.
+ *
+ * In case the default is used ('Rescale to hover thrust'), the stick input is linearly
+ * rescaled to the output range from MPC_MANTHR_MIN to MPC_THR_MAX, such that a centered stick
+ * corresponds to the hover throttle (see MPC_THR_HOVER).
+ *
+ * Select 'No Rescale' to directly map the stick input to the output range from MPC_MANTHR_MIN
+ * to MPC_THR_MAX.
+ *
+ * Select 'No Rescale Full Range' to directly map the stick to the output range from 0 to 1.
+ *
+ *
+ * @value 0 Rescale to hover thrust
+ * @value 1 No Rescale
+ * @value 2 No Rescale Full Range
+ * @group Multicopter Rate Control
+ */
+PARAM_DEFINE_INT32(MC_THR_CURVE_ACR, 0);

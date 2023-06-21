@@ -98,6 +98,22 @@ MulticopterRateControl::parameters_updated()
 				  radians(_param_mc_acro_y_max.get()));
 }
 
+float
+MulticopterRateControl::throttle_curve_acro(float throttle_stick_input)
+{
+	// throttle_stick_input is in range [0, 1]
+	switch (_param_mc_thr_curve_acr.get()) {
+	case 2:
+		return throttle_stick_input;
+
+	case 1: // no rescaling to hover throttle
+		return math::interpolate(throttle_stick_input, 0.f, 1.f, _param_mpc_manthr_min.get(), _param_mpc_thr_max.get());
+
+	default: // 0 or other: rescale to hover throttle at 0.5 stick
+		return math::interpolateN(throttle_stick_input, {_param_mpc_manthr_min.get(), _param_mpc_thr_hover.get(), _param_mpc_thr_max.get()});
+	}
+}
+
 void
 MulticopterRateControl::Run()
 {
@@ -162,7 +178,7 @@ MulticopterRateControl::Run()
 					math::superexpo(manual_control_setpoint.yaw, _param_mc_acro_expo_y.get(), _param_mc_acro_supexpoy.get())};
 
 				_rates_setpoint = man_rate_sp.emult(_acro_rate_max);
-				_thrust_setpoint(2) = -(manual_control_setpoint.throttle + 1.f) * .5f;
+				_thrust_setpoint(2) = -throttle_curve_acro((manual_control_setpoint.throttle + 1.f) * .5f);
 				_thrust_setpoint(0) = _thrust_setpoint(1) = 0.f;
 
 				// publish rate setpoint

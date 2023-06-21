@@ -90,6 +90,8 @@ private:
 	 */
 	void parameters_updated();
 
+	float throttle_curve_acro(float throttle_stick_input);
+
 	void updateActuatorControlsStatus(const vehicle_torque_setpoint_s &vehicle_torque_setpoint, float dt);
 
 	RateControl _rate_control; ///< class for rate control calculations
@@ -180,6 +182,11 @@ private:
 		(ParamInt<px4::params::MC_INJECT_CNT>) _param_mc_inject_cnt,
 		(ParamFloat<px4::params::MC_INJECT_START>) _param_mc_inject_start,
 		(ParamFloat<px4::params::MC_INJECT_INC>) _param_mc_inject_inc,
-		(ParamFloat<px4::params::MC_INJECT_AMP>) _param_mc_inject_amp
+		(ParamFloat<px4::params::MC_INJECT_AMP>) _param_mc_inject_amp,
+
+		(ParamFloat<px4::params::MPC_MANTHR_MIN>)   _param_mpc_manthr_min,      /**< minimum throttle for stabilized and acro*/
+		(ParamFloat<px4::params::MPC_THR_MAX>)      _param_mpc_thr_max,         /**< maximum throttle for stabilized and acro*/
+		(ParamFloat<px4::params::MPC_THR_HOVER>)    _param_mpc_thr_hover,       /**< throttle at stationary hover */
+		(ParamInt<px4::params::MC_THR_CURVE_ACR>)      _param_mc_thr_curve_acr        /**< throttle curve behavior for acro */
 	)
 };
