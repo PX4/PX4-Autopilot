@@ -63,7 +63,7 @@
 
 
 /* Measurement rate is 100Hz */
-#define MEAS_RATE 100 //100
+#define MEAS_RATE 100
 #define CONVERSION_INTERVAL	(1000000 / MEAS_RATE)	/* microseconds */
 
 
@@ -106,8 +106,6 @@ private:
 	float _temperature = 0.f;
 	float _pressure_prev = 0.f;
 	float _temperaute_prev = 0.f;
-
-	int probe() override;
 
 	int measure();
 	int collect();

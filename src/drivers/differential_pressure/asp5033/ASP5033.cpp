@@ -56,13 +56,6 @@ ASP5033::~ASP5033()
 	perf_free(_fault_perf);
 }
 
-int ASP5033::probe()
-{
-	uint8_t cmd = REG_CMD_ASP5033;
-	int ret = transfer(&cmd, 1, nullptr, 0);
-	return ret;
-
-}
 
 int ASP5033::init()
 {
