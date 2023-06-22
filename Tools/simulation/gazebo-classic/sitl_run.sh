@@ -127,6 +127,9 @@ if [ -x "$(command -v gazebo)" ]; then
 		echo "Using: ${modelpath}/${model}/${model}.sdf"
 	fi
 
+	# wait sometime so gzserver become responsive
+	sleep 3
+ 
 	while gz model --verbose --spawn-file="${modelpath}/${model}/${model_name}.sdf" --model-name=${model} -x 1.01 -y 0.98 -z 0.83 2>&1 | grep -q "An instance of Gazebo is not running."; do
 		echo "gzserver not ready yet, trying again!"
 		sleep 1
