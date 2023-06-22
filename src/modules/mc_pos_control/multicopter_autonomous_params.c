@@ -37,13 +37,13 @@
  * e.g. in Missions, RTL, Goto if the waypoint does not specify differently
  *
  * @unit m/s
- * @min 3.0
- * @max 20.0
+ * @min 3
+ * @max 20
  * @decimal 0
  * @increment 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_XY_CRUISE, 5.0f);
+PARAM_DEFINE_FLOAT(MPC_XY_CRUISE, 5.f);
 
 /**
  * Ascent velocity in autonomous modes
@@ -52,7 +52,7 @@ PARAM_DEFINE_FLOAT(MPC_XY_CRUISE, 5.0f);
  *
  * @unit m/s
  * @min 0.5
- * @max 8.0
+ * @max 8
  * @decimal 1
  * @increment 0.5
  * @group Multicopter Position Control
@@ -66,7 +66,7 @@ PARAM_DEFINE_FLOAT(MPC_Z_V_AUTO_UP, 3.f);
  *
  * @unit m/s
  * @min 0.5
- * @max 4.0
+ * @max 4
  * @decimal 1
  * @increment 0.5
  * @group Multicopter Position Control
@@ -79,13 +79,13 @@ PARAM_DEFINE_FLOAT(MPC_Z_V_AUTO_DN, 1.5f);
  * When piloting manually, this parameter is only used in MPC_POS_MODE 4.
  *
  * @unit m/s^2
- * @min 2.0
- * @max 15.0
+ * @min 2
+ * @max 15
  * @decimal 1
  * @increment 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_ACC_HOR, 3.0f);
+PARAM_DEFINE_FLOAT(MPC_ACC_HOR, 3.f);
 
 /**
  * Jerk limit in autonomous modes
@@ -94,19 +94,19 @@ PARAM_DEFINE_FLOAT(MPC_ACC_HOR, 3.0f);
  * A lower value leads to smoother vehicle motions but also limited agility.
  *
  * @unit m/s^3
- * @min 1.0
- * @max 80.0
+ * @min 1
+ * @max 80
  * @decimal 1
  * @increment 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_JERK_AUTO, 4.0f);
+PARAM_DEFINE_FLOAT(MPC_JERK_AUTO, 4.f);
 
 /**
  * Proportional gain for horizontal trajectory position error
  *
  * @min 0.1
- * @max 1.0
+ * @max 1
  * @decimal 1
  * @increment 0.1
  * @group Multicopter Position Control
@@ -125,12 +125,12 @@ PARAM_DEFINE_FLOAT(MPC_XY_TRAJ_P, 0.5f);
  * capabilities of the vehicle.
  *
  * @min 0.1
- * @max 10.0
+ * @max 10
  * @decimal 1
  * @increment 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_XY_ERR_MAX, 2.0f);
+PARAM_DEFINE_FLOAT(MPC_XY_ERR_MAX, 2.f);
 
 /**
  * Max yaw rate in autonomous modes
@@ -139,13 +139,13 @@ PARAM_DEFINE_FLOAT(MPC_XY_ERR_MAX, 2.0f);
  * control output and mixer saturation.
  *
  * @unit deg/s
- * @min 0.0
- * @max 360.0
+ * @min 0
+ * @max 360
  * @decimal 0
  * @increment 5
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MPC_YAWRAUTO_MAX, 45.0f);
+PARAM_DEFINE_FLOAT(MPC_YAWRAUTO_MAX, 45.f);
 
 /**
  * Heading behavior in autonomous modes

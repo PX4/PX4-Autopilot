@@ -58,13 +58,13 @@ PARAM_DEFINE_INT32(MPC_POS_MODE, 4);
  * using MPC_VEL_MAN_SIDE and MPC_VEL_MAN_BACK, respectively.
  *
  * @unit m/s
- * @min 3.0
- * @max 20.0
+ * @min 3
+ * @max 20
  * @increment 1
  * @decimal 0
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_VEL_MANUAL, 10.0f);
+PARAM_DEFINE_FLOAT(MPC_VEL_MANUAL, 10.f);
 
 /**
  * Maximum sideways velocity in Position mode
@@ -73,13 +73,13 @@ PARAM_DEFINE_FLOAT(MPC_VEL_MANUAL, 10.0f);
  * MPC_VEL_MANUAL then MPC_VEL_MANUAL is used.
  *
  * @unit m/s
- * @min -1.0
- * @max 20.0
+ * @min -1
+ * @max 20
  * @increment 1
  * @decimal 0
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_VEL_MAN_SIDE, -1.0f);
+PARAM_DEFINE_FLOAT(MPC_VEL_MAN_SIDE, -1.f);
 
 /**
  * Maximum backward velocity in Position mode
@@ -88,13 +88,13 @@ PARAM_DEFINE_FLOAT(MPC_VEL_MAN_SIDE, -1.0f);
  * MPC_VEL_MANUAL then MPC_VEL_MANUAL is used.
  *
  * @unit m/s
- * @min -1.0
- * @max 20.0
+ * @min -1
+ * @max 20
  * @increment 1
  * @decimal 0
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_VEL_MAN_BACK, -1.0f);
+PARAM_DEFINE_FLOAT(MPC_VEL_MAN_BACK, -1.f);
 
 /**
  * Maximum ascent velocity in manually piloted climb rate controlled modes and offboard
@@ -103,7 +103,7 @@ PARAM_DEFINE_FLOAT(MPC_VEL_MAN_BACK, -1.0f);
  *
  * @unit m/s
  * @min 0.5
- * @max 8.0
+ * @max 8
  * @increment 0.1
  * @decimal 1
  * @group Multicopter Position Control
@@ -117,7 +117,7 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_UP, 3.f);
  *
  * @unit m/s
  * @min 0.5
- * @max 4.0
+ * @max 4
  * @increment 0.1
  * @decimal 1
  * @group Multicopter Position Control
@@ -133,13 +133,13 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_DN, 1.5f);
  * 4 use MPC_ACC_HOR instead
  *
  * @unit m/s^2
- * @min 2.0
- * @max 15.0
+ * @min 2
+ * @max 15
  * @increment 1
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAX, 5.0f);
+PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAX, 5.f);
 
 /**
  * Maximum horizontal and vertical jerk in Position/Altitude mode
@@ -154,20 +154,20 @@ PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAX, 5.0f);
  *
  * @unit m/s^3
  * @min 0.5
- * @max 500.0
+ * @max 500
  * @decimal 0
  * @increment 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_JERK_MAX, 8.0f);
+PARAM_DEFINE_FLOAT(MPC_JERK_MAX, 8.f);
 
 /**
  * Deadzone for sticks in manual piloted modes
  *
  * Does not apply to manual throttle and direct attitude piloting by stick.
  *
- * @min 0.0
- * @max 1.0
+ * @min 0
+ * @max 1
  * @decimal 2
  * @increment 0.01
  * @group Multicopter Position Control
