@@ -152,8 +152,8 @@ void PositionControl::_velocityControl(const float dt)
 	_accelerationControl();
 
 	// Integrator anti-windup in vertical direction
-	if ((_thr_sp(2) >= -_lim_thr_min && vel_error(2) >= 0.0f) ||
-	    (_thr_sp(2) <= -_lim_thr_max && vel_error(2) <= 0.0f)) {
+	if ((_thr_sp(2) >= -_lim_thr_min && vel_error(2) >= 0.f) ||
+	    (_thr_sp(2) <= -_lim_thr_max && vel_error(2) <= 0.f)) {
 		vel_error(2) = 0.f;
 	}
 

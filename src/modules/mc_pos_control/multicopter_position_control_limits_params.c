@@ -38,13 +38,13 @@
  * Any higher value is truncated.
  *
  * @unit m/s
- * @min 0.0
- * @max 20.0
+ * @min 0
+ * @max 20
  * @decimal 0
  * @increment 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_XY_VEL_MAX, 12.0f);
+PARAM_DEFINE_FLOAT(MPC_XY_VEL_MAX, 12.f);
 
 /**
  * Maximum tilt angle in air
@@ -53,13 +53,13 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_MAX, 12.0f);
  * Any higher value is truncated.
  *
  * @unit deg
- * @min 20.0
- * @max 89.0
+ * @min 20
+ * @max 89
  * @decimal 0
  * @increment 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_TILTMAX_AIR, 45.0f);
+PARAM_DEFINE_FLOAT(MPC_TILTMAX_AIR, 45.f);
 
 /**
  * Maximum tilt during inital takeoff ramp
@@ -67,13 +67,13 @@ PARAM_DEFINE_FLOAT(MPC_TILTMAX_AIR, 45.0f);
  * Tighter tilt limit during takeoff to avoid tip over.
  *
  * @unit deg
- * @min 5.0
- * @max 89.0
+ * @min 5
+ * @max 89
  * @decimal 0
  * @increment 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_TILTMAX_LND, 12.0f);
+PARAM_DEFINE_FLOAT(MPC_TILTMAX_LND, 12.f);
 
 /**
  * Minimum collective thrust in climb rate controlled modes
@@ -96,10 +96,10 @@ PARAM_DEFINE_FLOAT(MPC_THR_MIN, 0.12f);
  * Limit allowed thrust e.g. for indoor test of overpowered vehicle.
  *
  * @unit norm
- * @min 0.0
- * @max 1.0
+ * @min 0
+ * @max 1
  * @decimal 2
  * @increment 0.05
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_THR_MAX, 1.0f);
+PARAM_DEFINE_FLOAT(MPC_THR_MAX, 1.f);
