@@ -222,7 +222,7 @@ def create_pdf_report(ulog: ULog, multi_instance: int, output_plot_filename: str
         data_plot = CheckFlagsPlot(
             status_flags_time, estimator_status_flags, [['reject_hor_vel', 'reject_hor_pos'], ['reject_ver_vel', 'reject_ver_pos',
                                                                                'reject_hagl'],
-                                       ['reject_mag_x', 'reject_mag_y', 'reject_mag_z',
+                                       ['fs_bad_mag_x', 'fs_bad_mag_y', 'fs_bad_mag_z',
                                         'reject_yaw'], ['reject_airspeed'], ['reject_sideslip'],
                                        ['reject_optflow_x',
                                         'reject_optflow_y']], x_label='time (sec)',
