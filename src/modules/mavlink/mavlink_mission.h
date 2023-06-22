@@ -132,6 +132,7 @@ private:
 
 	uORB::Publication<mission_s>	_offboard_mission_pub{ORB_ID(mission)};
 
+	static uint16_t		_mission_update_counter;
 	static uint16_t		_geofence_update_counter;
 	static uint16_t		_safepoint_update_counter;
 

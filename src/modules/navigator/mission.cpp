@@ -624,29 +624,31 @@ Mission::update_mission()
 			/* otherwise, just leave it */
 		}
 
-		check_mission_valid(true);
+		if (old_mission.mission_update_counter != _mission.mission_update_counter) {
+			check_mission_valid(true);
 
-		failed = !_navigator->get_mission_result()->valid;
+			failed = !_navigator->get_mission_result()->valid;
 
-		if (!failed) {
-			/* reset mission failure if we have an updated valid mission */
-			_navigator->get_mission_result()->failure = false;
+			if (!failed) {
+				/* reset mission failure if we have an updated valid mission */
+				_navigator->get_mission_result()->failure = false;
 
-			/* reset sequence info as well */
-			_navigator->get_mission_result()->seq_reached = -1;
-			_navigator->get_mission_result()->seq_total = _mission.count;
+				/* reset sequence info as well */
+				_navigator->get_mission_result()->seq_reached = -1;
+				_navigator->get_mission_result()->seq_total = _mission.count;
 
-			/* reset work item if new mission has been accepted */
-			_work_item_type = WORK_ITEM_TYPE_DEFAULT;
-			_mission_changed = true;
-		}
+				/* reset work item if new mission has been accepted */
+				_work_item_type = WORK_ITEM_TYPE_DEFAULT;
+				_mission_changed = true;
+			}
 
-		/* check if the mission waypoints changed while the vehicle is in air
-		 * TODO add a flag to mission_s which actually tracks if the position of the waypoint changed */
-		if (((_mission.count != old_mission.count) ||
-		     (_mission.dataman_id != old_mission.dataman_id)) &&
-		    !_navigator->get_land_detected()->landed) {
-			_mission_waypoints_changed = true;
+			/* check if the mission waypoints changed while the vehicle is in air
+			 * TODO add a flag to mission_s which actually tracks if the position of the waypoint changed */
+			if (((_mission.count != old_mission.count) ||
+			     (_mission.dataman_id != old_mission.dataman_id)) &&
+			    !_navigator->get_land_detected()->landed) {
+				_mission_waypoints_changed = true;
+			}
 		}
 
 	} else {

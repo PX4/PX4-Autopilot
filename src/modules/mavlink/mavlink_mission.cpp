@@ -62,6 +62,7 @@ uint16_t MavlinkMissionManager::_count[3] = { 0, 0, 0 };
 int32_t MavlinkMissionManager::_current_seq = 0;
 bool MavlinkMissionManager::_transfer_in_progress = false;
 constexpr uint16_t MavlinkMissionManager::MAX_COUNT[];
+uint16_t MavlinkMissionManager::_mission_update_counter = 0;
 uint16_t MavlinkMissionManager::_geofence_update_counter = 0;
 uint16_t MavlinkMissionManager::_safepoint_update_counter = 0;
 
@@ -146,6 +147,7 @@ MavlinkMissionManager::update_active_mission(dm_item_t dataman_id, uint16_t coun
 	mission.dataman_id = dataman_id;
 	mission.count = count;
 	mission.current_seq = seq;
+	mission.mission_update_counter = _mission_update_counter;
 	mission.geofence_update_counter = _geofence_update_counter;
 	mission.safe_points_update_counter = _safepoint_update_counter;
 
@@ -869,6 +871,8 @@ MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 				switch (_mission_type) {
 				case MAV_MISSION_TYPE_MISSION:
 
+					++_mission_update_counter;
+
 					/* alternate dataman ID anyway to let navigator know about changes */
 
 					if (_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0) {
@@ -1155,6 +1159,7 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 
 			switch (_mission_type) {
 			case MAV_MISSION_TYPE_MISSION:
+				++_mission_update_counter;
 				update_active_mission(_transfer_dataman_id, _transfer_count, _transfer_current_seq);
 				break;
 
@@ -1209,6 +1214,7 @@ MavlinkMissionManager::handle_mission_clear_all(const mavlink_message_t *msg)
 
 			switch (wpca.mission_type) {
 			case MAV_MISSION_TYPE_MISSION:
+				++_mission_update_counter;
 				update_active_mission(_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 ? DM_KEY_WAYPOINTS_OFFBOARD_1 :
 						      DM_KEY_WAYPOINTS_OFFBOARD_0, 0, 0);
 				break;
@@ -1222,6 +1228,7 @@ MavlinkMissionManager::handle_mission_clear_all(const mavlink_message_t *msg)
 				break;
 
 			case MAV_MISSION_TYPE_ALL:
+				++_mission_update_counter;
 				update_active_mission(_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 ? DM_KEY_WAYPOINTS_OFFBOARD_1 :
 						      DM_KEY_WAYPOINTS_OFFBOARD_0, 0, 0);
 				ret = update_geofence_count(0);
