@@ -39,11 +39,7 @@
 /*@}*/
 
 /* FLEXSPI memory config block related defintions */
-#if !defined(CONFIG_BOARD_BOOTLOADER_INVALID_FCB)
-#  define FLEXSPI_CFG_BLK_TAG (0x42464346UL)     // ascii "FCFB" Big Endian
-#else
-#  define FLEXSPI_CFG_BLK_TAG (0xffffffffL)     // ascii Over Writable
-#endif
+#define FLEXSPI_CFG_BLK_TAG (0x42464346UL)     // ascii "FCFB" Big Endian
 #define FLEXSPI_CFG_BLK_VERSION (0x56010400UL) // V1.4.0
 #define FLEXSPI_CFG_BLK_SIZE (512)
 
@@ -350,5 +346,7 @@ struct flexspi_nor_config_s {
 };
 
 extern const struct flexspi_nor_config_s g_flash_config;
+extern const struct flexspi_nor_config_s g_flash_fast_config;
+
 
 #endif /* __BOARDS_ARM_IMXRT_IMXRT1170_EVK_SRC_IMXRT_FLEXSPI_NOR_FLASH_H */

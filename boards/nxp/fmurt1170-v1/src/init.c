@@ -168,32 +168,16 @@ locate_code(".ramfunc")
 void imxrt_octl_flash_initialize(void)
 {
 	const uint32_t instance =  1;
-	serial_nor_config_option_t option_1_8bit = {
-		.option0.U = 0xC0403007,
-		.option1.U = 0U,
-	};
 
-	struct flexspi_nor_config_s norConfig;
+	volatile struct flexspi_nor_config_s bootConfig;
+
+	memcpy((struct flexspi_nor_config_s *)&bootConfig, &g_flash_fast_config,
+	       sizeof(struct flexspi_nor_config_s));
+	bootConfig.memConfig.tag = FLEXSPI_CFG_BLK_TAG;
 
 	ROM_API_Init();
 
-
-	int32_t status = ROM_FLEXSPI_NorFlash_GetConfig(instance, &norConfig, &option_1_8bit);
-
-	// memcpy(norConfig.memConfig.lookupTable, g_flash_config.memConfig.lookupTable,sizeof(norConfig.memConfig.lookupTable));
-
-	if (status == OK) {
-
-		norConfig.memConfig.serialClkFreq = g_flash_config.memConfig.serialClkFreq;
-		norConfig.memConfig.csHoldTime = g_flash_config.memConfig.csHoldTime;
-		norConfig.memConfig.csSetupTime = g_flash_config.memConfig.csSetupTime;
-
-		norConfig.ipcmdSerialClkFreq = g_flash_config.ipcmdSerialClkFreq;
-		norConfig.serialNorType = g_flash_config.serialNorType;
-		norConfig.reserve2[0] = g_flash_config.reserve2[0];
-
-		status = ROM_FLEXSPI_NorFlash_Init(instance, &norConfig);
-	}
+	ROM_FLEXSPI_NorFlash_Init(instance, (struct flexspi_nor_config_s *)&bootConfig);
 
 	ARM_DSB();
 	ARM_ISB();
@@ -211,17 +195,22 @@ void imxrt_flash_setup_prefetch_partition(void)
 
 	struct flexspi_type_s *g_flexspi = (struct flexspi_type_s *)IMXRT_FLEXSPIC_BASE;
 	/* RODATA */
-	g_flexspi->AHBRXBUFCR0[0] = FLEXSPI_AHBRXBUFCR0_BUFSZ(16) |
+	g_flexspi->AHBRXBUFCR0[0] = FLEXSPI_AHBRXBUFCR0_BUFSZ(128) |
 				    FLEXSPI_AHBRXBUFCR0_MSTRID(7) |
 				    FLEXSPI_AHBRXBUFCR0_PREFETCHEN(1) |
 				    FLEXSPI_AHBRXBUFCR0_REGIONEN(1);
 
 
 	/* All Text */
-	g_flexspi->AHBRXBUFCR0[1] = FLEXSPI_AHBRXBUFCR0_BUFSZ(48) |
+	g_flexspi->AHBRXBUFCR0[1] = FLEXSPI_AHBRXBUFCR0_BUFSZ(380) |
 				    FLEXSPI_AHBRXBUFCR0_MSTRID(7) |
 				    FLEXSPI_AHBRXBUFCR0_PREFETCHEN(1) |
 				    FLEXSPI_AHBRXBUFCR0_REGIONEN(1);
+	/* Reset CR7 from rom init */
+	g_flexspi->AHBRXBUFCR0[7] = FLEXSPI_AHBRXBUFCR0_BUFSZ(0) |
+				    FLEXSPI_AHBRXBUFCR0_MSTRID(0) |
+				    FLEXSPI_AHBRXBUFCR0_PREFETCHEN(1) |
+				    FLEXSPI_AHBRXBUFCR0_REGIONEN(0);
 
 	ARM_DSB();
 	ARM_ISB();
