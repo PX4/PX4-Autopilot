@@ -47,6 +47,40 @@
 PARAM_DEFINE_FLOAT(MPC_XY_VEL_MAX, 12.f);
 
 /**
+ * Maximum ascent velocity
+ *
+ * Absolute maximum for all climb rate controlled modes.
+ * In manually piloted modes full stick deflection commands this velocity.
+ *
+ * For default autonomous velocity see MPC_Z_V_AUTO_UP
+ *
+ * @unit m/s
+ * @min 0.5
+ * @max 8
+ * @increment 0.1
+ * @decimal 1
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_UP, 3.f);
+
+/**
+ * Maximum descent velocity
+ *
+ * Absolute maximum for all climb rate controlled modes.
+ * In manually piloted modes full stick deflection commands this velocity.
+ *
+ * For default autonomous velocity see MPC_Z_V_AUTO_UP
+ *
+ * @unit m/s
+ * @min 0.5
+ * @max 4
+ * @increment 0.1
+ * @decimal 1
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_DN, 1.5f);
+
+/**
  * Maximum tilt angle in air
  *
  * Absolute maximum for all velocity or acceleration controlled modes.
