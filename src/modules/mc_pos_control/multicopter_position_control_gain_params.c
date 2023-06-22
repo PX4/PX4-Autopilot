@@ -38,7 +38,7 @@
  *
  * @min 0.1
  * @max 1.5
- * @decimal 1
+ * @decimal 2
  * @increment 0.1
  * @group Multicopter Position Control
  */
@@ -51,7 +51,7 @@ PARAM_DEFINE_FLOAT(MPC_Z_P, 1.f);
  *
  * @min 0
  * @max 2
- * @decimal 1
+ * @decimal 2
  * @increment 0.1
  * @group Multicopter Position Control
  */
@@ -64,7 +64,7 @@ PARAM_DEFINE_FLOAT(MPC_XY_P, 0.95f);
  *
  * @min 2
  * @max 15
- * @decimal 1
+ * @decimal 2
  * @increment 0.1
  * @group Multicopter Position Control
  */
@@ -77,7 +77,7 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_P_ACC, 4.f);
  *
  * @min 1.2
  * @max 5
- * @decimal 1
+ * @decimal 2
  * @increment 0.1
  * @group Multicopter Position Control
  */
@@ -90,7 +90,7 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_P_ACC, 1.8f);
  *
  * @min 0.2
  * @max 3
- * @decimal 1
+ * @decimal 2
  * @increment 0.1
  * @group Multicopter Position Control
  */

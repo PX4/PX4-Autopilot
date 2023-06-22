@@ -61,7 +61,7 @@ PARAM_DEFINE_INT32(MPC_POS_MODE, 4);
  * @min 3
  * @max 20
  * @increment 1
- * @decimal 0
+ * @decimal 1
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_VEL_MANUAL, 10.f);
@@ -76,7 +76,7 @@ PARAM_DEFINE_FLOAT(MPC_VEL_MANUAL, 10.f);
  * @min -1
  * @max 20
  * @increment 1
- * @decimal 0
+ * @decimal 1
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_VEL_MAN_SIDE, -1.f);
@@ -91,7 +91,7 @@ PARAM_DEFINE_FLOAT(MPC_VEL_MAN_SIDE, -1.f);
  * @min -1
  * @max 20
  * @increment 1
- * @decimal 0
+ * @decimal 1
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_VEL_MAN_BACK, -1.f);
@@ -130,7 +130,7 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_DN, 1.5f);
  * MPC_POS_MODE
  * 1 just deceleration
  * 3 acceleration and deceleration
- * 4 use MPC_ACC_HOR instead
+ * 4 not used, use MPC_ACC_HOR instead
  *
  * @unit m/s^2
  * @min 2
