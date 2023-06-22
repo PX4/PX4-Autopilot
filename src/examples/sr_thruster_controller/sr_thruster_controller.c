@@ -54,7 +54,11 @@
 #include <uORB/topics/log_message.h>
 #include <uORB/topics/actuator_motors.h>
 
-
+/**
+ * SR thruster controller app start / stop handling function
+ *
+ * @ingroup apps
+ */
 __EXPORT int sr_thruster_controller_main(int argc, char *argv[]);
 
 void delay(unsigned int milliseconds) {
@@ -73,16 +77,28 @@ int sr_thruster_controller_main(int argc, char *argv[])
 	memset(&actuator_motors_msg, 0, sizeof(actuator_motors_msg));
     orb_advert_t _actuator_motors_pub = orb_advertise(ORB_ID(actuator_motors), &actuator_motors_msg);
 
-    float values[] = {1,  0,  0,  0,  0,  0,  0,  0, NAN, NAN, NAN, NAN};
-    memcpy(actuator_motors_msg.control, values, sizeof(values));
-
+    /* Testing */
+    for (int i = 0; i < 8; i++)
+    {
+        actuator_motors_msg.control[i] = 1;
+    }
+    for (int i = 8; i < 12; i++)
+    {
+        actuator_motors_msg.control[i] = NAN;
+    }
     PX4_INFO("Sending control signal to PWM!");
     for (int i = 0; i < 5000/2.5; i++)
     {
-        PX4_INFO("Message #%d\n", i);
+        PX4_INFO("Message #%d", i);
         orb_publish(ORB_ID(actuator_motors), _actuator_motors_pub, &actuator_motors_msg);
         delay(2.5);
     }
+    for (int i = 0; i < 8; i++)
+    {
+        actuator_motors_msg.control[i] = 0;
+    }
+    orb_publish(ORB_ID(actuator_motors), _actuator_motors_pub, &actuator_motors_msg);
+    PX4_INFO("Turning off PWM");
 
     // PX4_INFO("Testing GPIO");
     // PX4_INFO("Setting GPIO 0 to high");
@@ -90,73 +106,83 @@ int sr_thruster_controller_main(int argc, char *argv[])
     // px4_arch_gpiowrite(GPIO_GPIO0_OUTPUT, 1);
     // PX4_INFO("Done");
 
-    // int sensor_sub_fd = orb_subscribe(ORB_ID(sensor_combined));
-    // /* limit the update rate to 1 Hz */
-	// orb_set_interval(sensor_sub_fd, 1000);
+    //int sensor_sub_fd = orb_subscribe(ORB_ID(sensor_combined));
+    /* limit the update rate to 1 Hz */
+	//orb_set_interval(sensor_sub_fd, 1000);
 
 	// PX4_INFO("orb_sensor_sub created");
 
-    // int thrustercmd_sub_fd = orb_subscribe(ORB_ID(thruster_command));
-    // /* limit the update rate to 1 Hz */
-	// orb_set_interval(thrustercmd_sub_fd, 1000);
+    int thrustercmd_sub_fd = orb_subscribe(ORB_ID(thruster_command));
+    /* limit the update rate to 10 Hz */
+	orb_set_interval(thrustercmd_sub_fd, 100);
 
-	// PX4_INFO("Subscriber to thruster command created");
+	PX4_INFO("Subscriber to thruster command created");
 
 
-    // /* Log message pub topic */
+    /* Log message pub topic */
 	// struct log_message_s log_msg;
 	// memset(&log_msg, 0, sizeof(log_msg));
 	// // orb_advert_t log_msg_pub_fd = orb_advertise(ORB_ID(log_message), &log_msg);
     // PX4_INFO("Publisher of log messages created");
 
-	// /* one could wait for multiple topics with this technique, just using one here */
-	// px4_pollfd_struct_t fds[] = {
-	// 	{ .fd = thrustercmd_sub_fd,   .events = POLLIN },
-	// };
+	/* one could wait for multiple topics with this technique, just using one here */
+	px4_pollfd_struct_t fds[] = {
+		{ .fd = thrustercmd_sub_fd,   .events = POLLIN },
+	};
 
-    // int error_counter = 0;
+    int error_counter = 0;
 
-	// // for (int i = 0; i < 100; i++) {
-    // while (false) {
-	// 	/* wait for sensor update of 1 file descriptor for 1000 ms (1 second) */
-	// 	int poll_ret = px4_poll(fds, 1, 5000);
+	// for (int i = 0; i < 100; i++) {
+    while (true) {
+		/* wait for sensor update of 1 file descriptor for 10 s (10 second) */
+		int poll_ret = px4_poll(fds, 1, 10000);
 
-	// 	/* handle the poll result */
-	// 	if (poll_ret == 0) {
-	// 		/* this means none of our providers is giving us data */
-	// 		PX4_INFO("Got no data within a second");
+		/* handle the poll result */
+		if (poll_ret == 0) {
+			/* this means none of our providers is giving us data */
+			PX4_INFO("Got no data within a second");
 
-    //     	} else if (poll_ret < 0) {
-	// 		/* this is seriously bad - should be an emergency */
-	// 		if (error_counter < 10 || error_counter % 50 == 0) {
-	// 			/* use a counter to prevent flooding (and slowing us down) */
-	// 			PX4_ERR("ERROR return value from poll(): %d", poll_ret);
-	// 		}
+        	} else if (poll_ret < 0) {
+			/* this is seriously bad - should be an emergency */
+			if (error_counter < 10 || error_counter % 50 == 0) {
+				/* use a counter to prevent flooding (and slowing us down) */
+				PX4_ERR("ERROR return value from poll(): %d", poll_ret);
+			}
 
-	// 		error_counter++;
+			error_counter++;
 
-	// 	} else {
-	// 		if (fds[0].revents & POLLIN) {
-    //             /* obtained data for the first file descriptor */
-	// 			struct thruster_command_s raw;
-	// 			/* copy sensors raw data into local buffer */
-	// 			orb_copy(ORB_ID(thruster_command), thrustercmd_sub_fd, &raw);
-	// 			PX4_INFO("x1: %8.4f\t x2: %8.4f\t y1: %8.4f\t y2: %8.4f",
-	// 				(double)raw.x1,
-	// 				(double)raw.x2,
-    //                 (double)raw.y1,
-    //                 (double)raw.y2);
+		} else {
+			if (fds[0].revents & POLLIN) {
+                /* obtained data for the first file descriptor */
+				struct thruster_command_s thruster_cmd;
+				/* copy sensors raw data into local buffer */
+				orb_copy(ORB_ID(thruster_command), thrustercmd_sub_fd, &thruster_cmd);
+				PX4_INFO("x1: %8.4f\t x2: %8.4f\t y1: %8.4f\t y2: %8.4f",
+					(double)thruster_cmd.x1,
+					(double)thruster_cmd.x2,
+                    (double)thruster_cmd.y1,
+                    (double)thruster_cmd.y2);
 
+                    actuator_motors_msg.control[0] = thruster_cmd.x1 > 0 ? thruster_cmd.x1 : 0;
+                    actuator_motors_msg.control[1] = thruster_cmd.x1 < 0 ? -thruster_cmd.x1 : 0;
+                    actuator_motors_msg.control[2] = thruster_cmd.x2 > 0 ? thruster_cmd.x2 : 0;
+                    actuator_motors_msg.control[3] = thruster_cmd.x2 < 0 ? -thruster_cmd.x2 : 0;
+                    actuator_motors_msg.control[4] = thruster_cmd.y1 > 0 ? thruster_cmd.y1 : 0;
+                    actuator_motors_msg.control[5] = thruster_cmd.y1 < 0 ? -thruster_cmd.y1 : 0;
+                    actuator_motors_msg.control[6] = thruster_cmd.y2 > 0 ? thruster_cmd.y2 : 0;
+                    actuator_motors_msg.control[7] = thruster_cmd.y2 < 0 ? -thruster_cmd.y2 : 0;
 
-    //             /* set att and publish this information for other apps
-	// 			the following does not have any meaning, it's just an example
-	// 			*/
-    //             // strcpy(log_msg.text, "New thruster command received!");
+                    orb_publish(ORB_ID(actuator_motors), _actuator_motors_pub, &actuator_motors_msg);
 
-	// 			// orb_publish(ORB_ID(log_message), log_msg_pub_fd, &log_msg);
-	// 		}
-	// 	}
-	// }
+                /* set att and publish this information for other apps
+				the following does not have any meaning, it's just an example
+				*/
+                // strcpy(log_msg.text, "New thruster command received!");
+
+				// orb_publish(ORB_ID(log_message), log_msg_pub_fd, &log_msg);
+			}
+		}
+	}
 
 	return OK;
 }

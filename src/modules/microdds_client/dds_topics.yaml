@@ -47,6 +47,9 @@ publications:
   - topic: /fmu/out/actuator_motors
     type: px4_msgs::msg::ActuatorMotors
 
+  - topic: /fmu/out/log_message
+    type: px4_msgs::msg::LogMessage
+
 subscriptions:
 
   - topic: /fmu/in/offboard_control_mode
@@ -90,3 +93,6 @@ subscriptions:
 
   - topic: /fmu/in/actuator_motors
     type: px4_msgs::msg::ActuatorMotors
+
+  - topic: /fmu/in/thruster_command
+    type: px4_msgs::msg::ThrusterCommand

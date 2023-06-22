@@ -34,3 +34,11 @@ ekf2 start &
 #commander arm -f
 
 #control_allocator stop
+
+microdds_client start -h 192.168.0.1
+
+###############################################################################
+#                             Thruster Controller                             #
+###############################################################################
+
+sr_thruster_controller

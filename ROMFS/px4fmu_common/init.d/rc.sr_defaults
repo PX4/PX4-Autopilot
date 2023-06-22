@@ -8,9 +8,19 @@
 set VEHICLE_TYPE sr
 
 # MAV_TYPE_QUADROTOR 2
-param set-default MAV_TYPE 12
+#param set-default MAV_TYPE 12
 
 # Disable preflight disarm to not interfere with external launching
-# param set-default COM_DISARM_PRFLT -1
+param set-default COM_DISARM_PRFLT -1
 
-# param set-default CP_DIST -1
+param set-default XRCE_DDS_0_CFG 1000
+param set-default CP_DIST -1
+
+param set-default CBRK_AIRSPD_CHK 162128
+param set-default CBRK_SUPPLY_CHK 894281
+param set-default COM_ARM_ARSP_EN 0
+param set-default COM_ARM_HFLT_CHK 0
+param set-default COM_FLTMODE 0
+param set-default COM_FLTMODE 7
+param set-default COM_FLTMODE 2
+param set-default MAN_ARM_GESTURE 0
