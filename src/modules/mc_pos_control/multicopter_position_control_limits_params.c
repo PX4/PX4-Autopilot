@@ -40,7 +40,7 @@
  * @unit m/s
  * @min 0
  * @max 20
- * @decimal 0
+ * @decimal 1
  * @increment 1
  * @group Multicopter Position Control
  */
@@ -79,7 +79,8 @@ PARAM_DEFINE_FLOAT(MPC_TILTMAX_LND, 12.f);
  * Minimum collective thrust in climb rate controlled modes
  *
  * Too low thrust leads to loss of roll/pitch/yaw torque control authority.
- * Airmode is used to keep torque authority even with zero thrust (see MC_AIRMODE).
+ * With airmode enabled this parameters can be set to 0
+ * while still keeping torque authority (see MC_AIRMODE).
  *
  * @unit norm
  * @min 0.05
