@@ -90,6 +90,7 @@ private:
 
 	float median(float x, float y, float z);
 	size_t find_median_index(float x, float y, float z);
+	int32_t sum(const int16_t samples[], uint8_t len);
 
 	void check_newest_timestamp_and_register_callback(sensor_gyro_fifo_s *sensor_gyro_fifo,
 			sensor_accel_fifo_s *sensor_accel_fifo);

@@ -393,103 +393,175 @@ void VirtualIMU::Run()
 // 	}
 // }
 
+// void VirtualIMU::process_gyro()
+// {
+// 	gyroFIFOSample gyro_fifo_sample[MAX_SENSOR_COUNT];
+
+// 	sensor_gyro_fifo_s sensor_gyro_fifo_median{};
+// 	Vector3f gyro_data_median[32] {};
+
+// 	sensor_gyro_fifo_median.samples = 0;
+// 	sensor_gyro_fifo_median.scale = 0.0f;
+// 	sensor_gyro_fifo_median.dt = 0.0f;
+
+// 	uint64_t now = hrt_absolute_time();
+
+// 	for (uint64_t time = _last_gyro_timestamp + _median_gyro_dt_us; time < now; time += _median_gyro_dt_us) {
+
+// 		bool gyro_data_available = false;
+
+// 		for (size_t i = 0; i < MAX_SENSOR_COUNT; i++) {
+// 			gyro_data_available = _gyro_fifo_buffer[i].pop_oldest(time - _median_gyro_dt_us / 2, time + _median_gyro_dt_us / 2,
+// 					      &gyro_fifo_sample[i]);
+// 		}
+
+// 		if (gyro_data_available)  {
+// 			sensor_gyro_fifo_median.timestamp_sample = 0;
+
+// 			for (size_t i = 0; i < MAX_SENSOR_COUNT; i++) {
+// 				if (gyro_fifo_sample[i].time_us > sensor_gyro_fifo_median.timestamp_sample) {
+// 					sensor_gyro_fifo_median.timestamp_sample = gyro_fifo_sample[i].time_us;
+// 				}
+// 			}
+
+// 			float x_median = 0.f;
+// 			float y_median = 0.f;
+// 			float z_median = 0.f;
+
+// 			float median_scale = 0.f;
+
+// 			if (_param_virtual_imu_median.get() == 1) {
+// 				// Find the median of each fifo datapoint
+// 				x_median = median(gyro_fifo_sample[0].data[0] * gyro_fifo_sample[0].scale,
+// 						  gyro_fifo_sample[1].data[0] * gyro_fifo_sample[1].scale, gyro_fifo_sample[2].data[0] * gyro_fifo_sample[2].scale);
+
+// 				y_median = median(gyro_fifo_sample[0].data[1] * gyro_fifo_sample[0].scale,
+// 						  gyro_fifo_sample[1].data[1] * gyro_fifo_sample[1].scale, gyro_fifo_sample[2].data[1] * gyro_fifo_sample[2].scale);
+
+// 				z_median = median(gyro_fifo_sample[0].data[2] * gyro_fifo_sample[0].scale,
+// 						  gyro_fifo_sample[1].data[2] * gyro_fifo_sample[1].scale, gyro_fifo_sample[2].data[2] * gyro_fifo_sample[2].scale);
+
+// 				// Average the dt and the highest scale value
+// 				float dt_sum = 0.0f;
+
+// 				for (size_t i = 0; i < MAX_SENSOR_COUNT; i++) {
+// 					dt_sum = dt_sum + gyro_fifo_sample[i].dt;
+
+// 					if (gyro_fifo_sample[i].scale > median_scale) {
+// 						median_scale = gyro_fifo_sample[i].scale;
+// 					}
+// 				}
+
+// 				dt_sum = dt_sum / MAX_SENSOR_COUNT;
+// 				sensor_gyro_fifo_median.dt = sensor_gyro_fifo_median.dt + dt_sum;
+
+// 			} else {
+// 				// Calculate the magnitude of each vector and find the index of the median
+// 				float magnitude[MAX_SENSOR_COUNT];
+
+// 				for (size_t i = 0; i < MAX_SENSOR_COUNT; i++) {
+// 					float x = gyro_fifo_sample[i].data[0] * gyro_fifo_sample[i].scale;
+// 					float y = gyro_fifo_sample[i].data[1] * gyro_fifo_sample[i].scale;
+// 					float z = gyro_fifo_sample[i].data[2] * gyro_fifo_sample[i].scale;
+// 					magnitude[i] = sqrtf(x * x + y * y + z * z);
+// 				}
+
+// 				size_t median_index = find_median_index(magnitude[0], magnitude[1], magnitude[2]);
+
+// 				x_median = gyro_fifo_sample[median_index].data[0] * gyro_fifo_sample[median_index].scale;
+// 				y_median = gyro_fifo_sample[median_index].data[1] * gyro_fifo_sample[median_index].scale;
+// 				z_median = gyro_fifo_sample[median_index].data[2] * gyro_fifo_sample[median_index].scale;
+
+// 				median_scale = gyro_fifo_sample[median_index].scale;
+// 				sensor_gyro_fifo_median.dt = sensor_gyro_fifo_median.dt + gyro_fifo_sample[median_index].dt;
+// 			}
+
+// 			// Keep track of the highest scale value
+// 			if (median_scale > sensor_gyro_fifo_median.scale) {
+// 				sensor_gyro_fifo_median.scale = median_scale;
+// 			}
+
+// 			// Fill the temporary buffer will adjust for the largest scale later
+// 			gyro_data_median[sensor_gyro_fifo_median.samples](0) = x_median;
+// 			gyro_data_median[sensor_gyro_fifo_median.samples](1) = y_median;
+// 			gyro_data_median[sensor_gyro_fifo_median.samples](2) = z_median;
+
+// 			sensor_gyro_fifo_median.samples++;
+
+// 			if (sensor_gyro_fifo_median.samples == 32) {
+// 				break;
+// 			}
+// 		}
+// 	}
+
+// 	if (sensor_gyro_fifo_median.samples > 0) {
+
+// 		for (size_t i = 0; i < sensor_gyro_fifo_median.samples; i++) {
+// 			sensor_gyro_fifo_median.x[i] = (int16_t)(gyro_data_median[i](0) / sensor_gyro_fifo_median.scale);
+// 			sensor_gyro_fifo_median.y[i] = (int16_t)(gyro_data_median[i](1) / sensor_gyro_fifo_median.scale);
+// 			sensor_gyro_fifo_median.z[i] = (int16_t)(gyro_data_median[i](2) / sensor_gyro_fifo_median.scale);
+// 		}
+
+// 		_px4_gyro.set_scale(sensor_gyro_fifo_median.scale);
+
+// 		sensor_gyro_fifo_median.dt = sensor_gyro_fifo_median.dt / sensor_gyro_fifo_median.samples;
+// 		sensor_gyro_fifo_median.device_id = _gyro_device_id;
+// 		sensor_gyro_fifo_median.timestamp = hrt_absolute_time();
+
+// 		_px4_gyro.updateFIFO(sensor_gyro_fifo_median);
+
+// 		_median_gyro_dt_us = (uint16_t)sensor_gyro_fifo_median.dt;
+// 		_last_gyro_timestamp = sensor_gyro_fifo_median.timestamp_sample;
+// 	}
+// }
+
 void VirtualIMU::process_gyro()
 {
 	gyroFIFOSample gyro_fifo_sample[MAX_SENSOR_COUNT];
 
-	sensor_gyro_fifo_s sensor_gyro_fifo_median{};
-	Vector3f gyro_data_median[32] {};
+	gyroFIFOSample gyro_fifos_aligned[MAX_SENSOR_COUNT][32];
 
-	sensor_gyro_fifo_median.samples = 0;
-	sensor_gyro_fifo_median.scale = 0.0f;
-	sensor_gyro_fifo_median.dt = 0.0f;
+	sensor_gyro_s sensor_gyro[MAX_SENSOR_COUNT] {};
+
+	sensor_gyro_s sensor_gyro_median {};
 
 	uint64_t now = hrt_absolute_time();
 
+	// Align the FIFOs then calculate then do trapezoidal integration (equally spaced) and median select
 	for (uint64_t time = _last_gyro_timestamp + _median_gyro_dt_us; time < now; time += _median_gyro_dt_us) {
 
-		bool gyro_data_available = false;
+		uint8_t samples = 0;
 
-		for (size_t i = 0; i < MAX_SENSOR_COUNT; i++) {
-			gyro_data_available = _gyro_fifo_buffer[i].pop_oldest(time - _median_gyro_dt_us / 2, time + _median_gyro_dt_us / 2,
-					      &gyro_fifo_sample[i]);
-		}
-
-		if (gyro_data_available)  {
-			sensor_gyro_fifo_median.timestamp_sample = 0;
+		for (size_t i = 0; i < 32; i++) {
+			bool gyro_data_available = false;
 
 			for (size_t i = 0; i < MAX_SENSOR_COUNT; i++) {
-				if (gyro_fifo_sample[i].time_us > sensor_gyro_fifo_median.timestamp_sample) {
-					sensor_gyro_fifo_median.timestamp_sample = gyro_fifo_sample[i].time_us;
-				}
+				gyro_data_available = _gyro_fifo_buffer[i].pop_oldest(time - _median_gyro_dt_us / 2, time + _median_gyro_dt_us / 2,
+						&gyro_fifo_sample[i]);
 			}
 
-			float x_median = 0.f;
-			float y_median = 0.f;
-			float z_median = 0.f;
-
-			float median_scale = 0.f;
-
-			if (_param_virtual_imu_median.get() == 1) {
-				// Find the median of each fifo datapoint
-				x_median = median(gyro_fifo_sample[0].data[0] * gyro_fifo_sample[0].scale,
-						  gyro_fifo_sample[1].data[0] * gyro_fifo_sample[1].scale, gyro_fifo_sample[2].data[0] * gyro_fifo_sample[2].scale);
-
-				y_median = median(gyro_fifo_sample[0].data[1] * gyro_fifo_sample[0].scale,
-						  gyro_fifo_sample[1].data[1] * gyro_fifo_sample[1].scale, gyro_fifo_sample[2].data[1] * gyro_fifo_sample[2].scale);
-
-				z_median = median(gyro_fifo_sample[0].data[2] * gyro_fifo_sample[0].scale,
-						  gyro_fifo_sample[1].data[2] * gyro_fifo_sample[1].scale, gyro_fifo_sample[2].data[2] * gyro_fifo_sample[2].scale);
-
-				// Average the dt and the highest scale value
-				float dt_sum = 0.0f;
-
+			if (gyro_data_available) {
 				for (size_t i = 0; i < MAX_SENSOR_COUNT; i++) {
-					dt_sum = dt_sum + gyro_fifo_sample[i].dt;
-
-					if (gyro_fifo_sample[i].scale > median_scale) {
-						median_scale = gyro_fifo_sample[i].scale;
-					}
+					gyro_fifos_aligned[i][samples] = gyro_fifo_sample[i];
 				}
-
-				dt_sum = dt_sum / MAX_SENSOR_COUNT;
-				sensor_gyro_fifo_median.dt = sensor_gyro_fifo_median.dt + dt_sum;
-
+				samples++;
 			} else {
-				// Calculate the magnitude of each vector and find the index of the median
-				float magnitude[MAX_SENSOR_COUNT];
-
-				for (size_t i = 0; i < MAX_SENSOR_COUNT; i++) {
-					float x = gyro_fifo_sample[i].data[0] * gyro_fifo_sample[i].scale;
-					float y = gyro_fifo_sample[i].data[1] * gyro_fifo_sample[i].scale;
-					float z = gyro_fifo_sample[i].data[2] * gyro_fifo_sample[i].scale;
-					magnitude[i] = sqrtf(x * x + y * y + z * z);
-				}
-
-				size_t median_index = find_median_index(magnitude[0], magnitude[1], magnitude[2]);
-
-				x_median = gyro_fifo_sample[median_index].data[0] * gyro_fifo_sample[median_index].scale;
-				y_median = gyro_fifo_sample[median_index].data[1] * gyro_fifo_sample[median_index].scale;
-				z_median = gyro_fifo_sample[median_index].data[2] * gyro_fifo_sample[median_index].scale;
-
-				median_scale = gyro_fifo_sample[median_index].scale;
-				sensor_gyro_fifo_median.dt = sensor_gyro_fifo_median.dt + gyro_fifo_sample[median_index].dt;
-			}
-
-			// Keep track of the highest scale value
-			if (median_scale > sensor_gyro_fifo_median.scale) {
-				sensor_gyro_fifo_median.scale = median_scale;
-			}
-
-			// Fill the temporary buffer will adjust for the largest scale later
-			gyro_data_median[sensor_gyro_fifo_median.samples](0) = x_median;
-			gyro_data_median[sensor_gyro_fifo_median.samples](1) = y_median;
-			gyro_data_median[sensor_gyro_fifo_median.samples](2) = z_median;
-
-			sensor_gyro_fifo_median.samples++;
-
-			if (sensor_gyro_fifo_median.samples == 32) {
 				break;
+			}
+		}
+
+		// Perform trapezoidal integration
+		if (samples > 0)  {
+			for (size_t i = 0; i < MAX_SENSOR_COUNT; i++) {
+				// trapezoidal integration (equally spaced)
+				const float scale = _scale / (float)N;
+				sensor_gyro[i].x = (0.5f * (_last_sample[0] + sample.x[N - 1]) + sum(sample.x, N - 1)) * scale;
+				sensor_gyro[i].y = (0.5f * (_last_sample[1] + sample.y[N - 1]) + sum(sample.y, N - 1)) * scale;
+				sensor_gyro[i].z = (0.5f * (_last_sample[2] + sample.z[N - 1]) + sum(sample.z, N - 1)) * scale;
+
+				_last_sample[0] = sample.x[N - 1];
+				_last_sample[1] = sample.y[N - 1];
+				_last_sample[2] = sample.z[N - 1];
 			}
 		}
 	}
@@ -817,6 +889,17 @@ size_t VirtualIMU::find_median_index(float x, float y, float z)
 			return 1;
 		}
 	}
+}
+
+int32_t VirtualIMU::sum(const int16_t samples[], uint8_t len)
+{
+	int32_t sum = 0;
+
+	for (int n = 0; n < len; n++) {
+		sum += samples[n];
+	}
+
+	return sum;
 }
 
 void VirtualIMU::check_newest_timestamp_and_register_callback(sensor_gyro_fifo_s *sensor_gyro_fifo,
