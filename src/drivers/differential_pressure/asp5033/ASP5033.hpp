@@ -72,10 +72,14 @@ static constexpr uint8_t I2C_ADDRESS_DEFAULT = 0x6D; /* 0x6D 0xE4 */
 static constexpr uint32_t I2C_SPEED = 100 * 1000; // 100 kHz I2C serial interface
 
 
-#define REG_CMD_ASP5033  0x30;
-#define REG_PRESS_DATA_ASP5033 0X06
-#define REG_TEMP_DATA_ASP5033 0X09
-#define CMD_MEASURE_ASP5033 0X0A
+#define REG_CMD_ASP5033                0x30
+#define REG_PRESS_DATA_ASP5033         0X06
+#define REG_TEMP_DATA_ASP5033          0X09
+#define CMD_MEASURE_ASP5033            0X0A
+#define REG_WHOAMI_DEFAULT_ID_ASP5033  0X00
+#define REG_WHOAMI_RECHECK_ID_ASP5033  0X66
+#define REG_ID_ASP5033                 0x01
+#define REG_ID_SET_ASP5033             0xa4
 
 using namespace time_literals;
 
@@ -111,6 +115,7 @@ private:
 
 	int measure();
 	int collect();
+	int sensor_id_check();
 
 	bool get_differential_pressure();
 	hrt_abstime last_sample_time = hrt_absolute_time();

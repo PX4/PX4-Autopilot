@@ -58,9 +58,31 @@ ASP5033::~ASP5033()
 
 int ASP5033::probe()
 {
-	_retries = 1;
-	int ret = measure();
+	int ret = sensor_id_check();
 	return ret;
+}
+
+int ASP5033::sensor_id_check()
+{
+	uint8_t id[1];
+	uint8_t cmd_1 = REG_ID_SET_ASP5033;
+	uint8_t cmd_2 = REG_WHOAMI_RECHECK_ID_ASP5033;
+	uint8_t cmd_3 = REG_ID_ASP5033;
+	uint8_t cmd_1_2[2];
+	cmd_1_2[0] = static_cast<uint8_t>(cmd_1);
+	cmd_1_2[1] = static_cast<uint8_t>(cmd_2);
+
+
+	if ((transfer(&cmd_1, 1, &id[0], sizeof(id)) != PX4_OK) || (*id != REG_WHOAMI_DEFAULT_ID_ASP5033)) { return 0; }
+
+	if (transfer(&cmd_1_2[0], 2, nullptr, 0) != PX4_OK) { return 0; }
+
+	if ((transfer(&cmd_3, 1, &id[0], sizeof(id)) != PX4_OK) || (*id != REG_WHOAMI_RECHECK_ID_ASP5033)) { return 0; }
+
+	return 1;
+
+
+
 }
 
 int ASP5033::init()
