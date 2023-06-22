@@ -175,6 +175,7 @@ protected:
 					_param_mpc_land_alt2, // altitude at which we descend at land speed
 					(ParamFloat<px4::params::MPC_LAND_ALT3>)
 					_param_mpc_land_alt3, // altitude where we switch to crawl speed, if LIDAR available
+					(ParamInt<px4::params::MPC_LAND_MODE>) _param_mpc_land_mode,
 					(ParamFloat<px4::params::MPC_Z_V_AUTO_UP>) _param_mpc_z_v_auto_up,
 					(ParamFloat<px4::params::MPC_Z_V_AUTO_DN>) _param_mpc_z_v_auto_dn,
 					(ParamFloat<px4::params::MPC_TKO_SPEED>) _param_mpc_tko_speed,

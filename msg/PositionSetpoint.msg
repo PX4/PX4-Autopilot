@@ -6,7 +6,7 @@ uint8 SETPOINT_TYPE_POSITION=0	# position setpoint
 uint8 SETPOINT_TYPE_VELOCITY=1	# velocity setpoint
 uint8 SETPOINT_TYPE_LOITER=2	# loiter setpoint
 uint8 SETPOINT_TYPE_TAKEOFF=3	# takeoff setpoint
-uint8 SETPOINT_TYPE_LAND=4	# land setpoint, altitude must be ignored, descend until landing
+uint8 SETPOINT_TYPE_LAND=4	# land setpoint, altitude must be set to ground level if known, NAN if not, descend until landing
 uint8 SETPOINT_TYPE_IDLE=5	# do nothing, switch off motors or keep at idle speed (MC)
 
 bool valid			# true if setpoint is valid

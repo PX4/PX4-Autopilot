@@ -233,12 +233,39 @@ void FlightTaskAuto::_prepareLandSetpoints()
 {
 	_velocity_setpoint.setNaN(); // Don't take over any smoothed velocity setpoint
 
-	// Slow down automatic descend close to ground
-	float vertical_speed = math::interpolate(_dist_to_ground,
-			       _param_mpc_land_alt2.get(), _param_mpc_land_alt1.get(),
-			       _param_mpc_land_speed.get(), _param_mpc_z_vel_max_dn.get());
+	// Use _dist_to_ground as default, this is either
+	// 1) Range sensor measurement if available
+	// 2) Distance above home if valid
+	// 3) Current altitude if no valid home
+	float dist_above_land = NAN;
 
 	bool range_dist_available = PX4_ISFINITE(_dist_to_bottom);
+
+	if (range_dist_available) {
+		// Always use range sensor distance to ground if available
+		dist_above_land = _dist_to_bottom;
+
+	} else if (PX4_ISFINITE(_sub_triplet_setpoint.get().current.alt) && PX4_ISFINITE(_reference_altitude)) {
+		// else get distance to ground from land altitude setpoint if it is valid
+		dist_above_land = (_reference_altitude - _position(2)) - _sub_triplet_setpoint.get().current.alt;
+
+	} else if (_param_mpc_land_mode.get() == 0) {
+		// Assume home altitude, which is used for _dist_to_ground
+		dist_above_land = _dist_to_ground;
+	}  // else NAN
+
+	float vertical_speed = _param_mpc_land_speed.get();  // default
+
+	if (PX4_ISFINITE(dist_above_land)) {
+		// Slow down automatic descend close to ground
+		vertical_speed = math::interpolate(dist_above_land,
+						   _param_mpc_land_alt2.get(), _param_mpc_land_alt1.get(),
+						   _param_mpc_land_speed.get(), _param_mpc_z_v_auto_dn.get());
+
+	} else if (_param_mpc_land_mode.get() == 2) {
+		vertical_speed = _param_mpc_z_v_auto_dn.get();
+
+	}  // else _param_mpc_land_mode.get() == 1 use default _param_mpc_land_speed.get()
 
 	if (range_dist_available && _dist_to_bottom <= _param_mpc_land_alt3.get()) {
 		vertical_speed = _param_mpc_land_crawl_speed.get();
@@ -350,9 +377,12 @@ bool FlightTaskAuto::_evaluateTriplets()
 	// such as land and takeoff. The navigator should use for auto takeoff/land with flow the position in xy at the moment the
 	// takeoff/land was initiated. Until then we do this kind of logic here.
 
-	// Check if triplet is valid. There must be at least a valid altitude.
+	// Check if triplet is valid. There must be at least a valid altitude, except for a land SP, that can be nan
 
-	if (!_sub_triplet_setpoint.get().current.valid || !PX4_ISFINITE(_sub_triplet_setpoint.get().current.alt)) {
+	const bool valid_alt = PX4_ISFINITE(_sub_triplet_setpoint.get().current.alt) ||
+			       _sub_triplet_setpoint.get().current.type == position_setpoint_s::SETPOINT_TYPE_LAND;
+
+	if (!_sub_triplet_setpoint.get().current.valid || !valid_alt) {
 		// Best we can do is to just set all waypoints to current state
 		_prev_prev_wp = _triplet_prev_wp = _triplet_target = _triplet_next_wp = _position;
 		_type = WaypointType::loiter;
