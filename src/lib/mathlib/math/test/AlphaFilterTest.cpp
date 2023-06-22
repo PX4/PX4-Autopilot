@@ -247,7 +247,11 @@ TEST(AlphaFilterTest, SetFrequencyTest)
 	const float fs = .1f;
 
 	EXPECT_FALSE(_alpha_filter.setCutoffFreq(fs, 0.f));
-	EXPECT_FALSE(_alpha_filter.setCutoffFreq(fs, fs)); // Cutoff above Nyquist freq
+
+	// Cutoff above Nyquist freq
+	EXPECT_TRUE(_alpha_filter.setCutoffFreq(fs, fs));
+	EXPECT_FLOAT_EQ(_alpha_filter.getCutoffFreq(), fs / 2.f);
+
 	EXPECT_FALSE(_alpha_filter.setCutoffFreq(0.f, fs / 4.f));
 	EXPECT_FALSE(_alpha_filter.setCutoffFreq(0.f, 0.f));
 	EXPECT_FALSE(_alpha_filter.setCutoffFreq(-fs, fs / 4.f));

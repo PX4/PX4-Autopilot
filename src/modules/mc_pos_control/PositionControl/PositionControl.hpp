@@ -46,10 +46,10 @@
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 
 struct PositionControlStates {
-	matrix::Vector3f position;
-	matrix::Vector3f velocity;
-	matrix::Vector3f acceleration;
-	float yaw;
+	matrix::Vector3f position{NAN, NAN, NAN};
+	matrix::Vector3f velocity{NAN, NAN, NAN};
+	matrix::Vector3f acceleration{NAN, NAN, NAN};
+	float yaw{NAN};
 };
 
 /**
