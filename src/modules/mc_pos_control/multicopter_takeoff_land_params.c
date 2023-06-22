@@ -43,7 +43,7 @@
  * @max 5
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_TKO_RAMP_T, 3.0f);
+PARAM_DEFINE_FLOAT(MPC_TKO_RAMP_T, 3.f);
 
 /**
  * Takeoff climb rate
@@ -69,7 +69,7 @@ PARAM_DEFINE_FLOAT(MPC_TKO_SPEED, 1.5f);
  * @decimal 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_LAND_ALT1, 10.0f);
+PARAM_DEFINE_FLOAT(MPC_LAND_ALT1, 10.f);
 
 /**
  * Altitude for 2. step of slow landing (landing)
@@ -84,7 +84,7 @@ PARAM_DEFINE_FLOAT(MPC_LAND_ALT1, 10.0f);
  * @decimal 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_LAND_ALT2, 5.0f);
+PARAM_DEFINE_FLOAT(MPC_LAND_ALT2, 5.f);
 
 /**
  * Altitude for 3. step of slow landing
@@ -99,7 +99,7 @@ PARAM_DEFINE_FLOAT(MPC_LAND_ALT2, 5.0f);
  * @decimal 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_LAND_ALT3, 1.0f);
+PARAM_DEFINE_FLOAT(MPC_LAND_ALT3, 1.f);
 
 /**
  * Landing descend rate
