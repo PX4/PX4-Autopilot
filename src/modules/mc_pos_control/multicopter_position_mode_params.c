@@ -97,34 +97,6 @@ PARAM_DEFINE_FLOAT(MPC_VEL_MAN_SIDE, -1.f);
 PARAM_DEFINE_FLOAT(MPC_VEL_MAN_BACK, -1.f);
 
 /**
- * Maximum ascent velocity in manually piloted climb rate controlled modes and offboard
- *
- * For autonomous modes see MPC_Z_V_AUTO_UP
- *
- * @unit m/s
- * @min 0.5
- * @max 8
- * @increment 0.1
- * @decimal 1
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_UP, 3.f);
-
-/**
- * Maximum descent velocity in manually piloted climb rate controlled modes and offboard
- *
- * For autonomous modes, see MPC_Z_V_AUTO_DN
- *
- * @unit m/s
- * @min 0.5
- * @max 4
- * @increment 0.1
- * @decimal 1
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_DN, 1.5f);
-
-/**
  * Maximum horizontal acceleration
  *
  * MPC_POS_MODE
