@@ -385,8 +385,6 @@ private:
 	float _param_mpc_jerk_auto{4.f}; 	/**< initialized with the default jerk auto value to prevent division by 0 if the parameter is accidentally set to 0 */
 	float _param_mpc_acc_hor{3.f};		/**< initialized with the default horizontal acc value to prevent division by 0 if the parameter is accidentally set to 0 */
 
-	// float _mission_cruising_speed_mc{-1.0f};
-	// float _mission_cruising_speed_fw{-1.0f};
 	float _cruising_speed_current_mode{-1.0f};
 	float _mission_throttle{NAN};
 
