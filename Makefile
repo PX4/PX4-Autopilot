@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
+# small change
 # Enforce the presence of the GIT repository
 #
 # We depend on our submodules, so we have to prevent attempts to
