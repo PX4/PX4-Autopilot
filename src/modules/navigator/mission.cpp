@@ -2106,7 +2106,7 @@ void Mission::replayCachedTriggerItems()
 
 void Mission::replayCachedSpeedChangeItems()
 {
-	if (_last_speed_change_item.nav_cmd > 0) {
+	if (_last_speed_change_item.nav_cmd == NAV_CMD_DO_CHANGE_SPEED) {
 		issue_command(_last_speed_change_item);
 		_last_speed_change_item = {}; // delete cached item
 	}
