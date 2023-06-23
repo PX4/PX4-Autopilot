@@ -210,7 +210,8 @@ void ADC::update_system_power(hrt_abstime now)
 
 		if (_samples[i].am_channel == ADC_SCALED_V5_SENSE) {
 			// it is 2:1 scaled
-			system_power.voltage5v_v = _samples[i].am_data * (ADC_V5_V_FULL_SCALE / px4_arch_adc_dn_fullcount());
+			system_power.voltage5v_v = _samples[i].am_data * ((ADC_V5_V_FULL_SCALE / 3.3f) * (px4_arch_adc_reference_v() /
+						   px4_arch_adc_dn_fullcount()));
 			cnt--;
 
 		} else
@@ -224,7 +225,8 @@ void ADC::update_system_power(hrt_abstime now)
 			for (int j = 0; j < ADC_SCALED_V3V3_SENSORS_COUNT; ++j) {
 				if (_samples[i].am_channel == sensors_channels[j]) {
 					// it is 2:1 scaled
-					system_power.sensors3v3[j] = _samples[i].am_data * (ADC_3V3_SCALE * (3.3f / px4_arch_adc_dn_fullcount()));
+					system_power.sensors3v3[j] = _samples[i].am_data * (ADC_3V3_SCALE * (px4_arch_adc_reference_v() /
+								     px4_arch_adc_dn_fullcount()));
 					system_power.sensors3v3_valid |= 1 << j;
 					cnt--;
 				}
