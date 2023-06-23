@@ -42,8 +42,6 @@
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
 #include <drivers/drv_hrt.h>
-#include <uORB/topics/parameter_update.h>
-#include "conversion/rotation.h"
 
 #include "LandingTargetEstimator.h"
 
@@ -52,10 +50,20 @@
 namespace landing_target_estimator
 {
 
-LandingTargetEstimator::LandingTargetEstimator() :
-	ModuleParams(nullptr)
+LandingTargetEstimator::LandingTargetEstimator()
 {
-	updateParams();
+	_paramHandle.acc_unc = param_find("LTEST_ACC_UNC");
+	_paramHandle.meas_unc = param_find("LTEST_MEAS_UNC");
+	_paramHandle.pos_unc_init = param_find("LTEST_POS_UNC_IN");
+	_paramHandle.vel_unc_init = param_find("LTEST_VEL_UNC_IN");
+	_paramHandle.mode = param_find("LTEST_MODE");
+	_paramHandle.scale_x = param_find("LTEST_SCALE_X");
+	_paramHandle.scale_y = param_find("LTEST_SCALE_Y");
+	_paramHandle.sensor_yaw = param_find("LTEST_SENS_ROT");
+	_paramHandle.offset_x = param_find("LTEST_SENS_POS_X");
+	_paramHandle.offset_y = param_find("LTEST_SENS_POS_Y");
+	_paramHandle.offset_z = param_find("LTEST_SENS_POS_Z");
+	_check_params(true);
 }
 
 void LandingTargetEstimator::update()
@@ -92,13 +100,13 @@ void LandingTargetEstimator::update()
 		}
 	}
 
-	if (!_new_sensorReport) {
+	if (!_new_irlockReport) {
 		// nothing to do
 		return;
 	}
 
 	// mark this sensor measurement as consumed
-	_new_sensorReport = false;
+	_new_irlockReport = false;
 
 
 	if (!_estimator_initialized) {
@@ -192,8 +200,7 @@ void LandingTargetEstimator::_check_params(const bool force)
 		parameter_update_s pupdate;
 		_parameter_update_sub.copy(&pupdate);
 
-		parameters_update();
-		// _update_params();
+		_update_params();
 	}
 }
 
@@ -202,6 +209,7 @@ void LandingTargetEstimator::_update_topics()
 	_vehicleLocalPosition_valid = _vehicleLocalPositionSub.update(&_vehicleLocalPosition);
 	_vehicleAttitude_valid = _attitudeSub.update(&_vehicleAttitude);
 	_vehicle_acceleration_valid = _vehicle_acceleration_sub.update(&_vehicle_acceleration);
+
 
 	if (_irlockReportSub.update(&_irlockReport)) { //
 		_new_irlockReport = true;
@@ -246,78 +254,8 @@ void LandingTargetEstimator::_update_topics()
 		_target_position_report.rel_pos_x += _params.offset_x;
 		_target_position_report.rel_pos_y += _params.offset_y;
 
-		_new_sensorReport = true;
+		_new_irlockReport = true;
 
-	} else if (_sensorUwbSub.update(&_sensorUwb)) {
-
-		if (!_vehicleAttitude_valid || !_vehicleLocalPosition_valid) {
-			// don't have the data needed for an update
-			PX4_INFO("Attitude: %d, Local pos: %d", _vehicleAttitude_valid, _vehicleLocalPosition_valid);
-			return;
-		}
-
-		if (!PX4_ISFINITE(_sensorUwb.distance)) {
-			PX4_WARN("Data is corrupt!");
-			return;
-		}
-
-		const float aoa_limit = 60.0;
-
-		// First we need to catch angle measurements outside of the useable measuring range
-		if (aoa_limit  <= _sensorUwb.aoa_azimuth_dev || -aoa_limit  >= _sensorUwb.aoa_azimuth_dev) {
-			return;
-		}
-
-		if (aoa_limit  <= _sensorUwb.aoa_elevation_dev  || -aoa_limit  >= _sensorUwb.aoa_elevation_dev) {
-			return;
-		}
-
-		_new_sensorReport = true;
-		_target_position_report.timestamp = _sensorUwb.timestamp;
-
-		/* ****** Position algorithm ************************************
-		 * this algorithm takes distance and angle measurements (spherical coordinates) and converts them into the cartesian bodyframe expected by the LTE
-		 * Convert spherical coordinates to cartesian: sph(r, phi, theta) => cartesian(x,y,z)
-		 * With radial distance r, elevation angle theta, azimuth angle phi
-		 *
-		 * position =   ( r * cos(elevation) * cos(azimuth),
-		 * 		( r * cos(elevation) * sin(azimuth),
-		 * 		( r * sin(elevation) )
-		 *
-		 * The resulting coordinate system is not NED (north-east-down)
-		 * Using the angle information from the drone device results in a position where the Drone is centered at [0, 0, 0] in NED.
-		 * ||Using the angle information from the destination device results in a position where the ground device is centered at [0, 0, 0] in NED.||
-		 * The coordinates "rel_pos_*" are the position of the landing point relative to the vehicle.
-		 * To change POV we negate rotate the position with Eulerangles[XYZ] = [-90 0 -90]:
-		 *
-		 * rotation_matrix = (0, 1, 0,
-					0, 0, -1;
-					1, 0, 0);
-		 *
-		 * This step can also be skipped if we rearrange the position calculation like this:
-		 * 	X -> Z
-		 * 	Y -> X
-		 * 	Z -> Y
-		 * Resulting in the following conversion function:
-		 * ******************************************/
-		matrix::Vector3f position = matrix::Vector3f{
-			(_sensorUwb.distance * sinf(math::radians(_sensorUwb.aoa_elevation_dev))),
-			(-_sensorUwb.distance * sinf(math::radians(_sensorUwb.aoa_azimuth_dev)) * cosf(math::radians(_sensorUwb.aoa_elevation_dev))),
-			(_sensorUwb.distance * cosf(math::radians(_sensorUwb.aoa_azimuth_dev)) * cosf(math::radians(_sensorUwb.aoa_elevation_dev)))};
-
-		// Now the position is the landing point relative to the vehicle.
-		//Rotate around orientation off the initiator:
-		position = get_rot_matrix(static_cast<enum Rotation>(_sensorUwb.orientation)) *
-			   position; //cast the orientation to Rotation enum
-		// And add the initiator offset:
-		position +=  matrix::Vector3f(_sensorUwb.offset_x,  _sensorUwb.offset_y,  _sensorUwb.offset_z);
-
-
-
-		// Now we have the Position of the landing spot in relation to the Drone in NED:
-		_target_position_report.rel_pos_x = position(0);
-		_target_position_report.rel_pos_y = position(1);
-		_target_position_report.rel_pos_z = position(2);
 	}
 }
 
@@ -342,19 +280,7 @@ void LandingTargetEstimator::_update_params()
 	param_get(_paramHandle.offset_x, &_params.offset_x);
 	param_get(_paramHandle.offset_y, &_params.offset_y);
 	param_get(_paramHandle.offset_z, &_params.offset_z);
-
 }
 
-void LandingTargetEstimator::parameters_update()
-{
-	if (_parameter_update_sub.updated()) {
-		parameter_update_s param_update;
-		_parameter_update_sub.copy(&param_update);
-
-		// If any parameter updated, call updateParams() to check if
-		// this class attributes need updating (and do so).
-		updateParams();
-	}
-}
 
 } // namespace landing_target_estimator

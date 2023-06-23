@@ -34,8 +34,6 @@
 px4_add_module(
 	MODULE modules__landing_target_estimator
 	MAIN landing_target_estimator
-	MODULE_CONFIG
-		module.yaml
 	COMPILE_FLAGS
 	SRCS
 		landing_target_estimator_main.cpp

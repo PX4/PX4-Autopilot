@@ -42,7 +42,6 @@
 
 #pragma once
 
-#include <px4_platform_common/module_params.h>
 #include <px4_platform_common/workqueue.h>
 #include <drivers/drv_hrt.h>
 #include <parameters/param.h>
@@ -55,8 +54,6 @@
 #include <uORB/topics/irlock_report.h>
 #include <uORB/topics/landing_target_pose.h>
 #include <uORB/topics/landing_target_innovations.h>
-#include <uORB/topics/sensor_uwb.h>
-#include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/parameter_update.h>
 #include <matrix/math.hpp>
 #include <mathlib/mathlib.h>
@@ -69,7 +66,7 @@ using namespace time_literals;
 namespace landing_target_estimator
 {
 
-class LandingTargetEstimator : public ModuleParams
+class LandingTargetEstimator
 {
 public:
 
@@ -92,7 +89,6 @@ protected:
 	 * Update parameters.
 	 */
 	void _update_params();
-	void parameters_update();
 
 	/* timeout after which filter is reset if target not seen */
 	static constexpr uint32_t landing_target_estimator_TIMEOUT_US = 2000000;
@@ -102,6 +98,8 @@ protected:
 
 	uORB::Publication<landing_target_innovations_s> _targetInnovationsPub{ORB_ID(landing_target_innovations)};
 	landing_target_innovations_s _target_innovations{};
+
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 private:
 
@@ -148,33 +146,15 @@ private:
 		float rel_pos_z;
 	} _target_position_report;
 
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::LTEST_ACC_UNC>)  		_acc_unc,
-		(ParamFloat<px4::params::LTEST_MEAS_UNC>)  		_meas_unc,
-		(ParamFloat<px4::params::LTEST_POS_UNC_IN>)  		_pos_unc_init,
-		(ParamFloat<px4::params::LTEST_VEL_UNC_IN>)  		_vel_unc_init,
-		(ParamInt<px4::params::LTEST_MODE>)  			_mode,
-		(ParamFloat<px4::params::LTEST_SCALE_X>)  		_scale_x,
-		(ParamFloat<px4::params::LTEST_SCALE_Y>)  		_scale_y,
-		(ParamInt<px4::params::LTEST_SENS_ROT>)  		_sensor_yaw,
-		(ParamFloat<px4::params::LTEST_SENS_POS_X>)  		_offset_x,
-		(ParamFloat<px4::params::LTEST_SENS_POS_Y>)  		_offset_y,
-		(ParamFloat<px4::params::LTEST_SENS_POS_Z>)  		_offset_z
-	);
-
-	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
-
 	uORB::Subscription _vehicleLocalPositionSub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _attitudeSub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 	uORB::Subscription _irlockReportSub{ORB_ID(irlock_report)};
-	uORB::Subscription _sensorUwbSub{ORB_ID(sensor_uwb)};
 
 	vehicle_local_position_s	_vehicleLocalPosition{};
 	vehicle_attitude_s		_vehicleAttitude{};
 	vehicle_acceleration_s		_vehicle_acceleration{};
 	irlock_report_s			_irlockReport{};
-	sensor_uwb_s			_sensorUwb{};
 
 	// keep track of which topics we have received
 	bool _vehicleLocalPosition_valid{false};
@@ -188,7 +168,7 @@ private:
 
 	matrix::Dcmf _R_att; //Orientation of the body frame
 	matrix::Dcmf _S_att; //Orientation of the sensor relative to body frame
-	// matrix::Vector2f _rel_pos;
+	matrix::Vector2f _rel_pos;
 	KalmanFilter _kalman_filter_x;
 	KalmanFilter _kalman_filter_y;
 	hrt_abstime _last_predict{0}; // timestamp of last filter prediction
@@ -198,6 +178,5 @@ private:
 	void _check_params(const bool force);
 
 	void _update_state();
-
 };
 } // namespace landing_target_estimator
