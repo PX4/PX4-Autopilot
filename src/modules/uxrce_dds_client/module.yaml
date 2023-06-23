@@ -67,10 +67,10 @@ parameters:
 
         UXRCE_DDS_SYNCT:
             description:
-                short: uXRCE-DDS timesync enable
-                long: |
-                    If set to 1, enable time synchronization between Agent and Client.
-                    If set to 0, timestaps are not synchonized.
+                short: uXRCE-DDS timestamp synchronization enable
+                long: When enabled, uxrce_dds_client will synchronize the timestamps
+                    of the incoming and outgoing messages measuring the offset
+                    between the Agent OS time and the PX4 time.
             type: boolean
             category: System
             reboot_required: true
