@@ -64,3 +64,14 @@ parameters:
             reboot_required: true
             default: 2130706433
             requires_ethernet: true
+
+        UXRCE_DDS_SYNCT:
+            description:
+                short: uXRCE-DDS timesync enable
+                long: |
+                    If set to 1, enable time synchronization between Agent and Client.
+                    If set to 0, timestaps are not synchonized.
+            type: boolean
+            category: System
+            reboot_required: true
+            default: 1

@@ -49,7 +49,7 @@ public:
 	};
 
 	UxrceddsClient(Transport transport, const char *device, int baudrate, const char *host, const char *port,
-		       bool localhost_only, bool custom_participant, const char *client_namespace);
+		       bool localhost_only, bool custom_participant, const char *client_namespace, bool synchornize_timestamps);
 
 	~UxrceddsClient();
 
@@ -77,6 +77,7 @@ private:
 	const bool _localhost_only;
 	const bool _custom_participant;
 	const char *_client_namespace;
+	const bool _synchronize_timestamps;
 
 
 	// max port characters (5+'\0')
