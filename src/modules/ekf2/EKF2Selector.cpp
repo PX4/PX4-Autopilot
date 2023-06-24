@@ -647,15 +647,12 @@ void EKF2Selector::Run()
 	// update combined test ratio for all estimators
 	const bool updated = UpdateErrorScores();
 
-	// restore value, EKF instance still hasn't changed
-	_ekf_change_reason = EKFChangeReason::NONE;
-
 	// if no valid instance then force select first instance with valid IMU
 	if (_selected_instance == INVALID_INSTANCE) {
 		for (uint8_t i = 0; i < EKF2_MAX_INSTANCES; i++) {
 			if ((_instance[i].accel_device_id != 0)
 			    && (_instance[i].gyro_device_id != 0)) {
-				_ekf_change_reason = EKFChangeReason::INIT;
+				_ekf_last_change_reason = EKFChangeReason::INIT;
 
 				if (SelectInstance(i)) {
 					break;
@@ -719,7 +716,7 @@ void EKF2Selector::Run()
 		}
 
 		if (!_instance[_selected_instance].healthy.get_state()) {
-			_ekf_change_reason = CalculateHealthChangeReason();
+			_ekf_last_change_reason = CalculateHealthChangeReason();
 
 			// prefer the best healthy instance using a different IMU
 			if (!SelectInstance(best_ekf_different_imu)) {
@@ -734,14 +731,14 @@ void EKF2Selector::Run()
 
 			// if this instance has a significantly lower relative error to the active primary, we consider it as a
 			// better instance and would like to switch to it even if the current primary is healthy
-			_ekf_change_reason = EKFChangeReason::LOWER_ERROR_AVAILABLE;
+			_ekf_last_change_reason = EKFChangeReason::LOWER_ERROR_AVAILABLE;
 			SelectInstance(best_ekf_alternate);
 
 		} else if (_request_instance.load() != INVALID_INSTANCE) {
 
 			const uint8_t new_instance = _request_instance.load();
 
-			_ekf_change_reason = EKFChangeReason::USER_SELECTED;
+			_ekf_last_change_reason = EKFChangeReason::USER_SELECTED;
 
 			// attempt to switch to user manually selected instance
 			if (!SelectInstance(new_instance)) {
@@ -861,9 +858,9 @@ void EKF2Selector::PrintInstanceChange(const uint8_t old_instance, uint8_t new_i
 {
 	const char *reason = nullptr;
 
-	if (_ekf_change_reason == EKFChangeReason::NONE || _ekf_change_reason == EKFChangeReason::INIT) {return;}
+	if (_ekf_last_change_reason == EKFChangeReason::NONE || _ekf_last_change_reason == EKFChangeReason::INIT) {return;}
 
-	switch (_ekf_change_reason) {
+	switch (_ekf_last_change_reason) {
 	case FILTER_FAULT:
 		reason = "(filter fault)";
 		break;

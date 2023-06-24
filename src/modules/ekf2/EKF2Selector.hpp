@@ -203,7 +203,7 @@ private:
 
 	uint32_t _instance_changed_count{0};
 	hrt_abstime _last_instance_change{0};
-	EKFChangeReason _ekf_change_reason{EKFChangeReason::NONE};
+	EKFChangeReason _ekf_last_change_reason{EKFChangeReason::NONE};
 
 	hrt_abstime _last_status_publish{0};
 	bool _selector_status_publish{false};
