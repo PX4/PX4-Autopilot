@@ -130,6 +130,8 @@
 		GPIO_RSSI_IN,                \
 	}
 
+#define BOARD_ENABLE_CONSOLE_BUFFER
+
 #define BOARD_NUM_IO_TIMERS 4
 
 __BEGIN_DECLS
