@@ -326,7 +326,7 @@ void SimulatorMavlink::update_sensors(const hrt_abstime &time, const mavlink_hil
 	}
 
 	// differential pressure
-	if ((sensors.fields_updated & SensorSource::DIFF_PRESS) == SensorSource::DIFF_PRESS && !_airspeed_blocked) {
+	if ((sensors.fields_updated & SensorSource::DIFF_PRESS) == SensorSource::DIFF_PRESS && !_airspeed_disconnected) {
 		differential_pressure_s report{};
 		report.timestamp_sample = time;
 		report.device_id = 1377548; // 1377548: DRV_DIFF_PRESS_DEVTYPE_SIM, BUS: 1, ADDR: 5, TYPE: SIMULATION
@@ -1431,12 +1431,12 @@ void SimulatorMavlink::check_failure_injections()
 			if (failure_type == vehicle_command_s::FAILURE_TYPE_OFF) {
 				PX4_WARN("CMD_INJECT_FAILURE, airspeed off");
 				supported = true;
-				_airspeed_blocked = true;
+				_airspeed_disconnected = true;
 
 			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_OK) {
 				PX4_INFO("CMD_INJECT_FAILURE, airspeed ok");
 				supported = true;
-				_airspeed_blocked = false;
+				_airspeed_disconnected = false;
 			}
 
 		} else if (failure_unit == vehicle_command_s::FAILURE_UNIT_SENSOR_VIO) {
