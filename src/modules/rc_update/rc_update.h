@@ -117,7 +117,13 @@ public:
 	float		get_rc_value(uint8_t func, float min_value, float max_value) const;
 
 	/**
-	 * Get switch position for specified function.
+	 * Get switch position for specified function based on threshold setting
+	 *
+	 * If threshold is positive, the switch has to be above the threshold to be on.
+	 * If threshold is negative, the switch has to be below the threshold to be on.
+	 *
+	 * @param func The function to get the switch position for
+	 * @param on_th The threshold (-1 .. +1) for the switch
 	 */
 	switch_pos_t	get_rc_sw2pos_position(uint8_t func, float on_th) const;
 

@@ -564,8 +564,9 @@ switch_pos_t RCUpdate::get_rc_sw2pos_position(uint8_t func, float on_th) const
 {
 	if (_rc.function[func] >= 0) {
 		const bool on_inv = (on_th < 0.f);
+		const float value = 0.5f * _rc.channels[_rc.function[func]] + 0.5f; // Scale to 0..1 range
 
-		const float value = 0.5f * _rc.channels[_rc.function[func]] + 0.5f;
+		on_th = fabsf(on_th); // Remove sign from threshold
 
 		if (on_inv ? value < on_th : value > on_th) {
 			return manual_control_switches_s::SWITCH_POS_ON;
