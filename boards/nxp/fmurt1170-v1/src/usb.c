@@ -127,5 +127,5 @@ void imxrt_usbsuspend(FAR struct usbdev_s *dev, bool resume)
 
 int board_read_VBUS_state(void)
 {
-	return (getreg32(IMXRT_USB_ANALOG_USB1_VBUS_DETECT_STAT) & USB_ANALOG_USB_VBUS_DETECT_STAT_VBUS_VALID) ? 0 : 1;
+	return (getreg32(IMXRT_USB_ANALOG_USB1_VBUS_DETECT_STAT) & USB_ANALOG_USB_VBUS_DETECT_STAT_VBUS_3V_VALID) ? 0 : 1;
 }

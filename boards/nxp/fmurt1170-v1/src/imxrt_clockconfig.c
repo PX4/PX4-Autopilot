@@ -68,7 +68,7 @@ const struct clock_configuration_s g_initial_clkconfig = {
 		},
 		.semc_clk_root =
 		{
-			.enable        = 1,
+			.enable        = 0,
 			.div           = 3,
 			.mux           = SEMC_CLK_ROOT_SYS_PLL2_PFD1,
 		},
@@ -142,7 +142,7 @@ const struct clock_configuration_s g_initial_clkconfig = {
 		{
 			.enable        = 1,
 			.div           = 1,
-			.mux           = GPT5_CLK_ROOT_OSC_24M,
+			.mux           = GPT3_CLK_ROOT_OSC_24M,
 		},
 		.gpt4_clk_root =
 		{
@@ -192,101 +192,101 @@ const struct clock_configuration_s g_initial_clkconfig = {
 			.div           = 1,
 			.mux           = CAN3_CLK_ROOT_OSC_RC_48M_DIV2,
 		},
-		.lpuart1_clk_root =
+		.lpuart1_clk_root = /* 528 / 22 = 24Mhz */
 		{
 			.enable        = 1,
 			.div           = 22,
 			.mux           = LPUART1_CLK_ROOT_SYS_PLL2_CLK,
 		},
-		.lpuart3_clk_root =
+		.lpuart3_clk_root = /* 528 / 11 = 48Mhz */
 		{
 			.enable        = 1,
-			.div           = 1,
-			.mux           = LPUART3_CLK_ROOT_OSC_RC_48M_DIV2,
+			.div           = 11,
+			.mux           = LPUART3_CLK_ROOT_SYS_PLL2_CLK,
 		},
-		.lpuart4_clk_root =
+		.lpuart4_clk_root = /* 528 / 11 = 48Mhz */
 		{
 			.enable        = 1,
-			.div           = 1,
-			.mux           = LPUART4_CLK_ROOT_OSC_RC_48M_DIV2,
+			.div           = 11,
+			.mux           = LPUART4_CLK_ROOT_SYS_PLL2_CLK,
 		},
-		.lpuart5_clk_root =
+		.lpuart5_clk_root = /* 528 / 11 = 48Mhz */
 		{
 			.enable        = 1,
-			.div           = 1,
-			.mux           = LPUART5_CLK_ROOT_OSC_RC_48M_DIV2,
+			.div           = 11,
+			.mux           = LPUART5_CLK_ROOT_SYS_PLL2_CLK,
 		},
-		.lpuart6_clk_root =
+		.lpuart6_clk_root = /* 528 / 11 = 48Mhz */
 		{
 			.enable        = 1,
-			.div           = 1,
-			.mux           = LPUART6_CLK_ROOT_OSC_RC_48M_DIV2,
+			.div           = 11,
+			.mux           = LPUART6_CLK_ROOT_SYS_PLL2_CLK,
 		},
-		.lpuart8_clk_root =
+		.lpuart8_clk_root = /* 528 / 11 = 48Mhz */
 		{
 			.enable        = 1,
-			.div           = 1,
-			.mux           = LPUART8_CLK_ROOT_OSC_RC_48M_DIV2,
+			.div           = 11,
+			.mux           = LPUART8_CLK_ROOT_SYS_PLL2_CLK,
 		},
-		.lpuart10_clk_root =
+		.lpuart10_clk_root = /* 528 / 11 = 48Mhz */
 		{
 			.enable        = 1,
-			.div           = 1,
-			.mux           = LPUART10_CLK_ROOT_OSC_RC_48M_DIV2,
+			.div           = 11,
+			.mux           = LPUART10_CLK_ROOT_SYS_PLL2_CLK,
 		},
-		.lpuart11_clk_root =
+		.lpuart11_clk_root = /* 480 / 10 = 48Mhz */
 		{
 			.enable        = 1,
-			.div           = 1,
-			.mux           = LPUART11_CLK_ROOT_OSC_RC_48M_DIV2,
+			.div           = 10,
+			.mux           = LPUART11_CLK_ROOT_SYS_PLL3_CLK,
 		},
-		.lpi2c1_clk_root =
+		.lpi2c1_clk_root = /* 528 / 22 = 24Mhz */
 		{
 			.enable        = 1,
-			.div           = 1,
-			.mux           = LPI2C1_CLK_ROOT_OSC_RC_48M_DIV2,
+			.div           = 22,
+			.mux           = LPI2C1_CLK_ROOT_SYS_PLL2_CLK,
 		},
-		.lpi2c2_clk_root =
+		.lpi2c2_clk_root = /* 528 / 22 = 24Mhz */
 		{
 			.enable        = 1,
-			.div           = 1,
-			.mux           = LPI2C2_CLK_ROOT_OSC_RC_48M_DIV2,
+			.div           = 22,
+			.mux           = LPI2C2_CLK_ROOT_SYS_PLL2_CLK,
 		},
-		.lpi2c3_clk_root =
+		.lpi2c3_clk_root = /* 528 / 22 = 24Mhz */
 		{
 			.enable        = 1,
-			.div           = 1,
-			.mux           = LPI2C3_CLK_ROOT_OSC_RC_48M_DIV2,
+			.div           = 22,
+			.mux           = LPI2C3_CLK_ROOT_SYS_PLL2_CLK,
 		},
-		.lpi2c6_clk_root =
+		.lpi2c6_clk_root = /* 480 / 20 = 24Mhz */
 		{
 			.enable        = 1,
-			.div           = 1,
-			.mux           = LPI2C6_CLK_ROOT_OSC_RC_48M_DIV2,
+			.div           = 20,
+			.mux           = LPI2C6_CLK_ROOT_SYS_PLL3_CLK,
 		},
-		.lpspi1_clk_root =
+		.lpspi1_clk_root = /* 200 / 2 = 100Mhz */
 		{
 			.enable        = 1,
-			.div           = 1,
-			.mux           = LPSPI1_CLK_ROOT_OSC_RC_48M_DIV2,
+			.div           = 2,
+			.mux           = LPSPI1_CLK_ROOT_SYS_PLL1_DIV5,
 		},
-		.lpspi2_clk_root =
+		.lpspi2_clk_root = /* 200 / 2 = 100Mhz */
 		{
 			.enable        = 1,
-			.div           = 1,
-			.mux           = LPSPI2_CLK_ROOT_OSC_RC_48M_DIV2,
+			.div           = 2,
+			.mux           = LPSPI2_CLK_ROOT_SYS_PLL1_DIV5,
 		},
-		.lpspi3_clk_root =
+		.lpspi3_clk_root = /* 200 / 2 = 100Mhz */
 		{
 			.enable        = 1,
-			.div           = 1,
-			.mux           = LPSPI3_CLK_ROOT_OSC_RC_48M_DIV2,
+			.div           = 2,
+			.mux           = LPSPI3_CLK_ROOT_SYS_PLL1_DIV5,
 		},
-		.lpspi6_clk_root =
+		.lpspi6_clk_root = /* 200 / 2 = 100Mhz */
 		{
 			.enable        = 1,
-			.div           = 1,
-			.mux           = LPSPI6_CLK_ROOT_OSC_RC_48M_DIV2,
+			.div           = 2,
+			.mux           = LPSPI6_CLK_ROOT_SYS_PLL1_DIV5,
 		},
 		.emv1_clk_root =
 		{
@@ -302,7 +302,7 @@ const struct clock_configuration_s g_initial_clkconfig = {
 		},
 		.enet1_clk_root =
 		{
-			.enable        = 1,
+			.enable        = 0,
 			.div           = 10,
 			.mux           = ENET1_CLK_ROOT_SYS_PLL1_DIV2,
 		},

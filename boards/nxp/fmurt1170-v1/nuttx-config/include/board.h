@@ -48,93 +48,10 @@
  ************************************************************************************/
 
 /* Clocking *************************************************************************/
-
-/* Set VDD_SOC to 1.3V */
-
-#define IMXRT_VDD_SOC (0x14)
-
-/* Set Arm PLL (PLL1) to  fOut    = (24Mhz * ARM_PLL_DIV_SELECT/2) / ARM_PODF_DIVISOR
- *                        576Mhz  = (24Mhz * ARM_PLL_DIV_SELECT/2) / ARM_PODF_DIVISOR
- *                        ARM_PLL_DIV_SELECT = 96
- *                        ARM_PODF_DIVISOR   = 2
- *                        576Mhz  = (24Mhz * 96/2) / 2
- *
- *     AHB_CLOCK_ROOT             = PLL1fOut / IMXRT_AHB_PODF_DIVIDER
- *     1Hz to 600 Mhz             = 576Mhz / IMXRT_ARM_CLOCK_DIVIDER
- *                        IMXRT_ARM_CLOCK_DIVIDER = 1
- *                        576Mhz  = 576Mhz / 1
- *
- *     PRE_PERIPH_CLK_SEL         = PRE_PERIPH_CLK_SEL_PLL1
- *     PERIPH_CLK_SEL             = 1 (0 select PERIPH_CLK2_PODF, 1 select PRE_PERIPH_CLK_SEL_PLL1)
- *     PERIPH_CLK                 = 576Mhz
- *
- *     IPG_CLOCK_ROOT             = AHB_CLOCK_ROOT / IMXRT_IPG_PODF_DIVIDER
- *                       IMXRT_IPG_PODF_DIVIDER = 4
- *                       144Mhz = 576Mhz / 4
- *
- *     PRECLK_CLOCK_ROOT          = IPG_CLOCK_ROOT / IMXRT_PERCLK_PODF_DIVIDER
- *                       IMXRT_PERCLK_PODF_DIVIDER = 1
- *                       16Mhz = 144Mhz / 9
- *
- *     SEMC_CLK_ROOT              = 576Mhz / IMXRT_SEMC_PODF_DIVIDER (labeled AIX_PODF in 18.2)
- *                       IMXRT_SEMC_PODF_DIVIDER = 8
- *                       72Mhz    = 576Mhz / 8
- *
- * Set Sys PLL (PLL2) to  fOut    = (24Mhz * (20+(2*(DIV_SELECT)))
- *                        528Mhz  = (24Mhz * (20+(2*(1)))
- *
- * Set USB1 PLL (PLL3) to fOut    = (24Mhz * 20)
- *                         480Mhz = (24Mhz * 20)
- *
- * Set LPSPI PLL3 PFD0 to fOut    = (480Mhz / 12 * 18)
- *                        720Mhz  = (480Mhz / 12 * 18)
- *                         90Mhz  = (720Mhz / LSPI_PODF_DIVIDER)
- *
- * Set LPI2C PLL3 / 8 to   fOut   = (480Mhz / 8)
- *                         60Mhz  = (480Mhz / 8)
- *                         12Mhz  = (60Mhz / LSPI_PODF_DIVIDER)
- *
- * Set USDHC1 PLL2 PFD2 to fOut   = (528Mhz / 24 * 18)
- *                        396Mhz  = (528Mhz / 24 * 18)
- *                        198Mhz  = (396Mhz / IMXRT_USDHC1_PODF_DIVIDER)
- */
-
-#define BOARD_XTAL_FREQUENCY      24000000
-#define IMXRT_PRE_PERIPH_CLK_SEL  CCM_CBCMR_PRE_PERIPH_CLK_SEL_PLL1
-#define IMXRT_PERIPH_CLK_SEL      CCM_CBCDR_PERIPH_CLK_SEL_PRE_PERIPH
-#define IMXRT_ARM_PLL_DIV_SELECT  96
-#define IMXRT_ARM_PODF_DIVIDER    2
-#define IMXRT_AHB_PODF_DIVIDER    1
-#define IMXRT_IPG_PODF_DIVIDER    4
-#define IMXRT_PERCLK_CLK_SEL      CCM_CSCMR1_PERCLK_CLK_SEL_IPG_CLK_ROOT
-#define IMXRT_PERCLK_PODF_DIVIDER 9
-#define IMXRT_SEMC_PODF_DIVIDER   8
-
-#define IMXRT_LPSPI_CLK_SELECT    CCM_CBCMR_LPSPI_CLK_SEL_PLL3_PFD0
-#define IMXRT_LSPI_PODF_DIVIDER   8
-
-#define IMXRT_LPI2C_CLK_SELECT    CCM_CSCDR2_LPI2C_CLK_SEL_PLL3_60M
-#define IMXRT_LSI2C_PODF_DIVIDER  5
-
-#define IMXRT_USDHC1_CLK_SELECT    CCM_CSCMR1_USDHC1_CLK_SEL_PLL2_PFD0
-#define IMXRT_USDHC1_PODF_DIVIDER 2
-
-#define IMXRT_USB1_PLL_DIV_SELECT  CCM_ANALOG_PLL_USB1_DIV_SELECT_20
-
-#define IMXRT_SYS_PLL_SELECT      CCM_ANALOG_PLL_SYS_DIV_SELECT_22
-
-#define IMXRT_USB1_PLL_DIV_SELECT  CCM_ANALOG_PLL_USB1_DIV_SELECT_20
-
-#define BOARD_CPU_FREQUENCY \
-	(BOARD_XTAL_FREQUENCY * (IMXRT_ARM_PLL_DIV_SELECT / 2)) / IMXRT_ARM_PODF_DIVIDER
-
-#define BOARD_GPT_FREQUENCY 24000000
-
-/* Define this to enable tracing */
-#if CONFIG_USE_TRACE
-#  define IMXRT_TRACE_PODF_DIVIDER 1
-#  define IMXRT_TRACE_CLK_SELECT   CCM_CBCMR_TRACE_CLK_SEL_PLL2_PFD0
-#endif
+#define BOARD_CPU_FREQUENCY 996000000 //FIXME
+#define IMXRT_IPG_PODF_DIVIDER 5
+#define BOARD_GPT_FREQUENCY  24000000
+#define BOARD_XTAL_FREQUENCY 24000000
 
 /* SDIO *********************************************************************/
 
