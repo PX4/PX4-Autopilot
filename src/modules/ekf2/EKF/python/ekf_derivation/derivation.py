@@ -33,6 +33,9 @@ File: derivation.py
 Description:
 """
 
+import symforce
+symforce.set_epsilon_to_symbol()
+
 import symforce.symbolic as sf
 from derivation_utils import *
 
@@ -413,16 +416,17 @@ def predict_drag(
         cd: sf.Scalar,
         cm: sf.Scalar,
         epsilon: sf.Scalar
-        ):
+) -> (sf.Scalar):
     R_to_body = state_to_rot3(state).inverse()
 
     vel_rel = sf.V3(state[State.vx] - state[State.wx],
                     state[State.vy] - state[State.wy],
                     state[State.vz])
     vel_rel_body = R_to_body * vel_rel
+    vel_rel_body_xy = sf.V2(vel_rel_body[0], vel_rel_body[1])
 
-    bluff_body_drag = -0.5 * rho * cd * sf.V2(vel_rel_body) * vel_rel_body.norm(epsilon=epsilon)
-    momentum_drag = -cm * sf.V2(vel_rel_body)
+    bluff_body_drag = -0.5 * rho * cd * vel_rel_body_xy * vel_rel_body.norm(epsilon=epsilon)
+    momentum_drag = -cm * vel_rel_body_xy
 
     return bluff_body_drag + momentum_drag
 
@@ -435,7 +439,7 @@ def compute_drag_x_innov_var_and_k(
         cm: sf.Scalar,
         R: sf.Scalar,
         epsilon: sf.Scalar
-) -> (sf.Scalar, sf.Scalar, VState):
+) -> (sf.Scalar, VState):
 
     meas_pred = predict_drag(state, rho, cd, cm, epsilon)
     Hx = sf.V1(meas_pred[0]).jacobian(state)
@@ -455,7 +459,7 @@ def compute_drag_y_innov_var_and_k(
         cm: sf.Scalar,
         R: sf.Scalar,
         epsilon: sf.Scalar
-) -> (sf.Scalar, sf.Scalar, VState):
+) -> (sf.Scalar, VState):
 
     meas_pred = predict_drag(state, rho, cd, cm, epsilon)
     Hy = sf.V1(meas_pred[1]).jacobian(state)
