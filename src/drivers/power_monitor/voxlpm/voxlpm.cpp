@@ -424,7 +424,7 @@ VOXLPM::measure_ina231()
 
 	int16_t vshunt = -1;
 	uint16_t vbus = -1;
-	uint16_t amps = 0;
+	int16_t amps = 0;
 
 	int vshunt_ret = read_reg_buf(INA231_REG_SHUNTVOLTAGE, raw_vshunt, sizeof(raw_vshunt));
 	int vbus_ret = read_reg_buf(INA231_REG_BUSVOLTAGE, raw_vbus, sizeof(raw_vbus));
