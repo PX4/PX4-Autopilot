@@ -45,10 +45,9 @@
 using namespace matrix;
 using namespace time_literals;
 
-#define  FRONTTRANS_THR_MIN 0.25f
-#define BACKTRANS_THROTTLE_DOWNRAMP_DUR_S 0.5f;
-#define BACKTRANS_THROTTLE_UPRAMP_DUR_S 0.5f;
-#define BACKTRANS_MOTORS_UPTILT_DUR_S 1.0f;
+#define FRONTTRANS_THR_MIN 0.25f
+#define BACKTRANS_THROTTLE_DOWNRAMP_DUR_S 0.5f
+#define BACKTRANS_THROTTLE_UPRAMP_DUR_S 0.5f
 
 Tiltrotor::Tiltrotor(VtolAttitudeControl *attc) :
 	VtolType(attc)
@@ -321,7 +320,8 @@ void Tiltrotor::update_transition_state()
 		// tilt rotors back once motors are idle
 		if (_time_since_trans_start > BACKTRANS_THROTTLE_DOWNRAMP_DUR_S) {
 
-			float progress = (_time_since_trans_start - BACKTRANS_THROTTLE_DOWNRAMP_DUR_S) / BACKTRANS_MOTORS_UPTILT_DUR_S;
+			float progress = (_time_since_trans_start - BACKTRANS_THROTTLE_DOWNRAMP_DUR_S) / math::max(_param_vt_bt_tilt_dur.get(),
+					 0.1f);
 			progress = math::constrain(progress, 0.0f, 1.0f);
 			_tilt_control = moveLinear(_param_vt_tilt_fw.get(), _param_vt_tilt_mc.get(), progress);
 		}
@@ -458,7 +458,7 @@ void Tiltrotor::blendThrottleDuringBacktransition(float scale, float target_thro
 
 float Tiltrotor::timeUntilMotorsAreUp()
 {
-	return BACKTRANS_THROTTLE_DOWNRAMP_DUR_S + BACKTRANS_MOTORS_UPTILT_DUR_S;
+	return BACKTRANS_THROTTLE_DOWNRAMP_DUR_S + _param_vt_bt_tilt_dur.get();
 }
 
 float Tiltrotor::moveLinear(float start, float stop, float progress)
