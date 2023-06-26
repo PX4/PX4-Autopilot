@@ -11,7 +11,7 @@
  * @decimal 2
  * @group Airspeed Validator
  */
-PARAM_DEFINE_FLOAT(ASPD_WIND_NSD, 1.e-2f);
+PARAM_DEFINE_FLOAT(ASPD_WIND_NSD, 1.e-1f);
 
 /**
  * Wind estimator true airspeed scale process noise spectral density
@@ -63,7 +63,7 @@ PARAM_DEFINE_FLOAT(ASPD_BETA_NOISE, 0.15f);
  * @unit SD
  * @group Airspeed Validator
  */
-PARAM_DEFINE_INT32(ASPD_TAS_GATE, 3);
+PARAM_DEFINE_INT32(ASPD_TAS_GATE, 4);
 
 /**
  * Gate size for sideslip angle fusion
