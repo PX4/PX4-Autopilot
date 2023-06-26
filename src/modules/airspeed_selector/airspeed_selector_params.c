@@ -51,7 +51,7 @@ PARAM_DEFINE_FLOAT(ASPD_TAS_NOISE, 1.4f);
  * @decimal 3
  * @group Airspeed Validator
  */
-PARAM_DEFINE_FLOAT(ASPD_BETA_NOISE, 0.3f);
+PARAM_DEFINE_FLOAT(ASPD_BETA_NOISE, 0.15f);
 
 /**
  * Gate size for true airspeed fusion
