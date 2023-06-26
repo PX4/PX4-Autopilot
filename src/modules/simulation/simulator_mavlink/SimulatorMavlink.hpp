@@ -295,6 +295,7 @@ private:
 
 	bool _gps_blocked{false};
 	bool _airspeed_disconnected{false};
+	hrt_abstime _airspeed_blocked_timestamp{0};
 	bool _vio_blocked{false};
 
 	float _last_magx[MAG_COUNT_MAX] {};
