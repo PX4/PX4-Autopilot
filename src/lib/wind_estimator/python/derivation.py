@@ -34,42 +34,43 @@ Description:
     Derivation of a wind and airspeed scale (EKF) estimator using SymForce
 """
 
-from symforce import symbolic as sm
-from symforce import geo
-from symforce import typing as T
+import symforce
+symforce.set_epsilon_to_symbol()
+
+import symforce.symbolic as sf
 from derivation_utils import *
 
 def fuse_airspeed(
-        v_local: geo.V3,
-        state: geo.V3,
-        P: geo.M33,
-        airspeed: T.Scalar,
-        R: T.Scalar,
-        epsilon: T.Scalar
-) -> (geo.V3, geo.V3, T.Scalar, T.Scalar):
+        v_local: sf.V3,
+        state: sf.V3,
+        P: sf.M33,
+        airspeed: sf.Scalar,
+        R: sf.Scalar,
+        epsilon: sf.Scalar
+) -> (sf.M13, sf.M31, sf.Scalar, sf.Scalar):
 
-    vel_rel = geo.V3(v_local[0] - state[0], v_local[1] - state[1], v_local[2])
+    vel_rel = sf.V3(v_local[0] - state[0], v_local[1] - state[1], v_local[2])
     airspeed_pred = vel_rel.norm(epsilon=epsilon) * state[2]
 
     innov = airspeed - airspeed_pred
 
-    H = geo.V1(airspeed_pred).jacobian(state)
+    H = sf.V1(airspeed_pred).jacobian(state)
     innov_var = (H * P * H.T + R)[0,0]
 
     K = P * H.T / sm.Max(innov_var, epsilon)
 
-    return (geo.V3(H), K, innov_var, innov)
+    return (H, K, innov_var, innov)
 
 def fuse_beta(
-        v_local: geo.V3,
-        state: geo.V3,
-        P: geo.M33,
-        q_att: geo.V4,
-        R: T.Scalar,
-        epsilon: T.Scalar
-) -> (geo.V3, geo.V3, T.Scalar, T.Scalar):
+        v_local: sf.V3,
+        state: sf.V3,
+        P: sf.M33,
+        q_att: sf.V4,
+        R: sf.Scalar,
+        epsilon: sf.Scalar
+) -> (sf.M13, sf.M31, sf.Scalar, sf.Scalar):
 
-    vel_rel = geo.V3(v_local[0] - state[0], v_local[1] - state[1], v_local[2])
+    vel_rel = sf.V3(v_local[0] - state[0], v_local[1] - state[1], v_local[2])
     relative_wind_body = quat_to_rot(q_att).T * vel_rel
 
     # Small angle approximation of side slip model
@@ -78,29 +79,29 @@ def fuse_beta(
 
     innov = 0.0 - beta_pred
 
-    H = geo.V1(beta_pred).jacobian(state)
+    H = sf.V1(beta_pred).jacobian(state)
     innov_var = (H * P * H.T + R)[0,0]
 
     K = P * H.T / sm.Max(innov_var, epsilon)
 
-    return (geo.V3(H), K, innov_var, innov)
+    return (H, K, innov_var, innov)
 
 def init_wind_using_airspeed(
-        v_local: geo.V3,
-        heading: T.Scalar,
-        airspeed: T.Scalar,
-        v_var: T.Scalar,
-        heading_var: T.Scalar,
-        sideslip_var: T.Scalar,
-        airspeed_var: T.Scalar,
-) -> (geo.V2, geo.M22):
+        v_local: sf.V3,
+        heading: sf.Scalar,
+        airspeed: sf.Scalar,
+        v_var: sf.Scalar,
+        heading_var: sf.Scalar,
+        sideslip_var: sf.Scalar,
+        airspeed_var: sf.Scalar,
+) -> (sf.V2, sf.M22):
 
     # Initialise wind states assuming zero side slip and horizontal flight
-    wind = geo.V2(v_local[0] - airspeed * sm.cos(heading), v_local[1] - airspeed * sm.sin(heading))
+    wind = sf.V2(v_local[0] - airspeed * sm.cos(heading), v_local[1] - airspeed * sm.sin(heading))
     # Zero sideslip, propagate the sideslip variance using partial derivatives w.r.t heading
     J = wind.jacobian([v_local[0], v_local[1], heading, heading, airspeed])
 
-    R = geo.M55()
+    R = sf.M55()
     R[0,0] = v_var
     R[1,1] = v_var
     R[2,2] = heading_var
