@@ -63,6 +63,10 @@
 
 extern int sercon_main(int c, char **argv);
 
+#if defined(CONFIG_OPENSBI)
+extern void mpfs_opensbi_relocate_from_envm(void);
+#endif
+
 #define MK_GPIO_INPUT(def) (((def) & (~(GPIO_OUTPUT)))  | GPIO_INPUT)
 
 #define APP_SIZE_MAX			BOARD_FLASH_SIZE
@@ -872,6 +876,10 @@ static int loader_main(int argc, char *argv[])
 
 #if defined(CONFIG_OPENSBI) && defined(CONFIG_MMCSD)
 	ssize_t uboot_size = 0;
+
+	/* Relocate code from eNVM into L2 zero device */
+
+	mpfs_opensbi_relocate_from_envm();
 
 	if (sdcard_mounted) {
 		uboot_size = load_sdcard_images("/sdcard/boot/"UBOOT_BINARY, CONFIG_MPFS_HART3_ENTRYPOINT);
