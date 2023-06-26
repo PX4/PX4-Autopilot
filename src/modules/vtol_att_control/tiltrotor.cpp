@@ -46,7 +46,7 @@ using namespace matrix;
 using namespace time_literals;
 
 #define  FRONTTRANS_THR_MIN 0.25f
-#define BACKTRANS_THROTTLE_DOWNRAMP_DUR_S 1.0f
+#define BACKTRANS_THROTTLE_DOWNRAMP_DUR_S 0.5f;
 #define BACKTRANS_THROTTLE_UPRAMP_DUR_S 1.0f;
 #define BACKTRANS_MOTORS_UPTILT_DUR_S 1.0f;
 
