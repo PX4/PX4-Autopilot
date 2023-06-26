@@ -2861,7 +2861,8 @@ Commander::run()
 					}
 				}
 
-				if (fd_status_flags.roll || fd_status_flags.pitch || fd_status_flags.alt || fd_status_flags.ext) {
+				if (fd_status_flags.roll || fd_status_flags.pitch || fd_status_flags.alt || fd_status_flags.ext
+				    || fd_status_flags.mpc_vz) {
 					const bool is_right_after_takeoff = hrt_elapsed_time(&_status.takeoff_time) < (1_s * _param_com_lkdown_tko.get());
 
 					if (is_right_after_takeoff && !_lockdown_triggered) {
@@ -3078,6 +3079,7 @@ Commander::run()
 			fd_status.fd_battery = _failure_detector.getStatusFlags().battery;
 			fd_status.fd_imbalanced_prop = _failure_detector.getStatusFlags().imbalanced_prop;
 			fd_status.imbalanced_prop_metric = _failure_detector.getImbalancedPropMetric();
+			fd_status.fd_mpc_vz = _failure_detector.getStatusFlags().mpc_vz;
 			_failure_detector_status_pub.publish(fd_status);
 		}
 
