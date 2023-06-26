@@ -342,7 +342,7 @@ PARAM_DEFINE_FLOAT(EKF2_MAG_E_NOISE, 1.0e-3f);
  * @unit m/s^2/sqrt(Hz)
  * @decimal 3
  */
-PARAM_DEFINE_FLOAT(EKF2_WIND_NSD, 1.0e-2f);
+PARAM_DEFINE_FLOAT(EKF2_WIND_NSD, 5.0e-2f);
 
 /**
  * Measurement noise for gps horizontal velocity.
@@ -601,7 +601,7 @@ PARAM_DEFINE_FLOAT(EKF2_GPS_V_GATE, 5.0f);
  * @unit SD
  * @decimal 1
  */
-PARAM_DEFINE_FLOAT(EKF2_TAS_GATE, 3.0f);
+PARAM_DEFINE_FLOAT(EKF2_TAS_GATE, 5.0f);
 
 /**
  * Will be removed after v1.14 release
