@@ -901,13 +901,22 @@ PARAM_DEFINE_FLOAT(EKF2_OF_N_MIN, 0.15f);
 PARAM_DEFINE_FLOAT(EKF2_OF_N_MAX, 0.5f);
 
 /**
- * Optical Flow data will only be used if the sensor reports a quality metric >= EKF2_OF_QMIN.
+ * Optical Flow data will only be used in air if the sensor reports a quality metric >= EKF2_OF_QMIN.
  *
  * @group EKF2
  * @min 0
  * @max 255
  */
 PARAM_DEFINE_INT32(EKF2_OF_QMIN, 1);
+
+/**
+ * Optical Flow data will only be used on the ground if the sensor reports a quality metric >= EKF2_OF_QMIN_GND.
+ *
+ * @group EKF2
+ * @min 0
+ * @max 255
+ */
+PARAM_DEFINE_INT32(EKF2_OF_QMIN_GND, 0);
 
 /**
  * Gate size for optical flow fusion
