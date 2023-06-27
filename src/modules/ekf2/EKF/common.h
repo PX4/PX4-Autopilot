@@ -416,6 +416,7 @@ struct parameters {
 	float flow_noise{0.15f};                ///< observation noise for optical flow LOS rate measurements (rad/sec)
 	float flow_noise_qual_min{0.5f};        ///< observation noise for optical flow LOS rate measurements when flow sensor quality is at the minimum useable (rad/sec)
 	int32_t flow_qual_min{1};               ///< minimum acceptable quality integer from  the flow sensor
+	int32_t flow_qual_min_gnd{0};           ///< minimum acceptable quality integer from  the flow sensor when on ground
 	float flow_innov_gate{3.0f};            ///< optical flow fusion innovation consistency gate size (STD)
 
 	Vector3f flow_pos_body{};               ///< xyz position of range sensor focal point in body frame (m)
