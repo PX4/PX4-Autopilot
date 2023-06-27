@@ -283,9 +283,12 @@ then
 	attitude_estimator_q start
 fi
 
-if ! pwm_out_sim start -m sim
+if [ "$VEHICLE_TYPE" != "rover" ]
 then
-	tune_control play error
+	if ! pwm_out_sim start -m sim
+	then
+		tune_control play error
+	fi
 fi
 
 #

@@ -55,6 +55,8 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_thrust_setpoint.h>
+#include <uORB/topics/vehicle_torque_setpoint.h>
 #include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/wheel_encoders.h>
@@ -73,7 +75,7 @@ using namespace time_literals;
 class GZBridge : public ModuleBase<GZBridge>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
-	GZBridge(const char *world, const char *name, const char *model, const char *pose_str);
+	GZBridge(const char *world, const char *name, const char *model, const char *type, const char *pose_str);
 	~GZBridge() override;
 
 	/** @see ModuleBase */
@@ -106,6 +108,7 @@ private:
 	void poseInfoCallback(const gz::msgs::Pose_V &pose);
 	void odometryCallback(const gz::msgs::OdometryWithCovariance &odometry);
 	void navSatCallback(const gz::msgs::NavSat &nav_sat);
+	void updateCmdVel();
 
 	/**
 	*
@@ -119,7 +122,10 @@ private:
 
 	// Subscriptions
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	uORB::SubscriptionInterval _vehicle_thrust_setpoint_sub{ORB_ID(vehicle_thrust_setpoint), 50_ms};
+	uORB::SubscriptionInterval _vehicle_torque_setpoint_sub{ORB_ID(vehicle_torque_setpoint), 50_ms};
 
+	// Publications
 	//uORB::Publication<differential_pressure_s>    _differential_pressure_pub{ORB_ID(differential_pressure)};
 	uORB::Publication<vehicle_angular_velocity_s> _angular_velocity_ground_truth_pub{ORB_ID(vehicle_angular_velocity_groundtruth)};
 	uORB::Publication<vehicle_attitude_s>         _attitude_ground_truth_pub{ORB_ID(vehicle_attitude_groundtruth)};
@@ -150,9 +156,15 @@ private:
 	const std::string _world_name;
 	const std::string _model_name;
 	const std::string _model_sim;
+	const std::string _vehicle_type;
 	const std::string _model_pose;
 
 	float _temperature{288.15};  // 15 degrees
 
+	float _rover_throttle_control{0.0f};
+
+	float _rover_yaw_control{0.0f};
+
 	gz::transport::Node _node;
+	gz::transport::Node::Publisher _cmd_vel_pub;
 };
