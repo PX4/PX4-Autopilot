@@ -24,7 +24,8 @@ jobs:
     - uses: actions/checkout@v1
       with:
         token: ${{secrets.ACCESS_TOKEN}}
-
+    - name: ownership workaround
+      run: git config --system --add safe.directory '*'
     - name: Prepare ccache timestamp
       id: ccache_cache_timestamp
       shell: cmake -P {0}
