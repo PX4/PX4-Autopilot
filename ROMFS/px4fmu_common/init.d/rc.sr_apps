@@ -8,6 +8,8 @@
 # Estimator Group Selection
 ekf2 start &
 
+# Start MicroDDS Client
 microdds_client start -h 192.168.0.1
 
-sr_thruster_controller
+# Start Space Robot Thruster Controller
+sr_thruster_controller start
