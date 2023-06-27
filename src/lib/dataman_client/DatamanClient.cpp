@@ -556,6 +556,32 @@ bool DatamanCache::loadWait(dm_item_t item, uint32_t index, uint8_t *buffer, uin
 	return success;
 }
 
+bool DatamanCache::writeWait(dm_item_t item, uint32_t index, uint8_t *buffer, uint32_t length, hrt_abstime timeout)
+{
+	if (length > g_per_item_size[item]) {
+		PX4_ERR("Length  %" PRIu32 " can't fit in data size for item  %" PRIi8, length, static_cast<uint8_t>(item));
+		return false;
+	}
+
+	bool success = _client.writeSync(item, index, buffer, length, timeout);
+
+	if (success && _items) {
+		for (uint32_t i = 0; i < _num_items; ++i) {
+			if ((_items[i].response.item == item) &&
+			    (_items[i].response.index == index) &&
+			    ((_items[i].cache_state == State::ResponseReceived) ||
+			     (_items[i].cache_state == State::RequestPrepared))) {
+
+				memcpy(_items[i].response.data, buffer, length);
+				_items[i].cache_state = State::ResponseReceived;
+				break;
+			}
+		}
+	}
+
+	return success;
+}
+
 void DatamanCache::update()
 {
 	if (_item_counter > 0) {

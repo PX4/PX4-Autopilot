@@ -168,8 +168,8 @@ void Navigator::run()
 	fds[2].fd = _mission_sub;
 	fds[2].events = POLLIN;
 
-	int16_t geofence_update_counter{0};
-	int16_t safe_points_update_counter{0};
+	uint16_t geofence_update_counter{0};
+	uint16_t safe_points_update_counter{0};
 
 	/* rate-limit position subscription to 20 Hz / 50 ms */
 	orb_set_interval(_local_pos_sub, 50);
@@ -589,8 +589,9 @@ void Navigator::run()
 
 				// find NAV_CMD_DO_LAND_START in the mission and
 				// use MAV_CMD_MISSION_START to start the mission from the next item containing a position setpoint
+				uint8_t result{vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED};
 
-				if (_mission.land_start()) {
+				if (_mission.get_land_start_available()) {
 					vehicle_command_s vcmd = {};
 					vcmd.command = vehicle_command_s::VEHICLE_CMD_MISSION_START;
 					vcmd.param1 = _mission.get_land_start_index();
@@ -598,9 +599,10 @@ void Navigator::run()
 
 				} else {
 					PX4_WARN("planned mission landing not available");
+					result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_CANCELLED;
 				}
 
-				publish_vehicle_command_ack(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
+				publish_vehicle_command_ack(cmd, result);
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_MISSION_START) {
 				if (_mission_result.valid && PX4_ISFINITE(cmd.param1) && (cmd.param1 >= 0)) {
@@ -694,7 +696,6 @@ void Navigator::run()
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
 			_pos_sp_triplet_published_invalid_once = false;
 
-			_mission.set_execution_mode(mission_result_s::MISSION_EXECUTION_MODE_NORMAL);
 			navigation_mode_new = &_mission;
 
 			break;
@@ -704,121 +705,18 @@ void Navigator::run()
 			navigation_mode_new = &_loiter;
 			break;
 
-		case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL: {
+		case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
+
+			// If we are already in mission landing, do not switch.
+			if (_navigation_mode == &_mission && _mission.isLanding()) {
+				navigation_mode_new = &_mission;
+
+			} else {
 				_pos_sp_triplet_published_invalid_once = false;
-				const bool rtl_activated_now = !_rtl_activated;
-
-				switch (_rtl.get_rtl_type()) {
-				case RTL::RTL_TYPE_MISSION_LANDING:
-				case RTL::RTL_TYPE_CLOSEST: {
-						// If a mission landing is desired we should only execute mission navigation mode if we currently are in fw mode.
-						// In multirotor mode no landing pattern is required so we can just navigate to the land point directly and don't need to run mission.
-						if (rtl_activated_now) {
-							_shouldEngageMissionForLanding = _rtl.getRTLDestinationTypeMission()
-											 && _vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
-						}
-
-						if (_shouldEngageMissionForLanding && (on_mission_landing() || _rtl.getRTLState() > RTL::RTL_STATE_CLIMB)) {
-
-							// already in a mission landing, we just need to inform the user and stay in mission
-							if (rtl_activated_now) {
-								mavlink_log_info(get_mavlink_log_pub(), "RTL to Mission landing, continue landing\t");
-								events::send(events::ID("rtl_land_at_mission_continue_landing"), events::Log::Info,
-									     "RTL to Mission landing, continue landing");
-							}
-
-							if (_navigation_mode != &_mission) {
-								// the first time we're here start the mission landig
-								start_mission_landing();
-							}
-
-							_mission.set_execution_mode(mission_result_s::MISSION_EXECUTION_MODE_FAST_FORWARD);
-							navigation_mode_new = &_mission;
-
-						} else {
-							navigation_mode_new = &_rtl;
-						}
-
-						break;
-					}
-
-				case RTL::RTL_TYPE_MISSION_LANDING_REVERSED:
-					if (_mission.get_land_start_available() && !get_land_detected()->landed) {
-						// the mission contains a landing spot
-						_mission.set_execution_mode(mission_result_s::MISSION_EXECUTION_MODE_FAST_FORWARD);
-
-						if (_navigation_mode != &_mission) {
-							if (_navigation_mode == nullptr) {
-								// switching from an manual mode, go to landing if not already landing
-								if (!on_mission_landing()) {
-									start_mission_landing();
-								}
-
-							} else {
-								// switching from an auto mode, continue the mission from the closest item
-								_mission.set_closest_item_as_current();
-							}
-						}
-
-						if (rtl_activated_now) {
-							mavlink_log_info(get_mavlink_log_pub(), "RTL Mission activated, continue mission\t");
-							events::send(events::ID("navigator_rtl_mission_activated"), events::Log::Info,
-								     "RTL Mission activated, continue mission");
-						}
-
-						navigation_mode_new = &_mission;
-
-					} else {
-						// fly the mission in reverse if switching from a non-manual mode
-						_mission.set_execution_mode(mission_result_s::MISSION_EXECUTION_MODE_REVERSE);
-
-						if ((_navigation_mode != nullptr && (_navigation_mode != &_rtl || _mission.get_mission_changed())) &&
-						    (! _mission.get_mission_finished()) &&
-						    (!get_land_detected()->landed)) {
-							// determine the closest mission item if switching from a non-mission mode, and we are either not already
-							// mission mode or the mission waypoints changed.
-							// The seconds condition is required so that when no mission was uploaded and one is available the closest
-							// mission item is determined and also that if the user changes the active mission index while rtl is active
-							// always that waypoint is tracked first.
-							if ((_navigation_mode != &_mission) && (rtl_activated_now || _mission.get_mission_waypoints_changed())) {
-								_mission.set_closest_item_as_current();
-							}
-
-							if (rtl_activated_now) {
-								mavlink_log_info(get_mavlink_log_pub(), "RTL Mission activated, fly mission in reverse\t");
-								events::send(events::ID("navigator_rtl_mission_activated_rev"), events::Log::Info,
-									     "RTL Mission activated, fly mission in reverse");
-							}
-
-							navigation_mode_new = &_mission;
-
-						} else {
-							if (rtl_activated_now) {
-								mavlink_log_info(get_mavlink_log_pub(), "RTL Mission activated, fly to home\t");
-								events::send(events::ID("navigator_rtl_mission_activated_home"), events::Log::Info,
-									     "RTL Mission activated, fly to home");
-							}
-
-							navigation_mode_new = &_rtl;
-						}
-					}
-
-					break;
-
-				default:
-					if (rtl_activated_now) {
-						mavlink_log_info(get_mavlink_log_pub(), "RTL HOME activated\t");
-						events::send(events::ID("navigator_rtl_home_activated"), events::Log::Info, "RTL activated");
-					}
-
-					navigation_mode_new = &_rtl;
-					break;
-
-				}
-
-				_rtl_activated = true;
-				break;
+				navigation_mode_new = &_rtl;
 			}
+
+			break;
 
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
 			_pos_sp_triplet_published_invalid_once = false;
@@ -852,11 +750,6 @@ void Navigator::run()
 		default:
 			navigation_mode_new = nullptr;
 			break;
-		}
-
-		if (_vstatus.nav_state != vehicle_status_s::NAVIGATION_STATE_AUTO_RTL) {
-			_rtl_activated = false;
-			_rtl.resetRtlState();
 		}
 
 		// Do not execute any state machine while we are disarmed
@@ -928,9 +821,7 @@ void Navigator::run()
 			publish_mission_result();
 		}
 
-		_mission.run();
 		_geofence.run();
-		_rtl.run();
 
 		perf_end(_loop_perf);
 	}
