@@ -662,7 +662,9 @@ private:
 		(ParamExtFloat<px4::params::EKF2_OF_N_MAX>)
 		_param_ekf2_of_n_max, ///< worst quality observation noise for optical flow LOS rate measurements (rad/sec)
 		(ParamExtInt<px4::params::EKF2_OF_QMIN>)
-		_param_ekf2_of_qmin, ///< minimum acceptable quality integer from  the flow sensor
+		_param_ekf2_of_qmin, ///< minimum acceptable quality integer from  the flow sensor when in air
+		(ParamExtInt<px4::params::EKF2_OF_QMIN_GND>)
+		_param_ekf2_of_qmin_gnd, ///< minimum acceptable quality integer from  the flow sensor when on ground
 		(ParamExtFloat<px4::params::EKF2_OF_GATE>)
 		_param_ekf2_of_gate, ///< optical flow fusion innovation consistency gate size (STD)
 		(ParamExtFloat<px4::params::EKF2_OF_POS_X>)
