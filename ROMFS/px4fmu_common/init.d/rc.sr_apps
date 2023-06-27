@@ -8,6 +8,6 @@
 # Estimator Group Selection
 ekf2 start &
 
-# microdds_client start -h 192.168.0.1
+microdds_client start -h 192.168.0.1
 
 sr_thruster_controller
