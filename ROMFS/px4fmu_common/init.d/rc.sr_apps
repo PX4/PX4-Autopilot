@@ -5,40 +5,9 @@
 # NOTE: Script variables are declared/initialized/unset in the rcS script.
 #
 
-###############################################################################
-#                       Begin Estimator Group Selection                       #
-###############################################################################
-
+# Estimator Group Selection
 ekf2 start &
 
-###############################################################################
-#                        End Estimator Group Selection                        #
-###############################################################################
-##Copied from uuv
-#
-# Start Control Allocator
-#
-#control_allocator start
-
-#
-# Start UUV Attitude Controller.
-#
-#uuv_att_control start
-
-#
-# Start UUV Land Detector.
-#
-#land_detector start rover
-
-
-#commander arm -f
-
-#control_allocator stop
-
-microdds_client start -h 192.168.0.1
-
-###############################################################################
-#                             Thruster Controller                             #
-###############################################################################
+# microdds_client start -h 192.168.0.1
 
 sr_thruster_controller

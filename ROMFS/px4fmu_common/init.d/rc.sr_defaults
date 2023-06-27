@@ -14,7 +14,8 @@ set VEHICLE_TYPE sr
 param set-default COM_DISARM_PRFLT -1
 
 param set-default XRCE_DDS_0_CFG 1000
-param set-default CP_DIST -1
+
+# param set-default CP_DIST -1
 
 param set-default CBRK_AIRSPD_CHK 162128
 param set-default CBRK_SUPPLY_CHK 894281

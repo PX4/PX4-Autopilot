@@ -53,6 +53,8 @@
 #include <uORB/topics/thruster_command.h>
 #include <uORB/topics/log_message.h>
 #include <uORB/topics/actuator_motors.h>
+#include <uORB/topics/actuator_outputs.h>
+#include <uORB/topics/my_message.h>
 
 /**
  * SR thruster controller app start / stop handling function
@@ -77,53 +79,16 @@ int sr_thruster_controller_main(int argc, char *argv[])
 	memset(&actuator_motors_msg, 0, sizeof(actuator_motors_msg));
     orb_advert_t _actuator_motors_pub = orb_advertise(ORB_ID(actuator_motors), &actuator_motors_msg);
 
-    /* Testing */
-    for (int i = 0; i < 8; i++)
-    {
-        actuator_motors_msg.control[i] = 1;
-    }
-    for (int i = 8; i < 12; i++)
-    {
-        actuator_motors_msg.control[i] = NAN;
-    }
-    PX4_INFO("Sending control signal to PWM!");
-    for (int i = 0; i < 5000/2.5; i++)
-    {
-        PX4_INFO("Message #%d", i);
-        orb_publish(ORB_ID(actuator_motors), _actuator_motors_pub, &actuator_motors_msg);
-        delay(2.5);
-    }
-    for (int i = 0; i < 8; i++)
-    {
-        actuator_motors_msg.control[i] = 0;
-    }
-    orb_publish(ORB_ID(actuator_motors), _actuator_motors_pub, &actuator_motors_msg);
-    PX4_INFO("Turning off PWM");
-
-    // PX4_INFO("Testing GPIO");
-    // PX4_INFO("Setting GPIO 0 to high");
-    // px4_arch_configgpio(GPIO_GPIO0_OUTPUT);
-    // px4_arch_gpiowrite(GPIO_GPIO0_OUTPUT, 1);
-    // PX4_INFO("Done");
-
-    //int sensor_sub_fd = orb_subscribe(ORB_ID(sensor_combined));
-    /* limit the update rate to 1 Hz */
-	//orb_set_interval(sensor_sub_fd, 1000);
-
-	// PX4_INFO("orb_sensor_sub created");
+    /* For publishing debug messages */
+    struct my_message_s my_msg;
+	memset(&my_msg, 0, sizeof(my_msg));
+    orb_advert_t _my_message_pub = orb_advertise(ORB_ID(my_message), &my_msg);
 
     int thrustercmd_sub_fd = orb_subscribe(ORB_ID(thruster_command));
     /* limit the update rate to 10 Hz */
 	orb_set_interval(thrustercmd_sub_fd, 100);
 
 	PX4_INFO("Subscriber to thruster command created");
-
-
-    /* Log message pub topic */
-	// struct log_message_s log_msg;
-	// memset(&log_msg, 0, sizeof(log_msg));
-	// // orb_advert_t log_msg_pub_fd = orb_advertise(ORB_ID(log_message), &log_msg);
-    // PX4_INFO("Publisher of log messages created");
 
 	/* one could wait for multiple topics with this technique, just using one here */
 	px4_pollfd_struct_t fds[] = {
@@ -163,23 +128,19 @@ int sr_thruster_controller_main(int argc, char *argv[])
                     (double)thruster_cmd.y1,
                     (double)thruster_cmd.y2);
 
-                    actuator_motors_msg.control[0] = thruster_cmd.x1 > 0 ? thruster_cmd.x1 : 0;
-                    actuator_motors_msg.control[1] = thruster_cmd.x1 < 0 ? -thruster_cmd.x1 : 0;
-                    actuator_motors_msg.control[2] = thruster_cmd.x2 > 0 ? thruster_cmd.x2 : 0;
-                    actuator_motors_msg.control[3] = thruster_cmd.x2 < 0 ? -thruster_cmd.x2 : 0;
-                    actuator_motors_msg.control[4] = thruster_cmd.y1 > 0 ? thruster_cmd.y1 : 0;
-                    actuator_motors_msg.control[5] = thruster_cmd.y1 < 0 ? -thruster_cmd.y1 : 0;
-                    actuator_motors_msg.control[6] = thruster_cmd.y2 > 0 ? thruster_cmd.y2 : 0;
-                    actuator_motors_msg.control[7] = thruster_cmd.y2 < 0 ? -thruster_cmd.y2 : 0;
+                actuator_motors_msg.control[0] = thruster_cmd.x1 > 0 ? thruster_cmd.x1 : 0;
+                actuator_motors_msg.control[1] = thruster_cmd.x1 < 0 ? -thruster_cmd.x1 : 0;
+                actuator_motors_msg.control[2] = thruster_cmd.x2 > 0 ? thruster_cmd.x2 : 0;
+                actuator_motors_msg.control[3] = thruster_cmd.x2 < 0 ? -thruster_cmd.x2 : 0;
+                actuator_motors_msg.control[4] = thruster_cmd.y1 > 0 ? thruster_cmd.y1 : 0;
+                actuator_motors_msg.control[5] = thruster_cmd.y1 < 0 ? -thruster_cmd.y1 : 0;
+                actuator_motors_msg.control[6] = thruster_cmd.y2 > 0 ? thruster_cmd.y2 : 0;
+                actuator_motors_msg.control[7] = thruster_cmd.y2 < 0 ? -thruster_cmd.y2 : 0;
 
-                    orb_publish(ORB_ID(actuator_motors), _actuator_motors_pub, &actuator_motors_msg);
+                orb_publish(ORB_ID(actuator_motors), _actuator_motors_pub, &actuator_motors_msg);
 
-                /* set att and publish this information for other apps
-				the following does not have any meaning, it's just an example
-				*/
-                // strcpy(log_msg.text, "New thruster command received!");
-
-				// orb_publish(ORB_ID(log_message), log_msg_pub_fd, &log_msg);
+                strcpy(my_msg.text, "Thruster command received!");
+                orb_publish(ORB_ID(my_message), _my_message_pub, &my_msg);
 			}
 		}
 	}

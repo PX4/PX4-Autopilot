@@ -50,6 +50,9 @@ publications:
   - topic: /fmu/out/log_message
     type: px4_msgs::msg::LogMessage
 
+  - topic: /fmu/out/my_message
+    type: px4_msgs::msg::MyMessage
+
 subscriptions:
 
   - topic: /fmu/in/offboard_control_mode

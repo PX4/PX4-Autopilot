@@ -127,6 +127,7 @@ set(msg_files
 	MissionResult.msg
 	MountOrientation.msg
 	ModeCompleted.msg
+	MyMessage.msg
 	NavigatorMissionItem.msg
 	NormalizedUnsignedSetpoint.msg
 	NpfgStatus.msg
