@@ -388,6 +388,9 @@ void EKF2::Run()
 		// update parameters from storage
 		updateParams();
 
+		_params->no_aid_timeout_max = _param_ekf2_ev_pos_to.get();
+		_params->hgt_fusion_timeout_max = _param_ekf2_ev_hgt_to.get();
+
 		VerifyParams();
 
 		_ekf.set_min_required_gps_health_time(_param_ekf2_req_gps_h.get() * 1_s);

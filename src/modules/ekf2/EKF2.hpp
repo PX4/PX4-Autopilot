@@ -648,6 +648,10 @@ private:
 		_param_ekf2_ev_pos_y, ///< Y position of VI sensor focal point in body frame (m)
 		(ParamExtFloat<px4::params::EKF2_EV_POS_Z>)
 		_param_ekf2_ev_pos_z, ///< Z position of VI sensor focal point in body frame (m)
+
+		(ParamInt<px4::params::EKF2_EV_POS_TO>) _param_ekf2_ev_pos_to, ///< determine source of vision observation noise
+		(ParamInt<px4::params::EKF2_EV_HGT_TO>) _param_ekf2_ev_hgt_to, ///< determine source of vision observation noise
+
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 		(ParamExtFloat<px4::params::EKF2_GRAV_NOISE>)
