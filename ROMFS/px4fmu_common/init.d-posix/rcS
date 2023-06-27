@@ -265,9 +265,12 @@ manual_control start
 sensors start
 commander start
 
-if ! pwm_out_sim start -m sim
+if [ "$VEHICLE_TYPE" != "rover" ]
 then
-	tune_control play error
+	if ! pwm_out_sim start -m sim
+	then
+		tune_control play error
+	fi
 fi
 
 #
