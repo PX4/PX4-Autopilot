@@ -92,6 +92,15 @@ public:
 	static bool item_contains_gate(const mission_item_s &item);
 
 	/**
+	 * Get the absolute altitude for mission item
+	 *
+	 * @param mission_item	the mission item of interest
+	 * @param home_alt	the home altitude in [m AMSL].
+	 * @return Mission item altitude in [m AMSL]
+	 */
+	static float get_absolute_altitude_for_item(const  mission_item_s &mission_item, float home_alt);
+
+	/**
 	 * Check if the mission item contains a marker
 	 *
 	 * @return true if mission item is a marker
@@ -123,6 +132,18 @@ public:
 	{
 		_payload_deploy_timeout_s = timeout_s;
 	}
+
+	/**
+	 * Copies position from setpoint if valid, otherwise copies current position
+	 */
+	void copy_position_if_valid(struct mission_item_s *const mission_item,
+				    const struct position_setpoint_s *const setpoint) const;
+
+	/**
+	 * Create mission item to align towards next waypoint
+	 */
+	void set_align_mission_item(struct mission_item_s *const mission_item,
+				    const struct mission_item_s *const mission_item_next) const;
 
 protected:
 	/**

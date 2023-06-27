@@ -40,10 +40,15 @@ px4_add_module(
 	SRCS
 		navigator_main.cpp
 		navigator_mode.cpp
+		mission_base.cpp
 		mission_block.cpp
 		mission.cpp
 		loiter.cpp
 		rtl.cpp
+		rtl_direct.cpp
+		rtl_direct_mission_land.cpp
+		rtl_mission_fast.cpp
+		rtl_mission_fast_reverse.cpp
 		takeoff.cpp
 		land.cpp
 		precland.cpp

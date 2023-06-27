@@ -236,6 +236,19 @@ public:
 	bool loadWait(dm_item_t item, uint32_t index, uint8_t *buffer, uint32_t length, hrt_abstime timeout = 0);
 
 	/**
+	 * @brief Write data back and update it in the cache if stored.
+	 *
+	 * @param[in] item The data item type to write.
+	 * @param[in] index The index of the data item.
+	 * @param[in] buffer The buffer that contains the data to write.
+	 * @param[in] length The length of the data to write.
+	 * @param[in] timeout The maximum time in microseconds to wait for the response.
+	 *
+	 * @return True if the write operation succeeded, false otherwise.
+	 */
+	bool writeWait(dm_item_t item, uint32_t index, uint8_t *buffer, uint32_t length, hrt_abstime timeout = 1000_ms);
+
+	/**
 	 * @brief Updates the dataman cache by checking for responses from the DatamanClient and processing them.
 	 *
 	 * If there are items in the cache, this function will call the DatamanClient's 'update()' function to check for responses.

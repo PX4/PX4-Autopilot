@@ -77,6 +77,7 @@
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_roi.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/mode_completed.h>
 #include <uORB/uORB.h>
@@ -246,31 +247,11 @@ public:
 
 	orb_advert_t *get_mavlink_log_pub() { return &_mavlink_log_pub; }
 
-	void increment_mission_instance_count() { _mission_result.instance_count++; }
-
 	int mission_instance_count() const { return _mission_result.instance_count; }
 
 	void set_mission_failure_heading_timeout();
 
-	bool is_planned_mission() const { return _navigation_mode == &_mission; }
-
-	bool on_mission_landing() { return (_mission.landing() && _navigation_mode == &_mission); }
-
-	bool start_mission_landing() { return _mission.land_start(); }
-
 	bool get_mission_start_land_available() { return _mission.get_land_start_available(); }
-
-	int  get_mission_landing_index() { return _mission.get_land_start_index(); }
-
-	double get_mission_landing_start_lat() { return _mission.get_landing_start_lat(); }
-	double get_mission_landing_start_lon() { return _mission.get_landing_start_lon(); }
-	float  get_mission_landing_start_alt() { return _mission.get_landing_start_alt(); }
-
-	double get_mission_landing_lat() { return _mission.get_landing_lat(); }
-	double get_mission_landing_lon() { return _mission.get_landing_lon(); }
-	float  get_mission_landing_alt() { return _mission.get_landing_alt(); }
-
-	float get_mission_landing_loiter_radius() { return _mission.get_landing_loiter_rad(); }
 
 	// RTL
 	bool in_rtl_state() const { return _vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL; }
@@ -339,8 +320,6 @@ private:
 	vehicle_local_position_s			_local_pos{};		/**< local vehicle position */
 	vehicle_status_s				_vstatus{};		/**< vehicle status */
 
-	bool						_rtl_activated{false};
-
 	// Publications
 	geofence_result_s				_geofence_result{};
 	position_setpoint_triplet_s			_pos_sp_triplet{};	/**< triplet of position setpoints */
@@ -358,8 +337,6 @@ private:
 	bool		_pos_sp_triplet_updated{false};			/**< flags if position SP triplet needs to be published */
 	bool 		_pos_sp_triplet_published_invalid_once{false};	/**< flags if position SP triplet has been published once to UORB */
 	bool		_mission_result_updated{false};			/**< flags if mission result has seen an update */
-
-	bool		_shouldEngageMissionForLanding{false};
 
 	Mission		_mission;			/**< class that handles the missions */
 	Loiter		_loiter;			/**< class that handles loiter */

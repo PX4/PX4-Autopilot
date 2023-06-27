@@ -1,6 +1,6 @@
-/****************************************************************************
+/***************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,9 +31,9 @@
  *
  ****************************************************************************/
 /**
- * @file navigator_mode.h
+ * @file rtl_direct_mission_land.h
  *
- * Base class for different modes in navigator
+ * Helper class for RTL
  *
  * @author Julian Oes <julian@oes.ch>
  * @author Anton Babushkin <anton.babushkin@me.com>
@@ -41,44 +41,32 @@
 
 #pragma once
 
+#include "mission.h"
+
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/home_position.h>
+#include <uORB/topics/rtl_time_estimate.h>
+
 class Navigator;
 
-class NavigatorMode
+class RtlDirectMissionLand : public MissionBase
 {
 public:
-	NavigatorMode(Navigator *navigator);
-	virtual ~NavigatorMode() = default;
-	NavigatorMode(const NavigatorMode &) = delete;
-	NavigatorMode &operator=(const NavigatorMode &) = delete;
-	virtual void initialize() = 0;
+	RtlDirectMissionLand(Navigator *navigator);
+	~RtlDirectMissionLand() = default;
 
-	void run(bool active);
+	void on_activation(bool enforce_rtl_alt);
 
-	bool isActive() {return _active;};
+	rtl_time_estimate_s calc_rtl_time_estimate();
 
-	/**
-	 * This function is called while the mode is inactive
-	 */
-	virtual void on_inactive();
-
-	/**
-	 * This function is called one time when mode becomes active, pos_sp_triplet must be initialized here
-	 */
-	virtual void on_activation();
-
-	/**
-	 * This function is called one time when mode becomes inactive
-	 */
-	virtual void on_inactivation();
-
-	/**
-	 * This function is called while the mode is active
-	 */
-	virtual void on_active();
-
-protected:
-	Navigator *_navigator{nullptr};
+	void setRtlAlt(float alt) {_rtl_alt = alt;};
 
 private:
-	bool _active{false};
+	bool setNextMissionItem() override;
+	void setActiveMissionItems() override;
+	void handleLanding(WorkItemType &new_work_item_type);
+	bool do_need_move_to_land();
+
+	bool _needs_climbing{false}; 	//< Flag if climbing is required at the start
+	float _rtl_alt{0.0f};	///< AMSL altitude at which the vehicle should return to the land position
 };
