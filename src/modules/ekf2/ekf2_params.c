@@ -840,21 +840,21 @@ PARAM_DEFINE_FLOAT(EKF2_EVP_NOISE, 0.1f);
  * Timeout in microseconds for external vision observations for ev position, velocity and yaw fusion
  *
  * @group EKF2
- * @min 10000
- * @unit us
+ * @min 10
+ * @unit ms
  * @decimal 1
  */
-PARAM_DEFINE_INT32(EKF2_EV_POS_TO, 1000000);
+PARAM_DEFINE_INT32(EKF2_EV_POS_TO, 1000);
 
 /**
  * Timeout in microseconds for external vision observations for ev height fusion
  *
  * @group EKF2
- * @min 10000
- * @unit us
+ * @min 10
+ * @unit ms
  * @decimal 1
  */
-PARAM_DEFINE_INT32(EKF2_EV_HGT_TO, 5000000);
+PARAM_DEFINE_INT32(EKF2_EV_HGT_TO, 5000);
 
 /**
  * Measurement noise for vision velocity observations used to lower bound or replace the uncertainty included in the message

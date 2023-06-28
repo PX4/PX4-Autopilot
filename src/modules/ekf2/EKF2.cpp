@@ -388,8 +388,8 @@ void EKF2::Run()
 		// update parameters from storage
 		updateParams();
 
-		_params->no_aid_timeout_max = _param_ekf2_ev_pos_to.get();
-		_params->hgt_fusion_timeout_max = _param_ekf2_ev_hgt_to.get();
+		_params->no_aid_timeout_max = _param_ekf2_ev_pos_to.get() * 1000;
+		_params->hgt_fusion_timeout_max = _param_ekf2_ev_hgt_to.get() * 1000;
 
 		VerifyParams();
 
