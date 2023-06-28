@@ -147,6 +147,10 @@ fi
 # APM power monitor
 qshell voxlpm start -X -b 2
 
+# Optional distance sensor on spare i2c
+# qshell vl53l0x start -X -b 4
+# qshell vl53l1x start -X -b 4
+
 # Start all of the processing modules on DSP
 qshell sensors start
 qshell ekf2 start
