@@ -156,3 +156,31 @@ PARAM_DEFINE_INT32(FD_ESCS_EN, 1);
  * @group Failure Detector
  */
 PARAM_DEFINE_INT32(FD_IMB_PROP_THR, 30);
+
+/**
+ * Multicopter altitude rate fail threshold
+ *
+ * Maximum downwards vertical velocity before FailureDetector triggers the vertical_rate_failure flag.
+ * Will only be triggered if the setpoint is negative (ascending).
+ * Set to 0 to disable.
+ *
+ * @min 0
+ * @max 20
+ * @increment 1
+ * @group Failure Detector
+ */
+PARAM_DEFINE_INT32(FD_MPC_VZ_THR, 0);
+
+/**
+ * Multicopter altitude rate fail trigger time
+ *
+ * Seconds (decimal) that vertical rate has to exceed FD_MPC_VZ_THR before being considered as a failure.
+ *
+ * @unit s
+ * @min 0.02
+ * @max 5
+ * @decimal 2
+ *
+ * @group Failure Detector
+ */
+PARAM_DEFINE_FLOAT(FD_MPC_VZ_TTRI, 0.3);

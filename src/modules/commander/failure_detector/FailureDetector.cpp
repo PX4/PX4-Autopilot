@@ -73,6 +73,13 @@ bool FailureDetector::update(const vehicle_status_s &vehicle_status, const vehic
 		updateImbalancedPropStatus();
 	}
 
+	if (vehicle_control_mode.flag_multicopter_position_control_enabled && _param_fd_mpc_vz_thr.get() > 0) {
+		updateMpcVerticalRateStatus();
+
+	} else {
+		_status.flags.mpc_vz = false;
+	}
+
 	return _status.value != status_prev.value;
 }
 
@@ -207,5 +214,26 @@ void FailureDetector::updateImbalancedPropStatus()
 				_status.flags.imbalanced_prop = is_imbalanced;
 			}
 		}
+	}
+}
+
+void FailureDetector::updateMpcVerticalRateStatus()
+{
+
+	vehicle_local_position_s position;
+	vehicle_local_position_setpoint_s position_sp;
+
+	if (_vehicle_local_position_sub.update(&position) &&
+	    _vehicle_local_position_setpoint_sub.copy(&position_sp)) {
+
+		const bool mpc_vz_status = position.v_z_valid && position.vz > _param_fd_mpc_vz_thr.get() &&
+					   PX4_ISFINITE(position_sp.vz) && position_sp.vz < 0;
+
+		hrt_abstime time_now = hrt_absolute_time();
+
+		_mpc_vz_failure_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1_s * _param_fd_mpc_vz_ttri.get()));
+		_mpc_vz_failure_hysteresis.set_state_and_update(mpc_vz_status, time_now);
+
+		_status.flags.mpc_vz = _mpc_vz_failure_hysteresis.get_state();
 	}
 }
