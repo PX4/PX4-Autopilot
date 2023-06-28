@@ -50,6 +50,7 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_odometry.h>
 
 using namespace time_literals;
@@ -97,11 +98,12 @@ private:
 
 	vehicle_odometry_s gpsToOdom(const sensor_gps_s &gps);
 
-	uORB::Publication<vehicle_odometry_s> _vehicle_visual_odometry_pub{ORB_ID(vehicle_fake_visual_odometry)};
+	uORB::Publication<vehicle_odometry_s> _vehicle_visual_odometry_pub{ORB_ID(vehicle_visual_odometry)};
 
 	uORB::SubscriptionCallbackWorkItem _vehicle_gps_position_sub{this, ORB_ID(vehicle_gps_position)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	uORB::SubscriptionInterval _vehicle_attitude_sub{ORB_ID(vehicle_attitude), 1_s};
 
 	hrt_abstime _timestamp_last{0};
 
@@ -113,7 +115,9 @@ private:
 	float _h_drift_rate{0.05f};
 
 	bool _is_stale{false};
-	matrix::Vector2f _hpos_prev;
+	matrix::Vector3f _pos_prev;
+
+	matrix::Quatf _q_att;
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")};
 

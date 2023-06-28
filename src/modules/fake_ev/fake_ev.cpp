@@ -80,6 +80,14 @@ void FakeEV::Run()
 
 	perf_begin(_cycle_perf);
 
+	if (_vehicle_attitude_sub.updated()) {
+		vehicle_attitude_s att;
+
+		if (_vehicle_attitude_sub.copy(&att)) {
+			_q_att = matrix::Quatf(att.q);
+		}
+	}
+
 	sensor_gps_s gps{};
 
 	if (_vehicle_gps_position_sub.copy(&gps)) {
@@ -104,6 +112,8 @@ vehicle_odometry_s FakeEV::gpsToOdom(const sensor_gps_s &gps)
 {
 	vehicle_odometry_s odom{vehicle_odometry_empty};
 
+	const matrix::Quatf q_error(matrix::Eulerf(0.f, 0.f, M_PI_F / 8.f));
+
 	/* odom.timestamp_sample = gps.timestamp_sample; */ // gps timestamp_sample isn't set in SITL
 	odom.timestamp_sample = gps.timestamp;
 
@@ -113,23 +123,25 @@ vehicle_odometry_s FakeEV::gpsToOdom(const sensor_gps_s &gps)
 
 	if (gps.fix_type >= 3) {
 		if (PX4_ISFINITE(_alt_ref)) {
-			matrix::Vector2f hpos = _hpos_prev;
+			matrix::Vector3f pos = _pos_prev;
 
 			if (!_param_fev_stale.get()) {
-				hpos = _pos_ref.project(gps.lat / 1.0e7, gps.lon / 1.0e7);
-				_hpos_prev = hpos;
+				matrix::Vector2f hpos = _pos_ref.project(gps.lat / 1.0e7, gps.lon / 1.0e7);
+				const float vpos = -((float)gps.alt * 1e-3f - _alt_ref);
+				pos = matrix::Vector3f(hpos(0), hpos(1), vpos);
+				_pos_prev = pos;
 			}
 
+			pos = q_error.rotateVector(pos);
 			_h_drift += _param_fev_h_drift_rate.get() * dt;
-			hpos += matrix::Vector2f(_h_drift, _h_drift);
-			const float vpos = -((float)gps.alt * 1e-3f - _alt_ref);
-			matrix::Vector3f(hpos(0), hpos(1), vpos).copyTo(odom.position);
+			pos += matrix::Vector3f(_h_drift, _h_drift, 0.f);
+			pos.copyTo(odom.position);
 
 			const float hvar = std::pow(gps.eph, 2.f);
 			const float vvar = std::pow(gps.epv, 2.f);
 			matrix::Vector3f(hvar, hvar, vvar).copyTo(odom.position_variance);
 
-			odom.pose_frame = vehicle_odometry_s::POSE_FRAME_NED;
+			odom.pose_frame = vehicle_odometry_s::POSE_FRAME_FRD;
 
 		} else {
 			_pos_ref.initReference(gps.lat / 1.0e7, gps.lon / 1.0e7, gps.timestamp);
@@ -138,13 +150,18 @@ vehicle_odometry_s FakeEV::gpsToOdom(const sensor_gps_s &gps)
 	}
 
 	if (gps.vel_ned_valid) {
-		matrix::Vector3f(gps.vel_n_m_s, gps.vel_e_m_s, gps.vel_d_m_s).copyTo(odom.velocity);
+		matrix::Vector3f gnss_vel(gps.vel_n_m_s, gps.vel_e_m_s, gps.vel_d_m_s);
+		matrix::Vector3f ev_vel = q_error.rotateVector(gnss_vel);
+
+		ev_vel.copyTo(odom.velocity);
 
 		matrix::Vector3f vel_var;
 		vel_var.setAll(std::pow(gps.s_variance_m_s, 2.f));
 		vel_var.copyTo(odom.velocity_variance);
 		odom.velocity_frame = vehicle_odometry_s::VELOCITY_FRAME_NED;
 	}
+
+	(_q_att * q_error).copyTo(odom.q);
 
 	odom.timestamp = hrt_absolute_time();
 
