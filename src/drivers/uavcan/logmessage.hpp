@@ -41,7 +41,7 @@
 class UavcanLogMessage
 {
 public:
-	UavcanLogMessage(uavcan::INode &node) : _sub_logmessage(node) {}
+	UavcanLogMessage(uavcan::INode &node) : _sub_logmessage(node), _verbosity(1) {}
 	~UavcanLogMessage() = default;
 
 	int init()
@@ -52,6 +52,8 @@ public:
 			PX4_ERR("LogMessage sub failed %i", res);
 			return res;
 		}
+
+		param_get(param_find("UAVCAN_LOG_LEVEL"), &_verbosity);
 
 		return 0;
 	}
@@ -68,18 +70,37 @@ private:
 		switch (msg.level.value) {
 		case uavcan::protocol::debug::LogLevel::DEBUG:
 			px4_level = _PX4_LOG_LEVEL_DEBUG;
+
+			if (_verbosity < 3) { return; }
+
 			break;
 
 		case uavcan::protocol::debug::LogLevel::INFO:
 			px4_level = _PX4_LOG_LEVEL_INFO;
+
+			if (_verbosity < 2) { return; }
+
 			break;
 
 		case uavcan::protocol::debug::LogLevel::WARNING:
 			px4_level = _PX4_LOG_LEVEL_WARN;
+
+			if (_verbosity < 1) { return; }
+
 			break;
 
 		case uavcan::protocol::debug::LogLevel::ERROR:
 			px4_level = _PX4_LOG_LEVEL_ERROR;
+
+			if (_verbosity < 0) { return; }
+
+			break;
+
+		default: // default info
+			px4_level = _PX4_LOG_LEVEL_INFO;
+
+			if (_verbosity < 2) { return; }
+
 			break;
 		}
 
@@ -89,4 +110,5 @@ private:
 	}
 
 	uavcan::Subscriber<uavcan::protocol::debug::LogMessage, LogMessageCbBinder> _sub_logmessage;
+	int32_t _verbosity;
 };
