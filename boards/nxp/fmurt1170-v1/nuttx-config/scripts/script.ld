@@ -35,7 +35,7 @@
 MEMORY
 {
   flash (rx)  : ORIGIN = 0x30000000, LENGTH = 3M /* We have 64M but we do not want to wait to program it all */
-  sram  (rwx) : ORIGIN = 0x20240000, LENGTH = 2M-256k
+  sram  (rwx) : ORIGIN = 0x20240000, LENGTH = 2M-256k-512k
   itcm  (rwx) : ORIGIN = 0x00000000, LENGTH = 256K   /* TODO FlexRAM partition */
   dtcm  (rwx) : ORIGIN = 0x20000000, LENGTH = 256K
 }
@@ -68,6 +68,23 @@ SECTIONS
         __boot_hdr_end__ = ABSOLUTE(.) ;
         . = 0x2000 ;
     } >flash
+
+    .vectors :
+    {
+        KEEP(*(.vectors))
+        *(.text .text.__start)
+    } >flash
+
+    .itcmfunc :
+    {
+        . = ALIGN(8);
+        _sitcmfuncs = ABSOLUTE(.);
+        INCLUDE "itcm_functions_includes.ld"
+        . = ALIGN(8);
+        _eitcmfuncs = ABSOLUTE(.);
+    } > itcm AT > flash
+
+    _fitcmfuncs = LOADADDR(.itcmfunc);
 
     /* The RAM vector table (if present) should lie at the beginning of SRAM */
 
@@ -164,4 +181,6 @@ SECTIONS
     _boot_loadaddr = ORIGIN(flash);
     _boot_size = LENGTH(flash);
     _ram_size = LENGTH(sram);
+    _sdtcm = ORIGIN(dtcm);
+    _edtcm = ORIGIN(dtcm) + LENGTH(dtcm);
 }

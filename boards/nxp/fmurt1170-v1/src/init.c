@@ -107,6 +107,11 @@ extern void led_off(int led);
 
 extern uint32_t _srodata;            /* Start of .rodata */
 extern uint32_t _erodata;            /* End of .rodata */
+extern const uint64_t _fitcmfuncs;   /* Copy source address in FLASH */
+extern uint64_t _sitcmfuncs;         /* Copy destination start address in ITCM */
+extern uint64_t _eitcmfuncs;         /* Copy destination end address in ITCM */
+extern uint64_t _sdtcm;              /* Copy destination start address in DTCM */
+extern uint64_t _edtcm;              /* Copy destination end address in DTCM */
 __END_DECLS
 
 /************************************************************************************
@@ -228,6 +233,8 @@ void imxrt_flash_setup_prefetch_partition(void)
 __EXPORT void imxrt_ocram_initialize(void)
 {
 	uint32_t regval;
+	register uint64_t *src;
+	register uint64_t *dest;
 
 	/* Reallocate
 	 * Final Configuration is
@@ -241,10 +248,25 @@ __EXPORT void imxrt_ocram_initialize(void)
 	 *    256k  System  OCRAM M4            (2020:0000-2023:ffff)
 	 */
 
-	putreg32(0x00005555, IMXRT_IOMUXC_GPR_GPR17);
-	putreg32(0x00005555, IMXRT_IOMUXC_GPR_GPR18);
+	putreg32(0x0000FFAA, IMXRT_IOMUXC_GPR_GPR17);
+	putreg32(0x0000FFAA, IMXRT_IOMUXC_GPR_GPR18);
 	regval = getreg32(IMXRT_IOMUXC_GPR_GPR16);
 	putreg32(regval | GPR_GPR16_FLEXRAM_BANK_CFG_SEL_REG, IMXRT_IOMUXC_GPR_GPR16);
+
+	/* Copy any necessary code sections from FLASH to ITCM. The process is the
+	* same as the code copying from FLASH to RAM above. */
+	for (src = (uint64_t *)&_fitcmfuncs, dest = (uint64_t *)&_sitcmfuncs;
+	     dest < (uint64_t *)&_eitcmfuncs;) {
+		*dest++ = *src++;
+	}
+
+	/* Clear .dtcm.  We'll do this inline (vs. calling memset) just to be
+	* certain that there are no issues with the state of global variables.
+	*/
+
+	for (dest = &_sdtcm; dest < &_edtcm;) {
+		*dest++ = 0;
+	}
 
 #if defined(CONFIG_BOOT_RUNFROMISRAM)
 	const uint32_t *src;
