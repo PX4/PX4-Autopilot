@@ -308,7 +308,7 @@ const struct clock_configuration_s g_initial_clkconfig = {
 		},
 		.enet2_clk_root =
 		{
-			.enable        = 1,
+			.enable        = 0,
 			.div           = 10,
 			.mux           = ENET2_CLK_ROOT_SYS_PLL1_DIV2,
 		},
