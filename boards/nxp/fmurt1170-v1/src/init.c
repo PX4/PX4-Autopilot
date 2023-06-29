@@ -69,6 +69,8 @@
 #include "imxrt_flexspi_nor_flash.h"
 #include "imxrt_romapi.h"
 #include "imxrt_iomuxc.h"
+#include "imxrt_flexcan.h"
+#include "imxrt_enet.h"
 #include <chip.h>
 #include "board_config.h"
 
@@ -437,5 +439,22 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	}
 
 #endif
+
+#ifdef CONFIG_IMXRT_ENET
+	imxrt_netinitialize(0);
+#endif
+
+#ifdef CONFIG_IMXRT_FLEXCAN1
+	imxrt_caninitialize(1);
+#endif
+
+#ifdef CONFIG_IMXRT_FLEXCAN2
+	imxrt_caninitialize(2);
+#endif
+
+#ifdef CONFIG_IMXRT_FLEXCAN3
+	imxrt_caninitialize(3);
+#endif
+
 	return ret;
 }
