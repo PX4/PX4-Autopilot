@@ -55,6 +55,7 @@ Loiter::on_activation()
 		reposition();
 
 	} else {
+		// this is executed when the flight mode is switched to Hold manually, not through a reposition
 		set_loiter_position();
 	}
 
@@ -92,16 +93,11 @@ Loiter::set_loiter_position()
 		_mission_item.nav_cmd = NAV_CMD_IDLE;
 
 	} else {
-		if (pos_sp_triplet->current.valid && pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
-			setLoiterItemFromCurrentPositionSetpoint(&_mission_item);
+		if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+			setLoiterItemFromCurrentPositionWithBreaking(&_mission_item);
 
 		} else {
-			if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-				setLoiterItemFromCurrentPositionWithBreaking(&_mission_item);
-
-			} else {
-				setLoiterItemFromCurrentPosition(&_mission_item);
-			}
+			setLoiterItemFromCurrentPosition(&_mission_item);
 		}
 
 	}
