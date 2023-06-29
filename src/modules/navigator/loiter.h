@@ -51,7 +51,7 @@ public:
 	Loiter(Navigator *navigator);
 	~Loiter() = default;
 
-	void on_inactive() override;
+	// void on_inactive() override;
 	void on_activation() override;
 	void on_active() override;
 
@@ -67,5 +67,4 @@ private:
 	 */
 	void set_loiter_position();
 
-	bool _loiter_pos_set{false};
 };
