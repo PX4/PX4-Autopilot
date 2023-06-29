@@ -1,6 +1,6 @@
 name: 🐛 Bug report
 description: Create a report to help us improve
-title: "[Bug]: "
+title: "[Bug] "
 labels: ["bug-report"]
 body:
   - type: textarea
@@ -44,14 +44,13 @@ body:
           - Share the link to the log (Copy and paste the URL of the log)
       placeholder: |
           # PASTE HERE THE LINK TO THE LOG
-      render: txt
     validations:
       required: true
 
   - type: markdown
     attributes:
       value: |
-        # Setup / Versions
+        ## Setup
 
   - type: textarea
     attributes:
@@ -60,7 +59,6 @@ body:
           Which version of PX4 are you using?
       placeholder: |
           # If you don't know the version, paste the output of `ver all` in the MAVLink Shell of QGC
-      render: txt
     validations:
       required: true
 
