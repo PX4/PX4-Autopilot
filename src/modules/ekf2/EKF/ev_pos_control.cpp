@@ -95,8 +95,16 @@ void Ekf::controlEvPosFusion(const extVisionSample &ev_sample, const bool common
 
 		} else {
 			// rotate EV to the EKF reference frame
-			const Quatf q_error((_state.quat_nominal * ev_sample.quat.inversed()).normalized());
-			const Dcmf R_ev_to_ekf = Dcmf(q_error);
+			const AxisAnglef q_error((_state.quat_nominal * ev_sample.quat.inversed()).normalized());
+			if (_ev_q_error_init) {
+				_ev_q_error_filt.update(q_error);
+
+			} else {
+				_ev_q_error_filt.reset(q_error);
+				_ev_q_error_init = true;
+			}
+
+			const Dcmf R_ev_to_ekf = Dcmf(_ev_q_error_filt.getState());
 
 			pos = R_ev_to_ekf * ev_sample.pos - pos_offset_earth;
 			pos_cov = R_ev_to_ekf * matrix::diag(ev_sample.position_var) * R_ev_to_ekf.transpose();
