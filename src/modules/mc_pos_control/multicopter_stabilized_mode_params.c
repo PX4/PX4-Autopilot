@@ -64,8 +64,8 @@ PARAM_DEFINE_FLOAT(MPC_MAN_Y_MAX, 150.f);
  * Airmode is used to keep torque authority with zero thrust (see MC_AIRMODE).
  *
  * @unit norm
- * @min 0.0
- * @max 1.0
+ * @min 0
+ * @max 1
  * @decimal 2
  * @increment 0.01
  * @group Multicopter Position Control
