@@ -66,7 +66,7 @@ PARAM_DEFINE_INT32(MPC_USE_HTE, 1);
  * To avoid completely starving horizontal control with high vertical error.
  *
  * @unit norm
- * @min 0.0
+ * @min 0
  * @max 0.5
  * @decimal 2
  * @increment 0.01
@@ -78,7 +78,7 @@ PARAM_DEFINE_FLOAT(MPC_THR_XY_MARG, 0.3f);
  * Numerical velocity derivative low pass cutoff frequency
  *
  * @unit Hz
- * @min 0.0
+ * @min 0
  * @max 10
  * @decimal 1
  * @increment 0.5
