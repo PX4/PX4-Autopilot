@@ -1,4 +1,9 @@
-name: Deploy metadata for all targets
+name: Deploy per-target metadata
+
+# This action deploys target specific metadata to the S3 bucket
+# This is needed because QGC needs to fetch correct metadata for the target
+# to show correct set of parameter / event / airframes that is supported on
+# the target, as it varies quite a bit between targets.
 
 on:
   push:
