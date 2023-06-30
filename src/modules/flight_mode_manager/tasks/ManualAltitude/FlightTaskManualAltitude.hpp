@@ -56,7 +56,6 @@ public:
 	bool update() override;
 
 protected:
-	void _updateHeadingSetpoints(); /**< sets yaw or yaw speed */
 	void _ekfResetHandlerHeading(float delta_psi) override; /**< adjust heading setpoint in case of EKF reset event */
 	virtual void _updateSetpoints(); /**< updates all setpoints */
 	virtual void _scaleSticks(); /**< scales sticks to velocity in z */
@@ -89,10 +88,6 @@ protected:
 					_param_mpc_tko_speed /**< desired upwards speed when still close to the ground */
 				       )
 private:
-	bool _isYawInput();
-	void _unlockYaw();
-	void _lockYaw();
-
 	/**
 	 * Terrain following.
 	 * During terrain following, the position setpoint is adjusted
