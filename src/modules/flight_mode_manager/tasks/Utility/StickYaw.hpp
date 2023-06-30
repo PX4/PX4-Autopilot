@@ -50,9 +50,11 @@ public:
 
 	void generateYawSetpoint(float &yawspeed_setpoint, float &yaw_setpoint, float stick_yaw, float yaw,
 				 bool is_yaw_good_for_control, float deltatime);
+	void setYawLimit(float yaw_rate_limit) {_yaw_rate_limit = yaw_rate_limit;};
 
 private:
 	AlphaFilter<float> _yawspeed_filter;
+	float _yaw_rate_limit {INFINITY};
 
 	/**
 	 * Lock yaw when not currently turning

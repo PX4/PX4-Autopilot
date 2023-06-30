@@ -43,7 +43,8 @@ void StickYaw::generateYawSetpoint(float &yawspeed_setpoint, float &yaw_setpoint
 				   const float yaw, const bool is_yaw_good_for_control, const float deltatime)
 {
 	_yawspeed_filter.setParameters(deltatime, _param_mpc_man_y_tau.get());
-	yawspeed_setpoint = _yawspeed_filter.update(stick_yaw * math::radians(_param_mpc_man_y_max.get()));
+	float yawspeed_max = fmin(_param_mpc_man_y_max.get(), _yaw_rate_limit);
+	yawspeed_setpoint = _yawspeed_filter.update(stick_yaw * math::radians(yawspeed_max));
 	yaw_setpoint = updateYawLock(yaw, yawspeed_setpoint, yaw_setpoint, is_yaw_good_for_control);
 }
 
