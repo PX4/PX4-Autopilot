@@ -16,7 +16,7 @@
 	branch = main
 [submodule "src/drivers/gps/devices"]
 	path = src/drivers/gps/devices
-	url = https://github.com/PX4/PX4-GPSDrivers.git
+	url = https://github.com/modalai/PX4-GPSDrivers
 	branch = main
 [submodule "platforms/nuttx/NuttX/nuttx"]
 	path = platforms/nuttx/NuttX/nuttx
