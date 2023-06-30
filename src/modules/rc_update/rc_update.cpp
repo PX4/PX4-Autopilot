@@ -101,7 +101,7 @@ RCUpdate::RCUpdate() :
 	}
 
 	rc_parameter_map_poll(true /* forced */);
-	parameters_updated();
+	updateParams(); // Call is needed to populate the _rc.function array
 
 	_button_pressed_hysteresis.set_hysteresis_time_from(false, 50_ms);
 }
@@ -123,8 +123,10 @@ bool RCUpdate::init()
 	return true;
 }
 
-void RCUpdate::parameters_updated()
+void RCUpdate::updateParams()
 {
+	ModuleParams::updateParams();
+
 	// rc values
 	for (unsigned int i = 0; i < RC_MAX_CHAN_COUNT; i++) {
 		float min = 0.f;
@@ -388,7 +390,6 @@ void RCUpdate::Run()
 
 		// update parameters from storage
 		updateParams();
-		parameters_updated();
 	}
 
 	rc_parameter_map_poll();
