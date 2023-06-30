@@ -1,4 +1,10 @@
-name: Metadata
+name: Deploy general metadata
+
+# This action deploys the general metadata of the main branch & release branches to the S3 bucket
+# This is needed for multiple purposes:
+# 1. User documentation (Parameters, Airframes, uORB messages, Failsafe simulation, etc)
+# 2. QGC metadata (Parameter reference, Airframes, etc)
+# 3. ROS2 messages definition
 
 on:
   push:
