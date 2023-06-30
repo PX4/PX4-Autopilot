@@ -322,9 +322,8 @@ void RTL::on_active()
 		rtl_time_estimate_s rtl_time_estimate{};
 		rtl_time_estimate.valid = false;
 
-		// Calculate RTL destination and time estimate only when there is a valid home and global position
+		// Calculate time estimate only when there is a valid home and global position
 		if (_navigator->home_global_position_valid() && global_position_recently_updated) {
-			find_RTL_destination();
 			calcRtlTimeEstimate(_rtl_state, rtl_time_estimate);
 			rtl_time_estimate.valid = true;
 		}
