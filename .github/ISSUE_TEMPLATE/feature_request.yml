@@ -1,11 +1,11 @@
 name: 🚀 Feature Request
 description: Suggest an idea for this project
-labels: [feature-request"]
+labels: ["feature-request"]
 body:
   - type: markdown
     attributes:
       value: |
-        **Please note that feature requests are not 'fire and forget'.**
+        ## Please note that feature requests are not 'fire and forget'
         It is a lot more likely that the feature you would like to have will be implemented if you keep watching your feature request, and provide more details to developers looking into implementing your feature, and help them with testing.
 
   - type: textarea
