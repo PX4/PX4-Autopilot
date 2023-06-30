@@ -7,13 +7,10 @@ jobs:
   stale:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/stale@v4.1.1
+      - uses: actions/stale@v8
         with:
-          days-before-issue-stale: 30
+          days-before-stale: 30
+          days-before-close: -1
           stale-issue-label: 'stale'
-
-          days-before-pr-stale: 30
           stale-pr-label: 'stale'
-
           remove-stale-when-updated: true
-          debug-only: true
