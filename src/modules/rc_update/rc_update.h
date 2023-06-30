@@ -110,7 +110,7 @@ protected:
 	/**
 	 * Update our local parameter cache.
 	 */
-	void		parameters_updated();
+	void updateParams() override;
 
 	/**
 	 * Get and limit value for specified RC function. Returns NAN if not mapped.
