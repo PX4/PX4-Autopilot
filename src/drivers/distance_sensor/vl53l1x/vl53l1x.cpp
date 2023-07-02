@@ -37,8 +37,7 @@
 #include "vl53l1x.hpp"
 #include <px4_platform_common/module.h>
 
-#define VL53L1X_DELAY                          200000   // delay to reduce CPU usage (us)
-#define VL53L1X_DELAY_CHECK_DATA               100000 // check for data (us)
+#define VL53L1X_DELAY                          100000   // delay to reduce CPU usage (us)
 #define VL53L1X_SAMPLE_RATE                    200  // ms, default
 #define VL53L1X_INTER_MEAS_MS				           200 // ms
 #define VL53L1X_SHORT_RANGE			            1  // sub-2 meter distance mode
@@ -272,7 +271,7 @@ void VL53L1X::RunImpl()
 		collect();
 	}
 
-	// Reduce CPU usage, run at 5hz
+	// Reduce CPU usage
 	ScheduleDelayed(VL53L1X_DELAY);
 	// zone modulus increment
 	_zone_index = (_zone_index + 1) % _zone_limit;
@@ -508,7 +507,7 @@ int8_t VL53L1X::VL53L1X_CheckForDataReady(uint8_t *isDataReady)
 	}
 
 	// Reduce CPU usage, only check for data every 100ms
-	ScheduleDelayed(VL53L1X_DELAY_CHECK_DATA);
+	ScheduleDelayed(VL53L1X_DELAY);
 
 	return status;
 }
