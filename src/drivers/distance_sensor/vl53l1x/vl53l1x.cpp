@@ -35,10 +35,12 @@
 ***********/
 
 #include "vl53l1x.hpp"
+#include <px4_platform_common/module.h>
 
-#define VL53L1X_DELAY                          20   //ms
+#define VL53L1X_DELAY                          200000   // delay to reduce CPU usage (us)
+#define VL53L1X_DELAY_CHECK_DATA               100000 // check for data (us)
 #define VL53L1X_SAMPLE_RATE                    200  // ms, default
-#define VL53L1X_INTER_MEAS_MS				   200  // ms
+#define VL53L1X_INTER_MEAS_MS				           200 // ms
 #define VL53L1X_SHORT_RANGE			            1  // sub-2 meter distance mode
 #define VL53L1X_LONG_RANGE			            2  // sub-4 meter distance mode
 #define VL53L1X_RANGE_STATUS_OUT_OF_BOUNDS     13 // region of interest out of bounds error
@@ -261,18 +263,19 @@ int VL53L1X::probe()
 
 void VL53L1X::RunImpl()
 {
+
 	uint8_t dataReady = 0;
+
 	VL53L1X_CheckForDataReady(&dataReady);
 
 	if (dataReady == 1) {
 		collect();
 	}
 
+	// Reduce CPU usage, run at 5hz
 	ScheduleDelayed(VL53L1X_DELAY);
-
 	// zone modulus increment
 	_zone_index = (_zone_index + 1) % _zone_limit;
-
 	// Set the ROI center based on zone incrementation
 	VL53L1X_SetROICenter(roi_center[_zone_index]);
 }
@@ -291,6 +294,7 @@ int VL53L1X::init()
 
 	uint8_t x = 4;
 	uint8_t y = 4;
+
 
 	ret |= VL53L1X_SensorInit();
 	ret |= VL53L1X_ConfigBig(_distance_mode, VL53L1X_SAMPLE_RATE);
@@ -488,6 +492,7 @@ int8_t VL53L1X::VL53L1X_CheckForDataReady(uint8_t *isDataReady)
 	uint8_t IntPol;
 	int8_t status = 0;
 
+
 	status = VL53L1X_GetInterruptPolarity(&IntPol);
 	status = VL53L1_RdByte(GPIO__TIO_HV_STATUS, &Temp);
 
@@ -498,8 +503,12 @@ int8_t VL53L1X::VL53L1X_CheckForDataReady(uint8_t *isDataReady)
 
 		} else {
 			*isDataReady = 0;
+
 		}
 	}
+
+	// Reduce CPU usage, only check for data every 100ms
+	ScheduleDelayed(VL53L1X_DELAY_CHECK_DATA);
 
 	return status;
 }
@@ -520,6 +529,7 @@ int8_t VL53L1X::VL53L1X_ClearInterrupt()
 	int8_t status = 0;
 
 	status = VL53L1_WrByte(SYSTEM__INTERRUPT_CLEAR, 0x01);
+
 	return status;
 }
 
@@ -528,6 +538,8 @@ int8_t VL53L1X::VL53L1X_StopRanging()
 	int8_t status = 0;
 
 	status = VL53L1_WrByte(SYSTEM__MODE_START, 0x00);    /* Disable VL53L1X */
+
+	ScheduleClear();
 	return status;
 }
 
