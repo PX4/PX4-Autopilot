@@ -56,10 +56,9 @@ void Ekf::controlEvHeightFusion(const extVisionSample &ev_sample, const bool com
 	Matrix3f pos_cov{matrix::diag(ev_sample.position_var)};
 
 	// rotate EV to the EKF reference frame unless we're operating entirely in vision frame
-	// TODO: only necessary if there's a roll/pitch offset between VIO and EKF
 	if (!(_control_status.flags.ev_yaw && _control_status.flags.ev_pos)) {
 
-		const Quatf q_error((_state.quat_nominal * ev_sample.quat.inversed()).normalized());
+		const Quatf q_error(_ev_q_error_filt.getState());
 
 		if (q_error.isAllFinite()) {
 			const Dcmf R_ev_to_ekf(q_error);

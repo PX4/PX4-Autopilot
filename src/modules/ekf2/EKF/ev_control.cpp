@@ -58,6 +58,7 @@ void Ekf::controlExternalVisionFusion()
 				&& ((_params.ev_quality_minimum <= 0) || (_ext_vision_buffer->get_newest().quality >= _params.ev_quality_minimum)) // newest quality sufficient
 				&& isNewestSampleRecent(_time_last_ext_vision_buffer_push, EV_MAX_INTERVAL);
 
+		updateEvAttitudeErrorFilter(ev_sample, ev_reset);
 		controlEvYawFusion(ev_sample, starting_conditions_passing, ev_reset, quality_sufficient, _aid_src_ev_yaw);
 		controlEvVelFusion(ev_sample, starting_conditions_passing, ev_reset, quality_sufficient, _aid_src_ev_vel);
 		controlEvPosFusion(ev_sample, starting_conditions_passing, ev_reset, quality_sufficient, _aid_src_ev_pos);
@@ -82,5 +83,22 @@ void Ekf::controlExternalVisionFusion()
 
 		_warning_events.flags.vision_data_stopped = true;
 		ECL_WARN("vision data stopped");
+	}
+}
+
+void Ekf::updateEvAttitudeErrorFilter(extVisionSample &ev_sample, bool ev_reset)
+{
+	const AxisAnglef q_error((_state.quat_nominal * ev_sample.quat.inversed()).normalized());
+
+	if (!q_error.isAllFinite()) {
+		return;
+	}
+
+	if (!_ev_q_error_initialized || ev_reset) {
+		_ev_q_error_filt.reset(q_error);
+		_ev_q_error_initialized = true;
+
+	} else {
+		_ev_q_error_filt.update(q_error);
 	}
 }
