@@ -42,16 +42,14 @@ class TestRCUpdate : public RCUpdate
 {
 public:
 	void UpdateManualSwitches(const hrt_abstime &timestamp_sample) { RCUpdate::UpdateManualSwitches(timestamp_sample); }
-	void update_rc_functions() { RCUpdate::update_rc_functions(); }
+	void updateParams() { RCUpdate::updateParams(); }
 	void setChannel(size_t index, float channel_value) { _rc.channels[index] = channel_value; }
 };
 
 class RCUpdateTest : public ::testing::Test, ModuleParams
 {
 public:
-	RCUpdateTest() : ModuleParams(nullptr) {}
-
-	void SetUp() override
+	RCUpdateTest() : ModuleParams(nullptr)
 	{
 		// Disable autosaving parameters to avoid busy loop in param_set()
 		param_control_autosave(false);
@@ -61,7 +59,9 @@ public:
 	{
 		// GIVEN: First channel is configured as mode switch
 		_param_rc_map_fltmode.set(1);
+		_param_rc_map_fltmode.commit();
 		EXPECT_EQ(_param_rc_map_fltmode.get(), 1);
+		_rc_update.updateParams();
 		// GIVEN: First channel has some value
 		_rc_update.setChannel(0, channel_value);
 
@@ -76,13 +76,17 @@ public:
 		EXPECT_EQ(manual_control_switches_sub.get().mode_slot, expected_slot);
 	}
 
-	void checkModeSlotButton(uint8_t button_configuration, uint8_t channel, float channel_value, uint8_t expected_slot)
+	void checkModeSlotButton(uint8_t button_bitmask, uint8_t channel, float channel_value, uint8_t expected_slot)
 	{
+		// GIVEN: No mode switch is mapped
+		_param_rc_map_fltmode.set(0);
+		_param_rc_map_fltmode.commit();
+		EXPECT_EQ(_param_rc_map_fltmode.get(), 0);
 		// GIVEN: Buttons are configured
-		_param_rc_map_fltm_btn.set(button_configuration);
-		EXPECT_EQ(_param_rc_map_fltm_btn.get(), button_configuration);
-		// GIVEN: buttons are mapped
-		_rc_update.update_rc_functions();
+		_param_rc_map_fltm_btn.set(button_bitmask);
+		_param_rc_map_fltm_btn.commit();
+		EXPECT_EQ(_param_rc_map_fltm_btn.get(), button_bitmask);
+		_rc_update.updateParams();
 		// GIVEN: First channel has some value
 		_rc_update.setChannel(channel - 1, channel_value);
 
@@ -101,6 +105,9 @@ public:
 		manual_control_switches_sub.update();
 
 		EXPECT_EQ(manual_control_switches_sub.get().mode_slot, expected_slot);
+
+		// Reset channel value for the next test
+		_rc_update.setChannel(channel - 1, 0.f);
 	}
 
 	TestRCUpdate _rc_update;
