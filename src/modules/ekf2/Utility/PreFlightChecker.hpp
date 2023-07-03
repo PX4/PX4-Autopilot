@@ -77,6 +77,7 @@ public:
 	void setUsingGpsAiding(bool val) { _is_using_gps_aiding = val; }
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	void setUsingFlowAiding(bool val) { _is_using_flow_aiding = val; }
+	void setDistBottom(float dist_bottom) { _flow_dist_bottom = dist_bottom; }
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 	void setUsingEvPosAiding(bool val) { _is_using_ev_pos_aiding = val; }
 	void setUsingEvVelAiding(bool val) { _is_using_ev_vel_aiding = val; }
@@ -179,6 +180,7 @@ private:
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	bool _is_using_flow_aiding {};
+	float _flow_dist_bottom {};
 	InnovationLpf _filter_flow_x_innov;	///< Preflight low pass filter optical flow innovation (rad)
 	InnovationLpf _filter_flow_y_innov;	///< Preflight low pass filter optical flow innovation (rad)
 
