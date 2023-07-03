@@ -118,15 +118,16 @@ protected:
 	float		get_rc_value(uint8_t func, float min_value, float max_value) const;
 
 	/**
-	 * Get switch position for specified function.
+	 * Get on/off switch position from the RC channel of the specified function
+	 *
+	 * @param function according to rc_channels_s::FUNCTION_XXX
+	 * @param threshold according to RC_XXX_TH parameters, negative means on and off are flipped
 	 */
-	switch_pos_t	get_rc_sw2pos_position(uint8_t func, float on_th) const;
+	switch_pos_t getRCSwitchOnOffPosition(uint8_t function, float threshold) const;
 
 	/**
 	 * Update parameters from RC channels if the functionality is activated and the
 	 * input has changed since the last update
-	 *
-	 * @param
 	 */
 	void		set_params_from_rc();
 
