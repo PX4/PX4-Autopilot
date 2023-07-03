@@ -415,10 +415,12 @@ void Ekf::controlHaglFakeFusion()
 
 bool Ekf::isTerrainEstimateValid() const
 {
+#if defined(CONFIG_EKF2_RANGE_FINDER)
 	// we have been fusing range finder measurements in the last 5 seconds
 	if (_hagl_sensor_status.flags.range_finder && isRecent(_time_last_hagl_fuse, (uint64_t)5e6)) {
 		return true;
 	}
+#endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	// we have been fusing optical flow measurements for terrain estimation within the last 5 seconds

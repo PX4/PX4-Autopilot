@@ -760,9 +760,7 @@ void Ekf::get_ekf_soln_status(uint16_t *status) const
 	soln_status.flags.pos_horiz_rel = (_control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.opt_flow) && (_fault_status.value == 0);
 	soln_status.flags.pos_horiz_abs = (_control_status.flags.gps || _control_status.flags.ev_pos) && (_fault_status.value == 0);
 	soln_status.flags.pos_vert_abs = soln_status.flags.velocity_vert;
-#if defined(CONFIG_EKF2_RANGE_FINDER)
 	soln_status.flags.pos_vert_agl = isTerrainEstimateValid();
-#endif // CONFIG_EKF2_RANGE_FINDER
 	soln_status.flags.const_pos_mode = !soln_status.flags.velocity_horiz;
 	soln_status.flags.pred_pos_horiz_rel = soln_status.flags.pos_horiz_rel;
 	soln_status.flags.pred_pos_horiz_abs = soln_status.flags.pos_horiz_abs;
@@ -1026,15 +1024,12 @@ void Ekf::initialiseQuatCovariances(Vector3f &rot_vec_var)
 void Ekf::updateGroundEffect()
 {
 	if (_control_status.flags.in_air && !_control_status.flags.fixed_wing) {
-#if defined(CONFIG_EKF2_RANGE_FINDER)
 		if (isTerrainEstimateValid()) {
 			// automatically set ground effect if terrain is valid
 			float height = _terrain_vpos - _state.pos(2);
 			_control_status.flags.gnd_effect = (height < _params.gnd_effect_max_hgt);
 
-		} else
-#endif // CONFIG_EKF2_RANGE_FINDER
-		if (_control_status.flags.gnd_effect) {
+		} else if (_control_status.flags.gnd_effect) {
 			// Turn off ground effect compensation if it times out
 			if (isTimedOut(_time_last_gnd_effect_on, GNDEFFECT_TIMEOUT)) {
 				_control_status.flags.gnd_effect = false;
