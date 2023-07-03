@@ -41,27 +41,10 @@
 #include <geo/geo.h>
 
 using namespace matrix;
-using namespace time_literals;
-
-FlightTaskManualAltitude::FlightTaskManualAltitude()
-{
-	_position_mode_limits.vertical_velocity_limit = INFINITY;
-	_position_mode_limits.horizontal_velocity_limit = INFINITY;
-	_position_mode_limits.yaw_rate_limit = INFINITY;
-}
 
 bool FlightTaskManualAltitude::updateInitialize()
 {
 	bool ret = FlightTask::updateInitialize();
-
-	if (_position_mode_limits_sub.update(&_position_mode_limits)) {
-		_stick_yaw.setYawLimit(_position_mode_limits.yaw_rate_limit);
-	} else if (_time_stamp_current > _position_mode_limits.timestamp + 2_s) {
-		_position_mode_limits.vertical_velocity_limit = INFINITY;
-		_position_mode_limits.horizontal_velocity_limit = INFINITY;
-		_position_mode_limits.yaw_rate_limit = INFINITY;
-		_stick_yaw.setYawLimit(_position_mode_limits.yaw_rate_limit);
-	}
 
 	_sticks.checkAndUpdateStickInputs();
 
@@ -111,7 +94,7 @@ void FlightTaskManualAltitude::_scaleSticks()
 	float vel_max_z = (_sticks.getPosition()(2) > 0.0f) ? _param_mpc_z_vel_max_dn.get() :
 				_param_mpc_z_vel_max_up.get();
 
-	vel_max_z = fmin(vel_max_z, _position_mode_limits.vertical_velocity_limit);
+	vel_max_z = fmin(vel_max_z, _vertical_velocity_limit);
 
 	_velocity_setpoint(2) = vel_max_z * _sticks.getPositionExpo()(2);
 }

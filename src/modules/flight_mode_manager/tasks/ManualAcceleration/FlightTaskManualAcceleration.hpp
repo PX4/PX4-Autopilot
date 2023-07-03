@@ -44,6 +44,8 @@
 #include "StickAccelerationXY.hpp"
 #include "StickYaw.hpp"
 #include <lib/weather_vane/WeatherVane.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/position_mode_limits.h>
 
 class FlightTaskManualAcceleration : public FlightTaskManualAltitudeSmoothVel
 {
@@ -54,6 +56,9 @@ public:
 	bool update() override;
 
 private:
+	uORB::Subscription _position_mode_limits_sub{ORB_ID(position_mode_limits)};
+	position_mode_limits_s _position_mode_limits{};
+
 	void _ekfResetHandlerPositionXY(const matrix::Vector2f &delta_xy) override;
 	void _ekfResetHandlerVelocityXY(const matrix::Vector2f &delta_vxy) override;
 

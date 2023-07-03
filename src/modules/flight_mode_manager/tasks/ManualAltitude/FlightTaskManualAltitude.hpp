@@ -44,13 +44,11 @@
 #include "Sticks.hpp"
 #include "StickTiltXY.hpp"
 #include "StickYaw.hpp"
-#include <uORB/Subscription.hpp>
-#include <uORB/topics/position_mode_limits.h>
 
 class FlightTaskManualAltitude : public FlightTask
 {
 public:
-	FlightTaskManualAltitude();
+	FlightTaskManualAltitude() = default;
 	virtual ~FlightTaskManualAltitude() = default;
 	bool activate(const trajectory_setpoint_s &last_setpoint) override;
 	bool updateInitialize() override;
@@ -73,11 +71,9 @@ protected:
 	Sticks _sticks{this};
 	StickTiltXY _stick_tilt_xy{this};
 	StickYaw _stick_yaw{this};
+	float _vertical_velocity_limit{INFINITY};
 
 	bool _sticks_data_required = true; ///< let inherited task-class define if it depends on stick data
-
-	uORB::Subscription _position_mode_limits_sub{ORB_ID(position_mode_limits)};
-	position_mode_limits_s _position_mode_limits{};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
 					(ParamFloat<px4::params::MPC_HOLD_MAX_Z>) _param_mpc_hold_max_z,
