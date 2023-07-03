@@ -223,3 +223,23 @@ TEST_F(RCUpdateTest, ReturnSwitchPositiveThresholds)
 	checkReturnSwitch(-1.f, 1.f, 3); // Below maximum threshold -> SWITCH_POS_OFF
 	checkReturnSwitch(1.f, 1.f, 3); // On maximum threshold -> SWITCH_POS_OFF
 }
+
+TEST_F(RCUpdateTest, ReturnSwitchNegativeThresholds)
+{
+	checkReturnSwitch(1.f, -0.5f, 3); // Above threshold -> SWITCH_POS_OFF
+	checkReturnSwitch(0.f, -0.5f, 3); // On threshold -> SWITCH_POS_OFF
+	checkReturnSwitch(-.001f, -0.5f, 1); // Slightly below threshold -> SWITCH_POS_ON
+	checkReturnSwitch(-1.f, -0.5f, 1); // Below threshold -> SWITCH_POS_ON
+
+	checkReturnSwitch(1.f, -0.75f, 3); // Above threshold -> SWITCH_POS_OFF
+	checkReturnSwitch(.5f, -0.75f, 3); // On threshold -> SWITCH_POS_OFF
+	checkReturnSwitch(-.001f, -0.75f, 1); // Slightly below threshold -> SWITCH_POS_ON
+	checkReturnSwitch(-1.f, -0.75f, 1); // Below threshold -> SWITCH_POS_ON
+
+	checkReturnSwitch(1.f, -1.f, 3); // On maximum threshold -> SWITCH_POS_OFF
+	checkReturnSwitch(.999f, -1.f, 1); // Slighly below maximum threshold -> SWITCH_POS_ON
+	checkReturnSwitch(-1.f, -1.f, 1); // Below minimum threshold -> SWITCH_POS_ON
+
+	checkReturnSwitch(1.f, -.001f, 3); // Above minimum threshold -> SWITCH_POS_OFF
+	checkReturnSwitch(-1.f, -.001f, 1); // Slightly below minimum threshold -> SWITCH_POS_OFF
+}
