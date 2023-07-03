@@ -1462,13 +1462,10 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 	lpos.delta_heading = Eulerf(delta_q_reset).psi();
 	lpos.heading_good_for_control = _ekf.isYawFinalAlignComplete();
 
-#if defined(CONFIG_EKF2_RANGE_FINDER)
-	// Distance to bottom surface (ground) in meters
-	// constrain the distance to ground to _rng_gnd_clearance
-	lpos.dist_bottom = math::max(_ekf.getTerrainVertPos() - lpos.z, _param_ekf2_min_rng.get());
+	// Distance to bottom surface (ground) in meters, must be positive
+	lpos.dist_bottom = math::max(_ekf.getTerrainVertPos() - lpos.z, 0.f);
 	lpos.dist_bottom_valid = _ekf.isTerrainEstimateValid();
 	lpos.dist_bottom_sensor_bitfield = _ekf.getTerrainEstimateSensorBitfield();
-#endif // CONFIG_EKF2_RANGE_FINDER
 
 	_ekf.get_ekf_lpos_accuracy(&lpos.eph, &lpos.epv);
 	_ekf.get_ekf_vel_accuracy(&lpos.evh, &lpos.evv);
