@@ -747,8 +747,8 @@ private:
 	bool fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bool update_all_states = true);
 
 	// update quaternion states and covariances using an innovation, observation variance and Jacobian vector
-	bool fuseYaw(float innovation, float variance, estimator_aid_source1d_s &aid_src_status);
-	bool fuseYaw(float innovation, float variance, estimator_aid_source1d_s &aid_src_status, const Vector24f &H_YAW);
+	bool fuseYaw(estimator_aid_source1d_s &aid_src_status);
+	bool fuseYaw(estimator_aid_source1d_s &aid_src_status, const Vector24f &H_YAW);
 	void computeYawInnovVarAndH(float variance, float &innovation_variance, Vector24f &H_YAW) const;
 
 #if defined(CONFIG_EKF2_GNSS_YAW)

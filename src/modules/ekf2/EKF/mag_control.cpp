@@ -440,9 +440,12 @@ void Ekf::runMagAndMagDeclFusions(const Vector3f &mag)
 		float innovation = wrap_pi(getEulerYaw(_R_to_earth) - measured_hdg);
 		float obs_var = fmaxf(sq(_params.mag_heading_noise), 1.e-4f);
 
+		_aid_src_mag_heading.observation = measured_hdg;
+		_aid_src_mag_heading.observation_variance = obs_var;
+		_aid_src_mag_heading.innovation = innovation;
 		_aid_src_mag_heading.fusion_enabled = _control_status.flags.mag_hdg;
 
-		fuseYaw(innovation, obs_var, _aid_src_mag_heading);
+		fuseYaw(_aid_src_mag_heading);
 	}
 }
 
