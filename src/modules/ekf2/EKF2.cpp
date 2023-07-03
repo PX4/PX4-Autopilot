@@ -1296,6 +1296,10 @@ void EKF2::PublishInnovations(const hrt_abstime &timestamp)
 		_preflt_checker.setUsingGpsAiding(_ekf.control_status_flags().gps);
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 		_preflt_checker.setUsingFlowAiding(_ekf.control_status_flags().opt_flow);
+
+		// set dist bottom to scale flow innovation
+		const float dist_bottom = _ekf.getTerrainVertPos() - _ekf.getPosition()(2);
+		_preflt_checker.setDistBottom(dist_bottom);
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
