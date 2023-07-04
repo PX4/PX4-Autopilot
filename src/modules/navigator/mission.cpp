@@ -310,7 +310,7 @@ Mission::on_active()
 	if (_mission_type != MISSION_TYPE_NONE && is_mission_item_reached_or_completed()) {
 		/* If we just completed a takeoff which was inserted before the right waypoint,
 		   there is no need to report that we reached it because we didn't. */
-		if (_work_item_type != WORK_ITEM_TYPE_TAKEOFF) {
+		if (_work_item_type != WORK_ITEM_TYPE_CLIMB) {
 			set_mission_item_reached();
 		}
 
@@ -887,7 +887,7 @@ Mission::set_mission_items()
 				    _work_item_type == WORK_ITEM_TYPE_DEFAULT &&
 				    new_work_item_type == WORK_ITEM_TYPE_DEFAULT) {
 
-					new_work_item_type = WORK_ITEM_TYPE_TAKEOFF;
+					new_work_item_type = WORK_ITEM_TYPE_CLIMB;
 
 					/* use current mission item as next position item */
 					mission_item_next_position = _mission_item;
@@ -926,7 +926,7 @@ Mission::set_mission_items()
 					   && new_work_item_type == WORK_ITEM_TYPE_DEFAULT) {
 					// if the vehicle is already in fixed wing mode then the current mission item
 					// will be accepted immediately and the work items will be skipped
-					_work_item_type = WORK_ITEM_TYPE_TAKEOFF;
+					_work_item_type = WORK_ITEM_TYPE_CLIMB;
 
 
 					/* ignore yaw here, otherwise it might yaw before heading_sp_update takes over */
@@ -935,7 +935,7 @@ Mission::set_mission_items()
 
 				/* if we just did a normal takeoff navigate to the actual waypoint now */
 				if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF &&
-				    _work_item_type == WORK_ITEM_TYPE_TAKEOFF &&
+				    _work_item_type == WORK_ITEM_TYPE_CLIMB &&
 				    new_work_item_type == WORK_ITEM_TYPE_DEFAULT) {
 
 					_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
@@ -945,7 +945,7 @@ Mission::set_mission_items()
 
 				/* if we just did a VTOL takeoff, prepare transition */
 				if (_mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF &&
-				    _work_item_type == WORK_ITEM_TYPE_TAKEOFF &&
+				    _work_item_type == WORK_ITEM_TYPE_CLIMB &&
 				    new_work_item_type == WORK_ITEM_TYPE_DEFAULT &&
 				    _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING &&
 				    !_navigator->get_land_detected()->landed) {
