@@ -125,16 +125,21 @@ private:
 
 	uint8_t			_transfer_partner_sysid{0};		///< Partner system ID for current transmission
 	uint8_t			_transfer_partner_compid{0};		///< Partner component ID for current transmission
+	int32_t 		_transfer_land_start_marker{-1}; 	///< index of land start mission item in current transmission (if unavailable, index of land mission item, -1 otherwise)
+	int32_t 		_transfer_land_marker{-1}; 		///< index of land mission item in current transmission (-1 if unavailable)
 
 	static bool		_transfer_in_progress;			///< Global variable checking for current transmission
 
 	uORB::Subscription	_mission_result_sub{ORB_ID(mission_result)};
+	uORB::SubscriptionData<mission_s> 	_mission_sub{ORB_ID(mission)};
 
 	uORB::Publication<mission_s>	_offboard_mission_pub{ORB_ID(mission)};
 
 	static uint16_t		_mission_update_counter;
 	static uint16_t		_geofence_update_counter;
 	static uint16_t		_safepoint_update_counter;
+	int32_t 		_land_start_marker{-1}; 	///< index of loaded land start mission item (if unavailable, index of land mission item, -1 otherwise)
+	int32_t 		_land_marker{-1}; 		///< index of loaded land mission item (-1 if unavailable)
 
 	MavlinkRateLimiter	_slow_rate_limiter{100 * 1000};		///< Rate limit sending of the current WP sequence to 10 Hz
 
@@ -159,9 +164,9 @@ private:
 	MavlinkMissionManager(MavlinkMissionManager &);
 	MavlinkMissionManager &operator = (const MavlinkMissionManager &);
 
-	void init_offboard_mission();
+	void init_offboard_mission(mission_s mission_state);
 
-	void update_active_mission(dm_item_t dataman_id, uint16_t count, int32_t seq);
+	void update_active_mission(dm_item_t dataman_id, uint16_t count, int32_t seq, bool write_to_dataman = true);
 
 	/** store the geofence count to dataman */
 	int update_geofence_count(unsigned count);
