@@ -92,7 +92,7 @@ void FlightTaskManualAltitude::_scaleSticks()
 {
 	// Use sticks input with deadzone and exponential curve for vertical velocity
 	float vel_max_z = (_sticks.getPosition()(2) > 0.0f) ? _param_mpc_z_vel_max_dn.get() :
-				_param_mpc_z_vel_max_up.get();
+			  _param_mpc_z_vel_max_up.get();
 
 	vel_max_z = fmin(vel_max_z, _vertical_velocity_limit);
 

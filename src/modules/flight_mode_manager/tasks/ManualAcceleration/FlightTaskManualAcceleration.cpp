@@ -70,6 +70,7 @@ bool FlightTaskManualAcceleration::update()
 	if (_position_mode_limits_sub.update(&_position_mode_limits)) {
 		_stick_yaw.setYawLimit(_position_mode_limits.yaw_rate_limit);
 		_vertical_velocity_limit = _position_mode_limits.vertical_velocity_limit;
+
 	} else if (_time_stamp_current > _position_mode_limits.timestamp + 2_s) {
 		_position_mode_limits.vertical_velocity_limit = INFINITY;
 		_position_mode_limits.horizontal_velocity_limit = INFINITY;
