@@ -219,18 +219,21 @@ Mission::on_activation()
 		updateCachedItemsUpToIndex(_current_mission_index - 1);
 	}
 
-	unsigned resume_index;
+	uint16_t resume_index = _inactivation_index > 0 ? _inactivation_index  : 0;
 
 	if (_inactivation_index > 0 && cameraWasTriggering()
 	    && getPreviousPositionItemIndex(_mission, _inactivation_index - 1, resume_index)) {
 		// The mission we are resuming had camera triggering enabled. In order to not lose any images
 		// we restart the mission at the previous position item.
 		// We will replay the cached commands once we reach the previous position item and have yaw aligned.
+
+		checkClimbRequired(resume_index);
 		set_current_mission_index(resume_index);
 
 		_align_heading_necessary = true;
 
 	} else {
+		checkClimbRequired(resume_index);
 		set_mission_items();
 	}
 
@@ -881,9 +884,10 @@ Mission::set_mission_items()
 
 				position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
-				/* do takeoff before going to setpoint if needed and not already in takeoff */
+				/* do climb before going to setpoint if needed and not already executing climb */
 				/* in fixed-wing this whole block will be ignored and a takeoff item is always propagated */
-				if (do_need_vertical_takeoff() &&
+
+				if (PX4_ISFINITE(_mission_init_climb_altitude_amsl) &&
 				    _work_item_type == WORK_ITEM_TYPE_DEFAULT &&
 				    new_work_item_type == WORK_ITEM_TYPE_DEFAULT) {
 
@@ -894,22 +898,22 @@ Mission::set_mission_items()
 					mission_item_next_position.nav_cmd = NAV_CMD_WAYPOINT;
 					has_next_position_item = true;
 
-					float takeoff_alt = calculate_takeoff_altitude(&_mission_item);
-
-					mavlink_log_info(_navigator->get_mavlink_log_pub(), "Takeoff to %.1f meters above home\t",
-							 (double)(takeoff_alt - _navigator->get_home_position()->alt));
-					events::send<float>(events::ID("mission_takeoff_to"), events::Log::Info,
-							    "Takeoff to {1:.1m_v} above home", takeoff_alt - _navigator->get_home_position()->alt);
+					mavlink_log_info(_navigator->get_mavlink_log_pub(), "Climb to %.1f meters above home\t",
+							 (double)(_mission_init_climb_altitude_amsl - _navigator->get_home_position()->alt));
+					events::send<float>(events::ID("mission_climb_before_start"), events::Log::Info,
+							    "Climb to {1:.1m_v} above home", _mission_init_climb_altitude_amsl - _navigator->get_home_position()->alt);
 
 					_mission_item.nav_cmd = NAV_CMD_TAKEOFF;
 					_mission_item.lat = _navigator->get_global_position()->lat;
 					_mission_item.lon = _navigator->get_global_position()->lon;
 					/* hold heading for takeoff items */
 					_mission_item.yaw = _navigator->get_local_position()->heading;
-					_mission_item.altitude = takeoff_alt;
+					_mission_item.altitude = _mission_init_climb_altitude_amsl;
 					_mission_item.altitude_is_relative = false;
 					_mission_item.autocontinue = true;
 					_mission_item.time_inside = 0.0f;
+
+					_mission_init_climb_altitude_amsl = NAN;
 
 				} else if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF
 					   && _work_item_type == WORK_ITEM_TYPE_DEFAULT
@@ -2022,7 +2026,7 @@ void Mission::publish_navigator_mission_item()
 }
 
 bool Mission::getPreviousPositionItemIndex(const mission_s &mission, int inactivation_index,
-		unsigned &prev_pos_index) const
+		uint16_t &prev_pos_index) const
 {
 
 	for (int index = inactivation_index; index >= 0; index--) {
@@ -2167,6 +2171,27 @@ void Mission::updateCachedItemsUpToIndex(const int end_index)
 
 		if (success) {
 			cacheItem(mission_item);
+		}
+	}
+}
+
+void Mission::checkClimbRequired(uint16_t mission_item_index)
+{
+	mission_item_s next_position_mission_item = {};
+
+	if (getNextPositionMissionItem(_mission, mission_item_index, next_position_mission_item)) {
+		const float altitude_amsl_next_position_item = get_absolute_altitude_for_item(next_position_mission_item);
+
+		const float error_below_setpoint = altitude_amsl_next_position_item -
+						   _navigator->get_global_position()->alt;
+
+		if (error_below_setpoint > _navigator->get_altitude_acceptance_radius()) {
+
+			_mission_init_climb_altitude_amsl = altitude_amsl_next_position_item;
+
+		} else {
+
+			_mission_init_climb_altitude_amsl = NAN;
 		}
 	}
 }
