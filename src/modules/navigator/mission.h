@@ -248,7 +248,7 @@ private:
 	* @param prev_pos_index The index of the previous position item containing a position
 	* @return true if a previous position item was found
 	*/
-	bool getPreviousPositionItemIndex(const mission_s &mission, int start_index, unsigned &prev_pos_index) const;
+	bool getPreviousPositionItemIndex(const mission_s &mission, int start_index, uint16_t &prev_pos_index) const;
 
 	/**
 	 * @brief Get the next item after start_index that contains a position
@@ -310,6 +310,13 @@ private:
 	 */
 	bool cameraWasTriggering();
 
+	/**
+	 * @brief Check if a climb is necessary to align with mission altitude prior to starting the mission
+	 *
+	 * @param mission_item_index The index of the mission item to check if a climb is necessary
+	 */
+	void checkClimbRequired(uint16_t mission_item_index);
+
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MIS_DIST_1WP>) _param_mis_dist_1wp,
 		(ParamInt<px4::params::MIS_MNT_YAW_CTL>) _param_mis_mnt_yaw_ctl
@@ -338,6 +345,8 @@ private:
 	float _landing_alt{0.0f};
 
 	float _landing_loiter_radius{0.f};
+
+	float _mission_init_climb_altitude_amsl{NAN};	/**< altitude AMSL the vehicle will climb to when mission starts */
 
 	bool _need_takeoff{true};					/**< if true, then takeoff must be performed before going to the first waypoint (if needed) */
 
