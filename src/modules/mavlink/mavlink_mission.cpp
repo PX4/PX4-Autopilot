@@ -75,12 +75,6 @@ uint16_t MavlinkMissionManager::_safepoint_update_counter = 0;
 MavlinkMissionManager::MavlinkMissionManager(Mavlink *mavlink) :
 	_mavlink(mavlink)
 {
-	init_offboard_mission();
-}
-
-void
-MavlinkMissionManager::init_offboard_mission()
-{
 	if (!_dataman_init) {
 		_dataman_init = true;
 
@@ -89,21 +83,27 @@ MavlinkMissionManager::init_offboard_mission()
 							sizeof(mission_s));
 
 		if (success) {
-			_dataman_id = (dm_item_t)mission_state.dataman_id;
-			_count[MAV_MISSION_TYPE_MISSION] = mission_state.count;
-			_current_seq = mission_state.current_seq;
-			_mission_update_counter = mission_state.mission_update_counter;
+			init_offboard_mission(mission_state);
+			load_geofence_stats();
+			load_safepoint_stats();
 
 		} else {
 			PX4_WARN("offboard mission init failed");
 		}
-
-		load_geofence_stats();
-
-		load_safepoint_stats();
 	}
 
 	_my_dataman_id = _dataman_id;
+}
+
+void
+MavlinkMissionManager::init_offboard_mission(mission_s mission_state)
+{
+	_dataman_id = (dm_item_t)mission_state.dataman_id;
+	_count[MAV_MISSION_TYPE_MISSION] = mission_state.count;
+	_current_seq = mission_state.current_seq;
+	_land_start_marker = mission_state.land_start_index;
+	_land_marker = mission_state.land_index;
+	_mission_update_counter = mission_state.mission_update_counter;
 }
 
 bool
@@ -142,7 +142,7 @@ MavlinkMissionManager::load_safepoint_stats()
  * Publish mission topic to notify navigator about changes.
  */
 void
-MavlinkMissionManager::update_active_mission(dm_item_t dataman_id, uint16_t count, int32_t seq)
+MavlinkMissionManager::update_active_mission(dm_item_t dataman_id, uint16_t count, int32_t seq, bool write_to_dataman)
 {
 	mission_s mission{};
 	mission.timestamp = hrt_absolute_time();
@@ -152,6 +152,8 @@ MavlinkMissionManager::update_active_mission(dm_item_t dataman_id, uint16_t coun
 	mission.mission_update_counter = _mission_update_counter;
 	mission.geofence_update_counter = _geofence_update_counter;
 	mission.safe_points_update_counter = _safepoint_update_counter;
+	mission.land_start_index = _land_start_marker;
+	mission.land_index = _land_marker;
 
 	/* update active mission state */
 	_dataman_id = dataman_id;
@@ -160,6 +162,15 @@ MavlinkMissionManager::update_active_mission(dm_item_t dataman_id, uint16_t coun
 	_my_dataman_id = _dataman_id;
 
 	_offboard_mission_pub.publish(mission);
+
+	if (write_to_dataman) {
+		bool success = _dataman_client.writeSync(DM_KEY_MISSION_STATE, 0, reinterpret_cast<uint8_t *>(&mission),
+				sizeof(mission_s));
+
+		if (!success) {
+			PX4_ERR("Can't update mission state in Dataman");
+		}
+	}
 }
 
 int
@@ -187,7 +198,7 @@ MavlinkMissionManager::update_geofence_count(unsigned count)
 		return PX4_ERROR;
 	}
 
-	update_active_mission(_dataman_id, _count[MAV_MISSION_TYPE_MISSION], _current_seq);
+	update_active_mission(_dataman_id, _count[MAV_MISSION_TYPE_MISSION], _current_seq, false);
 	return PX4_OK;
 }
 
@@ -216,7 +227,7 @@ MavlinkMissionManager::update_safepoint_count(unsigned count)
 		return PX4_ERROR;
 	}
 
-	update_active_mission(_dataman_id, _count[MAV_MISSION_TYPE_MISSION], _current_seq);
+	update_active_mission(_dataman_id, _count[MAV_MISSION_TYPE_MISSION], _current_seq, false);
 	return PX4_OK;
 }
 
@@ -460,8 +471,8 @@ MavlinkMissionManager::send()
 
 				} else {
 					_mavlink->send_statustext_critical("ERROR: wp index out of bounds\t");
-					events::send<int32_t, int32_t>(events::ID("mavlink_mission_wp_index_out_of_bounds"), events::Log::Error,
-								       "Waypoint index out of bounds ({1} \\< {2})", mission_result.seq_current, mission_result.seq_total);
+					events::send<uint16_t, uint16_t>(events::ID("mavlink_mission_wp_index_out_of_bounds"), events::Log::Error,
+									 "Waypoint index out of bounds (current {1} \\>= total {2})", mission_result.seq_current, mission_result.seq_total);
 				}
 			}
 		}
@@ -873,6 +884,8 @@ MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 				switch (_mission_type) {
 				case MAV_MISSION_TYPE_MISSION:
 
+					_land_start_marker = -1;
+					_land_marker = -1;
 					++_mission_update_counter;
 
 					/* alternate dataman ID anyway to let navigator know about changes */
@@ -914,6 +927,8 @@ MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 			_transfer_dataman_id = (_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 ? DM_KEY_WAYPOINTS_OFFBOARD_1 :
 						DM_KEY_WAYPOINTS_OFFBOARD_0);	// use inactive storage for transmission
 			_transfer_current_seq = -1;
+			_transfer_land_start_marker = -1;
+			_transfer_land_marker = -1;
 
 		} else if (_state == MAVLINK_WPM_STATE_GETLIST) {
 			_time_last_recv = hrt_absolute_time();
@@ -1068,6 +1083,21 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 					write_failed = !_dataman_client.writeSync(_transfer_dataman_id, wp.seq, reinterpret_cast<uint8_t *>(&mission_item),
 							sizeof(struct mission_item_s));
 
+					// Check for land start marker
+					if ((mission_item.nav_cmd == MAV_CMD_DO_LAND_START) && (_transfer_land_start_marker == -1)) {
+						_transfer_land_start_marker = wp.seq;
+					}
+
+					// Check for land index
+					if (((mission_item.nav_cmd == MAV_CMD_NAV_VTOL_LAND) || (mission_item.nav_cmd == MAV_CMD_NAV_LAND))
+					    && (_transfer_land_marker == -1)) {
+						_transfer_land_marker = wp.seq;
+
+						if (_transfer_land_start_marker == -1) {
+							_transfer_land_start_marker = _transfer_land_marker;
+						}
+					}
+
 					if (!write_failed) {
 						/* waypoint marked as current */
 						if (wp.current) {
@@ -1162,6 +1192,8 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 			switch (_mission_type) {
 			case MAV_MISSION_TYPE_MISSION:
 				++_mission_update_counter;
+				_land_start_marker = _transfer_land_start_marker;
+				_land_marker = _transfer_land_marker;
 				update_active_mission(_transfer_dataman_id, _transfer_count, _transfer_current_seq);
 				break;
 
@@ -1217,6 +1249,8 @@ MavlinkMissionManager::handle_mission_clear_all(const mavlink_message_t *msg)
 			switch (wpca.mission_type) {
 			case MAV_MISSION_TYPE_MISSION:
 				++_mission_update_counter;
+				_land_start_marker = -1;
+				_land_marker = -1;
 				update_active_mission(_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 ? DM_KEY_WAYPOINTS_OFFBOARD_1 :
 						      DM_KEY_WAYPOINTS_OFFBOARD_0, 0, 0);
 				break;
@@ -1231,6 +1265,8 @@ MavlinkMissionManager::handle_mission_clear_all(const mavlink_message_t *msg)
 
 			case MAV_MISSION_TYPE_ALL:
 				++_mission_update_counter;
+				_land_start_marker = -1;
+				_land_marker = -1;
 				update_active_mission(_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 ? DM_KEY_WAYPOINTS_OFFBOARD_1 :
 						      DM_KEY_WAYPOINTS_OFFBOARD_0, 0, 0);
 				ret = update_geofence_count(0);
@@ -1733,11 +1769,24 @@ void MavlinkMissionManager::check_active_mission()
 		return;
 	}
 
-	if (!(_my_dataman_id == _dataman_id)) {
-		PX4_DEBUG("WPM: New mission detected (possibly over different Mavlink instance) Updating");
+	if (_mission_sub.updated()) {
+		_mission_sub.update();
 
-		_my_dataman_id = _dataman_id;
-		send_mission_count(_transfer_partner_sysid, _transfer_partner_compid, _count[MAV_MISSION_TYPE_MISSION],
-				   MAV_MISSION_TYPE_MISSION);
+		if (_mission_sub.get().geofence_update_counter != _geofence_update_counter) {
+			load_geofence_stats();
+		}
+
+		if (_mission_sub.get().safe_points_update_counter != _safepoint_update_counter) {
+			load_safepoint_stats();
+		}
+
+		if ((_mission_sub.get().mission_update_counter != _mission_update_counter)
+		    || (_my_dataman_id != (dm_item_t)_mission_sub.get().dataman_id)) {
+			PX4_DEBUG("WPM: New mission detected (possibly over different Mavlink instance) Updating");
+			init_offboard_mission(_mission_sub.get());
+			_my_dataman_id = _dataman_id;
+			send_mission_count(_transfer_partner_sysid, _transfer_partner_compid, _count[MAV_MISSION_TYPE_MISSION],
+					   MAV_MISSION_TYPE_MISSION);
+		}
 	}
 }
