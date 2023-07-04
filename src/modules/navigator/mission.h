@@ -358,7 +358,7 @@ private:
 		WORK_ITEM_TYPE_DEFAULT,		/**< default mission item */
 		WORK_ITEM_TYPE_TAKEOFF,		/**< takeoff before moving to waypoint */
 		WORK_ITEM_TYPE_MOVE_TO_LAND,	/**< move to land waypoint before descent */
-		WORK_ITEM_TYPE_ALIGN,		/**< align for next waypoint */
+		WORK_ITEM_TYPE_ALIGN_HEADING,		/**< align heading for next waypoint */
 		WORK_ITEM_TYPE_TRANSITION_AFTER_TAKEOFF,
 		WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION,
 		WORK_ITEM_TYPE_PRECISION_LAND
