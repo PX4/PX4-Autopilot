@@ -40,6 +40,7 @@ px4_add_module(
 		-Wno-stringop-overflow # due to https://gcc.gnu.org/bugzilla/show_bug.cgi?id=91707
 	SRCS
 		gps.cpp
+		devices/src/crc.cpp
 		devices/src/gps_helper.cpp
 		devices/src/mtk.cpp
 		devices/src/ashtech.cpp
@@ -48,6 +49,9 @@ px4_add_module(
 		devices/src/emlid_reach.cpp
 		devices/src/femtomes.cpp
 		devices/src/nmea.cpp
+		devices/src/unicore.cpp
+		devices/src/crc.cpp
+		devices/src/sbf.cpp
 	MODULE_CONFIG
 		module.yaml
 	DEPENDS

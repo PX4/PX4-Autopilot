@@ -40,23 +40,78 @@
 #include <lib/geo/geo.h>
 #include <lib/version/version.h>
 
+#if defined(CONFIG_UAVCANNODE_BATTERY_INFO)
 #include "Publishers/BatteryInfo.hpp"
-#include "Publishers/FlowMeasurement.hpp"
-#include "Publishers/HygrometerMeasurement.hpp"
-#include "Publishers/GnssFix2.hpp"
-#include "Publishers/MagneticFieldStrength2.hpp"
-#include "Publishers/MovingBaselineData.hpp"
-#include "Publishers/RangeSensorMeasurement.hpp"
-#include "Publishers/RawAirData.hpp"
-#include "Publishers/RelPosHeading.hpp"
-#include "Publishers/SafetyButton.hpp"
-#include "Publishers/StaticPressure.hpp"
-#include "Publishers/StaticTemperature.hpp"
+#endif // CONFIG_UAVCANNODE_BATTERY_INFO
 
+#if defined(CONFIG_UAVCANNODE_ESC_STATUS)
+#include "Publishers/ESCStatus.hpp"
+#endif // CONFIG_UAVCANNODE_ESC_STATUS
+
+#if defined(CONFIG_UAVCANNODE_FLOW_MEASUREMENT)
+#include "Publishers/FlowMeasurement.hpp"
+#endif // CONFIG_UAVCANNODE_FLOW_MEASUREMENT
+
+#if defined(UAVCANNODE_HYGROMETER_MEASUREMENT)
+#include "Publishers/HygrometerMeasurement.hpp"
+#endif // UAVCANNODE_HYGROMETER_MEASUREMENT
+
+#if defined(CONFIG_UAVCANNODE_GNSS_FIX)
+#include "Publishers/GnssFix2.hpp"
+#include "Publishers/GnssAuxiliary.hpp"
+#endif // CONFIG_UAVCANNODE_GNSS_FIX
+
+#if defined(CONFIG_UAVCANNODE_MAGNETIC_FIELD_STRENGTH)
+#include "Publishers/MagneticFieldStrength2.hpp"
+#endif // CONFIG_UAVCANNODE_MAGNETIC_FIELD_STRENGTH
+
+#if defined(CONFIG_UAVCANNODE_RANGE_SENSOR_MEASUREMENT)
+#include "Publishers/RangeSensorMeasurement.hpp"
+#endif // CONFIG_UAVCANNODE_RANGE_SENSOR_MEASUREMENT
+
+#if defined(CONFIG_UAVCANNODE_RAW_AIR_DATA)
+#include "Publishers/RawAirData.hpp"
+#endif // CONFIG_UAVCANNODE_RAW_AIR_DATA
+
+#if defined(CONFIG_UAVCANNODE_SAFETY_BUTTON)
+#include "Publishers/SafetyButton.hpp"
+#endif // CONFIG_UAVCANNODE_SAFETY_BUTTON
+
+#if defined(CONFIG_UAVCANNODE_STATIC_PRESSURE)
+#include "Publishers/StaticPressure.hpp"
+#endif // CONFIG_UAVCANNODE_STATIC_PRESSURE
+
+#if defined(CONFIG_UAVCANNODE_STATIC_TEMPERATURE)
+#include "Publishers/StaticTemperature.hpp"
+#endif // CONFIG_UAVCANNODE_STATIC_TEMPERATURE
+
+#if defined(CONFIG_UAVCANNODE_ARMING_STATUS)
+#include "Subscribers/ArmingStatus.hpp"
+#endif // CONFIG_UAVCANNODE_ARMING_STATUS
+
+#if defined(CONFIG_UAVCANNODE_BEEP_COMMAND)
 #include "Subscribers/BeepCommand.hpp"
+#endif // CONFIG_UAVCANNODE_BEEP_COMMAND
+
+#if defined(CONFIG_UAVCANNODE_ESC_RAW_COMMAND)
+#include "Subscribers/ESCRawCommand.hpp"
+#endif // CONFIG_UAVCANNODE_ESC_RAW_COMMAND
+
+#if defined(CONFIG_UAVCANNODE_LIGHTS_COMMAND)
 #include "Subscribers/LightsCommand.hpp"
+#endif // CONFIG_UAVCANNODE_LIGHTS_COMMAND
+
+#if defined(CONFIG_UAVCANNODE_RTK_DATA)
+#include "Publishers/RelPosHeading.hpp"
+#include "Publishers/MovingBaselineData.hpp"
+
 #include "Subscribers/MovingBaselineData.hpp"
 #include "Subscribers/RTCMStream.hpp"
+#endif // CONFIG_UAVCANNODE_RTK_DATA
+
+#if defined(CONFIG_UAVCANNODE_SERVO_ARRAY_COMMAND)
+#include "Subscribers/ServoArrayCommand.hpp"
+#endif // CONFIG_UAVCANNODE_SERVO_ARRAY_COMMAND
 
 using namespace time_literals;
 
@@ -294,14 +349,40 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 		return PX4_ERROR;
 	}
 
-	// TODO: make runtime (and build time?) configurable
+#if defined(CONFIG_UAVCANNODE_BATTERY_INFO)
 	_publisher_list.add(new BatteryInfo(this, _node));
+#endif // CONFIG_UAVCANNODE_BATTERY_INFO
+
+#if defined(CONFIG_UAVCANNODE_ESC_STATUS)
+	_publisher_list.add(new ESCStatus(this, _node));
+#endif // CONFIG_UAVCANNODE_ESC_STATUS
+
+#if defined(CONFIG_UAVCANNODE_FLOW_MEASUREMENT)
 	_publisher_list.add(new FlowMeasurement(this, _node));
+#endif // CONFIG_UAVCANNODE_FLOW_MEASUREMENT
+
+#if defined(UAVCANNODE_HYGROMETER_MEASUREMENT)
 	_publisher_list.add(new HygrometerMeasurement(this, _node));
+#endif // UAVCANNODE_HYGROMETER_MEASUREMENT
+
+#if defined(CONFIG_UAVCANNODE_GNSS_FIX)
 	_publisher_list.add(new GnssFix2(this, _node));
+	_publisher_list.add(new GnssAuxiliary(this, _node));
+#endif // CONFIG_UAVCANNODE_GNSS_FIX
+
+#if defined(CONFIG_UAVCANNODE_MAGNETIC_FIELD_STRENGTH)
 	_publisher_list.add(new MagneticFieldStrength2(this, _node));
+#endif // CONFIG_UAVCANNODE_MAGNETIC_FIELD_STRENGTH
+
+#if defined(CONFIG_UAVCANNODE_RANGE_SENSOR_MEASUREMENT)
 	_publisher_list.add(new RangeSensorMeasurement(this, _node));
+#endif // CONFIG_UAVCANNODE_RANGE_SENSOR_MEASUREMENT
+
+#if defined(CONFIG_UAVCANNODE_RAW_AIR_DATA)
 	_publisher_list.add(new RawAirData(this, _node));
+#endif // CONFIG_UAVCANNODE_RAW_AIR_DATA
+
+#if defined(CONFIG_UAVCANNODE_RTK_DATA)
 	_publisher_list.add(new RelPosHeadingPub(this, _node));
 
 	int32_t cannode_pub_mbd = 0;
@@ -311,13 +392,37 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 		_publisher_list.add(new MovingBaselineDataPub(this, _node));
 	}
 
+#endif // CONFIG_UAVCANNODE_RTK_DATA
+
+#if defined(CONFIG_UAVCANNODE_SAFETY_BUTTON)
 	_publisher_list.add(new SafetyButton(this, _node));
+#endif // CONFIG_UAVCANNODE_SAFETY_BUTTON
+
+#if defined(CONFIG_UAVCANNODE_STATIC_PRESSURE)
 	_publisher_list.add(new StaticPressure(this, _node));
+#endif // CONFIG_UAVCANNODE_STATIC_PRESSURE
+
+#if defined(CONFIG_UAVCANNODE_STATIC_TEMPERATURE)
 	_publisher_list.add(new StaticTemperature(this, _node));
+#endif // CONFIG_UAVCANNODE_STATIC_TEMPERATURE
 
+#if defined(CONFIG_UAVCANNODE_ARMING_STATUS)
+	_subscriber_list.add(new ArmingStatus(_node));
+#endif // CONFIG_UAVCANNODE_ARMING_STATUS
+
+#if defined(CONFIG_UAVCANNODE_BEEP_COMMAND)
 	_subscriber_list.add(new BeepCommand(_node));
-	_subscriber_list.add(new LightsCommand(_node));
+#endif // CONFIG_UAVCANNODE_BEEP_COMMAND
 
+#if defined(CONFIG_UAVCANNODE_ESC_RAW_COMMAND)
+	_subscriber_list.add(new ESCRawCommand(_node));
+#endif // CONFIG_UAVCANNODE_ESC_RAW_COMMAND
+
+#if defined(CONFIG_UAVCANNODE_LIGHTS_COMMAND)
+	_subscriber_list.add(new LightsCommand(_node));
+#endif // CONFIG_UAVCANNODE_LIGHTS_COMMAND
+
+#if defined(CONFIG_UAVCANNODE_RTK_DATA)
 	int32_t cannode_sub_mbd = 0;
 	param_get(param_find("CANNODE_SUB_MBD"), &cannode_sub_mbd);
 
@@ -331,6 +436,12 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 	if (cannode_sub_rtcm == 1) {
 		_subscriber_list.add(new RTCMStream(_node));
 	}
+
+#endif // CONFIG_UAVCANNODE_RTK_DATA
+
+#if defined(CONFIG_UAVCANNODE_SERVO_ARRAY_COMMAND)
+	_subscriber_list.add(new ServoArrayCommand(_node));
+#endif // CONFIG_UAVCANNODE_SERVO_ARRAY_COMMAND
 
 	for (auto &subscriber : _subscriber_list) {
 		subscriber->init();

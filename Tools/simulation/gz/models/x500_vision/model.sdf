@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sdf version='1.9'>
+  <model name='x500-vision'>
+    <include merge='true'>
+      <uri>x500</uri>
+    </include>
+      <plugin
+        filename="gz-sim-odometry-publisher-system"
+        name="gz::sim::systems::OdometryPublisher">
+        <dimensions>3</dimensions>
+      </plugin>
+  </model>
+</sdf>

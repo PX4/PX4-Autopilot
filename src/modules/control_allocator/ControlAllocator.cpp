@@ -258,8 +258,12 @@ ControlAllocator::update_effectiveness_source()
 			tmp = new ActuatorEffectivenessCustom(this);
 			break;
 
-		case EffectivenessSource::HELICOPTER:
-			tmp = new ActuatorEffectivenessHelicopter(this);
+		case EffectivenessSource::HELICOPTER_TAIL_ESC:
+			tmp = new ActuatorEffectivenessHelicopter(this, ActuatorType::MOTORS);
+			break;
+
+		case EffectivenessSource::HELICOPTER_TAIL_SERVO:
+			tmp = new ActuatorEffectivenessHelicopter(this, ActuatorType::SERVOS);
 			break;
 
 		default:
@@ -419,6 +423,7 @@ ControlAllocator::Run()
 
 			// Do allocation
 			_control_allocation[i]->allocate();
+			_actuator_effectiveness->allocateAuxilaryControls(dt, i, _control_allocation[i]->_actuator_sp); //flaps and spoilers
 			_actuator_effectiveness->updateSetpoint(c[i], i, _control_allocation[i]->_actuator_sp,
 								_control_allocation[i]->getActuatorMin(), _control_allocation[i]->getActuatorMax());
 
@@ -840,7 +845,7 @@ This implements control allocation. It takes torque and thrust setpoints
 as inputs and outputs actuator setpoint messages.
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_NAME(MODULE_NAME, "controller");
+	PRINT_MODULE_USAGE_NAME("control_allocator", "controller");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 

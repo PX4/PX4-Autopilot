@@ -39,7 +39,6 @@ include(px4_list_make_absolute)
 set(msg_files
 	ActionRequest.msg
 	ActuatorArmed.msg
-	ActuatorControls.msg
 	ActuatorControlsStatus.msg
 	ActuatorMotors.msg
 	ActuatorOutputs.msg
@@ -91,6 +90,7 @@ set(msg_files
 	FollowTargetStatus.msg
 	GeneratorStatus.msg
 	GeofenceResult.msg
+	GimbalControls.msg
 	GimbalDeviceAttitudeStatus.msg
 	GimbalDeviceInformation.msg
 	GimbalDeviceSetAttitude.msg
@@ -98,6 +98,10 @@ set(msg_files
 	GimbalManagerSetAttitude.msg
 	GimbalManagerSetManualControl.msg
 	GimbalManagerStatus.msg
+	GpioConfig.msg
+	GpioIn.msg
+	GpioOut.msg
+	GpioRequest.msg
 	GpsDump.msg
 	GpsInjectData.msg
 	Gripper.msg
@@ -128,6 +132,7 @@ set(msg_files
 	MountOrientation.msg
 	ModeCompleted.msg
 	NavigatorMissionItem.msg
+	NormalizedUnsignedSetpoint.msg
 	NpfgStatus.msg
 	ObstacleDistance.msg
 	OffboardControlMode.msg
@@ -179,6 +184,7 @@ set(msg_files
 	TaskStackInfo.msg
 	TecsStatus.msg
 	TelemetryStatus.msg
+	TiltrotorExtraControls.msg
 	TimesyncStatus.msg
 	TrajectoryBezier.msg
 	TrajectorySetpoint.msg
@@ -217,7 +223,6 @@ set(msg_files
 	VehicleTrajectoryBezier.msg
 	VehicleTrajectoryWaypoint.msg
 	VtolVehicleStatus.msg
-	WheelEncoders.msg
 	Wind.msg
 	YawEstimatorStatus.msg
 )

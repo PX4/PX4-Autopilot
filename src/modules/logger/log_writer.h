@@ -65,9 +65,11 @@ public:
 	/** stop all running threads and wait for them to exit */
 	void thread_stop();
 
-	void start_log_file(LogType type, const char *filename);
+	bool start_log_file(LogType type, const char *filename);
 
 	void stop_log_file(LogType type);
+
+	bool had_file_write_error() const;
 
 	void start_log_mavlink();
 
@@ -150,11 +152,11 @@ public:
 	 * Indicate to the underlying backend whether future write_message() calls need a reliable
 	 * transfer. Needed for header integrity.
 	 */
-	void set_need_reliable_transfer(bool need_reliable)
+	void set_need_reliable_transfer(bool need_reliable, bool mavlink_backed_too = true)
 	{
 		if (_log_writer_file) { _log_writer_file->set_need_reliable_transfer(need_reliable); }
 
-		if (_log_writer_mavlink) { _log_writer_mavlink->set_need_reliable_transfer(need_reliable); }
+		if (_log_writer_mavlink) { _log_writer_mavlink->set_need_reliable_transfer(need_reliable && mavlink_backed_too); }
 	}
 
 	bool need_reliable_transfer() const

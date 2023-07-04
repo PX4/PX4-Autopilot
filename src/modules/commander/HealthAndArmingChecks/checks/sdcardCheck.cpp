@@ -38,12 +38,14 @@
 #ifdef __PX4_DARWIN
 #include <sys/param.h>
 #include <sys/mount.h>
-#else
+#elif defined(PX4_STORAGEDIR)
 #include <sys/statfs.h>
 #endif
 
 void SdCardChecks::checkAndReport(const Context &context, Report &reporter)
 {
+#ifdef PX4_STORAGEDIR
+
 	if (_param_com_arm_sdcard.get() > 0) {
 
 		struct statfs statfs_buf;
@@ -125,4 +127,5 @@ void SdCardChecks::checkAndReport(const Context &context, Report &reporter)
 	}
 
 #endif /* __PX4_NUTTX */
+#endif /* PX4_STORAGEDIR */
 }

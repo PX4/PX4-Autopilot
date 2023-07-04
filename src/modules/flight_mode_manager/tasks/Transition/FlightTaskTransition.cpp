@@ -36,7 +36,8 @@
  */
 
 #include "FlightTaskTransition.hpp"
-#include "Sticks.hpp"
+
+using namespace matrix;
 
 FlightTaskTransition::FlightTaskTransition()
 {
@@ -50,14 +51,13 @@ FlightTaskTransition::FlightTaskTransition()
 
 bool FlightTaskTransition::updateInitialize()
 {
-
 	updateParameters();
 	return FlightTask::updateInitialize();
 }
 
 void FlightTaskTransition::updateParameters()
 {
-// check for parameter updates
+	// check for parameter updates
 	if (_parameter_update_sub.updated()) {
 		// clear update
 		parameter_update_s pupdate;
@@ -85,9 +85,19 @@ bool FlightTaskTransition::activate(const trajectory_setpoint_s &last_setpoint)
 
 	_velocity_setpoint(2) = _vel_z_filter.getState();
 
+	_sub_vehicle_status.update();
+
+	const bool is_vtol_front_transition = _sub_vehicle_status.get().in_transition_mode
+					      && _sub_vehicle_status.get().in_transition_to_fw;
+
+	if (is_vtol_front_transition) {
+		_gear.landing_gear = landing_gear_s::GEAR_UP;
+
+	} else {
+		_gear.landing_gear = landing_gear_s::GEAR_DOWN;
+	}
+
 	return ret;
-
-
 }
 
 bool FlightTaskTransition::update()
@@ -100,8 +110,7 @@ bool FlightTaskTransition::update()
 
 	// calculate a horizontal acceleration vector which corresponds to an attitude composed of pitch up by _param_pitch_cruise_degrees
 	// and zero roll angle
-	matrix::Vector2f tmp(-1.0f, 0.0f);
-	Sticks::rotateIntoHeadingFrameXY(tmp, _yaw, NAN);
+	const Vector2f tmp = Dcm2f(_yaw) * Vector2f(-1.0f, 0.0f);
 	_acceleration_setpoint.xy() = tmp * tanf(math::radians(_param_pitch_cruise_degrees)) * CONSTANTS_ONE_G;
 
 	// slowly move vertical velocity setpoint to zero

@@ -82,6 +82,7 @@ PARAM_DEFINE_INT32(MODAL_IO_BAUD, 250000);
  * Minimum RPM for ESC
  *
  * @group MODAL IO
+ * @unit rpm
  */
 PARAM_DEFINE_INT32(MODAL_IO_RPM_MIN, 5500);
 
@@ -91,6 +92,7 @@ PARAM_DEFINE_INT32(MODAL_IO_RPM_MIN, 5500);
  * Maximum RPM for ESC
  *
  * @group MODAL IO
+ * @unit rpm
  */
 PARAM_DEFINE_INT32(MODAL_IO_RPM_MAX, 15000);
 
@@ -201,3 +203,16 @@ PARAM_DEFINE_INT32(MODAL_IO_T_EXPO, 35);
  * @increment 0.001
  */
 PARAM_DEFINE_FLOAT(MODAL_IO_T_COSP, 0.990);
+
+/**
+ * UART ESC verbose logging
+ *
+ * @reboot_required true
+ *
+ * @group MODAL IO
+ * @value 0 - Disabled
+ * @value 1 - Enabled
+ * @min 0
+ * @max 1
+ */
+PARAM_DEFINE_INT32(MODAL_IO_VLOG, 0);

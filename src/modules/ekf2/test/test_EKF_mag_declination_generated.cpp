@@ -35,7 +35,7 @@
 #include "EKF/ekf.h"
 #include "test_helper/comparison_helper.h"
 
-#include "../EKF/python/ekf_derivation/generated/compute_mag_declination_innov_innov_var_and_h.h"
+#include "../EKF/python/ekf_derivation/generated/compute_mag_declination_pred_innov_var_and_h.h"
 
 using namespace matrix;
 
@@ -50,15 +50,15 @@ TEST(MagDeclinationGenerated, declination90deg)
 	SquareMatrix24f P = createRandomCovarianceMatrix24f();
 
 	Vector24f H;
-	float innov;
+	float decl_pred;
 	float innov_var;
 
 	const float decl = radians(90.f);
-	sym::ComputeMagDeclinationInnovInnovVarAndH(state_vector, P, decl, R, FLT_EPSILON, &innov, &innov_var, &H);
+	sym::ComputeMagDeclinationPredInnovVarAndH(state_vector, P, R, FLT_EPSILON, &decl_pred, &innov_var, &H);
 
 	// THEN: Even at the singularity point, atan2 is still defined
 	EXPECT_TRUE(innov_var < 5000.f && innov_var > R) << "innov_var = " << innov_var;
-	EXPECT_LT(fabsf(innov), 1e-6f);
+	EXPECT_LT(fabsf(wrap_pi(decl_pred - decl)), 1e-6f);
 }
 
 TEST(MagDeclinationGenerated, declinationUndefined)
@@ -72,15 +72,15 @@ TEST(MagDeclinationGenerated, declinationUndefined)
 	SquareMatrix24f P = createRandomCovarianceMatrix24f();
 
 	Vector24f H;
-	float innov;
+	float decl_pred;
 	float innov_var;
 
 	const float decl = radians(0.f);
-	sym::ComputeMagDeclinationInnovInnovVarAndH(state_vector, P, decl, R, FLT_EPSILON, &innov, &innov_var, &H);
+	sym::ComputeMagDeclinationPredInnovVarAndH(state_vector, P, R, FLT_EPSILON, &decl_pred, &innov_var, &H);
 
 	// THEN: the innovation variance is gigantic but finite
 	EXPECT_TRUE(PX4_ISFINITE(innov_var) && innov_var > R && innov_var > 1e9f) << "innov_var = " << innov_var;
-	EXPECT_LT(fabsf(innov), 1e-6f);
+	EXPECT_LT(fabsf(wrap_pi(decl_pred - decl)), 1e-6f);
 }
 
 void sympyMagDeclInnovVarHAndK(float magN, float magE, const SquareMatrix24f &P, float R_DECL,
@@ -156,14 +156,15 @@ TEST(MagDeclinationGenerated, SympyVsSymforce)
 	Vector24f K_sympy;
 	Vector24f K_symforce;
 	float innov_sympy;
-	float innov_symforce;
+	float pred_symforce;
 	float innov_var_sympy;
 	float innov_var_symforce;
 
 	sympyMagDeclInnovVarHAndK(mag_n, mag_e, P, R_DECL, innov_var_sympy, H_sympy, K_sympy);
-	innov_sympy = std::atan2(mag_e, mag_n) - decl;
-	sym::ComputeMagDeclinationInnovInnovVarAndH(state_vector, P, decl, R_DECL, FLT_EPSILON, &innov_symforce,
+	innov_sympy = wrap_pi(std::atan2(mag_e, mag_n) - decl);
+	sym::ComputeMagDeclinationPredInnovVarAndH(state_vector, P, R_DECL, FLT_EPSILON, &pred_symforce,
 			&innov_var_symforce, &H_symforce);
+	const float innov_symforce = wrap_pi(pred_symforce - decl);
 	K_symforce = P * H_symforce / innov_var_symforce;
 
 	EXPECT_NEAR(innov_sympy, innov_symforce, 1e-5f);

@@ -112,7 +112,9 @@ public:
 
 	RTLState getRTLState() { return _rtl_state; }
 
-	bool getShouldEngageMissionForLanding() const { return _should_engange_mission_for_landing; }
+	bool getRTLDestinationTypeMission() { return _destination.type == RTLDestinationType::RTL_DESTINATION_MISSION_LANDING; }
+
+	void resetRtlState() { _rtl_state = RTL_STATE_NONE; }
 
 private:
 
@@ -121,7 +123,7 @@ private:
 	void advance_rtl();
 
 	float calculate_return_alt_from_cone_half_angle(float cone_half_angle_deg);
-	void calc_and_pub_rtl_time_estimate(const RTLState rtl_state);
+	void calcRtlTimeEstimate(const RTLState rtl_state, rtl_time_estimate_s &rtl_time_estimate);
 
 	float getCruiseGroundSpeed();
 
@@ -161,7 +163,6 @@ private:
 	float _rtl_alt{0.0f};	// AMSL altitude at which the vehicle should return to the home position
 
 	bool _rtl_alt_min{false};
-	bool _should_engange_mission_for_landing{false};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::RTL_RETURN_ALT>)  _param_rtl_return_alt,

@@ -646,6 +646,7 @@ bool FailsafeBase::modeCanRun(const failsafe_flags_s &status_flags, uint8_t mode
 {
 	uint32_t mode_mask = 1u << mode;
 	// mode_req_wind_and_flight_time_compliance: does not need to be handled here (these are separate failsafe triggers)
+	// mode_req_manual_control: is handled separately
 	return
 		(!status_flags.angular_velocity_invalid || ((status_flags.mode_req_angular_velocity & mode_mask) == 0)) &&
 		(!status_flags.attitude_invalid || ((status_flags.mode_req_attitude & mode_mask) == 0)) &&

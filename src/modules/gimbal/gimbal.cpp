@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -44,6 +44,7 @@
  * - MAVLink gimbal protocol v2
  */
 
+#include <cstdint>
 #include <stdlib.h>
 #include <string.h>
 #include <px4_platform_common/defines.h>
@@ -77,6 +78,7 @@ struct ThreadData {
 	int last_input_active = -1;
 	OutputBase *output_obj = nullptr;
 	InputTest *test_input = nullptr;
+	ControlData control_data {};
 };
 static ThreadData *g_thread_data = nullptr;
 
@@ -102,7 +104,6 @@ static int gimbal_thread_main(int argc, char *argv[])
 
 	uORB::SubscriptionInterval parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	thread_running.store(true);
-	ControlData control_data {};
 	g_thread_data = &thread_data;
 
 	thread_data.test_input = new InputTest(params);
@@ -208,8 +209,9 @@ static int gimbal_thread_main(int argc, char *argv[])
 
 		if (thread_data.last_input_active == -1) {
 			// Reset control as no one is active anymore, or yet.
-			control_data.sysid_primary_control = 0;
-			control_data.compid_primary_control = 0;
+			thread_data.control_data.sysid_primary_control = 0;
+			thread_data.control_data.compid_primary_control = 0;
+			thread_data.control_data.device_compid = 0;
 		}
 
 		InputBase::UpdateResult update_result = InputBase::UpdateResult::NoUpdate;
@@ -226,7 +228,7 @@ static int gimbal_thread_main(int argc, char *argv[])
 				const unsigned int poll_timeout =
 					(already_active || thread_data.last_input_active == -1) ? 20 : 0;
 
-				update_result = thread_data.input_objs[i]->update(poll_timeout, control_data, already_active);
+				update_result = thread_data.input_objs[i]->update(poll_timeout, thread_data.control_data, already_active);
 
 				bool break_loop = false;
 
@@ -271,8 +273,8 @@ static int gimbal_thread_main(int argc, char *argv[])
 
 			// Update output
 			thread_data.output_obj->update(
-				control_data,
-				update_result != InputBase::UpdateResult::NoUpdate);
+				thread_data.control_data,
+				update_result != InputBase::UpdateResult::NoUpdate, thread_data.control_data.device_compid);
 
 			// Only publish the mount orientation if the mode is not mavlink v1 or v2
 			// If the gimbal speaks mavlink it publishes its own orientation.
@@ -399,6 +401,33 @@ int gimbal_main(int argc, char *argv[])
 		}
 	}
 
+	else if (!strcmp(argv[1], "primary-control")) {
+
+		if (thread_running.load() && g_thread_data && g_thread_data->test_input) {
+
+			if (argc == 4) {
+				g_thread_data->control_data.sysid_primary_control = (uint8_t)strtol(argv[2], nullptr, 0);
+				g_thread_data->control_data.compid_primary_control = (uint8_t)strtol(argv[3], nullptr, 0);
+
+				PX4_INFO("Control set to: %d/%d",
+					 g_thread_data->control_data.sysid_primary_control,
+					 g_thread_data->control_data.compid_primary_control);
+
+				return 0;
+
+			} else {
+				PX4_ERR("not enough arguments");
+				usage();
+				return 1;
+			}
+
+		} else {
+			PX4_WARN("not running");
+			usage();
+			return 1;
+		}
+	}
+
 	else if (!strcmp(argv[1], "status")) {
 		if (thread_running.load() && g_thread_data && g_thread_data->test_input) {
 
@@ -421,6 +450,9 @@ int gimbal_main(int argc, char *argv[])
 						g_thread_data->input_objs[i]->print_status();
 					}
 				}
+
+				PX4_INFO("Primary control:   %d/%d",
+					 g_thread_data->control_data.sysid_primary_control, g_thread_data->control_data.compid_primary_control);
 
 			}
 
@@ -449,8 +481,6 @@ void update_params(ParameterHandles &param_handles, Parameters &params)
 	param_get(param_handles.mnt_mode_out, &params.mnt_mode_out);
 	param_get(param_handles.mnt_mav_sysid_v1, &params.mnt_mav_sysid_v1);
 	param_get(param_handles.mnt_mav_compid_v1, &params.mnt_mav_compid_v1);
-	param_get(param_handles.mnt_ob_lock_mode, &params.mnt_ob_lock_mode);
-	param_get(param_handles.mnt_ob_norm_mode, &params.mnt_ob_norm_mode);
 	param_get(param_handles.mnt_man_pitch, &params.mnt_man_pitch);
 	param_get(param_handles.mnt_man_roll, &params.mnt_man_roll);
 	param_get(param_handles.mnt_man_yaw, &params.mnt_man_yaw);
@@ -476,8 +506,6 @@ bool initialize_params(ParameterHandles &param_handles, Parameters &params)
 	param_handles.mnt_mode_out = param_find("MNT_MODE_OUT");
 	param_handles.mnt_mav_sysid_v1 = param_find("MNT_MAV_SYSID");
 	param_handles.mnt_mav_compid_v1 = param_find("MNT_MAV_COMPID");
-	param_handles.mnt_ob_lock_mode = param_find("MNT_OB_LOCK_MODE");
-	param_handles.mnt_ob_norm_mode = param_find("MNT_OB_NORM_MODE");
 	param_handles.mnt_man_pitch = param_find("MNT_MAN_PITCH");
 	param_handles.mnt_man_roll = param_find("MNT_MAN_ROLL");
 	param_handles.mnt_man_yaw = param_find("MNT_MAN_YAW");
@@ -500,8 +528,6 @@ bool initialize_params(ParameterHandles &param_handles, Parameters &params)
 	    param_handles.mnt_mode_out == PARAM_INVALID ||
 	    param_handles.mnt_mav_sysid_v1 == PARAM_INVALID ||
 	    param_handles.mnt_mav_compid_v1 == PARAM_INVALID ||
-	    param_handles.mnt_ob_lock_mode == PARAM_INVALID ||
-	    param_handles.mnt_ob_norm_mode == PARAM_INVALID ||
 	    param_handles.mnt_man_pitch == PARAM_INVALID ||
 	    param_handles.mnt_man_roll == PARAM_INVALID ||
 	    param_handles.mnt_man_yaw == PARAM_INVALID ||
@@ -544,6 +570,9 @@ $ gimbal test pitch -45 yaw 30
 
 	PRINT_MODULE_USAGE_NAME("gimbal", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_COMMAND("status");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("primary-control", "Set who is in control of gimbal");
+	PRINT_MODULE_USAGE_ARG("<sysid> <compid>", "MAVLink system ID and MAVLink component ID", false);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("test", "Test the output: set a fixed angle for one or multiple axes (gimbal must be running)");
 	PRINT_MODULE_USAGE_ARG("roll|pitch|yaw <angle>", "Specify an axis and an angle in degrees", false);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();

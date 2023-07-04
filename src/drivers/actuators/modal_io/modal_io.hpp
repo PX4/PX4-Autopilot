@@ -143,6 +143,7 @@ private:
 		int32_t		function_map[MODAL_IO_OUTPUT_CHANNELS] {0, 0, 0, 0};
 		int32_t		motor_map[MODAL_IO_OUTPUT_CHANNELS] {1, 2, 3, 4};
 		int32_t		direction_map[MODAL_IO_OUTPUT_CHANNELS] {1, 1, 1, 1};
+		int32_t		verbose_logging{0};
 	} modal_io_params_t;
 
 	struct EscChan {
@@ -173,7 +174,7 @@ private:
 	} led_rsc_t;
 
 	ch_assign_t		_output_map[MODAL_IO_OUTPUT_CHANNELS] {{1, 1}, {2, 1}, {3, 1}, {4, 1}};
-	MixingOutput 		_mixing_output;
+	MixingOutput _mixing_output{"MODAL_IO", MODAL_IO_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
 
 	perf_counter_t		_cycle_perf;
 	perf_counter_t		_output_update_perf;
@@ -188,7 +189,7 @@ private:
 	uORB::Subscription 	_actuator_test_sub{ORB_ID(actuator_test)};
 	uORB::Subscription	_led_update_sub{ORB_ID(led_control)};
 
-	//uORB::Publication<actuator_outputs_s> _outputs_debug_pub{ORB_ID(actuator_outputs_debug)};
+	uORB::Publication<actuator_outputs_s> _outputs_debug_pub{ORB_ID(actuator_outputs_debug)};
 	uORB::Publication<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
 
 	modal_io_params_t	_parameters;

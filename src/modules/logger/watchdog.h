@@ -52,6 +52,10 @@ struct watchdog_data_t {
 	hrt_abstime ready_to_run_timestamp = hrt_absolute_time();
 	hrt_abstime sem_counter_saturated_start = hrt_absolute_time();
 	uint8_t last_state = TSTATE_TASK_INVALID;
+	int log_writer_priority = 0;
+	int logger_main_priority = 0;
+	hrt_abstime trigger_time = 0; ///< timestamp when it was triggered
+	bool manual_watchdog_trigger = false;
 #endif /* __PX4_NUTTX */
 };
 

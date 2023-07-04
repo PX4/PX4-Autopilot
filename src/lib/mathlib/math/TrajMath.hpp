@@ -67,7 +67,7 @@ inline float computeMaxSpeedFromDistance(const float jerk, const float accel, co
 	float max_speed = 0.5f * (-b + sqrtf(sqr(b) - 4.0f * c));
 
 	// don't slow down more than the end speed, even if the conservative accel ramp time requests it
-	return max(max_speed, final_speed);
+	return fmaxf(max_speed, final_speed);
 }
 
 /* Compute the maximum tangential speed in a circle defined by two line segments of length "d"
@@ -108,6 +108,45 @@ inline float computeBrakingDistanceFromVelocity(const float velocity, const floa
 		const float accel_delay_max)
 {
 	return velocity * (velocity / (2.0f * accel) + accel_delay_max / jerk);
+}
+
+/* Compute the maximum distance between a point and a circle given a direction vector pointing from the point
+ * towards the circle. The point can be inside or outside the circle.
+ *                  _
+ *               ,=' '=,               __
+ *    P-->------/-------A   Distance = PA
+ *       Dir   |    x    |
+ *              \       /
+ *               "=,_,="
+ * Equation to solve: ||(point - circle_pos) + direction_unit * distance_to_circle|| = radius
+ *
+ * @param pos position of the point
+ * @param circle_pos position of the center of the circle
+ * @param radius radius of the circle
+ * @param direction vector pointing from the point towards the circle
+ *
+ * @return longest distance between the point to the circle in the direction indicated by the vector or NAN if the
+ * vector does not point towards the circle
+ */
+inline float getMaxDistanceToCircle(const matrix::Vector2f &pos, const matrix::Vector2f &circle_pos, float radius,
+				    const matrix::Vector2f &direction)
+{
+	matrix::Vector2f center_to_pos = pos - circle_pos;
+	const float b = 2.f * center_to_pos.dot(direction.unit_or_zero());
+	const float c = center_to_pos.norm_squared() - radius * radius;
+	const float delta = b * b - 4.f * c;
+
+	float distance_to_circle;
+
+	if (delta >= 0.f && direction.longerThan(0.f)) {
+		distance_to_circle = fmaxf((-b + sqrtf(delta)) / 2.f, 0.f);
+
+	} else {
+		// Never intersecting the circle
+		distance_to_circle = NAN;
+	}
+
+	return distance_to_circle;
 }
 
 } /* namespace traj */

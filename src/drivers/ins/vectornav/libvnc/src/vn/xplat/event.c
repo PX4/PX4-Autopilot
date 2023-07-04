@@ -1,5 +1,5 @@
 /* Enable IEEE Std 1003.1b-1993 functionality required for clock_gettime. */
-#ifdef __linux__
+#if defined(__linux__) || defined(__NUTTX__)
 	/* Works for Ubuntu 15.10 */
 	#define _POSIX_C_SOURCE 199309L
 #elif defined __CYGWIN__
@@ -100,7 +100,7 @@ VnError VnEvent_waitMs(VnEvent *e, uint32_t timeoutMs)
 
 	return E_UNKNOWN;
 
-	#elif defined __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__ || defined __NUTTX__
+	#elif defined __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__ || __NUTTX__
 
 	return VnEvent_waitUs(e, timeoutMs * 1000);
 
@@ -218,7 +218,7 @@ VnError VnEvent_signal(VnEvent *e)
 	if (!SetEvent(e->handle))
 		return E_UNKNOWN;
 
-	#elif defined __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__ || defined __NUTTX__
+	#elif defined __linux__ || __APPLE__ || __CYGWIN__ || __QNXNTO__ || __NUTTX__
 
 	if (pthread_mutex_lock(&e->mutex))
 		return E_UNKNOWN;

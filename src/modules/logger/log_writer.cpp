@@ -123,11 +123,13 @@ bool LogWriter::is_started(LogType type, Backend query_backend) const
 	return false;
 }
 
-void LogWriter::start_log_file(LogType type, const char *filename)
+bool LogWriter::start_log_file(LogType type, const char *filename)
 {
 	if (_log_writer_file) {
-		_log_writer_file->start_log(type, filename);
+		return _log_writer_file->start_log(type, filename);
 	}
+
+	return false;
 }
 
 void LogWriter::stop_log_file(LogType type)
@@ -193,6 +195,15 @@ void LogWriter::select_write_backend(Backend sel_backend)
 	} else {
 		_log_writer_mavlink_for_write = nullptr;
 	}
+}
+
+bool LogWriter::had_file_write_error() const
+{
+	if (_log_writer_file) {
+		return _log_writer_file->had_write_error();
+	}
+
+	return false;
 }
 
 }

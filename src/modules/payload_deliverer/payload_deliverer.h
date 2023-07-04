@@ -48,7 +48,6 @@
 
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
-#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/parameter_update.h>
 
 using namespace time_literals;

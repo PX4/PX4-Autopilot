@@ -45,12 +45,7 @@ param set-default GND_SPEED_D 0.001
 param set-default GND_SPEED_IMAX 0.125
 param set-default GND_SPEED_THR_SC 1
 
-param set-default MIS_TAKEOFF_ALT 0.01
-
 param set-default NAV_ACC_RAD 0.5
-
-# Enable Airspeed check circuit breaker because Rovers will have no airspeed sensor
-param set-default CBRK_AIRSPD_CHK 162128
 
 param set-default CA_AIRFRAME 5
 

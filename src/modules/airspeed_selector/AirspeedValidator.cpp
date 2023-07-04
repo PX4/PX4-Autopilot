@@ -54,12 +54,12 @@ AirspeedValidator::update_airspeed_validator(const airspeed_validator_update_dat
 	update_CAS_scale_applied();
 	update_CAS_TAS(input_data.air_pressure_pa, input_data.air_temperature_celsius);
 	update_wind_estimator(input_data.timestamp, input_data.airspeed_true_raw, input_data.lpos_valid,
-			      input_data.ground_velocity, input_data.lpos_evh, input_data.lpos_evv, input_data.att_q);
+			      input_data.ground_velocity, input_data.lpos_evh, input_data.lpos_evv, input_data.q_att);
 	update_in_fixed_wing_flight(input_data.in_fixed_wing_flight);
 	check_airspeed_data_stuck(input_data.timestamp);
 	check_load_factor(input_data.accel_z);
 	check_airspeed_innovation(input_data.timestamp, input_data.vel_test_ratio, input_data.mag_test_ratio,
-				  input_data.ground_velocity);
+				  input_data.ground_velocity, input_data.lpos_valid);
 	update_airspeed_valid_status(input_data.timestamp);
 }
 
@@ -72,20 +72,18 @@ AirspeedValidator::reset_airspeed_to_invalid(const uint64_t timestamp)
 
 void
 AirspeedValidator::update_wind_estimator(const uint64_t time_now_usec, float airspeed_true_raw, bool lpos_valid,
-		const matrix::Vector3f &vI, float lpos_evh, float lpos_evv, const float att_q[4])
+		const matrix::Vector3f &vI, float lpos_evh, float lpos_evv, const Quatf &q_att)
 {
 	_wind_estimator.update(time_now_usec);
 
 	if (lpos_valid && _in_fixed_wing_flight) {
 
-		Quatf q(att_q);
-
 		// airspeed fusion (with raw TAS)
 		const float hor_vel_variance =  lpos_evh * lpos_evh;
-		_wind_estimator.fuse_airspeed(time_now_usec, airspeed_true_raw, vI, hor_vel_variance, q);
+		_wind_estimator.fuse_airspeed(time_now_usec, airspeed_true_raw, vI, hor_vel_variance, q_att);
 
 		// sideslip fusion
-		_wind_estimator.fuse_beta(time_now_usec, vI, hor_vel_variance, q);
+		_wind_estimator.fuse_beta(time_now_usec, vI, hor_vel_variance, q_att);
 	}
 }
 
@@ -214,7 +212,7 @@ AirspeedValidator::check_airspeed_data_stuck(uint64_t time_now)
 
 void
 AirspeedValidator::check_airspeed_innovation(uint64_t time_now, float estimator_status_vel_test_ratio,
-		float estimator_status_mag_test_ratio, const matrix::Vector3f &vI)
+		float estimator_status_mag_test_ratio, const matrix::Vector3f &vI, bool lpos_valid)
 {
 	// Check normalised innovation levels with requirement for continuous data and use of hysteresis
 	// to prevent false triggering.
@@ -230,7 +228,7 @@ AirspeedValidator::check_airspeed_innovation(uint64_t time_now, float estimator_
 		_time_last_tas_pass = time_now;
 		_apsd_innov_integ_state = 0.f;
 
-	} else if (estimator_status_vel_test_ratio > 1.f || estimator_status_mag_test_ratio > 1.f) {
+	} else if (!lpos_valid || estimator_status_vel_test_ratio > 1.f || estimator_status_mag_test_ratio > 1.f) {
 		//nav velocity data is likely not good
 		//don't run the test but don't reset the check if it had previously failed when nav velocity data was still likely good
 		_time_last_tas_pass = time_now;

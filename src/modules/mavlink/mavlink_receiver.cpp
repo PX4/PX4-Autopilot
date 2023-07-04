@@ -78,6 +78,16 @@ MavlinkReceiver::~MavlinkReceiver()
 #if !defined(CONSTRAINED_FLASH)
 	delete[] _received_msg_stats;
 #endif // !CONSTRAINED_FLASH
+
+	_distance_sensor_pub.unadvertise();
+	_gps_inject_data_pub.unadvertise();
+	_rc_pub.unadvertise();
+	_manual_control_input_pub.unadvertise();
+	_ping_pub.unadvertise();
+	_radio_status_pub.unadvertise();
+	_sensor_baro_pub.unadvertise();
+	_sensor_gps_pub.unadvertise();
+	_sensor_optical_flow_pub.unadvertise();
 }
 
 static constexpr vehicle_odometry_s vehicle_odometry_empty {
@@ -164,10 +174,6 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 	case MAVLINK_MSG_ID_SET_ATTITUDE_TARGET:
 		handle_message_set_attitude_target(msg);
-		break;
-
-	case MAVLINK_MSG_ID_SET_ACTUATOR_CONTROL_TARGET:
-		handle_message_set_actuator_control_target(msg);
 		break;
 
 	case MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE:
@@ -528,28 +534,6 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 		result = handle_request_message_command(message_id,
 							vehicle_command.param2, vehicle_command.param3, vehicle_command.param4,
 							vehicle_command.param5, vehicle_command.param6, vehicle_command.param7);
-
-	} else if (cmd_mavlink.command == MAV_CMD_SET_CAMERA_ZOOM) {
-		struct actuator_controls_s actuator_controls = {};
-		actuator_controls.timestamp = hrt_absolute_time();
-
-		for (size_t i = 0; i < 8; i++) {
-			actuator_controls.control[i] = NAN;
-		}
-
-		switch ((int)(cmd_mavlink.param1 + 0.5f)) {
-		case vehicle_command_s::VEHICLE_CAMERA_ZOOM_TYPE_RANGE:
-			actuator_controls.control[actuator_controls_s::INDEX_CAMERA_ZOOM] = cmd_mavlink.param2 / 50.0f - 1.0f;
-			break;
-
-		case vehicle_command_s::VEHICLE_CAMERA_ZOOM_TYPE_STEP:
-		case vehicle_command_s::VEHICLE_CAMERA_ZOOM_TYPE_CONTINUOUS:
-		case vehicle_command_s::VEHICLE_CAMERA_ZOOM_TYPE_FOCAL_LENGTH:
-		default:
-			send_ack = false;
-		}
-
-		_actuator_controls_pubs[actuator_controls_s::GROUP_INDEX_GIMBAL].publish(actuator_controls);
 
 	} else if (cmd_mavlink.command == MAV_CMD_INJECT_FAILURE) {
 		if (_mavlink->failure_injection_enabled()) {
@@ -1197,70 +1181,6 @@ MavlinkReceiver::handle_message_set_position_target_global_int(mavlink_message_t
 				// only publish setpoint once in OFFBOARD
 				setpoint.timestamp = hrt_absolute_time();
 				_trajectory_setpoint_pub.publish(setpoint);
-			}
-		}
-	}
-}
-
-void
-MavlinkReceiver::handle_message_set_actuator_control_target(mavlink_message_t *msg)
-{
-	// TODO
-#if defined(ENABLE_LOCKSTEP_SCHEDULER)
-	PX4_ERR("SET_ACTUATOR_CONTROL_TARGET not supported with lockstep enabled");
-	PX4_ERR("Please disable lockstep for actuator offboard control:");
-	PX4_ERR("https://docs.px4.io/main/en/simulation/#disable-lockstep-simulation");
-	return;
-#endif
-
-	mavlink_set_actuator_control_target_t actuator_target;
-	mavlink_msg_set_actuator_control_target_decode(msg, &actuator_target);
-
-	if (_mavlink->get_forward_externalsp() &&
-	    (mavlink_system.sysid == actuator_target.target_system || actuator_target.target_system == 0) &&
-	    (mavlink_system.compid == actuator_target.target_component || actuator_target.target_component == 0)
-	   ) {
-		/* Ignore all setpoints except when controlling the gimbal(group_mlx==2) as we are setting raw actuators here */
-		//bool ignore_setpoints = bool(actuator_target.group_mlx != 2);
-
-		offboard_control_mode_s offboard_control_mode{};
-		offboard_control_mode.actuator = true;
-		offboard_control_mode.timestamp = hrt_absolute_time();
-		_offboard_control_mode_pub.publish(offboard_control_mode);
-
-		vehicle_status_s vehicle_status{};
-		_vehicle_status_sub.copy(&vehicle_status);
-
-		// Publish actuator controls only once in OFFBOARD
-		if (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD) {
-
-			actuator_controls_s actuator_controls{};
-			actuator_controls.timestamp = hrt_absolute_time();
-
-			/* Set duty cycles for the servos in the actuator_controls message */
-			for (size_t i = 0; i < 8; i++) {
-				actuator_controls.control[i] = actuator_target.controls[i];
-			}
-
-			switch (actuator_target.group_mlx) {
-			case 0:
-				_actuator_controls_pubs[0].publish(actuator_controls);
-				break;
-
-			case 1:
-				_actuator_controls_pubs[1].publish(actuator_controls);
-				break;
-
-			case 2:
-				_actuator_controls_pubs[2].publish(actuator_controls);
-				break;
-
-			case 3:
-				_actuator_controls_pubs[3].publish(actuator_controls);
-				break;
-
-			default:
-				break;
 			}
 		}
 	}
@@ -2145,6 +2065,7 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 	manual_control_setpoint.yaw = mavlink_manual_control.r / 1000.f;
 	manual_control_setpoint.data_source = manual_control_setpoint_s::SOURCE_MAVLINK_0 + _mavlink->get_instance_id();
 	manual_control_setpoint.timestamp = manual_control_setpoint.timestamp_sample = hrt_absolute_time();
+	manual_control_setpoint.valid = true;
 	_manual_control_input_pub.publish(manual_control_setpoint);
 }
 
@@ -2449,6 +2370,7 @@ MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 	gps.automatic_gain_control = 0;
 	gps.jamming_indicator = 0;
 	gps.jamming_state = 0;
+	gps.spoofing_state = 0;
 
 	gps.vel_m_s = (float)(hil_gps.vel) / 100.0f; // cm/s -> m/s
 	gps.vel_n_m_s = (float)(hil_gps.vn) / 100.0f; // cm/s -> m/s

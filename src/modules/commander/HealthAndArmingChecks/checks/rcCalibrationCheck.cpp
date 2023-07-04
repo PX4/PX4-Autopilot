@@ -53,16 +53,16 @@ RcCalibrationChecks::RcCalibrationChecks()
 	char nbuf[20];
 
 	for (unsigned i = 0; i < input_rc_s::RC_INPUT_MAX_CHANNELS; i++) {
-		sprintf(nbuf, "RC%d_MIN", i + 1);
+		snprintf(nbuf, sizeof(nbuf), "RC%d_MIN", i + 1);
 		_param_handles[i].min = param_find(nbuf);
 
-		sprintf(nbuf, "RC%d_TRIM", i + 1);
+		snprintf(nbuf, sizeof(nbuf), "RC%d_TRIM", i + 1);
 		_param_handles[i].trim = param_find(nbuf);
 
-		sprintf(nbuf, "RC%d_MAX", i + 1);
+		snprintf(nbuf, sizeof(nbuf), "RC%d_MAX", i + 1);
 		_param_handles[i].max = param_find(nbuf);
 
-		sprintf(nbuf, "RC%d_DZ", i + 1);
+		snprintf(nbuf, sizeof(nbuf), "RC%d_DZ", i + 1);
 		_param_handles[i].dz = param_find(nbuf);
 	}
 

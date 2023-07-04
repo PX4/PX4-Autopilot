@@ -69,16 +69,17 @@ void Ekf::initialiseCovariance()
 	// position
 	P(7,7) = sq(fmaxf(_params.gps_pos_noise, 0.01f));
 	P(8,8) = P(7,7);
+	P(9,9) = sq(fmaxf(_params.baro_noise, 0.01f));
 
+	if (_control_status.flags.gps_hgt) {
+		P(9,9) = sq(fmaxf(1.5f * _params.gps_pos_noise, 0.01f));
+	}
+
+#if defined(CONFIG_EKF2_RANGE_FINDER)
 	if (_control_status.flags.rng_hgt) {
 		P(9,9) = sq(fmaxf(_params.range_noise, 0.01f));
-
-	} else if (_control_status.flags.gps_hgt) {
-		P(9,9) = sq(fmaxf(1.5f * _params.gps_pos_noise, 0.01f));
-
-	} else {
-		P(9,9) = sq(fmaxf(_params.baro_noise, 0.01f));
 	}
+#endif // CONFIG_EKF2_RANGE_FINDER
 
 	// gyro bias
 	_prev_delta_ang_bias_var(0) = P(10,10) = sq(_params.switch_on_gyro_bias * dt);
@@ -444,14 +445,27 @@ void Ekf::fixCovarianceErrors(bool force_symmetry)
 		if (fabsf(down_dvel_bias) > dVel_bias_lim) {
 
 			bool bad_vz_gps = _control_status.flags.gps    && (down_dvel_bias * _aid_src_gnss_vel.innovation[2] < 0.0f);
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
 			bool bad_vz_ev  = _control_status.flags.ev_vel && (down_dvel_bias * _aid_src_ev_vel.innovation[2] < 0.0f);
+#else
+			bool bad_vz_ev  = false;
+#endif // CONFIG_EKF2_EXTERNAL_VISION
 
 			if (bad_vz_gps || bad_vz_ev) {
 				bool bad_z_baro = _control_status.flags.baro_hgt && (down_dvel_bias * _aid_src_baro_hgt.innovation < 0.0f);
 				bool bad_z_gps  = _control_status.flags.gps_hgt  && (down_dvel_bias * _aid_src_gnss_hgt.innovation < 0.0f);
-				bool bad_z_rng  = _control_status.flags.rng_hgt  && (down_dvel_bias * _aid_src_rng_hgt.innovation  < 0.0f);
-				bool bad_z_ev   = _control_status.flags.ev_hgt   && (down_dvel_bias * _aid_src_ev_hgt.innovation   < 0.0f);
 
+#if defined(CONFIG_EKF2_RANGE_FINDER)
+				bool bad_z_rng  = _control_status.flags.rng_hgt  && (down_dvel_bias * _aid_src_rng_hgt.innovation  < 0.0f);
+#else
+				bool bad_z_rng  = false;
+#endif // CONFIG_EKF2_RANGE_FINDER
+
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
+				bool bad_z_ev   = _control_status.flags.ev_hgt   && (down_dvel_bias * _aid_src_ev_hgt.innovation   < 0.0f);
+#else
+				bool bad_z_ev   = false;
+#endif // CONFIG_EKF2_EXTERNAL_VISION
 
 				if (bad_z_baro || bad_z_gps || bad_z_rng || bad_z_ev) {
 					bad_acc_bias = true;
@@ -604,35 +618,4 @@ void Ekf::resetZDeltaAngBiasCov()
 	const float init_delta_ang_bias_var = sq(_params.switch_on_gyro_bias * _dt_ekf_avg);
 
 	P.uncorrelateCovarianceSetVariance<1>(12, init_delta_ang_bias_var);
-}
-
-void Ekf::resetWindCovarianceUsingAirspeed()
-{
-	// Derived using EKF/matlab/scripts/Inertial Nav EKF/wind_cov.py
-	// TODO: explicitly include the sideslip angle in the derivation
-	const float euler_yaw = getEulerYaw(_R_to_earth);
-	const float R_TAS = sq(math::constrain(_params.eas_noise, 0.5f, 5.0f) * math::constrain(_airspeed_sample_delayed.eas2tas, 0.9f, 10.0f));
-	constexpr float initial_sideslip_uncertainty = math::radians(15.0f);
-	const float initial_wind_var_body_y = sq(_airspeed_sample_delayed.true_airspeed * sinf(initial_sideslip_uncertainty));
-	constexpr float R_yaw = sq(math::radians(10.0f));
-
-	const float cos_yaw = cosf(euler_yaw);
-	const float sin_yaw = sinf(euler_yaw);
-
-	// rotate wind velocity into earth frame aligned with vehicle yaw
-	const float Wx = _state.wind_vel(0) * cos_yaw + _state.wind_vel(1) * sin_yaw;
-	const float Wy = -_state.wind_vel(0) * sin_yaw + _state.wind_vel(1) * cos_yaw;
-
-	// it is safer to remove all existing correlations to other states at this time
-	P.uncorrelateCovarianceSetVariance<2>(22, 0.0f);
-
-	P(22, 22) = R_TAS * sq(cos_yaw) + R_yaw * sq(-Wx * sin_yaw - Wy * cos_yaw) + initial_wind_var_body_y * sq(sin_yaw);
-	P(22, 23) = R_TAS * sin_yaw * cos_yaw + R_yaw * (-Wx * sin_yaw - Wy * cos_yaw) * (Wx * cos_yaw - Wy * sin_yaw) -
-		    initial_wind_var_body_y * sin_yaw * cos_yaw;
-	P(23, 22) = P(22, 23);
-	P(23, 23) = R_TAS * sq(sin_yaw) + R_yaw * sq(Wx * cos_yaw - Wy * sin_yaw) + initial_wind_var_body_y * sq(cos_yaw);
-
-	// Now add the variance due to uncertainty in vehicle velocity that was used to calculate the initial wind speed
-	P(22, 22) += P(4, 4);
-	P(23, 23) += P(5, 5);
 }

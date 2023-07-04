@@ -211,7 +211,7 @@ bool LogWriterFile::init_logfile_encryption(const char *filename)
 #endif // PX4_CRYPTO
 
 
-void LogWriterFile::start_log(LogType type, const char *filename)
+bool LogWriterFile::start_log(LogType type, const char *filename)
 {
 	// At this point we don't expect the file to be open, but it can happen for very fast consecutive stop & start
 	// calls. In that case we wait for the thread to close the file first.
@@ -243,7 +243,7 @@ void LogWriterFile::start_log(LogType type, const char *filename)
 	if (!enc_init) {
 		PX4_ERR("Failed to start encrypted logging");
 		_crypto.close();
-		return;
+		return false;
 	}
 
 #endif
@@ -251,7 +251,10 @@ void LogWriterFile::start_log(LogType type, const char *filename)
 	if (_buffers[(int)type].start_log(filename)) {
 		PX4_INFO("Opened %s log file: %s", log_type_str(type), filename);
 		notify();
+		return true;
 	}
+
+	return false;
 }
 
 int LogWriterFile::hardfault_store_filename(const char *log_file)
@@ -369,7 +372,8 @@ void LogWriterFile::run()
 			const hrt_abstime now = hrt_absolute_time();
 
 			/* call fsync periodically to minimize potential loss of data */
-			const bool call_fsync = ++poll_count >= 100 || now - last_fsync > 1_s;
+			const bool call_fsync = ++poll_count >= 100 || now - last_fsync > 1_s || _want_fsync.load();
+			_want_fsync.store(false);
 
 			if (call_fsync) {
 				last_fsync = now;
@@ -443,13 +447,20 @@ void LogWriterFile::run()
 
 						if (!buffer._should_run && written == static_cast<int>(available) && !is_part) {
 							/* Stop only when all data written */
+							pthread_mutex_unlock(&_mtx);
 							buffer.close_file();
+							pthread_mutex_lock(&_mtx);
+							buffer.reset();
 						}
 
 					} else {
 						PX4_ERR("write failed (%i)", errno);
+						buffer._had_write_error.store(true);
 						buffer._should_run = false;
+						pthread_mutex_unlock(&_mtx);
 						buffer.close_file();
+						pthread_mutex_lock(&_mtx);
+						buffer.reset();
 					}
 
 				} else if (call_fsync && buffer._should_run) {
@@ -458,7 +469,10 @@ void LogWriterFile::run()
 					pthread_mutex_lock(&_mtx);
 
 				} else if (available == 0 && !buffer._should_run) {
+					pthread_mutex_unlock(&_mtx);
 					buffer.close_file();
+					pthread_mutex_lock(&_mtx);
+					buffer.reset();
 				}
 
 				/* if split into 2 parts, write the second part immediately as well */
@@ -638,6 +652,7 @@ size_t LogWriterFile::LogFileBuffer::get_read_ptr(void **ptr, bool *is_part)
 bool LogWriterFile::LogFileBuffer::start_log(const char *filename)
 {
 	_fd = ::open(filename, O_CREAT | O_WRONLY, PX4_O_MODE_666);
+	_had_write_error.store(false);
 
 	if (_fd < 0) {
 		PX4_ERR("Can't open log file %s, errno: %d", filename, errno);
@@ -687,12 +702,8 @@ ssize_t LogWriterFile::LogFileBuffer::write_to_file(const void *buffer, size_t s
 
 void LogWriterFile::LogFileBuffer::close_file()
 {
-	_head = 0;
-	_count = 0;
-
 	if (_fd >= 0) {
 		int res = close(_fd);
-		_fd = -1;
 
 		if (res) {
 			PX4_WARN("closing log file failed (%i)", errno);
@@ -701,6 +712,13 @@ void LogWriterFile::LogFileBuffer::close_file()
 			PX4_INFO("closed logfile, bytes written: %zu", _total_written);
 		}
 	}
+}
+
+void LogWriterFile::LogFileBuffer::reset()
+{
+	_head = 0;
+	_count = 0;
+	_fd = -1;
 }
 
 }

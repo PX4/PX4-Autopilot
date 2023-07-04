@@ -86,10 +86,10 @@ MulticopterLandDetector::MulticopterLandDetector()
 
 void MulticopterLandDetector::_update_topics()
 {
-	actuator_controls_s actuator_controls;
+	vehicle_thrust_setpoint_s vehicle_thrust_setpoint;
 
-	if (_actuator_controls_sub.update(&actuator_controls)) {
-		_actuator_controls_throttle = actuator_controls.control[actuator_controls_s::INDEX_THROTTLE];
+	if (_vehicle_thrust_setpoint_sub.update(&vehicle_thrust_setpoint)) {
+		_vehicle_thrust_setpoint_throttle = -vehicle_thrust_setpoint.xyz[2];
 	}
 
 	vehicle_control_mode_s vehicle_control_mode;
@@ -162,7 +162,7 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 
 	const bool lpos_available = ((time_now_us - _vehicle_local_position.timestamp) < 1_s);
 
-	if (lpos_available && _vehicle_local_position.v_z_valid) {
+	if (lpos_available) {
 		// Check if we are moving vertically.
 		// Use wider threshold if currently in "maybe landed" state, as estimation for
 		// vertical speed is often deteriorated when on the ground or due to propeller
@@ -174,7 +174,16 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 			vertical_velocity_threshold *= 2.5f;
 		}
 
-		_vertical_movement = (fabsf(_vehicle_local_position.vz) > vertical_velocity_threshold);
+		if (_vehicle_local_position.v_z_valid && (fabsf(_vehicle_local_position.vz) < vertical_velocity_threshold)) {
+			_vertical_movement = false;
+
+		} else if (_vehicle_local_position.z_valid && (fabsf(_vehicle_local_position.z_deriv) < vertical_velocity_threshold)) {
+			// The Z derivative is often less accurate than VZ but is less affected by biased velocity measurements.
+			_vertical_movement = false;
+
+		} else {
+			_vertical_movement = true;
+		}
 
 	} else {
 		_vertical_movement = true;
@@ -207,7 +216,7 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 	// low thrust: 30% of throttle range between min and hover, relaxed to 60% if hover thrust estimate available
 	const float thr_pct_hover = _hover_thrust_estimate_valid ? 0.6f : 0.3f;
 	const float sys_low_throttle = _params.minThrottle + (_params.hoverThrottle - _params.minThrottle) * thr_pct_hover;
-	_has_low_throttle = (_actuator_controls_throttle <= sys_low_throttle);
+	_has_low_throttle = (_vehicle_thrust_setpoint_throttle <= sys_low_throttle);
 	bool ground_contact = _has_low_throttle;
 
 	// if we have a valid velocity setpoint and the vehicle is demanded to go down but no vertical movement present,
@@ -256,7 +265,7 @@ bool MulticopterLandDetector::_get_maybe_landed_state()
 		minimum_thrust_threshold = (_params.minManThrottle + 0.01f);
 	}
 
-	const bool minimum_thrust_now = _actuator_controls_throttle <= minimum_thrust_threshold;
+	const bool minimum_thrust_now = _vehicle_thrust_setpoint_throttle <= minimum_thrust_threshold;
 	_minimum_thrust_8s_hysteresis.set_state_and_update(minimum_thrust_now, now);
 
 	// Next look if vehicle is not rotating (do not consider yaw)

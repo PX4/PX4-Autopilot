@@ -34,33 +34,37 @@
 px4_add_library(health_and_arming_checks
 	Common.cpp
 	HealthAndArmingChecks.cpp
-	checks/systemCheck.cpp
-	checks/magnetometerCheck.cpp
+
 	checks/accelerometerCheck.cpp
-	checks/gyroCheck.cpp
-	checks/baroCheck.cpp
-	checks/imuConsistencyCheck.cpp
 	checks/airspeedCheck.cpp
+	checks/armPermissionCheck.cpp
+	checks/baroCheck.cpp
+	checks/batteryCheck.cpp
+	checks/cpuResourceCheck.cpp
 	checks/distanceSensorChecks.cpp
 	checks/escCheck.cpp
-	checks/rcCalibrationCheck.cpp
-	checks/powerCheck.cpp
 	checks/estimatorCheck.cpp
 	checks/failureDetectorCheck.cpp
-	checks/manualControlCheck.cpp
-	checks/modeCheck.cpp
-	checks/cpuResourceCheck.cpp
-	checks/sdcardCheck.cpp
-	checks/parachuteCheck.cpp
-	checks/batteryCheck.cpp
-	checks/windCheck.cpp
-	checks/geofenceCheck.cpp
-	checks/homePositionCheck.cpp
 	checks/flightTimeCheck.cpp
+	checks/geofenceCheck.cpp
+	checks/gyroCheck.cpp
+	checks/homePositionCheck.cpp
+	checks/imuConsistencyCheck.cpp
+	checks/magnetometerCheck.cpp
+	checks/manualControlCheck.cpp
 	checks/missionCheck.cpp
-	checks/rcAndDataLinkCheck.cpp
-	checks/vtolCheck.cpp
+	checks/modeCheck.cpp
 	checks/offboardCheck.cpp
+	checks/openDroneIDCheck.cpp
+	checks/parachuteCheck.cpp
+	checks/powerCheck.cpp
+	checks/rcAndDataLinkCheck.cpp
+	checks/rcCalibrationCheck.cpp
+	checks/sdcardCheck.cpp
+	checks/systemCheck.cpp
+	checks/vtolCheck.cpp
+	checks/windCheck.cpp
+
 )
 add_dependencies(health_and_arming_checks mode_util)
 

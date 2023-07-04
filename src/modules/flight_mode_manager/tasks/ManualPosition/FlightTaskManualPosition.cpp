@@ -67,7 +67,7 @@ void FlightTaskManualPosition::_scaleSticks()
 	/* Use same scaling as for FlightTaskManualAltitude */
 	FlightTaskManualAltitude::_scaleSticks();
 
-	Vector2f stick_xy = _sticks.getPositionExpo().slice<2, 1>(0, 0);
+	Vector2f stick_xy = _sticks.getPitchRollExpo();
 
 	Sticks::limitStickUnitLengthXY(stick_xy);
 
@@ -91,8 +91,8 @@ void FlightTaskManualPosition::_scaleSticks()
 	// scale velocity to its maximum limits
 	Vector2f vel_sp_xy = stick_xy * velocity_scale;
 
-	/* Rotate setpoint into local frame. */
-	_rotateIntoHeadingFrame(vel_sp_xy);
+	// Rotate setpoint into local frame
+	Sticks::rotateIntoHeadingFrameXY(vel_sp_xy, _yaw, _yaw_setpoint);
 
 	// collision prevention
 	if (_collision_prevention.is_active()) {

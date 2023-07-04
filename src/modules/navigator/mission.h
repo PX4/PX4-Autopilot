@@ -240,9 +240,82 @@ private:
 
 	void publish_navigator_mission_item();
 
+
+	/**
+	* @brief Get the index associated with the last item that contains a position
+	* @param mission The mission to search
+	* @param start_index The index to start searching from
+	* @param prev_pos_index The index of the previous position item containing a position
+	* @return true if a previous position item was found
+	*/
+	bool getPreviousPositionItemIndex(const mission_s &mission, int start_index, unsigned &prev_pos_index) const;
+
+	/**
+	 * @brief Get the next item after start_index that contains a position
+	 *
+	 * @param mission The mission to search
+	 * @param start_index The index to start searching from
+	 * @param mission_item The mission item to populate
+	 * @return true if successful
+	 */
+	bool getNextPositionMissionItem(const mission_s &mission, int start_index, mission_item_s &mission_item) const;
+
+	/**
+	 * @brief Read the mission item at the given index
+	 *
+	 * @param mission The mission to read from
+	 * @param index The index to read
+	 * @param missionitem The mission item to populate
+	 * @return true if successful
+	 */
+	bool readMissionItemAtIndex(const mission_s &mission, const int index, mission_item_s &missionitem) const;
+
+	/**
+	 * @brief Cache the mission items containing gimbal, camera mode and trigger commands
+	 *
+	 * @param mission_item The mission item to cache if applicable
+	 */
+	void cacheItem(const mission_item_s &mission_item);
+
+	/**
+	 * @brief Update the cached items up to the given index
+	 *
+	 * @param end_index The index to update up to
+	 */
+	void updateCachedItemsUpToIndex(int end_index);
+
+	/**
+	 * @brief Replay the cached gimbal and camera mode items
+	 */
+	void replayCachedGimbalCameraItems();
+
+	/**
+	 * @brief Replay the cached trigger items
+	 *
+	 */
+	void replayCachedTriggerItems();
+
+	/**
+	 * @brief Reset the item cache
+	 */
+	void resetItemCache();
+
+	/**
+	 * @brief Check if there are cached gimbal or camera mode items to be replayed
+	 *
+	 * @return true if there are cached items
+	 */
+	bool haveCachedGimbalOrCameraItems();
+
+	/**
+	 * @brief Check if the camera was triggering
+	 *
+	 * @return true if there was a camera trigger command in the cached items that didn't disable triggering
+	 */
+	bool cameraWasTriggering();
+
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MIS_DIST_1WP>) _param_mis_dist_1wp,
-		(ParamFloat<px4::params::MIS_DIST_WPS>) _param_mis_dist_wps,
 		(ParamInt<px4::params::MIS_MNT_YAW_CTL>) _param_mis_mnt_yaw_ctl
 	)
 
@@ -268,8 +341,6 @@ private:
 
 	bool _need_takeoff{true};					/**< if true, then takeoff must be performed before going to the first waypoint (if needed) */
 
-	hrt_abstime _time_mission_deactivated{0};
-
 	enum {
 		MISSION_TYPE_NONE,
 		MISSION_TYPE_MISSION
@@ -287,11 +358,19 @@ private:
 		WORK_ITEM_TYPE_TAKEOFF,		/**< takeoff before moving to waypoint */
 		WORK_ITEM_TYPE_MOVE_TO_LAND,	/**< move to land waypoint before descent */
 		WORK_ITEM_TYPE_ALIGN,		/**< align for next waypoint */
-		WORK_ITEM_TYPE_TRANSITON_AFTER_TAKEOFF,
+		WORK_ITEM_TYPE_TRANSITION_AFTER_TAKEOFF,
 		WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION,
 		WORK_ITEM_TYPE_PRECISION_LAND
 	} _work_item_type{WORK_ITEM_TYPE_DEFAULT};	/**< current type of work to do (sub mission item) */
 
 	uint8_t _mission_execution_mode{mission_result_s::MISSION_EXECUTION_MODE_NORMAL};	/**< the current mode of how the mission is executed,look at mission_result.msg for the definition */
 	bool _execution_mode_changed{false};
+
+	int _inactivation_index{-1}; // index of mission item at which the mission was paused. Used to resume survey missions at previous waypoint to not lose images.
+	bool _align_heading_necessary{false}; // if true, heading of vehicle needs to be aligned with heading of next waypoint. Used to create new mission items for heading alignment.
+
+	mission_item_s _last_gimbal_configure_item {};
+	mission_item_s _last_gimbal_control_item {};
+	mission_item_s _last_camera_mode_item {};
+	mission_item_s _last_camera_trigger_item {};
 };

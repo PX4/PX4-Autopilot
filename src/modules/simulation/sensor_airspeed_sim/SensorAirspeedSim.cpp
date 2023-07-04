@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -106,47 +106,49 @@ void SensorAirspeedSim::Run()
 		updateParams();
 	}
 
-	if (_vehicle_local_position_sub.updated() && _vehicle_global_position_sub.updated()
-	    && _vehicle_attitude_sub.updated()) {
+	if (_sim_failure.get() == 0) {
+		if (_vehicle_local_position_sub.updated() && _vehicle_global_position_sub.updated()
+		    && _vehicle_attitude_sub.updated()) {
 
-		vehicle_local_position_s lpos{};
-		_vehicle_local_position_sub.copy(&lpos);
+			vehicle_local_position_s lpos{};
+			_vehicle_local_position_sub.copy(&lpos);
 
-		vehicle_global_position_s gpos{};
-		_vehicle_global_position_sub.copy(&gpos);
+			vehicle_global_position_s gpos{};
+			_vehicle_global_position_sub.copy(&gpos);
 
-		vehicle_attitude_s attitude{};
-		_vehicle_attitude_sub.copy(&attitude);
+			vehicle_attitude_s attitude{};
+			_vehicle_attitude_sub.copy(&attitude);
 
-		Vector3f local_velocity = Vector3f{lpos.vx, lpos.vy, lpos.vz};
-		Vector3f body_velocity = Dcmf{Quatf{attitude.q}} .transpose() * local_velocity;
+			Vector3f local_velocity = Vector3f{lpos.vx, lpos.vy, lpos.vz};
+			Vector3f body_velocity = Dcmf{Quatf{attitude.q}} .transpose() * local_velocity;
 
-		// device id
-		device::Device::DeviceId device_id;
-		device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
-		device_id.devid_s.bus = 0;
-		device_id.devid_s.address = 0;
-		device_id.devid_s.devtype = DRV_DIFF_PRESS_DEVTYPE_SIM;
+			// device id
+			device::Device::DeviceId device_id;
+			device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
+			device_id.devid_s.bus = 0;
+			device_id.devid_s.address = 0;
+			device_id.devid_s.devtype = DRV_DIFF_PRESS_DEVTYPE_SIM;
 
-		const float alt_amsl = gpos.alt;
-		const float temperature_local = TEMPERATURE_MSL - LAPSE_RATE * alt_amsl;
-		const float density_ratio = powf(TEMPERATURE_MSL / temperature_local, 4.256f);
-		const float air_density = AIR_DENSITY_MSL / density_ratio;
+			const float alt_amsl = gpos.alt;
+			const float temperature_local = TEMPERATURE_MSL - LAPSE_RATE * alt_amsl;
+			const float density_ratio = powf(TEMPERATURE_MSL / temperature_local, 4.256f);
+			const float air_density = AIR_DENSITY_MSL / density_ratio;
 
-		// calculate differential pressure + noise in hPa
-		const float diff_pressure_noise = (float)generate_wgn() * 0.01f;
-		float diff_pressure = sign(body_velocity(0)) * 0.005f * air_density  * body_velocity(0) * body_velocity(
-					      0) + diff_pressure_noise;
+			// calculate differential pressure + noise in hPa
+			const float diff_pressure_noise = (float)generate_wgn() * 0.01f;
+			float diff_pressure = sign(body_velocity(0)) * 0.005f * air_density  * body_velocity(0) * body_velocity(
+						      0) + diff_pressure_noise;
 
 
-		differential_pressure_s differential_pressure{};
-		// report.timestamp_sample = time;
-		differential_pressure.device_id = 1377548; // 1377548: DRV_DIFF_PRESS_DEVTYPE_SIM, BUS: 1, ADDR: 5, TYPE: SIMULATION
-		differential_pressure.differential_pressure_pa = (double)diff_pressure * 100.0; // hPa to Pa;
-		differential_pressure.temperature = temperature_local;
-		differential_pressure.timestamp = hrt_absolute_time();
-		_differential_pressure_pub.publish(differential_pressure);
+			differential_pressure_s differential_pressure{};
+			// report.timestamp_sample = time;
+			differential_pressure.device_id = 1377548; // 1377548: DRV_DIFF_PRESS_DEVTYPE_SIM, BUS: 1, ADDR: 5, TYPE: SIMULATION
+			differential_pressure.differential_pressure_pa = (double)diff_pressure * 100.0; // hPa to Pa;
+			differential_pressure.temperature = temperature_local;
+			differential_pressure.timestamp = hrt_absolute_time();
+			_differential_pressure_pub.publish(differential_pressure);
 
+		}
 	}
 
 	perf_end(_loop_perf);

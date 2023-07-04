@@ -59,7 +59,7 @@ struct airspeed_validator_update_data {
 	bool lpos_valid;
 	float lpos_evh;
 	float lpos_evv;
-	float att_q[4];
+	matrix::Quatf q_att;
 	float air_pressure_pa;
 	float air_temperature_celsius;
 	float accel_z;
@@ -127,7 +127,6 @@ private:
 	bool _data_stuck_check_enabled{false};
 	bool _innovation_check_enabled{false};
 	bool _load_factor_check_enabled{false};
-	bool _data_variation_check_enabled{false};
 
 	// airspeed scale validity check
 	static constexpr int SCALE_CHECK_SAMPLES = 12; ///< take samples from 12 segments (every 360/12=30°)
@@ -180,13 +179,13 @@ private:
 
 	void update_wind_estimator(const uint64_t timestamp, float airspeed_true_raw, bool lpos_valid,
 				   const matrix::Vector3f &vI,
-				   float lpos_evh, float lpos_evv, const float att_q[4]);
+				   float lpos_evh, float lpos_evv, const Quatf &q_att);
 	void update_CAS_scale_validated(bool lpos_valid, const matrix::Vector3f &vI, float airspeed_true_raw);
 	void update_CAS_scale_applied();
 	void update_CAS_TAS(float air_pressure_pa, float air_temperature_celsius);
 	void check_airspeed_data_stuck(uint64_t timestamp);
 	void check_airspeed_innovation(uint64_t timestamp, float estimator_status_vel_test_ratio,
-				       float estimator_status_mag_test_ratio, const matrix::Vector3f &vI);
+				       float estimator_status_mag_test_ratio, const matrix::Vector3f &vI, bool lpos_valid);
 	void check_load_factor(float accel_z);
 	void update_airspeed_valid_status(const uint64_t timestamp);
 	void reset();

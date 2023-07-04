@@ -72,23 +72,23 @@ RCUpdate::RCUpdate() :
 		char nbuf[16];
 
 		/* min values */
-		sprintf(nbuf, "RC%d_MIN", i + 1);
+		snprintf(nbuf, sizeof(nbuf), "RC%d_MIN", i + 1);
 		_parameter_handles.min[i] = param_find(nbuf);
 
 		/* trim values */
-		sprintf(nbuf, "RC%d_TRIM", i + 1);
+		snprintf(nbuf, sizeof(nbuf), "RC%d_TRIM", i + 1);
 		_parameter_handles.trim[i] = param_find(nbuf);
 
 		/* max values */
-		sprintf(nbuf, "RC%d_MAX", i + 1);
+		snprintf(nbuf, sizeof(nbuf), "RC%d_MAX", i + 1);
 		_parameter_handles.max[i] = param_find(nbuf);
 
 		/* channel reverse */
-		sprintf(nbuf, "RC%d_REV", i + 1);
+		snprintf(nbuf, sizeof(nbuf), "RC%d_REV", i + 1);
 		_parameter_handles.rev[i] = param_find(nbuf);
 
 		/* channel deadzone */
-		sprintf(nbuf, "RC%d_DZ", i + 1);
+		snprintf(nbuf, sizeof(nbuf), "RC%d_DZ", i + 1);
 		_parameter_handles.dz[i] = param_find(nbuf);
 	}
 
@@ -127,7 +127,6 @@ void RCUpdate::parameters_updated()
 {
 	// rc values
 	for (unsigned int i = 0; i < RC_MAX_CHAN_COUNT; i++) {
-
 		float min = 0.f;
 		param_get(_parameter_handles.min[i], &min);
 		_parameters.min[i] = min;
@@ -154,6 +153,12 @@ void RCUpdate::parameters_updated()
 	}
 
 	update_rc_functions();
+
+	_rc_calibrated = _param_rc_chan_cnt.get() > 0
+			 && (_param_rc_map_throttle.get() > 0
+			     || _param_rc_map_roll.get() > 0
+			     || _param_rc_map_pitch.get() > 0
+			     || _param_rc_map_yaw.get() > 0);
 
 	// deprecated parameters, will be removed post v1.12 once QGC is updated
 	{
@@ -210,8 +215,12 @@ void RCUpdate::parameters_updated()
 		const uint16_t throttle_min = _parameters.min[throttle_channel];
 		const uint16_t throttle_trim = _parameters.trim[throttle_channel];
 		const uint16_t throttle_max = _parameters.max[throttle_channel];
+		const bool throttle_rev = _parameters.rev[throttle_channel];
 
-		if (throttle_min == throttle_trim) {
+		const bool normal_case = !throttle_rev && (throttle_trim == throttle_min);
+		const bool reversed_case = throttle_rev && (throttle_trim == throttle_max);
+
+		if (normal_case || reversed_case) {
 			const uint16_t new_throttle_trim = (throttle_min + throttle_max) / 2;
 			_parameters.trim[throttle_channel] = new_throttle_trim;
 		}
@@ -687,6 +696,7 @@ void RCUpdate::UpdateManualControlInput(const hrt_abstime &timestamp_sample)
 	manual_control_input.aux4  = get_rc_value(rc_channels_s::FUNCTION_AUX_4,   -1.f, 1.f);
 	manual_control_input.aux5  = get_rc_value(rc_channels_s::FUNCTION_AUX_5,   -1.f, 1.f);
 	manual_control_input.aux6  = get_rc_value(rc_channels_s::FUNCTION_AUX_6,   -1.f, 1.f);
+	manual_control_input.valid = _rc_calibrated;
 
 	// publish manual_control_input topic
 	manual_control_input.timestamp = hrt_absolute_time();

@@ -32,6 +32,18 @@
  ****************************************************************************/
 
 /**
+ * Enable simulated barometer sensor instance
+ *
+ * @reboot_required true
+ * @min 0
+ * @max 1
+ * @group Sensors
+ * @value 0 Disabled
+ * @value 1 Enabled
+  */
+PARAM_DEFINE_INT32(SENS_EN_BAROSIM, 0);
+
+/**
  * simulated barometer pressure offset
  *
  * @group Simulator

@@ -106,4 +106,6 @@ private:
 		// Register          | Set bits, Clear bits
 		{ Register::CNTL2,   CNTL2_BIT::MODE3_SET, CNTL2_BIT::MODE3_CLEAR },
 	};
+
+	bool _is_ak09918 {false};
 };

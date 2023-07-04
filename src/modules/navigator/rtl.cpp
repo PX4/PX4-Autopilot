@@ -80,11 +80,23 @@ void RTL::on_inactive()
 	if ((hrt_absolute_time() - _destination_check_time) > 1_s) {
 		_destination_check_time = hrt_absolute_time();
 
-		if (_navigator->home_global_position_valid()) {
+		const vehicle_global_position_s &global_position = *_navigator->get_global_position();
+
+		const bool global_position_recently_updated = global_position.timestamp > 0
+				&& hrt_elapsed_time(&global_position.timestamp) < 10_s;
+
+		rtl_time_estimate_s rtl_time_estimate{};
+		rtl_time_estimate.valid = false;
+
+		// Calculate RTL destination and time estimate only when there is a valid home and global position
+		if (_navigator->home_global_position_valid() && global_position_recently_updated) {
 			find_RTL_destination();
+			calcRtlTimeEstimate(RTLState::RTL_STATE_NONE, rtl_time_estimate);
+			rtl_time_estimate.valid = true;
 		}
 
-		calc_and_pub_rtl_time_estimate(RTLState::RTL_STATE_NONE);
+		rtl_time_estimate.timestamp = hrt_absolute_time();
+		_rtl_time_estimate_pub.publish(rtl_time_estimate);
 	}
 }
 
@@ -140,7 +152,7 @@ void RTL::find_RTL_destination()
 		double dist_squared = coord_dist_sq(dlat, dlon);
 
 		// always find closest destination if in hover and VTOL
-		if (_param_rtl_type.get() == RTL_TYPE_CLOSEST || (vtol_in_rw_mode && !_navigator->getMissionLandingInProgress())) {
+		if (_param_rtl_type.get() == RTL_TYPE_CLOSEST || (vtol_in_rw_mode && !_navigator->on_mission_landing())) {
 
 			// compare home position to landing position to decide which is closer
 			if (dist_squared < min_dist_squared) {
@@ -241,11 +253,6 @@ void RTL::on_activation()
 {
 	_rtl_state = RTL_STATE_NONE;
 
-	// if a mission landing is desired we should only execute mission navigation mode if we currently are in fw mode
-	// In multirotor mode no landing pattern is required so we can just navigate to the land point directly and don't need to run mission
-	_should_engange_mission_for_landing = (_destination.type == RTL_DESTINATION_MISSION_LANDING)
-					      && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
-
 	// output the correct message, depending on where the RTL destination is
 	switch (_destination.type) {
 	case RTL_DESTINATION_HOME:
@@ -270,12 +277,6 @@ void RTL::on_activation()
 		// For safety reasons don't go into RTL if landed.
 		_rtl_state = RTL_STATE_LANDED;
 
-	} else if ((_destination.type == RTL_DESTINATION_MISSION_LANDING) && _navigator->getMissionLandingInProgress()) {
-		// we were just on a mission landing, set _rtl_state past RTL_STATE_LOITER such that navigator will engage mission mode,
-		// which will continue executing the landing
-		_rtl_state = RTL_STATE_LAND;
-
-
 	} else if ((global_position.alt < _destination.alt + _param_rtl_return_alt.get()) || _rtl_alt_min) {
 
 		// If lower than return altitude, climb up first.
@@ -288,7 +289,7 @@ void RTL::on_activation()
 	}
 
 	// reset cruising speed and throttle to default for RTL
-	_navigator->set_cruising_speed();
+	_navigator->reset_cruising_speed();
 	_navigator->set_cruising_throttle();
 
 	set_rtl_item();
@@ -312,7 +313,24 @@ void RTL::on_active()
 	// Limit rtl time calculation to 1Hz
 	if ((hrt_absolute_time() - _destination_check_time) > 1_s) {
 		_destination_check_time = hrt_absolute_time();
-		calc_and_pub_rtl_time_estimate(_rtl_state);
+
+		const vehicle_global_position_s &global_position = *_navigator->get_global_position();
+
+		const bool global_position_recently_updated = global_position.timestamp > 0
+				&& hrt_elapsed_time(&global_position.timestamp) < 10_s;
+
+		rtl_time_estimate_s rtl_time_estimate{};
+		rtl_time_estimate.valid = false;
+
+		// Calculate RTL destination and time estimate only when there is a valid home and global position
+		if (_navigator->home_global_position_valid() && global_position_recently_updated) {
+			find_RTL_destination();
+			calcRtlTimeEstimate(_rtl_state, rtl_time_estimate);
+			rtl_time_estimate.valid = true;
+		}
+
+		rtl_time_estimate.timestamp = hrt_absolute_time();
+		_rtl_time_estimate_pub.publish(rtl_time_estimate);
 	}
 }
 
@@ -526,6 +544,10 @@ void RTL::set_rtl_item()
 			_mission_item.altitude = loiter_altitude;
 			_mission_item.altitude_is_relative = false;
 
+			// have to reset here because these field were used in set_vtol_transition_item
+			_mission_item.time_inside = 0.f;
+			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
+
 			if (rtl_heading_mode == RTLHeadingMode::RTL_NAVIGATION_HEADING) {
 				_mission_item.yaw = get_bearing_to_next_waypoint(gpos.lat, gpos.lon, _destination.lat, _destination.lon);
 
@@ -536,7 +558,6 @@ void RTL::set_rtl_item()
 				_mission_item.yaw = _navigator->get_local_position()->heading;
 			}
 
-			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 			_mission_item.origin = ORIGIN_ONBOARD;
 			break;
 		}
@@ -709,114 +730,98 @@ float RTL::calculate_return_alt_from_cone_half_angle(float cone_half_angle_deg)
 	return max(return_altitude_amsl, gpos.alt);
 }
 
-void RTL::calc_and_pub_rtl_time_estimate(const RTLState rtl_state)
+void RTL::calcRtlTimeEstimate(const RTLState rtl_state, rtl_time_estimate_s &rtl_time_estimate)
 {
-	rtl_time_estimate_s rtl_time_estimate{};
+	const vehicle_global_position_s &gpos = *_navigator->get_global_position();
 
-	// Calculate RTL time estimate only when there is a valid home position
-	// TODO: Also check if vehicle position is valid
-	if (!_navigator->home_global_position_valid()) {
-		rtl_time_estimate.valid = false;
+	// Sum up time estimate for various segments of the landing procedure
+	switch (rtl_state) {
+	case RTL_STATE_NONE:
+	case RTL_STATE_CLIMB: {
+			// Climb segment is only relevant if the drone is below return altitude
+			const float climb_dist = gpos.alt < _rtl_alt ? (_rtl_alt - gpos.alt) : 0;
 
-	} else {
-		rtl_time_estimate.valid = true;
-
-		const vehicle_global_position_s &gpos = *_navigator->get_global_position();
-
-		// Sum up time estimate for various segments of the landing procedure
-		switch (rtl_state) {
-		case RTL_STATE_NONE:
-		case RTL_STATE_CLIMB: {
-				// Climb segment is only relevant if the drone is below return altitude
-				const float climb_dist = gpos.alt < _rtl_alt ? (_rtl_alt - gpos.alt) : 0;
-
-				if (climb_dist > 0) {
-					rtl_time_estimate.time_estimate += climb_dist / getClimbRate();
-				}
+			if (climb_dist > FLT_EPSILON) {
+				rtl_time_estimate.time_estimate += climb_dist / getClimbRate();
 			}
-
-		// FALLTHROUGH
-		case RTL_STATE_RETURN:
-
-			// Add cruise segment to home
-			rtl_time_estimate.time_estimate += get_distance_to_next_waypoint(
-					_destination.lat, _destination.lon, gpos.lat, gpos.lon) / getCruiseGroundSpeed();
-
-		// FALLTHROUGH
-		case RTL_STATE_HEAD_TO_CENTER:
-		case RTL_STATE_TRANSITION_TO_MC:
-		case RTL_STATE_DESCEND: {
-				// when descending, the target altitude is stored in the current mission item
-				float initial_altitude = 0;
-				float loiter_altitude = 0;
-
-				if (rtl_state == RTL_STATE_DESCEND) {
-					// Take current vehicle altitude as the starting point for calculation
-					initial_altitude = gpos.alt;  // TODO: Check if this is in the right frame
-					loiter_altitude = _mission_item.altitude;  // Next waypoint = loiter
-
-
-				} else {
-					// Take the return altitude as the starting point for the calculation
-					initial_altitude = _rtl_alt; // CLIMB and RETURN
-					loiter_altitude = math::min(_destination.alt + _param_rtl_descend_alt.get(), _rtl_alt);
-				}
-
-				// Add descend segment (first landing phase: return alt to loiter alt)
-				rtl_time_estimate.time_estimate += fabsf(initial_altitude - loiter_altitude) / getDescendRate();
-			}
-
-		// FALLTHROUGH
-		case RTL_STATE_LOITER:
-			// Add land delay (the short pause for deploying landing gear)
-			// TODO: Check if landing gear is deployed or not
-			rtl_time_estimate.time_estimate += _param_rtl_land_delay.get();
-
-		// FALLTHROUGH
-		case RTL_MOVE_TO_LAND_HOVER_VTOL:
-		case RTL_STATE_LAND: {
-				float initial_altitude;
-
-				// Add land segment (second landing phase) which comes after LOITER
-				if (rtl_state == RTL_STATE_LAND) {
-					// If we are in this phase, use the current vehicle altitude  instead
-					// of the altitude paramteter to get a continous time estimate
-					initial_altitude = gpos.alt;
-
-
-				} else {
-					// If this phase is not active yet, simply use the loiter altitude,
-					// which is where the LAND phase will start
-					const float loiter_altitude = math::min(_destination.alt + _param_rtl_descend_alt.get(), _rtl_alt);
-					initial_altitude = loiter_altitude;
-				}
-
-				// Prevent negative times when close to the ground
-				if (initial_altitude > _destination.alt) {
-					rtl_time_estimate.time_estimate += (initial_altitude - _destination.alt) / getHoverLandSpeed();
-				}
-
-			}
-
-			break;
-
-		case RTL_STATE_LANDED:
-			// Remaining time is 0
-			break;
 		}
 
-		// Prevent negative durations as phyiscally they make no sense. These can
-		// occur during the last phase of landing when close to the ground.
-		rtl_time_estimate.time_estimate = math::max(0.f, rtl_time_estimate.time_estimate);
+	// FALLTHROUGH
+	case RTL_STATE_RETURN:
 
-		// Use actual time estimate to compute the safer time estimate with additional scale factor and a margin
-		rtl_time_estimate.safe_time_estimate = _param_rtl_time_factor.get() * rtl_time_estimate.time_estimate
-						       + _param_rtl_time_margin.get();
+		// Add cruise segment to home
+		rtl_time_estimate.time_estimate += get_distance_to_next_waypoint(
+				_destination.lat, _destination.lon, gpos.lat, gpos.lon) / getCruiseGroundSpeed();
+
+	// FALLTHROUGH
+	case RTL_STATE_HEAD_TO_CENTER:
+	case RTL_STATE_TRANSITION_TO_MC:
+	case RTL_STATE_DESCEND: {
+			// when descending, the target altitude is stored in the current mission item
+			float initial_altitude = 0.f;
+			float loiter_altitude = 0.f;
+
+			if (rtl_state == RTL_STATE_DESCEND) {
+				// Take current vehicle altitude as the starting point for calculation
+				initial_altitude = gpos.alt;  // TODO: Check if this is in the right frame
+				loiter_altitude = _mission_item.altitude;  // Next waypoint = loiter
+
+
+			} else {
+				// Take the return altitude as the starting point for the calculation
+				initial_altitude = _rtl_alt; // CLIMB and RETURN
+				loiter_altitude = math::min(_destination.alt + _param_rtl_descend_alt.get(), _rtl_alt);
+			}
+
+			// Add descend segment (first landing phase: return alt to loiter alt)
+			rtl_time_estimate.time_estimate += fabsf(initial_altitude - loiter_altitude) / getDescendRate();
+		}
+
+	// FALLTHROUGH
+	case RTL_STATE_LOITER:
+		// Add land delay (the short pause for deploying landing gear)
+		// TODO: Check if landing gear is deployed or not
+		rtl_time_estimate.time_estimate += _param_rtl_land_delay.get();
+
+	// FALLTHROUGH
+	case RTL_MOVE_TO_LAND_HOVER_VTOL:
+	case RTL_STATE_LAND: {
+			float initial_altitude;
+
+			// Add land segment (second landing phase) which comes after LOITER
+			if (rtl_state == RTL_STATE_LAND) {
+				// If we are in this phase, use the current vehicle altitude  instead
+				// of the altitude paramteter to get a continous time estimate
+				initial_altitude = gpos.alt;
+
+
+			} else {
+				// If this phase is not active yet, simply use the loiter altitude,
+				// which is where the LAND phase will start
+				const float loiter_altitude = math::min(_destination.alt + _param_rtl_descend_alt.get(), _rtl_alt);
+				initial_altitude = loiter_altitude;
+			}
+
+			// Prevent negative times when close to the ground
+			if (initial_altitude > _destination.alt) {
+				rtl_time_estimate.time_estimate += (initial_altitude - _destination.alt) / getHoverLandSpeed();
+			}
+		}
+
+		break;
+
+	case RTL_STATE_LANDED:
+		// Remaining time is 0
+		break;
 	}
 
-	// Publish message
-	rtl_time_estimate.timestamp = hrt_absolute_time();
-	_rtl_time_estimate_pub.publish(rtl_time_estimate);
+	// Prevent negative durations as phyiscally they make no sense. These can
+	// occur during the last phase of landing when close to the ground.
+	rtl_time_estimate.time_estimate = math::max(0.f, rtl_time_estimate.time_estimate);
+
+	// Use actual time estimate to compute the safer time estimate with additional scale factor and a margin
+	rtl_time_estimate.safe_time_estimate = _param_rtl_time_factor.get() * rtl_time_estimate.time_estimate
+					       + _param_rtl_time_margin.get();
 }
 
 float RTL::getCruiseSpeed()

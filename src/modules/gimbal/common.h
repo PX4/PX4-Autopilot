@@ -78,12 +78,11 @@ struct ControlData {
 
 	Type type = Type::Neutral;
 
-	bool gimbal_shutter_retract = false; // whether to lock the gimbal (only in RC output mode)
-
 	uint8_t sysid_primary_control = 0; // The MAVLink system ID selected to be in control, 0 for no one.
 	uint8_t compid_primary_control = 0; // The MAVLink component ID selected to be in control, 0 for no one.
 	// uint8_t sysid_secondary_control = 0; // The MAVLink system ID selected for additional input, not implemented yet.
 	// uint8_t compid_secondary_control = 0; // The MAVLink component ID selected for additional input, not implemented yet.
+	uint8_t device_compid = 0;
 };
 
 

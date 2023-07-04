@@ -103,7 +103,7 @@ __EXPORT void px4_log_modulename(int level, const char *module_name, const char 
 #if defined(PX4_LOG_COLORIZED_OUTPUT)
 
 		if (use_color) {
-			pos += sprintf(buf + pos, "%s", __px4_log_level_color[level]);
+			pos += snprintf(buf + pos, math::max(max_length - pos, (ssize_t)0), "%s", __px4_log_level_color[level]);
 		}
 
 #endif // PX4_LOG_COLORIZED_OUTPUT
@@ -138,12 +138,12 @@ __EXPORT void px4_log_modulename(int level, const char *module_name, const char 
 		if (use_color) {
 			// alway reset color
 			const ssize_t sz = math::min(pos, max_length - (ssize_t)strlen(PX4_ANSI_COLOR_RESET) - (ssize_t)1);
-			pos += sprintf(buf + sz, "%s\n", PX4_ANSI_COLOR_RESET);
+			pos += snprintf(buf + sz, math::max(max_length - sz, (ssize_t)0), "%s\n", PX4_ANSI_COLOR_RESET);
 
 		} else
 #endif // PX4_LOG_COLORIZED_OUTPUT
 		{
-			pos += sprintf(buf + math::min(pos, max_length - (ssize_t)1), "\n");
+			pos += snprintf(buf + math::min(pos, max_length - (ssize_t)1), 2, "\n");
 		}
 
 		// ensure NULL termination (buffer is max_length + 1)
@@ -162,7 +162,7 @@ __EXPORT void px4_log_modulename(int level, const char *module_name, const char 
 			va_start(argptr, fmt);
 			pos += vsnprintf(buf + pos, math::max(max_length - pos, (ssize_t)0), fmt, argptr);
 			va_end(argptr);
-			pos += sprintf(buf + math::min(pos, max_length - (ssize_t)1), "\n");
+			pos += snprintf(buf + math::min(pos, max_length - (ssize_t)1), 2, "\n");
 			buf[max_length] = 0; // ensure NULL termination
 		}
 
@@ -220,7 +220,7 @@ __EXPORT void px4_log_raw(int level, const char *fmt, ...)
 #if defined(PX4_LOG_COLORIZED_OUTPUT)
 
 		if (use_color) {
-			pos += sprintf(buf + pos, "%s", __px4_log_level_color[level]);
+			pos += snprintf(buf + pos, math::max(max_length - pos, (ssize_t)0), "%s", __px4_log_level_color[level]);
 		}
 
 #endif // PX4_LOG_COLORIZED_OUTPUT
@@ -235,7 +235,7 @@ __EXPORT void px4_log_raw(int level, const char *fmt, ...)
 		if (use_color) {
 			// alway reset color
 			const ssize_t sz = math::min(pos, max_length - (ssize_t)strlen(PX4_ANSI_COLOR_RESET));
-			pos += sprintf(buf + sz, "%s", PX4_ANSI_COLOR_RESET);
+			pos += snprintf(buf + sz, math::max(max_length - sz, (ssize_t)0), "%s", PX4_ANSI_COLOR_RESET);
 		}
 
 #endif // PX4_LOG_COLORIZED_OUTPUT

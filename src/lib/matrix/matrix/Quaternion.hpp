@@ -50,7 +50,7 @@ class AxisAngle;
  * described by this class.
  */
 template<typename Type>
-class Quaternion : public Vector<Type, 4>
+class Quaternion : public Vector4<Type>
 {
 public:
 	using Matrix41 = Matrix<Type, 4, 1>;
@@ -62,7 +62,7 @@ public:
 	 * @param data_ array
 	 */
 	explicit Quaternion(const Type data_[4]) :
-		Vector<Type, 4>(data_)
+		Vector4<Type>(data_)
 	{
 	}
 
@@ -84,7 +84,7 @@ public:
 	 * @param other Matrix41 to copy
 	 */
 	Quaternion(const Matrix41 &other) :
-		Vector<Type, 4>(other)
+		Vector4<Type>(other)
 	{
 	}
 

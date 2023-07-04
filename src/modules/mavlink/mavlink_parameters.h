@@ -49,10 +49,13 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/rc_parameter_map.h>
-#include <uORB/topics/uavcan_parameter_request.h>
-#include <uORB/topics/uavcan_parameter_value.h>
 #include <uORB/topics/parameter_update.h>
 #include <drivers/drv_hrt.h>
+
+#if defined(CONFIG_MAVLINK_UAVCAN_PARAMETERS)
+# include <uORB/topics/uavcan_parameter_request.h>
+# include <uORB/topics/uavcan_parameter_value.h>
+#endif // CONFIG_MAVLINK_UAVCAN_PARAMETERS
 
 using namespace time_literals;
 
@@ -92,16 +95,17 @@ protected:
 	bool send_params();
 
 	/**
-	 * Send UAVCAN params
-	 */
-	bool send_uavcan();
-
-	/**
 	 * Send untransmitted params
 	 */
 	bool send_untransmitted();
 
 	int send_param(param_t param, int component_id = -1);
+
+#if defined(CONFIG_MAVLINK_UAVCAN_PARAMETERS)
+	/**
+	 * Send UAVCAN params
+	 */
+	bool send_uavcan();
 
 	// Item of a single-linked list to store requested uavcan parameters
 	struct _uavcan_open_request_list_item {
@@ -128,9 +132,6 @@ protected:
 	bool _uavcan_waiting_for_request_response{false}; ///< We have reqested a parameter and wait for the response
 	uint16_t _uavcan_queued_request_items{0};	///< Number of stored parameter requests currently in the list
 
-	uORB::Publication<rc_parameter_map_s>	_rc_param_map_pub{ORB_ID(rc_parameter_map)};
-	rc_parameter_map_s _rc_param_map{};
-
 	uORB::Publication<uavcan_parameter_request_s> _uavcan_parameter_request_pub{ORB_ID(uavcan_parameter_request)};
 	// enforce ORB_ID(uavcan_parameter_request) constants that map to MAVLINK defines
 	static_assert(uavcan_parameter_request_s::MESSAGE_TYPE_PARAM_REQUEST_READ == MAVLINK_MSG_ID_PARAM_REQUEST_READ,
@@ -149,6 +150,10 @@ protected:
 		      "uavcan_parameter_request_s MAV_PARAM_TYPE_INT64 constant mismatch");
 
 	uORB::Subscription _uavcan_parameter_value_sub{ORB_ID(uavcan_parameter_value)};
+#endif // CONFIG_MAVLINK_UAVCAN_PARAMETERS
+
+	uORB::Publication<rc_parameter_map_s>	_rc_param_map_pub{ORB_ID(rc_parameter_map)};
+	rc_parameter_map_s _rc_param_map{};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	hrt_abstime _param_update_time{0};

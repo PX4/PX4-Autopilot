@@ -164,7 +164,8 @@ for field_type, field_name, field_size, padding in fields:
 	print('\tmemcpy(&topic.{0}, buf.iterator, sizeof(topic.{0}));'.format(field_name))
 
 	if field_type == 'uint64' and (field_name == 'timestamp' or field_name == 'timestamp_sample'):
-		print('\ttopic.{0} -= time_offset;'.format(field_name))
+		print('\tif (topic.{0} == 0) topic.{0} = hrt_absolute_time();'.format(field_name, field_name))
+		print('\telse topic.{0} = math::min(topic.{0} - time_offset, hrt_absolute_time());'.format(field_name, field_name))
 
 	print('\tbuf.iterator += sizeof(topic.{:});'.format(field_name))
 	print('\tbuf.offset += sizeof(topic.{:});'.format(field_name))

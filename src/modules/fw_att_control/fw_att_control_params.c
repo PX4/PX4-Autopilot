@@ -40,11 +40,6 @@
  * @author Thomas Gubler <thomas@px4.io>
  */
 
-/*
- * Controller parameters, accessible via MAVLink
- *
- */
-
 /**
  * Attitude Roll Time Constant
  *
@@ -82,14 +77,11 @@ PARAM_DEFINE_FLOAT(FW_R_TC, 0.4f);
 PARAM_DEFINE_FLOAT(FW_P_TC, 0.4f);
 
 /**
- * Maximum positive / up pitch rate.
- *
- * This limits the maximum pitch up angular rate the controller will output (in
- * degrees per second).
+ * Maximum positive / up pitch rate setpoint
  *
  * @unit deg/s
  * @min 0.0
- * @max 90.0
+ * @max 180
  * @decimal 1
  * @increment 0.5
  * @group FW Attitude Control
@@ -97,14 +89,11 @@ PARAM_DEFINE_FLOAT(FW_P_TC, 0.4f);
 PARAM_DEFINE_FLOAT(FW_P_RMAX_POS, 60.0f);
 
 /**
- * Maximum negative / down pitch rate.
- *
- * This limits the maximum pitch down up angular rate the controller will
- * output (in degrees per second).
+ * Maximum negative / down pitch rate setpoint
  *
  * @unit deg/s
  * @min 0.0
- * @max 90.0
+ * @max 180
  * @decimal 1
  * @increment 0.5
  * @group FW Attitude Control
@@ -112,14 +101,11 @@ PARAM_DEFINE_FLOAT(FW_P_RMAX_POS, 60.0f);
 PARAM_DEFINE_FLOAT(FW_P_RMAX_NEG, 60.0f);
 
 /**
- * Maximum roll rate
- *
- * This limits the maximum roll rate the controller will output (in degrees per
- * second).
+ * Maximum roll rate setpoint
  *
  * @unit deg/s
  * @min 0.0
- * @max 90.0
+ * @max 180
  * @decimal 1
  * @increment 0.5
  * @group FW Attitude Control
@@ -127,14 +113,11 @@ PARAM_DEFINE_FLOAT(FW_P_RMAX_NEG, 60.0f);
 PARAM_DEFINE_FLOAT(FW_R_RMAX, 70.0f);
 
 /**
- * Maximum yaw rate
- *
- * This limits the maximum yaw rate the controller will output (in degrees per
- * second).
+ * Maximum yaw rate setpoint
  *
  * @unit deg/s
  * @min 0.0
- * @max 90.0
+ * @max 180
  * @decimal 1
  * @increment 0.5
  * @group FW Attitude Control
@@ -152,7 +135,6 @@ PARAM_DEFINE_FLOAT(FW_Y_RMAX, 50.0f);
  */
 PARAM_DEFINE_INT32(FW_W_EN, 0);
 
-
 /**
  * Wheel steering rate proportional gain
  *
@@ -161,7 +143,7 @@ PARAM_DEFINE_INT32(FW_W_EN, 0);
  *
  * @unit %/rad/s
  * @min 0.0
- * @max 1.0
+ * @max 10
  * @decimal 3
  * @increment 0.005
  * @group FW Attitude Control
@@ -176,7 +158,7 @@ PARAM_DEFINE_FLOAT(FW_WR_P, 0.5f);
  *
  * @unit %/rad
  * @min 0.0
- * @max 0.5
+ * @max 10
  * @decimal 3
  * @increment 0.005
  * @group FW Attitude Control
@@ -219,7 +201,7 @@ PARAM_DEFINE_FLOAT(FW_W_RMAX, 30.0f);
  *
  * @unit %/rad/s
  * @min 0.0
- * @max 1.0
+ * @max 10
  * @decimal 2
  * @increment 0.05
  * @group FW Attitude Control
@@ -256,3 +238,31 @@ PARAM_DEFINE_FLOAT(FW_PSP_OFF, 0.0f);
  * @group FW Attitude Control
  */
 PARAM_DEFINE_FLOAT(FW_MAN_YR_MAX, 30.f);
+
+/**
+ * Maximum manual roll angle
+ *
+ * Maximum manual roll angle setpoint (positive & negative) in manual attitude-only stabilized mode
+ *
+ * @unit deg
+ * @min 0.0
+ * @max 90.0
+ * @decimal 1
+ * @increment 0.5
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_MAN_R_MAX, 45.0f);
+
+/**
+ * Maximum manual pitch angle
+ *
+ * Maximum manual pitch angle setpoint (positive & negative) in manual attitude-only stabilized mode
+ *
+ * @unit deg
+ * @min 0.0
+ * @max 90.0
+ * @decimal 1
+ * @increment 0.5
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_MAN_P_MAX, 30.0f);

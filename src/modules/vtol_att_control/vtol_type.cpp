@@ -62,10 +62,10 @@ VtolType::VtolType(VtolAttitudeControl *att_controller) :
 	_fw_virtual_att_sp = _attc->get_fw_virtual_att_sp();
 	_v_control_mode = _attc->get_control_mode();
 	_vtol_vehicle_status = _attc->get_vtol_vehicle_status();
-	_actuators_out_0 = _attc->get_actuators_out0();
-	_actuators_out_1 = _attc->get_actuators_out1();
-	_actuators_mc_in = _attc->get_actuators_mc_in();
-	_actuators_fw_in = _attc->get_actuators_fw_in();
+	_vehicle_torque_setpoint_virtual_mc = _attc->get_vehicle_torque_setpoint_virtual_mc();
+	_vehicle_torque_setpoint_virtual_fw = _attc->get_vehicle_torque_setpoint_virtual_fw();
+	_vehicle_thrust_setpoint_virtual_mc = _attc->get_vehicle_thrust_setpoint_virtual_mc();
+	_vehicle_thrust_setpoint_virtual_fw = _attc->get_vehicle_thrust_setpoint_virtual_fw();
 	_torque_setpoint_0 = _attc->get_torque_setpoint_0();
 	_torque_setpoint_1 = _attc->get_torque_setpoint_1();
 	_thrust_setpoint_0 = _attc->get_thrust_setpoint_0();
@@ -79,9 +79,6 @@ VtolType::VtolType(VtolAttitudeControl *att_controller) :
 
 bool VtolType::init()
 {
-	_flaps_setpoint_with_slewrate.setSlewRate(kFlapSlewRateVtol);
-	_spoiler_setpoint_with_slewrate.setSlewRate(kSpoilerSlewRateVtol);
-
 	return true;
 }
 
@@ -106,22 +103,12 @@ void VtolType::update_mc_state()
 	_mc_pitch_weight = 1.0f;
 	_mc_yaw_weight = 1.0f;
 	_mc_throttle_weight = 1.0f;
-
-	float spoiler_setpoint_hover = 0.f;
-
-	if (_attc->get_pos_sp_triplet()->current.valid
-	    && _attc->get_pos_sp_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
-		spoiler_setpoint_hover = _param_vt_spoiler_mc_ld.get();
-	}
-
-	_spoiler_setpoint_with_slewrate.update(math::constrain(spoiler_setpoint_hover, 0.f, 1.f), _dt);
-	_flaps_setpoint_with_slewrate.update(0.f, _dt);
 }
 
 void VtolType::update_fw_state()
 {
 	resetAccelToPitchPitchIntegrator();
-	_last_thr_in_fw_mode =  _actuators_fw_in->control[actuator_controls_s::INDEX_THROTTLE];
+	_last_thr_in_fw_mode =  _vehicle_thrust_setpoint_virtual_fw->xyz[0];
 
 	// copy virtual attitude setpoint to real attitude setpoint
 	memcpy(_v_att_sp, _fw_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
@@ -158,9 +145,6 @@ void VtolType::update_fw_state()
 	}
 
 	check_quadchute_condition();
-
-	_spoiler_setpoint_with_slewrate.update(_actuators_fw_in->control[actuator_controls_s::INDEX_SPOILERS], _dt);
-	_flaps_setpoint_with_slewrate.update(_actuators_fw_in->control[actuator_controls_s::INDEX_FLAPS], _dt);
 }
 
 void VtolType::update_transition_state()
@@ -205,6 +189,35 @@ float VtolType::update_and_get_backtransition_pitch_sp()
 
 	// only allow positive (pitch up) pitch setpoint
 	return math::constrain(pitch_sp_new, 0.f, pitch_lim);
+}
+
+bool VtolType::isFrontTransitionCompleted()
+{
+	bool ret = isFrontTransitionCompletedBase();
+
+	return ret || can_transition_on_ground();
+}
+
+bool VtolType::isFrontTransitionCompletedBase()
+{
+	// continue the transition to fw mode while monitoring airspeed for a final switch to fw mode
+	const bool airspeed_triggers_transition = PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s)
+			&& !_param_fw_arsp_mode.get();
+	const bool minimum_trans_time_elapsed = _time_since_trans_start > getMinimumFrontTransitionTime();
+	const bool openloop_trans_time_elapsed = _time_since_trans_start > getOpenLoopFrontTransitionTime();
+
+	bool transition_to_fw = false;
+
+	if (airspeed_triggers_transition) {
+		transition_to_fw = minimum_trans_time_elapsed
+				   && _airspeed_validated->calibrated_airspeed_m_s >= _param_vt_arsp_trans.get();
+
+	} else {
+		transition_to_fw = openloop_trans_time_elapsed;
+	}
+
+	return transition_to_fw;
+
 }
 
 bool VtolType::can_transition_on_ground()
@@ -259,26 +272,21 @@ bool VtolType::isMinAltBreached()
 
 bool VtolType::isUncommandedDescent()
 {
-	if (_param_vt_qc_hr_error_i.get() > FLT_EPSILON && _v_control_mode->flag_control_altitude_enabled
+	const float current_altitude = -_local_pos->z + _local_pos->ref_alt;
+
+	if (_param_vt_qc_alt_loss.get() > FLT_EPSILON && _local_pos->z_valid && _local_pos->z_global
+	    && _v_control_mode->flag_control_altitude_enabled
+	    && PX4_ISFINITE(_tecs_status->altitude_reference)
+	    && (current_altitude < _tecs_status->altitude_reference)
 	    && hrt_elapsed_time(&_tecs_status->timestamp) < 1_s) {
 
-		// TODO if TECS publishes local_position_setpoint dependency on tecs_status can be dropped here
+		_quadchute_ref_alt = math::min(math::max(_quadchute_ref_alt, current_altitude),
+					       _tecs_status->altitude_reference);
 
-		if (_tecs_status->height_rate < -FLT_EPSILON && _tecs_status->height_rate_setpoint > FLT_EPSILON) {
-			// vehicle is currently in uncommended descend, start integrating error
+		return (_quadchute_ref_alt - current_altitude) > _param_vt_qc_alt_loss.get();
 
-			const hrt_abstime now = hrt_absolute_time();
-			float dt = static_cast<float>(now - _last_loop_quadchute_timestamp) / 1e6f;
-			dt = math::constrain(dt, 0.0001f, 0.1f);
-			_last_loop_quadchute_timestamp = now;
-
-			_height_rate_error_integral += (_tecs_status->height_rate_setpoint - _tecs_status->height_rate) * dt;
-
-		} else {
-			_height_rate_error_integral = 0.f; // reset
-		}
-
-		return (_height_rate_error_integral > _param_vt_qc_hr_error_i.get());
+	} else {
+		_quadchute_ref_alt = -MAXFLOAT;
 	}
 
 	return false;
@@ -288,16 +296,11 @@ bool VtolType::isFrontTransitionAltitudeLoss()
 {
 	bool result = false;
 
-	if (_param_vt_qc_t_alt_loss.get() > FLT_EPSILON && _common_vtol_mode == mode::TRANSITION_TO_FW && _local_pos->z_valid) {
+	// only run if param set, altitude valid and controlled, and in transition to FW or within 5s of finishing it.
+	if (_param_vt_qc_t_alt_loss.get() > FLT_EPSILON && _local_pos->z_valid && _v_control_mode->flag_control_altitude_enabled
+	    && (_common_vtol_mode == mode::TRANSITION_TO_FW || hrt_elapsed_time(&_trans_finished_ts) < 5_s)) {
 
-		if (_local_pos->z <= FLT_EPSILON) {
-			// vehilce is above home
-			result = _local_pos->z - _local_position_z_start_of_transition > _param_vt_qc_t_alt_loss.get();
-
-		} else {
-			// vehilce is below home
-			result = _local_position_z_start_of_transition - _local_pos->z > _param_vt_qc_t_alt_loss.get();
-		}
+		result = _local_pos->z - _local_position_z_start_of_transition > _param_vt_qc_t_alt_loss.get();
 	}
 
 	return result;
@@ -334,9 +337,9 @@ bool VtolType::isRollExceeded()
 bool VtolType::isFrontTransitionTimeout()
 {
 	// check front transition timeout
-	if (_param_vt_trans_timeout.get()  > FLT_EPSILON && _common_vtol_mode == mode::TRANSITION_TO_FW) {
+	if (getFrontTransitionTimeout()  > FLT_EPSILON && _common_vtol_mode == mode::TRANSITION_TO_FW) {
 
-		if (_time_since_trans_start > _param_vt_trans_timeout.get()) {
+		if (_time_since_trans_start > getFrontTransitionTimeout()) {
 			// transition timeout occured, abort transition
 			return true;
 		}
@@ -567,6 +570,11 @@ float VtolType::getFrontTransitionTimeFactor() const
 float VtolType::getMinimumFrontTransitionTime() const
 {
 	return getFrontTransitionTimeFactor() * _param_vt_trans_min_tm.get();
+}
+
+float VtolType::getFrontTransitionTimeout() const
+{
+	return getFrontTransitionTimeFactor() * _param_vt_trans_timeout.get();
 }
 
 float VtolType::getOpenLoopFrontTransitionTime() const

@@ -77,6 +77,8 @@ VtolAttitudeControl::VtolAttitudeControl() :
 		exit_and_cleanup();
 	}
 
+	_flaps_setpoint_pub.advertise();
+	_spoilers_setpoint_pub.advertise();
 	_vtol_vehicle_status_pub.advertise();
 	_vehicle_thrust_setpoint0_pub.advertise();
 	_vehicle_torque_setpoint0_pub.advertise();
@@ -92,12 +94,22 @@ VtolAttitudeControl::~VtolAttitudeControl()
 bool
 VtolAttitudeControl::init()
 {
-	if (!_actuator_inputs_mc.registerCallback()) {
+	if (!_vehicle_torque_setpoint_virtual_fw_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;
 	}
 
-	if (!_actuator_inputs_fw.registerCallback()) {
+	if (!_vehicle_torque_setpoint_virtual_mc_sub.registerCallback()) {
+		PX4_ERR("callback registration failed");
+		return false;
+	}
+
+	if (!_vehicle_thrust_setpoint_virtual_fw_sub.registerCallback()) {
+		PX4_ERR("callback registration failed");
+		return false;
+	}
+
+	if (!_vehicle_thrust_setpoint_virtual_mc_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;
 	}
@@ -268,8 +280,10 @@ void
 VtolAttitudeControl::Run()
 {
 	if (should_exit()) {
-		_actuator_inputs_fw.unregisterCallback();
-		_actuator_inputs_mc.unregisterCallback();
+		_vehicle_torque_setpoint_virtual_fw_sub.unregisterCallback();
+		_vehicle_torque_setpoint_virtual_mc_sub.unregisterCallback();
+		_vehicle_thrust_setpoint_virtual_fw_sub.unregisterCallback();
+		_vehicle_thrust_setpoint_virtual_mc_sub.unregisterCallback();
 		exit_and_cleanup();
 		return;
 	}
@@ -303,8 +317,10 @@ VtolAttitudeControl::Run()
 
 	perf_begin(_loop_perf);
 
-	const bool updated_fw_in = _actuator_inputs_fw.update(&_actuators_fw_in);
-	const bool updated_mc_in = _actuator_inputs_mc.update(&_actuators_mc_in);
+	bool updated_fw_in = _vehicle_torque_setpoint_virtual_fw_sub.update(&_vehicle_torque_setpoint_virtual_fw);
+	updated_fw_in |= _vehicle_thrust_setpoint_virtual_fw_sub.update(&_vehicle_thrust_setpoint_virtual_fw);
+	bool updated_mc_in = _vehicle_torque_setpoint_virtual_mc_sub.update(&_vehicle_torque_setpoint_virtual_mc);
+	updated_mc_in |= _vehicle_thrust_setpoint_virtual_mc_sub.update(&_vehicle_thrust_setpoint_virtual_mc);
 
 	// run on actuator publications corresponding to VTOL mode
 	bool should_run = false;
@@ -412,8 +428,6 @@ VtolAttitudeControl::Run()
 		}
 
 		_vtol_type->fill_actuator_outputs();
-		_actuator_controls_0_pub.publish(_actuators_out_0);
-		_actuator_controls_1_pub.publish(_actuators_out_1);
 
 		_vehicle_torque_setpoint0_pub.publish(_torque_setpoint_0);
 		_vehicle_torque_setpoint1_pub.publish(_torque_setpoint_1);
@@ -423,6 +437,31 @@ VtolAttitudeControl::Run()
 		// Advertise/Publish vtol vehicle status
 		_vtol_vehicle_status.timestamp = hrt_absolute_time();
 		_vtol_vehicle_status_pub.publish(_vtol_vehicle_status);
+
+		// Publish flaps/spoiler setpoint with configured deflection in Hover if in Auto.
+		// In Manual always published in FW rate controller, and in Auto FW in FW Position Controller.
+		if (_vehicle_control_mode.flag_control_auto_enabled
+		    && _vtol_vehicle_status.vehicle_vtol_state != vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW) {
+
+			// flaps
+			normalized_unsigned_setpoint_s flaps_setpoint;
+			flaps_setpoint.normalized_setpoint = 0.f; // for now always set flaps to 0 in transitions and hover
+			flaps_setpoint.timestamp = hrt_absolute_time();
+			_flaps_setpoint_pub.publish(flaps_setpoint);
+
+			// spoilers
+			float spoiler_control = 0.f;
+
+			if ((_pos_sp_triplet.current.valid && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) ||
+			    _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_DESCEND) {
+				spoiler_control = _param_vt_spoiler_mc_ld.get();
+			}
+
+			normalized_unsigned_setpoint_s spoiler_setpoint;
+			spoiler_setpoint.normalized_setpoint = spoiler_control;
+			spoiler_setpoint.timestamp = hrt_absolute_time();
+			_spoilers_setpoint_pub.publish(spoiler_setpoint);
+		}
 	}
 
 	perf_end(_loop_perf);

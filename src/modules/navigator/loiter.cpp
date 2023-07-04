@@ -49,12 +49,6 @@ Loiter::Loiter(Navigator *navigator) :
 }
 
 void
-Loiter::on_inactive()
-{
-	_loiter_pos_set = false;
-}
-
-void
 Loiter::on_activation()
 {
 	if (_navigator->get_reposition_triplet()->current.valid) {
@@ -63,6 +57,9 @@ Loiter::on_activation()
 	} else {
 		set_loiter_position();
 	}
+
+	// reset cruising speed to default
+	_navigator->reset_cruising_speed();
 }
 
 void
@@ -70,11 +67,6 @@ Loiter::on_active()
 {
 	if (_navigator->get_reposition_triplet()->current.valid) {
 		reposition();
-	}
-
-	// reset the loiter position if we get disarmed
-	if (_navigator->get_vstatus()->arming_state != vehicle_status_s::ARMING_STATE_ARMED) {
-		_loiter_pos_set = false;
 	}
 }
 
@@ -90,15 +82,9 @@ Loiter::set_loiter_position()
 		_navigator->set_can_loiter_at_sp(false);
 		_navigator->get_position_setpoint_triplet()->current.type = position_setpoint_s::SETPOINT_TYPE_IDLE;
 		_navigator->set_position_setpoint_triplet_updated();
-		_loiter_pos_set = false;
 		return;
 
-	} else if (_loiter_pos_set) {
-		// Already set, nothing to do.
-		return;
 	}
-
-	_loiter_pos_set = true;
 
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 

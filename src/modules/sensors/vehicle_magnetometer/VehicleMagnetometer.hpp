@@ -50,7 +50,6 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/SubscriptionCallback.hpp>
-#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/magnetometer_bias_estimate.h>
@@ -60,6 +59,7 @@
 #include <uORB/topics/sensors_status.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_magnetometer.h>
+#include <uORB/topics/vehicle_thrust_setpoint.h>
 
 using namespace time_literals;
 
@@ -110,7 +110,7 @@ private:
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
-	uORB::Subscription _actuator_controls_0_sub{ORB_ID(actuator_controls_0)};
+	uORB::Subscription _vehicle_thrust_setpoint_0_sub{ORB_ID(vehicle_thrust_setpoint), 0};
 	uORB::Subscription _battery_status_sub{ORB_ID(battery_status), 0};
 	uORB::Subscription _magnetometer_bias_estimate_sub{ORB_ID(magnetometer_bias_estimate)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
@@ -146,6 +146,7 @@ private:
 		Current_inst0,
 		Current_inst1
 	};
+
 	MagCompensationType _mag_comp_type{MagCompensationType::Disabled};
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
@@ -158,6 +159,7 @@ private:
 
 	uint64_t _timestamp_sample_sum[MAX_SENSOR_COUNT] {};
 	matrix::Vector3f _data_sum[MAX_SENSOR_COUNT] {};
+
 	int _data_sum_count[MAX_SENSOR_COUNT] {};
 	hrt_abstime _last_publication_timestamp[MAX_SENSOR_COUNT] {};
 

@@ -88,7 +88,7 @@ __BEGIN_DECLS
 #define DIRECT_PWM_OUTPUT_CHANNELS  8
 
 #define RC_SERIAL_PORT          "/dev/ttyS5"
-#define RC_SERIAL_SINGLEWIRE
+#define RC_SERIAL_SINGLEWIRE_FORCE
 #define RC_SERIAL_INVERT_RX_ONLY
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
@@ -109,6 +109,40 @@ __BEGIN_DECLS
 
 /* Reboot and ulog we store on a wear-level filesystem */
 #define HARDFAULT_REBOOT_PATH "/mnt/progmem/reboot"
+
+/* To detect MR-CANHUBK3-ADAP board */
+#define BOARD_HAS_HW_VERSIONING  1
+#define CANHUBK3_ADAP_DETECT     (PIN_PTA12 | GPIO_INPUT | GPIO_PULLUP)
+
+
+/*
+ * ADC channels
+ *
+ * These are the channel numbers of the ADCs of the microcontroller that can be used by the Px4
+ * Firmware in the adc driver. ADC1 has 32 channels, with some a/b selection overlap
+ * in the AD4-AD7 range on the same ADC.
+ *
+ * Only ADC1 is used
+ *         Bits 31:0 are ADC1 channels 31:0
+ */
+
+#define ADC1_CH(c)    (((c) & 0x1f))	/* Define ADC number Channel number */
+
+/* ADC defines to be used in sensors.cpp to read from a particular channel */
+
+#define ADC_BATTERY_VOLTAGE_CHANNEL ADC1_CH(0)     /* BAT_VSENS        85   PTB4  ADC1_SE10 */
+#define ADC_BATTERY_CURRENT_CHANNEL ADC1_CH(1)     /* Non-existant but needed for compilation */
+
+
+/* Mask use to initialize the ADC driver */
+
+#define ADC_CHANNELS ((1 << ADC_BATTERY_VOLTAGE_CHANNEL))
+
+/* Safety Switch
+ * TBD
+ */
+#define GPIO_LED_SAFETY         (PIN_PTE26 | GPIO_OUTPUT | GPIO_OUTPUT_ZERO)
+#define GPIO_BTN_SAFETY         (PIN_PTA11 | GPIO_INPUT | GPIO_PULLDOWN)
 
 /****************************************************************************
  * Public Data

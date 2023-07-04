@@ -44,11 +44,13 @@ public:
 	void checkAndReport(const Context &context, Report &reporter) override;
 
 private:
-	bool _sdcard_detected{false};
+#ifdef PX4_STORAGEDIR
+	bool _sdcard_detected {false};
 
 #ifdef __PX4_NUTTX
 	bool _hardfault_checked_once {false};
-	bool _hardfault_file_present{false};
+	bool _hardfault_file_present {false};
+#endif
 #endif
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,

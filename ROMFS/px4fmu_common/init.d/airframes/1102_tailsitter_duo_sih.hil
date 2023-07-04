@@ -17,7 +17,10 @@
 
 . ${R}etc/init.d/rc.vtol_defaults
 
+param set-default EKF2_FUSE_BETA 0 # side slip fusion is currently not supported for tailsitters
+
 param set UAVCAN_ENABLE 0
+param set-default VT_B_TRANS_DUR 5
 param set-default VT_ELEV_MC_LOCK 0
 param set-default VT_MOT_COUNT 2
 param set-default VT_TYPE 0
@@ -54,12 +57,9 @@ param set-default MAV_TYPE 19
 param set-default SYS_HITL 2
 
 # disable some checks to allow to fly:
-# - with usb
-param set-default CBRK_USB_CHK 197848
 # - without real battery
 param set-default CBRK_SUPPLY_CHK 894281
 # - without safety switch
-param set-default COM_PREARM_MODE 0
 param set-default CBRK_IO_SAFETY 22027
 
 param set-default BAT_N_CELLS 3

@@ -264,7 +264,18 @@ def get_actuator_output(yaml_config, output_functions, timer_config_file, verbos
             }
         per_channel_params.append(param)
 
-        # TODO: support non-standard per-channel parameters
+        custom_params = group.get('custom_params', [])
+        for custom_param in custom_params:
+            # Simply pulls all custom params, assuming they are valid ones
+            param = {
+                'name': param_prefix+'_'+custom_param['name'],
+            }
+            # TODO: check and match the custom params in output_groups with module-level parameters
+            del custom_param['name']
+            for param_key in custom_param:
+                # '-' is used in actuators.schema.json, while '_' is used in module_schema.yml
+                param[param_key.replace('_', '-')] = custom_param[param_key]
+            per_channel_params.append(param)
 
         subgroup['per-channel-parameters'] = per_channel_params
 

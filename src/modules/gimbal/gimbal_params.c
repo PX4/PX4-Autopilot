@@ -89,30 +89,6 @@ PARAM_DEFINE_INT32(MNT_MAV_SYSID, 1);
 PARAM_DEFINE_INT32(MNT_MAV_COMPID, 154);
 
 /**
-* Mixer value for selecting normal mode
-*
-* if required by the gimbal (only in AUX output mode)
-*
-* @min -1.0
-* @max 1.0
-* @decimal 3
-* @group Mount
-*/
-PARAM_DEFINE_FLOAT(MNT_OB_NORM_MODE, -1.0f);
-
-/**
-* Mixer value for selecting a locking mode
-*
-* if required for the gimbal (only in AUX output mode)
-*
-* @min -1.0
-* @max 1.0
-* @decimal 3
-* @group Mount
-*/
-PARAM_DEFINE_FLOAT(MNT_OB_LOCK_MODE, 0.0f);
-
-/**
 * Auxiliary channel to control roll (in AUX input or manual mode).
 *
 * @value 0 Disable

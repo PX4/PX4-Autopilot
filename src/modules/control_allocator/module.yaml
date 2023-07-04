@@ -27,7 +27,8 @@ parameters:
                 7: Motors (6DOF)
                 8: Multirotor with Tilt
                 9: Custom
-                10: Helicopter
+                10: Helicopter (tail ESC)
+                11: Helicopter (tail Servo)
             default: 0
 
         CA_METHOD:
@@ -266,12 +267,14 @@ parameters:
                 8: Right V-Tail
                 9: Left Flap
                 10: Right Flap
-                11: Airbrakes
+                11: Airbrake
                 12: Custom
                 13: Left A-tail
                 14: Right A-tail
                 15: Single Channel Aileron
                 16: Steering Wheel
+                17: Left Spoiler
+                18: Right Spoiler
             num_instances: *max_num_servos
             instance_start: 0
             default: 0
@@ -302,6 +305,7 @@ parameters:
             num_instances: *max_num_servos
             instance_start: 0
             default: 0.0
+
         CA_SV_CS${i}_TRIM:
             description:
                 short: Control Surface ${i} trim
@@ -313,6 +317,28 @@ parameters:
             num_instances: *max_num_servos
             instance_start: 0
             default: 0.0
+
+        CA_SV_CS${i}_FLAP:
+            description:
+                short: Control Surface ${i} configuration as flap
+            type: float
+            decimal: 2
+            min: -1.0
+            max: 1.0
+            num_instances: *max_num_servos
+            instance_start: 0
+            default: 0
+
+        CA_SV_CS${i}_SPOIL:
+            description:
+                short: Control Surface ${i} configuration as spoiler
+            type: float
+            decimal: 2
+            min: -1.0
+            max: 1.0
+            num_instances: *max_num_servos
+            instance_start: 0
+            default: 0
 
         # Tilts
         CA_SV_TL_COUNT:
@@ -451,7 +477,24 @@ parameters:
               This allows to add a proportional factor of the collective pitch command to the yaw command.
               A negative value is needed when positive thrust of the tail rotor rotates the vehicle opposite to the main rotor turn direction.
 
-              tail_output += CA_HELI_YAW_CP_S * collective_pitch
+              tail_output += CA_HELI_YAW_CP_S * abs(collective_pitch - CA_HELI_YAW_CP_O)
+          type: float
+          decimal: 3
+          increment: 0.1
+          min: -2
+          max: 2
+          default: 0.0
+        CA_HELI_YAW_CP_O:
+          description:
+            short: Offset for yaw compensation based on collective pitch
+            long: |
+              This allows to specify which collective pitch command results in the least amount of rotor drag.
+              This is used to increase the accuracy of the yaw drag torque compensation based on collective pitch
+              by aligning the lowest rotor drag with zero compensation.
+              For symmetric profile blades this is the command that results in exactly 0° collective blade angle.
+              For lift profile blades this is typically a command resulting in slightly negative collective blade angle.
+
+              tail_output += CA_HELI_YAW_CP_S * abs(collective_pitch - CA_HELI_YAW_CP_O)
           type: float
           decimal: 3
           increment: 0.1
@@ -534,7 +577,7 @@ mixer:
 
     rules:
       - select_identifier: 'servo-type' # restrict torque based on servo type
-        apply_identifiers: ['servo-torque-roll', 'servo-torque-pitch', 'servo-torque-yaw']
+        apply_identifiers: ['servo-torque-roll', 'servo-torque-pitch', 'servo-torque-yaw', 'servo-scale-flap', 'servo-scale-spoiler']
         items:
         # Convention: horizontal surfaces: up=positive, vertical: right=positive, mixed: up=positive.
         # By default the scale is set to 1/N, where N is the amount of actuators with an effect on
@@ -543,54 +586,117 @@ mixer:
               - { 'disabled': True, 'default': 0.0 } # roll
               - { 'disabled': True, 'default': 0.0 } # pitch
               - { 'disabled': True, 'default': 0.0 } # yaw
+              - { 'hidden': True, 'min': -1.0, 'max': 1.0, 'default': 0} # flap
+              - { 'hidden': True, 'min': -1.0, 'max': 1.0, 'default': 0} # spoiler
             1: # Left Aileron
               - { 'min': -1.0, 'max': 0.0, 'default': -0.5 } # roll
               - { 'hidden': True, 'default': 0.0 } # pitch
               - { 'hidden': True, 'default': 0.0 } # yaw
+              - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 0} # flap
+              - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 0} # spoiler
             2: # Right Aileron
               - { 'min': 0.0, 'max': 1.0, 'default': 0.5 } # roll
               - { 'hidden': True, 'default': 0.0 } # pitch
               - { 'hidden': True, 'default': 0.0 } # yaw
+              - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 0} # flap
+              - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 0} # spoiler
             3: # Elevator
               - { 'hidden': True, 'default': 0.0 } # roll
               - { 'min': 0.0, 'max': 1.0, 'default': 1.0 } # pitch
               - { 'hidden': True, 'default': 0.0 } # yaw
+              - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 0} # flap
+              - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 0} # spoiler
             4: # Rudder
               - { 'hidden': True, 'default': 0.0 } # roll
               - { 'hidden': True, 'default': 0.0 } # pitch
               - { 'min': 0.0, 'max': 1.0, 'default': 1.0 } # yaw
+              - { 'hidden': True, 'min': -1.0, 'max': 1.0, 'default': 0} # flap
+              - { 'hidden': True, 'min': -1.0, 'max': 1.0, 'default': 0} # spoiler
             5: # Left Elevon
               - { 'min': -1.0, 'max': 0.0, 'default': -0.5 } # roll
               - { 'min': 0.0, 'max': 1.0, 'default': 0.5 } # pitch
               - { 'hidden': True, 'default': 0.0 } # yaw
+              - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 0} # flap
+              - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 0} # spoiler
             6: # Right Elevon
               - { 'min': 0.0, 'max': 1.0, 'default': 0.5 } # roll
               - { 'min': 0.0, 'max': 1.0, 'default': 0.5 } # pitch
               - { 'hidden': True, 'default': 0.0 } # yaw
+              - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 0} # flap
+              - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 0} # spoiler
             7: # Left V Tail
               - { 'hidden': True, 'default': 0.0 } # roll
               - { 'min': 0.0, 'max': 1.0, 'default': 0.5 } # pitch
               - { 'min': 0.0, 'max': 1.0, 'default': 0.5 } # yaw
+              - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 0} # flap
+              - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 0} # spoiler
             8: # Right V Tail
               - { 'hidden': True, 'default': 0.0 } # roll
               - { 'min': 0.0, 'max': 1.0, 'default': 0.5 } # pitch
               - { 'min': -1.0, 'max': 0.0, 'default': -0.5 } # yaw
+              - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 0} # flap
+              - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 0} # spoiler
+            9: # Left Flap
+              - { 'hidden': True, 'default': 0.0 } # roll
+              - { 'hidden': True, 'default': 0.0 } # pitch
+              - { 'hidden': True, 'default': 0.0 } # yaw
+              - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 1} # flap
+              - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 0} # spoiler
+            10: # Right Flap
+              - { 'hidden': True, 'default': 0.0 } # roll
+              - { 'hidden': True, 'default': 0.0 } # pitch
+              - { 'hidden': True, 'default': 0.0 } # yaw
+              - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 1} # flap
+              - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 0} # spoiler
+            11: # Airbrake
+              - { 'hidden': True, 'default': 0.0 } # roll
+              - { 'hidden': True, 'default': 0.0 } # pitch
+              - { 'hidden': True, 'default': 0.0 } # yaw
+              - { 'hidden': True, 'min': -1.0, 'max': 1.0, 'default': 0} # flap
+              - { 'hidden': True, 'min': -1.0, 'max': 1.0, 'default': 0} # spoiler
+            12: # Custom
+              - { 'hidden': False, 'default': 0.0 } # roll
+              - { 'hidden': False, 'default': 0.0 } # pitch
+              - { 'hidden': False, 'default': 0.0 } # yaw
+              - { 'hidden': True, 'min': -1.0, 'max': 1.0, 'default': 0} # flap
+              - { 'hidden': True, 'min': -1.0, 'max': 1.0, 'default': 0} # spoiler
             13: # Left A Tail
               - { 'hidden': True, 'default': 0.0 } # roll
               - { 'min': 0.0, 'max': 1.0, 'default': 0.5 } # pitch
               - { 'min': -1.0, 'max': 0.0, 'default': -0.5 } # yaw
+              - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 0} # flap
+              - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 0} # spoiler
             14: # Right A Tail
               - { 'hidden': True, 'default': 0.0 } # roll
               - { 'min': 0.0, 'max': 1.0, 'default': 0.5 } # pitch
               - { 'min': 0.0, 'max': 1.0, 'default': 0.5 } # yaw
+              - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 0} # flap
+              - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 0} # spoiler
             15: # Single Channel Aileron
               - { 'min': 0.0, 'max': 1.0, 'default': 1.0 } # roll
               - { 'hidden': True, 'default': 0.0 } # pitch
               - { 'hidden': True, 'default': 0.0 } # yaw
+              - { 'hidden': True, 'min': -1.0, 'max': 1.0, 'default': 0} # flap
+              - { 'hidden': True, 'min': -1.0, 'max': 1.0, 'default': 0} # spoiler
             16: # Steering Wheel
               - { 'hidden': True, 'default': 0.0 } # roll
               - { 'hidden': True, 'default': 0.0 } # pitch
               - { 'hidden': True, 'default': 0.0 } # yaw
+              - { 'hidden': True, 'min': -1.0, 'max': 1.0, 'default': 0} # flap
+              - { 'hidden': True, 'min': -1.0, 'max': 1.0, 'default': 0} # spoiler
+            17: # Left Spoiler
+              - { 'hidden': True, 'default': 0.0 } # roll
+              - { 'hidden': True, 'default': 0.0 } # pitch
+              - { 'hidden': True, 'default': 0.0 } # yaw
+              - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 0} # flap
+              - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 1} # spoiler
+            18: # Right Spoiler
+              - { 'hidden': True, 'default': 0.0 } # roll
+              - { 'hidden': True, 'default': 0.0 } # pitch
+              - { 'hidden': True, 'default': 0.0 } # yaw
+              - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 0} # flap
+              - { 'hidden': False, 'min': -1.0, 'max': 1.0, 'default': 1} # spoiler
+
 
       - select_identifier: 'servo-type-tailsitter' # restrict torque based on servo type for tailsitters
         apply_identifiers: ['servo-torque-roll-tailsitter', 'servo-torque-pitch-tailsitter', 'servo-torque-yaw-tailsitter']
@@ -662,6 +768,14 @@ mixer:
                             identifier: 'servo-torque-yaw'
                           - name: 'CA_SV_CS${i}_TRIM'
                             label: 'Trim'
+                          - name: 'CA_SV_CS${i}_FLAP'
+                            label: 'Flaps Scale'
+                            advanced: true
+                            identifier: 'servo-scale-flap'
+                          - name: 'CA_SV_CS${i}_SPOIL'
+                            label: 'Spoiler Scale'
+                            advanced: true
+                            identifier: 'servo-scale-spoiler'
 
             2: # Standard VTOL
                 title: 'Standard VTOL'
@@ -706,6 +820,14 @@ mixer:
                             identifier: 'servo-torque-yaw'
                           - name: 'CA_SV_CS${i}_TRIM'
                             label: 'Trim'
+                          - name: 'CA_SV_CS${i}_FLAP'
+                            label: 'Flaps Scale'
+                            advanced: true
+                            identifier: 'servo-scale-flap'
+                          - name: 'CA_SV_CS${i}_SPOIL'
+                            label: 'Spoiler Scale'
+                            advanced: true
+                            identifier: 'servo-scale-spoiler'
                     parameters:
                       - label: 'Lock control surfaces in hover'
                         name: VT_ELEV_MC_LOCK
@@ -747,6 +869,14 @@ mixer:
                             identifier: 'servo-torque-yaw'
                           - name: 'CA_SV_CS${i}_TRIM'
                             label: 'Trim'
+                          - name: 'CA_SV_CS${i}_FLAP'
+                            label: 'Flaps Scale'
+                            advanced: true
+                            identifier: 'servo-scale-flap'
+                          - name: 'CA_SV_CS${i}_SPOIL'
+                            label: 'Spoiler Scale'
+                            advanced: true
+                            identifier: 'servo-scale-spoiler'
                     parameters:
                       - label: 'Lock control surfaces in hover'
                         name: VT_ELEV_MC_LOCK
@@ -800,6 +930,14 @@ mixer:
                             identifier: 'servo-torque-yaw-tailsitter'
                           - name: 'CA_SV_CS${i}_TRIM'
                             label: 'Trim'
+                          - name: 'CA_SV_CS${i}_FLAP'
+                            label: 'Flaps Scale'
+                            advanced: true
+                            identifier: 'servo-scale-flap'
+                          - name: 'CA_SV_CS${i}_SPOIL'
+                            label: 'Spoiler Scale'
+                            advanced: true
+                            identifier: 'servo-scale-spoiler'
                     parameters:
                       - label: 'Lock control surfaces in hover'
                         name: VT_ELEV_MC_LOCK
@@ -912,8 +1050,16 @@ mixer:
                             label: 'Yaw Scale'
                           - name: 'CA_SV_CS${i}_TRIM'
                             label: 'Trim'
+                          - name: 'CA_SV_CS${i}_FLAP'
+                            label: 'Flaps Scale'
+                            advanced: true
+                            identifier: 'servo-scale-flap'
+                          - name: 'CA_SV_CS${i}_SPOIL'
+                            label: 'Spoiler Scale'
+                            advanced: true
+                            identifier: 'servo-scale-spoiler'
 
-            10: # Helicopter
+            10: # Helicopter (tail ESC)
                 actuators:
                   - actuator_type: 'motor'
                     count: 1
@@ -942,3 +1088,31 @@ mixer:
                       - label: 'Throttle spoolup time'
                         name: COM_SPOOLUP_TIME
 
+            11: # Helicopter (tail Servo)
+              actuators:
+                - actuator_type: 'motor'
+                  count: 1
+                  item_label_prefix: ['Rotor']
+                - actuator_type: 'servo'
+                  item_label_prefix: ['Yaw tail Servo']
+                  count: 1
+                - actuator_type: 'servo'
+                  group_label: 'Swash plate servos'
+                  count: 'CA_SP0_COUNT'
+                  per_item_parameters:
+                    extra:
+                      - name: 'CA_SP0_ANG${i}'
+                        label: 'Angle'
+                      - name: 'CA_SP0_ARM_L${i}'
+                        label: 'Arm Length (relative)'
+                      - name: 'CA_SV_CS${i}_TRIM'
+                        label: 'Trim'
+                  parameters:
+                    - label: 'Yaw compensation scale based on collective pitch'
+                      name: CA_HELI_YAW_CP_S
+                    - label: 'Yaw compensation scale based on throttle'
+                      name: CA_HELI_YAW_TH_S
+                    - label: 'Main rotor turns counter-clockwise'
+                      name: CA_HELI_YAW_CCW
+                    - label: 'Throttle spoolup time'
+                      name: COM_SPOOLUP_TIME

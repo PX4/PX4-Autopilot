@@ -233,7 +233,7 @@ bool MatrixTest::attitudeTests()
 
 	// quaterion copy ctors
 	float data_v4[] = {1, 2, 3, 4};
-	Vector<float, 4> v4(data_v4);
+	Vector4f v4(data_v4);
 	Quatf q_from_v(v4);
 	ut_test(isEqual(q_from_v, v4));
 
@@ -242,7 +242,7 @@ bool MatrixTest::attitudeTests()
 	ut_test(isEqual(q_from_m, m4));
 
 	// quaternion derivative
-	Vector<float, 4> q_dot = q.derivative1(Vector3f(1, 2, 3));
+	Vector4f q_dot = q.derivative1(Vector3f(1, 2, 3));
 	(void)q_dot;
 
 	// quaternion product

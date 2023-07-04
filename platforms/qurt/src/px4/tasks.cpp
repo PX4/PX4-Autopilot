@@ -93,8 +93,13 @@ extern "C" {
 
 		if (name == NULL) { return -1; }
 
-		memcpy(attr->name, name, PTHREAD_NAME_LEN);
-		attr->name[PTHREAD_NAME_LEN - 1] = 0;
+		size_t name_len = strlen(name);
+
+		if (name_len > PX4_TASK_MAX_NAME_LENGTH) { name_len = PX4_TASK_MAX_NAME_LENGTH; }
+
+		memcpy(attr->name, name, name_len);
+		attr->name[name_len] = 0;
+
 		return 0;
 	}
 
@@ -166,11 +171,12 @@ static px4_task_t px4_task_spawn_internal(const char *name, int priority, px4_ma
 				return -1;
 
 			} else {
-				//px4_clock_gettimemap[task_index].argv_storage[i], argv[i]);
+				strcpy(taskmap[task_index].argv_storage[i], argv[i]);
 				taskmap[task_index].argv[i] = taskmap[task_index].argv_storage[i];
 			}
 
 		} else {
+			// Must add NULL at end of argv
 			taskmap[task_index].argv[i] = nullptr;
 			break;
 		}
@@ -420,17 +426,23 @@ int px4_sem_timedwait(px4_sem_t *sem, const struct timespec *ts)
 	return 0;
 }
 
-int px4_prctl(int option, const char *arg2, pthread_t pid)
+int px4_prctl(int option, const char *arg2, px4_task_t pid)
 {
 	int rv = -1;
+
+	if (option != PR_SET_NAME) { return rv; }
+
 	pthread_mutex_lock(&task_mutex);
 
 	for (int i = 0; i < PX4_MAX_TASKS; i++) {
-		if (taskmap[i].isused && taskmap[i].tid == pid) {
+		if (taskmap[i].isused && taskmap[i].tid == (pthread_t) pid) {
 			rv = pthread_attr_setthreadname(&taskmap[i].attr, arg2);
+			pthread_mutex_unlock(&task_mutex);
 			return rv;
 		}
 	}
+
+	pthread_mutex_unlock(&task_mutex);
 
 	return rv;
 }

@@ -50,8 +50,8 @@
  * copying them using the GCS.
  *
  * @group Radio Calibration
- * @min -0.25
- * @max 0.25
+ * @min -0.5
+ * @max 0.5
  * @decimal 2
  * @increment 0.01
  */
@@ -66,8 +66,8 @@ PARAM_DEFINE_FLOAT(TRIM_ROLL, 0.0f);
  * copying them using the GCS.
  *
  * @group Radio Calibration
- * @min -0.25
- * @max 0.25
+ * @min -0.5
+ * @max 0.5
  * @decimal 2
  * @increment 0.01
  */
@@ -82,8 +82,8 @@ PARAM_DEFINE_FLOAT(TRIM_PITCH, 0.0f);
  * copying them using the GCS.
  *
  * @group Radio Calibration
- * @min -0.25
- * @max 0.25
+ * @min -0.5
+ * @max 0.5
  * @decimal 2
  * @increment 0.01
  */
@@ -727,21 +727,6 @@ PARAM_DEFINE_INT32(COM_POS_FS_DELAY, 1);
 PARAM_DEFINE_FLOAT(COM_POS_FS_EPH, 5.f);
 
 /**
- * Vertical position error threshold.
- *
- * This is the vertical position error (EPV) threshold that will trigger a failsafe.
- * The default is appropriate for a multicopter. Can be increased for a fixed-wing.
- * If the previous position error was below this threshold, there is an additional
- * factor of 2.5 applied (threshold for invalidation 2.5 times the one for validation).
- *
- * @unit m
- * @min 0
- * @decimal 1
- * @group Commander
- */
-PARAM_DEFINE_FLOAT(COM_POS_FS_EPV, 10.f);
-
-/**
  * Horizontal velocity error threshold.
  *
  * This is the horizontal velocity error (EVH) threshold that will trigger a failsafe.
@@ -1019,6 +1004,20 @@ PARAM_DEFINE_INT32(COM_ARM_SDCARD, 1);
 PARAM_DEFINE_INT32(COM_ARM_HFLT_CHK, 1);
 
 /**
+ * Enable Drone ID system detection and health check
+ *
+ * This check detects if the Open Drone ID system is missing.
+ * Depending on the value of the parameter, the check can be
+ * disabled, warn only or deny arming.
+ *
+ * @group Commander
+ * @value 0 Disabled
+ * @value 1 Warning only
+ * @value 2 Enforce Open Drone ID system presence
+ */
+PARAM_DEFINE_INT32(COM_ARM_ODID, 0);
+
+/**
  * Enforced delay between arming and further navigation
  *
  * The minimal time from arming the motors until moving the vehicle is possible is COM_SPOOLUP_TIME seconds.
@@ -1105,3 +1104,15 @@ PARAM_DEFINE_FLOAT(COM_WIND_MAX, -1.f);
  * @unit m
  */
 PARAM_DEFINE_FLOAT(COM_POS_LOW_EPH, -1.0f);
+
+/**
+ * Flag to allow arming
+ *
+ * Set 0 to prevent accidental use of the vehicle e.g. for safety or maintenance reasons.
+ *
+ * @boolean
+ * @value 0 Disallow arming
+ * @value 1 Allow arming
+ * @group Commander
+ */
+PARAM_DEFINE_INT32(COM_ARMABLE, 1);

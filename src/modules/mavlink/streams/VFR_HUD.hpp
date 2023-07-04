@@ -35,10 +35,10 @@
 #define VFR_HUD_HPP
 
 #include <uORB/topics/actuator_armed.h>
-#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/airspeed_validated.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_thrust_setpoint.h>
 
 class MavlinkStreamVFRHUD : public MavlinkStream
 {
@@ -65,8 +65,8 @@ private:
 
 	uORB::Subscription _lpos_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _armed_sub{ORB_ID(actuator_armed)};
-	uORB::Subscription _act0_sub{ORB_ID(actuator_controls_0)};
-	uORB::Subscription _act1_sub{ORB_ID(actuator_controls_1)};
+	uORB::Subscription _vehicle_thrust_setpoint_0_sub{ORB_ID(vehicle_thrust_setpoint), 0};
+	uORB::Subscription _vehicle_thrust_setpoint_1_sub{ORB_ID(vehicle_thrust_setpoint), 1};
 	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};
 	uORB::Subscription _air_data_sub{ORB_ID(vehicle_air_data)};
 
@@ -89,19 +89,17 @@ private:
 			msg.heading = math::degrees(matrix::wrap_2pi(lpos.heading));
 
 			if (armed.armed) {
-				actuator_controls_s act0{};
-				actuator_controls_s act1{};
-				_act0_sub.copy(&act0);
-				_act1_sub.copy(&act1);
+				vehicle_thrust_setpoint_s vehicle_thrust_setpoint_0{};
+				vehicle_thrust_setpoint_s vehicle_thrust_setpoint_1{};
+				_vehicle_thrust_setpoint_0_sub.copy(&vehicle_thrust_setpoint_0);
+				_vehicle_thrust_setpoint_1_sub.copy(&vehicle_thrust_setpoint_1);
 
 				// VFR_HUD throttle should only be used for operator feedback.
-				// VTOLs switch between actuator_controls_0 and actuator_controls_1. During transition there isn't a
+				// VTOLs switch between vehicle_thrust_setpoint_0 and vehicle_thrust_setpoint_1. During transition there isn't a
 				// a single throttle value, but this should still be a useful heuristic for operator awareness.
-				//
-				// Use ACTUATOR_CONTROL_TARGET if accurate states are needed.
 				msg.throttle = 100 * math::max(
-						       act0.control[actuator_controls_s::INDEX_THROTTLE],
-						       act1.control[actuator_controls_s::INDEX_THROTTLE]);
+						       -vehicle_thrust_setpoint_0.xyz[2],
+						       vehicle_thrust_setpoint_1.xyz[0]);
 
 			} else {
 				msg.throttle = 0.0f;

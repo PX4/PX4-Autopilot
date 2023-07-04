@@ -83,7 +83,7 @@ bool ManualControlSelector::isInputValid(const manual_control_setpoint_s &input,
 					  (input.data_source == _first_valid_source
 					   || _first_valid_source == manual_control_setpoint_s::SOURCE_UNKNOWN);
 
-	return sample_from_the_past && sample_newer_than_timeout
+	return sample_from_the_past && sample_newer_than_timeout && input.valid
 	       && (source_rc_matched || source_mavlink_matched || source_any_matched || source_first_matched);
 }
 

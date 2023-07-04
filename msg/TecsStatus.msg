@@ -1,7 +1,9 @@
 uint64 timestamp		# time since system start (microseconds)
 
 float32 altitude_sp			# Altitude setpoint AMSL [m]
-float32 altitude_sp_filtered		# Altitude setpoint filtered AMSL [m]
+float32 altitude_reference		# Altitude setpoint reference AMSL [m]
+float32 height_rate_reference		# Height rate setpoint reference [m/s]
+float32 height_rate_direct		# Direct height rate setpoint from velocity reference generator [m/s]
 float32 height_rate_setpoint		# Height rate setpoint [m/s]
 float32 height_rate			# Height rate [m/s]
 float32 equivalent_airspeed_sp		# Equivalent airspeed setpoint [m/s]
@@ -28,8 +30,3 @@ float32 throttle_trim			# estimated throttle value [0,1] required to fly level a
 uint8 mode
 uint8 TECS_MODE_NORMAL = 0
 uint8 TECS_MODE_UNDERSPEED = 1
-uint8 TECS_MODE_TAKEOFF = 2
-uint8 TECS_MODE_LAND = 3
-uint8 TECS_MODE_LAND_THROTTLELIM = 4
-uint8 TECS_MODE_BAD_DESCENT = 5
-uint8 TECS_MODE_CLIMBOUT = 6

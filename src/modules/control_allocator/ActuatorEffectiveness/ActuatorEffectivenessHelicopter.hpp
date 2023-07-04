@@ -60,12 +60,13 @@ public:
 		float throttle_curve[NUM_CURVE_POINTS];
 		float pitch_curve[NUM_CURVE_POINTS];
 		float yaw_collective_pitch_scale;
+		float yaw_collective_pitch_offset;
 		float yaw_throttle_scale;
 		float yaw_sign;
 		float spoolup_time;
 	};
 
-	ActuatorEffectivenessHelicopter(ModuleParams *parent);
+	ActuatorEffectivenessHelicopter(ModuleParams *parent, ActuatorType tail_actuator_type);
 	virtual ~ActuatorEffectivenessHelicopter() = default;
 
 	bool getEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) override;
@@ -109,6 +110,7 @@ private:
 		param_t throttle_curve[NUM_CURVE_POINTS];
 		param_t pitch_curve[NUM_CURVE_POINTS];
 		param_t yaw_collective_pitch_scale;
+		param_t yaw_collective_pitch_offset;
 		param_t yaw_throttle_scale;
 		param_t yaw_ccw;
 		param_t spoolup_time;
@@ -127,4 +129,6 @@ private:
 
 	uORB::Subscription _manual_control_switches_sub{ORB_ID(manual_control_switches)};
 	bool _main_motor_engaged{true};
+
+	const ActuatorType _tail_actuator_type;
 };

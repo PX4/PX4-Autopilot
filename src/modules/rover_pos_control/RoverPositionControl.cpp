@@ -45,8 +45,6 @@
 #include "RoverPositionControl.hpp"
 #include <lib/geo/geo.h>
 
-#define ACTUATOR_PUBLISH_PERIOD_MS 4
-
 using namespace matrix;
 
 /**
@@ -93,7 +91,6 @@ void RoverPositionControl::parameters_update(bool force)
 
 		_gnd_control.set_l1_damping(_param_l1_damping.get());
 		_gnd_control.set_l1_period(_param_l1_period.get());
-		_gnd_control.set_l1_roll_limit(math::radians(0.0f));
 
 		pid_init(&_speed_ctrl, PID_MODE_DERIVATIV_CALC, 0.01f);
 		pid_set_parameters(&_speed_ctrl,
@@ -152,13 +149,10 @@ RoverPositionControl::manual_control_setpoint_poll()
 					_attitude_sp_pub.publish(_att_sp);
 
 				} else {
-					_act_controls.control[actuator_controls_s::INDEX_ROLL] = 0.0f; // Nominally roll: _manual_control_setpoint.roll;
-					_act_controls.control[actuator_controls_s::INDEX_PITCH] = 0.0f; // Nominally pitch: -_manual_control_setpoint.pitch;
 					// Set heading from the manual roll input channel
-					_act_controls.control[actuator_controls_s::INDEX_YAW] =
-						_manual_control_setpoint.roll; // Nominally yaw: _manual_control_setpoint.yaw;
+					_yaw_control = _manual_control_setpoint.roll; // Nominally yaw: _manual_control_setpoint.yaw;
 					// Set throttle from the manual throttle channel
-					_act_controls.control[actuator_controls_s::INDEX_THROTTLE] = (_manual_control_setpoint.throttle + 1.f) * .5f;
+					_throttle_control = (_manual_control_setpoint.throttle + 1.f) * .5f;
 					_reset_yaw_sp = true;
 				}
 
@@ -215,9 +209,6 @@ RoverPositionControl::control_position(const matrix::Vector2d &current_position,
 
 		_control_mode_current = UGV_POSCTRL_MODE_AUTO;
 
-		/* get circle mode */
-		//bool was_circle_mode = _gnd_control.circle_mode();
-
 		/* current waypoint (the one currently heading for) */
 		matrix::Vector2d curr_wp(pos_sp_triplet.current.lat, pos_sp_triplet.current.lon);
 
@@ -270,11 +261,6 @@ RoverPositionControl::control_position(const matrix::Vector2d &current_position,
 		float dist_target = get_distance_to_next_waypoint(_global_pos.lat, _global_pos.lon,
 				    (double)curr_wp(0), (double)curr_wp(1)); // pos_sp_triplet.current.lat, pos_sp_triplet.current.lon);
 
-		//PX4_INFO("Setpoint type %d", (int) pos_sp_triplet.current.type );
-		//PX4_INFO(" State machine state %d", (int) _pos_ctrl_state);
-		//PX4_INFO(" Setpoint Lat %f, Lon %f", (double) curr_wp(0), (double)curr_wp(1));
-		//PX4_INFO(" Distance to target %f", (double) dist_target);
-
 		switch (_pos_ctrl_state) {
 		case GOTO_WAYPOINT: {
 				if (dist_target < _param_nav_loiter_rad.get()) {
@@ -287,21 +273,21 @@ RoverPositionControl::control_position(const matrix::Vector2d &current_position,
 								 prev_wp(1));
 					_gnd_control.navigate_waypoints(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed_2d);
 
-					_act_controls.control[actuator_controls_s::INDEX_THROTTLE] = mission_throttle;
+					_throttle_control = mission_throttle;
 
 					float desired_r = ground_speed_2d.norm_squared() / math::abs_t(_gnd_control.nav_lateral_acceleration_demand());
 					float desired_theta = (0.5f * M_PI_F) - atan2f(desired_r, _param_wheel_base.get());
 					float control_effort = (desired_theta / _param_max_turn_angle.get()) * sign(
 								       _gnd_control.nav_lateral_acceleration_demand());
 					control_effort = math::constrain(control_effort, -1.0f, 1.0f);
-					_act_controls.control[actuator_controls_s::INDEX_YAW] = control_effort;
+					_yaw_control = control_effort;
 				}
 			}
 			break;
 
 		case STOPPING: {
-				_act_controls.control[actuator_controls_s::INDEX_YAW] = 0.0f;
-				_act_controls.control[actuator_controls_s::INDEX_THROTTLE] = 0.0f;
+				_yaw_control = 0.0f;
+				_throttle_control = 0.0f;
 				// Note _prev_wp is different to the local prev_wp which is related to a mission waypoint.
 				float dist_between_waypoints = get_distance_to_next_waypoint((double)_prev_wp(0), (double)_prev_wp(1),
 							       (double)curr_wp(0), (double)curr_wp(1));
@@ -309,8 +295,6 @@ RoverPositionControl::control_position(const matrix::Vector2d &current_position,
 				if (dist_between_waypoints > 0) {
 					_pos_ctrl_state = GOTO_WAYPOINT; // A new waypoint has arrived go to it
 				}
-
-				//PX4_INFO(" Distance between prev and curr waypoints %f", (double)dist_between_waypoints);
 			}
 			break;
 
@@ -349,7 +333,7 @@ RoverPositionControl::control_velocity(const matrix::Vector3f &current_velocity)
 		const float control_throttle = pid_calculate(&_speed_ctrl, desired_speed, x_vel, x_acc, dt);
 
 		//Constrain maximum throttle to mission throttle
-		_act_controls.control[actuator_controls_s::INDEX_THROTTLE] = math::constrain(control_throttle, 0.0f, mission_throttle);
+		_throttle_control = math::constrain(control_throttle, 0.0f, mission_throttle);
 
 		Vector3f desired_body_velocity;
 
@@ -365,12 +349,12 @@ RoverPositionControl::control_velocity(const matrix::Vector3f &current_velocity)
 		float control_effort = desired_theta / _param_max_turn_angle.get();
 		control_effort = math::constrain(control_effort, -1.0f, 1.0f);
 
-		_act_controls.control[actuator_controls_s::INDEX_YAW] = control_effort;
+		_yaw_control = control_effort;
 
 	} else {
 
-		_act_controls.control[actuator_controls_s::INDEX_THROTTLE] = 0.0f;
-		_act_controls.control[actuator_controls_s::INDEX_YAW] = 0.0f;
+		_throttle_control = 0.0f;
+		_yaw_control = 0.0f;
 	}
 }
 
@@ -384,11 +368,11 @@ RoverPositionControl::control_attitude(const vehicle_attitude_s &att, const vehi
 	float control_effort = euler_sp(2) / _param_max_turn_angle.get();
 	control_effort = math::constrain(control_effort, -1.0f, 1.0f);
 
-	_act_controls.control[actuator_controls_s::INDEX_YAW] = control_effort;
+	_yaw_control = control_effort;
 
 	const float control_throttle = att_sp.thrust_body[0];
 
-	_act_controls.control[actuator_controls_s::INDEX_THROTTLE] =  math::constrain(control_throttle, 0.0f, 1.0f);
+	_throttle_control =  math::constrain(control_throttle, 0.0f, 1.0f);
 
 }
 
@@ -426,8 +410,6 @@ RoverPositionControl::Run()
 
 				_global_local_proj_ref.initReference(_local_pos.ref_lat, _local_pos.ref_lon,
 								     _local_pos.ref_timestamp);
-
-				_global_local_alt0 = _local_pos.ref_alt;
 			}
 
 			// Convert Local setpoints to global setpoints
@@ -439,7 +421,6 @@ RoverPositionControl::Run()
 					_trajectory_setpoint.position[0], _trajectory_setpoint.position[1],
 					_pos_sp_triplet.current.lat, _pos_sp_triplet.current.lon);
 
-				_pos_sp_triplet.current.alt = _global_local_alt0 - _trajectory_setpoint.position[2];
 				_pos_sp_triplet.current.valid = true;
 			}
 
@@ -455,7 +436,7 @@ RoverPositionControl::Run()
 				if (control_position(current_position, ground_speed, _pos_sp_triplet)) {
 
 					//TODO: check if radius makes sense here
-					float turn_distance = _param_l1_distance.get(); //_gnd_control.switch_distance(100.0f);
+					float turn_distance = _param_l1_distance.get();
 
 					// publish status
 					position_controller_status_s pos_ctrl_status{};
@@ -497,22 +478,19 @@ RoverPositionControl::Run()
 		    _control_mode.flag_control_attitude_enabled ||
 		    _control_mode.flag_control_position_enabled ||
 		    _control_mode.flag_control_manual_enabled) {
-			// timestamp and publish controls
-			_act_controls.timestamp = hrt_absolute_time();
-			_actuator_controls_pub.publish(_act_controls);
 
 			vehicle_thrust_setpoint_s v_thrust_sp{};
 			v_thrust_sp.timestamp = hrt_absolute_time();
-			v_thrust_sp.xyz[0] = _act_controls.control[actuator_controls_s::INDEX_THROTTLE];
+			v_thrust_sp.xyz[0] = _throttle_control;
 			v_thrust_sp.xyz[1] = 0.0f;
 			v_thrust_sp.xyz[2] = 0.0f;
 			_vehicle_thrust_setpoint_pub.publish(v_thrust_sp);
 
 			vehicle_torque_setpoint_s v_torque_sp{};
 			v_torque_sp.timestamp = hrt_absolute_time();
-			v_torque_sp.xyz[0] = _act_controls.control[actuator_controls_s::INDEX_ROLL];
-			v_torque_sp.xyz[1] = _act_controls.control[actuator_controls_s::INDEX_PITCH];
-			v_torque_sp.xyz[2] = _act_controls.control[actuator_controls_s::INDEX_YAW];
+			v_torque_sp.xyz[0] = 0.f;
+			v_torque_sp.xyz[1] = 0.f;
+			v_torque_sp.xyz[2] = _yaw_control;
 			_vehicle_torque_setpoint_pub.publish(v_torque_sp);
 		}
 	}
@@ -557,7 +535,7 @@ int RoverPositionControl::print_usage(const char *reason)
 ### Description
 Controls the position of a ground rover using an L1 controller.
 
-Publishes `actuator_controls_0` messages at IMU_GYRO_RATEMAX.
+Publishes `vehicle_thrust_setpoint (only in x) and vehicle_torque_setpoint (only yaw)` messages at IMU_GYRO_RATEMAX.
 
 ### Implementation
 Currently, this implementation supports only a few modes:

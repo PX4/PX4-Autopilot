@@ -387,7 +387,7 @@
 
 #define GPIO_UART7_RX    GPIO_UART7_RX_4    /* PF6  */
 #define GPIO_UART7_TX    GPIO_UART7_TX_3    /* PE8  */
-#define GPIO_UART7_RTS   (GPIO_UART7_RTS_2 | GPIO_PULLDOWN)   /* PF8  */
+#define GPIO_UART7_RTS   GPIO_UART7_RTS_2   /* PF8  */
 #define GPIO_UART7_CTS   (GPIO_UART7_CTS_1 | GPIO_PULLDOWN)   /* PE10 */
 
 #define GPIO_UART8_RX    GPIO_UART8_RX_1    /* PE0 */

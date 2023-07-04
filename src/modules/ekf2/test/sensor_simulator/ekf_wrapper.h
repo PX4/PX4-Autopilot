@@ -69,6 +69,10 @@ public:
 	/* void disableExternalVisionHeightFusion(); */
 	bool isIntendingExternalVisionHeightFusion() const;
 
+	void enableBetaFusion();
+	void disableBetaFusion();
+	bool isIntendingBetaFusion() const;
+
 	void enableGpsFusion();
 	void disableGpsFusion();
 	bool isIntendingGpsFusion() const;
@@ -111,7 +115,7 @@ public:
 
 	Eulerf getEulerAngles() const;
 	float getYawAngle() const;
-	matrix::Vector<float, 4> getQuaternionVariance() const;
+	matrix::Vector4f getQuaternionVariance() const;
 	int getQuaternionResetCounter() const;
 
 	matrix::Vector3f getDeltaVelBiasVariance() const;

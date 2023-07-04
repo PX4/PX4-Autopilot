@@ -154,6 +154,7 @@ parameters:
                                 'S', 'A/%', '(m/s^2)^2',  'm/m',  'tan(rad)^2', '(m/s)^2', 'm/rad',
                                 'm/s^3/sqrt(Hz)', 'm/s/sqrt(Hz)', 's/(1000*PWM)', '%m/s', 'min', 'us/C', 
                                 'N/(m/s)', 'Nm/(rad/s)', 'Nm', 'N',
+                                'rpm',
                                 'normalized_thrust/s', 'normalized_thrust', 'norm', 'SD']
                         bit:
                             # description of all bits for type bitmask.
@@ -368,6 +369,33 @@ actuator_output:
                                         # ui only shows the param if this condition is true
                                         type: string
                                         regex: *condition_regex
+                    custom_params:
+                        type: list
+                        schema: &mixer_parameter
+                            type: dict
+                            schema:
+                                label:
+                                    type: string
+                                name:
+                                    # param name
+                                    type: string
+                                    required: true
+                                show_as:
+                                    type: string
+                                    allowed: [ 'bitset', 'true-if-positive' ]
+                                show_if:
+                                    # condition
+                                    type: string
+                                    regex: *condition_regex
+                                index_offset:
+                                    type: integer
+                                advanced:
+                                    type: integer
+                                function:
+                                    type: string
+                                identifier:
+                                    # for rules
+                                    type: string
                     extra_function_groups:
                         # Additional function groups to add, defined in output_functions.yaml
                         type: list
@@ -476,31 +504,7 @@ mixer:
                     per_item_parameters:
                         type: list
                         minlength: 1
-                        schema: &mixer_parameter
-                            type: dict
-                            schema:
-                                label:
-                                    type: string
-                                name:
-                                    # param name
-                                    type: string
-                                    required: true
-                                show_as:
-                                    type: string
-                                    allowed: [ 'bitset', 'true-if-positive' ]
-                                show_if:
-                                    # condition
-                                    type: string
-                                    regex: *condition_regex
-                                index_offset:
-                                    type: integer
-                                advanced:
-                                    type: integer
-                                function:
-                                    type: string
-                                identifier:
-                                    # for rules
-                                    type: string
+                        schema: *mixer_parameter
         rules:
             # mixer rules, validated by the mavlink actuator component information schema
             type: list

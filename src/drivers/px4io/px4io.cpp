@@ -68,7 +68,6 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/actuator_armed.h>
-#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/input_rc.h>
 #include <uORB/topics/vehicle_command.h>
@@ -210,7 +209,7 @@ private:
 	bool			_timer_rates_configured{false};
 
 	/* advertised topics */
-	uORB::PublicationMulti<input_rc_s>	_to_input_rc{ORB_ID(input_rc)};
+	uORB::PublicationMulti<input_rc_s>	_input_rc_pub{ORB_ID(input_rc)};
 	uORB::Publication<px4io_status_s>	_px4io_status_pub{ORB_ID(px4io_status)};
 
 	ButtonPublisher	_button_publisher;
@@ -1145,7 +1144,7 @@ int PX4IO::io_publish_raw_rc()
 		input_rc.link_quality = -1;
 		input_rc.rssi_dbm = NAN;
 
-		_to_input_rc.publish(input_rc);
+		_input_rc_pub.publish(input_rc);
 	}
 
 	return ret;

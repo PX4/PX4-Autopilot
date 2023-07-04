@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,10 +32,25 @@
  ****************************************************************************/
 
 /**
- * simulated GPS number of satellites used
+ * Enable simulated airspeed sensor instance
  *
+ * @reboot_required true
  * @min 0
- * @max  50
- * @group Simulator
- */
-// PARAM_DEFINE_INT32(SIM_GPS_USED, 10);
+ * @max 1
+ * @group Sensors
+ * @value 0 Disabled
+ * @value 1 Enabled
+  */
+PARAM_DEFINE_INT32(SENS_EN_ARSPDSIM, 0);
+
+/**
+ * Dynamically simulate failure of airspeed sensor instance
+ *
+ * @reboot_required true
+ * @min 0
+ * @max 1
+ * @group Sensors
+ * @value 0 Disabled
+ * @value 1 Enabled
+  */
+PARAM_DEFINE_INT32(SIM_ARSPD_FAIL, 0);

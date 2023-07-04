@@ -30,6 +30,12 @@ uint8 JAMMING_STATE_CRITICAL = 3
 uint8 jamming_state		# indicates whether jamming has been detected or suspected by the receivers. O: Unknown, 1: OK, 2: Warning, 3: Critical
 int32 jamming_indicator		# indicates jamming is occurring
 
+uint8 SPOOFING_STATE_UNKNOWN   = 0
+uint8 SPOOFING_STATE_NONE      = 1
+uint8 SPOOFING_STATE_INDICATED = 2
+uint8 SPOOFING_STATE_MULTIPLE  = 3
+uint8 spoofing_state		# indicates whether spoofing has been detected or suspected by the receivers. O: Unknown, 1: OK, 2: Warning, 3: Critical
+
 float32 vel_m_s			# GPS ground speed, (metres/sec)
 float32 vel_n_m_s		# GPS North velocity, (metres/sec)
 float32 vel_e_m_s		# GPS East velocity, (metres/sec)
@@ -48,5 +54,12 @@ float32 heading_accuracy	# heading accuracy (rad, [0, 2PI])
 
 float32 rtcm_injection_rate	# RTCM message injection rate Hz
 uint8 selected_rtcm_instance	# uorb instance that is being used for RTCM corrections
+
+bool rtcm_crc_failed		# RTCM message CRC failure detected
+
+uint8 RTCM_MSG_USED_UNKNOWN = 0
+uint8 RTCM_MSG_USED_NOT_USED = 1
+uint8 RTCM_MSG_USED_USED = 2
+uint8 rtcm_msg_used		# Indicates if the RTCM message was used successfully by the receiver
 
 # TOPICS sensor_gps vehicle_gps_position

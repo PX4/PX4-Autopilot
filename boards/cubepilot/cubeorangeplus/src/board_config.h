@@ -44,6 +44,16 @@
 #include <stdint.h>
 #include <stm32_gpio.h>
 
+/**
+ * If NuttX is built without support for SMPS it can brick the hardware.
+ * Therefore, we make sure the NuttX headers are correct.
+ */
+#include "hardware/stm32h7x3xx_pwr.h"
+#if STM32_PWR_CR3_SMPSEXTHP != (1 << 3)
+#  error "No SMPS support in NuttX submodule");
+#endif
+
+
 /* PX4IO connection configuration */
 #define BOARD_USES_PX4IO_VERSION       2
 #define PX4IO_SERIAL_DEVICE            "/dev/ttyS3"
@@ -170,6 +180,8 @@
 		PX4_MAKE_GPIO_OUTPUT_CLEAR(GPIO_I2C1_SDA), \
 		PX4_MAKE_GPIO_OUTPUT_CLEAR(GPIO_I2C2_SCL), \
 		PX4_MAKE_GPIO_OUTPUT_CLEAR(GPIO_I2C2_SDA), \
+		PX4_MAKE_GPIO_OUTPUT_CLEAR(GPIO_I2C4_SCL), \
+		PX4_MAKE_GPIO_OUTPUT_CLEAR(GPIO_I2C4_SDA), \
 		PX4_GPIO_PIN_OFF(GPIO_SDMMC1_D0), \
 		PX4_GPIO_PIN_OFF(GPIO_SDMMC1_D1), \
 		PX4_GPIO_PIN_OFF(GPIO_SDMMC1_D2), \

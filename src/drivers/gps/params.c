@@ -147,20 +147,44 @@ PARAM_DEFINE_INT32(GPS_UBX_CFG_INTF, 0);
  *
  * Heading offset angle for dual antenna GPS setups that support heading estimation.
  *
- * Set this to 0 if the antennas are parallel to the forward-facing direction of the vehicle and the rover antenna is in
- * front. The offset angle increases clockwise.
+ * Set this to 0 if the antennas are parallel to the forward-facing direction
+ * of the vehicle and the rover (or Unicore primary) antenna is in front.
  *
- * Set this to 90 if the rover antenna is placed on the right side of the vehicle and the moving base antenna is on the left side.
+ * The offset angle increases clockwise.
+ *
+ * Set this to 90 if the rover (or Unicore primary) antenna is placed on the
+ * right side of the vehicle and the moving base antenna is on the left side.
+ *
+ * (Note: the Unicore primary antenna is the one connected on the right as seen
+ *        from the top).
  *
  * @min 0
  * @max 360
  * @unit deg
  * @reboot_required true
- * @decimal 0
+ * @decimal 3
  *
  * @group GPS
  */
 PARAM_DEFINE_FLOAT(GPS_YAW_OFFSET, 0.f);
+
+/**
+ * Pitch offset for dual antenna GPS
+ *
+ * Vertical offsets can be compensated for by adjusting the Pitch offset (Septentrio).
+ *
+ * Note that this can be interpreted as the "roll" angle in case the antennas are aligned along the perpendicular axis. This occurs in situations where the two antenna ARPs may not be exactly at the same height in the vehicle reference frame. Since pitch is defined as the right-handed rotation about the vehicle Y axis, a situation where the main antenna is mounted lower than the aux antenna (assuming the default antenna setup) will result in a positive pitch.
+ *
+ *
+ * @min -90
+ * @max 90
+ * @unit deg
+ * @reboot_required true
+ * @decimal 3
+ *
+ * @group GPS
+ */
+PARAM_DEFINE_FLOAT(GPS_PITCH_OFFSET, 0.f);
 
 /**
  * Protocol for Main GPS
@@ -170,7 +194,7 @@ PARAM_DEFINE_FLOAT(GPS_YAW_OFFSET, 0.f);
  * Auto-detection will probe all protocols, and thus is a bit slower.
  *
  * @min 0
- * @max 5
+ * @max 7
  * @value 0 Auto detect
  * @value 1 u-blox
  * @value 2 MTK
@@ -178,6 +202,7 @@ PARAM_DEFINE_FLOAT(GPS_YAW_OFFSET, 0.f);
  * @value 4 Emlid Reach
  * @value 5 Femtomes
  * @value 6 NMEA (generic)
+ * @value 7 Septentrio (SBF)
  *
  * @reboot_required true
  * @group GPS
@@ -192,7 +217,7 @@ PARAM_DEFINE_INT32(GPS_1_PROTOCOL, 1);
  * Auto-detection will probe all protocols, and thus is a bit slower.
  *
  * @min 0
- * @max 5
+ * @max 6
  * @value 0 Auto detect
  * @value 1 u-blox
  * @value 2 MTK
