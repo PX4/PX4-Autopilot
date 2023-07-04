@@ -336,7 +336,7 @@ Mission::on_active()
 		 || _mission_item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION
 		 || _mission_item.nav_cmd == NAV_CMD_LAND
 		 || _mission_item.nav_cmd == NAV_CMD_VTOL_LAND
-		 || _work_item_type == WORK_ITEM_TYPE_ALIGN)) {
+		 || _work_item_type == WORK_ITEM_TYPE_ALIGN_HEADING)) {
 		// Mount control is disabled If the vehicle is in ROI-mode, the vehicle
 		// needs to rotate such that ROI is in the field of view.
 		// ROI only makes sense for multicopters.
@@ -960,7 +960,7 @@ Mission::set_mission_items()
 
 					_mission_item.force_heading = true;
 
-					new_work_item_type = WORK_ITEM_TYPE_ALIGN;
+					new_work_item_type = WORK_ITEM_TYPE_ALIGN_HEADING;
 
 					/* set position setpoint to current while aligning */
 					_mission_item.lat = _navigator->get_global_position()->lat;
@@ -969,7 +969,7 @@ Mission::set_mission_items()
 
 				/* heading is aligned now, prepare transition */
 				if (_mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF &&
-				    _work_item_type == WORK_ITEM_TYPE_ALIGN &&
+				    _work_item_type == WORK_ITEM_TYPE_ALIGN_HEADING &&
 				    _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING &&
 				    !_navigator->get_land_detected()->landed) {
 
@@ -1175,7 +1175,7 @@ Mission::set_mission_items()
 					/* disable weathervane before front transition for allowing yaw to align */
 					pos_sp_triplet->current.disable_weather_vane = true;
 
-					new_work_item_type = WORK_ITEM_TYPE_ALIGN;
+					new_work_item_type = WORK_ITEM_TYPE_ALIGN_HEADING;
 
 					set_align_mission_item(&_mission_item, &mission_item_next_position);
 
@@ -1185,7 +1185,7 @@ Mission::set_mission_items()
 				}
 
 				/* yaw is aligned now */
-				if (_work_item_type == WORK_ITEM_TYPE_ALIGN &&
+				if (_work_item_type == WORK_ITEM_TYPE_ALIGN_HEADING &&
 				    new_work_item_type == WORK_ITEM_TYPE_DEFAULT) {
 
 					new_work_item_type = WORK_ITEM_TYPE_DEFAULT;
