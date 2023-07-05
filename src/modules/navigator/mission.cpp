@@ -1367,23 +1367,6 @@ Mission::set_align_mission_item(struct mission_item_s *mission_item, struct miss
 	mission_item->force_heading = true;
 }
 
-float
-Mission::calculate_takeoff_altitude(struct mission_item_s *mission_item)
-{
-	/* calculate takeoff altitude */
-	float takeoff_alt = get_absolute_altitude_for_item(*mission_item);
-
-	/* takeoff to at least MIS_TAKEOFF_ALT above home/ground, even if first waypoint is lower */
-	if (_navigator->get_land_detected()->landed) {
-		takeoff_alt = fmaxf(takeoff_alt, _navigator->get_global_position()->alt + _navigator->get_takeoff_min_alt());
-
-	} else {
-		takeoff_alt = fmaxf(takeoff_alt, _navigator->get_home_position()->alt + _navigator->get_takeoff_min_alt());
-	}
-
-	return takeoff_alt;
-}
-
 void
 Mission::heading_sp_update()
 {
