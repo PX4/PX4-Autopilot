@@ -233,7 +233,7 @@ TEST_F(RCUpdateTest, ReturnSwitchNegativeThresholds)
 
 	checkReturnSwitch(1.f, -0.75f, 3); // Above threshold -> SWITCH_POS_OFF
 	checkReturnSwitch(.5f, -0.75f, 3); // On threshold -> SWITCH_POS_OFF
-	checkReturnSwitch(-.001f, -0.75f, 1); // Slightly below threshold -> SWITCH_POS_ON
+	checkReturnSwitch(.499f, -0.75f, 1); // Slightly below threshold -> SWITCH_POS_ON
 	checkReturnSwitch(-1.f, -0.75f, 1); // Below threshold -> SWITCH_POS_ON
 
 	checkReturnSwitch(1.f, -1.f, 3); // On maximum threshold -> SWITCH_POS_OFF
