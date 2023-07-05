@@ -1,4 +1,4 @@
-name: Checks
+name: Test Ubuntu Setup Script
 
 on:
   push:
@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        check: [
+        os: [
           "ubuntu-22.04",
           "ubuntu-20.04",
         ]
@@ -30,4 +30,4 @@ jobs:
           export
           ulimit -a
     - name: "Run ${{ matrix.check }}"
-      run: ./Toos/setup/ubuntu.sh
+      run: ./Tools/setup/ubuntu.sh
