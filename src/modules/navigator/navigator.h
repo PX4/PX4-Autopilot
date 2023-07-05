@@ -282,7 +282,7 @@ public:
 	// Param access
 	int get_loiter_min_alt() const { return _param_min_ltr_alt.get(); }
 	int get_landing_abort_min_alt() const { return _param_mis_lnd_abrt_alt.get(); }
-	float get_takeoff_min_alt() const { return _param_mis_takeoff_alt.get(); }
+	float get_param_mis_takeoff_alt() const { return _param_mis_takeoff_alt.get(); }
 	int  get_takeoff_land_required() const { return _para_mis_takeoff_land_req.get(); }
 	float get_yaw_timeout() const { return _param_mis_yaw_tmt.get(); }
 	float get_yaw_threshold() const { return math::radians(_param_mis_yaw_err.get()); }
