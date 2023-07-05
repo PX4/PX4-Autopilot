@@ -33,8 +33,8 @@
 #############################################################################
 
 """
-px_generate_uorb_topic_files.py
-Generates c/cpp header/source files for uorb topics from .msg
+px_generate_zenoh_topic_files.py
+Generates c/cpp header/source files for use with zenoh
 message files
 """
 
@@ -69,12 +69,7 @@ __copyright__ = "Copyright (C) 2013-2022 PX4 Development Team."
 __license__ = "BSD"
 __email__ = "thomasgubler@gmail.com"
 
-
-TEMPLATE_FILE = ['msg.h.em', 'msg.cpp.em', 'uorb_idl_header.h.em']
-TOPICS_LIST_TEMPLATE_FILE = ['uORBTopics.hpp.em', 'uORBTopics.cpp.em']
-OUTPUT_FILE_EXT = ['.h', '.cpp', '.h']
-INCL_DEFAULT = ['std_msgs:./msg/std_msgs']
-PACKAGE = 'px4'
+ZENOH_TEMPLATE_FILE = ['Kconfig.topics.em', 'uorb_pubsub_factory.hpp.em']
 TOPICS_TOKEN = '# TOPICS '
 
 
@@ -103,72 +98,6 @@ def get_topics(filename):
         result.append(topic_name)
 
     return result
-
-
-def generate_output_from_file(format_idx, filename, outputdir, package, templatedir, includepath):
-    """
-    Converts a single .msg file to an uorb header/source file
-    """
-    msg_context = genmsg.msg_loader.MsgContext.create_default()
-    full_type_name = genmsg.gentools.compute_full_type_name(package, os.path.basename(filename))
-
-    file_base_name = os.path.basename(filename).replace(".msg", "")
-
-    full_type_name_snake = re.sub(r'(?<!^)(?=[A-Z])', '_', file_base_name).lower()
-
-    spec = genmsg.msg_loader.load_msg_from_file(msg_context, filename, full_type_name)
-
-    field_name_and_type = {}
-    for field in spec.parsed_fields():
-        field_name_and_type.update({field.name: field.type})
-
-    # assert if the timestamp field exists
-    try:
-        assert 'timestamp' in field_name_and_type
-    except AssertionError:
-        print("[ERROR] uORB topic files generator:\n\tgenerate_output_from_file:\tNo 'timestamp' field found in " +
-              spec.short_name + " msg definition!")
-        exit(1)
-
-    # assert if the timestamp field is of type uint64
-    try:
-        assert field_name_and_type.get('timestamp') == 'uint64'
-    except AssertionError:
-        print("[ERROR] uORB topic files generator:\n\tgenerate_output_from_file:\t'timestamp' field in " + spec.short_name +
-              " msg definition is not of type uint64 but rather of type " + field_name_and_type.get('timestamp') + "!")
-        exit(1)
-
-    topics = get_topics(filename)
-
-    if includepath:
-        search_path = genmsg.command_line.includepath_to_dict(includepath)
-    else:
-        search_path = {}
-
-    genmsg.msg_loader.load_depends(msg_context, spec, search_path)
-
-    em_globals = {
-        "name_snake_case": full_type_name_snake,
-        "file_name_in": filename,
-        "file_base_name": file_base_name,
-        "search_path": search_path,
-        "msg_context": msg_context,
-        "spec": spec,
-        "topics": topics,
-    }
-
-    # Make sure output directory exists:
-    if not os.path.isdir(outputdir):
-        os.makedirs(outputdir)
-
-    template_file = os.path.join(templatedir, TEMPLATE_FILE[format_idx])
-    if format_idx == 2:
-        output_file = os.path.join(outputdir, file_base_name + OUTPUT_FILE_EXT[format_idx])
-    else:
-        output_file = os.path.join(outputdir, full_type_name_snake + OUTPUT_FILE_EXT[format_idx])
-
-    return generate_by_template(output_file, template_file, em_globals)
-
 
 def generate_by_template(output_file, template_file, em_globals):
     """
@@ -201,37 +130,33 @@ def generate_topics_list_file_from_files(files, outputdir, template_filename, te
     for filename in [os.path.basename(p) for p in files if os.path.basename(p).endswith(".msg")]:
         filenames.append(re.sub(r'(?<!^)(?=[A-Z])', '_', filename).lower())
 
+    datatypes = []
+    for filename in [os.path.basename(p) for p in files if os.path.basename(p).endswith(".msg")]:
+        datatypes.append(re.sub(r'(?<!^)(?=[A-Z])', '_', filename).lower().replace(".msg",""))
+
+    full_base_names = []
+    for filename in [os.path.basename(p) for p in files if os.path.basename(p).endswith(".msg")]:
+        full_base_names.append(filename.replace(".msg",""))
+
     topics = []
     for msg_filename in files:
         topics.extend(get_topics(msg_filename))
 
-    tl_globals = {"msgs": filenames, "topics": topics}
+    tl_globals = {"msgs": filenames, "topics": topics, "datatypes": datatypes, "full_base_names": full_base_names}
     tl_template_file = os.path.join(templatedir, template_filename)
     tl_out_file = os.path.join(outputdir, template_filename.replace(".em", ""))
 
     generate_by_template(tl_out_file, tl_template_file, tl_globals)
 
-
-def append_to_include_path(path_to_append, curr_include, package):
-    for p in path_to_append:
-        curr_include.append('%s:%s' % (package, p))
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Convert msg files to uorb headers/sources')
-    parser.add_argument('--headers', help='Generate header files', action='store_true')
-    parser.add_argument('--sources', help='Generate source files', action='store_true')
-    parser.add_argument('--uorb-idl-header', help='Generate uORB compatible idl header', action='store_true')
+    parser.add_argument('--zenoh-config', help='Generate Zenoh Kconfig file', action='store_true')
+    parser.add_argument('--zenoh-pub-sub', help='Generate Zenoh Pubsub factory', action='store_true')
     parser.add_argument('-f', dest='file',
                         help="files to convert (use only without -d)",
                         nargs="+")
-    parser.add_argument('-i', dest="include_paths",
-                        help='Additional Include Paths', nargs="*",
-                        default=None)
     parser.add_argument('-e', dest='templatedir',
                         help='directory with template files',)
-    parser.add_argument('-k', dest='package', default=PACKAGE,
-                        help='package name')
     parser.add_argument('-o', dest='outputdir',
                         help='output directory for header files')
     parser.add_argument('-p', dest='prefix', default='',
@@ -239,25 +164,12 @@ if __name__ == "__main__":
                         ' name when converting directories')
     args = parser.parse_args()
 
-    if args.include_paths:
-        append_to_include_path(args.include_paths, INCL_DEFAULT, args.package)
-
-    if args.headers:
-        generate_idx = 0
-    elif args.sources:
-        generate_idx = 1
-    elif args.uorb_idl_header:
-        for f in args.file:
-            print(f)
-            generate_output_from_file(2, f, args.outputdir, args.package, args.templatedir, INCL_DEFAULT)
+    if args.zenoh_config:
+        generate_topics_list_file_from_files(args.file, args.outputdir, ZENOH_TEMPLATE_FILE[0], args.templatedir)
+        exit(0)
+    elif args.zenoh_pub_sub:
+        generate_topics_list_file_from_files(args.file, args.outputdir, ZENOH_TEMPLATE_FILE[1], args.templatedir)
         exit(0)
     else:
         print('Error: either --headers or --sources must be specified')
         exit(-1)
-    if args.file is not None:
-        for f in args.file:
-            generate_output_from_file(generate_idx, f, args.outputdir, args.package, args.templatedir, INCL_DEFAULT)
-
-        # Generate topics list header and source file
-        if os.path.isfile(os.path.join(args.templatedir, TOPICS_LIST_TEMPLATE_FILE[generate_idx])):
-            generate_topics_list_file_from_files(args.file, args.outputdir, TOPICS_LIST_TEMPLATE_FILE[generate_idx], args.templatedir)
