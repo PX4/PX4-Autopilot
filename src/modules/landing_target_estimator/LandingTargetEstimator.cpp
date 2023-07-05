@@ -255,7 +255,6 @@ void LandingTargetEstimator::_update_topics()
 		_target_position_report.rel_pos_y += _params.offset_y;
 
 		_new_irlockReport = true;
-    
 	}
 }
 
