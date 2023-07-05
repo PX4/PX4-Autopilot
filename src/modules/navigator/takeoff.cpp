@@ -96,62 +96,48 @@ Takeoff::on_active()
 void
 Takeoff::set_takeoff_position()
 {
-	struct position_setpoint_triplet_s *rep = _navigator->get_takeoff_triplet();
+	if (!_navigator->home_alt_valid()) {
+		mavlink_log_info(_navigator->get_mavlink_log_pub(),
+				 "Home altitude not valid, abort takeoff\t");
 
-	float abs_altitude = 0.0f;
-
-	float min_abs_altitude;
-
-	// TODO: review this, comments are talking about home pos, the validity is checked but the
-	// current altitude is used instead. Also, the "else" case does not consider the current altitude at all.
-	if (_navigator->home_alt_valid()) { //only use home position if it is valid
-		min_abs_altitude = _navigator->get_global_position()->alt + _navigator->get_takeoff_min_alt();
-
-	} else { //e.g. flow
-		min_abs_altitude = _navigator->get_takeoff_min_alt();
+		events::send(events::ID("navigator_takeoff_abort_no_valid_home_alt"), {events::LogLevel::Critical, events::LogInternal::Warning},
+			     "Home altitude not valid, abort takeoff");
+		return;
 	}
 
-	// Use altitude if it has been set. If home position is invalid use min_abs_altitude
-	events::LogLevel log_level = events::LogLevel::Disabled;
+	struct position_setpoint_triplet_s *rep = _navigator->get_takeoff_triplet();
 
-	if (rep->current.valid && PX4_ISFINITE(rep->current.alt) && _navigator->home_alt_valid()) {
-		abs_altitude = rep->current.alt;
+	float takeoff_altitude_amsl = 0.f;
 
-		// If the altitude suggestion is lower than home + minimum clearance, raise it and complain.
-		if (abs_altitude < min_abs_altitude) {
-			if (abs_altitude < min_abs_altitude - 0.1f) { // don't complain if difference is smaller than 10cm
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(),
-						     "Using minimum takeoff altitude: %.2f m\t", (double)_navigator->get_takeoff_min_alt());
-				log_level = events::LogLevel::Warning;
-			}
+	if (rep->current.valid && PX4_ISFINITE(rep->current.alt)) {
+		takeoff_altitude_amsl = rep->current.alt;
 
-			abs_altitude = min_abs_altitude;
+		// If the altitude suggestion is lower than home, notify and abort
+		if (takeoff_altitude_amsl < _navigator->get_home_position()->alt) {
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(),
+					     "abort takeoff \t");
 		}
 
 	} else {
-		// Use home + minimum clearance but only notify.
-		abs_altitude = min_abs_altitude;
+		takeoff_altitude_amsl = _navigator->get_home_position()->alt + _navigator->get_param_mis_takeoff_alt();
 		mavlink_log_info(_navigator->get_mavlink_log_pub(),
-				 "Using minimum takeoff altitude: %.2f m\t", (double)_navigator->get_takeoff_min_alt());
-		log_level = events::LogLevel::Info;
+				 "Using deault takeoff altitude: %.1f m\t", (double)_navigator->get_param_mis_takeoff_alt());
+
+		events::send<float>(events::ID("navigator_takeoff_default_alt"), {events::Log::Info, events::LogInternal::Info},
+				    "Using default takeoff altitude: {1:.2m}",
+				    _navigator->get_param_mis_takeoff_alt());
 	}
 
-	if (log_level != events::LogLevel::Disabled) {
-		events::send<float>(events::ID("navigator_takeoff_min_alt"), {log_level, events::LogInternal::Info},
-				    "Using minimum takeoff altitude: {1:.2m}",
-				    _navigator->get_takeoff_min_alt());
-	}
-
-	if (abs_altitude < _navigator->get_global_position()->alt) {
+	if (takeoff_altitude_amsl < _navigator->get_global_position()->alt) {
 		// If the suggestion is lower than our current alt, let's not go down.
-		abs_altitude = _navigator->get_global_position()->alt;
+		takeoff_altitude_amsl = _navigator->get_global_position()->alt;
 		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Already higher than takeoff altitude\t");
 		events::send(events::ID("navigator_takeoff_already_higher"), {events::Log::Error, events::LogInternal::Info},
 			     "Already higher than takeoff altitude (not descending)");
 	}
 
 	// set current mission item to takeoff
-	set_takeoff_item(&_mission_item, abs_altitude);
+	set_takeoff_item(&_mission_item, takeoff_altitude_amsl);
 	_navigator->get_mission_result()->finished = false;
 	_navigator->set_mission_result_updated();
 	reset_mission_item_reached();
