@@ -2568,11 +2568,12 @@ int EKF2::task_spawn(int argc, char *argv[])
 		// ekf selector requires SENS_IMU_MODE = 0
 		multi_mode = true;
 
-		// IMUs (1 - 4 supported)
+		// IMUs (1 - MAX_NUM_IMUS supported)
 		param_get(param_find("EKF2_MULTI_IMU"), &imu_instances);
 
-		if (imu_instances < 1 || imu_instances > 4) {
-			const int32_t imu_instances_limited = math::constrain(imu_instances, static_cast<int32_t>(1), static_cast<int32_t>(4));
+		if (imu_instances < 1 || imu_instances > MAX_NUM_IMUS) {
+			const int32_t imu_instances_limited = math::constrain(imu_instances, static_cast<int32_t>(1),
+							      static_cast<int32_t>(MAX_NUM_IMUS));
 			PX4_WARN("EKF2_MULTI_IMU limited %" PRId32 " -> %" PRId32, imu_instances, imu_instances_limited);
 			param_set_no_notification(param_find("EKF2_MULTI_IMU"), &imu_instances_limited);
 			imu_instances = imu_instances_limited;
@@ -2586,9 +2587,10 @@ int EKF2::task_spawn(int argc, char *argv[])
 			const param_t param_ekf2_mult_mag = param_find("EKF2_MULTI_MAG");
 			param_get(param_ekf2_mult_mag, &mag_instances);
 
-			// Mags (1 - 4 supported)
-			if (mag_instances > 4) {
-				const int32_t mag_instances_limited = math::constrain(mag_instances, static_cast<int32_t>(1), static_cast<int32_t>(4));
+			// Mags (1 - MAX_NUM_MAGS supported)
+			if (mag_instances > MAX_NUM_MAGS) {
+				const int32_t mag_instances_limited = math::constrain(mag_instances, static_cast<int32_t>(1),
+								      static_cast<int32_t>(MAX_NUM_MAGS));
 				PX4_WARN("EKF2_MULTI_MAG limited %" PRId32 " -> %" PRId32, mag_instances, mag_instances_limited);
 				param_set_no_notification(param_ekf2_mult_mag, &mag_instances_limited);
 				mag_instances = mag_instances_limited;
