@@ -1,0 +1,14 @@
+module_name: Zenoh bridge
+
+parameters:
+    - group: Zenoh
+      definitions:
+
+        ZENOH_ENABLE:
+            description:
+                short: Zenoh Enable
+                long: Zenoh
+            category: System
+            type: int32
+            reboot_required: true
+            default: 0
