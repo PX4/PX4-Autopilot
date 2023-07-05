@@ -6,14 +6,17 @@ set -e
 ## Can also be used in docker.
 ##
 ## Installs:
-## - Common dependencies and tools for NuttX, jMAVSim, Gazebo
+## - Common dependencies and tools for NuttX, Gazebo
 ## - NuttX toolchain (omit with arg: --no-nuttx)
-## - jMAVSim and Gazebo9 simulator (omit with arg: --no-sim-tools)
+## Optional:
+## - Gazebo simulator (build with arg: --with-sim-tools)
+## - Run within Docker (build with --from-docker)
 ##
 
 INSTALL_NUTTX="true"
-INSTALL_GAZEBO_CLASSIC="true"
-INSTALL_GAZEBO_IGNITION="true"
+INSTALL_SIM="false"
+INSTALL_GAZEBO_CLASSIC="false"
+INSTALL_GAZEBO="false"
 INSTALL_ARCH=$(uname -m)
 INSIDE_DOCKER="false"
 
@@ -24,12 +27,14 @@ do
 		INSTALL_NUTTX="false"
 	fi
 
-	if [[ $arg == "--no-gazebo-classic" ]]; then
-		INSTALL_GAZEBO_CLASSIC="false"
+	# we need to keep this to retain backwards compatibility
+	# with older scripts using ubuntu.sh
+	if [[ $arg == "--no-sim-tools" ]]; then
+		INSTALL_SIM="false"
 	fi
 
-	if [[ $arg == "--with-java" ]]; then
-		INSTALL_JAVA="true"
+	if [[ $arg == "--with-sim-tools" ]]; then
+		INSTALL_SIM="true"
 	fi
 
 	if [[ $arg == "--from-docker" ]]; then
@@ -65,9 +70,6 @@ elif [[ "${UBUNTU_RELEASE}" == "16.04" ]]; then
 	exit 1
 elif [[ "${UBUNTU_RELEASE}" == "18.04" ]]; then
 	echo "Ubuntu 18.04"
-	echo "Gazebo Classic and Gazebo Ignition omitted"
-	INSTALL_GAZEBO_IGNITION="false"
-	INSTALL_GAZEBO_CLASSIC="false"
 elif [[ "${UBUNTU_RELEASE}" == "20.04" ]]; then
 	echo "Ubuntu 20.04"
 elif [[ "${UBUNTU_RELEASE}" == "22.04" ]]; then
@@ -81,8 +83,7 @@ echo "⚡️ Starting PX4 Dependency Installer for Ubuntu ${UBUNTU_RELEASE} (${I
 echo ""
 echo "Options:
 - Install NuttX toolchain: ${INSTALL_NUTTX}
-- Install Gazebo Classic:  ${INSTALL_GAZEBO_CLASSIC}
-- Install Gazebo Ignition: ${INSTALL_GAZEBO_IGNITION}"
+- Install Simuation:  ${INSTALL_SIM}"
 echo $VERBOSE_BAR
 echo
 
@@ -103,6 +104,7 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends i
 	cppcheck \
 	file \
 	git \
+	gnupg \
 	lcov \
 	libfuse2 \
 	libxml2-dev \
@@ -240,55 +242,10 @@ install_gazebo_common() {
 	wget http://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add -
 	# Update list, since new gazebo-stable.list has been added
 	sudo apt-get update -y --quiet
-}
 
-# Gazebo Classic
-if [[ $INSTALL_GAZEBO_CLASSIC == "true" ]]; then
-
-	echo
-	echo $VERBOSE_BAR
-	echo "🍻 Installing Gazebo Classic"
-	echo
-
-	echo "  * Gazebo Classic (Version 11)"
-	echo $VERBOSE_BAR
-
-	install_gazebo_common
-
-	# Set Java 11 as default
-	sudo update-alternatives --set java $(update-alternatives --list java | grep "java-$java_version")
-
-	# Gazebo / Gazebo classic installation
-	if [[ "${UBUNTU_RELEASE}" == "22.04" ]]; then
-		echo "Gazebo (Garden) will be installed"
-		echo "Earlier versions will be removed"
-		# Add Gazebo binary repository
-		sudo wget https://packages.osrfoundation.org/gazebo.gpg -O /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg
-		echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] http://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/gazebo-stable.list > /dev/null
-		sudo apt-get update -y --quiet
-
-		# Install Gazebo
-		gazebo_packages="gz-garden"
-	else
-		sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-stable.list'
-		wget http://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add -
-		# Update list, since new gazebo-stable.list has been added
-		sudo apt-get update -y --quiet
-
-		# Install Gazebo classic
-		if [[ "${UBUNTU_RELEASE}" == "18.04" ]]; then
-			gazebo_classic_version=9
-			gazebo_packages="gazebo$gazebo_classic_version libgazebo$gazebo_classic_version-dev"
-		else
-			# default and Ubuntu 20.04
-			gazebo_classic_version=11
-			gazebo_packages="gazebo$gazebo_classic_version libgazebo$gazebo_classic_version-dev"
-		fi
-	fi
-
+	# Install Sim Dev Dependencies
 	sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
 		dmidecode \
-		gazebo libgazebo-dev \
 		gstreamer1.0-plugins-bad \
 		gstreamer1.0-plugins-base \
 		gstreamer1.0-plugins-good \
@@ -307,28 +264,76 @@ if [[ $INSTALL_GAZEBO_CLASSIC == "true" ]]; then
 		# fix VMWare 3D graphics acceleration for gazebo
 		echo "export SVGA_VGPU10=0" >> ~/.profile
 	fi
+}
 
+# decide which sim to install if any
+# then install common depdendencies
+if [[ $INSTALL_SIM == "true" ]]; then
+	install_gazebo_common
+
+	if [[ "${UBUNTU_RELEASE}" == "18.04" ]]; then
+		INSTALL_GAZEBO_CLASSIC = "true"
+	elif [[ "${UBUNTU_RELEASE}" == "20.04" ]]; then
+		INSTALL_GAZEBO = "true"
+	fi
 fi
 
-# Gazebo Ignition
-if [[ $INSTALL_GAZEBO_IGNITION == "true" ]]; then
+# Gazebo Classic
+if [[ $INSTALL_GAZEBO_CLASSIC == "true" ]]; then
 
 	echo
 	echo $VERBOSE_BAR
-	echo "🍻 Installing Gazebo IGNITION"
+	echo "🍻 Installing Gazebo Classic"
 	echo
-
-	echo "  * Gazebo Ignition (Version 6 / Fortress)"
+	echo "  * Gazebo Classic (Version 11)"
 	echo $VERBOSE_BAR
 
-	# We have likely done the common pieces already earlier.
-	if [[ $INSTALL_GAZEBO_CLASSIC != "true" ]]; then
-		install_gazebo_common
+	# Install Gazebo classic
+	if [[ "${UBUNTU_RELEASE}" == "18.04" ]]; then
+		# Install Gazebo Citadel
+		gazebo_classic_version=9
+		gazebo_packages="gazebo$gazebo_classic_version libgazebo$gazebo_classic_version-dev"
+	else
+		# Install Gazebo Fortress
+		gazebo_classic_version=11
+		gazebo_packages="gazebo$gazebo_classic_version libgazebo$gazebo_classic_version-dev"
 	fi
 
-	#
+
 	sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
-		ignition-fortress \
+		dmidecode \
+		$gazebo_packages \
+		gstreamer1.0-plugins-bad \
+		gstreamer1.0-plugins-base \
+		gstreamer1.0-plugins-good \
+		gstreamer1.0-plugins-ugly \
+		gstreamer1.0-libav \
+		libeigen3-dev \
+		libgstreamer-plugins-base1.0-dev \
+		libimage-exiftool-perl \
+		libopencv-dev \
+		libxml2-utils \
+		pkg-config \
+		protobuf-compiler \
+		;
+fi
+
+# New Gazebo
+if [[ $INSTALL_GAZEBO == "true" ]]; then
+
+	echo
+	echo $VERBOSE_BAR
+	echo "🍻 Installing Gazebo"
+	echo
+	echo "  * Gazebo Garden"
+	echo $VERBOSE_BAR
+
+	install_gazebo_common
+
+	# Gazebo installation
+
+	sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
+		gz-garden \
 		;
 fi
 

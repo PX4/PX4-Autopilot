@@ -1,0 +1,33 @@
+name: Checks
+
+on:
+  push:
+    branches:
+    - 'main'
+  pull_request:
+    branches:
+    - '*'
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        check: [
+          "ubuntu-22.04",
+          "ubuntu-20.04",
+        ]
+
+    steps:
+    - uses: actions/checkout@v1
+      with:
+        token: ${{ secrets.ACCESS_TOKEN }}
+
+    - name: check environment
+      run: |
+          export
+          ulimit -a
+    - name: "Run ${{ matrix.check }}"
+      run: ./Toos/setup/ubuntu.sh
