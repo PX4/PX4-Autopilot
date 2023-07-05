@@ -154,11 +154,6 @@ private:
 	void set_align_mission_item(struct mission_item_s *mission_item, struct mission_item_s *mission_item_next);
 
 	/**
-	 * Calculate takeoff height for mission item considering ground clearance
-	 */
-	float calculate_takeoff_altitude(struct mission_item_s *mission_item);
-
-	/**
 	 * Updates the heading of the vehicle. Rotary wings only.
 	 */
 	void heading_sp_update();
