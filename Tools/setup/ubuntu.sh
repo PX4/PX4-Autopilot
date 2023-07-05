@@ -95,14 +95,14 @@ echo
 
 sudo apt-get update -y --quiet
 sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
-	build-essential \
-	g++ \
-	gcc \
-	gdb \
 	astyle \
+	build-essential \
 	cmake \
 	cppcheck \
 	file \
+	g++ \
+	gcc \
+	gdb \
 	git \
 	gnupg \
 	lcov \
@@ -119,6 +119,7 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends i
 	rsync \
 	shellcheck \
 	unzip \
+	wget \
 	zip \
 	libssl-dev \
 	;
