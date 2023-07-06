@@ -82,7 +82,8 @@ public:
 		BATT_SMBUS_CELL_14_VOLTAGE              =       0x32,
 		BATT_SMBUS_CELL_15_VOLTAGE              =       0x31,
 		BATT_SMBUS_CELL_16_VOLTAGE              =       0x30,
-		BATT_SMBUS_CELL_COUNT                   =       0x40
+		BATT_SMBUS_CELL_COUNT                   =       0x40,
+		BATT_SMBUS_DECI_CURRENT			=	0x41
 	};
 
 private:
