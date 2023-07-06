@@ -70,7 +70,7 @@ void Magnetometer::set_device_id(uint32_t device_id)
 
 bool Magnetometer::set_offset(const Vector3f &offset)
 {
-	if (Vector3f(_offset - offset).longerThan(0.01f)) {
+	if (Vector3f(_offset - offset).longerThan(0.005f)) {
 		if (offset.isAllFinite()) {
 			_offset = offset;
 			_calibration_count++;
