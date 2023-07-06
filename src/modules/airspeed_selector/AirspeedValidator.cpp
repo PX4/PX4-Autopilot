@@ -136,11 +136,11 @@ AirspeedValidator::update_CAS_scale_validated(bool lpos_valid, const matrix::Vec
 			TAS_sum += _scale_check_TAS(i);
 		}
 
-		const float TAS_to_grounspeed_error_current = ground_speed_sum - TAS_sum * _CAS_scale_validated;
-		const float TAS_to_grounspeed_error_new = ground_speed_sum - TAS_sum * _wind_estimator.get_tas_scale();
+		const float TAS_to_groundspeed_error_current = ground_speed_sum - TAS_sum * _CAS_scale_validated;
+		const float TAS_to_groundspeed_error_new = ground_speed_sum - TAS_sum * _wind_estimator.get_tas_scale();
 
 		// check passes if the average airspeed with the scale applied is closer to groundspeed than without
-		if (fabsf(TAS_to_grounspeed_error_new) < fabsf(TAS_to_grounspeed_error_current)) {
+		if (fabsf(TAS_to_groundspeed_error_new) < fabsf(TAS_to_groundspeed_error_current)) {
 
 			// constrain the scale update to max 0.05 at a time
 			const float new_scale_constrained = math::constrain(_wind_estimator.get_tas_scale(), _CAS_scale_validated - 0.05f,
