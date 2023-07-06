@@ -2541,6 +2541,22 @@ void EKF2::UpdateMagCalibration(const hrt_abstime &timestamp)
 	}
 }
 
+bool EKF2::StartEKF2Selector()
+{
+	if (_ekf2_selector.load() == nullptr) {
+		EKF2Selector *inst = new EKF2Selector();
+
+		if (inst) {
+			_ekf2_selector.store(inst);
+			return true;
+		}
+
+		return false;
+	}
+
+	return true;
+}
+
 int EKF2::custom_command(int argc, char *argv[])
 {
 	return print_usage("unknown command");
@@ -2613,16 +2629,9 @@ int EKF2::task_spawn(int argc, char *argv[])
 
 	if (multi_mode && !replay_mode) {
 		// Start EKF2Selector if it's not already running
-		if (_ekf2_selector.load() == nullptr) {
-			EKF2Selector *inst = new EKF2Selector();
-
-			if (inst) {
-				_ekf2_selector.store(inst);
-
-			} else {
-				PX4_ERR("Failed to create EKF2 selector");
-				return PX4_ERROR;
-			}
+		if (!EKF2::StartEKF2Selector()) {
+			PX4_ERR("Failed to create EKF2 selector");
+			return PX4_ERROR;
 		}
 
 		const hrt_abstime time_started = hrt_absolute_time();

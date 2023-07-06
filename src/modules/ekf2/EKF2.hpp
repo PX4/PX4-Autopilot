@@ -198,6 +198,12 @@ private:
 	void PublishWindEstimate(const hrt_abstime &timestamp);
 	void PublishYawEstimatorStatus(const hrt_abstime &timestamp);
 
+	/**
+	 * @brief Starts EKF2Selector if it's not already running.
+	 * @param result true if it is already started of it was able to start it. False otherwise.
+	 */
+	static bool StartEKF2Selector();
+
 #if defined(CONFIG_EKF2_AIRSPEED)
 	void UpdateAirspeedSample(ekf2_timestamps_s &ekf2_timestamps);
 #endif // CONFIG_EKF2_AIRSPEED
