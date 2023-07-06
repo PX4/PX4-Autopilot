@@ -2461,7 +2461,7 @@ void EKF2::UpdateCalibration(const hrt_abstime &timestamp, InFlightCalibration &
 				cal.total_time_us += timestamp - cal.last_us;
 			}
 
-			if (cal.total_time_us > 30_s) {
+			if (cal.total_time_us > 10_s) {
 				cal.cal_available = true;
 			}
 
