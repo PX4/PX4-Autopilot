@@ -199,10 +199,22 @@ private:
 	void PublishYawEstimatorStatus(const hrt_abstime &timestamp);
 
 	/**
+	 * @brief Handles the spawning of multiple EKF2 instances based on the input number of sensors.
+	 * @param result true if it has managed to successfully start at least one instance. False if it hasn't.
+	 */
+	static int MultiEKF2SpawnHandler(int32_t imu_instances, int32_t mag_instances);
+
+	/**
 	 * @brief Starts EKF2Selector if it's not already running.
 	 * @param result true if it is already started of it was able to start it. False otherwise.
 	 */
 	static bool StartEKF2Selector();
+
+	/**
+	 * @brief Starts an EKF2 instance in multi EKF mode and updates all the internal variables
+	 * @param result instance number if could be started. PX4_ERROR otherwise.
+	 */
+	static int StartMultiModeEKF2Instance(const px4::wq_config_t wq, bool replay_mode, int imu, int mag);
 
 	/**
 	 * @brief Starts an EKF2 instance in single EKF mode and updates all the internal variables
