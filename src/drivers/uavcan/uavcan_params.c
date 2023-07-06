@@ -367,3 +367,21 @@ PARAM_DEFINE_INT32(UAVCAN_SUB_RNG, 0);
  * @group UAVCAN
  */
 PARAM_DEFINE_INT32(UAVCAN_SUB_BTN, 0);
+
+/**
+ * logging verbosity
+ *
+ * Log messages received on uavcan if they have given severity level or higher.
+ * Note: Messages with lower severity than general logging verbosity will never be logged.
+ *
+ * @min -1
+ * @max 3
+ * @value -1 None
+ * @value 0 Error
+ * @value 1 Warning
+ * @value 2 Info
+ * @value 3 Debug
+ * @reboot_required true
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(UAVCAN_LOG_LEVEL, 1);
