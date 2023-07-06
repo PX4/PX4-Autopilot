@@ -71,7 +71,6 @@ public:
 		ModuleParams(nullptr)
 	{
 		_resetSetpoints();
-		_constraints = empty_constraints;
 	}
 
 	virtual ~FlightTask() = default;
@@ -97,7 +96,7 @@ public:
 	virtual bool applyCommandParameters(const vehicle_command_s &command, bool &success) { return false; }
 
 	/**
-	 * Call before activate() or update()
+	 * Called before activate() and update()
 	 * to initialize time and input data
 	 * @return true on success, false on error
 	 */
@@ -247,7 +246,7 @@ protected:
 	 * Vehicle constraints.
 	 * The constraints can vary with tasks.
 	 */
-	vehicle_constraints_s _constraints{};
+	vehicle_constraints_s _constraints{empty_constraints};
 
 	landing_gear_s _gear{};
 
