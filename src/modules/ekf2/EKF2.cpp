@@ -2456,8 +2456,10 @@ void EKF2::UpdateCalibration(const hrt_abstime &timestamp, InFlightCalibration &
 		// consider bias estimates stable when all checks pass consistently and bias hasn't changed more than 10% of the limit
 		const float bias_change_limit = 0.1f * bias_limit;
 
-		if ((cal.last_us != 0) && !(cal.bias - bias).longerThan(bias_change_limit)) {
-			cal.total_time_us += timestamp - cal.last_us;
+		if (!(cal.bias - bias).longerThan(bias_change_limit)) {
+			if (cal.last_us != 0) {
+				cal.total_time_us += timestamp - cal.last_us;
+			}
 
 			if (cal.total_time_us > 30_s) {
 				cal.cal_available = true;
@@ -2517,7 +2519,6 @@ void EKF2::UpdateGyroCalibration(const hrt_abstime &timestamp)
 void EKF2::UpdateMagCalibration(const hrt_abstime &timestamp)
 {
 	const bool bias_valid = (_ekf.control_status_flags().mag_hdg || _ekf.control_status_flags().mag_3D)
-				&& _ekf.control_status_flags().mag_aligned_in_flight
 				&& !_ekf.control_status_flags().mag_fault
 				&& !_ekf.control_status_flags().mag_field_disturbed;
 

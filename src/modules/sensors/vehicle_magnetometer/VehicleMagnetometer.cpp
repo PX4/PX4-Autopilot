@@ -329,7 +329,7 @@ void VehicleMagnetometer::UpdateMagCalibration()
 
 					if (_calibration[mag_index].set_offset(mag_cal_offset)) {
 
-						PX4_INFO("%d (%" PRIu32 ") EST:%d offset: [%.2f, %.2f, %.2f]->[%.2f, %.2f, %.2f] (full [%.3f, %.3f, %.3f])",
+						PX4_INFO("%d (%" PRIu32 ") EST:%d offset: [%.3f, %.3f, %.3f]->[%.3f, %.3f, %.3f] (full [%.3f, %.3f, %.3f])",
 							 mag_index, _calibration[mag_index].device_id(), i,
 							 (double)mag_cal_orig(0), (double)mag_cal_orig(1), (double)mag_cal_orig(2),
 							 (double)mag_cal_offset(0), (double)mag_cal_offset(1), (double)mag_cal_offset(2),
