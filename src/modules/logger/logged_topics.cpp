@@ -59,7 +59,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("external_ins_attitude");
 	add_optional_topic("external_ins_global_position");
 	add_optional_topic("external_ins_local_position");
-	add_topic("esc_status");
+	add_topic("esc_status", 5);
 	// add_topic("esc_status", 250);
 	// add_optional_topic("esc_status", 250);
 	add_topic("failure_detector_status", 100);
