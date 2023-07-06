@@ -155,7 +155,7 @@ void Batmon::RunImpl()
         } else {
                 // Read current in cA.
                 ret |= _interface->read_word(BATT_SMBUS_DECI_CURRENT, result);
-                new_report.current_a = (-1.0f * ((float)(*(int16_t *)&result)) / 100.0f);
+                new_report.current_a = (-1.0f * ((float)(*(int16_t *)&result)) / 10.0f);
         }
         new_report.current_filtered_a = new_report.current_a;
 
