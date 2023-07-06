@@ -2710,16 +2710,31 @@ int EKF2::task_spawn(int argc, char *argv[])
 
 	{
 		// otherwise launch regular
-		EKF2 *ekf2_inst = new EKF2(false, px4::wq_configurations::INS0, replay_mode);
-
-		if (ekf2_inst) {
-			_objects[0].store(ekf2_inst);
-			ekf2_inst->ScheduleNow();
+		if (EKF2::StartSingleEFK2Instance(px4::wq_configurations::INS0, replay_mode)) {
 			success = true;
+
+		} else {
+			PX4_ERR("unable to start EKF2 instance in single EKF mode");
 		}
+
 	}
 
 	return success ? PX4_OK : PX4_ERROR;
+}
+
+bool EKF2::StartSingleEFK2Instance(const px4::wq_config_t wq, bool replay_mode)
+{
+	// Instance number could probably be obtained from
+	EKF2 *ekf2_inst = new EKF2(false, wq, replay_mode);
+
+	if (ekf2_inst) {
+		int actual_instance = ekf2_inst->instance(); // match uORB instance numbering
+		_objects[actual_instance].store(ekf2_inst);
+		ekf2_inst->ScheduleNow();
+		return true;
+	}
+
+	return false;
 }
 
 int EKF2::print_usage(const char *reason)

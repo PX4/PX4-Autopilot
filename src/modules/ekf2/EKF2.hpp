@@ -204,6 +204,12 @@ private:
 	 */
 	static bool StartEKF2Selector();
 
+	/**
+	 * @brief Starts an EKF2 instance in single EKF mode and updates all the internal variables
+	 * @param result true if it could be started. False otherwise.
+	 */
+	static bool StartSingleEFK2Instance(const px4::wq_config_t wq, bool replay_mode);
+
 #if defined(CONFIG_EKF2_AIRSPEED)
 	void UpdateAirspeedSample(ekf2_timestamps_s &ekf2_timestamps);
 #endif // CONFIG_EKF2_AIRSPEED
