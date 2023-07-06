@@ -259,7 +259,7 @@ void VehicleMagnetometer::UpdateMagCalibration()
 	// State variance assumed for magnetometer bias storage.
 	// This is a reference variance used to calculate the fraction of learned magnetometer bias that will be used to update the stored value.
 	// Larger values cause a larger fraction of the learned biases to be used.
-	static constexpr float magb_vref = 2.5e-7f;
+	static constexpr float magb_vref = 2.5e-6f;
 	static constexpr float min_var_allowed = magb_vref * 0.01f;
 	static constexpr float max_var_allowed = magb_vref * 500.f;
 
