@@ -1450,12 +1450,12 @@ GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 			break;
 
 		case 'j':
-			if (!strcmp(myoptarg, "spi")) {
-				interface_secondary = GPSHelper::Interface::SPI;
-
-			} else if (!strcmp(myoptarg, "uart")) {
+			if (!strcmp(myoptarg, "uart")) {
 				interface_secondary = GPSHelper::Interface::UART;
-
+#ifdef __PX4_LINUX
+			} else if (!strcmp(myoptarg, "spi")) {
+				interface_secondary = GPSHelper::Interface::SPI;
+#endif
 			} else {
 				PX4_ERR("unknown interface for secondary: %s", myoptarg);
 				error_flag = true;
