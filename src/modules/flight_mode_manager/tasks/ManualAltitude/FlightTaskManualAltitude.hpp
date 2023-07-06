@@ -40,7 +40,6 @@
 #pragma once
 
 #include "FlightTask.hpp"
-#include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include "Sticks.hpp"
 #include "StickTiltXY.hpp"
 #include "StickYaw.hpp"
