@@ -50,5 +50,4 @@ add_library(px4 SHARED
 target_link_libraries(px4
 	modules__muorb__slpi
 	${module_libraries}
-	px4_layer
 	)
