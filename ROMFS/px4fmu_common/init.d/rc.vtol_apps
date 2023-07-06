@@ -20,7 +20,10 @@ ekf2 start &
 #
 control_allocator start
 
-airspeed_selector start
+if param greater -s ASPD_SEL_EN 0
+then
+	airspeed_selector start
+fi
 
 vtol_att_control start
 

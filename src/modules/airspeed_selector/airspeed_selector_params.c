@@ -1,5 +1,13 @@
 
 /**
+ * Airspeed validator/selector enable
+ *
+ * @boolean
+ * @group Airspeed Validator
+ */
+PARAM_DEFINE_INT32(ASPD_SEL_EN, 1);
+
+/**
  * Airspeed Selector: Wind estimator wind process noise noise spectral density
  *
  * Wind process noise of the internal wind estimator(s) of the airspeed selector.
