@@ -3080,11 +3080,10 @@ void MavlinkReceiver::handle_message_velocity_limit(mavlink_message_t *msg)
 	mavlink_msg_velocity_limits_decode(msg, &velocity_limits);
 
 	position_mode_limits_s position_mode_limits{};
-	position_mode_limits.timestamp = hrt_absolute_time();
 	position_mode_limits.horizontal_velocity_limit = velocity_limits.horizontal_velocity_limit;
 	position_mode_limits.vertical_velocity_limit = velocity_limits.vertical_velocity_limit;
 	position_mode_limits.yaw_rate_limit = velocity_limits.yaw_rate_limit;
-
+	position_mode_limits.timestamp = hrt_absolute_time();
 	_position_mode_limits_pub.publish(position_mode_limits);
 }
 

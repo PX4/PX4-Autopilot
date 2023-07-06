@@ -40,6 +40,8 @@
 using namespace matrix;
 using namespace time_literals;
 
+const position_mode_limits_s FlightTaskManualAcceleration::no_limits = {0, INFINITY, INFINITY, INFINITY};
+
 bool FlightTaskManualAcceleration::activate(const trajectory_setpoint_s &last_setpoint)
 {
 	bool ret = FlightTaskManualAltitudeSmoothVel::activate(last_setpoint);
@@ -55,10 +57,22 @@ bool FlightTaskManualAcceleration::activate(const trajectory_setpoint_s &last_se
 
 	_stick_acceleration_xy.resetAcceleration(Vector2f(last_setpoint.acceleration));
 
-	_vertical_velocity_limit = INFINITY;
-	_position_mode_limits.vertical_velocity_limit = INFINITY;
-	_position_mode_limits.horizontal_velocity_limit = INFINITY;
-	_position_mode_limits.yaw_rate_limit = INFINITY;
+	return ret;
+}
+
+bool FlightTaskManualAcceleration::updateInitialize()
+{
+	bool ret = FlightTaskManualAltitudeSmoothVel::updateInitialize();
+
+	_position_mode_limits_sub.update(&_position_mode_limits);
+
+	if (_time_stamp_current > (_position_mode_limits.timestamp + 2_s)) {
+		_position_mode_limits = FlightTaskManualAcceleration::no_limits;
+	}
+
+	_stick_acceleration_xy.setVelocityConstraint(_position_mode_limits.horizontal_velocity_limit);
+	_vertical_velocity_limit = _position_mode_limits.vertical_velocity_limit;
+	_stick_yaw.setYawRateLimit(_position_mode_limits.yaw_rate_limit);
 
 	return ret;
 }
@@ -67,19 +81,6 @@ bool FlightTaskManualAcceleration::update()
 {
 	bool ret = FlightTaskManualAltitudeSmoothVel::update();
 
-	if (_position_mode_limits_sub.update(&_position_mode_limits)) {
-		_stick_yaw.setYawLimit(_position_mode_limits.yaw_rate_limit);
-		_vertical_velocity_limit = _position_mode_limits.vertical_velocity_limit;
-
-	} else if (_time_stamp_current > _position_mode_limits.timestamp + 2_s) {
-		_position_mode_limits.vertical_velocity_limit = INFINITY;
-		_position_mode_limits.horizontal_velocity_limit = INFINITY;
-		_position_mode_limits.yaw_rate_limit = INFINITY;
-		_stick_yaw.setYawLimit(_position_mode_limits.yaw_rate_limit);
-		_vertical_velocity_limit = _position_mode_limits.vertical_velocity_limit;
-	}
-
-	_stick_acceleration_xy.setVelocityConstraint(_position_mode_limits.horizontal_velocity_limit);
 	_stick_acceleration_xy.generateSetpoints(_sticks.getPitchRollExpo(), _yaw, _yaw_setpoint, _position,
 			_velocity_setpoint_feedback.xy(), _deltatime);
 	_stick_acceleration_xy.getSetpoints(_position_setpoint, _velocity_setpoint, _acceleration_setpoint);

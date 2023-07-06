@@ -53,11 +53,13 @@ public:
 	FlightTaskManualAcceleration() = default;
 	virtual ~FlightTaskManualAcceleration() = default;
 	bool activate(const trajectory_setpoint_s &last_setpoint) override;
+	bool updateInitialize() override;
 	bool update() override;
 
 private:
 	uORB::Subscription _position_mode_limits_sub{ORB_ID(position_mode_limits)};
-	position_mode_limits_s _position_mode_limits{};
+	static const position_mode_limits_s no_limits;
+	position_mode_limits_s _position_mode_limits{no_limits};
 
 	void _ekfResetHandlerPositionXY(const matrix::Vector2f &delta_xy) override;
 	void _ekfResetHandlerVelocityXY(const matrix::Vector2f &delta_vxy) override;

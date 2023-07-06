@@ -73,7 +73,6 @@ void StickAccelerationXY::resetAcceleration(const matrix::Vector2f &acceleration
 void StickAccelerationXY::generateSetpoints(Vector2f stick_xy, const float yaw, const float yaw_sp, const Vector3f &pos,
 		const matrix::Vector2f &vel_sp_feedback, const float dt)
 {
-
 	// maximum commanded acceleration and velocity
 	Vector2f acceleration_scale(_param_mpc_acc_hor.get(), _param_mpc_acc_hor.get());
 	const float velocity_sc = fminf(_param_mpc_vel_manual.get(), _velocity_constraint);
