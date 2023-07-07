@@ -198,6 +198,7 @@ private:
 	void PublishWindEstimate(const hrt_abstime &timestamp);
 	void PublishYawEstimatorStatus(const hrt_abstime &timestamp);
 
+#if defined(CONFIG_EKF2_MULTI_INSTANCE)
 	/**
 	 * @brief Handles the spawning of multiple EKF2 instances based on the input number of sensors.
 	 * @param result true if it has managed to successfully start at least one instance. False if it hasn't.
@@ -215,6 +216,7 @@ private:
 	 * @param result instance number if could be started. PX4_ERROR otherwise.
 	 */
 	static int StartMultiModeEKF2Instance(const px4::wq_config_t wq, bool replay_mode, int imu, int mag);
+#endif // #if defined(CONFIG_EKF2_MULTI_INSTANCE)
 
 	/**
 	 * @brief Starts an EKF2 instance in single EKF mode and updates all the internal variables
