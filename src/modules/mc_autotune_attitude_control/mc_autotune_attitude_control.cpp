@@ -61,8 +61,6 @@ bool McAutotuneAttitudeControl::init()
 		return false;
 	}
 
-	_signal_filter.setParameters(_publishing_dt_s, .2f); // runs in the slow publishing loop
-
 	return true;
 }
 
@@ -167,7 +165,7 @@ void McAutotuneAttitudeControl::Run()
 		_model_update_counter = 0;
 	}
 
-	if (hrt_elapsed_time(&_last_publish) > _publishing_dt_hrt || _last_publish == 0) {
+	if (hrt_elapsed_time(&_last_publish) > (_publishing_dt_s * 1_s) || _last_publish == 0) {
 		const hrt_abstime now = hrt_absolute_time();
 		updateStateMachine(now);
 
@@ -198,7 +196,7 @@ void McAutotuneAttitudeControl::Run()
 		const Vector<float, 5> &coeff_var = _sys_id.getVariances();
 
 		const Vector3f rate_sp = _sys_id.areFiltersInitialized()
-					 ? getIdentificationSignal()
+					 ? getIdentificationSignal(now)
 					 : Vector3f();
 
 		autotune_attitude_control_status_s status{};
@@ -289,12 +287,7 @@ void McAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 			_state = state::roll;
 			_state_start_time = now;
 			_sys_id.reset();
-			// first step needs to be shorter to keep the drone centered
-			_steps_counter = 5;
-			_max_steps = 10;
-			_signal_sign = 1;
 			_input_scale = 1.f / (_param_mc_rollrate_p.get() * _param_mc_rollrate_k.get());
-			_signal_filter.reset(0.f);
 			_gains_backup_available = false;
 		}
 
@@ -302,7 +295,7 @@ void McAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 
 	case state::roll:
 		if (areAllSmallerThan(_sys_id.getVariances(), converged_thr)
-		    && ((now - _state_start_time) > 5_s)) {
+		    && ((now - _state_start_time) > (_param_mc_at_sysid_time.get() * 1_s))) {
 			copyGains(0);
 
 			// wait for the drone to stabilize
@@ -318,18 +311,13 @@ void McAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 			_state_start_time = now;
 			_sys_id.reset();
 			_input_scale = 1.f / (_param_mc_pitchrate_p.get() * _param_mc_pitchrate_k.get());
-			_signal_filter.reset(0.f);
-			_signal_sign = 1;
-			// first step needs to be shorter to keep the drone centered
-			_steps_counter = 5;
-			_max_steps = 10;
 		}
 
 		break;
 
 	case state::pitch:
 		if (areAllSmallerThan(_sys_id.getVariances(), converged_thr)
-		    && ((now - _state_start_time) > 5_s)) {
+		    && ((now - _state_start_time) > (_param_mc_at_sysid_time.get() * 1_s))) {
 			copyGains(1);
 			_state = state::pitch_pause;
 			_state_start_time = now;
@@ -343,18 +331,13 @@ void McAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 			_state_start_time = now;
 			_sys_id.reset();
 			_input_scale = 1.f / (_param_mc_yawrate_p.get() * _param_mc_yawrate_k.get());
-			_signal_filter.reset(0.f);
-			_signal_sign = 1;
-			// first step needs to be shorter to keep the drone centered
-			_steps_counter = 5;
-			_max_steps = 10;
 		}
 
 		break;
 
 	case state::yaw:
 		if (areAllSmallerThan(_sys_id.getVariances(), converged_thr)
-		    && ((now - _state_start_time) > 5_s)) {
+		    && ((now - _state_start_time) > (_param_mc_at_sysid_time.get() * 1_s))) {
 			copyGains(2);
 			_state = state::yaw_pause;
 			_state_start_time = now;
@@ -367,10 +350,6 @@ void McAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 			_state = state::verification;
 			_state_start_time = now;
 			_sys_id.reset();
-			_signal_filter.reset(0.f);
-			_signal_sign = 1;
-			_steps_counter = 5;
-			_max_steps = 10;
 		}
 
 		break;
@@ -445,7 +424,7 @@ void McAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 
 	if (_state != state::wait_for_disarm
 	    && _state != state::idle
-	    && (((now - _state_start_time) > 20_s)
+	    && (((now - _state_start_time) > (_param_mc_at_sysid_time.get() * 1_s + 2_s))
 		|| (fabsf(manual_control_setpoint.roll) > 0.05f)
 		|| (fabsf(manual_control_setpoint.pitch) > 0.05f))) {
 		_state = state::fail;
@@ -585,27 +564,25 @@ void McAutotuneAttitudeControl::stopAutotune()
 	_vehicle_torque_setpoint_sub.unregisterCallback();
 }
 
-const Vector3f McAutotuneAttitudeControl::getIdentificationSignal()
+const Vector3f McAutotuneAttitudeControl::getIdentificationSignal(hrt_abstime now)
 {
-	if (_steps_counter > _max_steps) {
-		_signal_sign = (_signal_sign == 1) ? 0 : 1;
-		_steps_counter = 0;
+	const float t = static_cast<float>(now - _state_start_time) * 1e-6f;
 
-		if (_max_steps > 1) {
-			_max_steps--;
+	float signal;
 
-		} else {
-			_max_steps = 5;
-		}
+	if (_param_mc_at_sysid_type.get() == static_cast<int32_t>(SignalType::kLinearSineSweep)) {
+		signal = signal_generator::getLinearSineSweep(_param_mc_at_sysid_f0.get(), _param_mc_at_sysid_f1.get(),
+				_param_mc_at_sysid_time.get(), t);
+
+	} else if (_param_mc_at_sysid_type.get() == static_cast<int32_t>(SignalType::kLogSineSweep)) {
+		signal = signal_generator::getLogSineSweep(_param_mc_at_sysid_f0.get(), _param_mc_at_sysid_f1.get(),
+				_param_mc_at_sysid_time.get(), t);
+
+	} else {
+		signal = 0.f;
 	}
 
-	_steps_counter++;
-
-	const float step = float(_signal_sign) * _param_mc_at_sysid_amp.get();
-
-	Vector3f rate_sp{};
-
-	const float signal = step - _signal_filter.getState();
+	Vector3f rate_sp;
 
 	if (_state == state::roll) {
 		rate_sp(0) = signal;
@@ -620,8 +597,6 @@ const Vector3f McAutotuneAttitudeControl::getIdentificationSignal()
 		rate_sp(0) = signal;
 		rate_sp(1) = signal;
 	}
-
-	_signal_filter.update(step);
 
 	return rate_sp;
 }

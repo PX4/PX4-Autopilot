@@ -43,6 +43,7 @@
 #include <lib/perf/perf_counter.h>
 #include <lib/pid_design/pid_design.hpp>
 #include <lib/system_identification/system_identification.hpp>
+#include <lib/system_identification/signal_generator.hpp>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
@@ -100,7 +101,7 @@ private:
 	void backupAndSaveGainsToParams();
 	void revertParamGains();
 
-	const matrix::Vector3f getIdentificationSignal();
+	const matrix::Vector3f getIdentificationSignal(hrt_abstime now);
 
 	uORB::SubscriptionCallbackWorkItem _vehicle_torque_setpoint_sub{this, ORB_ID(vehicle_torque_setpoint)};
 	uORB::SubscriptionCallbackWorkItem _parameter_update_sub{this, ORB_ID(parameter_update)};
@@ -131,10 +132,12 @@ private:
 		wait_for_disarm = autotune_attitude_control_status_s::STATE_WAIT_FOR_DISARM
 	} _state{state::idle};
 
+	enum class SignalType : uint8_t {
+		kLinearSineSweep = 0,
+		kLogSineSweep
+	};
+
 	hrt_abstime _state_start_time{0};
-	uint8_t _steps_counter{0};
-	uint8_t _max_steps{5};
-	int8_t _signal_sign{0};
 
 	bool _armed{false};
 
@@ -167,8 +170,6 @@ private:
 	float _filter_dt{0.01f};
 	bool _are_filters_initialized{false};
 
-	AlphaFilter<float> _signal_filter; ///< used to create a wash-out filter
-
 	static constexpr float _model_dt_min{2e-3f}; // 2ms = 500Hz
 	static constexpr float _model_dt_max{10e-3f}; // 10ms = 100Hz
 	int _model_update_scaler{1};
@@ -179,6 +180,10 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamBool<px4::params::MC_AT_START>) _param_mc_at_start,
 		(ParamFloat<px4::params::MC_AT_SYSID_AMP>) _param_mc_at_sysid_amp,
+		(ParamFloat<px4::params::MC_AT_SYSID_F0>) _param_mc_at_sysid_f0,
+		(ParamFloat<px4::params::MC_AT_SYSID_F1>) _param_mc_at_sysid_f1,
+		(ParamFloat<px4::params::MC_AT_SYSID_TIME>) _param_mc_at_sysid_time,
+		(ParamInt<px4::params::MC_AT_SYSID_TYPE>) _param_mc_at_sysid_type,
 		(ParamInt<px4::params::MC_AT_APPLY>) _param_mc_at_apply,
 		(ParamFloat<px4::params::MC_AT_RISE_TIME>) _param_mc_at_rise_time,
 
@@ -201,6 +206,5 @@ private:
 		(ParamFloat<px4::params::MC_YAW_P>) _param_mc_yaw_p
 	)
 
-	static constexpr float _publishing_dt_s = 100e-3f;
-	static constexpr hrt_abstime _publishing_dt_hrt = 100_ms;
+	static constexpr float _publishing_dt_s = 5e-3f;
 };

@@ -77,6 +77,56 @@ PARAM_DEFINE_INT32(MC_AT_START, 0);
 PARAM_DEFINE_FLOAT(MC_AT_SYSID_AMP, 0.7);
 
 /**
+ * Start frequency of the injected signal
+ *
+ * Can be set lower or higher than the end frequency
+ *
+ * @min 0.1
+ * @max 30.0
+ * @decimal 1
+ * @unit Hz
+ * @group Autotune
+ */
+PARAM_DEFINE_FLOAT(MC_AT_SYSID_F0, 1.f);
+
+/**
+ * End frequency of the injected signal
+ *
+ * Can be set lower or higher than the start frequency
+ *
+ * @min 0.1
+ * @max 30.0
+ * @decimal 1
+ * @unit Hz
+ * @group Autotune
+ */
+PARAM_DEFINE_FLOAT(MC_AT_SYSID_F1, 20.f);
+
+/**
+ * Maneuver time for each axis
+ *
+ * Duration of the input signal sent on each axis during system identification
+ *
+ * @min 5
+ * @max 120
+ * @decimal 0
+ * @unit s
+ * @group Autotune
+ */
+PARAM_DEFINE_FLOAT(MC_AT_SYSID_TIME, 10.f);
+
+/**
+ * Input signal type
+ *
+ * Type of signal used during system identification to excite the system.
+ *
+ * @value 0 Linear sine sweep
+ * @value 1 Logarithmic sine sweep
+ * @group Autotune
+ */
+PARAM_DEFINE_INT32(MC_AT_SYSID_TYPE, 1);
+
+/**
  * Controls when to apply the new gains
  *
  * After the auto-tuning sequence is completed,
