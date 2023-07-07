@@ -317,11 +317,7 @@ ByteSize SerialImpl::getBytesize() const
 
 bool SerialImpl::setBytesize(ByteSize bytesize)
 {
-	if (bytesize != ByteSize::EightBits) {
-		return false;
-	}
-
-	return true;
+	return bytesize == ByteSize::EightBits;
 }
 
 Parity SerialImpl::getParity() const
@@ -331,11 +327,7 @@ Parity SerialImpl::getParity() const
 
 bool SerialImpl::setParity(Parity parity)
 {
-	if (parity != Parity::None) {
-		return false;
-	}
-
-	return true;
+	return parity == Parity::None;
 }
 
 StopBits SerialImpl::getStopbits() const
@@ -345,11 +337,7 @@ StopBits SerialImpl::getStopbits() const
 
 bool SerialImpl::setStopbits(StopBits stopbits)
 {
-	if (stopbits != StopBits::One) {
-		return false;
-	}
-
-	return true;
+	return stopbits == StopBits::One;
 }
 
 FlowControl SerialImpl::getFlowcontrol() const
@@ -359,11 +347,7 @@ FlowControl SerialImpl::getFlowcontrol() const
 
 bool SerialImpl::setFlowcontrol(FlowControl flowcontrol)
 {
-	if (flowcontrol != FlowControl::Disabled) {
-		return false;
-	}
-
-	return true;
+	return flowcontrol == FlowControl::Disabled;
 }
 
 } // namespace device
