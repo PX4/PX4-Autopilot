@@ -2697,7 +2697,7 @@ int EKF2::StartMultiModeEKF2Instance(const px4::wq_config_t wq, bool replay_mode
 	}
 }
 
-int EKF2::MultiEKF2SpawnHandler(int32_t imu_instances, int32_t mag_instances)
+bool EKF2::MultiEKF2SpawnHandler(int32_t imu_instances, int32_t mag_instances)
 {
 	bool success = false;
 	const hrt_abstime time_started = hrt_absolute_time();
@@ -2721,33 +2721,29 @@ int EKF2::MultiEKF2SpawnHandler(int32_t imu_instances, int32_t mag_instances)
 
 			for (uint8_t imu = 0; imu < imu_instances; imu++) {
 
+				// Don't respawn already created instances
+				if (ekf2_instance_created[imu][mag]) { continue; }
+
 				uORB::SubscriptionData<vehicle_imu_s> vehicle_imu_sub{ORB_ID(vehicle_imu), imu};
 				vehicle_mag_sub.update();
 
-				// Mag & IMU data must be valid, first mag (mag0) can be ignored initially
-				if ((vehicle_mag_sub.advertised() || mag == 0) && (vehicle_imu_sub.advertised())) {
-					if (!ekf2_instance_created[imu][mag]) {
-
-						int actual_instance = EKF2::StartMultiModeEKF2Instance(px4::ins_instance_to_wq(imu), false, imu, mag);
-
-						if (PX4_ERROR != actual_instance) {
-							success = true;
-							multi_instances_allocated++;
-							ekf2_instance_created[imu][mag] = true;
-							PX4_DEBUG("starting instance %d, IMU:%" PRIu8 " (%" PRIu32 "), MAG:%" PRIu8 " (%" PRIu32 ")", actual_instance,
-								  imu, vehicle_imu_sub.get().accel_device_id,
-								  mag, vehicle_mag_sub.get().device_id);
-
-						} else {
-							break;
-						}
-
-					}
-
-				} else {
+				// IMU & Mag data must be valid, first mag (mag0) can be ignored initially
+				if ((!vehicle_imu_sub.advertised()) || (!vehicle_mag_sub.advertised() && mag > 0)) {
 					px4_usleep(1000); // give the sensors extra time to start
 					break;
 				}
+
+				int actual_instance = EKF2::StartMultiModeEKF2Instance(px4::ins_instance_to_wq(imu), false, imu, mag);
+
+				if (PX4_ERROR == actual_instance) { break; }
+
+				success = true;
+				multi_instances_allocated++;
+				ekf2_instance_created[imu][mag] = true;
+				PX4_DEBUG("starting instance %d, IMU:%" PRIu8 " (%" PRIu32 "), MAG:%" PRIu8 " (%" PRIu32 ")", actual_instance,
+					  imu, vehicle_imu_sub.get().accel_device_id,
+					  mag, vehicle_mag_sub.get().device_id);
+
 			}
 		}
 

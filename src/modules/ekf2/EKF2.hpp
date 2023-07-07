@@ -202,7 +202,7 @@ private:
 	 * @brief Handles the spawning of multiple EKF2 instances based on the input number of sensors.
 	 * @param result true if it has managed to successfully start at least one instance. False if it hasn't.
 	 */
-	static int MultiEKF2SpawnHandler(int32_t imu_instances, int32_t mag_instances);
+	static bool MultiEKF2SpawnHandler(int32_t imu_instances, int32_t mag_instances);
 
 	/**
 	 * @brief Starts EKF2Selector if it's not already running.
