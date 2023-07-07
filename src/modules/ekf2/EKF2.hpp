@@ -213,9 +213,9 @@ private:
 
 	/**
 	 * @brief Starts an EKF2 instance in multi EKF mode and updates all the internal variables
-	 * @param result instance number if could be started. PX4_ERROR otherwise.
+	 * @param result EKF2 instance number if could be started. PX4_ERROR otherwise.
 	 */
-	static int StartMultiModeEKF2Instance(const px4::wq_config_t wq, bool replay_mode, int imu, int mag);
+	static int StartMultiModeEKF2Instance(const px4::wq_config_t wq, int imu, int mag, bool replay_mode);
 #endif // #if defined(CONFIG_EKF2_MULTI_INSTANCE)
 
 	/**

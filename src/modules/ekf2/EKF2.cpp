@@ -2557,9 +2557,9 @@ bool EKF2::StartSingleEFK2Instance(const px4::wq_config_t wq, bool replay_mode)
 }
 
 #if defined(CONFIG_EKF2_MULTI_INSTANCE)
-int EKF2::StartMultiModeEKF2Instance(const px4::wq_config_t wq, bool replay_mode, int imu, int mag)
+int EKF2::StartMultiModeEKF2Instance(const px4::wq_config_t wq, int imu, int mag, bool replay_mode)
 {
-	EKF2 *ekf2_inst = new EKF2(true, px4::ins_instance_to_wq(imu), false); //Might be done by start order
+	EKF2 *ekf2_inst = new EKF2(true, wq, replay_mode);
 
 	if (ekf2_inst && ekf2_inst->multi_init(imu, mag)) {
 		int actual_instance = ekf2_inst->instance(); // match uORB instance numbering
@@ -2621,7 +2621,7 @@ bool EKF2::MultiEKF2SpawnHandler(int32_t imu_instances, int32_t mag_instances)
 					break;
 				}
 
-				int actual_instance = EKF2::StartMultiModeEKF2Instance(px4::ins_instance_to_wq(imu), false, imu, mag);
+				int actual_instance = EKF2::StartMultiModeEKF2Instance(px4::ins_instance_to_wq(imu), imu, mag, false);
 
 				if (PX4_ERROR == actual_instance) { break; }
 
