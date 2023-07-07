@@ -62,7 +62,7 @@ then
 fi
 
 # Internal SPI bus ICM42688p (hard-mounted)
-icm42688p -R 6 -b 1 -s start
+icm42688p -R 12 -b 1 -s start
 
 # Internal on IMU SPI BMI088
 bmi088 -A -R 4 -s start
