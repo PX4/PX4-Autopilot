@@ -123,7 +123,7 @@
       <child>rotor_0</child>
       <parent>base_link</parent>
       <axis>
-        <xyz>-0.788675  0.211325   0.57735</xyz>
+        <xyz expressed_in="__model__">-0.788675  0.211325   0.57735</xyz>
         <limit>
           <lower>-1e+16</lower>
           <upper>1e+16</upper>
@@ -188,7 +188,7 @@
       <child>rotor_1</child>
       <parent>base_link</parent>
       <axis>
-        <xyz>0.211325 0.788675 -0.57735</xyz>
+        <xyz expressed_in="__model__">0.211325 0.788675 -0.57735</xyz>
         <limit>
           <lower>-1e+16</lower>
           <upper>1e+16</upper>
@@ -252,7 +252,7 @@
       <child>rotor_2</child>
       <parent>base_link</parent>
       <axis>
-        <xyz>-0.211325 -0.788675  -0.57735</xyz>
+        <xyz expressed_in="__model__">-0.211325 -0.788675  -0.57735</xyz>
         <limit>
           <lower>-1e+16</lower>
           <upper>1e+16</upper>
@@ -317,7 +317,7 @@
       <child>rotor_3</child>
       <parent>base_link</parent>
       <axis>
-        <xyz>0.788675 -0.211325   0.57735</xyz>
+        <xyz expressed_in="__model__">0.788675 -0.211325   0.57735</xyz>
         <limit>
           <lower>-1e+16</lower>
           <upper>1e+16</upper>
@@ -382,7 +382,7 @@
       <child>rotor_4</child>
       <parent>base_link</parent>
       <axis>
-        <xyz>0.788675 -0.211325 0.57735</xyz>
+        <xyz expressed_in="__model__">0.788675 -0.211325 0.57735</xyz>
         <limit>
           <lower>-1e+16</lower>
           <upper>1e+16</upper>
@@ -447,7 +447,7 @@
       <child>rotor_5</child>
       <parent>base_link</parent>
       <axis>
-        <xyz>-0.211325 -0.788675  -0.57735</xyz>
+        <xyz expressed_in="__model__">-0.211325 -0.788675  -0.57735</xyz>
         <limit>
           <lower>-1e+16</lower>
           <upper>1e+16</upper>
@@ -512,7 +512,7 @@
       <child>rotor_6</child>
       <parent>base_link</parent>
       <axis>
-        <xyz>0.211325 0.788675 -0.57735</xyz>
+        <xyz expressed_in="__model__">0.211325 0.788675 -0.57735</xyz>
         <limit>
           <lower>-1e+16</lower>
           <upper>1e+16</upper>
@@ -521,7 +521,6 @@
           <spring_reference>0</spring_reference>
           <spring_stiffness>0</spring_stiffness>
         </dynamics>
-
       </axis>
     </joint>
     <link name='rotor_7'>
@@ -577,7 +576,7 @@
       <child>rotor_7</child>
       <parent>base_link</parent>
       <axis>
-        <xyz>-0.788675  0.211325   0.57735</xyz>
+        <xyz expressed_in="__model__">-0.788675  0.211325   0.57735</xyz>
         <limit>
           <lower>-1e+16</lower>
           <upper>1e+16</upper>
@@ -586,7 +585,6 @@
           <spring_reference>0</spring_reference>
           <spring_stiffness>0</spring_stiffness>
         </dynamics>
-
       </axis>
     </joint>
 
