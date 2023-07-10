@@ -35,7 +35,6 @@
 #define BATTERY_STATUS_HPP
 
 #include <uORB/topics/battery_status.h>
-#include <cmath>
 
 class MavlinkStreamBatteryStatus : public MavlinkStream
 {
@@ -162,7 +161,7 @@ private:
 
 							for (int i = 0; i < mavlink_cell_slots; i++) {
 								if (voltage_mV > 0.0001f) {
-									new_cell_voltage_mV = math::min(voltage_mV, max_cell_voltage_mV);
+									new_cell_voltage_mV = (voltage_mV < max_cell_voltage_mV) ? voltage_mV : max_cell_voltage_mV;
 									cell_voltages[i] = new_cell_voltage_mV;
 									voltage_mV -= new_cell_voltage_mV;
 								}
