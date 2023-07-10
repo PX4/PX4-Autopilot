@@ -1,0 +1,32 @@
+#!/bin/sh
+#
+# board specific defaults
+#------------------------------------------------------------------------------
+
+param set-default BAT1_V_DIV 18.1
+param set-default BAT2_V_DIV 18.1
+
+param set-default BAT1_A_PER_V 36.367515152
+param set-default BAT2_A_PER_V 36.367515152
+
+if ver hwtypecmp V5004000 V5006000
+then
+	param set-default SYS_USE_IO 0
+else
+	param set-default SYS_USE_IO 1
+fi
+
+if ver hwtypecmp V5005000 V5005002 V5006000 V5006002
+then
+	# CUAV V5+ (V550/V552) and V5nano (V560/V562) have 3 IMUs
+	# Multi-EKF (IMUs only)
+	param set-default EKF2_MULTI_IMU 3
+	param set-default SENS_IMU_MODE 0
+else
+	# Multi-EKF
+	param set-default EKF2_MULTI_IMU 2
+	param set-default SENS_IMU_MODE 0
+fi
+
+rgbled_pwm start
+safety_button start
