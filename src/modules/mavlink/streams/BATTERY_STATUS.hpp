@@ -35,6 +35,7 @@
 #define BATTERY_STATUS_HPP
 
 #include <uORB/topics/battery_status.h>
+#include <cmath>
 
 class MavlinkStreamBatteryStatus : public MavlinkStream
 {
@@ -150,8 +151,26 @@ private:
 
 				if (battery_status.connected) {
 					// We don't know the cell count or we don't know the indpendent cell voltages so we report the total voltage in the first cell
+					// If the total voltage is more than 65.534V, then it can't fit into a single cell and we have
+					// to distribute the remainder accross other cells. This way we can report batteries up to 655.34V
 					if (battery_status.cell_count == 0 || battery_status.voltage_cell_v[0] < 0.0001f) {
-						cell_voltages[0] = battery_status.voltage_filtered_v * 1000.f;
+						float voltage_mV = battery_status.voltage_filtered_v * 1000.f;
+						float max_cell_voltage_mV = (float)UINT16_MAX - 1;
+
+						if (voltage_mV >= max_cell_voltage_mV) {
+							float new_cell_voltage_mV = max_cell_voltage_mV;
+
+							for (int i = 0; i < mavlink_cell_slots; i++) {
+								if (voltage_mV > 0.0001f) {
+									new_cell_voltage_mV = math::min(voltage_mV, max_cell_voltage_mV);
+									cell_voltages[i] = new_cell_voltage_mV;
+									voltage_mV -= new_cell_voltage_mV;
+								}
+							}
+
+						} else {
+							cell_voltages[0] = voltage_mV;
+						}
 
 					} else {
 						static constexpr int uorb_cell_slots =
