@@ -178,6 +178,8 @@ set(msg_files
 	SensorSelection.msg
 	SensorsStatus.msg
 	SensorsStatusImu.msg
+	ServoReport.msg
+	ServoStatus.msg
 	SystemPower.msg
 	TakeoffStatus.msg
 	TaskStackInfo.msg

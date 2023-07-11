@@ -39,6 +39,7 @@
 #include <lib/perf/perf_counter.h>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/actuator_outputs.h>
+#include <uORB/topics/servo_status.h>
 #include <drivers/drv_hrt.h>
 #include <lib/mixer_module/mixer_module.hpp>
 
@@ -54,7 +55,42 @@ public:
 
 	void update_outputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs);
 
+	int init();
+
+	/**
+	 * Sets the number of servo and enable timer
+	 */
+	void set_servo_count(uint8_t count);
+
+	servo_status_s &servo_status() { return _servo_status; }
+
 private:
+	/**
+	 * Servo status message reception will be reported via this callback.
+	 */
+	void servo_status_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::actuator::Status> &msg);
+
+
+	/**
+	 * Checks all the Servo's freshness based on timestamp, if an servo exceeds the timeout then is flagged offline.
+	 */
+	uint8_t check_servos_status();
+
+
+	typedef uavcan::MethodBinder<UavcanServoController *,
+		void (UavcanServoController::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::actuator::Status>&)>
+		StatusCbBinder;
+
+
+	typedef uavcan::MethodBinder<UavcanServoController *,
+		void (UavcanServoController::*)(const uavcan::TimerEvent &)> TimerCbBinder;
+
 	uavcan::INode								&_node;
 	uavcan::Publisher<uavcan::equipment::actuator::ArrayCommand> _uavcan_pub_array_cmd;
+	uavcan::Subscriber<uavcan::equipment::actuator::Status, StatusCbBinder>	_uavcan_sub_status;
+
+	uORB::PublicationMulti<servo_status_s> _servo_status_pub{ORB_ID(servo_status)};
+
+	servo_status_s _servo_status{};
+	uint8_t _servo_count{0};
 };
