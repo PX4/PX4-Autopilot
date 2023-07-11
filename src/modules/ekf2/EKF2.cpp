@@ -1057,7 +1057,7 @@ void EKF2::PublishEvPosBias(const hrt_abstime &timestamp)
 
 		if ((bias_vec - _last_ev_bias_published).longerThan(0.01f)) {
 			bias.timestamp_sample = _ekf.aid_src_ev_hgt().timestamp_sample;
-			bias.timestamp = hrt_absolute_time();
+			bias.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 			_estimator_ev_pos_bias_pub.publish(bias);
 
 			_last_ev_bias_published = Vector3f(bias.bias);
