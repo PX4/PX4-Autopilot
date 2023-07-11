@@ -9,7 +9,7 @@ pipeline {
         script {
           def build_nodes = [:]
           def docker_images = [
-            armhf: "px4io/px4-dev-armhf:2022-08-12",
+            armhf: "px4io/px4-dev-armhf:2023-06-26",
             arm64: "px4io/px4-dev-aarch64:2022-08-12",
             base: "px4io/px4-dev-ros2-foxy:2022-08-12",
             nuttx: "px4io/px4-dev-nuttx-focal:2022-08-12",
