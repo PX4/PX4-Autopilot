@@ -248,7 +248,7 @@ extern "C" __EXPORT int rgbled_ncp5623c_main(int argc, char *argv[])
 {
 	using ThisDriver = RGBLED_NCP5623C;
 	BusCLIArguments cli{true, false};
-	cli.default_i2c_frequency = 100000;
+	cli.default_i2c_frequency = 400000;
 	cli.i2c_address = NCP5623C_ADDR;
 	cli.custom1 = 123;
 	int ch;
