@@ -60,10 +60,15 @@
 #include <px4_platform/progmem_dump.h>
 #endif
 
-#ifdef HAS_BBSRAM
-#  define REBOOTS_COUNT 32000
-#elif defined(HAS_PROGMEM)
+#ifdef HAS_SSARC
+#include <ssarc_dump.h>
+#endif
+
+
+#if defined(HAS_PROGMEM)
 #  define REBOOTS_COUNT 32
+#else
+#  define REBOOTS_COUNT 32000
 #endif
 
 int board_hardfault_init(int display_to_console, bool allow_prompt)
@@ -94,9 +99,21 @@ int board_hardfault_init(int display_to_console, bool allow_prompt)
 
 	progmem_dump_initialize(PROGMEM_PATH, filesizes);
 
+#elif defined(HAS_SSARC)
+
+	/* NB. the use of the console requires the hrt running
+	 * to poll the DMA
+	 */
+
+	/* Using progmem */
+
+	int filesizes[SSARC_DUMP_FILE_COUNT + 1] = SSARC_DUMP_FILE_SIZES;
+
+	ssarc_dump_initialize(SSARC_DUMP_PATH, filesizes);
+
 #endif // HAS_PROGMEM
 
-#if defined(SAVE_CRASHDUMP) && (defined(HAS_BBSRAM) || defined(HAS_PROGMEM))
+#if defined(SAVE_CRASHDUMP) && (defined(HAS_BBSRAM) || defined(HAS_PROGMEM) || defined(HAS_SSARC))
 
 	/* Panic Logging in Battery Backed Up Files */
 

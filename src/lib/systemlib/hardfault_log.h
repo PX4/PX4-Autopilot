@@ -147,7 +147,57 @@ typedef struct progmem_s dump_s;
 		PROGMEM_SIZE_FN3,   /* For the Panic Log use rest of space */  \
 		0                  /* End of table marker */                  \
 	}
-#else /* HAS_PROGMEM */
+#elif defined(HAS_SSARC)
+
+typedef struct ssarc_s dump_s;
+
+#define HARDFAULT_REBOOT_FILENO 0
+#define HARDFAULT_REBOOT_PATH SSARC_DUMP_PATH "" STRINGIFY(HARDFAULT_REBOOT_FILENO)
+#define HARDFAULT_ULOG_FILENO 3
+#define HARDFAULT_ULOG_PATH SSARC_DUMP_PATH "" STRINGIFY(HARDFAULT_ULOG_FILENO)
+#define HARDFAULT_FILENO 4
+#define HARDFAULT_PATH SSARC_DUMP_PATH "" STRINGIFY(HARDFAULT_FILENO)
+
+#define HARDFAULT_MAX_ULOG_FILE_LEN 64 /* must be large enough to store the full path to the log file */
+
+#define SSARC_DUMP_SIZE_FN0 ((((sizeof(int)) / PX4_SSARC_BLOCK_DATA) + 1) * PX4_SSARC_BLOCK_DATA)
+#define SSARC_DUMP_SIZE_FN1 (((384 / PX4_SSARC_BLOCK_DATA) + 1) * PX4_SSARC_BLOCK_DATA)     /* greater then 2.5 times the size of vehicle_status_s */
+#define SSARC_DUMP_SIZE_FN2 (((384 / PX4_SSARC_BLOCK_DATA) + 1) * PX4_SSARC_BLOCK_DATA)     /* greater then 2.5 times the size of vehicle_status_s */
+#define SSARC_DUMP_SIZE_FN3 (((HARDFAULT_MAX_ULOG_FILE_LEN / PX4_SSARC_BLOCK_DATA) + 1) * PX4_SSARC_BLOCK_DATA)
+#define SSARC_DUMP_SIZE_FN4 -1
+
+/* The following guides in the amount of the user and interrupt stack
+ * data we can save. The amount of storage left will dictate the actual
+ * number of entries of the user stack data saved. If it is too big
+ * It will be truncated by the call to savepanic
+ */
+#define SSARC_DUMP_HEADER_SIZE PX4_SSARC_HEADER_SIZE + 32 /* This is an assumption */
+#define SSARC_DUMP_USED ((5*SSARC_DUMP_HEADER_SIZE)+(SSARC_DUMP_SIZE_FN0+SSARC_DUMP_SIZE_FN1+SSARC_DUMP_SIZE_FN2+SSARC_DUMP_SIZE_FN3))
+#define SSARC_DUMP_REMAINING (PX4_SSARC_DUMP_SIZE-SSARC_DUMP_USED)
+#if CONFIG_ARCH_INTERRUPTSTACK <= 3
+#  define SSARC_DUMP_NUMBER_STACKS 1
+#else
+#  define SSARC_DUMP_NUMBER_STACKS 2
+#endif
+#define SSARC_DUMP_FIXED_ELEMENTS_SIZE (sizeof(info_s))
+#define SSARC_DUMP_LEFTOVER (SSARC_DUMP_REMAINING-SSARC_DUMP_FIXED_ELEMENTS_SIZE)
+
+#define CONFIG_ISTACK_SIZE (SSARC_DUMP_LEFTOVER/SSARC_DUMP_NUMBER_STACKS/sizeof(stack_word_t))
+#define CONFIG_USTACK_SIZE (SSARC_DUMP_LEFTOVER/SSARC_DUMP_NUMBER_STACKS/sizeof(stack_word_t))
+
+#define SSARC_DUMP_FILE_COUNT 5
+/* The path to the Battery Backed up SRAM */
+#define SSARC_DUMP_PATH "/fs/ssarc"
+/* The sizes of the files to create (-1) use rest of BBSRAM memory */
+#define SSARC_DUMP_FILE_SIZES { \
+		SSARC_DUMP_SIZE_FN0,   /* For Time stamp only */                  \
+		SSARC_DUMP_SIZE_FN1,   /* For Current Flight Parameters Copy A */ \
+		SSARC_DUMP_SIZE_FN2,   /* For Current Flight Parameters Copy B */ \
+		SSARC_DUMP_SIZE_FN3,   /* For the latest ULog file path */        \
+		SSARC_DUMP_SIZE_FN4,   /* For the Panic Log use rest of space */  \
+		0                  /* End of table marker */                  \
+	}
+#else /* HAS_SSARC */
 
 #define CONFIG_ISTACK_SIZE 0
 #define CONFIG_USTACK_SIZE 0
