@@ -37,10 +37,6 @@
 __BEGIN_DECLS
 
 #define PX4_SOC_ARCH_ID             PX4_SOC_ARCH_ID_NXPIMXRT1176
-
-#// Fixme: using ??
-#define PX4_BBSRAM_SIZE             2048
-#define PX4_BBSRAM_GETDESC_IOCTL    0
 #define PX4_NUMBER_I2C_BUSES        6
 
 #define GPIO_OUTPUT_SET             GPIO_OUTPUT_ONE
@@ -86,6 +82,19 @@ __BEGIN_DECLS
 /* bus_num is 1 based on imx and must be translated from the legacy one based */
 
 #define PX4_BUS_OFFSET       0                  /* imxrt buses are 1 based no adjustment needed */
+
+#define px4_savepanic(fileno, context, length)  ssarc_dump_savepanic(fileno, context, length)
+
+#if defined(CONFIG_BOARD_CRASHDUMP)
+#  define HAS_SSARC             1
+#  define PX4_HF_GETDESC_IOCTL  SSARC_DUMP_GETDESC_IOCTL
+#  define PX4_SSARC_DUMP_BASE   IMXRT_SSARC_HP_BASE
+#  define PX4_SSARC_DUMP_SIZE   9216
+#  define PX4_SSARC_BLOCK_SIZE  16
+#  define PX4_SSARC_BLOCK_DATA  9
+#  define PX4_SSARC_HEADER_SIZE 27
+#endif
+
 
 #define px4_spibus_initialize(bus_num_1based)   imxrt_lpspibus_initialize(PX4_BUS_NUMBER_FROM_PX4(bus_num_1based))
 
