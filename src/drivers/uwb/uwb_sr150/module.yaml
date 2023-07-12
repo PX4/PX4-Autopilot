@@ -4,12 +4,11 @@ serial_config:
     port_config_param:
       name: UWB_PORT_CFG
       group: UWB
-      default: ""
+      default: "TEL2"
 
 parameters:
     - group: UWB
       definitions:
-
         UWB_INIT_OFF_X:
           description:
             short: UWB sensor X offset in body frame
@@ -32,7 +31,7 @@ parameters:
 
         UWB_INIT_OFF_Z:
           description:
-            short: UWB sensor Y offset in body frame
+            short: UWB sensor Z offset in body frame
             long: UWB sensor positioning in relation to Drone in NED. Z offset.
           type: float
           unit: m
@@ -40,14 +39,52 @@ parameters:
           increment: 0.01
           default: 0.00
 
-        UWB_INIT_OFF_YAW:
+        UWB_SENS_ROT:
           description:
-            short: UWB sensor YAW offset in body frame
-            long: UWB sensor positioning in relation to Drone in NED. Yaw rotation in relation to direction of FMU.
-          type: float
-          unit: deg
-          decimal: 1
-          increment: 0.1
-          default: 0.00
-
-
+            short: UWB sensor orientation
+            long: The orientation of the sensor relative to the forward direction of the body frame. Look up table in src/lib/conversion/rotation.h
+                  Default position is the antannaes downward facing, UWB board parallel with body frame.
+          type: enum
+          values:
+            0: ROTATION_NONE
+            1: ROTATION_YAW_45
+            2: ROTATION_YAW_90
+            3: ROTATION_YAW_135
+            4: ROTATION_YAW_180
+            5: ROTATION_YAW_225
+            6: ROTATION_YAW_270
+            7: ROTATION_YAW_315
+            8: ROTATION_ROLL_180
+            9: ROTATION_ROLL_180_YAW_45
+            10: ROTATION_ROLL_180_YAW_90
+            11: ROTATION_ROLL_180_YAW_135
+            12: ROTATION_PITCH_180
+            13: ROTATION_ROLL_180_YAW_225
+            14: ROTATION_ROLL_180_YAW_270
+            15: ROTATION_ROLL_180_YAW_315
+            16: ROTATION_ROLL_90
+            17: ROTATION_ROLL_90_YAW_45
+            18: ROTATION_ROLL_90_YAW_90
+            19: ROTATION_ROLL_90_YAW_135
+            20: ROTATION_ROLL_270
+            21: ROTATION_ROLL_270_YAW_45
+            22: ROTATION_ROLL_270_YAW_90
+            23: ROTATION_ROLL_270_YAW_135
+            24: ROTATION_PITCH_90
+            25: ROTATION_PITCH_270
+            26: ROTATION_PITCH_180_YAW_90
+            27: ROTATION_PITCH_180_YAW_270
+            28: ROTATION_ROLL_90_PITCH_90
+            29: ROTATION_ROLL_180_PITCH_90
+            30: ROTATION_ROLL_270_PITCH_90
+            31: ROTATION_ROLL_90_PITCH_180
+            32: ROTATION_ROLL_270_PITCH_180
+            33: ROTATION_ROLL_90_PITCH_270
+            34: ROTATION_ROLL_180_PITCH_270
+            35: ROTATION_ROLL_270_PITCH_270
+            36: ROTATION_ROLL_90_PITCH_180_YAW_90
+            37: ROTATION_ROLL_90_YAW_270
+            38: ROTATION_ROLL_90_PITCH_68_YAW_293
+            39: ROTATION_PITCH_315
+            40: ROTATION_ROLL_90_PITCH_315
+          default: 0
