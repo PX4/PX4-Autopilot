@@ -614,7 +614,6 @@ public:
 	void set_altitude_rate_ff(float altitude_rate_ff) { _control_param.altitude_setpoint_gain_ff = altitude_rate_ff; };
 	void set_altitude_error_time_constant(float time_const) { _control_param.altitude_error_gain = 1.0f / math::max(time_const, 0.1f);; };
 
-	void set_equivalent_airspeed_max(float airspeed) { _equivalent_airspeed_max = airspeed; }
 	void set_equivalent_airspeed_min(float airspeed) { _equivalent_airspeed_min = airspeed; }
 	void set_equivalent_airspeed_trim(float airspeed) { _control_param.equivalent_airspeed_trim = airspeed; _airspeed_filter_param.equivalent_airspeed_trim = airspeed; }
 
@@ -665,7 +664,6 @@ private:
 	hrt_abstime _update_timestamp{0};				///< last timestamp of the update function call.
 
 	float _equivalent_airspeed_min{3.0f};				///< equivalent airspeed demand lower limit (m/sec)
-	float _equivalent_airspeed_max{30.0f};				///< equivalent airspeed demand upper limit (m/sec)
 
 	static constexpr float DT_MIN = 0.001f;				///< minimum allowed value of _dt (sec)
 	static constexpr float DT_MAX = 1.0f;				///< max value of _dt allowed before a filter state reset is performed (sec)
@@ -723,10 +721,5 @@ private:
 		.airspeed_enabled = false,
 		.detect_underspeed_enabled = false,
 	};
-
-	/**
-	 * Update the desired airspeed
-	 */
-	float _update_speed_setpoint(const float tas_min, const float tas_max, const float tas_setpoint, const float tas);
 };
 
