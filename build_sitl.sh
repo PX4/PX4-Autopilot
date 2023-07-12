@@ -22,6 +22,7 @@ docker build \
   --build-arg UID=$(id -u) \
   --build-arg GID=$(id -g) \
   --pull \
+  --output type=docker \
   -f ./packaging/Dockerfile.build_env -t ${iname_env} .
 
 # Build Saluki image
