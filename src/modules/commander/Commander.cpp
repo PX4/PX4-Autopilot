@@ -48,6 +48,8 @@
 #include "px4_custom_mode.h"
 #include "ModeUtil/control_mode.hpp"
 #include "ModeUtil/conversions.hpp"
+#include <lib/modes/ui.hpp>
+#include <lib/modes/standard_modes.hpp>
 
 /* PX4 headers */
 #include <drivers/drv_hrt.h>
@@ -1403,6 +1405,24 @@ Commander::handle_command(const vehicle_command_s &cmd)
 			break;
 		}
 
+	case vehicle_command_s::VEHICLE_CMD_DO_SET_STANDARD_MODE: {
+			mode_util::StandardMode standard_mode = (mode_util::StandardMode) roundf(cmd.param1);
+			uint8_t nav_state = mode_util::getNavStateFromStandardMode(standard_mode);
+
+			if (nav_state == vehicle_status_s::NAVIGATION_STATE_MAX) {
+				answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED);
+
+			} else {
+				if (_user_mode_intention.change(nav_state, getSourceFromCommand(cmd))) {
+					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
+
+				} else {
+					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED);
+				}
+			}
+		}
+		break;
+
 	case vehicle_command_s::VEHICLE_CMD_RUN_PREARM_CHECKS:
 		_health_and_arming_checks.update(true);
 		answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
@@ -1864,6 +1884,7 @@ void Commander::run()
 			updateControlMode();
 
 			// vehicle_status publish (after prearm/preflight updates above)
+			_mode_management.getModeStatus(_vehicle_status.valid_nav_states_mask, _vehicle_status.can_set_nav_states_mask);
 			_vehicle_status.timestamp = hrt_absolute_time();
 			_vehicle_status_pub.publish(_vehicle_status);
 
