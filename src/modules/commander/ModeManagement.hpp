@@ -42,7 +42,7 @@
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/config_overrides.h>
 
-#include "ModeUtil/ui.hpp"
+#include <lib/modes/ui.hpp>
 #include "UserModeIntention.hpp"
 #include "HealthAndArmingChecks/checks/externalChecks.hpp"
 
@@ -155,6 +155,7 @@ public:
 
 	void printStatus() const;
 
+	void getModeStatus(uint32_t &valid_nav_state_mask, uint32_t &can_set_nav_state_mask) const;
 
 	void updateActiveConfigOverrides(uint8_t nav_state, config_overrides_s &overrides_in_out);
 

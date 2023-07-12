@@ -64,6 +64,9 @@ uint8 NAVIGATION_STATE_MAX = 31
 
 uint8 executor_in_charge                        # Current mode executor in charge (0=Autopilot)
 
+uint32 valid_nav_states_mask                    # Bitmask for all valid nav_state values
+uint32 can_set_nav_states_mask                  # Bitmask for all modes that a user can select
+
 # Bitmask of detected failures
 uint16 failure_detector_status
 uint16 FAILURE_NONE = 0
