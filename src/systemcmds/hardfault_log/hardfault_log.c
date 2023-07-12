@@ -66,6 +66,10 @@
 #include <px4_platform/progmem_dump.h>
 #endif
 
+#ifdef HAS_SSARC
+#include <ssarc_dump.h>
+#endif
+
 #include "chip.h"
 
 #if defined(CONSTRAINED_FLASH_NO_HELP)
