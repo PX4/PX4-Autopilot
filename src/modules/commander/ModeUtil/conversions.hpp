@@ -98,38 +98,4 @@ static inline navigation_mode_t navigation_mode(uint8_t nav_state)
 	return navigation_mode_t::unknown;
 }
 
-const char *const nav_state_names[vehicle_status_s::NAVIGATION_STATE_MAX] = {
-	"MANUAL",
-	"ALTCTL",
-	"POSCTL",
-	"AUTO_MISSION",
-	"AUTO_LOITER",
-	"AUTO_RTL",
-	"6: unallocated",
-	"7: unallocated",
-	"AUTO_LANDENGFAIL",
-	"9: unallocated",
-	"ACRO",
-	"11: UNUSED",
-	"DESCEND",
-	"TERMINATION",
-	"OFFBOARD",
-	"STAB",
-	"16: UNUSED2",
-	"AUTO_TAKEOFF",
-	"AUTO_LAND",
-	"AUTO_FOLLOW_TARGET",
-	"AUTO_PRECLAND",
-	"ORBIT",
-	"AUTO_VTOL_TAKEOFF",
-	"EXTERNAL1",
-	"EXTERNAL2",
-	"EXTERNAL3",
-	"EXTERNAL4",
-	"EXTERNAL5",
-	"EXTERNAL6",
-	"EXTERNAL7",
-	"EXTERNAL8",
-};
-
 } // namespace mode_util
