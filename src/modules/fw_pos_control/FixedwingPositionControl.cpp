@@ -132,7 +132,6 @@ FixedwingPositionControl::parameters_update()
 	_tecs.set_speed_weight(_param_fw_t_spdweight.get());
 	_tecs.set_equivalent_airspeed_trim(_param_fw_airspd_trim.get());
 	_tecs.set_equivalent_airspeed_min(_param_fw_airspd_min.get());
-	_tecs.set_equivalent_airspeed_max(_param_fw_airspd_max.get());
 	_tecs.set_throttle_damp(_param_fw_t_thr_damp.get());
 	_tecs.set_integrator_gain_throttle(_param_fw_t_I_gain_thr.get());
 	_tecs.set_integrator_gain_pitch(_param_fw_t_I_gain_pit.get());
@@ -1210,7 +1209,7 @@ FixedwingPositionControl::control_auto_velocity(const float control_interval, co
 				   tecs_fw_thr_max,
 				   _param_sinkrate_target.get(),
 				   _param_climbrate_target.get(),
-				   tecs_status_s::TECS_MODE_NORMAL,
+				   false,
 				   pos_sp_curr.vz);
 }
 
