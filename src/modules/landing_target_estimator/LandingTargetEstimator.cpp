@@ -100,13 +100,13 @@ void LandingTargetEstimator::update()
 		}
 	}
 
-	if (!_new_sensorReport) {
+	if (!_new_irlockReport) {
 		// nothing to do
 		return;
 	}
 
 	// mark this sensor measurement as consumed
-	_new_sensorReport = false;
+	_new_irlockReport = false;
 
 
 	if (!_estimator_initialized) {
@@ -254,30 +254,7 @@ void LandingTargetEstimator::_update_topics()
 		_target_position_report.rel_pos_x += _params.offset_x;
 		_target_position_report.rel_pos_y += _params.offset_y;
 
-		_new_sensorReport = true;
-
-	} else if (_uwbDistanceSub.update(&_uwbDistance)) {
-		if (!_vehicleAttitude_valid || !_vehicleLocalPosition_valid) {
-			// don't have the data needed for an update
-			PX4_INFO("Attitude: %d, Local pos: %d", _vehicleAttitude_valid, _vehicleLocalPosition_valid);
-			return;
-		}
-
-		if (!matrix::Vector3f(_uwbDistance.position).isAllFinite()) {
-			PX4_WARN("Marker position reading invalid!");
-			return;
-		}
-
-		_new_sensorReport = true;
-
-		// The coordinate system is NED (north-east-down)
-		// the uwb_distance msg contains the Position in NED, Vehicle relative to LP
-		// The coordinates "rel_pos_*" are the position of the landing point relative to the vehicle.
-		// To change POV we negate every Axis:
-		_target_position_report.timestamp = _uwbDistance.timestamp;
-		_target_position_report.rel_pos_x = -_uwbDistance.position[0];
-		_target_position_report.rel_pos_y = -_uwbDistance.position[1];
-		_target_position_report.rel_pos_z = -_uwbDistance.position[2];
+		_new_irlockReport = true;
 	}
 }
 
