@@ -193,6 +193,7 @@ struct gpsSample {
 	float       vacc{};     ///< 1-std vertical position error (m)
 	float       sacc{};     ///< 1-std speed error (m/sec)
 	float       yaw_acc{};  ///< 1-std yaw error (rad)
+	uint8_t     fix_type{}; ///< 0-1: no fix, 2: 2D fix, 3: 3D fix, 4: RTCM code differential, 5: Real-Time Kinematic
 };
 
 struct magSample {

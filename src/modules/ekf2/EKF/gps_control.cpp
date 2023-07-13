@@ -328,7 +328,8 @@ void Ekf::controlGpsYawFusion(const gpsSample &gps_sample, bool gps_checks_passi
 
 	if (is_new_data_available) {
 
-		const bool continuing_conditions_passing = !gps_checks_failing;
+		const bool continuing_conditions_passing = !gps_checks_failing
+				&& gps_sample.fix_type >= 6; // RTK "fixed" is required for accurate heading
 
 		const bool is_gps_yaw_data_intermittent = !isNewestSampleRecent(_time_last_gps_yaw_buffer_push,
 				2 * GNSS_YAW_MAX_INTERVAL);

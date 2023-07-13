@@ -178,6 +178,8 @@ void EstimatorInterface::setGpsData(const gpsMessage &gps)
 
 		gps_sample_new.hgt = (float)gps.alt * 1e-3f;
 
+		gps_sample_new.fix_type = gps.fix_type;
+
 #if defined(CONFIG_EKF2_GNSS_YAW)
 
 		if (PX4_ISFINITE(gps.yaw)) {
