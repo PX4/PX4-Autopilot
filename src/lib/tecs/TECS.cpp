@@ -649,7 +649,6 @@ void TECS::initialize(const float altitude, const float altitude_rate, const flo
 
 	_control.initialize(control_setpoint, control_input, _control_param, _control_flag);
 
-	_debug_status.tecs_mode = _tecs_mode;
 	_debug_status.control = _control.getDebugOutput();
 	_debug_status.true_airspeed_filtered = eas_to_tas * _airspeed_filter.getState().speed;
 	_debug_status.true_airspeed_derivative = eas_to_tas * _airspeed_filter.getState().speed_rate;
@@ -721,17 +720,6 @@ void TECS::update(float pitch, float altitude, float hgt_setpoint, float EAS_set
 		// Update time stamps
 		_update_timestamp = now;
 
-
-		// Set TECS mode for next frame
-		if (_control.getRatioUndersped() > FLT_EPSILON) {
-			_tecs_mode = ECL_TECS_MODE_UNDERSPEED;
-
-		} else {
-			// This is the default operation mode
-			_tecs_mode = ECL_TECS_MODE_NORMAL;
-		}
-
-		_debug_status.tecs_mode = _tecs_mode;
 		_debug_status.control = _control.getDebugOutput();
 		_debug_status.true_airspeed_filtered = eas_to_tas * eas.speed;
 		_debug_status.true_airspeed_derivative = eas_to_tas * eas.speed_rate;
