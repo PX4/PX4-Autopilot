@@ -69,6 +69,7 @@ public:
 
 		_sensor_simulator.runSeconds(_init_duration_s);
 		_sensor_simulator._gps.setYaw(NAN);
+		_sensor_simulator._gps.setFixType(6);
 		_sensor_simulator.runSeconds(2);
 		_ekf_wrapper.enableGpsFusion();
 		_ekf_wrapper.enableGpsHeadingFusion();
@@ -216,6 +217,30 @@ TEST_F(EkfGpsHeadingTest, fallBackToMag)
 	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeadingFusion());
 	EXPECT_TRUE(_ekf_wrapper.isIntendingMagHeadingFusion());
 	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter + 1);
+}
+
+TEST_F(EkfGpsHeadingTest, fixTypeDrop)
+{
+	// GIVEN: valid yaw data with a good fix
+	float gps_heading = matrix::wrap_pi(_ekf_wrapper.getYawAngle());
+	_sensor_simulator._gps.setYaw(gps_heading);
+	_sensor_simulator._gps.setFixType(6); // "RTk fixed"
+
+	// WHEN: the GPS yaw fusion is activated
+	_sensor_simulator.runSeconds(1);
+
+	// THEN: GPS heading fusion should have started, and mag
+	// fusion should be disabled
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeadingFusion());
+
+	// BUT WHEN: the GPS fix drops to "RTK float"
+	_sensor_simulator._gps.setFixType(5);
+	_sensor_simulator.runSeconds(1);
+
+	// THEN: the fusion should stop and
+	// the estimator should fall back to mag fusion
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeadingFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingMagHeadingFusion());
 }
 
 TEST_F(EkfGpsHeadingTest, fallBackToYawEmergencyEstimator)
