@@ -88,7 +88,7 @@ matrix::Vector3f AttitudeControl::update(const Quatf &q) const
 	const Vector3f eq = 2.f * qe.canonical().imag();
 
 	// calculate angular rates setpoint
-	matrix::Vector3f rate_setpoint = eq.emult(_proportional_gain);
+	Vector3f rate_setpoint = eq.emult(_proportional_gain);
 
 	// Feed forward the yaw setpoint rate.
 	// yawspeed_setpoint is the feed forward commanded rotation around the world z-axis,

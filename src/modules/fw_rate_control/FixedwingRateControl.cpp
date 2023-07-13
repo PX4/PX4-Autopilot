@@ -48,6 +48,8 @@ FixedwingRateControl::FixedwingRateControl(bool vtol) :
 	_vehicle_thrust_setpoint_pub(vtol ? ORB_ID(vehicle_thrust_setpoint_virtual_fw) : ORB_ID(vehicle_thrust_setpoint)),
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
+	_handle_param_vt_fw_difthr_en = param_find("VT_FW_DIFTHR_EN");
+
 	/* fetch initial parameter values */
 	parameters_update();
 
@@ -77,7 +79,7 @@ FixedwingRateControl::parameters_update()
 	const Vector3f rate_i = Vector3f(_param_fw_rr_i.get(), _param_fw_pr_i.get(), _param_fw_yr_i.get());
 	const Vector3f rate_d = Vector3f(_param_fw_rr_d.get(), _param_fw_pr_d.get(), _param_fw_yr_d.get());
 
-	_rate_control.setGains(rate_p, rate_i, rate_d);
+	_rate_control.setPidGains(rate_p, rate_i, rate_d);
 
 	_rate_control.setIntegratorLimit(
 		Vector3f(_param_fw_rr_imax.get(), _param_fw_pr_imax.get(), _param_fw_yr_imax.get()));
@@ -85,6 +87,10 @@ FixedwingRateControl::parameters_update()
 	_rate_control.setFeedForwardGain(
 		// set FF gains to 0 as we add the FF control outside of the rate controller
 		Vector3f(0.f, 0.f, 0.f));
+
+	if (_handle_param_vt_fw_difthr_en != PARAM_INVALID) {
+		param_get(_handle_param_vt_fw_difthr_en, &_param_vt_fw_difthr_en);
+	}
 
 
 	return PX4_OK;
@@ -120,24 +126,15 @@ FixedwingRateControl::vehicle_manual_poll()
 				_rate_sp_pub.publish(_rates_sp);
 
 			} else {
-				/* manual/direct control */
+				// Manual/direct control, filled in FW-frame. Note that setpoints will get transformed to body frame prior publishing.
 
-				if (_vehicle_status.is_vtol_tailsitter && _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
-					// the controls must always be published in body (hover) frame
-					_vehicle_torque_setpoint.xyz[0] = math::constrain(_manual_control_setpoint.yaw * _param_fw_man_y_sc.get() +
-									  _param_trim_yaw.get(), -1.f, 1.f);
-					_vehicle_torque_setpoint.xyz[2] = math::constrain(_manual_control_setpoint.roll * _param_fw_man_r_sc.get() +
-									  _param_trim_roll.get(), -1.f, 1.f);
-
-				} else {
-					_vehicle_torque_setpoint.xyz[0] = math::constrain(_manual_control_setpoint.roll * _param_fw_man_r_sc.get() +
-									  _param_trim_roll.get(), -1.f, 1.f);
-					_vehicle_torque_setpoint.xyz[2] = math::constrain(_manual_control_setpoint.yaw * _param_fw_man_y_sc.get() +
-									  _param_trim_yaw.get(), -1.f, 1.f);
-				}
-
+				_vehicle_torque_setpoint.xyz[0] = math::constrain(_manual_control_setpoint.roll * _param_fw_man_r_sc.get() +
+								  _param_trim_roll.get(), -1.f, 1.f);
 				_vehicle_torque_setpoint.xyz[1] = math::constrain(-_manual_control_setpoint.pitch * _param_fw_man_p_sc.get() +
 								  _param_trim_pitch.get(), -1.f, 1.f);
+				_vehicle_torque_setpoint.xyz[2] = math::constrain(_manual_control_setpoint.yaw * _param_fw_man_y_sc.get() +
+								  _param_trim_yaw.get(), -1.f, 1.f);
+
 				_vehicle_thrust_setpoint.xyz[0] = math::constrain((_manual_control_setpoint.throttle + 1.f) * .5f, 0.f, 1.f);
 			}
 		}
@@ -287,26 +284,41 @@ void FixedwingRateControl::Run()
 				_rate_control.resetIntegral();
 			}
 
-			// update saturation status from control allocation feedback
+			// Update saturation status from control allocation feedback
+			// TODO: send the unallocated value directly for better anti-windup
+			Vector3<bool> diffthr_enabled(
+				_param_vt_fw_difthr_en & static_cast<int32_t>(VTOLFixedWingDifferentialThrustEnabledBit::ROLL_BIT),
+				_param_vt_fw_difthr_en & static_cast<int32_t>(VTOLFixedWingDifferentialThrustEnabledBit::PITCH_BIT),
+				_param_vt_fw_difthr_en & static_cast<int32_t>(VTOLFixedWingDifferentialThrustEnabledBit::YAW_BIT)
+			);
+
+			if (_vehicle_status.is_vtol_tailsitter) {
+				// Swap roll and yaw
+				diffthr_enabled.swapRows(0, 2);
+			}
+
+			// saturation handling for axis controlled by differential thrust (VTOL only)
 			control_allocator_status_s control_allocator_status;
 
-			if (_control_allocator_status_subs[_vehicle_status.is_vtol ? 1 : 0].update(&control_allocator_status)) {
-				Vector<bool, 3> saturation_positive;
-				Vector<bool, 3> saturation_negative;
-
-				if (!control_allocator_status.torque_setpoint_achieved) {
-					for (size_t i = 0; i < 3; i++) {
-						if (control_allocator_status.unallocated_torque[i] > FLT_EPSILON) {
-							saturation_positive(i) = true;
-
-						} else if (control_allocator_status.unallocated_torque[i] < -FLT_EPSILON) {
-							saturation_negative(i) = true;
-						}
+			// Set saturation flags for VTOL differential thrust feature
+			// If differential thrust is enabled in an axis, assume it's the only torque authority and only update saturation using matrix 0 allocating the motors.
+			if (_control_allocator_status_subs[0].update(&control_allocator_status)) {
+				for (size_t i = 0; i < 3; i++) {
+					if (diffthr_enabled(i)) {
+						_rate_control.setPositiveSaturationFlag(i, control_allocator_status.unallocated_torque[i] > FLT_EPSILON);
+						_rate_control.setNegativeSaturationFlag(i, control_allocator_status.unallocated_torque[i] < -FLT_EPSILON);
 					}
 				}
+			}
 
-				// TODO: send the unallocated value directly for better anti-windup
-				_rate_control.setSaturationStatus(saturation_positive, saturation_negative);
+			// Set saturation flags for control surface controlled axes
+			if (_control_allocator_status_subs[_vehicle_status.is_vtol ? 1 : 0].update(&control_allocator_status)) {
+				for (size_t i = 0; i < 3; i++) {
+					if (!diffthr_enabled(i)) {
+						_rate_control.setPositiveSaturationFlag(i, control_allocator_status.unallocated_torque[i] > FLT_EPSILON);
+						_rate_control.setNegativeSaturationFlag(i, control_allocator_status.unallocated_torque[i] < -FLT_EPSILON);
+					}
+				}
 			}
 
 			/* bi-linear interpolation over airspeed for actuator trim scheduling */
@@ -344,26 +356,35 @@ void FixedwingRateControl::Run()
 					body_rates_setpoint = Vector3f(-_rates_sp.yaw, _rates_sp.pitch, _rates_sp.roll);
 				}
 
-				/* Run attitude RATE controllers which need the desired attitudes from above, add trim */
+				// Run attitude RATE controllers which need the desired attitudes from above, add trim.
 				const Vector3f angular_acceleration_setpoint = _rate_control.update(rates, body_rates_setpoint, angular_accel, dt,
 						_landed);
 
-				float roll_feedforward = _param_fw_rr_ff.get() * _airspeed_scaling * body_rates_setpoint(0);
-				float roll_u = angular_acceleration_setpoint(0) * _airspeed_scaling * _airspeed_scaling + roll_feedforward;
-				_vehicle_torque_setpoint.xyz[0] = PX4_ISFINITE(roll_u) ? math::constrain(roll_u + trim_roll, -1.f, 1.f) : trim_roll;
-
-				float pitch_feedforward = _param_fw_pr_ff.get() * _airspeed_scaling * body_rates_setpoint(1);
-				float pitch_u = angular_acceleration_setpoint(1) * _airspeed_scaling * _airspeed_scaling + pitch_feedforward;
-				_vehicle_torque_setpoint.xyz[1] = PX4_ISFINITE(pitch_u) ? math::constrain(pitch_u + trim_pitch, -1.f, 1.f) : trim_pitch;
-
+				const float roll_feedforward = _param_fw_rr_ff.get() * _airspeed_scaling * body_rates_setpoint(0);
+				const float pitch_feedforward = _param_fw_pr_ff.get() * _airspeed_scaling * body_rates_setpoint(1);
 				const float yaw_feedforward = _param_fw_yr_ff.get() * _airspeed_scaling * body_rates_setpoint(2);
-				float yaw_u = angular_acceleration_setpoint(2) * _airspeed_scaling * _airspeed_scaling + yaw_feedforward;
 
-				_vehicle_torque_setpoint.xyz[2] = PX4_ISFINITE(yaw_u) ? math::constrain(yaw_u + trim_yaw, -1.f, 1.f) : trim_yaw;
+				const float roll_u = angular_acceleration_setpoint(0) * _airspeed_scaling * _airspeed_scaling + roll_feedforward;
+				const float pitch_u = angular_acceleration_setpoint(1) * _airspeed_scaling * _airspeed_scaling + pitch_feedforward;
+
+				// Special case yaw in Acro: if the parameter FW_ACRO_YAW_CTL is not set then don't control yaw
+				float yaw_u = 0.f;
+
+				if (_vcontrol_mode.flag_control_attitude_enabled || _param_fw_acro_yaw_en.get()) {
+					yaw_u = angular_acceleration_setpoint(2) * _airspeed_scaling * _airspeed_scaling + yaw_feedforward;
+
+				} else {
+					yaw_u = _manual_control_setpoint.yaw * _param_fw_man_y_sc.get();
+					_rate_control.resetIntegral(2);
+				}
 
 				if (!PX4_ISFINITE(roll_u) || !PX4_ISFINITE(pitch_u) || !PX4_ISFINITE(yaw_u)) {
 					_rate_control.resetIntegral();
 				}
+
+				_vehicle_torque_setpoint.xyz[0] = PX4_ISFINITE(roll_u) ? math::constrain(roll_u + trim_roll, -1.f, 1.f) : trim_roll;
+				_vehicle_torque_setpoint.xyz[1] = PX4_ISFINITE(pitch_u) ? math::constrain(pitch_u + trim_pitch, -1.f, 1.f) : trim_pitch;
+				_vehicle_torque_setpoint.xyz[2] = PX4_ISFINITE(yaw_u) ? math::constrain(yaw_u + trim_yaw, -1.f, 1.f) : trim_yaw;
 
 				/* throttle passed through if it is finite */
 				_vehicle_thrust_setpoint.xyz[0] = PX4_ISFINITE(_rates_sp.thrust_body[0]) ? _rates_sp.thrust_body[0] : 0.0f;

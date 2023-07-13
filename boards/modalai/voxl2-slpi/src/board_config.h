@@ -45,7 +45,7 @@
  * I2C buses
  */
 #define CONFIG_I2C 1
-#define PX4_NUMBER_I2C_BUSES    3
+#define PX4_NUMBER_I2C_BUSES    4
 
 /*
  * SPI buses

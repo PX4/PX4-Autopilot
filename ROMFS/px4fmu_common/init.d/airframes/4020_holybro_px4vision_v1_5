@@ -16,11 +16,12 @@ param set-default COM_OBS_AVOID 1
 param set-default COM_DISARM_LAND 0.5
 
 # EKF2 parameters
-param set-default EKF2_AID_MASK 35
+param set-default EKF2_DRAG_CTRL 1
 param set-default EKF2_IMU_POS_X 0.02
 param set-default EKF2_GPS_POS_X 0.055
 param set-default EKF2_GPS_POS_Z -0.15
 param set-default EKF2_MIN_RNG 0.03
+param set-default EKF2_OF_CTRL 1
 param set-default EKF2_OF_POS_X 0.055
 param set-default EKF2_OF_POS_Y 0.02
 param set-default EKF2_OF_POS_Z 0.065
@@ -59,13 +60,10 @@ param set-default MC_YAWRATE_P 0.3
 param set-default CP_DIST 6
 param set-default MPC_ACC_DOWN_MAX 5
 param set-default MPC_ACC_HOR_MAX 10
-param set-default MPC_ACC_UP_MAX 4
 param set-default MPC_MANTHR_MIN 0
 param set-default MPC_MAN_Y_MAX 120
-param set-default MPC_TILTMAX_AIR 45
 param set-default MPC_THR_HOVER 0.3
 param set-default MPC_VEL_MANUAL 5
-param set-default MPC_XY_CRUISE 5
 param set-default MPC_XY_VEL_MAX 5
 param set-default MPC_XY_VEL_P_ACC 1.58
 param set-default MPC_XY_TRAJ_P 0.3

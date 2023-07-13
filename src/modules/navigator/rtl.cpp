@@ -253,11 +253,6 @@ void RTL::on_activation()
 {
 	_rtl_state = RTL_STATE_NONE;
 
-	// if a mission landing is desired we should only execute mission navigation mode if we currently are in fw mode
-	// In multirotor mode no landing pattern is required so we can just navigate to the land point directly and don't need to run mission
-	_should_engange_mission_for_landing = (_destination.type == RTL_DESTINATION_MISSION_LANDING)
-					      && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
-
 	// output the correct message, depending on where the RTL destination is
 	switch (_destination.type) {
 	case RTL_DESTINATION_HOME:
@@ -294,7 +289,7 @@ void RTL::on_activation()
 	}
 
 	// reset cruising speed and throttle to default for RTL
-	_navigator->set_cruising_speed();
+	_navigator->reset_cruising_speed();
 	_navigator->set_cruising_throttle();
 
 	set_rtl_item();
@@ -327,9 +322,8 @@ void RTL::on_active()
 		rtl_time_estimate_s rtl_time_estimate{};
 		rtl_time_estimate.valid = false;
 
-		// Calculate RTL destination and time estimate only when there is a valid home and global position
+		// Calculate time estimate only when there is a valid home and global position
 		if (_navigator->home_global_position_valid() && global_position_recently_updated) {
-			find_RTL_destination();
 			calcRtlTimeEstimate(_rtl_state, rtl_time_estimate);
 			rtl_time_estimate.valid = true;
 		}
@@ -549,6 +543,10 @@ void RTL::set_rtl_item()
 			_mission_item.altitude = loiter_altitude;
 			_mission_item.altitude_is_relative = false;
 
+			// have to reset here because these field were used in set_vtol_transition_item
+			_mission_item.time_inside = 0.f;
+			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
+
 			if (rtl_heading_mode == RTLHeadingMode::RTL_NAVIGATION_HEADING) {
 				_mission_item.yaw = get_bearing_to_next_waypoint(gpos.lat, gpos.lon, _destination.lat, _destination.lon);
 
@@ -559,7 +557,6 @@ void RTL::set_rtl_item()
 				_mission_item.yaw = _navigator->get_local_position()->heading;
 			}
 
-			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 			_mission_item.origin = ORIGIN_ONBOARD;
 			break;
 		}

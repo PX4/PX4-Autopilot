@@ -509,7 +509,7 @@ do_import(const char *param_file_name)
 static int
 do_save_default()
 {
-	return param_save_default();
+	return param_save_default(true);
 }
 
 static int

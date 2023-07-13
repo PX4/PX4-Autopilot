@@ -261,7 +261,7 @@ public:
 
 	bool is_planned_mission() const { return _navigation_mode == &_mission; }
 
-	bool on_mission_landing() { return _mission.landing(); }
+	bool on_mission_landing() { return (_mission.landing() && _navigation_mode == &_mission); }
 
 	bool start_mission_landing() { return _mission.land_start(); }
 
@@ -302,8 +302,10 @@ public:
 	void acquire_gimbal_control();
 	void release_gimbal_control();
 
-	void 		calculate_breaking_stop(double &lat, double &lon, float &yaw);
-	void        	stop_capturing_images();
+	void calculate_breaking_stop(double &lat, double &lon, float &yaw);
+
+	void stop_capturing_images();
+	void disable_camera_trigger();
 
 	void mode_completed(uint8_t nav_state, uint8_t result = mode_completed_s::RESULT_SUCCESS);
 
@@ -364,6 +366,8 @@ private:
 	bool		_pos_sp_triplet_updated{false};			/**< flags if position SP triplet needs to be published */
 	bool 		_pos_sp_triplet_published_invalid_once{false};	/**< flags if position SP triplet has been published once to UORB */
 	bool		_mission_result_updated{false};			/**< flags if mission result has seen an update */
+
+	bool		_shouldEngageMissionForLanding{false};
 
 	Mission		_mission;			/**< class that handles the missions */
 	Loiter		_loiter;			/**< class that handles loiter */

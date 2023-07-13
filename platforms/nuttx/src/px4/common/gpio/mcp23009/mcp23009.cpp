@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,182 +31,142 @@
  *
  ****************************************************************************/
 
+#include <nuttx/ioexpander/gpio.h>
 #include <drivers/drv_sensor.h>
-#include <px4_platform/gpio/mcp23009.hpp>
-#include "mcp23009_registers.hpp"
+#include <lib/drivers/device/Device.hpp>
+#include <uORB/topics/gpio_config.h>
+#include <uORB/topics/gpio_in.h>
+#include <uORB/topics/gpio_out.h>
+#include <uORB/topics/gpio_request.h>
+#include <uORB/Publication.hpp>
+#include <uORB/SubscriptionCallback.hpp>
 
-using namespace Microchip_MCP23009;
-
-const struct gpio_operations_s MCP23009::gpio_ops = {
-go_read : MCP23009::go_read,
-go_write : MCP23009::go_write,
-go_attach : nullptr,
-go_enable : nullptr,
-go_setpintype : MCP23009::go_setpintype,
+static uint32_t DEVID{0};
+struct mcp23009_gpio_dev_s {
+	struct gpio_dev_s gpio;
+	uint8_t mask;
 };
 
-MCP23009::MCP23009(int bus, int address, int first_minor, int bus_frequency) :
-	I2C(DRV_GPIO_DEVTYPE_MCP23009, "MCP23009", bus, address, bus_frequency),
-	_first_minor(first_minor)
+/* Copy the read input data */
+class ReadCallback : public uORB::SubscriptionCallback
 {
-}
+public:
+	using SubscriptionCallback::SubscriptionCallback;
 
-MCP23009::~MCP23009()
-{
-	/* set all as input & unregister */
-	for (int i = 0; i < num_gpios; ++i) {
-		go_setpintype(i, GPIO_INPUT_PIN);
-		gpio_pin_unregister(&_gpio[i].gpio, _first_minor + i);
-	}
-}
+	void call() override
+	{
+		px4::msg::GpioIn new_input;
 
-int MCP23009::go_read(struct gpio_dev_s *dev, bool *value)
-{
-	mcp23009_gpio_dev_s *gpio = (struct mcp23009_gpio_dev_s *)dev;
-	return gpio->obj->go_read(gpio->id, value);
-}
+		if (update(&new_input) && new_input.device_id == DEVID) {
+			input = new_input.state;
+		}
 
-int MCP23009::go_write(struct gpio_dev_s *dev, bool value)
-{
-	mcp23009_gpio_dev_s *gpio = (struct mcp23009_gpio_dev_s *)dev;
-	return gpio->obj->go_write(gpio->id, value);
-}
-
-int MCP23009::go_setpintype(struct gpio_dev_s *dev, enum gpio_pintype_e pintype)
-{
-	mcp23009_gpio_dev_s *gpio = (struct mcp23009_gpio_dev_s *)dev;
-	return gpio->obj->go_setpintype(gpio->id, pintype);
-}
-
-
-int MCP23009::read_reg(Register address, uint8_t &data)
-{
-	return transfer((uint8_t *)&address, 1, &data, 1);
-}
-
-int MCP23009::write_reg(Register address, uint8_t value)
-{
-	uint8_t data[2] = {(uint8_t)address, value};
-	return transfer(data, sizeof(data), nullptr, 0);
-}
-
-int MCP23009::init(uint8_t direction, uint8_t intital, uint8_t pull_up)
-{
-	/* do I2C init (and probe) first */
-	int ret = I2C::init();
-
-	if (ret != PX4_OK) {
-		return ret;
 	}
 
-	/* Use this state as the out puts */
+	uint8_t input;
+};
 
-	ret = write_reg(Register::OLAT, intital);
-	ret |= write_reg(Register::IODIR, direction);
-	ret |= write_reg(Register::GPPU, pull_up);
+static uORB::Publication<px4::msg::GpioRequest> toGpioRequest{ORB_ID(gpio_request)};
+static ReadCallback fromGpioIn{ORB_ID(gpio_in)};
+static int mcp23009_read(struct gpio_dev_s *dev, bool *value)
+{
+	mcp23009_gpio_dev_s *gpio = (struct mcp23009_gpio_dev_s *)dev;
+	*value = fromGpioIn.input & gpio->mask;
+	return OK;
+}
 
-	if (ret != PX4_OK) {
-		return ret;
+static uORB::Publication<gpio_out_s> toGpioOut{ORB_ID(gpio_out)};
+static int mcp23009_write(struct gpio_dev_s *dev, bool value)
+{
+	mcp23009_gpio_dev_s *gpio = (struct mcp23009_gpio_dev_s *)dev;
+	gpio_out_s msg{
+		hrt_absolute_time(),
+		DEVID,
+		gpio->mask,			// clear mask
+		value ? gpio->mask : 0u,	// set mask
+	};
+	return toGpioOut.publish(msg) ? OK : -ETIMEDOUT;
+}
+
+static uORB::Publication<gpio_config_s> toGpioConfig{ORB_ID(gpio_config)};
+static int mcp23009_setpintype(struct gpio_dev_s *dev, enum gpio_pintype_e pintype)
+{
+	mcp23009_gpio_dev_s *gpio = (struct mcp23009_gpio_dev_s *)dev;
+	gpio_config_s msg{
+		hrt_absolute_time(),
+		DEVID,
+		gpio->mask,
+	};
+
+	switch (pintype) {
+	case GPIO_INPUT_PIN:
+		msg.config = gpio_config_s::INPUT;
+		break;
+
+	case GPIO_INPUT_PIN_PULLUP:
+		msg.config = gpio_config_s::INPUT_PULLUP;
+		break;
+
+	case GPIO_OUTPUT_PIN:
+		msg.config = gpio_config_s::OUTPUT;
+		break;
+
+	default:
+		return -ENOTSUP;
 	}
 
-	/* register the pins */
-	for (int i = 0; i < num_gpios; ++i) {
-		_gpio[i].gpio.gp_pintype = GPIO_INPUT_PIN;
-		_gpio[i].gpio.gp_ops = &gpio_ops;
-		_gpio[i].id = i;
-		_gpio[i].obj = this;
-		ret = gpio_pin_register(&_gpio[i].gpio, _first_minor + i);
+	return toGpioConfig.publish(msg) ? OK : -ETIMEDOUT;
+}
 
-		if (ret != PX4_OK) {
+
+
+// ----------------------------------------------------------------------------
+static const struct gpio_operations_s mcp23009_gpio_ops {
+	mcp23009_read,
+	mcp23009_write,
+	nullptr,
+	nullptr,
+	mcp23009_setpintype,
+};
+
+static constexpr uint8_t NUM_GPIOS = 8;
+static mcp23009_gpio_dev_s _gpio[NUM_GPIOS] {
+	{ {GPIO_INPUT_PIN, {}, &mcp23009_gpio_ops}, (1u << 0) },
+	{ {GPIO_INPUT_PIN, {}, &mcp23009_gpio_ops}, (1u << 1) },
+	{ {GPIO_INPUT_PIN, {}, &mcp23009_gpio_ops}, (1u << 2) },
+	{ {GPIO_INPUT_PIN, {}, &mcp23009_gpio_ops}, (1u << 3) },
+	{ {GPIO_INPUT_PIN, {}, &mcp23009_gpio_ops}, (1u << 4) },
+	{ {GPIO_INPUT_PIN, {}, &mcp23009_gpio_ops}, (1u << 5) },
+	{ {GPIO_INPUT_PIN, {}, &mcp23009_gpio_ops}, (1u << 6) },
+	{ {GPIO_INPUT_PIN, {}, &mcp23009_gpio_ops}, (1u << 7) }
+};
+
+// ----------------------------------------------------------------------------
+int mcp23009_register_gpios(uint8_t i2c_bus, uint8_t i2c_addr, int first_minor)
+{
+	const auto device_id = device::Device::DeviceId{
+		device::Device::DeviceBusType_I2C, i2c_bus, i2c_addr, DRV_GPIO_DEVTYPE_MCP23009};
+	DEVID = device_id.devid;
+
+	for (int i = 0; i < NUM_GPIOS; ++i) {
+		int ret = gpio_pin_register(&_gpio[i].gpio, first_minor + i);
+
+		if (ret != OK) {
 			return ret;
 		}
 	}
 
-	return ret;
+	fromGpioIn.registerCallback();
+	return OK;
 }
 
-int MCP23009::probe()
+int mcp23009_unregister_gpios(int first_minor)
 {
-	// no whoami, try to read IOCON
-	uint8_t data;
-	return read_reg(Register::IOCON, data);
-}
-
-int MCP23009::go_read(int id, bool *value)
-{
-
-	uint8_t data;
-	int ret = read_reg(Register::GPIO, data);
-
-	if (ret != 0) {
-		return ret;
+	for (int i = 0; i < NUM_GPIOS; ++i) {
+		mcp23009_setpintype(&_gpio[i].gpio, GPIO_INPUT_PIN);
+		gpio_pin_unregister(&_gpio[i].gpio, first_minor + i);
 	}
 
-	*value = data & (1 << id);
-	return 0;
-}
-
-int MCP23009::go_write(int id, bool value)
-{
-	uint8_t data;
-	int ret = read_reg(Register::GPIO, data);
-
-	if (ret != 0) {
-		return ret;
-	}
-
-	if (value) {
-		data |= (1 << id);
-
-	} else {
-		data &= ~(1 << id);
-	}
-
-	return write_reg(Register::GPIO, data);
-}
-
-int MCP23009::go_setpintype(int id, enum gpio_pintype_e pintype)
-{
-	uint8_t direction;
-	int ret = read_reg(Register::IODIR, direction);
-
-	if (ret != 0) {
-		return ret;
-	}
-
-	uint8_t pullup;
-	ret = read_reg(Register::GPPU, pullup);
-
-	if (ret != 0) {
-		return ret;
-	}
-
-	switch (pintype) {
-	case GPIO_INPUT_PIN:
-		direction |= (1 << id);
-		pullup &= ~(1 << id);
-		break;
-
-	case GPIO_INPUT_PIN_PULLUP:
-		direction |= (1 << id);
-		pullup |= (1 << id);
-		break;
-
-	case GPIO_OUTPUT_PIN:
-		direction &= ~(1 << id);
-		break;
-
-	default:
-		return -EINVAL;
-	}
-
-	_gpio[id].gpio.gp_pintype = pintype;
-
-	ret = write_reg(Register::GPPU, pullup);
-
-	if (ret != 0) {
-		return ret;
-	}
-
-	return write_reg(Register::IODIR, direction);
+	fromGpioIn.unregisterCallback();
+	return OK;
 }

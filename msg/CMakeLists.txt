@@ -90,6 +90,7 @@ set(msg_files
 	FollowTargetStatus.msg
 	GeneratorStatus.msg
 	GeofenceResult.msg
+	GimbalControls.msg
 	GimbalDeviceAttitudeStatus.msg
 	GimbalDeviceInformation.msg
 	GimbalDeviceSetAttitude.msg
@@ -97,9 +98,12 @@ set(msg_files
 	GimbalManagerSetAttitude.msg
 	GimbalManagerSetManualControl.msg
 	GimbalManagerStatus.msg
+	GpioConfig.msg
+	GpioIn.msg
+	GpioOut.msg
+	GpioRequest.msg
 	GpsDump.msg
 	GpsInjectData.msg
-	GimbalControls.msg
 	Gripper.msg
 	HealthReport.msg
 	HeaterStatus.msg
@@ -174,6 +178,7 @@ set(msg_files
 	SensorSelection.msg
 	SensorsStatus.msg
 	SensorsStatusImu.msg
+	SensorUwb.msg
 	SystemPower.msg
 	TakeoffStatus.msg
 	TaskStackInfo.msg
@@ -190,8 +195,6 @@ set(msg_files
 	UavcanParameterValue.msg
 	UlogStream.msg
 	UlogStreamAck.msg
-	UwbDistance.msg
-	UwbGrid.msg
 	VehicleAcceleration.msg
 	VehicleAirData.msg
 	VehicleAngularAccelerationSetpoint.msg

@@ -52,6 +52,8 @@ ICM42688P::ICM42688P(const I2CSPIDriverConfig &config) :
 	_px4_accel(get_device_id(), config.rotation),
 	_px4_gyro(get_device_id(), config.rotation)
 {
+	isICM686 = config.custom2 == DRV_IMU_DEVTYPE_ICM42686P;
+
 	if (config.drdy_gpio != 0) {
 		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME": DRDY missed");
 	}
@@ -125,7 +127,7 @@ int ICM42688P::probe()
 	for (int i = 0; i < 3; i++) {
 		uint8_t whoami = RegisterRead(Register::BANK_0::WHO_AM_I);
 
-		if (whoami == WHOAMI) {
+		if (whoami == WHOAMI || (isICM686 && whoami == WHOAMI686)) {
 			return PX4_OK;
 
 		} else {
@@ -160,7 +162,8 @@ void ICM42688P::RunImpl()
 		break;
 
 	case STATE::WAIT_FOR_RESET:
-		if ((RegisterRead(Register::BANK_0::WHO_AM_I) == WHOAMI)
+		if (((RegisterRead(Register::BANK_0::WHO_AM_I) == WHOAMI || (isICM686
+				&& RegisterRead(Register::BANK_0::WHO_AM_I) == WHOAMI686)))
 		    && (RegisterRead(Register::BANK_0::DEVICE_CONFIG) == 0x00)
 		    && (RegisterRead(Register::BANK_0::INT_STATUS) & INT_STATUS_BIT::RESET_DONE_INT)) {
 
@@ -415,9 +418,17 @@ bool ICM42688P::Configure()
 	}
 
 	// 20-bits data format used
-	//  the only FSR settings that are operational are ±2000dps for gyroscope and ±16g for accelerometer
-	_px4_accel.set_range(16.f * CONSTANTS_ONE_G);
-	_px4_gyro.set_range(math::radians(2000.f));
+	//  For the 688 the only FSR settings that are operational are ±2000dps for gyroscope and ±16g for accelerometer
+	//  For the 686 the only FSR settings that are operational are ±4000dps for gyroscope and ±32g for accelerometer
+
+	if (isICM686) {
+		_px4_accel.set_range(32.f * CONSTANTS_ONE_G);
+		_px4_gyro.set_range(math::radians(4000.f));
+
+	} else {
+		_px4_accel.set_range(16.f * CONSTANTS_ONE_G);
+		_px4_gyro.set_range(math::radians(2000.f));
+	}
 
 	return success;
 }
@@ -694,8 +705,14 @@ void ICM42688P::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DA
 	}
 
 	if (!scale_20bit) {
-		// if highres enabled accel data is always 8192 LSB/g
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 8192.f);
+		// On the 686, if highres enabled accel data is always 4096 LSB/g
+		// On the 688, if highres enabled accel data is always 8192 LSB/g
+		if (isICM686) {
+			_px4_accel.set_scale(CONSTANTS_ONE_G / 4096.f);
+
+		} else {
+			_px4_accel.set_scale(CONSTANTS_ONE_G / 8192.f);
+		}
 
 	} else {
 		// 20 bit data scaled to 16 bit (2^4)
@@ -712,7 +729,12 @@ void ICM42688P::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DA
 			accel.z[i] = accel_z;
 		}
 
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 2048.f);
+		if (isICM686) {
+			_px4_accel.set_scale(CONSTANTS_ONE_G / 1024.f);
+
+		} else {
+			_px4_accel.set_scale(CONSTANTS_ONE_G / 2048.f);
+		}
 	}
 
 	// correct frame for publication
@@ -783,8 +805,14 @@ void ICM42688P::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DAT
 	}
 
 	if (!scale_20bit) {
-		// if highres enabled gyro data is always 131 LSB/dps
-		_px4_gyro.set_scale(math::radians(1.f / 131.f));
+		// On the 686, if highres enabled gyro data is always 65.5 LSB/dps
+		// On the 688, if highres enabled gyro data is always 131 LSB/dps
+		if (isICM686) {
+			_px4_gyro.set_scale(math::radians(1.f / 65.5f));
+
+		} else {
+			_px4_gyro.set_scale(math::radians(1.f / 131.f));
+		}
 
 	} else {
 		// 20 bit data scaled to 16 bit (2^4)
@@ -794,7 +822,13 @@ void ICM42688P::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DAT
 			gyro.z[i] = combine(fifo[i].GYRO_DATA_Z1, fifo[i].GYRO_DATA_Z0);
 		}
 
-		_px4_gyro.set_scale(math::radians(2000.f / 32768.f));
+		if (isICM686) {
+			_px4_gyro.set_scale(math::radians(2000.f / 16384.f));
+
+		} else {
+			_px4_gyro.set_scale(math::radians(2000.f / 32768.f));
+		}
+
 	}
 
 	// correct frame for publication

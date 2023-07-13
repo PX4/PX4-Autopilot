@@ -85,7 +85,7 @@ bool PreFlightChecker::preFlightCheckHorizVelFailed(const estimator_innovations_
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 
 	if (_is_using_flow_aiding) {
-		const Vector2f flow_innov = Vector2f(innov.flow);
+		const Vector2f flow_innov = Vector2f(innov.flow) * _flow_dist_bottom;
 		Vector2f flow_innov_lpf;
 		flow_innov_lpf(0) = _filter_flow_x_innov.update(flow_innov(0), alpha, _flow_innov_spike_lim);
 		flow_innov_lpf(1) = _filter_flow_y_innov.update(flow_innov(1), alpha, _flow_innov_spike_lim);

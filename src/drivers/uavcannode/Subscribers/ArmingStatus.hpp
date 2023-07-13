@@ -89,6 +89,7 @@ private:
 			actuator_armed.armed = false;
 		}
 
+		actuator_armed.prearmed = true;
 		actuator_armed.timestamp = hrt_absolute_time();
 		_actuator_armed_pub.publish(actuator_armed);
 	}

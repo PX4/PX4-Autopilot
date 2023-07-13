@@ -40,6 +40,7 @@ px4_add_module(
 		temperature_calibration/accel.cpp
 		temperature_calibration/baro.cpp
 		temperature_calibration/gyro.cpp
+		temperature_calibration/mag.cpp
 		temperature_calibration/task.cpp
 	DEPENDS
 		mathlib

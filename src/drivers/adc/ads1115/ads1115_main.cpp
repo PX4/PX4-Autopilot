@@ -80,6 +80,11 @@ void ADS1115::RunImpl()
 	_adc_report.timestamp = hrt_absolute_time();
 
 	if (isSampleReady()) { // whether ADS1115 is ready to be read or not
+		if (!_reported_ready_last_cycle) {
+			PX4_INFO("ADS1115: reported ready");
+			_reported_ready_last_cycle = true;
+		}
+
 		int16_t buf;
 		ADS1115::ChannelSelection ch = cycleMeasure(&buf);
 		++_channel_cycle_count;
@@ -118,7 +123,10 @@ void ADS1115::RunImpl()
 		}
 
 	} else {
-		PX4_WARN("ADS1115 not ready!");
+		if (_reported_ready_last_cycle) {
+			_reported_ready_last_cycle = false;
+			PX4_ERR("ADS1115: not ready. Device lost?");
+		}
 	}
 
 	perf_end(_cycle_perf);
@@ -126,6 +134,24 @@ void ADS1115::RunImpl()
 
 void ADS1115::print_usage()
 {
+
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+
+Driver to enable an external [ADS1115](https://www.adafruit.com/product/1085) ADC connected via I2C.
+
+The driver is included by default in firmware for boards that do not have an internal analog to digital converter,
+such as [PilotPi](../flight_controller/raspberry_pi_pilotpi.md) or [CUAV Nora](../flight_controller/cuav_nora.md)
+(search for `CONFIG_DRIVERS_ADC_ADS1115` in board configuration files).
+
+It is enabled/disabled using the
+[ADC_ADS1115_EN](../advanced_config/parameter_reference.md#ADC_ADS1115_EN)
+parameter, and is disabled by default.
+If enabled, internal ADCs are not used.
+
+)DESCR_STR");
+	
 	PRINT_MODULE_USAGE_NAME("ads1115", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);

@@ -31,6 +31,8 @@
  *
  ****************************************************************************/
 
+#include <inttypes.h>
+
 #include <px4_platform_common/getopt.h>
 
 #include "modal_io.hpp"
@@ -46,7 +48,6 @@ const char *_device;
 
 ModalIo::ModalIo() :
 	OutputModuleInterface(MODULE_NAME, px4::serial_port_to_wq(MODAL_IO_DEFAULT_PORT)),
-	_mixing_output{"MODAL_IO", MODAL_IO_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false},
 	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
 	_output_update_perf(perf_alloc(PC_INTERVAL, MODULE_NAME": output update interval"))
 {
@@ -255,7 +256,9 @@ int ModalIo::task_spawn(int argc, char *argv[])
 		PX4_ERR("alloc failed");
 	}
 
-	delete instance;
+	// This will cause a crash on SLPI DSP
+	// delete instance;
+
 	_object.store(nullptr);
 	_task_id = -1;
 
@@ -322,7 +325,7 @@ int ModalIo::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
 						uint32_t voltage     = fb.voltage;
 						int32_t  current     = fb.current * 8;
 						int32_t  temperature = fb.temperature / 100;
-						PX4_INFO("[%lld] ID_RAW=%d ID=%d, RPM=%5d, PWR=%3d%%, V=%5dmV, I=%+5dmA, T=%+3dC", tnow, (int)id, motor_idx + 1,
+						PX4_INFO("[%" PRId64 "] ID_RAW=%d ID=%d, RPM=%5d, PWR=%3d%%, V=%5dmV, I=%+5dmA, T=%+3dC", tnow, (int)id, motor_idx + 1,
 							 (int)rpm, (int)power, (int)voltage, (int)current, (int)temperature);
 					}
 
@@ -1426,21 +1429,21 @@ int ModalIo::print_status()
 
 	PX4_INFO("");
 
-	PX4_INFO("Params: MODAL_IO_CONFIG: %li", _parameters.config);
-	PX4_INFO("Params: MODAL_IO_BAUD: %li", _parameters.baud_rate);
+	PX4_INFO("Params: MODAL_IO_CONFIG: %" PRId32, _parameters.config);
+	PX4_INFO("Params: MODAL_IO_BAUD: %" PRId32, _parameters.baud_rate);
 
-	PX4_INFO("Params: MODAL_IO_FUNC1: %li", _parameters.function_map[0]);
-	PX4_INFO("Params: MODAL_IO_FUNC2: %li", _parameters.function_map[1]);
-	PX4_INFO("Params: MODAL_IO_FUNC3: %li", _parameters.function_map[2]);
-	PX4_INFO("Params: MODAL_IO_FUNC4: %li", _parameters.function_map[3]);
+	PX4_INFO("Params: MODAL_IO_FUNC1: %" PRId32, _parameters.function_map[0]);
+	PX4_INFO("Params: MODAL_IO_FUNC2: %" PRId32, _parameters.function_map[1]);
+	PX4_INFO("Params: MODAL_IO_FUNC3: %" PRId32, _parameters.function_map[2]);
+	PX4_INFO("Params: MODAL_IO_FUNC4: %" PRId32, _parameters.function_map[3]);
 
-	PX4_INFO("Params: MODAL_IO_SDIR1: %li", _parameters.direction_map[0]);
-	PX4_INFO("Params: MODAL_IO_SDIR2: %li", _parameters.direction_map[1]);
-	PX4_INFO("Params: MODAL_IO_SDIR3: %li", _parameters.direction_map[2]);
-	PX4_INFO("Params: MODAL_IO_SDIR4: %li", _parameters.direction_map[3]);
+	PX4_INFO("Params: MODAL_IO_SDIR1: %" PRId32, _parameters.direction_map[0]);
+	PX4_INFO("Params: MODAL_IO_SDIR2: %" PRId32, _parameters.direction_map[1]);
+	PX4_INFO("Params: MODAL_IO_SDIR3: %" PRId32, _parameters.direction_map[2]);
+	PX4_INFO("Params: MODAL_IO_SDIR4: %" PRId32, _parameters.direction_map[3]);
 
-	PX4_INFO("Params: MODAL_IO_RPM_MIN: %li", _parameters.rpm_min);
-	PX4_INFO("Params: MODAL_IO_RPM_MAX: %li", _parameters.rpm_max);
+	PX4_INFO("Params: MODAL_IO_RPM_MIN: %" PRId32, _parameters.rpm_min);
+	PX4_INFO("Params: MODAL_IO_RPM_MAX: %" PRId32, _parameters.rpm_max);
 
 	PX4_INFO("");
 

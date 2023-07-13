@@ -195,6 +195,13 @@ int LightwareLaser::init()
 		_type = Type::LW20c;
 		break;
 
+	case 7:
+		/* SF/LW30/d (200m 49-20'000Hz) */
+		_px4_rangefinder.set_min_distance(0.2f);
+		_px4_rangefinder.set_max_distance(200.0f);
+		_conversion_interval = 20409;
+		break;
+
 	default:
 		PX4_ERR("invalid HW model %" PRId32 ".", hw_model);
 		return ret;

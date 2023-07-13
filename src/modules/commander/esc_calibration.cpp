@@ -58,18 +58,19 @@ using namespace time_literals;
 
 bool check_battery_disconnected(orb_advert_t *mavlink_log_pub)
 {
-	uORB::SubscriptionData<battery_status_s> batt_sub{ORB_ID(battery_status)};
-	const battery_status_s &battery = batt_sub.get();
-	batt_sub.update();
+	uORB::SubscriptionData<battery_status_s> battery_status_sub{ORB_ID(battery_status)};
+	battery_status_sub.update();
 
-	if (battery.timestamp == 0) {
-		calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, "battery unavailable");
+	const bool recent_battery_measurement = hrt_absolute_time() < (battery_status_sub.get().timestamp + 1_s);
+
+	if (!recent_battery_measurement) {
+		// We have to send this message for now because "battery unavailable" gets ignored by QGC
+		calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, "Disconnect battery and try again");
 		return false;
 	}
 
-	// Make sure battery is disconnected
-	// battery is not connected if the connected flag is not set and we have a recent battery measurement
-	if (!battery.connected && (hrt_elapsed_time(&battery.timestamp) < 500_ms)) {
+	// Make sure battery is reported to be disconnected
+	if (recent_battery_measurement && !battery_status_sub.get().connected) {
 		return true;
 	}
 
@@ -93,66 +94,80 @@ static void set_motor_actuators(uORB::Publication<actuator_test_s> &publisher, f
 
 int do_esc_calibration(orb_advert_t *mavlink_log_pub)
 {
-	calibration_log_info(mavlink_log_pub, CAL_QGC_STARTED_MSG, "esc");
+	// 1 Initialization
+	bool calibration_failed = false;
 
-	int	return_code = PX4_OK;
 	uORB::Publication<actuator_test_s> actuator_test_pub{ORB_ID(actuator_test)};
 	// since we publish multiple at once, make sure the output driver subscribes before we publish
 	actuator_test_pub.advertise();
-	px4_usleep(10000);
 
-	// set motors to high
+	uORB::SubscriptionData<battery_status_s> battery_status_sub{ORB_ID(battery_status)};
+	battery_status_sub.update();
+	const bool battery_connected_before_calibration = battery_status_sub.get().connected;
+	const float current_before_calibration = battery_status_sub.get().current_a;
+
+	calibration_log_info(mavlink_log_pub, CAL_QGC_STARTED_MSG, "esc");
+
+	px4_usleep(10_ms);
+
+	// 2 Set motors to high
 	set_motor_actuators(actuator_test_pub, 1.f, false);
 	calibration_log_info(mavlink_log_pub, "[cal] Connect battery now");
 
-
-	uORB::SubscriptionData<battery_status_s> batt_sub{ORB_ID(battery_status)};
-	const battery_status_s &battery = batt_sub.get();
-	batt_sub.update();
-	bool batt_connected = battery.connected;
 	hrt_abstime timeout_start = hrt_absolute_time();
 
+	// 3 Wait for user to connect power
 	while (true) {
-		// We are either waiting for the user to connect the battery. Or we are waiting to let the PWM
-		// sit high.
-		static constexpr hrt_abstime battery_connect_wait_timeout{20_s};
-		static constexpr hrt_abstime pwm_high_timeout{3_s};
-		hrt_abstime timeout_wait = batt_connected ? pwm_high_timeout : battery_connect_wait_timeout;
+		hrt_abstime now = hrt_absolute_time();
+		battery_status_sub.update();
 
-		if (hrt_elapsed_time(&timeout_start) > timeout_wait) {
-			if (!batt_connected) {
-				calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, "Timeout waiting for battery");
-				return_code = PX4_ERROR;
-			}
-
-			// PWM was high long enough
+		if (now > (timeout_start + 1_s) && (battery_status_sub.get().current_a > current_before_calibration + 1.f)) {
+			// Safety termination, current rises immediately, user didn't unplug power before
+			calibration_failed = true;
 			break;
 		}
 
-		if (!batt_connected) {
-			if (batt_sub.update()) {
-				if (battery.connected) {
-					// Battery is connected, signal to user and start waiting again
-					batt_connected = true;
-					timeout_start = hrt_absolute_time();
-					calibration_log_info(mavlink_log_pub, "[cal] Battery connected");
-				}
-			}
+		if (!battery_connected_before_calibration && battery_status_sub.get().connected) {
+			// Battery connection detected we can go to the next step immediately
+			break;
 		}
 
-		px4_usleep(50000);
+		if (now > (timeout_start + 6_s)) {
+			// Timeout, we continue since maybe the battery cannot be detected properly
+			// If we abort here and the ESCs are infact connected and started calibrating
+			// they will measure the disarmed value as the lower limit instead of the fixed 1000us
+			break;
+		}
+
+		px4_usleep(50_ms);
 	}
 
-	if (return_code == PX4_OK) {
-		// set motors to low
+	// 4 Wait for ESCs to measure high signal
+	if (!calibration_failed) {
+		calibration_log_info(mavlink_log_pub, "[cal] Battery connected");
+		px4_usleep(3_s);
+	}
+
+	// 5 Set motors to low
+	if (!calibration_failed) {
 		set_motor_actuators(actuator_test_pub, 0.f, false);
-		px4_usleep(4000000);
-
-		// release control
-		set_motor_actuators(actuator_test_pub, 0.f, true);
-
-		calibration_log_info(mavlink_log_pub, CAL_QGC_DONE_MSG, "esc");
 	}
 
-	return return_code;
+	// 6 Wait for ESCs to measure low signal
+	if (!calibration_failed) {
+		px4_usleep(5_s);
+	}
+
+	// 7 release control
+	set_motor_actuators(actuator_test_pub, 0.f, true);
+
+	// 8 Report
+	if (calibration_failed) {
+		calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, "Timeout waiting for battery");
+		return PX4_ERROR;
+
+	} else {
+		calibration_log_info(mavlink_log_pub, CAL_QGC_DONE_MSG, "esc");
+		return PX4_OK;
+	}
 }

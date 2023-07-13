@@ -83,7 +83,7 @@ void bodyzToAttitude(Vector3f body_z, const float yaw_sp, vehicle_attitude_setpo
 	Vector3f body_x = y_C % body_z;
 
 	// keep nose to front while inverted upside down
-	if (body_z(2) < 0.0f) {
+	if (body_z(2) < 0.f) {
 		body_x = -body_x;
 	}
 
@@ -91,7 +91,7 @@ void bodyzToAttitude(Vector3f body_z, const float yaw_sp, vehicle_attitude_setpo
 		// desired thrust is in XY plane, set X downside to construct correct matrix,
 		// but yaw component will not be used actually
 		body_x.zero();
-		body_x(2) = 1.0f;
+		body_x(2) = 1.f;
 	}
 
 	body_x.normalize();
@@ -201,7 +201,7 @@ bool cross_sphere_line(const Vector3f &sphere_c, const float sphere_r,
 		// we have triangle CDX with known CD and CX = R, find DX
 		float dx_len = sqrtf(sphere_r * sphere_r - cd_len * cd_len);
 
-		if ((sphere_c - line_b) * ab_norm > 0.0f) {
+		if ((sphere_c - line_b) * ab_norm > 0.f) {
 			// target waypoint is already behind us
 			res = line_b;
 
@@ -218,12 +218,12 @@ bool cross_sphere_line(const Vector3f &sphere_c, const float sphere_r,
 		res = d; // go directly to line
 
 		// previous waypoint is still in front of us
-		if ((sphere_c - line_a) * ab_norm < 0.0f) {
+		if ((sphere_c - line_a) * ab_norm < 0.f) {
 			res = line_a;
 		}
 
 		// target waypoint is already behind us
-		if ((sphere_c - line_b) * ab_norm > 0.0f) {
+		if ((sphere_c - line_b) * ab_norm > 0.f) {
 			res = line_b;
 		}
 

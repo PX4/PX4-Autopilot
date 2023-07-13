@@ -104,9 +104,9 @@ def calculate_innov_fail_metrics(
 
     # calculate innovation check fail metrics
     for signal_id, signal, result in [('posv', 'reject_ver_pos', 'hgt_fail_percentage'),
-                                      ('magx', 'reject_mag_x', 'magx_fail_percentage'),
-                                      ('magy', 'reject_mag_y', 'magy_fail_percentage'),
-                                      ('magz', 'reject_mag_z', 'magz_fail_percentage'),
+                                      ('magx', 'fs_bad_mag_x', 'magx_fail_percentage'),
+                                      ('magy', 'fs_bad_mag_y', 'magy_fail_percentage'),
+                                      ('magz', 'fs_bad_mag_z', 'magz_fail_percentage'),
                                       ('yaw', 'reject_yaw', 'yaw_fail_percentage'),
                                       ('velh', 'reject_hor_vel', 'vel_fail_percentage'),
                                       ('velv', 'reject_ver_vel', 'vel_fail_percentage'),

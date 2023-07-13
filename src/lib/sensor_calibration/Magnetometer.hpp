@@ -39,6 +39,7 @@
 #include <px4_platform_common/log.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/battery_status.h>
+#include <uORB/topics/sensor_correction.h>
 
 namespace calibration
 {
@@ -98,15 +99,21 @@ public:
 
 	void Reset();
 
+	void SensorCorrectionsUpdate(bool force = false);
+
 	void UpdatePower(float power) { _power = power; }
 
 private:
+	uORB::Subscription _sensor_correction_sub{ORB_ID(sensor_correction)};
+
 	Rotation _rotation_enum{ROTATION_NONE};
 
 	matrix::Dcmf _rotation;
 	matrix::Vector3f _offset;
 	matrix::Matrix3f _scale;
+	matrix::Vector3f _thermal_offset;
 	matrix::Vector3f _power_compensation;
+
 	float _power{0.f};
 
 	int8_t _calibration_index{-1};

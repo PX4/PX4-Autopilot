@@ -6,6 +6,7 @@ add_compile_options(
 px4_add_unit_gtest(SRC MatrixAssignmentTest.cpp)
 px4_add_unit_gtest(SRC MatrixAttitudeTest.cpp)
 px4_add_unit_gtest(SRC MatrixCopyToTest.cpp)
+px4_add_unit_gtest(SRC MatrixDcm2Test.cpp)
 px4_add_unit_gtest(SRC MatrixDualTest.cpp)
 px4_add_unit_gtest(SRC MatrixFilterTest.cpp)
 px4_add_unit_gtest(SRC MatrixHatveeTest.cpp)

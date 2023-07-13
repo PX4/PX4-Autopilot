@@ -86,9 +86,9 @@ private:
 		// Required update for dynamic message is 5 [Hz]
 		mavlink_uavionix_adsb_out_dynamic_t dynamic_msg = {
 			.utcTime = static_cast<uint32_t>(vehicle_gps_position.time_utc_usec / 1000000ULL),
-			.gpsLat = vehicle_gps_position.lat,
-			.gpsLon = vehicle_gps_position.lon,
-			.gpsAlt = vehicle_gps_position.alt_ellipsoid,
+			.gpsLat = static_cast<int32_t>(round(vehicle_gps_position.latitude_deg * 1e7)),
+			.gpsLon = static_cast<int32_t>(round(vehicle_gps_position.longitude_deg * 1e7)),
+			.gpsAlt = static_cast<int32_t>(round(vehicle_gps_position.altitude_ellipsoid_m * 1e3)), // convert [m] to [mm]
 			.baroAltMSL = static_cast<int32_t>(vehicle_air_data.baro_pressure_pa / 100.0f), // convert [Pa] to [mBar]
 			.accuracyHor = static_cast<uint32_t>(vehicle_gps_position.eph * 1000.0f), // convert [m] to [mm]
 			.accuracyVert = static_cast<uint16_t>(vehicle_gps_position.epv * 100.0f), // convert [m] to [cm]

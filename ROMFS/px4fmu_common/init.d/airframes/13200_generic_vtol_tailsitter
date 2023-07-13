@@ -31,3 +31,4 @@ param set-default CA_SV_CS1_TYPE 6
 param set-default MAV_TYPE 19
 param set-default VT_TYPE 0
 param set-default VT_ELEV_MC_LOCK 0
+param set-default VT_B_TRANS_DUR 5

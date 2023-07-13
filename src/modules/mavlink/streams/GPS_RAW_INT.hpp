@@ -70,9 +70,9 @@ private:
 		if (_sensor_gps_sub.update(&gps)) {
 			msg.time_usec = gps.timestamp;
 			msg.fix_type = gps.fix_type;
-			msg.lat = gps.lat;
-			msg.lon = gps.lon;
-			msg.alt = gps.alt;
+			msg.lat = static_cast<int32_t>(round(gps.latitude_deg * 1e7));
+			msg.lon = static_cast<int32_t>(round(gps.longitude_deg * 1e7));
+			msg.alt = static_cast<int32_t>(round(gps.altitude_msl_m * 1e3)); // convert [m] to [mm]
 			msg.eph = gps.hdop * 100; // GPS HDOP horizontal dilution of position (unitless)
 			msg.epv = gps.vdop * 100; // GPS VDOP vertical dilution of position (unitless)
 
@@ -85,7 +85,7 @@ private:
 
 			msg.cog = math::degrees(matrix::wrap_2pi(gps.cog_rad)) * 1e2f;
 			msg.satellites_visible = gps.satellites_used;
-			msg.alt_ellipsoid = gps.alt_ellipsoid;
+			msg.alt_ellipsoid = static_cast<int32_t>(round(gps.altitude_ellipsoid_m * 1e3)); // convert [m] to [mm]
 			msg.h_acc = gps.eph * 1e3f;              // position uncertainty in mm
 			msg.v_acc = gps.epv * 1e3f;              // altitude uncertainty in mm
 			msg.vel_acc = gps.s_variance_m_s * 1e3f; // speed uncertainty in mm

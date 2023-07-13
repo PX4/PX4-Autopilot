@@ -48,7 +48,7 @@ OutputRC::OutputRC(const Parameters &parameters)
 {
 }
 
-void OutputRC::update(const ControlData &control_data, bool new_setpoints)
+void OutputRC::update(const ControlData &control_data, bool new_setpoints, uint8_t &gimbal_device_id)
 {
 	if (new_setpoints) {
 		_set_angle_setpoints(control_data);
@@ -61,17 +61,19 @@ void OutputRC::update(const ControlData &control_data, bool new_setpoints)
 
 	_stream_device_attitude_status();
 
+	// If the output is RC, then it means we are also the gimbal device. gimbal_device_id = (uint8_t)_parameters.mnt_mav_compid_v1;
+
 	// _angle_outputs are in radians, gimbal_controls are in [-1, 1]
 	gimbal_controls_s gimbal_controls{};
 	gimbal_controls.control[gimbal_controls_s::INDEX_ROLL] = constrain(
 				(_angle_outputs[0] + math::radians(_parameters.mnt_off_roll)) *
 				(1.0f / (math::radians(_parameters.mnt_range_roll / 2.0f))),
 				-1.f, 1.f);
-	gimbal_controls.control[gimbal_controls_s::INDEX_ROLL] = constrain(
+	gimbal_controls.control[gimbal_controls_s::INDEX_PITCH] = constrain(
 				(_angle_outputs[1] + math::radians(_parameters.mnt_off_pitch)) *
 				(1.0f / (math::radians(_parameters.mnt_range_pitch / 2.0f))),
 				-1.f, 1.f);
-	gimbal_controls.control[gimbal_controls_s::INDEX_ROLL] = constrain(
+	gimbal_controls.control[gimbal_controls_s::INDEX_YAW] = constrain(
 				(_angle_outputs[2] + math::radians(_parameters.mnt_off_yaw)) *
 				(1.0f / (math::radians(_parameters.mnt_range_yaw / 2.0f))),
 				-1.f, 1.f);

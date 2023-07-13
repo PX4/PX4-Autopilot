@@ -38,44 +38,6 @@ import symforce.symbolic as sf
 
 import re
 
-# q: quaternion describing rotation from frame 1 to frame 2
-# returns a rotation matrix derived form q which describes the same
-# rotation
-def quat_to_rot(q):
-    q0 = q[0]
-    q1 = q[1]
-    q2 = q[2]
-    q3 = q[3]
-
-    Rot = sf.M33([[q0**2 + q1**2 - q2**2 - q3**2, 2*(q1*q2 - q0*q3), 2*(q1*q3 + q0*q2)],
-                  [2*(q1*q2 + q0*q3), q0**2 - q1**2 + q2**2 - q3**2, 2*(q2*q3 - q0*q1)],
-                   [2*(q1*q3-q0*q2), 2*(q2*q3 + q0*q1), q0**2 - q1**2 - q2**2 + q3**2]])
-
-    return Rot
-
-def quat_to_rot_simplified(q):
-    q0 = q[0]
-    q1 = q[1]
-    q2 = q[2]
-    q3 = q[3]
-
-    # Use the simplified formula for unit quaternion to rotation matrix
-    # as it produces a simpler and more stable EKF derivation given
-    # the additional constraint: q0^2 + q1^2 + q2^2 + q3^2 = 1
-    Rot = sf.Matrix([[1 - 2*q2**2 - 2*q3**2, 2*(q1*q2 - q0*q3), 2*(q1*q3 + q0*q2)],
-                  [2*(q1*q2 + q0*q3), 1 - 2*q1**2 - 2*q3**2, 2*(q2*q3 - q0*q1)],
-                   [2*(q1*q3-q0*q2), 2*(q2*q3 + q0*q1), 1 - 2*q1**2 - 2*q2**2]])
-
-    return Rot
-
-def quat_mult(p,q):
-    r = sf.Matrix([p[0] * q[0] - p[1] * q[1] - p[2] * q[2] - p[3] * q[3],
-                p[0] * q[1] + p[1] * q[0] + p[2] * q[3] - p[3] * q[2],
-                p[0] * q[2] - p[1] * q[3] + p[2] * q[0] + p[3] * q[1],
-                p[0] * q[3] + p[1] * q[2] - p[2] * q[1] + p[3] * q[0]])
-
-    return r
-
 def sign_no_zero(x) -> sf.Scalar:
     """
     Returns -1 if x is negative, 1 if x is positive, and 1 if x is zero

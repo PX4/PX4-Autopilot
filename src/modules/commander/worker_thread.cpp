@@ -75,15 +75,13 @@ void WorkerThread::startTask(Request request)
 	pthread_attr_init(&low_prio_attr);
 	pthread_attr_setstacksize(&low_prio_attr, PX4_STACK_ADJUSTED(4804));
 
-#ifndef __PX4_QURT
-	// This is not supported by QURT (yet).
 	struct sched_param param;
 	pthread_attr_getschedparam(&low_prio_attr, &param);
 
 	/* low priority */
 	param.sched_priority = SCHED_PRIORITY_DEFAULT - 50;
 	pthread_attr_setschedparam(&low_prio_attr, &param);
-#endif
+
 	int ret = pthread_create(&_thread_handle, &low_prio_attr, &threadEntryTrampoline, this);
 	pthread_attr_destroy(&low_prio_attr);
 
@@ -160,7 +158,7 @@ void WorkerThread::threadEntry()
 		break;
 
 	case Request::ParamSaveDefault:
-		_ret_value = param_save_default();
+		_ret_value = param_save_default(true);
 
 		if (_ret_value != 0) {
 			mavlink_log_critical(&_mavlink_log_pub, "Error saving settings\t");
@@ -177,7 +175,7 @@ void WorkerThread::threadEntry()
 	case Request::ParamResetSensorFactory: {
 			const char *reset_cal[] = { "CAL_ACC*", "CAL_GYRO*", "CAL_MAG*" };
 			param_reset_specific(reset_cal, sizeof(reset_cal) / sizeof(reset_cal[0]));
-			_ret_value = param_save_default();
+			_ret_value = param_save_default(true);
 #if defined(CONFIG_BOARDCTL_RESET)
 			px4_reboot_request(false, 400_ms);
 #endif // CONFIG_BOARDCTL_RESET

@@ -42,6 +42,7 @@
 
 #include "checks/accelerometerCheck.hpp"
 #include "checks/airspeedCheck.hpp"
+#include "checks/armPermissionCheck.hpp"
 #include "checks/baroCheck.hpp"
 #include "checks/cpuResourceCheck.hpp"
 #include "checks/distanceSensorChecks.hpp"
@@ -67,6 +68,7 @@
 #include "checks/rcAndDataLinkCheck.hpp"
 #include "checks/vtolCheck.hpp"
 #include "checks/offboardCheck.hpp"
+#include "checks/openDroneIDCheck.hpp"
 
 class HealthAndArmingChecks : public ModuleParams
 {
@@ -114,6 +116,7 @@ private:
 	// all checks
 	AccelerometerChecks _accelerometer_checks;
 	AirspeedChecks _airspeed_checks;
+	ArmPermissionChecks _arm_permission_checks;
 	BaroChecks _baro_checks;
 	CpuResourceChecks _cpu_resource_checks;
 	DistanceSensorChecks _distance_sensor_checks;
@@ -126,6 +129,7 @@ private:
 	ManualControlChecks _manual_control_checks;
 	HomePositionChecks _home_position_checks;
 	ModeChecks _mode_checks;
+	OpenDroneIDChecks _open_drone_id_checks;
 	ParachuteChecks _parachute_checks;
 	PowerChecks _power_checks;
 	RcCalibrationChecks _rc_calibration_checks;
@@ -140,9 +144,10 @@ private:
 	VtolChecks _vtol_checks;
 	OffboardChecks _offboard_checks;
 
-	HealthAndArmingCheckBase *_checks[30] = {
+	HealthAndArmingCheckBase *_checks[31] = {
 		&_accelerometer_checks,
 		&_airspeed_checks,
+		&_arm_permission_checks,
 		&_baro_checks,
 		&_cpu_resource_checks,
 		&_distance_sensor_checks,
@@ -157,6 +162,7 @@ private:
 		&_mission_checks,
 		&_offboard_checks, // must be after _estimator_checks
 		&_mode_checks, // must be after _estimator_checks, _home_position_checks, _mission_checks, _offboard_checks
+		&_open_drone_id_checks,
 		&_parachute_checks,
 		&_power_checks,
 		&_rc_calibration_checks,

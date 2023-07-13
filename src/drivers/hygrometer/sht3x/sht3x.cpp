@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -194,6 +194,24 @@ int SHT3X::init_sensor()
 	probe();
 
 	PX4_INFO("Connected to SHT3x sensor, SN: %ld", _sht_info.serial_number);
+
+	// Modify ALERT range values to minimalize ALERT led heating.
+
+	// def temp(t):
+	//     return ((t+45)*(2**16-1))/175
+	// def hum(h):
+	//	return (h/100)*(2**16-1)
+	//
+	// hex((int(hum(80))>>9<<9) | (int(temp(60))>>7))
+
+	uint8_t sh[] {0xff, 0xe2};
+	uint8_t ch[] {0xfb, 0xdc};
+	uint8_t sl[] {0x00, 0x0e};
+	uint8_t cl[] {0x04, 0x14};
+	write_data(SHT3x_CMD_ALERT_W_SET_HIGH, sh, 2);		// 100%, 120C
+	write_data(SHT3x_CMD_ALERT_W_CLEAR_HIGH, ch, 2);	// 98%, 118C
+	write_data(SHT3x_CMD_ALERT_W_SET_LOW, sl, 2);		// 0%, -40C
+	write_data(SHT3x_CMD_ALERT_W_CLEAR_LOW, cl, 2);		// 2%, -38C
 
 	return PX4_OK;
 }

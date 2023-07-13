@@ -139,6 +139,7 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 	controlZeroInnovationHeadingUpdate();
 
 	controlZeroVelocityUpdate();
+	controlZeroGyroUpdate(imu_delayed);
 
 	// Fake position measurement for constraining drift when no other velocity or position measurements
 	controlFakePosFusion();

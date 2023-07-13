@@ -1,0 +1,164 @@
+#!/bin/sh
+# PX4 commands need the 'px4-' prefix in bash.
+# (px4-alias.sh is expected to be in the PATH)
+. px4-alias.sh
+
+echo -e "\n*************************"
+echo "GPS: $GPS"
+echo "RC: $RC"
+echo "IMU ROTATION: $IMU_ROTATION"
+echo "OSD: $OSD"
+echo "EXTRA STEPS:"
+for i in "${EXTRA_STEPS[@]}"
+do
+	echo -e "\t$i"
+done
+echo -e "*************************\n"
+
+# In order to just exit after starting the uorb / muorb modules define
+# the environment variable MINIMAL_PX4. (e.g. export MINIMAL_PX4=1)
+# This is useful for testing / debug where you may want to start drivers
+# and modules manually from the px4 command shell
+if [ ! -z $MINIMAL_PX4 ]; then
+    /bin/echo "Running minimal script"
+    exit 0
+fi
+
+# Sleep a little here. A lot happens when the uorb and muorb start
+# and we need to make sure that it all completes successfully to avoid
+# any possible race conditions.
+/bin/sleep 1
+
+param select /data/px4/param/parameters
+
+# Load in all of the parameters that have been saved in the file
+param load
+
+# Start logging and use timestamps for log files when possible.
+# Add the "-e" option to start logging immediately. Default is
+# to log only when armed. Caution must be used with the "-e" option
+# because if power is removed without stopping the logger gracefully then
+# the log file may be corrupted.
+logger start -t
+
+/bin/sleep 1
+
+# IMU (accelerometer / gyroscope)
+if [ "$IMU_ROTATION" != "NONE" ]; then
+    /bin/echo "Starting IMU driver with rotation: $IMU_ROTATION"
+    qshell icm42688p start -s -R $IMU_ROTATION
+else
+    qshell icm42688p start -s
+fi
+
+
+/bin/sleep 1
+
+# Start Invensense ICP 101xx barometer built on to VOXL 2
+qshell icp101xx start -I -b 5
+
+# Magnetometer
+if [ "$GPS" == "MATEK" ]; then
+    # Use this line for the magnetometer in the Matek Systems M8Q-5883 module
+    /bin/echo "Starting Mateksys M8Q-5883 magnetometer"
+    qshell qmc5883l start -R 10 -X -b 1
+elif [ "$GPS" == "HOLYBRO" ]; then
+    # Use this line for the magnetometer in the Holybro GPS module
+    /bin/echo "Starting Holybro magnetometer"
+    qshell ist8310 start -R 10 -X -b 1
+fi
+
+# GPS
+if [ "$GPS" == "MATEK" ]; then
+    # Use this gps start line instead for Matek Systems M8Q-5883 module
+    /bin/echo "Starting Mateksys M8Q-5883 GPS"
+    qshell gps start
+elif [ "$GPS" == "HOLYBRO" ]; then
+    # Only the newer Holybro unit is supported on M0054
+    /bin/echo "Starting Holybro GPS"
+    qshell gps start -b 115200
+fi
+
+# LED driver for the Pixhawk 4 GPS module
+if [ "$GPS" == "HOLYBRO" ]; then
+    /bin/echo "Starting Holybro LED driver"
+    qshell rgbled_ncp5623c start -X -b 1 -f 400 -a 56
+fi
+
+# We do not change the value of SYS_AUTOCONFIG but if it does not
+# show up as used then it is not reported to QGC and we get a
+# missing parameter error.
+param touch SYS_AUTOCONFIG
+
+# ESC driver
+qshell modal_io start
+
+/bin/sleep 1
+
+if [ "$RC" == "FAKE_RC_INPUT" ]; then
+    /bin/echo "Starting fake RC driver"
+    qshell rc_controller start
+elif [ "$RC" == "CRSF_RAW" ]; then
+    /bin/echo "Starting CRSF RC driver"
+    qshell crsf_rc start -d 7
+elif [ "$RC" == "CRSF_MAV" ]; then
+    /bin/echo "Starting TBS crossfire RC - MAV Mode"
+    qshell mavlink_rc_in start -m -p 7 -b 115200
+elif [ "$RC" == "SPEKTRUM" ]; then
+    /bin/echo "Starting Spektrum RC"
+    qshell spektrum_rc start
+fi
+
+/bin/sleep 1
+
+# APM power monitor
+qshell voxlpm start -X -b 2
+
+# Start all of the processing modules on DSP
+qshell sensors start
+qshell ekf2 start
+qshell mc_pos_control start
+qshell mc_att_control start
+qshell mc_rate_control start
+qshell mc_hover_thrust_estimator start
+qshell land_detector start multicopter
+qshell manual_control start
+qshell control_allocator start
+qshell rc_update start
+qshell commander start
+qshell commander mode manual
+
+/bin/sleep 1
+
+# Start all of the processing modules on the applications processor
+dataman start
+navigator start
+
+# This is needed for altitude and position hold modes
+flight_mode_manager start
+
+mavlink start -x -u 14556 -o 14557 -r 100000 -n lo -m onboard
+
+# slow down some of the fastest streams in onboard mode
+mavlink stream -u 14556 -s HIGHRES_IMU -r 10
+mavlink stream -u 14556 -s ATTITUDE -r 10
+mavlink stream -u 14556 -s ATTITUDE_QUATERNION -r 10
+# speed up rc_channels
+mavlink stream -u 14556 -s RC_CHANNELS -r 50
+
+/bin/sleep 1
+
+mavlink boot_complete
+
+# Optional MSP OSD driver for DJI goggles
+# This is only supported on M0054 (with M0125 accessory board)
+if [ "$OSD" == "ENABLE" ]; then
+    /bin/echo "Starting OSD driver"
+    msp_osd start -d /dev/ttyHS1
+fi
+
+# Start optional EXTRA_STEPS
+for i in "${EXTRA_STEPS[@]}"
+do
+	$i
+done
