@@ -485,16 +485,6 @@ FixedwingPositionControl::tecs_status_publish(float alt_sp, float equivalent_air
 
 	const TECS::DebugOutput &debug_output{_tecs.getStatus()};
 
-	switch (_tecs.tecs_mode()) {
-	case TECS::ECL_TECS_MODE_NORMAL:
-		tecs_status.mode = tecs_status_s::TECS_MODE_NORMAL;
-		break;
-
-	case TECS::ECL_TECS_MODE_UNDERSPEED:
-		tecs_status.mode = tecs_status_s::TECS_MODE_UNDERSPEED;
-		break;
-	}
-
 	tecs_status.altitude_sp = alt_sp;
 	tecs_status.altitude_reference = debug_output.altitude_reference;
 	tecs_status.height_rate_reference = debug_output.height_rate_reference;
@@ -516,6 +506,7 @@ FixedwingPositionControl::tecs_status_publish(float alt_sp, float equivalent_air
 	tecs_status.throttle_sp = _tecs.get_throttle_setpoint();
 	tecs_status.pitch_sp_rad = _tecs.get_pitch_setpoint();
 	tecs_status.throttle_trim = throttle_trim;
+	tecs_status.underspeed_mode_enabled = _tecs.underspeed_detected();
 
 	tecs_status.timestamp = hrt_absolute_time();
 

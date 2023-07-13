@@ -539,11 +539,6 @@ private:
 class TECS
 {
 public:
-	enum ECL_TECS_MODE {
-		ECL_TECS_MODE_NORMAL = 0,
-		ECL_TECS_MODE_UNDERSPEED
-	};
-
 	struct DebugOutput {
 		TECSControl::DebugOutput control;
 		float true_airspeed_filtered;
@@ -551,7 +546,6 @@ public:
 		float altitude_reference;
 		float height_rate_reference;
 		float height_rate_direct;
-		enum ECL_TECS_MODE tecs_mode;
 	};
 public:
 	TECS() = default;
@@ -652,14 +646,12 @@ public:
 	float get_throttle_setpoint() {return _control.getThrottleSetpoint();}
 
 	uint64_t timestamp() { return _update_timestamp; }
-	ECL_TECS_MODE tecs_mode() { return _tecs_mode; }
+	bool underspeed_detected() { return _control.getRatioUndersped() > 0.f; }
 
 private:
 	TECSControl 			_control;			///< Control submodule.
 	TECSAirspeedFilter 		_airspeed_filter;		///< Airspeed filter submodule.
 	TECSAltitudeReferenceModel 	_altitude_reference_model;	///< Setpoint reference model submodule.
-
-	enum ECL_TECS_MODE _tecs_mode {ECL_TECS_MODE_NORMAL};		///< Current activated mode.
 
 	hrt_abstime _update_timestamp{0};				///< last timestamp of the update function call.
 
