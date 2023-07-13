@@ -3,10 +3,10 @@ name: Linux ARM64 Targets
 on:
   push:
     branches:
-    - 'main'
+      - 'main'
   pull_request:
     branches:
-    - '*'
+      - '*'
 
 jobs:
   build:
@@ -14,28 +14,27 @@ jobs:
     container: px4io/px4-dev-aarch64:2021-09-08
     strategy:
       matrix:
-        config: [
-          scumaker_pilotpi_arm64,
-          ]
-    steps:
-    - uses: actions/checkout@v1
-      with:
-        token: ${{secrets.ACCESS_TOKEN}}
+        config:
+          - scumaker_pilotpi_arm64
 
-    - name: Prepare ccache timestamp
-      id: ccache_cache_timestamp
-      shell: cmake -P {0}
-      run: |
-        string(TIMESTAMP current_date "%Y-%m-%d-%H;%M;%S" UTC)
-        message("::set-output name=timestamp::${current_date}")
-    - name: ccache cache files
-      uses: actions/cache@v2
-      with:
-        path: ~/.ccache
-        key: ${{matrix.config}}-ccache-${{steps.ccache_cache_timestamp.outputs.timestamp}}
-        restore-keys: ${{matrix.config}}-ccache-
-    - name: setup ccache
-      run: |
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Prepare ccache timestamp
+        id: ccache_cache_timestamp
+        run: |
+          echo "timestamp=$(date -u +'%Y-%m-%d-%H;%M;%S')" >> $GITHUB_ENV
+
+      - name: ccache cache files
+        uses: actions/cache@v2
+        with:
+          path: ~/.ccache
+          key: ${{ matrix.config }}-ccache-${{ steps.ccache_cache_timestamp.outputs.timestamp }}
+          restore-keys: ${{ matrix.config }}-ccache-
+
+      - name: Setup ccache
+        run: |
           mkdir -p ~/.ccache
           echo "base_dir = ${GITHUB_WORKSPACE}" > ~/.ccache/ccache.conf
           echo "compression = true" >> ~/.ccache/ccache.conf
@@ -45,7 +44,8 @@ jobs:
           ccache -s
           ccache -z
 
-    - name: make ${{matrix.config}}
-      run: make ${{matrix.config}}
-    - name: ccache post-run
-      run: ccache -s
+      - name: Build ${{ matrix.config }}
+        run: make ${{ matrix.config }}
+
+      - name: ccache post-run
+        run: ccache -s
