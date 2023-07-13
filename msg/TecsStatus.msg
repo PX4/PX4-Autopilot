@@ -26,7 +26,4 @@ float32 throttle_sp			# Current throttle setpoint [-]
 float32 pitch_sp_rad			# Current pitch setpoint [rad]
 float32 throttle_trim			# estimated throttle value [0,1] required to fly level at equivalent_airspeed_sp in the current atmospheric conditions
 
-# TECS mode
-uint8 mode
-uint8 TECS_MODE_NORMAL = 0
-uint8 TECS_MODE_UNDERSPEED = 1
+bool underspeed_mode_enabled		# System has detected a low airspeed and takes measures to avoid stalling the plane
