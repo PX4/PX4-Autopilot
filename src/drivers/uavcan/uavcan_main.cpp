@@ -856,7 +856,7 @@ UavcanNode::Run()
 				int call_res = _param_getset_client.call(request.node_id, req);
 
 				if (call_res < 0) {
-					PX4_ERR("couldn't send GetSet: %d", call_res);
+					PX4_DEBUG("couldn't send GetSet: %d", call_res);
 
 				} else {
 					_param_in_progress = true;
@@ -942,7 +942,7 @@ UavcanNode::Run()
 
 		if (call_res < 0) {
 			_param_list_in_progress = false;
-			PX4_ERR("couldn't send param list GetSet: %d", call_res);
+			PX4_DEBUG("couldn't send param list GetSet: %d", call_res);
 
 		} else {
 			_param_in_progress = true;
@@ -1176,7 +1176,7 @@ UavcanNode::cb_getset(const uavcan::ServiceCallResult<uavcan::protocol::param::G
 				if (call_res < 0) {
 					_count_in_progress = false;
 					_count_index = 0;
-					PX4_ERR("couldn't send GetSet during param count: %d", call_res);
+					PX4_DEBUG("couldn't send GetSet during param count: %d", call_res);
 				}
 
 			} else {
@@ -1189,7 +1189,7 @@ UavcanNode::cb_getset(const uavcan::ServiceCallResult<uavcan::protocol::param::G
 			_param_counts[node_id] = 0;
 			_count_in_progress = false;
 			_count_index = 0;
-			PX4_ERR("GetSet error during param count");
+			PX4_DEBUG("GetSet error during param count");
 		}
 
 	} else {
@@ -1225,8 +1225,8 @@ UavcanNode::cb_getset(const uavcan::ServiceCallResult<uavcan::protocol::param::G
 			_param_response_pub.publish(response);
 
 		} else {
-			PX4_ERR("GetSet error at node : %d, param index %d, need resend...", result.getCallID().server_node_id.get(),
-				_param_index);
+			PX4_DEBUG("GetSet error at node : %d, param index %d, need resend...", result.getCallID().server_node_id.get(),
+				  _param_index);
 
 			uavcan::protocol::param::GetSet::Request req;
 
@@ -1235,7 +1235,7 @@ UavcanNode::cb_getset(const uavcan::ServiceCallResult<uavcan::protocol::param::G
 			int call_res = _param_getset_client.call(result.getCallID().server_node_id.get(), req);
 
 			if (call_res < 0) {
-				PX4_ERR("resend failed");
+				PX4_DEBUG("resend failed");
 			}
 
 			_param_index--;
@@ -1255,7 +1255,7 @@ UavcanNode::param_count(uavcan::NodeID node_id)
 
 	// -ErrInvalidParam is returned when no UAVCAN device is connected to the CAN bus
 	if ((call_res < 0) && (-uavcan::ErrInvalidParam != call_res)) {
-		PX4_ERR("couldn't start parameter count: %d", call_res);
+		PX4_DEBUG("couldn't start parameter count: %d", call_res);
 
 	} else {
 		_count_in_progress = true;
