@@ -382,6 +382,27 @@ void Navigator::run()
 							rep->current.loiter_radius = get_loiter_radius();
 						}
 
+						if (PX4_ISFINITE(curr->current.loiter_minor_radius) && fabsf(curr->current.loiter_minor_radius) > FLT_EPSILON) {
+							rep->current.loiter_minor_radius = curr->current.loiter_minor_radius;
+
+						} else {
+							rep->current.loiter_minor_radius = NAN;
+						}
+
+						if (PX4_ISFINITE(curr->current.loiter_orientation) && fabsf(curr->current.loiter_minor_radius) > FLT_EPSILON) {
+							rep->current.loiter_orientation = curr->current.loiter_orientation;
+
+						} else {
+							rep->current.loiter_orientation = 0.0f;
+						}
+
+						if (curr->current.loiter_pattern > 0) {
+							rep->current.loiter_pattern = curr->current.loiter_pattern;
+
+						} else {
+							rep->current.loiter_pattern = position_setpoint_s::LOITER_TYPE_ORBIT;
+						}
+
 						rep->current.loiter_direction_counter_clockwise = curr->current.loiter_direction_counter_clockwise;
 					}
 
@@ -505,6 +526,8 @@ void Navigator::run()
 					rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
 					rep->current.loiter_radius = get_loiter_radius();
 					rep->current.loiter_direction_counter_clockwise = false;
+					rep->current.loiter_orientation = 0.0f;
+					rep->current.loiter_pattern = position_setpoint_s::LOITER_TYPE_ORBIT;
 					rep->current.cruising_throttle = get_cruising_throttle();
 
 					// on entering Loiter mode, reset speed setpoint to default
@@ -529,6 +552,58 @@ void Navigator::run()
 
 				} else {
 					mavlink_log_critical(&_mavlink_log_pub, "Orbit is outside geofence");
+				}
+
+			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_FIGUREEIGHT &&
+				   get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+				// Only valid for fixed wing mode
+
+				bool orbit_location_valid = true;
+
+				vehicle_global_position_s position_setpoint{};
+				position_setpoint.lat = PX4_ISFINITE(cmd.param5) ? cmd.param5 : get_global_position()->lat;
+				position_setpoint.lon = PX4_ISFINITE(cmd.param6) ? cmd.param6 : get_global_position()->lon;
+				position_setpoint.alt = PX4_ISFINITE(cmd.param7) ? cmd.param7 : get_global_position()->alt;
+
+				if (have_geofence_position_data) {
+					orbit_location_valid = geofence_allows_position(position_setpoint);
+				}
+
+				if (orbit_location_valid) {
+					position_setpoint_triplet_s *rep = get_reposition_triplet();
+					rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
+					rep->current.loiter_minor_radius = fabsf(get_loiter_radius());
+					rep->current.loiter_direction_counter_clockwise = get_loiter_radius() < 0;
+					rep->current.loiter_orientation = 0.0f;
+					rep->current.loiter_pattern = position_setpoint_s::LOITER_TYPE_FIGUREEIGHT;
+					rep->current.cruising_speed = get_cruising_speed();
+
+					if (PX4_ISFINITE(cmd.param2) && fabsf(cmd.param2) > FLT_EPSILON) {
+						rep->current.loiter_minor_radius = fabsf(cmd.param2);
+					}
+
+					rep->current.loiter_radius = 2.5f * rep->current.loiter_minor_radius;
+
+					if (PX4_ISFINITE(cmd.param1)) {
+						rep->current.loiter_radius = fabsf(cmd.param1);
+						rep->current.loiter_direction_counter_clockwise = cmd.param1 < 0;
+					}
+
+					rep->current.loiter_radius = math::max(rep->current.loiter_radius, 2.0f * rep->current.loiter_minor_radius);
+
+					if (PX4_ISFINITE(cmd.param4)) {
+						rep->current.loiter_orientation = cmd.param4;
+					}
+
+					rep->current.lat = position_setpoint.lat;
+					rep->current.lon = position_setpoint.lon;
+					rep->current.alt = position_setpoint.alt;
+
+					rep->current.valid = true;
+					rep->current.timestamp = hrt_absolute_time();
+
+				} else {
+					mavlink_log_critical(&_mavlink_log_pub, "Figure 8 is outside geofence");
 				}
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF) {
