@@ -53,7 +53,9 @@ FixedwingPositionControl::FixedwingPositionControl(bool vtol) :
 	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
 	_attitude_sp_pub(vtol ? ORB_ID(fw_virtual_attitude_setpoint) : ORB_ID(vehicle_attitude_setpoint)),
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
+#ifdef CONFIG_FIGURE_OF_EIGHT
 	_figure_eight(_npfg, _wind_vel, _eas2tas),
+#endif // CONFIG_FIGURE_OF_EIGHT
 	_launchDetector(this),
 	_runway_takeoff(this)
 {
@@ -896,10 +898,14 @@ FixedwingPositionControl::control_auto(const float control_interval, const Vecto
 
 	if (position_sp_type == position_setpoint_s::SETPOINT_TYPE_LOITER
 	    || current_sp.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
+#ifdef CONFIG_FIGURE_OF_EIGHT
+
 		if (current_sp.loiter_pattern == position_setpoint_s::LOITER_TYPE_FIGUREEIGHT) {
 			publishFigureEightStatus(current_sp);
 
-		} else {
+		} else
+#endif // CONFIG_FIGURE_OF_EIGHT
+		{
 			publishOrbitStatus(current_sp);
 		}
 	}
@@ -920,10 +926,13 @@ FixedwingPositionControl::control_auto(const float control_interval, const Vecto
 		break;
 
 	case position_setpoint_s::SETPOINT_TYPE_LOITER:
+#ifdef CONFIG_FIGURE_OF_EIGHT
 		if (current_sp.loiter_pattern == position_setpoint_s::LOITER_TYPE_FIGUREEIGHT) {
 			controlAutoFigureEight(control_interval, curr_pos, ground_speed, pos_sp_prev, current_sp);
 
-		} else {
+		} else
+#endif // CONFIG_FIGURE_OF_EIGHT
+		{
 			control_auto_loiter(control_interval, curr_pos, ground_speed, pos_sp_prev, current_sp, pos_sp_next);
 
 		}
@@ -931,12 +940,16 @@ FixedwingPositionControl::control_auto(const float control_interval, const Vecto
 		break;
 	}
 
+#ifdef CONFIG_FIGURE_OF_EIGHT
+
 	/* reset loiter state */
 	if ((position_sp_type != position_setpoint_s::SETPOINT_TYPE_LOITER) ||
 	    ((position_sp_type == position_setpoint_s::SETPOINT_TYPE_LOITER) &&
 	     (current_sp.loiter_pattern != position_setpoint_s::LOITER_TYPE_FIGUREEIGHT))) {
 		_figure_eight.resetPattern();
 	}
+
+#endif // CONFIG_FIGURE_OF_EIGHT
 
 	/* Copy thrust output for publication, handle special cases */
 	if (position_sp_type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
@@ -1307,6 +1320,7 @@ FixedwingPositionControl::control_auto_loiter(const float control_interval, cons
 				   _param_climbrate_target.get());
 }
 
+#ifdef CONFIG_FIGURE_OF_EIGHT
 void
 FixedwingPositionControl::controlAutoFigureEight(const float control_interval, const Vector2d &curr_pos,
 		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr)
@@ -1363,6 +1377,7 @@ FixedwingPositionControl::controlAutoFigureEight(const float control_interval, c
 	// Yaw
 	_att_sp.yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
 }
+#endif // CONFIG_FIGURE_OF_EIGHT
 
 void
 FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const float control_interval,
@@ -2911,6 +2926,7 @@ void FixedwingPositionControl::publishOrbitStatus(const position_setpoint_s pos_
 	_orbit_status_pub.publish(orbit_status);
 }
 
+#ifdef CONFIG_FIGURE_OF_EIGHT
 void FixedwingPositionControl::publishFigureEightStatus(const position_setpoint_s pos_sp)
 {
 	figure_eight_status_s figure_eight_status{};
@@ -2925,6 +2941,7 @@ void FixedwingPositionControl::publishFigureEightStatus(const position_setpoint_
 
 	_figure_eight_status_pub.publish(figure_eight_status);
 }
+#endif // CONFIG_FIGURE_OF_EIGHT
 
 void FixedwingPositionControl::navigateWaypoints(const Vector2f &start_waypoint, const Vector2f &end_waypoint,
 		const Vector2f &vehicle_pos, const Vector2f &ground_vel, const Vector2f &wind_vel)
