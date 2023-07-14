@@ -53,6 +53,7 @@ FixedwingPositionControl::FixedwingPositionControl(bool vtol) :
 	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
 	_attitude_sp_pub(vtol ? ORB_ID(fw_virtual_attitude_setpoint) : ORB_ID(vehicle_attitude_setpoint)),
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
+	_figure_eight(_npfg, _wind_vel, _eas2tas),
 	_launchDetector(this),
 	_runway_takeoff(this)
 {
@@ -895,7 +896,12 @@ FixedwingPositionControl::control_auto(const float control_interval, const Vecto
 
 	if (position_sp_type == position_setpoint_s::SETPOINT_TYPE_LOITER
 	    || current_sp.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
-		publishOrbitStatus(current_sp);
+		if (current_sp.loiter_pattern == position_setpoint_s::LOITER_TYPE_FIGUREEIGHT) {
+			publishFigureEightStatus(current_sp);
+
+		} else {
+			publishOrbitStatus(current_sp);
+		}
 	}
 
 	switch (position_sp_type) {
@@ -914,8 +920,22 @@ FixedwingPositionControl::control_auto(const float control_interval, const Vecto
 		break;
 
 	case position_setpoint_s::SETPOINT_TYPE_LOITER:
-		control_auto_loiter(control_interval, curr_pos, ground_speed, pos_sp_prev, current_sp, pos_sp_next);
+		if (current_sp.loiter_pattern == position_setpoint_s::LOITER_TYPE_FIGUREEIGHT) {
+			controlAutoFigureEight(control_interval, curr_pos, ground_speed, pos_sp_prev, current_sp);
+
+		} else {
+			control_auto_loiter(control_interval, curr_pos, ground_speed, pos_sp_prev, current_sp, pos_sp_next);
+
+		}
+
 		break;
+	}
+
+	/* reset loiter state */
+	if ((position_sp_type != position_setpoint_s::SETPOINT_TYPE_LOITER) ||
+	    ((position_sp_type == position_setpoint_s::SETPOINT_TYPE_LOITER) &&
+	     (current_sp.loiter_pattern != position_setpoint_s::LOITER_TYPE_FIGUREEIGHT))) {
+		_figure_eight.resetPattern();
 	}
 
 	/* Copy thrust output for publication, handle special cases */
@@ -1285,6 +1305,63 @@ FixedwingPositionControl::control_auto_loiter(const float control_interval, cons
 				   tecs_fw_thr_max,
 				   _param_sinkrate_target.get(),
 				   _param_climbrate_target.get());
+}
+
+void
+FixedwingPositionControl::controlAutoFigureEight(const float control_interval, const Vector2d &curr_pos,
+		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr)
+{
+	// airspeed settings
+	float target_airspeed = adapt_airspeed_setpoint(control_interval, pos_sp_curr.cruising_speed,
+				_param_fw_airspd_min.get(), ground_speed);
+
+	// Lateral Control
+
+	Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
+
+	FigureEight::FigureEightPatternParameters params;
+	params.center_pos_local = _global_local_proj_ref.project(pos_sp_curr.lat, pos_sp_curr.lon);
+	params.loiter_direction_counter_clockwise = pos_sp_curr.loiter_direction_counter_clockwise;
+	params.loiter_minor_radius = pos_sp_curr.loiter_minor_radius;
+	params.loiter_orientation = pos_sp_curr.loiter_orientation;
+	params.loiter_radius = pos_sp_curr.loiter_radius;
+
+	_figure_eight.initializePattern(curr_pos_local, ground_speed, params);
+
+	// Apply control
+	_figure_eight.updateSetpoint(curr_pos_local, ground_speed, params, target_airspeed);
+	_att_sp.roll_body = _figure_eight.getRollSetpoint();
+	target_airspeed = _figure_eight.getAirspeedSetpoint();
+	_target_bearing = _figure_eight.getTargetBearing();
+	_closest_point_on_path = _figure_eight.getClosestPoint();
+
+	// TECS
+	float tecs_fw_thr_min;
+	float tecs_fw_thr_max;
+
+	if (pos_sp_curr.gliding_enabled) {
+		/* enable gliding with this waypoint */
+		_tecs.set_speed_weight(2.0f);
+		tecs_fw_thr_min = 0.0;
+		tecs_fw_thr_max = 0.0;
+
+	} else {
+		tecs_fw_thr_min = _param_fw_thr_min.get();
+		tecs_fw_thr_max = _param_fw_thr_max.get();
+	}
+
+	tecs_update_pitch_throttle(control_interval,
+				   pos_sp_curr.alt,
+				   target_airspeed,
+				   radians(_param_fw_p_lim_min.get()),
+				   radians(_param_fw_p_lim_max.get()),
+				   tecs_fw_thr_min,
+				   tecs_fw_thr_max,
+				   _param_sinkrate_target.get(),
+				   _param_climbrate_target.get());
+
+	// Yaw
+	_att_sp.yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
 }
 
 void
@@ -2832,6 +2909,21 @@ void FixedwingPositionControl::publishOrbitStatus(const position_setpoint_s pos_
 	orbit_status.z = pos_sp.alt;
 	orbit_status.yaw_behaviour = orbit_status_s::ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TANGENT_TO_CIRCLE;
 	_orbit_status_pub.publish(orbit_status);
+}
+
+void FixedwingPositionControl::publishFigureEightStatus(const position_setpoint_s pos_sp)
+{
+	figure_eight_status_s figure_eight_status{};
+	figure_eight_status.timestamp = hrt_absolute_time();
+	figure_eight_status.major_radius = pos_sp.loiter_radius * (pos_sp.loiter_direction_counter_clockwise ? -1.f : 1.f);
+	figure_eight_status.minor_radius = pos_sp.loiter_minor_radius;
+	figure_eight_status.orientation = pos_sp.loiter_orientation;
+	figure_eight_status.frame = 5; //MAV_FRAME_GLOBAL_INT
+	figure_eight_status.x = static_cast<int32_t>(pos_sp.lat * 1e7);
+	figure_eight_status.y = static_cast<int32_t>(pos_sp.lon * 1e7);
+	figure_eight_status.z = pos_sp.alt;
+
+	_figure_eight_status_pub.publish(figure_eight_status);
 }
 
 void FixedwingPositionControl::navigateWaypoints(const Vector2f &start_waypoint, const Vector2f &end_waypoint,
