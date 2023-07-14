@@ -75,6 +75,8 @@ ModalIo::ModalIo() :
 		_esc_status.esc[i].esc_power       = 0;
 	}
 
+	_esc_status_pub.advertise();
+
 	qc_esc_packet_init(&_fb_packet);
 	qc_esc_packet_init(&_uart_bridge_packet);
 

@@ -53,6 +53,8 @@ bool GZMixingInterfaceESC::init(const std::string &model_name)
 		return false;
 	}
 
+	_esc_status_pub.advertise();
+
 	ScheduleNow();
 
 	return true;
