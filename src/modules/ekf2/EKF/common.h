@@ -155,6 +155,12 @@ enum class EvCtrl : uint8_t {
 	YAW  = (1<<3)
 };
 
+enum class MagCheckMask : uint8_t {
+	STRENGTH    = (1 << 0),
+	INCLINATION = (1 << 1),
+	FORCE_WMM   = (1 << 2)
+};
+
 struct gpsMessage {
 	uint64_t    time_usec{};
 	int32_t     lat{};              ///< Latitude in 1E-7 degrees
@@ -486,7 +492,8 @@ struct parameters {
 
 	// compute synthetic magnetomter Z value if possible
 	int32_t synthesize_mag_z{0};
-	int32_t check_mag_strength{0};
+	int32_t mag_check{0};
+	float mag_check_strength_tolerance_gs{0.2f};
 
 	// Parameters used to control when yaw is reset to the EKF-GSF yaw estimator value
 	float EKFGSF_tas_default{15.0f};                ///< default airspeed value assumed during fixed wing flight if no airspeed measurement available (m/s)

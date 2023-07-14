@@ -212,7 +212,8 @@ void EkfWrapper::setMagFuseTypeNone()
 
 void EkfWrapper::enableMagStrengthCheck()
 {
-	_ekf_params->check_mag_strength = 1;
+	_ekf_params->mag_check |= static_cast<int32_t>(MagCheckMask::STRENGTH);
+}
 }
 
 bool EkfWrapper::isWindVelocityEstimated() const
