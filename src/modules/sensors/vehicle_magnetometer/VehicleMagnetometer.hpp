@@ -146,6 +146,7 @@ private:
 		Current_inst0,
 		Current_inst1
 	};
+
 	MagCompensationType _mag_comp_type{MagCompensationType::Disabled};
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
@@ -158,6 +159,7 @@ private:
 
 	uint64_t _timestamp_sample_sum[MAX_SENSOR_COUNT] {};
 	matrix::Vector3f _data_sum[MAX_SENSOR_COUNT] {};
+
 	int _data_sum_count[MAX_SENSOR_COUNT] {};
 	hrt_abstime _last_publication_timestamp[MAX_SENSOR_COUNT] {};
 

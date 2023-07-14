@@ -198,7 +198,6 @@ TEST_F(ObstacleAvoidanceTest, oa_desired)
 
 	// WHEN: we subscribe to the uORB message out of the interface
 	uORB::SubscriptionData<vehicle_trajectory_waypoint_s> _sub_traj_wp_avoidance_desired{ORB_ID(vehicle_trajectory_waypoint_desired)};
-	_sub_traj_wp_avoidance_desired.update();
 
 	// THEN: we expect the setpoints in POINT_0 and waypoints in POINT_1 and POINT_2
 	EXPECT_FLOAT_EQ(pos_sp(0),

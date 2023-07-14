@@ -50,7 +50,7 @@ public:
 	explicit OutputRC(const Parameters &parameters);
 	virtual ~OutputRC() = default;
 
-	virtual void update(const ControlData &control_data, bool new_setpoints);
+	virtual void update(const ControlData &control_data, bool new_setpoints, uint8_t &gimbal_device_id);
 	virtual void print_status() const;
 
 private:
@@ -58,8 +58,6 @@ private:
 
 	uORB::Publication <gimbal_controls_s>	_gimbal_controls_pub{ORB_ID(gimbal_controls)};
 	uORB::Publication <gimbal_device_attitude_status_s>	_attitude_status_pub{ORB_ID(gimbal_device_attitude_status)};
-
-	bool _retract_gimbal = true;
 };
 
 } /* namespace gimbal */

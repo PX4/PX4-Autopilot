@@ -161,8 +161,6 @@ InputRC::UpdateResult InputRC::_read_control_data_from_subscription(ControlData 
 			_last_set_aux_values[i] = new_aux_values[i];
 		}
 
-		control_data.gimbal_shutter_retract = false;
-
 		return UpdateResult::UpdatedActive;
 
 	} else {

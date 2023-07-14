@@ -72,6 +72,8 @@ private:
 	};
 	int _sequence {1};
 
+	static constexpr uint8_t num_cameras = 6; // Mavlink has reserved component IDs for six cameras
+
 	bool send() override
 	{
 		camera_trigger_s camera_trigger;
@@ -86,39 +88,41 @@ private:
 
 				_camera_status_sub.update(&_camera_status);
 
-				vehicle_command_s vcmd{};
-				vcmd.timestamp = hrt_absolute_time();
-				vcmd.param1 = 0.0f; // all cameras
-				vcmd.param2 = 0.0f; // duration 0 because only taking one picture
-				vcmd.param3 = 1.0f; // only take one
-				vcmd.param4 = (float)_sequence++;
-				vcmd.param5 = (double)NAN;
-				vcmd.param6 = (double)NAN;
-				vcmd.param7 = NAN;
-				vcmd.command = MAV_CMD_IMAGE_START_CAPTURE;
-				vcmd.target_system = mavlink_system.sysid;
-				vcmd.target_component = _camera_status.active_comp_id;
+				for (int i_camera = 0; i_camera < num_cameras; i_camera++) {
+					vehicle_command_s vcmd{};
+					vcmd.timestamp = hrt_absolute_time();
+					vcmd.param1 = 0.0f; // all cameras
+					vcmd.param2 = 0.0f; // duration 0 because only taking one picture
+					vcmd.param3 = 1.0f; // only take one
+					vcmd.param4 = (float)_sequence++;
+					vcmd.param5 = (double)NAN;
+					vcmd.param6 = (double)NAN;
+					vcmd.param7 = NAN;
+					vcmd.command = MAV_CMD_IMAGE_START_CAPTURE;
+					vcmd.target_system = mavlink_system.sysid;
+					vcmd.target_component = i_camera + MAV_COMP_ID_CAMERA;
 
-				MavlinkCommandSender::instance().handle_vehicle_command(vcmd, _mavlink->get_channel());
+					MavlinkCommandSender::instance().handle_vehicle_command(vcmd, _mavlink->get_channel());
 
 
-				// TODO: move this camera_trigger and publish as a vehicle_command
-				/* send MAV_CMD_DO_DIGICAM_CONTROL*/
-				mavlink_command_long_t command_long_msg{};
+					// TODO: move this camera_trigger and publish as a vehicle_command
+					/* send MAV_CMD_DO_DIGICAM_CONTROL*/
+					mavlink_command_long_t command_long_msg{};
 
-				command_long_msg.target_system = _camera_status.active_sys_id;
-				command_long_msg.target_component = _camera_status.active_comp_id;
-				command_long_msg.command = MAV_CMD_DO_DIGICAM_CONTROL;
-				command_long_msg.confirmation = 0;
-				command_long_msg.param1 = NAN;
-				command_long_msg.param2 = NAN;
-				command_long_msg.param3 = NAN;
-				command_long_msg.param4 = NAN;
-				command_long_msg.param5 = 1;   // take 1 picture
-				command_long_msg.param6 = NAN;
-				command_long_msg.param7 = NAN;
+					command_long_msg.target_system = _camera_status.active_sys_id;
+					command_long_msg.target_component = i_camera + MAV_COMP_ID_CAMERA;
+					command_long_msg.command = MAV_CMD_DO_DIGICAM_CONTROL;
+					command_long_msg.confirmation = 0;
+					command_long_msg.param1 = NAN;
+					command_long_msg.param2 = NAN;
+					command_long_msg.param3 = NAN;
+					command_long_msg.param4 = NAN;
+					command_long_msg.param5 = 1;   // take 1 picture
+					command_long_msg.param6 = NAN;
+					command_long_msg.param7 = NAN;
 
-				mavlink_msg_command_long_send_struct(_mavlink->get_channel(), &command_long_msg);
+					mavlink_msg_command_long_send_struct(_mavlink->get_channel(), &command_long_msg);
+				}
 
 				return true;
 			}

@@ -96,12 +96,6 @@ void Mission::mission_init()
 void
 Mission::on_inactive()
 {
-	// if we were executing an landing but have been inactive for 2 seconds, then make the landing invalid
-	// this prevents RTL to just continue at the current mission index
-	if (_navigator->getMissionLandingInProgress() && (hrt_absolute_time() - _time_mission_deactivated) > 2_s) {
-		_navigator->setMissionLandingInProgress(false);
-	}
-
 	/* Without home a mission can't be valid yet anyway, let's wait. */
 	if (!_navigator->home_global_position_valid()) {
 		return;
@@ -119,8 +113,10 @@ Mission::on_inactive()
 		/* reset the current mission if needed */
 		if (need_to_reset_mission()) {
 			reset_mission(_mission);
-			update_mission();
 			_navigator->reset_cruising_speed();
+			_current_mission_index = 0;
+			_navigator->reset_vroi();
+			set_current_mission_item();
 		}
 
 	} else {
@@ -165,14 +161,7 @@ Mission::on_inactive()
 void
 Mission::on_inactivation()
 {
-	// Disable camera trigger
-	vehicle_command_s cmd {};
-	cmd.command = vehicle_command_s::VEHICLE_CMD_DO_TRIGGER_CONTROL;
-	// Pause trigger
-	cmd.param1 = -1.0f;
-	cmd.param3 = 1.0f;
-	_navigator->publish_vehicle_cmd(&cmd);
-
+	_navigator->disable_camera_trigger();
 	_navigator->stop_capturing_images();
 	_navigator->release_gimbal_control();
 
@@ -180,10 +169,10 @@ Mission::on_inactivation()
 		_navigator->get_precland()->on_inactivation();
 	}
 
-	_time_mission_deactivated = hrt_absolute_time();
-
 	/* reset so current mission item gets restarted if mission was paused */
 	_work_item_type = WORK_ITEM_TYPE_DEFAULT;
+
+	_inactivation_index = _current_mission_index;
 }
 
 void
@@ -201,15 +190,31 @@ Mission::on_activation()
 	// we already reset the mission items
 	_execution_mode_changed = false;
 
-	set_mission_items();
+	// reset the cache and fill it with the camera and gimbal items up to the previous item
+	if (_current_mission_index > 0) {
+		resetItemCache();
+		updateCachedItemsUpToIndex(_current_mission_index - 1);
+	}
 
-	// unpause triggering if it was paused
-	vehicle_command_s cmd = {};
-	cmd.command = vehicle_command_s::VEHICLE_CMD_DO_TRIGGER_CONTROL;
-	// unpause trigger
-	cmd.param1 = -1.0f;
-	cmd.param3 = 0.0f;
-	_navigator->publish_vehicle_cmd(&cmd);
+	unsigned resume_index;
+
+	if (_inactivation_index > 0 && cameraWasTriggering()
+	    && getPreviousPositionItemIndex(_mission, _inactivation_index - 1, resume_index)) {
+		// The mission we are resuming had camera triggering enabled. In order to not lose any images
+		// we restart the mission at the previous position item.
+		// We will replay the cached commands once we reach the previous position item and have yaw aligned.
+		set_current_mission_index(resume_index);
+
+		_align_heading_necessary = true;
+
+	} else {
+		set_mission_items();
+	}
+
+	_inactivation_index = -1; // reset
+
+	// reset cruise speed
+	_navigator->reset_cruising_speed();
 }
 
 void
@@ -243,6 +248,37 @@ Mission::on_active()
 
 		_execution_mode_changed = false;
 		set_mission_items();
+	}
+
+	// check if heading alignment is necessary, and add it to the current mission item if necessary
+	if (_align_heading_necessary && is_mission_item_reached_or_completed()) {
+		mission_item_s next_position_mission_item = {};
+
+		// add yaw alignment requirement on the current mission item
+		if (getNextPositionMissionItem(_mission, _current_mission_index + 1, next_position_mission_item)
+		    && !PX4_ISFINITE(_mission_item.yaw)) {
+			_mission_item.yaw = matrix::wrap_pi(get_bearing_to_next_waypoint(_mission_item.lat, _mission_item.lon,
+							    next_position_mission_item.lat, next_position_mission_item.lon));
+			_mission_item.force_heading = true; // note: doesn't have effect in fixed-wing mode
+		}
+
+		mission_apply_limitation(_mission_item);
+		mission_item_to_position_setpoint(_mission_item, &_navigator->get_position_setpoint_triplet()->current);
+
+		reset_mission_item_reached();
+
+		_navigator->set_position_setpoint_triplet_updated();
+		_align_heading_necessary = false;
+	}
+
+	// replay gimbal and camera commands immediately after resuming mission
+	if (haveCachedGimbalOrCameraItems()) {
+		replayCachedGimbalCameraItems();
+	}
+
+	// replay trigger commands upon raching the resume waypoint if the trigger relay flag is set
+	if (cameraWasTriggering() && is_mission_item_reached_or_completed()) {
+		replayCachedTriggerItems();
 	}
 
 	/* lets check if we reached the current mission item */
@@ -314,6 +350,11 @@ Mission::set_current_mission_index(uint16_t index)
 	} else if (_navigator->get_mission_result()->valid && (index < _mission.count)) {
 
 		_current_mission_index = index;
+
+		// we start from the first item so can reset the cache
+		if (_current_mission_index == 0) {
+			resetItemCache();
+		}
 
 		// a mission index is set manually which has the higher priority than the closest mission item
 		// as it is set by the user
@@ -390,6 +431,7 @@ Mission::set_execution_mode(const uint8_t mode)
 				// handle switch from reverse to forward mission
 				if (_current_mission_index < 0) {
 					_current_mission_index = 0;
+					resetItemCache(); // reset cache as we start from the beginning
 
 				} else if (_current_mission_index < _mission.count - 1) {
 					++_current_mission_index;
@@ -476,15 +518,14 @@ Mission::land_start()
 {
 	// if not currently landing, jump to do_land_start
 	if (_land_start_available) {
-		if (_navigator->getMissionLandingInProgress()) {
+		// check if we're currently already in mission mode and on landing part, then simply return true.
+		// note: it's not enough to check landing(), as that is not reset until set_current_mission_index(get_land_start_index())
+		if (_navigator->on_mission_landing()) {
 			return true;
 
 		} else {
 			set_current_mission_index(get_land_start_index());
-
-			const bool can_land_now = landing();
-			_navigator->setMissionLandingInProgress(can_land_now);
-			return can_land_now;
+			return landing();
 		}
 	}
 
@@ -495,10 +536,24 @@ bool
 Mission::landing()
 {
 	// vehicle is currently landing if
-	//  mission valid, still flying, and in the landing portion of mission
+	//  mission valid, still flying, and in the landing portion of mission (past land start marker)
 
 	const bool mission_valid = _navigator->get_mission_result()->valid;
-	const bool on_landing_stage = _land_start_available && (_current_mission_index >= get_land_start_index());
+	bool on_landing_stage = _land_start_available && _current_mission_index > get_land_start_index();
+
+	// special case: if the land start index is at a LOITER_TO_ALT WP, then we're in the landing sequence already when the
+	// distance to the WP is below the loiter radius + acceptance.
+	if (_current_mission_index == get_land_start_index() && _mission_item.nav_cmd == NAV_CMD_LOITER_TO_ALT) {
+		const float d_current = get_distance_to_next_waypoint(_mission_item.lat, _mission_item.lon,
+					_navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
+
+		// consider mission_item.loiter_radius invalid if NAN or 0, use default value in this case.
+		const float mission_item_loiter_radius_abs = (PX4_ISFINITE(_mission_item.loiter_radius)
+				&& fabsf(_mission_item.loiter_radius) > FLT_EPSILON) ? fabsf(_mission_item.loiter_radius) :
+				_navigator->get_loiter_radius();
+
+		on_landing_stage = d_current <= (_navigator->get_acceptance_radius() + mission_item_loiter_radius_abs);
+	}
 
 	return mission_valid && on_landing_stage;
 }
@@ -574,6 +629,14 @@ Mission::update_mission()
 		_mission.current_seq = 0;
 		_current_mission_index = 0;
 	}
+
+	// we start from the first item so can reset the cache
+	if (_current_mission_index == 0) {
+		resetItemCache();
+	}
+
+	// reset as when we update mission we don't want to proceed at previous index
+	_inactivation_index = -1;
 
 	// find and store landing start marker (if available)
 	find_mission_land_start();
@@ -877,7 +940,7 @@ Mission::set_mission_items()
 
 					/* check if the vtol_takeoff waypoint is on top of us */
 					if (do_need_move_to_takeoff()) {
-						new_work_item_type = WORK_ITEM_TYPE_TRANSITON_AFTER_TAKEOFF;
+						new_work_item_type = WORK_ITEM_TYPE_TRANSITION_AFTER_TAKEOFF;
 					}
 
 					set_vtol_transition_item(&_mission_item, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
@@ -889,7 +952,7 @@ Mission::set_mission_items()
 
 				/* takeoff completed and transitioned, move to takeoff wp as fixed wing */
 				if (_mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF
-				    && _work_item_type == WORK_ITEM_TYPE_TRANSITON_AFTER_TAKEOFF
+				    && _work_item_type == WORK_ITEM_TYPE_TRANSITION_AFTER_TAKEOFF
 				    && new_work_item_type == WORK_ITEM_TYPE_DEFAULT) {
 
 					new_work_item_type = WORK_ITEM_TYPE_DEFAULT;
@@ -900,7 +963,7 @@ Mission::set_mission_items()
 
 				/* move to land wp as fixed wing */
 				if (_mission_item.nav_cmd == NAV_CMD_VTOL_LAND
-				    && (_work_item_type == WORK_ITEM_TYPE_DEFAULT || _work_item_type == WORK_ITEM_TYPE_TRANSITON_AFTER_TAKEOFF)
+				    && (_work_item_type == WORK_ITEM_TYPE_DEFAULT || _work_item_type == WORK_ITEM_TYPE_TRANSITION_AFTER_TAKEOFF)
 				    && new_work_item_type == WORK_ITEM_TYPE_DEFAULT
 				    && !_navigator->get_land_detected()->landed) {
 
@@ -972,7 +1035,10 @@ Mission::set_mission_items()
 					_mission_item.altitude_is_relative = false;
 					_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 					_mission_item.autocontinue = true;
-					_mission_item.time_inside = 0.0f;
+
+					// have to reset here because these field were used in set_vtol_transition_item
+					_mission_item.time_inside = 0.f;
+					_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 
 					// make previous setpoint invalid, such that there will be no prev-current line following.
 					// if the vehicle drifted off the path during back-transition it should just go straight to the landing point
@@ -1718,12 +1784,6 @@ Mission::set_mission_item_reached()
 {
 	_navigator->get_mission_result()->seq_reached = _current_mission_index;
 	_navigator->set_mission_result_updated();
-
-	// let the navigator know that we are currently executing the mission landing.
-	// Using the method landing() itself is not accurate as it only give information about the mission index
-	// but the vehicle could still be very far from the actual landing items
-	_navigator->setMissionLandingInProgress(landing());
-
 	reset_mission_item_reached();
 }
 
@@ -1812,8 +1872,9 @@ Mission::reset_mission(struct mission_s &mission)
 bool
 Mission::need_to_reset_mission()
 {
-	/* reset mission state when disarmed */
-	if (_navigator->get_vstatus()->arming_state != vehicle_status_s::ARMING_STATE_ARMED && _need_mission_reset) {
+	// reset mission when disarmed, mission was actually started and we reached the last mission item
+	if (_navigator->get_vstatus()->arming_state != vehicle_status_s::ARMING_STATE_ARMED && _need_mission_reset
+	    && (_current_mission_index == _mission.count - 1)) {
 		_need_mission_reset = false;
 		return true;
 	}
@@ -1930,4 +1991,137 @@ void Mission::publish_navigator_mission_item()
 	navigator_mission_item.timestamp = hrt_absolute_time();
 
 	_navigator_mission_item_pub.publish(navigator_mission_item);
+}
+
+bool Mission::getPreviousPositionItemIndex(const mission_s &mission, int inactivation_index,
+		unsigned &prev_pos_index) const
+{
+	struct mission_item_s missionitem = {};
+
+	for (int index = inactivation_index; index >= 0; index--) {
+		if (!readMissionItemAtIndex(mission, index, missionitem)) {
+			break;
+		}
+
+		if (MissionBlock::item_contains_position(missionitem)) {
+			prev_pos_index = index;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool Mission::getNextPositionMissionItem(const mission_s &mission, int start_index, mission_item_s &mission_item) const
+{
+	while (start_index < mission.count) {
+		if (readMissionItemAtIndex(mission, start_index, mission_item) && MissionBlock::item_contains_position(mission_item)) {
+			return true;
+		}
+
+		start_index++;
+	}
+
+	return false;
+}
+
+bool Mission::readMissionItemAtIndex(const mission_s &mission, const int index, mission_item_s &missionitem) const
+{
+	bool success = false;
+
+	if (index >= 0 && index < mission.count) {
+		const dm_item_t dm_current = (dm_item_t)mission.dataman_id;
+		const ssize_t len = sizeof(missionitem);
+		success = (dm_read(dm_current, index, &missionitem, len) == len);
+	}
+
+	return success;
+}
+
+void Mission::cacheItem(const mission_item_s &mission_item)
+{
+	switch (mission_item.nav_cmd) {
+	case NAV_CMD_DO_GIMBAL_MANAGER_CONFIGURE:
+		_last_gimbal_configure_item = mission_item;
+		break;
+
+	case NAV_CMD_DO_GIMBAL_MANAGER_PITCHYAW:
+		_last_gimbal_control_item = mission_item;
+		break;
+
+	case NAV_CMD_SET_CAMERA_MODE:
+		_last_camera_mode_item = mission_item;
+		break;
+
+	case NAV_CMD_DO_SET_CAM_TRIGG_DIST:
+	case NAV_CMD_DO_TRIGGER_CONTROL:
+	case NAV_CMD_IMAGE_START_CAPTURE:
+	case NAV_CMD_IMAGE_STOP_CAPTURE:
+		_last_camera_trigger_item = mission_item;
+		break;
+
+	default:
+		break;
+	}
+}
+
+void Mission::replayCachedGimbalCameraItems()
+{
+	if (_last_gimbal_configure_item.nav_cmd > 0) {
+		issue_command(_last_gimbal_configure_item);
+		_last_gimbal_configure_item = {}; // delete cached item
+	}
+
+	if (_last_gimbal_control_item.nav_cmd > 0) {
+		issue_command(_last_gimbal_control_item);
+		_last_gimbal_control_item = {}; // delete cached item
+	}
+
+	if (_last_camera_mode_item.nav_cmd > 0) {
+		issue_command(_last_camera_mode_item);
+		_last_camera_mode_item = {}; // delete cached item
+	}
+}
+
+void Mission::replayCachedTriggerItems()
+{
+	if (_last_camera_trigger_item.nav_cmd > 0) {
+		issue_command(_last_camera_trigger_item);
+		_last_camera_trigger_item = {}; // delete cached item
+	}
+}
+
+void Mission::resetItemCache()
+{
+	_last_gimbal_configure_item = {};
+	_last_gimbal_control_item = {};
+	_last_camera_mode_item = {};
+	_last_camera_trigger_item = {};
+}
+
+bool Mission::haveCachedGimbalOrCameraItems()
+{
+	return _last_gimbal_configure_item.nav_cmd > 0 ||
+	       _last_gimbal_control_item.nav_cmd > 0 ||
+	       _last_camera_mode_item.nav_cmd > 0;
+}
+
+bool Mission::cameraWasTriggering()
+{
+	return (_last_camera_trigger_item.nav_cmd == NAV_CMD_DO_TRIGGER_CONTROL
+		&& (int)(_last_camera_trigger_item.params[0] + 0.5f) == 1) ||
+	       (_last_camera_trigger_item.nav_cmd == NAV_CMD_IMAGE_START_CAPTURE) ||
+	       (_last_camera_trigger_item.nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_DIST
+		&& _last_camera_trigger_item.params[0] > FLT_EPSILON);
+}
+
+void Mission::updateCachedItemsUpToIndex(const int end_index)
+{
+	for (int i = 0; i <= end_index; i++) {
+		mission_item_s mission_item = {};
+
+		if (readMissionItemAtIndex(_mission, i, mission_item)) {
+			cacheItem(mission_item);
+		}
+	}
 }

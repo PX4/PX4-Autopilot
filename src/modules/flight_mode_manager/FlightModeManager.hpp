@@ -130,8 +130,7 @@ private:
 	int8_t _old_landing_gear_position{landing_gear_s::GEAR_KEEP};
 	uint8_t _takeoff_state{takeoff_status_s::TAKEOFF_STATE_UNINITIALIZED};
 
-	hrt_abstime _failsafe_task_activated_start{0};
-	bool _failsafe_task_error_printed{false};
+	bool _no_matching_task_error_printed{false};
 
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")}; ///< loop duration performance counter
 	hrt_abstime _time_stamp_last_loop{0}; ///< time stamp of last loop iteration

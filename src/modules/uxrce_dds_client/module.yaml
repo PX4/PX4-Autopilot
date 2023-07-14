@@ -1,0 +1,66 @@
+module_name: UXRCE-DDS Client
+serial_config:
+    - command: |
+        if [ $SERIAL_DEV != ethernet ]; then
+            set UXRCE_DDS_ARGS "-t serial -d ${SERIAL_DEV} -b p:${BAUD_PARAM}"
+        else
+            set UXRCE_DDS_ARGS "-t udp"
+        fi
+        uxrce_dds_client start ${UXRCE_DDS_ARGS}
+
+      port_config_param:
+        name: UXRCE_DDS_CFG
+        group: UXRCE-DDS Client
+      supports_networking: true
+
+parameters:
+    - group: UXRCE-DDS Client
+      definitions:
+
+        UXRCE_DDS_DOM_ID:
+            description:
+                short: uXRCE-DDS domain ID
+                long: uXRCE-DDS domain ID
+            category: System
+            type: int32
+            reboot_required: true
+            default: 0
+
+        UXRCE_DDS_KEY:
+            description:
+                short: uXRCE-DDS Session key
+                long: |
+                    uXRCE-DDS key, must be different from zero.
+                    In a single agent - multi client configuration, each client
+                    must have a unique session key.
+            category: System
+            type: int32
+            reboot_required: true
+            default: 1
+
+        UXRCE_DDS_PRT:
+            description:
+                short: uXRCE-DDS UDP Port
+                long: |
+                    If ethernet enabled and selected as configuration for uXRCE-DDS,
+                    selected udp port will be set and used.
+            type: int32
+            min: 0
+            max: 65535
+            reboot_required: true
+            default: 8888
+            requires_ethernet: true
+
+        UXRCE_DDS_AG_IP:
+            description:
+                short: uXRCE-DDS Agent IP address
+                long: |
+                    If ethernet enabled and selected as configuration for uXRCE-DDS,
+                    selected Agent IP address will be set and used.
+                    Decimal dot notation is not supported. IP address must be provided
+                    in int32 format. For example, 192.168.1.2 is mapped to -1062731518;
+                    127.0.0.1 is mapped to 2130706433.
+            type: int32
+            reboot_required: true
+            default: 2130706433
+            requires_ethernet: true

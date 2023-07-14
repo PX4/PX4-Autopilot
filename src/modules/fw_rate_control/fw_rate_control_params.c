@@ -34,15 +34,10 @@
 /**
  * @file fw_rate_control_params.c
  *
- * Parameters defined by the fixed-wing attitude control task
+ * Parameters defined by the fixed-wing rate control task
  *
  * @author Lorenz Meier <lorenz@px4.io>
  * @author Thomas Gubler <thomas@px4.io>
- */
-
-/*
- * Controller parameters, accessible via MAVLink
- *
  */
 
 /**
@@ -58,7 +53,6 @@
  *
  * @unit m/s
  * @min 0.5
- * @max 40
  * @decimal 1
  * @increment 0.5
  * @group FW TECS
@@ -72,7 +66,6 @@ PARAM_DEFINE_FLOAT(FW_AIRSPD_MIN, 10.0f);
  *
  * @unit m/s
  * @min 0.5
- * @max 40
  * @decimal 1
  * @increment 0.5
  * @group FW TECS
@@ -87,7 +80,7 @@ PARAM_DEFINE_FLOAT(FW_AIRSPD_MAX, 20.0f);
  *
  * @value 0 Use airspeed in controller
  * @value 1 Do not use airspeed in controller
- * @group FW Attitude Control
+ * @group FW Rate Control
  */
 PARAM_DEFINE_INT32(FW_ARSP_MODE, 0);
 
@@ -99,7 +92,6 @@ PARAM_DEFINE_INT32(FW_ARSP_MODE, 0);
  *
  * @unit m/s
  * @min 0.5
- * @max 40
  * @decimal 1
  * @increment 0.5
  * @group FW TECS
@@ -115,7 +107,6 @@ PARAM_DEFINE_FLOAT(FW_AIRSPD_TRIM, 15.0f);
  *
  * @unit m/s
  * @min 0.5
- * @max 40
  * @decimal 1
  * @increment 0.5
  * @group FW TECS
@@ -127,7 +118,7 @@ PARAM_DEFINE_FLOAT(FW_AIRSPD_STALL, 7.0f);
  *
  * @unit %/rad/s
  * @min 0.0
- * @max 1.0
+ * @max 10
  * @decimal 3
  * @increment 0.005
  * @group FW Rate Control
@@ -141,7 +132,7 @@ PARAM_DEFINE_FLOAT(FW_PR_P, 0.08f);
  *
  * @unit %/rad/s
  * @min 0.0
- * @max 1.0
+ * @max 10
  * @decimal 3
  * @increment 0.005
  * @group FW Rate Control
@@ -156,7 +147,7 @@ PARAM_DEFINE_FLOAT(FW_PR_D, 0.f);
  *
  * @unit %/rad
  * @min 0.0
- * @max 0.5
+ * @max 10
  * @decimal 3
  * @increment 0.005
  * @group FW Rate Control
@@ -182,7 +173,7 @@ PARAM_DEFINE_FLOAT(FW_PR_IMAX, 0.4f);
  *
  * @unit %/rad/s
  * @min 0.0
- * @max 1.0
+ * @max 10
  * @decimal 3
  * @increment 0.005
  * @group FW Rate Control
@@ -197,7 +188,7 @@ PARAM_DEFINE_FLOAT(FW_RR_P, 0.05f);
  *
  * @unit %/rad/s
  * @min 0.0
- * @max 1.0
+ * @max 10
  * @decimal 3
  * @increment 0.005
  * @group FW Rate Control
@@ -212,9 +203,9 @@ PARAM_DEFINE_FLOAT(FW_RR_D, 0.00f);
  *
  * @unit %/rad
  * @min 0.0
- * @max 0.2
- * @decimal 3
- * @increment 0.005
+ * @max 10
+ * @decimal 2
+ * @increment 0.01
  * @group FW Rate Control
  */
 PARAM_DEFINE_FLOAT(FW_RR_I, 0.1f);
@@ -237,7 +228,7 @@ PARAM_DEFINE_FLOAT(FW_RR_IMAX, 0.2f);
  *
  * @unit %/rad/s
  * @min 0.0
- * @max 1.0
+ * @max 10
  * @decimal 3
  * @increment 0.005
  * @group FW Rate Control
@@ -252,7 +243,7 @@ PARAM_DEFINE_FLOAT(FW_YR_P, 0.05f);
  *
  * @unit %/rad/s
  * @min 0.0
- * @max 1.0
+ * @max 10
  * @decimal 3
  * @increment 0.005
  * @group FW Rate Control
@@ -267,7 +258,7 @@ PARAM_DEFINE_FLOAT(FW_YR_D, 0.0f);
  *
  * @unit %/rad
  * @min 0.0
- * @max 50.0
+ * @max 10
  * @decimal 1
  * @increment 0.5
  * @group FW Rate Control
@@ -338,7 +329,7 @@ PARAM_DEFINE_FLOAT(FW_YR_FF, 0.3f);
  * This is the rate the controller is trying to achieve if the user applies full roll
  * stick input in acro mode.
  *
- * @min 45
+ * @min 10
  * @max 720
  * @unit deg
  * @group FW Rate Control
@@ -348,7 +339,7 @@ PARAM_DEFINE_FLOAT(FW_ACRO_X_MAX, 90);
 /**
  * Acro body pitch max rate setpoint.
  *
- * @min 45
+ * @min 10
  * @max 720
  * @unit deg
  * @group FW Rate Control
@@ -359,7 +350,7 @@ PARAM_DEFINE_FLOAT(FW_ACRO_Y_MAX, 90);
  * Acro body yaw max rate setpoint.
  *
  * @min 10
- * @max 180
+ * @max 720
  * @unit deg
  * @group FW Rate Control
  */
@@ -397,8 +388,8 @@ PARAM_DEFINE_INT32(FW_ARSP_SCALE_EN, 1);
 * This increment is added to TRIM_ROLL when airspeed is FW_AIRSPD_MIN.
  *
  * @group FW Rate Control
- * @min -0.25
- * @max 0.25
+ * @min -0.5
+ * @max 0.5
  * @decimal 2
  * @increment 0.01
  */
@@ -410,8 +401,8 @@ PARAM_DEFINE_FLOAT(FW_DTRIM_R_VMIN, 0.0f);
 * This increment is added to TRIM_PITCH when airspeed is FW_AIRSPD_MIN.
  *
  * @group FW Rate Control
- * @min -0.25
- * @max 0.25
+ * @min -0.5
+ * @max 0.5
  * @decimal 2
  * @increment 0.01
  */
@@ -423,8 +414,8 @@ PARAM_DEFINE_FLOAT(FW_DTRIM_P_VMIN, 0.0f);
 * This increment is added to TRIM_YAW when airspeed is FW_AIRSPD_MIN.
  *
  * @group FW Rate Control
- * @min -0.25
- * @max 0.25
+ * @min -0.5
+ * @max 0.5
  * @decimal 2
  * @increment 0.01
  */
@@ -436,8 +427,8 @@ PARAM_DEFINE_FLOAT(FW_DTRIM_Y_VMIN, 0.0f);
 * This increment is added to TRIM_ROLL when airspeed is FW_AIRSPD_MAX.
  *
  * @group FW Rate Control
- * @min -0.25
- * @max 0.25
+ * @min -0.5
+ * @max 0.5
  * @decimal 2
  * @increment 0.01
  */
@@ -449,8 +440,8 @@ PARAM_DEFINE_FLOAT(FW_DTRIM_R_VMAX, 0.0f);
 * This increment is added to TRIM_PITCH when airspeed is FW_AIRSPD_MAX.
  *
  * @group FW Rate Control
- * @min -0.25
- * @max 0.25
+ * @min -0.5
+ * @max 0.5
  * @decimal 2
  * @increment 0.01
  */
@@ -462,8 +453,8 @@ PARAM_DEFINE_FLOAT(FW_DTRIM_P_VMAX, 0.0f);
 * This increment is added to TRIM_YAW when airspeed is FW_AIRSPD_MAX.
  *
  * @group FW Rate Control
- * @min -0.25
- * @max 0.25
+ * @min -0.5
+ * @max 0.5
  * @decimal 2
  * @increment 0.01
  */
@@ -480,23 +471,9 @@ PARAM_DEFINE_FLOAT(FW_DTRIM_Y_VMAX, 0.0f);
  * @max 1.0
  * @decimal 2
  * @increment 0.01
- * @group FW Attitude Control
+ * @group FW Rate Control
  */
 PARAM_DEFINE_FLOAT(FW_MAN_R_SC, 1.0f);
-
-/**
- * Maximum manual pitch angle
- *
- * Maximum manual pitch angle setpoint (positive & negative) in manual attitude-only stabilized mode
- *
- * @unit deg
- * @min 0.0
- * @max 90.0
- * @decimal 1
- * @increment 0.5
- * @group FW Attitude Control
- */
-PARAM_DEFINE_FLOAT(FW_MAN_P_MAX, 30.0f);
 
 /**
  * Manual pitch scale
@@ -508,23 +485,9 @@ PARAM_DEFINE_FLOAT(FW_MAN_P_MAX, 30.0f);
  * @min 0.0
  * @decimal 2
  * @increment 0.01
- * @group FW Attitude Control
+ * @group FW Rate Control
  */
 PARAM_DEFINE_FLOAT(FW_MAN_P_SC, 1.0f);
-
-/**
- * Maximum manual roll angle
- *
- * Maximum manual roll angle setpoint (positive & negative) in manual attitude-only stabilized mode
- *
- * @unit deg
- * @min 0.0
- * @max 90.0
- * @decimal 1
- * @increment 0.5
- * @group FW Attitude Control
- */
-PARAM_DEFINE_FLOAT(FW_MAN_R_MAX, 45.0f);
 
 /**
  * Manual yaw scale
@@ -536,7 +499,7 @@ PARAM_DEFINE_FLOAT(FW_MAN_R_MAX, 45.0f);
  * @min 0.0
  * @decimal 2
  * @increment 0.01
- * @group FW Attitude Control
+ * @group FW Rate Control
  */
 PARAM_DEFINE_FLOAT(FW_MAN_Y_SC, 1.0f);
 
@@ -550,7 +513,7 @@ PARAM_DEFINE_FLOAT(FW_MAN_Y_SC, 1.0f);
  * @min 0.0
  * @decimal 1
  * @increment 0.01
- * @group FW Attitude Control
+ * @group FW Rate Control
  */
 PARAM_DEFINE_FLOAT(FW_RLL_TO_YAW_FF, 0.0f);
 
@@ -562,6 +525,19 @@ PARAM_DEFINE_FLOAT(FW_RLL_TO_YAW_FF, 0.0f);
  * @value 0 Disabled
  * @value 1 Flaps channel
  * @value 2 Aux1
- * @group FW Attitude Control
+ * @group FW Rate Control
  */
 PARAM_DEFINE_INT32(FW_SPOILERS_MAN, 0);
+
+/**
+ * Enable yaw rate controller in Acro
+ *
+ * If this parameter is set to 1, the yaw rate controller is enabled in Fixed-wing Acro mode.
+ * Otherwise the pilot commands directly the yaw actuator.
+ * It is disabled by default because an active yaw rate controller will fight against the
+ * natural turn coordination of the plane.
+ *
+ * @boolean
+ * @group FW Rate Control
+ */
+PARAM_DEFINE_INT32(FW_ACRO_YAW_EN, 0);

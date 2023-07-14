@@ -71,6 +71,8 @@ PARAM_DEFINE_INT32(VT_FWD_THRUST_EN, 0);
  *
  * @min 0.0
  * @max 2.0
+ * @increment 0.01
+ * @decimal 2
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_FWD_THRUST_SC, 0.7f);
@@ -83,6 +85,8 @@ PARAM_DEFINE_FLOAT(VT_FWD_THRUST_SC, 0.7f);
  * @unit s
  * @min 0.0
  * @max 20.0
+ * @increment 0.1
+ * @decimal 1
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_B_TRANS_RAMP, 3.0f);

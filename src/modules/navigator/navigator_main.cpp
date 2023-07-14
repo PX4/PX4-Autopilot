@@ -257,8 +257,16 @@ void Navigator::run()
 				bool reposition_valid = true;
 
 				vehicle_global_position_s position_setpoint{};
-				position_setpoint.lat = cmd.param5;
-				position_setpoint.lon = cmd.param6;
+
+				if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)) {
+					position_setpoint.lat = cmd.param5;
+					position_setpoint.lon = cmd.param6;
+
+				} else {
+					position_setpoint.lat = get_global_position()->lat;
+					position_setpoint.lon = get_global_position()->lon;
+				}
+
 				position_setpoint.alt = PX4_ISFINITE(cmd.param7) ? cmd.param7 : get_global_position()->alt;
 
 				if (have_geofence_position_data) {
@@ -282,7 +290,13 @@ void Navigator::run()
 
 					// If no argument for ground speed, use default value.
 					if (cmd.param1 <= 0 || !PX4_ISFINITE(cmd.param1)) {
-						rep->current.cruising_speed = get_cruising_speed();
+						// on entering Loiter mode, reset speed setpoint to default
+						if (_navigation_mode != &_loiter) {
+							rep->current.cruising_speed = -1.f;
+
+						} else {
+							rep->current.cruising_speed = get_cruising_speed();
+						}
 
 					} else {
 						rep->current.cruising_speed = cmd.param1;
@@ -403,7 +417,14 @@ void Navigator::run()
 
 					rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
 
-					rep->current.cruising_speed = get_cruising_speed();
+					// on entering Loiter mode, reset speed setpoint to default
+					if (_navigation_mode != &_loiter) {
+						rep->current.cruising_speed = -1.f;
+
+					} else {
+						rep->current.cruising_speed = get_cruising_speed();
+					}
+
 					rep->current.cruising_throttle = get_cruising_throttle();
 					rep->current.acceptance_radius = get_acceptance_radius();
 					rep->current.yaw = NAN;
@@ -470,6 +491,14 @@ void Navigator::run()
 					rep->current.loiter_direction_counter_clockwise = false;
 					rep->current.cruising_throttle = get_cruising_throttle();
 
+					// on entering Loiter mode, reset speed setpoint to default
+					if (_navigation_mode != &_loiter) {
+						rep->current.cruising_speed = -1.f;
+
+					} else {
+						rep->current.cruising_speed = get_cruising_speed();
+					}
+
 					if (PX4_ISFINITE(cmd.param1)) {
 						rep->current.loiter_radius = fabsf(cmd.param1);
 						rep->current.loiter_direction_counter_clockwise = cmd.param1 < 0;
@@ -498,6 +527,7 @@ void Navigator::run()
 				rep->current.loiter_radius = get_loiter_radius();
 				rep->current.loiter_direction_counter_clockwise = false;
 				rep->current.type = position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
+				rep->current.cruising_speed = -1.f; // reset to default
 
 				if (home_global_position_valid()) {
 					// Only set yaw if we know the true heading
@@ -664,29 +694,41 @@ void Navigator::run()
 
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL: {
 				_pos_sp_triplet_published_invalid_once = false;
-
-				const bool rtl_activated = _previous_nav_state != vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
+				const bool rtl_activated_now = !_rtl_activated;
 
 				switch (_rtl.get_rtl_type()) {
 				case RTL::RTL_TYPE_MISSION_LANDING:
-				case RTL::RTL_TYPE_CLOSEST:
-
-					if (!rtl_activated && _rtl.getRTLState() > RTL::RTLState::RTL_STATE_LOITER
-					    && _rtl.getShouldEngageMissionForLanding()) {
-						_mission.set_execution_mode(mission_result_s::MISSION_EXECUTION_MODE_FAST_FORWARD);
-
-						if (!getMissionLandingInProgress() && _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED
-						    && !get_land_detected()->landed) {
-							start_mission_landing();
+				case RTL::RTL_TYPE_CLOSEST: {
+						// If a mission landing is desired we should only execute mission navigation mode if we currently are in fw mode.
+						// In multirotor mode no landing pattern is required so we can just navigate to the land point directly and don't need to run mission.
+						if (rtl_activated_now) {
+							_shouldEngageMissionForLanding = _rtl.getRTLDestinationTypeMission()
+											 && _vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
 						}
 
-						navigation_mode_new = &_mission;
+						if (_shouldEngageMissionForLanding && (on_mission_landing() || _rtl.getRTLState() > RTL::RTL_STATE_CLIMB)) {
 
-					} else {
-						navigation_mode_new = &_rtl;
+							// already in a mission landing, we just need to inform the user and stay in mission
+							if (rtl_activated_now) {
+								mavlink_log_info(get_mavlink_log_pub(), "RTL to Mission landing, continue landing\t");
+								events::send(events::ID("rtl_land_at_mission_continue_landing"), events::Log::Info,
+									     "RTL to Mission landing, continue landing");
+							}
+
+							if (_navigation_mode != &_mission) {
+								// the first time we're here start the mission landig
+								start_mission_landing();
+							}
+
+							_mission.set_execution_mode(mission_result_s::MISSION_EXECUTION_MODE_FAST_FORWARD);
+							navigation_mode_new = &_mission;
+
+						} else {
+							navigation_mode_new = &_rtl;
+						}
+
+						break;
 					}
-
-					break;
 
 				case RTL::RTL_TYPE_MISSION_LANDING_REVERSED:
 					if (_mission.get_land_start_available() && !get_land_detected()->landed) {
@@ -706,7 +748,7 @@ void Navigator::run()
 							}
 						}
 
-						if (rtl_activated) {
+						if (rtl_activated_now) {
 							mavlink_log_info(get_mavlink_log_pub(), "RTL Mission activated, continue mission\t");
 							events::send(events::ID("navigator_rtl_mission_activated"), events::Log::Info,
 								     "RTL Mission activated, continue mission");
@@ -726,11 +768,11 @@ void Navigator::run()
 							// The seconds condition is required so that when no mission was uploaded and one is available the closest
 							// mission item is determined and also that if the user changes the active mission index while rtl is active
 							// always that waypoint is tracked first.
-							if ((_navigation_mode != &_mission) && (rtl_activated || _mission.get_mission_waypoints_changed())) {
+							if ((_navigation_mode != &_mission) && (rtl_activated_now || _mission.get_mission_waypoints_changed())) {
 								_mission.set_closest_item_as_current();
 							}
 
-							if (rtl_activated) {
+							if (rtl_activated_now) {
 								mavlink_log_info(get_mavlink_log_pub(), "RTL Mission activated, fly mission in reverse\t");
 								events::send(events::ID("navigator_rtl_mission_activated_rev"), events::Log::Info,
 									     "RTL Mission activated, fly mission in reverse");
@@ -739,7 +781,7 @@ void Navigator::run()
 							navigation_mode_new = &_mission;
 
 						} else {
-							if (rtl_activated) {
+							if (rtl_activated_now) {
 								mavlink_log_info(get_mavlink_log_pub(), "RTL Mission activated, fly to home\t");
 								events::send(events::ID("navigator_rtl_mission_activated_home"), events::Log::Info,
 									     "RTL Mission activated, fly to home");
@@ -752,7 +794,7 @@ void Navigator::run()
 					break;
 
 				default:
-					if (rtl_activated) {
+					if (rtl_activated_now) {
 						mavlink_log_info(get_mavlink_log_pub(), "RTL HOME activated\t");
 						events::send(events::ID("navigator_rtl_home_activated"), events::Log::Info, "RTL activated");
 					}
@@ -762,6 +804,7 @@ void Navigator::run()
 
 				}
 
+				_rtl_activated = true;
 				break;
 			}
 
@@ -800,13 +843,15 @@ void Navigator::run()
 			break;
 		}
 
+		if (_vstatus.nav_state != vehicle_status_s::NAVIGATION_STATE_AUTO_RTL) {
+			_rtl_activated = false;
+			_rtl.resetRtlState();
+		}
+
 		// Do not execute any state machine while we are disarmed
 		if (_vstatus.arming_state != vehicle_status_s::ARMING_STATE_ARMED) {
 			navigation_mode_new = nullptr;
 		}
-
-		// update the vehicle status
-		_previous_nav_state = _vstatus.nav_state;
 
 		/* we have a new navigation mode: reset triplet */
 		if (_navigation_mode != navigation_mode_new) {
@@ -1391,7 +1436,7 @@ void Navigator::publish_vehicle_cmd(vehicle_command_s *vcmd)
 		break;
 
 	default:
-		vcmd->target_component = _vstatus.component_id;
+		vcmd->target_component = 0;
 		break;
 	}
 
@@ -1488,6 +1533,18 @@ void Navigator::mode_completed(uint8_t nav_state, uint8_t result)
 	mode_completed.result = result;
 	mode_completed.nav_state = nav_state;
 	_mode_completed_pub.publish(mode_completed);
+}
+
+
+void Navigator::disable_camera_trigger()
+{
+	// Disable camera trigger
+	vehicle_command_s cmd {};
+	cmd.command = vehicle_command_s::VEHICLE_CMD_DO_TRIGGER_CONTROL;
+	// Pause trigger
+	cmd.param1 = -1.0f;
+	cmd.param3 = 1.0f;
+	publish_vehicle_cmd(&cmd);
 }
 
 int Navigator::print_usage(const char *reason)

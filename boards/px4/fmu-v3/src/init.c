@@ -166,7 +166,7 @@ __EXPORT void board_on_reset(int status)
 }
 
 /************************************************************************************
-  * Name: determin_hw_version
+  * Name: determine_hw_info
  *
  * Description:
  *
@@ -188,7 +188,10 @@ __EXPORT void board_on_reset(int status)
  *  10   10 - 0xA PixhawkMini
  *  10   11 - 0xB FMUv2 questionable hardware (should be treated like regular FMUv2)
  *
- *  This will return OK on success and -1 on not supported
+ *  This will return OK on success.
+ *
+ *  If PB12 is not returning a consistent result we assume that it's a Cube Black
+ *  with something connected to CAN1 and talking to it.
  *
  *  hw_type Initial state is {'V','2',0, 0}
  *   V 2    - FMUv2
@@ -198,19 +201,18 @@ __EXPORT void board_on_reset(int status)
  *
  ************************************************************************************/
 
-static int determin_hw_version(int *version, int *revision)
+static int determine_hw_info(int *revision, int *version)
 {
 	*revision = 0; /* default revision */
-	int rv = 0;
 	int pos = 0;
 	stm32_configgpio(GPIO_PULLDOWN | (HW_VER_PB4 & ~GPIO_PUPD_MASK));
 	up_udelay(10);
-	rv |= stm32_gpioread(HW_VER_PB4) << pos++;
+	*version |= stm32_gpioread(HW_VER_PB4) << pos++;
 	stm32_configgpio(HW_VER_PB4);
 	up_udelay(10);
-	rv |= stm32_gpioread(HW_VER_PB4) << pos++;
+	*version |= stm32_gpioread(HW_VER_PB4) << pos++;
 
-	int votes = 16;
+	int votes = 100;
 	int ones[2] = {0, 0};
 	int zeros[2] = {0, 0};
 
@@ -223,19 +225,31 @@ static int determin_hw_version(int *version, int *revision)
 		stm32_gpioread(HW_VER_PB12) ? ones[1]++ : zeros[1]++;
 	}
 
-	if (ones[0] > zeros[0]) {
-		rv |= 1 << pos;
-	}
+	const int margin = 50;
+	// On Cube the detection does not work as expected when something
+	// is connected to CAN1. In that case, there is no clear winner
+	// between ones and zeros.
 
-	pos++;
+	if (*version == 0x2 && abs(ones[0] - zeros[0]) < margin && abs(ones[1] - zeros[1]) < margin) {
+		*version = HW_VER_FMUV3_STATE;
+		syslog(LOG_DEBUG, "Ambiguous board detection, assuming Pixhawk Cube\n");
 
-	if (ones[1] > zeros[1]) {
-		rv |= 1 << pos;
+	} else {
+
+		if (ones[0] > zeros[0]) {
+			*version |= 1 << pos;
+		}
+
+		pos++;
+
+		if (ones[1] > zeros[1] + margin) {
+			*version |= 1 << pos;
+		}
 	}
 
 	stm32_configgpio(HW_VER_PB4_INIT);
 	stm32_configgpio(HW_VER_PB12_INIT);
-	*version = rv;
+
 	return OK;
 }
 
@@ -366,7 +380,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	/* Ensure the power is on 1 ms before we drive the GPIO pins */
 	usleep(1000);
 
-	if (OK == determin_hw_version(&hw_version, & hw_revision)) {
+	if (OK == determine_hw_info(&hw_revision, &hw_version)) {
 		switch (hw_version) {
 		case HW_VER_FMUV2_STATE:
 			break;

@@ -53,12 +53,20 @@ ActuatorEffectivenessFixedWing::getEffectivenessMatrix(Configuration &configurat
 	// Motors
 	_rotors.enablePropellerTorque(false);
 	const bool rotors_added_successfully = _rotors.addActuators(configuration);
+	_forwards_motors_mask = _rotors.getForwardsMotors();
 
 	// Control Surfaces
 	_first_control_surface_idx = configuration.num_actuators_matrix[0];
 	const bool surfaces_added_successfully = _control_surfaces.addActuators(configuration);
 
 	return (rotors_added_successfully && surfaces_added_successfully);
+}
+
+void ActuatorEffectivenessFixedWing::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
+		int matrix_index, ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
+		const matrix::Vector<float, NUM_ACTUATORS> &actuator_max)
+{
+	stopMaskedMotorsWithZeroThrust(_forwards_motors_mask, actuator_sp);
 }
 
 void ActuatorEffectivenessFixedWing::allocateAuxilaryControls(const float dt, int matrix_index,

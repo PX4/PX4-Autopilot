@@ -401,17 +401,6 @@ class Tester:
         self.active_runners = []
 
         if self.config['mode'] == 'sitl':
-            px4_runner = ph.Px4Runner(
-                os.getcwd(),
-                log_dir,
-                test['model'],
-                case,
-                self.get_max_speed_factor(test),
-                self.debugger,
-                self.verbose,
-                self.build_dir)
-            self.active_runners.append(px4_runner)
-
             if self.config['simulator'] == 'gazebo':
                 gzserver_runner = ph.GzserverRunner(
                     os.getcwd(),
@@ -440,6 +429,22 @@ class Tester:
                         case,
                         self.verbose)
                     self.active_runners.append(gzclient_runner)
+
+                # We must start the PX4 instance at the end, as starting
+                # it in the beginning, then connecting Gazebo server freaks
+                # out the PX4 (it needs to have data coming in when started),
+                # and can lead to EKF to freak out, or the instance itself
+                # to die unexpectedly.
+                px4_runner = ph.Px4Runner(
+                    os.getcwd(),
+                    log_dir,
+                    test['model'],
+                    case,
+                    self.get_max_speed_factor(test),
+                    self.debugger,
+                    self.verbose,
+                    self.build_dir)
+                self.active_runners.append(px4_runner)
 
         mavsdk_tests_runner = ph.TestRunner(
             os.getcwd(),

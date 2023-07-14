@@ -119,7 +119,7 @@ if [ -z ${SCRIPT} ]; then
 	fi
 
 	while [ $n -lt $num_vehicles ]; do
-		spawn_model ${vehicle_model} $n
+		spawn_model ${vehicle_model} $(($n + 1))
 		n=$(($n + 1))
 	done
 else
@@ -140,7 +140,7 @@ else
 		m=0
 		while [ $m -lt ${target_number} ]; do
 			export PX4_SIM_MODEL=gazebo-classic_${target_vehicle}
-			spawn_model ${target_vehicle}${LABEL} $n $target_x $target_y
+			spawn_model ${target_vehicle}${LABEL} $(($n + 1)) $target_x $target_y
 			m=$(($m + 1))
 			n=$(($n + 1))
 		done

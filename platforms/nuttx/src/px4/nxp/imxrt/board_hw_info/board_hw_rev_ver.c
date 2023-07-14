@@ -66,19 +66,6 @@ static char hw_info[HW_INFO_SIZE] = {0};
 /****************************************************************************
  * Protected Functions
  ****************************************************************************/
-/****************************************************************************
-  * Name: determin_hw_version
- *
- * Description:
- *
- * This function fist determines if revision  and version resistors are in place.
- * if they it will read the ADC channels and decode the DN to ordinal numbers
- * that will be returned by board_get_hw_version and board_get_hw_revision API
- *
- *  This will return OK on success and -1 on not supported
-*
- *
- ****************************************************************************/
 
 static int dn_to_ordinal(uint16_t dn)
 {

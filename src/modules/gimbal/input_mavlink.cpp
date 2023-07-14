@@ -257,7 +257,6 @@ InputMavlinkCmdMount::_process_command(ControlData &control_data, const vehicle_
 
 		switch ((int) vehicle_command.param7) {
 		case vehicle_command_s::VEHICLE_MOUNT_MODE_RETRACT:
-			control_data.gimbal_shutter_retract = true;
 
 		// fallthrough
 		case vehicle_command_s::VEHICLE_MOUNT_MODE_NEUTRAL:
@@ -376,7 +375,6 @@ void InputMavlinkCmdMount::print_status() const
 InputMavlinkGimbalV2::InputMavlinkGimbalV2(Parameters &parameters) :
 	InputBase(parameters)
 {
-	_stream_gimbal_manager_information();
 }
 
 InputMavlinkGimbalV2::~InputMavlinkGimbalV2()
@@ -454,7 +452,7 @@ void InputMavlinkGimbalV2::_stream_gimbal_manager_status(const ControlData &cont
 		gimbal_manager_status_s gimbal_manager_status{};
 		gimbal_manager_status.timestamp = hrt_absolute_time();
 		gimbal_manager_status.flags = gimbal_device_attitude_status.device_flags;
-		gimbal_manager_status.gimbal_device_id = 0;
+		gimbal_manager_status.gimbal_device_id = control_data.device_compid;
 		gimbal_manager_status.primary_control_sysid = control_data.sysid_primary_control;
 		gimbal_manager_status.primary_control_compid = control_data.compid_primary_control;
 		gimbal_manager_status.secondary_control_sysid = 0; // TODO: support secondary control
@@ -463,7 +461,7 @@ void InputMavlinkGimbalV2::_stream_gimbal_manager_status(const ControlData &cont
 	}
 }
 
-void InputMavlinkGimbalV2::_stream_gimbal_manager_information()
+void InputMavlinkGimbalV2::_stream_gimbal_manager_information(const ControlData &control_data)
 {
 	// TODO: Take gimbal_device_information into account.
 
@@ -483,6 +481,8 @@ void InputMavlinkGimbalV2::_stream_gimbal_manager_information()
 	gimbal_manager_info.pitch_min = -M_PI_F / 2;
 	gimbal_manager_info.yaw_max = M_PI_F;
 	gimbal_manager_info.yaw_min = -M_PI_F;
+
+	gimbal_manager_info.gimbal_device_id = control_data.device_compid;
 
 	_gimbal_manager_info_pub.publish(gimbal_manager_info);
 }
@@ -579,6 +579,11 @@ InputMavlinkGimbalV2::update(unsigned int timeout_ms, ControlData &control_data,
 
 	_stream_gimbal_manager_status(control_data);
 
+	if (_last_device_compid != control_data.device_compid) {
+		_last_device_compid = control_data.device_compid;
+		_stream_gimbal_manager_information(control_data);
+	}
+
 	return update_result;
 }
 
@@ -606,8 +611,6 @@ InputMavlinkGimbalV2::UpdateResult InputMavlinkGimbalV2::_process_set_attitude(C
 InputMavlinkGimbalV2::UpdateResult InputMavlinkGimbalV2::_process_vehicle_roi(ControlData &control_data,
 		const vehicle_roi_s &vehicle_roi)
 {
-	control_data.gimbal_shutter_retract = false;
-
 	if (vehicle_roi.mode == vehicle_roi_s::ROI_NONE) {
 
 		control_data.type = ControlData::Type::Neutral;
@@ -679,7 +682,6 @@ InputMavlinkGimbalV2::_process_command(ControlData &control_data, const vehicle_
 
 		switch ((int) vehicle_command.param7) {
 		case vehicle_command_s::VEHICLE_MOUNT_MODE_RETRACT:
-			control_data.gimbal_shutter_retract = true;
 
 		// fallthrough
 

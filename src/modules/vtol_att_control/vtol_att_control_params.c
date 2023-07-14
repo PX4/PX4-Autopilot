@@ -77,9 +77,10 @@ PARAM_DEFINE_INT32(VT_ELEV_MC_LOCK, 1);
 PARAM_DEFINE_FLOAT(VT_F_TRANS_DUR, 5.0f);
 
 /**
- * Duration of a back transition
+ * Maximum duration of a back transition
  *
- * Time in seconds used for a back transition
+ * Time in seconds used for a back transition maximally.
+ * Transition is also declared over if the groundspeed drops below MPC_XY_CRUISE.
  *
  * @unit s
  * @min 0.1
@@ -88,10 +89,10 @@ PARAM_DEFINE_FLOAT(VT_F_TRANS_DUR, 5.0f);
  * @decimal 2
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_B_TRANS_DUR, 4.0f);
+PARAM_DEFINE_FLOAT(VT_B_TRANS_DUR, 10.0f);
 
 /**
- * Target throttle value for the transition to fixed wing flight.
+ * Target throttle value for the transition to fixed-wing flight.
  *
  * standard vtol: pusher
  *
@@ -104,22 +105,6 @@ PARAM_DEFINE_FLOAT(VT_B_TRANS_DUR, 4.0f);
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_F_TRANS_THR, 1.0f);
-
-/**
- * Target throttle value for the transition to hover flight.
- *
- * standard vtol: pusher
- *
- * tailsitter, tiltrotor: main throttle
- *
- *
- * @min -1
- * @max 1
- * @increment 0.01
- * @decimal 2
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_FLOAT(VT_B_TRANS_THR, 0.0f);
 
 /**
  * Approximate deceleration during back transition
@@ -194,10 +179,11 @@ PARAM_DEFINE_FLOAT(VT_TRANS_TIMEOUT, 15.0f);
 PARAM_DEFINE_FLOAT(VT_TRANS_MIN_TM, 2.0f);
 
 /**
- * QuadChute Altitude
+ * Quad-chute altitude
  *
- * Minimum altitude for fixed wing flight, when in fixed wing the altitude drops below this altitude
- * the vehicle will transition back to MC mode and enter failsafe RTL
+ * Minimum altitude for fixed-wing flight. When the vehicle is in fixed-wing mode
+ * and the altitude drops below this altitude (relative altitude above local origin),
+ * it will instantly switch back to MC mode and execute behavior defined in COM_QC_ACT.
  *
  * @unit m
  * @min 0.0
@@ -211,12 +197,12 @@ PARAM_DEFINE_FLOAT(VT_FW_MIN_ALT, 0.0f);
 /**
  * Quad-chute uncommanded descent threshold
  *
- * Threshold for integrated height rate error to trigger a uncommanded-descent quad-chute.
- * Only checked in altitude-controlled fixed-wing flight.
- * Additional conditions that have to be met for uncommanded descent detection are a positive (climbing) height
- * rate setpoint and a negative (sinking) current height rate estimate.
+ * Altitude error threshold for quad-chute triggering during fixed-wing flight.
+ * The check is only active if altitude is controlled and the vehicle is below the current altitude reference.
+ * The altitude error is relative to the highest altitude the vehicle has achieved since it has flown below the current
+ * altitude reference.
  *
- * Set to 0 do disable this threshold.
+ * Set to 0 do disable.
  *
  * @unit m
  * @min 0.0
@@ -225,12 +211,14 @@ PARAM_DEFINE_FLOAT(VT_FW_MIN_ALT, 0.0f);
  * @decimal 1
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_QC_HR_ERROR_I, 0.0f);
+PARAM_DEFINE_FLOAT(VT_QC_ALT_LOSS, 0.0f);
 
 /**
  * Quad-chute transition altitude loss threshold
  *
  * Altitude loss threshold for quad-chute triggering during VTOL transition to fixed-wing flight.
+ * Active until 5s after completing transition to fixed-wing.
+ * Only active if altitude estimate is valid and in altitude-controlled mode.
  * If the current altitude is more than this value below the altitude at the beginning of the
  * transition, it will instantly switch back to MC mode and execute behavior defined in COM_QC_ACT.
  *
@@ -243,7 +231,7 @@ PARAM_DEFINE_FLOAT(VT_QC_HR_ERROR_I, 0.0f);
  * @decimal 1
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_QC_T_ALT_LOSS, 10.0f);
+PARAM_DEFINE_FLOAT(VT_QC_T_ALT_LOSS, 20.0f);
 
 /**
  * Quad-chute max pitch threshold
@@ -276,8 +264,8 @@ PARAM_DEFINE_INT32(VT_FW_QC_R, 0);
 /**
  * Quad-chute maximum height
  *
- * Maximum height above the ground (if available, otherwhise above
- * home if available, otherwise above the local origin) where triggering a quadchute is possible.
+ * Maximum height above the ground (if available, otherwise above
+ * Home if available, otherwise above the local origin) where triggering a quad-chute is possible.
  * At high altitudes there is a big risk to deplete the battery and therefore crash if quad-chuting there.
  *
  * @unit m
@@ -288,7 +276,7 @@ PARAM_DEFINE_INT32(VT_FW_QC_R, 0);
 PARAM_DEFINE_INT32(VT_FW_QC_HMAX, 0);
 
 /**
- * Airspeed less front transition time (open loop)
+ * Airspeed-less front transition time (open loop)
  *
  * The duration of the front transition when there is no airspeed feedback available.
  *

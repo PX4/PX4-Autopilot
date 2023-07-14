@@ -78,6 +78,16 @@ MavlinkReceiver::~MavlinkReceiver()
 #if !defined(CONSTRAINED_FLASH)
 	delete[] _received_msg_stats;
 #endif // !CONSTRAINED_FLASH
+
+	_distance_sensor_pub.unadvertise();
+	_gps_inject_data_pub.unadvertise();
+	_rc_pub.unadvertise();
+	_manual_control_input_pub.unadvertise();
+	_ping_pub.unadvertise();
+	_radio_status_pub.unadvertise();
+	_sensor_baro_pub.unadvertise();
+	_sensor_gps_pub.unadvertise();
+	_sensor_optical_flow_pub.unadvertise();
 }
 
 static constexpr vehicle_odometry_s vehicle_odometry_empty {
@@ -2055,6 +2065,7 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 	manual_control_setpoint.yaw = mavlink_manual_control.r / 1000.f;
 	manual_control_setpoint.data_source = manual_control_setpoint_s::SOURCE_MAVLINK_0 + _mavlink->get_instance_id();
 	manual_control_setpoint.timestamp = manual_control_setpoint.timestamp_sample = hrt_absolute_time();
+	manual_control_setpoint.valid = true;
 	_manual_control_input_pub.publish(manual_control_setpoint);
 }
 
@@ -2340,10 +2351,10 @@ MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 
 	gps.device_id = device_id.devid;
 
-	gps.lat = hil_gps.lat;
-	gps.lon = hil_gps.lon;
-	gps.alt = hil_gps.alt;
-	gps.alt_ellipsoid = hil_gps.alt;
+	gps.latitude_deg = hil_gps.lat * 1e-7;
+	gps.longitude_deg = hil_gps.lon * 1e-7;
+	gps.altitude_msl_m = hil_gps.alt * 1e-3;
+	gps.altitude_ellipsoid_m = hil_gps.alt * 1e-3;
 
 	gps.s_variance_m_s = 0.25f;
 	gps.c_variance_rad = 0.5f;

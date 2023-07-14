@@ -66,8 +66,6 @@ InputTest::UpdateResult InputTest::update(unsigned int timeout_ms, ControlData &
 
 	q.copyTo(control_data.type_data.angle.q);
 
-	control_data.gimbal_shutter_retract = false;
-
 	control_data.type_data.angle.angular_velocity[0] = NAN;
 	control_data.type_data.angle.angular_velocity[1] = NAN;
 	control_data.type_data.angle.angular_velocity[2] = NAN;

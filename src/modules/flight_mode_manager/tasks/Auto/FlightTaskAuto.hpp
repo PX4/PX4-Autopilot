@@ -109,6 +109,8 @@ protected:
 	bool isTargetModified() const;
 	void _updateTrajConstraints();
 
+	void rcHelpModifyYaw(float &yaw_sp);
+
 	/** determines when to trigger a takeoff (ignored in flight) */
 	bool _checkTakeoff() override { return _want_takeoff; };
 

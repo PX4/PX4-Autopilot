@@ -9,6 +9,3 @@ git submodule update --init --recursive
 bash ./Tools/setup/ubuntu.sh 
 make px4_sitl gazebo-classic 
 ```
-At this point, your simulation should run with the the default Iris quadcopter.
-
-Then you can proceed with the Astrobee setup.

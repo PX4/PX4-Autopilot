@@ -567,6 +567,10 @@ private:
 
 	Dcmf _R_to_earth{};	///< transformation matrix from body frame to earth frame from last EKF prediction
 
+	// zero gyro update
+	Vector3f _zgup_delta_ang{};
+	float _zgup_delta_ang_dt{0.f};
+
 	// used by magnetometer fusion mode selection
 	Vector2f _accel_lpf_NE{};			///< Low pass filtered horizontal earth frame acceleration (m/sec**2)
 	float _yaw_delta_ef{0.0f};		///< Recent change in yaw angle measured about the earth frame D axis (rad)
@@ -575,7 +579,6 @@ private:
 	bool _yaw_angle_observable{false};	///< true when there is enough horizontal acceleration to make yaw observable
 	uint64_t _time_yaw_started{0};		///< last system time in usec that a yaw rotation manoeuvre was detected
 	uint64_t _mag_use_not_inhibit_us{0};	///< last system time in usec before magnetometer use was inhibited
-	float _last_static_yaw{NAN};		///< last yaw angle recorded when on ground motion checks were passing (rad)
 
 	bool _mag_yaw_reset_req{false};		///< true when a reset of the yaw using the magnetometer data has been requested
 	bool _mag_decl_cov_reset{false};	///< true after the fuseDeclination() function has been used to modify the earth field covariances after a magnetic field reset event.
@@ -1000,6 +1003,7 @@ private:
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	// control fusion of external vision observations
 	void controlExternalVisionFusion();
+	void updateEvAttitudeErrorFilter(extVisionSample &ev_sample, bool ev_reset);
 	void controlEvHeightFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient, estimator_aid_source1d_s &aid_src);
 	void controlEvPosFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient, estimator_aid_source2d_s &aid_src);
 	void controlEvVelFusion(const extVisionSample &ev_sample, const bool common_starting_conditions_passing, const bool ev_reset, const bool quality_sufficient, estimator_aid_source3d_s &aid_src);
@@ -1046,6 +1050,8 @@ private:
 	void stopFakeHgtFusion();
 
 	void controlZeroVelocityUpdate();
+	void controlZeroGyroUpdate(const imuSample &imu_delayed);
+	void fuseDeltaAngBias(float innov, float innov_var, int obs_index);
 
 	void controlZeroInnovationHeadingUpdate();
 
@@ -1155,6 +1161,8 @@ private:
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	HeightBiasEstimator _ev_hgt_b_est{HeightSensor::EV, _height_sensor_ref};
 	PositionBiasEstimator _ev_pos_b_est{static_cast<uint8_t>(PositionSensor::EV), _position_sensor_ref};
+	AlphaFilter<AxisAnglef> _ev_q_error_filt{0.001f};
+	bool _ev_q_error_initialized{false};
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 	// Resets the main Nav EKf yaw to the estimator from the EKF-GSF yaw estimator

@@ -144,10 +144,21 @@ private:
 
 	bool _in_fw_or_transition_wo_tailsitter_transition{false}; // only run the FW attitude controller in these states
 
+	// enum for bitmask of VT_FW_DIFTHR_EN parameter options
+	enum class VTOLFixedWingDifferentialThrustEnabledBit : int32_t {
+		YAW_BIT = (1 << 0),
+		ROLL_BIT = (1 << 1),
+		PITCH_BIT = (1 << 2),
+	};
+
+	param_t _handle_param_vt_fw_difthr_en{PARAM_INVALID};
+	int32_t _param_vt_fw_difthr_en{0};
+
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::FW_ACRO_X_MAX>) _param_fw_acro_x_max,
 		(ParamFloat<px4::params::FW_ACRO_Y_MAX>) _param_fw_acro_y_max,
 		(ParamFloat<px4::params::FW_ACRO_Z_MAX>) _param_fw_acro_z_max,
+		(ParamInt<px4::params::FW_ACRO_YAW_EN>) _param_fw_acro_yaw_en,
 
 		(ParamFloat<px4::params::FW_AIRSPD_MAX>) _param_fw_airspd_max,
 		(ParamFloat<px4::params::FW_AIRSPD_MIN>) _param_fw_airspd_min,
@@ -166,9 +177,7 @@ private:
 		(ParamFloat<px4::params::FW_DTRIM_Y_VMAX>) _param_fw_dtrim_y_vmax,
 		(ParamFloat<px4::params::FW_DTRIM_Y_VMIN>) _param_fw_dtrim_y_vmin,
 
-		(ParamFloat<px4::params::FW_MAN_P_MAX>) _param_fw_man_p_max,
 		(ParamFloat<px4::params::FW_MAN_P_SC>) _param_fw_man_p_sc,
-		(ParamFloat<px4::params::FW_MAN_R_MAX>) _param_fw_man_r_max,
 		(ParamFloat<px4::params::FW_MAN_R_SC>) _param_fw_man_r_sc,
 		(ParamFloat<px4::params::FW_MAN_Y_SC>) _param_fw_man_y_sc,
 

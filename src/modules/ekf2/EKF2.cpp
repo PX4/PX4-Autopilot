@@ -110,7 +110,6 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_req_pdop(_params->req_pdop),
 	_param_ekf2_req_hdrift(_params->req_hdrift),
 	_param_ekf2_req_vdrift(_params->req_vdrift),
-	_param_ekf2_aid_mask(_params->fusion_mode),
 	_param_ekf2_hgt_ref(_params->height_sensor_ref),
 	_param_ekf2_baro_ctrl(_params->baro_ctrl),
 	_param_ekf2_gps_ctrl(_params->gnss_ctrl),
@@ -150,10 +149,12 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 	_param_ekf2_grav_noise(_params->gravity_noise),
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
+	_param_ekf2_of_ctrl(_params->flow_ctrl),
 	_param_ekf2_of_delay(_params->flow_delay_ms),
 	_param_ekf2_of_n_min(_params->flow_noise),
 	_param_ekf2_of_n_max(_params->flow_noise_qual_min),
 	_param_ekf2_of_qmin(_params->flow_qual_min),
+	_param_ekf2_of_qmin_gnd(_params->flow_qual_min_gnd),
 	_param_ekf2_of_gate(_params->flow_innov_gate),
 	_param_ekf2_of_pos_x(_params->flow_pos_body(0)),
 	_param_ekf2_of_pos_y(_params->flow_pos_body(1)),
@@ -174,6 +175,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_abl_tau(_params->acc_bias_learn_tc),
 	_param_ekf2_gyr_b_lim(_params->gyro_bias_lim),
 #if defined(CONFIG_EKF2_DRAG_FUSION)
+	_param_ekf2_drag_ctrl(_params->drag_ctrl),
 	_param_ekf2_drag_noise(_params->drag_noise),
 	_param_ekf2_bcoef_x(_params->bcoef_x),
 	_param_ekf2_bcoef_y(_params->bcoef_y),
@@ -861,6 +863,51 @@ void EKF2::VerifyParams()
 		events::send<float>(events::ID("ekf2_aid_mask_imu"), events::Log::Warning,
 				    "Use EKF2_IMU_CTRL instead", _param_ekf2_aid_mask.get());
 	}
+
+#if defined(CONFIG_EKF2_DRAG_FUSION)
+
+	if (_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_USE_DRAG) {
+		// EKF2_DRAG_CTRL enable drag fusion
+		_param_ekf2_drag_ctrl.set(1);
+
+		// EKF2_AID_MASK clear deprecated bits
+		_param_ekf2_aid_mask.set(_param_ekf2_aid_mask.get() & ~(SensorFusionMask::DEPRECATED_USE_DRAG));
+
+		_param_ekf2_drag_ctrl.commit();
+		_param_ekf2_aid_mask.commit();
+
+		mavlink_log_critical(&_mavlink_log_pub, "EKF2 drag fusion use EKF2_DRAG_CTRL instead of EKF2_AID_MASK\n");
+		/* EVENT
+		 * @description <param>EKF2_AID_MASK</param> is set to {1:.0}.
+		 */
+		events::send<float>(events::ID("ekf2_aid_mask_drag"), events::Log::Warning,
+				    "Use EKF2_DRAG_CTRL instead", _param_ekf2_aid_mask.get());
+	}
+
+#endif // CONFIG_EKF2_DRAG_FUSION
+
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
+
+	// IMU EKF2_AID_MASK -> EKF2_OF_CTRL (2023-04-26)
+	if (_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_USE_OPT_FLOW) {
+		// EKF2_OF_CTRL enable flow fusion
+		_param_ekf2_of_ctrl.set(1);
+
+		// EKF2_AID_MASK clear deprecated bit
+		_param_ekf2_aid_mask.set(_param_ekf2_aid_mask.get() & ~(SensorFusionMask::DEPRECATED_USE_OPT_FLOW));
+
+		_param_ekf2_of_ctrl.commit();
+		_param_ekf2_aid_mask.commit();
+
+		mavlink_log_critical(&_mavlink_log_pub, "EKF2 optical flow use EKF2_OF_CTRL instead of EKF2_AID_MASK\n");
+		/* EVENT
+		 * @description <param>EKF2_AID_MASK</param> is set to {1:.0}.
+		 */
+		events::send<float>(events::ID("ekf2_aid_mask_opt_flow"), events::Log::Warning,
+				    "Use EKF2_OF_CTRL instead", _param_ekf2_aid_mask.get());
+	}
+
+#endif // CONFIG_EKF2_OPTICAL_FLOW
 }
 
 void EKF2::PublishAidSourceStatus(const hrt_abstime &timestamp)
@@ -1011,7 +1058,7 @@ void EKF2::PublishEvPosBias(const hrt_abstime &timestamp)
 
 		if ((bias_vec - _last_ev_bias_published).longerThan(0.01f)) {
 			bias.timestamp_sample = _ekf.aid_src_ev_hgt().timestamp_sample;
-			bias.timestamp = hrt_absolute_time();
+			bias.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 			_estimator_ev_pos_bias_pub.publish(bias);
 
 			_last_ev_bias_published = Vector3f(bias.bias);
@@ -1249,6 +1296,10 @@ void EKF2::PublishInnovations(const hrt_abstime &timestamp)
 		_preflt_checker.setUsingGpsAiding(_ekf.control_status_flags().gps);
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 		_preflt_checker.setUsingFlowAiding(_ekf.control_status_flags().opt_flow);
+
+		// set dist bottom to scale flow innovation
+		const float dist_bottom = _ekf.getTerrainVertPos() - _ekf.getPosition()(2);
+		_preflt_checker.setDistBottom(dist_bottom);
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
@@ -1415,13 +1466,10 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 	lpos.delta_heading = Eulerf(delta_q_reset).psi();
 	lpos.heading_good_for_control = _ekf.isYawFinalAlignComplete();
 
-#if defined(CONFIG_EKF2_RANGE_FINDER)
-	// Distance to bottom surface (ground) in meters
-	// constrain the distance to ground to _rng_gnd_clearance
-	lpos.dist_bottom = math::max(_ekf.getTerrainVertPos() - lpos.z, _param_ekf2_min_rng.get());
+	// Distance to bottom surface (ground) in meters, must be positive
+	lpos.dist_bottom = math::max(_ekf.getTerrainVertPos() - lpos.z, 0.f);
 	lpos.dist_bottom_valid = _ekf.isTerrainEstimateValid();
 	lpos.dist_bottom_sensor_bitfield = _ekf.getTerrainEstimateSensorBitfield();
-#endif // CONFIG_EKF2_RANGE_FINDER
 
 	_ekf.get_ekf_lpos_accuracy(&lpos.eph, &lpos.epv);
 	_ekf.get_ekf_vel_accuracy(&lpos.evh, &lpos.evv);
@@ -2158,7 +2206,7 @@ bool EKF2::UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps)
 		}
 
 		// use optical_flow distance as range sample if distance_sensor unavailable
-		if (PX4_ISFINITE(optical_flow.distance_m) && ((ekf2_timestamps.timestamp - _last_range_sensor_update) > 1_s)) {
+		if (PX4_ISFINITE(optical_flow.distance_m) && (ekf2_timestamps.timestamp > _last_range_sensor_update + 1_s)) {
 
 			int8_t quality = static_cast<float>(optical_flow.quality) / static_cast<float>(UINT8_MAX) * 100.f;
 
@@ -2197,9 +2245,9 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 
 		gpsMessage gps_msg{
 			.time_usec = vehicle_gps_position.timestamp,
-			.lat = vehicle_gps_position.lat,
-			.lon = vehicle_gps_position.lon,
-			.alt = vehicle_gps_position.alt,
+			.lat = static_cast<int32_t>(round(vehicle_gps_position.latitude_deg * 1e7)),
+			.lon = static_cast<int32_t>(round(vehicle_gps_position.longitude_deg * 1e7)),
+			.alt = static_cast<int32_t>(round(vehicle_gps_position.altitude_msl_m * 1e3)),
 			.yaw = vehicle_gps_position.heading,
 			.yaw_offset = vehicle_gps_position.heading_offset,
 			.yaw_accuracy = vehicle_gps_position.heading_accuracy,
@@ -2221,7 +2269,7 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 		_ekf.setGpsData(gps_msg);
 
 		_gps_time_usec = gps_msg.time_usec;
-		_gps_alttitude_ellipsoid = vehicle_gps_position.alt_ellipsoid;
+		_gps_alttitude_ellipsoid = static_cast<int32_t>(round(vehicle_gps_position.altitude_ellipsoid_m * 1e3));
 	}
 }
 
@@ -2327,7 +2375,7 @@ void EKF2::UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps)
 			// Save sensor limits reported by the rangefinder
 			_ekf.set_rangefinder_limits(distance_sensor.min_distance, distance_sensor.max_distance);
 
-			_last_range_sensor_update = distance_sensor.timestamp;
+			_last_range_sensor_update = ekf2_timestamps.timestamp;
 		}
 
 		ekf2_timestamps.distance_sensor_timestamp_rel = (int16_t)((int64_t)distance_sensor.timestamp / 100 -
@@ -2408,10 +2456,12 @@ void EKF2::UpdateCalibration(const hrt_abstime &timestamp, InFlightCalibration &
 		// consider bias estimates stable when all checks pass consistently and bias hasn't changed more than 10% of the limit
 		const float bias_change_limit = 0.1f * bias_limit;
 
-		if ((cal.last_us != 0) && !(cal.bias - bias).longerThan(bias_change_limit)) {
-			cal.total_time_us += timestamp - cal.last_us;
+		if (!(cal.bias - bias).longerThan(bias_change_limit)) {
+			if (cal.last_us != 0) {
+				cal.total_time_us += timestamp - cal.last_us;
+			}
 
-			if (cal.total_time_us > 30_s) {
+			if (cal.total_time_us > 10_s) {
 				cal.cal_available = true;
 			}
 
@@ -2469,7 +2519,6 @@ void EKF2::UpdateGyroCalibration(const hrt_abstime &timestamp)
 void EKF2::UpdateMagCalibration(const hrt_abstime &timestamp)
 {
 	const bool bias_valid = (_ekf.control_status_flags().mag_hdg || _ekf.control_status_flags().mag_3D)
-				&& _ekf.control_status_flags().mag_aligned_in_flight
 				&& !_ekf.control_status_flags().mag_fault
 				&& !_ekf.control_status_flags().mag_field_disturbed;
 
@@ -2522,11 +2571,12 @@ int EKF2::task_spawn(int argc, char *argv[])
 		// ekf selector requires SENS_IMU_MODE = 0
 		multi_mode = true;
 
-		// IMUs (1 - 4 supported)
+		// IMUs (1 - MAX_NUM_IMUS supported)
 		param_get(param_find("EKF2_MULTI_IMU"), &imu_instances);
 
-		if (imu_instances < 1 || imu_instances > 4) {
-			const int32_t imu_instances_limited = math::constrain(imu_instances, static_cast<int32_t>(1), static_cast<int32_t>(4));
+		if (imu_instances < 1 || imu_instances > MAX_NUM_IMUS) {
+			const int32_t imu_instances_limited = math::constrain(imu_instances, static_cast<int32_t>(1),
+							      static_cast<int32_t>(MAX_NUM_IMUS));
 			PX4_WARN("EKF2_MULTI_IMU limited %" PRId32 " -> %" PRId32, imu_instances, imu_instances_limited);
 			param_set_no_notification(param_find("EKF2_MULTI_IMU"), &imu_instances_limited);
 			imu_instances = imu_instances_limited;
@@ -2540,9 +2590,10 @@ int EKF2::task_spawn(int argc, char *argv[])
 			const param_t param_ekf2_mult_mag = param_find("EKF2_MULTI_MAG");
 			param_get(param_ekf2_mult_mag, &mag_instances);
 
-			// Mags (1 - 4 supported)
-			if (mag_instances > 4) {
-				const int32_t mag_instances_limited = math::constrain(mag_instances, static_cast<int32_t>(1), static_cast<int32_t>(4));
+			// Mags (1 - MAX_NUM_MAGS supported)
+			if (mag_instances > MAX_NUM_MAGS) {
+				const int32_t mag_instances_limited = math::constrain(mag_instances, static_cast<int32_t>(1),
+								      static_cast<int32_t>(MAX_NUM_MAGS));
 				PX4_WARN("EKF2_MULTI_MAG limited %" PRId32 " -> %" PRId32, mag_instances, mag_instances_limited);
 				param_set_no_notification(param_ekf2_mult_mag, &mag_instances_limited);
 				mag_instances = mag_instances_limited;

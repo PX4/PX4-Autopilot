@@ -45,8 +45,6 @@ struct Parameters {
 	int32_t mnt_mode_out;
 	int32_t mnt_mav_sysid_v1;
 	int32_t mnt_mav_compid_v1;
-	float mnt_ob_lock_mode;
-	float mnt_ob_norm_mode;
 	int32_t mnt_man_pitch;
 	int32_t mnt_man_roll;
 	int32_t mnt_man_yaw;
@@ -71,8 +69,6 @@ struct ParameterHandles {
 	param_t mnt_mode_out;
 	param_t mnt_mav_sysid_v1;
 	param_t mnt_mav_compid_v1;
-	param_t mnt_ob_lock_mode;
-	param_t mnt_ob_norm_mode;
 	param_t mnt_man_pitch;
 	param_t mnt_man_roll;
 	param_t mnt_man_yaw;

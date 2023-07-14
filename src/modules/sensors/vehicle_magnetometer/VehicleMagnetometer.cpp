@@ -259,7 +259,7 @@ void VehicleMagnetometer::UpdateMagCalibration()
 	// State variance assumed for magnetometer bias storage.
 	// This is a reference variance used to calculate the fraction of learned magnetometer bias that will be used to update the stored value.
 	// Larger values cause a larger fraction of the learned biases to be used.
-	static constexpr float magb_vref = 2.5e-7f;
+	static constexpr float magb_vref = 2.5e-6f;
 	static constexpr float min_var_allowed = magb_vref * 0.01f;
 	static constexpr float max_var_allowed = magb_vref * 500.f;
 
@@ -329,7 +329,7 @@ void VehicleMagnetometer::UpdateMagCalibration()
 
 					if (_calibration[mag_index].set_offset(mag_cal_offset)) {
 
-						PX4_INFO("%d (%" PRIu32 ") EST:%d offset: [%.2f, %.2f, %.2f]->[%.2f, %.2f, %.2f] (full [%.3f, %.3f, %.3f])",
+						PX4_INFO("%d (%" PRIu32 ") EST:%d offset: [%.3f, %.3f, %.3f]->[%.3f, %.3f, %.3f] (full [%.3f, %.3f, %.3f])",
 							 mag_index, _calibration[mag_index].device_id(), i,
 							 (double)mag_cal_orig(0), (double)mag_cal_orig(1), (double)mag_cal_orig(2),
 							 (double)mag_cal_offset(0), (double)mag_cal_offset(1), (double)mag_cal_offset(2),
@@ -369,8 +369,8 @@ void VehicleMagnetometer::UpdatePowerCompensation()
 			if (_vehicle_thrust_setpoint_0_sub.update(&vehicle_thrust_setpoint)) {
 				const matrix::Vector3f thrust_setpoint = matrix::Vector3f(vehicle_thrust_setpoint.xyz);
 
-				for (auto &cal : _calibration) {
-					cal.UpdatePower(thrust_setpoint.length());
+				for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
+					_calibration[i].UpdatePower(thrust_setpoint.length());
 				}
 			}
 
@@ -382,14 +382,14 @@ void VehicleMagnetometer::UpdatePowerCompensation()
 			if (_battery_status_sub.update(&bat_stat)) {
 				float power = bat_stat.current_a * 0.001f; // current in [kA]
 
-				for (auto &cal : _calibration) {
-					cal.UpdatePower(power);
+				for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
+					_calibration[i].UpdatePower(power);
 				}
 			}
 
 		} else {
-			for (auto &cal : _calibration) {
-				cal.UpdatePower(0.f);
+			for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
+				_calibration[i].UpdatePower(0.f);
 			}
 		}
 	}
@@ -410,6 +410,10 @@ void VehicleMagnetometer::Run()
 		if (_vehicle_control_mode_sub.copy(&vehicle_control_mode)) {
 			_armed = vehicle_control_mode.flag_armed;
 		}
+	}
+
+	for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
+		_calibration[i].SensorCorrectionsUpdate();
 	}
 
 	UpdatePowerCompensation();

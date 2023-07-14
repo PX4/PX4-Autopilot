@@ -37,8 +37,8 @@
 using namespace matrix;
 using namespace time_literals;
 
-ActuatorEffectivenessHelicopter::ActuatorEffectivenessHelicopter(ModuleParams *parent)
-	: ModuleParams(parent)
+ActuatorEffectivenessHelicopter::ActuatorEffectivenessHelicopter(ModuleParams *parent, ActuatorType tail_actuator_type)
+	: ModuleParams(parent), _tail_actuator_type(tail_actuator_type)
 {
 	for (int i = 0; i < NUM_SWASH_PLATE_SERVOS_MAX; ++i) {
 		char buffer[17];
@@ -61,6 +61,7 @@ ActuatorEffectivenessHelicopter::ActuatorEffectivenessHelicopter(ModuleParams *p
 	}
 
 	_param_handles.yaw_collective_pitch_scale = param_find("CA_HELI_YAW_CP_S");
+	_param_handles.yaw_collective_pitch_offset = param_find("CA_HELI_YAW_CP_O");
 	_param_handles.yaw_throttle_scale = param_find("CA_HELI_YAW_TH_S");
 	_param_handles.yaw_ccw = param_find("CA_HELI_YAW_CCW");
 	_param_handles.spoolup_time = param_find("COM_SPOOLUP_TIME");
@@ -95,6 +96,7 @@ void ActuatorEffectivenessHelicopter::updateParams()
 	}
 
 	param_get(_param_handles.yaw_collective_pitch_scale, &_geometry.yaw_collective_pitch_scale);
+	param_get(_param_handles.yaw_collective_pitch_offset, &_geometry.yaw_collective_pitch_offset);
 	param_get(_param_handles.yaw_throttle_scale, &_geometry.yaw_throttle_scale);
 	param_get(_param_handles.spoolup_time, &_geometry.spoolup_time);
 	int32_t yaw_ccw = 0;
@@ -113,8 +115,8 @@ ActuatorEffectivenessHelicopter::getEffectivenessMatrix(Configuration &configura
 	// As the allocation is non-linear, we use updateSetpoint() instead of the matrix
 	configuration.addActuator(ActuatorType::MOTORS, Vector3f{}, Vector3f{});
 
-	// Tail (yaw) motor
-	configuration.addActuator(ActuatorType::MOTORS, Vector3f{}, Vector3f{});
+	// Tail (yaw) (either ESC or Servo)
+	configuration.addActuator(_tail_actuator_type, Vector3f{}, Vector3f{});
 
 	// N swash plate servos
 	_first_swash_plate_servo_index = configuration.num_actuators_matrix[0];
@@ -142,7 +144,7 @@ void ActuatorEffectivenessHelicopter::updateSetpoint(const matrix::Vector<float,
 	actuator_sp(0) = mainMotorEnaged() ? throttle : NAN;
 
 	actuator_sp(1) = control_sp(ControlAxis::YAW) * _geometry.yaw_sign
-			 + fabsf(collective_pitch) * _geometry.yaw_collective_pitch_scale
+			 + fabsf(collective_pitch - _geometry.yaw_collective_pitch_offset) * _geometry.yaw_collective_pitch_scale
 			 + throttle * _geometry.yaw_throttle_scale;
 
 	// Saturation check for yaw

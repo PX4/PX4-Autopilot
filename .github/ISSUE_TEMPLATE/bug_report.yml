@@ -1,0 +1,94 @@
+name: 🐛 Bug report
+description: Create a report to help us improve
+title: "[Bug] "
+labels: ["bug-report"]
+body:
+  - type: textarea
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of the bug.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: To Reproduce
+      description: |
+          Steps to reproduce the behavior.
+          1. Drone switched on '...'
+          2. Uploaded mission '....' (attach QGC mission file)
+          3. Took off '....'
+          4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Expected behavior
+      description: A clear and concise description of what you expected to happen.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Screenshot / Media
+      description: Add screenshot / media if you have them
+
+  - type: textarea
+    attributes:
+      label: Flight Log
+      description: |
+          *Always* provide a link to the flight log file:
+          - Download the flight log file from the vehicle ([tutorial](https://docs.px4.io/main/en/getting_started/flight_reporting.html)).
+          - Upload the log to the [PX4 Flight Review](http://logs.px4.io/)
+          - Share the link to the log (Copy and paste the URL of the log)
+      placeholder: |
+          # PASTE HERE THE LINK TO THE LOG
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ## Setup
+
+  - type: textarea
+    attributes:
+      label: Software Version
+      description: |
+          Which version of PX4 are you using?
+      placeholder: |
+          # If you don't know the version, paste the output of `ver all` in the MAVLink Shell of QGC
+    validations:
+      required: true
+
+  - type: input
+    attributes:
+      label: Flight controller
+      description: Specify your flight controller model (what type is it, where was it bought from, ...).
+    validations:
+      required: true
+
+  - type: dropdown
+    attributes:
+      label: Vehicle type
+      options:
+        - Multicopter
+        - Helicopter
+        - Fixed Wing
+        - Hybrid VTOL
+        - Airship/Balloon
+        - Rover
+        - Boat
+        - Submarine
+        - Other
+
+  - type: textarea
+    attributes:
+      label: How are the different components wired up (including port information)
+      description: Details about how all is wired.
+
+  - type: textarea
+    attributes:
+      label: Additional context
+      description: Add any other context about the problem here.

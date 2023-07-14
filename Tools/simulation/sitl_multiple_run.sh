@@ -10,7 +10,7 @@ sitl_num=2
 [ -n "$1" ] && sitl_num="$1"
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-src_path="$SCRIPT_DIR/.."
+src_path="$SCRIPT_DIR/../../"
 
 build_path=${src_path}/build/px4_sitl_default
 

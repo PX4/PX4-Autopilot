@@ -32,7 +32,7 @@
 ############################################################################
 
 px4_add_module(
-	MODULE module__manual_control
+	MODULE modules__manual_control
 	MAIN manual_control
 	COMPILE_FLAGS
 	SRCS
@@ -42,7 +42,9 @@ px4_add_module(
 		ManualControlSelector.hpp
 		ManualControlSelector.cpp
 	DEPENDS
+		hysteresis
 		px4_work_queue
 	)
 
-px4_add_unit_gtest(SRC ManualControlSelectorTest.cpp LINKLIBS module__manual_control)
+px4_add_functional_gtest(SRC ManualControlTest.cpp LINKLIBS modules__manual_control)
+px4_add_unit_gtest(SRC ManualControlSelectorTest.cpp LINKLIBS modules__manual_control)
