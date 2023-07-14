@@ -325,6 +325,7 @@ void FigureEight::applyCircle(bool loiter_direction_counter_clockwise, const mat
 	const float dist_to_center = vector_center_to_vehicle.norm();
 
 	Vector2f unit_vec_center_to_closest_pt = vector_center_to_vehicle.normalized();
+
 	if (dist_to_center < 0.1f) {
 		// the logic breaks down at the circle center, employ some mitigation strategies
 		// until we exit this region
@@ -372,7 +373,8 @@ void FigureEight::applyLine(const matrix::Vector2f &normalized_line_start_offset
 	_target_bearing = atan2f(unit_path_tangent(1), unit_path_tangent(0));
 	const Vector2f vector_A_to_vehicle = curr_pos_local - line_segment_start_position;
 	_closest_point_on_path = line_segment_start_position + vector_A_to_vehicle.dot(unit_path_tangent) * unit_path_tangent;
-	_npfg.guideToPath(curr_pos_local, ground_speed, _wind_vel, path_tangent.normalized(), line_segment_start_position, 0.0f);
+	_npfg.guideToPath(curr_pos_local, ground_speed, _wind_vel, path_tangent.normalized(), line_segment_start_position,
+			  0.0f);
 	_roll_setpoint = _npfg.getRollSetpoint();
 	_indicated_airspeed_setpoint = _npfg.getAirspeedRef() / _eas2tas;
 }
