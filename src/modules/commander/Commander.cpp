@@ -1116,6 +1116,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_DO_FIGUREEIGHT: {
+#ifdef CONFIG_FIGURE_OF_EIGHT
 
 			if (!((_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) || (_vehicle_status.is_vtol))) {
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
@@ -1142,6 +1143,11 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 				mavlink_log_critical(&_mavlink_log_pub, "Figure 8 command rejected, Only available in fixed wing mode.");
 			}
+
+#else
+			cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
+			mavlink_log_critical(&_mavlink_log_pub, "Figure 8 command not supported.");
+#endif // CONFIG_FIGURE_OF_EIGHT
 		}
 		break;
 

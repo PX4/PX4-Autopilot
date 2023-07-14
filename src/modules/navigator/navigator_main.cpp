@@ -556,6 +556,7 @@ void Navigator::run()
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_FIGUREEIGHT &&
 				   get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+#ifdef CONFIG_FIGURE_OF_EIGHT
 				// Only valid for fixed wing mode
 
 				bool orbit_location_valid = true;
@@ -605,6 +606,8 @@ void Navigator::run()
 				} else {
 					mavlink_log_critical(&_mavlink_log_pub, "Figure 8 is outside geofence");
 				}
+
+#endif // CONFIG_FIGURE_OF_EIGHT
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF) {
 				position_setpoint_triplet_s *rep = get_takeoff_triplet();
