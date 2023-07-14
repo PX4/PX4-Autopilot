@@ -96,6 +96,8 @@ SimulatorMavlink::SimulatorMavlink() :
 		snprintf(param_name, sizeof(param_name), "%s_%s%d", "PWM_MAIN", "FUNC", i + 1);
 		param_get(param_find(param_name), &_output_functions[i]);
 	}
+
+	_esc_status_pub.advertise();
 }
 
 void SimulatorMavlink::parameters_update(bool force)
