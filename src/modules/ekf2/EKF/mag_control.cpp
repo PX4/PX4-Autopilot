@@ -42,6 +42,7 @@
 void Ekf::controlMagFusion()
 {
 	bool mag_data_ready = false;
+	bool mag_data_valid = false;
 
 	magSample mag_sample;
 
@@ -85,8 +86,7 @@ void Ekf::controlMagFusion()
 				_control_status.flags.synthetic_mag_z = false;
 			}
 
-			_control_status.flags.mag_field_disturbed = magFieldStrengthDisturbed(mag_sample.mag);
-
+			mag_data_valid = checkMagField(mag_sample.mag);
 
 			// compute mag heading innovation (for estimator_aid_src_mag_heading logging)
 			const Vector3f mag_observation = mag_sample.mag - _state.mag_B;
@@ -120,7 +120,7 @@ void Ekf::controlMagFusion()
 		_control_status.flags.mag_aligned_in_flight = false;
 	}
 
-	if (mag_data_ready && !_control_status.flags.tilt_align && !_control_status.flags.yaw_align) {
+	if (mag_data_ready && mag_data_valid && !_control_status.flags.tilt_align && !_control_status.flags.yaw_align) {
 		// calculate the initial magnetic field and yaw alignment
 		// but do not mark the yaw alignement complete as it needs to be
 		// reset once the leveling phase is done
@@ -169,7 +169,7 @@ void Ekf::controlMagFusion()
 
 	if (mag_data_ready && !_control_status.flags.ev_yaw && !_control_status.flags.gps_yaw) {
 
-		if (shouldInhibitMag()) {
+		if (shouldInhibitMag() || !mag_data_valid) {
 			if (uint32_t(_time_delayed_us - _mag_use_not_inhibit_us) > (uint32_t)5e6) {
 				// If magnetometer use has been inhibited continuously then stop the fusion
 				stopMagFusion();
@@ -432,23 +432,50 @@ bool Ekf::shouldInhibitMag() const
 	return (user_selected && heading_not_required_for_navigation) || _control_status.flags.mag_field_disturbed;
 }
 
-bool Ekf::magFieldStrengthDisturbed(const Vector3f &mag_sample) const
+bool Ekf::checkMagField(const Vector3f &mag_sample)
 {
-	if (_params.check_mag_strength
-	    && ((_params.mag_fusion_type <= MagFuseType::MAG_3D) || (_params.mag_fusion_type == MagFuseType::INDOOR && _control_status.flags.gps))) {
+	_control_status.flags.mag_field_disturbed = false;
 
+	if ((_params.mag_fusion_type == MagFuseType::NONE)
+	    || (_params.mag_fusion_type == MagFuseType::INDOOR && !_control_status.flags.gps)) {
+		//TODO: review this: gps flag cannnot be set if yaw isn't aligned
+		return false;
+	}
+
+	if (_params.mag_check == 0) {
+		// skip all checks
+		return true;
+	}
+
+	bool is_check_failing = false;
+	const float mag_strength = mag_sample.length();
+
+	if (_params.mag_check & static_cast<int32_t>(MagCheckMask::STRENGTH)) {
 		if (PX4_ISFINITE(_mag_strength_gps)) {
-			constexpr float wmm_gate_size = 0.2f; // +/- Gauss
-			return !isMeasuredMatchingExpected(mag_sample.length(), _mag_strength_gps, wmm_gate_size);
+			if (!isMeasuredMatchingExpected(mag_strength, _mag_strength_gps, _params.mag_check_strength_tolerance_gs)) {
+				_control_status.flags.mag_field_disturbed = true;
+				is_check_failing = true;
+			}
+
+		} else if (_params.mag_check & static_cast<int32_t>(MagCheckMask::FORCE_WMM)) {
+			is_check_failing = true;
 
 		} else {
 			constexpr float average_earth_mag_field_strength = 0.45f; // Gauss
 			constexpr float average_earth_mag_gate_size = 0.40f; // +/- Gauss
-			return !isMeasuredMatchingExpected(mag_sample.length(), average_earth_mag_field_strength, average_earth_mag_gate_size);
+
+			if (!isMeasuredMatchingExpected(mag_sample.length(), average_earth_mag_field_strength, average_earth_mag_gate_size)) {
+				_control_status.flags.mag_field_disturbed = true;
+				is_check_failing = true;
+			}
 		}
 	}
 
-	return false;
+	if (is_check_failing || (_time_last_mag_check_failing == 0)) {
+		_time_last_mag_check_failing = _time_delayed_us;
+	}
+
+	return ((_time_delayed_us - _time_last_mag_check_failing) > (uint64_t)_min_mag_health_time_us);
 }
 
 bool Ekf::isMeasuredMatchingExpected(const float measured, const float expected, const float gate)
@@ -526,13 +553,6 @@ bool Ekf::resetMagHeading(const Vector3f &mag)
 	}
 
 	const Vector3f mag_init = _mag_lpf.getState() - mag_bias;
-
-	const bool mag_available = !magFieldStrengthDisturbed(mag_init);
-
-	// low pass filtered mag required
-	if (!mag_available) {
-		return false;
-	}
 
 	const bool heading_required_for_navigation = _control_status.flags.gps;
 

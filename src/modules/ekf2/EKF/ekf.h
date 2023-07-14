@@ -585,6 +585,7 @@ private:
 	bool _mag_yaw_reset_req{false};		///< true when a reset of the yaw using the magnetometer data has been requested
 	bool _mag_decl_cov_reset{false};	///< true after the fuseDeclination() function has been used to modify the earth field covariances after a magnetic field reset event.
 	bool _synthetic_mag_z_active{false};	///< true if we are generating synthetic magnetometer Z measurements
+	uint32_t _min_mag_health_time_us{1'000'000}; ///< magnetometer is marked as healthy only after this amount of time
 
 	SquareMatrix24f P{};	///< state covariance matrix
 
@@ -707,6 +708,7 @@ private:
 	// Variables used to control activation of post takeoff functionality
 	uint64_t _flt_mag_align_start_time{0};	///< time that inflight magnetic field alignment started (uSec)
 	uint64_t _time_last_mov_3d_mag_suitable{0};	///< last system time that sufficient movement to use 3-axis magnetometer fusion was detected (uSec)
+	uint64_t _time_last_mag_check_failing{0};
 	Vector3f _saved_mag_bf_variance {}; ///< magnetic field state variances that have been saved for use at the next initialisation (Gauss**2)
 	Matrix2f _saved_mag_ef_ne_covmat{}; ///< NE magnetic field state covariance sub-matrix saved for use at the next initialisation (Gauss**2)
 	float _saved_mag_ef_d_variance{};   ///< D magnetic field state variance saved for use at the next initialisation (Gauss**2)
@@ -1035,7 +1037,7 @@ private:
 
 	void checkMagDeclRequired();
 	bool shouldInhibitMag() const;
-	bool magFieldStrengthDisturbed(const Vector3f &mag) const;
+	bool checkMagField(const Vector3f &mag);
 	static bool isMeasuredMatchingExpected(float measured, float expected, float gate);
 	void runMagAndMagDeclFusions(const Vector3f &mag);
 	void run3DMagAndDeclFusions(const Vector3f &mag);
