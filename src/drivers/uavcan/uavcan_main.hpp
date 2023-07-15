@@ -99,7 +99,7 @@ public:
 		  _node_mutex(node_mutex),
 		  _esc_controller(esc_controller) {}
 
-	bool updateOutputs(bool stop_motors, int16_t outputs[MAX_ACTUATORS],
+	bool updateOutputs(bool stop_motors, float outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
 
 	void mixerChanged() override;
@@ -130,7 +130,7 @@ public:
 		  _node_mutex(node_mutex),
 		  _servo_controller(servo_controller) {}
 
-	bool updateOutputs(bool stop_servos, int16_t outputs[MAX_ACTUATORS],
+	bool updateOutputs(bool stop_motors, float outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
 
 	MixingOutput &mixingOutput() { return _mixing_output; }
