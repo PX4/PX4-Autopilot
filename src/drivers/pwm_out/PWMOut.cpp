@@ -125,7 +125,7 @@ bool PWMOut::update_pwm_out_state(bool on)
 	return true;
 }
 
-bool PWMOut::updateOutputs(bool stop_motors, int16_t outputs[MAX_ACTUATORS],
+bool PWMOut::updateOutputs(bool stop_motors, float outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated)
 {
 	/* output to the servos */
@@ -137,7 +137,7 @@ bool PWMOut::updateOutputs(bool stop_motors, int16_t outputs[MAX_ACTUATORS],
 			}
 
 			if (_pwm_mask & (1 << i)) {
-				up_pwm_servo_set(i, outputs[i]);
+				up_pwm_servo_set(i, static_cast<uint16_t>(outputs[i]));
 			}
 		}
 	}
