@@ -85,7 +85,7 @@ public:
 	 * @param num_control_groups_updated number of actuator_control groups updated
 	 * @return if true, the update got handled, and actuator_outputs can be published
 	 */
-	virtual bool updateOutputs(bool stop_motors, int16_t outputs[MAX_ACTUATORS],
+	virtual bool updateOutputs(bool stop_motors, float outputs[MAX_ACTUATORS],
 				   unsigned num_outputs, unsigned num_control_groups_updated) = 0;
 
 	/** called whenever the mixer gets updated/reset */
@@ -165,17 +165,17 @@ public:
 
 	const actuator_armed_s &armed() const { return _armed; }
 
-	void setAllFailsafeValues(int16_t value);
-	void setAllDisarmedValues(int16_t value);
-	void setAllMinValues(int16_t value);
-	void setAllMaxValues(int16_t value);
+	void setAllFailsafeValues(float value);
+	void setAllDisarmedValues(float value);
+	void setAllMinValues(float value);
+	void setAllMaxValues(float value);
 
 	uint16_t &reverseOutputMask() { return _reverse_output_mask; }
-	int16_t &failsafeValue(int index) { return _failsafe_value[index]; }
+	float &failsafeValue(int index) { return _failsafe_value[index]; }
 	/** Disarmed values: disarmedValue < minValue needs to hold */
-	int16_t &disarmedValue(int index) { return _disarmed_value[index]; }
-	int16_t &minValue(int index) { return _min_value[index]; }
-	int16_t &maxValue(int index) { return _max_value[index]; }
+	float &disarmedValue(int index) { return _disarmed_value[index]; }
+	float &minValue(int index) { return _min_value[index]; }
+	float &maxValue(int index) { return _max_value[index]; }
 
 	param_t functionParamHandle(int index) const { return _param_handles[index].function; }
 	param_t disarmedParamHandle(int index) const { return _param_handles[index].disarmed; }
@@ -185,7 +185,7 @@ public:
 	/**
 	 * Returns the actual failsafe value taking into account the assigned function
 	 */
-	int16_t actualFailsafeValue(int index) const;
+	float actualFailsafeValue(int index) const;
 
 	void setIgnoreLockdown(bool ignore_lockdown) { _ignore_lockdown = ignore_lockdown; }
 
@@ -224,7 +224,7 @@ private:
 
 	void limitAndUpdateOutputs(float outputs[MAX_ACTUATORS], bool has_updates);
 
-	uint16_t output_limit_calc_single(int i, float value) const;
+	float output_limit_calc_single(int i, float value) const;
 
 	void output_limit_calc(const bool armed, const int num_channels, const float outputs[MAX_ACTUATORS]);
 
@@ -241,11 +241,11 @@ private:
 
 	px4_sem_t _lock; /**< lock to protect access to work queue changes (includes ScheduleNow calls from another thread) */
 
-	int16_t _failsafe_value[MAX_ACTUATORS] {};
-	int16_t _disarmed_value[MAX_ACTUATORS] {};
-	int16_t _min_value[MAX_ACTUATORS] {};
-	int16_t _max_value[MAX_ACTUATORS] {};
-	int16_t _current_output_value[MAX_ACTUATORS] {}; ///< current output values (reordered)
+	float _failsafe_value[MAX_ACTUATORS] {};
+	float _disarmed_value[MAX_ACTUATORS] {};
+	float _min_value[MAX_ACTUATORS] {};
+	float _max_value[MAX_ACTUATORS] {};
+	float _current_output_value[MAX_ACTUATORS] {}; ///< current output values (reordered)
 	uint16_t _reverse_output_mask{0}; ///< reverses the interval [min, max] -> [max, min], NOT motor direction
 
 	enum class OutputLimitState {
