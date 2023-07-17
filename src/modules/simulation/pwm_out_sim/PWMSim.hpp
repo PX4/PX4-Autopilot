@@ -70,16 +70,16 @@ public:
 	/** @see ModuleBase::print_status() */
 	int print_status() override;
 
-	bool updateOutputs(bool stop_motors, int16_t outputs[MAX_ACTUATORS],
+	bool updateOutputs(bool stop_motors, float outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
 
 private:
 	void Run() override;
 
-	static constexpr uint16_t PWM_SIM_DISARMED_MAGIC = 900;
-	static constexpr uint16_t PWM_SIM_FAILSAFE_MAGIC = 600;
-	static constexpr uint16_t PWM_SIM_PWM_MIN_MAGIC = 1000;
-	static constexpr uint16_t PWM_SIM_PWM_MAX_MAGIC = 2000;
+	static constexpr float PWM_SIM_DISARMED_MAGIC = 900.0f;
+	static constexpr float PWM_SIM_FAILSAFE_MAGIC = 600.0f;
+	static constexpr float PWM_SIM_PWM_MIN_MAGIC = 1000.0f;
+	static constexpr float PWM_SIM_PWM_MAX_MAGIC = 2000.0f;
 
 	MixingOutput _mixing_output{PARAM_PREFIX, MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};

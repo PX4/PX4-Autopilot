@@ -108,7 +108,7 @@ public:
 	/*
 	 * outputs formatted to us.
 	 */
-	int updatePWM(const int16_t *outputs, unsigned num_outputs);
+	int updatePWM(const float *outputs, unsigned num_outputs);
 
 	int setFreq(float freq);
 
@@ -154,13 +154,13 @@ protected:
 	 * set PWM value for a channel[0,15].
 	 * value should be range of 0-4095
 	 */
-	void setPWM(uint8_t channel, const uint16_t &value);
+	void setPWM(uint8_t channel, const float &value);
 
 	/**
 	 * set all PWMs in a single I2C transmission.
 	 * value should be range of 0-4095
 	 */
-	void setPWM(uint8_t channel_count, const uint16_t *value);
+	void setPWM(uint8_t channel_count, const float *value);
 
 	/*
 	 * set clock divider

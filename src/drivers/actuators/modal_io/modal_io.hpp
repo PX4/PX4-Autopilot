@@ -75,7 +75,7 @@ public:
 	int print_status() override;
 
 	/** @see OutputModuleInterface */
-	bool updateOutputs(bool stop_motors, int16_t outputs[MAX_ACTUATORS],
+	bool updateOutputs(bool stop_motors, float outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
 
 	virtual int	init();
