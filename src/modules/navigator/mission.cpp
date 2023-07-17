@@ -305,11 +305,6 @@ Mission::on_active()
 		}
 	}
 
-	/* check if a cruise speed change has been commanded */
-	if (_mission_type != MISSION_TYPE_NONE) {
-		cruising_speed_sp_update();
-	}
-
 	/* see if we need to update the current yaw heading */
 	if (!_param_mis_mnt_yaw_ctl.get()
 	    && (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)
@@ -1481,26 +1476,6 @@ Mission::heading_sp_update()
 		publish_navigator_mission_item();
 		_navigator->set_position_setpoint_triplet_updated();
 	}
-}
-
-void
-Mission::cruising_speed_sp_update()
-{
-	// allows speed changes made via mavlink to be applied immediately in a mission
-	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-
-	const float new_cruising_speed_setpoint = _navigator->get_cruising_speed();
-
-	/* Don't change setpoint if the current waypoint is not valid */
-	if (!pos_sp_triplet->current.valid ||
-	    fabsf(pos_sp_triplet->current.cruising_speed - new_cruising_speed_setpoint) < FLT_EPSILON) {
-		return;
-	}
-
-	pos_sp_triplet->current.cruising_speed = new_cruising_speed_setpoint;
-
-	publish_navigator_mission_item();
-	_navigator->set_position_setpoint_triplet_updated();
 }
 
 void
