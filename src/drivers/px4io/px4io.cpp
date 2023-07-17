@@ -367,13 +367,6 @@ bool PX4IO::updateOutputs(bool stop_motors, float outputs[MAX_ACTUATORS],
 {
 	if (!_test_fmu_fail) {
 
-		uint16_t unsigned_outputs[MAX_ACTUATORS];
-
-		for (int i = 0; i < MAX_ACTUATORS; i++) {
-
-			unsigned_outputs[i] = outputs[i];
-		}
-
 		/* output to the servos */
 		uint16_t uint_outputs[MAX_ACTUATORS];
 
