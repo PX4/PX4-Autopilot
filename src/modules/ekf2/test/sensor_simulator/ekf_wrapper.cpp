@@ -214,6 +214,15 @@ void EkfWrapper::enableMagStrengthCheck()
 {
 	_ekf_params->mag_check |= static_cast<int32_t>(MagCheckMask::STRENGTH);
 }
+
+void EkfWrapper::enableMagInclinationCheck()
+{
+	_ekf_params->mag_check |= static_cast<int32_t>(MagCheckMask::INCLINATION);
+}
+
+void EkfWrapper::enableMagCheckForceWMM()
+{
+	_ekf_params->mag_check |= static_cast<int32_t>(MagCheckMask::FORCE_WMM);
 }
 
 bool EkfWrapper::isWindVelocityEstimated() const

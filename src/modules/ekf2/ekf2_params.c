@@ -1510,7 +1510,7 @@ PARAM_DEFINE_FLOAT(EKF2_REQ_GPS_H, 10.0f);
  *
  * Set bits to 1 to enable checks. Checks enabled by the following bit positions
  * 0 : Magnetic field strength. Set tolerance using EKF2_MAG_CHK_STR
- * 1 : Reserved
+ * 1 : Magnetic field inclination. Set tolerance using EKF2_MAG_CHK_INC
  * 2 : Wait for GNSS to find the theoretical strength and inclination using the WMM
  *
  * @group EKF2
@@ -1518,7 +1518,7 @@ PARAM_DEFINE_FLOAT(EKF2_REQ_GPS_H, 10.0f);
  * @min 0
  * @max 7
  * @bit 0 Strength (EKF2_MAG_CHK_STR)
- * @bit 1 Reserved
+ * @bit 1 Inclination (EKF2_MAG_CHK_INC)
  * @bit 2 Wait for WMM
  */
 PARAM_DEFINE_INT32(EKF2_MAG_CHECK, 1);
@@ -1535,6 +1535,19 @@ PARAM_DEFINE_INT32(EKF2_MAG_CHECK, 1);
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(EKF2_MAG_CHK_STR, 0.2f);
+
+/**
+ * Magnetic field inclination check tolerance
+ *
+ * Maximum allowed deviation from the expected magnetic field inclination to pass the check.
+ *
+ * @group EKF2
+ * @min 0.0
+ * @max 90.0
+ * @unit deg
+ * @decimal 1
+ */
+PARAM_DEFINE_FLOAT(EKF2_MAG_CHK_INC, 20.f);
 
 /**
  * Enable synthetic magnetometer Z component measurement.

@@ -191,6 +191,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 #endif // CONFIG_EKF2_BARO_COMPENSATION
 	_param_ekf2_mag_check(_params->mag_check),
 	_param_ekf2_mag_chk_str(_params->mag_check_strength_tolerance_gs),
+	_param_ekf2_mag_chk_inc(_params->mag_check_inclination_tolerance_deg),
 	_param_ekf2_synthetic_mag_z(_params->synthesize_mag_z),
 	_param_ekf2_gsf_tas_default(_params->EKFGSF_tas_default)
 {
@@ -2532,7 +2533,7 @@ void EKF2::UpdateMagCalibration(const hrt_abstime &timestamp)
 	if (!_mag_decl_saved) {
 		float declination_deg;
 
-		if (_ekf.get_mag_decl_deg(&declination_deg)) {
+		if (_ekf.get_mag_decl_deg(declination_deg)) {
 			_param_ekf2_mag_decl.update();
 
 			if (PX4_ISFINITE(declination_deg) && (fabsf(declination_deg - _param_ekf2_mag_decl.get()) > 0.1f)) {
