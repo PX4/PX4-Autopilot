@@ -60,7 +60,7 @@ bool GZMixingInterfaceESC::init(const std::string &model_name)
 	return true;
 }
 
-bool GZMixingInterfaceESC::updateOutputs(bool stop_motors, int16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
+bool GZMixingInterfaceESC::updateOutputs(bool stop_motors, float outputs[MAX_ACTUATORS], unsigned num_outputs,
 		unsigned num_control_groups_updated)
 {
 	unsigned active_output_count = 0;
