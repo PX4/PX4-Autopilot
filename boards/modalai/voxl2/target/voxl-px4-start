@@ -164,7 +164,6 @@ qshell manual_control start
 qshell control_allocator start
 qshell rc_update start
 qshell commander start
-qshell commander mode manual
 qshell param_set_selector start
 
 # This is needed for altitude and position hold modes
