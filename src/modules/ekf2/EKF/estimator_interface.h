@@ -216,10 +216,10 @@ public:
 	// Get the value of magnetic declination in degrees to be saved for use at the next startup
 	// Returns true when the declination can be saved
 	// At the next startup, set param.mag_declination_deg to the value saved
-	bool get_mag_decl_deg(float *val) const
+	bool get_mag_decl_deg(float &val) const
 	{
 		if (_NED_origin_initialised && (_params.mag_declination_source & GeoDeclinationMask::SAVE_GEO_DECL)) {
-			*val = math::degrees(_mag_declination_gps);
+			val = math::degrees(_mag_declination_gps);
 			return true;
 
 		} else {
