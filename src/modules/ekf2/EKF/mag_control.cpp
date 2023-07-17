@@ -471,6 +471,28 @@ bool Ekf::checkMagField(const Vector3f &mag_sample)
 		}
 	}
 
+	const Vector3f mag_earth = _R_to_earth * mag_sample;
+	const float mag_inclination = asin(mag_earth(2) / fmaxf(mag_earth.norm(), 1e-4f));
+
+	if (_params.mag_check & static_cast<int32_t>(MagCheckMask::INCLINATION)) {
+		if (PX4_ISFINITE(_mag_inclination_gps)) {
+			const float inc_tol_rad = radians(_params.mag_check_inclination_tolerance_deg);
+			const float inc_error_rad = wrap_pi(mag_inclination - _mag_inclination_gps);
+
+			if (fabsf(inc_error_rad) > inc_tol_rad) {
+				_control_status.flags.mag_field_disturbed = true;
+				is_check_failing = true;
+			}
+
+		} else if (_params.mag_check & static_cast<int32_t>(MagCheckMask::FORCE_WMM)) {
+			is_check_failing = true;
+
+		} else {
+			// No check possible when the global position is unknown
+			// TODO: add parameter to remember the inclination between boots
+		}
+	}
+
 	if (is_check_failing || (_time_last_mag_check_failing == 0)) {
 		_time_last_mag_check_failing = _time_delayed_us;
 	}

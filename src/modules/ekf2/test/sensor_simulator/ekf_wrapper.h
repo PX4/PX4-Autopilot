@@ -102,6 +102,8 @@ public:
 	bool isIntendingMag3DFusion() const;
 	void setMagFuseTypeNone();
 	void enableMagStrengthCheck();
+	void enableMagInclinationCheck();
+	void enableMagCheckForceWMM();
 
 	bool isWindVelocityEstimated() const;
 

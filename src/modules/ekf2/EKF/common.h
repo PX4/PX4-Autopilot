@@ -494,6 +494,7 @@ struct parameters {
 	int32_t synthesize_mag_z{0};
 	int32_t mag_check{0};
 	float mag_check_strength_tolerance_gs{0.2f};
+	float mag_check_inclination_tolerance_deg{20.f};
 
 	// Parameters used to control when yaw is reset to the EKF-GSF yaw estimator value
 	float EKFGSF_tas_default{15.0f};                ///< default airspeed value assumed during fixed wing flight if no airspeed measurement available (m/s)
