@@ -65,13 +65,13 @@ def process_target(px4board_file, target_name):
             container = 'px4io/px4-dev-base-focal:2021-09-08'
             if toolchain:
                 if toolchain.startswith('aarch64'):
-                    container = 'px4io/px4-dev-aarch64:2021-09-08'
+                    container = 'px4io/px4-dev-aarch64:2022-08-12'
                 elif toolchain == 'arm-linux-gnueabihf':
-                    container = 'px4io/px4-dev-armhf:2021-09-08'
+                    container = 'px4io/px4-dev-armhf:2023-06-26'
                 else:
                     if verbose: print(f'unmatched toolchain: {toolchain}')
         elif platform == 'nuttx':
-            container = 'px4io/px4-dev-nuttx-focal:2021-09-08'
+            container = 'px4io/px4-dev-nuttx-focal:2022-08-12'
         else:
             if verbose: print(f'unmatched platform: {platform}')
 
