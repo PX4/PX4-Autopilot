@@ -94,7 +94,6 @@ private:
 	void updateStateMachine(hrt_abstime now);
 	bool registerActuatorControlsCallback();
 	void stopAutotune();
-	bool areAllSmallerThan(const matrix::Vector<float, 5> &vect, float threshold) const;
 	void copyGains(int index);
 	bool areGainsGood() const;
 	void saveGainsToParams();

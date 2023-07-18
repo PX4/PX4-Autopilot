@@ -294,7 +294,7 @@ void McAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 		break;
 
 	case state::roll:
-		if (areAllSmallerThan(_sys_id.getVariances(), converged_thr)
+		if ((_sys_id.getVariances().max() < converged_thr)
 		    && ((now - _state_start_time) > (_param_mc_at_sysid_time.get() * 1_s))) {
 			copyGains(0);
 
@@ -316,7 +316,7 @@ void McAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 		break;
 
 	case state::pitch:
-		if (areAllSmallerThan(_sys_id.getVariances(), converged_thr)
+		if ((_sys_id.getVariances().max() < converged_thr)
 		    && ((now - _state_start_time) > (_param_mc_at_sysid_time.get() * 1_s))) {
 			copyGains(1);
 			_state = state::pitch_pause;
@@ -336,7 +336,7 @@ void McAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 		break;
 
 	case state::yaw:
-		if (areAllSmallerThan(_sys_id.getVariances(), converged_thr)
+		if ((_sys_id.getVariances().max() < converged_thr)
 		    && ((now - _state_start_time) > (_param_mc_at_sysid_time.get() * 1_s))) {
 			copyGains(2);
 			_state = state::yaw_pause;
@@ -484,15 +484,6 @@ bool McAutotuneAttitudeControl::registerActuatorControlsCallback()
 	}
 
 	return true;
-}
-
-bool McAutotuneAttitudeControl::areAllSmallerThan(const Vector<float, 5> &vect, float threshold) const
-{
-	return (vect(0) < threshold)
-	       && (vect(1) < threshold)
-	       && (vect(2) < threshold)
-	       && (vect(3) < threshold)
-	       && (vect(4) < threshold);
 }
 
 void McAutotuneAttitudeControl::copyGains(int index)
