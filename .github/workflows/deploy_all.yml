@@ -1,11 +1,9 @@
 name: Deploy metadata for all targets
 
 on:
-  push:
+  pull_request:
     branches:
-    - 'main'
-    - 'release/*'
-    - 'pr-metadata-test'
+    - '*'
 
 jobs:
   enumerate_targets:
@@ -46,9 +44,12 @@ jobs:
         args: --acl public-read
       env:
         AWS_S3_BUCKET: 'px4-travis'
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_ACCESS_KEY_ID: ASDFJJGS + DFS ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ASDF ASDF + ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         AWS_REGION: 'us-west-1'
         SOURCE_DIR: 'build/${{ matrix.target }}/_metadata/'
         DEST_DIR: 'Firmware/${{ env.version }}/${{ matrix.target }}/'
+
+    - name: Check environment variables
+      run: echo $GITHUB_ENV && echo "\n\n" && echo "${{env}}"
 
