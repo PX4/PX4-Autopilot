@@ -328,12 +328,14 @@ void SimulatorMavlink::update_sensors(const hrt_abstime &time, const mavlink_hil
 	// differential pressure
 	if ((sensors.fields_updated & SensorSource::DIFF_PRESS) == SensorSource::DIFF_PRESS && !_airspeed_disconnected) {
 
+		const float blockage_fraction = 0.7; // defines max blockage (fully ramped)
+		const float airspeed_blockage_rampup_time = 1_s; // time it takes to go max blockage, linear ramp
+
 		float airspeed_blockage_scale = 1.f;
-		const float airspeed_blockage_rampup_time = 60_s; // time it takes to block the airspeed sensor completely, linear ramp
 
 		if (_airspeed_blocked_timestamp > 0) {
 			airspeed_blockage_scale = math::constrain(1.f - (hrt_absolute_time() - _airspeed_blocked_timestamp) /
-						  airspeed_blockage_rampup_time, 0.5f, 1.f);
+						  airspeed_blockage_rampup_time, 1.f - blockage_fraction, 1.f);
 		}
 
 		differential_pressure_s report{};
@@ -1443,7 +1445,7 @@ void SimulatorMavlink::check_failure_injections()
 				_airspeed_disconnected = true;
 
 			} else if (failure_type == vehicle_command_s::FAILURE_TYPE_WRONG) {
-				PX4_WARN("CMD_INJECT_FAILURE, airspeed wrong (simulate icing)");
+				PX4_WARN("CMD_INJECT_FAILURE, airspeed wrong (simulate pitot blockage)");
 				supported = true;
 				_airspeed_blocked_timestamp = hrt_absolute_time();
 

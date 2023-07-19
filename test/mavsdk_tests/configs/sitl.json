@@ -22,7 +22,7 @@
         {
             "model": "standard_vtol",
             "vehicle": "standard_vtol",
-            "test_filter": "[vtol]",
+            "test_filter": "[vtol], [vtol_wind], [vtol_airspeed_fail]",
             "timeout_min": 10
         },
         {
