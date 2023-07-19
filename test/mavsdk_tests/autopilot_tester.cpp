@@ -164,6 +164,11 @@ void AutopilotTester::set_rc_loss_exception(AutopilotTester::RcLossException mas
 	}
 }
 
+void AutopilotTester::set_param_vt_fwd_thrust_en(int value)
+{
+	CHECK(_param->set_param_int("VT_FWD_THRUST_EN", value) == Param::Result::Success);
+}
+
 void AutopilotTester::arm()
 {
 	const auto result = _action->arm();
@@ -946,4 +951,26 @@ void AutopilotTester::report_speed_factor()
 
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	}
+}
+
+void AutopilotTester::enable_fixedwing_mectrics()
+{
+	CHECK(getTelemetry()->set_rate_fixedwing_metrics(10.f) == Telemetry::Result::Success);
+}
+
+void AutopilotTester::check_airspeed_is_valid()
+{
+	// If the airspeed was invalidated during the flight, the airspeed is sent in the
+	// telemetry is NAN and stays so with the default parameter settings.
+	const Telemetry::FixedwingMetrics &metrics = getTelemetry()->fixedwing_metrics();
+	REQUIRE(std::isfinite(metrics.airspeed_m_s));
+}
+
+void AutopilotTester::check_airspeed_is_invalid()
+{
+	// If the airspeed was invalidated during the flight, the airspeed is sent in the
+	// telemetry is NAN and stays so with the default parameter settings.
+	const Telemetry::FixedwingMetrics &metrics = getTelemetry()->fixedwing_metrics();
+	std::cout << "Reported airspeed after failure: " << metrics.airspeed_m_s ;
+	REQUIRE(!std::isfinite(metrics.airspeed_m_s));
 }
