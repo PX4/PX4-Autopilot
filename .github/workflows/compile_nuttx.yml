@@ -1,9 +1,12 @@
-name: Nuttx Targets
+name: Compile Nuttx Targets
 
 on:
   push:
     branches:
     - 'main'
+    - 'stable'
+    - 'beta'
+    - 'release/*'
   pull_request:
     branches:
     - '*'
