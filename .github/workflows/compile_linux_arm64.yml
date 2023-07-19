@@ -1,9 +1,12 @@
-name: Linux ARM64 Targets
+name: Compile Linux ARM64 Targets
 
 on:
   push:
     branches:
     - 'main'
+    - 'stable'
+    - 'beta'
+    - 'release/*'
   pull_request:
     branches:
     - '*'
