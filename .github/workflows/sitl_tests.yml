@@ -15,10 +15,10 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - {model: "iris",          latitude:  "59.617693", longitude: "-151.145316", altitude:  "48", build_type: "RelWithDebInfo" } # Alaska
-          # - {model: "standard_vtol", latitude: "-38.071235", longitude:  "145.281220", altitude:  "31", build_type: "AddressSanitizer" } # Australia
-          - {model: "tailsitter" ,   latitude:  "29.660316", longitude:  "-82.316658", altitude:  "30", build_type: "RelWithDebInfo" } # Florida
-          - {model: "standard_vtol", latitude:  "47.397742", longitude:    "8.545594", altitude: "488", build_type: "Coverage" } # Zurich
+          - {model: "iris", latitude: "59.617693", longitude: "-151.145316", altitude: "48", build_type: "RelWithDebInfo"} # Alaska
+          # - {model: "standard_vtol", latitude: "-38.071235", longitude: "145.281220", altitude: "31", build_type: "AddressSanitizer"} # Australia
+          - {model: "tailsitter", latitude: "29.660316", longitude: "-82.316658", altitude: "30", build_type: "RelWithDebInfo"} # Florida
+          - {model: "standard_vtol", latitude: "47.397742", longitude: "8.545594", altitude: "488", build_type: "Coverage"} # Zurich
 
     container:
       image: px4io/px4-dev-simulation-focal:2021-09-08
@@ -59,17 +59,17 @@ jobs:
 
       - name: check environment
         env:
-          PX4_HOME_LAT: ${{ matrix.config.latitude }}
-          PX4_HOME_LON: ${{ matrix.config.longitude }}
-          PX4_HOME_ALT: ${{ matrix.config.altitude }}
-          PX4_CMAKE_BUILD_TYPE: ${{ matrix.config.build_type }}
+          PX4_HOME_LAT: ${{matrix.config.latitude}}
+          PX4_HOME_LON: ${{ matrix.config.longitude}}
+          PX4_HOME_ALT: ${{matrix.config.altitude}}
+          PX4_CMAKE_BUILD_TYPE: ${{matrix.config.build_type}}
         run: |
           export
           ulimit -a
 
       - name: Build PX4
         env:
-          PX4_CMAKE_BUILD_TYPE: ${{ matrix.config.build_type }}
+          PX4_CMAKE_BUILD_TYPE: ${{matrix.config.build_type}}
         run: make px4_sitl_default
 
       - name: ccache post-run px4/firmware
@@ -77,7 +77,7 @@ jobs:
 
       - name: Build SITL Gazebo
         env:
-          PX4_CMAKE_BUILD_TYPE: ${{ matrix.config.build_type }}
+          PX4_CMAKE_BUILD_TYPE: ${{matrix.config.build_type}}
         run: make px4_sitl_default sitl_gazebo-classic
 
       - name: ccache post-run sitl_gazebo-classic
@@ -85,7 +85,7 @@ jobs:
 
       - name: Build MAVSDK tests
         env:
-          PX4_CMAKE_BUILD_TYPE: ${{ matrix.config.build_type }}
+          PX4_CMAKE_BUILD_TYPE: ${{matrix.config.build_type}}
           DONT_RUN: 1
         run: make px4_sitl_default sitl_gazebo-classic mavsdk_tests
 
@@ -99,11 +99,11 @@ jobs:
 
       - name: Run SITL tests
         env:
-          PX4_HOME_LAT: ${{ matrix.config.latitude }}
-          PX4_HOME_LON: ${{ matrix.config.longitude }}
-          PX4_HOME_ALT: ${{ matrix.config.altitude }}
-          PX4_CMAKE_BUILD_TYPE: ${{ matrix.config.build_type }}
-        run: test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 --abort-early --model ${{ matrix.config.model }} --upload test/mavsdk_tests/configs/sitl.json --verbose
+          PX4_HOME_LAT: ${{matrix.config.latitude}}
+          PX4_HOME_LON: ${{matrix.config.longitude}}
+          PX4_HOME_ALT: ${{matrix.config.altitude}}
+          PX4_CMAKE_BUILD_TYPE: ${{matrix.config.build_type}}
+        run: test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 --abort-early --model ${{matrix.config.model}} --upload test/mavsdk_tests/configs/sitl.json --verbose
         timeout-minutes: 45
 
       - name: Look at core files
@@ -139,6 +139,6 @@ jobs:
         if: contains(matrix.config.build_type, 'Coverage')
         uses: codecov/codecov-action@v1
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+          token: ${{secrets.CODECOV_TOKEN}}
           flags: mavsdk
           file: coverage/lcov.info

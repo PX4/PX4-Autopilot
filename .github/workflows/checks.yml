@@ -37,10 +37,12 @@ jobs:
 
     - name: check environment
       run: |
-          export
-          ulimit -a
+        export
+        ulimit -a
+
     - name: ${{matrix.check}}
       run: make ${{matrix.check}}
+
     - name: upload coverage
       if: contains(matrix.check, 'coverage')
       uses: codecov/codecov-action@v1

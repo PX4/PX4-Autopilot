@@ -3,10 +3,10 @@ name: Nuttx Targets
 on:
   push:
     branches:
-      - 'main'
+    - 'main'
   pull_request:
     branches:
-      - '*'
+    - '*'
 
 jobs:
   build:
@@ -73,66 +73,66 @@ jobs:
           - uvify_core
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
+    - name: Checkout repository
+      uses: actions/checkout@v2
 
-      - name: Prepare ccache timestamp
-        id: ccache_cache_timestamp
-        run: |
-          echo "timestamp=$(date -u +'%Y-%m-%d-%H;%M;%S')" >> $GITHUB_ENV
+    - name: Prepare ccache timestamp
+      id: ccache_cache_timestamp
+      run: |
+        echo "timestamp=$(date -u +'%Y-%m-%d-%H;%M;%S')" >> $GITHUB_ENV
 
-      - name: ccache cache files
-        uses: actions/cache@v2
-        with:
-          path: ~/.ccache
-          key: ${{ matrix.config }}-ccache-${{ steps.ccache_cache_timestamp.outputs.timestamp }}
-          restore-keys: ${{ matrix.config }}-ccache-
+    - name: ccache cache files
+      uses: actions/cache@v2
+      with:
+        path: ~/.ccache
+        key: ${{ matrix.config }}-ccache-${{ steps.ccache_cache_timestamp.outputs.timestamp }}
+        restore-keys: ${{ matrix.config }}-ccache-
 
-      - name: Setup ccache
-        run: |
-          mkdir -p ~/.ccache
-          echo "base_dir = ${GITHUB_WORKSPACE}" > ~/.ccache/ccache.conf
-          echo "compression = true" >> ~/.ccache/ccache.conf
-          echo "compression_level = 6" >> ~/.ccache/ccache.conf
-          echo "max_size = 120M" >> ~/.ccache/ccache.conf
-          echo "hash_dir = false" >> ~/.ccache/ccache.conf
-          ccache -s
-          ccache -z
+    - name: Setup ccache
+      run: |
+        mkdir -p ~/.ccache
+        echo "base_dir = ${GITHUB_WORKSPACE}" > ~/.ccache/ccache.conf
+        echo "compression = true" >> ~/.ccache/ccache.conf
+        echo "compression_level = 6" >> ~/.ccache/ccache.conf
+        echo "max_size = 120M" >> ~/.ccache/ccache.conf
+        echo "hash_dir = false" >> ~/.ccache/ccache.conf
+        ccache -s
+        ccache -z
 
-      - name: make all_variants_${{ matrix.config }}
-        run: |
-          ccache -z
-          make all_variants_${{ matrix.config }}
-          ccache -s
+    - name: make all_variants_${{ matrix.config }}
+      run: |
+        ccache -z
+        make all_variants_${{ matrix.config }}
+        ccache -s
 
-      - name: make ${{ matrix.config }} bloaty_compileunits
-        run: make ${{ matrix.config }} bloaty_compileunits || true
+    - name: make ${{ matrix.config }} bloaty_compileunits
+      run: make ${{ matrix.config }} bloaty_compileunits || true
 
-      - name: make ${{ matrix.config }} bloaty_inlines
-        run: make ${{ matrix.config }} bloaty_inlines || true
+    - name: make ${{ matrix.config }} bloaty_inlines
+      run: make ${{ matrix.config }} bloaty_inlines || true
 
-      - name: make ${{ matrix.config }} bloaty_segments
-        run: make ${{ matrix.config }} bloaty_segments || true
+    - name: make ${{ matrix.config }} bloaty_segments
+      run: make ${{ matrix.config }} bloaty_segments || true
 
-      - name: make ${{ matrix.config }} bloaty_symbols
-        run: make ${{ matrix.config }} bloaty_symbols || true
+    - name: make ${{ matrix.config }} bloaty_symbols
+      run: make ${{ matrix.config }} bloaty_symbols || true
 
-      - name: make ${{ matrix.config }} bloaty_templates
-        run: make ${{ matrix.config }} bloaty_templates || true
+    - name: make ${{ matrix.config }} bloaty_templates
+      run: make ${{ matrix.config }} bloaty_templates || true
 
-      - name: make ${{ matrix.config }} bloaty_ram
-        run: make ${{ matrix.config }} bloaty_ram || true
+    - name: make ${{ matrix.config }} bloaty_ram
+      run: make ${{ matrix.config }} bloaty_ram || true
 
-      - name: make ${{ matrix.config }} bloaty_compare_master
-        run: make ${{ matrix.config }} bloaty_compare_master || true
+    - name: make ${{ matrix.config }} bloaty_compare_master
+      run: make ${{ matrix.config }} bloaty_compare_master || true
 
-      - name: ccache post-run
-        run: ccache -s
+    - name: ccache post-run
+      run: ccache -s
 
-      - name: Upload px4 package
-        uses: actions/upload-artifact@v2
-        with:
-          name: px4_package_${{ matrix.config }}
-          path: |
-            build/**/*.px4
-            build/**/*.bin
+    - name: Upload px4 package
+      uses: actions/upload-artifact@v2
+      with:
+        name: px4_package_${{ matrix.config }}
+        path: |
+          build/**/*.px4
+          build/**/*.bin
