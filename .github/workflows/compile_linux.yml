@@ -1,9 +1,12 @@
-name: Linux Targets
+name: Compile Linux Targets
 
 on:
   push:
     branches:
     - 'main'
+    - 'stable'
+    - 'beta'
+    - 'release/*'
   pull_request:
     branches:
     - '*'
