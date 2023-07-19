@@ -30,6 +30,9 @@ jobs:
       with:
         token: ${{secrets.ACCESS_TOKEN}}
 
+    - name: ownership workaround
+      run: git config --system --add safe.directory '*'
+
     - name: make ${{matrix.target}}
       run: make ${{matrix.target}}
 
