@@ -11,6 +11,10 @@ on:
     - 'main'
     - 'release/*'
     - 'pr-metadata-test'
+  pull_request:
+    branches:
+    - '*'
+# EXPERIMENTAL: Remove the PR trigger above before merging the PR!!!
 
 jobs:
   enumerate_targets:
@@ -45,15 +49,3 @@ jobs:
         cd build/${{ matrix.target }}
         mkdir _metadata || true
         cp parameters.* events/*.xz actuators.json* _metadata
-
-    - uses: jakejarvis/s3-sync-action@master
-      with:
-        args: --acl public-read
-      env:
-        AWS_S3_BUCKET: 'px4-travis'
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        AWS_REGION: 'us-west-1'
-        SOURCE_DIR: 'build/${{ matrix.target }}/_metadata/'
-        DEST_DIR: 'Firmware/${{ env.version }}/${{ matrix.target }}/'
-
