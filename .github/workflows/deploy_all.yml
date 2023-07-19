@@ -27,7 +27,7 @@ jobs:
       with:
         token: ${{secrets.ACCESS_TOKEN}}
     - id: set-matrix
-      run: echo "::set-output name=matrix::$(./Tools/generate_board_targets_json.py)"
+      run: echo "matrix=$(./Tools/generate_board_targets_json.py)" >> $GITHUB_OUTPUT
   build:
     runs-on: ubuntu-latest
     needs: enumerate_targets
