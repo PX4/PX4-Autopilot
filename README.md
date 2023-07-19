@@ -6,8 +6,8 @@ This repository is a fork of [PX4 Autopilot](https://github.com/PX4/PX4-Autopilo
 2. Run the following commands:
 ```
 git submodule update --init --recursive
-bash ./Tools/setup/ubuntu.sh 
-make px4_sitl gazebo-classic 
+bash ./Tools/setup/ubuntu.sh --gazebo-classic
+make px4_sitl gazebo-classic
 ```
 At this point, your simulation should run with the the default Iris quadcopter.
 
