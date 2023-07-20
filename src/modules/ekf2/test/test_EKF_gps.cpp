@@ -79,15 +79,51 @@ public:
 TEST_F(EkfGpsTest, gpsTimeout)
 {
 	// GIVEN:EKF that fuses GPS
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
 
-	// WHEN: setting the PDOP to high
+	// WHEN: the number of satellites drops below the minimum
 	_sensor_simulator._gps.setNumberOfSatellites(3);
 
-	// THEN: EKF should stop fusing GPS
+	// THEN: the GNSS fusion continues because it is the only source of position/velocity
 	_sensor_simulator.runSeconds(20);
-
-	// TODO: this is not happening as expected
 	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+
+	// BUT: if we have another velocity aiding source
+	const float max_flow_rate = 5.f;
+	const float min_ground_distance = 0.f;
+	const float max_ground_distance = 50.f;
+	_ekf->set_optical_flow_limits(max_flow_rate, min_ground_distance, max_ground_distance);
+
+	_sensor_simulator._flow.setData(_sensor_simulator._flow.dataAtRest());
+	_ekf_wrapper.enableFlowFusion();
+	_sensor_simulator.startFlow();
+
+	_sensor_simulator._rng.setData(0.2, 100);
+	_sensor_simulator._rng.setLimits(0.1f, 9.f);
+	_sensor_simulator.startRangeFinder();
+	_sensor_simulator.runSeconds(5);
+
+	// THEN: the GNSS fusion stops
+	EXPECT_TRUE(_ekf_wrapper.isIntendingFlowFusion());
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsFusion());
+}
+
+TEST_F(EkfGpsTest, gpsFixLoss)
+{
+	// GIVEN:EKF that fuses GPS
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+
+	// WHEN: the fix is loss
+	_sensor_simulator._gps.setFixType(0);
+
+	// THEN: after dead-reconing for a couple of seconds, the local position gets invalidated
+	_sensor_simulator.runSeconds(5);
+	EXPECT_TRUE(_ekf->control_status_flags().inertial_dead_reckoning);
+	EXPECT_FALSE(_ekf->local_position_is_valid());
+
+	// The control logic takes a bit more time to deactivate the GNSS fusion completely
+	_sensor_simulator.runSeconds(5);
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsFusion());
 }
 
 TEST_F(EkfGpsTest, resetToGpsVelocity)
