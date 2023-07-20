@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
 
 DIR="$(dirname $(readlink -f $0))"
-PX4_BINARY_FILE="$1"
-DEFAULT_AUTOPILOT_HOST=10.41.0.1
+DEFAULT_AUTOPILOT_HOST=10.41.1.1
 DEFAULT_AUTOPILOT_PORT=33333
 DEFAULT_AUTOPILOT_USER=auterion
 
 for i in "$@"
 do
     case $i in
+        --file=*)
+        PX4_BINARY_FILE_ARGUMENT=" -f ${i#*=}"
+        ;;
         --default-ip=*)
         DEFAULT_AUTOPILOT_HOST="${i#*=}"
         ;;
@@ -17,6 +19,12 @@ do
         ;;
         --default-user=*)
         DEFAULT_AUTOPILOT_USER="${i#*=}"
+        ;;
+        --revert)
+        REVERT_AUTOPILOT_ARGUMENT=" -r"
+        ;;
+        --wifi)
+        DEFAULT_AUTOPILOT_HOST=10.41.0.1
         ;;
         *)
             # unknown option
@@ -29,8 +37,15 @@ done
 [ -z "$AUTOPILOT_PORT" ] && AUTOPILOT_PORT=$DEFAULT_AUTOPILOT_PORT
 [ -z "$AUTOPILOT_USER" ] && AUTOPILOT_USER=$DEFAULT_AUTOPILOT_USER
 
-echo "Uploading to $AUTOPILOT_HOST..."
+ARGUMENTS=""
+ARGUMENTS+=" -d $AUTOPILOT_HOST"
+ARGUMENTS+=" -p $AUTOPILOT_PORT"
+ARGUMENTS+=" -u $AUTOPILOT_USER"
+ARGUMENTS+=$PX4_BINARY_FILE_ARGUMENT
+ARGUMENTS+=$REVERT_AUTOPILOT_ARGUMENT
 
-"$DIR"/remote_update_fmu.sh -f "$PX4_BINARY_FILE" -d "$AUTOPILOT_HOST" -p $AUTOPILOT_PORT -u $AUTOPILOT_USER
+echo "Flashing $AUTOPILOT_HOST ..."
+
+"$DIR"/remote_update_fmu.sh $ARGUMENTS
 
 exit 0
