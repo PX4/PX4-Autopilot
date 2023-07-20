@@ -35,17 +35,17 @@ SerialImpl::~SerialImpl()
 bool SerialImpl::validateBaudrate(uint32_t baudrate)
 {
 	if ((baudrate != 9600)   &&
-		(baudrate != 38400)  &&
-		(baudrate != 57600)  &&
-		(baudrate != 115200) &&
-		(baudrate != 230400) &&
-		(baudrate != 250000) &&
-		(baudrate != 420000) &&
-		(baudrate != 460800) &&
-		(baudrate != 921600) &&
-		(baudrate != 1000000) &&
-		(baudrate != 1843200) &&
-		(baudrate != 2000000)) {
+	    (baudrate != 38400)  &&
+	    (baudrate != 57600)  &&
+	    (baudrate != 115200) &&
+	    (baudrate != 230400) &&
+	    (baudrate != 250000) &&
+	    (baudrate != 420000) &&
+	    (baudrate != 460800) &&
+	    (baudrate != 921600) &&
+	    (baudrate != 1000000) &&
+	    (baudrate != 1843200) &&
+	    (baudrate != 2000000)) {
 		return false;
 	}
 

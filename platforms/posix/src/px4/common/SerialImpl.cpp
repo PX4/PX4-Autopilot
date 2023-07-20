@@ -39,13 +39,13 @@ SerialImpl::~SerialImpl()
 bool SerialImpl::validateBaudrate(uint32_t baudrate)
 {
 	if ((baudrate == 9600) ||
-		(baudrate == 19200) ||
-		(baudrate == 38400) ||
-		(baudrate == 57600) ||
-		(baudrate == 115200) ||
-		(baudrate == 230400) ||
-		(baudrate == 460800) ||
-		(baudrate == 921600)) {
+	    (baudrate == 19200) ||
+	    (baudrate == 38400) ||
+	    (baudrate == 57600) ||
+	    (baudrate == 115200) ||
+	    (baudrate == 230400) ||
+	    (baudrate == 460800) ||
+	    (baudrate == 921600)) {
 		return true;
 	}
 
