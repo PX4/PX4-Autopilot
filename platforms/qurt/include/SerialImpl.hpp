@@ -68,6 +68,8 @@ private:
 	StopBits _stopbits{StopBits::One};
 	FlowControl _flowcontrol{FlowControl::Disabled};
 
+	bool validateBaudrate(uint32_t baudrate);
+
 	// Mutex used to lock the read functions
 	//pthread_mutex_t read_mutex;
 
