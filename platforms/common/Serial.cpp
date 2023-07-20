@@ -7,14 +7,10 @@ Serial::Serial(const char *port, uint32_t baudrate, ByteSize bytesize, Parity pa
 	       FlowControl flowcontrol) :
 	_impl(port, baudrate, bytesize, parity, stopbits, flowcontrol)
 {
-
-
-	// TODO: Device
-
-	// set_device_bus_type(device::Device::DeviceBusType::DeviceBusType_SERIAL);
-
-	// char c = _port[strlen(_port) - 1]; // last digit of path (eg /dev/ttyS2)
-	// set_device_bus(c - 48); // sub 48 to convert char to integer
+	// If no baudrate was specified then set it to a reasonable default value
+	if (baudrate == 0) {
+		(void) _impl.setBaudrate(9600);
+	}
 }
 
 Serial::~Serial()

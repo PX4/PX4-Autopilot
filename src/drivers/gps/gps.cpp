@@ -472,12 +472,12 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 	int ret = 0;
 	const unsigned character_count = 32; // minimum bytes that we want to read
 	const int max_timeout = 50;
-	int _timeout = math::min(max_timeout, timeout);
+	int timeout_adjusted = math::min(max_timeout, timeout);
 
 	handleInjectDataTopic();
 
 	if ((_interface == GPSHelper::Interface::UART) && (_uart)) {
-		ret = _uart->readAtLeast(buf, buf_length, character_count, _timeout);
+		ret = _uart->readAtLeast(buf, buf_length, character_count, timeout_adjusted);
 
 // SPI is only supported on LInux
 #if defined(__PX4_LINUX)
@@ -495,7 +495,7 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 		fds[0].fd = _spi_fd;
 		fds[0].events = POLLIN;
 
-		ret = poll(fds, sizeof(fds) / sizeof(fds[0]), _timeout);
+		ret = poll(fds, sizeof(fds) / sizeof(fds[0]), timeout_adjusted);
 
 		if (ret > 0) {
 			/* if we have new data from GPS, go handle it */
@@ -614,8 +614,8 @@ bool GPS::injectData(uint8_t *data, size_t len)
 int GPS::setBaudrate(unsigned baud)
 {
 	if (_interface == GPSHelper::Interface::UART) {
-		if (_uart) {
-			return _uart->setBaudrate(baud);
+		if ((_uart) && (_uart->setBaudrate(baud))) {
+			return 0;
 		}
 
 #ifdef __PX4_LINUX
@@ -786,7 +786,9 @@ GPS::run()
 		}
 
 		if ((_interface == GPSHelper::Interface::UART) && (_uart == nullptr)) {
-			_uart = new Serial(_port, _configured_baudrate);
+
+			// Create the UART port instance
+			_uart = new Serial(_port);
 
 			if (_uart == nullptr) {
 				PX4_ERR("Error creating serial device %s", _port);
@@ -794,7 +796,22 @@ GPS::run()
 				continue;
 			}
 
-			_uart->open();
+			// Configure the desired baudrate if one was specified by the user.
+			// Otherwise the default baudrate will be used.
+			if (_configured_baudrate) {
+				if (! _uart->setBaudrate(_configured_baudrate)) {
+					PX4_ERR("Error setting baudrate to %u on %s", _configured_baudrate, _port);
+					px4_sleep(1);
+					continue;
+				}
+			}
+
+			// Open the UART. If this is successful then the UART is ready to use.
+			if (! _uart->open()) {
+				PX4_ERR("Error opening serial device  %s", _port);
+				px4_sleep(1);
+				continue;
+			}
 
 #ifdef __PX4_LINUX
 
@@ -1010,7 +1027,7 @@ GPS::run()
 		}
 
 		if ((_interface == GPSHelper::Interface::UART) && (_uart)) {
-			_uart->close();
+			(void) _uart->close();
 			delete _uart;
 
 #ifdef __PX4_LINUX

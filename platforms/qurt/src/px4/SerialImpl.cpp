@@ -23,10 +23,6 @@ SerialImpl::SerialImpl(const char *port, uint32_t baudrate, ByteSize bytesize, P
 	} else {
 		_port[0] = 0;
 	}
-
-	// Start off with a valid bitrate to make sure open can succeed
-	if (_baudrate == 0) { _baudrate = 9600; }
-
 }
 
 SerialImpl::~SerialImpl()
