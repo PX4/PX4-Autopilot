@@ -163,7 +163,7 @@ int px4_platform_init()
 #if defined(CONFIG_FS_PROCFS)
 	int ret_mount_procfs = mount(nullptr, "/proc", "procfs", 0, nullptr);
 
-	if (ret < 0) {
+	if (ret_mount_procfs < 0) {
 		syslog(LOG_ERR, "ERROR: Failed to mount procfs at /proc: %d\n", ret_mount_procfs);
 	}
 
