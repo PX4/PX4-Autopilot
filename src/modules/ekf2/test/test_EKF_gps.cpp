@@ -79,6 +79,7 @@ public:
 TEST_F(EkfGpsTest, gpsTimeout)
 {
 	// GIVEN:EKF that fuses GPS
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
 
 	// WHEN: setting the PDOP to high
 	_sensor_simulator._gps.setNumberOfSatellites(3);
@@ -88,6 +89,24 @@ TEST_F(EkfGpsTest, gpsTimeout)
 
 	// TODO: this is not happening as expected
 	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+}
+
+TEST_F(EkfGpsTest, gpsFixLoss)
+{
+	// GIVEN:EKF that fuses GPS
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+
+	// WHEN: the fix is loss
+	_sensor_simulator._gps.setFixType(0);
+
+	// THEN: after dead-reconing for a couple of seconds, the local position gets invalidated
+	_sensor_simulator.runSeconds(5);
+	EXPECT_TRUE(_ekf->control_status_flags().inertial_dead_reckoning);
+	EXPECT_FALSE(_ekf->local_position_is_valid());
+
+	// The control logic takes a bit more time to deactivate the GNSS fusion completely
+	_sensor_simulator.runSeconds(5);
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsFusion());
 }
 
 TEST_F(EkfGpsTest, resetToGpsVelocity)
