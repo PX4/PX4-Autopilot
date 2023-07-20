@@ -32,6 +32,26 @@ SerialImpl::~SerialImpl()
 	}
 }
 
+bool SerialImpl::validateBaudrate(uint32_t baudrate)
+{
+	if ((baudrate != 9600)   &&
+		(baudrate != 38400)  &&
+		(baudrate != 57600)  &&
+		(baudrate != 115200) &&
+		(baudrate != 230400) &&
+		(baudrate != 250000) &&
+		(baudrate != 420000) &&
+		(baudrate != 460800) &&
+		(baudrate != 921600) &&
+		(baudrate != 1000000) &&
+		(baudrate != 1843200) &&
+		(baudrate != 2000000)) {
+		return false;
+	}
+
+	return true;
+}
+
 bool SerialImpl::open()
 {
 	// There's no harm in calling open multiple times on the same port.
@@ -39,6 +59,11 @@ bool SerialImpl::open()
 
 	_open = false;
 	_serial_fd = -1;
+
+	if (! validateBaudrate(_baudrate)) {
+		PX4_ERR("Invalid baudrate: %u", _baudrate);
+		return false;
+	}
 
 	if (_bytesize != ByteSize::EightBits) {
 		PX4_ERR("Qurt platform only supports ByteSize::EightBits");
@@ -219,6 +244,11 @@ uint32_t SerialImpl::getBaudrate() const
 
 bool SerialImpl::setBaudrate(uint32_t baudrate)
 {
+	if (! validateBaudrate(baudrate)) {
+		PX4_ERR("Invalid baudrate: %u", baudrate);
+		return false;
+	}
+
 	// check if already configured
 	if (baudrate == _baudrate) {
 		return true;
