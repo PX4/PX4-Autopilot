@@ -85,9 +85,6 @@ private:
 
 	int _serial_fd{-1};
 
-	size_t _bytes_read{0};
-	size_t _bytes_written{0};
-
 	bool _open{false};
 
 	char _port[32] {};

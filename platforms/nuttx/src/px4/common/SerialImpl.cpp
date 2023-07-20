@@ -60,7 +60,6 @@ SerialImpl::SerialImpl(const char *port, uint32_t baudrate, ByteSize bytesize, P
 	} else {
 		_port[0] = 0;
 	}
-
 }
 
 SerialImpl::~SerialImpl()
@@ -72,18 +71,14 @@ SerialImpl::~SerialImpl()
 
 bool SerialImpl::validateBaudrate(uint32_t baudrate)
 {
-	if ((baudrate == 9600) ||
-	    (baudrate == 19200) ||
-	    (baudrate == 38400) ||
-	    (baudrate == 57600) ||
-	    (baudrate == 115200) ||
-	    (baudrate == 230400) ||
-	    (baudrate == 460800) ||
-	    (baudrate == 921600)) {
-		return true;
-	}
-
-	return false;
+	return ((baudrate == 9600) ||
+		(baudrate == 19200) ||
+		(baudrate == 38400) ||
+		(baudrate == 57600) ||
+		(baudrate == 115200) ||
+		(baudrate == 230400) ||
+		(baudrate == 460800) ||
+		(baudrate == 921600));
 }
 
 bool SerialImpl::configure()
@@ -131,7 +126,10 @@ bool SerialImpl::configure()
 	int termios_state;
 
 	/* fill the struct for the new configuration */
-	tcgetattr(_serial_fd, &uart_config);
+	if ((termios_state = tcgetattr(_serial_fd, &uart_config)) < 0) {
+		PX4_ERR("ERR: %d (tcgetattr)", termios_state);
+		return false;
+	}
 
 	/* properly configure the terminal (see also https://en.wikibooks.org/wiki/Serial_Programming/termios ) */
 
@@ -202,15 +200,14 @@ bool SerialImpl::open()
 		return false;
 	}
 
-	// Configure the serial port if a baudrate has been configured
-	if (_baudrate) {
-		if (! configure()) {
-			PX4_ERR("failed to configure %s err: %d", _port, errno);
-			return false;
-		}
+	_serial_fd = serial_fd;
+
+	// Configure the serial port
+	if (! configure()) {
+		PX4_ERR("failed to configure %s err: %d", _port, errno);
+		return false;
 	}
 
-	_serial_fd = serial_fd;
 	_open = true;
 
 	return _open;
@@ -245,10 +242,6 @@ ssize_t SerialImpl::read(uint8_t *buffer, size_t buffer_size)
 
 	if (ret < 0) {
 		PX4_DEBUG("%s read error %d", _port, ret);
-
-	} else {
-		// Track total bytes read
-		_bytes_read += ret;
 	}
 
 	return ret;
@@ -311,10 +304,6 @@ ssize_t SerialImpl::write(const void *buffer, size_t buffer_size)
 
 	if (written < 0) {
 		PX4_ERR("%s write error %d", _port, written);
-
-	} else {
-		// Track total bytes written
-		_bytes_written += written;
 	}
 
 	return written;

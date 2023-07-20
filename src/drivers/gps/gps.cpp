@@ -795,7 +795,9 @@ GPS::run()
 				px4_sleep(1);
 				continue;
 			}
+		}
 
+		if ((_interface == GPSHelper::Interface::UART) && (! _uart->isOpen())) {
 			// Configure the desired baudrate if one was specified by the user.
 			// Otherwise the default baudrate will be used.
 			if (_configured_baudrate) {
