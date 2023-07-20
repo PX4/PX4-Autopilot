@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -64,10 +64,6 @@ public:
 
 	ssize_t write(const void *buffer, size_t buffer_size);
 
-	// Perhaps this can be removed? To change the port you need to create a new object.
-	const char *getPort() const;
-	bool setPort(const char *port);
-
 	// If port is already open then the following configuration functions
 	// will reconfigure the port. If the port is not yet open then they will
 	// simply store the configuration in preparation for the port to be opened.
@@ -86,9 +82,6 @@ public:
 
 	FlowControl getFlowcontrol() const;
 	bool setFlowcontrol(FlowControl flowcontrol);
-
-	// printStatus()
-	//  port, read bytes, write bytes
 
 private:
 	// Disable copy constructors
