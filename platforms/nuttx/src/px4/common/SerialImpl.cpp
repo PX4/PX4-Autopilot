@@ -325,24 +325,6 @@ const char *SerialImpl::getPort() const
 	return _port;
 }
 
-bool SerialImpl::setPort(const char *port)
-{
-	if (strcmp(port, _port) == 0) {
-		return true;
-	}
-
-	strncpy(_port, port, sizeof(_port) - 1);
-	_port[sizeof(_port) - 1] = '\0';
-
-	// If old port is already opened then close it and reopen it on new port
-	if (_open) {
-		close();
-		return open();
-	}
-
-	return true;
-}
-
 uint32_t SerialImpl::getBaudrate() const
 {
 	return _baudrate;

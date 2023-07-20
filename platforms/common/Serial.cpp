@@ -130,4 +130,9 @@ bool Serial::setFlowcontrol(FlowControl flowcontrol)
 	return _impl.setFlowcontrol(flowcontrol);
 }
 
+const char *Serial::getPort() const
+{
+	return _impl.getPort();
+}
+
 } // namespace device
