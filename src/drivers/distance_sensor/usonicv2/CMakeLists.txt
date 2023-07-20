@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,23 +30,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-add_subdirectory(broadcom)
-add_subdirectory(cm8jl65)
-add_subdirectory(leddar_one)
-add_subdirectory(ll40ls)
-add_subdirectory(ll40ls_pwm)
-add_subdirectory(mappydot)
-add_subdirectory(mb12xx)
-add_subdirectory(pga460)
-add_subdirectory(lightware_laser_i2c)
-add_subdirectory(lightware_laser_serial)
-add_subdirectory(srf02)
-add_subdirectory(teraranger)
-add_subdirectory(tfmini)
-add_subdirectory(ulanding_radar)
-add_subdirectory(vl53l0x)
-add_subdirectory(vl53l1x)
-add_subdirectory(gy_us42)
-add_subdirectory(tf02pro)
-add_subdirectory(usonicv2)
+px4_add_module(
+	MODULE drivers__distance_sensor__usonicv2
+	MAIN usonicv2
+	COMPILE_FLAGS
+	SRCS
+		usonicv2.cpp
+		usonicv2.hpp
+	DEPENDS
+		drivers_rangefinder
+		px4_work_queue
+	)

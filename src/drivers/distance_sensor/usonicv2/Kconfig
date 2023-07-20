@@ -1,0 +1,5 @@
+menuconfig DRIVERS_DISTANCE_SENSOR_USONICV2
+	bool "usonicv2"
+	default n
+	---help---
+		Enable support for SRF05 Single Pin mode

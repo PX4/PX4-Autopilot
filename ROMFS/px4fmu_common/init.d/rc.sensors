@@ -70,6 +70,11 @@ then
 	srf05 start
 fi
 
+# Sensor HY-SRF05 or HC-SR05 in 1 wire mode ultrasonic sensor or SeeedStudio Ultrasonic Ranger v2
+if param compare -s SENS_EN_USONICV2 1
+then
+	usonicv2 start
+fi
 
 # Heater driver for temperature regulated IMUs.
 if param compare -s SENS_EN_THERMAL 1
