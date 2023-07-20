@@ -102,6 +102,7 @@ void USONICV2::OnEdge(bool state)
 		if (state) {
 			_rising_edge_time = now;
 			_state = STATE::WAIT_FOR_FALLING;
+
 		} else {
 			_falling_edge_time = now;
 			_state = STATE::SAMPLE;
@@ -149,9 +150,9 @@ USONICV2::Run()
 	switch (_state) {
 
 	case STATE::TRIGGER: {
-		/* Triggering using explicit timing.   This is not as CPU efficient
-		 * The other method used by SRF05 didn't consistently trigger the sensor
-		 */
+			/* Triggering using explicit timing.   This is not as CPU efficient
+			 * The other method used by SRF05 didn't consistently trigger the sensor
+			 */
 			px4_arch_gpiowrite(GPIO_ULTRASOUND_TRIGGER, 0);
 			px4_usleep(2);
 			px4_arch_gpiowrite(GPIO_ULTRASOUND_TRIGGER, 1);
@@ -175,6 +176,7 @@ USONICV2::Run()
 				_state = STATE::TRIGGER;
 
 			}
+
 			break;
 		}
 
@@ -318,16 +320,16 @@ USONICV2::print_status()
 	perf_print_counter(_comms_errors);
 	perf_print_counter(_sensor_resets);
 	printf("poll interval:  %" PRIu32 " \n", get_measure_interval());
-/*
- * Test code - Don't use
-//	printf("Test measurement\n");
-//	if (testSample() == PX4_OK) {
-//		printf("\nTest worked");
-//	} else {
-//		printf("\nTest failed");
-//	}
-//
-*/
+	/*
+	 * Test code - Don't use
+	//	printf("Test measurement\n");
+	//	if (testSample() == PX4_OK) {
+	//		printf("\nTest worked");
+	//	} else {
+	//		printf("\nTest failed");
+	//	}
+	//
+	*/
 	return 0;
 }
 
