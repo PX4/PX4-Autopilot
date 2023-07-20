@@ -65,7 +65,6 @@ public:
 	ssize_t write(const void *buffer, size_t buffer_size);
 
 	const char *getPort() const;
-	bool setPort(const char *port);
 
 	uint32_t getBaudrate() const;
 	bool setBaudrate(uint32_t baudrate);

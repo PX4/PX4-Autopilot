@@ -83,6 +83,8 @@ public:
 	FlowControl getFlowcontrol() const;
 	bool setFlowcontrol(FlowControl flowcontrol);
 
+	const char *getPort() const;
+
 private:
 	// Disable copy constructors
 	Serial(const Serial &);
