@@ -83,6 +83,20 @@ TEST_F(EkfMagTest, fusionStartWithReset)
 	EXPECT_FALSE(_ekf_wrapper.isIntendingMag3DFusion());
 
 	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter + 1);
+
+	// AND WHEN: GNSS fusion starts
+	_ekf_wrapper.enableGpsFusion();
+	_sensor_simulator.startGps();
+	_sensor_simulator.runSeconds(11);
+
+	// THEN: the earth mag field is reset to the WMM
+	EXPECT_EQ(_ekf_wrapper.getQuaternionResetCounter(), initial_quat_reset_counter + 2);
+
+	Vector3f mag_earth = _ekf->getMagEarthField();
+	float mag_decl = atan2f(mag_earth(1), mag_earth(0));
+	float mag_decl_wmm_deg = 0.f;
+	_ekf->get_mag_decl_deg(&mag_decl_wmm_deg);
+	EXPECT_NEAR(degrees(mag_decl), mag_decl_wmm_deg, 1e-6f);
 }
 
 TEST_F(EkfMagTest, noInitLargeStrength)
