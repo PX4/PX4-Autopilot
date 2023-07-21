@@ -372,6 +372,8 @@ public:
 	Vector3f getAccelBiasVariance() const { return Vector3f{P(13, 13), P(14, 14), P(15, 15)} / sq(_dt_ekf_avg); } // get the accelerometer bias variance in m/s**2
 	float getAccelBiasLimit() const { return _params.acc_bias_lim; }
 
+	const Vector3f &getMagEarthField() const { return _state.mag_I; }
+
 	// mag bias (states 19, 20, 21)
 	const Vector3f &getMagBias() const { return _state.mag_B; }
 	Vector3f getMagBiasVariance() const
