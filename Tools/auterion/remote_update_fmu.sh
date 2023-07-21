@@ -61,9 +61,12 @@ if [ -z "$device" ]; then
 	exit 1
 fi
 
+target_dir=/shared_container_dir/fmu
+target_file_name="update-dev.tar"
+
 if [ "$revert" == true ]; then
 	# revert to the release version which was originally deployed
-	cmd="cp /persistent/shared_container_dir/fmu/update.tar /persistent/shared_container_dir/fmu/update-dev.tar"
+	cmd="cp $target_dir/update.tar $target_dir/$target_file_name"
 	ssh -t -p $ssh_port $ssh_user@$device "$cmd"
 else
 	# create custom update-dev.tar
@@ -99,9 +102,6 @@ else
 		tar_name="gtar"
 	fi
 
-	target_dir=/shared_container_dir/fmu
-	target_file_name="update-dev.tar"
-
 	$tar_name -C "$tmp_dir" --sort=name --owner=root:0 --group=root:0 --mtime='2019-01-01 00:00:00' -cvf $target_file_name $firmware_path $config_path
 
 	# send it to the target to start flashing
@@ -110,6 +110,6 @@ else
 	rm -rf "$tmp_dir"
 fi
 
-# grab status output for flshing progress
+# grab status output for flashing progress
 cmd="tail --follow=name $target_dir/update_status 2>/dev/null || true"
 ssh -t -p $ssh_port $ssh_user@$device "$cmd"
