@@ -53,6 +53,10 @@
 #include "mavlink_bridge_header.h"
 #include "mavlink_rate_limiter.h"
 
+#include <drivers/drv_hrt.h>
+
+using namespace time_literals;
+
 enum MAVLINK_WPM_STATES {
 	MAVLINK_WPM_STATE_IDLE = 0,
 	MAVLINK_WPM_STATE_SENDLIST,
@@ -91,6 +95,8 @@ public:
 
 	void check_active_mission(void);
 
+	bool send_mission_checksum(MAV_MISSION_TYPE mission_type);
+
 private:
 	enum MAVLINK_WPM_STATES _state {MAVLINK_WPM_STATE_IDLE};	///< Current state
 	enum MAV_MISSION_TYPE _mission_type {MAV_MISSION_TYPE_MISSION};	///< mission type of current transmission (only one at a time possible)
@@ -110,6 +116,8 @@ private:
 	static bool		_dataman_init;				///< Dataman initialized
 
 	static uint16_t		_count[3];				///< Count of items in (active) mission for each MAV_MISSION_TYPE
+	static uint32_t		_crc32[3];				///< CRC32 checksum of (active) mission for each MAV_MISSION_TYPE
+
 	static int32_t		_current_seq;				///< Current item sequence in active mission
 
 	int32_t			_last_reached{-1};			///< Last reached waypoint in active mission (-1 means nothing reached)
@@ -120,6 +128,7 @@ private:
 	uint16_t		_transfer_seq{0};			///< Item sequence in current transmission
 
 	int32_t			_transfer_current_seq{-1};		///< Current item ID for current transmission (-1 means not initialized)
+	uint32_t		_transfer_current_crc32{0};		///< Current CRC32 checksum of current transmission
 
 	uint8_t			_transfer_partner_sysid{0};		///< Partner system ID for current transmission
 	uint8_t			_transfer_partner_compid{0};		///< Partner component ID for current transmission
@@ -134,7 +143,8 @@ private:
 	static uint16_t		_safepoint_update_counter;
 	bool			_geofence_locked{false};		///< if true, we currently hold the dm_lock for the geofence (transaction in progress)
 
-	MavlinkRateLimiter	_slow_rate_limiter{100 * 1000};		///< Rate limit sending of the current WP sequence to 10 Hz
+	MavlinkRateLimiter	_slow_rate_limiter{100_ms};		///< Rate limit sending of the current WP sequence to 10 Hz
+	MavlinkRateLimiter 	_checksum_rate_limiter{1_s};		///< Rate limit sending the checksum of current mission, rally point and geofence
 
 	Mavlink *_mavlink;
 
@@ -159,13 +169,13 @@ private:
 
 	void init_offboard_mission();
 
-	int update_active_mission(dm_item_t dataman_id, uint16_t count, int32_t seq);
+	int update_active_mission(dm_item_t dataman_id, uint16_t count, int32_t seq, uint32_t crc32);
 
 	/** store the geofence count to dataman */
-	int update_geofence_count(unsigned count);
+	int update_geofence_count(unsigned count, uint32_t crc32);
 
 	/** store the safepoint count to dataman */
-	int update_safepoint_count(unsigned count);
+	int update_safepoint_count(unsigned count, uint32_t crc32);
 
 	/** load geofence stats from dataman */
 	int load_geofence_stats();
