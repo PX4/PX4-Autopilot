@@ -184,12 +184,17 @@ void EstimatorChecks::checkEstimatorStatus(const Context &context, Report &repor
 		/* EVENT
 		 * @description
 		 * <profile name="dev">
+		 * Measured strength: {1:.3}, expected: {2:.3} ± <param>EKF2_MAG_CHK_STR</param>
+		 * Measured inclination: {3:.3}, expected: {4:.3} ± <param>EKF2_MAG_CHK_INC</param>
 		 * This check can be configured via <param>COM_ARM_MAG_STR</param> and <param>EKF2_MAG_CHECK</param> parameters.
 		 * </profile>
 		 */
-		reporter.armingCheckFailure(required_groups_mag, health_component_t::local_position_estimate,
-					    events::ID("check_estimator_mag_interference"),
-					    events::Log::Warning, "Strong magnetic interference");
+		reporter.armingCheckFailure<float, float, float, float>(required_groups_mag,
+				health_component_t::local_position_estimate,
+				events::ID("check_estimator_mag_interference"),
+				events::Log::Warning, "Strong magnetic interference",
+				estimator_status.mag_strength_gs, estimator_status.mag_strength_ref_gs,
+				estimator_status.mag_inclination_deg, estimator_status.mag_inclination_ref_deg);
 
 		if (reporter.mavlink_log_pub()) {
 			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Strong magnetic interference");
