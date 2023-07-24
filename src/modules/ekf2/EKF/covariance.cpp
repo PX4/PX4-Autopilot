@@ -302,17 +302,6 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 		nextP(i, i) += process_noise(i);
 	}
 
-	// stop position covariance growth if our total position variance reaches 100m
-	// this can happen if we lose gps for some time
-	if ((P(7, 7) + P(8, 8)) > 1e4f) {
-		for (uint8_t i = 7; i <= 8; i++) {
-			for (uint8_t j = 0; j < _k_num_states; j++) {
-				nextP(i, j) = P(i, j);
-				nextP(j, i) = P(j, i);
-			}
-		}
-	}
-
 	// covariance matrix is symmetrical, so copy upper half to lower half
 	for (unsigned row = 0; row <= 15; row++) {
 		for (unsigned column = 0 ; column < row; column++) {
