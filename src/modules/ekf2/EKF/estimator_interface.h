@@ -227,6 +227,17 @@ public:
 		}
 	}
 
+	bool get_mag_inc_deg(float &val) const
+	{
+		if (_NED_origin_initialised) {
+			val = math::degrees(_mag_inclination_gps);
+			return true;
+
+		} else {
+			return false;
+		}
+	}
+
 	void get_mag_checks(float &inc_deg, float &inc_ref_deg, float &strength_gs, float &strength_ref_gs) const
 	{
 		inc_deg = math::degrees(_mag_inclination);
