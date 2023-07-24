@@ -57,6 +57,9 @@ param set-default CBRK_AIRSPD_CHK 162128
 # Set geometry & output configration. This is just the place holder for rover type. We dont actually use control allocation for scout mini.
 param set-default CA_AIRFRAME 6
 
+# Disable UAVCAN since rover use rover_interface module instead
+param set UAVCAN_ENABLE 0
+
 
 ###### ROVER/DRONE COMMON PARAMS ######
 # Disable internal magnetometer
