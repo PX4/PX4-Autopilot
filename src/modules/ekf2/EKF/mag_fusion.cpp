@@ -54,10 +54,10 @@
 bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bool update_all_states)
 {
 	// XYZ Measurement uncertainty. Need to consider timing errors for fast rotations
-	const float R_MAG = sq(fmaxf(_params.mag_noise, 0.0f));
+	const float R_MAG = math::max(sq(_params.mag_noise), sq(0.01f));
 
 	// calculate intermediate variables used for X axis innovation variance, observation Jacobians and Kalman gains
-	const char* numerical_error_covariance_reset_string = "numerical error - covariance reset";
+	const char *numerical_error_covariance_reset_string = "numerical error - covariance reset";
 	Vector3f mag_innov;
 	Vector3f innov_var;
 
@@ -75,7 +75,12 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bo
 		_fault_status.flags.bad_mag_x = true;
 
 		// we need to re-initialise covariances and abort this fusion step
-		resetMagRelatedCovariances();
+		if (update_all_states) {
+			resetQuatCov();
+		}
+
+		resetMagCov();
+
 		ECL_ERR("magX %s", numerical_error_covariance_reset_string);
 		return false;
 	}
@@ -88,7 +93,12 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bo
 		_fault_status.flags.bad_mag_y = true;
 
 		// we need to re-initialise covariances and abort this fusion step
-		resetMagRelatedCovariances();
+		if (update_all_states) {
+			resetQuatCov();
+		}
+
+		resetMagCov();
+
 		ECL_ERR("magY %s", numerical_error_covariance_reset_string);
 		return false;
 	}
@@ -100,7 +110,12 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bo
 		_fault_status.flags.bad_mag_z = true;
 
 		// we need to re-initialise covariances and abort this fusion step
-		resetMagRelatedCovariances();
+		if (update_all_states) {
+			resetQuatCov();
+		}
+
+		resetMagCov();
+
 		ECL_ERR("magZ %s", numerical_error_covariance_reset_string);
 		return false;
 	}
@@ -159,7 +174,12 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bo
 				_fault_status.flags.bad_mag_y = true;
 
 				// we need to re-initialise covariances and abort this fusion step
-				resetMagRelatedCovariances();
+				if (update_all_states) {
+					resetQuatCov();
+				}
+
+				resetMagCov();
+
 				ECL_ERR("magY %s", numerical_error_covariance_reset_string);
 				return false;
 			}
@@ -183,7 +203,12 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bo
 				_fault_status.flags.bad_mag_z = true;
 
 				// we need to re-initialise covariances and abort this fusion step
-				resetMagRelatedCovariances();
+				if (update_all_states) {
+					resetQuatCov();
+				}
+
+				resetMagCov();
+
 				ECL_ERR("magZ %s", numerical_error_covariance_reset_string);
 				return false;
 			}
@@ -214,7 +239,7 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bo
 	_fault_status.flags.bad_mag_y = !fused[1];
 	_fault_status.flags.bad_mag_z = !fused[2];
 
-	if (fused[0] && fused[1] && fused[2]) {
+	if (fused[0] && fused[1] && (fused[2] || _control_status.flags.synthetic_mag_z)) {
 		aid_src_mag.fused = true;
 		aid_src_mag.time_last_fuse = _time_delayed_us;
 
@@ -230,7 +255,7 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bo
 }
 
 // update quaternion states and covariances using the yaw innovation and yaw observation variance
-bool Ekf::fuseYaw(estimator_aid_source1d_s& aid_src_status)
+bool Ekf::fuseYaw(estimator_aid_source1d_s &aid_src_status)
 {
 	Vector24f H_YAW;
 	computeYawInnovVarAndH(aid_src_status.observation_variance, aid_src_status.innovation_variance, H_YAW);
@@ -238,7 +263,7 @@ bool Ekf::fuseYaw(estimator_aid_source1d_s& aid_src_status)
 	return fuseYaw(aid_src_status, H_YAW);
 }
 
-bool Ekf::fuseYaw(estimator_aid_source1d_s& aid_src_status, const Vector24f &H_YAW)
+bool Ekf::fuseYaw(estimator_aid_source1d_s &aid_src_status, const Vector24f &H_YAW)
 {
 	// define the innovation gate size
 	float gate_sigma = math::max(_params.heading_innov_gate, 1.f);
@@ -285,9 +310,9 @@ bool Ekf::fuseYaw(estimator_aid_source1d_s& aid_src_status, const Vector24f &H_Y
 			// we allow to use it when on the ground because the large innovation could be caused
 			// by interference or a large initial gyro bias
 			if (!_control_status.flags.in_air
-			&& isTimedOut(_time_last_in_air, (uint64_t)5e6)
-			&& isTimedOut(aid_src_status.time_last_fuse, (uint64_t)1e6)
-			) {
+			    && isTimedOut(_time_last_in_air, (uint64_t)5e6)
+			    && isTimedOut(aid_src_status.time_last_fuse, (uint64_t)1e6)
+			   ) {
 				// constrain the innovation to the maximum set by the gate
 				// we need to delay this forced fusion to avoid starting it
 				// immediately after touchdown, when the drone is still armed

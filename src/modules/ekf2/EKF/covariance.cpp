@@ -544,12 +544,6 @@ bool Ekf::checkAndFixCovarianceUpdate(const SquareMatrix24f &KHP)
 	return healthy;
 }
 
-void Ekf::resetMagRelatedCovariances()
-{
-	resetQuatCov();
-	resetMagCov();
-}
-
 void Ekf::resetQuatCov()
 {
 	zeroQuatCov();

@@ -1089,9 +1089,6 @@ private:
 	// do not call before quaternion states are initialised
 	void initialiseQuatCovariances(Vector3f &rot_vec_var);
 
-	// perform a limited reset of the magnetic field related state covariances
-	void resetMagRelatedCovariances();
-
 	void resetQuatCov();
 	void zeroQuatCov();
 	void resetMagCov();
