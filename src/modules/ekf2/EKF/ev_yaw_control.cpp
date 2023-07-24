@@ -92,7 +92,7 @@ void Ekf::controlEvYawFusion(const extVisionSample &ev_sample, const bool common
 				}
 
 			} else if (quality_sufficient) {
-				fuseYaw(aid_src.innovation, aid_src.observation_variance, aid_src);
+				fuseYaw(aid_src);
 
 			} else {
 				aid_src.innovation_rejected = true;
