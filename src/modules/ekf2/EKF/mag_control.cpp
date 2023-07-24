@@ -472,7 +472,7 @@ bool Ekf::checkMagField(const Vector3f &mag_sample)
 	}
 
 	const Vector3f mag_earth = _R_to_earth * mag_sample;
-	_mag_inclination = asin(mag_earth(2) / fmaxf(mag_earth.norm(), 1e-4f));
+	_mag_inclination = asinf(mag_earth(2) / fmaxf(mag_earth.norm(), 1e-4f));
 
 	if (_params.mag_check & static_cast<int32_t>(MagCheckMask::INCLINATION)) {
 		if (PX4_ISFINITE(_mag_inclination_gps)) {
