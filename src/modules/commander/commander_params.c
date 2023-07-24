@@ -708,8 +708,11 @@ PARAM_DEFINE_INT32(COM_POS_FS_DELAY, 1);
  * If the previous position error was below this threshold, there is an additional
  * factor of 2.5 applied (threshold for invalidation 2.5 times the one for validation).
  *
+ * Set to -1 to disable.
+ *
  * @unit m
- * @min 0
+ * @min -1
+ * @max 400
  * @decimal 1
  * @group Commander
  */
@@ -1076,8 +1079,9 @@ PARAM_DEFINE_FLOAT(COM_WIND_MAX, -1.f);
  *
  * Set to -1 to disable.
  *
- * @group Commander
  * @min -1
+ * @max 1000
+ * @group Commander
  * @unit m
  */
 PARAM_DEFINE_FLOAT(COM_POS_LOW_EPH, -1.0f);

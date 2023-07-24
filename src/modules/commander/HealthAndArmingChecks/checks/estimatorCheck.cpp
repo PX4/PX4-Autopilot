@@ -739,7 +739,9 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 
 	// run position and velocity accuracy checks
 	// Check if quality checking of position accuracy and consistency is to be performed
-	float lpos_eph_threshold_relaxed = _param_com_pos_fs_eph.get();
+	const float lpos_eph_threshold = (_param_com_pos_fs_eph.get() < 0) ? INFINITY : _param_com_pos_fs_eph.get();
+
+	float lpos_eph_threshold_relaxed = lpos_eph_threshold;
 
 	// Set the allowable position uncertainty based on combination of flight and estimator state
 	// When we are in a operator demanded position control mode and are solely reliant on optical flow,
@@ -762,11 +764,11 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 	}
 
 	failsafe_flags.global_position_invalid =
-		!checkPosVelValidity(now, xy_valid, gpos.eph, _param_com_pos_fs_eph.get(), gpos.timestamp,
+		!checkPosVelValidity(now, xy_valid, gpos.eph, lpos_eph_threshold, gpos.timestamp,
 				     _last_gpos_fail_time_us, !failsafe_flags.global_position_invalid);
 
 	failsafe_flags.local_position_invalid =
-		!checkPosVelValidity(now, xy_valid, lpos.eph, _param_com_pos_fs_eph.get(), lpos.timestamp,
+		!checkPosVelValidity(now, xy_valid, lpos.eph, lpos_eph_threshold, lpos.timestamp,
 				     _last_lpos_fail_time_us, !failsafe_flags.local_position_invalid);
 
 	failsafe_flags.local_position_invalid_relaxed =
