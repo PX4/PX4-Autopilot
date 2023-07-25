@@ -1514,7 +1514,6 @@ PARAM_DEFINE_FLOAT(EKF2_REQ_GPS_H, 10.0f);
  * 2 : Wait for GNSS to find the theoretical strength and inclination using the WMM
  *
  * @group EKF2
- * @boolean
  * @min 0
  * @max 7
  * @bit 0 Strength (EKF2_MAG_CHK_STR)
