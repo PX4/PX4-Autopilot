@@ -1135,8 +1135,6 @@ private:
 	}
 
 	void stopGpsFusion();
-	void stopGpsPosFusion();
-	void stopGpsVelFusion();
 
 	void resetFakePosFusion();
 	void stopFakePosFusion();
