@@ -85,8 +85,8 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ~/.ccache
-        key: ${{ matrix.config }}-ccache-${{ steps.ccache_cache_timestamp.outputs.timestamp }}
-        restore-keys: ${{ matrix.config }}-ccache-
+        key: ${{matrix.config}}-ccache-${{steps.ccache_cache_timestamp.outputs.timestamp}}
+        restore-keys: ${{matrix.config}}-ccache-
 
     - name: Setup ccache
       run: |
@@ -99,32 +99,32 @@ jobs:
         ccache -s
         ccache -z
 
-    - name: make all_variants_${{ matrix.config }}
+    - name: make all_variants_${{matrix.config}}
       run: |
         ccache -z
-        make all_variants_${{ matrix.config }}
+        make all_variants_${{matrix.config}}
         ccache -s
 
-    - name: make ${{ matrix.config }} bloaty_compileunits
-      run: make ${{ matrix.config }} bloaty_compileunits || true
+    - name: make ${{matrix.config}} bloaty_compileunits
+      run: make ${{matrix.config}} bloaty_compileunits || true
 
-    - name: make ${{ matrix.config }} bloaty_inlines
-      run: make ${{ matrix.config }} bloaty_inlines || true
+    - name: make ${{matrix.config}} bloaty_inlines
+      run: make ${{matrix.config}} bloaty_inlines || true
 
-    - name: make ${{ matrix.config }} bloaty_segments
-      run: make ${{ matrix.config }} bloaty_segments || true
+    - name: make ${{matrix.config}} bloaty_segments
+      run: make ${{matrix.config}} bloaty_segments || true
 
-    - name: make ${{ matrix.config }} bloaty_symbols
-      run: make ${{ matrix.config }} bloaty_symbols || true
+    - name: make ${{matrix.config}} bloaty_symbols
+      run: make ${{matrix.config}} bloaty_symbols || true
 
-    - name: make ${{ matrix.config }} bloaty_templates
-      run: make ${{ matrix.config }} bloaty_templates || true
+    - name: make ${{matrix.config}} bloaty_templates
+      run: make ${{matrix.config}} bloaty_templates || true
 
-    - name: make ${{ matrix.config }} bloaty_ram
-      run: make ${{ matrix.config }} bloaty_ram || true
+    - name: make ${{matrix.config}} bloaty_ram
+      run: make ${{matrix.config}} bloaty_ram || true
 
-    - name: make ${{ matrix.config }} bloaty_compare_master
-      run: make ${{ matrix.config }} bloaty_compare_master || true
+    - name: make ${{matrix.config}} bloaty_compare_master
+      run: make ${{matrix.config}} bloaty_compare_master || true
 
     - name: ccache post-run
       run: ccache -s
@@ -132,7 +132,7 @@ jobs:
     - name: Upload px4 package
       uses: actions/upload-artifact@v2
       with:
-        name: px4_package_${{ matrix.config }}
+        name: px4_package_${{matrix.config}}
         path: |
           build/**/*.px4
           build/**/*.bin

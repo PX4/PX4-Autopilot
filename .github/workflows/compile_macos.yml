@@ -36,8 +36,8 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ~/.ccache
-        key: macos_${{ matrix.config }}-ccache-${{ steps.ccache_cache_timestamp.outputs.timestamp }}
-        restore-keys: macos_${{ matrix.config }}-ccache-
+        key: macos_${{matrix.config}}-ccache-${{steps.ccache_cache_timestamp.outputs.timestamp}}
+        restore-keys: macos_${{matrix.config}}-ccache-
 
     - name: Setup ccache
       run: |

@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     container: px4io/px4-dev-base-focal:2021-09-08
     env:
-      MATRIX: ${{ steps.set-matrix.outputs.matrix }}
+      MATRIX: ${{steps.set-matrix.outputs.matrix}}
     steps:
     - uses: actions/checkout@v2
 
@@ -24,23 +24,23 @@ jobs:
     needs: enumerate_targets
     strategy:
       matrix: ${{fromJson(needs.enumerate_targets.env.MATRIX)}}
-    container: px4io/px4-dev-${{ matrix.container }}:2021-09-08
+    container: px4io/px4-dev-${{matrix.container}}:2021-09-08
     steps:
     - uses: actions/checkout@v2
 
-    - name: make ${{ matrix.target }}
-      run: make ${{ matrix.target }}
+    - name: make ${{matrix.target}}
+      run: make ${{matrix.target}}
 
     - name: parameter & events metadata
       run: |
-        make ${{ matrix.target }} ver_gen events_json actuators_json
-        ./src/lib/version/get_git_tag_or_branch_version.sh build/${{ matrix.target }} >> $GITHUB_ENV
-        cd build/${{ matrix.target }}
+        make ${{matrix.target}} ver_gen events_json actuators_json
+        ./src/lib/version/get_git_tag_or_branch_version.sh build/${{matrix.target}} >> $GITHUB_ENV
+        cd build/${{matrix.target}}
         mkdir _metadata || true
         cp parameters.* events/*.xz actuators.json* _metadata
 
     - name: Upload metadata
       uses: actions/upload-artifact@v2
       with:
-        name: metadata-${{ matrix.target }}
-        path: build/${{ matrix.target }}/_metadata/
+        name: metadata-${{matrix.target}}
+        path: build/${{matrix.target}}/_metadata/
