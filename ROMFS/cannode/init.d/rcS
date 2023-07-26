@@ -21,25 +21,14 @@ set R /
 #
 ver all
 
-if mft query -q -k MTD -s MTD_PARAMETERS -v /fs/mtd_params
-then
-	set PARAM_FILE /fs/mtd_params
-fi
-
-if mft query -q -k MTD -s MTD_PARAMETERS -v /dev/eeeprom0
-then
-	set PARAM_FILE /dev/eeeprom0
-fi
-
-if mft query -q -k MTD -s MTD_PARAMETERS -v /mnt/qspi/params
-then
-	set PARAM_FILE /mnt/qspi/params
-fi
+# Load param file location from kconfig
+. ${R}etc/init.d/rc.filepaths
 
 #
 # Load parameters.
 #
 param select $PARAM_FILE
+
 if ! param load
 then
 	param reset_all
