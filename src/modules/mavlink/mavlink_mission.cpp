@@ -92,6 +92,7 @@ MavlinkMissionManager::init_offboard_mission()
 			_dataman_id = (dm_item_t)mission_state.dataman_id;
 			_count[MAV_MISSION_TYPE_MISSION] = mission_state.count;
 			_current_seq = mission_state.current_seq;
+			_mission_update_counter = mission_state.mission_update_counter;
 
 		} else {
 			PX4_WARN("offboard mission init failed");
@@ -131,6 +132,7 @@ MavlinkMissionManager::load_safepoint_stats()
 
 	if (success) {
 		_count[MAV_MISSION_TYPE_RALLY] = stats.num_items;
+		_safepoint_update_counter = stats.update_counter;
 	}
 
 	return success;
