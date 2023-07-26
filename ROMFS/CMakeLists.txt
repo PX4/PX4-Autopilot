@@ -120,6 +120,7 @@ add_custom_command(
 		${romfs_gen_root_dir}/init.d/rc.serial
 		${romfs_gen_root_dir}/init.d/rc.autostart
 		${romfs_gen_root_dir}/init.d/rc.autostart.post
+		${romfs_gen_root_dir}/init.d/rc.filepaths
 		${romfs_copy_stamp}
 	COMMAND ${CMAKE_COMMAND} -E remove_directory ${romfs_gen_root_dir}/*
 	COMMAND ${CMAKE_COMMAND} -E tar xf ${romfs_tar_file}
@@ -131,6 +132,9 @@ add_custom_command(
 		--rc-dir ${romfs_gen_root_dir}/init.d
 		--serial-ports ${board_serial_ports} ${added_arguments}
 		--config-files ${module_config_files} #--verbose
+	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/filepaths/generate_config.py
+		--rc-dir ${romfs_gen_root_dir}/init.d
+		--params-file ${CONFIG_BOARD_PARAM_FILE}
 	COMMAND ${CMAKE_COMMAND} -E touch ${romfs_copy_stamp}
 	WORKING_DIRECTORY ${romfs_gen_root_dir}
 	DEPENDS ${romfs_tar_file}
@@ -320,6 +324,7 @@ add_custom_target(romfs_gen_files_target
 	DEPENDS
 		${romfs_copy_stamp}
 		${romfs_gen_root_dir}/init.d/rc.serial
+		${romfs_gen_root_dir}/init.d/rc.filepaths
 		romfs_extras.stamp
 	)
 
