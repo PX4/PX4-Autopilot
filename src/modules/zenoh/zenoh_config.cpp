@@ -58,7 +58,7 @@ const char *default_sub_config = ""; //TODO maybe use YAML
 Zenoh_Config::Zenoh_Config()
 {
 	bool correct_config = true;
-	DIR *dir = opendir(ZENOH_SD_ROOT_PATH);
+	DIR *dir = opendir(ZENOH_ROOT_PATH);
 	fp_mapping = NULL;
 
 	if (dir) {
@@ -342,14 +342,14 @@ void Zenoh_Config::generate_clean_config()
 	printf("Generate clean\n");
 	FILE *fp;
 
-	DIR *dir = opendir(ZENOH_SD_ROOT_PATH);
+	DIR *dir = opendir(ZENOH_ROOT_PATH);
 
 	if (dir) {
 		printf("Zenoh directory exists\n");
 
 	} else {
 		/* Create zenoh dir. */
-		if (mkdir(ZENOH_SD_ROOT_PATH, 0700) < 0) {
+		if (mkdir(ZENOH_ROOT_PATH, 0700) < 0) {
 			printf("Failed to create Zenoh directory\n");
 			return;
 		}
