@@ -2594,7 +2594,7 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 		     desired_max_sinkrate,
 		     airspeed_rate_estimate,
 		     -_local_pos.vz,
-		     hgt_rate_sp);
+		     -hgt_rate_sp);
 
 	tecs_status_publish(alt_sp, airspeed_sp, airspeed_rate_estimate, throttle_trim_adjusted);
 }
