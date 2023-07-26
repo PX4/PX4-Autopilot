@@ -782,18 +782,18 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 		    && dead_reckoning) {
 			/* EVENT
 			 * @description
-			 * Estimated position error is approaching the failsafe threshold.
+			 * Switch to manual mode recommended.
 			 *
 			 * <profile name="dev">
 			 * This warning is triggered when the position error estimate is 90% of (or only 10m below) <param>COM_POS_FS_EPH</param> parameter.
 			 * </profile>
 			 */
 			events::send(events::ID("check_estimator_position_failure_imminent"), {events::Log::Error, events::LogInternal::Info},
-				     "Critical navigation failure, failsafe imminent. Switch to manual mode recommended");
+				     "Estimated position error is approaching the failsafe threshold");
 
 			if (reporter.mavlink_log_pub()) {
 				mavlink_log_critical(reporter.mavlink_log_pub(),
-						     "Critical navigation failure, failsafe imminent. Switch to manual mode recommended\t");
+						     "Estimated position error is approaching the failsafe threshold\t");
 			}
 
 			_nav_failure_imminent_warned = true;
