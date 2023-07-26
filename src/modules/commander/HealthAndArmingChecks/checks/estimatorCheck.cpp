@@ -773,35 +773,38 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 	estimator_status_flags_s estimator_status_flags;
 
 	if (_estimator_status_flags_sub.copy(&estimator_status_flags)) {
-		const bool dead_reckoning = estimator_status_flags.cs_inertial_dead_reckoning
-					    || estimator_status_flags.cs_wind_dead_reckoning;
 
-		if (!failsafe_flags.global_position_invalid
-		    && !_nav_failure_imminent_warned
-		    && gpos.eph > gpos_critical_warning_thrld
-		    && dead_reckoning) {
-			/* EVENT
-			 * @description
-			 * Switch to manual mode recommended.
-			 *
-			 * <profile name="dev">
-			 * This warning is triggered when the position error estimate is 90% of (or only 10m below) <param>COM_POS_FS_EPH</param> parameter.
-			 * </profile>
-			 */
-			events::send(events::ID("check_estimator_position_failure_imminent"), {events::Log::Error, events::LogInternal::Info},
-				     "Estimated position error is approaching the failsafe threshold");
+		// only do the following if the estimator status flags are recent (less than 5 seconds old)
+		if (now - estimator_status_flags.timestamp < 5_s) {
+			const bool dead_reckoning = estimator_status_flags.cs_inertial_dead_reckoning
+						    || estimator_status_flags.cs_wind_dead_reckoning;
 
-			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(),
-						     "Estimated position error is approaching the failsafe threshold\t");
+			if (!failsafe_flags.global_position_invalid
+			    && !_nav_failure_imminent_warned
+			    && gpos.eph > gpos_critical_warning_thrld
+			    && dead_reckoning) {
+				/* EVENT
+				* @description
+				* Switch to manual mode recommended.
+				*
+				* <profile name="dev">
+				* This warning is triggered when the position error estimate is 90% of (or only 10m below) <param>COM_POS_FS_EPH</param> parameter.
+				* </profile>
+				*/
+				events::send(events::ID("check_estimator_position_failure_imminent"), {events::Log::Error, events::LogInternal::Info},
+					     "Estimated position error is approaching the failsafe threshold");
+
+				if (reporter.mavlink_log_pub()) {
+					mavlink_log_critical(reporter.mavlink_log_pub(),
+							     "Estimated position error is approaching the failsafe threshold\t");
+				}
+
+				_nav_failure_imminent_warned = true;
+
+			} else if (!dead_reckoning) {
+				_nav_failure_imminent_warned = false;
 			}
-
-			_nav_failure_imminent_warned = true;
-
-		} else if (!dead_reckoning) {
-			_nav_failure_imminent_warned = false;
 		}
-
 	}
 
 	failsafe_flags.local_position_invalid =
