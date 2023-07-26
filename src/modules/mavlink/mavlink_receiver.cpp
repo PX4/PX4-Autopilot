@@ -323,6 +323,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_gimbal_device_attitude_status(msg);
 		break;
 
+	case MAVLINK_MSG_ID_SET_VELOCITY_LIMITS:
+		handle_message_set_velocity_limits(msg);
+		break;
+
 	default:
 		break;
 	}
@@ -1209,6 +1213,21 @@ MavlinkReceiver::handle_message_set_gps_global_origin(mavlink_message_t *msg)
 	}
 
 	handle_request_message_command(MAVLINK_MSG_ID_GPS_GLOBAL_ORIGIN);
+}
+
+void MavlinkReceiver::handle_message_set_velocity_limits(mavlink_message_t *msg)
+{
+	mavlink_set_velocity_limits_t mavlink_set_velocity_limits;
+	mavlink_msg_set_velocity_limits_decode(msg, &mavlink_set_velocity_limits);
+
+	if (true) {
+		velocity_limits_s velocity_limits{};
+		velocity_limits.horizontal_velocity = mavlink_set_velocity_limits.horizontal_speed_limit;
+		velocity_limits.vertical_velocity = mavlink_set_velocity_limits.vertical_speed_limit;
+		velocity_limits.yaw_rate = mavlink_set_velocity_limits.yaw_rate_limit;
+		velocity_limits.timestamp = hrt_absolute_time();
+		_velocity_limits_pub.publish(velocity_limits);
+	}
 }
 
 void
