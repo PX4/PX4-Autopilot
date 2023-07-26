@@ -94,6 +94,7 @@ public:
 			config_control_setpoint_.flag_control_acceleration_enabled = true;
 			config_control_setpoint_.flag_control_rates_enabled = true;
 			config_control_setpoint_.flag_control_attitude_enabled = true;
+			config_control_setpoint_.flag_control_allocation_enabled = true;
 		}
 
 		static constexpr uint8_t REPLACES_NAV_STATE_NONE = 0xff;
