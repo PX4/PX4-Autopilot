@@ -103,6 +103,8 @@ private:
 
 	bool _gps_was_fused{false};
 
+	bool _nav_failure_imminent_warned{false};
+
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
 					(ParamInt<px4::params::SYS_MC_EST_GROUP>) _param_sys_mc_est_group,
 					(ParamInt<px4::params::SENS_IMU_MODE>) _param_sens_imu_mode,

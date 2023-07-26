@@ -777,7 +777,7 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 					    || estimator_status_flags.cs_wind_dead_reckoning;
 
 		if (!failsafe_flags.global_position_invalid
-		    && !failsafe_flags.nav_failure_imminent_warned
+		    && !_nav_failure_imminent_warned
 		    && gpos.eph > gpos_critical_warning_thrld
 		    && dead_reckoning) {
 			/* EVENT
@@ -796,10 +796,10 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 						     "Critical navigation failure, failsafe imminent. Switch to manual mode recommended\t");
 			}
 
-			failsafe_flags.nav_failure_imminent_warned = true;
+			_nav_failure_imminent_warned = true;
 
 		} else if (!dead_reckoning) {
-			failsafe_flags.nav_failure_imminent_warned = false;
+			_nav_failure_imminent_warned = false;
 		}
 
 	}
