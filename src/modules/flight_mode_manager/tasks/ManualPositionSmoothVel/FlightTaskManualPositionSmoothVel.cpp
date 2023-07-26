@@ -171,5 +171,8 @@ void FlightTaskManualPositionSmoothVel::_setOutputStateZ()
 	_jerk_setpoint(2) = _smoothing_z.getCurrentJerk();
 	_acceleration_setpoint(2) = _smoothing_z.getCurrentAcceleration();
 	_velocity_setpoint(2) = _smoothing_z.getCurrentVelocity();
-	_position_setpoint(2) = _smoothing_z.getCurrentPosition();
+	if (!PX4_ISFINITE(_position_setpoint(2))) {
+		_position_setpoint(2) = _smoothing_z.getCurrentPosition();
+	}
+
 }

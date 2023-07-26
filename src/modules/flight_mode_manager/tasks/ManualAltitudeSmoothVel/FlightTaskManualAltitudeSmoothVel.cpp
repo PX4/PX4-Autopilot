@@ -106,5 +106,7 @@ void FlightTaskManualAltitudeSmoothVel::_setOutputState()
 	_jerk_setpoint(2) = _smoothing.getCurrentJerk();
 	_acceleration_setpoint(2) = _smoothing.getCurrentAcceleration();
 	_velocity_setpoint(2) = _smoothing.getCurrentVelocity();
-	_position_setpoint(2) = _smoothing.getCurrentPosition();
+	if (!PX4_ISFINITE(_position_setpoint(2))) {
+		_position_setpoint(2) = _smoothing.getCurrentPosition();
+	}
 }
