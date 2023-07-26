@@ -51,6 +51,7 @@ struct orb_metadata {
 	const char    *o_name;              /**< unique object name */
 	const uint16_t o_size;              /**< object size */
 	const uint16_t o_size_no_padding;   /**< object size w/o padding at the end (for logger) */
+	uint32_t message_hash;	/**< Hash over all fields for message compatibility checks */
 	orb_id_size_t  o_id;                /**< ORB_ID enum */
 };
 
@@ -99,13 +100,15 @@ typedef const struct orb_metadata *orb_id_t;
  * @param _name		The name of the topic.
  * @param _struct	The structure the topic provides.
  * @param _size_no_padding	Struct size w/o padding at the end
+ * @param _message_hash	32 bit message hash over all fields
  * @param _orb_id_enum	ORB ID enum e.g.: ORB_ID::vehicle_status
  */
-#define ORB_DEFINE(_name, _struct, _size_no_padding, _orb_id_enum)		\
+#define ORB_DEFINE(_name, _struct, _size_no_padding, _message_hash, _orb_id_enum)		\
 	const struct orb_metadata __orb_##_name = {	\
 		#_name,					\
 		sizeof(_struct),		\
 		_size_no_padding,			\
+		_message_hash,				\
 		_orb_id_enum				\
 	}; struct hack
 
