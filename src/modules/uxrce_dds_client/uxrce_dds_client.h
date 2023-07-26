@@ -38,6 +38,10 @@
 
 #include <src/modules/uxrce_dds_client/dds_topics.h>
 
+#include <uORB/topics/message_format_request.h>
+#include <uORB/topics/message_format_response.h>
+#include <uORB/Subscription.hpp>
+
 #include <lib/timesync/Timesync.hpp>
 
 #include "srv_base.h"
@@ -105,6 +109,11 @@ public:
 
 private:
 	int setBaudrate(int fd, unsigned baud);
+
+	void handleMessageFormatRequest();
+
+	uORB::Publication<message_format_response_s> _message_format_response_pub{ORB_ID(message_format_response)};
+	uORB::Subscription _message_format_request_sub{ORB_ID(message_format_request)};
 
 	const bool _localhost_only;
 	const bool _custom_participant;

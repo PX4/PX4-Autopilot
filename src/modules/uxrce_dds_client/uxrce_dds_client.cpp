@@ -188,6 +188,67 @@ UxrceddsClient::~UxrceddsClient()
 	}
 }
 
+static void fillMessageFormatResponse(const message_format_request_s &message_format_request,
+				      message_format_response_s &message_format_response)
+{
+	message_format_response.protocol_version = message_format_request_s::LATEST_PROTOCOL_VERSION;
+	message_format_response.success = false;
+
+	if (message_format_request.protocol_version == message_format_request_s::LATEST_PROTOCOL_VERSION) {
+		static_assert(sizeof(message_format_request.topic_name) == sizeof(message_format_response.topic_name), "size mismatch");
+		memcpy(message_format_response.topic_name, message_format_request.topic_name,
+		       sizeof(message_format_response.topic_name));
+
+		// Get the topic name by searching for the last '/'
+		int idx_last_slash = -1;
+		bool found_null = false;
+
+		for (int i = 0; i < (int)sizeof(message_format_request.topic_name); ++i) {
+			if (message_format_request.topic_name[i] == 0) {
+				found_null = true;
+				break;
+			}
+
+			if (message_format_request.topic_name[i] == '/') {
+				idx_last_slash = i;
+			}
+		}
+
+		if (found_null && idx_last_slash != -1) {
+			const char *topic_name = message_format_request.topic_name + idx_last_slash + 1;
+			// Find the format
+			const orb_metadata *const *topics = orb_get_topics();
+			const orb_metadata *topic_meta{nullptr};
+
+			for (size_t i = 0; i < orb_topics_count(); i++) {
+				if (strcmp(topic_name, topics[i]->o_name) == 0) {
+					topic_meta = topics[i];
+					break;
+				}
+			}
+
+			if (topic_meta) {
+				message_format_response.message_hash = topic_meta->message_hash;
+				// The topic type is already checked by DDS
+				message_format_response.success = true;
+			}
+		}
+	}
+
+	message_format_response.timestamp = hrt_absolute_time();
+}
+
+void UxrceddsClient::handleMessageFormatRequest()
+{
+	message_format_request_s message_format_request;
+
+	if (_message_format_request_sub.update(&message_format_request)) {
+		message_format_response_s message_format_response;
+		fillMessageFormatResponse(message_format_request, message_format_response);
+		_message_format_response_pub.publish(message_format_response);
+	}
+}
+
 void UxrceddsClient::run()
 {
 	if (!_comm) {
@@ -404,6 +465,8 @@ void UxrceddsClient::run()
 					last_sync_session = hrt_absolute_time();
 				}
 			}
+
+			handleMessageFormatRequest();
 
 			// Check for a ping response
 			/* PONG_IN_SESSION_STATUS */
