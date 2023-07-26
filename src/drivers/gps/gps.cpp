@@ -1031,6 +1031,7 @@ GPS::run()
 		if ((_interface == GPSHelper::Interface::UART) && (_uart)) {
 			(void) _uart->close();
 			delete _uart;
+			_uart = nullptr;
 
 #ifdef __PX4_LINUX
 
