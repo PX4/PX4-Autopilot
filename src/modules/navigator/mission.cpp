@@ -586,7 +586,7 @@ void
 Mission::update_mission()
 {
 
-	bool failed = true;
+	bool failed = !_navigator->get_mission_result()->valid;
 
 	_dataman_cache.invalidate();
 	_load_mission_index = -1;
@@ -653,6 +653,7 @@ Mission::update_mission()
 
 	} else {
 		PX4_ERR("mission update failed");
+		failed = true;
 	}
 
 	if (failed) {
