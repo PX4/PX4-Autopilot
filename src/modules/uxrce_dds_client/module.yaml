@@ -64,3 +64,14 @@ parameters:
             reboot_required: true
             default: 2130706433
             requires_ethernet: true
+
+        UXRCE_DDS_SYNCT:
+            description:
+                short: uXRCE-DDS timestamp synchronization enable
+                long: When enabled, uxrce_dds_client will synchronize the timestamps
+                    of the incoming and outgoing messages measuring the offset
+                    between the Agent OS time and the PX4 time.
+            type: boolean
+            category: System
+            reboot_required: true
+            default: 1
