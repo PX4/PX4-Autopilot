@@ -57,6 +57,7 @@ from px_generate_uorb_topic_helper import * # this is in Tools/
 
 uorb_struct = '%s_s'%name_snake_case
 
+message_hash = get_message_hash(spec.parsed_fields(), search_path)
 sorted_fields = sorted(spec.parsed_fields(), key=sizeof_field_type, reverse=True)
 struct_size, padding_end_size = add_padding_bytes(sorted_fields, search_path)
 topic_fields = ["%s %s" % (convert_type(field.type, True), field.name) for field in sorted_fields]
@@ -77,7 +78,7 @@ topic_fields = ["%s %s" % (convert_type(field.type, True), field.name) for field
 constexpr char __orb_@(name_snake_case)_fields[] = "@( ";".join(topic_fields) );";
 
 @[for topic in topics]@
-ORB_DEFINE(@topic, struct @uorb_struct, @(struct_size-padding_end_size), __orb_@(name_snake_case)_fields, static_cast<orb_id_size_t>(ORB_ID::@topic));
+ORB_DEFINE(@topic, struct @uorb_struct, @(struct_size-padding_end_size), __orb_@(name_snake_case)_fields, @(message_hash)u, static_cast<orb_id_size_t>(ORB_ID::@topic));
 @[end for]
 
 void print_message(const orb_metadata *meta, const @uorb_struct& message)
