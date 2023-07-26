@@ -275,21 +275,32 @@ void VehicleMagnetometer::UpdateMagCalibration()
 				const Vector3f bias_variance{estimator_sensor_bias.mag_bias_variance};
 
 				const bool valid = (hrt_elapsed_time(&estimator_sensor_bias.timestamp) < 1_s)
-						   && (estimator_sensor_bias.mag_device_id != 0) &&
-						   estimator_sensor_bias.mag_bias_valid &&
-						   estimator_sensor_bias.mag_bias_stable &&
-						   (bias_variance.min() > min_var_allowed) && (bias_variance.max() < max_var_allowed);
+						   && (estimator_sensor_bias.mag_device_id != 0)
+						   && estimator_sensor_bias.mag_bias_valid
+						   && estimator_sensor_bias.mag_bias_stable
+						   && (bias_variance.min() > min_var_allowed)
+						   && (bias_variance.max() < max_var_allowed);
 
 				if (valid) {
 					// find corresponding mag calibration
 					for (int mag_index = 0; mag_index < MAX_SENSOR_COUNT; mag_index++) {
 						if (_calibration[mag_index].device_id() == estimator_sensor_bias.mag_device_id) {
 
-							_mag_cal[i].device_id = estimator_sensor_bias.mag_device_id;
-
 							// readd estimated bias that was removed before publishing vehicle_magnetometer (_calibration_estimator_bias)
-							_mag_cal[i].offset = _calibration[mag_index].BiasCorrectedSensorOffset(bias + _calibration_estimator_bias[mag_index]);
+							const Vector3f cal_offset{_calibration[mag_index].BiasCorrectedSensorOffset(bias + _calibration_estimator_bias[mag_index])};
 
+							if ((cal_offset - _mag_cal[i].offset).longerThan(0.001f)) {
+								const Vector3f mag_cal_orig{_calibration[mag_index].offset()};
+
+								PX4_DEBUG("%d (%" PRIu32 ") EST:%d offset: [%.2f, %.2f, %.2f]->[%.2f, %.2f, %.2f] (full [%.3f, %.3f, %.3f])",
+									  mag_index, _calibration[mag_index].device_id(), i,
+									  (double)mag_cal_orig(0), (double)mag_cal_orig(1), (double)mag_cal_orig(2),
+									  (double)cal_offset(0), (double)cal_offset(1), (double)cal_offset(2),
+									  (double)_mag_cal[i].offset(0), (double)_mag_cal[i].offset(1), (double)_mag_cal[i].offset(2));
+							}
+
+							_mag_cal[i].device_id = estimator_sensor_bias.mag_device_id;
+							_mag_cal[i].offset = cal_offset;
 							_mag_cal[i].variance = bias_variance;
 
 							_in_flight_mag_cal_available = true;
