@@ -3,6 +3,6 @@
   <include>
       <name>omnicopter</name>
       <pose>0 0 0 0 0 0</pose>
-      <uri>https://fuel.ignitionrobotics.org/1.0/PX4/models/Omnicopter</uri>
+      <uri>https://fuel.gazebosim.org/1.0/PX4/models/Omnicopter</uri>
     </include>
 </sdf>
