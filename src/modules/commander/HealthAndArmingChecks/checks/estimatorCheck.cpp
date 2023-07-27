@@ -117,7 +117,7 @@ void EstimatorChecks::checkAndReport(const Context &context, Report &reporter)
 
 	// set mode requirements
 	setModeRequirementFlags(context, pre_flt_fail_innov_heading, pre_flt_fail_innov_vel_horiz, lpos, vehicle_gps_position,
-				reporter.failsafeFlags());
+				reporter.failsafeFlags(), reporter);
 
 
 	lowPositionAccuracy(context, reporter, lpos);
@@ -731,7 +731,8 @@ void EstimatorChecks::lowPositionAccuracy(const Context &context, Report &report
 
 void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_flt_fail_innov_heading,
 		bool pre_flt_fail_innov_vel_horiz,
-		const vehicle_local_position_s &lpos, const sensor_gps_s &vehicle_gps_position, failsafe_flags_s &failsafe_flags)
+		const vehicle_local_position_s &lpos, const sensor_gps_s &vehicle_gps_position, failsafe_flags_s &failsafe_flags,
+		Report &reporter)
 {
 	// The following flags correspond to mode requirements, and are reported in the corresponding mode checks
 	vehicle_global_position_s gpos;
@@ -771,6 +772,47 @@ void EstimatorChecks::setModeRequirementFlags(const Context &context, bool pre_f
 	failsafe_flags.global_position_invalid =
 		!checkPosVelValidity(now, xy_valid, gpos.eph, lpos_eph_threshold, gpos.timestamp,
 				     _last_gpos_fail_time_us, !failsafe_flags.global_position_invalid);
+
+	// Additional warning if the system is about to enter position-loss failsafe after dead-reckoning period
+	const float eph_critical = 2.5f * _param_com_pos_fs_eph.get(); // threshold used to trigger the navigation failsafe
+	const float gpos_critical_warning_thrld = math::max(0.9f * eph_critical, math::max(eph_critical - 10.f, 0.f));
+
+	estimator_status_flags_s estimator_status_flags;
+
+	if (_estimator_status_flags_sub.copy(&estimator_status_flags)) {
+
+		// only do the following if the estimator status flags are recent (less than 5 seconds old)
+		if (now - estimator_status_flags.timestamp < 5_s) {
+			const bool dead_reckoning = estimator_status_flags.cs_inertial_dead_reckoning
+						    || estimator_status_flags.cs_wind_dead_reckoning;
+
+			if (!failsafe_flags.global_position_invalid
+			    && !_nav_failure_imminent_warned
+			    && gpos.eph > gpos_critical_warning_thrld
+			    && dead_reckoning) {
+				/* EVENT
+				* @description
+				* Switch to manual mode recommended.
+				*
+				* <profile name="dev">
+				* This warning is triggered when the position error estimate is 90% of (or only 10m below) <param>COM_POS_FS_EPH</param> parameter.
+				* </profile>
+				*/
+				events::send(events::ID("check_estimator_position_failure_imminent"), {events::Log::Error, events::LogInternal::Info},
+					     "Estimated position error is approaching the failsafe threshold");
+
+				if (reporter.mavlink_log_pub()) {
+					mavlink_log_critical(reporter.mavlink_log_pub(),
+							     "Estimated position error is approaching the failsafe threshold\t");
+				}
+
+				_nav_failure_imminent_warned = true;
+
+			} else if (!dead_reckoning) {
+				_nav_failure_imminent_warned = false;
+			}
+		}
+	}
 
 	failsafe_flags.local_position_invalid =
 		!checkPosVelValidity(now, xy_valid, lpos.eph, lpos_eph_threshold, lpos.timestamp,
