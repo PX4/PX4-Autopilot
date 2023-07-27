@@ -79,6 +79,18 @@ void EstimatorInterface::setIMUData(const imuSample &imu_sample)
 
 	_time_latest_us = imu_sample.time_us;
 
+	// reset accel bias immediately if calibration or sensor changed (new IMU + bias used by output predictor)
+	if (imu_sample.accel_reset) {
+		ECL_INFO("accel reset");
+		resetAccelBias();
+	}
+
+	// reset gyro bias immediately if calibration or sensor changed (new IMU + bias used by output predictor)
+	if (imu_sample.gyro_reset) {
+		ECL_INFO("gyro reset");
+		resetGyroBias();
+	}
+
 	// the output observer always runs
 	_output_predictor.calculateOutputStates(imu_sample.time_us, imu_sample.delta_ang, imu_sample.delta_ang_dt, imu_sample.delta_vel, imu_sample.delta_vel_dt);
 
