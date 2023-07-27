@@ -896,10 +896,10 @@ PARAM_DEFINE_INT32(COM_PREARM_MODE, 0);
 PARAM_DEFINE_INT32(COM_FORCE_SAFETY, 0);
 
 /**
- * Enable Motor Testing
+ * Enable Actuator Testing
  *
- * If set, enables the motor test interface via MAVLink (DO_MOTOR_TEST), that
- * allows spinning the motors for testing purposes.
+ * If set, enables the actuator test interface via MAVLink (ACTUATOR_TEST), that
+ * allows spinning the motors and moving the servos for testing purposes.
  *
  * @boolean
  * @group Commander
