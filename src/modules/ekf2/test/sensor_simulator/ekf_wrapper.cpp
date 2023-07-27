@@ -288,11 +288,6 @@ int EkfWrapper::getQuaternionResetCounter() const
 	return static_cast<int>(counter);
 }
 
-matrix::Vector3f EkfWrapper::getDeltaVelBiasVariance() const
-{
-	return _ekf->covariances_diagonal().slice<3, 1>(13, 0);
-}
-
 void EkfWrapper::enableDragFusion()
 {
 	_ekf_params->drag_ctrl = 1;

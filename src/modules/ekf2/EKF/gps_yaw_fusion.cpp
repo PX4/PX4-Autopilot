@@ -126,7 +126,7 @@ void Ekf::fuseGpsYaw()
 		// A constant large signed test ratio is a sign of wrong gyro bias
 		// Reset the yaw gyro variance to converge faster and avoid
 		// being stuck on a previous bad estimate
-		resetZDeltaAngBiasCov();
+		resetGyroBiasZCov();
 	}
 
 	// calculate the Kalman gains
