@@ -82,7 +82,9 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 		const bool gps_checks_passing = isTimedOut(_last_gps_fail_us, (uint64_t)5e6);
 		const bool gps_checks_failing = isTimedOut(_last_gps_pass_us, (uint64_t)5e6);
 
+#if defined(CONFIG_EKF2_GNSS_YAW)
 		controlGpsYawFusion(gps_sample, gps_checks_passing, gps_checks_failing);
+#endif // CONFIG_EKF2_GNSS_YAW
 
 		// GNSS velocity
 		const Vector3f velocity{gps_sample.vel};
@@ -117,34 +119,26 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 						     _aid_src_gnss_pos);
 		_aid_src_gnss_pos.fusion_enabled = (_params.gnss_ctrl & GnssCtrl::HPOS);
 
-		// if GPS is otherwise ready to go, but yaw_align is blocked by EV give mag a chance to start
-		if (_control_status.flags.tilt_align && _NED_origin_initialised
-		    && gps_checks_passing && !gps_checks_failing) {
-
-			if (!_control_status.flags.yaw_align) {
-				if (_control_status.flags.ev_yaw && !_control_status.flags.yaw_align) {
-
-					// give mag a chance to start and yaw align if currently blocked by EV yaw
-					const bool mag_enabled = (_params.mag_fusion_type <= MagFuseType::MAG_3D);
-					const bool mag_available = (_mag_counter != 0);
-
-					if (mag_enabled && mag_available
-					    && !_control_status.flags.mag_field_disturbed
-					    && !_control_status.flags.mag_fault) {
-
-						stopEvYawFusion();
-					}
-				}
-			}
-		}
-
-
 		// Determine if we should use GPS aiding for velocity and horizontal position
 		// To start using GPS we need angular alignment completed, the local NED origin set and GPS data that has not failed checks recently
-		const bool mandatory_conditions_passing = ((_params.gnss_ctrl & GnssCtrl::HPOS) || (_params.gnss_ctrl & GnssCtrl::VEL))
-				&& _control_status.flags.tilt_align
-				&& _control_status.flags.yaw_align
-				&& _NED_origin_initialised;
+		bool mandatory_conditions_passing = false;
+
+		if (((_params.gnss_ctrl & GnssCtrl::HPOS) || (_params.gnss_ctrl & GnssCtrl::VEL))
+		    && _control_status.flags.tilt_align
+		    && _NED_origin_initialised
+		   ) {
+			// if GPS is otherwise ready to go other than yaw align
+			if (!_control_status.flags.yaw_align && gps_checks_passing && !gps_checks_failing) {
+
+				if (resetYawToEKFGSF()) {
+					ECL_INFO("GPS yaw aligned using IMU");
+				}
+			}
+
+			if (_control_status.flags.yaw_align) {
+				mandatory_conditions_passing = true;
+			}
+		}
 
 		const bool continuing_conditions_passing = mandatory_conditions_passing && !gps_checks_failing;
 		const bool starting_conditions_passing = continuing_conditions_passing && gps_checks_passing;
@@ -170,6 +164,31 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 						 */
 						if (resetYawToEKFGSF()) {
 							ECL_WARN("GPS emergency yaw reset");
+
+							if (_control_status.flags.mag_hdg || _control_status.flags.mag_3D) {
+								// stop using the magnetometer in the main EKF otherwise it' fusion could drag the yaw around
+								// and cause another navigation failure
+								_control_status.flags.mag_fault = true;
+								_warning_events.flags.emergency_yaw_reset_mag_stopped = true;
+							}
+
+#if defined(CONFIG_EKF2_GNSS_YAW)
+
+							if (_control_status.flags.gps_yaw) {
+								_control_status.flags.gps_yaw_fault = true;
+								_warning_events.flags.emergency_yaw_reset_gps_yaw_stopped = true;
+							}
+
+#endif // CONFIG_EKF2_GNSS_YAW
+
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
+
+							if (_control_status.flags.ev_yaw) {
+								_inhibit_ev_yaw_use = true;
+							}
+
+#endif // CONFIG_EKF2_EXTERNAL_VISION
+
 							do_vel_pos_reset = true;
 						}
 					}
@@ -200,14 +219,6 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 
 		} else {
 			if (starting_conditions_passing) {
-				// Do not use external vision for yaw if using GPS because yaw needs to be
-				// defined relative to an NED reference frame
-				if (_control_status.flags.ev_yaw) {
-					// Stop the vision for yaw fusion and do not allow it to start again
-					stopEvYawFusion();
-					_inhibit_ev_yaw_use = true;
-				}
-
 				ECL_INFO("starting GPS fusion");
 				_information_events.flags.starting_gps_fusion = true;
 
@@ -228,23 +239,6 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 				_aid_src_gnss_pos.time_last_fuse = _time_delayed_us;
 
 				_control_status.flags.gps = true;
-
-			} else if (gps_checks_passing && !_control_status.flags.yaw_align && (_params.mag_fusion_type == MagFuseType::NONE)) {
-				// If no mag is used, align using the yaw estimator (if available)
-				if (resetYawToEKFGSF()) {
-					_information_events.flags.yaw_aligned_to_imu_gps = true;
-					ECL_INFO("GPS yaw aligned using IMU, resetting vel and pos");
-
-					// reset velocity
-					_information_events.flags.reset_vel_to_gps = true;
-					resetVelocityTo(velocity, vel_obs_var);
-					_aid_src_gnss_vel.time_last_fuse = _time_delayed_us;
-
-					// reset position
-					_information_events.flags.reset_pos_to_gps = true;
-					resetHorizontalPositionTo(position, pos_obs_var);
-					_aid_src_gnss_pos.time_last_fuse = _time_delayed_us;
-				}
 			}
 		}
 
@@ -269,9 +263,19 @@ bool Ekf::shouldResetGpsFusion() const
 	/* We are relying on aiding to constrain drift so after a specified time
 	 * with no aiding we need to do something
 	 */
-	const bool has_horizontal_aiding_timed_out = isTimedOut(_time_last_hor_pos_fuse, _params.reset_timeout_max)
-			&& isTimedOut(_time_last_hor_vel_fuse, _params.reset_timeout_max)
-			&& isTimedOut(_aid_src_optical_flow.time_last_fuse, _params.reset_timeout_max);
+	bool has_horizontal_aiding_timed_out = isTimedOut(_time_last_hor_pos_fuse, _params.reset_timeout_max)
+					       && isTimedOut(_time_last_hor_vel_fuse, _params.reset_timeout_max);
+
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
+
+	if (has_horizontal_aiding_timed_out) {
+		// horizontal aiding hasn't timed out if optical flow still active
+		if (_control_status.flags.opt_flow && isRecent(_aid_src_optical_flow.time_last_fuse, _params.reset_timeout_max)) {
+			has_horizontal_aiding_timed_out = false;
+		}
+	}
+
+#endif // CONFIG_EKF2_OPTICAL_FLOW
 
 	const bool is_reset_required = has_horizontal_aiding_timed_out
 				       || isTimedOut(_time_last_hor_pos_fuse, 2 * _params.reset_timeout_max);
@@ -297,6 +301,7 @@ bool Ekf::isYawFailure() const
 	return fabsf(yaw_error) > math::radians(25.f);
 }
 
+#if defined(CONFIG_EKF2_GNSS_YAW)
 void Ekf::controlGpsYawFusion(const gpsSample &gps_sample, bool gps_checks_passing, bool gps_checks_failing)
 {
 	if (!(_params.gnss_ctrl & GnssCtrl::YAW)
@@ -363,9 +368,18 @@ void Ekf::controlGpsYawFusion(const gpsSample &gps_sample, bool gps_checks_passi
 		} else {
 			if (starting_conditions_passing) {
 				// Try to activate GPS yaw fusion
-				startGpsYawFusion(gps_sample);
+				if (resetYawToGps(gps_sample.yaw)) {
 
-				if (_control_status.flags.gps_yaw) {
+					stopEvYawFusion();
+					stopMagHdgFusion();
+					stopMag3DFusion();
+
+					ECL_INFO("starting GPS yaw fusion");
+
+					_aid_src_gnss_yaw.time_last_fuse = _time_delayed_us;
+					_control_status.flags.gps_yaw = true;
+					_control_status.flags.yaw_align = true;
+
 					_nb_gps_yaw_reset_available = 1;
 				}
 			}
@@ -377,69 +391,46 @@ void Ekf::controlGpsYawFusion(const gpsSample &gps_sample, bool gps_checks_passi
 		// No yaw data in the message anymore. Stop until it comes back.
 		stopGpsYawFusion();
 	}
+}
+#endif // CONFIG_EKF2_GNSS_YAW
 
-	// Before takeoff, we do not want to continue to rely on the current heading
-	// if we had to stop the fusion
-	if (!_control_status.flags.in_air
-	    && !_control_status.flags.gps_yaw
-	    && _control_status_prev.flags.gps_yaw) {
-		_control_status.flags.yaw_align = false;
+void Ekf::stopGpsYawFusion()
+{
+#if defined(CONFIG_EKF2_GNSS_YAW)
+
+	if (_control_status.flags.gps_yaw) {
+
+		_control_status.flags.gps_yaw = false;
+		resetEstimatorAidStatus(_aid_src_gnss_yaw);
+
+		// Before takeoff, we do not want to continue to rely on the current heading
+		// if we had to stop the fusion
+		if (!_control_status.flags.in_air) {
+			ECL_INFO("stopping GPS yaw fusion, clearing yaw alignment");
+			_control_status.flags.yaw_align = false;
+
+		} else {
+			ECL_INFO("stopping GPS yaw fusion");
+		}
 	}
+
+#endif // CONFIG_EKF2_GNSS_YAW
 }
 
 void Ekf::stopGpsFusion()
 {
 	if (_control_status.flags.gps) {
-		stopGpsPosFusion();
-		stopGpsVelFusion();
+		ECL_INFO("stopping GPS position and velocity fusion");
+		resetEstimatorAidStatus(_aid_src_gnss_pos);
+		resetEstimatorAidStatus(_aid_src_gnss_vel);
 
 		_control_status.flags.gps = false;
 	}
 
-	if (_control_status.flags.gps_yaw) {
-		stopGpsYawFusion();
-	}
+	stopGpsHgtFusion();
+	stopGpsYawFusion();
 
 	// We do not need to know the true North anymore
 	// EV yaw can start again
 	_inhibit_ev_yaw_use = false;
-}
-
-void Ekf::stopGpsPosFusion()
-{
-	if (_control_status.flags.gps) {
-		ECL_INFO("stopping GPS position fusion");
-		_control_status.flags.gps = false;
-
-		resetEstimatorAidStatus(_aid_src_gnss_pos);
-	}
-}
-
-void Ekf::stopGpsVelFusion()
-{
-	ECL_INFO("stopping GPS velocity fusion");
-
-	resetEstimatorAidStatus(_aid_src_gnss_vel);
-}
-
-void Ekf::startGpsYawFusion(const gpsSample &gps_sample)
-{
-	if (!_control_status.flags.gps_yaw && resetYawToGps(gps_sample.yaw)) {
-		ECL_INFO("starting GPS yaw fusion");
-		_control_status.flags.yaw_align = true;
-		_control_status.flags.mag_dec = false;
-		stopEvYawFusion();
-		stopMagHdgFusion();
-		stopMag3DFusion();
-		_control_status.flags.gps_yaw = true;
-	}
-}
-
-void Ekf::stopGpsYawFusion()
-{
-	if (_control_status.flags.gps_yaw) {
-		ECL_INFO("stopping GPS yaw fusion");
-		_control_status.flags.gps_yaw = false;
-		resetEstimatorAidStatus(_aid_src_gnss_yaw);
-	}
 }

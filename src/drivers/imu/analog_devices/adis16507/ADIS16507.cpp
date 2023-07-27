@@ -318,7 +318,7 @@ void ADIS16507::RunImpl()
 				// TODO:
 				// Group Delay with No Filtering: Accelerometer 1.57 ms
 				const uint64_t accel_group_delay_us = 1'570;
-				_px4_accel.update(timestamp_sample + accel_group_delay_us, accel_x, accel_y, accel_z);
+				_px4_accel.update(timestamp_sample - accel_group_delay_us, accel_x, accel_y, accel_z);
 
 
 				int16_t gyro_x = buffer.X_GYRO_OUT;
@@ -335,7 +335,7 @@ void ADIS16507::RunImpl()
 				//  Gyroscope (Y-Axis) 1.51 ms
 				//  Gyroscope (Z-Axis) 1.29 ms
 				const uint64_t gyro_group_delay_us = (1'510 + 1'510 + 1'290) / 3;
-				_px4_gyro.update(timestamp_sample + gyro_group_delay_us, gyro_x, gyro_y, gyro_z);
+				_px4_gyro.update(timestamp_sample - gyro_group_delay_us, gyro_x, gyro_y, gyro_z);
 
 				success = true;
 

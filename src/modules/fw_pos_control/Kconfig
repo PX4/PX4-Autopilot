@@ -1,0 +1,12 @@
+menuconfig MODULES_FW_POS_CONTROL
+	bool "fw_pos_control"
+	default n
+	---help---
+		Enable support for fw_pos_control
+
+menuconfig USER_FW_POS_CONTROL
+	bool "fw_pos_control running as userspace module"
+	default n
+	depends on BOARD_PROTECTED && MODULES_FW_POS_CONTROL
+	---help---
+		Put fw_pos_control in userspace memory

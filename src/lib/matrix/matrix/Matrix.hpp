@@ -12,11 +12,6 @@
 #include <cstdio>
 #include <cstring>
 
-#if defined(SUPPORT_STDIOSTREAM)
-#include <iostream>
-#include <iomanip>
-#endif // defined(SUPPORT_STDIOSTREAM)
-
 #include "math.hpp"
 
 namespace matrix
@@ -163,6 +158,7 @@ public:
 		return res;
 	}
 
+	// Element-wise multiplication
 	Matrix<Type, M, N> emult(const Matrix<Type, M, N> &other) const
 	{
 		Matrix<Type, M, N> res;
@@ -177,6 +173,7 @@ public:
 		return res;
 	}
 
+	// Element-wise division
 	Matrix<Type, M, N> edivide(const Matrix<Type, M, N> &other) const
 	{
 		Matrix<Type, M, N> res;
@@ -372,10 +369,9 @@ public:
 	{
 		// element: tab, point, 8 digits, 4 scientific notation chars; row: newline; string: \0 end
 		static const size_t n = 15 * N * M + M + 1;
-		char *buf = new char[n];
-		write_string(buf, n);
-		printf("%s\n", buf);
-		delete[] buf;
+		char string[n];
+		write_string(string, n);
+		printf("%s\n", string);
 	}
 
 	Matrix<Type, N, M> transpose() const
@@ -816,24 +812,16 @@ Matrix<Type, M, N> constrain(const Matrix<Type, M, N> &x,
 	return m;
 }
 
-#if defined(SUPPORT_STDIOSTREAM)
-template<typename Type, size_t  M, size_t N>
-std::ostream &operator<<(std::ostream &os,
-			 const matrix::Matrix<Type, M, N> &matrix)
+template<typename OStream, typename Type, size_t M, size_t N>
+OStream &operator<<(OStream &os, const matrix::Matrix<Type, M, N> &matrix)
 {
-	for (size_t i = 0; i < M; ++i) {
-		os << "[";
-
-		for (size_t j = 0; j < N; ++j) {
-			os << std::setw(10) << matrix(i, j);
-			os << "\t";
-		}
-
-		os << "]" << std::endl;
-	}
-
+	os << "\n";
+	// element: tab, point, 8 digits, 4 scientific notation chars; row: newline; string: \0 end
+	static const size_t n = 15 * N * M + M + 1;
+	char string[n];
+	matrix.write_string(string, n);
+	os << string;
 	return os;
 }
-#endif // defined(SUPPORT_STDIOSTREAM)
 
 } // namespace matrix

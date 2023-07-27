@@ -38,5 +38,6 @@
 constexpr px4_i2c_bus_t px4_i2c_buses[I2C_BUS_MAX_BUS_ITEMS] = {
 	initI2CBusExternal(1),
 	initI2CBusExternal(2),
+	initI2CBusExternal(4),
 	initI2CBusInternal(5)
 };

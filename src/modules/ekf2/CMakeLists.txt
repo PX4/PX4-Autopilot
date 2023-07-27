@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015-2020 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015-2023 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -66,6 +66,79 @@ add_subdirectory(Utility)
 # 	add_custom_target(ekf2_symforce_generate DEPENDS ${EKF_GENERATED_SRC_FILES})
 # endif()
 
+set(EKF_SRCS)
+list(APPEND EKF_SRCS
+	EKF/baro_height_control.cpp
+	EKF/bias_estimator.cpp
+	EKF/control.cpp
+	EKF/covariance.cpp
+	EKF/ekf.cpp
+	EKF/ekf_helper.cpp
+	EKF/EKFGSF_yaw.cpp
+	EKF/estimator_interface.cpp
+	EKF/fake_height_control.cpp
+	EKF/fake_pos_control.cpp
+	EKF/gnss_height_control.cpp
+	EKF/gps_checks.cpp
+	EKF/gps_control.cpp
+	EKF/gravity_fusion.cpp
+	EKF/height_control.cpp
+	EKF/imu_down_sampler.cpp
+	EKF/mag_control.cpp
+	EKF/mag_fusion.cpp
+	EKF/output_predictor.cpp
+	EKF/vel_pos_fusion.cpp
+	EKF/zero_innovation_heading_update.cpp
+	EKF/zero_gyro_update.cpp
+	EKF/zero_velocity_update.cpp
+)
+
+if(CONFIG_EKF2_AIRSPEED)
+	list(APPEND EKF_SRCS EKF/airspeed_fusion.cpp)
+endif()
+
+if(CONFIG_EKF2_AUXVEL)
+	list(APPEND EKF_SRCS EKF/auxvel_fusion.cpp)
+endif()
+
+if(CONFIG_EKF2_DRAG_FUSION)
+	list(APPEND EKF_SRCS EKF/drag_fusion.cpp)
+endif()
+
+if(CONFIG_EKF2_EXTERNAL_VISION)
+	list(APPEND EKF_SRCS
+		EKF/ev_control.cpp
+		EKF/ev_height_control.cpp
+		EKF/ev_pos_control.cpp
+		EKF/ev_vel_control.cpp
+		EKF/ev_yaw_control.cpp
+	)
+endif()
+
+if(CONFIG_EKF2_GNSS_YAW)
+	list(APPEND EKF_SRCS EKF/gps_yaw_fusion.cpp)
+endif()
+
+if(CONFIG_EKF2_OPTICAL_FLOW)
+	list(APPEND EKF_SRCS
+		EKF/optical_flow_control.cpp
+		EKF/optflow_fusion.cpp
+	)
+endif()
+
+if(CONFIG_EKF2_RANGE_FINDER)
+	list(APPEND EKF_SRCS
+		EKF/range_finder_consistency_check.cpp
+		EKF/range_height_control.cpp
+		EKF/sensor_range_finder.cpp
+		EKF/terrain_estimator.cpp
+	)
+endif()
+
+if(CONFIG_EKF2_SIDESLIP)
+	list(APPEND EKF_SRCS EKF/sideslip_fusion.cpp)
+endif()
+
 px4_add_module(
 	MODULE modules__ekf2
 	MAIN ekf2
@@ -81,44 +154,7 @@ px4_add_module(
 	STACK_MAX
 		3600
 	SRCS
-		EKF/airspeed_fusion.cpp
-		EKF/auxvel_fusion.cpp
-		EKF/baro_height_control.cpp
-		EKF/bias_estimator.cpp
-		EKF/control.cpp
-		EKF/covariance.cpp
-		EKF/drag_fusion.cpp
-		EKF/ekf.cpp
-		EKF/ekf_helper.cpp
-		EKF/EKFGSF_yaw.cpp
-		EKF/estimator_interface.cpp
-		EKF/ev_control.cpp
-		EKF/ev_height_control.cpp
-		EKF/ev_pos_control.cpp
-		EKF/ev_vel_control.cpp
-		EKF/ev_yaw_control.cpp
-		EKF/fake_height_control.cpp
-		EKF/fake_pos_control.cpp
-		EKF/gnss_height_control.cpp
-		EKF/gps_checks.cpp
-		EKF/gps_control.cpp
-		EKF/gps_yaw_fusion.cpp
-		EKF/gravity_fusion.cpp
-		EKF/height_control.cpp
-		EKF/imu_down_sampler.cpp
-		EKF/mag_control.cpp
-		EKF/mag_fusion.cpp
-		EKF/optical_flow_control.cpp
-		EKF/optflow_fusion.cpp
-		EKF/output_predictor.cpp
-		EKF/range_finder_consistency_check.cpp
-		EKF/range_height_control.cpp
-		EKF/sensor_range_finder.cpp
-		EKF/sideslip_fusion.cpp
-		EKF/terrain_estimator.cpp
-		EKF/vel_pos_fusion.cpp
-		EKF/zero_innovation_heading_update.cpp
-		EKF/zero_velocity_update.cpp
+		${EKF_SRCS}
 
 		EKF2.cpp
 		EKF2.hpp

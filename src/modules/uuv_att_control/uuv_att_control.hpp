@@ -68,7 +68,6 @@
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
-#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_torque_setpoint.h>
 #include <uORB/uORB.h>
@@ -103,7 +102,6 @@ private:
 	void publishTorqueSetpoint(const hrt_abstime &timestamp_sample);
 	void publishThrustSetpoint(const hrt_abstime &timestamp_sample);
 
-	uORB::Publication<actuator_controls_s> _actuator_controls_pub{ORB_ID(actuator_controls_0)};
 	uORB::Publication<vehicle_thrust_setpoint_s>	_vehicle_thrust_setpoint_pub{ORB_ID(vehicle_thrust_setpoint)};
 	uORB::Publication<vehicle_torque_setpoint_s>	_vehicle_torque_setpoint_pub{ORB_ID(vehicle_torque_setpoint)};
 
@@ -117,7 +115,8 @@ private:
 
 	uORB::SubscriptionCallbackWorkItem _vehicle_attitude_sub{this, ORB_ID(vehicle_attitude)};
 
-	actuator_controls_s _actuators{};
+	vehicle_thrust_setpoint_s _vehicle_thrust_setpoint{};
+	vehicle_torque_setpoint_s _vehicle_torque_setpoint{};
 	manual_control_setpoint_s _manual_control_setpoint{};
 	vehicle_attitude_setpoint_s _attitude_setpoint{};
 	vehicle_rates_setpoint_s _rates_setpoint{};

@@ -174,7 +174,7 @@ private:
 	} led_rsc_t;
 
 	ch_assign_t		_output_map[MODAL_IO_OUTPUT_CHANNELS] {{1, 1}, {2, 1}, {3, 1}, {4, 1}};
-	MixingOutput 		_mixing_output;
+	MixingOutput _mixing_output{"MODAL_IO", MODAL_IO_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
 
 	perf_counter_t		_cycle_perf;
 	perf_counter_t		_output_update_perf;

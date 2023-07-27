@@ -109,6 +109,8 @@ protected:
 	bool isTargetModified() const;
 	void _updateTrajConstraints();
 
+	void rcHelpModifyYaw(float &yaw_sp);
+
 	/** determines when to trigger a takeoff (ignored in flight) */
 	bool _checkTakeoff() override { return _want_takeoff; };
 
@@ -166,6 +168,7 @@ protected:
 					(ParamFloat<px4::params::MPC_LAND_SPEED>) _param_mpc_land_speed,
 					(ParamFloat<px4::params::MPC_LAND_CRWL>) _param_mpc_land_crawl_speed,
 					(ParamInt<px4::params::MPC_LAND_RC_HELP>) _param_mpc_land_rc_help,
+					(ParamFloat<px4::params::MPC_LAND_RADIUS>) _param_mpc_land_radius,
 					(ParamFloat<px4::params::MPC_LAND_ALT1>)
 					_param_mpc_land_alt1, // altitude at which we start ramping down speed
 					(ParamFloat<px4::params::MPC_LAND_ALT2>)
@@ -200,6 +203,8 @@ private:
 	hrt_abstime _time_stamp_reference{0}; /**< time stamp when last reference update occured. */
 
 	WeatherVane _weathervane{this}; /**< weathervane library, used to implement a yaw control law that turns the vehicle nose into the wind */
+
+	matrix::Vector3f _initial_land_position;
 
 	void _limitYawRate(); /**< Limits the rate of change of the yaw setpoint. */
 	bool _evaluateTriplets(); /**< Checks and sets triplets. */

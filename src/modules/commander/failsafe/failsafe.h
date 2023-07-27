@@ -123,6 +123,15 @@ private:
 		Hold_mode = 2,
 	};
 
+	// COM_RC_IN_MODE parameter values
+	enum class RcInMode : int32_t {
+		RcTransmitterOnly = 0, 		// RC Transmitter only
+		JoystickOnly = 1,		// Joystick only
+		RcAndJoystickWithFallback = 2,	// RC And Joystick with fallback
+		RcOrJoystickKeepFirst = 3,	// RC or Joystick keep first
+		StickInputDisabled = 4		// input disabled
+	};
+
 	static ActionOptions fromNavDllOrRclActParam(int param_value);
 
 	static ActionOptions fromGfActParam(int param_value);

@@ -228,6 +228,11 @@ public:
 	float getMinimumFrontTransitionTime() const;
 
 	/**
+	 * @return Front transition timeout scaled for air density (if available) [s]
+	*/
+	float getFrontTransitionTimeout() const;
+
+	/**
 	* @return Minimum open-loop front transition time scaled for air density (if available) [s]
 	*/
 	float getOpenLoopFrontTransitionTime() const;
@@ -259,10 +264,10 @@ protected:
 	struct vehicle_attitude_setpoint_s *_fw_virtual_att_sp;	// virtual fw attitude setpoint
 	struct vehicle_control_mode_s		*_v_control_mode;	//vehicle control mode
 	struct vtol_vehicle_status_s 		*_vtol_vehicle_status;
-	struct actuator_controls_s			*_actuators_out_0;			//actuator controls going to the mc mixer
-	struct actuator_controls_s			*_actuators_out_1;			//actuator controls going to the fw mixer (used for elevons)
-	struct actuator_controls_s			*_actuators_mc_in;			//actuator controls from mc_rate_control
-	struct actuator_controls_s			*_actuators_fw_in;			//actuator controls from fw_att_control
+	struct vehicle_torque_setpoint_s 		*_vehicle_torque_setpoint_virtual_mc;
+	struct vehicle_torque_setpoint_s 		*_vehicle_torque_setpoint_virtual_fw;
+	struct vehicle_thrust_setpoint_s 		*_vehicle_thrust_setpoint_virtual_mc;
+	struct vehicle_thrust_setpoint_s 		*_vehicle_thrust_setpoint_virtual_fw;
 	struct vehicle_local_position_s			*_local_pos;
 	struct vehicle_local_position_setpoint_s	*_local_pos_sp;
 	struct airspeed_validated_s 			*_airspeed_validated;					// airspeed
@@ -283,9 +288,6 @@ protected:
 	float _thrust_transition = 0.0f;	// thrust value applied during a front transition (tailsitter & tiltrotor only)
 	float _last_thr_in_fw_mode = 0.0f;
 
-	float _height_rate_error_integral{0.f};
-
-
 	hrt_abstime _trans_finished_ts = 0;
 	hrt_abstime _transition_start_timestamp{0};
 	float _time_since_trans_start{0};
@@ -295,7 +297,8 @@ protected:
 
 	hrt_abstime _last_loop_ts = 0;
 	float _transition_dt = 0;
-	hrt_abstime _last_loop_quadchute_timestamp = 0;
+
+	float _quadchute_ref_alt{-MAXFLOAT};	// altitude (AMSL) reference to compute quad-chute altitude loss condition
 
 	float _accel_to_pitch_integ = 0;
 
@@ -312,7 +315,7 @@ protected:
 	DEFINE_PARAMETERS_CUSTOM_PARENT(ModuleParams,
 					(ParamBool<px4::params::VT_ELEV_MC_LOCK>) _param_vt_elev_mc_lock,
 					(ParamFloat<px4::params::VT_FW_MIN_ALT>) _param_vt_fw_min_alt,
-					(ParamFloat<px4::params::VT_QC_HR_ERROR_I>) _param_vt_qc_hr_error_i,
+					(ParamFloat<px4::params::VT_QC_ALT_LOSS>) _param_vt_qc_alt_loss,
 					(ParamInt<px4::params::VT_FW_QC_P>) _param_vt_fw_qc_p,
 					(ParamInt<px4::params::VT_FW_QC_R>) _param_vt_fw_qc_r,
 					(ParamFloat<px4::params::VT_QC_T_ALT_LOSS>) _param_vt_qc_t_alt_loss,
@@ -324,7 +327,6 @@ protected:
 					(ParamFloat<px4::params::VT_B_TRANS_DUR>) _param_vt_b_trans_dur,
 					(ParamFloat<px4::params::VT_ARSP_TRANS>) _param_vt_arsp_trans,
 					(ParamFloat<px4::params::VT_F_TRANS_THR>) _param_vt_f_trans_thr,
-					(ParamFloat<px4::params::VT_B_TRANS_THR>) _param_vt_b_trans_thr,
 					(ParamFloat<px4::params::VT_ARSP_BLEND>) _param_vt_arsp_blend,
 					(ParamBool<px4::params::FW_ARSP_MODE>) _param_fw_arsp_mode,
 					(ParamFloat<px4::params::VT_TRANS_TIMEOUT>) _param_vt_trans_timeout,
@@ -333,7 +335,6 @@ protected:
 					(ParamFloat<px4::params::VT_FW_DIFTHR_S_Y>) _param_vt_fw_difthr_s_y,
 					(ParamFloat<px4::params::VT_FW_DIFTHR_S_P>) _param_vt_fw_difthr_s_p,
 					(ParamFloat<px4::params::VT_FW_DIFTHR_S_R>) _param_vt_fw_difthr_s_r,
-					(ParamFloat<px4::params::VT_B_DEC_FF>) _param_vt_b_dec_ff,
 					(ParamFloat<px4::params::VT_B_DEC_I>) _param_vt_b_dec_i,
 					(ParamFloat<px4::params::VT_B_DEC_MSS>) _param_vt_b_dec_mss,
 

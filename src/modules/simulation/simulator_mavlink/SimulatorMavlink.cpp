@@ -96,6 +96,8 @@ SimulatorMavlink::SimulatorMavlink() :
 		snprintf(param_name, sizeof(param_name), "%s_%s%d", "PWM_MAIN", "FUNC", i + 1);
 		param_get(param_find(param_name), &_output_functions[i]);
 	}
+
+	_esc_status_pub.advertise();
 }
 
 void SimulatorMavlink::parameters_update(bool force)
@@ -402,10 +404,10 @@ void SimulatorMavlink::handle_message_hil_gps(const mavlink_message_t *msg)
 	if (!_gps_blocked) {
 		sensor_gps_s gps{};
 
-		gps.lat = hil_gps.lat;
-		gps.lon = hil_gps.lon;
-		gps.alt = hil_gps.alt;
-		gps.alt_ellipsoid = hil_gps.alt;
+		gps.latitude_deg = hil_gps.lat / 1e7;
+		gps.longitude_deg = hil_gps.lon / 1e7;
+		gps.altitude_msl_m = hil_gps.alt / 1e3;
+		gps.altitude_ellipsoid_m = hil_gps.alt / 1e3;
 
 		gps.s_variance_m_s = 0.25f;
 		gps.c_variance_rad = 0.5f;
@@ -421,6 +423,7 @@ void SimulatorMavlink::handle_message_hil_gps(const mavlink_message_t *msg)
 		gps.automatic_gain_control = 0;
 		gps.jamming_indicator = 0;
 		gps.jamming_state = 0;
+		gps.spoofing_state = 0;
 
 		gps.vel_m_s = (float)(hil_gps.vel) / 100.0f; // cm/s -> m/s
 		gps.vel_n_m_s = (float)(hil_gps.vn) / 100.0f; // cm/s -> m/s

@@ -331,10 +331,10 @@ TEST_F(EkfGpsHeadingTest, stopOnGround)
 	_ekf_wrapper.setMagFuseTypeNone();
 
 	// WHEN: running without yaw aiding
-	const matrix::Vector<float, 4> quat_variance_before = _ekf_wrapper.getQuaternionVariance();
+	const matrix::Vector4f quat_variance_before = _ekf_wrapper.getQuaternionVariance();
 	_sensor_simulator.runSeconds(20.0);
-	const matrix::Vector<float, 4> quat_variance_after = _ekf_wrapper.getQuaternionVariance();
+	const matrix::Vector4f quat_variance_after = _ekf_wrapper.getQuaternionVariance();
 
-	// THEN: the yaw variance is constrained by fusing constant data
-	EXPECT_LT(quat_variance_after(3), quat_variance_before(3));
+	// THEN: the yaw variance increases
+	EXPECT_GT(quat_variance_after(3), quat_variance_before(3));
 }

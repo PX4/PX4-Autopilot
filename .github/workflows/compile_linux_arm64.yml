@@ -1,9 +1,12 @@
-name: Linux ARM64 Targets
+name: Compile Linux ARM64 Targets
 
 on:
   push:
     branches:
     - 'main'
+    - 'stable'
+    - 'beta'
+    - 'release/*'
   pull_request:
     branches:
     - '*'
@@ -11,7 +14,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-aarch64:2021-09-08
+    container: px4io/px4-dev-aarch64:2022-08-12
     strategy:
       matrix:
         config: [

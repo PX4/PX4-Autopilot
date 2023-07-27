@@ -56,7 +56,6 @@
 #include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/vehicle_status.h>
 
-#include "streams/ACTUATOR_CONTROL_TARGET.hpp"
 #include "streams/ACTUATOR_OUTPUT_STATUS.hpp"
 #include "streams/ALTITUDE.hpp"
 #include "streams/ATTITUDE.hpp"
@@ -242,9 +241,9 @@ static const StreamListItem streams_list[] = {
 #if defined(COMMAND_LONG_HPP)
 	create_stream_list_item<MavlinkStreamCommandLong>(),
 #endif // COMMAND_LONG_HPP
-#if defined(SYSTEM_TIME_HPP)
+#if defined(SYS_STATUS_HPP)
 	create_stream_list_item<MavlinkStreamSysStatus>(),
-#endif // SYSTEM_TIME_HPP
+#endif // SYS_STATUS_HPP
 	create_stream_list_item<MavlinkStreamBatteryStatus>(),
 #if defined(SMART_BATTERY_INFO_HPP)
 	create_stream_list_item<MavlinkStreamSmartBatteryInfo>(),
@@ -370,10 +369,6 @@ static const StreamListItem streams_list[] = {
 #if defined(OPTICAL_FLOW_RAD_HPP)
 	create_stream_list_item<MavlinkStreamOpticalFlowRad>(),
 #endif // OPTICAL_FLOW_RAD_HPP
-#if defined(ACTUATOR_CONTROL_TARGET_HPP)
-	create_stream_list_item<MavlinkStreamActuatorControlTarget<0> >(),
-	create_stream_list_item<MavlinkStreamActuatorControlTarget<1> >(),
-#endif // ACTUATOR_CONTROL_TARGET_HPP
 #if defined(NAMED_VALUE_FLOAT_HPP)
 	create_stream_list_item<MavlinkStreamNamedValueFloat>(),
 #endif // NAMED_VALUE_FLOAT_HPP

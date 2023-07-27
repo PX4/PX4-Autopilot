@@ -52,9 +52,7 @@ bool FlightTaskManualAcceleration::activate(const trajectory_setpoint_s &last_se
 		_stick_acceleration_xy.resetVelocity(_velocity.xy());
 	}
 
-	if (Vector2f(last_setpoint.acceleration).isAllFinite()) {
-		_stick_acceleration_xy.resetAcceleration(Vector2f(last_setpoint.acceleration));
-	}
+	_stick_acceleration_xy.resetAcceleration(Vector2f(last_setpoint.acceleration));
 
 	return ret;
 }
@@ -62,9 +60,6 @@ bool FlightTaskManualAcceleration::activate(const trajectory_setpoint_s &last_se
 bool FlightTaskManualAcceleration::update()
 {
 	bool ret = FlightTaskManualAltitudeSmoothVel::update();
-
-	_stick_yaw.generateYawSetpoint(_yawspeed_setpoint, _yaw_setpoint, _sticks.getYawExpo(), _yaw, _is_yaw_good_for_control,
-				       _deltatime);
 
 	_stick_acceleration_xy.generateSetpoints(_sticks.getPitchRollExpo(), _yaw, _yaw_setpoint, _position,
 			_velocity_setpoint_feedback.xy(), _deltatime);

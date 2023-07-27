@@ -94,7 +94,7 @@ pipeline {
 
         stage('failsafe docs') {
           agent {
-            docker { image 'px4io/px4-dev-nuttx-focal:2021-08-18' }
+            docker { image 'px4io/px4-dev-nuttx-focal:2022-08-12' }
           }
           steps {
             sh '''#!/bin/bash -l
@@ -125,7 +125,7 @@ pipeline {
         stage('uORB graphs') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx-focal:2021-08-18'
+              image 'px4io/px4-dev-nuttx-focal:2022-08-12'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }

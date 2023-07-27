@@ -128,7 +128,9 @@ PARAM_DEFINE_FLOAT(GF_MAX_HOR_DIST, 0);
 PARAM_DEFINE_FLOAT(GF_MAX_VER_DIST, 0);
 
 /**
- * Use Pre-emptive geofence triggering
+ * [EXPERIMENTAL] Use Pre-emptive geofence triggering
+ *
+ * WARNING: This experimental feature may cause flyaways. Use at your own risk.
  *
  * Predict the motion of the vehicle and trigger the breach if it is determined that the current trajectory
  * would result in a breach happening before the vehicle can make evasive maneuvers.
@@ -137,4 +139,4 @@ PARAM_DEFINE_FLOAT(GF_MAX_VER_DIST, 0);
  * @boolean
  * @group Geofence
  */
-PARAM_DEFINE_INT32(GF_PREDICT, 1);
+PARAM_DEFINE_INT32(GF_PREDICT, 0);

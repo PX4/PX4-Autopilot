@@ -195,10 +195,10 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 		// publish attitude
 		vehicle_attitude_s attitude{};
 		attitude.timestamp_sample = time_now_us;
-		attitude.q[0] = quaternion.c[0];
-		attitude.q[1] = quaternion.c[1];
-		attitude.q[2] = quaternion.c[2];
-		attitude.q[3] = quaternion.c[3];
+		attitude.q[0] = quaternion.c[3];
+		attitude.q[1] = quaternion.c[0];
+		attitude.q[2] = quaternion.c[1];
+		attitude.q[3] = quaternion.c[2];
 		attitude.timestamp = hrt_absolute_time();
 		_attitude_pub.publish(attitude);
 
@@ -282,14 +282,8 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 		(void)time_startup;
 
 		// GPSGROUP_UTC
-		// TimeUtc timeUtc;
-		// timeUtc.year = VnUartPacket_extractInt8(packet);
-		// timeUtc.month = VnUartPacket_extractUint8(packet);
-		// timeUtc.day = VnUartPacket_extractUint8(packet);
-		// timeUtc.hour = VnUartPacket_extractUint8(packet);
-		// timeUtc.min = VnUartPacket_extractUint8(packet);
-		// timeUtc.sec = VnUartPacket_extractUint8(packet);
-		// timeUtc.ms = VnUartPacket_extractUint16(packet);
+		TimeUtc timeUtc = VnUartPacket_extractTimeUtc(packet);
+		(void)timeUtc;
 
 		// GPSGROUP_NUMSATS
 		const uint8_t numSats = VnUartPacket_extractUint8(packet);
@@ -326,10 +320,10 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 
 			sensor_gps.fix_type = gpsFix;
 
-			sensor_gps.lat = positionGpsLla.c[0] * 1e7;
-			sensor_gps.lon = positionGpsLla.c[1] * 1e7;
-			sensor_gps.alt = positionGpsLla.c[2] * 1e3;
-			sensor_gps.alt_ellipsoid = sensor_gps.alt;
+			sensor_gps.latitude_deg = positionGpsLla.c[0];
+			sensor_gps.longitude_deg = positionGpsLla.c[1];
+			sensor_gps.altitude_msl_m = positionGpsLla.c[2];
+			sensor_gps.altitude_ellipsoid_m = sensor_gps.altitude_msl_m;
 
 			sensor_gps.vel_ned_valid = true;
 			sensor_gps.vel_n_m_s = velocityGpsNed.c[0];

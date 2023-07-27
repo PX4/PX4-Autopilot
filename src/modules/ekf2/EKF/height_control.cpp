@@ -45,7 +45,9 @@ void Ekf::controlHeightFusion(const imuSample &imu_delayed)
 
 	controlBaroHeightFusion();
 	controlGnssHeightFusion(_gps_sample_delayed);
+#if defined(CONFIG_EKF2_RANGE_FINDER)
 	controlRangeHeightFusion();
+#endif // CONFIG_EKF2_RANGE_FINDER
 
 	checkHeightSensorRefFallback();
 }
@@ -166,11 +168,11 @@ Likelihood Ekf::estimateInertialNavFallingLikelihood() const
 	enum class ReferenceType { PRESSURE, GNSS, GROUND };
 
 	struct {
-		ReferenceType ref_type;
-		float innov;
-		float innov_var;
-		bool failed_min;
-		bool failed_lim;
+		ReferenceType ref_type{};
+		float innov{0.f};
+		float innov_var{0.f};
+		bool failed_min{false};
+		bool failed_lim{false};
 	} checks[6] {};
 
 	if (_control_status.flags.baro_hgt) {
@@ -185,10 +187,13 @@ Likelihood Ekf::estimateInertialNavFallingLikelihood() const
 		checks[2] = {ReferenceType::GNSS, _aid_src_gnss_vel.innovation[2], _aid_src_gnss_vel.innovation_variance[2]};
 	}
 
+#if defined(CONFIG_EKF2_RANGE_FINDER)
 	if (_control_status.flags.rng_hgt) {
 		checks[3] = {ReferenceType::GROUND, _aid_src_rng_hgt.innovation, _aid_src_rng_hgt.innovation_variance};
 	}
+#endif // CONFIG_EKF2_RANGE_FINDER
 
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	if (_control_status.flags.ev_hgt) {
 		checks[4] = {ReferenceType::GROUND, _aid_src_ev_hgt.innovation, _aid_src_ev_hgt.innovation_variance};
 	}
@@ -196,6 +201,7 @@ Likelihood Ekf::estimateInertialNavFallingLikelihood() const
 	if (_control_status.flags.ev_vel) {
 		checks[5] = {ReferenceType::GROUND, _aid_src_ev_vel.innovation[2], _aid_src_ev_vel.innovation_variance[2]};
 	}
+#endif // CONFIG_EKF2_EXTERNAL_VISION
 
 	// Compute the check based on innovation ratio for all the sources
 	for (unsigned i = 0; i < 6; i++) {

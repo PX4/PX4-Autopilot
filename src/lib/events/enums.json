@@ -1,5 +1,47 @@
 {
-    "version": 1,
+    "version": 2,
+    "translation": {
+        "items": {
+            "components": {
+                "items": {
+                    "*": {
+                        "items": {
+                            "enums": {
+                                "items": {
+                                    "*": {
+                                        "items": {
+                                            "entries": {
+                                                "items": {
+                                                    "*": {
+                                                        "translate": [ "description" ]
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            "event_groups": {
+                                "items": {
+                                    "*": {
+                                        "items": {
+                                            "events": {
+                                                "items": {
+                                                    "*": {
+                                                        "translate": [ "message", "description" ]
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
     "components": {
         "1": {
             "namespace": "px4",
@@ -198,6 +240,10 @@
                         "536870912": {
                             "name": "gyro",
                             "description": "Gyroscope"
+                        },
+                        "1073741824": {
+                            "name": "open_drone_id",
+                            "description": "Open Drone ID system"
                         }
                     }
                 },

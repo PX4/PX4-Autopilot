@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -50,6 +50,7 @@ void FeasibilityChecker::reset()
 	_is_landed = false;
 	_home_alt_msl = NAN;
 	_home_lat_lon = matrix::Vector2d((double)NAN, (double)NAN);
+	_current_position_lat_lon = matrix::Vector2d((double)NAN, (double)NAN);
 	_vehicle_type = VehicleType::RotaryWing;
 
 	_mission_validity_failed = false;
@@ -119,6 +120,12 @@ void FeasibilityChecker::updateData()
 		_is_landed = land_detected.landed;
 	}
 
+	if (_vehicle_global_position_sub.updated()) {
+		vehicle_global_position_s vehicle_global_position = {};
+		_vehicle_global_position_sub.copy(&vehicle_global_position);
+		_current_position_lat_lon = matrix::Vector2d(vehicle_global_position.lat, vehicle_global_position.lon);
+	}
+
 	param_t handle = param_find("FW_LND_ANG");
 
 	if (handle != PARAM_INVALID) {
@@ -129,12 +136,6 @@ void FeasibilityChecker::updateData()
 
 	if (handle != PARAM_INVALID) {
 		param_get(handle, &_param_mis_dist_1wp);
-	}
-
-	handle = param_find("MIS_DIST_WPS");
-
-	if (handle != PARAM_INVALID) {
-		param_get(handle, &_param_mis_dist_wps);
 	}
 
 	handle = param_find("NAV_ACC_RAD");
@@ -195,7 +196,7 @@ void FeasibilityChecker::doCommonChecks(mission_item_s &mission_item, const int 
 	}
 
 	if (!_distance_first_waypoint_failed) {
-		_distance_first_waypoint_failed = !checkDistanceToFirstWaypoint(mission_item);
+		_distance_first_waypoint_failed = !checkHorizontalDistanceToFirstWaypoint(mission_item);
 	}
 
 	if (!_below_home_alt_failed) {
@@ -204,6 +205,10 @@ void FeasibilityChecker::doCommonChecks(mission_item_s &mission_item, const int 
 
 	if (!_takeoff_failed) {
 		_takeoff_failed = !checkTakeoff(mission_item);
+	}
+
+	if (!_items_fit_to_vehicle_type_failed) {
+		_items_fit_to_vehicle_type_failed = !checkItemsFitToVehicleType(mission_item);
 	}
 }
 
@@ -267,7 +272,6 @@ bool FeasibilityChecker::checkMissionItemValidity(mission_item_s &mission_item, 
 	    mission_item.nav_cmd != NAV_CMD_DO_JUMP &&
 	    mission_item.nav_cmd != NAV_CMD_DO_CHANGE_SPEED &&
 	    mission_item.nav_cmd != NAV_CMD_DO_SET_HOME &&
-	    mission_item.nav_cmd != NAV_CMD_DO_SET_SERVO &&
 	    mission_item.nav_cmd != NAV_CMD_DO_LAND_START &&
 	    mission_item.nav_cmd != NAV_CMD_DO_TRIGGER_CONTROL &&
 	    mission_item.nav_cmd != NAV_CMD_DO_DIGICAM_CONTROL &&
@@ -280,6 +284,7 @@ bool FeasibilityChecker::checkMissionItemValidity(mission_item_s &mission_item, 
 	    mission_item.nav_cmd != NAV_CMD_DO_MOUNT_CONTROL &&
 	    mission_item.nav_cmd != NAV_CMD_DO_GIMBAL_MANAGER_PITCHYAW &&
 	    mission_item.nav_cmd != NAV_CMD_DO_GIMBAL_MANAGER_CONFIGURE &&
+	    mission_item.nav_cmd != NAV_CMD_DO_SET_ACTUATOR &&
 	    mission_item.nav_cmd != NAV_CMD_DO_SET_ROI &&
 	    mission_item.nav_cmd != NAV_CMD_DO_SET_ROI_LOCATION &&
 	    mission_item.nav_cmd != NAV_CMD_DO_SET_ROI_WPNEXT_OFFSET &&
@@ -298,28 +303,6 @@ bool FeasibilityChecker::checkMissionItemValidity(mission_item_s &mission_item, 
 		events::send<uint16_t, uint16_t>(events::ID("navigator_mis_unsup_cmd"), {events::Log::Error, events::LogInternal::Warning},
 						 "Mission rejected: item {1}: unsupported command: {2}", current_index + 1, mission_item.nav_cmd);
 		return false;
-	}
-
-	/* Check non navigation item */
-	if (mission_item.nav_cmd == NAV_CMD_DO_SET_SERVO) {
-
-		/* check actuator number */
-		if (mission_item.params[0] < 0 || mission_item.params[0] > 5) {
-			mavlink_log_critical(_mavlink_log_pub, "Actuator number %d is out of bounds 0..5\t",
-					     (int)mission_item.params[0]);
-			events::send<uint32_t>(events::ID("navigator_mis_act_index"), {events::Log::Error, events::LogInternal::Warning},
-					       "Actuator number {1} is out of bounds 0..5", (int)mission_item.params[0]);
-			return false;
-		}
-
-		/* check actuator value */
-		if (mission_item.params[1] < -PWM_DEFAULT_MAX || mission_item.params[1] > PWM_DEFAULT_MAX) {
-			mavlink_log_critical(_mavlink_log_pub,
-					     "Actuator value %d is out of bounds -PWM_DEFAULT_MAX..PWM_DEFAULT_MAX\t", (int)mission_item.params[1]);
-			events::send<uint32_t, uint32_t>(events::ID("navigator_mis_act_range"), {events::Log::Error, events::LogInternal::Warning},
-							 "Actuator value {1} is out of bounds -{2}..{2}", (int)mission_item.params[1], PWM_DEFAULT_MAX);
-			return false;
-		}
 	}
 
 	// check if the mission starts with a land command while the vehicle is landed
@@ -375,7 +358,6 @@ bool FeasibilityChecker::checkTakeoff(mission_item_s &mission_item)
 					     mission_item.nav_cmd != NAV_CMD_DO_JUMP &&
 					     mission_item.nav_cmd != NAV_CMD_DO_CHANGE_SPEED &&
 					     mission_item.nav_cmd != NAV_CMD_DO_SET_HOME &&
-					     mission_item.nav_cmd != NAV_CMD_DO_SET_SERVO &&
 					     mission_item.nav_cmd != NAV_CMD_DO_LAND_START &&
 					     mission_item.nav_cmd != NAV_CMD_DO_TRIGGER_CONTROL &&
 					     mission_item.nav_cmd != NAV_CMD_DO_DIGICAM_CONTROL &&
@@ -397,7 +379,6 @@ bool FeasibilityChecker::checkTakeoff(mission_item_s &mission_item)
 					     mission_item.nav_cmd != NAV_CMD_DO_SET_CAM_TRIGG_INTERVAL &&
 					     mission_item.nav_cmd != NAV_CMD_SET_CAMERA_MODE &&
 					     mission_item.nav_cmd != NAV_CMD_SET_CAMERA_ZOOM &&
-					     mission_item.nav_cmd != NAV_CMD_SET_CAMERA_FOCUS &&
 					     mission_item.nav_cmd != NAV_CMD_SET_CAMERA_FOCUS &&
 					     mission_item.nav_cmd != NAV_CMD_DO_VTOL_TRANSITION);
 	}
@@ -625,50 +606,44 @@ bool FeasibilityChecker::checkTakeoffLandAvailable()
 }
 
 
-bool FeasibilityChecker::checkDistanceToFirstWaypoint(mission_item_s &mission_item)
+bool FeasibilityChecker::checkHorizontalDistanceToFirstWaypoint(mission_item_s &mission_item)
 {
-	if (_param_mis_dist_1wp <= 0.0f || !_home_lat_lon.isAllFinite()) {
-		/* param not set, check is ok */
-		return true;
-	}
+	if (_param_mis_dist_1wp > FLT_EPSILON &&
+	    (_current_position_lat_lon.isAllFinite()) && !_first_waypoint_found &&
+	    MissionBlock::item_contains_position(mission_item)) {
 
-	if (!_first_waypoint_found && MissionBlock::item_contains_position(mission_item)) {
 		_first_waypoint_found = true;
 
+		float dist_to_1wp_from_current_pos = 1e6f;
 
-		/* check distance from current position to item */
-		float dist_to_1wp = get_distance_to_next_waypoint(
-					    mission_item.lat, mission_item.lon,
-					    _home_lat_lon(0), _home_lat_lon(1));
+		if (_current_position_lat_lon.isAllFinite()) {
+			dist_to_1wp_from_current_pos = get_distance_to_next_waypoint(
+							       mission_item.lat, mission_item.lon,
+							       _current_position_lat_lon(0), _current_position_lat_lon(1));
+		}
 
-		if (dist_to_1wp < _param_mis_dist_1wp) {
+		if (dist_to_1wp_from_current_pos < _param_mis_dist_1wp) {
 
 			return true;
 
 		} else {
-			/* item is too far from home */
+			/* item is too far from current position */
 			mavlink_log_critical(_mavlink_log_pub,
 					     "First waypoint too far away: %dm, %d max\t",
-					     (int)dist_to_1wp, (int)_param_mis_dist_1wp);
+					     (int)dist_to_1wp_from_current_pos, (int)_param_mis_dist_1wp);
 			events::send<uint32_t, uint32_t>(events::ID("navigator_mis_first_wp_too_far"), {events::Log::Error, events::LogInternal::Info},
-							 "First waypoint too far away: {1m} (maximum: {2m})", (uint32_t)dist_to_1wp, (uint32_t)_param_mis_dist_1wp);
+							 "First waypoint too far away: {1m} (maximum: {2m})", (uint32_t)dist_to_1wp_from_current_pos,
+							 (uint32_t)_param_mis_dist_1wp);
 
 			return false;
 		}
 	}
 
-	/* no waypoints found in mission, then we will not fly far away */
 	return true;
 }
 
 bool FeasibilityChecker::checkDistancesBetweenWaypoints(const mission_item_s &mission_item)
 {
-	if (_param_mis_dist_wps <= 0.0f) {
-		/* param not set, check is ok */
-		return true;
-	}
-
-
 	/* check only items with valid lat/lon */
 	if (!MissionBlock::item_contains_position(mission_item)) {
 		return true;
@@ -682,24 +657,8 @@ bool FeasibilityChecker::checkDistancesBetweenWaypoints(const mission_item_s &mi
 				_last_lat, _last_lon);
 
 
-		if (dist_between_waypoints > _param_mis_dist_wps) {
-			/* distance between waypoints is too high */
-			mavlink_log_critical(_mavlink_log_pub,
-					     "Distance between waypoints too far: %d meters, %d max.\t",
-					     (int)dist_between_waypoints, (int)_param_mis_dist_wps);
-			events::send<uint32_t, uint32_t>(events::ID("navigator_mis_wp_dist_too_far"), {events::Log::Error, events::LogInternal::Info},
-							 "Distance between waypoints too far: {1m}, (maximum: {2m})", (uint32_t)dist_between_waypoints,
-							 (uint32_t)_param_mis_dist_wps);
-
-
-			return false;
-
-			/* do not allow waypoints that are literally on top of each other */
-
-			/* and do not allow condition gates that are at the same position as a navigation waypoint */
-
-		} else if (dist_between_waypoints < 0.05f &&
-			   (mission_item.nav_cmd == NAV_CMD_CONDITION_GATE || _last_cmd == NAV_CMD_CONDITION_GATE)) {
+		if (dist_between_waypoints < 0.05f &&
+		    (mission_item.nav_cmd == NAV_CMD_CONDITION_GATE || _last_cmd == NAV_CMD_CONDITION_GATE)) {
 
 			/* Waypoints and gate are at the exact same position, which indicates an
 			 * invalid mission and makes calculating the direction from one waypoint
@@ -730,11 +689,25 @@ bool FeasibilityChecker::checkIfBelowHomeAltitude(const mission_item_s &mission_
 
 	if (PX4_ISFINITE(_home_alt_msl) && _home_alt_msl > wp_alt && MissionBlock::item_contains_position(mission_item)) {
 
-
-
 		mavlink_log_critical(_mavlink_log_pub, "Warning: Waypoint %d below home\t", current_index + 1);
 		events::send<int16_t>(events::ID("navigator_mis_wp_below_home"), {events::Log::Warning, events::LogInternal::Info},
 				      "Waypoint {1} below home", current_index + 1);
+	}
+
+	return true;
+}
+
+bool FeasibilityChecker::checkItemsFitToVehicleType(const mission_item_s &mission_item)
+{
+	if (_vehicle_type != VehicleType::Vtol &&
+	    (mission_item.nav_cmd == NAV_CMD_VTOL_TAKEOFF || mission_item.nav_cmd == NAV_CMD_VTOL_LAND
+	     || mission_item.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION)) {
+
+		mavlink_log_critical(_mavlink_log_pub, "Mission rejected: Mission contains VTOL items but vehicle is not a VTOL\t");
+		events::send(events::ID("navigator_mis_vtol_items"), {events::Log::Error, events::LogInternal::Info},
+			     "Mission rejected: Mission contains VTOL items but vehicle is not a VTOL");
+
+		return false;
 	}
 
 	return true;

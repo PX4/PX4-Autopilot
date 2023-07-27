@@ -92,7 +92,7 @@ void Ekf::controlEvYawFusion(const extVisionSample &ev_sample, const bool common
 				}
 
 			} else if (quality_sufficient) {
-				fuseYaw(aid_src.innovation, aid_src.observation_variance, aid_src);
+				fuseYaw(aid_src);
 
 			} else {
 				aid_src.innovation_rejected = true;
@@ -178,9 +178,11 @@ void Ekf::controlEvYawFusion(const extVisionSample &ev_sample, const bool common
 
 void Ekf::stopEvYawFusion()
 {
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	if (_control_status.flags.ev_yaw) {
 		resetEstimatorAidStatus(_aid_src_ev_yaw);
 
 		_control_status.flags.ev_yaw = false;
 	}
+#endif // CONFIG_EKF2_EXTERNAL_VISION
 }

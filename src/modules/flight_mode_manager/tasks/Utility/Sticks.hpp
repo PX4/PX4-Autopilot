@@ -59,8 +59,8 @@ public:
 	bool isAvailable() { return _input_available; };
 
 	// Position : 0 : pitch, 1 : roll, 2 : throttle, 3 : yaw
-	const matrix::Vector<float, 4> &getPosition() { return _positions; }; // Raw stick position, no deadzone
-	const matrix::Vector<float, 4> &getPositionExpo() { return _positions_expo; }; // Deadzone and expo applied
+	const matrix::Vector4f &getPosition() { return _positions; }; // Raw stick position, no deadzone
+	const matrix::Vector4f &getPositionExpo() { return _positions_expo; }; // Deadzone and expo applied
 
 	// Helper functions to get stick values more intuitively
 	float getRoll() const { return _positions(1); }
@@ -90,8 +90,8 @@ public:
 
 private:
 	bool _input_available{false};
-	matrix::Vector<float, 4> _positions; ///< unmodified manual stick inputs
-	matrix::Vector<float, 4> _positions_expo; ///< modified manual sticks using expo function
+	matrix::Vector4f _positions; ///< unmodified manual stick inputs
+	matrix::Vector4f _positions_expo; ///< modified manual sticks using expo function
 
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription _failsafe_flags_sub{ORB_ID(failsafe_flags)};

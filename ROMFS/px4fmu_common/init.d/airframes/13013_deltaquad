@@ -33,9 +33,6 @@ param set-default CBRK_IO_SAFETY 22027
 
 param set-default EKF2_GPS_POS_X -0.12
 param set-default EKF2_IMU_POS_X -0.12
-param set-default EKF2_TAU_VEL 0.5
-param set-default EKF2_GPS_P_GATE 10
-param set-default EKF2_GPS_V_GATE 10
 
 param set-default FW_ARSP_MODE 1
 param set-default NPFG_PERIOD 25
@@ -48,11 +45,9 @@ param set-default FW_R_LIM 35
 param set-default FW_RR_FF 0.9
 param set-default FW_RR_I 0.08
 param set-default FW_RR_P 0.18
-param set-default FW_T_HRATE_FF 0.5
 param set-default FW_T_CLMB_MAX 3
 param set-default FW_T_SINK_MAX 3
 param set-default FW_T_SINK_MIN 1
-param set-default FW_T_VERT_ACC 6
 param set-default FW_THR_TRIM 0.70
 param set-default FW_THR_SLEW_MAX 1
 param set-default FW_P_LIM_MAX 15
@@ -62,37 +57,24 @@ param set-default FW_P_RMAX_POS 45
 param set-default FW_R_RMAX 50
 param set-default FW_THR_MIN 0.55
 param set-default FW_BAT_SCALE_EN 1
-param set-default FW_THR_ALT_SCL 2.7
 param set-default FW_T_RLL2THR 20
-
-param set-default LNDMC_XY_VEL_MAX 1
-param set-default LNDMC_Z_VEL_MAX 0.7
 
 param set-default MC_ROLLRATE_P 0.16
 param set-default MC_ROLLRATE_I 0.01
-param set-default MC_ROLLRATE_MAX 80
 param set-default MC_PITCHRATE_I 0.05
-param set-default MC_PITCHRATE_MAX 80
-param set-default MC_YAW_P 3.5
 
 param set-default MC_YAWRATE_MAX 20
 param set-default MC_AIRMODE 1
 
 param set-default MIS_DIST_1WP 100
-param set-default MIS_DIST_WPS 100000
 param set-default MIS_TAKEOFF_ALT 15
 
 param set-default MPC_XY_P 0.8
-param set-default MPC_XY_VEL_P_ACC 2
 param set-default MPC_XY_VEL_MAX 5
-param set-default MPC_ACC_HOR_MAX 2
 param set-default MPC_LAND_SPEED 1.2
 param set-default MPC_TILTMAX_LND 35
 param set-default MPC_Z_VEL_MAX_UP 1.5
-param set-default MPC_HOLD_MAX_XY 0.5
-param set-default MPC_HOLD_MAX_Z 0.5
 param set-default MPC_TKO_RAMP_T 0.8
-param set-default MPC_XY_CRUISE 5
 param set-default MPC_TILTMAX_AIR 25
 param set-default MPC_TILTMAX_LND 25
 param set-default MPC_YAWRAUTO_MAX 20
@@ -114,17 +96,12 @@ param set-default MAV_1_FORWARD 1
 param set-default SER_TEL2_BAUD 57600
 
 param set-default VT_TYPE 2
-param set-default VT_F_TRANS_THR 1
 param set-default VT_PITCH_MIN 8
 param set-default VT_FW_QC_P 55
 param set-default VT_FW_QC_R 55
 param set-default VT_TRANS_MIN_TM 15
-param set-default VT_B_TRANS_DUR 8
 param set-default VT_FWD_THRUST_SC 4
-param set-default VT_F_TRANS_DUR 1
-param set-default VT_B_TRANS_THR 0.7
 param set-default VT_TRANS_TIMEOUT 22
-param set-default VT_F_TRANS_RAMP 4
 
 param set-default COM_RC_OVERRIDE 0
 

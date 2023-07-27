@@ -42,7 +42,7 @@ add_library(flashparams
 	flashparams.cpp
 )
 
-add_dependencies(flashparams prebuild_targets)
+add_dependencies(flashparams prebuild_targets parameters_header)
 target_compile_definitions(flashparams PRIVATE -DMODULE_NAME="flashparams")
 target_compile_options(flashparams
 	PRIVATE

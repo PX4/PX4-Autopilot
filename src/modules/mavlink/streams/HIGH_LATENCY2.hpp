@@ -39,7 +39,6 @@
 #include <lib/matrix/matrix/math.hpp>
 
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/estimator_selector_status.h>
@@ -51,6 +50,7 @@
 #include <uORB/topics/wind.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
@@ -561,16 +561,16 @@ private:
 
 		if (_status_sub.update(&status)) {
 			if (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
-				actuator_controls_s actuator{};
+				vehicle_thrust_setpoint_s vehicle_thrust_setpoint{};
 
 				if (status.is_vtol && status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
-					if (_actuator_1_sub.copy(&actuator)) {
-						_throttle.add_value(actuator.control[actuator_controls_s::INDEX_THROTTLE], _update_rate_filtered);
+					if (_vehicle_thrust_setpoint_1_sub.copy(&vehicle_thrust_setpoint)) {
+						_throttle.add_value(vehicle_thrust_setpoint.xyz[0], _update_rate_filtered);
 					}
 
 				} else {
-					if (_actuator_0_sub.copy(&actuator)) {
-						_throttle.add_value(actuator.control[actuator_controls_s::INDEX_THROTTLE], _update_rate_filtered);
+					if (_vehicle_thrust_setpoint_0_sub.copy(&vehicle_thrust_setpoint)) {
+						_throttle.add_value(-vehicle_thrust_setpoint.xyz[2], _update_rate_filtered);
 					}
 				}
 
@@ -621,8 +621,8 @@ private:
 		msg.wp_num = UINT16_MAX;
 	}
 
-	uORB::Subscription _actuator_0_sub{ORB_ID(actuator_controls_0)};
-	uORB::Subscription _actuator_1_sub{ORB_ID(actuator_controls_1)};
+	uORB::Subscription _vehicle_thrust_setpoint_0_sub{ORB_ID(vehicle_thrust_setpoint), 0};
+	uORB::Subscription _vehicle_thrust_setpoint_1_sub{ORB_ID(vehicle_thrust_setpoint), 1};
 	uORB::Subscription _airspeed_sub{ORB_ID(airspeed)};
 	uORB::Subscription _attitude_sp_sub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Subscription _estimator_selector_status_sub{ORB_ID(estimator_selector_status)};

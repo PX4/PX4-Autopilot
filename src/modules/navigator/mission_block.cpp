@@ -50,7 +50,6 @@
 #include <systemlib/mavlink_log.h>
 #include <mathlib/mathlib.h>
 #include <uORB/uORB.h>
-#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 
@@ -71,7 +70,6 @@ MissionBlock::is_mission_item_reached_or_completed()
 	switch (_mission_item.nav_cmd) {
 
 	// Action Commands that doesn't have timeout completes instantaneously
-	case NAV_CMD_DO_SET_SERVO:
 	case NAV_CMD_DO_SET_ACTUATOR:
 	case NAV_CMD_DO_LAND_START:
 	case NAV_CMD_DO_TRIGGER_CONTROL:
@@ -557,21 +555,8 @@ MissionBlock::issue_command(const mission_item_s &item)
 		return;
 	}
 
-	if (item.nav_cmd == NAV_CMD_DO_SET_SERVO) {
-		PX4_INFO("DO_SET_SERVO command");
-
-		// XXX: we should issue a vehicle command and handle this somewhere else
-		actuator_controls_s actuators = {};
-		actuators.timestamp = hrt_absolute_time();
-
-		// params[0] actuator number to be set 0..5 (corresponds to AUX outputs 1..6)
-		// params[1] new value for selected actuator in ms 900...2000
-		actuators.control[(int)item.params[0]] = 1.0f / 2000 * -item.params[1];
-
-		_actuator_pub.publish(actuators);
-
-	} else if (item.nav_cmd == NAV_CMD_DO_WINCH ||
-		   item.nav_cmd == NAV_CMD_DO_GRIPPER) {
+	if (item.nav_cmd == NAV_CMD_DO_WINCH ||
+	    item.nav_cmd == NAV_CMD_DO_GRIPPER) {
 		// Initiate Payload Deployment
 		vehicle_command_s vcmd = {};
 		vcmd.command = item.nav_cmd;

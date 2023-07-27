@@ -129,6 +129,7 @@ fi
 # multi-instance setup
 # shellcheck disable=SC2154
 param set MAV_SYS_ID $((px4_instance+1))
+param set UXRCE_DDS_KEY $((px4_instance+1))
 
 if [ $AUTOCNF = yes ]
 then
@@ -167,8 +168,6 @@ param set-default EKF2_REQ_GPS_H 0.5
 # Multi-EKF
 param set-default EKF2_MULTI_IMU 3
 param set-default SENS_IMU_MODE 0
-param set-default EKF2_MULTI_MAG 2
-param set-default SENS_MAG_MODE 0
 
 param set-default IMU_GYRO_FFT_EN 1
 param set-default MAV_PROTO_VER 2 # Ensures QGC does not drop the first few packets after a SITL restart due to MAVLINK 1 packets
@@ -264,20 +263,33 @@ fi
 
 navigator start
 
-# Try to start the microdds_client with UDP transport if module exists
-microdds_ns=""
+# Try to start the UXRCE-DDS Client with UDP transport if module exists
+uxrce_dds_ns=""
 if [ "$px4_instance" -ne "0" ]
 then
-	# Assign new xrce dds key based on instance number and set default namespace
-	param set XRCE_DDS_KEY ${px4_instance}
-	microdds_ns="-n px4_$px4_instance"
+	# for multi intances setup, add namespace prefix
+	uxrce_dds_ns="-n px4_$px4_instance"
 fi
-if [ -n "$PX4_MICRODDS_NS" ]
+if [ -n "$PX4_UXRCE_DDS_NS" ]
 then
 	# Override namespace if environment variable is defined
-	microdds_ns="-n $PX4_MICRODDS_NS"
+	uxrce_dds_ns="-n $PX4_UXRCE_DDS_NS"
 fi
-microdds_client start -t udp -p 8888 $microdds_ns
+if [ -n "$ROS_DOMAIN_ID" ]
+then
+	# Match UXRCE_DDS_DOM_ID with ROS_DOMAIN_ID, if defined
+	param set UXRCE_DDS_DOM_ID $ROS_DOMAIN_ID
+else
+	param set UXRCE_DDS_DOM_ID 0
+fi
+uxrce_dds_port=8888
+if [ -n "$PX4_UXRCE_DDS_PORT" ]
+then
+	# Override port if environment variable is defined
+	uxrce_dds_port="$PX4_UXRCE_DDS_PORT"
+fi
+
+uxrce_dds_client start -t udp -h 127.0.0.1 -p $uxrce_dds_port $uxrce_dds_ns
 
 if param greater -s MNT_MODE_IN -1
 then

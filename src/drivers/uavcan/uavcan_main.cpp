@@ -80,6 +80,7 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::uavcan),
 	ModuleParams(nullptr),
 	_node(can_driver, system_clock, _pool_allocator),
+	_arming_status_controller(_node),
 	_beep_controller(_node),
 	_esc_controller(_node),
 	_servo_controller(_node),
@@ -478,7 +479,21 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 
 	fill_node_info();
 
-	int ret = _beep_controller.init();
+	int ret;
+
+	// UAVCAN_PUB_ARM
+	int32_t uavcan_pub_arm = 0;
+	param_get(param_find("UAVCAN_PUB_ARM"), &uavcan_pub_arm);
+
+	if (uavcan_pub_arm == 1) {
+		ret = _arming_status_controller.init();
+
+		if (ret < 0) {
+			return ret;
+		}
+	}
+
+	ret = _beep_controller.init();
 
 	if (ret < 0) {
 		return ret;
@@ -562,7 +577,7 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 			int rv = _servers->init();
 
 			if (rv < 0) {
-				PX4_ERR("UavcanServers init: %d", ret);
+				PX4_ERR("UavcanServers init: %d", rv);
 			}
 		}
 	}

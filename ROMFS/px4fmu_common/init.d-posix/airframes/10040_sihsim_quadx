@@ -17,12 +17,9 @@ param set-default SENS_EN_BAROSIM 1
 param set-default SENS_EN_MAGSIM 1
 
 # disable some checks to allow to fly:
-# - with usb
-param set-default CBRK_USB_CHK 197848
 # - without real battery
 param set-default CBRK_SUPPLY_CHK 894281
 # - without safety switch
-param set-default COM_PREARM_MODE 0
 param set-default CBRK_IO_SAFETY 22027
 
 param set-default CA_ROTOR_COUNT 4

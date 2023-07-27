@@ -264,8 +264,9 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		led_on(LED_RED);
 	}
 
+	int ret;
 #ifdef CONFIG_MMCSD
-	int ret = stm32_sdio_initialize();
+	ret = stm32_sdio_initialize();
 
 	if (ret != OK) {
 		led_on(LED_RED);
@@ -274,30 +275,11 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 #endif /* CONFIG_MMCSD */
 
-	int hw_version = board_get_hw_version();
+	ret = mcp23009_register_gpios(3, 0x25);
 
-	if (hw_version == 0x9 || hw_version == 0xa) {
-		static MCP23009 mcp23009{3, 0x25};
-
-		// No USB
-		if (hw_version == 0x9) {
-			// < P8
-			ret = mcp23009.init(0xf0, 0xf0, 0x0f);
-			// >= P8
-			//ret = mcp23009.init(0xf1, 0xf0, 0x0f);
-		}
-
-		if (hw_version == 0xa) {
-			// < P6
-			//ret = mcp23009.init(0xf0, 0xf0, 0x0f);
-			// >= P6
-			ret = mcp23009.init(0xf1, 0xf0, 0x0f);
-		}
-
-		if (ret != OK) {
-			led_on(LED_RED);
-			return ret;
-		}
+	if (ret != OK) {
+		led_on(LED_RED);
+		return ret;
 	}
 
 	return OK;

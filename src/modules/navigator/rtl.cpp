@@ -42,7 +42,7 @@
 
 #include "rtl.h"
 #include "navigator.h"
-#include <dataman/dataman.h>
+#include <dataman_client/DatamanClient.hpp>
 #include <px4_platform_common/events.h>
 
 #include <lib/geo/geo.h>
@@ -65,6 +65,90 @@ RTL::RTL(Navigator *navigator) :
 	_param_fw_airspeed_trim = param_find("FW_AIRSPD_TRIM");
 	_param_mpc_xy_cruise = param_find("MPC_XY_CRUISE");
 	_param_rover_cruise_speed = param_find("GND_SPEED_THR_SC");
+}
+
+void RTL::run()
+{
+	bool success;
+
+	switch (_dataman_state) {
+
+	case DatamanState::UpdateRequestWait:
+
+		if (_initiate_safe_points_updated) {
+			_initiate_safe_points_updated = false;
+			_dataman_state	= DatamanState::Read;
+		}
+
+		break;
+
+	case DatamanState::Read:
+
+		_dataman_state	= DatamanState::ReadWait;
+		success = _dataman_client.readAsync(DM_KEY_SAFE_POINTS, 0, reinterpret_cast<uint8_t *>(&_stats),
+						    sizeof(mission_stats_entry_s));
+
+		if (!success) {
+			_error_state = DatamanState::Read;
+			_dataman_state = DatamanState::Error;
+		}
+
+		break;
+
+	case DatamanState::ReadWait:
+
+		_dataman_client.update();
+
+		if (_dataman_client.lastOperationCompleted(success)) {
+
+			if (!success) {
+				_error_state = DatamanState::ReadWait;
+				_dataman_state = DatamanState::Error;
+
+			} else if (_update_counter != _stats.update_counter) {
+
+				_update_counter = _stats.update_counter;
+				_safe_points_updated = false;
+
+				_dataman_cache.invalidate();
+
+				if (_dataman_cache.size() != _stats.num_items) {
+					_dataman_cache.resize(_stats.num_items);
+				}
+
+				for (int index = 1; index <= _dataman_cache.size(); ++index) {
+					_dataman_cache.load(DM_KEY_SAFE_POINTS, index);
+				}
+
+				_dataman_state = DatamanState::Load;
+
+			} else {
+				_dataman_state = DatamanState::UpdateRequestWait;
+			}
+		}
+
+		break;
+
+	case DatamanState::Load:
+
+		_dataman_cache.update();
+
+		if (!_dataman_cache.isLoading()) {
+			_dataman_state = DatamanState::UpdateRequestWait;
+			_safe_points_updated = true;
+		}
+
+		break;
+
+	case DatamanState::Error:
+		PX4_ERR("Safe points update failed! state: %" PRIu8, static_cast<uint8_t>(_error_state));
+		_dataman_state = DatamanState::UpdateRequestWait;
+		break;
+
+	default:
+		break;
+
+	}
 }
 
 void RTL::on_inactivation()
@@ -152,7 +236,7 @@ void RTL::find_RTL_destination()
 		double dist_squared = coord_dist_sq(dlat, dlon);
 
 		// always find closest destination if in hover and VTOL
-		if (_param_rtl_type.get() == RTL_TYPE_CLOSEST || (vtol_in_rw_mode && !_navigator->getMissionLandingInProgress())) {
+		if (_param_rtl_type.get() == RTL_TYPE_CLOSEST || (vtol_in_rw_mode && !_navigator->on_mission_landing())) {
 
 			// compare home position to landing position to decide which is closer
 			if (dist_squared < min_dist_squared) {
@@ -178,37 +262,34 @@ void RTL::find_RTL_destination()
 		return;
 	}
 
-	// compare to safe landing positions
 	mission_safe_point_s closest_safe_point {};
-	mission_stats_entry_s stats;
-	int ret = dm_read(DM_KEY_SAFE_POINTS, 0, &stats, sizeof(mission_stats_entry_s));
-	int num_safe_points = 0;
-
-	if (ret == sizeof(mission_stats_entry_s)) {
-		num_safe_points = stats.num_items;
-	}
-
 	// check if a safe point is closer than home or landing
 	int closest_index = 0;
 
-	for (int current_seq = 1; current_seq <= num_safe_points; ++current_seq) {
-		mission_safe_point_s mission_safe_point;
+	if (_safe_points_updated) {
 
-		if (dm_read(DM_KEY_SAFE_POINTS, current_seq, &mission_safe_point, sizeof(mission_safe_point_s)) !=
-		    sizeof(mission_safe_point_s)) {
-			PX4_ERR("dm_read failed");
-			continue;
-		}
+		for (int current_seq = 1; current_seq <= _dataman_cache.size(); ++current_seq) {
+			mission_safe_point_s mission_safe_point;
 
-		// TODO: take altitude into account for distance measurement
-		dlat = mission_safe_point.lat - global_position.lat;
-		dlon = mission_safe_point.lon - global_position.lon;
-		double dist_squared = coord_dist_sq(dlat, dlon);
+			bool success = _dataman_cache.loadWait(DM_KEY_SAFE_POINTS, current_seq,
+							       reinterpret_cast<uint8_t *>(&mission_safe_point),
+							       sizeof(mission_safe_point_s));
 
-		if (dist_squared < min_dist_squared) {
-			closest_index = current_seq;
-			min_dist_squared = dist_squared;
-			closest_safe_point = mission_safe_point;
+			if (!success) {
+				PX4_ERR("dm_read failed");
+				continue;
+			}
+
+			// TODO: take altitude into account for distance measurement
+			dlat = mission_safe_point.lat - global_position.lat;
+			dlon = mission_safe_point.lon - global_position.lon;
+			double dist_squared = coord_dist_sq(dlat, dlon);
+
+			if (dist_squared < min_dist_squared) {
+				closest_index = current_seq;
+				min_dist_squared = dist_squared;
+				closest_safe_point = mission_safe_point;
+			}
 		}
 	}
 
@@ -253,11 +334,6 @@ void RTL::on_activation()
 {
 	_rtl_state = RTL_STATE_NONE;
 
-	// if a mission landing is desired we should only execute mission navigation mode if we currently are in fw mode
-	// In multirotor mode no landing pattern is required so we can just navigate to the land point directly and don't need to run mission
-	_should_engange_mission_for_landing = (_destination.type == RTL_DESTINATION_MISSION_LANDING)
-					      && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
-
 	// output the correct message, depending on where the RTL destination is
 	switch (_destination.type) {
 	case RTL_DESTINATION_HOME:
@@ -282,12 +358,6 @@ void RTL::on_activation()
 		// For safety reasons don't go into RTL if landed.
 		_rtl_state = RTL_STATE_LANDED;
 
-	} else if ((_destination.type == RTL_DESTINATION_MISSION_LANDING) && _navigator->getMissionLandingInProgress()) {
-		// we were just on a mission landing, set _rtl_state past RTL_STATE_LOITER such that navigator will engage mission mode,
-		// which will continue executing the landing
-		_rtl_state = RTL_STATE_LAND;
-
-
 	} else if ((global_position.alt < _destination.alt + _param_rtl_return_alt.get()) || _rtl_alt_min) {
 
 		// If lower than return altitude, climb up first.
@@ -300,7 +370,7 @@ void RTL::on_activation()
 	}
 
 	// reset cruising speed and throttle to default for RTL
-	_navigator->set_cruising_speed();
+	_navigator->reset_cruising_speed();
 	_navigator->set_cruising_throttle();
 
 	set_rtl_item();
@@ -333,9 +403,8 @@ void RTL::on_active()
 		rtl_time_estimate_s rtl_time_estimate{};
 		rtl_time_estimate.valid = false;
 
-		// Calculate RTL destination and time estimate only when there is a valid home and global position
+		// Calculate time estimate only when there is a valid home and global position
 		if (_navigator->home_global_position_valid() && global_position_recently_updated) {
-			find_RTL_destination();
 			calcRtlTimeEstimate(_rtl_state, rtl_time_estimate);
 			rtl_time_estimate.valid = true;
 		}
@@ -555,6 +624,10 @@ void RTL::set_rtl_item()
 			_mission_item.altitude = loiter_altitude;
 			_mission_item.altitude_is_relative = false;
 
+			// have to reset here because these field were used in set_vtol_transition_item
+			_mission_item.time_inside = 0.f;
+			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
+
 			if (rtl_heading_mode == RTLHeadingMode::RTL_NAVIGATION_HEADING) {
 				_mission_item.yaw = get_bearing_to_next_waypoint(gpos.lat, gpos.lon, _destination.lat, _destination.lon);
 
@@ -565,7 +638,6 @@ void RTL::set_rtl_item()
 				_mission_item.yaw = _navigator->get_local_position()->heading;
 			}
 
-			_mission_item.acceptance_radius = _navigator->get_acceptance_radius();
 			_mission_item.origin = ORIGIN_ONBOARD;
 			break;
 		}

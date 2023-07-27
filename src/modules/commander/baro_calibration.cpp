@@ -136,7 +136,7 @@ int do_baro_calibration(orb_advert_t *mavlink_log_pub)
 				if ((hrt_elapsed_time(&sensor_gps.timestamp) < 1_s)
 				    && (sensor_gps.fix_type >= 2) && (sensor_gps.epv < 100)) {
 
-					float alt = sensor_gps.alt * 0.001f;
+					float alt = (float)sensor_gps.altitude_msl_m;
 
 					if (PX4_ISFINITE(gps_altitude_sum)) {
 						gps_altitude_sum += alt;

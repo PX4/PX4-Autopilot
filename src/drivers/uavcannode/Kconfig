@@ -3,3 +3,74 @@ menuconfig DRIVERS_UAVCANNODE
 	default n
 	---help---
 		Enable support for uavcannode
+
+if DRIVERS_UAVCANNODE
+    config UAVCANNODE_ARMING_STATUS
+        bool "Include arming status"
+        default n
+
+    config UAVCANNODE_BATTERY_INFO
+        bool "Include battery info"
+        default n
+
+    config UAVCANNODE_BEEP_COMMAND
+        bool "Include beep command"
+        default n
+
+    config UAVCANNODE_ESC_RAW_COMMAND
+        bool "Include ESC raw command"
+        default n
+
+    config UAVCANNODE_ESC_STATUS
+        bool "Include ESC status"
+        default n
+
+    config UAVCANNODE_FLOW_MEASUREMENT
+        bool "Include flow measurement"
+        default n
+
+    config UAVCANNODE_GNSS_FIX
+        bool "Include GNSS fix"
+        default n
+
+    config UAVCANNODE_HYGROMETER_MEASUREMENT
+        bool "Include hygrometer measurement"
+        default n
+
+    config UAVCANNODE_LIGHTS_COMMAND
+        bool "Include lights command"
+        default n
+
+    config UAVCANNODE_MAGNETIC_FIELD_STRENGTH
+        bool "Include magnetic field strength"
+        default n
+
+    config UAVCANNODE_RANGE_SENSOR_MEASUREMENT
+        bool "Include range sensor measurement"
+        default n
+
+    config UAVCANNODE_RAW_AIR_DATA
+        bool "Include raw air data"
+        default n
+
+    config UAVCANNODE_RTK_DATA
+        bool "Include RTK data"
+        default n
+
+    config UAVCANNODE_SAFETY_BUTTON
+        bool "Include safety button"
+        default n
+
+    config UAVCANNODE_SERVO_ARRAY_COMMAND
+        bool "Include servo array command"
+        default n
+
+    config UAVCANNODE_STATIC_PRESSURE
+        bool "Include static pressure"
+        default n
+
+    config UAVCANNODE_STATIC_TEMPERATURE
+        bool "Include static temperature"
+        default n
+
+endif #DRIVERS_UAVCANNODE

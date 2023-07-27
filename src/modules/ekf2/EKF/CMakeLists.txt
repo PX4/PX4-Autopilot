@@ -31,45 +31,81 @@
 #
 ############################################################################
 
-add_library(ecl_EKF
-	airspeed_fusion.cpp
-	auxvel_fusion.cpp
+set(EKF_SRCS)
+list(APPEND EKF_SRCS
 	baro_height_control.cpp
 	bias_estimator.cpp
 	control.cpp
 	covariance.cpp
-	drag_fusion.cpp
 	ekf.cpp
 	ekf_helper.cpp
 	EKFGSF_yaw.cpp
 	estimator_interface.cpp
-	ev_control.cpp
-	ev_height_control.cpp
-	ev_pos_control.cpp
-	ev_vel_control.cpp
-	ev_yaw_control.cpp
 	fake_height_control.cpp
 	fake_pos_control.cpp
 	gnss_height_control.cpp
 	gps_checks.cpp
 	gps_control.cpp
-	gps_yaw_fusion.cpp
 	gravity_fusion.cpp
 	height_control.cpp
 	imu_down_sampler.cpp
 	mag_control.cpp
 	mag_fusion.cpp
-	optical_flow_control.cpp
-	optflow_fusion.cpp
 	output_predictor.cpp
-	range_finder_consistency_check.cpp
-	range_height_control.cpp
-	sensor_range_finder.cpp
-	sideslip_fusion.cpp
-	terrain_estimator.cpp
 	vel_pos_fusion.cpp
 	zero_innovation_heading_update.cpp
+	zero_gyro_update.cpp
 	zero_velocity_update.cpp
+)
+
+if(CONFIG_EKF2_AIRSPEED)
+	list(APPEND EKF_SRCS airspeed_fusion.cpp)
+endif()
+
+if(CONFIG_EKF2_AUXVEL)
+	list(APPEND EKF_SRCS auxvel_fusion.cpp)
+endif()
+
+if(CONFIG_EKF2_DRAG_FUSION)
+	list(APPEND EKF_SRCS drag_fusion.cpp)
+endif()
+
+if(CONFIG_EKF2_EXTERNAL_VISION)
+	list(APPEND EKF_SRCS
+		ev_control.cpp
+		ev_height_control.cpp
+		ev_pos_control.cpp
+		ev_vel_control.cpp
+		ev_yaw_control.cpp
+	)
+endif()
+
+if(CONFIG_EKF2_GNSS_YAW)
+	list(APPEND EKF_SRCS gps_yaw_fusion.cpp)
+endif()
+
+if(CONFIG_EKF2_OPTICAL_FLOW)
+	list(APPEND EKF_SRCS
+		optical_flow_control.cpp
+		optflow_fusion.cpp
+	)
+endif()
+
+if(CONFIG_EKF2_RANGE_FINDER)
+	list(APPEND EKF_SRCS
+		range_finder_consistency_check.cpp
+		range_height_control.cpp
+		sensor_range_finder.cpp
+		terrain_estimator.cpp
+	)
+endif()
+
+if(CONFIG_EKF2_SIDESLIP)
+	list(APPEND EKF_SRCS sideslip_fusion.cpp)
+endif()
+
+add_library(ecl_EKF
+	${EKF_SRCS}
 )
 
 add_dependencies(ecl_EKF prebuild_targets)

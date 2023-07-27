@@ -226,6 +226,8 @@ void Standard::update_transition_state()
 		// ramp up FW_PSP_OFF
 		_v_att_sp->pitch_body = math::radians(_param_fw_psp_off.get()) * (1.0f - mc_weight);
 
+		_v_att_sp->thrust_body[0] = _pusher_throttle;
+
 		const Quatf q_sp(Eulerf(_v_att_sp->roll_body, _v_att_sp->pitch_body, _v_att_sp->yaw_body));
 		q_sp.copyTo(_v_att_sp->q_d);
 
@@ -273,91 +275,75 @@ void Standard::update_fw_state()
  */
 void Standard::fill_actuator_outputs()
 {
-	auto &mc_in = _actuators_mc_in->control;
-	auto &fw_in = _actuators_fw_in->control;
+	_torque_setpoint_0->timestamp = hrt_absolute_time();
+	_torque_setpoint_0->timestamp_sample = _vehicle_torque_setpoint_virtual_mc->timestamp_sample;
+	_torque_setpoint_0->xyz[0] = 0.f;
+	_torque_setpoint_0->xyz[1] = 0.f;
+	_torque_setpoint_0->xyz[2] = 0.f;
 
-	auto &mc_out = _actuators_out_0->control;
-	auto &fw_out = _actuators_out_1->control;
+	_torque_setpoint_1->timestamp = hrt_absolute_time();
+	_torque_setpoint_1->timestamp_sample = _vehicle_torque_setpoint_virtual_fw->timestamp_sample;
+	_torque_setpoint_1->xyz[0] = 0.f;
+	_torque_setpoint_1->xyz[1] = 0.f;
+	_torque_setpoint_1->xyz[2] = 0.f;
+
+	_thrust_setpoint_0->timestamp = hrt_absolute_time();
+	_thrust_setpoint_0->timestamp_sample = _vehicle_thrust_setpoint_virtual_mc->timestamp_sample;
+	_thrust_setpoint_0->xyz[0] = 0.f;
+	_thrust_setpoint_0->xyz[1] = 0.f;
+	_thrust_setpoint_0->xyz[2] = 0.f;
+
+	_thrust_setpoint_1->timestamp = hrt_absolute_time();
+	_thrust_setpoint_1->timestamp_sample = _vehicle_thrust_setpoint_virtual_fw->timestamp_sample;
+	_thrust_setpoint_1->xyz[0] = 0.f;
+	_thrust_setpoint_1->xyz[1] = 0.f;
+	_thrust_setpoint_1->xyz[2] = 0.f;
 
 	switch (_vtol_mode) {
 	case vtol_mode::MC_MODE:
 
-		// MC out = MC in
-		mc_out[actuator_controls_s::INDEX_ROLL]         = mc_in[actuator_controls_s::INDEX_ROLL];
-		mc_out[actuator_controls_s::INDEX_PITCH]        = mc_in[actuator_controls_s::INDEX_PITCH];
-		mc_out[actuator_controls_s::INDEX_YAW]          = mc_in[actuator_controls_s::INDEX_YAW];
-		mc_out[actuator_controls_s::INDEX_THROTTLE]     = mc_in[actuator_controls_s::INDEX_THROTTLE];
+		// MC actuators:
+		_torque_setpoint_0->xyz[0] = _vehicle_torque_setpoint_virtual_mc->xyz[0];
+		_torque_setpoint_0->xyz[1] = _vehicle_torque_setpoint_virtual_mc->xyz[1];
+		_torque_setpoint_0->xyz[2] = _vehicle_torque_setpoint_virtual_mc->xyz[2];
+		_thrust_setpoint_0->xyz[2] = _vehicle_thrust_setpoint_virtual_mc->xyz[2];
 
-		// FW out = 0, other than roll and pitch depending on elevon lock
-		fw_out[actuator_controls_s::INDEX_ROLL]         = _param_vt_elev_mc_lock.get() ? 0 :
-				fw_in[actuator_controls_s::INDEX_ROLL];
-		fw_out[actuator_controls_s::INDEX_PITCH]        = _param_vt_elev_mc_lock.get() ? 0 :
-				fw_in[actuator_controls_s::INDEX_PITCH];
-		fw_out[actuator_controls_s::INDEX_YAW]          = 0;
-		fw_out[actuator_controls_s::INDEX_THROTTLE]     = _pusher_throttle;
+		// FW actuators:
+		if (!_param_vt_elev_mc_lock.get()) {
+			_torque_setpoint_1->xyz[0] = _vehicle_torque_setpoint_virtual_fw->xyz[0];
+			_torque_setpoint_1->xyz[1] = _vehicle_torque_setpoint_virtual_fw->xyz[1];
+		}
+
+		_thrust_setpoint_0->xyz[0] = _pusher_throttle;
 		break;
 
 	case vtol_mode::TRANSITION_TO_FW:
 
 	// FALLTHROUGH
 	case vtol_mode::TRANSITION_TO_MC:
-		// MC out = MC in (weighted)
-		mc_out[actuator_controls_s::INDEX_ROLL]         = mc_in[actuator_controls_s::INDEX_ROLL]     * _mc_roll_weight;
-		mc_out[actuator_controls_s::INDEX_PITCH]        = mc_in[actuator_controls_s::INDEX_PITCH]    * _mc_pitch_weight;
-		mc_out[actuator_controls_s::INDEX_YAW]          = mc_in[actuator_controls_s::INDEX_YAW]      * _mc_yaw_weight;
-		mc_out[actuator_controls_s::INDEX_THROTTLE]     = mc_in[actuator_controls_s::INDEX_THROTTLE] * _mc_throttle_weight;
+		// MC actuators:
+		_torque_setpoint_0->xyz[0] = _vehicle_torque_setpoint_virtual_mc->xyz[0] * _mc_roll_weight;
+		_torque_setpoint_0->xyz[1] = _vehicle_torque_setpoint_virtual_mc->xyz[1] * _mc_pitch_weight;
+		_torque_setpoint_0->xyz[2] = _vehicle_torque_setpoint_virtual_mc->xyz[2] * _mc_yaw_weight;
+		_thrust_setpoint_0->xyz[2] = _vehicle_thrust_setpoint_virtual_mc->xyz[2] * _mc_throttle_weight;
 
-		// FW out = FW in, with VTOL transition controlling throttle and airbrakes
-		fw_out[actuator_controls_s::INDEX_ROLL]         = fw_in[actuator_controls_s::INDEX_ROLL] * (1.f - _mc_roll_weight);
-		fw_out[actuator_controls_s::INDEX_PITCH]        = fw_in[actuator_controls_s::INDEX_PITCH] * (1.f - _mc_pitch_weight);
-		fw_out[actuator_controls_s::INDEX_YAW]          = fw_in[actuator_controls_s::INDEX_YAW] * (1.f - _mc_yaw_weight);
-		fw_out[actuator_controls_s::INDEX_THROTTLE]     = _pusher_throttle;
+		// FW actuators
+		_torque_setpoint_1->xyz[0] = _vehicle_torque_setpoint_virtual_fw->xyz[0] * (1.f - _mc_roll_weight);
+		_torque_setpoint_1->xyz[1] = _vehicle_torque_setpoint_virtual_fw->xyz[1] * (1.f - _mc_pitch_weight);
+		_torque_setpoint_1->xyz[2] = _vehicle_torque_setpoint_virtual_fw->xyz[2] * (1.f - _mc_yaw_weight);
+		_thrust_setpoint_0->xyz[0] = _pusher_throttle;
 
 		break;
 
 	case vtol_mode::FW_MODE:
-		// MC out = 0
-		mc_out[actuator_controls_s::INDEX_ROLL]         = 0;
-		mc_out[actuator_controls_s::INDEX_PITCH]        = 0;
-		mc_out[actuator_controls_s::INDEX_YAW]          = 0;
-		mc_out[actuator_controls_s::INDEX_THROTTLE]     = 0;
 
-		// FW out = FW in
-		fw_out[actuator_controls_s::INDEX_ROLL]         = fw_in[actuator_controls_s::INDEX_ROLL];
-		fw_out[actuator_controls_s::INDEX_PITCH]        = fw_in[actuator_controls_s::INDEX_PITCH];
-		fw_out[actuator_controls_s::INDEX_YAW]          = fw_in[actuator_controls_s::INDEX_YAW];
-		fw_out[actuator_controls_s::INDEX_THROTTLE]     = fw_in[actuator_controls_s::INDEX_THROTTLE];
+		// FW actuators
+		_torque_setpoint_1->xyz[0] = _vehicle_torque_setpoint_virtual_fw->xyz[0];
+		_torque_setpoint_1->xyz[1] = _vehicle_torque_setpoint_virtual_fw->xyz[1];
+		_torque_setpoint_1->xyz[2] = _vehicle_torque_setpoint_virtual_fw->xyz[2];
+		_thrust_setpoint_0->xyz[0] = _vehicle_thrust_setpoint_virtual_fw->xyz[0];
 		break;
 	}
-
-	_torque_setpoint_0->timestamp = hrt_absolute_time();
-	_torque_setpoint_0->timestamp_sample = _actuators_mc_in->timestamp_sample;
-	_torque_setpoint_0->xyz[0] = mc_out[actuator_controls_s::INDEX_ROLL];
-	_torque_setpoint_0->xyz[1] = mc_out[actuator_controls_s::INDEX_PITCH];
-	_torque_setpoint_0->xyz[2] = mc_out[actuator_controls_s::INDEX_YAW];
-
-	_torque_setpoint_1->timestamp = hrt_absolute_time();
-	_torque_setpoint_1->timestamp_sample = _actuators_fw_in->timestamp_sample;
-	_torque_setpoint_1->xyz[0] = fw_out[actuator_controls_s::INDEX_ROLL];
-	_torque_setpoint_1->xyz[1] = fw_out[actuator_controls_s::INDEX_PITCH];
-	_torque_setpoint_1->xyz[2] = fw_out[actuator_controls_s::INDEX_YAW];
-
-	_thrust_setpoint_0->timestamp = hrt_absolute_time();
-	_thrust_setpoint_0->timestamp_sample = _actuators_mc_in->timestamp_sample;
-	_thrust_setpoint_0->xyz[0] = fw_out[actuator_controls_s::INDEX_THROTTLE];
-	_thrust_setpoint_0->xyz[1] = 0.f;
-	_thrust_setpoint_0->xyz[2] = -mc_out[actuator_controls_s::INDEX_THROTTLE];
-
-	_thrust_setpoint_1->timestamp = hrt_absolute_time();
-	_thrust_setpoint_1->timestamp_sample = _actuators_fw_in->timestamp_sample;
-	_thrust_setpoint_1->xyz[0] = 0.f;
-	_thrust_setpoint_1->xyz[1] = 0.f;
-	_thrust_setpoint_1->xyz[2] = 0.f;
-
-	_actuators_out_0->timestamp_sample = _actuators_mc_in->timestamp_sample;
-	_actuators_out_1->timestamp_sample = _actuators_fw_in->timestamp_sample;
-
-	_actuators_out_0->timestamp = _actuators_out_1->timestamp = hrt_absolute_time();
 }
 
 void

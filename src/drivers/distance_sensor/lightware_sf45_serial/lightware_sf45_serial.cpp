@@ -37,7 +37,7 @@
 #include <inttypes.h>
 #include <fcntl.h>
 #include <termios.h>
-#include <lib/systemlib/crc.h>
+#include <lib/crc/crc.h>
 
 #include <float.h>
 #include <mathlib/mathlib.h>

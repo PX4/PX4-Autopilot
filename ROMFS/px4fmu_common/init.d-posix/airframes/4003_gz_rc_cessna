@@ -10,13 +10,14 @@ PX4_SIMULATOR=${PX4_SIMULATOR:=gz}
 PX4_GZ_WORLD=${PX4_GZ_WORLD:=default}
 PX4_SIM_MODEL=${PX4_SIM_MODEL:=rc_cessna}
 
+param set-default SIM_GZ_EN 1
+
 param set-default SENS_EN_GPSSIM 1
 param set-default SENS_EN_BAROSIM 0
 param set-default SENS_EN_MAGSIM 1
 param set-default SENS_EN_ARSPDSIM 1
 
-param set-default EKF2_MAG_ACCLIM 0
-param set-default EKF2_MAG_YAWLIM 0
+
 
 param set-default FW_LND_ANG 8
 

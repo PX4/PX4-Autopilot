@@ -13,13 +13,14 @@
 # @board px4_fmu-v4pro exclude
 # @board px4_fmu-v5 exclude
 # @board px4_fmu-v5x exclude
+# @board diatone_mamba-f405-mk2 exclude
 #
 . ${R}etc/init.d/rc.mc_defaults
 
 
 param set-default SYS_MC_EST_GROUP 2
 param set-default SYS_HAS_MAG 0
-param set-default EKF2_AID_MASK 2
+param set-default EKF2_OF_CTRL 1
 param set-default EKF2_GPS_CTRL 0
 param set-default EKF2_MAG_TYPE 5
 
@@ -27,7 +28,6 @@ param set-default BAT1_N_CELLS 1
 param set-default BAT1_SOURCE 1
 
 param set-default CBRK_SUPPLY_CHK 894281
-param set-default CBRK_USB_CHK 197848
 param set-default COM_RC_IN_MODE 1
 
 param set-default IMU_GYRO_CUTOFF 100

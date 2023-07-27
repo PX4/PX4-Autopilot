@@ -50,7 +50,7 @@ UavcanEscController::UavcanEscController(uavcan::INode &node) :
 	_uavcan_pub_raw_cmd(node),
 	_uavcan_sub_status(node)
 {
-	_uavcan_pub_raw_cmd.setPriority(UAVCAN_COMMAND_TRANSFER_PRIORITY);
+	_uavcan_pub_raw_cmd.setPriority(uavcan::TransferPriority::NumericallyMin); // Highest priority
 }
 
 int
@@ -63,6 +63,8 @@ UavcanEscController::init()
 		PX4_ERR("ESC status sub failed %i", res);
 		return res;
 	}
+
+	_esc_status_pub.advertise();
 
 	return res;
 }

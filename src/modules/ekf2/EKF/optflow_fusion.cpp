@@ -77,6 +77,16 @@ void Ekf::updateOptFlow(estimator_aid_source2d_s &aid_src)
 	const float R_LOS = calcOptFlowMeasVar(_flow_sample_delayed);
 	aid_src.observation_variance[0] = R_LOS;
 	aid_src.observation_variance[1] = R_LOS;
+
+	const Vector24f state_vector = getStateAtFusionHorizonAsVector();
+
+	Vector2f innov_var;
+	Vector24f H;
+	sym::ComputeFlowXyInnovVarAndHx(state_vector, P, range, R_LOS, FLT_EPSILON, &innov_var, &H);
+	innov_var.copyTo(aid_src.innovation_variance);
+
+	// run the innovation consistency check and record result
+	setEstimatorAidStatusTestRatio(aid_src, math::max(_params.flow_innov_gate, 1.f));
 }
 
 void Ekf::fuseOptFlow()

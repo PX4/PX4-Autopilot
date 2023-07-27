@@ -17,6 +17,7 @@
 # @maintainer Andreas Antener <andreas@uaventure.com>
 #
 # @board bitcraze_crazyflie exclude
+# @board diatone_mamba-f405-mk2 exclude
 #
 
 . ${R}etc/init.d/rc.fw_defaults

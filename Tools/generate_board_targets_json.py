@@ -61,18 +61,19 @@ def process_target(px4board_file, target_name):
 
     if platform not in excluded_platforms:
         # get the container based on the platform and toolchain
-        container = platform
         if platform == 'posix':
-            container = 'base-focal'
+            container = 'px4io/px4-dev-base-focal:2021-09-08'
             if toolchain:
                 if toolchain.startswith('aarch64'):
-                    container = 'aarch64'
+                    container = 'px4io/px4-dev-aarch64:2022-08-12'
                 elif toolchain == 'arm-linux-gnueabihf':
-                    container = 'armhf'
+                    container = 'px4io/px4-dev-armhf:2023-06-26'
                 else:
-                    if verbose: print(f'possibly unmatched toolchain: {toolchain}')
+                    if verbose: print(f'unmatched toolchain: {toolchain}')
         elif platform == 'nuttx':
-            container = 'nuttx-focal'
+            container = 'px4io/px4-dev-nuttx-focal:2022-08-12'
+        else:
+            if verbose: print(f'unmatched platform: {platform}')
 
         ret = {'target': target_name, 'container': container}
 
@@ -113,4 +114,3 @@ extra_args = {}
 if args.pretty:
     extra_args['indent'] = 2
 print(json.dumps(github_action_config, **extra_args))
-

@@ -57,7 +57,7 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 	const bool airspeed_timed_out = isTimedOut(_aid_src_airspeed.time_last_fuse, (uint64_t)10e6);
 	const bool sideslip_timed_out = isTimedOut(_aid_src_sideslip.time_last_fuse, (uint64_t)10e6);
 
-	if (_control_status.flags.fake_pos || (airspeed_timed_out && sideslip_timed_out && !(_params.fusion_mode & SensorFusionMask::USE_DRAG))) {
+	if (_control_status.flags.fake_pos || (airspeed_timed_out && sideslip_timed_out && (_params.drag_ctrl == 0))) {
 		_control_status.flags.wind = false;
 	}
 
@@ -114,7 +114,10 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 			ECL_INFO("starting airspeed fusion");
 
 			// If starting wind state estimation, reset the wind states and covariances before fusing any data
-			if (!_control_status.flags.wind) {
+			// Also catch the case where sideslip fusion enabled wind estimation recently and didn't converge yet.
+			const Vector2f wind_var_xy = getWindVelocityVariance();
+
+			if (!_control_status.flags.wind || (wind_var_xy(0) + wind_var_xy(1) > sq(_params.initial_wind_uncertainty))) {
 				// activate the wind states
 				_control_status.flags.wind = true;
 				// reset the wind speed states and corresponding covariances
@@ -222,21 +225,6 @@ void Ekf::stopAirspeedFusion()
 	}
 }
 
-float Ekf::getTrueAirspeed() const
-{
-	return (_state.vel - Vector3f(_state.wind_vel(0), _state.wind_vel(1), 0.f)).norm();
-}
-
-void Ekf::resetWind()
-{
-	if (_control_status.flags.fuse_aspd && isRecent(_airspeed_sample_delayed.time_us, 1e6)) {
-		resetWindUsingAirspeed(_airspeed_sample_delayed);
-
-	} else {
-		resetWindToZero();
-	}
-}
-
 void Ekf::resetWindUsingAirspeed(const airspeedSample &airspeed_sample)
 {
 	const float euler_yaw = getEulerYaw(_R_to_earth);
@@ -281,15 +269,4 @@ void Ekf::resetWindCovarianceUsingAirspeed(const airspeedSample &airspeed_sample
 	// Now add the variance due to uncertainty in vehicle velocity that was used to calculate the initial wind speed
 	P(22, 22) += P(4, 4);
 	P(23, 23) += P(5, 5);
-}
-
-void Ekf::resetWindToZero()
-{
-	ECL_INFO("reset wind to zero");
-
-	// If we don't have an airspeed measurement, then assume the wind is zero
-	_state.wind_vel.setZero();
-
-	// start with a small initial uncertainty to improve the initial estimate
-	P.uncorrelateCovarianceSetVariance<2>(22, _params.initial_wind_uncertainty);
 }

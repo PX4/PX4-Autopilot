@@ -35,87 +35,27 @@
 #include "EKF/ekf.h"
 #include "test_helper/comparison_helper.h"
 
-#include "../EKF/python/ekf_derivation/generated/compute_gnss_yaw_innon_innov_var_and_h.h"
+#include "../EKF/python/ekf_derivation/generated/compute_gnss_yaw_pred_innov_var_and_h.h"
 
 using namespace matrix;
+using D = matrix::Dual<float, 4>;
 
-void sympyGnssYawInnovVarHAndK(float q0, float q1, float q2, float q3, const SquareMatrix24f &P, float yaw_offset,
-			       float R_YAW, float &innov_var, Vector24f &Hfusion, Vector24f &Kfusion)
+void computeHDual(const Vector24f &state_vector, float yaw_offset, Vector24f &H)
 {
-	// calculate intermediate variables
-	const float HK0 = sinf(yaw_offset);
-	const float HK1 = q0 * q3;
-	const float HK2 = q1 * q2;
-	const float HK3 = 2 * HK0 * (HK1 - HK2);
-	const float HK4 = cosf(yaw_offset);
-	const float HK5 = powf(q1, 2);
-	const float HK6 = powf(q2, 2);
-	const float HK7 = powf(q0, 2) - powf(q3, 2);
-	const float HK8 = HK4 * (HK5 - HK6 + HK7);
-	const float HK9 = HK3 - HK8;
+	matrix::Quaternion<D> q(D(state_vector(0), 0),
+				D(state_vector(1), 1),
+				D(state_vector(2), 2),
+				D(state_vector(3), 3));
 
-	if (fabsf(HK9) < 1e-3f) {
-		return;
-	}
+	Dcm<D> R_to_earth(q);
+	Vector3<D> ant_vec_bf(cos(D(yaw_offset)), sin(D(yaw_offset)), D());
+	Vector3<D> ant_vec_ef = R_to_earth * ant_vec_bf;
+	D meas_pred = atan2(ant_vec_ef(1), ant_vec_ef(0));
 
-	const float HK10 = 1.0F / HK9;
-	const float HK11 = HK4 * q0;
-	const float HK12 = HK0 * q3;
-	const float HK13 = HK0 * (-HK5 + HK6 + HK7) + 2 * HK4 * (HK1 + HK2);
-	const float HK14 = HK10 * HK13;
-	const float HK15 = HK0 * q0 + HK4 * q3;
-	const float HK16 = HK10 * (HK14 * (HK11 - HK12) + HK15);
-	const float HK17 = powf(HK13, 2) / powf(HK9, 2) + 1;
+	H.setZero();
 
-	if (fabsf(HK17) < 1e-3f) {
-		return;
-	}
-
-	const float HK18 = 2 / HK17;
-	// const float HK19 = 1.0F/(-HK3 + HK8);
-	const float HK19_inverse = -HK3 + HK8;
-
-	if (fabsf(HK19_inverse) < 1e-6f) {
-		return;
-	}
-
-	const float HK19 = 1.0F / HK19_inverse;
-	const float HK20 = HK4 * q1;
-	const float HK21 = HK0 * q2;
-	const float HK22 = HK13 * HK19;
-	const float HK23 = HK0 * q1 - HK4 * q2;
-	const float HK24 = HK19 * (HK22 * (HK20 + HK21) + HK23);
-	const float HK25 = HK19 * (-HK20 - HK21 + HK22 * HK23);
-	const float HK26 = HK10 * (-HK11 + HK12 + HK14 * HK15);
-	const float HK27 = -HK16 * P(0, 0) - HK24 * P(0, 1) - HK25 * P(0, 2) + HK26 * P(0, 3);
-	const float HK28 = -HK16 * P(0, 1) - HK24 * P(1, 1) - HK25 * P(1, 2) + HK26 * P(1, 3);
-	const float HK29 = 4 / powf(HK17, 2);
-	const float HK30 = -HK16 * P(0, 2) - HK24 * P(1, 2) - HK25 * P(2, 2) + HK26 * P(2, 3);
-	const float HK31 = -HK16 * P(0, 3) - HK24 * P(1, 3) - HK25 * P(2, 3) + HK26 * P(3, 3);
-	const float HK32 = HK18 / (-HK16 * HK27 * HK29 - HK24 * HK28 * HK29 - HK25 * HK29 * HK30 + HK26 * HK29 * HK31 + R_YAW);
-	innov_var = -HK16 * HK27 * HK29 - HK24 * HK28 * HK29 - HK25 * HK29 * HK30 + HK26 * HK29 * HK31 + R_YAW;
-
-	// calculate observation jacobian
-	// Observation jacobian and Kalman gain vectors
-	SparseVector24f<0, 1, 2, 3> Hfusion_sparse;
-	Hfusion_sparse.at<0>() = -HK16 * HK18;
-	Hfusion_sparse.at<1>() = -HK18 * HK24;
-	Hfusion_sparse.at<2>() = -HK18 * HK25;
-	Hfusion_sparse.at<3>() = HK18 * HK26;
-
-	for (unsigned i = 0; i < Hfusion_sparse.non_zeros(); i++) {
-		Hfusion(i) = Hfusion_sparse.atCompressedIndex(i);
-	}
-
-	// calculate the Kalman gains
-	// only calculate gains for states we are using
-	Kfusion(0) = HK27 * HK32;
-	Kfusion(1) = HK28 * HK32;
-	Kfusion(2) = HK30 * HK32;
-	Kfusion(3) = HK31 * HK32;
-
-	for (unsigned row = 4; row <= 23; row++) {
-		Kfusion(row) = HK32 * (-HK16 * P(0, row) - HK24 * P(1, row) - HK25 * P(2, row) + HK26 * P(3, row));
+	for (int i = 0; i <= 3; i++) {
+		H(i) = meas_pred.derivative(i);
 	}
 }
 
@@ -123,9 +63,10 @@ TEST(GnssYawFusionGenerated, SympyVsSymforce)
 {
 	const float R_YAW = sq(0.3f);
 
-	const float yaw_offset = 1.5f;
+	const float yaw_offset = M_PI_F / 8.f;
+	const float yaw = M_PI_F;
 
-	const Quatf q(Eulerf(M_PI_F / 2.f, M_PI_F / 3.f, M_PI_F));
+	const Quatf q(Eulerf(M_PI_F / 4.f, M_PI_F / 3.f, M_PI_F));
 
 	Vector24f state_vector{};
 	state_vector(0) = q(0);
@@ -135,31 +76,22 @@ TEST(GnssYawFusionGenerated, SympyVsSymforce)
 
 	SquareMatrix24f P = createRandomCovarianceMatrix24f();
 
-	float innov_var_sympy;
-	Vector24f H_sympy;
-	Vector24f K_sympy;
-	sympyGnssYawInnovVarHAndK(q(0), q(1), q(2), q(3), P, yaw_offset, R_YAW, innov_var_sympy, H_sympy, K_sympy);
+	Vector24f H_dual;
+	computeHDual(state_vector, yaw_offset, H_dual);
 
-	float innov_symforce;
+	float meas_pred_symforce;
 	float innov_var_symforce;
 	Vector24f H_symforce;
-	sym::ComputeGnssYawInnonInnovVarAndH(state_vector, P, yaw_offset, 0.f, R_YAW, FLT_EPSILON, &innov_symforce,
-					     &innov_var_symforce, &H_symforce);
+	sym::ComputeGnssYawPredInnovVarAndH(state_vector, P, yaw_offset, R_YAW, FLT_EPSILON, &meas_pred_symforce,
+					    &innov_var_symforce, &H_symforce);
 
-	// K isn't generated from symbolic anymore to save flash space
-	Vector24f K_symforce = P * H_symforce / innov_var_symforce;
+	EXPECT_GT(innov_var_symforce, 50.f);
+	EXPECT_LT(innov_var_symforce, 60.f);
 
-	DiffRatioReport report = computeDiffRatioVector24f(H_sympy, H_symforce);
-	EXPECT_LT(report.max_diff_fraction, 1e-5f) << "H max diff fraction = " <<
-			report.max_diff_fraction <<
-			" location index = " << report.max_row << " sympy = " << report.max_v1 << " symforce = " << report.max_v2;
+	EXPECT_EQ(H_symforce, H_dual);
 
-	report = computeDiffRatioVector24f(K_sympy, K_symforce);
-	EXPECT_LT(report.max_diff_fraction, 1e-5f) << "K max diff fraction = " <<
-			report.max_diff_fraction <<
-			" location index = " << report.max_row << " sympy = " << report.max_v1 << " symforce = " << report.max_v2;
-
-	EXPECT_NEAR(innov_var_sympy, innov_var_symforce, 1e-5f);
+	// The predicted yaw is not exactly yaw + offset because roll and pitch are non-zero, but it's close to that
+	EXPECT_NEAR(meas_pred_symforce, wrap_pi(yaw + yaw_offset), 0.05f);
 }
 
 TEST(GnssYawFusionGenerated, SingularityPitch90)
@@ -177,11 +109,11 @@ TEST(GnssYawFusionGenerated, SingularityPitch90)
 	SquareMatrix24f P = createRandomCovarianceMatrix24f();
 	const float R_YAW = sq(0.3f);
 
-	float innov;
+	float meas_pred;
 	float innov_var;
 	Vector24f H;
-	sym::ComputeGnssYawInnonInnovVarAndH(state_vector, P, yaw_offset, 0.f, R_YAW, FLT_EPSILON, &innov,
-					     &innov_var, &H);
+	sym::ComputeGnssYawPredInnovVarAndH(state_vector, P, yaw_offset, R_YAW, FLT_EPSILON, &meas_pred,
+					    &innov_var, &H);
 	Vector24f K = P * H / innov_var;
 
 	// THEN: the arctan is singular, the attitude isn't observable, so the innovation variance
@@ -205,11 +137,11 @@ TEST(GnssYawFusionGenerated, SingularityRoll90)
 	SquareMatrix24f P = createRandomCovarianceMatrix24f();
 	const float R_YAW = sq(0.3f);
 
-	float innov;
+	float meas_pred;
 	float innov_var;
 	Vector24f H;
-	sym::ComputeGnssYawInnonInnovVarAndH(state_vector, P, yaw_offset, 0.f, R_YAW, FLT_EPSILON, &innov,
-					     &innov_var, &H);
+	sym::ComputeGnssYawPredInnovVarAndH(state_vector, P, yaw_offset, R_YAW, FLT_EPSILON, &meas_pred,
+					    &innov_var, &H);
 	Vector24f K = P * H / innov_var;
 
 	// THEN: the arctan is singular, the attitude isn't observable, so the innovation variance
