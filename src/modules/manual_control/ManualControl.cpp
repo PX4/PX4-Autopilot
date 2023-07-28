@@ -555,6 +555,15 @@ int8_t ManualControl::navStateFromParam(int32_t param_value)
 		case 13: return vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND;
 		case 14: return vehicle_status_s::NAVIGATION_STATE_ORBIT;
 		case 15: return vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF;
+
+		case 100: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL1;
+		case 101: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL2;
+		case 102: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL3;
+		case 103: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL4;
+		case 104: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL5;
+		case 105: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL6;
+		case 106: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL7;
+		case 107: return vehicle_status_s::NAVIGATION_STATE_EXTERNAL8;
 	}
 	return -1;
 }
