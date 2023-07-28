@@ -81,7 +81,6 @@ public:
 		       _distance_between_waypoints_failed ||
 		       _land_pattern_validity_failed ||
 		       _fixed_wing_land_approach_failed ||
-		       _below_home_alt_failed ||
 		       _mission_validity_failed ||
 		       _takeoff_land_available_failed;
 	}
@@ -117,7 +116,6 @@ private:
 	bool _land_pattern_validity_failed{false};
 	bool _distance_first_waypoint_failed{false};
 	bool _distance_between_waypoints_failed{false};
-	bool _below_home_alt_failed{false};
 	bool _fixed_wing_land_approach_failed{false};
 	bool _takeoff_land_available_failed{false};
 	bool _items_fit_to_vehicle_type_failed{false};
@@ -197,15 +195,6 @@ private:
 	 * @return False if the check failed.
 	*/
 	bool checkDistancesBetweenWaypoints(const mission_item_s &mission_item);
-
-	/**
-	 * @brief Check if any waypoint is below the home altitude. Issues warning only.
-	 *
-	 * @param mission_item The current mission item
-	 * @param current_index The current mission index
-	 * @return Always returns true, only issues warning.
-	*/
-	bool checkIfBelowHomeAltitude(const mission_item_s &mission_item, const int current_index);
 
 	/**
 	 * @brief Check fixed wing land approach (fixed wing only)
