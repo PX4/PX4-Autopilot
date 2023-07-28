@@ -61,16 +61,11 @@ void Ekf::controlMagFusion()
 		return;
 	}
 
-	// stop mag (require a reset before using again) if there was an external yaw reset (yaw estimator, GPS yaw, etc) or yaw alignment change
-	if (_mag_decl_cov_reset) {
-		const bool yaw_estimator_reset = _information_events.flags.yaw_aligned_to_imu_gps;
-		const bool heading_was_reset = (_state_reset_status.reset_count.quat != _state_reset_count_prev.quat);
-
-		if (yaw_estimator_reset || heading_was_reset) {
-			ECL_INFO("yaw reset, stopping mag fusion to force reinitialization");
-			stopMagFusion();
-			resetMagCov();
-		}
+	// stop mag (require a reset before using again) if there was an external yaw reset (yaw estimator, GPS yaw, etc)
+	if (_mag_decl_cov_reset && (_state_reset_status.reset_count.quat != _state_reset_count_prev.quat)) {
+		ECL_INFO("yaw reset, stopping mag fusion to force reinitialization");
+		stopMagFusion();
+		resetMagCov();
 	}
 
 	magSample mag_sample;
@@ -95,10 +90,9 @@ void Ekf::controlMagFusion()
 		const bool starting_conditions_passing = (_params.mag_fusion_type != MagFuseType::NONE)
 				&& checkMagField(mag_sample.mag)
 				&& (_mag_counter > 5) // wait until we have more than a few samples through the filter
-				&& !magFieldStrengthDisturbed(_mag_lpf.getState())
 				&& (_state_reset_status.reset_count.quat == _state_reset_count_prev.quat) // no yaw reset this frame
 				&& (_control_status.flags.yaw_align == _control_status_prev.flags.yaw_align) // no yaw alignment change this frame
-				&& !_information_events.flags.yaw_aligned_to_imu_gps // don't allow starting on same frame as yaw estimator reset
+				&& (_state_reset_status.reset_count.quat == _state_reset_count_prev.quat) // don't allow starting on same frame as yaw  reset
 				&& isNewestSampleRecent(_time_last_mag_buffer_push, MAG_MAX_INTERVAL);
 
 		if (!_control_status.flags.tilt_align && !_control_status.flags.yaw_align && starting_conditions_passing) {
@@ -115,7 +109,8 @@ void Ekf::controlMagFusion()
 
 			if (fabsf(yaw_new - yaw_prev) > math::radians(1.f)) {
 
-				ECL_INFO("mag heading init %.3f -> %.3f rad (declination %.1f)", (double)yaw_prev, (double)yaw_new, (double)getMagDeclination());
+				ECL_INFO("mag heading init %.3f -> %.3f rad (declination %.1f)",
+					 (double)yaw_prev, (double)yaw_new, (double)getMagDeclination());
 
 				// update the rotation matrix using the new yaw value
 				_R_to_earth = updateYawInRotMat(yaw_new, Dcmf(_state.quat_nominal));
@@ -181,6 +176,9 @@ void Ekf::resetMagStates(const Vector3f &mag, bool reset_heading)
 	const Vector3f mag_I_before_reset = _state.mag_I;
 	const Vector3f mag_B_before_reset = _state.mag_B;
 
+	// reset covariances to default
+	resetMagCov();
+
 	// if world magnetic model (inclination, declination, strength) available then use it to reset mag states
 	if (PX4_ISFINITE(_mag_inclination_gps) && PX4_ISFINITE(_mag_declination_gps) && PX4_ISFINITE(_mag_strength_gps)) {
 
@@ -214,6 +212,9 @@ void Ekf::resetMagStates(const Vector3f &mag, bool reset_heading)
 			resetMagHeading(mag);
 		}
 
+		// earth field was reset to WMM, skip initial declination fusion
+		_mag_decl_cov_reset = true;
+
 	} else {
 		// mag_B: reset
 		_state.mag_B.zero();
@@ -226,9 +227,6 @@ void Ekf::resetMagStates(const Vector3f &mag, bool reset_heading)
 		// mag_I: use the last magnetometer measurements to reset the field states
 		_state.mag_I = _R_to_earth * mag;
 	}
-
-	// reset covariances to default
-	resetMagCov();
 
 	if (!mag_I_before_reset.longerThan(0.f)) {
 		ECL_INFO("initializing mag I [%.3f, %.3f, %.3f], mag B [%.3f, %.3f, %.3f]",
@@ -294,23 +292,6 @@ void Ekf::checkMagBiasObservability()
 
 	_yaw_delta_ef = 0.0f;
 	_time_yaw_started = _time_delayed_us;
-}
-
-bool Ekf::magFieldStrengthDisturbed(const Vector3f &mag_sample) const
-{
-	if (_params.mag_check & static_cast<int32_t>(MagCheckMask::STRENGTH)) {
-		if (PX4_ISFINITE(_mag_strength_gps)) {
-			return !isMeasuredMatchingExpected(mag_sample.length(), _mag_strength_gps, _params.mag_check_strength_tolerance_gs);
-
-		} else {
-			constexpr float average_earth_mag_field_strength = 0.45f; // Gauss
-			constexpr float average_earth_mag_gate_size = 0.40f; // +/- Gauss
-
-			return !isMeasuredMatchingExpected(mag_sample.length(), average_earth_mag_field_strength, average_earth_mag_gate_size);
-		}
-	}
-
-	return false;
 }
 
 bool Ekf::checkMagField(const Vector3f &mag_sample)

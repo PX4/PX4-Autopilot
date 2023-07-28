@@ -406,23 +406,24 @@ void Ekf::limitDeclination()
 	const Vector3f mag_I_before = _state.mag_I;
 
 	// get a reference value for the earth field declinaton and minimum plausible horizontal field strength
-	// set to 50% of the horizontal strength from geo tables if location is known
-	float decl_reference;
+	float decl_reference = NAN;
 	float h_field_min = 0.001f;
 
-	if (_params.mag_declination_source & GeoDeclinationMask::USE_GEO_DECL) {
-		// use parameter value until GPS is available, then use value returned by geo library
-		if (_NED_origin_initialised || PX4_ISFINITE(_mag_declination_gps)) {
-			decl_reference = _mag_declination_gps;
-			h_field_min = fmaxf(h_field_min, 0.5f * _mag_strength_gps * cosf(_mag_inclination_gps));
+	if (_params.mag_declination_source & GeoDeclinationMask::USE_GEO_DECL
+	    && (PX4_ISFINITE(_mag_declination_gps) && PX4_ISFINITE(_mag_strength_gps) && PX4_ISFINITE(_mag_inclination_gps))
+	   ) {
+		decl_reference = _mag_declination_gps;
 
-		} else {
-			decl_reference = math::radians(_params.mag_declination_deg);
-		}
+		// set to 50% of the horizontal strength from geo tables if location is known
+		h_field_min = fmaxf(h_field_min, 0.5f * _mag_strength_gps * cosf(_mag_inclination_gps));
 
-	} else {
-		// always use the parameter value
+	} else if (_params.mag_declination_source & GeoDeclinationMask::SAVE_GEO_DECL) {
+		// use parameter value if GPS isn't available
 		decl_reference = math::radians(_params.mag_declination_deg);
+	}
+
+	if (!PX4_ISFINITE(decl_reference)) {
+		return;
 	}
 
 	// do not allow the horizontal field length to collapse - this will make the declination fusion badly conditioned
@@ -438,9 +439,8 @@ void Ekf::limitDeclination()
 
 		} else {
 			// too small to scale radially so set to expected value
-			const float mag_declination = getMagDeclination();
-			_state.mag_I(0) = 2.0f * h_field_min * cosf(mag_declination);
-			_state.mag_I(1) = 2.0f * h_field_min * sinf(mag_declination);
+			_state.mag_I(0) = 2.0f * h_field_min * cosf(decl_reference);
+			_state.mag_I(1) = 2.0f * h_field_min * sinf(decl_reference);
 		}
 
 		h_field = h_field_min;
@@ -463,10 +463,10 @@ void Ekf::limitDeclination()
 
 	if ((mag_I_before - _state.mag_I).longerThan(0.01f)) {
 		ECL_DEBUG("declination limited mag I [%.3f, %.3f, %.3f] -> [%.3f, %.3f, %.3f] (decl: %.3f)",
-			 (double)mag_I_before(0), (double)mag_I_before(1), (double)mag_I_before(2),
-			 (double)_state.mag_I(0), (double)_state.mag_I(1), (double)_state.mag_I(2),
-			 (double)decl_reference
-			);
+			  (double)mag_I_before(0), (double)mag_I_before(1), (double)mag_I_before(2),
+			  (double)_state.mag_I(0), (double)_state.mag_I(1), (double)_state.mag_I(2),
+			  (double)decl_reference
+			 );
 	}
 }
 

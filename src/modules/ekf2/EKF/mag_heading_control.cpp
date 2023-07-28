@@ -119,7 +119,7 @@ void Ekf::controlMagHeadingFusion(const magSample &mag_sample, const bool common
 			const bool is_fusion_failing = isTimedOut(aid_src.time_last_fuse, _params.reset_timeout_max);
 
 			if (is_fusion_failing) {
-				if ((_nb_mag_heading_reset_available > 0) && !magFieldStrengthDisturbed(_mag_lpf.getState())) {
+				if (_nb_mag_heading_reset_available > 0) {
 					// Data seems good, attempt a reset
 					ECL_WARN("%s fusion failing, resetting", AID_SRC_NAME);
 					resetMagHeading(_mag_lpf.getState());
@@ -167,6 +167,8 @@ void Ekf::controlMagHeadingFusion(const magSample &mag_sample, const bool common
 			_nb_mag_heading_reset_available = 1;
 		}
 	}
+
+	aid_src.fusion_enabled = _control_status.flags.mag_hdg;
 
 	// record corresponding mag heading and yaw state for future mag heading delta heading innovation (logging only)
 	_mag_heading_prev = measured_hdg;

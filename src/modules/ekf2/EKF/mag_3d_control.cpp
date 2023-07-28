@@ -62,9 +62,9 @@ void Ekf::controlMag3DFusion(const magSample &mag_sample, const bool common_star
 	// before they are used to constrain heading drift
 	_control_status.flags.mag_3D = (_params.mag_fusion_type == MagFuseType::AUTO)
 				       && _control_status.flags.mag
-				       && _control_status.flags.mag_aligned_in_flight && isTimedOut(_flt_mag_align_start_time, (uint64_t)5e6)
+				       && _control_status.flags.mag_aligned_in_flight
 				       && !_control_status.flags.mag_fault
-				       && !magFieldStrengthDisturbed(mag_sample.mag - _state.mag_B)
+				       && isRecent(aid_src.time_last_fuse, 500'000)
 				       && getMagBiasVariance().longerThan(0.f) && !getMagBiasVariance().longerThan(sq(0.02f))
 				       && !_control_status.flags.ev_yaw
 				       && !_control_status.flags.gps_yaw;
@@ -92,7 +92,7 @@ void Ekf::controlMag3DFusion(const magSample &mag_sample, const bool common_star
 
 		if (continuing_conditions_passing && _control_status.flags.yaw_align) {
 
-			if (mag_sample.reset || checkHaglYawResetReq() || wmm_updated) {
+			if (mag_sample.reset || checkHaglYawResetReq()) {
 				ECL_INFO("reset to %s", AID_SRC_NAME);
 				resetMagStates(_mag_lpf.getState(), _control_status.flags.mag_hdg || _control_status.flags.mag_3D);
 				aid_src.time_last_fuse = _time_delayed_us;
@@ -181,6 +181,7 @@ void Ekf::controlMag3DFusion(const magSample &mag_sample, const bool common_star
 
 			} else {
 				ECL_INFO("starting %s fusion", AID_SRC_NAME);
+				fuseMag(mag_sample.mag, aid_src, false);
 			}
 
 			aid_src.time_last_fuse = _time_delayed_us;
@@ -188,6 +189,8 @@ void Ekf::controlMag3DFusion(const magSample &mag_sample, const bool common_star
 			_nb_mag_3d_reset_available = 2;
 		}
 	}
+
+	aid_src.fusion_enabled = _control_status.flags.mag;
 }
 
 void Ekf::stopMagFusion()
