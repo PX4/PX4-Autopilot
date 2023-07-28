@@ -94,12 +94,88 @@ bool Modes::hasFreeExternalModes() const
 
 uint8_t Modes::addExternalMode(const Modes::Mode &mode)
 {
+	int32_t mode_name_hash = (int32_t)events::util::hash_32_fnv1a_const(mode.name);
+
+	if (mode_name_hash == 0) { // 0 is reserved for unused indexes
+		mode_name_hash = 1;
+	}
+
+	// Try to find the index with matching hash (if mode was already registered before),
+	// so that the same mode always gets the same index (required for RC switch mode assignment)
+	int first_unused_idx = -1;
+	int first_invalid_idx = -1;
+	int matching_idx = -1;
+
 	for (int i = 0; i < MAX_NUM; ++i) {
-		if (!_modes[i].valid) {
-			_modes[i] = mode;
-			_modes[i].valid = true;
-			return i + FIRST_EXTERNAL_NAV_STATE;
+		char hash_param_name[20];
+		snprintf(hash_param_name, sizeof(hash_param_name), "COM_MODE%d_HASH", i);
+		const param_t handle = param_find(hash_param_name);
+		int32_t current_hash{};
+
+		if (handle != PARAM_INVALID && param_get(handle, &current_hash) == 0) {
+			if (!_modes[i].valid && current_hash == 0 && first_unused_idx == -1) {
+				first_unused_idx = i;
+			}
+
+			if (current_hash == mode_name_hash) {
+				matching_idx = i;
+			}
+
+			if (!_modes[i].valid && first_invalid_idx == -1) {
+				first_invalid_idx = i;
+			}
 		}
+	}
+
+	bool need_to_update_param = false;
+	int new_mode_idx = -1;
+
+	if (matching_idx != -1) {
+		// If we found a match, try to use it but check for hash collisions or duplicate mode name
+		if (_modes[matching_idx].valid) {
+			// This can happen when restarting modes while armed
+			PX4_WARN("Mode '%s' already registered (as '%s')", mode.name, _modes[matching_idx].name);
+
+			if (first_unused_idx != -1) {
+				new_mode_idx = first_unused_idx;
+				// Do not update the hash
+
+			} else {
+				// Need to overwrite a hash. Reset it as we can't store duplicate hashes anyway
+				new_mode_idx = first_invalid_idx;
+				need_to_update_param = true;
+				mode_name_hash = 0;
+			}
+
+		} else {
+			new_mode_idx = matching_idx;
+		}
+
+	} else if (first_unused_idx != -1) {
+		// Mode registers the first time and there's still unused indexes
+		need_to_update_param = true;
+		new_mode_idx = first_unused_idx;
+
+	} else {
+		// Mode registers the first time but all indexes are used so we need to overwrite one
+		need_to_update_param = true;
+		new_mode_idx = first_invalid_idx;
+	}
+
+	if (new_mode_idx != -1 && !_modes[new_mode_idx].valid) {
+		if (need_to_update_param) {
+			char hash_param_name[20];
+			snprintf(hash_param_name, sizeof(hash_param_name), "COM_MODE%d_HASH", new_mode_idx);
+			const param_t handle = param_find(hash_param_name);
+
+			if (handle != PARAM_INVALID) {
+				param_set_no_notification(handle, &mode_name_hash);
+			}
+		}
+
+		_modes[new_mode_idx] = mode;
+		_modes[new_mode_idx].valid = true;
+		return new_mode_idx + FIRST_EXTERNAL_NAV_STATE;
 	}
 
 	PX4_ERR("logic error");
