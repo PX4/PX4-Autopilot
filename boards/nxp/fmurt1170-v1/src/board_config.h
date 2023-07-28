@@ -63,7 +63,7 @@
 /* PX4IO connection configuration */
 // This requires serial DMA driver
 #define BOARD_USES_PX4IO_VERSION       2
-#define PX4IO_SERIAL_DEVICE            "/dev/ttyS5"
+#define PX4IO_SERIAL_DEVICE            "/dev/ttyS4"
 #define PX4IO_SERIAL_TX_GPIO           GPIO_LPUART6_TX
 #define PX4IO_SERIAL_RX_GPIO           GPIO_LPUART6_RX
 #define PX4IO_SERIAL_BASE              IMXRT_LPUART6_BASE
@@ -282,7 +282,6 @@
 #define RT1170_00             HW_VER_REV(0x0,0x0) // First Release
 
 #define BOARD_I2C_LATEINIT 1 /* See Note about SE550 Eanable */
-#define UAVCAN_NUM_IFACES_RUNTIME 1
 
 /* HEATER
  * PWM in future
