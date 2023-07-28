@@ -47,7 +47,6 @@
 #include <float.h>
 #include "python/ekf_derivation/generated/compute_flow_xy_innov_var_and_hx.h"
 #include "python/ekf_derivation/generated/compute_flow_y_innov_var_and_h.h"
-#include "utils.hpp"
 
 void Ekf::updateOptFlow(estimator_aid_source2d_s &aid_src)
 {

@@ -56,8 +56,8 @@ void Ekf::reset()
 
 	_state.vel.setZero();
 	_state.pos.setZero();
-	_state.delta_ang_bias.setZero();
-	_state.delta_vel_bias.setZero();
+	_state.gyro_bias.setZero();
+	_state.accel_bias.setZero();
 	_state.mag_I.setZero();
 	_state.mag_B.setZero();
 	_state.wind_vel.setZero();
@@ -80,7 +80,8 @@ void Ekf::reset()
 	_fault_status.value = 0;
 	_innov_check_fail_status.value = 0;
 
-	_prev_dvel_bias_var.zero();
+	_prev_gyro_bias_var.zero();
+	_prev_accel_bias_var.zero();
 
 	resetGpsDriftCheckFilters();
 
@@ -185,8 +186,7 @@ bool Ekf::update()
 		runTerrainEstimator(imu_sample_delayed);
 #endif // CONFIG_EKF2_RANGE_FINDER
 
-		_output_predictor.correctOutputStates(imu_sample_delayed.time_us, getGyroBias(), getAccelBias(),
-							_state.quat_nominal, _state.vel, _state.pos);
+		_output_predictor.correctOutputStates(imu_sample_delayed.time_us, _state.quat_nominal, _state.vel, _state.pos, _state.gyro_bias, _state.accel_bias);
 
 		return true;
 	}
