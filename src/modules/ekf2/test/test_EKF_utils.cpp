@@ -42,8 +42,6 @@
 #include <vector>
 #include <mathlib/mathlib.h>
 
-#include "EKF/utils.hpp"
-
 TEST(eclPowfTest, compareToStandardImplementation)
 {
 	std::vector<int> exponents = {-3, -2, -1, -0, 0, 1, 2, 3};
@@ -51,7 +49,7 @@ TEST(eclPowfTest, compareToStandardImplementation)
 
 	for (auto const exponent : exponents) {
 		for (auto const basis : bases) {
-			EXPECT_EQ(ecl::powf(basis, exponent),
+			EXPECT_EQ(powf(basis, exponent),
 				  std::pow(basis, static_cast<float>(exponent)));
 		}
 	}

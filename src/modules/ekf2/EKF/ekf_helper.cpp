@@ -224,11 +224,11 @@ void Ekf::constrainStates()
 	_state.vel = matrix::constrain(_state.vel, -1000.0f, 1000.0f);
 	_state.pos = matrix::constrain(_state.pos, -1.e6f, 1.e6f);
 
-	const float delta_ang_bias_limit = getGyroBiasLimit() * _dt_ekf_avg;
-	_state.delta_ang_bias = matrix::constrain(_state.delta_ang_bias, -delta_ang_bias_limit, delta_ang_bias_limit);
+	const float gyro_bias_limit = getGyroBiasLimit();
+	_state.gyro_bias = matrix::constrain(_state.gyro_bias, -gyro_bias_limit, gyro_bias_limit);
 
-	const float delta_vel_bias_limit = getAccelBiasLimit() * _dt_ekf_avg;
-	_state.delta_vel_bias = matrix::constrain(_state.delta_vel_bias, -delta_vel_bias_limit, delta_vel_bias_limit);
+	const float accel_bias_limit = getAccelBiasLimit();
+	_state.accel_bias = matrix::constrain(_state.accel_bias, -accel_bias_limit, accel_bias_limit);
 
 	_state.mag_I = matrix::constrain(_state.mag_I, -1.0f, 1.0f);
 	_state.mag_B = matrix::constrain(_state.mag_B, -getMagBiasLimit(), getMagBiasLimit());
@@ -390,8 +390,8 @@ matrix::Vector<float, 24> Ekf::getStateAtFusionHorizonAsVector() const
 	state.slice<4, 1>(0, 0) = _state.quat_nominal;
 	state.slice<3, 1>(4, 0) = _state.vel;
 	state.slice<3, 1>(7, 0) = _state.pos;
-	state.slice<3, 1>(10, 0) = _state.delta_ang_bias;
-	state.slice<3, 1>(13, 0) = _state.delta_vel_bias;
+	state.slice<3, 1>(10, 0) = _state.gyro_bias;
+	state.slice<3, 1>(13, 0) = _state.accel_bias;
 	state.slice<3, 1>(16, 0) = _state.mag_I;
 	state.slice<3, 1>(19, 0) = _state.mag_B;
 	state.slice<2, 1>(22, 0) = _state.wind_vel;
@@ -612,25 +612,28 @@ void Ekf::resetImuBias()
 
 void Ekf::resetGyroBias()
 {
-	// Zero the delta angle and delta velocity bias states
-	_state.delta_ang_bias.zero();
+	// Zero the gyro bias states
+	_state.gyro_bias.zero();
 
 	// Zero the corresponding covariances and set
 	// variances to the values use for initial alignment
-	P.uncorrelateCovarianceSetVariance<3>(10, sq(_params.switch_on_gyro_bias * _dt_ekf_avg));
+	P.uncorrelateCovarianceSetVariance<3>(10, sq(_params.switch_on_gyro_bias));
+
+	// Set previous frame values
+	_prev_gyro_bias_var = P.slice<3, 3>(10, 10).diag();
 }
 
 void Ekf::resetAccelBias()
 {
-	// Zero the delta angle and delta velocity bias states
-	_state.delta_vel_bias.zero();
+	// Zero the accel bias states
+	_state.accel_bias.zero();
 
 	// Zero the corresponding covariances and set
 	// variances to the values use for initial alignment
-	P.uncorrelateCovarianceSetVariance<3>(13, sq(_params.switch_on_accel_bias * _dt_ekf_avg));
+	P.uncorrelateCovarianceSetVariance<3>(13, sq(_params.switch_on_accel_bias));
 
 	// Set previous frame values
-	_prev_dvel_bias_var = P.slice<3, 3>(13, 13).diag();
+	_prev_accel_bias_var = P.slice<3, 3>(13, 13).diag();
 }
 
 // get EKF innovation consistency check status information comprising of:
@@ -792,13 +795,13 @@ void Ekf::fuse(const Vector24f &K, float innovation)
 	_state.quat_nominal.normalize();
 	_R_to_earth = Dcmf(_state.quat_nominal);
 
-	_state.vel -= K.slice<3, 1>(4, 0) * innovation;
-	_state.pos -= K.slice<3, 1>(7, 0) * innovation;
-	_state.delta_ang_bias -= K.slice<3, 1>(10, 0) * innovation;
-	_state.delta_vel_bias -= K.slice<3, 1>(13, 0) * innovation;
-	_state.mag_I -= K.slice<3, 1>(16, 0) * innovation;
-	_state.mag_B -= K.slice<3, 1>(19, 0) * innovation;
-	_state.wind_vel -= K.slice<2, 1>(22, 0) * innovation;
+	_state.vel        -= K.slice<3, 1>(4, 0)  * innovation;
+	_state.pos        -= K.slice<3, 1>(7, 0)  * innovation;
+	_state.gyro_bias  -= K.slice<3, 1>(10, 0) * innovation;
+	_state.accel_bias -= K.slice<3, 1>(13, 0) * innovation;
+	_state.mag_I      -= K.slice<3, 1>(16, 0) * innovation;
+	_state.mag_B      -= K.slice<3, 1>(19, 0) * innovation;
+	_state.wind_vel   -= K.slice<2, 1>(22, 0) * innovation;
 }
 
 void Ekf::uncorrelateQuatFromOtherStates()

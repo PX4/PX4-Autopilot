@@ -296,7 +296,7 @@ bool Ekf::fuseYaw(estimator_aid_source1d_s& aid_src_status, const Vector24f &H_Y
 
 				// also reset the yaw gyro variance to converge faster and avoid
 				// being stuck on a previous bad estimate
-				resetZDeltaAngBiasCov();
+				resetGyroBiasZCov();
 
 			} else {
 				return false;

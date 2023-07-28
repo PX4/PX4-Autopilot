@@ -64,7 +64,6 @@
 #include "common.h"
 #include "RingBuffer.h"
 #include "imu_down_sampler.hpp"
-#include "utils.hpp"
 #include "output_predictor.h"
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)

@@ -120,8 +120,6 @@ public:
 	matrix::Vector4f getQuaternionVariance() const;
 	int getQuaternionResetCounter() const;
 
-	matrix::Vector3f getDeltaVelBiasVariance() const;
-
 	void enableDragFusion();
 	void disableDragFusion();
 	void setDragFusionParameters(const float &bcoef_x, const float &bcoef_y, const float &mcoef);
