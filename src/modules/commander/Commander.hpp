@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,7 +34,6 @@
 #pragma once
 
 /*   Helper classes  */
-#include "Arming/ArmStateMachine/ArmStateMachine.hpp"
 #include "failure_detector/FailureDetector.hpp"
 #include "failsafe/failsafe.h"
 #include "Safety.hpp"
@@ -87,6 +86,14 @@
 using math::constrain;
 using systemlib::Hysteresis;
 
+typedef enum {
+	TRANSITION_DENIED = -1,
+	TRANSITION_NOT_CHANGED = 0,
+	TRANSITION_CHANGED
+} transition_result_t;
+
+using arm_disarm_reason_t = events::px4::enums::arm_disarm_reason_t;
+
 using namespace time_literals;
 
 class Commander : public ModuleBase<Commander>, public ModuleParams
@@ -116,6 +123,8 @@ public:
 	void enable_hil();
 
 private:
+	bool isArmed() const { return (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED); }
+
 	void answer_command(const vehicle_command_s &cmd, uint8_t result);
 
 	transition_result_t arm(arm_disarm_reason_t calling_reason, bool run_preflight_checks = true);
@@ -152,8 +161,6 @@ private:
 	void printRejectMode(uint8_t nav_state);
 
 	void updateControlMode();
-
-	bool shutdownIfAllowed();
 
 	void send_parachute_command();
 
@@ -196,11 +203,9 @@ private:
 
 	/* Decouple update interval and hysteresis counters, all depends on intervals */
 	static constexpr uint64_t COMMANDER_MONITORING_INTERVAL{10_ms};
-	static constexpr uint64_t INAIR_RESTART_HOLDOFF_INTERVAL{500_ms};
 
 	vehicle_status_s        _vehicle_status{};
 
-	ArmStateMachine		_arm_state_machine{};
 	Failsafe		_failsafe_instance{this};
 	FailsafeBase		&_failsafe{_failsafe_instance};
 	FailureDetector		_failure_detector{this};
@@ -242,9 +247,6 @@ private:
 
 	bool _failsafe_user_override_request{false}; ///< override request due to stick movements
 
-	bool _flight_termination_triggered{false};
-	bool _lockdown_triggered{false};
-
 	bool _open_drone_id_system_lost{true};
 	bool _avoidance_system_lost{false};
 	bool _onboard_controller_lost{false};
@@ -257,7 +259,6 @@ private:
 	bool _is_throttle_low{false};
 
 	bool _arm_tune_played{false};
-	bool _was_armed{false};
 	bool _have_taken_off_since_arming{false};
 	bool _status_changed{true};
 
