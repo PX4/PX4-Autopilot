@@ -2483,7 +2483,7 @@ void EKF2::UpdateCalibration(const hrt_abstime &timestamp, InFlightCalibration &
 	// Check if conditions are OK for learning of accelerometer bias values
 	// the EKF is operating in the correct mode and there are no filter faults
 	static constexpr float max_var_allowed = 1e-3f;
-	static constexpr float max_var_ratio = 1e3f;
+	static constexpr float max_var_ratio = 1e2f;
 
 	const bool valid = bias_valid
 			   && (bias_variance.max() < max_var_allowed)
