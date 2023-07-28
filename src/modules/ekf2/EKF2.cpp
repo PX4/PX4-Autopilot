@@ -2858,8 +2858,8 @@ int EKF2::task_spawn(int argc, char *argv[])
 		uint8_t imu_priorities_sensor_indexes[MAX_NUM_IMUS] {};
 
 
-		uint8_t valid_mag_instances = 0;
-		uint8_t valid_imu_instances = 0;
+		uint8_t mag_instances_valid = 0;
+		uint8_t imu_instances_valid = 0;
 
 		// Initialize MAGs pair array
 		for (int i = 0; i < MAX_NUM_MAGS; i++) {
@@ -2868,7 +2868,7 @@ int EKF2::task_spawn(int argc, char *argv[])
 
 			// Priority higher than Disabled
 			if (mag_param_priorities[i] > 0) {
-				valid_mag_instances++;
+				mag_instances_valid++;
 			}
 
 		}
@@ -2880,7 +2880,7 @@ int EKF2::task_spawn(int argc, char *argv[])
 
 			// Priority higher than Disabled
 			if (imu_param_priorities[i] > 0) {
-				valid_imu_instances++;
+				imu_instances_valid++;
 			}
 
 		}
@@ -2894,7 +2894,7 @@ int EKF2::task_spawn(int argc, char *argv[])
 				 mag_priorities[i]);
 		}
 
-		PX4_INFO("Initialized IMUs (positive priority): %d", valid_imu_instances);
+		PX4_INFO("Initialized IMUs (positive priority): %d", imu_instances_valid);
 
 		for (int i = 0; i < MAX_NUM_IMUS; i++) {
 			PX4_INFO("IMUs priorities - i: %d  ACC%u  Priority: %" PRId32, i, imu_priorities_sensor_indexes[i],
@@ -2903,8 +2903,11 @@ int EKF2::task_spawn(int argc, char *argv[])
 
 		const hrt_abstime time_started = hrt_absolute_time();
 		// Number of instances is limited by the number of valid sensors (not uninitialized or disabled) that are beeing published
-		const uint8_t multi_instances = static_cast<uint8_t>(math::min(valid_imu_instances * mag_instances,
-						valid_imu_instances * static_cast<int32_t>(valid_mag_instances), static_cast<int32_t>(EKF2_MAX_INSTANCES)));
+		const uint8_t imu_instances_limited = math::min(static_cast<uint8_t>(imu_instances), imu_instances_valid);
+		const uint8_t mag_instances_limited = math::min(static_cast<uint8_t>(mag_instances), mag_instances_valid);
+		const uint8_t multi_instances = math::min(static_cast<uint8_t>(imu_instances_limited * mag_instances_limited),
+						static_cast<uint8_t>(EKF2_MAX_INSTANCES));
+
 		uint8_t multi_instances_allocated = 0;
 
 		// allocate EKF2 instances until all found or arming
@@ -2922,14 +2925,13 @@ int EKF2::task_spawn(int argc, char *argv[])
 			uint8_t selected_mag = 0;
 			uint8_t selected_imu = 0;
 
-			for (uint8_t mag = 0; mag < valid_mag_instances; mag++) {
+			for (uint8_t mag = 0; mag < mag_instances_valid; mag++) {
 
 				selected_mag = mag_priorities_sensor_indexes[mag];
 				uORB::SubscriptionData<vehicle_magnetometer_s> vehicle_mag_sub{ORB_ID(vehicle_magnetometer), selected_mag};
 				//PX4_DEBUG("Selected_mag MAG:%" PRIu16, selected_mag);
 
-
-				for (uint8_t imu = 0; imu < valid_imu_instances; imu++) {
+				for (uint8_t imu = 0; imu < imu_instances_valid; imu++) {
 
 					selected_imu = imu_priorities_sensor_indexes[imu];
 					uORB::SubscriptionData<vehicle_imu_s> vehicle_imu_sub{ORB_ID(vehicle_imu), selected_imu};
@@ -2956,6 +2958,8 @@ int EKF2::task_spawn(int argc, char *argv[])
 										  selected_mag, vehicle_mag_sub.get().device_id);
 
 									_ekf2_selector.load()->ScheduleNow();
+
+									if (multi_instances_allocated >= multi_instances) { return PX4_OK;}
 
 								} else {
 									PX4_ERR("instance numbering problem instance: %d", actual_instance);
