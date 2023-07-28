@@ -60,6 +60,8 @@ px4_add_module(
 		rc_calibration.cpp
 		Safety.cpp
 		worker_thread.cpp
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
 		circuit_breaker
 		failure_detector
@@ -74,3 +76,4 @@ px4_add_module(
 	)
 
 px4_add_unit_gtest(SRC mag_calibration_test.cpp LINKLIBS modules__commander)
+px4_add_functional_gtest(SRC ModeManagementTest.cpp LINKLIBS modules__commander)
