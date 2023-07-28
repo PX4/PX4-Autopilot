@@ -50,12 +50,12 @@ class State:
     px = 7
     py = 8
     pz = 9
-    d_ang_bx = 10
-    d_ang_by = 11
-    d_ang_bz = 12
-    d_vel_bx = 13
-    d_vel_by = 14
-    d_vel_bz = 15
+    gyro_bx  = 10
+    gyro_by  = 11
+    gyro_bz  = 12
+    accel_bx = 13
+    accel_by = 14
+    accel_bz = 15
     ix = 16
     iy = 17
     iz = 18
@@ -89,10 +89,12 @@ def predict_covariance(
 ):
     g = sf.Symbol("g") # does not appear in the jacobians
 
-    d_vel_b = sf.V3(state[State.d_vel_bx], state[State.d_vel_by], state[State.d_vel_bz])
+    accel_b = sf.V3(state[State.accel_bx], state[State.accel_by], state[State.accel_bz])
+    d_vel_b = accel_b * dt
     d_vel_true = d_vel - d_vel_b
 
-    d_ang_b = sf.V3(state[State.d_ang_bx], state[State.d_ang_by], state[State.d_ang_bz])
+    gyro_b = sf.V3(state[State.gyro_bx], state[State.gyro_by], state[State.gyro_bz])
+    d_ang_b = gyro_b * dt
     d_ang_true = d_ang - d_ang_b
 
     q = state_to_quat(state)
@@ -100,12 +102,12 @@ def predict_covariance(
     v = sf.V3(state[State.vx], state[State.vy], state[State.vz])
     p = sf.V3(state[State.px], state[State.py], state[State.pz])
 
-    q_new = q * sf.Quaternion(sf.V3(0.5 * d_ang_true[0],  0.5 * d_ang_true[1],  0.5 * d_ang_true[2]), 1)
-    v_new = v + R_to_earth * d_vel_true + sf.V3(0 ,0 ,g) * dt
+    q_new = q * sf.Quaternion(sf.V3(0.5 * d_ang_true[0], 0.5 * d_ang_true[1], 0.5 * d_ang_true[2]), 1)
+    v_new = v + R_to_earth * d_vel_true + sf.V3(0, 0, g) * dt
     p_new = p + v * dt
 
     # Predicted state vector at time t + dt
-    state_new = VState.block_matrix([[sf.V4(q_new.w, q_new.x, q_new.y, q_new.z)], [v_new], [p_new], [sf.Matrix(state[State.d_ang_bx:State.n_states])]])
+    state_new = VState.block_matrix([[sf.V4(q_new.w, q_new.x, q_new.y, q_new.z)], [v_new], [p_new], [sf.Matrix(state[State.gyro_bx:State.n_states])]])
 
     # State propagation jacobian
     A = state_new.jacobian(state)
