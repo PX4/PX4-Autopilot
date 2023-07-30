@@ -42,9 +42,12 @@
 #include "ekf.h"
 
 #include <mathlib/mathlib.h>
+#include <lib/parameters/param.h>
 
 bool Ekf::init(uint64_t timestamp)
 {
+	param_get(param_find("SYS_HAS_BARO"), &sys_has_baro);
+
 	bool ret = initialise_interface(timestamp);
 	reset();
 	return ret;
@@ -181,7 +184,7 @@ bool Ekf::initialiseFilter()
 		}
 	}
 
-	if (_baro_counter < _obs_buffer_length) {
+	if ((sys_has_baro == 1) && (_baro_counter < _obs_buffer_length)) {
 		// not enough baro samples accumulated
 		return false;
 	}
