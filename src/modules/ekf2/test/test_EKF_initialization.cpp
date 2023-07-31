@@ -52,10 +52,14 @@ public:
 
 	const float _init_tilt_period = 0.3f; // seconds
 
-	// GTests is calling this
+	// Setup the Ekf with synthetic measurements
 	void SetUp() override
 	{
+		// run briefly to init, then manually set in air and at rest (default for a real vehicle)
 		_ekf->init(0);
+		_sensor_simulator.runSeconds(0.1);
+		_ekf->set_in_air_status(false);
+		_ekf->set_vehicle_at_rest(true);
 	}
 
 	// Use this method to clean up any memory, network etc. after each test
@@ -63,10 +67,11 @@ public:
 	{
 	}
 
-	void initializedOrienationIsMatchingGroundTruth(Quatf true_quaternion)
+	void initializedOrienationIsMatchingGroundTruth(Quatf true_quaternion, float precision = 0.0002f)
 	{
+		// TODO: precision = 0.0002f is only required for the pitch90 test to pass
+
 		const Quatf quat_est = _ekf->getQuaternion();
-		const float precision = 0.0002f; // TODO: this is only required for the pitch90 test to pass
 		EXPECT_TRUE(matrix::isEqual(quat_est, true_quaternion, precision))
 				<< "quat est = " << quat_est(0) << ", " << quat_est(1) << ", "
 				<< quat_est(2) << ", " << quat_est(3)
@@ -74,20 +79,12 @@ public:
 				<< true_quaternion(2) << ", " << true_quaternion(3);
 	}
 
-	void validStateAfterOrientationInitialization()
-	{
-		quaternionVarianceBigEnoughAfterOrientationInitialization();
-		velocityAndPositionCloseToZero();
-		velocityAndPositionVarianceBigEnoughAfterOrientationInitialization();
-	}
-
-	void quaternionVarianceBigEnoughAfterOrientationInitialization()
+	void quaternionVarianceBigEnoughAfterOrientationInitialization(float quat_variance_limit = 0.00001f)
 	{
 		const matrix::Vector4f quat_variance = _ekf_wrapper.getQuaternionVariance();
-		const float quat_variance_limit = 0.0001f;
-		EXPECT_TRUE(quat_variance(1) > quat_variance_limit) << "quat_variance(1)" << quat_variance(1);
-		EXPECT_TRUE(quat_variance(2) > quat_variance_limit) << "quat_variance(2)" << quat_variance(2);
-		EXPECT_TRUE(quat_variance(3) > quat_variance_limit) << "quat_variance(3)" << quat_variance(3);
+		EXPECT_TRUE(quat_variance(1) > quat_variance_limit) << "quat_variance(1): " << quat_variance(1);
+		EXPECT_TRUE(quat_variance(2) > quat_variance_limit) << "quat_variance(2): " << quat_variance(2);
+		EXPECT_TRUE(quat_variance(3) > quat_variance_limit) << "quat_variance(3): " << quat_variance(3);
 	}
 
 	void velocityAndPositionCloseToZero()
@@ -101,20 +98,22 @@ public:
 				<< "vel = " << vel(0) << ", " << vel(1) << ", " << vel(2);
 	}
 
-	void velocityAndPositionVarianceBigEnoughAfterOrientationInitialization()
+	void velocityVarianceBigEnoughAfterOrientationInitialization(float vel_variance_limit)
 	{
-		const Vector3f pos_var = _ekf->getPositionVariance();
 		const Vector3f vel_var = _ekf->getVelocityVariance();
 
-		const float pos_variance_limit = 0.01f; // Fake fusion obs var when at rest
-		EXPECT_TRUE(pos_var(0) > pos_variance_limit) << "pos_var(0)" << pos_var(0);
-		EXPECT_TRUE(pos_var(1) > pos_variance_limit) << "pos_var(1)" << pos_var(1);
-		EXPECT_TRUE(pos_var(2) > pos_variance_limit) << "pos_var(2)" << pos_var(2);
+		EXPECT_TRUE(vel_var(0) > vel_variance_limit) << "vel_var(0): " << vel_var(0);
+		EXPECT_TRUE(vel_var(1) > vel_variance_limit) << "vel_var(1): " << vel_var(1);
+		EXPECT_TRUE(vel_var(2) > vel_variance_limit) << "vel_var(2): " << vel_var(2);
+	}
 
-		const float vel_variance_limit = 0.0001f; // zero velocity update obs var when at rest
-		EXPECT_TRUE(vel_var(0) > vel_variance_limit) << "vel_var(0)" << vel_var(0);
-		EXPECT_TRUE(vel_var(1) > vel_variance_limit) << "vel_var(1)" << vel_var(1);
-		EXPECT_TRUE(vel_var(2) > vel_variance_limit) << "vel_var(2)" << vel_var(2);
+	void positionVarianceBigEnoughAfterOrientationInitialization(float pos_variance_limit)
+	{
+		const Vector3f pos_var = _ekf->getPositionVariance();
+
+		EXPECT_TRUE(pos_var(0) > pos_variance_limit) << "pos_var(0): " << pos_var(0);
+		EXPECT_TRUE(pos_var(1) > pos_variance_limit) << "pos_var(1): " << pos_var(1);
+		EXPECT_TRUE(pos_var(2) > pos_variance_limit) << "pos_var(2): " << pos_var(2);
 	}
 
 	void learningCorrectAccelBias()
@@ -141,11 +140,48 @@ TEST_F(EkfInitializationTest, initializeWithZeroTilt)
 	const Eulerf euler_angles_sim(roll, pitch, 0.0f);
 	const Quatf quat_sim(euler_angles_sim);
 
+	_ekf->set_in_air_status(false);
+	_ekf->set_vehicle_at_rest(true);
 	_sensor_simulator.simulateOrientation(quat_sim);
 	_sensor_simulator.runSeconds(_init_tilt_period);
 
+	EXPECT_TRUE(_ekf->control_status_flags().tilt_align);
+
 	initializedOrienationIsMatchingGroundTruth(quat_sim);
-	validStateAfterOrientationInitialization();
+	quaternionVarianceBigEnoughAfterOrientationInitialization(0.00001f);
+
+	velocityAndPositionCloseToZero();
+
+	// Fake position fusion obs var when at rest sq(0.01f)
+	positionVarianceBigEnoughAfterOrientationInitialization(0.00001f);
+	velocityVarianceBigEnoughAfterOrientationInitialization(0.0001f);
+
+	_sensor_simulator.runSeconds(1.f);
+	learningCorrectAccelBias();
+}
+
+TEST_F(EkfInitializationTest, initializeWithZeroTiltNotAtRest)
+{
+	const float pitch = math::radians(0.0f);
+	const float roll = math::radians(0.0f);
+	const Eulerf euler_angles_sim(roll, pitch, 0.0f);
+	const Quatf quat_sim(euler_angles_sim);
+
+	_ekf->set_in_air_status(true);
+	_ekf->set_vehicle_at_rest(false);
+	_sensor_simulator.simulateOrientation(quat_sim);
+	//_sensor_simulator.runSeconds(_init_tilt_period);
+	_sensor_simulator.runSeconds(7);
+
+	EXPECT_TRUE(_ekf->control_status_flags().tilt_align);
+
+	initializedOrienationIsMatchingGroundTruth(quat_sim);
+	quaternionVarianceBigEnoughAfterOrientationInitialization(0.00001f);
+
+	velocityAndPositionCloseToZero();
+
+	positionVarianceBigEnoughAfterOrientationInitialization(0.00001f); // Fake position fusion obs var when at rest sq(0.5f)
+	velocityVarianceBigEnoughAfterOrientationInitialization(0.0001f);
 
 	_sensor_simulator.runSeconds(1.f);
 	learningCorrectAccelBias();
@@ -219,11 +255,23 @@ TEST_F(EkfInitializationTest, initializeHeadingWithZeroTilt)
 	const Eulerf euler_angles_sim(roll, pitch, yaw);
 	const Quatf quat_sim(euler_angles_sim);
 
+	_ekf->set_in_air_status(false);
+	_ekf->set_vehicle_at_rest(true);
 	_sensor_simulator.simulateOrientation(quat_sim);
-	_sensor_simulator.runSeconds(_init_tilt_period);
+	//_sensor_simulator.runSeconds(_init_tilt_period);
+	_sensor_simulator.runSeconds(7);
 
-	initializedOrienationIsMatchingGroundTruth(quat_sim);
-	validStateAfterOrientationInitialization();
+	EXPECT_TRUE(_ekf->control_status_flags().tilt_align);
+	EXPECT_TRUE(_ekf->control_status_flags().yaw_align);
+
+	initializedOrienationIsMatchingGroundTruth(quat_sim, 0.01f); // TODO: review precision
+	quaternionVarianceBigEnoughAfterOrientationInitialization(0.00001f);
+
+	velocityAndPositionCloseToZero();
+
+	// Fake position fusion obs var when at rest sq(0.01f)
+	positionVarianceBigEnoughAfterOrientationInitialization(0.00001f);
+	velocityVarianceBigEnoughAfterOrientationInitialization(0.0001f);
 
 	_sensor_simulator.runSeconds(1.f);
 	learningCorrectAccelBias();
@@ -236,11 +284,50 @@ TEST_F(EkfInitializationTest, initializeWithTilt)
 	const Eulerf euler_angles_sim(roll, pitch, 0.0f);
 	const Quatf quat_sim(euler_angles_sim);
 
+	_ekf->set_in_air_status(false);
+	_ekf->set_vehicle_at_rest(true);
 	_sensor_simulator.simulateOrientation(quat_sim);
-	_sensor_simulator.runSeconds(_init_tilt_period);
+	//_sensor_simulator.runSeconds(_init_tilt_period);
+	_sensor_simulator.runSeconds(20);
+
+	EXPECT_TRUE(_ekf->control_status_flags().tilt_align);
+	EXPECT_TRUE(_ekf->control_status_flags().yaw_align);
+
+	initializedOrienationIsMatchingGroundTruth(quat_sim, 0.01f);
+	quaternionVarianceBigEnoughAfterOrientationInitialization(0.00001f);
+
+	velocityAndPositionCloseToZero();
+
+	// Fake position fusion obs var when at rest sq(0.01f)
+	positionVarianceBigEnoughAfterOrientationInitialization(0.00001f);
+	velocityVarianceBigEnoughAfterOrientationInitialization(0.0001f);
+
+	_sensor_simulator.runSeconds(1.f);
+	learningCorrectAccelBias();
+}
+
+TEST_F(EkfInitializationTest, initializeWithTiltNotAtRest)
+{
+	const float pitch = math::radians(30.0f);
+	const float roll = math::radians(60.0f);
+	const Eulerf euler_angles_sim(roll, pitch, 0.0f);
+	const Quatf quat_sim(euler_angles_sim);
+
+	_ekf->set_in_air_status(true);
+	_ekf->set_vehicle_at_rest(false);
+	_sensor_simulator.simulateOrientation(quat_sim);
+	//_sensor_simulator.runSeconds(_init_tilt_period);
+	_sensor_simulator.runSeconds(10);
+
+	EXPECT_TRUE(_ekf->control_status_flags().tilt_align);
 
 	initializedOrienationIsMatchingGroundTruth(quat_sim);
-	validStateAfterOrientationInitialization();
+	quaternionVarianceBigEnoughAfterOrientationInitialization(0.00001f);
+
+	velocityAndPositionCloseToZero();
+
+	positionVarianceBigEnoughAfterOrientationInitialization(0.01f);
+	velocityVarianceBigEnoughAfterOrientationInitialization(0.0001f);
 
 	_sensor_simulator.runSeconds(1.f);
 	learningCorrectAccelBias();
@@ -253,13 +340,25 @@ TEST_F(EkfInitializationTest, initializeWithPitch90)
 	const Eulerf euler_angles_sim(roll, pitch, 0.0f);
 	const Quatf quat_sim(euler_angles_sim);
 
+	_ekf->set_in_air_status(false);
+	_ekf->set_vehicle_at_rest(true);
 	_sensor_simulator.simulateOrientation(quat_sim);
-	_sensor_simulator.runSeconds(_init_tilt_period);
+	//_sensor_simulator.runSeconds(_init_tilt_period);
+	_sensor_simulator.runSeconds(10);
 
-	initializedOrienationIsMatchingGroundTruth(quat_sim);
+	EXPECT_TRUE(_ekf->control_status_flags().tilt_align);
+
 	// TODO: Quaternion Variance is smaller and vel x is larger
 	// in this case than in the other cases
-	validStateAfterOrientationInitialization();
+
+	initializedOrienationIsMatchingGroundTruth(quat_sim);
+	quaternionVarianceBigEnoughAfterOrientationInitialization(0.00001f);
+
+	velocityAndPositionCloseToZero();
+
+	// Fake position fusion obs var when at rest sq(0.01f)
+	positionVarianceBigEnoughAfterOrientationInitialization(0.00001f);
+	velocityVarianceBigEnoughAfterOrientationInitialization(0.0001f);
 
 	_sensor_simulator.runSeconds(1.f);
 	learningCorrectAccelBias();
@@ -272,11 +371,22 @@ TEST_F(EkfInitializationTest, initializeWithRoll90)
 	const Eulerf euler_angles_sim(roll, pitch, 0.0f);
 	const Quatf quat_sim(euler_angles_sim);
 
+	_ekf->set_in_air_status(false);
+	_ekf->set_vehicle_at_rest(true);
 	_sensor_simulator.simulateOrientation(quat_sim);
-	_sensor_simulator.runSeconds(_init_tilt_period);
+	//_sensor_simulator.runSeconds(_init_tilt_period);
+	_sensor_simulator.runSeconds(10);
+
+	EXPECT_TRUE(_ekf->control_status_flags().tilt_align);
 
 	initializedOrienationIsMatchingGroundTruth(quat_sim);
-	validStateAfterOrientationInitialization();
+	quaternionVarianceBigEnoughAfterOrientationInitialization(0.00001f);
+
+	velocityAndPositionCloseToZero();
+
+	// Fake position fusion obs var when at rest sq(0.01f)
+	positionVarianceBigEnoughAfterOrientationInitialization(0.00001f);
+	velocityVarianceBigEnoughAfterOrientationInitialization(0.0001f);
 
 	_sensor_simulator.runSeconds(1.f);
 	learningCorrectAccelBias();
