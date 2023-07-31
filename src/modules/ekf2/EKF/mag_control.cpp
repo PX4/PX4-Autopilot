@@ -90,9 +90,8 @@ void Ekf::controlMagFusion()
 		const bool starting_conditions_passing = (_params.mag_fusion_type != MagFuseType::NONE)
 				&& checkMagField(mag_sample.mag)
 				&& (_mag_counter > 5) // wait until we have more than a few samples through the filter
-				&& (_state_reset_status.reset_count.quat == _state_reset_count_prev.quat) // no yaw reset this frame
 				&& (_control_status.flags.yaw_align == _control_status_prev.flags.yaw_align) // no yaw alignment change this frame
-				&& (_state_reset_status.reset_count.quat == _state_reset_count_prev.quat) // don't allow starting on same frame as yaw  reset
+				&& (_state_reset_status.reset_count.quat == _state_reset_count_prev.quat) // don't allow starting on same frame as yaw reset
 				&& isNewestSampleRecent(_time_last_mag_buffer_push, MAG_MAX_INTERVAL);
 
 		if (!_control_status.flags.tilt_align && !_control_status.flags.yaw_align && starting_conditions_passing) {
@@ -250,12 +249,8 @@ void Ekf::resetMagStates(const Vector3f &mag, bool reset_heading)
 
 	// record the start time for the magnetic field alignment
 	if (_control_status.flags.in_air) {
-		_flt_mag_align_start_time = _time_delayed_us;
 		_control_status.flags.mag_aligned_in_flight = true;
-
-	} else {
-		_flt_mag_align_start_time = 0;
-		_control_status.flags.mag_aligned_in_flight = false;
+		_flt_mag_align_start_time = _time_delayed_us;
 	}
 }
 

@@ -691,8 +691,8 @@ private:
 
 	// Variables used by the initial filter alignment
 	bool _is_first_imu_sample{true};
-	uint64_t _baro_counter{0};		///< number of baro samples read during initialisation
-	uint64_t _mag_counter{0};		///< number of magnetometer samples read during initialisation
+	uint32_t _baro_counter{0};		///< number of baro samples read during initialisation
+	uint32_t _mag_counter{0};		///< number of magnetometer samples read during initialisation
 	AlphaFilter<Vector3f> _accel_lpf{0.1f};	///< filtered accelerometer measurement used to align tilt (m/s/s)
 	AlphaFilter<Vector3f> _gyro_lpf{0.1f};	///< filtered gyro measurement used for alignment excessive movement check (rad/sec)
 
