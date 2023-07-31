@@ -1,8 +1,6 @@
 name: tiiuae-builder-images
 
 on:
-  # REMOVE BEFORE MERGE:
-  push:
   # Run only manually
   workflow_dispatch:
 
