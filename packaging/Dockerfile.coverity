@@ -23,4 +23,5 @@ RUN curl https://sig-repo.synopsys.com/artifactory/coverity-releases/2023.6.0/co
     && /coverity_install.sh -q --installation.dir=/cov --license.region=6 --license.agreement=agree --license.type.choice=0 --license.cov.path=/license.dat \
     && rm /coverity_install.sh
 
-ENTRYPOINT [ "entrypoint_coverity.sh" ]
+COPY px4-firmware/packaging/entrypoint_coverity.sh /
+ENTRYPOINT [ "/entrypoint_coverity.sh" ]
