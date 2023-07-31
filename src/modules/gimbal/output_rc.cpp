@@ -65,27 +65,36 @@ void OutputRC::update(const ControlData &control_data, bool new_setpoints, uint8
 	gimbal_controls_s gimbal_controls{};
 	auto roll_limit = math::radians(_parameters.mnt_range_roll / 2.0f);
 	auto roll = (_angle_outputs[0] + math::radians(_parameters.mnt_off_roll)) * (1.0f / roll_limit);
+
 	if (roll < -1.0f) {
 		_angle_outputs[0] = -roll_limit;
+
 	} else if (roll > 1.0f) {
 		_angle_outputs[0] = roll_limit;
 	}
+
 	gimbal_controls.control[gimbal_controls_s::INDEX_ROLL] = constrain(roll, -1.f, 1.f);
 	auto pitch_limit = math::radians(_parameters.mnt_range_pitch / 2.0f);
 	auto pitch = (_angle_outputs[1] + math::radians(_parameters.mnt_off_pitch)) * (1.0f / pitch_limit);
+
 	if (pitch < -1.0f) {
 		_angle_outputs[1] = -pitch_limit;
+
 	} else if (pitch > 1.0f) {
 		_angle_outputs[1] = pitch_limit;
 	}
+
 	gimbal_controls.control[gimbal_controls_s::INDEX_PITCH] = constrain(pitch, -1.f, 1.f);
 	auto yaw_limit = math::radians(_parameters.mnt_range_yaw / 2.0f);
 	auto yaw = (_angle_outputs[2] + math::radians(_parameters.mnt_off_yaw)) * (1.0f / yaw_limit);
+
 	if (yaw < -1.0f) {
 		_angle_outputs[2] = -yaw_limit;
+
 	} else if (yaw > 1.0f) {
 		_angle_outputs[2] = yaw_limit;
 	}
+
 	gimbal_controls.control[gimbal_controls_s::INDEX_YAW] = constrain(yaw, -1.f, 1.f);
 	gimbal_controls.timestamp = hrt_absolute_time();
 	_gimbal_controls_pub.publish(gimbal_controls);
@@ -118,13 +127,15 @@ void OutputRC::_stream_device_attitude_status()
 	// to comply with Mavlink 2 GIMBAL_DEVICE_ATTITUDE_STATUS definition
 	vehicle_attitude_s vehicle_attitude;
 	matrix::Eulerf euler_vehicle{};
+
 	if (_vehicle_attitude_sub.copy(&vehicle_attitude)) {
 		euler_vehicle = matrix::Quatf(vehicle_attitude.q);
 	}
+
 	const matrix::Quatf q_vehicle(matrix::Eulerf(
-		(_stabilize[0]) ? euler_vehicle(0) : 0.0f,
-		(_stabilize[1]) ? euler_vehicle(1) : 0.0f,
-		(_stabilize[2]) ? euler_vehicle(2) : 0.0f));
+					      (_stabilize[0]) ? euler_vehicle(0) : 0.0f,
+					      (_stabilize[1]) ? euler_vehicle(1) : 0.0f,
+					      (_stabilize[2]) ? euler_vehicle(2) : 0.0f));
 	q = q_vehicle * q;
 
 	q.copyTo(attitude_status.q);
