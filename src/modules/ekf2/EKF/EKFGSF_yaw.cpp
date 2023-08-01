@@ -39,60 +39,79 @@
 
 EKFGSF_yaw::EKFGSF_yaw()
 {
-	initialiseEKFGSF();
+	reset();
 }
 
-void EKFGSF_yaw::update(const imuSample &imu_sample,
-			bool run_EKF,			// set to true when flying or movement is suitable for yaw estimation
-			const Vector3f &imu_gyro_bias)  // estimated rate gyro bias (rad/sec)
+void EKFGSF_yaw::reset()
 {
-	// to reduce effect of vibration, filter using an LPF whose time constant is 1/10 of the AHRS tilt correction time constant
-	const float filter_coef = fminf(10.f * imu_sample.delta_vel_dt * _tilt_gain, 1.f);
-	const Vector3f accel = imu_sample.delta_vel / fmaxf(imu_sample.delta_vel_dt, 0.001f);
-	_ahrs_accel = _ahrs_accel * (1.f - filter_coef) + accel * filter_coef;
+	_vel_data_updated = false;
+	_ekf_gsf_vel_fuse_started = false;
+
+	_gsf_yaw_variance = INFINITY;
+}
+
+void EKFGSF_yaw::update(const imuSample &imu_sample, bool in_air)
+{
+	const Vector3f accel = imu_sample.delta_vel / imu_sample.delta_vel_dt;
+
+	if (imu_sample.delta_vel_dt > 0.001f) {
+		// to reduce effect of vibration, filter using an LPF whose time constant is 1/10 of the AHRS tilt correction time constant
+		const float filter_coef = fminf(10.f * imu_sample.delta_vel_dt * _tilt_gain, 1.f);
+		_ahrs_accel = _ahrs_accel * (1.f - filter_coef) + accel * filter_coef;
+
+	} else {
+		return;
+	}
 
 	// Initialise states first time
 	if (!_ahrs_ekf_gsf_tilt_aligned) {
 		// check for excessive acceleration to reduce likelihood of large initial roll/pitch errors
 		// due to vehicle movement
 		const float accel_norm_sq = accel.norm_squared();
-		const float upper_accel_limit = CONSTANTS_ONE_G * 1.1f;
-		const float lower_accel_limit = CONSTANTS_ONE_G * 0.9f;
-		const bool ok_to_align = (accel_norm_sq > sq(lower_accel_limit)) && (accel_norm_sq < sq(upper_accel_limit));
+		const float accel_lpf_norm_sq = _ahrs_accel.norm_squared();
+
+		static constexpr float upper_accel_limit = CONSTANTS_ONE_G * 1.1f;
+		static constexpr float lower_accel_limit = CONSTANTS_ONE_G * 0.9f;
+
+		const bool ok_to_align = (accel_norm_sq > sq(lower_accel_limit)) && (accel_norm_sq < sq(upper_accel_limit))
+					 && (accel_lpf_norm_sq > sq(lower_accel_limit)) && (accel_lpf_norm_sq < sq(upper_accel_limit));
 
 		if (ok_to_align) {
 			ahrsAlignTilt(imu_sample.delta_vel);
 			_ahrs_ekf_gsf_tilt_aligned = true;
-		}
-
-		return;
-	}
-
-	// calculate common values used by the AHRS complementary filter models
-	_ahrs_accel_norm = _ahrs_accel.norm();
-
-	// AHRS prediction cycle for each model - this always runs
-	_ahrs_accel_fusion_gain = ahrsCalcAccelGain();
-
-	for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index ++) {
-		predictEKF(model_index, imu_sample.delta_ang, imu_sample.delta_ang_dt, imu_sample.delta_vel, imu_sample.delta_vel_dt);
-	}
-
-	// The 3-state EKF models only run when flying to avoid corrupted estimates due to operator handling and GPS interference
-	if (run_EKF && _vel_data_updated) {
-		if (!_ekf_gsf_vel_fuse_started) {
-			initialiseEKFGSF(_vel_NE, _vel_accuracy);
-
-			// Initialise to gyro bias estimate from main filter because there could be a large
-			// uncorrected rate gyro bias error about the gravity vector
-			ahrsAlignYaw(imu_gyro_bias);
-
-			_ekf_gsf_vel_fuse_started = true;
 
 		} else {
+			return;
+		}
+	}
+
+	// we don't start running the EKF part of the algorithm until there are regular velocity observations
+	if (!_ekf_gsf_vel_fuse_started && _vel_data_updated) {
+
+		_vel_data_updated = false;
+
+		initialiseEKFGSF(_vel_NE, _vel_accuracy);
+
+		ahrsAlignYaw();
+
+		// don't start until in air or velocity is not negligible
+		if (in_air || _vel_NE.longerThan(_vel_accuracy)) {
+			_ekf_gsf_vel_fuse_started = true;
+		}
+	}
+
+	for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index ++) {
+		predictEKF(model_index, imu_sample.delta_ang, imu_sample.delta_ang_dt,
+			   imu_sample.delta_vel, imu_sample.delta_vel_dt, in_air);
+	}
+
+	if (_ekf_gsf_vel_fuse_started) {
+		if (_vel_data_updated) {
+			_vel_data_updated = false;
+
 			bool bad_update = false;
 
-			for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index ++) {
+			for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index++) {
 				// subsequent measurements are fused as direct state observations
 				if (!updateEKF(model_index, _vel_NE, _vel_accuracy)) {
 					bad_update = true;
@@ -122,39 +141,32 @@ void EKFGSF_yaw::update(const imuSample &imu_sample,
 
 				} else {
 					// all weights have collapsed due to excessive innovation variances so reset filters
-					initialiseEKFGSF(_vel_NE, _vel_accuracy);
+					reset();
 				}
 			}
 		}
 
-	} else if (_ekf_gsf_vel_fuse_started && !run_EKF) {
-		// wait to fly again
-		_ekf_gsf_vel_fuse_started = false;
+		// Calculate a composite yaw vector as a weighted average of the states for each model.
+		// To avoid issues with angle wrapping, the yaw state is converted to a vector with length
+		// equal to the weighting value before it is summed.
+		Vector2f yaw_vector;
+
+		for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index ++) {
+			yaw_vector(0) += _model_weights(model_index) * cosf(_ekf_gsf[model_index].X(2));
+			yaw_vector(1) += _model_weights(model_index) * sinf(_ekf_gsf[model_index].X(2));
+		}
+
+		_gsf_yaw = atan2f(yaw_vector(1), yaw_vector(0));
+
+		// calculate a composite variance for the yaw state from a weighted average of the variance for each model
+		// models with larger innovations are weighted less
+		_gsf_yaw_variance = 0.0f;
+
+		for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index ++) {
+			const float yaw_delta = wrap_pi(_ekf_gsf[model_index].X(2) - _gsf_yaw);
+			_gsf_yaw_variance += _model_weights(model_index) * (_ekf_gsf[model_index].P(2, 2) + yaw_delta * yaw_delta);
+		}
 	}
-
-	// Calculate a composite yaw vector as a weighted average of the states for each model.
-	// To avoid issues with angle wrapping, the yaw state is converted to a vector with length
-	// equal to the weighting value before it is summed.
-	Vector2f yaw_vector;
-
-	for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index ++) {
-		yaw_vector(0) += _model_weights(model_index) * cosf(_ekf_gsf[model_index].X(2));
-		yaw_vector(1) += _model_weights(model_index) * sinf(_ekf_gsf[model_index].X(2));
-	}
-
-	_gsf_yaw = atan2f(yaw_vector(1), yaw_vector(0));
-
-	// calculate a composite variance for the yaw state from a weighted average of the variance for each model
-	// models with larger innovations are weighted less
-	_gsf_yaw_variance = 0.0f;
-
-	for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index ++) {
-		const float yaw_delta = wrap_pi(_ekf_gsf[model_index].X(2) - _gsf_yaw);
-		_gsf_yaw_variance += _model_weights(model_index) * (_ekf_gsf[model_index].P(2, 2) + yaw_delta * yaw_delta);
-	}
-
-	// prevent the same velocity data being used more than once
-	_vel_data_updated = false;
 }
 
 void EKFGSF_yaw::ahrsPredict(const uint8_t model_index, const Vector3f &delta_ang, const float delta_ang_dt)
@@ -165,11 +177,16 @@ void EKFGSF_yaw::ahrsPredict(const uint8_t model_index, const Vector3f &delta_an
 	const Dcmf R_to_body = _ahrs_ekf_gsf[model_index].R.transpose();
 	const Vector3f gravity_direction_bf = R_to_body.col(2);
 
+	const float ahrs_accel_norm = _ahrs_accel.norm();
+
+	// gain from accel vector tilt error to rate gyro correction used by AHRS calculation
+	const float ahrs_accel_fusion_gain = ahrsCalcAccelGain();
+
 	// Perform angular rate correction using accel data and reduce correction as accel magnitude moves away from 1 g (reduces drift when vehicle picked up and moved).
 	// During fixed wing flight, compensate for centripetal acceleration assuming coordinated turns and X axis forward
-	Vector3f tilt_correction;
+	Vector3f tilt_correction{};
 
-	if (_ahrs_accel_fusion_gain > 0.0f) {
+	if (ahrs_accel_fusion_gain > 0.f) {
 
 		Vector3f accel = _ahrs_accel;
 
@@ -182,7 +199,7 @@ void EKFGSF_yaw::ahrsPredict(const uint8_t model_index, const Vector3f &delta_an
 			accel -= centripetal_accel_bf;
 		}
 
-		tilt_correction = (gravity_direction_bf % accel) * _ahrs_accel_fusion_gain / _ahrs_accel_norm;
+		tilt_correction = (gravity_direction_bf % accel) * ahrs_accel_fusion_gain / ahrs_accel_norm;
 	}
 
 	// Gyro bias estimation
@@ -191,13 +208,13 @@ void EKFGSF_yaw::ahrsPredict(const uint8_t model_index, const Vector3f &delta_an
 
 	if (spin_rate < math::radians(10.f)) {
 		_ahrs_ekf_gsf[model_index].gyro_bias -= tilt_correction * (_gyro_bias_gain * delta_ang_dt);
-		_ahrs_ekf_gsf[model_index].gyro_bias = matrix::constrain(_ahrs_ekf_gsf[model_index].gyro_bias, -gyro_bias_limit,
-						       gyro_bias_limit);
+		_ahrs_ekf_gsf[model_index].gyro_bias = matrix::constrain(_ahrs_ekf_gsf[model_index].gyro_bias,
+						       -gyro_bias_limit, gyro_bias_limit);
 	}
 
 	// delta angle from previous to current frame
-	const Vector3f delta_angle_corrected = delta_ang + (tilt_correction - _ahrs_ekf_gsf[model_index].gyro_bias) *
-					       delta_ang_dt;
+	const Vector3f delta_angle_corrected = delta_ang
+					       + (tilt_correction - _ahrs_ekf_gsf[model_index].gyro_bias) * delta_ang_dt;
 
 	// Apply delta angle to rotation matrix
 	_ahrs_ekf_gsf[model_index].R = ahrsPredictRotMat(_ahrs_ekf_gsf[model_index].R, delta_angle_corrected);
@@ -235,22 +252,19 @@ void EKFGSF_yaw::ahrsAlignTilt(const Vector3f &delta_vel)
 	}
 }
 
-void EKFGSF_yaw::ahrsAlignYaw(const Vector3f &imu_gyro_bias)
+void EKFGSF_yaw::ahrsAlignYaw()
 {
 	// Align yaw angle for each model
 	for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index++) {
-		Dcmf &R = _ahrs_ekf_gsf[model_index].R;
+
 		const float yaw = wrap_pi(_ekf_gsf[model_index].X(2));
-		R = updateYawInRotMat(yaw, R);
-
-		_ahrs_ekf_gsf[model_index].aligned = true;
-
-		_ahrs_ekf_gsf[model_index].gyro_bias = imu_gyro_bias;
+		const Dcmf R = _ahrs_ekf_gsf[model_index].R;
+		_ahrs_ekf_gsf[model_index].R = updateYawInRotMat(yaw, R);
 	}
 }
 
 void EKFGSF_yaw::predictEKF(const uint8_t model_index, const Vector3f &delta_ang, const float delta_ang_dt,
-			    const Vector3f &delta_vel, const float delta_vel_dt)
+			    const Vector3f &delta_vel, const float delta_vel_dt, bool in_air)
 {
 	// generate an attitude reference using IMU data
 	ahrsPredict(model_index, delta_ang, delta_ang_dt);
@@ -270,11 +284,15 @@ void EKFGSF_yaw::predictEKF(const uint8_t model_index, const Vector3f &delta_ang
 	const float dvx =   del_vel_NED(0) * cos_yaw + del_vel_NED(1) * sin_yaw;
 	const float dvy = - del_vel_NED(0) * sin_yaw + del_vel_NED(1) * cos_yaw;
 
-	// Use fixed values for delta velocity and delta angle process noise variances
-	const float d_vel_var = sq(_accel_noise * delta_vel_dt);
+	// delta velocity process noise double if we're not in air
+	const float accel_noise = in_air ? _accel_noise : 2.f * _accel_noise;
+	const float d_vel_var = sq(accel_noise * delta_vel_dt);
+
+	// Use fixed values for delta angle process noise variances
 	const float d_ang_var = sq(_gyro_noise * delta_ang_dt);
 
-	sym::YawEstPredictCovariance(_ekf_gsf[model_index].X, _ekf_gsf[model_index].P, Vector2f(dvx, dvy), d_vel_var, d_ang_var, &_ekf_gsf[model_index].P);
+	sym::YawEstPredictCovariance(_ekf_gsf[model_index].X, _ekf_gsf[model_index].P,
+				     Vector2f(dvx, dvy), d_vel_var, d_ang_var, &_ekf_gsf[model_index].P);
 
 	// covariance matrix is symmetrical, so copy upper half to lower half
 	_ekf_gsf[model_index].P(1, 0) = _ekf_gsf[model_index].P(0, 1);
@@ -293,7 +311,6 @@ void EKFGSF_yaw::predictEKF(const uint8_t model_index, const Vector3f &delta_ang
 	_ekf_gsf[model_index].X(1) += del_vel_NED(1);
 }
 
-// Update EKF states and covariance for specified model index using velocity measurement
 bool EKFGSF_yaw::updateEKF(const uint8_t model_index, const Vector2f &vel_NE, const float vel_accuracy)
 {
 	// set observation variance from accuracy estimate supplied by GPS and apply a sanity check minimum
@@ -365,20 +382,21 @@ bool EKFGSF_yaw::updateEKF(const uint8_t model_index, const Vector2f &vel_NE, co
 void EKFGSF_yaw::initialiseEKFGSF(const Vector2f &vel_NE, const float vel_accuracy)
 {
 	_gsf_yaw = 0.0f;
-	_ekf_gsf_vel_fuse_started = false;
 	_gsf_yaw_variance = sq(M_PI_F / 2.f);
 	_model_weights.setAll(1.0f / (float)N_MODELS_EKFGSF);  // All filter models start with the same weight
 
-	memset(&_ekf_gsf, 0, sizeof(_ekf_gsf));
-	const float yaw_increment = 2.0f * M_PI_F / (float)N_MODELS_EKFGSF;
+	const float yaw_increment = 2.f * M_PI_F / (float)N_MODELS_EKFGSF;
 
 	for (uint8_t model_index = 0; model_index < N_MODELS_EKFGSF; model_index++) {
+		_ekf_gsf[model_index] = {};
+
 		// evenly space initial yaw estimates in the region between +-Pi
 		_ekf_gsf[model_index].X(2) = -M_PI_F + (0.5f * yaw_increment) + ((float)model_index * yaw_increment);
 
 		// take velocity states and corresponding variance from last measurement
 		_ekf_gsf[model_index].X(0) = vel_NE(0);
 		_ekf_gsf[model_index].X(1) = vel_NE(1);
+
 		_ekf_gsf[model_index].P(0, 0) = sq(fmaxf(vel_accuracy, 0.01f));
 		_ekf_gsf[model_index].P(1, 1) = _ekf_gsf[model_index].P(0, 0);
 
@@ -426,11 +444,13 @@ float EKFGSF_yaw::ahrsCalcAccelGain() const
 	float attenuation = 2.f;
 	const bool centripetal_accel_compensation_enabled = PX4_ISFINITE(_true_airspeed) && (_true_airspeed > FLT_EPSILON);
 
-	if (centripetal_accel_compensation_enabled && (_ahrs_accel_norm > CONSTANTS_ONE_G)) {
+	const float ahrs_accel_norm = _ahrs_accel.norm();
+
+	if (centripetal_accel_compensation_enabled && (ahrs_accel_norm > CONSTANTS_ONE_G)) {
 		attenuation = 1.f;
 	}
 
-	const float delta_accel_g = (_ahrs_accel_norm - CONSTANTS_ONE_G) / CONSTANTS_ONE_G;
+	const float delta_accel_g = (ahrs_accel_norm - CONSTANTS_ONE_G) / CONSTANTS_ONE_G;
 	return _tilt_gain * sq(1.f - math::min(attenuation * fabsf(delta_accel_g), 1.f));
 }
 
@@ -454,7 +474,7 @@ Matrix3f EKFGSF_yaw::ahrsPredictRotMat(const Matrix3f &R, const Vector3f &g)
 		if (rowLengthSq > FLT_EPSILON) {
 			// Use linear approximation for inverse sqrt taking advantage of the row length being close to 1.0
 			const float rowLengthInv = 1.5f - 0.5f * rowLengthSq;
-			ret.row(r) *=  rowLengthInv;
+			ret.row(r) *= rowLengthInv;
 		}
 	}
 
