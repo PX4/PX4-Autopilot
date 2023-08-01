@@ -147,6 +147,7 @@ int ModalIo::load_params(modal_io_params_t *params, ch_assign_t *map)
 	param_get(param_find("MODAL_IO_RPM_MAX"), &params->rpm_max);
 
 	param_get(param_find("MODAL_IO_VLOG"),    &params->verbose_logging);
+	param_get(param_find("MODAL_IO_PUB_BST"), &params->publish_battery_status);
 
 	if (params->rpm_min >= params->rpm_max) {
 		PX4_ERR("Invalid parameter MODAL_IO_RPM_MIN.  Please verify parameters.");
@@ -394,19 +395,22 @@ int ModalIo::parse_response(uint8_t *buf, uint8_t len, bool print_feedback)
 				QC_ESC_FB_POWER_STATUS packet;
 				memcpy(&packet,_fb_packet.buffer, packet_size);
 				
-				float voltage = packet.voltage * 0.001f;
-				float current = packet.current * 0.008f;
-
-				_battery.setConnected(true);
-				_battery.updateVoltage(voltage);
-				_battery.updateCurrent(current);
+				float voltage = packet.voltage * 0.001f; // Voltage is reported at 1 mV resolution
+				float current = packet.current * 0.008f; // Total current is reported at 8mA resolution
 
 				// Limit the frequency of battery status reports
-				hrt_abstime current_time = hrt_absolute_time();
-				if ((current_time - _last_battery_report_time) >= _battery_report_interval) {
-					_last_battery_report_time = current_time;
-					_battery.updateAndPublishBatteryStatus(current_time);
+				if (_parameters.publish_battery_status) {
+					_battery.setConnected(true);
+					_battery.updateVoltage(voltage);
+					_battery.updateCurrent(current);
+
+					hrt_abstime current_time = hrt_absolute_time();
+					if ((current_time - _last_battery_report_time) >= _battery_report_interval) {
+						_last_battery_report_time = current_time;
+						_battery.updateAndPublishBatteryStatus(current_time);
+					}
 				}
+				
 			}
 
 		} else { //parser error

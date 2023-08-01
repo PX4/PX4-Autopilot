@@ -144,6 +144,7 @@ private:
 		int32_t		motor_map[MODAL_IO_OUTPUT_CHANNELS] {1, 2, 3, 4};
 		int32_t		direction_map[MODAL_IO_OUTPUT_CHANNELS] {1, 1, 1, 1};
 		int32_t		verbose_logging{0};
+		int32_t 	publish_battery_status{0};
 	} modal_io_params_t;
 
 	struct EscChan {

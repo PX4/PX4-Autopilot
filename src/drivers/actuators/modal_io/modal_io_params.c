@@ -216,3 +216,19 @@ PARAM_DEFINE_FLOAT(MODAL_IO_T_COSP, 0.990);
  * @max 1
  */
 PARAM_DEFINE_INT32(MODAL_IO_VLOG, 0);
+
+
+/**
+ * UART ESC Enable publishing of battery status
+ * 
+ * Only applicable to ESCs that report total battery voltage and current
+ *
+ * @reboot_required true
+ *
+ * @group MODAL IO
+ * @value 0 - Disabled
+ * @value 1 - Enabled
+ * @min 0
+ * @max 1
+ */
+PARAM_DEFINE_INT32(MODAL_IO_PUB_BST, 1);
