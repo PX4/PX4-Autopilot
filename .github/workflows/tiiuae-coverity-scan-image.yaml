@@ -32,8 +32,6 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: take a look
-        run: ls -al
       - name: Build and push coverity scan image
         uses: docker/build-push-action@v4
         with:

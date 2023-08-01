@@ -3,11 +3,7 @@
 COVERITY_SUMMARY_OUT=/main_ws/cov-analyze-result.txt
 COVERITY_SCAN_OUT=/main_ws/cov-scan-output.txt
 COVERITY_REPORT_OUT=/main_ws/coverity-output
-#SOURCE_DIR=/sources
 
-# cp -r /main_ws ${SOURCE_DIR}
-# cp ${SOURCE_DIR}/packaging/coverity.yaml ${SOURCE_DIR}/coverity.yaml
-# cd ${SOURCE_DIR}
 cp /main_ws/packaging/coverity.yaml /main_ws/coverity.yaml
 
 export PATH=$PATH:/cov/bin/

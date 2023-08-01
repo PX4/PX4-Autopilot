@@ -2,10 +2,8 @@ name: tiiuae-px4-coverity-scan
 
 on:
   workflow_dispatch:
-  # REMOVE PUSH BEFORE MERGE!!!
-  # run it on pr or something
-  push:
-
+  pull_request:
+    branches: [ main ]
 jobs:
   coverity:
     runs-on: px4-self-hosted-coverity
