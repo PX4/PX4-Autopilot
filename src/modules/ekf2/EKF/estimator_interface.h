@@ -438,6 +438,7 @@ protected:
 	// allocate data buffers and initialize interface variables
 	bool initialise_interface(uint64_t timestamp);
 
+	uint64_t _wmm_gps_time_last_checked{0};  // time WMM last checked
 	uint64_t _wmm_gps_time_last_set{0};      // time WMM last set
 	float _mag_declination_gps{NAN};         // magnetic declination returned by the geo library using the last valid GPS position (rad)
 	float _mag_inclination_gps{NAN};	  // magnetic inclination returned by the geo library using the last valid GPS position (rad)

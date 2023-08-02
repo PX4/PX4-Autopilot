@@ -92,7 +92,7 @@ bool Ekf::collect_gps(const gpsMessage &gps)
 		ECL_INFO("GPS checks passed");
 	}
 
-	if (isTimedOut(_wmm_gps_time_last_set, 1e6)) {
+	if (isTimedOut(_wmm_gps_time_last_checked, 1e6)) {
 		// a rough 2D fix is sufficient to lookup declination
 		const bool gps_rough_2d_fix = (gps.fix_type >= 2) && (gps.eph < 1000);
 
@@ -129,6 +129,8 @@ bool Ekf::collect_gps(const gpsMessage &gps)
 
 			_earth_rate_NED = calcEarthRateNED((float)math::radians(lat));
 		}
+
+		_wmm_gps_time_last_checked = _time_delayed_us;
 	}
 
 	// start collecting GPS if there is a 3D fix and the NED origin has been set
