@@ -69,6 +69,7 @@ public:
 		px4_sem_wait(&_sem_tail);
 
 		T ret = _data[_head];
+		_data[_head] = nullptr;
 		_head = (_head + 1) % N;
 
 		px4_sem_post(&_sem_head);
