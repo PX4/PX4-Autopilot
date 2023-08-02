@@ -50,14 +50,13 @@ public:
 	SensorSimulator _sensor_simulator;
 	EkfWrapper _ekf_wrapper;
 
-	const float _init_tilt_period = 0.3f; // seconds
+	const float _init_tilt_period = 0.7f; // seconds
 
 	// Setup the Ekf with synthetic measurements
 	void SetUp() override
 	{
-		// run briefly to init, then manually set in air and at rest (default for a real vehicle)
+		// first init, then manually set in air and at rest (default for a real vehicle)
 		_ekf->init(0);
-		_sensor_simulator.runSeconds(0.1);
 		_ekf->set_in_air_status(false);
 		_ekf->set_vehicle_at_rest(true);
 	}
@@ -67,12 +66,10 @@ public:
 	{
 	}
 
-	void initializedOrienationIsMatchingGroundTruth(Quatf true_quaternion, float precision = 0.0002f)
+	void initializedOrienationIsMatchingGroundTruth(Quatf true_quaternion)
 	{
-		// TODO: precision = 0.0002f is only required for the pitch90 test to pass
-
 		const Quatf quat_est = _ekf->getQuaternion();
-		EXPECT_TRUE(matrix::isEqual(quat_est, true_quaternion, precision))
+		EXPECT_TRUE(matrix::isEqual(quat_est, true_quaternion))
 				<< "quat est = " << quat_est(0) << ", " << quat_est(1) << ", "
 				<< quat_est(2) << ", " << quat_est(3)
 				<< "\nquat true = " << true_quaternion(0) << ", " << true_quaternion(1) << ", "
@@ -140,10 +137,11 @@ TEST_F(EkfInitializationTest, initializeWithZeroTilt)
 	const Eulerf euler_angles_sim(roll, pitch, 0.0f);
 	const Quatf quat_sim(euler_angles_sim);
 
-	_ekf->set_in_air_status(false);
-	_ekf->set_vehicle_at_rest(true);
 	_sensor_simulator.simulateOrientation(quat_sim);
 	_sensor_simulator.runSeconds(_init_tilt_period);
+
+	EXPECT_TRUE(_ekf->control_status_flags().vehicle_at_rest);
+	EXPECT_FALSE(_ekf->control_status_flags().in_air);
 
 	EXPECT_TRUE(_ekf->control_status_flags().tilt_align);
 
@@ -255,16 +253,16 @@ TEST_F(EkfInitializationTest, initializeHeadingWithZeroTilt)
 	const Eulerf euler_angles_sim(roll, pitch, yaw);
 	const Quatf quat_sim(euler_angles_sim);
 
-	_ekf->set_in_air_status(false);
-	_ekf->set_vehicle_at_rest(true);
 	_sensor_simulator.simulateOrientation(quat_sim);
-	//_sensor_simulator.runSeconds(_init_tilt_period);
-	_sensor_simulator.runSeconds(7);
+	_sensor_simulator.runSeconds(_init_tilt_period);
+
+	EXPECT_TRUE(_ekf->control_status_flags().vehicle_at_rest);
+	EXPECT_FALSE(_ekf->control_status_flags().in_air);
 
 	EXPECT_TRUE(_ekf->control_status_flags().tilt_align);
 	EXPECT_TRUE(_ekf->control_status_flags().yaw_align);
 
-	initializedOrienationIsMatchingGroundTruth(quat_sim, 0.01f); // TODO: review precision
+	initializedOrienationIsMatchingGroundTruth(quat_sim);
 	quaternionVarianceBigEnoughAfterOrientationInitialization(0.00001f);
 
 	velocityAndPositionCloseToZero();
@@ -284,16 +282,13 @@ TEST_F(EkfInitializationTest, initializeWithTilt)
 	const Eulerf euler_angles_sim(roll, pitch, 0.0f);
 	const Quatf quat_sim(euler_angles_sim);
 
-	_ekf->set_in_air_status(false);
-	_ekf->set_vehicle_at_rest(true);
 	_sensor_simulator.simulateOrientation(quat_sim);
-	//_sensor_simulator.runSeconds(_init_tilt_period);
-	_sensor_simulator.runSeconds(20);
+	_sensor_simulator.runSeconds(_init_tilt_period);
 
 	EXPECT_TRUE(_ekf->control_status_flags().tilt_align);
 	EXPECT_TRUE(_ekf->control_status_flags().yaw_align);
 
-	initializedOrienationIsMatchingGroundTruth(quat_sim, 0.01f);
+	initializedOrienationIsMatchingGroundTruth(quat_sim);
 	quaternionVarianceBigEnoughAfterOrientationInitialization(0.00001f);
 
 	velocityAndPositionCloseToZero();
@@ -317,7 +312,7 @@ TEST_F(EkfInitializationTest, initializeWithTiltNotAtRest)
 	_ekf->set_vehicle_at_rest(false);
 	_sensor_simulator.simulateOrientation(quat_sim);
 	//_sensor_simulator.runSeconds(_init_tilt_period);
-	_sensor_simulator.runSeconds(10);
+	_sensor_simulator.runSeconds(7);
 
 	EXPECT_TRUE(_ekf->control_status_flags().tilt_align);
 

@@ -45,9 +45,12 @@
 
 bool Ekf::init(uint64_t timestamp)
 {
-	bool ret = initialise_interface(timestamp);
-	reset();
-	return ret;
+	if (!_initialised) {
+		_initialised = initialise_interface(timestamp);
+		reset();
+	}
+
+	return _initialised;
 }
 
 void Ekf::reset()
