@@ -4,7 +4,7 @@
 > Personal repository indication.
 > I have no idea whether my change will be dismissed when I update other contributor's commit. Or on the other hand, wether my repository push will be see by others? 2023年08月04日03:51:45
 >In a word, how this `fork` works in github? I hope to commit on the source code without being replace by others. While at the same time, I'd like to follow the latest repository updates. Let me see how this can work!
-
+> Find the best way...
 ---
 
 [![Releases](https://img.shields.io/github/release/PX4/PX4-Autopilot.svg)](https://github.com/PX4/PX4-Autopilot/releases) [![DOI](https://zenodo.org/badge/22634/PX4/PX4-Autopilot.svg)](https://zenodo.org/badge/latestdoi/22634/PX4/PX4-Autopilot)
