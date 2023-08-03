@@ -46,19 +46,19 @@
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
-#include <uORB/topics/actuator_controls_status.h>
+#include <uORB/topics/actuator_controls_status.h> // pub
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/control_allocator_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/rate_ctrl_status.h>
+#include <uORB/topics/rate_ctrl_status.h> // pub
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_land_detected.h>
-#include <uORB/topics/vehicle_rates_setpoint.h>
+#include <uORB/topics/vehicle_rates_setpoint.h> // pub-new
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/vehicle_thrust_setpoint.h>
-#include <uORB/topics/vehicle_torque_setpoint.h>
+#include <uORB/topics/vehicle_thrust_setpoint.h> // sub-->pub, 循环迭代（速度环）
+#include <uORB/topics/vehicle_torque_setpoint.h> // sub-->pub, 循环迭代（速度环）
 
 using namespace time_literals;
 
@@ -118,7 +118,7 @@ private:
 	hrt_abstime _last_run{0};
 
 	perf_counter_t	_loop_perf;			/**< loop duration performance counter */
-
+	
 	// keep setpoint values between updates
 	matrix::Vector3f _acro_rate_max;		/**< max attitude rates in acro mode */
 	matrix::Vector3f _rates_setpoint{};

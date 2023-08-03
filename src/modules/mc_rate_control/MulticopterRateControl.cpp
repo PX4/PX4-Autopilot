@@ -231,7 +231,7 @@ MulticopterRateControl::Run()
 			vehicle_torque_setpoint.xyz[1] = PX4_ISFINITE(att_control(1)) ? att_control(1) : 0.f;
 			vehicle_torque_setpoint.xyz[2] = PX4_ISFINITE(att_control(2)) ? att_control(2) : 0.f;
 
-			// scale setpoints by battery status if enabled
+			// scale setpoints by battery status if enabled // 这里还考虑随着电池状态变化而对设定的扭矩值进行重映射
 			if (_param_mc_bat_scale_en.get()) {
 				if (_battery_status_sub.updated()) {
 					battery_status_s battery_status;

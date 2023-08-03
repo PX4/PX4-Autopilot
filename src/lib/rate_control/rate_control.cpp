@@ -60,7 +60,7 @@ Vector3f RateControl::update(const Vector3f &rate, const Vector3f &rate_sp, cons
 	// angular rates error
 	Vector3f rate_error = rate_sp - rate;
 
-	// PID control with feed forward
+	// PID control with feed forward, 积分被安排单独计算了，在下面函数 RateControl::updateIntegral(Vector3f &rate_error, const float dt)
 	const Vector3f torque = _gain_p.emult(rate_error) + _rate_int - _gain_d.emult(angular_accel) + _gain_ff.emult(rate_sp);
 
 	// update integral only if we are not landed

@@ -128,7 +128,7 @@ public:
 
 	/**
 	 * Update the hover thrust without immediately affecting the output
-	 * by adjusting the integrator. This prevents propagating the dynamics
+	 * by adjusting the integrator. This prevents propagating the dynamics // 通过积分器作用后调整而不是直接调整悬停推力（thrust）
 	 * of the hover thrust signal directly to the output of the controller.
 	 */
 	void updateHoverThrust(const float hover_thrust_new);

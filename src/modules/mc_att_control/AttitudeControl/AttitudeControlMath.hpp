@@ -54,7 +54,7 @@ void inline correctTiltSetpointForYawError(matrix::Quatf &q_sp_tilt, const matri
 	const matrix::Vector3f z_unit(0.f, 0.f, 1.f);
 
 	// Extract yaw from the current attitude
-	const matrix::Vector3f att_z = q_att.dcm_z();
+	const matrix::Vector3f att_z = q_att.dcm_z();// 四元数表示三轴的重力分量V_x, V_y, V_z
 	const matrix::Quatf q_tilt(z_unit, att_z);
 	const matrix::Quatf q_yaw = q_tilt.inversed() * q_att; // This is not euler yaw
 
@@ -65,6 +65,6 @@ void inline correctTiltSetpointForYawError(matrix::Quatf &q_sp_tilt, const matri
 
 	// Extract the corrected tilt
 	const matrix::Vector3f att_sp_z = q_sp_rp_compensated.dcm_z();
-	q_sp_tilt = matrix::Quatf(z_unit, att_sp_z);
+	q_sp_tilt = matrix::Quatf(z_unit, att_sp_z); // Generates shortest rotation from source to destination vector
 }
 }
