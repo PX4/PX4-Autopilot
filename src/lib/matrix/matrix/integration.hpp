@@ -29,7 +29,7 @@ int integrate_rk4(
 			h = h0;
 
 		} else {
-			h = tf - t1;
+			h = tf - t1;// 这是处理最后时间不够一个 h0 周期的情况，保证 tl 最后不会超过 tf 。
 		}
 
 		k1 = f(t1, y1, u);
@@ -37,7 +37,7 @@ int integrate_rk4(
 		k3 = f(t1 + h / 2, y1 + k2 * h / 2, u);
 		k4 = f(t1 + h, y1 + k3 * h, u);
 		y1 += (k1 + k2 * 2 + k3 * 2 + k4) * (h / 6);
-		t1 += h;
+		t1 += h; // 这好像类似泰勒展开
 	}
 
 	return 0;
