@@ -101,7 +101,7 @@ RCUpdate::RCUpdate() :
 	}
 
 	rc_parameter_map_poll(true /* forced */);
-	parameters_updated();
+	updateParams(); // Call is needed to populate the _rc.function array
 
 	_button_pressed_hysteresis.set_hysteresis_time_from(false, 50_ms);
 }
@@ -123,8 +123,10 @@ bool RCUpdate::init()
 	return true;
 }
 
-void RCUpdate::parameters_updated()
+void RCUpdate::updateParams()
 {
+	ModuleParams::updateParams();
+
 	// rc values
 	for (unsigned int i = 0; i < RC_MAX_CHAN_COUNT; i++) {
 		float min = 0.f;
@@ -388,7 +390,6 @@ void RCUpdate::Run()
 
 		// update parameters from storage
 		updateParams();
-		parameters_updated();
 	}
 
 	rc_parameter_map_poll();
@@ -560,19 +561,16 @@ void RCUpdate::Run()
 	perf_end(_loop_perf);
 }
 
-switch_pos_t RCUpdate::get_rc_sw2pos_position(uint8_t func, float on_th) const
+switch_pos_t RCUpdate::getRCSwitchOnOffPosition(uint8_t function, float threshold) const
 {
-	if (_rc.function[func] >= 0) {
-		const bool on_inv = (on_th < 0.f);
+	if (_rc.function[function] >= 0) {
+		float value = 0.5f * _rc.channels[_rc.function[function]] + 0.5f; // Rescale [-1,1] -> [0,1] range
 
-		const float value = 0.5f * _rc.channels[_rc.function[func]] + 0.5f;
-
-		if (on_inv ? value < on_th : value > on_th) {
-			return manual_control_switches_s::SWITCH_POS_ON;
-
-		} else {
-			return manual_control_switches_s::SWITCH_POS_OFF;
+		if (threshold < 0.f) {
+			value = -value;
 		}
+
+		return (value > threshold) ? manual_control_switches_s::SWITCH_POS_ON : manual_control_switches_s::SWITCH_POS_OFF;
 	}
 
 	return manual_control_switches_s::SWITCH_POS_NONE;
@@ -639,18 +637,18 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 		}
 	}
 
-	switches.return_switch     = get_rc_sw2pos_position(rc_channels_s::FUNCTION_RETURN,     _param_rc_return_th.get());
-	switches.loiter_switch     = get_rc_sw2pos_position(rc_channels_s::FUNCTION_LOITER,     _param_rc_loiter_th.get());
-	switches.offboard_switch   = get_rc_sw2pos_position(rc_channels_s::FUNCTION_OFFBOARD,   _param_rc_offb_th.get());
-	switches.kill_switch       = get_rc_sw2pos_position(rc_channels_s::FUNCTION_KILLSWITCH, _param_rc_killswitch_th.get());
-	switches.arm_switch        = get_rc_sw2pos_position(rc_channels_s::FUNCTION_ARMSWITCH,  _param_rc_armswitch_th.get());
-	switches.transition_switch = get_rc_sw2pos_position(rc_channels_s::FUNCTION_TRANSITION, _param_rc_trans_th.get());
-	switches.gear_switch       = get_rc_sw2pos_position(rc_channels_s::FUNCTION_GEAR,       _param_rc_gear_th.get());
-	switches.engage_main_motor_switch = get_rc_sw2pos_position(rc_channels_s::FUNCTION_ENGAGE_MAIN_MOTOR,
-					    _param_rc_eng_mot_th.get());
+	switches.return_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_RETURN, _param_rc_return_th.get());
+	switches.loiter_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_LOITER, _param_rc_loiter_th.get());
+	switches.offboard_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_OFFBOARD, _param_rc_offb_th.get());
+	switches.kill_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_KILLSWITCH, _param_rc_killswitch_th.get());
+	switches.arm_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_ARMSWITCH, _param_rc_armswitch_th.get());
+	switches.transition_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_TRANSITION, _param_rc_trans_th.get());
+	switches.gear_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_GEAR, _param_rc_gear_th.get());
+	switches.engage_main_motor_switch =
+		getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_ENGAGE_MAIN_MOTOR, _param_rc_eng_mot_th.get());
 #if defined(ATL_MANTIS_RC_INPUT_HACKS)
-	switches.photo_switch = get_rc_sw2pos_position(rc_channels_s::FUNCTION_AUX_3, 0.5f);
-	switches.video_switch = get_rc_sw2pos_position(rc_channels_s::FUNCTION_AUX_4, 0.5f);
+	switches.photo_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_AUX_3, 0.5f);
+	switches.video_switch = getRCSwitchOnOffPosition(rc_channels_s::FUNCTION_AUX_4, 0.5f);
 #endif
 
 	// last 2 switch updates identical within 1 second (simple protection from bad RC data)

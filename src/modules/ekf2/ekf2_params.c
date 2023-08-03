@@ -901,13 +901,22 @@ PARAM_DEFINE_FLOAT(EKF2_OF_N_MIN, 0.15f);
 PARAM_DEFINE_FLOAT(EKF2_OF_N_MAX, 0.5f);
 
 /**
- * Optical Flow data will only be used if the sensor reports a quality metric >= EKF2_OF_QMIN.
+ * Optical Flow data will only be used in air if the sensor reports a quality metric >= EKF2_OF_QMIN.
  *
  * @group EKF2
  * @min 0
  * @max 255
  */
 PARAM_DEFINE_INT32(EKF2_OF_QMIN, 1);
+
+/**
+ * Optical Flow data will only be used on the ground if the sensor reports a quality metric >= EKF2_OF_QMIN_GND.
+ *
+ * @group EKF2
+ * @min 0
+ * @max 255
+ */
+PARAM_DEFINE_INT32(EKF2_OF_QMIN_GND, 0);
 
 /**
  * Gate size for optical flow fusion
@@ -1493,16 +1502,51 @@ PARAM_DEFINE_FLOAT(EKF2_REQ_GPS_H, 10.0f);
 /**
  * Magnetic field strength test selection
  *
- * When set, the EKF checks the strength of the magnetic field
- * to decide whether the magnetometer data is valid.
- * If GPS data is received, the magnetic field is compared to a World
+ * Bitmask to set which check is used to decide whether the magnetometer data is valid.
+ *
+ * If GNSS data is received, the magnetic field is compared to a World
  * Magnetic Model (WMM), otherwise an average value is used.
  * This check is useful to reject occasional hard iron disturbance.
  *
+ * Set bits to 1 to enable checks. Checks enabled by the following bit positions
+ * 0 : Magnetic field strength. Set tolerance using EKF2_MAG_CHK_STR
+ * 1 : Magnetic field inclination. Set tolerance using EKF2_MAG_CHK_INC
+ * 2 : Wait for GNSS to find the theoretical strength and inclination using the WMM
+ *
  * @group EKF2
- * @boolean
+ * @min 0
+ * @max 7
+ * @bit 0 Strength (EKF2_MAG_CHK_STR)
+ * @bit 1 Inclination (EKF2_MAG_CHK_INC)
+ * @bit 2 Wait for WMM
  */
 PARAM_DEFINE_INT32(EKF2_MAG_CHECK, 1);
+
+/**
+ * Magnetic field strength check tolerance
+ *
+ * Maximum allowed deviation from the expected magnetic field strength to pass the check.
+ *
+ * @group EKF2
+ * @min 0.0
+ * @max 1.0
+ * @unit gauss
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(EKF2_MAG_CHK_STR, 0.2f);
+
+/**
+ * Magnetic field inclination check tolerance
+ *
+ * Maximum allowed deviation from the expected magnetic field inclination to pass the check.
+ *
+ * @group EKF2
+ * @min 0.0
+ * @max 90.0
+ * @unit deg
+ * @decimal 1
+ */
+PARAM_DEFINE_FLOAT(EKF2_MAG_CHK_INC, 20.f);
 
 /**
  * Enable synthetic magnetometer Z component measurement.

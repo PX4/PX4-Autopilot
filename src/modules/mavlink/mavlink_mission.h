@@ -45,7 +45,7 @@
 
 #pragma once
 
-#include <dataman/dataman.h>
+#include <dataman_client/DatamanClient.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/mission_result.h>
@@ -95,6 +95,8 @@ private:
 	enum MAVLINK_WPM_STATES _state {MAVLINK_WPM_STATE_IDLE};	///< Current state
 	enum MAV_MISSION_TYPE _mission_type {MAV_MISSION_TYPE_MISSION};	///< mission type of current transmission (only one at a time possible)
 
+	DatamanClient _dataman_client{};
+
 	uint64_t		_time_last_recv{0};
 	uint64_t		_time_last_sent{0};
 
@@ -130,9 +132,9 @@ private:
 
 	uORB::Publication<mission_s>	_offboard_mission_pub{ORB_ID(mission)};
 
+	static uint16_t		_mission_update_counter;
 	static uint16_t		_geofence_update_counter;
 	static uint16_t		_safepoint_update_counter;
-	bool			_geofence_locked{false};		///< if true, we currently hold the dm_lock for the geofence (transaction in progress)
 
 	MavlinkRateLimiter	_slow_rate_limiter{100 * 1000};		///< Rate limit sending of the current WP sequence to 10 Hz
 
@@ -159,7 +161,7 @@ private:
 
 	void init_offboard_mission();
 
-	int update_active_mission(dm_item_t dataman_id, uint16_t count, int32_t seq);
+	void update_active_mission(dm_item_t dataman_id, uint16_t count, int32_t seq);
 
 	/** store the geofence count to dataman */
 	int update_geofence_count(unsigned count);
@@ -168,10 +170,10 @@ private:
 	int update_safepoint_count(unsigned count);
 
 	/** load geofence stats from dataman */
-	int load_geofence_stats();
+	bool load_geofence_stats();
 
 	/** load safe point stats from dataman */
-	int load_safepoint_stats();
+	bool load_safepoint_stats();
 
 	/**
 	 *  @brief Sends an waypoint ack message

@@ -98,3 +98,17 @@ PARAM_DEFINE_FLOAT(VT_TILT_SPINUP, 0.0f);
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_TRANS_P2_DUR, 0.5f);
+
+/**
+ * Duration motor tilt up in backtransition
+ *
+ * Time in seconds it takes to tilt form VT_TILT_FW to VT_TILT_MC.
+ *
+ * @unit s
+ * @min 0.1
+ * @max 10
+ * @increment 0.1
+ * @decimal 1
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_BT_TILT_DUR, 1.f);

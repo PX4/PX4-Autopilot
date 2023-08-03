@@ -99,7 +99,8 @@ private:
 					(ParamFloat<px4::params::VT_TILT_TRANS>) _param_vt_tilt_trans,
 					(ParamFloat<px4::params::VT_TILT_FW>) _param_vt_tilt_fw,
 					(ParamFloat<px4::params::VT_TILT_SPINUP>) _param_vt_tilt_spinup,
-					(ParamFloat<px4::params::VT_TRANS_P2_DUR>) _param_vt_trans_p2_dur
+					(ParamFloat<px4::params::VT_TRANS_P2_DUR>) _param_vt_trans_p2_dur,
+					(ParamFloat<px4::params::VT_BT_TILT_DUR>) _param_vt_bt_tilt_dur
 				       )
 
 };

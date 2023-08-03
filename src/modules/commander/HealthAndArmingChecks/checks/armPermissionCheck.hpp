@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,36 +33,18 @@
 
 #pragma once
 
-#include <stdint.h>
+#include "../Common.hpp"
 
-// TODO: move to a central header
-static constexpr uint8_t Bit0 = (1 << 0);
-static constexpr uint8_t Bit1 = (1 << 1);
-static constexpr uint8_t Bit2 = (1 << 2);
-static constexpr uint8_t Bit3 = (1 << 3);
-static constexpr uint8_t Bit4 = (1 << 4);
-static constexpr uint8_t Bit5 = (1 << 5);
-static constexpr uint8_t Bit6 = (1 << 6);
-static constexpr uint8_t Bit7 = (1 << 7);
-
-namespace Microchip_MCP23009
+class ArmPermissionChecks : public HealthAndArmingCheckBase
 {
+public:
+	ArmPermissionChecks() = default;
+	~ArmPermissionChecks() = default;
 
-enum class
-Register : uint8_t {
+	void checkAndReport(const Context &context, Report &reporter) override;
 
-	IODIR       = 0x00,
-	IPOL        = 0x01,
-	GPINTEN     = 0x02,
-	DEFVAL      = 0x03,
-	INTCON      = 0x04,
-	IOCON       = 0x05,
-	GPPU        = 0x06,
-	INTF        = 0x07,
-	INTCAP      = 0x08,
-	GPIO        = 0x09,
-	OLAT        = 0x0a
-
+private:
+	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
+					(ParamInt<px4::params::COM_ARMABLE>) _param_com_armable
+				       )
 };
-
-} // namespace Microchip_MCP23009

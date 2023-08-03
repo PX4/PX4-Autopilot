@@ -337,10 +337,10 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 	 */
 	report.timestamp = hrt_absolute_time();
 
-	report.lat           = msg.latitude_deg_1e8 / 10;
-	report.lon           = msg.longitude_deg_1e8 / 10;
-	report.alt           = msg.height_msl_mm;
-	report.alt_ellipsoid = msg.height_ellipsoid_mm;
+	report.latitude_deg         = msg.latitude_deg_1e8 / 1e8;
+	report.longitude_deg        = msg.longitude_deg_1e8 / 1e8;
+	report.altitude_msl_m       = msg.height_msl_mm / 1e3;
+	report.altitude_ellipsoid_m = msg.height_ellipsoid_mm / 1e3;
 
 	if (valid_pos_cov) {
 		// Horizontal position uncertainty

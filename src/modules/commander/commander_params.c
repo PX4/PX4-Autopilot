@@ -45,9 +45,7 @@
  * Roll trim
  *
  * The trim value is the actuator control value the system needs
- * for straight and level flight. It can be calibrated by
- * flying manually straight and level using the RC trims and
- * copying them using the GCS.
+ * for straight and level flight.
  *
  * @group Radio Calibration
  * @min -0.5
@@ -61,9 +59,7 @@ PARAM_DEFINE_FLOAT(TRIM_ROLL, 0.0f);
  * Pitch trim
  *
  * The trim value is the actuator control value the system needs
- * for straight and level flight. It can be calibrated by
- * flying manually straight and level using the RC trims and
- * copying them using the GCS.
+ * for straight and level flight.
  *
  * @group Radio Calibration
  * @min -0.5
@@ -77,9 +73,7 @@ PARAM_DEFINE_FLOAT(TRIM_PITCH, 0.0f);
  * Yaw trim
  *
  * The trim value is the actuator control value the system needs
- * for straight and level flight. It can be calibrated by
- * flying manually straight and level using the RC trims and
- * copying them using the GCS.
+ * for straight and level flight.
  *
  * @group Radio Calibration
  * @min -0.5
@@ -231,8 +225,6 @@ PARAM_DEFINE_FLOAT(COM_DISARM_PRFLT, 10.0f);
 
 /**
  * Allow arming without GPS
- *
- * The default allows the vehicle to arm without GPS signal.
  *
  * @group Commander
  * @value 0 Require GPS lock to arm
@@ -598,9 +590,6 @@ PARAM_DEFINE_INT32(COM_ARM_MAG_STR, 2);
  * if position is unavailable Altitude mode.
  * Note: Only has an effect on multicopters, and VTOLs in multicopter mode.
  *
- * This parameter is not considered in case of a GPS failure (Descend flight mode), where stick
- * override is always enabled.
- *
  * @min 0
  * @max 3
  * @bit 0 Enable override during auto modes (except for in critical battery reaction)
@@ -719,8 +708,11 @@ PARAM_DEFINE_INT32(COM_POS_FS_DELAY, 1);
  * If the previous position error was below this threshold, there is an additional
  * factor of 2.5 applied (threshold for invalidation 2.5 times the one for validation).
  *
+ * Set to -1 to disable.
+ *
  * @unit m
- * @min 0
+ * @min -1
+ * @max 400
  * @decimal 1
  * @group Commander
  */
@@ -904,10 +896,10 @@ PARAM_DEFINE_INT32(COM_PREARM_MODE, 0);
 PARAM_DEFINE_INT32(COM_FORCE_SAFETY, 0);
 
 /**
- * Enable Motor Testing
+ * Enable Actuator Testing
  *
- * If set, enables the motor test interface via MAVLink (DO_MOTOR_TEST), that
- * allows spinning the motors for testing purposes.
+ * If set, enables the actuator test interface via MAVLink (ACTUATOR_TEST), that
+ * allows spinning the motors and moving the servos for testing purposes.
  *
  * @boolean
  * @group Commander
@@ -965,18 +957,6 @@ PARAM_DEFINE_INT32(COM_POWER_COUNT, 1);
  * @decimal 3
  */
 PARAM_DEFINE_FLOAT(COM_LKDOWN_TKO, 3.0f);
-
-/**
-* Enable preflight check for maximal allowed airspeed when arming.
-*
-* Deny arming if the current airspeed measurement is greater than half the cruise airspeed (FW_AIRSPD_TRIM).
-* Excessive airspeed measurements on ground are either caused by wind or bad airspeed calibration.
-*
-* @group Commander
-* @value 0 Disabled
-* @value 1 Enabled
-*/
-PARAM_DEFINE_INT32(COM_ARM_ARSP_EN, 1);
 
 /**
  * Enable FMU SD card detection check
@@ -1099,8 +1079,21 @@ PARAM_DEFINE_FLOAT(COM_WIND_MAX, -1.f);
  *
  * Set to -1 to disable.
  *
- * @group Commander
  * @min -1
+ * @max 1000
+ * @group Commander
  * @unit m
  */
 PARAM_DEFINE_FLOAT(COM_POS_LOW_EPH, -1.0f);
+
+/**
+ * Flag to allow arming
+ *
+ * Set 0 to prevent accidental use of the vehicle e.g. for safety or maintenance reasons.
+ *
+ * @boolean
+ * @value 0 Disallow arming
+ * @value 1 Allow arming
+ * @group Commander
+ */
+PARAM_DEFINE_INT32(COM_ARMABLE, 1);

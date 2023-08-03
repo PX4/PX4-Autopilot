@@ -50,7 +50,7 @@
 
 #include <string.h>
 #include <drivers/drv_hrt.h>
-#include <dataman/dataman.h>
+#include <dataman_client/DatamanClient.hpp>
 #include <systemlib/mavlink_log.h>
 #include <systemlib/err.h>
 #include <lib/geo/geo.h>
@@ -70,27 +70,48 @@ Mission::Mission(Navigator *navigator) :
 	mission_init();
 }
 
+void
+Mission::run()
+{
+	if ((_mission.count > 0) && (_current_mission_index != _load_mission_index)) {
+
+		uint32_t start_index = _current_mission_index;
+		uint32_t end_index = start_index + DATAMAN_CACHE_SIZE;
+
+		end_index = math::min(end_index, static_cast<uint32_t>(_mission.count));
+
+		for (uint32_t index = start_index; index < end_index; ++index) {
+
+			_dataman_cache.load(static_cast<dm_item_t>(_mission.dataman_id), index);
+		}
+
+		_load_mission_index = _current_mission_index;
+	}
+
+	_dataman_cache.update();
+}
+
 void Mission::mission_init()
 {
 	// init mission state, do it here to allow navigator to use stored mission even if mavlink failed to start
-	mission_s mission{};
 
-	if (dm_read(DM_KEY_MISSION_STATE, 0, &mission, sizeof(mission_s)) == sizeof(mission_s)) {
-		if ((mission.timestamp != 0)
-		    && (mission.dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 || mission.dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_1)) {
-			if (mission.count > 0) {
-				PX4_INFO("Mission #%" PRIu8 " loaded, %" PRIu16 " WPs", mission.dataman_id, mission.count);
+	if (_dataman_client.readSync(DM_KEY_MISSION_STATE, 0, reinterpret_cast<uint8_t *>(&_mission), sizeof(mission_s))) {
+		if ((_mission.timestamp != 0)
+		    && (_mission.dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 || _mission.dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_1)) {
+			if (_mission.count > 0) {
+				PX4_INFO("Mission #%" PRIu8 " loaded, %" PRIu16 " WPs", _mission.dataman_id, _mission.count);
 			}
 
 		} else {
-			PX4_ERR("reading mission state failed");
-
 			// initialize mission state in dataman
-			mission.dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
-			mission.timestamp = hrt_absolute_time();
-			dm_write(DM_KEY_MISSION_STATE, 0, &mission, sizeof(mission_s));
+			_mission.dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
+			_mission.timestamp = hrt_absolute_time();
+			_dataman_client.writeSync(DM_KEY_MISSION_STATE, 0, reinterpret_cast<uint8_t *>(&_mission), sizeof(mission_s));
 		}
 	}
+
+	_current_mission_index = _mission.current_seq;
+
 }
 
 void
@@ -99,6 +120,10 @@ Mission::on_inactive()
 	/* Without home a mission can't be valid yet anyway, let's wait. */
 	if (!_navigator->home_global_position_valid()) {
 		return;
+	}
+
+	if (_need_mission_save && _navigator->get_vstatus()->arming_state != vehicle_status_s::ARMING_STATE_ARMED) {
+		save_mission_state();
 	}
 
 	if (_inited) {
@@ -124,14 +149,11 @@ Mission::on_inactive()
 		/* load missions from storage */
 		mission_s mission_state = {};
 
-		dm_lock(DM_KEY_MISSION_STATE);
-
 		/* read current state */
-		int read_res = dm_read(DM_KEY_MISSION_STATE, 0, &mission_state, sizeof(mission_s));
+		bool success = _dataman_client.readSync(DM_KEY_MISSION_STATE, 0, reinterpret_cast<uint8_t *>(&mission_state),
+							sizeof(mission_s));
 
-		dm_unlock(DM_KEY_MISSION_STATE);
-
-		if (read_res == sizeof(mission_s)) {
+		if (success) {
 			_mission.dataman_id = mission_state.dataman_id;
 			_mission.count = mission_state.count;
 			_current_mission_index = mission_state.current_seq;
@@ -161,14 +183,7 @@ Mission::on_inactive()
 void
 Mission::on_inactivation()
 {
-	// Disable camera trigger
-	vehicle_command_s cmd {};
-	cmd.command = vehicle_command_s::VEHICLE_CMD_DO_TRIGGER_CONTROL;
-	// Pause trigger
-	cmd.param1 = -1.0f;
-	cmd.param3 = 1.0f;
-	_navigator->publish_vehicle_cmd(&cmd);
-
+	_navigator->disable_camera_trigger();
 	_navigator->stop_capturing_images();
 	_navigator->release_gimbal_control();
 
@@ -178,6 +193,8 @@ Mission::on_inactivation()
 
 	/* reset so current mission item gets restarted if mission was paused */
 	_work_item_type = WORK_ITEM_TYPE_DEFAULT;
+
+	_inactivation_index = _current_mission_index;
 }
 
 void
@@ -195,15 +212,28 @@ Mission::on_activation()
 	// we already reset the mission items
 	_execution_mode_changed = false;
 
-	set_mission_items();
+	// reset the cache and fill it with the camera and gimbal items up to the previous item
+	if (_current_mission_index > 0) {
+		resetItemCache();
+		updateCachedItemsUpToIndex(_current_mission_index - 1);
+	}
 
-	// unpause triggering if it was paused
-	vehicle_command_s cmd = {};
-	cmd.command = vehicle_command_s::VEHICLE_CMD_DO_TRIGGER_CONTROL;
-	// unpause trigger
-	cmd.param1 = -1.0f;
-	cmd.param3 = 0.0f;
-	_navigator->publish_vehicle_cmd(&cmd);
+	unsigned resume_index;
+
+	if (_inactivation_index > 0 && cameraWasTriggering()
+	    && getPreviousPositionItemIndex(_mission, _inactivation_index - 1, resume_index)) {
+		// The mission we are resuming had camera triggering enabled. In order to not lose any images
+		// we restart the mission at the previous position item.
+		// We will replay the cached commands once we reach the previous position item and have yaw aligned.
+		set_current_mission_index(resume_index);
+
+		_align_heading_necessary = true;
+
+	} else {
+		set_mission_items();
+	}
+
+	_inactivation_index = -1; // reset
 
 	// reset cruise speed
 	_navigator->reset_cruising_speed();
@@ -240,6 +270,37 @@ Mission::on_active()
 
 		_execution_mode_changed = false;
 		set_mission_items();
+	}
+
+	// check if heading alignment is necessary, and add it to the current mission item if necessary
+	if (_align_heading_necessary && is_mission_item_reached_or_completed()) {
+		mission_item_s next_position_mission_item = {};
+
+		// add yaw alignment requirement on the current mission item
+		if (getNextPositionMissionItem(_mission, _current_mission_index + 1, next_position_mission_item)
+		    && !PX4_ISFINITE(_mission_item.yaw)) {
+			_mission_item.yaw = matrix::wrap_pi(get_bearing_to_next_waypoint(_mission_item.lat, _mission_item.lon,
+							    next_position_mission_item.lat, next_position_mission_item.lon));
+			_mission_item.force_heading = true; // note: doesn't have effect in fixed-wing mode
+		}
+
+		mission_apply_limitation(_mission_item);
+		mission_item_to_position_setpoint(_mission_item, &_navigator->get_position_setpoint_triplet()->current);
+
+		reset_mission_item_reached();
+
+		_navigator->set_position_setpoint_triplet_updated();
+		_align_heading_necessary = false;
+	}
+
+	// replay gimbal and camera commands immediately after resuming mission
+	if (haveCachedGimbalOrCameraItems()) {
+		replayCachedGimbalCameraItems();
+	}
+
+	// replay trigger commands upon raching the resume waypoint if the trigger relay flag is set
+	if (cameraWasTriggering() && is_mission_item_reached_or_completed()) {
+		replayCachedTriggerItems();
 	}
 
 	/* lets check if we reached the current mission item */
@@ -311,6 +372,11 @@ Mission::set_current_mission_index(uint16_t index)
 	} else if (_navigator->get_mission_result()->valid && (index < _mission.count)) {
 
 		_current_mission_index = index;
+
+		// we start from the first item so can reset the cache
+		if (_current_mission_index == 0) {
+			resetItemCache();
+		}
 
 		// a mission index is set manually which has the higher priority than the closest mission item
 		// as it is set by the user
@@ -387,6 +453,7 @@ Mission::set_execution_mode(const uint8_t mode)
 				// handle switch from reverse to forward mission
 				if (_current_mission_index < 0) {
 					_current_mission_index = 0;
+					resetItemCache(); // reset cache as we start from the beginning
 
 				} else if (_current_mission_index < _mission.count - 1) {
 					++_current_mission_index;
@@ -419,10 +486,12 @@ Mission::find_mission_land_start()
 	bool found_land_start_marker = false;
 
 	for (size_t i = 1; i < _mission.count; i++) {
-		const ssize_t len = sizeof(missionitem);
 		missionitem_prev = missionitem; // store the last mission item before reading a new one
 
-		if (dm_read(dm_current, i, &missionitem, len) != len) {
+		bool success = _dataman_client.readSync(dm_current, i, reinterpret_cast<uint8_t *>(&missionitem),
+							sizeof(mission_item_s), 500_ms);
+
+		if (!success) {
 			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
 			PX4_ERR("dataman read failure");
 			break;
@@ -517,7 +586,10 @@ void
 Mission::update_mission()
 {
 
-	bool failed = true;
+	bool failed = !_navigator->get_mission_result()->valid;
+
+	_dataman_cache.invalidate();
+	_load_mission_index = -1;
 
 	/* Reset vehicle_roi
 	 * Missions that do not explicitly configure ROI would not override
@@ -527,6 +599,14 @@ Mission::update_mission()
 	const mission_s old_mission = _mission;
 
 	if (_mission_sub.copy(&_mission)) {
+
+		bool success = _dataman_client.writeSync(DM_KEY_MISSION_STATE, 0, reinterpret_cast<uint8_t *>(&_mission),
+				sizeof(mission_s));
+
+		if (!success) {
+			PX4_ERR("Can't update mission state in Dataman");
+		}
+
 		/* determine current index */
 		if (_mission.current_seq >= 0 && _mission.current_seq < (int)_mission.count) {
 			_current_mission_index = _mission.current_seq;
@@ -544,33 +624,36 @@ Mission::update_mission()
 			/* otherwise, just leave it */
 		}
 
-		check_mission_valid(true);
+		if (old_mission.mission_update_counter != _mission.mission_update_counter) {
+			check_mission_valid(true);
 
-		failed = !_navigator->get_mission_result()->valid;
+			failed = !_navigator->get_mission_result()->valid;
 
-		if (!failed) {
-			/* reset mission failure if we have an updated valid mission */
-			_navigator->get_mission_result()->failure = false;
+			if (!failed) {
+				/* reset mission failure if we have an updated valid mission */
+				_navigator->get_mission_result()->failure = false;
 
-			/* reset sequence info as well */
-			_navigator->get_mission_result()->seq_reached = -1;
-			_navigator->get_mission_result()->seq_total = _mission.count;
+				/* reset sequence info as well */
+				_navigator->get_mission_result()->seq_reached = -1;
+				_navigator->get_mission_result()->seq_total = _mission.count;
 
-			/* reset work item if new mission has been accepted */
-			_work_item_type = WORK_ITEM_TYPE_DEFAULT;
-			_mission_changed = true;
-		}
+				/* reset work item if new mission has been accepted */
+				_work_item_type = WORK_ITEM_TYPE_DEFAULT;
+				_mission_changed = true;
+			}
 
-		/* check if the mission waypoints changed while the vehicle is in air
-		 * TODO add a flag to mission_s which actually tracks if the position of the waypoint changed */
-		if (((_mission.count != old_mission.count) ||
-		     (_mission.dataman_id != old_mission.dataman_id)) &&
-		    !_navigator->get_land_detected()->landed) {
-			_mission_waypoints_changed = true;
+			/* check if the mission waypoints changed while the vehicle is in air
+			 * TODO add a flag to mission_s which actually tracks if the position of the waypoint changed */
+			if (((_mission.count != old_mission.count) ||
+			     (_mission.dataman_id != old_mission.dataman_id)) &&
+			    !_navigator->get_land_detected()->landed) {
+				_mission_waypoints_changed = true;
+			}
 		}
 
 	} else {
 		PX4_ERR("mission update failed");
+		failed = true;
 	}
 
 	if (failed) {
@@ -584,6 +667,14 @@ Mission::update_mission()
 		_mission.current_seq = 0;
 		_current_mission_index = 0;
 	}
+
+	// we start from the first item so can reset the cache
+	if (_current_mission_index == 0) {
+		resetItemCache();
+	}
+
+	// reset as when we update mission we don't want to proceed at previous index
+	_inactivation_index = -1;
 
 	// find and store landing start marker (if available)
 	find_mission_land_start();
@@ -615,9 +706,11 @@ Mission::advance_mission()
 
 				for (int32_t i = _current_mission_index - 1; i >= 0; i--) {
 					struct mission_item_s missionitem = {};
-					const ssize_t len = sizeof(missionitem);
 
-					if (dm_read(dm_current, i, &missionitem, len) != len) {
+					bool success = _dataman_cache.loadWait(dm_current, i, reinterpret_cast<uint8_t *>(&missionitem),
+									       sizeof(mission_item_s), 100_ms);
+
+					if (!success) {
 						/* not supposed to happen unless the datamanager can't access the SD card, etc. */
 						PX4_ERR("dataman read failure");
 						break;
@@ -1565,7 +1658,7 @@ Mission::read_mission_item(int offset, struct mission_item_s *mission_item)
 	int index_to_read = current_index + offset;
 
 	int *mission_index_ptr = (offset == 0) ? (int *) &_current_mission_index : &index_to_read;
-	const dm_item_t dm_item = (dm_item_t)_mission.dataman_id;
+	const dm_item_t dataman_id = (dm_item_t)_mission.dataman_id;
 
 	/* do not work on empty missions */
 	if (_mission.count == 0) {
@@ -1588,13 +1681,14 @@ Mission::read_mission_item(int offset, struct mission_item_s *mission_item)
 			return false;
 		}
 
-		const ssize_t len = sizeof(struct mission_item_s);
-
 		/* read mission item to temp storage first to not overwrite current mission item if data damaged */
 		struct mission_item_s mission_item_tmp;
 
 		/* read mission item from datamanager */
-		if (dm_read(dm_item, *mission_index_ptr, &mission_item_tmp, len) != len) {
+		bool success = _dataman_cache.loadWait(dataman_id, *mission_index_ptr, reinterpret_cast<uint8_t *>(&mission_item_tmp),
+						       sizeof(mission_item_s), 500_ms);
+
+		if (!success) {
 			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
 			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Waypoint could not be read.\t");
 			events::send<uint16_t>(events::ID("mission_failed_to_read_wp"), events::Log::Error,
@@ -1615,7 +1709,10 @@ Mission::read_mission_item(int offset, struct mission_item_s *mission_item)
 					(mission_item_tmp.do_jump_current_count)++;
 
 					/* save repeat count */
-					if (dm_write(dm_item, *mission_index_ptr, &mission_item_tmp, len) != len) {
+					success = _dataman_client.writeSync(dataman_id, *mission_index_ptr, reinterpret_cast<uint8_t *>(&mission_item_tmp),
+									    sizeof(struct mission_item_s));
+
+					if (!success) {
 						/* not supposed to happen unless the datamanager can't access the dataman */
 						mavlink_log_critical(_navigator->get_mavlink_log_pub(), "DO JUMP waypoint could not be written.\t");
 						events::send(events::ID("mission_failed_to_write_do_jump"), events::Log::Error,
@@ -1662,19 +1759,20 @@ Mission::read_mission_item(int offset, struct mission_item_s *mission_item)
 void
 Mission::save_mission_state()
 {
-	mission_s mission_state = {};
-
-	/* lock MISSION_STATE item */
-	int dm_lock_ret = dm_lock(DM_KEY_MISSION_STATE);
-
-	if (dm_lock_ret != 0) {
-		PX4_ERR("DM_KEY_MISSION_STATE lock failed");
+	if (_navigator->get_vstatus()->arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+		// Save only while disarmed, as this is a blocking operation
+		_need_mission_save = true;
+		return;
 	}
 
-	/* read current state */
-	int read_res = dm_read(DM_KEY_MISSION_STATE, 0, &mission_state, sizeof(mission_s));
+	_need_mission_save = false;
+	mission_s mission_state = {};
 
-	if (read_res == sizeof(mission_s)) {
+	/* read current state */
+	bool success = _dataman_client.readSync(DM_KEY_MISSION_STATE, 0, reinterpret_cast<uint8_t *>(&mission_state),
+						sizeof(mission_s));
+
+	if (success) {
 		/* data read successfully, check dataman ID and items count */
 		if (mission_state.dataman_id == _mission.dataman_id && mission_state.count == _mission.count) {
 			/* navigator may modify only sequence, write modified state only if it changed */
@@ -1682,7 +1780,10 @@ Mission::save_mission_state()
 				mission_state.current_seq = _current_mission_index;
 				mission_state.timestamp = hrt_absolute_time();
 
-				if (dm_write(DM_KEY_MISSION_STATE, 0, &mission_state, sizeof(mission_s)) != sizeof(mission_s)) {
+				success = _dataman_client.writeSync(DM_KEY_MISSION_STATE, 0, reinterpret_cast<uint8_t *>(&mission_state),
+								    sizeof(mission_s));
+
+				if (!success) {
 
 					PX4_ERR("Can't save mission state");
 				}
@@ -1703,15 +1804,13 @@ Mission::save_mission_state()
 		events::send(events::ID("mission_invalid_mission_state"), events::Log::Error, "Invalid mission state");
 
 		/* write modified state only if changed */
-		if (dm_write(DM_KEY_MISSION_STATE, 0, &mission_state, sizeof(mission_s)) != sizeof(mission_s)) {
+		success = _dataman_client.writeSync(DM_KEY_MISSION_STATE, 0, reinterpret_cast<uint8_t *>(&mission_state),
+						    sizeof(mission_s));
+
+		if (!success) {
 
 			PX4_ERR("Can't save mission state");
 		}
-	}
-
-	/* unlock MISSION_STATE item */
-	if (dm_lock_ret == 0) {
-		dm_unlock(DM_KEY_MISSION_STATE);
 	}
 }
 
@@ -1750,7 +1849,7 @@ Mission::check_mission_valid(bool force)
 {
 	if ((!_home_inited && _navigator->home_global_position_valid()) || force) {
 
-		MissionFeasibilityChecker _missionFeasibilityChecker(_navigator);
+		MissionFeasibilityChecker _missionFeasibilityChecker(_navigator, _dataman_client);
 
 		_navigator->get_mission_result()->valid =
 			_missionFeasibilityChecker.checkMissionFeasible(_mission);
@@ -1768,22 +1867,23 @@ Mission::check_mission_valid(bool force)
 void
 Mission::reset_mission(struct mission_s &mission)
 {
-	dm_lock(DM_KEY_MISSION_STATE);
-
-	if (dm_read(DM_KEY_MISSION_STATE, 0, &mission, sizeof(mission_s)) == sizeof(mission_s)) {
+	if (_dataman_client.readSync(DM_KEY_MISSION_STATE, 0, reinterpret_cast<uint8_t *>(&mission), sizeof(mission_s))) {
 		if (mission.dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 || mission.dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_1) {
 			/* set current item to 0 */
 			mission.current_seq = 0;
 
 			/* reset jump counters */
 			if (mission.count > 0) {
-				const dm_item_t dm_current = (dm_item_t)mission.dataman_id;
+				const dm_item_t dataman_id = (dm_item_t)mission.dataman_id;
 
 				for (unsigned index = 0; index < mission.count; index++) {
 					struct mission_item_s item;
 					const ssize_t len = sizeof(struct mission_item_s);
 
-					if (dm_read(dm_current, index, &item, len) != len) {
+					bool success = _dataman_client.readSync(dataman_id, index, reinterpret_cast<uint8_t *>(&item), sizeof(mission_item_s),
+										500_ms);
+
+					if (!success) {
 						PX4_WARN("could not read mission item during reset");
 						break;
 					}
@@ -1791,7 +1891,9 @@ Mission::reset_mission(struct mission_s &mission)
 					if (item.nav_cmd == NAV_CMD_DO_JUMP) {
 						item.do_jump_current_count = 0;
 
-						if (dm_write(dm_current, index, &item, len) != len) {
+						success = _dataman_client.writeSync(dataman_id, index, reinterpret_cast<uint8_t *>(&item), len);
+
+						if (!success) {
 							PX4_WARN("could not save mission item during reset");
 							break;
 						}
@@ -1810,17 +1912,16 @@ Mission::reset_mission(struct mission_s &mission)
 			mission.current_seq = 0;
 		}
 
-		dm_write(DM_KEY_MISSION_STATE, 0, &mission, sizeof(mission_s));
+		_dataman_client.writeSync(DM_KEY_MISSION_STATE, 0, reinterpret_cast<uint8_t *>(&mission), sizeof(mission_s));
 	}
-
-	dm_unlock(DM_KEY_MISSION_STATE);
 }
 
 bool
 Mission::need_to_reset_mission()
 {
-	/* reset mission state when disarmed */
-	if (_navigator->get_vstatus()->arming_state != vehicle_status_s::ARMING_STATE_ARMED && _need_mission_reset) {
+	// reset mission when disarmed, mission was actually started and we reached the last mission item
+	if (_navigator->get_vstatus()->arming_state != vehicle_status_s::ARMING_STATE_ARMED && _need_mission_reset
+	    && (_current_mission_index == _mission.count - 1)) {
 		_need_mission_reset = false;
 		return true;
 	}
@@ -1829,7 +1930,7 @@ Mission::need_to_reset_mission()
 }
 
 int32_t
-Mission::index_closest_mission_item() const
+Mission::index_closest_mission_item()
 {
 	int32_t min_dist_index(0);
 	float min_dist(FLT_MAX), dist_xy(FLT_MAX), dist_z(FLT_MAX);
@@ -1838,9 +1939,11 @@ Mission::index_closest_mission_item() const
 
 	for (size_t i = 0; i < _mission.count; i++) {
 		struct mission_item_s missionitem = {};
-		const ssize_t len = sizeof(missionitem);
 
-		if (dm_read(dm_current, i, &missionitem, len) != len) {
+		bool success = _dataman_client.readSync(dm_current, i, reinterpret_cast<uint8_t *>(&missionitem),
+							sizeof(mission_item_s), 500_ms);
+
+		if (!success) {
 			/* not supposed to happen unless the datamanager can't access the SD card, etc. */
 			PX4_ERR("dataman read failure");
 			break;
@@ -1937,4 +2040,137 @@ void Mission::publish_navigator_mission_item()
 	navigator_mission_item.timestamp = hrt_absolute_time();
 
 	_navigator_mission_item_pub.publish(navigator_mission_item);
+}
+
+bool Mission::getPreviousPositionItemIndex(const mission_s &mission, int inactivation_index,
+		unsigned &prev_pos_index) const
+{
+
+	for (int index = inactivation_index; index >= 0; index--) {
+		mission_item_s mission_item;
+		const dm_item_t dm_current = (dm_item_t)mission.dataman_id;
+		bool success = _dataman_client.readSync(dm_current, index, reinterpret_cast<uint8_t *>(&mission_item),
+							sizeof(mission_item), 500_ms);
+
+		if (!success) {
+			break;
+		}
+
+		if (MissionBlock::item_contains_position(mission_item)) {
+			prev_pos_index = index;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool Mission::getNextPositionMissionItem(const mission_s &mission, int start_index, mission_item_s &mission_item)
+{
+	const dm_item_t dm_current = (dm_item_t)mission.dataman_id;
+
+	while (start_index < mission.count) {
+		// start_index is expected to be after _current_mission_index, and the item should therefore be cached
+		bool success = _dataman_cache.loadWait(dm_current, start_index, reinterpret_cast<uint8_t *>(&mission_item),
+						       sizeof(mission_item), 500_ms);
+
+		if (success && MissionBlock::item_contains_position(mission_item)) {
+			return true;
+		}
+
+		start_index++;
+	}
+
+	return false;
+}
+
+void Mission::cacheItem(const mission_item_s &mission_item)
+{
+	switch (mission_item.nav_cmd) {
+	case NAV_CMD_DO_GIMBAL_MANAGER_CONFIGURE:
+		_last_gimbal_configure_item = mission_item;
+		break;
+
+	case NAV_CMD_DO_GIMBAL_MANAGER_PITCHYAW:
+		_last_gimbal_control_item = mission_item;
+		break;
+
+	case NAV_CMD_SET_CAMERA_MODE:
+		_last_camera_mode_item = mission_item;
+		break;
+
+	case NAV_CMD_DO_SET_CAM_TRIGG_DIST:
+	case NAV_CMD_DO_TRIGGER_CONTROL:
+	case NAV_CMD_IMAGE_START_CAPTURE:
+	case NAV_CMD_IMAGE_STOP_CAPTURE:
+		_last_camera_trigger_item = mission_item;
+		break;
+
+	default:
+		break;
+	}
+}
+
+void Mission::replayCachedGimbalCameraItems()
+{
+	if (_last_gimbal_configure_item.nav_cmd > 0) {
+		issue_command(_last_gimbal_configure_item);
+		_last_gimbal_configure_item = {}; // delete cached item
+	}
+
+	if (_last_gimbal_control_item.nav_cmd > 0) {
+		issue_command(_last_gimbal_control_item);
+		_last_gimbal_control_item = {}; // delete cached item
+	}
+
+	if (_last_camera_mode_item.nav_cmd > 0) {
+		issue_command(_last_camera_mode_item);
+		_last_camera_mode_item = {}; // delete cached item
+	}
+}
+
+void Mission::replayCachedTriggerItems()
+{
+	if (_last_camera_trigger_item.nav_cmd > 0) {
+		issue_command(_last_camera_trigger_item);
+		_last_camera_trigger_item = {}; // delete cached item
+	}
+}
+
+void Mission::resetItemCache()
+{
+	_last_gimbal_configure_item = {};
+	_last_gimbal_control_item = {};
+	_last_camera_mode_item = {};
+	_last_camera_trigger_item = {};
+}
+
+bool Mission::haveCachedGimbalOrCameraItems()
+{
+	return _last_gimbal_configure_item.nav_cmd > 0 ||
+	       _last_gimbal_control_item.nav_cmd > 0 ||
+	       _last_camera_mode_item.nav_cmd > 0;
+}
+
+bool Mission::cameraWasTriggering()
+{
+	return (_last_camera_trigger_item.nav_cmd == NAV_CMD_DO_TRIGGER_CONTROL
+		&& (int)(_last_camera_trigger_item.params[0] + 0.5f) == 1) ||
+	       (_last_camera_trigger_item.nav_cmd == NAV_CMD_IMAGE_START_CAPTURE) ||
+	       (_last_camera_trigger_item.nav_cmd == NAV_CMD_DO_SET_CAM_TRIGG_DIST
+		&& _last_camera_trigger_item.params[0] > FLT_EPSILON);
+}
+
+void Mission::updateCachedItemsUpToIndex(const int end_index)
+{
+	for (int i = 0; i <= end_index; i++) {
+		mission_item_s mission_item;
+		const dm_item_t dm_current = (dm_item_t)_mission.dataman_id;
+		bool success = _dataman_client.readSync(dm_current, i, reinterpret_cast<uint8_t *>(&mission_item),
+							sizeof(mission_item), 500_ms);
+
+		if (success) {
+			cacheItem(mission_item);
+		}
+	}
 }

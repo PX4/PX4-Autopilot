@@ -314,9 +314,9 @@ msp_raw_gps_t construct_RAW_GPS(const sensor_gps_s &vehicle_gps_position,
 	msp_raw_gps_t raw_gps {0};
 
 	if (vehicle_gps_position.fix_type >= 2) {
-		raw_gps.lat = vehicle_gps_position.lat;
-		raw_gps.lon = vehicle_gps_position.lon;
-		raw_gps.alt =  vehicle_gps_position.alt / 10;
+		raw_gps.lat = static_cast<int32_t>(vehicle_gps_position.latitude_deg * 1e7);
+		raw_gps.lon = static_cast<int32_t>(vehicle_gps_position.longitude_deg * 1e7);
+		raw_gps.alt = static_cast<int16_t>(vehicle_gps_position.altitude_msl_m * 100.0);
 
 		float course = math::degrees(vehicle_gps_position.cog_rad);
 
@@ -432,14 +432,14 @@ msp_altitude_t construct_ALTITUDE(const sensor_gps_s &vehicle_gps_position,
 	msp_altitude_t altitude {0};
 
 	if (vehicle_gps_position.fix_type >= 2) {
-		altitude.estimatedActualPosition = vehicle_gps_position.alt / 10;
+		altitude.estimatedActualPosition = static_cast<int32_t>(vehicle_gps_position.altitude_msl_m * 100.0);	// cm
 
 	} else {
 		altitude.estimatedActualPosition = 0;
 	}
 
 	if (estimator_status.solution_status_flags & (1 << 5)) {
-		altitude.estimatedActualVelocity = -vehicle_local_position.vz * 10; //m/s to cm/s
+		altitude.estimatedActualVelocity = -vehicle_local_position.vz * 100; //m/s to cm/s
 
 	} else {
 		altitude.estimatedActualVelocity = 0;

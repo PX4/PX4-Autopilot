@@ -64,6 +64,8 @@ UavcanEscController::init()
 		return res;
 	}
 
+	_esc_status_pub.advertise();
+
 	return res;
 }
 

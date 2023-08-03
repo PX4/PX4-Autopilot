@@ -140,6 +140,7 @@ typedef struct paramiocresetgroup {
 
 #define PARAMIOCSAVEDEFAULT	_PARAMIOC(15)
 typedef struct paramiocsavedefault {
+	bool blocking;
 	int ret;
 } paramiocsavedefault_t;
 

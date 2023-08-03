@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,45 +31,37 @@
  *
  ****************************************************************************/
 
-#include <matrix/math.hpp>
+#pragma once
 
-#ifndef EKF_UTILS_HPP
-#define EKF_UTILS_HPP
+#include "ActuatorEffectiveness.hpp"
+#include "ActuatorEffectivenessRotors.hpp"
 
-// Use Kahan summation algorithm to get the sum of "sum_previous" and "input".
-// This function relies on the caller to be responsible for keeping a copy of
-// "accumulator" and passing this value at the next iteration.
-// Ref: https://en.wikipedia.org/wiki/Kahan_summation_algorithm
-inline float kahanSummation(float sum_previous, float input, float &accumulator)
+class ActuatorEffectivenessUUV : public ModuleParams, public ActuatorEffectiveness
 {
-	const float y = input - accumulator;
-	const float t = sum_previous + y;
-	accumulator = (t - sum_previous) - y;
-	return t;
-}
+public:
+	ActuatorEffectivenessUUV(ModuleParams *parent);
+	virtual ~ActuatorEffectivenessUUV() = default;
 
-namespace ecl
-{
-inline float powf(float x, int exp)
-{
-	float ret;
+	bool getEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) override;
 
-	if (exp > 0) {
-		ret = x;
-
-		for (int count = 1; count < exp; count++) {
-			ret *= x;
-		}
-
-		return ret;
-
-	} else if (exp < 0) {
-		return 1.0f / ecl::powf(x, -exp);
+	void getDesiredAllocationMethod(AllocationMethod allocation_method_out[MAX_NUM_MATRICES]) const override
+	{
+		allocation_method_out[0] = AllocationMethod::SEQUENTIAL_DESATURATION;
 	}
 
-	return 1.0f;
-}
+	void getNormalizeRPY(bool normalize[MAX_NUM_MATRICES]) const override
+	{
+		normalize[0] = true;
+	}
 
-} // namespace ecl
+	void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
+			    ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
+			    const matrix::Vector<float, NUM_ACTUATORS> &actuator_max) override;
 
-#endif // EKF_UTILS_HPP
+	const char *name() const override { return "UUV"; }
+
+protected:
+	ActuatorEffectivenessRotors _rotors;
+
+	uint32_t _motors_mask{};
+};

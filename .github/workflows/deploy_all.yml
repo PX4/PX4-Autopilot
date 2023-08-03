@@ -24,11 +24,14 @@ jobs:
     needs: enumerate_targets
     strategy:
       matrix: ${{fromJson(needs.enumerate_targets.outputs.matrix)}}
-    container: px4io/px4-dev-${{ matrix.container }}:2021-09-08
+    container: ${{ matrix.container }}
     steps:
     - uses: actions/checkout@v1
       with:
         token: ${{secrets.ACCESS_TOKEN}}
+
+    - name: ownership workaround
+      run: git config --system --add safe.directory '*'
 
     - name: make ${{matrix.target}}
       run: make ${{matrix.target}}

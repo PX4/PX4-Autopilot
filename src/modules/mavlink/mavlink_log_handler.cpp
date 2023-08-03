@@ -275,7 +275,7 @@ MavlinkLogHandler::_log_send_listing()
 	mavlink_msg_log_entry_send_struct(_mavlink->get_channel(), &response);
 
 	//-- If we're done listing, flag it.
-	if (_next_entry == _last_entry) {
+	if (_next_entry >= _last_entry) {
 		_current_status = LogHandlerState::Idle;
 
 	} else {

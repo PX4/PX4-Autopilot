@@ -75,8 +75,16 @@ public:
 	 * Set saturation status
 	 * @param control saturation vector from control allocator
 	 */
-	void setSaturationStatus(const matrix::Vector<bool, 3> &saturation_positive,
-				 const matrix::Vector<bool, 3> &saturation_negative);
+	void setSaturationStatus(const matrix::Vector3<bool> &saturation_positive,
+				 const matrix::Vector3<bool> &saturation_negative);
+
+	/**
+	 * Set individual saturation flags
+	 * @param axis 0 roll, 1 pitch, 2 yaw
+	 * @param is_saturated value to update the flag with
+	 */
+	void setPositiveSaturationFlag(size_t axis, bool is_saturated);
+	void setNegativeSaturationFlag(size_t axis, bool is_saturated);
 
 	/**
 	 * Run one control loop cycle calculation

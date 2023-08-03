@@ -126,7 +126,9 @@ public:
 
 	void enableThreeDimensionalThrust(bool enable) { _geometry.three_dimensional_thrust_disabled = !enable; }
 
+	uint32_t getMotors() const;
 	uint32_t getUpwardsMotors() const;
+	uint32_t getForwardsMotors() const;
 
 private:
 	void updateParams() override;

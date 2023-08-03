@@ -64,7 +64,6 @@
 #include "common.h"
 #include "RingBuffer.h"
 #include "imu_down_sampler.hpp"
-#include "utils.hpp"
 #include "output_predictor.h"
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
@@ -216,15 +215,34 @@ public:
 	// Get the value of magnetic declination in degrees to be saved for use at the next startup
 	// Returns true when the declination can be saved
 	// At the next startup, set param.mag_declination_deg to the value saved
-	bool get_mag_decl_deg(float *val) const
+	bool get_mag_decl_deg(float &val) const
 	{
 		if (_NED_origin_initialised && (_params.mag_declination_source & GeoDeclinationMask::SAVE_GEO_DECL)) {
-			*val = math::degrees(_mag_declination_gps);
+			val = math::degrees(_mag_declination_gps);
 			return true;
 
 		} else {
 			return false;
 		}
+	}
+
+	bool get_mag_inc_deg(float &val) const
+	{
+		if (_NED_origin_initialised) {
+			val = math::degrees(_mag_inclination_gps);
+			return true;
+
+		} else {
+			return false;
+		}
+	}
+
+	void get_mag_checks(float &inc_deg, float &inc_ref_deg, float &strength_gs, float &strength_ref_gs) const
+	{
+		inc_deg = math::degrees(_mag_inclination);
+		inc_ref_deg = math::degrees(_mag_inclination_gps);
+		strength_gs = _mag_strength;
+		strength_ref_gs = _mag_strength_gps;
 	}
 
 	// get EKF mode status
@@ -405,6 +423,8 @@ protected:
 	float _mag_declination_gps{NAN};         // magnetic declination returned by the geo library using the last valid GPS position (rad)
 	float _mag_inclination_gps{NAN};	  // magnetic inclination returned by the geo library using the last valid GPS position (rad)
 	float _mag_strength_gps{NAN};	          // magnetic strength returned by the geo library using the last valid GPS position (T)
+	float _mag_inclination{NAN};
+	float _mag_strength{NAN};
 
 	// this is the current status of the filter control modes
 	filter_control_status_u _control_status{};

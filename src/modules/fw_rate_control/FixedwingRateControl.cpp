@@ -48,6 +48,8 @@ FixedwingRateControl::FixedwingRateControl(bool vtol) :
 	_vehicle_thrust_setpoint_pub(vtol ? ORB_ID(vehicle_thrust_setpoint_virtual_fw) : ORB_ID(vehicle_thrust_setpoint)),
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
+	_handle_param_vt_fw_difthr_en = param_find("VT_FW_DIFTHR_EN");
+
 	/* fetch initial parameter values */
 	parameters_update();
 
@@ -85,6 +87,10 @@ FixedwingRateControl::parameters_update()
 	_rate_control.setFeedForwardGain(
 		// set FF gains to 0 as we add the FF control outside of the rate controller
 		Vector3f(0.f, 0.f, 0.f));
+
+	if (_handle_param_vt_fw_difthr_en != PARAM_INVALID) {
+		param_get(_handle_param_vt_fw_difthr_en, &_param_vt_fw_difthr_en);
+	}
 
 
 	return PX4_OK;
@@ -278,26 +284,41 @@ void FixedwingRateControl::Run()
 				_rate_control.resetIntegral();
 			}
 
-			// update saturation status from control allocation feedback
+			// Update saturation status from control allocation feedback
+			// TODO: send the unallocated value directly for better anti-windup
+			Vector3<bool> diffthr_enabled(
+				_param_vt_fw_difthr_en & static_cast<int32_t>(VTOLFixedWingDifferentialThrustEnabledBit::ROLL_BIT),
+				_param_vt_fw_difthr_en & static_cast<int32_t>(VTOLFixedWingDifferentialThrustEnabledBit::PITCH_BIT),
+				_param_vt_fw_difthr_en & static_cast<int32_t>(VTOLFixedWingDifferentialThrustEnabledBit::YAW_BIT)
+			);
+
+			if (_vehicle_status.is_vtol_tailsitter) {
+				// Swap roll and yaw
+				diffthr_enabled.swapRows(0, 2);
+			}
+
+			// saturation handling for axis controlled by differential thrust (VTOL only)
 			control_allocator_status_s control_allocator_status;
 
-			if (_control_allocator_status_subs[_vehicle_status.is_vtol ? 1 : 0].update(&control_allocator_status)) {
-				Vector<bool, 3> saturation_positive;
-				Vector<bool, 3> saturation_negative;
-
-				if (!control_allocator_status.torque_setpoint_achieved) {
-					for (size_t i = 0; i < 3; i++) {
-						if (control_allocator_status.unallocated_torque[i] > FLT_EPSILON) {
-							saturation_positive(i) = true;
-
-						} else if (control_allocator_status.unallocated_torque[i] < -FLT_EPSILON) {
-							saturation_negative(i) = true;
-						}
+			// Set saturation flags for VTOL differential thrust feature
+			// If differential thrust is enabled in an axis, assume it's the only torque authority and only update saturation using matrix 0 allocating the motors.
+			if (_control_allocator_status_subs[0].update(&control_allocator_status)) {
+				for (size_t i = 0; i < 3; i++) {
+					if (diffthr_enabled(i)) {
+						_rate_control.setPositiveSaturationFlag(i, control_allocator_status.unallocated_torque[i] > FLT_EPSILON);
+						_rate_control.setNegativeSaturationFlag(i, control_allocator_status.unallocated_torque[i] < -FLT_EPSILON);
 					}
 				}
+			}
 
-				// TODO: send the unallocated value directly for better anti-windup
-				_rate_control.setSaturationStatus(saturation_positive, saturation_negative);
+			// Set saturation flags for control surface controlled axes
+			if (_control_allocator_status_subs[_vehicle_status.is_vtol ? 1 : 0].update(&control_allocator_status)) {
+				for (size_t i = 0; i < 3; i++) {
+					if (!diffthr_enabled(i)) {
+						_rate_control.setPositiveSaturationFlag(i, control_allocator_status.unallocated_torque[i] > FLT_EPSILON);
+						_rate_control.setNegativeSaturationFlag(i, control_allocator_status.unallocated_torque[i] < -FLT_EPSILON);
+					}
+				}
 			}
 
 			/* bi-linear interpolation over airspeed for actuator trim scheduling */

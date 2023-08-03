@@ -58,43 +58,43 @@ void YawEstComputeMeasurementUpdate(const matrix::Matrix<Scalar, 3, 3>& P, const
 
   // Output terms (4)
   if (S_inv != nullptr) {
-    matrix::Matrix<Scalar, 2, 2>& _S_inv = (*S_inv);
+    matrix::Matrix<Scalar, 2, 2>& _s_inv = (*S_inv);
 
-    _S_inv(0, 0) = _tmp4;
-    _S_inv(1, 0) = -_tmp5;
-    _S_inv(0, 1) = -_tmp6;
-    _S_inv(1, 1) = _tmp7;
+    _s_inv(0, 0) = _tmp4;
+    _s_inv(1, 0) = -_tmp5;
+    _s_inv(0, 1) = -_tmp6;
+    _s_inv(1, 1) = _tmp7;
   }
 
   if (S_det_inv != nullptr) {
-    Scalar& _S_det_inv = (*S_det_inv);
+    Scalar& _s_det_inv = (*S_det_inv);
 
-    _S_det_inv = _tmp3;
+    _s_det_inv = _tmp3;
   }
 
   if (K != nullptr) {
-    matrix::Matrix<Scalar, 3, 2>& _K = (*K);
+    matrix::Matrix<Scalar, 3, 2>& _k = (*K);
 
-    _K(0, 0) = _tmp9;
-    _K(1, 0) = _tmp10;
-    _K(2, 0) = _tmp11;
-    _K(0, 1) = _tmp12;
-    _K(1, 1) = _tmp13;
-    _K(2, 1) = _tmp14;
+    _k(0, 0) = _tmp9;
+    _k(1, 0) = _tmp10;
+    _k(2, 0) = _tmp11;
+    _k(0, 1) = _tmp12;
+    _k(1, 1) = _tmp13;
+    _k(2, 1) = _tmp14;
   }
 
   if (P_new != nullptr) {
-    matrix::Matrix<Scalar, 3, 3>& _P_new = (*P_new);
+    matrix::Matrix<Scalar, 3, 3>& _p_new = (*P_new);
 
-    _P_new(0, 0) = -P(0, 0) * _tmp9 + P(0, 0) - P(1, 0) * _tmp12;
-    _P_new(1, 0) = 0;
-    _P_new(2, 0) = 0;
-    _P_new(0, 1) = -P(0, 1) * _tmp9 + P(0, 1) - P(1, 1) * _tmp12;
-    _P_new(1, 1) = -P(0, 1) * _tmp10 - P(1, 1) * _tmp13 + P(1, 1);
-    _P_new(2, 1) = 0;
-    _P_new(0, 2) = -P(0, 2) * _tmp9 + P(0, 2) - P(1, 2) * _tmp12;
-    _P_new(1, 2) = -P(0, 2) * _tmp10 - P(1, 2) * _tmp13 + P(1, 2);
-    _P_new(2, 2) = -P(0, 2) * _tmp11 - P(1, 2) * _tmp14 + P(2, 2);
+    _p_new(0, 0) = -P(0, 0) * _tmp9 + P(0, 0) - P(1, 0) * _tmp12;
+    _p_new(1, 0) = 0;
+    _p_new(2, 0) = 0;
+    _p_new(0, 1) = -P(0, 1) * _tmp9 + P(0, 1) - P(1, 1) * _tmp12;
+    _p_new(1, 1) = -P(0, 1) * _tmp10 - P(1, 1) * _tmp13 + P(1, 1);
+    _p_new(2, 1) = 0;
+    _p_new(0, 2) = -P(0, 2) * _tmp9 + P(0, 2) - P(1, 2) * _tmp12;
+    _p_new(1, 2) = -P(0, 2) * _tmp10 - P(1, 2) * _tmp13 + P(1, 2);
+    _p_new(2, 2) = -P(0, 2) * _tmp11 - P(1, 2) * _tmp14 + P(2, 2);
   }
 }  // NOLINT(readability/fn_size)
 

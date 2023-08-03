@@ -155,6 +155,12 @@ enum class EvCtrl : uint8_t {
 	YAW  = (1<<3)
 };
 
+enum class MagCheckMask : uint8_t {
+	STRENGTH    = (1 << 0),
+	INCLINATION = (1 << 1),
+	FORCE_WMM   = (1 << 2)
+};
+
 struct gpsMessage {
 	uint64_t    time_usec{};
 	int32_t     lat{};              ///< Latitude in 1E-7 degrees
@@ -270,8 +276,8 @@ struct stateSample {
 	Quatf    quat_nominal{};        ///< quaternion defining the rotation from body to earth frame
 	Vector3f vel{};                 ///< NED velocity in earth frame in m/s
 	Vector3f pos{};                 ///< NED position in earth frame in m
-	Vector3f delta_ang_bias{};      ///< delta angle bias estimate in rad
-	Vector3f delta_vel_bias{};      ///< delta velocity bias estimate in m/s
+	Vector3f gyro_bias{};           ///< gyro bias estimate in rad/s
+	Vector3f accel_bias{};          ///< accel bias estimate in m/s^2
 	Vector3f mag_I{};               ///< NED earth magnetic field in gauss
 	Vector3f mag_B{};               ///< magnetometer bias estimate in body frame in gauss
 	Vector2f wind_vel{};            ///< horizontal wind velocity in earth frame in m/s
@@ -416,6 +422,7 @@ struct parameters {
 	float flow_noise{0.15f};                ///< observation noise for optical flow LOS rate measurements (rad/sec)
 	float flow_noise_qual_min{0.5f};        ///< observation noise for optical flow LOS rate measurements when flow sensor quality is at the minimum useable (rad/sec)
 	int32_t flow_qual_min{1};               ///< minimum acceptable quality integer from  the flow sensor
+	int32_t flow_qual_min_gnd{0};           ///< minimum acceptable quality integer from  the flow sensor when on ground
 	float flow_innov_gate{3.0f};            ///< optical flow fusion innovation consistency gate size (STD)
 
 	Vector3f flow_pos_body{};               ///< xyz position of range sensor focal point in body frame (m)
@@ -485,7 +492,9 @@ struct parameters {
 
 	// compute synthetic magnetomter Z value if possible
 	int32_t synthesize_mag_z{0};
-	int32_t check_mag_strength{0};
+	int32_t mag_check{0};
+	float mag_check_strength_tolerance_gs{0.2f};
+	float mag_check_inclination_tolerance_deg{20.f};
 
 	// Parameters used to control when yaw is reset to the EKF-GSF yaw estimator value
 	float EKFGSF_tas_default{15.0f};                ///< default airspeed value assumed during fixed wing flight if no airspeed measurement available (m/s)

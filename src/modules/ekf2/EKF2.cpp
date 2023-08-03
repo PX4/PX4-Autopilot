@@ -154,6 +154,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_of_n_min(_params->flow_noise),
 	_param_ekf2_of_n_max(_params->flow_noise_qual_min),
 	_param_ekf2_of_qmin(_params->flow_qual_min),
+	_param_ekf2_of_qmin_gnd(_params->flow_qual_min_gnd),
 	_param_ekf2_of_gate(_params->flow_innov_gate),
 	_param_ekf2_of_pos_x(_params->flow_pos_body(0)),
 	_param_ekf2_of_pos_y(_params->flow_pos_body(1)),
@@ -188,7 +189,9 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_pcoef_yn(_params->static_pressure_coef_yn),
 	_param_ekf2_pcoef_z(_params->static_pressure_coef_z),
 #endif // CONFIG_EKF2_BARO_COMPENSATION
-	_param_ekf2_mag_check(_params->check_mag_strength),
+	_param_ekf2_mag_check(_params->mag_check),
+	_param_ekf2_mag_chk_str(_params->mag_check_strength_tolerance_gs),
+	_param_ekf2_mag_chk_inc(_params->mag_check_inclination_tolerance_deg),
 	_param_ekf2_synthetic_mag_z(_params->synthesize_mag_z),
 	_param_ekf2_gsf_tas_default(_params->EKFGSF_tas_default)
 {
@@ -1057,7 +1060,7 @@ void EKF2::PublishEvPosBias(const hrt_abstime &timestamp)
 
 		if ((bias_vec - _last_ev_bias_published).longerThan(0.01f)) {
 			bias.timestamp_sample = _ekf.aid_src_ev_hgt().timestamp_sample;
-			bias.timestamp = hrt_absolute_time();
+			bias.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 			_estimator_ev_pos_bias_pub.publish(bias);
 
 			_last_ev_bias_published = Vector3f(bias.bias);
@@ -1295,6 +1298,10 @@ void EKF2::PublishInnovations(const hrt_abstime &timestamp)
 		_preflt_checker.setUsingGpsAiding(_ekf.control_status_flags().gps);
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 		_preflt_checker.setUsingFlowAiding(_ekf.control_status_flags().opt_flow);
+
+		// set dist bottom to scale flow innovation
+		const float dist_bottom = _ekf.getTerrainVertPos() - _ekf.getPosition()(2);
+		_preflt_checker.setDistBottom(dist_bottom);
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
@@ -1461,13 +1468,10 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 	lpos.delta_heading = Eulerf(delta_q_reset).psi();
 	lpos.heading_good_for_control = _ekf.isYawFinalAlignComplete();
 
-#if defined(CONFIG_EKF2_RANGE_FINDER)
-	// Distance to bottom surface (ground) in meters
-	// constrain the distance to ground to _rng_gnd_clearance
-	lpos.dist_bottom = math::max(_ekf.getTerrainVertPos() - lpos.z, _param_ekf2_min_rng.get());
+	// Distance to bottom surface (ground) in meters, must be positive
+	lpos.dist_bottom = math::max(_ekf.getTerrainVertPos() - lpos.z, 0.f);
 	lpos.dist_bottom_valid = _ekf.isTerrainEstimateValid();
 	lpos.dist_bottom_sensor_bitfield = _ekf.getTerrainEstimateSensorBitfield();
-#endif // CONFIG_EKF2_RANGE_FINDER
 
 	_ekf.get_ekf_lpos_accuracy(&lpos.eph, &lpos.epv);
 	_ekf.get_ekf_vel_accuracy(&lpos.evh, &lpos.evv);
@@ -1660,6 +1664,9 @@ void EKF2::PublishStatus(const hrt_abstime &timestamp)
 	status.baro_device_id = _device_id_baro;
 	status.gyro_device_id = _device_id_gyro;
 	status.mag_device_id = _device_id_mag;
+
+	_ekf.get_mag_checks(status.mag_inclination_deg, status.mag_inclination_ref_deg, status.mag_strength_gs,
+			    status.mag_strength_ref_gs);
 
 	status.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 	_estimator_status_pub.publish(status);
@@ -2243,9 +2250,9 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 
 		gpsMessage gps_msg{
 			.time_usec = vehicle_gps_position.timestamp,
-			.lat = vehicle_gps_position.lat,
-			.lon = vehicle_gps_position.lon,
-			.alt = vehicle_gps_position.alt,
+			.lat = static_cast<int32_t>(round(vehicle_gps_position.latitude_deg * 1e7)),
+			.lon = static_cast<int32_t>(round(vehicle_gps_position.longitude_deg * 1e7)),
+			.alt = static_cast<int32_t>(round(vehicle_gps_position.altitude_msl_m * 1e3)),
 			.yaw = vehicle_gps_position.heading,
 			.yaw_offset = vehicle_gps_position.heading_offset,
 			.yaw_accuracy = vehicle_gps_position.heading_accuracy,
@@ -2267,7 +2274,7 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 		_ekf.setGpsData(gps_msg);
 
 		_gps_time_usec = gps_msg.time_usec;
-		_gps_alttitude_ellipsoid = vehicle_gps_position.alt_ellipsoid;
+		_gps_alttitude_ellipsoid = static_cast<int32_t>(round(vehicle_gps_position.altitude_ellipsoid_m * 1e3));
 	}
 }
 
@@ -2454,10 +2461,12 @@ void EKF2::UpdateCalibration(const hrt_abstime &timestamp, InFlightCalibration &
 		// consider bias estimates stable when all checks pass consistently and bias hasn't changed more than 10% of the limit
 		const float bias_change_limit = 0.1f * bias_limit;
 
-		if ((cal.last_us != 0) && !(cal.bias - bias).longerThan(bias_change_limit)) {
-			cal.total_time_us += timestamp - cal.last_us;
+		if (!(cal.bias - bias).longerThan(bias_change_limit)) {
+			if (cal.last_us != 0) {
+				cal.total_time_us += timestamp - cal.last_us;
+			}
 
-			if (cal.total_time_us > 30_s) {
+			if (cal.total_time_us > 10_s) {
 				cal.cal_available = true;
 			}
 
@@ -2515,7 +2524,6 @@ void EKF2::UpdateGyroCalibration(const hrt_abstime &timestamp)
 void EKF2::UpdateMagCalibration(const hrt_abstime &timestamp)
 {
 	const bool bias_valid = (_ekf.control_status_flags().mag_hdg || _ekf.control_status_flags().mag_3D)
-				&& _ekf.control_status_flags().mag_aligned_in_flight
 				&& !_ekf.control_status_flags().mag_fault
 				&& !_ekf.control_status_flags().mag_field_disturbed;
 
@@ -2528,7 +2536,7 @@ void EKF2::UpdateMagCalibration(const hrt_abstime &timestamp)
 	if (!_mag_decl_saved) {
 		float declination_deg;
 
-		if (_ekf.get_mag_decl_deg(&declination_deg)) {
+		if (_ekf.get_mag_decl_deg(declination_deg)) {
 			_param_ekf2_mag_decl.update();
 
 			if (PX4_ISFINITE(declination_deg) && (fabsf(declination_deg - _param_ekf2_mag_decl.get()) > 0.1f)) {
@@ -2568,11 +2576,12 @@ int EKF2::task_spawn(int argc, char *argv[])
 		// ekf selector requires SENS_IMU_MODE = 0
 		multi_mode = true;
 
-		// IMUs (1 - 4 supported)
+		// IMUs (1 - MAX_NUM_IMUS supported)
 		param_get(param_find("EKF2_MULTI_IMU"), &imu_instances);
 
-		if (imu_instances < 1 || imu_instances > 4) {
-			const int32_t imu_instances_limited = math::constrain(imu_instances, static_cast<int32_t>(1), static_cast<int32_t>(4));
+		if (imu_instances < 1 || imu_instances > MAX_NUM_IMUS) {
+			const int32_t imu_instances_limited = math::constrain(imu_instances, static_cast<int32_t>(1),
+							      static_cast<int32_t>(MAX_NUM_IMUS));
 			PX4_WARN("EKF2_MULTI_IMU limited %" PRId32 " -> %" PRId32, imu_instances, imu_instances_limited);
 			param_set_no_notification(param_find("EKF2_MULTI_IMU"), &imu_instances_limited);
 			imu_instances = imu_instances_limited;
@@ -2586,9 +2595,10 @@ int EKF2::task_spawn(int argc, char *argv[])
 			const param_t param_ekf2_mult_mag = param_find("EKF2_MULTI_MAG");
 			param_get(param_ekf2_mult_mag, &mag_instances);
 
-			// Mags (1 - 4 supported)
-			if (mag_instances > 4) {
-				const int32_t mag_instances_limited = math::constrain(mag_instances, static_cast<int32_t>(1), static_cast<int32_t>(4));
+			// Mags (1 - MAX_NUM_MAGS supported)
+			if (mag_instances > MAX_NUM_MAGS) {
+				const int32_t mag_instances_limited = math::constrain(mag_instances, static_cast<int32_t>(1),
+								      static_cast<int32_t>(MAX_NUM_MAGS));
 				PX4_WARN("EKF2_MULTI_MAG limited %" PRId32 " -> %" PRId32, mag_instances, mag_instances_limited);
 				param_set_no_notification(param_ekf2_mult_mag, &mag_instances_limited);
 				mag_instances = mag_instances_limited;

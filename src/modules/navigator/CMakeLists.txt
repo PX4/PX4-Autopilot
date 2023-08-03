@@ -51,6 +51,7 @@ px4_add_module(
 		geofence.cpp
 		vtol_takeoff.cpp
 	DEPENDS
+		dataman_client
 		geo
 		adsb
 		geofence_breach_avoidance

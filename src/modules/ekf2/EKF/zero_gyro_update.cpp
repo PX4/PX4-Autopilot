@@ -54,12 +54,10 @@ void Ekf::controlZeroGyroUpdate(const imuSample &imu_delayed)
 		const bool zero_gyro_update_data_ready = _zgup_delta_ang_dt >= zgup_dt;
 
 		if (zero_gyro_update_data_ready) {
-			Vector3f delta_ang_scaled = _zgup_delta_ang / _zgup_delta_ang_dt * _dt_ekf_avg;
-			Vector3f innovation = _state.delta_ang_bias - delta_ang_scaled;
+			Vector3f gyro_bias = _zgup_delta_ang / _zgup_delta_ang_dt;
+			Vector3f innovation = _state.gyro_bias - gyro_bias;
 
-			const float d_ang_sig = _dt_ekf_avg * math::constrain(_params.gyro_noise, 0.0f, 1.0f);
-			//const float obs_var = sq(d_ang_sig) * (_dt_ekf_avg / _zgup_delta_ang_dt); // This is correct but too small for single precision
-			const float obs_var = sq(d_ang_sig);
+			const float obs_var = sq(math::constrain(_params.gyro_noise, 0.f, 1.f));
 
 			Vector3f innov_var{
 				P(10, 10) + obs_var,

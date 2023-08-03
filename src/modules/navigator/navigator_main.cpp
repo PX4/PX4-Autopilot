@@ -48,7 +48,7 @@
 #include <float.h>
 #include <sys/stat.h>
 
-#include <dataman/dataman.h>
+#include <dataman_client/DatamanClient.hpp>
 #include <drivers/drv_hrt.h>
 #include <lib/geo/geo.h>
 #include <lib/adsb/AdsbConflict.h>
@@ -168,6 +168,9 @@ void Navigator::run()
 	fds[2].fd = _mission_sub;
 	fds[2].events = POLLIN;
 
+	int16_t geofence_update_counter{0};
+	int16_t safe_points_update_counter{0};
+
 	/* rate-limit position subscription to 20 Hz / 50 ms */
 	orb_set_interval(_local_pos_sub, 50);
 
@@ -192,9 +195,18 @@ void Navigator::run()
 		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vstatus);
 
 		if (fds[2].revents & POLLIN) {
-			// copy mission to clear any update
 			mission_s mission;
 			orb_copy(ORB_ID(mission), _mission_sub, &mission);
+
+			if (mission.geofence_update_counter != geofence_update_counter) {
+				geofence_update_counter = mission.geofence_update_counter;
+				_geofence.updateFence();
+			}
+
+			if (mission.safe_points_update_counter != safe_points_update_counter) {
+				safe_points_update_counter = mission.safe_points_update_counter;
+				_rtl.updateSafePoints();
+			}
 		}
 
 		/* gps updated */
@@ -257,8 +269,16 @@ void Navigator::run()
 				bool reposition_valid = true;
 
 				vehicle_global_position_s position_setpoint{};
-				position_setpoint.lat = cmd.param5;
-				position_setpoint.lon = cmd.param6;
+
+				if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)) {
+					position_setpoint.lat = cmd.param5;
+					position_setpoint.lon = cmd.param6;
+
+				} else {
+					position_setpoint.lat = get_global_position()->lat;
+					position_setpoint.lon = get_global_position()->lon;
+				}
+
 				position_setpoint.alt = PX4_ISFINITE(cmd.param7) ? cmd.param7 : get_global_position()->alt;
 
 				if (have_geofence_position_data) {
@@ -909,6 +929,10 @@ void Navigator::run()
 			publish_mission_result();
 		}
 
+		_mission.run();
+		_geofence.run();
+		_rtl.run();
+
 		perf_end(_loop_perf);
 	}
 }
@@ -1063,7 +1087,7 @@ int Navigator::task_spawn(int argc, char *argv[])
 	_task_id = px4_task_spawn_cmd("navigator",
 				      SCHED_DEFAULT,
 				      SCHED_PRIORITY_NAVIGATION,
-				      PX4_STACK_ADJUSTED(1952),
+				      PX4_STACK_ADJUSTED(2160),
 				      (px4_main_t)&run_trampoline,
 				      (char *const *)argv);
 
@@ -1525,6 +1549,18 @@ void Navigator::mode_completed(uint8_t nav_state, uint8_t result)
 	mode_completed.result = result;
 	mode_completed.nav_state = nav_state;
 	_mode_completed_pub.publish(mode_completed);
+}
+
+
+void Navigator::disable_camera_trigger()
+{
+	// Disable camera trigger
+	vehicle_command_s cmd {};
+	cmd.command = vehicle_command_s::VEHICLE_CMD_DO_TRIGGER_CONTROL;
+	// Pause trigger
+	cmd.param1 = -1.0f;
+	cmd.param3 = 1.0f;
+	publish_vehicle_cmd(&cmd);
 }
 
 int Navigator::print_usage(const char *reason)

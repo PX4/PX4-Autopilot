@@ -68,10 +68,11 @@ ActuatorEffectivenessTiltrotorVTOL::getEffectivenessMatrix(Configuration &config
 	// scales are tilt-invariant. Note: configuration updates are only possible when disarmed.
 	const float collective_tilt_control_applied = (external_update == EffectivenessUpdateReason::CONFIGURATION_UPDATE) ?
 			-1.f : _last_collective_tilt_control;
-	_nontilted_motors = _mc_rotors.updateAxisFromTilts(_tilts, collective_tilt_control_applied)
-			    << configuration.num_actuators[(int)ActuatorType::MOTORS];
+	_untiltable_motors = _mc_rotors.updateAxisFromTilts(_tilts, collective_tilt_control_applied)
+			     << configuration.num_actuators[(int)ActuatorType::MOTORS];
 
 	const bool mc_rotors_added_successfully = _mc_rotors.addActuators(configuration);
+	_motors = _mc_rotors.getMotors();
 
 	// Control Surfaces
 	configuration.selected_matrix = 1;
@@ -118,7 +119,6 @@ void ActuatorEffectivenessTiltrotorVTOL::updateSetpoint(const matrix::Vector<flo
 {
 	// apply tilt
 	if (matrix_index == 0) {
-
 		tiltrotor_extra_controls_s tiltrotor_extra_controls;
 
 		if (_tiltrotor_extra_controls_sub.copy(&tiltrotor_extra_controls)) {
@@ -145,11 +145,14 @@ void ActuatorEffectivenessTiltrotorVTOL::updateSetpoint(const matrix::Vector<flo
 
 			// in FW directly use throttle sp
 			if (_flight_phase == FlightPhase::FORWARD_FLIGHT) {
-
 				for (int i = 0; i < _first_tilt_idx; ++i) {
 					actuator_sp(i) = tiltrotor_extra_controls.collective_thrust_normalized_setpoint;
 				}
 			}
+		}
+
+		if (_flight_phase == FlightPhase::FORWARD_FLIGHT) {
+			stopMaskedMotorsWithZeroThrust(_motors & ~_untiltable_motors, actuator_sp);
 		}
 	}
 
@@ -180,13 +183,13 @@ void ActuatorEffectivenessTiltrotorVTOL::setFlightPhase(const FlightPhase &fligh
 	// update stopped motors
 	switch (flight_phase) {
 	case FlightPhase::FORWARD_FLIGHT:
-		_stopped_motors = _nontilted_motors;
+		_stopped_motors_mask |= _untiltable_motors;
 		break;
 
 	case FlightPhase::HOVER_FLIGHT:
 	case FlightPhase::TRANSITION_FF_TO_HF:
 	case FlightPhase::TRANSITION_HF_TO_FF:
-		_stopped_motors = 0;
+		_stopped_motors_mask = 0;
 		break;
 	}
 }

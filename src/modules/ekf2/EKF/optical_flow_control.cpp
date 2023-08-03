@@ -59,7 +59,7 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 
 	// Accumulate autopilot gyro data across the same time interval as the flow sensor
 	const Vector3f delta_angle(imu_delayed.delta_ang - (getGyroBias() * imu_delayed.delta_ang_dt));
-	if (_delta_time_of < 0.1f) {
+	if (_delta_time_of < 0.2f) {
 		_imu_del_ang_of += delta_angle;
 		_delta_time_of += imu_delayed.delta_ang_dt;
 
@@ -70,7 +70,12 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 	}
 
 	if (_flow_data_ready) {
-		const bool is_quality_good = (_flow_sample_delayed.quality >= _params.flow_qual_min);
+		int32_t min_quality = _params.flow_qual_min;
+		if (!_control_status.flags.in_air) {
+			min_quality = _params.flow_qual_min_gnd;
+		}
+
+		const bool is_quality_good = (_flow_sample_delayed.quality >= min_quality);
 		const bool is_magnitude_good = !_flow_sample_delayed.flow_xy_rad.longerThan(_flow_sample_delayed.dt * _flow_max_rate);
 		const bool is_tilt_good = (_R_to_earth(2, 2) > _params.range_cos_max_tilt);
 

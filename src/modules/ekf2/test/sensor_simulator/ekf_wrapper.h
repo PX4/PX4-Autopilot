@@ -102,6 +102,8 @@ public:
 	bool isIntendingMag3DFusion() const;
 	void setMagFuseTypeNone();
 	void enableMagStrengthCheck();
+	void enableMagInclinationCheck();
+	void enableMagCheckForceWMM();
 
 	bool isWindVelocityEstimated() const;
 
@@ -117,8 +119,6 @@ public:
 	float getYawAngle() const;
 	matrix::Vector4f getQuaternionVariance() const;
 	int getQuaternionResetCounter() const;
-
-	matrix::Vector3f getDeltaVelBiasVariance() const;
 
 	void enableDragFusion();
 	void disableDragFusion();
