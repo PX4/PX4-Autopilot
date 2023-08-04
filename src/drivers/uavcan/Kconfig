@@ -4,6 +4,81 @@ menuconfig DRIVERS_UAVCAN
 	---help---
 		Enable support for uavcan
 
+if DRIVERS_UAVCAN
+    config UAVCAN_ARMING_CONTROLLER
+        bool "Include arming status controller"
+        default y
+
+    config UAVCAN_BEEP_CONTROLLER
+        bool "Include beep controller"
+        default y
+
+    config UAVCAN_OUTPUTS_CONTROLLER
+        bool "Include servo & ESC controller"
+        default y
+
+    config UAVCAN_HARDPOINT_CONTROLLER
+        bool "Include hardpoint controller"
+        default y
+
+    config UAVCAN_SAFETY_STATE_CONTROLLER
+        bool "Include safety state controller"
+        default y
+
+    config UAVCAN_RGB_CONTROLLER
+        bool "Include rgb controller"
+        default y
+
+    config UAVCAN_SENSOR_ACCEL
+        bool "Subscribe to IMU:                         uavcan::equipment::ahrs::RawIMU"
+        default y
+
+    config UAVCAN_SENSOR_AIRSPEED
+        bool "Subscribe to Airspeed:                    uavcan::equipment::air_data::IndicatedAirspeed | uavcan::equipment::air_data::TrueAirspeed | uavcan::equipment::air_data::StaticTemperature"
+        default y
+
+    config UAVCAN_SENSOR_BARO
+        bool "Subscribe to Barometer:                   uavcan::equipment::air_data::StaticPressure | uavcan::equipment::air_data::StaticTemperature"
+        default y
+
+    config UAVCAN_SENSOR_BATTERY
+        bool "Subscribe to Battery:                     uavcan::equipment::power::BatteryInfo | ardupilot::equipment::power::BatteryInfoAux"
+        default y
+
+    config UAVCAN_SENSOR_DIFFERENTIAL_PRESSURE
+        bool "Subscribe to Differential Pressure:       uavcan::equipment::air_data::RawAirData"
+        default y
+
+    config UAVCAN_SENSOR_FLOW
+        bool "Subscribe to Flow:                        com::hex::equipment::flow::Measurement"
+        default y
+
+    config UAVCAN_SENSOR_GNSS
+        bool "Subscribe to GPS:                         uavcan::equipment::gnss::Auxiliary | uavcan::equipment::gnss::Fix | uavcan::equipment::gnss::Fix2"
+        default y
+
+    config UAVCAN_SENSOR_HYGROMETER
+        bool "Subscribe to Hygrometer:                  dronecan::sensors::hygrometer::Hygrometer"
+        default y
+
+    config UAVCAN_SENSOR_ICE_STATUS
+        bool "Subscribe to Internal Combustion Engine:  uavcan::equipment::ice::reciprocating::Status"
+        default y
+
+    config UAVCAN_SENSOR_MAG
+        bool "Subscribe to Magnetometer:                uavcan::equipment::ahrs::MagneticFieldStrength | uavcan::equipment::ahrs::MagneticFieldStrength2"
+        default y
+
+    config UAVCAN_SENSOR_RANGEFINDER
+        bool "Subscribe to Rangefinder:                 uavcan::equipment::range_sensor::Measurement"
+        default y
+
+    config UAVCAN_SENSOR_SAFETY_BUTTON
+        bool "Subscribe to Safety Button:               ardupilot::indication::Button"
+        default y
+
+endif #DRIVERS_UAVCAN
+
 
 menuconfig BOARD_UAVCAN_INTERFACES
 depends on DRIVERS_UAVCAN || DRIVERS_UAVCANNODE
