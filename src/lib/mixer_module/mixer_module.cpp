@@ -154,7 +154,7 @@ void MixingOutput::updateParams()
 	bool function_changed = false;
 
 	for (unsigned i = 0; i < _max_num_outputs; i++) {
-		int32_t val;
+		float val;
 
 		if (_param_handles[i].function != PARAM_INVALID && param_get(_param_handles[i].function, &val) == 0) {
 			if (val != (int32_t)_function_assignment[i]) {
@@ -177,7 +177,7 @@ void MixingOutput::updateParams()
 		}
 
 		if (_min_value[i] > _max_value[i]) {
-			uint16_t tmp = _min_value[i];
+			float tmp = _min_value[i];
 			_min_value[i] = _max_value[i];
 			_max_value[i] = tmp;
 		}
@@ -654,7 +654,7 @@ MixingOutput::actualFailsafeValue(int index) const
 {
 	float value = 0;
 
-	if (_failsafe_value[index] == INT16_MAX) { // if set to default, use the one provided by the function
+	if (fabsf(_failsafe_value[index] - 1.0f) < FLT_EPSILON) { // if set to default, use the one provided by the function
 		float default_failsafe = NAN;
 
 		if (_functions[index]) {

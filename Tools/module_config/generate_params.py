@@ -317,7 +317,7 @@ When set to -1 (default), the value depends on the function (see {:}).
                         'short': channel_label+' ${i} '+label+' Value',
                         'long': description
                         },
-                    'type': 'int32',
+                    'type': 'float',
                     'instance_start': instance_start,
                     'instance_start_label': instance_start_label,
                     'num_instances': num_channels,
