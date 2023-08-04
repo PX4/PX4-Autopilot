@@ -1086,33 +1086,24 @@ void Ekf::increaseQuatYawErrVariance(float yaw_variance)
 	P(3,2) -= yaw_variance*SQ[0]*SQ[3];
 }
 
-// save covariance data for re-use when auto-switching between heading and 3-axis fusion
 void Ekf::saveMagCovData()
 {
-	// save variances for XYZ body axis field
-	_saved_mag_bf_variance(0) = P(19, 19);
-	_saved_mag_bf_variance(1) = P(20, 20);
-	_saved_mag_bf_variance(2) = P(21, 21);
+	// save the NED axis covariance sub-matrix
+	_saved_mag_ef_covmat = P.slice<3, 3>(16, 16);
 
-	// save the NE axis covariance sub-matrix
-	_saved_mag_ef_ne_covmat = P.slice<2, 2>(16, 16);
-
-	// save variance for the D earth axis
-	_saved_mag_ef_d_variance = P(18, 18);
+	// save the XYZ body covariance sub-matrix
+	_saved_mag_bf_covmat = P.slice<3, 3>(19, 19);
 }
 
 void Ekf::loadMagCovData()
 {
-	// re-instate variances for the XYZ body axis field
-	P(19, 19) = _saved_mag_bf_variance(0);
-	P(20, 20) = _saved_mag_bf_variance(1);
-	P(21, 21) = _saved_mag_bf_variance(2);
+	// re-instate the NED axis covariance sub-matrix
+	P.uncorrelateCovarianceSetVariance<3>(16, 0.f);
+	P.slice<3, 3>(16, 16) = _saved_mag_ef_covmat;
 
-	// re-instate the NE axis covariance sub-matrix
-	P.slice<2, 2>(16, 16) = _saved_mag_ef_ne_covmat;
-
-	// re-instate the D earth axis variance
-	P(18, 18) = _saved_mag_ef_d_variance;
+	// re-instate the XYZ body axis covariance sub-matrix
+	P.uncorrelateCovarianceSetVariance<3>(19, 0.f);
+	P.slice<3, 3>(19, 19) = _saved_mag_bf_covmat;
 }
 
 void Ekf::resetQuatStateYaw(float yaw, float yaw_variance)
@@ -1133,7 +1124,7 @@ void Ekf::resetQuatStateYaw(float yaw, float yaw_variance)
 	uncorrelateQuatFromOtherStates();
 
 	// update the yaw angle variance
-	if (yaw_variance > FLT_EPSILON) {
+	if (PX4_ISFINITE(yaw_variance) && (yaw_variance > FLT_EPSILON)) {
 		increaseQuatYawErrVariance(yaw_variance);
 	}
 
@@ -1182,8 +1173,6 @@ bool Ekf::resetYawToEKFGSF()
 
 	resetQuatStateYaw(_yawEstimator.getYaw(), _yawEstimator.getYawVar());
 
-	// record a magnetic field alignment event to prevent possibility of the EKF trying to reset the yaw to the mag later in flight
-	_flt_mag_align_start_time = _time_delayed_us;
 	_control_status.flags.yaw_align = true;
 	_information_events.flags.yaw_aligned_to_imu_gps = true;
 

@@ -180,7 +180,7 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 	// Don't continue to grow the earth field variances if they are becoming too large or we are not doing 3-axis fusion as this can make the covariance matrix badly conditioned
 	float mag_I_sig;
 
-	if (_control_status.flags.mag_3D && (P(16, 16) + P(17, 17) + P(18, 18)) < 0.1f) {
+	if (_control_status.flags.mag && (P(16, 16) + P(17, 17) + P(18, 18)) < 0.1f) {
 		mag_I_sig = dt * math::constrain(_params.mage_p_noise, 0.0f, 1.0f);
 
 	} else {
@@ -190,7 +190,7 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 	// Don't continue to grow the body field variances if they is becoming too large or we are not doing 3-axis fusion as this can make the covariance matrix badly conditioned
 	float mag_B_sig;
 
-	if (_control_status.flags.mag_3D && (P(19, 19) + P(20, 20) + P(21, 21)) < 0.1f) {
+	if (_control_status.flags.mag && (P(19, 19) + P(20, 20) + P(21, 21)) < 0.1f) {
 		mag_B_sig = dt * math::constrain(_params.magb_p_noise, 0.0f, 1.0f);
 
 	} else {
@@ -292,7 +292,7 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 		P(row, row) = nextP(row, row);
 	}
 
-	if (_control_status.flags.mag_3D) {
+	if (_control_status.flags.mag) {
 		for (unsigned row = 16; row <= 21; row++) {
 			for (unsigned column = 0 ; column < row; column++) {
 				P(row, column) = P(column, row) = nextP(column, row);
@@ -471,8 +471,9 @@ void Ekf::fixCovarianceErrors(bool force_symmetry)
 	}
 
 	// magnetic field states
-	if (!_control_status.flags.mag_3D) {
-		zeroMagCov();
+	if (!_control_status.flags.mag) {
+		P.uncorrelateCovarianceSetVariance<3>(16, 0.0f);
+		P.uncorrelateCovarianceSetVariance<3>(19, 0.0f);
 
 	} else {
 		// constrain variances
@@ -525,12 +526,6 @@ bool Ekf::checkAndFixCovarianceUpdate(const SquareMatrix24f &KHP)
 	return healthy;
 }
 
-void Ekf::resetMagRelatedCovariances()
-{
-	resetQuatCov();
-	resetMagCov();
-}
-
 void Ekf::resetQuatCov()
 {
 	zeroQuatCov();
@@ -542,7 +537,7 @@ void Ekf::resetQuatCov()
 	initialiseQuatCovariances(rot_vec_var);
 
 	// update the yaw angle variance using the variance of the measurement
-	if (_params.mag_fusion_type <= MagFuseType::MAG_3D) {
+	if (_params.mag_fusion_type != MagFuseType::NONE) {
 		// using magnetic heading tuning parameter
 		increaseQuatYawErrVariance(sq(fmaxf(_params.mag_heading_noise, 1.0e-2f)));
 	}
@@ -556,31 +551,15 @@ void Ekf::zeroQuatCov()
 
 void Ekf::resetMagCov()
 {
-	// reset the corresponding rows and columns in the covariance matrix and
-	// set the variances on the magnetic field states to the measurement variance
-	clearMagCov();
+	if (_mag_decl_cov_reset) {
+		ECL_INFO("reset mag covariance");
+		_mag_decl_cov_reset = false;
+	}
 
 	P.uncorrelateCovarianceSetVariance<3>(16, sq(_params.mag_noise));
 	P.uncorrelateCovarianceSetVariance<3>(19, sq(_params.mag_noise));
 
-	if (!_control_status.flags.mag_3D) {
-		// save covariance data for re-use when auto-switching between heading and 3-axis fusion
-		// if already in 3-axis fusion mode, the covariances are automatically saved when switching out
-		// of this mode
-		saveMagCovData();
-	}
-}
-
-void Ekf::clearMagCov()
-{
-	zeroMagCov();
-	_mag_decl_cov_reset = false;
-}
-
-void Ekf::zeroMagCov()
-{
-	P.uncorrelateCovarianceSetVariance<3>(16, 0.0f);
-	P.uncorrelateCovarianceSetVariance<3>(19, 0.0f);
+	saveMagCovData();
 }
 
 void Ekf::resetGyroBiasZCov()

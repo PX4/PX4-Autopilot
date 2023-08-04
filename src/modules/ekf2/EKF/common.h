@@ -102,9 +102,6 @@ enum MagFuseType : uint8_t {
 	// Integer definitions for mag_fusion_type
 	AUTO    = 0,   	///< The selection of either heading or 3D magnetometer fusion will be automatic
 	HEADING = 1,   	///< Simple yaw angle fusion will always be used. This is less accurate, but less affected by earth field distortions. It should not be used for pitch angles outside the range from -60 to +60 deg
-	MAG_3D  = 2,   	///< Magnetometer 3-axis fusion will always be used. This is more accurate, but more affected by localised earth field distortions
-	UNUSED  = 3,    ///< Not implemented
-	INDOOR  = 4,   	///< The same as option 0, but magnetometer or yaw fusion will not be used unless earth frame external aiding (GPS or External Vision) is being used. This prevents inconsistent magnetic fields associated with indoor operation degrading state estimates.
 	NONE    = 5    	///< Do not use magnetometer under any circumstance..
 };
 
@@ -335,7 +332,7 @@ struct parameters {
 
 	// magnetometer fusion
 	float mag_heading_noise{3.0e-1f};       ///< measurement noise used for simple heading fusion (rad)
-	float mag_noise{5.0e-2f};               ///< measurement noise used for 3-axis magnetoemeter fusion (Gauss)
+	float mag_noise{5.0e-2f};               ///< measurement noise used for 3-axis magnetometer fusion (Gauss)
 	float mag_declination_deg{0.0f};        ///< magnetic declination (degrees)
 	float heading_innov_gate{2.6f};         ///< heading fusion innovation consistency gate size (STD)
 	float mag_innov_gate{3.0f};             ///< magnetometer fusion innovation consistency gate size (STD)
@@ -601,6 +598,9 @@ union filter_control_status_u {
 		uint64_t fake_pos                : 1; ///< 32 - true when fake position measurements are being fused
 		uint64_t fake_hgt                : 1; ///< 33 - true when fake height measurements are being fused
 		uint64_t gravity_vector          : 1; ///< 34 - true when gravity vector measurements are being fused
+		uint64_t mag                     : 1; ///< 35 - true if 3-axis magnetometer measurement fusion (mag states only) is intended
+		uint64_t ev_yaw_fault            : 1; ///< 36 - true when the EV heading has been declared faulty and is no longer being used
+
 	} flags;
 	uint64_t value;
 };

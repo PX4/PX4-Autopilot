@@ -312,6 +312,13 @@ bool EKF2::multi_init(int imu, int mag)
 
 #endif // CONFIG_EKF2_RANGE_FINDER
 
+
+	// mag advertise
+	if (_param_ekf2_mag_type.get() != MagFuseType::NONE) {
+		_estimator_aid_src_mag_heading_pub.advertise();
+		_estimator_aid_src_mag_pub.advertise();
+	}
+
 	_attitude_pub.advertise();
 	_local_position_pub.advertise();
 	_global_position_pub.advertise();
@@ -910,6 +917,24 @@ void EKF2::VerifyParams()
 	}
 
 #endif // CONFIG_EKF2_OPTICAL_FLOW
+
+
+	// EKF2_MAG_TYPE obsolete options
+	if ((_param_ekf2_mag_type.get() != MagFuseType::AUTO)
+	    && (_param_ekf2_mag_type.get() != MagFuseType::HEADING)
+	    && (_param_ekf2_mag_type.get() != MagFuseType::NONE)
+	   ) {
+
+		mavlink_log_critical(&_mavlink_log_pub, "EKF2_MAG_TYPE invalid, resetting to default");
+		/* EVENT
+		 * @description <param>EKF2_AID_MASK</param> is set to {1:.0}.
+		 */
+		events::send<float>(events::ID("ekf2_mag_type_invalid"), events::Log::Warning,
+				    "EKF2_MAG_TYPE invalid, resetting to default", _param_ekf2_mag_type.get());
+
+		_param_ekf2_mag_type.set(0);
+		_param_ekf2_mag_type.commit();
+	}
 }
 
 void EKF2::PublishAidSourceStatus(const hrt_abstime &timestamp)
@@ -1570,31 +1595,37 @@ void EKF2::PublishSensorBias(const hrt_abstime &timestamp)
 
 		// take device ids from sensor_selection_s if not using specific vehicle_imu_s
 		if ((_device_id_gyro != 0) && (_param_ekf2_imu_ctrl.get() & static_cast<int32_t>(ImuCtrl::GyroBias))) {
+			const Vector3f bias_var{_ekf.getGyroBiasVariance()};
+
 			bias.gyro_device_id = _device_id_gyro;
 			gyro_bias.copyTo(bias.gyro_bias);
 			bias.gyro_bias_limit = _ekf.getGyroBiasLimit();
-			_ekf.getGyroBiasVariance().copyTo(bias.gyro_bias_variance);
-			bias.gyro_bias_valid = true;  // TODO
+			bias_var.copyTo(bias.gyro_bias_variance);
+			bias.gyro_bias_valid = bias_var.longerThan(0.f) && !bias_var.longerThan(0.1f);
 			bias.gyro_bias_stable = _gyro_cal.cal_available;
 			_last_gyro_bias_published = gyro_bias;
 		}
 
 		if ((_device_id_accel != 0) && (_param_ekf2_imu_ctrl.get() & static_cast<int32_t>(ImuCtrl::AccelBias))) {
+			const Vector3f bias_var{_ekf.getAccelBiasVariance()};
+
 			bias.accel_device_id = _device_id_accel;
 			accel_bias.copyTo(bias.accel_bias);
 			bias.accel_bias_limit = _ekf.getAccelBiasLimit();
-			_ekf.getAccelBiasVariance().copyTo(bias.accel_bias_variance);
-			bias.accel_bias_valid = true;  // TODO
+			bias_var.copyTo(bias.accel_bias_variance);
+			bias.accel_bias_valid = bias_var.longerThan(0.f) && !bias_var.longerThan(0.1f);
 			bias.accel_bias_stable = _accel_cal.cal_available;
 			_last_accel_bias_published = accel_bias;
 		}
 
 		if (_device_id_mag != 0) {
+			const Vector3f bias_var{_ekf.getMagBiasVariance()};
+
 			bias.mag_device_id = _device_id_mag;
 			mag_bias.copyTo(bias.mag_bias);
 			bias.mag_bias_limit = _ekf.getMagBiasLimit();
-			_ekf.getMagBiasVariance().copyTo(bias.mag_bias_variance);
-			bias.mag_bias_valid = true; // TODO
+			bias_var.copyTo(bias.mag_bias_variance);
+			bias.mag_bias_valid = bias_var.longerThan(0.f) && !bias_var.longerThan(0.1f);
 			bias.mag_bias_stable = _mag_cal.cal_available;
 			_last_mag_bias_published = mag_bias;
 		}
@@ -1738,6 +1769,8 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 		status_flags.cs_fake_pos                = _ekf.control_status_flags().fake_pos;
 		status_flags.cs_fake_hgt                = _ekf.control_status_flags().fake_hgt;
 		status_flags.cs_gravity_vector          = _ekf.control_status_flags().gravity_vector;
+		status_flags.cs_mag                     = _ekf.control_status_flags().mag;
+		status_flags.cs_ev_yaw_fault            = _ekf.control_status_flags().ev_yaw_fault;
 
 		status_flags.fault_status_changes     = _filter_fault_status_changes;
 		status_flags.fs_bad_mag_x             = _ekf.fault_status_flags().bad_mag_x;
@@ -2523,14 +2556,16 @@ void EKF2::UpdateGyroCalibration(const hrt_abstime &timestamp)
 
 void EKF2::UpdateMagCalibration(const hrt_abstime &timestamp)
 {
-	const bool bias_valid = (_ekf.control_status_flags().mag_hdg || _ekf.control_status_flags().mag_3D)
-				&& !_ekf.control_status_flags().mag_fault
-				&& !_ekf.control_status_flags().mag_field_disturbed;
+	const Vector3f mag_bias = _ekf.getMagBias();
+	const Vector3f mag_bias_var = _ekf.getMagBiasVariance();
 
-	const bool learning_valid = bias_valid && _ekf.control_status_flags().mag_3D;
+	const bool bias_valid = (_ekf.fault_status().value == 0)
+				&& _ekf.control_status_flags().yaw_align
+				&& mag_bias_var.longerThan(0.f) && !mag_bias_var.longerThan(0.02f);
 
-	UpdateCalibration(timestamp, _mag_cal, _ekf.getMagBias(), _ekf.getMagBiasVariance(), _ekf.getMagBiasLimit(),
-			  bias_valid, learning_valid);
+	const bool learning_valid = bias_valid && _ekf.control_status_flags().mag;
+
+	UpdateCalibration(timestamp, _mag_cal, mag_bias, mag_bias_var, _ekf.getMagBiasLimit(), bias_valid, learning_valid);
 
 	// update stored declination value
 	if (!_mag_decl_saved) {
