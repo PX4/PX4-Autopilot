@@ -105,7 +105,7 @@ static void on_topic_update(uxrSession *session, uxrObjectId object_id, uint16_t
 
 	switch (object_id.id) {
 @[    for idx, sub in enumerate(subscriptions)]@
-	case @(idx)+1000: {
+	case @(idx)+ (65535U / 32U) + 1: {
 			@(sub['simple_base_type'])_s data;
 
 			if (ucdr_deserialize_@(sub['simple_base_type'])(*ub, data, time_offset_us)) {
