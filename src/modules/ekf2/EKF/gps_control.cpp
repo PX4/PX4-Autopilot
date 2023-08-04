@@ -41,7 +41,7 @@
 
 void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 {
-	if (!_gps_buffer || !((_params.gnss_ctrl & GnssCtrl::HPOS) || (_params.gnss_ctrl & GnssCtrl::VEL))) {
+	if (!_gps_buffer || (_params.gnss_ctrl == 0)) {
 		stopGpsFusion();
 		return;
 	}
@@ -166,7 +166,7 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 							ECL_WARN("GPS emergency yaw reset");
 
 							if (_control_status.flags.mag_hdg || _control_status.flags.mag_3D) {
-								// stop using the magnetometer in the main EKF otherwise it' fusion could drag the yaw around
+								// stop using the magnetometer in the main EKF otherwise its fusion could drag the yaw around
 								// and cause another navigation failure
 								_control_status.flags.mag_fault = true;
 								_warning_events.flags.emergency_yaw_reset_mag_stopped = true;
@@ -184,7 +184,7 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 
 							if (_control_status.flags.ev_yaw) {
-								_inhibit_ev_yaw_use = true;
+								_control_status.flags.ev_yaw_fault = true;
 							}
 
 #endif // CONFIG_EKF2_EXTERNAL_VISION
@@ -369,11 +369,6 @@ void Ekf::controlGpsYawFusion(const gpsSample &gps_sample, bool gps_checks_passi
 			if (starting_conditions_passing) {
 				// Try to activate GPS yaw fusion
 				if (resetYawToGps(gps_sample.yaw)) {
-
-					stopEvYawFusion();
-					stopMagHdgFusion();
-					stopMag3DFusion();
-
 					ECL_INFO("starting GPS yaw fusion");
 
 					_aid_src_gnss_yaw.time_last_fuse = _time_delayed_us;
@@ -429,8 +424,4 @@ void Ekf::stopGpsFusion()
 
 	stopGpsHgtFusion();
 	stopGpsYawFusion();
-
-	// We do not need to know the true North anymore
-	// EV yaw can start again
-	_inhibit_ev_yaw_use = false;
 }

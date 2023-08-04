@@ -84,6 +84,7 @@ void Ekf::controlFakePosFusion()
 				const bool is_fusion_failing = isTimedOut(aid_src.time_last_fuse, (uint64_t)4e5);
 
 				if (is_fusion_failing) {
+					ECL_WARN("fake position fusion failing, resetting");
 					resetFakePosFusion();
 				}
 
