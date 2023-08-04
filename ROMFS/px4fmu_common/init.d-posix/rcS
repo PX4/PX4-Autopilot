@@ -187,6 +187,11 @@ param set-default SYS_FAILURE_EN 1
 # does not go below 50% by default, but failure injection can trigger failsafes.
 param set-default COM_LOW_BAT_ACT 2
 
+# Allow to override SYS_MC_EST_GROUP via env
+if [ -n "$SYS_MC_EST_GROUP" ]; then
+	param set SYS_MC_EST_GROUP $SYS_MC_EST_GROUP
+fi
+
 # Adapt timeout parameters if simulation runs faster or slower than realtime.
 if [ -n "$PX4_SIM_SPEED_FACTOR" ]; then
 	COM_DL_LOSS_T_LONGER=$(echo "$PX4_SIM_SPEED_FACTOR * 10" | bc)

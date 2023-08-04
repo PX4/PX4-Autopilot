@@ -134,6 +134,7 @@ public:
 	void offboard_land();
 	void fly_forward_in_posctl();
 	void fly_forward_in_altctl();
+	void fly_forward_in_offboard_attitude();
 	void request_ground_truth();
 	void check_mission_item_speed_above(int item_index, float min_speed_m_s);
 	void check_tracks_mission(float corridor_radius_m = 1.5f);
