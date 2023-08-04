@@ -158,7 +158,7 @@ int SocketCAN::Init(const char *const can_iface_name, const uint32_t can_bitrate
 
 	// Setup RX range filter [ RANGE FILTER NEEDS TO BE SET BEFORE ANY BIT FILTER]
 	ifr.ifr_ifru.ifru_can_filter.fid1 = 0x211;	// lower end
-	ifr.ifr_ifru.ifru_can_filter.fid2 = 0x231;	// higher end
+	ifr.ifr_ifru.ifru_can_filter.fid2 = 0x220;	// higher end
 	ifr.ifr_ifru.ifru_can_filter.ftype = CAN_FILTER_RANGE;
 	ifr.ifr_ifru.ifru_can_filter.fprio = CAN_MSGPRIO_LOW;
 
