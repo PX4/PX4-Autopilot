@@ -76,7 +76,7 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 			_control_status.flags.tilt_align = true;
 
 			// send alignment status message to the console
-			const char *height_source = nullptr;
+			const char *height_source = "unknown";
 
 			if (_control_status.flags.baro_hgt) {
 				height_source = "baro";
@@ -89,16 +89,16 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 
 			} else if (_control_status.flags.rng_hgt) {
 				height_source = "rng";
-
-			} else {
-				height_source = "unknown";
-
 			}
 
-			if (height_source) {
-				ECL_INFO("%llu: EKF aligned, (%s hgt, IMU buf: %i, OBS buf: %i)",
+			ECL_INFO("%llu: EKF aligned, (%s hgt, IMU buf: %i, OBS buf: %i)",
 					 (unsigned long long)imu_delayed.time_us, height_source, (int)_imu_buffer_length, (int)_obs_buffer_length);
-			}
+
+			ECL_DEBUG("tilt aligned, roll: %.3f, pitch %.3f, yaw: %.3f",
+				  (double)matrix::Eulerf(_state.quat_nominal).phi(),
+				  (double)matrix::Eulerf(_state.quat_nominal).theta(),
+				  (double)matrix::Eulerf(_state.quat_nominal).psi()
+				 );
 		}
 	}
 

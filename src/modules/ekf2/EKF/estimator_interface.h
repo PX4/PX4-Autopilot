@@ -140,16 +140,34 @@ public:
 	void set_in_air_status(bool in_air)
 	{
 		if (!in_air) {
+			if (_control_status.flags.in_air) {
+				ECL_DEBUG("no longer in air");
+			}
+
 			_time_last_on_ground_us = _time_delayed_us;
 
 		} else {
+			if (!_control_status.flags.in_air) {
+				ECL_DEBUG("in air");
+			}
+
 			_time_last_in_air = _time_delayed_us;
 		}
 
 		_control_status.flags.in_air = in_air;
 	}
 
-	void set_vehicle_at_rest(bool at_rest) { _control_status.flags.vehicle_at_rest = at_rest; }
+	void set_vehicle_at_rest(bool at_rest)
+	{
+		if (!_control_status.flags.vehicle_at_rest && at_rest) {
+			ECL_DEBUG("at rest");
+
+		} else if (_control_status.flags.vehicle_at_rest && !at_rest) {
+			ECL_DEBUG("no longer at rest");
+		}
+
+		_control_status.flags.vehicle_at_rest = at_rest;
+	}
 
 	// return true if the attitude is usable
 	bool attitude_valid() const { return _control_status.flags.tilt_align; }
@@ -420,9 +438,12 @@ protected:
 	// allocate data buffers and initialize interface variables
 	bool initialise_interface(uint64_t timestamp);
 
+	uint64_t _wmm_gps_time_last_checked{0};  // time WMM last checked
+	uint64_t _wmm_gps_time_last_set{0};      // time WMM last set
 	float _mag_declination_gps{NAN};         // magnetic declination returned by the geo library using the last valid GPS position (rad)
 	float _mag_inclination_gps{NAN};	  // magnetic inclination returned by the geo library using the last valid GPS position (rad)
 	float _mag_strength_gps{NAN};	          // magnetic strength returned by the geo library using the last valid GPS position (T)
+
 	float _mag_inclination{NAN};
 	float _mag_strength{NAN};
 

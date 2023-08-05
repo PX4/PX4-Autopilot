@@ -84,8 +84,10 @@ list(APPEND EKF_SRCS
 	EKF/gravity_fusion.cpp
 	EKF/height_control.cpp
 	EKF/imu_down_sampler.cpp
+	EKF/mag_3d_control.cpp
 	EKF/mag_control.cpp
 	EKF/mag_fusion.cpp
+	EKF/mag_heading_control.cpp
 	EKF/output_predictor.cpp
 	EKF/vel_pos_fusion.cpp
 	EKF/zero_innovation_heading_update.cpp

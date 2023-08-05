@@ -73,3 +73,12 @@ TEST_CASE("Offboard position control", "[multicopter][offboard]")
 	tester.wait_until_disarmed(std::chrono::seconds(120));
 	tester.check_home_within(1.0f);
 }
+
+TEST_CASE("Offboard attitude control", "[multicopter][offboard_attitude]")
+{
+	AutopilotTester tester;
+	tester.connect(connection_url);
+	tester.set_rc_loss_exception(AutopilotTester::RcLossException::Offboard);
+	tester.fly_forward_in_offboard_attitude();
+	tester.wait_until_disarmed(std::chrono::seconds(120));
+}
