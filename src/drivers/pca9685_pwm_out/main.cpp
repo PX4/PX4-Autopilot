@@ -133,6 +133,15 @@ int PCA9685Wrapper::init()
 		return ret;
 	}
 
+	param_t param_h = param_find("PCA9685_RATE");
+
+	if (param_h != PARAM_INVALID) {
+		param_get(param_h, &_targetFreq);
+
+	} else {
+		PX4_DEBUG("PARAM_INVALID: PCA9685_RATE");
+	}
+
 	this->ChangeWorkQueue(px4::device_bus_to_wq(pca9685->get_device_id()));
 
 	PX4_INFO("running on I2C bus %d address 0x%.2x", pca9685->get_device_bus(), pca9685->get_device_address());
