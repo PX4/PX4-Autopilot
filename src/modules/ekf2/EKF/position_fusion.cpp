@@ -33,50 +33,27 @@
 
 #include "ekf.h"
 
-void Ekf::updateHorizontalPositionAidSrcStatus(const uint64_t &time_us, const Vector2f &obs, const Vector2f &obs_var,
-		const float innov_gate, estimator_aid_source2d_s &aid_src) const
+void Ekf::updateVerticalPositionAidStatus(estimator_aid_source1d_s &aid_src, const uint64_t &time_us,
+		const float observation, const float observation_variance, const float innovation_gate) const
 {
-	resetEstimatorAidStatus(aid_src);
+	float innovation = _state.pos(2) - observation;
+	float innovation_variance = getStateVariance<State::pos>()(2) + observation_variance;
 
-	for (int i = 0; i < 2; i++) {
-		aid_src.observation[i] = obs(i);
-		aid_src.innovation[i] = _state.pos(i) - aid_src.observation[i];
-
-		aid_src.observation_variance[i] = math::max(sq(0.01f), obs_var(i));
-		const int state_index = State::pos.idx + i;
-		aid_src.innovation_variance[i] = P(state_index, state_index) + aid_src.observation_variance[i];
-	}
-
-	setEstimatorAidStatusTestRatio(aid_src, innov_gate);
-
-	aid_src.timestamp_sample = time_us;
-}
-
-void Ekf::updateVerticalPositionAidSrcStatus(const uint64_t &time_us, const float obs, const float obs_var,
-		const float innov_gate, estimator_aid_source1d_s &aid_src) const
-{
-	resetEstimatorAidStatus(aid_src);
-
-	aid_src.observation = obs;
-	aid_src.innovation = _state.pos(2) - aid_src.observation;
-
-	aid_src.observation_variance = math::max(sq(0.01f), obs_var);
-	aid_src.innovation_variance = P(State::pos.idx + 2, State::pos.idx + 2) + aid_src.observation_variance;
-
-	setEstimatorAidStatusTestRatio(aid_src, innov_gate);
+	updateAidSourceStatus(aid_src, time_us,
+				 observation, observation_variance,
+				 innovation, innovation_variance,
+				 innovation_gate);
 
 	// z special case if there is bad vertical acceleration data, then don't reject measurement,
 	// but limit innovation to prevent spikes that could destabilise the filter
 	if (_fault_status.flags.bad_acc_vertical && aid_src.innovation_rejected) {
-		const float innov_limit = innov_gate * sqrtf(aid_src.innovation_variance);
+		const float innov_limit = innovation_gate * sqrtf(aid_src.innovation_variance);
 		aid_src.innovation = math::constrain(aid_src.innovation, -innov_limit, innov_limit);
 		aid_src.innovation_rejected = false;
 	}
-
-	aid_src.timestamp_sample = time_us;
 }
 
-void Ekf::fuseHorizontalPosition(estimator_aid_source2d_s &aid_src)
+bool Ekf::fuseHorizontalPosition(estimator_aid_source2d_s &aid_src)
 {
 	// x & y
 	if (!aid_src.innovation_rejected
@@ -91,9 +68,11 @@ void Ekf::fuseHorizontalPosition(estimator_aid_source2d_s &aid_src)
 	} else {
 		aid_src.fused = false;
 	}
+
+	return aid_src.fused;
 }
 
-void Ekf::fuseVerticalPosition(estimator_aid_source1d_s &aid_src)
+bool Ekf::fuseVerticalPosition(estimator_aid_source1d_s &aid_src)
 {
 	// z
 	if (!aid_src.innovation_rejected
@@ -107,6 +86,8 @@ void Ekf::fuseVerticalPosition(estimator_aid_source1d_s &aid_src)
 	} else {
 		aid_src.fused = false;
 	}
+
+	return aid_src.fused;
 }
 
 void Ekf::resetHorizontalPositionTo(const Vector2f &new_horz_pos, const Vector2f &new_horz_pos_var)
@@ -199,12 +180,4 @@ void Ekf::resetHorizontalPositionToLastKnown()
 
 	// Used when falling back to non-aiding mode of operation
 	resetHorizontalPositionTo(_last_known_pos.xy(), sq(_params.pos_noaid_noise));
-}
-
-void Ekf::resetHorizontalPositionToExternal(const Vector2f &new_horiz_pos, float horiz_accuracy)
-{
-	ECL_INFO("reset position to external observation");
-	_information_events.flags.reset_pos_to_ext_obs = true;
-
-	resetHorizontalPositionTo(new_horiz_pos, sq(horiz_accuracy));
 }

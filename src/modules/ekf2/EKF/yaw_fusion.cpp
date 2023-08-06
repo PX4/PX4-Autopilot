@@ -37,23 +37,8 @@
 
 #include <mathlib/mathlib.h>
 
-// update quaternion states and covariances using the yaw innovation and yaw observation variance
-bool Ekf::fuseYaw(estimator_aid_source1d_s &aid_src_status)
-{
-	VectorState H_YAW;
-	sym::ComputeYawInnovVarAndH(_state.vector(), P, aid_src_status.observation_variance, &aid_src_status.innovation_variance, &H_YAW);
-
-	return fuseYaw(aid_src_status, H_YAW);
-}
-
 bool Ekf::fuseYaw(estimator_aid_source1d_s &aid_src_status, const VectorState &H_YAW)
 {
-	// define the innovation gate size
-	float gate_sigma = math::max(_params.heading_innov_gate, 1.f);
-
-	// innovation test ratio
-	setEstimatorAidStatusTestRatio(aid_src_status, gate_sigma);
-
 	// check if the innovation variance calculation is badly conditioned
 	if (aid_src_status.innovation_variance >= aid_src_status.observation_variance) {
 		// the innovation variance contribution from the state covariances is not negative, no fault
@@ -83,7 +68,7 @@ bool Ekf::fuseYaw(estimator_aid_source1d_s &aid_src_status, const VectorState &H
 		Kfusion(row) *= heading_innov_var_inv;
 	}
 
-	// set the magnetometer unhealthy if the test fails
+	// set the heading unhealthy if the test fails
 	if (aid_src_status.innovation_rejected) {
 		_innov_check_fail_status.flags.reject_yaw = true;
 
@@ -91,13 +76,14 @@ bool Ekf::fuseYaw(estimator_aid_source1d_s &aid_src_status, const VectorState &H
 		// we allow to use it when on the ground because the large innovation could be caused
 		// by interference or a large initial gyro bias
 		if (!_control_status.flags.in_air
-			&& isTimedOut(_time_last_in_air, (uint64_t)5e6)
-			&& isTimedOut(aid_src_status.time_last_fuse, (uint64_t)1e6)
-			) {
+		    && isTimedOut(_time_last_in_air, (uint64_t)5e6)
+		    && isTimedOut(aid_src_status.time_last_fuse, (uint64_t)1e6)
+		   ) {
 			// constrain the innovation to the maximum set by the gate
 			// we need to delay this forced fusion to avoid starting it
 			// immediately after touchdown, when the drone is still armed
-			float gate_limit = sqrtf((sq(gate_sigma) * aid_src_status.innovation_variance));
+			const float gate_sigma = math::max(_params.heading_innov_gate, 1.f);
+			const float gate_limit = sqrtf((sq(gate_sigma) * aid_src_status.innovation_variance));
 			aid_src_status.innovation = math::constrain(aid_src_status.innovation, -gate_limit, gate_limit);
 
 			// also reset the yaw gyro variance to converge faster and avoid
@@ -122,13 +108,10 @@ bool Ekf::fuseYaw(estimator_aid_source1d_s &aid_src_status, const VectorState &H
 		_fault_status.flags.bad_hdg = false;
 
 		return true;
-
-	} else {
-		_fault_status.flags.bad_hdg = true;
 	}
 
 	// otherwise
-	aid_src_status.fused = false;
+	_fault_status.flags.bad_hdg = true;
 	return false;
 }
 

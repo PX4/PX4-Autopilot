@@ -69,19 +69,13 @@ void Ekf::controlGravityFusion(const imuSample &imu)
 	sym::ComputeGravityXyzInnovVarAndHx(state_vector, P, measurement_var, &innovation_variance, &H);
 
 	// fill estimator aid source status
-	resetEstimatorAidStatus(_aid_src_gravity);
-	_aid_src_gravity.timestamp_sample = imu.time_us;
-	measurement.copyTo(_aid_src_gravity.observation);
-
-	for (auto &var : _aid_src_gravity.observation_variance) {
-		var = measurement_var;
-	}
-
-	innovation.copyTo(_aid_src_gravity.innovation);
-	innovation_variance.copyTo(_aid_src_gravity.innovation_variance);
-
-	float innovation_gate = 0.25f;
-	setEstimatorAidStatusTestRatio(_aid_src_gravity, innovation_gate);
+	updateAidSourceStatus(_aid_src_gravity,
+				 imu.time_us,                                                 // sample timestamp
+				 measurement,                                                 // observation
+				 Vector3f{measurement_var, measurement_var, measurement_var}, // observation variance
+				 innovation,                                                  // innovation
+				 innovation_variance,                                         // innovation variance
+				 0.25f);                                                      // innovation gate
 
 	bool fused[3] {false, false, false};
 
