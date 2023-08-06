@@ -51,8 +51,7 @@ void Ekf::controlFakeHgtFusion()
 		const float obs_var = sq(_params.pos_noaid_noise);
 		const float innov_gate = 3.f;
 
-		updateVerticalPositionAidSrcStatus(_time_delayed_us, _last_known_pos(2), obs_var, innov_gate, aid_src);
-
+		updateVerticalPositionAidStatus(aid_src, _time_delayed_us, _last_known_pos(2), obs_var, innov_gate);
 
 		const bool continuing_conditions_passing = !isVerticalAidingActive();
 		const bool starting_conditions_passing = continuing_conditions_passing
@@ -113,7 +112,5 @@ void Ekf::stopFakeHgtFusion()
 	if (_control_status.flags.fake_hgt) {
 		ECL_INFO("stop fake height fusion");
 		_control_status.flags.fake_hgt = false;
-
-		resetEstimatorAidStatus(_aid_src_fake_hgt);
 	}
 }
