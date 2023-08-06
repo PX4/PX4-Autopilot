@@ -97,10 +97,6 @@ void Ekf::controlMagFusion()
 		_fault_status.flags.bad_mag_y = false;
 		_fault_status.flags.bad_mag_z = false;
 
-
-		resetEstimatorAidStatus(aid_src);
-		aid_src.timestamp_sample = mag_sample.time_us;
-
 		// XYZ Measurement uncertainty. Need to consider timing errors for fast rotations
 		const float R_MAG = math::max(sq(_params.mag_noise), sq(0.01f));
 
@@ -112,15 +108,13 @@ void Ekf::controlMagFusion()
 		VectorState H;
 		sym::ComputeMagInnovInnovVarAndHx(_state.vector(), P, mag_sample.mag, R_MAG, FLT_EPSILON, &mag_innov, &innov_var, &H);
 
-		for (int i = 0; i < 3; i++) {
-			aid_src.observation[i] = mag_sample.mag(i);
-			aid_src.observation_variance[i] = R_MAG;
-			aid_src.innovation[i] = mag_innov(i);
-			aid_src.innovation_variance[i] = innov_var(i);
-		}
-
-		const float innov_gate = math::max(_params.mag_innov_gate, 1.f);
-		setEstimatorAidStatusTestRatio(aid_src, innov_gate);
+		updateAidSourceStatus(aid_src,
+					mag_sample.time_us,                      // sample timestamp
+					mag_sample.mag,                          // observation
+					Vector3f(R_MAG, R_MAG, R_MAG),           // observation variance
+					mag_innov,                               // innovation
+					innov_var,                               // innovation variance
+					math::max(_params.mag_innov_gate, 1.f)); // innovation gate
 
 		// Perform an innovation consistency check and report the result
 		_innov_check_fail_status.flags.reject_mag_x = (aid_src.test_ratio[0] > 1.f);

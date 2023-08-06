@@ -124,53 +124,6 @@ void Ekf::reset()
 	_time_good_vert_accel = 0;
 	_clip_counter = 0;
 
-#if defined(CONFIG_EKF2_BAROMETER)
-	resetEstimatorAidStatus(_aid_src_baro_hgt);
-#endif // CONFIG_EKF2_BAROMETER
-#if defined(CONFIG_EKF2_AIRSPEED)
-	resetEstimatorAidStatus(_aid_src_airspeed);
-#endif // CONFIG_EKF2_AIRSPEED
-#if defined(CONFIG_EKF2_SIDESLIP)
-	resetEstimatorAidStatus(_aid_src_sideslip);
-#endif // CONFIG_EKF2_SIDESLIP
-
-	resetEstimatorAidStatus(_aid_src_fake_pos);
-	resetEstimatorAidStatus(_aid_src_fake_hgt);
-
-#if defined(CONFIG_EKF2_EXTERNAL_VISION)
-	resetEstimatorAidStatus(_aid_src_ev_hgt);
-	resetEstimatorAidStatus(_aid_src_ev_pos);
-	resetEstimatorAidStatus(_aid_src_ev_vel);
-	resetEstimatorAidStatus(_aid_src_ev_yaw);
-#endif // CONFIG_EKF2_EXTERNAL_VISION
-
-#if defined(CONFIG_EKF2_GNSS)
-	resetEstimatorAidStatus(_aid_src_gnss_hgt);
-	resetEstimatorAidStatus(_aid_src_gnss_pos);
-	resetEstimatorAidStatus(_aid_src_gnss_vel);
-
-# if defined(CONFIG_EKF2_GNSS_YAW)
-	resetEstimatorAidStatus(_aid_src_gnss_yaw);
-# endif // CONFIG_EKF2_GNSS_YAW
-#endif // CONFIG_EKF2_GNSS
-
-#if defined(CONFIG_EKF2_MAGNETOMETER)
-	resetEstimatorAidStatus(_aid_src_mag);
-#endif // CONFIG_EKF2_MAGNETOMETER
-
-#if defined(CONFIG_EKF2_AUXVEL)
-	resetEstimatorAidStatus(_aid_src_aux_vel);
-#endif // CONFIG_EKF2_AUXVEL
-
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	resetEstimatorAidStatus(_aid_src_optical_flow);
-	resetEstimatorAidStatus(_aid_src_terrain_optical_flow);
-#endif // CONFIG_EKF2_OPTICAL_FLOW
-
-#if defined(CONFIG_EKF2_RANGE_FINDER)
-	resetEstimatorAidStatus(_aid_src_rng_hgt);
-#endif // CONFIG_EKF2_RANGE_FINDER
-
 	_zero_velocity_update.reset();
 }
 
@@ -332,7 +285,6 @@ void Ekf::predictState(const imuSample &imu_delayed)
 
 void Ekf::resetGlobalPosToExternalObservation(double lat_deg, double lon_deg, float accuracy, uint64_t timestamp_observation)
 {
-
 	if (!_pos_ref.isInitialized()) {
 		return;
 	}
@@ -344,7 +296,10 @@ void Ekf::resetGlobalPosToExternalObservation(double lat_deg, double lon_deg, fl
 
 	Vector2f pos_corrected = _pos_ref.project(lat_deg, lon_deg) + _state.vel.xy() * dt;
 
-	resetHorizontalPositionToExternal(pos_corrected, math::max(accuracy, FLT_EPSILON));
+	resetHorizontalPositionTo(pos_corrected, sq(math::max(accuracy, 0.01f)));
+
+	ECL_INFO("reset position to external observation");
+	_information_events.flags.reset_pos_to_ext_obs = true;
 }
 
 void Ekf::updateParameters()

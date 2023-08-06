@@ -69,9 +69,6 @@ void Ekf::controlExternalVisionFusion()
 			_ev_sample_prev = ev_sample;
 		}
 
-		// record corresponding yaw state for future EV delta heading innovation (logging only)
-		_ev_yaw_pred_prev = getEulerYaw(_state.quat_nominal);
-
 	} else if ((_control_status.flags.ev_pos || _control_status.flags.ev_vel || _control_status.flags.ev_yaw
 		    || _control_status.flags.ev_hgt)
 		   && isTimedOut(_ev_sample_prev.time_us, 2 * EV_MAX_INTERVAL)) {

@@ -85,11 +85,11 @@ void Ekf::controlEvHeightFusion(const extVisionSample &ev_sample, const bool com
 
 	const bool measurement_valid = PX4_ISFINITE(measurement) && PX4_ISFINITE(measurement_var);
 
-	updateVerticalPositionAidSrcStatus(ev_sample.time_us,
-					   measurement - bias_est.getBias(),
-					   measurement_var + bias_est.getBiasVar(),
-					   math::max(_params.ev_pos_innov_gate, 1.f),
-					   aid_src);
+	updateVerticalPositionAidStatus(aid_src,
+					ev_sample.time_us,
+					measurement - bias_est.getBias(),           // observation
+					measurement_var + bias_est.getBiasVar(),    // observation variance
+					math::max(_params.ev_pos_innov_gate, 1.f)); // innovation gate
 
 	// update the bias estimator before updating the main filter but after
 	// using its current state to compute the vertical position innovation
@@ -220,7 +220,6 @@ void Ekf::stopEvHgtFusion()
 		}
 
 		_ev_hgt_b_est.setFusionInactive();
-		resetEstimatorAidStatus(_aid_src_ev_hgt);
 
 		_control_status.flags.ev_hgt = false;
 	}
