@@ -9,3 +9,19 @@ actuator_output:
         max: { min: 1600, max: 2200, default: 2000 }
         failsafe: { min: 800, max: 2200 }
       num_channels: 16
+parameters:
+    - group: PCA9685
+      definitions:
+        PCA9685_RATE:
+            description:
+                short: PWM frequency for PCA9685
+                long: |
+                    Update rate at which the PWM signal is sent to the ESC.
+            type: float
+            decimal: 1
+            increment: 0.1
+            default: 50
+            min: 50
+            max: 450
+            unit: Hz
+            reboot_required: true
