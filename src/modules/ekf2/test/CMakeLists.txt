@@ -37,6 +37,7 @@ add_subdirectory(sensor_simulator)
 add_subdirectory(test_helper)
 
 px4_add_unit_gtest(SRC test_EKF_accelerometer.cpp LINKLIBS ecl_EKF ecl_sensor_sim)
+px4_add_unit_gtest(SRC test_EKF_attitude_variance.cpp LINKLIBS ecl_EKF ecl_test_helper)
 px4_add_unit_gtest(SRC test_EKF_airspeed_fusion_generated.cpp LINKLIBS ecl_EKF ecl_test_helper)
 px4_add_unit_gtest(SRC test_EKF_airspeed.cpp LINKLIBS ecl_EKF ecl_sensor_sim)
 px4_add_unit_gtest(SRC test_EKF_basics.cpp LINKLIBS ecl_EKF ecl_sensor_sim)

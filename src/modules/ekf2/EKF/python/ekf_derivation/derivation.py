@@ -502,6 +502,15 @@ def compute_gravity_innov_var_and_k_and_h(
 
     return (innov, innov_var, K[0], K[1], K[2])
 
+def quat_var_to_rot_var(
+        state: VState,
+        P: MState,
+        epsilon: sf.Scalar
+):
+    J = sf.V3(state_to_rot3(state).to_tangent(epsilon=epsilon)).jacobian(state)
+    rot_cov = J * P * J.T
+    return sf.V3(rot_cov[0, 0], rot_cov[1, 1], rot_cov[2, 2])
+
 print("Derive EKF2 equations...")
 generate_px4_function(compute_airspeed_innov_and_innov_var, output_names=["innov", "innov_var"])
 generate_px4_function(compute_airspeed_h_and_k, output_names=["H", "K"])
@@ -523,3 +532,4 @@ generate_px4_function(compute_gnss_yaw_pred_innov_var_and_h, output_names=["meas
 generate_px4_function(compute_drag_x_innov_var_and_k, output_names=["innov_var", "K"])
 generate_px4_function(compute_drag_y_innov_var_and_k, output_names=["innov_var", "K"])
 generate_px4_function(compute_gravity_innov_var_and_k_and_h, output_names=["innov", "innov_var", "Kx", "Ky", "Kz"])
+generate_px4_function(quat_var_to_rot_var, output_names=["rot_var"])
