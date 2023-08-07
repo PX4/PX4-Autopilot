@@ -280,6 +280,27 @@ public:
 		return self.isBlockSymmetric<Width>(first, eps);
 	}
 
+	void copyLowerToUpperTriangle()
+	{
+		SquareMatrix<Type, M> &self = *this;
+
+		for (size_t row_idx = 1; row_idx < M; row_idx++) {
+			for (size_t col_idx = 0 ; col_idx < row_idx; col_idx++) {
+				self(col_idx, row_idx) = self(row_idx, col_idx);
+			}
+		}
+	}
+
+	void copyUpperToLowerTriangle()
+	{
+		SquareMatrix<Type, M> &self = *this;
+
+		for (size_t row_idx = 1; row_idx < M; row_idx++) {
+			for (size_t col_idx = 0 ; col_idx < row_idx; col_idx++) {
+				self(row_idx, col_idx) = self(col_idx, row_idx);
+			}
+		}
+	}
 };
 
 using SquareMatrix3f = SquareMatrix<float, 3>;
