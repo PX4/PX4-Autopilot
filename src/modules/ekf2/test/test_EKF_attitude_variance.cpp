@@ -36,6 +36,9 @@
 #include "test_helper/comparison_helper.h"
 
 #include "../EKF/python/ekf_derivation/generated/quat_var_to_rot_var.h"
+#include "../EKF/python/ekf_derivation/generated/yaw_var_to_lower_triangular_quat_cov.h"
+#include "../EKF/python/ekf_derivation/generated/compute_yaw_321_innov_var_and_h.h"
+#include "../EKF/python/ekf_derivation/generated/compute_yaw_312_innov_var_and_h.h"
 
 using namespace matrix;
 
@@ -129,4 +132,81 @@ TEST(AttitudeVariance, matlabVsSymforceZeroTilt)
 
 	const Vector3f rot_var_true = 4.0f * P.slice<3, 3>(1, 1).diag(); // special case
 	EXPECT_EQ(rot_var_symforce, rot_var_true);
+}
+
+void increaseYawVar(const Vector24f &state_vector, SquareMatrix24f &P, const float yaw_var)
+{
+	SquareMatrix<float, 4> q_cov;
+	sym::YawVarToLowerTriangularQuatCov(state_vector, yaw_var, &q_cov);
+	q_cov.copyLowerToUpperTriangle();
+	P.slice<4, 4>(0, 0) += q_cov;
+}
+
+float getYawVar(const Vector24f &state_vector, const SquareMatrix24f &P)
+{
+	Vector24f H_YAW;
+	float yaw_var = 0.f;
+	sym::ComputeYaw312InnovVarAndH(state_vector, P, 0.f, FLT_EPSILON, &yaw_var, &H_YAW);
+	return yaw_var;
+}
+
+TEST(AttitudeVariance, increaseYawVarNoTilt)
+{
+	Quatf q;
+	SquareMatrix24f P;
+	Vector24f state_vector{};
+	state_vector(0) = q(0);
+	state_vector(1) = q(1);
+	state_vector(2) = q(2);
+	state_vector(3) = q(3);
+
+	const float yaw_var = radians(25.f);
+	increaseYawVar(state_vector, P, yaw_var);
+
+	const float var_new = getYawVar(state_vector, P);
+
+	EXPECT_NEAR(var_new, yaw_var, 1e-6f);
+}
+
+TEST(AttitudeVariance, increaseYawVarPitch90)
+{
+	Quatf q(Eulerf(M_PI_F / 2.f, M_PI_F / 2.f, M_PI_F / 3.f));
+	SquareMatrix24f P;
+	Vector24f state_vector{};
+	state_vector(0) = q(0);
+	state_vector(1) = q(1);
+	state_vector(2) = q(2);
+	state_vector(3) = q(3);
+
+	const float yaw_var = radians(25.f);
+	increaseYawVar(state_vector, P, yaw_var);
+
+	const float var_new = getYawVar(state_vector, P);
+
+	EXPECT_NEAR(var_new, yaw_var, 1e-6f);
+}
+
+TEST(AttitudeVariance, increaseYawWithTilt)
+{
+	Quatf q(Eulerf(-M_PI_F, M_PI_F / 3.f, -M_PI_F / 5.f));
+	SquareMatrix24f P;
+	Vector24f state_vector{};
+	state_vector(0) = q(0);
+	state_vector(1) = q(1);
+	state_vector(2) = q(2);
+	state_vector(3) = q(3);
+
+	// Set the yaw variance (from 0)
+	const float yaw_var_1 = radians(25.f);
+	increaseYawVar(state_vector, P, yaw_var_1);
+
+	const float var_1 = getYawVar(state_vector, P);
+	EXPECT_NEAR(var_1, yaw_var_1, 1e-6f);
+
+	// Increase it even more
+	const float yaw_var_2 = radians(12.f);
+	increaseYawVar(state_vector, P, yaw_var_2);
+
+	const float var_2 = getYawVar(state_vector, P);
+	EXPECT_NEAR(var_2, yaw_var_1 + yaw_var_2, 1e-6f);
 }
