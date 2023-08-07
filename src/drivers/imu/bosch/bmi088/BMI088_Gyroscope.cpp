@@ -33,8 +33,6 @@
 
 #include "BMI088_Gyroscope.hpp"
 
-#include <px4_platform/board_dma_alloc.h>
-
 using namespace time_literals;
 
 namespace Bosch::BMI088::Gyroscope
