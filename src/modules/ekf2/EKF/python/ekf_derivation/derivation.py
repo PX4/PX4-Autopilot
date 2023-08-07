@@ -117,8 +117,8 @@ def predict_covariance(
     var_u = sf.Matrix.diag([d_vel_var[0], d_vel_var[1], d_vel_var[2], d_ang_var, d_ang_var, d_ang_var])
     P_new = A * P * A.T + G * var_u * G.T
 
-    # Generate the equations for the lower triangular matrix and the diagonal only
-    # Since the matrix is symmetric, the upper triangle does not need to be derived
+    # Generate the equations for the upper triangular matrix and the diagonal only
+    # Since the matrix is symmetric, the lower triangle does not need to be derived
     # and can simply be copied in the implementation
     for index in range(State.n_states):
         for j in range(State.n_states):
