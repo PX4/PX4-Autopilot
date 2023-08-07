@@ -889,6 +889,15 @@ Vector3f Ekf::calcRotVecVariances() const
 	return rot_var;
 }
 
+float Ekf::getYawVar() const
+{
+	Vector24f H_YAW;
+	float yaw_var = 0.f;
+	computeYawInnovVarAndH(0.f, yaw_var, H_YAW);
+
+	return yaw_var;
+}
+
 // initialise the quaternion covariances using rotation vector variances
 // do not call before quaternion states are initialised
 void Ekf::initialiseQuatCovariances(Vector3f &rot_vec_var)
