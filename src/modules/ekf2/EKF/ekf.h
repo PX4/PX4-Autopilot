@@ -441,6 +441,7 @@ public:
 
 	// rotate quaternion covariances into variances for an equivalent rotation vector
 	Vector3f calcRotVecVariances() const;
+	float getYawVar() const;
 
 	// set minimum continuous period without GPS fail required to mark a healthy GPS status
 	void set_min_required_gps_health_time(uint32_t time_us) { _min_gps_health_time_us = time_us; }
