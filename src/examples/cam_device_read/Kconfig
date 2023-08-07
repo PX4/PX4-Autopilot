@@ -1,0 +1,5 @@
+menuconfig EXAMPLES_CAM_DEVICE_READ
+	bool "cam_device_read"
+	default n
+	---help---
+		Enable support for cam_device_read
