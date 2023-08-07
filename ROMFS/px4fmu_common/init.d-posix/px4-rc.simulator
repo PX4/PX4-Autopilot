@@ -38,6 +38,19 @@ if [ "$PX4_SIMULATOR" = "sihsim" ] || [ "$(param show -q SYS_AUTOSTART)" -eq "0"
 
 elif [ "$PX4_SIMULATOR" = "gz" ] || [ "$(param show -q SIM_GZ_EN)" -eq "1" ]; then
 
+	# set local coordinate frame reference
+	if [ -n "${PX4_HOME_LAT}" ]; then
+		param set SIM_GZ_HOME_LAT ${PX4_HOME_LAT}
+	fi
+
+	if [ -n "${PX4_HOME_LON}" ]; then
+		param set SIM_GZ_HOME_LON ${PX4_HOME_LON}
+	fi
+
+	if [ -n "${PX4_HOME_ALT}" ]; then
+		param set SIM_GZ_HOME_ALT ${PX4_HOME_LON}
+	fi
+
 	# source generated gz_env.sh for GZ_SIM_RESOURCE_PATH
 	if [ -f ./gz_env.sh ]; then
 		. ./gz_env.sh
