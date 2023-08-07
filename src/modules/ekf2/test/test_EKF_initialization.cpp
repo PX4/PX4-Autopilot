@@ -84,6 +84,12 @@ public:
 		EXPECT_TRUE(quat_variance(3) > quat_variance_limit) << "quat_variance(3): " << quat_variance(3);
 	}
 
+	void yawVarianceBigEnoughAfterHeadingReset()
+	{
+		// The yaw variance is smaller than its reset value as we do not probe instantly after the reset
+		EXPECT_GT(sqrtf(_ekf->getYawVar()), _ekf_wrapper.getMagHeadingNoise() / 5.f);
+	}
+
 	void velocityAndPositionCloseToZero()
 	{
 		const Vector3f pos = _ekf->getPosition();
@@ -264,6 +270,7 @@ TEST_F(EkfInitializationTest, initializeHeadingWithZeroTilt)
 
 	initializedOrienationIsMatchingGroundTruth(quat_sim);
 	quaternionVarianceBigEnoughAfterOrientationInitialization(0.00001f);
+	yawVarianceBigEnoughAfterHeadingReset();
 
 	velocityAndPositionCloseToZero();
 
@@ -290,6 +297,7 @@ TEST_F(EkfInitializationTest, initializeWithTilt)
 
 	initializedOrienationIsMatchingGroundTruth(quat_sim);
 	quaternionVarianceBigEnoughAfterOrientationInitialization(0.00001f);
+	yawVarianceBigEnoughAfterHeadingReset();
 
 	velocityAndPositionCloseToZero();
 
