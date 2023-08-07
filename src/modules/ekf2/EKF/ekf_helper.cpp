@@ -40,6 +40,7 @@
  */
 
 #include "ekf.h"
+#include "python/ekf_derivation/generated/quat_var_to_rot_var.h"
 
 #include <mathlib/mathlib.h>
 #include <cstdlib>
@@ -882,46 +883,9 @@ void Ekf::updateVerticalDeadReckoningStatus()
 // calculate the variances for the rotation vector equivalent
 Vector3f Ekf::calcRotVecVariances() const
 {
-	Vector3f rot_var_vec;
-	float q0, q1, q2, q3;
-
-	if (_state.quat_nominal(0) >= 0.0f) {
-		q0 = _state.quat_nominal(0);
-		q1 = _state.quat_nominal(1);
-		q2 = _state.quat_nominal(2);
-		q3 = _state.quat_nominal(3);
-
-	} else {
-		q0 = -_state.quat_nominal(0);
-		q1 = -_state.quat_nominal(1);
-		q2 = -_state.quat_nominal(2);
-		q3 = -_state.quat_nominal(3);
-	}
-	float t2 = q0*q0;
-	float t3 = acosf(q0);
-	float t4 = -t2+1.0f;
-	float t5 = t2-1.0f;
-	if ((t4 > 1e-9f) && (t5 < -1e-9f)) {
-		float t6 = 1.0f/t5;
-		float t7 = q1*t6*2.0f;
-		float t8 = 1.0f/powf(t4,1.5f);
-		float t9 = q0*q1*t3*t8*2.0f;
-		float t10 = t7+t9;
-		float t11 = 1.0f/sqrtf(t4);
-		float t12 = q2*t6*2.0f;
-		float t13 = q0*q2*t3*t8*2.0f;
-		float t14 = t12+t13;
-		float t15 = q3*t6*2.0f;
-		float t16 = q0*q3*t3*t8*2.0f;
-		float t17 = t15+t16;
-		rot_var_vec(0) = t10*(P(0,0)*t10+P(1,0)*t3*t11*2.0f)+t3*t11*(P(0,1)*t10+P(1,1)*t3*t11*2.0f)*2.0f;
-		rot_var_vec(1) = t14*(P(0,0)*t14+P(2,0)*t3*t11*2.0f)+t3*t11*(P(0,2)*t14+P(2,2)*t3*t11*2.0f)*2.0f;
-		rot_var_vec(2) = t17*(P(0,0)*t17+P(3,0)*t3*t11*2.0f)+t3*t11*(P(0,3)*t17+P(3,3)*t3*t11*2.0f)*2.0f;
-	} else {
-		rot_var_vec = 4.0f * P.slice<3,3>(1,1).diag();
-	}
-
-	return rot_var_vec;
+	Vector3f rot_var;
+	sym::QuatVarToRotVar(getStateAtFusionHorizonAsVector(), P, FLT_EPSILON, &rot_var);
+	return rot_var;
 }
 
 // initialise the quaternion covariances using rotation vector variances
