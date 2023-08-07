@@ -154,10 +154,11 @@ void MixingOutput::updateParams()
 	bool function_changed = false;
 
 	for (unsigned i = 0; i < _max_num_outputs; i++) {
+		int32_t func_val;
 		float val;
 
-		if (_param_handles[i].function != PARAM_INVALID && param_get(_param_handles[i].function, &val) == 0) {
-			if (val != (int32_t)_function_assignment[i]) {
+		if (_param_handles[i].function != PARAM_INVALID && param_get(_param_handles[i].function, &func_val) == 0) {
+			if (func_val != (int32_t)_function_assignment[i]) {
 				function_changed = true;
 			}
 
