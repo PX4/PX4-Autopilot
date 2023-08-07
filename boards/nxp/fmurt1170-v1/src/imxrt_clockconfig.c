@@ -174,23 +174,23 @@ const struct clock_configuration_s g_initial_clkconfig = {
 			.div           = 1,
 			.mux           = FLEXSPI2_CLK_ROOT_OSC_RC_48M_DIV2,
 		},
-		.can1_clk_root =
+		.can1_clk_root = /* 240 / 3 = 80Mhz */
 		{
 			.enable        = 1,
-			.div           = 1,
-			.mux           = CAN1_CLK_ROOT_OSC_RC_48M_DIV2,
+			.div           = 3,
+			.mux           = CAN1_CLK_ROOT_SYS_PLL3_DIV2,
 		},
-		.can2_clk_root =
+		.can2_clk_root = /* 240 / 3 = 80Mhz */
 		{
 			.enable        = 1,
-			.div           = 1,
-			.mux           = CAN2_CLK_ROOT_OSC_RC_48M_DIV2,
+			.div           = 3,
+			.mux           = CAN2_CLK_ROOT_SYS_PLL3_DIV2,
 		},
-		.can3_clk_root =
+		.can3_clk_root = /* 480 / 6 = 80Mhz */
 		{
 			.enable        = 1,
-			.div           = 1,
-			.mux           = CAN3_CLK_ROOT_OSC_RC_48M_DIV2,
+			.div           = 6,
+			.mux           = CAN3_CLK_ROOT_SYS_PLL3_CLK,
 		},
 		.lpuart1_clk_root = /* 528 / 22 = 24Mhz */
 		{
