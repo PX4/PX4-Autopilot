@@ -158,6 +158,9 @@ void ManualControl::Run()
 				if (_previous_switches_initialized) {
 					if (switches.mode_slot != _previous_switches.mode_slot) {
 						evaluateModeSlot(switches.mode_slot);
+						// ---Sees.ai--- If the RC Flight Mode switch changes, revert to RC control.
+						// i.e if safety pilot switches to Position Control, then give them control.
+						_selector.setControlSourceRC();
 					}
 
 					if (_param_com_arm_swisbtn.get()) {

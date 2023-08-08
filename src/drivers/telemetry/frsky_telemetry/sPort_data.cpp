@@ -200,17 +200,24 @@ void sPort_send_BATV(int uart)
 void sPort_send_CUR(int uart)
 {
 	/* Hijacked to send Data Source type (Mav/RC Control)(David @sees.ai) */
-	uint32_t control_source = s_port_subscription_data->manual_control_setpoint_sub.get().data_source;
+	int16_t control_source = s_port_subscription_data->manual_control_setpoint_sub.get().data_source;
+	hrt_abstime control_source_timestamp = s_port_subscription_data->manual_control_setpoint_sub.get().timestamp;
+	bool control_source_valid = s_port_subscription_data->manual_control_setpoint_sub.get().valid;
 
-	// If the input type is RC then set it to 0
-	if (control_source == manual_control_setpoint_s::SOURCE_RC) {
-		control_source = 10 * manual_control_setpoint_s::SEES_SOURCE_RC; // This equates to 0
+	// If the input has been invalid for >0.5s, then set it to 0
+	if ((!control_source_valid) && (hrt_absolute_time() - control_source_timestamp > 500'000)) {
+		control_source = manual_control_setpoint_s::SEES_SOURCE_NONE; // This equates to 0
 	}
 
-	// Else if the input type is Mavlink then set it to 1
+	// If the input type is RC then set it to 1
+	else if (control_source == manual_control_setpoint_s::SOURCE_RC) {
+		control_source = 10 * manual_control_setpoint_s::SEES_SOURCE_RC; // This equates to 1
+	}
+
+	// Else if the input type is Mavlink then set it to 2
 	else if (control_source >= manual_control_setpoint_s::SOURCE_MAVLINK_0
 		 && control_source <= manual_control_setpoint_s::SOURCE_MAVLINK_5) {
-		control_source = 10 * manual_control_setpoint_s::SEES_SOURCE_MAV; // This equates to 1
+		control_source = 10 * manual_control_setpoint_s::SEES_SOURCE_MAV; // This equates to 2
 	}
 
 	sPort_send_data(uart, SMARTPORT_ID_CURR, control_source);
@@ -412,17 +419,24 @@ void sPort_send_DIY_gps_mb(int uart)
 void sPort_send_DIY_rcmav(int uart)
 {
 	// OBManual Control Mode
-	uint32_t control_source = s_port_subscription_data->manual_control_setpoint_sub.get().data_source;
+	int16_t control_source = s_port_subscription_data->manual_control_setpoint_sub.get().data_source;
+	hrt_abstime control_source_timestamp = s_port_subscription_data->manual_control_setpoint_sub.get().timestamp;
+	bool control_source_valid = s_port_subscription_data->manual_control_setpoint_sub.get().valid;
 
-	// If the input type is RC then set it to 0
-	if (control_source == manual_control_setpoint_s::SOURCE_RC) {
-		control_source = manual_control_setpoint_s::SEES_SOURCE_RC; // This equates to 0
+	// If the input has been invalid for >0.5s, then set it to 0
+	if ((!control_source_valid) && (hrt_absolute_time() - control_source_timestamp > 500'000)) {
+		control_source = manual_control_setpoint_s::SEES_SOURCE_NONE; // This equates to 0
 	}
 
-	// Else if the input type is Mavlink then set it to 1
+	// If the input type is RC then set it to 1
+	else if (control_source == manual_control_setpoint_s::SOURCE_RC) {
+		control_source = manual_control_setpoint_s::SEES_SOURCE_RC; // This equates to 1
+	}
+
+	// Else if the input type is Mavlink then set it to 2
 	else if (control_source >= manual_control_setpoint_s::SOURCE_MAVLINK_0
 		 && control_source <= manual_control_setpoint_s::SOURCE_MAVLINK_5) {
-		control_source = manual_control_setpoint_s::SEES_SOURCE_MAV; // This equates to 1
+		control_source = manual_control_setpoint_s::SEES_SOURCE_MAV; // This equates to 2
 	}
 
 	sPort_send_data(uart, SMARTPORT_ID_RCMAV, control_source);
