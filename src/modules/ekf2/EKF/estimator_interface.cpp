@@ -471,7 +471,7 @@ void EstimatorInterface::setSystemFlagData(const systemFlagUpdate &system_flags)
 		_system_flag_buffer->push(system_flags_new);
 
 	} else {
-		ECL_WARN("system flag update too fast %" PRIi64 " < %" PRIu64 " + %d", time_us, _system_flag_buffer->get_newest().time_us, _min_obs_interval_us);
+		ECL_DEBUG("system flag update too fast %" PRIi64 " < %" PRIu64 " + %d", time_us, _system_flag_buffer->get_newest().time_us, _min_obs_interval_us);
 	}
 }
 

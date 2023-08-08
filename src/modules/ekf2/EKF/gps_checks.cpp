@@ -84,52 +84,53 @@ bool Ekf::collect_gps(const gpsMessage &gps)
 
 		_NED_origin_initialised = true;
 
-		_earth_rate_NED = calcEarthRateNED((float)math::radians(_pos_ref.getProjectionReferenceLat()));
-
-		const bool declination_was_valid = PX4_ISFINITE(_mag_declination_gps);
-
-		// set the magnetic field data returned by the geo library using the current GPS position
-		_mag_declination_gps = get_mag_declination_radians(lat, lon);
-		_mag_inclination_gps = get_mag_inclination_radians(lat, lon);
-		_mag_strength_gps = get_mag_strength_gauss(lat, lon);
-
-		// request a reset of the yaw using the new declination
-		if ((_params.mag_fusion_type != MagFuseType::NONE)
-		     && !declination_was_valid) {
-			_mag_yaw_reset_req = true;
-		}
-
 		// save the horizontal and vertical position uncertainty of the origin
 		_gps_origin_eph = gps.eph;
 		_gps_origin_epv = gps.epv;
 
 		_information_events.flags.gps_checks_passed = true;
 		ECL_INFO("GPS checks passed");
+	}
 
-	} else if (!_NED_origin_initialised) {
-		// a rough 2D fix is still sufficient to lookup declination
-		if ((gps.fix_type >= 2) && (gps.eph < 1000)) {
+	if (isTimedOut(_wmm_gps_time_last_checked, 1e6)) {
+		// a rough 2D fix is sufficient to lookup declination
+		const bool gps_rough_2d_fix = (gps.fix_type >= 2) && (gps.eph < 1000);
 
-			const bool declination_was_valid = PX4_ISFINITE(_mag_declination_gps);
+		if (gps_rough_2d_fix && (_gps_checks_passed || !_NED_origin_initialised)) {
 
 			// If we have good GPS data set the origin's WGS-84 position to the last gps fix
 			const double lat = gps.lat * 1.0e-7;
 			const double lon = gps.lon * 1.0e-7;
 
 			// set the magnetic field data returned by the geo library using the current GPS position
-			_mag_declination_gps = get_mag_declination_radians(lat, lon);
-			_mag_inclination_gps = get_mag_inclination_radians(lat, lon);
-			_mag_strength_gps = get_mag_strength_gauss(lat, lon);
+			const float mag_declination_gps = get_mag_declination_radians(lat, lon);
+			const float mag_inclination_gps = get_mag_inclination_radians(lat, lon);
+			const float mag_strength_gps = get_mag_strength_gauss(lat, lon);
 
-			// request mag yaw reset if there's a mag declination for the first time
-			if (_params.mag_fusion_type != MagFuseType::NONE) {
-				if (!declination_was_valid && PX4_ISFINITE(_mag_declination_gps)) {
-					_mag_yaw_reset_req = true;
+			if (PX4_ISFINITE(mag_declination_gps) && PX4_ISFINITE(mag_inclination_gps) && PX4_ISFINITE(mag_strength_gps)) {
+
+				const bool mag_declination_changed = (fabsf(mag_declination_gps - _mag_declination_gps) > math::radians(1.f));
+				const bool mag_inclination_changed = (fabsf(mag_inclination_gps - _mag_inclination_gps) > math::radians(1.f));
+
+				if ((_wmm_gps_time_last_set == 0)
+				    || !PX4_ISFINITE(mag_declination_gps)
+				    || !PX4_ISFINITE(mag_inclination_gps)
+				    || !PX4_ISFINITE(mag_strength_gps)
+				    || mag_declination_changed
+				    || mag_inclination_changed
+				   ) {
+					_mag_declination_gps = mag_declination_gps;
+					_mag_inclination_gps = mag_inclination_gps;
+					_mag_strength_gps = mag_strength_gps;
+
+					_wmm_gps_time_last_set = _time_delayed_us;
 				}
 			}
 
 			_earth_rate_NED = calcEarthRateNED((float)math::radians(lat));
 		}
+
+		_wmm_gps_time_last_checked = _time_delayed_us;
 	}
 
 	// start collecting GPS if there is a 3D fix and the NED origin has been set

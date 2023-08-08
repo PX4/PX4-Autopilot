@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015-2018 ECL Development Team. All rights reserved.
+#   Copyright (c) 2015-2023 ECL Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -49,8 +49,10 @@ list(APPEND EKF_SRCS
 	gravity_fusion.cpp
 	height_control.cpp
 	imu_down_sampler.cpp
+	mag_3d_control.cpp
 	mag_control.cpp
 	mag_fusion.cpp
+	mag_heading_control.cpp
 	output_predictor.cpp
 	vel_pos_fusion.cpp
 	zero_innovation_heading_update.cpp

@@ -42,7 +42,7 @@
 
 #include "rtl.h"
 #include "navigator.h"
-#include <dataman/dataman.h>
+#include <dataman_client/DatamanClient.hpp>
 #include <px4_platform_common/events.h>
 
 #include <lib/geo/geo.h>
@@ -65,6 +65,90 @@ RTL::RTL(Navigator *navigator) :
 	_param_fw_airspeed_trim = param_find("FW_AIRSPD_TRIM");
 	_param_mpc_xy_cruise = param_find("MPC_XY_CRUISE");
 	_param_rover_cruise_speed = param_find("GND_SPEED_THR_SC");
+}
+
+void RTL::run()
+{
+	bool success;
+
+	switch (_dataman_state) {
+
+	case DatamanState::UpdateRequestWait:
+
+		if (_initiate_safe_points_updated) {
+			_initiate_safe_points_updated = false;
+			_dataman_state	= DatamanState::Read;
+		}
+
+		break;
+
+	case DatamanState::Read:
+
+		_dataman_state	= DatamanState::ReadWait;
+		success = _dataman_client.readAsync(DM_KEY_SAFE_POINTS, 0, reinterpret_cast<uint8_t *>(&_stats),
+						    sizeof(mission_stats_entry_s));
+
+		if (!success) {
+			_error_state = DatamanState::Read;
+			_dataman_state = DatamanState::Error;
+		}
+
+		break;
+
+	case DatamanState::ReadWait:
+
+		_dataman_client.update();
+
+		if (_dataman_client.lastOperationCompleted(success)) {
+
+			if (!success) {
+				_error_state = DatamanState::ReadWait;
+				_dataman_state = DatamanState::Error;
+
+			} else if (_update_counter != _stats.update_counter) {
+
+				_update_counter = _stats.update_counter;
+				_safe_points_updated = false;
+
+				_dataman_cache.invalidate();
+
+				if (_dataman_cache.size() != _stats.num_items) {
+					_dataman_cache.resize(_stats.num_items);
+				}
+
+				for (int index = 1; index <= _dataman_cache.size(); ++index) {
+					_dataman_cache.load(DM_KEY_SAFE_POINTS, index);
+				}
+
+				_dataman_state = DatamanState::Load;
+
+			} else {
+				_dataman_state = DatamanState::UpdateRequestWait;
+			}
+		}
+
+		break;
+
+	case DatamanState::Load:
+
+		_dataman_cache.update();
+
+		if (!_dataman_cache.isLoading()) {
+			_dataman_state = DatamanState::UpdateRequestWait;
+			_safe_points_updated = true;
+		}
+
+		break;
+
+	case DatamanState::Error:
+		PX4_ERR("Safe points update failed! state: %" PRIu8, static_cast<uint8_t>(_error_state));
+		_dataman_state = DatamanState::UpdateRequestWait;
+		break;
+
+	default:
+		break;
+
+	}
 }
 
 void RTL::on_inactivation()
@@ -178,37 +262,34 @@ void RTL::find_RTL_destination()
 		return;
 	}
 
-	// compare to safe landing positions
 	mission_safe_point_s closest_safe_point {};
-	mission_stats_entry_s stats;
-	int ret = dm_read(DM_KEY_SAFE_POINTS, 0, &stats, sizeof(mission_stats_entry_s));
-	int num_safe_points = 0;
-
-	if (ret == sizeof(mission_stats_entry_s)) {
-		num_safe_points = stats.num_items;
-	}
-
 	// check if a safe point is closer than home or landing
 	int closest_index = 0;
 
-	for (int current_seq = 1; current_seq <= num_safe_points; ++current_seq) {
-		mission_safe_point_s mission_safe_point;
+	if (_safe_points_updated) {
 
-		if (dm_read(DM_KEY_SAFE_POINTS, current_seq, &mission_safe_point, sizeof(mission_safe_point_s)) !=
-		    sizeof(mission_safe_point_s)) {
-			PX4_ERR("dm_read failed");
-			continue;
-		}
+		for (int current_seq = 1; current_seq <= _dataman_cache.size(); ++current_seq) {
+			mission_safe_point_s mission_safe_point;
 
-		// TODO: take altitude into account for distance measurement
-		dlat = mission_safe_point.lat - global_position.lat;
-		dlon = mission_safe_point.lon - global_position.lon;
-		double dist_squared = coord_dist_sq(dlat, dlon);
+			bool success = _dataman_cache.loadWait(DM_KEY_SAFE_POINTS, current_seq,
+							       reinterpret_cast<uint8_t *>(&mission_safe_point),
+							       sizeof(mission_safe_point_s));
 
-		if (dist_squared < min_dist_squared) {
-			closest_index = current_seq;
-			min_dist_squared = dist_squared;
-			closest_safe_point = mission_safe_point;
+			if (!success) {
+				PX4_ERR("dm_read failed");
+				continue;
+			}
+
+			// TODO: take altitude into account for distance measurement
+			dlat = mission_safe_point.lat - global_position.lat;
+			dlon = mission_safe_point.lon - global_position.lon;
+			double dist_squared = coord_dist_sq(dlat, dlon);
+
+			if (dist_squared < min_dist_squared) {
+				closest_index = current_seq;
+				min_dist_squared = dist_squared;
+				closest_safe_point = mission_safe_point;
+			}
 		}
 	}
 

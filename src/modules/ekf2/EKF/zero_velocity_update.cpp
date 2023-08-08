@@ -46,7 +46,7 @@ void Ekf::controlZeroVelocityUpdate()
 	if (zero_velocity_update_data_ready) {
 		const bool continuing_conditions_passing = _control_status.flags.vehicle_at_rest
 				&& _control_status_prev.flags.vehicle_at_rest
-				&& !isVerticalVelocityAidingActive(); // otherwise the filter is "too rigid" to follow a position drift
+				&& (!isVerticalVelocityAidingActive() || !_control_status.flags.tilt_align); // otherwise the filter is "too rigid" to follow a position drift
 
 		if (continuing_conditions_passing) {
 			Vector3f vel_obs{0, 0, 0};
