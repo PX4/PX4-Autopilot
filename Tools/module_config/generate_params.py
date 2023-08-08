@@ -303,10 +303,10 @@ When set to -1 (default), the value depends on the function (see {:}).
             if key in standard_params:
 
                 # values must be in range of an int16_t
-                if standard_params[key]['min'] <= (-1<<15) :
-                    raise Exception('minimum value for {:} expected >= 0 (got {:})'.format(key, standard_params[key]['min']))
-                if standard_params[key]['max'] >= 1<<15:
-                    raise Exception('maximum value for {:} expected <= {:} (got {:})'.format(key, 1<<16, standard_params[key]['max']))
+                if standard_params[key]['min'] < -1*(1<<16) :
+                    raise Exception('minimum value for {:} expected >= {:} (got {:})'.format(key, -1200, standard_params[key]['min']))
+                if standard_params[key]['max'] >= 1<<16-1:
+                    raise Exception('maximum value for {:} expected <= {:} (got {:})'.format(key, 1<<16-1, standard_params[key]['max']))
 
                 if key == 'failsafe':
                     standard_params[key]['default'] = -1
@@ -317,7 +317,7 @@ When set to -1 (default), the value depends on the function (see {:}).
                         'short': channel_label+' ${i} '+label+' Value',
                         'long': description
                         },
-                    'type': 'float',
+                    'type': 'int32',
                     'instance_start': instance_start,
                     'instance_start_label': instance_start_label,
                     'num_instances': num_channels,
