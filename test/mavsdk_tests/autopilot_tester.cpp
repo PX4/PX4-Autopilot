@@ -532,10 +532,10 @@ void AutopilotTester::fly_forward_in_offboard_attitude()
 	CHECK(fabsf(attitude.pitch_deg - attitude_estimate.pitch_deg) < 5.f);
 
 	// Descend
-	attitude.thrust_value = 0.2f;
+	attitude.thrust_value = 0.4f;
 	attitude.pitch_deg = 0.f;
 
-	for (unsigned i = 0; i < 3 * offboard_rate_hz; ++i) {
+	for (unsigned i = 0; i < 6 * offboard_rate_hz; ++i) {
 		CHECK(_offboard->set_attitude(attitude) == Offboard::Result::Success);
 		sleep_for(std::chrono::milliseconds(1000 / offboard_rate_hz));
 	}
