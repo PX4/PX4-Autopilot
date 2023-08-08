@@ -366,7 +366,7 @@ void PCA9685Wrapper::updateParams() {
     if (param != PARAM_INVALID) {
         param_get(param, &param_pwm_freq);
     } else {
-        PX4_ERR("param PCA9685_SCHD_HZ not found");
+        PX4_ERR("param PCA9685_PWM_FREQ not found");
     }
 
     param = param_find("PCA9685_DUTY_EN");
