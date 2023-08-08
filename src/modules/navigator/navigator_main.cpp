@@ -617,7 +617,7 @@ void Navigator::run()
 					set_cruising_speed(cmd.param2);
 
 				} else {
-					set_cruising_speed();
+					reset_cruising_speed();
 
 					/* if no speed target was given try to set throttle */
 					if (cmd.param3 > FLT_EPSILON) {
@@ -1158,43 +1158,6 @@ float Navigator::get_altitude_acceptance_radius()
 
 		return alt_acceptance_radius;
 	}
-}
-
-float Navigator::get_cruising_speed()
-{
-	/* there are three options: The mission-requested cruise speed, or the current hover / plane speed */
-	if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-		if (_mission_cruising_speed_mc > 0.0f) {
-			return _mission_cruising_speed_mc;
-
-		} else {
-			return -1.0f;
-		}
-
-	} else {
-		if (_mission_cruising_speed_fw > 0.0f) {
-			return _mission_cruising_speed_fw;
-
-		} else {
-			return -1.0f;
-		}
-	}
-}
-
-void Navigator::set_cruising_speed(float speed)
-{
-	if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-		_mission_cruising_speed_mc = speed;
-
-	} else {
-		_mission_cruising_speed_fw = speed;
-	}
-}
-
-void Navigator::reset_cruising_speed()
-{
-	_mission_cruising_speed_mc = -1.0f;
-	_mission_cruising_speed_fw = -1.0f;
 }
 
 void Navigator::reset_triplets()

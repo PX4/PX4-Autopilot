@@ -169,11 +169,6 @@ private:
 	void heading_sp_update();
 
 	/**
-	 * Update the cruising speed setpoint.
-	 */
-	void cruising_speed_sp_update();
-
-	/**
 	 * Abort landing
 	 */
 	void do_abort_landing();
@@ -291,6 +286,12 @@ private:
 	void replayCachedTriggerItems();
 
 	/**
+	 * @brief Replay the cached speed change items and delete them afterwards
+	 *
+	 */
+	void replayCachedSpeedChangeItems();
+
+	/**
 	 * @brief Reset the item cache
 	 */
 	void resetItemCache();
@@ -373,4 +374,5 @@ private:
 	mission_item_s _last_gimbal_control_item {};
 	mission_item_s _last_camera_mode_item {};
 	mission_item_s _last_camera_trigger_item {};
+	mission_item_s _last_speed_change_item {};
 };
