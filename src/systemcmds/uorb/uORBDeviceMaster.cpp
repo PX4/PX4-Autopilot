@@ -162,6 +162,7 @@ int uORB::DeviceMaster::addNewDeviceNodes(DeviceNodeStatisticsData **first_node,
 			}
 
 			if (!matched) {
+				px4_munmap(node, sizeof(uORB::DeviceNode));
 				continue;
 			}
 		}
