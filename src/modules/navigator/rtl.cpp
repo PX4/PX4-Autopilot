@@ -341,11 +341,20 @@ void RTL::findRtlDestination(bool &isMissionLanding, RtlDirect::RtlPosition &rtl
 	rtl_position.yaw = _home_pos_sub.get().yaw;
 	isMissionLanding = false;
 
-	// get distance to home position
-	float min_dist{get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, rtl_position.lat, rtl_position.lon)};
-
 	const bool vtol_in_rw_mode = _vehicle_status_sub.get().is_vtol
 				     && (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+
+	// get distance to home position
+	float home_dist{get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, rtl_position.lat, rtl_position.lon)};
+	float min_dist;
+
+	if ((_param_rtl_type.get() == 1) && !vtol_in_rw_mode) {
+		// Set minimum distance to maximum value when RTL_TYPE is set to 1 and we are not in RW mode.
+		min_dist = FLT_MAX;
+
+	} else {
+		min_dist = home_dist;
+	}
 
 	// consider the mission landing if available and allowed
 	if (((_param_rtl_type.get() == 1) || (_param_rtl_type.get() == 3)) && hasMissionLandStart()) {
@@ -363,14 +372,7 @@ void RTL::findRtlDestination(bool &isMissionLanding, RtlDirect::RtlPosition &rtl
 
 		float dist{get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, land_mission_item.lat, land_mission_item.lon)};
 
-		// always find closest destination if in hover and VTOL
-		if ((_param_rtl_type.get() == 1) && !vtol_in_rw_mode) {
-			// Use the mission landing destination.
-			min_dist = dist;
-			setLandPosAsDestination(rtl_position, land_mission_item);
-			isMissionLanding = true;
-
-		} else if (dist < min_dist) {
+		if (dist < min_dist) {
 			min_dist = dist;
 			setLandPosAsDestination(rtl_position, land_mission_item);
 			isMissionLanding = true;
