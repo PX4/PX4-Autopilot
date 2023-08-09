@@ -156,7 +156,7 @@ int uORB::DeviceMaster::addNewDeviceNodes(DeviceNodeStatisticsData **first_node,
 			bool matched = false;
 
 			for (int i = 0; i < num_filters; ++i) {
-				if (strstr(node->get_meta()->o_name, topic_filter[i])) {
+				if (strstr(node->get_name(), topic_filter[i])) {
 					matched = true;
 				}
 			}
