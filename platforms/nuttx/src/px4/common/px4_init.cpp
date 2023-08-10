@@ -74,6 +74,9 @@ extern initializer_t _einit[];
 extern uint8_t _stext[];
 extern uint8_t _etext[];
 
+extern FAR void *__dso_handle weak_data;
+FAR void *__dso_handle = &__dso_handle;
+
 static void cxx_initialize(void)
 {
 	initializer_t *initp;
