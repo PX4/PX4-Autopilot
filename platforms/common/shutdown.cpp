@@ -234,6 +234,11 @@ int px4_reboot_request(reboot_request_t request, uint32_t delay_us)
 		return 0;
 	}
 
+#ifdef CONFIG_BUILD_KERNEL
+	// Must start the worker as it is not automatically started by the system
+	work_usrstart();
+#endif
+
 	shutdown_args |= SHUTDOWN_ARG_REBOOT;
 
 	if (request == REBOOT_TO_BOOTLOADER) {
