@@ -137,6 +137,17 @@ void ActuatorEffectivenessTiltrotorVTOL::updateSetpoint(const matrix::Vector<flo
 				_last_collective_tilt_control = control_collective_tilt;
 			}
 
+			// During transition to FF, only allow update thrust axis up to 45° as with a high tilt angle the effectiveness
+			// of the thrust axis in z is apporaching 0, and by that is increasing the motor output to max.
+			// Transition to HF: disable thrust axis tilting, and assume motors are vertical. This is to avoid
+			// a thrust spike when the transition is initiated (as then the tilt is fully forward).
+			if (_flight_phase == FlightPhase::TRANSITION_HF_TO_FF) {
+				_last_collective_tilt_control = math::constrain(_last_collective_tilt_control, -1.f, 0.f);
+
+			} else if (_flight_phase == FlightPhase::TRANSITION_FF_TO_HF) {
+				_last_collective_tilt_control = -1.f;
+			}
+
 			for (int i = 0; i < _tilts.count(); ++i) {
 				if (_tilts.config(i).tilt_direction == ActuatorEffectivenessTilts::TiltDirection::TowardsFront) {
 					actuator_sp(i + _first_tilt_idx) += control_collective_tilt;
