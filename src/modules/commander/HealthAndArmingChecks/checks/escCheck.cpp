@@ -77,7 +77,8 @@ void EscChecks::checkAndReport(const Context &context, Report &reporter)
 
 	esc_status_s esc_status;
 
-	if (_esc_status_sub.copy(&esc_status) && now - esc_status.timestamp < esc_telemetry_timeout) {
+	if (_param_escs_checks_required.get() && _esc_status_sub.copy(&esc_status)
+	    && now - esc_status.timestamp < esc_telemetry_timeout) {
 
 		checkEscStatus(context, reporter, esc_status);
 		reporter.setIsPresent(health_component_t::motors_escs);
