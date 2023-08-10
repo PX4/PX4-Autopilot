@@ -56,7 +56,7 @@ public:
 
 	void push(T newItem)
 	{
-		px4_sem_wait(&_sem_head);
+		do {} while (px4_sem_wait(&_sem_head) != 0);
 
 		_data[_tail] = newItem;
 		_tail = (_tail + 1) % N;
@@ -66,7 +66,7 @@ public:
 
 	T pop()
 	{
-		px4_sem_wait(&_sem_tail);
+		do {} while (px4_sem_wait(&_sem_tail) != 0);
 
 		T ret = _data[_head];
 		_head = (_head + 1) % N;
