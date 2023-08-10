@@ -157,7 +157,13 @@ Vector2f StickAccelerationXY::calculateDrag(Vector2f drag_coefficient, const flo
 
 	// increase drag with squareroot function when velocity is lower than 1m/s
 	const Vector2f velocity_with_sqrt_boost = vel_sp.unit_or_zero() * math::sqrt_linear(vel_sp.norm());
-	return drag_coefficient.emult(velocity_with_sqrt_boost);
+
+	// only apply the drag increase below 1m/s when actually brakeing such that speeds below 1m/s
+	// are exactly reached but do so by blending it with the filter to avoid any discontinuity when switching
+	const float brake_scale = math::interpolate(_brake_boost_filter.getState(), 1.f, 2.f, 0.f, 1.f);
+	const Vector2f mixed_velocity = brake_scale * velocity_with_sqrt_boost + (1.f - brake_scale) * vel_sp;
+
+	return drag_coefficient.emult(mixed_velocity);
 }
 
 void StickAccelerationXY::applyTiltLimit(Vector2f &acceleration)
