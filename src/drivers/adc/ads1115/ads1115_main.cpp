@@ -129,6 +129,9 @@ void ADS1115::RunImpl()
 		}
 	}
 
+	// Schedule the next sample reading (regardless of isSampleReady())
+	ScheduleDelayed(SAMPLE_INTERVAL / 4);
+
 	perf_end(_cycle_perf);
 }
 
