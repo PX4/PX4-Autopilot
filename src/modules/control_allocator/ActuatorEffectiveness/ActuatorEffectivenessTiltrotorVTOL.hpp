@@ -48,7 +48,7 @@
 
 #include <uORB/topics/normalized_unsigned_setpoint.h>
 #include <uORB/topics/tiltrotor_extra_controls.h>
-
+#include <uORB/topics/vehicle_status.h>
 #include <uORB/Subscription.hpp>
 
 class ActuatorEffectivenessTiltrotorVTOL : public ModuleParams, public ActuatorEffectiveness
@@ -111,4 +111,11 @@ protected:
 	YawTiltSaturationFlags _yaw_tilt_saturation_flags{};
 
 	uORB::Subscription _tiltrotor_extra_controls_sub{ORB_ID(tiltrotor_extra_controls)};
+
+private:
+	// Tilt handling during motor spoolup: leave the tilts in their disarmed position unitil 1s after arming
+	bool throttleSpoolupFinished();
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	bool _armed{false};
+	uint64_t _armed_time{0};
 };

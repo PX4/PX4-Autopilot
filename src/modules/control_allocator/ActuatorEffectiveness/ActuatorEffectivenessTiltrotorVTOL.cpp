@@ -139,7 +139,14 @@ void ActuatorEffectivenessTiltrotorVTOL::updateSetpoint(const matrix::Vector<flo
 
 			for (int i = 0; i < _tilts.count(); ++i) {
 				if (_tilts.config(i).tilt_direction == ActuatorEffectivenessTilts::TiltDirection::TowardsFront) {
-					actuator_sp(i + _first_tilt_idx) += control_collective_tilt;
+
+					// as long as throttle spoolup is not completed, leave the tilts in the disarmed position (in hover)
+					if (throttleSpoolupFinished() || _flight_phase != FlightPhase::HOVER_FLIGHT) {
+						actuator_sp(i + _first_tilt_idx) += control_collective_tilt;
+
+					} else {
+						actuator_sp(i + _first_tilt_idx) = NAN; // NaN sets tilts to disarmed position
+					}
 				}
 			}
 
@@ -212,4 +219,16 @@ void ActuatorEffectivenessTiltrotorVTOL::getUnallocatedControl(int matrix_index,
 	} else {
 		status.unallocated_torque[2] = 0.f;
 	}
+}
+
+bool ActuatorEffectivenessTiltrotorVTOL::throttleSpoolupFinished()
+{
+	vehicle_status_s vehicle_status;
+
+	if (_vehicle_status_sub.update(&vehicle_status)) {
+		_armed = vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED;
+		_armed_time = vehicle_status.armed_time;
+	}
+
+	return _armed && hrt_elapsed_time(&_armed_time) > 1_s;
 }
