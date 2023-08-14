@@ -19,7 +19,7 @@
     <!-- PX4 configs -->
     <arg name="interactive" default="true"/>
     <!-- generate sdf vehicle model -->
-    <arg name="cmd" default="xmlstarlet ed -d '//plugin[@name=&quot;mavlink_interface&quot;]/mavlink_tcp_port' -s '//plugin[@name=&quot;mavlink_interface&quot;]' -t elem -n mavlink_tcp_port -v $(arg mavlink_tcp_port) $(find px4)/Tools/simulation/gazebo-classic/sitl_gazebo-classic/models/$(arg vehicle)/$(arg vehicle).sdf"/>
+    <arg name="cmd" default="xmlstarlet ed -u '//plugin[@name=&quot;mavlink_interface&quot;]/mavlink_tcp_port' -v $(arg mavlink_tcp_port) $(find px4)/Tools/simulation/gazebo-classic/sitl_gazebo-classic/models/$(arg vehicle)/$(arg vehicle).sdf"/>
     <param command="$(arg cmd)" name="model_description"/>
     <!-- PX4 SITL -->
     <arg unless="$(arg interactive)" name="px4_command_arg1" value=""/>
