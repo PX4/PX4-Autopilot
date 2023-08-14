@@ -121,7 +121,7 @@ protected:
 };
 
 PCA9685Wrapper::PCA9685Wrapper(int schd_rate_limit) :
-	CDev(nullptr),
+	CDev(PWM_OUTPUT_BASE_DEVICE_PATH),
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default),
 	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
 	_schd_rate_limit(schd_rate_limit)
