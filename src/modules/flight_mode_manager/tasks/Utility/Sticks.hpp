@@ -74,6 +74,8 @@ public:
 	const matrix::Vector2f getPitchRoll() { return _positions.slice<2, 1>(0, 0); }
 	const matrix::Vector2f getPitchRollExpo() { return _positions_expo.slice<2, 1>(0, 0); }
 
+	const matrix::Vector<float, 6> &getAux() const { return _aux_positions; }
+
 	/**
 	 * Limit the the horizontal input from a square shaped joystick gimbal to a unit circle
 	 * @param v Vector containing x, y, z axis of the joystick gimbal. x, y get adjusted
@@ -92,6 +94,8 @@ private:
 	bool _input_available{false};
 	matrix::Vector4f _positions; ///< unmodified manual stick inputs
 	matrix::Vector4f _positions_expo; ///< modified manual sticks using expo function
+
+	matrix::Vector<float, 6> _aux_positions;
 
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription _failsafe_flags_sub{ORB_ID(failsafe_flags)};
