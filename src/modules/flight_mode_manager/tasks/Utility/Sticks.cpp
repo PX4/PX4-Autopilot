@@ -62,6 +62,13 @@ bool Sticks::checkAndUpdateStickInputs()
 		_positions_expo(2) = math::expo_deadzone(_positions(2), _param_mpc_z_man_expo.get(),  _param_mpc_hold_dz.get());
 		_positions_expo(3) = math::expo_deadzone(_positions(3), _param_mpc_yaw_expo.get(),    _param_mpc_hold_dz.get());
 
+		_aux_positions(0) = manual_control_setpoint.aux1;
+		_aux_positions(1) = manual_control_setpoint.aux2;
+		_aux_positions(2) = manual_control_setpoint.aux3;
+		_aux_positions(3) = manual_control_setpoint.aux4;
+		_aux_positions(4) = manual_control_setpoint.aux5;
+		_aux_positions(5) = manual_control_setpoint.aux6;
+
 		// valid stick inputs are required
 		_input_available = manual_control_setpoint.valid && _positions.isAllFinite();
 
