@@ -234,6 +234,7 @@ set(msg_files
 	VehicleTorqueSetpoint.msg
 	VehicleTrajectoryBezier.msg
 	VehicleTrajectoryWaypoint.msg
+	VelocityLimits.msg
 	VtolVehicleStatus.msg
 	WheelEncoders.msg
 	Wind.msg
