@@ -73,10 +73,12 @@ void StickAccelerationXY::resetAcceleration(const matrix::Vector2f &acceleration
 void StickAccelerationXY::generateSetpoints(Vector2f stick_xy, const float yaw, const float yaw_sp, const Vector3f &pos,
 		const matrix::Vector2f &vel_sp_feedback, const float dt)
 {
-	// maximum commanded acceleration and velocity
-	Vector2f acceleration_scale(_param_mpc_acc_hor.get(), _param_mpc_acc_hor.get());
+	// maximum commanded velocity can be constrained dynamically
 	const float velocity_sc = fminf(_param_mpc_vel_manual.get(), _velocity_constraint);
 	Vector2f velocity_scale(velocity_sc, velocity_sc);
+	// maximum commanded acceleration is scaled down with velocity
+	const float acceleration_sc = _param_mpc_acc_hor.get() * (velocity_sc / _param_mpc_vel_manual.get());
+	Vector2f acceleration_scale(acceleration_sc, acceleration_sc);
 
 	acceleration_scale *= 2.f; // because of drag the average acceleration is half
 
