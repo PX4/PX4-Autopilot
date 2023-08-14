@@ -1,0 +1,5 @@
+menuconfig DRIVERS_INPUT_CAPTURE
+	bool "input_capture"
+	default n
+	---help---
+		Enable support for input_capture
