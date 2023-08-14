@@ -174,4 +174,28 @@ TEST(MatrixSquareTest, Square)
 			   };
 	SquareMatrix<float, 4> K(data_K);
 	EXPECT_FALSE(K.isRowColSymmetric<1>(2));
+
+	float data_L[16] = {1, 0, 0, 0,
+			    2, 3, 0, 0,
+			    3, 4, 11, 0,
+			    4, 11, 15, 16
+			   };
+	float data_L_check[16] = {1, 2, 3, 4,
+				  2, 3, 4, 11,
+				  3, 4, 11, 15,
+				  4, 11, 15, 16
+				 };
+	SquareMatrix<float, 4> L(data_L);
+	L.copyLowerToUpperTriangle();
+	SquareMatrix<float, 4> L_check(data_L_check);
+	EXPECT_EQ(L, L_check);
+
+	float data_M[16] = {1, 2, 3, 4,
+			    0, 3, 4, 11,
+			    0, 0, 11, 15,
+			    0, 0, 0, 16
+			   };
+	SquareMatrix<float, 4> M(data_M);
+	M.copyUpperToLowerTriangle();
+	EXPECT_EQ(M, L_check);
 }

@@ -212,7 +212,8 @@ Mission::on_activation()
 	// we already reset the mission items
 	_execution_mode_changed = false;
 
-	// reset the cache and fill it with the camera and gimbal items up to the previous item
+	// reset the cache and fill it with the items up to the previous item. The cache contains
+	// commands that are valid for the whole mission, not just a sinlge waypoint.
 	if (_current_mission_index > 0) {
 		resetItemCache();
 		updateCachedItemsUpToIndex(_current_mission_index - 1);
@@ -303,6 +304,8 @@ Mission::on_active()
 		replayCachedTriggerItems();
 	}
 
+	replayCachedSpeedChangeItems();
+
 	/* lets check if we reached the current mission item */
 	if (_mission_type != MISSION_TYPE_NONE && is_mission_item_reached_or_completed()) {
 		/* If we just completed a takeoff which was inserted before the right waypoint,
@@ -322,11 +325,6 @@ Mission::on_active()
 		if (_waypoint_position_reached && _mission_item.nav_cmd != NAV_CMD_IDLE) {
 			_navigator->set_can_loiter_at_sp(true);
 		}
-	}
-
-	/* check if a cruise speed change has been commanded */
-	if (_mission_type != MISSION_TYPE_NONE) {
-		cruising_speed_sp_update();
 	}
 
 	/* see if we need to update the current yaw heading */
@@ -1521,25 +1519,6 @@ Mission::heading_sp_update()
 }
 
 void
-Mission::cruising_speed_sp_update()
-{
-	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-
-	const float cruising_speed = _navigator->get_cruising_speed();
-
-	/* Don't change setpoint if the current waypoint is not valid */
-	if (!pos_sp_triplet->current.valid ||
-	    fabsf(pos_sp_triplet->current.cruising_speed - cruising_speed) < FLT_EPSILON) {
-		return;
-	}
-
-	pos_sp_triplet->current.cruising_speed = cruising_speed;
-
-	publish_navigator_mission_item();
-	_navigator->set_position_setpoint_triplet_updated();
-}
-
-void
 Mission::do_abort_landing()
 {
 	// Abort FW landing, loiter above landing site in at least MIS_LND_ABRT_ALT
@@ -2106,6 +2085,15 @@ void Mission::cacheItem(const mission_item_s &mission_item)
 		_last_camera_trigger_item = mission_item;
 		break;
 
+	case NAV_CMD_DO_CHANGE_SPEED:
+		_last_speed_change_item = mission_item;
+		break;
+
+	case NAV_CMD_DO_VTOL_TRANSITION:
+		// delete speed changes after a VTOL transition
+		_last_speed_change_item = {};
+		break;
+
 	default:
 		break;
 	}
@@ -2134,6 +2122,14 @@ void Mission::replayCachedTriggerItems()
 	if (_last_camera_trigger_item.nav_cmd > 0) {
 		issue_command(_last_camera_trigger_item);
 		_last_camera_trigger_item = {}; // delete cached item
+	}
+}
+
+void Mission::replayCachedSpeedChangeItems()
+{
+	if (_last_speed_change_item.nav_cmd == NAV_CMD_DO_CHANGE_SPEED) {
+		issue_command(_last_speed_change_item);
+		_last_speed_change_item = {}; // delete cached item
 	}
 }
 
