@@ -31,57 +31,23 @@
  *
  ****************************************************************************/
 
-// /**
-//  * @file camera_capture_params.c
-//  * Camera capture parameters
-//  *
-//  * @author Mohammed Kabir <kabir@uasys.io>
-//  */
-// /**
-//  * Camera strobe delay
-//  *
-//  * This parameter sets the delay between image integration start and strobe firing
-//  *
-//  * @unit ms
-//  * @min 0.0
-//  * @max 100.0
-//  * @decimal 1
-//  * @group Camera Capture
-//  */
-// PARAM_DEFINE_FLOAT(CAM_CAP_DELAY, 0.0f);
+/**
+ * @file input_capture_params.c
+ * Input capture parameters
+ *
+ * @author Mohammed Kabir <kabir@uasys.io>
+ * @author Jaeyoung Lim <jalim@ethz.ch>
+ */
 
-// /**
-//  * Camera capture feedback
-//  *
-//  * Enables camera capture feedback
-//  *
-//  * @boolean
-//  * @group Camera Control
-//  * @reboot_required true
-//  */
-// PARAM_DEFINE_INT32(CAM_CAP_FBACK, 0);
-
-// /**
-//  * Camera capture timestamping mode
-//  *
-//  * Change time measurement
-//  *
-//  * @value 0 Get absolute timestamp
-//  * @value 1 Get timestamp of mid exposure (active high)
-//  * @value 2 Get timestamp of mid exposure (active low)
-//  *
-//  * @group Camera Control
-//  * @reboot_required true
-//  */
-// PARAM_DEFINE_INT32(CAM_CAP_MODE, 0);
-
-// /**
-//  * Camera capture edge
-//  *
-//  * @value 0 Falling edge
-//  * @value 1 Rising edge
-//  *
-//  * @group Camera Control
-//  * @reboot_required true
-//  */
-// PARAM_DEFINE_INT32(CAM_CAP_EDGE, 0);
+/**
+ * Input Capture Enable
+ *
+ * Enables the PPS capture module.
+ * This switches mode of FMU channel 7 to be the
+ * PPS input channel.
+ *
+ * @boolean
+  * @group Camera Control
+ * @reboot_required true
+ */
+PARAM_DEFINE_INT32(INPUT_CAP_ENABLE, 0);

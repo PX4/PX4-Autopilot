@@ -88,7 +88,7 @@ InputCapture::InputCapture() :
 		}
 	}
 
-	_trigger_pub.advertise();
+	_capture_pub.advertise();
 }
 
 InputCapture::~InputCapture()
@@ -157,7 +157,7 @@ InputCapture::publish_trigger()
 		_trigger_rate_failure.store(false);
 	}
 
-	camera_trigger_s trigger{};
+	input_capture_s trigger{};
 
 	// MODES 1 and 2 are not fully tested
 	if (_camera_capture_mode == 0 || _gpio_capture) {
@@ -194,33 +194,13 @@ InputCapture::publish_trigger()
 
 	}
 
-	trigger.feedback = true;
 	_capture_overflows = _trigger.overflow;
 
 	if (!publish) {
 		return;
 	}
 
-	pps_capture_s pps_capture;
-
-	if (_pps_capture_sub.update(&pps_capture)) {
-		_pps_hrt_timestamp = pps_capture.timestamp;
-		_pps_rtc_timestamp = pps_capture.rtc_timestamp;
-	}
-
-
-	if (_pps_hrt_timestamp > 0) {
-		// Last PPS RTC time + elapsed time to the camera capture interrupt
-		trigger.timestamp_utc = _pps_rtc_timestamp + (trigger.timestamp - _pps_hrt_timestamp);
-
-	} else {
-		// No PPS capture received, use RTC clock as fallback
-		timespec tv{};
-		px4_clock_gettime(CLOCK_REALTIME, &tv);
-		trigger.timestamp_utc = ts_to_abstime(&tv) - hrt_elapsed_time(&trigger.timestamp);
-	}
-
-	_trigger_pub.publish(trigger);
+	_capture_pub.publish(trigger);
 }
 
 void
