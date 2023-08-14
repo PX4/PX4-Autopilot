@@ -52,6 +52,7 @@ public:
 	void ekfResetHandler(float delta_yaw);
 	void generateYawSetpoint(float &yawspeed_setpoint, float &yaw_setpoint, float stick_yaw, float yaw, float deltatime,
 				 float unaided_yaw = NAN);
+	void setYawspeedConstraint(float yawspeed) { _yawspeed_constraint = yawspeed; };
 
 private:
 	AlphaFilter<float> _yawspeed_filter;
@@ -77,6 +78,8 @@ private:
 	 * @return yaw setpoint to execute to have a yaw lock at the correct moment in time
 	 */
 	float updateYawLock(float yaw, float yawspeed_setpoint, float yaw_setpoint, float yaw_correction_prev) const;
+
+	float _yawspeed_constraint{INFINITY};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MPC_MAN_Y_MAX>) _param_mpc_man_y_max, ///< Maximum yaw speed with full stick deflection
