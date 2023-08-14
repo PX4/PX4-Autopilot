@@ -75,6 +75,9 @@ protected:
 	bool _sticks_data_required = true; ///< let inherited task-class define if it depends on stick data
 	bool _terrain_hold{false}; /**< true when vehicle is controlling height above a static ground position */
 
+	float _velocity_constraint_up{INFINITY};
+	float _velocity_constraint_down{INFINITY};
+
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
 					(ParamFloat<px4::params::MPC_HOLD_MAX_Z>) _param_mpc_hold_max_z,
 					(ParamInt<px4::params::MPC_ALT_MODE>) _param_mpc_alt_mode,
