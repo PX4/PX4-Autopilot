@@ -31,11 +31,11 @@
 #
 ############################################################################
 
-add_library(geo
+px4_add_library(geo
 	geo.cpp
 	geo.h
 )
-add_dependencies(geo prebuild_targets)
+
 target_compile_options(geo PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
 
 px4_add_unit_gtest(SRC test_geo.cpp LINKLIBS geo)
