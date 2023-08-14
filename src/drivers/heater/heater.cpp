@@ -231,7 +231,7 @@ void Heater::Run()
 
 		_controller_time_on_usec = math::constrain(_controller_time_on_usec, 0, _controller_period_usec);
 
-		if (abs(temperature_delta) < TEMPERATURE_TARGET_THRESHOLD) {
+		if (fabsf(temperature_delta) < TEMPERATURE_TARGET_THRESHOLD) {
 			_temperature_target_met = true;
 
 		} else {
