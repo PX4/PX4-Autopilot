@@ -85,11 +85,13 @@ public:
 	FailureDetector(ModuleParams *parent);
 
 	bool update(const vehicle_status_s &vehicle_status, const vehicle_control_mode_s &vehicle_control_mode);
+	bool getTerminationAllowed() {return _termination_allowed; };
 	const failure_detector_status_u &getStatus() const { return _status; }
 	const decltype(failure_detector_status_u::flags) &getStatusFlags() const { return _status.flags; }
 	float getImbalancedPropMetric() const { return _imbalanced_prop_lpf.getState(); }
 
 private:
+	void updateTerminationAllowedStatus();
 	void updateAttitudeStatus();
 	void updateExternalAtsStatus();
 	void updateEscsStatus(const vehicle_status_s &vehicle_status);
@@ -104,6 +106,7 @@ private:
 	systemlib::Hysteresis _esc_failure_hysteresis{false};
 	systemlib::Hysteresis _mpc_vz_failure_hysteresis{false};
 
+	bool _termination_allowed{false}; ///< Flag indicating if preconditions for flight termination are satisfied
 	static constexpr float _imbalanced_prop_lpf_time_constant{5.f};
 	AlphaFilter<float> _imbalanced_prop_lpf{};
 	uint32_t _selected_accel_device_id{0};
@@ -118,6 +121,7 @@ private:
 	uORB::Subscription _vehicle_local_position_setpoint_sub{ORB_ID(vehicle_local_position_setpoint)};
 
 	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::FD_MIN_DIST_TRM>) _param_fd_min_dist_trm_p,
 		(ParamInt<px4::params::FD_FAIL_P>) _param_fd_fail_p,
 		(ParamInt<px4::params::FD_FAIL_R>) _param_fd_fail_r,
 		(ParamFloat<px4::params::FD_FAIL_R_TTRI>) _param_fd_fail_r_ttri,

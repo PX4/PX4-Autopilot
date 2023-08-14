@@ -43,6 +43,22 @@
 #include <parameters/param.h>
 
 /**
+ * Minimum Ground Distance For Termination
+ *
+ * The value has implications for determining whether the flight termination action will occur.
+ * If a failure is detected and the vehicle's distance from the ground exceeds this parameter's value,
+ * termination will be executed. Otherwise, if the distance is less than the parameter value,
+ * the failure detector values will only be logged.
+ *
+ * @decimal 2
+ * @min 0.00
+ * @max 10000.00
+ * @unit m
+ * @group Failure Detector
+ */
+PARAM_DEFINE_FLOAT(FD_MIN_DIST_TRM, 0.00);
+
+/**
  * FailureDetector Max Roll
  *
  * Maximum roll angle before FailureDetector triggers the attitude_failure flag.
