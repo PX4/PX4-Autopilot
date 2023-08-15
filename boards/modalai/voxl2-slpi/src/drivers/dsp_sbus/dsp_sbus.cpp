@@ -194,8 +194,7 @@ void dsp_sbus_task() {
 
 	while (true) {
 
-		usleep(200000); // Update every 200ms
-		// usleep(20000); // Update every 20ms
+		usleep(20000); // Update every 20ms
 
 		memset(&rc_val, 0, sizeof(input_rc_s));
 
