@@ -131,6 +131,9 @@ elif [ "$RC" == "CRSF_RAW" ]; then
 elif [ "$RC" == "CRSF_MAV" ]; then
     /bin/echo "Starting TBS crossfire RC - MAV Mode"
     qshell mavlink_rc_in start -m -p 7 -b 115200
+elif [ "$RC" == "M0065_SBUS" ]; then
+    /bin/echo "Starting DSP M0065 SBUS RC driver"
+    qshell dsp_sbus start
 elif [ "$RC" == "SPEKTRUM" ]; then
     /bin/echo "Starting Spektrum RC"
 	# On M0052 the RC driver runs on the apps processor
@@ -162,7 +165,14 @@ qshell mc_autotune_attitude_control start
 qshell land_detector start multicopter
 qshell manual_control start
 qshell control_allocator start
-qshell rc_update start
+
+# Only start the rc_update module if an actual RC driver
+# is publishing input_rc topics. Otherwise for external RC
+# over Mavlink this isn't needed.
+if [ "$RC" != "EXTERNAL" ]; then
+	qshell rc_update start
+fi
+
 qshell commander start
 qshell param_set_selector start
 
