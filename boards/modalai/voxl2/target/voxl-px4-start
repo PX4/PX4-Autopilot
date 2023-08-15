@@ -145,6 +145,10 @@ elif [ "$RC" == "SPEKTRUM" ]; then
 	fi
 fi
 
+if [ "$DISTANCE_SENSOR" == "LIGHTWARE_SF000" ]; then
+	qshell lightware_laser_serial start -d 7
+fi
+
 /bin/sleep 1
 
 # APM power monitor
