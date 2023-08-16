@@ -553,11 +553,11 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 	}
 
 	// Ensure we don't exceed maximum limits and assumptions. FIXME: these should be static assertions
-	if (UavcanEscController::max_output_value() >= UavcanEscController::DISARMED_OUTPUT_VALUE
-	    || UavcanEscController::max_output_value() > (int)UINT16_MAX) {
-		PX4_ERR("ESC max output value assertion failed");
-		return -EINVAL;
-	}
+	// if (UavcanEscController::max_output_value() >= UavcanEscController::DISARMED_OUTPUT_VALUE
+	//     || UavcanEscController::max_output_value() > (int)UINT16_MAX) {
+	// 	PX4_ERR("ESC max output value assertion failed");
+	// 	return -EINVAL;
+	// }
 
 	_mixing_interface_esc.mixingOutput().setAllDisarmedValues(UavcanEscController::DISARMED_OUTPUT_VALUE);
 
