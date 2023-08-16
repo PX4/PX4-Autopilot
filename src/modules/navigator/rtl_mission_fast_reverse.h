@@ -41,7 +41,7 @@
 
 #pragma once
 
-#include "mission_base.h"
+#include "rtl_base.h"
 
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/home_position.h>
@@ -49,7 +49,7 @@
 
 class Navigator;
 
-class RtlMissionFastReverse : public MissionBase
+class RtlMissionFastReverse : public RtlBase
 {
 public:
 	RtlMissionFastReverse(Navigator *navigator);
@@ -59,7 +59,7 @@ public:
 	void on_active() override;
 	void on_inactive() override;
 
-	rtl_time_estimate_s calc_rtl_time_estimate();
+	rtl_time_estimate_s calc_rtl_time_estimate() override;
 
 private:
 	bool setNextMissionItem() override;

@@ -47,7 +47,7 @@
 static constexpr int32_t DEFAULT_MISSION_FAST_REVERSE_CACHE_SIZE = 5;
 
 RtlMissionFastReverse::RtlMissionFastReverse(Navigator *navigator) :
-	MissionBase(navigator, -DEFAULT_MISSION_FAST_REVERSE_CACHE_SIZE)
+	RtlBase(navigator, -DEFAULT_MISSION_FAST_REVERSE_CACHE_SIZE)
 {
 
 }

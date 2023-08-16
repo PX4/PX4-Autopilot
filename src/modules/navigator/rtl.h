@@ -45,6 +45,7 @@
 
 #include "navigator_mode.h"
 #include <dataman_client/DatamanClient.hpp>
+#include "rtl_base.h"
 #include "rtl_direct.h"
 #include "rtl_direct_mission_land.h"
 #include "rtl_mission_fast.h"
@@ -68,6 +69,7 @@ public:
 	~RTL() = default;
 
 	enum class RtlType {
+		NONE,
 		RTL_DIRECT,
 		RTL_DIRECT_MISSION_LAND,
 		RTL_MISSION_FAST,
@@ -115,13 +117,24 @@ private:
 	void setSafepointAsDestination(RtlDirect::RtlPosition &rtl_position, const mission_safe_point_s &mission_safe_point);
 
 	/**
-	 * @brief
+	 * @brief calculate return altitude from cone half angle
 	 *
-	 * @param cone_half_angle_deg
-	 * @return float
+	 * @param[in] rtl_position landing position of the rtl
+	 * @param[in] cone_half_angle_deg half angle of the cone [deg]
+	 * @return return altitude
 	 */
 	float calculate_return_alt_from_cone_half_angle(const RtlDirect::RtlPosition &rtl_position, float cone_half_angle_deg);
 
+	/**
+	 * @brief initialize RTL mission type
+	 *
+	 */
+	void init_rtl_mission_type();
+
+	/**
+	 * @brief Update parameters
+	 *
+	 */
 	void parameters_update();
 
 	enum class DatamanState {
@@ -133,6 +146,9 @@ private:
 	};
 
 	hrt_abstime _destination_check_time{0};
+
+	RtlBase *_rtl_mission_type_handle{nullptr};
+	RtlType _set_rtl_mission_type{RtlType::NONE};
 
 	RtlType _rtl_type{RtlType::RTL_DIRECT};
 
@@ -149,12 +165,6 @@ private:
 	mission_stats_entry_s _stats;
 
 	RtlDirect _rtl_direct;
-
-	RtlDirectMissionLand _rtl_direct_mission_land;
-
-	RtlMissionFast _rtl_mission;
-
-	RtlMissionFastReverse _rtl_mission_reverse;
 
 	bool _enforce_rtl_alt{false};
 

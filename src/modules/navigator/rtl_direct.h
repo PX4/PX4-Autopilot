@@ -88,12 +88,11 @@ public:
 	void on_inactivation() override;
 
 	/**
-	 * @brief On activation.
+	 * @brief on activation.
 	 * Initialize the return to launch calculations.
 	 *
-	 * @param[in] enforce_rtl_alt boolean if the minimal return to launch altitude should be enforced at the beginning of the return, even when the current vehicle altitude is above.
 	 */
-	void on_activation(bool enforce_rtl_alt);
+	void on_activation() override;
 
 	/**
 	 * @brief on active
@@ -109,6 +108,7 @@ public:
 	 */
 	rtl_time_estimate_s calc_rtl_time_estimate();
 
+	void setReturnAltMin(bool min) { _enforce_rtl_alt = min; }
 	void setRtlAlt(float alt) {_rtl_alt = alt;};
 
 	void setRtlPosition(RtlPosition position) {_destination = position;};
@@ -203,6 +203,8 @@ private:
 
 	/** Current state in the state machine.*/
 	RTLState _rtl_state{RTL_STATE_NONE};
+
+	bool _enforce_rtl_alt{false};
 
 	RtlPosition _destination{}; ///< the RTL position to fly to
 
