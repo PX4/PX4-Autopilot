@@ -217,9 +217,9 @@ int LightwareLaserSerial::collect()
 #endif
 	}
 
-	PX4_INFO("*** %d bytes, %d retries, 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x",
-			 ret, (2 - read_retries), readbuf[0], readbuf[1], readbuf[2], readbuf[3], readbuf[4],
-			 readbuf[5], readbuf[6], readbuf[7], readbuf[8], readbuf[9]);
+	// PX4_INFO("*** %d bytes, %d retries, 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x",
+	// 		 ret, (2 - read_retries), readbuf[0], readbuf[1], readbuf[2], readbuf[3], readbuf[4],
+	// 		 readbuf[5], readbuf[6], readbuf[7], readbuf[8], readbuf[9]);
 
 	_last_read = hrt_absolute_time();
 

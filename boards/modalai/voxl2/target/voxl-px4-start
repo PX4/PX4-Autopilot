@@ -146,6 +146,7 @@ elif [ "$RC" == "SPEKTRUM" ]; then
 fi
 
 if [ "$DISTANCE_SENSOR" == "LIGHTWARE_SF000" ]; then
+	# Make sure to set the parameter SENS_EN_SF0X to 8 for sf000/b sensor
 	qshell lightware_laser_serial start -d 7
 fi
 
