@@ -47,12 +47,12 @@
 static constexpr int32_t DEFAULT_DIRECT_MISSION_LAND_CACHE_SIZE = 5;
 
 RtlDirectMissionLand::RtlDirectMissionLand(Navigator *navigator) :
-	MissionBase(navigator, DEFAULT_DIRECT_MISSION_LAND_CACHE_SIZE)
+	RtlBase(navigator, DEFAULT_DIRECT_MISSION_LAND_CACHE_SIZE)
 {
 
 }
 
-void RtlDirectMissionLand::on_activation(bool enforce_rtl_alt)
+void RtlDirectMissionLand::on_activation()
 {
 	_land_detected_sub.update();
 	_global_pos_sub.update();
@@ -62,7 +62,7 @@ void RtlDirectMissionLand::on_activation(bool enforce_rtl_alt)
 	if (hasMissionLandStart()) {
 		_is_current_planned_mission_item_valid = (goToItem(_mission.land_start_index, false) == PX4_OK);
 
-		if ((_global_pos_sub.get().alt < _rtl_alt) || enforce_rtl_alt) {
+		if ((_global_pos_sub.get().alt < _rtl_alt) || _enforce_rtl_alt) {
 
 			// If lower than return altitude, climb up first.
 			// If enforce_rtl_alt is true then forcing altitude change even if above.

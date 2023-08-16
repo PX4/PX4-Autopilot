@@ -74,7 +74,7 @@ void RtlDirect::on_inactivation()
 	}
 }
 
-void RtlDirect::on_activation(bool enforce_rtl_alt)
+void RtlDirect::on_activation()
 {
 	_global_pos_sub.update();
 	_local_pos_sub.update();
@@ -87,7 +87,7 @@ void RtlDirect::on_activation(bool enforce_rtl_alt)
 		// For safety reasons don't go into RTL if landed.
 		_rtl_state = RTL_STATE_LANDED;
 
-	} else if ((_global_pos_sub.get().alt < _destination.alt + _param_rtl_return_alt.get()) || enforce_rtl_alt) {
+	} else if ((_global_pos_sub.get().alt < _destination.alt + _param_rtl_return_alt.get()) || _enforce_rtl_alt) {
 
 		// If lower than return altitude, climb up first.
 		// If rtl_alt_min is true then forcing altitude change even if above.
