@@ -31,44 +31,27 @@
  *
  ****************************************************************************/
 /**
- * @file rtl_direct_mission_land.h
+ * @file rtl_base.h
  *
- * Helper class for RTL
+ * Helper class for RTL modes using the mission
  *
- * @author Julian Oes <julian@oes.ch>
- * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
 #pragma once
 
-#include "rtl_base.h"
-
-#include <uORB/Subscription.hpp>
-#include <uORB/topics/home_position.h>
+#include "mission_base.h"
 #include <uORB/topics/rtl_time_estimate.h>
 
-class Navigator;
-
-class RtlDirectMissionLand : public RtlBase
+class RtlBase : public MissionBase
 {
 public:
-	RtlDirectMissionLand(Navigator *navigator);
-	~RtlDirectMissionLand() = default;
+	RtlBase(Navigator *navigator, int32_t dataman_cache_size_signed):
+		MissionBase(navigator, dataman_cache_size_signed) {};
+	virtual ~RtlBase() = default;
 
-	void on_activation() override;
+	virtual rtl_time_estimate_s calc_rtl_time_estimate() = 0;
 
-	rtl_time_estimate_s calc_rtl_time_estimate() override;
+	virtual void setReturnAltMin(bool min) { (void)min;};
 
-	void setReturnAltMin(bool min) override { _enforce_rtl_alt = min; };
-	void setRtlAlt(float alt) override {_rtl_alt = alt;};
-
-private:
-	bool setNextMissionItem() override;
-	void setActiveMissionItems() override;
-	void handleLanding(WorkItemType &new_work_item_type);
-	bool do_need_move_to_land();
-
-	bool _needs_climbing{false}; 	//< Flag if climbing is required at the start
-	bool _enforce_rtl_alt{false};
-	float _rtl_alt{0.0f};	///< AMSL altitude at which the vehicle should return to the land position
+	virtual void setRtlAlt(float alt) { (void)alt;};
 };
