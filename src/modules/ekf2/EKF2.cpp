@@ -450,6 +450,8 @@ void EKF2::Run()
 				}
 			}
 		}
+
+		_ekf.updateParameters();
 	}
 
 	if (!_callback_registered) {

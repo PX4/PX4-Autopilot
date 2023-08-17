@@ -111,6 +111,10 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 
 	controlGpsFusion(imu_delayed);
 
+#if defined(CONFIG_EKF2_MOCAP) && defined(MODULE_NAME)
+	_mocap.update(*this, imu_delayed);
+#endif // CONFIG_EKF2_MOCAP
+
 #if defined(CONFIG_EKF2_AIRSPEED)
 	controlAirDataFusion(imu_delayed);
 #endif // CONFIG_EKF2_AIRSPEED

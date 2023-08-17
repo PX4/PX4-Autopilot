@@ -54,6 +54,10 @@
 #include <uORB/topics/estimator_aid_source2d.h>
 #include <uORB/topics/estimator_aid_source3d.h>
 
+#if defined(CONFIG_EKF2_MOCAP)
+# include "mocap.hpp"
+#endif // CONFIG_EKF2_MOCAP
+
 enum class Likelihood { LOW, MEDIUM, HIGH };
 
 class Ekf final : public EstimatorInterface
@@ -265,6 +269,8 @@ public:
 
 	// get the wind velocity in m/s
 	const Vector2f &getWindVelocity() const { return _state.wind_vel; };
+
+	auto& getState() const { return _state; }
 
 	// get the wind velocity var
 	Vector2f getWindVelocityVariance() const { return P.slice<2, 2>(22, 22).diag(); }
@@ -505,6 +511,10 @@ public:
 #if defined(CONFIG_EKF2_AUXVEL)
 	const auto &aid_src_aux_vel() const { return _aid_src_aux_vel; }
 #endif // CONFIG_EKF2_AUXVEL
+
+	void updateParameters();
+
+	friend class Mocap;
 
 private:
 
@@ -1242,6 +1252,10 @@ private:
 		// if any of the innovations are rejected, then the overall innovation is rejected
 		status.innovation_rejected = innovation_rejected;
 	}
+
+#if defined(CONFIG_EKF2_MOCAP) && defined(MODULE_NAME)
+	Mocap _mocap{};
+#endif // CONFIG_EKF2_MOCAP
 };
 
 #endif // !EKF_EKF_H

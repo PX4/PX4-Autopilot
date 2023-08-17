@@ -21,6 +21,13 @@ depends on MODULES_EKF2
 	---help---
 		EKF2 airspeed fusion support.
 
+menuconfig EKF2_MOCAP
+depends on MODULES_EKF2
+	bool "mocap fusion support"
+	default y
+	---help---
+		EKF2 motion capture (mocap) fusion support.
+
 menuconfig EKF2_AUXVEL
 depends on MODULES_EKF2
         bool "aux velocity fusion support"
