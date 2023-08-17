@@ -115,3 +115,6 @@
 [submodule "Tools/packaging"]
 	path = Tools/saluki_packaging
 	url = git@github.com:tiiuae/saluki_low_level_sw_build.git
+[submodule "platforms/nuttx/src/px4/common/process"]
+	path = platforms/nuttx/src/px4/common/process
+	url = git@github.com:tiiuae/px4-kernel.git
