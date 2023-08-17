@@ -100,6 +100,7 @@ public:
 
 	bool isIntendingMagHeadingFusion() const;
 	bool isIntendingMag3DFusion() const;
+	bool isMagHeadingConsistent() const;
 	void setMagFuseTypeNone();
 	void enableMagStrengthCheck();
 	void enableMagInclinationCheck();
