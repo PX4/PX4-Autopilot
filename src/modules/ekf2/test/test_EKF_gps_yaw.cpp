@@ -306,7 +306,7 @@ TEST_F(EkfGpsHeadingTest, yawJumpInAir)
 	// the estimator doesn't fall back to mag fusion because it has
 	// been declared inconsistent with the filter states
 	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeadingFusion());
-	EXPECT_FALSE(_ekf_wrapper.isMagConsistent());
+	EXPECT_FALSE(_ekf_wrapper.isMagHeadingConsistent());
 	//TODO: should we force a reset to mag if the GNSS yaw fusion was forced to stop?
 	EXPECT_FALSE(_ekf_wrapper.isIntendingMagHeadingFusion());
 }

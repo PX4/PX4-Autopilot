@@ -70,31 +70,20 @@ void Ekf::controlMagHeadingFusion(const magSample &mag_sample, const bool common
 		aid_src.innovation = wrap_pi(getEulerYaw(_R_to_earth) - aid_src.observation);
 		_mag_heading_innov_lpf.update(aid_src.innovation);
 
-		if (!_control_status.flags.gps) {
-			_control_status.flags.mag_consistent = true;
-
-		} else if (fabsf(_mag_heading_innov_lpf.getState()) < math::radians(10.f)) {
-			if (_yaw_angle_observable) {
-				_control_status.flags.mag_consistent = true;
-			}
-
-		} else {
-			_control_status.flags.mag_consistent = false;
-		}
-
 	} else {
 		// mag heading delta (logging only)
 		aid_src.innovation = wrap_pi(wrap_pi(getEulerYaw(_R_to_earth) - _mag_heading_pred_prev)
 					     - wrap_pi(measured_hdg - _mag_heading_prev));
-		_control_status.flags.mag_consistent = false;
 		_mag_heading_innov_lpf.reset(0.f);
 	}
 
 	// determine if we should use mag heading aiding
+	const bool mag_consistent_or_no_gnss = _control_status.flags.mag_heading_consistent || !_control_status.flags.gps;
+
 	bool continuing_conditions_passing = ((_params.mag_fusion_type == MagFuseType::HEADING)
 					      || (_params.mag_fusion_type == MagFuseType::AUTO && !_control_status.flags.mag_3D))
 					     && _control_status.flags.tilt_align
-					     && ((_control_status.flags.yaw_align && _control_status.flags.mag_consistent)
+					     && ((_control_status.flags.yaw_align && mag_consistent_or_no_gnss)
 					         || (!_control_status.flags.ev_yaw && !_control_status.flags.yaw_align))
 					     && !_control_status.flags.mag_fault
 					     && !_control_status.flags.mag_field_disturbed

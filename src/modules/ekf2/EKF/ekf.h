@@ -1030,6 +1030,7 @@ private:
 
 	void checkYawAngleObservability();
 	void checkMagBiasObservability();
+	void checkMagHeadingConsistency();
 
 	bool checkMagField(const Vector3f &mag);
 	static bool isMeasuredMatchingExpected(float measured, float expected, float gate);

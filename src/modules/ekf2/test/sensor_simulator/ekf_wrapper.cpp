@@ -205,9 +205,9 @@ bool EkfWrapper::isIntendingMag3DFusion() const
 	return _ekf->control_status_flags().mag_3D;
 }
 
-bool EkfWrapper::isMagConsistent() const
+bool EkfWrapper::isMagHeadingConsistent() const
 {
-	return _ekf->control_status_flags().mag_consistent;
+	return _ekf->control_status_flags().mag_heading_consistent;
 }
 
 void EkfWrapper::setMagFuseTypeNone()
