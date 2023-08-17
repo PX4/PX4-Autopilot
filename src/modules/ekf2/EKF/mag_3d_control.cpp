@@ -63,6 +63,7 @@ void Ekf::controlMag3DFusion(const magSample &mag_sample, const bool common_star
 	_control_status.flags.mag_3D = (_params.mag_fusion_type == MagFuseType::AUTO)
 				       && _control_status.flags.mag
 				       && _control_status.flags.mag_aligned_in_flight
+				       && (_control_status.flags.mag_heading_consistent || !_control_status.flags.gps)
 				       && !_control_status.flags.mag_fault
 				       && isRecent(aid_src.time_last_fuse, 500'000)
 				       && getMagBiasVariance().longerThan(0.f) && !getMagBiasVariance().longerThan(sq(0.02f))
