@@ -237,7 +237,9 @@ if (NOT CONFIG_BUILD_FLAT)
 	target_link_libraries(nuttx_c INTERFACE nuttx_proxies)
 	target_link_libraries(nuttx_c INTERFACE nuttx_mm)
 	target_link_libraries(nuttx_mm INTERFACE nuttx_c)
-	target_link_libraries(nuttx_xx INTERFACE nuttx_c)
+	# Re-enable when direct link to nuttx_xx is removed from prebuild_targets
+	# otherwise kernel gets multiple definitions of g_default_pthread_attr
+	#target_link_libraries(nuttx_xx INTERFACE nuttx_c)
 	target_link_libraries(nuttx_c INTERFACE gcc)
 
 if (CONFIG_BUILD_KERNEL)
