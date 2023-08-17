@@ -279,7 +279,7 @@ if (CONFIG_BUILD_KERNEL)
 
 		# Build module.a into module.elf
 		set(BIN px4-${MAIN}.elf)
-		add_executable(${BIN} ${PX4_SOURCE_DIR}/platforms/nuttx/src/px4/common/main.cpp)
+		add_executable(${BIN} ${PX4_SOURCE_DIR}/platforms/nuttx/src/px4/common/process/main.cpp)
 		set_target_properties(${BIN} PROPERTIES OUTPUT_NAME ${BIN})
 		add_dependencies(${BIN} nuttx_crt0 ${module})
 		target_compile_options(${BIN} PRIVATE -Dentry=${MAIN}_main)
