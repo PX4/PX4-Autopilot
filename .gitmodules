@@ -82,3 +82,6 @@
 [submodule "platforms/nuttx/NuttX/extern/pf_crypto"]
 	path = platforms/nuttx/NuttX/extern/pf_crypto
 	url = ../pf_crypto.git
+[submodule "platforms/nuttx/src/px4/common/process"]
+	path = platforms/nuttx/src/px4/common/process
+	url = git@github.com:tiiuae/px4-kernel.git

@@ -63,6 +63,6 @@ add_dependencies(px4_kernel_layer prebuild_targets)
 target_compile_options(px4_kernel_layer PRIVATE -D__KERNEL__)
 
 if (CONFIG_BUILD_KERNEL)
-	target_sources(px4_layer PRIVATE usr_mmap.c)
+	target_sources(px4_layer PRIVATE usr_mmap.c process/task.c)
 	target_sources(px4_kernel_layer PRIVATE px4_kmmap.c)
 endif()
