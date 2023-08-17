@@ -494,6 +494,17 @@ void EstimatorInterface::setDragData(const imuSample &imu)
 			}
 		}
 
+		// don't use any accel samples that are clipping
+		if (imu.delta_vel_clipping[0] || imu.delta_vel_clipping[1] || imu.delta_vel_clipping[2]) {
+			// reset accumulators
+			_drag_sample_count = 0;
+			_drag_down_sampled.accelXY.zero();
+			_drag_down_sampled.time_us = 0;
+			_drag_sample_time_dt = 0.0f;
+
+			return;
+		}
+
 		_drag_sample_count++;
 		// note acceleration is accumulated as a delta velocity
 		_drag_down_sampled.accelXY(0) += imu.delta_vel(0);
