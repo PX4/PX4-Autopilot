@@ -61,9 +61,8 @@ public:
 	// Setup the Ekf with synthetic measurements
 	void SetUp() override
 	{
-		// run briefly to init, then manually set in air and at rest (default for a real vehicle)
+		// Init, then manually set in air and at rest (default for a real vehicle)
 		_ekf->init(0);
-		_sensor_simulator.runSeconds(0.1);
 		_ekf->set_in_air_status(false);
 		_ekf->set_vehicle_at_rest(true);
 
@@ -304,9 +303,12 @@ TEST_F(EkfGpsHeadingTest, yawJumpInAir)
 	_sensor_simulator.runSeconds(7.5);
 
 	// THEN: after a few seconds, the fusion should stop and
-	// the estimator should fall back to mag fusion
+	// the estimator doesn't fall back to mag fusion because it has
+	// been declared inconsistent with the filter states
 	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeadingFusion());
-	EXPECT_TRUE(_ekf_wrapper.isIntendingMagHeadingFusion());
+	EXPECT_FALSE(_ekf_wrapper.isMagHeadingConsistent());
+	//TODO: should we force a reset to mag if the GNSS yaw fusion was forced to stop?
+	EXPECT_FALSE(_ekf_wrapper.isIntendingMagHeadingFusion());
 }
 
 TEST_F(EkfGpsHeadingTest, stopOnGround)

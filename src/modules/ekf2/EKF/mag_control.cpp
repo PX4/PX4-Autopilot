@@ -50,6 +50,7 @@ void Ekf::controlMagFusion()
 	// check mag state observability
 	checkYawAngleObservability();
 	checkMagBiasObservability();
+	checkMagHeadingConsistency();
 
 	if (_mag_bias_observable || _yaw_angle_observable) {
 		_time_last_mov_3d_mag_suitable = _time_delayed_us;
@@ -257,6 +258,19 @@ void Ekf::checkMagBiasObservability()
 	_time_yaw_started = _time_delayed_us;
 }
 
+void Ekf::checkMagHeadingConsistency()
+{
+	if (fabsf(_mag_heading_innov_lpf.getState()) < _params.mag_heading_noise) {
+		if (_yaw_angle_observable) {
+			// yaw angle must be observable to consider consistency
+			_control_status.flags.mag_heading_consistent = true;
+		}
+
+	} else {
+		_control_status.flags.mag_heading_consistent = false;
+	}
+}
+
 bool Ekf::checkMagField(const Vector3f &mag_sample)
 {
 	_control_status.flags.mag_field_disturbed = false;
@@ -357,6 +371,9 @@ void Ekf::resetMagHeading(const Vector3f &mag)
 	_mag_heading_last_declination = declination;
 
 	_time_last_heading_fuse = _time_delayed_us;
+
+	_mag_heading_innov_lpf.reset(0.f);
+	_control_status.flags.mag_heading_consistent = true;
 }
 
 float Ekf::getMagDeclination()

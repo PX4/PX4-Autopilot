@@ -581,6 +581,7 @@ private:
 	bool _mag_bias_observable{false};	///< true when there is enough rotation to make magnetometer bias errors observable
 	bool _yaw_angle_observable{false};	///< true when there is enough horizontal acceleration to make yaw observable
 	uint64_t _time_yaw_started{0};		///< last system time in usec that a yaw rotation manoeuvre was detected
+	AlphaFilter<float> _mag_heading_innov_lpf{0.1f};
 	float _mag_heading_last_declination{}; ///< last magnetic field declination used for heading fusion (rad)
 	bool _mag_decl_cov_reset{false};	///< true after the fuseDeclination() function has been used to modify the earth field covariances after a magnetic field reset event.
 	uint8_t _nb_mag_heading_reset_available{0};
@@ -1029,6 +1030,7 @@ private:
 
 	void checkYawAngleObservability();
 	void checkMagBiasObservability();
+	void checkMagHeadingConsistency();
 
 	bool checkMagField(const Vector3f &mag);
 	static bool isMeasuredMatchingExpected(float measured, float expected, float gate);

@@ -600,6 +600,7 @@ union filter_control_status_u {
 		uint64_t gravity_vector          : 1; ///< 34 - true when gravity vector measurements are being fused
 		uint64_t mag                     : 1; ///< 35 - true if 3-axis magnetometer measurement fusion (mag states only) is intended
 		uint64_t ev_yaw_fault            : 1; ///< 36 - true when the EV heading has been declared faulty and is no longer being used
+		uint64_t mag_heading_consistent  : 1; ///< 37 - true when the heading obtained from mag data is declared consistent with the filter
 
 	} flags;
 	uint64_t value;
