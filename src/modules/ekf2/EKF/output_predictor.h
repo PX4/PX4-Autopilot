@@ -94,6 +94,9 @@ public:
 
 	const matrix::Quatf &getQuaternion() const { return _output_new.quat_nominal; }
 
+	// get a yaw value solely based on bias-removed gyro integration
+	float getUnaidedYaw() const { return _unaided_yaw; }
+
 	// get the velocity of the body frame origin in local NED earth frame
 	matrix::Vector3f getVelocity() const { return _output_new.vel - _vel_imu_rel_body_ned; }
 
@@ -183,6 +186,8 @@ private:
 	matrix::Vector3f _output_tracking_error{}; ///< contains the magnitude of the angle, velocity and position track errors (rad, m/s, m)
 
 	matrix::Vector3f _imu_pos_body{};                ///< xyz position of IMU in body frame (m)
+
+	float _unaided_yaw{};
 
 	// output complementary filter tuning
 	float _vel_tau{0.25f};                   ///< velocity state correction time constant (1/sec)
