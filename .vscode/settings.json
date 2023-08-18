@@ -36,7 +36,7 @@
         "editor.suggest.localityBonus": true,
         "editor.tabSize": 8,
         "editor.wordWrapColumn": 120,
-        "explorer.openEditors.visible": 0,
+        "explorer.openEditors.visible": 1,
         "files.insertFinalNewline": true,
         "files.trimTrailingWhitespace": true,
         "files.watcherExclude": {
