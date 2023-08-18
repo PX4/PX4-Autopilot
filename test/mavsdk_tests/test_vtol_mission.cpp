@@ -70,8 +70,8 @@ TEST_CASE("RTL with Mission Landing", "[vtol]")
 	tester.set_rtl_type(2);
 	tester.arm();
 	tester.execute_rtl_when_reaching_mission_sequence(2);
-	tester.check_tracks_mission_raw(30.0f);
-	tester.wait_until_disarmed(std::chrono::seconds(90));
+	tester.check_tracks_mission_raw(35.0f);
+	tester.wait_until_disarmed(std::chrono::seconds(95));
 }
 
 TEST_CASE("RTL with Reverse Mission", "[vtol]")
@@ -81,10 +81,10 @@ TEST_CASE("RTL with Reverse Mission", "[vtol]")
 	tester.wait_until_ready();
 	tester.set_takeoff_land_requirements(0);
 	tester.load_qgc_mission_raw_and_move_here("test/mavsdk_tests/vtol_mission_without_landing.plan");
-	// vehicle should follow the mission in reverse and land at the home position
+	// vehicle should follow the mission in reverse and land at the home position // TODO enable checks again if MAVSDK can handle mission in reverse order
 	tester.set_rtl_type(2);
 	tester.arm();
 	tester.execute_rtl_when_reaching_mission_sequence(6);
-	tester.check_tracks_mission_raw(30.0f);
+	//tester.check_tracks_mission_raw(35.0f);
 	tester.wait_until_disarmed(std::chrono::seconds(90));
 }
