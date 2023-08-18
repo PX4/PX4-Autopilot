@@ -18,6 +18,7 @@
 			"dan-c-underwood.arm",
 			"fredericbonnet.cmake-test-adapter",
 			"github.vscode-pull-request-github",
+			"debug-tracker-vscode",
 			"marus25.cortex-debug",
 			"ms-azuretools.vscode-docker",
 			"ms-iot.vscode-ros",
@@ -40,5 +41,5 @@
 	},
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	"forwardPorts": [14556],
+	"forwardPorts": [14556]
 }
