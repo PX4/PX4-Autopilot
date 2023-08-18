@@ -327,6 +327,7 @@ private:
 	bool		_flight_termination_triggered{false};
 	bool		_lockdown_triggered{false};
 	bool            _imbalanced_propeller_check_triggered{false};
+	bool		_failure_detector_msg_flag{false};
 
 
 	hrt_abstime	_datalink_last_heartbeat_gcs{0};

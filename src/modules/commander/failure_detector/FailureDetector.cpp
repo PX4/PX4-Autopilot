@@ -80,7 +80,23 @@ bool FailureDetector::update(const vehicle_status_s &vehicle_status, const vehic
 		_status.flags.mpc_vz = false;
 	}
 
+	updateTerminationAllowedStatus();
+
 	return _status.value != status_prev.value;
+}
+
+void FailureDetector::updateTerminationAllowedStatus()
+{
+	vehicle_local_position_s local_position;
+	_vehicle_local_position_sub.copy(&local_position);
+
+	// If the measurement is valid and under the distance threshold, flight termination is not allowed, otherwise it is.
+	if (local_position.dist_bottom_valid && (local_position.dist_bottom < _param_fd_min_dist_trm_p.get())) {
+		_termination_allowed = false;
+
+	} else {
+		_termination_allowed = true;
+	}
 }
 
 void FailureDetector::updateAttitudeStatus()

@@ -2883,7 +2883,8 @@ Commander::run()
 						events::send(events::ID("commander_fd_lockdown"), {events::Log::Emergency, events::LogInternal::Warning},
 							     "Critical failure detected: lockdown");
 
-					} else if (!_status_flags.circuit_breaker_flight_termination_disabled &&
+					} else if (_failure_detector.getTerminationAllowed() &&
+						   !_status_flags.circuit_breaker_flight_termination_disabled &&
 						   !_flight_termination_triggered && !_lockdown_triggered) {
 
 						_armed.force_failsafe = true;
@@ -2900,6 +2901,13 @@ Commander::run()
 						events::send(events::ID("commander_fd_terminate"), {events::Log::Emergency, events::LogInternal::Warning},
 							     "Critical failure detected: terminate flight");
 						send_parachute_command();
+
+					} else if (!_failure_detector_msg_flag) {
+						/* Failure is detected during the flight but the flight will not be terminated due to preconditions.
+						 * Send warning to the pilot! */
+						mavlink_log_critical(&_mavlink_log_pub, "Failure detected, please land now!\t");
+						events::send(events::ID("commander_fd_failure_detected"), events::Log::Critical, "Failure detected, please land now!");
+						_failure_detector_msg_flag = true;
 					}
 				}
 
