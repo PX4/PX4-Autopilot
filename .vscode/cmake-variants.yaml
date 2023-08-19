@@ -281,3 +281,8 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: raspberrypi_pico_default
+    stm32_h747i-disco_default:
+      short: stm32_h747i-disco
+      buildType: MinSizeRel
+      settings:
+        CONFIG: stm32_h747i-disco_default

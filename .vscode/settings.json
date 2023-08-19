@@ -19,6 +19,11 @@
         "cmakeExplorer.buildDir": "${workspaceFolder}/build/px4_sitl_test",
         "cmakeExplorer.parallelJobs": 1,
         "cmakeExplorer.suiteDelimiter": "-",
+        "cmake.configureArgs": [
+                "-DCMAKE_C_COMPILER_FORCED:BOOL=TRUE",
+                "-DCMAKE_CXX_COMPILER_FORCED:BOOL=TRUE",
+                "-Wno-dev"
+        ],
         "cSpell.allowCompoundWords": true,
         "cSpell.diagnosticLevel": "Hint",
         "cSpell.showStatus": false,
