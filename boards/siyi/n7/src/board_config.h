@@ -145,8 +145,8 @@
 
 #define BOARD_NUM_SPI_CFG_HW_VERSIONS 2
 
-#define VD00   HW_VER_REV(0x0,0x0) 
-#define VD01   HW_VER_REV(0x0,0x1) 
+#define VD00   HW_VER_REV(0x0,0x0)
+#define VD01   HW_VER_REV(0x0,0x1)
 
 /* CAN Silence
  *
