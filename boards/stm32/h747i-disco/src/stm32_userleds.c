@@ -74,7 +74,7 @@ static const uint32_t g_ledcfg[BOARD_NLEDS] =
 
 uint32_t board_userled_initialize(void)
 {
-  int i;
+  size_t i;
 
   /* Configure LED1-3 GPIOs for output */
 
