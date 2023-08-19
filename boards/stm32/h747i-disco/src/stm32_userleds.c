@@ -24,11 +24,11 @@
 
 #include <nuttx/config.h>
 
-#include <stdbool.h>
 #include <debug.h>
+#include <stdbool.h>
 
-#include <nuttx/board.h>
 #include <arch/board/board.h>
+#include <nuttx/board.h>
 
 #include "stm32_gpio.h"
 #include "stm32h747i-disco.h"
@@ -49,12 +49,11 @@
  * BOARD_LED_<color>
  */
 
-static const uint32_t g_ledcfg[BOARD_NLEDS] =
-{
-  GPIO_LED_GREEN,
-  GPIO_LED_ORANGE,
-  GPIO_LED_RED,
-  GPIO_LED_BLUE,
+static const uint32_t g_ledcfg[BOARD_NLEDS] = {
+    GPIO_LED_GREEN,
+    GPIO_LED_ORANGE,
+    GPIO_LED_RED,
+    GPIO_LED_BLUE,
 };
 
 /****************************************************************************
@@ -72,16 +71,14 @@ static const uint32_t g_ledcfg[BOARD_NLEDS] =
  *
  ****************************************************************************/
 
-uint32_t board_userled_initialize(void)
-{
+uint32_t board_userled_initialize(void) {
   size_t i;
 
   /* Configure LED1-3 GPIOs for output */
 
-  for (i = 0; i < ARRAYSIZE(g_ledcfg); i++)
-    {
-      stm32_configgpio(g_ledcfg[i]);
-    }
+  for (i = 0; i < ARRAYSIZE(g_ledcfg); i++) {
+    stm32_configgpio(g_ledcfg[i]);
+  }
 
   return BOARD_NLEDS;
 }
@@ -96,14 +93,12 @@ uint32_t board_userled_initialize(void)
  *
  ****************************************************************************/
 
-void board_userled(int led, bool ledon)
-{
+void board_userled(int led, bool ledon) {
   /* Active Low */
 
-  if ((unsigned)led < ARRAYSIZE(g_ledcfg))
-    {
-      stm32_gpiowrite(g_ledcfg[led], !ledon);
-    }
+  if ((unsigned)led < ARRAYSIZE(g_ledcfg)) {
+    stm32_gpiowrite(g_ledcfg[led], !ledon);
+  }
 }
 
 /****************************************************************************
@@ -117,16 +112,14 @@ void board_userled(int led, bool ledon)
  *
  ****************************************************************************/
 
-void board_userled_all(uint32_t ledset)
-{
+void board_userled_all(uint32_t ledset) {
   /* Active Low */
 
   int i;
 
-  for (i = 0; i < ARRAYSIZE(g_ledcfg); i++)
-    {
-      stm32_gpiowrite(g_ledcfg[i], (ledset & (1 << i)) == 0);
-    }
+  for (i = 0; i < ARRAYSIZE(g_ledcfg); i++) {
+    stm32_gpiowrite(g_ledcfg[i], (ledset & (1 << i)) == 0);
+  }
 }
 
 #endif /* !CONFIG_ARCH_LEDS */

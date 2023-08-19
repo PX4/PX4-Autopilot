@@ -24,11 +24,11 @@
 
 #include <nuttx/config.h>
 
-#include <stdbool.h>
 #include <debug.h>
+#include <stdbool.h>
 
-#include <nuttx/board.h>
 #include <arch/board/board.h>
+#include <nuttx/board.h>
 
 #include "stm32_gpio.h"
 #include "stm32h747i-disco.h"
@@ -47,12 +47,11 @@
 
 /* Indexed by BOARD_LED_<color> */
 
-static const uint32_t g_ledmap[BOARD_NLEDS] =
-{
-  GPIO_LED_GREEN,
-  GPIO_LED_ORANGE,
-  GPIO_LED_RED,
-  GPIO_LED_BLUE,
+static const uint32_t g_ledmap[BOARD_NLEDS] = {
+    GPIO_LED_GREEN,
+    GPIO_LED_ORANGE,
+    GPIO_LED_RED,
+    GPIO_LED_BLUE,
 };
 
 static bool g_initialized;
@@ -61,8 +60,7 @@ static bool g_initialized;
  * Private Functions
  ****************************************************************************/
 
-static void phy_set_led(int led, bool state)
-{
+static void phy_set_led(int led, bool state) {
   /* Active Low */
 
   stm32_gpiowrite(g_ledmap[led], !state);
@@ -76,99 +74,93 @@ static void phy_set_led(int led, bool state)
  * Name: board_autoled_initialize
  ****************************************************************************/
 
-void board_autoled_initialize(void)
-{
+void board_autoled_initialize(void) {
   size_t i;
 
   /* Configure the LD1 GPIO for output. Initial state is OFF */
 
-  for (i = 0; i < ARRAYSIZE(g_ledmap); i++)
-    {
-      stm32_configgpio(g_ledmap[i]);
-    }
+  for (i = 0; i < ARRAYSIZE(g_ledmap); i++) {
+    stm32_configgpio(g_ledmap[i]);
+  }
 }
 
 /****************************************************************************
  * Name: board_autoled_on
  ****************************************************************************/
 
-void board_autoled_on(int led)
-{
-  switch (led)
-    {
-    default:
-      break;
-
-    case LED_HEAPALLOCATE:
-      phy_set_led(BOARD_LED_BLUE, true);
-      break;
-
-    case LED_IRQSENABLED:
-      phy_set_led(BOARD_LED_BLUE, false);
-      phy_set_led(BOARD_LED_GREEN, true);
-      break;
-
-    case LED_STACKCREATED:
-      phy_set_led(BOARD_LED_GREEN, true);
-      phy_set_led(BOARD_LED_BLUE, true);
-      g_initialized = true;
-      break;
-
-    case LED_INIRQ:
-      phy_set_led(BOARD_LED_BLUE, true);
-      break;
-
-    case LED_SIGNAL:
-      phy_set_led(BOARD_LED_GREEN, true);
-      break;
-
-    case LED_ASSERTION:
-      phy_set_led(BOARD_LED_RED, true);
-      phy_set_led(BOARD_LED_BLUE, true);
-      break;
-
-    case LED_PANIC:
-      phy_set_led(BOARD_LED_RED, true);
-      break;
-
-    case LED_IDLE : /* IDLE */
-      phy_set_led(BOARD_LED_RED, true);
+void board_autoled_on(int led) {
+  switch (led) {
+  default:
     break;
-    }
+
+  case LED_HEAPALLOCATE:
+    phy_set_led(BOARD_LED_BLUE, true);
+    break;
+
+  case LED_IRQSENABLED:
+    phy_set_led(BOARD_LED_BLUE, false);
+    phy_set_led(BOARD_LED_GREEN, true);
+    break;
+
+  case LED_STACKCREATED:
+    phy_set_led(BOARD_LED_GREEN, true);
+    phy_set_led(BOARD_LED_BLUE, true);
+    g_initialized = true;
+    break;
+
+  case LED_INIRQ:
+    phy_set_led(BOARD_LED_BLUE, true);
+    break;
+
+  case LED_SIGNAL:
+    phy_set_led(BOARD_LED_GREEN, true);
+    break;
+
+  case LED_ASSERTION:
+    phy_set_led(BOARD_LED_RED, true);
+    phy_set_led(BOARD_LED_BLUE, true);
+    break;
+
+  case LED_PANIC:
+    phy_set_led(BOARD_LED_RED, true);
+    break;
+
+  case LED_IDLE: /* IDLE */
+    phy_set_led(BOARD_LED_RED, true);
+    break;
+  }
 }
 
 /****************************************************************************
  * Name: board_autoled_off
  ****************************************************************************/
 
-void board_autoled_off(int led)
-{
-  switch (led)
-    {
-    default:
-      break;
-
-    case LED_SIGNAL:
-      phy_set_led(BOARD_LED_GREEN, false);
-      break;
-
-    case LED_INIRQ:
-      phy_set_led(BOARD_LED_BLUE, false);
-      break;
-
-    case LED_ASSERTION:
-      phy_set_led(BOARD_LED_RED, false);
-      phy_set_led(BOARD_LED_BLUE, false);
-      break;
-
-    case LED_PANIC:
-      phy_set_led(BOARD_LED_RED, false);
-      break;
-
-    case LED_IDLE : /* IDLE */
-      phy_set_led(BOARD_LED_RED, false);
+void board_autoled_off(int led) {
+  switch (led) {
+  default:
     break;
-    }
+
+  case LED_SIGNAL:
+    phy_set_led(BOARD_LED_GREEN, false);
+    break;
+
+  case LED_INIRQ:
+    phy_set_led(BOARD_LED_BLUE, false);
+    break;
+
+  case LED_ASSERTION:
+    phy_set_led(BOARD_LED_RED, false);
+    phy_set_led(BOARD_LED_BLUE, false);
+    break;
+
+  case LED_PANIC:
+    phy_set_led(BOARD_LED_RED, false);
+    break;
+
+  case LED_IDLE: /* IDLE */
+    phy_set_led(BOARD_LED_RED, false);
+    break;
+  }
 }
 
 #endif /* CONFIG_ARCH_LEDS */
