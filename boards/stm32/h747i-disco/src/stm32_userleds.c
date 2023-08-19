@@ -31,7 +31,7 @@
 #include <arch/board/board.h>
 
 #include "stm32_gpio.h"
-#include "stm32h747i-disco.h"
+#include "../../../platforms/nuttx/NuttX/nuttx/boards/arm/stm32h7/stm32h747i-disco/src/stm32h747i-disco.h"
 
 #ifndef CONFIG_ARCH_LEDS
 
