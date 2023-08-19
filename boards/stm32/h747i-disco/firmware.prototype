@@ -1,0 +1,13 @@
+{
+	"board_id": 999,
+	"magic": "PX4FWv0",
+	"description": "Firmware for the STM32H747I Discovery board",
+	"image": "",
+	"build_time": 0,
+	"summary": "STM32H747I-DISCO",
+	"version": "0.1",
+	"image_size": 0,
+	"image_maxsize": 2080768,
+	"git_identity": "",
+	"board_revision": 0
+}
