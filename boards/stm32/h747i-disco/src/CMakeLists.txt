@@ -26,3 +26,24 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
+add_library(drivers_board
+	../../../../platforms/nuttx/NuttX/nuttx/boards/arm/stm32h7/stm32h747i-disco/src/stm32_adc.c
+	../../../../platforms/nuttx/NuttX/nuttx/boards/arm/stm32h7/stm32h747i-disco/src/stm32_appinitialize.c
+	../../../../platforms/nuttx/NuttX/nuttx/boards/arm/stm32h7/stm32h747i-disco/src/stm32_autoleds.c
+	../../../../platforms/nuttx/NuttX/nuttx/boards/arm/stm32h7/stm32h747i-disco/src/stm32_boot.c
+	../../../../platforms/nuttx/NuttX/nuttx/boards/arm/stm32h7/stm32h747i-disco/src/stm32_bringup.c
+	../../../../platforms/nuttx/NuttX/nuttx/boards/arm/stm32h7/stm32h747i-disco/src/stm32_buttons.c
+	../../../../platforms/nuttx/NuttX/nuttx/boards/arm/stm32h7/stm32h747i-disco/src/stm32_dma_alloc.c
+	../../../../platforms/nuttx/NuttX/nuttx/boards/arm/stm32h7/stm32h747i-disco/src/stm32_sdmmc.c
+	../../../../platforms/nuttx/NuttX/nuttx/boards/arm/stm32h7/stm32h747i-disco/src/stm32_spi.c
+	../../../../platforms/nuttx/NuttX/nuttx/boards/arm/stm32h7/stm32h747i-disco/src/stm32_uid.c
+	../../../../platforms/nuttx/NuttX/nuttx/boards/arm/stm32h7/stm32h747i-disco/src/stm32_usb.c
+	../../../../platforms/nuttx/NuttX/nuttx/boards/arm/stm32h7/stm32h747i-disco/src/stm32_userleds.c
+	foo.cpp
+)
+
+target_link_libraries(drivers_board
+	PRIVATE
+		px4_layer
+)
