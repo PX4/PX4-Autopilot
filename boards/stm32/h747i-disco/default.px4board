@@ -1,1 +1,2 @@
-# make stm32_h747i-disco boardconfig
+CONFIG_BOARD_TOOLCHAIN="arm-none-eabi"
+CONFIG_BOARD_ARCHITECTURE="cortex-m7"
