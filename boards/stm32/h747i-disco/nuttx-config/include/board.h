@@ -2,7 +2,7 @@
  * board.h
  * include/arch/board/board.h
  *
- *   Copyright (C) 2023, 2016, 2022 Roy Ratcliffe. All rights reserved.
+ *   Copyright (C) 2023 Roy Ratcliffe. All rights reserved.
  *   Authors: Roy Ratcliffe <roy@ratcliffe.me>
  *
  * Redistribution and use in source and binary forms, with or without
