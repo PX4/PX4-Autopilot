@@ -1,5 +1,5 @@
 /****************************************************************************
- * boards/arm/stm32h7/stm32h747i-disco/src/stm32_userleds.c
+ * boards/arm/stm32h7/stm32h747i-disco/src/stm32_autoleds.c
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -33,7 +33,7 @@
 #include "stm32_gpio.h"
 #include "stm32h747i-disco.h"
 
-#ifndef CONFIG_ARCH_LEDS
+#ifdef CONFIG_ARCH_LEDS
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -45,11 +45,9 @@
  * Private Data
  ****************************************************************************/
 
-/* This array maps an LED number to GPIO pin configuration and is indexed by
- * BOARD_LED_<color>
- */
+/* Indexed by BOARD_LED_<color> */
 
-static const uint32_t g_ledcfg[BOARD_NLEDS] =
+static const uint32_t g_ledmap[BOARD_NLEDS] =
 {
   GPIO_LED_GREEN,
   GPIO_LED_ORANGE,
@@ -57,76 +55,120 @@ static const uint32_t g_ledcfg[BOARD_NLEDS] =
   GPIO_LED_BLUE,
 };
 
+static bool g_initialized;
+
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+
+static void phy_set_led(int led, bool state)
+{
+  /* Active Low */
+
+  stm32_gpiowrite(g_ledmap[led], !state);
+}
+
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: board_userled_initialize
- *
- * Description:
- *   If CONFIG_ARCH_LEDS is defined, then NuttX will control the on-board
- *   LEDs.  If CONFIG_ARCH_LEDS is not defined, then the
- *   board_userled_initialize() is available to initialize the LED from user
- *   application logic.
- *
+ * Name: board_autoled_initialize
  ****************************************************************************/
 
-uint32_t board_userled_initialize(void)
+void board_autoled_initialize(void)
 {
   size_t i;
 
-  /* Configure LED1-3 GPIOs for output */
+  /* Configure the LD1 GPIO for output. Initial state is OFF */
 
-  for (i = 0; i < ARRAYSIZE(g_ledcfg); i++)
+  for (i = 0; i < ARRAYSIZE(g_ledmap); i++)
     {
-      stm32_configgpio(g_ledcfg[i]);
-    }
-
-  return BOARD_NLEDS;
-}
-
-/****************************************************************************
- * Name: board_userled
- *
- * Description:
- *   If CONFIG_ARCH_LEDS is defined, then NuttX will control the on-board
- *  LEDs.  If CONFIG_ARCH_LEDS is not defined, then the board_userled() is
- *  available to control the LED from user application logic.
- *
- ****************************************************************************/
-
-void board_userled(int led, bool ledon)
-{
-  /* Active Low */
-
-  if ((unsigned)led < ARRAYSIZE(g_ledcfg))
-    {
-      stm32_gpiowrite(g_ledcfg[led], !ledon);
+      stm32_configgpio(g_ledmap[i]);
     }
 }
 
 /****************************************************************************
- * Name: board_userled_all
- *
- * Description:
- *   If CONFIG_ARCH_LEDS is defined, then NuttX will control the on-board
- *  LEDs.  If CONFIG_ARCH_LEDS is not defined, then the board_userled_all()
- *  is available to control the LED from user application logic. NOTE: since
- *  there is only a single LED on-board, this is function is not very useful.
- *
+ * Name: board_autoled_on
  ****************************************************************************/
 
-void board_userled_all(uint32_t ledset)
+void board_autoled_on(int led)
 {
-  /* Active Low */
-
-  int i;
-
-  for (i = 0; i < ARRAYSIZE(g_ledcfg); i++)
+  switch (led)
     {
-      stm32_gpiowrite(g_ledcfg[i], (ledset & (1 << i)) == 0);
+    default:
+      break;
+
+    case LED_HEAPALLOCATE:
+      phy_set_led(BOARD_LED_BLUE, true);
+      break;
+
+    case LED_IRQSENABLED:
+      phy_set_led(BOARD_LED_BLUE, false);
+      phy_set_led(BOARD_LED_GREEN, true);
+      break;
+
+    case LED_STACKCREATED:
+      phy_set_led(BOARD_LED_GREEN, true);
+      phy_set_led(BOARD_LED_BLUE, true);
+      g_initialized = true;
+      break;
+
+    case LED_INIRQ:
+      phy_set_led(BOARD_LED_BLUE, true);
+      break;
+
+    case LED_SIGNAL:
+      phy_set_led(BOARD_LED_GREEN, true);
+      break;
+
+    case LED_ASSERTION:
+      phy_set_led(BOARD_LED_RED, true);
+      phy_set_led(BOARD_LED_BLUE, true);
+      break;
+
+    case LED_PANIC:
+      phy_set_led(BOARD_LED_RED, true);
+      break;
+
+    case LED_IDLE : /* IDLE */
+      phy_set_led(BOARD_LED_RED, true);
+    break;
     }
 }
 
-#endif /* !CONFIG_ARCH_LEDS */
+/****************************************************************************
+ * Name: board_autoled_off
+ ****************************************************************************/
+
+void board_autoled_off(int led)
+{
+  switch (led)
+    {
+    default:
+      break;
+
+    case LED_SIGNAL:
+      phy_set_led(BOARD_LED_GREEN, false);
+      break;
+
+    case LED_INIRQ:
+      phy_set_led(BOARD_LED_BLUE, false);
+      break;
+
+    case LED_ASSERTION:
+      phy_set_led(BOARD_LED_RED, false);
+      phy_set_led(BOARD_LED_BLUE, false);
+      break;
+
+    case LED_PANIC:
+      phy_set_led(BOARD_LED_RED, false);
+      break;
+
+    case LED_IDLE : /* IDLE */
+      phy_set_led(BOARD_LED_RED, false);
+    break;
+    }
+}
+
+#endif /* CONFIG_ARCH_LEDS */

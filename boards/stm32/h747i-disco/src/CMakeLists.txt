@@ -30,7 +30,7 @@
 add_library(drivers_board
 	../../../../platforms/nuttx/NuttX/nuttx/boards/arm/stm32h7/stm32h747i-disco/src/stm32_adc.c
 	../../../../platforms/nuttx/NuttX/nuttx/boards/arm/stm32h7/stm32h747i-disco/src/stm32_appinitialize.c
-	../../../../platforms/nuttx/NuttX/nuttx/boards/arm/stm32h7/stm32h747i-disco/src/stm32_autoleds.c
+	stm32_autoleds.c
 	../../../../platforms/nuttx/NuttX/nuttx/boards/arm/stm32h7/stm32h747i-disco/src/stm32_boot.c
 	../../../../platforms/nuttx/NuttX/nuttx/boards/arm/stm32h7/stm32h747i-disco/src/stm32_bringup.c
 	../../../../platforms/nuttx/NuttX/nuttx/boards/arm/stm32h7/stm32h747i-disco/src/stm32_buttons.c
