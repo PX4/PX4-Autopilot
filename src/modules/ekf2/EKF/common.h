@@ -113,11 +113,12 @@ enum TerrainFusionMask : uint8_t {
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 enum HeightSensor : uint8_t {
-	BARO  = 0,
-	GNSS  = 1,
-	RANGE = 2,
-	EV    = 3,
-	UNKNOWN  = 4
+	BARO    = 0,
+	GNSS    = 1,
+	RANGE   = 2,
+	EV      = 3,
+	MOCAP   = 4,
+	UNKNOWN = 5
 };
 
 enum class PositionSensor : uint8_t {
@@ -601,7 +602,7 @@ union filter_control_status_u {
 		uint64_t mag                     : 1; ///< 35 - true if 3-axis magnetometer measurement fusion (mag states only) is intended
 		uint64_t ev_yaw_fault            : 1; ///< 36 - true when the EV heading has been declared faulty and is no longer being used
 		uint64_t mag_heading_consistent  : 1; ///< 37 - true when the heading obtained from mag data is declared consistent with the filter
-
+		uint64_t mocap                   : 1; ///< 38 - true when motion capture (mocap) fusion is intended
 	} flags;
 	uint64_t value;
 };

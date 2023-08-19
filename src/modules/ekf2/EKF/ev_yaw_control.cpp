@@ -57,6 +57,7 @@ void Ekf::controlEvYawFusion(const extVisionSample &ev_sample, const bool common
 	bool continuing_conditions_passing = (_params.ev_ctrl & static_cast<int32_t>(EvCtrl::YAW))
 					     && _control_status.flags.tilt_align
 					     && !_control_status.flags.ev_yaw_fault
+					     && !_control_status.flags.mocap
 					     && PX4_ISFINITE(aid_src.observation)
 					     && PX4_ISFINITE(aid_src.observation_variance);
 

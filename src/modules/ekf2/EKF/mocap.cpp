@@ -62,12 +62,20 @@ void Mocap::update(Ekf &ekf, const estimator::imuSample &imu_delayed)
 
 	if (_mocap_buffer.pop_first_older_than(imu_delayed.time_us, &mocap_sample)) {
 
-		if (!ekf.global_origin_valid()) {
-			return;
-		}
 
-		// position
-		{
+		bool pos_valid = mocap_sample.pos.isAllFinite();
+		//bool q_valid = mocap_sample.q.isAllFinite() && (q.min() > 0.f);
+
+		// yaw_align = false;
+		// _height_sensor_ref = HeightSensor::MOCAP;
+
+		//_control_status.flags.mocap = true;
+
+		// reset position and yaw on init
+
+
+		// position xy
+		if (pos_valid) {
 			estimator_aid_source2d_s aid_src{};
 
 			const Vector2f pos_obs_var{
@@ -82,14 +90,37 @@ void Mocap::update(Ekf &ekf, const estimator::imuSample &imu_delayed)
 					aid_src);
 			aid_src.fusion_enabled = _param_ekf2_mocap_ctrl.get() & 0b001; // bit 0 Horizontal position
 
-			// TODO: check frame
-			if (ekf.control_status_flags().yaw_align) {
-				ekf.fuseHorizontalPosition(aid_src);
-			}
+			ekf.fuseHorizontalPosition(aid_src);
 
 #if defined(MODULE_NAME)
 			aid_src.timestamp = hrt_absolute_time();
 			_estimator_aid_src_mocap_xy_pub.publish(aid_src);
+#endif // MODULE_NAME
+		}
+
+		// position z
+		{
+			estimator_aid_source1d_s aid_src{};
+
+			const float pos_obs_var = math::max(sq(mocap_sample.position_var(2)), sq(_param_ekf2_mocap_noise.get()));
+
+			ekf.updateVerticalPositionAidSrcStatus(mocap_sample.time_us,
+							mocap_sample.pos(2),                           // observation
+							pos_obs_var,                                   // observation variance
+							math::max(_param_ekf2_mocap_gate.get(), 1.f),  // innovation gate
+							aid_src);
+
+			if (_param_ekf2_mocap_ctrl.get()) {
+				aid_src.fusion_enabled = true;
+
+				ekf.fuseVerticalPosition(aid_src);
+
+				//const bool is_fusion_failing = isTimedOut(aid_src.time_last_fuse, _params.hgt_fusion_timeout_max);
+			}
+
+#if defined(MODULE_NAME)
+			aid_src.timestamp = hrt_absolute_time();
+			_estimator_aid_src_mocap_z_pub.publish(aid_src);
 #endif // MODULE_NAME
 		}
 

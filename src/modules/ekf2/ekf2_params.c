@@ -1572,17 +1572,8 @@ PARAM_DEFINE_FLOAT(EKF2_GSF_TAS, 15.0f);
 /**
  * Motion capture (mocap) aiding
  *
- * Set bits in the following positions to enable:
- * 0 : Horizontal position fusion
- * 1 : Vertical position fusion
- * 2 : Yaw
- *
  * @group EKF2
- * @min 0
- * @max 15
- * @bit 0 Horizontal position
- * @bit 1 Vertical position
- * @bit 2 Yaw
+ * @boolean
  */
 PARAM_DEFINE_INT32(EKF2_MOCAP_CTRL, 1);
 
