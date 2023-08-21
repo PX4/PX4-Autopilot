@@ -2926,12 +2926,16 @@ void FixedwingPositionControl::navigateLoiter(const Vector2f &loiter_center, con
 			  loiter_center + unit_vec_center_to_closest_pt * radius, path_curvature);
 }
 
-
 void FixedwingPositionControl::navigatePathTangent(const matrix::Vector2f &vehicle_pos,
 		const matrix::Vector2f &position_setpoint,
 		const matrix::Vector2f &tangent_setpoint,
 		const matrix::Vector2f &ground_vel, const matrix::Vector2f &wind_vel, const float &curvature)
 {
+	if (tangent_setpoint.norm() <= FLT_EPSILON) {
+		// degenerate case: no direction. maintain the last npfg command.
+		return;
+	}
+
 	const Vector2f unit_path_tangent{tangent_setpoint.normalized()};
 	_target_bearing = atan2f(unit_path_tangent(1), unit_path_tangent(0));
 	_closest_point_on_path = position_setpoint;
