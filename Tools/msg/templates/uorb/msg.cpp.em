@@ -14,6 +14,7 @@
 @#  - spec (msggen.MsgSpec) Parsed specification of the .msg file
 @#  - search_path (dict) search paths for genmsg
 @#  - topics (List of String) topic names
+@#  - all_topics (List of String) all generated topic names (sorted)
 @###############################################
 /****************************************************************************
  *
@@ -59,7 +60,6 @@ uorb_struct = '%s_s'%name_snake_case
 
 sorted_fields = sorted(spec.parsed_fields(), key=sizeof_field_type, reverse=True)
 struct_size, padding_end_size = add_padding_bytes(sorted_fields, search_path)
-topic_fields = ["%s %s" % (convert_type(field.type, True), field.name) for field in sorted_fields]
 }@
 
 #include <inttypes.h>
@@ -72,12 +72,9 @@ topic_fields = ["%s %s" % (convert_type(field.type, True), field.name) for field
 #include <lib/matrix/matrix/math.hpp>
 #include <lib/mathlib/mathlib.h>
 
-@# join all msg files in one line e.g: "float[3] position;float[3] velocity;bool armed"
-@# This is used for the logger
-constexpr char __orb_@(name_snake_case)_fields[] = "@( ";".join(topic_fields) );";
-
 @[for topic in topics]@
-ORB_DEFINE(@topic, struct @uorb_struct, @(struct_size-padding_end_size), __orb_@(name_snake_case)_fields, static_cast<orb_id_size_t>(ORB_ID::@topic));
+static_assert(static_cast<orb_id_size_t>(ORB_ID::@topic) == @(all_topics.index(topic)), "ORB_ID index mismatch");
+ORB_DEFINE(@topic, struct @uorb_struct, @(struct_size-padding_end_size), static_cast<orb_id_size_t>(ORB_ID::@topic));
 @[end for]
 
 void print_message(const orb_metadata *meta, const @uorb_struct& message)
