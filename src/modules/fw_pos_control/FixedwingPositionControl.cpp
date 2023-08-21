@@ -2819,40 +2819,33 @@ void FixedwingPositionControl::navigateWaypoints(const Vector2f &start_waypoint,
 	const Vector2f start_waypoint_to_end_waypoint = end_waypoint - start_waypoint;
 	const Vector2f start_waypoint_to_vehicle = vehicle_pos - start_waypoint;
 	const Vector2f end_waypoint_to_vehicle = vehicle_pos - end_waypoint;
-	Vector2f unit_path_tangent{1.f, 0.f};
 
 	if (start_waypoint_to_end_waypoint.norm() < FLT_EPSILON) {
 		// degenerate case: the waypoints are on top of each other, this should only happen when someone uses this
-		// method incorrectly. just a safe guard, call the singular waypoint navigation method.
+		// method incorrectly. just as a safe guard, call the singular waypoint navigation method.
 		navigateWaypoint(end_waypoint, vehicle_pos, ground_vel, wind_vel);
 		return;
+	}
 
-	} else if ((start_waypoint_to_end_waypoint.dot(start_waypoint_to_vehicle) < -FLT_EPSILON)
-		   && (start_waypoint_to_vehicle.norm() > _npfg.switchDistance(500.0f))) {
+	if ((start_waypoint_to_end_waypoint.dot(start_waypoint_to_vehicle) < -FLT_EPSILON)
+	    && (start_waypoint_to_vehicle.norm() > _npfg.switchDistance(500.0f))) {
 		// we are in front of the start waypoint, fly directly to it until we are within switch distance
-		unit_path_tangent = -start_waypoint_to_vehicle.normalized();
-		_closest_point_on_path = start_waypoint;
+		navigateWaypoint(start_waypoint, vehicle_pos, ground_vel, wind_vel);
+		return;
+	}
 
-	} else if (start_waypoint_to_end_waypoint.dot(end_waypoint_to_vehicle) > FLT_EPSILON) {
+	if (start_waypoint_to_end_waypoint.dot(end_waypoint_to_vehicle) > FLT_EPSILON) {
 		// we are beyond the end waypoint, fly back to it
 		// NOTE: this logic ideally never gets executed, as a waypoint switch should happen before passing the
 		// end waypoint. however this included here as a safety precaution if any navigator (module) switch condition
 		// is missed for any reason. in the future this logic should all be handled in one place in a dedicated
 		// flight mode state machine.
-		unit_path_tangent = -end_waypoint_to_vehicle.normalized();
-		_closest_point_on_path = end_waypoint;
-
-	} else {
-		// follow the line segment between the start and end waypoints
-		unit_path_tangent = start_waypoint_to_end_waypoint.normalized();
-		_closest_point_on_path = start_waypoint + start_waypoint_to_vehicle.dot(unit_path_tangent) * unit_path_tangent;
+		navigateWaypoint(end_waypoint, vehicle_pos, ground_vel, wind_vel);
+		return;
 	}
 
-	const float path_curvature = 0.f;
-	_npfg.guideToPath(vehicle_pos, ground_vel, wind_vel, unit_path_tangent, _closest_point_on_path, path_curvature);
-
-	// for logging - note we are abusing path tangent vs bearing definitions here. npfg interfaces need to be refined.
-	_target_bearing = atan2f(unit_path_tangent(1), unit_path_tangent(0));
+	// follow the line segment between the start and end waypoints
+	navigateLine(start_waypoint, end_waypoint, vehicle_pos, ground_vel, wind_vel);
 }
 
 void FixedwingPositionControl::navigateWaypoint(const Vector2f &waypoint_pos, const Vector2f &vehicle_pos,
