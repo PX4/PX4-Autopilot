@@ -250,6 +250,7 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 			local_position.evv = velocityUncertaintyEstimated;
 			local_position.xy_valid = true;
 			local_position.heading_good_for_control = mode_tracking;
+			local_position.unaided_heading = NAN;
 			local_position.timestamp = hrt_absolute_time();
 			_local_position_pub.publish(local_position);
 
