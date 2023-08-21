@@ -1036,8 +1036,11 @@ FixedwingPositionControl::control_auto_position(const float control_interval, co
 		prev_wp(1) = pos_sp_prev.lon;
 
 	} else {
-		// No valid previous waypoint, go along the line between aircraft and current waypoint
-		prev_wp = curr_pos;
+		// No valid previous waypoint, fly directly to current waypoint
+		// NOTE: this is a bad interface - navigateWaypoints() takes two waypoints on top of each other as an
+		// indication it should fly directly to that waypoint. Better would be e.g. an alternative overload with
+		// singular setpoint input. (just an idea for future refactoring/refinement)
+		prev_wp = curr_wp;
 	}
 
 	float tecs_fw_thr_min;
