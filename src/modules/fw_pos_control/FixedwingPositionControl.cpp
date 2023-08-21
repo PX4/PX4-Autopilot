@@ -1353,17 +1353,20 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 		const Vector2f takeoff_waypoint_local = _global_local_proj_ref.project(pos_sp_curr.lat, pos_sp_curr.lon);
 
 		// by default set the takeoff bearing to the takeoff yaw, but override in a mission takeoff with bearing to takeoff WP
-		Vector2f takeoff_bearing_vector = {cosf(_launch_current_yaw), sinf(_launch_current_yaw)};
+		float takeoff_bearing = _launch_current_yaw;
 
 		if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
 			// the bearing from runway start to the takeoff waypoint is followed until the clearance altitude is exceeded
-			takeoff_bearing_vector = calculateTakeoffBearingVector(start_pos_local, takeoff_waypoint_local);
+			const Vector2f takeoff_bearing_vector = takeoff_waypoint_local - start_pos_local;
+
+			if (takeoff_bearing_vector.norm() > FLT_EPSILON) {
+				takeoff_bearing = atan2f(takeoff_bearing_vector(1), takeoff_bearing_vector(0));
+			}
 		}
 
 		_npfg.setAirspeedNom(target_airspeed * _eas2tas);
 		_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
-		navigatePathTangent(local_2D_position, start_pos_local, takeoff_bearing_vector, ground_speed,
-				    _wind_vel, 0.0f);
+		navigateLine(start_pos_local, takeoff_bearing, local_2D_position, ground_speed, _wind_vel);
 
 		_att_sp.roll_body = _runway_takeoff.getRoll(_npfg.getRollSetpoint());
 
@@ -1440,11 +1443,15 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 		const Vector2f takeoff_waypoint_local = _global_local_proj_ref.project(pos_sp_curr.lat, pos_sp_curr.lon);
 
 		// by default set the takeoff bearing to the takeoff yaw, but override in a mission takeoff with bearing to takeoff WP
-		Vector2f takeoff_bearing_vector = {cosf(_launch_current_yaw), sinf(_launch_current_yaw)};
+		float takeoff_bearing = _launch_current_yaw;
 
 		if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION) {
 			// the bearing from launch to the takeoff waypoint is followed until the clearance altitude is exceeded
-			takeoff_bearing_vector = calculateTakeoffBearingVector(launch_local_position, takeoff_waypoint_local);
+			const Vector2f takeoff_bearing_vector = takeoff_waypoint_local - launch_local_position;
+
+			if (takeoff_bearing_vector.norm() > FLT_EPSILON) {
+				takeoff_bearing = atan2f(takeoff_bearing_vector(1), takeoff_bearing_vector(0));
+			}
 		}
 
 		/* Set control values depending on the detection state */
@@ -1454,8 +1461,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 			_npfg.setAirspeedNom(target_airspeed * _eas2tas);
 			_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
-			navigatePathTangent(local_2D_position, launch_local_position, takeoff_bearing_vector, ground_speed, _wind_vel,
-					    0.0f);
+			navigateLine(launch_local_position, takeoff_bearing, local_2D_position, ground_speed, _wind_vel);
 			_att_sp.roll_body = _npfg.getRollSetpoint();
 			target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
 
@@ -1603,7 +1609,7 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 
 		_npfg.setAirspeedNom(target_airspeed * _eas2tas);
 		_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
-		navigateWaypoints(local_approach_entrance, local_land_point, local_position, ground_speed, _wind_vel);
+		navigateLine(local_approach_entrance, local_land_point, local_position, ground_speed, _wind_vel);
 		target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
 		_att_sp.roll_body = _npfg.getRollSetpoint();
 
@@ -1682,7 +1688,7 @@ FixedwingPositionControl::control_auto_landing_straight(const hrt_abstime &now, 
 
 		_npfg.setAirspeedNom(target_airspeed * _eas2tas);
 		_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
-		navigateWaypoints(local_approach_entrance, local_land_point, local_position, ground_speed, _wind_vel);
+		navigateLine(local_approach_entrance, local_land_point, local_position, ground_speed, _wind_vel);
 		target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
 		_att_sp.roll_body = _npfg.getRollSetpoint();
 
@@ -2616,27 +2622,6 @@ FixedwingPositionControl::constrainRollNearGround(const float roll_setpoint, con
 	return math::constrain(roll_setpoint, -roll_wingtip_strike, roll_wingtip_strike);
 }
 
-Vector2f
-FixedwingPositionControl::calculateTakeoffBearingVector(const Vector2f &launch_position,
-		const Vector2f &takeoff_waypoint) const
-{
-	Vector2f takeoff_bearing_vector = takeoff_waypoint - launch_position;
-
-	if (takeoff_bearing_vector.norm_squared() > FLT_EPSILON) {
-		takeoff_bearing_vector.normalize();
-
-	} else {
-		// TODO: a new bearing only based fixed-wing takeoff command / mission item will get rid of the need
-		// for this check
-
-		// takeoff in the direction of the airframe
-		takeoff_bearing_vector(0) = cosf(_yaw);
-		takeoff_bearing_vector(1) = sinf(_yaw);
-	}
-
-	return takeoff_bearing_vector;
-}
-
 void
 FixedwingPositionControl::initializeAutoLanding(const hrt_abstime &now, const position_setpoint_s &pos_sp_prev,
 		const float land_point_altitude, const Vector2f &local_position, const Vector2f &local_land_point)
@@ -2885,6 +2870,43 @@ void FixedwingPositionControl::navigateWaypoints(const Vector2f &start_waypoint,
 
 	// for logging - note we are abusing path tangent vs bearing definitions here. npfg interfaces need to be refined.
 	_target_bearing = atan2f(unit_path_tangent(1), unit_path_tangent(0));
+}
+
+void FixedwingPositionControl::navigateLine(const Vector2f &point_on_line_1, const Vector2f &point_on_line_2,
+		const Vector2f &vehicle_pos, const Vector2f &ground_vel, const Vector2f &wind_vel)
+{
+	const Vector2f line_segment = point_on_line_2 - point_on_line_1;
+
+	if (line_segment.norm() <= FLT_EPSILON) {
+		// degenerate case: line segment has zero length. maintain the last npfg command.
+		return;
+	}
+
+	const Vector2f unit_path_tangent = line_segment.normalized();
+
+	const Vector2f point_1_to_vehicle = vehicle_pos - point_on_line_1;
+	_closest_point_on_path = point_on_line_1 + point_1_to_vehicle.dot(unit_path_tangent) * unit_path_tangent;
+
+	const float path_curvature = 0.f;
+	_npfg.guideToPath(vehicle_pos, ground_vel, wind_vel, unit_path_tangent, _closest_point_on_path, path_curvature);
+
+	// for logging - note we are abusing path tangent vs bearing definitions here. npfg interfaces need to be refined.
+	_target_bearing = atan2f(unit_path_tangent(1), unit_path_tangent(0));
+}
+
+void FixedwingPositionControl::navigateLine(const Vector2f &point_on_line, const float line_bearing,
+		const Vector2f &vehicle_pos, const Vector2f &ground_vel, const Vector2f &wind_vel)
+{
+	const Vector2f unit_path_tangent{cosf(line_bearing), sinf(line_bearing)};
+
+	const Vector2f point_on_line_to_vehicle = vehicle_pos - point_on_line;
+	_closest_point_on_path = point_on_line + point_on_line_to_vehicle.dot(unit_path_tangent) * unit_path_tangent;
+
+	const float path_curvature = 0.f;
+	_npfg.guideToPath(vehicle_pos, ground_vel, wind_vel, unit_path_tangent, _closest_point_on_path, path_curvature);
+
+	// for logging - note we are abusing path tangent vs bearing definitions here. npfg interfaces need to be refined.
+	_target_bearing = line_bearing;
 }
 
 void FixedwingPositionControl::navigateLoiter(const Vector2f &loiter_center, const Vector2f &vehicle_pos,
