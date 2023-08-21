@@ -780,8 +780,8 @@ private:
 
 	/*
 	 * Waypoint handling logic following closely to the ECL_L1_Pos_Controller
-	 * method of the same name. Takes two waypoints and determines the relevant
-	 * parameters for evaluating the NPFG guidance law, then updates control setpoints.
+	 * method of the same name. Takes two waypoints, steering the vehicle to track
+	 * the line segment between them.
 	 *
 	 * @param[in] waypoint_A Waypoint A (segment start) position in local coordinates. (N,E) [m]
 	 * @param[in] waypoint_B Waypoint B (segment end) position in local coordinates. (N,E) [m]
@@ -792,6 +792,20 @@ private:
 	void navigateWaypoints(const matrix::Vector2f &waypoint_A, const matrix::Vector2f &waypoint_B,
 			       const matrix::Vector2f &vehicle_pos, const matrix::Vector2f &ground_vel,
 			       const matrix::Vector2f &wind_vel);
+
+	/*
+	 * Takes one waypoint and steers the vehicle towards this.
+	 *
+	 * NOTE: this *will lead to "flowering" behavior if no higher level state machine or
+	 * switching condition changes the waypoint.
+	 *
+	 * @param[in] waypoint_pos Waypoint position in local coordinates. (N,E) [m]
+	 * @param[in] vehicle_pos Vehicle position in local coordinates. (N,E) [m]
+	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
+	 * @param[in] wind_vel Wind velocity vector [m/s]
+	 */
+	void navigateWaypoint(const matrix::Vector2f &waypoint_pos, const matrix::Vector2f &vehicle_pos,
+			      const matrix::Vector2f &ground_vel, const matrix::Vector2f &wind_vel);
 
 	/*
 	 * Line (infinite) following logic. Two points on the line are used to define the
