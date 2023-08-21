@@ -1025,24 +1025,6 @@ FixedwingPositionControl::control_auto_position(const float control_interval, co
 		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr)
 {
 	const float acc_rad = _npfg.switchDistance(500.0f);
-	Vector2d curr_wp{0, 0};
-	Vector2d prev_wp{0, 0};
-
-	/* current waypoint (the one currently heading for) */
-	curr_wp = Vector2d(pos_sp_curr.lat, pos_sp_curr.lon);
-
-	if (_position_setpoint_previous_valid && pos_sp_prev.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
-		prev_wp(0) = pos_sp_prev.lat;
-		prev_wp(1) = pos_sp_prev.lon;
-
-	} else {
-		// No valid previous waypoint, fly directly to current waypoint
-		// NOTE: this is a bad interface - navigateWaypoints() takes two waypoints on top of each other as an
-		// indication it should fly directly to that waypoint. Better would be e.g. an alternative overload with
-		// singular setpoint input. (just an idea for future refactoring/refinement)
-		prev_wp = curr_wp;
-	}
-
 	float tecs_fw_thr_min;
 	float tecs_fw_thr_max;
 
@@ -1065,14 +1047,14 @@ FixedwingPositionControl::control_auto_position(const float control_interval, co
 	    ((pos_sp_prev.type == position_setpoint_s::SETPOINT_TYPE_POSITION) ||
 	     (pos_sp_prev.type == position_setpoint_s::SETPOINT_TYPE_LOITER))
 	   ) {
-		const float d_curr_prev = get_distance_to_next_waypoint((double)curr_wp(0), (double)curr_wp(1),
-					  pos_sp_prev.lat, pos_sp_prev.lon);
+		const float d_curr_prev = get_distance_to_next_waypoint(pos_sp_curr.lat, pos_sp_curr.lon, pos_sp_prev.lat,
+					  pos_sp_prev.lon);
 
 		// Do not try to find a solution if the last waypoint is inside the acceptance radius of the current one
 		if (d_curr_prev > math::max(acc_rad, fabsf(pos_sp_curr.loiter_radius))) {
 			// Calculate distance to current waypoint
-			const float d_curr = get_distance_to_next_waypoint((double)curr_wp(0), (double)curr_wp(1),
-					     _current_latitude, _current_longitude);
+			const float d_curr = get_distance_to_next_waypoint(pos_sp_curr.lat, pos_sp_curr.lon, _current_latitude,
+					     _current_longitude);
 
 			// Save distance to waypoint if it is the smallest ever achieved, however make sure that
 			// _min_current_sp_distance_xy is never larger than the distance between the current and the previous wp
@@ -1096,8 +1078,7 @@ FixedwingPositionControl::control_auto_position(const float control_interval, co
 				_param_fw_airspd_min.get(), ground_speed);
 
 	Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
-	Vector2f curr_wp_local = _global_local_proj_ref.project(curr_wp(0), curr_wp(1));
-	Vector2f prev_wp_local = _global_local_proj_ref.project(prev_wp(0), prev_wp(1));
+	Vector2f curr_wp_local = _global_local_proj_ref.project(pos_sp_curr.lat, pos_sp_curr.lon);
 
 	_npfg.setAirspeedNom(target_airspeed * _eas2tas);
 	_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
@@ -1110,8 +1091,12 @@ FixedwingPositionControl::control_auto_position(const float control_interval, co
 		navigatePathTangent(curr_pos_local, curr_wp_local, velocity_2d.normalized(), ground_speed,
 				    _wind_vel, curvature);
 
-	} else {
+	} else if (_position_setpoint_previous_valid && pos_sp_prev.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
+		Vector2f prev_wp_local = _global_local_proj_ref.project(pos_sp_prev.lat, pos_sp_prev.lon);
 		navigateWaypoints(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
+
+	} else {
+		navigateWaypoint(curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
 	}
 
 	_att_sp.roll_body = _npfg.getRollSetpoint();
@@ -2837,15 +2822,10 @@ void FixedwingPositionControl::navigateWaypoints(const Vector2f &start_waypoint,
 	Vector2f unit_path_tangent{1.f, 0.f};
 
 	if (start_waypoint_to_end_waypoint.norm() < FLT_EPSILON) {
-		// the waypoints are on top of each other; consider as a single waypoint and fly directly to it.
-		// NOTE: this logic leads to "flowering" behavior.
-		if (start_waypoint_to_vehicle.norm() < FLT_EPSILON) {
-			// degenerate case: the vehicle is on top of the single waypoint. maintain the last npfg command.
-			return;
-		}
-
-		unit_path_tangent = -start_waypoint_to_vehicle.normalized();
-		_closest_point_on_path = start_waypoint;
+		// degenerate case: the waypoints are on top of each other, this should only happen when someone uses this
+		// method incorrectly. just a safe guard, call the singular waypoint navigation method.
+		navigateWaypoint(end_waypoint, vehicle_pos, ground_vel, wind_vel);
+		return;
 
 	} else if ((start_waypoint_to_end_waypoint.dot(start_waypoint_to_vehicle) < -FLT_EPSILON)
 		   && (start_waypoint_to_vehicle.norm() > _npfg.switchDistance(500.0f))) {
@@ -2867,6 +2847,26 @@ void FixedwingPositionControl::navigateWaypoints(const Vector2f &start_waypoint,
 		unit_path_tangent = start_waypoint_to_end_waypoint.normalized();
 		_closest_point_on_path = start_waypoint + start_waypoint_to_vehicle.dot(unit_path_tangent) * unit_path_tangent;
 	}
+
+	const float path_curvature = 0.f;
+	_npfg.guideToPath(vehicle_pos, ground_vel, wind_vel, unit_path_tangent, _closest_point_on_path, path_curvature);
+
+	// for logging - note we are abusing path tangent vs bearing definitions here. npfg interfaces need to be refined.
+	_target_bearing = atan2f(unit_path_tangent(1), unit_path_tangent(0));
+}
+
+void FixedwingPositionControl::navigateWaypoint(const Vector2f &waypoint_pos, const Vector2f &vehicle_pos,
+		const Vector2f &ground_vel, const Vector2f &wind_vel)
+{
+	const Vector2f vehicle_to_waypoint = waypoint_pos - vehicle_pos;
+
+	if (vehicle_to_waypoint.norm() < FLT_EPSILON) {
+		// degenerate case: the vehicle is on top of the single waypoint. (can happen). maintain the last npfg command.
+		return;
+	}
+
+	const Vector2f unit_path_tangent = vehicle_to_waypoint.normalized();
+	_closest_point_on_path = waypoint_pos;
 
 	const float path_curvature = 0.f;
 	_npfg.guideToPath(vehicle_pos, ground_vel, wind_vel, unit_path_tangent, _closest_point_on_path, path_curvature);
