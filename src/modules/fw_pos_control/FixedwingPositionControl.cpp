@@ -58,6 +58,7 @@ FixedwingPositionControl::FixedwingPositionControl(bool vtol) :
 {
 	if (vtol) {
 		_param_handle_airspeed_trans = param_find("VT_ARSP_TRANS");
+		_param_handle_force_vtol = param_find("NAV_FORCE_VT");
 	}
 
 	// limit to 50 Hz
@@ -102,6 +103,12 @@ FixedwingPositionControl::parameters_update()
 	// VTOL parameter VT_ARSP_TRANS
 	if (_param_handle_airspeed_trans != PARAM_INVALID) {
 		param_get(_param_handle_airspeed_trans, &_param_airspeed_trans);
+	}
+
+	if (_param_handle_force_vtol != PARAM_INVALID) {
+		int val = 0;
+		param_get(_param_handle_force_vtol, &val);
+		_param_force_vtol = val > 0;
 	}
 
 	// NPFG parameters
@@ -735,7 +742,7 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now)
 
 		} else if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
 
-			if (!_vehicle_status.in_transition_mode) {
+			if (!(_vehicle_status.is_vtol && _param_force_vtol)) {
 
 				// Use _position_setpoint_previous_valid to determine if landing should be straight or circular.
 				// Straight landings are currently only possible in Missions, and there the previous WP
@@ -747,9 +754,6 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now)
 					_control_mode_current = FW_POSCTRL_MODE_AUTO_LANDING_CIRCULAR;
 				}
 
-			} else {
-				// in this case we want the waypoint handled as a position setpoint -- a submode in control_auto()
-				_pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 			}
 
 		} else {
@@ -992,8 +996,11 @@ FixedwingPositionControl::handle_setpoint_type(const position_setpoint_s &pos_sp
 
 	const float acc_rad = _npfg.switchDistance(500.0f);
 
-	if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_POSITION
-	    || pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
+	if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
+		position_sp_type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+
+	} else if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_POSITION
+		   || pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
 
 		float dist_xy = -1.f;
 		float dist_z = -1.f;

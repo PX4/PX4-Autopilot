@@ -99,8 +99,6 @@ MissionBlock::is_mission_item_reached_or_completed()
 
 	// Indefinite Waypoints
 	case NAV_CMD_LAND: /* fall through */
-	case NAV_CMD_VTOL_LAND:
-		return _navigator->get_land_detected()->landed;
 
 	case NAV_CMD_IDLE: /* fall through */
 	case NAV_CMD_LOITER_UNLIMITED:
@@ -339,22 +337,29 @@ MissionBlock::is_mission_item_reached_or_completed()
 			float alt_acc_rad_m = _navigator->get_altitude_acceptance_radius();
 
 			/* for vtol back transition calculate acceptance radius based on time and ground speed */
-			if (_mission_item.vtol_back_transition
-			    && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+			if (_mission_item.nav_cmd == NAV_CMD_VTOL_LAND || _mission_item.vtol_back_transition) {
 
-				float velocity = sqrtf(_navigator->get_local_position()->vx * _navigator->get_local_position()->vx +
-						       _navigator->get_local_position()->vy * _navigator->get_local_position()->vy);
+				if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 
-				const float back_trans_dec = _navigator->get_vtol_back_trans_deceleration();
+					float velocity = sqrtf(_navigator->get_local_position()->vx * _navigator->get_local_position()->vx +
+							       _navigator->get_local_position()->vy * _navigator->get_local_position()->vy);
 
-				if (back_trans_dec > FLT_EPSILON && velocity > FLT_EPSILON) {
-					acceptance_radius = (velocity / back_trans_dec / 2) * velocity;
+					const float back_trans_dec = _navigator->get_vtol_back_trans_deceleration();
 
+					if (back_trans_dec > FLT_EPSILON && velocity > FLT_EPSILON) {
+						acceptance_radius = (velocity / back_trans_dec / 2) * velocity;
+
+					}
+
+					// do not care for altitude when approaching the backtransition point. Not accepting the waypoint causes
+					// the vehicle to perform a sharp turn after passing the land waypoint and this causes worse unexected behavior
+					alt_acc_rad_m = INFINITY;
+
+				} else { //rotary wing
+					if (_mission_item.nav_cmd == NAV_CMD_VTOL_LAND) {
+						return _navigator->get_land_detected()->landed;
+					}
 				}
-
-				// do not care for altitude when approaching the backtransition point. Not accepting the waypoint causes
-				// the vehicle to perform a sharp turn after passing the land waypoint and this causes worse unexected behavior
-				alt_acc_rad_m = INFINITY;
 
 			}
 

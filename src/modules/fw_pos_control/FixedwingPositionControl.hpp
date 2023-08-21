@@ -401,6 +401,8 @@ private:
 	matrix::Vector2d _transition_waypoint{(double)NAN, (double)NAN};
 	param_t _param_handle_airspeed_trans{PARAM_INVALID};
 	float _param_airspeed_trans{NAN}; // [m/s]
+	param_t _param_handle_force_vtol{PARAM_INVALID};
+	bool _param_force_vtol{true};
 
 	// ESTIMATOR RESET COUNTERS
 
