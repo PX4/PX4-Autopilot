@@ -546,6 +546,7 @@ void Sih::publish_ground_truth(const hrt_abstime &time_now_us)
 
 		local_position.heading = Eulerf(_q).psi();
 		local_position.heading_good_for_control = true;
+		local_position.unaided_heading = NAN;
 
 		local_position.timestamp = hrt_absolute_time();
 		_local_position_ground_truth_pub.publish(local_position);

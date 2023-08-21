@@ -64,6 +64,7 @@ bool FlightTaskManualAltitude::activate(const trajectory_setpoint_s &last_setpoi
 	_acceleration_setpoint = Vector3f(0.f, 0.f, NAN); // altitude is controlled from position/velocity
 	_position_setpoint(2) = _position(2);
 	_velocity_setpoint(2) = 0.f;
+	_stick_yaw.reset(_yaw, _unaided_yaw);
 	_setDefaultConstraints();
 
 	_updateConstraintsFromEstimator();
@@ -273,14 +274,15 @@ void FlightTaskManualAltitude::_ekfResetHandlerHeading(float delta_psi)
 {
 	// Only reset the yaw setpoint when the heading is locked
 	if (PX4_ISFINITE(_yaw_setpoint)) {
-		_yaw_setpoint += delta_psi;
+		_yaw_setpoint = wrap_pi(_yaw_setpoint + delta_psi);
 	}
+
+	_stick_yaw.ekfResetHandler(delta_psi);
 }
 
 void FlightTaskManualAltitude::_updateSetpoints()
 {
-	_stick_yaw.generateYawSetpoint(_yawspeed_setpoint, _yaw_setpoint, _sticks.getYawExpo(), _yaw,
-				       _is_yaw_good_for_control, _deltatime);
+	_stick_yaw.generateYawSetpoint(_yawspeed_setpoint, _yaw_setpoint, _sticks.getYawExpo(), _yaw, _deltatime, _unaided_yaw);
 	_acceleration_setpoint.xy() = _stick_tilt_xy.generateAccelerationSetpoints(_sticks.getPitchRoll(), _deltatime, _yaw,
 				      _yaw_setpoint);
 	_updateAltitudeLock();
