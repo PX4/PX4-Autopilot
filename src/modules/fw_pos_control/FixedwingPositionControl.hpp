@@ -733,15 +733,6 @@ private:
 	float constrainRollNearGround(const float roll_setpoint, const float altitude, const float terrain_altitude) const;
 
 	/**
-	 * @brief Calculates the unit takeoff bearing vector from the launch position to takeoff waypont.
-	 *
-	 * @param launch_position Vehicle launch position in local coordinates (NE) [m]
-	 * @param takeoff_waypoint Takeoff waypoint position in local coordinates (NE) [m]
-	 * @return Unit takeoff bearing vector
-	 */
-	Vector2f calculateTakeoffBearingVector(const Vector2f &launch_position, const Vector2f &takeoff_waypoint) const;
-
-	/**
 	 * @brief Calculates the touchdown position for landing with optional manual lateral adjustments.
 	 *
 	 * Manual inputs (from the remote) are used to command a rate at which the position moves and the integrated
@@ -805,12 +796,40 @@ private:
 			       const matrix::Vector2f &wind_vel);
 
 	/*
+	 * Line (infinite) following logic. Two points on the line are used to define the
+	 * line in 2D space (first to second point determines the direction). Determines the
+	 * relevant parameters for evaluating the NPFG guidance law, then updates control setpoints.
+	 *
+	 * @param[in] point_on_line_1 Line segment start position in local coordinates. (N,E) [m]
+	 * @param[in] point_on_line_2 Line segment end position in local coordinates. (N,E) [m]
+	 * @param[in] vehicle_pos Vehicle position in WGS84 coordinates (N,E) [m]
+	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
+	 * @param[in] wind_vel Wind velocity vector [m/s]
+	 */
+	void navigateLine(const Vector2f &point_on_line_1, const Vector2f &point_on_line_2, const Vector2f &vehicle_pos,
+			  const Vector2f &ground_vel, const Vector2f &wind_vel);
+
+	/*
+	 * Line (infinite) following logic. One point on the line and a line bearing are used to define
+	 * the line in 2D space. Determines the relevant parameters for evaluating the NPFG guidance law,
+	 * then updates control setpoints.
+	 *
+	 * @param[in] point_on_line Arbitrary position on line in local coordinates. (N,E) [m]
+	 * @param[in] line_bearing Line bearing [rad] (from north)
+	 * @param[in] vehicle_pos Vehicle position in local coordinates. (N,E) [m]
+	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
+	 * @param[in] wind_vel Wind velocity vector [m/s]
+	 */
+	void navigateLine(const Vector2f &point_on_line, const float line_bearing, const Vector2f &vehicle_pos,
+			  const Vector2f &ground_vel, const Vector2f &wind_vel);
+
+	/*
 	 * Loitering (unlimited) logic. Takes loiter center, radius, and direction and
 	 * determines the relevant parameters for evaluating the NPFG guidance law,
 	 * then updates control setpoints.
 	 *
 	 * @param[in] loiter_center The position of the center of the loiter circle [m]
-	 * @param[in] vehicle_pos Vehicle position in WGS84 coordinates (lat,lon) [deg]
+	 * @param[in] vehicle_pos Vehicle position in local coordinates. (N,E) [m]
 	 * @param[in] radius Loiter radius [m]
 	 * @param[in] loiter_direction_counter_clockwise Specifies loiter direction
 	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
