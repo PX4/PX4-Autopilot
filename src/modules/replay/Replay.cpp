@@ -47,6 +47,7 @@
 #include <px4_platform_common/time.h>
 #include <px4_platform_common/shutdown.h>
 #include <lib/parameters/param.h>
+#include <uORB/uORBMessageFields.hpp>
 
 #include <cstring>
 #include <float.h>
@@ -391,33 +392,30 @@ Replay::readFormat(std::ifstream &file, uint16_t msg_size)
 }
 
 
-string Replay::parseOrbFields(const string &fields)
+string Replay::getOrbFields(const orb_metadata *meta)
 {
-	string ret{};
+	char format[3000];
+	char buffer[512];
+	uORB::MessageFormatReader format_reader(buffer, sizeof(buffer));
 
-	// convert o_fields from "<chr> timestamp;<chr>[5] array;" to "uint64_t timestamp;int8_t[5] array;"
-	for (int format_idx = 0; format_idx < (int)fields.length();) {
-		const char *end_field = strchr(fields.c_str() + format_idx, ';');
-
-		if (!end_field) {
-			PX4_ERR("Format error in %s", fields.c_str());
-			return "";
-		}
-
-		const char *c_type = orb_get_c_type(fields[format_idx]);
-
-		if (c_type) {
-			string str_type = c_type;
-			ret += str_type;
-			++format_idx;
-		}
-
-		int len = end_field - (fields.c_str() + format_idx) + 1;
-		ret += fields.substr(format_idx, len);
-		format_idx += len;
+	if (!format_reader.readUntilFormat(meta->o_id)) {
+		PX4_ERR("failed to find format for topic %s", meta->o_name);
+		return "";
 	}
 
-	return ret;
+	int field_length = 0;
+	int format_length = 0;
+
+	while (format_reader.readNextField(field_length)) {
+		format_length += snprintf(format + format_length, sizeof(buffer) - format_length - 1, "%s;", buffer);
+	}
+
+	if (uORB::MessageFormatReader::expandMessageFormat(format, format_length, sizeof(format)) < 0) {
+		PX4_ERR("failed to expand message format for %s", meta->o_name);
+		return "";
+	}
+
+	return format;
 }
 
 bool
@@ -455,7 +453,7 @@ Replay::readAndAddSubscription(std::ifstream &file, uint16_t msg_size)
 	// FIXME: this should check recursively, all used nested types
 	string file_format = _file_formats[topic_name];
 
-	const string orb_fields = parseOrbFields(orb_meta->o_fields);
+	const string orb_fields = getOrbFields(orb_meta);
 
 	if (file_format != orb_fields) {
 		// check if we have a compatibility conversion available

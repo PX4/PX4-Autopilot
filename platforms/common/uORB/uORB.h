@@ -51,7 +51,6 @@ struct orb_metadata {
 	const char    *o_name;              /**< unique object name */
 	const uint16_t o_size;              /**< object size */
 	const uint16_t o_size_no_padding;   /**< object size w/o padding at the end (for logger) */
-	const char    *o_fields;            /**< semicolon separated list of fields (with type) */
 	orb_id_size_t  o_id;                /**< ORB_ID enum */
 };
 
@@ -100,15 +99,13 @@ typedef const struct orb_metadata *orb_id_t;
  * @param _name		The name of the topic.
  * @param _struct	The structure the topic provides.
  * @param _size_no_padding	Struct size w/o padding at the end
- * @param _fields	All fields in a semicolon separated list e.g: "float[3] position;bool armed"
  * @param _orb_id_enum	ORB ID enum e.g.: ORB_ID::vehicle_status
  */
-#define ORB_DEFINE(_name, _struct, _size_no_padding, _fields, _orb_id_enum)		\
+#define ORB_DEFINE(_name, _struct, _size_no_padding, _orb_id_enum)		\
 	const struct orb_metadata __orb_##_name = {	\
 		#_name,					\
 		sizeof(_struct),		\
 		_size_no_padding,			\
-		_fields,				\
 		_orb_id_enum				\
 	}; struct hack
 
@@ -236,7 +233,7 @@ extern int	orb_set_interval(int handle, unsigned interval) __EXPORT;
 extern int	orb_get_interval(int handle, unsigned *interval) __EXPORT;
 
 /**
- * Returns the C type string from a short type in o_fields metadata, or nullptr
+ * Returns the C type string from a short type in message fields metadata, or nullptr
  * if not a short type
  */
 const char *orb_get_c_type(unsigned char short_type);
@@ -247,7 +244,6 @@ const char *orb_get_c_type(unsigned char short_type);
  * @param data expected to be aligned to the largest member
  */
 void orb_print_message_internal(const struct orb_metadata *meta, const void *data, bool print_topic_name);
-
 
 __END_DECLS
 
