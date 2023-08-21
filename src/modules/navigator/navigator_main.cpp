@@ -75,7 +75,9 @@ Navigator::Navigator() :
 	_mission(this),
 	_loiter(this),
 	_takeoff(this),
+#if CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 	_vtol_takeoff(this),
+#endif //CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 	_land(this),
 	_precland(this),
 	_rtl(this)
@@ -87,7 +89,9 @@ Navigator::Navigator() :
 	_navigation_mode_array[3] = &_takeoff;
 	_navigation_mode_array[4] = &_land;
 	_navigation_mode_array[5] = &_precland;
+#if CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 	_navigation_mode_array[6] = &_vtol_takeoff;
+#endif //CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 
 	/* iterate through navigation modes and initialize _mission_item for each */
 	for (unsigned int i = 0; i < NAVIGATOR_MODE_ARRAY_SIZE; i++) {
@@ -575,6 +579,8 @@ void Navigator::run()
 
 				// CMD_NAV_TAKEOFF is acknowledged by commander
 
+#if CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
+
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_NAV_VTOL_TAKEOFF) {
 
 				_vtol_takeoff.setTransitionAltitudeAbsolute(cmd.param7);
@@ -584,6 +590,7 @@ void Navigator::run()
 
 				// loiter height is the height above takeoff altitude at which the vehicle will establish on a loiter circle
 				_vtol_takeoff.setLoiterHeight(cmd.param1);
+#endif //CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_LAND_START) {
 
@@ -723,10 +730,13 @@ void Navigator::run()
 			navigation_mode_new = &_takeoff;
 			break;
 
+#if CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
+
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF:
 			_pos_sp_triplet_published_invalid_once = false;
 			navigation_mode_new = &_vtol_takeoff;
 			break;
+#endif //CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
 			_pos_sp_triplet_published_invalid_once = false;
