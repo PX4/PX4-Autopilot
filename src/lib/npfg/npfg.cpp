@@ -59,7 +59,7 @@ void NPFG::guideToPath(const matrix::Vector2f &curr_pos_local, const Vector2f &g
 	const float wind_speed = wind_vel.norm();
 
 	const Vector2f path_pos_to_vehicle{curr_pos_local - position_on_path};
-	const float signed_track_error = unit_path_tangent.cross(path_pos_to_vehicle);
+	signed_track_error_ = unit_path_tangent.cross(path_pos_to_vehicle);
 
 	// on-track wind triangle projections
 	const float wind_cross_upt = wind_vel.cross(unit_path_tangent);
@@ -68,7 +68,7 @@ void NPFG::guideToPath(const matrix::Vector2f &curr_pos_local, const Vector2f &g
 	// calculate the bearing feasibility on the track at the current closest point
 	feas_on_track_ = bearingFeasibility(wind_cross_upt, wind_dot_upt, airspeed, wind_speed);
 
-	const float track_error = fabsf(signed_track_error);
+	const float track_error = fabsf(signed_track_error_);
 
 	// update control parameters considering upper and lower stability bounds (if enabled)
 	// must be called before trackErrorBound() as it updates time_const_
@@ -86,7 +86,7 @@ void NPFG::guideToPath(const matrix::Vector2f &curr_pos_local, const Vector2f &g
 
 	track_proximity_ = trackProximity(look_ahead_ang);
 
-	bearing_vec_ = bearingVec(unit_path_tangent, look_ahead_ang, signed_track_error);
+	bearing_vec_ = bearingVec(unit_path_tangent, look_ahead_ang, signed_track_error_);
 
 	// wind triangle projections
 	const float wind_cross_bearing = wind_vel.cross(bearing_vec_);
@@ -112,7 +112,7 @@ void NPFG::guideToPath(const matrix::Vector2f &curr_pos_local, const Vector2f &g
 
 	// lateral acceleration needed to stay on curved track (assuming no heading error)
 	lateral_accel_ff_ = lateralAccelFF(unit_path_tangent, ground_vel, wind_dot_upt,
-					   wind_cross_upt, airspeed, wind_speed, signed_track_error, path_curvature);
+					   wind_cross_upt, airspeed, wind_speed, signed_track_error_, path_curvature);
 
 	// total lateral acceleration to drive aircaft towards track as well as account
 	// for path curvature. The full effect of the feed-forward acceleration is smoothly
