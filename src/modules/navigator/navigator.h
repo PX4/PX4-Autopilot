@@ -49,7 +49,9 @@
 #include "navigator_mode.h"
 #include "rtl.h"
 #include "takeoff.h"
+#if CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 #include "vtol_takeoff.h"
+#endif //CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 
 #include "navigation.h"
 
@@ -341,7 +343,9 @@ private:
 	Mission		_mission;			/**< class that handles the missions */
 	Loiter		_loiter;			/**< class that handles loiter */
 	Takeoff		_takeoff;			/**< class for handling takeoff commands */
+#if CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 	VtolTakeoff	_vtol_takeoff;			/**< class for handling VEHICLE_CMD_NAV_VTOL_TAKEOFF command */
+#endif //CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 	Land		_land;			/**< class for handling land commands */
 	PrecLand	_precland;			/**< class for handling precision land commands */
 	RTL 		_rtl;				/**< class that handles RTL */

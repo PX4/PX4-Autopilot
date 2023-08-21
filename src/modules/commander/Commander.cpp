@@ -994,6 +994,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_NAV_VTOL_TAKEOFF:
+#if CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 
 		/* ok, home set, use it to take off */
 		if (_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF)) {
@@ -1004,6 +1005,9 @@ Commander::handle_command(const vehicle_command_s &cmd)
 			cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 		}
 
+#else
+		cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
+#endif // CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_NAV_LAND: {
