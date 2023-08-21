@@ -40,7 +40,6 @@
 #pragma once
 
 #include "FlightTask.hpp"
-#include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include "Sticks.hpp"
 #include "StickTiltXY.hpp"
 #include "StickYaw.hpp"
@@ -114,6 +113,8 @@ private:
 	void _respectGroundSlowdown();
 
 	void setGearAccordingToSwitch();
+
+	bool _updateYawCorrection();
 
 	uint8_t _reset_counter = 0; /**< counter for estimator resets in z-direction */
 	bool _terrain_follow{false}; /**< true when the vehicle is following the terrain height */
