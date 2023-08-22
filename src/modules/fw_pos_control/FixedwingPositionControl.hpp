@@ -783,13 +783,13 @@ private:
 	 * method of the same name. Takes two waypoints, steering the vehicle to track
 	 * the line segment between them.
 	 *
-	 * @param[in] waypoint_A Waypoint A (segment start) position in local coordinates. (N,E) [m]
-	 * @param[in] waypoint_B Waypoint B (segment end) position in local coordinates. (N,E) [m]
+	 * @param[in] start_waypoint Segment starting position in local coordinates. (N,E) [m]
+	 * @param[in] end_waypoint Segment end position in local coordinates. (N,E) [m]
 	 * @param[in] vehicle_pos Vehicle position in local coordinates. (N,E) [m]
 	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
 	 * @param[in] wind_vel Wind velocity vector [m/s]
 	 */
-	void navigateWaypoints(const matrix::Vector2f &waypoint_A, const matrix::Vector2f &waypoint_B,
+	void navigateWaypoints(const matrix::Vector2f &start_waypoint, const matrix::Vector2f &end_waypoint,
 			       const matrix::Vector2f &vehicle_pos, const matrix::Vector2f &ground_vel,
 			       const matrix::Vector2f &wind_vel);
 
