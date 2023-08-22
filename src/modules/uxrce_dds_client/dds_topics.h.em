@@ -21,7 +21,7 @@ import os
 #include <uxr/client/client.h>
 #include <ucdr/microcdr.h>
 
-#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionInterval.hpp>
 #include <uORB/Publication.hpp>
 @[for include in type_includes]@
 #include <uORB/ucdr/@(include).h>
@@ -35,7 +35,7 @@ static_assert(sizeof(@(pub['simple_base_type'])_s) <= max_topic_size, "topic too
 @[    end for]@
 
 struct SendSubscription {
-	uORB::Subscription subscription;
+	uORB::SubscriptionInterval subscription;
 	uxrObjectId data_writer;
 	const char* dds_type_name;
 	uint32_t topic_size;
@@ -46,7 +46,7 @@ struct SendSubscription {
 struct SendTopicsSubs {
 	SendSubscription send_subscriptions[@(len(publications))] = {
 @[    for pub in publications]@
-			{ uORB::Subscription(ORB_ID(@(pub['topic_simple']))),
+			{ uORB::SubscriptionInterval(ORB_ID(@(pub['topic_simple'])), @(pub['interval_us'])),
 			  uxr_object_id(0, UXR_INVALID_ID),
 			  "@(pub['dds_type'])",
 			  ucdr_topic_size_@(pub['simple_base_type'])(),
