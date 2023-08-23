@@ -85,8 +85,8 @@ bool Ekf::collect_gps(const gpsMessage &gps)
 		_NED_origin_initialised = true;
 
 		// save the horizontal and vertical position uncertainty of the origin
-		_gps_origin_eph = gps.eph;
-		_gps_origin_epv = gps.epv;
+		_gpos_origin_eph = gps.eph;
+		_gpos_origin_epv = gps.epv;
 
 		_information_events.flags.gps_checks_passed = true;
 		ECL_INFO("GPS checks passed");
