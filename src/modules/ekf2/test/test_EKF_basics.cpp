@@ -271,6 +271,8 @@ TEST_F(EkfBasicsTest, reset_ekf_global_origin_gps_uninitialized)
 	EXPECT_DOUBLE_EQ(_longitude, _longitude_new);
 	EXPECT_FLOAT_EQ(_altitude, _altitude_new);
 
+	EXPECT_FALSE(_ekf->global_origin_valid());
+
 	_latitude_new  = 45.0000005;
 	_longitude_new = 111.0000005;
 	_altitude_new  = 1500.0;
@@ -281,6 +283,11 @@ TEST_F(EkfBasicsTest, reset_ekf_global_origin_gps_uninitialized)
 	EXPECT_DOUBLE_EQ(_latitude, _latitude_new);
 	EXPECT_DOUBLE_EQ(_longitude, _longitude_new);
 	EXPECT_FLOAT_EQ(_altitude, _altitude_new);
+
+	// Global origin has been initialized but since there is no position aiding, the global
+	// position is still not valid
+	EXPECT_TRUE(_ekf->global_origin_valid());
+	EXPECT_FALSE(_ekf->global_position_is_valid());
 
 	_sensor_simulator.runSeconds(1);
 
@@ -297,6 +304,64 @@ TEST_F(EkfBasicsTest, reset_ekf_global_origin_gps_uninitialized)
 
 	EXPECT_NEAR(hvel, 0.f, 0.02f);
 	EXPECT_NEAR(vvel, 0.f, 0.02f);
+}
+
+TEST_F(EkfBasicsTest, global_position_from_local_ev)
+{
+	// GIVEN: external vision (local) aiding
+	_ekf_wrapper.enableExternalVisionPositionFusion();
+	_sensor_simulator._vio.setPositionFrameToLocalNED();
+	_sensor_simulator.startExternalVision();
+
+	_sensor_simulator.runSeconds(1);
+
+	// THEN; since there is no origin, only the local position can be valid
+	EXPECT_TRUE(_ekf->local_position_is_valid());
+	EXPECT_FALSE(_ekf->global_origin_valid());
+	EXPECT_FALSE(_ekf->global_position_is_valid());
+
+	_latitude_new  = 45.0000005;
+	_longitude_new = 111.0000005;
+	_altitude_new  = 1500.0;
+
+	// BUT WHEN: the global origin is set (manually)
+	_ekf->setEkfGlobalOrigin(_latitude_new, _longitude_new, _altitude_new);
+
+	// THEN: local and global positions are valid
+	EXPECT_TRUE(_ekf->global_origin_valid());
+	EXPECT_TRUE(_ekf->global_position_is_valid());
+	EXPECT_TRUE(_ekf->local_position_is_valid());
+}
+
+TEST_F(EkfBasicsTest, global_position_from_opt_flow)
+{
+	// GIVEN: optical flow aiding
+	const float max_flow_rate = 5.f;
+	const float min_ground_distance = 0.f;
+	const float max_ground_distance = 50.f;
+	_ekf->set_optical_flow_limits(max_flow_rate, min_ground_distance, max_ground_distance);
+	_sensor_simulator.startFlow();
+	_ekf_wrapper.enableFlowFusion();
+	_sensor_simulator.startRangeFinder();
+
+	_sensor_simulator.runSeconds(1);
+
+	// THEN; since there is no origin, only the local position can be valid
+	EXPECT_TRUE(_ekf->local_position_is_valid());
+	EXPECT_FALSE(_ekf->global_origin_valid());
+	EXPECT_FALSE(_ekf->global_position_is_valid());
+
+	_latitude_new  = 45.0000005;
+	_longitude_new = 111.0000005;
+	_altitude_new  = 1500.0;
+
+	// BUT WHEN: the global origin is set (manually)
+	_ekf->setEkfGlobalOrigin(_latitude_new, _longitude_new, _altitude_new);
+
+	// THEN: local and global positions are valid
+	EXPECT_TRUE(_ekf->global_origin_valid());
+	EXPECT_TRUE(_ekf->global_position_is_valid());
+	EXPECT_TRUE(_ekf->local_position_is_valid());
 }
 
 // TODO: Add sampling tests
