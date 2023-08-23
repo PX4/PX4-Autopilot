@@ -44,6 +44,7 @@
 #include "python/ekf_derivation/generated/yaw_var_to_lower_triangular_quat_cov.h"
 
 #include <mathlib/mathlib.h>
+#include <lib/world_magnetic_model/geo_mag_declination.h>
 #include <cstdlib>
 
 void Ekf::resetHorizontalVelocityToZero()
@@ -432,6 +433,24 @@ bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, cons
 		_pos_ref.initReference(latitude, longitude, _time_delayed_us);
 		_gps_alt_ref = altitude;
 
+		const float mag_declination_gps = get_mag_declination_radians(latitude, longitude);
+		const float mag_inclination_gps = get_mag_inclination_radians(latitude, longitude);
+		const float mag_strength_gps = get_mag_strength_gauss(latitude, longitude);
+
+		if (PX4_ISFINITE(mag_declination_gps) && PX4_ISFINITE(mag_inclination_gps) && PX4_ISFINITE(mag_strength_gps)) {
+			_mag_declination_gps = mag_declination_gps;
+			_mag_inclination_gps = mag_inclination_gps;
+			_mag_strength_gps = mag_strength_gps;
+
+			_wmm_gps_time_last_set = _time_delayed_us;
+		}
+
+		// We don't know the uncertainty of the origin
+		_gpos_origin_eph = 0.f;
+		_gpos_origin_epv = 0.f;
+
+		_NED_origin_initialised = true;
+
 		// minimum change in position or height that triggers a reset
 		static constexpr float MIN_RESET_DIST_M = 0.01f;
 
@@ -468,7 +487,7 @@ void Ekf::get_ekf_gpos_accuracy(float *ekf_eph, float *ekf_epv) const
 	// report absolute accuracy taking into account the uncertainty in location of the origin
 	// If not aiding, return 0 for horizontal position estimate as no estimate is available
 	// TODO - allow for baro drift in vertical position error
-	float hpos_err = sqrtf(P(7, 7) + P(8, 8) + sq(_gps_origin_eph));
+	float hpos_err = sqrtf(P(7, 7) + P(8, 8) + sq(_gpos_origin_eph));
 
 	// If we are dead-reckoning, use the innovations as a conservative alternate measure of the horizontal position error
 	// The reason is that complete rejection of measurements is often caused by heading misalignment or inertial sensing errors
@@ -486,7 +505,7 @@ void Ekf::get_ekf_gpos_accuracy(float *ekf_eph, float *ekf_epv) const
 	}
 
 	*ekf_eph = hpos_err;
-	*ekf_epv = sqrtf(P(9, 9) + sq(_gps_origin_epv));
+	*ekf_epv = sqrtf(P(9, 9) + sq(_gpos_origin_epv));
 }
 
 // get the 1-sigma horizontal and vertical position uncertainty of the ekf local position
