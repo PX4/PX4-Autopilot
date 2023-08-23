@@ -242,8 +242,6 @@ if (NOT CONFIG_BUILD_FLAT)
 
 else()
 
-	target_link_libraries(nuttx_c INTERFACE nuttx_sched) # nxsched_get_streams
-
 	target_link_libraries(nuttx_arch
 		INTERFACE
 			drivers_board
@@ -251,8 +249,9 @@ else()
 			arch_board_reset
 	)
 
+	target_link_libraries(nuttx_c INTERFACE nuttx_sched)
 	target_link_libraries(nuttx_c INTERFACE nuttx_drivers)
-	target_link_libraries(nuttx_drivers INTERFACE nuttx_c)
+	target_link_libraries(nuttx_drivers INTERFACE nuttx_c nuttx_fs nuttx_mm)
 	target_link_libraries(nuttx_xx INTERFACE nuttx_c)
 	target_link_libraries(nuttx_fs INTERFACE nuttx_c)
 
