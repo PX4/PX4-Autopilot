@@ -408,10 +408,10 @@ else() # CONFIG_BUILD_FLAT
 
 	target_link_libraries(nuttx_c INTERFACE nuttx_sched)
 	target_link_libraries(nuttx_c INTERFACE nuttx_drivers)
-	target_link_libraries(nuttx_drivers INTERFACE nuttx_c nuttx_fs)
-
+	target_link_libraries(nuttx_drivers INTERFACE nuttx_c nuttx_fs nuttx_mm)
 	target_link_libraries(nuttx_xx INTERFACE nuttx_c)
 	target_link_libraries(nuttx_fs INTERFACE nuttx_c)
+
 	target_link_libraries(px4 PRIVATE
 
 		-nostartfiles
