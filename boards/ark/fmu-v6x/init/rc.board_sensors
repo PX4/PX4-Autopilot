@@ -90,6 +90,12 @@ then
 	iim42653 -R 6 -s -b 3 -C 32051 start
 fi
 
+if param compare VIRTUAL_IMU_EN 1
+then
+	# Start the Virtual IMU
+	virtual_imu start
+fi
+
 # Internal magnetometer on I2C
 bmm150 -I start
 

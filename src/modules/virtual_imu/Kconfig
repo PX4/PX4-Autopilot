@@ -1,0 +1,12 @@
+menuconfig MODULES_VIRTUAL_IMU
+	bool "virtual_imu"
+	default n
+	---help---
+		Enable support for virtual_imu
+
+menuconfig USER_VIRTUAL_IMU
+	bool "virtual_imu running as userspace module"
+	default n
+	depends on BOARD_PROTECTED && MODULES_VIRTUAL_IMU
+	---help---
+		Put virtual_imu in userspace memory
