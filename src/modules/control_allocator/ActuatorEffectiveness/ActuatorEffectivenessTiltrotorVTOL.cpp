@@ -148,20 +148,20 @@ void ActuatorEffectivenessTiltrotorVTOL::updateSetpoint(const matrix::Vector<flo
 				// custom yaw saturation logic: only declare yaw saturated if all tilts are at the negative or positive yawing limit
 				if (_tilts.getYawTorqueOfTilt(i) > FLT_EPSILON) {
 
-					if (yaw_saturated_positive && actuator_sp(i + _first_tilt_idx) < actuator_max(i + _first_tilt_idx)) {
+					if (yaw_saturated_positive && actuator_sp(i + _first_tilt_idx) < actuator_max(i + _first_tilt_idx) - FLT_EPSILON) {
 						yaw_saturated_positive = false;
 					}
 
-					if (yaw_saturated_negative && actuator_sp(i + _first_tilt_idx) > actuator_min(i + _first_tilt_idx)) {
+					if (yaw_saturated_negative && actuator_sp(i + _first_tilt_idx) > actuator_min(i + _first_tilt_idx) + FLT_EPSILON) {
 						yaw_saturated_negative = false;
 					}
 
-				} else if (_tilts.getYawTorqueOfTilt(i) < FLT_EPSILON) {
-					if (yaw_saturated_negative && actuator_sp(i + _first_tilt_idx) < actuator_max(i + _first_tilt_idx)) {
+				} else if (_tilts.getYawTorqueOfTilt(i) < -FLT_EPSILON) {
+					if (yaw_saturated_negative && actuator_sp(i + _first_tilt_idx) < actuator_max(i + _first_tilt_idx) - FLT_EPSILON) {
 						yaw_saturated_negative = false;
 					}
 
-					if (yaw_saturated_positive && actuator_sp(i + _first_tilt_idx) > actuator_min(i + _first_tilt_idx)) {
+					if (yaw_saturated_positive && actuator_sp(i + _first_tilt_idx) > actuator_min(i + _first_tilt_idx) + FLT_EPSILON) {
 						yaw_saturated_positive = false;
 					}
 				}
