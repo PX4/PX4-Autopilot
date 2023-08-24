@@ -74,11 +74,11 @@ public:
 	void set_rotation(Rotation rotation);
 
 	/**
-	 * @brief Set the custom rotation matrix & rotation enum to ROTATION_CUSTOM for Magnetometer
+	 * @brief Set the custom rotation & rotation enum to ROTATION_CUSTOM for Magnetometer
 	 *
-	 * @param rot_matrix Rotation matrix (3 x 3)
+	 * @param rotation Rotation euler angles
 	 */
-	void set_custom_rotation(const matrix::Dcmf &rot_matrix);
+	void set_custom_rotation(const matrix::Eulerf &rotation);
 
 	bool calibrated() const { return (_device_id != 0) && (_calibration_index >= 0); }
 	uint8_t calibration_count() const { return _calibration_count; }
@@ -125,6 +125,8 @@ private:
 	 * @brief 3 x 3 Rotation matrix that translates from sensor frame (XYZ) to vehicle body frame (FRD)
 	 */
 	matrix::Dcmf _rotation;
+
+	matrix::Eulerf _rotation_custom_euler{0.f, 0.f, 0.f}; // custom rotation euler angles (optional)
 
 	matrix::Vector3f _offset;
 	matrix::Matrix3f _scale;

@@ -162,18 +162,30 @@ bool Magnetometer::set_offdiagonal(const Vector3f &offdiagonal)
 
 void Magnetometer::set_rotation(const Rotation rotation)
 {
-	_rotation_enum = rotation;
+	if (rotation < ROTATION_MAX) {
+		_rotation_enum = rotation;
 
-	// always apply board level adjustments
-	_rotation = Dcmf(GetSensorLevelAdjustment()) * get_rot_matrix(rotation);
+	} else {
+		// invalid rotation, resetting
+		_rotation_enum = ROTATION_NONE;
+	}
+
+	// always apply level adjustments
+	_rotation = Dcmf(GetSensorLevelAdjustment()) * get_rot_matrix(_rotation_enum);
+
+	// clear any custom rotation
+	_rotation_custom_euler.zero();
 }
 
-void Magnetometer::set_custom_rotation(const Dcmf &rot_matrix)
+void Magnetometer::set_custom_rotation(const Eulerf &rotation)
 {
 	_rotation_enum = ROTATION_CUSTOM;
 
+	// store custom rotation
+	_rotation_custom_euler = rotation;
+
 	// always apply board level adjustments
-	_rotation = Dcmf(GetSensorLevelAdjustment()) * rot_matrix;
+	_rotation = Dcmf(GetSensorLevelAdjustment()) * Dcmf(_rotation_custom_euler);
 
 	// TODO: Note that ideally this shouldn't be necessary for an external sensors, as the definition of *rotation
 	// between sensor frame & vehicle's body frame isn't affected by the rotation of the Autopilot.
@@ -216,36 +228,38 @@ bool Magnetometer::ParametersLoad()
 		// CAL_MAGx_ROT
 		int32_t rotation_value = GetCalibrationParamInt32(SensorString(), "ROT", _calibration_index);
 
+		const float euler_roll_deg = GetCalibrationParamFloat(SensorString(), "ROLL", _calibration_index);
+		const float euler_pitch_deg = GetCalibrationParamFloat(SensorString(), "PITCH", _calibration_index);
+		const float euler_yaw_deg = GetCalibrationParamFloat(SensorString(), "YAW", _calibration_index);
+
 		if (_external) {
 			if (((rotation_value >= ROTATION_MAX) && (rotation_value != ROTATION_CUSTOM)) || (rotation_value < 0)) {
 				// invalid rotation, resetting
 				rotation_value = ROTATION_NONE;
 			}
 
-			const float euler_roll_deg = GetCalibrationParamFloat(SensorString(), "ROLL", _calibration_index);
-			const float euler_pitch_deg = GetCalibrationParamFloat(SensorString(), "PITCH", _calibration_index);
-			const float euler_yaw_deg = GetCalibrationParamFloat(SensorString(), "YAW", _calibration_index);
-
+			// if CAL_MAGx_{ROLL,PITCH,YAW} manually set then CAL_MAGx_ROT needs to be ROTATION_CUSTOM
 			if ((rotation_value != ROTATION_CUSTOM)
 			    && ((fabsf(euler_roll_deg) > FLT_EPSILON)
 				|| (fabsf(euler_pitch_deg) > FLT_EPSILON)
 				|| (fabsf(euler_yaw_deg) > FLT_EPSILON))) {
+
 				rotation_value = ROTATION_CUSTOM;
 				SetCalibrationParam(SensorString(), "ROT", _calibration_index, rotation_value);
 			}
 
 			// Handle custom specified euler angle
 			if (rotation_value == ROTATION_CUSTOM) {
-				const matrix::Dcmf rotation_matrix = matrix::Dcmf{matrix::Eulerf{
-						math::radians(euler_roll_deg),
-						math::radians(euler_pitch_deg),
-						math::radians(euler_yaw_deg)}};
 
-				set_custom_rotation(rotation_matrix);
+				const matrix::Eulerf rotation_custom_euler{
+					math::radians(euler_roll_deg),
+					math::radians(euler_pitch_deg),
+					math::radians(euler_yaw_deg)};
+
+				set_custom_rotation(rotation_custom_euler);
 
 			} else {
 				set_rotation(static_cast<Rotation>(rotation_value));
-
 			}
 
 		} else {
@@ -350,6 +364,10 @@ bool Magnetometer::ParametersSave(int desired_calibration_index, bool force)
 		} else {
 			success &= SetCalibrationParam(SensorString(), "ROT", _calibration_index, -1); // internal
 		}
+
+		success &= SetCalibrationParam(SensorString(), "ROLL", _calibration_index, math::degrees(_rotation_custom_euler(0)));
+		success &= SetCalibrationParam(SensorString(), "PITCH", _calibration_index, math::degrees(_rotation_custom_euler(1)));
+		success &= SetCalibrationParam(SensorString(), "YAW", _calibration_index, math::degrees(_rotation_custom_euler(2)));
 
 		return success;
 	}
