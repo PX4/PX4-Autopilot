@@ -48,8 +48,19 @@ ActuatorEffectivenessTiltrotorVTOL::ActuatorEffectivenessTiltrotorVTOL(ModulePar
 	  _mc_rotors(this, ActuatorEffectivenessRotors::AxisConfiguration::Configurable, true),
 	  _control_surfaces(this), _tilts(this)
 {
+	_param_handles.com_spoolup_time = param_find("COM_SPOOLUP_TIME");
+
+	updateParams();
 	setFlightPhase(FlightPhase::HOVER_FLIGHT);
 }
+
+void ActuatorEffectivenessTiltrotorVTOL::updateParams()
+{
+	ModuleParams::updateParams();
+
+	param_get(_param_handles.com_spoolup_time, &_param_spoolup_time);
+}
+
 bool
 ActuatorEffectivenessTiltrotorVTOL::getEffectivenessMatrix(Configuration &configuration,
 		EffectivenessUpdateReason external_update)
@@ -230,5 +241,5 @@ bool ActuatorEffectivenessTiltrotorVTOL::throttleSpoolupFinished()
 		_armed_time = vehicle_status.armed_time;
 	}
 
-	return _armed && hrt_elapsed_time(&_armed_time) > 1_s;
+	return _armed && hrt_elapsed_time(&_armed_time) > _param_spoolup_time * 1_s;
 }
