@@ -36,6 +36,7 @@
 #include "Utilities.hpp"
 
 #include <lib/parameters/param.h>
+#include <px4_platform_common/events.h>
 
 using namespace matrix;
 using namespace time_literals;
@@ -216,17 +217,25 @@ bool Magnetometer::ParametersLoad()
 		int32_t rotation_value = GetCalibrationParamInt32(SensorString(), "ROT", _calibration_index);
 
 		if (_external) {
-			if ((rotation_value >= ROTATION_MAX) || (rotation_value < 0)) {
+			if (((rotation_value >= ROTATION_MAX) && (rotation_value != ROTATION_CUSTOM)) || (rotation_value < 0)) {
 				// invalid rotation, resetting
 				rotation_value = ROTATION_NONE;
 			}
 
+			const float euler_roll_deg = GetCalibrationParamFloat(SensorString(), "ROLL", _calibration_index);
+			const float euler_pitch_deg = GetCalibrationParamFloat(SensorString(), "PITCH", _calibration_index);
+			const float euler_yaw_deg = GetCalibrationParamFloat(SensorString(), "YAW", _calibration_index);
+
+			if ((rotation_value != ROTATION_CUSTOM)
+			    && ((fabsf(euler_roll_deg) > FLT_EPSILON)
+				|| (fabsf(euler_pitch_deg) > FLT_EPSILON)
+				|| (fabsf(euler_yaw_deg) > FLT_EPSILON))) {
+				rotation_value = ROTATION_CUSTOM;
+				SetCalibrationParam(SensorString(), "ROT", _calibration_index, rotation_value);
+			}
+
 			// Handle custom specified euler angle
 			if (rotation_value == ROTATION_CUSTOM) {
-				const float euler_roll_deg = GetCalibrationParamFloat(SensorString(), "ROLL", _calibration_index);
-				const float euler_pitch_deg = GetCalibrationParamFloat(SensorString(), "PITCH", _calibration_index);
-				const float euler_yaw_deg = GetCalibrationParamFloat(SensorString(), "YAW", _calibration_index);
-
 				const matrix::Dcmf rotation_matrix = matrix::Dcmf{matrix::Eulerf{
 						math::radians(euler_roll_deg),
 						math::radians(euler_pitch_deg),

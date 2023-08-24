@@ -360,6 +360,7 @@ parameters:
                 short: Magnetometer ${i} rotation relative to airframe
                 long: |
                     An internal sensor will force a value of -1, so a GCS should only attempt to configure the rotation if the value is greater than or equal to zero.
+                    Set to "Custom Euler Angle" to define the rotation using CAL_MAGx_{ROLL, PITCH, YAW}.
             category: System
             type: enum
             values:
