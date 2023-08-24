@@ -148,6 +148,9 @@ void ActuatorEffectivenessTiltrotorVTOL::updateSetpoint(const matrix::Vector<flo
 				_last_collective_tilt_control = control_collective_tilt;
 			}
 
+			bool yaw_saturated_positive = true;
+			bool yaw_saturated_negative = true;
+
 			for (int i = 0; i < _tilts.count(); ++i) {
 				if (_tilts.config(i).tilt_direction == ActuatorEffectivenessTilts::TiltDirection::TowardsFront) {
 
@@ -159,7 +162,31 @@ void ActuatorEffectivenessTiltrotorVTOL::updateSetpoint(const matrix::Vector<flo
 						actuator_sp(i + _first_tilt_idx) = NAN; // NaN sets tilts to disarmed position
 					}
 				}
+
+				// custom yaw saturation logic: only declare yaw saturated if all tilts are at the negative or positive yawing limit
+				if (_tilts.getYawTorqueOfTilt(i) > FLT_EPSILON) {
+
+					if (yaw_saturated_positive && actuator_sp(i + _first_tilt_idx) < actuator_max(i + _first_tilt_idx) - FLT_EPSILON) {
+						yaw_saturated_positive = false;
+					}
+
+					if (yaw_saturated_negative && actuator_sp(i + _first_tilt_idx) > actuator_min(i + _first_tilt_idx) + FLT_EPSILON) {
+						yaw_saturated_negative = false;
+					}
+
+				} else if (_tilts.getYawTorqueOfTilt(i) < -FLT_EPSILON) {
+					if (yaw_saturated_negative && actuator_sp(i + _first_tilt_idx) < actuator_max(i + _first_tilt_idx) - FLT_EPSILON) {
+						yaw_saturated_negative = false;
+					}
+
+					if (yaw_saturated_positive && actuator_sp(i + _first_tilt_idx) > actuator_min(i + _first_tilt_idx) + FLT_EPSILON) {
+						yaw_saturated_positive = false;
+					}
+				}
 			}
+
+			_yaw_tilt_saturation_flags.tilt_yaw_neg = yaw_saturated_negative;
+			_yaw_tilt_saturation_flags.tilt_yaw_pos = yaw_saturated_positive;
 
 			// in FW directly use throttle sp
 			if (_flight_phase == FlightPhase::FORWARD_FLIGHT) {
@@ -171,21 +198,6 @@ void ActuatorEffectivenessTiltrotorVTOL::updateSetpoint(const matrix::Vector<flo
 
 		if (_flight_phase == FlightPhase::FORWARD_FLIGHT) {
 			stopMaskedMotorsWithZeroThrust(_motors & ~_untiltable_motors, actuator_sp);
-		}
-	}
-
-	// Set yaw saturation flag in case of yaw through tilt. As in this case the yaw actuation is decoupled from
-	// the other axes (for now neglecting the case of 0 collective thrust), we set the saturation flags
-	// directly if the (normalized) yaw torque setpoint is outside of range (-1, 1).
-	if (matrix_index == 0 && _tilts.hasYawControl()) {
-		_yaw_tilt_saturation_flags.tilt_yaw_neg = false;
-		_yaw_tilt_saturation_flags.tilt_yaw_pos = false;
-
-		if (control_sp(2) < -1.f) {
-			_yaw_tilt_saturation_flags.tilt_yaw_neg = true;
-
-		} else if (control_sp(2) > 1.f) {
-			_yaw_tilt_saturation_flags.tilt_yaw_pos = true;
 		}
 	}
 }
