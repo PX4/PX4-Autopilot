@@ -96,15 +96,6 @@ Takeoff::on_active()
 void
 Takeoff::set_takeoff_position()
 {
-	if (!_navigator->home_alt_valid()) {
-		mavlink_log_info(_navigator->get_mavlink_log_pub(),
-				 "Home altitude not valid, abort takeoff\t");
-
-		events::send(events::ID("navigator_takeoff_abort_no_valid_home_alt"), {events::LogLevel::Critical, events::LogInternal::Warning},
-			     "Home altitude not valid, abort takeoff");
-		return;
-	}
-
 	struct position_setpoint_triplet_s *rep = _navigator->get_takeoff_triplet();
 
 	float takeoff_altitude_amsl = 0.f;
@@ -112,16 +103,10 @@ Takeoff::set_takeoff_position()
 	if (rep->current.valid && PX4_ISFINITE(rep->current.alt)) {
 		takeoff_altitude_amsl = rep->current.alt;
 
-		// If the altitude suggestion is lower than home, notify and abort
-		if (takeoff_altitude_amsl < _navigator->get_home_position()->alt) {
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(),
-					     "abort takeoff \t");
-		}
-
 	} else {
-		takeoff_altitude_amsl = _navigator->get_home_position()->alt + _navigator->get_param_mis_takeoff_alt();
+		takeoff_altitude_amsl = _navigator->get_global_position()->alt + _navigator->get_param_mis_takeoff_alt();
 		mavlink_log_info(_navigator->get_mavlink_log_pub(),
-				 "Using deault takeoff altitude: %.1f m\t", (double)_navigator->get_param_mis_takeoff_alt());
+				 "Using default takeoff altitude: %.1f m\t", (double)_navigator->get_param_mis_takeoff_alt());
 
 		events::send<float>(events::ID("navigator_takeoff_default_alt"), {events::Log::Info, events::LogInternal::Info},
 				    "Using default takeoff altitude: {1:.2m}",
