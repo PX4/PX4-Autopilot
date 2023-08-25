@@ -74,7 +74,7 @@ enum {
 };
 #else
 enum {
-	DM_KEY_SAFE_POINTS_MAX = 8,
+	DM_KEY_SAFE_POINTS_MAX = 32,
 	DM_KEY_FENCE_POINTS_MAX = 64,
 	DM_KEY_WAYPOINTS_OFFBOARD_0_MAX = NUM_MISSIONS_SUPPORTED,
 	DM_KEY_WAYPOINTS_OFFBOARD_1_MAX = NUM_MISSIONS_SUPPORTED,
@@ -93,7 +93,7 @@ static const unsigned g_per_item_max_index[DM_KEY_NUM_KEYS] = {
 	DM_KEY_COMPAT_MAX
 };
 
-constexpr uint32_t MISSION_SAFE_POINT_SIZE = sizeof(struct mission_safe_point_s);
+constexpr uint32_t MISSION_SAFE_POINT_SIZE = sizeof(struct mission_item_s);
 constexpr uint32_t MISSION_FENCE_POINT_SIZE = sizeof(struct mission_fence_point_s);
 constexpr uint32_t MISSION_ITEM_SIZE = sizeof(struct mission_item_s);
 constexpr uint32_t MISSION_SIZE = sizeof(struct mission_s);
@@ -114,9 +114,9 @@ struct dataman_compat_s {
 };
 
 /* increment this define whenever a binary incompatible change is performed */
-#define DM_COMPAT_VERSION	3ULL
+#define DM_COMPAT_VERSION	4ULL
 
 #define DM_COMPAT_KEY ((DM_COMPAT_VERSION << 32) + (sizeof(struct mission_item_s) << 24) + \
 		       (sizeof(struct mission_s) << 16) + (sizeof(struct mission_stats_entry_s) << 12) + \
-		       (sizeof(struct mission_fence_point_s) << 8) + (sizeof(struct mission_safe_point_s) << 4) + \
+		       (sizeof(struct mission_fence_point_s) << 8) + (sizeof(struct mission_item_s) << 4) + \
 		       sizeof(struct dataman_compat_s))
