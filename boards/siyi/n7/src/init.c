@@ -110,21 +110,13 @@ __EXPORT void board_peripheral_reset(int ms)
 	VDD_5V_PERIPH_EN(false);
 	board_control_spi_sensors_power(false, 0xffff);
 
-	bool last = READ_VDD_3V3_SPEKTRUM_POWER_EN();
-	/* Keep Spektum on to discharge rail*/
-	VDD_3V3_SPEKTRUM_POWER_EN(false);
-
 	/* wait for the peripheral rail to reach GND */
 	usleep(ms * 1000);
 	syslog(LOG_DEBUG, "reset done, %d ms\n", ms);
 
 	/* re-enable power */
-
-	/* switch the peripheral rail back on */
-	VDD_3V3_SPEKTRUM_POWER_EN(last);
 	board_control_spi_sensors_power(true, 0xffff);
 	VDD_5V_PERIPH_EN(true);
-
 }
 
 /************************************************************************************
@@ -212,7 +204,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	VDD_5V_PERIPH_EN(true);
 	VDD_5V_HIPOWER_EN(true);
 	board_control_spi_sensors_power(true, 0xffff);
-	VDD_3V3_SPEKTRUM_POWER_EN(true);
 
 	/* Need hrt running before using the ADC */
 

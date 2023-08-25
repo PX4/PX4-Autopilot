@@ -1,5 +1,5 @@
 /************************************************************************************
- * nuttx-configs/siyi/n7/include/board.h
+ * nuttx-config/include/board.h
  *
  *   Copyright (C) 2016-2019 Gregory Nutt. All rights reserved.
  *   Authors: David Sidrane <david.sidrane@nscdg.com>
@@ -32,8 +32,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ************************************************************************************/
-#ifndef __NUTTX_CONFIG_SIYI_N7_INCLUDE_BOARD_H
-#define __NUTTX_CONFIG_SIYI_N7_INCLUDE_BOARD_H
+#pragma once
 
 /************************************************************************************
  * Included Files
@@ -50,12 +49,9 @@
 #include "stm32_rcc.h"
 #include "stm32_sdmmc.h"
 
-/************************************************************************************
- * Pre-processor Definitions
- ************************************************************************************/
 
 /* Clocking *************************************************************************/
-/* The siyi n7  board provides the following clock sources:
+/* The board provides the following clock sources:
  *
  *   X1: 16 MHz crystal for HSE
  *
@@ -106,11 +102,7 @@
  *   PLL1R = PLL1_VCO/8  = 960 MHz / 8   = 120 MHz
  */
 
-#define STM32_PLLCFG_PLL1CFG    (RCC_PLLCFGR_PLL1VCOSEL_WIDE | \
-				 RCC_PLLCFGR_PLL1RGE_4_8_MHZ | \
-				 RCC_PLLCFGR_DIVP1EN | \
-				 RCC_PLLCFGR_DIVQ1EN | \
-				 RCC_PLLCFGR_DIVR1EN)
+#define STM32_PLLCFG_PLL1CFG    (RCC_PLLCFGR_PLL1VCOSEL_WIDE|RCC_PLLCFGR_PLL1RGE_4_8_MHZ|RCC_PLLCFGR_DIVP1EN|RCC_PLLCFGR_DIVQ1EN|RCC_PLLCFGR_DIVR1EN)
 #define STM32_PLLCFG_PLL1M       RCC_PLLCKSELR_DIVM1(1)
 #define STM32_PLLCFG_PLL1N       RCC_PLL1DIVR_N1(60)
 #define STM32_PLLCFG_PLL1P       RCC_PLL1DIVR_P1(2)
@@ -124,11 +116,7 @@
 
 /* PLL2 */
 
-#define STM32_PLLCFG_PLL2CFG     (RCC_PLLCFGR_PLL2VCOSEL_WIDE | \
-				  RCC_PLLCFGR_PLL2RGE_4_8_MHZ | \
-				  RCC_PLLCFGR_DIVP2EN | \
-				  RCC_PLLCFGR_DIVQ2EN | \
-				  RCC_PLLCFGR_DIVR2EN)
+#define STM32_PLLCFG_PLL2CFG     (RCC_PLLCFGR_PLL2VCOSEL_WIDE|RCC_PLLCFGR_PLL2RGE_4_8_MHZ|RCC_PLLCFGR_DIVP2EN|RCC_PLLCFGR_DIVQ2EN|RCC_PLLCFGR_DIVR2EN)
 #define STM32_PLLCFG_PLL2M       RCC_PLLCKSELR_DIVM2(4)
 #define STM32_PLLCFG_PLL2N       RCC_PLL2DIVR_N2(48)
 #define STM32_PLLCFG_PLL2P       RCC_PLL2DIVR_P2(2)
@@ -142,9 +130,7 @@
 
 /* PLL3 */
 
-#define STM32_PLLCFG_PLL3CFG    (RCC_PLLCFGR_PLL3VCOSEL_WIDE | \
-				 RCC_PLLCFGR_PLL3RGE_4_8_MHZ | \
-				 RCC_PLLCFGR_DIVQ3EN)
+#define STM32_PLLCFG_PLL3CFG    (RCC_PLLCFGR_PLL3VCOSEL_WIDE|RCC_PLLCFGR_PLL3RGE_4_8_MHZ|RCC_PLLCFGR_DIVQ3EN)
 #define STM32_PLLCFG_PLL3M      RCC_PLLCKSELR_DIVM3(4)
 #define STM32_PLLCFG_PLL3N      RCC_PLL3DIVR_N3(48)
 #define STM32_PLLCFG_PLL3P      RCC_PLL3DIVR_P3(2)
@@ -222,59 +208,27 @@
  * Note: look at Table 54 in ST Manual
  */
 
-/* I2C123 clock source */
 
-#define STM32_RCC_D2CCIP2R_I2C123SRC RCC_D2CCIP2R_I2C123SEL_HSI
 
-/* I2C4 clock source */
+#define STM32_RCC_D2CCIP2R_I2C123SRC RCC_D2CCIP2R_I2C123SEL_HSI		/* I2C123 clock source */
 
-#define STM32_RCC_D3CCIPR_I2C4SRC    RCC_D3CCIPR_I2C4SEL_HSI
+#define STM32_RCC_D3CCIPR_I2C4SRC    RCC_D3CCIPR_I2C4SEL_HSI		/* I2C4 clock source */
 
-/* SPI123 clock source */
+#define STM32_RCC_D2CCIP1R_SPI123SRC RCC_D2CCIP1R_SPI123SEL_PLL2	/* SPI123 clock source */
 
-#define STM32_RCC_D2CCIP1R_SPI123SRC RCC_D2CCIP1R_SPI123SEL_PLL2
+#define STM32_RCC_D2CCIP1R_SPI45SRC  RCC_D2CCIP1R_SPI45SEL_PLL2		/* SPI45 clock source */
 
-/* SPI45 clock source */
+#define STM32_RCC_D3CCIPR_SPI6SRC    RCC_D3CCIPR_SPI6SEL_PLL2		/* SPI6 clock source */
 
-#define STM32_RCC_D2CCIP1R_SPI45SRC  RCC_D2CCIP1R_SPI45SEL_PLL2
+#define STM32_RCC_D2CCIP2R_USBSRC    RCC_D2CCIP2R_USBSEL_PLL3		/* USB 1 and 2 clock source */
 
-/* SPI6 clock source */
-
-#define STM32_RCC_D3CCIPR_SPI6SRC    RCC_D3CCIPR_SPI6SEL_PLL2
-
-/* USB 1 and 2 clock source */
-
-#define STM32_RCC_D2CCIP2R_USBSRC    RCC_D2CCIP2R_USBSEL_PLL3
-
-/* ADC 1 2 3 clock source */
-
-#define STM32_RCC_D3CCIPR_ADCSEL     RCC_D3CCIPR_ADCSEL_PLL2
-
-/* FDCAN 1 2 clock source */
+#define STM32_RCC_D3CCIPR_ADCSEL     RCC_D3CCIPR_ADCSEL_PLL2		/* ADC 1 2 3 clock source */
 
 #define STM32_RCC_D2CCIP1R_FDCANSEL  RCC_D2CCIP1R_FDCANSEL_HSE   /* FDCAN 1 2 clock source */
 
 #define STM32_FDCANCLK               STM32_HSE_FREQUENCY
 
-/* FLASH wait states
- *
- *  ------------ ---------- -----------
- *  Vcore        MAX ACLK   WAIT STATES
- *  ------------ ---------- -----------
- *  1.15-1.26 V     70 MHz    0
- *  (VOS1 level)   140 MHz    1
- *                 210 MHz    2
- *  1.05-1.15 V     55 MHz    0
- *  (VOS2 level)   110 MHz    1
- *                 165 MHz    2
- *                 220 MHz    3
- *  0.95-1.05 V     45 MHz    0
- *  (VOS3 level)    90 MHz    1
- *                 135 MHz    2
- *                 180 MHz    3
- *                 225 MHz    4
- *  ------------ ---------- -----------
- */
+/* FLASH wait states */
 
 #define BOARD_FLASH_WAITSTATES 2
 
@@ -302,7 +256,7 @@
 #define STM32_SDMMC_CLKCR_EDGE      STM32_SDMMC_CLKCR_NEGEDGE
 
 /* LED definitions ******************************************************************/
-/* The siyi n7 board has three, LED_GREEN a Green LED, LED_BLUE
+/* The board has three, LED_GREEN a Green LED, LED_BLUE
  * a Blue LED and LED_RED a Red LED, that can be controlled by software.
  *
  * If CONFIG_ARCH_LEDS is not defined, then the user can control the LEDs in any way.
@@ -414,75 +368,14 @@
 #define GPIO_I2C1_SCL GPIO_I2C1_SCL_2       /* PB8  */
 #define GPIO_I2C1_SDA GPIO_I2C1_SDA_2       /* PB9  */
 
-#define GPIO_I2C1_SCL_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN |GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN8)
-#define GPIO_I2C1_SDA_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN |GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN9)
-
 #define GPIO_I2C2_SCL GPIO_I2C2_SCL_2       /* PF1 */
 #define GPIO_I2C2_SDA GPIO_I2C2_SDA_2       /* PF0 */
-
-#define GPIO_I2C2_SCL_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN |GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTF | GPIO_PIN1)
-#define GPIO_I2C2_SDA_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN |GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTF | GPIO_PIN0)
 
 #define GPIO_I2C3_SCL GPIO_I2C3_SCL_2       /* PH7 */
 #define GPIO_I2C3_SDA GPIO_I2C3_SDA_2       /* PH8 */
 
-#define GPIO_I2C3_SCL_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN |GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTH | GPIO_PIN7)
-#define GPIO_I2C3_SDA_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN |GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTH | GPIO_PIN8)
-
 #define GPIO_I2C4_SCL GPIO_I2C4_SCL_2       /* PF14 */
 #define GPIO_I2C4_SDA GPIO_I2C4_SDA_2       /* PF15 */
 
-#define GPIO_I2C4_SCL_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTF | GPIO_PIN14)
-#define GPIO_I2C4_SDA_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTF | GPIO_PIN15)
-
-/* SDMMC1
- *
- *      VDD 3.3
- *      GND
- *      SDMMC1_CK                           PC12
- *      SDMMC1_CMD                          PD2
- *      SDMMC1_D0                           PC8
- *      SDMMC1_D1                           PC9
- *      SDMMC1_D2                           PC10
- *      SDMMC1_D3                           PC11
- *      GPIO_SDMMC1_NCD                     PG0
- */
-
-/* USB
- *
- *      OTG_FS_DM                           PA11
- *      OTG_FS_DP                           PA12
- *      VBUS                                PA9
- */
 
 
-/* Board provides GPIO or other Hardware for signaling to timing analyzer */
-
-#if defined(CONFIG_BOARD_USE_PROBES)
-# include "stm32_gpio.h"
-# define PROBE_N(n) (1<<((n)-1))
-# define PROBE_1    (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN14)  /* PE14 AUX1 */
-# define PROBE_2    (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN10)  /* PA10 AUX2 */
-# define PROBE_3    (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN11)  /* PE11 AUX3 */
-# define PROBE_4    (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN9)   /* PE9  AUX4 */
-# define PROBE_5    (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN13)  /* PD13 AUX5 */
-
-
-# define PROBE_INIT(mask) \
-	do { \
-		if ((mask)& PROBE_N(1)) { stm32_configgpio(PROBE_1); } \
-		if ((mask)& PROBE_N(2)) { stm32_configgpio(PROBE_2); } \
-		if ((mask)& PROBE_N(3)) { stm32_configgpio(PROBE_3); } \
-		if ((mask)& PROBE_N(4)) { stm32_configgpio(PROBE_4); } \
-		if ((mask)& PROBE_N(5)) { stm32_configgpio(PROBE_5); } \
-	} while(0)
-
-# define PROBE(n,s)  do {stm32_gpiowrite(PROBE_##n,(s));}while(0)
-# define PROBE_MARK(n) PROBE(n,false);PROBE(n,true)
-#else
-# define PROBE_INIT(mask)
-# define PROBE(n,s)
-# define PROBE_MARK(n)
-#endif
-
-#endif  /*__NUTTX_CONFIG_SIYI_N7_INCLUDE_BOARD_H  */
