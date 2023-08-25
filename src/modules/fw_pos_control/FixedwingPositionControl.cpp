@@ -2847,31 +2847,36 @@ void FixedwingPositionControl::navigateWaypoints(const Vector2f &waypoint_A, con
 	// BUT no arbitrary max approach angle, approach entirely determined by generated
 	// bearing vectors
 
-	Vector2f vector_A_to_B = waypoint_B - waypoint_A;
-	Vector2f vector_A_to_vehicle = vehicle_pos - waypoint_A;
+	const Vector2f vector_A_to_B = waypoint_B - waypoint_A;
+	const Vector2f vector_B_to_A = -vector_A_to_B;
+	const Vector2f vector_A_to_vehicle = vehicle_pos - waypoint_A;
+	const Vector2f vector_B_to_vehicle = vehicle_pos - waypoint_B;
+	Vector2f desired_path = vector_A_to_B; // this is the default path tangent, but is overridden below
 
 	if (vector_A_to_B.norm() < FLT_EPSILON) {
 		// the waypoints are on top of each other and should be considered as a
 		// single waypoint, fly directly to it
 		if (vector_A_to_vehicle.norm() > FLT_EPSILON) {
-			vector_A_to_B = -vector_A_to_vehicle;
+			desired_path = -vector_A_to_vehicle;
 
 		} else {
 			// Fly to a point and on it. Stay to the current control. Do not update the npfg library to get last output.
 			return;
 		}
 
-
 	} else if ((vector_A_to_B.dot(vector_A_to_vehicle) < -FLT_EPSILON)) {
 		// we are in front of waypoint A, fly directly to it until we are within switch distance.
-
 		if (vector_A_to_vehicle.norm() > _npfg.switchDistance(500.0f)) {
-			vector_A_to_B = -vector_A_to_vehicle;
+			desired_path = -vector_A_to_vehicle;
 		}
+
+	} else if (vector_B_to_A.dot(vector_B_to_vehicle) < -FLT_EPSILON) {
+		// we are behind waypoint B, fly directly to it
+		desired_path = -vector_B_to_vehicle;
 	}
 
 	// track the line segment
-	Vector2f unit_path_tangent{vector_A_to_B.normalized()};
+	Vector2f unit_path_tangent{desired_path.normalized()};
 	_target_bearing = atan2f(unit_path_tangent(1), unit_path_tangent(0));
 	_closest_point_on_path = waypoint_A + vector_A_to_vehicle.dot(unit_path_tangent) * unit_path_tangent;
 	_npfg.guideToPath(vehicle_pos, ground_vel, wind_vel, unit_path_tangent, waypoint_A, 0.0f);

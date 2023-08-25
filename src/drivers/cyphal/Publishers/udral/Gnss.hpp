@@ -66,9 +66,9 @@ public:
 			size_t payload_size = reg_udral_physics_kinematics_geodetic_Point_0_1_SERIALIZATION_BUFFER_SIZE_BYTES_;
 
 			reg_udral_physics_kinematics_geodetic_Point_0_1 geo {};
-			geo.latitude = gps.lat;
-			geo.longitude = gps.lon;
-			geo.altitude = uavcan_si_unit_length_WideScalar_1_0 { .meter = static_cast<double>(gps.alt) };
+			geo.latitude = (int64_t)(gps.latitude_deg / 1e7);
+			geo.longitude = (int64_t)(gps.longitude_deg / 1e7);
+			geo.altitude = uavcan_si_unit_length_WideScalar_1_0 { .meter = gps.altitude_msl_m };
 
 			uint8_t geo_payload_buffer[reg_udral_physics_kinematics_geodetic_Point_0_1_SERIALIZATION_BUFFER_SIZE_BYTES_];
 

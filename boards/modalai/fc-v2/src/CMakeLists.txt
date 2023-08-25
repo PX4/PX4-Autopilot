@@ -68,4 +68,18 @@ else()
 			nuttx_drivers # sdio
 			px4_layer
 	)
+
+	set(COMMON_MODALAI_SRC_DIR ${PX4_SOURCE_DIR}/boards/modalai/src)
+	set(MODALAI_SYSTEMCMD_SRC_DIR ${COMMON_MODALAI_SRC_DIR}/systemcmds/modalai)
+
+	px4_add_module(
+		MODULE systemcmds__modalai
+		MAIN modalai
+		COMPILE_FLAGS
+		SRCS
+			${MODALAI_SYSTEMCMD_SRC_DIR}/modalai_fc-v2.c
+			${MODALAI_SYSTEMCMD_SRC_DIR}/modalai_fc-v1.c
+			${MODALAI_SYSTEMCMD_SRC_DIR}/modalai.c
+		DEPENDS
+	)
 endif()

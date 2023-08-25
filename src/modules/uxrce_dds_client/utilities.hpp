@@ -10,9 +10,13 @@
 
 uxrObjectId topic_id_from_orb(ORB_ID orb_id, uint8_t instance = 0)
 {
-	if (orb_id != ORB_ID::INVALID) {
-		uint16_t id = static_cast<uint8_t>(orb_id) + (instance * UINT8_MAX);
-		uxrObjectId topic_id = uxr_object_id(id, UXR_TOPIC_ID);
+	// Note that the uxrObjectId.id is a uint16_t so we need to cap the ID,
+	// and urx does not allow us to use the upper 4 bits.
+	const unsigned max_id = 65535U / 32U;
+	const unsigned id = static_cast<unsigned>(orb_id) + (instance * ORB_TOPICS_COUNT);
+
+	if (orb_id != ORB_ID::INVALID && id < max_id) {
+		uxrObjectId topic_id = uxr_object_id(static_cast<uint16_t>(id), UXR_TOPIC_ID);
 		return topic_id;
 	}
 
@@ -94,8 +98,9 @@ static bool create_data_reader(uxrSession *session, uxrStreamId reliable_out_str
 		return false;
 	}
 
-	uint16_t id = index + 1000;
-
+	// Use the second half of the available ID space.
+	// Add 1 so that we get a nice hex starting number: 0x800 instead of 0x7ff.
+	uint16_t id = index + (65535U / 32U) + 1;
 
 	uxrObjectId topic_id = uxr_object_id(id, UXR_TOPIC_ID);
 	uint16_t topic_req = uxr_buffer_create_topic_bin(session, reliable_out_stream_id, topic_id, participant_id, topic_name,

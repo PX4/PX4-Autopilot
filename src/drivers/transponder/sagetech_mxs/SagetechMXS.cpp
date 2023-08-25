@@ -455,7 +455,7 @@ void SagetechMXS::determine_furthest_aircraft()
 			continue;
 		}
 
-		const float distance = get_distance_to_next_waypoint(_gps.lat * GPS_SCALE, _gps.lon * GPS_SCALE,
+		const float distance = get_distance_to_next_waypoint(_gps.latitude_deg, _gps.longitude_deg,
 				       vehicle_list[index].lat,
 				       vehicle_list[index].lon);
 
@@ -492,8 +492,8 @@ void SagetechMXS::handle_vehicle(const transponder_report_s &vehicle)
 	// needs to handle updating the vehicle list, keeping track of which vehicles to drop
 	// and which to keep, allocating new vehicles, and publishing to the transponder_report topic
 	uint16_t index = list_size_allocated + 1; // Make invalid to start with.
-	const bool my_loc_is_zero = (_gps.lat == 0) && (_gps.lon == 0);
-	const float my_loc_distance_to_vehicle = get_distance_to_next_waypoint(_gps.lat * GPS_SCALE, _gps.lon * GPS_SCALE,
+	const bool my_loc_is_zero = (fabs(_gps.latitude_deg) < DBL_EPSILON) && (fabs(_gps.longitude_deg) < DBL_EPSILON);
+	const float my_loc_distance_to_vehicle = get_distance_to_next_waypoint(_gps.latitude_deg, _gps.longitude_deg,
 			vehicle.lat, vehicle.lon);
 	const bool is_tracked_in_list = find_index(vehicle, &index);
 	// const bool is_special = is_special_vehicle(vehicle.icao_address);
@@ -745,7 +745,8 @@ void SagetechMXS::send_operating_msg()
 	mxs_state.op.altRes25 =
 		!mxs_state.inst.altRes100;                                // Host Altitude Resolution from install
 
-	mxs_state.op.altitude = _gps.alt * SAGETECH_SCALE_MM_TO_FT;                       // Height above sealevel in feet
+	mxs_state.op.altitude = static_cast<int32_t>(_gps.altitude_msl_m *
+				SAGETECH_SCALE_M_TO_FT);   // Height above sealevel in feet
 
 	mxs_state.op.identOn = _adsb_ident.get();
 
@@ -806,8 +807,8 @@ void SagetechMXS::send_gps_msg()
 	}
 
 	// Get Vehicle Longitude and Latitude and Convert to string
-	const int32_t longitude = _gps.lon;
-	const int32_t latitude =  _gps.lat;
+	const int32_t longitude = static_cast<int32_t>(_gps.longitude_deg * 1e7);
+	const int32_t latitude =  static_cast<int32_t>(_gps.latitude_deg * 1e7);
 	const double lon_deg = longitude * 1.0E-7 * (longitude < 0 ? -1 : 1);
 	const double lon_minutes = (lon_deg - int(lon_deg)) * 60;
 	snprintf((char *)&gps.longitude, 12, "%03u%02u.%05u", (unsigned)lon_deg, (unsigned)lon_minutes,
@@ -836,7 +837,7 @@ void SagetechMXS::send_gps_msg()
 	snprintf((char *)&gps.timeOfFix, 11, "%02u%02u%06.3f", tm->tm_hour, tm->tm_min,
 		 tm->tm_sec + (_gps.time_utc_usec % 1000000) * 1.0e-6);
 
-	gps.height = _gps.alt_ellipsoid * 1E-3;
+	gps.height = (float)_gps.altitude_ellipsoid_m;
 
 	// checkGPSInputs(&gps);
 	last.msg.type = SG_MSG_TYPE_HOST_GPS;
@@ -1284,7 +1285,8 @@ void SagetechMXS::auto_config_operating()
 	mxs_state.op.altHostAvlbl = false;
 	mxs_state.op.altRes25 = true;                                // Host Altitude Resolution from install
 
-	mxs_state.op.altitude = _gps.alt * SAGETECH_SCALE_MM_TO_FT;                       // Height above sealevel in feet
+	mxs_state.op.altitude = static_cast<int32_t>(_gps.altitude_msl_m *
+				SAGETECH_SCALE_M_TO_FT);     // Height above sealevel in feet
 
 	mxs_state.op.identOn = false;
 

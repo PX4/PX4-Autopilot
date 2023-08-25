@@ -211,7 +211,7 @@ bool LogWriterFile::init_logfile_encryption(const char *filename)
 #endif // PX4_CRYPTO
 
 
-void LogWriterFile::start_log(LogType type, const char *filename)
+bool LogWriterFile::start_log(LogType type, const char *filename)
 {
 	// At this point we don't expect the file to be open, but it can happen for very fast consecutive stop & start
 	// calls. In that case we wait for the thread to close the file first.
@@ -243,7 +243,7 @@ void LogWriterFile::start_log(LogType type, const char *filename)
 	if (!enc_init) {
 		PX4_ERR("Failed to start encrypted logging");
 		_crypto.close();
-		return;
+		return false;
 	}
 
 #endif
@@ -251,7 +251,10 @@ void LogWriterFile::start_log(LogType type, const char *filename)
 	if (_buffers[(int)type].start_log(filename)) {
 		PX4_INFO("Opened %s log file: %s", log_type_str(type), filename);
 		notify();
+		return true;
 	}
+
+	return false;
 }
 
 int LogWriterFile::hardfault_store_filename(const char *log_file)
@@ -452,6 +455,7 @@ void LogWriterFile::run()
 
 					} else {
 						PX4_ERR("write failed (%i)", errno);
+						buffer._had_write_error.store(true);
 						buffer._should_run = false;
 						pthread_mutex_unlock(&_mtx);
 						buffer.close_file();
@@ -648,6 +652,7 @@ size_t LogWriterFile::LogFileBuffer::get_read_ptr(void **ptr, bool *is_part)
 bool LogWriterFile::LogFileBuffer::start_log(const char *filename)
 {
 	_fd = ::open(filename, O_CREAT | O_WRONLY, PX4_O_MODE_666);
+	_had_write_error.store(false);
 
 	if (_fd < 0) {
 		PX4_ERR("Can't open log file %s, errno: %d", filename, errno);

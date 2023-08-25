@@ -151,7 +151,7 @@ private:
 	float _tas_innov_integ_threshold{-1.0}; ///< integrator innovation error threshold for triggering innovation check failure
 	uint64_t	_time_last_aspd_innov_check{0};	///< time airspeed innovation was last checked (uSec)
 	uint64_t	_time_last_tas_pass{0};		///< last time innovation checks passed
-	float		_apsd_innov_integ_state{0.0f};	///< integral of excess normalised airspeed innovation (sec)
+	float		_aspd_innov_integ_state{0.0f};	///< integral of excess normalised airspeed innovation (sec)
 	static constexpr uint64_t TAS_INNOV_FAIL_DELAY{1_s};	///< time required for innovation levels to pass or fail (usec)
 	uint64_t	_time_wind_estimator_initialized{0};		///< time last time wind estimator was initialized (uSec)
 

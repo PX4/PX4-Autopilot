@@ -315,6 +315,8 @@ private:
 	void handle_vehicle_command_update();
 	void ack_vehicle_command(vehicle_command_s *cmd, uint32_t result);
 
+	void handle_file_write_error();
+
 	/**
 	 * initialize the output for the process load, so that ~1 second later it will be written to the log
 	 */
@@ -346,7 +348,7 @@ private:
 
 	LogFileName					_file_name[(int)LogType::Count];
 
-	bool						_prev_state{false}; ///< previous state depending on logging mode (arming or aux1 state)
+	bool						_prev_file_log_start_state{false}; ///< previous state depending on logging mode (arming or aux1 state)
 	bool						_manually_logging_override{false};
 
 	Statistics					_statistics[(int)LogType::Count];
@@ -363,7 +365,7 @@ private:
 	uint16_t 					_event_sequence_offset{0}; ///< event sequence offset to account for skipped (not logged) messages
 	uint16_t 					_event_sequence_offset_mission{0};
 
-	uint8_t						_excluded_optional_topic_ids[LoggedTopics::MAX_EXCLUDED_OPTIONAL_TOPICS_NUM];
+	orb_id_size_t  					_excluded_optional_topic_ids[LoggedTopics::MAX_EXCLUDED_OPTIONAL_TOPICS_NUM];
 	int						_num_excluded_optional_topic_ids{0};
 
 	LogWriter					_writer;

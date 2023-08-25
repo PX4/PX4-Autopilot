@@ -121,8 +121,8 @@ int MavlinkShell::start()
 
 	char r_in[32];
 	char r_out[32];
-	sprintf(r_in, "%d", remote_in_fd);
-	sprintf(r_out, "%d", remote_out_fd);
+	snprintf(r_in, sizeof(r_in), "%d", remote_in_fd);
+	snprintf(r_out, sizeof(r_out), "%d", remote_out_fd);
 	char *const argv[3] = {r_in, r_out, nullptr};
 
 #else

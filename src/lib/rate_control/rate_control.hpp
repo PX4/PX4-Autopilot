@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -51,12 +51,12 @@ public:
 	~RateControl() = default;
 
 	/**
-	 * Set the rate control gains
+	 * Set the rate control PID gains
 	 * @param P 3D vector of proportional gains for body x,y,z axis
 	 * @param I 3D vector of integral gains
 	 * @param D 3D vector of derivative gains
 	 */
-	void setGains(const matrix::Vector3f &P, const matrix::Vector3f &I, const matrix::Vector3f &D);
+	void setPidGains(const matrix::Vector3f &P, const matrix::Vector3f &I, const matrix::Vector3f &D);
 
 	/**
 	 * Set the mximum absolute value of the integrator for all axes
@@ -75,8 +75,16 @@ public:
 	 * Set saturation status
 	 * @param control saturation vector from control allocator
 	 */
-	void setSaturationStatus(const matrix::Vector<bool, 3> &saturation_positive,
-				 const matrix::Vector<bool, 3> &saturation_negative);
+	void setSaturationStatus(const matrix::Vector3<bool> &saturation_positive,
+				 const matrix::Vector3<bool> &saturation_negative);
+
+	/**
+	 * Set individual saturation flags
+	 * @param axis 0 roll, 1 pitch, 2 yaw
+	 * @param is_saturated value to update the flag with
+	 */
+	void setPositiveSaturationFlag(size_t axis, bool is_saturated);
+	void setNegativeSaturationFlag(size_t axis, bool is_saturated);
 
 	/**
 	 * Run one control loop cycle calculation
@@ -93,6 +101,18 @@ public:
 	 * @see _rate_int
 	 */
 	void resetIntegral() { _rate_int.zero(); }
+
+	/**
+	 * Set the integral term to 0 for specific axes
+	 * @param  axis roll 0 / pitch 1 / yaw 2
+	 * @see _rate_int
+	 */
+	void resetIntegral(size_t axis)
+	{
+		if (axis < 3) {
+			_rate_int(axis) = 0.f;
+		}
+	}
 
 	/**
 	 * Get status message of controller for logging/debugging

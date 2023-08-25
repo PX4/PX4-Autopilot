@@ -199,25 +199,21 @@ public:
 	 *
 	 * @return the desired cruising speed for this mission
 	 */
-	float get_cruising_speed();
+	float get_cruising_speed() { return _cruising_speed_current_mode; }
 
 	/**
 	 * Set the cruising speed
 	 *
-	 * Passing a negative value or leaving the parameter away will reset the cruising speed
-	 * to its default value.
-	 *
-	 * For VTOL: sets cruising speed for current mode only (multirotor or fixed-wing).
-	 *
+	 * Passing a negative value will reset the cruising speed
+	 * to its default value. Will automatically be reset to default
+	 * on mode switch.
 	 */
-	void set_cruising_speed(float speed = -1.0f);
+	void set_cruising_speed(float desired_speed) { _cruising_speed_current_mode = desired_speed; }
 
 	/**
 	 * Reset cruising speed to default values
-	 *
-	 * For VTOL: resets both cruising speeds.
 	 */
-	void reset_cruising_speed();
+	void reset_cruising_speed() { _cruising_speed_current_mode = -1.f; }
 
 	/**
 	 *  Set triplets to invalid
@@ -302,8 +298,10 @@ public:
 	void acquire_gimbal_control();
 	void release_gimbal_control();
 
-	void 		calculate_breaking_stop(double &lat, double &lon, float &yaw);
-	void        	stop_capturing_images();
+	void calculate_breaking_stop(double &lat, double &lon, float &yaw);
+
+	void stop_capturing_images();
+	void disable_camera_trigger();
 
 	void mode_completed(uint8_t nav_state, uint8_t result = mode_completed_s::RESULT_SUCCESS);
 
@@ -387,8 +385,7 @@ private:
 	float _param_mpc_jerk_auto{4.f}; 	/**< initialized with the default jerk auto value to prevent division by 0 if the parameter is accidentally set to 0 */
 	float _param_mpc_acc_hor{3.f};		/**< initialized with the default horizontal acc value to prevent division by 0 if the parameter is accidentally set to 0 */
 
-	float _mission_cruising_speed_mc{-1.0f};
-	float _mission_cruising_speed_fw{-1.0f};
+	float _cruising_speed_current_mode{-1.0f};
 	float _mission_throttle{NAN};
 
 	traffic_buffer_s _traffic_buffer{};

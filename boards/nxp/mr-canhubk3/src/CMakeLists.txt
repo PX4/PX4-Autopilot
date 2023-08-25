@@ -38,6 +38,7 @@ if("${PX4_BOARD_LABEL}" STREQUAL  "canbootloader")
 		clockconfig.c
 		periphclocks.c
 		timer_config.cpp
+		hw_rev_ver_canhubk3.c
 	)
 
 	target_link_libraries(drivers_board
@@ -65,6 +66,8 @@ else()
 		spi.cpp
 		timer_config.cpp
 		s32k3xx_userleds.c
+		hw_rev_ver_canhubk3.c
+		manifest.c
 	)
 
 	target_link_libraries(drivers_board

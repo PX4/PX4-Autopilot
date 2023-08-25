@@ -7,8 +7,17 @@
         {
             "model": "iris",
             "vehicle": "iris",
-            "test_filter": "[multicopter],[offboard]",
+            "test_filter": "[multicopter],[offboard][offboard_attitude]",
             "timeout_min": 10
+        },
+        {
+            "model": "iris",
+            "vehicle": "iris",
+            "test_filter": "[offboard_attitude]",
+            "timeout_min": 10,
+            "env": {
+                "SYS_MC_EST_GROUP": 3
+            }
         },
         {
             "model": "standard_vtol",

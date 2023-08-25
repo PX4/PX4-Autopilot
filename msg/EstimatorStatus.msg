@@ -127,3 +127,8 @@ uint32 mag_device_id
 # legacy local position estimator (LPE) flags
 uint8 health_flags		# Bitmask to indicate sensor health states (vel, pos, hgt)
 uint8 timeout_flags		# Bitmask to indicate timeout flags (vel, pos, hgt)
+
+float32 mag_inclination_deg
+float32 mag_inclination_ref_deg
+float32 mag_strength_gs
+float32 mag_strength_ref_gs

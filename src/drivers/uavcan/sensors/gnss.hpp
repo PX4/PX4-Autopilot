@@ -45,6 +45,7 @@
 #pragma once
 
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/gps_inject_data.h>
@@ -123,7 +124,9 @@ private:
 	float		_last_gnss_auxiliary_hdop{0.0f};
 	float		_last_gnss_auxiliary_vdop{0.0f};
 
-	uORB::Subscription _gps_inject_data_sub{ORB_ID(gps_inject_data)};
+	uORB::SubscriptionMultiArray<gps_inject_data_s, gps_inject_data_s::MAX_INSTANCES> _orb_inject_data_sub{ORB_ID::gps_inject_data};
+	hrt_abstime		_last_rtcm_injection_time{0};	///< time of last rtcm injection
+	uint8_t			_selected_rtcm_instance{0};	///< uorb instance that is being used for RTCM corrections
 
 	bool _system_clock_set{false};  ///< Have we set the system clock at least once from GNSS data?
 

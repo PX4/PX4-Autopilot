@@ -342,9 +342,9 @@ ADIS16497::read_reg16(uint8_t reg)
 
 	cmd[0] = ((reg | DIR_READ) << 8) & 0xff00;
 	transferhword(cmd, nullptr, 1);
-	up_udelay(T_STALL);
+	px4_udelay(T_STALL);
 	transferhword(nullptr, cmd, 1);
-	up_udelay(T_STALL);
+	px4_udelay(T_STALL);
 
 	return cmd[0];
 }
@@ -367,9 +367,9 @@ ADIS16497::write_reg16(uint8_t reg, uint16_t value)
 	cmd[1] = (((reg + 0x1) | DIR_WRITE) << 8) | ((0xff00 & value) >> 8);
 
 	transferhword(cmd, nullptr, 1);
-	up_udelay(T_STALL);
+	px4_udelay(T_STALL);
 	transferhword(cmd + 1, nullptr, 1);
-	up_udelay(T_STALL);
+	px4_udelay(T_STALL);
 }
 
 void

@@ -51,6 +51,10 @@ public:
 
 	void allocateAuxilaryControls(const float dt, int matrix_index, ActuatorVector &actuator_sp) override;
 
+	void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
+			    ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
+			    const matrix::Vector<float, NUM_ACTUATORS> &actuator_max) override;
+
 private:
 	ActuatorEffectivenessRotors _rotors;
 	ActuatorEffectivenessControlSurfaces _control_surfaces;
@@ -59,4 +63,6 @@ private:
 	uORB::Subscription _spoilers_setpoint_sub{ORB_ID(spoilers_setpoint)};
 
 	int _first_control_surface_idx{0}; ///< applies to matrix 1
+
+	uint32_t _forwards_motors_mask{};
 };

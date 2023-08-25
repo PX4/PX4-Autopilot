@@ -205,6 +205,11 @@ bool EkfWrapper::isIntendingMag3DFusion() const
 	return _ekf->control_status_flags().mag_3D;
 }
 
+bool EkfWrapper::isMagHeadingConsistent() const
+{
+	return _ekf->control_status_flags().mag_heading_consistent;
+}
+
 void EkfWrapper::setMagFuseTypeNone()
 {
 	_ekf_params->mag_fusion_type = MagFuseType::NONE;
@@ -212,7 +217,17 @@ void EkfWrapper::setMagFuseTypeNone()
 
 void EkfWrapper::enableMagStrengthCheck()
 {
-	_ekf_params->check_mag_strength = 1;
+	_ekf_params->mag_check |= static_cast<int32_t>(MagCheckMask::STRENGTH);
+}
+
+void EkfWrapper::enableMagInclinationCheck()
+{
+	_ekf_params->mag_check |= static_cast<int32_t>(MagCheckMask::INCLINATION);
+}
+
+void EkfWrapper::enableMagCheckForceWMM()
+{
+	_ekf_params->mag_check |= static_cast<int32_t>(MagCheckMask::FORCE_WMM);
 }
 
 bool EkfWrapper::isWindVelocityEstimated() const
@@ -278,11 +293,6 @@ int EkfWrapper::getQuaternionResetCounter() const
 	return static_cast<int>(counter);
 }
 
-matrix::Vector3f EkfWrapper::getDeltaVelBiasVariance() const
-{
-	return _ekf->covariances_diagonal().slice<3, 1>(13, 0);
-}
-
 void EkfWrapper::enableDragFusion()
 {
 	_ekf_params->drag_ctrl = 1;
@@ -298,4 +308,9 @@ void EkfWrapper::setDragFusionParameters(const float &bcoef_x, const float &bcoe
 	_ekf_params->bcoef_x = bcoef_x;
 	_ekf_params->bcoef_y = bcoef_y;
 	_ekf_params->mcoef = mcoef;
+}
+
+float EkfWrapper::getMagHeadingNoise() const
+{
+	return _ekf_params->mag_heading_noise;
 }

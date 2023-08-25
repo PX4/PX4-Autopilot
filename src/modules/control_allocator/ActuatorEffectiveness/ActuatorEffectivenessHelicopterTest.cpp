@@ -52,7 +52,7 @@ TEST(ActuatorEffectivenessHelicopterTest, ThrottleCurve)
 		param_set(param, &values[i]);
 	}
 
-	ActuatorEffectivenessHelicopter helicopter(nullptr);
+	ActuatorEffectivenessHelicopter helicopter(nullptr, ActuatorType::MOTORS);
 	// run getEffectivenessMatrix with empty configuration to correctly initialize _first_swash_plate_servo_index
 	ActuatorEffectiveness::Configuration configuration{};
 	EffectivenessUpdateReason external_update = EffectivenessUpdateReason::MOTOR_ACTIVATION_UPDATE;

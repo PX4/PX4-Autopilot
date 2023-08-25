@@ -58,7 +58,5 @@ private:
 	void _ekfResetHandlerVelocityXY(const matrix::Vector2f &delta_vxy) override;
 
 	StickAccelerationXY _stick_acceleration_xy{this};
-	StickYaw _stick_yaw{this};
-
 	WeatherVane _weathervane{this}; /**< weathervane library, used to implement a yaw control law that turns the vehicle nose into the wind */
 };

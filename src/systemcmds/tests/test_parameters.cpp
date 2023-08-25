@@ -316,7 +316,7 @@ bool ParameterTest::exportImport()
 	}
 
 	// save
-	if (param_save_default() != PX4_OK) {
+	if (param_save_default(true) != PX4_OK) {
 		PX4_ERR("param_save_default failed");
 		return false;
 	}
@@ -461,7 +461,7 @@ bool ParameterTest::exportImportAll()
 	}
 
 	// save
-	if (param_save_default() != PX4_OK) {
+	if (param_save_default(true) != PX4_OK) {
 		PX4_ERR("param_save_default failed");
 		return false;
 	}
@@ -561,7 +561,7 @@ bool ParameterTest::exportImportAll()
 	}
 
 	// save
-	if (param_save_default() != PX4_OK) {
+	if (param_save_default(true) != PX4_OK) {
 		PX4_ERR("param_save_default failed");
 		return false;
 	}

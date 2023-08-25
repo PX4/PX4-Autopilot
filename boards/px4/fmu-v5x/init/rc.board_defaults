@@ -19,3 +19,14 @@ param set-default SENS_EN_INA226 1
 param set-default SYS_USE_IO 1
 
 safety_button start
+
+# GPIO Expander driver on external I2C3
+if ver hwtypecmp V5X009000 V5X009001
+then
+	# No USB
+	mcp23009 start -b 3 -X -D 0xf0 -O 0xf0 -P 0x0f -U 10
+fi
+if ver hwtypecmp V5X00a000 V5X00a001 V5X008000 V5X008001
+then
+	mcp23009 start -b 3 -X -D 0xf1 -O 0xf0 -P 0x0f -U 10
+fi

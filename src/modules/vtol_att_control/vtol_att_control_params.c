@@ -79,7 +79,6 @@ PARAM_DEFINE_FLOAT(VT_F_TRANS_DUR, 5.0f);
 /**
  * Maximum duration of a back transition
  *
- * Time in seconds used for a back transition maximally.
  * Transition is also declared over if the groundspeed drops below MPC_XY_CRUISE.
  *
  * @unit s
@@ -94,10 +93,6 @@ PARAM_DEFINE_FLOAT(VT_B_TRANS_DUR, 10.0f);
 /**
  * Target throttle value for the transition to fixed-wing flight.
  *
- * standard vtol: pusher
- *
- * tailsitter, tiltrotor: main throttle
- *
  * @min 0.0
  * @max 1.0
  * @increment 0.01
@@ -109,7 +104,6 @@ PARAM_DEFINE_FLOAT(VT_F_TRANS_THR, 1.0f);
 /**
  * Approximate deceleration during back transition
  *
- * The approximate deceleration during a back transition in m/s/s
  * Used to calculate back transition distance in an auto mode.
  * For standard vtol and tiltrotors a controller is used to track this value during the transition.
  *
@@ -197,12 +191,12 @@ PARAM_DEFINE_FLOAT(VT_FW_MIN_ALT, 0.0f);
 /**
  * Quad-chute uncommanded descent threshold
  *
- * Threshold for integrated height rate error to trigger a uncommanded-descent quad-chute.
- * Only checked in altitude-controlled fixed-wing flight.
- * Additional conditions that have to be met for uncommanded descent detection are a positive (climbing) height
- * rate setpoint and a negative (sinking) current height rate estimate.
+ * Altitude error threshold for quad-chute triggering during fixed-wing flight.
+ * The check is only active if altitude is controlled and the vehicle is below the current altitude reference.
+ * The altitude error is relative to the highest altitude the vehicle has achieved since it has flown below the current
+ * altitude reference.
  *
- * Set to 0 do disable this threshold.
+ * Set to 0 do disable.
  *
  * @unit m
  * @min 0.0
@@ -211,7 +205,7 @@ PARAM_DEFINE_FLOAT(VT_FW_MIN_ALT, 0.0f);
  * @decimal 1
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_QC_HR_ERROR_I, 0.0f);
+PARAM_DEFINE_FLOAT(VT_QC_ALT_LOSS, 0.0f);
 
 /**
  * Quad-chute transition altitude loss threshold
@@ -345,21 +339,7 @@ PARAM_DEFINE_FLOAT(VT_FW_DIFTHR_S_P, 1.f);
 PARAM_DEFINE_FLOAT(VT_FW_DIFTHR_S_Y, 0.1f);
 
 /**
- * Backtransition deceleration setpoint to pitch feedforward gain.
- *
- *
- * @unit rad s^2/m
- * @min 0
- * @max 0.2
- * @decimal 2
- * @increment 0.01
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_FLOAT(VT_B_DEC_FF, 0.f);
-
-/**
  * Backtransition deceleration setpoint to pitch I gain.
- *
  *
  * @unit rad s/m
  * @min 0
@@ -373,9 +353,8 @@ PARAM_DEFINE_FLOAT(VT_B_DEC_I, 0.1f);
 /**
  * Minimum pitch angle during hover.
  *
- * Minimum pitch angle during hover flight. If the desired pitch angle is is lower than this value
- * then the fixed-wing forward actuation can be used to compensate for the missing thrust in forward direction
- * (see VT_FW_TRHUST_EN)
+ * Any pitch setpoint below this value is translated to a forward force by the fixed-wing forward actuation if
+ * VT_FW_TRHUST_EN is set to 1.
  *
  * @unit deg
  * @min -10.0

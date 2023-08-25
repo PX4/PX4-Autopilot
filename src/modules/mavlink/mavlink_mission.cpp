@@ -62,6 +62,7 @@ uint16_t MavlinkMissionManager::_count[3] = { 0, 0, 0 };
 int32_t MavlinkMissionManager::_current_seq = 0;
 bool MavlinkMissionManager::_transfer_in_progress = false;
 constexpr uint16_t MavlinkMissionManager::MAX_COUNT[];
+uint16_t MavlinkMissionManager::_mission_update_counter = 0;
 uint16_t MavlinkMissionManager::_geofence_update_counter = 0;
 uint16_t MavlinkMissionManager::_safepoint_update_counter = 0;
 
@@ -83,28 +84,18 @@ MavlinkMissionManager::init_offboard_mission()
 	if (!_dataman_init) {
 		_dataman_init = true;
 
-		/* lock MISSION_STATE item */
-		int dm_lock_ret = dm_lock(DM_KEY_MISSION_STATE);
-
-		if (dm_lock_ret != 0) {
-			PX4_ERR("DM_KEY_MISSION_STATE lock failed");
-		}
-
 		mission_s mission_state;
-		int ret = dm_read(DM_KEY_MISSION_STATE, 0, &mission_state, sizeof(mission_s));
+		bool success = _dataman_client.readSync(DM_KEY_MISSION_STATE, 0, reinterpret_cast<uint8_t *>(&mission_state),
+							sizeof(mission_s));
 
-		/* unlock MISSION_STATE item */
-		if (dm_lock_ret == 0) {
-			dm_unlock(DM_KEY_MISSION_STATE);
-		}
-
-		if (ret > 0) {
+		if (success) {
 			_dataman_id = (dm_item_t)mission_state.dataman_id;
 			_count[MAV_MISSION_TYPE_MISSION] = mission_state.count;
 			_current_seq = mission_state.current_seq;
+			_mission_update_counter = mission_state.mission_update_counter;
 
-		} else if (ret < 0) {
-			PX4_WARN("offboard mission init failed (%i)", ret);
+		} else {
+			PX4_WARN("offboard mission init failed");
 		}
 
 		load_geofence_stats();
@@ -115,87 +106,60 @@ MavlinkMissionManager::init_offboard_mission()
 	_my_dataman_id = _dataman_id;
 }
 
-int
+bool
 MavlinkMissionManager::load_geofence_stats()
 {
 	mission_stats_entry_s stats;
 	// initialize fence points count
-	int ret = dm_read(DM_KEY_FENCE_POINTS, 0, &stats, sizeof(mission_stats_entry_s));
+	bool success = _dataman_client.readSync(DM_KEY_FENCE_POINTS, 0, reinterpret_cast<uint8_t *>(&stats),
+						sizeof(mission_stats_entry_s));
 
-	if (ret == sizeof(mission_stats_entry_s)) {
+	if (success) {
 		_count[MAV_MISSION_TYPE_FENCE] = stats.num_items;
 		_geofence_update_counter = stats.update_counter;
 	}
 
-	return ret;
+	return success;
 }
 
-int
+bool
 MavlinkMissionManager::load_safepoint_stats()
 {
 	mission_stats_entry_s stats;
 	// initialize safe points count
-	int ret = dm_read(DM_KEY_SAFE_POINTS, 0, &stats, sizeof(mission_stats_entry_s));
+	bool success = _dataman_client.readSync(DM_KEY_SAFE_POINTS, 0, reinterpret_cast<uint8_t *>(&stats),
+						sizeof(mission_stats_entry_s));
 
-	if (ret == sizeof(mission_stats_entry_s)) {
+	if (success) {
 		_count[MAV_MISSION_TYPE_RALLY] = stats.num_items;
+		_safepoint_update_counter = stats.update_counter;
 	}
 
-	return ret;
+	return success;
 }
 
 /**
  * Publish mission topic to notify navigator about changes.
  */
-int
+void
 MavlinkMissionManager::update_active_mission(dm_item_t dataman_id, uint16_t count, int32_t seq)
 {
-	// We want to make sure the whole struct is initialized including padding before getting written by dataman.
 	mission_s mission{};
 	mission.timestamp = hrt_absolute_time();
 	mission.dataman_id = dataman_id;
 	mission.count = count;
 	mission.current_seq = seq;
+	mission.mission_update_counter = _mission_update_counter;
+	mission.geofence_update_counter = _geofence_update_counter;
+	mission.safe_points_update_counter = _safepoint_update_counter;
 
-	/* update mission state in dataman */
+	/* update active mission state */
+	_dataman_id = dataman_id;
+	_count[MAV_MISSION_TYPE_MISSION] = count;
+	_current_seq = seq;
+	_my_dataman_id = _dataman_id;
 
-	/* lock MISSION_STATE item */
-	int dm_lock_ret = dm_lock(DM_KEY_MISSION_STATE);
-
-	if (dm_lock_ret != 0) {
-		PX4_ERR("DM_KEY_MISSION_STATE lock failed");
-	}
-
-	int res = dm_write(DM_KEY_MISSION_STATE, 0, &mission, sizeof(mission_s));
-
-	/* unlock MISSION_STATE item */
-	if (dm_lock_ret == 0) {
-		dm_unlock(DM_KEY_MISSION_STATE);
-	}
-
-	if (res == sizeof(mission_s)) {
-		/* update active mission state */
-		_dataman_id = dataman_id;
-		_count[MAV_MISSION_TYPE_MISSION] = count;
-		_current_seq = seq;
-		_my_dataman_id = _dataman_id;
-
-		/* mission state saved successfully, publish offboard_mission topic */
-		_offboard_mission_pub.publish(mission);
-
-		return PX4_OK;
-
-	} else {
-		PX4_ERR("WPM: can't save mission state");
-
-		if (_filesystem_errcount++ < FILESYSTEM_ERRCOUNT_NOTIFY_LIMIT) {
-			_mavlink->send_statustext_critical("Mission storage: Unable to write to microSD\t");
-			events::send(events::ID("mavlink_mission_storage_write_failure"), events::Log::Critical,
-				     "Mission: Unable to write to storage");
-		}
-
-		return PX4_ERROR;
-	}
+	_offboard_mission_pub.publish(mission);
 }
 
 int
@@ -203,12 +167,13 @@ MavlinkMissionManager::update_geofence_count(unsigned count)
 {
 	mission_stats_entry_s stats;
 	stats.num_items = count;
-	stats.update_counter = ++_geofence_update_counter; // this makes sure navigator will reload the fence data
+	stats.update_counter = ++_geofence_update_counter;
 
 	/* update stats in dataman */
-	int res = dm_write(DM_KEY_FENCE_POINTS, 0, &stats, sizeof(mission_stats_entry_s));
+	bool success = _dataman_client.writeSync(DM_KEY_FENCE_POINTS, 0, reinterpret_cast<uint8_t *>(&stats),
+			sizeof(mission_stats_entry_s));
 
-	if (res == sizeof(mission_stats_entry_s)) {
+	if (success) {
 		_count[MAV_MISSION_TYPE_FENCE] = count;
 
 	} else {
@@ -222,6 +187,7 @@ MavlinkMissionManager::update_geofence_count(unsigned count)
 		return PX4_ERROR;
 	}
 
+	update_active_mission(_dataman_id, _count[MAV_MISSION_TYPE_MISSION], _current_seq);
 	return PX4_OK;
 }
 
@@ -233,9 +199,10 @@ MavlinkMissionManager::update_safepoint_count(unsigned count)
 	stats.update_counter = ++_safepoint_update_counter;
 
 	/* update stats in dataman */
-	int res = dm_write(DM_KEY_SAFE_POINTS, 0, &stats, sizeof(mission_stats_entry_s));
+	bool success = _dataman_client.writeSync(DM_KEY_SAFE_POINTS, 0, reinterpret_cast<uint8_t *>(&stats),
+			sizeof(mission_stats_entry_s));
 
-	if (res == sizeof(mission_stats_entry_s)) {
+	if (success) {
 		_count[MAV_MISSION_TYPE_RALLY] = count;
 
 	} else {
@@ -249,6 +216,7 @@ MavlinkMissionManager::update_safepoint_count(unsigned count)
 		return PX4_ERROR;
 	}
 
+	update_active_mission(_dataman_id, _count[MAV_MISSION_TYPE_MISSION], _current_seq);
 	return PX4_OK;
 }
 
@@ -298,21 +266,20 @@ void
 MavlinkMissionManager::send_mission_item(uint8_t sysid, uint8_t compid, uint16_t seq)
 {
 	mission_item_s mission_item{};
-	int16_t bytes_read = 0;
 	bool read_success = false;
 
 	switch (_mission_type) {
 
 	case MAV_MISSION_TYPE_MISSION: {
-			bytes_read = dm_read(_dataman_id, seq, &mission_item, sizeof(mission_item_s));
-			read_success = (bytes_read == sizeof(mission_item_s));
+			read_success = _dataman_client.readSync(_dataman_id, seq, reinterpret_cast<uint8_t *>(&mission_item),
+								sizeof(mission_item_s));
 		}
 		break;
 
 	case MAV_MISSION_TYPE_FENCE: { // Read a geofence point
 			mission_fence_point_s mission_fence_point;
-			bytes_read = dm_read(DM_KEY_FENCE_POINTS, seq + 1, &mission_fence_point, sizeof(mission_fence_point_s));
-			read_success = (bytes_read == sizeof(mission_fence_point_s));
+			read_success = _dataman_client.readSync(DM_KEY_FENCE_POINTS, seq + 1,
+								reinterpret_cast<uint8_t *>(&mission_fence_point), sizeof(mission_fence_point_s));
 
 			mission_item.nav_cmd = mission_fence_point.nav_cmd;
 			mission_item.frame = mission_fence_point.frame;
@@ -332,8 +299,8 @@ MavlinkMissionManager::send_mission_item(uint8_t sysid, uint8_t compid, uint16_t
 
 	case MAV_MISSION_TYPE_RALLY: { // Read a safe point / rally point
 			mission_safe_point_s mission_safe_point;
-			bytes_read = dm_read(DM_KEY_SAFE_POINTS, seq + 1, &mission_safe_point, sizeof(mission_safe_point_s));
-			read_success = (bytes_read == sizeof(mission_safe_point_s));
+			read_success = _dataman_client.readSync(DM_KEY_SAFE_POINTS, seq + 1, reinterpret_cast<uint8_t *>(&mission_safe_point),
+								sizeof(mission_safe_point_s));
 
 			mission_item.nav_cmd = MAV_CMD_NAV_RALLY_POINT;
 			mission_item.frame = mission_safe_point.frame;
@@ -385,13 +352,12 @@ MavlinkMissionManager::send_mission_item(uint8_t sysid, uint8_t compid, uint16_t
 
 		if (_filesystem_errcount++ < FILESYSTEM_ERRCOUNT_NOTIFY_LIMIT) {
 			mavlink_log_critical(_mavlink->get_mavlink_log_pub(),
-					     "Mission storage: Unable to read from storage, type: %" PRId8 " bytes read: %" PRId16 "\t",
-					     (uint8_t)_mission_type, bytes_read);
+					     "Mission storage: Unable to read from storage, type: %" PRId8 "\t", (uint8_t)_mission_type);
 			/* EVENT
-			 * @description Mission type: {1}. Number of bytes read: {2}
+			 * @description Mission type: {1}
 			 */
-			events::send<uint8_t, int16_t>(events::ID("mavlink_mission_storage_read_failure"), events::Log::Error,
-						       "Mission: Unable to read from storage", _mission_type, bytes_read);
+			events::send<uint8_t>(events::ID("mavlink_mission_storage_read_failure"), events::Log::Error,
+					      "Mission: Unable to read from storage", _mission_type);
 		}
 
 		PX4_DEBUG("WPM: Send MISSION_ITEM ERROR: could not read seq %u from dataman ID %i", seq, _dataman_id);
@@ -679,16 +645,7 @@ MavlinkMissionManager::handle_mission_set_current(const mavlink_message_t *msg)
 			_time_last_recv = hrt_absolute_time();
 
 			if (wpc.seq < _count[MAV_MISSION_TYPE_MISSION]) {
-				if (update_active_mission(_dataman_id, _count[MAV_MISSION_TYPE_MISSION], wpc.seq) == PX4_OK) {
-					PX4_DEBUG("WPM: MISSION_SET_CURRENT seq=%d OK", wpc.seq);
-
-				} else {
-					PX4_DEBUG("WPM: MISSION_SET_CURRENT seq=%d ERROR", wpc.seq);
-
-					_mavlink->send_statustext_critical("WPM: WP CURR CMD: Error setting ID\t");
-					events::send(events::ID("mavlink_mission_err_id"), events::Log::Error,
-						     "Failed to write current mission ID to storage");
-				}
+				update_active_mission(_dataman_id, _count[MAV_MISSION_TYPE_MISSION], wpc.seq);
 
 			} else {
 				PX4_ERR("WPM: MISSION_SET_CURRENT seq=%d ERROR: not in list", wpc.seq);
@@ -916,6 +873,8 @@ MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 				switch (_mission_type) {
 				case MAV_MISSION_TYPE_MISSION:
 
+					++_mission_update_counter;
+
 					/* alternate dataman ID anyway to let navigator know about changes */
 
 					if (_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0) {
@@ -956,21 +915,6 @@ MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 						DM_KEY_WAYPOINTS_OFFBOARD_0);	// use inactive storage for transmission
 			_transfer_current_seq = -1;
 
-			if (_mission_type == MAV_MISSION_TYPE_FENCE) {
-				// We're about to write new geofence items, so take the lock. It will be released when
-				// switching back to idle
-				PX4_DEBUG("locking fence dataman items");
-
-				int ret = dm_lock(DM_KEY_FENCE_POINTS);
-
-				if (ret == 0) {
-					_geofence_locked = true;
-
-				} else {
-					PX4_ERR("locking failed (%i)", errno);
-				}
-			}
-
 		} else if (_state == MAVLINK_WPM_STATE_GETLIST) {
 			_time_last_recv = hrt_absolute_time();
 
@@ -1006,15 +950,6 @@ MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 void
 MavlinkMissionManager::switch_to_idle_state()
 {
-	// when switching to idle, we *always* check if the lock was held and release it.
-	// This is to ensure we don't end up in a state where we forget to release it.
-	if (_geofence_locked) {
-		dm_unlock(DM_KEY_FENCE_POINTS);
-		_geofence_locked = false;
-
-		PX4_DEBUG("unlocking geofence");
-	}
-
 	_state = MAVLINK_WPM_STATE_IDLE;
 }
 
@@ -1129,9 +1064,9 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 					check_failed = true;
 
 				} else {
-					dm_item_t dm_item = _transfer_dataman_id;
 
-					write_failed = dm_write(dm_item, wp.seq, &mission_item, sizeof(struct mission_item_s)) != sizeof(struct mission_item_s);
+					write_failed = !_dataman_client.writeSync(_transfer_dataman_id, wp.seq, reinterpret_cast<uint8_t *>(&mission_item),
+							sizeof(struct mission_item_s));
 
 					if (!write_failed) {
 						/* waypoint marked as current */
@@ -1167,8 +1102,8 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 				mission_fence_point.frame = mission_item.frame;
 
 				if (!check_failed) {
-					write_failed = dm_write(DM_KEY_FENCE_POINTS, wp.seq + 1, &mission_fence_point,
-								sizeof(mission_fence_point_s)) != sizeof(mission_fence_point_s);
+					write_failed = !_dataman_client.writeSync(DM_KEY_FENCE_POINTS, wp.seq + 1,
+							reinterpret_cast<uint8_t *>(&mission_fence_point), sizeof(mission_fence_point_s));
 				}
 
 			}
@@ -1180,8 +1115,8 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 				mission_safe_point.lon = mission_item.lon;
 				mission_safe_point.alt = mission_item.altitude;
 				mission_safe_point.frame = mission_item.frame;
-				write_failed = dm_write(DM_KEY_SAFE_POINTS, wp.seq + 1, &mission_safe_point,
-							sizeof(mission_safe_point_s)) != sizeof(mission_safe_point_s);
+				write_failed = !_dataman_client.writeSync(DM_KEY_SAFE_POINTS, wp.seq + 1,
+						reinterpret_cast<uint8_t *>(&mission_safe_point), sizeof(mission_safe_point_s), 2_s);
 			}
 			break;
 
@@ -1226,7 +1161,8 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 
 			switch (_mission_type) {
 			case MAV_MISSION_TYPE_MISSION:
-				ret = update_active_mission(_transfer_dataman_id, _transfer_count, _transfer_current_seq);
+				++_mission_update_counter;
+				update_active_mission(_transfer_dataman_id, _transfer_count, _transfer_current_seq);
 				break;
 
 			case MAV_MISSION_TYPE_FENCE:
@@ -1280,8 +1216,9 @@ MavlinkMissionManager::handle_mission_clear_all(const mavlink_message_t *msg)
 
 			switch (wpca.mission_type) {
 			case MAV_MISSION_TYPE_MISSION:
-				ret = update_active_mission(_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 ? DM_KEY_WAYPOINTS_OFFBOARD_1 :
-							    DM_KEY_WAYPOINTS_OFFBOARD_0, 0, 0);
+				++_mission_update_counter;
+				update_active_mission(_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 ? DM_KEY_WAYPOINTS_OFFBOARD_1 :
+						      DM_KEY_WAYPOINTS_OFFBOARD_0, 0, 0);
 				break;
 
 			case MAV_MISSION_TYPE_FENCE:
@@ -1293,9 +1230,10 @@ MavlinkMissionManager::handle_mission_clear_all(const mavlink_message_t *msg)
 				break;
 
 			case MAV_MISSION_TYPE_ALL:
-				ret = update_active_mission(_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 ? DM_KEY_WAYPOINTS_OFFBOARD_1 :
-							    DM_KEY_WAYPOINTS_OFFBOARD_0, 0, 0);
-				ret = update_geofence_count(0) || ret;
+				++_mission_update_counter;
+				update_active_mission(_dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 ? DM_KEY_WAYPOINTS_OFFBOARD_1 :
+						      DM_KEY_WAYPOINTS_OFFBOARD_0, 0, 0);
+				ret = update_geofence_count(0);
 				ret = update_safepoint_count(0) || ret;
 				break;
 

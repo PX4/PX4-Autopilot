@@ -159,7 +159,7 @@ GeofenceBreachAvoidance::generateLoiterPointForMultirotor(geofence_violation_typ
 		Vector2d test_point;
 
 		// binary search for the distance from the drone to the geofence in the given direction
-		while (abs(current_max - current_min) > 0.5f) {
+		while (fabsf(current_max - current_min) > 0.5f) {
 			test_point = waypointFromBearingAndDistance(_current_pos_lat_lon, _test_point_bearing, current_distance);
 
 			if (!geofence->isInsidePolygonOrCircle(test_point(0), test_point(1), _current_alt_amsl)) {

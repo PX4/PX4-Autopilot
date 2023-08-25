@@ -484,6 +484,65 @@ void AutopilotTester::fly_forward_in_altctl()
 		}
 	}
 }
+void AutopilotTester::fly_forward_in_offboard_attitude()
+{
+	// This test does not depend on valid position estimate.
+	// Wait for raw gps & stable attitude estimate
+	CHECK(poll_condition_with_timeout(
+	[this]() {
+		auto attitude = _telemetry->attitude_euler();
+		return _telemetry->raw_gps().altitude_ellipsoid_m > 0.f && fabsf(attitude.roll_deg) < 5.f
+		       && fabsf(attitude.pitch_deg) < 5.f;
+	}, std::chrono::seconds(20)));
+
+	const float start_altitude_ellipsoid_m = _telemetry->raw_gps().altitude_ellipsoid_m;
+
+	Offboard::Attitude attitude{};
+	_offboard->set_attitude(attitude);
+	REQUIRE(_offboard->start() == Offboard::Result::Success);
+
+	// Wait until we can arm
+	CHECK(poll_condition_with_timeout(
+	[this]() {	return _telemetry->health().is_armable;	}, std::chrono::seconds(20)));
+	arm();
+
+	const unsigned offboard_rate_hz = 50;
+
+	// Climb
+	const float climb_altitude_m = 10.f;
+	attitude.thrust_value = 0.8f;
+
+	while (_telemetry->raw_gps().altitude_ellipsoid_m - start_altitude_ellipsoid_m < climb_altitude_m) {
+		CHECK(_offboard->set_attitude(attitude) == Offboard::Result::Success);
+		sleep_for(std::chrono::milliseconds(1000 / offboard_rate_hz));
+	}
+
+	// Fly forward for 3s
+	attitude.thrust_value = 0.8f;
+	attitude.pitch_deg = -20.f;
+
+	for (unsigned i = 0; i < 3 * offboard_rate_hz; ++i) {
+		CHECK(_offboard->set_attitude(attitude) == Offboard::Result::Success);
+		sleep_for(std::chrono::milliseconds(1000 / offboard_rate_hz));
+	}
+
+	// Check attitude
+	auto attitude_estimate = _telemetry->attitude_euler();
+	CHECK(fabsf(attitude.roll_deg - attitude_estimate.roll_deg) < 5.f);
+	CHECK(fabsf(attitude.pitch_deg - attitude_estimate.pitch_deg) < 5.f);
+
+	// Descend
+	attitude.thrust_value = 0.4f;
+	attitude.pitch_deg = 0.f;
+
+	for (unsigned i = 0; i < 6 * offboard_rate_hz; ++i) {
+		CHECK(_offboard->set_attitude(attitude) == Offboard::Result::Success);
+		sleep_for(std::chrono::milliseconds(1000 / offboard_rate_hz));
+	}
+
+	attitude.thrust_value = 0.0f;
+	CHECK(_offboard->set_attitude(attitude) == Offboard::Result::Success);
+}
 
 void AutopilotTester::start_checking_altitude(const float max_deviation_m)
 {

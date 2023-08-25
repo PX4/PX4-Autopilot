@@ -49,10 +49,14 @@ void Ekf::controlEvYawFusion(const extVisionSample &ev_sample, const bool common
 	aid_src.observation_variance = math::max(ev_sample.orientation_var(2), _params.ev_att_noise, sq(0.01f));
 	aid_src.innovation = wrap_pi(getEulerYaw(_R_to_earth) - aid_src.observation);
 
+	if (ev_reset) {
+		_control_status.flags.ev_yaw_fault = false;
+	}
+
 	// determine if we should use EV yaw aiding
 	bool continuing_conditions_passing = (_params.ev_ctrl & static_cast<int32_t>(EvCtrl::YAW))
 					     && _control_status.flags.tilt_align
-					     && !_inhibit_ev_yaw_use
+					     && !_control_status.flags.ev_yaw_fault
 					     && PX4_ISFINITE(aid_src.observation)
 					     && PX4_ISFINITE(aid_src.observation_variance);
 
@@ -92,7 +96,7 @@ void Ekf::controlEvYawFusion(const extVisionSample &ev_sample, const bool common
 				}
 
 			} else if (quality_sufficient) {
-				fuseYaw(aid_src.innovation, aid_src.observation_variance, aid_src);
+				fuseYaw(aid_src);
 
 			} else {
 				aid_src.innovation_rejected = true;

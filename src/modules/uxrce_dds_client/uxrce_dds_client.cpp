@@ -79,11 +79,18 @@ void on_time(uxrSession *session, int64_t current_time, int64_t received_timesta
 	}
 }
 
+void on_time_no_sync(uxrSession *session, int64_t current_time, int64_t received_timestamp, int64_t transmit_timestamp,
+		     int64_t originate_timestamp, void *args)
+{
+	session->time_offset = 0;
+}
+
 UxrceddsClient::UxrceddsClient(Transport transport, const char *device, int baudrate, const char *agent_ip,
-			       const char *port, bool localhost_only, bool custom_participant, const char *client_namespace) :
+			       const char *port, bool localhost_only, bool custom_participant, const char *client_namespace,
+			       bool synchronize_timestamps) :
 	ModuleParams(nullptr),
 	_localhost_only(localhost_only), _custom_participant(custom_participant),
-	_client_namespace(client_namespace)
+	_client_namespace(client_namespace), _synchronize_timestamps(synchronize_timestamps)
 {
 	if (transport == Transport::Serial) {
 
@@ -299,12 +306,17 @@ void UxrceddsClient::run()
 		_connected = true;
 
 		// Set time-callback.
-		uxr_set_time_callback(&session, on_time, &_timesync);
+		if (_synchronize_timestamps) {
+			uxr_set_time_callback(&session, on_time, &_timesync);
+
+		} else {
+			uxr_set_time_callback(&session, on_time_no_sync, nullptr);
+		}
 
 		// Synchronize with the Agent
 		bool synchronized = false;
 
-		while (!synchronized) {
+		while (_synchronize_timestamps && !synchronized) {
 			synchronized = uxr_sync_session(&session, 1000);
 
 			if (synchronized) {
@@ -331,7 +343,7 @@ void UxrceddsClient::run()
 			uxr_run_session_timeout(&session, 0);
 
 			// time sync session
-			if (hrt_elapsed_time(&last_sync_session) > 1_s) {
+			if (_synchronize_timestamps && hrt_elapsed_time(&last_sync_session) > 1_s) {
 				if (uxr_sync_session(&session, 100)) {
 					//PX4_INFO("synchronized with time offset %-5" PRId64 "ns", session.time_offset);
 					last_sync_session = hrt_absolute_time();
@@ -694,8 +706,17 @@ UxrceddsClient *UxrceddsClient::instantiate(int argc, char *argv[])
 		}
 	}
 
+	// determines if timestamps should be synchronized
+	int32_t synchronize_timestamps = 0;
+	param_get(param_find("UXRCE_DDS_SYNCT"), &synchronize_timestamps);
+
+	if ((synchronize_timestamps != 1) && (synchronize_timestamps != 0)) {
+		PX4_ERR("UXRCE_DDS_SYNCT must be either 0 or 1");
+	}
+
+
 	return new UxrceddsClient(transport, device, baudrate, agent_ip, port, localhost_only, custom_participant,
-				  client_namespace);
+				  client_namespace, synchronize_timestamps);
 }
 
 int UxrceddsClient::print_usage(const char *reason)

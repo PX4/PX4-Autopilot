@@ -241,11 +241,11 @@ void CrsfRc::Run()
 				sensor_gps_s sensor_gps;
 
 				if (_vehicle_gps_position_sub.update(&sensor_gps)) {
-					int32_t latitude = sensor_gps.lat;
-					int32_t longitude = sensor_gps.lon;
+					int32_t latitude = static_cast<int32_t>(round(sensor_gps.latitude_deg * 1e7));
+					int32_t longitude = static_cast<int32_t>(round(sensor_gps.longitude_deg * 1e7));
 					uint16_t groundspeed = sensor_gps.vel_d_m_s / 3.6f * 10.f;
 					uint16_t gps_heading = math::degrees(sensor_gps.cog_rad) * 100.f;
-					uint16_t altitude = sensor_gps.alt + 1000;
+					uint16_t altitude = static_cast<int16_t>(sensor_gps.altitude_msl_m * 1e3) + 1000;
 					uint8_t num_satellites = sensor_gps.satellites_used;
 					this->SendTelemetryGps(latitude, longitude, groundspeed, gps_heading, altitude, num_satellites);
 				}

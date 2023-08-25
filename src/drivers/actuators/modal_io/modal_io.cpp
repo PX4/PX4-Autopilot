@@ -48,7 +48,6 @@ const char *_device;
 
 ModalIo::ModalIo() :
 	OutputModuleInterface(MODULE_NAME, px4::serial_port_to_wq(MODAL_IO_DEFAULT_PORT)),
-	_mixing_output{"MODAL_IO", MODAL_IO_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false},
 	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
 	_output_update_perf(perf_alloc(PC_INTERVAL, MODULE_NAME": output update interval"))
 {
@@ -75,6 +74,8 @@ ModalIo::ModalIo() :
 		_esc_status.esc[i].failures        = 0;
 		_esc_status.esc[i].esc_power       = 0;
 	}
+
+	_esc_status_pub.advertise();
 
 	qc_esc_packet_init(&_fb_packet);
 	qc_esc_packet_init(&_uart_bridge_packet);
