@@ -142,16 +142,21 @@ private:
 				static constexpr int mavlink_cell_slots = (sizeof(bat_msg.voltages) / sizeof(bat_msg.voltages[0]));
 				static constexpr int mavlink_cell_slots_extension
 					= (sizeof(bat_msg.voltages_ext) / sizeof(bat_msg.voltages_ext[0]));
-				uint16_t cell_voltages[mavlink_cell_slots + mavlink_cell_slots_extension];
 
-				for (auto &voltage : cell_voltages) {
-					voltage = UINT16_MAX;
+				// Fill defaults first, voltage fields 1-10
+				for (int i = 0; i < mavlink_cell_slots; ++i) {
+					bat_msg.voltages[i] = UINT16_MAX;
+				}
+
+				// And extensions fields 11-14: 0 if unused for backwards compatibility and 0 truncation.
+				for (int i = 0; i < mavlink_cell_slots_extension; ++i) {
+					bat_msg.voltages_ext[i] = 0;
 				}
 
 				if (battery_status.connected) {
-					// We don't know the cell count or we don't know the indpendent cell voltages so we report the total voltage in the first cell
+					// We don't know the cell count or we don't know the indpendent cell voltages so we report the total voltage in the first cell.
 					if (battery_status.cell_count == 0 || battery_status.voltage_cell_v[0] < 0.0001f) {
-						cell_voltages[0] = battery_status.voltage_filtered_v * 1000.f;
+						bat_msg.voltages[0] = battery_status.voltage_filtered_v * 1000.f;
 
 					} else {
 						static constexpr int uorb_cell_slots =
@@ -161,20 +166,15 @@ private:
 										 uorb_cell_slots,
 										 mavlink_cell_slots + mavlink_cell_slots_extension);
 
-						for (int cell = 0; cell < cell_slots; cell++) {
-							cell_voltages[cell] = battery_status.voltage_cell_v[cell] * 1000.f;
+						for (int i = 0; i < cell_slots; ++i) {
+							if (i < mavlink_cell_slots) {
+								bat_msg.voltages[i] = battery_status.voltage_cell_v[i] * 1000.f;
+
+							} else if (i < mavlink_cell_slots + mavlink_cell_slots_extension) {
+								bat_msg.voltages_ext[i - mavlink_cell_slots] = battery_status.voltage_cell_v[i] * 1000.f;
+							}
 						}
 					}
-				}
-
-				// voltage fields 1-10
-				for (int cell = 0; cell < mavlink_cell_slots; cell++) {
-					bat_msg.voltages[cell] = cell_voltages[cell];
-				}
-
-				// voltage fields 11-14 into the extension
-				for (int cell = 0; cell < mavlink_cell_slots_extension; cell++) {
-					bat_msg.voltages_ext[cell] = cell_voltages[mavlink_cell_slots + cell];
 				}
 
 				mavlink_msg_battery_status_send_struct(_mavlink->get_channel(), &bat_msg);
