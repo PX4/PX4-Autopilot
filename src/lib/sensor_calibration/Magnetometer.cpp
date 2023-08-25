@@ -36,7 +36,6 @@
 #include "Utilities.hpp"
 
 #include <lib/parameters/param.h>
-#include <px4_platform_common/events.h>
 
 using namespace matrix;
 using namespace time_literals;
