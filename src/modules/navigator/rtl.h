@@ -114,7 +114,7 @@ private:
 	 *
 	 * @param mission_safe_point is the mission safe point/rally point to set as destination.
 	 */
-	void setSafepointAsDestination(RtlDirect::RtlPosition &rtl_position, const mission_safe_point_s &mission_safe_point);
+	void setSafepointAsDestination(RtlDirect::RtlPosition &rtl_position, const mission_item_s &mission_safe_point);
 
 	/**
 	 * @brief calculate return altitude from cone half angle
