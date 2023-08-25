@@ -237,7 +237,8 @@ private:
 
 	enum FW_POSCTRL_MODE {
 		FW_POSCTRL_MODE_AUTO,
-		FW_POSCTRL_MODE_AUTO_ALTITUDE,
+		FW_POSCTRL_MODE_AUTO_ALTITUDE_FAILSAFE,
+		FW_POSCTRL_MODE_AUTO_ALTITUDE_STRAIGHT,
 		FW_POSCTRL_MODE_AUTO_CLIMBRATE,
 		FW_POSCTRL_MODE_AUTO_TAKEOFF,
 		FW_POSCTRL_MODE_AUTO_LANDING_STRAIGHT,
@@ -547,8 +548,9 @@ private:
 	 * Used as a failsafe mode after a lateral position estimate failure.
 	 *
 	 * @param control_interval Time since last position control call [s]
+	 * @param[in] bank fixed bank angle [rad]
 	 */
-	void control_auto_fixed_bank_alt_hold(const float control_interval);
+	void control_auto_fixed_bank_alt_hold(float control_interval, float bank);
 
 	/**
 	 * @brief Control airspeed with a fixed descent rate and roll angle.

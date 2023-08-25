@@ -756,6 +756,16 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now)
 			_control_mode_current = FW_POSCTRL_MODE_AUTO;
 		}
 
+		if (_control_mode_current == FW_POSCTRL_MODE_AUTO && _vehicle_status.is_vtol && _vehicle_status.in_transition_mode) {
+			const float ground_speed = sqrt(_local_pos.vx * _local_pos.vx + _local_pos.vy * _local_pos.vy);
+			const float windspeed = _wind_vel.norm();
+
+			if (ground_speed < 2.f * _local_pos.evh && (!_wind_valid || windspeed < 2.f * _local_pos.evh)) {
+				_control_mode_current = FW_POSCTRL_MODE_AUTO_ALTITUDE_STRAIGHT;
+
+			}
+		}
+
 	} else if (_control_mode.flag_control_auto_enabled
 		   && _control_mode.flag_control_climb_rate_enabled
 		   && _control_mode.flag_armed // only enter this modes if armed, as pure failsafe modes
@@ -763,7 +773,7 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now)
 
 		// failsafe modes engaged if position estimate is invalidated
 
-		if (commanded_position_control_mode != FW_POSCTRL_MODE_AUTO_ALTITUDE
+		if (commanded_position_control_mode != FW_POSCTRL_MODE_AUTO_ALTITUDE_FAILSAFE
 		    && commanded_position_control_mode != FW_POSCTRL_MODE_AUTO_CLIMBRATE) {
 			// reset timer the first time we switch into this mode
 			_time_in_fixed_bank_loiter = now;
@@ -771,13 +781,13 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now)
 
 		if (hrt_elapsed_time(&_time_in_fixed_bank_loiter) < (_param_nav_gpsf_lt.get() * 1_s)
 		    && !_vehicle_status.in_transition_mode) {
-			if (commanded_position_control_mode != FW_POSCTRL_MODE_AUTO_ALTITUDE) {
+			if (commanded_position_control_mode != FW_POSCTRL_MODE_AUTO_ALTITUDE_FAILSAFE) {
 				// Need to init because last loop iteration was in a different mode
 				events::send(events::ID("fixedwing_position_control_fb_loiter"), events::Log::Critical,
 					     "Start loiter with fixed bank angle");
 			}
 
-			_control_mode_current = FW_POSCTRL_MODE_AUTO_ALTITUDE;
+			_control_mode_current = FW_POSCTRL_MODE_AUTO_ALTITUDE_FAILSAFE;
 
 		} else {
 			if (commanded_position_control_mode != FW_POSCTRL_MODE_AUTO_CLIMBRATE && !_vehicle_status.in_transition_mode) {
@@ -922,7 +932,7 @@ FixedwingPositionControl::control_auto(const float control_interval, const Vecto
 }
 
 void
-FixedwingPositionControl::control_auto_fixed_bank_alt_hold(const float control_interval)
+FixedwingPositionControl::control_auto_fixed_bank_alt_hold(const float control_interval, const float bank)
 {
 	// only control altitude and airspeed ("fixed-bank loiter")
 
@@ -936,7 +946,7 @@ FixedwingPositionControl::control_auto_fixed_bank_alt_hold(const float control_i
 				   _param_sinkrate_target.get(),
 				   _param_climbrate_target.get());
 
-	_att_sp.roll_body = math::radians(_param_nav_gpsf_r.get()); // open loop loiter bank angle
+	_att_sp.roll_body = bank;
 	_att_sp.yaw_body = 0.f;
 
 	if (_landed) {
@@ -2326,8 +2336,15 @@ FixedwingPositionControl::Run()
 				break;
 			}
 
-		case FW_POSCTRL_MODE_AUTO_ALTITUDE: {
-				control_auto_fixed_bank_alt_hold(control_interval);
+		case FW_POSCTRL_MODE_AUTO_ALTITUDE_STRAIGHT: {
+				static constexpr float bank = 0.f;
+				control_auto_fixed_bank_alt_hold(control_interval, bank);
+				break;
+			}
+
+		case FW_POSCTRL_MODE_AUTO_ALTITUDE_FAILSAFE: {
+				const float bank = math::radians(_param_nav_gpsf_r.get()); // open loop loiter bank angle
+				control_auto_fixed_bank_alt_hold(control_interval, bank);
 				break;
 			}
 
