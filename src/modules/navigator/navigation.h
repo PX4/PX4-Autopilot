@@ -104,6 +104,7 @@ enum NAV_CMD {
 	NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION = 5002,
 	NAV_CMD_FENCE_CIRCLE_INCLUSION = 5003,
 	NAV_CMD_FENCE_CIRCLE_EXCLUSION = 5004,
+	NAV_CMD_RALLY_POINT = 5100,
 	NAV_CMD_CONDITION_GATE = 4501,
 	NAV_CMD_DO_WINCH = 42600,
 	NAV_CMD_INVALID = UINT16_MAX /* ensure that casting a large number results in a specific error */
@@ -159,6 +160,7 @@ struct mission_item_s {
 			union {
 				float time_inside;		/**< time that the MAV should stay inside the radius before advancing in seconds */
 				float circle_radius;		/**< geofence circle radius in meters (only used for NAV_CMD_NAV_FENCE_CIRCLE*) */
+				bool is_mission_rally_point;	/**< only used for NAV_CMD_RALLY_POINT */
 			};
 			float acceptance_radius;		/**< default radius in which the mission is accepted as reached in meters */
 			float loiter_radius;			/**< loiter radius in meters, 0 for a VTOL to hover, negative for counter-clockwise */
@@ -224,19 +226,6 @@ struct mission_fence_point_s {
 	uint8_t frame;					/**< MAV_FRAME */
 
 	uint8_t _padding0[5];				/**< padding struct size to alignment boundary  */
-};
-
-/**
- * Safe Point (Rally Point).
- * Corresponds to the DM_KEY_SAFE_POINTS dataman item
- */
-struct mission_safe_point_s {
-	double lat;
-	double lon;
-	float alt;
-	uint8_t frame;					/**< MAV_FRAME */
-
-	uint8_t _padding0[3];				/**< padding struct size to alignment boundary  */
 };
 
 #if (__GNUC__ >= 5) || __clang__

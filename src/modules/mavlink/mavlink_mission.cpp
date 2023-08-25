@@ -309,15 +309,8 @@ MavlinkMissionManager::send_mission_item(uint8_t sysid, uint8_t compid, uint16_t
 		break;
 
 	case MAV_MISSION_TYPE_RALLY: { // Read a safe point / rally point
-			mission_safe_point_s mission_safe_point;
-			read_success = _dataman_client.readSync(DM_KEY_SAFE_POINTS, seq + 1, reinterpret_cast<uint8_t *>(&mission_safe_point),
-								sizeof(mission_safe_point_s));
-
-			mission_item.nav_cmd = MAV_CMD_NAV_RALLY_POINT;
-			mission_item.frame = mission_safe_point.frame;
-			mission_item.lat = mission_safe_point.lat;
-			mission_item.lon = mission_safe_point.lon;
-			mission_item.altitude = mission_safe_point.alt;
+			read_success = _dataman_client.readSync(DM_KEY_SAFE_POINTS, seq + 1, reinterpret_cast<uint8_t *>(&mission_item),
+								sizeof(mission_item_s));
 		}
 		break;
 
@@ -1140,13 +1133,8 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 			break;
 
 		case MAV_MISSION_TYPE_RALLY: { // Write a safe point / rally point
-				mission_safe_point_s mission_safe_point;
-				mission_safe_point.lat = mission_item.lat;
-				mission_safe_point.lon = mission_item.lon;
-				mission_safe_point.alt = mission_item.altitude;
-				mission_safe_point.frame = mission_item.frame;
 				write_failed = !_dataman_client.writeSync(DM_KEY_SAFE_POINTS, wp.seq + 1,
-						reinterpret_cast<uint8_t *>(&mission_safe_point), sizeof(mission_safe_point_s), 2_s);
+						reinterpret_cast<uint8_t *>(&mission_item), sizeof(mission_item_s), 2_s);
 			}
 			break;
 
@@ -1436,6 +1424,7 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 
 		case MAV_CMD_NAV_RALLY_POINT:
 			mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
+			mission_item->is_mission_rally_point = (mavlink_mission_item->param1 > 0.0f);
 			break;
 
 		default:
@@ -1717,6 +1706,7 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 			break;
 
 		case MAV_CMD_NAV_RALLY_POINT:
+			mavlink_mission_item->param1 = mission_item->is_mission_rally_point ? 1 : 0;
 			break;
 
 
