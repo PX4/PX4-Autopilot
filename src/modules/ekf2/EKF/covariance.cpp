@@ -43,6 +43,7 @@
 
 #include "ekf.h"
 #include "python/ekf_derivation/generated/predict_covariance.h"
+#include "python/ekf_derivation/generated/rot_var_ned_to_lower_triangular_quat_cov.h"
 
 #include <math.h>
 #include <mathlib/mathlib.h>
@@ -53,7 +54,7 @@ void Ekf::initialiseCovariance()
 {
 	P.zero();
 
-	resetQuatCov();
+	resetQuatCov((_params.mag_fusion_type != MagFuseType::NONE) ?_params.mag_heading_noise : NAN);
 
 	// velocity
 	P(4,4) = sq(fmaxf(_params.gps_vel_noise, 0.01f));
@@ -526,27 +527,25 @@ bool Ekf::checkAndFixCovarianceUpdate(const SquareMatrix24f &KHP)
 	return healthy;
 }
 
-void Ekf::resetQuatCov()
+void Ekf::resetQuatCov(const float yaw_noise)
 {
-	zeroQuatCov();
-
-	// define the initial angle uncertainty as variances for a rotation vector
-	Vector3f rot_vec_var;
-	rot_vec_var.setAll(sq(_params.initial_tilt_err));
-
-	initialiseQuatCovariances(rot_vec_var);
+	const float tilt_var = sq(fmaxf(_params.initial_tilt_err, 1.0e-2f));
+	Vector3f rot_var_ned(tilt_var, tilt_var, 0.f);
 
 	// update the yaw angle variance using the variance of the measurement
-	if (_params.mag_fusion_type != MagFuseType::NONE) {
+	if (PX4_ISFINITE(yaw_noise)) {
 		// using magnetic heading tuning parameter
-		increaseQuatYawErrVariance(sq(fmaxf(_params.mag_heading_noise, 1.0e-2f)));
+		rot_var_ned(2) = (sq(fmaxf(yaw_noise, 1.0e-2f)));
 	}
-}
 
-void Ekf::zeroQuatCov()
-{
+	// clear existing quaternion covariance
 	P.uncorrelateCovarianceSetVariance<2>(0, 0.0f);
 	P.uncorrelateCovarianceSetVariance<2>(2, 0.0f);
+
+	matrix::SquareMatrix<float, 4> q_cov;
+	sym::RotVarNedToLowerTriangularQuatCov(getStateAtFusionHorizonAsVector(), rot_var_ned, &q_cov);
+	q_cov.copyLowerToUpperTriangle();
+	P.slice<4, 4>(0, 0) = q_cov;
 }
 
 void Ekf::resetMagCov()
