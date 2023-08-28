@@ -76,7 +76,7 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bo
 
 		// we need to re-initialise covariances and abort this fusion step
 		if (update_all_states) {
-			resetQuatCov();
+			resetQuatCov(_params.mag_heading_noise);
 		}
 
 		resetMagCov();
@@ -94,7 +94,7 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bo
 
 		// we need to re-initialise covariances and abort this fusion step
 		if (update_all_states) {
-			resetQuatCov();
+			resetQuatCov(_params.mag_heading_noise);
 		}
 
 		resetMagCov();
@@ -111,7 +111,7 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bo
 
 		// we need to re-initialise covariances and abort this fusion step
 		if (update_all_states) {
-			resetQuatCov();
+			resetQuatCov(_params.mag_heading_noise);
 		}
 
 		resetMagCov();
@@ -175,7 +175,7 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bo
 
 				// we need to re-initialise covariances and abort this fusion step
 				if (update_all_states) {
-					resetQuatCov();
+					resetQuatCov(_params.mag_heading_noise);
 				}
 
 				resetMagCov();
@@ -204,7 +204,7 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bo
 
 				// we need to re-initialise covariances and abort this fusion step
 				if (update_all_states) {
-					resetQuatCov();
+					resetQuatCov(_params.mag_heading_noise);
 				}
 
 				resetMagCov();

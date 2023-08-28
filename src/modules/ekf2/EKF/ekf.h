@@ -1075,12 +1075,7 @@ private:
 	// gravity fusion: heuristically enable / disable gravity fusion
 	void controlGravityFusion(const imuSample &imu_delayed);
 
-	// initialise the quaternion covariances using rotation vector variances
-	// do not call before quaternion states are initialised
-	void initialiseQuatCovariances(Vector3f &rot_vec_var);
-
-	void resetQuatCov();
-	void zeroQuatCov();
+	void resetQuatCov(float yaw_noise = NAN);
 
 	void resetMagCov();
 
