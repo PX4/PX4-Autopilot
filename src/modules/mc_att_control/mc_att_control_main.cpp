@@ -179,7 +179,11 @@ MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt,
 	attitude_setpoint.pitch_body = euler_sp(1);
 	attitude_setpoint.yaw_body = euler_sp(2);
 
-	attitude_setpoint.thrust_body[2] = -throttle_curve((_manual_control_setpoint.throttle + 1.f) * .5f);
+	// Only set thrust setpoint different from idle once the vehicle is spooled up
+	if (_spooled_up) {
+		attitude_setpoint.thrust_body[2] = -throttle_curve((_manual_control_setpoint.throttle + 1.f) * .5f);
+	}
+
 	attitude_setpoint.timestamp = hrt_absolute_time();
 
 	_vehicle_attitude_setpoint_pub.publish(attitude_setpoint);
@@ -263,6 +267,8 @@ MulticopterAttitudeControl::Run()
 				_vtol_in_transition_mode = vehicle_status.in_transition_mode;
 				_vtol_tailsitter = vehicle_status.is_vtol_tailsitter;
 
+				const bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+				_spooled_up = armed && hrt_elapsed_time(&vehicle_status.armed_time) > _param_com_spoolup_time.get() * 1_s;
 			}
 		}
 
