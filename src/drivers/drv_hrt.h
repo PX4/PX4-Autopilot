@@ -294,17 +294,17 @@ namespace time_literals
 // User-defined integer literals for different time units.
 // The base unit is hrt_abstime in microseconds
 
-constexpr hrt_abstime operator "" _s(unsigned long long seconds)
+constexpr hrt_abstime operator ""_s(unsigned long long seconds)
 {
 	return hrt_abstime(seconds * 1000000ULL);
 }
 
-constexpr hrt_abstime operator "" _ms(unsigned long long milliseconds)
+constexpr hrt_abstime operator ""_ms(unsigned long long milliseconds)
 {
 	return hrt_abstime(milliseconds * 1000ULL);
 }
 
-constexpr hrt_abstime operator "" _us(unsigned long long microseconds)
+constexpr hrt_abstime operator ""_us(unsigned long long microseconds)
 {
 	return hrt_abstime(microseconds);
 }
