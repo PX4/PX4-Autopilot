@@ -190,7 +190,7 @@ private:
 							if (i < mavlink_cell_slots) {
 								bat_msg.voltages[i] = battery_status.voltage_cell_v[i] * 1000.f;
 
-							} else if (i < mavlink_cell_slots + mavlink_cell_slots_extension) {
+							} else if ((i - mavlink_cell_slots) < mavlink_cell_slots_extension) {
 								bat_msg.voltages_ext[i - mavlink_cell_slots] = battery_status.voltage_cell_v[i] * 1000.f;
 							}
 						}
