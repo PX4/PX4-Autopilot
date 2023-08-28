@@ -1995,6 +1995,7 @@ FixedwingPositionControl::control_manual_position(const float control_interval, 
 	}
 
 	/* heading control */
+	// TODO: either make it course hold (easier) or a real heading hold (minus all the complexity here)
 	if (fabsf(_manual_control_setpoint.roll) < HDG_HOLD_MAN_INPUT_THRESH &&
 	    fabsf(_manual_control_setpoint.yaw) < HDG_HOLD_MAN_INPUT_THRESH) {
 
@@ -2019,28 +2020,16 @@ FixedwingPositionControl::control_manual_position(const float control_interval, 
 				_hdg_hold_enabled = true;
 				_hdg_hold_yaw = _yaw;
 
-				get_waypoint_heading_distance(_hdg_hold_yaw, _hdg_hold_prev_wp, _hdg_hold_curr_wp, true);
+				_hdg_hold_position.lat = _current_latitude;
+				_hdg_hold_position.lon = _current_longitude;
 			}
-
-			/* we have a valid heading hold position, are we too close? */
-			const float dist = get_distance_to_next_waypoint(_current_latitude, _current_longitude, _hdg_hold_curr_wp.lat,
-					   _hdg_hold_curr_wp.lon);
-
-			if (dist < HDG_HOLD_REACHED_DIST) {
-				get_waypoint_heading_distance(_hdg_hold_yaw, _hdg_hold_prev_wp, _hdg_hold_curr_wp, false);
-			}
-
-			Vector2d prev_wp{_hdg_hold_prev_wp.lat, _hdg_hold_prev_wp.lon};
-			Vector2d curr_wp{_hdg_hold_curr_wp.lat, _hdg_hold_curr_wp.lon};
 
 			Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
-			Vector2f curr_wp_local = _global_local_proj_ref.project(curr_wp(0), curr_wp(1));
-			Vector2f prev_wp_local = _global_local_proj_ref.project(prev_wp(0),
-						 prev_wp(1));
+			Vector2f curr_wp_local = _global_local_proj_ref.project(_hdg_hold_position.lat, _hdg_hold_position.lon);
 
 			_npfg.setAirspeedNom(calibrated_airspeed_sp * _eas2tas);
 			_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
-			navigateWaypoints(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
+			navigateLine(curr_wp_local, _hdg_hold_yaw, curr_pos_local, ground_speed, _wind_vel);
 			_att_sp.roll_body = _npfg.getRollSetpoint();
 			calibrated_airspeed_sp = _npfg.getAirspeedRef() / _eas2tas;
 
@@ -2049,7 +2038,7 @@ FixedwingPositionControl::control_manual_position(const float control_interval, 
 	}
 
 	tecs_update_pitch_throttle(control_interval,
-				   _current_altitude,
+				   _current_altitude, // TODO: check if this is really what we want.. or if we want to lock the altitude.
 				   calibrated_airspeed_sp,
 				   min_pitch,
 				   radians(_param_fw_p_lim_max.get()),
