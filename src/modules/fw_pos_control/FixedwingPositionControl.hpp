@@ -812,8 +812,8 @@ private:
 	 * line in 2D space (first to second point determines the direction). Determines the
 	 * relevant parameters for evaluating the NPFG guidance law, then updates control setpoints.
 	 *
-	 * @param[in] point_on_line_1 Line segment start position in local coordinates. (N,E) [m]
-	 * @param[in] point_on_line_2 Line segment end position in local coordinates. (N,E) [m]
+	 * @param[in] point_on_line_1 Arbitrary first position on line in local coordinates. (N,E) [m]
+	 * @param[in] point_on_line_2 Arbitrary second position on line in local coordinates. (N,E) [m]
 	 * @param[in] vehicle_pos Vehicle position in local coordinates. (N,E) [m]
 	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
 	 * @param[in] wind_vel Wind velocity vector [m/s]
@@ -855,6 +855,8 @@ private:
 	 * Path following logic. Takes poisiton, path tangent, curvature and
 	 * then updates control setpoints to follow a path setpoint.
 	 *
+	 * TODO: deprecate this function with a proper API to NPFG.
+	 *
 	 * @param[in] vehicle_pos vehicle_pos Vehicle position in local coordinates. (N,E) [m]
 	 * @param[in] position_setpoint closest point on a path in local coordinates. (N,E) [m]
 	 * @param[in] tangent_setpoint unit tangent vector of the path [m]
@@ -870,7 +872,7 @@ private:
 	 * Navigate on a fixed bearing.
 	 *
 	 * This only holds a certain (ground relative) direction and does not perform
-	 * cross track correction. Helpful for semi-autonomous modes. Similar to navigateHeading.
+	 * cross track correction. Helpful for semi-autonomous modes.
 	 *
 	 * @param[in] vehicle_pos vehicle_pos Vehicle position in local coordinates. (N,E) [m]
 	 * @param[in] bearing Bearing angle [rad]
