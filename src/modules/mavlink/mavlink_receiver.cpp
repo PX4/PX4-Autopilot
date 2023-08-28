@@ -2055,6 +2055,11 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 	manual_control_setpoint.yaw = mavlink_manual_control.r / 1000.f;
 	manual_control_setpoint.data_source = manual_control_setpoint_s::SOURCE_MAVLINK_0 + _mavlink->get_instance_id();
 	manual_control_setpoint.timestamp = manual_control_setpoint.timestamp_sample = hrt_absolute_time();
+
+	// PX4_INFO("Buttons: 0x%x 0x%x", mavlink_manual_control.buttons, mavlink_manual_control.buttons2);
+
+	manual_control_setpoint.aux1 = (float) mavlink_manual_control.buttons;
+
 	_manual_control_input_pub.publish(manual_control_setpoint);
 }
 

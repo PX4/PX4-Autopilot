@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2022 ModalAI, Inc. All rights reserved.
+#   Copyright (c) 2023 ModalAI, Inc. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,23 +31,11 @@
 #
 ############################################################################
 
-# Need to make sure that the DSP processor on VOXL2
-# knows about all parameters since some modules need parameters
-# from other modules that are not running on the DSP.
-set(DISABLE_PARAMS_MODULE_SCOPING TRUE PARENT_SCOPE)
-
-add_library(drivers_board
-	board_config.h
-	i2c.cpp
-	init.c
-	spi.cpp
-    )
-
-# Add custom drivers for SLPI
-add_subdirectory(${PX4_BOARD_DIR}/src/drivers/icm42688p)
-add_subdirectory(${PX4_BOARD_DIR}/src/drivers/rc_controller)
-add_subdirectory(${PX4_BOARD_DIR}/src/drivers/mavlink_rc_in)
-add_subdirectory(${PX4_BOARD_DIR}/src/drivers/spektrum_rc)
-add_subdirectory(${PX4_BOARD_DIR}/src/drivers/dsp_hitl)
-add_subdirectory(${PX4_BOARD_DIR}/src/drivers/dsp_sbus)
-add_subdirectory(${PX4_BOARD_DIR}/src/drivers/elrs_led)
+px4_add_module(
+	MODULE drivers__elrs_led
+	MAIN elrs_led
+	COMPILE_FLAGS
+		-Wno-cast-align # TODO: fix and enable
+	SRCS
+		elrs_led.cpp
+	)
