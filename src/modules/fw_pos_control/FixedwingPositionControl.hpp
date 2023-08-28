@@ -287,8 +287,7 @@ private:
 	bool _hdg_hold_enabled{false}; // heading hold enabled
 	bool _yaw_lock_engaged{false}; // yaw is locked for heading hold
 
-	position_setpoint_s _hdg_hold_prev_wp{}; // position where heading hold started
-	position_setpoint_s _hdg_hold_curr_wp{}; // position to which heading hold flies
+	position_setpoint_s _hdg_hold_position{}; // position where heading hold started
 
 	// [.] normalized setpoint for manual altitude control [-1,1]; -1,0,1 maps to min,zero,max height rate commands
 	float _manual_control_setpoint_for_height_rate{0.0f};
