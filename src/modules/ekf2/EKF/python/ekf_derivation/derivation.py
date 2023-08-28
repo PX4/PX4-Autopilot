@@ -511,21 +511,25 @@ def quat_var_to_rot_var(
     rot_cov = J * P * J.T
     return sf.V3(rot_cov[0, 0], rot_cov[1, 1], rot_cov[2, 2])
 
-def yaw_var_to_lower_triangular_quat_cov(
+def rot_var_ned_to_lower_triangular_quat_cov(
         state: VState,
-        yaw_var: sf.Scalar
+        rot_var_ned: sf.V3
 ):
+    # This function converts an attitude variance defined by a 3D vector in NED frame
+    # into a 4x4 covariance matrix representing the uncertainty on each of the 4 quaternion parameters
+    # Note: the resulting quaternion uncertainty is defined as a perturbation
+    # at the tip of the quaternion (i.e.:body-frame uncertainty)
     q = sf.V4(state[State.qw], state[State.qx], state[State.qy], state[State.qz])
     attitude = state_to_rot3(state)
     J = q.jacobian(attitude)
 
-    # Convert yaw uncertainty from NED to body frame
-    yaw_cov_ned = sf.M33.diag([0, 0, yaw_var])
+    # Convert uncertainties from NED to body frame
+    rot_cov_ned = sf.M33.diag(rot_var_ned)
     adjoint = attitude.to_rotation_matrix() # the adjoint of SO(3) is simply the rotation matrix itself
-    yaw_cov_body = adjoint.T * yaw_cov_ned * adjoint
+    rot_cov_body = adjoint.T * rot_cov_ned * adjoint
 
     # Convert yaw (body) to quaternion parameter uncertainty
-    q_var = J * yaw_cov_body * J.T
+    q_var = J * rot_cov_body * J.T
 
     # Generate lower trangle only and copy it to the upper part in implementation (produces less code)
     return q_var.lower_triangle()
@@ -552,4 +556,4 @@ generate_px4_function(compute_drag_x_innov_var_and_k, output_names=["innov_var",
 generate_px4_function(compute_drag_y_innov_var_and_k, output_names=["innov_var", "K"])
 generate_px4_function(compute_gravity_innov_var_and_k_and_h, output_names=["innov", "innov_var", "Kx", "Ky", "Kz"])
 generate_px4_function(quat_var_to_rot_var, output_names=["rot_var"])
-generate_px4_function(yaw_var_to_lower_triangular_quat_cov, output_names=["q_cov_lower_triangle"])
+generate_px4_function(rot_var_ned_to_lower_triangular_quat_cov, output_names=["q_cov_lower_triangle"])

@@ -41,7 +41,7 @@
 
 #include "ekf.h"
 #include "python/ekf_derivation/generated/quat_var_to_rot_var.h"
-#include "python/ekf_derivation/generated/yaw_var_to_lower_triangular_quat_cov.h"
+#include "python/ekf_derivation/generated/rot_var_ned_to_lower_triangular_quat_cov.h"
 
 #include <mathlib/mathlib.h>
 #include <lib/world_magnetic_model/geo_mag_declination.h>
@@ -917,106 +917,6 @@ float Ekf::getYawVar() const
 	return yaw_var;
 }
 
-// initialise the quaternion covariances using rotation vector variances
-// do not call before quaternion states are initialised
-void Ekf::initialiseQuatCovariances(Vector3f &rot_vec_var)
-{
-	// calculate an equivalent rotation vector from the quaternion
-	float q0,q1,q2,q3;
-	if (_state.quat_nominal(0) >= 0.0f) {
-		q0 = _state.quat_nominal(0);
-		q1 = _state.quat_nominal(1);
-		q2 = _state.quat_nominal(2);
-		q3 = _state.quat_nominal(3);
-
-	} else {
-		q0 = -_state.quat_nominal(0);
-		q1 = -_state.quat_nominal(1);
-		q2 = -_state.quat_nominal(2);
-		q3 = -_state.quat_nominal(3);
-	}
-	float delta = 2.0f*acosf(q0);
-	float scaler = (delta/sinf(delta*0.5f));
-	float rotX = scaler*q1;
-	float rotY = scaler*q2;
-	float rotZ = scaler*q3;
-
-	// autocode generated using matlab symbolic toolbox
-	float t2 = rotX*rotX;
-	float t4 = rotY*rotY;
-	float t5 = rotZ*rotZ;
-	float t6 = t2+t4+t5;
-	if (t6 > 1e-9f) {
-		float t7 = sqrtf(t6);
-		float t8 = t7*0.5f;
-		float t3 = sinf(t8);
-		float t9 = t3*t3;
-		float t10 = 1.0f/t6;
-		float t11 = 1.0f/sqrtf(t6);
-		float t12 = cosf(t8);
-		float t13 = 1.0f/powf(t6,1.5f);
-		float t14 = t3*t11;
-		float t15 = rotX*rotY*t3*t13;
-		float t16 = rotX*rotZ*t3*t13;
-		float t17 = rotY*rotZ*t3*t13;
-		float t18 = t2*t10*t12*0.5f;
-		float t27 = t2*t3*t13;
-		float t19 = t14+t18-t27;
-		float t23 = rotX*rotY*t10*t12*0.5f;
-		float t28 = t15-t23;
-		float t20 = rotY*rot_vec_var(1)*t3*t11*t28*0.5f;
-		float t25 = rotX*rotZ*t10*t12*0.5f;
-		float t31 = t16-t25;
-		float t21 = rotZ*rot_vec_var(2)*t3*t11*t31*0.5f;
-		float t22 = t20+t21-rotX*rot_vec_var(0)*t3*t11*t19*0.5f;
-		float t24 = t15-t23;
-		float t26 = t16-t25;
-		float t29 = t4*t10*t12*0.5f;
-		float t34 = t3*t4*t13;
-		float t30 = t14+t29-t34;
-		float t32 = t5*t10*t12*0.5f;
-		float t40 = t3*t5*t13;
-		float t33 = t14+t32-t40;
-		float t36 = rotY*rotZ*t10*t12*0.5f;
-		float t39 = t17-t36;
-		float t35 = rotZ*rot_vec_var(2)*t3*t11*t39*0.5f;
-		float t37 = t15-t23;
-		float t38 = t17-t36;
-		float t41 = rot_vec_var(0)*(t15-t23)*(t16-t25);
-		float t42 = t41-rot_vec_var(1)*t30*t39-rot_vec_var(2)*t33*t39;
-		float t43 = t16-t25;
-		float t44 = t17-t36;
-
-		// zero all the quaternion covariances
-		P.uncorrelateCovarianceSetVariance<2>(0, 0.0f);
-		P.uncorrelateCovarianceSetVariance<2>(2, 0.0f);
-
-
-		// Update the quaternion internal covariances using auto-code generated using matlab symbolic toolbox
-		P(0,0) = rot_vec_var(0)*t2*t9*t10*0.25f+rot_vec_var(1)*t4*t9*t10*0.25f+rot_vec_var(2)*t5*t9*t10*0.25f;
-		P(0,1) = t22;
-		P(0,2) = t35+rotX*rot_vec_var(0)*t3*t11*(t15-rotX*rotY*t10*t12*0.5f)*0.5f-rotY*rot_vec_var(1)*t3*t11*t30*0.5f;
-		P(0,3) = rotX*rot_vec_var(0)*t3*t11*(t16-rotX*rotZ*t10*t12*0.5f)*0.5f+rotY*rot_vec_var(1)*t3*t11*(t17-rotY*rotZ*t10*t12*0.5f)*0.5f-rotZ*rot_vec_var(2)*t3*t11*t33*0.5f;
-		P(1,0) = t22;
-		P(1,1) = rot_vec_var(0)*(t19*t19)+rot_vec_var(1)*(t24*t24)+rot_vec_var(2)*(t26*t26);
-		P(1,2) = rot_vec_var(2)*(t16-t25)*(t17-rotY*rotZ*t10*t12*0.5f)-rot_vec_var(0)*t19*t28-rot_vec_var(1)*t28*t30;
-		P(1,3) = rot_vec_var(1)*(t15-t23)*(t17-rotY*rotZ*t10*t12*0.5f)-rot_vec_var(0)*t19*t31-rot_vec_var(2)*t31*t33;
-		P(2,0) = t35-rotY*rot_vec_var(1)*t3*t11*t30*0.5f+rotX*rot_vec_var(0)*t3*t11*(t15-t23)*0.5f;
-		P(2,1) = rot_vec_var(2)*(t16-t25)*(t17-t36)-rot_vec_var(0)*t19*t28-rot_vec_var(1)*t28*t30;
-		P(2,2) = rot_vec_var(1)*(t30*t30)+rot_vec_var(0)*(t37*t37)+rot_vec_var(2)*(t38*t38);
-		P(2,3) = t42;
-		P(3,0) = rotZ*rot_vec_var(2)*t3*t11*t33*(-0.5f)+rotX*rot_vec_var(0)*t3*t11*(t16-t25)*0.5f+rotY*rot_vec_var(1)*t3*t11*(t17-t36)*0.5f;
-		P(3,1) = rot_vec_var(1)*(t15-t23)*(t17-t36)-rot_vec_var(0)*t19*t31-rot_vec_var(2)*t31*t33;
-		P(3,2) = t42;
-		P(3,3) = rot_vec_var(2)*(t33*t33)+rot_vec_var(0)*(t43*t43)+rot_vec_var(1)*(t44*t44);
-
-	} else {
-		// the equations are badly conditioned so use a small angle approximation
-		P.uncorrelateCovarianceSetVariance<1>(0, 0.0f);
-		P.uncorrelateCovarianceSetVariance<3>(1, 0.25f * rot_vec_var);
-	}
-}
-
 void Ekf::updateGroundEffect()
 {
 	if (_control_status.flags.in_air && !_control_status.flags.fixed_wing) {
@@ -1040,7 +940,7 @@ void Ekf::updateGroundEffect()
 void Ekf::increaseQuatYawErrVariance(float yaw_variance)
 {
 	matrix::SquareMatrix<float, 4> q_cov;
-	sym::YawVarToLowerTriangularQuatCov(getStateAtFusionHorizonAsVector(), yaw_variance, &q_cov);
+	sym::RotVarNedToLowerTriangularQuatCov(getStateAtFusionHorizonAsVector(), Vector3f(0.f, 0.f, yaw_variance), &q_cov);
 	q_cov.copyLowerToUpperTriangle();
 	P.slice<4, 4>(0, 0) += q_cov;
 }
