@@ -160,8 +160,6 @@ void elrs_led_task() {
 
 			}
 
-		} else {
-			PX4_INFO("Poll failed");
 		}
 	}
 }
