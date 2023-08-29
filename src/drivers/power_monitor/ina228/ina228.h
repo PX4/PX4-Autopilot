@@ -214,7 +214,7 @@ using namespace time_literals;
 #define INA228_ENERGY_SHIFTS                  (0)
 #define INA228_ENERGY_MASK                    (UINT64_C(0xffffffffff) << INA228_ENERGY_SHIFTS)
 
-/* INA228 Energy Result (CHARGE) 40-bit Register (Address = Ah) [reset = 0h] */
+/* INA228 Charge Result (CHARGE) 40-bit Register (Address = Ah) [reset = 0h] */
 
 #define INA228_CHARGE_SHIFTS                 (0)
 #define INA228_CHARGE_MASK                   (UINT64_C(0xffffffffff) << INA228_CHARGE_SHIFTS)
