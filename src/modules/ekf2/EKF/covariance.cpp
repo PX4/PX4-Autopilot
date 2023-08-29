@@ -54,7 +54,7 @@ void Ekf::initialiseCovariance()
 {
 	P.zero();
 
-	resetQuatCov((_params.mag_fusion_type != MagFuseType::NONE) ?_params.mag_heading_noise : NAN);
+	resetQuatCov();
 
 	// velocity
 	P(4,4) = sq(fmaxf(_params.gps_vel_noise, 0.01f));
