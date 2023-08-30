@@ -63,6 +63,8 @@ MulticopterAttitudeControl::MulticopterAttitudeControl(bool vtol) :
 	parameters_updated();
 	// Rate of change 5% per second -> 1.6 seconds to ramp to default 8% MPC_MANTHR_MIN
 	_manual_throttle_minimum.setSlewRate(0.05f);
+	// Rate of change 50% per second -> 2 seconds to ramp to 100%
+	_manual_throttle_maximum.setSlewRate(0.5f);
 }
 
 MulticopterAttitudeControl::~MulticopterAttitudeControl()
@@ -99,14 +101,21 @@ MulticopterAttitudeControl::parameters_updated()
 float
 MulticopterAttitudeControl::throttle_curve(float throttle_stick_input)
 {
-	// throttle_stick_input is in range [0, 1]
+	float thrust = 0.f;
+
 	switch (_param_mpc_thr_curve.get()) {
 	case 1: // no rescaling to hover throttle
-		return math::interpolate(throttle_stick_input, 0.f, 1.f, _manual_throttle_minimum.getState(), _param_mpc_thr_max.get());
+		thrust = math::interpolate(throttle_stick_input, -1.f, 1.f,
+					   _manual_throttle_minimum.getState(), _param_mpc_thr_max.get());
+		break;
 
 	default: // 0 or other: rescale to hover throttle at 0.5 stick
-		return math::interpolateN(throttle_stick_input, {_manual_throttle_minimum.getState(), _param_mpc_thr_hover.get(), _param_mpc_thr_max.get()});
+		thrust = math::interpolateNXY(throttle_stick_input, {-1.f, 0.f, 1.f},
+		{_manual_throttle_minimum.getState(), _param_mpc_thr_hover.get(), _param_mpc_thr_max.get()});
+		break;
 	}
+
+	return math::min(thrust, _manual_throttle_maximum.getState());
 }
 
 void
@@ -179,13 +188,9 @@ MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt,
 	attitude_setpoint.pitch_body = euler_sp(1);
 	attitude_setpoint.yaw_body = euler_sp(2);
 
-	// Only set thrust setpoint different from idle once the vehicle is spooled up
-	if (_spooled_up) {
-		attitude_setpoint.thrust_body[2] = -throttle_curve((_manual_control_setpoint.throttle + 1.f) * .5f);
-	}
+	attitude_setpoint.thrust_body[2] = -throttle_curve(_manual_control_setpoint.throttle);
 
 	attitude_setpoint.timestamp = hrt_absolute_time();
-
 	_vehicle_attitude_setpoint_pub.publish(attitude_setpoint);
 
 	// update attitude controller setpoint immediately
@@ -344,6 +349,13 @@ MulticopterAttitudeControl::Run()
 
 		} else {
 			_manual_throttle_minimum.update(_param_mpc_manthr_min.get(), dt);
+		}
+
+		if (_spooled_up) {
+			_manual_throttle_maximum.update(1.f, dt);
+
+		} else {
+			_manual_throttle_maximum.setForcedValue(0.f);
 		}
 
 		// reset yaw setpoint during transitions, tailsitter.cpp generates
