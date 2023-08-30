@@ -970,6 +970,13 @@ void Ekf::resetQuatStateYaw(float yaw, float yaw_variance)
 	// save a copy of the quaternion state for later use in calculating the amount of reset change
 	const Quatf quat_before_reset = _state.quat_nominal;
 
+	// save a copy of covariance in Euler angles (NED frame) to restore it after the quat reset
+	Vector3f rot_vec_var_before_reset = _R_to_earth * calcRotVecVariances();
+	// update the yaw angle variance
+	if (PX4_ISFINITE(yaw_variance) && (yaw_variance > FLT_EPSILON)) {
+		rot_vec_var_before_reset(2) = yaw_variance;
+	}
+
 	// update transformation matrix from body to world frame using the current estimate
 	// update the rotation matrix using the new yaw value
 	_R_to_earth = updateYawInRotMat(yaw, Dcmf(_state.quat_nominal));
@@ -982,10 +989,8 @@ void Ekf::resetQuatStateYaw(float yaw, float yaw_variance)
 	_state.quat_nominal = quat_after_reset;
 	uncorrelateQuatFromOtherStates();
 
-	// update the yaw angle variance
-	if (PX4_ISFINITE(yaw_variance) && (yaw_variance > FLT_EPSILON)) {
-		increaseQuatYawErrVariance(yaw_variance);
-	}
+	// restore covariance
+	resetQuatCov(rot_vec_var_before_reset);
 
 	// add the reset amount to the output observer buffered data
 	_output_predictor.resetQuaternion(q_error);

@@ -1075,7 +1075,8 @@ private:
 	// gravity fusion: heuristically enable / disable gravity fusion
 	void controlGravityFusion(const imuSample &imu_delayed);
 
-	void resetQuatCov(float yaw_noise = NAN);
+	void resetQuatCov(const float yaw_noise = NAN);
+	void resetQuatCov(const Vector3f &euler_noise_ned);
 
 	void resetMagCov();
 
