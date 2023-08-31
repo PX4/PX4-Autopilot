@@ -86,7 +86,9 @@ public:
 
 	void setIMUData(const imuSample &imu_sample);
 
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 	void setMagData(const magSample &mag_sample);
+#endif // CONFIG_EKF2_MAGNETOMETER
 
 	void setGpsData(const gpsMessage &gps);
 
@@ -231,6 +233,7 @@ public:
 	Vector3f getPosition() const { return _output_predictor.getPosition(); }
 	const Vector3f &getOutputTrackingError() const { return _output_predictor.getOutputTrackingError(); }
 
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 	// Get the value of magnetic declination in degrees to be saved for use at the next startup
 	// Returns true when the declination can be saved
 	// At the next startup, set param.mag_declination_deg to the value saved
@@ -263,6 +266,7 @@ public:
 		strength_gs = _mag_strength;
 		strength_ref_gs = _mag_strength_gps;
 	}
+#endif // CONFIG_EKF2_MAGNETOMETER
 
 	// get EKF mode status
 	const filter_control_status_u &control_status() const { return _control_status; }
@@ -412,7 +416,12 @@ protected:
 	RingBuffer<imuSample> _imu_buffer{kBufferLengthDefault};
 
 	RingBuffer<gpsSample> *_gps_buffer{nullptr};
+
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 	RingBuffer<magSample> *_mag_buffer{nullptr};
+	uint64_t _time_last_mag_buffer_push{0};
+#endif // CONFIG_EKF2_MAGNETOMETER
+
 	RingBuffer<baroSample> *_baro_buffer{nullptr};
 
 #if defined(CONFIG_EKF2_AIRSPEED)
@@ -429,7 +438,6 @@ protected:
 	RingBuffer<systemFlagUpdate> *_system_flag_buffer{nullptr};
 
 	uint64_t _time_last_gps_buffer_push{0};
-	uint64_t _time_last_mag_buffer_push{0};
 	uint64_t _time_last_baro_buffer_push{0};
 
 	uint64_t _time_last_gnd_effect_on{0};

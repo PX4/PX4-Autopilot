@@ -85,7 +85,6 @@
 #include <uORB/topics/vehicle_imu.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/vehicle_magnetometer.h>
 #include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/wind.h>
@@ -99,6 +98,10 @@
 #if defined(CONFIG_EKF2_AUXVEL)
 # include <uORB/topics/landing_target_pose.h>
 #endif // CONFIG_EKF2_AUXVEL
+
+#if defined(CONFIG_EKF2_MAGNETOMETER)
+# include <uORB/topics/vehicle_magnetometer.h>
+#endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 # include <uORB/topics/vehicle_optical_flow.h>
@@ -212,7 +215,9 @@ private:
 	bool UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps);
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 	void UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps);
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 	void UpdateMagSample(ekf2_timestamps_s &ekf2_timestamps);
+#endif // CONFIG_EKF2_MAGNETOMETER
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	void UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps);
 #endif // CONFIG_EKF2_RANGE_FINDER
@@ -230,7 +235,9 @@ private:
 			       const matrix::Vector3f &bias_variance, float bias_limit, bool bias_valid, bool learning_valid);
 	void UpdateAccelCalibration(const hrt_abstime &timestamp);
 	void UpdateGyroCalibration(const hrt_abstime &timestamp);
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 	void UpdateMagCalibration(const hrt_abstime &timestamp);
+#endif // CONFIG_EKF2_MAGNETOMETER
 
 	// publish helper for estimator_aid_source topics
 	template <typename T>
@@ -271,15 +278,10 @@ private:
 	perf_counter_t _msg_missed_imu_perf{perf_alloc(PC_COUNT, MODULE_NAME": IMU message missed")};
 	perf_counter_t _msg_missed_air_data_perf{nullptr};
 	perf_counter_t _msg_missed_gps_perf{nullptr};
-	perf_counter_t _msg_missed_magnetometer_perf{nullptr};
 	perf_counter_t _msg_missed_odometry_perf{nullptr};
-
-	// Used to control saving of mag declination to be used on next startup
-	bool _mag_decl_saved = false;	///< true when the magnetic declination has been saved
 
 	InFlightCalibration _accel_cal{};
 	InFlightCalibration _gyro_cal{};
-	InFlightCalibration _mag_cal{};
 
 	uint64_t _gps_time_usec{0};
 	int32_t _gps_alttitude_ellipsoid{0};			///< altitude in 1E-3 meters (millimeters) above ellipsoid
@@ -289,16 +291,13 @@ private:
 	uint8_t _accel_calibration_count{0};
 	uint8_t _baro_calibration_count{0};
 	uint8_t _gyro_calibration_count{0};
-	uint8_t _mag_calibration_count{0};
 
 	uint32_t _device_id_accel{0};
 	uint32_t _device_id_baro{0};
 	uint32_t _device_id_gyro{0};
-	uint32_t _device_id_mag{0};
 
 	Vector3f _last_accel_bias_published{};
 	Vector3f _last_gyro_bias_published{};
-	Vector3f _last_mag_bias_published{};
 
 	hrt_abstime _last_sensor_bias_published{0};
 	hrt_abstime _last_gps_status_published{0};
@@ -308,6 +307,27 @@ private:
 
 	hrt_abstime _status_fake_hgt_pub_last{0};
 	hrt_abstime _status_fake_pos_pub_last{0};
+
+#if defined(CONFIG_EKF2_MAGNETOMETER)
+	uint32_t _device_id_mag {0};
+
+	perf_counter_t _msg_missed_magnetometer_perf {nullptr};
+
+	// Used to control saving of mag declination to be used on next startup
+	bool _mag_decl_saved = false;	///< true when the magnetic declination has been saved
+
+	InFlightCalibration _mag_cal{};
+	uint8_t _mag_calibration_count{0};
+	Vector3f _last_mag_bias_published{};
+
+	hrt_abstime _status_mag_pub_last{0};
+	hrt_abstime _status_mag_heading_pub_last{0};
+
+	uORB::Subscription _magnetometer_sub{ORB_ID(vehicle_magnetometer)};
+
+	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_mag_heading_pub{ORB_ID(estimator_aid_src_mag_heading)};
+	uORB::PublicationMulti<estimator_aid_source3d_s> _estimator_aid_src_mag_pub{ORB_ID(estimator_aid_src_mag)};
+#endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_ev_hgt_pub {ORB_ID(estimator_aid_src_ev_hgt)};
@@ -333,8 +353,6 @@ private:
 	hrt_abstime _status_gnss_yaw_pub_last {0};
 #endif // CONFIG_EKF2_GNSS_YAW
 
-	hrt_abstime _status_mag_pub_last{0};
-	hrt_abstime _status_mag_heading_pub_last{0};
 
 	hrt_abstime _status_gravity_pub_last{0};
 
@@ -386,7 +404,6 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::Subscription _airdata_sub{ORB_ID(vehicle_air_data)};
-	uORB::Subscription _magnetometer_sub{ORB_ID(vehicle_magnetometer)};
 	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
 	uORB::Subscription _status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
@@ -448,9 +465,6 @@ private:
 	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_gnss_yaw_pub {ORB_ID(estimator_aid_src_gnss_yaw)};
 #endif // CONFIG_EKF2_GNSS_YAW
 
-	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_mag_heading_pub{ORB_ID(estimator_aid_src_mag_heading)};
-	uORB::PublicationMulti<estimator_aid_source3d_s> _estimator_aid_src_mag_pub{ORB_ID(estimator_aid_src_mag)};
-
 	uORB::PublicationMulti<estimator_aid_source3d_s> _estimator_aid_src_gravity_pub{ORB_ID(estimator_aid_src_gravity)};
 
 	// publications with topic dependent on multi-mode
@@ -471,8 +485,6 @@ private:
 		(ParamExtInt<px4::params::EKF2_PREDICT_US>) _param_ekf2_predict_us,
 		(ParamExtInt<px4::params::EKF2_IMU_CTRL>) _param_ekf2_imu_ctrl,
 
-		(ParamExtFloat<px4::params::EKF2_MAG_DELAY>)
-		_param_ekf2_mag_delay,	///< magnetometer measurement delay relative to the IMU (mSec)
 		(ParamExtFloat<px4::params::EKF2_BARO_DELAY>)
 		_param_ekf2_baro_delay,	///< barometer height measurement delay relative to the IMU (mSec)
 		(ParamExtFloat<px4::params::EKF2_GPS_DELAY>)
@@ -493,10 +505,6 @@ private:
 		_param_ekf2_gyr_b_noise,	///< process noise for IMU rate gyro bias prediction (rad/sec**2)
 		(ParamExtFloat<px4::params::EKF2_ACC_B_NOISE>)
 		_param_ekf2_acc_b_noise,///< process noise for IMU accelerometer bias prediction (m/sec**3)
-		(ParamExtFloat<px4::params::EKF2_MAG_E_NOISE>)
-		_param_ekf2_mag_e_noise,	///< process noise for earth magnetic field prediction (Gauss/sec)
-		(ParamExtFloat<px4::params::EKF2_MAG_B_NOISE>)
-		_param_ekf2_mag_b_noise,	///< process noise for body magnetic field prediction (Gauss/sec)
 		(ParamExtFloat<px4::params::EKF2_WIND_NSD>)
 		_param_ekf2_wind_nsd,	///< process noise spectral density for wind velocity prediction (m/sec**2/sqrt(Hz))
 
@@ -541,25 +549,24 @@ private:
 		_param_ekf2_fuse_beta, ///< Controls synthetic sideslip fusion, 0 disables, 1 enables
 #endif // CONFIG_EKF2_SIDESLIP
 
-		// control of magnetometer fusion
-		(ParamExtFloat<px4::params::EKF2_HEAD_NOISE>)
-		_param_ekf2_head_noise,	///< measurement noise used for simple heading fusion (rad)
-		(ParamExtFloat<px4::params::EKF2_MAG_NOISE>)
-		_param_ekf2_mag_noise,		///< measurement noise used for 3-axis magnetoemeter fusion (Gauss)
-
-		(ParamExtFloat<px4::params::EKF2_MAG_DECL>) _param_ekf2_mag_decl,///< magnetic declination (degrees)
-		(ParamExtFloat<px4::params::EKF2_HDG_GATE>)
-		_param_ekf2_hdg_gate,///< heading fusion innovation consistency gate size (STD)
-		(ParamExtFloat<px4::params::EKF2_MAG_GATE>)
-		_param_ekf2_mag_gate,	///< magnetometer fusion innovation consistency gate size (STD)
-		(ParamExtInt<px4::params::EKF2_DECL_TYPE>)
-		_param_ekf2_decl_type,	///< bitmask used to control the handling of declination data
-		(ParamExtInt<px4::params::EKF2_MAG_TYPE>)
-		_param_ekf2_mag_type,	///< integer used to specify the type of magnetometer fusion used
-		(ParamExtFloat<px4::params::EKF2_MAG_ACCLIM>)
-		_param_ekf2_mag_acclim,	///< integer used to specify the type of magnetometer fusion used
-		(ParamExtFloat<px4::params::EKF2_MAG_YAWLIM>)
-		_param_ekf2_mag_yawlim,	///< yaw rate threshold used by mode select logic (rad/sec)
+#if defined(CONFIG_EKF2_MAGNETOMETER)
+		(ParamExtFloat<px4::params::EKF2_MAG_DELAY>) _param_ekf2_mag_delay,
+		(ParamExtFloat<px4::params::EKF2_MAG_E_NOISE>) _param_ekf2_mag_e_noise,
+		(ParamExtFloat<px4::params::EKF2_MAG_B_NOISE>) _param_ekf2_mag_b_noise,
+		(ParamExtFloat<px4::params::EKF2_HEAD_NOISE>) _param_ekf2_head_noise,
+		(ParamExtFloat<px4::params::EKF2_MAG_NOISE>) _param_ekf2_mag_noise,
+		(ParamExtFloat<px4::params::EKF2_MAG_DECL>) _param_ekf2_mag_decl,
+		(ParamExtFloat<px4::params::EKF2_HDG_GATE>) _param_ekf2_hdg_gate,
+		(ParamExtFloat<px4::params::EKF2_MAG_GATE>) _param_ekf2_mag_gate,
+		(ParamExtInt<px4::params::EKF2_DECL_TYPE>) _param_ekf2_decl_type,
+		(ParamExtInt<px4::params::EKF2_MAG_TYPE>) _param_ekf2_mag_type,
+		(ParamExtFloat<px4::params::EKF2_MAG_ACCLIM>) _param_ekf2_mag_acclim,
+		(ParamExtFloat<px4::params::EKF2_MAG_YAWLIM>) _param_ekf2_mag_yawlim,
+		(ParamExtInt<px4::params::EKF2_MAG_CHECK>) _param_ekf2_mag_check,
+		(ParamExtFloat<px4::params::EKF2_MAG_CHK_STR>) _param_ekf2_mag_chk_str,
+		(ParamExtFloat<px4::params::EKF2_MAG_CHK_INC>) _param_ekf2_mag_chk_inc,
+		(ParamExtInt<px4::params::EKF2_SYNT_MAG_Z>) _param_ekf2_synthetic_mag_z,
+#endif // CONFIG_EKF2_MAGNETOMETER
 
 		(ParamExtInt<px4::params::EKF2_GPS_CHECK>)
 		_param_ekf2_gps_check,	///< bitmask used to control which GPS quality checks are used
@@ -736,11 +743,6 @@ private:
 #endif // CONFIG_EKF2_BARO_COMPENSATION
 
 		(ParamFloat<px4::params::EKF2_REQ_GPS_H>) _param_ekf2_req_gps_h, ///< Required GPS health time
-		(ParamExtInt<px4::params::EKF2_MAG_CHECK>) _param_ekf2_mag_check, ///< Mag field strength check
-		(ParamExtFloat<px4::params::EKF2_MAG_CHK_STR>) _param_ekf2_mag_chk_str,
-		(ParamExtFloat<px4::params::EKF2_MAG_CHK_INC>) _param_ekf2_mag_chk_inc,
-		(ParamExtInt<px4::params::EKF2_SYNT_MAG_Z>)
-		_param_ekf2_synthetic_mag_z, ///< Enables the use of a synthetic value for the Z axis of the magnetometer calculated from the 3D magnetic field vector at the location of the drone.
 
 		// Used by EKF-GSF experimental yaw estimator
 		(ParamExtFloat<px4::params::EKF2_GSF_TAS>)

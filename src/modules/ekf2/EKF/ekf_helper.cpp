@@ -234,7 +234,10 @@ void Ekf::constrainStates()
 	_state.accel_bias = matrix::constrain(_state.accel_bias, -accel_bias_limit, accel_bias_limit);
 
 	_state.mag_I = matrix::constrain(_state.mag_I, -1.0f, 1.0f);
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 	_state.mag_B = matrix::constrain(_state.mag_B, -getMagBiasLimit(), getMagBiasLimit());
+#endif // CONFIG_EKF2_MAGNETOMETER
+
 	_state.wind_vel = matrix::constrain(_state.wind_vel, -100.0f, 100.0f);
 }
 
@@ -671,6 +674,7 @@ void Ekf::get_innovation_test_status(uint16_t &status, float &mag, float &vel, f
 	// return the largest magnetometer innovation test ratio
 	mag = 0.f;
 
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 	if (_control_status.flags.mag_hdg) {
 		mag = math::max(mag, sqrtf(_aid_src_mag_heading.test_ratio));
 	}
@@ -678,6 +682,7 @@ void Ekf::get_innovation_test_status(uint16_t &status, float &mag, float &vel, f
 	if (_control_status.flags.mag_3D) {
 		mag = math::max(mag, sqrtf(Vector3f(_aid_src_mag.test_ratio).max()));
 	}
+#endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_GNSS_YAW)
 	if (_control_status.flags.gps_yaw) {
@@ -791,6 +796,7 @@ void Ekf::get_ekf_soln_status(uint16_t *status) const
 
 	bool mag_innov_good = true;
 
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 	if (_control_status.flags.mag_hdg) {
 		if (_aid_src_mag_heading.test_ratio < 1.f) {
 			mag_innov_good = false;
@@ -801,6 +807,7 @@ void Ekf::get_ekf_soln_status(uint16_t *status) const
 			mag_innov_good = false;
 		}
 	}
+#endif // CONFIG_EKF2_MAGNETOMETER
 
 	const bool gps_vel_innov_bad = Vector3f(_aid_src_gnss_vel.test_ratio).max() > 1.f;
 	const bool gps_pos_innov_bad = Vector2f(_aid_src_gnss_pos.test_ratio).max() > 1.f;
@@ -943,26 +950,6 @@ void Ekf::increaseQuatYawErrVariance(float yaw_variance)
 	sym::RotVarNedToLowerTriangularQuatCov(getStateAtFusionHorizonAsVector(), Vector3f(0.f, 0.f, yaw_variance), &q_cov);
 	q_cov.copyLowerToUpperTriangle();
 	P.slice<4, 4>(0, 0) += q_cov;
-}
-
-void Ekf::saveMagCovData()
-{
-	// save the NED axis covariance sub-matrix
-	_saved_mag_ef_covmat = P.slice<3, 3>(16, 16);
-
-	// save the XYZ body covariance sub-matrix
-	_saved_mag_bf_covmat = P.slice<3, 3>(19, 19);
-}
-
-void Ekf::loadMagCovData()
-{
-	// re-instate the NED axis covariance sub-matrix
-	P.uncorrelateCovarianceSetVariance<3>(16, 0.f);
-	P.slice<3, 3>(16, 16) = _saved_mag_ef_covmat;
-
-	// re-instate the XYZ body axis covariance sub-matrix
-	P.uncorrelateCovarianceSetVariance<3>(19, 0.f);
-	P.slice<3, 3>(19, 19) = _saved_mag_bf_covmat;
 }
 
 void Ekf::resetQuatStateYaw(float yaw, float yaw_variance)
