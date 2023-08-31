@@ -47,7 +47,9 @@
 EstimatorInterface::~EstimatorInterface()
 {
 	delete _gps_buffer;
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 	delete _mag_buffer;
+#endif // CONFIG_EKF2_MAGNETOMETER
 	delete _baro_buffer;
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	delete _range_buffer;
@@ -102,6 +104,7 @@ void EstimatorInterface::setIMUData(const imuSample &imu_sample)
 #endif // CONFIG_EKF2_DRAG_FUSION
 }
 
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 void EstimatorInterface::setMagData(const magSample &mag_sample)
 {
 	if (!_initialised) {
@@ -137,6 +140,7 @@ void EstimatorInterface::setMagData(const magSample &mag_sample)
 		ECL_WARN("mag data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us, _mag_buffer->get_newest().time_us, _min_obs_interval_us);
 	}
 }
+#endif // CONFIG_EKF2_MAGNETOMETER
 
 void EstimatorInterface::setGpsData(const gpsMessage &gps)
 {
@@ -707,9 +711,11 @@ void EstimatorInterface::print_status()
 		printf("gps buffer: %d/%d (%d Bytes)\n", _gps_buffer->entries(), _gps_buffer->get_length(), _gps_buffer->get_total_size());
 	}
 
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 	if (_mag_buffer) {
 		printf("mag buffer: %d/%d (%d Bytes)\n", _mag_buffer->entries(), _mag_buffer->get_length(), _mag_buffer->get_total_size());
 	}
+#endif // CONFIG_EKF2_MAGNETOMETER
 
 	if (_baro_buffer) {
 		printf("baro buffer: %d/%d (%d Bytes)\n", _baro_buffer->entries(), _baro_buffer->get_length(), _baro_buffer->get_total_size());

@@ -158,6 +158,7 @@ public:
 
 	void getHeadingInnov(float &heading_innov) const
 	{
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 		if (_control_status.flags.mag_hdg) {
 			heading_innov = _aid_src_mag_heading.innovation;
 			return;
@@ -166,6 +167,7 @@ public:
 			heading_innov = Vector3f(_aid_src_mag.innovation).max();
 			return;
 		}
+#endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_GNSS_YAW)
 		if (_control_status.flags.gps_yaw) {
@@ -184,6 +186,7 @@ public:
 
 	void getHeadingInnovVar(float &heading_innov_var) const
 	{
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 		if (_control_status.flags.mag_hdg) {
 			heading_innov_var = _aid_src_mag_heading.innovation_variance;
 			return;
@@ -192,6 +195,7 @@ public:
 			heading_innov_var = Vector3f(_aid_src_mag.innovation_variance).max();
 			return;
 		}
+#endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_GNSS_YAW)
 		if (_control_status.flags.gps_yaw) {
@@ -210,6 +214,7 @@ public:
 
 	void getHeadingInnovRatio(float &heading_innov_ratio) const
 	{
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 		if (_control_status.flags.mag_hdg) {
 			heading_innov_ratio = _aid_src_mag_heading.test_ratio;
 			return;
@@ -218,6 +223,7 @@ public:
 			heading_innov_ratio = Vector3f(_aid_src_mag.test_ratio).max();
 			return;
 		}
+#endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_GNSS_YAW)
 		if (_control_status.flags.gps_yaw) {
@@ -234,9 +240,11 @@ public:
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 	}
 
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 	void getMagInnov(float mag_innov[3]) const { memcpy(mag_innov, _aid_src_mag.innovation, sizeof(_aid_src_mag.innovation)); }
 	void getMagInnovVar(float mag_innov_var[3]) const { memcpy(mag_innov_var, _aid_src_mag.innovation_variance, sizeof(_aid_src_mag.innovation_variance)); }
 	void getMagInnovRatio(float &mag_innov_ratio) const { mag_innov_ratio = Vector3f(_aid_src_mag.test_ratio).max(); }
+#endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_DRAG_FUSION)
 	void getDragInnov(float drag_innov[2]) const { _drag_innov.copyTo(drag_innov); }
@@ -351,12 +359,16 @@ public:
 
 	bool isYawFinalAlignComplete() const
 	{
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 		const bool is_using_mag = (_control_status.flags.mag_3D || _control_status.flags.mag_hdg);
 		const bool is_mag_alignment_in_flight_complete = is_using_mag
 				&& _control_status.flags.mag_aligned_in_flight
 				&& ((_time_delayed_us - _flt_mag_align_start_time) > (uint64_t)1e6);
 		return _control_status.flags.yaw_align
 		       && (is_mag_alignment_in_flight_complete || !is_using_mag);
+#else
+		return _control_status.flags.yaw_align;
+#endif
 	}
 
 	// gyro bias (states 10, 11, 12)
@@ -369,6 +381,7 @@ public:
 	Vector3f getAccelBiasVariance() const { return Vector3f{P(13, 13), P(14, 14), P(15, 15)}; } // get the accelerometer bias variance in m/s**2
 	float getAccelBiasLimit() const { return _params.acc_bias_lim; }
 
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 	const Vector3f &getMagEarthField() const { return _state.mag_I; }
 
 	// mag bias (states 19, 20, 21)
@@ -382,6 +395,7 @@ public:
 		return _saved_mag_bf_covmat.diag();
 	}
 	float getMagBiasLimit() const { return 0.5f; } // 0.5 Gauss
+#endif // CONFIG_EKF2_MAGNETOMETER
 
 	bool accel_bias_inhibited() const { return _accel_bias_inhibit[0] || _accel_bias_inhibit[1] || _accel_bias_inhibit[2]; }
 	bool gyro_bias_inhibited() const { return _gyro_bias_inhibit[0] || _gyro_bias_inhibit[1] || _gyro_bias_inhibit[2]; }
@@ -497,8 +511,10 @@ public:
 	const auto &aid_src_gnss_yaw() const { return _aid_src_gnss_yaw; }
 #endif // CONFIG_EKF2_GNSS_YAW
 
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 	const auto &aid_src_mag_heading() const { return _aid_src_mag_heading; }
 	const auto &aid_src_mag() const { return _aid_src_mag; }
+#endif // CONFIG_EKF2_MAGNETOMETER
 
 	const auto &aid_src_gravity() const { return _aid_src_gravity; }
 
@@ -545,9 +561,6 @@ private:
 
 	bool _filter_initialised{false};	///< true when the EKF sttes and covariances been initialised
 
-	float _mag_heading_prev{};                 ///< previous value of mag heading (rad)
-	float _mag_heading_pred_prev{};            ///< previous value of yaw state used by mag heading fusion (rad)
-
 	// booleans true when fresh sensor data is available at the fusion time horizon
 	bool _gps_data_ready{false};	///< true when new GPS data has fallen behind the fusion time horizon and is available to be fused
 
@@ -574,19 +587,9 @@ private:
 	Vector3f _zgup_delta_ang{};
 	float _zgup_delta_ang_dt{0.f};
 
-	// used by magnetometer fusion mode selection
 	Vector2f _accel_lpf_NE{};			///< Low pass filtered horizontal earth frame acceleration (m/sec**2)
 	float _yaw_delta_ef{0.0f};		///< Recent change in yaw angle measured about the earth frame D axis (rad)
 	float _yaw_rate_lpf_ef{0.0f};		///< Filtered angular rate about earth frame D axis (rad/sec)
-	bool _mag_bias_observable{false};	///< true when there is enough rotation to make magnetometer bias errors observable
-	bool _yaw_angle_observable{false};	///< true when there is enough horizontal acceleration to make yaw observable
-	uint64_t _time_yaw_started{0};		///< last system time in usec that a yaw rotation manoeuvre was detected
-	AlphaFilter<float> _mag_heading_innov_lpf{0.1f};
-	float _mag_heading_last_declination{}; ///< last magnetic field declination used for heading fusion (rad)
-	bool _mag_decl_cov_reset{false};	///< true after the fuseDeclination() function has been used to modify the earth field covariances after a magnetic field reset event.
-	uint8_t _nb_mag_heading_reset_available{0};
-	uint8_t _nb_mag_3d_reset_available{0};
-	uint32_t _min_mag_health_time_us{1'000'000}; ///< magnetometer is marked as healthy only after this amount of time
 
 	SquareMatrix24f P{};	///< state covariance matrix
 
@@ -668,9 +671,6 @@ private:
 	uint8_t _nb_gps_yaw_reset_available{0}; ///< remaining number of resets allowed before switching to another aiding source
 #endif // CONFIG_EKF2_GNSS_YAW
 
-	estimator_aid_source1d_s _aid_src_mag_heading{};
-	estimator_aid_source3d_s _aid_src_mag{};
-
 	estimator_aid_source3d_s _aid_src_gravity{};
 
 #if defined(CONFIG_EKF2_AUXVEL)
@@ -694,13 +694,32 @@ private:
 	// Variables used by the initial filter alignment
 	bool _is_first_imu_sample{true};
 	uint32_t _baro_counter{0};		///< number of baro samples read during initialisation
-	uint32_t _mag_counter{0};		///< number of magnetometer samples read during initialisation
 	AlphaFilter<Vector3f> _accel_lpf{0.1f};	///< filtered accelerometer measurement used to align tilt (m/s/s)
 	AlphaFilter<Vector3f> _gyro_lpf{0.1f};	///< filtered gyro measurement used for alignment excessive movement check (rad/sec)
 
 	// Variables used to perform in flight resets and switch between height sources
-	AlphaFilter<Vector3f> _mag_lpf{0.1f};	///< filtered magnetometer measurement for instant reset (Gauss)
 	AlphaFilter<float> _baro_lpf{0.1f};	///< filtered barometric height measurement (m)
+
+#if defined(CONFIG_EKF2_MAGNETOMETER)
+	float _mag_heading_prev{};                 ///< previous value of mag heading (rad)
+	float _mag_heading_pred_prev{};            ///< previous value of yaw state used by mag heading fusion (rad)
+
+	// used by magnetometer fusion mode selection
+	bool _mag_bias_observable{false};	///< true when there is enough rotation to make magnetometer bias errors observable
+	bool _yaw_angle_observable{false};	///< true when there is enough horizontal acceleration to make yaw observable
+	uint64_t _time_yaw_started{0};		///< last system time in usec that a yaw rotation manoeuvre was detected
+	AlphaFilter<float> _mag_heading_innov_lpf{0.1f};
+	float _mag_heading_last_declination{}; ///< last magnetic field declination used for heading fusion (rad)
+	bool _mag_decl_cov_reset{false};	///< true after the fuseDeclination() function has been used to modify the earth field covariances after a magnetic field reset event.
+	uint8_t _nb_mag_heading_reset_available{0};
+	uint8_t _nb_mag_3d_reset_available{0};
+	uint32_t _min_mag_health_time_us{1'000'000}; ///< magnetometer is marked as healthy only after this amount of time
+
+	estimator_aid_source1d_s _aid_src_mag_heading{};
+	estimator_aid_source3d_s _aid_src_mag{};
+
+	AlphaFilter<Vector3f> _mag_lpf{0.1f};	///< filtered magnetometer measurement for instant reset (Gauss)
+	uint32_t _mag_counter{0};		///< number of magnetometer samples read during initialisation
 
 	// Variables used to control activation of post takeoff functionality
 	uint64_t _flt_mag_align_start_time{0};	///< time that inflight magnetic field alignment started (uSec)
@@ -708,6 +727,7 @@ private:
 	uint64_t _time_last_mag_check_failing{0};
 	Matrix3f _saved_mag_ef_covmat{}; ///< NED magnetic field state covariance sub-matrix saved for use at the next initialisation (Gauss**2)
 	Matrix3f _saved_mag_bf_covmat{}; ///< magnetic field state covariance sub-matrix that has been saved for use at the next initialisation (Gauss**2)
+#endif // CONFIG_EKF2_MAGNETOMETER
 
 	gps_check_fail_status_u _gps_check_fail_status{};
 
@@ -744,9 +764,6 @@ private:
 	// predict ekf covariance
 	void predictCovariance(const imuSample &imu_delayed);
 
-	// ekf sequential fusion of magnetometer measurements
-	bool fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bool update_all_states = true);
-
 	// update quaternion states and covariances using an innovation, observation variance and Jacobian vector
 	bool fuseYaw(estimator_aid_source1d_s &aid_src_status);
 	bool fuseYaw(estimator_aid_source1d_s &aid_src_status, const Vector24f &H_YAW);
@@ -767,12 +784,17 @@ private:
 #endif // CONFIG_EKF2_GNSS_YAW
 	void stopGpsYawFusion();
 
+#if defined(CONFIG_EKF2_MAGNETOMETER)
+	// ekf sequential fusion of magnetometer measurements
+	bool fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bool update_all_states = true);
+
 	// fuse magnetometer declination measurement
 	// argument passed in is the declination uncertainty in radians
 	bool fuseDeclination(float decl_sigma);
 
 	// apply sensible limits to the declination and length of the NE mag field states estimates
 	void limitDeclination();
+#endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_AIRSPEED)
 	// control fusion of air data observations
@@ -899,8 +921,10 @@ private:
 	void fuseFlowForTerrain(estimator_aid_source2d_s &flow);
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 	// Return the magnetic declination in radians to be used by the alignment and fusion processing
 	float getMagDeclination();
+#endif // CONFIG_EKF2_MAGNETOMETER
 
 	void clearInhibitedStateKalmanGains(Vector24f &K) const
 	{
@@ -1017,6 +1041,7 @@ private:
 	bool shouldResetGpsFusion() const;
 	bool isYawFailure() const;
 
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 	// control fusion of magnetometer observations
 	void controlMagFusion();
 	void controlMagHeadingFusion(const magSample &mag_sample, const bool common_starting_conditions_passing, estimator_aid_source1d_s &aid_src);
@@ -1034,6 +1059,19 @@ private:
 
 	bool checkMagField(const Vector3f &mag);
 	static bool isMeasuredMatchingExpected(float measured, float expected, float gate);
+
+	void stopMagHdgFusion();
+	void stopMagFusion();
+
+	// load and save mag field state covariance data for re-use
+	void loadMagCovData();
+	void saveMagCovData();
+
+	// calculate a synthetic value for the magnetometer Z component, given the 3D magnetomter
+	// sensor measurement
+	float calculate_synthetic_mag_z_measurement(const Vector3f &mag_meas, const Vector3f &mag_earth_predicted);
+
+#endif // CONFIG_EKF2_MAGNETOMETER
 
 	// control fusion of fake position observations to constrain drift
 	void controlFakePosFusion();
@@ -1064,9 +1102,6 @@ private:
 	void controlBaroHeightFusion();
 	void controlGnssHeightFusion(const gpsSample &gps_sample);
 
-	void stopMagHdgFusion();
-	void stopMagFusion();
-
 	void stopBaroHgtFusion();
 	void stopGpsHgtFusion();
 
@@ -1087,18 +1122,10 @@ private:
 	// Argument is additional yaw variance in rad**2
 	void increaseQuatYawErrVariance(float yaw_variance);
 
-	// load and save mag field state covariance data for re-use
-	void loadMagCovData();
-	void saveMagCovData();
-
 	void resetGyroBiasZCov();
 
 	// uncorrelate quaternion states from other states
 	void uncorrelateQuatFromOtherStates();
-
-	// calculate a synthetic value for the magnetometer Z component, given the 3D magnetomter
-	// sensor measurement
-	float calculate_synthetic_mag_z_measurement(const Vector3f &mag_meas, const Vector3f &mag_earth_predicted);
 
 	bool isTimedOut(uint64_t last_sensor_timestamp, uint64_t timeout_period) const
 	{

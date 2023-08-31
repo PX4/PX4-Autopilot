@@ -110,7 +110,10 @@ void Ekf::reset()
 	_gps_alt_ref = NAN;
 
 	_baro_counter = 0;
+
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 	_mag_counter = 0;
+#endif // CONFIG_EKF2_MAGNETOMETER
 
 	_time_bad_vert_accel = 0;
 	_time_good_vert_accel = 0;
@@ -142,8 +145,10 @@ void Ekf::reset()
 	resetEstimatorAidStatus(_aid_src_gnss_yaw);
 #endif // CONFIG_EKF2_GNSS_YAW
 
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 	resetEstimatorAidStatus(_aid_src_mag_heading);
 	resetEstimatorAidStatus(_aid_src_mag);
+#endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_AUXVEL)
 	resetEstimatorAidStatus(_aid_src_aux_vel);
