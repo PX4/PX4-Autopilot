@@ -171,9 +171,9 @@ void PositionControl::_velocityControl(const float dt)
 
 	// Determine how much horizontal thrust is left after prioritizing vertical control
 	const float thrust_max_xy_squared = thrust_max_squared - math::sq(_thr_sp(2));
-	float thrust_max_xy = 0;
+	float thrust_max_xy = 0.f;
 
-	if (thrust_max_xy_squared > 0) {
+	if (thrust_max_xy_squared > 0.f) {
 		thrust_max_xy = sqrtf(thrust_max_xy_squared);
 	}
 
