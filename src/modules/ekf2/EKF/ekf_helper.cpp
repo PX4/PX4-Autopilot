@@ -363,32 +363,6 @@ void Ekf::getAuxVelInnovVar(float aux_vel_innov_var[2]) const
 }
 #endif // CONFIG_EKF2_AUXVEL
 
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-void Ekf::getFlowInnov(float flow_innov[2]) const
-{
-	flow_innov[0] = _aid_src_optical_flow.innovation[0];
-	flow_innov[1] = _aid_src_optical_flow.innovation[1];
-}
-
-void Ekf::getFlowInnovVar(float flow_innov_var[2]) const
-{
-	flow_innov_var[0] = _aid_src_optical_flow.innovation_variance[0];
-	flow_innov_var[1] = _aid_src_optical_flow.innovation_variance[1];
-}
-
-void Ekf::getTerrainFlowInnov(float flow_innov[2]) const
-{
-	flow_innov[0] = _aid_src_terrain_optical_flow.innovation[0];
-	flow_innov[1] = _aid_src_terrain_optical_flow.innovation[1];
-}
-
-void Ekf::getTerrainFlowInnovVar(float flow_innov_var[2]) const
-{
-	flow_innov_var[0] = _aid_src_terrain_optical_flow.innovation_variance[0];
-	flow_innov_var[1] = _aid_src_terrain_optical_flow.innovation_variance[1];
-}
-#endif // CONFIG_EKF2_OPTICAL_FLOW
-
 // get the state vector at the delayed time horizon
 matrix::Vector<float, 24> Ekf::getStateAtFusionHorizonAsVector() const
 {
@@ -605,9 +579,8 @@ void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, fl
 		*hagl_min = rangefinder_hagl_min;
 		*hagl_max = rangefinder_hagl_max;
 	}
-#endif // CONFIG_EKF2_RANGE_FINDER
 
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
+# if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	// Keep within flow AND range sensor limits when exclusively using optical flow
 	const bool relying_on_optical_flow = isOnlyActiveSourceOfHorizontalAiding(_control_status.flags.opt_flow);
 
@@ -625,7 +598,9 @@ void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, fl
 		*hagl_min = flow_hagl_min;
 		*hagl_max = flow_hagl_max;
 	}
-#endif // CONFIG_EKF2_OPTICAL_FLOW
+# endif // CONFIG_EKF2_OPTICAL_FLOW
+
+#endif // CONFIG_EKF2_RANGE_FINDER
 }
 
 void Ekf::resetImuBias()
@@ -767,10 +742,22 @@ void Ekf::get_innovation_test_status(uint16_t &status, float &mag, float &vel, f
 	tas = sqrtf(_aid_src_airspeed.test_ratio);
 #endif // CONFIG_EKF2_AIRSPEED
 
-#if defined(CONFIG_EKF2_RANGE_FINDER)
-	// return the terrain height innovation test ratio
-	hagl = sqrtf(_hagl_test_ratio);
+	hagl = NAN;
+#if defined(CONFIG_EKF2_TERRAIN)
+# if defined(CONFIG_EKF2_RANGE_FINDER)
+	if (_hagl_sensor_status.flags.range_finder) {
+		// return the terrain height innovation test ratio
+		hagl = sqrtf(_aid_src_terrain_range_finder.test_ratio);
+	}
 #endif // CONFIG_EKF2_RANGE_FINDER
+
+# if defined(CONFIG_EKF2_OPTICAL_FLOW)
+	if (_hagl_sensor_status.flags.flow) {
+		// return the terrain height innovation test ratio
+		hagl = sqrtf(math::max(_aid_src_terrain_optical_flow.test_ratio[0], _aid_src_terrain_optical_flow.test_ratio[1]));
+	}
+# endif // CONFIG_EKF2_OPTICAL_FLOW
+#endif // CONFIG_EKF2_TERRAIN
 
 #if defined(CONFIG_EKF2_SIDESLIP)
 	// return the synthetic sideslip innovation test ratio
@@ -789,7 +776,9 @@ void Ekf::get_ekf_soln_status(uint16_t *status) const
 	soln_status.flags.pos_horiz_rel = (_control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.opt_flow) && (_fault_status.value == 0);
 	soln_status.flags.pos_horiz_abs = (_control_status.flags.gps || _control_status.flags.ev_pos) && (_fault_status.value == 0);
 	soln_status.flags.pos_vert_abs = soln_status.flags.velocity_vert;
+#if defined(CONFIG_EKF2_TERRAIN)
 	soln_status.flags.pos_vert_agl = isTerrainEstimateValid();
+#endif // CONFIG_EKF2_TERRAIN
 	soln_status.flags.const_pos_mode = !soln_status.flags.velocity_horiz;
 	soln_status.flags.pred_pos_horiz_rel = soln_status.flags.pos_horiz_rel;
 	soln_status.flags.pred_pos_horiz_abs = soln_status.flags.pos_horiz_abs;
@@ -927,12 +916,15 @@ float Ekf::getYawVar() const
 void Ekf::updateGroundEffect()
 {
 	if (_control_status.flags.in_air && !_control_status.flags.fixed_wing) {
+#if defined(CONFIG_EKF2_TERRAIN)
 		if (isTerrainEstimateValid()) {
 			// automatically set ground effect if terrain is valid
 			float height = _terrain_vpos - _state.pos(2);
 			_control_status.flags.gnd_effect = (height < _params.gnd_effect_max_hgt);
 
-		} else if (_control_status.flags.gnd_effect) {
+		} else
+#endif // CONFIG_EKF2_TERRAIN
+		if (_control_status.flags.gnd_effect) {
 			// Turn off ground effect compensation if it times out
 			if (isTimedOut(_time_last_gnd_effect_on, GNDEFFECT_TIMEOUT)) {
 				_control_status.flags.gnd_effect = false;

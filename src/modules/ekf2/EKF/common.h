@@ -105,12 +105,12 @@ enum MagFuseType : uint8_t {
 	NONE    = 5    	///< Do not use magnetometer under any circumstance..
 };
 
-#if defined(CONFIG_EKF2_RANGE_FINDER)
+#if defined(CONFIG_EKF2_TERRAIN)
 enum TerrainFusionMask : uint8_t {
 	TerrainFuseRangeFinder = (1 << 0),
 	TerrainFuseOpticalFlow = (1 << 1)
 };
-#endif // CONFIG_EKF2_RANGE_FINDER
+#endif // CONFIG_EKF2_TERRAIN
 
 enum HeightSensor : uint8_t {
 	BARO  = 0,
@@ -362,18 +362,27 @@ struct parameters {
 	const float beta_avg_ft_us{150000.0f};  ///< The average time between synthetic sideslip measurements (uSec)
 #endif // CONFIG_EKF2_SIDESLIP
 
+#if defined(CONFIG_EKF2_TERRAIN)
+	int32_t terrain_fusion_mode{TerrainFusionMask::TerrainFuseRangeFinder |
+				    TerrainFusionMask::TerrainFuseOpticalFlow}; ///< aiding source(s) selection bitmask for the terrain estimator
+
+	float terrain_p_noise{5.0f};            ///< process noise for terrain offset (m/sec)
+	float terrain_gradient{0.5f};           ///< gradient of terrain used to estimate process noise due to changing position (m/m)
+	const float terrain_timeout{10.f};      ///< maximum time for invalid bottom distance measurements before resetting terrain estimate (s)
+#endif // CONFIG_EKF2_TERRAIN
+
+#if defined(CONFIG_EKF2_TERRAIN) || defined(CONFIG_EKF2_OPTICAL_FLOW) || defined(CONFIG_EKF2_RANGE_FINDER)
+	float rng_gnd_clearance{0.1f};          ///< minimum valid value for range when on ground (m)
+#endif // CONFIG_EKF2_TERRAIN || CONFIG_EKF2_OPTICAL_FLOW || CONFIG_EKF2_RANGE_FINDER
+
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	// range finder fusion
 	int32_t rng_ctrl{RngCtrl::CONDITIONAL};
-
-	int32_t terrain_fusion_mode{TerrainFusionMask::TerrainFuseRangeFinder |
-				    TerrainFusionMask::TerrainFuseOpticalFlow}; ///< aiding source(s) selection bitmask for the terrain estimator
 
 	float range_delay_ms{5.0f};             ///< range finder measurement delay relative to the IMU (mSec)
 	float range_noise{0.1f};                ///< observation noise for range finder measurements (m)
 	float range_innov_gate{5.0f};           ///< range finder fusion innovation consistency gate size (STD)
 	float rng_hgt_bias_nsd{0.13f};          ///< process noise for range height bias estimation (m/s/sqrt(Hz))
-	float rng_gnd_clearance{0.1f};          ///< minimum valid value for range when on ground (m)
 	float rng_sens_pitch{0.0f};             ///< Pitch offset of the range sensor (rad). Sensor points out along Z axis when offset is zero. Positive rotation is RH about Y axis.
 	float range_noise_scaler{0.0f};         ///< scaling from range measurement to noise (m/m)
 	const float vehicle_variance_scaler{0.0f};      ///< gain applied to vehicle height variance used in calculation of height above ground observation variance
@@ -385,11 +394,6 @@ struct parameters {
 	float range_kin_consistency_gate{1.0f}; ///< gate size used by the range finder kinematic consistency check
 
 	Vector3f rng_pos_body{};                ///< xyz position of range sensor in body frame (m)
-
-	float terrain_p_noise{5.0f};            ///< process noise for terrain offset (m/sec)
-	float terrain_gradient{0.5f};           ///< gradient of terrain used to estimate process noise due to changing position (m/m)
-	const float terrain_timeout{10.f};      ///< maximum time for invalid bottom distance measurements before resetting terrain estimate (s)
-
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
@@ -625,7 +629,7 @@ union ekf_solution_status_u {
 	uint16_t value;
 };
 
-#if defined(CONFIG_EKF2_RANGE_FINDER)
+#if defined(CONFIG_EKF2_TERRAIN)
 union terrain_fusion_status_u {
 	struct {
 		bool range_finder : 1;  ///< 0 - true if we are fusing range finder data
@@ -633,7 +637,7 @@ union terrain_fusion_status_u {
 	} flags;
 	uint8_t value;
 };
-#endif // CONFIG_EKF2_RANGE_FINDER
+#endif // CONFIG_EKF2_TERRAIN
 
 // define structure used to communicate information events
 union information_event_status_u {

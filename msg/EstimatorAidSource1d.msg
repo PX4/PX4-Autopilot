@@ -22,3 +22,4 @@ bool fused                   # true if the sample was successfully fused
 # TOPICS estimator_aid_src_airspeed estimator_aid_src_sideslip
 # TOPICS estimator_aid_src_fake_hgt
 # TOPICS estimator_aid_src_mag_heading estimator_aid_src_gnss_yaw estimator_aid_src_ev_yaw
+# TOPICS estimator_aid_src_terrain_range_finder

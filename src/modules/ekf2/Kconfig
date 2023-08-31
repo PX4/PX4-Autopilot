@@ -67,6 +67,7 @@ menuconfig EKF2_OPTICAL_FLOW
 depends on MODULES_EKF2
         bool "optical flow fusion support"
         default y
+	select EKF2_TERRAIN
 	depends on EKF2_RANGE_FINDER
 	---help---
 		EKF2 optical flow fusion support.
@@ -84,6 +85,14 @@ depends on MODULES_EKF2
         default y
 	---help---
 		EKF2 sideslip fusion support.
+
+menuconfig EKF2_TERRAIN
+depends on MODULES_EKF2
+	bool "terrain estimator support"
+	default y
+	depends on EKF2_OPTICAL_FLOW || EKF2_RANGE_FINDER
+	---help---
+		EKF2 terrain estimator support.
 
 menuconfig USER_EKF2
 	bool "ekf2 running as userspace module"
