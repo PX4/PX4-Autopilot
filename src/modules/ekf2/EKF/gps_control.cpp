@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,8 +46,6 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 		return;
 	}
 
-	_gps_intermittent = !isNewestSampleRecent(_time_last_gps_buffer_push, 2 * GNSS_MAX_INTERVAL);
-
 	// check for arrival of new sensor data at the fusion time horizon
 	_gps_data_ready = _gps_buffer->pop_first_older_than(imu_delayed.time_us, &_gps_sample_delayed);
 
@@ -90,6 +88,7 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 		const Vector3f velocity{gps_sample.vel};
 		const float vel_var = sq(math::max(gps_sample.sacc, _params.gps_vel_noise));
 		const Vector3f vel_obs_var(vel_var, vel_var, vel_var * sq(1.5f));
+		const bool vel_good = velocity.isAllFinite() && (gps_sample.sacc > 0.f) && (gps_sample.sacc < _params.req_sacc);
 		updateVelocityAidSrcStatus(gps_sample.time_us,
 					   velocity,                                                   // observation
 					   vel_obs_var,                                                // observation variance
@@ -112,6 +111,7 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 
 		const float pos_var = sq(pos_noise);
 		const Vector2f pos_obs_var(pos_var, pos_var);
+		const bool pos_good = position.isAllFinite() && (gps_sample.hacc > 0.f) && (gps_sample.hacc < _params.req_hacc);
 		updateHorizontalPositionAidSrcStatus(gps_sample.time_us,
 						     position,                                   // observation
 						     pos_obs_var,                                // observation variance
@@ -141,7 +141,12 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 		}
 
 		const bool continuing_conditions_passing = mandatory_conditions_passing && !gps_checks_failing;
-		const bool starting_conditions_passing = continuing_conditions_passing && gps_checks_passing;
+
+		const bool starting_conditions_passing = continuing_conditions_passing
+				&& isNewestSampleRecent(_time_last_gps_buffer_push, GNSS_MAX_INTERVAL)
+				&& _gps_checks_passed
+				&& gps_checks_passing
+				&& !gps_checks_failing;
 
 		if (_control_status.flags.gps) {
 			if (mandatory_conditions_passing) {
@@ -151,7 +156,11 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 					fuseVelocity(_aid_src_gnss_vel);
 					fuseHorizontalPosition(_aid_src_gnss_pos);
 
-					bool do_vel_pos_reset = shouldResetGpsFusion();
+					const bool vel_fusion_failing = isTimedOut(_aid_src_gnss_vel.time_last_fuse, _params.reset_timeout_max);
+					const bool pos_fusion_failing = isTimedOut(_aid_src_gnss_pos.time_last_fuse, _params.reset_timeout_max);
+
+					bool vel_reset = vel_fusion_failing && vel_good;
+					bool pos_reset = pos_fusion_failing && pos_good;
 
 					if (isYawFailure()
 					    && _control_status.flags.in_air
@@ -189,19 +198,23 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
-							do_vel_pos_reset = true;
+							vel_reset = true;
+							pos_reset = true;
 						}
 					}
 
-					if (do_vel_pos_reset) {
-						ECL_WARN("GPS fusion timeout, resetting velocity and position");
-
+					if (vel_reset) {
 						// reset velocity
+						ECL_WARN("GPS fusion timeout, resetting velocity to GPS (%.3f, %.3f, %.3f)",
+							 (double)velocity(0), (double)velocity(1), (double)velocity(2));
 						_information_events.flags.reset_vel_to_gps = true;
 						resetVelocityTo(velocity, vel_obs_var);
 						_aid_src_gnss_vel.time_last_fuse = _time_delayed_us;
+					}
 
+					if (pos_reset) {
 						// reset position
+						ECL_WARN("GPS fusion timeout, resetting position to GPS (%.3f, %.3f)", (double)position(0), (double)position(1));
 						_information_events.flags.reset_pos_to_gps = true;
 						resetHorizontalPositionTo(position, pos_obs_var);
 						_aid_src_gnss_pos.time_last_fuse = _time_delayed_us;
@@ -258,37 +271,6 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 	}
 }
 
-bool Ekf::shouldResetGpsFusion() const
-{
-	/* We are relying on aiding to constrain drift so after a specified time
-	 * with no aiding we need to do something
-	 */
-	bool has_horizontal_aiding_timed_out = isTimedOut(_time_last_hor_pos_fuse, _params.reset_timeout_max)
-					       && isTimedOut(_time_last_hor_vel_fuse, _params.reset_timeout_max);
-
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-
-	if (has_horizontal_aiding_timed_out) {
-		// horizontal aiding hasn't timed out if optical flow still active
-		if (_control_status.flags.opt_flow && isRecent(_aid_src_optical_flow.time_last_fuse, _params.reset_timeout_max)) {
-			has_horizontal_aiding_timed_out = false;
-		}
-	}
-
-#endif // CONFIG_EKF2_OPTICAL_FLOW
-
-	const bool is_reset_required = has_horizontal_aiding_timed_out
-				       || isTimedOut(_time_last_hor_pos_fuse, 2 * _params.reset_timeout_max);
-
-	const bool is_inflight_nav_failure = _control_status.flags.in_air
-					     && isTimedOut(_time_last_hor_vel_fuse, _params.reset_timeout_max)
-					     && isTimedOut(_time_last_hor_pos_fuse, _params.reset_timeout_max)
-					     && (_time_last_hor_vel_fuse > _time_last_on_ground_us)
-					     && (_time_last_hor_pos_fuse > _time_last_on_ground_us);
-
-	return (is_reset_required || is_inflight_nav_failure);
-}
-
 bool Ekf::isYawFailure() const
 {
 	if (!isYawEmergencyEstimateAvailable()) {
@@ -325,8 +307,7 @@ void Ekf::controlGpsYawFusion(const gpsSample &gps_sample, bool gps_checks_passi
 		const bool starting_conditions_passing = continuing_conditions_passing
 				&& _control_status.flags.tilt_align
 				&& gps_checks_passing
-				&& !is_gps_yaw_data_intermittent
-				&& !_gps_intermittent;
+				&& !is_gps_yaw_data_intermittent;
 
 		if (_control_status.flags.gps_yaw) {
 
