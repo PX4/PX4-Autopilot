@@ -200,7 +200,9 @@ void Ekf::resetVerticalPositionTo(const float new_vert_pos, float new_vert_pos_v
 
 	_state_reset_status.reset_count.posD++;
 
+#if defined(CONFIG_EKF2_BAROMETER)
 	_baro_b_est.setBias(_baro_b_est.getBias() + delta_z);
+#endif // CONFIG_EKF2_BAROMETER
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	_ev_hgt_b_est.setBias(_ev_hgt_b_est.getBias() - delta_z);
 #endif // CONFIG_EKF2_EXTERNAL_VISION
@@ -241,9 +243,9 @@ void Ekf::constrainStates()
 	_state.wind_vel = matrix::constrain(_state.wind_vel, -100.0f, 100.0f);
 }
 
+#if defined(CONFIG_EKF2_BARO_COMPENSATION)
 float Ekf::compensateBaroForDynamicPressure(const float baro_alt_uncompensated) const
 {
-#if defined(CONFIG_EKF2_BARO_COMPENSATION)
 	if (_control_status.flags.wind && local_position_is_valid()) {
 		// calculate static pressure error = Pmeas - Ptruth
 		// model position error sensitivity as a body fixed ellipse with a different scale in the positive and
@@ -271,11 +273,11 @@ float Ekf::compensateBaroForDynamicPressure(const float baro_alt_uncompensated) 
 		// correct baro measurement using pressure error estimate and assuming sea level gravity
 		return baro_alt_uncompensated + pstatic_err / (_air_density * CONSTANTS_ONE_G);
 	}
-#endif // CONFIG_EKF2_BARO_COMPENSATION
 
 	// otherwise return the uncorrected baro measurement
 	return baro_alt_uncompensated;
 }
+#endif // CONFIG_EKF2_BARO_COMPENSATION
 
 // calculate the earth rotation vector
 Vector3f Ekf::calcEarthRateNED(float lat_rad) const
@@ -706,10 +708,12 @@ void Ekf::get_innovation_test_status(uint16_t &status, float &mag, float &vel, f
 	float hgt_sum = 0.f;
 	int n_hgt_sources = 0;
 
+#if defined(CONFIG_EKF2_BAROMETER)
 	if (_control_status.flags.baro_hgt) {
 		hgt_sum += sqrtf(_aid_src_baro_hgt.test_ratio);
 		n_hgt_sources++;
 	}
+#endif // CONFIG_EKF2_BAROMETER
 
 	if (_control_status.flags.gps_hgt) {
 		hgt_sum += sqrtf(_aid_src_gnss_hgt.test_ratio);
@@ -913,6 +917,7 @@ float Ekf::getYawVar() const
 	return yaw_var;
 }
 
+#if defined(CONFIG_EKF2_BAROMETER)
 void Ekf::updateGroundEffect()
 {
 	if (_control_status.flags.in_air && !_control_status.flags.fixed_wing) {
@@ -935,6 +940,7 @@ void Ekf::updateGroundEffect()
 		_control_status.flags.gnd_effect = false;
 	}
 }
+#endif // CONFIG_EKF2_BAROMETER
 
 void Ekf::increaseQuatYawErrVariance(float yaw_variance)
 {

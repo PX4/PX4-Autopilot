@@ -109,7 +109,9 @@ void Ekf::reset()
 	_gps_checks_passed = false;
 	_gps_alt_ref = NAN;
 
+#if defined(CONFIG_EKF2_BAROMETER)
 	_baro_counter = 0;
+#endif // CONFIG_EKF2_BAROMETER
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	_mag_counter = 0;
@@ -119,7 +121,9 @@ void Ekf::reset()
 	_time_good_vert_accel = 0;
 	_clip_counter = 0;
 
+#if defined(CONFIG_EKF2_BAROMETER)
 	resetEstimatorAidStatus(_aid_src_baro_hgt);
+#endif // CONFIG_EKF2_BAROMETER
 #if defined(CONFIG_EKF2_AIRSPEED)
 	resetEstimatorAidStatus(_aid_src_airspeed);
 #endif // CONFIG_EKF2_AIRSPEED

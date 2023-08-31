@@ -28,10 +28,18 @@ depends on MODULES_EKF2
 	---help---
 		EKF2 auxiliary velocity fusion support.
 
+menuconfig EKF2_BAROMETER
+depends on MODULES_EKF2
+	bool "barometer support"
+	default y
+	---help---
+		EKF2 barometer support.
+
 menuconfig EKF2_BARO_COMPENSATION
 depends on MODULES_EKF2
         bool "barometer compensation support"
         default y
+	depends on EKF2_BAROMETER
 	---help---
 		EKF2 pressure compensation support.
 

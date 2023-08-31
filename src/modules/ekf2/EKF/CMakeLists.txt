@@ -33,7 +33,6 @@
 
 set(EKF_SRCS)
 list(APPEND EKF_SRCS
-	baro_height_control.cpp
 	bias_estimator.cpp
 	control.cpp
 	covariance.cpp
@@ -63,6 +62,12 @@ endif()
 
 if(CONFIG_EKF2_AUXVEL)
 	list(APPEND EKF_SRCS auxvel_fusion.cpp)
+endif()
+
+if(CONFIG_EKF2_BAROMETER)
+	list(APPEND EKF_SRCS
+		baro_height_control.cpp
+	)
 endif()
 
 if(CONFIG_EKF2_DRAG_FUSION)
