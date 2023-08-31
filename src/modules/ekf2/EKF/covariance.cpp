@@ -423,7 +423,11 @@ void Ekf::fixCovarianceErrors(bool force_symmetry)
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 			if (bad_vz_gps || bad_vz_ev) {
+#if defined(CONFIG_EKF2_BAROMETER)
 				bool bad_z_baro = _control_status.flags.baro_hgt && (down_dvel_bias * _aid_src_baro_hgt.innovation < 0.0f);
+#else
+				bool bad_z_baro = false;
+#endif
 				bool bad_z_gps  = _control_status.flags.gps_hgt  && (down_dvel_bias * _aid_src_gnss_hgt.innovation < 0.0f);
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)

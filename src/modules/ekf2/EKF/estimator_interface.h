@@ -92,7 +92,9 @@ public:
 
 	void setGpsData(const gpsMessage &gps);
 
+#if defined(CONFIG_EKF2_BAROMETER)
 	void setBaroData(const baroSample &baro_sample);
+#endif // CONFIG_EKF2_BAROMETER
 
 #if defined(CONFIG_EKF2_AIRSPEED)
 	void setAirspeedData(const airspeedSample &airspeed_sample);
@@ -422,8 +424,6 @@ protected:
 	uint64_t _time_last_mag_buffer_push{0};
 #endif // CONFIG_EKF2_MAGNETOMETER
 
-	RingBuffer<baroSample> *_baro_buffer{nullptr};
-
 #if defined(CONFIG_EKF2_AIRSPEED)
 	RingBuffer<airspeedSample> *_airspeed_buffer{nullptr};
 #endif // CONFIG_EKF2_AIRSPEED
@@ -438,7 +438,11 @@ protected:
 	RingBuffer<systemFlagUpdate> *_system_flag_buffer{nullptr};
 
 	uint64_t _time_last_gps_buffer_push{0};
+
+#if defined(CONFIG_EKF2_BAROMETER)
+	RingBuffer<baroSample> *_baro_buffer{nullptr};
 	uint64_t _time_last_baro_buffer_push{0};
+#endif // CONFIG_EKF2_BAROMETER
 
 	uint64_t _time_last_gnd_effect_on{0};
 
