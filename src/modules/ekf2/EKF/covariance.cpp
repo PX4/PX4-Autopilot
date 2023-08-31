@@ -178,23 +178,21 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 	}
 
 	// Don't continue to grow the earth field variances if they are becoming too large or we are not doing 3-axis fusion as this can make the covariance matrix badly conditioned
-	float mag_I_sig;
+	float mag_I_sig = 0.0f;
 
 	if (_control_status.flags.mag && (P(16, 16) + P(17, 17) + P(18, 18)) < 0.1f) {
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 		mag_I_sig = dt * math::constrain(_params.mage_p_noise, 0.0f, 1.0f);
-
-	} else {
-		mag_I_sig = 0.0f;
+#endif // CONFIG_EKF2_MAGNETOMETER
 	}
 
 	// Don't continue to grow the body field variances if they is becoming too large or we are not doing 3-axis fusion as this can make the covariance matrix badly conditioned
-	float mag_B_sig;
+	float mag_B_sig = 0.0f;
 
 	if (_control_status.flags.mag && (P(19, 19) + P(20, 20) + P(21, 21)) < 0.1f) {
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 		mag_B_sig = dt * math::constrain(_params.magb_p_noise, 0.0f, 1.0f);
-
-	} else {
-		mag_B_sig = 0.0f;
+#endif // CONFIG_EKF2_MAGNETOMETER
 	}
 
 	float wind_vel_nsd_scaled;
@@ -552,6 +550,7 @@ void Ekf::resetQuatCov(const float yaw_noise)
 
 void Ekf::resetMagCov()
 {
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 	if (_mag_decl_cov_reset) {
 		ECL_INFO("reset mag covariance");
 		_mag_decl_cov_reset = false;
@@ -561,6 +560,11 @@ void Ekf::resetMagCov()
 	P.uncorrelateCovarianceSetVariance<3>(19, sq(_params.mag_noise));
 
 	saveMagCovData();
+#else
+	P.uncorrelateCovarianceSetVariance<3>(16, 0.f);
+	P.uncorrelateCovarianceSetVariance<3>(19, 0.f);
+
+#endif
 }
 
 void Ekf::resetGyroBiasZCov()

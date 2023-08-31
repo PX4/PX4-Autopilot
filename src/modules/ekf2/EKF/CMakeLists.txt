@@ -49,12 +49,9 @@ list(APPEND EKF_SRCS
 	gravity_fusion.cpp
 	height_control.cpp
 	imu_down_sampler.cpp
-	mag_3d_control.cpp
-	mag_control.cpp
-	mag_fusion.cpp
-	mag_heading_control.cpp
 	output_predictor.cpp
 	vel_pos_fusion.cpp
+	yaw_fusion.cpp
 	zero_innovation_heading_update.cpp
 	zero_gyro_update.cpp
 	zero_velocity_update.cpp
@@ -84,6 +81,15 @@ endif()
 
 if(CONFIG_EKF2_GNSS_YAW)
 	list(APPEND EKF_SRCS gps_yaw_fusion.cpp)
+endif()
+
+if(CONFIG_EKF2_MAGNETOMETER)
+	list(APPEND EKF_SRCS
+		mag_3d_control.cpp
+		mag_control.cpp
+		mag_fusion.cpp
+		mag_heading_control.cpp
+	)
 endif()
 
 if(CONFIG_EKF2_OPTICAL_FLOW)
