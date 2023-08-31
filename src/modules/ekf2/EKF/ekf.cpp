@@ -189,10 +189,10 @@ bool Ekf::update()
 		// control fusion of observation data
 		controlFusionModes(imu_sample_delayed);
 
-#if defined(CONFIG_EKF2_RANGE_FINDER)
+#if defined(CONFIG_EKF2_TERRAIN)
 		// run a separate filter for terrain estimation
 		runTerrainEstimator(imu_sample_delayed);
-#endif // CONFIG_EKF2_RANGE_FINDER
+#endif // CONFIG_EKF2_TERRAIN
 
 		_output_predictor.correctOutputStates(imu_sample_delayed.time_us, _state.quat_nominal, _state.vel, _state.pos, _state.gyro_bias, _state.accel_bias);
 
@@ -229,10 +229,10 @@ bool Ekf::initialiseFilter()
 	// initialise the state covariance matrix now we have starting values for all the states
 	initialiseCovariance();
 
-#if defined(CONFIG_EKF2_RANGE_FINDER)
+#if defined(CONFIG_EKF2_TERRAIN)
 	// Initialise the terrain estimator
 	initHagl();
-#endif // CONFIG_EKF2_RANGE_FINDER
+#endif // CONFIG_EKF2_TERRAIN
 
 	// reset the output predictor state history to match the EKF initial values
 	_output_predictor.alignOutputFilter(_state.quat_nominal, _state.vel, _state.pos);

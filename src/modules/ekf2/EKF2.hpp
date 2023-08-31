@@ -303,7 +303,6 @@ private:
 	hrt_abstime _last_gps_status_published{0};
 
 	hrt_abstime _status_baro_hgt_pub_last{0};
-	hrt_abstime _status_rng_hgt_pub_last{0};
 
 	hrt_abstime _status_fake_hgt_pub_last{0};
 	hrt_abstime _status_fake_pos_pub_last{0};
@@ -353,7 +352,6 @@ private:
 	hrt_abstime _status_gnss_yaw_pub_last {0};
 #endif // CONFIG_EKF2_GNSS_YAW
 
-
 	hrt_abstime _status_gravity_pub_last{0};
 
 #if defined(CONFIG_EKF2_AUXVEL)
@@ -365,20 +363,31 @@ private:
 	perf_counter_t _msg_missed_landing_target_pose_perf{nullptr};
 #endif // CONFIG_EKF2_AUXVEL
 
+#if defined(CONFIG_EKF2_TERRAIN)
+
+# if defined(CONFIG_EKF2_RANGE_FINDER)
+	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_terrain_range_finder_pub {ORB_ID(estimator_aid_src_terrain_range_finder)};
+	hrt_abstime _status_terrain_range_finder_pub_last{0};
+# endif // CONFIG_EKF2_RANGE_FINDER
+
+# if defined(CONFIG_EKF2_OPTICAL_FLOW)
+	uORB::PublicationMulti<estimator_aid_source2d_s> _estimator_aid_src_terrain_optical_flow_pub {ORB_ID(estimator_aid_src_terrain_optical_flow)};
+	hrt_abstime _status_terrain_optical_flow_pub_last{0};
+# endif // CONFIG_EKF2_OPTICAL_FLOW
+#endif // CONFIG_EKF2_TERRAIN
+
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	uORB::Subscription _vehicle_optical_flow_sub {ORB_ID(vehicle_optical_flow)};
 	uORB::PublicationMulti<vehicle_optical_flow_vel_s> _estimator_optical_flow_vel_pub{ORB_ID(estimator_optical_flow_vel)};
-	uORB::PublicationMulti<estimator_aid_source2d_s> _estimator_aid_src_optical_flow_pub{ORB_ID(estimator_aid_src_optical_flow)};
-	uORB::PublicationMulti<estimator_aid_source2d_s> _estimator_aid_src_terrain_optical_flow_pub{ORB_ID(estimator_aid_src_terrain_optical_flow)};
 
+	uORB::PublicationMulti<estimator_aid_source2d_s> _estimator_aid_src_optical_flow_pub{ORB_ID(estimator_aid_src_optical_flow)};
 	hrt_abstime _status_optical_flow_pub_last{0};
-	hrt_abstime _status_terrain_optical_flow_pub_last{0};
+
 	perf_counter_t _msg_missed_optical_flow_perf{nullptr};
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 	float _last_baro_bias_published{};
 	float _last_gnss_hgt_bias_published{};
-	float _last_rng_hgt_bias_published{};
 
 #if defined(CONFIG_EKF2_AIRSPEED)
 	uORB::Subscription _airspeed_sub {ORB_ID(airspeed)};
@@ -414,6 +423,9 @@ private:
 	uORB::SubscriptionCallbackWorkItem _vehicle_imu_sub{this, ORB_ID(vehicle_imu)};
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
+	hrt_abstime _status_rng_hgt_pub_last {0};
+	float _last_rng_hgt_bias_published{};
+
 	uORB::PublicationMulti<estimator_bias_s> _estimator_rng_hgt_bias_pub {ORB_ID(estimator_rng_hgt_bias)};
 	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_rng_hgt_pub{ORB_ID(estimator_aid_src_rng_hgt)};
 
@@ -590,42 +602,30 @@ private:
 		(ParamExtInt<px4::params::EKF2_NOAID_TOUT>)
 		_param_ekf2_noaid_tout,	///< maximum lapsed time from last fusion of measurements that constrain drift before the EKF will report the horizontal nav solution invalid (uSec)
 
+#if defined(CONFIG_EKF2_TERRAIN) || defined(CONFIG_EKF2_OPTICAL_FLOW) || defined(CONFIG_EKF2_RANGE_FINDER)
+		(ParamExtFloat<px4::params::EKF2_MIN_RNG>) _param_ekf2_min_rng,
+#endif // CONFIG_EKF2_TERRAIN || CONFIG_EKF2_OPTICAL_FLOW || CONFIG_EKF2_RANGE_FINDER
+#if defined(CONFIG_EKF2_TERRAIN)
+		(ParamExtInt<px4::params::EKF2_TERR_MASK>) _param_ekf2_terr_mask,
+		(ParamExtFloat<px4::params::EKF2_TERR_NOISE>) _param_ekf2_terr_noise,
+		(ParamExtFloat<px4::params::EKF2_TERR_GRAD>) _param_ekf2_terr_grad,
+#endif // CONFIG_EKF2_TERRAIN
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 		// range finder fusion
-		(ParamExtInt<px4::params::EKF2_RNG_CTRL>) _param_ekf2_rng_ctrl, ///< range finder control selection
-		(ParamExtFloat<px4::params::EKF2_RNG_DELAY>)
-		_param_ekf2_rng_delay,   ///< range finder measurement delay relative to the IMU (mSec)
-		(ParamExtFloat<px4::params::EKF2_RNG_NOISE>)
-		_param_ekf2_rng_noise,   ///< observation noise for range finder measurements (m)
-		(ParamExtFloat<px4::params::EKF2_RNG_SFE>)
-		_param_ekf2_rng_sfe,     ///< scale factor from range to range noise (m/m)
-		(ParamExtFloat<px4::params::EKF2_RNG_GATE>)
-		_param_ekf2_rng_gate,    ///< range finder fusion innovation consistency gate size (STD)
-		(ParamExtFloat<px4::params::EKF2_MIN_RNG>)
-		_param_ekf2_min_rng,     ///< minimum valid value for range when on ground (m)
-		(ParamExtFloat<px4::params::EKF2_RNG_PITCH>)   _param_ekf2_rng_pitch,   ///< range sensor pitch offset (rad)
-		(ParamExtFloat<px4::params::EKF2_RNG_A_VMAX>)
-		_param_ekf2_rng_a_vmax,  ///< maximum allowed horizontal velocity for range aid (m/s)
-		(ParamExtFloat<px4::params::EKF2_RNG_A_HMAX>)
-		_param_ekf2_rng_a_hmax,  ///< maximum allowed absolute altitude (AGL) for range aid (m)
-		(ParamExtFloat<px4::params::EKF2_RNG_A_IGATE>)
-		_param_ekf2_rng_a_igate, ///< gate size used for innovation consistency checks for range aid fusion (STD)
-		(ParamExtFloat<px4::params::EKF2_RNG_QLTY_T>)
-		_param_ekf2_rng_qlty_t,  ///< Minimum duration during which the reported range finder signal quality needs to be non-zero in order to be declared valid (s)
-		(ParamExtFloat<px4::params::EKF2_RNG_K_GATE>)
-		_param_ekf2_rng_k_gate,  ///< range finder kinematic consistency gate size (STD)
-		(ParamExtFloat<px4::params::EKF2_RNG_POS_X>)
-		_param_ekf2_rng_pos_x,   ///< X position of range finder in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_RNG_POS_Y>)
-		_param_ekf2_rng_pos_y,   ///< Y position of range finder in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_RNG_POS_Z>)
-		_param_ekf2_rng_pos_z,   ///< Z position of range finder in body frame (m)
-
-		(ParamExtInt<px4::params::EKF2_TERR_MASK>)
-		_param_ekf2_terr_mask, ///< bitmasked integer that selects which of range finder and optical flow aiding sources will be used for terrain estimation
-		(ParamExtFloat<px4::params::EKF2_TERR_NOISE>) _param_ekf2_terr_noise, ///< process noise for terrain offset (m/sec)
-		(ParamExtFloat<px4::params::EKF2_TERR_GRAD>)
-		_param_ekf2_terr_grad, ///< gradient of terrain used to estimate process noise due to changing position (m/m)
+		(ParamExtInt<px4::params::EKF2_RNG_CTRL>) _param_ekf2_rng_ctrl,
+		(ParamExtFloat<px4::params::EKF2_RNG_DELAY>) _param_ekf2_rng_delay,
+		(ParamExtFloat<px4::params::EKF2_RNG_NOISE>) _param_ekf2_rng_noise,
+		(ParamExtFloat<px4::params::EKF2_RNG_SFE>) _param_ekf2_rng_sfe,
+		(ParamExtFloat<px4::params::EKF2_RNG_GATE>) _param_ekf2_rng_gate,
+		(ParamExtFloat<px4::params::EKF2_RNG_PITCH>) _param_ekf2_rng_pitch,
+		(ParamExtFloat<px4::params::EKF2_RNG_A_VMAX>) _param_ekf2_rng_a_vmax,
+		(ParamExtFloat<px4::params::EKF2_RNG_A_HMAX>) _param_ekf2_rng_a_hmax,
+		(ParamExtFloat<px4::params::EKF2_RNG_A_IGATE>) _param_ekf2_rng_a_igate,
+		(ParamExtFloat<px4::params::EKF2_RNG_QLTY_T>) _param_ekf2_rng_qlty_t,
+		(ParamExtFloat<px4::params::EKF2_RNG_K_GATE>) _param_ekf2_rng_k_gate,
+		(ParamExtFloat<px4::params::EKF2_RNG_POS_X>) _param_ekf2_rng_pos_x,
+		(ParamExtFloat<px4::params::EKF2_RNG_POS_Y>) _param_ekf2_rng_pos_y,
+		(ParamExtFloat<px4::params::EKF2_RNG_POS_Z>) _param_ekf2_rng_pos_z,
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
