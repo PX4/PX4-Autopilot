@@ -68,7 +68,6 @@ add_subdirectory(Utility)
 
 set(EKF_SRCS)
 list(APPEND EKF_SRCS
-	EKF/baro_height_control.cpp
 	EKF/bias_estimator.cpp
 	EKF/control.cpp
 	EKF/covariance.cpp
@@ -98,6 +97,12 @@ endif()
 
 if(CONFIG_EKF2_AUXVEL)
 	list(APPEND EKF_SRCS EKF/auxvel_fusion.cpp)
+endif()
+
+if(CONFIG_EKF2_BAROMETER)
+	list(APPEND EKF_SRCS
+		EKF/baro_height_control.cpp
+	)
 endif()
 
 if(CONFIG_EKF2_DRAG_FUSION)

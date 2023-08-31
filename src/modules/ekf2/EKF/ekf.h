@@ -91,9 +91,14 @@ public:
 	void getEvVelPosInnovRatio(float &hvel, float &vvel, float &hpos, float &vpos) const;
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
+#if defined(CONFIG_EKF2_BAROMETER)
+	const auto &aid_src_baro_hgt() const { return _aid_src_baro_hgt; }
+	const BiasEstimator::status &getBaroBiasEstimatorStatus() const { return _baro_b_est.getStatus(); }
+
 	void getBaroHgtInnov(float &baro_hgt_innov) const { baro_hgt_innov = _aid_src_baro_hgt.innovation; }
 	void getBaroHgtInnovVar(float &baro_hgt_innov_var) const { baro_hgt_innov_var = _aid_src_baro_hgt.innovation_variance; }
 	void getBaroHgtInnovRatio(float &baro_hgt_innov_ratio) const { baro_hgt_innov_ratio = _aid_src_baro_hgt.test_ratio; }
+#endif // CONFIG_EKF2_BAROMETER
 
 #if defined(CONFIG_EKF2_TERRAIN)
 	// terrain estimate
@@ -503,7 +508,7 @@ public:
 	bool isYawEmergencyEstimateAvailable() const;
 
 	uint8_t getHeightSensorRef() const { return _height_sensor_ref; }
-	const BiasEstimator::status &getBaroBiasEstimatorStatus() const { return _baro_b_est.getStatus(); }
+
 	const BiasEstimator::status &getGpsHgtBiasEstimatorStatus() const { return _gps_hgt_b_est.getStatus(); }
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
@@ -519,8 +524,6 @@ public:
 #if defined(CONFIG_EKF2_SIDESLIP)
 	const auto &aid_src_sideslip() const { return _aid_src_sideslip; }
 #endif // CONFIG_EKF2_SIDESLIP
-
-	const auto &aid_src_baro_hgt() const { return _aid_src_baro_hgt; }
 
 	const auto &aid_src_fake_hgt() const { return _aid_src_fake_hgt; }
 	const auto &aid_src_fake_pos() const { return _aid_src_fake_pos; }
@@ -669,7 +672,6 @@ private:
 	bool _flow_data_ready{false};	///< true when the leading edge of the optical flow integration period has fallen behind the fusion time horizon
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
-	estimator_aid_source1d_s _aid_src_baro_hgt{};
 #if defined(CONFIG_EKF2_AIRSPEED)
 	estimator_aid_source1d_s _aid_src_airspeed{};
 #endif // CONFIG_EKF2_AIRSPEED
@@ -724,12 +726,20 @@ private:
 
 	// Variables used by the initial filter alignment
 	bool _is_first_imu_sample{true};
-	uint32_t _baro_counter{0};		///< number of baro samples read during initialisation
 	AlphaFilter<Vector3f> _accel_lpf{0.1f};	///< filtered accelerometer measurement used to align tilt (m/s/s)
 	AlphaFilter<Vector3f> _gyro_lpf{0.1f};	///< filtered gyro measurement used for alignment excessive movement check (rad/sec)
 
+#if defined(CONFIG_EKF2_BAROMETER)
+	estimator_aid_source1d_s _aid_src_baro_hgt{};
+
 	// Variables used to perform in flight resets and switch between height sources
 	AlphaFilter<float> _baro_lpf{0.1f};	///< filtered barometric height measurement (m)
+	uint32_t _baro_counter{0};		///< number of baro samples read during initialisation
+
+	HeightBiasEstimator _baro_b_est{HeightSensor::BARO, _height_sensor_ref};
+
+	bool _baro_hgt_faulty{false};		///< true if baro data have been declared faulty TODO: move to fault flags
+#endif // CONFIG_EKF2_BAROMETER
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	float _mag_heading_prev{};                 ///< previous value of mag heading (rad)
@@ -773,7 +783,6 @@ private:
 	Vector3f _prev_accel_bias_var{};        ///< saved accel XYZ bias variances
 
 	// height sensor status
-	bool _baro_hgt_faulty{false};		///< true if baro data have been declared faulty TODO: move to fault flags
 	bool _gps_intermittent{true};           ///< true if data into the buffer is intermittent
 
 	// imu fault status
@@ -1044,7 +1053,9 @@ private:
 	// and a scalar innovation value
 	void fuse(const Vector24f &K, float innovation);
 
+#if defined(CONFIG_EKF2_BARO_COMPENSATION)
 	float compensateBaroForDynamicPressure(float baro_alt_uncompensated) const;
+#endif // CONFIG_EKF2_BARO_COMPENSATION
 
 	// calculate the earth rotation vector from a given latitude
 	Vector3f calcEarthRateNED(float lat_rad) const;
@@ -1135,13 +1146,16 @@ private:
 	// control for combined height fusion mode (implemented for switching between baro and range height)
 	void controlHeightFusion(const imuSample &imu_delayed);
 	void checkHeightSensorRefFallback();
-	void controlBaroHeightFusion();
 	void controlGnssHeightFusion(const gpsSample &gps_sample);
 
+#if defined(CONFIG_EKF2_BAROMETER)
+	void controlBaroHeightFusion();
 	void stopBaroHgtFusion();
-	void stopGpsHgtFusion();
 
 	void updateGroundEffect();
+#endif // CONFIG_EKF2_BAROMETER
+
+	void stopGpsHgtFusion();
 
 	// gravity fusion: heuristically enable / disable gravity fusion
 	void controlGravityFusion(const imuSample &imu_delayed);
@@ -1198,7 +1212,6 @@ private:
 	uint8_t _height_sensor_ref{HeightSensor::UNKNOWN};
 	uint8_t _position_sensor_ref{static_cast<uint8_t>(PositionSensor::GNSS)};
 
-	HeightBiasEstimator _baro_b_est{HeightSensor::BARO, _height_sensor_ref};
 	HeightBiasEstimator _gps_hgt_b_est{HeightSensor::GNSS, _height_sensor_ref};
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)

@@ -50,7 +50,9 @@ EstimatorInterface::~EstimatorInterface()
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	delete _mag_buffer;
 #endif // CONFIG_EKF2_MAGNETOMETER
+#if defined(CONFIG_EKF2_BAROMETER)
 	delete _baro_buffer;
+#endif // CONFIG_EKF2_BAROMETER
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	delete _range_buffer;
 #endif // CONFIG_EKF2_RANGE_FINDER
@@ -221,6 +223,7 @@ void EstimatorInterface::setGpsData(const gpsMessage &gps)
 	}
 }
 
+#if defined(CONFIG_EKF2_BAROMETER)
 void EstimatorInterface::setBaroData(const baroSample &baro_sample)
 {
 	if (!_initialised) {
@@ -256,6 +259,7 @@ void EstimatorInterface::setBaroData(const baroSample &baro_sample)
 		ECL_WARN("baro data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us, _baro_buffer->get_newest().time_us, _min_obs_interval_us);
 	}
 }
+#endif // CONFIG_EKF2_BAROMETER
 
 #if defined(CONFIG_EKF2_AIRSPEED)
 void EstimatorInterface::setAirspeedData(const airspeedSample &airspeed_sample)
@@ -717,9 +721,11 @@ void EstimatorInterface::print_status()
 	}
 #endif // CONFIG_EKF2_MAGNETOMETER
 
+#if defined(CONFIG_EKF2_BAROMETER)
 	if (_baro_buffer) {
 		printf("baro buffer: %d/%d (%d Bytes)\n", _baro_buffer->entries(), _baro_buffer->get_length(), _baro_buffer->get_total_size());
 	}
+#endif // CONFIG_EKF2_BAROMETER
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	if (_range_buffer) {
