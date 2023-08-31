@@ -139,12 +139,15 @@ if(CONFIG_EKF2_RANGE_FINDER)
 		EKF/range_finder_consistency_check.cpp
 		EKF/range_height_control.cpp
 		EKF/sensor_range_finder.cpp
-		EKF/terrain_estimator.cpp
 	)
 endif()
 
 if(CONFIG_EKF2_SIDESLIP)
 	list(APPEND EKF_SRCS EKF/sideslip_fusion.cpp)
+endif()
+
+if(CONFIG_EKF2_TERRAIN)
+	list(APPEND EKF_SRCS EKF/terrain_estimator.cpp)
 endif()
 
 px4_add_module(

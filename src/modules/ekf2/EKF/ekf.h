@@ -95,23 +95,7 @@ public:
 	void getBaroHgtInnovVar(float &baro_hgt_innov_var) const { baro_hgt_innov_var = _aid_src_baro_hgt.innovation_variance; }
 	void getBaroHgtInnovRatio(float &baro_hgt_innov_ratio) const { baro_hgt_innov_ratio = _aid_src_baro_hgt.test_ratio; }
 
-#if defined(CONFIG_EKF2_RANGE_FINDER)
-	// range height
-	const BiasEstimator::status &getRngHgtBiasEstimatorStatus() const { return _rng_hgt_b_est.getStatus(); }
-	const auto &aid_src_rng_hgt() const { return _aid_src_rng_hgt; }
-
-	void getRngHgtInnov(float &rng_hgt_innov) const { rng_hgt_innov = _aid_src_rng_hgt.innovation; }
-	void getRngHgtInnovVar(float &rng_hgt_innov_var) const { rng_hgt_innov_var = _aid_src_rng_hgt.innovation_variance; }
-	void getRngHgtInnovRatio(float &rng_hgt_innov_ratio) const { rng_hgt_innov_ratio = _aid_src_rng_hgt.test_ratio; }
-
-	void getHaglInnov(float &hagl_innov) const { hagl_innov = _hagl_innov; }
-	void getHaglInnovVar(float &hagl_innov_var) const { hagl_innov_var = _hagl_innov_var; }
-	void getHaglInnovRatio(float &hagl_innov_ratio) const { hagl_innov_ratio = _hagl_test_ratio; }
-
-	void getHaglRateInnov(float &hagl_rate_innov) const { hagl_rate_innov = _rng_consistency_check.getInnov(); }
-	void getHaglRateInnovVar(float &hagl_rate_innov_var) const { hagl_rate_innov_var = _rng_consistency_check.getInnovVar(); }
-	void getHaglRateInnovRatio(float &hagl_rate_innov_ratio) const { hagl_rate_innov_ratio = _rng_consistency_check.getSignedTestRatioLpf(); }
-
+#if defined(CONFIG_EKF2_TERRAIN)
 	// terrain estimate
 	bool isTerrainEstimateValid() const;
 
@@ -125,13 +109,64 @@ public:
 
 	// get the terrain variance
 	float get_terrain_var() const { return _terrain_var; }
+
+# if defined(CONFIG_EKF2_RANGE_FINDER)
+	const auto &aid_src_terrain_range_finder() const { return _aid_src_terrain_range_finder; }
+
+	void getHaglInnov(float &hagl_innov) const { hagl_innov = _aid_src_terrain_range_finder.innovation; }
+	void getHaglInnovVar(float &hagl_innov_var) const { hagl_innov_var = _aid_src_terrain_range_finder.innovation_variance; }
+	void getHaglInnovRatio(float &hagl_innov_ratio) const { hagl_innov_ratio = _aid_src_terrain_range_finder.test_ratio; }
+# endif // CONFIG_EKF2_RANGE_FINDER
+
+# if defined(CONFIG_EKF2_OPTICAL_FLOW)
+	const auto &aid_src_terrain_optical_flow() const { return _aid_src_terrain_optical_flow; }
+
+	void getTerrainFlowInnov(float flow_innov[2]) const
+	{
+		flow_innov[0] = _aid_src_terrain_optical_flow.innovation[0];
+		flow_innov[1] = _aid_src_terrain_optical_flow.innovation[1];
+	}
+
+	void getTerrainFlowInnovVar(float flow_innov_var[2]) const
+	{
+		flow_innov_var[0] = _aid_src_terrain_optical_flow.innovation_variance[0];
+		flow_innov_var[1] = _aid_src_terrain_optical_flow.innovation_variance[1];
+	}
+
+	void getTerrainFlowInnovRatio(float &flow_innov_ratio) const { flow_innov_ratio = math::max(_aid_src_terrain_optical_flow.test_ratio[0], _aid_src_terrain_optical_flow.test_ratio[1]); }
+# endif // CONFIG_EKF2_OPTICAL_FLOW
+
+#endif // CONFIG_EKF2_TERRAIN
+
+#if defined(CONFIG_EKF2_RANGE_FINDER)
+	// range height
+	const BiasEstimator::status &getRngHgtBiasEstimatorStatus() const { return _rng_hgt_b_est.getStatus(); }
+	const auto &aid_src_rng_hgt() const { return _aid_src_rng_hgt; }
+
+	void getRngHgtInnov(float &rng_hgt_innov) const { rng_hgt_innov = _aid_src_rng_hgt.innovation; }
+	void getRngHgtInnovVar(float &rng_hgt_innov_var) const { rng_hgt_innov_var = _aid_src_rng_hgt.innovation_variance; }
+	void getRngHgtInnovRatio(float &rng_hgt_innov_ratio) const { rng_hgt_innov_ratio = _aid_src_rng_hgt.test_ratio; }
+
+	void getHaglRateInnov(float &hagl_rate_innov) const { hagl_rate_innov = _rng_consistency_check.getInnov(); }
+	void getHaglRateInnovVar(float &hagl_rate_innov_var) const { hagl_rate_innov_var = _rng_consistency_check.getInnovVar(); }
+	void getHaglRateInnovRatio(float &hagl_rate_innov_ratio) const { hagl_rate_innov_ratio = _rng_consistency_check.getSignedTestRatioLpf(); }
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	const auto &aid_src_optical_flow() const { return _aid_src_optical_flow; }
 
-	void getFlowInnov(float flow_innov[2]) const;
-	void getFlowInnovVar(float flow_innov_var[2]) const;
+	void getFlowInnov(float flow_innov[2]) const
+	{
+		flow_innov[0] = _aid_src_optical_flow.innovation[0];
+		flow_innov[1] = _aid_src_optical_flow.innovation[1];
+	}
+
+	void getFlowInnovVar(float flow_innov_var[2]) const
+	{
+		flow_innov_var[0] = _aid_src_optical_flow.innovation_variance[0];
+		flow_innov_var[1] = _aid_src_optical_flow.innovation_variance[1];
+	}
+
 	void getFlowInnovRatio(float &flow_innov_ratio) const { flow_innov_ratio = math::max(_aid_src_optical_flow.test_ratio[0], _aid_src_optical_flow.test_ratio[1]); }
 
 	const Vector2f &getFlowVelBody() const { return _flow_vel_body; }
@@ -142,12 +177,6 @@ public:
 
 	const Vector3f getFlowGyro() const { return _flow_sample_delayed.gyro_xyz * (1.f / _flow_sample_delayed.dt); }
 	const Vector3f &getFlowGyroIntegral() const { return _flow_sample_delayed.gyro_xyz; }
-
-	void getTerrainFlowInnov(float flow_innov[2]) const;
-	void getTerrainFlowInnovVar(float flow_innov_var[2]) const;
-	void getTerrainFlowInnovRatio(float &flow_innov_ratio) const { flow_innov_ratio = math::max(_aid_src_terrain_optical_flow.test_ratio[0], _aid_src_terrain_optical_flow.test_ratio[1]); }
-
-	const auto &aid_src_terrain_optical_flow() const { return _aid_src_terrain_optical_flow; }
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_AUXVEL)
@@ -598,30 +627,33 @@ private:
 	Vector2f _drag_innov_var{};	///< multirotor drag measurement innovation variance ((m/sec**2)**2)
 #endif // CONFIG_EKF2_DRAG_FUSION
 
-#if defined(CONFIG_EKF2_RANGE_FINDER)
-	estimator_aid_source1d_s _aid_src_rng_hgt{};
-
-	HeightBiasEstimator _rng_hgt_b_est{HeightSensor::RANGE, _height_sensor_ref};
-
-	float _hagl_innov{0.0f};		///< innovation of the last height above terrain measurement (m)
-	float _hagl_innov_var{0.0f};		///< innovation variance for the last height above terrain measurement (m**2)
-	float _hagl_test_ratio{}; // height above terrain measurement innovation consistency check ratio
-
-	uint64_t _time_last_healthy_rng_data{0};
-
+#if defined(CONFIG_EKF2_TERRAIN)
 	// Terrain height state estimation
 	float _terrain_vpos{0.0f};		///< estimated vertical position of the terrain underneath the vehicle in local NED frame (m)
 	float _terrain_var{1e4f};		///< variance of terrain position estimate (m**2)
 	uint8_t _terrain_vpos_reset_counter{0};	///< number of times _terrain_vpos has been reset
-	uint64_t _time_last_hagl_fuse{0};		///< last system time that a range sample was fused by the terrain estimator
-	terrain_fusion_status_u _hagl_sensor_status{}; ///< Struct indicating type of sensor used to estimate height above ground
 
+	terrain_fusion_status_u _hagl_sensor_status{}; ///< Struct indicating type of sensor used to estimate height above ground
 	float _last_on_ground_posD{0.0f};	///< last vertical position when the in_air status was false (m)
+
+# if defined(CONFIG_EKF2_RANGE_FINDER)
+	estimator_aid_source1d_s _aid_src_terrain_range_finder{};
+	uint64_t _time_last_healthy_rng_data{0};
+# endif // CONFIG_EKF2_RANGE_FINDER
+
+# if defined(CONFIG_EKF2_OPTICAL_FLOW)
+	estimator_aid_source2d_s _aid_src_terrain_optical_flow{};
+# endif // CONFIG_EKF2_OPTICAL_FLOW
+
+#endif // CONFIG_EKF2_TERRAIN
+
+#if defined(CONFIG_EKF2_RANGE_FINDER)
+	estimator_aid_source1d_s _aid_src_rng_hgt{};
+	HeightBiasEstimator _rng_hgt_b_est{HeightSensor::RANGE, _height_sensor_ref};
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	estimator_aid_source2d_s _aid_src_optical_flow{};
-	estimator_aid_source2d_s _aid_src_terrain_optical_flow{};
 
 	// optical flow processing
 	Vector3f _flow_gyro_bias{};	///< bias errors in optical flow sensor rate gyro outputs (rad/sec)
@@ -635,7 +667,6 @@ private:
 	Vector2f _flow_compensated_XY_rad{};	///< measured delta angle of the image about the X and Y body axes after removal of body rotation (rad), RH rotation is positive
 
 	bool _flow_data_ready{false};	///< true when the leading edge of the optical flow integration period has fallen behind the fusion time horizon
-	uint64_t _time_last_flow_terrain_fuse{0}; ///< time the last fusion of optical flow measurements for terrain estimation were performed (uSec)
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 	estimator_aid_source1d_s _aid_src_baro_hgt{};
@@ -867,12 +898,7 @@ private:
 	void fuseVelocity(estimator_aid_source2d_s &vel_aid_src);
 	void fuseVelocity(estimator_aid_source3d_s &vel_aid_src);
 
-#if defined(CONFIG_EKF2_RANGE_FINDER)
-	// range height
-	void controlRangeHeightFusion();
-	bool isConditionalRangeAidSuitable();
-	void stopRngHgtFusion();
-
+#if defined(CONFIG_EKF2_TERRAIN)
 	// terrain vertical position estimator
 	void initHagl();
 	void runTerrainEstimator(const imuSample &imu_delayed);
@@ -880,16 +906,33 @@ private:
 
 	float getTerrainVPos() const { return isTerrainEstimateValid() ? _terrain_vpos : _last_on_ground_posD; }
 
+	void controlHaglFakeFusion();
+
+# if defined(CONFIG_EKF2_RANGE_FINDER)
 	// update the terrain vertical position estimate using a height above ground measurement from the range finder
 	void controlHaglRngFusion();
-	void fuseHaglRng();
-	void startHaglRngFusion();
-	void resetHaglRngIfNeeded();
+	void updateHaglRng(estimator_aid_source1d_s &aid_src) const;
+	void fuseHaglRng(estimator_aid_source1d_s &aid_src);
 	void resetHaglRng();
 	void stopHaglRngFusion();
-	float getRngVar();
+	float getRngVar() const;
+# endif // CONFIG_EKF2_RANGE_FINDER
 
-	void controlHaglFakeFusion();
+# if defined(CONFIG_EKF2_OPTICAL_FLOW)
+	// update the terrain vertical position estimate using an optical flow measurement
+	void controlHaglFlowFusion();
+	void resetHaglFlow();
+	void stopHaglFlowFusion();
+	void fuseFlowForTerrain(estimator_aid_source2d_s &flow);
+# endif // CONFIG_EKF2_OPTICAL_FLOW
+
+#endif // CONFIG_EKF2_TERRAIN
+
+#if defined(CONFIG_EKF2_RANGE_FINDER)
+	// range height
+	void controlRangeHeightFusion();
+	bool isConditionalRangeAidSuitable();
+	void stopRngHgtFusion();
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
@@ -912,13 +955,6 @@ private:
 	void fuseOptFlow();
 	float predictFlowRange();
 	Vector2f predictFlowVelBody();
-
-	// update the terrain vertical position estimate using an optical flow measurement
-	void controlHaglFlowFusion();
-	void startHaglFlowFusion();
-	void resetHaglFlow();
-	void stopHaglFlowFusion();
-	void fuseFlowForTerrain(estimator_aid_source2d_s &flow);
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)

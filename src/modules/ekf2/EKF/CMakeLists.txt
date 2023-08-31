@@ -104,12 +104,15 @@ if(CONFIG_EKF2_RANGE_FINDER)
 		range_finder_consistency_check.cpp
 		range_height_control.cpp
 		sensor_range_finder.cpp
-		terrain_estimator.cpp
 	)
 endif()
 
 if(CONFIG_EKF2_SIDESLIP)
 	list(APPEND EKF_SRCS sideslip_fusion.cpp)
+endif()
+
+if(CONFIG_EKF2_TERRAIN)
+	list(APPEND EKF_SRCS terrain_estimator.cpp)
 endif()
 
 add_library(ecl_EKF
