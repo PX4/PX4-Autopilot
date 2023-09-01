@@ -160,7 +160,7 @@ int8 ARMING_ACTION_ARM = 1
 uint8 GRIPPER_ACTION_RELEASE = 0
 uint8 GRIPPER_ACTION_GRAB = 1
 
-uint8 ORB_QUEUE_LENGTH = 8
+uint8 ORB_QUEUE_LENGTH = 16
 
 float32 param1			# Parameter 1, as defined by MAVLink uint16 VEHICLE_CMD enum.
 float32 param2			# Parameter 2, as defined by MAVLink uint16 VEHICLE_CMD enum.
