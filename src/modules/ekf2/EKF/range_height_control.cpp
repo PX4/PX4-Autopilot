@@ -64,13 +64,13 @@ void Ekf::controlRangeHeightFusion()
 
 			// Run the kinematic consistency check when not moving horizontally
 			if (_control_status.flags.in_air && !_control_status.flags.fixed_wing
-			    && (sq(_state.vel(0)) + sq(_state.vel(1)) < fmaxf(P(4, 4) + P(5, 5), 0.1f))) {
+			    && (sq(_state.vel(0)) + sq(_state.vel(1)) < fmaxf(P.trace<2>(State::vel.idx), 0.1f))) {
 
 				const float dist_dependant_var = sq(_params.range_noise_scaler * _range_sensor.getDistBottom());
 				const float var = sq(_params.range_noise) + dist_dependant_var;
 
 				_rng_consistency_check.setGate(_params.range_kin_consistency_gate);
-				_rng_consistency_check.update(_range_sensor.getDistBottom(), math::max(var, 0.001f), _state.vel(2), P(6, 6), _time_delayed_us);
+				_rng_consistency_check.update(_range_sensor.getDistBottom(), math::max(var, 0.001f), _state.vel(2), P(State::vel.idx + 2, State::vel.idx + 2), _time_delayed_us);
 			}
 
 		} else {
@@ -117,7 +117,7 @@ void Ekf::controlRangeHeightFusion()
 		if (measurement_valid && _range_sensor.isDataHealthy()) {
 			bias_est.setMaxStateNoise(sqrtf(measurement_var));
 			bias_est.setProcessNoiseSpectralDensity(_params.rng_hgt_bias_nsd);
-			bias_est.fuseBias(measurement - (-_state.pos(2)), measurement_var + P(9, 9));
+			bias_est.fuseBias(measurement - (-_state.pos(2)), measurement_var + P(State::pos.idx + 2, State::pos.idx + 2));
 		}
 
 		// determine if we should use height aiding

@@ -94,7 +94,7 @@ void Ekf::controlEvHeightFusion(const extVisionSample &ev_sample, const bool com
 	if (measurement_valid && quality_sufficient) {
 		bias_est.setMaxStateNoise(sqrtf(measurement_var));
 		bias_est.setProcessNoiseSpectralDensity(_params.ev_hgt_bias_nsd);
-		bias_est.fuseBias(measurement - _state.pos(2), measurement_var + P(9, 9));
+		bias_est.fuseBias(measurement - _state.pos(2), measurement_var + P(State::pos.idx + 2, State::pos.idx + 2));
 	}
 
 	const bool continuing_conditions_passing = (_params.ev_ctrl & static_cast<int32_t>(EvCtrl::VPOS))
