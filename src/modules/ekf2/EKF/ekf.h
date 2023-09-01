@@ -49,6 +49,7 @@
 #include "bias_estimator.hpp"
 #include "height_bias_estimator.hpp"
 #include "position_bias_estimator.hpp"
+#include "python/ekf_derivation/generated/state.h"
 
 #include <uORB/topics/estimator_aid_source1d.h>
 #include <uORB/topics/estimator_aid_source2d.h>
@@ -407,12 +408,12 @@ public:
 
 	// gyro bias (states 10, 11, 12)
 	const Vector3f &getGyroBias() const { return _state.gyro_bias; } // get the gyroscope bias in rad/s
-	Vector3f getGyroBiasVariance() const { return Vector3f{P(10, 10), P(11, 11), P(12, 12)}; } // get the gyroscope bias variance in rad/s
+	Vector3f getGyroBiasVariance() const { return P.slice<State::gyro_bias.dof, State::gyro_bias.dof>(State::gyro_bias.idx, State::gyro_bias.idx).diag(); } // get the gyroscope bias variance in rad/s
 	float getGyroBiasLimit() const { return _params.gyro_bias_lim; }
 
 	// accel bias (states 13, 14, 15)
 	const Vector3f &getAccelBias() const { return _state.accel_bias; } // get the accelerometer bias in m/s**2
-	Vector3f getAccelBiasVariance() const { return Vector3f{P(13, 13), P(14, 14), P(15, 15)}; } // get the accelerometer bias variance in m/s**2
+	Vector3f getAccelBiasVariance() const { return P.slice<State::accel_bias.dof, State::accel_bias.dof>(State::accel_bias.idx, State::accel_bias.idx).diag(); } // get the accelerometer bias variance in m/s**2
 	float getAccelBiasLimit() const { return _params.acc_bias_lim; }
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
@@ -423,7 +424,7 @@ public:
 	Vector3f getMagBiasVariance() const
 	{
 		if (_control_status.flags.mag) {
-			return Vector3f{P(19, 19), P(20, 20), P(21, 21)};
+			return P.slice<State::mag_B.dof, State::mag_B.dof>(State::mag_B.idx, State::mag_B.idx).diag();
 		}
 
 		return _saved_mag_bf_covmat.diag();
@@ -870,7 +871,7 @@ private:
 #endif // CONFIG_EKF2_DRAG_FUSION
 
 	// fuse single velocity and position measurement
-	bool fuseVelPosHeight(const float innov, const float innov_var, const int obs_index);
+	bool fuseVelPosHeight(const float innov, const float innov_var, const int state_index);
 
 	void resetVelocityTo(const Vector3f &vel, const Vector3f &new_vel_var);
 
@@ -1197,7 +1198,7 @@ private:
 	void resetFakePosFusion();
 	void stopFakePosFusion();
 
-	void setVelPosStatus(const int index, const bool healthy);
+	void setVelPosStatus(const int state_index, const bool healthy);
 
 	// reset the quaternion states and covariances to the new yaw value, preserving the roll and pitch
 	// yaw : Euler yaw angle (rad)

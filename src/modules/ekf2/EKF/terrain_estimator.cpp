@@ -182,7 +182,7 @@ void Ekf::controlHaglRngFusion()
 
 float Ekf::getRngVar() const
 {
-	return fmaxf(P(9, 9) * _params.vehicle_variance_scaler, 0.0f)
+	return fmaxf(P(State::pos.idx + 2, State::pos.idx + 2) * _params.vehicle_variance_scaler, 0.0f)
 	       + sq(_params.range_noise)
 	       + sq(_params.range_noise_scaler * _range_sensor.getRange());
 }

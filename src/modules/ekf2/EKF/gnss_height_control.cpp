@@ -82,7 +82,7 @@ void Ekf::controlGnssHeightFusion(const gpsSample &gps_sample)
 		if (measurement_valid && gps_checks_passing && !gps_checks_failing) {
 			bias_est.setMaxStateNoise(sqrtf(measurement_var));
 			bias_est.setProcessNoiseSpectralDensity(_params.gps_hgt_bias_nsd);
-			bias_est.fuseBias(measurement - (-_state.pos(2)), measurement_var + P(9, 9));
+			bias_est.fuseBias(measurement - (-_state.pos(2)), measurement_var + P(State::pos.idx + 2, State::pos.idx + 2));
 		}
 
 		// determine if we should use height aiding

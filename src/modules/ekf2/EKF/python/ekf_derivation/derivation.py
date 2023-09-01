@@ -558,3 +558,12 @@ generate_px4_function(compute_drag_y_innov_var_and_k, output_names=["innov_var",
 generate_px4_function(compute_gravity_innov_var_and_k_and_h, output_names=["innov", "innov_var", "Kx", "Ky", "Kz"])
 generate_px4_function(quat_var_to_rot_var, output_names=["rot_var"])
 generate_px4_function(rot_var_ned_to_lower_triangular_quat_cov, output_names=["q_cov_lower_triangle"])
+
+generate_px4_state({"quat_nominal": sf.V4,
+                    "vel": sf.V3,
+                    "pos": sf.V3,
+                    "gyro_bias": sf.V3,
+                    "accel_bias": sf.V3,
+                    "mag_I": sf.V3,
+                    "mag_B": sf.V3,
+                    "wind_vel": sf.V2})
