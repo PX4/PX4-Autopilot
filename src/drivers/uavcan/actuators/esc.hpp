@@ -54,6 +54,8 @@
 #include <drivers/drv_hrt.h>
 #include <lib/mixer_module/mixer_module.hpp>
 
+#include "../third_party_protocols/kdecan.hpp"
+
 class UavcanEscController
 {
 public:
@@ -64,7 +66,7 @@ public:
 	static_assert(uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize >= MAX_ACTUATORS, "Too many actuators");
 
 
-	UavcanEscController(uavcan::INode &node);
+	UavcanEscController(uavcan::INode &node, uavcan::Protocol can_protocol);
 	~UavcanEscController() = default;
 
 	int init();
@@ -78,6 +80,22 @@ public:
 
 	static int max_output_value() { return uavcan::equipment::esc::RawCommand::FieldTypes::cmd::RawValueType::max(); }
 
+	bool setCANProtocol(uavcan::Protocol can_protocol) {
+		if (can_protocol != uavcan::Protocol::Invalid) {
+			_can_protocol = can_protocol;
+
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	uavcan::Protocol getCANProtocol() { return _can_protocol; }
+
+	void kdeCanSetExtendedId(bool extended_id) { _extended_id = extended_id; }
+
+	void kdeCanSetMotorPoles(uint8_t motor_poles) { _kdecan_motor_poles = motor_poles; }
+
 	esc_status_s &esc_status() { return _esc_status; }
 
 private:
@@ -87,12 +105,35 @@ private:
 	void esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status> &msg);
 
 	/**
+	 * KDECAN ESC status message reception will be reported via these callbacks.
+	 */
+	void kdeesc_status_sub_cb(const kdecan::EscStatus&);
+	void kdeesc_input_throttle_sub_cb(const kdecan::InputThrottle&);
+	void kdeesc_output_throttle_sub_cb(const kdecan::OutputThrottle&);
+
+	/**
+	 * ESC status requests will be triggered from this callback (fixed rate).
+	 */
+	void kdeesc_status_timer_cb(const uavcan::TimerEvent &event);
+
+	/**
 	 * Checks all the ESCs freshness based on timestamp, if an ESC exceeds the timeout then is flagged offline.
 	 */
 	uint8_t check_escs_status();
 
+	static constexpr unsigned ESC_STATUS_UPDATE_RATE_HZ = 10;
+
 	typedef uavcan::MethodBinder<UavcanEscController *,
 		void (UavcanEscController::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status>&)> StatusCbBinder;
+
+	typedef uavcan::MethodBinder<UavcanEscController *,
+		void (UavcanEscController::*)(const kdecan::EscStatus&)>  KdeStatusCbBinder;
+
+	typedef uavcan::MethodBinder<UavcanEscController *,
+		void (UavcanEscController::*)(const kdecan::InputThrottle&)>  KdeInputThrottleCbBinder;
+
+	typedef uavcan::MethodBinder<UavcanEscController *,
+		void (UavcanEscController::*)(const kdecan::OutputThrottle&)>  KdeOutputThrottleCbBinder;
 
 	typedef uavcan::MethodBinder<UavcanEscController *,
 		void (UavcanEscController::*)(const uavcan::TimerEvent &)> TimerCbBinder;
@@ -103,6 +144,8 @@ private:
 
 	uint8_t		_rotor_count{0};
 
+	uint8_t 	_kdecan_motor_poles{1};
+
 	/*
 	 * libuavcan related things
 	 */
@@ -110,6 +153,18 @@ private:
 	uavcan::INode								&_node;
 	uavcan::Publisher<uavcan::equipment::esc::RawCommand>			_uavcan_pub_raw_cmd;
 	uavcan::Subscriber<uavcan::equipment::esc::Status, StatusCbBinder>	_uavcan_sub_status;
+	uavcan::TimerEventForwarder<TimerCbBinder>				_orb_timer;
+
+	kdecan::Publisher<kdecan::EscStatus>					_kde_status_pub;
+	kdecan::Subscriber<kdecan::EscStatus, KdeStatusCbBinder>		_kde_status_sub;
+	kdecan::Subscriber<kdecan::InputThrottle, KdeInputThrottleCbBinder>	_kde_ith_sub;
+	kdecan::Publisher<kdecan::InputThrottle>				_kde_ith_pub;
+	kdecan::Subscriber<kdecan::OutputThrottle, KdeOutputThrottleCbBinder>	_kde_oth_sub;
+	kdecan::Publisher<kdecan::OutputThrottle>				_kde_oth_pub;
+	kdecan::Publisher<kdecan::PwmThrottle>					_kde_pwm_pub;
+
+	uavcan::Protocol							_can_protocol;
+	bool 									_extended_id;
 
 	/*
 	 * ESC states

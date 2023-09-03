@@ -82,7 +82,7 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	_node(can_driver, system_clock, _pool_allocator),
 	_arming_status_controller(_node),
 	_beep_controller(_node),
-	_esc_controller(_node),
+	_esc_controller(_node, uavcan::Protocol::Standard),
 	_servo_controller(_node),
 	_hardpoint_controller(_node),
 	_safety_state_controller(_node),
@@ -105,6 +105,67 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 
 	_mixing_interface_esc.mixingOutput().setMaxTopicUpdateRate(1000000 / UavcanEscController::MAX_RATE_HZ);
 	_mixing_interface_servo.mixingOutput().setMaxTopicUpdateRate(1000000 / UavcanServoController::MAX_RATE_HZ);
+
+	/* set proper CAN protocols */
+	int32_t can_protocol_param;
+
+	bool protocol_accepted = false;
+	uavcan::Protocol can_protocol_1 = uavcan::Protocol::Standard;
+	if (param_get(param_find("CAN1_PROTO"), &can_protocol_param) == PX4_OK) {
+		can_protocol_1 =
+		    (can_protocol_param == uavcan::Protocol::Standard) ? uavcan::Protocol::Standard :
+		    (can_protocol_param == kdecan::protocolID) ? kdecan::protocolID : uavcan::Protocol::Invalid;
+
+		protocol_accepted = _node.getDispatcher().getCanIOManager().changeIfaceProtocol(0, can_protocol_1);
+	}
+
+	if (!protocol_accepted) {
+		PX4_INFO("Coudld not find protocol for CAN1 - defaulting to UAVCAN");
+	}
+
+	protocol_accepted = false;
+	uavcan::Protocol can_protocol_2 = uavcan::Protocol::Standard;
+	if (param_get(param_find("CAN2_PROTO"), &can_protocol_param) == PX4_OK) {
+		can_protocol_2 =
+		    (can_protocol_param == uavcan::Protocol::Standard) ? uavcan::Protocol::Standard :
+		    (can_protocol_param == kdecan::protocolID) ? kdecan::protocolID : uavcan::Protocol::Invalid;
+
+		protocol_accepted = _node.getDispatcher().getCanIOManager().changeIfaceProtocol(1, can_protocol_2);
+	}
+
+	if (!protocol_accepted) {
+		PX4_INFO("Coudld not find protocol for CAN2 - defaulting to UAVCAN");
+	}
+
+	protocol_accepted = false;
+	if (param_get(param_find("CAN_ESC_PROTO"), &can_protocol_param) == PX4_OK) {
+		uavcan::Protocol can_protocol =
+		    (can_protocol_param == uavcan::Protocol::Standard) ? uavcan::Protocol::Standard :
+		    (can_protocol_param == kdecan::protocolID) ? kdecan::protocolID : uavcan::Protocol::Invalid;
+
+		protocol_accepted = _esc_controller.setCANProtocol(can_protocol);
+	}
+
+	if (!protocol_accepted) {
+		PX4_INFO("Coudld not find CAN protocol for ESCs - defaulting to UAVCAN");
+	}
+
+	// Set KDE specific properties
+	// the two interfaces should support UAVCAN and KDECAN, we need to separate frames
+	// we do this with the extended ID flag (kdecan will have this flag at false)
+	if (can_protocol_1 == can_protocol_2 && can_protocol_1 == uavcan::Protocol::Standard &&
+	    can_protocol_param == kdecan::protocolID) {
+		_esc_controller.kdeCanSetExtendedId(false);
+
+	} else {
+		_esc_controller.kdeCanSetExtendedId(true);
+	}
+
+	int32_t motor_poles;
+
+	if (param_get(param_find("KDECAN_MOT_POLES"), &motor_poles) == PX4_OK) {
+		_esc_controller.kdeCanSetMotorPoles(motor_poles);
+	}
 }
 
 UavcanNode::~UavcanNode()

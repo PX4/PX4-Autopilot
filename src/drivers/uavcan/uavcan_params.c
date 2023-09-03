@@ -378,3 +378,48 @@ PARAM_DEFINE_INT32(UAVCAN_SUB_RNG, 0);
  * @group UAVCAN
  */
 PARAM_DEFINE_INT32(UAVCAN_SUB_BTN, 0);
+
+/**
+ * CAN protocol selection for interface 1
+ *
+ *
+ * @min 0
+ * @max 1
+ * @value 0 UAVCAN
+ * @value 1 KDECAN
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(CAN1_PROTO, 0);
+
+/**
+ * CAN protocol selection for interface 2
+ *
+ *
+ * @min 0
+ * @max 1
+ * @value 0 UAVCAN
+ * @value 1 KDECAN
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(CAN2_PROTO, 0);
+
+/**
+ * CAN protocol selection for esc controls
+ *
+ *
+ * @min 0
+ * @max 1
+ * @value 0 UAVCAN
+ * @value 1 KDECAN
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(CAN_ESC_PROTO, 0);
+
+/**
+ * KDECAN motor pole number for RPM conversion
+ *
+ * @min 0
+ * @max 100
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(KDECAN_MOT_POLES, 28);
