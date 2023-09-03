@@ -124,7 +124,7 @@ parameters:
             default: 0
         CA_ROTOR${i}_PX:
             description:
-                short: Position of rotor ${i} along X body axis
+                short: Position of rotor ${i} along X body axis relative to center of gravity
             type: float
             decimal: 2
             increment: 0.1
@@ -135,7 +135,7 @@ parameters:
             default: 0.0
         CA_ROTOR${i}_PY:
             description:
-                short: Position of rotor ${i} along Y body axis
+                short: Position of rotor ${i} along Y body axis relative to center of gravity
             type: float
             decimal: 2
             increment: 0.1
@@ -146,7 +146,7 @@ parameters:
             default: 0.0
         CA_ROTOR${i}_PZ:
             description:
-                short: Position of rotor ${i} along Z body axis
+                short: Position of rotor ${i} along Z body axis relative to center of gravity
             type: float
             decimal: 2
             increment: 0.1
