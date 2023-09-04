@@ -172,6 +172,12 @@ then
 	ms5525dso start -X
 fi
 
+# TE ASP5033 differential pressure sensor external I2C
+if param compare -s SENS_EN_ASP5033 1
+then
+	asp5033 start -X
+fi
+
 # SHT3x temperature and hygrometer sensor, external I2C
 if param compare -s SENS_EN_SHT3X 1
 then
