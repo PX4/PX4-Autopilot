@@ -81,9 +81,6 @@
 #include <uORB/topics/input_rc.h>
 #include <uORB/topics/irlock_report.h>
 #include <uORB/topics/landing_target_pose.h>
-#include <uORB/topics/fiducial_marker_pos_report.h>
-#include <uORB/topics/fiducial_marker_yaw_report.h>
-#include <uORB/topics/target_gnss.h>
 #include <uORB/topics/log_message.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/mavlink_tunnel.h>
@@ -123,6 +120,9 @@
 # include <uORB/topics/debug_key_value.h>
 # include <uORB/topics/debug_value.h>
 # include <uORB/topics/debug_vect.h>
+# include <uORB/topics/fiducial_marker_pos_report.h>
+# include <uORB/topics/fiducial_marker_yaw_report.h>
+# include <uORB/topics/target_gnss.h>
 #endif // !CONSTRAINED_FLASH
 
 using namespace time_literals;
