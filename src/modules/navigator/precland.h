@@ -46,6 +46,11 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/landing_target_pose.h>
 
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+#include <uORB/topics/prec_land_status.h>
+#include <uORB/topics/vte_orientation.h>
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+
 #include "navigator_mode.h"
 #include "mission_block.h"
 
@@ -105,11 +110,40 @@ private:
 
 	// check if a given state could be changed into. Return true if possible to transition to state, false otherwise
 	bool check_state_conditions(PrecLandState state);
+
+	/**
+	 * Compute the horizontal landing-target position setpoint in the local NED frame.
+	 *
+	 * For a static target, returns the latest absolute target position.
+	 * For a moving target (only when the vision target estimator is built with
+	 * CONFIG_VTEST_MOVING and the target velocity is valid), shifts the position forward along
+	 * the estimated absolute target velocity by an intersection time bounded by
+	 * PLD_MOVING_T_MIN / PLD_MOVING_T_MAX, so the vehicle aims at where the target will be at
+	 * touchdown rather than where it was last seen.
+	 */
+	matrix::Vector2f get_target_position_setpoint();
 	void slewrate(float &sp_x, float &sp_y);
+	void clear_current_yaw_setpoint();
+
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	void update_current_yaw_setpoint();
+	void reset_target_yaw_state();
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 	landing_target_pose_s _target_pose{}; /**< precision landing target position */
 
 	uORB::Subscription _target_pose_sub{ORB_ID(landing_target_pose)};
+
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	uORB::Subscription _target_orientation_sub {ORB_ID(vte_orientation)};
+	float _target_yaw{0.f};
+	bool _target_yaw_valid{false};
+	hrt_abstime _last_target_yaw_update{0};
+	uORB::Publication<prec_land_status_s> _prec_land_status_pub {ORB_ID(prec_land_status)};
+	void publish_prec_land_status(uint8_t state);
+	static uint8_t map_prec_land_state(PrecLandState state);
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+
 	bool _target_pose_valid{false}; /**< whether we have received a landing target position message */
 	bool _target_pose_updated{false}; /**< wether the landing target position message is updated */
 
@@ -133,6 +167,13 @@ private:
 	bool _is_activated {false}; /**< indicates if precland is activated */
 
 	DEFINE_PARAMETERS(
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+		(ParamInt<px4::params::PLD_YAW_EN>) _param_pld_yaw_en,
+# if defined(CONFIG_VTEST_MOVING)
+		(ParamFloat<px4::params::PLD_MOVING_T_MAX>) _param_pld_moving_t_max,
+		(ParamFloat<px4::params::PLD_MOVING_T_MIN>) _param_pld_moving_t_min,
+# endif // CONFIG_VTEST_MOVING
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 		(ParamFloat<px4::params::PLD_BTOUT>) _param_pld_btout,
 		(ParamFloat<px4::params::PLD_HACC_RAD>) _param_pld_hacc_rad,
 		(ParamFloat<px4::params::PLD_FAPPR_ALT>) _param_pld_fappr_alt,
@@ -146,5 +187,12 @@ private:
 	param_t	_handle_param_xy_vel_cruise{PARAM_INVALID};
 	float	_param_acceleration_hor{0.0f};
 	float	_param_xy_vel_cruise{0.0f};
+
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+# if defined(CONFIG_VTEST_MOVING)
+	param_t	_handle_param_z_v_auto_dn {PARAM_INVALID};
+	float	_param_z_v_auto_dn{0.0f};
+# endif // CONFIG_VTEST_MOVING
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
 
 };

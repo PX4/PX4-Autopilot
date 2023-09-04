@@ -534,6 +534,8 @@ private:
 #if defined(CONFIG_EKF2_AUXVEL)
 		(ParamExtFloat<px4::params::EKF2_AVEL_DELAY>)
 		_param_ekf2_avel_delay,	///< auxiliary velocity measurement delay relative to the IMU (mSec)
+		(ParamBool<px4::params::EKF2_AVEL_EN>)
+		_param_ekf2_avel_en,	///< fuse landing_target_pose relative velocity as auxiliary velocity
 #endif // CONFIG_EKF2_AUXVEL
 
 		(ParamExtFloat<px4::params::EKF2_GYR_NOISE>)

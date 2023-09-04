@@ -25,6 +25,30 @@ parameters:
       max: 10
       decimal: 2
       increment: 0.1
+    PLD_MOVING_T_MAX:
+      description:
+        short: Maximum moving-target prediction time
+        long: |-
+          When the landing target is moving, precision land aims at the estimated future
+          target position after a constrained prediction time. This sets the maximum time.
+      type: float
+      default: 3.0
+      min: 0.1
+      max: 60
+      unit: s
+      decimal: 2
+    PLD_MOVING_T_MIN:
+      description:
+        short: Minimum moving-target prediction time
+        long: |-
+          When the landing target is moving, precision land aims at the estimated future
+          target position after a constrained prediction time. This sets the minimum time.
+      type: float
+      default: 2.0
+      min: 0.1
+      max: 30
+      unit: s
+      decimal: 2
     PLD_FAPPR_ALT:
       description:
         short: Final approach altitude
@@ -70,3 +94,11 @@ parameters:
       default: 3
       min: 0
       max: 100
+    PLD_YAW_EN:
+      description:
+        short: Set to true to control yaw while landing.
+        long: Control the orientation when landing. The orientation comes from the topic vte_orientation.
+      type: boolean
+      default: 0
+      min: 0
+      max: 1

@@ -196,6 +196,23 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic_multi("estimator_status_flags", 10);
 	add_optional_topic_multi("yaw_estimator_status", 1000);
 
+	// Vision target estimator topics
+#if defined(CONFIG_MODULES_VISION_TARGET_ESTIMATOR) && CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+	add_topic("vte_input", 50);
+	add_topic("vte_position", 100);
+	add_topic("vte_orientation", 100);
+	add_topic("vte_bias_init_status", 10); // High rate because rarely published and only for a short period of time
+	add_topic("vte_aid_gps_pos_target", 100);
+	add_topic("vte_aid_gps_pos_mission", 100);
+	add_topic("vte_aid_gps_vel_uav", 100);
+	add_topic("vte_aid_gps_vel_target", 100);
+	add_topic("vte_aid_fiducial_marker", 100);
+	add_topic("vte_aid_ev_yaw", 100);
+	add_topic("fiducial_marker_pos_report", 100);
+	add_topic("fiducial_marker_yaw_report", 100);
+	add_topic("target_gnss", 100);
+#endif // CONFIG_MODULES_VISION_TARGET_ESTIMATOR
+
 	// log all raw sensors at minimal rate (at least 1 Hz)
 	add_topic_multi("battery_status", 200, 3);
 	add_topic_multi("differential_pressure", 1000, 2);

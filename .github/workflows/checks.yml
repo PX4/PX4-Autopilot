@@ -75,7 +75,9 @@ jobs:
       - name: Build and run unit tests
         env:
           PX4_SBOM_DISABLE: 1
-        run: make tests
+        run: |
+          make tests
+          make tests_vtest_moving
 
       - uses: ./.github/actions/save-ccache
         if: always()
