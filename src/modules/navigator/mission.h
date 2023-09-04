@@ -51,6 +51,10 @@
 #include "mission_base.h"
 #include "navigation.h"
 
+#if !defined(CONSTRAINED_FLASH)
+#include <uORB/topics/prec_land_status.h>
+#endif
+
 class Navigator;
 
 class Mission : public MissionBase
@@ -95,4 +99,9 @@ private:
 				  size_t &num_found_items);
 
 	bool _need_mission_save{false};
+
+#if !defined(CONSTRAINED_FLASH)
+	uORB::Publication<prec_land_status_s> _prec_land_status_pub {ORB_ID(prec_land_status)};
+	void _publish_prec_land_status(const bool prec_land_ongoing);
+#endif
 };

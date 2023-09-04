@@ -79,6 +79,7 @@ public:
 	PrecLandMode get_mode() { return _mode; };
 
 	bool is_activated() { return _is_activated; };
+	int get_prec_land_nav_state() {return (int)_state;};
 
 private:
 

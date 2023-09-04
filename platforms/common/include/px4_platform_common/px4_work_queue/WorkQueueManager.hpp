@@ -70,6 +70,8 @@ static constexpr wq_config_t I2C4{"wq:I2C4", CONFIG_WQ_I2C_STACKSIZE, (int8_t)CO
 // PX4 att/pos controllers, highest priority after sensors.
 static constexpr wq_config_t nav_and_controllers{"wq:nav_and_controllers", CONFIG_WQ_NAV_AND_CONTROLLERS_STACKSIZE, (int8_t)CONFIG_WQ_NAV_AND_CONTROLLERS_PRIORITY};
 
+static constexpr wq_config_t vte{"wq:vte", CONFIG_WQ_VTE_STACKSIZE, (int8_t)CONFIG_WQ_VTE_PRIORITY};
+
 static constexpr wq_config_t INS0{"wq:INS0", CONFIG_WQ_INS_STACKSIZE, (int8_t)CONFIG_WQ_INS0_PRIORITY};
 static constexpr wq_config_t INS1{"wq:INS1", CONFIG_WQ_INS_STACKSIZE, (int8_t)CONFIG_WQ_INS1_PRIORITY};
 static constexpr wq_config_t INS2{"wq:INS2", CONFIG_WQ_INS_STACKSIZE, (int8_t)CONFIG_WQ_INS2_PRIORITY};
