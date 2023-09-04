@@ -177,6 +177,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic_multi("yaw_estimator_status", 1000);
 
 	// Vision target estimator topics
+#if !defined(CONSTRAINED_FLASH)
 	add_topic("vision_target_est_position", 100);
 	add_topic("vision_target_est_orientation", 100);
 	add_optional_topic("vte_aid_gps_pos_target", 100);
@@ -186,6 +187,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("vte_aid_fiducial_marker", 100);
 	add_optional_topic("vte_aid_ev_yaw", 100);
 	add_optional_topic("vte_acc_input", 50);
+#endif // !CONSTRAINED_FLASH
 
 	// log all raw sensors at minimal rate (at least 1 Hz)
 	add_topic_multi("battery_status", 200, 2);
