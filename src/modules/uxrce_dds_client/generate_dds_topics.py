@@ -112,9 +112,9 @@ for p in msg_map['publications']:
     else:
         p['topic_name'] = p['topic_simple']
 
-    # topic_pub_thold: eg. rate: 10Hz => topic_pub_thold_us = 100000 (us)
+    # topic_pub_thold: eg. rate: 20Hz => topic_pub_thold_us = 50 (ms)
     if 'rate' in p:
-        p['topic_pub_thold_us'] = int(1000000 / p['rate'])
+        p['topic_pub_thold_us'] = int(1000 / p['rate'])
         print(p['topic_name'] + " rate: " + str(p['rate']) + " => thold_us: " + str(p['topic_pub_thold_us']))
     else:
         print(p['topic_name'] + " rate: N/A")
