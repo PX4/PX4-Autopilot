@@ -16,7 +16,7 @@
             "test_filter": "[offboard_attitude]",
             "timeout_min": 10,
             "env": {
-                "SYS_MC_EST_GROUP": 3
+                "PX4_PARAM_SYS_MC_EST_GROUP": 3
             }
         },
         {
