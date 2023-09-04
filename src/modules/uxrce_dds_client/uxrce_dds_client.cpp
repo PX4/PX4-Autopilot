@@ -231,10 +231,6 @@ void UxrceddsClient::run()
 
 		uint16_t domain_id = _param_xrce_dds_dom_id.get();
 
-		// const char *participant_name = "px4_micro_xrce_dds";
-		// uint16_t participant_req = uxr_buffer_create_participant_bin(&session, reliable_out, participant_id, domain_id,
-		// 			   participant_name, UXR_REPLACE);
-
 		const char *participant_ref = "default_xrce_participant";
 		uint16_t participant_req = uxr_buffer_create_participant_ref(&session, reliable_out, participant_id, domain_id,
 					   participant_ref, UXR_REPLACE);
@@ -278,8 +274,30 @@ void UxrceddsClient::run()
 		bool had_ping_reply = false;
 		uint32_t last_num_payload_sent{};
 		uint32_t last_num_payload_received{};
+		int poll_error_counter = 0;
+
+		_subs->init();
 
 		while (!should_exit() && _connected) {
+
+			/* wait for sensor update for 1000 ms (1 second) */
+			int poll_ret = px4_poll(&_subs->fds[0], (sizeof(_subs->fds) / sizeof(_subs->fds[0])), 1000);
+
+			/* handle the poll result */
+			if (poll_ret == 0) {
+				/* Timeout, no updates in selected uorbs */
+				continue;
+
+			} else if (poll_ret < 0) {
+				/* this is seriously bad - should be an emergency */
+				if (poll_error_counter < 10 || poll_error_counter % 50 == 0) {
+					/* use a counter to prevent flooding (and slowing us down) */
+					PX4_ERR("ERROR while polling uorbs: %d", poll_ret);
+				}
+
+				poll_error_counter++;
+				continue;
+			}
 
 			_subs->update(&session, reliable_out, best_effort_out, participant_id, _client_namespace);
 
@@ -330,8 +348,6 @@ void UxrceddsClient::run()
 				PX4_INFO("No ping response, disconnecting");
 				_connected = false;
 			}
-
-			px4_usleep(1000);
 		}
 
 		uxr_delete_session_retries(&session, _connected ? 1 : 0);
