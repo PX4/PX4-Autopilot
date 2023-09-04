@@ -9,6 +9,7 @@ import shutil
 import threading
 import errno
 from typing import Any, Dict, List, TextIO, Optional
+from logger_helper import colorize, color
 
 PX4_SITL_GAZEBO_PATH = "Tools/simulation/gazebo-classic/sitl_gazebo-classic"
 
@@ -214,6 +215,16 @@ class Px4Runner(Runner):
         except FileExistsError:
             pass
 
+    def get_output_line(self) -> Optional[str]:
+        line = super().get_output_line()
+        if line is not None:
+            # colorize warnings and errors
+            if 'ERROR' in line:
+                line = colorize(line, color.RED)
+            elif 'WARN' in line:
+                line = colorize(line, color.YELLOW)
+        return line
+
 
 class GzserverRunner(Runner):
     def __init__(self,
@@ -253,6 +264,13 @@ class GzserverRunner(Runner):
         print("gzserver did not connect within {}s"
               .format(timeout_s))
         return False
+
+    def get_output_line(self) -> Optional[str]:
+        line = super().get_output_line()
+        # Some gazebo versions don't seem to reset the color, so always add a RESET
+        if line is not None:
+            line = line + color.RESET.value
+        return line
 
 
 class GzmodelspawnRunner(Runner):
