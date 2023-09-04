@@ -217,7 +217,6 @@ set(msg_files
 	SensorAirflow.msg
 	SystemPower.msg
 	TakeoffStatus.msg
-	TargetGnss.msg
 	TaskStackInfo.msg
 	TecsStatus.msg
 	TelemetryStatus.msg
@@ -286,6 +285,15 @@ set(msg_files
 	versioned/Wind.msg
 )
 list(SORT msg_files)
+
+if(NOT CONSTRAINED_FLASH)
+	list(APPEND msg_files
+		TargetGnss.msg
+		VisionTargetEstPosition.msg
+		VisionTargetEstOrientation.msg
+		FiducialMarkerPosReport.msg
+		FiducialMarkerYawReport.msg)
+endif()
 
 px4_list_make_absolute(msg_files ${CMAKE_CURRENT_SOURCE_DIR} ${msg_files})
 
