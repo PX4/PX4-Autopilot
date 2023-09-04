@@ -737,3 +737,18 @@ land_approaches_s RTL::readVtolLandApproaches(PositionYawSetpoint rtl_position) 
 
 	return vtol_land_approaches;
 }
+
+void RTL::_publish_prec_land_status(const bool prec_land_ongoing)
+{
+	prec_land_status_s prec_land_status{};
+
+	if (prec_land_ongoing) {
+		prec_land_status.state = prec_land_status_s::PREC_LAND_STATE_ONGOING;
+
+	} else {
+		prec_land_status.state = prec_land_status_s::PREC_LAND_STATE_STOPPED;
+	}
+
+	prec_land_status.nav_state = (int)_navigator->get_precland()->get_prec_land_nav_state();
+	_prec_land_status_pub.publish(prec_land_status);
+}
