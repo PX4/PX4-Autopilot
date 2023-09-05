@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import queue
 import time
 import os
@@ -9,7 +7,7 @@ import shutil
 import threading
 import errno
 from typing import Any, Dict, List, TextIO, Optional
-from logger_helper import colorize, color
+from .logger_helper import colorize, color
 
 PX4_SITL_GAZEBO_PATH = "Tools/simulation/gazebo-classic/sitl_gazebo-classic"
 
@@ -97,7 +95,7 @@ class Runner:
 
     def wait(self, timeout_min: float) -> Optional[int]:
         try:
-            return self.process.wait(timeout=timeout_min*60)
+            return self.process.wait(timeout=timeout_min * 60)
         except subprocess.TimeoutExpired:
             print("Timeout of {} min{} reached, stopping...".
                   format(timeout_min, "s" if timeout_min > 1 else ""))
@@ -153,11 +151,12 @@ class Runner:
 class Px4Runner(Runner):
     def __init__(self, workspace_dir: str, log_dir: str,
                  model: str, case: str, speed_factor: float,
-                 debugger: str, verbose: bool, build_dir: str):
+                 debugger: str, verbose: bool, build_dir: str,
+                 rootfs_base_dirname: str):
         super().__init__(log_dir, model, case, verbose)
         self.name = "px4"
         self.cwd = os.path.join(workspace_dir, build_dir,
-                                "tmp_mavsdk_tests/rootfs")
+                                rootfs_base_dirname, "rootfs")
         self.cmd = "nice"
         self.args = [
                 "--20",
@@ -259,7 +258,7 @@ class GzserverRunner(Runner):
                 for line in f.readlines():
                     if 'Connected to gazebo master' in line:
                         return True
-            time.sleep(float(timeout_s)/float(steps))
+            time.sleep(float(timeout_s) / float(steps))
 
         print("gzserver did not connect within {}s"
               .format(timeout_s))
@@ -321,7 +320,7 @@ class GzmodelspawnRunner(Runner):
         for _ in range(steps):
             returncode = self.process.poll()
             if returncode is None:
-                time.sleep(float(timeout_s)/float(steps))
+                time.sleep(float(timeout_s) / float(steps))
                 continue
 
             with open(self.log_filename, 'r') as f:
@@ -355,7 +354,7 @@ class GzclientRunner(Runner):
                      "--verbose"]
 
 
-class TestRunner(Runner):
+class TestRunnerMavsdk(Runner):
     def __init__(self,
                  workspace_dir: str,
                  log_dir: str,
