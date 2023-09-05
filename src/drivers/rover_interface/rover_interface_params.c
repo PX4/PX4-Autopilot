@@ -34,6 +34,7 @@
 /**
  * Rover type.
  *
+ * @value -1 Not selected
  * @value 0 Scout Mini
  * @value 1 Scout
  * @value 2 Scout Pro
@@ -41,9 +42,9 @@
  * @value 4 Scout 2 Pro
  * @value 5 Bunker
  * @value 6 Bunker Mini
- * @group RoverInterface
+ * @group Rover Interface
  */
-PARAM_DEFINE_INT32(RI_ROVER_TYPE, 0);
+PARAM_DEFINE_INT32(RI_ROVER_TYPE, -1);
 
 /**
  * Rover interface CAN bitrate.
@@ -52,7 +53,7 @@ PARAM_DEFINE_INT32(RI_ROVER_TYPE, 0);
  * @min 20000
  * @max 1000000
  * @reboot_required true
- * @group RoverInterface
+ * @group Rover Interface
  */
 PARAM_DEFINE_INT32(RI_CAN_BITRATE, 500000);
 
@@ -64,7 +65,7 @@ PARAM_DEFINE_INT32(RI_CAN_BITRATE, 500000);
  * @min 1.0
  * @max 3.0
  * @reboot_required true
- * @group RoverInterface
+ * @group Rover Interface
  */
 PARAM_DEFINE_FLOAT(RI_MAN_THR_MAX, 1.0);
 
