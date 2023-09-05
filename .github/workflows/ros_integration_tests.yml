@@ -1,0 +1,96 @@
+name: ROS Integration Tests
+
+on:
+  push:
+    branches:
+    - 'main'
+  pull_request:
+    branches:
+    - '*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: px4io/px4-dev-ros2-galactic:2021-09-08
+      options: --privileged --ulimit core=-1 --security-opt seccomp=unconfined
+    steps:
+    - uses: actions/checkout@v1
+      with:
+        token: ${{ secrets.ACCESS_TOKEN }}
+
+    - name: Install gazebo
+      run: |
+        apt update && apt install -y gazebo11 libgazebo11-dev gstreamer1.0-plugins-bad gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly libgstreamer-plugins-base1.0-dev
+
+    - name: Prepare ccache timestamp
+      id: ccache_cache_timestamp
+      shell: cmake -P {0}
+      run: |
+        string(TIMESTAMP current_date "%Y-%m-%d-%H;%M;%S" UTC)
+        message("::set-output name=timestamp::${current_date}")
+    - name: ccache cache files
+      uses: actions/cache@v2
+      with:
+        path: ~/.ccache
+        key: ros_integration_tests-${{matrix.config.build_type}}-ccache-${{steps.ccache_cache_timestamp.outputs.timestamp}}
+        restore-keys: ros_integration_tests-${{matrix.config.build_type}}-ccache-
+    - name: setup ccache
+      run: |
+        mkdir -p ~/.ccache
+        echo "base_dir = ${GITHUB_WORKSPACE}" > ~/.ccache/ccache.conf
+        echo "compression = true" >> ~/.ccache/ccache.conf
+        echo "compression_level = 6" >> ~/.ccache/ccache.conf
+        echo "max_size = 300M" >> ~/.ccache/ccache.conf
+        echo "hash_dir = false" >> ~/.ccache/ccache.conf
+        ccache -s
+        ccache -z
+
+    - name: Get and build micro-xrce-dds-agent
+      run: |
+        cd /opt
+        git clone --recursive https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
+        cd Micro-XRCE-DDS-Agent
+        git checkout v2.2.1 # recent versions require cmake 3.22, but px4-dev-ros2-galactic:2021-09-08 is on 3.16
+        mkdir build
+        cd build
+        cmake ..
+        make -j2
+    - name: ccache post-run micro-xrce-dds-agent
+      run: ccache -s
+
+    - name: Get and build the ros2 interface library
+      shell: bash
+      run: |
+        . /opt/ros/galactic/setup.bash
+        mkdir -p /opt/px4_ws/src
+        cd /opt/px4_ws/src
+        git clone --recursive https://github.com/Auterion/px4-ros2-interface-lib.git
+        cd ..
+        vcs import --input src/px4-ros2-interface-lib/dependencies.repos src
+        colcon build --symlink-install
+    - name: ccache post-run ros workspace
+      run: ccache -s
+
+    - name: Build PX4
+      run: make px4_sitl_default
+    - name: ccache post-run px4/firmware
+      run: ccache -s
+    - name: Build SITL Gazebo
+      run: make px4_sitl_default sitl_gazebo-classic
+    - name: ccache post-run sitl_gazebo-classic
+      run: ccache -s
+
+    - name: Core dump settings
+      run: |
+        ulimit -c unlimited
+        echo "`pwd`/%e.core" > /proc/sys/kernel/core_pattern
+
+    - name: Run tests
+      shell: bash
+      run: |
+        . /opt/px4_ws/install/setup.bash
+        /opt/Micro-XRCE-DDS-Agent/build/MicroXRCEAgent udp4 localhost -p 8888 -v 0 &
+        test/ros_test_runner.py --verbose --model iris --upload
+      timeout-minutes: 45
+
