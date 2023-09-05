@@ -1100,7 +1100,7 @@ bool VTEPosition::selectTargetEstimator()
 		tmp_x = new KF_xyzb_decoupled_static;
 		tmp_y = new KF_xyzb_decoupled_static;
 		tmp_z = new KF_xyzb_decoupled_static;
-		PX4_INFO("Init VTEst: static target, [x,y,z,b] decoupled in three filters.");
+		PX4_INFO("Init VTE postion: static target, [x,y,z,b] decoupled in three filters.");
 
 		break;
 
@@ -1109,7 +1109,7 @@ bool VTEPosition::selectTargetEstimator()
 		tmp_x = new KF_xyzb_v_decoupled_moving;
 		tmp_y = new KF_xyzb_v_decoupled_moving;
 		tmp_z = new KF_xyzb_v_decoupled_moving;
-		PX4_INFO("Init VTEst: moving target, [x,y,z,b,v] decoupled in three filters.");
+		PX4_INFO("Init VTE position: moving target, [x,y,z,b,v] decoupled in three filters.");
 
 		break;
 
@@ -1120,7 +1120,7 @@ bool VTEPosition::selectTargetEstimator()
 	const bool init_failed = ((tmp_x == nullptr) || (tmp_y == nullptr) || (tmp_z == nullptr));
 
 	if (init_failed) {
-		PX4_ERR("VTE init failed");
+		PX4_ERR("VTE position init failed");
 		return false;
 
 	} else {
