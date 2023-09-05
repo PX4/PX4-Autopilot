@@ -37,7 +37,7 @@
 #include <drivers/device/i2c.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 #include <uORB/topics/adc_report.h>
-#include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <lib/perf/perf_counter.h>
 #include <drivers/drv_hrt.h>
 
@@ -127,7 +127,7 @@ protected:
 
 private:
 
-	uORB::Publication<adc_report_s>		_to_adc_report{ORB_ID(adc_report)};
+	uORB::PublicationMulti<adc_report_s>		_to_adc_report{ORB_ID(adc_report)};
 
 	static const hrt_abstime	SAMPLE_INTERVAL{50_ms};
 
