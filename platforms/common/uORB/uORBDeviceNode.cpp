@@ -259,6 +259,10 @@ orb_advert_t uORB::DeviceNode::nodeOpen(const ORB_ID id, const uint8_t instance,
 	int ret = uORB::Utils::node_mkpath(nodepath, get_orb_meta(id), &inst);
 	bool created = false;
 
+	if (ret == -ENAMETOOLONG || strlen(nodepath) > _POSIX_NAME_MAX) {
+		PX4_ERR("Device node name too long! '%s'", get_orb_meta(id)->o_name);
+	}
+
 	if (ret != OK) {
 		return handle;
 	}
