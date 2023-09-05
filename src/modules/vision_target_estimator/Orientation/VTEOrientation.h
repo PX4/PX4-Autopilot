@@ -98,13 +98,13 @@ protected:
 
 
 	/* timeout after which the target is not valid if no measurements are seen*/
-	static constexpr uint32_t target_valid_TIMEOUT_US = 2000000;
+	static constexpr uint32_t target_valid_TIMEOUT_US = 2_s;
 
 	/* timeout after which the measurement is not valid*/
-	static constexpr uint32_t measurement_valid_TIMEOUT_US = 1000000;
+	static constexpr uint32_t measurement_valid_TIMEOUT_US = 1_s;
 
 	/* timeout after which the measurement is not considered updated*/
-	static constexpr uint32_t measurement_updated_TIMEOUT_US = 100000;
+	static constexpr uint32_t measurement_updated_TIMEOUT_US = 100_ms;
 
 	uORB::Publication<vision_target_est_orientation_s> _targetOrientationPub{ORB_ID(vision_target_est_orientation)};
 
@@ -118,7 +118,6 @@ private:
 	enum class TargetMode {
 		Stationary = 0,
 		Moving = 1,
-		MovingAugmented = 2,
 		NotInit
 	};
 
@@ -172,7 +171,7 @@ private:
 	void _check_params(const bool force);
 
 	/* parameters */
-	uint32_t _vte_TIMEOUT_US = 3000000; // timeout after which filter is reset if target not seen
+	uint32_t _vte_TIMEOUT_US = 3_s; // timeout after which filter is reset if target not seen
 	float _yaw_unc;
 	float _ev_angle_noise;
 	bool  _ev_noise_md{false};

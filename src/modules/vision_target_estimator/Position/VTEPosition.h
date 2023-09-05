@@ -265,7 +265,7 @@ private:
 
 	/* parameters */
 	/* timeout after which filter is reset if target not seen */
-	uint32_t _vte_TIMEOUT_US = 3000000;
+	uint32_t _vte_TIMEOUT_US = 3_s;
 	int _vte_aid_mask{0};
 	float _target_acc_unc;
 	float _bias_unc;

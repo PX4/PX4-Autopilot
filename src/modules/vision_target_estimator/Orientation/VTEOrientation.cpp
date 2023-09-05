@@ -280,7 +280,7 @@ void VTEOrientation::publishTarget()
 	vision_target_orientation.theta = _target_estimator_orientation->getPosition();
 	vision_target_orientation.cov_theta =  _target_estimator_orientation->getPosVar();
 
-	if (_target_mode == TargetMode::Moving || _target_mode == TargetMode::MovingAugmented) {
+	if (_target_mode == TargetMode::Moving) {
 		vision_target_orientation.v_theta = _target_estimator_orientation->getVelocity();
 		vision_target_orientation.cov_v_theta =  _target_estimator_orientation->getVelVar();
 	}
@@ -325,11 +325,13 @@ bool VTEOrientation::selectTargetEstimator()
 
 	bool init_failed = true;
 
-	if (_target_mode == TargetMode::Moving || _target_mode == TargetMode::MovingAugmented) {
+	if (_target_mode == TargetMode::Moving) {
 		tmp_theta = new KF_orientation_moving;
+		PX4_INFO("Init VTE orientation for moving targets.");
 
 	} else {
 		tmp_theta = new KF_orientation_static;
+		PX4_INFO("Init VTE orientation for static targets.");
 	}
 
 	init_failed = (tmp_theta == nullptr);
