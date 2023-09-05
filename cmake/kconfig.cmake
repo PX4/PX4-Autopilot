@@ -73,12 +73,18 @@ if(EXISTS ${BOARD_DEFCONFIG})
 			# Find the value
 			string(REPLACE "${Name}=" "" Value ${NameAndValue})
 
-			if(Value)
-				# remove extra quotes
-				string(REPLACE "\"" "" Value ${Value})
+			# remove extra quotes
+			string(REPLACE "\"" "" Value ${Value})
 
-				# Set the variable
-				set(${Name} ${Value} CACHE INTERNAL "BOARD DEFCONFIG: ${Name}" FORCE)
+			# Set the variable
+			set(${Name} ${Value} CACHE INTERNAL "BOARD DEFCONFIG: ${Name}" FORCE)
+
+		else()
+			# Find boolean not set
+			string(REGEX MATCH " (CONFIG[^ ]+) is not set" Name ${NameAndValue})
+
+			if(${CMAKE_MATCH_1})
+				set(${CMAKE_MATCH_1} "" CACHE INTERNAL "BOARD DEFCONFIG: ${CMAKE_MATCH_1}" FORCE)
 			endif()
 		endif()
 
