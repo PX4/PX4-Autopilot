@@ -103,7 +103,7 @@ void BatterySimulator::Run()
 					_battery.full_cell_voltage());
 
 	if (_force_empty_battery) {
-		vbatt = _battery.empty_cell_voltage();
+		vbatt = _battery.empty_cell_voltage() - _battery.load_drop_v();
 	}
 
 	vbatt *= _battery.cell_count();

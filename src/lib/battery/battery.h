@@ -77,6 +77,11 @@ public:
 	int cell_count() { return _params.n_cells; }
 
 	/**
+	 * Get the voltage drop per cell on full throttle
+	 */
+	float load_drop_v() { return _params.v_load_drop; }
+
+	/**
 	 * Get the empty voltage per cell
 	 */
 	float empty_cell_voltage() { return _params.v_empty; }
