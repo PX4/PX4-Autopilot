@@ -196,7 +196,7 @@ void RoverInterface::Run()
 	// Check for actuator armed command to rover
 	ActuatorArmedUpdate();
 
-	// Check for action request (manual lock down)
+	// Check for action request (kill switch)
 	ActionRequestUpdate();
 
 	// Check for actuator controls command to rover

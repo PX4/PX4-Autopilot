@@ -6,9 +6,10 @@
 #
 
 #
-# Start the rover interface CAN driver if airframe is one of SSRC supported rover types (50005, ..)
+# Start the rover interface CAN driver if rover type is one of SSRC supported
+# rover types (scout mini, bunker, ..)
 #
-if param compare SYS_AUTOSTART 50005
+if param greater RI_ROVER_TYPE -1
 then
   ifup can0
   rover_interface start
