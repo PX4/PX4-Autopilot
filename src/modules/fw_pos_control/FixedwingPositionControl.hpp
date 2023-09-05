@@ -150,6 +150,9 @@ static constexpr float MAX_WEIGHT_RATIO = 2.0f;
 // air density of standard athmosphere at 5000m above mean sea level [kg/m^3]
 static constexpr float AIR_DENSITY_STANDARD_ATMOS_5000_AMSL = 0.7363f;
 
+// climbrate defining the service ceiling, used to compensate max climbrate based on air density
+static constexpr float CLIMBRATE_MIN = 0.5f; // [m/s]
+
 // [rad] minimum pitch while airspeed has not yet reached a controllable value in manual position controlled takeoff modes
 static constexpr float MIN_PITCH_DURING_MANUAL_TAKEOFF = 0.0f;
 
@@ -482,6 +485,7 @@ private:
 	 */
 	float get_terrain_altitude_takeoff(float takeoff_alt);
 
+	float getMaximumClimbRate();
 	/**
 	 * @brief Maps the manual control setpoint (pilot sticks) to height rate commands
 	 *
@@ -938,6 +942,8 @@ private:
 
 		(ParamFloat<px4::params::WEIGHT_BASE>) _param_weight_base,
 		(ParamFloat<px4::params::WEIGHT_GROSS>) _param_weight_gross,
+		(ParamFloat<px4::params::FW_DENSITY_MIN>) _param_density_min,
+
 
 		(ParamFloat<px4::params::FW_WING_SPAN>) _param_fw_wing_span,
 		(ParamFloat<px4::params::FW_WING_HEIGHT>) _param_fw_wing_height,

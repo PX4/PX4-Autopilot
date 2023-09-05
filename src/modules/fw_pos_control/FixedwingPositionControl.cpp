@@ -94,6 +94,29 @@ FixedwingPositionControl::init()
 	return true;
 }
 
+float FixedwingPositionControl::getMaximumClimbRate()
+{
+
+	float weight_factor = 1.0f;
+
+	if (_param_weight_base.get() > 0.0f && _param_weight_gross.get() > 0.0f) {
+		weight_factor = math::constrain(_param_weight_base.get() / _param_weight_gross.get(), MIN_WEIGHT_RATIO,
+						MAX_WEIGHT_RATIO);
+	}
+
+	float climbrate_max = _param_fw_t_clmb_max.get();
+
+	if (_param_density_min.get() > 0.0f) {
+		const float min_density = math::max(_param_density_min.get(), AIR_DENSITY_STANDARD_ATMOS_5000_AMSL);
+		const float density_gradient = (_param_fw_t_clmb_max.get() - CLIMBRATE_MIN) / (CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C -
+					       min_density);
+		const float delta_rho = _air_density - CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C;
+		climbrate_max = _param_fw_t_clmb_max.get() + density_gradient * delta_rho;
+	}
+
+	return climbrate_max * weight_factor;
+}
+
 int
 FixedwingPositionControl::parameters_update()
 {
@@ -121,7 +144,7 @@ FixedwingPositionControl::parameters_update()
 	_npfg.setPeriodSafetyFactor(_param_npfg_period_safety_factor.get());
 
 	// TECS parameters
-	_tecs.set_max_climb_rate(_param_fw_t_clmb_max.get());
+	_tecs.set_max_climb_rate(getMaximumClimbRate());
 	_tecs.set_max_sink_rate(_param_fw_t_sink_max.get());
 	_tecs.set_min_sink_rate(_param_fw_t_sink_min.get());
 	_tecs.set_speed_weight(_param_fw_t_spdweight.get());
@@ -2266,6 +2289,7 @@ FixedwingPositionControl::Run()
 
 		if (_vehicle_air_data_sub.update(&air_data)) {
 			_air_density = PX4_ISFINITE(air_data.rho) ? air_data.rho : _air_density;
+			_tecs.set_max_climb_rate(getMaximumClimbRate());
 		}
 
 		if (_vehicle_land_detected_sub.updated()) {

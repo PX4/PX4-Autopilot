@@ -1093,3 +1093,18 @@ PARAM_DEFINE_FLOAT(FW_THR_ASPD_MIN, 0.f);
  * @group FW TECS
  */
 PARAM_DEFINE_FLOAT(FW_THR_ASPD_MAX, 0.f);
+
+
+/**
+ * Service ceiling density
+ *
+ * Air density at which the vehicle in normal configuration is able to achieve a maximum climb rate of
+ * 0.5m/s at maximum throttle (FW_THR_MAX). Used to compensate for air density in FW_CLMB_MAX.
+ * Set < 0 to disable compensation of (FW_T_CLMB_MAX) based on air density.
+ *
+ * @max 1.225
+ * @decimal 2
+ * @increment 0.01
+ * @group FW TECS
+ */
+PARAM_DEFINE_FLOAT(FW_DENSITY_MIN, -1.0f);
