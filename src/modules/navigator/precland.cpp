@@ -122,6 +122,25 @@ PrecLand::on_active()
 		_target_pose_valid = false;
 	}
 
+#if !defined(CONSTRAINED_FLASH)
+
+	// get orientation measurement
+	if (_param_pld_yaw_en.get()) {
+		vision_target_est_orientation_s target_orientation;
+
+		if (_target_orientation_sub.update(&target_orientation) && target_orientation.orientation_valid) {
+			_target_yaw_valid = true;
+			_last_target_yaw_update = target_orientation.timestamp;
+			_target_yaw = target_orientation.theta;
+		}
+
+		if ((hrt_elapsed_time(&_last_target_yaw_update) / 1e6f) > _param_pld_btout.get()) {
+			_target_yaw_valid = false;
+		}
+	}
+
+#endif
+
 	// stop if we are landed
 	if (_navigator->get_land_detected()->landed) {
 		switch_to_state_done();
@@ -268,6 +287,15 @@ PrecLand::run_state_horizontal_approach()
 	pos_sp_triplet->current.alt = _approach_alt;
 	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 
+#if !defined(CONSTRAINED_FLASH)
+
+	if (_param_pld_yaw_en.get() && _target_yaw_valid) {
+		pos_sp_triplet->current.yaw = _target_yaw;
+		pos_sp_triplet->current.yaw_valid = true;
+	}
+
+#endif
+
 	_navigator->set_position_setpoint_triplet_updated();
 }
 
@@ -298,6 +326,14 @@ PrecLand::run_state_descend_above_target()
 	_map_ref.reproject(_target_pose.x_abs, _target_pose.y_abs, pos_sp_triplet->current.lat, pos_sp_triplet->current.lon);
 
 	pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_LAND;
+#if !defined(CONSTRAINED_FLASH)
+
+	if (_param_pld_yaw_en.get() && _target_yaw_valid) {
+		pos_sp_triplet->current.yaw = _target_yaw;
+		pos_sp_triplet->current.yaw_valid = true;
+	}
+
+#endif
 
 	_navigator->set_position_setpoint_triplet_updated();
 }
