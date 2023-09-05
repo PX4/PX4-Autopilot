@@ -46,6 +46,10 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/landing_target_pose.h>
 
+#if !defined(CONSTRAINED_FLASH)
+#include <uORB/topics/vision_target_est_orientation.h>
+#endif
+
 #include "navigator_mode.h"
 #include "mission_block.h"
 
@@ -111,6 +115,14 @@ private:
 	landing_target_pose_s _target_pose{}; /**< precision landing target position */
 
 	uORB::Subscription _target_pose_sub{ORB_ID(landing_target_pose)};
+
+#if !defined(CONSTRAINED_FLASH)
+	uORB::Subscription _target_orientation_sub {ORB_ID(vision_target_est_orientation)};
+	float _target_yaw{0.f};
+	bool _target_yaw_valid{false};
+	hrt_abstime _last_target_yaw_update{0};
+#endif
+
 	bool _target_pose_valid{false}; /**< whether we have received a landing target position message */
 	bool _target_pose_updated{false}; /**< wether the landing target position message is updated */
 
@@ -139,7 +151,8 @@ private:
 		(ParamFloat<px4::params::PLD_FAPPR_ALT>) _param_pld_fappr_alt,
 		(ParamFloat<px4::params::PLD_SRCH_ALT>) _param_pld_srch_alt,
 		(ParamFloat<px4::params::PLD_SRCH_TOUT>) _param_pld_srch_tout,
-		(ParamInt<px4::params::PLD_MAX_SRCH>) _param_pld_max_srch
+		(ParamInt<px4::params::PLD_MAX_SRCH>) _param_pld_max_srch,
+		(ParamInt<px4::params::PLD_YAW_EN>) _param_pld_yaw_en
 	)
 
 	// non-navigator parameters

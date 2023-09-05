@@ -188,7 +188,8 @@ protected:
 					(ParamFloat<px4::params::MPC_Z_V_AUTO_DN>) _param_mpc_z_v_auto_dn,
 					(ParamFloat<px4::params::MPC_TKO_SPEED>) _param_mpc_tko_speed,
 					(ParamFloat<px4::params::MPC_TKO_RAMP_T>)
-					_param_mpc_tko_ramp_t // time constant for smooth takeoff ramp
+					_param_mpc_tko_ramp_t, // time constant for smooth takeoff ramp
+					(ParamInt<px4::params::PLD_YAW_EN>) _param_pld_yaw_en
 				       );
 
 private:
