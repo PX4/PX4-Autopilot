@@ -488,7 +488,24 @@ private:
 	 */
 	float get_terrain_altitude_takeoff(float takeoff_alt);
 
+	/**
+	 * @brief Return the maximum climb rate achievable under the current conditions.
+	 * @return Maximum climbrate.
+	 */
 	float getMaximumClimbRate();
+
+	/**
+	 * @brief Return the minimum sink rate achievable under the current conditions.
+	 * @return Minimum sink rate.
+	 */
+	float getMinimumSinkRate();
+
+	/**
+	 * @brief Return the ratio of actual vehicle weight to vehicle base weight.
+	 * @return Weight ratio.
+	 */
+	float getWeightRatio();
+
 	/**
 	 * @brief Maps the manual control setpoint (pilot sticks) to height rate commands
 	 *

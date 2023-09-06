@@ -94,16 +94,21 @@ FixedwingPositionControl::init()
 	return true;
 }
 
-float FixedwingPositionControl::getMaximumClimbRate()
+float FixedwingPositionControl::getWeightRatio()
 {
 
 	float weight_factor = 1.0f;
 
 	if (_param_weight_base.get() > 0.0f && _param_weight_gross.get() > 0.0f) {
-		weight_factor = math::constrain(_param_weight_base.get() / _param_weight_gross.get(), MIN_WEIGHT_RATIO,
+		weight_factor = math::constrain(_param_weight_gross.get() / _param_weight_base.get(), MIN_WEIGHT_RATIO,
 						MAX_WEIGHT_RATIO);
 	}
 
+	return weight_factor;
+}
+
+float FixedwingPositionControl::getMaximumClimbRate()
+{
 	float climbrate_max = _param_fw_t_clmb_max.get();
 
 	const float density_min = _param_density_min.get();
@@ -116,7 +121,12 @@ float FixedwingPositionControl::getMaximumClimbRate()
 		climbrate_max = _param_fw_t_clmb_max.get() + density_gradient * delta_rho;
 	}
 
-	return climbrate_max * weight_factor;
+	return climbrate_max / getWeightRatio();
+}
+
+float FixedwingPositionControl::getMinimumSinkRate()
+{
+	return _param_fw_t_sink_min.get() * sqrtf(getWeightRatio() * CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C / _air_density);
 }
 
 int
