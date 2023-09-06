@@ -239,7 +239,7 @@ bool VTEPosition::update_step(const Vector3f &vehicle_acc_ned)
 	targetObsPos obs_gps_vel_target;
 	targetObsPos obs_fiducial_marker;
 
-	_vte_fusion_aid_mask = 0;
+	int vte_fusion_aid_mask = 0;
 
 	// Process data from all topics
 
@@ -250,7 +250,7 @@ bool VTEPosition::update_step(const Vector3f &vehicle_acc_ned)
 		obs_fiducial_marker.type = fiducial_marker;
 
 		if ((_is_meas_valid(fiducial_marker_pose.timestamp)) && processObsVision(fiducial_marker_pose, obs_fiducial_marker)) {
-			_vte_fusion_aid_mask += ObservationValidMask::FUSE_EXT_VIS_POS;
+			vte_fusion_aid_mask += ObservationValidMask::FUSE_EXT_VIS_POS;
 		}
 	}
 
@@ -269,7 +269,7 @@ bool VTEPosition::update_step(const Vector3f &vehicle_acc_ned)
 
 			if ((_is_meas_valid(target_GNSS_report.timestamp))
 			    && processObsGNSSPosTarget(target_GNSS_report, vehicle_gps_position, obs_gps_pos_target)) {
-				_vte_fusion_aid_mask += ObservationValidMask::FUSE_TARGET_GPS_POS;
+				vte_fusion_aid_mask += ObservationValidMask::FUSE_TARGET_GPS_POS;
 			}
 		}
 
@@ -280,7 +280,7 @@ bool VTEPosition::update_step(const Vector3f &vehicle_acc_ned)
 
 			if ((_is_meas_valid(vehicle_gps_position.timestamp))
 			    && processObsGNSSPosMission(vehicle_gps_position, obs_gps_pos_mission)) {
-				_vte_fusion_aid_mask += ObservationValidMask::FUSE_MISSION_POS;
+				vte_fusion_aid_mask += ObservationValidMask::FUSE_MISSION_POS;
 			}
 		}
 
@@ -309,7 +309,7 @@ bool VTEPosition::update_step(const Vector3f &vehicle_acc_ned)
 				obs_gps_vel_target.type = vel_target_gps;
 
 				if ((_is_meas_valid(target_GNSS_report.timestamp)) && processObsGNSSVelTarget(target_GNSS_report, obs_gps_vel_target)) {
-					_vte_fusion_aid_mask += ObservationValidMask::FUSE_TARGET_GPS_VEL;
+					vte_fusion_aid_mask += ObservationValidMask::FUSE_TARGET_GPS_VEL;
 				}
 			}
 
@@ -319,18 +319,18 @@ bool VTEPosition::update_step(const Vector3f &vehicle_acc_ned)
 				obs_gps_vel_rel.type = vel_rel_gps;
 
 				if ((_is_meas_valid(vehicle_gps_position.timestamp)) && processObsGNSSVelRel(vehicle_gps_position, obs_gps_vel_rel)) {
-					_vte_fusion_aid_mask += ObservationValidMask::FUSE_GPS_REL_VEL;
+					vte_fusion_aid_mask += ObservationValidMask::FUSE_GPS_REL_VEL;
 				}
 			}
 		}
 	}
 
-	const bool new_gnss_pos_sensor = (_vte_fusion_aid_mask & ObservationValidMask::FUSE_MISSION_POS) ||
-					 (_vte_fusion_aid_mask & ObservationValidMask::FUSE_TARGET_GPS_POS);
-	const bool new_non_gnss_pos_sensor = (_vte_fusion_aid_mask & ObservationValidMask::FUSE_EXT_VIS_POS);
+	const bool new_gnss_pos_sensor = (vte_fusion_aid_mask & ObservationValidMask::FUSE_MISSION_POS) ||
+					 (vte_fusion_aid_mask & ObservationValidMask::FUSE_TARGET_GPS_POS);
+	const bool new_non_gnss_pos_sensor = (vte_fusion_aid_mask & ObservationValidMask::FUSE_EXT_VIS_POS);
 	const bool new_pos_sensor = new_non_gnss_pos_sensor || new_gnss_pos_sensor;
-	const bool new_vel_sensor = (_vte_fusion_aid_mask & ObservationValidMask::FUSE_TARGET_GPS_VEL) ||
-				    (_vte_fusion_aid_mask & ObservationValidMask::FUSE_GPS_REL_VEL);
+	const bool new_vel_sensor = (vte_fusion_aid_mask & ObservationValidMask::FUSE_TARGET_GPS_VEL) ||
+				    (vte_fusion_aid_mask & ObservationValidMask::FUSE_GPS_REL_VEL);
 
 	// Only estimate the GNSS bias if we have a GNSS estimation and a secondary source of position
 	const bool should_set_bias = new_non_gnss_pos_sensor && (_is_meas_valid(_pos_rel_gnss.timestamp));
@@ -356,13 +356,13 @@ bool VTEPosition::update_step(const Vector3f &vehicle_acc_ned)
 		Vector3f target_vel_init;
 
 		// Define the initial relative position of target w.r.t. the drone in NED frame using the available measurement
-		if (_vte_fusion_aid_mask & ObservationValidMask::FUSE_EXT_VIS_POS) {
+		if (vte_fusion_aid_mask & ObservationValidMask::FUSE_EXT_VIS_POS) {
 			pos_init = obs_fiducial_marker.meas_xyz;
 
-		} else if (_vte_fusion_aid_mask & ObservationValidMask::FUSE_TARGET_GPS_POS) {
+		} else if (vte_fusion_aid_mask & ObservationValidMask::FUSE_TARGET_GPS_POS) {
 			pos_init = obs_gps_pos_target.meas_xyz;
 
-		} else if (_vte_fusion_aid_mask & ObservationValidMask::FUSE_MISSION_POS) {
+		} else if (vte_fusion_aid_mask & ObservationValidMask::FUSE_MISSION_POS) {
 			pos_init = obs_gps_pos_mission.meas_xyz;
 		}
 
@@ -450,7 +450,7 @@ bool VTEPosition::update_step(const Vector3f &vehicle_acc_ned)
 		bool pos_fused = false;
 
 		/*TARGET GPS*/
-		if (_vte_fusion_aid_mask & ObservationValidMask::FUSE_TARGET_GPS_POS) {
+		if (vte_fusion_aid_mask & ObservationValidMask::FUSE_TARGET_GPS_POS) {
 
 			if (fuse_meas(vehicle_acc_ned, obs_gps_pos_target)) {
 				pos_fused = true;
@@ -458,7 +458,7 @@ bool VTEPosition::update_step(const Vector3f &vehicle_acc_ned)
 		}
 
 		/*MISSION POS GPS*/
-		if (_vte_fusion_aid_mask & ObservationValidMask::FUSE_MISSION_POS) {
+		if (vte_fusion_aid_mask & ObservationValidMask::FUSE_MISSION_POS) {
 
 			if (fuse_meas(vehicle_acc_ned, obs_gps_pos_mission)) {
 				pos_fused = true;
@@ -466,17 +466,17 @@ bool VTEPosition::update_step(const Vector3f &vehicle_acc_ned)
 		}
 
 		/*GPS RELATIVE VELOCITY*/
-		if (_vte_fusion_aid_mask & ObservationValidMask::FUSE_GPS_REL_VEL) {
+		if (vte_fusion_aid_mask & ObservationValidMask::FUSE_GPS_REL_VEL) {
 			fuse_meas(vehicle_acc_ned, obs_gps_vel_rel);
 		}
 
 		/*TARGET GPS VELOCITY*/
-		if (_vte_fusion_aid_mask & ObservationValidMask::FUSE_TARGET_GPS_VEL) {
+		if (vte_fusion_aid_mask & ObservationValidMask::FUSE_TARGET_GPS_VEL) {
 			fuse_meas(vehicle_acc_ned, obs_gps_vel_target);
 		}
 
 		/*VISION*/
-		if (_vte_fusion_aid_mask & ObservationValidMask::FUSE_EXT_VIS_POS) {
+		if (vte_fusion_aid_mask & ObservationValidMask::FUSE_EXT_VIS_POS) {
 
 			if (fuse_meas(vehicle_acc_ned, obs_fiducial_marker)) {
 				pos_fused = true;
