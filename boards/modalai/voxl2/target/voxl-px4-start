@@ -172,7 +172,6 @@ if [ "$RC" != "EXTERNAL" ]; then
 fi
 
 qshell commander start
-qshell param_set_selector start
 
 # This is needed for altitude and position hold modes
 qshell flight_mode_manager start
