@@ -264,7 +264,6 @@ private:
 
 	bool _estimator_initialized{false};
 
-	matrix::Quaternionf _q_att; //Quaternion orientation of the body frame
 	Base_KF_decoupled *_target_estimator[nb_directions] {nullptr, nullptr, nullptr};
 	hrt_abstime _last_predict{0}; // timestamp of last filter prediction
 	hrt_abstime _last_update{0}; // timestamp of last filter update (used to check timeout)
