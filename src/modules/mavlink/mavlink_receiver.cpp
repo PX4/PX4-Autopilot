@@ -2899,8 +2899,8 @@ MavlinkReceiver::handle_message_target_absolute(mavlink_message_t *msg)
 
 	} else {
 		target_GNSS_report.abs_pos_updated = true;
-		target_GNSS_report.latitude_deg = target_absolute.lat * 1e-7f;
-		target_GNSS_report.longitude_deg = target_absolute.lon * 1e-7f;
+		target_GNSS_report.latitude_deg = target_absolute.lat * 1e-7;
+		target_GNSS_report.longitude_deg = target_absolute.lon * 1e-7;
 		target_GNSS_report.altitude_msl_m = target_absolute.alt;
 		target_GNSS_report.eph = target_absolute.position_std[0];
 		target_GNSS_report.epv = target_absolute.position_std[1];
