@@ -106,10 +106,12 @@ float FixedwingPositionControl::getMaximumClimbRate()
 
 	float climbrate_max = _param_fw_t_clmb_max.get();
 
-	if (_param_density_min.get() > 0.0f) {
-		const float min_density = math::max(_param_density_min.get(), AIR_DENSITY_STANDARD_ATMOS_5000_AMSL);
+	const float density_min = _param_density_min.get();
+
+	if (density_min < AIR_DENSITY_STANDARD_ATMOS_1000_AMSL
+	    && density_min > AIR_DENSITY_STANDARD_ATMOS_5000_AMSL) {
 		const float density_gradient = (_param_fw_t_clmb_max.get() - CLIMBRATE_MIN) / (CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C -
-					       min_density);
+					       density_min);
 		const float delta_rho = _air_density - CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C;
 		climbrate_max = _param_fw_t_clmb_max.get() + density_gradient * delta_rho;
 	}

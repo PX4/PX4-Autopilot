@@ -150,6 +150,9 @@ static constexpr float MAX_WEIGHT_RATIO = 2.0f;
 // air density of standard athmosphere at 5000m above mean sea level [kg/m^3]
 static constexpr float AIR_DENSITY_STANDARD_ATMOS_5000_AMSL = 0.7363f;
 
+// air density of standard athmosphere at 1000m above mean sea level [kg/m^3]
+static constexpr float AIR_DENSITY_STANDARD_ATMOS_1000_AMSL = 1.112f;
+
 // climbrate defining the service ceiling, used to compensate max climbrate based on air density
 static constexpr float CLIMBRATE_MIN = 0.5f; // [m/s]
 
