@@ -78,7 +78,6 @@ bool VTEOrientation::init()
 void VTEOrientation::resetFilter()
 {
 	_estimator_initialized = false;
-	_new_pos_sensor_acquired_time = 0;
 }
 
 void VTEOrientation::update()
@@ -154,23 +153,16 @@ bool VTEOrientation::update_step()
 
 	} else if (orientation_valid && !_estimator_initialized) {
 
-		// Wait 1 second before initilazing the estimator to have a velocity initial estimate.
-		if (!_new_pos_sensor_acquired_time) {
-			_new_pos_sensor_acquired_time = hrt_absolute_time();
+		const float theta_init = obs_fiducial_marker_orientation.meas_theta;
 
-		} else if ((hrt_absolute_time() - _new_pos_sensor_acquired_time) > 1000000) {
+		if (initEstimator(theta_init)) {
+			PX4_INFO("VTE Orientation Estimator properly initialized.");
+			_estimator_initialized = true;
+			_last_update = hrt_absolute_time();
+			_last_predict = _last_update;
 
-			float theta_init = obs_fiducial_marker_orientation.meas_theta;
-
-			if (initEstimator(theta_init)) {
-				PX4_INFO("VTE Orientation Estimator properly initialized.");
-				_estimator_initialized = true;
-				_last_update = hrt_absolute_time();
-				_last_predict = _last_update;
-
-			} else {
-				resetFilter();
-			}
+		} else {
+			resetFilter();
 		}
 	}
 
