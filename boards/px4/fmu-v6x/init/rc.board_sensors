@@ -51,6 +51,13 @@ fi
 if ver hwtypecmp V6X009010 V6X010010
 then
 	pm_selector_auterion start
+else
+	# INA226, INA228, INA238 auto-start
+	i2c_launcher start -b 1
+	if [ $HAVE_PM2 = yes ]
+	then
+		i2c_launcher start -b 2
+	fi
 fi
 
 if ver hwtypecmp V6X000006 V6X004006 V6X005006
