@@ -91,8 +91,15 @@ bool VTEPosition::init()
 			return false;
 		}
 
+		if (_vte_aid_mask & SensorFusionMask::USE_MISSION_POS && _target_mode == TargetMode::Moving) {
+			PX4_WARN("VTE mission land position data fusion cannot be enabled for moving targets.");
+			PX4_WARN("Disabling mission land position fusion.");
+			_vte_aid_mask -= SensorFusionMask::USE_MISSION_POS;
+		}
+
 		if ((_vte_aid_mask & SensorFusionMask::USE_TARGET_GPS_POS) && (_vte_aid_mask & SensorFusionMask::USE_MISSION_POS)) {
-			PX4_WARN("VTE both target GPS position and mission land position data fusion enabled. Disabling mission land position fusion.");
+			PX4_WARN("VTE both target GPS position and mission land position data fusion enabled.");
+			PX4_WARN("Disabling mission land position fusion.");
 			_vte_aid_mask -= SensorFusionMask::USE_MISSION_POS;
 		}
 
@@ -127,7 +134,7 @@ void VTEPosition::update(const Vector3f &acc_ned)
 	if (_estimator_initialized) {
 
 		if (hrt_absolute_time() - _last_update > _vte_TIMEOUT_US) {
-			PX4_WARN("VTE estimator timeout");
+			PX4_WARN("VTE Position estimator timeout");
 			_has_timed_out = true;
 
 		} else {
@@ -233,11 +240,7 @@ bool VTEPosition::update_step(const Vector3f &vehicle_acc_ned)
 	targetObsPos obs_gps_vel_target;
 	targetObsPos obs_fiducial_marker;
 
-	bool pos_target_GPS_valid = false;
-	bool pos_mission_GPS_valid = false;
-	bool vel_target_GPS_valid = false;
-	bool vel_rel_GPS_valid = false;
-	bool fiducial_marker_valid = false;
+	_vte_fusion_aid_mask = 0;
 
 	// Process data from all topics
 
@@ -247,8 +250,8 @@ bool VTEPosition::update_step(const Vector3f &vehicle_acc_ned)
 
 		obs_fiducial_marker.type = fiducial_marker;
 
-		if (processObsVision(fiducial_marker_pose, obs_fiducial_marker)) {
-			fiducial_marker_valid = ((hrt_absolute_time() - obs_fiducial_marker.timestamp) < measurement_valid_TIMEOUT_US);
+		if (processObsVision(fiducial_marker_pose, obs_fiducial_marker) && (_is_meas_valid(obs_fiducial_marker.timestamp))) {
+			_vte_fusion_aid_mask += ObservationValidMask::FUSE_EXT_VIS_POS;
 		}
 	}
 
@@ -265,8 +268,9 @@ bool VTEPosition::update_step(const Vector3f &vehicle_acc_ned)
 
 			obs_gps_pos_target.type = target_gps_pos;
 
-			if (processObsGNSSPosTarget(target_GNSS_report, vehicle_gps_position, obs_gps_pos_target)) {
-				pos_target_GPS_valid	= ((hrt_absolute_time() - obs_gps_pos_target.timestamp) < measurement_valid_TIMEOUT_US);
+			if (processObsGNSSPosTarget(target_GNSS_report, vehicle_gps_position, obs_gps_pos_target)
+			    && (_is_meas_valid(obs_gps_pos_target.timestamp))) {
+				_vte_fusion_aid_mask += ObservationValidMask::FUSE_TARGET_GPS_POS;
 			}
 		}
 
@@ -275,8 +279,9 @@ bool VTEPosition::update_step(const Vector3f &vehicle_acc_ned)
 
 			obs_gps_pos_mission.type = mission_gps_pos;
 
-			if (processObsGNSSPosMission(vehicle_gps_position, obs_gps_pos_mission)) {
-				pos_mission_GPS_valid	= ((hrt_absolute_time() - obs_gps_pos_mission.timestamp) < measurement_valid_TIMEOUT_US);
+			if (processObsGNSSPosMission(vehicle_gps_position, obs_gps_pos_mission)
+			    && (_is_meas_valid(obs_gps_pos_mission.timestamp))) {
+				_vte_fusion_aid_mask += ObservationValidMask::FUSE_MISSION_POS;
 			}
 		}
 
@@ -304,8 +309,8 @@ bool VTEPosition::update_step(const Vector3f &vehicle_acc_ned)
 
 				obs_gps_vel_target.type = vel_target_gps;
 
-				if (processObsGNSSVelTarget(target_GNSS_report, obs_gps_vel_target)) {
-					vel_target_GPS_valid	= ((hrt_absolute_time() - obs_gps_vel_target.timestamp) < measurement_valid_TIMEOUT_US);
+				if (processObsGNSSVelTarget(target_GNSS_report, obs_gps_vel_target) && (_is_meas_valid(obs_gps_vel_target.timestamp))) {
+					_vte_fusion_aid_mask += ObservationValidMask::FUSE_TARGET_GPS_VEL;
 				}
 			}
 
@@ -314,79 +319,35 @@ bool VTEPosition::update_step(const Vector3f &vehicle_acc_ned)
 
 				obs_gps_vel_rel.type = vel_rel_gps;
 
-				if (processObsGNSSVelRel(vehicle_gps_position, obs_gps_vel_rel)) {
-					vel_rel_GPS_valid = ((hrt_absolute_time() - obs_gps_vel_rel.timestamp) < measurement_valid_TIMEOUT_US);
+				if (processObsGNSSVelRel(vehicle_gps_position, obs_gps_vel_rel) && (_is_meas_valid(obs_gps_vel_rel.timestamp))) {
+					_vte_fusion_aid_mask += ObservationValidMask::FUSE_GPS_REL_VEL;
 				}
 			}
 		}
 	}
 
-	// If one pos measurement was updated, return true
-	const bool new_pos_sensor = pos_mission_GPS_valid || pos_target_GPS_valid || fiducial_marker_valid;
-	const bool new_non_gnss_pos_sensor = fiducial_marker_valid;
-	const bool new_vel_sensor = vel_rel_GPS_valid || vel_target_GPS_valid;
+	const bool new_gnss_pos_sensor = (_vte_fusion_aid_mask & ObservationValidMask::FUSE_MISSION_POS) ||
+					 (_vte_fusion_aid_mask & ObservationValidMask::FUSE_TARGET_GPS_POS);
+	const bool new_non_gnss_pos_sensor = (_vte_fusion_aid_mask & ObservationValidMask::FUSE_EXT_VIS_POS);
+	const bool new_pos_sensor = new_non_gnss_pos_sensor || new_gnss_pos_sensor;
+	const bool new_vel_sensor = (_vte_fusion_aid_mask & ObservationValidMask::FUSE_TARGET_GPS_VEL) ||
+				    (_vte_fusion_aid_mask & ObservationValidMask::FUSE_GPS_REL_VEL);
 
-	// Once a position measurement other than the target GPS is available, restart the filter and set the bias.
-	if (!_bias_set && ((_vte_aid_mask & SensorFusionMask::USE_TARGET_GPS_POS)
-			   || (_vte_aid_mask & SensorFusionMask::USE_MISSION_POS))
-	    && (((hrt_absolute_time() - _pos_rel_gnss.timestamp) < measurement_valid_TIMEOUT_US) && new_non_gnss_pos_sensor)) {
+	// Only estimate the GNSS bias if we have a GNSS estimation and a secondary source of position
+	const bool should_set_bias = new_non_gnss_pos_sensor && (_is_meas_valid(_pos_rel_gnss.timestamp));
 
-		if (_estimator_initialized) {
-			PX4_INFO("Second relative position measurement available, restarting position estimator.");
+	if (!_estimator_initialized) {
+
+		if (!new_pos_sensor) {
+			return false;
 		}
 
-		_estimator_initialized = false;
-	}
-
-	bool pos_fused = false;
-
-	// If we have a new sensor and the estimator is initialized: fuse available measurements and publish innov.
-	if ((new_pos_sensor || new_vel_sensor) && _estimator_initialized) {
-
-		/*TARGET GPS*/
-		if (pos_target_GPS_valid) {
-
-			if (fuse_meas(vehicle_acc_ned, obs_gps_pos_target)) {
-				pos_fused = true;
-			}
-		}
-
-		/*MISSION POS GPS*/
-		if (pos_mission_GPS_valid) {
-
-			if (fuse_meas(vehicle_acc_ned, obs_gps_pos_mission)) {
-				pos_fused = true;
-			}
-		}
-
-		/*GPS RELATIVE VELOCITY*/
-		if (vel_rel_GPS_valid) {
-			fuse_meas(vehicle_acc_ned, obs_gps_vel_rel);
-		}
-
-		/*TARGET GPS VELOCITY*/
-		if (vel_target_GPS_valid) {
-			fuse_meas(vehicle_acc_ned, obs_gps_vel_target);
-		}
-
-		/*VISION*/
-		if (fiducial_marker_valid) {
-
-			if (fuse_meas(vehicle_acc_ned, obs_fiducial_marker)) {
-				pos_fused = true;
-			}
-		}
-
-		// If at least one pos measurement was fused, consider the filter updated
-		return pos_fused;
-
-	} else if (new_pos_sensor && !_estimator_initialized) {
-
+		// TODO: change. The filter should start immediately. Change this condition to simply check if a velocity is available
 		// Wait 1 second before initilazing the estimator to have an initial velocity estimate.
 		if (!_new_pos_sensor_acquired_time) {
 			_new_pos_sensor_acquired_time = hrt_absolute_time();
 
-		} else if ((hrt_absolute_time() - _new_pos_sensor_acquired_time) > 1000000) {
+		} else if ((hrt_absolute_time() - _new_pos_sensor_acquired_time) > 1_s) {
 
 			Vector3f pos_init;
 			Vector3f vel_init;
@@ -395,29 +356,29 @@ bool VTEPosition::update_step(const Vector3f &vehicle_acc_ned)
 			Vector3f target_vel_init;
 
 			// Define the initial relative position of target w.r.t. the drone in NED frame using the available measurement
-			if (fiducial_marker_valid) {
+			if (_vte_fusion_aid_mask & ObservationValidMask::FUSE_EXT_VIS_POS) {
 				pos_init = obs_fiducial_marker.meas_xyz;
 
-			} else if (pos_target_GPS_valid) {
+			} else if (_vte_fusion_aid_mask & ObservationValidMask::FUSE_TARGET_GPS_POS) {
 				pos_init = obs_gps_pos_target.meas_xyz;
 
-			} else if (pos_mission_GPS_valid) {
+			} else if (_vte_fusion_aid_mask & ObservationValidMask::FUSE_MISSION_POS) {
 				pos_init = obs_gps_pos_mission.meas_xyz;
 			}
 
 			// Compute the initial bias as the difference between the GPS and external position estimate.
-			if (((hrt_absolute_time() - _pos_rel_gnss.timestamp) < measurement_valid_TIMEOUT_US) && new_non_gnss_pos_sensor) {
+			if (should_set_bias) {
 				// We assume that gnss observations have a bias but other position obs don't. It follows: gnss_obs = state + bias <--> bias = gnss_obs - state
 				bias_init =  _pos_rel_gnss.xyz - pos_init;
 				_bias_set = true;
 			}
 
-			if (_target_gps_vel.valid && ((hrt_absolute_time() - _target_gps_vel.timestamp) < measurement_valid_TIMEOUT_US)) {
+			if (_target_gps_vel.valid && (_is_meas_valid(_target_gps_vel.timestamp))) {
 				target_vel_init = _target_gps_vel.xyz;
 			}
 
 			// Define initial relative velocity of the target w.r.t. to the drone in NED frame
-			if (_uav_gps_vel.valid && ((hrt_absolute_time() - _uav_gps_vel.timestamp) < measurement_valid_TIMEOUT_US)) {
+			if (_uav_gps_vel.valid && (_is_meas_valid(_uav_gps_vel.timestamp))) {
 
 				if (_target_mode == TargetMode::Stationary) {
 					vel_init = -_uav_gps_vel.xyz;
@@ -439,6 +400,83 @@ bool VTEPosition::update_step(const Vector3f &vehicle_acc_ned)
 				resetFilter();
 			}
 		}
+	}
+
+	if (!_estimator_initialized) {
+		return false;
+	}
+
+	// Once a position measurement other than the target GPS is available, reset the position and bias but keep the velocity estimate.
+	if (!_bias_set && should_set_bias) {
+
+		PX4_INFO("Second relative position measurement available, re-setting position and bias.");
+
+		const float state_pos_var = _param_vte_pos_unc_in.get();
+		const float state_bias_var = _param_vte_bias_unc_in.get();
+
+		const Vector3f state_pos_var_vect(state_pos_var, state_pos_var, state_pos_var);
+		const Vector3f state_bias_var_vect(state_bias_var, state_bias_var, state_bias_var);
+		const Vector3f pos_init = obs_fiducial_marker.meas_xyz;
+
+		// Compute the initial bias as the difference between the GPS and external position estimate.
+		// We assume that gnss observations have a bias but other position obs don't. It follows: gnss_obs = state + bias <--> bias = gnss_obs - state
+		const Vector3f bias_init =  _pos_rel_gnss.xyz - pos_init;
+
+		for (int i = 0; i < 3; i++) {
+			/* Reset filter initial state */
+			_target_estimator[i]->setPosition(pos_init(i));
+			_target_estimator[i]->setBias(bias_init(i));
+
+			/* Reset initial state variance */
+			_target_estimator[i]->setStatePosVar(state_pos_var_vect(i));
+			_target_estimator[i]->setStateBiasVar(state_bias_var_vect(i));
+		}
+
+		_bias_set = true;
+	}
+
+	// If we have a new sensor: fuse available measurements and publish innov.
+	if (new_pos_sensor || new_vel_sensor) {
+
+		bool pos_fused = false;
+
+		/*TARGET GPS*/
+		if (_vte_fusion_aid_mask & ObservationValidMask::FUSE_TARGET_GPS_POS) {
+
+			if (fuse_meas(vehicle_acc_ned, obs_gps_pos_target)) {
+				pos_fused = true;
+			}
+		}
+
+		/*MISSION POS GPS*/
+		if (_vte_fusion_aid_mask & ObservationValidMask::FUSE_MISSION_POS) {
+
+			if (fuse_meas(vehicle_acc_ned, obs_gps_pos_mission)) {
+				pos_fused = true;
+			}
+		}
+
+		/*GPS RELATIVE VELOCITY*/
+		if (_vte_fusion_aid_mask & ObservationValidMask::FUSE_GPS_REL_VEL) {
+			fuse_meas(vehicle_acc_ned, obs_gps_vel_rel);
+		}
+
+		/*TARGET GPS VELOCITY*/
+		if (_vte_fusion_aid_mask & ObservationValidMask::FUSE_TARGET_GPS_VEL) {
+			fuse_meas(vehicle_acc_ned, obs_gps_vel_target);
+		}
+
+		/*VISION*/
+		if (_vte_fusion_aid_mask & ObservationValidMask::FUSE_EXT_VIS_POS) {
+
+			if (fuse_meas(vehicle_acc_ned, obs_fiducial_marker)) {
+				pos_fused = true;
+			}
+		}
+
+		// If at least one pos measurement was fused, consider the filter updated
+		return pos_fused;
+
 	}
 
 	return false;
@@ -667,7 +705,7 @@ bool VTEPosition::processObsGNSSPosMission(const sensor_gps_s &vehicle_gps_posit
 	obs.updated_xyz.setAll(true);
 
 	// Keep track of the gps relative position if not already done using the target GPS
-	if ((hrt_absolute_time() - _pos_rel_gnss.timestamp) > measurement_valid_TIMEOUT_US) {
+	if ((_is_meas_valid(_pos_rel_gnss.timestamp))) {
 		_pos_rel_gnss.timestamp = obs.timestamp;
 		_pos_rel_gnss.valid = (PX4_ISFINITE(gps_relative_pos(0)) && PX4_ISFINITE(gps_relative_pos(1))
 				       && PX4_ISFINITE(gps_relative_pos(2)));
@@ -895,7 +933,7 @@ void VTEPosition::publishTarget()
 	vte_state.timestamp = _last_predict;
 	target_pose.is_static = (_target_mode == TargetMode::Stationary);
 
-	target_pose.rel_pos_valid = (hrt_absolute_time() - _last_update < target_valid_TIMEOUT_US);
+	target_pose.rel_pos_valid =	_is_meas_valid(_last_update);
 
 	// Fill target pose
 	target_pose.x_rel = _target_estimator[x]->getPosition();
