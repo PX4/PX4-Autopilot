@@ -205,8 +205,6 @@ private:
 		FUSE_TARGET_GPS_VEL     = (1 << 4),   ///< set to true if target GPS velocity data is ready to be fused
 	};
 
-	int _vte_fusion_aid_mask{0};
-
 	bool selectTargetEstimator();
 	bool initEstimator(const matrix::Vector3f &pos_init, const matrix::Vector3f &vel_rel_init,
 			   const matrix::Vector3f &acc_init,
