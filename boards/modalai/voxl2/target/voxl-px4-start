@@ -6,6 +6,7 @@
 echo -e "\n*************************"
 echo "GPS: $GPS"
 echo "RC: $RC"
+echo "DISTANCE SENSOR: $DISTANCE_SENSOR"
 echo "OSD: $OSD"
 echo "EXTRA STEPS:"
 for i in "${EXTRA_STEPS[@]}"
