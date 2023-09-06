@@ -122,13 +122,13 @@ protected:
 
 
 	/* timeout after which the target is not valid if no measurements are seen*/
-	static constexpr uint32_t target_valid_TIMEOUT_US = 2000000;
+	static constexpr uint32_t target_valid_TIMEOUT_US = 2_s;
 
 	/* timeout after which the measurement is not valid*/
-	static constexpr uint32_t measurement_valid_TIMEOUT_US = 1000000;
+	static constexpr uint32_t measurement_valid_TIMEOUT_US = 1_s;
 
 	/* timeout after which the measurement is not considered updated*/
-	static constexpr uint32_t measurement_updated_TIMEOUT_US = 100000;
+	static constexpr uint32_t measurement_updated_TIMEOUT_US = 100_ms;
 
 	uORB::Publication<landing_target_pose_s> _targetPosePub{ORB_ID(landing_target_pose)};
 	uORB::Publication<vision_target_est_position_s> _targetEstimatorStatePub{ORB_ID(vision_target_est_position)};
@@ -145,6 +145,8 @@ protected:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 private:
+
+	static inline bool _is_meas_valid(hrt_abstime time_stamp) {return (hrt_absolute_time() - time_stamp) < measurement_valid_TIMEOUT_US;};
 
 	bool _has_timed_out{false};
 
@@ -190,6 +192,17 @@ private:
 		USE_EXT_VIS_POS 	= (1 << 2),    ///< set to true to use target external vision-based relative position data
 		USE_MISSION_POS     = (1 << 3),    ///< set to true to use the PX4 mission landing position
 	};
+
+	enum ObservationValidMask : uint16_t {
+		// Bit locations for valid observations
+		FUSE_TARGET_GPS_POS  = (1 << 0),    ///< set to true if target GPS position data is ready to be fused
+		FUSE_GPS_REL_VEL     = (1 << 1),    ///< set to true if drone GPS velocity data (and target GPS velocity data if the target is moving)
+		FUSE_EXT_VIS_POS 	  = (1 << 2),    ///< set to true if target external vision-based relative position data is ready to be fused
+		FUSE_MISSION_POS     = (1 << 3),    ///< set to true if the PX4 mission landing position is ready to be fused
+		FUSE_TARGET_GPS_VEL     = (1 << 4),   ///< set to true if target GPS velocity data is ready to be fused
+	};
+
+	int _vte_fusion_aid_mask{0};
 
 	bool selectTargetEstimator();
 	bool initEstimator(const matrix::Vector3f &pos_init, const matrix::Vector3f &vel_rel_init,
@@ -291,7 +304,9 @@ private:
 		(ParamInt<px4::params::VTE_EV_NOISE_MD>) _param_vte_ev_noise_md,
 		(ParamFloat<px4::params::VTE_EVP_NOISE>) _param_vte_ev_pos_noise,
 		(ParamInt<px4::params::VTE_MODE>) _param_vte_mode,
-		(ParamInt<px4::params::VTE_EKF_AID>) _param_vte_ekf_aid
+		(ParamInt<px4::params::VTE_EKF_AID>) _param_vte_ekf_aid,
+		(ParamFloat<px4::params::VTE_MOVING_T_MAX>) _param_vte_moving_t_max,
+		(ParamFloat<px4::params::VTE_MOVING_T_MIN>) _param_vte_moving_t_min
 	)
 };
 } // namespace vision_target_estimator
