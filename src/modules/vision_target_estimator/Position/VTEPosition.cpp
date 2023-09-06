@@ -120,7 +120,6 @@ bool VTEPosition::init()
 void VTEPosition::resetFilter()
 {
 	_estimator_initialized = false;
-	_new_pos_sensor_acquired_time = 0;
 	_bias_set = false;
 	_landing_pos.valid = false;
 	_has_timed_out = false;
@@ -258,7 +257,7 @@ bool VTEPosition::update_step(const Vector3f &vehicle_acc_ned)
 	/* GPS BASED OBSERVATIONS */
 	bool vehicle_gps_position_updated = _vehicle_gps_position_sub.update(&vehicle_gps_position);
 
-	if ((hrt_absolute_time() - vehicle_gps_position.timestamp < measurement_updated_TIMEOUT_US)) {
+	if (_is_meas_updated(vehicle_gps_position.timestamp)) {
 
 		bool target_GPS_updated = _target_gnss_sub.update(&target_GNSS_report);
 
@@ -342,63 +341,72 @@ bool VTEPosition::update_step(const Vector3f &vehicle_acc_ned)
 			return false;
 		}
 
-		// TODO: change. The filter should start immediately. Change this condition to simply check if a velocity is available
-		// Wait 1 second before initilazing the estimator to have an initial velocity estimate.
-		if (!_new_pos_sensor_acquired_time) {
-			_new_pos_sensor_acquired_time = hrt_absolute_time();
+		const bool has_initial_velocity_estimate = (_local_velocity.valid && (_is_meas_valid(_local_velocity.timestamp))) ||
+				(_uav_gps_vel.valid && (_is_meas_valid(_uav_gps_vel.timestamp)));
 
-		} else if ((hrt_absolute_time() - _new_pos_sensor_acquired_time) > 1_s) {
+		if (!has_initial_velocity_estimate) {
+			PX4_WARN("No UAV velocity estimate. Estimator cannot be started.");
+			return false;
+		}
 
-			Vector3f pos_init;
-			Vector3f vel_init;
-			Vector3f target_acc_init;	// Assume null target absolute acceleration
-			Vector3f bias_init;
-			Vector3f target_vel_init;
+		Vector3f pos_init;
+		Vector3f vel_init;
+		Vector3f target_acc_init;	// Assume null target absolute acceleration
+		Vector3f bias_init;
+		Vector3f target_vel_init;
 
-			// Define the initial relative position of target w.r.t. the drone in NED frame using the available measurement
-			if (_vte_fusion_aid_mask & ObservationValidMask::FUSE_EXT_VIS_POS) {
-				pos_init = obs_fiducial_marker.meas_xyz;
+		// Define the initial relative position of target w.r.t. the drone in NED frame using the available measurement
+		if (_vte_fusion_aid_mask & ObservationValidMask::FUSE_EXT_VIS_POS) {
+			pos_init = obs_fiducial_marker.meas_xyz;
 
-			} else if (_vte_fusion_aid_mask & ObservationValidMask::FUSE_TARGET_GPS_POS) {
-				pos_init = obs_gps_pos_target.meas_xyz;
+		} else if (_vte_fusion_aid_mask & ObservationValidMask::FUSE_TARGET_GPS_POS) {
+			pos_init = obs_gps_pos_target.meas_xyz;
 
-			} else if (_vte_fusion_aid_mask & ObservationValidMask::FUSE_MISSION_POS) {
-				pos_init = obs_gps_pos_mission.meas_xyz;
+		} else if (_vte_fusion_aid_mask & ObservationValidMask::FUSE_MISSION_POS) {
+			pos_init = obs_gps_pos_mission.meas_xyz;
+		}
+
+		// Compute the initial bias as the difference between the GPS and external position estimate.
+		if (should_set_bias) {
+			// We assume that gnss observations have a bias but other position obs don't. It follows: gnss_obs = state + bias <--> bias = gnss_obs - state
+			bias_init =  _pos_rel_gnss.xyz - pos_init;
+			_bias_set = true;
+		}
+
+		if (_target_gps_vel.valid && (_is_meas_valid(_target_gps_vel.timestamp))) {
+			target_vel_init = _target_gps_vel.xyz;
+		}
+
+		// Define initial relative velocity of the target w.r.t. to the drone in NED frame
+		if (_uav_gps_vel.valid && (_is_meas_valid(_uav_gps_vel.timestamp))) {
+
+			if (_target_mode == TargetMode::Stationary) {
+				vel_init = -_uav_gps_vel.xyz;
+
+			} else if (_target_mode == TargetMode::Moving) {
+				vel_init = _uav_gps_vel.xyz;
 			}
 
-			// Compute the initial bias as the difference between the GPS and external position estimate.
-			if (should_set_bias) {
-				// We assume that gnss observations have a bias but other position obs don't. It follows: gnss_obs = state + bias <--> bias = gnss_obs - state
-				bias_init =  _pos_rel_gnss.xyz - pos_init;
-				_bias_set = true;
+		} else if (_local_velocity.valid && (_is_meas_valid(_local_velocity.timestamp))) {
+
+			if (_target_mode == TargetMode::Stationary) {
+				vel_init = -_local_velocity.xyz;
+
+			} else if (_target_mode == TargetMode::Moving) {
+				vel_init = _local_velocity.xyz;
 			}
+		}
 
-			if (_target_gps_vel.valid && (_is_meas_valid(_target_gps_vel.timestamp))) {
-				target_vel_init = _target_gps_vel.xyz;
-			}
+		if (initEstimator(pos_init, vel_init, target_acc_init, bias_init, target_vel_init)) {
+			PX4_INFO("VTE Position Estimator properly initialized.");
+			_estimator_initialized = true;
+			_uav_gps_vel.valid = false;
+			_target_gps_vel.valid = false;
+			_last_update = hrt_absolute_time();
+			_last_predict = _last_update;
 
-			// Define initial relative velocity of the target w.r.t. to the drone in NED frame
-			if (_uav_gps_vel.valid && (_is_meas_valid(_uav_gps_vel.timestamp))) {
-
-				if (_target_mode == TargetMode::Stationary) {
-					vel_init = -_uav_gps_vel.xyz;
-
-				} else if (_target_mode == TargetMode::Moving) {
-					vel_init = _uav_gps_vel.xyz;
-				}
-			}
-
-			if (initEstimator(pos_init, vel_init, target_acc_init, bias_init, target_vel_init)) {
-				PX4_INFO("VTE Position Estimator properly initialized.");
-				_estimator_initialized = true;
-				_uav_gps_vel.valid = false;
-				_target_gps_vel.valid = false;
-				_last_update = hrt_absolute_time();
-				_last_predict = _last_update;
-
-			} else {
-				resetFilter();
-			}
+		} else {
+			resetFilter();
 		}
 	}
 
@@ -1061,13 +1069,17 @@ void VTEPosition::_check_params(const bool force)
 		updateParams();
 	}
 
-	// Make sure range sensor and local position are up to date.
+	// Make sure range sensor, local position and local velocity are up to date.
 	if (_range_sensor.valid) {
-		_range_sensor.valid = (hrt_absolute_time() - _range_sensor.last_update) < measurement_updated_TIMEOUT_US;
+		_range_sensor.valid = _is_meas_updated(_range_sensor.timestamp);
 	}
 
 	if (_local_position.valid) {
-		_local_position.valid = (hrt_absolute_time() - _local_position.last_update) < measurement_updated_TIMEOUT_US;
+		_local_position.valid = _is_meas_updated(_local_position.timestamp);
+	}
+
+	if (_local_velocity.valid) {
+		_local_velocity.valid = _is_meas_updated(_local_velocity.timestamp);
 	}
 }
 
@@ -1088,19 +1100,26 @@ void VTEPosition::set_velocity_offset(const matrix::Vector3f &xyz)
 	_velocity_offset_ned.timestamp = hrt_absolute_time();
 }
 
-void VTEPosition::set_range_sensor(const float dist, const bool valid)
+void VTEPosition::set_range_sensor(const float dist, const bool valid, hrt_abstime timestamp)
 {
-	_range_sensor.valid = valid;
+	_range_sensor.valid = valid && _is_meas_updated(timestamp);
 	_range_sensor.dist_bottom = dist;
-	_range_sensor.last_update = hrt_absolute_time();
+	_range_sensor.timestamp = timestamp;
 
 }
 
-void VTEPosition::set_local_position(const matrix::Vector3f &xyz, const bool valid)
+void VTEPosition::set_local_velocity(const matrix::Vector3f &vel_xyz, const bool vel_valid, hrt_abstime timestamp)
+{
+	_local_velocity.xyz = vel_xyz;
+	_local_velocity.valid = vel_valid && _is_meas_updated(timestamp);
+	_local_velocity.timestamp = timestamp;
+}
+
+void VTEPosition::set_local_position(const matrix::Vector3f &xyz, const bool pos_valid, hrt_abstime timestamp)
 {
 	_local_position.xyz = xyz;
-	_local_position.valid = valid;
-	_local_position.last_update = hrt_absolute_time();
+	_local_position.valid = pos_valid && _is_meas_updated(timestamp);
+	_local_position.timestamp = timestamp;
 }
 
 void VTEPosition::set_landpoint(const double lat_deg, const double lon_deg, const float alt_m)

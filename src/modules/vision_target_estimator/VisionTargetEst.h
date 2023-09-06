@@ -141,11 +141,16 @@ private:
 		bool pos_valid = false;
 		matrix::Vector3f xyz;
 
+		bool vel_valid = false;
+		matrix::Vector3f vel_xyz;
+
 		bool dist_valid = false;
 		float dist_bottom = 0, f;
 
 		bool yaw_valid = false;
 		float yaw = 0.f;
+
+		hrt_abstime timestamp{0};
 	};
 
 	matrix::Vector3f _gps_pos_offset;

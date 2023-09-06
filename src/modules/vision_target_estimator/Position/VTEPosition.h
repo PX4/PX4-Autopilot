@@ -96,9 +96,11 @@ public:
 
 	void set_landpoint(const double lat_deg, const double lon_deg, const float alt_m);
 
-	void set_range_sensor(const float dist, const bool valid);
+	void set_range_sensor(const float dist, const bool valid, const hrt_abstime timestamp);
 
-	void set_local_position(const matrix::Vector3f &xyz, const bool valid);
+	void set_local_velocity(const matrix::Vector3f &vel_xyz, const bool valid, const hrt_abstime timestamp);
+
+	void set_local_position(const matrix::Vector3f &xyz, const bool valid, const hrt_abstime timestamp);
 
 	void set_gps_pos_offset(const matrix::Vector3f &xyz, const bool gps_is_offset);
 
@@ -147,6 +149,7 @@ protected:
 private:
 
 	static inline bool _is_meas_valid(hrt_abstime time_stamp) {return (hrt_absolute_time() - time_stamp) < measurement_valid_TIMEOUT_US;};
+	static inline bool _is_meas_updated(hrt_abstime time_stamp) {return (hrt_absolute_time() - time_stamp) < measurement_updated_TIMEOUT_US;};
 
 	bool _has_timed_out{false};
 
@@ -228,20 +231,13 @@ private:
 	perf_counter_t _vte_predict_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": VTE prediction")};
 	perf_counter_t _vte_update_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": VTE update")};
 
-	struct localPos {
-		bool valid = false;
-		matrix::Vector3f xyz;
-		hrt_abstime last_update = 0;
-	};
-
 	struct rangeSensor {
 		bool valid = false;
 		float dist_bottom;
-		hrt_abstime last_update = 0;
+		hrt_abstime timestamp = 0;
 	};
 
 	rangeSensor _range_sensor{};
-	localPos _local_position{};
 
 	struct globalPos {
 		bool valid = false;
@@ -258,6 +254,8 @@ private:
 		matrix::Vector3f xyz;
 	};
 
+	vecStamped _local_position{};
+	vecStamped _local_velocity{};
 	vecStamped _uav_gps_vel{};
 	vecStamped _target_gps_vel{};
 	vecStamped _pos_rel_gnss{};
@@ -266,7 +264,6 @@ private:
 	bool _gps_pos_is_offset{false};
 	bool _bias_set{false};
 
-	uint64_t _new_pos_sensor_acquired_time{0};
 	bool _estimator_initialized{false};
 
 	matrix::Quaternionf _q_att; //Quaternion orientation of the body frame
