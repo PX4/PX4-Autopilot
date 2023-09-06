@@ -1013,6 +1013,21 @@ void VTEPosition::publishTarget()
 		target_pose.y_abs = target_pose.y_rel + _local_position.xyz(1);
 		target_pose.z_abs = target_pose.z_rel + _local_position.xyz(2);
 		target_pose.abs_pos_valid = true;
+
+		if (_target_mode == TargetMode::Moving) {
+			// If the target is moving, move towards its expected location
+			float mpc_z_v_auto_dn = param_find("MPC_Z_V_AUTO_DN");
+			param_get(param_find("MPC_Z_V_AUTO_DN"), &mpc_z_v_auto_dn);
+			float intersection_time_s = fabsf(target_pose.z_rel / mpc_z_v_auto_dn);
+			intersection_time_s = math::constrain(intersection_time_s, _param_vte_moving_t_min.get(),
+							      _param_vte_moving_t_max.get());
+
+			// Anticipate where the target will be
+			target_pose.x_abs += vte_state.vx_target * intersection_time_s;
+			target_pose.y_abs += vte_state.vy_target * intersection_time_s;
+			target_pose.z_abs += vte_state.vz_target * intersection_time_s;
+		}
+
 		_targetPosePub.publish(target_pose);
 
 	}
