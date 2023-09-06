@@ -60,7 +60,7 @@ namespace vision_target_estimator
 static constexpr uint32_t vte_pos_UPDATE_RATE_HZ = 50;
 static constexpr uint32_t vte_yaw_UPDATE_RATE_HZ = 50;
 static constexpr uint32_t acc_downsample_TIMEOUT_US = 40_ms; // 40 ms -> 25Hz
-static constexpr uint32_t estimator_restart_time_US = 1_s; // Wait at least one second before re-starting the filter
+static constexpr uint32_t estimator_restart_time_US = 3_s; // Wait at least one second before re-starting the filter
 static constexpr float CONSTANTS_ONE_G = 9.80665f;  // m/s^2
 
 VisionTargetEst::VisionTargetEst() :
