@@ -249,7 +249,7 @@ bool VTEPosition::update_step(const Vector3f &vehicle_acc_ned)
 
 		obs_fiducial_marker.type = fiducial_marker;
 
-		if (processObsVision(fiducial_marker_pose, obs_fiducial_marker) && (_is_meas_valid(obs_fiducial_marker.timestamp))) {
+		if ((_is_meas_valid(fiducial_marker_pose.timestamp)) && processObsVision(fiducial_marker_pose, obs_fiducial_marker)) {
 			_vte_fusion_aid_mask += ObservationValidMask::FUSE_EXT_VIS_POS;
 		}
 	}
@@ -267,8 +267,8 @@ bool VTEPosition::update_step(const Vector3f &vehicle_acc_ned)
 
 			obs_gps_pos_target.type = target_gps_pos;
 
-			if (processObsGNSSPosTarget(target_GNSS_report, vehicle_gps_position, obs_gps_pos_target)
-			    && (_is_meas_valid(obs_gps_pos_target.timestamp))) {
+			if ((_is_meas_valid(target_GNSS_report.timestamp))
+			    && processObsGNSSPosTarget(target_GNSS_report, vehicle_gps_position, obs_gps_pos_target)) {
 				_vte_fusion_aid_mask += ObservationValidMask::FUSE_TARGET_GPS_POS;
 			}
 		}
@@ -278,8 +278,8 @@ bool VTEPosition::update_step(const Vector3f &vehicle_acc_ned)
 
 			obs_gps_pos_mission.type = mission_gps_pos;
 
-			if (processObsGNSSPosMission(vehicle_gps_position, obs_gps_pos_mission)
-			    && (_is_meas_valid(obs_gps_pos_mission.timestamp))) {
+			if ((_is_meas_valid(vehicle_gps_position.timestamp))
+			    && processObsGNSSPosMission(vehicle_gps_position, obs_gps_pos_mission)) {
 				_vte_fusion_aid_mask += ObservationValidMask::FUSE_MISSION_POS;
 			}
 		}
@@ -308,7 +308,7 @@ bool VTEPosition::update_step(const Vector3f &vehicle_acc_ned)
 
 				obs_gps_vel_target.type = vel_target_gps;
 
-				if (processObsGNSSVelTarget(target_GNSS_report, obs_gps_vel_target) && (_is_meas_valid(obs_gps_vel_target.timestamp))) {
+				if ((_is_meas_valid(target_GNSS_report.timestamp)) && processObsGNSSVelTarget(target_GNSS_report, obs_gps_vel_target)) {
 					_vte_fusion_aid_mask += ObservationValidMask::FUSE_TARGET_GPS_VEL;
 				}
 			}
@@ -318,7 +318,7 @@ bool VTEPosition::update_step(const Vector3f &vehicle_acc_ned)
 
 				obs_gps_vel_rel.type = vel_rel_gps;
 
-				if (processObsGNSSVelRel(vehicle_gps_position, obs_gps_vel_rel) && (_is_meas_valid(obs_gps_vel_rel.timestamp))) {
+				if ((_is_meas_valid(vehicle_gps_position.timestamp)) && processObsGNSSVelRel(vehicle_gps_position, obs_gps_vel_rel)) {
 					_vte_fusion_aid_mask += ObservationValidMask::FUSE_GPS_REL_VEL;
 				}
 			}
@@ -369,6 +369,7 @@ bool VTEPosition::update_step(const Vector3f &vehicle_acc_ned)
 		// Compute the initial bias as the difference between the GPS and external position estimate.
 		if (should_set_bias) {
 			// We assume that gnss observations have a bias but other position obs don't. It follows: gnss_obs = state + bias <--> bias = gnss_obs - state
+			PX4_INFO("VTE Position setting GNSS bias.");
 			bias_init =  _pos_rel_gnss.xyz - pos_init;
 			_bias_set = true;
 		}
@@ -712,8 +713,8 @@ bool VTEPosition::processObsGNSSPosMission(const sensor_gps_s &vehicle_gps_posit
 
 	obs.updated_xyz.setAll(true);
 
-	// Keep track of the gps relative position if not already done using the target GPS
-	if ((_is_meas_valid(_pos_rel_gnss.timestamp))) {
+	// If the target GPS fusion is enabled give it priority over the GPS relative position measurement.
+	if (!(_vte_aid_mask & SensorFusionMask::USE_TARGET_GPS_POS) || !(_is_meas_valid(_pos_rel_gnss.timestamp))) {
 		_pos_rel_gnss.timestamp = obs.timestamp;
 		_pos_rel_gnss.valid = (PX4_ISFINITE(gps_relative_pos(0)) && PX4_ISFINITE(gps_relative_pos(1))
 				       && PX4_ISFINITE(gps_relative_pos(2)));
@@ -742,7 +743,7 @@ bool VTEPosition::processObsGNSSPosTarget(const target_gnss_s &target_GNSS_repor
 		return false;
 
 	} else if (dt_sync_us > measurement_valid_TIMEOUT_US) {
-		PX4_INFO("Target GPS position rejected because too old. Time sync: %.2f [ms] > timeout: %.2f [ms]",
+		PX4_INFO("Time diff. between UAV GNSS and target GNNS too high: %.2f [ms] > timeout: %.2f [ms]",
 			 (double)(dt_sync_us / 1000), (double)(measurement_valid_TIMEOUT_US / 1000));
 		return false;
 	}
