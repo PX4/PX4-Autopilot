@@ -287,8 +287,9 @@ void VisionTargetEst::Run()
 				perf_begin(_cycle_perf_pos);
 
 				if (local_pose_updated) {
-					_vte_position->set_local_position(local_pose.xyz, local_pose.pos_valid);
-					_vte_position->set_range_sensor(local_pose.dist_bottom, local_pose.dist_valid);
+					_vte_position->set_local_velocity(local_pose.vel_xyz, local_pose.vel_valid, local_pose.timestamp);
+					_vte_position->set_local_position(local_pose.xyz, local_pose.pos_valid, local_pose.timestamp);
+					_vte_position->set_range_sensor(local_pose.dist_bottom, local_pose.dist_valid, local_pose.timestamp);
 				}
 
 				_vte_position->set_gps_pos_offset(gps_pos_offset_ned, _gps_pos_is_offset);
@@ -379,16 +380,28 @@ bool VisionTargetEst::get_local_pose(localPose &local_pose)
 		return false;
 	}
 
+	if ((hrt_absolute_time() - vehicle_local_position.timestamp) > 100_ms) {
+		PX4_WARN("Local position too old.");
+		return false;
+	}
+
 	local_pose.xyz(0) = vehicle_local_position.x;
 	local_pose.xyz(1) = vehicle_local_position.y;
 	local_pose.xyz(2) = vehicle_local_position.z;
-	local_pose.pos_valid = vehicle_local_position.xy_valid;
+	local_pose.pos_valid = vehicle_local_position.xy_valid && vehicle_local_position.z_valid;
+
+	local_pose.vel_xyz(0) = vehicle_local_position.vx;
+	local_pose.vel_xyz(1) = vehicle_local_position.vy;
+	local_pose.vel_xyz(2) = vehicle_local_position.vz;
+	local_pose.vel_valid = vehicle_local_position.v_xy_valid && vehicle_local_position.v_z_valid;
 
 	local_pose.dist_bottom = vehicle_local_position.dist_bottom;
 	local_pose.dist_valid = vehicle_local_position.dist_bottom_valid;
 
 	local_pose.yaw_valid = vehicle_local_position.heading_good_for_control;
 	local_pose.yaw = vehicle_local_position.heading;
+
+	local_pose.timestamp = vehicle_local_position.timestamp;
 
 	return true;
 }
