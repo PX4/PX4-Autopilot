@@ -83,9 +83,9 @@ qshell icp101xx start -I -b 5
 # GPS and magnetometer
 if [ "$GPS" != "NONE" ]; then
 	# Magnetometer (Part of the GPS unit)
-	if [ "$GPS" == "MATEK" ] || [ "$GPS" == "MRO_CUSTOM" ]; then
+	if [ "$GPS" == "MATEK" ] || [ "$GPS" == "MRO_M10136A" ]; then
 	    # Use this line for the magnetometer in the Matek Systems M8Q-5883 module
-	    # and the custom mRo unit
+	    # and the mRo M10136A unit
 	    /bin/echo "Starting qmc5883l magnetometer"
 	    qshell qmc5883l start -R 10 -X -b 1
 	elif [ "$GPS" == "HOLYBRO" ]; then
