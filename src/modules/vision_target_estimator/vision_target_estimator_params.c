@@ -314,3 +314,36 @@ PARAM_DEFINE_FLOAT(VTE_EVA_NOISE, 0.05f);
  * @group Vision target Estimator
  */
 PARAM_DEFINE_FLOAT(VTE_EVP_NOISE, 0.1f);
+
+
+/**
+ * Maximal time to estimate the future position of the target using the velocity estimation.
+ *
+ * When the target is moving, the position setpoint is set where the target will be after a given time in the future. (new position = velocity * time).
+ * This param should be set depending on the expected target speed. The greater the speed, the greater VTE_MOVING_T_MAX.
+ *
+ * @min 0.1
+ * @max 60
+ * @unit s
+ * @decimal 2
+ *
+ * @group Vision target Estimator
+ */
+PARAM_DEFINE_FLOAT(VTE_MOVING_T_MAX, 3.f);
+
+
+/**
+ * Minimal time to estimate the future position of the target using the velocity estimation.
+ *
+ * When the target is moving, the position setpoint is set where the target will be after a given time in the future. (new position = velocity * time).
+ * As the drone gets close to the target, the time of intersection between the target and the drone gets smaller. To avoid missing the target, a minimal time is required.
+ * This param should be set depending on the expected target speed. The greater the speed, the greater VTE_MOVING_T_MIN.
+ *
+ * @min 0.1
+ * @max 30
+ * @unit s
+ * @decimal 2
+ *
+ * @group Vision target Estimator
+ */
+PARAM_DEFINE_FLOAT(VTE_MOVING_T_MIN, 2.f);
