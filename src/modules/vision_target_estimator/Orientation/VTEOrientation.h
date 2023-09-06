@@ -160,7 +160,6 @@ private:
 
 	rangeSensor _range_sensor{};
 
-	uint64_t _new_pos_sensor_acquired_time{0};
 	bool _estimator_initialized{false};
 
 	Base_KF_orientation *_target_estimator_orientation {nullptr};
