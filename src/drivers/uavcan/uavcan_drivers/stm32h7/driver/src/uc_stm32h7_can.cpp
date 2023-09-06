@@ -810,7 +810,7 @@ int CanIface::init(const uavcan::uint32_t bitrate, const OperatingMode mode)
 	message_ram_.StdIdFilterSA = gl_ram_base + ram_offset * WORD_LENGTH;
 	can_->SIDFC = ((n_stdid << FDCAN_SIDFC_LSS_Pos)
 		       | ram_offset << FDCAN_SIDFC_FLSSA_Pos);
-	memset((void*)message_ram_.StdIdFilterSA, 0, WORD_LENGTH * n_stdid); // make sure filters are disabled
+	memset((void *)message_ram_.StdIdFilterSA, 0, WORD_LENGTH * n_stdid); // make sure filters are disabled
 	ram_offset += n_stdid;
 
 	// Extended ID Filters: Allow space for 64 filters (128 words)
@@ -818,7 +818,7 @@ int CanIface::init(const uavcan::uint32_t bitrate, const OperatingMode mode)
 	message_ram_.ExtIdFilterSA = gl_ram_base + ram_offset * WORD_LENGTH;
 	can_->XIDFC = ((n_extid << FDCAN_XIDFC_LSE_Pos)
 		       | ram_offset << FDCAN_XIDFC_FLESA_Pos);
-	memset((void*)message_ram_.ExtIdFilterSA, 0, (2 * WORD_LENGTH) * n_extid); // make sure filters are disabled
+	memset((void *)message_ram_.ExtIdFilterSA, 0, (2 * WORD_LENGTH) * n_extid); // make sure filters are disabled
 	ram_offset += 2 * n_extid;
 
 	// Set size of each element in the Rx/Tx buffers and FIFOs
