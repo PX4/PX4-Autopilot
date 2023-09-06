@@ -145,8 +145,10 @@ if [ "$DISTANCE_SENSOR" == "LIGHTWARE_SF000" ]; then
 	qshell lightware_laser_serial start -d 7
 fi
 
-# APM power monitor
-qshell voxlpm start -X -b 2
+if [ "$POWER_MANAGER" == "VOXLPM" ]; then
+	# APM power monitor
+	qshell voxlpm start -X -b 2
+fi
 
 # Optional distance sensor on spare i2c
 # qshell vl53l0x start -X -b 4
