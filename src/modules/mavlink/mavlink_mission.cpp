@@ -86,7 +86,7 @@ MavlinkMissionManager::init_offboard_mission()
 
 		mission_s mission_state;
 		bool success = _dataman_client.readSync(DM_KEY_MISSION_STATE, 0, reinterpret_cast<uint8_t *>(&mission_state),
-							sizeof(mission_s));
+							sizeof(mission_s), 3_s);
 
 		if (success) {
 			_dataman_id = (dm_item_t)mission_state.dataman_id;
@@ -112,7 +112,7 @@ MavlinkMissionManager::load_geofence_stats()
 	mission_stats_entry_s stats;
 	// initialize fence points count
 	bool success = _dataman_client.readSync(DM_KEY_FENCE_POINTS, 0, reinterpret_cast<uint8_t *>(&stats),
-						sizeof(mission_stats_entry_s));
+						sizeof(mission_stats_entry_s), 3_s);
 
 	if (success) {
 		_count[MAV_MISSION_TYPE_FENCE] = stats.num_items;
@@ -128,7 +128,7 @@ MavlinkMissionManager::load_safepoint_stats()
 	mission_stats_entry_s stats;
 	// initialize safe points count
 	bool success = _dataman_client.readSync(DM_KEY_SAFE_POINTS, 0, reinterpret_cast<uint8_t *>(&stats),
-						sizeof(mission_stats_entry_s));
+						sizeof(mission_stats_entry_s), 3_s);
 
 	if (success) {
 		_count[MAV_MISSION_TYPE_RALLY] = stats.num_items;
