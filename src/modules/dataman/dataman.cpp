@@ -274,7 +274,7 @@ _file_write(dm_item_t item, unsigned index, const void *buf, size_t count)
 
 	bool write_success = false;
 
-	for (int i = 0; i < 2; i++) {
+	for (int i = 0; i < 3; i++) {
 		int ret_seek = lseek(dm_operations_data.file.fd, offset, SEEK_SET);
 
 		if (ret_seek < 0) {
@@ -384,7 +384,7 @@ _file_read(dm_item_t item, unsigned index, void *buf, size_t count)
 	int len = -1;
 	bool read_success = false;
 
-	for (int i = 0; i < 2; i++) {
+	for (int i = 0; i < 3; i++) {
 		int ret_seek = lseek(dm_operations_data.file.fd, offset, SEEK_SET);
 
 		if (ret_seek < 0) {
