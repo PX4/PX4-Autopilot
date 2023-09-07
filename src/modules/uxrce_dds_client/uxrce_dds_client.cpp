@@ -420,7 +420,17 @@ void UxrceddsClient::run()
 
 			_subs->update(&session, reliable_out, best_effort_out, participant_id, _client_namespace);
 
-			uxr_run_session_timeout(&session, 0);
+			// Run the session until we receive no more data or up to a maximum number of iterations.
+			// The maximum observed number of iterations was 6 (SITL). If we were to run only once, data starts to get
+			// delayed, causing registered flight modes to time out.
+			for (int i = 0; i < 10; ++i) {
+				const uint32_t prev_num_payload_received = _pubs->num_payload_received;
+				uxr_run_session_timeout(&session, 0);
+
+				if (_pubs->num_payload_received == prev_num_payload_received) {
+					break;
+				}
+			}
 
 			// time sync session
 			if (_synchronize_timestamps && hrt_elapsed_time(&last_sync_session) > 1_s) {
