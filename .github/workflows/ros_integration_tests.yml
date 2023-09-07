@@ -91,6 +91,6 @@ jobs:
       run: |
         . /opt/px4_ws/install/setup.bash
         /opt/Micro-XRCE-DDS-Agent/build/MicroXRCEAgent udp4 localhost -p 8888 -v 0 &
-        test/ros_test_runner.py --verbose --model iris --upload
+        test/ros_test_runner.py --verbose --model iris --upload --force-color
       timeout-minutes: 45
 

@@ -7,7 +7,7 @@ import psutil  # type: ignore
 import signal
 import subprocess
 import sys
-from integration_test_runner import test_runner
+from integration_test_runner import test_runner, logger_helper
 import integration_test_runner.process_helper as ph
 from typing import Any, Dict, List, NoReturn
 
@@ -70,6 +70,8 @@ def main() -> NoReturn:
                         help="choice from valgrind, callgrind, gdb, lldb")
     parser.add_argument("--upload", default=False, action='store_true',
                         help="Upload logs to logs.px4.io")
+    parser.add_argument("--force-color", default=False, action='store_true',
+                        help="Force colorized output")
     parser.add_argument("--verbose", default=False, action='store_true',
                         help="enable more verbose output")
     parser.add_argument("config_file", help="JSON config file to use")
@@ -77,6 +79,9 @@ def main() -> NoReturn:
                         default='build/px4_sitl_default/',
                         help="relative path where the built files are stored")
     args = parser.parse_args()
+
+    if args.force_color:
+        logger_helper.force_color = True
 
     with open(args.config_file) as json_file:
         config = json.load(json_file)

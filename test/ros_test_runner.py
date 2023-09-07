@@ -121,6 +121,8 @@ def main() -> NoReturn:
                         help="choice from valgrind, callgrind, gdb, lldb")
     parser.add_argument("--upload", default=False, action='store_true',
                         help="Upload logs to logs.px4.io")
+    parser.add_argument("--force-color", default=False, action='store_true',
+                        help="Force colorized output")
     parser.add_argument("--verbose", default=False, action='store_true',
                         help="enable more verbose output")
     parser.add_argument("--config-file", help="JSON config file to use",
@@ -133,6 +135,9 @@ def main() -> NoReturn:
                         help="path which contains the integration_tests binary. "
                              "If not provided, it is determined via 'ros2 pkg'")
     args = parser.parse_args()
+
+    if args.force_color:
+        logger_helper.force_color = True
 
     ros_package_build_dir = args.px4_ros2_interface_lib_build_dir
     if ros_package_build_dir is None:
