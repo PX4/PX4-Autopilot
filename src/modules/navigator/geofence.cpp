@@ -92,6 +92,7 @@ void Geofence::run()
 						    sizeof(mission_stats_entry_s));
 
 		if (!success) {
+			PX4_ERR("geofence dataman read failed");
 			_error_state = DatamanState::Read;
 			_dataman_state = DatamanState::Error;
 		}
