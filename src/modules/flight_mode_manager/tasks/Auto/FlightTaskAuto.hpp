@@ -54,6 +54,9 @@
 #include <lib/weather_vane/WeatherVane.hpp>
 #include "StickAccelerationXY.hpp"
 
+#include <systemlib/mavlink_log.h> // DQ custom
+#include <px4_platform_common/events.h> // DQ custom
+
 /**
  * This enum has to agree with position_setpoint_s type definition
  * The only reason for not using the struct position_setpoint is because
@@ -164,7 +167,8 @@ protected:
 					(ParamFloat<px4::params::MPC_Z_V_AUTO_UP>) _param_mpc_z_v_auto_up,
 					(ParamFloat<px4::params::MPC_Z_V_AUTO_DN>) _param_mpc_z_v_auto_dn,
 					(ParamFloat<px4::params::MPC_TKO_SPEED>) _param_mpc_tko_speed,
-					(ParamFloat<px4::params::MPC_TKO_RAMP_T>) _param_mpc_tko_ramp_t
+					(ParamFloat<px4::params::MPC_TKO_RAMP_T>) _param_mpc_tko_ramp_t, // time constant for smooth takeoff ramp
+					(ParamFloat<px4::params::MPC_MAX_HOVER_T>) _param_mpc_max_hover_t // DQ Cutom
 				       );
 
 private:
@@ -190,4 +194,11 @@ private:
 	bool _isFinite(const position_setpoint_s &sp); /**< Checks if all waypoint triplets are finite. */
 	bool _evaluateGlobalReference(); /**< Check is global reference is available. */
 	void _set_heading_from_mode(); /**< @see  MPC_YAW_MODE */
+
+	// Custom DQ start
+	hrt_abstime _start_time_vtol_state_mc{0};
+	bool _forced_descent_warning_published{false};
+	orb_advert_t _mavlink_log_pub{nullptr};
+	// Custom DQ end
+
 };

@@ -150,3 +150,14 @@ PARAM_DEFINE_FLOAT(MPC_THR_MAX, 1.f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_INT32(MPC_ACC_DECOUPLE, 1);
+
+/**
+ * DQ Custom: Maximum hover time in seconds
+ *
+ * @min 30.0
+ * @max 420.0
+ * @decimal 1
+ * @increment 0.1
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_MAX_HOVER_T, 90.0f);

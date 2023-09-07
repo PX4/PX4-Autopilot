@@ -39,6 +39,7 @@
 #include <float.h>
 
 using namespace matrix;
+using namespace time_literals;
 
 bool FlightTaskAuto::activate(const trajectory_setpoint_s &last_setpoint)
 {
@@ -249,7 +250,28 @@ void FlightTaskAuto::_prepareLandSetpoints()
 	// User input assisted landing
 	if (_param_mpc_land_rc_help.get() && _sticks.checkAndUpdateStickInputs()) {
 		// Stick full up -1 -> stop, stick full down 1 -> double the speed
-		vertical_speed *= (1 - _sticks.getThrottleZeroCenteredExpo());
+
+		// DQ Custom Start
+		if (_start_time_vtol_state_mc == 0
+		    && (_sub_vehicle_status.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)) {
+			_start_time_vtol_state_mc = _sub_vehicle_status.get().timestamp;
+		}
+
+		if (_start_time_vtol_state_mc) {
+			if (hrt_elapsed_time(&_start_time_vtol_state_mc) < _param_mpc_max_hover_t.get() * 1_s) {
+				vertical_speed *= (1 - _sticks.getThrottleZeroCenteredExpo());
+
+				_forced_descent_warning_published = false;
+
+			} else if (!_forced_descent_warning_published) {
+				mavlink_log_critical(&_mavlink_log_pub, "Maximum hover time reached, vehicle will descend");
+				events::send(events::ID("flight_task_auto_nudging_vertical_off_hover_time"), {events::Log::Critical, events::LogInternal::Info},
+					     "Maximum hover time reached, vehicle will descend");
+				_forced_descent_warning_published = true;
+			}
+		}
+
+		//DQ Custom End
 
 		Vector2f sticks_xy = _sticks.getPitchRollExpo();
 
