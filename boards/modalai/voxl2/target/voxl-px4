@@ -4,6 +4,8 @@ CONFIG_FILE="/etc/modalai/voxl-px4.conf"
 
 GPS=NONE
 RC=SPEKTRUM
+POWER_MANAGER=VOXLPM
+DISTANCE_SENSOR=NONE
 OSD=DISABLE
 DAEMON_MODE=DISABLE
 SENSOR_CAL=ACTUAL
@@ -54,6 +56,8 @@ print_config_settings(){
     echo -e "\n*************************"
     echo "GPS=$GPS"
     echo "RC=$RC"
+    echo "POWER MANAGER=$POWER_MANAGER"
+    echo "DISTANCE SENSOR=$DISTANCE_SENSOR"
     echo "OSD=$OSD"
     echo "DAEMON_MODE=$DAEMON_MODE"
     echo "SENSOR_CAL=$SENSOR_CAL"
@@ -137,4 +141,5 @@ fi
 
 print_config_settings
 
-GPS=$GPS RC=$RC OSD=$OSD EXTRA_STEPS=$EXTRA_STEPS px4 $DAEMON -s /usr/bin/voxl-px4-start
+GPS=$GPS RC=$RC POWER_MANAGER=$POWER_MANAGER DISTANCE_SENSOR=$DISTANCE_SENSOR \
+OSD=$OSD EXTRA_STEPS=$EXTRA_STEPS px4 $DAEMON -s /usr/bin/voxl-px4-start
