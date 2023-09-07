@@ -387,13 +387,19 @@ _file_read(dm_item_t item, unsigned index, void *buf, size_t count)
 	for (int i = 0; i < 2; i++) {
 		int ret_seek = lseek(dm_operations_data.file.fd, offset, SEEK_SET);
 
-		if ((ret_seek < 0) && !dm_operations_data.silence) {
-			PX4_ERR("file read lseek failed %d", errno);
+		if (ret_seek < 0) {
+			if (!dm_operations_data.silence) {
+				PX4_ERR("file read lseek failed %d", errno);
+			}
+
 			continue;
 		}
 
-		if ((ret_seek != offset) && !dm_operations_data.silence) {
-			PX4_ERR("file read lseek failed, incorrect offset %d vs %d", ret_seek, offset);
+		if (ret_seek != offset) {
+			if (!dm_operations_data.silence) {
+				PX4_ERR("file read lseek failed, incorrect offset %d vs %d", ret_seek, offset);
+			}
+
 			continue;
 		}
 
