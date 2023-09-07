@@ -363,6 +363,7 @@ static ssize_t
 _file_read(dm_item_t item, unsigned index, void *buf, size_t count)
 {
 	if (item >= DM_KEY_NUM_KEYS) {
+		PX4_ERR("file read failed, item (%d) >= DM_KEY_NUM_KEYS (%d)", item, DM_KEY_NUM_KEYS);
 		return -1;
 	}
 
@@ -373,11 +374,13 @@ _file_read(dm_item_t item, unsigned index, void *buf, size_t count)
 
 	/* If item type or index out of range, return error */
 	if (offset < 0) {
+		PX4_ERR("file read failed, offset (%d) < 0", offset);
 		return -1;
 	}
 
 	/* Make sure the caller hasn't asked for more data than we can handle */
 	if (count > (g_per_item_size_with_hdr[item] - DM_SECTOR_HDR_SIZE)) {
+		PX4_ERR("file read failed, count (%zu) > %zu", count, (g_per_item_size_with_hdr[item] - DM_SECTOR_HDR_SIZE));
 		return -E2BIG;
 	}
 
@@ -388,7 +391,7 @@ _file_read(dm_item_t item, unsigned index, void *buf, size_t count)
 		int ret_seek = lseek(dm_operations_data.file.fd, offset, SEEK_SET);
 
 		if (ret_seek < 0) {
-			if (!dm_operations_data.silence) {
+			if (!dm_operations_data.silence || true) {
 				PX4_ERR("file read lseek failed %d", errno);
 			}
 
@@ -396,7 +399,7 @@ _file_read(dm_item_t item, unsigned index, void *buf, size_t count)
 		}
 
 		if (ret_seek != offset) {
-			if (!dm_operations_data.silence) {
+			if (!dm_operations_data.silence || true) {
 				PX4_ERR("file read lseek failed, incorrect offset %d vs %d", ret_seek, offset);
 			}
 
@@ -412,18 +415,20 @@ _file_read(dm_item_t item, unsigned index, void *buf, size_t count)
 			break;
 
 		} else {
-			if (!dm_operations_data.silence) {
+			if (!dm_operations_data.silence || true) {
 				PX4_ERR("file read failed %d", errno);
 			}
 		}
 	}
 
 	if (!read_success) {
+		PX4_WARN("file read failed");
 		return -1;
 	}
 
 	/* A zero length entry is a empty entry */
 	if (len == 0) {
+		PX4_WARN("file read, len == 0");
 		buffer[0] = 0;
 	}
 
@@ -431,6 +436,7 @@ _file_read(dm_item_t item, unsigned index, void *buf, size_t count)
 	if (buffer[0] > 0) {
 		/* We got more than requested!!! */
 		if (buffer[0] > count) {
+			PX4_WARN("file read buffer[0] (%d) > count (%zu)", buffer[0], count);
 			return -1;
 		}
 
@@ -536,7 +542,14 @@ static int
 _file_initialize(unsigned max_offset)
 {
 	/* Open or create the data manager file */
-	dm_operations_data.file.fd = open(k_data_manager_device_path, O_RDWR | O_CREAT | O_BINARY, PX4_O_MODE_666);
+	dm_operations_data.file.fd = open(k_data_manager_device_path, O_RDWR | O_BINARY, PX4_O_MODE_666);
+
+	const bool file_created = (dm_operations_data.file.fd < 0);
+
+	if (file_created) {
+		PX4_INFO("creating file %s", k_data_manager_device_path);
+		dm_operations_data.file.fd = open(k_data_manager_device_path, O_RDWR | O_CREAT | O_BINARY, PX4_O_MODE_666);
+	}
 
 	if (dm_operations_data.file.fd < 0) {
 		PX4_WARN("Could not open data manager file %s", k_data_manager_device_path);
@@ -553,13 +566,16 @@ _file_initialize(unsigned max_offset)
 
 	dataman_compat_s compat_state{};
 
-	dm_operations_data.silence = true;
+	dm_operations_data.silence = false;
 
 	g_dm_ops->read(DM_KEY_COMPAT, 0, &compat_state, sizeof(compat_state));
 
 	dm_operations_data.silence = false;
 
-	if (compat_state.key != DM_COMPAT_KEY) {
+	PX4_INFO("initialize DM_COMPAT_KEY %" PRIu64 " vs %" PRIu64, DM_COMPAT_KEY, compat_state.key);
+
+	if (file_created || compat_state.key != DM_COMPAT_KEY) {
+		PX4_INFO("compat_state.key != DM_COMPAT_KEY");
 
 		/* Write current compat info */
 		compat_state.key = DM_COMPAT_KEY;
@@ -570,22 +586,33 @@ _file_initialize(unsigned max_offset)
 		}
 
 		for (uint32_t item = DM_KEY_SAFE_POINTS; item <= DM_KEY_MISSION_STATE; ++item) {
+			PX4_INFO("clearing item %" PRIu32, item);
 			g_dm_ops->clear((dm_item_t)item);
 		}
 
+		PX4_INFO("initialize DM_KEY_MISSION_STATE");
 		mission_s mission{};
 		mission.timestamp = hrt_absolute_time();
 		mission.dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
 		mission.count = 0;
 		mission.current_seq = 0;
-
-		mission_stats_entry_s stats;
-		stats.num_items = 0;
-		stats.update_counter = 1;
-
 		g_dm_ops->write(DM_KEY_MISSION_STATE, 0, reinterpret_cast<uint8_t *>(&mission), sizeof(mission_s));
-		g_dm_ops->write(DM_KEY_FENCE_POINTS, 0, reinterpret_cast<uint8_t *>(&stats), sizeof(mission_stats_entry_s));
-		g_dm_ops->write(DM_KEY_SAFE_POINTS, 0, reinterpret_cast<uint8_t *>(&stats), sizeof(mission_stats_entry_s));
+
+		PX4_INFO("initialize DM_KEY_FENCE_POINTS");
+		mission_stats_entry_s fence_points_stats{};
+		fence_points_stats.num_items = 0;
+		fence_points_stats.update_counter = 1;
+		g_dm_ops->write(DM_KEY_FENCE_POINTS, 0, reinterpret_cast<uint8_t *>(&fence_points_stats),
+				sizeof(mission_stats_entry_s));
+
+		PX4_INFO("initialize DM_KEY_SAFE_POINTS");
+		mission_stats_entry_s safe_point_stats{};
+		safe_point_stats.num_items = 0;
+		safe_point_stats.update_counter = 1;
+		g_dm_ops->write(DM_KEY_SAFE_POINTS, 0, reinterpret_cast<uint8_t *>(&safe_point_stats), sizeof(mission_stats_entry_s));
+
+	} else {
+		PX4_INFO("compat_state.key == DM_COMPAT_KEY");
 	}
 
 	dm_operations_data.running = true;

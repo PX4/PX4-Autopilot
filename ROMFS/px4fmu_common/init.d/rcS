@@ -228,6 +228,7 @@ else
 	# Waypoint storage.
 	# REBOOTWORK this needs to start in parallel.
 	#
+	ls /fs/microsd
 	if param compare -s SYS_DM_BACKEND 1
 	then
 		dataman start -r
@@ -238,6 +239,7 @@ else
 			dataman start
 		fi
 	fi
+	ls /fs/microsd
 
 	#
 	# Start the socket communication send_event handler.
