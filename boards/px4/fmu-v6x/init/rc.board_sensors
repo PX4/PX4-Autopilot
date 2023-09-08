@@ -102,13 +102,8 @@ if ver hwtypecmp V6X002001
 then
 	rm3100 -I -b 4 start
 else
-	if ver hwtypecmp V6X009010 V6X010010
-	then
-		# Internal magnetometer on I2C
-		bmm150 -I -R 0 start
-	else
-		bmm150 -I -R 6 start
-	fi
+	# Internal magnetometer on I2C
+	bmm150 -I -R 0 start
 fi
 
 # External compass on GPS1/I2C1 (the 3rd external bus): standard Holybro Pixhawk 4 or CUAV V5 GPS/compass puck (with lights, safety button, and buzzer)
