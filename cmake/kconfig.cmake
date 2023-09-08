@@ -216,15 +216,17 @@ if(EXISTS ${BOARD_DEFCONFIG})
 
 	endforeach()
 
-	# Put every module not in userspace also to kernel list
-	foreach(modpath ${config_module_list})
+	if (CONFIG_BOARD_PROTECTED)
+	    # Put every module not in userspace also to kernel list
+	    foreach(modpath ${config_module_list})
 		get_filename_component(module ${modpath} NAME)
 		list(FIND config_user_list ${module} _index)
 
 		if (${_index} EQUAL -1)
 			list(APPEND config_kernel_list ${modpath})
 		endif()
-	endforeach()
+	    endforeach()
+	endif()
 
 	if(PLATFORM)
 		# set OS, and append specific platform module path
