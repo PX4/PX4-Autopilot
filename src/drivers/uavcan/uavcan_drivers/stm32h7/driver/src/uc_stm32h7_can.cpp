@@ -798,6 +798,7 @@ int CanIface::init(const uavcan::uint32_t bitrate, const OperatingMode mode)
 	 * factor of 4 necessary in the address relative to the SA register values.
 	 */
 
+
 // Location of this interface's message RAM - address in CPU memory address
 // and relative address (in words) used for configuration
 	const uint32_t iface_ram_base = (2560 / 2) * self_index_;
@@ -809,14 +810,16 @@ int CanIface::init(const uavcan::uint32_t bitrate, const OperatingMode mode)
 	message_ram_.StdIdFilterSA = gl_ram_base + ram_offset * WORD_LENGTH;
 	can_->SIDFC = ((n_stdid << FDCAN_SIDFC_LSS_Pos)
 		       | ram_offset << FDCAN_SIDFC_FLSSA_Pos);
+	memset((void *)message_ram_.StdIdFilterSA, 0, WORD_LENGTH * n_stdid); // make sure filters are disabled
 	ram_offset += n_stdid;
 
-	// Extended ID Filters: Allow space for 128 filters (128 words)
-	const uint8_t n_extid = 128;
+	// Extended ID Filters: Allow space for 64 filters (128 words)
+	const uint8_t n_extid = 64;
 	message_ram_.ExtIdFilterSA = gl_ram_base + ram_offset * WORD_LENGTH;
 	can_->XIDFC = ((n_extid << FDCAN_XIDFC_LSE_Pos)
 		       | ram_offset << FDCAN_XIDFC_FLESA_Pos);
-	ram_offset += n_extid;
+	memset((void *)message_ram_.ExtIdFilterSA, 0, (2 * WORD_LENGTH) * n_extid); // make sure filters are disabled
+	ram_offset += 2 * n_extid;
 
 	// Set size of each element in the Rx/Tx buffers and FIFOs
 	can_->RXESC = 0; // 8 byte space for every element (Rx buffer, FIFO1, FIFO0)
