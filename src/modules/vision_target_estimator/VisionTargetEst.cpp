@@ -116,6 +116,18 @@ bool VisionTargetEst::init()
 	_vte_position_valid = false;
 	_vte_orientation_valid = false;
 
+	// Structure allows for different tasks using the VTE in the future.
+	_vte_task_mask = _param_vte_task_mask.get();
+
+	if (_vte_task_mask < 1) {
+		PX4_ERR("VTE invalid task mask, target estimator not enabled.");
+		return false;
+
+	} else {
+
+		if (_vte_task_mask & VisionTargetEstTask::VTE_FOR_PREC_LAND) { PX4_INFO("VTE for precision landing.");}
+	}
+
 	if (_param_vte_pos_en.get()) {
 		PX4_INFO("VTE position estimator enabled.");
 		_vte_position = new VTEPosition;
@@ -134,6 +146,8 @@ bool VisionTargetEst::init()
 void VisionTargetEst::updateParams()
 {
 	ModuleParams::updateParams();
+
+	_vte_task_mask = _param_vte_task_mask.get();
 
 	float gps_pos_x;
 	param_get(param_find("EKF2_GPS_POS_X"), &gps_pos_x);
@@ -158,33 +172,36 @@ void VisionTargetEst::reset_acc_downsample()
 void VisionTargetEst::start_estimators()
 {
 
-	PX4_INFO("Starting Vision Target Estimator.");
+	PX4_INFO("Starting Vision Target Estimator (VTE).");
 
 	if (_vte_position_valid) {
 
-		bool next_sp_is_land = false;
-		bool current_sp_is_land = false;
+		if (_vte_task_mask & VisionTargetEstTask::VTE_FOR_PREC_LAND) {
 
-		position_setpoint_triplet_s pos_sp_triplet;
+			bool next_sp_is_land = false;
+			bool current_sp_is_land = false;
 
-		if (_pos_sp_triplet_sub.update(&pos_sp_triplet)) {
-			next_sp_is_land = (pos_sp_triplet.next.type == position_setpoint_s::SETPOINT_TYPE_LAND);
-			current_sp_is_land = (pos_sp_triplet.next.type == position_setpoint_s::SETPOINT_TYPE_LAND);
-		}
+			position_setpoint_triplet_s pos_sp_triplet;
 
-		if (next_sp_is_land) {
-			PX4_INFO("Next sp is land.");
-			_vte_position->set_landpoint(pos_sp_triplet.next.lat, pos_sp_triplet.next.lon,
-						     pos_sp_triplet.next.alt);
+			if (_pos_sp_triplet_sub.update(&pos_sp_triplet)) {
+				next_sp_is_land = (pos_sp_triplet.next.type == position_setpoint_s::SETPOINT_TYPE_LAND);
+				current_sp_is_land = (pos_sp_triplet.next.type == position_setpoint_s::SETPOINT_TYPE_LAND);
+			}
 
-		} else if (current_sp_is_land) {
-			PX4_INFO("Current sp is land.");
-			_vte_position->set_landpoint(pos_sp_triplet.current.lat, pos_sp_triplet.current.lon,
-						     pos_sp_triplet.current.alt);
+			if (next_sp_is_land) {
+				PX4_INFO("VTE for precision landing, next sp is land.");
+				_vte_position->set_mission_position(pos_sp_triplet.next.lat, pos_sp_triplet.next.lon,
+								    pos_sp_triplet.next.alt);
 
-		} else {
-			PX4_WARN("Current and next sp are not land. Land position cannot be used.");
-			_vte_position->set_landpoint(0.0, 0.0, NAN);
+			} else if (current_sp_is_land) {
+				PX4_INFO("VTE for precision landing, current sp is land.");
+				_vte_position->set_mission_position(pos_sp_triplet.current.lat, pos_sp_triplet.current.lon,
+								    pos_sp_triplet.current.alt);
+
+			} else {
+				PX4_WARN("VTE for precision landing, land position cannot be used.");
+				_vte_position->set_mission_position(0.0, 0.0, NAN);
+			}
 		}
 	}
 
@@ -194,30 +211,44 @@ void VisionTargetEst::start_estimators()
 
 bool VisionTargetEst::must_start_estimators()
 {
-	return _is_in_prec_land && (hrt_absolute_time() - _vte_stop_time) > estimator_restart_time_US;
+	// If we enter this function, the estimator is not running. Current task must be 0.
+	_vte_current_task = 0;
+
+	// Start target estimator for precision landing
+	if (_vte_task_mask & VisionTargetEstTask::VTE_FOR_PREC_LAND) {
+		if (_is_in_prec_land && (hrt_absolute_time() - _vte_stop_time) > estimator_restart_time_US) {
+			_vte_current_task += VisionTargetEstTask::VTE_FOR_PREC_LAND;
+			return true;
+		}
+	}
+
+	return false;
 }
 
 bool VisionTargetEst::must_stop_estimators()
 {
 
-	vehicle_land_detected_s vehicle_land_detected;
-
-	// Stop computations once the drone has landed
-	if (_vehicle_land_detected_sub.update(&vehicle_land_detected) && vehicle_land_detected.landed) {
-		PX4_INFO("Land detected, target estimator stopped.");
-		return true;
-	}
-
-	// Stop computations once precision landing is over
-	if (!_is_in_prec_land) {
-		PX4_INFO("Precision operation finished, target estimator stopped.");
-		return true;
-	}
-
 	// Stop computations if the position estimator timedout
 	if (_vte_position->has_timed_out()) {
 		PX4_INFO("TIMEOUT, target estimator stopped.");
 		return true;
+	}
+
+	// Allow to keep the estimator running while on the ground if not used for precision landing. E.g. for precision takeoff.
+	if (_vte_current_task & VisionTargetEstTask::VTE_FOR_PREC_LAND) {
+		vehicle_land_detected_s vehicle_land_detected;
+
+		// Stop computations once the drone has landed
+		if (_vehicle_land_detected_sub.update(&vehicle_land_detected) && vehicle_land_detected.landed) {
+			PX4_INFO("Land detected, target estimator stopped.");
+			return true;
+		}
+
+		// Stop computations once precision landing is over
+		if (!_is_in_prec_land) {
+			PX4_INFO("Precision operation finished, target estimator stopped.");
+			return true;
+		}
 	}
 
 	return false;
@@ -231,11 +262,12 @@ void VisionTargetEst::Run()
 		return;
 	}
 
-	// Start the filter when in precision landing
-	prec_land_status_s prec_land_status;
+	if (_vte_task_mask & VisionTargetEstTask::VTE_FOR_PREC_LAND) {
+		prec_land_status_s prec_land_status;
 
-	if (_prec_land_status_sub.update(&prec_land_status)) {
-		_is_in_prec_land = prec_land_status.state == prec_land_status_s::PREC_LAND_STATE_ONGOING;
+		if (_prec_land_status_sub.update(&prec_land_status)) {
+			_is_in_prec_land = prec_land_status.state == prec_land_status_s::PREC_LAND_STATE_ONGOING;
+		}
 	}
 
 	// Check if estimator must be started
@@ -346,6 +378,7 @@ void VisionTargetEst::reset_estimators()
 		_vte_position->resetFilter();
 	}
 
+	_vte_current_task = 0;
 	_is_in_prec_land = false;
 	_estimators_started = false;
 
