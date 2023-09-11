@@ -99,7 +99,7 @@ float FixedwingPositionControl::getWeightRatio()
 
 	float weight_factor = 1.0f;
 
-	if (_param_weight_base.get() > 0.0f && _param_weight_gross.get() > 0.0f) {
+	if (_param_weight_base.get() > FLT_EPSILON && _param_weight_gross.get() > FLT_EPSILON) {
 		weight_factor = math::constrain(_param_weight_gross.get() / _param_weight_base.get(), MIN_WEIGHT_RATIO,
 						MAX_WEIGHT_RATIO);
 	}
@@ -157,7 +157,7 @@ FixedwingPositionControl::parameters_update()
 
 	// TECS parameters
 	_tecs.set_max_climb_rate(getMaximumClimbRate());
-	_tecs.set_max_sink_rate(_param_fw_t_sink_max.get());
+	_tecs.set_max_sink_rate(getMinimumSinkRate());
 	_tecs.set_min_sink_rate(_param_fw_t_sink_min.get());
 	_tecs.set_speed_weight(_param_fw_t_spdweight.get());
 	_tecs.set_equivalent_airspeed_trim(_param_fw_airspd_trim.get());
@@ -461,19 +461,12 @@ FixedwingPositionControl::adapt_airspeed_setpoint(const float control_interval, 
 		load_factor_from_bank_angle = 1.0f / cosf(_att_sp.roll_body);
 	}
 
-	float weight_ratio = 1.0f;
-
-	if (_param_weight_base.get() > FLT_EPSILON && _param_weight_gross.get() > FLT_EPSILON) {
-		weight_ratio = math::constrain(_param_weight_gross.get() / _param_weight_base.get(), MIN_WEIGHT_RATIO,
-					       MAX_WEIGHT_RATIO);
-	}
-
 	// Here we make sure that the set minimum airspeed is automatically adapted to the current load factor.
 	// The minimum airspeed is the controller limit (FW_AIRSPD_MIN, unless either in takeoff or landing) that should
 	// resemble the vehicles stall speed (CAS) with a 1g load plus some safety margin (as no controller tracks perfectly).
 	// Stall speed increases with the square root of the load factor: V_stall ~ sqrt(load_factor).
 	// The load_factor is composed of a term from the bank angle and a term from the weight ratio.
-	calibrated_min_airspeed *= sqrtf(load_factor_from_bank_angle * weight_ratio);
+	calibrated_min_airspeed *= sqrtf(load_factor_from_bank_angle * getWeightRatio());
 
 	// Aditional option to increase the min airspeed setpoint based on wind estimate for more stability in higher winds.
 	if (_airspeed_valid && _wind_valid && _param_fw_wind_arsp_sc.get() > FLT_EPSILON) {
@@ -2302,6 +2295,7 @@ FixedwingPositionControl::Run()
 		if (_vehicle_air_data_sub.update(&air_data)) {
 			_air_density = PX4_ISFINITE(air_data.rho) ? air_data.rho : _air_density;
 			_tecs.set_max_climb_rate(getMaximumClimbRate());
+			_tecs.set_min_sink_rate(getMinimumSinkRate());
 		}
 
 		if (_vehicle_land_detected_sub.updated()) {
@@ -2518,13 +2512,6 @@ float FixedwingPositionControl::calculateTrimThrottle(float throttle_min,
 		throttle_trim = _param_fw_thr_trim.get() + slope_above_trim * (airspeed_sp - _param_fw_airspd_trim.get());
 	}
 
-	float weight_ratio = 1.0f;
-
-	if (_param_weight_base.get() > FLT_EPSILON && _param_weight_gross.get() > FLT_EPSILON) {
-		weight_ratio = math::constrain(_param_weight_gross.get() / _param_weight_base.get(), MIN_WEIGHT_RATIO,
-					       MAX_WEIGHT_RATIO);
-	}
-
 	float air_density_throttle_scale = 1.0f;
 
 	if (PX4_ISFINITE(_air_density)) {
@@ -2535,7 +2522,8 @@ float FixedwingPositionControl::calculateTrimThrottle(float throttle_min,
 	}
 
 	// compensate trim throttle for both weight and air density
-	return math::constrain(throttle_trim * sqrtf(weight_ratio) * air_density_throttle_scale, throttle_min, throttle_max);
+	return math::constrain(throttle_trim * sqrtf(getWeightRatio()) * air_density_throttle_scale, throttle_min,
+			       throttle_max);
 }
 
 void

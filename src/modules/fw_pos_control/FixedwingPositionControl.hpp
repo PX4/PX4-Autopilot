@@ -489,14 +489,14 @@ private:
 	float get_terrain_altitude_takeoff(float takeoff_alt);
 
 	/**
-	 * @brief Return the maximum climb rate achievable under the current conditions.
-	 * @return Maximum climbrate.
+	 * @brief Return the maximum climb rate achievable given the estimated air density and the vehicle weight.
+	 * @return Maximum climbrate [m/s].
 	 */
 	float getMaximumClimbRate();
 
 	/**
-	 * @brief Return the minimum sink rate achievable under the current conditions.
-	 * @return Minimum sink rate.
+	 * @brief Return the minimum sink rate achievable given the estimated air density and the vehicle weight.
+	 * @return Minimum sink rate [m/s].
 	 */
 	float getMinimumSinkRate();
 
