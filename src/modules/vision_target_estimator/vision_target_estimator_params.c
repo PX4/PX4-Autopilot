@@ -79,23 +79,39 @@ PARAM_DEFINE_INT32(VTE_EKF_AID, 1);
  * Integer bitmask controlling data fusion and aiding methods.
  *
  * Set bits in the following positions to enable:
- * 0 : Set to true to use the target's GPS position data if available. (+1)
- * 1 : Set to true to use the relative GPS velocity data if available. (If the target is moving, a target velocity estimate is required) (+2)
+ * 0 : Set to true to use the target's GNSS position data if available. (+1)
+ * 1 : Set to true to use the relative GNSS velocity data if available. (If the target is moving, a target velocity estimate is required) (+2)
  * 2 : Set to true to use the target relative position from vision-based data if available (+4)
- * 3 : Set to true to use the mission landing point. Ignored if target GPS position enabled. (+8)
+ * 3 : Set to true to use the mission point. Ignored if target GNSS position enabled. (+8)
  *
  * @group Vision target Estimator
  * @min 0
  * @max 63
- * @bit 0 target GPS position
- * @bit 1 relative GPS velocity
+ * @bit 0 target GNSS position
+ * @bit 1 relative GNSS velocity
  * @bit 2 vision relative position
- * @bit 3 mission landing position
+ * @bit 3 mission position
  *
  *
  * @group Vision target Estimator
  */
 PARAM_DEFINE_INT32(VTE_AID_MASK, 14);
+
+/**
+ * Integer bitmask controlling the tasks of the target estimator.
+ *
+ * Set bits in the following positions to enable:
+ * 0 : Set to true to use the vision target estimator for precision landing. (+1)
+ *
+ * @group Vision target Estimator
+ * @min 0
+ * @max 1
+ * @bit 0 VTE for precision landing
+ *
+ *
+ * @group Vision target Estimator
+ */
+PARAM_DEFINE_INT32(VTE_TASK_MASK, 1);
 
 /**
  * Target mode
@@ -134,7 +150,7 @@ PARAM_DEFINE_FLOAT(VTE_BTOUT, 3.0f);
 /**
  * Drone acceleration uncertainty
  *
- * Variance of drone's acceleration used for landing target position prediction.
+ * Variance of drone's acceleration used for target position prediction.
  * Higher values results in tighter following of the measurements and more lenient outlier rejection
  *
  * @unit (m/s^2)^2
@@ -162,7 +178,7 @@ PARAM_DEFINE_FLOAT(VTE_ACC_T_UNC, 1.0f);
 /**
  * Bias uncertainty
  *
- * Variance of GPS bias used for landing target position prediction.
+ * Variance of GPS bias used for target position prediction.
  * Higher values results in tighter following of the measurements and more lenient outlier rejection
  *
  * @unit m^2
@@ -176,7 +192,7 @@ PARAM_DEFINE_FLOAT(VTE_BIAS_UNC, 0.05f);
 /**
  * Bias limit
  *
- * Maximal bias between drone GPS and landing target GPS.
+ * Maximal bias between drone's GNSS and the target's GNSS.
  *
  * @unit m^2
  * @min 0.01
@@ -188,9 +204,9 @@ PARAM_DEFINE_FLOAT(VTE_BIAS_LIM, 1.f);
 
 
 /**
- * Initial landing target and drone relative position uncertainty
+ * Initial target and drone relative position uncertainty
  *
- * Initial variance of the relative landing target position in x,y,z direction
+ * Initial variance of the relative target position in x,y,z direction
  *
  * @unit m^2
  * @min 0.001
@@ -201,9 +217,9 @@ PARAM_DEFINE_FLOAT(VTE_BIAS_LIM, 1.f);
 PARAM_DEFINE_FLOAT(VTE_POS_UNC_IN, 0.5f);
 
 /**
- * Initial landing target and drone relative velocity uncertainty
+ * Initial target and drone relative velocity uncertainty
  *
- * Initial variance of the relative landing target velocity in x,y,z directions
+ * Initial variance of the relative target velocity in x,y,z directions
  *
  * @unit (m/s)^2
  * @min 0.001
@@ -229,7 +245,7 @@ PARAM_DEFINE_FLOAT(VTE_BIA_UNC_IN, 1.0f);
 /**
  * Initial Orientation uncertainty
  *
- * Initial variance of the orientation (yaw) of the landing target
+ * Initial variance of the orientation (yaw) of the target
  *
  * @unit m^2
  * @min 0.001
@@ -240,9 +256,9 @@ PARAM_DEFINE_FLOAT(VTE_BIA_UNC_IN, 1.0f);
 PARAM_DEFINE_FLOAT(VTE_YAW_UNC_IN, 1.0f);
 
 /**
- * Initial landing target absolute acceleration uncertainty
+ * Initial target absolute acceleration uncertainty
  *
- * Initial variance of the relative landing target acceleration in x,y,z directions
+ * Initial variance of the relative target acceleration in x,y,z directions
  *
  * @unit (m/s^2)^2
  * @min 0.001

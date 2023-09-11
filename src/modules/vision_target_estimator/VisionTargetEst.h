@@ -125,6 +125,14 @@ private:
 
 	uORB::Publication<vehicle_acceleration_s> _vte_acc_input_pub{ORB_ID(vte_acc_input)};
 
+	enum VisionTargetEstTask : uint16_t {
+		// Bit locations for VTE tasks
+		VTE_FOR_PREC_LAND  = (1 << 0),    ///< set to true if target GPS position data is ready to be fused
+	};
+
+	int _vte_current_task{0};
+	int _vte_task_mask{0};
+
 	bool _estimators_started{false};
 	bool _is_in_prec_land{false}; // Start target estimator during precision landing
 	uint64_t _vte_stop_time{0};
@@ -167,7 +175,8 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::VTE_YAW_EN>) _param_vte_yaw_en,
-		(ParamInt<px4::params::VTE_POS_EN>) _param_vte_pos_en
+		(ParamInt<px4::params::VTE_POS_EN>) _param_vte_pos_en,
+		(ParamInt<px4::params::VTE_TASK_MASK>) _param_vte_task_mask
 	)
 };
 
