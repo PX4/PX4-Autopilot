@@ -75,8 +75,8 @@ bool KF_xyzb_v_decoupled_moving::update()
 
 	const float beta = _innov / _innov_cov * _innov;
 
-	// 5% false alarm probability
-	if (beta > 3.84f) {
+	// Normalized innovation Squared threshold. Checks whether innovation is consistent with innovation covariance.
+	if (beta > _nis_threshold) {
 		return false;
 	}
 

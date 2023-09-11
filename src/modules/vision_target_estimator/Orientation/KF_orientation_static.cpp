@@ -53,8 +53,8 @@ bool KF_orientation_static::update()
 
 	const float beta = _innov / _innov_cov * _innov;
 
-	// 5% false alarm probability
-	if (beta > 3.84f) {
+	// Normalized innovation Squared threshold. Checks whether innovation is consistent with innovation covariance.
+	if (beta > _nis_threshold) {
 		return false;
 	}
 

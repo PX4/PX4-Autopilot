@@ -235,6 +235,8 @@ bool VTEOrientation::fuse_orientation(const targetObsOrientation &target_orienta
 		target_innov.innovation_variance = _target_estimator_orientation->computeInnovCov(
 				target_orientation_obs.meas_unc_theta);
 		target_innov.innovation = _target_estimator_orientation->computeInnov(target_orientation_obs.meas_theta);
+		// Set the Normalized Innovation Squared (NIS) check threshold. Used to reject outlier measurements
+		_target_estimator_orientation->setNISthreshold(_nis_threshold);
 		meas_fused = _target_estimator_orientation->update();
 
 		// Fill the target innovation field
@@ -302,6 +304,7 @@ void VTEOrientation::updateParams()
 	_yaw_unc = _param_vte_yaw_unc_in.get();
 	_ev_angle_noise = _param_vte_ev_angle_noise.get();
 	_ev_noise_md = _param_vte_ev_noise_md.get();
+	_nis_threshold = _param_vte_yaw_nis_thre.get();
 }
 
 void VTEOrientation::set_range_sensor(const float dist, const bool valid)

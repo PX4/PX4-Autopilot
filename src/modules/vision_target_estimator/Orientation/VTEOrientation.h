@@ -169,11 +169,12 @@ private:
 
 	void _check_params(const bool force);
 
-	/* parameters */
+	/* parameters from vision_target_estimator_params.c*/
 	uint32_t _vte_TIMEOUT_US = 3_s; // timeout after which filter is reset if target not seen
 	float _yaw_unc;
 	float _ev_angle_noise;
 	bool  _ev_noise_md{false};
+	float _nis_threshold;
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::VTE_YAW_UNC_IN>) _param_vte_yaw_unc_in,
@@ -181,7 +182,8 @@ private:
 		(ParamInt<px4::params::VTE_MODE>) _param_vte_mode,
 		(ParamInt<px4::params::VTE_YAW_EN>) _param_vte_yaw_en,
 		(ParamFloat<px4::params::VTE_EVA_NOISE>) _param_vte_ev_angle_noise,
-		(ParamInt<px4::params::VTE_EV_NOISE_MD>) _param_vte_ev_noise_md
+		(ParamInt<px4::params::VTE_EV_NOISE_MD>) _param_vte_ev_noise_md,
+		(ParamFloat<px4::params::VTE_YAW_NIS_THRE>) _param_vte_yaw_nis_thre
 	)
 };
 } // namespace vision_target_estimator

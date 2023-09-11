@@ -59,6 +59,9 @@ public:
 
 	virtual bool update() { return true; }
 
+	// Normalized innovation squared (NIS) threshold. Used to reject measurements.
+	virtual void setNISthreshold(float nis_threshold) = 0;
+
 	// Init: x_0
 	virtual void setPosition(float pos) = 0;
 	virtual void setVelocity(float vel) = 0;
