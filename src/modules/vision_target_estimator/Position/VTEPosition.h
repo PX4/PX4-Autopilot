@@ -94,7 +94,7 @@ public:
 
 	void resetFilter();
 
-	void set_landpoint(const double lat_deg, const double lon_deg, const float alt_m);
+	void set_mission_position(const double lat_deg, const double lon_deg, const float alt_m);
 
 	void set_range_sensor(const float dist, const bool valid, const hrt_abstime timestamp);
 
@@ -193,7 +193,7 @@ private:
 		USE_TARGET_GPS_POS  = (1 << 0),    ///< set to true to use target GPS position data
 		USE_GPS_REL_VEL     = (1 << 1),    ///< set to true to use drone GPS velocity data (and target GPS velocity data if the target is moving)
 		USE_EXT_VIS_POS 	= (1 << 2),    ///< set to true to use target external vision-based relative position data
-		USE_MISSION_POS     = (1 << 3),    ///< set to true to use the PX4 mission landing position
+		USE_MISSION_POS     = (1 << 3),    ///< set to true to use the PX4 mission position
 	};
 
 	enum ObservationValidMask : uint16_t {
@@ -201,7 +201,7 @@ private:
 		FUSE_TARGET_GPS_POS  = (1 << 0),    ///< set to true if target GPS position data is ready to be fused
 		FUSE_GPS_REL_VEL     = (1 << 1),    ///< set to true if drone GPS velocity data (and target GPS velocity data if the target is moving)
 		FUSE_EXT_VIS_POS 	  = (1 << 2),    ///< set to true if target external vision-based relative position data is ready to be fused
-		FUSE_MISSION_POS     = (1 << 3),    ///< set to true if the PX4 mission landing position is ready to be fused
+		FUSE_MISSION_POS     = (1 << 3),    ///< set to true if the PX4 mission position is ready to be fused
 		FUSE_TARGET_GPS_VEL     = (1 << 4),   ///< set to true if target GPS velocity data is ready to be fused
 	};
 
@@ -244,7 +244,7 @@ private:
 		float alt_m = 0.f;	// Altitude in meters AMSL
 	};
 
-	globalPos _landing_pos{};
+	globalPos _mission_position{};
 
 	struct vecStamped {
 		hrt_abstime timestamp;

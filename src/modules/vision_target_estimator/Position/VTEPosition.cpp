@@ -105,7 +105,7 @@ bool VTEPosition::init()
 
 		if (_vte_aid_mask & SensorFusionMask::USE_TARGET_GPS_POS) { PX4_INFO("VTE target GPS position data fusion enabled");}
 
-		if (_vte_aid_mask & SensorFusionMask::USE_MISSION_POS) { PX4_INFO("VTE PX4 mission landing position fusion enabled");}
+		if (_vte_aid_mask & SensorFusionMask::USE_MISSION_POS) { PX4_INFO("VTE PX4 mission position fusion enabled");}
 
 		if (_vte_aid_mask & SensorFusionMask::USE_GPS_REL_VEL) { PX4_INFO("VTE relative GPS velocity data fusion enabled");}
 
@@ -121,7 +121,7 @@ void VTEPosition::resetFilter()
 {
 	_estimator_initialized = false;
 	_bias_set = false;
-	_landing_pos.valid = false;
+	_mission_position.valid = false;
 	_has_timed_out = false;
 }
 
@@ -274,7 +274,7 @@ bool VTEPosition::update_step(const Vector3f &vehicle_acc_ned)
 		}
 
 		/* MISSION GPS POSE */
-		if ((_vte_aid_mask & SensorFusionMask::USE_MISSION_POS) && vehicle_gps_position_updated && _landing_pos.valid) {
+		if ((_vte_aid_mask & SensorFusionMask::USE_MISSION_POS) && vehicle_gps_position_updated && _mission_position.valid) {
 
 			obs_gps_pos_mission.type = mission_gps_pos;
 
@@ -667,11 +667,11 @@ bool VTEPosition::processObsGNSSPosMission(const sensor_gps_s &vehicle_gps_posit
 	// Obtain GPS relative measurements in NED as target_global - uav_gps_global followed by global2local transformation
 	Vector3f gps_relative_pos;
 	get_vector_to_next_waypoint(vehicle_gps_position.latitude_deg, vehicle_gps_position.longitude_deg,
-				    _landing_pos.lat_deg, _landing_pos.lon_deg,
+				    _mission_position.lat_deg, _mission_position.lon_deg,
 				    &gps_relative_pos(0), &gps_relative_pos(1));
 
 	// Down direction (if the drone is above the target, the relative position is positive)
-	gps_relative_pos(2) = (float)vehicle_gps_position.altitude_msl_m - _landing_pos.alt_m;
+	gps_relative_pos(2) = (float)vehicle_gps_position.altitude_msl_m - _mission_position.alt_m;
 
 	// Offset gps relative position to the center of mass:
 	if (_gps_pos_is_offset && _gps_pos_offset_ned.valid
@@ -1125,27 +1125,28 @@ void VTEPosition::set_local_position(const matrix::Vector3f &xyz, const bool pos
 	_local_position.timestamp = timestamp;
 }
 
-void VTEPosition::set_landpoint(const double lat_deg, const double lon_deg, const float alt_m)
+void VTEPosition::set_mission_position(const double lat_deg, const double lon_deg, const float alt_m)
 {
 	if (_vte_aid_mask & SensorFusionMask::USE_MISSION_POS) {
-		_landing_pos.lat_deg = lat_deg;
-		_landing_pos.lon_deg = lon_deg;
-		_landing_pos.alt_m = alt_m;
-		_landing_pos.valid = (((fabs(_landing_pos.lat_deg) > DBL_EPSILON) || (fabs(_landing_pos.lon_deg) > DBL_EPSILON))
-				      && PX4_ISFINITE(_landing_pos.alt_m));
+		_mission_position.lat_deg = lat_deg;
+		_mission_position.lon_deg = lon_deg;
+		_mission_position.alt_m = alt_m;
+		_mission_position.valid = (((fabs(_mission_position.lat_deg) > DBL_EPSILON)
+					    || (fabs(_mission_position.lon_deg) > DBL_EPSILON))
+					   && PX4_ISFINITE(_mission_position.alt_m));
 
-		if (_landing_pos.valid) {
-			PX4_INFO("Landing pos used lat: %.8f [deg] -- lon: %.8f [deg] -- alt %.2f [m]", lat_deg,
+		if (_mission_position.valid) {
+			PX4_INFO("Mission position used lat: %.8f [deg] -- lon: %.8f [deg] -- alt %.2f [m]", lat_deg,
 				 lon_deg, (double)(alt_m));
 
 		} else {
-			PX4_INFO("Landing pos not used because not valid. lat: %.8f [deg] -- lon: %.8f [deg] -- alt %.2f [m]",
+			PX4_INFO("Mission position not used because not valid. lat: %.8f [deg] -- lon: %.8f [deg] -- alt %.2f [m]",
 				 lat_deg,
 				 lon_deg, (double)(alt_m));
 		}
 
 	} else {
-		_landing_pos.valid = false;
+		_mission_position.valid = false;
 	}
 }
 
@@ -1176,7 +1177,7 @@ bool VTEPosition::selectTargetEstimator()
 		tmp_x = new KF_xyzb_decoupled_static;
 		tmp_y = new KF_xyzb_decoupled_static;
 		tmp_z = new KF_xyzb_decoupled_static;
-		PX4_INFO("Init VTE postion: static target, [x,y,z,b] decoupled in three filters.");
+		PX4_INFO("VTE postion init for static target, [x,y,z,b] decoupled in x,y,z filters.");
 
 		break;
 
@@ -1185,7 +1186,7 @@ bool VTEPosition::selectTargetEstimator()
 		tmp_x = new KF_xyzb_v_decoupled_moving;
 		tmp_y = new KF_xyzb_v_decoupled_moving;
 		tmp_z = new KF_xyzb_v_decoupled_moving;
-		PX4_INFO("Init VTE position: moving target, [x,y,z,b,v] decoupled in three filters.");
+		PX4_INFO("VTE position init for moving target, [x,y,z,b,v] decoupled in x,y,z filters.");
 
 		break;
 

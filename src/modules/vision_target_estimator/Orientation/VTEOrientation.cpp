@@ -322,11 +322,11 @@ bool VTEOrientation::selectTargetEstimator()
 
 	if (_target_mode == TargetMode::Moving) {
 		tmp_theta = new KF_orientation_moving;
-		PX4_INFO("Init VTE orientation for moving targets.");
+		PX4_INFO("VTE orientation init for moving targets.");
 
 	} else {
 		tmp_theta = new KF_orientation_static;
-		PX4_INFO("Init VTE orientation for static targets.");
+		PX4_INFO("VTE orientation init for static targets.");
 	}
 
 	init_failed = (tmp_theta == nullptr);
