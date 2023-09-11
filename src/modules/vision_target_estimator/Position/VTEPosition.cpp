@@ -875,6 +875,8 @@ bool VTEPosition::fuse_meas(const Vector3f &vehicle_acc_ned, const targetObsPos 
 				target_innov.innovation_variance[j] = _target_estimator[j]->computeInnovCov(
 						target_pos_obs.meas_unc_xyz(j));
 				target_innov.innovation[j] = _target_estimator[j]->computeInnov(target_pos_obs.meas_xyz(j));
+				// Set the Normalized Innovation Squared (NIS) check threshold. Used to reject outlier measurements
+				_target_estimator[j]->setNISthreshold(_nis_threshold);
 				// Update step
 				meas_xyz_fused(j) = _target_estimator[j]->update();
 
@@ -1159,6 +1161,7 @@ void VTEPosition::updateParams()
 	_ev_noise_md = _param_vte_ev_noise_md.get();
 	_ev_pos_noise = _param_vte_ev_pos_noise.get();
 	_vte_aid_mask = _param_vte_aid_mask.get();
+	_nis_threshold = _param_vte_pos_nis_thre.get();
 }
 
 bool VTEPosition::selectTargetEstimator()

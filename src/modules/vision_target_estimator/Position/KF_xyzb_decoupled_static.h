@@ -77,6 +77,8 @@ public:
 
 	bool update() override;
 
+	void setNISthreshold(float nis_threshold) override { _nis_threshold = nis_threshold; };
+
 	// Init: x_0
 	void setPosition(float pos) override { _state(0, 0) = pos; };
 	void setVelocity(float vel) override { _state(1, 0) = vel; };
@@ -128,5 +130,7 @@ private:
 	float _innov{0.0f}; // residual of last measurement update
 
 	float _innov_cov{0.0f}; // innovation covariance of last measurement update
+
+	float _nis_threshold{0.0f}; // Normalized innovation squared test threshold
 };
 } // namespace vision_target_estimator
