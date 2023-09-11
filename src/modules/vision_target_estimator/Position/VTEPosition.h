@@ -270,8 +270,7 @@ private:
 
 	void _check_params(const bool force);
 
-	/* parameters */
-	/* timeout after which filter is reset if target not seen */
+	/* parameters from vision_target_estimator_params.c*/
 	uint32_t _vte_TIMEOUT_US = 3_s;
 	int _vte_aid_mask{0};
 	float _target_acc_unc;
@@ -281,6 +280,7 @@ private:
 	float _gps_pos_noise;
 	bool  _ev_noise_md{false};
 	float _ev_pos_noise;
+	float _nis_threshold;
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::VTE_AID_MASK>) _param_vte_aid_mask,
@@ -300,7 +300,8 @@ private:
 		(ParamInt<px4::params::VTE_MODE>) _param_vte_mode,
 		(ParamInt<px4::params::VTE_EKF_AID>) _param_vte_ekf_aid,
 		(ParamFloat<px4::params::VTE_MOVING_T_MAX>) _param_vte_moving_t_max,
-		(ParamFloat<px4::params::VTE_MOVING_T_MIN>) _param_vte_moving_t_min
+		(ParamFloat<px4::params::VTE_MOVING_T_MIN>) _param_vte_moving_t_min,
+		(ParamFloat<px4::params::VTE_POS_NIS_THRE>) _param_vte_pos_nis_thre
 	)
 };
 } // namespace vision_target_estimator
