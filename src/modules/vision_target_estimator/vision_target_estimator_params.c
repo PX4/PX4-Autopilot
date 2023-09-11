@@ -347,3 +347,36 @@ PARAM_DEFINE_FLOAT(VTE_MOVING_T_MAX, 3.f);
  * @group Vision target Estimator
  */
 PARAM_DEFINE_FLOAT(VTE_MOVING_T_MIN, 2.f);
+
+
+/**
+ * Normalized Innovation Squared (NIS) threshold for position estimator.
+ *
+ * Lower values mean that more measurements will be rejected. Null Hypothesis H0: innovation is consistent with the innovation covariance matrix.
+ * Values of 0.46, 1.64, 2.71, 3.84, 6.63, 10.83 correspond to a 50%, 20%, 10%, 5%, 1%, 0.1% of probability that H0 is incorrectly rejected respectively.
+ * The confidence interval is computed from the chi-squared distribution.
+ *
+ * @min 0.46
+ * @max 10.83
+ * @unit
+ * @decimal 2
+ *
+ * @group Vision target Estimator
+ */
+PARAM_DEFINE_FLOAT(VTE_POS_NIS_THRE, 3.84f);
+
+/**
+ * Normalized Innovation Squared (NIS) threshold for orientation estimator.
+ *
+ * Lower values mean that more measurements will be rejected. Null Hypothesis H0: innovation is consistent with the innovation covariance matrix.
+ * Values of 0.46, 1.64, 2.71, 3.84, 6.63, 10.83 correspond to a 50%, 20%, 10%, 5%, 1%, 0.1% of probability that H0 is incorrectly rejected respectively.
+ * The confidence interval is computed from the chi-squared distribution.
+ *
+ * @min 0.46
+ * @max 10.83
+ * @unit
+ * @decimal 2
+ *
+ * @group Vision target Estimator
+ */
+PARAM_DEFINE_FLOAT(VTE_YAW_NIS_THRE, 3.84f);
