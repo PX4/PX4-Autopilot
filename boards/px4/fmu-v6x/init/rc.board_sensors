@@ -3,6 +3,7 @@
 # PX4 FMUv6X specific board sensors init
 #------------------------------------------------------------------------------
 set HAVE_PM2 yes
+set INA_CONFIGURED no
 
 if ver hwtypecmp V6X005000 V6X005001 V6X005003 V6X005004
 then
@@ -25,6 +26,8 @@ then
 	then
 		ina226 -X -b 2 -t 2 -k start
 	fi
+
+	set INA_CONFIGURED yes
 fi
 
 if param compare SENS_EN_INA228 1
@@ -35,6 +38,8 @@ then
 	then
 		ina228 -X -b 2 -t 2 -k start
 	fi
+
+	set INA_CONFIGURED yes
 fi
 
 if param compare SENS_EN_INA238 1
@@ -45,6 +50,8 @@ then
 	then
 		ina238 -X -b 2 -t 2 -k start
 	fi
+
+	set INA_CONFIGURED yes
 fi
 
 #Start Auterion Power Module selector for Skynode boards
@@ -52,11 +59,14 @@ if ver hwtypecmp V6X009010 V6X010010
 then
 	pm_selector_auterion start
 else
-	# INA226, INA228, INA238 auto-start
-	i2c_launcher start -b 1
-	if [ $HAVE_PM2 = yes ]
+	if [ $INA_CONFIGURED = no ]
 	then
-		i2c_launcher start -b 2
+		# INA226, INA228, INA238 auto-start
+		i2c_launcher start -b 1
+		if [ $HAVE_PM2 = yes ]
+		then
+			i2c_launcher start -b 2
+		fi
 	fi
 fi
 
@@ -151,4 +161,5 @@ fi
 # Baro on I2C3
 ms5611 -X start
 
+unset INA_CONFIGURED
 unset HAVE_PM2
