@@ -417,13 +417,15 @@ FixedwingPositionControl::vehicle_attitude_poll()
 float
 FixedwingPositionControl::get_manual_airspeed_setpoint()
 {
-	float altctrl_airspeed = _param_fw_airspd_trim.get();
+	float altctrl_airspeed = math::constrain(_param_fw_airspd_trim.get() * sqrtf(getWeightRatio()),
+				 _param_fw_airspd_min.get(),
+				 _param_fw_airspd_max.get());
 
 	if (_param_fw_pos_stk_conf.get() & STICK_CONFIG_ENABLE_AIRSPEED_SP_MANUAL_BIT) {
 		// neutral throttle corresponds to trim airspeed
 		return math::interpolateNXY(_manual_control_setpoint_for_airspeed,
 		{-1.f, 0.f, 1.f},
-		{_param_fw_airspd_min.get(), _param_fw_airspd_trim.get(), _param_fw_airspd_max.get()});
+		{_param_fw_airspd_min.get(), altctrl_airspeed, _param_fw_airspd_max.get()});
 
 	} else if (PX4_ISFINITE(_commanded_manual_airspeed_setpoint)) {
 		altctrl_airspeed = _commanded_manual_airspeed_setpoint;
@@ -437,7 +439,8 @@ FixedwingPositionControl::adapt_airspeed_setpoint(const float control_interval, 
 		float calibrated_min_airspeed, const Vector2f &ground_speed)
 {
 	if (!PX4_ISFINITE(calibrated_airspeed_setpoint) || calibrated_airspeed_setpoint <= FLT_EPSILON) {
-		calibrated_airspeed_setpoint = _param_fw_airspd_trim.get();
+		// increase trim airspeed based on weight ratio in order to keep constant alpha.
+		calibrated_airspeed_setpoint = _param_fw_airspd_trim.get() * sqrtf(getWeightRatio());
 	}
 
 	// Adapt cruise airspeed when otherwise the min groundspeed couldn't be maintained
@@ -956,7 +959,7 @@ FixedwingPositionControl::control_auto_fixed_bank_alt_hold(const float control_i
 
 	tecs_update_pitch_throttle(control_interval,
 				   _current_altitude,
-				   _param_fw_airspd_trim.get(),
+				   _param_fw_airspd_trim.get() * sqrtf(getWeightRatio()),
 				   radians(_param_fw_p_lim_min.get()),
 				   radians(_param_fw_p_lim_max.get()),
 				   _param_fw_thr_min.get(),
@@ -987,7 +990,7 @@ FixedwingPositionControl::control_auto_descend(const float control_interval)
 
 	tecs_update_pitch_throttle(control_interval,
 				   _current_altitude,
-				   _param_fw_airspd_trim.get(),
+				   _param_fw_airspd_trim.get() * sqrtf(getWeightRatio()),
 				   radians(_param_fw_p_lim_min.get()),
 				   radians(_param_fw_p_lim_max.get()),
 				   _param_fw_thr_min.get(),
