@@ -1,0 +1,5 @@
+menuconfig DRIVERS_POWER_MONITOR_PM_SELECTOR_AUTERION
+	bool "pm_selector_auterion"
+	default n
+	---help---
+		Enable support for pm_selector_auterion
