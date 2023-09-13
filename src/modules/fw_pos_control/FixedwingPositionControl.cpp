@@ -76,6 +76,8 @@ FixedwingPositionControl::FixedwingPositionControl(bool vtol) :
 
 	/* fetch initial parameter values */
 	parameters_update();
+
+	_airspeed_slew_rate_controller.setForcedValue(_param_fw_airspd_trim.get());
 }
 
 FixedwingPositionControl::~FixedwingPositionControl()
@@ -429,14 +431,6 @@ FixedwingPositionControl::adapt_airspeed_setpoint(const float control_interval, 
 						    _wind_vel.length(), _param_fw_airspd_max.get());
 	}
 
-	if (_airspeed_slew_rate_controller.getState() < calibrated_min_airspeed) {
-		_airspeed_slew_rate_controller.setForcedValue(calibrated_min_airspeed);
-	}
-
-	if (_airspeed_slew_rate_controller.getState() > _param_fw_airspd_max.get()) {
-		_airspeed_slew_rate_controller.setForcedValue(_param_fw_airspd_max.get());
-	}
-
 	// --- airspeed *setpoint adjustments ---
 
 	if (!PX4_ISFINITE(calibrated_airspeed_setpoint) || calibrated_airspeed_setpoint <= FLT_EPSILON) {
@@ -468,6 +462,14 @@ FixedwingPositionControl::adapt_airspeed_setpoint(const float control_interval, 
 	if (control_interval > FLT_EPSILON) {
 		// constrain airspeed setpoint changes with slew rate of ASPD_SP_SLEW_RATE m/s/s
 		_airspeed_slew_rate_controller.update(calibrated_airspeed_setpoint, control_interval);
+	}
+
+	if (_airspeed_slew_rate_controller.getState() < calibrated_min_airspeed) {
+		_airspeed_slew_rate_controller.setForcedValue(calibrated_min_airspeed);
+	}
+
+	if (_airspeed_slew_rate_controller.getState() > _param_fw_airspd_max.get()) {
+		_airspeed_slew_rate_controller.setForcedValue(_param_fw_airspd_max.get());
 	}
 
 	return _airspeed_slew_rate_controller.getState();
