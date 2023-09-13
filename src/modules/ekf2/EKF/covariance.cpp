@@ -98,15 +98,14 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 {
 	// Use average update interval to reduce accumulated covariance prediction errors due to small single frame dt values
 	const float dt = _dt_ekf_avg;
-	const float dt_inv = 1.f / dt;
 
 	// inhibit learning of imu accel bias if the manoeuvre levels are too high to protect against the effect of sensor nonlinearities or bad accel data is detected
 	// xy accel bias learning is also disabled on ground as those states are poorly observable when perpendicular to the gravity vector
 	const float alpha = math::constrain((dt / _params.acc_bias_learn_tc), 0.0f, 1.0f);
 	const float beta = 1.0f - alpha;
-	_ang_rate_magnitude_filt = fmaxf(dt_inv * imu_delayed.delta_ang.norm(), beta * _ang_rate_magnitude_filt);
-	_accel_magnitude_filt = fmaxf(dt_inv * imu_delayed.delta_vel.norm(), beta * _accel_magnitude_filt);
-	_accel_vec_filt = alpha * dt_inv * imu_delayed.delta_vel + beta * _accel_vec_filt;
+	_ang_rate_magnitude_filt = fmaxf(imu_delayed.delta_ang.norm() / imu_delayed.delta_ang_dt, beta * _ang_rate_magnitude_filt);
+	_accel_magnitude_filt = fmaxf(imu_delayed.delta_vel.norm() / imu_delayed.delta_vel_dt, beta * _accel_magnitude_filt);
+	_accel_vec_filt = alpha * imu_delayed.delta_vel / imu_delayed.delta_vel_dt + beta * _accel_vec_filt;
 
 	const bool is_manoeuvre_level_high = _ang_rate_magnitude_filt > _params.acc_bias_learn_gyr_lim
 					     || _accel_magnitude_filt > _params.acc_bias_learn_acc_lim;
@@ -216,7 +215,7 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 	// assign IMU noise variances
 	// inputs to the system are 3 delta angles and 3 delta velocities
 	float gyro_noise = math::constrain(_params.gyro_noise, 0.0f, 1.0f);
-	const float d_ang_var = sq(dt * gyro_noise);
+	const float d_ang_var = sq(imu_delayed.delta_ang_dt * gyro_noise);
 
 	float accel_noise = math::constrain(_params.accel_noise, 0.0f, 1.0f);
 
@@ -225,10 +224,10 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 	for (int i = 0; i <= 2; i++) {
 		if (_fault_status.flags.bad_acc_vertical || imu_delayed.delta_vel_clipping[i]) {
 			// Increase accelerometer process noise if bad accel data is detected
-			d_vel_var(i) = sq(dt * BADACC_BIAS_PNOISE);
+			d_vel_var(i) = sq(imu_delayed.delta_vel_dt * BADACC_BIAS_PNOISE);
 
 		} else {
-			d_vel_var(i) = sq(dt * accel_noise);
+			d_vel_var(i) = sq(imu_delayed.delta_vel_dt * accel_noise);
 		}
 	}
 
@@ -236,7 +235,10 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 	SquareMatrix24f nextP;
 
 	// calculate variances and upper diagonal covariances for quaternion, velocity, position and gyro bias states
-	sym::PredictCovariance(getStateAtFusionHorizonAsVector(), P, imu_delayed.delta_vel, d_vel_var, imu_delayed.delta_ang, d_ang_var, dt, &nextP);
+	sym::PredictCovariance(getStateAtFusionHorizonAsVector(), P,
+		imu_delayed.delta_vel, imu_delayed.delta_vel_dt, d_vel_var,
+		imu_delayed.delta_ang, imu_delayed.delta_ang_dt, d_ang_var,
+		&nextP);
 
 	// compute noise variance for stationary processes
 	Vector24f process_noise;

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
     Copyright (c) 2022 PX4 Development Team
@@ -82,19 +82,20 @@ def predict_covariance(
         state: VState,
         P: MState,
         d_vel: sf.V3,
+        d_vel_dt: sf.Scalar,
         d_vel_var: sf.V3,
         d_ang: sf.V3,
-        d_ang_var: sf.Scalar,
-        dt: sf.Scalar
+        d_ang_dt: sf.Scalar,
+        d_ang_var: sf.Scalar
 ):
     g = sf.Symbol("g") # does not appear in the jacobians
 
     accel_b = sf.V3(state[State.accel_bx], state[State.accel_by], state[State.accel_bz])
-    d_vel_b = accel_b * dt
+    d_vel_b = accel_b * d_vel_dt
     d_vel_true = d_vel - d_vel_b
 
     gyro_b = sf.V3(state[State.gyro_bx], state[State.gyro_by], state[State.gyro_bz])
-    d_ang_b = gyro_b * dt
+    d_ang_b = gyro_b * d_ang_dt
     d_ang_true = d_ang - d_ang_b
 
     q = state_to_quat(state)
@@ -103,8 +104,8 @@ def predict_covariance(
     p = sf.V3(state[State.px], state[State.py], state[State.pz])
 
     q_new = q * sf.Quaternion(sf.V3(0.5 * d_ang_true[0], 0.5 * d_ang_true[1], 0.5 * d_ang_true[2]), 1)
-    v_new = v + R_to_earth * d_vel_true + sf.V3(0, 0, g) * dt
-    p_new = p + v * dt
+    v_new = v + R_to_earth * d_vel_true + sf.V3(0, 0, g) * d_vel_dt
+    p_new = p + v * d_vel_dt
 
     # Predicted state vector at time t + dt
     state_new = VState.block_matrix([[sf.V4(q_new.w, q_new.x, q_new.y, q_new.z)], [v_new], [p_new], [sf.Matrix(state[State.gyro_bx:State.n_states])]])
