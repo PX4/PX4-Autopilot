@@ -57,7 +57,8 @@ Loiter::on_inactive()
 void
 Loiter::on_activation()
 {
-	if (_navigator->get_reposition_triplet()->current.valid) {
+	if (_navigator->get_reposition_triplet()->current.valid
+	    && hrt_elapsed_time(&_navigator->get_reposition_triplet()->current.timestamp) < 500_ms) {
 		reposition();
 
 	} else {
@@ -72,7 +73,8 @@ Loiter::on_activation()
 void
 Loiter::on_active()
 {
-	if (_navigator->get_reposition_triplet()->current.valid) {
+	if (_navigator->get_reposition_triplet()->current.valid
+	    && hrt_elapsed_time(&_navigator->get_reposition_triplet()->current.timestamp) < 500_ms) {
 		reposition();
 	}
 
