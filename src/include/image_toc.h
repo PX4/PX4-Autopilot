@@ -60,6 +60,14 @@
 #define TOC_VERSION BOARD_IMAGE_TOC_VERSION
 #endif
 
+typedef enum {
+	IMAGE_TYPE_PX4 = 0,
+	IMAGE_TYPE_UBOOT = 1,
+	IMAGE_TYPE_RSVD1 = 2,
+	IMAGE_TYPE_RSVD2 = 3,
+	IMAGE_NUM_TYPES = 4
+} image_type_t;
+
 /* Markers for TOC start and end in the image */
 
 typedef const struct __attribute__((__packed__)) image_toc_start {
@@ -78,7 +86,9 @@ typedef struct __attribute__((__packed__)) image_toc_entry {
 	uint8_t signature_key;  /* Key index for the signature */
 	uint8_t encryption_key; /* Key index for encryption */
 	uint8_t flags1;         /* Flags */
-	uint32_t reserved;      /* e.g. for more flags */
+	uint8_t flags2;         /* More flags */
+	uint8_t image_type;     /* PX4 / Linux ... */
+	uint16_t arb;           /* Anti-rollback counter for this image */
 } image_toc_entry_t;
 
 #define IMAGE_MAIN_TOC(len)                              \
