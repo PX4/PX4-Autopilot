@@ -724,7 +724,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 			const bool unsupported_bits_set = (change_mode_flags & ~1) != 0;
 
 			if (mode_switch_not_requested || unsupported_bits_set) {
-				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
+				answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED);
 
 			} else {
 				if (_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER)) {
