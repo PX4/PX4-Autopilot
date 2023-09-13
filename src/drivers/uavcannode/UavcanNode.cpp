@@ -33,8 +33,8 @@
 
 #include "UavcanNode.hpp"
 
-#include "boot_app_shared.h"
 #include "boot_alt_app_shared.h"
+#include "boot_app_shared.h"
 
 #include <drivers/drv_watchdog.h>
 #include <lib/geo/geo.h>
@@ -64,6 +64,10 @@
 #if defined(CONFIG_UAVCANNODE_MAGNETIC_FIELD_STRENGTH)
 #include "Publishers/MagneticFieldStrength2.hpp"
 #endif // CONFIG_UAVCANNODE_MAGNETIC_FIELD_STRENGTH
+
+#if defined(CONFIG_UAVCANNODE_INDICATED_AIR_SPEED)
+#include "Publishers/IndicatedAirspeed.hpp"
+#endif // CONFIG_UAVCANNODE_INDICATED_AIR_SPEED
 
 #if defined(CONFIG_UAVCANNODE_RANGE_SENSOR_MEASUREMENT)
 #include "Publishers/RangeSensorMeasurement.hpp"
@@ -118,8 +122,6 @@ using namespace time_literals;
 namespace uavcannode
 {
 
-
-
 /**
  * @file uavcan_main.cpp
  *
@@ -135,18 +137,18 @@ namespace uavcannode
  * the application image's descriptor so that the
  * uavcan bootloader has the ability to validate the
  * image crc, size etc of this application
-*/
+ */
 boot_app_shared_section app_descriptor_t AppDescriptor = {
 	.signature = APP_DESCRIPTOR_SIGNATURE,
 	{
 		0,
 	},
 	.image_size = 0,
-	.git_hash  = 0,
+	.git_hash = 0,
 	.major_version = APP_VERSION_MAJOR,
 	.minor_version = APP_VERSION_MINOR,
 	.board_id = HW_VERSION_MAJOR << 8 | HW_VERSION_MINOR,
-	.reserved = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }
+	.reserved = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
 };
 
 UavcanNode *UavcanNode::_instance;
@@ -232,21 +234,24 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 
 		_can = new CanInitHelper();
 
-		if (_can == nullptr) {                    // We don't have exceptions so bad_alloc cannot be thrown
+		if (_can ==
+		    nullptr) { // We don't have exceptions so bad_alloc cannot be thrown
 			PX4_ERR("Out of memory");
 			return -1;
 		}
 	}
 
 	// Node init
-	_instance = new UavcanNode(_can, bitrate, _can->driver, UAVCAN_DRIVER::SystemClock::instance());
+	_instance = new UavcanNode(_can, bitrate, _can->driver,
+				   UAVCAN_DRIVER::SystemClock::instance());
 
 	if (_instance == nullptr) {
 		PX4_ERR("Out of memory");
 		return -1;
 	}
 
-	const int node_init_res = _instance->init(node_id, _can->driver.updateEvent());
+	const int node_init_res =
+		_instance->init(node_id, _can->driver.updateEvent());
 
 	if (node_init_res < 0) {
 		delete _instance;
@@ -268,7 +273,8 @@ void UavcanNode::fill_node_info()
 	// software version
 	uavcan::protocol::SoftwareVersion swver;
 
-	// Extracting the first 8 hex digits of the git hash and converting them to int
+	// Extracting the first 8 hex digits of the git hash and converting them to
+	// int
 	char fw_git_short[9] = {};
 	std::memmove(fw_git_short, px4_firmware_version_string(), 8);
 	char *end = nullptr;
@@ -300,8 +306,11 @@ static void cb_reboot(const uavcan::TimerEvent &)
 	board_reset(0);
 }
 
-void UavcanNode::cb_beginfirmware_update(const uavcan::ReceivedDataStructure<UavcanNode::BeginFirmwareUpdate::Request>
-		&req, uavcan::ServiceResponseDataStructure<UavcanNode::BeginFirmwareUpdate::Response> &rsp)
+void UavcanNode::cb_beginfirmware_update(
+	const uavcan::ReceivedDataStructure <
+	UavcanNode::BeginFirmwareUpdate::Request > &req,
+	uavcan::ServiceResponseDataStructure <
+	UavcanNode::BeginFirmwareUpdate::Response > &rsp)
 {
 	static bool inprogress = false;
 
@@ -318,7 +327,9 @@ void UavcanNode::cb_beginfirmware_update(const uavcan::ReceivedDataStructure<Uav
 				bootloader_alt_app_shared_t shared_alt{0};
 				shared_alt.fw_server_node_id = req.source_node_id;
 				shared_alt.node_id = _node.getNodeID().get();
-				strncat((char *)shared_alt.path, (const char *)req.image_file_remote_path.path.c_str(), sizeof(shared_alt.path) - 1);
+				strncat((char *)shared_alt.path,
+					(const char *)req.image_file_remote_path.path.c_str(),
+					sizeof(shared_alt.path) - 1);
 				bootloader_alt_app_shared_write(&shared_alt);
 				board_configure_reset(BOARD_RESET_MODE_CAN_BL, shared_alt.node_id);
 			}
@@ -329,15 +340,17 @@ void UavcanNode::cb_beginfirmware_update(const uavcan::ReceivedDataStructure<Uav
 			shared.bus_speed = active_bitrate;
 			shared.node_id = _node.getNodeID().get();
 			bootloader_app_shared_write(&shared, App);
-			//rgb_led(255, 128, 0, 5);
+			// rgb_led(255, 128, 0, 5);
 			_reset_timer.setCallback(cb_reboot);
-			_reset_timer.startOneShotWithDelay(uavcan::MonotonicDuration::fromMSec(1000));
+			_reset_timer.startOneShotWithDelay(
+				uavcan::MonotonicDuration::fromMSec(1000));
 			rsp.error = rsp.ERROR_OK;
 		}
 	}
 }
 
-int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
+int UavcanNode::init(uavcan::NodeID node_id,
+		     UAVCAN_DRIVER::BusEvent &bus_events)
 {
 	_node.setName(HW_UAVCAN_NAME);
 
@@ -349,7 +362,8 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 
 	fill_node_info();
 
-	if (_fw_update_listner.start(BeginFirmwareUpdateCallBack(this, &UavcanNode::cb_beginfirmware_update)) < 0) {
+	if (_fw_update_listner.start(BeginFirmwareUpdateCallBack(
+					     this, &UavcanNode::cb_beginfirmware_update)) < 0) {
 		PX4_ERR("firmware update listener start failed");
 		return PX4_ERROR;
 	}
@@ -379,6 +393,10 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 	_publisher_list.add(new MagneticFieldStrength2(this, _node));
 #endif // CONFIG_UAVCANNODE_MAGNETIC_FIELD_STRENGTH
 
+#if defined(CONFIG_UAVCANNODE_INDICATED_AIR_SPEED)
+	_publisher_list.add(new IndicatedAirspeed(this, _node));
+#endif // CONFIG_UAVCANNODE_INDICATED_AIR_SPEED
+	//
 #if defined(CONFIG_UAVCANNODE_RANGE_SENSOR_MEASUREMENT)
 	_publisher_list.add(new RangeSensorMeasurement(this, _node));
 #endif // CONFIG_UAVCANNODE_RANGE_SENSOR_MEASUREMENT
@@ -459,11 +477,12 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 }
 
 // Restart handler
-class RestartRequestHandler: public uavcan::IRestartRequestHandler
+class RestartRequestHandler : public uavcan::IRestartRequestHandler
 {
 	bool handleRestartRequest(uavcan::NodeID request_source) override
 	{
-		PX4_INFO("UAVCAN: Restarting by request from %i\n", int(request_source.get()));
+		PX4_INFO("UAVCAN: Restarting by request from %i\n",
+			 int(request_source.get()));
 		usleep(20 * 1000 * 1000);
 		board_reset(0);
 		return true; // Will never be executed BTW
@@ -472,7 +491,7 @@ class RestartRequestHandler: public uavcan::IRestartRequestHandler
 
 void UavcanNode::Run()
 {
-	static  hrt_abstime up_time{0};
+	static hrt_abstime up_time{0};
 	pthread_mutex_lock(&_node_mutex);
 
 	// Bootloader started it.
@@ -524,7 +543,6 @@ void UavcanNode::Run()
 
 		if (_dyn_node_id_client.isAllocationComplete()) {
 			PX4_INFO("Got node ID %d", _dyn_node_id_client.getAllocatedNodeID().get());
-
 			_node.setNodeID(_dyn_node_id_client.getAllocatedNodeID());
 			_init_state = Allocated;
 		}
@@ -591,7 +609,8 @@ void UavcanNode::Run()
 						// copy [MODULE_NAME] to source
 						memcpy(source, &log_message.text[1], i - 1);
 						// copy remaining text (skipping space after [])
-						memcpy(text, &log_message.text[i + 2], math::min(sizeof(log_message.text) - (i + 2), sizeof(text)));
+						memcpy(text, &log_message.text[i + 2],
+						       math::min(sizeof(log_message.text) - (i + 2), sizeof(text)));
 
 						text_copied = true;
 					}
@@ -669,7 +688,8 @@ void UavcanNode::PrintInfo()
 	// Memory status
 	printf("Pool allocator status:\n");
 	printf("\tCapacity hard/soft: %u/%u blocks\n",
-	       _pool_allocator.getBlockCapacityHardLimit(), _pool_allocator.getBlockCapacity());
+	       _pool_allocator.getBlockCapacityHardLimit(),
+	       _pool_allocator.getBlockCapacity());
 	printf("\tReserved:  %u blocks\n", _pool_allocator.getNumReservedBlocks());
 	printf("\tAllocated: %u blocks\n", _pool_allocator.getNumAllocatedBlocks());
 
@@ -678,20 +698,28 @@ void UavcanNode::PrintInfo()
 	// UAVCAN node perfcounters
 	printf("UAVCAN node status:\n");
 	printf("\tInternal failures: %llu\n", _node.getInternalFailureCount());
-	printf("\tTransfer errors:   %llu\n", _node.getDispatcher().getTransferPerfCounter().getErrorCount());
-	printf("\tRX transfers:      %llu\n", _node.getDispatcher().getTransferPerfCounter().getRxTransferCount());
-	printf("\tTX transfers:      %llu\n", _node.getDispatcher().getTransferPerfCounter().getTxTransferCount());
+	printf("\tTransfer errors:   %llu\n",
+	       _node.getDispatcher().getTransferPerfCounter().getErrorCount());
+	printf("\tRX transfers:      %llu\n",
+	       _node.getDispatcher().getTransferPerfCounter().getRxTransferCount());
+	printf("\tTX transfers:      %llu\n",
+	       _node.getDispatcher().getTransferPerfCounter().getTxTransferCount());
 
 	printf("\n");
 
 	// CAN driver status
-	for (unsigned i = 0; i < _node.getDispatcher().getCanIOManager().getCanDriver().getNumIfaces(); i++) {
+	for (unsigned i = 0;
+	     i <
+	     _node.getDispatcher().getCanIOManager().getCanDriver().getNumIfaces();
+	     i++) {
 		printf("CAN%u status:\n", unsigned(i + 1));
 
-		auto iface = _node.getDispatcher().getCanIOManager().getCanDriver().getIface(i);
+		auto iface =
+			_node.getDispatcher().getCanIOManager().getCanDriver().getIface(i);
 		printf("\tHW errors: %llu\n", iface->getErrorCount());
 
-		auto iface_perf_cnt = _node.getDispatcher().getCanIOManager().getIfacePerfCounters(i);
+		auto iface_perf_cnt =
+			_node.getDispatcher().getCanIOManager().getIfacePerfCounters(i);
 		printf("\tIO errors: %llu\n", iface_perf_cnt.errors);
 		printf("\tRX frames: %llu\n", iface_perf_cnt.frames_rx);
 		printf("\tTX frames: %llu\n", iface_perf_cnt.frames_tx);
@@ -736,7 +764,7 @@ static void print_usage()
 
 extern "C" int uavcannode_start(int argc, char *argv[])
 {
-	//board_app_initialize(nullptr);
+	// board_app_initialize(nullptr);
 
 	// Sarted byt the bootloader, we must pet it
 	watchdog_pet();
