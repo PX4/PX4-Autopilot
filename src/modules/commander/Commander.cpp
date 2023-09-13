@@ -719,8 +719,14 @@ Commander::handle_command(const vehicle_command_s &cmd)
 			// to not require navigator and command to receive / process
 			// the data at the exact same time.
 
-			// Check if a mode switch had been requested
-			if ((((uint32_t)cmd.param2) & 1) > 0) {
+			const uint32_t change_mode_flags = uint32_t(cmd.param2);
+			const bool mode_switch_not_requested = (change_mode_flags & 1) == 0;
+			const bool unsupported_bits_set = (change_mode_flags & ~1) != 0;
+
+			if (mode_switch_not_requested || unsupported_bits_set) {
+				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
+
+			} else {
 				if (_user_mode_intention.change(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER)) {
 					cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
@@ -728,9 +734,6 @@ Commander::handle_command(const vehicle_command_s &cmd)
 					printRejectMode(vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER);
 					cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 				}
-
-			} else {
-				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 			}
 		}
 		break;
