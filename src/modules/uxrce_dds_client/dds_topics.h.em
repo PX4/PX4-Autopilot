@@ -21,11 +21,15 @@ import os
 #include <uxr/client/client.h>
 #include <ucdr/microcdr.h>
 
-#include <uORB/Subscription.hpp>
+#include <mathlib/mathlib.h>
 #include <uORB/Publication.hpp>
+#include <uORB/uORB.h>
 @[for include in type_includes]@
 #include <uORB/ucdr/@(include).h>
+#include <uORB/topics/@(include).h>
 @[end for]@
+
+#define UXRCE_DEFAULT_POLL_RATE 10
 
 typedef bool (*UcdrSerializeMethod)(const void* data, ucdrBuffer& buf, int64_t time_offset);
 
@@ -35,7 +39,7 @@ static_assert(sizeof(@(pub['simple_base_type'])_s) <= max_topic_size, "topic too
 @[    end for]@
 
 struct SendSubscription {
-	uORB::Subscription subscription;
+	const struct orb_metadata *orb_meta;
 	uxrObjectId data_writer;
 	const char* dds_type_name;
 	uint32_t topic_size;
@@ -46,7 +50,7 @@ struct SendSubscription {
 struct SendTopicsSubs {
 	SendSubscription send_subscriptions[@(len(publications))] = {
 @[    for pub in publications]@
-			{ uORB::Subscription(ORB_ID(@(pub['topic_simple']))),
+			{ ORB_ID(@(pub['topic_simple'])),
 			  uxr_object_id(0, UXR_INVALID_ID),
 			  "@(pub['dds_type'])",
 			  ucdr_topic_size_@(pub['simple_base_type'])(),
@@ -55,11 +59,22 @@ struct SendTopicsSubs {
 @[    end for]@
 	};
 
+	px4_pollfd_struct_t fds[@(len(publications))] {};
+
 	uint32_t num_payload_sent{};
 
+	void init();
 	void update(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrStreamId best_effort_stream_id, uxrObjectId participant_id, const char *client_namespace);
 	void reset();
 };
+
+void SendTopicsSubs::init() {
+	for (unsigned idx = 0; idx < sizeof(send_subscriptions)/sizeof(send_subscriptions[0]); ++idx) {
+		fds[idx].fd = orb_subscribe(send_subscriptions[idx].orb_meta);
+		fds[idx].events = POLLIN;
+		orb_set_interval(fds[idx].fd, UXRCE_DEFAULT_POLL_RATE);
+	}
+}
 
 void SendTopicsSubs::reset() {
 	num_payload_sent = 0;
@@ -75,10 +90,12 @@ void SendTopicsSubs::update(uxrSession *session, uxrStreamId reliable_out_stream
 	alignas(sizeof(uint64_t)) char topic_data[max_topic_size];
 
 	for (unsigned idx = 0; idx < sizeof(send_subscriptions)/sizeof(send_subscriptions[0]); ++idx) {
-		if (send_subscriptions[idx].subscription.update(&topic_data)) {
+		if (fds[idx].revents & POLLIN) {
+			// Topic updated, copy data and send
+			orb_copy(send_subscriptions[idx].orb_meta, fds[idx].fd, &topic_data);
 			if (send_subscriptions[idx].data_writer.id == UXR_INVALID_ID) {
 				// data writer not created yet
-				create_data_writer(session, reliable_out_stream_id, participant_id, send_subscriptions[idx].subscription.orb_id(), client_namespace, send_subscriptions[idx].subscription.get_topic()->o_name,
+				create_data_writer(session, reliable_out_stream_id, participant_id, static_cast<ORB_ID>(send_subscriptions[idx].orb_meta->o_id), client_namespace, send_subscriptions[idx].orb_meta->o_name,
 								   send_subscriptions[idx].dds_type_name, send_subscriptions[idx].data_writer);
 			}
 
