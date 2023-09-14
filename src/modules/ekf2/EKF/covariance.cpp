@@ -335,35 +335,18 @@ void Ekf::fixCovarianceErrors(bool force_symmetry)
 	// and set corresponding entries in Q to zero when states exceed 50% of the limit
 	// Covariance diagonal limits. Use same values for states which
 	// belong to the same group (e.g. vel_x, vel_y, vel_z)
-	float P_lim[8] = {};
-	P_lim[0] = 1.0f;		// quaternion max var
-	P_lim[1] = 1e6f;		// velocity max var
-	P_lim[2] = 1e6f;		// position max var
-	P_lim[3] = 1.0f;		// gyro bias max var
-	P_lim[4] = 1.0f;		// delta velocity z bias max var
-	P_lim[5] = 1.0f;		// earth mag field max var
-	P_lim[6] = 1.0f;		// body mag field max var
-	P_lim[7] = 1e6f;		// wind max var
+	const float quat_var_max = 1.0f;
+	const float vel_var_max = 1e6f;
+	const float pos_var_max = 1e6f;
+	const float gyro_bias_var_max = 1.0f;
+	const float mag_I_var_max = 1.0f;
+	const float mag_B_var_max = 1.0f;
+	const float wind_vel_var_max = 1e6f;
 
-	for (unsigned i = State::quat_nominal.idx; i < (State::quat_nominal.idx + State::quat_nominal.dof); i++) {
-		// quaternion states
-		P(i, i) = math::constrain(P(i, i), 0.0f, P_lim[0]);
-	}
-
-	for (unsigned i = State::vel.idx; i < (State::vel.idx + State::vel.dof); i++) {
-		// NED velocity states
-		P(i, i) = math::constrain(P(i, i), 1e-6f, P_lim[1]);
-	}
-
-	for (unsigned i = State::pos.idx; i < (State::pos.idx + State::pos.dof); i++) {
-		// NED position states
-		P(i, i) = math::constrain(P(i, i), 1e-6f, P_lim[2]);
-	}
-
-	for (unsigned i = State::gyro_bias.idx; i < (State::gyro_bias.idx + State::gyro_bias.dof); i++) {
-		// gyro bias states
-		P(i, i) = math::constrain(P(i, i), 0.0f, P_lim[3]);
-	}
+	constrainStateVar(State::quat_nominal, 0.f, quat_var_max);
+	constrainStateVar(State::vel, 1e-6f, vel_var_max);
+	constrainStateVar(State::pos, 1e-6f, pos_var_max);
+	constrainStateVar(State::gyro_bias, 0.f, gyro_bias_var_max);
 
 	// force symmetry on the quaternion, velocity and position state covariances
 	if (force_symmetry) {
@@ -497,21 +480,13 @@ void Ekf::fixCovarianceErrors(bool force_symmetry)
 		P.uncorrelateCovarianceSetVariance<3>(19, 0.0f);
 
 	} else {
-		// constrain variances
-		for (unsigned i = State::mag_I.idx; i < (State::mag_I.idx + State::mag_I.dof); i++) {
-			P(i, i) = math::constrain(P(i, i), 0.0f, P_lim[5]);
-		}
+		constrainStateVar(State::mag_I, 0.f, mag_I_var_max);
+		constrainStateVar(State::mag_B, 0.f, mag_B_var_max);
 
-		for (unsigned i = State::mag_B.idx; i < (State::mag_B.idx + State::mag_B.dof); i++) {
-			P(i, i) = math::constrain(P(i, i), 0.0f, P_lim[6]);
-		}
-
-		// force symmetry
 		if (force_symmetry) {
 			P.makeRowColSymmetric<State::mag_I.dof>(State::mag_I.idx);
 			P.makeRowColSymmetric<State::mag_B.dof>(State::mag_B.idx);
 		}
-
 	}
 
 	// wind velocity states
@@ -519,15 +494,18 @@ void Ekf::fixCovarianceErrors(bool force_symmetry)
 		P.uncorrelateCovarianceSetVariance<State::wind_vel.dof>(State::wind_vel.idx, 0.0f);
 
 	} else {
-		// constrain variances
-		for (unsigned i = State::wind_vel.idx; i < (State::wind_vel.idx + State::wind_vel.dof); i++) {
-			P(i, i) = math::constrain(P(i, i), 0.0f, P_lim[7]);
-		}
+		constrainStateVar(State::wind_vel, 0.f, wind_vel_var_max);
 
-		// force symmetry
 		if (force_symmetry) {
 			P.makeRowColSymmetric<State::wind_vel.dof>(State::wind_vel.idx);
 		}
+	}
+}
+
+void Ekf::constrainStateVar(const IdxDof &state, float min, float max)
+{
+	for (unsigned i = state.idx; i < (state.idx + state.dof); i++) {
+		P(i, i) = math::constrain(P(i, i), min, max);
 	}
 }
 
