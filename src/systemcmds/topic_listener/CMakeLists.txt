@@ -35,6 +35,7 @@ px4_add_module(
 	MODULE systemcmds__topic_listener
 	MAIN listener
 	STACK_MAIN 4096
+	NO_DAEMON
 	SRCS
 		listener_main.cpp
 	)

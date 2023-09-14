@@ -33,6 +33,7 @@
 px4_add_module(
 	MODULE modules__netconfig
 	MAIN netconfig
+	NO_DAEMON
 	SRCS
 		netconfig.cpp
 	)
