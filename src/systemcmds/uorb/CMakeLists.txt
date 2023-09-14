@@ -34,6 +34,7 @@ px4_add_module(
 	MODULE systemcmds__uorb
 	MAIN uorb
 	COMPILE_FLAGS
+	NO_DAEMON
 	SRCS
 		uorb.cpp
 		uORBDeviceMaster.cpp

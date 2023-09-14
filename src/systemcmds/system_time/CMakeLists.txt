@@ -33,6 +33,7 @@
 px4_add_module(
 	MODULE systemcmds__system_time
 	MAIN system_time
+	NO_DAEMON
 	SRCS
 		system_time.cpp
 	DEPENDS
