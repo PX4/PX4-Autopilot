@@ -222,9 +222,21 @@ protected:
 private:
 	std::set<std::string> _overridden_params;
 
+	struct ParameterChangeEvent {
+		uint64_t timestamp;
+		std::string parameter_name;
+		double parameter_value;
+
+		// Comparison operator such that sorting is done by timestamp
+		bool operator<(const ParameterChangeEvent &other) const
+		{
+			return timestamp < other.timestamp;
+		}
+	};
+
 	std::set<std::string> _dynamic_parameters;
-	std::vector<std::tuple<uint64_t, std::string, double>> _dynamic_parameter_schedule;
-	size_t next_param_change;
+	std::vector<ParameterChangeEvent> _dynamic_parameter_schedule;
+	size_t _next_param_change;
 
 	std::map<std::string, std::string> _file_formats; ///< all formats we read from the file
 

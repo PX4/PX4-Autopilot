@@ -225,14 +225,14 @@ Replay::readDynamicParams(const char *filename)
 		uint64_t change_timestamp = (uint64_t)(stod(time_string) * 1e6);
 
 		// Construct and store parameter change event
-		tuple<uint64_t, string, double> change_event = make_tuple(change_timestamp, param_name, param_value);
+		ParameterChangeEvent change_event = {change_timestamp, param_name, param_value};
 		_dynamic_parameter_schedule.push_back(change_event);
 	}
 
 	// Sort by event time
 	sort(_dynamic_parameter_schedule.begin(), _dynamic_parameter_schedule.end());
 
-	next_param_change = 0;
+	_next_param_change = 0;
 }
 
 bool
@@ -964,16 +964,14 @@ Replay::run()
 		last_additional_message_pos = next_additional_message_pos;
 
 		// Perform scheduled parameter changes
-		while (next_param_change < _dynamic_parameter_schedule.size() &&
-		       get<0>(_dynamic_parameter_schedule[next_param_change]) <= next_file_time) {
-			const auto param_change = _dynamic_parameter_schedule[next_param_change];
+		while (_next_param_change < _dynamic_parameter_schedule.size() &&
+		       _dynamic_parameter_schedule[_next_param_change].timestamp <= next_file_time) {
+			const auto param_change = _dynamic_parameter_schedule[_next_param_change];
 			PX4_WARN("Performing param change scheduled for t=%.3lf at t=%.3lf.",
-				 (double)get<0>(param_change) / 1.e6,
+				 (double)param_change.timestamp / 1.e6,
 				 (double)next_file_time / 1.e6);
-			const std::string &param_name = get<1>(param_change);
-			const double new_value = get<2>(param_change);
-			setParameter(param_name, new_value);
-			next_param_change++;
+			setParameter(param_change.parameter_name, param_change.parameter_value);
+			_next_param_change++;
 		}
 
 		const uint64_t publish_timestamp = handleTopicDelay(next_file_time, timestamp_offset);
