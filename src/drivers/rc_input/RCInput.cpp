@@ -124,6 +124,7 @@ RCInput::task_spawn(int argc, char *argv[])
 	int ch;
 	const char *myoptarg = nullptr;
 	const char *device_name = nullptr;
+	bool silent = false;
 #if defined(RC_SERIAL_PORT)
 	device_name = RC_SERIAL_PORT;
 #endif // RC_SERIAL_PORT
@@ -133,6 +134,7 @@ RCInput::task_spawn(int argc, char *argv[])
 	// if RC_SERIAL_PORT == PX4IO_SERIAL_DEVICE then don't use it by default if the px4io is running
 	if ((strcmp(RC_SERIAL_PORT, PX4IO_SERIAL_DEVICE) == 0) && (access("/dev/px4io", R_OK) == 0)) {
 		device_name = nullptr;
+		silent = true;
 	}
 
 #endif // RC_SERIAL_PORT && PX4IO_SERIAL_DEVICE
@@ -141,6 +143,7 @@ RCInput::task_spawn(int argc, char *argv[])
 		switch (ch) {
 		case 'd':
 			device_name = myoptarg;
+			silent = false;
 			break;
 
 		case '?':
@@ -171,6 +174,9 @@ RCInput::task_spawn(int argc, char *argv[])
 
 		instance->ScheduleOnInterval(_current_update_interval);
 
+		return PX4_OK;
+
+	} else if (silent) {
 		return PX4_OK;
 
 	} else {
