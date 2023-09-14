@@ -39,6 +39,8 @@
 #include <termios.h>
 #include <fcntl.h>
 
+#include <modules/commander/ModeUtil/conversions.hpp>
+
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/sensor_gps.h>
@@ -269,59 +271,7 @@ void CrsfRc::Run()
 				vehicle_status_s vehicle_status;
 
 				if (_vehicle_status_sub.update(&vehicle_status)) {
-					const char *flight_mode = "(unknown)";
-
-					switch (vehicle_status.nav_state) {
-					case vehicle_status_s::NAVIGATION_STATE_MANUAL:
-						flight_mode = "Manual";
-						break;
-
-					case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
-						flight_mode = "Altitude";
-						break;
-
-					case vehicle_status_s::NAVIGATION_STATE_POSCTL:
-						flight_mode = "Position";
-						break;
-
-					case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
-						flight_mode = "Return";
-						break;
-
-					case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
-						flight_mode = "Mission";
-						break;
-
-					case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
-					case vehicle_status_s::NAVIGATION_STATE_DESCEND:
-					case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
-					case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
-					case vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET:
-					case vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND:
-						flight_mode = "Auto";
-						break;
-
-					case vehicle_status_s::NAVIGATION_STATE_ACRO:
-						flight_mode = "Acro";
-						break;
-
-					case vehicle_status_s::NAVIGATION_STATE_TERMINATION:
-						flight_mode = "Terminate";
-						break;
-
-					case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
-						flight_mode = "Offboard";
-						break;
-
-					case vehicle_status_s::NAVIGATION_STATE_STAB:
-						flight_mode = "Stabilized";
-						break;
-
-					default:
-						flight_mode = "Unknown";
-					}
-
-					this->SendTelemetryFlightMode(flight_mode);
+					this->SendTelemetryFlightMode(mode_util::nav_state_names[vehicle_status.nav_state]);
 				}
 
 				break;
