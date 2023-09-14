@@ -36,6 +36,7 @@ px4_add_module(
 	PRIORITY
 		"SCHED_PRIORITY_MAX - 16" # max priority below high priority WQ threads
 	COMPILE_FLAGS
+	NO_DAEMON
 	SRCS
 		tune_control.cpp
 	DEPENDS

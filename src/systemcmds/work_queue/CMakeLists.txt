@@ -33,6 +33,7 @@
 px4_add_module(
 	MODULE systemcmds__work_queue
 	MAIN work_queue
+	NO_DAEMON
 	SRCS
 		work_queue_main.cpp
 	)
