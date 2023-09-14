@@ -43,6 +43,7 @@
 
 #include <px4_platform/task.h>
 
+#include <nuttx/config.h>
 #include <nuttx/board.h>
 #include <nuttx/kthread.h>
 
@@ -56,6 +57,10 @@
 #include <sched.h>
 #include <errno.h>
 #include <stdbool.h>
+#include <spawn.h>
+#include <libgen.h>
+
+#include <builtin/builtin.h>
 
 int px4_task_spawn_cmd(const char *name, int scheduler, int priority, int stack_size, main_t entry, char *const argv[])
 {
@@ -100,4 +105,69 @@ int px4_task_delete(int pid)
 const char *px4_get_taskname(void)
 {
 	return getprogname();
+}
+
+int px4_exec(const char *appname, char *const *argv, const char *redirfile, int oflags)
+{
+#ifdef CONFIG_BUILTIN
+	return exec_builtin(appname, argv, redirfile, oflags);
+#else
+	char path[CONFIG_PATH_MAX];
+	posix_spawn_file_actions_t file_actions;
+	posix_spawnattr_t attr;
+	pid_t pid;
+	int ret;
+
+	/* We launch processes from the /bin/ folder only */
+
+	sprintf(path, "/bin/");
+	strcat(path, basename((char *)appname));
+
+	/* Initialize the attributes */
+
+	ret = posix_spawnattr_init(&attr);
+
+	if (ret != 0) {
+		goto errout;
+	}
+
+	/* Initialize the file actions structure */
+
+	ret = posix_spawn_file_actions_init(&file_actions);
+
+	if (ret != 0) {
+		goto errout_with_attrs;
+	}
+
+	/* Redirect output if instructed to do so */
+
+	if (redirfile) {
+		ret = posix_spawn_file_actions_addopen(&file_actions, 1, redirfile, oflags, 0644);
+
+		if (ret != 0) {
+			goto errout_with_actions;
+		}
+	}
+
+	/* Attempt to load the executable */
+
+	ret = posix_spawnp(&pid, path, &file_actions, &attr, argv, environ);
+
+	if (ret != 0) {
+		goto errout_with_actions;
+	}
+
+	posix_spawn_file_actions_destroy(&file_actions);
+	posix_spawnattr_destroy(&attr);
+	return pid;
+
+errout_with_actions:
+	posix_spawn_file_actions_destroy(&file_actions);
+
+errout_with_attrs:
+	posix_spawnattr_destroy(&attr);
+
+errout:
+	return ERROR;
+#endif
 }

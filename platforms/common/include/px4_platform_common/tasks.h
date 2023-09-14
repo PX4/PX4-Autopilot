@@ -187,4 +187,10 @@ __EXPORT int px4_prctl(int option, const char *arg2, px4_task_t pid);
 /** return the name of the current task */
 __EXPORT const char *px4_get_taskname(void);
 
+/** Execute a named task from filesystem */
+__EXPORT int px4_exec(const char *appname,
+		      char *const *argv,
+		      const char *redirfile,
+		      int oflags);
+
 __END_DECLS
