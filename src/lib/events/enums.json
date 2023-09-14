@@ -478,11 +478,11 @@
                         },
                         "1": {
                             "name": "altctl",
-                            "description": "Altitude control"
+                            "description": "Altitude"
                         },
                         "2": {
                             "name": "posctl",
-                            "description": "Position control"
+                            "description": "Position"
                         },
                         "3": {
                             "name": "auto_mission",
@@ -522,7 +522,7 @@
                         },
                         "13": {
                             "name": "auto_precland",
-                            "description": "Precision Landing"
+                            "description": "Precision Land"
                         },
                         "14": {
                             "name": "orbit",

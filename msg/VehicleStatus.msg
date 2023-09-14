@@ -37,15 +37,17 @@ uint8 NAVIGATION_STATE_POSCTL = 2               # Position control mode
 uint8 NAVIGATION_STATE_AUTO_MISSION = 3         # Auto mission mode
 uint8 NAVIGATION_STATE_AUTO_LOITER = 4          # Auto loiter mode
 uint8 NAVIGATION_STATE_AUTO_RTL = 5             # Auto return to launch mode
-uint8 NAVIGATION_STATE_UNUSED3 = 8              # Free slot
-uint8 NAVIGATION_STATE_UNUSED = 9               # Free slot
+# 6 free
+# 7 free
+# 8 free
+# 9 free
 uint8 NAVIGATION_STATE_ACRO = 10                # Acro mode
-uint8 NAVIGATION_STATE_UNUSED1 = 11             # Free slot
+# 11 free
 uint8 NAVIGATION_STATE_DESCEND = 12             # Descend mode (no position control)
 uint8 NAVIGATION_STATE_TERMINATION = 13         # Termination mode
 uint8 NAVIGATION_STATE_OFFBOARD = 14
 uint8 NAVIGATION_STATE_STAB = 15                # Stabilized mode
-uint8 NAVIGATION_STATE_UNUSED2 = 16             # Free slot
+# 16 free
 uint8 NAVIGATION_STATE_AUTO_TAKEOFF = 17        # Takeoff
 uint8 NAVIGATION_STATE_AUTO_LAND = 18           # Land
 uint8 NAVIGATION_STATE_AUTO_FOLLOW_TARGET = 19  # Auto Follow

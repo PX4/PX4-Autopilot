@@ -301,10 +301,6 @@ void CrsfRc::Run()
 						flight_mode = "Auto";
 						break;
 
-					/*case vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL:
-						flight_mode = "Failure";
-						break;*/
-
 					case vehicle_status_s::NAVIGATION_STATE_ACRO:
 						flight_mode = "Acro";
 						break;
