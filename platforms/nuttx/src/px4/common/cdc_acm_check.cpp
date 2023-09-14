@@ -40,20 +40,16 @@ __BEGIN_DECLS
 #include <syslog.h>
 #include <nuttx/config.h>
 #include <nuttx/wqueue.h>
-#include <builtin/builtin.h>
 
 #include <termios.h>
 #include <sys/ioctl.h>
 #include <sys/boardctl.h>
 #include <fcntl.h>
-#include <libgen.h>
-#include <spawn.h>
-
-#include <stdio.h>
 
 __END_DECLS
 
 #include <px4_platform_common/shutdown.h>
+#include <px4_platform_common/tasks.h>
 
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_armed.h>
@@ -118,49 +114,6 @@ static int serial_disconnect(void)
 	return 0;
 }
 
-static int exec_wrap(const char *appname, char *const *argv, const char *redirfile, int oflags)
-{
-#ifdef CONFIG_BUILTIN
-	return exec_builtin(appname, argv, redirfile, oflags);
-#else
-	char path[CONFIG_PATH_MAX];
-	posix_spawn_file_actions_t file_actions;
-	posix_spawnattr_t attr;
-	pid_t pid;
-	int ret;
-
-	/* We launch processes from the /bin/ folder only */
-
-	sprintf(path, "/bin/");
-	strcat(path, basename((char *)appname));
-
-	/* Return ERROR if spawn fails */
-
-	pid = (pid_t)ERROR;
-
-	/* Initialize the attributes file actions structure */
-
-	ret = posix_spawn_file_actions_init(&file_actions);
-
-	if (ret != 0) {
-		goto errout;
-	}
-
-	ret = posix_spawnattr_init(&attr);
-
-	if (ret != 0) {
-		goto errout;
-	}
-
-	ret = posix_spawnp(&pid, path, &file_actions, &attr, argv, environ);
-
-errout:
-	posix_spawn_file_actions_destroy(&file_actions);
-	posix_spawnattr_destroy(&attr);
-
-	return (int)pid;
-#endif
-}
 
 static void mavlink_usb_check(void *arg)
 {
@@ -381,7 +334,7 @@ static void mavlink_usb_check(void *arg)
 								else if (launch_passthru) {
 									sched_lock();
 									exec_argv = (char **)gps_argv;
-									exec_wrap(exec_argv[0], exec_argv, nullptr, 0);
+									px4_exec(exec_argv[0], exec_argv, nullptr, 0);
 									sched_unlock();
 									exec_argv = (char **)passthru_argv;
 								}
@@ -390,7 +343,7 @@ static void mavlink_usb_check(void *arg)
 
 								sched_lock();
 
-								if (exec_wrap(exec_argv[0], exec_argv, nullptr, 0) > 0) {
+								if (px4_exec(exec_argv[0], exec_argv, nullptr, 0) > 0) {
 									usb_auto_start_state = UsbAutoStartState::connected;
 
 								} else {
@@ -419,7 +372,7 @@ static void mavlink_usb_check(void *arg)
 			if (!vbus_present && !vbus_present_prev) {
 				sched_lock();
 				static const char *stop_argv[] {"mavlink", "stop", "-d", USB_DEVICE_PATH, NULL};
-				exec_wrap(stop_argv[0], (char **)stop_argv, NULL, 0);
+				px4_exec(stop_argv[0], (char **)stop_argv, NULL, 0);
 				sched_unlock();
 
 				usb_auto_start_state = UsbAutoStartState::disconnecting;
@@ -441,7 +394,6 @@ static void mavlink_usb_check(void *arg)
 		work_queue(LPWORK, &usb_serial_work, mavlink_usb_check, NULL, USEC2TICK(1000000));
 	}
 }
-
 
 void cdcacm_init(void)
 {
