@@ -98,8 +98,6 @@ private:
 	int add_altitude(uint8_t pos_x, uint8_t pos_y);
 	int add_flighttime(float flight_time, uint8_t pos_x, uint8_t pos_y);
 
-	static const char *get_flight_mode(uint8_t nav_state);
-
 	int enable_screen();
 	int disable_screen();
 

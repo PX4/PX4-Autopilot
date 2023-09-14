@@ -41,6 +41,7 @@
 
 #include "atxxxx.h"
 #include "symbols.h"
+#include <modules/commander/ModeUtil/conversions.hpp>
 
 using namespace time_literals;
 
@@ -373,61 +374,6 @@ OSDatxxxx::update_topics()
 	return PX4_OK;
 }
 
-const char *
-OSDatxxxx::get_flight_mode(uint8_t nav_state)
-{
-	const char *flight_mode = "UNKNOWN";
-
-	switch (nav_state) {
-	case vehicle_status_s::NAVIGATION_STATE_MANUAL:
-		flight_mode = "MANUAL";
-		break;
-
-	case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
-		flight_mode = "ALTITUDE";
-		break;
-
-	case vehicle_status_s::NAVIGATION_STATE_POSCTL:
-		flight_mode = "POSITION";
-		break;
-
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
-		flight_mode = "RETURN";
-		break;
-
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
-		flight_mode = "MISSION";
-		break;
-
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
-	case vehicle_status_s::NAVIGATION_STATE_DESCEND:
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET:
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND:
-		flight_mode = "AUTO";
-		break;
-
-	case vehicle_status_s::NAVIGATION_STATE_ACRO:
-		flight_mode = "ACRO";
-		break;
-
-	case vehicle_status_s::NAVIGATION_STATE_TERMINATION:
-		flight_mode = "TERMINATE";
-		break;
-
-	case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
-		flight_mode = "OFFBOARD";
-		break;
-
-	case vehicle_status_s::NAVIGATION_STATE_STAB:
-		flight_mode = "STABILIZED";
-		break;
-	}
-
-	return flight_mode;
-}
-
 int
 OSDatxxxx::update_screen()
 {
@@ -455,7 +401,7 @@ OSDatxxxx::update_screen()
 		ret |= add_flighttime(flight_time_sec, 1, 14);
 
 	} else {
-		flight_mode = get_flight_mode(_nav_state);
+		flight_mode = mode_util::nav_state_names[_nav_state];
 	}
 
 	add_string_to_screen_centered(flight_mode, 12, 10);
