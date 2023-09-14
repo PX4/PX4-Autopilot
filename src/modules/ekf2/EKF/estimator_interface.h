@@ -271,6 +271,10 @@ public:
 	const filter_control_status_u &control_status_prev() const { return _control_status_prev; }
 	const decltype(filter_control_status_u::flags) &control_status_prev_flags() const { return _control_status_prev.flags; }
 
+	// TODO
+	void enableControlStatusMocap() { _control_status.flags.mocap = true; }
+	void disableControlStatusMocap() { _control_status.flags.mocap = false; }
+
 	// get EKF internal fault status
 	const fault_status_u &fault_status() const { return _fault_status; }
 	const decltype(fault_status_u::flags) &fault_status_flags() const { return _fault_status.flags; }

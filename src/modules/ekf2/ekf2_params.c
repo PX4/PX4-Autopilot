@@ -1568,3 +1568,44 @@ PARAM_DEFINE_INT32(EKF2_SYNT_MAG_Z, 0);
  * @decimal 1
  */
 PARAM_DEFINE_FLOAT(EKF2_GSF_TAS, 15.0f);
+
+/**
+ * Motion capture (mocap) aiding
+ *
+ * @group EKF2
+ * @boolean
+ */
+PARAM_DEFINE_INT32(EKF2_MOCAP_CTRL, 1);
+
+/**
+ * Motion capture (mocap) delay relative to IMU measurements
+ *
+ * @group EKF2
+ * @min 0
+ * @max 300
+ * @unit ms
+ * @reboot_required true
+ * @decimal 1
+ */
+PARAM_DEFINE_FLOAT(EKF2_MOCAP_DELAY, 0);
+
+/**
+ * Measurement noise for motion capture (mocap) observations used to lower bound or replace the uncertainty included in the message
+ *
+ * @group EKF2
+ * @min 0.01
+ * @unit m
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(EKF2_MOCAP_NOISE, 0.9f);
+
+/**
+ * Gate size for Motion capture (mocap) fusion
+ *
+ * Sets the number of standard deviations used by the innovation consistency test.
+ * @group EKF2
+ * @min 1.0
+ * @unit SD
+ * @decimal 1
+*/
+PARAM_DEFINE_FLOAT(EKF2_MOCAP_GATE, 3.0f);
