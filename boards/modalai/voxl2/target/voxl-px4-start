@@ -183,6 +183,9 @@ qshell flight_mode_manager start
 dataman start
 navigator start
 
+# Start microdds_client for ros2 offboard messages from agent over localhost
+microdds_client start -t udp -h 127.0.0.1 -p 8888
+
 # On M0052 there is only one IMU. So, PX4 needs to
 # publish IMU samples externally for VIO to use.
 if [ $PLATFORM = "M0052" ]; then
