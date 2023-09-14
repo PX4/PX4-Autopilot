@@ -145,6 +145,14 @@ px4_add_module(
 	UNITY_BUILD
 	)
 
+px4_add_module(
+	MODULE modules__mavlink_shell
+	MAIN mavlink_shell
+	NO_DAEMON
+	SRCS
+		mavlink_shell_main.cpp
+	)
+
 if(PX4_TESTING)
 	add_subdirectory(mavlink_tests)
 endif()
