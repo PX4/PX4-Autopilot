@@ -723,7 +723,6 @@ private:
 
 	// height sensor status
 	bool _baro_hgt_faulty{false};		///< true if baro data have been declared faulty TODO: move to fault flags
-	bool _gps_intermittent{true};           ///< true if data into the buffer is intermittent
 
 	// imu fault status
 	uint64_t _time_bad_vert_accel{0};	///< last time a bad vertical accel was detected (uSec)
@@ -1014,7 +1013,6 @@ private:
 
 	// control fusion of GPS observations
 	void controlGpsFusion(const imuSample &imu_delayed);
-	bool shouldResetGpsFusion() const;
 	bool isYawFailure() const;
 
 	// control fusion of magnetometer observations
