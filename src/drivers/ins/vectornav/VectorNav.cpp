@@ -38,15 +38,42 @@
 
 #include <fcntl.h>
 
+using matrix::Vector2f;
+
 VectorNav::VectorNav(const char *port) :
 	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(port))
+	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(port)),
+	_attitude_pub((_param_vn_mode.get() == 0) ? ORB_ID(external_ins_attitude) : ORB_ID(vehicle_attitude)),
+	_local_position_pub((_param_vn_mode.get() == 0) ? ORB_ID(external_ins_local_position) : ORB_ID(vehicle_local_position)),
+	_global_position_pub((_param_vn_mode.get() == 0) ? ORB_ID(external_ins_global_position) : ORB_ID(
+				     vehicle_global_position))
 {
 	// store port name
 	strncpy(_port, port, sizeof(_port) - 1);
 
 	// enforce null termination
 	_port[sizeof(_port) - 1] = '\0';
+
+	// VN_MODE 1 full INS
+	if (_param_vn_mode.get() == 1) {
+		int32_t v = 0;
+
+		// EKF2_EN 0 (disabled)
+		v = 0;
+		param_set(param_find("EKF2_EN"), &v);
+
+		// SYS_MC_EST_GROUP 0 (disabled)
+		v = 0;
+		param_set(param_find("SYS_MC_EST_GROUP"), &v);
+
+		// SENS_IMU_MODE (VN handles sensor selection)
+		v = 0;
+		param_set(param_find("SENS_IMU_MODE"), &v);
+
+		// SENS_MAG_MODE (VN handles sensor selection)
+		v = 0;
+		param_set(param_find("SENS_MAG_MODE"), &v);
+	}
 
 	device::Device::DeviceId device_id{};
 	device_id.devid_s.devtype = DRV_INS_DEVTYPE_VN300;
@@ -75,6 +102,16 @@ VectorNav::~VectorNav()
 
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
+
+	perf_free(_accel_pub_interval_perf);
+	perf_free(_gyro_pub_interval_perf);
+	perf_free(_mag_pub_interval_perf);
+	perf_free(_gnss_pub_interval_perf);
+	perf_free(_baro_pub_interval_perf);
+
+	perf_free(_attitude_pub_interval_perf);
+	perf_free(_local_position_pub_interval_perf);
+	perf_free(_global_position_pub_interval_perf);
 }
 
 void VectorNav::binaryAsyncMessageReceived(void *userData, VnUartPacket *packet, size_t runningIndex)
@@ -108,7 +145,7 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 	if (VnUartPacket_isCompatible(packet,
 				      COMMONGROUP_NONE,
 				      TIMEGROUP_TIMESTARTUP,
-				      (ImuGroup)(IMUGROUP_UNCOMPACCEL | IMUGROUP_UNCOMPGYRO),
+				      (ImuGroup)(IMUGROUP_ACCEL | IMUGROUP_ANGULARRATE),
 				      GPSGROUP_NONE,
 				      ATTITUDEGROUP_NONE,
 				      INSGROUP_NONE,
@@ -118,17 +155,21 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 		uint64_t time_startup = VnUartPacket_extractUint64(packet);
 		(void)time_startup;
 
-		// IMUGROUP_UNCOMPACCEL
+		// IMUGROUP_ACCEL
 		vec3f accel = VnUartPacket_extractVec3f(packet);
 
-		// IMUGROUP_UNCOMPGYRO
+		// IMUGROUP_ANGULARRATE
 		vec3f angular_rate = VnUartPacket_extractVec3f(packet);
 
 		// publish sensor_accel
 		_px4_accel.update(time_now_us, accel.c[0], accel.c[1], accel.c[2]);
+		perf_count(_accel_pub_interval_perf);
 
 		// publish sensor_gyro
 		_px4_gyro.update(time_now_us, angular_rate.c[0], angular_rate.c[1], angular_rate.c[2]);
+		perf_count(_gyro_pub_interval_perf);
+
+		_time_last_valid_imu_us.store(hrt_absolute_time());
 	}
 
 	// binary output 2
@@ -188,9 +229,11 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 		sensor_baro.temperature = temperature;
 		sensor_baro.timestamp = hrt_absolute_time();
 		_sensor_baro_pub.publish(sensor_baro);
+		perf_count(_baro_pub_interval_perf);
 
 		// publish sensor_mag
 		_px4_mag.update(time_now_us, mag.c[0], mag.c[1], mag.c[2]);
+		perf_count(_mag_pub_interval_perf);
 
 		// publish attitude
 		vehicle_attitude_s attitude{};
@@ -201,13 +244,14 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 		attitude.q[3] = quaternion.c[2];
 		attitude.timestamp = hrt_absolute_time();
 		_attitude_pub.publish(attitude);
+		perf_count(_attitude_pub_interval_perf);
 
 		// mode
 		const uint16_t mode = (insStatus & 0b11);
 		//const bool mode_initializing = (mode == 0b00);
 		const bool mode_aligning     = (mode == 0b01);
 		const bool mode_tracking     = (mode == 0b10);
-		const bool mode_loss_gnss    = (mode == 0b11);
+		//const bool mode_loss_gnss    = (mode == 0b11);
 
 
 		// mode_initializing
@@ -228,42 +272,88 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 		//  - attitude is good
 		//  - treat as mode 0
 
-
-		if ((mode_aligning || mode_tracking) && !mode_loss_gnss) {
+		if (mode_aligning || mode_tracking) {
 			// publish local_position
 
-			// TODO: projection
+			const double lat = positionEstimatedLla.c[0];
+			const double lon = positionEstimatedLla.c[1];
+			const float alt = positionEstimatedLla.c[2];
+
+			if (!_pos_ref.isInitialized()) {
+				_pos_ref.initReference(lat, lon, time_now_us);
+				_gps_alt_ref = alt;
+			}
+
+			const Vector2f pos_ned = _pos_ref.project(lat, lon);
+
 			vehicle_local_position_s local_position{};
 			local_position.timestamp_sample = time_now_us;
-			local_position.ax = accelerationLinearNed.c[0];
-			local_position.ay = accelerationLinearNed.c[1];
-			local_position.az = accelerationLinearNed.c[2];
-			local_position.x = positionEstimatedLla.c[0]; // TODO
-			local_position.y = positionEstimatedLla.c[1]; // TODO
-			local_position.z = positionEstimatedLla.c[2]; // TODO
+
+			local_position.xy_valid = true;
+			local_position.z_valid = true;
+			local_position.v_xy_valid = true;
+			local_position.v_z_valid = true;
+
+			local_position.x = pos_ned(0);
+			local_position.y = pos_ned(1);
+			local_position.z = -(alt - _gps_alt_ref);
+
 			local_position.vx = velocityEstimatedNed.c[0];
 			local_position.vy = velocityEstimatedNed.c[1];
 			local_position.vz = velocityEstimatedNed.c[2];
+			local_position.z_deriv = velocityEstimatedNed.c[2]; // TODO
+
+			local_position.ax = accelerationLinearNed.c[0];
+			local_position.ay = accelerationLinearNed.c[1];
+			local_position.az = accelerationLinearNed.c[2];
+
+			matrix::Quatf q{attitude.q};
+			local_position.heading = matrix::Eulerf{q}.psi();
+			local_position.heading_good_for_control = mode_tracking;
+
+			if (_pos_ref.isInitialized()) {
+				local_position.xy_global = true;
+				local_position.z_global = true;
+				local_position.ref_timestamp = _pos_ref.getProjectionReferenceTimestamp();
+				local_position.ref_lat = _pos_ref.getProjectionReferenceLat();
+				local_position.ref_lon = _pos_ref.getProjectionReferenceLon();
+				local_position.ref_alt = _gps_alt_ref;
+			}
+
+			local_position.dist_bottom_valid = false;
+
 			local_position.eph = positionUncertaintyEstimated;
 			local_position.epv = positionUncertaintyEstimated;
 			local_position.evh = velocityUncertaintyEstimated;
 			local_position.evv = velocityUncertaintyEstimated;
-			local_position.xy_valid = true;
-			local_position.heading_good_for_control = mode_tracking;
+
+			local_position.dead_reckoning = false;
+
+			local_position.vxy_max = INFINITY;
+			local_position.vz_max = INFINITY;
+			local_position.hagl_min = INFINITY;
+			local_position.hagl_max = INFINITY;
+
 			local_position.unaided_heading = NAN;
 			local_position.timestamp = hrt_absolute_time();
 			_local_position_pub.publish(local_position);
-
+			perf_count(_local_position_pub_interval_perf);
 
 
 			// publish global_position
 			vehicle_global_position_s global_position{};
 			global_position.timestamp_sample = time_now_us;
-			global_position.lat = positionEstimatedLla.c[0];
-			global_position.lon = positionEstimatedLla.c[1];
-			global_position.alt = positionEstimatedLla.c[2];
+			global_position.lat = lat;
+			global_position.lon = lon;
+			global_position.alt = alt;
+			global_position.alt = alt;
+
+			global_position.eph = positionUncertaintyEstimated;
+			global_position.epv = positionUncertaintyEstimated;
+
 			global_position.timestamp = hrt_absolute_time();
 			_global_position_pub.publish(global_position);
+			perf_count(_global_position_pub_interval_perf);
 		}
 	}
 
@@ -334,13 +424,14 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 			sensor_gps.hdop = dop.hDOP;
 			sensor_gps.vdop = dop.vDOP;
 
-			sensor_gps.eph = positionUncertaintyGpsNed.c[0];
+			sensor_gps.eph = sqrtf(sq(positionUncertaintyGpsNed.c[0]) + sq(positionUncertaintyGpsNed.c[1]));
 			sensor_gps.epv = positionUncertaintyGpsNed.c[2];
 
 			sensor_gps.s_variance_m_s = velocityUncertaintyGps;
 
 			sensor_gps.timestamp = hrt_absolute_time();
 			_sensor_gps_pub.publish(sensor_gps);
+			perf_count(_gnss_pub_interval_perf);
 		}
 	}
 }
@@ -494,7 +585,7 @@ bool VectorNav::configure()
 		1, // divider
 		COMMONGROUP_NONE,
 		TIMEGROUP_TIMESTARTUP,
-		(ImuGroup)(IMUGROUP_UNCOMPACCEL | IMUGROUP_UNCOMPGYRO),
+		(ImuGroup)(IMUGROUP_ACCEL | IMUGROUP_ANGULARRATE),
 		GPSGROUP_NONE,
 		ATTITUDEGROUP_NONE,
 		INSGROUP_NONE,
@@ -552,6 +643,8 @@ bool VectorNav::configure()
 	VnSensor_registerAsyncPacketReceivedHandler(&_vs, VectorNav::binaryAsyncMessageReceived, this);
 	VnSensor_registerErrorPacketReceivedHandler(&_vs, VectorNav::binaryAsyncMessageReceived, this);
 
+	_time_configured_us.store(hrt_absolute_time());
+
 	return true;
 }
 
@@ -583,8 +676,39 @@ void VectorNav::Run()
 			_initialized = true;
 
 		} else {
-			ScheduleDelayed(3_s);
+			ScheduleDelayed(1_s);
 			return;
+		}
+	}
+
+	if (_connected && _configured && _initialized) {
+
+		// check for timeout
+		const hrt_abstime time_configured_us = _time_configured_us.load();
+		const hrt_abstime time_last_valid_imu_us = _time_last_valid_imu_us.load();
+
+		if (_param_vn_mode.get() == 1) {
+			if ((time_last_valid_imu_us != 0) && (hrt_elapsed_time(&time_last_valid_imu_us) < 3_s))
+
+				// update sensor_selection if configured in INS mode
+				if ((_px4_accel.get_device_id() != 0) && (_px4_gyro.get_device_id() != 0)) {
+					sensor_selection_s sensor_selection{};
+					sensor_selection.accel_device_id = _px4_accel.get_device_id();
+					sensor_selection.gyro_device_id = _px4_gyro.get_device_id();
+					sensor_selection.timestamp = hrt_absolute_time();
+					_sensor_selection_pub.publish(sensor_selection);
+				}
+		}
+
+		if ((time_configured_us != 0) && (hrt_elapsed_time(&time_last_valid_imu_us) > 5_s)
+		    && (time_last_valid_imu_us != 0) && (hrt_elapsed_time(&time_last_valid_imu_us) > 1_s)
+		   ) {
+			PX4_ERR("timeout, reinitializing");
+			VnSensor_unregisterAsyncPacketReceivedHandler(&_vs);
+			VnSensor_disconnect(&_vs);
+			_connected = false;
+			_configured = false;
+			_initialized = false;
 		}
 	}
 
