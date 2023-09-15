@@ -1,0 +1,314 @@
+name: tiiuae-pixhawk-and-saluki
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  fc_matrix:
+    strategy:
+      fail-fast: false
+      matrix:
+        product: [pixhawk, saluki-v2_default, saluki-v2_bootloader, saluki-v2_amp, saluki-v2_protected, saluki-v2_kernel, saluki-pi_default, saluki-pi_bootloader, saluki-pi_amp, saluki-pi_protected, saluki-v3_default, saluki-v3_amp]
+
+    uses: ./.github/workflows/tiiuae-pixhawk-and-saluki-builder.yaml
+    with:
+      product: ${{ matrix.product }}
+      # old workflow had condition to run only if PR is done to current repo (or triggered with other event)
+      enabled: ${{ github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
+    secrets: inherit
+
+  px4fwupdater:
+    name: build px4fwupdater
+    runs-on: ubuntu-latest
+    needs:
+      - fc_matrix
+    steps:
+      - name: Checkout px4-firmware
+        uses: actions/checkout@v3
+        with:
+          path: px4-firmware
+          fetch-depth: 0
+      - name: Download pixhawk artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: pixhawk
+          path: bin
+      - name: Run px4-firmware px4fwupdater build
+        run: |
+          set -eux
+          mkdir -p bin
+          cd px4-firmware/
+          ./clone_public.sh
+          ./build.sh ../bin/ px4fwupdater
+          ls ../bin
+      - name: Upload px4fwupdater to tmp storage
+        uses: actions/upload-artifact@v3
+        with:
+          name: pixhawk
+          path: bin/
+          retention-days: 1
+
+  upload-px4fwupdater:
+    name: upload px4fwupdater to docker registry
+    runs-on: ubuntu-latest
+    needs:
+      - px4fwupdater
+    if: true
+    steps:
+      - name: Checkout px4-firmware
+        uses: actions/checkout@v3
+        with:
+          path: px4-firmware
+          fetch-depth: 0
+      - name: Download pixhawk artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: pixhawk
+          path: bin
+      - name: Firmware flasher - Container metadata
+        id: containermeta # referenced from later step
+        uses: docker/metadata-action@v4
+        with:
+          images: ghcr.io/tiiuae/px4-firmware
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=sha
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Firmware flasher - Build and push
+        uses: docker/build-push-action@v3
+        with:
+          push: true
+          context: .
+          file: px4-firmware/Tools/px_uploader.Dockerfile
+          tags: ${{ steps.containermeta.outputs.tags }}
+          labels: ${{ steps.containermeta.outputs.labels }}
+
+  upload-px4fwupdater-uae:
+    name: upload px4fwupdater to UAE docker registry
+    runs-on: ubuntu-latest
+    needs:
+      - px4fwupdater
+    steps:
+      - name: Checkout px4-firmware
+        uses: actions/checkout@v3
+        with:
+          path: px4-firmware
+          fetch-depth: 0
+      - name: Download pixhawk artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: pixhawk
+          path: bin
+      - name: Firmware flasher - Container metadata
+        id: containermeta # referenced from later step
+        uses: docker/metadata-action@v4
+        with:
+          images: artifactory.ssrcdevops.tii.ae/tiiuae/px4-firmware
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=sha
+      - name: Login to SSRC JFrog Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: artifactory.ssrcdevops.tii.ae
+          username: ${{ secrets.UAE_RT_USER }}
+          password: ${{ secrets.UAE_RT_APIKEY }}
+      - name: Firmware flasher - Build and push
+        uses: docker/build-push-action@v3
+        with:
+          push: true
+          context: .
+          file: px4-firmware/Tools/px_uploader.Dockerfile
+          tags: ${{ steps.containermeta.outputs.tags }}
+          labels: ${{ steps.containermeta.outputs.labels }}
+
+  artifactory:
+    name: upload builds to artifactory
+    runs-on: ubuntu-latest
+    needs:
+      - px4fwupdater
+      - fc_matrix
+    if: true
+    steps:
+      - name: Download pixhawk artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: pixhawk
+          path: bin
+      - uses: jfrog/setup-jfrog-cli@v3
+        env:
+          JF_ENV_1: ${{ secrets.ARTIFACTORY_CLOUD_TOKEN }}
+      - name: Upload px4-firmware build to Artifactory
+        env:
+          ARTIFACTORY_GEN_REPO: ssrc-gen-public-local
+          BUILD_NAME_PX4: px4-firmware
+          CI: true
+        run: |
+          set -exu
+
+          pr_or_empty=""
+          if [ ${{ github.event_name }} == 'pull_request' ]; then
+            pr_or_empty="pr/"
+          fi
+
+          newline=$'\n'
+          artifactory_links="| target | link |
+          |--------|------|"
+          artifactory_base_url="https://ssrc.jfrog.io/artifactory/"
+
+          for pkg in $(find bin -type f); do
+
+            file_name=$(basename $pkg)
+            ext="${file_name##*.}"
+            target_path=""
+            pkg_name=$(echo $file_name | sed -r -e 's/-[0-9]+\.[0-9]+\.[0-9]+-.*//g')
+
+            if [[ $file_name = px4_fmu* ]]; then
+              target_path="pixhawk"
+            elif [[ $file_name = ssrc_saluki* ]]; then
+              target_path="saluki"
+            else
+              echo "$pkg ignored"
+              continue
+            fi
+
+            artifactory_path=$ARTIFACTORY_GEN_REPO/builds/px4-firmware/${target_path}/${pr_or_empty}
+
+            jfrog rt u --target-props COMMIT="$GITHUB_SHA" \
+              --build-name "$BUILD_NAME_PX4" \
+              --build-number "$GITHUB_SHA" \
+              "$pkg" \
+              "${artifactory_path}$file_name"
+
+            jfrog rt cp --flat \
+              "${artifactory_path}$file_name" \
+              "${artifactory_path}latest/${pkg_name}.${ext}"
+
+              # append every file to artifactory_links
+              artifactory_links+="${newline}| ${pkg_name} | ${artifactory_base_url}${artifactory_path}${file_name} |"
+          done
+
+          jfrog rt build-publish "$BUILD_NAME_PX4" "$GITHUB_SHA"
+          jfrog rt bpr "$BUILD_NAME_PX4" "$GITHUB_SHA" "$ARTIFACTORY_GEN_REPO" \
+                       --status dev \
+                       --comment "development build"
+
+          # save upload path to output for later use
+          echo "### Cloud Artifactory links:" >> $GITHUB_STEP_SUMMARY
+          echo "${artifactory_links}" >> $GITHUB_STEP_SUMMARY
+
+  artifactory-uae:
+    name: upload builds to UAE artifactory
+    runs-on: ubuntu-latest
+    needs:
+      - px4fwupdater
+      - fc_matrix
+    if: true
+    steps:
+      - name: Download pixhawk artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: pixhawk
+          path: bin
+      - uses: jfrog/setup-jfrog-cli@v3
+        env:
+          JF_ENV_1: ${{ secrets.UAE_ARTIFACTORY_TOKEN }}
+      - name: Upload px4-firmware build to Artifactory
+        env:
+          ARTIFACTORY_GEN_REPO: gen-public-local
+          BUILD_NAME_PX4: px4-firmware
+          CI: true
+        run: |
+          set -exu
+
+          pr_or_empty=""
+          if [ ${{ github.event_name }} == 'pull_request' ]; then
+            pr_or_empty="pr/"
+          fi
+
+          newline=$'\n'
+          artifactory_links="| target | link |
+          |--------|------|"
+          artifactory_base_url="https://artifactory.ssrcdevops.tii.ae/artifactory/"
+
+          for pkg in $(find bin -type f); do
+
+            file_name=$(basename $pkg)
+            ext="${file_name##*.}"
+            target_path=""
+            pkg_name=$(echo $file_name | sed -r -e 's/-[0-9]+\.[0-9]+\.[0-9]+-.*//g')
+
+            if [[ $file_name = px4_fmu* ]]; then
+              target_path="pixhawk"
+            elif [[ $file_name = ssrc_saluki* ]]; then
+              target_path="saluki"
+            else
+              echo "$pkg ignored"
+              continue
+            fi
+
+            artifactory_path=$ARTIFACTORY_GEN_REPO/builds/px4-firmware/${target_path}/${pr_or_empty}
+
+            jfrog rt u --target-props COMMIT="$GITHUB_SHA" \
+              --build-name "$BUILD_NAME_PX4" \
+              --build-number "$GITHUB_SHA" \
+              "$pkg" \
+              "${artifactory_path}$file_name"
+
+            jfrog rt cp --flat \
+              "${artifactory_path}$file_name" \
+              "${artifactory_path}latest/${pkg_name}.${ext}"
+
+            # append every file to artifactory_links
+            artifactory_links+="${newline}| ${pkg_name} | ${artifactory_base_url}${artifactory_path}${file_name} |"
+          done
+
+          jfrog rt build-publish "$BUILD_NAME_PX4" "$GITHUB_SHA"
+          jfrog rt bpr "$BUILD_NAME_PX4" "$GITHUB_SHA" "$ARTIFACTORY_GEN_REPO" \
+                       --status dev \
+                       --comment "development build"
+
+          # export artifactory linds as gh step summary
+          echo "### UAE Artifactory links:" >> $GITHUB_STEP_SUMMARY
+          echo "${artifactory_links}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload px4-fwupdater build to Artifactory
+        env:
+          ARTIFACTORY_DEB_REPO: debian-public-local
+          DISTRIBUTION: focal
+          COMPONENT: fog-sw
+          ARCHITECTURE: amd64
+          BUILD_NAME_DEB: px4-fwupdater
+          CI: true
+        run: |
+          set -exu
+          pkg=$(find bin -name 'px4fwupdater*.deb')
+          pkg_name=$(basename $pkg)
+          jfrog rt u --deb "$DISTRIBUTION/$COMPONENT/$ARCHITECTURE" \
+                     --target-props COMMIT="$GITHUB_SHA" \
+                     --build-name "$BUILD_NAME_DEB" \
+                     --build-number "$GITHUB_SHA" \
+                     "$pkg" \
+                     "$ARTIFACTORY_DEB_REPO/$pkg_name"
+          jfrog rt build-publish "$BUILD_NAME_DEB" "$GITHUB_SHA"
+          jfrog rt bpr "$BUILD_NAME_DEB" "$GITHUB_SHA" "$ARTIFACTORY_DEB_REPO" \
+                       --status dev \
+                       --comment "development build"

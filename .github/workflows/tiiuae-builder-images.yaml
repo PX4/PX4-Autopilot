@@ -1,0 +1,42 @@
+name: tiiuae-builder-images
+
+on:
+  # Run only manually
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  hw-builder-image:
+    name: create docker builder base image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout px4-firmware
+        uses: actions/checkout@v4
+        with:
+          path: px4-firmware
+          fetch-depth: 0
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/tiiuae/px4-firmware-builder-base
+          tags: |
+            type=raw,value=latest
+            type=sha
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build builder base image and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./px4-firmware/packaging/Dockerfile.build_env_pre
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}

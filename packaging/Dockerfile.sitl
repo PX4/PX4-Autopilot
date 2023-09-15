@@ -1,0 +1,40 @@
+FROM ghcr.io/tiiuae/fog-ros-baseimage-builder:v2.1.0
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget
+
+RUN echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-stable.list
+RUN wget http://packages.osrfoundation.org/gazebo.key -O - | apt-key add -
+RUN apt-get update && apt-get install -y --no-install-recommends \
+   libignition-transport8-dev \
+   && rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget
+
+RUN echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-stable.list
+RUN wget http://packages.osrfoundation.org/gazebo.key -O - | apt-key add -
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libignition-transport8-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install PX4 SITL
+WORKDIR /packages
+
+COPY bin/px4_sitl_build*.tar.gz ./px4_sitl_build.tar.gz
+
+RUN tar -xzf px4_sitl_build.tar.gz \
+    && mv px4_sitl/bin/* /usr/bin/ \
+    && mv px4_sitl/etc /px4_sitl_etc \
+    && rm -rf px4_sitl_build/ \
+    && rm px4_sitl_build.tar.gz
+
+WORKDIR /px4_sitl
+
+COPY px4-firmware/ssrc_config /ssrc_config
+COPY px4-firmware/packaging/entrypoint.sh .
+
+ENV PACKAGE_NAME=px4_sitl
+ENV PX4_SIM_MODEL=ssrc_fog_x
+
+ENTRYPOINT ["/px4_sitl/entrypoint.sh"]
