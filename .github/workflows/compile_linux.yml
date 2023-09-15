@@ -1,12 +1,9 @@
-name: Compile Linux Targets
+name: Linux Targets
 
 on:
   push:
     branches:
     - 'main'
-    - 'stable'
-    - 'beta'
-    - 'release/*'
   pull_request:
     branches:
     - '*'
@@ -14,7 +11,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-armhf:2023-06-26
+    container: px4io/px4-dev-armhf:2021-09-08
     strategy:
       matrix:
         config: [
@@ -24,11 +21,10 @@ jobs:
           scumaker_pilotpi_default,
           ]
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v4
       with:
         token: ${{secrets.ACCESS_TOKEN}}
-    - name: ownership workaround
-      run: git config --system --add safe.directory '*'
+
     - name: Prepare ccache timestamp
       id: ccache_cache_timestamp
       shell: cmake -P {0}
@@ -36,7 +32,7 @@ jobs:
         string(TIMESTAMP current_date "%Y-%m-%d-%H;%M;%S" UTC)
         message("::set-output name=timestamp::${current_date}")
     - name: ccache cache files
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ~/.ccache
         key: ${{matrix.config}}-ccache-${{steps.ccache_cache_timestamp.outputs.timestamp}}

@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     container: px4io/px4-dev-base-focal:2021-09-08
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v4
       with:
         token: ${{ secrets.ACCESS_TOKEN }}
 
@@ -39,7 +39,7 @@ jobs:
     runs-on: ubuntu-latest
     container: px4io/px4-dev-base-focal:2021-09-08
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v4
       with:
         token: ${{ secrets.ACCESS_TOKEN }}
 
@@ -54,7 +54,7 @@ jobs:
     runs-on: ubuntu-latest
     container: px4io/px4-dev-base-focal:2021-09-08
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v4
       with:
         token: ${{ secrets.ACCESS_TOKEN }}
 
@@ -78,7 +78,7 @@ jobs:
     runs-on: ubuntu-latest
     container: px4io/px4-dev-base-focal:2021-09-08
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v4
       with:
         token: ${{ secrets.ACCESS_TOKEN }}
 
@@ -103,9 +103,9 @@ jobs:
 
   uorb_graph:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-nuttx-focal:2022-08-12
+    container: px4io/px4-dev-nuttx-focal:2021-09-08
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v4
       with:
         token: ${{ secrets.ACCESS_TOKEN }}
 
@@ -120,7 +120,7 @@ jobs:
     runs-on: ubuntu-latest
     container: px4io/px4-dev-base-focal:2021-09-08
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v4
       with:
         token: ${{ secrets.ACCESS_TOKEN }}
 
@@ -128,6 +128,4 @@ jobs:
       run: |
         git clone https://github.com/PX4/px4_msgs.git
         rm px4_msgs/msg/*.msg
-        rm px4_msgs/srv/*.srv
         cp msg/*.msg px4_msgs/msg/
-        cp srv/*.srv px4_msgs/srv/

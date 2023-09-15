@@ -1,0 +1,346 @@
+name: tiiuae-pixhawk-and-saluki
+
+on:
+  push:
+    branches: [ main ]
+    tags:
+      - 'v1.15.[0-9]-*'
+  pull_request:
+    branches: [ main ]
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+    inputs:
+      jfrog-upload:
+        description: 'upload to UAE Artifactory'
+        required: false
+        default: false
+        type: boolean
+      saluki-v2-manual-fpga-version:
+        description: 'saluki-v2 optional fpga version (e.g. sha-3b85ccc)'
+        required: false
+        default: ''
+        type: string
+      saluki-v3-manual-fpga-version:
+        description: 'saluki-v3 optional fpga version (e.g. sha-3b85ccc)'
+        required: false
+        default: ''
+        type: string
+      saluki-pi-manual-fpga-version:
+        description: 'saluki-pi optional fpga version (e.g. sha-cd7bb6b)'
+        required: false
+        default: ''
+        type: string
+      saluki-fmu2-manual-fpga-version:
+        description: 'saluki-fmu2 optional fpga version (e.g. sha-cd7bb6b)'
+        required: false
+        default: ''
+        type: string
+      saluki-nxp-manual-bl-version:
+        description: 'saluki-nxp optional bootloader version (e.g. ghcr.io/tiiuae/saluki_bootloader_v2:sha-d8b2524)'
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  saluki_nxp_bootloader: "ghcr.io/tiiuae/saluki_bootloader_v2:2.8.0"
+  saluki_fpga_repo: "ghcr.io/tiiuae/saluki-fpga"
+  saluki_pi_fpga_version: "4.28.0"
+  saluki_v2_fpga_version: "4.28.0"
+  saluki_v3_fpga_version: "4.28.0"
+  saluki_fmu2_fpga_version: "4.28.0"
+
+jobs:
+  fc_matrix:
+    strategy:
+      fail-fast: false
+      matrix:
+        product: [saluki-v2_default, saluki-v2_amp, saluki-v2_flat, saluki-pi_default, saluki-pi_amp, saluki-pi_flat, saluki-v3_default, saluki-v3_amp, saluki-v3_flat, saluki-nxp93_flat, saluki-nxp93_default]
+        include:
+          - product: saluki-v2_custom_keys
+            keys: Tools/saluki-sec-scripts/custom_keys/saluki-v2/px4_bin_ed25519_private.pem
+          - product: saluki-v3_custom_keys
+            keys: Tools/saluki-sec-scripts/custom_keys/saluki-v3/px4_bin_ed25519_private.pem
+          - product: saluki-pi_custom_keys
+            keys: Tools/saluki-sec-scripts/custom_keys/saluki-pi/px4_bin_ed25519_private.pem
+          - product: saluki-nxp93_custom_keys
+            keys: Tools/saluki-sec-scripts/custom_keys/saluki-nxp93/ed25519_key.pem
+
+    uses: ./.github/workflows/tiiuae-pixhawk-and-saluki-builder.yaml
+    with:
+      product: ${{ matrix.product }}
+      keys: ${{ matrix.keys }}
+      # old workflow had condition to run only if PR is done to current repo (or triggered with other event)
+      enabled: ${{ github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
+    secrets: inherit
+
+  variables:
+    runs-on: ubuntu-latest
+    outputs:
+      jfrog_upload: ${{ steps.variables.outputs.jfrog_upload }}
+      saluki_v2_fpga_version: ${{ steps.variables.outputs.saluki_v2_fpga_version }}
+      saluki_v3_fpga_version: ${{ steps.variables.outputs.saluki_v3_fpga_version }}
+      saluki_pi_fpga_version: ${{ steps.variables.outputs.saluki_pi_fpga_version }}
+      saluki_fmu2_fpga_version: ${{ steps.variables.outputs.saluki_fmu2_fpga_version }}
+      saluki_nxp_bootloader: ${{ steps.variables.outputs.saluki_nxp_bootloader }}
+    steps:
+      - name: Print input variables
+        id: variables
+        run: |
+          # use saluki-v2-fpga default version if custom is not provided
+          saluki_v2_fpga_version=${{ env.saluki_v2_fpga_version }}
+          if [ -n "${{ github.event.inputs.saluki-v2-manual-fpga-version }}" ]; then
+            saluki_v2_fpga_version=${{ github.event.inputs.saluki-v2-manual-fpga-version }}
+          fi
+
+          # use saluki-v3-fpga default version if custom is not provided
+          saluki_v3_fpga_version=${{ env.saluki_v3_fpga_version }}
+          if [ -n "${{ github.event.inputs.saluki-v3-manual-fpga-version }}" ]; then
+            saluki_v3_fpga_version=${{ github.event.inputs.saluki-v3-manual-fpga-version }}
+          fi
+
+          # use saluki-pi-fpga default version if custom is not provided
+          saluki_pi_fpga_version=${{ env.saluki_pi_fpga_version }}
+          if [ -n "${{ github.event.inputs.saluki-pi-manual-fpga-version }}" ]; then
+            saluki_pi_fpga_version=${{ github.event.inputs.saluki-pi-manual-fpga-version }}
+          fi
+
+          # use saluki-fmu2-fpga default version if custom is not provided
+          saluki_fmu2_fpga_version=${{ env.saluki_fmu2_fpga_version }}
+          if [ -n "${{ github.event.inputs.saluki-fmu2-manual-fpga-version }}" ]; then
+            saluki_fmu2_fpga_version=${{ github.event.inputs.saluki-fmu2-manual-fpga-version }}
+          fi
+
+          # use saluki-nxp-bl default version if custom is not provided
+          saluki_nxp_bl_container=${{ env.saluki_nxp_bootloader }}
+          if [ -n "${{ github.event.inputs.saluki-nxp-manual-bl-version }}" ]; then
+            saluki_nxp_bl_container=${{ github.event.inputs.saluki-nxp-manual-bl-version }}
+          fi
+
+          echo "saluki_v2_fpga_version=${saluki_v2_fpga_version}" >> $GITHUB_OUTPUT
+          echo "saluki_v3_fpga_version=${saluki_v3_fpga_version}" >> $GITHUB_OUTPUT
+          echo "saluki_pi_fpga_version=${saluki_pi_fpga_version}" >> $GITHUB_OUTPUT
+          echo "saluki_fmu2_fpga_version=${saluki_fmu2_fpga_version}" >> $GITHUB_OUTPUT
+          echo "saluki_nxp_bootloader=${saluki_nxp_bl_container}" >> $GITHUB_OUTPUT
+          echo "jfrog_upload=${{ github.event.inputs.jfrog-upload }}" >> $GITHUB_OUTPUT
+
+          echo "saluki_v2_fpga_version: ${saluki_v2_fpga_version}"
+          echo "saluki_v3_fpga_version: ${saluki_v3_fpga_version}"
+          echo "saluki_pi_fpga_version: ${saluki_pi_fpga_version}"
+          echo "saluki_fmu2_fpga_version: ${saluki_fmu2_fpga_version}"
+          echo "saluki_nxp_bootloader: ${saluki_nxp_bl_container}"
+          echo "jfrog_upload: ${{ github.event.inputs.jfrog-upload }}"
+
+  upload-px4fwupdater:
+    name: upload px4fwupdater to docker registry
+    runs-on: ubuntu-latest
+    env:
+      BUILD_DIR: combine
+      FPGA_DIR: combine/fpga
+      BOOTLOADER_DIR: combine/bootloader
+      NXP_BOOTLOADER: ${{ needs.variables.outputs.saluki_nxp_bootloader }}
+    needs:
+      - variables
+      - fc_matrix
+    steps:
+      - name: Checkout px4-firmware
+        uses: actions/checkout@v4
+        with:
+          path: px4-firmware
+          submodules: true
+          token: ${{ secrets.GH_REPO_TOKEN }}
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Download pixhawk artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: bin
+          pattern: saluki-*
+          merge-multiple: true
+      - name: Firmware flasher - Container metadata
+        id: containermeta # referenced from later step
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/tiiuae/px4-firmware
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=sha
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: fetch fpga files
+        run: |
+          set -eux
+
+          pip install check-jsonschema
+
+          echo "fetching fpga files from ${{ env.saluki_fpga_repo }}"
+          px4-firmware/Tools/fetch-fpga-files.sh ${{ env.saluki_fpga_repo }}:${{ needs.variables.outputs.saluki_v2_fpga_version }} saluki_v2 ${{ env.FPGA_DIR }}/saluki-v2
+          px4-firmware/Tools/fetch-fpga-files.sh ${{ env.saluki_fpga_repo }}:${{ needs.variables.outputs.saluki_v3_fpga_version }} saluki_v3 ${{ env.FPGA_DIR }}/saluki-v3
+          px4-firmware/Tools/fetch-fpga-files.sh ${{ env.saluki_fpga_repo }}:${{ needs.variables.outputs.saluki_pi_fpga_version }} saluki_pi ${{ env.FPGA_DIR }}/saluki-pi
+          px4-firmware/Tools/fetch-fpga-files.sh ${{ env.saluki_fpga_repo }}:${{ needs.variables.outputs.saluki_fmu2_fpga_version }} saluki_fmu2 ${{ env.FPGA_DIR }}/saluki-fmu2
+
+          echo "find out bootloader version from fpga files"
+          saluki_v2_bootloader_container=$(jq -r '.["fpga-files"][] | select(.type | contains("fpga_job")).bootloader_container' ${{ env.FPGA_DIR }}/saluki-v2/saluki_file_info.json)
+          saluki_v3_bootloader_container=$(jq -r '.["fpga-files"][] | select(.type | contains("fpga_job")).bootloader_container' ${{ env.FPGA_DIR }}/saluki-v3/saluki_file_info.json)
+          saluki_pi_bootloader_container=$(jq -r '.["fpga-files"][] | select(.type | contains("fpga_job")).bootloader_container' ${{ env.FPGA_DIR }}/saluki-pi/saluki_file_info.json)
+          saluki_fmu2_bootloader_container=$(jq -r '.["fpga-files"][] | select(.type | contains("fpga_job")).bootloader_container' ${{ env.FPGA_DIR }}/saluki-fmu2/saluki_file_info.json)
+
+          echo "fetch bootloader files"
+          if [[ -n "${saluki_v2_bootloader_container}" ]]; then
+            px4-firmware/Tools/fetch-ssbl-files.sh ${saluki_v2_bootloader_container} saluki-v2 ${{ env.BOOTLOADER_DIR }}/saluki-v2
+            # fetch custom signer bootloader
+            px4-firmware/Tools/fetch-ssbl-files.sh ${saluki_v2_bootloader_container} saluki-v2_custom ${{ env.BOOTLOADER_DIR }}/saluki-v2_custom
+          fi
+          if [[ -n "${saluki_v3_bootloader_container}" ]]; then
+            px4-firmware/Tools/fetch-ssbl-files.sh ${saluki_v3_bootloader_container} saluki-v3 ${{ env.BOOTLOADER_DIR }}/saluki-v3
+            # fetch custom signer bootloader
+            px4-firmware/Tools/fetch-ssbl-files.sh ${saluki_v3_bootloader_container} saluki-v3_custom ${{ env.BOOTLOADER_DIR }}/saluki-v3_custom
+          fi
+          if [[ -n "${saluki_pi_bootloader_container}" ]]; then
+            px4-firmware/Tools/fetch-ssbl-files.sh ${saluki_pi_bootloader_container} saluki-pi ${{ env.BOOTLOADER_DIR }}/saluki-pi
+            # fetch custom signer bootloader
+            px4-firmware/Tools/fetch-ssbl-files.sh ${saluki_pi_bootloader_container} saluki-pi_custom ${{ env.BOOTLOADER_DIR }}/saluki-pi_custom
+          fi
+          if [[ -n "${saluki_fmu2_bootloader_container}" ]]; then
+            px4-firmware/Tools/fetch-ssbl-files.sh ${saluki_fmu2_bootloader_container} saluki-fmu2 ${{ env.BOOTLOADER_DIR }}/saluki-fmu2
+            # fetch custom signer bootloader
+            px4-firmware/Tools/fetch-ssbl-files.sh ${saluki_fmu2_bootloader_container} saluki-fmu2_custom ${{ env.BOOTLOADER_DIR }}/saluki-fmu2_custom
+          fi
+
+          # combine fpga+BL json files to one file
+          python px4-firmware/Tools/collect_json_files.py ${{ env.BUILD_DIR }} ${{ env.BUILD_DIR }}/fpga-file-info.json
+
+          # generate saluki file info json with project basic info
+          # fetched info from git so has to be ran inside the repo
+          pushd px4-firmware
+          Tools/generate_basic_build_info.sh ../build_basic_info.json
+          popd
+
+          # combine saluki file info json with fpga json and px4 json files to one file
+          python px4-firmware/Tools/compile_px4_build_info.py saluki_file_info.json bin ${{ env.BUILD_DIR }}/fpga-file-info.json build_basic_info.json
+
+          # check saluki_file_info.json is valid json
+          check-jsonschema --schemafile px4-firmware/Tools/saluki_packaging/saluki_file_info-schema.json saluki_file_info.json
+
+      - name: Firmware flasher - Build and push
+        uses: docker/build-push-action@v5
+        with:
+          push: true
+          context: .
+          # build for x86 and arm64
+          platforms: linux/amd64,linux/arm64
+          file: px4-firmware/Tools/px_uploader.Dockerfile
+          tags: ${{ steps.containermeta.outputs.tags }}
+          labels: ${{ steps.containermeta.outputs.labels }}
+          build-args: |
+            "saluki_fpga_directory=${{ env.BUILD_DIR }}"
+      - name: Build overview
+        run: |
+          echo "### Build overview:" >> $GITHUB_STEP_SUMMARY
+          echo "Build version: ${{ steps.containermeta.outputs.tags }}"
+          echo "Build labels: ${{ steps.containermeta.outputs.labels }}"
+          echo "Build args:"
+          echo "  saluki_pi_fpga_version: ${{ needs.variables.outputs.saluki_pi_fpga_version }}"
+          echo "  saluki_v2_fpga_version: ${{ needs.variables.outputs.saluki_v2_fpga_version }}"
+          echo "  saluki_v3_fpga_version: ${{ needs.variables.outputs.saluki_v3_fpga_version }}"
+          echo "  saluki_fmu2_fpga_version: ${{ needs.variables.outputs.saluki_fmu2_fpga_version }}"
+
+          # in case more than one tag is generated, use the one which mentions commit sha
+          if (( $(echo "${{ steps.containermeta.outputs.tags }}" | wc -l) > 1 )); then
+            container_name=$(echo "${{ steps.containermeta.outputs.tags }}" | grep ':sha-' | head -n 1)
+          else
+            container_name="${{ steps.containermeta.outputs.tags }}"
+          fi
+          echo "Container name: ${container_name}"
+
+          # display mermaid flowchart
+          echo '```mermaid'   >> $GITHUB_STEP_SUMMARY
+          echo "flowchart LR" >> $GITHUB_STEP_SUMMARY
+
+          # inputs
+          echo "FPGA-V2[(Saluki-v2 FPGA<br>${{ needs.variables.outputs.saluki_v2_fpga_version }})]" >> $GITHUB_STEP_SUMMARY
+          echo "FPGA-V3[(Saluki-v3 FPGA<br>${{ needs.variables.outputs.saluki_v3_fpga_version }})]" >> $GITHUB_STEP_SUMMARY
+          echo "FPGA-PI[(Saluki-pi FPGA<br>${{ needs.variables.outputs.saluki_pi_fpga_version }})]" >> $GITHUB_STEP_SUMMARY
+          echo "FPGA-FMU2[(Saluki-fmu2 FPGA<br>${{ needs.variables.outputs.saluki_fmu2_fpga_version }})]" >> $GITHUB_STEP_SUMMARY
+          echo "PX4-SHA[${{ github.repository }}<br>$GITHUB_REF]" >> $GITHUB_STEP_SUMMARY
+
+          # build
+          echo "BUILD[build PX4 fwupdater]"                  >> $GITHUB_STEP_SUMMARY
+
+          # output
+          echo "OUTPUT[($(echo ${container_name}|sed 's/:/<br>/'))]" >> $GITHUB_STEP_SUMMARY
+
+          # links
+          echo "PX4-SHA --> BUILD"                 >> $GITHUB_STEP_SUMMARY
+          echo "FPGA-V2 --> BUILD"                 >> $GITHUB_STEP_SUMMARY
+          echo "FPGA-V3 --> BUILD"                 >> $GITHUB_STEP_SUMMARY
+          echo "FPGA-PI --> BUILD"                 >> $GITHUB_STEP_SUMMARY
+          echo "FPGA-FMU2 --> BUILD"               >> $GITHUB_STEP_SUMMARY
+
+          echo "BUILD --> OUTPUT"                  >> $GITHUB_STEP_SUMMARY
+          # end mermaid flowchart
+          echo '```'                               >> $GITHUB_STEP_SUMMARY
+
+          # set variables for container name and date
+          CONTAINER_DATE=$(date +%s)
+          PX4_TMP_CONTAINER_NAME="tmp_px4_container_$CONTAINER_DATE"
+          px4_github_sha=$(echo "${{ github.sha }}" | cut -c1-7)
+
+          echo "# Flashing this package to your Saluki" >> $GITHUB_STEP_SUMMARY
+          echo "## Get these px4 firmware files to your computer" >> $GITHUB_STEP_SUMMARY
+          echo "To get these files to you computer, you can use the following command" >> $GITHUB_STEP_SUMMARY
+          echo "The command will create a temporary \`$PX4_TMP_CONTAINER_NAME\` container, copy the firmware files to directory \`px4-firmware_${px4_github_sha}\` and remove the temporary container" >> $GITHUB_STEP_SUMMARY
+
+          # compose docker cp command
+          docker_cp_cmd='docker cp $(docker create --name '
+          docker_cp_cmd+="$PX4_TMP_CONTAINER_NAME $container_name"
+          docker_cp_cmd+='):/firmware '
+          docker_cp_cmd+=px4-firmware_${px4_github_sha}
+          docker_cp_cmd+=' && docker rm '
+          docker_cp_cmd+=$PX4_TMP_CONTAINER_NAME
+
+          # echo docker cp command to summary
+          echo '```shell' >> $GITHUB_STEP_SUMMARY
+          echo "${docker_cp_cmd}" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+          # separator
+          echo '---' >> $GITHUB_STEP_SUMMARY
+
+          echo "## Flash this px4 firmware to your Saluki by using fpga-flashing tool" >> $GITHUB_STEP_SUMMARY
+          echo "fpga-flashing is separate tool: https://github.com/tiiuae/fpga-flashing/" >> $GITHUB_STEP_SUMMARY
+          echo "### Flash px4 firmware" >> $GITHUB_STEP_SUMMARY
+          echo "To flash this px4 firmware and FPGA to your Saluki with fpga-flashing, you can use the following command:" >> $GITHUB_STEP_SUMMARY
+          flash_tool_cmd='./flash.sh  --update-package '
+          flash_tool_cmd+=$container_name
+          flash_tool_cmd+=' --px4'
+          echo '```shell' >> $GITHUB_STEP_SUMMARY
+          echo "${flash_tool_cmd}" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+          # separator
+          echo '---' >> $GITHUB_STEP_SUMMARY
+
+          echo "### Zeroize and flash FPGA and PX4" >> $GITHUB_STEP_SUMMARY
+          echo "To zeroize the device as new and flash px4 firmware, FPGA and RD certificate to your Saluki with fpga-flashing -tool, you can use the following command:" >> $GITHUB_STEP_SUMMARY
+          echo "please notice that FPGA flashing needs FlashPro connected" >> $GITHUB_STEP_SUMMARY
+          flash_tool_cmd='./flash.sh  --update-package '
+          flash_tool_cmd+=$container_name
+          flash_tool_cmd+=' --zeroize --fpga --px4 --rdc'
+          echo '```shell' >> $GITHUB_STEP_SUMMARY
+          echo "${flash_tool_cmd}" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo 'For more info please see: https://github.com/tiiuae/fpga-flashing/#usage' >> $GITHUB_STEP_SUMMARY

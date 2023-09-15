@@ -1,0 +1,46 @@
+on:
+  workflow_call:
+    inputs:
+      product:
+        required: true
+        type: string
+      keys:
+        required: true
+        type: string
+      enabled:
+        required: false
+        type: boolean
+        default: true
+    secrets:
+      GH_REPO_TOKEN:
+        required: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    if: ${{ inputs.enabled }}
+    steps:
+      - name: Checkout px4-firmware
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_REPO_TOKEN }}
+          # if we clone_public, then do not clone submodules, otherwise 'recursive'
+          submodules: ${{ inputs.clone_public == true && 'false' || 'recursive' }}
+          path: px4-firmware
+          fetch-depth: 0
+      - name: Run px4-firmware ${{ inputs.product }} build
+        run: |
+          set -eux
+          if [ -n ${{ inputs.keys }} ]; then
+            export SIGNING_ARGS=${{ inputs.keys }}
+          fi
+          mkdir -p bin
+          cd px4-firmware/
+          # run clone_public.sh if clone_public flag is provided
+          ./clone_public.sh
+          ./build.sh ../bin/ ${{ inputs.product }}
+      - name: Upload ${{ inputs.product }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.product }}
+          path: bin/
+          retention-days: 1

@@ -28,10 +28,10 @@ jobs:
           "parameters_metadata",
         ]
     container:
-      image: px4io/px4-dev-nuttx-focal:2022-08-12
+      image: px4io/px4-dev-nuttx-focal:2021-09-08
       options: --privileged --ulimit core=-1 --security-opt seccomp=unconfined
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v4
       with:
         token: ${{ secrets.ACCESS_TOKEN }}
 
@@ -43,7 +43,7 @@ jobs:
       run: make ${{matrix.check}}
     - name: upload coverage
       if: contains(matrix.check, 'coverage')
-      uses: codecov/codecov-action@v1
+      uses: codecov/codecov-action@v3
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         flags: unittests

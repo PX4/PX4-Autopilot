@@ -1,12 +1,9 @@
-name: Compile Nuttx Targets
+name: Nuttx Targets
 
 on:
   push:
     branches:
     - 'main'
-    - 'stable'
-    - 'beta'
-    - 'release/*'
   pull_request:
     branches:
     - '*'
@@ -14,7 +11,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-nuttx-focal:2022-08-12
+    container: px4io/px4-dev-nuttx-focal:2021-09-08
     strategy:
       fail-fast: false
       matrix:
@@ -25,8 +22,6 @@ jobs:
           ark_can-rtk-gps,
           ark_cannode,
           ark_fmu-v6x,
-          ark_pi6x,
-          ark_septentrio-gps,
           atl_mantis-edu,
           av_x-v1,
           bitcraze_crazyflie,
@@ -50,7 +45,6 @@ jobs:
           matek_h743-slim,
           modalai_fc-v1,
           modalai_fc-v2,
-          mro_ctrl-zero-classic,
           mro_ctrl-zero-f7,
           mro_ctrl-zero-f7-oem,
           mro_ctrl-zero-h7,
@@ -76,11 +70,10 @@ jobs:
           raspberrypi_pico,
           sky-drones_smartap-airlink,
           spracing_h7extreme,
-          uvify_core,
-          siyi_n7
+          uvify_core
           ]
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v4
       with:
         token: ${{secrets.ACCESS_TOKEN}}
 
@@ -91,7 +84,7 @@ jobs:
         string(TIMESTAMP current_date "%Y-%m-%d-%H;%M;%S" UTC)
         message("::set-output name=timestamp::${current_date}")
     - name: ccache cache files
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ~/.ccache
         key: ${{matrix.config}}-ccache-${{steps.ccache_cache_timestamp.outputs.timestamp}}
@@ -128,7 +121,7 @@ jobs:
       run: ccache -s
 
     - name: Upload px4 package
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3.1.3
       with:
         name: px4_package_${{matrix.config}}
         path: |
