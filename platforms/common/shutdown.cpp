@@ -109,6 +109,8 @@ static uint16_t shutdown_counter = 0; ///< count how many times the shutdown wor
 #define SHUTDOWN_ARG_REBOOT (1<<1)
 #define SHUTDOWN_ARG_TO_BOOTLOADER (1<<2)
 #define SHUTDOWN_ARG_TO_ISP (1<<3)
+#define SHUTDOWN_ARG_BL_CONTINUE_BOOT (1<<4)
+
 static uint8_t shutdown_args = 0;
 
 static constexpr int max_shutdown_hooks = 1;
@@ -178,7 +180,13 @@ static void shutdown_worker(void *arg)
 			PX4_INFO_RAW("Reboot NOW.");
 
 			if (shutdown_args & SHUTDOWN_ARG_TO_BOOTLOADER) {
-				boardctl(BOARDIOC_RESET, (uintptr_t)REBOOT_TO_BOOTLOADER);
+				if (shutdown_args & SHUTDOWN_ARG_BL_CONTINUE_BOOT) {
+					boardctl(BOARDIOC_RESET, (uintptr_t)REBOOT_TO_BOOTLOADER_CONTINUE);
+
+				} else {
+					boardctl(BOARDIOC_RESET, (uintptr_t)REBOOT_TO_BOOTLOADER);
+
+				}
 
 			} else if (shutdown_args & SHUTDOWN_ARG_TO_ISP) {
 				boardctl(BOARDIOC_RESET, (uintptr_t)REBOOT_TO_ISP);
@@ -230,6 +238,9 @@ int px4_reboot_request(reboot_request_t request, uint32_t delay_us)
 
 	if (request == REBOOT_TO_BOOTLOADER) {
 		shutdown_args |= SHUTDOWN_ARG_TO_BOOTLOADER;
+
+	} else if (request == REBOOT_TO_BOOTLOADER_CONTINUE) {
+		shutdown_args |= (SHUTDOWN_ARG_TO_BOOTLOADER | SHUTDOWN_ARG_BL_CONTINUE_BOOT);
 
 	} else if (request == REBOOT_TO_ISP) {
 		shutdown_args |= SHUTDOWN_ARG_TO_ISP;
