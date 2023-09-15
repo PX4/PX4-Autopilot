@@ -744,9 +744,20 @@ class uploader(object):
         self.__send(header_bytes)
         self.__send(data)
 
-    def send_reboot(self, use_protocol_splitter_format=False):
+    def send_reboot(self, ipaddr, portnum, use_protocol_splitter_format=False):
         if (not self.__next_baud_flightstack()):
             return False
+
+        print("Attempting reboot on ethernet")
+        # initialize an UDP socket
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+        # send reboot request
+        s.sendto(self.MAVLINK_REBOOT_ID1, (ipaddr, int(portnum)))
+        s.sendto(self.MAVLINK_REBOOT_ID0, (ipaddr, int(portnum)))
+
+        # close the socket
+        s.close()
 
         print("Attempting reboot on %s with baudrate=%d..." % (self.port.port, self.port.baudrate), file=sys.stderr)
         if "ttyS" in self.port.port:
@@ -787,6 +798,8 @@ def main():
 
     # Parse commandline arguments
     parser = argparse.ArgumentParser(description="Firmware uploader for the PX autopilot system.")
+    parser.add_argument('--udp-addr', action="store", default="192.168.200.100", help="UDP address of PX4 flight controller")
+    parser.add_argument('--udp-port', action="store", default=14541, help="UDP port of PX4 mavlink")
     parser.add_argument('--port', action="store", required=True, help="Comma-separated list of serial port(s) to which the FMU may be attached")
     parser.add_argument('--baud-bootloader', action="store", type=int, default=115200, help="Baud rate of the serial port (default is 115200) when communicating with bootloader, only required for true serial ports.")
     parser.add_argument('--baud-flightstack', action="store", default="57600", help="Comma-separated list of baud rate of the serial port (default is 57600) when communicating with flight stack (Mavlink or NSH), only required for true serial ports.")
@@ -890,7 +903,7 @@ def main():
 
                     except Exception:
 
-                        if not up.send_reboot(args.use_protocol_splitter_format):
+                        if not up.send_reboot(args.udp_addr, args.udp_port, args.use_protocol_splitter_format):
                             break
 
                         # wait for the reboot, without we might run into Serial I/O Error 5
