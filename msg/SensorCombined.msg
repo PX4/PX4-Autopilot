@@ -23,3 +23,6 @@ uint8 gyro_clipping             # bitfield indicating if there was any gyro clip
 
 uint8 accel_calibration_count   # Calibration changed counter. Monotonically increases whenever accelermeter calibration changes.
 uint8 gyro_calibration_count    # Calibration changed counter. Monotonically increases whenever rate gyro calibration changes.
+
+uint8[3] accel_median_axis_index # accel index selection per axis
+uint8[3] gyro_median_axis_index  # gyro index selection per axis

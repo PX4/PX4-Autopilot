@@ -146,6 +146,10 @@ private:
 	 */
 	void calcGyroInconsistency();
 
+	float median(float x, float y, float z);
+
+	size_t find_median_index(float x, float y, float z);
+
 	SensorData _accel{ORB_ID::sensor_accel};
 	SensorData _gyro{ORB_ID::sensor_gyro};
 
@@ -179,7 +183,7 @@ private:
 	bool _parameter_update{false};
 
 	DEFINE_PARAMETERS(
-		(ParamBool<px4::params::SENS_IMU_MODE>) _param_sens_imu_mode
+		(ParamInt<px4::params::SENS_IMU_MODE>) _param_sens_imu_mode
 	)
 };
 
