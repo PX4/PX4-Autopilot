@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -199,13 +199,13 @@ void PAW3902::RunImpl()
 			_state = STATE::READ;
 
 			if (DataReadyInterruptConfigure()) {
-				_data_ready_interrupt_enabled = true;
+				_motion_interrupt_enabled = true;
 
 				// backup schedule as a watchdog timeout
 				ScheduleDelayed(1_s);
 
 			} else {
-				_data_ready_interrupt_enabled = false;
+				_motion_interrupt_enabled = false;
 				ScheduleOnInterval(_scheduled_interval_us, _scheduled_interval_us);
 			}
 
@@ -227,7 +227,7 @@ void PAW3902::RunImpl()
 	case STATE::READ: {
 			hrt_abstime timestamp_sample = now;
 
-			if (_data_ready_interrupt_enabled) {
+			if (_motion_interrupt_enabled) {
 				// scheduled from interrupt if _drdy_timestamp_sample was set as expected
 				const hrt_abstime drdy_timestamp_sample = _drdy_timestamp_sample.fetch_and(0);
 
@@ -263,12 +263,6 @@ void PAW3902::RunImpl()
 					PX4_ERR("invalid RawData_Sum > 0x98");
 				}
 
-				// Number of Features = SQUAL * 4
-				// RawData_Sum maximum register value is 0x98
-				bool data_valid = (buffer.data.SQUAL > 0)
-						  && (buffer.data.RawData_Sum <= 0x98)
-						  && (_discard_reading == 0);
-
 				// publish sensor_optical_flow
 				sensor_optical_flow_s sensor_optical_flow{};
 				sensor_optical_flow.timestamp_sample = timestamp_sample;
@@ -292,6 +286,14 @@ void PAW3902::RunImpl()
 				const uint8_t shutter_lower = buffer.data.Shutter_Lower;
 
 				const uint16_t shutter = (shutter_upper << 8) | shutter_lower;
+
+				// Number of Features = SQUAL * 4
+				// RawData_Sum maximum register value is 0x98
+				bool data_valid = (buffer.data.SQUAL > 0)
+						  && (buffer.data.RawData_Sum > 0)
+						  && (buffer.data.RawData_Sum <= 0x98)
+						  && (shutter > 0)
+						  && (_discard_reading == 0);
 
 				switch (_mode) {
 				case Mode::Bright:
@@ -395,12 +397,17 @@ void PAW3902::RunImpl()
 				// motion in burst transfer
 				const bool motion_reported = (buffer.data.Motion & Motion_Bit::MOT);
 
-				if (data_valid) {
-					if (motion_reported) {
-						// only populate flow if data valid (motion and quality > 0)
-						const int16_t delta_x_raw = combine(buffer.data.Delta_X_H, buffer.data.Delta_X_L);
-						const int16_t delta_y_raw = combine(buffer.data.Delta_Y_H, buffer.data.Delta_Y_L);
+				const int16_t delta_x_raw = combine(buffer.data.Delta_X_H, buffer.data.Delta_X_L);
+				const int16_t delta_y_raw = combine(buffer.data.Delta_Y_H, buffer.data.Delta_Y_L);
 
+				if (data_valid) {
+
+					const bool zero_flow = (delta_x_raw == 0) && (delta_y_raw == 0);
+					const bool little_to_no_flow = (abs(delta_x_raw) <= 1) && (abs(delta_y_raw) <= 1);
+
+					bool publish = false;
+
+					if (motion_reported) {
 						// rotate measurements in yaw from sensor frame to body frame
 						const matrix::Vector3f pixel_flow_rotated = _rotation * matrix::Vector3f{(float)delta_x_raw, (float)delta_y_raw, 0.f};
 
@@ -415,15 +422,53 @@ void PAW3902::RunImpl()
 						sensor_optical_flow.pixel_flow[1] = pixel_flow_rotated(1) * SCALE;
 
 						sensor_optical_flow.quality = buffer.data.SQUAL;
+
+						publish = true;
+
+						_last_motion = timestamp_sample;
+
+					} else if (zero_flow && (timestamp_sample > _last_motion)) {
+						// no motion, but burst read looks valid and we should have seen new data by now if there was any motion
+						const bool burst_read_changed = (delta_x_raw != _delta_x_raw_prev) || (delta_y_raw != _delta_y_raw_prev)
+										|| (shutter != _shutter_prev)
+										|| (buffer.data.RawData_Sum != _raw_data_sum_prev)
+										|| (buffer.data.SQUAL != _quality_prev);
+
+						if (burst_read_changed) {
+
+							sensor_optical_flow.pixel_flow[0] = 0;
+							sensor_optical_flow.pixel_flow[1] = 0;
+
+							sensor_optical_flow.quality = buffer.data.SQUAL;
+
+							publish = true;
+						}
 					}
 
-					// only publish when there's motion or at least every second
-					if (motion_reported || (hrt_elapsed_time(&_last_publish) >= kBackupScheduleIntervalUs)) {
+					// only publish when there's valid data or on timeout
+					if (publish || (hrt_elapsed_time(&_last_publish) >= kBackupScheduleIntervalUs)) {
 
 						sensor_optical_flow.timestamp = hrt_absolute_time();
 						_sensor_optical_flow_pub.publish(sensor_optical_flow);
 
-						_last_publish = sensor_optical_flow.timestamp;
+						_last_publish = sensor_optical_flow.timestamp_sample;
+					}
+
+					// backup schedule if we're reliant on the motion interrupt and there's very little flow
+					if (_motion_interrupt_enabled && little_to_no_flow) {
+						switch (_mode) {
+						case Mode::Bright:
+							ScheduleDelayed(SAMPLE_INTERVAL_MODE_0);
+							break;
+
+						case Mode::LowLight:
+							ScheduleDelayed(SAMPLE_INTERVAL_MODE_1);
+							break;
+
+						case Mode::SuperLowLight:
+							ScheduleDelayed(SAMPLE_INTERVAL_MODE_2);
+							break;
+						}
 					}
 
 					success = true;
@@ -432,6 +477,12 @@ void PAW3902::RunImpl()
 						_failure_count--;
 					}
 				}
+
+				_delta_x_raw_prev = delta_x_raw;
+				_delta_y_raw_prev = delta_y_raw;
+				_shutter_prev = shutter;
+				_raw_data_sum_prev = buffer.data.RawData_Sum;
+				_quality_prev = buffer.data.SQUAL;
 
 			} else {
 				perf_count(_bad_transfer_perf);
