@@ -42,19 +42,19 @@
 #include "PerformanceModel.h"
 
 // air density of standard athmosphere at 5000m above mean sea level [kg/m^3]
-static constexpr float AIR_DENSITY_STANDARD_ATMOS_5000_AMSL = 0.7363f;
+static constexpr float kAirDensityStandardAtmos5000Amsl = 0.7363f;
 
 // air density of standard athmosphere at 1000m above mean sea level [kg/m^3]
-static constexpr float AIR_DENSITY_STANDARD_ATMOS_1000_AMSL = 1.112f;
+static constexpr float kAirDensityStandardAtmos1000Amsl = 1.112f;
 
 // [.] minimum ratio between the actual vehicle weight and the vehicle nominal weight (weight at which the performance limits are derived)
-static constexpr float MIN_WEIGHT_RATIO = 0.5f;
+static constexpr float kMinWeightRatio = 0.5f;
 
 // [.] maximum ratio between the actual vehicle weight and the vehicle nominal weight (weight at which the performance limits are derived)
-static constexpr float MAX_WEIGHT_RATIO = 2.0f;
+static constexpr float kMaxWeightRatio = 2.0f;
 
 // climbrate defining the service ceiling, used to compensate max climbrate based on air density
-static constexpr float CLIMBRATE_MIN = 0.5f; // [m/s]
+static constexpr float kClimbrateMin = 0.5f; // [m/s]
 
 PerformanceModel::PerformanceModel(): ModuleParams(nullptr)
 {
@@ -65,8 +65,8 @@ float PerformanceModel::getWeightRatio() const
 	float weight_factor = 1.0f;
 
 	if (_param_weight_base.get() > FLT_EPSILON && _param_weight_gross.get() > FLT_EPSILON) {
-		weight_factor = math::constrain(_param_weight_gross.get() / _param_weight_base.get(), MIN_WEIGHT_RATIO,
-						MAX_WEIGHT_RATIO);
+		weight_factor = math::constrain(_param_weight_gross.get() / _param_weight_base.get(), kMinWeightRatio,
+						kMaxWeightRatio);
 	}
 
 	return weight_factor;
@@ -78,10 +78,11 @@ float PerformanceModel::getMaximumClimbRate(float air_density) const
 
 	const float density_min = _param_density_min.get();
 
-	if (density_min < AIR_DENSITY_STANDARD_ATMOS_1000_AMSL
-	    && density_min > AIR_DENSITY_STANDARD_ATMOS_5000_AMSL) {
-		const float density_gradient = (_param_fw_t_clmb_max.get() - CLIMBRATE_MIN) / (CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C -
-					       density_min);
+	if (density_min < kAirDensityStandardAtmos1000Amsl
+	    && density_min > kAirDensityStandardAtmos5000Amsl) {
+		const float density_gradient = math::max((_param_fw_t_clmb_max.get() - kClimbrateMin) /
+					       (CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C -
+						density_min), 0.0f);
 		const float delta_rho = air_density - CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C;
 		climbrate_max = _param_fw_t_clmb_max.get() + density_gradient * delta_rho;
 	}
@@ -91,11 +92,35 @@ float PerformanceModel::getMaximumClimbRate(float air_density) const
 float PerformanceModel::getTrimThrottle(float throttle_min, float throttle_max, float airspeed_sp,
 					float air_density) const
 {
+	const float throttle_trim = getTrimThrottleForAirspeed(airspeed_sp) * getAirDensityThrottleScale(
+					    air_density) * getWeightThrottleScale();
+	return math::constrain(throttle_trim, throttle_min, throttle_max);
+}
+float PerformanceModel::getWeightThrottleScale() const
+{
+	return sqrtf(getWeightRatio());
+}
+
+float PerformanceModel::getAirDensityThrottleScale(float air_density) const
+{
+	float air_density_throttle_scale = 1.0f;
+
+	if (PX4_ISFINITE(air_density)) {
+		// scale throttle as a function of sqrt(rho0/rho)
+		const float eas2tas = sqrtf(CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C / air_density);
+		const float eas2tas_at_5000m_amsl = sqrtf(CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C / kAirDensityStandardAtmos5000Amsl);
+		air_density_throttle_scale = math::constrain(eas2tas, 1.f, eas2tas_at_5000m_amsl);
+	}
+
+	return air_density_throttle_scale;
+}
+float PerformanceModel::getTrimThrottleForAirspeed(float airspeed_sp) const
+{
 	float throttle_trim =
 		_param_fw_thr_trim.get(); // throttle required for level flight at trim airspeed, at sea level (standard atmosphere)
 
 	// Drag modelling (parasite drag): calculate mapping airspeed-->throttle, assuming a linear relation with different gradients
-	// above and below trim. This is tunable thorugh FW_THR_ASPD_MIN and FW_THR_ASPD_MAX.
+// above and below trim. This is tunable thorugh FW_THR_ASPD_MIN and FW_THR_ASPD_MAX.
 	const float slope_below_trim = (_param_fw_thr_trim.get() - _param_fw_thr_aspd_min.get()) /
 				       (_param_fw_airspd_trim.get() - _param_fw_airspd_min.get());
 	const float slope_above_trim = (_param_fw_thr_aspd_max.get() - _param_fw_thr_trim.get()) /
@@ -110,18 +135,7 @@ float PerformanceModel::getTrimThrottle(float throttle_min, float throttle_max, 
 		throttle_trim = _param_fw_thr_trim.get() + slope_above_trim * (airspeed_sp - _param_fw_airspd_trim.get());
 	}
 
-	float air_density_throttle_scale = 1.0f;
-
-	if (PX4_ISFINITE(air_density)) {
-		// scale throttle as a function of sqrt(rho0/rho)
-		const float eas2tas = sqrtf(CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C / air_density);
-		const float eas2tas_at_5000m_amsl = sqrtf(CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C / AIR_DENSITY_STANDARD_ATMOS_5000_AMSL);
-		air_density_throttle_scale = math::constrain(eas2tas, 1.f, eas2tas_at_5000m_amsl);
-	}
-
-	// compensate trim throttle for both weight and air density
-	return math::constrain(throttle_trim * sqrtf(getWeightRatio()) * air_density_throttle_scale, throttle_min,
-			       throttle_max);
+	return throttle_trim;
 }
 float PerformanceModel::getMinimumSinkRate(float air_density) const
 {

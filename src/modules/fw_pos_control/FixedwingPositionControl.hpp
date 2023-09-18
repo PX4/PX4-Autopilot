@@ -147,21 +147,6 @@ static constexpr float MIN_AUTO_TIMESTEP = 0.01f;
 // [s] maximum time step between auto control updates
 static constexpr float MAX_AUTO_TIMESTEP = 0.05f;
 
-// [.] minimum ratio between the actual vehicle weight and the vehicle nominal weight (weight at which the performance limits are derived)
-static constexpr float MIN_WEIGHT_RATIO = 0.5f;
-
-// [.] maximum ratio between the actual vehicle weight and the vehicle nominal weight (weight at which the performance limits are derived)
-static constexpr float MAX_WEIGHT_RATIO = 2.0f;
-
-// air density of standard athmosphere at 5000m above mean sea level [kg/m^3]
-static constexpr float AIR_DENSITY_STANDARD_ATMOS_5000_AMSL = 0.7363f;
-
-// air density of standard athmosphere at 1000m above mean sea level [kg/m^3]
-static constexpr float AIR_DENSITY_STANDARD_ATMOS_1000_AMSL = 1.112f;
-
-// climbrate defining the service ceiling, used to compensate max climbrate based on air density
-static constexpr float CLIMBRATE_MIN = 0.5f; // [m/s]
-
 // [rad] minimum pitch while airspeed has not yet reached a controllable value in manual position controlled takeoff modes
 static constexpr float MIN_PITCH_DURING_MANUAL_TAKEOFF = 0.0f;
 

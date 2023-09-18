@@ -50,17 +50,68 @@ public:
 
 	void updateParameters();
 
+	/**
+	 * Get the maximum climb rate expected for current air density and weight.
+	 * @param air_density in kg/m^3
+	 * @return maximum climb rate in m/s
+	 */
 	float getMaximumClimbRate(float air_density) const;
-	float getWeightRatio() const;
-	float getTrimThrottle(float throttle_min, float throttle_max, float airspeed_sp, float air_density) const;
+
+	/**
+	 * Get the minimum sink rate expected for current air density and weight.
+	 * @param air_density
+	 * @return minimum sink rate in m/s
+	 */
 	float getMinimumSinkRate(float air_density) const;
 
+	/**
+	 * Get the ration of actual weight to base weight
+	 * @return weight ratio
+	 */
+	float getWeightRatio() const;
+
+	/**
+	 * Get the trim throttle for the current airspeed setpoint as well as air densty and weight.
+	 * @param throttle_min minimum throttle
+	 * @param throttle_max maximum throttle
+	 * @param airspeed_sp calibrated airspeed setpoint in m/s
+	 * @param air_density air density
+	 * @return trim throttle
+	 */
+	float getTrimThrottle(float throttle_min, float throttle_max, float airspeed_sp, float air_density) const;
+
+	/**
+	 * Get the trim airspeed compensated for weight.
+	 * @return calibrated trim airspeed in m/s
+	 */
 	float getTrimAirspeed() const;
+
+	/**
+	 * Get the minimum airspeed compensated for weight and load factor due to bank angle.
+	 * @param load_factor due to banking
+	 * @return calibrated minimum airspeed in m/s
+	 */
 	float getMinimumAirspeed(float load_factor = 1.0f) const;
+
+	/**
+	 * Get the maximum airspeed.
+	 * @return calibrated maximum airspeed in m/s
+	 */
 	float getMaximumAirspeed() const;
+
+	/**
+	 * get the stall airspeed compensated for load factor due to bank angle.
+	 * @param load_factor load factor due to banking
+	 * @return calibrated stall airspeed in m/s
+	 */
 	float getStallAirspeed(float load_factor) const;
 
+	/**
+	 * Run some checks on parameters and detect unfeasible combinations.
+	 * @return true if all checks pass
+	 */
 	bool runSanityChecks() const;
+
 private:
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::FW_AIRSPD_MAX>) _param_fw_airspd_max,
@@ -78,6 +129,26 @@ private:
 		(ParamFloat<px4::params::FW_THR_MIN>) _param_fw_thr_min,
 		(ParamFloat<px4::params::FW_THR_ASPD_MIN>) _param_fw_thr_aspd_min,
 		(ParamFloat<px4::params::FW_THR_ASPD_MAX>) _param_fw_thr_aspd_max)
+
+	/**
+	 * Get the trim throttle for the current airspeed setpoint.
+	 * @param airspeed_sp in m/s
+	 * @return trim throttle
+	 */
+	float getTrimThrottleForAirspeed(float airspeed_sp) const;
+
+	/**
+	 * Get the throttle scale factor for the current air density.
+	 * @param air_density in kg/m^3
+	 * @return throttle scale factor for air density
+	 */
+	float getAirDensityThrottleScale(float air_density) const;
+
+	/**
+	 * Get the throttle scale factor for the current weight.
+	 * @return throttle scale factor for weight
+	 */
+	float getWeightThrottleScale() const;
 };
 
 #endif //PX4_SRC_MODULES_FW_POS_CONTROL_PERFORMANCEMODEL_H_
