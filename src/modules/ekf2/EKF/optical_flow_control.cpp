@@ -107,13 +107,27 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 			_flow_sample_delayed.gyro_xyz.zero();
 		}
 
+		// gyro compensation should only remove flow that can be attributed to rotation, not produce synthetic flow
+		const bool flow_exceeds_compensation = (_flow_sample_delayed.flow_xy_rad.length() >= Vector2f(_flow_sample_delayed.gyro_xyz.xy()).length())
+							|| (_flow_sample_delayed.flow_xy_rad.length() <= FLT_EPSILON);
+
 		if (is_quality_good
 		    && is_magnitude_good
 		    && is_tilt_good
 		    && is_body_rate_comp_available
-		    && is_delta_time_good) {
+		    && is_delta_time_good
+		    && flow_exceeds_compensation) {
+
 			// compensate for body motion to give a LOS rate
-			_flow_compensated_XY_rad = _flow_sample_delayed.flow_xy_rad - _flow_sample_delayed.gyro_xyz.xy();
+			for (int i = 0; i < 2; i++) {
+				// only compensate non-zero flow readings
+				if (fabsf(_flow_sample_delayed.flow_xy_rad(i)) > FLT_EPSILON) {
+					_flow_compensated_XY_rad(i) = _flow_sample_delayed.flow_xy_rad(i) - _flow_sample_delayed.gyro_xyz(i);
+
+				} else {
+					_flow_compensated_XY_rad(i) = _flow_sample_delayed.flow_xy_rad(i);
+				}
+			}
 
 		} else if (!_control_status.flags.in_air) {
 
