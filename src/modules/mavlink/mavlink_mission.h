@@ -140,7 +140,7 @@ private:
 	int32_t 		_land_start_marker{-1}; 	///< index of loaded land start mission item (if unavailable, index of land mission item, -1 otherwise)
 	int32_t 		_land_marker{-1}; 		///< index of loaded land mission item (-1 if unavailable)
 
-	MavlinkRateLimiter	_slow_rate_limiter{100 * 1000};		///< Rate limit sending of the current WP sequence to 10 Hz
+	MavlinkRateLimiter	_slow_rate_limiter{1000 * 1000};		///< Rate limit sending of the current WP sequence to 1 Hz
 
 	Mavlink *_mavlink;
 
