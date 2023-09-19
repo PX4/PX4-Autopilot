@@ -47,7 +47,7 @@
  * @max 1800.0
  * @decimal 1
  * @increment 5
- * @group Multicopter Rate Control
+ * @group Multicopter Acro Mode
  */
 PARAM_DEFINE_FLOAT(MC_ACRO_R_MAX, 720.0f);
 
@@ -61,7 +61,7 @@ PARAM_DEFINE_FLOAT(MC_ACRO_R_MAX, 720.0f);
  * @max 1800.0
  * @decimal 1
  * @increment 5
- * @group Multicopter Rate Control
+ * @group Multicopter Acro Mode
  */
 PARAM_DEFINE_FLOAT(MC_ACRO_P_MAX, 720.0f);
 
@@ -75,7 +75,7 @@ PARAM_DEFINE_FLOAT(MC_ACRO_P_MAX, 720.0f);
  * @max 1800.0
  * @decimal 1
  * @increment 5
- * @group Multicopter Rate Control
+ * @group Multicopter Acro Mode
  */
 PARAM_DEFINE_FLOAT(MC_ACRO_Y_MAX, 540.0f);
 
@@ -90,7 +90,7 @@ PARAM_DEFINE_FLOAT(MC_ACRO_Y_MAX, 540.0f);
  * @min 0
  * @max 1
  * @decimal 2
- * @group Multicopter Rate Control
+ * @group Multicopter Acro Mode
  */
 PARAM_DEFINE_FLOAT(MC_ACRO_EXPO, 0.69f);
 
@@ -105,7 +105,7 @@ PARAM_DEFINE_FLOAT(MC_ACRO_EXPO, 0.69f);
  * @min 0
  * @max 1
  * @decimal 2
- * @group Multicopter Rate Control
+ * @group Multicopter Acro Mode
  */
 PARAM_DEFINE_FLOAT(MC_ACRO_EXPO_Y, 0.69f);
 
@@ -121,7 +121,7 @@ PARAM_DEFINE_FLOAT(MC_ACRO_EXPO_Y, 0.69f);
  * @min 0
  * @max 0.95
  * @decimal 2
- * @group Multicopter Rate Control
+ * @group Multicopter Acro Mode
  */
 PARAM_DEFINE_FLOAT(MC_ACRO_SUPEXPO, 0.7f);
 
@@ -137,6 +137,6 @@ PARAM_DEFINE_FLOAT(MC_ACRO_SUPEXPO, 0.7f);
  * @min 0
  * @max 0.95
  * @decimal 2
- * @group Multicopter Rate Control
+ * @group Multicopter Acro Mode
  */
 PARAM_DEFINE_FLOAT(MC_ACRO_SUPEXPOY, 0.7f);
