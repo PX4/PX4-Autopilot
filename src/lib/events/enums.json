@@ -540,6 +540,10 @@
                             "name": "stab",
                             "description": "Stabilized"
                         },
+                        "9": {
+                            "name": "position_slow",
+                            "description": "Position Slow"
+                        },
                         "10": {
                             "name": "auto_takeoff",
                             "description": "Takeoff"
