@@ -86,7 +86,7 @@ void Ekf::fuseDeltaAngBias(const float innov, const float innov_var, const int o
 	const unsigned state_index = obs_index + 10;
 
 	// calculate kalman gain K = PHS, where S = 1/innovation variance
-	for (int row = 0; row < _k_num_states; row++) {
+	for (int row = 0; row < State::size; row++) {
 		K(row) = P(row, state_index) / innov_var;
 	}
 

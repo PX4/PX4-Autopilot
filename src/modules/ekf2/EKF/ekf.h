@@ -60,14 +60,12 @@ enum class Likelihood { LOW, MEDIUM, HIGH };
 class Ekf final : public EstimatorInterface
 {
 public:
-	static constexpr uint8_t _k_num_states{24};		///< number of EKF states
-
-	typedef matrix::Vector<float, _k_num_states> Vector24f;
-	typedef matrix::SquareMatrix<float, _k_num_states> SquareMatrix24f;
+	typedef matrix::Vector<float, State::size> Vector24f;
+	typedef matrix::SquareMatrix<float, State::size> SquareMatrix24f;
 	typedef matrix::SquareMatrix<float, 2> Matrix2f;
 	template<int ... Idxs>
 
-	using SparseVector24f = matrix::SparseVectorf<24, Idxs...>;
+	using SparseVector24f = matrix::SparseVectorf<State::size, Idxs...>;
 
 	Ekf()
 	{
@@ -81,6 +79,8 @@ public:
 
 	// should be called every time new data is pushed into the filter
 	bool update();
+
+	static uint8_t getNumberOfStates() { return State::size; }
 
 	void getGpsVelPosInnov(float hvel[2], float &vvel, float hpos[2], float &vpos) const;
 	void getGpsVelPosInnovVar(float hvel[2], float &vvel, float hpos[2], float &vpos) const;
@@ -1016,8 +1016,8 @@ private:
 		const Vector24f KS = K * innovation_variance;
 		SquareMatrix24f KHP;
 
-		for (unsigned row = 0; row < _k_num_states; row++) {
-			for (unsigned col = 0; col < _k_num_states; col++) {
+		for (unsigned row = 0; row < State::size; row++) {
+			for (unsigned col = 0; col < State::size; col++) {
 				// Instad of literally computing KHP, use an equvalent
 				// equation involving less mathematical operations
 				KHP(row, col) = KS(row) * K(col);

@@ -283,14 +283,14 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 		// keep previous covariance
 		for (unsigned i = 0; i < State::mag_I.dof; i++) {
 			unsigned row = State::mag_I.idx + i;
-			for (unsigned col = 0; col < _k_num_states; col++) {
+			for (unsigned col = 0; col < State::size; col++) {
 				nextP(row, col) = nextP(col, row) = P(row, col);
 			}
 		}
 
 		for (unsigned i = 0; i < State::mag_B.dof; i++) {
 			unsigned row = State::mag_B.idx + i;
-			for (unsigned col = 0; col < _k_num_states; col++) {
+			for (unsigned col = 0; col < State::size; col++) {
 				nextP(row, col) = nextP(col, row) = P(row, col);
 			}
 		}
@@ -308,14 +308,14 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 		// keep previous covariance
 		for (unsigned i = 0; i < State::wind_vel.dof; i++) {
 			unsigned row = State::wind_vel.idx + i;
-			for (unsigned col = 0 ; col < _k_num_states; col++) {
+			for (unsigned col = 0 ; col < State::size; col++) {
 				nextP(row, col) = nextP(col, row) = P(row, col);
 			}
 		}
 	}
 
 	// covariance matrix is symmetrical, so copy upper half to lower half
-	for (unsigned row = 0; row < _k_num_states; row++) {
+	for (unsigned row = 0; row < State::size; row++) {
 		for (unsigned column = 0 ; column < row; column++) {
 			P(row, column) = P(column, row) = nextP(column, row);
 		}
@@ -515,7 +515,7 @@ bool Ekf::checkAndFixCovarianceUpdate(const SquareMatrix24f &KHP)
 {
 	bool healthy = true;
 
-	for (int i = 0; i < _k_num_states; i++) {
+	for (int i = 0; i < State::size; i++) {
 		if (P(i, i) < KHP(i, i)) {
 			P.uncorrelateCovarianceSetVariance<1>(i, 0.0f);
 			healthy = false;
