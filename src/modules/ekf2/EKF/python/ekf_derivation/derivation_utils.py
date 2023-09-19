@@ -110,6 +110,7 @@ def generate_px4_state(states):
         f.write(f"\tstatic constexpr IdxDof {state_name}{{{start_index}, {tangent_dim}}};\n")
         start_index += tangent_dim
 
+    f.write(f"\tstatic constexpr uint8_t size{{{start_index}}};\n")
     f.write("};\n") # namespace State
     f.write("}\n") # namespace estimator
     f.write("#endif // !EKF_STATE_H\n")

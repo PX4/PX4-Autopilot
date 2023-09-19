@@ -1758,7 +1758,7 @@ void EKF2::PublishStates(const hrt_abstime &timestamp)
 	// publish estimator states
 	estimator_states_s states;
 	states.timestamp_sample = _ekf.time_delayed_us();
-	states.n_states = Ekf::_k_num_states;
+	states.n_states = Ekf::getNumberOfStates();
 	_ekf.getStateAtFusionHorizonAsVector().copyTo(states.states);
 	_ekf.covariances_diagonal().copyTo(states.covariances);
 	states.timestamp = _replay_mode ? timestamp : hrt_absolute_time();

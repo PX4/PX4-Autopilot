@@ -78,7 +78,7 @@ bool Ekf::fuseYaw(estimator_aid_source1d_s &aid_src_status, const Vector24f &H_Y
 		Vector24f Kfusion;
 		const float heading_innov_var_inv = 1.f / aid_src_status.innovation_variance;
 
-		for (uint8_t row = 0; row < _k_num_states; row++) {
+		for (uint8_t row = 0; row < State::size; row++) {
 			for (uint8_t col = 0; col <= 3; col++) {
 				Kfusion(row) += P(row, col) * H_YAW(col);
 			}
