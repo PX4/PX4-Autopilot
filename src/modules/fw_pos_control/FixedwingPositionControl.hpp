@@ -266,7 +266,8 @@ private:
 	float _body_velocity_x{0.f};
 
 	MapProjection _global_local_proj_ref{};
-	float _global_local_alt0{NAN};
+
+	float _reference_altitude{NAN}; // [m AMSL] altitude of the local projection reference point
 
 	bool _landed{true};
 

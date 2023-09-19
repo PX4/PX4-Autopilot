@@ -2144,6 +2144,13 @@ FixedwingPositionControl::Run()
 			_current_longitude = gpos.lon;
 		}
 
+		if (_local_pos.z_global && PX4_ISFINITE(_local_pos.ref_alt)) {
+			_reference_altitude = _local_pos.ref_alt;
+
+		} else {
+			_reference_altitude = 0.f;
+		}
+
 		_current_altitude = -_local_pos.z + _local_pos.ref_alt; // Altitude AMSL in meters
 
 		// handle estimator reset events. we only adjust setpoins for manual modes
@@ -2173,7 +2180,6 @@ FixedwingPositionControl::Run()
 
 			_global_local_proj_ref.initReference(_local_pos.ref_lat, _local_pos.ref_lon,
 							     _local_pos.ref_timestamp);
-			_global_local_alt0 = _local_pos.ref_alt;
 		}
 
 		if (_control_mode.flag_control_offboard_enabled) {
@@ -2202,7 +2208,7 @@ FixedwingPositionControl::Run()
 						_pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 						_pos_sp_triplet.current.lat = lat;
 						_pos_sp_triplet.current.lon = lon;
-						_pos_sp_triplet.current.alt = _global_local_alt0 - trajectory_setpoint.position[2];
+						_pos_sp_triplet.current.alt = _reference_altitude - trajectory_setpoint.position[2];
 					}
 
 				}
@@ -2782,7 +2788,7 @@ void FixedwingPositionControl::publishLocalPositionSetpoint(const position_setpo
 
 	local_position_setpoint.x = current_setpoint(0);
 	local_position_setpoint.y = current_setpoint(1);
-	local_position_setpoint.z = _global_local_alt0 - current_waypoint.alt;
+	local_position_setpoint.z = _reference_altitude - current_waypoint.alt;
 	local_position_setpoint.yaw = NAN;
 	local_position_setpoint.yawspeed = NAN;
 	local_position_setpoint.vx = NAN;
