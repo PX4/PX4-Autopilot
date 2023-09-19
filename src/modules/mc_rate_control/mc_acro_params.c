@@ -38,9 +38,9 @@
  */
 
 /**
- * Max acro roll rate
+ * Acro mode maximum roll rate
  *
- * default: 2 turns per second
+ * Full stick deflection leads to this rate.
  *
  * @unit deg/s
  * @min 0.0
@@ -52,9 +52,9 @@
 PARAM_DEFINE_FLOAT(MC_ACRO_R_MAX, 720.0f);
 
 /**
- * Max acro pitch rate
+ * Acro mode maximum pitch rate
  *
- * default: 2 turns per second
+ * Full stick deflection leads to this rate.
  *
  * @unit deg/s
  * @min 0.0
@@ -66,9 +66,9 @@ PARAM_DEFINE_FLOAT(MC_ACRO_R_MAX, 720.0f);
 PARAM_DEFINE_FLOAT(MC_ACRO_P_MAX, 720.0f);
 
 /**
- * Max acro yaw rate
+ * Acro mode maximum yaw rate
  *
- * default 1.5 turns per second
+ * Full stick deflection leads to this rate.
  *
  * @unit deg/s
  * @min 0.0
@@ -80,7 +80,7 @@ PARAM_DEFINE_FLOAT(MC_ACRO_P_MAX, 720.0f);
 PARAM_DEFINE_FLOAT(MC_ACRO_Y_MAX, 540.0f);
 
 /**
- * Acro mode Expo factor for Roll and Pitch.
+ * Acro mode roll, pitch expo factor
  *
  * Exponential factor for tuning the input curve shape.
  *
@@ -95,7 +95,7 @@ PARAM_DEFINE_FLOAT(MC_ACRO_Y_MAX, 540.0f);
 PARAM_DEFINE_FLOAT(MC_ACRO_EXPO, 0.69f);
 
 /**
- * Acro mode Expo factor for Yaw.
+ * Acro mode yaw expo factor
  *
  * Exponential factor for tuning the input curve shape.
  *
@@ -110,9 +110,9 @@ PARAM_DEFINE_FLOAT(MC_ACRO_EXPO, 0.69f);
 PARAM_DEFINE_FLOAT(MC_ACRO_EXPO_Y, 0.69f);
 
 /**
- * Acro mode SuperExpo factor for Roll and Pitch.
+ * Acro mode roll, pitch super expo factor
  *
- * SuperExpo factor for refining the input curve shape tuned using MC_ACRO_EXPO.
+ * "Superexponential" factor for refining the input curve shape tuned using MC_ACRO_EXPO.
  *
  * 0 Pure Expo function
  * 0.7 reasonable shape enhancement for intuitive stick feel
@@ -126,9 +126,9 @@ PARAM_DEFINE_FLOAT(MC_ACRO_EXPO_Y, 0.69f);
 PARAM_DEFINE_FLOAT(MC_ACRO_SUPEXPO, 0.7f);
 
 /**
- * Acro mode SuperExpo factor for Yaw.
+ * Acro mode yaw super expo factor
  *
- * SuperExpo factor for refining the input curve shape tuned using MC_ACRO_EXPO_Y.
+ * "Superexponential" factor for refining the input curve shape tuned using MC_ACRO_EXPO_Y.
  *
  * 0 Pure Expo function
  * 0.7 reasonable shape enhancement for intuitive stick feel
