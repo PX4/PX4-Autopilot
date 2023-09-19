@@ -49,7 +49,7 @@
  * @increment 5
  * @group Multicopter Acro Mode
  */
-PARAM_DEFINE_FLOAT(MC_ACRO_R_MAX, 720.0f);
+PARAM_DEFINE_FLOAT(MC_ACRO_R_MAX, 100.f);
 
 /**
  * Acro mode maximum pitch rate
@@ -63,7 +63,7 @@ PARAM_DEFINE_FLOAT(MC_ACRO_R_MAX, 720.0f);
  * @increment 5
  * @group Multicopter Acro Mode
  */
-PARAM_DEFINE_FLOAT(MC_ACRO_P_MAX, 720.0f);
+PARAM_DEFINE_FLOAT(MC_ACRO_P_MAX, 100.f);
 
 /**
  * Acro mode maximum yaw rate
@@ -77,7 +77,7 @@ PARAM_DEFINE_FLOAT(MC_ACRO_P_MAX, 720.0f);
  * @increment 5
  * @group Multicopter Acro Mode
  */
-PARAM_DEFINE_FLOAT(MC_ACRO_Y_MAX, 540.0f);
+PARAM_DEFINE_FLOAT(MC_ACRO_Y_MAX, 100.f);
 
 /**
  * Acro mode roll, pitch expo factor
@@ -92,7 +92,7 @@ PARAM_DEFINE_FLOAT(MC_ACRO_Y_MAX, 540.0f);
  * @decimal 2
  * @group Multicopter Acro Mode
  */
-PARAM_DEFINE_FLOAT(MC_ACRO_EXPO, 0.69f);
+PARAM_DEFINE_FLOAT(MC_ACRO_EXPO, 0.f);
 
 /**
  * Acro mode yaw expo factor
@@ -107,7 +107,7 @@ PARAM_DEFINE_FLOAT(MC_ACRO_EXPO, 0.69f);
  * @decimal 2
  * @group Multicopter Acro Mode
  */
-PARAM_DEFINE_FLOAT(MC_ACRO_EXPO_Y, 0.69f);
+PARAM_DEFINE_FLOAT(MC_ACRO_EXPO_Y, 0.f);
 
 /**
  * Acro mode roll, pitch super expo factor
@@ -123,7 +123,7 @@ PARAM_DEFINE_FLOAT(MC_ACRO_EXPO_Y, 0.69f);
  * @decimal 2
  * @group Multicopter Acro Mode
  */
-PARAM_DEFINE_FLOAT(MC_ACRO_SUPEXPO, 0.7f);
+PARAM_DEFINE_FLOAT(MC_ACRO_SUPEXPO, 0.f);
 
 /**
  * Acro mode yaw super expo factor
@@ -139,4 +139,4 @@ PARAM_DEFINE_FLOAT(MC_ACRO_SUPEXPO, 0.7f);
  * @decimal 2
  * @group Multicopter Acro Mode
  */
-PARAM_DEFINE_FLOAT(MC_ACRO_SUPEXPOY, 0.7f);
+PARAM_DEFINE_FLOAT(MC_ACRO_SUPEXPOY, 0.f);
