@@ -2178,7 +2178,15 @@ FixedwingPositionControl::Run()
 		    || (_global_local_proj_ref.getProjectionReferenceTimestamp() != _local_pos.ref_timestamp)
 		    || (_local_pos.vxy_reset_counter != _pos_reset_counter)) {
 
-			_global_local_proj_ref.initReference(_local_pos.ref_lat, _local_pos.ref_lon,
+			double reference_latitude = 0.;
+			double reference_longitude = 0.;
+
+			if (_local_pos.xy_global && PX4_ISFINITE(_local_pos.ref_lat) && PX4_ISFINITE(_local_pos.ref_lon)) {
+				reference_latitude = _local_pos.ref_lat;
+				reference_longitude = _local_pos.ref_lon;
+			}
+
+			_global_local_proj_ref.initReference(reference_latitude, reference_longitude,
 							     _local_pos.ref_timestamp);
 		}
 
