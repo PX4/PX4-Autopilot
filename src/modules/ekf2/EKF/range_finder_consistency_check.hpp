@@ -37,7 +37,8 @@
  * using the estimated velocity as a reference in order to detect sensor faults
  */
 
-#pragma once
+#ifndef EKF_RANGE_FINDER_CONSISTENCY_CHECK_HPP
+#define EKF_RANGE_FINDER_CONSISTENCY_CHECK_HPP
 
 #include <mathlib/math/filter/AlphaFilter.hpp>
 
@@ -77,3 +78,5 @@ private:
 	static constexpr float _min_vz_for_valid_consistency = .5f;
 	static constexpr uint64_t _consistency_hyst_time_us = 1e6;
 };
+
+#endif // !EKF_RANGE_FINDER_CONSISTENCY_CHECK_HPP
