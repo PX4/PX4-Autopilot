@@ -27,6 +27,7 @@ parameters:
                 0: Manual
                 1: Altitude
                 2: Position
+                9: Position Slow
                 3: Mission
                 4: Hold
                 10: Takeoff

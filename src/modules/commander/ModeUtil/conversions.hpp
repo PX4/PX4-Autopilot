@@ -58,6 +58,8 @@ static inline navigation_mode_t navigation_mode(uint8_t nav_state)
 
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL: return navigation_mode_t::auto_rtl;
 
+	case vehicle_status_s::NAVIGATION_STATE_POSITION_SLOW: return navigation_mode_t::position_slow;
+
 	case vehicle_status_s::NAVIGATION_STATE_ACRO: return navigation_mode_t::acro;
 
 	case vehicle_status_s::NAVIGATION_STATE_OFFBOARD: return navigation_mode_t::offboard;
@@ -93,7 +95,7 @@ static inline navigation_mode_t navigation_mode(uint8_t nav_state)
 	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL8: return navigation_mode_t::external8;
 	}
 
-	static_assert(vehicle_status_s::NAVIGATION_STATE_MAX  == 31, "code requires update");
+	static_assert(vehicle_status_s::NAVIGATION_STATE_MAX == 31, "update navigation mode map");
 
 	return navigation_mode_t::unknown;
 }

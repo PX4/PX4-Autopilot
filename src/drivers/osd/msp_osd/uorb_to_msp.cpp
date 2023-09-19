@@ -102,16 +102,8 @@ msp_name_t construct_display_message(const vehicle_status_s &vehicle_status,
 			display.set(MessageDisplayType::FLIGHT_MODE, "AUTO_RTL");
 			break;
 
-		case vehicle_status_s::NAVIGATION_STATE_UNUSED:
-			display.set(MessageDisplayType::FLIGHT_MODE, "UNUSED");
-			break;
-
 		case vehicle_status_s::NAVIGATION_STATE_ACRO:
 			display.set(MessageDisplayType::FLIGHT_MODE, "ACRO");
-			break;
-
-		case vehicle_status_s::NAVIGATION_STATE_UNUSED1:
-			display.set(MessageDisplayType::FLIGHT_MODE, "UNUSED1");
 			break;
 
 		case vehicle_status_s::NAVIGATION_STATE_DESCEND:
@@ -128,10 +120,6 @@ msp_name_t construct_display_message(const vehicle_status_s &vehicle_status,
 
 		case vehicle_status_s::NAVIGATION_STATE_STAB:
 			display.set(MessageDisplayType::FLIGHT_MODE, "STAB");
-			break;
-
-		case vehicle_status_s::NAVIGATION_STATE_UNUSED2:
-			display.set(MessageDisplayType::FLIGHT_MODE, "UNUSED2");
 			break;
 
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
