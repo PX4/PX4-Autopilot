@@ -17,6 +17,7 @@ namespace State {
 	static constexpr IdxDof mag_I{16, 3};
 	static constexpr IdxDof mag_B{19, 3};
 	static constexpr IdxDof wind_vel{22, 2};
+	static constexpr uint8_t size{24};
 };
 }
 #endif // !EKF_STATE_H
