@@ -59,10 +59,7 @@ void Ekf::controlZeroGyroUpdate(const imuSample &imu_delayed)
 
 			const float obs_var = sq(math::constrain(_params.gyro_noise, 0.f, 1.f));
 
-			Vector3f innov_var{
-				P(10, 10) + obs_var,
-				P(11, 11) + obs_var,
-				P(12, 12) + obs_var};
+			const Vector3f innov_var = getGyroBiasVariance() + obs_var;
 
 			for (int i = 0; i < 3; i++) {
 				fuseDeltaAngBias(innovation(i), innov_var(i), i);
@@ -83,7 +80,7 @@ void Ekf::controlZeroGyroUpdate(const imuSample &imu_delayed)
 void Ekf::fuseDeltaAngBias(const float innov, const float innov_var, const int obs_index)
 {
 	VectorState K;  // Kalman gain vector for any single observation - sequential fusion is used.
-	const unsigned state_index = obs_index + 10;
+	const unsigned state_index = obs_index + State::gyro_bias.idx;
 
 	// calculate kalman gain K = PHS, where S = 1/innovation variance
 	for (int row = 0; row < State::size; row++) {
