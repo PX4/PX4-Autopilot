@@ -135,8 +135,8 @@ void Ekf::fuseSideslip(estimator_aid_source1d_s &sideslip)
 
 	_fault_status.flags.bad_sideslip = false;
 
-	Vector24f H; // Observation jacobian
-	Vector24f K; // Kalman gain vector
+	VectorState H; // Observation jacobian
+	VectorState K; // Kalman gain vector
 
 	sym::ComputeSideslipHAndK(getStateAtFusionHorizonAsVector(), P, sideslip.innovation_variance, FLT_EPSILON, &H, &K);
 

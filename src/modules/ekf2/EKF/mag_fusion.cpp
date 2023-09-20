@@ -62,9 +62,9 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bo
 	Vector3f innov_var;
 
 	// Observation jacobian and Kalman gain vectors
-	SparseVector24f<0,1,2,3,16,17,18,19,20,21> Hfusion;
-	Vector24f H;
-	const Vector24f state_vector = getStateAtFusionHorizonAsVector();
+	SparseVectorState<0,1,2,3,16,17,18,19,20,21> Hfusion;
+	VectorState H;
+	const VectorState state_vector = getStateAtFusionHorizonAsVector();
 	sym::ComputeMagInnovInnovVarAndHx(state_vector, P, mag, R_MAG, FLT_EPSILON, &mag_innov, &innov_var, &H);
 	Hfusion = H;
 
@@ -214,7 +214,7 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bo
 			}
 		}
 
-		Vector24f Kfusion = P * Hfusion / aid_src_mag.innovation_variance[index];
+		VectorState Kfusion = P * Hfusion / aid_src_mag.innovation_variance[index];
 
 		if (!update_all_states) {
 			for (unsigned row = 0; row <= 15; row++) {
@@ -263,7 +263,7 @@ bool Ekf::fuseDeclination(float decl_sigma)
 	// observation variance (rad**2)
 	const float R_DECL = sq(decl_sigma);
 
-	Vector24f H;
+	VectorState H;
 	float decl_pred;
 	float innovation_variance;
 
@@ -277,10 +277,10 @@ bool Ekf::fuseDeclination(float decl_sigma)
 		return false;
 	}
 
-	SparseVector24f<16,17> Hfusion(H);
+	SparseVectorState<16,17> Hfusion(H);
 
 	// Calculate the Kalman gains
-	Vector24f Kfusion = P * Hfusion / innovation_variance;
+	VectorState Kfusion = P * Hfusion / innovation_variance;
 
 	const bool is_fused = measurementUpdate(Kfusion, innovation_variance, innovation);
 
