@@ -60,7 +60,7 @@ void Ekf::controlGravityFusion(const imuSample &imu)
 	// calculate kalman gains and innovation variances
 	Vector3f innovation; // innovation of the last gravity fusion observation (m/s**2)
 	Vector3f innovation_variance;
-	Vector24f Kx, Ky, Kz; // Kalman gain vectors
+	VectorState Kx, Ky, Kz; // Kalman gain vectors
 	sym::ComputeGravityInnovVarAndKAndH(
 		getStateAtFusionHorizonAsVector(), P, measurement, measurement_var, FLT_EPSILON,
 		&innovation, &innovation_variance, &Kx, &Ky, &Kz);

@@ -41,13 +41,13 @@
 // update quaternion states and covariances using the yaw innovation and yaw observation variance
 bool Ekf::fuseYaw(estimator_aid_source1d_s &aid_src_status)
 {
-	Vector24f H_YAW;
+	VectorState H_YAW;
 	computeYawInnovVarAndH(aid_src_status.observation_variance, aid_src_status.innovation_variance, H_YAW);
 
 	return fuseYaw(aid_src_status, H_YAW);
 }
 
-bool Ekf::fuseYaw(estimator_aid_source1d_s &aid_src_status, const Vector24f &H_YAW)
+bool Ekf::fuseYaw(estimator_aid_source1d_s &aid_src_status, const VectorState &H_YAW)
 {
 	// define the innovation gate size
 	float gate_sigma = math::max(_params.heading_innov_gate, 1.f);
@@ -75,7 +75,7 @@ bool Ekf::fuseYaw(estimator_aid_source1d_s &aid_src_status, const Vector24f &H_Y
 
 		// calculate the Kalman gains
 		// only calculate gains for states we are using
-		Vector24f Kfusion;
+		VectorState Kfusion;
 		const float heading_innov_var_inv = 1.f / aid_src_status.innovation_variance;
 
 		for (uint8_t row = 0; row < State::size; row++) {
@@ -136,7 +136,7 @@ bool Ekf::fuseYaw(estimator_aid_source1d_s &aid_src_status, const Vector24f &H_Y
 	return false;
 }
 
-void Ekf::computeYawInnovVarAndH(float variance, float &innovation_variance, Vector24f &H_YAW) const
+void Ekf::computeYawInnovVarAndH(float variance, float &innovation_variance, VectorState &H_YAW) const
 {
 	if (shouldUse321RotationSequence(_R_to_earth)) {
 		sym::ComputeYaw321InnovVarAndH(getStateAtFusionHorizonAsVector(), P, variance, FLT_EPSILON, &innovation_variance, &H_YAW);
