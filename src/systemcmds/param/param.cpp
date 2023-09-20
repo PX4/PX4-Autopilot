@@ -43,6 +43,7 @@
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/posix.h>
+#include <px4_platform_common/px4_mtd.h>
 
 #include <float.h>
 #include <errno.h>
@@ -84,6 +85,7 @@ enum class COMPARE_ERROR_LEVEL {
 static int 	do_save(const char *param_file_name);
 static int	do_save_default();
 static int 	do_load(const char *param_file_name);
+static int	do_transition();
 static int	do_import(const char *param_file_name = nullptr);
 static int	do_show(const char *search_string, bool only_changed);
 static int	do_show_for_airframe();
@@ -216,6 +218,11 @@ param_main(int argc, char *argv[])
 			} else {
 				return do_load(param_get_default_file());
 			}
+		}
+
+		// TODO: This code shall be reverted after the BCH->LittleFS param transition time is completed
+		if (!strcmp(argv[1], "transition")) {
+			return do_transition();
 		}
 
 		if (!strcmp(argv[1], "import")) {
@@ -462,6 +469,57 @@ do_load(const char *param_file_name)
 
 		return 1;
 	}
+
+	return 0;
+}
+
+static int
+do_transition()
+{
+#if defined(CONFIG_FS_LITTLEFS)
+
+	int ret_val = px4_mtd_unmount_littlefs_mount_block_device();
+
+	if (ret_val < 0) {
+		PX4_ERR("Transition from LittleFS to Blockdriver");
+	} else {
+		char param_path[] = "/fs/mtd_params";
+		PX4_INFO("Try path: %s", param_path);
+		ret_val = do_import(param_path);
+
+		if (ret_val == 1) {
+			PX4_WARN("Try path: %s", param_path);
+
+			char param_path_backup[] = "/fs/microsd/parameters_backup.bson";
+			ret_val = do_import(param_path_backup);
+		}
+
+		if (ret_val == 0) {
+			ret_val = px4_mtd_unmount_block_device_mount_littlefs();
+
+			if (ret_val < 0) {
+				PX4_ERR("Transition from Blockdriver to LittleFS failed");
+			} else {
+
+				PX4_INFO("Exporting params to LittleFS!");
+				ret_val = param_export(param_get_default_file(), nullptr);
+
+				if (ret_val == 0) {
+					PX4_INFO("Successful params transition!");
+				}
+			}
+
+		} else {
+			PX4_INFO("Params are unreadable from any known path. Format partition to LittleFS!");
+			ret_val = px4_mtd_forceformat_littlefs();
+		}
+	}
+
+	if (ret_val < 0) {
+		return 1;
+	}
+
+#endif // CONFIG_FS_LITTLEFS
 
 	return 0;
 }

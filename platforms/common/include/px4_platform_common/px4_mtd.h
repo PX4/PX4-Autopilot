@@ -77,6 +77,24 @@ __EXPORT int  px4_mtd_get_geometry(const mtd_instance_s *instance, unsigned long
  */
 __EXPORT ssize_t px4_mtd_get_partition_size(const mtd_instance_s *instance, const char *partname);
 
+/*
+  Helper function for transition to LittleFS.
+  It will unmount MTD for parameters with LittleFS and mount Block Device
+*/
+__EXPORT int px4_mtd_unmount_littlefs_mount_block_device(void);
+
+/*
+  Helper function for transition to LittleFS.
+  It will unmount MTD for parameters with Block Device and mount LittleFS with force formatting
+*/
+__EXPORT int px4_mtd_unmount_block_device_mount_littlefs(void);
+
+/*
+  Helper function for transition to LittleFS.
+  It will force formatting to LittleFS
+*/
+__EXPORT int px4_mtd_forceformat_littlefs(void);
+
 int px4_at24c_initialize(FAR struct i2c_master_s *dev,
 			 uint8_t address, FAR struct mtd_dev_s **mtd_dev);
 
