@@ -38,16 +38,11 @@ px4_add_module(
 		-Wno-double-promotion
 		-Wno-cast-align
 		-Wno-address-of-packed-member # TODO: fix in c_library_v2
-	INCLUDES
-		${CMAKE_BINARY_DIR}/mavlink
-		${CMAKE_BINARY_DIR}/mavlink/development
-		${CMAKE_BINARY_DIR}/mavlink/common
-		${CMAKE_BINARY_DIR}/mavlink/standard
 	SRCS
 		SimulatorMavlink.cpp
 		SimulatorMavlink.hpp
 	DEPENDS
-		mavlink_c_generate
+		mavlink_c
 		conversion
 		geo
 		drivers_accelerometer
