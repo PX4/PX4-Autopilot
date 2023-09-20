@@ -77,10 +77,10 @@ void Ekf::updateOptFlow(estimator_aid_source2d_s &aid_src)
 	aid_src.observation_variance[0] = R_LOS;
 	aid_src.observation_variance[1] = R_LOS;
 
-	const Vector24f state_vector = getStateAtFusionHorizonAsVector();
+	const VectorState state_vector = getStateAtFusionHorizonAsVector();
 
 	Vector2f innov_var;
-	Vector24f H;
+	VectorState H;
 	sym::ComputeFlowXyInnovVarAndHx(state_vector, P, range, R_LOS, FLT_EPSILON, &innov_var, &H);
 	innov_var.copyTo(aid_src.innovation_variance);
 
@@ -98,10 +98,10 @@ void Ekf::fuseOptFlow()
 	// a positive offset in earth frame leads to a smaller height above the ground.
 	float range = predictFlowRange();
 
-	const Vector24f state_vector = getStateAtFusionHorizonAsVector();
+	const VectorState state_vector = getStateAtFusionHorizonAsVector();
 
 	Vector2f innov_var;
-	Vector24f H;
+	VectorState H;
 	sym::ComputeFlowXyInnovVarAndHx(state_vector, P, range, R_LOS, FLT_EPSILON, &innov_var, &H);
 	innov_var.copyTo(_aid_src_optical_flow.innovation_variance);
 
@@ -148,8 +148,8 @@ void Ekf::fuseOptFlow()
 			}
 		}
 
-		SparseVector24f<0,1,2,3,4,5,6> Hfusion(H);
-		Vector24f Kfusion = P * Hfusion / _aid_src_optical_flow.innovation_variance[index];
+		SparseVectorState<0,1,2,3,4,5,6> Hfusion(H);
+		VectorState Kfusion = P * Hfusion / _aid_src_optical_flow.innovation_variance[index];
 
 		if (measurementUpdate(Kfusion, _aid_src_optical_flow.innovation_variance[index], _aid_src_optical_flow.innovation[index])) {
 			fused[index] = true;

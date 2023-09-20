@@ -82,7 +82,7 @@ void Ekf::controlZeroGyroUpdate(const imuSample &imu_delayed)
 
 void Ekf::fuseDeltaAngBias(const float innov, const float innov_var, const int obs_index)
 {
-	Vector24f K;  // Kalman gain vector for any single observation - sequential fusion is used.
+	VectorState K;  // Kalman gain vector for any single observation - sequential fusion is used.
 	const unsigned state_index = obs_index + 10;
 
 	// calculate kalman gain K = PHS, where S = 1/innovation variance

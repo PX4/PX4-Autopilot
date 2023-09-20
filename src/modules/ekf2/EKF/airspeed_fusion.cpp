@@ -194,8 +194,8 @@ void Ekf::fuseAirspeed(const airspeedSample &airspeed_sample, estimator_aid_sour
 
 	_fault_status.flags.bad_airspeed = false;
 
-	Vector24f H; // Observation jacobian
-	Vector24f K; // Kalman gain vector
+	VectorState H; // Observation jacobian
+	VectorState K; // Kalman gain vector
 
 	sym::ComputeAirspeedHAndK(getStateAtFusionHorizonAsVector(), P, innov_var, FLT_EPSILON, &H, &K);
 

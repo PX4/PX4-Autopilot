@@ -60,12 +60,12 @@ enum class Likelihood { LOW, MEDIUM, HIGH };
 class Ekf final : public EstimatorInterface
 {
 public:
-	typedef matrix::Vector<float, State::size> Vector24f;
-	typedef matrix::SquareMatrix<float, State::size> SquareMatrix24f;
+	typedef matrix::Vector<float, State::size> VectorState;
+	typedef matrix::SquareMatrix<float, State::size> SquareMatrixState;
 	typedef matrix::SquareMatrix<float, 2> Matrix2f;
 	template<int ... Idxs>
 
-	using SparseVector24f = matrix::SparseVectorf<State::size, Idxs...>;
+	using SparseVectorState = matrix::SparseVectorf<State::size, Idxs...>;
 
 	Ekf()
 	{
@@ -304,7 +304,7 @@ public:
 	void getGravityInnovRatio(float &grav_innov_ratio) const { grav_innov_ratio = Vector3f(_aid_src_gravity.test_ratio).max(); }
 
 	// get the state vector at the delayed time horizon
-	matrix::Vector<float, 24> getStateAtFusionHorizonAsVector() const;
+	matrix::Vector<float, State::size> getStateAtFusionHorizonAsVector() const;
 
 	// get the wind velocity in m/s
 	const Vector2f &getWindVelocity() const { return _state.wind_vel; };
@@ -624,7 +624,7 @@ private:
 	float _yaw_delta_ef{0.0f};		///< Recent change in yaw angle measured about the earth frame D axis (rad)
 	float _yaw_rate_lpf_ef{0.0f};		///< Filtered angular rate about earth frame D axis (rad/sec)
 
-	SquareMatrix24f P{};	///< state covariance matrix
+	SquareMatrixState P{};	///< state covariance matrix
 
 #if defined(CONFIG_EKF2_DRAG_FUSION)
 	Vector2f _drag_innov{};		///< multirotor drag measurement innovation (m/sec**2)
@@ -807,8 +807,8 @@ private:
 
 	// update quaternion states and covariances using an innovation, observation variance and Jacobian vector
 	bool fuseYaw(estimator_aid_source1d_s &aid_src_status);
-	bool fuseYaw(estimator_aid_source1d_s &aid_src_status, const Vector24f &H_YAW);
-	void computeYawInnovVarAndH(float variance, float &innovation_variance, Vector24f &H_YAW) const;
+	bool fuseYaw(estimator_aid_source1d_s &aid_src_status, const VectorState &H_YAW);
+	void computeYawInnovVarAndH(float variance, float &innovation_variance, VectorState &H_YAW) const;
 
 #if defined(CONFIG_EKF2_GNSS_YAW)
 	void controlGpsYawFusion(const gpsSample &gps_sample, bool gps_checks_passing, bool gps_checks_failing);
@@ -972,7 +972,7 @@ private:
 	float getMagDeclination();
 #endif // CONFIG_EKF2_MAGNETOMETER
 
-	void clearInhibitedStateKalmanGains(Vector24f &K) const
+	void clearInhibitedStateKalmanGains(VectorState &K) const
 	{
 		// gyro bias: states 10, 11, 12
 		for (unsigned i = 0; i < 3; i++) {
@@ -1009,12 +1009,12 @@ private:
 		}
 	}
 
-	bool measurementUpdate(Vector24f &K, float innovation_variance, float innovation)
+	bool measurementUpdate(VectorState &K, float innovation_variance, float innovation)
 	{
 		clearInhibitedStateKalmanGains(K);
 
-		const Vector24f KS = K * innovation_variance;
-		SquareMatrix24f KHP;
+		const VectorState KS = K * innovation_variance;
+		SquareMatrixState KHP;
 
 		for (unsigned row = 0; row < State::size; row++) {
 			for (unsigned col = 0; col < State::size; col++) {
@@ -1041,7 +1041,7 @@ private:
 
 	// if the covariance correction will result in a negative variance, then
 	// the covariance matrix is unhealthy and must be corrected
-	bool checkAndFixCovarianceUpdate(const SquareMatrix24f &KHP);
+	bool checkAndFixCovarianceUpdate(const SquareMatrixState &KHP);
 
 	// limit the diagonal of the covariance matrix
 	// force symmetry when the argument is true
@@ -1054,7 +1054,7 @@ private:
 
 	// generic function which will perform a fusion step given a kalman gain K
 	// and a scalar innovation value
-	void fuse(const Vector24f &K, float innovation);
+	void fuse(const VectorState &K, float innovation);
 
 #if defined(CONFIG_EKF2_BARO_COMPENSATION)
 	float compensateBaroForDynamicPressure(float baro_alt_uncompensated) const;

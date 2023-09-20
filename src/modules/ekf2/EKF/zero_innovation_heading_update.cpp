@@ -56,7 +56,7 @@ void Ekf::controlZeroInnovationHeadingUpdate()
 		aid_src_status.observation_variance = obs_var;
 		aid_src_status.innovation = 0.f;
 
-		Vector24f H_YAW;
+		VectorState H_YAW;
 
 		computeYawInnovVarAndH(obs_var, aid_src_status.innovation_variance, H_YAW);
 

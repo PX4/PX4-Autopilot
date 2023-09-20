@@ -227,7 +227,7 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 	}
 
 	// predict the covariance
-	SquareMatrix24f nextP;
+	SquareMatrixState nextP;
 
 	// calculate variances and upper diagonal covariances for quaternion, velocity, position and gyro bias states
 	sym::PredictCovariance(getStateAtFusionHorizonAsVector(), P,
@@ -511,7 +511,7 @@ void Ekf::constrainStateVar(const IdxDof &state, float min, float max)
 
 // if the covariance correction will result in a negative variance, then
 // the covariance matrix is unhealthy and must be corrected
-bool Ekf::checkAndFixCovarianceUpdate(const SquareMatrix24f &KHP)
+bool Ekf::checkAndFixCovarianceUpdate(const SquareMatrixState &KHP)
 {
 	bool healthy = true;
 

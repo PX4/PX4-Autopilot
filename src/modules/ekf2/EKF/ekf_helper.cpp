@@ -810,7 +810,7 @@ void Ekf::get_ekf_soln_status(uint16_t *status) const
 	*status = soln_status.value;
 }
 
-void Ekf::fuse(const Vector24f &K, float innovation)
+void Ekf::fuse(const VectorState &K, float innovation)
 {
 	_state.quat_nominal -= K.slice<State::quat_nominal.dof, 1>(State::quat_nominal.idx, 0) * innovation;
 	_state.quat_nominal.normalize();
@@ -909,7 +909,7 @@ Vector3f Ekf::calcRotVecVariances() const
 
 float Ekf::getYawVar() const
 {
-	Vector24f H_YAW;
+	VectorState H_YAW;
 	float yaw_var = 0.f;
 	computeYawInnovVarAndH(0.f, yaw_var, H_YAW);
 
