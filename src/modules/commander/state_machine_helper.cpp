@@ -325,6 +325,9 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, event_failsafe_reason_t::no_rc);
 			set_link_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act, param_com_rcl_act_t);
 
+		} else if (status_flags.vtol_transition_failure) {
+			set_quadchute_nav_state(status, armed, status_flags, quadchute_act);
+
 		} else {
 			switch (internal_state.main_state) {
 			case commander_state_s::MAIN_STATE_ACRO:
@@ -367,6 +370,9 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 			} else if (check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags,
 							       rc_fallback_allowed, status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING)) {
 				// nothing to do - everything done in check_invalid_pos_nav_state
+
+			} else if (status_flags.vtol_transition_failure) {
+				set_quadchute_nav_state(status, armed, status_flags, quadchute_act);
 
 			} else {
 				status.nav_state = vehicle_status_s::NAVIGATION_STATE_POSCTL;
