@@ -310,22 +310,22 @@ public:
 	const Vector2f &getWindVelocity() const { return _state.wind_vel; };
 
 	// get the wind velocity var
-	Vector2f getWindVelocityVariance() const { return P.slice<2, 2>(22, 22).diag(); }
+	Vector2f getWindVelocityVariance() const { return P.slice<State::wind_vel.dof, State::wind_vel.dof>(State::wind_vel.idx, State::wind_vel.idx).diag(); }
 
 	// get the full covariance matrix
-	const matrix::SquareMatrix<float, 24> &covariances() const { return P; }
+	const matrix::SquareMatrix<float, State::size> &covariances() const { return P; }
 
 	// get the diagonal elements of the covariance matrix
-	matrix::Vector<float, 24> covariances_diagonal() const { return P.diag(); }
+	matrix::Vector<float, State::size> covariances_diagonal() const { return P.diag(); }
 
 	// get the orientation (quaterion) covariances
-	matrix::SquareMatrix<float, 4> orientation_covariances() const { return P.slice<4, 4>(0, 0); }
+	matrix::SquareMatrix<float, 4> orientation_covariances() const { return P.slice<State::quat_nominal.dof, State::quat_nominal.dof>(State::quat_nominal.idx, State::quat_nominal.idx); }
 
 	// get the linear velocity covariances
-	matrix::SquareMatrix<float, 3> velocity_covariances() const { return P.slice<3, 3>(4, 4); }
+	matrix::SquareMatrix<float, 3> velocity_covariances() const { return P.slice<State::vel.dof, State::vel.dof>(State::vel.idx, State::vel.idx); }
 
 	// get the position covariances
-	matrix::SquareMatrix<float, 3> position_covariances() const { return P.slice<3, 3>(7, 7); }
+	matrix::SquareMatrix<float, 3> position_covariances() const { return P.slice<State::pos.dof, State::pos.dof>(State::pos.idx, State::pos.idx); }
 
 	// ask estimator for sensor data collection decision and do any preprocessing if required, returns true if not defined
 	bool collect_gps(const gpsMessage &gps) override;
@@ -356,9 +356,9 @@ public:
 	void resetGyroBias();
 	void resetAccelBias();
 
-	Vector3f getVelocityVariance() const { return P.slice<3, 3>(4, 4).diag(); };
+	Vector3f getVelocityVariance() const { return velocity_covariances().diag(); };
 
-	Vector3f getPositionVariance() const { return P.slice<3, 3>(7, 7).diag(); }
+	Vector3f getPositionVariance() const { return position_covariances().diag(); }
 
 	// First argument returns GPS drift  metrics in the following array locations
 	// 0 : Horizontal position drift rate (m/s)
@@ -406,12 +406,12 @@ public:
 #endif
 	}
 
-	// gyro bias (states 10, 11, 12)
+	// gyro bias
 	const Vector3f &getGyroBias() const { return _state.gyro_bias; } // get the gyroscope bias in rad/s
 	Vector3f getGyroBiasVariance() const { return P.slice<State::gyro_bias.dof, State::gyro_bias.dof>(State::gyro_bias.idx, State::gyro_bias.idx).diag(); } // get the gyroscope bias variance in rad/s
 	float getGyroBiasLimit() const { return _params.gyro_bias_lim; }
 
-	// accel bias (states 13, 14, 15)
+	// accel bias
 	const Vector3f &getAccelBias() const { return _state.accel_bias; } // get the accelerometer bias in m/s**2
 	Vector3f getAccelBiasVariance() const { return P.slice<State::accel_bias.dof, State::accel_bias.dof>(State::accel_bias.idx, State::accel_bias.idx).diag(); } // get the accelerometer bias variance in m/s**2
 	float getAccelBiasLimit() const { return _params.acc_bias_lim; }
@@ -974,38 +974,34 @@ private:
 
 	void clearInhibitedStateKalmanGains(VectorState &K) const
 	{
-		// gyro bias: states 10, 11, 12
-		for (unsigned i = 0; i < 3; i++) {
+		for (unsigned i = 0; i < State::gyro_bias.dof; i++) {
 			if (_gyro_bias_inhibit[i]) {
-				K(10 + i) = 0.f;
+				K(State::gyro_bias.idx + i) = 0.f;
 			}
 		}
 
-		// accel bias: states 13, 14, 15
-		for (unsigned i = 0; i < 3; i++) {
+		for (unsigned i = 0; i < State::accel_bias.dof; i++) {
 			if (_accel_bias_inhibit[i]) {
-				K(13 + i) = 0.f;
+				K(State::accel_bias.idx + i) = 0.f;
 			}
 		}
 
-		// mag I: states 16, 17, 18
 		if (!_control_status.flags.mag) {
-			K(16) = 0.f;
-			K(17) = 0.f;
-			K(18) = 0.f;
+			for (unsigned i = 0; i < State::mag_I.dof; i++) {
+				K(State::mag_I.idx + i) = 0.f;
+			}
 		}
 
-		// mag B: states 19, 20, 21
 		if (!_control_status.flags.mag) {
-			K(19) = 0.f;
-			K(20) = 0.f;
-			K(21) = 0.f;
+			for (unsigned i = 0; i < State::mag_B.dof; i++) {
+				K(State::mag_B.idx + i) = 0.f;
+			}
 		}
 
-		// wind: states 22, 23
 		if (!_control_status.flags.wind) {
-			K(22) = 0.f;
-			K(23) = 0.f;
+			for (unsigned i = 0; i < State::wind_vel.dof; i++) {
+				K(State::wind_vel.idx + i) = 0.f;
+			}
 		}
 	}
 

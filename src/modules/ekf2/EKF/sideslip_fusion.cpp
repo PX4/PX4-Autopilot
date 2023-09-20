@@ -141,9 +141,9 @@ void Ekf::fuseSideslip(estimator_aid_source1d_s &sideslip)
 	sym::ComputeSideslipHAndK(getStateAtFusionHorizonAsVector(), P, sideslip.innovation_variance, FLT_EPSILON, &H, &K);
 
 	if (update_wind_only) {
-		for (unsigned row = 0; row <= 21; row++) {
-			K(row) = 0.f;
-		}
+		const Vector2f K_wind = K.slice<State::wind_vel.dof, 1>(State::wind_vel.idx, 0);
+		K.setZero();
+		K.slice<State::wind_vel.dof, 1>(State::wind_vel.idx, 0) = K_wind;
 	}
 
 	const bool is_fused = measurementUpdate(K, sideslip.innovation_variance, sideslip.innovation);
