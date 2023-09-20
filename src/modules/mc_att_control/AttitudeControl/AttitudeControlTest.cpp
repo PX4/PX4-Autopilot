@@ -138,3 +138,31 @@ TEST(AttitudeControlTest, YawWeightScaling)
 	// THEN: no actuation (also no NAN)
 	EXPECT_EQ(rate_setpoint, Vector3f());
 }
+
+TEST(AttitudeControlTest, HeadingCorrectness)
+{
+	//Quatf q(0.863f, 0.358f,  0.358f, 0.f);
+	Quatf q(0.733f, 0.462f, 0.191f, 0.462f);
+	q.normalize();
+	float yaw = matrix::Eulerf(q).psi();
+
+	Quatf q_red(Vector3f(0, 0, 1), q.dcm_z());
+	Quatf q_mix = q_red.inversed() * q;
+	q_mix.print();
+
+	Quatf q_mix2 = q;
+	q_mix2(1) = 0.f;
+	q_mix2(2) = 0.f;
+	q_mix2.normalize();
+	q_mix2.print();
+
+	q_mix2(3) = math::constrain(q_mix2(3), -1.f, 1.f);
+	float heading = 2.f * asinf(q_mix2(3));
+
+	float heading2 = 2.f * atan2f(q(3), q(0));
+	EXPECT_FLOAT_EQ(heading, heading2);
+
+	EXPECT_GT(fabsf(yaw), FLT_EPSILON);
+	EXPECT_LT(fabsf(heading), FLT_EPSILON);
+	EXPECT_TRUE(false);
+}

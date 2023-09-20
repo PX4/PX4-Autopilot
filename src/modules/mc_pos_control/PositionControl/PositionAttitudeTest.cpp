@@ -49,12 +49,13 @@ TEST(PositionControlTest, NavigationYawInfluence)
 
 	// Set up attitude control
 	AttitudeControl attitude_control;
-	attitude_control.setProportionalGain(Vector3f(1.f, 1.f, 1.f));
+	attitude_control.setProportionalGain(Vector3f(1.f, 1.f, 1.f), 1.f);
 	attitude_control.setRateLimit(Vector3f(100.f, 100.f, 100.f));
 
 	// Execute on attitude
 	Quatf qd(attitude_setpoint.q_d);
-	const Vector3f rate_setpoint = attitude_control.update(Quatf(), qd, 0.f);
+	attitude_control.setAttitudeSetpoint(qd, 0.f);
+	const Vector3f rate_setpoint = attitude_control.update(Quatf());
 	rate_setpoint.print();
 
 	// expect symmetric angular rate command towards thrust direction without any body yaw correction
@@ -62,4 +63,8 @@ TEST(PositionControlTest, NavigationYawInfluence)
 	EXPECT_LT(rate_setpoint(1), 0.f);
 	EXPECT_FLOAT_EQ(fabsf(rate_setpoint(0)), fabsf(rate_setpoint(1)));
 	EXPECT_FLOAT_EQ(rate_setpoint(2), 0.f);
+
+	qd.print();
+	Eulerf(qd).print();
+	EXPECT_FLOAT_EQ(2.f * atan2f(qd(3), qd(0)), yaw_setpoint);
 }
