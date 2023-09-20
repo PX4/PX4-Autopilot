@@ -28,7 +28,7 @@ parameters:
 
         UXRCE_DDS_KEY:
             description:
-                short: uXRCE-DDS Session key
+                short: uXRCE-DDS session key
                 long: |
                     uXRCE-DDS key, must be different from zero.
                     In a single agent - multi client configuration, each client
@@ -40,10 +40,10 @@ parameters:
 
         UXRCE_DDS_PRT:
             description:
-                short: uXRCE-DDS UDP Port
+                short: uXRCE-DDS UDP port
                 long: |
-                    If ethernet enabled and selected as configuration for uXRCE-DDS,
-                    selected udp port will be set and used.
+                    If ethernet is enabled and is the selected configuration for uXRCE-DDS,
+                    the selected UDP port will be set and used.
             type: int32
             min: 0
             max: 65535
@@ -55,8 +55,8 @@ parameters:
             description:
                 short: uXRCE-DDS Agent IP address
                 long: |
-                    If ethernet enabled and selected as configuration for uXRCE-DDS,
-                    selected Agent IP address will be set and used.
+                    If ethernet is enabled and is the selected configuration for uXRCE-DDS,
+                    the selected Agent IP address will be set and used.
                     Decimal dot notation is not supported. IP address must be provided
                     in int32 format. For example, 192.168.1.2 is mapped to -1062731518;
                     127.0.0.1 is mapped to 2130706433.
@@ -67,7 +67,7 @@ parameters:
 
         UXRCE_DDS_SYNCT:
             description:
-                short: uXRCE-DDS timestamp synchronization enable
+                short: Enable uXRCE-DDS timestamp synchronization
                 long: When enabled, uxrce_dds_client will synchronize the timestamps
                     of the incoming and outgoing messages measuring the offset
                     between the Agent OS time and the PX4 time.
