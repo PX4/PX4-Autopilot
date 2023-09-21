@@ -723,7 +723,11 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now)
 	_skipping_takeoff_detection = false;
 
 	if (((_control_mode.flag_control_auto_enabled && _control_mode.flag_control_position_enabled) ||
-	     _control_mode.flag_control_offboard_enabled) && _position_setpoint_current_valid) {
+	     _control_mode.flag_control_offboard_enabled) && (_position_setpoint_current_valid
+			     || _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE)) {
+
+		// Enter this mode only if the current waypoint has valid 3D position setpoints or is of type IDLE.
+		// A setpoint of type IDLE can be published by Navigator without a valid position, and is handled here in FW_POSCTRL_MODE_AUTO.
 
 		if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
 
