@@ -48,24 +48,32 @@ then
 fi
 
 
-if ver hwtypecmp V6X000004 V6X001004 V6X004004 V6X005004
+if ver hwtypecmp V6X000006 V6X004006 V6X005006
 then
-	# Internal SPI bus ICM20649
-	icm20649 -s -R 6 start
+	# Internal SPI bus ICM45686
+	icm45686 -s -R 10 start
+	iim42652 -s -R 6 start
+	adis16470 -s -R 0 start
 else
-	# Internal SPI BMI088
-	if ver hwtypecmp V6X009010 V6X010010
+	if ver hwtypecmp V6X000004 V6X001004 V6X004004 V6X005004
 	then
-		bmi088 -A -R 6 -s start
-		bmi088 -G -R 6 -s start
+		# Internal SPI bus ICM20649
+		icm20649 -s -R 6 start
 	else
-		if ver hwtypecmp V6X000010
+		# Internal SPI BMI088
+		if ver hwtypecmp V6X009010 V6X010010
 		then
-			bmi088 -A -R 0 -s start
-			bmi088 -G -R 0 -s start
+			bmi088 -A -R 6 -s start
+			bmi088 -G -R 6 -s start
 		else
-			bmi088 -A -R 4 -s start
-			bmi088 -G -R 4 -s start
+			if ver hwtypecmp V6X000010
+			then
+				bmi088 -A -R 0 -s start
+				bmi088 -G -R 0 -s start
+			else
+				bmi088 -A -R 4 -s start
+				bmi088 -G -R 4 -s start
+			fi
 		fi
 	fi
 fi
@@ -112,7 +120,7 @@ ist8310 -X -b 1 -R 10 start
 # Possible internal Baro
 if param compare SENS_INT_BARO_EN 1
 then
-	if ver hwtypecmp V6X002001
+	if ver hwtypecmp V6X002001 V6X000006 V6X004006 V6X005006
 	then
 		icp201xx -I -a 0x64 start
 	else
