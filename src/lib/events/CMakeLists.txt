@@ -110,3 +110,13 @@ add_custom_command(OUTPUT ${generated_events_header}
 )
 add_custom_target(events_header DEPENDS ${generated_events_header})
 add_dependencies(prebuild_targets events_header)
+
+# Build the interface(s)
+if (${PX4_PLATFORM} STREQUAL "nuttx" AND NOT CONFIG_BUILD_FLAT)
+	list(APPEND EXTRA_SRCS events_ioctl.cpp)
+	add_library(usr_events usr_events.cpp)
+	add_dependencies(usr_events prebuild_targets)
+endif()
+
+add_library(events events.cpp ${EXTRA_SRCS})
+add_dependencies(events prebuild_targets)
