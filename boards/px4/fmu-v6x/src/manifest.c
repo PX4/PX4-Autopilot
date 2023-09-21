@@ -142,17 +142,20 @@ static px4_hw_mft_list_entry_t mft_lists[] = {
 	{V6X00, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)},
 	{V6X01, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // BMP388 moved to I2C2
 	{V6X03, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // BMP388 moved to I2C2, Sensor Set 3
+	{V6X04, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // BMP388 moved to I2C2, Sensor Set 4
+	{V6X06, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // BMP388 moved to I2C2, Sensor Set 6
 	{V6X40, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, //                       HB CM4 base
 	{V6X41, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // BMP388 moved to I2C2  HB CM4 base
 	{V6X43, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // BMP388 moved to I2C2, HB CM4 base Sensor Set 3
 	{V6X44, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // BMP388 moved to I2C2, HB CM4 base Sensor Set 4
+	{V6X46, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // BMP388 moved to I2C2, Sensor Set 6
 	{V6X50, hw_mft_list_v0650, arraySize(hw_mft_list_v0650)}, //                       HB Mini
 	{V6X51, hw_mft_list_v0650, arraySize(hw_mft_list_v0650)}, // BMP388 moved to I2C2  HB Mini
 	{V6X53, hw_mft_list_v0650, arraySize(hw_mft_list_v0650)}, // BMP388 moved to I2C2, HB Mini Sensor Set 3
 	{V6X54, hw_mft_list_v0650, arraySize(hw_mft_list_v0650)}, // BMP388 moved to I2C2, HB Mini Sensor Set 4
+	{V6X56, hw_mft_list_v0650, arraySize(hw_mft_list_v0650)}, // BMP388 moved to I2C2, HB Mini Sensor Set 6
 	{V6X10, hw_mft_list_v0610, arraySize(hw_mft_list_v0610)}, // No PX4IO
 	{V6X13, hw_mft_list_v0610, arraySize(hw_mft_list_v0610)}, // No PX4IO BMP388 moved to I2C2, Sensor Set 3
-	{V6X04, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // BMP388 moved to I2C2, Sensor Set 4
 	{V6X14, hw_mft_list_v0610, arraySize(hw_mft_list_v0610)}, // No PX4IO BMP388 moved to I2C2, Sensor Set 4
 	{V6X21, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)},
 	{V6X0910, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // FMUV6X,     rev from EEPROM     Auterion Skynode ver9
