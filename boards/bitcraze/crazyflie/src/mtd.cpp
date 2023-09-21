@@ -47,7 +47,7 @@ static const px4_mtd_entry_t fmu_eeprom = {
 		{
 			.type = MTD_PARAMETERS,
 			.path = "/fs/mtd_params",
-			.nblocks = 128
+			.nblocks = 256
 		}
 	},
 };
