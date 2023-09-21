@@ -62,15 +62,15 @@ void Ekf::controlRangeHeightFusion()
 			const Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
 			_range_sensor.setRange(_range_sensor.getRange() + pos_offset_earth(2) / _range_sensor.getCosTilt());
 
-			// Run the kinematic consistency check when not moving horizontally
-			if (_control_status.flags.in_air && !_control_status.flags.fixed_wing
-			    && (sq(_state.vel(0)) + sq(_state.vel(1)) < fmaxf(P(4, 4) + P(5, 5), 0.1f))) {
+			if (_control_status.flags.in_air) {
+				const bool horizontal_motion = _control_status.flags.fixed_wing
+								|| (sq(_state.vel(0)) + sq(_state.vel(1)) > fmaxf(P(4, 4) + P(5, 5), 0.1f));
 
 				const float dist_dependant_var = sq(_params.range_noise_scaler * _range_sensor.getDistBottom());
 				const float var = sq(_params.range_noise) + dist_dependant_var;
 
 				_rng_consistency_check.setGate(_params.range_kin_consistency_gate);
-				_rng_consistency_check.update(_range_sensor.getDistBottom(), math::max(var, 0.001f), _state.vel(2), P(6, 6), _time_delayed_us);
+				_rng_consistency_check.update(_range_sensor.getDistBottom(), math::max(var, 0.001f), _state.vel(2), P(6, 6), horizontal_motion, _time_delayed_us);
 			}
 
 		} else {
