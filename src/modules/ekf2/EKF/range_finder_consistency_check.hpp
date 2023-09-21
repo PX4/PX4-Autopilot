@@ -48,7 +48,7 @@ public:
 	RangeFinderConsistencyCheck() = default;
 	~RangeFinderConsistencyCheck() = default;
 
-	void update(float dist_bottom, float dist_bottom_var, float vz, float vz_var, uint64_t time_us);
+	void update(float dist_bottom, float dist_bottom_var, float vz, float vz_var, bool horizontal_motion, uint64_t time_us);
 
 	void setGate(float gate) { _gate = gate; }
 
@@ -72,6 +72,7 @@ private:
 
 	bool _is_kinematically_consistent{true};
 	uint64_t _time_last_inconsistent_us{};
+	uint64_t _time_last_horizontal_motion{};
 
 	static constexpr float _signed_test_ratio_tau = 2.f;
 
