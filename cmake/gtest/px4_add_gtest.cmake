@@ -107,6 +107,7 @@ function(px4_add_functional_gtest)
 		                                              px4_daemon
 		                                              work_queue
 		                                              parameters
+		                                              events
 		                                              perf
 		                                              tinybson
 		                                              uorb_msgs
