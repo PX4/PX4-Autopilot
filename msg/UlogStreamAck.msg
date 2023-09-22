@@ -1,4 +1,4 @@
-# Ack a previously sent ulog_stream message that had
+# Ack a previously sent ulog_stream_acked message that had
 # the NEED_ACK flag set
 
 uint64 timestamp		# time since system start (microseconds)
