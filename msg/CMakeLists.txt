@@ -292,7 +292,8 @@ if(NOT CONSTRAINED_FLASH)
 		VisionTargetEstPosition.msg
 		VisionTargetEstOrientation.msg
 		FiducialMarkerPosReport.msg
-		FiducialMarkerYawReport.msg)
+		FiducialMarkerYawReport.msg
+		PrecLandStatus.msg)
 endif()
 
 px4_list_make_absolute(msg_files ${CMAKE_CURRENT_SOURCE_DIR} ${msg_files})
