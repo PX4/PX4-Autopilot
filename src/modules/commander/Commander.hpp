@@ -174,6 +174,8 @@ private:
 
 	void safetyButtonUpdate();
 
+	bool isThrowLaunchInProgress() const;
+
 	void throwLaunchUpdate();
 
 	void vtolStatusUpdate();
