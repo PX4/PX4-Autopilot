@@ -17,3 +17,4 @@ uint8 flags			# see FLAGS_*
 uint8[249] data		# ulog data
 
 uint8 ORB_QUEUE_LENGTH = 16	# TODO: we might be able to reduce this if mavlink polled on the topic
+# TOPICS ulog_stream ulog_stream_acked
