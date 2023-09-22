@@ -135,7 +135,11 @@ bool Mission::setNextMissionItem()
 #if !defined(CONSTRAINED_FLASH)
 	if (_navigator->get_precland()->is_activated()) {
 		_navigator->get_precland()->on_inactivation();
+
+#if !defined(CONSTRAINED_FLASH)
 		_publish_prec_land_status(false);
+#endif
+
 	}
 #endif
 	return (goToNextItem(true) == PX4_OK);
