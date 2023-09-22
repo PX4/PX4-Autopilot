@@ -125,7 +125,9 @@ private:
 	static constexpr hrt_abstime _rate_calculation_delta_t = 100_ms; ///< rate update interval
 
 	uORB::SubscriptionData<ulog_stream_s> _ulog_stream_sub{ORB_ID(ulog_stream)};
-	uORB::Publication<ulog_stream_ack_s> _ulog_stream_ack_pub{ORB_ID(ulog_stream_ack)};
+	uORB::SubscriptionData<ulog_stream_s> _ulog_stream_acked_sub {ORB_ID(ulog_stream_acked)};
+
+	uORB::Publication<ulog_stream_ack_s> _ulog_stream_ack_pub {ORB_ID(ulog_stream_ack)};
 	uint16_t _wait_for_ack_sequence;
 	uint8_t _sent_tries = 0;
 	volatile bool _ack_received = false; ///< set to true if a matching ack received
