@@ -176,7 +176,6 @@ set(msg_files
 	PowerButtonState.msg
 	PowerMonitor.msg
 	PpsCapture.msg
-	PrecLandStatus.msg
 	PwmInput.msg
 	Px4ioStatus.msg
 	QshellReq.msg
@@ -275,7 +274,8 @@ if(NOT CONSTRAINED_FLASH)
 		VisionTargetEstPosition.msg
 		VisionTargetEstOrientation.msg
 		FiducialMarkerPosReport.msg
-		FiducialMarkerYawReport.msg)
+		FiducialMarkerYawReport.msg
+		PrecLandStatus.msg)
 endif()
 
 px4_list_make_absolute(msg_files ${CMAKE_CURRENT_SOURCE_DIR} ${msg_files})
