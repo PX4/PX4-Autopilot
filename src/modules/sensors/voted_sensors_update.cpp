@@ -190,6 +190,8 @@ void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
 	int accel_best_index = _accel.last_best_vote;
 	int gyro_best_index = _gyro.last_best_vote;
 
+	bool failover = false;
+
 	if (!_parameter_update) {
 		// update current accel/gyro selection, skipped on cycles where parameters update
 		_accel.voter.get_best(time_now_us, &accel_best_index);
@@ -217,8 +219,8 @@ void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
 
 		} else {
 			// use sensor voter to find best if SENS_IMU_MODE is enabled or ORB_ID(sensor_selection) has never published
-			checkFailover(_accel, "Accel", events::px4::enums::sensor_type_t::accel);
-			checkFailover(_gyro, "Gyro", events::px4::enums::sensor_type_t::gyro);
+			failover = checkFailover(_accel, "Accel", events::px4::enums::sensor_type_t::accel);
+			failover = checkFailover(_gyro, "Gyro", events::px4::enums::sensor_type_t::gyro);
 		}
 	}
 
@@ -229,20 +231,8 @@ void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
 
 		raw.timestamp = _last_sensor_data[gyro_best_index].timestamp;
 
-		if (_param_sens_imu_mode.get() < 2) {
-			memcpy(&raw.accelerometer_m_s2, &_last_sensor_data[accel_best_index].accelerometer_m_s2,
-			       sizeof(raw.accelerometer_m_s2));
-			memcpy(&raw.gyro_rad, &_last_sensor_data[gyro_best_index].gyro_rad, sizeof(raw.gyro_rad));
-
-			raw.accelerometer_integral_dt = _last_sensor_data[accel_best_index].accelerometer_integral_dt;
-			raw.accelerometer_clipping    = _last_sensor_data[accel_best_index].accelerometer_clipping;
-			raw.accel_calibration_count   = _last_sensor_data[accel_best_index].accel_calibration_count;
-
-			raw.gyro_integral_dt          = _last_sensor_data[gyro_best_index].gyro_integral_dt;
-			raw.gyro_clipping             = _last_sensor_data[gyro_best_index].gyro_clipping;
-			raw.gyro_calibration_count    = _last_sensor_data[gyro_best_index].gyro_calibration_count;
-
-		} else {
+		// Only run median selection if there are no failures
+		if ((_param_sens_imu_mode.get() == 2) && !failover) {
 			// Find the median of each axis
 			size_t accel_median_index[3] = {};
 			size_t gyro_median_index[3] = {};
@@ -268,6 +258,14 @@ void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
 			gyro_median_index[2] = find_median_index(_last_sensor_data[0].gyro_rad[2], _last_sensor_data[1].gyro_rad[2],
 					       _last_sensor_data[2].gyro_rad[2]);
 
+			size_t accel_median_dt_index = find_median_index(_last_sensor_data[0].accelerometer_integral_dt,
+						       _last_sensor_data[1].accelerometer_integral_dt,
+						       _last_sensor_data[2].accelerometer_integral_dt);
+
+			size_t gyro_median_dt_index = find_median_index(_last_sensor_data[0].gyro_integral_dt,
+						      _last_sensor_data[1].gyro_integral_dt,
+						      _last_sensor_data[2].gyro_integral_dt);
+
 			raw.accelerometer_m_s2[0] = _last_sensor_data[accel_median_index[0]].accelerometer_m_s2[0];
 			raw.accelerometer_m_s2[1] = _last_sensor_data[accel_median_index[1]].accelerometer_m_s2[1];
 			raw.accelerometer_m_s2[2] = _last_sensor_data[accel_median_index[2]].accelerometer_m_s2[2];
@@ -284,12 +282,8 @@ void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
 			raw.gyro_median_axis_index[1] = gyro_median_index[1];
 			raw.gyro_median_axis_index[2] = gyro_median_index[2];
 
-			// Average the dt. With synced IMUs they should be very close
-			raw.accelerometer_integral_dt = (_last_sensor_data[0].accelerometer_integral_dt +
-							 _last_sensor_data[1].accelerometer_integral_dt +
-							 _last_sensor_data[2].accelerometer_integral_dt) / 3.0f;
-			raw.gyro_integral_dt          = (_last_sensor_data[0].gyro_integral_dt + _last_sensor_data[1].gyro_integral_dt +
-							 _last_sensor_data[2].gyro_integral_dt) / 3.0f;
+			raw.accelerometer_integral_dt = _last_sensor_data[accel_median_dt_index].accelerometer_integral_dt;
+			raw.gyro_integral_dt          = _last_sensor_data[gyro_median_dt_index].gyro_integral_dt;
 
 			// Get the bitfield for each axis
 			raw.accelerometer_clipping    = (_last_sensor_data[accel_median_index[0]].accelerometer_clipping & 0x1) |
@@ -306,6 +300,19 @@ void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
 			raw.gyro_calibration_count    = _last_sensor_data[0].gyro_calibration_count +
 							_last_sensor_data[1].gyro_calibration_count +
 							_last_sensor_data[2].gyro_calibration_count;
+
+		} else {
+			memcpy(&raw.accelerometer_m_s2, &_last_sensor_data[accel_best_index].accelerometer_m_s2,
+			       sizeof(raw.accelerometer_m_s2));
+			memcpy(&raw.gyro_rad, &_last_sensor_data[gyro_best_index].gyro_rad, sizeof(raw.gyro_rad));
+
+			raw.accelerometer_integral_dt = _last_sensor_data[accel_best_index].accelerometer_integral_dt;
+			raw.accelerometer_clipping    = _last_sensor_data[accel_best_index].accelerometer_clipping;
+			raw.accel_calibration_count   = _last_sensor_data[accel_best_index].accel_calibration_count;
+
+			raw.gyro_integral_dt          = _last_sensor_data[gyro_best_index].gyro_integral_dt;
+			raw.gyro_clipping             = _last_sensor_data[gyro_best_index].gyro_clipping;
+			raw.gyro_calibration_count    = _last_sensor_data[gyro_best_index].gyro_calibration_count;
 		}
 
 		if ((accel_best_index != _accel.last_best_vote) || (_selection.accel_device_id != _accel_device_id[accel_best_index])) {
