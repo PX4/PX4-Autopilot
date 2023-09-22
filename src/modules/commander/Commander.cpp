@@ -1776,7 +1776,7 @@ void Commander::run()
 		_actuator_armed.ready_to_arm = _vehicle_status.pre_flight_checks_pass || isArmed();
 		_actuator_armed.lockdown = ((_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_TERMINATION)
 					    || (_vehicle_status.hil_state == vehicle_status_s::HIL_STATE_ON)
-					    || !(_throw_launch_state == ThrowLaunchState::DISABLED || _throw_launch_state == ThrowLaunchState::FLYING));
+					    || isThrowLaunchInProgress());
 		// _actuator_armed.manual_lockdown // action_request_s::ACTION_KILL
 		_actuator_armed.force_failsafe = (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_TERMINATION);
 		// _actuator_armed.in_esc_calibration_mode // VEHICLE_CMD_PREFLIGHT_CALIBRATION
@@ -2030,6 +2030,11 @@ void Commander::safetyButtonUpdate()
 	}
 }
 
+bool Commander::isThrowLaunchInProgress() const
+{
+	return !(_throw_launch_state == ThrowLaunchState::DISABLED || _throw_launch_state == ThrowLaunchState::FLYING);
+}
+
 void Commander::throwLaunchUpdate()
 {
 	if (_param_com_throw_en.get()) {
@@ -2042,27 +2047,36 @@ void Commander::throwLaunchUpdate()
 			_throw_launch_state = ThrowLaunchState::IDLE;
 		}
 
-		if (_throw_launch_state == ThrowLaunchState::IDLE && isArmed()) {
-			mavlink_log_info(&_mavlink_log_pub, "The vehicle is ARMED with throw launch enabled. Throw the vehicle now.\t");
-			_throw_launch_state = ThrowLaunchState::ARMED;
-		}
+		switch (_throw_launch_state) {
+		case ThrowLaunchState::IDLE:
+			if (isArmed()) {
+				mavlink_log_info(&_mavlink_log_pub, "The vehicle is ARMED with throw launch enabled. Throw the vehicle now.\t");
+				_throw_launch_state = ThrowLaunchState::ARMED;
+			}
 
-		float vehicle_speed_squared = (
-						      _vehicle_local_position.vx * _vehicle_local_position.vx +
-						      _vehicle_local_position.vy * _vehicle_local_position.vy +
-						      _vehicle_local_position.vz * _vehicle_local_position.vz
-					      );
-		float min_launch_speed = _param_com_throw_min_speed.get();
+			break;
 
-		if (_throw_launch_state == ThrowLaunchState::ARMED &&
-		    vehicle_speed_squared >= min_launch_speed * min_launch_speed) {
-			PX4_INFO("Minimum throw speed exceeded; the motors will start when the vehicle starts falling down.");
-			_throw_launch_state = ThrowLaunchState::UNSAFE;
-		}
+		case ThrowLaunchState::ARMED:
+			if (matrix::Vector3f(
+				    _vehicle_local_position.vx, _vehicle_local_position.vy, _vehicle_local_position.vz
+			    ).longerThan(_param_com_throw_min_speed.get())) {
+				PX4_INFO("Minimum throw speed exceeded; the motors will start when the vehicle starts falling down.");
+				_throw_launch_state = ThrowLaunchState::UNSAFE;
+			}
 
-		if (_throw_launch_state == ThrowLaunchState::UNSAFE && _vehicle_local_position.vz > 0) {
-			PX4_INFO("Throw successful, starting motors.");
-			_throw_launch_state = ThrowLaunchState::FLYING;
+			break;
+
+		case ThrowLaunchState::UNSAFE:
+			if (_vehicle_local_position.vz > 0) {
+				PX4_INFO("Throw successful, starting motors.");
+				_throw_launch_state = ThrowLaunchState::FLYING;
+			}
+
+			break;
+
+		default:
+
+			break;
 		}
 
 	} else if (_throw_launch_state != ThrowLaunchState::DISABLED) {
@@ -2188,10 +2202,7 @@ void Commander::handleAutoDisarm()
 				_auto_disarm_landed.set_state_and_update(true, hrt_absolute_time());
 			}
 
-			const bool throw_launch_in_progress = (_throw_launch_state == ThrowLaunchState::ARMED
-							       || _throw_launch_state == ThrowLaunchState::UNSAFE);
-
-			if (_auto_disarm_landed.get_state() && !throw_launch_in_progress) {
+			if (_auto_disarm_landed.get_state() && !isThrowLaunchInProgress()) {
 				if (_have_taken_off_since_arming) {
 					disarm(arm_disarm_reason_t::auto_disarm_land);
 
@@ -2210,14 +2221,16 @@ void Commander::handleAutoDisarm()
 			auto_disarm |= _actuator_armed.lockdown;
 		}
 
+		//don't disarm if throw launch is in progress
+		auto_disarm &= !isThrowLaunchInProgress();
+
 		_auto_disarm_killed.set_state_and_update(auto_disarm, hrt_absolute_time());
 
 		if (_auto_disarm_killed.get_state()) {
 			if (_actuator_armed.manual_lockdown) {
 				disarm(arm_disarm_reason_t::kill_switch, true);
 
-			} else if (!_param_com_throw_en.get()) {  // don't disarm if throw
-				// launch is enabled
+			} else {
 				disarm(arm_disarm_reason_t::lockdown, true);
 			}
 		}
