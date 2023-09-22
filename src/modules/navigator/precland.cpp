@@ -279,7 +279,7 @@ PrecLand::run_state_horizontal_approach()
 	float x = _target_pose.x_abs;
 	float y = _target_pose.y_abs;
 
-	// slewrate(x, y);
+	slewrate(x, y);
 
 	// XXX need to transform to GPS coords because mc_pos_control only looks at that
 	_map_ref.reproject(x, y, pos_sp_triplet->current.lat, pos_sp_triplet->current.lon);
