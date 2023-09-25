@@ -541,15 +541,10 @@ void Ekf::resetQuatCov(const float yaw_noise)
 
 void Ekf::resetQuatCov(const Vector3f &rot_var_ned)
 {
-	// clear existing quaternion covariance
-	// Optimization: avoid the creation of a <4> function
-	P.uncorrelateCovarianceSetVariance<2>(State::quat_nominal.idx, 0.0f);
-	P.uncorrelateCovarianceSetVariance<2>(State::quat_nominal.idx + 2, 0.0f);
-
 	matrix::SquareMatrix<float, State::quat_nominal.dof> q_cov;
 	sym::RotVarNedToLowerTriangularQuatCov(getStateAtFusionHorizonAsVector(), rot_var_ned, &q_cov);
 	q_cov.copyLowerToUpperTriangle();
-	P.slice<State::quat_nominal.dof, State::quat_nominal.dof>(State::quat_nominal.idx, State::quat_nominal.idx) = q_cov;
+	resetStateCovariance<State::quat_nominal>(q_cov);
 }
 
 void Ekf::resetMagCov()
@@ -565,8 +560,8 @@ void Ekf::resetMagCov()
 
 	saveMagCovData();
 #else
-	P.uncorrelateCovarianceSetVariance<3>(16, 0.f);
-	P.uncorrelateCovarianceSetVariance<3>(19, 0.f);
+	P.uncorrelateCovarianceSetVariance<State::mag_I.dof>(State::mag_I.idx, 0.f);
+	P.uncorrelateCovarianceSetVariance<State::mag_B.dof>(State::mag_B.idx, 0.f);
 
 #endif
 }
