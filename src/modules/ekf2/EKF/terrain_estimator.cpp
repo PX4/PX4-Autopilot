@@ -452,3 +452,7 @@ bool Ekf::isTerrainEstimateValid() const
 
 	return false;
 }
+
+void Ekf::terrainHandleVerticalPositionReset(const float delta_z) {
+	_terrain_vpos += delta_z;
+}
