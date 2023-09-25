@@ -211,6 +211,10 @@ void Ekf::resetVerticalPositionTo(const float new_vert_pos, float new_vert_pos_v
 	_rng_hgt_b_est.setBias(_rng_hgt_b_est.getBias() + delta_z);
 #endif // CONFIG_EKF2_RANGE_FINDER
 
+#if defined(CONFIG_EKF2_TERRAIN)
+	terrainHandleVerticalPositionReset(delta_z);
+#endif
+
 	// Reset the timout timer
 	_time_last_hgt_fuse = _time_delayed_us;
 }

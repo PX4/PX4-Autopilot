@@ -40,6 +40,7 @@
 #include "EKF/ekf.h"
 #include "sensor_simulator/sensor_simulator.h"
 #include "sensor_simulator/ekf_wrapper.h"
+#include "test_helper/reset_logging_checker.h"
 
 class EkfTerrainTest : public ::testing::Test
 {
@@ -181,4 +182,31 @@ TEST_F(EkfTerrainTest, testRngForTerrainFusion)
 
 	const float estimated_distance_to_ground = _ekf->getTerrainVertPos();
 	EXPECT_NEAR(estimated_distance_to_ground, rng_height, 0.01f);
+}
+
+TEST_F(EkfTerrainTest, testHeightReset)
+{
+	// GIVEN: rng for terrain but not flow
+	_ekf_wrapper.disableTerrainFlowFusion();
+	_ekf_wrapper.enableTerrainRngFusion();
+
+	const float rng_height = 1.f;
+	const float flow_height = 1.f;
+	runFlowAndRngScenario(rng_height, flow_height);
+
+	const float estimated_distance_to_ground = _ekf->getTerrainVertPos() - _ekf->getPosition()(2);
+
+	ResetLoggingChecker reset_logging_checker(_ekf);
+	reset_logging_checker.capturePreResetState();
+
+	// WHEN: the baro height is suddenly changed to trigger a height reset
+	const float new_baro_height = _sensor_simulator._baro.getData() + 50.f;
+	_sensor_simulator._baro.setData(new_baro_height);
+	_sensor_simulator.stopGps(); // prevent from switching to GNSS height
+	_sensor_simulator.runSeconds(6);
+
+	// THEN: a height reset occured and the estimated distance to the ground remains constant
+	reset_logging_checker.capturePostResetState();
+	EXPECT_TRUE(reset_logging_checker.isVerticalPositionResetCounterIncreasedBy(1));
+	EXPECT_NEAR(estimated_distance_to_ground, _ekf->getTerrainVertPos() - _ekf->getPosition()(2), 1e-3f);
 }
