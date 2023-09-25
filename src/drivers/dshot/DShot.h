@@ -54,9 +54,9 @@ static constexpr unsigned int DSHOT300  =  300000u;
 static constexpr unsigned int DSHOT600  =  600000u;
 static constexpr unsigned int DSHOT1200 = 1200000u;
 
-static constexpr int DSHOT_DISARM_VALUE = 0;
-static constexpr int DSHOT_MIN_THROTTLE = 1;
-static constexpr int DSHOT_MAX_THROTTLE = 1999;
+static constexpr float DSHOT_DISARM_VALUE = 0;
+static constexpr float DSHOT_MIN_THROTTLE = 1;
+static constexpr float DSHOT_MAX_THROTTLE = 1999;
 
 class DShot final : public ModuleBase<DShot>, public OutputModuleInterface
 {
@@ -93,7 +93,7 @@ public:
 
 	bool telemetry_enabled() const { return _telemetry != nullptr; }
 
-	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+	bool updateOutputs(bool stop_motors, float outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
 
 private:
@@ -173,8 +173,8 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::DSHOT_MIN>)    _param_dshot_min,
 		(ParamBool<px4::params::DSHOT_3D_ENABLE>) _param_dshot_3d_enable,
-		(ParamInt<px4::params::DSHOT_3D_DEAD_H>) _param_dshot_3d_dead_h,
-		(ParamInt<px4::params::DSHOT_3D_DEAD_L>) _param_dshot_3d_dead_l,
+		(ParamFloat<px4::params::DSHOT_3D_DEAD_H>) _param_dshot_3d_dead_h,
+		(ParamFloat<px4::params::DSHOT_3D_DEAD_L>) _param_dshot_3d_dead_l,
 		(ParamInt<px4::params::MOT_POLE_COUNT>) _param_mot_pole_count
 	)
 };

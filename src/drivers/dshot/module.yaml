@@ -39,7 +39,7 @@ parameters:
                 long: |
                     When the actuator_output is between DSHOT_3D_DEAD_L and DSHOT_3D_DEAD_H, motor will not spin.
                     This value is with respect to the mixer_module range (0-1999), not the DSHOT values.
-            type: int32
+            type: float
             min: 1000
             max: 1999
             default: 1000
@@ -49,7 +49,7 @@ parameters:
                 long: |
                     When the actuator_output is between DSHOT_3D_DEAD_L and DSHOT_3D_DEAD_H, motor will not spin.
                     This value is with respect to the mixer_module range (0-1999), not the DSHOT values.
-            type: int32
+            type: float
             min: 0
             max: 1000
             default: 1000

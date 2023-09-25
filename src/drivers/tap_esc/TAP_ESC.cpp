@@ -241,7 +241,7 @@ void TAP_ESC::send_tune_packet(EscbusTunePacket &tune_packet)
 	tap_esc_common::send_packet(_uart_fd, buzzer_packet, -1);
 }
 
-bool TAP_ESC::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
+bool TAP_ESC::updateOutputs(bool stop_motors, float outputs[MAX_ACTUATORS], unsigned num_outputs,
 			    unsigned num_control_groups_updated)
 {
 	if (_initialized) {
@@ -250,26 +250,26 @@ bool TAP_ESC::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], u
 		// We need to remap from the system default to what PX4's normal scheme is
 		switch (num_outputs) {
 		case 4:
-			motor_out[0] = outputs[2];
-			motor_out[1] = outputs[1];
-			motor_out[2] = outputs[3];
-			motor_out[3] = outputs[0];
+			motor_out[0] = static_cast<uint16_t>(outputs[2]);
+			motor_out[1] = static_cast<uint16_t>(outputs[1]);
+			motor_out[2] = static_cast<uint16_t>(outputs[3]);
+			motor_out[3] = static_cast<uint16_t>(outputs[0]);
 			break;
 
 		case 6:
-			motor_out[0] = outputs[3];
-			motor_out[1] = outputs[0];
-			motor_out[2] = outputs[4];
-			motor_out[3] = outputs[2];
-			motor_out[4] = outputs[1];
-			motor_out[5] = outputs[5];
+			motor_out[0] = static_cast<uint16_t>(outputs[3]);
+			motor_out[1] = static_cast<uint16_t>(outputs[0]);
+			motor_out[2] = static_cast<uint16_t>(outputs[4]);
+			motor_out[3] = static_cast<uint16_t>(outputs[2]);
+			motor_out[4] = static_cast<uint16_t>(outputs[1]);
+			motor_out[5] = static_cast<uint16_t>(outputs[5]);
 			break;
 
 		default:
 
 			// Use the system defaults
 			for (uint8_t i = 0; i < num_outputs; ++i) {
-				motor_out[i] = outputs[i];
+				motor_out[i] = static_cast<uint16_t>(outputs[i]);
 			}
 
 			break;

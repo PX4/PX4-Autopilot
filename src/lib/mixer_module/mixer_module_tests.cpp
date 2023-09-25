@@ -52,10 +52,10 @@
 
 static constexpr int max_num_outputs = 8;
 
-static constexpr int disarmed_value = 900;
-static constexpr int failsafe_value = 800;
-static constexpr int min_value = 1000;
-static constexpr int max_value = 2000;
+static constexpr float disarmed_value = 900.f;
+static constexpr float failsafe_value = 800.f;
+static constexpr float min_value = 1000.f;
+static constexpr float max_value = 2000.f;
 
 class MixerModuleTest : public ::testing::Test
 {
@@ -87,7 +87,7 @@ public:
 		was_scheduled = true;
 	}
 
-	bool updateOutputs(bool stop_motors, uint16_t outputs_[MAX_ACTUATORS],
+	bool updateOutputs(bool stop_motors, float outputs_[MAX_ACTUATORS],
 			   unsigned num_outputs_, unsigned num_control_groups_updated) override
 	{
 		memcpy(outputs, outputs_, sizeof(outputs));
@@ -168,7 +168,7 @@ public:
 		mixer_changed = false;
 	}
 
-	uint16_t outputs[MAX_ACTUATORS] {};
+	float outputs[MAX_ACTUATORS] {};
 	int num_outputs{0};
 	int num_updates{0};
 	bool was_scheduled{false};

@@ -109,6 +109,7 @@ public:
 				} else {
 					// remap from [0, 1] to [-1, 1]
 					values[i] = values[i] * 2.f - 1.f;
+					// values[i] = values[i];
 				}
 			}
 		}

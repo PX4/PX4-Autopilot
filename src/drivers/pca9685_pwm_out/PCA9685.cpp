@@ -52,15 +52,15 @@ int PCA9685::Stop()
 	return PX4_OK;
 }
 
-int PCA9685::updatePWM(const uint16_t *outputs, unsigned num_outputs)
+int PCA9685::updatePWM(const float *outputs, unsigned num_outputs)
 {
 	if (num_outputs > PCA9685_PWM_CHANNEL_COUNT) {
 		num_outputs = PCA9685_PWM_CHANNEL_COUNT;
 		PX4_DEBUG("PCA9685 can only drive up to 16 channels");
 	}
 
-	uint16_t out[PCA9685_PWM_CHANNEL_COUNT];
-	memcpy(out, outputs, sizeof(uint16_t) * num_outputs);
+	float out[PCA9685_PWM_CHANNEL_COUNT];
+	memcpy(out, outputs, sizeof(float) * num_outputs);
 
 	for (unsigned i = 0; i < num_outputs; ++i) {
 		out[i] = (uint16_t)roundl((out[i] * _Freq * PCA9685_PWM_RES / (float)1e6)); // convert us to 12 bit resolution
@@ -141,9 +141,11 @@ int PCA9685::probe()
 	return I2C::probe();
 }
 
-void PCA9685::setPWM(uint8_t channel, const uint16_t &value)
+void PCA9685::setPWM(uint8_t channel, const float &value)
 {
-	if (value >= 4096) {
+	uint16_t uint_val = static_cast<uint16_t>(value);
+
+	if (uint_val >= 4096) {
 		PX4_DEBUG("invalid pwm value");
 		return;
 	}
@@ -152,8 +154,8 @@ void PCA9685::setPWM(uint8_t channel, const uint16_t &value)
 	buf[0] = PCA9685_REG_LED0 + channel * PCA9685_REG_LED_INCREMENT;
 	buf[1] = 0x00;
 	buf[2] = 0x00;
-	buf[3] = (uint8_t)(value & (uint8_t)0xFF);
-	buf[4] = value != 0 ? ((uint8_t)(value >> (uint8_t)8)) : PCA9685_LED_ON_FULL_ON_OFF_MASK;
+	buf[3] = (uint8_t)(uint_val & (uint8_t)0xFF);
+	buf[4] = uint_val != 0 ? ((uint8_t)(uint_val >> (uint8_t)8)) : PCA9685_LED_ON_FULL_ON_OFF_MASK;
 
 	int ret = transfer(buf, 5, nullptr, 0);
 
@@ -162,21 +164,23 @@ void PCA9685::setPWM(uint8_t channel, const uint16_t &value)
 	}
 }
 
-void PCA9685::setPWM(uint8_t channel_count, const uint16_t *value)
+void PCA9685::setPWM(uint8_t channel_count, const float *value)
 {
 	uint8_t buf[PCA9685_PWM_CHANNEL_COUNT * PCA9685_REG_LED_INCREMENT + 1] = {};
 	buf[0] = PCA9685_REG_LED0;
 
 	for (int i = 0; i < channel_count; ++i) {
-		if (value[i] >= 4096) {
+		uint16_t val = static_cast<uint16_t>(value[i]);
+
+		if (val >= 4096) {
 			PX4_DEBUG("invalid pwm value");
 			return;
 		}
 
 		buf[1 + i * PCA9685_REG_LED_INCREMENT] = 0x00;
 		buf[2 + i * PCA9685_REG_LED_INCREMENT] = 0x00;
-		buf[3 + i * PCA9685_REG_LED_INCREMENT] = (uint8_t)(value[i] & (uint8_t)0xFF);
-		buf[4 + i * PCA9685_REG_LED_INCREMENT] = value[i] != 0 ? ((uint8_t)(value[i] >> (uint8_t)8)) :
+		buf[3 + i * PCA9685_REG_LED_INCREMENT] = (uint8_t)(val & (uint8_t)0xFF);
+		buf[4 + i * PCA9685_REG_LED_INCREMENT] = val != 0 ? ((uint8_t)(val >> (uint8_t)8)) :
 				PCA9685_LED_ON_FULL_ON_OFF_MASK;
 	}
 

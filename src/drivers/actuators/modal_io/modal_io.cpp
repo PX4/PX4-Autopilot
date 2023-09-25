@@ -877,7 +877,7 @@ void ModalIo::update_leds(vehicle_control_mode_s mode, led_control_s control)
 	}
 }
 
-void ModalIo::mix_turtle_mode(uint16_t outputs[MAX_ACTUATORS])
+void ModalIo::mix_turtle_mode(float outputs[MAX_ACTUATORS])
 {
 	bool use_pitch = true;
 	bool use_roll  = true;
@@ -1052,7 +1052,7 @@ void ModalIo::mix_turtle_mode(uint16_t outputs[MAX_ACTUATORS])
 }
 
 /* OutputModuleInterface */
-bool ModalIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+bool ModalIo::updateOutputs(bool stop_motors, float outputs[MAX_ACTUATORS],
 			    unsigned num_outputs, unsigned num_control_groups_updated)
 {
 	if (num_outputs != MODAL_IO_OUTPUT_CHANNELS) {
@@ -1070,11 +1070,11 @@ bool ModalIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 
 		} else {
 			if (!_turtle_mode_en) {
-				_esc_chans[i].rate_req = outputs[i] * _output_map[i].direction;
+				_esc_chans[i].rate_req = static_cast<int16_t>(outputs[i]) * _output_map[i].direction;
 
 			} else {
 				// mapping updated in mixTurtleMode, no remap needed here, but reverse direction
-				_esc_chans[i].rate_req = outputs[i] * _output_map[i].direction * (-1);
+				_esc_chans[i].rate_req = static_cast<int16_t>(outputs[i]) * _output_map[i].direction * (-1);
 			}
 		}
 	}

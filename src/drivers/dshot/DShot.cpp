@@ -336,7 +336,7 @@ void DShot::mixerChanged()
 	update_telemetry_num_motors();
 }
 
-bool DShot::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+bool DShot::updateOutputs(bool stop_motors, float outputs[MAX_ACTUATORS],
 			  unsigned num_outputs, unsigned num_control_groups_updated)
 {
 	if (!_outputs_on) {
@@ -388,9 +388,9 @@ bool DShot::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 
 		for (int i = 0; i < (int)num_outputs; i++) {
 
-			uint16_t output = outputs[i];
+			float output = outputs[i];
 
-			if (output == DSHOT_DISARM_VALUE) {
+			if (fabsf(output - DSHOT_DISARM_VALUE) < 0.00001f) {
 				up_dshot_motor_command(i, DShot_cmd_motor_stop, telemetry_index == requested_telemetry_index);
 
 			} else {
@@ -407,10 +407,10 @@ bool DShot::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 						bool upper_range = output >= 1000;
 
 						if (upper_range) {
-							output -= 1000;
+							output -= 1000.f;
 
 						} else {
-							output = 999 - output; // lower range is inverted
+							output = 999.f - output; // lower range is inverted
 						}
 
 						float max_output = 999.f;
@@ -418,13 +418,13 @@ bool DShot::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 						output = math::min(max_output, (min_output + output * (max_output - min_output) / max_output));
 
 						if (upper_range) {
-							output += 1000;
+							output += 1000.0f;
 						}
 
 					}
 				}
 
-				up_dshot_motor_data_set(i, math::min(output, static_cast<uint16_t>(DSHOT_MAX_THROTTLE)),
+				up_dshot_motor_data_set(i, math::min(static_cast<uint16_t>(output), static_cast<uint16_t>(DSHOT_MAX_THROTTLE)),
 							telemetry_index == requested_telemetry_index);
 			}
 
@@ -595,7 +595,7 @@ void DShot::update_params()
 	updateParams();
 
 	// we use a minimum value of 1, since 0 is for disarmed
-	_mixing_output.setAllMinValues(math::constrain(static_cast<int>((_param_dshot_min.get() *
+	_mixing_output.setAllMinValues(math::constrain(static_cast<float>((_param_dshot_min.get() *
 				       static_cast<float>(DSHOT_MAX_THROTTLE))),
 				       DSHOT_MIN_THROTTLE, DSHOT_MAX_THROTTLE));
 
