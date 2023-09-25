@@ -164,7 +164,7 @@ void Ekf::controlEvPosFusion(const extVisionSample &ev_sample, const bool common
 	if (measurement_valid && quality_sufficient) {
 		_ev_pos_b_est.setMaxStateNoise(Vector2f(sqrtf(measurement_var(0)), sqrtf(measurement_var(1))));
 		_ev_pos_b_est.setProcessNoiseSpectralDensity(_params.ev_hgt_bias_nsd); // TODO
-		_ev_pos_b_est.fuseBias(measurement - Vector2f(_state.pos.xy()), measurement_var + P.slice<2, 2>(State::pos.idx, State::pos.idx).diag());
+		_ev_pos_b_est.fuseBias(measurement - Vector2f(_state.pos.xy()), measurement_var + Vector2f(getStateVariance<State::pos>()));
 	}
 
 	if (!measurement_valid) {

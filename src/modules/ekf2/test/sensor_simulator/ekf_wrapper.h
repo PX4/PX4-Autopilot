@@ -118,7 +118,6 @@ public:
 
 	Eulerf getEulerAngles() const;
 	float getYawAngle() const;
-	matrix::Vector4f getQuaternionVariance() const;
 	int getQuaternionResetCounter() const;
 
 	void enableDragFusion();
