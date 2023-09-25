@@ -298,7 +298,7 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 
 	if (_control_status.flags.wind) {
 		const float wind_vel_process_noise = sq(wind_vel_nsd_scaled) * dt;
-;
+
 		for (unsigned index = 0; index < State::wind_vel.dof; index++) {
 			unsigned i = State::wind_vel.idx + index;
 			nextP(i, i) += wind_vel_process_noise;
