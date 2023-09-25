@@ -55,7 +55,7 @@ void Ekf::controlZeroVelocityUpdate()
 			// Set a low variance initially for faster leveling and higher
 			// later to let the states follow the measurements
 			const float obs_var = _control_status.flags.tilt_align ? sq(0.2f) : sq(0.001f);
-			Vector3f innov_var = P.slice<3, 3>(State::vel.idx, State::vel.idx).diag() + obs_var;
+			Vector3f innov_var = getVelocityVariance() + obs_var;
 
 			for (unsigned i = 0; i < 3; i++) {
 				fuseVelPosHeight(innovation(i), innov_var(i), State::vel.idx + i);

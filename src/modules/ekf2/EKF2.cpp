@@ -1665,10 +1665,10 @@ void EKF2::PublishOdometry(const hrt_abstime &timestamp, const imuSample &imu_sa
 	angular_velocity.copyTo(odom.angular_velocity);
 
 	// velocity covariances
-	_ekf.velocity_covariances().diag().copyTo(odom.velocity_variance);
+	_ekf.getVelocityVariance().copyTo(odom.velocity_variance);
 
 	// position covariances
-	_ekf.position_covariances().diag().copyTo(odom.position_variance);
+	_ekf.getPositionVariance().copyTo(odom.position_variance);
 
 	// orientation covariance
 	_ekf.calcRotVecVariances().copyTo(odom.orientation_variance);

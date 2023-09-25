@@ -308,9 +308,13 @@ public:
 
 	// get the wind velocity in m/s
 	const Vector2f &getWindVelocity() const { return _state.wind_vel; };
+	Vector2f getWindVelocityVariance() const { return getStateVariance<State::wind_vel>(); }
 
-	// get the wind velocity var
-	Vector2f getWindVelocityVariance() const { return P.slice<State::wind_vel.dof, State::wind_vel.dof>(State::wind_vel.idx, State::wind_vel.idx).diag(); }
+	template <const IdxDof &S>
+	matrix::Vector<float, S.dof>getStateVariance() const { return P.slice<S.dof, S.dof>(S.idx, S.idx).diag(); } // calling getStateCovariance().diag() uses more flash space
+
+	template <const IdxDof &S>
+	matrix::SquareMatrix<float, S.dof>getStateCovariance() const { return P.slice<S.dof, S.dof>(S.idx, S.idx); }
 
 	// get the full covariance matrix
 	const matrix::SquareMatrix<float, State::size> &covariances() const { return P; }
@@ -318,14 +322,10 @@ public:
 	// get the diagonal elements of the covariance matrix
 	matrix::Vector<float, State::size> covariances_diagonal() const { return P.diag(); }
 
-	// get the orientation (quaterion) covariances
-	matrix::SquareMatrix<float, 4> orientation_covariances() const { return P.slice<State::quat_nominal.dof, State::quat_nominal.dof>(State::quat_nominal.idx, State::quat_nominal.idx); }
+	matrix::Vector<float, State::quat_nominal.dof> getQuaternionVariance() const { return getStateVariance<State::quat_nominal>(); }
+	Vector3f getVelocityVariance() const { return getStateVariance<State::vel>(); };
+	Vector3f getPositionVariance() const { return getStateVariance<State::pos>(); }
 
-	// get the linear velocity covariances
-	matrix::SquareMatrix<float, 3> velocity_covariances() const { return P.slice<State::vel.dof, State::vel.dof>(State::vel.idx, State::vel.idx); }
-
-	// get the position covariances
-	matrix::SquareMatrix<float, 3> position_covariances() const { return P.slice<State::pos.dof, State::pos.dof>(State::pos.idx, State::pos.idx); }
 
 	// ask estimator for sensor data collection decision and do any preprocessing if required, returns true if not defined
 	bool collect_gps(const gpsMessage &gps) override;
@@ -355,10 +355,6 @@ public:
 	void resetImuBias();
 	void resetGyroBias();
 	void resetAccelBias();
-
-	Vector3f getVelocityVariance() const { return velocity_covariances().diag(); };
-
-	Vector3f getPositionVariance() const { return position_covariances().diag(); }
 
 	// First argument returns GPS drift  metrics in the following array locations
 	// 0 : Horizontal position drift rate (m/s)
@@ -408,23 +404,22 @@ public:
 
 	// gyro bias
 	const Vector3f &getGyroBias() const { return _state.gyro_bias; } // get the gyroscope bias in rad/s
-	Vector3f getGyroBiasVariance() const { return P.slice<State::gyro_bias.dof, State::gyro_bias.dof>(State::gyro_bias.idx, State::gyro_bias.idx).diag(); } // get the gyroscope bias variance in rad/s
+	Vector3f getGyroBiasVariance() const { return getStateVariance<State::gyro_bias>(); } // get the gyroscope bias variance in rad/s
 	float getGyroBiasLimit() const { return _params.gyro_bias_lim; }
 
 	// accel bias
 	const Vector3f &getAccelBias() const { return _state.accel_bias; } // get the accelerometer bias in m/s**2
-	Vector3f getAccelBiasVariance() const { return P.slice<State::accel_bias.dof, State::accel_bias.dof>(State::accel_bias.idx, State::accel_bias.idx).diag(); } // get the accelerometer bias variance in m/s**2
+	Vector3f getAccelBiasVariance() const { return getStateVariance<State::accel_bias>(); } // get the accelerometer bias variance in m/s**2
 	float getAccelBiasLimit() const { return _params.acc_bias_lim; }
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	const Vector3f &getMagEarthField() const { return _state.mag_I; }
 
-	// mag bias (states 19, 20, 21)
 	const Vector3f &getMagBias() const { return _state.mag_B; }
 	Vector3f getMagBiasVariance() const
 	{
 		if (_control_status.flags.mag) {
-			return P.slice<State::mag_B.dof, State::mag_B.dof>(State::mag_B.idx, State::mag_B.idx).diag();
+			return getStateVariance<State::mag_B>();
 		}
 
 		return _saved_mag_bf_covmat.diag();
@@ -804,6 +799,12 @@ private:
 
 	// predict ekf covariance
 	void predictCovariance(const imuSample &imu_delayed);
+
+	template <const IdxDof &S>
+	void resetStateCovariance(const matrix::SquareMatrix<float, S.dof> &cov) {
+		P.uncorrelateCovarianceSetVariance<S.dof>(S.idx, 0.0f);
+		P.slice<S.dof, S.dof>(S.idx, S.idx) = cov;
+	}
 
 	// update quaternion states and covariances using an innovation, observation variance and Jacobian vector
 	bool fuseYaw(estimator_aid_source1d_s &aid_src_status);

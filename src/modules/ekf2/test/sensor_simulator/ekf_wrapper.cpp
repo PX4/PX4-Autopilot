@@ -280,11 +280,6 @@ float EkfWrapper::getYawAngle() const
 	return euler(2);
 }
 
-matrix::Vector4f EkfWrapper::getQuaternionVariance() const
-{
-	return matrix::Vector4f(_ekf->orientation_covariances().diag());
-}
-
 int EkfWrapper::getQuaternionResetCounter() const
 {
 	float tmp[4];
