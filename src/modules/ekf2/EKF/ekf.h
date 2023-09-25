@@ -1160,17 +1160,14 @@ private:
 	// gravity fusion: heuristically enable / disable gravity fusion
 	void controlGravityFusion(const imuSample &imu_delayed);
 
-	void resetQuatCov(float yaw_noise = NAN);
+	void resetQuatCov(const float yaw_noise = NAN);
+	void resetQuatCov(const Vector3f &euler_noise_ned);
 
 	void resetMagCov();
 
 	// perform a reset of the wind states and related covariances
 	void resetWind();
 	void resetWindToZero();
-
-	// Increase the yaw error variance of the quaternions
-	// Argument is additional yaw variance in rad**2
-	void increaseQuatYawErrVariance(float yaw_variance);
 
 	void resetGyroBiasZCov();
 

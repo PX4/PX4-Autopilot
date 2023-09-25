@@ -527,15 +527,20 @@ bool Ekf::checkAndFixCovarianceUpdate(const SquareMatrixState &KHP)
 
 void Ekf::resetQuatCov(const float yaw_noise)
 {
-	const float tilt_var = sq(fmaxf(_params.initial_tilt_err, 1.0e-2f));
-	Vector3f rot_var_ned(tilt_var, tilt_var, 0.f);
+	const float tilt_var = sq(math::max(_params.initial_tilt_err, 0.01f));
+	float yaw_var = sq(0.01f);
 
 	// update the yaw angle variance using the variance of the measurement
 	if (PX4_ISFINITE(yaw_noise)) {
 		// using magnetic heading tuning parameter
-		rot_var_ned(2) = (sq(fmaxf(yaw_noise, 1.0e-2f)));
+		yaw_var = math::max(sq(yaw_noise), yaw_var);
 	}
 
+	resetQuatCov(Vector3f(tilt_var, tilt_var, yaw_var));
+}
+
+void Ekf::resetQuatCov(const Vector3f &rot_var_ned)
+{
 	// clear existing quaternion covariance
 	// Optimization: avoid the creation of a <4> function
 	P.uncorrelateCovarianceSetVariance<2>(State::quat_nominal.idx, 0.0f);
