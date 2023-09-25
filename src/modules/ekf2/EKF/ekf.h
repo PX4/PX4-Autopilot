@@ -917,6 +917,7 @@ private:
 	float getTerrainVPos() const { return isTerrainEstimateValid() ? _terrain_vpos : _last_on_ground_posD; }
 
 	void controlHaglFakeFusion();
+	void terrainHandleVerticalPositionReset(float delta_z);
 
 # if defined(CONFIG_EKF2_RANGE_FINDER)
 	// update the terrain vertical position estimate using a height above ground measurement from the range finder
