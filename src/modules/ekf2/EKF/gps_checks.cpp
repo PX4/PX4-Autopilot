@@ -113,9 +113,9 @@ bool Ekf::collect_gps(const gpsMessage &gps)
 				const bool mag_inclination_changed = (fabsf(mag_inclination_gps - _mag_inclination_gps) > math::radians(1.f));
 
 				if ((_wmm_gps_time_last_set == 0)
-				    || !PX4_ISFINITE(mag_declination_gps)
-				    || !PX4_ISFINITE(mag_inclination_gps)
-				    || !PX4_ISFINITE(mag_strength_gps)
+				    || !PX4_ISFINITE(_mag_declination_gps)
+				    || !PX4_ISFINITE(_mag_inclination_gps)
+				    || !PX4_ISFINITE(_mag_strength_gps)
 				    || mag_declination_changed
 				    || mag_inclination_changed
 				   ) {
