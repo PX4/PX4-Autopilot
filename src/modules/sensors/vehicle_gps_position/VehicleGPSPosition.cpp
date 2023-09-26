@@ -109,14 +109,16 @@ void VehicleGPSPosition::Run()
 	bool gps_updated = false;
 
 	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
-		gps_updated = _sensor_gps_sub[i].updated();
-
 		sensor_gps_s gps_data;
+
+		// Make sure if there is any queued data that we only use the most recent
+		while (_sensor_gps_sub[i].update(&gps_data)) {
+			gps_updated = true;
+		}
 
 		if (gps_updated) {
 			any_gps_updated = true;
 
-			_sensor_gps_sub[i].copy(&gps_data);
 			_gps_blending.setGpsData(gps_data, i);
 
 			if (!_sensor_gps_sub[i].registered()) {
