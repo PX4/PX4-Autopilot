@@ -219,12 +219,12 @@ bool Ekf::calcOptFlowBodyRateComp()
 
 			// calculate the bias estimate using  a combined LPF and spike filter
 			_flow_gyro_bias = _flow_gyro_bias * 0.99f + matrix::constrain(measured_body_rate - reference_body_rate, -0.1f, 0.1f) * 0.01f;
-
-			// apply gyro bias
-			_flow_sample_delayed.gyro_xyz -= (_flow_gyro_bias * _flow_sample_delayed.dt);
-
-			is_body_rate_comp_available = true;
 		}
+
+		// apply gyro bias
+		_flow_sample_delayed.gyro_xyz -= (_flow_gyro_bias * _flow_sample_delayed.dt);
+
+		is_body_rate_comp_available = true;
 
 	} else {
 		// Use the EKF gyro data if optical flow sensor gyro data is not available
