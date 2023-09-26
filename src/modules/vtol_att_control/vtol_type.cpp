@@ -50,6 +50,11 @@ using namespace matrix;
 
 #define THROTTLE_BLENDING_DUR_S 1.0f
 
+// [.] minimum ratio between the actual vehicle weight and the vehicle nominal weight (weight at which the performance limits are derived)
+static constexpr float kMinWeightRatio = 0.5f;
+
+// [.] maximum ratio between the actual vehicle weight and the vehicle nominal weight (weight at which the performance limits are derived)
+static constexpr float kMaxWeightRatio = 2.0f;
 
 VtolType::VtolType(VtolAttitudeControl *att_controller) :
 	ModuleParams(nullptr),
@@ -210,7 +215,7 @@ bool VtolType::isFrontTransitionCompletedBase()
 
 	if (airspeed_triggers_transition) {
 		transition_to_fw = minimum_trans_time_elapsed
-				   && _airspeed_validated->calibrated_airspeed_m_s >= _param_vt_arsp_trans.get();
+				   && _airspeed_validated->calibrated_airspeed_m_s >= getTransitionAirspeed();
 
 	} else {
 		transition_to_fw = openloop_trans_time_elapsed;
@@ -580,4 +585,22 @@ float VtolType::getFrontTransitionTimeout() const
 float VtolType::getOpenLoopFrontTransitionTime() const
 {
 	return getFrontTransitionTimeFactor() * _param_vt_f_tr_ol_tm.get();
+}
+float VtolType::getTransitionAirspeed() const
+{
+	return  math::max(_param_vt_arsp_trans.get(), getMinimumAirspeed());
+}
+float VtolType::getMinimumAirspeed() const
+{
+	float weight_ratio = 1.0f;
+
+	if (_param_weight_base.get() > FLT_EPSILON && _param_weight_gross.get() > FLT_EPSILON) {
+		weight_ratio = math::constrain(_param_weight_gross.get() / _param_weight_base.get(), kMinWeightRatio, kMaxWeightRatio);
+	}
+
+	return sqrtf(weight_ratio) * _param_airspeed_min.get();
+}
+float VtolType::getBlendAirspeed() const
+{
+	return _param_vt_arsp_blend.get();
 }
