@@ -386,8 +386,15 @@ void RCUpdate::Run()
 
 	/* read low-level values from FMU or IO RC inputs (PPM, Spektrum, S.Bus) */
 	input_rc_s input_rc;
+	bool got_update = false;
 
-	if (_input_rc_sub.update(&input_rc)) {
+	// Check to see if there is an update and clear out any old ones. We only want
+	// to process the most recent one.
+	while (_input_rc_sub.update(&input_rc)) {
+		got_update = true;
+	}
+
+	if (got_update) {
 
 		// warn if the channel count is changing (possibly indication of error)
 		if (!input_rc.rc_lost) {
