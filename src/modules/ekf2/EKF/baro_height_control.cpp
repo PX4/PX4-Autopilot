@@ -121,7 +121,6 @@ void Ekf::controlBaroHeightFusion()
 				&& isNewestSampleRecent(_time_last_baro_buffer_push, 2 * BARO_MAX_INTERVAL);
 
 		if (_control_status.flags.baro_hgt) {
-			aid_src.fusion_enabled = true;
 
 			if (continuing_conditions_passing) {
 

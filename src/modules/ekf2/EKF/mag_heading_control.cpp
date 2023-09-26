@@ -97,7 +97,6 @@ void Ekf::controlMagHeadingFusion(const magSample &mag_sample, const bool common
 			&& isTimedOut(aid_src.time_last_fuse, 3e6);
 
 	if (_control_status.flags.mag_hdg) {
-		aid_src.fusion_enabled = true;
 		aid_src.timestamp_sample = mag_sample.time_us;
 
 		if (continuing_conditions_passing && _control_status.flags.yaw_align) {
@@ -184,8 +183,6 @@ void Ekf::controlMagHeadingFusion(const magSample &mag_sample, const bool common
 			_nb_mag_heading_reset_available = 1;
 		}
 	}
-
-	aid_src.fusion_enabled = _control_status.flags.mag_hdg;
 
 	// record corresponding mag heading and yaw state for future mag heading delta heading innovation (logging only)
 	_mag_heading_prev = measured_hdg;

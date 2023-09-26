@@ -76,8 +76,6 @@ void Ekf::controlEvYawFusion(const extVisionSample &ev_sample, const bool common
 			&& isTimedOut(aid_src.time_last_fuse, (uint32_t)1e6);
 
 	if (_control_status.flags.ev_yaw) {
-		aid_src.fusion_enabled = true;
-
 		if (continuing_conditions_passing) {
 
 			if (ev_reset) {

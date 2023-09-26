@@ -73,8 +73,6 @@ void Ekf::updateGpsYaw(const gpsSample &gps_sample)
 		gnss_yaw.innovation = wrap_pi(heading_pred - measured_hdg);
 		gnss_yaw.innovation_variance = heading_innov_var;
 
-		gnss_yaw.fusion_enabled = _control_status.flags.gps_yaw;
-
 		gnss_yaw.timestamp_sample = gps_sample.time_us;
 
 		const float innov_gate = math::max(_params.heading_innov_gate, 1.0f);

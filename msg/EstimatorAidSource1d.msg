@@ -14,7 +14,6 @@ float32 innovation
 float32 innovation_variance
 float32 test_ratio
 
-bool fusion_enabled          # true when measurements are being fused
 bool innovation_rejected     # true if the observation has been rejected
 bool fused                   # true if the sample was successfully fused
 

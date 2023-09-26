@@ -104,10 +104,7 @@ void Ekf::controlEvHeightFusion(const extVisionSample &ev_sample, const bool com
 			&& continuing_conditions_passing;
 
 	if (_control_status.flags.ev_hgt) {
-		aid_src.fusion_enabled = true;
-
 		if (continuing_conditions_passing) {
-
 			if (ev_reset) {
 
 				if (quality_sufficient) {
