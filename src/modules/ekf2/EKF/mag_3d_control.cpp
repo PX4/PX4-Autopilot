@@ -89,7 +89,6 @@ void Ekf::controlMag3DFusion(const magSample &mag_sample, const bool common_star
 
 	if (_control_status.flags.mag) {
 		aid_src.timestamp_sample = mag_sample.time_us;
-		aid_src.fusion_enabled = true;
 
 		if (continuing_conditions_passing && _control_status.flags.yaw_align) {
 
@@ -190,8 +189,6 @@ void Ekf::controlMag3DFusion(const magSample &mag_sample, const bool common_star
 			_nb_mag_3d_reset_available = 2;
 		}
 	}
-
-	aid_src.fusion_enabled = _control_status.flags.mag;
 }
 
 void Ekf::stopMagFusion()

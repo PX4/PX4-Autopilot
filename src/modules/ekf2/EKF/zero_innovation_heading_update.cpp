@@ -62,7 +62,6 @@ void Ekf::controlZeroInnovationHeadingUpdate()
 
 		if (!_control_status.flags.tilt_align || (aid_src_status.innovation_variance - obs_var) > sq(_params.mag_heading_noise)) {
 			// The yaw variance is too large, fuse fake measurement
-			aid_src_status.fusion_enabled = true;
 			fuseYaw(aid_src_status, H_YAW);
 		}
 	}

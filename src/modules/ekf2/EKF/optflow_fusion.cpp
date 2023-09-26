@@ -90,8 +90,6 @@ void Ekf::updateOptFlow(estimator_aid_source2d_s &aid_src)
 
 void Ekf::fuseOptFlow()
 {
-	_aid_src_optical_flow.fusion_enabled = true;
-
 	const float R_LOS = _aid_src_optical_flow.observation_variance[0];
 
 	// calculate the height above the ground of the optical flow camera. Since earth frame is NED

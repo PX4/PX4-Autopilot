@@ -95,7 +95,7 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 					   vel_obs_var,                                                // observation variance
 					   math::max(_params.gps_vel_innov_gate, 1.f),                 // innovation gate
 					   _aid_src_gnss_vel);
-		_aid_src_gnss_vel.fusion_enabled = (_params.gnss_ctrl & GnssCtrl::VEL);
+		const bool gnss_vel_enabled = (_params.gnss_ctrl & GnssCtrl::VEL);
 
 		// GNSS position
 		const Vector2f position{gps_sample.pos};
@@ -117,13 +117,13 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 						     pos_obs_var,                                // observation variance
 						     math::max(_params.gps_pos_innov_gate, 1.f), // innovation gate
 						     _aid_src_gnss_pos);
-		_aid_src_gnss_pos.fusion_enabled = (_params.gnss_ctrl & GnssCtrl::HPOS);
+		const bool gnss_pos_enabled = (_params.gnss_ctrl & GnssCtrl::HPOS);
 
 		// Determine if we should use GPS aiding for velocity and horizontal position
 		// To start using GPS we need angular alignment completed, the local NED origin set and GPS data that has not failed checks recently
 		bool mandatory_conditions_passing = false;
 
-		if (((_params.gnss_ctrl & GnssCtrl::HPOS) || (_params.gnss_ctrl & GnssCtrl::VEL))
+		if ((gnss_pos_enabled || gnss_vel_enabled)
 		    && _control_status.flags.tilt_align
 		    && _NED_origin_initialised
 		   ) {
@@ -148,8 +148,13 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 				if (continuing_conditions_passing
 				    || !isOtherSourceOfHorizontalAidingThan(_control_status.flags.gps)) {
 
-					fuseVelocity(_aid_src_gnss_vel);
-					fuseHorizontalPosition(_aid_src_gnss_pos);
+					if (gnss_vel_enabled) {
+						fuseVelocity(_aid_src_gnss_vel);
+					}
+
+					if (gnss_pos_enabled) {
+						fuseHorizontalPosition(_aid_src_gnss_pos);
+					}
 
 					bool do_vel_pos_reset = shouldResetGpsFusion();
 
@@ -196,15 +201,19 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 					if (do_vel_pos_reset) {
 						ECL_WARN("GPS fusion timeout, resetting velocity and position");
 
-						// reset velocity
-						_information_events.flags.reset_vel_to_gps = true;
-						resetVelocityTo(velocity, vel_obs_var);
-						_aid_src_gnss_vel.time_last_fuse = _time_delayed_us;
+						if (gnss_vel_enabled) {
+							// reset velocity
+							_information_events.flags.reset_vel_to_gps = true;
+							resetVelocityTo(velocity, vel_obs_var);
+							_aid_src_gnss_vel.time_last_fuse = _time_delayed_us;
+						}
 
-						// reset position
-						_information_events.flags.reset_pos_to_gps = true;
-						resetHorizontalPositionTo(position, pos_obs_var);
-						_aid_src_gnss_pos.time_last_fuse = _time_delayed_us;
+						if (gnss_pos_enabled) {
+							// reset position
+							_information_events.flags.reset_pos_to_gps = true;
+							resetHorizontalPositionTo(position, pos_obs_var);
+							_aid_src_gnss_pos.time_last_fuse = _time_delayed_us;
+						}
 					}
 
 				} else {
@@ -228,15 +237,19 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 				    || !_control_status_prev.flags.yaw_align
 				   ) {
 					// reset velocity
-					_information_events.flags.reset_vel_to_gps = true;
-					resetVelocityTo(velocity, vel_obs_var);
-					_aid_src_gnss_vel.time_last_fuse = _time_delayed_us;
+					if (gnss_vel_enabled) {
+						_information_events.flags.reset_vel_to_gps = true;
+						resetVelocityTo(velocity, vel_obs_var);
+						_aid_src_gnss_vel.time_last_fuse = _time_delayed_us;
+					}
 				}
 
-				// reset position
-				_information_events.flags.reset_pos_to_gps = true;
-				resetHorizontalPositionTo(position, pos_obs_var);
-				_aid_src_gnss_pos.time_last_fuse = _time_delayed_us;
+				if (gnss_pos_enabled) {
+					// reset position
+					_information_events.flags.reset_pos_to_gps = true;
+					resetHorizontalPositionTo(position, pos_obs_var);
+					_aid_src_gnss_pos.time_last_fuse = _time_delayed_us;
+				}
 
 				_control_status.flags.gps = true;
 			}

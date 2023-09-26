@@ -133,8 +133,6 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bo
 		aid_src_mag.innovation[i] = mag_innov(i);
 	}
 
-	aid_src_mag.fusion_enabled = _control_status.flags.mag;
-
 	// do not use the synthesized measurement for the magnetomter Z component for 3D fusion
 	if (_control_status.flags.synthetic_mag_z) {
 		aid_src_mag.innovation[2] = 0.0f;

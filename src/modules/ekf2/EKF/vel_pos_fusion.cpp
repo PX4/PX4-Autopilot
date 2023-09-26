@@ -134,7 +134,7 @@ void Ekf::updateHorizontalPositionAidSrcStatus(const uint64_t &time_us, const Ve
 
 void Ekf::fuseVelocity(estimator_aid_source2d_s &aid_src)
 {
-	if (aid_src.fusion_enabled && !aid_src.innovation_rejected) {
+	if (!aid_src.innovation_rejected) {
 		// vx, vy
 		if (fuseVelPosHeight(aid_src.innovation[0], aid_src.innovation_variance[0], State::vel.idx)
 		    && fuseVelPosHeight(aid_src.innovation[1], aid_src.innovation_variance[1], State::vel.idx + 1)
@@ -150,7 +150,7 @@ void Ekf::fuseVelocity(estimator_aid_source2d_s &aid_src)
 
 void Ekf::fuseVelocity(estimator_aid_source3d_s &aid_src)
 {
-	if (aid_src.fusion_enabled && !aid_src.innovation_rejected) {
+	if (!aid_src.innovation_rejected) {
 		// vx, vy, vz
 		if (fuseVelPosHeight(aid_src.innovation[0], aid_src.innovation_variance[0], State::vel.idx)
 		    && fuseVelPosHeight(aid_src.innovation[1], aid_src.innovation_variance[1], State::vel.idx + 1)
@@ -168,7 +168,7 @@ void Ekf::fuseVelocity(estimator_aid_source3d_s &aid_src)
 void Ekf::fuseHorizontalPosition(estimator_aid_source2d_s &aid_src)
 {
 	// x & y
-	if (aid_src.fusion_enabled && !aid_src.innovation_rejected) {
+	if (!aid_src.innovation_rejected) {
 		if (fuseVelPosHeight(aid_src.innovation[0], aid_src.innovation_variance[0], State::pos.idx)
 		    && fuseVelPosHeight(aid_src.innovation[1], aid_src.innovation_variance[1], State::pos.idx + 1)
 		   ) {
@@ -184,7 +184,7 @@ void Ekf::fuseHorizontalPosition(estimator_aid_source2d_s &aid_src)
 void Ekf::fuseVerticalPosition(estimator_aid_source1d_s &aid_src)
 {
 	// z
-	if (aid_src.fusion_enabled && !aid_src.innovation_rejected) {
+	if (!aid_src.innovation_rejected) {
 		if (fuseVelPosHeight(aid_src.innovation, aid_src.innovation_variance, State::pos.idx + 2)) {
 			aid_src.fused = true;
 			aid_src.time_last_fuse = _time_delayed_us;

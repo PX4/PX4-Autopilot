@@ -55,80 +55,77 @@ bool Ekf::fuseYaw(estimator_aid_source1d_s &aid_src_status, const VectorState &H
 	// innovation test ratio
 	setEstimatorAidStatusTestRatio(aid_src_status, gate_sigma);
 
-	if (aid_src_status.fusion_enabled) {
+	// check if the innovation variance calculation is badly conditioned
+	if (aid_src_status.innovation_variance >= aid_src_status.observation_variance) {
+		// the innovation variance contribution from the state covariances is not negative, no fault
+		_fault_status.flags.bad_hdg = false;
 
-		// check if the innovation variance calculation is badly conditioned
-		if (aid_src_status.innovation_variance >= aid_src_status.observation_variance) {
-			// the innovation variance contribution from the state covariances is not negative, no fault
-			_fault_status.flags.bad_hdg = false;
+	} else {
+		// the innovation variance contribution from the state covariances is negative which means the covariance matrix is badly conditioned
+		_fault_status.flags.bad_hdg = true;
+
+		// we reinitialise the covariance matrix and abort this fusion step
+		initialiseCovariance();
+		ECL_ERR("yaw fusion numerical error - covariance reset");
+
+		return false;
+	}
+
+	// calculate the Kalman gains
+	// only calculate gains for states we are using
+	VectorState Kfusion;
+	const float heading_innov_var_inv = 1.f / aid_src_status.innovation_variance;
+
+	for (uint8_t row = 0; row < State::size; row++) {
+		for (uint8_t col = 0; col <= 3; col++) {
+			Kfusion(row) += P(row, col) * H_YAW(col);
+		}
+
+		Kfusion(row) *= heading_innov_var_inv;
+	}
+
+	// set the magnetometer unhealthy if the test fails
+	if (aid_src_status.innovation_rejected) {
+		_innov_check_fail_status.flags.reject_yaw = true;
+
+		// if we are in air we don't want to fuse the measurement
+		// we allow to use it when on the ground because the large innovation could be caused
+		// by interference or a large initial gyro bias
+		if (!_control_status.flags.in_air
+			&& isTimedOut(_time_last_in_air, (uint64_t)5e6)
+			&& isTimedOut(aid_src_status.time_last_fuse, (uint64_t)1e6)
+			) {
+			// constrain the innovation to the maximum set by the gate
+			// we need to delay this forced fusion to avoid starting it
+			// immediately after touchdown, when the drone is still armed
+			float gate_limit = sqrtf((sq(gate_sigma) * aid_src_status.innovation_variance));
+			aid_src_status.innovation = math::constrain(aid_src_status.innovation, -gate_limit, gate_limit);
+
+			// also reset the yaw gyro variance to converge faster and avoid
+			// being stuck on a previous bad estimate
+			resetGyroBiasZCov();
 
 		} else {
-			// the innovation variance contribution from the state covariances is negative which means the covariance matrix is badly conditioned
-			_fault_status.flags.bad_hdg = true;
-
-			// we reinitialise the covariance matrix and abort this fusion step
-			initialiseCovariance();
-			ECL_ERR("yaw fusion numerical error - covariance reset");
-
 			return false;
 		}
 
-		// calculate the Kalman gains
-		// only calculate gains for states we are using
-		VectorState Kfusion;
-		const float heading_innov_var_inv = 1.f / aid_src_status.innovation_variance;
+	} else {
+		_innov_check_fail_status.flags.reject_yaw = false;
+	}
 
-		for (uint8_t row = 0; row < State::size; row++) {
-			for (uint8_t col = 0; col <= 3; col++) {
-				Kfusion(row) += P(row, col) * H_YAW(col);
-			}
+	if (measurementUpdate(Kfusion, aid_src_status.innovation_variance, aid_src_status.innovation)) {
 
-			Kfusion(row) *= heading_innov_var_inv;
-		}
+		_time_last_heading_fuse = _time_delayed_us;
 
-		// set the magnetometer unhealthy if the test fails
-		if (aid_src_status.innovation_rejected) {
-			_innov_check_fail_status.flags.reject_yaw = true;
+		aid_src_status.time_last_fuse = _time_delayed_us;
+		aid_src_status.fused = true;
 
-			// if we are in air we don't want to fuse the measurement
-			// we allow to use it when on the ground because the large innovation could be caused
-			// by interference or a large initial gyro bias
-			if (!_control_status.flags.in_air
-			    && isTimedOut(_time_last_in_air, (uint64_t)5e6)
-			    && isTimedOut(aid_src_status.time_last_fuse, (uint64_t)1e6)
-			   ) {
-				// constrain the innovation to the maximum set by the gate
-				// we need to delay this forced fusion to avoid starting it
-				// immediately after touchdown, when the drone is still armed
-				float gate_limit = sqrtf((sq(gate_sigma) * aid_src_status.innovation_variance));
-				aid_src_status.innovation = math::constrain(aid_src_status.innovation, -gate_limit, gate_limit);
+		_fault_status.flags.bad_hdg = false;
 
-				// also reset the yaw gyro variance to converge faster and avoid
-				// being stuck on a previous bad estimate
-				resetGyroBiasZCov();
+		return true;
 
-			} else {
-				return false;
-			}
-
-		} else {
-			_innov_check_fail_status.flags.reject_yaw = false;
-		}
-
-		if (measurementUpdate(Kfusion, aid_src_status.innovation_variance, aid_src_status.innovation)) {
-
-			_time_last_heading_fuse = _time_delayed_us;
-
-			aid_src_status.time_last_fuse = _time_delayed_us;
-			aid_src_status.fused = true;
-
-			_fault_status.flags.bad_hdg = false;
-
-			return true;
-
-		} else {
-			_fault_status.flags.bad_hdg = true;
-		}
+	} else {
+		_fault_status.flags.bad_hdg = true;
 	}
 
 	// otherwise

@@ -151,8 +151,6 @@ void Ekf::updateAirspeed(const airspeedSample &airspeed_sample, estimator_aid_so
 	aid_src.innovation = innov;
 	aid_src.innovation_variance = innov_var;
 
-	aid_src.fusion_enabled = _control_status.flags.fuse_aspd;
-
 	aid_src.timestamp_sample = airspeed_sample.time_us;
 
 	const float innov_gate = fmaxf(_params.tas_innov_gate, 1.f);

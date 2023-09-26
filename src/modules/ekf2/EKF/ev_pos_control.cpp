@@ -175,7 +175,6 @@ void Ekf::controlEvPosFusion(const extVisionSample &ev_sample, const bool common
 			&& continuing_conditions_passing;
 
 	if (_control_status.flags.ev_pos) {
-		aid_src.fusion_enabled = true;
 
 		if (continuing_conditions_passing) {
 			const bool bias_estimator_change = (bias_fusion_was_active != _ev_pos_b_est.fusionActive());

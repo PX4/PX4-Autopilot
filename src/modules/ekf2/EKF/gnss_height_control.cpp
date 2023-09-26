@@ -98,8 +98,6 @@ void Ekf::controlGnssHeightFusion(const gpsSample &gps_sample)
 				&& !gps_checks_failing;
 
 		if (_control_status.flags.gps_hgt) {
-			aid_src.fusion_enabled = true;
-
 			if (continuing_conditions_passing) {
 
 				fuseVerticalPosition(aid_src);
