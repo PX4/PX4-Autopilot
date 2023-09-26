@@ -138,7 +138,6 @@ void Ekf::controlEvVelFusion(const extVisionSample &ev_sample, const bool common
 			&& ((Vector3f(aid_src.test_ratio).max() < 0.1f) || !isHorizontalAidingActive());
 
 	if (_control_status.flags.ev_vel) {
-		aid_src.fusion_enabled = true;
 
 		if (continuing_conditions_passing) {
 

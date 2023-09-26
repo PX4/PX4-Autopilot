@@ -94,8 +94,6 @@ void Ekf::updateSideslip(estimator_aid_source1d_s &sideslip) const
 	sideslip.innovation = innov;
 	sideslip.innovation_variance = innov_var;
 
-	sideslip.fusion_enabled = _control_status.flags.fuse_aspd;
-
 	sideslip.timestamp_sample = _time_delayed_us;
 
 	const float innov_gate = fmaxf(_params.beta_innov_gate, 1.f);

@@ -1240,7 +1240,6 @@ private:
 			status.innovation_variance = 0;
 			status.test_ratio = INFINITY;
 
-			status.fusion_enabled = false;
 			status.innovation_rejected = true;
 			status.fused = false;
 		}
@@ -1264,7 +1263,6 @@ private:
 				status.test_ratio[i] = INFINITY;
 			}
 
-			status.fusion_enabled = false;
 			status.innovation_rejected = true;
 			status.fused = false;
 		}

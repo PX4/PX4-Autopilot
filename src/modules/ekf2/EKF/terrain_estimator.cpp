@@ -176,8 +176,6 @@ void Ekf::controlHaglRngFusion()
 		// No data anymore. Stop until it comes back.
 		stopHaglRngFusion();
 	}
-
-	_aid_src_terrain_range_finder.fusion_enabled = _hagl_sensor_status.flags.range_finder;
 }
 
 float Ekf::getRngVar() const
@@ -241,7 +239,6 @@ void Ekf::updateHaglRng(estimator_aid_source1d_s &aid_src) const
 
 	setEstimatorAidStatusTestRatio(aid_src, innov_gate);
 
-	aid_src.fusion_enabled = false;
 	aid_src.fused = false;
 }
 
@@ -319,8 +316,6 @@ void Ekf::controlHaglFlowFusion()
 		// No data anymore. Stop until it comes back.
 		stopHaglFlowFusion();
 	}
-
-	_aid_src_terrain_optical_flow.fusion_enabled = _hagl_sensor_status.flags.flow;
 }
 
 void Ekf::stopHaglFlowFusion()
@@ -345,7 +340,6 @@ void Ekf::resetHaglFlow()
 
 void Ekf::fuseFlowForTerrain(estimator_aid_source2d_s &flow)
 {
-	flow.fusion_enabled = true;
 	flow.fused = true;
 
 	const float R_LOS = flow.observation_variance[0];
