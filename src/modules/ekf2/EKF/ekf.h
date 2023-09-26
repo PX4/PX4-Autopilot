@@ -183,6 +183,7 @@ public:
 
 	const Vector3f getFlowGyro() const { return _flow_sample_delayed.gyro_xyz * (1.f / _flow_sample_delayed.dt); }
 	const Vector3f &getFlowGyroIntegral() const { return _flow_sample_delayed.gyro_xyz; }
+	const Vector3f &getFlowGyroBias() const { return _flow_gyro_bias; }
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_AUXVEL)
