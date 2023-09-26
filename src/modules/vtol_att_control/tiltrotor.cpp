@@ -244,9 +244,9 @@ void Tiltrotor::update_transition_state()
 		_mc_yaw_weight = 1.0f;
 
 		if (!_param_fw_arsp_mode.get()  && PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s) &&
-		    _airspeed_validated->calibrated_airspeed_m_s >= _param_vt_arsp_blend.get()) {
-			const float weight = 1.0f - (_airspeed_validated->calibrated_airspeed_m_s - _param_vt_arsp_blend.get()) /
-					     (_param_vt_arsp_trans.get()  - _param_vt_arsp_blend.get());
+		    _airspeed_validated->calibrated_airspeed_m_s >= getBlendAirspeed()) {
+			const float weight = 1.0f - (_airspeed_validated->calibrated_airspeed_m_s - getBlendAirspeed()) /
+					     (getTransitionAirspeed()  - getBlendAirspeed());
 			_mc_roll_weight = weight;
 			_mc_yaw_weight = weight;
 		}
