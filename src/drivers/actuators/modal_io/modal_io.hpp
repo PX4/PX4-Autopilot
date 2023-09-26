@@ -49,6 +49,7 @@
 #include <uORB/topics/led_control.h>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/actuator_test.h>
+#include <uORB/topics/modal_io_data.h>
 
 #include "modal_io_serial.hpp"
 
@@ -189,6 +190,7 @@ private:
 	uORB::Subscription 	_parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription 	_actuator_test_sub{ORB_ID(actuator_test)};
 	uORB::Subscription	_led_update_sub{ORB_ID(led_control)};
+	uORB::Subscription	_modal_io_data_sub{ORB_ID(modal_io_data)};
 
 	uORB::Publication<actuator_outputs_s> _outputs_debug_pub{ORB_ID(actuator_outputs_debug)};
 	uORB::Publication<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};

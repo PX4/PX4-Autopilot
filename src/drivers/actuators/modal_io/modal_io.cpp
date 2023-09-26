@@ -1024,7 +1024,6 @@ bool ModalIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 	//in Run() we call _mixing_output.update(), which calls MixingOutput::limitAndUpdateOutputs which calls _interface.updateOutputs (this function)
 	//So, if Run() is blocked by a custom command, this function will not be called until Run is running again
 
-
 	if (num_outputs != MODAL_IO_OUTPUT_CHANNELS) {
 		return false;
 	}
@@ -1104,6 +1103,21 @@ bool ModalIo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 	}
 
 	_esc_status_pub.publish(_esc_status);
+
+	// If any extra external modal io data has been received then
+	// send it over as well
+	while (_modal_io_data_sub.updated()) {
+		modal_io_data_s io_data{};
+		_modal_io_data_sub.copy(&io_data);
+		// PX4_INFO("Got Modal IO data: %u bytes", io_data.len);
+		// PX4_INFO("   0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x",
+		// 		 io_data.data[0], io_data.data[1], io_data.data[2], io_data.data[3],
+		// 		 io_data.data[4], io_data.data[5], io_data.data[6], io_data.data[7]);
+		if (_uart_port->uart_write(io_data.data, io_data.len) != io_data.len) {
+			PX4_ERR("Failed to send modal io data to esc");
+			return false;
+		}
+	}
 
 	perf_count(_output_update_perf);
 
