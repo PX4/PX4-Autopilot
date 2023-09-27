@@ -213,7 +213,7 @@ bool Ekf::calcOptFlowBodyRateComp()
 		    && (_flow_sample_delayed.dt > FLT_EPSILON)
 		    && (fabsf(_delta_time_of - _flow_sample_delayed.dt) < 0.1f)) {
 
-			const Vector3f reference_body_rate(_imu_del_ang_of * (1.0f / _delta_time_of));
+			const Vector3f reference_body_rate(-_imu_del_ang_of * (1.0f / _delta_time_of)); // flow gyro has opposite sign convention
 
 			const Vector3f measured_body_rate(_flow_sample_delayed.gyro_xyz * (1.0f / _flow_sample_delayed.dt));
 
