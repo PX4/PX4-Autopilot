@@ -89,7 +89,12 @@ typedef sem_t px4_sem_t;
 
 __BEGIN_DECLS
 
-#define px4_sem_init		sem_init
+#define px4_sem_init(s, p, v) ({ \
+		int __ret; \
+		do { __ret = sem_init(s, p, v); sem_setprotocol(s, SEM_PRIO_INHERIT); } while(0); \
+		__ret; \
+	})
+
 #define px4_sem_setprotocol	sem_setprotocol
 #define px4_sem_wait		sem_wait
 #define px4_sem_trywait		sem_trywait
