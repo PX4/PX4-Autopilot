@@ -4,15 +4,16 @@ actuator_output:
     - param_prefix: PCA9685
       channel_label: 'Channel'
       standard_params:
-        disarmed: { min: 0, max: 4096, default: 1000 }
-        min: { min: 0, max: 4096, default: 1100 }
-        max: { min: 0, max: 4096, default: 1900 }
-        failsafe: { min: 0, max: 4096 }
+        disarmed: { min: 800, max: 2200, default: 1000 }
+        min: { min: 800, max: 1400, default: 1100 }
+        max: { min: 1600, max: 2200, default: 1900 }
+        failsafe: { min: 800, max: 2200 }
       custom_params:
         - name: 'DUTY_EN'
           label: "Duty-Cycle\n Mode"
           index_offset: -1
           show_as: bitset
+          advanced: true
       num_channels: 16
 
 parameters:
