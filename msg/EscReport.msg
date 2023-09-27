@@ -14,6 +14,9 @@ uint8 actuator_function				# actuator output function (one of Motor1...MotorN)
 uint16 failures					# Bitmask to indicate the internal ESC faults
 int8 esc_power					# Applied power 0-100 in % (negative values reserved)
 
+uint16 input_throttle				# input throttle that was given to the ESC
+float32 output_throttle				# output throttle that the ESC is trying to achieve as a percentage of the maximum throttle
+
 uint8 FAILURE_OVER_CURRENT = 0 			# (1 << 0)
 uint8 FAILURE_OVER_VOLTAGE = 1 			# (1 << 1)
 uint8 FAILURE_MOTOR_OVER_TEMPERATURE = 2 	# (1 << 2)
