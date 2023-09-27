@@ -214,8 +214,10 @@ bool Ekf::calcOptFlowBodyRateComp()
 		    && (fabsf(_delta_time_of - _flow_sample_delayed.dt) < 0.1f)) {
 
 			const Vector3f reference_body_rate(-_imu_del_ang_of * (1.0f / _delta_time_of)); // flow gyro has opposite sign convention
+			_ref_body_rate = reference_body_rate;
 
 			const Vector3f measured_body_rate(_flow_sample_delayed.gyro_xyz * (1.0f / _flow_sample_delayed.dt));
+			_measured_body_rate = measured_body_rate;
 
 			// calculate the bias estimate using  a combined LPF and spike filter
 			_flow_gyro_bias = _flow_gyro_bias * 0.99f + matrix::constrain(measured_body_rate - reference_body_rate, -0.1f, 0.1f) * 0.01f;

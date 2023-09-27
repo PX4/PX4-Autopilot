@@ -2002,6 +2002,8 @@ void EKF2::PublishOpticalFlowVel(const hrt_abstime &timestamp)
 		_ekf.getFlowGyroIntegral().copyTo(flow_vel.gyro_rate_integral);
 
 		_ekf.getFlowGyroBias().copyTo(flow_vel.gyro_bias);
+		_ekf.getRefBodyRate().copyTo(flow_vel.ref_gyro);
+		_ekf.getMeasuredBodyRate().copyTo(flow_vel.meas_gyro);
 
 		flow_vel.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 

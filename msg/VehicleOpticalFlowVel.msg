@@ -11,5 +11,7 @@ float32[3] gyro_rate                   # gyro measurement synchronized with flow
 float32[3] gyro_rate_integral          # gyro measurement integrated to flow rate and synchronized with flow measurements (rad)
 
 float32[3] gyro_bias
+float32[3] ref_gyro
+float32[3] meas_gyro
 
 # TOPICS estimator_optical_flow_vel vehicle_optical_flow_vel
