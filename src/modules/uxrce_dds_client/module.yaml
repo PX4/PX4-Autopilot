@@ -65,6 +65,26 @@ parameters:
             default: 2130706433
             requires_ethernet: true
 
+        UXRCE_DDS_PTCFG:
+            description:
+                short: uXRCE-DDS participant configuration
+                long: |
+                    Set the participant configuration on the Agent's system.
+                    0: Use the default configuration.
+                    1: Restrict messages to localhost
+                       (use in combination with ROS_LOCALHOST_ONLY=1).
+                    2: Use a custom participant with the profile name "px4_participant".
+            category: System
+            reboot_required: true
+            type: enum
+            values:
+                0: Default
+                1: Localhost-only
+                2: Custom participant
+            min: 0
+            max: 2
+            default: 0
+
         UXRCE_DDS_SYNCT:
             description:
                 short: Enable uXRCE-DDS timestamp synchronization
