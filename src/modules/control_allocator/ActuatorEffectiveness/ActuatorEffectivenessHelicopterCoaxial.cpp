@@ -217,6 +217,6 @@ void ActuatorEffectivenessHelicopterCoaxial::getUnallocatedControl(int matrix_in
 		status.unallocated_thrust[2] = -1.f;
 
 	} else {
-		status.unallocated_torque[2] = 0.f;
+		status.unallocated_thrust[2] = 0.f;
 	}
 }
