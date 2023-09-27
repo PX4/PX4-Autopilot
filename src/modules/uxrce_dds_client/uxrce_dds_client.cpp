@@ -584,21 +584,22 @@ int UxrceddsClient::print_status()
 #if defined(UXRCE_DDS_CLIENT_UDP)
 
 	if (_transport_udp != nullptr) {
-		PX4_INFO("Using transport: udp");
-		PX4_INFO("Agent IP: %s", _agent_ip);
-		PX4_INFO("Agent port: %s", _port);
-
+		PX4_INFO("Using transport:     udp");
+		PX4_INFO("Agent IP:            %s", _agent_ip);
+		PX4_INFO("Agent port:          %s", _port);
+		PX4_INFO("Custom participant:  %s", _custom_participant ? "yes" : "no");
+		PX4_INFO("Localhost only:      %s", _localhost_only ? "yes" : "no");
 	}
 
 #endif
 
 	if (_transport_serial != nullptr) {
-		PX4_INFO("Using transport: serial");
+		PX4_INFO("Using transport:     serial");
 	}
 
 	if (_connected) {
-		PX4_INFO("Payload tx: %i B/s", _last_payload_tx_rate);
-		PX4_INFO("Payload rx: %i B/s", _last_payload_rx_rate);
+		PX4_INFO("Payload tx:          %i B/s", _last_payload_tx_rate);
+		PX4_INFO("Payload rx:          %i B/s", _last_payload_rx_rate);
 	}
 
 	return 0;
