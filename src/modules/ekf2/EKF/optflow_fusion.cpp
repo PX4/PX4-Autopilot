@@ -188,7 +188,7 @@ Vector2f Ekf::predictFlowVelBody()
 
 	// calculate the velocity of the sensor relative to the imu in body frame
 	// Note: _flow_sample_delayed.gyro_xyz is the negative of the body angular velocity, thus use minus sign
-	const Vector3f vel_rel_imu_body = Vector3f(-_flow_sample_delayed.gyro_xyz / _flow_sample_delayed.dt) % pos_offset_body;
+	const Vector3f vel_rel_imu_body = Vector3f(-(_flow_sample_delayed.gyro_xyz / _flow_sample_delayed.dt - _flow_gyro_bias)) % pos_offset_body;
 
 	// calculate the velocity of the sensor in the earth frame
 	const Vector3f vel_rel_earth = _state.vel + _R_to_earth * vel_rel_imu_body;
@@ -220,9 +220,6 @@ bool Ekf::calcOptFlowBodyRateComp()
 			// calculate the bias estimate using  a combined LPF and spike filter
 			_flow_gyro_bias = _flow_gyro_bias * 0.99f + matrix::constrain(measured_body_rate - reference_body_rate, -0.1f, 0.1f) * 0.01f;
 		}
-
-		// apply gyro bias
-		_flow_sample_delayed.gyro_xyz -= (_flow_gyro_bias * _flow_sample_delayed.dt);
 
 		is_body_rate_comp_available = true;
 
