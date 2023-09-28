@@ -123,9 +123,10 @@ PARAM_DEFINE_INT32(COM_HLDL_LOSS_T, 120);
 PARAM_DEFINE_INT32(COM_HLDL_REG_T, 0);
 
 /**
- * RC loss time threshold
+ * Manual control loss timeout
  *
- * After this amount of seconds without RC connection it's considered lost and not used anymore
+ * The time in seconds without a new setpoint from RC or Joystick, after which the connection is considered lost.
+ * This must be kept short as the vehicle will use the last supplied setpoint until the timeout triggers.
  *
  * @group Commander
  * @unit s
@@ -262,7 +263,7 @@ PARAM_DEFINE_INT32(COM_LOW_BAT_ACT, 0);
  *
  * Before entering failsafe (RTL, Land, Hold), wait COM_FAIL_ACT_T seconds in Hold mode
  * for the user to realize.
- * During that time the user cannot take over control via the stick override feature see COM_RC_OVERRIDE.
+ * During that time the user cannot take over control via the stick override feature (see COM_RC_OVERRIDE).
  * Afterwards the configured failsafe action is triggered and the user may use stick override.
  *
  * A zero value disables the delay and the user cannot take over via stick movements (switching modes is still allowed).
