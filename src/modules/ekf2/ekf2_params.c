@@ -1082,11 +1082,10 @@ PARAM_DEFINE_FLOAT(EKF2_EV_POS_Z, 0.0f);
 /**
 * Airspeed fusion threshold.
 *
-* A value of zero will deactivate airspeed fusion. Any other positive
-* value will determine the minimum airspeed which will still be fused. Set to about 90% of the vehicles stall speed.
-* Both airspeed fusion and sideslip fusion must be active for the EKF to continue navigating after loss of GPS.
-* Use EKF2_FUSE_BETA to activate sideslip fusion.
-* Note: side slip fusion is currently not supported for tailsitters.
+* Airspeed data is fused for wind estimation if above this threshold.
+* Set to 0 to disable airspeed fusion.
+* For reliable wind estimation both sideslip (see EKF2_FUSE_BETA) and airspeed fusion should be enabled.
+* Only applies to fixed-wing vehicles (or VTOLs in fixed-wing mode).
 *
 * @group EKF2
 * @min 0.0
@@ -1096,11 +1095,11 @@ PARAM_DEFINE_FLOAT(EKF2_EV_POS_Z, 0.0f);
 PARAM_DEFINE_FLOAT(EKF2_ARSP_THR, 0.0f);
 
 /**
-* Boolean determining if synthetic sideslip measurements should fused.
+* Enable synthetic sideslip fusion.
 *
-* A value of 1 indicates that fusion is active
-* Both  sideslip fusion and airspeed fusion must be active for the EKF to continue navigating after loss of GPS.
-* Use EKF2_ARSP_THR to activate airspeed fusion.
+* For reliable wind estimation both sideslip and airspeed fusion (see EKF2_ARSP_THR) should be enabled.
+* Only applies to fixed-wing vehicles (or VTOLs in fixed-wing mode).
+* Note: side slip fusion is currently not supported for tailsitters.
 *
 * @group EKF2
 * @boolean
