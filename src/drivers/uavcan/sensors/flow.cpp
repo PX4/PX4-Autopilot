@@ -79,7 +79,7 @@ void UavcanFlowBridge::flow_sub_cb(const uavcan::ReceivedDataStructure<com::hex:
 	if (PX4_ISFINITE(msg.rate_gyro_integral[0]) && PX4_ISFINITE(msg.rate_gyro_integral[1])) {
 		flow.delta_angle[0] = msg.rate_gyro_integral[0];
 		flow.delta_angle[1] = msg.rate_gyro_integral[1];
-		flow.delta_angle[2] = 0.f;
+		flow.delta_angle[2] = NAN;
 		flow.delta_angle_available = true;
 
 	} else {
