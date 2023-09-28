@@ -293,9 +293,9 @@ bool CrsfParser_TryParseCrsfPacket(CrsfPacket_t *const new_packet, CrsfParserSta
 			} else {
 				// We don't know what this packet is, so we'll let the parser continue
 				// just so that we can dequeue it in one shot
-				working_segment_size = packet_size + PACKET_SIZE_TYPE_SIZE;
+				working_segment_size = packet_size - PACKET_SIZE_TYPE_SIZE;
 
-				if (working_segment_size > CRSF_MAX_PACKET_LEN) {
+				if (working_index + working_segment_size + CRC_SIZE > CRSF_MAX_PACKET_LEN) {
 					parser_statistics->invalid_unknown_packet_sizes++;
 					parser_state = PARSER_STATE_HEADER;
 					working_segment_size = HEADER_SIZE;
