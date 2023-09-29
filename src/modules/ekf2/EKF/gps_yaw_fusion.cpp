@@ -100,8 +100,6 @@ void Ekf::fuseGpsYaw()
 	sym::ComputeGnssYawPredInnovVarAndH(getStateAtFusionHorizonAsVector(), P, _gps_yaw_offset, gnss_yaw.observation_variance, FLT_EPSILON, &heading_pred, &heading_innov_var, &H);
 	}
 
-	const SparseVectorState<0,1,2,3> Hfusion(H);
-
 	// check if the innovation variance calculation is badly conditioned
 	if (gnss_yaw.innovation_variance < gnss_yaw.observation_variance) {
 		// the innovation variance contribution from the state covariances is negative which means the covariance matrix is badly conditioned
@@ -129,7 +127,7 @@ void Ekf::fuseGpsYaw()
 
 	// calculate the Kalman gains
 	// only calculate gains for states we are using
-	VectorState Kfusion = P * Hfusion / gnss_yaw.innovation_variance;
+	VectorState Kfusion = P * H / gnss_yaw.innovation_variance;
 
 	const bool is_fused = measurementUpdate(Kfusion, gnss_yaw.innovation_variance, gnss_yaw.innovation);
 	_fault_status.flags.bad_hdg = !is_fused;
