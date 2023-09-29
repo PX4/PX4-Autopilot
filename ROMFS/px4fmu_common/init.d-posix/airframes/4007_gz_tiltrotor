@@ -77,7 +77,7 @@ param set-default CA_SV_TL_COUNT 2
 
 param set-default NPFG_PERIOD 12
 param set-default FW_PR_FF 0.2
-param set-default FW_PR_P 0.9
+param set-default FW_PR_P 0.8
 param set-default FW_PSP_OFF 2
 param set-default FW_P_LIM_MIN -15
 param set-default FW_RR_FF 0.1
@@ -101,6 +101,7 @@ param set-default MIS_TAKEOFF_ALT 10
 
 param set-default VT_FWD_THRUST_EN 4
 param set-default VT_FWD_THRUST_SC 0.6
+param set-default VT_TILT_FW 0.7
 param set-default VT_TILT_TRANS 0.6
 param set-default VT_TYPE 1
 param set-default FD_ESCS_EN 0

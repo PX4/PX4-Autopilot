@@ -96,17 +96,17 @@
     </link>
 
     <link name='motor_0'>
-      <pose>0.35 -0.35 0.02 0 0 0</pose>
+      <pose>0.3675 -0.35 0.02 0 0.785 0</pose>
       <inertial>
         <pose>0 0 0 0 0 0</pose>
         <mass>0.05</mass>
         <inertia>
-          <ixx>0.0166704</ixx>
+          <ixx>0.00008125</ixx>
           <ixy>0</ixy>
           <ixz>0</ixz>
-          <iyy>0.0166704</iyy>
+          <iyy>0.00008125</iyy>
           <iyz>0</iyz>
-          <izz>0.0167604</izz>
+          <izz>0.0001225</izz>
         </inertia>
       </inertial>
       <collision name='motor_0_collision'>
@@ -150,8 +150,8 @@
       <axis>
         <xyz>0 1 0</xyz>
         <limit>
-          <lower>-1.5</lower>
-          <upper>1.5</upper>
+          <lower>-1</lower>
+          <upper>1</upper>
         </limit>
         <dynamics>
           <friction>1.0</friction>
@@ -160,12 +160,11 @@
         </dynamics>
       </axis>
     </joint>
-    <plugin
-      filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
+    <plugin filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
     <joint_name>servo_3</joint_name>
       <sub_topic>servo_3</sub_topic>
       <p_gain>10</p_gain>
-      <i_gain>1</i_gain>
+      <i_gain>0</i_gain>
       <d_gain>0</d_gain>
       <i_max>0</i_max>
       <i_min>0</i_min>
@@ -175,7 +174,7 @@
 
 
     <link name='rotor_0'>
-      <pose>0.35 -0.35 0.07 0 0 0</pose>
+      <pose>0.3925 -0.35 0.07 0 0.785 0</pose>
       <inertial>
         <pose>0 0 0 0 0 0</pose>
         <mass>0.005</mass>
@@ -302,17 +301,17 @@
       </axis>
     </joint>
     <link name='motor_2'>
-      <pose>0.35 0.35 0.02 0 0 0</pose>
+      <pose>0.3675 0.35 0.02 0 0.785 0</pose>
       <inertial>
         <pose>0 0 0 0 0 0</pose>
         <mass>0.05</mass>
         <inertia>
-          <ixx>0.0166704</ixx>
+          <ixx>0.00008125</ixx>
           <ixy>0</ixy>
           <ixz>0</ixz>
-          <iyy>0.0166704</iyy>
+          <iyy>0.00008125</iyy>
           <iyz>0</iyz>
-          <izz>0.0167604</izz>
+          <izz>0.0001225</izz>
         </inertia>
       </inertial>
       <collision name='motor_2_collision'>
@@ -357,8 +356,8 @@
       <axis>
         <xyz>0 1 0</xyz>
         <limit>
-          <lower>-1.5</lower>
-          <upper>1.5</upper>
+          <lower>-1</lower>
+          <upper>1</upper>
         </limit>
         <dynamics>
           <friction>1.0</friction>
@@ -372,7 +371,7 @@
       <joint_name>servo_4</joint_name>
       <sub_topic>servo_4</sub_topic>
       <p_gain>10</p_gain>
-      <i_gain>1</i_gain>
+      <i_gain>0</i_gain>
       <d_gain>0</d_gain>
       <i_max>0</i_max>
       <i_min>0</i_min>
@@ -382,7 +381,7 @@
 
 
     <link name='rotor_2'>
-      <pose>0.35 0.35 0.07 0 0 0</pose>
+      <pose>0.3925 0.35 0.07 0 0.785 0</pose>
       <inertial>
         <pose>0 0 0 0 0 0</pose>
         <mass>0.005</mass>
@@ -577,6 +576,20 @@
         <pose> -0.5 0 0 0.00 0 0.0</pose>
       </inertial>
     </link>
+    <!-- <link name="rudder">
+      <inertial>
+        <mass>0.00000001</mass>
+        <inertia>
+          <ixx>0.000001</ixx>
+          <ixy>0.0</ixy>
+          <iyy>0.000001</iyy>
+          <ixz>0.0</ixz>
+          <iyz>0.0</iyz>
+          <izz>0.000001</izz>
+        </inertia>
+        <pose>-0.5 0 0.05 0 0 0 </pose>
+      </inertial>
+    </link> -->
     <joint name='servo_0' type='revolute'>
       <parent>base_link</parent>
       <child>left_elevon</child>
@@ -605,6 +618,7 @@
       <axis>
         <xyz>0 1 0</xyz>
         <limit>
+          <!-- -30/+30 deg. -->
           <lower>-0.53</lower>
           <upper>0.53</upper>
         </limit>
@@ -656,8 +670,6 @@
       <link_name>base_link</link_name>
       <control_joint_name>servo_0</control_joint_name>
       <control_joint_rad_to_cl>-1.0</control_joint_rad_to_cl>
-      <!--robotNamespace></robotNamespace>
-      <windSubTopic>world_wind</windSubTopic-->
     </plugin>
     <plugin
       filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
@@ -667,7 +679,6 @@
       <i_gain>1</i_gain>
       <d_gain>0</d_gain>
     </plugin>
-    <!--plugin name="right_wing" filename="libLiftDragPlugin.so"-->
     <plugin filename="gz-sim-lift-drag-system" name="gz::sim::systems::LiftDrag">
       <a0>0.05984281113</a0>
       <cla>4.752798721</cla>
@@ -677,6 +688,7 @@
       <cla_stall>-3.85</cla_stall>
       <cda_stall>-0.9233984055</cda_stall>
       <cma_stall>0</cma_stall>
+      <cfa_stall>10000</cfa_stall>
       <cp>-0.05 -0.3 0.05</cp>
       <area>0.5</area>
       <air_density>1.2041</air_density>
@@ -716,8 +728,8 @@
       filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
       <joint_name>servo_2</joint_name>
       <sub_topic>servo_2</sub_topic>
-      <p_gain>10</p_gain>
-      <i_gain>1</i_gain>
+      <p_gain>5</p_gain>
+      <i_gain>0</i_gain>
       <d_gain>0</d_gain>
     </plugin>
     <plugin filename="gz-sim-multicopter-motor-model-system" name="gz::sim::systems::MulticopterMotorModel">
