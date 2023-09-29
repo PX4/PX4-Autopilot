@@ -94,12 +94,18 @@ private:
 				_vehicle_thrust_setpoint_0_sub.copy(&vehicle_thrust_setpoint_0);
 				_vehicle_thrust_setpoint_1_sub.copy(&vehicle_thrust_setpoint_1);
 
+				const float thrust_magnitude_0 = sqrtf(vehicle_thrust_setpoint_0.xyz[0] * vehicle_thrust_setpoint_0.xyz[0] +
+								       vehicle_thrust_setpoint_0.xyz[1] * vehicle_thrust_setpoint_0.xyz[1] +
+								       vehicle_thrust_setpoint_0.xyz[2] * vehicle_thrust_setpoint_0.xyz[2]);
+
+				const float thrust_magnitude_1 = sqrtf(vehicle_thrust_setpoint_1.xyz[0] * vehicle_thrust_setpoint_1.xyz[0] +
+								       vehicle_thrust_setpoint_1.xyz[1] * vehicle_thrust_setpoint_1.xyz[1] +
+								       vehicle_thrust_setpoint_1.xyz[2] * vehicle_thrust_setpoint_1.xyz[2]);
+
 				// VFR_HUD throttle should only be used for operator feedback.
 				// VTOLs switch between vehicle_thrust_setpoint_0 and vehicle_thrust_setpoint_1. During transition there isn't a
 				// a single throttle value, but this should still be a useful heuristic for operator awareness.
-				msg.throttle = 100 * math::max(
-						       -vehicle_thrust_setpoint_0.xyz[2],
-						       vehicle_thrust_setpoint_1.xyz[0]);
+				msg.throttle = 100.f * math::max(thrust_magnitude_0, thrust_magnitude_1);
 
 			} else {
 				msg.throttle = 0.0f;
