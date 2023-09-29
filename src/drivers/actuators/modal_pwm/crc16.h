@@ -1,6 +1,5 @@
 /****************************************************************************
- *
- *   Copyright (c) 2022 ModalAI, Inc. All rights reserved.
+ * Copyright (c) 2017 The Linux Foundation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,10 +11,12 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name PX4 nor the names of its contributors may be
+ * 3. Neither the name The Linux Foundation nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
+ * NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE GRANTED BY
+ * THIS LICENSE.
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
@@ -28,47 +29,37 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
+ * In addition Supplemental Terms apply.  See the SUPPLEMENTAL file.
  *
  ****************************************************************************/
 
-/**
- * @file board_config.h
- *
- * VOXL2 internal definitions
- */
-
-#pragma once
-
-#define BOARD_HAS_NO_RESET
-#define BOARD_HAS_NO_BOOTLOADER
 /*
- * I2C buses
+ * This file contains function prototypes for crc16 computations using polynomial 0x8005
  */
-#define CONFIG_I2C 1
-#define PX4_NUMBER_I2C_BUSES    4
 
-/*
- * SPI buses
- */
-#define CONFIG_SPI 1
-#define BOARD_SPI_BUS_MAX_BUS_ITEMS 1
+#ifndef CRC16_H_
+#define CRC16_H_
 
-/*
- * Include these last to make use of the definitions above
- */
-#include <system_config.h>
-#include <px4_platform_common/board_common.h>
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
-/*
- *  Default port for the ESC
- */
-#define MODAL_IO_DEFAULT_PORT 	"2"
-#define MODAL_PWM_DEFAULT_PORT 	"7"
+#include <stdint.h>
 
+// Returns the seed of crc output, which should be used when computing crc16 of a byte sequence
+uint16_t crc16_init(void);
 
-/*
- * PWM 
- */
-#define DIRECT_PWM_OUTPUT_CHANNELS 4
-// #define MODAL_PWM_OUTPUT_CHANNELS DIRECT_PWM_OUTPUT_CHANNELS
-#define MAX_IO_TIMERS 3
+// Process one byte by providing crc16 from previous step and new byte to consume.
+// Output is the new crc16 value
+uint16_t crc16_byte(uint16_t prev_crc, const uint8_t new_byte);
+
+// Process an array of bytes by providing crc16 from previous step (or seed), array of bytes and its length
+// Output is the new crc16 value
+uint16_t crc16(uint16_t prev_crc, uint8_t const *input_buffer, uint16_t input_length);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif //CRC16_H_

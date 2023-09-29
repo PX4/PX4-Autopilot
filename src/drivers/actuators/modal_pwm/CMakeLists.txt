@@ -40,5 +40,6 @@ px4_add_module(
 
 	DEPENDS
 		# arch_io_pins
+		px4_work_queue
 		mixer_module
 	)

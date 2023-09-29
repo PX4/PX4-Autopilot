@@ -36,23 +36,74 @@
 #include <px4_platform_common/sem.hpp>
 
 ModalPWM::ModalPWM() :
-	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default)
+	// OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default)
+	OutputModuleInterface(MODULE_NAME, px4::serial_port_to_wq(MODAL_PWM_DEFAULT_PORT)),
+	_mixing_output{"Modal PWM", MODAL_PWM_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false},
+	_cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")},
+	_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": output update interval")}
 {
-	_pwm_mask = ((1u << DIRECT_PWM_OUTPUT_CHANNELS) - 1);
-	_mixing_output.setMaxNumOutputs(DIRECT_PWM_OUTPUT_CHANNELS);
+	_device = MODAL_PWM_DEFAULT_PORT;
+
+	_pwm_mask = ((1u << MODAL_PWM_OUTPUT_CHANNELS) - 1);
+	_mixing_output.setMaxNumOutputs(MODAL_PWM_OUTPUT_CHANNELS);
 
 	// Getting initial parameter values
 	update_params();
+	_uart_port = new ModalIoSerial();
+
 }
 
 ModalPWM::~ModalPWM()
 {
 	/* make sure servos are off */
-	up_pwm_servo_deinit(_pwm_mask);
+	// up_pwm_servo_deinit(_pwm_mask);
+	stop_pwms(_pwm_mask);
+
+	if (_uart_port) {
+		_uart_port->uart_close();
+		_uart_port = nullptr;
+	}
 
 	perf_free(_cycle_perf);
 	perf_free(_interval_perf);
 }
+
+
+void ModalPWM::update_params()
+{
+	int ret = PX4_ERROR;
+
+	updateParams();
+	ret = load_params(&_parameters, (ch_assign_t *)&_output_map);
+
+	if (ret == PX4_OK) {
+		_mixing_output.setAllDisarmedValues(0);
+		_mixing_output.setAllFailsafeValues(0);
+		_mixing_output.setAllMinValues(MODAL_PWM_DEFAULT_PWM_MIN);
+		_mixing_output.setAllMaxValues(MODAL_PWM_DEFAULT_PWM_MAX);
+
+		_pwm_fullscale = _parameters.pwm_max - _parameters.pwm_min;
+	}
+}
+	
+int ModalPWM::load_params(modal_pwm_params_t *params, ch_assign_t *map)
+{
+	int ret = PX4_OK;
+
+	// initialize out
+	for (int i = 0; i < MODAL_PWM_OUTPUT_CHANNELS; i++) {
+		params->function_map[i] = (int)OutputFunction::Disabled;
+		params->direction_map[i] = 0;
+		params->motor_map[i] = 0;
+	}
+
+	// Set PWM max and min 
+	params->pwm_min = MODAL_PWM_DEFAULT_PWM_MIN;
+	params->pwm_max = MODAL_PWM_DEFAULT_PWM_MAX;
+
+	return ret;
+}
+
 
 bool ModalPWM::update_pwm_out_state(bool on)
 {
@@ -130,25 +181,25 @@ bool ModalPWM::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated)
 {
 	/* output to the servos */
-	if (_pwm_initialized) {
-		for (size_t i = 0; i < num_outputs; i++) {
-			if (!_mixing_output.isFunctionSet(i)) {
-				// do not run any signal on disabled channels
-				outputs[i] = 0;
-			}
+	// if (_pwm_initialized) {
+	// 	for (size_t i = 0; i < num_outputs; i++) {
+	// 		if (!_mixing_output.isFunctionSet(i)) {
+	// 			// do not run any signal on disabled channels
+	// 			outputs[i] = 0;
+	// 		}
 
-			if (_pwm_mask & (1 << i)) {
-				up_pwm_servo_set(i, outputs[i]);
-			}
-		}
-	}
+	// 		if (_pwm_mask & (1 << i)) {
+	// 			up_pwm_servo_set(i, outputs[i]);
+	// 		}
+	// 	}
+	// }
 
 	/* Trigger all timer's channels in Oneshot mode to fire
 	 * the oneshots with updated values.
 	 */
-	if (num_control_groups_updated > 0) {
-		up_pwm_update(_pwm_mask);
-	}
+	// if (num_control_groups_updated > 0) {
+	// 	up_pwm_update(_pwm_mask);
+	// }
 
 	return true;
 }
@@ -166,7 +217,7 @@ void ModalPWM::Run()
 	perf_begin(_cycle_perf);
 	perf_count(_interval_perf);
 
-	_mixing_output.update();
+	// _mixing_output.update();
 
 	/* update PWM status if armed or if disarmed PWM values are set */
 	_pwm_on = true;
@@ -178,17 +229,17 @@ void ModalPWM::Run()
 	// }
 
 	// check for parameter updates
-	if (_parameter_update_sub.updated()) {
-		// clear update
-		parameter_update_s pupdate;
-		_parameter_update_sub.copy(&pupdate);
+	// if (_parameter_update_sub.updated()) {
+	// 	// clear update
+	// 	parameter_update_s pupdate;
+	// 	_parameter_update_sub.copy(&pupdate);
 
-		// update parameters from storage
-		update_params();
-	}
+	// 	// update parameters from storage
+	// 	update_params();
+	// }
 
 	// check at end of cycle (updateSubscriptions() can potentially change to a different WorkQueue thread)
-	_mixing_output.updateSubscriptions(true);
+	// _mixing_output.updateSubscriptions(true);
 
 	perf_end(_cycle_perf);
 	_first_update_cycle = false;
@@ -209,89 +260,167 @@ int ModalPWM::task_spawn(int argc, char *argv[])
 	return 0;
 }
 
-void ModalPWM::update_params()
-{
-	uint32_t previously_set_functions = 0;
 
-	for (size_t i = 0; i < _num_outputs; i++) {
-		previously_set_functions |= (uint32_t)_mixing_output.isFunctionSet(i) << i;
-	}
-
-	updateParams();
-
-	// Automatically set the PWM rate and disarmed value when a channel is first set to a servo
-	if (!_first_update_cycle) {
-		for (size_t i = 0; i < _num_outputs; i++) {
-			if ((previously_set_functions & (1u << i)) == 0 && _mixing_output.functionParamHandle(i) != PARAM_INVALID) {
-				int32_t output_function;
-
-				if (param_get(_mixing_output.functionParamHandle(i), &output_function) == 0
-				    && output_function >= (int)OutputFunction::Servo1
-				    && output_function <= (int)OutputFunction::ServoMax) { // Function got set to a servo
-					int32_t val = 1500;
-					PX4_INFO("Setting disarmed to %i for channel %i", (int) val, i);
-					param_set(_mixing_output.disarmedParamHandle(i), &val);
-
-					// If the whole timer group was not set previously, then set the pwm rate to 50 Hz
-					// for (int timer = 0; timer < MAX_IO_TIMERS; ++timer) {
-
-					// 	uint32_t channels = io_timer_get_group(timer);
-
-					// 	if ((channels & (1u << i)) == 0) {
-					// 		continue;
-					// 	}
-
-					// 	if ((channels & previously_set_functions) == 0) { // None of the channels was set
-					// 		char param_name[17];
-					// 		snprintf(param_name, sizeof(param_name), "%s_TIM%u", _mixing_output.paramPrefix(), timer);
-
-					// 		int32_t tim_config = 0;
-					// 		param_t handle = param_find(param_name);
-
-					// 		if (param_get(handle, &tim_config) == 0 && tim_config == 400) {
-					// 			tim_config = 50;
-					// 			PX4_INFO("setting timer %i to %i Hz", timer, (int) tim_config);
-					// 			param_set(handle, &tim_config);
-					// 		}
-					// 	}
-					// }
-				}
-			}
-		}
-	}
+bool stop_pwms(uint32_t pwm_mask){
+	return true;
 }
+
+int ModalPWM::send_cmd_thread_safe(Command *cmd)
+{
+	cmd->id = _cmd_id++;
+	_pending_cmd.store(cmd);
+
+	/* wait until main thread processed it */
+	while (_pending_cmd.load()) {
+		px4_usleep(1000);
+	}
+
+	return 0;
+}
+
 
 int ModalPWM::custom_command(int argc, char *argv[])
 {
+	int myoptind = 0;
+	int ch;
+	const char *myoptarg = nullptr;
+
+	Command  cmd;
+	uint8_t  output_channel   = 0xF;
+	int16_t  rate     = 0;
+
+	uint32_t repeat_count    = 100;
+	uint32_t repeat_delay_us = 10000;
+
+	if (argc < 3) {
+		return print_usage("unknown command");
+	}
+
+	const char *verb = argv[argc - 1];
+
+	/* start the FMU if not running */
+	if (!strcmp(verb, "start")) {
+		if (!is_running()) {
+			return ModalPWM::task_spawn(argc, argv);
+		}
+	}
+
+	if (!is_running()) {
+		PX4_INFO("Not running");
+		return -1;
+
+	}
+
+	while ((ch = px4_getopt(argc, argv, "c:n:t:r:", &myoptind, &myoptarg)) != EOF) {
+		switch (ch) {
+		case 'c':
+			output_channel = atoi(myoptarg);
+			break;
+
+		case 'n':
+			repeat_count = atoi(myoptarg);
+
+			if (repeat_count < 1) {
+				print_usage("bad repeat_count");
+				return 0;
+			}
+
+			break;
+
+		case 't':
+			repeat_delay_us = atoi(myoptarg);
+
+			if (repeat_delay_us < 1) {
+				print_usage("bad repeat delay");
+				return 0;
+			}
+
+			break;
+
+		case 'r':
+			rate = atoi(myoptarg);
+			break;
+
+		default:
+			print_usage("Unknown command");
+			return 0;
+		}
+	}
+
+	if (!strcmp(verb, "pwm")) {
+		if (output_channel < MODAL_PWM_OUTPUT_CHANNELS) {
+			PX4_INFO("Request PWM for Output Channel: %i - PWM: %i", output_channel, rate);
+			int16_t rate_req[MODAL_PWM_OUTPUT_CHANNELS] = {0, 0, 0, 0};
+			uint8_t id_fb = 0;
+
+			if (output_channel == 0xFF) {  //WARNING: this condition is not possible due to check 'if (esc_id < MODAL_IO_OUTPUT_CHANNELS)'.
+				rate_req[0] = rate;
+				rate_req[1] = rate;
+				rate_req[2] = rate;
+				rate_req[3] = rate;
+
+			} else {
+				rate_req[output_channel] = rate;
+				id_fb = output_channel;
+			}
+
+			cmd.len = qc_esc_create_pwm_packet4_fb(rate_req[0],
+							       rate_req[1],
+							       rate_req[2],
+							       rate_req[3],
+							       0,
+							       0,
+							       0,
+							       0,
+							       id_fb,  /* ESC ID .. need to fix for correct ID.. but what about multiple ESCs in bit mask.. */
+							       cmd.buf,
+							       sizeof(cmd.buf));
+
+			cmd.response        = true;
+			cmd.repeats         = repeat_count;
+			cmd.resp_delay_us   = 0;
+			cmd.repeat_delay_us = repeat_delay_us;
+			cmd.print_feedback  = true;
+
+			PX4_INFO("feedback id debug: %i", id_fb);
+			PX4_INFO("Sending UART M0065 power command %i", rate);
+
+			return get_instance()->send_cmd_thread_safe(&cmd);
+		} else {
+			print_usage("Invalid Output Channel, use 0-3");
+			return 0;
+		}
+	}
+
 	return print_usage("unknown command");
 }
 
 int ModalPWM::print_status()
 {
-	perf_print_counter(_cycle_perf);
-	perf_print_counter(_interval_perf);
-	_mixing_output.printStatus();
+	// perf_print_counter(_cycle_perf);
+	// perf_print_counter(_interval_perf);
+	// _mixing_output.printStatus();
 
-	if (_pwm_initialized) {
-		for (int timer = 0; timer < MAX_IO_TIMERS; ++timer) {
-			if (_timer_rates[timer] >= 0) {
-				PX4_INFO_RAW("Timer %i: rate: %3i", timer, _timer_rates[timer]);
-				uint32_t channels = _pwm_mask & up_pwm_servo_get_rate_group(timer);
+	// if (_pwm_initialized) {
+	// 	for (int timer = 0; timer < MAX_IO_TIMERS; ++timer) {
+	// 		if (_timer_rates[timer] >= 0) {
+	// 			PX4_INFO_RAW("Timer %i: rate: %3i", timer, _timer_rates[timer]);
+	// 			uint32_t channels = _pwm_mask & up_pwm_servo_get_rate_group(timer);
 
-				if (channels > 0) {
-					PX4_INFO_RAW(" channels: ");
+	// 			if (channels > 0) {
+	// 				PX4_INFO_RAW(" channels: ");
 
-					for (uint32_t channel = 0; channel < _num_outputs; ++channel) {
-						if ((1 << channel) & channels) {
-							PX4_INFO_RAW("%" PRIu32 " ", channel);
-						}
-					}
-				}
+	// 				for (uint32_t channel = 0; channel < _num_outputs; ++channel) {
+	// 					if ((1 << channel) & channels) {
+	// 						PX4_INFO_RAW("%" PRIu32 " ", channel);
+	// 					}
+	// 				}
+	// 			}
 
-				PX4_INFO_RAW("\n");
-			}
-		}
-	}
+	// 			PX4_INFO_RAW("\n");
+	// 		}
+	// 	}
+	// }
 
 	return 0;
 }
@@ -312,13 +441,21 @@ px4io driver is used for main ones.
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("modal_pwm", "driver");
-	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the task");
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("pwm", "Open-Loop PWM test control request");
+	PRINT_MODULE_USAGE_PARAM_INT('c', 0, 0, 3, "PWM OUTPUT Channel, 0-3", false);
+	PRINT_MODULE_USAGE_PARAM_INT('r', 0, 0, 800, "Duty Cycle value, 0 to 800", false);
+	PRINT_MODULE_USAGE_PARAM_INT('n', 100, 0, 1<<31, "Command repeat count, 0 to INT_MAX", false);
+	PRINT_MODULE_USAGE_PARAM_INT('t', 10000, 0, 1<<31, "Delay between repeated commands (microseconds), 0 to INT_MAX", false);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
 }
 
-extern "C" __EXPORT int modal_pwm_main(int argc, char *argv[])
+extern "C" __EXPORT int modal_pwm_main(int argc, char *argv[]);
+
+int modal_pwm_main(int argc, char *argv[])
 {
 	return ModalPWM::main(argc, argv);
 }
