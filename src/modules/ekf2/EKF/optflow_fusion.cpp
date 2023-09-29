@@ -146,8 +146,7 @@ void Ekf::fuseOptFlow()
 			}
 		}
 
-		SparseVectorState<0,1,2,3,4,5,6> Hfusion(H);
-		VectorState Kfusion = P * Hfusion / _aid_src_optical_flow.innovation_variance[index];
+		VectorState Kfusion = P * H / _aid_src_optical_flow.innovation_variance[index];
 
 		if (measurementUpdate(Kfusion, _aid_src_optical_flow.innovation_variance[index], _aid_src_optical_flow.innovation[index])) {
 			fused[index] = true;

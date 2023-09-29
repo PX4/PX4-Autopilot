@@ -63,9 +63,6 @@ public:
 	typedef matrix::Vector<float, State::size> VectorState;
 	typedef matrix::SquareMatrix<float, State::size> SquareMatrixState;
 	typedef matrix::SquareMatrix<float, 2> Matrix2f;
-	template<int ... Idxs>
-
-	using SparseVectorState = matrix::SparseVectorf<State::size, Idxs...>;
 
 	Ekf()
 	{
