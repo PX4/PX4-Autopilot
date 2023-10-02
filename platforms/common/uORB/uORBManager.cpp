@@ -179,19 +179,12 @@ uORB::Manager::Manager()
 		PX4_DEBUG("SEM INIT FAIL: ret %d", ret);
 	}
 
-	ret = px4_sem_init(&_callback_lock, 1, 1);
-
-	if (ret != 0) {
-		PX4_DEBUG("SEM INIT FAIL: ret %d", ret);
-	}
-
 	g_sem_pool.init();
 }
 
 uORB::Manager::~Manager()
 {
 	px4_sem_destroy(&_lock);
-	px4_sem_destroy(&_callback_lock);
 }
 
 int uORB::Manager::orb_exists(const struct orb_metadata *meta, int instance)
@@ -493,8 +486,7 @@ uORB::Manager::callback_thread(int argc, char *argv[])
 	while (true) {
 		lockThread(per_process_lock);
 
-		SubscriptionCallback *sub = _Instance->_callback_ptr;
-		_Instance->unlock_callbacks();
+		SubscriptionCallback *sub = dequeueCallback(per_process_lock);
 
 		// Pass nullptr to this thread to exit
 		if (sub == nullptr) {
