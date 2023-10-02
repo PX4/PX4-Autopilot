@@ -170,21 +170,23 @@ __EXPORT void board_on_reset(int status)
  * Description:
  *
  ****************************************************************************/
+struct flexspi_nor_config_s g_bootConfig;
+
 
 locate_code(".ramfunc")
 void imxrt_octl_flash_initialize(void)
 {
 	const uint32_t instance =  1;
 
-	volatile struct flexspi_nor_config_s bootConfig;
 
-	memcpy((struct flexspi_nor_config_s *)&bootConfig, &g_flash_fast_config,
+	memcpy((struct flexspi_nor_config_s *)&g_bootConfig, &g_flash_fast_config,
 	       sizeof(struct flexspi_nor_config_s));
-	bootConfig.memConfig.tag = FLEXSPI_CFG_BLK_TAG;
+	g_bootConfig.memConfig.tag = FLEXSPI_CFG_BLK_TAG;
 
 	ROM_API_Init();
 
-	ROM_FLEXSPI_NorFlash_Init(instance, (struct flexspi_nor_config_s *)&bootConfig);
+	ROM_FLEXSPI_NorFlash_Init(instance, (struct flexspi_nor_config_s *)&g_bootConfig);
+	ROM_FLEXSPI_NorFlash_ClearCache(1);
 
 	ARM_DSB();
 	ARM_ISB();
@@ -345,10 +347,12 @@ __EXPORT void imxrt_boardinitialize(void)
  *   any failure to indicate the nature of the failure.
  *
  ****************************************************************************/
-volatile bool g_debug_loop_on_fault = true;
-
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
+	int ret = OK;
+
+#if !defined(BOOTLOADER)
+
 	VDD_3V3_SD_CARD_EN(true);
 	VDD_5V_PERIPH_EN(true);
 	VDD_5V_HIPOWER_EN(true);
@@ -373,8 +377,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	px4_arch_gpiowrite(GPIO_LPI2C3_SDA, 0);
 	px4_arch_gpiowrite(GPIO_HW_VER_REV_DRIVE, 1);
 	VDD_3V3_SENSORS4_EN(true);
-
-	int ret = OK;
 
 	/* Need hrt running before using the ADC */
 
@@ -485,6 +487,8 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 #ifdef CONFIG_IMXRT_FLEXCAN3
 	imxrt_caninitialize(3);
 #endif
+
+#endif /* !defined(BOOTLOADER) */
 
 	return ret;
 }

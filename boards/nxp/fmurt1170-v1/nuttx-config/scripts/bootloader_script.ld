@@ -34,7 +34,7 @@
 
 MEMORY
 {
-  flash (rx)  : ORIGIN = 0x30020000, LENGTH = 4M-128K /* We have 64M but we do not want to wait to program it all */
+  flash (rx)  : ORIGIN = 0x30000000, LENGTH = 128K
   sram  (rwx) : ORIGIN = 0x20240000, LENGTH = 2M-256k-512k
   itcm  (rwx) : ORIGIN = 0x00000000, LENGTH = 256K   /* TODO FlexRAM partition */
   dtcm  (rwx) : ORIGIN = 0x20000000, LENGTH = 256K
@@ -82,7 +82,6 @@ SECTIONS
         _sitcmfuncs = ABSOLUTE(.);
         FILL(0xFF)
         . = 0x40 ;
-        INCLUDE "itcm_functions_includes.ld"
         . = ALIGN(8);
         _eitcmfuncs = ABSOLUTE(.);
     } > itcm AT > flash

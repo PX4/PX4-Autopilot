@@ -60,6 +60,7 @@ typedef struct _flexspi_xfer {
 extern "C" {
 #endif
 
+extern struct flexspi_nor_config_s g_bootConfig;
 
 /*!
  * @brief ROM API init

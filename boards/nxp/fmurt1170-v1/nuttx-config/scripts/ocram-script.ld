@@ -64,7 +64,7 @@
 
 MEMORY
 {
-  flash    (rx)  : ORIGIN = 0x30000000, LENGTH = 7M
+  flash    (rx)  : ORIGIN = 0x30040000, LENGTH = 7M-256K
   flashxip (rx)  : ORIGIN = 0x30700000, LENGTH = 1M
   /*                     Vectors @ boot+ivt   OCRAM2   Flex RAM     Boot  IVT */
   sram     (rwx) : ORIGIN = 0x20240000 + 40K, LENGTH = 512K + 256K + 128K - (32K + 8K)
@@ -78,6 +78,7 @@ EXTERN(g_flash_config)
 EXTERN(g_image_vector_table)
 EXTERN(g_boot_data)
 EXTERN(g_dcd_data)
+EXTERN(_bootdelay_signature)
 
 ENTRY(_stext)
 
@@ -222,6 +223,13 @@ SECTIONS
     {
         _stext = ABSOLUTE(.);
         *(.vectors)
+		. = ALIGN(32);
+		/*
+		This signature provides the bootloader with a way to delay booting
+		*/
+		_bootdelay_signature = ABSOLUTE(.);
+		FILL(0xffecc2925d7d05c5)
+		. += 8;
         *(.text .text.*)
         _etext = ABSOLUTE(.);
 
