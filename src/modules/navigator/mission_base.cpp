@@ -1213,7 +1213,11 @@ void MissionBase::checkClimbRequired(int32_t mission_item_index)
 		const bool success = _dataman_cache.loadWait(dataman_id, next_mission_item_index, reinterpret_cast<uint8_t *>(&mission),
 				     sizeof(mission), MAX_DATAMAN_LOAD_WAIT);
 
-		if (success) {
+		const bool is_fw_and_takeoff = mission.nav_cmd == NAV_CMD_TAKEOFF
+					       && _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+
+		// for FW when on a Takeoff item do not require climb before mission, as we need to keep course to takeoff item straight
+		if (success && !is_fw_and_takeoff) {
 			const float altitude_amsl_next_position_item = MissionBlock::get_absolute_altitude_for_item(mission);
 			const float error_below_setpoint = altitude_amsl_next_position_item -
 							   _navigator->get_global_position()->alt;
