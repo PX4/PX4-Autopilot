@@ -241,7 +241,7 @@ public:
 	 *
 	 * @return The minimum calibrated airspeed compensated for weight [m/s]
 	 */
-	float getMinimumAirspeed() const;
+	float getMinimumTransitionAirspeed() const;
 
 	/**
 	 *

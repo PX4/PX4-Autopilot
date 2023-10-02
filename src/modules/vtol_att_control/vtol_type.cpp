@@ -588,9 +588,9 @@ float VtolType::getOpenLoopFrontTransitionTime() const
 }
 float VtolType::getTransitionAirspeed() const
 {
-	return  math::max(_param_vt_arsp_trans.get(), getMinimumAirspeed());
+	return  math::max(_param_vt_arsp_trans.get(), getMinimumTransitionAirspeed());
 }
-float VtolType::getMinimumAirspeed() const
+float VtolType::getMinimumTransitionAirspeed() const
 {
 	float weight_ratio = 1.0f;
 
