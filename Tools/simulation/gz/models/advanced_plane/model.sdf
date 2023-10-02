@@ -6,7 +6,7 @@
       <pose>0 0 0 0 0 0</pose>
       <inertial>
         <pose>0 0 0 0 0 0</pose>
-        <mass>1.5</mass>
+        <mass>1</mass>
         <inertia>
           <ixx>0.197563</ixx>
           <ixy>0</ixy>
@@ -30,9 +30,9 @@
               <min_depth>0.01</min_depth>
             </ode>
           </contact>
-          <!--<friction>
+          <friction>
             <ode/>
-          </friction>-->
+          </friction>
         </surface>
       </collision>
       <visual name='base_link_visual'>
@@ -504,7 +504,7 @@
       <CLa_stall>-3.85</CLa_stall>
       <CDa_stall>-0.9233984055</CDa_stall>
       <Cema_stall>0</Cema_stall>
-      <ref_pt>-0.12 0.0 0.0</ref_pt>
+      <cp>-0.12 0.0 0.0</cp>
       <area>0.34</area>
       <mac>0.22</mac>
       <air_density>1.2041</air_density>
