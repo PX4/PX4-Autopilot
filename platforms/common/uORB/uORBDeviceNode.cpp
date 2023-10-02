@@ -606,7 +606,7 @@ uORB::DeviceNode::write(const char *buffer, const orb_metadata *meta, orb_advert
 #ifdef CONFIG_BUILD_FLAT
 				item->subscriber->call();
 #else
-				Manager::queueCallback(item->subscriber);
+				Manager::queueCallback(item->subscriber, item->lock);
 #endif
 			}
 

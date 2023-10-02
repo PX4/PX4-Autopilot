@@ -443,11 +443,18 @@ public:
 
 	static int8_t getThreadLock() {return _Instance->g_sem_pool.reserve();}
 
-	static void queueCallback(class SubscriptionCallback *sub)
+	static void queueCallback(class SubscriptionCallback *sub, int idx)
 	{
-		_Instance->lock_callbacks();
-		_Instance->_callback_ptr = sub;
+		_Instance->g_sem_pool.cb_lock(idx);
+		_Instance->g_sem_pool.cb_set(idx, sub);
 		// The manager is unlocked in callback thread
+	}
+
+	static class SubscriptionCallback *dequeueCallback(int idx)
+	{
+		class SubscriptionCallback *sub = _Instance->g_sem_pool.cb_get(idx);
+		_Instance->g_sem_pool.cb_unlock(idx);
+		return sub;
 	}
 
 	static bool isThreadAlive(int idx)
@@ -615,17 +622,6 @@ private: //class methods
 	// Global cache for advertised uORB node instances
 	uint16_t g_has_publisher[ORB_TOPICS_COUNT + 1];
 
-	// This (system global) variable is used to pass the subsriber
-	// pointer to the callback thread. This is in Manager, since
-	// it needs to be mapped for both advertisers and the subscribers
-	class SubscriptionCallback *_callback_ptr {nullptr};
-
-	// This mutex protects the above pointer for one writer at a time
-	px4_sem_t	_callback_lock;
-
-	void		lock_callbacks() { do {} while (px4_sem_wait(&_callback_lock) != 0); }
-	void		unlock_callbacks() { px4_sem_post(&_callback_lock); }
-
 	// A global pool of semaphores for
 	// 1) poll locks
 	// 2) callback thread signalling (except in NuttX flat build)
@@ -644,14 +640,21 @@ private: //class methods
 		void release(int8_t i) {_global_sem[i].release(); }
 		int value(int8_t i) { return _global_sem[i].value(); }
 
+		void cb_lock(int8_t i) { do {} while (_global_sem[i].cb_lock() != 0); }
+		void cb_unlock(int8_t i) { _global_sem[i].cb_unlock(); }
+		void cb_set(int8_t i, struct SubscriptionCallback *callback_ptr) { _global_sem[i].cb_set(callback_ptr); }
+		struct SubscriptionCallback *cb_get(int8_t i) { return _global_sem[i].cb_get(); }
+
 		class GlobalLock
 		{
 		public:
 			void init()
 			{
 				px4_sem_init(&_sem, 1, 0);
+				px4_sem_init(&_lock, 1, 1);
 #if __PX4_NUTTX
 				sem_setprotocol(&_sem, SEM_PRIO_NONE);
+				sem_setprotocol(&_lock, SEM_PRIO_NONE);
 #endif
 				in_use = false;
 			}
@@ -669,16 +672,18 @@ private: //class methods
 			int value() { int value; px4_sem_getvalue(&_sem, &value); return value; }
 			bool in_use{false};
 
+			int  cb_lock() { return px4_sem_wait(&_lock); }
+			void cb_unlock() { px4_sem_post(&_lock); }
+			void cb_set(struct SubscriptionCallback *callback_ptr) { _callback_ptr = callback_ptr; }
+			struct SubscriptionCallback *cb_get() { return _callback_ptr; }
 		private:
-			struct SubscriptionCallback *subscriber;
-			px4_sem_t _sem;
+			struct SubscriptionCallback *_callback_ptr {nullptr};
+			px4_sem_t _sem; /* For signaling to the callback thread */
+			px4_sem_t _lock; /* For signaling back from the callback thread */
 		};
 	private:
 
-		void lock()
-		{
-			do {} while (px4_sem_wait(&_semLock) != 0);
-		}
+		void lock() { do {} while (px4_sem_wait(&_semLock) != 0); }
 		void unlock() { px4_sem_post(&_semLock); }
 
 		GlobalLock _global_sem[NUM_GLOBAL_SEMS];
