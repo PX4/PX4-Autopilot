@@ -1,0 +1,197 @@
+#!/bin/sh
+#
+# @name OMP Hobby ZMO FPV
+#
+# @url https://docs.px4_user_guide/en/frames_vtol/vtol_tiltrotor_omp_hobby_zmo_fpv.html
+#
+# @type VTOL Tiltrotor
+# @class VTOL
+#
+# @output MAIN1 left aileron
+# @output MAIN2 right aileron
+# @output MAIN3 left v-tail
+# @output MAIN4 right v-tail
+# @output MAIN5 left tilt-servo
+# @output MAIN5 right tilt-servo
+#
+# @output AUX1 Motor 1
+# @output AUX2 Motor 2
+# @output AUX3 Motor 3
+#
+# @maintainer Tizian Steiger <tizian@auterion.com>
+
+
+. ${R}etc/init.d/rc.vtol_defaults
+
+param set-default MAV_TYPE 21
+param set-default VT_TYPE 1
+
+param set-default BAT1_A_PER_V 0.0
+param set-default BAT1_CAPACITY 4000.0
+param set-default BAT1_N_CELLS 4
+param set-default BAT1_R_INTERNAL 0.01
+param set-default BAT1_V_DIV 0.0
+param set-default BAT1_V_EMPTY 3.5
+param set-default BAT_N_CELLS 4
+param set-default BAT_V_EMPTY 3.5
+param set-default BAT_CRIT_THR 15
+param set-default BAT_LOW_THR 25
+param set-default COM_LOW_BAT_ACT 3
+param set-default COM_PREARM_MODE 2
+
+param set-default EKF2_ARSP_THR 12.0
+param set-default EKF2_BARO_NOISE 5.0
+param set-default EKF2_GPS_POS_X -0.15
+param set-default EKF2_GPS_POS_Z -0.04
+param set-default EKF2_MAG_CHECK 0
+param set-default EKF2_MULTI_IMU 1
+
+param set-default FD_FAIL_R 70
+
+param set-default FW_AIRSPD_MAX 30.0
+param set-default FW_AIRSPD_MIN 13.0
+param set-default FW_AIRSPD_STALL 10.0
+param set-default FW_BAT_SCALE_EN 1
+param set-default FW_PR_FF 0.2
+param set-default FW_PR_I 0.3
+param set-default FW_PR_P 0.5
+param set-default FW_PSP_OFF 2.0
+param set-default FW_RR_FF 0.15
+param set-default FW_RR_I 0.2
+param set-default FW_RR_P 0.14
+param set-default FW_R_LIM 60.0
+param set-default FW_THR_ASPD_MAX 0.66
+param set-default FW_THR_ASPD_MIN 0.35
+param set-default FW_THR_IDLE 0.15
+param set-default FW_THR_TRIM 0.4
+param set-default FW_T_ALT_TC 10.0
+param set-default FW_T_CLMB_MAX 17.0
+param set-default FW_T_CLMB_R_SP 5.0
+param set-default FW_T_I_GAIN_THR 0.03
+param set-default FW_T_PTCH_DAMP 0.3
+param set-default FW_T_RLL2THR 0.0
+param set-default FW_T_SINK_MAX 7.0
+param set-default FW_T_SINK_MIN 4.5
+param set-default FW_T_SINK_R_SP 2.5
+param set-default FW_T_STE_R_TC 0.1
+param set-default FW_T_THR_DAMP 0.05
+param set-default FW_YR_FF 0.13
+param set-default FW_YR_P 0.1
+
+param set-default MC_AIRMODE 1
+param set-default MC_PITCHRATE_I 0.3
+param set-default MC_PITCHRATE_MAX 120.0
+param set-default MC_PITCHRATE_P 0.25
+param set-default MC_PITCH_P 4.5
+param set-default MC_ROLLRATE_I 0.3
+param set-default MC_ROLLRATE_P 0.28
+param set-default MC_ROLL_P 4.0
+param set-default MC_YAWRATE_I 0.2
+param set-default MC_YAWRATE_P 0.3
+param set-default MC_YAW_P 1.4
+
+param set-default MIS_DIST_1WP 10000.0
+param set-default MIS_YAW_ERR 15.0
+
+param set-default MPC_ACC_HOR_MAX 5.0
+param set-default MPC_JERK_MAX 8.0
+param set-default MPC_LAND_RC_HELP 1
+param set-default MPC_MAN_Y_MAX 100.0
+param set-default MPC_VEL_MANUAL 8.0
+param set-default MPC_VEL_MAN_SIDE 5.0
+param set-default MPC_XY_CRUISE 6.0
+param set-default MPC_XY_VEL_MAX 10.0
+param set-default MPC_THR_HOVER 0.7
+
+param set-default NAV_LOITER_RAD 60.0
+
+param set-default RC_MAP_AUX1 8
+param set-default RC_MAP_FLTMODE 5
+param set-default RC_MAP_KILL_SW 6
+param set-default RC_MAP_TRANS_SW 7
+
+param set-default RTL_DESCEND_ALT 40.0
+param set-default RTL_TIME_MARGIN 300
+param set-default SENS_EN_SDP3X 1
+param set-default SENS_EN_SF1XX 6
+
+param set-default CAL_MAG0_PRIO 0
+param set-default ASPD_SCALE_1 1.15
+
+param set-default VT_B_DEC_MSS 1.5
+param set-default VT_FWD_THRUST_EN 4
+param set-default VT_FWD_THRUST_SC 0.8
+param set-default VT_FW_QC_P 70
+param set-default VT_FW_QC_R 70
+param set-default VT_QC_ALT_LOSS 20.0
+param set-default VT_TILT_TRANS 0.5
+param set-default VT_TRANS_MIN_TM 3.0
+param set-default VT_TRANS_P2_DUR 1.0
+param set-default VT_TRANS_TIMEOUT 8.0
+param set-default WV_EN 0
+
+param set-default CA_ROTOR_COUNT 3
+param set-default CA_AIRFRAME 3
+param set-default CA_SV_CS_COUNT 4
+param set-default CA_SV_TL_COUNT 2
+
+param set-default CA_ROTOR0_KM 0.0
+param set-default CA_ROTOR0_PX 1.0
+param set-default CA_ROTOR0_PY -1.0
+param set-default CA_ROTOR0_TILT 1
+
+param set-default CA_ROTOR1_KM 0.0
+param set-default CA_ROTOR1_PX 1.0
+param set-default CA_ROTOR1_PY 1.0
+param set-default CA_ROTOR1_TILT 2
+
+param set-default CA_ROTOR2_KM 0.0
+param set-default CA_ROTOR2_PX -1.8
+
+param set-default CA_SV_CS0_TRQ_R -0.5
+param set-default CA_SV_CS0_TYPE 1
+
+param set-default CA_SV_CS1_TRQ_R 0.5
+param set-default CA_SV_CS1_TYPE 2
+
+param set-default CA_SV_CS2_TRQ_P 0.5
+param set-default CA_SV_CS2_TRQ_Y 0.5
+param set-default CA_SV_CS2_TYPE 7
+
+param set-default CA_SV_CS3_TRQ_P 0.5
+param set-default CA_SV_CS3_TRQ_Y -0.5
+param set-default CA_SV_CS3_TYPE 8
+
+param set-default CA_SV_CS0_TRIM 0.07
+param set-default CA_SV_CS1_TRIM -0.07
+param set-default CA_SV_CS2_TRIM 0.25
+param set-default CA_SV_CS3_TRIM 0.0
+
+param set-default PWM_AUX_FUNC1 101
+param set-default PWM_AUX_FUNC2 102
+param set-default PWM_AUX_FUNC3 103
+
+param set-default PWM_MAIN_DIS1 1500
+param set-default PWM_MAIN_DIS2 1500
+param set-default PWM_MAIN_DIS3 1500
+param set-default PWM_MAIN_DIS4 1500
+param set-default PWM_MAIN_DIS5 1900
+param set-default PWM_MAIN_DIS6 2200
+
+param set-default PWM_MAIN_FUNC1 201
+param set-default PWM_MAIN_FUNC2 202
+param set-default PWM_MAIN_FUNC3 203
+param set-default PWM_MAIN_FUNC4 204
+param set-default PWM_MAIN_FUNC5 205
+param set-default PWM_MAIN_FUNC6 206
+
+param set-default PWM_MAIN_MAX5 1900
+param set-default PWM_MAIN_MAX6 2200
+
+param set-default PWM_MAIN_MIN5 880
+param set-default PWM_MAIN_MIN6 1050
+
+param set-default PWM_MAIN_REV 58
+param set-default PWM_MAIN_TIM0 50
+param set-default PWM_MAIN_TIM1 50
+param set-default PWM_MAIN_TIM2 50

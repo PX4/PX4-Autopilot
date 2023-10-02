@@ -99,6 +99,7 @@ px4_add_romfs_files(
 	13014_vtol_babyshark
 	13030_generic_vtol_quad_tiltrotor
 	13200_generic_vtol_tailsitter
+	13300_omp_hobby_zmo
 
 	# [14000, 14999] MC with tilt
 	14001_generic_mc_with_tilt
