@@ -84,7 +84,7 @@ float PerformanceModel::getMaximumClimbRate(float air_density) const
 					       (CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C -
 						density_min), 0.0f);
 		const float delta_rho = air_density - CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C;
-		climbrate_max = _param_fw_t_clmb_max.get() + density_gradient * delta_rho;
+		climbrate_max = math::max(_param_fw_t_clmb_max.get() + density_gradient * delta_rho, kClimbrateMin);
 	}
 
 	return climbrate_max / getWeightRatio();
