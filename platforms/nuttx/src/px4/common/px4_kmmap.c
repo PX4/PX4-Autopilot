@@ -20,21 +20,13 @@
 
 #include <nuttx/config.h>
 
+#include <sys/mman.h>
 #include <sys/types.h>
 #include <errno.h>
 
 #include <nuttx/fs/fs.h>
+#include <nuttx/mm/kmap.h>
 #include <nuttx/pgalloc.h>
-
-#ifndef CONFIG_ARCH_PGPOOL_MAPPING
-#  error "kmmap needs CONFIG_ARCH_PGPOOL_MAPPING"
-#endif
-
-#if CONFIG_ARCH_PGPOOL_PBASE != CONFIG_ARCH_PGPOOL_VBASE
-#  error "kmmap needs CONFIG_ARCH_PGPOOL_PBASE=CONFIG_ARCH_PGPOOL_VBASE mapping"
-#endif
-
-#define MAP_FAILED	  ((void*)-1)
 
 /* This is naughty, but only option as these are in NuttX private headers */
 
@@ -43,26 +35,20 @@ extern void inode_unlock(void);
 
 struct shmfs_object_s {
 	size_t length;
-	void *paddr[];
+	void *paddr;
 };
 
 void *px4_mmap(void *start, size_t length, int prot, int flags, int fd, off_t offset)
 {
 	struct file *filep;
 	struct shmfs_object_s *object;
+	void **pages;
+	void *vaddr;
+	unsigned int npages;
 	int ret;
 
 	if (fs_getfilep(fd, &filep) < 0) {
 		ret = -EBADF;
-		goto errout;
-	}
-
-	/* Limitation: only 1 page can be mapped. To map more pages, need more logic
-	 * in place (define shared memory are for kernel, keep mappings in list, etc
-	 */
-
-	if (length > MM_PGSIZE) {
-		ret = -ENOMEM;
 		goto errout;
 	}
 
@@ -81,9 +67,23 @@ void *px4_mmap(void *start, size_t length, int prot, int flags, int fd, off_t of
 		goto errout_with_lock;
 	}
 
+	/* Map the object to kernel */
+
+	pages = &object->paddr;
+	npages = MM_NPAGES(object->length);
+
+	/* Do the mapping */
+
+	vaddr = kmm_map(pages, npages, PROT_READ | PROT_WRITE);
+
+	if (!vaddr) {
+		ret = -ENOMEM;
+		goto errout_with_lock;
+	}
+
 	filep->f_inode->i_crefs++;
 	inode_unlock();
-	return object->paddr[0];
+	return vaddr;
 
 errout_with_lock:
 	inode_unlock();
@@ -94,7 +94,6 @@ errout:
 
 int px4_munmap(void *start, size_t length)
 {
-	/* There is no need for unmap on the kernel side */
-
+	kmm_unmap(start);
 	return OK;
 }
