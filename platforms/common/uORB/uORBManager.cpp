@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include <dirent.h>
+#include <sys/mman.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/shm.h>
@@ -102,6 +103,11 @@ bool uORB::Manager::initialize()
 			if (ftruncate(shm_fd, sizeof(uORB::Manager)) == 0) {
 				// mmap the shared memory region
 				void *ptr = px4_mmap(0, sizeof(uORB::Manager), PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
+
+				if (ptr == MAP_FAILED) {
+					return false;
+				}
+
 				_Instance = new (ptr) uORB::Manager();
 
 				for (auto &publisher : _Instance->g_has_publisher) {
