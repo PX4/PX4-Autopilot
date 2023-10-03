@@ -47,6 +47,10 @@
 #include <string.h>
 #include <version/version.h>
 
+#ifndef PX4_BL_VERSION
+#define PX4_BL_VERSION NULL
+#endif
+
 /* string constants for version commands */
 static const char sz_ver_hw_str[] 	= "hw";
 static const char sz_ver_hwcmp_str[]    = "hwcmp";
@@ -223,6 +227,13 @@ extern "C" __EXPORT int ver_main(int argc, char *argv[])
 					if (git_branch && git_branch[0]) {
 						PX4_INFO_RAW("PX4 git-branch: %s\n", git_branch);
 					}
+
+					const char *bl_version = PX4_BL_VERSION;
+
+					if (bl_version) {
+						printf("Bootloader version: %s\n", bl_version);
+					}
+
 				}
 
 				fwver = px4_firmware_vendor_version();
