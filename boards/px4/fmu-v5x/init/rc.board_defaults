@@ -18,6 +18,12 @@ param set-default SENS_EN_INA226 1
 
 param set-default SYS_USE_IO 1
 
+if ver hwtypecmp V5X009000 V5X009001 V5X00a000 V5X00a001 V5X008000 V5X008001 V5X010001
+then
+	# Skynode: use the "custom participant" config for uxrce_dds_client
+	param set-default UXRCE_DDS_PTCFG 2
+fi
+
 safety_button start
 
 # GPIO Expander driver on external I2C3
