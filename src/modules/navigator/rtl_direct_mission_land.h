@@ -65,8 +65,6 @@ public:
 private:
 	bool setNextMissionItem() override;
 	void setActiveMissionItems() override;
-	void handleLanding(WorkItemType &new_work_item_type);
-	bool do_need_move_to_land();
 
 	bool _needs_climbing{false}; 	//< Flag if climbing is required at the start
 	bool _enforce_rtl_alt{false};

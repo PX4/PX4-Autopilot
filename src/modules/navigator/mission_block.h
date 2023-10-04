@@ -223,6 +223,8 @@ protected:
 
 	void setLandMissionItem(mission_item_s &item, const DestinationPosition &dest, HeadingMode heading_mode) const;
 
+	void startPrecLand(uint16_t land_precision);
+
 	/**
 	 * @brief Issue a command for mission items with a nav_cmd that specifies an action
 	 *

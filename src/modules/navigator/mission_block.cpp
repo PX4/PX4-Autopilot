@@ -1093,3 +1093,15 @@ void MissionBlock::setLandMissionItem(mission_item_s &item, const DestinationPos
 	item.autocontinue = true;
 	item.origin = ORIGIN_ONBOARD;
 }
+
+void MissionBlock::startPrecLand(uint16_t land_precision)
+{
+	if (_mission_item.land_precision == 1) {
+		_navigator->get_precland()->set_mode(PrecLandMode::Opportunistic);
+		_navigator->get_precland()->on_activation();
+
+	} else { //_mission_item.land_precision == 2
+		_navigator->get_precland()->set_mode(PrecLandMode::Required);
+		_navigator->get_precland()->on_activation();
+	}
+}
