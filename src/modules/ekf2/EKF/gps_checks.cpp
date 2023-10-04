@@ -41,7 +41,10 @@
 
 #include "ekf.h"
 
-#include <lib/world_magnetic_model/geo_mag_declination.h>
+#if defined(CONFIG_EKF2_MAGNETOMETER)
+# include <lib/world_magnetic_model/geo_mag_declination.h>
+#endif // CONFIG_EKF2_MAGNETOMETER
+
 #include <mathlib/mathlib.h>
 
 // GPS pre-flight check bit locations
@@ -100,6 +103,8 @@ bool Ekf::collect_gps(const gpsMessage &gps)
 
 			// If we have good GPS data set the origin's WGS-84 position to the last gps fix
 			const double lat = gps.lat * 1.0e-7;
+
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 			const double lon = gps.lon * 1.0e-7;
 
 			// set the magnetic field data returned by the geo library using the current GPS position
@@ -126,6 +131,7 @@ bool Ekf::collect_gps(const gpsMessage &gps)
 					_wmm_gps_time_last_set = _time_delayed_us;
 				}
 			}
+#endif // CONFIG_EKF2_MAGNETOMETER
 
 			_earth_rate_NED = calcEarthRateNED((float)math::radians(lat));
 		}

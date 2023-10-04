@@ -239,8 +239,8 @@ void Ekf::constrainStates()
 	const float accel_bias_limit = getAccelBiasLimit();
 	_state.accel_bias = matrix::constrain(_state.accel_bias, -accel_bias_limit, accel_bias_limit);
 
-	_state.mag_I = matrix::constrain(_state.mag_I, -1.0f, 1.0f);
 #if defined(CONFIG_EKF2_MAGNETOMETER)
+	_state.mag_I = matrix::constrain(_state.mag_I, -1.0f, 1.0f);
 	_state.mag_B = matrix::constrain(_state.mag_B, -getMagBiasLimit(), getMagBiasLimit());
 #endif // CONFIG_EKF2_MAGNETOMETER
 
@@ -401,6 +401,7 @@ bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, cons
 		_pos_ref.initReference(latitude, longitude, _time_delayed_us);
 		_gps_alt_ref = altitude;
 
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 		const float mag_declination_gps = get_mag_declination_radians(latitude, longitude);
 		const float mag_inclination_gps = get_mag_inclination_radians(latitude, longitude);
 		const float mag_strength_gps = get_mag_strength_gauss(latitude, longitude);
@@ -412,6 +413,7 @@ bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, cons
 
 			_wmm_gps_time_last_set = _time_delayed_us;
 		}
+#endif // CONFIG_EKF2_MAGNETOMETER
 
 		// We don't know the uncertainty of the origin
 		_gpos_origin_eph = 0.f;
@@ -809,8 +811,12 @@ void Ekf::fuse(const VectorState &K, float innovation)
 	_state.pos -= K.slice<State::pos.dof, 1>(State::pos.idx, 0) * innovation;
 	_state.gyro_bias -= K.slice<State::gyro_bias.dof, 1>(State::gyro_bias.idx, 0) * innovation;
 	_state.accel_bias -= K.slice<State::accel_bias.dof, 1>(State::accel_bias.idx, 0) * innovation;
+
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 	_state.mag_I -= K.slice<State::mag_I.dof, 1>(State::mag_I.idx, 0) * innovation;
 	_state.mag_B -= K.slice<State::mag_B.dof, 1>(State::mag_B.idx, 0) * innovation;
+#endif // CONFIG_EKF2_MAGNETOMETER
+
 	_state.wind_vel -= K.slice<State::wind_vel.dof, 1>(State::wind_vel.idx, 0) * innovation;
 }
 

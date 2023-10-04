@@ -571,10 +571,12 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 	}
 #endif // CONFIG_EKF2_AIRSPEED
 
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 	// mag mode
 	if (_params.mag_fusion_type != MagFuseType::NONE) {
 		max_time_delay_ms = math::max(_params.mag_delay_ms, max_time_delay_ms);
 	}
+#endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	// using range finder
