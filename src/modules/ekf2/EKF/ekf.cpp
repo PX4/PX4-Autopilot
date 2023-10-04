@@ -57,14 +57,18 @@ void Ekf::reset()
 {
 	ECL_INFO("reset");
 
+	_state.quat_nominal.setIdentity();
 	_state.vel.setZero();
 	_state.pos.setZero();
 	_state.gyro_bias.setZero();
 	_state.accel_bias.setZero();
+
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 	_state.mag_I.setZero();
 	_state.mag_B.setZero();
+#endif // CONFIG_EKF2_MAGNETOMETER
+
 	_state.wind_vel.setZero();
-	_state.quat_nominal.setIdentity();
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	_range_sensor.setPitchOffset(_params.rng_sens_pitch);

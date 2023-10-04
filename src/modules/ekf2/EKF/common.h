@@ -91,6 +91,7 @@ enum class VelocityFrame : uint8_t {
 	BODY_FRAME_FRD  = 2
 };
 
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 enum GeoDeclinationMask : uint8_t {
 	// Bit locations for mag_declination_source
 	USE_GEO_DECL  = (1<<0), ///< set to true to use the declination from the geo library when the GPS position becomes available, set to false to always use the EKF2_MAG_DECL value
@@ -104,6 +105,7 @@ enum MagFuseType : uint8_t {
 	HEADING = 1,   	///< Simple yaw angle fusion will always be used. This is less accurate, but less affected by earth field distortions. It should not be used for pitch angles outside the range from -60 to +60 deg
 	NONE    = 5    	///< Do not use magnetometer under any circumstance..
 };
+#endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_TERRAIN)
 enum TerrainFusionMask : uint8_t {
@@ -284,7 +286,6 @@ struct parameters {
 	int32_t sensor_interval_max_ms{10};     ///< maximum time of arrival difference between non IMU sensor updates. Sets the size of the observation buffers. (mSec)
 
 	// measurement time delays
-	float mag_delay_ms{0.0f};               ///< magnetometer measurement delay relative to the IMU (mSec)
 	float baro_delay_ms{0.0f};              ///< barometer height measurement delay relative to the IMU (mSec)
 	float gps_delay_ms{110.0f};             ///< GPS measurement delay relative to the IMU (mSec)
 
@@ -295,8 +296,6 @@ struct parameters {
 	// process noise
 	float gyro_bias_p_noise{1.0e-3f};       ///< process noise for IMU rate gyro bias prediction (rad/sec**2)
 	float accel_bias_p_noise{1.0e-2f};      ///< process noise for IMU accelerometer bias prediction (m/sec**3)
-	float mage_p_noise{1.0e-3f};            ///< process noise for earth magnetic field prediction (Gauss/sec)
-	float magb_p_noise{1.0e-4f};            ///< process noise for body magnetic field prediction (Gauss/sec)
 
 #if defined(CONFIG_EKF2_WIND)
 	const float initial_wind_uncertainty{1.0f};     ///< 1-sigma initial uncertainty in wind velocity (m/sec)
@@ -322,16 +321,30 @@ struct parameters {
 	float gnd_effect_deadzone{5.0f};        ///< Size of deadzone applied to negative baro innovations when ground effect compensation is active (m)
 	float gnd_effect_max_hgt{0.5f};         ///< Height above ground at which baro ground effect becomes insignificant (m)
 
-	// magnetometer fusion
+	float heading_innov_gate{2.6f};         ///< heading fusion innovation consistency gate size (STD)
 	float mag_heading_noise{3.0e-1f};       ///< measurement noise used for simple heading fusion (rad)
+
+#if defined(CONFIG_EKF2_MAGNETOMETER)
+	float mag_delay_ms{0.0f};               ///< magnetometer measurement delay relative to the IMU (mSec)
+
+	float mage_p_noise{1.0e-3f};            ///< process noise for earth magnetic field prediction (Gauss/sec)
+	float magb_p_noise{1.0e-4f};            ///< process noise for body magnetic field prediction (Gauss/sec)
+
+	// magnetometer fusion
 	float mag_noise{5.0e-2f};               ///< measurement noise used for 3-axis magnetometer fusion (Gauss)
 	float mag_declination_deg{0.0f};        ///< magnetic declination (degrees)
-	float heading_innov_gate{2.6f};         ///< heading fusion innovation consistency gate size (STD)
 	float mag_innov_gate{3.0f};             ///< magnetometer fusion innovation consistency gate size (STD)
 	int32_t mag_declination_source{7};      ///< bitmask used to control the handling of declination data
 	int32_t mag_fusion_type{0};             ///< integer used to specify the type of magnetometer fusion used
 	float mag_acc_gate{0.5f};               ///< when in auto select mode, heading fusion will be used when manoeuvre accel is lower than this (m/sec**2)
 	float mag_yaw_rate_gate{0.20f};         ///< yaw rate threshold used by mode select logic (rad/sec)
+
+	// compute synthetic magnetomter Z value if possible
+	int32_t synthesize_mag_z{0};
+	int32_t mag_check{0};
+	float mag_check_strength_tolerance_gs{0.2f};
+	float mag_check_inclination_tolerance_deg{20.f};
+#endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_GNSS_YAW)
 	// GNSS heading fusion
@@ -482,12 +495,6 @@ struct parameters {
 	const float auxvel_noise{0.5f};         ///< minimum observation noise, uses reported noise if greater (m/s)
 	const float auxvel_gate{5.0f};          ///< velocity fusion innovation consistency gate size (STD)
 #endif // CONFIG_EKF2_AUXVEL
-
-	// compute synthetic magnetomter Z value if possible
-	int32_t synthesize_mag_z{0};
-	int32_t mag_check{0};
-	float mag_check_strength_tolerance_gs{0.2f};
-	float mag_check_inclination_tolerance_deg{20.f};
 
 	// Parameters used to control when yaw is reset to the EKF-GSF yaw estimator value
 	float EKFGSF_tas_default{15.0f};                ///< default airspeed value assumed during fixed wing flight if no airspeed measurement available (m/s)
