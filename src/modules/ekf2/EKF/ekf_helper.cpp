@@ -1037,6 +1037,7 @@ void Ekf::resetGpsDriftCheckFilters()
 	_gps_filtered_horizontal_velocity_m_s = NAN;
 }
 
+#if defined(CONFIG_EKF2_WIND)
 void Ekf::resetWind()
 {
 #if defined(CONFIG_EKF2_AIRSPEED)
@@ -1059,3 +1060,4 @@ void Ekf::resetWindToZero()
 	// start with a small initial uncertainty to improve the initial estimate
 	P.uncorrelateCovarianceSetVariance<State::wind_vel.dof>(State::wind_vel.idx, _params.initial_wind_uncertainty);
 }
+#endif // CONFIG_EKF2_WIND

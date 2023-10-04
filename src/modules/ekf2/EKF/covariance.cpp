@@ -88,8 +88,10 @@ void Ekf::initialiseCovariance()
 
 	resetMagCov();
 
+#if defined(CONFIG_EKF2_WIND)
 	// wind
 	P.uncorrelateCovarianceSetVariance<State::wind_vel.dof>(State::wind_vel.idx, sq(_params.initial_wind_uncertainty));
+#endif // CONFIG_EKF2_WIND
 }
 
 void Ekf::predictCovariance(const imuSample &imu_delayed)
@@ -193,20 +195,6 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 #endif // CONFIG_EKF2_MAGNETOMETER
 	}
 
-	float wind_vel_nsd_scaled;
-
-	// Calculate low pass filtered height rate
-	float alpha_height_rate_lpf = 0.1f * dt; // 10 seconds time constant
-	_height_rate_lpf = _height_rate_lpf * (1.0f - alpha_height_rate_lpf) + _state.vel(2) * alpha_height_rate_lpf;
-
-	// Don't continue to grow wind velocity state variances if they are becoming too large or we are not using wind velocity states as this can make the covariance matrix badly conditioned
-	if (_control_status.flags.wind && P.trace<State::wind_vel.dof>(State::wind_vel.idx) < sq(_params.initial_wind_uncertainty)) {
-		wind_vel_nsd_scaled = math::constrain(_params.wind_vel_nsd, 0.0f, 1.0f) * (1.0f + _params.wind_vel_nsd_scaler * fabsf(_height_rate_lpf));
-
-	} else {
-		wind_vel_nsd_scaled = 0.0f;
-	}
-
 	// assign IMU noise variances
 	// inputs to the system are 3 delta angles and 3 delta velocities
 	float gyro_noise = math::constrain(_params.gyro_noise, 0.0f, 1.0f);
@@ -296,23 +284,31 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 		}
 	}
 
+#if defined(CONFIG_EKF2_WIND)
 	if (_control_status.flags.wind) {
-		const float wind_vel_process_noise = sq(wind_vel_nsd_scaled) * dt;
+		// Don't continue to grow wind velocity state variances if they are becoming too large or we are not using wind velocity states as this can make the covariance matrix badly conditioned
+		if (P.trace<State::wind_vel.dof>(State::wind_vel.idx) < sq(_params.initial_wind_uncertainty)) {
 
-		for (unsigned index = 0; index < State::wind_vel.dof; index++) {
-			unsigned i = State::wind_vel.idx + index;
-			nextP(i, i) += wind_vel_process_noise;
+			float wind_vel_nsd_scaled = math::constrain(_params.wind_vel_nsd, 0.f, 1.f) * (1.f + _params.wind_vel_nsd_scaler * fabsf(_height_rate_lpf));
+
+			const float wind_vel_process_noise = sq(wind_vel_nsd_scaled) * dt;
+
+			for (unsigned index = 0; index < State::wind_vel.dof; index++) {
+				unsigned i = State::wind_vel.idx + index;
+				nextP(i, i) += wind_vel_process_noise;
+			}
 		}
 
 	} else {
 		// keep previous covariance
 		for (unsigned i = 0; i < State::wind_vel.dof; i++) {
 			unsigned row = State::wind_vel.idx + i;
-			for (unsigned col = 0 ; col < State::size; col++) {
+			for (unsigned col = 0; col < State::size; col++) {
 				nextP(row, col) = nextP(col, row) = P(row, col);
 			}
 		}
 	}
+#endif // CONFIG_EKF2_WIND
 
 	// covariance matrix is symmetrical, so copy upper half to lower half
 	for (unsigned row = 0; row < State::size; row++) {
@@ -341,7 +337,6 @@ void Ekf::fixCovarianceErrors(bool force_symmetry)
 	const float gyro_bias_var_max = 1.0f;
 	const float mag_I_var_max = 1.0f;
 	const float mag_B_var_max = 1.0f;
-	const float wind_vel_var_max = 1e6f;
 
 	constrainStateVar(State::quat_nominal, 0.f, quat_var_max);
 	constrainStateVar(State::vel, 1e-6f, vel_var_max);
@@ -494,11 +489,14 @@ void Ekf::fixCovarianceErrors(bool force_symmetry)
 		P.uncorrelateCovarianceSetVariance<State::wind_vel.dof>(State::wind_vel.idx, 0.0f);
 
 	} else {
+#if defined(CONFIG_EKF2_WIND)
+		const float wind_vel_var_max = 1e6f;
 		constrainStateVar(State::wind_vel, 0.f, wind_vel_var_max);
 
 		if (force_symmetry) {
 			P.makeRowColSymmetric<State::wind_vel.dof>(State::wind_vel.idx);
 		}
+#endif // CONFIG_EKF2_WIND
 	}
 }
 

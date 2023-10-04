@@ -306,9 +306,11 @@ public:
 	// get the state vector at the delayed time horizon
 	const matrix::Vector<float, State::size> &getStateAtFusionHorizonAsVector() const { return _state.vector(); }
 
+#if defined(CONFIG_EKF2_WIND)
 	// get the wind velocity in m/s
 	const Vector2f &getWindVelocity() const { return _state.wind_vel; };
 	Vector2f getWindVelocityVariance() const { return getStateVariance<State::wind_vel>(); }
+#endif // CONFIG_EKF2_WIND
 
 	template <const IdxDof &S>
 	matrix::Vector<float, S.dof>getStateVariance() const { return P.slice<S.dof, S.dof>(S.idx, S.idx).diag(); } // calling getStateCovariance().diag() uses more flash space
@@ -616,6 +618,7 @@ private:
 	float _zgup_delta_ang_dt{0.f};
 
 	Vector2f _accel_lpf_NE{};			///< Low pass filtered horizontal earth frame acceleration (m/sec**2)
+	float _height_rate_lpf{0.0f};
 	float _yaw_delta_ef{0.0f};		///< Recent change in yaw angle measured about the earth frame D axis (rad)
 	float _yaw_rate_lpf_ef{0.0f};		///< Filtered angular rate about earth frame D axis (rad/sec)
 
@@ -787,8 +790,6 @@ private:
 	uint64_t _time_bad_vert_accel{0};	///< last time a bad vertical accel was detected (uSec)
 	uint64_t _time_good_vert_accel{0};	///< last time a good vertical accel was detected (uSec)
 	uint16_t _clip_counter{0};		///< counter that increments when clipping ad decrements when not
-
-	float _height_rate_lpf{0.0f};
 
 	// initialise filter states of both the delayed ekf and the real time complementary filter
 	bool initialiseFilter(void);
@@ -1168,9 +1169,11 @@ private:
 
 	void resetMagCov();
 
+#if defined(CONFIG_EKF2_WIND)
 	// perform a reset of the wind states and related covariances
 	void resetWind();
 	void resetWindToZero();
+#endif // CONFIG_EKF2_WIND
 
 	void resetGyroBiasZCov();
 
