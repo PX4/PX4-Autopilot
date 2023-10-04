@@ -46,6 +46,8 @@ public:
 	{
 		px4_sem_init(&_sem_head, 0, N);
 		px4_sem_init(&_sem_tail, 0, 0);
+		px4_sem_setprotocol(&_sem_head, SEM_PRIO_NONE);
+		px4_sem_setprotocol(&_sem_tail, SEM_PRIO_NONE);
 	}
 
 	~BlockingQueue()
