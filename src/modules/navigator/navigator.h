@@ -89,7 +89,11 @@ using namespace time_literals;
 /**
  * Number of navigation modes that need on_active/on_inactive calls
  */
-#define NAVIGATOR_MODE_ARRAY_SIZE 8
+#if CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
+#define NAVIGATOR_MODE_ARRAY_SIZE 7
+#else
+#define NAVIGATOR_MODE_ARRAY_SIZE 6
+#endif
 
 class Navigator : public ModuleBase<Navigator>, public ModuleParams
 {
@@ -331,8 +335,8 @@ private:
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
-	Geofence	_geofence;			/**< class that handles the geofence */
-	GeofenceBreachAvoidance _gf_breach_avoidance;
+	Geofence	_geofence{this};			/**< class that handles the geofence */
+	GeofenceBreachAvoidance _gf_breach_avoidance{this};
 	hrt_abstime _last_geofence_check = 0;
 
 	bool		_geofence_violation_warning_sent{false};	/**< prevents spaming to mavlink */
@@ -340,15 +344,15 @@ private:
 	bool 		_pos_sp_triplet_published_invalid_once{false};	/**< flags if position SP triplet has been published once to UORB */
 	bool		_mission_result_updated{false};			/**< flags if mission result has seen an update */
 
-	Mission		_mission;			/**< class that handles the missions */
-	Loiter		_loiter;			/**< class that handles loiter */
-	Takeoff		_takeoff;			/**< class for handling takeoff commands */
+	Mission		_mission{this};			/**< class that handles the missions */
+	Loiter		_loiter{this};			/**< class that handles loiter */
+	Takeoff		_takeoff{this};			/**< class for handling takeoff commands */
 #if CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
-	VtolTakeoff	_vtol_takeoff;			/**< class for handling VEHICLE_CMD_NAV_VTOL_TAKEOFF command */
+	VtolTakeoff	_vtol_takeoff {this};	/**< class for handling VEHICLE_CMD_NAV_VTOL_TAKEOFF command */
 #endif //CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
-	Land		_land;			/**< class for handling land commands */
-	PrecLand	_precland;			/**< class for handling precision land commands */
-	RTL 		_rtl;				/**< class that handles RTL */
+	Land		_land {this};			/**< class for handling land commands */
+	PrecLand	_precland{this};		/**< class for handling precision land commands */
+	RTL 		_rtl{this};				/**< class that handles RTL */
 	AdsbConflict 	_adsb_conflict;			/**< class that handles ADSB conflict avoidance */
 
 	NavigatorMode *_navigation_mode{nullptr};	/**< abstract pointer to current navigation mode class */
