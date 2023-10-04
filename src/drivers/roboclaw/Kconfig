@@ -1,0 +1,5 @@
+menuconfig DRIVERS_ROBOCLAW
+	bool "crsf_rc"
+	default n
+	---help---
+		Enable support for roboclaw
