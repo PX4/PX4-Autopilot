@@ -95,6 +95,7 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 	// option is to check if ANY of them have a warning, and specifically find which one has the most
 	// urgent warning.
 	uint8_t worst_warning = battery_status_s::BATTERY_WARNING_NONE;
+	float worst_battery_remaining = 1.f;
 	// To make sure that all connected batteries are being regularly reported, we check which one has the
 	// oldest timestamp.
 	hrt_abstime oldest_update = hrt_absolute_time();
@@ -152,6 +153,10 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 
 			if (battery.warning > worst_warning) {
 				worst_warning = battery.warning;
+			}
+
+			if (battery.remaining < worst_battery_remaining) {
+				worst_battery_remaining = battery.remaining;
 			}
 
 			if (battery.timestamp < oldest_update) {
@@ -223,8 +228,25 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 		if (reporter.mavlink_log_pub()) {
 			mavlink_log_emergency(reporter.mavlink_log_pub(), "Low battery level\t");
 		}
-		}
 
+	} else if (!context.isArmed() && _param_arm_battery_level_min.get() > FLT_EPSILON
+		   && worst_battery_remaining < _param_arm_battery_level_min.get()) {
+		// if not armed, additionally check if the battery is below the separately configurable preflight threshold
+		/* EVENT
+		 * @description
+		 * The battery state of charge of the worst battery is below the preflight threshold.
+		 *
+		 * <profile name="dev">
+		 * This check can be configured via <param>COM_ARM_BAT_MIN</param> parameter.
+		 * </profile>
+		 */
+		reporter.armingCheckFailure(NavModes::All, health_component_t::battery, events::ID("check_battery_preflight_low"),
+					    events::Log::Critical,
+					    "Low battery");
+
+		if (reporter.mavlink_log_pub()) {
+			mavlink_log_emergency(reporter.mavlink_log_pub(), "Low battery level\t");
+		}
 	}
 
 	rtlEstimateCheck(context, reporter, worst_battery_time_s);
