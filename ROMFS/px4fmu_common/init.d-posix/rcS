@@ -311,8 +311,14 @@ then
 	# Override port if environment variable is defined
 	uxrce_dds_local_port="$PX4_UXRCE_DDS_LOCAL_PORT"
 fi
+uxrce_dds_ip="127.0.0.1"
+if [ -n "$PX4_UXRCE_DDS_IP" ]
+then
+	# Override port if environment variable is defined
+	uxrce_dds_ip="$PX4_UXRCE_DDS_IP"
+fi
 
-uxrce_dds_client start -t udp -h 127.0.0.1 -r $uxrce_dds_local_port -p $uxrce_dds_port $uxrce_dds_ns
+uxrce_dds_client start -t udp -h $uxrce_dds_ip -r $uxrce_dds_local_port -p $uxrce_dds_port $uxrce_dds_ns
 
 if param greater -s MNT_MODE_IN -1
 then
