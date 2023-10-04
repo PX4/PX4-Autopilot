@@ -157,6 +157,7 @@ PARAM_DEFINE_FLOAT(FW_T_SINK_MIN, 2.0f);
  *
  * The trim CAS (calibrated airspeed) of the vehicle. If an airspeed controller is active,
  * this is the default airspeed setpoint that the controller will try to achieve.
+ * This value corresponds to the trim airspeed with the default load factor (level flight, default weight).
  *
  * @unit m/s
  * @min 0.5

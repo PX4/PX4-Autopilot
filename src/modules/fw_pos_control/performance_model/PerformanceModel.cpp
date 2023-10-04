@@ -141,22 +141,22 @@ float PerformanceModel::getMinimumSinkRate(float air_density) const
 {
 	return _param_fw_t_sink_min.get() * sqrtf(getWeightRatio() * CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C / air_density);
 }
-float PerformanceModel::getTrimAirspeed() const
+float PerformanceModel::getCalibratedTrimAirspeed() const
 {
 	return math::constrain(_param_fw_airspd_trim.get() * sqrtf(getWeightRatio()), _param_fw_airspd_min.get(),
 			       _param_fw_airspd_max.get());
 }
-float PerformanceModel::getMinimumAirspeed(float load_factor) const
+float PerformanceModel::getMinimumCalibratedAirspeed(float load_factor) const
 {
 	return _param_fw_airspd_min.get() * sqrtf(getWeightRatio() * load_factor);
 }
 
-float PerformanceModel::getStallAirspeed(float load_factor) const
+float PerformanceModel::getCalibratedStallAirspeed(float load_factor) const
 {
 	return _param_fw_airspd_stall.get() * sqrtf(getWeightRatio() * load_factor);
 }
 
-float PerformanceModel::getMaximumAirspeed() const
+float PerformanceModel::getMaximumCalibratedAirspeed() const
 {
 	return _param_fw_airspd_max.get();
 }

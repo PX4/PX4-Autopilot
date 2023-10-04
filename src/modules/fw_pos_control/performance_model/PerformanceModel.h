@@ -84,27 +84,27 @@ public:
 	 * Get the trim airspeed compensated for weight.
 	 * @return calibrated trim airspeed in m/s
 	 */
-	float getTrimAirspeed() const;
+	float getCalibratedTrimAirspeed() const;
 
 	/**
 	 * Get the minimum airspeed compensated for weight and load factor due to bank angle.
 	 * @param load_factor due to banking
 	 * @return calibrated minimum airspeed in m/s
 	 */
-	float getMinimumAirspeed(float load_factor = 1.0f) const;
+	float getMinimumCalibratedAirspeed(float load_factor = 1.0f) const;
 
 	/**
 	 * Get the maximum airspeed.
 	 * @return calibrated maximum airspeed in m/s
 	 */
-	float getMaximumAirspeed() const;
+	float getMaximumCalibratedAirspeed() const;
 
 	/**
 	 * get the stall airspeed compensated for load factor due to bank angle.
 	 * @param load_factor load factor due to banking
 	 * @return calibrated stall airspeed in m/s
 	 */
-	float getStallAirspeed(float load_factor) const;
+	float getCalibratedStallAirspeed(float load_factor) const;
 
 	/**
 	 * Run some checks on parameters and detect unfeasible combinations.
