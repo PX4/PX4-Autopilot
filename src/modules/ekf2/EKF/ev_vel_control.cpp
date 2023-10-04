@@ -106,12 +106,14 @@ void Ekf::controlEvVelFusion(const extVisionSample &ev_sample, const bool common
 		break;
 	}
 
+#if defined(CONFIG_EKF2_GNSS)
 	// increase minimum variance if GPS active (position reference)
 	if (_control_status.flags.gps) {
 		for (int i = 0; i < 2; i++) {
 			vel_cov(i, i) = math::max(vel_cov(i, i), sq(_params.gps_vel_noise));
 		}
 	}
+#endif // CONFIG_EKF2_GNSS
 
 	const Vector3f measurement{vel};
 

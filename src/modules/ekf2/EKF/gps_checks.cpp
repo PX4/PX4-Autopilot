@@ -271,3 +271,13 @@ bool Ekf::gps_is_good(const gpsMessage &gps)
 	// continuous period without fail of x seconds required to return a healthy status
 	return isTimedOut(_last_gps_fail_us, (uint64_t)_min_gps_health_time_us);
 }
+
+void Ekf::resetGpsDriftCheckFilters()
+{
+	_gps_velNE_filt.setZero();
+	_gps_pos_deriv_filt.setZero();
+
+	_gps_horizontal_position_drift_rate_m_s = NAN;
+	_gps_vertical_position_drift_rate_m_s = NAN;
+	_gps_filtered_horizontal_velocity_m_s = NAN;
+}

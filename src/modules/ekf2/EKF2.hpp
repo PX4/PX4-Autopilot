@@ -68,7 +68,6 @@
 #include <uORB/topics/estimator_bias.h>
 #include <uORB/topics/estimator_bias3d.h>
 #include <uORB/topics/estimator_event_flags.h>
-#include <uORB/topics/estimator_gps_status.h>
 #include <uORB/topics/estimator_innovations.h>
 #include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/estimator_states.h>
@@ -80,7 +79,6 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/vehicle_imu.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
@@ -100,6 +98,11 @@
 #if defined(CONFIG_EKF2_BAROMETER)
 # include <uORB/topics/vehicle_air_data.h>
 #endif // CONFIG_EKF2_BAROMETER
+
+#if defined(CONFIG_EKF2_GNSS)
+# include <uORB/topics/estimator_gps_status.h>
+# include <uORB/topics/sensor_gps.h>
+#endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 # include <uORB/topics/vehicle_magnetometer.h>
@@ -180,7 +183,6 @@ private:
 #if defined(CONFIG_EKF2_BAROMETER)
 	void PublishBaroBias(const hrt_abstime &timestamp);
 #endif // CONFIG_EKF2_BAROMETER
-	void PublishGnssHgtBias(const hrt_abstime &timestamp);
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	void PublishRngHgtBias(const hrt_abstime &timestamp);
@@ -193,15 +195,11 @@ private:
 					      uint64_t timestamp, uint32_t device_id = 0);
 	void PublishEventFlags(const hrt_abstime &timestamp);
 	void PublishGlobalPosition(const hrt_abstime &timestamp);
-	void PublishGpsStatus(const hrt_abstime &timestamp);
 	void PublishInnovations(const hrt_abstime &timestamp);
 	void PublishInnovationTestRatios(const hrt_abstime &timestamp);
 	void PublishInnovationVariances(const hrt_abstime &timestamp);
 	void PublishLocalPosition(const hrt_abstime &timestamp);
 	void PublishOdometry(const hrt_abstime &timestamp, const imuSample &imu_sample);
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	void PublishOpticalFlowVel(const hrt_abstime &timestamp);
-#endif // CONFIG_EKF2_OPTICAL_FLOW
 	void PublishSensorBias(const hrt_abstime &timestamp);
 	void PublishStates(const hrt_abstime &timestamp);
 	void PublishStatus(const hrt_abstime &timestamp);
@@ -209,7 +207,6 @@ private:
 #if defined(CONFIG_EKF2_WIND)
 	void PublishWindEstimate(const hrt_abstime &timestamp);
 #endif // CONFIG_EKF2_WIND
-	void PublishYawEstimatorStatus(const hrt_abstime &timestamp);
 
 #if defined(CONFIG_EKF2_AIRSPEED)
 	void UpdateAirspeedSample(ekf2_timestamps_s &ekf2_timestamps);
@@ -223,16 +220,28 @@ private:
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	bool UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps);
 #endif // CONFIG_EKF2_EXTERNAL_VISION
+#if defined(CONFIG_EKF2_GNSS)
+	/*
+	 * Calculate filtered WGS84 height from estimated AMSL height
+	 */
+	float filter_altitude_ellipsoid(float amsl_hgt);
+
+	void PublishGpsStatus(const hrt_abstime &timestamp);
+	void PublishGnssHgtBias(const hrt_abstime &timestamp);
+	void PublishYawEstimatorStatus(const hrt_abstime &timestamp);
+	void UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps);
+#endif // CONFIG_EKF2_GNSS
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	bool UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps);
+	void PublishOpticalFlowVel(const hrt_abstime &timestamp);
 #endif // CONFIG_EKF2_OPTICAL_FLOW
-	void UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps);
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	void UpdateMagSample(ekf2_timestamps_s &ekf2_timestamps);
 #endif // CONFIG_EKF2_MAGNETOMETER
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	void UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps);
 #endif // CONFIG_EKF2_RANGE_FINDER
+
 	void UpdateSystemFlagsSample(ekf2_timestamps_s &ekf2_timestamps);
 
 	// Used to check, save and use learned accel/gyro/mag biases
@@ -267,11 +276,6 @@ private:
 		}
 	}
 
-	/*
-	 * Calculate filtered WGS84 height from estimated AMSL height
-	 */
-	float filter_altitude_ellipsoid(float amsl_hgt);
-
 	static constexpr float sq(float x) { return x * x; };
 
 	const bool _replay_mode{false};			///< true when we use replay data from a log
@@ -288,16 +292,10 @@ private:
 	perf_counter_t _ecl_ekf_update_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": ECL update")};
 	perf_counter_t _ecl_ekf_update_full_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": ECL full update")};
 	perf_counter_t _msg_missed_imu_perf{perf_alloc(PC_COUNT, MODULE_NAME": IMU message missed")};
-	perf_counter_t _msg_missed_gps_perf{nullptr};
 	perf_counter_t _msg_missed_odometry_perf{nullptr};
 
 	InFlightCalibration _accel_cal{};
 	InFlightCalibration _gyro_cal{};
-
-	uint64_t _gps_time_usec{0};
-	int32_t _gps_alttitude_ellipsoid{0};			///< altitude in 1E-3 meters (millimeters) above ellipsoid
-	uint64_t _gps_alttitude_ellipsoid_previous_timestamp{0}; ///< storage for previous timestamp to compute dt
-	float   _wgs84_hgt_offset = 0;  ///< height offset between AMSL and WGS84
 
 	uint8_t _accel_calibration_count{0};
 	uint8_t _gyro_calibration_count{0};
@@ -309,7 +307,6 @@ private:
 	Vector3f _last_gyro_bias_published{};
 
 	hrt_abstime _last_sensor_bias_published{0};
-	hrt_abstime _last_gps_status_published{0};
 
 	hrt_abstime _status_fake_hgt_pub_last{0};
 	hrt_abstime _status_fake_pos_pub_last{0};
@@ -351,13 +348,6 @@ private:
 
 	uORB::PublicationMulti<estimator_bias3d_s> _estimator_ev_pos_bias_pub{ORB_ID(estimator_ev_pos_bias)};
 #endif // CONFIG_EKF2_EXTERNAL_VISION
-
-	hrt_abstime _status_gnss_hgt_pub_last{0};
-	hrt_abstime _status_gnss_pos_pub_last{0};
-	hrt_abstime _status_gnss_vel_pub_last{0};
-#if defined(CONFIG_EKF2_GNSS_YAW)
-	hrt_abstime _status_gnss_yaw_pub_last {0};
-#endif // CONFIG_EKF2_GNSS_YAW
 
 	hrt_abstime _status_gravity_pub_last{0};
 
@@ -413,8 +403,6 @@ private:
 	hrt_abstime _status_drag_pub_last{0};
 #endif // CONFIG_EKF2_DRAG_FUSION
 
-	float _last_gnss_hgt_bias_published{};
-
 #if defined(CONFIG_EKF2_AIRSPEED)
 	uORB::Subscription _airspeed_sub {ORB_ID(airspeed)};
 	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};
@@ -441,7 +429,6 @@ private:
 	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
 	uORB::Subscription _status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
-	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 
 	uORB::SubscriptionCallbackWorkItem _sensor_combined_sub{this, ORB_ID(sensor_combined)};
@@ -477,9 +464,7 @@ private:
 	uint32_t _filter_information_event_changes{0};
 
 	uORB::PublicationMulti<ekf2_timestamps_s>            _ekf2_timestamps_pub{ORB_ID(ekf2_timestamps)};
-	uORB::PublicationMulti<estimator_bias_s>             _estimator_gnss_hgt_bias_pub{ORB_ID(estimator_gnss_hgt_bias)};
 	uORB::PublicationMultiData<estimator_event_flags_s>  _estimator_event_flags_pub{ORB_ID(estimator_event_flags)};
-	uORB::PublicationMulti<estimator_gps_status_s>       _estimator_gps_status_pub{ORB_ID(estimator_gps_status)};
 	uORB::PublicationMulti<estimator_innovations_s>      _estimator_innovation_test_ratios_pub{ORB_ID(estimator_innovation_test_ratios)};
 	uORB::PublicationMulti<estimator_innovations_s>      _estimator_innovation_variances_pub{ORB_ID(estimator_innovation_variances)};
 	uORB::PublicationMulti<estimator_innovations_s>      _estimator_innovations_pub{ORB_ID(estimator_innovations)};
@@ -487,17 +472,9 @@ private:
 	uORB::PublicationMulti<estimator_states_s>           _estimator_states_pub{ORB_ID(estimator_states)};
 	uORB::PublicationMulti<estimator_status_flags_s>     _estimator_status_flags_pub{ORB_ID(estimator_status_flags)};
 	uORB::PublicationMulti<estimator_status_s>           _estimator_status_pub{ORB_ID(estimator_status)};
-	uORB::PublicationMulti<yaw_estimator_status_s>       _yaw_est_pub{ORB_ID(yaw_estimator_status)};
 
 	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_fake_hgt_pub{ORB_ID(estimator_aid_src_fake_hgt)};
 	uORB::PublicationMulti<estimator_aid_source2d_s> _estimator_aid_src_fake_pos_pub{ORB_ID(estimator_aid_src_fake_pos)};
-
-	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_gnss_hgt_pub{ORB_ID(estimator_aid_src_gnss_hgt)};
-	uORB::PublicationMulti<estimator_aid_source2d_s> _estimator_aid_src_gnss_pos_pub{ORB_ID(estimator_aid_src_gnss_pos)};
-	uORB::PublicationMulti<estimator_aid_source3d_s> _estimator_aid_src_gnss_vel_pub{ORB_ID(estimator_aid_src_gnss_vel)};
-#if defined(CONFIG_EKF2_GNSS_YAW)
-	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_gnss_yaw_pub {ORB_ID(estimator_aid_src_gnss_yaw)};
-#endif // CONFIG_EKF2_GNSS_YAW
 
 	uORB::PublicationMulti<estimator_aid_source3d_s> _estimator_aid_src_gravity_pub{ORB_ID(estimator_aid_src_gravity)};
 
@@ -511,6 +488,36 @@ private:
 	uORB::PublicationMulti<wind_s>              _wind_pub;
 #endif // CONFIG_EKF2_WIND
 
+#if defined(CONFIG_EKF2_GNSS)
+	perf_counter_t _msg_missed_gps_perf {nullptr};
+
+	uint64_t _gps_time_usec{0};
+	int32_t _gps_alttitude_ellipsoid{0};			///< altitude in 1E-3 meters (millimeters) above ellipsoid
+	uint64_t _gps_alttitude_ellipsoid_previous_timestamp{0}; ///< storage for previous timestamp to compute dt
+	float   _wgs84_hgt_offset = 0;  ///< height offset between AMSL and WGS84
+
+	hrt_abstime _last_gps_status_published{0};
+
+	hrt_abstime _status_gnss_hgt_pub_last{0};
+	hrt_abstime _status_gnss_pos_pub_last{0};
+	hrt_abstime _status_gnss_vel_pub_last{0};
+
+	float _last_gnss_hgt_bias_published{};
+
+	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+
+	uORB::PublicationMulti<estimator_bias_s> _estimator_gnss_hgt_bias_pub{ORB_ID(estimator_gnss_hgt_bias)};
+	uORB::PublicationMulti<estimator_gps_status_s> _estimator_gps_status_pub{ORB_ID(estimator_gps_status)};
+	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_gnss_hgt_pub{ORB_ID(estimator_aid_src_gnss_hgt)};
+	uORB::PublicationMulti<estimator_aid_source2d_s> _estimator_aid_src_gnss_pos_pub{ORB_ID(estimator_aid_src_gnss_pos)};
+	uORB::PublicationMulti<estimator_aid_source3d_s> _estimator_aid_src_gnss_vel_pub{ORB_ID(estimator_aid_src_gnss_vel)};
+	uORB::PublicationMulti<yaw_estimator_status_s> _yaw_est_pub{ORB_ID(yaw_estimator_status)};
+# if defined(CONFIG_EKF2_GNSS_YAW)
+	hrt_abstime _status_gnss_yaw_pub_last {0};
+	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_gnss_yaw_pub {ORB_ID(estimator_aid_src_gnss_yaw)};
+# endif // CONFIG_EKF2_GNSS_YAW
+#endif // CONFIG_EKF2_GNSS
+
 	PreFlightChecker _preflt_checker;
 
 	Ekf _ekf;
@@ -520,9 +527,6 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamExtInt<px4::params::EKF2_PREDICT_US>) _param_ekf2_predict_us,
 		(ParamExtInt<px4::params::EKF2_IMU_CTRL>) _param_ekf2_imu_ctrl,
-
-		(ParamExtFloat<px4::params::EKF2_GPS_DELAY>)
-		_param_ekf2_gps_delay,	///< GPS measurement delay relative to the IMU (mSec)
 
 #if defined(CONFIG_EKF2_AUXVEL)
 		(ParamExtFloat<px4::params::EKF2_AVEL_DELAY>)
@@ -544,12 +548,35 @@ private:
 		(ParamExtFloat<px4::params::EKF2_WIND_NSD>) _param_ekf2_wind_nsd,
 #endif // CONFIG_EKF2_WIND
 
-		(ParamExtFloat<px4::params::EKF2_GPS_V_NOISE>)
-		_param_ekf2_gps_v_noise,	///< minimum allowed observation noise for gps velocity fusion (m/sec)
-		(ParamExtFloat<px4::params::EKF2_GPS_P_NOISE>)
-		_param_ekf2_gps_p_noise,	///< minimum allowed observation noise for gps position fusion (m)
-		(ParamExtFloat<px4::params::EKF2_NOAID_NOISE>)
-		_param_ekf2_noaid_noise,	///< observation noise for non-aiding position fusion (m)
+		(ParamExtFloat<px4::params::EKF2_NOAID_NOISE>) _param_ekf2_noaid_noise,
+
+#if defined(CONFIG_EKF2_GNSS)
+		(ParamExtInt<px4::params::EKF2_GPS_CTRL>) _param_ekf2_gps_ctrl,
+		(ParamExtFloat<px4::params::EKF2_GPS_DELAY>) _param_ekf2_gps_delay,
+
+		(ParamExtFloat<px4::params::EKF2_GPS_POS_X>) _param_ekf2_gps_pos_x,
+		(ParamExtFloat<px4::params::EKF2_GPS_POS_Y>) _param_ekf2_gps_pos_y,
+		(ParamExtFloat<px4::params::EKF2_GPS_POS_Z>) _param_ekf2_gps_pos_z,
+
+		(ParamExtFloat<px4::params::EKF2_GPS_V_NOISE>) _param_ekf2_gps_v_noise,
+		(ParamExtFloat<px4::params::EKF2_GPS_P_NOISE>) _param_ekf2_gps_p_noise,
+
+		(ParamExtFloat<px4::params::EKF2_GPS_P_GATE>) _param_ekf2_gps_p_gate,
+		(ParamExtFloat<px4::params::EKF2_GPS_V_GATE>) _param_ekf2_gps_v_gate,
+
+		(ParamExtInt<px4::params::EKF2_GPS_CHECK>) _param_ekf2_gps_check,
+		(ParamExtFloat<px4::params::EKF2_REQ_EPH>)    _param_ekf2_req_eph,
+		(ParamExtFloat<px4::params::EKF2_REQ_EPV>)    _param_ekf2_req_epv,
+		(ParamExtFloat<px4::params::EKF2_REQ_SACC>)   _param_ekf2_req_sacc,
+		(ParamExtInt<px4::params::EKF2_REQ_NSATS>)    _param_ekf2_req_nsats,
+		(ParamExtFloat<px4::params::EKF2_REQ_PDOP>)   _param_ekf2_req_pdop,
+		(ParamExtFloat<px4::params::EKF2_REQ_HDRIFT>) _param_ekf2_req_hdrift,
+		(ParamExtFloat<px4::params::EKF2_REQ_VDRIFT>) _param_ekf2_req_vdrift,
+		(ParamFloat<px4::params::EKF2_REQ_GPS_H>)     _param_ekf2_req_gps_h,
+
+		// Used by EKF-GSF experimental yaw estimator
+		(ParamExtFloat<px4::params::EKF2_GSF_TAS>) _param_ekf2_gsf_tas_default,
+#endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_BAROMETER)
 		(ParamExtInt<px4::params::EKF2_BARO_CTRL>) _param_ekf2_baro_ctrl,///< barometer control selection
@@ -569,11 +596,6 @@ private:
 		(ParamExtFloat<px4::params::EKF2_PCOEF_Z>) _param_ekf2_pcoef_z,
 # endif // CONFIG_EKF2_BARO_COMPENSATION
 #endif // CONFIG_EKF2_BAROMETER
-
-		(ParamExtFloat<px4::params::EKF2_GPS_P_GATE>)
-		_param_ekf2_gps_p_gate,	///< GPS horizontal position innovation consistency gate size (STD)
-		(ParamExtFloat<px4::params::EKF2_GPS_V_GATE>)
-		_param_ekf2_gps_v_gate,	///< GPS velocity innovation consistency gate size (STD)
 
 #if defined(CONFIG_EKF2_AIRSPEED)
 		(ParamExtFloat<px4::params::EKF2_ASP_DELAY>)
@@ -616,23 +638,10 @@ private:
 		(ParamExtInt<px4::params::EKF2_SYNT_MAG_Z>) _param_ekf2_synthetic_mag_z,
 #endif // CONFIG_EKF2_MAGNETOMETER
 
-		(ParamExtInt<px4::params::EKF2_GPS_CHECK>)
-		_param_ekf2_gps_check,	///< bitmask used to control which GPS quality checks are used
-		(ParamExtFloat<px4::params::EKF2_REQ_EPH>) _param_ekf2_req_eph,	///< maximum acceptable horiz position error (m)
-		(ParamExtFloat<px4::params::EKF2_REQ_EPV>) _param_ekf2_req_epv,	///< maximum acceptable vert position error (m)
-		(ParamExtFloat<px4::params::EKF2_REQ_SACC>) _param_ekf2_req_sacc,	///< maximum acceptable speed error (m/s)
-		(ParamExtInt<px4::params::EKF2_REQ_NSATS>) _param_ekf2_req_nsats,	///< minimum acceptable satellite count
-		(ParamExtFloat<px4::params::EKF2_REQ_PDOP>)
-		_param_ekf2_req_pdop,	///< maximum acceptable position dilution of precision
-		(ParamExtFloat<px4::params::EKF2_REQ_HDRIFT>)
-		_param_ekf2_req_hdrift,	///< maximum acceptable horizontal drift speed (m/s)
-		(ParamExtFloat<px4::params::EKF2_REQ_VDRIFT>) _param_ekf2_req_vdrift,	///< maximum acceptable vertical drift speed (m/s)
-
 		// measurement source control
 		(ParamInt<px4::params::EKF2_AID_MASK>)
 		_param_ekf2_aid_mask,		///< bitmasked integer that selects which of the GPS and optical flow aiding sources will be used
 		(ParamExtInt<px4::params::EKF2_HGT_REF>) _param_ekf2_hgt_ref,    ///< selects the primary source for height data
-		(ParamExtInt<px4::params::EKF2_GPS_CTRL>) _param_ekf2_gps_ctrl,  ///< GPS control selection
 
 		(ParamExtInt<px4::params::EKF2_NOAID_TOUT>)
 		_param_ekf2_noaid_tout,	///< maximum lapsed time from last fusion of measurements that constrain drift before the EKF will report the horizontal nav solution invalid (uSec)
@@ -689,10 +698,6 @@ private:
 		(ParamExtFloat<px4::params::EKF2_EV_POS_Z>)
 		_param_ekf2_ev_pos_z, ///< Z position of VI sensor focal point in body frame (m)
 #endif // CONFIG_EKF2_EXTERNAL_VISION
-
-		(ParamExtFloat<px4::params::EKF2_GRAV_NOISE>)
-		_param_ekf2_grav_noise,	///< default accelerometer noise for gravity fusion measurements (m/s**2)
-
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 		// optical flow fusion
 		(ParamExtInt<px4::params::EKF2_OF_CTRL>)
@@ -721,15 +726,6 @@ private:
 		(ParamExtFloat<px4::params::EKF2_IMU_POS_X>) _param_ekf2_imu_pos_x,		///< X position of IMU in body frame (m)
 		(ParamExtFloat<px4::params::EKF2_IMU_POS_Y>) _param_ekf2_imu_pos_y,		///< Y position of IMU in body frame (m)
 		(ParamExtFloat<px4::params::EKF2_IMU_POS_Z>) _param_ekf2_imu_pos_z,		///< Z position of IMU in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_GPS_POS_X>) _param_ekf2_gps_pos_x,		///< X position of GPS antenna in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_GPS_POS_Y>) _param_ekf2_gps_pos_y,		///< Y position of GPS antenna in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_GPS_POS_Z>) _param_ekf2_gps_pos_z,		///< Z position of GPS antenna in body frame (m)
-
-		// output predictor filter time constants
-		(ParamFloat<px4::params::EKF2_TAU_VEL>)
-		_param_ekf2_tau_vel,		///< time constant used by the output velocity complementary filter (sec)
-		(ParamFloat<px4::params::EKF2_TAU_POS>)
-		_param_ekf2_tau_pos,		///< time constant used by the output position complementary filter (sec)
 
 		// IMU switch on bias parameters
 		(ParamExtFloat<px4::params::EKF2_GBIAS_INIT>)
@@ -760,12 +756,11 @@ private:
 		(ParamExtFloat<px4::params::EKF2_MCOEF>) _param_ekf2_mcoef,		///< propeller momentum drag coefficient (1/s)
 #endif // CONFIG_EKF2_DRAG_FUSION
 
-		(ParamFloat<px4::params::EKF2_REQ_GPS_H>) _param_ekf2_req_gps_h, ///< Required GPS health time
+		// output predictor filter time constants
+		(ParamFloat<px4::params::EKF2_TAU_VEL>) _param_ekf2_tau_vel,
+		(ParamFloat<px4::params::EKF2_TAU_POS>) _param_ekf2_tau_pos,
 
-		// Used by EKF-GSF experimental yaw estimator
-		(ParamExtFloat<px4::params::EKF2_GSF_TAS>)
-		_param_ekf2_gsf_tas_default	///< default value of true airspeed assumed during fixed wing operation
-
+		(ParamExtFloat<px4::params::EKF2_GRAV_NOISE>) _param_ekf2_grav_noise
 	)
 };
 #endif // !EKF2_HPP

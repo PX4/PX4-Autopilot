@@ -400,12 +400,9 @@ void Ekf::controlGpsYawFusion(const gpsSample &gps_sample, bool gps_checks_passi
 		stopGpsYawFusion();
 	}
 }
-#endif // CONFIG_EKF2_GNSS_YAW
 
 void Ekf::stopGpsYawFusion()
 {
-#if defined(CONFIG_EKF2_GNSS_YAW)
-
 	if (_control_status.flags.gps_yaw) {
 
 		_control_status.flags.gps_yaw = false;
@@ -421,9 +418,8 @@ void Ekf::stopGpsYawFusion()
 			ECL_INFO("stopping GPS yaw fusion");
 		}
 	}
-
-#endif // CONFIG_EKF2_GNSS_YAW
 }
+#endif // CONFIG_EKF2_GNSS_YAW
 
 void Ekf::stopGpsFusion()
 {
@@ -436,5 +432,7 @@ void Ekf::stopGpsFusion()
 	}
 
 	stopGpsHgtFusion();
+#if defined(CONFIG_EKF2_GNSS_YAW)
 	stopGpsYawFusion();
+#endif // CONFIG_EKF2_GNSS_YAW
 }
