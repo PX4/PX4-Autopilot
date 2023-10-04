@@ -169,6 +169,7 @@ set(msg_files
 	RegisterExtComponentReply.msg
 	RegisterExtComponentRequest.msg
 	Rpm.msg
+	ActuatorControls.msg
 	RtlTimeEstimate.msg
 	SatelliteInfo.msg
 	SensorAccel.msg
@@ -235,6 +236,7 @@ set(msg_files
 	VehicleTrajectoryWaypoint.msg
 	VtolVehicleStatus.msg
 	Wind.msg
+	WheelEncoders.msg
 	YawEstimatorStatus.msg
 )
 list(SORT msg_files)
