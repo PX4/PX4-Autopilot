@@ -18,6 +18,7 @@ depends on MODULES_EKF2
         bool "airspeed fusion support"
         default y
 	depends on EKF2_SIDESLIP
+	depends on EKF2_WIND
 	---help---
 		EKF2 airspeed fusion support.
 
@@ -40,6 +41,7 @@ depends on MODULES_EKF2
         bool "barometer compensation support"
         default y
 	depends on EKF2_BAROMETER
+	depends on EKF2_WIND
 	---help---
 		EKF2 pressure compensation support.
 
@@ -47,6 +49,7 @@ menuconfig EKF2_DRAG_FUSION
 depends on MODULES_EKF2
         bool "drag fusion support"
         default y
+	depends on EKF2_WIND
 	---help---
 		EKF2 drag fusion support.
 
@@ -91,6 +94,7 @@ menuconfig EKF2_SIDESLIP
 depends on MODULES_EKF2
         bool "sideslip fusion support"
         default y
+	depends on EKF2_WIND
 	---help---
 		EKF2 sideslip fusion support.
 
@@ -101,6 +105,13 @@ depends on MODULES_EKF2
 	depends on EKF2_OPTICAL_FLOW || EKF2_RANGE_FINDER
 	---help---
 		EKF2 terrain estimator support.
+
+menuconfig EKF2_WIND
+depends on MODULES_EKF2
+	bool "wind estimation support"
+	default y
+	---help---
+		EKF2 wind estimation support.
 
 menuconfig USER_EKF2
 	bool "ekf2 running as userspace module"

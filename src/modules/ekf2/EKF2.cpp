@@ -56,7 +56,9 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_local_position_pub(multi_mode ? ORB_ID(estimator_local_position) : ORB_ID(vehicle_local_position)),
 	_global_position_pub(multi_mode ? ORB_ID(estimator_global_position) : ORB_ID(vehicle_global_position)),
 	_odometry_pub(multi_mode ? ORB_ID(estimator_odometry) : ORB_ID(vehicle_odometry)),
+#if defined(CONFIG_EKF2_WIND)
 	_wind_pub(multi_mode ? ORB_ID(estimator_wind) : ORB_ID(wind)),
+#endif // CONFIG_EKF2_WIND
 	_params(_ekf.getParamHandle()),
 	_param_ekf2_predict_us(_params->filter_update_interval_us),
 	_param_ekf2_imu_ctrl(_params->imu_ctrl),
@@ -68,7 +70,9 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_acc_noise(_params->accel_noise),
 	_param_ekf2_gyr_b_noise(_params->gyro_bias_p_noise),
 	_param_ekf2_acc_b_noise(_params->accel_bias_p_noise),
+#if defined(CONFIG_EKF2_WIND)
 	_param_ekf2_wind_nsd(_params->wind_vel_nsd),
+#endif // CONFIG_EKF2_WIND
 	_param_ekf2_gps_v_noise(_params->gps_vel_noise),
 	_param_ekf2_gps_p_noise(_params->gps_pos_noise),
 	_param_ekf2_noaid_noise(_params->pos_noaid_noise),
@@ -340,7 +344,10 @@ bool EKF2::multi_init(int imu, int mag)
 	_local_position_pub.advertise();
 	_global_position_pub.advertise();
 	_odometry_pub.advertise();
+
+#if defined(CONFIG_EKF2_WIND)
 	_wind_pub.advertise();
+#endif // CONFIG_EKF2_WIND
 
 	bool changed_instance = _vehicle_imu_sub.ChangeInstance(imu);
 
@@ -732,7 +739,10 @@ void EKF2::Run()
 			PublishLocalPosition(now);
 			PublishOdometry(now, imu_sample_new);
 			PublishGlobalPosition(now);
+
+#if defined(CONFIG_EKF2_WIND)
 			PublishWindEstimate(now);
+#endif // CONFIG_EKF2_WIND
 
 			// publish status/logging messages
 #if defined(CONFIG_EKF2_BAROMETER)
@@ -1953,6 +1963,7 @@ void EKF2::PublishYawEstimatorStatus(const hrt_abstime &timestamp)
 	}
 }
 
+#if defined(CONFIG_EKF2_WIND)
 void EKF2::PublishWindEstimate(const hrt_abstime &timestamp)
 {
 	if (_ekf.get_wind_status()) {
@@ -1981,6 +1992,7 @@ void EKF2::PublishWindEstimate(const hrt_abstime &timestamp)
 		_wind_pub.publish(wind);
 	}
 }
+#endif // CONFIG_EKF2_WIND
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 void EKF2::PublishOpticalFlowVel(const hrt_abstime &timestamp)
