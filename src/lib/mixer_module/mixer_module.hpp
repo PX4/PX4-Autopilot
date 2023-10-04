@@ -179,6 +179,8 @@ public:
 
 	param_t functionParamHandle(int index) const { return _param_handles[index].function; }
 	param_t disarmedParamHandle(int index) const { return _param_handles[index].disarmed; }
+	param_t minParamHandle(int index) const { return _param_handles[index].min; }
+	param_t maxParamHandle(int index) const { return _param_handles[index].max; }
 
 	/**
 	 * Returns the actual failsafe value taking into account the assigned function
@@ -248,10 +250,9 @@ private:
 
 	enum class OutputLimitState {
 		OFF = 0,
-		INIT,
 		RAMP,
 		ON
-	} _output_state{OutputLimitState::INIT};
+	} _output_state{OutputLimitState::OFF};
 
 	hrt_abstime _output_time_armed{0};
 	const bool _output_ramp_up; ///< if true, motors will ramp up from disarmed to min_output after arming

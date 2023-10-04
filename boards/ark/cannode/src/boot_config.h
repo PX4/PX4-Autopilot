@@ -65,7 +65,7 @@
 #define OPT_PREFERRED_NODE_ID ANY_NODE_ID
 
 //todo:wrap OPT_x in in ifdefs for command line definitions
-#define OPT_TBOOT_MS                    5000
+#define OPT_TBOOT_MS                    3000
 #define OPT_NODE_STATUS_RATE_MS         800
 #define OPT_NODE_INFO_RATE_MS           50
 #define OPT_BL_NUMBER_TIMERS            7
@@ -92,8 +92,12 @@
  *
  */
 #define OPT_WAIT_FOR_GETNODEINFO                    0
-#define OPT_WAIT_FOR_GETNODEINFO_JUMPER_GPIO        1
-#define OPT_WAIT_FOR_GETNODEINFO_JUMPER_GPIO_INVERT 0
+/* The ARK CANnode uses PH1 for GPIO_BOOT_CONFIG but it is not
+ * compatible with px4_arch_gpioread as Port H = 7 which is greater
+ * than STM32_NPORTS
+ * #define OPT_WAIT_FOR_GETNODEINFO_JUMPER_GPIO        0
+ */
+#define OPT_WAIT_FOR_GETNODEINFO_JUMPER_GPIO_INVERT 1
 
 #define OPT_ENABLE_WD           1
 

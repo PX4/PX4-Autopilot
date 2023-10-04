@@ -39,7 +39,6 @@
 #include <mathlib/mathlib.h>
 
 #include "common.h"
-#include "utils.hpp"
 
 using matrix::AxisAnglef;
 using matrix::Dcmf;

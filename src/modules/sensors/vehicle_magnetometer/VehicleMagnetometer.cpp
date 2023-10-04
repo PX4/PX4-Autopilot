@@ -259,7 +259,7 @@ void VehicleMagnetometer::UpdateMagCalibration()
 	// State variance assumed for magnetometer bias storage.
 	// This is a reference variance used to calculate the fraction of learned magnetometer bias that will be used to update the stored value.
 	// Larger values cause a larger fraction of the learned biases to be used.
-	static constexpr float magb_vref = 2.5e-7f;
+	static constexpr float magb_vref = 2.5e-6f;
 	static constexpr float min_var_allowed = magb_vref * 0.01f;
 	static constexpr float max_var_allowed = magb_vref * 500.f;
 
@@ -275,10 +275,10 @@ void VehicleMagnetometer::UpdateMagCalibration()
 				const Vector3f bias_variance{estimator_sensor_bias.mag_bias_variance};
 
 				const bool valid = (hrt_elapsed_time(&estimator_sensor_bias.timestamp) < 1_s)
-						   && (estimator_sensor_bias.mag_device_id != 0) &&
-						   estimator_sensor_bias.mag_bias_valid &&
-						   estimator_sensor_bias.mag_bias_stable &&
-						   (bias_variance.min() > min_var_allowed) && (bias_variance.max() < max_var_allowed);
+						   && (estimator_sensor_bias.mag_device_id != 0)
+						   && estimator_sensor_bias.mag_bias_valid
+						   && estimator_sensor_bias.mag_bias_stable
+						   && (bias_variance.min() > min_var_allowed) && (bias_variance.max() < max_var_allowed);
 
 				if (valid) {
 					// find corresponding mag calibration
@@ -288,8 +288,20 @@ void VehicleMagnetometer::UpdateMagCalibration()
 							_mag_cal[i].device_id = estimator_sensor_bias.mag_device_id;
 
 							// readd estimated bias that was removed before publishing vehicle_magnetometer (_calibration_estimator_bias)
-							_mag_cal[i].offset = _calibration[mag_index].BiasCorrectedSensorOffset(bias + _calibration_estimator_bias[mag_index]);
+							const Vector3f mag_cal_offset = _calibration[mag_index].BiasCorrectedSensorOffset(bias +
+											_calibration_estimator_bias[mag_index]);
 
+							if ((mag_cal_offset - _mag_cal[i].offset).longerThan(0.001f)) {
+								const Vector3f mag_cal_orig{_calibration[mag_index].offset()};
+
+								PX4_DEBUG("%d (%" PRIu32 ") EST:%d offset: [%.2f, %.2f, %.2f]->[%.2f, %.2f, %.2f] (full [%.3f, %.3f, %.3f])",
+									  mag_index, _calibration[mag_index].device_id(), i,
+									  (double)mag_cal_orig(0), (double)mag_cal_orig(1), (double)mag_cal_orig(2),
+									  (double)mag_cal_offset(0), (double)mag_cal_offset(1), (double)mag_cal_offset(2),
+									  (double)_mag_cal[i].offset(0), (double)_mag_cal[i].offset(1), (double)_mag_cal[i].offset(2));
+							}
+
+							_mag_cal[i].offset = mag_cal_offset;
 							_mag_cal[i].variance = bias_variance;
 
 							_in_flight_mag_cal_available = true;
@@ -329,7 +341,7 @@ void VehicleMagnetometer::UpdateMagCalibration()
 
 					if (_calibration[mag_index].set_offset(mag_cal_offset)) {
 
-						PX4_INFO("%d (%" PRIu32 ") EST:%d offset: [%.2f, %.2f, %.2f]->[%.2f, %.2f, %.2f] (full [%.3f, %.3f, %.3f])",
+						PX4_INFO("%d (%" PRIu32 ") EST:%d offset: [%.3f, %.3f, %.3f]->[%.3f, %.3f, %.3f] (full [%.3f, %.3f, %.3f])",
 							 mag_index, _calibration[mag_index].device_id(), i,
 							 (double)mag_cal_orig(0), (double)mag_cal_orig(1), (double)mag_cal_orig(2),
 							 (double)mag_cal_offset(0), (double)mag_cal_offset(1), (double)mag_cal_offset(2),
@@ -340,6 +352,14 @@ void VehicleMagnetometer::UpdateMagCalibration()
 						_calibration_estimator_bias[mag_index].zero();
 
 						calibration_param_save_needed = true;
+
+					} else {
+						// new offset not saved
+						PX4_DEBUG("%d (%" PRIu32 ") EST:%d rejected: [%.3f, %.3f, %.3f]->[%.3f, %.3f, %.3f] (full [%.3f, %.3f, %.3f])",
+							  mag_index, _calibration[mag_index].device_id(), i,
+							  (double)mag_cal_orig(0), (double)mag_cal_orig(1), (double)mag_cal_orig(2),
+							  (double)mag_cal_offset(0), (double)mag_cal_offset(1), (double)mag_cal_offset(2),
+							  (double)_mag_cal[i].offset(0), (double)_mag_cal[i].offset(1), (double)_mag_cal[i].offset(2));
 					}
 				}
 			}
@@ -369,8 +389,8 @@ void VehicleMagnetometer::UpdatePowerCompensation()
 			if (_vehicle_thrust_setpoint_0_sub.update(&vehicle_thrust_setpoint)) {
 				const matrix::Vector3f thrust_setpoint = matrix::Vector3f(vehicle_thrust_setpoint.xyz);
 
-				for (auto &cal : _calibration) {
-					cal.UpdatePower(thrust_setpoint.length());
+				for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
+					_calibration[i].UpdatePower(thrust_setpoint.length());
 				}
 			}
 
@@ -382,14 +402,14 @@ void VehicleMagnetometer::UpdatePowerCompensation()
 			if (_battery_status_sub.update(&bat_stat)) {
 				float power = bat_stat.current_a * 0.001f; // current in [kA]
 
-				for (auto &cal : _calibration) {
-					cal.UpdatePower(power);
+				for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
+					_calibration[i].UpdatePower(power);
 				}
 			}
 
 		} else {
-			for (auto &cal : _calibration) {
-				cal.UpdatePower(0.f);
+			for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
+				_calibration[i].UpdatePower(0.f);
 			}
 		}
 	}
@@ -410,6 +430,10 @@ void VehicleMagnetometer::Run()
 		if (_vehicle_control_mode_sub.copy(&vehicle_control_mode)) {
 			_armed = vehicle_control_mode.flag_armed;
 		}
+	}
+
+	for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
+		_calibration[i].SensorCorrectionsUpdate();
 	}
 
 	UpdatePowerCompensation();

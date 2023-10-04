@@ -54,6 +54,8 @@ public:
 
 	void run(bool active);
 
+	bool isActive() {return _active;};
+
 	/**
 	 * This function is called while the mode is inactive
 	 */

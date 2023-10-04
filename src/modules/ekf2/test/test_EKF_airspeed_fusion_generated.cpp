@@ -62,7 +62,7 @@ TEST(AirspeedFusionGenerated, SympyVsSymforce)
 		// Intermediate variables
 		const float HK0 = vn - vwn;
 		const float HK1 = ve - vwe;
-		const float HK2 = ecl::powf(HK0, 2) + ecl::powf(HK1, 2) + ecl::powf(vd, 2);
+		const float HK2 = powf(HK0, 2.f) + powf(HK1, 2.f) + powf(vd, 2.f);
 		const float v_tas_pred = sqrtf(HK2); // predicted airspeed
 		//const float HK3 = powf(HK2, -1.0F/2.0F);
 		// calculation can be badly conditioned for very low airspeed values so don't fuse this time

@@ -93,6 +93,14 @@ then
 		fi
 	fi
 
+	# Check for an update of the ext_autostart folder, and replace the old one with it
+	if [ -e /fs/microsd/ext_autostart_new ]
+	then
+		echo "Updating external autostart files"
+		rm -r $SDCARD_EXT_PATH
+		mv /fs/microsd/ext_autostart_new $SDCARD_EXT_PATH
+	fi
+
 	set PARAM_FILE /fs/microsd/params
 	set PARAM_BACKUP_FILE "/fs/microsd/parameters_backup.bson"
 fi
@@ -254,6 +262,8 @@ else
 	#
 	rgbled start -X -q
 	rgbled_ncp5623c start -X -q
+	rgbled_lp5562 start -X -q
+	rgbled_is31fl3195 start -X -q
 
 	#
 	# Override parameters from user configuration file.

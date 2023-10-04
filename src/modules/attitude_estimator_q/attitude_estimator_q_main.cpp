@@ -219,7 +219,8 @@ void AttitudeEstimatorQ::update_gps_position()
 		if (_vehicle_gps_position_sub.update(&gps)) {
 			if (_param_att_mag_decl_a.get() && (gps.eph < 20.0f)) {
 				// set magnetic declination automatically
-				update_mag_declination(get_mag_declination_radians(gps.lat, gps.lon));
+				update_mag_declination(get_mag_declination_radians((float)gps.latitude_deg,
+						       (float)gps.longitude_deg));
 			}
 		}
 	}

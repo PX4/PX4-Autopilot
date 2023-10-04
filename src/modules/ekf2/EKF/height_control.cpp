@@ -41,10 +41,14 @@ void Ekf::controlHeightFusion(const imuSample &imu_delayed)
 {
 	checkVerticalAccelerationHealth(imu_delayed);
 
+#if defined(CONFIG_EKF2_BAROMETER)
 	updateGroundEffect();
 
 	controlBaroHeightFusion();
+#endif // CONFIG_EKF2_BAROMETER
+
 	controlGnssHeightFusion(_gps_sample_delayed);
+
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	controlRangeHeightFusion();
 #endif // CONFIG_EKF2_RANGE_FINDER
@@ -175,9 +179,11 @@ Likelihood Ekf::estimateInertialNavFallingLikelihood() const
 		bool failed_lim{false};
 	} checks[6] {};
 
+#if defined(CONFIG_EKF2_BAROMETER)
 	if (_control_status.flags.baro_hgt) {
 		checks[0] = {ReferenceType::PRESSURE, _aid_src_baro_hgt.innovation, _aid_src_baro_hgt.innovation_variance};
 	}
+#endif // CONFIG_EKF2_BAROMETER
 
 	if (_control_status.flags.gps_hgt) {
 		checks[1] = {ReferenceType::GNSS, _aid_src_gnss_hgt.innovation, _aid_src_gnss_hgt.innovation_variance};

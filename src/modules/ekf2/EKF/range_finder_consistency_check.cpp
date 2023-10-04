@@ -37,8 +37,12 @@
 
 #include "range_finder_consistency_check.hpp"
 
-void RangeFinderConsistencyCheck::update(float dist_bottom, float dist_bottom_var, float vz, float vz_var, uint64_t time_us)
+void RangeFinderConsistencyCheck::update(float dist_bottom, float dist_bottom_var, float vz, float vz_var, bool horizontal_motion, uint64_t time_us)
 {
+	if (horizontal_motion) {
+		_time_last_horizontal_motion = time_us;
+	}
+
 	const float dt = static_cast<float>(time_us - _time_last_update_us) * 1e-6f;
 
 	if ((_time_last_update_us == 0)
@@ -68,12 +72,20 @@ void RangeFinderConsistencyCheck::update(float dist_bottom, float dist_bottom_va
 
 void RangeFinderConsistencyCheck::updateConsistency(float vz, uint64_t time_us)
 {
+	if (fabsf(vz) < _min_vz_for_valid_consistency) {
+		// We can only check consistency if there is vertical motion
+		return;
+	}
+
 	if (fabsf(_signed_test_ratio_lpf.getState()) >= 1.f) {
-		_is_kinematically_consistent = false;
-		_time_last_inconsistent_us = time_us;
+		if ((time_us - _time_last_horizontal_motion) > _signed_test_ratio_tau) {
+			_is_kinematically_consistent = false;
+			_time_last_inconsistent_us = time_us;
+		}
 
 	} else {
-		if (fabsf(vz) > _min_vz_for_valid_consistency && _test_ratio < 1.f && ((time_us - _time_last_inconsistent_us) > _consistency_hyst_time_us)) {
+		if (_test_ratio < 1.f
+		   && ((time_us - _time_last_inconsistent_us) > _consistency_hyst_time_us)) {
 			_is_kinematically_consistent = true;
 		}
 	}

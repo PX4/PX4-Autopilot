@@ -126,16 +126,41 @@ public:
 		return res;
 	}
 
-	Type trace() const
+	template <size_t Width>
+	Type trace(size_t first) const
 	{
+		static_assert(Width <= M, "Width bigger than matrix");
+		assert(first + Width <= M);
+
 		Type res = 0;
 		const SquareMatrix<Type, M> &self = *this;
 
-		for (size_t i = 0; i < M; i++) {
+		for (size_t i = first; i < (first + Width); i++) {
 			res += self(i, i);
 		}
 
 		return res;
+	}
+
+	Type trace() const
+	{
+		const SquareMatrix<Type, M> &self = *this;
+		return self.trace<M>(0);
+	}
+
+	// keep the sub covariance matrix and zero all covariance elements related
+	// to the rest of the matrix
+	template <size_t Width>
+	void uncorrelateCovarianceBlock(size_t first)
+	{
+		static_assert(Width <= M, "Width bigger than matrix");
+		assert(first + Width <= M);
+
+		SquareMatrix<Type, M> &self = *this;
+		SquareMatrix<Type, Width> cov = self.slice<Width, Width>(first, first);
+		self.slice<M, Width>(0, first) = 0.f;
+		self.slice<Width, M>(first, 0) = 0.f;
+		self.slice<Width, Width>(first, first) = cov;
 	}
 
 	// zero all offdiagonal elements and keep corresponding diagonal elements
@@ -280,6 +305,27 @@ public:
 		return self.isBlockSymmetric<Width>(first, eps);
 	}
 
+	void copyLowerToUpperTriangle()
+	{
+		SquareMatrix<Type, M> &self = *this;
+
+		for (size_t row_idx = 1; row_idx < M; row_idx++) {
+			for (size_t col_idx = 0 ; col_idx < row_idx; col_idx++) {
+				self(col_idx, row_idx) = self(row_idx, col_idx);
+			}
+		}
+	}
+
+	void copyUpperToLowerTriangle()
+	{
+		SquareMatrix<Type, M> &self = *this;
+
+		for (size_t row_idx = 1; row_idx < M; row_idx++) {
+			for (size_t col_idx = 0 ; col_idx < row_idx; col_idx++) {
+				self(row_idx, col_idx) = self(col_idx, row_idx);
+			}
+		}
+	}
 };
 
 using SquareMatrix3f = SquareMatrix<float, 3>;
@@ -322,6 +368,19 @@ SquareMatrix<Type, M> expm(const Matrix<Type, M, M> &A, size_t order = 5)
 	return res;
 }
 
+/**
+ * Deal with the special case where the square matrix is 1
+ */
+template<typename Type>
+bool inv(const SquareMatrix<Type, 1> &A, SquareMatrix<Type, 1> &inv, size_t rank = 1)
+{
+	if (std::fabs(A(0, 0)) < Type(FLT_EPSILON)) {
+		return false;
+	}
+
+	inv(0, 0) = Type(1) / A(0, 0);
+	return true;
+}
 
 /**
  * inverse based on LU factorization with partial pivotting

@@ -142,7 +142,7 @@ private:
 	static constexpr float SAGETECH_SCALE_KNOTS_TO_M_PER_SEC{0.514444F};
 	static constexpr float SAGETECH_SCALE_M_PER_SEC_TO_KNOTS{1.94384F};
 	static constexpr float SAGETECH_SCALE_FT_PER_MIN_TO_M_PER_SEC{0.00508F};
-	static constexpr float SAGETECH_SCALE_MM_TO_FT{0.00328084F};
+	static constexpr double SAGETECH_SCALE_M_TO_FT{3.28084};
 	static constexpr float SAGETECH_SCALE_M_PER_SEC_TO_FT_PER_MIN{196.85F};
 	static constexpr uint8_t ADSB_ALTITUDE_TYPE_PRESSURE_QNH{0};
 	static constexpr uint8_t ADSB_ALTITUDE_TYPE_GEOMETRIC{1};
@@ -156,7 +156,6 @@ private:
 	static constexpr uint16_t INVALID_SQUAWK{7777};
 	static constexpr unsigned BAUD_460800{0010004};			// B460800 not defined in MacOS termios
 	static constexpr unsigned BAUD_921600{0010007};			// B921600 not defined in MacOS termios
-	static constexpr double GPS_SCALE{1.0E-7};
 
 	// Stored variables
 	uint64_t _loop_count;

@@ -1,7 +1,22 @@
 module_name: VectorNav (VN-100, VN-200, VN-300)
+
 serial_config:
     - command: vectornav start -d ${SERIAL_DEV}
       port_config_param:
         name: SENS_VN_CFG
         group: Sensors
 
+parameters:
+    - group: Sensors
+      definitions:
+
+        VN_MODE:
+            description:
+                short: VectorNav driver mode
+                long: INS or sensors
+            category: System
+            type: enum
+            values:
+                0: Sensors Only (default)
+                1: INS
+            default: 0

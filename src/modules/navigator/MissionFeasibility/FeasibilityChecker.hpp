@@ -120,6 +120,7 @@ private:
 	bool _below_home_alt_failed{false};
 	bool _fixed_wing_land_approach_failed{false};
 	bool _takeoff_land_available_failed{false};
+	bool _items_fit_to_vehicle_type_failed{false};
 
 	// internal checkTakeoff related variables
 	bool _found_item_with_position{false};
@@ -162,6 +163,14 @@ private:
 	 * @return False if the check failed.
 	*/
 	bool checkTakeoff(mission_item_s &mission_item);
+
+	/**
+	 * @brief Check if the mission items fit to the vehicle type
+	 *
+	 * @param mission_item The current mission item
+	 * @return False if the check failed.
+	*/
+	bool checkItemsFitToVehicleType(const mission_item_s &mission_item);
 
 	/**
 	 * @brief Check validity of landing pattern (fixed wing & vtol)

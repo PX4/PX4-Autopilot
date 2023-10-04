@@ -1,6 +1,6 @@
 # UAVCAN boot loadable Module ID
-set(uavcanblid_sw_version_major 0)
-set(uavcanblid_sw_version_minor 1)
+set(uavcanblid_sw_version_major ${PX4_VERSION_MAJOR})
+set(uavcanblid_sw_version_minor ${PX4_VERSION_MINOR})
 add_definitions(
 	-DAPP_VERSION_MAJOR=${uavcanblid_sw_version_major}
 	-DAPP_VERSION_MINOR=${uavcanblid_sw_version_minor}

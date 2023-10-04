@@ -74,9 +74,9 @@ void sympyYawEstUpdate(const SquareMatrix3f &P, float velObsVar, SquareMatrix<fl
 	const float P22 = P(2, 2);
 
 	// optimized auto generated code from SymPy script src/lib/ecl/EKF/python/ekf_derivation/main.py
-	const float t0 = ecl::powf(P01, 2);
+	const float t0 = powf(P01, 2.f);
 	const float t1 = -t0;
-	const float t2 = P00 * P11 + P00 * velObsVar + P11 * velObsVar + t1 + ecl::powf(velObsVar, 2);
+	const float t2 = P00 * P11 + P00 * velObsVar + P11 * velObsVar + t1 + powf(velObsVar, 2.f);
 
 	if (fabsf(t2) < 1e-6f) {
 		return;
@@ -157,9 +157,9 @@ void sympyYawEstPrediction(const Vector3f &state, const SquareMatrix3f &P, const
 	const float dazVar = d_ang_var;
 
 	const float S0 = cosf(psi);
-	const float S1 = ecl::powf(S0, 2);
+	const float S1 = powf(S0, 2.f);
 	const float S2 = sinf(psi);
-	const float S3 = ecl::powf(S2, 2);
+	const float S3 = powf(S2, 2.f);
 	const float S4 = S0 * dvy + S2 * dvx;
 	const float S5 = P02 - P22 * S4;
 	const float S6 = S0 * dvx - S2 * dvy;

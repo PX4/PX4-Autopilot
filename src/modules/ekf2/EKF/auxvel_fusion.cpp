@@ -45,7 +45,6 @@ void Ekf::controlAuxVelFusion()
 			updateVelocityAidSrcStatus(auxvel_sample_delayed.time_us, auxvel_sample_delayed.vel, auxvel_sample_delayed.velVar, fmaxf(_params.auxvel_gate, 1.f), _aid_src_aux_vel);
 
 			if (isHorizontalAidingActive()) {
-				_aid_src_aux_vel.fusion_enabled = true;
 				fuseVelocity(_aid_src_aux_vel);
 			}
 		}

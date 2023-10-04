@@ -46,9 +46,11 @@
 #include "ActuatorEffectivenessControlSurfaces.hpp"
 #include "ActuatorEffectivenessTilts.hpp"
 
+#include <px4_platform_common/module_params.h>
+
 #include <uORB/topics/normalized_unsigned_setpoint.h>
 #include <uORB/topics/tiltrotor_extra_controls.h>
-
+#include <uORB/topics/vehicle_status.h>
 #include <uORB/Subscription.hpp>
 
 class ActuatorEffectivenessTiltrotorVTOL : public ModuleParams, public ActuatorEffectiveness
@@ -84,8 +86,6 @@ public:
 
 	const char *name() const override { return "VTOL Tiltrotor"; }
 
-	uint32_t getStoppedMotors() const override { return _stopped_motors; }
-
 	void getUnallocatedControl(int matrix_index, control_allocator_status_s &status) override;
 
 protected:
@@ -94,8 +94,8 @@ protected:
 	ActuatorEffectivenessControlSurfaces _control_surfaces;
 	ActuatorEffectivenessTilts _tilts;
 
-	uint32_t _nontilted_motors{}; ///< motors that are not tiltable
-	uint32_t _stopped_motors{}; ///< currently stopped motors
+	uint32_t _motors{};
+	uint32_t _untiltable_motors{};
 
 	int _first_control_surface_idx{0}; ///< applies to matrix 1
 	int _first_tilt_idx{0}; ///< applies to matrix 0
@@ -113,4 +113,22 @@ protected:
 	YawTiltSaturationFlags _yaw_tilt_saturation_flags{};
 
 	uORB::Subscription _tiltrotor_extra_controls_sub{ORB_ID(tiltrotor_extra_controls)};
+
+private:
+
+	void updateParams() override;
+
+	struct ParamHandles {
+		param_t com_spoolup_time;
+	};
+
+	ParamHandles _param_handles{};
+
+	float _param_spoolup_time{1.f};
+
+	// Tilt handling during motor spoolup: leave the tilts in their disarmed position unitil 1s after arming
+	bool throttleSpoolupFinished();
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	bool _armed{false};
+	uint64_t _armed_time{0};
 };

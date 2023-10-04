@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
     Copyright (c) 2022 PX4 Development Team
@@ -33,6 +33,9 @@ File: derivation.py
 Description:
 """
 
+import symforce
+symforce.set_epsilon_to_symbol()
+
 import symforce.symbolic as sf
 from derivation_utils import *
 
@@ -47,12 +50,12 @@ class State:
     px = 7
     py = 8
     pz = 9
-    d_ang_bx = 10
-    d_ang_by = 11
-    d_ang_bz = 12
-    d_vel_bx = 13
-    d_vel_by = 14
-    d_vel_bz = 15
+    gyro_bx  = 10
+    gyro_by  = 11
+    gyro_bz  = 12
+    accel_bx = 13
+    accel_by = 14
+    accel_bz = 15
     ix = 16
     iy = 17
     iz = 18
@@ -69,34 +72,43 @@ class VState(sf.Matrix):
 class MState(sf.Matrix):
     SHAPE = (State.n_states, State.n_states)
 
+def state_to_quat(state: VState) -> sf.Quaternion:
+    return sf.Quaternion(sf.V3(state[State.qx], state[State.qy], state[State.qz]), state[State.qw])
+
+def state_to_rot3(state: VState) -> sf.Rot3:
+    return sf.Rot3(state_to_quat(state))
+
 def predict_covariance(
         state: VState,
         P: MState,
         d_vel: sf.V3,
+        d_vel_dt: sf.Scalar,
         d_vel_var: sf.V3,
         d_ang: sf.V3,
-        d_ang_var: sf.Scalar,
-        dt: sf.Scalar
+        d_ang_dt: sf.Scalar,
+        d_ang_var: sf.Scalar
 ):
     g = sf.Symbol("g") # does not appear in the jacobians
 
-    d_vel_b = sf.V3(state[State.d_vel_bx], state[State.d_vel_by], state[State.d_vel_bz])
+    accel_b = sf.V3(state[State.accel_bx], state[State.accel_by], state[State.accel_bz])
+    d_vel_b = accel_b * d_vel_dt
     d_vel_true = d_vel - d_vel_b
 
-    d_ang_b = sf.V3(state[State.d_ang_bx], state[State.d_ang_by], state[State.d_ang_bz])
+    gyro_b = sf.V3(state[State.gyro_bx], state[State.gyro_by], state[State.gyro_bz])
+    d_ang_b = gyro_b * d_ang_dt
     d_ang_true = d_ang - d_ang_b
 
-    q = sf.V4(state[State.qw], state[State.qx], state[State.qy], state[State.qz])
-    R_to_earth = quat_to_rot_simplified(q)
+    q = state_to_quat(state)
+    R_to_earth = sf.Rot3(q)
     v = sf.V3(state[State.vx], state[State.vy], state[State.vz])
     p = sf.V3(state[State.px], state[State.py], state[State.pz])
 
-    q_new = quat_mult(q, sf.V4(1, 0.5 * d_ang_true[0],  0.5 * d_ang_true[1],  0.5 * d_ang_true[2]))
-    v_new = v + R_to_earth * d_vel_true + sf.V3(0 ,0 ,g) * dt
-    p_new = p + v * dt
+    q_new = q * sf.Quaternion(sf.V3(0.5 * d_ang_true[0], 0.5 * d_ang_true[1], 0.5 * d_ang_true[2]), 1)
+    v_new = v + R_to_earth * d_vel_true + sf.V3(0, 0, g) * d_vel_dt
+    p_new = p + v * d_vel_dt
 
     # Predicted state vector at time t + dt
-    state_new = VState.block_matrix([[q_new], [v_new], [p_new], [sf.Matrix(state[State.d_ang_bx:State.n_states])]])
+    state_new = VState.block_matrix([[sf.V4(q_new.w, q_new.x, q_new.y, q_new.z)], [v_new], [p_new], [sf.Matrix(state[State.gyro_bx:State.n_states])]])
 
     # State propagation jacobian
     A = state_new.jacobian(state)
@@ -106,8 +118,8 @@ def predict_covariance(
     var_u = sf.Matrix.diag([d_vel_var[0], d_vel_var[1], d_vel_var[2], d_ang_var, d_ang_var, d_ang_var])
     P_new = A * P * A.T + G * var_u * G.T
 
-    # Generate the equations for the lower triangular matrix and the diagonal only
-    # Since the matrix is symmetric, the upper triangle does not need to be derived
+    # Generate the equations for the upper triangular matrix and the diagonal only
+    # Since the matrix is symmetric, the lower triangle does not need to be derived
     # and can simply be copied in the implementation
     for index in range(State.n_states):
         for j in range(State.n_states):
@@ -155,8 +167,7 @@ def predict_sideslip(
 ) -> (sf.Scalar):
 
     vel_rel = sf.V3(state[State.vx] - state[State.wx], state[State.vy] - state[State.wy], state[State.vz])
-    q_att = sf.V4(state[State.qw], state[State.qx], state[State.qy], state[State.qz])
-    relative_wind_body = quat_to_rot(q_att).T * vel_rel
+    relative_wind_body = state_to_rot3(state).inverse() * vel_rel
 
     # Small angle approximation of side slip model
     # Protect division by zero using epsilon
@@ -196,11 +207,10 @@ def compute_sideslip_h_and_k(
     return (H.T, K)
 
 def predict_mag_body(state) -> sf.V3:
-    q_att = sf.V4(state[State.qw], state[State.qx], state[State.qy], state[State.qz])
     mag_field_earth = sf.V3(state[State.ix], state[State.iy], state[State.iz])
     mag_bias_body = sf.V3(state[State.ibx], state[State.iby], state[State.ibz])
 
-    mag_body = quat_to_rot(q_att).T * mag_field_earth + mag_bias_body
+    mag_body = state_to_rot3(state).inverse() * mag_field_earth + mag_bias_body
     return mag_body
 
 def compute_mag_innov_innov_var_and_hx(
@@ -260,8 +270,7 @@ def compute_yaw_321_innov_var_and_h(
         epsilon: sf.Scalar
 ) -> (sf.Scalar, VState):
 
-    q_att = sf.V4(state[State.qw], state[State.qx], state[State.qy], state[State.qz])
-    R_to_earth = quat_to_rot(q_att)
+    R_to_earth = state_to_rot3(state).to_rotation_matrix()
     # Fix the singularity at pi/2 by inserting epsilon
     meas_pred = sf.atan2(R_to_earth[1,0], R_to_earth[0,0], epsilon=epsilon)
 
@@ -277,8 +286,7 @@ def compute_yaw_321_innov_var_and_h_alternate(
         epsilon: sf.Scalar
 ) -> (sf.Scalar, VState):
 
-    q_att = sf.V4(state[State.qw], state[State.qx], state[State.qy], state[State.qz])
-    R_to_earth = quat_to_rot(q_att)
+    R_to_earth = state_to_rot3(state).to_rotation_matrix()
     # Alternate form that has a singularity at yaw 0 instead of pi/2
     meas_pred = sf.pi/2 - sf.atan2(R_to_earth[0,0], R_to_earth[1,0], epsilon=epsilon)
 
@@ -294,8 +302,7 @@ def compute_yaw_312_innov_var_and_h(
         epsilon: sf.Scalar
 ) -> (sf.Scalar, VState):
 
-    q_att = sf.V4(state[State.qw], state[State.qx], state[State.qy], state[State.qz])
-    R_to_earth = quat_to_rot(q_att)
+    R_to_earth = state_to_rot3(state).to_rotation_matrix()
     # Alternate form to be used when close to pitch +-pi/2
     meas_pred = sf.atan2(-R_to_earth[0,1], R_to_earth[1,1], epsilon=epsilon)
 
@@ -311,8 +318,7 @@ def compute_yaw_312_innov_var_and_h_alternate(
         epsilon: sf.Scalar
 ) -> (sf.Scalar, VState):
 
-    q_att = sf.V4(state[State.qw], state[State.qx], state[State.qy], state[State.qz])
-    R_to_earth = quat_to_rot(q_att)
+    R_to_earth = state_to_rot3(state).to_rotation_matrix()
     # Alternate form to be used when close to pitch +-pi/2
     meas_pred = sf.pi/2 - sf.atan2(-R_to_earth[1,1], R_to_earth[0,1], epsilon=epsilon)
 
@@ -336,9 +342,7 @@ def compute_mag_declination_pred_innov_var_and_h(
     return (meas_pred, innov_var, H.T)
 
 def predict_opt_flow(state, distance, epsilon):
-    q_att = sf.V4(state[State.qw], state[State.qx], state[State.qy], state[State.qz])
-    R_to_earth = quat_to_rot(q_att)
-    R_to_body = R_to_earth.T
+    R_to_body = state_to_rot3(state).inverse()
 
     # Calculate earth relative velocity in a non-rotating sensor frame
     v = sf.V3(state[State.vx], state[State.vy], state[State.vz])
@@ -393,8 +397,7 @@ def compute_gnss_yaw_pred_innov_var_and_h(
         epsilon: sf.Scalar
 ) -> (sf.Scalar, sf.Scalar, VState):
 
-    q_att = sf.V4(state[State.qw], state[State.qx], state[State.qy], state[State.qz])
-    R_to_earth = quat_to_rot(q_att)
+    R_to_earth = state_to_rot3(state)
 
     # define antenna vector in body frame
     ant_vec_bf = sf.V3(sf.cos(antenna_yaw_offset), sf.sin(antenna_yaw_offset), 0)
@@ -416,18 +419,17 @@ def predict_drag(
         cd: sf.Scalar,
         cm: sf.Scalar,
         epsilon: sf.Scalar
-        ):
-    q_att = sf.V4(state[State.qw], state[State.qx], state[State.qy], state[State.qz])
-    R_to_earth = quat_to_rot(q_att)
-    R_to_body = R_to_earth.T
+) -> (sf.Scalar):
+    R_to_body = state_to_rot3(state).inverse()
 
     vel_rel = sf.V3(state[State.vx] - state[State.wx],
                     state[State.vy] - state[State.wy],
                     state[State.vz])
     vel_rel_body = R_to_body * vel_rel
+    vel_rel_body_xy = sf.V2(vel_rel_body[0], vel_rel_body[1])
 
-    bluff_body_drag = -0.5 * rho * cd * sf.V2(vel_rel_body) * vel_rel_body.norm(epsilon=epsilon)
-    momentum_drag = -cm * sf.V2(vel_rel_body)
+    bluff_body_drag = -0.5 * rho * cd * vel_rel_body_xy * vel_rel_body.norm(epsilon=epsilon)
+    momentum_drag = -cm * vel_rel_body_xy
 
     return bluff_body_drag + momentum_drag
 
@@ -440,7 +442,7 @@ def compute_drag_x_innov_var_and_k(
         cm: sf.Scalar,
         R: sf.Scalar,
         epsilon: sf.Scalar
-) -> (sf.Scalar, sf.Scalar, VState):
+) -> (sf.Scalar, VState):
 
     meas_pred = predict_drag(state, rho, cd, cm, epsilon)
     Hx = sf.V1(meas_pred[0]).jacobian(state)
@@ -460,7 +462,7 @@ def compute_drag_y_innov_var_and_k(
         cm: sf.Scalar,
         R: sf.Scalar,
         epsilon: sf.Scalar
-) -> (sf.Scalar, sf.Scalar, VState):
+) -> (sf.Scalar, VState):
 
     meas_pred = predict_drag(state, rho, cd, cm, epsilon)
     Hy = sf.V1(meas_pred[1]).jacobian(state)
@@ -481,8 +483,7 @@ def compute_gravity_innov_var_and_k_and_h(
 ) -> (sf.V3, sf.V3, VState, VState, VState):
 
     # get transform from earth to body frame
-    q_att = sf.V4(state[State.qw], state[State.qx], state[State.qy], state[State.qz])
-    R_to_body = quat_to_rot(q_att).T
+    R_to_body = state_to_rot3(state).inverse()
 
     # the innovation is the error between measured acceleration
     #  and predicted (body frame), assuming no body acceleration
@@ -501,6 +502,38 @@ def compute_gravity_innov_var_and_k_and_h(
         K[i] = P * H.T / innov_var[i]
 
     return (innov, innov_var, K[0], K[1], K[2])
+
+def quat_var_to_rot_var(
+        state: VState,
+        P: MState,
+        epsilon: sf.Scalar
+):
+    J = sf.V3(state_to_rot3(state).to_tangent(epsilon=epsilon)).jacobian(state)
+    rot_cov = J * P * J.T
+    return sf.V3(rot_cov[0, 0], rot_cov[1, 1], rot_cov[2, 2])
+
+def rot_var_ned_to_lower_triangular_quat_cov(
+        state: VState,
+        rot_var_ned: sf.V3
+):
+    # This function converts an attitude variance defined by a 3D vector in NED frame
+    # into a 4x4 covariance matrix representing the uncertainty on each of the 4 quaternion parameters
+    # Note: the resulting quaternion uncertainty is defined as a perturbation
+    # at the tip of the quaternion (i.e.:body-frame uncertainty)
+    q = sf.V4(state[State.qw], state[State.qx], state[State.qy], state[State.qz])
+    attitude = state_to_rot3(state)
+    J = q.jacobian(attitude)
+
+    # Convert uncertainties from NED to body frame
+    rot_cov_ned = sf.M33.diag(rot_var_ned)
+    adjoint = attitude.to_rotation_matrix() # the adjoint of SO(3) is simply the rotation matrix itself
+    rot_cov_body = adjoint.T * rot_cov_ned * adjoint
+
+    # Convert yaw (body) to quaternion parameter uncertainty
+    q_var = J * rot_cov_body * J.T
+
+    # Generate lower trangle only and copy it to the upper part in implementation (produces less code)
+    return q_var.lower_triangle()
 
 print("Derive EKF2 equations...")
 generate_px4_function(compute_airspeed_innov_and_innov_var, output_names=["innov", "innov_var"])
@@ -523,3 +556,14 @@ generate_px4_function(compute_gnss_yaw_pred_innov_var_and_h, output_names=["meas
 generate_px4_function(compute_drag_x_innov_var_and_k, output_names=["innov_var", "K"])
 generate_px4_function(compute_drag_y_innov_var_and_k, output_names=["innov_var", "K"])
 generate_px4_function(compute_gravity_innov_var_and_k_and_h, output_names=["innov", "innov_var", "Kx", "Ky", "Kz"])
+generate_px4_function(quat_var_to_rot_var, output_names=["rot_var"])
+generate_px4_function(rot_var_ned_to_lower_triangular_quat_cov, output_names=["q_cov_lower_triangle"])
+
+generate_px4_state({"quat_nominal": sf.V4,
+                    "vel": sf.V3,
+                    "pos": sf.V3,
+                    "gyro_bias": sf.V3,
+                    "accel_bias": sf.V3,
+                    "mag_I": sf.V3,
+                    "mag_B": sf.V3,
+                    "wind_vel": sf.V2})

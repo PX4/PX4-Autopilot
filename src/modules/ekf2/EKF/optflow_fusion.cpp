@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 Estimation and Control Library (ECL). All rights reserved.
+ *   Copyright (c) 2015-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name ECL nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -47,7 +47,6 @@
 #include <float.h>
 #include "python/ekf_derivation/generated/compute_flow_xy_innov_var_and_hx.h"
 #include "python/ekf_derivation/generated/compute_flow_y_innov_var_and_h.h"
-#include "utils.hpp"
 
 void Ekf::updateOptFlow(estimator_aid_source2d_s &aid_src)
 {
@@ -77,22 +76,30 @@ void Ekf::updateOptFlow(estimator_aid_source2d_s &aid_src)
 	const float R_LOS = calcOptFlowMeasVar(_flow_sample_delayed);
 	aid_src.observation_variance[0] = R_LOS;
 	aid_src.observation_variance[1] = R_LOS;
+
+	const VectorState state_vector = getStateAtFusionHorizonAsVector();
+
+	Vector2f innov_var;
+	VectorState H;
+	sym::ComputeFlowXyInnovVarAndHx(state_vector, P, range, R_LOS, FLT_EPSILON, &innov_var, &H);
+	innov_var.copyTo(aid_src.innovation_variance);
+
+	// run the innovation consistency check and record result
+	setEstimatorAidStatusTestRatio(aid_src, math::max(_params.flow_innov_gate, 1.f));
 }
 
 void Ekf::fuseOptFlow()
 {
-	_aid_src_optical_flow.fusion_enabled = true;
-
 	const float R_LOS = _aid_src_optical_flow.observation_variance[0];
 
 	// calculate the height above the ground of the optical flow camera. Since earth frame is NED
 	// a positive offset in earth frame leads to a smaller height above the ground.
 	float range = predictFlowRange();
 
-	const Vector24f state_vector = getStateAtFusionHorizonAsVector();
+	const VectorState state_vector = getStateAtFusionHorizonAsVector();
 
 	Vector2f innov_var;
-	Vector24f H;
+	VectorState H;
 	sym::ComputeFlowXyInnovVarAndHx(state_vector, P, range, R_LOS, FLT_EPSILON, &innov_var, &H);
 	innov_var.copyTo(_aid_src_optical_flow.innovation_variance);
 
@@ -139,8 +146,7 @@ void Ekf::fuseOptFlow()
 			}
 		}
 
-		SparseVector24f<0,1,2,3,4,5,6> Hfusion(H);
-		Vector24f Kfusion = P * Hfusion / _aid_src_optical_flow.innovation_variance[index];
+		VectorState Kfusion = P * H / _aid_src_optical_flow.innovation_variance[index];
 
 		if (measurementUpdate(Kfusion, _aid_src_optical_flow.innovation_variance[index], _aid_src_optical_flow.innovation[index])) {
 			fused[index] = true;

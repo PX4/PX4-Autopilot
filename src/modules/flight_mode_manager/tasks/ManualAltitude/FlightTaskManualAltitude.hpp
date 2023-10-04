@@ -40,7 +40,6 @@
 #pragma once
 
 #include "FlightTask.hpp"
-#include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include "Sticks.hpp"
 #include "StickTiltXY.hpp"
 #include "StickYaw.hpp"
@@ -56,7 +55,6 @@ public:
 	bool update() override;
 
 protected:
-	void _updateHeadingSetpoints(); /**< sets yaw or yaw speed */
 	void _ekfResetHandlerHeading(float delta_psi) override; /**< adjust heading setpoint in case of EKF reset event */
 	virtual void _updateSetpoints(); /**< updates all setpoints */
 	virtual void _scaleSticks(); /**< scales sticks to velocity in z */
@@ -89,10 +87,6 @@ protected:
 					_param_mpc_tko_speed /**< desired upwards speed when still close to the ground */
 				       )
 private:
-	bool _isYawInput();
-	void _unlockYaw();
-	void _lockYaw();
-
 	/**
 	 * Terrain following.
 	 * During terrain following, the position setpoint is adjusted
@@ -119,6 +113,8 @@ private:
 	void _respectGroundSlowdown();
 
 	void setGearAccordingToSwitch();
+
+	bool _updateYawCorrection();
 
 	uint8_t _reset_counter = 0; /**< counter for estimator resets in z-direction */
 	bool _terrain_follow{false}; /**< true when the vehicle is following the terrain height */

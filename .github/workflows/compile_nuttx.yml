@@ -1,9 +1,12 @@
-name: Nuttx Targets
+name: Compile Nuttx Targets
 
 on:
   push:
     branches:
     - 'main'
+    - 'stable'
+    - 'beta'
+    - 'release/*'
   pull_request:
     branches:
     - '*'
@@ -11,7 +14,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-nuttx-focal:2021-09-08
+    container: px4io/px4-dev-nuttx-focal:2022-08-12
     strategy:
       fail-fast: false
       matrix:
@@ -70,7 +73,8 @@ jobs:
           raspberrypi_pico,
           sky-drones_smartap-airlink,
           spracing_h7extreme,
-          uvify_core
+          uvify_core,
+          siyi_n7
           ]
     steps:
     - uses: actions/checkout@v1

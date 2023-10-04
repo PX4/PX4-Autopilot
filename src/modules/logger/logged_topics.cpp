@@ -330,7 +330,7 @@ void LoggedTopics::add_estimator_replay_topics()
 
 	// current EKF2 subscriptions
 	add_topic("airspeed");
-	add_topic("optical_flow");
+	add_topic("vehicle_optical_flow");
 	add_topic("sensor_combined");
 	add_topic("sensor_selection");
 	add_topic("vehicle_air_data");
@@ -344,16 +344,17 @@ void LoggedTopics::add_estimator_replay_topics()
 
 void LoggedTopics::add_thermal_calibration_topics()
 {
-	add_topic_multi("sensor_accel", 100, 3);
-	add_topic_multi("sensor_baro", 100, 3);
-	add_topic_multi("sensor_gyro", 100, 3);
+	add_topic_multi("sensor_accel", 100, 4);
+	add_topic_multi("sensor_baro", 100, 4);
+	add_topic_multi("sensor_gyro", 100, 4);
+	add_topic_multi("sensor_mag", 100, 4);
 }
 
 void LoggedTopics::add_sensor_comparison_topics()
 {
-	add_topic_multi("sensor_accel", 100, 3);
-	add_topic_multi("sensor_baro", 100, 3);
-	add_topic_multi("sensor_gyro", 100, 3);
+	add_topic_multi("sensor_accel", 100, 4);
+	add_topic_multi("sensor_baro", 100, 4);
+	add_topic_multi("sensor_gyro", 100, 4);
 	add_topic_multi("sensor_mag", 100, 4);
 }
 

@@ -122,7 +122,7 @@ PARAM_DEFINE_INT32(ATT_EXT_HDG_M, 0);
  * @group Attitude Q estimator
  * @boolean
  */
-PARAM_DEFINE_INT32(ATT_ACC_COMP, 1);
+PARAM_DEFINE_INT32(ATT_ACC_COMP, 0);
 
 /**
  * Gyro bias limit

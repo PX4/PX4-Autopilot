@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015-2020 Estimation and Control Library (ECL). All rights reserved.
+ *   Copyright (c) 2015-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name ECL nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -64,7 +64,6 @@
 #include "common.h"
 #include "RingBuffer.h"
 #include "imu_down_sampler.hpp"
-#include "utils.hpp"
 #include "output_predictor.h"
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
@@ -87,11 +86,15 @@ public:
 
 	void setIMUData(const imuSample &imu_sample);
 
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 	void setMagData(const magSample &mag_sample);
+#endif // CONFIG_EKF2_MAGNETOMETER
 
 	void setGpsData(const gpsMessage &gps);
 
+#if defined(CONFIG_EKF2_BAROMETER)
 	void setBaroData(const baroSample &baro_sample);
+#endif // CONFIG_EKF2_BAROMETER
 
 #if defined(CONFIG_EKF2_AIRSPEED)
 	void setAirspeedData(const airspeedSample &airspeed_sample);
@@ -141,16 +144,34 @@ public:
 	void set_in_air_status(bool in_air)
 	{
 		if (!in_air) {
+			if (_control_status.flags.in_air) {
+				ECL_DEBUG("no longer in air");
+			}
+
 			_time_last_on_ground_us = _time_delayed_us;
 
 		} else {
+			if (!_control_status.flags.in_air) {
+				ECL_DEBUG("in air");
+			}
+
 			_time_last_in_air = _time_delayed_us;
 		}
 
 		_control_status.flags.in_air = in_air;
 	}
 
-	void set_vehicle_at_rest(bool at_rest) { _control_status.flags.vehicle_at_rest = at_rest; }
+	void set_vehicle_at_rest(bool at_rest)
+	{
+		if (!_control_status.flags.vehicle_at_rest && at_rest) {
+			ECL_DEBUG("at rest");
+
+		} else if (_control_status.flags.vehicle_at_rest && !at_rest) {
+			ECL_DEBUG("no longer at rest");
+		}
+
+		_control_status.flags.vehicle_at_rest = at_rest;
+	}
 
 	// return true if the attitude is usable
 	bool attitude_valid() const { return _control_status.flags.tilt_align; }
@@ -207,25 +228,47 @@ public:
 	int getNumberOfActiveVerticalVelocityAidingSources() const;
 
 	const matrix::Quatf &getQuaternion() const { return _output_predictor.getQuaternion(); }
+	float getUnaidedYaw() const { return _output_predictor.getUnaidedYaw(); }
 	Vector3f getVelocity() const { return _output_predictor.getVelocity(); }
 	const Vector3f &getVelocityDerivative() const { return _output_predictor.getVelocityDerivative(); }
 	float getVerticalPositionDerivative() const { return _output_predictor.getVerticalPositionDerivative(); }
 	Vector3f getPosition() const { return _output_predictor.getPosition(); }
 	const Vector3f &getOutputTrackingError() const { return _output_predictor.getOutputTrackingError(); }
 
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 	// Get the value of magnetic declination in degrees to be saved for use at the next startup
 	// Returns true when the declination can be saved
 	// At the next startup, set param.mag_declination_deg to the value saved
-	bool get_mag_decl_deg(float *val) const
+	bool get_mag_decl_deg(float &val) const
 	{
 		if (_NED_origin_initialised && (_params.mag_declination_source & GeoDeclinationMask::SAVE_GEO_DECL)) {
-			*val = math::degrees(_mag_declination_gps);
+			val = math::degrees(_mag_declination_gps);
 			return true;
 
 		} else {
 			return false;
 		}
 	}
+
+	bool get_mag_inc_deg(float &val) const
+	{
+		if (_NED_origin_initialised) {
+			val = math::degrees(_mag_inclination_gps);
+			return true;
+
+		} else {
+			return false;
+		}
+	}
+
+	void get_mag_checks(float &inc_deg, float &inc_ref_deg, float &strength_gs, float &strength_ref_gs) const
+	{
+		inc_deg = math::degrees(_mag_inclination);
+		inc_ref_deg = math::degrees(_mag_inclination_gps);
+		strength_gs = _mag_strength;
+		strength_ref_gs = _mag_strength_gps;
+	}
+#endif // CONFIG_EKF2_MAGNETOMETER
 
 	// get EKF mode status
 	const filter_control_status_u &control_status() const { return _control_status; }
@@ -339,8 +382,8 @@ protected:
 	bool _initialised{false};      // true if the ekf interface instance (data buffering) is initialized
 
 	bool _NED_origin_initialised{false};
-	float _gps_origin_eph{0.0f}; // horizontal position uncertainty of the GPS origin
-	float _gps_origin_epv{0.0f}; // vertical position uncertainty of the GPS origin
+	float _gpos_origin_eph{0.0f}; // horizontal position uncertainty of the global origin
+	float _gpos_origin_epv{0.0f}; // vertical position uncertainty of the global origin
 	MapProjection _pos_ref{}; // Contains WGS-84 position latitude and longitude of the EKF origin
 	MapProjection _gps_pos_prev{}; // Contains WGS-84 position latitude and longitude of the previous GPS message
 	float _gps_alt_prev{0.0f};	// height from the previous GPS message (m)
@@ -375,8 +418,11 @@ protected:
 	RingBuffer<imuSample> _imu_buffer{kBufferLengthDefault};
 
 	RingBuffer<gpsSample> *_gps_buffer{nullptr};
+
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 	RingBuffer<magSample> *_mag_buffer{nullptr};
-	RingBuffer<baroSample> *_baro_buffer{nullptr};
+	uint64_t _time_last_mag_buffer_push{0};
+#endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_AIRSPEED)
 	RingBuffer<airspeedSample> *_airspeed_buffer{nullptr};
@@ -392,8 +438,11 @@ protected:
 	RingBuffer<systemFlagUpdate> *_system_flag_buffer{nullptr};
 
 	uint64_t _time_last_gps_buffer_push{0};
-	uint64_t _time_last_mag_buffer_push{0};
+
+#if defined(CONFIG_EKF2_BAROMETER)
+	RingBuffer<baroSample> *_baro_buffer{nullptr};
 	uint64_t _time_last_baro_buffer_push{0};
+#endif // CONFIG_EKF2_BAROMETER
 
 	uint64_t _time_last_gnd_effect_on{0};
 
@@ -402,9 +451,14 @@ protected:
 	// allocate data buffers and initialize interface variables
 	bool initialise_interface(uint64_t timestamp);
 
+	uint64_t _wmm_gps_time_last_checked{0};  // time WMM last checked
+	uint64_t _wmm_gps_time_last_set{0};      // time WMM last set
 	float _mag_declination_gps{NAN};         // magnetic declination returned by the geo library using the last valid GPS position (rad)
 	float _mag_inclination_gps{NAN};	  // magnetic inclination returned by the geo library using the last valid GPS position (rad)
 	float _mag_strength_gps{NAN};	          // magnetic strength returned by the geo library using the last valid GPS position (T)
+
+	float _mag_inclination{NAN};
+	float _mag_strength{NAN};
 
 	// this is the current status of the filter control modes
 	filter_control_status_u _control_status{};

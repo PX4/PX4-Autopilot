@@ -146,7 +146,7 @@ private:
 	static void erpm_trampoline(int32_t erpms[], size_t num_erpms, void *context);
 	void erpm(int32_t erpms[], size_t num_erpms);
 
-	MixingOutput _mixing_output {PARAM_PREFIX, DIRECT_PWM_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
+	MixingOutput _mixing_output{PARAM_PREFIX, DIRECT_PWM_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
 	uint32_t _reversible_outputs{};
 
 	Telemetry *_telemetry{nullptr};

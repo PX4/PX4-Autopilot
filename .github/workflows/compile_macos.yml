@@ -10,13 +10,12 @@ on:
 
 jobs:
   build:
-    runs-on: macos-10.15
+    runs-on: macos-latest
     strategy:
       matrix:
         config: [
           px4_fmu-v5_default,
           px4_sitl
-          #tests, # includes px4_sitl
           ]
     steps:
     - uses: actions/checkout@v1

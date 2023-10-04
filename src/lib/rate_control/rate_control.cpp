@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,18 +40,32 @@
 
 using namespace matrix;
 
-void RateControl::setGains(const Vector3f &P, const Vector3f &I, const Vector3f &D)
+void RateControl::setPidGains(const Vector3f &P, const Vector3f &I, const Vector3f &D)
 {
 	_gain_p = P;
 	_gain_i = I;
 	_gain_d = D;
 }
 
-void RateControl::setSaturationStatus(const Vector<bool, 3> &saturation_positive,
-				      const Vector<bool, 3> &saturation_negative)
+void RateControl::setSaturationStatus(const Vector3<bool> &saturation_positive,
+				      const Vector3<bool> &saturation_negative)
 {
 	_control_allocator_saturation_positive = saturation_positive;
 	_control_allocator_saturation_negative = saturation_negative;
+}
+
+void RateControl::setPositiveSaturationFlag(size_t axis, bool is_saturated)
+{
+	if (axis < 3) {
+		_control_allocator_saturation_positive(axis) = is_saturated;
+	}
+}
+
+void RateControl::setNegativeSaturationFlag(size_t axis, bool is_saturated)
+{
+	if (axis < 3) {
+		_control_allocator_saturation_negative(axis) = is_saturated;
+	}
 }
 
 Vector3f RateControl::update(const Vector3f &rate, const Vector3f &rate_sp, const Vector3f &angular_accel,

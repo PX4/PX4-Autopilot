@@ -62,15 +62,15 @@ void Ekf::controlRangeHeightFusion()
 			const Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
 			_range_sensor.setRange(_range_sensor.getRange() + pos_offset_earth(2) / _range_sensor.getCosTilt());
 
-			// Run the kinematic consistency check when not moving horizontally
-			if (_control_status.flags.in_air && !_control_status.flags.fixed_wing
-			    && (sq(_state.vel(0)) + sq(_state.vel(1)) < fmaxf(P(4, 4) + P(5, 5), 0.1f))) {
+			if (_control_status.flags.in_air) {
+				const bool horizontal_motion = _control_status.flags.fixed_wing
+								|| (sq(_state.vel(0)) + sq(_state.vel(1)) > fmaxf(P.trace<2>(State::vel.idx), 0.1f));
 
 				const float dist_dependant_var = sq(_params.range_noise_scaler * _range_sensor.getDistBottom());
 				const float var = sq(_params.range_noise) + dist_dependant_var;
 
 				_rng_consistency_check.setGate(_params.range_kin_consistency_gate);
-				_rng_consistency_check.update(_range_sensor.getDistBottom(), math::max(var, 0.001f), _state.vel(2), P(6, 6), _time_delayed_us);
+				_rng_consistency_check.update(_range_sensor.getDistBottom(), math::max(var, 0.001f), _state.vel(2), P(State::vel.idx + 2, State::vel.idx + 2), horizontal_motion, _time_delayed_us);
 			}
 
 		} else {
@@ -117,7 +117,7 @@ void Ekf::controlRangeHeightFusion()
 		if (measurement_valid && _range_sensor.isDataHealthy()) {
 			bias_est.setMaxStateNoise(sqrtf(measurement_var));
 			bias_est.setProcessNoiseSpectralDensity(_params.rng_hgt_bias_nsd);
-			bias_est.fuseBias(measurement - (-_state.pos(2)), measurement_var + P(9, 9));
+			bias_est.fuseBias(measurement - (-_state.pos(2)), measurement_var + P(State::pos.idx + 2, State::pos.idx + 2));
 		}
 
 		// determine if we should use height aiding
@@ -131,8 +131,6 @@ void Ekf::controlRangeHeightFusion()
 				&& _range_sensor.isRegularlySendingData();
 
 		if (_control_status.flags.rng_hgt) {
-			aid_src.fusion_enabled = true;
-
 			if (continuing_conditions_passing) {
 
 				fuseVerticalPosition(aid_src);
@@ -204,6 +202,7 @@ void Ekf::controlRangeHeightFusion()
 
 bool Ekf::isConditionalRangeAidSuitable()
 {
+#if defined(CONFIG_EKF2_TERRAIN)
 	if (_control_status.flags.in_air
 	    && _range_sensor.isHealthy()
 	    && isTerrainEstimateValid()) {
@@ -212,7 +211,10 @@ bool Ekf::isConditionalRangeAidSuitable()
 		float range_hagl_max = _params.max_hagl_for_range_aid;
 		float max_vel_xy = _params.max_vel_for_range_aid;
 
-		const float hagl_test_ratio = (_hagl_innov * _hagl_innov / (sq(_params.range_aid_innov_gate) * _hagl_innov_var));
+		const float hagl_innov = _aid_src_terrain_range_finder.innovation;
+		const float hagl_innov_var = _aid_src_terrain_range_finder.innovation_variance;
+
+		const float hagl_test_ratio = (hagl_innov * hagl_innov / (sq(_params.range_aid_innov_gate) * hagl_innov_var));
 
 		bool is_hagl_stable = (hagl_test_ratio < 1.f);
 
@@ -234,6 +236,7 @@ bool Ekf::isConditionalRangeAidSuitable()
 
 		return is_in_range && is_hagl_stable && is_below_max_speed;
 	}
+#endif // CONFIG_EKF2_TERRAIN
 
 	return false;
 }

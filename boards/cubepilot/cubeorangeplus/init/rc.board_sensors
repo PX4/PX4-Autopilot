@@ -8,16 +8,21 @@ board_adc start
 # 1. Isolated {ICM42688p, ICM20948(with mag)}, body-fixed {ICM20649}
 # 2. Isolated {ICM42688p, ICM42688p}, body-fixed  {ICM20649, ICM45686, AK09918}
 # 3. Isolated {ICM42688p, ICM42688p}, body-fixed  {ICM45686, AK09918}
+# 4. Isolated {ICM45686, ICM45686}, body-fixed  {ICM45686, AK09918}
 
 # SPI4 is isolated, SPI1 is body-fixed
 
 # SPI4, isolated
 ms5611 -s -b 4 start
 
-icm42688p -s -b 4 -R 10 start -c 15
-if ! icm20948 -s -b 4 -R 10 -M -q start
-then
-	icm42688p -s -b 4 -R 6 start -c 13
+if icm42688p -s -b 4 -R 10 -q start -c 15
+	if ! icm20948 -s -b 4 -R 10 -M -q start
+	then
+		icm42688p -s -b 4 -R 6 start -c 13
+	fi
+else
+	icm45686 -s -b 4 -R 10 start -c 15
+	icm45686 -s -b 4 -R 6 start -c 13
 fi
 
 # SPI1, body-fixed

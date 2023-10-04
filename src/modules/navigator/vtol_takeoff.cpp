@@ -51,7 +51,7 @@ VtolTakeoff::VtolTakeoff(Navigator *navigator) :
 void
 VtolTakeoff::on_activation()
 {
-	if (_navigator->home_global_position_valid()) {
+	if (hrt_elapsed_time(&_navigator->get_global_position()->timestamp) < 1_s) {
 		set_takeoff_position();
 		_takeoff_state = vtol_takeoff_state::TAKEOFF_HOVER;
 		_navigator->reset_cruising_speed();
@@ -71,8 +71,8 @@ VtolTakeoff::on_active()
 				position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
 				_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
-				_mission_item.yaw = wrap_pi(get_bearing_to_next_waypoint(_navigator->get_home_position()->lat,
-							    _navigator->get_home_position()->lon, _loiter_location(0), _loiter_location(1)));
+				_mission_item.yaw = wrap_pi(get_bearing_to_next_waypoint(_mission_item.lat,
+							    _mission_item.lon, _loiter_location(0), _loiter_location(1)));
 				_mission_item.force_heading = true;
 				mission_apply_limitation(_mission_item);
 				mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
@@ -117,8 +117,9 @@ VtolTakeoff::on_active()
 				// we need the vehicle to loiter indefinitely but also we want this mission item to be reached as soon
 				// as the loiter is established. therefore, set a small loiter time so that the mission item will be reached quickly,
 				// however it will just continue loitering as there is no next mission item
-				_mission_item.time_inside = 1;
+				_mission_item.time_inside = 1.f;
 				_mission_item.loiter_radius = _navigator->get_loiter_radius();
+				_mission_item.acceptance_radius  = _navigator->get_acceptance_radius();
 				_mission_item.altitude = _navigator->get_home_position()->alt + _param_loiter_alt.get();
 
 				mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
@@ -171,8 +172,8 @@ VtolTakeoff::set_takeoff_position()
 	// set current mission item to takeoff
 	set_takeoff_item(&_mission_item, _transition_alt_amsl);
 
-	_mission_item.lat = _navigator->get_home_position()->lat;
-	_mission_item.lon = _navigator->get_home_position()->lon;
+	_mission_item.lat = _navigator->get_global_position()->lat;
+	_mission_item.lon = _navigator->get_global_position()->lon;
 
 	_navigator->get_mission_result()->finished = false;
 	_navigator->set_mission_result_updated();

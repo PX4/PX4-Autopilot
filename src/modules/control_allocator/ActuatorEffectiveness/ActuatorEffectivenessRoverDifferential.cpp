@@ -46,6 +46,14 @@ ActuatorEffectivenessRoverDifferential::getEffectivenessMatrix(Configuration &co
 
 	configuration.addActuator(ActuatorType::MOTORS, Vector3f{0.f, 0.f, 0.5f}, Vector3f{0.5f, 0.f, 0.f});
 	configuration.addActuator(ActuatorType::MOTORS, Vector3f{0.f, 0.f, -0.5f}, Vector3f{0.5f, 0.f, 0.f});
+	_motors_mask = (1u << 0) | (1u << 1);
 	return true;
+}
+
+void ActuatorEffectivenessRoverDifferential::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
+		int matrix_index, ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
+		const matrix::Vector<float, NUM_ACTUATORS> &actuator_max)
+{
+	stopMaskedMotorsWithZeroThrust(_motors_mask, actuator_sp);
 }
 

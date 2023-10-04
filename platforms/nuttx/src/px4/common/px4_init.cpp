@@ -38,6 +38,7 @@
 #include <px4_platform_common/console_buffer.h>
 #include <px4_platform_common/defines.h>
 #include <drivers/drv_hrt.h>
+#include <lib/events/events.h>
 #include <lib/parameters/param.h>
 #include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
 #include <px4_platform/cpuload.h>
@@ -125,9 +126,8 @@ int px4_platform_init()
 
 #if !defined(CONFIG_BUILD_FLAT)
 	hrt_ioctl_init();
+	events_ioctl_init();
 #endif
-
-	param_init();
 
 	/* configure CPU load estimation */
 #ifdef CONFIG_SCHED_INSTRUMENTATION
@@ -165,7 +165,7 @@ int px4_platform_init()
 #if defined(CONFIG_FS_PROCFS)
 	int ret_mount_procfs = mount(nullptr, "/proc", "procfs", 0, nullptr);
 
-	if (ret < 0) {
+	if (ret_mount_procfs < 0) {
 		syslog(LOG_ERR, "ERROR: Failed to mount procfs at /proc: %d\n", ret_mount_procfs);
 	}
 
@@ -180,8 +180,9 @@ int px4_platform_init()
 
 #endif // CONFIG_FS_BINFS
 
-
 	px4::WorkQueueManagerStart();
+
+	param_init();
 
 	uorb_start();
 

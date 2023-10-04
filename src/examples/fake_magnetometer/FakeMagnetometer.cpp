@@ -66,8 +66,8 @@ void FakeMagnetometer::Run()
 		if (_vehicle_gps_position_sub.copy(&gps)) {
 			if (gps.eph < 1000) {
 
-				const double lat = gps.lat / 1.e7;
-				const double lon = gps.lon / 1.e7;
+				const double lat = gps.latitude_deg;
+				const double lon = gps.longitude_deg;
 
 				// magnetic field data returned by the geo library using the current GPS position
 				const float mag_declination_gps = get_mag_declination_radians(lat, lon);

@@ -21,7 +21,7 @@ jobs:
           "failsafe_web",
         ]
     container:
-      image: px4io/px4-dev-nuttx-focal:2021-09-08
+      image: px4io/px4-dev-nuttx-focal:2022-08-12
       options: --privileged --ulimit core=-1 --security-opt seccomp=unconfined
     steps:
     - uses: actions/checkout@v1

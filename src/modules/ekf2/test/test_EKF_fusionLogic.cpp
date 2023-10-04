@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 ECL Development Team. All rights reserved.
+ *   Copyright (c) 2019-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -182,7 +182,6 @@ TEST_F(EkfFusionLogicTest, fallbackFromGpsToFlow)
 	const float min_ground_distance = 0.f;
 	const float max_ground_distance = 50.f;
 	_ekf->set_optical_flow_limits(max_flow_rate, min_ground_distance, max_ground_distance);
-	_sensor_simulator.startFlow();
 	_sensor_simulator.startFlow();
 	_ekf_wrapper.enableFlowFusion();
 

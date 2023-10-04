@@ -50,7 +50,7 @@
  *
  * @min 0
  * @max 1
- * @group Landing target Estimator
+ * @group Landing Target Estimator
  * @value 0 Moving
  * @value 1 Stationary
  */
@@ -66,7 +66,7 @@ PARAM_DEFINE_INT32(LTEST_MODE, 0);
  * @min 0.01
  * @decimal 2
  *
- * @group Landing target Estimator
+ * @group Landing Target Estimator
  */
 PARAM_DEFINE_FLOAT(LTEST_ACC_UNC, 10.0f);
 
@@ -79,7 +79,7 @@ PARAM_DEFINE_FLOAT(LTEST_ACC_UNC, 10.0f);
  * @unit tan(rad)^2
  * @decimal 4
  *
- * @group Landing target Estimator
+ * @group Landing Target Estimator
  */
 PARAM_DEFINE_FLOAT(LTEST_MEAS_UNC, 0.005f);
 
@@ -92,7 +92,7 @@ PARAM_DEFINE_FLOAT(LTEST_MEAS_UNC, 0.005f);
  * @min 0.001
  * @decimal 3
  *
- * @group Landing target Estimator
+ * @group Landing Target Estimator
  */
 PARAM_DEFINE_FLOAT(LTEST_POS_UNC_IN, 0.1f);
 
@@ -105,7 +105,7 @@ PARAM_DEFINE_FLOAT(LTEST_POS_UNC_IN, 0.1f);
  * @min 0.001
  * @decimal 3
  *
- * @group Landing target Estimator
+ * @group Landing Target Estimator
  */
 PARAM_DEFINE_FLOAT(LTEST_VEL_UNC_IN, 0.1f);
 
@@ -117,7 +117,7 @@ PARAM_DEFINE_FLOAT(LTEST_VEL_UNC_IN, 0.1f);
  * @min 0.01
  * @decimal 3
  *
- * @group Landing target Estimator
+ * @group Landing Target Estimator
  */
 PARAM_DEFINE_FLOAT(LTEST_SCALE_X, 1.0f);
 
@@ -129,7 +129,7 @@ PARAM_DEFINE_FLOAT(LTEST_SCALE_X, 1.0f);
  * @min 0.01
  * @decimal 3
  *
- * @group Landing target Estimator
+ * @group Landing Target Estimator
  */
 PARAM_DEFINE_FLOAT(LTEST_SCALE_Y, 1.0f);
 

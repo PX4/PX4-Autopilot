@@ -444,6 +444,8 @@ class Tester:
                     self.debugger,
                     self.verbose,
                     self.build_dir)
+                for env_key in test.get('env', []):
+                    px4_runner.env[env_key] = str(test['env'][env_key])
                 self.active_runners.append(px4_runner)
 
         mavsdk_tests_runner = ph.TestRunner(

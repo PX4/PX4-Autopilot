@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Support Question
+    url: https://docs.px4.io/main/en/contribute/support.html#forums-and-chat
+    about: For questions about using PX4 or related components, please use the discuss forum and discord server
+  - name: Documentation Issue
+    url: https://github.com/PX4/PX4-user_guide/issues
+    about: If you found an issue in documentation, please submit it directly to the docs repository issues

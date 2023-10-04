@@ -22,14 +22,14 @@ def getVioData(ulog: ULog) -> pd.DataFrame:
 
 def getOpticalFlowData(ulog: ULog) -> pd.DataFrame:
 
-	optical_flow = ulog.get_dataset("optical_flow").data
+	optical_flow = ulog.get_dataset("vehicle_optical_flow").data
 	flow = pd.DataFrame({'timestamp': optical_flow['timestamp'],
 	'sensor' : 'flow',
-	'pixel_flow_x_integral': optical_flow["pixel_flow_x_integral"],
-	'pixel_flow_y_integral': optical_flow["pixel_flow_y_integral"],
-	'gyro_x_rate_integral': optical_flow["gyro_x_rate_integral"],
-	'gyro_y_rate_integral': optical_flow["gyro_y_rate_integral"],
-	'gyro_z_rate_integral': optical_flow["gyro_z_rate_integral"],
+	'pixel_flow_x': optical_flow["pixel_flow[0]"],
+	'pixel_flow_y': optical_flow["pixel_flow[1]"],
+	'delta_angle_x': optical_flow["delta_angle[0]"],
+	'delta_angle_y': optical_flow["delta_angle[1]"],
+	'delta_angle_z': optical_flow["delta_angle[2]"],
 	'quality': optical_flow["quality"]
 		})
 	return flow
