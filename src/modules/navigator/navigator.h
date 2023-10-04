@@ -86,15 +86,6 @@
 
 using namespace time_literals;
 
-/**
- * Number of navigation modes that need on_active/on_inactive calls
- */
-#if CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
-#define NAVIGATOR_MODE_ARRAY_SIZE 7
-#else
-#define NAVIGATOR_MODE_ARRAY_SIZE 6
-#endif
-
 class Navigator : public ModuleBase<Navigator>, public ModuleParams
 {
 public:
@@ -356,7 +347,11 @@ private:
 	AdsbConflict 	_adsb_conflict;			/**< class that handles ADSB conflict avoidance */
 
 	NavigatorMode *_navigation_mode{nullptr};	/**< abstract pointer to current navigation mode class */
-	NavigatorMode *_navigation_mode_array[NAVIGATOR_MODE_ARRAY_SIZE] {};	/**< array of navigation modes */
+#if CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
+	NavigatorMode *const _navigation_mode_array[7] {&_mission, &_loiter, &_rtl, &_takeoff, &_land, &_precland, &_vtol_takeoff}; //	/**< array of navigation modes */
+#else
+	NavigatorMode *const _navigation_mode_array[6] {&_mission, &_loiter, &_rtl, &_takeoff, &_land, &_precland}; //	/**< array of navigation modes */
+#endif //CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 
 	param_t _handle_back_trans_dec_mss{PARAM_INVALID};
 	param_t _handle_mpc_jerk_auto{PARAM_INVALID};

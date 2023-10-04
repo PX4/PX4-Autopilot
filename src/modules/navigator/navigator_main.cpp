@@ -71,17 +71,6 @@ Navigator::Navigator() :
 	ModuleParams(nullptr),
 	_loop_perf(perf_alloc(PC_ELAPSED, "navigator"))
 {
-	/* Create a list of our possible navigation types */
-	_navigation_mode_array[0] = &_mission;
-	_navigation_mode_array[1] = &_loiter;
-	_navigation_mode_array[2] = &_rtl;
-	_navigation_mode_array[3] = &_takeoff;
-	_navigation_mode_array[4] = &_land;
-	_navigation_mode_array[5] = &_precland;
-#if CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
-	_navigation_mode_array[6] = &_vtol_takeoff;
-#endif //CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
-
 	/* iterate through navigation modes and initialize _mission_item for each */
 	for (auto &navigation_mode_array_item : _navigation_mode_array) {
 		navigation_mode_array_item->initialize();
