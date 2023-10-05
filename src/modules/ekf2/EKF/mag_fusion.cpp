@@ -63,7 +63,7 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bo
 
 	// Observation jacobian and Kalman gain vectors
 	VectorState H;
-	const VectorState state_vector = getStateAtFusionHorizonAsVector();
+	const VectorState state_vector = _state.vector();
 	sym::ComputeMagInnovInnovVarAndHx(state_vector, P, mag, R_MAG, FLT_EPSILON, &mag_innov, &innov_var, &H);
 
 	innov_var.copyTo(aid_src_mag.innovation_variance);
@@ -262,7 +262,7 @@ bool Ekf::fuseDeclination(float decl_sigma)
 	float innovation_variance;
 
 	// TODO: review getMagDeclination() usage, use mag_I, _mag_declination_gps, or parameter?
-	sym::ComputeMagDeclinationPredInnovVarAndH(getStateAtFusionHorizonAsVector(), P, R_DECL, FLT_EPSILON, &decl_pred, &innovation_variance, &H);
+	sym::ComputeMagDeclinationPredInnovVarAndH(_state.vector(), P, R_DECL, FLT_EPSILON, &decl_pred, &innovation_variance, &H);
 
 	const float innovation = wrap_pi(decl_pred - getMagDeclination());
 

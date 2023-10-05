@@ -116,7 +116,18 @@ def build_state_struct(state, T="float"):
 
     out += "\t\treturn state;\n"
     out += "\t};\n" # Data
+
+    # const ref vector access
+    first_field = next(iter(state))
+
+    out += f"\n\tconst matrix::Vector<{T}, {state_size}>& vector() const {{\n" \
+        + f"\t\treturn *reinterpret_cast<matrix::Vector<{T}, {state_size}>*>(const_cast<float*>(reinterpret_cast<const {T}*>(&{first_field})));\n" \
+        + f"\t}};\n\n"
+
     out += "};\n" # StateSample
+
+    out += f"static_assert(sizeof(matrix::Vector<{T}, {state_size}>) == sizeof(StateSample), \"state vector doesn't match StateSample size\");\n"
+
     return out
 
 def build_tangent_state_struct(state, tangent_state_index):

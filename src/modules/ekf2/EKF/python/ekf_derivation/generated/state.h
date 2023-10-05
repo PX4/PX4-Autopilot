@@ -31,7 +31,13 @@ struct StateSample {
 		state.slice<2, 1>(22, 0) = wind_vel;
 		return state;
 	};
+
+	const matrix::Vector<float, 24>& vector() const {
+		return *reinterpret_cast<matrix::Vector<float, 24>*>(const_cast<float*>(reinterpret_cast<const float*>(&quat_nominal)));
+	};
+
 };
+static_assert(sizeof(matrix::Vector<float, 24>) == sizeof(StateSample), "state vector doesn't match StateSample size");
 
 struct IdxDof { unsigned idx; unsigned dof; };
 namespace State {

@@ -892,7 +892,7 @@ void Ekf::updateVerticalDeadReckoningStatus()
 Vector3f Ekf::calcRotVecVariances() const
 {
 	Vector3f rot_var;
-	sym::QuatVarToRotVar(getStateAtFusionHorizonAsVector(), P, FLT_EPSILON, &rot_var);
+	sym::QuatVarToRotVar(_state.vector(), P, FLT_EPSILON, &rot_var);
 	return rot_var;
 }
 
