@@ -126,9 +126,20 @@ void VehicleOpticalFlow::Run()
 
 		// delta angle
 		//  - from sensor_optical_flow if available, otherwise use synchronized sensor_gyro if available
-		if (sensor_optical_flow.delta_angle_available && Vector3f(sensor_optical_flow.delta_angle).isAllFinite()) {
+		if (sensor_optical_flow.delta_angle_available && Vector2f(sensor_optical_flow.delta_angle).isAllFinite()) {
 			// passthrough integrated gyro if available
-			_delta_angle += _flow_rotation * Vector3f{sensor_optical_flow.delta_angle};
+			Vector3f delta_angle(sensor_optical_flow.delta_angle);
+
+			if (!PX4_ISFINITE(delta_angle(2))) {
+				// Some sensors only provide X and Y angular rates, rotate them but place back the NAN on the Z axis
+				delta_angle(2) = 0.f;
+				_delta_angle += _flow_rotation * delta_angle;
+				_delta_angle(2) = NAN;
+
+			} else {
+				_delta_angle += _flow_rotation * delta_angle;
+			}
+
 			_delta_angle_available = true;
 
 		} else {
@@ -320,10 +331,12 @@ void VehicleOpticalFlow::Run()
 				// gyro_rate
 				flow_vel.gyro_rate[0] = measured_body_rate(0);
 				flow_vel.gyro_rate[1] = measured_body_rate(1);
+				flow_vel.gyro_rate[2] = measured_body_rate(2);
 
 				// gyro_rate_integral
 				flow_vel.gyro_rate_integral[0] = gyro_xyz(0);
 				flow_vel.gyro_rate_integral[1] = gyro_xyz(1);
+				flow_vel.gyro_rate_integral[2] = gyro_xyz(2);
 
 				flow_vel.timestamp = hrt_absolute_time();
 

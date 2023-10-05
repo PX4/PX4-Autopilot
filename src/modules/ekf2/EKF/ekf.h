@@ -180,6 +180,9 @@ public:
 
 	const Vector3f getFlowGyro() const { return _flow_sample_delayed.gyro_xyz * (1.f / _flow_sample_delayed.dt); }
 	const Vector3f &getFlowGyroIntegral() const { return _flow_sample_delayed.gyro_xyz; }
+	const Vector3f &getFlowGyroBias() const { return _flow_gyro_bias; }
+	const Vector3f &getRefBodyRate() const { return _ref_body_rate; }
+	const Vector3f &getMeasuredBodyRate() const { return _measured_body_rate; }
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_AUXVEL)
@@ -656,6 +659,8 @@ private:
 	Vector2f _flow_vel_body{};	///< velocity from corrected flow measurement (body frame)(m/s)
 	Vector2f _flow_vel_ne{};		///< velocity from corrected flow measurement (local frame) (m/s)
 	Vector3f _imu_del_ang_of{};	///< bias corrected delta angle measurements accumulated across the same time frame as the optical flow rates (rad)
+	Vector3f _ref_body_rate{};
+	Vector3f _measured_body_rate{};
 
 	float _delta_time_of{0.0f};	///< time in sec that _imu_del_ang_of was accumulated over (sec)
 	uint64_t _time_bad_motion_us{0};	///< last system time that on-ground motion exceeded limits (uSec)
