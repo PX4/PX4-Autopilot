@@ -397,7 +397,6 @@ protected:
 #if defined(CONFIG_EKF2_DRAG_FUSION)
 	RingBuffer<dragSample> *_drag_buffer{nullptr};
 	dragSample _drag_down_sampled{};	// down sampled drag specific force data (filter prediction rate -> observation rate)
-	Vector2f _drag_test_ratio{};		// drag innovation consistency check ratio
 #endif // CONFIG_EKF2_DRAG_FUSION
 
 	innovation_fault_status_u _innov_check_fail_status{};
