@@ -1012,6 +1012,11 @@ void EKF2::PublishAidSourceStatus(const hrt_abstime &timestamp)
 	PublishAidSourceStatus(_ekf.aid_src_baro_hgt(), _status_baro_hgt_pub_last, _estimator_aid_src_baro_hgt_pub);
 #endif // CONFIG_EKF2_BAROMETER
 
+#if defined(CONFIG_EKF2_DRAG_FUSION)
+	// drag
+	PublishAidSourceStatus(_ekf.aid_src_drag(), _status_drag_pub_last, _estimator_aid_src_drag_pub);
+#endif // CONFIG_EKF2_DRAG_FUSION
+
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	// RNG height
 	PublishAidSourceStatus(_ekf.aid_src_rng_hgt(), _status_rng_hgt_pub_last, _estimator_aid_src_rng_hgt_pub);

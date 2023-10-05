@@ -408,6 +408,11 @@ private:
 	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_baro_hgt_pub {ORB_ID(estimator_aid_src_baro_hgt)};
 #endif // CONFIG_EKF2_BAROMETER
 
+#if defined(CONFIG_EKF2_DRAG_FUSION)
+	uORB::PublicationMulti<estimator_aid_source2d_s> _estimator_aid_src_drag_pub {ORB_ID(estimator_aid_src_drag)};
+	hrt_abstime _status_drag_pub_last{0};
+#endif // CONFIG_EKF2_DRAG_FUSION
+
 	float _last_gnss_hgt_bias_published{};
 
 #if defined(CONFIG_EKF2_AIRSPEED)

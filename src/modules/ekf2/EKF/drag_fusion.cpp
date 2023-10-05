@@ -42,12 +42,11 @@
 
 #include <mathlib/mathlib.h>
 
-void Ekf::controlDragFusion()
+void Ekf::controlDragFusion(const imuSample &imu_delayed)
 {
-	if ((_params.drag_ctrl > 0) && _drag_buffer &&
-	    !_control_status.flags.fake_pos && _control_status.flags.in_air) {
+	if ((_params.drag_ctrl > 0) && _drag_buffer) {
 
-		if (!_control_status.flags.wind) {
+		if (!_control_status.flags.wind && !_control_status.flags.fake_pos && _control_status.flags.in_air) {
 			// reset the wind states and covariances when starting drag accel fusion
 			_control_status.flags.wind = true;
 			resetWindToZero();
@@ -55,7 +54,7 @@ void Ekf::controlDragFusion()
 
 		dragSample drag_sample;
 
-		if (_drag_buffer->pop_first_older_than(_time_delayed_us, &drag_sample)) {
+		if (_drag_buffer->pop_first_older_than(imu_delayed.time_us, &drag_sample)) {
 			fuseDrag(drag_sample);
 		}
 	}
@@ -87,14 +86,14 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 	const float rel_wind_speed = rel_wind_body.norm();
 	const VectorState state_vector_prev = _state.vector();
 
-	Vector2f bcoef_inv;
+	Vector2f bcoef_inv{0.f, 0.f};
 
 	if (using_bcoef_x) {
-		bcoef_inv(0) = 1.0f / _params.bcoef_x;
+		bcoef_inv(0) = 1.f / _params.bcoef_x;
 	}
 
 	if (using_bcoef_y) {
-		bcoef_inv(1) = 1.0f / _params.bcoef_y;
+		bcoef_inv(1) = 1.f / _params.bcoef_y;
 	}
 
 	if (using_bcoef_x && using_bcoef_y) {
@@ -104,6 +103,11 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 		bcoef_inv(0) = Vector2f(bcoef_inv.emult(rel_wind_body.xy()) / rel_wind_body.xy().norm()).norm();
 		bcoef_inv(1) = bcoef_inv(0);
 	}
+
+	_aid_src_drag.timestamp_sample = drag_sample.time_us;
+	_aid_src_drag.fused = false;
+
+	bool fused[] {false, false};
 
 	VectorState Kfusion;
 
@@ -115,36 +119,51 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 		// Drag is modelled as an arbitrary combination of bluff body drag that proportional to
 		// equivalent airspeed squared, and rotor momentum drag that is proportional to true airspeed
 		// parallel to the rotor disc and mass flow through the rotor disc.
+		const float pred_acc = -0.5f * bcoef_inv(axis_index) * rho * rel_wind_body(axis_index) * rel_wind_speed - rel_wind_body(axis_index) * mcoef_corrrected;
+
+		_aid_src_drag.observation[axis_index] = mea_acc;
+		_aid_src_drag.observation_variance[axis_index] = R_ACC;
+		_aid_src_drag.innovation[axis_index] = pred_acc - mea_acc;
+		_aid_src_drag.innovation_variance[axis_index] = NAN; // reset
 
 		if (axis_index == 0) {
+			sym::ComputeDragXInnovVarAndK(state_vector_prev, P, rho, bcoef_inv(axis_index), mcoef_corrrected, R_ACC, FLT_EPSILON,
+						      &_aid_src_drag.innovation_variance[axis_index], &Kfusion);
+
 			if (!using_bcoef_x && !using_mcoef) {
 				continue;
 			}
 
-			sym::ComputeDragXInnovVarAndK(state_vector_prev, P, rho, bcoef_inv(axis_index), mcoef_corrrected, R_ACC, FLT_EPSILON, &_drag_innov_var(axis_index), &Kfusion);
-
 		} else if (axis_index == 1) {
+			sym::ComputeDragYInnovVarAndK(state_vector_prev, P, rho, bcoef_inv(axis_index), mcoef_corrrected, R_ACC, FLT_EPSILON,
+						      &_aid_src_drag.innovation_variance[axis_index], &Kfusion);
+
 			if (!using_bcoef_y && !using_mcoef) {
 				continue;
 			}
-
-			sym::ComputeDragYInnovVarAndK(state_vector_prev, P, rho, bcoef_inv(axis_index), mcoef_corrrected, R_ACC, FLT_EPSILON, &_drag_innov_var(axis_index), &Kfusion);
 		}
 
-		if (_drag_innov_var(axis_index) < R_ACC) {
+		if (_aid_src_drag.innovation_variance[axis_index] < R_ACC) {
 			// calculation is badly conditioned
 			return;
 		}
 
-		const float pred_acc = -0.5f * bcoef_inv(axis_index) * rho * rel_wind_body(axis_index) * rel_wind_speed - rel_wind_body(axis_index) * mcoef_corrrected;
-
 		// Apply an innovation consistency check with a 5 Sigma threshold
-		_drag_innov(axis_index) = pred_acc - mea_acc;
-		_drag_test_ratio(axis_index) = sq(_drag_innov(axis_index)) / (sq(5.0f) * _drag_innov_var(axis_index));
+		const float innov_gate = 5.f;
+		setEstimatorAidStatusTestRatio(_aid_src_drag, innov_gate);
 
-		// if the innovation consistency check fails then don't fuse the sample
-		if (_drag_test_ratio(axis_index) <= 1.0f) {
-			measurementUpdate(Kfusion, _drag_innov_var(axis_index), _drag_innov(axis_index));
+		if (_control_status.flags.in_air && _control_status.flags.wind && !_control_status.flags.fake_pos
+		    && PX4_ISFINITE(_aid_src_drag.innovation_variance[axis_index]) && PX4_ISFINITE(_aid_src_drag.innovation[axis_index])
+		    && (_aid_src_drag.test_ratio[axis_index] < 1.f)
+		   ) {
+			if (measurementUpdate(Kfusion, _aid_src_drag.innovation_variance[axis_index], _aid_src_drag.innovation[axis_index])) {
+				fused[axis_index] = true;
+			}
 		}
+	}
+
+	if (fused[0] && fused[1]) {
+		_aid_src_drag.fused = true;
+		_aid_src_drag.time_last_fuse = _time_delayed_us;
 	}
 }

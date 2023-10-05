@@ -122,7 +122,7 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 #endif // CONFIG_EKF2_SIDESLIP
 
 #if defined(CONFIG_EKF2_DRAG_FUSION)
-	controlDragFusion();
+	controlDragFusion(imu_delayed);
 #endif // CONFIG_EKF2_DRAG_FUSION
 
 	controlHeightFusion(imu_delayed);
