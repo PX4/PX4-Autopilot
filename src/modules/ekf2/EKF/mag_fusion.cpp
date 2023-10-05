@@ -80,10 +80,16 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bo
 	const float innov_gate = math::max(_params.mag_innov_gate, 1.f);
 	setEstimatorAidStatusTestRatio(aid_src_mag, innov_gate);
 
-	// the innovation variance contribution from the state covariances is negative which means the covariance matrix is badly conditioned
-	_fault_status.flags.bad_mag_x = (aid_src_mag.innovation_variance[0] < aid_src_mag.observation_variance[0]);
-	_fault_status.flags.bad_mag_y = (aid_src_mag.innovation_variance[1] < aid_src_mag.observation_variance[1]);
-	_fault_status.flags.bad_mag_z = (aid_src_mag.innovation_variance[2] < aid_src_mag.observation_variance[2]);
+	if (update_all_states) {
+		_fault_status.flags.bad_mag_x = (aid_src_mag.innovation_variance[0] < aid_src_mag.observation_variance[0]);
+		_fault_status.flags.bad_mag_y = (aid_src_mag.innovation_variance[1] < aid_src_mag.observation_variance[1]);
+		_fault_status.flags.bad_mag_z = (aid_src_mag.innovation_variance[2] < aid_src_mag.observation_variance[2]);
+
+	} else {
+		_fault_status.flags.bad_mag_x = false;
+		_fault_status.flags.bad_mag_y = false;
+		_fault_status.flags.bad_mag_z = false;
+	}
 
 	// Perform an innovation consistency check and report the result
 	_innov_check_fail_status.flags.reject_mag_x = (aid_src_mag.test_ratio[0] > 1.f);
@@ -94,6 +100,7 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bo
 
 	// check innovation variances for being badly conditioned
 	if (innov_var.min() < R_MAG) {
+		// the innovation variance contribution from the state covariances is negative which means the covariance matrix is badly conditioned
 		// we need to re-initialise covariances and abort this fusion step
 		if (update_all_states) {
 			resetQuatCov(_params.mag_heading_noise);
@@ -190,11 +197,13 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bo
 		}
 	}
 
-	_fault_status.flags.bad_mag_x = !fused[0];
-	_fault_status.flags.bad_mag_y = !fused[1];
-	_fault_status.flags.bad_mag_z = !fused[2];
+	if (update_all_states) {
+		_fault_status.flags.bad_mag_x = !fused[0];
+		_fault_status.flags.bad_mag_y = !fused[1];
+		_fault_status.flags.bad_mag_z = !fused[2];
+	}
 
-	if (fused[0] && fused[1] && (fused[2] || _control_status.flags.synthetic_mag_z)) {
+	if (fused[0] && fused[1] && fused[2]) {
 		aid_src_mag.fused = true;
 		aid_src_mag.time_last_fuse = _time_delayed_us;
 
