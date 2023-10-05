@@ -222,8 +222,7 @@ TEST_F(EkfGpsTest, altitudeDrift)
 		_sensor_simulator.runSeconds(dt);
 	}
 
-	float baro_innov;
-	_ekf->getBaroHgtInnov(baro_innov);
+	float baro_innov = _ekf->aid_src_baro_hgt().innovation;
 	BiasEstimator::status status = _ekf->getBaroBiasEstimatorStatus();
 
 	printf("baro innov = %f\n", (double)baro_innov);

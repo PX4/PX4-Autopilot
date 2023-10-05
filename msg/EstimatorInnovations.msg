@@ -19,7 +19,6 @@ float32 baro_vpos	# barometer height innovation (m) and innovation variance (m**
 
 # Auxiliary velocity
 float32[2] aux_hvel	# horizontal auxiliary velocity innovation from landing target measurement (m/sec) and innovation variance ((m/sec)**2)
-float32    aux_vvel	# vertical auxiliary velocity innovation from landing target measurement (m/sec) and innovation variance ((m/sec)**2)
 
 # Optical flow
 float32[2] flow		# flow innvoation (rad/sec) and innovation variance ((rad/sec)**2)
