@@ -446,15 +446,22 @@ public:
 
 	static void queueCallback(class SubscriptionCallback *sub, int idx)
 	{
-		_Instance->g_sem_pool.cb_lock(idx);
-		_Instance->g_sem_pool.cb_set(idx, sub);
-		// The manager is unlocked in callback thread
+		if (idx >= 0) {
+			_Instance->g_sem_pool.cb_lock(idx);
+			_Instance->g_sem_pool.cb_set(idx, sub);
+			// The manager is unlocked in callback thread
+		}
 	}
 
 	static class SubscriptionCallback *dequeueCallback(int idx)
 	{
-		class SubscriptionCallback *sub = _Instance->g_sem_pool.cb_get(idx);
-		_Instance->g_sem_pool.cb_unlock(idx);
+		class SubscriptionCallback *sub = nullptr;
+
+		if (idx >= 0) {
+			sub = _Instance->g_sem_pool.cb_get(idx);
+			_Instance->g_sem_pool.cb_unlock(idx);
+		}
+
 		return sub;
 	}
 
