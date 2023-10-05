@@ -39,7 +39,6 @@
 #define EKF_EKF_LOGGER_H
 
 #include "EKF/ekf.h"
-#include "EKF/estimator_interface.h"
 #include "ekf_wrapper.h"
 #include <fstream>
 #include <iostream>

@@ -38,6 +38,42 @@
 
 #include "ekf.h"
 
+void Ekf::setBaroData(const baroSample &baro_sample)
+{
+	if (!_initialised) {
+		return;
+	}
+
+	// Allocate the required buffer size if not previously done
+	if (_baro_buffer == nullptr) {
+		_baro_buffer = new RingBuffer<baroSample>(_obs_buffer_length);
+
+		if (_baro_buffer == nullptr || !_baro_buffer->valid()) {
+			delete _baro_buffer;
+			_baro_buffer = nullptr;
+			printBufferAllocationFailed("baro");
+			return;
+		}
+	}
+
+	const int64_t time_us = baro_sample.time_us
+				- static_cast<int64_t>(_params.baro_delay_ms * 1000)
+				- static_cast<int64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
+
+	// limit data rate to prevent data being lost
+	if (time_us >= static_cast<int64_t>(_baro_buffer->get_newest().time_us + _min_obs_interval_us)) {
+
+		baroSample baro_sample_new{baro_sample};
+		baro_sample_new.time_us = time_us;
+
+		_baro_buffer->push(baro_sample_new);
+		_time_last_baro_buffer_push = _time_latest_us;
+
+	} else {
+		ECL_WARN("baro data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us, _baro_buffer->get_newest().time_us, _min_obs_interval_us);
+	}
+}
+
 void Ekf::controlBaroHeightFusion()
 {
 	static constexpr const char *HGT_SRC_NAME = "baro";

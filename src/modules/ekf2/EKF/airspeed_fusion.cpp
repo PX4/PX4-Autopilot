@@ -49,6 +49,41 @@
 
 #include <mathlib/mathlib.h>
 
+void Ekf::setAirspeedData(const airspeedSample &airspeed_sample)
+{
+	if (!_initialised) {
+		return;
+	}
+
+	// Allocate the required buffer size if not previously done
+	if (_airspeed_buffer == nullptr) {
+		_airspeed_buffer = new RingBuffer<airspeedSample>(_obs_buffer_length);
+
+		if (_airspeed_buffer == nullptr || !_airspeed_buffer->valid()) {
+			delete _airspeed_buffer;
+			_airspeed_buffer = nullptr;
+			printBufferAllocationFailed("airspeed");
+			return;
+		}
+	}
+
+	const int64_t time_us = airspeed_sample.time_us
+				- static_cast<int64_t>(_params.airspeed_delay_ms * 1000)
+				- static_cast<int64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
+
+	// limit data rate to prevent data being lost
+	if (time_us >= static_cast<int64_t>(_airspeed_buffer->get_newest().time_us + _min_obs_interval_us)) {
+
+		airspeedSample airspeed_sample_new{airspeed_sample};
+		airspeed_sample_new.time_us = time_us;
+
+		_airspeed_buffer->push(airspeed_sample_new);
+
+	} else {
+		ECL_WARN("airspeed data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us, _airspeed_buffer->get_newest().time_us, _min_obs_interval_us);
+	}
+}
+
 void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 {
 	// control activation and initialisation/reset of wind states required for airspeed fusion

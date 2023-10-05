@@ -33,6 +33,41 @@
 
 #include "ekf.h"
 
+void Ekf::setAuxVelData(const auxVelSample &auxvel_sample)
+{
+	if (!_initialised) {
+		return;
+	}
+
+	// Allocate the required buffer size if not previously done
+	if (_auxvel_buffer == nullptr) {
+		_auxvel_buffer = new RingBuffer<auxVelSample>(_obs_buffer_length);
+
+		if (_auxvel_buffer == nullptr || !_auxvel_buffer->valid()) {
+			delete _auxvel_buffer;
+			_auxvel_buffer = nullptr;
+			printBufferAllocationFailed("aux vel");
+			return;
+		}
+	}
+
+	const int64_t time_us = auxvel_sample.time_us
+				- static_cast<int64_t>(_params.auxvel_delay_ms * 1000)
+				- static_cast<int64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
+
+	// limit data rate to prevent data being lost
+	if (time_us >= static_cast<int64_t>(_auxvel_buffer->get_newest().time_us + _min_obs_interval_us)) {
+
+		auxVelSample auxvel_sample_new{auxvel_sample};
+		auxvel_sample_new.time_us = time_us;
+
+		_auxvel_buffer->push(auxvel_sample_new);
+
+	} else {
+		ECL_WARN("aux velocity data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us, _auxvel_buffer->get_newest().time_us, _min_obs_interval_us);
+	}
+}
+
 void Ekf::controlAuxVelFusion()
 {
 	if (_auxvel_buffer) {
