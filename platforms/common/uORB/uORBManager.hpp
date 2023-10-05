@@ -643,8 +643,8 @@ private: //class methods
 
 		void cb_lock(int8_t i) { do {} while (_global_sem[i].cb_lock() != 0); }
 		void cb_unlock(int8_t i) { _global_sem[i].cb_unlock(); }
-		void cb_set(int8_t i, struct SubscriptionCallback *callback_ptr) { _global_sem[i].cb_set(callback_ptr); }
-		struct SubscriptionCallback *cb_get(int8_t i) { return _global_sem[i].cb_get(); }
+		void cb_set(int8_t i, class SubscriptionCallback *callback_ptr) { _global_sem[i].cb_set(callback_ptr); }
+		class SubscriptionCallback *cb_get(int8_t i) { return _global_sem[i].cb_get(); }
 
 		class GlobalLock
 		{
@@ -675,10 +675,10 @@ private: //class methods
 
 			int  cb_lock() { return px4_sem_wait(&_lock); }
 			void cb_unlock() { px4_sem_post(&_lock); }
-			void cb_set(struct SubscriptionCallback *callback_ptr) { _callback_ptr = callback_ptr; }
-			struct SubscriptionCallback *cb_get() { return _callback_ptr; }
+			void cb_set(class SubscriptionCallback *callback_ptr) { _callback_ptr = callback_ptr; }
+			class SubscriptionCallback *cb_get() { return _callback_ptr; }
 		private:
-			struct SubscriptionCallback *_callback_ptr {nullptr};
+			class SubscriptionCallback *_callback_ptr {nullptr};
 			px4_sem_t _sem; /* For signaling to the callback thread */
 			px4_sem_t _lock; /* For signaling back from the callback thread */
 		};
