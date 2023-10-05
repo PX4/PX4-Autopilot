@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -179,6 +179,7 @@ Mavlink::~Mavlink()
 	perf_free(_loop_perf);
 	perf_free(_loop_interval_perf);
 	perf_free(_send_byte_error_perf);
+	perf_free(_forwarding_error_perf);
 }
 
 void
@@ -1224,117 +1225,16 @@ Mavlink::configure_stream_threadsafe(const char *stream_name, const float rate)
 	}
 }
 
-int
-Mavlink::message_buffer_init(int size)
-{
-	_message_buffer.size = size;
-	_message_buffer.write_ptr = 0;
-	_message_buffer.read_ptr = 0;
-	_message_buffer.data = (char *)malloc(_message_buffer.size);
-
-	int ret;
-
-	if (_message_buffer.data == nullptr) {
-		ret = PX4_ERROR;
-		_message_buffer.size = 0;
-
-	} else {
-		ret = OK;
-	}
-
-	return ret;
-}
-
-void
-Mavlink::message_buffer_destroy()
-{
-	_message_buffer.size = 0;
-	_message_buffer.write_ptr = 0;
-	_message_buffer.read_ptr = 0;
-	free(_message_buffer.data);
-}
-
-int
-Mavlink::message_buffer_count()
-{
-	int n = _message_buffer.write_ptr - _message_buffer.read_ptr;
-
-	if (n < 0) {
-		n += _message_buffer.size;
-	}
-
-	return n;
-}
-
-bool
-Mavlink::message_buffer_write(const void *ptr, int size)
-{
-	// bytes available to write
-	int available = _message_buffer.read_ptr - _message_buffer.write_ptr - 1;
-
-	if (available < 0) {
-		available += _message_buffer.size;
-	}
-
-	if (size > available) {
-		// buffer overflow
-		return false;
-	}
-
-	char *c = (char *) ptr;
-	int n = _message_buffer.size - _message_buffer.write_ptr;	// bytes to end of the buffer
-
-	if (n < size) {
-		// message goes over end of the buffer
-		memcpy(&(_message_buffer.data[_message_buffer.write_ptr]), c, n);
-		_message_buffer.write_ptr = 0;
-
-	} else {
-		n = 0;
-	}
-
-	// now: n = bytes already written
-	int p = size - n;	// number of bytes to write
-	memcpy(&(_message_buffer.data[_message_buffer.write_ptr]), &(c[n]), p);
-	_message_buffer.write_ptr = (_message_buffer.write_ptr + p) % _message_buffer.size;
-	return true;
-}
-
-int
-Mavlink::message_buffer_get_ptr(void **ptr, bool *is_part)
-{
-	// bytes available to read
-	int available = _message_buffer.write_ptr - _message_buffer.read_ptr;
-
-	if (available == 0) {
-		return 0;	// buffer is empty
-	}
-
-	int n = 0;
-
-	if (available > 0) {
-		// read pointer is before write pointer, all available bytes can be read
-		n = available;
-		*is_part = false;
-
-	} else {
-		// read pointer is after write pointer, read bytes from read_ptr to end of the buffer
-		n = _message_buffer.size - _message_buffer.read_ptr;
-		*is_part = _message_buffer.write_ptr > 0;
-	}
-
-	*ptr = &(_message_buffer.data[_message_buffer.read_ptr]);
-	return n;
-}
-
 void
 Mavlink::pass_message(const mavlink_message_t *msg)
 {
-	/* size is 8 bytes plus variable payload */
+	/* size is 12 bytes plus variable payload */
 	int size = MAVLINK_NUM_NON_PAYLOAD_BYTES + msg->len;
-	pthread_mutex_lock(&_message_buffer_mutex);
-	message_buffer_write(msg, size);
-	pthread_mutex_unlock(&_message_buffer_mutex);
+	LockGuard lg{_message_buffer_mutex};
+
+	if (!_message_buffer.push_back(reinterpret_cast<const uint8_t *>(msg), size)) {
+		perf_count(_forwarding_error_perf);
+	}
 }
 
 MavlinkShell *
@@ -2217,7 +2117,7 @@ Mavlink::task_main(int argc, char *argv[])
 		return PX4_ERROR;
 	}
 
-	/* initialize send mutex */
+	pthread_mutex_init(&_message_buffer_mutex, nullptr);
 	pthread_mutex_init(&_send_mutex, nullptr);
 	pthread_mutex_init(&_radio_status_mutex, nullptr);
 
@@ -2227,13 +2127,12 @@ Mavlink::task_main(int argc, char *argv[])
 		 * make space for two messages plus off-by-one space as we use the empty element
 		 * marker ring buffer approach.
 		 */
-		if (OK != message_buffer_init(2 * sizeof(mavlink_message_t) + 1)) {
+		LockGuard lg{_message_buffer_mutex};
+
+		if (!_message_buffer.allocate(2 * sizeof(mavlink_message_t) + 1)) {
 			PX4_ERR("msg buf alloc fail");
 			return PX4_ERROR;
 		}
-
-		/* initialize message buffer mutex */
-		pthread_mutex_init(&_message_buffer_mutex, nullptr);
 	}
 
 	/* Activate sending the data by default (for the IRIDIUM mode it will be disabled after the first round of packages is sent)*/
@@ -2575,50 +2474,21 @@ Mavlink::task_main(int argc, char *argv[])
 
 		_events.update(t);
 
-		/* pass messages from other UARTs */
+		/* pass messages from other instances */
 		if (get_forwarding_on()) {
 
-			bool is_part;
-			uint8_t *read_ptr;
-			uint8_t *write_ptr;
+			mavlink_message_t msg;
+			size_t available_bytes;
+			{
+				// We only send one message at a time, not to put too much strain on a
+				// link from forwarded messages.
+				LockGuard lg{_message_buffer_mutex};
+				available_bytes = _message_buffer.pop_front(reinterpret_cast<uint8_t *>(&msg), sizeof(msg));
+				// We need to make sure to release the lock here before sending the
+				// bytes out via IP or UART which could potentially take longer.
+			}
 
-			pthread_mutex_lock(&_message_buffer_mutex);
-			int available = message_buffer_get_ptr((void **)&read_ptr, &is_part);
-			pthread_mutex_unlock(&_message_buffer_mutex);
-
-			if (available > 0) {
-				// Reconstruct message from buffer
-
-				mavlink_message_t msg;
-				write_ptr = (uint8_t *)&msg;
-
-				// Pull a single message from the buffer
-				size_t read_count = available;
-
-				if (read_count > sizeof(mavlink_message_t)) {
-					read_count = sizeof(mavlink_message_t);
-				}
-
-				memcpy(write_ptr, read_ptr, read_count);
-
-				// We hold the mutex until after we complete the second part of the buffer. If we don't
-				// we may end up breaking the empty slot overflow detection semantics when we mark the
-				// possibly partial read below.
-				pthread_mutex_lock(&_message_buffer_mutex);
-
-				message_buffer_mark_read(read_count);
-
-				/* write second part of buffer if there is some */
-				if (is_part && read_count < sizeof(mavlink_message_t)) {
-					write_ptr += read_count;
-					available = message_buffer_get_ptr((void **)&read_ptr, &is_part);
-					read_count = sizeof(mavlink_message_t) - read_count;
-					memcpy(write_ptr, read_ptr, read_count);
-					message_buffer_mark_read(available);
-				}
-
-				pthread_mutex_unlock(&_message_buffer_mutex);
-
+			if (available_bytes > 0) {
 				resend_message(&msg);
 			}
 		}
@@ -2668,11 +2538,6 @@ Mavlink::task_main(int argc, char *argv[])
 		_socket_fd = -1;
 	}
 
-	if (get_forwarding_on()) {
-		message_buffer_destroy();
-		pthread_mutex_destroy(&_message_buffer_mutex);
-	}
-
 	if (_mavlink_ulog) {
 		_mavlink_ulog->stop();
 		_mavlink_ulog = nullptr;
@@ -2680,6 +2545,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 	pthread_mutex_destroy(&_send_mutex);
 	pthread_mutex_destroy(&_radio_status_mutex);
+	pthread_mutex_destroy(&_message_buffer_mutex);
 
 	PX4_INFO("exiting channel %i", (int)_channel);
 
