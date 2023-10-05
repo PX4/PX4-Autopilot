@@ -486,7 +486,7 @@ uORB::Manager::callback_thread(int argc, char *argv[])
 	while (true) {
 		lockThread(per_process_lock);
 
-		SubscriptionCallback *sub = dequeueCallback(per_process_lock);
+		class SubscriptionCallback *sub = dequeueCallback(per_process_lock);
 
 		// Pass nullptr to this thread to exit
 		if (sub == nullptr) {

@@ -247,7 +247,7 @@ private:
 	px4::atomic<unsigned>  _generation{0};  /**< object generation count */
 
 	struct EventWaitItem {
-		struct SubscriptionCallback *subscriber;
+		class SubscriptionCallback *subscriber;
 		hrt_abstime last_update;
 		uint32_t interval_us;
 		int8_t lock;
