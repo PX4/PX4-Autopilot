@@ -16,6 +16,7 @@ board_adc start
 ms5611 -s -b 4 start
 
 if icm42688p -s -b 4 -R 10 -q start -c 15
+then
 	if ! icm20948 -s -b 4 -R 10 -M -q start
 	then
 		icm42688p -s -b 4 -R 6 start -c 13
