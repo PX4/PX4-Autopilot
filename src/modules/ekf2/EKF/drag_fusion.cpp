@@ -42,6 +42,68 @@
 
 #include <mathlib/mathlib.h>
 
+void Ekf::setDragData(const imuSample &imu)
+{
+	// down-sample the drag specific force data by accumulating and calculating the mean when
+	// sufficient samples have been collected
+	if (_params.drag_ctrl > 0) {
+
+		// Allocate the required buffer size if not previously done
+		if (_drag_buffer == nullptr) {
+			_drag_buffer = new RingBuffer<dragSample>(_obs_buffer_length);
+
+			if (_drag_buffer == nullptr || !_drag_buffer->valid()) {
+				delete _drag_buffer;
+				_drag_buffer = nullptr;
+				printBufferAllocationFailed("drag");
+				return;
+			}
+		}
+
+		// don't use any accel samples that are clipping
+		if (imu.delta_vel_clipping[0] || imu.delta_vel_clipping[1] || imu.delta_vel_clipping[2]) {
+			// reset accumulators
+			_drag_sample_count = 0;
+			_drag_down_sampled.accelXY.zero();
+			_drag_down_sampled.time_us = 0;
+			_drag_sample_time_dt = 0.0f;
+
+			return;
+		}
+
+		_drag_sample_count++;
+		// note acceleration is accumulated as a delta velocity
+		_drag_down_sampled.accelXY(0) += imu.delta_vel(0);
+		_drag_down_sampled.accelXY(1) += imu.delta_vel(1);
+		_drag_down_sampled.time_us += imu.time_us;
+		_drag_sample_time_dt += imu.delta_vel_dt;
+
+		// calculate the downsample ratio for drag specific force data
+		uint8_t min_sample_ratio = (uint8_t) ceilf((float)_imu_buffer_length / _obs_buffer_length);
+
+		if (min_sample_ratio < 5) {
+			min_sample_ratio = 5;
+		}
+
+		// calculate and store means from accumulated values
+		if (_drag_sample_count >= min_sample_ratio) {
+			// note conversion from accumulated delta velocity to acceleration
+			_drag_down_sampled.accelXY(0) /= _drag_sample_time_dt;
+			_drag_down_sampled.accelXY(1) /= _drag_sample_time_dt;
+			_drag_down_sampled.time_us /= _drag_sample_count;
+
+			// write to buffer
+			_drag_buffer->push(_drag_down_sampled);
+
+			// reset accumulators
+			_drag_sample_count = 0;
+			_drag_down_sampled.accelXY.zero();
+			_drag_down_sampled.time_us = 0;
+			_drag_sample_time_dt = 0.0f;
+		}
+	}
+}
+
 void Ekf::controlDragFusion(const imuSample &imu_delayed)
 {
 	if ((_params.drag_ctrl > 0) && _drag_buffer) {

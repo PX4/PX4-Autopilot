@@ -2077,7 +2077,7 @@ void EKF2::PublishYawEstimatorStatus(const hrt_abstime &timestamp)
 
 void EKF2::PublishWindEstimate(const hrt_abstime &timestamp)
 {
-	if (_ekf.get_wind_status()) {
+	if (_ekf.control_status_flags().wind) {
 		// Publish wind estimate only if ekf declares them valid
 		wind_s wind{};
 		wind.timestamp_sample = _ekf.time_delayed_us();

@@ -40,7 +40,6 @@
 
 #include <memory>
 #include "EKF/ekf.h"
-#include "EKF/estimator_interface.h"
 
 class EkfWrapper
 {

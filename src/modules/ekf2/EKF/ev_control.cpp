@@ -38,6 +38,43 @@
 
 #include "ekf.h"
 
+void Ekf::setExtVisionData(const extVisionSample &evdata)
+{
+	if (!_initialised) {
+		return;
+	}
+
+	// Allocate the required buffer size if not previously done
+	if (_ext_vision_buffer == nullptr) {
+		_ext_vision_buffer = new RingBuffer<extVisionSample>(_obs_buffer_length);
+
+		if (_ext_vision_buffer == nullptr || !_ext_vision_buffer->valid()) {
+			delete _ext_vision_buffer;
+			_ext_vision_buffer = nullptr;
+			printBufferAllocationFailed("vision");
+			return;
+		}
+	}
+
+	// calculate the system time-stamp for the mid point of the integration period
+	const int64_t time_us = evdata.time_us
+				- static_cast<int64_t>(_params.ev_delay_ms * 1000)
+				- static_cast<int64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
+
+	// limit data rate to prevent data being lost
+	if (time_us >= static_cast<int64_t>(_ext_vision_buffer->get_newest().time_us + _min_obs_interval_us)) {
+
+		extVisionSample ev_sample_new{evdata};
+		ev_sample_new.time_us = time_us;
+
+		_ext_vision_buffer->push(ev_sample_new);
+		_time_last_ext_vision_buffer_push = _time_latest_us;
+
+	} else {
+		ECL_WARN("EV data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us, _ext_vision_buffer->get_newest().time_us, _min_obs_interval_us);
+	}
+}
+
 void Ekf::controlExternalVisionFusion()
 {
 	_ev_pos_b_est.predict(_dt_ekf_avg);

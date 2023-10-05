@@ -39,6 +39,42 @@
 #include "ekf.h"
 #include <mathlib/mathlib.h>
 
+void Ekf::setMagData(const magSample &mag_sample)
+{
+	if (!_initialised) {
+		return;
+	}
+
+	// Allocate the required buffer size if not previously done
+	if (_mag_buffer == nullptr) {
+		_mag_buffer = new RingBuffer<magSample>(_obs_buffer_length);
+
+		if (_mag_buffer == nullptr || !_mag_buffer->valid()) {
+			delete _mag_buffer;
+			_mag_buffer = nullptr;
+			printBufferAllocationFailed("mag");
+			return;
+		}
+	}
+
+	const int64_t time_us = mag_sample.time_us
+				- static_cast<int64_t>(_params.mag_delay_ms * 1000)
+				- static_cast<int64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
+
+	// limit data rate to prevent data being lost
+	if (time_us >= static_cast<int64_t>(_mag_buffer->get_newest().time_us + _min_obs_interval_us)) {
+
+		magSample mag_sample_new{mag_sample};
+		mag_sample_new.time_us = time_us;
+
+		_mag_buffer->push(mag_sample_new);
+		_time_last_mag_buffer_push = _time_latest_us;
+
+	} else {
+		ECL_WARN("mag data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us, _mag_buffer->get_newest().time_us, _min_obs_interval_us);
+	}
+}
+
 void Ekf::controlMagFusion()
 {
 	// reset the flight alignment flag so that the mag fields will be
