@@ -282,9 +282,23 @@ public:
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_DRAG_FUSION)
-	void getDragInnov(float drag_innov[2]) const { _drag_innov.copyTo(drag_innov); }
-	void getDragInnovVar(float drag_innov_var[2]) const { _drag_innov_var.copyTo(drag_innov_var); }
-	void getDragInnovRatio(float drag_innov_ratio[2]) const { _drag_test_ratio.copyTo(drag_innov_ratio); }
+	const auto &aid_src_drag() const { return _aid_src_drag; }
+
+	void getDragInnov(float drag_innov[2]) const
+	{
+		drag_innov[0] = _aid_src_drag.innovation[0];
+		drag_innov[1] = _aid_src_drag.innovation[1];
+	}
+	void getDragInnovVar(float drag_innov_var[2]) const
+	{
+		drag_innov_var[0] = _aid_src_drag.innovation_variance[0];
+		drag_innov_var[1] = _aid_src_drag.innovation_variance[1];
+	}
+	void getDragInnovRatio(float drag_innov_ratio[2]) const
+	{
+		drag_innov_ratio[0] = _aid_src_drag.test_ratio[0];
+		drag_innov_ratio[1] = _aid_src_drag.test_ratio[1];
+	}
 #endif // CONFIG_EKF2_DRAG_FUSION
 
 #if defined(CONFIG_EKF2_AIRSPEED)
@@ -625,8 +639,7 @@ private:
 	SquareMatrixState P{};	///< state covariance matrix
 
 #if defined(CONFIG_EKF2_DRAG_FUSION)
-	Vector2f _drag_innov{};		///< multirotor drag measurement innovation (m/sec**2)
-	Vector2f _drag_innov_var{};	///< multirotor drag measurement innovation variance ((m/sec**2)**2)
+	estimator_aid_source2d_s _aid_src_drag{};
 #endif // CONFIG_EKF2_DRAG_FUSION
 
 #if defined(CONFIG_EKF2_TERRAIN)
@@ -868,7 +881,7 @@ private:
 
 #if defined(CONFIG_EKF2_DRAG_FUSION)
 	// control fusion of multi-rotor drag specific force observations
-	void controlDragFusion();
+	void controlDragFusion(const imuSample &imu_delayed);
 
 	// fuse body frame drag specific forces for multi-rotor wind estimation
 	void fuseDrag(const dragSample &drag_sample);
