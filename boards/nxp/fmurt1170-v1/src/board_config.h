@@ -429,7 +429,7 @@
 #define HRT_PPM_CHANNEL         /* GPIO_EMC_B1_09 GPIO_GPT5_CAPTURE1_1 */  1  /* use capture/compare channel 1 */
 #define GPIO_PPM_IN             /* GPIO_EMC_B1_09 GPT1_CAPTURE2 */ (GPIO_GPT5_CAPTURE1_1 | GENERAL_INPUT_IOMUX)
 
-#define RC_SERIAL_PORT          "/dev/ttyS5"
+#define RC_SERIAL_PORT          "/dev/ttyS4"
 #define RC_SERIAL_SINGLEWIRE
 
 /* FLEXSPI4 */
