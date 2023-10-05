@@ -443,8 +443,7 @@ int uORB::Manager::orb_poll(orb_poll_struct_t *fds, unsigned int nfds, int timeo
 		}
 	}
 
-	// recover from releasing multiple times
-	g_sem_pool.set(lock_idx, 0);
+	// release the semaphore
 	g_sem_pool.free(lock_idx);
 
 	return err ? -1 : count;
@@ -518,6 +517,7 @@ void uORB::Manager::GlobalSemPool::free(int8_t i)
 {
 	lock();
 
+	_global_sem[i].free();
 	_global_sem[i].in_use = false;
 
 	unlock();
@@ -542,6 +542,9 @@ int8_t uORB::Manager::GlobalSemPool::reserve()
 		unlock();
 		return -1;
 	}
+
+	// Make sure the semaphore is initialized properly for the new user
+	_global_sem[i].init();
 
 	// Mark this one as in use
 	_global_sem[i].in_use = true;
