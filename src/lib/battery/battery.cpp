@@ -113,6 +113,14 @@ void Battery::updateCurrent(const float current_a)
 
 void Battery::updateBatteryStatus(const hrt_abstime &timestamp)
 {
+	if (_parameter_update_sub.updated()) {
+		// Read from topic to clear updated flag
+		parameter_update_s parameter_update;
+		_parameter_update_sub.copy(&parameter_update);
+
+		updateParams();
+	}
+
 	if (!_battery_initialized) {
 		_voltage_filter_v.reset(_voltage_v);
 		_current_filter_a.reset(_current_a);

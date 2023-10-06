@@ -58,6 +58,10 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_thrust_setpoint.h>
+#include <uORB/SubscriptionInterval.hpp>
+#include <uORB/topics/parameter_update.h>
+
+using namespace time_literals;
 
 /**
  * BatteryBase is a base class for any type of battery.
@@ -156,6 +160,7 @@ private:
 	uORB::Subscription _vehicle_thrust_setpoint_0_sub{ORB_ID(vehicle_thrust_setpoint)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::PublicationMulti<battery_status_s> _battery_status_pub{ORB_ID(battery_status)};
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	bool _external_state_of_charge{false}; ///< inticates that the soc is injected and not updated by this library
 
