@@ -1,0 +1,19 @@
+module_name: MODAL PWM Output
+actuator_output:
+  show_subgroups_if: 'MODAL_PWM_CONFIG>0'
+  config_parameters:
+    - param: 'MODAL_PWM_CONFIG'
+      label: 'Configure'
+      function: 'enable'
+    - param: 'MODAL_PWM_BAUD'
+      label: 'Bitrate'
+    - param: 'MODAL_PWM_MIN'
+      label: 'PWM Min'
+    - param: 'MODAL_PWM_MAX'
+      label: 'PWM Max'
+  output_groups:
+    - param_prefix: MODAL_PWM
+      group_label: 'PWMs'
+      channel_label: 'PWM Channel'
+      num_channels: 4
+

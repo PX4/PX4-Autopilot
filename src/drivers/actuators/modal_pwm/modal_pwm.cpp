@@ -35,14 +35,15 @@
 
 #include <px4_platform_common/sem.hpp>
 
+
 ModalPWM::ModalPWM() :
 	// OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default)
-	OutputModuleInterface(MODULE_NAME, px4::serial_port_to_wq(MODAL_PWM_DEFAULT_PORT)),
-	_mixing_output{"Modal PWM", MODAL_PWM_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false},
+	OutputModuleInterface(MODULE_NAME, px4::serial_port_to_wq("7")),
+	_mixing_output{"MODAL_PWM", MODAL_PWM_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false},
 	_cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")},
 	_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": output update interval")}
 {
-	_device = MODAL_PWM_DEFAULT_PORT;
+	// _device = MODAL_PWM_DEFAULT_PORT;
 
 	_pwm_mask = ((1u << MODAL_PWM_OUTPUT_CHANNELS) - 1);
 	_mixing_output.setMaxNumOutputs(MODAL_PWM_OUTPUT_CHANNELS);
@@ -57,7 +58,7 @@ ModalPWM::~ModalPWM()
 {
 	/* make sure servos are off */
 	// up_pwm_servo_deinit(_pwm_mask);
-	stop_pwms(_pwm_mask);
+	stop_all_pwms();
 
 	if (_uart_port) {
 		_uart_port->uart_close();
@@ -96,10 +97,28 @@ int ModalPWM::load_params(modal_pwm_params_t *params, ch_assign_t *map)
 		params->direction_map[i] = 0;
 		params->motor_map[i] = 0;
 	}
+	
+	param_get(param_find("MODAL_PWM_CONFIG"),  &params->config);
+	param_get(param_find("MODAL_PWM_MODE"),    &params->mode);
+	param_get(param_find("MODAL_PWM_BAUD"),    &params->baud_rate);
+
+	param_get(param_find("MODAL_IO_FUNC1"),  &params->function_map[0]);
+	param_get(param_find("MODAL_IO_FUNC2"),  &params->function_map[1]);
+	param_get(param_find("MODAL_IO_FUNC3"),  &params->function_map[2]);
+	param_get(param_find("MODAL_IO_FUNC4"),  &params->function_map[3]);
+
+	param_get(param_find("MODAL_PWM_MIN"), &params->pwm_min);
+	param_get(param_find("MODAL_PWM_MAX"), &params->pwm_max);
 
 	// Set PWM max and min 
-	params->pwm_min = MODAL_PWM_DEFAULT_PWM_MIN;
-	params->pwm_max = MODAL_PWM_DEFAULT_PWM_MAX;
+	// params->pwm_min = MODAL_PWM_DEFAULT_PWM_MIN;
+	// params->pwm_max = MODAL_PWM_DEFAULT_PWM_MAX;
+
+	if (params->pwm_min >= params->pwm_max) {
+		PX4_ERR("Invalid parameter MODAL_PWM_MIN.  Please verify parameters.");
+		params->pwm_min = 0;
+		ret = PX4_ERROR;
+	}
 
 	return ret;
 }
@@ -180,29 +199,150 @@ bool ModalPWM::update_pwm_out_state(bool on)
 bool ModalPWM::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated)
 {
-	/* output to the servos */
-	// if (_pwm_initialized) {
-	// 	for (size_t i = 0; i < num_outputs; i++) {
-	// 		if (!_mixing_output.isFunctionSet(i)) {
-	// 			// do not run any signal on disabled channels
-	// 			outputs[i] = 0;
-	// 		}
+	// PX4_INFO("Entering updateOuputs in ModalPWM!");
+	//in Run() we call _mixing_output.update(), which calls MixingOutput::limitAndUpdateOutputs which calls _interface.updateOutputs (this function)
+	//So, if Run() is blocked by a custom command, this function will not be called until Run is running again
+	int16_t _rate_req[MODAL_PWM_OUTPUT_CHANNELS] = {0, 0, 0, 0};
+	int16_t _led_req[MODAL_PWM_OUTPUT_CHANNELS] = {0, 0, 0, 0};
+	uint8_t _fb_idx = 0;
 
-	// 		if (_pwm_mask & (1 << i)) {
-	// 			up_pwm_servo_set(i, outputs[i]);
-	// 		}
+	if (num_outputs != MODAL_PWM_OUTPUT_CHANNELS) {
+		PX4_ERR("Num outputs != MODAL_PWM_OUTPUT_CHANNELS!");
+		return false;
+	}
+
+	for (int i = 0; i < MODAL_PWM_OUTPUT_CHANNELS; i++) {
+		if (outputs[i]){
+			_pwm_on = true;
+		}
+		if (!_pwm_on || stop_motors) {
+			_rate_req[i] = 0;
+			_pwm_values[i] = _rate_req[i];
+		} else {
+			_rate_req[i] = outputs[i];
+			_pwm_values[i] = _rate_req[i];
+		}
+	}
+
+	Command cmd;
+	cmd.len = qc_esc_create_pwm_packet4_fb(_rate_req[0],
+					       _rate_req[1],
+					       _rate_req[2],
+					       _rate_req[3],
+					       _led_req[0],
+					       _led_req[1],
+					       _led_req[2],
+					       _led_req[3],
+					       _fb_idx,
+					       cmd.buf,
+					       sizeof(cmd.buf));
+
+	// if (_pwm_on){
+		// PX4_INFO("\tPWM CH1: %hu", _rate_req[0]);
+		// PX4_INFO("\tPWM CH2: %hu", _rate_req[1]);
+		// PX4_INFO("\tPWM CH3: %hu", _rate_req[2]);
+		// PX4_INFO("\tPWM CH4: %hu", _rate_req[3]);
+		// PX4_INFO("");
+	// }
+
+	if (_uart_port->uart_write(cmd.buf, cmd.len) != cmd.len) {
+		PX4_ERR("Failed to send packet");
+		return false;
+	} 
+	// else {
+		// PX4_INFO("Successfully wrote packet to M0065!");
+	// }
+
+	// increment ESC id from which to request feedback in round robin order
+	// _fb_idx = (_fb_idx + 1) % MODAL_PWM_OUTPUT_CHANNELS;
+
+
+	/*
+	 * Here we read and parse response from ESCs. Since the latest command has just been sent out,
+	 * the response packet we may read here is probabaly from previous iteration, but it is totally ok.
+	 * uart_read is non-blocking and we will just parse whatever bytes came in up until this point
+	 */
+
+	// int res = _uart_port->uart_read(_read_buf, sizeof(_read_buf));
+
+	/* No feedback response in M0065 firmware right now */
+	// if (res > 0) {
+	// 	parse_response(_read_buf, res, false);
+	// }
+
+	/* handle loss of comms / disconnect */
+	// TODO - enable after CRC issues in feedback are addressed
+	//check_for_esc_timeout();
+
+	/* No verbose logging right now */
+	// publish the actual command that we sent and the feedback received
+	// if (_parameters.verbose_logging) {
+	// 	actuator_outputs_s actuator_outputs{};
+	// 	actuator_outputs.noutputs = num_outputs;
+
+	// 	for (size_t i = 0; i < num_outputs; ++i) {
+	// 		actuator_outputs.output[i] = _esc_chans[i].rate_req;
+	// 	}
+
+	// 	actuator_outputs.timestamp = hrt_absolute_time();
+
+	// 	_outputs_debug_pub.publish(actuator_outputs);
+
+	// }
+
+	/* Not publishing ESC status... TODO: Determine what data to publish.. PWM channel states?*/
+	// _esc_status_pub.publish(_esc_status);
+
+	// If any extra external modal io data has been received then
+	// send it over as well
+	// while (_modal_io_data_sub.updated()) {
+	// 	modal_io_data_s io_data{};
+	// 	_modal_io_data_sub.copy(&io_data);
+	// 	// PX4_INFO("Got Modal IO data: %u bytes", io_data.len);
+	// 	// PX4_INFO("   0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x",
+	// 	// 		 io_data.data[0], io_data.data[1], io_data.data[2], io_data.data[3],
+	// 	// 		 io_data.data[4], io_data.data[5], io_data.data[6], io_data.data[7]);
+	// 	if (_uart_port->uart_write(io_data.data, io_data.len) != io_data.len) {
+	// 		PX4_ERR("Failed to send modal io data to esc");
+	// 		return false;
 	// 	}
 	// }
 
-	/* Trigger all timer's channels in Oneshot mode to fire
-	 * the oneshots with updated values.
-	 */
-	// if (num_control_groups_updated > 0) {
-	// 	up_pwm_update(_pwm_mask);
-	// }
+	perf_count(_interval_perf);
 
 	return true;
 }
+
+int ModalPWM::flush_uart_rx()
+{
+	while (_uart_port->uart_read(_read_buf, sizeof(_read_buf)) > 0) {}
+
+	return 0;
+}
+
+int ModalPWM::read_response(Command *out_cmd)
+{
+	px4_usleep(_current_cmd.resp_delay_us);
+
+	int res = _uart_port->uart_read(_read_buf, sizeof(_read_buf));
+
+	if (res > 0) {
+		//PX4_INFO("read %i bytes",res);
+		// if (parse_response(_read_buf, res, out_cmd->print_feedback) < 0) {
+			//PX4_ERR("Error parsing response");
+			return -1;
+		// }
+
+	} else {
+		//PX4_ERR("Read error: %i", res);
+		return -1;
+	}
+
+	//_current_cmd.response = false;
+
+	return 0;
+}
+
 
 void ModalPWM::Run()
 {
@@ -214,32 +354,104 @@ void ModalPWM::Run()
 		return;
 	}
 
+	if (_first_update_cycle) PX4_INFO("Begin Modal_PWM on M0065 device");
 	perf_begin(_cycle_perf);
 	perf_count(_interval_perf);
 
-	// _mixing_output.update();
+	/* Open serial port in this thread */
+	if (!_uart_port->is_open()) {
+		if (_uart_port->uart_open(_device, _parameters.baud_rate) == PX4_OK) {
+			PX4_INFO("Opened UART M0065 device");
+
+		} else {
+			PX4_ERR("Failed opening device");
+			return;
+		}
+	}
+
+	_mixing_output.update(); //calls MixingOutput::limitAndUpdateOutputs which calls updateOutputs in this module
+	// bool mixer_updated = _mixing_output.update(); //calls MixingOutput::limitAndUpdateOutputs which calls updateOutputs in this module
+
+	// if (mixer_updated){
+		// PX4_INFO("Mixer updated!");
+	// }
 
 	/* update PWM status if armed or if disarmed PWM values are set */
-	_pwm_on = true;
+	_pwm_on = _mixing_output.armed().armed;
 
-	// if (_pwm_on != pwm_on) {
-	// 	if (update_pwm_out_state(pwm_on)) {
-	// 		_pwm_on = pwm_on;
-	// 	}
+	// if (!_pwm_on){
+		// PX4_INFO("Drone not armed!");
+	// } else{
+		// PX4_INFO("Drone ARMED!");
 	// }
 
-	// check for parameter updates
-	// if (_parameter_update_sub.updated()) {
-	// 	// clear update
-	// 	parameter_update_s pupdate;
-	// 	_parameter_update_sub.copy(&pupdate);
+	/* check for parameter updates */
+	if (!_pwm_on && _parameter_update_sub.updated()) {
+		/* clear update */
+		parameter_update_s pupdate;
+		_parameter_update_sub.copy(&pupdate);
 
-	// 	// update parameters from storage
-	// 	update_params();
-	// }
+		/* update parameters from storage */
+		update_params();
+	}
 
-	// check at end of cycle (updateSubscriptions() can potentially change to a different WorkQueue thread)
-	// _mixing_output.updateSubscriptions(true);
+	if (!_pwm_on) {
+		if (_actuator_test_sub.updated()) {
+			// values are set in ActuatorTest::update, we just need to enable outputs to let them through
+			_pwm_on = true;
+		}
+	}
+
+	/* Don't process commands if outputs on */
+	if (!_pwm_on) {
+		if (_current_cmd.valid()) {
+			PX4_INFO("sending %d commands with delay %dus",_current_cmd.repeats,_current_cmd.repeat_delay_us);
+			flush_uart_rx();
+
+			do {
+				PX4_INFO("CMDs left %d",_current_cmd.repeats);
+				if (_uart_port->uart_write(_current_cmd.buf, _current_cmd.len) == _current_cmd.len) {
+					if (_current_cmd.repeats == 0) {
+						_current_cmd.clear();
+					}
+
+					/* Not reading response right now */
+					// if (_current_cmd.response) {
+					// 	if (read_response(&_current_cmd) == 0) {
+					// 		int i = 0;
+					// 		// _esc_status_pub.publish(_esc_status);
+					// 	}
+					// }
+
+				} else {
+					if (_current_cmd.retries == 0) {
+						_current_cmd.clear();
+						PX4_ERR("Failed to send command, errno: %i", errno);
+
+					} else {
+						_current_cmd.retries--;
+						PX4_ERR("Failed to send command, errno: %i", errno);
+					}
+				}
+
+				px4_usleep(_current_cmd.repeat_delay_us);
+			} while (_current_cmd.repeats-- > 0);
+
+			// PX4_INFO("RX packet count: %d", (int)_rx_packet_count);
+			// PX4_INFO("CRC error count: %d", (int)_rx_crc_error_count);
+
+		} else {
+			Command *new_cmd = _pending_cmd.load();
+
+			if (new_cmd) {
+				_current_cmd = *new_cmd;
+				_pending_cmd.store(nullptr);
+			}
+		}
+	}
+
+	/* check at end of cycle (updateSubscriptions() can potentially change to a different WorkQueue thread) */
+	_mixing_output.updateSubscriptions(true);
 
 	perf_end(_cycle_perf);
 	_first_update_cycle = false;
@@ -261,7 +473,31 @@ int ModalPWM::task_spawn(int argc, char *argv[])
 }
 
 
-bool stop_pwms(uint32_t pwm_mask){
+bool ModalPWM::stop_all_pwms()
+{
+	int16_t _rate_req[MODAL_PWM_OUTPUT_CHANNELS] = {0, 0, 0, 0};
+	int16_t _led_req[MODAL_PWM_OUTPUT_CHANNELS] = {0, 0, 0, 0};
+	uint8_t _fb_idx = 0;
+
+	Command cmd;
+	cmd.len = qc_esc_create_rpm_packet4_fb(_rate_req[0],
+					       _rate_req[1],
+					       _rate_req[2],
+					       _rate_req[3],
+					       _led_req[0],
+					       _led_req[1],
+					       _led_req[2],
+					       _led_req[3],
+					       _fb_idx,
+					       cmd.buf,
+					       sizeof(cmd.buf));
+
+
+	if (_uart_port->uart_write(cmd.buf, cmd.len) != cmd.len) {
+		PX4_ERR("Failed to send packet");
+		return false;
+	}
+
 	return true;
 }
 
@@ -277,7 +513,6 @@ int ModalPWM::send_cmd_thread_safe(Command *cmd)
 
 	return 0;
 }
-
 
 int ModalPWM::custom_command(int argc, char *argv[])
 {
@@ -297,12 +532,21 @@ int ModalPWM::custom_command(int argc, char *argv[])
 	}
 
 	const char *verb = argv[argc - 1];
+	PX4_INFO("Executing the following command: %s", verb);
 
 	/* start the FMU if not running */
 	if (!strcmp(verb, "start")) {
 		if (!is_running()) {
 			return ModalPWM::task_spawn(argc, argv);
 		}
+	}
+
+	if (!strcmp(verb, "status")) {
+		if (!is_running()){
+			PX4_INFO("Not running");
+			return -1;
+		}
+		return get_instance()->print_status();
 	}
 
 	if (!is_running()) {
@@ -324,7 +568,6 @@ int ModalPWM::custom_command(int argc, char *argv[])
 				print_usage("bad repeat_count");
 				return 0;
 			}
-
 			break;
 
 		case 't':
@@ -333,8 +576,7 @@ int ModalPWM::custom_command(int argc, char *argv[])
 			if (repeat_delay_us < 1) {
 				print_usage("bad repeat delay");
 				return 0;
-			}
-
+			} 
 			break;
 
 		case 'r':
@@ -348,6 +590,10 @@ int ModalPWM::custom_command(int argc, char *argv[])
 	}
 
 	if (!strcmp(verb, "pwm")) {
+		PX4_INFO("Output channel: %i", output_channel);
+		PX4_INFO("Repeat count: %i", repeat_count);
+		PX4_INFO("Repeat delay (us): %i", repeat_delay_us);
+		PX4_INFO("Rate: %i", rate);
 		if (output_channel < MODAL_PWM_OUTPUT_CHANNELS) {
 			PX4_INFO("Request PWM for Output Channel: %i - PWM: %i", output_channel, rate);
 			int16_t rate_req[MODAL_PWM_OUTPUT_CHANNELS] = {0, 0, 0, 0};
@@ -363,6 +609,16 @@ int ModalPWM::custom_command(int argc, char *argv[])
 				rate_req[output_channel] = rate;
 				id_fb = output_channel;
 			}
+			// cmd.len = qc_esc_create_pwm_packet4(rate_req[0],
+			// 									rate_req[1],
+			// 									rate_req[2],
+			// 									rate_req[3],
+			// 									0,
+			// 									0,
+			// 									0,
+			// 									0,
+			// 									cmd.buf,
+			// 									sizeof(cmd.buf));
 
 			cmd.len = qc_esc_create_pwm_packet4_fb(rate_req[0],
 							       rate_req[1],
@@ -376,30 +632,62 @@ int ModalPWM::custom_command(int argc, char *argv[])
 							       cmd.buf,
 							       sizeof(cmd.buf));
 
-			cmd.response        = true;
+			cmd.response        = false;
 			cmd.repeats         = repeat_count;
 			cmd.resp_delay_us   = 0;
 			cmd.repeat_delay_us = repeat_delay_us;
-			cmd.print_feedback  = true;
+			cmd.print_feedback  = false;
 
 			PX4_INFO("feedback id debug: %i", id_fb);
 			PX4_INFO("Sending UART M0065 power command %i", rate);
 
-			return get_instance()->send_cmd_thread_safe(&cmd);
+			if (get_instance()->_uart_port->uart_write(cmd.buf, cmd.len) != cmd.len) {
+				PX4_ERR("Failed to send packet");
+				return -1;
+			} else {
+				PX4_INFO("Successfully sent packet");
+				return 0;
+			}
+			// return get_instance()->send_cmd_thread_safe(&cmd);
 		} else {
 			print_usage("Invalid Output Channel, use 0-3");
 			return 0;
 		}
 	}
 
-	return print_usage("unknown command");
+	return print_usage("unknown custom command");
 }
 
 int ModalPWM::print_status()
 {
-	// perf_print_counter(_cycle_perf);
-	// perf_print_counter(_interval_perf);
-	// _mixing_output.printStatus();
+	PX4_INFO("Max update rate: %i Hz", _current_update_rate);
+	PX4_INFO("Outputs on: %s", _pwm_on ? "yes" : "no");
+	PX4_INFO("UART port: %s", _device);
+	PX4_INFO("UART open: %s", _uart_port->is_open() ? "yes" : "no");
+
+	PX4_INFO("");
+
+	PX4_INFO("Params: MODAL_PWM_CONFIG: %" PRId32, _parameters.config);
+	PX4_INFO("Params: MODAL_PWM_BAUD: %" PRId32, _parameters.baud_rate);
+
+	PX4_INFO("Params: MODAL_PWM_FUNC1: %" PRId32, _parameters.function_map[0]);
+	PX4_INFO("Params: MODAL_PWM_FUNC2: %" PRId32, _parameters.function_map[1]);
+	PX4_INFO("Params: MODAL_PWM_FUNC3: %" PRId32, _parameters.function_map[2]);
+	PX4_INFO("Params: MODAL_PWM_FUNC4: %" PRId32, _parameters.function_map[3]);
+
+	PX4_INFO("Params: MODAL_PWM_MIN: %" PRId32, _parameters.pwm_min);
+	PX4_INFO("Params: MODAL_PWM_MAX: %" PRId32, _parameters.pwm_max);
+
+	PX4_INFO("PWM CH1: %" PRId16, _pwm_values[0]);
+	PX4_INFO("PWM CH2: %" PRId16, _pwm_values[1]);
+	PX4_INFO("PWM CH3: %" PRId16, _pwm_values[2]);
+	PX4_INFO("PWM CH4: %" PRId16, _pwm_values[3]);
+
+	PX4_INFO("");
+
+	perf_print_counter(_cycle_perf);
+	perf_print_counter(_interval_perf);
+	_mixing_output.printStatus();
 
 	// if (_pwm_initialized) {
 	// 	for (int timer = 0; timer < MAX_IO_TIMERS; ++timer) {

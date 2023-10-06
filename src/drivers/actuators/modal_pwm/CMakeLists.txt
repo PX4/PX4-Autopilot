@@ -37,9 +37,9 @@ px4_add_module(
 	SRCS
 		modal_pwm.cpp
 		modal_pwm.hpp
-
 	DEPENDS
-		# arch_io_pins
 		px4_work_queue
 		mixer_module
+	MODULE_CONFIG
+		module.yaml
 	)

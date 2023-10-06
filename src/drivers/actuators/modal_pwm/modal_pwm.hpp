@@ -50,6 +50,8 @@
 #include <px4_platform_common/module.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/actuator_test.h>
+#include <uORB/topics/modal_io_data.h>
 
 #include "modal_io_serial.hpp"
 
@@ -76,11 +78,10 @@ public:
 	/** @see ModuleBase::print_status() */
 	int print_status() override;
 
+	/** @see OutputModuleInterface */
 	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
 			   
-	bool stop_pwms(uint32_t pwm_mask);
-
 	struct Command {
 		uint16_t	id                 = 0;
 		uint8_t 	len                = 0;
@@ -102,9 +103,11 @@ public:
 
 private:
 	void Run() override;
+	bool stop_all_pwms();
 	
 	/* Parameters */
 	static constexpr uint32_t MODAL_PWM_UART_CONFIG = 1;
+	// const char * MODAL_PWM_DEFAULT_PORT = "7";
 	static constexpr uint32_t MODAL_PWM_DEFAULT_BAUD = 921600;
 	static constexpr uint16_t MODAL_PWM_OUTPUT_CHANNELS = 4;
 	static constexpr uint16_t MODAL_PWM_OUTPUT_DISABLED = 0;
@@ -122,6 +125,8 @@ private:
 
 	static constexpr uint32_t MODAL_PWM_MODE = 0;
 
+	const char *_device = MODAL_PWM_DEFAULT_PORT;
+
 	typedef struct {
 		int32_t		config{MODAL_PWM_UART_CONFIG};
 		int32_t		mode{MODAL_PWM_MODE};
@@ -138,22 +143,26 @@ private:
 
 	/* QUP7, VOXL2 J19, /dev/slpi-uart-7*/
 	ModalIoSerial 		*_uart_port;
-	const char *_device;
-
-	// MixingOutput _mixing_output{"Modal PWM", DIRECT_PWM_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, true};
+	
 	MixingOutput 		_mixing_output;
+	unsigned		_current_update_rate{0};
 
 	// int _timer_rates[MAX_IO_TIMERS] {};
 
-	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	// uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	uORB::Subscription 	_parameter_update_sub{ORB_ID(parameter_update)};
+	uORB::Subscription 	_actuator_test_sub{ORB_ID(actuator_test)};
+	uORB::Subscription	_modal_io_data_sub{ORB_ID(modal_io_data)};
+	// uORB::Subscription	_manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 
 	// unsigned	_num_outputs{DIRECT_PWM_OUTPUT_CHANNELS};
 
 	bool		_pwm_on{false};
 	uint32_t	_pwm_mask{0};
-	// bool		_pwm_initialized{false};
 	int32_t		_pwm_fullscale{0};
+	int16_t 	_pwm_values[MODAL_PWM_OUTPUT_CHANNELS] = {0, 0, 0, 0};
 	bool		_first_update_cycle{true};
+	// manual_control_setpoint_s _manual_control_setpoint{};
 
 	typedef struct {
 		uint8_t		number;
@@ -169,7 +178,12 @@ private:
 	Command 		_current_cmd;
 	px4::atomic<Command *>	_pending_cmd{nullptr};
 
+	static const uint8_t 	READ_BUF_SIZE = 128;
+	uint8_t			_read_buf[READ_BUF_SIZE];
+
 	int	load_params(modal_pwm_params_t *params, ch_assign_t *map);
 	void update_params();
 	bool update_pwm_out_state(bool on);
+	int	flush_uart_rx();
+	int read_response(Command *out_cmd);
 };
