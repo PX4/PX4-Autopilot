@@ -73,7 +73,7 @@ parameters:
             max: 0.2
             decimal: 4
             increment: 0.0005
-            reboot_required: true
+            reboot_required: false
             num_instances: *max_num_config_instances
             instance_start: 1
             default: [0.005, 0.005]
@@ -119,7 +119,7 @@ parameters:
             max: 100000
             decimal: 0
             increment: 50
-            reboot_required: true
+            reboot_required: false
             num_instances: *max_num_config_instances
             instance_start: 1
             default: [-1.0, -1.0]
