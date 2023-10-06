@@ -118,5 +118,4 @@ if (${PX4_PLATFORM} STREQUAL "nuttx" AND NOT CONFIG_BUILD_FLAT)
 	add_dependencies(usr_events prebuild_targets)
 endif()
 
-add_library(events events.cpp ${EXTRA_SRCS})
-add_dependencies(events prebuild_targets)
+px4_add_library(events events.cpp ${EXTRA_SRCS})
