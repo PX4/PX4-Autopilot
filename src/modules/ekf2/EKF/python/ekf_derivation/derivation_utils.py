@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-    Copyright (c) 2022 PX4 Development Team
+    Copyright (c) 2022-2023 PX4 Development Team
     Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions
     are met:
@@ -88,8 +88,63 @@ def generate_python_function(function_name, output_names):
             output_dir="generated",
             skip_directory_nesting=True)
 
-def generate_px4_state(states):
-    print("Generate EKF state definition")
+def build_state_struct(state, T="float"):
+    out = "struct StateSample {\n"
+
+    def TypeFromLength(len):
+        if len == 1:
+            return f"{T}"
+        elif len == 2:
+            return f"matrix::Vector2<{T}>"
+        elif len == 3:
+            return f"matrix::Vector3<{T}>"
+        elif len == 4:
+            return f"matrix::Quaternion<{T}>"
+        else:
+            raise NotImplementedError
+
+    for key, val in state.items():
+        out += f"\t{TypeFromLength(len(val))} {key}{{}};\n"
+
+    state_size = state.storage_dim()
+    out += f"\n\tmatrix::Vector<{T}, {state_size}> Data() const {{\n" \
+           + f"\t\tmatrix::Vector<{T}, {state_size}> state;\n"
+
+    index = state.index()
+    for key in index:
+        out += f"\t\tstate.slice<{index[key].storage_dim}, 1>({index[key].offset}, 0) = {key};\n"
+
+    out += "\t\treturn state;\n"
+    out += "\t};\n" # Data
+
+    # const ref vector access
+    first_field = next(iter(state))
+
+    out += f"\n\tconst matrix::Vector<{T}, {state_size}>& vector() const {{\n" \
+        + f"\t\treturn *reinterpret_cast<matrix::Vector<{T}, {state_size}>*>(const_cast<float*>(reinterpret_cast<const {T}*>(&{first_field})));\n" \
+        + f"\t}};\n\n"
+
+    out += "};\n" # StateSample
+
+    out += f"static_assert(sizeof(matrix::Vector<{T}, {state_size}>) == sizeof(StateSample), \"state vector doesn't match StateSample size\");\n"
+
+    return out
+
+def build_tangent_state_struct(state, tangent_state_index):
+    out = "struct IdxDof { unsigned idx; unsigned dof; };\n"
+
+    out += "namespace State {\n"
+
+    start_index = 0
+    for key in tangent_state_index.keys():
+        out += f"\tstatic constexpr IdxDof {key}{{{tangent_state_index[key].idx}, {tangent_state_index[key].dof}}};\n"
+
+    out += f"\tstatic constexpr uint8_t size{{{state.tangent_dim()}}};\n"
+    out += "};\n" # namespace State
+    return out
+
+def generate_px4_state(state, tangent_state_index):
+    print("Generate EKF tangent state definition")
     filename = "state.h"
     f = open(f"./generated/{filename}", "w")
     header = ["// --------------------------------------------------\n",
@@ -97,21 +152,14 @@ def generate_px4_state(states):
               "// --------------------------------------------------\n",
               "\n#ifndef EKF_STATE_H",
               "\n#define EKF_STATE_H\n\n",
+              "#include <matrix/math.hpp>\n\n",
               "namespace estimator\n{\n"]
     f.writelines(header)
 
-    f.write("struct IdxDof { unsigned idx; unsigned dof; };\n");
+    f.write(build_state_struct(state))
+    f.write("\n")
+    f.write(build_tangent_state_struct(state, tangent_state_index))
 
-    f.write("namespace State {\n");
-
-    start_index = 0
-    for (state_name, state_type) in states.items():
-        tangent_dim = state_type.tangent_dim()
-        f.write(f"\tstatic constexpr IdxDof {state_name}{{{start_index}, {tangent_dim}}};\n")
-        start_index += tangent_dim
-
-    f.write(f"\tstatic constexpr uint8_t size{{{start_index}}};\n")
-    f.write("};\n") # namespace State
     f.write("}\n") # namespace estimator
     f.write("#endif // !EKF_STATE_H\n")
     f.close()

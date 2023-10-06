@@ -304,7 +304,7 @@ public:
 	void getGravityInnovRatio(float &grav_innov_ratio) const { grav_innov_ratio = Vector3f(_aid_src_gravity.test_ratio).max(); }
 
 	// get the state vector at the delayed time horizon
-	matrix::Vector<float, State::size> getStateAtFusionHorizonAsVector() const;
+	const matrix::Vector<float, State::size> &getStateAtFusionHorizonAsVector() const { return _state.vector(); }
 
 	// get the wind velocity in m/s
 	const Vector2f &getWindVelocity() const { return _state.wind_vel; };
@@ -585,7 +585,7 @@ private:
 
 	Vector3f _ang_rate_delayed_raw{};	///< uncorrected angular rate vector at fusion time horizon (rad/sec)
 
-	stateSample _state{};		///< state struct of the ekf running at the delayed time horizon
+	StateSample _state{};		///< state struct of the ekf running at the delayed time horizon
 
 	bool _filter_initialised{false};	///< true when the EKF sttes and covariances been initialised
 
