@@ -77,11 +77,9 @@ void Ekf::updateOptFlow(estimator_aid_source2d_s &aid_src)
 	aid_src.observation_variance[0] = R_LOS;
 	aid_src.observation_variance[1] = R_LOS;
 
-	const VectorState state_vector = getStateAtFusionHorizonAsVector();
-
 	Vector2f innov_var;
 	VectorState H;
-	sym::ComputeFlowXyInnovVarAndHx(state_vector, P, range, R_LOS, FLT_EPSILON, &innov_var, &H);
+	sym::ComputeFlowXyInnovVarAndHx(_state.vector(), P, range, R_LOS, FLT_EPSILON, &innov_var, &H);
 	innov_var.copyTo(aid_src.innovation_variance);
 
 	// run the innovation consistency check and record result
@@ -96,7 +94,7 @@ void Ekf::fuseOptFlow()
 	// a positive offset in earth frame leads to a smaller height above the ground.
 	float range = predictFlowRange();
 
-	const VectorState state_vector = getStateAtFusionHorizonAsVector();
+	const VectorState state_vector = _state.vector();
 
 	Vector2f innov_var;
 	VectorState H;

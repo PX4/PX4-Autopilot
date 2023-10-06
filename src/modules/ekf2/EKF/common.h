@@ -269,17 +269,6 @@ struct systemFlagUpdate {
 	bool gnd_effect{false};
 };
 
-struct stateSample {
-	Quatf    quat_nominal{};        ///< quaternion defining the rotation from body to earth frame
-	Vector3f vel{};                 ///< NED velocity in earth frame in m/s
-	Vector3f pos{};                 ///< NED position in earth frame in m
-	Vector3f gyro_bias{};           ///< gyro bias estimate in rad/s
-	Vector3f accel_bias{};          ///< accel bias estimate in m/s^2
-	Vector3f mag_I{};               ///< NED earth magnetic field in gauss
-	Vector3f mag_B{};               ///< magnetometer bias estimate in body frame in gauss
-	Vector2f wind_vel{};            ///< horizontal wind velocity in earth frame in m/s
-};
-
 struct parameters {
 
 	int32_t filter_update_interval_us{10000}; ///< filter update interval in microseconds

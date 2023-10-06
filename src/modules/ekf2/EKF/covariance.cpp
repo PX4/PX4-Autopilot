@@ -230,7 +230,7 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 	SquareMatrixState nextP;
 
 	// calculate variances and upper diagonal covariances for quaternion, velocity, position and gyro bias states
-	sym::PredictCovariance(getStateAtFusionHorizonAsVector(), P,
+	sym::PredictCovariance(_state.vector(), P,
 		imu_delayed.delta_vel, imu_delayed.delta_vel_dt, d_vel_var,
 		imu_delayed.delta_ang, imu_delayed.delta_ang_dt, d_ang_var,
 		&nextP);
@@ -542,7 +542,7 @@ void Ekf::resetQuatCov(const float yaw_noise)
 void Ekf::resetQuatCov(const Vector3f &rot_var_ned)
 {
 	matrix::SquareMatrix<float, State::quat_nominal.dof> q_cov;
-	sym::RotVarNedToLowerTriangularQuatCov(getStateAtFusionHorizonAsVector(), rot_var_ned, &q_cov);
+	sym::RotVarNedToLowerTriangularQuatCov(_state.vector(), rot_var_ned, &q_cov);
 	q_cov.copyLowerToUpperTriangle();
 	resetStateCovariance<State::quat_nominal>(q_cov);
 }
