@@ -623,6 +623,11 @@ void Ekf::resetGyroBias()
 	// Zero the gyro bias states
 	_state.gyro_bias.zero();
 
+	resetGyroBiasCov();
+}
+
+void Ekf::resetGyroBiasCov()
+{
 	// Zero the corresponding covariances and set
 	// variances to the values use for initial alignment
 	P.uncorrelateCovarianceSetVariance<State::gyro_bias.dof>(State::gyro_bias.idx, sq(_params.switch_on_gyro_bias));
@@ -636,6 +641,11 @@ void Ekf::resetAccelBias()
 	// Zero the accel bias states
 	_state.accel_bias.zero();
 
+	resetAccelBiasCov();
+}
+
+void Ekf::resetAccelBiasCov()
+{
 	// Zero the corresponding covariances and set
 	// variances to the values use for initial alignment
 	P.uncorrelateCovarianceSetVariance<State::accel_bias.dof>(State::accel_bias.idx, sq(_params.switch_on_accel_bias));
@@ -1088,7 +1098,12 @@ void Ekf::resetWindToZero()
 	// If we don't have an airspeed measurement, then assume the wind is zero
 	_state.wind_vel.setZero();
 
+	resetWindCov();
+}
+
+void Ekf::resetWindCov()
+{
 	// start with a small initial uncertainty to improve the initial estimate
-	P.uncorrelateCovarianceSetVariance<State::wind_vel.dof>(State::wind_vel.idx, _params.initial_wind_uncertainty);
+	P.uncorrelateCovarianceSetVariance<State::wind_vel.dof>(State::wind_vel.idx, sq(_params.initial_wind_uncertainty));
 }
 #endif // CONFIG_EKF2_WIND

@@ -358,8 +358,12 @@ public:
 
 	// Reset all IMU bias states and covariances to initial alignment values.
 	void resetImuBias();
+
 	void resetGyroBias();
+	void resetGyroBiasCov();
+
 	void resetAccelBias();
+	void resetAccelBiasCov();
 
 	// return true if the global position estimate is valid
 	// return true if the origin is set we are not doing unconstrained free inertial navigation
@@ -1163,6 +1167,7 @@ private:
 	void stopAuxVelFusion();
 #endif // CONFIG_EKF2_AUXVEL
 
+	void checkVerticalAccelerationBias(const imuSample &imu_delayed);
 	void checkVerticalAccelerationHealth(const imuSample &imu_delayed);
 	Likelihood estimateInertialNavFallingLikelihood() const;
 
@@ -1190,6 +1195,7 @@ private:
 #if defined(CONFIG_EKF2_WIND)
 	// perform a reset of the wind states and related covariances
 	void resetWind();
+	void resetWindCov();
 	void resetWindToZero();
 #endif // CONFIG_EKF2_WIND
 
