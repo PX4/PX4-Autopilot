@@ -822,6 +822,8 @@ private:
 	bool fuseYaw(estimator_aid_source1d_s &aid_src_status, const VectorState &H_YAW);
 	void computeYawInnovVarAndH(float variance, float &innovation_variance, VectorState &H_YAW) const;
 
+	void updateIMUBiasInhibit(const imuSample &imu_delayed);
+
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	// ekf sequential fusion of magnetometer measurements
 	bool fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bool update_all_states = true);
