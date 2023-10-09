@@ -58,4 +58,3 @@ param set-default PWM_MAIN_DIS1 1500
 param set-default PWM_MAIN_DIS2 1500
 param set-default PWM_MAIN_TIM0 50
 param set-default PWM_MAIN_TIM1 50
-
