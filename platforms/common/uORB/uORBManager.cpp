@@ -498,6 +498,10 @@ uORB::Manager::callback_thread(int argc, char *argv[])
 			break;
 		}
 
+		if (!sub->registered()) {
+			continue;
+		}
+
 		sub->call();
 	}
 
