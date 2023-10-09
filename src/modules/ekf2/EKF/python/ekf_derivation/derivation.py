@@ -175,6 +175,35 @@ def compute_airspeed_h_and_k(
 
     return (H.T, K)
 
+def compute_wind_init_and_cov_from_airspeed(
+        v_local: sf.V3,
+        heading: sf.Scalar,
+        airspeed: sf.Scalar,
+        v_var: sf.V3,
+        heading_var: sf.Scalar,
+        sideslip_var: sf.Scalar,
+        airspeed_var: sf.Scalar,
+) -> (sf.V2, sf.M22):
+
+    # Initialise wind states assuming horizontal flight
+    sideslip = sf.Symbol("beta")
+    wind = sf.V2(v_local[0] - airspeed * sf.cos(heading + sideslip), v_local[1] - airspeed * sf.sin(heading + sideslip))
+    J = wind.jacobian([v_local[0], v_local[1], heading, sideslip, airspeed])
+
+    R = sf.M55()
+    R[0,0] = v_var[0]
+    R[1,1] = v_var[1]
+    R[2,2] = heading_var
+    R[3,3] = sideslip_var
+    R[4,4] = airspeed_var
+
+    P = J * R * J.T
+
+    # Assume zero sideslip
+    P = P.subs({sideslip: 0.0})
+    wind = wind.subs({sideslip: 0.0})
+    return (wind, P)
+
 def predict_sideslip(
         state: State,
         epsilon: sf.Scalar
@@ -568,6 +597,7 @@ print("Derive EKF2 equations...")
 generate_px4_function(predict_covariance, output_names=["P_new"])
 generate_px4_function(compute_airspeed_innov_and_innov_var, output_names=["innov", "innov_var"])
 generate_px4_function(compute_airspeed_h_and_k, output_names=["H", "K"])
+generate_px4_function(compute_wind_init_and_cov_from_airspeed, output_names=["wind", "P_wind"])
 generate_px4_function(compute_sideslip_innov_and_innov_var, output_names=["innov", "innov_var"])
 generate_px4_function(compute_sideslip_h_and_k, output_names=["H", "K"])
 generate_px4_function(compute_mag_innov_innov_var_and_hx, output_names=["innov", "innov_var", "Hx"])

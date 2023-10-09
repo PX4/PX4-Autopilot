@@ -46,6 +46,7 @@
 
 #include "python/ekf_derivation/generated/compute_airspeed_h_and_k.h"
 #include "python/ekf_derivation/generated/compute_airspeed_innov_and_innov_var.h"
+#include "python/ekf_derivation/generated/compute_wind_init_and_cov_from_airspeed.h"
 
 #include <mathlib/mathlib.h>
 
@@ -225,46 +226,17 @@ void Ekf::stopAirspeedFusion()
 
 void Ekf::resetWindUsingAirspeed(const airspeedSample &airspeed_sample)
 {
-	const float euler_yaw = getEulerYaw(_R_to_earth);
+	constexpr float sideslip_var = sq(math::radians(15.0f));
 
-	// estimate wind using zero sideslip assumption and airspeed measurement if airspeed available
-	_state.wind_vel(0) = _state.vel(0) - airspeed_sample.true_airspeed * cosf(euler_yaw);
-	_state.wind_vel(1) = _state.vel(1) - airspeed_sample.true_airspeed * sinf(euler_yaw);
+	const float euler_yaw = getEulerYaw(_R_to_earth);
+	const float airspeed_var = sq(math::constrain(_params.eas_noise, 0.5f, 5.0f) * math::constrain(airspeed_sample.eas2tas, 0.9f, 10.0f));
+
+	matrix::SquareMatrix<float, State::wind_vel.dof> P_wind;
+	sym::ComputeWindInitAndCovFromAirspeed(_state.vel, euler_yaw, airspeed_sample.true_airspeed, getVelocityVariance(), getYawVar(), sideslip_var, airspeed_var, &_state.wind_vel, &P_wind);
+
+	resetStateCovariance<State::wind_vel>(P_wind);
 
 	ECL_INFO("reset wind using airspeed to (%.3f, %.3f)", (double)_state.wind_vel(0), (double)_state.wind_vel(1));
 
-	resetWindCovarianceUsingAirspeed(airspeed_sample);
-
 	_aid_src_airspeed.time_last_fuse = _time_delayed_us;
-}
-
-void Ekf::resetWindCovarianceUsingAirspeed(const airspeedSample &airspeed_sample)
-{
-	// Derived using EKF/matlab/scripts/Inertial Nav EKF/wind_cov.py
-	// TODO: explicitly include the sideslip angle in the derivation
-	const float euler_yaw = getEulerYaw(_R_to_earth);
-	const float R_TAS = sq(math::constrain(_params.eas_noise, 0.5f, 5.0f) * math::constrain(airspeed_sample.eas2tas, 0.9f, 10.0f));
-	constexpr float initial_sideslip_uncertainty = math::radians(15.0f);
-	const float initial_wind_var_body_y = sq(airspeed_sample.true_airspeed * sinf(initial_sideslip_uncertainty));
-	constexpr float R_yaw = sq(math::radians(10.0f));
-
-	const float cos_yaw = cosf(euler_yaw);
-	const float sin_yaw = sinf(euler_yaw);
-
-	// rotate wind velocity into earth frame aligned with vehicle yaw
-	const float Wx = _state.wind_vel(0) * cos_yaw + _state.wind_vel(1) * sin_yaw;
-	const float Wy = -_state.wind_vel(0) * sin_yaw + _state.wind_vel(1) * cos_yaw;
-
-	// it is safer to remove all existing correlations to other states at this time
-	P.uncorrelateCovarianceSetVariance<State::wind_vel.dof>(State::wind_vel.idx, 0.0f);
-
-	P(22, 22) = R_TAS * sq(cos_yaw) + R_yaw * sq(-Wx * sin_yaw - Wy * cos_yaw) + initial_wind_var_body_y * sq(sin_yaw);
-	P(22, 23) = R_TAS * sin_yaw * cos_yaw + R_yaw * (-Wx * sin_yaw - Wy * cos_yaw) * (Wx * cos_yaw - Wy * sin_yaw) -
-		    initial_wind_var_body_y * sin_yaw * cos_yaw;
-	P(23, 22) = P(22, 23);
-	P(23, 23) = R_TAS * sq(sin_yaw) + R_yaw * sq(Wx * cos_yaw - Wy * sin_yaw) + initial_wind_var_body_y * sq(cos_yaw);
-
-	// Now add the variance due to uncertainty in vehicle velocity that was used to calculate the initial wind speed
-	P(22, 22) += P(4, 4);
-	P(23, 23) += P(5, 5);
 }
