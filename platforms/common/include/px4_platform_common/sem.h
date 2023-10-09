@@ -89,12 +89,16 @@ typedef sem_t px4_sem_t;
 
 __BEGIN_DECLS
 
+// TODO: REMOVE ME
+#ifndef CONFIG_BUILD_KERNEL
 #define px4_sem_init(s, p, v) ({ \
 		int __ret; \
 		do { __ret = sem_init(s, p, v); sem_setprotocol(s, SEM_PRIO_INHERIT); } while(0); \
 		__ret; \
 	})
-
+#else
+#define px4_sem_init 		sem_init
+#endif
 #define px4_sem_setprotocol	sem_setprotocol
 #define px4_sem_wait		sem_wait
 #define px4_sem_trywait		sem_trywait
