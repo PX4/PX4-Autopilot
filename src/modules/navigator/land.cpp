@@ -62,8 +62,6 @@ Land::on_activation()
 	mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 	pos_sp_triplet->next.valid = false;
 
-	_navigator->set_can_loiter_at_sp(false);
-
 	_navigator->set_position_setpoint_triplet_updated();
 
 	// reset cruising speed to default

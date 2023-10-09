@@ -112,15 +112,16 @@ void VehicleOpticalFlow::Run()
 	if (_sensor_flow_sub.update(&sensor_optical_flow)) {
 
 		// clear data accumulation if there's a gap in data
-		if (((sensor_optical_flow.timestamp_sample - _flow_timestamp_sample_last)
-		     > sensor_optical_flow.integration_timespan_us * 1.5f)
-		    || (_accumulated_count > 0 && _quality_sum == 0)) {
+		const uint64_t integration_gap_threshold_us = sensor_optical_flow.integration_timespan_us * 2;
+
+		if ((sensor_optical_flow.timestamp_sample >= _flow_timestamp_sample_last + integration_gap_threshold_us)
+		    || (_accumulated_count > 0 && (sensor_optical_flow.quality > 0) && _quality_sum == 0)) {
+
 			ClearAccumulatedData();
 		}
 
 
-		const hrt_abstime timestamp_oldest = sensor_optical_flow.timestamp_sample - lroundf(
-				sensor_optical_flow.integration_timespan_us);
+		const hrt_abstime timestamp_oldest = sensor_optical_flow.timestamp_sample - sensor_optical_flow.integration_timespan_us;
 		const hrt_abstime timestamp_newest = sensor_optical_flow.timestamp;
 
 		// delta angle
@@ -203,12 +204,7 @@ void VehicleOpticalFlow::Run()
 			const float interval_us = 1e6f / _param_sens_flow_rate.get();
 
 			// don't allow publishing faster than SENS_FLOW_RATE
-			if (sensor_optical_flow.timestamp_sample < _last_publication_timestamp + interval_us) {
-				publish = false;
-			}
-
-			// integrate for full interval unless we haven't published recently
-			if ((hrt_elapsed_time(&_last_publication_timestamp) < 1_ms) && (_integration_timespan_us < interval_us)) {
+			if (_integration_timespan_us < interval_us) {
 				publish = false;
 			}
 		}
@@ -271,8 +267,6 @@ void VehicleOpticalFlow::Run()
 
 			vehicle_optical_flow.timestamp = hrt_absolute_time();
 			_vehicle_optical_flow_pub.publish(vehicle_optical_flow);
-			_last_publication_timestamp = vehicle_optical_flow.timestamp_sample;
-
 
 			// vehicle_optical_flow_vel if distance is available (for logging)
 			if (_distance_sum_count > 0 && PX4_ISFINITE(_distance_sum)) {

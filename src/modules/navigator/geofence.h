@@ -42,6 +42,7 @@
 
 #include <float.h>
 
+#include <dataman_client/DatamanClient.hpp>
 #include <lib/mathlib/mathlib.h>
 #include <px4_platform_common/module_params.h>
 #include <drivers/drv_hrt.h>
@@ -78,8 +79,12 @@ public:
 	};
 
 	/**
+	 * @brief function to call regularly to do background work
+	 */
+	void run();
+
+	/**
 	 * update the geofence from dataman.
-	 * It's generally not necessary to call this as it will automatically update when the data is changed.
 	 */
 	void updateFence();
 
@@ -136,7 +141,7 @@ public:
 	 */
 	int loadFromFile(const char *filename);
 
-	bool isEmpty() { return _num_polygons == 0; }
+	bool isEmpty() { return (!_fence_updated || (_num_polygons == 0)); }
 
 	int getSource() { return _param_gf_source.get(); }
 	int getGeofenceAction() { return _param_gf_action.get(); }
@@ -154,6 +159,14 @@ public:
 
 private:
 
+	enum class DatamanState {
+		UpdateRequestWait,
+		Read,
+		ReadWait,
+		Load,
+		Error
+	};
+
 	struct PolygonInfo {
 		uint16_t fence_type; ///< one of MAV_CMD_NAV_FENCE_* (can also be a circular region)
 		uint16_t dataman_index;
@@ -165,6 +178,12 @@ private:
 
 	Navigator   *_navigator{nullptr};
 	PolygonInfo *_polygons{nullptr};
+
+	mission_stats_entry_s _stats;
+	DatamanState _dataman_state{DatamanState::UpdateRequestWait};
+	DatamanState _error_state{DatamanState::UpdateRequestWait};
+	DatamanCache _dataman_cache{"geofence_dm_cache_miss", 4};
+	DatamanClient	&_dataman_client = _dataman_cache.client();
 
 	hrt_abstime _last_horizontal_range_warning{0};
 	hrt_abstime _last_vertical_range_warning{0};
@@ -179,10 +198,12 @@ private:
 	uORB::SubscriptionData<vehicle_air_data_s> _sub_airdata;
 
 	int _outside_counter{0};
-	uint16_t _update_counter{0}; ///< dataman update counter: if it does not match, we polygon data was updated
+	uint16_t _update_counter{0}; ///< dataman update counter: if it does not match, polygon data was updated
+	bool _fence_updated{true};  ///< flag indicating if fence are updated to dataman cache
+	bool _initiate_fence_updated{true}; ///< flag indicating if fence updated is needed
 
 	/**
-	 * implementation of updateFence(), but without locking
+	 * implementation of updateFence()
 	 */
 	void _updateFence();
 

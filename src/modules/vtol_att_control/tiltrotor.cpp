@@ -43,12 +43,10 @@
 #include "vtol_att_control_main.h"
 
 using namespace matrix;
-using namespace time_literals;
 
-#define  FRONTTRANS_THR_MIN 0.25f
-#define BACKTRANS_THROTTLE_DOWNRAMP_DUR_S 1.0f
-#define BACKTRANS_THROTTLE_UPRAMP_DUR_S 1.0f;
-#define BACKTRANS_MOTORS_UPTILT_DUR_S 1.0f;
+#define FRONTTRANS_THR_MIN 0.25f
+#define BACKTRANS_THROTTLE_DOWNRAMP_DUR_S 0.5f
+#define BACKTRANS_THROTTLE_UPRAMP_DUR_S 0.5f
 
 Tiltrotor::Tiltrotor(VtolAttitudeControl *attc) :
 	VtolType(attc)
@@ -183,44 +181,8 @@ void Tiltrotor::update_mc_state()
 {
 	VtolType::update_mc_state();
 
-	/*Motor spin up: define the first second after arming as motor spin up time, during which
-	* the tilt is set to the value of VT_TILT_SPINUP. This allows the user to set a spin up
-	* tilt angle in case the propellers don't spin up smoothly in full upright (MC mode) position.
-	*/
-
-	const int spin_up_duration_p1 = 1000_ms; // duration of 1st phase of spinup (at fixed tilt)
-	const int spin_up_duration_p2 = 700_ms; // duration of 2nd phase of spinup (transition from spinup tilt to mc tilt)
-
-	// reset this timestamp while disarmed
-	if (!_v_control_mode->flag_armed) {
-		_last_timestamp_disarmed = hrt_absolute_time();
-		_tilt_motors_for_startup = _param_vt_tilt_spinup.get() > 0.01f; // spinup phase only required if spinup tilt > 0
-
-	} else if (_tilt_motors_for_startup) {
-		// leave motors tilted forward after arming to allow them to spin up easier
-		if (hrt_absolute_time() - _last_timestamp_disarmed > (spin_up_duration_p1 + spin_up_duration_p2)) {
-			_tilt_motors_for_startup = false;
-		}
-	}
-
-	if (_tilt_motors_for_startup) {
-		if (hrt_absolute_time() - _last_timestamp_disarmed < spin_up_duration_p1) {
-			_tilt_control = _param_vt_tilt_spinup.get();
-
-		} else {
-			// duration phase 2: begin to adapt tilt to multicopter tilt
-			float delta_tilt = (_param_vt_tilt_mc.get() - _param_vt_tilt_spinup.get());
-			_tilt_control = _param_vt_tilt_spinup.get() + delta_tilt / spin_up_duration_p2 * (hrt_absolute_time() -
-					(_last_timestamp_disarmed + spin_up_duration_p1));
-		}
-
-		_mc_yaw_weight = 0.0f; //disable yaw control during spinup
-
-	} else {
-		// normal operation
-		_tilt_control = VtolType::pusher_assist() + _param_vt_tilt_mc.get();
-		_mc_yaw_weight = 1.0f;
-	}
+	_tilt_control = VtolType::pusher_assist() + _param_vt_tilt_mc.get();
+	_mc_yaw_weight = 1.0f;
 }
 
 void Tiltrotor::update_fw_state()
@@ -321,7 +283,8 @@ void Tiltrotor::update_transition_state()
 		// tilt rotors back once motors are idle
 		if (_time_since_trans_start > BACKTRANS_THROTTLE_DOWNRAMP_DUR_S) {
 
-			float progress = (_time_since_trans_start - BACKTRANS_THROTTLE_DOWNRAMP_DUR_S) / BACKTRANS_MOTORS_UPTILT_DUR_S;
+			float progress = (_time_since_trans_start - BACKTRANS_THROTTLE_DOWNRAMP_DUR_S) / math::max(_param_vt_bt_tilt_dur.get(),
+					 0.1f);
 			progress = math::constrain(progress, 0.0f, 1.0f);
 			_tilt_control = moveLinear(_param_vt_tilt_fw.get(), _param_vt_tilt_mc.get(), progress);
 		}
@@ -458,7 +421,7 @@ void Tiltrotor::blendThrottleDuringBacktransition(float scale, float target_thro
 
 float Tiltrotor::timeUntilMotorsAreUp()
 {
-	return BACKTRANS_THROTTLE_DOWNRAMP_DUR_S + BACKTRANS_MOTORS_UPTILT_DUR_S;
+	return BACKTRANS_THROTTLE_DOWNRAMP_DUR_S + _param_vt_bt_tilt_dur.get();
 }
 
 float Tiltrotor::moveLinear(float start, float stop, float progress)

@@ -89,6 +89,7 @@ public:
 
 	int print_status() override;
 
+protected:
 	static constexpr uint64_t VALID_DATA_MIN_INTERVAL_US{1_s / 3}; // assume valid RC input is at least 3 Hz
 
 	void Run() override;
@@ -109,7 +110,7 @@ public:
 	/**
 	 * Update our local parameter cache.
 	 */
-	void		parameters_updated();
+	void updateParams() override;
 
 	/**
 	 * Get and limit value for specified RC function. Returns NAN if not mapped.
@@ -117,15 +118,16 @@ public:
 	float		get_rc_value(uint8_t func, float min_value, float max_value) const;
 
 	/**
-	 * Get switch position for specified function.
+	 * Get on/off switch position from the RC channel of the specified function
+	 *
+	 * @param function according to rc_channels_s::FUNCTION_XXX
+	 * @param threshold according to RC_XXX_TH parameters, negative means on and off are flipped
 	 */
-	switch_pos_t	get_rc_sw2pos_position(uint8_t func, float on_th) const;
+	switch_pos_t getRCSwitchOnOffPosition(uint8_t function, float threshold) const;
 
 	/**
 	 * Update parameters from RC channels if the functionality is activated and the
 	 * input has changed since the last update
-	 *
-	 * @param
 	 */
 	void		set_params_from_rc();
 

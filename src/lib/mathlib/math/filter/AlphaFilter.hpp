@@ -116,9 +116,26 @@ public:
 	float getCutoffFreq() const { return _cutoff_freq; }
 
 protected:
-	T updateCalculation(const T &sample) { return (1.f - _alpha) * _filter_state + _alpha * sample; }
+	T updateCalculation(const T &sample);
+
 
 	float _cutoff_freq{0.f};
 	float _alpha{0.f};
 	T _filter_state{};
 };
+
+template <typename T>
+T AlphaFilter<T>::updateCalculation(const T &sample) { return _filter_state + _alpha * (sample - _filter_state); }
+
+/* Specialization for 3D rotations
+ * The filter is computed on the 3-sphere of unit quaternions instead of the cartesian space
+ * Additions and subtractions are done using the quaternion multiplication and
+ * the error is scaled on the tangent space.
+ */
+template <> inline
+matrix::Quatf AlphaFilter<matrix::Quatf>::updateCalculation(const matrix::Quatf &sample)
+{
+	matrix::Quatf q_error(_filter_state.inversed() * sample);
+	q_error.canonicalize(); // prevent unwrapping
+	return _filter_state * matrix::Quatf(matrix::AxisAnglef(_alpha * matrix::AxisAnglef(q_error)));
+}

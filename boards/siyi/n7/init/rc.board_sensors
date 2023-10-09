@@ -1,0 +1,21 @@
+#!/bin/sh
+#
+# board specific sensors init
+#------------------------------------------------------------------------------
+board_adc start
+
+# SPI1
+bmi088 -s -b 1 -A -R 2 start
+bmi088 -s -b 1 -G -R 2 start
+
+# SPI1
+icm20689 -s -b 1 -R 2 start
+
+# I2C1
+ist8310 -X -b 1 -R 10 -a 0xE start
+
+# I2C3
+ist8310 -I -b 3 -R 10 -a 0xE start
+
+# SPI4
+ms5611 -s -b 4 start

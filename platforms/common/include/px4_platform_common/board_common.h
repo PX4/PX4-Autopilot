@@ -440,6 +440,8 @@ __BEGIN_DECLS
 
 #if defined(RC_SERIAL_SINGLEWIRE)
 static inline bool board_rc_singlewire(const char *device) { return strcmp(device, RC_SERIAL_PORT) == 0; }
+#elif defined(RC_SERIAL_SINGLEWIRE_FORCE)
+static inline bool board_rc_singlewire(const char *device) { return true; }
 #else
 static inline bool board_rc_singlewire(const char *device) { return false; }
 #endif

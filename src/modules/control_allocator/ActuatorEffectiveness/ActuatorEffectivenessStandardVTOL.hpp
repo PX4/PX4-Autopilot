@@ -75,20 +75,21 @@ public:
 
 	void allocateAuxilaryControls(const float dt, int matrix_index, ActuatorVector &actuator_sp) override;
 
-	void setFlightPhase(const FlightPhase &flight_phase) override;
+	void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
+			    ActuatorVector &actuator_sp, const matrix::Vector<float, NUM_ACTUATORS> &actuator_min,
+			    const matrix::Vector<float, NUM_ACTUATORS> &actuator_max) override;
 
-	uint32_t getStoppedMotors() const override { return _stopped_motors; }
+	void setFlightPhase(const FlightPhase &flight_phase) override;
 
 private:
 	ActuatorEffectivenessRotors _rotors;
 	ActuatorEffectivenessControlSurfaces _control_surfaces;
 
-	uint32_t _mc_motors_mask{}; ///< mc motors (stopped during forward flight)
-	uint32_t _stopped_motors{}; ///< currently stopped motors
+	uint32_t _upwards_motors_mask{};
+	uint32_t _forwards_motors_mask{};
 
 	int _first_control_surface_idx{0}; ///< applies to matrix 1
 
 	uORB::Subscription _flaps_setpoint_sub{ORB_ID(flaps_setpoint)};
 	uORB::Subscription _spoilers_setpoint_sub{ORB_ID(spoilers_setpoint)};
-
 };

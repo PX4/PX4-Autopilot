@@ -237,11 +237,15 @@ void OutputPredictor::calculateOutputStates(const uint64_t time_us, const Vector
 		// rotate the relative velocity into earth frame
 		_vel_imu_rel_body_ned = _R_to_earth_now * vel_imu_rel_body;
 	}
+
+	// update auxiliary yaw estimate
+	const Vector3f unbiased_delta_angle = delta_angle - delta_angle_bias_scaled;
+	const float spin_del_ang_D = unbiased_delta_angle.dot(Vector3f(_R_to_earth_now.row(2)));
+	_unaided_yaw = matrix::wrap_pi(_unaided_yaw + spin_del_ang_D);
 }
 
 void OutputPredictor::correctOutputStates(const uint64_t time_delayed_us,
-		const matrix::Vector3f &gyro_bias, const matrix::Vector3f &accel_bias,
-		const Quatf &quat_state, const Vector3f &vel_state, const Vector3f &pos_state)
+		const Quatf &quat_state, const Vector3f &vel_state, const Vector3f &pos_state, const matrix::Vector3f &gyro_bias, const matrix::Vector3f &accel_bias)
 {
 	// calculate an average filter update time
 	if (_time_last_correct_states_us != 0) {

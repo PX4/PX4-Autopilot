@@ -85,7 +85,7 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 				      _state.vel(2));
 	const Vector3f rel_wind_body = _state.quat_nominal.rotateVectorInverse(rel_wind_earth);
 	const float rel_wind_speed = rel_wind_body.norm();
-	const Vector24f state_vector_prev = getStateAtFusionHorizonAsVector();
+	const VectorState state_vector_prev = getStateAtFusionHorizonAsVector();
 
 	Vector2f bcoef_inv;
 
@@ -105,12 +105,12 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 		bcoef_inv(1) = bcoef_inv(0);
 	}
 
-	Vector24f Kfusion;
+	VectorState Kfusion;
 
 	// perform sequential fusion of XY specific forces
 	for (uint8_t axis_index = 0; axis_index < 2; axis_index++) {
 		// measured drag acceleration corrected for sensor bias
-		const float mea_acc = drag_sample.accelXY(axis_index)  - _state.delta_vel_bias(axis_index) / _dt_ekf_avg;
+		const float mea_acc = drag_sample.accelXY(axis_index) - _state.accel_bias(axis_index);
 
 		// Drag is modelled as an arbitrary combination of bluff body drag that proportional to
 		// equivalent airspeed squared, and rotor momentum drag that is proportional to true airspeed

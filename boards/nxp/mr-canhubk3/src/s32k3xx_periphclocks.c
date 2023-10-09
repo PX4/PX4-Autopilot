@@ -171,6 +171,22 @@ const struct peripheral_clock_config_s g_peripheral_clockconfig0[] = {
 #endif
 	},
 	{
+		.clkname = LPUART4_CLK,
+#ifdef CONFIG_S32K3XX_LPUART4
+		.clkgate = true,
+#else
+		.clkgate = false,
+#endif
+	},
+	{
+		.clkname = LPUART7_CLK,
+#ifdef CONFIG_S32K3XX_LPUART7
+		.clkgate = true,
+#else
+		.clkgate = false,
+#endif
+	},
+	{
 		.clkname = LPUART9_CLK,
 #ifdef CONFIG_S32K3XX_LPUART9
 		.clkgate = true,
@@ -258,6 +274,10 @@ const struct peripheral_clock_config_s g_peripheral_clockconfig0[] = {
 		.clkname = EMIOS0_CLK,
 		.clkgate = true,
 	},
+	{
+		.clkname = ADC2_CLK,
+		.clkgate = true,
+	}
 };
 
 unsigned int const num_of_peripheral_clocks_0 =

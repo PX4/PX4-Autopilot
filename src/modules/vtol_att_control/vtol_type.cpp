@@ -176,7 +176,7 @@ float VtolType::update_and_get_backtransition_pitch_sp()
 	// get accel error, positive means decelerating too slow, need to pitch up (must reverse dec_max, as it is a positive number)
 	const float accel_error_forward = dec_sp + accel_body_forward;
 
-	const float pitch_sp_new = _param_vt_b_dec_ff.get() * dec_sp + _accel_to_pitch_integ;
+	const float pitch_sp_new = _accel_to_pitch_integ;
 
 	float integrator_input = _param_vt_b_dec_i.get() * accel_error_forward;
 

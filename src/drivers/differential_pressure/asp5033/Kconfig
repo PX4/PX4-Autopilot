@@ -1,0 +1,5 @@
+menuconfig DRIVERS_DIFFERENTIAL_PRESSURE_ASP5033
+	bool "asp5033"
+	default n
+	---help---
+		Enable support for asp5033

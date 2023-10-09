@@ -44,6 +44,8 @@
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
 
 using matrix::Vector3f;
+using matrix::Quatf;
+using matrix::Eulerf;
 
 TEST(AlphaFilterTest, initializeToZero)
 {
@@ -73,7 +75,7 @@ TEST(AlphaFilterTest, runZero)
 
 TEST(AlphaFilterTest, runPositive)
 {
-	// GIVEN an input of 1 in a filter with a default time constant of 9 (alpha = 0.9)
+	// GIVEN an input of 1 in a filter with a default time constant of 9 (alpha = 0.1)
 	AlphaFilter<float> filter_float{};
 	const float input = 1.f;
 	filter_float.setAlpha(.1f);
@@ -89,7 +91,7 @@ TEST(AlphaFilterTest, runPositive)
 
 TEST(AlphaFilterTest, runNegative)
 {
-	// GIVEN an input of 1 in a filter with a default time constant of 9 (alpha = 0.9)
+	// GIVEN an input of 1 in a filter with a default time constant of 9 (alpha = 0.1)
 	AlphaFilter<float> filter_float{};
 	const float input = -1.f;
 	filter_float.setAlpha(.1f);
@@ -105,7 +107,7 @@ TEST(AlphaFilterTest, runNegative)
 
 TEST(AlphaFilterTest, riseTime)
 {
-	// GIVEN an input of 1 in a filter with a default time constant of 9 (alpha = 0.9)
+	// GIVEN an input of 1 in a filter with a default time constant of 9 (alpha = 0.1)
 	AlphaFilter<float> filter_float{};
 	const float input = 1.f;
 	filter_float.setAlpha(.1f);
@@ -121,7 +123,7 @@ TEST(AlphaFilterTest, riseTime)
 
 TEST(AlphaFilterTest, convergence)
 {
-	// GIVEN an input of 1 in a filter with a default time constant of 9 (alpha = 0.9)
+	// GIVEN an input of 1 in a filter with a default time constant of 9 (alpha = 0.1)
 	AlphaFilter<float> filter_float{};
 	const float input = 1.f;
 	filter_float.setAlpha(.1f);
@@ -137,7 +139,7 @@ TEST(AlphaFilterTest, convergence)
 
 TEST(AlphaFilterTest, convergenceVector3f)
 {
-	// GIVEN an Vector3f input in a filter with a default time constant of 9 (alpha = 0.9)
+	// GIVEN an Vector3f input in a filter with a default time constant of 9 (alpha = 0.1)
 	AlphaFilter<Vector3f> filter_v3{};
 	const Vector3f input = {3.f, 7.f, -11.f};
 	filter_v3.setAlpha(.1f);
@@ -279,4 +281,52 @@ TEST(AlphaFilterTest, ConvergenceTest)
 	}
 
 	EXPECT_NEAR(last_value, -100.f, 1e-4f);
+}
+
+TEST(AlphaFilterTest, runPositiveRot3)
+{
+	// GIVEN a filter with a default time constant of 9 (alpha = 0.1)
+	const Quatf q_init(Eulerf(0.f, 0.f, -0.01f));
+	const Quatf input(Eulerf(0.f, 0.f, M_PI_F / 2.f));
+
+	AlphaFilter<Quatf> filter{};
+	filter.setAlpha(.1f);
+	filter.reset(q_init);
+
+	// WHEN we run the filter 9 times
+	for (int i = 0; i < 9; i++) {
+		filter.update(input);
+	}
+
+	// THEN the state of the filter should have reached 63%
+	EXPECT_NEAR(Eulerf(filter.getState()).psi(), 0.63f * (M_PI_F / 2.f - 0.01f), 0.03);
+
+	EXPECT_FLOAT_EQ(Eulerf(filter.getState()).phi(), 0.f);
+	EXPECT_FLOAT_EQ(Eulerf(filter.getState()).theta(), 0.f);
+}
+
+TEST(AlphaFilterTest, runNecgativeRot3)
+{
+	// GIVEN a filter with a default time constant of 9 (alpha = 0.1)
+	const float roll = -M_PI_F;
+	const float pitch = 0.f;
+	const float yaw_init = 0.01f;
+	const float yaw_input = -M_PI_F / 2.f;
+	const Quatf q_init(Eulerf(roll, pitch, yaw_init));
+	const Quatf input(Eulerf(roll, pitch, yaw_input));
+
+	AlphaFilter<Quatf> filter{};
+	filter.setAlpha(.1f);
+	filter.reset(q_init);
+
+	// WHEN we run the filter 9 times
+	for (int i = 0; i < 9; i++) {
+		filter.update(input);
+	}
+
+	// THEN the state of the filter should have reached 63%
+	EXPECT_NEAR(Eulerf(filter.getState()).psi(), 0.63f * (yaw_input + yaw_init), 0.03);
+
+	EXPECT_TRUE(matrix::wrap_pi(Eulerf(filter.getState()).phi() - roll) < FLT_EPSILON);
+	EXPECT_TRUE(matrix::wrap_pi(Eulerf(filter.getState()).theta() - pitch) < FLT_EPSILON);
 }

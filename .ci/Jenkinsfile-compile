@@ -9,7 +9,7 @@ pipeline {
         script {
           def build_nodes = [:]
           def docker_images = [
-            armhf: "px4io/px4-dev-armhf:2022-08-12",
+            armhf: "px4io/px4-dev-armhf:2023-06-26",
             arm64: "px4io/px4-dev-aarch64:2022-08-12",
             base: "px4io/px4-dev-ros2-foxy:2022-08-12",
             nuttx: "px4io/px4-dev-nuttx-focal:2022-08-12",
@@ -40,6 +40,8 @@ pipeline {
                      "ark_can-flow_default",
                      "ark_can-gps_canbootloader",
                      "ark_can-gps_default",
+                     "ark_cannode_canbootloader",
+                     "ark_cannode_default",
                      "ark_can-rtk-gps_canbootloader",
                      "ark_can-rtk-gps_default",
                      "ark_fmu-v6x_bootloader",
@@ -53,8 +55,10 @@ pipeline {
                      "cuav_nora_default",
                      "cuav_x7pro_default",
                      "cubepilot_cubeorange_default",
+                     "cubepilot_cubeorangeplus_default",
                      "cubepilot_cubeyellow_default",
                      "diatone_mamba-f405-mk2_default",
+                     "flywoo_gn-f405_default",
                      "freefly_can-rtk-gps_canbootloader",
                      "freefly_can-rtk-gps_default",
                      "holybro_can-gps-v1_canbootloader",
@@ -72,7 +76,7 @@ pipeline {
                      "matek_h743_default",
                      "modalai_fc-v1_default",
                      "modalai_fc-v2_default",
-                     "modalai_voxl2-io_default",
+                     "mro_ctrl-zero-classic_default",
                      "mro_ctrl-zero-f7_default",
                      "mro_ctrl-zero-f7-oem_default",
                      "mro_ctrl-zero-h7-oem_default",
@@ -85,6 +89,7 @@ pipeline {
                      "nxp_fmuk66-v3_default",
                      "nxp_fmuk66-v3_socketcan",
                      "nxp_fmurt1062-v1_default",
+                     "nxp_mr-canhubk3_default",
                      "nxp_ucans32k146_canbootloader",
                      "nxp_ucans32k146_default",
                      "omnibus_f4sd_default",
@@ -112,7 +117,8 @@ pipeline {
                      "spracing_h7extreme_default",
                      "thepeach_k1_default",
                      "thepeach_r1_default",
-                     "uvify_core_default"
+                     "uvify_core_default",
+                     "siyi_n7_default"
             ],
             image: docker_images.nuttx,
             archive: true
@@ -164,7 +170,7 @@ pipeline {
   }
   options {
     buildDiscarder(logRotator(numToKeepStr: '5', artifactDaysToKeepStr: '14'))
-    timeout(time: 90, unit: 'MINUTES')
+    timeout(time: 120, unit: 'MINUTES')
   }
 }
 

@@ -13,6 +13,7 @@
 # @board px4_fmu-v4pro exclude
 # @board px4_fmu-v5 exclude
 # @board px4_fmu-v5x exclude
+# @board diatone_mamba-f405-mk2 exclude
 #
 . ${R}etc/init.d/rc.mc_defaults
 
@@ -41,7 +42,6 @@ param set-default MC_ROLLRATE_P 0.07
 param set-default MC_YAW_P 3
 
 param set-default MPC_THR_HOVER 0.7
-param set-default MPC_THR_MAX 1
 param set-default MPC_Z_P 1.5
 param set-default MPC_Z_VEL_P_ACC 8
 param set-default MPC_Z_VEL_I_ACC 6

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 Estimation and Control Library (ECL). All rights reserved.
+ *   Copyright (c) 2015-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name ECL nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -151,8 +151,6 @@ void Ekf::updateAirspeed(const airspeedSample &airspeed_sample, estimator_aid_so
 	aid_src.innovation = innov;
 	aid_src.innovation_variance = innov_var;
 
-	aid_src.fusion_enabled = _control_status.flags.fuse_aspd;
-
 	aid_src.timestamp_sample = airspeed_sample.time_us;
 
 	const float innov_gate = fmaxf(_params.tas_innov_gate, 1.f);
@@ -194,15 +192,15 @@ void Ekf::fuseAirspeed(const airspeedSample &airspeed_sample, estimator_aid_sour
 
 	_fault_status.flags.bad_airspeed = false;
 
-	Vector24f H; // Observation jacobian
-	Vector24f K; // Kalman gain vector
+	VectorState H; // Observation jacobian
+	VectorState K; // Kalman gain vector
 
 	sym::ComputeAirspeedHAndK(getStateAtFusionHorizonAsVector(), P, innov_var, FLT_EPSILON, &H, &K);
 
 	if (update_wind_only) {
-		for (unsigned row = 0; row <= 21; row++) {
-			K(row) = 0.f;
-		}
+		const Vector2f K_wind = K.slice<State::wind_vel.dof, 1>(State::wind_vel.idx, 0);
+		K.setZero();
+		K.slice<State::wind_vel.dof, 1>(State::wind_vel.idx, 0) = K_wind;
 	}
 
 	const bool is_fused = measurementUpdate(K, aid_src.innovation_variance, aid_src.innovation);
@@ -258,7 +256,7 @@ void Ekf::resetWindCovarianceUsingAirspeed(const airspeedSample &airspeed_sample
 	const float Wy = -_state.wind_vel(0) * sin_yaw + _state.wind_vel(1) * cos_yaw;
 
 	// it is safer to remove all existing correlations to other states at this time
-	P.uncorrelateCovarianceSetVariance<2>(22, 0.0f);
+	P.uncorrelateCovarianceSetVariance<State::wind_vel.dof>(State::wind_vel.idx, 0.0f);
 
 	P(22, 22) = R_TAS * sq(cos_yaw) + R_yaw * sq(-Wx * sin_yaw - Wy * cos_yaw) + initial_wind_var_body_y * sq(sin_yaw);
 	P(22, 23) = R_TAS * sin_yaw * cos_yaw + R_yaw * (-Wx * sin_yaw - Wy * cos_yaw) * (Wx * cos_yaw - Wy * sin_yaw) -

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015-2016 Estimation and Control Library (ECL). All rights reserved.
+ *   Copyright (c) 2015-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name ECL nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -445,7 +445,7 @@ PARAM_DEFINE_FLOAT(EKF2_BETA_GATE, 5.0f);
 PARAM_DEFINE_FLOAT(EKF2_BETA_NOISE, 0.3f);
 
 /**
- * Gate size for magnetic heading fusion
+ * Gate size for heading fusion
  *
  * Sets the number of standard deviations used by the innovation consistency test.
  *
@@ -493,16 +493,10 @@ PARAM_DEFINE_INT32(EKF2_DECL_TYPE, 7);
  * The fusion of magnetometer data as a three component vector enables vehicle body fixed hard iron errors to be learned, but requires a stable earth field.
  * If set to 'Automatic' magnetic heading fusion is used when on-ground and 3-axis magnetic field fusion in-flight with fallback to magnetic heading fusion if there is insufficient motion to make yaw or magnetic field states observable.
  * If set to 'Magnetic heading' magnetic heading fusion is used at all times.
- * If set to '3-axis' 3-axis field fusion is used at all times.
- * If set to 'VTOL custom' the behaviour is the same as 'Automatic', but if fusing airspeed, magnetometer fusion is only allowed to modify the magnetic field states. This can be used by VTOL platforms with large magnetic field disturbances to prevent incorrect bias states being learned during forward flight operation which can adversely affect estimation accuracy after transition to hovering flight.
- * If set to 'MC custom' the behaviour is the same as 'Automatic, but if there are no earth frame position or velocity observations being used, the magnetometer will not be used. This enables vehicles to operate with no GPS in environments where the magnetic field cannot be used to provide a heading reference. Prior to flight, the yaw angle is assumed to be constant if movement tests indicate that the vehicle is static. This allows the vehicle to be placed on the ground to learn the yaw gyro bias prior to flight.
  * If set to 'None' the magnetometer will not be used under any circumstance. If no external source of yaw is available, it is possible to use post-takeoff horizontal movement combined with GPS velocity measurements to align the yaw angle with the timer required (depending on the amount of movement and GPS data quality).
  * @group EKF2
  * @value 0 Automatic
  * @value 1 Magnetic heading
- * @value 2 3-axis
- * @value 3 VTOL custom
- * @value 4 MC custom
  * @value 5 None
  * @reboot_required true
  */
@@ -901,13 +895,22 @@ PARAM_DEFINE_FLOAT(EKF2_OF_N_MIN, 0.15f);
 PARAM_DEFINE_FLOAT(EKF2_OF_N_MAX, 0.5f);
 
 /**
- * Optical Flow data will only be used if the sensor reports a quality metric >= EKF2_OF_QMIN.
+ * Optical Flow data will only be used in air if the sensor reports a quality metric >= EKF2_OF_QMIN.
  *
  * @group EKF2
  * @min 0
  * @max 255
  */
 PARAM_DEFINE_INT32(EKF2_OF_QMIN, 1);
+
+/**
+ * Optical Flow data will only be used on the ground if the sensor reports a quality metric >= EKF2_OF_QMIN_GND.
+ *
+ * @group EKF2
+ * @min 0
+ * @max 255
+ */
+PARAM_DEFINE_INT32(EKF2_OF_QMIN_GND, 0);
 
 /**
  * Gate size for optical flow fusion
@@ -1079,11 +1082,10 @@ PARAM_DEFINE_FLOAT(EKF2_EV_POS_Z, 0.0f);
 /**
 * Airspeed fusion threshold.
 *
-* A value of zero will deactivate airspeed fusion. Any other positive
-* value will determine the minimum airspeed which will still be fused. Set to about 90% of the vehicles stall speed.
-* Both airspeed fusion and sideslip fusion must be active for the EKF to continue navigating after loss of GPS.
-* Use EKF2_FUSE_BETA to activate sideslip fusion.
-* Note: side slip fusion is currently not supported for tailsitters.
+* Airspeed data is fused for wind estimation if above this threshold.
+* Set to 0 to disable airspeed fusion.
+* For reliable wind estimation both sideslip (see EKF2_FUSE_BETA) and airspeed fusion should be enabled.
+* Only applies to fixed-wing vehicles (or VTOLs in fixed-wing mode).
 *
 * @group EKF2
 * @min 0.0
@@ -1093,11 +1095,11 @@ PARAM_DEFINE_FLOAT(EKF2_EV_POS_Z, 0.0f);
 PARAM_DEFINE_FLOAT(EKF2_ARSP_THR, 0.0f);
 
 /**
-* Boolean determining if synthetic sideslip measurements should fused.
+* Enable synthetic sideslip fusion.
 *
-* A value of 1 indicates that fusion is active
-* Both  sideslip fusion and airspeed fusion must be active for the EKF to continue navigating after loss of GPS.
-* Use EKF2_ARSP_THR to activate airspeed fusion.
+* For reliable wind estimation both sideslip and airspeed fusion (see EKF2_ARSP_THR) should be enabled.
+* Only applies to fixed-wing vehicles (or VTOLs in fixed-wing mode).
+* Note: side slip fusion is currently not supported for tailsitters.
 *
 * @group EKF2
 * @boolean
@@ -1493,16 +1495,51 @@ PARAM_DEFINE_FLOAT(EKF2_REQ_GPS_H, 10.0f);
 /**
  * Magnetic field strength test selection
  *
- * When set, the EKF checks the strength of the magnetic field
- * to decide whether the magnetometer data is valid.
- * If GPS data is received, the magnetic field is compared to a World
+ * Bitmask to set which check is used to decide whether the magnetometer data is valid.
+ *
+ * If GNSS data is received, the magnetic field is compared to a World
  * Magnetic Model (WMM), otherwise an average value is used.
  * This check is useful to reject occasional hard iron disturbance.
  *
+ * Set bits to 1 to enable checks. Checks enabled by the following bit positions
+ * 0 : Magnetic field strength. Set tolerance using EKF2_MAG_CHK_STR
+ * 1 : Magnetic field inclination. Set tolerance using EKF2_MAG_CHK_INC
+ * 2 : Wait for GNSS to find the theoretical strength and inclination using the WMM
+ *
  * @group EKF2
- * @boolean
+ * @min 0
+ * @max 7
+ * @bit 0 Strength (EKF2_MAG_CHK_STR)
+ * @bit 1 Inclination (EKF2_MAG_CHK_INC)
+ * @bit 2 Wait for WMM
  */
 PARAM_DEFINE_INT32(EKF2_MAG_CHECK, 1);
+
+/**
+ * Magnetic field strength check tolerance
+ *
+ * Maximum allowed deviation from the expected magnetic field strength to pass the check.
+ *
+ * @group EKF2
+ * @min 0.0
+ * @max 1.0
+ * @unit gauss
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(EKF2_MAG_CHK_STR, 0.2f);
+
+/**
+ * Magnetic field inclination check tolerance
+ *
+ * Maximum allowed deviation from the expected magnetic field inclination to pass the check.
+ *
+ * @group EKF2
+ * @min 0.0
+ * @max 90.0
+ * @unit deg
+ * @decimal 1
+ */
+PARAM_DEFINE_FLOAT(EKF2_MAG_CHK_INC, 20.f);
 
 /**
  * Enable synthetic magnetometer Z component measurement.

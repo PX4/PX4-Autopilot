@@ -68,7 +68,6 @@ add_subdirectory(Utility)
 
 set(EKF_SRCS)
 list(APPEND EKF_SRCS
-	EKF/baro_height_control.cpp
 	EKF/bias_estimator.cpp
 	EKF/control.cpp
 	EKF/covariance.cpp
@@ -84,11 +83,11 @@ list(APPEND EKF_SRCS
 	EKF/gravity_fusion.cpp
 	EKF/height_control.cpp
 	EKF/imu_down_sampler.cpp
-	EKF/mag_control.cpp
-	EKF/mag_fusion.cpp
 	EKF/output_predictor.cpp
 	EKF/vel_pos_fusion.cpp
+	EKF/yaw_fusion.cpp
 	EKF/zero_innovation_heading_update.cpp
+	EKF/zero_gyro_update.cpp
 	EKF/zero_velocity_update.cpp
 )
 
@@ -98,6 +97,12 @@ endif()
 
 if(CONFIG_EKF2_AUXVEL)
 	list(APPEND EKF_SRCS EKF/auxvel_fusion.cpp)
+endif()
+
+if(CONFIG_EKF2_BAROMETER)
+	list(APPEND EKF_SRCS
+		EKF/baro_height_control.cpp
+	)
 endif()
 
 if(CONFIG_EKF2_DRAG_FUSION)
@@ -118,6 +123,15 @@ if(CONFIG_EKF2_GNSS_YAW)
 	list(APPEND EKF_SRCS EKF/gps_yaw_fusion.cpp)
 endif()
 
+if(CONFIG_EKF2_MAGNETOMETER)
+	list(APPEND EKF_SRCS
+		EKF/mag_3d_control.cpp
+		EKF/mag_control.cpp
+		EKF/mag_fusion.cpp
+		EKF/mag_heading_control.cpp
+	)
+endif()
+
 if(CONFIG_EKF2_OPTICAL_FLOW)
 	list(APPEND EKF_SRCS
 		EKF/optical_flow_control.cpp
@@ -130,12 +144,15 @@ if(CONFIG_EKF2_RANGE_FINDER)
 		EKF/range_finder_consistency_check.cpp
 		EKF/range_height_control.cpp
 		EKF/sensor_range_finder.cpp
-		EKF/terrain_estimator.cpp
 	)
 endif()
 
 if(CONFIG_EKF2_SIDESLIP)
 	list(APPEND EKF_SRCS EKF/sideslip_fusion.cpp)
+endif()
+
+if(CONFIG_EKF2_TERRAIN)
+	list(APPEND EKF_SRCS EKF/terrain_estimator.cpp)
 endif()
 
 px4_add_module(

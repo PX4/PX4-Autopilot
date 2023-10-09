@@ -12,7 +12,7 @@ pipeline {
             stage("build cubepilot_cubeorange_test") {
               agent {
                 docker {
-                  image 'px4io/px4-dev-nuttx-focal:2021-09-08'
+                  image 'px4io/px4-dev-nuttx-focal:2022-08-12'
                   args '--cpu-shares 512 -e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
@@ -91,7 +91,7 @@ pipeline {
             stage("build cuav_x7pro_test") {
               agent {
                 docker {
-                  image 'px4io/px4-dev-nuttx-focal:2021-09-08'
+                  image 'px4io/px4-dev-nuttx-focal:2022-08-12'
                   args '--cpu-shares 512 -e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
@@ -165,7 +165,7 @@ pipeline {
             stage("build px4_fmu-v4_test") {
               agent {
                 docker {
-                  image 'px4io/px4-dev-nuttx-focal:2021-09-08'
+                  image 'px4io/px4-dev-nuttx-focal:2022-08-12'
                   args '--cpu-shares 512 -e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
@@ -238,7 +238,7 @@ pipeline {
             stage("build px4_fmu-v4pro_test") {
               agent {
                 docker {
-                  image 'px4io/px4-dev-nuttx-focal:2021-09-08'
+                  image 'px4io/px4-dev-nuttx-focal:2022-08-12'
                   args '--cpu-shares 512 -e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
@@ -312,7 +312,7 @@ pipeline {
             stage("build px4_fmu-v5_debug") {
               agent {
                 docker {
-                  image 'px4io/px4-dev-nuttx-focal:2021-09-08'
+                  image 'px4io/px4-dev-nuttx-focal:2022-08-12'
                   args '--cpu-shares 512 -e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
@@ -362,7 +362,7 @@ pipeline {
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "sd_stress"'
 
                     // test dataman
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "tests dataman"'
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "tests dataman" --ignore-stdout-errors'
 
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "tests file" || true'
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "uorb_tests"'
@@ -403,7 +403,7 @@ pipeline {
             stage("build px4_fmu-v5_stackcheck") {
               agent {
                 docker {
-                  image 'px4io/px4-dev-nuttx-focal:2021-09-08'
+                  image 'px4io/px4-dev-nuttx-focal:2022-08-12'
                   args '--cpu-shares 512 -e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
@@ -449,7 +449,7 @@ pipeline {
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "uorb_tests latency_test" || true'
 
                     // test dataman
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "tests dataman"'
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "tests dataman" --ignore-stdout-errors'
                   }
                 }
                 stage("status") {
@@ -486,7 +486,7 @@ pipeline {
             stage("build px4_fmu-v5_test") {
               agent {
                 docker {
-                  image 'px4io/px4-dev-nuttx-focal:2021-09-08'
+                  image 'px4io/px4-dev-nuttx-focal:2022-08-12'
                   args '--cpu-shares 512 -e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
@@ -560,7 +560,7 @@ pipeline {
             stage("build nxp_fmuk66-v3_test") {
               agent {
                 docker {
-                  image 'px4io/px4-dev-nuttx-focal:2021-09-08'
+                  image 'px4io/px4-dev-nuttx-focal:2022-08-12'
                   args '--cpu-shares 512 -e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }

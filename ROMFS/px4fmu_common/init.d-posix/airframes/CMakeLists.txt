@@ -39,8 +39,10 @@ px4_add_romfs_files(
 	1012_gazebo-classic_iris_rplidar
 	1013_gazebo-classic_iris_vision
 	1013_gazebo-classic_iris_vision.post
-	1015_gazebo-classic_iris_obs_avoid
-	1015_gazebo-classic_iris_obs_avoid.post
+	1014_gazebo-classic_iris_obs_avoid
+	1014_gazebo-classic_iris_obs_avoid.post
+	1015_gazebo-classic_iris_depth_camera
+	1016_gazebo-classic_iris_downward_depth_camera
 	1017_gazebo-classic_iris_opt_flow_mockup
 	1019_gazebo-classic_iris_dual_gps
 	1021_gazebo-classic_uuv_hippocampus
@@ -81,6 +83,8 @@ px4_add_romfs_files(
 	6011_gazebo-classic_typhoon_h480
 	6011_gazebo-classic_typhoon_h480.post
 
+	8011_gz_omnicopter
+
 	10015_gazebo-classic_iris
 	10016_none_iris
 	10017_jmavsim_iris
@@ -94,4 +98,6 @@ px4_add_romfs_files(
 
 	17001_flightgear_tf-g1
 	17002_flightgear_tf-g2
+
+	# [22000, 22999] Reserve for custom models
 )

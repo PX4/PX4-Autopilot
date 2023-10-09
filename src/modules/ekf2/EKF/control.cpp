@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015-2020 Estimation and Control Library (ECL). All rights reserved.
+ *   Copyright (c) 2015-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name ECL nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -76,7 +76,7 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 			_control_status.flags.tilt_align = true;
 
 			// send alignment status message to the console
-			const char *height_source = nullptr;
+			const char *height_source = "unknown";
 
 			if (_control_status.flags.baro_hgt) {
 				height_source = "baro";
@@ -89,21 +89,23 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 
 			} else if (_control_status.flags.rng_hgt) {
 				height_source = "rng";
-
-			} else {
-				height_source = "unknown";
-
 			}
 
-			if (height_source) {
-				ECL_INFO("%llu: EKF aligned, (%s hgt, IMU buf: %i, OBS buf: %i)",
+			ECL_INFO("%llu: EKF aligned, (%s hgt, IMU buf: %i, OBS buf: %i)",
 					 (unsigned long long)imu_delayed.time_us, height_source, (int)_imu_buffer_length, (int)_obs_buffer_length);
-			}
+
+			ECL_DEBUG("tilt aligned, roll: %.3f, pitch %.3f, yaw: %.3f",
+				  (double)matrix::Eulerf(_state.quat_nominal).phi(),
+				  (double)matrix::Eulerf(_state.quat_nominal).theta(),
+				  (double)matrix::Eulerf(_state.quat_nominal).psi()
+				 );
 		}
 	}
 
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 	// control use of observations for aiding
 	controlMagFusion();
+#endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	controlOpticalFlowFusion(imu_delayed);
@@ -139,6 +141,7 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 	controlZeroInnovationHeadingUpdate();
 
 	controlZeroVelocityUpdate();
+	controlZeroGyroUpdate(imu_delayed);
 
 	// Fake position measurement for constraining drift when no other velocity or position measurements
 	controlFakePosFusion();

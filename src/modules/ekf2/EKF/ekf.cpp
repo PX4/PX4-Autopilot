@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 Estimation and Control Library (ECL). All rights reserved.
+ *   Copyright (c) 2015-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name ECL nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -45,9 +45,12 @@
 
 bool Ekf::init(uint64_t timestamp)
 {
-	bool ret = initialise_interface(timestamp);
-	reset();
-	return ret;
+	if (!_initialised) {
+		_initialised = initialise_interface(timestamp);
+		reset();
+	}
+
+	return _initialised;
 }
 
 void Ekf::reset()
@@ -56,8 +59,8 @@ void Ekf::reset()
 
 	_state.vel.setZero();
 	_state.pos.setZero();
-	_state.delta_ang_bias.setZero();
-	_state.delta_vel_bias.setZero();
+	_state.gyro_bias.setZero();
+	_state.accel_bias.setZero();
 	_state.mag_I.setZero();
 	_state.mag_B.setZero();
 	_state.wind_vel.setZero();
@@ -80,7 +83,8 @@ void Ekf::reset()
 	_fault_status.value = 0;
 	_innov_check_fail_status.value = 0;
 
-	_prev_dvel_bias_var.zero();
+	_prev_gyro_bias_var.zero();
+	_prev_accel_bias_var.zero();
 
 	resetGpsDriftCheckFilters();
 
@@ -105,14 +109,21 @@ void Ekf::reset()
 	_gps_checks_passed = false;
 	_gps_alt_ref = NAN;
 
+#if defined(CONFIG_EKF2_BAROMETER)
 	_baro_counter = 0;
+#endif // CONFIG_EKF2_BAROMETER
+
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 	_mag_counter = 0;
+#endif // CONFIG_EKF2_MAGNETOMETER
 
 	_time_bad_vert_accel = 0;
 	_time_good_vert_accel = 0;
 	_clip_counter = 0;
 
+#if defined(CONFIG_EKF2_BAROMETER)
 	resetEstimatorAidStatus(_aid_src_baro_hgt);
+#endif // CONFIG_EKF2_BAROMETER
 #if defined(CONFIG_EKF2_AIRSPEED)
 	resetEstimatorAidStatus(_aid_src_airspeed);
 #endif // CONFIG_EKF2_AIRSPEED
@@ -138,8 +149,10 @@ void Ekf::reset()
 	resetEstimatorAidStatus(_aid_src_gnss_yaw);
 #endif // CONFIG_EKF2_GNSS_YAW
 
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 	resetEstimatorAidStatus(_aid_src_mag_heading);
 	resetEstimatorAidStatus(_aid_src_mag);
+#endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_AUXVEL)
 	resetEstimatorAidStatus(_aid_src_aux_vel);
@@ -180,13 +193,12 @@ bool Ekf::update()
 		// control fusion of observation data
 		controlFusionModes(imu_sample_delayed);
 
-#if defined(CONFIG_EKF2_RANGE_FINDER)
+#if defined(CONFIG_EKF2_TERRAIN)
 		// run a separate filter for terrain estimation
 		runTerrainEstimator(imu_sample_delayed);
-#endif // CONFIG_EKF2_RANGE_FINDER
+#endif // CONFIG_EKF2_TERRAIN
 
-		_output_predictor.correctOutputStates(imu_sample_delayed.time_us, getGyroBias(), getAccelBias(),
-							_state.quat_nominal, _state.vel, _state.pos);
+		_output_predictor.correctOutputStates(imu_sample_delayed.time_us, _state.quat_nominal, _state.vel, _state.pos, _state.gyro_bias, _state.accel_bias);
 
 		return true;
 	}
@@ -221,10 +233,10 @@ bool Ekf::initialiseFilter()
 	// initialise the state covariance matrix now we have starting values for all the states
 	initialiseCovariance();
 
-#if defined(CONFIG_EKF2_RANGE_FINDER)
+#if defined(CONFIG_EKF2_TERRAIN)
 	// Initialise the terrain estimator
 	initHagl();
-#endif // CONFIG_EKF2_RANGE_FINDER
+#endif // CONFIG_EKF2_TERRAIN
 
 	// reset the output predictor state history to match the EKF initial values
 	_output_predictor.alignOutputFilter(_state.quat_nominal, _state.vel, _state.pos);

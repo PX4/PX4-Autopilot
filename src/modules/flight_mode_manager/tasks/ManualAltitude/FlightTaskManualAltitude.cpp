@@ -64,6 +64,7 @@ bool FlightTaskManualAltitude::activate(const trajectory_setpoint_s &last_setpoi
 	_acceleration_setpoint = Vector3f(0.f, 0.f, NAN); // altitude is controlled from position/velocity
 	_position_setpoint(2) = _position(2);
 	_velocity_setpoint(2) = 0.f;
+	_stick_yaw.reset(_yaw, _unaided_yaw);
 	_setDefaultConstraints();
 
 	_updateConstraintsFromEstimator();
@@ -90,10 +91,6 @@ void FlightTaskManualAltitude::_updateConstraintsFromEstimator()
 
 void FlightTaskManualAltitude::_scaleSticks()
 {
-	// Use stick input with deadzone, exponential curve and first order lpf for yawspeed
-	_stick_yaw.generateYawSetpoint(_yawspeed_setpoint, _yaw_setpoint, _sticks.getYawExpo(), _yaw,
-				       _is_yaw_good_for_control, _deltatime);
-
 	// Use sticks input with deadzone and exponential curve for vertical velocity
 	const float vel_max_z = (_sticks.getPosition()(2) > 0.0f) ? _param_mpc_z_vel_max_dn.get() :
 				_param_mpc_z_vel_max_up.get();
@@ -273,51 +270,19 @@ void FlightTaskManualAltitude::_respectGroundSlowdown()
 	}
 }
 
-void FlightTaskManualAltitude::_updateHeadingSetpoints()
-{
-	if (_isYawInput() || !_is_yaw_good_for_control) {
-		_unlockYaw();
-
-	} else {
-		_lockYaw();
-	}
-}
-
-bool FlightTaskManualAltitude::_isYawInput()
-{
-	/*
-	 * A threshold larger than FLT_EPSILON is required because the
-	 * _yawspeed_setpoint comes from an IIR filter and takes too much
-	 * time to reach zero.
-	 */
-	return fabsf(_yawspeed_setpoint) > 0.001f;
-}
-
-void FlightTaskManualAltitude::_unlockYaw()
-{
-	// no fixed heading when rotating around yaw by stick
-	_yaw_setpoint = NAN;
-}
-
-void FlightTaskManualAltitude::_lockYaw()
-{
-	// hold the current heading when no more rotation commanded
-	if (!PX4_ISFINITE(_yaw_setpoint)) {
-		_yaw_setpoint = _yaw;
-	}
-}
-
 void FlightTaskManualAltitude::_ekfResetHandlerHeading(float delta_psi)
 {
 	// Only reset the yaw setpoint when the heading is locked
 	if (PX4_ISFINITE(_yaw_setpoint)) {
-		_yaw_setpoint += delta_psi;
+		_yaw_setpoint = wrap_pi(_yaw_setpoint + delta_psi);
 	}
+
+	_stick_yaw.ekfResetHandler(delta_psi);
 }
 
 void FlightTaskManualAltitude::_updateSetpoints()
 {
-	_updateHeadingSetpoints(); // get yaw setpoint
+	_stick_yaw.generateYawSetpoint(_yawspeed_setpoint, _yaw_setpoint, _sticks.getYawExpo(), _yaw, _deltatime, _unaided_yaw);
 	_acceleration_setpoint.xy() = _stick_tilt_xy.generateAccelerationSetpoints(_sticks.getPitchRoll(), _deltatime, _yaw,
 				      _yaw_setpoint);
 	_updateAltitudeLock();

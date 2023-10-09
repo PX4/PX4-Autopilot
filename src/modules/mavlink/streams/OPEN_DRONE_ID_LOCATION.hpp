@@ -165,12 +165,12 @@ private:
 				}
 
 				if (vehicle_gps_position.fix_type >= 2) {
-					msg.latitude = vehicle_gps_position.lat;
-					msg.longitude = vehicle_gps_position.lon;
+					msg.latitude = static_cast<int32_t>(round(vehicle_gps_position.latitude_deg * 1e7));
+					msg.longitude = static_cast<int32_t>(round(vehicle_gps_position.longitude_deg * 1e7));
 
 					// altitude_geodetic
 					if (vehicle_gps_position.fix_type >= 3) {
-						msg.altitude_geodetic = vehicle_gps_position.alt * 1e-3f;
+						msg.altitude_geodetic = static_cast<float>(round(vehicle_gps_position.altitude_msl_m)); // [m]
 					}
 
 					// horizontal_accuracy

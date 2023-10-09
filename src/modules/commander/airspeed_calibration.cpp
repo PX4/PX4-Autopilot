@@ -180,7 +180,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 
 					/* save */
 					calibration_log_info(mavlink_log_pub, CAL_QGC_PROGRESS_MSG, 0);
-					param_save_default();
+					param_save_default(true);
 
 					feedback_calibration_failed(mavlink_log_pub);
 					return PX4_ERROR;

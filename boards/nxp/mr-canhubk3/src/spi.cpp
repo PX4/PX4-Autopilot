@@ -70,11 +70,12 @@ constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
 	initSPIBus(SPI::Bus::SPI3, { // SPI3 is ignored only used for FS26 by a NuttX driver
 		initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortD, GPIO::Pin17})
 	}),
-	initSPIBus(SPI::Bus::SPI4, {
-		initSPIDevice(DRV_IMU_DEVTYPE_ICM42688P, SPI::CS{GPIO::PortA, GPIO::Pin16}, SPI::DRDY{PIN_WKPU20})
+	initSPIBusExternal(SPI::Bus::SPI4, {
+		initSPIConfigExternal(SPI::CS{GPIO::PortA, GPIO::Pin16}, SPI::DRDY{PIN_WKPU20}),
+		initSPIConfigExternal(SPI::CS{GPIO::PortB, GPIO::Pin8}, SPI::DRDY{PIN_WKPU56})
 	}),
-	initSPIBus(SPI::Bus::SPI5, {
-		initSPIDevice(DRV_IMU_DEVTYPE_ICM20649, SPI::CS{GPIO::PortA, GPIO::Pin14}, SPI::DRDY{PIN_WKPU4})
+	initSPIBusExternal(SPI::Bus::SPI5, {
+		initSPIConfigExternal(SPI::CS{GPIO::PortA, GPIO::Pin14}, SPI::DRDY{PIN_WKPU4})
 	}),
 };
 
@@ -337,7 +338,14 @@ void s32k3xx_lpspi4select(FAR struct spi_dev_s *dev, uint32_t devid,
 	spiinfo("devid: %" PRId32 ", CS: %s\n", devid,
 		selected ? "assert" : "de-assert");
 
-	s32k3xx_gpiowrite(PIN_LPSPI4_PCS, !selected);
+	devid = ((devid) & 0xF);
+
+	if (devid == 0) {
+		s32k3xx_gpiowrite(PIN_LPSPI4_CS_P26, !selected);
+
+	} else if (devid == 1) {
+		s32k3xx_gpiowrite(PIN_LPSPI4_CS_P8B, !selected);
+	}
 }
 
 uint8_t s32k3xx_lpspi4status(FAR struct spi_dev_s *dev, uint32_t devid)
