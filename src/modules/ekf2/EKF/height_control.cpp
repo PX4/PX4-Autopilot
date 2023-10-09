@@ -39,6 +39,7 @@
 
 void Ekf::controlHeightFusion(const imuSample &imu_delayed)
 {
+	checkVerticalAccelerationBias(imu_delayed);
 	checkVerticalAccelerationHealth(imu_delayed);
 
 #if defined(CONFIG_EKF2_BAROMETER)
@@ -116,6 +117,107 @@ void Ekf::checkHeightSensorRefFallback()
 			_height_sensor_ref = fallback_list[i];
 			break;
 		}
+	}
+}
+
+void Ekf::checkVerticalAccelerationBias(const imuSample &imu_delayed)
+{
+	// Run additional checks to see if the delta velocity bias has hit limits in a direction that is clearly wrong
+	// calculate accel bias term aligned with the gravity vector
+	const float dVel_bias_lim = 0.9f * _params.acc_bias_lim * _dt_ekf_avg;
+	const Vector3f delta_vel_bias = _state.accel_bias * _dt_ekf_avg;
+	const float down_dvel_bias = delta_vel_bias.dot(Vector3f(_R_to_earth.row(2)));
+
+	// check that the vertical component of accel bias is consistent with both the vertical position and velocity innovation
+	bool bad_acc_bias = false;
+
+	if (fabsf(down_dvel_bias) > dVel_bias_lim) {
+
+		bool bad_vz = false;
+
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
+
+		if (_control_status.flags.ev_hgt) {
+			if (down_dvel_bias * _aid_src_ev_vel.innovation[2] < 0.f) {
+				bad_vz = true;
+			}
+		}
+
+#endif // CONFIG_EKF2_EXTERNAL_VISION
+
+#if defined(CONFIG_EKF2_GNSS)
+
+		if (_control_status.flags.gps) {
+			if (down_dvel_bias * _aid_src_gnss_vel.innovation[2] < 0.f) {
+				bad_vz = true;
+			}
+		}
+
+#endif // CONFIG_EKF2_GNSS
+
+		if (bad_vz) {
+#if defined(CONFIG_EKF2_BAROMETER)
+
+			if (_control_status.flags.baro_hgt) {
+				if (down_dvel_bias * _aid_src_baro_hgt.innovation < 0.f) {
+					bad_acc_bias = true;
+				}
+			}
+
+#endif // CONFIG_EKF2_BAROMETER
+
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
+
+			if (_control_status.flags.ev_hgt) {
+				if (down_dvel_bias * _aid_src_ev_hgt.innovation < 0.f) {
+					bad_acc_bias = true;
+				}
+			}
+
+#endif // CONFIG_EKF2_EXTERNAL_VISION
+
+#if defined(CONFIG_EKF2_GNSS)
+
+			if (_control_status.flags.gps_hgt) {
+				if (down_dvel_bias * _aid_src_gnss_hgt.innovation < 0.f) {
+					bad_acc_bias = true;
+				}
+			}
+
+#endif // CONFIG_EKF2_GNSS
+
+#if defined(CONFIG_EKF2_RANGE_FINDER)
+
+			if (_control_status.flags.rng_hgt) {
+				if (down_dvel_bias * _aid_src_rng_hgt.innovation < 0.f) {
+					bad_acc_bias = true;
+				}
+			}
+
+#endif // CONFIG_EKF2_RANGE_FINDER
+		}
+	}
+
+	// record the pass/fail
+	if (!bad_acc_bias) {
+		_fault_status.flags.bad_acc_bias = false;
+		_time_acc_bias_check = _time_delayed_us;
+
+	} else {
+		_fault_status.flags.bad_acc_bias = true;
+	}
+
+	// if we have failed for 7 seconds continuously, reset the accel bias covariances to fix bad conditioning of
+	// the covariance matrix but preserve the variances (diagonals) to allow bias learning to continue
+	if (_fault_status.flags.bad_acc_bias && isTimedOut(_time_acc_bias_check, (uint64_t)7e6)) {
+
+		resetAccelBiasCov();
+
+		_time_acc_bias_check = imu_delayed.time_us;
+
+		_fault_status.flags.bad_acc_bias = false;
+		_warning_events.flags.invalid_accel_bias_cov_reset = true;
+		ECL_WARN("invalid accel bias - covariance reset");
 	}
 }
 
