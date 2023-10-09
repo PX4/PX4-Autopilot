@@ -133,7 +133,7 @@ RoboClaw::~RoboClaw()
 void RoboClaw::taskMain()
 {
 	// Make sure the Roboclaw is actually connected, so I don't just spam errors if it's not.
-	uint8_t rbuff[4];
+	uint8_t rbuff[6];
 	int err_code = _transaction(CMD_READ_STATUS, nullptr, 0, &rbuff[0], sizeof(rbuff), false, true);
 
 	if (err_code <= 0) {
