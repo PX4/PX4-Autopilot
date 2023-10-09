@@ -44,8 +44,8 @@
 
 #include "ekf.h"
 
-#include "python/ekf_derivation/generated/compute_airspeed_h_and_k.h"
-#include "python/ekf_derivation/generated/compute_airspeed_innov_and_innov_var.h"
+#include <ekf_derivation/generated/compute_airspeed_h_and_k.h>
+#include <ekf_derivation/generated/compute_airspeed_innov_and_innov_var.h>
 
 #include <mathlib/mathlib.h>
 

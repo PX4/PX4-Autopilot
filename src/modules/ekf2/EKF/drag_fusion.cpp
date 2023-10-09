@@ -37,8 +37,8 @@
  */
 
 #include "ekf.h"
-#include "python/ekf_derivation/generated/compute_drag_x_innov_var_and_k.h"
-#include "python/ekf_derivation/generated/compute_drag_y_innov_var_and_k.h"
+#include <ekf_derivation/generated/compute_drag_x_innov_var_and_k.h>
+#include <ekf_derivation/generated/compute_drag_y_innov_var_and_k.h>
 
 #include <mathlib/mathlib.h>
 
