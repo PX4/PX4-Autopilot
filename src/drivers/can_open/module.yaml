@@ -1,0 +1,55 @@
+module_name: CANOPEN
+actuator_output:
+  show_subgroups_if: 'CANOPEN_ENABLE>=1'
+  config_parameters:
+    - param: 'CANOPEN_ENABLE'
+      label: 'Configure'
+      function: 'enable'
+    - param: 'CANOPEN_BITRATE'
+      label: 'Bitrate'
+    - param: 'CANOPEN_NODE_ID'
+      label: 'Node ID'
+  output_groups:
+    - param_prefix: CO_EC
+      group_label: 'ESCs'
+      channel_label: 'ESC'
+      standard_params:
+        min: { min: 1, max: 20000, default: 1 }
+        max: { min: 1, max: 20000, default: 20000 }
+        failsafe: { min: 0, max: 1, default: 0 }
+        disarmed: { min: 0, max: 1, default: 0 }
+      num_channels: 1
+parameters:
+    - group: CANOPEN
+      definitions:
+        CANOPEN_ENABLE:
+            description:
+              short: Enable CanOpen
+              long: |
+                This enables/disables CanOpen
+            values:
+              0: Disable
+              1: Enable
+            type: int32
+            reboot_required: true
+            default: 1
+        CANOPEN_BITRATE:
+            description:
+              short: CAN bitrate
+              long: |
+                Bitrate for CAN bus
+            type: int32
+            min: 20000
+            max: 1000000
+            unit: 'bit/s'
+            reboot_required: true
+            default: 1000000
+        CANOPEN_NODE_ID:
+            description:
+              short: Node ID
+              long: |
+                Node ID for this CANOpen node
+            type: int32
+            min: 0
+            max: 125
+            default: 4

@@ -1,20 +1,20 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
  *
  * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
+ *	notice, this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
+ *	notice, this list of conditions and the following disclaimer in
+ *	the documentation and/or other materials provided with the
+ *	distribution.
  * 3. Neither the name PX4 nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
+ *	used to endorse or promote products derived from this software
+ *	without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -31,46 +31,45 @@
  *
  ****************************************************************************/
 
-/**
- * @file can.c
- *
- * Board-specific CAN functions.
- */
+/*
+	This class is used by CanOpenNode.  The update function will be called
+	every 10ms.  */
+
+#pragma once
 
 
-#ifdef CONFIG_NET_CAN
-#include <nuttx/can/can.h>
-#include "stm32_fdcan_sock.h"
+#include "mixing_interface_esc.hpp"
+#include "telemetry_esc.hpp"
 
-int can_devinit(void);
+using namespace time_literals;
 
-/************************************************************************************
- * Name: can_devinit
- *
- * Description:
- *   All STM32 architectures must provide the following interface to work with
- *   examples/can.
- *
- ************************************************************************************/
-int can_devinit(void)
+
+class COExampleApp
 {
-	static bool initialized = false;
-	int ret;
+public:
+	COExampleApp()
+	{
 
-	/* Check if we have already initialized */
+	};
 
-	if (!initialized) {
-		ret = stm32_fdcansockinitialize(0);
-		if (ret < 0) {
-			return ret;
-		}
+	~COExampleApp()
+	{
 
-		/* Now we are initialized */
+	};
 
-		initialized = true;
+	void update()
+	{
+		_esc_mixing_interface.update();
+		_esc_telemetry.update();
+	};
+
+	void shutdown()
+	{
+		_esc_mixing_interface.mixingOutput().unregister();
+		_esc_mixing_interface.ScheduleClear();
 	}
 
-	return OK;
-}
-
-#endif /* CONFIG_NET_CAN */
+private:
+	COMixingInterfaceESC _esc_mixing_interface;
+	COTelemetryESC _esc_telemetry;
+};
