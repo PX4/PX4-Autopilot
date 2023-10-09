@@ -195,6 +195,14 @@ bool Ekf::update()
 		// TODO: explicitly pop at desired time horizon
 		const imuSample imu_sample_delayed = _imu_buffer.get_oldest();
 
+		// calculate an average filter update time
+		//  filter and limit input between -50% and +100% of nominal value
+		float input = 0.5f * (imu_sample_delayed.delta_vel_dt + imu_sample_delayed.delta_ang_dt);
+		float filter_update_s = 1e-6f * _params.filter_update_interval_us;
+		_dt_ekf_avg = 0.99f * _dt_ekf_avg + 0.01f * math::constrain(input, 0.5f * filter_update_s, 2.f * filter_update_s);
+
+		updateIMUBiasInhibit(imu_sample_delayed);
+
 		// perform state and covariance prediction for the main filter
 		predictCovariance(imu_sample_delayed);
 		predictState(imu_sample_delayed);
@@ -305,13 +313,6 @@ void Ekf::predictState(const imuSample &imu_delayed)
 
 	constrainStates();
 
-	// calculate an average filter update time
-	float input = 0.5f * (imu_delayed.delta_vel_dt + imu_delayed.delta_ang_dt);
-
-	// filter and limit input between -50% and +100% of nominal value
-	const float filter_update_s = 1e-6f * _params.filter_update_interval_us;
-	input = math::constrain(input, 0.5f * filter_update_s, 2.f * filter_update_s);
-	_dt_ekf_avg = 0.99f * _dt_ekf_avg + 0.01f * input;
 
 	// some calculations elsewhere in code require a raw angular rate vector so calculate here to avoid duplication
 	// protect against possible small timesteps resulting from timing slip on previous frame that can drive spikes into the rate

@@ -102,91 +102,12 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 	// Use average update interval to reduce accumulated covariance prediction errors due to small single frame dt values
 	const float dt = _dt_ekf_avg;
 
-	// inhibit learning of imu accel bias if the manoeuvre levels are too high to protect against the effect of sensor nonlinearities or bad accel data is detected
-	// xy accel bias learning is also disabled on ground as those states are poorly observable when perpendicular to the gravity vector
-	const float alpha = math::constrain((dt / _params.acc_bias_learn_tc), 0.0f, 1.0f);
-	const float beta = 1.0f - alpha;
-	_ang_rate_magnitude_filt = fmaxf(imu_delayed.delta_ang.norm() / imu_delayed.delta_ang_dt, beta * _ang_rate_magnitude_filt);
-	_accel_magnitude_filt = fmaxf(imu_delayed.delta_vel.norm() / imu_delayed.delta_vel_dt, beta * _accel_magnitude_filt);
-	_accel_vec_filt = alpha * imu_delayed.delta_vel / imu_delayed.delta_vel_dt + beta * _accel_vec_filt;
-
-	const bool is_manoeuvre_level_high = _ang_rate_magnitude_filt > _params.acc_bias_learn_gyr_lim
-					     || _accel_magnitude_filt > _params.acc_bias_learn_acc_lim;
-
-	// gyro bias inhibit
-	const bool do_inhibit_all_gyro_axes = !(_params.imu_ctrl & static_cast<int32_t>(ImuCtrl::GyroBias));
-
-	for (unsigned index = 0; index < State::gyro_bias.dof; index++) {
-		const unsigned stateIndex = State::gyro_bias.idx + index;
-
-		bool is_bias_observable = true;
-
-		// TODO: gyro bias conditions
-
-		const bool do_inhibit_axis = do_inhibit_all_gyro_axes || !is_bias_observable;
-
-		if (do_inhibit_axis) {
-			// store the bias state variances to be reinstated later
-			if (!_gyro_bias_inhibit[index]) {
-				_prev_gyro_bias_var(index) = P(stateIndex, stateIndex);
-				_gyro_bias_inhibit[index] = true;
-			}
-
-		} else {
-			if (_gyro_bias_inhibit[index]) {
-				// reinstate the bias state variances
-				P(stateIndex, stateIndex) = _prev_gyro_bias_var(index);
-				_gyro_bias_inhibit[index] = false;
-			}
-		}
-	}
-
-	// accel bias inhibit
-	const bool do_inhibit_all_accel_axes = !(_params.imu_ctrl & static_cast<int32_t>(ImuCtrl::AccelBias))
-					 || is_manoeuvre_level_high
-					 || _fault_status.flags.bad_acc_vertical;
-
-	for (unsigned index = 0; index < State::accel_bias.dof; index++) {
-		const unsigned stateIndex = State::accel_bias.idx + index;
-
-		bool is_bias_observable = true;
-
-		if (_control_status.flags.vehicle_at_rest) {
-			is_bias_observable = true;
-
-		} else if (_control_status.flags.fake_hgt) {
-			is_bias_observable = false;
-
-		} else if (_control_status.flags.fake_pos) {
-			// when using fake position (but not fake height) only consider an accel bias observable if aligned with the gravity vector
-			is_bias_observable = (fabsf(_R_to_earth(2, index)) > 0.966f); // cos 15 degrees ~= 0.966
-		}
-
-		const bool do_inhibit_axis = do_inhibit_all_accel_axes || imu_delayed.delta_vel_clipping[index] || !is_bias_observable;
-
-		if (do_inhibit_axis) {
-			// store the bias state variances to be reinstated later
-			if (!_accel_bias_inhibit[index]) {
-				_prev_accel_bias_var(index) = P(stateIndex, stateIndex);
-				_accel_bias_inhibit[index] = true;
-			}
-
-		} else {
-			if (_accel_bias_inhibit[index]) {
-				// reinstate the bias state variances
-				P(stateIndex, stateIndex) = _prev_accel_bias_var(index);
-				_accel_bias_inhibit[index] = false;
-			}
-		}
-	}
-
-	// assign IMU noise variances
-	// inputs to the system are 3 delta angles and 3 delta velocities
-	float gyro_noise = math::constrain(_params.gyro_noise, 0.0f, 1.0f);
+	// delta angle noise variance
+	float gyro_noise = math::constrain(_params.gyro_noise, 0.f, 1.f);
 	const float d_ang_var = sq(imu_delayed.delta_ang_dt * gyro_noise);
 
-	float accel_noise = math::constrain(_params.accel_noise, 0.0f, 1.0f);
-
+	// delta velocity noise variance
+	float accel_noise = math::constrain(_params.accel_noise, 0.f, 1.f);
 	Vector3f d_vel_var;
 
 	for (unsigned i = 0; i < 3; i++) {
