@@ -87,10 +87,10 @@ public:
 	void unregisterCallback()
 	{
 		if (registered()) {
-			DeviceNode::unregister_callback(_subscription.get_node(), _cb_handle);
+			uorb_cb_handle_t handle = _cb_handle;
+			_cb_handle = UORB_INVALID_CB_HANDLE;
+			DeviceNode::unregister_callback(_subscription.get_node(), handle);
 		}
-
-		_cb_handle = UORB_INVALID_CB_HANDLE;
 	}
 
 	/**
@@ -203,8 +203,9 @@ public:
 
 	void unregisterPoll()
 	{
-		DeviceNode::unregister_callback(_subscription.get_node(), _cb_handle);
+		uorb_cb_handle_t handle = _cb_handle;
 		_cb_handle = UORB_INVALID_CB_HANDLE;
+		DeviceNode::unregister_callback(_subscription.get_node(), handle);
 	}
 private:
 	uorb_cb_handle_t _cb_handle{UORB_INVALID_CB_HANDLE};
