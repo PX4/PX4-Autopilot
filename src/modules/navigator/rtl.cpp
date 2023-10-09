@@ -148,10 +148,6 @@ void RTL::updateDatamanCache()
 		const dm_item_t dm_item = static_cast<dm_item_t>(_mission_sub.get().dataman_id);
 		_dataman_cache_landItem.invalidate();
 
-		if (_mission_sub.get().land_start_index > 0) {
-			_dataman_cache_landItem.load(dm_item, _mission_sub.get().land_start_index);
-		}
-
 		if (_mission_sub.get().land_index > 0) {
 			_dataman_cache_landItem.load(dm_item, _mission_sub.get().land_index);
 		}
@@ -343,8 +339,9 @@ void RTL::findRtlDestination(DestinationType &destination_type, DestinationPosit
 	float home_dist{get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, rtl_position.lat, rtl_position.lon)};
 	float min_dist;
 
-	if ((_param_rtl_type.get() == 1) && !vtol_in_rw_mode) {
-		// Set minimum distance to maximum value when RTL_TYPE is set to 1 and we are not in RW mode.
+	if (((_param_rtl_type.get() == 1) && !vtol_in_rw_mode) || ((_param_rtl_approach_force.get() == 1)
+			&& !hasVtolLandApproach(rtl_position))) {
+		// Set minimum distance to maximum value when RTL_TYPE is set to 1 and we are not in RW mode or we forces approach landing and it is not defined for home.
 		min_dist = FLT_MAX;
 
 	} else {
@@ -352,7 +349,8 @@ void RTL::findRtlDestination(DestinationType &destination_type, DestinationPosit
 	}
 
 	// consider the mission landing if available and allowed
-	if (((_param_rtl_type.get() == 1) || (_param_rtl_type.get() == 3)) && hasMissionLandStart()) {
+	if (((_param_rtl_type.get() == 1) || (_param_rtl_type.get() == 3) || (fabsf(FLT_MAX - min_dist) < FLT_EPSILON))
+	    && hasMissionLandStart()) {
 		mission_item_s land_mission_item;
 		const dm_item_t dm_item = static_cast<dm_item_t>(_mission_sub.get().dataman_id);
 		bool success = _dataman_cache_landItem.loadWait(dm_item, _mission_sub.get().land_index,
@@ -368,7 +366,14 @@ void RTL::findRtlDestination(DestinationType &destination_type, DestinationPosit
 		float dist{get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, land_mission_item.lat, land_mission_item.lon)};
 
 		if ((dist + MIN_DIST_THRESHOLD) < min_dist) {
-			min_dist = dist;
+			if (_param_rtl_type.get() != 0) {
+				min_dist = dist;
+
+			} else {
+				// Mission landing is not allowed, but home has no approaches. Still use mission landing.
+				min_dist = FLT_MAX;
+			}
+
 			setLandPosAsDestination(rtl_position, land_mission_item);
 			destination_type = DestinationType::DESTINATION_TYPE_MISSION_LAND;
 		}
@@ -391,9 +396,13 @@ void RTL::findRtlDestination(DestinationType &destination_type, DestinationPosit
 			if (mission_safe_point.nav_cmd == NAV_CMD_RALLY_POINT && mission_safe_point.is_mission_rally_point) {
 				float dist{get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, mission_safe_point.lat, mission_safe_point.lon)};
 
-				if ((dist + MIN_DIST_THRESHOLD) < min_dist) {
+				DestinationPosition safepoint_position;
+				setSafepointAsDestination(safepoint_position, mission_safe_point);
+
+				if (((dist + MIN_DIST_THRESHOLD) < min_dist) && ((_param_rtl_approach_force.get() == 0)
+						|| hasVtolLandApproach(safepoint_position))) {
 					min_dist = dist;
-					setSafepointAsDestination(rtl_position, mission_safe_point);
+					rtl_position = safepoint_position;
 					destination_type = DestinationType::DESTINATION_TYPE_SAFE_POINT;
 				}
 			}
