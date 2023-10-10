@@ -49,7 +49,8 @@
 #include "bias_estimator.hpp"
 #include "height_bias_estimator.hpp"
 #include "position_bias_estimator.hpp"
-#include "python/ekf_derivation/generated/state.h"
+
+#include <ekf_derivation/generated/state.h>
 
 #include <uORB/topics/estimator_aid_source1d.h>
 #include <uORB/topics/estimator_aid_source2d.h>
@@ -1001,6 +1002,7 @@ private:
 			}
 		}
 
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 		if (!_control_status.flags.mag) {
 			for (unsigned i = 0; i < State::mag_I.dof; i++) {
 				K(State::mag_I.idx + i) = 0.f;
@@ -1012,12 +1014,15 @@ private:
 				K(State::mag_B.idx + i) = 0.f;
 			}
 		}
+#endif // CONFIG_EKF2_MAGNETOMETER
 
+#if defined(CONFIG_EKF2_WIND)
 		if (!_control_status.flags.wind) {
 			for (unsigned i = 0; i < State::wind_vel.dof; i++) {
 				K(State::wind_vel.idx + i) = 0.f;
 			}
 		}
+#endif // CONFIG_EKF2_WIND
 	}
 
 	bool measurementUpdate(VectorState &K, float innovation_variance, float innovation)
@@ -1177,7 +1182,9 @@ private:
 	void resetQuatCov(const float yaw_noise = NAN);
 	void resetQuatCov(const Vector3f &euler_noise_ned);
 
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 	void resetMagCov();
+#endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_WIND)
 	// perform a reset of the wind states and related covariances

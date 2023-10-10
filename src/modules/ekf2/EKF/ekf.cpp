@@ -68,7 +68,9 @@ void Ekf::reset()
 	_state.mag_B.setZero();
 #endif // CONFIG_EKF2_MAGNETOMETER
 
+#if defined(CONFIG_EKF2_WIND)
 	_state.wind_vel.setZero();
+#endif // CONFIG_EKF2_WIND
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	_range_sensor.setPitchOffset(_params.rng_sens_pitch);

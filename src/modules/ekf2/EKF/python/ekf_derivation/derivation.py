@@ -33,6 +33,8 @@ File: derivation.py
 Description:
 """
 
+import argparse
+
 import symforce
 symforce.set_epsilon_to_symbol()
 
@@ -41,6 +43,15 @@ from symforce import typing as T
 from symforce import ops
 from symforce.values import Values
 from derivation_utils import *
+
+# Initialize parser
+parser = argparse.ArgumentParser()
+
+parser.add_argument("--disable_mag", action='store_true', help="disable mag")
+parser.add_argument("--disable_wind", action='store_true', help="disable wind")
+
+# Read arguments from command line
+args = parser.parse_args()
 
 # The state vector is organized in an ordered dictionary
 State = Values(
@@ -53,6 +64,13 @@ State = Values(
     mag_B = sf.V3(),
     wind_vel = sf.V2()
 )
+
+if args.disable_mag:
+    del State["mag_I"]
+    del State["mag_B"]
+
+if args.disable_wind:
+    del State["wind_vel"]
 
 class IdxDof():
     def __init__(self, idx, dof):
@@ -595,25 +613,31 @@ def rot_var_ned_to_lower_triangular_quat_cov(
 
 print("Derive EKF2 equations...")
 generate_px4_function(predict_covariance, output_names=["P_new"])
-generate_px4_function(compute_airspeed_innov_and_innov_var, output_names=["innov", "innov_var"])
-generate_px4_function(compute_airspeed_h_and_k, output_names=["H", "K"])
-generate_px4_function(compute_wind_init_and_cov_from_airspeed, output_names=["wind", "P_wind"])
-generate_px4_function(compute_sideslip_innov_and_innov_var, output_names=["innov", "innov_var"])
-generate_px4_function(compute_sideslip_h_and_k, output_names=["H", "K"])
-generate_px4_function(compute_mag_innov_innov_var_and_hx, output_names=["innov", "innov_var", "Hx"])
-generate_px4_function(compute_mag_y_innov_var_and_h, output_names=["innov_var", "H"])
-generate_px4_function(compute_mag_z_innov_var_and_h, output_names=["innov_var", "H"])
-generate_px4_function(compute_yaw_321_innov_var_and_h, output_names=["innov_var", "H"])
-generate_px4_function(compute_yaw_321_innov_var_and_h_alternate, output_names=["innov_var", "H"])
+
+if not args.disable_mag:
+    generate_px4_function(compute_mag_declination_pred_innov_var_and_h, output_names=["pred", "innov_var", "H"])
+    generate_px4_function(compute_mag_innov_innov_var_and_hx, output_names=["innov", "innov_var", "Hx"])
+    generate_px4_function(compute_mag_y_innov_var_and_h, output_names=["innov_var", "H"])
+    generate_px4_function(compute_mag_z_innov_var_and_h, output_names=["innov_var", "H"])
+
+if not args.disable_wind:
+    generate_px4_function(compute_airspeed_h_and_k, output_names=["H", "K"])
+    generate_px4_function(compute_airspeed_innov_and_innov_var, output_names=["innov", "innov_var"])
+    generate_px4_function(compute_drag_x_innov_var_and_k, output_names=["innov_var", "K"])
+    generate_px4_function(compute_drag_y_innov_var_and_k, output_names=["innov_var", "K"])
+    generate_px4_function(compute_sideslip_h_and_k, output_names=["H", "K"])
+    generate_px4_function(compute_sideslip_innov_and_innov_var, output_names=["innov", "innov_var"])
+    generate_px4_function(compute_wind_init_and_cov_from_airspeed, output_names=["wind", "P_wind"])
+
 generate_px4_function(compute_yaw_312_innov_var_and_h, output_names=["innov_var", "H"])
 generate_px4_function(compute_yaw_312_innov_var_and_h_alternate, output_names=["innov_var", "H"])
-generate_px4_function(compute_mag_declination_pred_innov_var_and_h, output_names=["pred", "innov_var", "H"])
+generate_px4_function(compute_yaw_321_innov_var_and_h, output_names=["innov_var", "H"])
+generate_px4_function(compute_yaw_321_innov_var_and_h_alternate, output_names=["innov_var", "H"])
 generate_px4_function(compute_flow_xy_innov_var_and_hx, output_names=["innov_var", "H"])
 generate_px4_function(compute_flow_y_innov_var_and_h, output_names=["innov_var", "H"])
 generate_px4_function(compute_gnss_yaw_pred_innov_var_and_h, output_names=["meas_pred", "innov_var", "H"])
-generate_px4_function(compute_drag_x_innov_var_and_k, output_names=["innov_var", "K"])
-generate_px4_function(compute_drag_y_innov_var_and_k, output_names=["innov_var", "K"])
 generate_px4_function(compute_gravity_innov_var_and_k_and_h, output_names=["innov", "innov_var", "Kx", "Ky", "Kz"])
+
 generate_px4_function(quat_var_to_rot_var, output_names=["rot_var"])
 generate_px4_function(rot_var_ned_to_lower_triangular_quat_cov, output_names=["q_cov_lower_triangle"])
 

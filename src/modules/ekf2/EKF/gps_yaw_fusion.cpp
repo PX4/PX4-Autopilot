@@ -41,7 +41,7 @@
  */
 
 #include "ekf.h"
-#include "python/ekf_derivation/generated/compute_gnss_yaw_pred_innov_var_and_h.h"
+#include <ekf_derivation/generated/compute_gnss_yaw_pred_innov_var_and_h.h>
 
 #include <mathlib/mathlib.h>
 #include <cstdlib>
