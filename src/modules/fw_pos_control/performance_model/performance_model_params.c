@@ -41,7 +41,7 @@
  * @max 1.0
  * @decimal 2
  * @increment 0.01
- * @group FW TECS
+ * @group FW Performance
  */
 PARAM_DEFINE_FLOAT(FW_THR_TRIM, 0.6f);
 
@@ -56,7 +56,7 @@ PARAM_DEFINE_FLOAT(FW_THR_TRIM, 0.6f);
  * @max 1
  * @decimal 2
  * @increment 0.01
- * @group FW TECS
+ * @group FW Performance
  */
 PARAM_DEFINE_FLOAT(FW_THR_ASPD_MIN, 0.f);
 
@@ -71,7 +71,7 @@ PARAM_DEFINE_FLOAT(FW_THR_ASPD_MIN, 0.f);
  * @max 1
  * @decimal 2
  * @increment 0.01
- * @group FW TECS
+ * @group FW Performance
  */
 PARAM_DEFINE_FLOAT(FW_THR_ASPD_MAX, 0.f);
 
@@ -87,7 +87,7 @@ PARAM_DEFINE_FLOAT(FW_THR_ASPD_MAX, 0.f);
  * @unit m
  * @decimal 0
  * @increment 1.0
- * @group FW TECS
+ * @group FW Performance
  */
 PARAM_DEFINE_FLOAT(FW_S_CEILING, -1.0f);
 
@@ -100,7 +100,7 @@ PARAM_DEFINE_FLOAT(FW_S_CEILING, -1.0f);
  * @unit kg
  * @decimal 1
  * @increment 0.5
- * @group Mission
+ * @group FW Performance
  */
 PARAM_DEFINE_FLOAT(WEIGHT_BASE, -1.0f);
 
@@ -114,7 +114,7 @@ PARAM_DEFINE_FLOAT(WEIGHT_BASE, -1.0f);
  * @unit kg
  * @decimal 1
  * @increment 0.1
- * @group Mission
+ * @group FW Performance
  */
 PARAM_DEFINE_FLOAT(WEIGHT_GROSS, -1.0f);
 
@@ -131,7 +131,7 @@ PARAM_DEFINE_FLOAT(WEIGHT_GROSS, -1.0f);
  * @max 15.0
  * @decimal 1
  * @increment 0.5
- * @group FW TECS
+ * @group FW Performance
  */
 PARAM_DEFINE_FLOAT(FW_T_CLMB_MAX, 5.0f);
 
@@ -147,7 +147,7 @@ PARAM_DEFINE_FLOAT(FW_T_CLMB_MAX, 5.0f);
  * @max 5.0
  * @decimal 1
  * @increment 0.5
- * @group FW TECS
+ * @group FW Performance
  */
 PARAM_DEFINE_FLOAT(FW_T_SINK_MIN, 2.0f);
 
@@ -162,7 +162,7 @@ PARAM_DEFINE_FLOAT(FW_T_SINK_MIN, 2.0f);
  * @min 0.5
  * @decimal 1
  * @increment 0.5
- * @group FW TECS
+ * @group FW Performance
  */
 PARAM_DEFINE_FLOAT(FW_AIRSPD_TRIM, 15.0f);
 
@@ -177,7 +177,7 @@ PARAM_DEFINE_FLOAT(FW_AIRSPD_TRIM, 15.0f);
  * @min 0.5
  * @decimal 1
  * @increment 0.5
- * @group FW TECS
+ * @group FW Performance
  */
 PARAM_DEFINE_FLOAT(FW_AIRSPD_STALL, 7.0f);
 
@@ -196,7 +196,7 @@ PARAM_DEFINE_FLOAT(FW_AIRSPD_STALL, 7.0f);
  * @min 0.5
  * @decimal 1
  * @increment 0.5
- * @group FW TECS
+ * @group FW Performance
  */
 PARAM_DEFINE_FLOAT(FW_AIRSPD_MIN, 10.0f);
 
@@ -209,6 +209,6 @@ PARAM_DEFINE_FLOAT(FW_AIRSPD_MIN, 10.0f);
  * @min 0.5
  * @decimal 1
  * @increment 0.5
- * @group FW TECS
+ * @group FW Performance
  */
 PARAM_DEFINE_FLOAT(FW_AIRSPD_MAX, 20.0f);
