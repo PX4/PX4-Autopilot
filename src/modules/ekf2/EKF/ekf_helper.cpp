@@ -40,8 +40,8 @@
  */
 
 #include "ekf.h"
-#include "python/ekf_derivation/generated/quat_var_to_rot_var.h"
-#include "python/ekf_derivation/generated/rot_var_ned_to_lower_triangular_quat_cov.h"
+#include <ekf_derivation/generated/quat_var_to_rot_var.h>
+#include <ekf_derivation/generated/rot_var_ned_to_lower_triangular_quat_cov.h>
 
 #include <mathlib/mathlib.h>
 #include <lib/world_magnetic_model/geo_mag_declination.h>
@@ -244,7 +244,9 @@ void Ekf::constrainStates()
 	_state.mag_B = matrix::constrain(_state.mag_B, -getMagBiasLimit(), getMagBiasLimit());
 #endif // CONFIG_EKF2_MAGNETOMETER
 
+#if defined(CONFIG_EKF2_WIND)
 	_state.wind_vel = matrix::constrain(_state.wind_vel, -100.0f, 100.0f);
+#endif // CONFIG_EKF2_WIND
 }
 
 #if defined(CONFIG_EKF2_BARO_COMPENSATION)
@@ -817,7 +819,9 @@ void Ekf::fuse(const VectorState &K, float innovation)
 	_state.mag_B -= K.slice<State::mag_B.dof, 1>(State::mag_B.idx, 0) * innovation;
 #endif // CONFIG_EKF2_MAGNETOMETER
 
+#if defined(CONFIG_EKF2_WIND)
 	_state.wind_vel -= K.slice<State::wind_vel.dof, 1>(State::wind_vel.idx, 0) * innovation;
+#endif // CONFIG_EKF2_WIND
 }
 
 void Ekf::uncorrelateQuatFromOtherStates()
