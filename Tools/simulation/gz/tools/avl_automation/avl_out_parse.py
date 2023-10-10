@@ -8,20 +8,6 @@ import fileinput
 import subprocess
 import os
 
-parser = argparse.ArgumentParser()
-
-
-def parse_args():
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument("file_name")
-    parser.add_argument("type")
-
-    args = parser.parse_args()
-    return args
-
-
-
 def get_coef(file,token):
 
     linesplit = []

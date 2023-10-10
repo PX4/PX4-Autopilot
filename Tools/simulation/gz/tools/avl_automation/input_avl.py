@@ -6,12 +6,11 @@
 
 #Prepare liftdrag template here as you will need to set the correct number of control surfaces.
 
-import webbrowser
+import argparse
 import avl_out_parse
 import os
 import yaml
 import subprocess
-
 
 
 # This function writes section definition to AVL file
@@ -64,8 +63,11 @@ def split_into_three(vector,message):
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("yaml_file")
+    inputs = parser.parse_args()
 
-    with open('input.yml','r') as yaml_file:
+    with open(inputs.yaml_file,'r') as yaml_file:
         yaml_data = yaml.safe_load(yaml_file)
 
     not_valid_a = True

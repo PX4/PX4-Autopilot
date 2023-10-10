@@ -18,17 +18,19 @@ sudo tar -xf avl3.36.tgz
 mv ./Avl /home/
 ```
 
-Follow the README.md found in Avl to finish the setup process for AVL (requires to set up plotlib and eispack libraries). Use the gfortran compile option. This might require you to install gfortran.
-TODO: INSTALL gfortran
-When running the Makefile for AVL, you might encounter an Error 1 message stating that there is a directory missing. This does not prevent AVL from working for our purposes. Once this process is completed, AVL is ready to be used.
+Follow the README.md found in Avl to finish the setup process for AVL (requires to set up plotlib and eispack libraries). I recommend usign the gfortran compile option. This might require you to install gfortran. This can be done by running:
 
+```shell
+sudo apt update
+sudo apt install gfortran
+```
 
-Running individual parts: run just one section TODO: provide custom commands to do this.
+When running the Makefile for AVL, you might encounter an Error 1 message stating that there is a directory missing. This does not prevent AVL from working for our purposes. Once the process described in the AVL README is completed, AVL is ready to be used. No further set up is required on the side of the AVL.
 
 ## Run
 
-To run the program all that is needed is to modify the input.yml to the plane that you desire and then run `python input_avl.py`. Note that you require to have the yaml and argparse packages in your python environment to run this.
-
+To run the tool all that is needed is to modify the input.yml to the plane that you desire and then run `python input_avl.py <your_custom_yaml_file>.yml`. Note that you require to have the yaml and argparse packages in your python environment to run this. An example template has been provided in the form of the `input.yml` that implements a standard plane with two ailerons, an elevator and a rudder. This example template can be run using: `python input_avl.py input.yml`.
+Once the script has been executed, the generated .avl, .sdf and a plot of the proposed control surfaces can be found in <your-planes-name> directory. The sdf file is the generated Advanced Lift Drag Plugin that can be copied and pasted straight into a model.sdf file, which can then be run in Gazebo.
 
 ## IMPORTANT POINTS TO NOTE
 A control surface in AVL is always defined from left to right. This means you need to first provide the left edge of a surface and then the right edge. If you do this the opposite way around, a surface will essentially be defined upside down.
