@@ -68,7 +68,6 @@ def main(file_name,vehicle_type,AR,mac,ref_pt_x,ref_pt_y,ref_pt_z,num_ctrl_surfa
     if result.returncode == 0:
         # Save the output in a variable
         savedir = result.stdout.strip()
-        # print(f"Current working directory is: {current_path}")
 
     user = os.environ.get('USER')
     filedir = f'/home/{user}/Avl/runs/'
@@ -215,8 +214,6 @@ def main(file_name,vehicle_type,AR,mac,ref_pt_x,ref_pt_y,ref_pt_z,num_ctrl_surfa
     write_coef(file_name,"CLa_stall","-3.85")
     write_coef(file_name,"CDa_stall","-0.9233984055")
     write_coef(file_name,"Cema_stall","0")
-
-    # TODO: Get this to work for more custom frames.
 
     # Check whether a particular type of control surface has been seen before. If it has,
     # then the current control surface is the (right) counterpart.
