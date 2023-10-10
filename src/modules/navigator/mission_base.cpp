@@ -243,7 +243,7 @@ MissionBase::on_activation()
 		}
 	}
 
-	checkClimbRequired(resume_index);
+	checkClimbRequired(_mission.current_seq);
 	set_mission_items();
 
 	_inactivation_index = -1; // reset
