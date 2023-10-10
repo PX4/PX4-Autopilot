@@ -119,6 +119,7 @@ private:
 
 	static constexpr uint16_t MODAL_PWM_DEFAULT_PWM_MIN = 0;
 	static constexpr uint16_t MODAL_PWM_DEFAULT_PWM_MAX = 800;
+	static constexpr uint16_t MODAL_PWM_DEFAULT_PWM_FAILSAFE = 0;
 
 	static constexpr float    MODAL_PWM_MODE_DISABLED_SETPOINT = -0.1f;
 	static constexpr float    MODAL_PWM_MODE_THRESHOLD = 0.0f;
@@ -132,7 +133,8 @@ private:
 		int32_t		mode{MODAL_PWM_MODE};
 		int32_t		baud_rate{MODAL_PWM_DEFAULT_BAUD};
 		int32_t		pwm_min{MODAL_PWM_DEFAULT_PWM_MIN};
-		int32_t		pwm_max{MODAL_PWM_DEFAULT_PWM_MAX};
+		int32_t		pwm_max{MODAL_PWM_DEFAULT_PWM_FAILSAFE};
+		int32_t		pwm_failsafe{MODAL_PWM_DEFAULT_PWM_MAX};
 		int32_t		function_map[MODAL_PWM_OUTPUT_CHANNELS] {0, 0, 0, 0};
 		int32_t		motor_map[MODAL_PWM_OUTPUT_CHANNELS] {1, 2, 3, 4};
 		int32_t		direction_map[MODAL_PWM_OUTPUT_CHANNELS] {1, 1, 1, 1};
@@ -144,7 +146,7 @@ private:
 	/* QUP7, VOXL2 J19, /dev/slpi-uart-7*/
 	ModalIoSerial 		*_uart_port;
 	
-	MixingOutput 		_mixing_output;
+	MixingOutput 	_mixing_output;
 	unsigned		_current_update_rate{0};
 
 	// int _timer_rates[MAX_IO_TIMERS] {};
@@ -152,17 +154,13 @@ private:
 	// uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription 	_parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription 	_actuator_test_sub{ORB_ID(actuator_test)};
-	uORB::Subscription	_modal_io_data_sub{ORB_ID(modal_io_data)};
-	// uORB::Subscription	_manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 
 	// unsigned	_num_outputs{DIRECT_PWM_OUTPUT_CHANNELS};
 
 	bool		_pwm_on{false};
-	uint32_t	_pwm_mask{0};
 	int32_t		_pwm_fullscale{0};
 	int16_t 	_pwm_values[MODAL_PWM_OUTPUT_CHANNELS] = {0, 0, 0, 0};
 	bool		_first_update_cycle{true};
-	// manual_control_setpoint_s _manual_control_setpoint{};
 
 	typedef struct {
 		uint8_t		number;
@@ -183,7 +181,6 @@ private:
 
 	int	load_params(modal_pwm_params_t *params, ch_assign_t *map);
 	void update_params();
-	bool update_pwm_out_state(bool on);
 	int	flush_uart_rx();
 	int read_response(Command *out_cmd);
 };

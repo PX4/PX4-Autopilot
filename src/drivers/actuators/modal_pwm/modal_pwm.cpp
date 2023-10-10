@@ -37,15 +37,11 @@
 
 
 ModalPWM::ModalPWM() :
-	// OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default)
-	OutputModuleInterface(MODULE_NAME, px4::serial_port_to_wq("7")),
+	OutputModuleInterface(MODULE_NAME, px4::serial_port_to_wq(MODAL_PWM_DEFAULT_PORT)),
 	_mixing_output{"MODAL_PWM", MODAL_PWM_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false},
 	_cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")},
 	_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": output update interval")}
 {
-	// _device = MODAL_PWM_DEFAULT_PORT;
-
-	_pwm_mask = ((1u << MODAL_PWM_OUTPUT_CHANNELS) - 1);
 	_mixing_output.setMaxNumOutputs(MODAL_PWM_OUTPUT_CHANNELS);
 
 	// Getting initial parameter values
@@ -57,7 +53,6 @@ ModalPWM::ModalPWM() :
 ModalPWM::~ModalPWM()
 {
 	/* make sure servos are off */
-	// up_pwm_servo_deinit(_pwm_mask);
 	stop_all_pwms();
 
 	if (_uart_port) {
@@ -79,7 +74,7 @@ void ModalPWM::update_params()
 
 	if (ret == PX4_OK) {
 		_mixing_output.setAllDisarmedValues(0);
-		_mixing_output.setAllFailsafeValues(0);
+		_mixing_output.setAllFailsafeValues(MODAL_PWM_DEFAULT_PWM_FAILSAFE);
 		_mixing_output.setAllMinValues(MODAL_PWM_DEFAULT_PWM_MIN);
 		_mixing_output.setAllMaxValues(MODAL_PWM_DEFAULT_PWM_MAX);
 
@@ -109,10 +104,7 @@ int ModalPWM::load_params(modal_pwm_params_t *params, ch_assign_t *map)
 
 	param_get(param_find("MODAL_PWM_MIN"), &params->pwm_min);
 	param_get(param_find("MODAL_PWM_MAX"), &params->pwm_max);
-
-	// Set PWM max and min 
-	// params->pwm_min = MODAL_PWM_DEFAULT_PWM_MIN;
-	// params->pwm_max = MODAL_PWM_DEFAULT_PWM_MAX;
+	param_get(param_find("MODAL_PWM_FS"),  &params->pwm_failsafe);
 
 	if (params->pwm_min >= params->pwm_max) {
 		PX4_ERR("Invalid parameter MODAL_PWM_MIN.  Please verify parameters.");
@@ -120,80 +112,13 @@ int ModalPWM::load_params(modal_pwm_params_t *params, ch_assign_t *map)
 		ret = PX4_ERROR;
 	}
 
+	if (params->pwm_failsafe >= params->pwm_max) {
+		PX4_ERR("Invalid parameter MODAL_PWM_FS.  Please verify parameters.");
+		params->pwm_failsafe = 0;
+		ret = PX4_ERROR;
+	}
+
 	return ret;
-}
-
-
-bool ModalPWM::update_pwm_out_state(bool on)
-{
-	return true;
-	// if (on && !_pwm_initialized && _pwm_mask != 0) {
-
-	// 	for (int timer = 0; timer < MAX_IO_TIMERS; ++timer) {
-	// 		_timer_rates[timer] = -1;
-
-	// 		uint32_t channels = io_timer_get_group(timer);
-
-	// 		if (channels == 0) {
-	// 			continue;
-	// 		}
-
-	// 		char param_name[17];
-	// 		snprintf(param_name, sizeof(param_name), "%s_TIM%u", _mixing_output.paramPrefix(), timer);
-
-	// 		int32_t tim_config = 0;
-	// 		param_t handle = param_find(param_name);
-	// 		param_get(handle, &tim_config);
-
-	// 		if (tim_config > 0) {
-	// 			_timer_rates[timer] = tim_config;
-
-	// 		} else if (tim_config == -1) { // OneShot
-	// 			_timer_rates[timer] = 0;
-
-	// 		} else {
-	// 			_pwm_mask &= ~channels; // don't use for pwm
-	// 		}
-	// 	}
-
-	// 	int ret = up_pwm_servo_init(_pwm_mask);
-
-	// 	if (ret < 0) {
-	// 		PX4_ERR("up_pwm_servo_init failed (%i)", ret);
-	// 		return false;
-	// 	}
-
-	// 	_pwm_mask = ret;
-
-	// 	// set the timer rates
-	// 	for (int timer = 0; timer < MAX_IO_TIMERS; ++timer) {
-	// 		uint32_t channels = _pwm_mask & up_pwm_servo_get_rate_group(timer);
-
-	// 		if (channels == 0) {
-	// 			continue;
-	// 		}
-
-	// 		ret = up_pwm_servo_set_rate_group_update(timer, _timer_rates[timer]);
-
-	// 		if (ret != 0) {
-	// 			PX4_ERR("up_pwm_servo_set_rate_group_update failed for timer %i, rate %i (%i)", timer, _timer_rates[timer], ret);
-	// 			_timer_rates[timer] = -1;
-	// 			_pwm_mask &= ~channels;
-	// 		}
-	// 	}
-
-	// 	_pwm_initialized = true;
-
-	// 	// disable unused functions
-	// 	for (unsigned i = 0; i < _num_outputs; ++i) {
-	// 		if (((1 << i) & _pwm_mask) == 0) {
-	// 			_mixing_output.disableFunction(i);
-	// 		}
-	// 	}
-	// }
-
-	// up_pwm_servo_arm(on, _pwm_mask);
-	// return true;
 }
 
 bool ModalPWM::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
@@ -249,64 +174,6 @@ bool ModalPWM::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 		PX4_ERR("Failed to send packet");
 		return false;
 	} 
-	// else {
-		// PX4_INFO("Successfully wrote packet to M0065!");
-	// }
-
-	// increment ESC id from which to request feedback in round robin order
-	// _fb_idx = (_fb_idx + 1) % MODAL_PWM_OUTPUT_CHANNELS;
-
-
-	/*
-	 * Here we read and parse response from ESCs. Since the latest command has just been sent out,
-	 * the response packet we may read here is probabaly from previous iteration, but it is totally ok.
-	 * uart_read is non-blocking and we will just parse whatever bytes came in up until this point
-	 */
-
-	// int res = _uart_port->uart_read(_read_buf, sizeof(_read_buf));
-
-	/* No feedback response in M0065 firmware right now */
-	// if (res > 0) {
-	// 	parse_response(_read_buf, res, false);
-	// }
-
-	/* handle loss of comms / disconnect */
-	// TODO - enable after CRC issues in feedback are addressed
-	//check_for_esc_timeout();
-
-	/* No verbose logging right now */
-	// publish the actual command that we sent and the feedback received
-	// if (_parameters.verbose_logging) {
-	// 	actuator_outputs_s actuator_outputs{};
-	// 	actuator_outputs.noutputs = num_outputs;
-
-	// 	for (size_t i = 0; i < num_outputs; ++i) {
-	// 		actuator_outputs.output[i] = _esc_chans[i].rate_req;
-	// 	}
-
-	// 	actuator_outputs.timestamp = hrt_absolute_time();
-
-	// 	_outputs_debug_pub.publish(actuator_outputs);
-
-	// }
-
-	/* Not publishing ESC status... TODO: Determine what data to publish.. PWM channel states?*/
-	// _esc_status_pub.publish(_esc_status);
-
-	// If any extra external modal io data has been received then
-	// send it over as well
-	// while (_modal_io_data_sub.updated()) {
-	// 	modal_io_data_s io_data{};
-	// 	_modal_io_data_sub.copy(&io_data);
-	// 	// PX4_INFO("Got Modal IO data: %u bytes", io_data.len);
-	// 	// PX4_INFO("   0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x",
-	// 	// 		 io_data.data[0], io_data.data[1], io_data.data[2], io_data.data[3],
-	// 	// 		 io_data.data[4], io_data.data[5], io_data.data[6], io_data.data[7]);
-	// 	if (_uart_port->uart_write(io_data.data, io_data.len) != io_data.len) {
-	// 		PX4_ERR("Failed to send modal io data to esc");
-	// 		return false;
-	// 	}
-	// }
 
 	perf_count(_interval_perf);
 
@@ -370,20 +237,9 @@ void ModalPWM::Run()
 	}
 
 	_mixing_output.update(); //calls MixingOutput::limitAndUpdateOutputs which calls updateOutputs in this module
-	// bool mixer_updated = _mixing_output.update(); //calls MixingOutput::limitAndUpdateOutputs which calls updateOutputs in this module
-
-	// if (mixer_updated){
-		// PX4_INFO("Mixer updated!");
-	// }
 
 	/* update PWM status if armed or if disarmed PWM values are set */
 	_pwm_on = _mixing_output.armed().armed;
-
-	// if (!_pwm_on){
-		// PX4_INFO("Drone not armed!");
-	// } else{
-		// PX4_INFO("Drone ARMED!");
-	// }
 
 	/* check for parameter updates */
 	if (!_pwm_on && _parameter_update_sub.updated()) {
@@ -395,14 +251,7 @@ void ModalPWM::Run()
 		update_params();
 	}
 
-	if (!_pwm_on) {
-		if (_actuator_test_sub.updated()) {
-			// values are set in ActuatorTest::update, we just need to enable outputs to let them through
-			_pwm_on = true;
-		}
-	}
-
-	/* Don't process commands if outputs on */
+	/* Don't process commands if pwm on */
 	if (!_pwm_on) {
 		if (_current_cmd.valid()) {
 			PX4_INFO("sending %d commands with delay %dus",_current_cmd.repeats,_current_cmd.repeat_delay_us);
@@ -480,7 +329,7 @@ bool ModalPWM::stop_all_pwms()
 	uint8_t _fb_idx = 0;
 
 	Command cmd;
-	cmd.len = qc_esc_create_rpm_packet4_fb(_rate_req[0],
+	cmd.len = qc_esc_create_pwm_packet4_fb(_rate_req[0],
 					       _rate_req[1],
 					       _rate_req[2],
 					       _rate_req[3],
@@ -491,7 +340,6 @@ bool ModalPWM::stop_all_pwms()
 					       _fb_idx,
 					       cmd.buf,
 					       sizeof(cmd.buf));
-
 
 	if (_uart_port->uart_write(cmd.buf, cmd.len) != cmd.len) {
 		PX4_ERR("Failed to send packet");
@@ -559,6 +407,12 @@ int ModalPWM::custom_command(int argc, char *argv[])
 		switch (ch) {
 		case 'c':
 			output_channel = atoi(myoptarg);
+			if (output_channel > MODAL_PWM_OUTPUT_CHANNELS - 1){
+				char reason[50];
+				sprintf(reason, "Bad channel value: %d. Must be 0-%d.", output_channel, MODAL_PWM_OUTPUT_CHANNELS-1);
+				print_usage(reason);
+				return 0;
+			}
 			break;
 
 		case 'n':
@@ -609,16 +463,6 @@ int ModalPWM::custom_command(int argc, char *argv[])
 				rate_req[output_channel] = rate;
 				id_fb = output_channel;
 			}
-			// cmd.len = qc_esc_create_pwm_packet4(rate_req[0],
-			// 									rate_req[1],
-			// 									rate_req[2],
-			// 									rate_req[3],
-			// 									0,
-			// 									0,
-			// 									0,
-			// 									0,
-			// 									cmd.buf,
-			// 									sizeof(cmd.buf));
 
 			cmd.len = qc_esc_create_pwm_packet4_fb(rate_req[0],
 							       rate_req[1],
@@ -644,11 +488,7 @@ int ModalPWM::custom_command(int argc, char *argv[])
 			if (get_instance()->_uart_port->uart_write(cmd.buf, cmd.len) != cmd.len) {
 				PX4_ERR("Failed to send packet");
 				return -1;
-			} else {
-				PX4_INFO("Successfully sent packet");
-				return 0;
-			}
-			// return get_instance()->send_cmd_thread_safe(&cmd);
+			} 
 		} else {
 			print_usage("Invalid Output Channel, use 0-3");
 			return 0;
@@ -677,6 +517,7 @@ int ModalPWM::print_status()
 
 	PX4_INFO("Params: MODAL_PWM_MIN: %" PRId32, _parameters.pwm_min);
 	PX4_INFO("Params: MODAL_PWM_MAX: %" PRId32, _parameters.pwm_max);
+	PX4_INFO("Params: MODAL_PWM_FS : %" PRId32, _parameters.pwm_failsafe);
 
 	PX4_INFO("PWM CH1: %" PRId16, _pwm_values[0]);
 	PX4_INFO("PWM CH2: %" PRId16, _pwm_values[1]);
@@ -685,30 +526,9 @@ int ModalPWM::print_status()
 
 	PX4_INFO("");
 
+	_mixing_output.printStatus();
 	perf_print_counter(_cycle_perf);
 	perf_print_counter(_interval_perf);
-	_mixing_output.printStatus();
-
-	// if (_pwm_initialized) {
-	// 	for (int timer = 0; timer < MAX_IO_TIMERS; ++timer) {
-	// 		if (_timer_rates[timer] >= 0) {
-	// 			PX4_INFO_RAW("Timer %i: rate: %3i", timer, _timer_rates[timer]);
-	// 			uint32_t channels = _pwm_mask & up_pwm_servo_get_rate_group(timer);
-
-	// 			if (channels > 0) {
-	// 				PX4_INFO_RAW(" channels: ");
-
-	// 				for (uint32_t channel = 0; channel < _num_outputs; ++channel) {
-	// 					if ((1 << channel) & channels) {
-	// 						PX4_INFO_RAW("%" PRIu32 " ", channel);
-	// 					}
-	// 				}
-	// 			}
-
-	// 			PX4_INFO_RAW("\n");
-	// 		}
-	// 	}
-	// }
 
 	return 0;
 }

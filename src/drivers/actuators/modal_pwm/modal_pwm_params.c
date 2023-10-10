@@ -96,6 +96,17 @@ PARAM_DEFINE_INT32(MODAL_PWM_MIN, 0);
  */
 PARAM_DEFINE_INT32(MODAL_PWM_MAX, 800);
 
+
+/**
+ * M0065 PWM Failsafe
+ *
+ * Failsafe value for PWM
+ *
+ * @group MODAL PWM
+ * @unit us
+ */
+PARAM_DEFINE_INT32(MODAL_PWM_FS, 0);
+
 /**
  * UART M0065 Mode
  *
