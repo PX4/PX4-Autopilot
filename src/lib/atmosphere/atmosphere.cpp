@@ -43,7 +43,7 @@ namespace atmosphere
 
 static constexpr float kTempRefKelvin = 15.f - CONSTANTS_ABSOLUTE_NULL_CELSIUS; // temperature at base height in Kelvin
 static constexpr float kTempGradient = -6.5f / 1000.f; // temperature gradient in degrees per meter
-static constexpr float kPressRefSeaLevelPa = 101325.f; // pressure at sea level in Pa
+static constexpr float kPressRefSeaLevelPa = 101325.f; // pressure at sea level in kPa
 
 float getDensityFromPressureAndTemp(const float pressure_pa, const float temperature_celsius)
 {
