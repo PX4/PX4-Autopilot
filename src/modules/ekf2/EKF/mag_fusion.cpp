@@ -57,7 +57,6 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bo
 	const float R_MAG = math::max(sq(_params.mag_noise), sq(0.01f));
 
 	// calculate intermediate variables used for X axis innovation variance, observation Jacobians and Kalman gains
-	const char *numerical_error_covariance_reset_string = "numerical error - covariance reset";
 	Vector3f mag_innov;
 	Vector3f innov_var;
 
@@ -65,60 +64,6 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bo
 	VectorState H;
 	const VectorState state_vector = _state.vector();
 	sym::ComputeMagInnovInnovVarAndHx(state_vector, P, mag, R_MAG, FLT_EPSILON, &mag_innov, &innov_var, &H);
-
-	innov_var.copyTo(aid_src_mag.innovation_variance);
-
-	if (aid_src_mag.innovation_variance[0] < R_MAG) {
-		// the innovation variance contribution from the state covariances is negative which means the covariance matrix is badly conditioned
-		_fault_status.flags.bad_mag_x = true;
-
-		// we need to re-initialise covariances and abort this fusion step
-		if (update_all_states) {
-			resetQuatCov(_params.mag_heading_noise);
-		}
-
-		resetMagCov();
-
-		ECL_ERR("magX %s", numerical_error_covariance_reset_string);
-		return false;
-	}
-
-	_fault_status.flags.bad_mag_x = false;
-
-	// check innovation variances for being badly conditioned
-	if (aid_src_mag.innovation_variance[1] < R_MAG) {
-		// the innovation variance contribution from the state covariances is negtive which means the covariance matrix is badly conditioned
-		_fault_status.flags.bad_mag_y = true;
-
-		// we need to re-initialise covariances and abort this fusion step
-		if (update_all_states) {
-			resetQuatCov(_params.mag_heading_noise);
-		}
-
-		resetMagCov();
-
-		ECL_ERR("magY %s", numerical_error_covariance_reset_string);
-		return false;
-	}
-
-	_fault_status.flags.bad_mag_y = false;
-
-	if (aid_src_mag.innovation_variance[2] < R_MAG) {
-		// the innovation variance contribution from the state covariances is negative which means the covariance matrix is badly conditioned
-		_fault_status.flags.bad_mag_z = true;
-
-		// we need to re-initialise covariances and abort this fusion step
-		if (update_all_states) {
-			resetQuatCov(_params.mag_heading_noise);
-		}
-
-		resetMagCov();
-
-		ECL_ERR("magZ %s", numerical_error_covariance_reset_string);
-		return false;
-	}
-
-	_fault_status.flags.bad_mag_z = false;
 
 	// do not use the synthesized measurement for the magnetomter Z component for 3D fusion
 	if (_control_status.flags.synthetic_mag_z) {
@@ -129,20 +74,43 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bo
 		aid_src_mag.observation[i] = mag(i) - _state.mag_B(i);
 		aid_src_mag.observation_variance[i] = R_MAG;
 		aid_src_mag.innovation[i] = mag_innov(i);
-	}
-
-	// do not use the synthesized measurement for the magnetomter Z component for 3D fusion
-	if (_control_status.flags.synthetic_mag_z) {
-		aid_src_mag.innovation[2] = 0.0f;
+		aid_src_mag.innovation_variance[i] = innov_var(i);
 	}
 
 	const float innov_gate = math::max(_params.mag_innov_gate, 1.f);
 	setEstimatorAidStatusTestRatio(aid_src_mag, innov_gate);
 
+	if (update_all_states) {
+		_fault_status.flags.bad_mag_x = (aid_src_mag.innovation_variance[0] < aid_src_mag.observation_variance[0]);
+		_fault_status.flags.bad_mag_y = (aid_src_mag.innovation_variance[1] < aid_src_mag.observation_variance[1]);
+		_fault_status.flags.bad_mag_z = (aid_src_mag.innovation_variance[2] < aid_src_mag.observation_variance[2]);
+
+	} else {
+		_fault_status.flags.bad_mag_x = false;
+		_fault_status.flags.bad_mag_y = false;
+		_fault_status.flags.bad_mag_z = false;
+	}
+
 	// Perform an innovation consistency check and report the result
 	_innov_check_fail_status.flags.reject_mag_x = (aid_src_mag.test_ratio[0] > 1.f);
 	_innov_check_fail_status.flags.reject_mag_y = (aid_src_mag.test_ratio[1] > 1.f);
 	_innov_check_fail_status.flags.reject_mag_z = (aid_src_mag.test_ratio[2] > 1.f);
+
+	const char *numerical_error_covariance_reset_string = "numerical error - covariance reset";
+
+	// check innovation variances for being badly conditioned
+	if (innov_var.min() < R_MAG) {
+		// the innovation variance contribution from the state covariances is negative which means the covariance matrix is badly conditioned
+		// we need to re-initialise covariances and abort this fusion step
+		if (update_all_states) {
+			resetQuatCov(_params.mag_heading_noise);
+		}
+
+		resetMagCov();
+
+		ECL_ERR("mag %s", numerical_error_covariance_reset_string);
+		return false;
+	}
 
 	// if any axis fails, abort the mag fusion
 	if (aid_src_mag.innovation_rejected) {
@@ -211,13 +179,16 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bo
 		VectorState Kfusion = P * H / aid_src_mag.innovation_variance[index];
 
 		if (!update_all_states) {
-			for (unsigned row = 0; row <= 15; row++) {
-				Kfusion(row) = 0.f;
-			}
+			// zero non-mag Kalman gains if not updating all states
 
-			for (unsigned row = 22; row <= 23; row++) {
-				Kfusion(row) = 0.f;
-			}
+			// copy mag_I and mag_B Kalman gains
+			const Vector3f K_mag_I = Kfusion.slice<State::mag_I.dof, 1>(State::mag_I.idx, 0);
+			const Vector3f K_mag_B = Kfusion.slice<State::mag_B.dof, 1>(State::mag_B.idx, 0);
+
+			// zero all Kalman gains, then restore mag
+			Kfusion.setZero();
+			Kfusion.slice<State::mag_I.dof, 1>(State::mag_I.idx, 0) = K_mag_I;
+			Kfusion.slice<State::mag_B.dof, 1>(State::mag_B.idx, 0) = K_mag_B;
 		}
 
 		if (measurementUpdate(Kfusion, aid_src_mag.innovation_variance[index], aid_src_mag.innovation[index])) {
@@ -229,11 +200,13 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bo
 		}
 	}
 
-	_fault_status.flags.bad_mag_x = !fused[0];
-	_fault_status.flags.bad_mag_y = !fused[1];
-	_fault_status.flags.bad_mag_z = !fused[2];
+	if (update_all_states) {
+		_fault_status.flags.bad_mag_x = !fused[0];
+		_fault_status.flags.bad_mag_y = !fused[1];
+		_fault_status.flags.bad_mag_z = !fused[2];
+	}
 
-	if (fused[0] && fused[1] && (fused[2] || _control_status.flags.synthetic_mag_z)) {
+	if (fused[0] && fused[1] && fused[2]) {
 		aid_src_mag.fused = true;
 		aid_src_mag.time_last_fuse = _time_delayed_us;
 

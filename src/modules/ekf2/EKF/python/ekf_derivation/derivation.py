@@ -193,6 +193,35 @@ def compute_airspeed_h_and_k(
 
     return (H.T, K)
 
+def compute_wind_init_and_cov_from_airspeed(
+        v_local: sf.V3,
+        heading: sf.Scalar,
+        airspeed: sf.Scalar,
+        v_var: sf.V3,
+        heading_var: sf.Scalar,
+        sideslip_var: sf.Scalar,
+        airspeed_var: sf.Scalar,
+) -> (sf.V2, sf.M22):
+
+    # Initialise wind states assuming horizontal flight
+    sideslip = sf.Symbol("beta")
+    wind = sf.V2(v_local[0] - airspeed * sf.cos(heading + sideslip), v_local[1] - airspeed * sf.sin(heading + sideslip))
+    J = wind.jacobian([v_local[0], v_local[1], heading, sideslip, airspeed])
+
+    R = sf.M55()
+    R[0,0] = v_var[0]
+    R[1,1] = v_var[1]
+    R[2,2] = heading_var
+    R[3,3] = sideslip_var
+    R[4,4] = airspeed_var
+
+    P = J * R * J.T
+
+    # Assume zero sideslip
+    P = P.subs({sideslip: 0.0})
+    wind = wind.subs({sideslip: 0.0})
+    return (wind, P)
+
 def predict_sideslip(
         state: State,
         epsilon: sf.Scalar
@@ -583,6 +612,7 @@ def rot_var_ned_to_lower_triangular_quat_cov(
     return q_var.lower_triangle()
 
 print("Derive EKF2 equations...")
+generate_px4_function(predict_covariance, output_names=["P_new"])
 
 if not args.disable_mag:
     generate_px4_function(compute_mag_declination_pred_innov_var_and_h, output_names=["pred", "innov_var", "H"])
@@ -597,6 +627,7 @@ if not args.disable_wind:
     generate_px4_function(compute_drag_y_innov_var_and_k, output_names=["innov_var", "K"])
     generate_px4_function(compute_sideslip_h_and_k, output_names=["H", "K"])
     generate_px4_function(compute_sideslip_innov_and_innov_var, output_names=["innov", "innov_var"])
+    generate_px4_function(compute_wind_init_and_cov_from_airspeed, output_names=["wind", "P_wind"])
 
 generate_px4_function(compute_yaw_312_innov_var_and_h, output_names=["innov_var", "H"])
 generate_px4_function(compute_yaw_312_innov_var_and_h_alternate, output_names=["innov_var", "H"])
@@ -609,7 +640,5 @@ generate_px4_function(compute_gravity_innov_var_and_k_and_h, output_names=["inno
 
 generate_px4_function(quat_var_to_rot_var, output_names=["rot_var"])
 generate_px4_function(rot_var_ned_to_lower_triangular_quat_cov, output_names=["q_cov_lower_triangle"])
-
-generate_px4_function(predict_covariance, output_names=["P_new"])
 
 generate_px4_state(State, tangent_idx)
