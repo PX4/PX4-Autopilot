@@ -131,8 +131,8 @@ RoboClaw::RoboClaw(const char *deviceName, const char *baudRateParam):
 
 RoboClaw::~RoboClaw()
 {
-	// setMotorDutyCycle(MOTOR_1, 0.0);
-	// setMotorDutyCycle(MOTOR_2, 0.0);
+	setMotorDutyCycle(MOTOR_1, 0.0);
+	setMotorDutyCycle(MOTOR_2, 0.0);
 	close(_uart);
 }
 
