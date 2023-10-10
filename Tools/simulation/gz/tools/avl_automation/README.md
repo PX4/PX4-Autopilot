@@ -18,7 +18,9 @@ sudo tar -xf avl3.36.tgz
 mv ./Avl /home/
 ```
 
-Follow the README.md found in Avl to finish the setup process for AVL (requires to set up plotlib and eispack libraries). When running the Makefile for AVL, you might encounter an Error 1 message stating that there is a directory missing. This does not prevent AVL from working for our purposes. Once this process is completed, AVL is ready to be used.
+Follow the README.md found in Avl to finish the setup process for AVL (requires to set up plotlib and eispack libraries). Use the gfortran compile option. This might require you to install gfortran.
+TODO: INSTALL gfortran
+When running the Makefile for AVL, you might encounter an Error 1 message stating that there is a directory missing. This does not prevent AVL from working for our purposes. Once this process is completed, AVL is ready to be used.
 
 
 Running individual parts: run just one section TODO: provide custom commands to do this.

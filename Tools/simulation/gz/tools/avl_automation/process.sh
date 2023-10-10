@@ -1,4 +1,3 @@
-# The idea of this file is to use the generate avl file and feed it to AVL in order to steer the parameter generation.
 #!/bin/bash
 CUSTOM_MODEL=$1
 DIR_PATH=$(pwd)
