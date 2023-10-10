@@ -266,9 +266,7 @@ def main():
     if result.returncode == 0:
         # Save the output in a variable
         current_path = result.stdout.strip()
-        print(f"Current working directory is: {current_path}")
 
-    os.system(f'mkdir ./{plane_name}')
     os.system(f'mv ./{plane_name}.* ./{plane_name}' )
     os.system(f'evince {current_path}/{plane_name}/{plane_name}.ps')
 
