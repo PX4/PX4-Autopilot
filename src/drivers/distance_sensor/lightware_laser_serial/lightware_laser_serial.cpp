@@ -223,6 +223,7 @@ int LightwareLaserSerial::collect()
 			if (_linebuf_index >= sizeof(_linebuf)) {
 				_parse_state = LW_PARSE_STATE0_UNSYNC;
 			}
+
 			if (OK == lightware_parser(readbuf[i], _linebuf, &_linebuf_index, &_parse_state, &distance_m)) {
 				valid = true;
 			}
