@@ -102,3 +102,24 @@ TEST(TestAtmosphere, DensityFromPressure)
 	// THEN expect density at 3000m in standard atmosphere
 	EXPECT_NEAR(density, 0.9091f, 0.001f);
 }
+
+TEST(TestAtmosphere, StandardTemperature)
+{
+	// GIVEN standard atmosphere at sea level
+	float altitude = 0.f;
+
+	// WHEN we calculate standard temperature from altitude
+	float temperature = getStandardTemperatureAtAltitude(altitude);
+
+	// THEN expect standard temperature at sea level
+	EXPECT_NEAR(temperature, 15.f, 0.001f);
+
+	// GIVEN standard atmosphere at 3000m
+	altitude = 3000.f;
+
+	// WHEN we calculate standard temperature from altitude
+	temperature = getStandardTemperatureAtAltitude(altitude);
+
+	// THEN expect standard temperature at 3000m
+	EXPECT_NEAR(temperature, -4.5f, 0.001f);
+}

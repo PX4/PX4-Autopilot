@@ -72,3 +72,7 @@ float getAltitudeFromPressure(float pressure_pa, float pressure_sealevel_pa)
 		kTempRefKelvin) / kTempGradient;
 
 }
+float getStandardTemperatureAtAltitude(float altitude_m)
+{
+	return 15.0f + kTempGradient * altitude_m;
+}

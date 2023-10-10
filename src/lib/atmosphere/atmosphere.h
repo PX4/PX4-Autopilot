@@ -61,4 +61,13 @@ float getPressureFromAltitude(const float altitude_m);
 * @param pressure_sealevel_pa sea level pressure in Pa
 */
 float getAltitudeFromPressure(float pressure_pa, float pressure_sealevel_pa);
+
+/**
+* Get standard temperature at altitude.
+*
+* @param altitude_m Altitude msl in meters
+* @return Standard temperature in degrees Celsius
+*/
+float getStandardTemperatureAtAltitude(float altitude_m);
+
 #endif //PX4_SRC_LIB_ATMOSPHERE_ATMOSPHERE_H_
