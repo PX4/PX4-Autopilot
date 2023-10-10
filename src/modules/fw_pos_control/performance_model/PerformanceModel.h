@@ -122,7 +122,7 @@ private:
 		(ParamFloat<px4::params::FW_T_SINK_MIN>) _param_fw_t_sink_min,
 		(ParamFloat<px4::params::WEIGHT_BASE>) _param_weight_base,
 		(ParamFloat<px4::params::WEIGHT_GROSS>) _param_weight_gross,
-		(ParamFloat<px4::params::FW_DENSITY_MIN>) _param_density_min,
+		(ParamFloat<px4::params::FW_S_CEILING>) _param_service_ceiling,
 		(ParamFloat<px4::params::FW_THR_TRIM>) _param_fw_thr_trim,
 		(ParamFloat<px4::params::FW_THR_IDLE>) _param_fw_thr_idle,
 		(ParamFloat<px4::params::FW_THR_MAX>) _param_fw_thr_max,

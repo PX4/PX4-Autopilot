@@ -40,6 +40,7 @@
 #include <geo/geo.h>
 #include <px4_platform_common/events.h>
 #include "PerformanceModel.h"
+#include <lib/atmosphere/atmosphere.h>
 
 // air density of standard athmosphere at 5000m above mean sea level [kg/m^3]
 static constexpr float kAirDensityStandardAtmos5000Amsl = 0.7363f;
@@ -73,18 +74,19 @@ float PerformanceModel::getWeightRatio() const
 }
 float PerformanceModel::getMaximumClimbRate(float air_density) const
 {
-
 	float climbrate_max = _param_fw_t_clmb_max.get();
 
-	const float density_min = _param_density_min.get();
+	const float service_ceiling = _param_service_ceiling.get();
 
-	if (density_min < kAirDensityStandardAtmos1000Amsl
-	    && density_min > kAirDensityStandardAtmos5000Amsl) {
+	if (service_ceiling > 0.0f) {
+		const float pressure = getPressureFromAltitude(service_ceiling);
+		const float density = getDensityFromPressureAndTemp(pressure, getStandardTemperatureAtAltitude(service_ceiling));
 		const float density_gradient = math::max((_param_fw_t_clmb_max.get() - kClimbrateMin) /
 					       (CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C -
-						density_min), 0.0f);
+						density), 0.0f);
 		const float delta_rho = air_density - CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C;
-		climbrate_max = math::max(_param_fw_t_clmb_max.get() + density_gradient * delta_rho, kClimbrateMin);
+		climbrate_max = math::constrain(_param_fw_t_clmb_max.get() + density_gradient * delta_rho, kClimbrateMin,
+						_param_fw_t_clmb_max.get());
 	}
 
 	return climbrate_max / getWeightRatio();
