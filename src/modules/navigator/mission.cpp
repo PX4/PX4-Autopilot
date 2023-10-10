@@ -141,6 +141,9 @@ Mission::set_current_mission_index(uint16_t index)
 			set_mission_items();
 		}
 
+		// User has actively set new index, reset.
+		_inactivation_index = -1;
+
 		return true;
 	}
 

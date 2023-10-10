@@ -680,6 +680,7 @@ MissionBase::checkMissionRestart()
 	if (_system_disarmed_while_inactive && _mission_has_been_activated && (_mission.count > 0U)
 	    && ((_mission.current_seq + 1) == _mission.count)) {
 		setMissionIndex(0);
+		_inactivation_index = -1; // reset
 		_is_current_planned_mission_item_valid = isMissionValid(_mission);
 		resetMissionJumpCounter();
 		_navigator->reset_cruising_speed();
