@@ -170,8 +170,9 @@ def main(file_name,vehicle_type,AR,mac,ref_pt_x,ref_pt_y,ref_pt_z,num_ctrl_surfa
         # case "custom"
 
 # SPECIFY STALL PARAMETERS BASED ON AIRCRAFT TYPE (IF PROVIDED)
-
-    file_name = f'{savedir}/templates/{file_name}.sdf'
+    if not os.path.exists(f'{savedir}/{file_name}'):
+        os.makedirs(f'{savedir}/{file_name}')
+    file_name = f'{savedir}/{file_name}/{file_name}.sdf'
     shutil.copy(f'{savedir}/templates/advanced_lift_drag_template.sdf',file_name)
 
     # Get argument coefficients taken directly from the input file.
