@@ -23,6 +23,10 @@ Follow the README.md found in Avl to finish the setup process for AVL (requires 
 
 Running individual parts: run just one section TODO: provide custom commands to do this.
 
+## Run
+
+To run the program all that is needed is to modify the input.yml to the plane that you desire and then run `python input_avl.py`. Note that you require to have the yaml and argparse packages in your python environment to run this.
+
 
 ## IMPORTANT POINTS TO NOTE
 A control surface in AVL is always defined from left to right. This means you need to first provide the left edge of a surface and then the right edge. If you do this the opposite way around, a surface will essentially be defined upside down.
