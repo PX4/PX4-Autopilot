@@ -136,16 +136,28 @@ RoboClaw::~RoboClaw()
 	close(_uart);
 }
 
+void
+RoboClaw::vehicle_control_poll()
+{
+	if (_vehicle_thrust_setpoint_sub.updated()) {
+		_vehicle_thrust_setpoint_sub.copy(&vehicle_thrust_setpoint);
+	}
+	if (_vehicle_torque_setpoint_sub.updated()) {
+		_vehicle_torque_setpoint_sub.copy(&vehicle_torque_setpoint);
+	}
+}
+
+
 void RoboClaw::taskMain()
 {
 	// Make sure the Roboclaw is actually connected, so I don't just spam errors if it's not.
-	uint8_t rbuff[6];
-	int err_code = _transaction(CMD_READ_STATUS, nullptr, 0, &rbuff[0], sizeof(rbuff), false, true);
+	// uint8_t rbuff[6];
+	// int err_code = _transaction(CMD_READ_STATUS, nullptr, 0, &rbuff[0], sizeof(rbuff), false, true);
 
-	if (err_code <= 0) {
-		PX4_ERR("Unable to connect to Roboclaw. Shutting down Roboclaw driver.");
-		return;
-	}
+	// if (err_code <= 0) {
+	// 	PX4_ERR("Unable to connect to Roboclaw. Shutting down Roboclaw driver.");
+	// 	return;
+	// }
 
 	// This main loop performs two different tasks, asynchronously:
 	// - Send actuator_controls_0 to the Roboclaw as soon as they are available
@@ -155,6 +167,9 @@ void RoboClaw::taskMain()
 	// It is updated at the end of every loop. Sometimes, if the actuator_controls_0 message came in right before
 	// I should have read the encoders, waitTime will be 0. This is fine. When waitTime is 0, poll() will return
 	// immediately with a timeout. (Or possibly with a message, if one happened to be available at that exact moment)
+
+	// printf("i am in main");
+
 	int waitTime = 100_ms;
 
 	_actuatorsSub = orb_subscribe(ORB_ID(actuator_controls_0));
@@ -173,7 +188,12 @@ void RoboClaw::taskMain()
 
 	while (!taskShouldExit) {
 
+		// printf("i am running, thrust %f \n", (double)vehicle_thrust_setpoint.xyz[0]);
+
+
 		int pret = poll(fds, sizeof(fds) / sizeof(pollfd), waitTime / 1000);
+
+		vehicle_control_poll();
 
 		if (fds[0].revents & POLLIN) {
 			orb_copy(ORB_ID(parameter_update), _paramSub, &_paramUpdate);
@@ -189,12 +209,14 @@ void RoboClaw::taskMain()
 					      || _actuatorArmed.force_failsafe;
 
 			if (disarmed) {
+				// printf("i am disarmed \n");
 				setMotorDutyCycle(MOTOR_1, 0.f);
 				setMotorDutyCycle(MOTOR_2, 0.f);
 
 			} else {
-				const float throttle = _actuatorControls.control[actuator_controls_s::INDEX_THROTTLE];
-				const float yaw = _actuatorControls.control[actuator_controls_s::INDEX_YAW];
+				const float yaw = (double)vehicle_thrust_setpoint.xyz[0]; //temporary change
+				// printf("thrust %f\n", (double)throttle);
+				const float throttle = (double)vehicle_torque_setpoint.xyz[2];
 				const float scale = 0.3f;
 				setMotorDutyCycle(MOTOR_1, (throttle - yaw) * scale);
 				setMotorDutyCycle(MOTOR_2, (throttle + yaw) * scale);
@@ -485,7 +507,7 @@ int RoboClaw::_transaction(e_command cmd, uint8_t *wbuff, size_t wbytes,
 
 		// An error code of 0 means that select timed out, which is how the Roboclaw indicates an error.
 		if (err_code <= 0) {
-			printf("select error: %d\n", err_code);
+			// printf("select error: %d\n", err_code);
 			return err_code;
 		}
 
@@ -493,7 +515,7 @@ int RoboClaw::_transaction(e_command cmd, uint8_t *wbuff, size_t wbytes,
 		//printf("Read: %d\n", err_code);
 
 		if (err_code <= 0) {
-			printf("read error: %d\n", err_code);
+			// printf("read error: %d\n", err_code);
 			return err_code;
 
 		} else {
@@ -560,17 +582,17 @@ void RoboClaw::_parameters_update()
 		_parameters.serial_baud_rate = B2400;
 		break;
 
-	case 9600:
-		_parameters.serial_baud_rate = B9600;
-		break;
+	// case 9600:
+	// 	_parameters.serial_baud_rate = B9600;
+	// 	break;
 
-	case 19200:
-		_parameters.serial_baud_rate = B19200;
-		break;
+	// case 19200:
+	// 	_parameters.serial_baud_rate = B19200;
+	// 	break;
 
-	case 38400:
-		_parameters.serial_baud_rate = B38400;
-		break;
+	// case 38400:
+	// 	_parameters.serial_baud_rate = B38400;
+	// 	break;
 
 	case 57600:
 		_parameters.serial_baud_rate = B57600;

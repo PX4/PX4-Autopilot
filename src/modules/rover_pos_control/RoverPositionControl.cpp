@@ -113,7 +113,7 @@ RoverPositionControl::vehicle_control_mode_poll()
 void
 RoverPositionControl::manual_control_setpoint_poll()
 {
-	if (_control_mode.flag_control_manual_enabled) {
+	if (true) {
 		if (_manual_control_setpoint_sub.copy(&_manual_control_setpoint)) {
 			float dt = math::constrain(hrt_elapsed_time(&_manual_setpoint_last_called) * 1e-6f,  0.0002f, 0.04f);
 
@@ -431,7 +431,7 @@ RoverPositionControl::Run()
 			matrix::Vector2d current_position(_global_pos.lat, _global_pos.lon);
 			matrix::Vector3f current_velocity(_local_pos.vx, _local_pos.vy, _local_pos.vz);
 
-			if (!_control_mode.flag_control_manual_enabled && _control_mode.flag_control_position_enabled) {
+			if (false) {
 
 				if (control_position(current_position, ground_speed, _pos_sp_triplet)) {
 

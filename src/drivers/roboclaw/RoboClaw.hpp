@@ -47,15 +47,20 @@
 #include <stdio.h>
 #include <termios.h>
 #include <lib/parameters/param.h>
+#include <drivers/device/i2c.h>
+#include <sys/select.h>
+#include <sys/time.h>
+#include <pthread.h>
+
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/wheel_encoders.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/parameter_update.h>
-#include <drivers/device/i2c.h>
-#include <sys/select.h>
-#include <sys/time.h>
-#include <pthread.h>
+#include <uORB/topics/vehicle_thrust_setpoint.h>
+#include <uORB/topics/vehicle_torque_setpoint.h>
+#include <uORB/Subscription.hpp>
+
 
 /**
  * This is a driver for the RoboClaw motor controller
@@ -205,6 +210,14 @@ private:
 	int _paramSub{-1};
 	parameter_update_s _paramUpdate;
 
+	uORB::Subscription _vehicle_thrust_setpoint_sub{ORB_ID(vehicle_thrust_setpoint)};
+	uORB::Subscription _vehicle_torque_setpoint_sub{ORB_ID(vehicle_torque_setpoint)};
+
+	vehicle_thrust_setpoint_s		vehicle_thrust_setpoint{};
+	vehicle_torque_setpoint_s		vehicle_torque_setpoint{};
+
+
+
 	uORB::PublicationMulti<wheel_encoders_s> _wheelEncodersAdv[2] { ORB_ID(wheel_encoders), ORB_ID(wheel_encoders)};
 	wheel_encoders_s _wheelEncoderMsg[2];
 
@@ -213,6 +226,7 @@ private:
 	int32_t _motorSpeeds[2] {0, 0};
 
 	void _parameters_update();
+	void vehicle_control_poll();
 
 	static uint16_t _calcCRC(const uint8_t *buf, size_t n, uint16_t init = 0);
 	int _sendUnsigned7Bit(e_command command, float data);
