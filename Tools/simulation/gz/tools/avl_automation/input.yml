@@ -1,5 +1,5 @@
 # Enter a name for your vehicle
-vehicle_name: plane_test_final
+vehicle_name: plane_example_2
 
 # Enter the type of airframe you would like to use:
 frame_type: custom
@@ -41,7 +41,7 @@ control_surfaces:
     - name: section_2
       position:
         X: -0.175
-        Y: 10
+        Y: 5
         Z: 0.5
       chord: 0.7
       ainc: 0
@@ -65,7 +65,7 @@ control_surfaces:
     - name: section_1
       position:
         X: -0.175
-        Y: -10
+        Y: -5
         Z: 0.5
       chord: 0.7
       ainc: 0

@@ -1,10 +1,10 @@
 #!/bin/bash
 CUSTOM_MODEL=$1
 DIR_PATH=$(pwd)
-cp $DIR_PATH/$CUSTOM_MODEL.avl /home/$USER/Avl/runs/
 
+cp $DIR_PATH/$CUSTOM_MODEL.avl /home/$USER/Avl/runs/
 cd
-cd Avl/runs
+cd /home/$USER/Avl/runs
 
 old_stability_derivatives="custom_vehicle_stability_derivatives.txt"
 old_body_ax_derivatives="custom_vehicle_body_axis_derivatives.txt"
@@ -24,5 +24,3 @@ echo "\n"
 #After completion move the plot to avl_automation directory
 mv /home/$USER/Avl/runs/plot.ps $DIR_PATH/
 mv $DIR_PATH/plot.ps $DIR_PATH/$CUSTOM_MODEL.ps
-
-##CHECK IF IT ALREADY EXISTS AND DECIDE WHAT YOU WANT TO DO

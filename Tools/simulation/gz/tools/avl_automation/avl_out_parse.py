@@ -1,14 +1,25 @@
 #!/usr/bin/env
-# The idea of this file is to read the generated output file
-# parameters and use them to generate the necessary plugin parameters for the advanced_lift_drag plugin.
 
 import argparse
 import shutil
 import fileinput
 import subprocess
 import os
+from typing import TextIO
 
-def get_coef(file,token):
+
+"""
+Get the desired coefficient from the AVL output files by looking through the file line by line and picking it out when encountered.
+
+Args:
+	file (TextIO): The file from which the desired coefficient should be read.
+    token (str): The coefficient which to look for.
+
+Return:
+	value (str): The value associated with the desired coefficient.
+
+"""
+def get_coef(file: TextIO,token: str) -> str:
 
     linesplit = []
     for line in file:
@@ -24,18 +35,41 @@ def get_coef(file,token):
     return value
 
 
-# This function is used to write the gathered coefficient values
-# to the file containing the plugin.
-def write_coef(file, token_str, token):
+
+"""
+Write all gathered, model-wide coefficients to the sdf file.
+
+Args:
+	file (TextIO): The file to which the desired coefficient should be written.
+    token_str (str): The coefficients for which the associated value should be written.
+    token (str): The value which should be placed in the avl.
+
+Return:
+	None.
+
+"""
+def write_coef(file: TextIO, token_str: str, token: str):
     old_line = f'<{token_str}></{token_str}>'
-    new_line = f'<{token_str}>{str(token)}</{token_str}>'
+    new_line = f'<{token_str}>{token}</{token_str}>'
     with fileinput.FileInput(file, inplace=True) as output_file:
         for line in output_file:
             print(line.replace(old_line, new_line), end='')
 
 
 
-def ctrl_surface_coef(file,ctrl_surface_vec,index,direction):
+"""
+Write all gathered, control surface specific parameters to the sdf file.
+
+Args:
+	file (TextIO): The file to which the desired coefficients should be written.
+    ctrl_surface_vec (list): A vector that contains all 6 necessary coefficient values for the control surface in question.
+    index (str): The model-wide index number of the control surface in question.
+	direction (str): The direction in which the control surface can be actuated.
+
+Return:
+	None.
+"""
+def ctrl_surface_coef(file: TextIO,ctrl_surface_vec: list,index: str, direction: str):
 
     extracted_text = ''
     with open("./templates/control_surface.sdf",'r') as open_file:
@@ -43,6 +77,7 @@ def ctrl_surface_coef(file,ctrl_surface_vec,index,direction):
             extracted_text += line
         open_file.close()
 
+	# Insert necessary coefficient values, index and direction in correct sdf location.
     extracted_text = extracted_text.replace("<name></name>",f'<name>servo_{index}</name>')
     extracted_text = extracted_text.replace("<index></index>",f'<index>{index}</index>')
     extracted_text = extracted_text.replace("<direction></direction>",f'<directon>{direction}</direction>')
@@ -59,19 +94,44 @@ def ctrl_surface_coef(file,ctrl_surface_vec,index,direction):
         plugin_file.write(extracted_text + "\n")
         plugin_file.close()
 
+"""
+Read out the necessary log files to gather the desired parameters and write them to the sdf plugin file.
+Arguments provided here are passed in the input_avl.py file.
 
+Args:
+	file_name (TextIO): The file to which the desired coefficients should be written.
+    vehicle_type (str): The type of vehicle in use.
+    AR (str): The calculated aspect ratio.
+    mac (str): The calculated mean aerodynamic chord.
+    ref_pt_x (str): The x coordinate of the reference point, at which forces and moments are applied.
+    ref_pt_y (str): The y coordinate of the reference point, at which forces and moments are applied.
+    ref_pt_z (str): The z coordinate of the reference point, at which forces and moments are applied.
+    num_ctrl_surfaces (str): The number of control surfaces that the model uses.
+    area (str): The wing surface area.
+	ctrl_surface_order (list): A list containing the types of control surfaces, in theorder in which
+    	they have been defined in the .avl file.
+    avl_path (str): A string containing the directory where the AVL directory should be moved to.
 
-def main(file_name,vehicle_type,AR,mac,ref_pt_x,ref_pt_y,ref_pt_z,num_ctrl_surfaces,area,ctrl_surface_order):
-    #parameters present when using ST in JVL:
-    result = subprocess.run(['pwd'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+Return:
+	None.
+"""
 
-    if result.returncode == 0:
+def main(file_name: TextIO, vehicle_type: str, AR: str, mac: str, ref_pt_x: str, ref_pt_y: str, ref_pt_z: str, num_ctrl_surfaces: str, area: str, ctrl_surface_order: list, avl_path:str):
+
+	# Set current path for user
+    curr_path = subprocess.run(['pwd'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+    if curr_path.returncode == 0:
         # Save the output in a variable
-        savedir = result.stdout.strip()
+        savedir = curr_path.stdout.strip()
+    else:
+        raise LookupError("Invalid path to directory. Check both the avl_automation directory and the Avl directory are positioned correctly.")
 
-    user = os.environ.get('USER')
-    filedir = f'/home/{user}/Avl/runs/'
+	# Set the file directory path from where the AVL output logs can be read.
+    # user = os.environ.get('USER')
+    filedir = f'{avl_path}Avl/runs/'
 
+	# Read out all necessary parameters from the stability and body axis derivatives files.
     with open(f'{filedir}custom_vehicle_stability_derivatives.txt','r+') as stability_file:
         original_position = stability_file.tell()
 
@@ -154,7 +214,7 @@ def main(file_name,vehicle_type,AR,mac,ref_pt_x,ref_pt_y,ref_pt_z,num_ctrl_surfa
         # case "standard_vtol":
         # case "custom"
 
-# SPECIFY STALL PARAMETERS BASED ON AIRCRAFT TYPE (IF PROVIDED)
+	# SPECIFY STALL PARAMETERS BASED ON AIRCRAFT TYPE (IF PROVIDED)
     if not os.path.exists(f'{savedir}/{file_name}'):
         os.makedirs(f'{savedir}/{file_name}')
     file_name = f'{savedir}/{file_name}/{file_name}.sdf'
@@ -223,7 +283,7 @@ def main(file_name,vehicle_type,AR,mac,ref_pt_x,ref_pt_y,ref_pt_z,num_ctrl_surfa
     # below will likely not work correctly.
     type_seen = list()
 
-    # Dictionary containing the directions that each type of control surface can move
+    # Dictionary containing the directions that each type of control surface can move.
     ctrl_direction = {"aileron": 1,"elevator": -1,"rudder": 1}
 
     match plane_type:
@@ -270,16 +330,17 @@ def main(file_name,vehicle_type,AR,mac,ref_pt_x,ref_pt_y,ref_pt_z,num_ctrl_surfa
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("file_name")
-    parser.add_argument("vehicle_type")
-    parser.add_argument("AR")
-    parser.add_argument("mac")
-    parser.add_argument("ref_pt_x")
-    parser.add_argument("ref_pt_y")
-    parser.add_argument("ref_pt_z")
-    parser.add_argument("num_ctrl_surfaces")
-    parser.add_argument("area")
-    parser.add_argument("ctrl_surface_order")
+    parser.add_argument("file_name", help="The file to which the desired coefficients should be written.")
+    parser.add_argument("vehicle_type", help="The type of vehicle in use.")
+    parser.add_argument("AR", help="The calculated aspect ratio.")
+    parser.add_argument("mac", help="The calculated mean aerodynamic chord.")
+    parser.add_argument("ref_pt_x", help="The x coordinate of the reference point, at which forces and moments are applied.")
+    parser.add_argument("ref_pt_y", help="The y coordinate of the reference point, at which forces and moments are applied.")
+    parser.add_argument("ref_pt_z", help="The z coordinate of the reference point, at which forces and moments are applied.")
+    parser.add_argument("num_ctrl_surfaces", help="The number of control surfaces that the model uses.")
+    parser.add_argument("area", help= "The wing surface area.")
+    parser.add_argument("ctrl_surface_order", help=" A list containing the types of control surfaces, in theorder in which \
+    	they have been defined in the .avl file.")
 
     args = parser.parse_args()
 
