@@ -359,7 +359,6 @@ bool RCTest::sbus2Test()
 	bool sbus_frame_drop;
 	uint16_t max_channels = sizeof(rc_values) / sizeof(rc_values[0]);
 
-	int rate_limiter = 0;
 	unsigned last_drop = 0;
 
 	while (EOF != (ret = fscanf(fp, "%f,%x,,", &f, &x))) {
@@ -390,7 +389,6 @@ bool RCTest::sbus2Test()
 			last_drop = sbus_frame_drops + sbus_frame_resets;
 		}
 
-		rate_limiter++;
 	}
 
 	ut_test(ret == EOF);
