@@ -52,7 +52,7 @@ void Ekf::controlFakePosFusion()
 		Vector2f obs_var;
 
 		if (_control_status.flags.in_air && _control_status.flags.tilt_align) {
-			obs_var(0) = obs_var(1) = sq(fmaxf(_params.pos_noaid_noise, _params.gps_pos_noise));
+			obs_var(0) = obs_var(1) = sq(fmaxf(_params.pos_noaid_noise, 1.f));
 
 		} else if (!_control_status.flags.in_air && _control_status.flags.vehicle_at_rest) {
 			// Accelerate tilt fine alignment by fusing more
