@@ -130,7 +130,8 @@ list(APPEND EKF_SRCS
 	EKF/vel_pos_fusion.cpp
 	EKF/yaw_fusion.cpp
 	EKF/zero_innovation_heading_update.cpp
-	EKF/zero_gyro_update.cpp
+
+	EKF/aid_sources/ZeroGyroUpdate.cpp
 	EKF/aid_sources/ZeroVelocityUpdate.cpp
 )
 
