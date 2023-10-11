@@ -287,6 +287,4 @@ private:
 	int _transaction(e_command cmd, uint8_t *wbuff, size_t wbytes,
 			 uint8_t *rbuff, size_t rbytes, bool send_checksum = true, bool recv_checksum = false);
 
-	RoboClawError _validate_connection(e_command cmd, uint8_t *wbuff, size_t wbytes,
-			 uint8_t *rbuff, size_t rbytes, bool send_checksum = true, bool recv_checksum = false);
 };
