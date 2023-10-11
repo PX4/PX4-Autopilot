@@ -18,6 +18,7 @@ if [ -e "$old_body_ax_derivatives" ]; then
     rm "$old_body_ax_derivatives"
 fi
 
+#avl_steps.txt can be used to run commands on the AVL commandline.
 ../bin/avl $CUSTOM_MODEL.avl < $DIR_PATH/avl_steps.txt
 echo "\n"
 

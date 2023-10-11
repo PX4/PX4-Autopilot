@@ -128,7 +128,6 @@ def main(file_name: TextIO, vehicle_type: str, AR: str, mac: str, ref_pt_x: str,
         raise LookupError("Invalid path to directory. Check both the avl_automation directory and the Avl directory are positioned correctly.")
 
 	# Set the file directory path from where the AVL output logs can be read.
-    # user = os.environ.get('USER')
     filedir = f'{avl_path}Avl/runs/'
 
 	# Read out all necessary parameters from the stability and body axis derivatives files.
@@ -138,7 +137,7 @@ def main(file_name: TextIO, vehicle_type: str, AR: str, mac: str, ref_pt_x: str,
         # As plane is modelled at 0 degree AoA, the total coefficients should(?) correspond to the
         # 0 degree coefficients required by the plugin.
         alpha = get_coef(stability_file,"Alpha")
-        Cm0 = get_coef(stability_file,"Cmtot")
+        Cem0 = get_coef(stability_file,"Cmtot")
         CL0 = get_coef(stability_file,"CLtot")
         CD0 = get_coef(stability_file,"CDtot")
 
@@ -224,7 +223,7 @@ def main(file_name: TextIO, vehicle_type: str, AR: str, mac: str, ref_pt_x: str,
     write_coef(file_name,"a0",alpha)
     write_coef(file_name,"CL0",CL0)
     write_coef(file_name,"CD0",CD0)
-    write_coef(file_name,"Cem0",Cm0)
+    write_coef(file_name,"Cem0",Cem0)
     write_coef(file_name,"AR",AR)
     write_coef(file_name,"area",area)
     write_coef(file_name,"mac",mac)
@@ -341,8 +340,9 @@ if __name__ == '__main__':
     parser.add_argument("area", help= "The wing surface area.")
     parser.add_argument("ctrl_surface_order", help=" A list containing the types of control surfaces, in theorder in which \
     	they have been defined in the .avl file.")
+    parser.add_argument("avl_path",help="A string containing the directory where the AVL directory should be moved to.")
 
     args = parser.parse_args()
 
     main(args.file_name,args.vehicle_type,args.AR,args.mac,args.ref_pt_x,args.ref_pt_y,
-         args.ref_pt_z,args.num_ctrl_surfaces,args.area,args.ctrl_surface_order)
+         args.ref_pt_z,args.num_ctrl_surfaces,args.area,args.ctrl_surface_order,args.avl_path)
