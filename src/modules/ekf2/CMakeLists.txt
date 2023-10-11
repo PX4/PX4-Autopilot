@@ -124,9 +124,6 @@ list(APPEND EKF_SRCS
 	EKF/estimator_interface.cpp
 	EKF/fake_height_control.cpp
 	EKF/fake_pos_control.cpp
-	EKF/gnss_height_control.cpp
-	EKF/gps_checks.cpp
-	EKF/gps_control.cpp
 	EKF/gravity_fusion.cpp
 	EKF/height_control.cpp
 	EKF/imu_down_sampler.cpp
@@ -163,6 +160,14 @@ if(CONFIG_EKF2_EXTERNAL_VISION)
 		EKF/ev_pos_control.cpp
 		EKF/ev_vel_control.cpp
 		EKF/ev_yaw_control.cpp
+	)
+endif()
+
+if(CONFIG_EKF2_GNSS)
+	list(APPEND EKF_SRCS
+		EKF/gnss_height_control.cpp
+		EKF/gps_checks.cpp
+		EKF/gps_control.cpp
 	)
 endif()
 

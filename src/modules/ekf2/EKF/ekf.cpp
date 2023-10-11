@@ -92,7 +92,11 @@ void Ekf::reset()
 	_prev_gyro_bias_var.zero();
 	_prev_accel_bias_var.zero();
 
+#if defined(CONFIG_EKF2_GNSS)
 	resetGpsDriftCheckFilters();
+	_gps_checks_passed = false;
+#endif // CONFIG_EKF2_GNSS
+	_gps_alt_ref = NAN;
 
 	_output_predictor.reset();
 
@@ -111,9 +115,6 @@ void Ekf::reset()
 	_last_known_pos.setZero();
 
 	_time_acc_bias_check = 0;
-
-	_gps_checks_passed = false;
-	_gps_alt_ref = NAN;
 
 #if defined(CONFIG_EKF2_BAROMETER)
 	_baro_counter = 0;
@@ -147,13 +148,15 @@ void Ekf::reset()
 	resetEstimatorAidStatus(_aid_src_ev_yaw);
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
+#if defined(CONFIG_EKF2_GNSS)
 	resetEstimatorAidStatus(_aid_src_gnss_hgt);
 	resetEstimatorAidStatus(_aid_src_gnss_pos);
 	resetEstimatorAidStatus(_aid_src_gnss_vel);
 
-#if defined(CONFIG_EKF2_GNSS_YAW)
+# if defined(CONFIG_EKF2_GNSS_YAW)
 	resetEstimatorAidStatus(_aid_src_gnss_yaw);
-#endif // CONFIG_EKF2_GNSS_YAW
+# endif // CONFIG_EKF2_GNSS_YAW
+#endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	resetEstimatorAidStatus(_aid_src_mag_heading);

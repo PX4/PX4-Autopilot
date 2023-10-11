@@ -92,7 +92,7 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 			}
 
 			ECL_INFO("%llu: EKF aligned, (%s hgt, IMU buf: %i, OBS buf: %i)",
-					 (unsigned long long)imu_delayed.time_us, height_source, (int)_imu_buffer_length, (int)_obs_buffer_length);
+				 (unsigned long long)imu_delayed.time_us, height_source, (int)_imu_buffer_length, (int)_obs_buffer_length);
 
 			ECL_DEBUG("tilt aligned, roll: %.3f, pitch %.3f, yaw: %.3f",
 				  (double)matrix::Eulerf(_state.quat_nominal).phi(),
@@ -111,7 +111,9 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 	controlOpticalFlowFusion(imu_delayed);
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
+#if defined(CONFIG_EKF2_GNSS)
 	controlGpsFusion(imu_delayed);
+#endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_AIRSPEED)
 	controlAirDataFusion(imu_delayed);

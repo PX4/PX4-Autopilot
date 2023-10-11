@@ -46,7 +46,9 @@
 
 EstimatorInterface::~EstimatorInterface()
 {
+#if defined(CONFIG_EKF2_GNSS)
 	delete _gps_buffer;
+#endif // CONFIG_EKF2_GNSS
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	delete _mag_buffer;
 #endif // CONFIG_EKF2_MAGNETOMETER
@@ -144,6 +146,7 @@ void EstimatorInterface::setMagData(const magSample &mag_sample)
 }
 #endif // CONFIG_EKF2_MAGNETOMETER
 
+#if defined(CONFIG_EKF2_GNSS)
 void EstimatorInterface::setGpsData(const gpsMessage &gps)
 {
 	if (!_initialised) {
@@ -222,6 +225,7 @@ void EstimatorInterface::setGpsData(const gpsMessage &gps)
 		ECL_WARN("GPS data too fast %" PRIi64 " < %" PRIu64 " + %d", time_us, _gps_buffer->get_newest().time_us, _min_obs_interval_us);
 	}
 }
+#endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_BAROMETER)
 void EstimatorInterface::setBaroData(const baroSample &baro_sample)
@@ -585,9 +589,11 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 	}
 #endif // CONFIG_EKF2_RANGE_FINDER
 
+#if defined(CONFIG_EKF2_GNSS)
 	if (_params.gnss_ctrl > 0) {
 		max_time_delay_ms = math::max(_params.gps_delay_ms, max_time_delay_ms);
 	}
+#endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	if (_params.flow_ctrl > 0) {
@@ -713,9 +719,11 @@ void EstimatorInterface::print_status()
 
 	printf("minimum observation interval %d us\n", _min_obs_interval_us);
 
+#if defined(CONFIG_EKF2_GNSS)
 	if (_gps_buffer) {
 		printf("gps buffer: %d/%d (%d Bytes)\n", _gps_buffer->entries(), _gps_buffer->get_length(), _gps_buffer->get_total_size());
 	}
+#endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	if (_mag_buffer) {

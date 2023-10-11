@@ -81,16 +81,23 @@ using namespace estimator;
 class EstimatorInterface
 {
 public:
+	void setIMUData(const imuSample &imu_sample);
+
+#if defined(CONFIG_EKF2_GNSS)
 	// ask estimator for sensor data collection decision and do any preprocessing if required, returns true if not defined
 	virtual bool collect_gps(const gpsMessage &gps) = 0;
+	void setGpsData(const gpsMessage &gps);
 
-	void setIMUData(const imuSample &imu_sample);
+	const gpsSample &get_gps_sample_delayed() const { return _gps_sample_delayed; }
+
+	float gps_horizontal_position_drift_rate_m_s() const { return _gps_horizontal_position_drift_rate_m_s; }
+	float gps_vertical_position_drift_rate_m_s() const { return _gps_vertical_position_drift_rate_m_s; }
+	float gps_filtered_horizontal_velocity_m_s() const { return _gps_filtered_horizontal_velocity_m_s; }
+#endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	void setMagData(const magSample &mag_sample);
 #endif // CONFIG_EKF2_MAGNETOMETER
-
-	void setGpsData(const gpsMessage &gps);
 
 #if defined(CONFIG_EKF2_BAROMETER)
 	void setBaroData(const baroSample &baro_sample);
@@ -299,16 +306,11 @@ public:
 	const imuSample &get_imu_sample_delayed() const { return _imu_buffer.get_oldest(); }
 	const uint64_t &time_delayed_us() const { return _time_delayed_us; }
 
-	const gpsSample &get_gps_sample_delayed() const { return _gps_sample_delayed; }
-
 	const bool &global_origin_valid() const { return _NED_origin_initialised; }
 	const MapProjection &global_origin() const { return _pos_ref; }
+	float getEkfGlobalOriginAltitude() const { return PX4_ISFINITE(_gps_alt_ref) ? _gps_alt_ref : 0.f; }
 
 	void print_status();
-
-	float gps_horizontal_position_drift_rate_m_s() const { return _gps_horizontal_position_drift_rate_m_s; }
-	float gps_vertical_position_drift_rate_m_s() const { return _gps_vertical_position_drift_rate_m_s; }
-	float gps_filtered_horizontal_velocity_m_s() const { return _gps_filtered_horizontal_velocity_m_s; }
 
 	OutputPredictor &output_predictor() { return _output_predictor; };
 
@@ -345,10 +347,6 @@ protected:
 
 	OutputPredictor _output_predictor{};
 
-	// measurement samples capturing measurements on the delayed time horizon
-	gpsSample _gps_sample_delayed{};
-
-
 #if defined(CONFIG_EKF2_AIRSPEED)
 	airspeedSample _airspeed_sample_delayed{};
 #endif // CONFIG_EKF2_AIRSPEED
@@ -381,18 +379,33 @@ protected:
 	bool _imu_updated{false};      // true if the ekf should update (completed downsampling process)
 	bool _initialised{false};      // true if the ekf interface instance (data buffering) is initialized
 
+	// Variables used to publish the WGS-84 location of the EKF local NED origin
 	bool _NED_origin_initialised{false};
+	MapProjection _pos_ref{}; // Contains WGS-84 position latitude and longitude of the EKF origin
+	float _gps_alt_ref{NAN};		///< WGS-84 height (m)
 	float _gpos_origin_eph{0.0f}; // horizontal position uncertainty of the global origin
 	float _gpos_origin_epv{0.0f}; // vertical position uncertainty of the global origin
-	MapProjection _pos_ref{}; // Contains WGS-84 position latitude and longitude of the EKF origin
+
+#if defined(CONFIG_EKF2_GNSS)
+	RingBuffer<gpsSample> *_gps_buffer{nullptr};
+	uint64_t _time_last_gps_buffer_push{0};
+
+	gpsSample _gps_sample_delayed{};
+
+	float _gps_horizontal_position_drift_rate_m_s{NAN}; // Horizontal position drift rate (m/s)
+	float _gps_vertical_position_drift_rate_m_s{NAN};   // Vertical position drift rate (m/s)
+	float _gps_filtered_horizontal_velocity_m_s{NAN};   // Filtered horizontal velocity (m/s)
+
 	MapProjection _gps_pos_prev{}; // Contains WGS-84 position latitude and longitude of the previous GPS message
 	float _gps_alt_prev{0.0f};	// height from the previous GPS message (m)
-#if defined(CONFIG_EKF2_GNSS_YAW)
+
+# if defined(CONFIG_EKF2_GNSS_YAW)
 	float _gps_yaw_offset{0.0f};	// Yaw offset angle for dual GPS antennas used for yaw estimation (radians).
 	// innovation consistency check monitoring ratios
 	AlphaFilter<float> _gnss_yaw_signed_test_ratio_lpf{0.1f}; // average signed test ratio used to detect a bias in the state
 	uint64_t _time_last_gps_yaw_buffer_push{0};
-#endif // CONFIG_EKF2_GNSS_YAW
+# endif // CONFIG_EKF2_GNSS_YAW
+#endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_DRAG_FUSION)
 	RingBuffer<dragSample> *_drag_buffer{nullptr};
@@ -405,18 +418,12 @@ protected:
 	bool _vertical_position_deadreckon_time_exceeded{true};
 	bool _vertical_velocity_deadreckon_time_exceeded{true};
 
-	float _gps_horizontal_position_drift_rate_m_s{NAN}; // Horizontal position drift rate (m/s)
-	float _gps_vertical_position_drift_rate_m_s{NAN};   // Vertical position drift rate (m/s)
-	float _gps_filtered_horizontal_velocity_m_s{NAN};   // Filtered horizontal velocity (m/s)
-
 	uint64_t _time_last_on_ground_us{0};	///< last time we were on the ground (uSec)
 	uint64_t _time_last_in_air{0};		///< last time we were in air (uSec)
 
 	// data buffer instances
 	static constexpr uint8_t kBufferLengthDefault = 12;
 	RingBuffer<imuSample> _imu_buffer{kBufferLengthDefault};
-
-	RingBuffer<gpsSample> *_gps_buffer{nullptr};
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	RingBuffer<magSample> *_mag_buffer{nullptr};
@@ -435,8 +442,6 @@ protected:
 	RingBuffer<auxVelSample> *_auxvel_buffer{nullptr};
 #endif // CONFIG_EKF2_AUXVEL
 	RingBuffer<systemFlagUpdate> *_system_flag_buffer{nullptr};
-
-	uint64_t _time_last_gps_buffer_push{0};
 
 #if defined(CONFIG_EKF2_BAROMETER)
 	RingBuffer<baroSample> *_baro_buffer{nullptr};

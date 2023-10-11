@@ -76,10 +76,12 @@ void Ekf::controlEvHeightFusion(const extVisionSample &ev_sample, const bool com
 	const float measurement = pos(2) - pos_offset_earth(2);
 	float measurement_var = math::max(pos_cov(2, 2), sq(_params.ev_pos_noise), sq(0.01f));
 
+#if defined(CONFIG_EKF2_GNSS)
 	// increase minimum variance if GPS active
 	if (_control_status.flags.gps_hgt) {
 		measurement_var = math::max(measurement_var, sq(_params.gps_pos_noise));
 	}
+#endif // CONFIG_EKF2_GNSS
 
 	const bool measurement_valid = PX4_ISFINITE(measurement) && PX4_ISFINITE(measurement_var);
 

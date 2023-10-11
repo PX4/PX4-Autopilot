@@ -155,10 +155,7 @@ void Ekf::controlEvYawFusion(const extVisionSample &ev_sample, const bool common
 				_control_status.flags.ev_yaw = true;
 
 			} else if (ev_sample.pos_frame == PositionFrame::LOCAL_FRAME_FRD) {
-				// turn on fusion of external vision yaw measurements and disable all other heading fusion
-				stopGpsYawFusion();
-				stopGpsFusion();
-
+				// turn on fusion of external vision yaw measurements
 				ECL_INFO("starting %s fusion, resetting state", AID_SRC_NAME);
 
 				// reset yaw to EV

@@ -60,10 +60,18 @@ depends on MODULES_EKF2
 	---help---
 		EKF2 external vision (EV) fusion support.
 
+menuconfig EKF2_GNSS
+depends on MODULES_EKF2
+	bool "GNSS fusion support"
+	default y
+	---help---
+		EKF2 GNSS fusion support.
+
 menuconfig EKF2_GNSS_YAW
 depends on MODULES_EKF2
         bool "GNSS yaw fusion support"
         default y
+	depends on EKF2_GNSS
 	---help---
 		EKF2 GNSS yaw fusion support.
 
