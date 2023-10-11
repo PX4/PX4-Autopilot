@@ -84,6 +84,17 @@ public:
 		MOTOR_2
 	};
 
+	/** error handeling*/
+	enum class RoboClawError {
+		Success,
+		WriteError,
+		ReadError,
+		ChecksumError,
+		ChecksumMismatch,
+		UnexpectedError,
+		ReadTimeout
+	};
+
 	/**
 	 * constructor
 	 * @param deviceName the name of the
@@ -143,7 +154,8 @@ public:
 	/**
 	 * print status
 	 */
-	void printStatus(char *string, size_t n);
+	void printStatus();
+
 
 private:
 
@@ -179,6 +191,7 @@ private:
 
 		CMD_READ_STATUS = 90
 	};
+
 
 	struct {
 		speed_t serial_baud_rate;
@@ -233,6 +246,23 @@ private:
 	int _sendSigned16Bit(e_command command, float data);
 	int _sendNothing(e_command);
 
+
+	/**
+	 * print status
+	 */
+	RoboClawError writeToDevice(e_command cmd, uint8_t *wbuff, size_t wbytes, bool send_checksum, uint8_t *buf);
+
+	/**
+	 * print status
+	 */
+	RoboClawError readFromDevice(uint8_t *rbuff, size_t rbytes, bool recv_checksum, uint8_t *buf);
+
+	/**
+	 * print status
+	 */
+	void printError(RoboClawError err_code);
+
+
 	/**
 	 * Perform a round-trip write and read.
 	 *
@@ -255,5 +285,8 @@ private:
 	 *   reading from the Roboclaw, then 0 is returned. If there is an IO error, then a negative value is returned.
 	 */
 	int _transaction(e_command cmd, uint8_t *wbuff, size_t wbytes,
+			 uint8_t *rbuff, size_t rbytes, bool send_checksum = true, bool recv_checksum = false);
+
+	RoboClawError _validate_connection(e_command cmd, uint8_t *wbuff, size_t wbytes,
 			 uint8_t *rbuff, size_t rbytes, bool send_checksum = true, bool recv_checksum = false);
 };
