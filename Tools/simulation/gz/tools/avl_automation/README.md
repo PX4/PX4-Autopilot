@@ -26,7 +26,7 @@ If you want to move the location of the AVL directory, this can simply be done b
 
 ## Run
 
-To run the tool all that is needed is to modify the input.yml to the plane that you desire and then run `python input_avl.py <your_custom_yaml_file>.yml` Note that you require to have the yaml and argparse packages in your python environment to run this. An example template has been provided in the form of the `input.yml` that implements a standard plane with two ailerons, an elevator and a rudder. This example template can be run using: `python input_avl.py --yaml_file input.yml`.
+To run the tool all that is needed is to modify the `input.yml` to the plane that you desire and then run `python input_avl.py <your_custom_yaml_file>.yml` Note that you require to have the yaml and argparse packages in your python environment to run this. An example template has been provided in the form of the `input.yml` that implements a standard plane with two ailerons, an elevator and a rudder. This example template can be run using: `python input_avl.py --yaml_file input.yml`.
 Once the script has been executed, the generated .avl, .sdf and a plot of the proposed control surfaces can be found in <your-planes-name> directory. The sdf file is the generated Advanced Lift Drag Plugin that can be copied and pasted straight into a model.sdf file, which can then be run in Gazebo.
 
 ## Functionality
@@ -124,7 +124,7 @@ Cmr	-> Cemr		dCm/dr (pitching moment slope wrt yaw rate)
 Cnr	-> Cenr		dCn/dr (yaw moment slope wrt yaw rate)
 
 
-Furthermore, every control surface also has six own parameters, which are also derived from this log file. {i} below ranges from 0 to the number of unique control surface types in the model.
+Furthermore, every control surface also has six own parameters, which are also derived from this log file. {i} below ranges from 1 to the number of unique control surface types in the model.
 
 CXd{i}	-> CD_ctrl	Effect of the control surface's deflection on drag
 

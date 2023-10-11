@@ -174,15 +174,8 @@ def main():
 	ref_pt_y = None
 	ref_pt_z = None
 
-	# TODO: Provide some pre-worked frames for a Cessna and standard VTOL
+	# Future work: Provide some pre-worked frames for a Cessna and standard VTOL if there is a need for it
 	match frame_type:
-		case "cessna":
-			num_ctrl_surfaces = 4
-			# TODO: Finish
-
-		case "standard_vtol":
-			num_ctrl_surfaces = 2
-			# TODO: Finish
 
 		case "custom":
 

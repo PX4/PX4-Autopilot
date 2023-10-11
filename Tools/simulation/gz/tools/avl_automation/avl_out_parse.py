@@ -192,13 +192,14 @@ def main(file_name: TextIO, vehicle_type: str, AR: str, mac: str, ref_pt_x: str,
     plane_type = vehicle_type
     ctrl_surface_mat = []
 
+	# Maybe in the future you want more types of set aircraft. Thus us a case differentiator.
     match plane_type:
 
         case "custom":
             ctrl_surface_vec = []
             with open(f'{filedir}custom_vehicle_body_axis_derivatives.txt') as bodyax_file:
                 original_position = bodyax_file.tell()
-                for i in range(1,4):
+                for i in range(1,(len(set(ctrl_surface_order)))+1):
                     ctrl_surface_vec = []
                     ctrl_surface_vec.append(get_coef(bodyax_file,f'CXd{i}'))
                     ctrl_surface_vec.append(get_coef(bodyax_file,f'CYd{i}'))
@@ -209,9 +210,6 @@ def main(file_name: TextIO, vehicle_type: str, AR: str, mac: str, ref_pt_x: str,
                     bodyax_file.seek(original_position)
                     ctrl_surface_mat.append(ctrl_surface_vec)
 
-
-        # case "standard_vtol":
-        # case "custom"
 
 	# SPECIFY STALL PARAMETERS BASED ON AIRCRAFT TYPE (IF PROVIDED)
     if not os.path.exists(f'{savedir}/{file_name}'):
@@ -285,6 +283,7 @@ def main(file_name: TextIO, vehicle_type: str, AR: str, mac: str, ref_pt_x: str,
     # Dictionary containing the directions that each type of control surface can move.
     ctrl_direction = {"aileron": 1,"elevator": -1,"rudder": 1}
 
+	# More set types in the future?
     match plane_type:
 
         case "custom":
@@ -313,11 +312,6 @@ def main(file_name: TextIO, vehicle_type: str, AR: str, mac: str, ref_pt_x: str,
                     seen_index = len(type_seen) - 1
 
                 ctrl_surface_coef(file_name,ctrl_surface_mat[seen_index],i,ctrl_direction[ctrl_surface])
-
-
-        # case "standard_vtol":
-
-        # case "cessna":
 
 
     # close the sdf file with plugin
