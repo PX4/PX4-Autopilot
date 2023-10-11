@@ -161,7 +161,7 @@ void RoboClaw::taskMain()
 		PX4_ERR("Shutting down Roboclaw driver.");
 		return;
 	} else {
-		PX4_ERR("Successfully connected");
+		PX4_INFO("Successfully connected");
 	}
 
 	// This main loop performs two different tasks, asynchronously:
@@ -177,7 +177,7 @@ void RoboClaw::taskMain()
 
 	int waitTime = 10_ms;
 
-	// uint64_t encoderTaskLastRun = 0;
+	uint64_t encoderTaskLastRun = 0;
 
 	uint64_t actuatorsLastWritten = 0;
 
@@ -208,12 +208,6 @@ void RoboClaw::taskMain()
 
 		bool actuators_timeout = int(hrt_absolute_time() - actuatorsLastWritten) > 2000 * _parameters.actuator_write_period_ms;
 
-
-		// vehicle_control_poll();
-		// readEncoder();
-
-		// printStatus();
-
 		if (fds[0].revents & POLLIN) {
 			orb_copy(ORB_ID(parameter_update), _paramSub, &_paramUpdate);
 			_parameters_update();
@@ -229,12 +223,10 @@ void RoboClaw::taskMain()
 
 			if (disarmed) {
 				// printf("i am disarmed \n");
-				PX4_ERR("Not armed so im not driving");
 				setMotorSpeed(MOTOR_1, 0.f);
 				setMotorSpeed(MOTOR_2, 0.f);
 
 			} else {
-				PX4_ERR("Armed so I can be driving");
 				vehicle_control_poll();
 				const float yaw = (double)vehicle_thrust_setpoint.xyz[0]; //temporary change
 				// printf("thrust %f\n", (double)throttle);
@@ -247,7 +239,7 @@ void RoboClaw::taskMain()
 			actuatorsLastWritten = hrt_absolute_time();
 
 		} else {
-				PX4_ERR("im am going to try to readEncoder");
+
 			if (readEncoder() > 0) {
 
 				for (int i = 0; i < 2; i++) {
@@ -287,17 +279,13 @@ int RoboClaw::readEncoder()
 	for (int retry = 0; retry < TIMEOUT_RETRIES && !success; retry++) {
 		success = _transaction(CMD_READ_BOTH_ENCODERS, nullptr, 0, &rbuff_pos[0], ENCODER_MESSAGE_SIZE, false,
 				       true) == ENCODER_MESSAGE_SIZE;
-		PX4_ERR("success 1 %f", (double)success);
 		success = success && _transaction(CMD_READ_SPEED_1, nullptr, 0, &rbuff_speed[0], ENCODER_SPEED_MESSAGE_SIZE, false,
 						  true) == ENCODER_SPEED_MESSAGE_SIZE;
-		PX4_ERR("success 2 %f", (double)success);
 		success = success && _transaction(CMD_READ_SPEED_2, nullptr, 0, &rbuff_speed[4], ENCODER_SPEED_MESSAGE_SIZE, false,
 						  true) == ENCODER_SPEED_MESSAGE_SIZE;
-		PX4_ERR("success 3 %f", (double)success);
 	}
 
 	if (!success) {
-		PX4_ERR("Error reading encoders");
 		return -1;
 	}
 
@@ -523,11 +511,6 @@ RoboClaw::RoboClawError RoboClaw::writeToDevice(e_command cmd, uint8_t *wbuff, s
 
 	tcflush(_uart, TCIOFLUSH); // flush the buffers
 
-	// // Construct the packet to be sent.
-	// uint8_t buf[wbytes + 4];
-	// buf[0] = (uint8_t) _parameters.address;
-	// buf[1] = cmd;
-
 	if (wbuff) {
 		memcpy(&buf[2], wbuff, wbytes);
 	}
@@ -606,11 +589,7 @@ void RoboClaw::printError(RoboClawError error)
 
 	switch (error) {
 		case RoboClawError::Success:
-			// Optionally print success message or do nothing
 			break;
-		// case RoboClawError::InvalidUartFileDescriptor:
-		// 	PX4_ERR("Invalid UART file descriptor");
-		// 	break;
 		case RoboClawError::WriteError:
 			PX4_ERR("Failed to write all bytes to the device");
 			break;
@@ -620,7 +599,6 @@ void RoboClaw::printError(RoboClawError error)
 		case RoboClawError::ReadTimeout:
 			PX4_ERR("Timeout while reading from the device");
 			break;
-		// Add more cases as needed for other error codes
 		default:
 			PX4_ERR("Unknown error code");
 	}
@@ -656,13 +634,6 @@ int RoboClaw::_transaction(e_command cmd, uint8_t *wbuff, size_t wbytes,
 	// int count = write(_uart, buf, wbytes);
 
 	int count = write(_uart, buf, wbytes);
-	PX4_INFO("wrote this many bytes: %d", count);
-
-	PX4_INFO("Written data: ");
-	for (int i = 0; i < count; ++i) {
-		PX4_INFO("0x%08X (%d)", buf[i], buf[i]);
-	}
-
 
 	if (count < (int) wbytes) { // Did not successfully send all bytes.
 		PX4_ERR("Only wrote %d out of %zu bytes", count, wbytes);
@@ -690,17 +661,10 @@ int RoboClaw::_transaction(e_command cmd, uint8_t *wbuff, size_t wbytes,
 
 		// An error code of 0 means that select timed out, which is how the Roboclaw indicates an error.
 		if (err_code <= 0) {
-			PX4_INFO("I timed out lol");
 			return err_code;
 		}
 
-		PX4_INFO("Attempting to read data...");
 		err_code = read(_uart, rbuff_curr, rbytes - bytes_read);
-		PX4_INFO("Read call returned: %d", err_code);
-
-		for (int i = 0; i < err_code; i++) {
-				PX4_ERR("Received byte printt %d: 0x%08X (%d)", i, rbuff_curr[i], rbuff_curr[i]);
-		}
 
 		if (err_code <= 0) {
 			return err_code;
