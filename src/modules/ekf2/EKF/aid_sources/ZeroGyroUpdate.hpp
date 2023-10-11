@@ -31,61 +31,24 @@
  *
  ****************************************************************************/
 
-/**
- * @file zero_gyro_update.cpp
- * Control function for ekf zero gyro update
- */
+#ifndef EKF_ZERO_GYRO_UPDATE_HPP
+#define EKF_ZERO_GYRO_UPDATE_HPP
 
-#include "ekf.h"
+#include "EstimatorAidSource.hpp"
 
-void Ekf::controlZeroGyroUpdate(const imuSample &imu_delayed)
+class ZeroGyroUpdate : public EstimatorAidSource
 {
-	if (!(_params.imu_ctrl & static_cast<int32_t>(ImuCtrl::GyroBias))) {
-		return;
-	}
+public:
+	ZeroGyroUpdate();
+	virtual ~ZeroGyroUpdate() = default;
 
-	// When at rest, fuse the gyro data as a direct observation of the gyro bias
-	if (_control_status.flags.vehicle_at_rest) {
-		// Downsample gyro data to run the fusion at a lower rate
-		_zgup_delta_ang += imu_delayed.delta_ang;
-		_zgup_delta_ang_dt += imu_delayed.delta_ang_dt;
+	void reset() override;
+	bool update(Ekf &ekf, const estimator::imuSample &imu_delayed) override;
 
-		static constexpr float zgup_dt = 0.2f;
-		const bool zero_gyro_update_data_ready = _zgup_delta_ang_dt >= zgup_dt;
+private:
 
-		if (zero_gyro_update_data_ready) {
-			Vector3f gyro_bias = _zgup_delta_ang / _zgup_delta_ang_dt;
-			Vector3f innovation = _state.gyro_bias - gyro_bias;
+	matrix::Vector3f _zgup_delta_ang{};
+	float _zgup_delta_ang_dt{0.f};
+};
 
-			const float obs_var = sq(math::constrain(_params.gyro_noise, 0.f, 1.f));
-
-			const Vector3f innov_var = getGyroBiasVariance() + obs_var;
-
-			for (int i = 0; i < 3; i++) {
-				fuseDeltaAngBias(innovation(i), innov_var(i), i);
-			}
-
-			// Reset the integrators
-			_zgup_delta_ang.setZero();
-			_zgup_delta_ang_dt = 0.f;
-		}
-
-	} else if (_control_status_prev.flags.vehicle_at_rest) {
-		// Reset the integrators
-		_zgup_delta_ang.setZero();
-		_zgup_delta_ang_dt = 0.f;
-	}
-}
-
-void Ekf::fuseDeltaAngBias(const float innov, const float innov_var, const int obs_index)
-{
-	VectorState K;  // Kalman gain vector for any single observation - sequential fusion is used.
-	const unsigned state_index = obs_index + State::gyro_bias.idx;
-
-	// calculate kalman gain K = PHS, where S = 1/innovation variance
-	for (int row = 0; row < State::size; row++) {
-		K(row) = P(row, state_index) / innov_var;
-	}
-
-	measurementUpdate(K, innov_var, innov);
-}
+#endif // !EKF_ZERO_GYRO_UPDATE_HPP
