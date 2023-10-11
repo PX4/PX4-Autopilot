@@ -338,7 +338,7 @@ int work_usrthread(int argc, char *argv[])
 
 #endif /* CONFIG_SCHED_USRWORK */
 
-uint32_t clock_systimer()
+uint32_t clock_systimer(void)
 {
 	//printf("clock_systimer: %0lx\n", hrt_absolute_time());
 	return (0x00000000ffffffff & hrt_absolute_time());
