@@ -43,6 +43,7 @@ namespace sensors
 {
 
 using namespace matrix;
+using namespace atmosphere;
 
 static constexpr uint32_t SENSOR_TIMEOUT{300_ms};
 

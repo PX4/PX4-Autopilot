@@ -37,6 +37,7 @@
 
 #include <gtest/gtest.h>
 #include <lib/atmosphere/atmosphere.h>
+using namespace atmosphere;
 
 TEST(TestAtmosphere, pressureFromAltitude)
 {

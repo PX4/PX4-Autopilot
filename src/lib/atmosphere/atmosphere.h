@@ -39,6 +39,9 @@
 #ifndef PX4_SRC_LIB_ATMOSPHERE_ATMOSPHERE_H_
 #define PX4_SRC_LIB_ATMOSPHERE_ATMOSPHERE_H_
 
+namespace atmosphere
+{
+
 /**
 * Calculate air density given air pressure and temperature.
 *
@@ -69,5 +72,6 @@ float getAltitudeFromPressure(float pressure_pa, float pressure_sealevel_pa);
 * @return Standard temperature in degrees Celsius
 */
 float getStandardTemperatureAtAltitude(float altitude_m);
+}
 
 #endif //PX4_SRC_LIB_ATMOSPHERE_ATMOSPHERE_H_

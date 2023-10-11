@@ -38,6 +38,8 @@
 
 #include <geo/geo.h>
 #include "atmosphere.h"
+namespace atmosphere
+{
 
 static constexpr float kTempRefKelvin = 15.f - CONSTANTS_ABSOLUTE_NULL_CELSIUS; // temperature at base height in Kelvin
 static constexpr float kTempGradient = -6.5f / 1000.f; // temperature gradient in degrees per meter
@@ -75,4 +77,5 @@ float getAltitudeFromPressure(float pressure_pa, float pressure_sealevel_pa)
 float getStandardTemperatureAtAltitude(float altitude_m)
 {
 	return 15.0f + kTempGradient * altitude_m;
+}
 }
