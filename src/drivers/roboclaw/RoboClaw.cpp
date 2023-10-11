@@ -155,9 +155,9 @@ void RoboClaw::taskMain()
 {
 	// Make sure the Roboclaw is actually connected, so I don't just spam errors if it's not.
 	uint8_t rbuff[CMD_READ_STATUS_MESSAGE_SIZE];
-	RoboClawError err_code = _validate_connection(CMD_READ_STATUS, nullptr, 0, &rbuff[0], sizeof(rbuff), false, true);
+	int err_code = _transaction(CMD_READ_STATUS, nullptr, 0, &rbuff[0], sizeof(rbuff), false, true);
 
-	if (err_code != RoboClawError::Success) {
+	if (err_code < 0) {
 		PX4_ERR("Shutting down Roboclaw driver.");
 		return;
 	} else {
@@ -278,11 +278,11 @@ int RoboClaw::readEncoder()
 
 	for (int retry = 0; retry < TIMEOUT_RETRIES && !success; retry++) {
 		success = _transaction(CMD_READ_BOTH_ENCODERS, nullptr, 0, &rbuff_pos[0], ENCODER_MESSAGE_SIZE, false,
-				       true) == ENCODER_MESSAGE_SIZE;
+				       true) > 0;
 		success = success && _transaction(CMD_READ_SPEED_1, nullptr, 0, &rbuff_speed[0], ENCODER_SPEED_MESSAGE_SIZE, false,
-						  true) == ENCODER_SPEED_MESSAGE_SIZE;
+						  true) > 0;
 		success = success && _transaction(CMD_READ_SPEED_2, nullptr, 0, &rbuff_speed[4], ENCODER_SPEED_MESSAGE_SIZE, false,
-						  true) == ENCODER_SPEED_MESSAGE_SIZE;
+						  true) > 0;
 	}
 
 	if (!success) {
@@ -480,7 +480,7 @@ uint16_t RoboClaw::_calcCRC(const uint8_t *buf, size_t n, uint16_t init)
 	return crc;
 }
 
-RoboClaw::RoboClawError RoboClaw::_validate_connection(e_command cmd, uint8_t *wbuff, size_t wbytes, uint8_t *rbuff, size_t rbytes, bool send_checksum, bool recv_checksum)
+int RoboClaw::_transaction(e_command cmd, uint8_t *wbuff, size_t wbytes, uint8_t *rbuff, size_t rbytes, bool send_checksum, bool recv_checksum)
 {
 
 	// Construct the packet to be sent.
@@ -493,17 +493,21 @@ RoboClaw::RoboClawError RoboClaw::_validate_connection(e_command cmd, uint8_t *w
 
 	if (err_code != RoboClawError::Success) {
 		printError(err_code);
-		return err_code;
+		PX4_ERR("uhh 1");
+
+		return -1;
 	}
 
 	err_code = readFromDevice(rbuff, rbytes, recv_checksum, buf);
 
 	if (err_code != RoboClawError::Success) {
 		printError(err_code);
-		return err_code;
+		PX4_ERR("uhh 2");
+
+		return -1;
 	}
 
-	return RoboClawError::Success;
+	return 1;
 }
 
 RoboClaw::RoboClawError RoboClaw::writeToDevice(e_command cmd, uint8_t *wbuff, size_t wbytes, bool send_checksum, uint8_t *buf)
@@ -604,107 +608,6 @@ void RoboClaw::printError(RoboClawError error)
 	}
 }
 
-
-
-
-int RoboClaw::_transaction(e_command cmd, uint8_t *wbuff, size_t wbytes,
-			   uint8_t *rbuff, size_t rbytes, bool send_checksum, bool recv_checksum)
-{
-	int err_code = 0;
-
-	// WRITE
-
-	tcflush(_uart, TCIOFLUSH); // flush  buffers
-	uint8_t buf[wbytes + 4];
-	buf[0] = (uint8_t) _parameters.address;
-	buf[1] = cmd;
-
-	if (wbuff) {
-		memcpy(&buf[2], wbuff, wbytes);
-	}
-
-	wbytes = wbytes + (send_checksum ? 4 : 2);
-
-	if (send_checksum) {
-		uint16_t sum = _calcCRC(buf, wbytes - 2);
-		buf[wbytes - 2] = (sum >> 8) & 0xFF;
-		buf[wbytes - 1] = sum & 0xFFu;
-	}
-
-	// int count = write(_uart, buf, wbytes);
-
-	int count = write(_uart, buf, wbytes);
-
-	if (count < (int) wbytes) { // Did not successfully send all bytes.
-		PX4_ERR("Only wrote %d out of %zu bytes", count, wbytes);
-		return -1;
-	}
-
-
-	// READ
-
-
-	uint8_t *rbuff_curr = rbuff;
-	size_t bytes_read = 0;
-
-	// select(...) returns as soon as even 1 byte is available. read(...) returns immediately, no matter how many
-	// bytes are available. I need to keep reading until I get the number of bytes I expect.
-	//printf("Read: \n");
-	while (bytes_read < rbytes) {
-		// select(...) may change this timeout struct (because it is not const). So I reset it every time.
-		PX4_INFO("I am in the read loop.");
-
-		_uart_timeout.tv_sec = 0;
-		_uart_timeout.tv_usec = TIMEOUT_US;
-		err_code = select(_uart + 1, &_uart_set, nullptr, nullptr, &_uart_timeout);
-		//printf("Select: %d\n", err_code);
-
-		// An error code of 0 means that select timed out, which is how the Roboclaw indicates an error.
-		if (err_code <= 0) {
-			return err_code;
-		}
-
-		err_code = read(_uart, rbuff_curr, rbytes - bytes_read);
-
-		if (err_code <= 0) {
-			return err_code;
-
-		} else {
-			bytes_read += err_code;
-			rbuff_curr += err_code;
-		}
-	}
-
-	//TODO: Clean up this mess of IFs and returns
-
-	if (recv_checksum) {
-		if (bytes_read < 2) {
-			return -1;
-		}
-
-		// The checksum sent back by the roboclaw is calculated based on the address and command bytes as well
-		// as the data returned.
-		uint16_t checksum_calc = _calcCRC(buf, 2);
-		checksum_calc = _calcCRC(rbuff, bytes_read - 2, checksum_calc);
-		uint16_t checksum_recv = (rbuff[bytes_read - 2] << 8) + rbuff[bytes_read - 1];
-
-		// If the checksum is correct and the data has not been corrupted, it will return the bytes read
-		if (checksum_calc == checksum_recv) {
-			return bytes_read;
-
-		} else {
-			return -10;
-		}
-
-	} else {
-		if (bytes_read == 1 && rbuff[0] == 0xFF) {
-			return 1;
-
-		} else {
-			return -11;
-		}
-	}
-}
 
 void RoboClaw::_parameters_update()
 {
