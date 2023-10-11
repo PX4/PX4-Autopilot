@@ -219,6 +219,11 @@ int LightwareLaserSerial::collect()
 
 	} else {
 		for (int i = 0; i < ret; i++) {
+			// Check for overflow
+			if (_linebuf_index >= sizeof(_linebuf)) {
+				_parse_state = LW_PARSE_STATE0_UNSYNC;
+			}
+
 			if (OK == lightware_parser(readbuf[i], _linebuf, &_linebuf_index, &_parse_state, &distance_m)) {
 				valid = true;
 			}

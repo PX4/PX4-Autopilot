@@ -42,10 +42,12 @@
  */
 
 #include "ekf.h"
-#include "python/ekf_derivation/generated/compute_mag_innov_innov_var_and_hx.h"
-#include "python/ekf_derivation/generated/compute_mag_y_innov_var_and_h.h"
-#include "python/ekf_derivation/generated/compute_mag_z_innov_var_and_h.h"
-#include "python/ekf_derivation/generated/compute_mag_declination_pred_innov_var_and_h.h"
+
+#include <ekf_derivation/generated/compute_mag_innov_innov_var_and_hx.h>
+#include <ekf_derivation/generated/compute_mag_y_innov_var_and_h.h>
+#include <ekf_derivation/generated/compute_mag_z_innov_var_and_h.h>
+
+#include <ekf_derivation/generated/compute_mag_declination_pred_innov_var_and_h.h>
 
 #include <mathlib/mathlib.h>
 

@@ -42,8 +42,8 @@
  */
 
 #include "ekf.h"
-#include "python/ekf_derivation/generated/compute_sideslip_innov_and_innov_var.h"
-#include "python/ekf_derivation/generated/compute_sideslip_h_and_k.h"
+#include <ekf_derivation/generated/compute_sideslip_innov_and_innov_var.h>
+#include <ekf_derivation/generated/compute_sideslip_h_and_k.h>
 
 #include <mathlib/mathlib.h>
 
