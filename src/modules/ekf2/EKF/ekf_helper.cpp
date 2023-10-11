@@ -40,8 +40,8 @@
  */
 
 #include "ekf.h"
-#include "python/ekf_derivation/generated/quat_var_to_rot_var.h"
-#include "python/ekf_derivation/generated/rot_var_ned_to_lower_triangular_quat_cov.h"
+#include <ekf_derivation/generated/quat_var_to_rot_var.h>
+#include <ekf_derivation/generated/rot_var_ned_to_lower_triangular_quat_cov.h>
 
 #include <mathlib/mathlib.h>
 #include <lib/world_magnetic_model/geo_mag_declination.h>
@@ -206,7 +206,9 @@ void Ekf::resetVerticalPositionTo(const float new_vert_pos, float new_vert_pos_v
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	_ev_hgt_b_est.setBias(_ev_hgt_b_est.getBias() - delta_z);
 #endif // CONFIG_EKF2_EXTERNAL_VISION
+#if defined(CONFIG_EKF2_GNSS)
 	_gps_hgt_b_est.setBias(_gps_hgt_b_est.getBias() + delta_z);
+#endif // CONFIG_EKF2_GNSS
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	_rng_hgt_b_est.setBias(_rng_hgt_b_est.getBias() + delta_z);
 #endif // CONFIG_EKF2_RANGE_FINDER
@@ -244,7 +246,9 @@ void Ekf::constrainStates()
 	_state.mag_B = matrix::constrain(_state.mag_B, -getMagBiasLimit(), getMagBiasLimit());
 #endif // CONFIG_EKF2_MAGNETOMETER
 
+#if defined(CONFIG_EKF2_WIND)
 	_state.wind_vel = matrix::constrain(_state.wind_vel, -100.0f, 100.0f);
+#endif // CONFIG_EKF2_WIND
 }
 
 #if defined(CONFIG_EKF2_BARO_COMPENSATION)
@@ -360,11 +364,15 @@ bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, cons
 			// determine current z
 			float current_alt = -_state.pos(2) + gps_alt_ref_prev;
 
+#if defined(CONFIG_EKF2_GNSS)
 			const float gps_hgt_bias = _gps_hgt_b_est.getBias();
+#endif // CONFIG_EKF2_GNSS
 			resetVerticalPositionTo(_gps_alt_ref - current_alt);
 
+#if defined(CONFIG_EKF2_GNSS)
 			// preserve GPS height bias
 			_gps_hgt_b_est.setBias(gps_hgt_bias);
+#endif // CONFIG_EKF2_GNSS
 		}
 
 		return true;
@@ -385,9 +393,11 @@ void Ekf::get_ekf_gpos_accuracy(float *ekf_eph, float *ekf_epv) const
 	// The reason is that complete rejection of measurements is often caused by heading misalignment or inertial sensing errors
 	// and using state variances for accuracy reporting is overly optimistic in these situations
 	if (_control_status.flags.inertial_dead_reckoning) {
+#if defined(CONFIG_EKF2_GNSS)
 		if (_control_status.flags.gps) {
 			hpos_err = math::max(hpos_err, Vector2f(_aid_src_gnss_pos.innovation).norm());
 		}
+#endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 		if (_control_status.flags.ev_pos) {
@@ -410,9 +420,11 @@ void Ekf::get_ekf_lpos_accuracy(float *ekf_eph, float *ekf_epv) const
 	// The reason is that complete rejection of measurements is often caused by heading misalignment or inertial sensing errors
 	// and using state variances for accuracy reporting is overly optimistic in these situations
 	if (_horizontal_deadreckon_time_exceeded) {
+#if defined(CONFIG_EKF2_GNSS)
 		if (_control_status.flags.gps) {
 			hpos_err = math::max(hpos_err, Vector2f(_aid_src_gnss_pos.innovation).norm());
 		}
+#endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 		if (_control_status.flags.ev_pos) {
@@ -443,9 +455,11 @@ void Ekf::get_ekf_vel_accuracy(float *ekf_evh, float *ekf_evv) const
 		}
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
+#if defined(CONFIG_EKF2_GNSS)
 		if (_control_status.flags.gps) {
 			vel_err_conservative = math::max(vel_err_conservative, Vector2f(_aid_src_gnss_pos.innovation).norm());
 		}
+#endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 		if (_control_status.flags.ev_pos) {
@@ -590,6 +604,7 @@ void Ekf::get_innovation_test_status(uint16_t &status, float &mag, float &vel, f
 	vel = NAN;
 	pos = NAN;
 
+#if defined(CONFIG_EKF2_GNSS)
 	if (_control_status.flags.gps) {
 		float gps_vel = sqrtf(Vector3f(_aid_src_gnss_vel.test_ratio).max());
 		vel = math::max(gps_vel, FLT_MIN);
@@ -597,6 +612,7 @@ void Ekf::get_innovation_test_status(uint16_t &status, float &mag, float &vel, f
 		float gps_pos = sqrtf(Vector2f(_aid_src_gnss_pos.test_ratio).max());
 		pos = math::max(gps_pos, FLT_MIN);
 	}
+#endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	if (_control_status.flags.ev_vel) {
@@ -628,10 +644,12 @@ void Ekf::get_innovation_test_status(uint16_t &status, float &mag, float &vel, f
 	}
 #endif // CONFIG_EKF2_BAROMETER
 
+#if defined(CONFIG_EKF2_GNSS)
 	if (_control_status.flags.gps_hgt) {
 		hgt_sum += sqrtf(_aid_src_gnss_hgt.test_ratio);
 		n_hgt_sources++;
 	}
+#endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	if (_control_status.flags.rng_hgt) {
@@ -715,10 +733,15 @@ void Ekf::get_ekf_soln_status(uint16_t *status) const
 	}
 #endif // CONFIG_EKF2_MAGNETOMETER
 
+#if defined(CONFIG_EKF2_GNSS)
 	const bool gps_vel_innov_bad = Vector3f(_aid_src_gnss_vel.test_ratio).max() > 1.f;
 	const bool gps_pos_innov_bad = Vector2f(_aid_src_gnss_pos.test_ratio).max() > 1.f;
 
 	soln_status.flags.gps_glitch = (gps_vel_innov_bad || gps_pos_innov_bad) && mag_innov_good;
+#else
+	(void)mag_innov_good;
+#endif // CONFIG_EKF2_GNSS
+
 	soln_status.flags.accel_error = _fault_status.flags.bad_acc_vertical;
 	*status = soln_status.value;
 }
@@ -739,7 +762,9 @@ void Ekf::fuse(const VectorState &K, float innovation)
 	_state.mag_B -= K.slice<State::mag_B.dof, 1>(State::mag_B.idx, 0) * innovation;
 #endif // CONFIG_EKF2_MAGNETOMETER
 
+#if defined(CONFIG_EKF2_WIND)
 	_state.wind_vel -= K.slice<State::wind_vel.dof, 1>(State::wind_vel.idx, 0) * innovation;
+#endif // CONFIG_EKF2_WIND
 }
 
 void Ekf::uncorrelateQuatFromOtherStates()
@@ -913,6 +938,7 @@ void Ekf::resetQuatStateYaw(float yaw, float yaw_variance)
 	_time_last_heading_fuse = _time_delayed_us;
 }
 
+#if defined(CONFIG_EKF2_GNSS)
 bool Ekf::resetYawToEKFGSF()
 {
 	if (!isYawEmergencyEstimateAvailable()) {
@@ -937,9 +963,11 @@ bool Ekf::resetYawToEKFGSF()
 
 	return true;
 }
+#endif // CONFIG_EKF2_GNSS
 
 bool Ekf::isYawEmergencyEstimateAvailable() const
 {
+#if defined(CONFIG_EKF2_GNSS)
 	// don't allow reet using the EKF-GSF estimate until the filter has started fusing velocity
 	// data and the yaw estimate has converged
 	if (!_yawEstimator.isActive()) {
@@ -947,23 +975,18 @@ bool Ekf::isYawEmergencyEstimateAvailable() const
 	}
 
 	return _yawEstimator.getYawVar() < sq(_params.EKFGSF_yaw_err_max);
+#else
+	return false;
+#endif
 }
 
+#if defined(CONFIG_EKF2_GNSS)
 bool Ekf::getDataEKFGSF(float *yaw_composite, float *yaw_variance, float yaw[N_MODELS_EKFGSF],
 			float innov_VN[N_MODELS_EKFGSF], float innov_VE[N_MODELS_EKFGSF], float weight[N_MODELS_EKFGSF])
 {
 	return _yawEstimator.getLogData(yaw_composite, yaw_variance, yaw, innov_VN, innov_VE, weight);
 }
-
-void Ekf::resetGpsDriftCheckFilters()
-{
-	_gps_velNE_filt.setZero();
-	_gps_pos_deriv_filt.setZero();
-
-	_gps_horizontal_position_drift_rate_m_s = NAN;
-	_gps_vertical_position_drift_rate_m_s = NAN;
-	_gps_filtered_horizontal_velocity_m_s = NAN;
-}
+#endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_WIND)
 void Ekf::resetWind()

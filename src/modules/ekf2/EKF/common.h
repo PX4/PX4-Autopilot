@@ -280,14 +280,8 @@ struct parameters {
 	// measurement source control
 	int32_t height_sensor_ref{HeightSensor::BARO};
 	int32_t position_sensor_ref{static_cast<int32_t>(PositionSensor::GNSS)};
-	int32_t baro_ctrl{1};
-	int32_t gnss_ctrl{GnssCtrl::HPOS | GnssCtrl::VEL};
 
 	int32_t sensor_interval_max_ms{10};     ///< maximum time of arrival difference between non IMU sensor updates. Sets the size of the observation buffers. (mSec)
-
-	// measurement time delays
-	float baro_delay_ms{0.0f};              ///< barometer height measurement delay relative to the IMU (mSec)
-	float gps_delay_ms{110.0f};             ///< GPS measurement delay relative to the IMU (mSec)
 
 	// input noise
 	float gyro_noise{1.5e-2f};              ///< IMU angular rate noise used for covariance prediction (rad/sec)
@@ -308,18 +302,66 @@ struct parameters {
 	float switch_on_accel_bias{0.2f};       ///< 1-sigma accelerometer bias uncertainty at switch on (m/sec**2)
 	float initial_tilt_err{0.1f};           ///< 1-sigma tilt error after initial alignment using gravity vector (rad)
 
+#if defined(CONFIG_EKF2_BAROMETER)
+	int32_t baro_ctrl{1};
+	float baro_delay_ms{0.0f};              ///< barometer height measurement delay relative to the IMU (mSec)
+	float baro_noise{2.0f};                 ///< observation noise for barometric height fusion (m)
+	float baro_bias_nsd{0.13f};             ///< process noise for barometric height bias estimation (m/s/sqrt(Hz))
+	float baro_innov_gate{5.0f};            ///< barometric and GPS height innovation consistency gate size (STD)
+
+	float gnd_effect_deadzone{5.0f};        ///< Size of deadzone applied to negative baro innovations when ground effect compensation is active (m)
+	float gnd_effect_max_hgt{0.5f};         ///< Height above ground at which baro ground effect becomes insignificant (m)
+
+# if defined(CONFIG_EKF2_BARO_COMPENSATION)
+	// static barometer pressure position error coefficient along body axes
+	float static_pressure_coef_xp{0.0f};    // (-)
+	float static_pressure_coef_xn{0.0f};    // (-)
+	float static_pressure_coef_yp{0.0f};    // (-)
+	float static_pressure_coef_yn{0.0f};    // (-)
+	float static_pressure_coef_z{0.0f};     // (-)
+
+	// upper limit on airspeed used for correction  (m/s**2)
+	float max_correction_airspeed{20.0f};
+# endif // CONFIG_EKF2_BARO_COMPENSATION
+#endif // CONFIG_EKF2_BAROMETER
+
+#if defined(CONFIG_EKF2_GNSS)
+	int32_t gnss_ctrl{GnssCtrl::HPOS | GnssCtrl::VEL};
+	float gps_delay_ms{110.0f};             ///< GPS measurement delay relative to the IMU (mSec)
+
+	Vector3f gps_pos_body{};                ///< xyz position of the GPS antenna in body frame (m)
+
 	// position and velocity fusion
 	float gps_vel_noise{0.5f};           ///< minimum allowed observation noise for gps velocity fusion (m/sec)
 	float gps_pos_noise{0.5f};              ///< minimum allowed observation noise for gps position fusion (m)
 	float gps_hgt_bias_nsd{0.13f};          ///< process noise for gnss height bias estimation (m/s/sqrt(Hz))
-	float pos_noaid_noise{10.0f};           ///< observation noise for non-aiding position fusion (m)
-	float baro_noise{2.0f};                 ///< observation noise for barometric height fusion (m)
-	float baro_bias_nsd{0.13f};             ///< process noise for barometric height bias estimation (m/s/sqrt(Hz))
-	float baro_innov_gate{5.0f};            ///< barometric and GPS height innovation consistency gate size (STD)
 	float gps_pos_innov_gate{5.0f};         ///< GPS horizontal position innovation consistency gate size (STD)
 	float gps_vel_innov_gate{5.0f};         ///< GPS velocity innovation consistency gate size (STD)
-	float gnd_effect_deadzone{5.0f};        ///< Size of deadzone applied to negative baro innovations when ground effect compensation is active (m)
-	float gnd_effect_max_hgt{0.5f};         ///< Height above ground at which baro ground effect becomes insignificant (m)
+
+	// these parameters control the strictness of GPS quality checks used to determine if the GPS is
+	// good enough to set a local origin and commence aiding
+	int32_t gps_check_mask{21};             ///< bitmask used to control which GPS quality checks are used
+	float req_hacc{5.0f};                   ///< maximum acceptable horizontal position error (m)
+	float req_vacc{8.0f};                   ///< maximum acceptable vertical position error (m)
+	float req_sacc{1.0f};                   ///< maximum acceptable speed error (m/s)
+	int32_t req_nsats{6};                   ///< minimum acceptable satellite count
+	float req_pdop{2.0f};                   ///< maximum acceptable position dilution of precision
+	float req_hdrift{0.3f};                 ///< maximum acceptable horizontal drift speed (m/s)
+	float req_vdrift{0.5f};                 ///< maximum acceptable vertical drift speed (m/s)
+
+# if defined(CONFIG_EKF2_GNSS_YAW)
+	// GNSS heading fusion
+	float gps_heading_noise{0.1f};          ///< measurement noise standard deviation used for GNSS heading fusion (rad)
+# endif // CONFIG_EKF2_GNSS_YAW
+
+	// Parameters used to control when yaw is reset to the EKF-GSF yaw estimator value
+	float EKFGSF_tas_default{15.0f};                ///< default airspeed value assumed during fixed wing flight if no airspeed measurement available (m/s)
+	const unsigned EKFGSF_reset_delay{1000000};     ///< Number of uSec of bad innovations on main filter in immediate post-takeoff phase before yaw is reset to EKF-GSF value
+	const float EKFGSF_yaw_err_max{0.262f};         ///< Composite yaw 1-sigma uncertainty threshold used to check for convergence (rad)
+
+#endif // CONFIG_EKF2_GNSS
+
+	float pos_noaid_noise{10.0f};           ///< observation noise for non-aiding position fusion (m)
 
 	float heading_innov_gate{2.6f};         ///< heading fusion innovation consistency gate size (STD)
 	float mag_heading_noise{3.0e-1f};       ///< measurement noise used for simple heading fusion (rad)
@@ -345,11 +387,6 @@ struct parameters {
 	float mag_check_strength_tolerance_gs{0.2f};
 	float mag_check_inclination_tolerance_deg{20.f};
 #endif // CONFIG_EKF2_MAGNETOMETER
-
-#if defined(CONFIG_EKF2_GNSS_YAW)
-	// GNSS heading fusion
-	float gps_heading_noise{0.1f};          ///< measurement noise standard deviation used for GNSS heading fusion (rad)
-#endif // CONFIG_EKF2_GNSS_YAW
 
 #if defined(CONFIG_EKF2_AIRSPEED)
 	// airspeed fusion
@@ -434,20 +471,8 @@ struct parameters {
 	Vector3f flow_pos_body{};               ///< xyz position of range sensor focal point in body frame (m)
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
-	// these parameters control the strictness of GPS quality checks used to determine if the GPS is
-	// good enough to set a local origin and commence aiding
-	int32_t gps_check_mask{21};             ///< bitmask used to control which GPS quality checks are used
-	float req_hacc{5.0f};                   ///< maximum acceptable horizontal position error (m)
-	float req_vacc{8.0f};                   ///< maximum acceptable vertical position error (m)
-	float req_sacc{1.0f};                   ///< maximum acceptable speed error (m/s)
-	int32_t req_nsats{6};                   ///< minimum acceptable satellite count
-	float req_pdop{2.0f};                   ///< maximum acceptable position dilution of precision
-	float req_hdrift{0.3f};                 ///< maximum acceptable horizontal drift speed (m/s)
-	float req_vdrift{0.5f};                 ///< maximum acceptable vertical drift speed (m/s)
-
 	// XYZ offset of sensors in body axes (m)
 	Vector3f imu_pos_body{};                ///< xyz position of IMU in body frame (m)
-	Vector3f gps_pos_body{};                ///< xyz position of the GPS antenna in body frame (m)
 
 	// accel bias learning control
 	float acc_bias_lim{0.4f};               ///< maximum accel bias magnitude (m/sec**2)
@@ -462,18 +487,6 @@ struct parameters {
 	const unsigned hgt_fusion_timeout_max{5'000'000}; ///< maximum time we allow height fusion to fail before attempting a reset or stopping the fusion aiding (uSec)
 
 	int32_t valid_timeout_max{5'000'000};     ///< amount of time spent inertial dead reckoning before the estimator reports the state estimates as invalid (uSec)
-
-#if defined(CONFIG_EKF2_BARO_COMPENSATION)
-	// static barometer pressure position error coefficient along body axes
-	float static_pressure_coef_xp{0.0f};    // (-)
-	float static_pressure_coef_xn{0.0f};    // (-)
-	float static_pressure_coef_yp{0.0f};    // (-)
-	float static_pressure_coef_yn{0.0f};    // (-)
-	float static_pressure_coef_z{0.0f};     // (-)
-
-	// upper limit on airspeed used for correction  (m/s**2)
-	float max_correction_airspeed {20.0f};
-#endif // CONFIG_EKF2_BARO_COMPENSATION
 
 #if defined(CONFIG_EKF2_DRAG_FUSION)
 	// multi-rotor drag specific force fusion
@@ -496,10 +509,6 @@ struct parameters {
 	const float auxvel_gate{5.0f};          ///< velocity fusion innovation consistency gate size (STD)
 #endif // CONFIG_EKF2_AUXVEL
 
-	// Parameters used to control when yaw is reset to the EKF-GSF yaw estimator value
-	float EKFGSF_tas_default{15.0f};                ///< default airspeed value assumed during fixed wing flight if no airspeed measurement available (m/s)
-	const unsigned EKFGSF_reset_delay{1000000};     ///< Number of uSec of bad innovations on main filter in immediate post-takeoff phase before yaw is reset to EKF-GSF value
-	const float EKFGSF_yaw_err_max{0.262f};         ///< Composite yaw 1-sigma uncertainty threshold used to check for convergence (rad)
 };
 
 union fault_status_u {

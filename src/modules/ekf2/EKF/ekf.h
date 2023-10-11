@@ -49,7 +49,8 @@
 #include "bias_estimator.hpp"
 #include "height_bias_estimator.hpp"
 #include "position_bias_estimator.hpp"
-#include "python/ekf_derivation/generated/state.h"
+
+#include <ekf_derivation/generated/state.h>
 
 #include <uORB/topics/estimator_aid_source1d.h>
 #include <uORB/topics/estimator_aid_source2d.h>
@@ -101,10 +102,6 @@ public:
 
 # if defined(CONFIG_EKF2_RANGE_FINDER)
 	const auto &aid_src_terrain_range_finder() const { return _aid_src_terrain_range_finder; }
-
-	void getHaglInnov(float &hagl_innov) const { hagl_innov = _aid_src_terrain_range_finder.innovation; }
-	void getHaglInnovVar(float &hagl_innov_var) const { hagl_innov_var = _aid_src_terrain_range_finder.innovation_variance; }
-	void getHaglInnovRatio(float &hagl_innov_ratio) const { hagl_innov_ratio = _aid_src_terrain_range_finder.test_ratio; }
 # endif // CONFIG_EKF2_RANGE_FINDER
 
 # if defined(CONFIG_EKF2_OPTICAL_FLOW)
@@ -249,18 +246,10 @@ public:
 	Vector3f getVelocityVariance() const { return getStateVariance<State::vel>(); };
 	Vector3f getPositionVariance() const { return getStateVariance<State::pos>(); }
 
-
-	// ask estimator for sensor data collection decision and do any preprocessing if required, returns true if not defined
-	bool collect_gps(const gpsMessage &gps) override;
-
 	// get the ekf WGS-84 origin position and height and the system time it was last set
 	// return true if the origin is valid
 	bool getEkfGlobalOrigin(uint64_t &origin_time, double &latitude, double &longitude, float &origin_alt) const;
 	bool setEkfGlobalOrigin(const double latitude, const double longitude, const float altitude);
-
-	float getEkfGlobalOriginAltitude() const { return PX4_ISFINITE(_gps_alt_ref) ? _gps_alt_ref : 0.f; }
-	bool setEkfGlobalOriginAltitude(const float altitude);
-
 
 	// get the 1-sigma horizontal and vertical position uncertainty of the ekf WGS-84 position
 	void get_ekf_gpos_accuracy(float *ekf_eph, float *ekf_epv) const;
@@ -278,14 +267,6 @@ public:
 	void resetImuBias();
 	void resetGyroBias();
 	void resetAccelBias();
-
-	// First argument returns GPS drift  metrics in the following array locations
-	// 0 : Horizontal position drift rate (m/s)
-	// 1 : Vertical position drift rate (m/s)
-	// 2 : Filtered horizontal velocity (m/s)
-	// Second argument returns true when IMU movement is blocking the drift calculation
-	// Function returns true if the metrics have been updated and not returned previously by this function
-	bool get_gps_drift_metrics(float drift[3], bool *blocked);
 
 	// return true if the global position estimate is valid
 	// return true if the origin is set we are not doing unconstrained free inertial navigation
@@ -410,19 +391,6 @@ public:
 	Vector3f calcRotVecVariances() const;
 	float getYawVar() const;
 
-	// set minimum continuous period without GPS fail required to mark a healthy GPS status
-	void set_min_required_gps_health_time(uint32_t time_us) { _min_gps_health_time_us = time_us; }
-
-	const gps_check_fail_status_u &gps_check_fail_status() const { return _gps_check_fail_status; }
-	const decltype(gps_check_fail_status_u::flags) &gps_check_fail_status_flags() const { return _gps_check_fail_status.flags; }
-
-	bool gps_checks_passed() const { return _gps_checks_passed; };
-
-	// get solution data from the EKF-GSF emergency yaw estimator
-	// returns false when data is not available
-	bool getDataEKFGSF(float *yaw_composite, float *yaw_variance, float yaw[N_MODELS_EKFGSF],
-			   float innov_VN[N_MODELS_EKFGSF], float innov_VE[N_MODELS_EKFGSF], float weight[N_MODELS_EKFGSF]);
-
 	// Returns true if the output of the yaw emergency estimator can be used for a reset
 	bool isYawEmergencyEstimateAvailable() const;
 
@@ -449,15 +417,33 @@ public:
 	const BiasEstimator::status &getEvPosBiasEstimatorStatus(int i) const { return _ev_pos_b_est.getStatus(i); }
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
+#if defined(CONFIG_EKF2_GNSS)
+	// ask estimator for sensor data collection decision and do any preprocessing if required, returns true if not defined
+	bool collect_gps(const gpsMessage &gps) override;
+
+	// set minimum continuous period without GPS fail required to mark a healthy GPS status
+	void set_min_required_gps_health_time(uint32_t time_us) { _min_gps_health_time_us = time_us; }
+
+	const gps_check_fail_status_u &gps_check_fail_status() const { return _gps_check_fail_status; }
+	const decltype(gps_check_fail_status_u::flags) &gps_check_fail_status_flags() const { return _gps_check_fail_status.flags; }
+
+	bool gps_checks_passed() const { return _gps_checks_passed; };
+
+	// get solution data from the EKF-GSF emergency yaw estimator
+	// returns false when data is not available
+	bool getDataEKFGSF(float *yaw_composite, float *yaw_variance, float yaw[N_MODELS_EKFGSF],
+			   float innov_VN[N_MODELS_EKFGSF], float innov_VE[N_MODELS_EKFGSF], float weight[N_MODELS_EKFGSF]);
+
+	const BiasEstimator::status &getGpsHgtBiasEstimatorStatus() const { return _gps_hgt_b_est.getStatus(); }
+
 	const auto &aid_src_gnss_hgt() const { return _aid_src_gnss_hgt; }
 	const auto &aid_src_gnss_pos() const { return _aid_src_gnss_pos; }
 	const auto &aid_src_gnss_vel() const { return _aid_src_gnss_vel; }
 
-	const BiasEstimator::status &getGpsHgtBiasEstimatorStatus() const { return _gps_hgt_b_est.getStatus(); }
-
-#if defined(CONFIG_EKF2_GNSS_YAW)
+# if defined(CONFIG_EKF2_GNSS_YAW)
 	const auto &aid_src_gnss_yaw() const { return _aid_src_gnss_yaw; }
-#endif // CONFIG_EKF2_GNSS_YAW
+# endif // CONFIG_EKF2_GNSS_YAW
+#endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	const auto &aid_src_mag_heading() const { return _aid_src_mag_heading; }
@@ -508,9 +494,6 @@ private:
 	StateSample _state{};		///< state struct of the ekf running at the delayed time horizon
 
 	bool _filter_initialised{false};	///< true when the EKF sttes and covariances been initialised
-
-	// booleans true when fresh sensor data is available at the fusion time horizon
-	bool _gps_data_ready{false};	///< true when new GPS data has fallen behind the fusion time horizon and is available to be fused
 
 	uint64_t _time_last_horizontal_aiding{0}; ///< amount of time we have been doing inertial only deadreckoning (uSec)
 	uint64_t _time_last_v_pos_aiding{0};
@@ -613,20 +596,9 @@ private:
 	uint8_t _nb_ev_yaw_reset_available{0};
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
-	estimator_aid_source1d_s _aid_src_gnss_hgt{};
-	estimator_aid_source2d_s _aid_src_gnss_pos{};
-	estimator_aid_source3d_s _aid_src_gnss_vel{};
-
-#if defined(CONFIG_EKF2_GNSS_YAW)
-	estimator_aid_source1d_s _aid_src_gnss_yaw{};
-	uint8_t _nb_gps_yaw_reset_available{0}; ///< remaining number of resets allowed before switching to another aiding source
-#endif // CONFIG_EKF2_GNSS_YAW
-
-	estimator_aid_source3d_s _aid_src_gravity{};
-
-#if defined(CONFIG_EKF2_AUXVEL)
-	estimator_aid_source2d_s _aid_src_aux_vel{};
-#endif // CONFIG_EKF2_AUXVEL
+#if defined(CONFIG_EKF2_GNSS)
+	// booleans true when fresh sensor data is available at the fusion time horizon
+	bool _gps_data_ready{false};	///< true when new GPS data has fallen behind the fusion time horizon and is available to be fused
 
 	// variables used for the GPS quality checks
 	Vector3f _gps_pos_deriv_filt{};	///< GPS NED position derivative (m/sec)
@@ -639,8 +611,27 @@ private:
 	uint32_t _min_gps_health_time_us{10000000}; ///< GPS is marked as healthy only after this amount of time
 	bool _gps_checks_passed{false};		///> true when all active GPS checks have passed
 
-	// Variables used to publish the WGS-84 location of the EKF local NED origin
-	float _gps_alt_ref{NAN};		///< WGS-84 height (m)
+	gps_check_fail_status_u _gps_check_fail_status{};
+	// height sensor status
+	bool _gps_intermittent{true};           ///< true if data into the buffer is intermittent
+
+	HeightBiasEstimator _gps_hgt_b_est{HeightSensor::GNSS, _height_sensor_ref};
+
+	estimator_aid_source1d_s _aid_src_gnss_hgt{};
+	estimator_aid_source2d_s _aid_src_gnss_pos{};
+	estimator_aid_source3d_s _aid_src_gnss_vel{};
+
+# if defined(CONFIG_EKF2_GNSS_YAW)
+	estimator_aid_source1d_s _aid_src_gnss_yaw{};
+	uint8_t _nb_gps_yaw_reset_available{0}; ///< remaining number of resets allowed before switching to another aiding source
+# endif // CONFIG_EKF2_GNSS_YAW
+#endif // CONFIG_EKF2_GNSS
+
+	estimator_aid_source3d_s _aid_src_gravity{};
+
+#if defined(CONFIG_EKF2_AUXVEL)
+	estimator_aid_source2d_s _aid_src_aux_vel{};
+#endif // CONFIG_EKF2_AUXVEL
 
 	// Variables used by the initial filter alignment
 	bool _is_first_imu_sample{true};
@@ -688,8 +679,6 @@ private:
 	Matrix3f _saved_mag_bf_covmat{}; ///< magnetic field state covariance sub-matrix that has been saved for use at the next initialisation (Gauss**2)
 #endif // CONFIG_EKF2_MAGNETOMETER
 
-	gps_check_fail_status_u _gps_check_fail_status{};
-
 	// variables used to inhibit accel bias learning
 	bool _accel_bias_inhibit[3] {};		///< true when the accel bias learning is being inhibited for the specified axis
 	bool _gyro_bias_inhibit[3] {};		///< true when the gyro bias learning is being inhibited for the specified axis
@@ -699,9 +688,6 @@ private:
 
 	Vector3f _prev_gyro_bias_var{};         ///< saved gyro XYZ bias variances
 	Vector3f _prev_accel_bias_var{};        ///< saved accel XYZ bias variances
-
-	// height sensor status
-	bool _gps_intermittent{true};           ///< true if data into the buffer is intermittent
 
 	// imu fault status
 	uint64_t _time_bad_vert_accel{0};	///< last time a bad vertical accel was detected (uSec)
@@ -721,7 +707,8 @@ private:
 	void predictCovariance(const imuSample &imu_delayed);
 
 	template <const IdxDof &S>
-	void resetStateCovariance(const matrix::SquareMatrix<float, S.dof> &cov) {
+	void resetStateCovariance(const matrix::SquareMatrix<float, S.dof> &cov)
+	{
 		P.uncorrelateCovarianceSetVariance<S.dof>(S.idx, 0.0f);
 		P.slice<S.dof, S.dof>(S.idx, S.idx) = cov;
 	}
@@ -730,21 +717,6 @@ private:
 	bool fuseYaw(estimator_aid_source1d_s &aid_src_status);
 	bool fuseYaw(estimator_aid_source1d_s &aid_src_status, const VectorState &H_YAW);
 	void computeYawInnovVarAndH(float variance, float &innovation_variance, VectorState &H_YAW) const;
-
-#if defined(CONFIG_EKF2_GNSS_YAW)
-	void controlGpsYawFusion(const gpsSample &gps_sample, bool gps_checks_passing, bool gps_checks_failing);
-
-	// fuse the yaw angle obtained from a dual antenna GPS unit
-	void fuseGpsYaw();
-
-	// reset the quaternions states using the yaw angle obtained from a dual antenna GPS unit
-	// return true if the reset was successful
-	bool resetYawToGps(const float gnss_yaw);
-
-	void updateGpsYaw(const gpsSample &gps_sample);
-
-#endif // CONFIG_EKF2_GNSS_YAW
-	void stopGpsYawFusion();
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	// ekf sequential fusion of magnetometer measurements
@@ -769,9 +741,6 @@ private:
 
 	// Reset the wind states using the current airspeed measurement, ground relative nav velocity, yaw angle and assumption of zero sideslip
 	void resetWindUsingAirspeed(const airspeedSample &airspeed_sample);
-
-	// perform a limited reset of the wind state covariances
-	void resetWindCovarianceUsingAirspeed(const airspeedSample &airspeed_sample);
 #endif // CONFIG_EKF2_AIRSPEED
 
 #if defined(CONFIG_EKF2_SIDESLIP)
@@ -908,6 +877,7 @@ private:
 			}
 		}
 
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 		if (!_control_status.flags.mag) {
 			for (unsigned i = 0; i < State::mag_I.dof; i++) {
 				K(State::mag_I.idx + i) = 0.f;
@@ -919,12 +889,15 @@ private:
 				K(State::mag_B.idx + i) = 0.f;
 			}
 		}
+#endif // CONFIG_EKF2_MAGNETOMETER
 
+#if defined(CONFIG_EKF2_WIND)
 		if (!_control_status.flags.wind) {
 			for (unsigned i = 0; i < State::wind_vel.dof; i++) {
 				K(State::wind_vel.idx + i) = 0.f;
 			}
 		}
+#endif // CONFIG_EKF2_WIND
 	}
 
 	bool measurementUpdate(VectorState &K, float innovation_variance, float innovation)
@@ -981,9 +954,6 @@ private:
 	// calculate the earth rotation vector from a given latitude
 	Vector3f calcEarthRateNED(float lat_rad) const;
 
-	// return true id the GPS quality is good enough to set an origin and start aiding
-	bool gps_is_good(const gpsMessage &gps);
-
 	// Control the filter fusion modes
 	void controlFusionModes(const imuSample &imu_delayed);
 
@@ -1004,10 +974,42 @@ private:
 	void stopEvYawFusion();
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
+#if defined(CONFIG_EKF2_GNSS)
 	// control fusion of GPS observations
 	void controlGpsFusion(const imuSample &imu_delayed);
+	void stopGpsFusion();
+
 	bool shouldResetGpsFusion() const;
 	bool isYawFailure() const;
+
+	// return true id the GPS quality is good enough to set an origin and start aiding
+	bool gps_is_good(const gpsMessage &gps);
+
+	void controlGnssHeightFusion(const gpsSample &gps_sample);
+	void stopGpsHgtFusion();
+
+	// Resets the main Nav EKf yaw to the estimator from the EKF-GSF yaw estimator
+	// Resets the horizontal velocity and position to the default navigation sensor
+	// Returns true if the reset was successful
+	bool resetYawToEKFGSF();
+
+	void resetGpsDriftCheckFilters();
+
+# if defined(CONFIG_EKF2_GNSS_YAW)
+	void controlGpsYawFusion(const gpsSample &gps_sample, bool gps_checks_passing, bool gps_checks_failing);
+	void stopGpsYawFusion();
+
+	// fuse the yaw angle obtained from a dual antenna GPS unit
+	void fuseGpsYaw();
+
+	// reset the quaternions states using the yaw angle obtained from a dual antenna GPS unit
+	// return true if the reset was successful
+	bool resetYawToGps(const float gnss_yaw);
+
+	void updateGpsYaw(const gpsSample &gps_sample);
+
+# endif // CONFIG_EKF2_GNSS_YAW
+#endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	// control fusion of magnetometer observations
@@ -1067,7 +1069,6 @@ private:
 	// control for combined height fusion mode (implemented for switching between baro and range height)
 	void controlHeightFusion(const imuSample &imu_delayed);
 	void checkHeightSensorRefFallback();
-	void controlGnssHeightFusion(const gpsSample &gps_sample);
 
 #if defined(CONFIG_EKF2_BAROMETER)
 	void controlBaroHeightFusion();
@@ -1076,15 +1077,15 @@ private:
 	void updateGroundEffect();
 #endif // CONFIG_EKF2_BAROMETER
 
-	void stopGpsHgtFusion();
-
 	// gravity fusion: heuristically enable / disable gravity fusion
 	void controlGravityFusion(const imuSample &imu_delayed);
 
 	void resetQuatCov(const float yaw_noise = NAN);
 	void resetQuatCov(const Vector3f &euler_noise_ned);
 
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 	void resetMagCov();
+#endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_WIND)
 	// perform a reset of the wind states and related covariances
@@ -1112,8 +1113,6 @@ private:
 		return (sensor_timestamp != 0) && (sensor_timestamp + acceptance_interval > _time_latest_us);
 	}
 
-	void stopGpsFusion();
-
 	void resetFakePosFusion();
 	void stopFakePosFusion();
 
@@ -1132,21 +1131,12 @@ private:
 	uint8_t _height_sensor_ref{HeightSensor::UNKNOWN};
 	uint8_t _position_sensor_ref{static_cast<uint8_t>(PositionSensor::GNSS)};
 
-	HeightBiasEstimator _gps_hgt_b_est{HeightSensor::GNSS, _height_sensor_ref};
-
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	HeightBiasEstimator _ev_hgt_b_est{HeightSensor::EV, _height_sensor_ref};
 	PositionBiasEstimator _ev_pos_b_est{static_cast<uint8_t>(PositionSensor::EV), _position_sensor_ref};
 	AlphaFilter<Quatf> _ev_q_error_filt{0.001f};
 	bool _ev_q_error_initialized{false};
 #endif // CONFIG_EKF2_EXTERNAL_VISION
-
-	// Resets the main Nav EKf yaw to the estimator from the EKF-GSF yaw estimator
-	// Resets the horizontal velocity and position to the default navigation sensor
-	// Returns true if the reset was successful
-	bool resetYawToEKFGSF();
-
-	void resetGpsDriftCheckFilters();
 
 	void resetEstimatorAidStatus(estimator_aid_source1d_s &status) const
 	{

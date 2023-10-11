@@ -42,8 +42,8 @@
  */
 
 #include "ekf.h"
-#include "python/ekf_derivation/generated/predict_covariance.h"
-#include "python/ekf_derivation/generated/rot_var_ned_to_lower_triangular_quat_cov.h"
+#include <ekf_derivation/generated/predict_covariance.h>
+#include <ekf_derivation/generated/rot_var_ned_to_lower_triangular_quat_cov.h>
 
 #include <math.h>
 #include <mathlib/mathlib.h>
@@ -57,16 +57,24 @@ void Ekf::initialiseCovariance()
 	resetQuatCov();
 
 	// velocity
+#if defined(CONFIG_EKF2_GNSS)
 	const float vel_var = sq(fmaxf(_params.gps_vel_noise, 0.01f));
+#else
+	const float vel_var = sq(0.5f);
+#endif
 	P.uncorrelateCovarianceSetVariance<State::vel.dof>(State::vel.idx, Vector3f(vel_var, vel_var, sq(1.5f) * vel_var));
 
 	// position
-	const float xy_pos_var = sq(fmaxf(_params.gps_pos_noise, 0.01f));
 	float z_pos_var = sq(fmaxf(_params.baro_noise, 0.01f));
+#if defined(CONFIG_EKF2_GNSS)
+	const float xy_pos_var = sq(fmaxf(_params.gps_pos_noise, 0.01f));
 
 	if (_control_status.flags.gps_hgt) {
 		z_pos_var = sq(fmaxf(1.5f * _params.gps_pos_noise, 0.01f));
 	}
+#else
+	const float xy_pos_var = sq(fmaxf(_params.pos_noaid_noise, 0.01f));
+#endif
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	if (_control_status.flags.rng_hgt) {
@@ -86,7 +94,9 @@ void Ekf::initialiseCovariance()
 	P.uncorrelateCovarianceSetVariance<State::accel_bias.dof>(State::accel_bias.idx, accel_bias_var);
 	_prev_accel_bias_var.setAll(accel_bias_var);
 
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 	resetMagCov();
+#endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_WIND)
 	// wind
@@ -236,8 +246,8 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 		}
 	}
 
-	if (_control_status.flags.mag) {
 #if defined(CONFIG_EKF2_MAGNETOMETER)
+	if (_control_status.flags.mag) {
 		// Don't continue to grow the earth field variances if they are becoming too large or we are not doing 3-axis fusion as this can make the covariance matrix badly conditioned
 		if (P.trace<State::mag_I.dof>(State::mag_I.idx) < 0.1f) {
 
@@ -261,7 +271,7 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 				nextP(i, i) += mag_B_process_noise;
 			}
 		}
-#endif // CONFIG_EKF2_MAGNETOMETER
+
 	} else {
 		// keep previous covariance
 		for (unsigned i = 0; i < State::mag_I.dof; i++) {
@@ -278,6 +288,7 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 			}
 		}
 	}
+#endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_WIND)
 	if (_control_status.flags.wind) {
@@ -401,8 +412,11 @@ void Ekf::fixCovarianceErrors(bool force_symmetry)
 		// check that the vertical component of accel bias is consistent with both the vertical position and velocity innovation
 		bool bad_acc_bias = false;
 		if (fabsf(down_dvel_bias) > dVel_bias_lim) {
-
+#if defined(CONFIG_EKF2_GNSS)
 			bool bad_vz_gps = _control_status.flags.gps    && (down_dvel_bias * _aid_src_gnss_vel.innovation[2] < 0.0f);
+#else
+			bool bad_vz_gps = false;
+#endif // CONFIG_EKF2_GNSS
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 			bool bad_vz_ev  = _control_status.flags.ev_vel && (down_dvel_bias * _aid_src_ev_vel.innovation[2] < 0.0f);
 #else
@@ -415,7 +429,11 @@ void Ekf::fixCovarianceErrors(bool force_symmetry)
 #else
 				bool bad_z_baro = false;
 #endif
+#if defined(CONFIG_EKF2_GNSS)
 				bool bad_z_gps  = _control_status.flags.gps_hgt  && (down_dvel_bias * _aid_src_gnss_hgt.innovation < 0.0f);
+#else
+				bool bad_z_gps  = false;
+#endif
 
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 				bool bad_z_rng  = _control_status.flags.rng_hgt  && (down_dvel_bias * _aid_src_rng_hgt.innovation  < 0.0f);
@@ -462,13 +480,13 @@ void Ekf::fixCovarianceErrors(bool force_symmetry)
 
 	}
 
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 	// magnetic field states
 	if (!_control_status.flags.mag) {
 		P.uncorrelateCovarianceSetVariance<State::mag_I.dof>(State::mag_I.idx, 0.0f);
 		P.uncorrelateCovarianceSetVariance<State::mag_B.dof>(State::mag_B.idx, 0.0f);
 
 	} else {
-#if defined(CONFIG_EKF2_MAGNETOMETER)
 		const float mag_I_var_max = 1.f;
 		constrainStateVar(State::mag_I, 0.f, mag_I_var_max);
 
@@ -479,23 +497,23 @@ void Ekf::fixCovarianceErrors(bool force_symmetry)
 			P.makeRowColSymmetric<State::mag_I.dof>(State::mag_I.idx);
 			P.makeRowColSymmetric<State::mag_B.dof>(State::mag_B.idx);
 		}
-#endif // CONFIG_EKF2_MAGNETOMETER
 	}
+#endif // CONFIG_EKF2_MAGNETOMETER
 
+#if defined(CONFIG_EKF2_WIND)
 	// wind velocity states
 	if (!_control_status.flags.wind) {
 		P.uncorrelateCovarianceSetVariance<State::wind_vel.dof>(State::wind_vel.idx, 0.0f);
 
 	} else {
-#if defined(CONFIG_EKF2_WIND)
 		const float wind_vel_var_max = 1e6f;
 		constrainStateVar(State::wind_vel, 0.f, wind_vel_var_max);
 
 		if (force_symmetry) {
 			P.makeRowColSymmetric<State::wind_vel.dof>(State::wind_vel.idx);
 		}
-#endif // CONFIG_EKF2_WIND
 	}
+#endif // CONFIG_EKF2_WIND
 }
 
 void Ekf::constrainStateVar(const IdxDof &state, float min, float max)
@@ -543,9 +561,9 @@ void Ekf::resetQuatCov(const Vector3f &rot_var_ned)
 	resetStateCovariance<State::quat_nominal>(q_cov);
 }
 
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 void Ekf::resetMagCov()
 {
-#if defined(CONFIG_EKF2_MAGNETOMETER)
 	if (_mag_decl_cov_reset) {
 		ECL_INFO("reset mag covariance");
 		_mag_decl_cov_reset = false;
@@ -555,12 +573,8 @@ void Ekf::resetMagCov()
 	P.uncorrelateCovarianceSetVariance<State::mag_B.dof>(State::mag_B.idx, sq(_params.mag_noise));
 
 	saveMagCovData();
-#else
-	P.uncorrelateCovarianceSetVariance<State::mag_I.dof>(State::mag_I.idx, 0.f);
-	P.uncorrelateCovarianceSetVariance<State::mag_B.dof>(State::mag_B.idx, 0.f);
-
-#endif
 }
+#endif // CONFIG_EKF2_MAGNETOMETER
 
 void Ekf::resetGyroBiasZCov()
 {
