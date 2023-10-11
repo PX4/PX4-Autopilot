@@ -59,6 +59,8 @@
 #include <uORB/topics/estimator_aid_source2d.h>
 #include <uORB/topics/estimator_aid_source3d.h>
 
+#include "aid_sources/ZeroVelocityUpdate.hpp"
+
 enum class Likelihood { LOW, MEDIUM, HIGH };
 
 class Ekf final : public EstimatorInterface
@@ -82,6 +84,8 @@ public:
 	bool update();
 
 	static uint8_t getNumberOfStates() { return State::size; }
+
+	const StateSample &state() const { return _state; }
 
 #if defined(CONFIG_EKF2_BAROMETER)
 	const auto &aid_src_baro_hgt() const { return _aid_src_baro_hgt; }
@@ -317,6 +321,9 @@ public:
 #endif
 	}
 
+	// fuse single velocity and position measurement
+	bool fuseVelPosHeight(const float innov, const float innov_var, const int state_index);
+
 	// gyro bias
 	const Vector3f &getGyroBias() const { return _state.gyro_bias; } // get the gyroscope bias in rad/s
 	Vector3f getGyroBiasVariance() const { return getStateVariance<State::gyro_bias>(); } // get the gyroscope bias variance in rad/s
@@ -514,7 +521,6 @@ private:
 	uint64_t _time_last_hor_vel_fuse{0};	///< time the last fusion of horizontal velocity measurements was performed (uSec)
 	uint64_t _time_last_ver_vel_fuse{0};	///< time the last fusion of verticalvelocity measurements was performed (uSec)
 	uint64_t _time_last_heading_fuse{0};
-	uint64_t _time_last_zero_velocity_fuse{0}; ///< last time of zero velocity update (uSec)
 
 	Vector3f _last_known_pos{};		///< last known local position vector (m)
 
@@ -773,9 +779,6 @@ private:
 	// fuse body frame drag specific forces for multi-rotor wind estimation
 	void fuseDrag(const dragSample &drag_sample);
 #endif // CONFIG_EKF2_DRAG_FUSION
-
-	// fuse single velocity and position measurement
-	bool fuseVelPosHeight(const float innov, const float innov_var, const int state_index);
 
 	void resetVelocityTo(const Vector3f &vel, const Vector3f &new_vel_var);
 
@@ -1070,7 +1073,6 @@ private:
 	void resetHeightToLastKnown();
 	void stopFakeHgtFusion();
 
-	void controlZeroVelocityUpdate();
 	void controlZeroGyroUpdate(const imuSample &imu_delayed);
 	void fuseDeltaAngBias(float innov, float innov_var, int obs_index);
 
@@ -1239,6 +1241,8 @@ private:
 		// if any of the innovations are rejected, then the overall innovation is rejected
 		status.innovation_rejected = innovation_rejected;
 	}
+
+	ZeroVelocityUpdate _zero_velocity_update{};
 };
 
 #endif // !EKF_EKF_H

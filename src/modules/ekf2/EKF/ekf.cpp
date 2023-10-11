@@ -110,7 +110,6 @@ void Ekf::reset()
 	_time_last_hor_vel_fuse = 0;
 	_time_last_ver_vel_fuse = 0;
 	_time_last_heading_fuse = 0;
-	_time_last_zero_velocity_fuse = 0;
 
 	_last_known_pos.setZero();
 
@@ -175,6 +174,8 @@ void Ekf::reset()
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 	resetEstimatorAidStatus(_aid_src_rng_hgt);
 #endif // CONFIG_EKF2_RANGE_FINDER
+
+	_zero_velocity_update.reset();
 }
 
 bool Ekf::update()

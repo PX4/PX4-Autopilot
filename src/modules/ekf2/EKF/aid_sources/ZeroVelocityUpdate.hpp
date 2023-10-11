@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,37 +31,24 @@
  *
  ****************************************************************************/
 
-/**
- * @file zero_velocity_update.cpp
- * Control function for ekf zero velocity update
- */
+#ifndef EKF_ZERO_VELOCITY_UPDATE_HPP
+#define EKF_ZERO_VELOCITY_UPDATE_HPP
 
-#include "ekf.h"
+#include "EstimatorAidSource.hpp"
 
-void Ekf::controlZeroVelocityUpdate()
+class ZeroVelocityUpdate : public EstimatorAidSource
 {
-	// Fuse zero velocity at a limited rate (every 200 milliseconds)
-	const bool zero_velocity_update_data_ready = isTimedOut(_time_last_zero_velocity_fuse, (uint64_t)2e5);
+public:
+	ZeroVelocityUpdate();
+	virtual ~ZeroVelocityUpdate() = default;
 
-	if (zero_velocity_update_data_ready) {
-		const bool continuing_conditions_passing = _control_status.flags.vehicle_at_rest
-				&& _control_status_prev.flags.vehicle_at_rest
-				&& (!isVerticalVelocityAidingActive() || !_control_status.flags.tilt_align); // otherwise the filter is "too rigid" to follow a position drift
+	void reset() override;
+	bool update(Ekf &ekf, const estimator::imuSample &imu_delayed) override;
 
-		if (continuing_conditions_passing) {
-			Vector3f vel_obs{0, 0, 0};
-			Vector3f innovation = _state.vel - vel_obs;
+private:
 
-			// Set a low variance initially for faster leveling and higher
-			// later to let the states follow the measurements
-			const float obs_var = _control_status.flags.tilt_align ? sq(0.2f) : sq(0.001f);
-			Vector3f innov_var = getVelocityVariance() + obs_var;
+	uint64_t _time_last_zero_velocity_fuse{0}; ///< last time of zero velocity update (uSec)
 
-			for (unsigned i = 0; i < 3; i++) {
-				fuseVelPosHeight(innovation(i), innov_var(i), State::vel.idx + i);
-			}
+};
 
-			_time_last_zero_velocity_fuse = _time_delayed_us;
-		}
-	}
-}
+#endif // !EKF_ZERO_VELOCITY_UPDATE_HPP
