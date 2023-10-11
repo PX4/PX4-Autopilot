@@ -207,13 +207,10 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 	}
 
 	// predict the covariance
-	SquareMatrixState nextP;
-
 	// calculate variances and upper diagonal covariances for quaternion, velocity, position and gyro bias states
-	sym::PredictCovariance(_state.vector(), P,
+	P = sym::PredictCovariance(_state.vector(), P,
 		imu_delayed.delta_vel, imu_delayed.delta_vel_dt, d_vel_var,
-		imu_delayed.delta_ang, imu_delayed.delta_ang_dt, d_ang_var,
-		&nextP);
+		imu_delayed.delta_ang, imu_delayed.delta_ang_dt, d_ang_var);
 
 	// Construct the process noise variance diagonal for those states with a stationary process model
 	// These are kinematic states and their error growth is controlled separately by the IMU noise variances
@@ -225,10 +222,10 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 		const unsigned i = State::gyro_bias.idx + index;
 
 		if (!_gyro_bias_inhibit[index]) {
-			nextP(i, i) += gyro_bias_process_noise;
+			P(i, i) += gyro_bias_process_noise;
 
 		} else {
-			nextP.uncorrelateCovarianceSetVariance<1>(i, _prev_gyro_bias_var(index));
+			P.uncorrelateCovarianceSetVariance<1>(i, _prev_gyro_bias_var(index));
 		}
 	}
 
@@ -239,10 +236,10 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 		const unsigned i = State::accel_bias.idx + index;
 
 		if (!_accel_bias_inhibit[index]) {
-			nextP(i, i) += accel_bias_process_noise;
+			P(i, i) += accel_bias_process_noise;
 
 		} else {
-			nextP.uncorrelateCovarianceSetVariance<1>(i, _prev_accel_bias_var(index));
+			P.uncorrelateCovarianceSetVariance<1>(i, _prev_accel_bias_var(index));
 		}
 	}
 
@@ -256,7 +253,7 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 
 			for (unsigned index = 0; index < State::mag_I.dof; index++) {
 				unsigned i = State::mag_I.idx + index;
-				nextP(i, i) += mag_I_process_noise;
+				P(i, i) += mag_I_process_noise;
 			}
 		}
 
@@ -268,23 +265,7 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 
 			for (unsigned index = 0; index < State::mag_B.dof; index++) {
 				unsigned i = State::mag_B.idx + index;
-				nextP(i, i) += mag_B_process_noise;
-			}
-		}
-
-	} else {
-		// keep previous covariance
-		for (unsigned i = 0; i < State::mag_I.dof; i++) {
-			unsigned row = State::mag_I.idx + i;
-			for (unsigned col = 0; col < State::size; col++) {
-				nextP(row, col) = nextP(col, row) = P(row, col);
-			}
-		}
-
-		for (unsigned i = 0; i < State::mag_B.dof; i++) {
-			unsigned row = State::mag_B.idx + i;
-			for (unsigned col = 0; col < State::size; col++) {
-				nextP(row, col) = nextP(col, row) = P(row, col);
+				P(i, i) += mag_B_process_noise;
 			}
 		}
 	}
@@ -301,16 +282,7 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 
 			for (unsigned index = 0; index < State::wind_vel.dof; index++) {
 				unsigned i = State::wind_vel.idx + index;
-				nextP(i, i) += wind_vel_process_noise;
-			}
-		}
-
-	} else {
-		// keep previous covariance
-		for (unsigned i = 0; i < State::wind_vel.dof; i++) {
-			unsigned row = State::wind_vel.idx + i;
-			for (unsigned col = 0; col < State::size; col++) {
-				nextP(row, col) = nextP(col, row) = P(row, col);
+				P(i, i) += wind_vel_process_noise;
 			}
 		}
 	}
@@ -319,10 +291,8 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 	// covariance matrix is symmetrical, so copy upper half to lower half
 	for (unsigned row = 0; row < State::size; row++) {
 		for (unsigned column = 0 ; column < row; column++) {
-			P(row, column) = P(column, row) = nextP(column, row);
+			P(row, column) = P(column, row);
 		}
-
-		P(row, row) = nextP(row, row);
 	}
 
 	// fix gross errors in the covariance matrix and ensure rows and

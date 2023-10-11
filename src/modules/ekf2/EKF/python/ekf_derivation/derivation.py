@@ -612,7 +612,7 @@ def rot_var_ned_to_lower_triangular_quat_cov(
     return q_var.lower_triangle()
 
 print("Derive EKF2 equations...")
-generate_px4_function(predict_covariance, output_names=["P_new"])
+generate_px4_function(predict_covariance, output_names=None)
 
 if not args.disable_mag:
     generate_px4_function(compute_mag_declination_pred_innov_var_and_h, output_names=["pred", "innov_var", "H"])
