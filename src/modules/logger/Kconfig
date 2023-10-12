@@ -10,3 +10,10 @@ menuconfig USER_LOGGER
 	depends on BOARD_PROTECTED && MODULES_LOGGER
 	---help---
 		Put logger in userspace memory
+
+menuconfig LOGGER_PARALLEL_LOGGING
+	bool "Custom mavlink logging protocol in logger"
+	default n
+	depends on MODULES_LOGGER
+	---help---
+		Utilize custom mavlink logging protocol for speed up logging start phase

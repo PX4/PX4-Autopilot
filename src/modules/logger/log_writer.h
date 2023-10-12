@@ -73,6 +73,19 @@ public:
 
 	void stop_log_mavlink();
 
+#ifdef LOGGER_PARALLEL_LOGGING
+	void wait_fifo_empty()
+	{
+		if (_log_writer_mavlink) {
+			_log_writer_mavlink->wait_fifo_count(0);
+
+			while (_log_writer_mavlink->reliable_fifo_is_sending()) {
+				usleep(10000);
+			}
+		}
+	}
+#endif
+
 	/**
 	 * whether logging is currently active or not (any of the selected backends).
 	 */
@@ -90,7 +103,8 @@ public:
 	 *         -1 if not enough space in the buffer left (file backend), -2 mavlink backend failed
 	 *  add type -> pass through, but not to mavlink if mission log
 	 */
-	int write_message(LogType type, void *ptr, size_t size, uint64_t dropout_start = 0);
+	int write_message(LogType type, void *ptr, size_t size, uint64_t dropout_start = 0, bool reliable = false,
+			  bool wait = false);
 
 	/**
 	 * Select a backend, so that future calls to write_message() only write to the selected
@@ -98,7 +112,7 @@ public:
 	 * @param backend
 	 */
 	void select_write_backend(Backend sel_backend);
-	void unselect_write_backend() { select_write_backend(BackendAll); }
+	void unselect_write_backend() { select_write_backend(_backend); }
 
 	/* file logging methods */
 
@@ -154,7 +168,11 @@ public:
 	{
 		if (_log_writer_file) { _log_writer_file->set_need_reliable_transfer(need_reliable); }
 
+#ifndef LOGGER_PARALLEL_LOGGING
+
 		if (_log_writer_mavlink) { _log_writer_mavlink->set_need_reliable_transfer(need_reliable && mavlink_backed_too); }
+
+#endif
 	}
 
 	bool need_reliable_transfer() const
@@ -165,7 +183,6 @@ public:
 
 		return false;
 	}
-
 #if defined(PX4_CRYPTO)
 	void set_encryption_parameters(px4_crypto_algorithm_t algorithm, uint8_t key_idx,  uint8_t exchange_key_idx)
 	{

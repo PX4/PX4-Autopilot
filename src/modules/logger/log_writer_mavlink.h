@@ -37,11 +37,36 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/ulog_stream.h>
 #include <uORB/topics/ulog_stream_ack.h>
+#include <containers/List.hpp>
+
+#ifdef LOGGER_PARALLEL_LOGGING
+static constexpr size_t LOGGER_ULOG_STREAM_DATA_LEN {249}; // Size of ulog_stream data buffer
+static constexpr size_t LOGGER_RELIABLE_FIFO_WAIT_THRESHOLD{10}; // Msg count threshold for wait fifo trigger
+#endif
 
 namespace px4
 {
 namespace logger
 {
+
+#ifdef LOGGER_PARALLEL_LOGGING
+class ReliableMsg : public ListNode<ReliableMsg *>
+{
+public:
+	uint16_t len;
+	uint8_t data[LOGGER_ULOG_STREAM_DATA_LEN];
+};
+
+class ReliableFifo : public List<ReliableMsg *>
+{
+public:
+	pthread_mutex_t	mtx;
+	pthread_cond_t cv;
+	px4::atomic_bool sender_should_exit{false};
+	bool sending{false};
+};
+
+#endif
 
 /**
  * @class LogWriterMavlink
@@ -62,9 +87,14 @@ public:
 	bool is_started() const { return _is_started; }
 
 	/** @see LogWriter::write_message() */
-	int write_message(void *ptr, size_t size);
-
+	int write_message(void *ptr, size_t size, bool reliable = false);
+#ifdef LOGGER_PARALLEL_LOGGING
+	int write_reliable_message(void *ptr, size_t size, bool wait = false);
+	bool reliable_fifo_is_sending();
+	void wait_fifo_count(size_t count);
+#else
 	void set_need_reliable_transfer(bool need_reliable);
+#endif
 
 	bool need_reliable_transfer() const
 	{
@@ -72,15 +102,31 @@ public:
 	}
 
 private:
+#ifdef LOGGER_PARALLEL_LOGGING
+	static void *mav_reliable_sender_helper(void *context);
+	void mav_reliable_sender();
+
+	ReliableMsg *reliable_fifo_pop();
+	bool reliable_fifo_push(ReliableMsg *node);
+	void reliable_fifo_set_sender_idle();
+
+	size_t reliable_fifo_count();
+#endif
 
 	/** publish message, wait for ack if needed & reset message */
-	int publish_message();
+	int publish_message(bool reliable = false);
 
 	ulog_stream_s _ulog_stream_data{};
 	uORB::Publication<ulog_stream_s> _ulog_stream_pub{ORB_ID(ulog_stream)};
 	orb_sub_t _ulog_stream_ack_sub{ORB_SUB_INVALID};
 	bool _need_reliable_transfer{false};
 	bool _is_started{false};
+#ifdef LOGGER_PARALLEL_LOGGING
+	ulog_stream_s _ulog_stream_acked_data {};
+	uORB::Publication<ulog_stream_s> _ulog_stream_acked_pub{ORB_ID(ulog_stream_acked)};
+	ReliableFifo _fifo;
+	pthread_t _mav_reliable_sender_thread = 0;
+#endif
 };
 
 }

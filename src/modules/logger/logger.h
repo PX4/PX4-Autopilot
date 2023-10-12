@@ -69,6 +69,14 @@ namespace px4
 namespace logger
 {
 
+#ifdef LOGGER_PARALLEL_LOGGING
+typedef struct thread_data {
+	bool wait_for_ack{false};
+} thread_data_t;
+
+pthread_key_t pthread_data_key;
+#endif
+
 static constexpr uint8_t MSG_ID_INVALID = UINT8_MAX;
 
 struct LoggerSubscription : public uORB::SubscriptionInterval {
@@ -221,6 +229,16 @@ private:
 
 	void stop_log_mavlink();
 
+#ifdef LOGGER_PARALLEL_LOGGING
+	/**
+	 * Run in separate thread to continue data logging while sending header&descriptions
+	 */
+	void mav_start_steps();
+
+	static void *mav_start_steps_helper(void *);
+
+#endif
+
 	/** check if mavlink logging can be started */
 	bool can_start_mavlink_log() const
 	{
@@ -290,7 +308,7 @@ private:
 	 * Must be called with _writer.lock() held.
 	 * @return true if data written, false otherwise (on overflow)
 	 */
-	bool write_message(LogType type, void *ptr, size_t size);
+	bool write_message(LogType type, void *ptr, size_t size, bool reliable = false, bool wait = false);
 
 	/**
 	 * Add topic subscriptions from SD file if it exists, otherwise add topics based on the configured profile.
@@ -340,6 +358,12 @@ private:
 	bool handle_event_updates(uint32_t &total_bytes);
 
 	void adjust_subscription_updates();
+
+#ifdef LOGGER_PARALLEL_LOGGING
+	pthread_t					_mav_start_thread {0};
+	thread_data_t					_thread_main_data;
+	thread_data_t					_thread_mav_start_sender_data;
+#endif
 
 	uint8_t						*_msg_buffer{nullptr};
 	int						_msg_buffer_len{0};
