@@ -51,6 +51,7 @@
 #include <sys/select.h>
 #include <sys/time.h>
 #include <pthread.h>
+#include <unistd.h>
 
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/actuator_controls.h>
@@ -110,6 +111,8 @@ public:
 	 */
 	virtual ~RoboClaw();
 
+	void initialize();
+
 	/**
 	 * @return position of a motor, rev
 	 */
@@ -158,6 +161,11 @@ public:
 
 
 private:
+
+	char _storedDeviceName[256]; // Adjust size as necessary
+    	char _storedBaudRateParam[256]; // Adjust size as necessary
+
+	int _timeout_counter = 0;
 
 	// commands
 	// We just list the commands we want from the manual here.
