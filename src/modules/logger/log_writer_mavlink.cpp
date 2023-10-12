@@ -48,18 +48,142 @@ namespace logger
 LogWriterMavlink::LogWriterMavlink()
 {
 	_ulog_stream_data.length = 0;
+#ifdef LOGGER_PARALLEL_LOGGING
+	_ulog_stream_acked_data.length = 0;
+	pthread_mutex_init(&_fifo.mtx, nullptr);
+	pthread_cond_init(&_fifo.cv, nullptr);
+#endif
 }
+
+#ifdef LOGGER_PARALLEL_LOGGING
+ReliableMsg *LogWriterMavlink::reliable_fifo_pop()
+{
+	pthread_mutex_lock(&_fifo.mtx);
+	PX4_DEBUG("reliable POP - wait..");
+
+	while (_fifo.empty() && !_fifo.sender_should_exit.load()) {
+		pthread_cond_wait(&_fifo.cv, &_fifo.mtx);
+	}
+
+	PX4_DEBUG("reliable POP: signalled");
+	ReliableMsg *node = _fifo.getHead();
+	_fifo.remove(node);
+
+	if (node) {
+		_fifo.sending = true;
+	}
+
+	pthread_mutex_unlock(&_fifo.mtx);
+	return node;
+}
+
+bool LogWriterMavlink::reliable_fifo_push(ReliableMsg *node)
+{
+	if (!node) {
+		PX4_ERR("[reliable_fifo_push] nullptr");
+		return false;
+	}
+
+	pthread_mutex_lock(&_fifo.mtx);
+	_fifo.add(node);
+	PX4_DEBUG("reliable PUSH - signal sender");
+	pthread_cond_signal(&_fifo.cv);
+	pthread_mutex_unlock(&_fifo.mtx);
+	return true;
+}
+
+void LogWriterMavlink::reliable_fifo_set_sender_idle()
+{
+	pthread_mutex_lock(&_fifo.mtx);
+	_fifo.sending = false;
+	pthread_mutex_unlock(&_fifo.mtx);
+}
+
+bool LogWriterMavlink::reliable_fifo_is_sending()
+{
+	bool sending;
+	pthread_mutex_lock(&_fifo.mtx);
+	sending = _fifo.sending;
+	pthread_mutex_unlock(&_fifo.mtx);
+	return sending;
+}
+
+void LogWriterMavlink::wait_fifo_count(size_t count)
+{
+	while (reliable_fifo_count() > count) {
+		usleep(30000);
+	}
+}
+
+size_t LogWriterMavlink::reliable_fifo_count()
+{
+	size_t count = 0;
+	pthread_mutex_lock(&_fifo.mtx);
+	count = _fifo.size();
+	pthread_mutex_unlock(&_fifo.mtx);
+	return count;
+}
+
+void *LogWriterMavlink::mav_reliable_sender_helper(void *context)
+{
+	px4_prctl(PR_SET_NAME, "log_writer_mav_reliable_sender", px4_getpid());
+	static_cast<LogWriterMavlink *>(context)->mav_reliable_sender();
+	return nullptr;
+}
+
+void LogWriterMavlink::mav_reliable_sender()
+{
+	while (!_fifo.sender_should_exit.load()) {
+		ReliableMsg *msg = reliable_fifo_pop();
+
+		PX4_DEBUG("[sender] - msg:%p", msg);
+
+		if (msg) {
+			write_message(msg->data, msg->len, true);
+			PX4_DEBUG("[sender] - delete msg");
+			delete msg;
+			reliable_fifo_set_sender_idle();
+		}
+	}
+}
+#endif
 
 bool LogWriterMavlink::init()
 {
+#ifdef LOGGER_PARALLEL_LOGGING
+	pthread_attr_t thr_attr;
+	pthread_attr_init(&thr_attr);
+	pthread_attr_setstacksize(&thr_attr, PX4_STACK_ADJUSTED(8500));
+	PX4_INFO("create mav_reliable_sender_thread");
+	int ret = pthread_create(&_mav_reliable_sender_thread, &thr_attr, &LogWriterMavlink::mav_reliable_sender_helper, this);
+
+	if (ret) {
+		PX4_ERR("mav_reliable_sender_thread create failed: %d", ret);
+	}
+
+	pthread_attr_destroy(&thr_attr);
+#endif
 	return true;
 }
 
 LogWriterMavlink::~LogWriterMavlink()
 {
+#ifdef LOGGER_PARALLEL_LOGGING
+	pthread_mutex_lock(&_fifo.mtx);
+	_fifo.sender_should_exit.store(true);
+	pthread_cond_signal(&_fifo.cv);
+	pthread_mutex_unlock(&_fifo.mtx);
+	pthread_join(_mav_reliable_sender_thread, nullptr);
+#endif
+
 	if (orb_sub_valid(_ulog_stream_ack_sub)) {
 		orb_unsubscribe(_ulog_stream_ack_sub);
 	}
+
+#ifdef LOGGER_PARALLEL_LOGGING
+	pthread_mutex_destroy(&_fifo.mtx);
+	pthread_cond_destroy(&_fifo.cv);
+#endif
 }
 
 void LogWriterMavlink::start_log()
@@ -76,37 +200,60 @@ void LogWriterMavlink::start_log()
 	_ulog_stream_data.length = 0;
 	_ulog_stream_data.first_message_offset = 0;
 
+#ifdef LOGGER_PARALLEL_LOGGING
+	_ulog_stream_acked_data.msg_sequence = 0;
+	_ulog_stream_acked_data.length = 0;
+	_ulog_stream_acked_data.first_message_offset = 0;
+#endif
 	_is_started = true;
 }
 
 void LogWriterMavlink::stop_log()
 {
 	_ulog_stream_data.length = 0;
+#ifdef LOGGER_PARALLEL_LOGGING
+	_ulog_stream_acked_data.length = 0;
+#endif
 	_is_started = false;
 }
 
-int LogWriterMavlink::write_message(void *ptr, size_t size)
+int LogWriterMavlink::write_message(void *ptr, size_t size, bool reliable)
 {
 	if (!is_started()) {
 		return 0;
 	}
 
-	const uint8_t data_len = (uint8_t)sizeof(_ulog_stream_data.data);
+	ulog_stream_s *ulog_s_p;
+
+#ifdef LOGGER_PARALLEL_LOGGING
+
+	if (reliable) {
+		ulog_s_p = &_ulog_stream_acked_data;
+
+	} else {
+		ulog_s_p = &_ulog_stream_data;
+	}
+
+#else
+	ulog_s_p = &_ulog_stream_data;
+#endif
+
+	const uint8_t data_len = (uint8_t)sizeof(ulog_s_p->data);
 	uint8_t *ptr_data = (uint8_t *)ptr;
 
-	if (_ulog_stream_data.first_message_offset == 255) {
-		_ulog_stream_data.first_message_offset = _ulog_stream_data.length;
+	if (ulog_s_p->first_message_offset == 255) {
+		ulog_s_p->first_message_offset = ulog_s_p->length;
 	}
 
 	while (size > 0) {
-		size_t send_len = math::min((size_t)data_len - _ulog_stream_data.length, size);
-		memcpy(_ulog_stream_data.data + _ulog_stream_data.length, ptr_data, send_len);
-		_ulog_stream_data.length += send_len;
+		size_t send_len = math::min((size_t)data_len - ulog_s_p->length, size);
+		memcpy(ulog_s_p->data + ulog_s_p->length, ptr_data, send_len);
+		ulog_s_p->length += send_len;
 		ptr_data += send_len;
 		size -= send_len;
 
-		if (_ulog_stream_data.length >= data_len) {
-			if (publish_message()) {
+		if (ulog_s_p->length >= data_len) {
+			if (publish_message(reliable)) {
 				return -2;
 			}
 		}
@@ -115,6 +262,30 @@ int LogWriterMavlink::write_message(void *ptr, size_t size)
 	return 0;
 }
 
+#ifdef LOGGER_PARALLEL_LOGGING
+int LogWriterMavlink::write_reliable_message(void *ptr, size_t size, bool wait)
+{
+	if (wait) {
+		wait_fifo_count(LOGGER_RELIABLE_FIFO_WAIT_THRESHOLD);
+	}
+
+	uint8_t *p = (uint8_t *) ptr;
+
+	while (size > 0) {
+		size_t len = math::min(size, LOGGER_ULOG_STREAM_DATA_LEN);
+		size -= len;
+		ReliableMsg *msg = new ReliableMsg();
+		memcpy(msg->data, p, len);
+		p += len;
+		msg->len = len;
+		reliable_fifo_push(msg);
+	}
+
+	return 0;
+}
+#endif
+
+#ifndef LOGGER_PARALLEL_LOGGING
 void LogWriterMavlink::set_need_reliable_transfer(bool need_reliable)
 {
 	if (!need_reliable && _need_reliable_transfer) {
@@ -126,19 +297,46 @@ void LogWriterMavlink::set_need_reliable_transfer(bool need_reliable)
 
 	_need_reliable_transfer = need_reliable;
 }
+#endif
 
-int LogWriterMavlink::publish_message()
+int LogWriterMavlink::publish_message(bool reliable)
 {
-	_ulog_stream_data.timestamp = hrt_absolute_time();
-	_ulog_stream_data.flags = 0;
+	ulog_stream_s *ulog_s_p;
 
-	if (_need_reliable_transfer) {
-		_ulog_stream_data.flags = _ulog_stream_data.FLAGS_NEED_ACK;
+#ifdef LOGGER_PARALLEL_LOGGING
+
+	if (reliable) {
+		ulog_s_p = &_ulog_stream_acked_data;
+
+	} else {
+		ulog_s_p = &_ulog_stream_data;
 	}
 
-	_ulog_stream_pub.publish(_ulog_stream_data);
+#else
+	ulog_s_p = &_ulog_stream_data;
+#endif
+
+	ulog_s_p->timestamp = hrt_absolute_time();
+	ulog_s_p->flags = 0;
+
+#ifdef LOGGER_PARALLEL_LOGGING
+
+	if (!reliable) {
+		_ulog_stream_pub.publish(*ulog_s_p);
+
+	} else {
+		ulog_s_p->flags = ulog_s_p->FLAGS_NEED_ACK;
+		_ulog_stream_acked_pub.publish(*ulog_s_p);
+#else
 
 	if (_need_reliable_transfer) {
+		ulog_s_p->flags = ulog_s_p->FLAGS_NEED_ACK;
+	}
+
+	_ulog_stream_pub.publish(*ulog_s_p);
+
+	if (_need_reliable_transfer) {
+#endif
 		// we need to wait for an ack. Note that this blocks the main logger thread, so if a file logging
 		// is already running, it will miss samples.
 		px4_pollfd_struct_t fds[1];
@@ -160,7 +358,7 @@ int LogWriterMavlink::publish_message()
 				ulog_stream_ack_s ack;
 				orb_copy(ORB_ID(ulog_stream_ack), _ulog_stream_ack_sub, &ack);
 
-				if (ack.msg_sequence == _ulog_stream_data.msg_sequence) {
+				if (ack.msg_sequence == ulog_s_p->msg_sequence) {
 					got_ack = true;
 				}
 
@@ -178,9 +376,9 @@ int LogWriterMavlink::publish_message()
 		PX4_DEBUG("got ack in %i ms", (int)(hrt_elapsed_time(&started) / 1000));
 	}
 
-	_ulog_stream_data.msg_sequence++;
-	_ulog_stream_data.length = 0;
-	_ulog_stream_data.first_message_offset = 255;
+	ulog_s_p->msg_sequence++;
+	ulog_s_p->length = 0;
+	ulog_s_p->first_message_offset = 255;
 	return 0;
 }
 
