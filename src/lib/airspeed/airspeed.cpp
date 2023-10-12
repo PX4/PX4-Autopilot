@@ -156,18 +156,6 @@ float calc_IAS_corrected(enum AIRSPEED_COMPENSATION_MODEL pmodel, enum AIRSPEED_
 		break;
 	}
 
-	// if (!PX4_ISFINITE(dp_tube)) {
-	// 	dp_tube = 0.0f;
-	// }
-
-	// if (!PX4_ISFINITE(dp_pitot)) {
-	// 	dp_pitot = 0.0f;
-	// }
-
-	// if (!PX4_ISFINITE(dv)) {
-	// 	dv = 0.0f;
-	// }
-
 	// computed airspeed without correction for inflow-speed at tip of pitot-tube
 	const float airspeed_uncorrected = sqrtf(2.0f * dp_tot / CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C);
 
@@ -206,7 +194,7 @@ float calc_CAS_from_IAS(float speed_indicated, float scale)
 
 float calc_TAS(float total_pressure, float static_pressure, float temperature_celsius)
 {
-	float density = get_air_density(static_pressure, temperature_celsius);
+	float density = getDensityFromPressureAndTemp(static_pressure, temperature_celsius);
 
 	if (density < 0.0001f || !PX4_ISFINITE(density)) {
 		density = CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C;
@@ -220,15 +208,6 @@ float calc_TAS(float total_pressure, float static_pressure, float temperature_ce
 	} else {
 		return -sqrtf((2.0f * fabsf(pressure_difference)) / density);
 	}
-}
-
-float get_air_density(float static_pressure, float temperature_celsius)
-{
-	if (!PX4_ISFINITE(temperature_celsius)) {
-		temperature_celsius = 15.f; // ICAO Standard Atmosphere 15 degrees Celsius
-	}
-
-	return static_pressure / (CONSTANTS_AIR_GAS_CONST * (temperature_celsius - CONSTANTS_ABSOLUTE_NULL_CELSIUS));
 }
 
 float calc_calibrated_from_true_airspeed(float speed_true, float air_density)
