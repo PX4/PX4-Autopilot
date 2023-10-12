@@ -227,7 +227,8 @@ if __name__ == '__main__':
         description='Estimate the baro static pressure compensation coefficients using a ULog file')
 
     # Provide parameter file path and name
-    parser.add_argument('logfile', help='Full ulog file path, name and extension', type=str)
+    # parser.add_argument('logfile', help='Full ulog file path, name and extension', type=str)
+    parser.add_argument('-l', '--log-file', dest='logfile', help='Full ulog file path, name and extension', type=str)
     args = parser.parse_args()
 
     logfile = os.path.abspath(args.logfile) # Convert to absolute path
