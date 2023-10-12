@@ -62,7 +62,7 @@
 #define TIMEOUT_US 10500
 
 // If a timeout occurs during serial communication, it will immediately try again this many times
-#define TIMEOUT_RETRIES 1
+#define TIMEOUT_RETRIES 5
 
 // If a timeout occurs while disarmed, it will try again this many times. This should be a higher number,
 // because stopping when disarmed is pretty important.
@@ -81,29 +81,55 @@ bool RoboClaw::taskShouldExit = false;
 
 using namespace time_literals;
 
-RoboClaw::RoboClaw(const char *deviceName, const char *baudRateParam):
-	_uart(0),
-	_uart_set(),
-	_uart_timeout{.tv_sec = 0, .tv_usec = TIMEOUT_US},
-	_actuatorsSub(-1),
-	_lastEncoderCount{0, 0},
-	_encoderCounts{0, 0},
-	_motorSpeeds{0, 0}
-
+RoboClaw::RoboClaw(const char *deviceName, const char *baudRateParam)
 {
-	_param_handles.actuator_write_period_ms = 	param_find("RBCLW_WRITE_PER");
+	strncpy(_storedDeviceName, deviceName, sizeof(_storedDeviceName) - 1);
+	_storedDeviceName[sizeof(_storedDeviceName) - 1] = '\0'; // Ensure null-termination
+
+	strncpy(_storedBaudRateParam, baudRateParam, sizeof(_storedBaudRateParam) - 1);
+	_storedBaudRateParam[sizeof(_storedBaudRateParam) - 1] = '\0'; // Ensure null-termination
+
+	initialize();
+}
+
+RoboClaw::~RoboClaw()
+{
+	setMotorDutyCycle(MOTOR_1, 0.0);
+	setMotorDutyCycle(MOTOR_2, 0.0);
+	close(_uart);
+}
+
+void
+RoboClaw::initialize() {
+
+	_uart = 0;
+	_uart_timeout = { .tv_sec = 0, .tv_usec = TIMEOUT_US };
+	_actuatorsSub = -1;
+	_lastEncoderCount[0] = 0;
+	_lastEncoderCount[1] = 0;
+	_encoderCounts[0] = 0;
+	_encoderCounts[1] = 0;
+	_motorSpeeds[0] = 0;
+	_motorSpeeds[1] = 0;
+
+    	_param_handles.actuator_write_period_ms = 	param_find("RBCLW_WRITE_PER");
 	_param_handles.encoder_read_period_ms = 	param_find("RBCLW_READ_PER");
 	_param_handles.counts_per_rev = 			param_find("RBCLW_COUNTS_REV");
-	printf("Baudrate parameter: %s\n", baudRateParam);
-	_param_handles.serial_baud_rate = 			param_find(baudRateParam);
+	printf("Baudrate parameter: %s\n", _storedBaudRateParam);
+	_param_handles.serial_baud_rate = 			param_find(_storedBaudRateParam);
 	_param_handles.address = 					param_find("RBCLW_ADDRESS");
 
 	_parameters_update();
 
-	// start serial port
-	_uart = open(deviceName, O_RDWR | O_NOCTTY);
+	PX4_ERR("trying to open uart");
 
-	if (_uart < 0) { err(1, "could not open %s", deviceName); }
+	// start serial port
+	_uart = open(_storedDeviceName, O_RDWR | O_NOCTTY);
+
+	if (_uart < 0) { err(1, "could not open %s", _storedDeviceName); }
+
+	// PX4_ERR("uart connection %f", (double)_uart);
+
 
 	int ret = 0;
 	struct termios uart_config {};
@@ -130,14 +156,9 @@ RoboClaw::RoboClaw(const char *deviceName, const char *baudRateParam):
 
 	// setup default settings, reset encoders
 	resetEncoders();
+
 }
 
-RoboClaw::~RoboClaw()
-{
-	setMotorDutyCycle(MOTOR_1, 0.0);
-	setMotorDutyCycle(MOTOR_2, 0.0);
-	close(_uart);
-}
 
 void
 RoboClaw::vehicle_control_poll()
@@ -175,7 +196,7 @@ void RoboClaw::taskMain()
 
 	// printf("i am in main");
 
-	int waitTime = 10_ms;
+	int waitTime = 100_ms;
 
 	uint64_t encoderTaskLastRun = 0;
 
@@ -493,8 +514,6 @@ int RoboClaw::_transaction(e_command cmd, uint8_t *wbuff, size_t wbytes, uint8_t
 
 	if (err_code != RoboClawError::Success) {
 		printError(err_code);
-		PX4_ERR("uhh 1");
-
 		return -1;
 	}
 
@@ -502,8 +521,6 @@ int RoboClaw::_transaction(e_command cmd, uint8_t *wbuff, size_t wbytes, uint8_t
 
 	if (err_code != RoboClawError::Success) {
 		printError(err_code);
-		PX4_ERR("uhh 2");
-
 		return -1;
 	}
 
@@ -529,6 +546,7 @@ RoboClaw::RoboClawError RoboClaw::writeToDevice(e_command cmd, uint8_t *wbuff, s
 	}
 
 	// Write data to the device.
+
 	int count = write(_uart, buf, wbytes);
 
 	// Error checking for the write operation.
@@ -555,10 +573,20 @@ RoboClaw::RoboClawError RoboClaw::readFromDevice(uint8_t *rbuff, size_t rbytes, 
 
 		if (select_status <= 0) {
 			// Handle select error or timeout here
-			return RoboClawError::ReadTimeout;
+			PX4_ERR("error %f", (double)select_status);
+
+			usleep(20000000);  // 20 second delay
+
+			PX4_ERR("Trying again to reconnect to RoboClaw");
+
+			// Reinitialize the roboclaw driver
+			initialize();
+
+				// return RoboClawError::ReadTimeout;
+
 		}
 
-		int err_code = read(_uart, rbuff_curr, rbytes - bytes_read);
+                int err_code = read(_uart, rbuff_curr, rbytes - bytes_read);
 
 		if (err_code <= 0) {
 			// Handle read error here
