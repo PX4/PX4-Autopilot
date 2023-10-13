@@ -73,6 +73,7 @@ jobs:
         - config: holybro_kakutef7
         - config: px4_fmu-v5
         - config: omnibus_f4sd
+        - config: px4_fmu-v6x
     steps:
     - uses: actions/checkout@v1
       with:

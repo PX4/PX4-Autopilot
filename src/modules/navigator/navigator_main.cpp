@@ -982,7 +982,20 @@ void Navigator::publish_position_setpoint_triplet()
 
 float Navigator::get_default_acceptance_radius()
 {
-	return _param_nav_acc_rad.get();
+	// ---Sees.ai---
+	// Sometimes this parameter does not initialise properly, resulting in a negligible value to be returned.
+	// This will cause the drone to yaw uncontrollably on auto-takeoff.
+	// Instead, check that this param is reasonable, and if it isn't then set it to 1.
+	float acceptance_radius = _param_nav_acc_rad.get();
+
+	if (acceptance_radius < 0.1f || acceptance_radius > 25.f) {
+		PX4_INFO("Acceptance radius corrected from %f to 1.0", double(acceptance_radius));
+		float param_set_val = 1.0;
+		param_set(param_find("NAV_ACC_RAD"), &param_set_val);
+		acceptance_radius = 1.0;
+	}
+
+	return acceptance_radius;
 }
 
 float Navigator::get_default_altitude_acceptance_radius()
