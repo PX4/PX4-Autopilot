@@ -120,16 +120,6 @@ FixedwingAttitudeControl::vehicle_manual_poll(const float yaw_body)
 }
 
 void
-FixedwingAttitudeControl::vehicle_attitude_setpoint_poll()
-{
-	if (_att_sp_sub.update(&_att_sp)) {
-		_rates_sp.thrust_body[0] = _att_sp.thrust_body[0];
-		_rates_sp.thrust_body[1] = _att_sp.thrust_body[1];
-		_rates_sp.thrust_body[2] = _att_sp.thrust_body[2];
-	}
-}
-
-void
 FixedwingAttitudeControl::vehicle_land_detected_poll()
 {
 	if (_vehicle_land_detected_sub.updated()) {
@@ -260,7 +250,16 @@ void FixedwingAttitudeControl::Run()
 
 		vehicle_manual_poll(euler_angles.psi());
 
-		vehicle_attitude_setpoint_poll();
+		// attitude setpoint poll
+		_reference_model.update();
+
+		_att_sp = _reference_model.getOutput();
+		matrix::Vector2f vel_feedforward = _reference_model.getRateFeedforward();
+		matrix::Vector2f acc_feedforward = _reference_model.getTorqueFeedforward();
+
+		_rates_sp.thrust_body[0] = _att_sp.thrust_body[0];
+		_rates_sp.thrust_body[1] = _att_sp.thrust_body[1];
+		_rates_sp.thrust_body[2] = _att_sp.thrust_body[2];
 
 		// vehicle status update must be before the vehicle_control_mode poll, otherwise rate sp are not published during whole transition
 		_vehicle_status_sub.update(&_vehicle_status);
@@ -371,9 +370,13 @@ void FixedwingAttitudeControl::Run()
 					}
 
 					/* Publish the rate setpoint for analysis once available */
-					_rates_sp.roll = body_rates_setpoint(0);
-					_rates_sp.pitch = body_rates_setpoint(1);
+					_rates_sp.roll = body_rates_setpoint(0) + vel_feedforward(0);
+					_rates_sp.pitch = body_rates_setpoint(1) + vel_feedforward(1);
 					_rates_sp.yaw = body_rates_setpoint(2);
+
+					_rates_sp.accel_feedforward[0] = acc_feedforward(0);
+					_rates_sp.accel_feedforward[1] = acc_feedforward(1);
+					_rates_sp.accel_feedforward[2] = 0.f;
 
 					_rates_sp.timestamp = hrt_absolute_time();
 
@@ -404,6 +407,7 @@ void FixedwingAttitudeControl::Run()
 		} else {
 			// full manual
 			_wheel_ctrl.reset_integrator();
+			_reference_model.reset();
 
 			_landing_gear_wheel.normalized_wheel_setpoint = PX4_ISFINITE(_manual_control_setpoint.yaw) ?
 					_manual_control_setpoint.yaw : 0.f;

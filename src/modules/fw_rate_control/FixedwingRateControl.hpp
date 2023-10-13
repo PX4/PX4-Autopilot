@@ -182,6 +182,7 @@ private:
 		(ParamFloat<px4::params::FW_MAN_Y_SC>) _param_fw_man_y_sc,
 
 		(ParamFloat<px4::params::FW_PR_FF>) _param_fw_pr_ff,
+		(ParamFloat<px4::params::FW_PA_FF>) _param_fw_pa_ff,
 		(ParamFloat<px4::params::FW_PR_I>) _param_fw_pr_i,
 		(ParamFloat<px4::params::FW_PR_IMAX>) _param_fw_pr_imax,
 		(ParamFloat<px4::params::FW_PR_P>) _param_fw_pr_p,
@@ -189,6 +190,7 @@ private:
 
 		(ParamFloat<px4::params::FW_RLL_TO_YAW_FF>) _param_fw_rll_to_yaw_ff,
 		(ParamFloat<px4::params::FW_RR_FF>) _param_fw_rr_ff,
+		(ParamFloat<px4::params::FW_RA_FF>) _param_fw_ra_ff,
 		(ParamFloat<px4::params::FW_RR_I>) _param_fw_rr_i,
 		(ParamFloat<px4::params::FW_RR_IMAX>) _param_fw_rr_imax,
 		(ParamFloat<px4::params::FW_RR_P>) _param_fw_rr_p,

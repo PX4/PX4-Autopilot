@@ -212,6 +212,18 @@ PARAM_DEFINE_FLOAT(FW_YR_IMAX, 0.2f);
 PARAM_DEFINE_FLOAT(FW_RR_FF, 0.5f);
 
 /**
+ * roll acceleration feedforward gain
+ *
+ * feedforward gain for acceleration to scale rad/s^2 to percentage output
+ *
+ * @min 0.0
+ * @max 10.0
+ * @decimal 2
+ * @group FW Rate Control
+ */
+PARAM_DEFINE_FLOAT(FW_RA_FF, 0.0f);
+
+/**
  * Pitch rate feed forward
  *
  * Direct feed forward from rate setpoint to control surface output
@@ -224,6 +236,19 @@ PARAM_DEFINE_FLOAT(FW_RR_FF, 0.5f);
  * @group FW Rate Control
  */
 PARAM_DEFINE_FLOAT(FW_PR_FF, 0.5f);
+
+/**
+ * pitch acceleration feedforward gain
+ *
+ * feedforward gain for acceleration to scale rad/s^2 to unitless output
+ *
+ * @unit %/rad/s
+ * @min 0.0
+ * @max 10.0
+ * @decimal 2
+ * @group FW Rate Control
+ */
+PARAM_DEFINE_FLOAT(FW_PA_FF, 0.0f);
 
 /**
  * Yaw rate feed forward

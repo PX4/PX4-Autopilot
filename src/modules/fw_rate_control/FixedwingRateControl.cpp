@@ -358,6 +358,7 @@ void FixedwingRateControl::Run()
 				const Vector3f angular_acceleration_setpoint = _rate_control.update(rates, body_rates_setpoint, angular_accel, dt,
 						_landed);
 
+				const Vector3f reference_ff(_param_fw_ra_ff.get() * _rates_sp.accel_feedforward[0], _param_fw_pa_ff.get() * _rates_sp.accel_feedforward[1], 0.f);
 				const Vector3f gain_ff(_param_fw_rr_ff.get(), _param_fw_pr_ff.get(), _param_fw_yr_ff.get());
 				const Vector3f feedforward = gain_ff.emult(body_rates_setpoint) * _airspeed_scaling;
 
