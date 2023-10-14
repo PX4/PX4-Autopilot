@@ -46,19 +46,20 @@ void getVehicleControlMode(uint8_t nav_state, uint8_t vehicle_type,
 			   const offboard_control_mode_s &offboard_control_mode,
 			   vehicle_control_mode_s &vehicle_control_mode)
 {
-	vehicle_control_mode.flag_control_allocation_enabled = true; // Always enabled by default
 
 	switch (nav_state) {
 	case vehicle_status_s::NAVIGATION_STATE_MANUAL:
 		vehicle_control_mode.flag_control_manual_enabled = true;
 		vehicle_control_mode.flag_control_rates_enabled = stabilization_required(vehicle_type);
 		vehicle_control_mode.flag_control_attitude_enabled = stabilization_required(vehicle_type);
+		vehicle_control_mode.flag_control_allocation_enabled = true;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_STAB:
 		vehicle_control_mode.flag_control_manual_enabled = true;
 		vehicle_control_mode.flag_control_rates_enabled = true;
 		vehicle_control_mode.flag_control_attitude_enabled = true;
+		vehicle_control_mode.flag_control_allocation_enabled = true;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
@@ -67,6 +68,7 @@ void getVehicleControlMode(uint8_t nav_state, uint8_t vehicle_type,
 		vehicle_control_mode.flag_control_attitude_enabled = true;
 		vehicle_control_mode.flag_control_altitude_enabled = true;
 		vehicle_control_mode.flag_control_climb_rate_enabled = true;
+		vehicle_control_mode.flag_control_allocation_enabled = true;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_POSCTL:
@@ -77,6 +79,7 @@ void getVehicleControlMode(uint8_t nav_state, uint8_t vehicle_type,
 		vehicle_control_mode.flag_control_climb_rate_enabled = true;
 		vehicle_control_mode.flag_control_position_enabled = true;
 		vehicle_control_mode.flag_control_velocity_enabled = true;
+		vehicle_control_mode.flag_control_allocation_enabled = true;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
@@ -93,11 +96,13 @@ void getVehicleControlMode(uint8_t nav_state, uint8_t vehicle_type,
 		vehicle_control_mode.flag_control_climb_rate_enabled = true;
 		vehicle_control_mode.flag_control_position_enabled = true;
 		vehicle_control_mode.flag_control_velocity_enabled = true;
+		vehicle_control_mode.flag_control_allocation_enabled = true;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_ACRO:
 		vehicle_control_mode.flag_control_manual_enabled = true;
 		vehicle_control_mode.flag_control_rates_enabled = true;
+		vehicle_control_mode.flag_control_allocation_enabled = true;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_DESCEND:
@@ -105,6 +110,7 @@ void getVehicleControlMode(uint8_t nav_state, uint8_t vehicle_type,
 		vehicle_control_mode.flag_control_rates_enabled = true;
 		vehicle_control_mode.flag_control_attitude_enabled = true;
 		vehicle_control_mode.flag_control_climb_rate_enabled = true;
+		vehicle_control_mode.flag_control_allocation_enabled = true;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_TERMINATION:
@@ -121,28 +127,36 @@ void getVehicleControlMode(uint8_t nav_state, uint8_t vehicle_type,
 			vehicle_control_mode.flag_control_altitude_enabled = true;
 			vehicle_control_mode.flag_control_climb_rate_enabled = true;
 			vehicle_control_mode.flag_control_acceleration_enabled = true;
-			vehicle_control_mode.flag_control_rates_enabled = true;
 			vehicle_control_mode.flag_control_attitude_enabled = true;
+			vehicle_control_mode.flag_control_rates_enabled = true;
+			vehicle_control_mode.flag_control_allocation_enabled = true;
 
 		} else if (offboard_control_mode.velocity) {
 			vehicle_control_mode.flag_control_velocity_enabled = true;
 			vehicle_control_mode.flag_control_altitude_enabled = true;
 			vehicle_control_mode.flag_control_climb_rate_enabled = true;
 			vehicle_control_mode.flag_control_acceleration_enabled = true;
-			vehicle_control_mode.flag_control_rates_enabled = true;
 			vehicle_control_mode.flag_control_attitude_enabled = true;
+			vehicle_control_mode.flag_control_rates_enabled = true;
+			vehicle_control_mode.flag_control_allocation_enabled = true;
 
 		} else if (offboard_control_mode.acceleration) {
 			vehicle_control_mode.flag_control_acceleration_enabled = true;
-			vehicle_control_mode.flag_control_rates_enabled = true;
 			vehicle_control_mode.flag_control_attitude_enabled = true;
+			vehicle_control_mode.flag_control_rates_enabled = true;
+			vehicle_control_mode.flag_control_allocation_enabled = true;
 
 		} else if (offboard_control_mode.attitude) {
-			vehicle_control_mode.flag_control_rates_enabled = true;
 			vehicle_control_mode.flag_control_attitude_enabled = true;
+			vehicle_control_mode.flag_control_rates_enabled = true;
+			vehicle_control_mode.flag_control_allocation_enabled = true;
 
 		} else if (offboard_control_mode.body_rate) {
 			vehicle_control_mode.flag_control_rates_enabled = true;
+			vehicle_control_mode.flag_control_allocation_enabled = true;
+
+		} else if (offboard_control_mode.thrust_and_torque) {
+			vehicle_control_mode.flag_control_allocation_enabled = true;
 		}
 
 		break;
