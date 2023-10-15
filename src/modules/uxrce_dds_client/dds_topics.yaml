@@ -136,5 +136,17 @@ subscriptions:
   - topic: /fmu/in/vehicle_trajectory_waypoint
     type: px4_msgs::msg::VehicleTrajectoryWaypoint
 
+  - topic: /fmu/in/vehicle_thrust_setpoint
+    type: px4_msgs::msg::VehicleThrustSetpoint
+
+  - topic: /fmu/in/vehicle_torque_setpoint
+    type: px4_msgs::msg::VehicleTorqueSetpoint
+
+  - topic: /fmu/in/actuator_motors
+    type: px4_msgs::msg::ActuatorMotors
+
+  - topic: /fmu/in/actuator_servos
+    type: px4_msgs::msg::ActuatorServos
+
 # Create uORB::PublicationMulti
 subscriptions_multi:
