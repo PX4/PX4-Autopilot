@@ -271,22 +271,17 @@ MulticopterRateControl::Run()
 						_takeoff_time_set = true;
 						_takeoff_time = hrt_absolute_time();
 					} else if (_takeoff_time_set) {
-						float rel_time_now = (float)(hrt_absolute_time() - _takeoff_time) / 1.e6f;
-
 						const float time_start = 5.0f;
-						const float sine_time = 5.0f;
-						const float rest_time = 3.0f;
+						float time_since_start = (float)(hrt_absolute_time() - _takeoff_time) / 1.e6f - time_start;
 
-						if (rel_time_now > time_start) {
-							float time_since_start = rel_time_now - time_start;
-
-							int freq_idx = floor(time_since_start / (sine_time + rest_time));
+						if (time_since_start > 0) {							
+							int freq_idx = floor(time_since_start / (_param_mc_inject_sine_t.get() + _param_mc_inject_rest_t.get()));
 
 							if (freq_idx < _param_mc_inject_cnt.get()) {
-								float freq_time = time_since_start - (sine_time + rest_time) * freq_idx;
+								float freq_time = time_since_start - (_param_mc_inject_sine_t.get() + _param_mc_inject_rest_t.get()) * freq_idx;
 								float freq_now = _param_mc_inject_start.get() + _param_mc_inject_inc.get() * freq_idx;
 
-								if (freq_time < sine_time) {
+								if (freq_time < _param_mc_inject_sine_t.get()) {
 									float injection = _param_mc_inject_amp.get() * (float) sin(freq_now * M_TWOPI_F * freq_time);
 
 									if (_param_mc_inject_rpy.get() == 0) {
