@@ -96,7 +96,7 @@ private:
 	};
 
 private:
-	bool hasMissionLandStart();
+	bool hasMissionLandStart() const;
 
 	/**
 	 * @brief function to call regularly to do background work
@@ -115,14 +115,14 @@ private:
 	 * @brief Set the position of the land start marker in the planned mission as destination.
 	 *
 	 */
-	void setLandPosAsDestination(DestinationPosition &rtl_position, mission_item_s &land_mission_item);
+	void setLandPosAsDestination(DestinationPosition &rtl_position, mission_item_s &land_mission_item) const;
 
 	/**
 	 * @brief Set the safepoint as destination.
 	 *
 	 * @param mission_safe_point is the mission safe point/rally point to set as destination.
 	 */
-	void setSafepointAsDestination(DestinationPosition &rtl_position, const mission_item_s &mission_safe_point);
+	void setSafepointAsDestination(DestinationPosition &rtl_position, const mission_item_s &mission_safe_point) const;
 
 	/**
 	 * @brief calculate return altitude from cone half angle
@@ -131,7 +131,8 @@ private:
 	 * @param[in] cone_half_angle_deg half angle of the cone [deg]
 	 * @return return altitude
 	 */
-	float calculate_return_alt_from_cone_half_angle(const DestinationPosition &rtl_position, float cone_half_angle_deg);
+	float calculate_return_alt_from_cone_half_angle(const DestinationPosition &rtl_position,
+			float cone_half_angle_deg) const;
 
 	/**
 	 * @brief initialize RTL mission type
@@ -151,7 +152,7 @@ private:
 	 * @param[in] rtl_position landing position of the rtl
 	 *
 	 */
-	void readVtolLandApproaches(DestinationPosition rtl_position);
+	land_approaches_s readVtolLandApproaches(DestinationPosition rtl_position) const;
 
 	/**
 	 * @brief Has VTOL land approach
@@ -161,7 +162,7 @@ private:
 	 * @return true if home land approaches are defined for home position
 	 * @return false otherwise
 	 */
-	bool hasVtolLandApproach(DestinationPosition rtl_position);
+	bool hasVtolLandApproach(const DestinationPosition &rtl_position) const;
 
 	/**
 	 * @brief Choose best landing approach
@@ -170,7 +171,7 @@ private:
 	 *
 	 * @return loiter_point_s best landing approach
 	 */
-	loiter_point_s chooseBestLandingApproach();
+	loiter_point_s chooseBestLandingApproach(const land_approaches_s &vtol_land_approaches);
 
 	enum class DatamanState {
 		UpdateRequestWait,
@@ -191,17 +192,15 @@ private:
 	DatamanState _error_state{DatamanState::UpdateRequestWait};
 	uint16_t _update_counter{0}; ///< dataman update counter: if it does not match, safe points data was updated
 	bool _safe_points_updated{false}; ///< flag indicating if safe points are updated to dataman cache
-	DatamanCache _dataman_cache_safepoint{"rtl_dm_cache_miss_geo", 4};
+	mutable DatamanCache _dataman_cache_safepoint{"rtl_dm_cache_miss_geo", 4};
 	DatamanClient	&_dataman_client_safepoint = _dataman_cache_safepoint.client();
 	bool _initiate_safe_points_updated{true}; ///< flag indicating if safe points update is needed
-	DatamanCache _dataman_cache_landItem{"rtl_dm_cache_miss_land", 2};
+	mutable DatamanCache _dataman_cache_landItem{"rtl_dm_cache_miss_land", 2};
 	int16_t _mission_counter = -1;
 
 	mission_stats_entry_s _stats;
 
 	RtlDirect _rtl_direct;
-
-	land_approaches_s _vtol_land_approaches{};
 
 	bool _enforce_rtl_alt{false};
 
