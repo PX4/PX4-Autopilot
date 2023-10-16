@@ -171,8 +171,8 @@ void Navigator::run()
 	fds[2].fd = _mission_sub;
 	fds[2].events = POLLIN;
 
-	uint16_t geofence_update_counter{0};
-	uint16_t safe_points_update_counter{0};
+	uint32_t geofence_id{0};
+	uint32_t safe_points_id{0};
 
 	/* rate-limit position subscription to 20 Hz / 50 ms */
 	orb_set_interval(_local_pos_sub, 50);
@@ -201,13 +201,13 @@ void Navigator::run()
 			mission_s mission;
 			orb_copy(ORB_ID(mission), _mission_sub, &mission);
 
-			if (mission.geofence_update_counter != geofence_update_counter) {
-				geofence_update_counter = mission.geofence_update_counter;
+			if (mission.geofence_id != geofence_id) {
+				geofence_id = mission.geofence_id;
 				_geofence.updateFence();
 			}
 
-			if (mission.safe_points_update_counter != safe_points_update_counter) {
-				safe_points_update_counter = mission.safe_points_update_counter;
+			if (mission.safe_points_id != safe_points_id) {
+				safe_points_id = mission.safe_points_id;
 				_rtl.updateSafePoints();
 			}
 		}

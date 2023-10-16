@@ -183,8 +183,7 @@ private:
 
 	MapProjection _projection_reference{}; ///< class to convert (lon, lat) to local [m]
 
-
-	uint16_t _update_counter{0}; ///< dataman update counter: if it does not match, polygon data was updated
+	uint32_t _opaque_id{0}; ///< dataman geofence id: if it does not match, the polygon data was updated
 	bool _fence_updated{true};  ///< flag indicating if fence are updated to dataman cache
 	bool _initiate_fence_updated{true}; ///< flag indicating if fence updated is needed
 
