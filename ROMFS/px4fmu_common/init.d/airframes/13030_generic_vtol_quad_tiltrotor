@@ -40,8 +40,10 @@ param set-default CA_SV_CS0_TRQ_R -0.5
 param set-default CA_SV_CS1_TRQ_R 0.5
 param set-default CA_SV_CS1_TYPE 2
 param set-default CA_SV_CS2_TRQ_P 1.0
+param set-default CA_SV_CS2_TRQ_Y 0.0  #Parameter is not available when CS2 changed to V tail left
 param set-default CA_SV_CS2_TYPE 3
 param set-default CA_SV_CS3_TRQ_Y 1.0
+param set-default CA_SV_CS3_TRQ_P 0.0  #Parameter is not available when CS3 changed to V tail left
 param set-default CA_SV_CS3_TYPE 4
 param set-default CA_SV_TL_COUNT 4
 
