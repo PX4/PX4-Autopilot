@@ -203,8 +203,9 @@ struct mission_item_s {
  * Corresponds to the first dataman entry of DM_KEY_FENCE_POINTS and DM_KEY_SAFE_POINTS
  */
 struct mission_stats_entry_s {
+	uint32_t opaque_id;			/**< opaque identifier for current stored mission stats */
 	uint16_t num_items;			/**< total number of items stored (excluding this one) */
-	uint16_t update_counter;			/**< This counter is increased when (some) items change (this can wrap) */
+	uint8_t padding[2];
 };
 
 /**
@@ -238,6 +239,18 @@ struct DestinationPosition {
 	float alt;	/**< altitude in MSL [m].*/
 	float yaw;	/**< final yaw when landed [rad].*/
 };
+
+
+/**
+ * Crc32 mission item struct.
+ * Used to pack relevant mission item ifnromation for us in crc32 mission calculation.
+ */
+typedef struct __attribute__((packed)) CrcMissionItem {
+	uint8_t frame;
+	uint16_t command;
+	uint8_t autocontinue;
+	float params[7];
+} CrcMissionItem_t;
 
 #if (__GNUC__ >= 5) || __clang__
 #pragma GCC diagnostic pop

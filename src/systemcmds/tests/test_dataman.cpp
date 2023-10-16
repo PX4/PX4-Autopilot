@@ -1096,7 +1096,7 @@ DatamanTest::testResetItems()
 
 	mission_stats_entry_s stats;
 	stats.num_items = 0;
-	stats.update_counter = 1;
+	stats.opaque_id = 0;
 
 	success = _dataman_client1.writeSync(DM_KEY_FENCE_POINTS, 0, reinterpret_cast<uint8_t *>(&stats),
 					     sizeof(mission_stats_entry_s));

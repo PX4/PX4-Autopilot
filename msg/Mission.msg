@@ -7,6 +7,6 @@ int32 current_seq	# default -1, start at the one changed latest
 int32 land_start_index  # Index of the land start marker, if unavailable index of the land item, -1 otherwise
 int32 land_index 	# Index of the land item, -1 otherwise
 
-uint16 mission_update_counter # indicates updates to the mission, reload from dataman if increased
-uint16 geofence_update_counter # indicates updates to the geofence, reload from dataman if increased
-uint16 safe_points_update_counter # indicates updates to the safe points, reload from dataman if increased
+uint32 mission_id # indicates updates to the mission, reload from dataman if changed
+uint32 geofence_id # indicates updates to the geofence, reload from dataman if changed
+uint32 safe_points_id # indicates updates to the safe points, reload from dataman if changed

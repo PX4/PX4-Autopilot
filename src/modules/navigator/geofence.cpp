@@ -40,8 +40,10 @@
  */
 #include "geofence.h"
 #include "navigator.h"
+#include "navigation.h"
 
 #include <ctype.h>
+#include <crc32.h>
 
 #include <dataman_client/DatamanClient.hpp>
 #include <drivers/drv_hrt.h>
@@ -50,6 +52,27 @@
 #include <px4_platform_common/events.h>
 
 #include "navigator.h"
+
+static uint32_t crc32_for_fence_point(const mission_fence_point_s &fence_point, uint32_t prev_crc32)
+{
+	union {
+		CrcMissionItem_t item;
+		uint8_t raw[sizeof(CrcMissionItem_t)];
+	} u;
+
+	u.item.frame = fence_point.frame;
+	u.item.command = fence_point.nav_cmd;
+	u.item.autocontinue = 0U;
+	u.item.params[0] = 0.f;
+	u.item.params[1] = 0.f;
+	u.item.params[2] = 0.f;
+	u.item.params[3] = 0.f;
+	u.item.params[4] = static_cast<float>(fence_point.lat);
+	u.item.params[5] = static_cast<float>(fence_point.lon);
+	u.item.params[6] = fence_point.alt;
+
+	return crc32part(u.raw, sizeof(u), prev_crc32);
+}
 
 Geofence::Geofence(Navigator *navigator) :
 	ModuleParams(navigator),
@@ -105,9 +128,9 @@ void Geofence::run()
 				_error_state = DatamanState::ReadWait;
 				_dataman_state = DatamanState::Error;
 
-			} else if (_update_counter != _stats.update_counter) {
+			} else if (_opaque_id != _stats.opaque_id) {
 
-				_update_counter = _stats.update_counter;
+				_opaque_id = _stats.opaque_id;
 				_fence_updated = false;
 
 				_dataman_cache.invalidate();
@@ -559,6 +582,7 @@ Geofence::loadFromFile(const char *filename)
 		mavlink_log_info(_navigator->get_mavlink_log_pub(), "Geofence imported\t");
 		events::send(events::ID("navigator_geofence_imported"), events::Log::Info, "Geofence imported");
 		ret_val = PX4_ERROR;
+		uint32_t crc32{0U};
 
 		/* do a second pass, now that we know the number of vertices */
 		for (int seq = 1; seq <= pointCounter; ++seq) {
@@ -569,6 +593,7 @@ Geofence::loadFromFile(const char *filename)
 
 			if (success) {
 				mission_fence_point.vertex_count = pointCounter;
+				crc32 = crc32_for_fence_point(mission_fence_point, crc32);
 				_dataman_client.writeSync(DM_KEY_FENCE_POINTS, seq, reinterpret_cast<uint8_t *>(&mission_fence_point),
 							  sizeof(mission_fence_point_s));
 			}
@@ -576,7 +601,7 @@ Geofence::loadFromFile(const char *filename)
 
 		mission_stats_entry_s stats;
 		stats.num_items = pointCounter;
-		stats.update_counter = _update_counter + 1;
+		stats.opaque_id = crc32;
 
 		bool success = _dataman_client.writeSync(DM_KEY_FENCE_POINTS, 0, reinterpret_cast<uint8_t *>(&stats),
 				sizeof(mission_stats_entry_s));
