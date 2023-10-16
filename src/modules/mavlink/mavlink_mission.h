@@ -112,6 +112,7 @@ private:
 	static bool		_dataman_init;				///< Dataman initialized
 
 	static uint16_t		_count[3];				///< Count of items in (active) mission for each MAV_MISSION_TYPE
+	static uint32_t		_crc32[3];				///< Checksum of items in (active) mission for each MAV_MISSION_TYPE
 	static int32_t		_current_seq;				///< Current item sequence in active mission
 
 	int32_t			_last_reached{-1};			///< Last reached waypoint in active mission (-1 means nothing reached)
@@ -119,6 +120,7 @@ private:
 	dm_item_t			_transfer_dataman_id{DM_KEY_WAYPOINTS_OFFBOARD_1};		///< Dataman storage ID for current transmission
 
 	uint16_t		_transfer_count{0};			///< Items count in current transmission
+	uint32_t		_transfer_current_crc32{0};		///< Current CRC32 checksum of current transmission
 	uint16_t		_transfer_seq{0};			///< Item sequence in current transmission
 
 	int32_t			_transfer_current_seq{-1};		///< Current item ID for current transmission (-1 means not initialized)
@@ -135,9 +137,6 @@ private:
 
 	uORB::Publication<mission_s>	_offboard_mission_pub{ORB_ID(mission)};
 
-	static uint16_t		_mission_update_counter;
-	static uint16_t		_geofence_update_counter;
-	static uint16_t		_safepoint_update_counter;
 	int32_t 		_land_start_marker{-1}; 	///< index of loaded land start mission item (if unavailable, index of land mission item, -1 otherwise)
 	int32_t 		_land_marker{-1}; 		///< index of loaded land mission item (-1 if unavailable)
 
@@ -160,19 +159,23 @@ private:
 	/** get the number of item count for the current _mission_type */
 	uint16_t current_item_count();
 
+	/** get the crc32 checksum for the current _mission_type */
+	uint32_t get_current_mission_type_crc();
+
 	/* do not allow top copying this class */
 	MavlinkMissionManager(MavlinkMissionManager &);
 	MavlinkMissionManager &operator = (const MavlinkMissionManager &);
 
-	void init_offboard_mission(mission_s mission_state);
+	void init_offboard_mission(const mission_s &mission_state);
 
-	void update_active_mission(dm_item_t dataman_id, uint16_t count, int32_t seq, bool write_to_dataman = true);
+	void update_active_mission(dm_item_t dataman_id, uint16_t count, int32_t seq, uint32_t crc32,
+				   bool write_to_dataman = true);
 
 	/** store the geofence count to dataman */
-	int update_geofence_count(unsigned count);
+	int update_geofence_count(unsigned count, uint32_t crc32);
 
 	/** store the safepoint count to dataman */
-	int update_safepoint_count(unsigned count);
+	int update_safepoint_count(unsigned count, uint32_t crc32);
 
 	/** load geofence stats from dataman */
 	bool load_geofence_stats();
@@ -183,7 +186,7 @@ private:
 	/**
 	 *  @brief Sends an waypoint ack message
 	 */
-	void send_mission_ack(uint8_t sysid, uint8_t compid, uint8_t type);
+	void send_mission_ack(uint8_t sysid, uint8_t compid, uint8_t type, uint32_t opaque_id = 0U);
 
 	/**
 	 *  @brief Broadcasts the new target waypoint and directs the MAV to fly there
@@ -196,7 +199,8 @@ private:
 	 */
 	void send_mission_current(uint16_t seq);
 
-	void send_mission_count(uint8_t sysid, uint8_t compid, uint16_t count, MAV_MISSION_TYPE mission_type);
+	void send_mission_count(uint8_t sysid, uint8_t compid, uint16_t count, MAV_MISSION_TYPE mission_type,
+				uint32_t opaque_id);
 
 	void send_mission_item(uint8_t sysid, uint8_t compid, uint16_t seq);
 
@@ -267,4 +271,12 @@ private:
 	 */
 	void copy_params_from_mavlink_to_mission_item(struct mission_item_s *mission_item,
 			const mavlink_mission_item_t *mavlink_mission_item, int8_t start_idx = 1, int8_t end_idx = 7);
+
+	/**
+	 * Update crc calculation including new mission item
+	 * @param[in] mission_item new mission item
+	 * @param[in] prev_crc32 crc32 checksum of all previous mission item
+	 * @return updated crc32 checksum of mission items
+	 */
+	static uint32_t crc32_for_mission_item(const mavlink_mission_item_t &mission_item, uint32_t prev_crc32);
 };
