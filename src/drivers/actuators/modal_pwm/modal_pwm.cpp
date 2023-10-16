@@ -89,33 +89,20 @@ int ModalPWM::load_params(modal_pwm_params_t *params, ch_assign_t *map)
 	// initialize out
 	for (int i = 0; i < MODAL_PWM_OUTPUT_CHANNELS; i++) {
 		params->function_map[i] = (int)OutputFunction::Disabled;
-		params->direction_map[i] = 0;
 		params->motor_map[i] = 0;
 	}
 	
 	param_get(param_find("MODAL_PWM_CONFIG"),  &params->config);
-	param_get(param_find("MODAL_PWM_MODE"),    &params->mode);
 	param_get(param_find("MODAL_PWM_BAUD"),    &params->baud_rate);
 
-	param_get(param_find("MODAL_IO_FUNC1"),  &params->function_map[0]);
-	param_get(param_find("MODAL_IO_FUNC2"),  &params->function_map[1]);
-	param_get(param_find("MODAL_IO_FUNC3"),  &params->function_map[2]);
-	param_get(param_find("MODAL_IO_FUNC4"),  &params->function_map[3]);
-
-	param_get(param_find("MODAL_PWM_MIN"), &params->pwm_min);
-	param_get(param_find("MODAL_PWM_MAX"), &params->pwm_max);
-	param_get(param_find("MODAL_PWM_FS"),  &params->pwm_failsafe);
-
-	if (params->pwm_min >= params->pwm_max) {
-		PX4_ERR("Invalid parameter MODAL_PWM_MIN.  Please verify parameters.");
-		params->pwm_min = 0;
-		ret = PX4_ERROR;
-	}
-
-	if (params->pwm_failsafe >= params->pwm_max) {
-		PX4_ERR("Invalid parameter MODAL_PWM_FS.  Please verify parameters.");
-		params->pwm_failsafe = 0;
-		ret = PX4_ERROR;
+	param_get(param_find("MODAL_PWM_FUNC1"),  &params->function_map[0]);
+	param_get(param_find("MODAL_PWM_FUNC2"),  &params->function_map[1]);
+	param_get(param_find("MODAL_PWM_FUNC3"),  &params->function_map[2]);
+	param_get(param_find("MODAL_PWM_FUNC4"),  &params->function_map[3]);
+	
+	// Update rate depends on 
+	if( params->config == 1){
+		_current_update_rate = 400;
 	}
 
 	return ret;
@@ -124,29 +111,34 @@ int ModalPWM::load_params(modal_pwm_params_t *params, ch_assign_t *map)
 bool ModalPWM::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated)
 {
-	// PX4_INFO("Entering updateOuputs in ModalPWM!");
 	//in Run() we call _mixing_output.update(), which calls MixingOutput::limitAndUpdateOutputs which calls _interface.updateOutputs (this function)
 	//So, if Run() is blocked by a custom command, this function will not be called until Run is running again
 	int16_t _rate_req[MODAL_PWM_OUTPUT_CHANNELS] = {0, 0, 0, 0};
-	int16_t _led_req[MODAL_PWM_OUTPUT_CHANNELS] = {0, 0, 0, 0};
-	uint8_t _fb_idx = 0;
+	uint8_t _led_req[MODAL_PWM_OUTPUT_CHANNELS] = {0, 0, 0, 0};
+	int32_t _fb_idx = -1;
 
 	if (num_outputs != MODAL_PWM_OUTPUT_CHANNELS) {
 		PX4_ERR("Num outputs != MODAL_PWM_OUTPUT_CHANNELS!");
 		return false;
 	}
 
+
+
 	for (int i = 0; i < MODAL_PWM_OUTPUT_CHANNELS; i++) {
+		if (!_mixing_output.isFunctionSet(i)) {
+			// do not run any signal on disabled channels
+			outputs[i] = 0;
+		}
+
 		if (outputs[i]){
 			_pwm_on = true;
 		}
 		if (!_pwm_on || stop_motors) {
 			_rate_req[i] = 0;
-			_pwm_values[i] = _rate_req[i];
 		} else {
 			_rate_req[i] = outputs[i];
-			_pwm_values[i] = _rate_req[i];
 		}
+		_pwm_values[i] = _rate_req[i];
 	}
 
 	Command cmd;
@@ -163,17 +155,25 @@ bool ModalPWM::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 					       sizeof(cmd.buf));
 
 	// if (_pwm_on){
-		// PX4_INFO("\tPWM CH1: %hu", _rate_req[0]);
-		// PX4_INFO("\tPWM CH2: %hu", _rate_req[1]);
-		// PX4_INFO("\tPWM CH3: %hu", _rate_req[2]);
-		// PX4_INFO("\tPWM CH4: %hu", _rate_req[3]);
-		// PX4_INFO("");
+	// Debug messages for PWM 400Hz values sent to M0065  
+	// 	uint16_t tics_1 = (900 +  (1200*((double)outputs[0]/800))) * 24;
+	// 	PX4_INFO("\tPWM CH1: %hu::%uus::%u tics", outputs[0], tics_1/24, tics_1);
+	// 	uint16_t tics_2 = (900 +  (1200*((double)outputs[1]/800))) * 24;
+	// 	PX4_INFO("\tPWM CH2: %u::%uus::%u tics", outputs[1], tics_2/24, tics_2);
+	// 	uint16_t tics_3 = (900 +  (1200*((double)outputs[2]/800))) * 24;
+	// 	PX4_INFO("\tPWM CH3: %u::%uus::%u tics", outputs[2], tics_3/24, tics_3);
+	// 	uint16_t tics_4 = (900 +  (1200*((double)outputs[3]/800))) * 24;
+	// 	PX4_INFO("\tPWM CH4: %u::%uus::%u tics", outputs[3], tics_4/24, tics_4);
+	// 	PX4_INFO("");
 	// }
 
 	if (_uart_port->uart_write(cmd.buf, cmd.len) != cmd.len) {
 		PX4_ERR("Failed to send packet");
 		return false;
-	} 
+	} else {
+		_bytes_sent+=cmd.len;
+		_packets_sent++;
+	}
 
 	perf_count(_interval_perf);
 
@@ -194,6 +194,8 @@ int ModalPWM::read_response(Command *out_cmd)
 	int res = _uart_port->uart_read(_read_buf, sizeof(_read_buf));
 
 	if (res > 0) {
+		_bytes_received+=res;
+		_packets_received++;
 		//PX4_INFO("read %i bytes",res);
 		// if (parse_response(_read_buf, res, out_cmd->print_feedback) < 0) {
 			//PX4_ERR("Error parsing response");
@@ -221,14 +223,36 @@ void ModalPWM::Run()
 		return;
 	}
 
-	if (_first_update_cycle) PX4_INFO("Begin Modal_PWM on M0065 device");
+	if (_first_update_cycle){
+		PX4_INFO("Begin Modal_PWM for M0065 device");
+		_first_update_cycle = false;
+	}
 	perf_begin(_cycle_perf);
-	perf_count(_interval_perf);
 
 	/* Open serial port in this thread */
 	if (!_uart_port->is_open()) {
 		if (_uart_port->uart_open(_device, _parameters.baud_rate) == PX4_OK) {
-			PX4_INFO("Opened UART M0065 device");
+			PX4_INFO("Opened UART connection to M0065 device");
+			
+			// Send PWM config msg to M0065... not currently listened for in M0065 firmware since only PWM 400Hz right now
+			Command cmd;
+			uint8_t data[] = {static_cast<uint8_t>(_parameters.config)};
+			cmd.len = qc_esc_create_packet(ESC_PACKET_TYPE_CONFIG_BOARD_REQUEST,
+								data,
+								1,	// one byte
+								cmd.buf,
+								sizeof(cmd.buf));
+
+			// PX4_INFO("Current MODAL_PWM_CONFIG: %u", static_cast<uint8_t>(_parameters.config));
+			// PX4_INFO("MODAL_PWM_CONFIG Packet: %u %u %u %u %u %u", cmd.buf[0], cmd.buf[1], cmd.buf[2], cmd.buf[3], cmd.buf[4], cmd.buf[5]);
+		
+			if (_uart_port->uart_write(cmd.buf, cmd.len) != cmd.len) {
+				PX4_ERR("Failed to send packet");
+				return;
+			} else {
+				_bytes_sent+=cmd.len;
+				_packets_sent++;
+			}
 
 		} else {
 			PX4_ERR("Failed opening device");
@@ -273,6 +297,8 @@ void ModalPWM::Run()
 					// }
 
 				} else {
+					_bytes_sent+=_current_cmd.len;
+					_packets_sent++;
 					if (_current_cmd.retries == 0) {
 						_current_cmd.clear();
 						PX4_ERR("Failed to send command, errno: %i", errno);
@@ -303,7 +329,6 @@ void ModalPWM::Run()
 	_mixing_output.updateSubscriptions(true);
 
 	perf_end(_cycle_perf);
-	_first_update_cycle = false;
 }
 
 int ModalPWM::task_spawn(int argc, char *argv[])
@@ -344,6 +369,9 @@ bool ModalPWM::stop_all_pwms()
 	if (_uart_port->uart_write(cmd.buf, cmd.len) != cmd.len) {
 		PX4_ERR("Failed to send packet");
 		return false;
+	} else {
+		_bytes_sent+=cmd.len;
+		_packets_sent++;
 	}
 
 	return true;
@@ -488,7 +516,10 @@ int ModalPWM::custom_command(int argc, char *argv[])
 			if (get_instance()->_uart_port->uart_write(cmd.buf, cmd.len) != cmd.len) {
 				PX4_ERR("Failed to send packet");
 				return -1;
-			} 
+			} else {
+				get_instance()->_bytes_sent+=cmd.len;
+				get_instance()->_packets_sent++;
+			}
 		} else {
 			print_usage("Invalid Output Channel, use 0-3");
 			return 0;
@@ -500,35 +531,29 @@ int ModalPWM::custom_command(int argc, char *argv[])
 
 int ModalPWM::print_status()
 {
-	PX4_INFO("Max update rate: %i Hz", _current_update_rate);
+	PX4_INFO("PWM Rate: %i Hz", _current_update_rate);
 	PX4_INFO("Outputs on: %s", _pwm_on ? "yes" : "no");
 	PX4_INFO("UART port: %s", _device);
 	PX4_INFO("UART open: %s", _uart_port->is_open() ? "yes" : "no");
-
+	PX4_INFO("Packets sent: %" PRIu32, _packets_sent);
+	PX4_INFO("Bytes Sent: %" PRIu32, _bytes_sent);
+	PX4_INFO("Packets Received: %" PRIu32, _packets_received);
+	PX4_INFO("Bytes Received: %" PRIu32, _bytes_received);
 	PX4_INFO("");
-
 	PX4_INFO("Params: MODAL_PWM_CONFIG: %" PRId32, _parameters.config);
 	PX4_INFO("Params: MODAL_PWM_BAUD: %" PRId32, _parameters.baud_rate);
-
 	PX4_INFO("Params: MODAL_PWM_FUNC1: %" PRId32, _parameters.function_map[0]);
 	PX4_INFO("Params: MODAL_PWM_FUNC2: %" PRId32, _parameters.function_map[1]);
 	PX4_INFO("Params: MODAL_PWM_FUNC3: %" PRId32, _parameters.function_map[2]);
 	PX4_INFO("Params: MODAL_PWM_FUNC4: %" PRId32, _parameters.function_map[3]);
-
-	PX4_INFO("Params: MODAL_PWM_MIN: %" PRId32, _parameters.pwm_min);
-	PX4_INFO("Params: MODAL_PWM_MAX: %" PRId32, _parameters.pwm_max);
-	PX4_INFO("Params: MODAL_PWM_FS : %" PRId32, _parameters.pwm_failsafe);
-
-	PX4_INFO("PWM CH1: %" PRId16, _pwm_values[0]);
-	PX4_INFO("PWM CH2: %" PRId16, _pwm_values[1]);
-	PX4_INFO("PWM CH3: %" PRId16, _pwm_values[2]);
-	PX4_INFO("PWM CH4: %" PRId16, _pwm_values[3]);
-
-	PX4_INFO("");
-
-	_mixing_output.printStatus();
+	// PX4_INFO("PWM CH1: %" PRId16, _pwm_values[0]);
+	// PX4_INFO("PWM CH2: %" PRId16, _pwm_values[1]);
+	// PX4_INFO("PWM CH3: %" PRId16, _pwm_values[2]);
+	// PX4_INFO("PWM CH4: %" PRId16, _pwm_values[3]);
 	perf_print_counter(_cycle_perf);
 	perf_print_counter(_interval_perf);
+	PX4_INFO("");
+	_mixing_output.printStatus();
 
 	return 0;
 }

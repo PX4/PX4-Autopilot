@@ -115,7 +115,16 @@ fi
 param touch SYS_AUTOCONFIG
 
 # ESC driver
-qshell modal_io start
+# qshell modal_io start
+
+# Check params to decide which ESC driver to start
+if param greater MODAL_IO_CONFIG 0
+then
+	qshell modal_io start
+elif param greater MODAL_PWM_CONFIG 0
+then
+    qshell modal_pwm start
+fi
 
 # RC driver
 if [ "$RC" == "FAKE_RC_INPUT" ]; then

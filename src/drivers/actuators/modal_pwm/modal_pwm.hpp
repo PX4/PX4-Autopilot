@@ -106,7 +106,7 @@ private:
 	bool stop_all_pwms();
 	
 	/* Parameters */
-	static constexpr uint32_t MODAL_PWM_UART_CONFIG = 1;
+	static constexpr uint32_t MODAL_PWM_CONFIG = 0;	// Default to off
 	// const char * MODAL_PWM_DEFAULT_PORT = "7";
 	static constexpr uint32_t MODAL_PWM_DEFAULT_BAUD = 921600;
 	static constexpr uint16_t MODAL_PWM_OUTPUT_CHANNELS = 4;
@@ -121,25 +121,17 @@ private:
 	static constexpr uint16_t MODAL_PWM_DEFAULT_PWM_MAX = 800;
 	static constexpr uint16_t MODAL_PWM_DEFAULT_PWM_FAILSAFE = 0;
 
-	static constexpr float    MODAL_PWM_MODE_DISABLED_SETPOINT = -0.1f;
-	static constexpr float    MODAL_PWM_MODE_THRESHOLD = 0.0f;
-
-	static constexpr uint32_t MODAL_PWM_MODE = 0;
-
 	const char *_device = MODAL_PWM_DEFAULT_PORT;
 
 	typedef struct {
-		int32_t		config{MODAL_PWM_UART_CONFIG};
-		int32_t		mode{MODAL_PWM_MODE};
+		int32_t		config{MODAL_PWM_CONFIG};
 		int32_t		baud_rate{MODAL_PWM_DEFAULT_BAUD};
 		int32_t		pwm_min{MODAL_PWM_DEFAULT_PWM_MIN};
 		int32_t		pwm_max{MODAL_PWM_DEFAULT_PWM_FAILSAFE};
 		int32_t		pwm_failsafe{MODAL_PWM_DEFAULT_PWM_MAX};
 		int32_t		function_map[MODAL_PWM_OUTPUT_CHANNELS] {0, 0, 0, 0};
 		int32_t		motor_map[MODAL_PWM_OUTPUT_CHANNELS] {1, 2, 3, 4};
-		int32_t		direction_map[MODAL_PWM_OUTPUT_CHANNELS] {1, 1, 1, 1};
 		int32_t		verbose_logging{0};
-		int32_t 	publish_battery_status{0};
 	} modal_pwm_params_t;
 	modal_pwm_params_t	_parameters;
 
@@ -178,6 +170,10 @@ private:
 
 	static const uint8_t 	READ_BUF_SIZE = 128;
 	uint8_t			_read_buf[READ_BUF_SIZE];
+	uint32_t		_bytes_sent{0};
+	uint32_t		_bytes_received{0};
+	uint32_t		_packets_sent{0};
+	uint32_t		_packets_received{0};
 
 	int	load_params(modal_pwm_params_t *params, ch_assign_t *map);
 	void update_params();

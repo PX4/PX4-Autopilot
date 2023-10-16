@@ -40,11 +40,12 @@
  *
  * @group MODAL PWM
  * @value 0 - Disabled
- * @value 1 - M0065 PWM
+ * @value 1 - PWM 400Hz 
  * @min 0
  * @max 1
  */
-PARAM_DEFINE_INT32(MODAL_PWM_CONFIG, 1);
+PARAM_DEFINE_INT32(MODAL_PWM_CONFIG, 0);
+//  * @value 2 - oneshot125
 
 /**
  * UART M0065 baud rate
@@ -55,84 +56,3 @@ PARAM_DEFINE_INT32(MODAL_PWM_CONFIG, 1);
  * @unit bit/s
  */
 PARAM_DEFINE_INT32(MODAL_PWM_BAUD, 921600);
-
-/**
- * Motor mappings for ModalAI PWM
- *
- *  HW Channel Idexes (PX4 Indexes) (note: silkscreen shows 0 indexed)
- *         4(1)     3(4)
- * [front]
- *         1(3)     2(2)
- */
-
-// The following are auto generated params from control allocator pattern, put here for reference
-
-// Default ESC1 to motor2
-//PARAM_DEFINE_INT32(MODAL_IO_FUNC1, 102);
-
-//PARAM_DEFINE_INT32(MODAL_IO_FUNC2, 103);
-
-//PARAM_DEFINE_INT32(MODAL_IO_FUNC3, 101);
-
-//PARAM_DEFINE_INT32(MODAL_IO_FUNC4, 104);
-
-/**
- * M0065 PWM Min
- *
- * Minimum value for PWM
- *
- * @group MODAL PWM
- * @unit us
- */
-PARAM_DEFINE_INT32(MODAL_PWM_MIN, 0);
-
-/**
- * M0065 PWM Max
- *
- * Maximum value for PWM
- *
- * @group MODAL PWM
- * @unit us
- */
-PARAM_DEFINE_INT32(MODAL_PWM_MAX, 800);
-
-
-/**
- * M0065 PWM Failsafe
- *
- * Failsafe value for PWM
- *
- * @group MODAL PWM
- * @unit us
- */
-PARAM_DEFINE_INT32(MODAL_PWM_FS, 0);
-
-/**
- * UART M0065 Mode
- *
- * Selects what type of mode is enabled, if any
- *
- * @reboot_required true
- *
- * @group MODAL PWM
- * @value 0 - None
- * @value 1 - Turtle Mode enabled via AUX1
- * @value 2 - Turtle Mode enabled via AUX2
- * @value 3 - UART Passthrough Mode
- * @min 0
- * @max 2
- */
-PARAM_DEFINE_INT32(MODAL_PWM_MODE, 0);
-
-/**
- * UART ESC verbose logging
- *
- * @reboot_required true
- *
- * @group MODAL PWM
- * @value 0 - Disabled
- * @value 1 - Enabled
- * @min 0
- * @max 1
- */
-// PARAM_DEFINE_INT32(MODAL_IO_VLOG, 0);
