@@ -229,7 +229,9 @@ EKF2::~EKF2()
 	perf_free(_ecl_ekf_update_perf);
 	perf_free(_ecl_ekf_update_full_perf);
 	perf_free(_msg_missed_imu_perf);
+#if defined(CONFIG_EKF2_BAROMETER)
 	perf_free(_msg_missed_air_data_perf);
+#endif // CONFIG_EKF2_BAROMETER
 #if defined(CONFIG_EKF2_AIRSPEED)
 	perf_free(_msg_missed_airspeed_perf);
 #endif // CONFIG_EKF2_AIRSPEED
@@ -398,7 +400,9 @@ int EKF2::print_status()
 	perf_print_counter(_ecl_ekf_update_perf);
 	perf_print_counter(_ecl_ekf_update_full_perf);
 	perf_print_counter(_msg_missed_imu_perf);
+#if defined(CONFIG_EKF2_BAROMETER)
 	perf_print_counter(_msg_missed_air_data_perf);
+#endif // CONFIG_EKF2_BAROMETER
 #if defined(CONFIG_EKF2_AIRSPEED)
 	perf_print_counter(_msg_missed_airspeed_perf);
 #endif // CONFIG_EKF2_AIRSPEED
