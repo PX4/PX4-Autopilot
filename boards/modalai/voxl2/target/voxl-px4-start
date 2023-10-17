@@ -137,7 +137,7 @@ elif [ "$RC" == "CRSF_MAV" ]; then
     /bin/echo "Starting TBS crossfire RC - MAV Mode"
     qshell mavlink_rc_in start -m -p 7 -b 115200
 elif [ "$RC" == "M0065_SBUS" ]; then
-    /bin/echo "dsp_sbus driver depracated... starting modal_pwm"
+    /bin/echo "using modal_pwm"
     # /bin/echo "Starting DSP M0065 SBUS RC driver"
     # qshell dsp_sbus start
 elif [ "$RC" == "SPEKTRUM" ]; then

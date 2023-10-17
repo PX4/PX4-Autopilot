@@ -45,7 +45,6 @@
 #include <lib/mathlib/mathlib.h>
 #include <lib/mixer_module/mixer_module.hpp>
 #include <lib/perf/perf_counter.h>
-// #include <px4_arch/io_timer.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/log.h>
@@ -53,8 +52,6 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/actuator_test.h>
-#include <uORB/topics/modal_io_data.h>
 #include <uORB/topics/input_rc.h>
 
 #include "modal_io_serial.hpp"
@@ -130,7 +127,7 @@ private:
 	static constexpr uint16_t MODAL_PWM_DEFAULT_PWM_FAILSAFE = 0;
 
 	/* SBUS */
-	static constexpr uint16_t SBUS_RAW_BUFFER_SIZE = 30;
+	static constexpr uint16_t QC_SBUS_FRAME_SIZE = 30;
 
 	const char *_device = MODAL_PWM_DEFAULT_PORT;
 
@@ -156,13 +153,13 @@ private:
 	/* RC input */
 	input_rc_s	_rc_in;
 	uint64_t _rc_last_valid;		// last valid timestamp
-	uint16_t _raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS] {};
+	uint16_t _raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS] {UINT16_MAX};
+	unsigned _sbus_frame_drops{0};
+	uint16_t _sbus_total_frames{0};
 
 	uORB::PublicationMulti<input_rc_s> _rc_pub{ORB_ID(input_rc)};
 	uORB::Subscription 	_parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription 	_actuator_test_sub{ORB_ID(actuator_test)};
-
-	// unsigned	_num_outputs{DIRECT_PWM_OUTPUT_CHANNELS};
 
 	bool		_pwm_on{false};
 	int32_t		_pwm_fullscale{0};
