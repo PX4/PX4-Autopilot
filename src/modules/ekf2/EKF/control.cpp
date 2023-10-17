@@ -128,7 +128,10 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 #endif // CONFIG_EKF2_DRAG_FUSION
 
 	controlHeightFusion(imu_delayed);
+
+#if defined(CONFIG_EKF2_GRAVITY_FUSION)
 	controlGravityFusion(imu_delayed);
+#endif // CONFIG_EKF2_GRAVITY_FUSION
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	// Additional data odometry data from an external estimator can be fused.
