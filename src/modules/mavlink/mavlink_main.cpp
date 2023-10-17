@@ -81,6 +81,7 @@
 #define MAIN_LOOP_DELAY                10000           ///< 100 Hz @ 1000 bytes/s data rate
 
 static pthread_mutex_t mavlink_module_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t mavlink_event_buffer_mutex = PTHREAD_MUTEX_INITIALIZER;
 events::EventBuffer *Mavlink::_event_buffer = nullptr;
 
 Mavlink *mavlink_module_instances[MAVLINK_COMM_NUM_BUFFERS] {};
@@ -375,15 +376,21 @@ Mavlink::destroy_all_instances()
 		}
 	}
 
-	LockGuard lg{mavlink_module_mutex};
+	{
+		LockGuard lg{mavlink_module_mutex};
 
-	// we know all threads have exited, so it's safe to delete objects.
-	for (Mavlink *inst_to_del : mavlink_module_instances) {
-		delete inst_to_del;
+		// we know all threads have exited, so it's safe to delete objects.
+		for (Mavlink *inst_to_del : mavlink_module_instances) {
+			delete inst_to_del;
+		}
 	}
 
-	delete _event_buffer;
-	_event_buffer = nullptr;
+	{
+		LockGuard lg{mavlink_event_buffer_mutex};
+
+		delete _event_buffer;
+		_event_buffer = nullptr;
+	}
 
 	PX4_INFO("all instances stopped");
 	return OK;
@@ -2543,7 +2550,7 @@ Mavlink::task_main(int argc, char *argv[])
 		/* handle new events */
 		if (check_events()) {
 			if (_event_sub.updated()) {
-				LockGuard lg{mavlink_module_mutex};
+				LockGuard lg{mavlink_event_buffer_mutex};
 
 				event_s orb_event;
 
