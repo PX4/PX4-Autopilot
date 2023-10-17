@@ -215,8 +215,14 @@ void VehicleOpticalFlow::Run()
 			const float interval_us = 1e6f / _param_sens_flow_rate.get();
 
 			// don't allow publishing faster than SENS_FLOW_RATE
-			if (sensor_optical_flow.timestamp_sample < _last_publication_timestamp + interval_us) {
-				publish = false;
+			if (_integration_timespan_us < interval_us) {
+
+				// handle special case of SITL and PX4Flow where integration_timespan_us
+				// is 0 when the quality is 0
+				if (sensor_optical_flow.integration_timespan_us != 0) {
+
+					publish = false;
+				}
 			}
 		}
 
@@ -278,7 +284,6 @@ void VehicleOpticalFlow::Run()
 
 			vehicle_optical_flow.timestamp = hrt_absolute_time();
 			_vehicle_optical_flow_pub.publish(vehicle_optical_flow);
-			_last_publication_timestamp = vehicle_optical_flow.timestamp_sample;
 
 			// vehicle_optical_flow_vel if distance is available (for logging)
 			if (_distance_sum_count > 0 && PX4_ISFINITE(_distance_sum)) {
