@@ -324,13 +324,13 @@ int ModalPWM::receive_sbus()
 				break;
 			} else {
 				PX4_ERR("Failed to decode SBUS packet");
-				PX4_ERR("[%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x]",
-					_read_buf[0], _read_buf[1], _read_buf[2], _read_buf[3], _read_buf[4], _read_buf[5], 
-					_read_buf[6], _read_buf[7], _read_buf[8], _read_buf[9], _read_buf[10], _read_buf[11], 
-					_read_buf[12], _read_buf[13], _read_buf[14], _read_buf[15], _read_buf[16], _read_buf[17], 
-					_read_buf[18], _read_buf[19], _read_buf[20], _read_buf[21], _read_buf[22], _read_buf[23], 
-					_read_buf[24], _read_buf[25], _read_buf[26], _read_buf[27], _read_buf[28], _read_buf[29]
-					);
+				// PX4_ERR("[%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x]",
+				// 	_read_buf[0], _read_buf[1], _read_buf[2], _read_buf[3], _read_buf[4], _read_buf[5], 
+				// 	_read_buf[6], _read_buf[7], _read_buf[8], _read_buf[9], _read_buf[10], _read_buf[11], 
+				// 	_read_buf[12], _read_buf[13], _read_buf[14], _read_buf[15], _read_buf[16], _read_buf[17], 
+				// 	_read_buf[18], _read_buf[19], _read_buf[20], _read_buf[21], _read_buf[22], _read_buf[23], 
+				// 	_read_buf[24], _read_buf[25], _read_buf[26], _read_buf[27], _read_buf[28], _read_buf[29]
+				// 	);
 				read_retries--;
 			}
 
