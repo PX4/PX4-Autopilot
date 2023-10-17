@@ -44,8 +44,10 @@
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <px4_platform_common/i2c_spi_buses.h>
+#include "ina238_registers.hpp"
 
 using namespace time_literals;
+using namespace ina238;
 
 /* Configuration Constants */
 #define INA238_BASEADDR 	            0x45 /* 7-bit address. 8-bit address is 0x45 */
@@ -54,7 +56,7 @@ using namespace time_literals;
 #define INA238_INIT_RETRY_INTERVAL_US       500000
 
 /* INA238 Registers addresses */
-#define INA238_REG_CONFIG                   (0x00)
+//#define INA238_REG_CONFIG                   (0x00)
 #define INA238_REG_ADCCONFIG                (0x01)
 #define INA238_REG_SHUNTCAL                 (0x02)
 #define INA238_REG_SHUNTTEMPCO              (0x03)
@@ -321,7 +323,17 @@ protected:
 	int probe() override;
 
 private:
-	bool _sensor_ok{false};
+	// Sensor Configuration
+	struct register_config_t {
+		Register reg;
+		uint16_t set_bits{0};
+		uint16_t clear_bits{0};
+	};
+	bool RegisterCheck(const register_config_t &reg_cfg);
+	int RegisterWrite(Register reg, uint16_t value);
+	int RegisterRead(Register reg, uint16_t &value);
+	int Reset();
+
 	unsigned int _measure_interval{0};
 	bool _collect_phase{false};
 	bool _initialized{false};
@@ -329,12 +341,25 @@ private:
 	perf_counter_t _sample_perf;
 	perf_counter_t _comms_errors;
 	perf_counter_t _collection_errors;
+	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad register")};
 
 	// Configuration state, computed from params
 	float _max_current;
 	float _rshunt;
 	float _current_lsb;
 	int16_t _range;
+	uint16_t _shunt_calibration{0};
+
+
+	hrt_abstime _last_config_check_timestamp{0};
+	uint8_t _checked_register{0};
+	static constexpr uint8_t size_register_cfg{3};
+	register_config_t _register_cfg[size_register_cfg] {
+		// Register | Set bits, Clear bits
+		{ Register::CONFIG, 0, 0}, // will be set dynamically
+		{ Register::ADCCONFIG, MODE_TEMP_BUS_CONT |  VBUSCT_540US |  VSHCT_540US | VTCT_540US | AVERAGES_64},
+		{ Register::SHUNT_CAL, 0, 0}	// will be set dynamically
+	};
 
 	Battery _battery;
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
