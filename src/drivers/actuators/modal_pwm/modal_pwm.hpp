@@ -40,6 +40,8 @@
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_pwm_output.h>
+#include <drivers/drv_hrt.h>
+#include <lib/rc/sbus.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/mixer_module/mixer_module.hpp>
 #include <lib/perf/perf_counter.h>
@@ -49,9 +51,11 @@
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module.h>
 #include <uORB/Subscription.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/actuator_test.h>
 #include <uORB/topics/modal_io_data.h>
+#include <uORB/topics/input_rc.h>
 
 #include "modal_io_serial.hpp"
 
@@ -100,14 +104,18 @@ public:
 	};
 
 	int send_cmd_thread_safe(Command *cmd);
+	int receive_sbus();
 
+	void fill_rc_in(uint16_t raw_rc_count_local,
+		    uint16_t raw_rc_values_local[input_rc_s::RC_INPUT_MAX_CHANNELS],
+		    hrt_abstime now, bool frame_drop, bool failsafe,
+		    unsigned frame_drops, int rssi);
 private:
 	void Run() override;
 	bool stop_all_pwms();
 	
-	/* Parameters */
+	/* PWM Parameters */
 	static constexpr uint32_t MODAL_PWM_CONFIG = 0;	// Default to off
-	// const char * MODAL_PWM_DEFAULT_PORT = "7";
 	static constexpr uint32_t MODAL_PWM_DEFAULT_BAUD = 921600;
 	static constexpr uint16_t MODAL_PWM_OUTPUT_CHANNELS = 4;
 	static constexpr uint16_t MODAL_PWM_OUTPUT_DISABLED = 0;
@@ -120,6 +128,9 @@ private:
 	static constexpr uint16_t MODAL_PWM_DEFAULT_PWM_MIN = 0;
 	static constexpr uint16_t MODAL_PWM_DEFAULT_PWM_MAX = 800;
 	static constexpr uint16_t MODAL_PWM_DEFAULT_PWM_FAILSAFE = 0;
+
+	/* SBUS */
+	static constexpr uint16_t SBUS_RAW_BUFFER_SIZE = 30;
 
 	const char *_device = MODAL_PWM_DEFAULT_PORT;
 
@@ -138,12 +149,16 @@ private:
 	/* QUP7, VOXL2 J19, /dev/slpi-uart-7*/
 	ModalIoSerial 		*_uart_port;
 	
+	/* Mixer output */
 	MixingOutput 	_mixing_output;
 	unsigned		_current_update_rate{0};
 
-	// int _timer_rates[MAX_IO_TIMERS] {};
+	/* RC input */
+	input_rc_s	_rc_in;
+	uint64_t _rc_last_valid;		// last valid timestamp
+	uint16_t _raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS] {};
 
-	// uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	uORB::PublicationMulti<input_rc_s> _rc_pub{ORB_ID(input_rc)};
 	uORB::Subscription 	_parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription 	_actuator_test_sub{ORB_ID(actuator_test)};
 
@@ -174,6 +189,14 @@ private:
 	uint32_t		_bytes_received{0};
 	uint32_t		_packets_sent{0};
 	uint32_t		_packets_received{0};
+
+
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::RC_RSSI_PWM_CHAN>) _param_rc_rssi_pwm_chan,
+		(ParamInt<px4::params::RC_RSSI_PWM_MIN>) _param_rc_rssi_pwm_min,
+		(ParamInt<px4::params::RC_RSSI_PWM_MAX>) _param_rc_rssi_pwm_max,
+		(ParamInt<px4::params::RC_INPUT_PROTO>) _param_rc_input_proto
+	)
 
 	int	load_params(modal_pwm_params_t *params, ch_assign_t *map);
 	void update_params();

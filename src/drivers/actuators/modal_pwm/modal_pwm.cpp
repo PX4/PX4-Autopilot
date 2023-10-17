@@ -212,6 +212,188 @@ int ModalPWM::read_response(Command *out_cmd)
 	return 0;
 }
 
+void ModalPWM::fill_rc_in(uint16_t raw_rc_count_local,
+		    uint16_t raw_rc_values_local[input_rc_s::RC_INPUT_MAX_CHANNELS],
+		    hrt_abstime now, bool frame_drop, bool failsafe,
+		    unsigned frame_drops, int rssi = -1)
+{
+	// fill rc_in struct for publishing
+	_rc_in.channel_count = raw_rc_count_local;
+
+	if (_rc_in.channel_count > input_rc_s::RC_INPUT_MAX_CHANNELS) {
+		_rc_in.channel_count = input_rc_s::RC_INPUT_MAX_CHANNELS;
+	}
+
+	unsigned valid_chans = 0;
+
+	for (unsigned i = 0; i < _rc_in.channel_count; i++) {
+		_rc_in.values[i] = raw_rc_values_local[i];
+
+		if (raw_rc_values_local[i] != UINT16_MAX) {
+			valid_chans++;
+		}
+
+		// once filled, reset values back to default
+		_raw_rc_values[i] = UINT16_MAX;
+	}
+
+	_rc_in.timestamp = now;
+	_rc_in.timestamp_last_signal = _rc_in.timestamp;
+	_rc_in.rc_ppm_frame_length = 0;
+
+	/* fake rssi if no value was provided */
+	if (rssi == -1) {
+		if ((_param_rc_rssi_pwm_chan.get() > 0) && (_param_rc_rssi_pwm_chan.get() < _rc_in.channel_count)) {
+			const int32_t rssi_pwm_chan = _param_rc_rssi_pwm_chan.get();
+			const int32_t rssi_pwm_min = _param_rc_rssi_pwm_min.get();
+			const int32_t rssi_pwm_max = _param_rc_rssi_pwm_max.get();
+
+			// get RSSI from input channel
+			int rc_rssi = ((_rc_in.values[rssi_pwm_chan - 1] - rssi_pwm_min) * 100) / (rssi_pwm_max - rssi_pwm_min);
+			_rc_in.rssi = math::constrain(rc_rssi, 0, 100);
+
+		} else {
+			_rc_in.rssi = 255;
+		}
+
+	} else {
+		_rc_in.rssi = rssi;
+	}
+
+	if (valid_chans == 0) {
+		_rc_in.rssi = 0;
+	}
+
+	_rc_in.rc_failsafe = failsafe;
+	_rc_in.rc_lost = (valid_chans == 0);
+	_rc_in.rc_lost_frame_count = frame_drops;
+	_rc_in.rc_total_frame_count = 0;
+}
+
+int ModalPWM::receive_sbus()
+{
+	// PX4_INFO("Checking for SBUS data...");
+	int res = 0;
+	int read_retries = 1;
+	int read_succeeded = 0;
+
+    // The UART read on SLPI is via an asynchronous service so specify a timeout
+    // for the return. The driver will poll periodically until the read comes in
+    // so this may block for a while. However, it will timeout if no read comes in.
+	while (read_retries) {
+    	res = _uart_port->uart_read(_read_buf, sizeof(_read_buf));
+		if (res) {
+			if (res != SBUS_RAW_BUFFER_SIZE){
+				// PX4_ERR("Received wrong # of bytes: %d", res);
+				break;
+			}
+
+			if (res < 30){
+				read_retries--;
+				break;
+				// continue;
+			}
+
+			// PX4_INFO("Read %d bytes", res);
+			// PX4_INFO("[%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u ] ",
+					// _read_buf[0], _read_buf[1], _read_buf[2], _read_buf[3], _read_buf[4], _read_buf[5], _read_buf[6], _read_buf[7],
+					// _read_buf[8], _read_buf[9], _read_buf[10], _read_buf[11], _read_buf[12], _read_buf[13], _read_buf[14], _read_buf[15],
+					// _read_buf[16], _read_buf[17], _read_buf[18], _read_buf[19], _read_buf[20], _read_buf[21], _read_buf[22], _read_buf[23], 
+					// _read_buf[24], _read_buf[25], _read_buf[26], _read_buf[27], _read_buf[28], _read_buf[29]
+					// );
+
+			// Init the parser
+			uint16_t rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS];
+			uint16_t num_values;
+			unsigned sbus_frame_drops = 0;
+			unsigned sbus_frame_resets = 0;
+			bool sbus_failsafe;
+			bool sbus_frame_drop;
+			uint16_t max_channels = sizeof(rc_values) / sizeof(rc_values[0]);
+
+			// int rate_limiter = 0;
+			unsigned last_drop = 0;
+
+			hrt_abstime now = hrt_absolute_time();
+
+			// if (rate_limiter % byte_offset == 0) {
+			bool rc_updated = sbus_parse(now, &_read_buf[0], res, rc_values, &num_values,
+						&sbus_failsafe, &sbus_frame_drop, &sbus_frame_drops, max_channels);
+	
+			if (rc_updated) {
+				// PX4_INFO("decoded packet");
+				// PX4_INFO("[%u %u %u %u %u %u %u %u %u %u %u %u %u %u %u %u %u %u ] ",
+					// rc_values[0], rc_values[1], rc_values[2], rc_values[3], rc_values[4], rc_values[5], rc_values[6], rc_values[7],
+					// rc_values[8], rc_values[9], rc_values[10], rc_values[11], rc_values[12], rc_values[13], rc_values[14], rc_values[15],
+					// rc_values[16], rc_values[17]
+					// );
+				// bool sbus_failsafe = false;
+				// bool sbus_frame_drop = false;
+
+				// rc_updated = sbus_parse(cycle_timestamp, &_rcs_buf[0], newBytes, &_raw_rc_values[0], &_raw_rc_count, &sbus_failsafe,
+							// &sbus_frame_drop, &frame_drops, input_rc_s::RC_INPUT_MAX_CHANNELS);
+
+				// if (rc_updated) {
+					// we have a new SBUS frame. Publish it.
+					// _rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_SBUS;
+					// fill_rc_in(_raw_rc_count, _raw_rc_values, cycle_timestamp,
+					// 		sbus_frame_drop, sbus_failsafe, frame_drops);
+					// _rc_scan_locked = true;
+				// }
+				_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4IO_SBUS;
+				fill_rc_in(num_values, rc_values, now, sbus_frame_drop, sbus_failsafe, sbus_frame_drops);
+				// _rc_in.rc_lost = false;
+				// _rc_in.timestamp = hrt_absolute_time();
+				// _rc_in.channel_count = input_rc_s::RC_INPUT_MAX_CHANNELS;
+				// _rc_in.rc_ppm_frame_length = 0;
+				// _rc_in.rc_failsafe = false;
+				// _rc_in.rc_lost_frame_count = 0;
+				// _rc_in.rc_total_frame_count = 0;
+				if (!_rc_in.rc_lost && !_rc_in.rc_failsafe) {
+					_rc_last_valid = _rc_in.timestamp;
+					// _rc_in.rssi = 50;
+					_rc_in.link_quality = 100;
+	
+					/* last thing set are the actual channel values as 16 bit values */
+					// for (unsigned i = 0; i < _rc_in.channel_count; i++) {
+						// _rc_in.values[i] = rc_values[i];
+						// PX4_INFO("RC channel %u: %.4u", i, _rc_in.values[i]);
+					// }
+					
+					/* zero the remaining fields */
+					// for (unsigned i = _rc_in.channel_count; i < (sizeof(_rc_in.values) / sizeof(_rc_in.values[0])); i++) {
+						// _rc_in.values[i] = 0;
+					// }
+				}
+				_rc_pub.publish(_rc_in);
+
+				_bytes_received+=res;
+				_packets_received++;
+				read_succeeded = 1;
+				break;
+			} else {
+				PX4_ERR("Failed to decode SBUS packet");
+				read_retries--;
+				break;
+			}
+
+			if (last_drop != (sbus_frame_drops + sbus_frame_resets)) {
+				PX4_WARN("frame dropped, now #%d", (sbus_frame_drops + sbus_frame_resets));
+				last_drop = sbus_frame_drops + sbus_frame_resets;
+			}
+		}
+		// PX4_ERR("Read attempt %d failed", read_retries);
+		read_retries--;
+	}
+
+	// PX4_INFO("***** Finished parsing *****");
+	if ( ! read_succeeded) {
+		return -EIO;
+	}
+
+	return 0;
+}
+
 
 void ModalPWM::Run()
 {
@@ -259,6 +441,9 @@ void ModalPWM::Run()
 			return;
 		}
 	}
+
+	// Receive SBUS
+	receive_sbus();
 
 	_mixing_output.update(); //calls MixingOutput::limitAndUpdateOutputs which calls updateOutputs in this module
 
@@ -554,7 +739,6 @@ int ModalPWM::print_status()
 	perf_print_counter(_interval_perf);
 	PX4_INFO("");
 	_mixing_output.printStatus();
-
 	return 0;
 }
 

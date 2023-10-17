@@ -63,12 +63,15 @@
  *  Default port for the ESC
  */
 #define MODAL_IO_DEFAULT_PORT 	"2"
+
+/*
+ * Default port for M0065
+*/
 #define MODAL_PWM_DEFAULT_PORT 	"7"
 
 
 /*
- * PWM 
+ * M0065 PWM 
  */
 #define DIRECT_PWM_OUTPUT_CHANNELS 4
-// #define MODAL_PWM_OUTPUT_CHANNELS DIRECT_PWM_OUTPUT_CHANNELS
 #define MAX_IO_TIMERS 3
