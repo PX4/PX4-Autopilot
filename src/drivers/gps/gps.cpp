@@ -1167,8 +1167,9 @@ GPS::print_status()
 
 		PX4_INFO("rate publication:\t\t%6.2f Hz", (double)_rate);
 		PX4_INFO("rate RTCM injection:\t%6.2f Hz", (double)_rate_rtcm_injection);
-
+#ifndef CONSTRAINED_FLASH
 		print_message(ORB_ID(sensor_gps), _report_gps_pos);
+#endif // !CONSTRAINED_FLASH
 	}
 
 	if (_instance == Instance::Main && _secondary_instance.load()) {
