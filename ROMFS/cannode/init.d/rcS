@@ -117,4 +117,6 @@ param set-default SENS_MAG_RATE 100
 
 sensors start
 
+ekf2 start
+
 unset R
