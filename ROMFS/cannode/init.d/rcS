@@ -67,6 +67,9 @@ then
 fi
 unset BOARD_RC_DEFAULTS
 
+# start uavcannode as early as possible to pet the watchdog
+uavcannode start
+
 #
 # Start system state indicator.
 #
@@ -114,5 +117,4 @@ param set-default SENS_MAG_RATE 100
 
 sensors start
 
-uavcannode start
 unset R
