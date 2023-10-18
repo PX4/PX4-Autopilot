@@ -515,7 +515,7 @@ private:
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_GRAVITY_FUSION)
-	hrt_abstime _status_gravity_pub_last{0};
+	hrt_abstime _status_gravity_pub_last {0};
 	uORB::PublicationMulti<estimator_aid_source3d_s> _estimator_aid_src_gravity_pub{ORB_ID(estimator_aid_src_gravity)};
 #endif // CONFIG_EKF2_GRAVITY_FUSION
 
