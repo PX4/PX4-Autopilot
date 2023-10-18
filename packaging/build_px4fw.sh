@@ -20,8 +20,11 @@ else
         # use the PX4 default signing script and keys
         if [[ $NAME = saluki* ]]
         then
-            export SIGNING_TOOL=boards/ssrc/saluki-v1/tools/ed25519_sign.py
-            export SIGNING_ARGS=boards/ssrc/$NAME/tools/ed25519_test_key.pem
+            export SIGNING_TOOL=Tools/saluki-sec-scripts/ed25519_sign.py
+
+            if [ -z "$SIGNING_ARGS" ]; then
+                export SIGNING_ARGS=Tools/saluki-sec-scripts/test_keys/$NAME/ed25519_test_key.pem
+            fi
         else
             export SIGNING_TOOL=Tools/cryptotools.py
             unset SIGNING_ARGS
@@ -31,5 +34,9 @@ else
         rm -Rf build/${arg}
         # Build
         make ${arg}
+
+        if [ -n "$SIGNING_ARGS" ]; then
+            echo "Signing key: $SIGNING_ARGS"
+        fi
     done
 fi
