@@ -62,6 +62,7 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 		_control_status.flags.wind = false;
 	}
 
+#if defined(CONFIG_EKF2_GNSS)
 	// clear yaw estimator airspeed (updated later with true airspeed if airspeed fusion is active)
 	if (_control_status.flags.fixed_wing) {
 		if (_control_status.flags.in_air && !_control_status.flags.vehicle_at_rest) {
@@ -73,6 +74,7 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 			_yawEstimator.setTrueAirspeed(0.f);
 		}
 	}
+#endif // CONFIG_EKF2_GNSS
 
 	if (_params.arsp_thr <= 0.f) {
 		stopAirspeedFusion();
@@ -99,7 +101,9 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 					fuseAirspeed(airspeed_sample, _aid_src_airspeed);
 				}
 
+#if defined(CONFIG_EKF2_GNSS)
 				_yawEstimator.setTrueAirspeed(airspeed_sample.true_airspeed);
+#endif // CONFIG_EKF2_GNSS
 
 				const bool is_fusion_failing = isTimedOut(_aid_src_airspeed.time_last_fuse, (uint64_t)10e6);
 
@@ -219,8 +223,11 @@ void Ekf::stopAirspeedFusion()
 	if (_control_status.flags.fuse_aspd) {
 		ECL_INFO("stopping airspeed fusion");
 		resetEstimatorAidStatus(_aid_src_airspeed);
-		_yawEstimator.setTrueAirspeed(NAN);
 		_control_status.flags.fuse_aspd = false;
+
+#if defined(CONFIG_EKF2_GNSS)
+		_yawEstimator.setTrueAirspeed(NAN);
+#endif // CONFIG_EKF2_GNSS
 	}
 }
 

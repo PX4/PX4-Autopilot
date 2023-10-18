@@ -454,8 +454,10 @@ struct parameters {
 	Vector3f ev_pos_body{};                 ///< xyz position of VI-sensor focal point in body frame (m)
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
+#if defined(CONFIG_EKF2_GRAVITY_FUSION)
 	// gravity fusion
 	float gravity_noise{1.0f};              ///< accelerometer measurement gaussian noise (m/s**2)
+#endif // CONFIG_EKF2_GRAVITY_FUSION
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	int32_t flow_ctrl{0};

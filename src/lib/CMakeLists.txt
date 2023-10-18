@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2017-2023 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -62,6 +62,7 @@ add_subdirectory(pid EXCLUDE_FROM_ALL)
 add_subdirectory(pid_design EXCLUDE_FROM_ALL)
 add_subdirectory(rate_control EXCLUDE_FROM_ALL)
 add_subdirectory(rc EXCLUDE_FROM_ALL)
+add_subdirectory(ringbuffer EXCLUDE_FROM_ALL)
 add_subdirectory(sensor_calibration EXCLUDE_FROM_ALL)
 add_subdirectory(slew_rate EXCLUDE_FROM_ALL)
 add_subdirectory(systemlib EXCLUDE_FROM_ALL)
@@ -71,6 +72,7 @@ add_subdirectory(terrain_estimation EXCLUDE_FROM_ALL)
 add_subdirectory(timesync EXCLUDE_FROM_ALL)
 add_subdirectory(tinybson EXCLUDE_FROM_ALL)
 add_subdirectory(tunes EXCLUDE_FROM_ALL)
+add_subdirectory(variable_length_ringbuffer EXCLUDE_FROM_ALL)
 add_subdirectory(version EXCLUDE_FROM_ALL)
 add_subdirectory(weather_vane EXCLUDE_FROM_ALL)
 add_subdirectory(wind_estimator EXCLUDE_FROM_ALL)

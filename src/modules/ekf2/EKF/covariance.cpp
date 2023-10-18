@@ -65,7 +65,12 @@ void Ekf::initialiseCovariance()
 	P.uncorrelateCovarianceSetVariance<State::vel.dof>(State::vel.idx, Vector3f(vel_var, vel_var, sq(1.5f) * vel_var));
 
 	// position
+#if defined(CONFIG_EKF2_BAROMETER)
 	float z_pos_var = sq(fmaxf(_params.baro_noise, 0.01f));
+#else
+	float z_pos_var = sq(1.f);
+#endif // CONFIG_EKF2_BAROMETER
+
 #if defined(CONFIG_EKF2_GNSS)
 	const float xy_pos_var = sq(fmaxf(_params.gps_pos_noise, 0.01f));
 
@@ -84,23 +89,16 @@ void Ekf::initialiseCovariance()
 
 	P.uncorrelateCovarianceSetVariance<State::pos.dof>(State::pos.idx, Vector3f(xy_pos_var, xy_pos_var, z_pos_var));
 
-	// gyro bias
-	const float gyro_bias_var = sq(_params.switch_on_gyro_bias);
-	P.uncorrelateCovarianceSetVariance<State::gyro_bias.dof>(State::gyro_bias.idx, gyro_bias_var);
-	_prev_gyro_bias_var.setAll(gyro_bias_var);
+	resetGyroBiasCov();
 
-	// accel bias
-	const float accel_bias_var = sq(_params.switch_on_accel_bias);
-	P.uncorrelateCovarianceSetVariance<State::accel_bias.dof>(State::accel_bias.idx, accel_bias_var);
-	_prev_accel_bias_var.setAll(accel_bias_var);
+	resetAccelBiasCov();
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	resetMagCov();
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_WIND)
-	// wind
-	P.uncorrelateCovarianceSetVariance<State::wind_vel.dof>(State::wind_vel.idx, sq(_params.initial_wind_uncertainty));
+	resetWindCov();
 #endif // CONFIG_EKF2_WIND
 }
 
@@ -109,91 +107,12 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 	// Use average update interval to reduce accumulated covariance prediction errors due to small single frame dt values
 	const float dt = _dt_ekf_avg;
 
-	// inhibit learning of imu accel bias if the manoeuvre levels are too high to protect against the effect of sensor nonlinearities or bad accel data is detected
-	// xy accel bias learning is also disabled on ground as those states are poorly observable when perpendicular to the gravity vector
-	const float alpha = math::constrain((dt / _params.acc_bias_learn_tc), 0.0f, 1.0f);
-	const float beta = 1.0f - alpha;
-	_ang_rate_magnitude_filt = fmaxf(imu_delayed.delta_ang.norm() / imu_delayed.delta_ang_dt, beta * _ang_rate_magnitude_filt);
-	_accel_magnitude_filt = fmaxf(imu_delayed.delta_vel.norm() / imu_delayed.delta_vel_dt, beta * _accel_magnitude_filt);
-	_accel_vec_filt = alpha * imu_delayed.delta_vel / imu_delayed.delta_vel_dt + beta * _accel_vec_filt;
-
-	const bool is_manoeuvre_level_high = _ang_rate_magnitude_filt > _params.acc_bias_learn_gyr_lim
-					     || _accel_magnitude_filt > _params.acc_bias_learn_acc_lim;
-
-	// gyro bias inhibit
-	const bool do_inhibit_all_gyro_axes = !(_params.imu_ctrl & static_cast<int32_t>(ImuCtrl::GyroBias));
-
-	for (unsigned index = 0; index < State::gyro_bias.dof; index++) {
-		const unsigned stateIndex = State::gyro_bias.idx + index;
-
-		bool is_bias_observable = true;
-
-		// TODO: gyro bias conditions
-
-		const bool do_inhibit_axis = do_inhibit_all_gyro_axes || !is_bias_observable;
-
-		if (do_inhibit_axis) {
-			// store the bias state variances to be reinstated later
-			if (!_gyro_bias_inhibit[index]) {
-				_prev_gyro_bias_var(index) = P(stateIndex, stateIndex);
-				_gyro_bias_inhibit[index] = true;
-			}
-
-		} else {
-			if (_gyro_bias_inhibit[index]) {
-				// reinstate the bias state variances
-				P(stateIndex, stateIndex) = _prev_gyro_bias_var(index);
-				_gyro_bias_inhibit[index] = false;
-			}
-		}
-	}
-
-	// accel bias inhibit
-	const bool do_inhibit_all_accel_axes = !(_params.imu_ctrl & static_cast<int32_t>(ImuCtrl::AccelBias))
-					 || is_manoeuvre_level_high
-					 || _fault_status.flags.bad_acc_vertical;
-
-	for (unsigned index = 0; index < State::accel_bias.dof; index++) {
-		const unsigned stateIndex = State::accel_bias.idx + index;
-
-		bool is_bias_observable = true;
-
-		if (_control_status.flags.vehicle_at_rest) {
-			is_bias_observable = true;
-
-		} else if (_control_status.flags.fake_hgt) {
-			is_bias_observable = false;
-
-		} else if (_control_status.flags.fake_pos) {
-			// when using fake position (but not fake height) only consider an accel bias observable if aligned with the gravity vector
-			is_bias_observable = (fabsf(_R_to_earth(2, index)) > 0.966f); // cos 15 degrees ~= 0.966
-		}
-
-		const bool do_inhibit_axis = do_inhibit_all_accel_axes || imu_delayed.delta_vel_clipping[index] || !is_bias_observable;
-
-		if (do_inhibit_axis) {
-			// store the bias state variances to be reinstated later
-			if (!_accel_bias_inhibit[index]) {
-				_prev_accel_bias_var(index) = P(stateIndex, stateIndex);
-				_accel_bias_inhibit[index] = true;
-			}
-
-		} else {
-			if (_accel_bias_inhibit[index]) {
-				// reinstate the bias state variances
-				P(stateIndex, stateIndex) = _prev_accel_bias_var(index);
-				_accel_bias_inhibit[index] = false;
-			}
-		}
-	}
-
-	// assign IMU noise variances
-	// inputs to the system are 3 delta angles and 3 delta velocities
-	float gyro_noise = math::constrain(_params.gyro_noise, 0.0f, 1.0f);
+	// delta angle noise variance
+	float gyro_noise = math::constrain(_params.gyro_noise, 0.f, 1.f);
 	const float d_ang_var = sq(imu_delayed.delta_ang_dt * gyro_noise);
 
-	float accel_noise = math::constrain(_params.accel_noise, 0.0f, 1.0f);
-
+	// delta velocity noise variance
+	float accel_noise = math::constrain(_params.accel_noise, 0.f, 1.f);
 	Vector3f d_vel_var;
 
 	for (unsigned i = 0; i < 3; i++) {
@@ -207,13 +126,10 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 	}
 
 	// predict the covariance
-	SquareMatrixState nextP;
-
 	// calculate variances and upper diagonal covariances for quaternion, velocity, position and gyro bias states
-	sym::PredictCovariance(_state.vector(), P,
+	P = sym::PredictCovariance(_state.vector(), P,
 		imu_delayed.delta_vel, imu_delayed.delta_vel_dt, d_vel_var,
-		imu_delayed.delta_ang, imu_delayed.delta_ang_dt, d_ang_var,
-		&nextP);
+		imu_delayed.delta_ang, imu_delayed.delta_ang_dt, d_ang_var);
 
 	// Construct the process noise variance diagonal for those states with a stationary process model
 	// These are kinematic states and their error growth is controlled separately by the IMU noise variances
@@ -225,10 +141,10 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 		const unsigned i = State::gyro_bias.idx + index;
 
 		if (!_gyro_bias_inhibit[index]) {
-			nextP(i, i) += gyro_bias_process_noise;
+			P(i, i) += gyro_bias_process_noise;
 
 		} else {
-			nextP.uncorrelateCovarianceSetVariance<1>(i, _prev_gyro_bias_var(index));
+			P.uncorrelateCovarianceSetVariance<1>(i, _prev_gyro_bias_var(index));
 		}
 	}
 
@@ -239,10 +155,10 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 		const unsigned i = State::accel_bias.idx + index;
 
 		if (!_accel_bias_inhibit[index]) {
-			nextP(i, i) += accel_bias_process_noise;
+			P(i, i) += accel_bias_process_noise;
 
 		} else {
-			nextP.uncorrelateCovarianceSetVariance<1>(i, _prev_accel_bias_var(index));
+			P.uncorrelateCovarianceSetVariance<1>(i, _prev_accel_bias_var(index));
 		}
 	}
 
@@ -256,7 +172,7 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 
 			for (unsigned index = 0; index < State::mag_I.dof; index++) {
 				unsigned i = State::mag_I.idx + index;
-				nextP(i, i) += mag_I_process_noise;
+				P(i, i) += mag_I_process_noise;
 			}
 		}
 
@@ -268,23 +184,7 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 
 			for (unsigned index = 0; index < State::mag_B.dof; index++) {
 				unsigned i = State::mag_B.idx + index;
-				nextP(i, i) += mag_B_process_noise;
-			}
-		}
-
-	} else {
-		// keep previous covariance
-		for (unsigned i = 0; i < State::mag_I.dof; i++) {
-			unsigned row = State::mag_I.idx + i;
-			for (unsigned col = 0; col < State::size; col++) {
-				nextP(row, col) = nextP(col, row) = P(row, col);
-			}
-		}
-
-		for (unsigned i = 0; i < State::mag_B.dof; i++) {
-			unsigned row = State::mag_B.idx + i;
-			for (unsigned col = 0; col < State::size; col++) {
-				nextP(row, col) = nextP(col, row) = P(row, col);
+				P(i, i) += mag_B_process_noise;
 			}
 		}
 	}
@@ -301,16 +201,7 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 
 			for (unsigned index = 0; index < State::wind_vel.dof; index++) {
 				unsigned i = State::wind_vel.idx + index;
-				nextP(i, i) += wind_vel_process_noise;
-			}
-		}
-
-	} else {
-		// keep previous covariance
-		for (unsigned i = 0; i < State::wind_vel.dof; i++) {
-			unsigned row = State::wind_vel.idx + i;
-			for (unsigned col = 0; col < State::size; col++) {
-				nextP(row, col) = nextP(col, row) = P(row, col);
+				P(i, i) += wind_vel_process_noise;
 			}
 		}
 	}
@@ -319,10 +210,8 @@ void Ekf::predictCovariance(const imuSample &imu_delayed)
 	// covariance matrix is symmetrical, so copy upper half to lower half
 	for (unsigned row = 0; row < State::size; row++) {
 		for (unsigned column = 0 ; column < row; column++) {
-			P(row, column) = P(column, row) = nextP(column, row);
+			P(row, column) = P(column, row);
 		}
-
-		P(row, row) = nextP(row, row);
 	}
 
 	// fix gross errors in the covariance matrix and ensure rows and
@@ -346,14 +235,6 @@ void Ekf::fixCovarianceErrors(bool force_symmetry)
 	constrainStateVar(State::vel, 1e-6f, vel_var_max);
 	constrainStateVar(State::pos, 1e-6f, pos_var_max);
 	constrainStateVar(State::gyro_bias, 0.f, gyro_bias_var_max);
-
-	// force symmetry on the quaternion, velocity and position state covariances
-	if (force_symmetry) {
-		P.makeRowColSymmetric<State::quat_nominal.dof>(State::quat_nominal.idx);
-		P.makeRowColSymmetric<State::vel.dof>(State::vel.idx);
-		P.makeRowColSymmetric<State::pos.dof>(State::pos.idx);
-		P.makeRowColSymmetric<State::gyro_bias.dof>(State::gyro_bias.idx); //TODO: needed?
-	}
 
 	// the following states are optional and are deactivated when not required
 	// by ensuring the corresponding covariance matrix values are kept at zero
@@ -400,84 +281,16 @@ void Ekf::fixCovarianceErrors(bool force_symmetry)
 
 		// If any one axis has fallen below the safe minimum, all delta velocity covariance terms must be reset to zero
 		if (resetRequired) {
-			P.uncorrelateCovariance<State::accel_bias.dof>(State::accel_bias.idx);
+			resetAccelBiasCov();
 		}
+	}
 
-		// Run additional checks to see if the delta velocity bias has hit limits in a direction that is clearly wrong
-		// calculate accel bias term aligned with the gravity vector
-		const float dVel_bias_lim = 0.9f * _params.acc_bias_lim * _dt_ekf_avg;
-		const Vector3f delta_vel_bias = _state.accel_bias * _dt_ekf_avg;
-		const float down_dvel_bias = delta_vel_bias.dot(Vector3f(_R_to_earth.row(2)));
-
-		// check that the vertical component of accel bias is consistent with both the vertical position and velocity innovation
-		bool bad_acc_bias = false;
-		if (fabsf(down_dvel_bias) > dVel_bias_lim) {
-#if defined(CONFIG_EKF2_GNSS)
-			bool bad_vz_gps = _control_status.flags.gps    && (down_dvel_bias * _aid_src_gnss_vel.innovation[2] < 0.0f);
-#else
-			bool bad_vz_gps = false;
-#endif // CONFIG_EKF2_GNSS
-#if defined(CONFIG_EKF2_EXTERNAL_VISION)
-			bool bad_vz_ev  = _control_status.flags.ev_vel && (down_dvel_bias * _aid_src_ev_vel.innovation[2] < 0.0f);
-#else
-			bool bad_vz_ev  = false;
-#endif // CONFIG_EKF2_EXTERNAL_VISION
-
-			if (bad_vz_gps || bad_vz_ev) {
-#if defined(CONFIG_EKF2_BAROMETER)
-				bool bad_z_baro = _control_status.flags.baro_hgt && (down_dvel_bias * _aid_src_baro_hgt.innovation < 0.0f);
-#else
-				bool bad_z_baro = false;
-#endif
-#if defined(CONFIG_EKF2_GNSS)
-				bool bad_z_gps  = _control_status.flags.gps_hgt  && (down_dvel_bias * _aid_src_gnss_hgt.innovation < 0.0f);
-#else
-				bool bad_z_gps  = false;
-#endif
-
-#if defined(CONFIG_EKF2_RANGE_FINDER)
-				bool bad_z_rng  = _control_status.flags.rng_hgt  && (down_dvel_bias * _aid_src_rng_hgt.innovation  < 0.0f);
-#else
-				bool bad_z_rng  = false;
-#endif // CONFIG_EKF2_RANGE_FINDER
-
-#if defined(CONFIG_EKF2_EXTERNAL_VISION)
-				bool bad_z_ev   = _control_status.flags.ev_hgt   && (down_dvel_bias * _aid_src_ev_hgt.innovation   < 0.0f);
-#else
-				bool bad_z_ev   = false;
-#endif // CONFIG_EKF2_EXTERNAL_VISION
-
-				if (bad_z_baro || bad_z_gps || bad_z_rng || bad_z_ev) {
-					bad_acc_bias = true;
-				}
-			}
-		}
-
-		// record the pass/fail
-		if (!bad_acc_bias) {
-			_fault_status.flags.bad_acc_bias = false;
-			_time_acc_bias_check = _time_delayed_us;
-
-		} else {
-			_fault_status.flags.bad_acc_bias = true;
-		}
-
-		// if we have failed for 7 seconds continuously, reset the accel bias covariances to fix bad conditioning of
-		// the covariance matrix but preserve the variances (diagonals) to allow bias learning to continue
-		if (isTimedOut(_time_acc_bias_check, (uint64_t)7e6)) {
-
-			P.uncorrelateCovariance<State::accel_bias.dof>(State::accel_bias.idx);
-
-			_time_acc_bias_check = _time_delayed_us;
-			_fault_status.flags.bad_acc_bias = false;
-			_warning_events.flags.invalid_accel_bias_cov_reset = true;
-			ECL_WARN("invalid accel bias - covariance reset");
-
-		} else if (force_symmetry) {
-			// ensure the covariance values are symmetrical
-			P.makeRowColSymmetric<State::accel_bias.dof>(State::accel_bias.idx);
-		}
-
+	if (force_symmetry) {
+		P.makeRowColSymmetric<State::quat_nominal.dof>(State::quat_nominal.idx);
+		P.makeRowColSymmetric<State::vel.dof>(State::vel.idx);
+		P.makeRowColSymmetric<State::pos.dof>(State::pos.idx);
+		P.makeRowColSymmetric<State::gyro_bias.dof>(State::gyro_bias.idx);
+		P.makeRowColSymmetric<State::accel_bias.dof>(State::accel_bias.idx);
 	}
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)

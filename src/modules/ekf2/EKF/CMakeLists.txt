@@ -38,11 +38,9 @@ list(APPEND EKF_SRCS
 	covariance.cpp
 	ekf.cpp
 	ekf_helper.cpp
-	EKFGSF_yaw.cpp
 	estimator_interface.cpp
 	fake_height_control.cpp
 	fake_pos_control.cpp
-	gravity_fusion.cpp
 	height_control.cpp
 	imu_down_sampler.cpp
 	output_predictor.cpp
@@ -86,11 +84,16 @@ if(CONFIG_EKF2_GNSS)
 		gnss_height_control.cpp
 		gps_checks.cpp
 		gps_control.cpp
+		EKFGSF_yaw.cpp
 	)
 endif()
 
 if(CONFIG_EKF2_GNSS_YAW)
 	list(APPEND EKF_SRCS gps_yaw_fusion.cpp)
+endif()
+
+if(CONFIG_EKF2_GRAVITY_FUSION)
+	list(APPEND EKF_SRCS gravity_fusion.cpp)
 endif()
 
 if(CONFIG_EKF2_MAGNETOMETER)

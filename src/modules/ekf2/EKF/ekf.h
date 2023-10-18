@@ -45,7 +45,10 @@
 
 #include "estimator_interface.h"
 
-#include "EKFGSF_yaw.h"
+#if defined(CONFIG_EKF2_GNSS)
+# include "EKFGSF_yaw.h"
+#endif // CONFIG_EKF2_GNSS
+
 #include "bias_estimator.hpp"
 #include "height_bias_estimator.hpp"
 #include "position_bias_estimator.hpp"
@@ -221,6 +224,10 @@ public:
 	const auto &aid_src_drag() const { return _aid_src_drag; }
 #endif // CONFIG_EKF2_DRAG_FUSION
 
+#if defined(CONFIG_EKF2_GRAVITY_FUSION)
+	const auto &aid_src_gravity() const { return _aid_src_gravity; }
+#endif // CONFIG_EKF2_GRAVITY_FUSION
+
 	// get the state vector at the delayed time horizon
 	const matrix::Vector<float, State::size> &getStateAtFusionHorizonAsVector() const { return _state.vector(); }
 
@@ -265,8 +272,12 @@ public:
 
 	// Reset all IMU bias states and covariances to initial alignment values.
 	void resetImuBias();
+
 	void resetGyroBias();
+	void resetGyroBiasCov();
+
 	void resetAccelBias();
+	void resetAccelBiasCov();
 
 	// return true if the global position estimate is valid
 	// return true if the origin is set we are not doing unconstrained free inertial navigation
@@ -391,9 +402,6 @@ public:
 	Vector3f calcRotVecVariances() const;
 	float getYawVar() const;
 
-	// Returns true if the output of the yaw emergency estimator can be used for a reset
-	bool isYawEmergencyEstimateAvailable() const;
-
 	uint8_t getHeightSensorRef() const { return _height_sensor_ref; }
 
 #if defined(CONFIG_EKF2_AIRSPEED)
@@ -429,11 +437,6 @@ public:
 
 	bool gps_checks_passed() const { return _gps_checks_passed; };
 
-	// get solution data from the EKF-GSF emergency yaw estimator
-	// returns false when data is not available
-	bool getDataEKFGSF(float *yaw_composite, float *yaw_variance, float yaw[N_MODELS_EKFGSF],
-			   float innov_VN[N_MODELS_EKFGSF], float innov_VE[N_MODELS_EKFGSF], float weight[N_MODELS_EKFGSF]);
-
 	const BiasEstimator::status &getGpsHgtBiasEstimatorStatus() const { return _gps_hgt_b_est.getStatus(); }
 
 	const auto &aid_src_gnss_hgt() const { return _aid_src_gnss_hgt; }
@@ -443,14 +446,21 @@ public:
 # if defined(CONFIG_EKF2_GNSS_YAW)
 	const auto &aid_src_gnss_yaw() const { return _aid_src_gnss_yaw; }
 # endif // CONFIG_EKF2_GNSS_YAW
+
+	// Returns true if the output of the yaw emergency estimator can be used for a reset
+	bool isYawEmergencyEstimateAvailable() const;
+
+	// get solution data from the EKF-GSF emergency yaw estimator
+	// returns false when data is not available
+	bool getDataEKFGSF(float *yaw_composite, float *yaw_variance, float yaw[N_MODELS_EKFGSF],
+			   float innov_VN[N_MODELS_EKFGSF], float innov_VE[N_MODELS_EKFGSF], float weight[N_MODELS_EKFGSF]);
+
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	const auto &aid_src_mag_heading() const { return _aid_src_mag_heading; }
 	const auto &aid_src_mag() const { return _aid_src_mag; }
 #endif // CONFIG_EKF2_MAGNETOMETER
-
-	const auto &aid_src_gravity() const { return _aid_src_gravity; }
 
 #if defined(CONFIG_EKF2_AUXVEL)
 	const auto &aid_src_aux_vel() const { return _aid_src_aux_vel; }
@@ -627,7 +637,9 @@ private:
 # endif // CONFIG_EKF2_GNSS_YAW
 #endif // CONFIG_EKF2_GNSS
 
+#if defined(CONFIG_EKF2_GRAVITY_FUSION)
 	estimator_aid_source3d_s _aid_src_gravity{};
+#endif // CONFIG_EKF2_GRAVITY_FUSION
 
 #if defined(CONFIG_EKF2_AUXVEL)
 	estimator_aid_source2d_s _aid_src_aux_vel{};
@@ -717,6 +729,8 @@ private:
 	bool fuseYaw(estimator_aid_source1d_s &aid_src_status);
 	bool fuseYaw(estimator_aid_source1d_s &aid_src_status, const VectorState &H_YAW);
 	void computeYawInnovVarAndH(float variance, float &innovation_variance, VectorState &H_YAW) const;
+
+	void updateIMUBiasInhibit(const imuSample &imu_delayed);
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 	// ekf sequential fusion of magnetometer measurements
@@ -980,18 +994,12 @@ private:
 	void stopGpsFusion();
 
 	bool shouldResetGpsFusion() const;
-	bool isYawFailure() const;
 
 	// return true id the GPS quality is good enough to set an origin and start aiding
 	bool gps_is_good(const gpsMessage &gps);
 
 	void controlGnssHeightFusion(const gpsSample &gps_sample);
 	void stopGpsHgtFusion();
-
-	// Resets the main Nav EKf yaw to the estimator from the EKF-GSF yaw estimator
-	// Resets the horizontal velocity and position to the default navigation sensor
-	// Returns true if the reset was successful
-	bool resetYawToEKFGSF();
 
 	void resetGpsDriftCheckFilters();
 
@@ -1009,6 +1017,17 @@ private:
 	void updateGpsYaw(const gpsSample &gps_sample);
 
 # endif // CONFIG_EKF2_GNSS_YAW
+
+	// Declarations used to control use of the EKF-GSF yaw estimator
+	bool isYawFailure() const;
+
+	// Resets the main Nav EKf yaw to the estimator from the EKF-GSF yaw estimator
+	// Returns true if the reset was successful
+	bool resetYawToEKFGSF();
+
+	// yaw estimator instance
+	EKFGSF_yaw _yawEstimator{};
+
 #endif // CONFIG_EKF2_GNSS
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
@@ -1063,6 +1082,7 @@ private:
 	void stopAuxVelFusion();
 #endif // CONFIG_EKF2_AUXVEL
 
+	void checkVerticalAccelerationBias(const imuSample &imu_delayed);
 	void checkVerticalAccelerationHealth(const imuSample &imu_delayed);
 	Likelihood estimateInertialNavFallingLikelihood() const;
 
@@ -1077,8 +1097,10 @@ private:
 	void updateGroundEffect();
 #endif // CONFIG_EKF2_BAROMETER
 
+#if defined(CONFIG_EKF2_GRAVITY_FUSION)
 	// gravity fusion: heuristically enable / disable gravity fusion
 	void controlGravityFusion(const imuSample &imu_delayed);
+#endif // CONFIG_EKF2_GRAVITY_FUSION
 
 	void resetQuatCov(const float yaw_noise = NAN);
 	void resetQuatCov(const Vector3f &euler_noise_ned);
@@ -1090,6 +1112,7 @@ private:
 #if defined(CONFIG_EKF2_WIND)
 	// perform a reset of the wind states and related covariances
 	void resetWind();
+	void resetWindCov();
 	void resetWindToZero();
 #endif // CONFIG_EKF2_WIND
 
@@ -1122,11 +1145,6 @@ private:
 	// yaw : Euler yaw angle (rad)
 	// yaw_variance : yaw error variance (rad^2)
 	void resetQuatStateYaw(float yaw, float yaw_variance);
-
-	// Declarations used to control use of the EKF-GSF yaw estimator
-
-	// yaw estimator instance
-	EKFGSF_yaw _yawEstimator{};
 
 	uint8_t _height_sensor_ref{HeightSensor::UNKNOWN};
 	uint8_t _position_sensor_ref{static_cast<uint8_t>(PositionSensor::GNSS)};

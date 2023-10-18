@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,61 +31,81 @@
  *
  ****************************************************************************/
 
+
+
 #pragma once
 
-#include <px4_platform_common/sem.h>
+#include <stdint.h>
+#include <lib/ringbuffer/Ringbuffer.hpp>
 
-#include "LockGuard.hpp"
 
-template<class T, size_t N>
-class BlockingQueue
+// FIFO ringbuffer implementation for packets of variable length.
+//
+// The variable length is implemented using a 4 byte header
+// containing a the length.
+//
+// The buffer is not thread-safe.
+
+class VariableLengthRingbuffer
 {
 public:
+	/* @brief Constructor
+	 *
+	 * @note Does not allocate automatically.
+	 */
+	VariableLengthRingbuffer() = default;
 
-	BlockingQueue()
-	{
-		px4_sem_init(&_sem_head, 0, N);
-		px4_sem_init(&_sem_tail, 0, 0);
-		px4_sem_setprotocol(&_sem_head, SEM_PRIO_NONE);
-		px4_sem_setprotocol(&_sem_tail, SEM_PRIO_NONE);
-	}
+	/*
+	 * @brief Destructor
+	 *
+	 * Automatically calls deallocate.
+	 */
+	~VariableLengthRingbuffer();
 
-	~BlockingQueue()
-	{
-		px4_sem_destroy(&_sem_head);
-		px4_sem_destroy(&_sem_tail);
-	}
+	/* @brief Allocate ringbuffer
+	 *
+	 * @note The variable length requires 4 bytes
+	 * of overhead per packet.
+	 *
+	 * @param buffer_size Number of bytes to allocate on heap.
+	 *
+	 * @returns false if allocation fails.
+	 */
+	bool allocate(size_t buffer_size);
 
-	void push(T newItem)
-	{
-		do {} while (px4_sem_wait(&_sem_head) != 0);
+	/*
+	 * @brief Deallocate ringbuffer
+	 *
+	 * @note only required to deallocate and reallocate again.
+	 */
+	void deallocate();
 
-		_data[_tail] = newItem;
-		_tail = (_tail + 1) % N;
+	/*
+	 * @brief Copy packet into ringbuffer
+	 *
+	 * @param packet Pointer to packet to copy from.
+	 * @param packet_len Length of packet.
+	 *
+	 * @returns true if packet could be copied into buffer.
+	 */
+	bool push_back(const uint8_t *packet, size_t packet_len);
 
-		px4_sem_post(&_sem_tail);
-	}
-
-	T pop()
-	{
-		do {} while (px4_sem_wait(&_sem_tail) != 0);
-
-		T ret = _data[_head];
-		_head = (_head + 1) % N;
-
-		px4_sem_post(&_sem_head);
-
-		return ret;
-	}
+	/*
+	 * @brief Get packet from ringbuffer
+	 *
+	 * @note max_buf_len needs to be bigger equal to any pushed packet.
+	 *
+	 * @param buf Pointer to where next packet can be copied into.
+	 * @param max_buf_len Max size of buf
+	 *
+	 * @returns 0 if packet is bigger than max_len or buffer is empty.
+	 */
+	size_t pop_front(uint8_t *buf, size_t max_buf_len);
 
 private:
+	struct Header {
+		uint32_t len;
+	};
 
-	px4_sem_t	_sem_head;
-	px4_sem_t	_sem_tail;
-
-	T _data[N] {};
-
-	size_t _head{0};
-	size_t _tail{0};
-
+	Ringbuffer _ringbuffer {};
 };

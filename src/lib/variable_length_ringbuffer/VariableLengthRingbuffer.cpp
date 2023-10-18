@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,61 +31,76 @@
  *
  ****************************************************************************/
 
-#pragma once
 
-#include <px4_platform_common/sem.h>
 
-#include "LockGuard.hpp"
 
-template<class T, size_t N>
-class BlockingQueue
+#include "VariableLengthRingbuffer.hpp"
+
+#include <assert.h>
+#include <string.h>
+
+
+VariableLengthRingbuffer::~VariableLengthRingbuffer()
 {
-public:
+	deallocate();
+}
 
-	BlockingQueue()
-	{
-		px4_sem_init(&_sem_head, 0, N);
-		px4_sem_init(&_sem_tail, 0, 0);
-		px4_sem_setprotocol(&_sem_head, SEM_PRIO_NONE);
-		px4_sem_setprotocol(&_sem_tail, SEM_PRIO_NONE);
+bool VariableLengthRingbuffer::allocate(size_t buffer_size)
+{
+	return _ringbuffer.allocate(buffer_size);
+}
+
+void VariableLengthRingbuffer::deallocate()
+{
+	_ringbuffer.deallocate();
+}
+
+bool VariableLengthRingbuffer::push_back(const uint8_t *packet, size_t packet_len)
+{
+	if (packet_len == 0 || packet == nullptr) {
+		// Nothing to add, we better don't try.
+		return false;
 	}
 
-	~BlockingQueue()
-	{
-		px4_sem_destroy(&_sem_head);
-		px4_sem_destroy(&_sem_tail);
+	size_t space_required = packet_len + sizeof(Header);
+
+	if (space_required > _ringbuffer.space_available()) {
+		return false;
 	}
 
-	void push(T newItem)
-	{
-		do {} while (px4_sem_wait(&_sem_head) != 0);
+	Header header{static_cast<uint32_t>(packet_len)};
+	bool result = _ringbuffer.push_back(reinterpret_cast<const uint8_t * >(&header), sizeof(header));
+	assert(result);
 
-		_data[_tail] = newItem;
-		_tail = (_tail + 1) % N;
+	result = _ringbuffer.push_back(packet, packet_len);
+	assert(result);
 
-		px4_sem_post(&_sem_tail);
+	// In case asserts are commented out to prevent unused warnings.
+	(void)result;
+
+	return true;
+}
+
+size_t VariableLengthRingbuffer::pop_front(uint8_t *buf, size_t buf_max_len)
+{
+	if (buf == nullptr) {
+		// User needs to supply a valid pointer.
+		return 0;
 	}
 
-	T pop()
-	{
-		do {} while (px4_sem_wait(&_sem_tail) != 0);
+	// Check next header
+	Header header;
 
-		T ret = _data[_head];
-		_head = (_head + 1) % N;
-
-		px4_sem_post(&_sem_head);
-
-		return ret;
+	if (_ringbuffer.pop_front(reinterpret_cast<uint8_t *>(&header), sizeof(header)) < sizeof(header)) {
+		return 0;
 	}
 
-private:
+	// We can't fit the packet into the user supplied buffer.
+	// This should never happen as the user has to supply a big // enough buffer.
+	assert(static_cast<uint32_t>(header.len) <= buf_max_len);
 
-	px4_sem_t	_sem_head;
-	px4_sem_t	_sem_tail;
+	size_t bytes_read = _ringbuffer.pop_front(buf, header.len);
+	assert(bytes_read == header.len);
 
-	T _data[N] {};
-
-	size_t _head{0};
-	size_t _tail{0};
-
-};
+	return bytes_read;
+}

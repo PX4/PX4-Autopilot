@@ -543,6 +543,11 @@ void Ekf::resetGyroBias()
 	// Zero the gyro bias states
 	_state.gyro_bias.zero();
 
+	resetGyroBiasCov();
+}
+
+void Ekf::resetGyroBiasCov()
+{
 	// Zero the corresponding covariances and set
 	// variances to the values use for initial alignment
 	P.uncorrelateCovarianceSetVariance<State::gyro_bias.dof>(State::gyro_bias.idx, sq(_params.switch_on_gyro_bias));
@@ -556,6 +561,11 @@ void Ekf::resetAccelBias()
 	// Zero the accel bias states
 	_state.accel_bias.zero();
 
+	resetAccelBiasCov();
+}
+
+void Ekf::resetAccelBiasCov()
+{
 	// Zero the corresponding covariances and set
 	// variances to the values use for initial alignment
 	P.uncorrelateCovarianceSetVariance<State::accel_bias.dof>(State::accel_bias.idx, sq(_params.switch_on_accel_bias));
@@ -938,56 +948,6 @@ void Ekf::resetQuatStateYaw(float yaw, float yaw_variance)
 	_time_last_heading_fuse = _time_delayed_us;
 }
 
-#if defined(CONFIG_EKF2_GNSS)
-bool Ekf::resetYawToEKFGSF()
-{
-	if (!isYawEmergencyEstimateAvailable()) {
-		return false;
-	}
-
-	// don't allow reset if there's just been a yaw reset
-	const bool yaw_alignment_changed = (_control_status_prev.flags.yaw_align != _control_status.flags.yaw_align);
-	const bool quat_reset = (_state_reset_status.reset_count.quat != _state_reset_count_prev.quat);
-
-	if (yaw_alignment_changed || quat_reset) {
-		return false;
-	}
-
-	ECL_INFO("yaw estimator reset heading %.3f -> %.3f rad",
-		 (double)getEulerYaw(_R_to_earth), (double)_yawEstimator.getYaw());
-
-	resetQuatStateYaw(_yawEstimator.getYaw(), _yawEstimator.getYawVar());
-
-	_control_status.flags.yaw_align = true;
-	_information_events.flags.yaw_aligned_to_imu_gps = true;
-
-	return true;
-}
-#endif // CONFIG_EKF2_GNSS
-
-bool Ekf::isYawEmergencyEstimateAvailable() const
-{
-#if defined(CONFIG_EKF2_GNSS)
-	// don't allow reet using the EKF-GSF estimate until the filter has started fusing velocity
-	// data and the yaw estimate has converged
-	if (!_yawEstimator.isActive()) {
-		return false;
-	}
-
-	return _yawEstimator.getYawVar() < sq(_params.EKFGSF_yaw_err_max);
-#else
-	return false;
-#endif
-}
-
-#if defined(CONFIG_EKF2_GNSS)
-bool Ekf::getDataEKFGSF(float *yaw_composite, float *yaw_variance, float yaw[N_MODELS_EKFGSF],
-			float innov_VN[N_MODELS_EKFGSF], float innov_VE[N_MODELS_EKFGSF], float weight[N_MODELS_EKFGSF])
-{
-	return _yawEstimator.getLogData(yaw_composite, yaw_variance, yaw, innov_VN, innov_VE, weight);
-}
-#endif // CONFIG_EKF2_GNSS
-
 #if defined(CONFIG_EKF2_WIND)
 void Ekf::resetWind()
 {
@@ -1008,7 +968,103 @@ void Ekf::resetWindToZero()
 	// If we don't have an airspeed measurement, then assume the wind is zero
 	_state.wind_vel.setZero();
 
+	resetWindCov();
+}
+
+void Ekf::resetWindCov()
+{
 	// start with a small initial uncertainty to improve the initial estimate
-	P.uncorrelateCovarianceSetVariance<State::wind_vel.dof>(State::wind_vel.idx, _params.initial_wind_uncertainty);
+	P.uncorrelateCovarianceSetVariance<State::wind_vel.dof>(State::wind_vel.idx, sq(_params.initial_wind_uncertainty));
 }
 #endif // CONFIG_EKF2_WIND
+
+void Ekf::updateIMUBiasInhibit(const imuSample &imu_delayed)
+{
+	// inhibit learning of imu accel bias if the manoeuvre levels are too high to protect against the effect of sensor nonlinearities or bad accel data is detected
+	// xy accel bias learning is also disabled on ground as those states are poorly observable when perpendicular to the gravity vector
+	{
+		const float alpha = math::constrain((imu_delayed.delta_ang_dt / _params.acc_bias_learn_tc), 0.f, 1.f);
+		const float beta = 1.f - alpha;
+		_ang_rate_magnitude_filt = fmaxf(imu_delayed.delta_ang.norm() / imu_delayed.delta_ang_dt, beta * _ang_rate_magnitude_filt);
+	}
+
+	{
+		const float alpha = math::constrain((imu_delayed.delta_vel_dt / _params.acc_bias_learn_tc), 0.f, 1.f);
+		const float beta = 1.f - alpha;
+
+		_accel_magnitude_filt = fmaxf(imu_delayed.delta_vel.norm() / imu_delayed.delta_vel_dt, beta * _accel_magnitude_filt);
+		_accel_vec_filt = alpha * imu_delayed.delta_vel / imu_delayed.delta_vel_dt + beta * _accel_vec_filt;
+	}
+
+
+	const bool is_manoeuvre_level_high = (_ang_rate_magnitude_filt > _params.acc_bias_learn_gyr_lim)
+					     || (_accel_magnitude_filt > _params.acc_bias_learn_acc_lim);
+
+	// gyro bias inhibit
+	const bool do_inhibit_all_gyro_axes = !(_params.imu_ctrl & static_cast<int32_t>(ImuCtrl::GyroBias));
+
+	for (unsigned index = 0; index < State::gyro_bias.dof; index++) {
+		const unsigned stateIndex = State::gyro_bias.idx + index;
+
+		bool is_bias_observable = true;
+
+		// TODO: gyro bias conditions
+
+		const bool do_inhibit_axis = do_inhibit_all_gyro_axes || !is_bias_observable;
+
+		if (do_inhibit_axis) {
+			// store the bias state variances to be reinstated later
+			if (!_gyro_bias_inhibit[index]) {
+				_prev_gyro_bias_var(index) = P(stateIndex, stateIndex);
+				_gyro_bias_inhibit[index] = true;
+			}
+
+		} else {
+			if (_gyro_bias_inhibit[index]) {
+				// reinstate the bias state variances
+				P(stateIndex, stateIndex) = _prev_gyro_bias_var(index);
+				_gyro_bias_inhibit[index] = false;
+			}
+		}
+	}
+
+	// accel bias inhibit
+	const bool do_inhibit_all_accel_axes = !(_params.imu_ctrl & static_cast<int32_t>(ImuCtrl::AccelBias))
+					 || is_manoeuvre_level_high
+					 || _fault_status.flags.bad_acc_vertical;
+
+	for (unsigned index = 0; index < State::accel_bias.dof; index++) {
+		const unsigned stateIndex = State::accel_bias.idx + index;
+
+		bool is_bias_observable = true;
+
+		if (_control_status.flags.vehicle_at_rest) {
+			is_bias_observable = true;
+
+		} else if (_control_status.flags.fake_hgt) {
+			is_bias_observable = false;
+
+		} else if (_control_status.flags.fake_pos) {
+			// when using fake position (but not fake height) only consider an accel bias observable if aligned with the gravity vector
+			is_bias_observable = (fabsf(_R_to_earth(2, index)) > 0.966f); // cos 15 degrees ~= 0.966
+		}
+
+		const bool do_inhibit_axis = do_inhibit_all_accel_axes || imu_delayed.delta_vel_clipping[index] || !is_bias_observable;
+
+		if (do_inhibit_axis) {
+			// store the bias state variances to be reinstated later
+			if (!_accel_bias_inhibit[index]) {
+				_prev_accel_bias_var(index) = P(stateIndex, stateIndex);
+				_accel_bias_inhibit[index] = true;
+			}
+
+		} else {
+			if (_accel_bias_inhibit[index]) {
+				// reinstate the bias state variances
+				P(stateIndex, stateIndex) = _prev_accel_bias_var(index);
+				_accel_bias_inhibit[index] = false;
+			}
+		}
+	}
+
+}
