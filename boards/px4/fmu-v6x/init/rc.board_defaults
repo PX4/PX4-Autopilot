@@ -16,8 +16,6 @@ param set-default SENS_EN_INA238 0
 param set-default SENS_EN_INA228 0
 param set-default SENS_EN_INA226 1
 
-param set-default SYS_USE_IO 1
-
 if ver hwtypecmp V6X009010 V6X010010
 then
 	# Skynode: use the "custom participant" config for uxrce_dds_client

@@ -274,32 +274,26 @@ else
 		. $FCONFIG
 	fi
 
-	#
-	# Start IO for PWM output or RC input if enabled
-	#
-	if param compare -s SYS_USE_IO 1
+	# Check if PX4IO present and update firmware if needed.
+	if [ -f $IOFW ]
 	then
-		# Check if PX4IO present and update firmware if needed.
-		if [ -f $IOFW ]
+		if ! px4io checkcrc ${IOFW}
 		then
-			if ! px4io checkcrc ${IOFW}
-			then
-				# tune Program PX4IO
-				tune_control play -t 16 # tune 16 = PROG_PX4IO
+			# tune Program PX4IO
+			tune_control play -t 16 # tune 16 = PROG_PX4IO
 
-				if px4io update ${IOFW}
+			if px4io update ${IOFW}
+			then
+				usleep 10000
+				tune_control stop
+				if px4io checkcrc ${IOFW}
 				then
-					usleep 10000
-					tune_control stop
-					if px4io checkcrc ${IOFW}
-					then
-						tune_control play -t 17 # tune 17 = PROG_PX4IO_OK
-					else
-						tune_control play -t 18 # tune 18 = PROG_PX4IO_ERR
-					fi
+					tune_control play -t 17 # tune 17 = PROG_PX4IO_OK
 				else
-					tune_control stop
+					tune_control play -t 18 # tune 18 = PROG_PX4IO_ERR
 				fi
+			else
+				tune_control stop
 			fi
 		fi
 
@@ -309,6 +303,7 @@ else
 			set STARTUP_TUNE 2 # tune 2 = ERROR_TUNE
 		fi
 	fi
+
 
 	#
 	# RC update (map raw RC input to calibrate manual control)
