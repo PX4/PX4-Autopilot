@@ -1,0 +1,67 @@
+#!/bin/sh
+#
+# @name SSRC ARWing
+#
+# @type Flying Wing
+# @class Plane
+#
+# @board px4_fmu-v2 exclude
+# @board bitcraze_crazyflie exclude
+#
+
+. /etc/init.d/rc.fw_defaults
+
+# Control allocator parameters
+param set-default CA_AIRFRAME 1
+param set-default CA_ROTOR_COUNT 1
+param set-default CA_SV_CS_COUNT 2
+param set-default CA_SV_CS0_TYPE 5
+param set-default CA_SV_CS0_TRQ_P 0.5
+param set-default CA_SV_CS0_TRQ_R -0.5
+param set-default CA_SV_CS1_TYPE 6
+param set-default CA_SV_CS1_TRQ_P 0.5
+param set-default CA_SV_CS1_TRQ_R 0.5
+
+# PWM
+param set-default PWM_MAIN_FUNC1 201
+param set-default PWM_MAIN_FUNC2 202
+param set-default PWM_MAIN_FUNC4 101
+param set-default PWM_AUX_FUNC1 201
+param set-default PWM_AUX_FUNC2 202
+param set-default PWM_AUX_FUNC4 101
+param set-default PWM_MAIN_REV 2
+param set-default PWM_AUX_REV 2
+
+# Airspeed parameters
+sdp3x start -X -f 400
+param set-default ASPD_DO_CHECKS 15
+param set-default FW_AIRSPD_MAX 22.0
+param set-default FW_AIRSPD_MIN 14.0
+param set-default FW_AIRSPD_STALL 12.0
+param set-default FW_AIRSPD_TRIM 18.0
+
+# Battery parameters
+param set-default BAT1_N_CELLS 4
+param set-default BAT1_R_INTERNAL 0.0050
+param set-default BAT1_V_EMPTY 3.6000
+param set-default BAT1_V_LOAD_DROP 0.1000
+
+param set-default BAT2_R_INTERNAL 0.0050
+param set-default BAT2_V_EMPTY 3.6000
+param set-default BAT2_V_LOAD_DROP 0.1000
+
+# Disable internal magnetometer
+param set CAL_MAG0_PRIO 0
+
+# Launch detection
+param set-default FW_LAUN_DETCN_ON 1
+
+# Maximum manual roll angle
+param set-default FW_MAN_R_MAX 60.0
+
+# Rate control
+param set-default FW_RR_IMAX 0.4000
+param set-default FW_YR_IMAX 0.4000
+
+# Misc
+param set-default RTL_RETURN_ALT 30.0
