@@ -65,7 +65,12 @@ void Ekf::initialiseCovariance()
 	P.uncorrelateCovarianceSetVariance<State::vel.dof>(State::vel.idx, Vector3f(vel_var, vel_var, sq(1.5f) * vel_var));
 
 	// position
+#if defined(CONFIG_EKF2_BAROMETER)
 	float z_pos_var = sq(fmaxf(_params.baro_noise, 0.01f));
+#else
+	float z_pos_var = sq(1.f);
+#endif // CONFIG_EKF2_BAROMETER
+
 #if defined(CONFIG_EKF2_GNSS)
 	const float xy_pos_var = sq(fmaxf(_params.gps_pos_noise, 0.01f));
 

@@ -563,10 +563,12 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 	max_time_delay_ms = math::max(_params.auxvel_delay_ms, max_time_delay_ms);
 #endif // CONFIG_EKF2_AUXVEL
 
+#if defined(CONFIG_EKF2_BAROMETER)
 	// using baro
 	if (_params.baro_ctrl > 0) {
 		max_time_delay_ms = math::max(_params.baro_delay_ms, max_time_delay_ms);
 	}
+#endif // CONFIG_EKF2_BAROMETER
 
 #if defined(CONFIG_EKF2_AIRSPEED)
 	// using airspeed
