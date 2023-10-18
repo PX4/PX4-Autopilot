@@ -68,6 +68,8 @@ px4_add_romfs_files(
 	4073_ifo-s
 	4400_ssrc_fog_x
 	4401_ssrc_fog_x_tmotor
+	4420_ssrc_arwing
+	4430_ssrc_strivermini
 	4500_clover4
 	4900_crazyflie
 	4901_crazyflie21
