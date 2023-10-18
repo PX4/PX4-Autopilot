@@ -155,7 +155,9 @@ void Ekf::resetMagStates(const Vector3f &mag, bool reset_heading)
 						* Vector3f(_mag_strength_gps, 0, 0);
 
 		// mag_B: reset
+#if defined(CONFIG_EKF2_GNSS)
 		if (isYawEmergencyEstimateAvailable()) {
+
 			const Dcmf R_to_earth = updateYawInRotMat(_yawEstimator.getYaw(), _R_to_earth);
 			const Dcmf R_to_body = R_to_earth.transpose();
 
@@ -165,6 +167,9 @@ void Ekf::resetMagStates(const Vector3f &mag, bool reset_heading)
 			ECL_INFO("resetMagStates using yaw estimator");
 
 		} else if (!reset_heading && _control_status.flags.yaw_align) {
+#else
+		if (!reset_heading && _control_status.flags.yaw_align) {
+#endif
 			// mag_B: reset using WMM
 			const Dcmf R_to_body = quatToInverseRotMat(_state.quat_nominal);
 			_state.mag_B = mag - (R_to_body * mag_earth_pred);
