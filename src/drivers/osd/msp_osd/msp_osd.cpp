@@ -350,16 +350,12 @@ void MspOsd::Run()
 		home_position_s home_position{};
 		_home_position_sub.copy(&home_position);
 
-		estimator_status_s estimator_status{};
-		_estimator_status_sub.copy(&estimator_status);
-
 		vehicle_global_position_s vehicle_global_position{};
 		_vehicle_global_position_sub.copy(&vehicle_global_position);
 
 		// construct and send message
 		const auto msg = msp_osd::construct_COMP_GPS(
 					 home_position,
-					 estimator_status,
 					 vehicle_global_position,
 					 _heartbeat);
 		this->Send(MSP_COMP_GPS, &msg);
@@ -379,17 +375,11 @@ void MspOsd::Run()
 		sensor_gps_s vehicle_gps_position{};
 		_vehicle_gps_position_sub.copy(&vehicle_gps_position);
 
-		estimator_status_s estimator_status{};
-		_estimator_status_sub.copy(&estimator_status);
-
 		vehicle_local_position_s vehicle_local_position{};
 		_vehicle_local_position_sub.copy(&vehicle_local_position);
 
 		// construct and send message
-		const auto msg = msp_osd::construct_ALTITUDE(
-					 vehicle_gps_position,
-					 estimator_status,
-					 vehicle_local_position);
+		const auto msg = msp_osd::construct_ALTITUDE(vehicle_gps_position, vehicle_local_position);
 		this->Send(MSP_ALTITUDE, &msg);
 	}
 
