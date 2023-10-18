@@ -165,9 +165,11 @@ void Ekf::resetMagStates(const Vector3f &mag, bool reset_heading)
 			_state.mag_B = mag - (R_to_body * mag_earth_pred);
 
 			ECL_INFO("resetMagStates using yaw estimator");
-		} else
-#endif // CONFIG_EKF2_GNSS
+
+		} else if (!reset_heading && _control_status.flags.yaw_align) {
+#else
 		if (!reset_heading && _control_status.flags.yaw_align) {
+#endif
 			// mag_B: reset using WMM
 			const Dcmf R_to_body = quatToInverseRotMat(_state.quat_nominal);
 			_state.mag_B = mag - (R_to_body * mag_earth_pred);
