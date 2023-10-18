@@ -83,19 +83,9 @@ public:
 
 	static uint8_t getNumberOfStates() { return State::size; }
 
-#if defined(CONFIG_EKF2_EXTERNAL_VISION)
-	void getEvVelPosInnov(float hvel[2], float &vvel, float hpos[2], float &vpos) const;
-	void getEvVelPosInnovVar(float hvel[2], float &vvel, float hpos[2], float &vpos) const;
-	void getEvVelPosInnovRatio(float &hvel, float &vvel, float &hpos, float &vpos) const;
-#endif // CONFIG_EKF2_EXTERNAL_VISION
-
 #if defined(CONFIG_EKF2_BAROMETER)
 	const auto &aid_src_baro_hgt() const { return _aid_src_baro_hgt; }
 	const BiasEstimator::status &getBaroBiasEstimatorStatus() const { return _baro_b_est.getStatus(); }
-
-	void getBaroHgtInnov(float &baro_hgt_innov) const { baro_hgt_innov = _aid_src_baro_hgt.innovation; }
-	void getBaroHgtInnovVar(float &baro_hgt_innov_var) const { baro_hgt_innov_var = _aid_src_baro_hgt.innovation_variance; }
-	void getBaroHgtInnovRatio(float &baro_hgt_innov_ratio) const { baro_hgt_innov_ratio = _aid_src_baro_hgt.test_ratio; }
 #endif // CONFIG_EKF2_BAROMETER
 
 #if defined(CONFIG_EKF2_TERRAIN)
@@ -115,28 +105,10 @@ public:
 
 # if defined(CONFIG_EKF2_RANGE_FINDER)
 	const auto &aid_src_terrain_range_finder() const { return _aid_src_terrain_range_finder; }
-
-	void getHaglInnov(float &hagl_innov) const { hagl_innov = _aid_src_terrain_range_finder.innovation; }
-	void getHaglInnovVar(float &hagl_innov_var) const { hagl_innov_var = _aid_src_terrain_range_finder.innovation_variance; }
-	void getHaglInnovRatio(float &hagl_innov_ratio) const { hagl_innov_ratio = _aid_src_terrain_range_finder.test_ratio; }
 # endif // CONFIG_EKF2_RANGE_FINDER
 
 # if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	const auto &aid_src_terrain_optical_flow() const { return _aid_src_terrain_optical_flow; }
-
-	void getTerrainFlowInnov(float flow_innov[2]) const
-	{
-		flow_innov[0] = _aid_src_terrain_optical_flow.innovation[0];
-		flow_innov[1] = _aid_src_terrain_optical_flow.innovation[1];
-	}
-
-	void getTerrainFlowInnovVar(float flow_innov_var[2]) const
-	{
-		flow_innov_var[0] = _aid_src_terrain_optical_flow.innovation_variance[0];
-		flow_innov_var[1] = _aid_src_terrain_optical_flow.innovation_variance[1];
-	}
-
-	void getTerrainFlowInnovRatio(float &flow_innov_ratio) const { flow_innov_ratio = math::max(_aid_src_terrain_optical_flow.test_ratio[0], _aid_src_terrain_optical_flow.test_ratio[1]); }
 # endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #endif // CONFIG_EKF2_TERRAIN
@@ -146,31 +118,13 @@ public:
 	const BiasEstimator::status &getRngHgtBiasEstimatorStatus() const { return _rng_hgt_b_est.getStatus(); }
 	const auto &aid_src_rng_hgt() const { return _aid_src_rng_hgt; }
 
-	void getRngHgtInnov(float &rng_hgt_innov) const { rng_hgt_innov = _aid_src_rng_hgt.innovation; }
-	void getRngHgtInnovVar(float &rng_hgt_innov_var) const { rng_hgt_innov_var = _aid_src_rng_hgt.innovation_variance; }
-	void getRngHgtInnovRatio(float &rng_hgt_innov_ratio) const { rng_hgt_innov_ratio = _aid_src_rng_hgt.test_ratio; }
-
-	void getHaglRateInnov(float &hagl_rate_innov) const { hagl_rate_innov = _rng_consistency_check.getInnov(); }
-	void getHaglRateInnovVar(float &hagl_rate_innov_var) const { hagl_rate_innov_var = _rng_consistency_check.getInnovVar(); }
-	void getHaglRateInnovRatio(float &hagl_rate_innov_ratio) const { hagl_rate_innov_ratio = _rng_consistency_check.getSignedTestRatioLpf(); }
+	float getHaglRateInnov() const { return _rng_consistency_check.getInnov(); }
+	float getHaglRateInnovVar() const { return _rng_consistency_check.getInnovVar(); }
+	float getHaglRateInnovRatio() const { return _rng_consistency_check.getSignedTestRatioLpf(); }
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	const auto &aid_src_optical_flow() const { return _aid_src_optical_flow; }
-
-	void getFlowInnov(float flow_innov[2]) const
-	{
-		flow_innov[0] = _aid_src_optical_flow.innovation[0];
-		flow_innov[1] = _aid_src_optical_flow.innovation[1];
-	}
-
-	void getFlowInnovVar(float flow_innov_var[2]) const
-	{
-		flow_innov_var[0] = _aid_src_optical_flow.innovation_variance[0];
-		flow_innov_var[1] = _aid_src_optical_flow.innovation_variance[1];
-	}
-
-	void getFlowInnovRatio(float &flow_innov_ratio) const { flow_innov_ratio = math::max(_aid_src_optical_flow.test_ratio[0], _aid_src_optical_flow.test_ratio[1]); }
 
 	const Vector2f &getFlowVelBody() const { return _flow_vel_body; }
 	const Vector2f &getFlowVelNE() const { return _flow_vel_ne; }
@@ -185,140 +139,93 @@ public:
 	const Vector3f &getMeasuredBodyRate() const { return _measured_body_rate; }
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
-#if defined(CONFIG_EKF2_AUXVEL)
-	void getAuxVelInnov(float aux_vel_innov[2]) const;
-	void getAuxVelInnovVar(float aux_vel_innov[2]) const;
-	void getAuxVelInnovRatio(float &aux_vel_innov_ratio) const { aux_vel_innov_ratio = math::max(_aid_src_aux_vel.test_ratio[0], _aid_src_aux_vel.test_ratio[1]); }
-#endif // CONFIG_EKF2_AUXVEL
-
-	void getHeadingInnov(float &heading_innov) const
+	float getHeadingInnov() const
 	{
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 		if (_control_status.flags.mag_hdg) {
-			heading_innov = _aid_src_mag_heading.innovation;
-			return;
+			return _aid_src_mag_heading.innovation;
+		}
 
-		} else if (_control_status.flags.mag_3D) {
-			heading_innov = Vector3f(_aid_src_mag.innovation).max();
-			return;
+		if (_control_status.flags.mag_3D) {
+			return Vector3f(_aid_src_mag.innovation).max();
 		}
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_GNSS_YAW)
 		if (_control_status.flags.gps_yaw) {
-			heading_innov = _aid_src_gnss_yaw.innovation;
-			return;
+			return _aid_src_gnss_yaw.innovation;
 		}
 #endif // CONFIG_EKF2_GNSS_YAW
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 		if (_control_status.flags.ev_yaw) {
-			heading_innov = _aid_src_ev_yaw.innovation;
-			return;
+			return _aid_src_ev_yaw.innovation;
 		}
 #endif // CONFIG_EKF2_EXTERNAL_VISION
+
+		return 0.f;
 	}
 
-	void getHeadingInnovVar(float &heading_innov_var) const
+	float getHeadingInnovVar() const
 	{
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 		if (_control_status.flags.mag_hdg) {
-			heading_innov_var = _aid_src_mag_heading.innovation_variance;
-			return;
+			return _aid_src_mag_heading.innovation_variance;
+		}
 
-		} else if (_control_status.flags.mag_3D) {
-			heading_innov_var = Vector3f(_aid_src_mag.innovation_variance).max();
-			return;
+		if (_control_status.flags.mag_3D) {
+			return Vector3f(_aid_src_mag.innovation_variance).max();
 		}
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_GNSS_YAW)
 		if (_control_status.flags.gps_yaw) {
-			heading_innov_var = _aid_src_gnss_yaw.innovation_variance;
-			return;
+			return _aid_src_gnss_yaw.innovation_variance;
 		}
 #endif // CONFIG_EKF2_GNSS_YAW
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 		if (_control_status.flags.ev_yaw) {
-			heading_innov_var = _aid_src_ev_yaw.innovation_variance;
-			return;
+			return _aid_src_ev_yaw.innovation_variance;
 		}
 #endif // CONFIG_EKF2_EXTERNAL_VISION
+
+		return 0.f;
 	}
 
-	void getHeadingInnovRatio(float &heading_innov_ratio) const
+	float getHeadingInnovRatio() const
 	{
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 		if (_control_status.flags.mag_hdg) {
-			heading_innov_ratio = _aid_src_mag_heading.test_ratio;
-			return;
+			return _aid_src_mag_heading.test_ratio;
+		}
 
-		} else if (_control_status.flags.mag_3D) {
-			heading_innov_ratio = Vector3f(_aid_src_mag.test_ratio).max();
-			return;
+		if (_control_status.flags.mag_3D) {
+			return Vector3f(_aid_src_mag.test_ratio).max();
 		}
 #endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_GNSS_YAW)
 		if (_control_status.flags.gps_yaw) {
-			heading_innov_ratio = _aid_src_gnss_yaw.test_ratio;
-			return;
+			return _aid_src_gnss_yaw.test_ratio;
 		}
 #endif // CONFIG_EKF2_GNSS_YAW
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 		if (_control_status.flags.ev_yaw) {
-			heading_innov_ratio = _aid_src_ev_yaw.test_ratio;
-			return;
+			return _aid_src_ev_yaw.test_ratio;
 		}
 #endif // CONFIG_EKF2_EXTERNAL_VISION
-	}
 
-#if defined(CONFIG_EKF2_MAGNETOMETER)
-	void getMagInnov(float mag_innov[3]) const { memcpy(mag_innov, _aid_src_mag.innovation, sizeof(_aid_src_mag.innovation)); }
-	void getMagInnovVar(float mag_innov_var[3]) const { memcpy(mag_innov_var, _aid_src_mag.innovation_variance, sizeof(_aid_src_mag.innovation_variance)); }
-	void getMagInnovRatio(float &mag_innov_ratio) const { mag_innov_ratio = Vector3f(_aid_src_mag.test_ratio).max(); }
-#endif // CONFIG_EKF2_MAGNETOMETER
+		return 0.f;
+	}
 
 #if defined(CONFIG_EKF2_DRAG_FUSION)
 	const auto &aid_src_drag() const { return _aid_src_drag; }
-
-	void getDragInnov(float drag_innov[2]) const
-	{
-		drag_innov[0] = _aid_src_drag.innovation[0];
-		drag_innov[1] = _aid_src_drag.innovation[1];
-	}
-	void getDragInnovVar(float drag_innov_var[2]) const
-	{
-		drag_innov_var[0] = _aid_src_drag.innovation_variance[0];
-		drag_innov_var[1] = _aid_src_drag.innovation_variance[1];
-	}
-	void getDragInnovRatio(float drag_innov_ratio[2]) const
-	{
-		drag_innov_ratio[0] = _aid_src_drag.test_ratio[0];
-		drag_innov_ratio[1] = _aid_src_drag.test_ratio[1];
-	}
 #endif // CONFIG_EKF2_DRAG_FUSION
-
-#if defined(CONFIG_EKF2_AIRSPEED)
-	void getAirspeedInnov(float &airspeed_innov) const { airspeed_innov = _aid_src_airspeed.innovation; }
-	void getAirspeedInnovVar(float &airspeed_innov_var) const { airspeed_innov_var = _aid_src_airspeed.innovation_variance; }
-	void getAirspeedInnovRatio(float &airspeed_innov_ratio) const { airspeed_innov_ratio = _aid_src_airspeed.test_ratio; }
-#endif // CONFIG_EKF2_AIRSPEED
-
-#if defined(CONFIG_EKF2_SIDESLIP)
-	void getBetaInnov(float &beta_innov) const { beta_innov = _aid_src_sideslip.innovation; }
-	void getBetaInnovVar(float &beta_innov_var) const { beta_innov_var = _aid_src_sideslip.innovation_variance; }
-	void getBetaInnovRatio(float &beta_innov_ratio) const { beta_innov_ratio = _aid_src_sideslip.test_ratio; }
-#endif // CONFIG_EKF2_SIDESLIP
 
 #if defined(CONFIG_EKF2_GRAVITY_FUSION)
 	const auto &aid_src_gravity() const { return _aid_src_gravity; }
-
-	void getGravityInnov(float grav_innov[3]) const { memcpy(grav_innov, _aid_src_gravity.innovation, sizeof(_aid_src_gravity.innovation)); }
-	void getGravityInnovVar(float grav_innov_var[3]) const { memcpy(grav_innov_var, _aid_src_gravity.innovation_variance, sizeof(_aid_src_gravity.innovation_variance)); }
-	void getGravityInnovRatio(float &grav_innov_ratio) const { grav_innov_ratio = Vector3f(_aid_src_gravity.test_ratio).max(); }
 #endif // CONFIG_EKF2_GRAVITY_FUSION
 
 	// get the state vector at the delayed time horizon
@@ -497,12 +404,6 @@ public:
 
 	uint8_t getHeightSensorRef() const { return _height_sensor_ref; }
 
-#if defined(CONFIG_EKF2_EXTERNAL_VISION)
-	const BiasEstimator::status &getEvHgtBiasEstimatorStatus() const { return _ev_hgt_b_est.getStatus(); }
-
-	const BiasEstimator::status &getEvPosBiasEstimatorStatus(int i) const { return _ev_pos_b_est.getStatus(i); }
-#endif // CONFIG_EKF2_EXTERNAL_VISION
-
 #if defined(CONFIG_EKF2_AIRSPEED)
 	const auto &aid_src_airspeed() const { return _aid_src_airspeed; }
 #endif // CONFIG_EKF2_AIRSPEED
@@ -519,13 +420,12 @@ public:
 	const auto &aid_src_ev_pos() const { return _aid_src_ev_pos; }
 	const auto &aid_src_ev_vel() const { return _aid_src_ev_vel; }
 	const auto &aid_src_ev_yaw() const { return _aid_src_ev_yaw; }
+
+	const BiasEstimator::status &getEvHgtBiasEstimatorStatus() const { return _ev_hgt_b_est.getStatus(); }
+	const BiasEstimator::status &getEvPosBiasEstimatorStatus(int i) const { return _ev_pos_b_est.getStatus(i); }
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
 #if defined(CONFIG_EKF2_GNSS)
-	void getGpsVelPosInnov(float hvel[2], float &vvel, float hpos[2], float &vpos) const;
-	void getGpsVelPosInnovVar(float hvel[2], float &vvel, float hpos[2], float &vpos) const;
-	void getGpsVelPosInnovRatio(float &hvel, float &vvel, float &hpos, float &vpos) const;
-
 	// ask estimator for sensor data collection decision and do any preprocessing if required, returns true if not defined
 	bool collect_gps(const gpsMessage &gps) override;
 

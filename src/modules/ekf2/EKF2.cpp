@@ -1406,53 +1406,93 @@ void EKF2::PublishInnovations(const hrt_abstime &timestamp)
 	// publish estimator innovation data
 	estimator_innovations_s innovations{};
 	innovations.timestamp_sample = _ekf.time_delayed_us();
+
 #if defined(CONFIG_EKF2_GNSS)
-	_ekf.getGpsVelPosInnov(innovations.gps_hvel, innovations.gps_vvel, innovations.gps_hpos, innovations.gps_vpos);
+	// GPS
+	innovations.gps_hvel[0] = _ekf.aid_src_gnss_vel().innovation[0];
+	innovations.gps_hvel[1] = _ekf.aid_src_gnss_vel().innovation[1];
+	innovations.gps_vvel    = _ekf.aid_src_gnss_vel().innovation[2];
+	innovations.gps_hpos[0] = _ekf.aid_src_gnss_pos().innovation[0];
+	innovations.gps_hpos[1] = _ekf.aid_src_gnss_pos().innovation[1];
+	innovations.gps_vpos    = _ekf.aid_src_gnss_hgt().innovation;
 #endif // CONFIG_EKF2_GNSS
+
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
-	_ekf.getEvVelPosInnov(innovations.ev_hvel, innovations.ev_vvel, innovations.ev_hpos, innovations.ev_vpos);
+	// External Vision
+	innovations.ev_hvel[0] = _ekf.aid_src_ev_vel().innovation[0];
+	innovations.ev_hvel[1] = _ekf.aid_src_ev_vel().innovation[1];
+	innovations.ev_vvel    = _ekf.aid_src_ev_vel().innovation[2];
+	innovations.ev_hpos[0] = _ekf.aid_src_ev_pos().innovation[0];
+	innovations.ev_hpos[1] = _ekf.aid_src_ev_pos().innovation[1];
+	innovations.ev_vpos    = _ekf.aid_src_ev_hgt().innovation;
 #endif // CONFIG_EKF2_EXTERNAL_VISION
-#if defined(CONFIG_EKF2_BAROMETER)
-	_ekf.getBaroHgtInnov(innovations.baro_vpos);
-#endif // CONFIG_EKF2_BAROMETER
+
+	// Height sensors
 #if defined(CONFIG_EKF2_RANGE_FINDER)
-	_ekf.getRngHgtInnov(innovations.rng_vpos);
+	innovations.rng_vpos = _ekf.aid_src_rng_hgt().innovation;
 #endif // CONFIG_EKF2_RANGE_FINDER
+#if defined(CONFIG_EKF2_BAROMETER)
+	innovations.baro_vpos = _ekf.aid_src_baro_hgt().innovation;
+#endif // CONFIG_EKF2_BAROMETER
+
 #if defined(CONFIG_EKF2_AUXVEL)
-	_ekf.getAuxVelInnov(innovations.aux_hvel);
+	// Auxiliary velocity
+	innovations.aux_hvel[0] = _ekf.aid_src_aux_vel().innovation[0];
+	innovations.aux_hvel[1] = _ekf.aid_src_aux_vel().innovation[1];
 #endif // CONFIG_EKF2_AUXVEL
+
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	_ekf.getFlowInnov(innovations.flow);
+	// Optical flow
+	innovations.flow[0] = _ekf.aid_src_optical_flow().innovation[0];
+	innovations.flow[1] = _ekf.aid_src_optical_flow().innovation[1];
+# if defined(CONFIG_EKF2_TERRAIN)
+	innovations.terr_flow[0] = _ekf.aid_src_terrain_optical_flow().innovation[0];
+	innovations.terr_flow[1] = _ekf.aid_src_terrain_optical_flow().innovation[1];
+# endif // CONFIG_EKF2_TERRAIN
 #endif // CONFIG_EKF2_OPTICAL_FLOW
-	_ekf.getHeadingInnov(innovations.heading);
+
+	// heading
+	innovations.heading = _ekf.getHeadingInnov();
+
 #if defined(CONFIG_EKF2_MAGNETOMETER)
-	_ekf.getMagInnov(innovations.mag_field);
+	// mag_field
+	innovations.mag_field[0] = _ekf.aid_src_mag().innovation[0];
+	innovations.mag_field[1] = _ekf.aid_src_mag().innovation[1];
+	innovations.mag_field[2] = _ekf.aid_src_mag().innovation[2];
 #endif // CONFIG_EKF2_MAGNETOMETER
-#if defined(CONFIG_EKF2_DRAG_FUSION)
-	_ekf.getDragInnov(innovations.drag);
-#endif // CONFIG_EKF2_DRAG_FUSION
-#if defined(CONFIG_EKF2_AIRSPEED)
-	_ekf.getAirspeedInnov(innovations.airspeed);
-#endif // CONFIG_EKF2_AIRSPEED
-#if defined(CONFIG_EKF2_SIDESLIP)
-	_ekf.getBetaInnov(innovations.beta);
-#endif // CONFIG_EKF2_SIDESLIP
 
 #if defined(CONFIG_EKF2_GRAVITY_FUSION)
-	_ekf.getGravityInnov(innovations.gravity);
+	// gravity
+	innovations.gravity[0] = _ekf.aid_src_gravity().innovation[0];
+	innovations.gravity[1] = _ekf.aid_src_gravity().innovation[1];
+	innovations.gravity[2] = _ekf.aid_src_gravity().innovation[2];
 #endif // CONFIG_EKF2_GRAVITY_FUSION
 
-#if defined(CONFIG_EKF2_TERRAIN)
-# if defined(CONFIG_EKF2_RANGE_FINDER)
-	_ekf.getHaglInnov(innovations.hagl);
-# endif //CONFIG_EKF2_RANGE_FINDER
-# if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	_ekf.getTerrainFlowInnov(innovations.terr_flow);
-# endif // CONFIG_EKF2_OPTICAL_FLOW
-#endif // CONFIG_EKF2_TERRAIN
+#if defined(CONFIG_EKF2_DRAG_FUSION)
+	// drag
+	innovations.drag[0] = _ekf.aid_src_drag().innovation[0];
+	innovations.drag[1] = _ekf.aid_src_drag().innovation[1];
+#endif // CONFIG_EKF2_DRAG_FUSION
 
-	// Not yet supported
-	innovations.aux_vvel = NAN;
+#if defined(CONFIG_EKF2_AIRSPEED)
+	// airspeed
+	innovations.airspeed = _ekf.aid_src_airspeed().innovation;
+#endif // CONFIG_EKF2_AIRSPEED
+
+#if defined(CONFIG_EKF2_SIDESLIP)
+	// beta
+	innovations.beta = _ekf.aid_src_sideslip().innovation;
+#endif // CONFIG_EKF2_SIDESLIP
+
+#if defined(CONFIG_EKF2_TERRAIN) && defined(CONFIG_EKF2_RANGE_FINDER)
+	// hagl
+	innovations.hagl = _ekf.aid_src_terrain_range_finder().innovation;
+#endif // CONFIG_EKF2_TERRAIN && CONFIG_EKF2_RANGE_FINDER
+
+#if defined(CONFIG_EKF2_RANGE_FINDER)
+	// hagl_rate
+	innovations.hagl_rate = _ekf.getHaglRateInnov();
+#endif // CONFIG_EKF2_RANGE_FINDER
 
 	innovations.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 	_estimator_innovations_pub.publish(innovations);
@@ -1500,55 +1540,93 @@ void EKF2::PublishInnovationTestRatios(const hrt_abstime &timestamp)
 	// publish estimator innovation test ratio data
 	estimator_innovations_s test_ratios{};
 	test_ratios.timestamp_sample = _ekf.time_delayed_us();
+
 #if defined(CONFIG_EKF2_GNSS)
-	_ekf.getGpsVelPosInnovRatio(test_ratios.gps_hvel[0], test_ratios.gps_vvel, test_ratios.gps_hpos[0],
-				    test_ratios.gps_vpos);
+	// GPS
+	test_ratios.gps_hvel[0] = _ekf.aid_src_gnss_vel().test_ratio[0];
+	test_ratios.gps_hvel[1] = _ekf.aid_src_gnss_vel().test_ratio[1];
+	test_ratios.gps_vvel    = _ekf.aid_src_gnss_vel().test_ratio[2];
+	test_ratios.gps_hpos[0] = _ekf.aid_src_gnss_pos().test_ratio[0];
+	test_ratios.gps_hpos[1] = _ekf.aid_src_gnss_pos().test_ratio[1];
+	test_ratios.gps_vpos    = _ekf.aid_src_gnss_hgt().test_ratio;
 #endif // CONFIG_EKF2_GNSS
+
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
-	_ekf.getEvVelPosInnovRatio(test_ratios.ev_hvel[0], test_ratios.ev_vvel, test_ratios.ev_hpos[0], test_ratios.ev_vpos);
+	// External Vision
+	test_ratios.ev_hvel[0] = _ekf.aid_src_ev_vel().test_ratio[0];
+	test_ratios.ev_hvel[1] = _ekf.aid_src_ev_vel().test_ratio[1];
+	test_ratios.ev_vvel    = _ekf.aid_src_ev_vel().test_ratio[2];
+	test_ratios.ev_hpos[0] = _ekf.aid_src_ev_pos().test_ratio[0];
+	test_ratios.ev_hpos[1] = _ekf.aid_src_ev_pos().test_ratio[1];
+	test_ratios.ev_vpos    = _ekf.aid_src_ev_hgt().test_ratio;
 #endif // CONFIG_EKF2_EXTERNAL_VISION
-#if defined(CONFIG_EKF2_BAROMETER)
-	_ekf.getBaroHgtInnovRatio(test_ratios.baro_vpos);
-#endif // CONFIG_EKF2_BAROMETER
+
+	// Height sensors
 #if defined(CONFIG_EKF2_RANGE_FINDER)
-	_ekf.getRngHgtInnovRatio(test_ratios.rng_vpos);
-	_ekf.getHaglRateInnovRatio(test_ratios.hagl_rate);
+	test_ratios.rng_vpos = _ekf.aid_src_rng_hgt().test_ratio;
 #endif // CONFIG_EKF2_RANGE_FINDER
+#if defined(CONFIG_EKF2_BAROMETER)
+	test_ratios.baro_vpos = _ekf.aid_src_baro_hgt().test_ratio;
+#endif // CONFIG_EKF2_BAROMETER
+
 #if defined(CONFIG_EKF2_AUXVEL)
-	_ekf.getAuxVelInnovRatio(test_ratios.aux_hvel[0]);
+	// Auxiliary velocity
+	test_ratios.aux_hvel[0] = _ekf.aid_src_aux_vel().test_ratio[0];
+	test_ratios.aux_hvel[1] = _ekf.aid_src_aux_vel().test_ratio[1];
 #endif // CONFIG_EKF2_AUXVEL
+
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	_ekf.getFlowInnovRatio(test_ratios.flow[0]);
+	// Optical flow
+	test_ratios.flow[0] = _ekf.aid_src_optical_flow().test_ratio[0];
+	test_ratios.flow[1] = _ekf.aid_src_optical_flow().test_ratio[1];
+# if defined(CONFIG_EKF2_TERRAIN)
+	test_ratios.terr_flow[0] = _ekf.aid_src_terrain_optical_flow().test_ratio[0];
+	test_ratios.terr_flow[1] = _ekf.aid_src_terrain_optical_flow().test_ratio[1];
+# endif // CONFIG_EKF2_TERRAIN
 #endif // CONFIG_EKF2_OPTICAL_FLOW
-	_ekf.getHeadingInnovRatio(test_ratios.heading);
+
+	// heading
+	test_ratios.heading = _ekf.getHeadingInnovRatio();
+
 #if defined(CONFIG_EKF2_MAGNETOMETER)
-	_ekf.getMagInnovRatio(test_ratios.mag_field[0]);
+	// mag_field
+	test_ratios.mag_field[0] = _ekf.aid_src_mag().test_ratio[0];
+	test_ratios.mag_field[1] = _ekf.aid_src_mag().test_ratio[1];
+	test_ratios.mag_field[2] = _ekf.aid_src_mag().test_ratio[2];
 #endif // CONFIG_EKF2_MAGNETOMETER
-#if defined(CONFIG_EKF2_DRAG_FUSION)
-	_ekf.getDragInnovRatio(&test_ratios.drag[0]);
-#endif // CONFIG_EKF2_DRAG_FUSION
-#if defined(CONFIG_EKF2_AIRSPEED)
-	_ekf.getAirspeedInnovRatio(test_ratios.airspeed);
-#endif // CONFIG_EKF2_AIRSPEED
-#if defined(CONFIG_EKF2_SIDESLIP)
-	_ekf.getBetaInnovRatio(test_ratios.beta);
-#endif // CONFIG_EKF2_SIDESLIP
 
 #if defined(CONFIG_EKF2_GRAVITY_FUSION)
-	_ekf.getGravityInnovRatio(test_ratios.gravity[0]);
+	// gravity
+	test_ratios.gravity[0] = _ekf.aid_src_gravity().test_ratio[0];
+	test_ratios.gravity[1] = _ekf.aid_src_gravity().test_ratio[1];
+	test_ratios.gravity[2] = _ekf.aid_src_gravity().test_ratio[2];
 #endif // CONFIG_EKF2_GRAVITY_FUSION
 
-#if defined(CONFIG_EKF2_TERRAIN)
-# if defined(CONFIG_EKF2_RANGE_FINDER)
-	_ekf.getHaglInnovRatio(test_ratios.hagl);
-# endif
-# if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	_ekf.getTerrainFlowInnovRatio(test_ratios.terr_flow[0]);
-# endif // CONFIG_EKF2_OPTICAL_FLOW
-#endif // CONFIG_EKF2_TERRAIN
+#if defined(CONFIG_EKF2_DRAG_FUSION)
+	// drag
+	test_ratios.drag[0] = _ekf.aid_src_drag().test_ratio[0];
+	test_ratios.drag[1] = _ekf.aid_src_drag().test_ratio[1];
+#endif // CONFIG_EKF2_DRAG_FUSION
 
-	// Not yet supported
-	test_ratios.aux_vvel = NAN;
+#if defined(CONFIG_EKF2_AIRSPEED)
+	// airspeed
+	test_ratios.airspeed = _ekf.aid_src_airspeed().test_ratio;
+#endif // CONFIG_EKF2_AIRSPEED
+
+#if defined(CONFIG_EKF2_SIDESLIP)
+	// beta
+	test_ratios.beta = _ekf.aid_src_sideslip().test_ratio;
+#endif // CONFIG_EKF2_SIDESLIP
+
+#if defined(CONFIG_EKF2_TERRAIN) && defined(CONFIG_EKF2_RANGE_FINDER)
+	// hagl
+	test_ratios.hagl = _ekf.aid_src_terrain_range_finder().test_ratio;
+#endif // CONFIG_EKF2_TERRAIN && CONFIG_EKF2_RANGE_FINDER
+
+#if defined(CONFIG_EKF2_RANGE_FINDER)
+	// hagl_rate
+	test_ratios.hagl_rate = _ekf.getHaglRateInnovRatio();
+#endif // CONFIG_EKF2_RANGE_FINDER
 
 	test_ratios.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 	_estimator_innovation_test_ratios_pub.publish(test_ratios);
@@ -1559,54 +1637,93 @@ void EKF2::PublishInnovationVariances(const hrt_abstime &timestamp)
 	// publish estimator innovation variance data
 	estimator_innovations_s variances{};
 	variances.timestamp_sample = _ekf.time_delayed_us();
-#if defined(CONFIG_EKF2_GNSS)
-	_ekf.getGpsVelPosInnovVar(variances.gps_hvel, variances.gps_vvel, variances.gps_hpos, variances.gps_vpos);
-#endif // CONFIG_EKF2_GNSS
-#if defined(CONFIG_EKF2_EXTERNAL_VISION)
-	_ekf.getEvVelPosInnovVar(variances.ev_hvel, variances.ev_vvel, variances.ev_hpos, variances.ev_vpos);
-#endif // CONFIG_EKF2_EXTERNAL_VISION
-#if defined(CONFIG_EKF2_BAROMETER)
-	_ekf.getBaroHgtInnovVar(variances.baro_vpos);
-#endif // CONFIG_EKF2_BAROMETER
-#if defined(CONFIG_EKF2_RANGE_FINDER)
-	_ekf.getRngHgtInnovVar(variances.rng_vpos);
-	_ekf.getHaglRateInnovVar(variances.hagl_rate);
-#endif // CONFIG_EKF2_RANGE_FINDER
-#if defined(CONFIG_EKF2_AUXVEL)
-	_ekf.getAuxVelInnovVar(variances.aux_hvel);
-#endif // CONFIG_EKF2_AUXVEL
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	_ekf.getFlowInnovVar(variances.flow);
-#endif // CONFIG_EKF2_OPTICAL_FLOW
-	_ekf.getHeadingInnovVar(variances.heading);
-#if defined(CONFIG_EKF2_MAGNETOMETER)
-	_ekf.getMagInnovVar(variances.mag_field);
-#endif // CONFIG_EKF2_MAGNETOMETER
-#if defined(CONFIG_EKF2_DRAG_FUSION)
-	_ekf.getDragInnovVar(variances.drag);
-#endif // CONFIG_EKF2_DRAG_FUSION
-#if defined(CONFIG_EKF2_AIRSPEED)
-	_ekf.getAirspeedInnovVar(variances.airspeed);
-#endif // CONFIG_EKF2_AIRSPEED
-#if defined(CONFIG_EKF2_SIDESLIP)
-	_ekf.getBetaInnovVar(variances.beta);
-#endif // CONFIG_EKF2_SIDESLIP
 
-#if defined(CONFIG_EKF2_TERRAIN)
-# if defined(CONFIG_EKF2_RANGE_FINDER)
-	_ekf.getHaglInnovVar(variances.hagl);
-# endif // CONFIG_EKF2_RANGE_FINDER
-# if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	_ekf.getTerrainFlowInnovVar(variances.terr_flow);
-# endif // CONFIG_EKF2_OPTICAL_FLOW
-#endif // CONFIG_EKF2_TERRAIN && CONFIG_EKF2_RANGE_FINDER
+#if defined(CONFIG_EKF2_GNSS)
+	// GPS
+	variances.gps_hvel[0] = _ekf.aid_src_gnss_vel().innovation_variance[0];
+	variances.gps_hvel[1] = _ekf.aid_src_gnss_vel().innovation_variance[1];
+	variances.gps_vvel    = _ekf.aid_src_gnss_vel().innovation_variance[2];
+	variances.gps_hpos[0] = _ekf.aid_src_gnss_pos().innovation_variance[0];
+	variances.gps_hpos[1] = _ekf.aid_src_gnss_pos().innovation_variance[1];
+	variances.gps_vpos    = _ekf.aid_src_gnss_hgt().innovation_variance;
+#endif // CONFIG_EKF2_GNSS
+
+#if defined(CONFIG_EKF2_EXTERNAL_VISION)
+	// External Vision
+	variances.ev_hvel[0] = _ekf.aid_src_ev_vel().innovation_variance[0];
+	variances.ev_hvel[1] = _ekf.aid_src_ev_vel().innovation_variance[1];
+	variances.ev_vvel    = _ekf.aid_src_ev_vel().innovation_variance[2];
+	variances.ev_hpos[0] = _ekf.aid_src_ev_pos().innovation_variance[0];
+	variances.ev_hpos[1] = _ekf.aid_src_ev_pos().innovation_variance[1];
+	variances.ev_vpos    = _ekf.aid_src_ev_hgt().innovation_variance;
+#endif // CONFIG_EKF2_EXTERNAL_VISION
+
+	// Height sensors
+#if defined(CONFIG_EKF2_RANGE_FINDER)
+	variances.rng_vpos = _ekf.aid_src_rng_hgt().innovation_variance;
+#endif // CONFIG_EKF2_RANGE_FINDER
+#if defined(CONFIG_EKF2_BAROMETER)
+	variances.baro_vpos = _ekf.aid_src_baro_hgt().innovation_variance;
+#endif // CONFIG_EKF2_BAROMETER
+
+#if defined(CONFIG_EKF2_AUXVEL)
+	// Auxiliary velocity
+	variances.aux_hvel[0] = _ekf.aid_src_aux_vel().innovation_variance[0];
+	variances.aux_hvel[1] = _ekf.aid_src_aux_vel().innovation_variance[1];
+#endif // CONFIG_EKF2_AUXVEL
+
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
+	// Optical flow
+	variances.flow[0] = _ekf.aid_src_optical_flow().innovation_variance[0];
+	variances.flow[1] = _ekf.aid_src_optical_flow().innovation_variance[1];
+# if defined(CONFIG_EKF2_TERRAIN)
+	variances.terr_flow[0] = _ekf.aid_src_terrain_optical_flow().innovation_variance[0];
+	variances.terr_flow[1] = _ekf.aid_src_terrain_optical_flow().innovation_variance[1];
+# endif // CONFIG_EKF2_TERRAIN
+#endif // CONFIG_EKF2_OPTICAL_FLOW
+
+	// heading
+	variances.heading = _ekf.getHeadingInnovVar();
+
+#if defined(CONFIG_EKF2_MAGNETOMETER)
+	// mag_field
+	variances.mag_field[0] = _ekf.aid_src_mag().innovation_variance[0];
+	variances.mag_field[1] = _ekf.aid_src_mag().innovation_variance[1];
+	variances.mag_field[2] = _ekf.aid_src_mag().innovation_variance[2];
+#endif // CONFIG_EKF2_MAGNETOMETER
 
 #if defined(CONFIG_EKF2_GRAVITY_FUSION)
-	_ekf.getGravityInnovVar(variances.gravity);
+	// gravity
+	variances.gravity[0] = _ekf.aid_src_gravity().innovation_variance[0];
+	variances.gravity[1] = _ekf.aid_src_gravity().innovation_variance[1];
+	variances.gravity[2] = _ekf.aid_src_gravity().innovation_variance[2];
 #endif // CONFIG_EKF2_GRAVITY_FUSION
 
-	// Not yet supported
-	variances.aux_vvel = NAN;
+#if defined(CONFIG_EKF2_DRAG_FUSION)
+	// drag
+	variances.drag[0] = _ekf.aid_src_drag().innovation_variance[0];
+	variances.drag[1] = _ekf.aid_src_drag().innovation_variance[1];
+#endif // CONFIG_EKF2_DRAG_FUSION
+
+#if defined(CONFIG_EKF2_AIRSPEED)
+	// airspeed
+	variances.airspeed = _ekf.aid_src_airspeed().innovation_variance;
+#endif // CONFIG_EKF2_AIRSPEED
+
+#if defined(CONFIG_EKF2_SIDESLIP)
+	// beta
+	variances.beta = _ekf.aid_src_sideslip().innovation_variance;
+#endif // CONFIG_EKF2_SIDESLIP
+
+#if defined(CONFIG_EKF2_TERRAIN) && defined(CONFIG_EKF2_RANGE_FINDER)
+	// hagl
+	variances.hagl = _ekf.aid_src_terrain_range_finder().innovation_variance;
+#endif // CONFIG_EKF2_TERRAIN && CONFIG_EKF2_RANGE_FINDER
+
+#if defined(CONFIG_EKF2_RANGE_FINDER)
+	// hagl_rate
+	variances.hagl_rate = _ekf.getHaglRateInnovVar();
+#endif // CONFIG_EKF2_RANGE_FINDER
 
 	variances.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 	_estimator_innovation_variances_pub.publish(variances);
@@ -2043,12 +2160,12 @@ void EKF2::PublishWindEstimate(const hrt_abstime &timestamp)
 		const Vector2f wind_vel_var = _ekf.getWindVelocityVariance();
 
 #if defined(CONFIG_EKF2_AIRSPEED)
-		_ekf.getAirspeedInnov(wind.tas_innov);
-		_ekf.getAirspeedInnovVar(wind.tas_innov_var);
+		wind.tas_innov = _ekf.aid_src_airspeed().innovation;
+		wind.tas_innov_var = _ekf.aid_src_airspeed().innovation_variance;
 #endif // CONFIG_EKF2_AIRSPEED
 #if defined(CONFIG_EKF2_SIDESLIP)
-		_ekf.getBetaInnov(wind.beta_innov);
-		_ekf.getBetaInnovVar(wind.beta_innov_var);
+		wind.beta_innov = _ekf.aid_src_sideslip().innovation;
+		wind.beta_innov = _ekf.aid_src_sideslip().innovation_variance;
 #endif // CONFIG_EKF2_SIDESLIP
 
 		wind.windspeed_north = wind_vel(0);
