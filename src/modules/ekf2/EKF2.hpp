@@ -349,8 +349,6 @@ private:
 	uORB::PublicationMulti<estimator_bias3d_s> _estimator_ev_pos_bias_pub{ORB_ID(estimator_ev_pos_bias)};
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
-	hrt_abstime _status_gravity_pub_last{0};
-
 #if defined(CONFIG_EKF2_AUXVEL)
 	uORB::Subscription _landing_target_pose_sub {ORB_ID(landing_target_pose)};
 
@@ -476,8 +474,6 @@ private:
 	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_fake_hgt_pub{ORB_ID(estimator_aid_src_fake_hgt)};
 	uORB::PublicationMulti<estimator_aid_source2d_s> _estimator_aid_src_fake_pos_pub{ORB_ID(estimator_aid_src_fake_pos)};
 
-	uORB::PublicationMulti<estimator_aid_source3d_s> _estimator_aid_src_gravity_pub{ORB_ID(estimator_aid_src_gravity)};
-
 	// publications with topic dependent on multi-mode
 	uORB::PublicationMulti<vehicle_attitude_s>           _attitude_pub;
 	uORB::PublicationMulti<vehicle_local_position_s>     _local_position_pub;
@@ -517,6 +513,11 @@ private:
 	uORB::PublicationMulti<estimator_aid_source1d_s> _estimator_aid_src_gnss_yaw_pub {ORB_ID(estimator_aid_src_gnss_yaw)};
 # endif // CONFIG_EKF2_GNSS_YAW
 #endif // CONFIG_EKF2_GNSS
+
+#if defined(CONFIG_EKF2_GRAVITY_FUSION)
+	hrt_abstime _status_gravity_pub_last {0};
+	uORB::PublicationMulti<estimator_aid_source3d_s> _estimator_aid_src_gravity_pub{ORB_ID(estimator_aid_src_gravity)};
+#endif // CONFIG_EKF2_GRAVITY_FUSION
 
 	PreFlightChecker _preflt_checker;
 
@@ -722,6 +723,20 @@ private:
 		_param_ekf2_of_pos_z, ///< Z position of optical flow sensor focal point in body frame (m)
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
+#if defined(CONFIG_EKF2_DRAG_FUSION)
+		(ParamExtInt<px4::params::EKF2_DRAG_CTRL>) _param_ekf2_drag_ctrl,		///< drag fusion selection
+		// Multi-rotor drag specific force fusion
+		(ParamExtFloat<px4::params::EKF2_DRAG_NOISE>)
+		_param_ekf2_drag_noise,	///< observation noise variance for drag specific force measurements (m/sec**2)**2
+		(ParamExtFloat<px4::params::EKF2_BCOEF_X>) _param_ekf2_bcoef_x,		///< ballistic coefficient along the X-axis (kg/m**2)
+		(ParamExtFloat<px4::params::EKF2_BCOEF_Y>) _param_ekf2_bcoef_y,		///< ballistic coefficient along the Y-axis (kg/m**2)
+		(ParamExtFloat<px4::params::EKF2_MCOEF>) _param_ekf2_mcoef,		///< propeller momentum drag coefficient (1/s)
+#endif // CONFIG_EKF2_DRAG_FUSION
+
+#if defined(CONFIG_EKF2_GRAVITY_FUSION)
+		(ParamExtFloat<px4::params::EKF2_GRAV_NOISE>) _param_ekf2_grav_noise,
+#endif // CONFIG_EKF2_GRAVITY_FUSION
+
 		// sensor positions in body frame
 		(ParamExtFloat<px4::params::EKF2_IMU_POS_X>) _param_ekf2_imu_pos_x,		///< X position of IMU in body frame (m)
 		(ParamExtFloat<px4::params::EKF2_IMU_POS_Y>) _param_ekf2_imu_pos_y,		///< Y position of IMU in body frame (m)
@@ -746,21 +761,9 @@ private:
 
 		(ParamExtFloat<px4::params::EKF2_GYR_B_LIM>) _param_ekf2_gyr_b_lim,	///< Gyro bias learning limit (rad/s)
 
-#if defined(CONFIG_EKF2_DRAG_FUSION)
-		(ParamExtInt<px4::params::EKF2_DRAG_CTRL>) _param_ekf2_drag_ctrl,		///< drag fusion selection
-		// Multi-rotor drag specific force fusion
-		(ParamExtFloat<px4::params::EKF2_DRAG_NOISE>)
-		_param_ekf2_drag_noise,	///< observation noise variance for drag specific force measurements (m/sec**2)**2
-		(ParamExtFloat<px4::params::EKF2_BCOEF_X>) _param_ekf2_bcoef_x,		///< ballistic coefficient along the X-axis (kg/m**2)
-		(ParamExtFloat<px4::params::EKF2_BCOEF_Y>) _param_ekf2_bcoef_y,		///< ballistic coefficient along the Y-axis (kg/m**2)
-		(ParamExtFloat<px4::params::EKF2_MCOEF>) _param_ekf2_mcoef,		///< propeller momentum drag coefficient (1/s)
-#endif // CONFIG_EKF2_DRAG_FUSION
-
 		// output predictor filter time constants
 		(ParamFloat<px4::params::EKF2_TAU_VEL>) _param_ekf2_tau_vel,
-		(ParamFloat<px4::params::EKF2_TAU_POS>) _param_ekf2_tau_pos,
-
-		(ParamExtFloat<px4::params::EKF2_GRAV_NOISE>) _param_ekf2_grav_noise
+		(ParamFloat<px4::params::EKF2_TAU_POS>) _param_ekf2_tau_pos
 	)
 };
 #endif // !EKF2_HPP
