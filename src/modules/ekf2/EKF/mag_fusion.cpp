@@ -62,7 +62,7 @@ bool Ekf::fuseMag(const Vector3f &mag, estimator_aid_source3d_s &aid_src_mag, bo
 
 	// Observation jacobian and Kalman gain vectors
 	VectorState H;
-	const VectorState state_vector = _state.vector();
+	const auto state_vector = _state.vector();
 	sym::ComputeMagInnovInnovVarAndHx(state_vector, P, mag, R_MAG, FLT_EPSILON, &mag_innov, &innov_var, &H);
 
 	// do not use the synthesized measurement for the magnetomter Z component for 3D fusion

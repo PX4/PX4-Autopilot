@@ -68,7 +68,7 @@ void Ekf::controlFusionModes(const imuSample &imu_delayed)
 	// monitor the tilt alignment
 	if (!_control_status.flags.tilt_align) {
 		// whilst we are aligning the tilt, monitor the variances
-		const Vector3f angle_err_var_vec = calcRotVecVariances();
+		const Vector3f angle_err_var_vec = getQuaternionVariance();
 
 		// Once the tilt variances have reduced to equivalent of 3deg uncertainty
 		// and declare the tilt alignment complete

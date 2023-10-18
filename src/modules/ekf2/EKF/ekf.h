@@ -84,8 +84,6 @@ public:
 	// should be called every time new data is pushed into the filter
 	bool update();
 
-	static uint8_t getNumberOfStates() { return State::size; }
-
 	const StateSample &state() const { return _state; }
 
 #if defined(CONFIG_EKF2_BAROMETER)
@@ -232,9 +230,6 @@ public:
 #if defined(CONFIG_EKF2_GRAVITY_FUSION)
 	const auto &aid_src_gravity() const { return _aid_src_gravity; }
 #endif // CONFIG_EKF2_GRAVITY_FUSION
-
-	// get the state vector at the delayed time horizon
-	const matrix::Vector<float, State::size> &getStateAtFusionHorizonAsVector() const { return _state.vector(); }
 
 #if defined(CONFIG_EKF2_WIND)
 	// get the wind velocity in m/s
@@ -408,8 +403,6 @@ public:
 	// return a bitmask integer that describes which state estimates can be used for flight control
 	void get_ekf_soln_status(uint16_t *status) const;
 
-	// rotate quaternion covariances into variances for an equivalent rotation vector
-	Vector3f calcRotVecVariances() const;
 	float getYawVar() const;
 
 	uint8_t getHeightSensorRef() const { return _height_sensor_ref; }

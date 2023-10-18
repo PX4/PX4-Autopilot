@@ -94,7 +94,7 @@ void Ekf::fuseOptFlow()
 	// a positive offset in earth frame leads to a smaller height above the ground.
 	float range = predictFlowRange();
 
-	const VectorState state_vector = _state.vector();
+	const auto state_vector = _state.vector();
 
 	Vector2f innov_var;
 	VectorState H;
