@@ -54,7 +54,6 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/estimator_status.h>
 #include <uORB/topics/input_rc.h>
 #include <uORB/topics/log_message.h>
 
@@ -94,7 +93,6 @@ msp_raw_gps_t construct_RAW_GPS(const sensor_gps_s &vehicle_gps_position,
 
 // construct an MSP_COMP_GPS struct
 msp_comp_gps_t construct_COMP_GPS(const home_position_s &home_position,
-				  const estimator_status_s &estimator_status,
 				  const vehicle_global_position_s &vehicle_global_position,
 				  const bool heartbeat);
 
@@ -103,7 +101,6 @@ msp_attitude_t construct_ATTITUDE(const vehicle_attitude_s &vehicle_attitude);
 
 // construct an MSP_ALTITUDE struct
 msp_altitude_t construct_ALTITUDE(const sensor_gps_s &vehicle_gps_position,
-				  const estimator_status_s &estimator_status,
 				  const vehicle_local_position_s &vehicle_local_position);
 
 // construct an MSP_ESC_SENSOR_DATA struct
