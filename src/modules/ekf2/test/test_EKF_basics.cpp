@@ -245,22 +245,16 @@ TEST_F(EkfBasicsTest, reset_ekf_global_origin_gps_initialized)
 
 	_sensor_simulator.runSeconds(1);
 
-	float hpos = 0.f;
-	float vpos = 0.f;
-	float hvel = 0.f;
-	float vvel = 0.f;
-	float baro_vpos = 0.f;
-
 	// After the change of origin, the pos and vel innovations should stay small
-	_ekf->getGpsVelPosInnovRatio(hvel, vvel, hpos, vpos);
-	_ekf->getBaroHgtInnovRatio(baro_vpos);
+	EXPECT_NEAR(_ekf->aid_src_gnss_pos().test_ratio[0], 0.f, 0.05f);
+	EXPECT_NEAR(_ekf->aid_src_gnss_pos().test_ratio[1], 0.f, 0.05f);
+	EXPECT_NEAR(_ekf->aid_src_gnss_hgt().test_ratio, 0.f, 0.05f);
 
-	EXPECT_NEAR(hpos, 0.f, 0.05f);
-	EXPECT_NEAR(vpos, 0.f, 0.05f);
-	EXPECT_NEAR(baro_vpos, 0.f, 0.05f);
+	EXPECT_NEAR(_ekf->aid_src_baro_hgt().test_ratio, 0.f, 0.05f);
 
-	EXPECT_NEAR(hvel, 0.f, 0.02f);
-	EXPECT_NEAR(vvel, 0.f, 0.02f);
+	EXPECT_NEAR(_ekf->aid_src_gnss_vel().test_ratio[0], 0.f, 0.02f);
+	EXPECT_NEAR(_ekf->aid_src_gnss_vel().test_ratio[1], 0.f, 0.02f);
+	EXPECT_NEAR(_ekf->aid_src_gnss_vel().test_ratio[2], 0.f, 0.02f);
 }
 
 TEST_F(EkfBasicsTest, reset_ekf_global_origin_gps_uninitialized)
@@ -291,19 +285,14 @@ TEST_F(EkfBasicsTest, reset_ekf_global_origin_gps_uninitialized)
 
 	_sensor_simulator.runSeconds(1);
 
-	float hpos = 0.f;
-	float vpos = 0.f;
-	float hvel = 0.f;
-	float vvel = 0.f;
-
 	// After the change of origin, the pos and vel innovations should stay small
-	_ekf->getGpsVelPosInnovRatio(hvel, vvel, hpos, vpos);
+	EXPECT_NEAR(_ekf->aid_src_gnss_pos().test_ratio[0], 0.f, 0.05f);
+	EXPECT_NEAR(_ekf->aid_src_gnss_pos().test_ratio[1], 0.f, 0.05f);
+	EXPECT_NEAR(_ekf->aid_src_gnss_hgt().test_ratio, 0.f, 0.05f);
 
-	EXPECT_NEAR(hpos, 0.f, 0.05f);
-	EXPECT_NEAR(vpos, 0.f, 0.05f);
-
-	EXPECT_NEAR(hvel, 0.f, 0.02f);
-	EXPECT_NEAR(vvel, 0.f, 0.02f);
+	EXPECT_NEAR(_ekf->aid_src_gnss_vel().test_ratio[0], 0.f, 0.02f);
+	EXPECT_NEAR(_ekf->aid_src_gnss_vel().test_ratio[1], 0.f, 0.02f);
+	EXPECT_NEAR(_ekf->aid_src_gnss_vel().test_ratio[2], 0.f, 0.02f);
 }
 
 TEST_F(EkfBasicsTest, global_position_from_local_ev)
