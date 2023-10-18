@@ -274,6 +274,7 @@ void VisionTargetEst::Run()
 	if (!_estimators_started) {
 
 		if (must_start_estimators()) {
+			reset_estimators(); // Force a reset before starting
 			start_estimators(); // Will set _estimators_started to true
 		}
 
