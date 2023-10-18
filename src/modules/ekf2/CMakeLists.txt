@@ -124,7 +124,6 @@ list(APPEND EKF_SRCS
 	EKF/estimator_interface.cpp
 	EKF/fake_height_control.cpp
 	EKF/fake_pos_control.cpp
-	EKF/gravity_fusion.cpp
 	EKF/height_control.cpp
 	EKF/imu_down_sampler.cpp
 	EKF/output_predictor.cpp
@@ -173,6 +172,10 @@ endif()
 
 if(CONFIG_EKF2_GNSS_YAW)
 	list(APPEND EKF_SRCS EKF/gps_yaw_fusion.cpp)
+endif()
+
+if(CONFIG_EKF2_GRAVITY_FUSION)
+	list(APPEND EKF_SRCS EKF/gravity_fusion.cpp)
 endif()
 
 if(CONFIG_EKF2_MAGNETOMETER)

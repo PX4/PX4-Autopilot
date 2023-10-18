@@ -310,9 +310,13 @@ public:
 	void getBetaInnovRatio(float &beta_innov_ratio) const { beta_innov_ratio = _aid_src_sideslip.test_ratio; }
 #endif // CONFIG_EKF2_SIDESLIP
 
+#if defined(CONFIG_EKF2_GRAVITY_FUSION)
+	const auto &aid_src_gravity() const { return _aid_src_gravity; }
+
 	void getGravityInnov(float grav_innov[3]) const { memcpy(grav_innov, _aid_src_gravity.innovation, sizeof(_aid_src_gravity.innovation)); }
 	void getGravityInnovVar(float grav_innov_var[3]) const { memcpy(grav_innov_var, _aid_src_gravity.innovation_variance, sizeof(_aid_src_gravity.innovation_variance)); }
 	void getGravityInnovRatio(float &grav_innov_ratio) const { grav_innov_ratio = Vector3f(_aid_src_gravity.test_ratio).max(); }
+#endif // CONFIG_EKF2_GRAVITY_FUSION
 
 	// get the state vector at the delayed time horizon
 	const matrix::Vector<float, State::size> &getStateAtFusionHorizonAsVector() const { return _state.vector(); }
@@ -554,8 +558,6 @@ public:
 	const auto &aid_src_mag() const { return _aid_src_mag; }
 #endif // CONFIG_EKF2_MAGNETOMETER
 
-	const auto &aid_src_gravity() const { return _aid_src_gravity; }
-
 #if defined(CONFIG_EKF2_AUXVEL)
 	const auto &aid_src_aux_vel() const { return _aid_src_aux_vel; }
 #endif // CONFIG_EKF2_AUXVEL
@@ -731,7 +733,9 @@ private:
 # endif // CONFIG_EKF2_GNSS_YAW
 #endif // CONFIG_EKF2_GNSS
 
+#if defined(CONFIG_EKF2_GRAVITY_FUSION)
 	estimator_aid_source3d_s _aid_src_gravity{};
+#endif // CONFIG_EKF2_GRAVITY_FUSION
 
 #if defined(CONFIG_EKF2_AUXVEL)
 	estimator_aid_source2d_s _aid_src_aux_vel{};
@@ -1184,8 +1188,10 @@ private:
 	void updateGroundEffect();
 #endif // CONFIG_EKF2_BAROMETER
 
+#if defined(CONFIG_EKF2_GRAVITY_FUSION)
 	// gravity fusion: heuristically enable / disable gravity fusion
 	void controlGravityFusion(const imuSample &imu_delayed);
+#endif // CONFIG_EKF2_GRAVITY_FUSION
 
 	void resetQuatCov(const float yaw_noise = NAN);
 	void resetQuatCov(const Vector3f &euler_noise_ned);

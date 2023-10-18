@@ -75,6 +75,13 @@ depends on MODULES_EKF2
 	---help---
 		EKF2 GNSS yaw fusion support.
 
+menuconfig EKF2_GRAVITY_FUSION
+depends on MODULES_EKF2
+	bool "gravity fusion support"
+	default y
+	---help---
+		EKF2 gravity fusion support.
+
 menuconfig EKF2_MAGNETOMETER
 depends on MODULES_EKF2
 	bool "magnetometer support"

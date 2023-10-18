@@ -189,6 +189,16 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_of_pos_y(_params->flow_pos_body(1)),
 	_param_ekf2_of_pos_z(_params->flow_pos_body(2)),
 #endif // CONFIG_EKF2_OPTICAL_FLOW
+#if defined(CONFIG_EKF2_DRAG_FUSION)
+	_param_ekf2_drag_ctrl(_params->drag_ctrl),
+	_param_ekf2_drag_noise(_params->drag_noise),
+	_param_ekf2_bcoef_x(_params->bcoef_x),
+	_param_ekf2_bcoef_y(_params->bcoef_y),
+	_param_ekf2_mcoef(_params->mcoef),
+#endif // CONFIG_EKF2_DRAG_FUSION
+#if defined(CONFIG_EKF2_GRAVITY_FUSION)
+	_param_ekf2_grav_noise(_params->gravity_noise),
+#endif // CONFIG_EKF2_GRAVITY_FUSION
 	_param_ekf2_imu_pos_x(_params->imu_pos_body(0)),
 	_param_ekf2_imu_pos_y(_params->imu_pos_body(1)),
 	_param_ekf2_imu_pos_z(_params->imu_pos_body(2)),
@@ -199,16 +209,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_abl_acclim(_params->acc_bias_learn_acc_lim),
 	_param_ekf2_abl_gyrlim(_params->acc_bias_learn_gyr_lim),
 	_param_ekf2_abl_tau(_params->acc_bias_learn_tc),
-	_param_ekf2_gyr_b_lim(_params->gyro_bias_lim),
-#if defined(CONFIG_EKF2_DRAG_FUSION)
-	_param_ekf2_drag_ctrl(_params->drag_ctrl),
-	_param_ekf2_drag_noise(_params->drag_noise),
-	_param_ekf2_bcoef_x(_params->bcoef_x),
-	_param_ekf2_bcoef_y(_params->bcoef_y),
-	_param_ekf2_mcoef(_params->mcoef),
-#endif // CONFIG_EKF2_DRAG_FUSION
-	_param_ekf2_grav_noise(_params->gravity_noise)
-
+	_param_ekf2_gyr_b_lim(_params->gyro_bias_lim)
 {
 	// advertise expected minimal topic set immediately to ensure logging
 	_attitude_pub.advertise();
@@ -1086,8 +1087,10 @@ void EKF2::PublishAidSourceStatus(const hrt_abstime &timestamp)
 	PublishAidSourceStatus(_ekf.aid_src_mag(), _status_mag_pub_last, _estimator_aid_src_mag_pub);
 #endif // CONFIG_EKF2_MAGNETOMETER
 
+#if defined(CONFIG_EKF2_GRAVITY_FUSION)
 	// gravity
 	PublishAidSourceStatus(_ekf.aid_src_gravity(), _status_gravity_pub_last, _estimator_aid_src_gravity_pub);
+#endif // CONFIG_EKF2_GRAVITY_FUSION
 
 #if defined(CONFIG_EKF2_AUXVEL)
 	// aux velocity
@@ -1435,7 +1438,9 @@ void EKF2::PublishInnovations(const hrt_abstime &timestamp)
 	_ekf.getBetaInnov(innovations.beta);
 #endif // CONFIG_EKF2_SIDESLIP
 
+#if defined(CONFIG_EKF2_GRAVITY_FUSION)
 	_ekf.getGravityInnov(innovations.gravity);
+#endif // CONFIG_EKF2_GRAVITY_FUSION
 
 #if defined(CONFIG_EKF2_TERRAIN)
 # if defined(CONFIG_EKF2_RANGE_FINDER)
@@ -1529,7 +1534,9 @@ void EKF2::PublishInnovationTestRatios(const hrt_abstime &timestamp)
 	_ekf.getBetaInnovRatio(test_ratios.beta);
 #endif // CONFIG_EKF2_SIDESLIP
 
+#if defined(CONFIG_EKF2_GRAVITY_FUSION)
 	_ekf.getGravityInnovRatio(test_ratios.gravity[0]);
+#endif // CONFIG_EKF2_GRAVITY_FUSION
 
 #if defined(CONFIG_EKF2_TERRAIN)
 # if defined(CONFIG_EKF2_RANGE_FINDER)
@@ -1594,7 +1601,9 @@ void EKF2::PublishInnovationVariances(const hrt_abstime &timestamp)
 # endif // CONFIG_EKF2_OPTICAL_FLOW
 #endif // CONFIG_EKF2_TERRAIN && CONFIG_EKF2_RANGE_FINDER
 
+#if defined(CONFIG_EKF2_GRAVITY_FUSION)
 	_ekf.getGravityInnovVar(variances.gravity);
+#endif // CONFIG_EKF2_GRAVITY_FUSION
 
 	// Not yet supported
 	variances.aux_vvel = NAN;
