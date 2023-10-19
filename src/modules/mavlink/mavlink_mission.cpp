@@ -1561,6 +1561,7 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 	mavlink_mission_item->frame = mission_item->frame;
 	mavlink_mission_item->command = mission_item->nav_cmd;
 	mavlink_mission_item->autocontinue = mission_item->autocontinue;
+	mavlink_mission_item->mission_type = _mission_type;
 
 	/* default mappings for generic commands */
 	if (mission_item->frame == MAV_FRAME_MISSION) {
