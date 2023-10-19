@@ -114,7 +114,7 @@ These boards are maintained to be compatible with PX4-Autopilot by the Manufactu
 
 ### Community supported
 
-These boards don't fully comply industry standards, and thus is solely maintained by the PX4 publc community members.
+These boards don't fully comply industry standards, and thus is solely maintained by the PX4 public community members.
 
 ### Experimental
 
