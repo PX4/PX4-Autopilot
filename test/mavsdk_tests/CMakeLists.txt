@@ -36,6 +36,8 @@ if(MAVSDK_FOUND)
         ${CMAKE_THREAD_LIBS_INIT}
     )
 
+    target_include_directories(mavsdk_tests PUBLIC ${CMAKE_BINARY_DIR}/..)
+
     target_compile_options(mavsdk_tests
         PRIVATE
             -Wall
