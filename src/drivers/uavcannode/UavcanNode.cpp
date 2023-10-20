@@ -455,32 +455,6 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 	_log_message_sub.registerCallback();
 
 	bus_events.registerSignalCallback(UavcanNode::busevent_signal_trampoline);
-
-	const int can_init_res = _can->init((uint32_t)_bitrate);
-
-	if (can_init_res < 0) {
-		PX4_ERR("CAN driver init failed %i", can_init_res);
-	}
-
-	int rv = _node.start();
-
-	if (rv < 0) {
-		PX4_ERR("Failed to start the node");
-	}
-
-	// If the node_id was not supplied by the bootloader do Dynamic Node ID allocation
-
-	if (_node.getNodeID() == 0) {
-
-		int client_start_res = _dyn_node_id_client.start(
-					       _node.getHardwareVersion().unique_id,    // USING THE SAME UNIQUE ID AS ABOVE
-					       _node.getNodeID());
-
-		if (client_start_res < 0) {
-			PX4_ERR("Failed to start the dynamic node ID client");
-		}
-	}
-
 	return 1;
 }
 
@@ -505,7 +479,43 @@ void UavcanNode::Run()
 
 	watchdog_pet();
 
-	if (!_initialized) {
+	switch (_init_state) {
+
+	case Booted: {
+
+			const int can_init_res = _can->init((uint32_t)_bitrate);
+
+			if (can_init_res < 0) {
+				PX4_ERR("CAN driver init failed %i", can_init_res);
+			}
+
+			int rv = _node.start();
+
+			if (rv < 0) {
+				PX4_ERR("Failed to start the node");
+			}
+
+			// If the node_id was not supplied by the bootloader do Dynamic Node ID allocation
+
+			if (_node.getNodeID() != 0) {
+				_init_state = Allocated;
+
+			} else {
+
+				_init_state = Allocation;
+
+				int client_start_res = _dyn_node_id_client.start(
+							       _node.getHardwareVersion().unique_id,    // USING THE SAME UNIQUE ID AS ABOVE
+							       _node.getNodeID());
+
+				if (client_start_res < 0) {
+					PX4_ERR("Failed to start the dynamic node ID client");
+				}
+			}
+		}
+		break;
+
+	case  Allocation:
 
 		/*
 		 * Waiting for the client to obtain a node ID.
@@ -516,9 +526,14 @@ void UavcanNode::Run()
 			PX4_INFO("Got node ID %d", _dyn_node_id_client.getAllocatedNodeID().get());
 
 			_node.setNodeID(_dyn_node_id_client.getAllocatedNodeID());
+			_init_state = Allocated;
 		}
 
+		break;
+
+	case  Allocated:
 		if (_node.getNodeID() != 0) {
+
 			up_time = hrt_absolute_time();
 			get_node().setRestartRequestHandler(&restart_request_handler);
 			_param_server.start(&_param_manager);
@@ -530,13 +545,16 @@ void UavcanNode::Run()
 				PX4_ERR("Failed to start time_sync_slave");
 				_task_should_exit.store(true);
 			}
-
-			_node.getLogger().setLevel(uavcan::protocol::debug::LogLevel::DEBUG);
-
-			_node.setModeOperational();
-
-			_initialized = true;
 		}
+
+		_node.getLogger().setLevel(uavcan::protocol::debug::LogLevel::DEBUG);
+
+		_node.setModeOperational();
+
+		_init_state = Done;
+
+	default:
+		break;
 	}
 
 	perf_begin(_cycle_perf);
