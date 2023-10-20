@@ -42,6 +42,9 @@
 namespace atmosphere
 {
 
+// NOTE: We are currently only modelling the first layer of the US Standard Atmosphere 1976.
+// This means that the functions are only valid up to an altitude of 11km.
+
 /**
 * Calculate air density given air pressure and temperature.
 *
