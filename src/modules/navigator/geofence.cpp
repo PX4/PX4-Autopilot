@@ -98,6 +98,8 @@ void Geofence::_updateFence()
 
 	// iterate over all polygons and store their starting vertices
 	_num_polygons = 0;
+	_has_rtl_action = false;
+	_action_required = false;
 	int current_seq = 1;
 
 	while (current_seq <= num_fence_items) {
@@ -152,6 +154,7 @@ void Geofence::_updateFence()
 				PolygonInfo &polygon = _polygons[_num_polygons];
 				polygon.dataman_index = current_seq;
 				polygon.fence_type = mission_fence_point.nav_cmd;
+				polygon.fence_action = mission_fence_point.fence_action;
 
 				if (is_circle_area) {
 					polygon.circle_radius = mission_fence_point.circle_radius;
@@ -160,6 +163,14 @@ void Geofence::_updateFence()
 				} else {
 					polygon.vertex_count = mission_fence_point.vertex_count;
 					current_seq += mission_fence_point.vertex_count;
+				}
+
+				if (geofence_result_s::GF_ACTION_RTL == polygon.fence_action) {
+					_has_rtl_action = true;
+				}
+
+				if (!_action_required && (polygon.fence_action > geofence_result_s::GF_ACTION_NONE)) {
+					_action_required = true;
 				}
 
 				++_num_polygons;
@@ -172,7 +183,6 @@ void Geofence::_updateFence()
 			++current_seq;
 			break;
 		}
-
 	}
 
 }
@@ -335,49 +345,55 @@ bool Geofence::isInsidePolygonOrCircle(double lat, double lon, float altitude)
 	}
 
 
-	/* Horizontal check: iterate all polygons & circles */
-	bool outside_exclusion = true;
-	bool inside_inclusion = false;
-	bool had_inclusion_areas = false;
+	/* Horizontal check: iterate all polygons & circles.
+	Search for a breached fence with the highest severity. */
+	bool inside_fence = true;
 
 	for (int polygon_index = 0; polygon_index < _num_polygons; ++polygon_index) {
+
+		bool polygon_breached = false;
+
 		if (_polygons[polygon_index].fence_type == NAV_CMD_FENCE_CIRCLE_INCLUSION) {
 			bool inside = insideCircle(_polygons[polygon_index], lat, lon, altitude);
 
-			if (inside) {
-				inside_inclusion = true;
+			if (!inside) {
+				polygon_breached = true;
 			}
-
-			had_inclusion_areas = true;
 
 		} else if (_polygons[polygon_index].fence_type == NAV_CMD_FENCE_CIRCLE_EXCLUSION) {
 			bool inside = insideCircle(_polygons[polygon_index], lat, lon, altitude);
 
 			if (inside) {
-				outside_exclusion = false;
+				polygon_breached = true;
 			}
 
 		} else { // it's a polygon
 			bool inside = insidePolygon(_polygons[polygon_index], lat, lon, altitude);
 
 			if (_polygons[polygon_index].fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION) {
-				if (inside) {
-					inside_inclusion = true;
+				if (!inside) {
+					polygon_breached = true;
 				}
-
-				had_inclusion_areas = true;
 
 			} else { // exclusion
 				if (inside) {
-					outside_exclusion = false;
+					polygon_breached = true;
 				}
+			}
+		}
+
+		if (polygon_breached) {
+			inside_fence = false;
+
+			if (_breached_fence_action < _polygons[polygon_index].fence_action) {
+				_breached_fence_action = _polygons[polygon_index].fence_action;
 			}
 		}
 	}
 
 	dm_unlock(DM_KEY_FENCE_POINTS);
 
-	return (!had_inclusion_areas || inside_inclusion) && outside_exclusion;
+	return inside_fence;
 }
 
 bool Geofence::insidePolygon(const PolygonInfo &polygon, double lat, double lon, float altitude)
@@ -595,9 +611,8 @@ bool Geofence::isHomeRequired()
 {
 	bool max_horizontal_enabled = (_param_gf_max_hor_dist.get() > FLT_EPSILON);
 	bool max_vertical_enabled = (_param_gf_max_ver_dist.get() > FLT_EPSILON);
-	bool geofence_action_rtl = (getGeofenceAction() == geofence_result_s::GF_ACTION_RTL);
 
-	return max_horizontal_enabled || max_vertical_enabled || geofence_action_rtl;
+	return max_horizontal_enabled || max_vertical_enabled || _has_rtl_action;
 }
 
 void Geofence::printStatus()

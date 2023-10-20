@@ -801,7 +801,6 @@ void Navigator::run()
 void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 {
 	if (have_geofence_position_data &&
-	    (_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_NONE) &&
 	    (hrt_elapsed_time(&_last_geofence_check) > GEOFENCE_CHECK_INTERVAL_US)) {
 
 		const position_controller_status_s &pos_ctrl_status = _position_controller_status_sub.get();
@@ -870,6 +869,7 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 
 		_geofence_result.timestamp = hrt_absolute_time();
 		_geofence_result.geofence_action = _geofence.getGeofenceAction();
+		_geofence_result.action_required = _geofence.isActionRequired();
 		_geofence_result.home_required = _geofence.isHomeRequired();
 
 		if (gf_violation_type.value) {

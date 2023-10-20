@@ -48,6 +48,7 @@
 #include <lib/geo/geo.h>
 #include <px4_platform_common/defines.h>
 #include <uORB/Subscription.hpp>
+#include <uORB/topics/geofence_result.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
@@ -139,12 +140,13 @@ public:
 	bool isEmpty() { return _num_polygons == 0; }
 
 	int getSource() { return _param_gf_source.get(); }
-	int getGeofenceAction() { return _param_gf_action.get(); }
+	uint8_t getGeofenceAction() { return _breached_fence_action; }
 
 	float getMaxHorDistanceHome() { return _param_gf_max_hor_dist.get(); }
 	float getMaxVerDistanceHome() { return _param_gf_max_ver_dist.get(); }
 	bool getPredict() { return _param_gf_predict.get(); }
 
+	bool isActionRequired() { return _action_required; }
 	bool isHomeRequired();
 
 	/**
@@ -155,7 +157,8 @@ public:
 private:
 
 	struct PolygonInfo {
-		uint16_t fence_type; ///< one of MAV_CMD_NAV_FENCE_* (can also be a circular region)
+		uint16_t fence_type;	///< one of MAV_CMD_NAV_FENCE_* (can also be a circular region)
+		uint8_t fence_action; 	///< fence action when this fence is breached
 		uint16_t dataman_index;
 		union {
 			uint16_t vertex_count;
@@ -173,6 +176,8 @@ private:
 	float _altitude_max{0.0f};
 
 	int _num_polygons{0};
+	bool _has_rtl_action{false}; ///< at least one of the fences has GF_ACTION_RTL
+	bool _action_required{false}; ///< flag indicating if a fence with an action different than GF_ACTION_NONE exists
 
 	MapProjection _projection_reference{}; ///< class to convert (lon, lat) to local [m]
 
@@ -180,6 +185,8 @@ private:
 
 	int _outside_counter{0};
 	uint16_t _update_counter{0}; ///< dataman update counter: if it does not match, we polygon data was updated
+
+	uint8_t _breached_fence_action{geofence_result_s::GF_ACTION_NONE}; ///< Most severe fence action from the breached fence
 
 	/**
 	 * implementation of updateFence(), but without locking
@@ -217,7 +224,6 @@ private:
 	bool insideCircle(const PolygonInfo &polygon, double lat, double lon, float altitude);
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::GF_ACTION>)         _param_gf_action,
 		(ParamInt<px4::params::GF_ALTMODE>)        _param_gf_altmode,
 		(ParamInt<px4::params::GF_SOURCE>)         _param_gf_source,
 		(ParamInt<px4::params::GF_COUNT>)          _param_gf_count,

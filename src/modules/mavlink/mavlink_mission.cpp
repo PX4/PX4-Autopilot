@@ -317,6 +317,7 @@ MavlinkMissionManager::send_mission_item(uint8_t sysid, uint8_t compid, uint16_t
 			mission_item.lat = mission_fence_point.lat;
 			mission_item.lon = mission_fence_point.lon;
 			mission_item.altitude = mission_fence_point.alt;
+			mission_item.fence_action = static_cast<float>(mission_fence_point.fence_action);
 
 			if (mission_fence_point.nav_cmd == MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION ||
 			    mission_fence_point.nav_cmd == MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION) {
@@ -1143,6 +1144,7 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 				mission_fence_point.lat = mission_item.lat;
 				mission_fence_point.lon = mission_item.lon;
 				mission_fence_point.alt = mission_item.altitude;
+				mission_fence_point.fence_action = static_cast<uint8_t>(mission_item.fence_action);
 
 				if (mission_item.nav_cmd == MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION ||
 				    mission_item.nav_cmd == MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION) {
@@ -1450,12 +1452,14 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 		case MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION:
 			mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
 			mission_item->vertex_count = (uint16_t)(mavlink_mission_item->param1 + 0.5f);
+			mission_item->fence_action = mavlink_mission_item->param3;
 			break;
 
 		case MAV_CMD_NAV_FENCE_CIRCLE_INCLUSION:
 		case MAV_CMD_NAV_FENCE_CIRCLE_EXCLUSION:
 			mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
 			mission_item->circle_radius = mavlink_mission_item->param1;
+			mission_item->fence_action = mavlink_mission_item->param3;
 			break;
 
 		case MAV_CMD_NAV_RALLY_POINT:
@@ -1733,11 +1737,13 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 		case MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION:
 		case MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION:
 			mavlink_mission_item->param1 = (float)mission_item->vertex_count;
+			mavlink_mission_item->param3 = (float)mission_item->fence_action;
 			break;
 
 		case MAV_CMD_NAV_FENCE_CIRCLE_INCLUSION:
 		case MAV_CMD_NAV_FENCE_CIRCLE_EXCLUSION:
 			mavlink_mission_item->param1 = mission_item->circle_radius;
+			mavlink_mission_item->param3 = (float)mission_item->fence_action;
 			break;
 
 		case MAV_CMD_NAV_RALLY_POINT:

@@ -44,27 +44,6 @@
  */
 
 /**
- * Geofence violation action.
- *
- * Note: Setting this value to 4 enables flight termination,
- * which will kill the vehicle on violation of the fence.
- * Due to the inherent danger of this, this function is
- * disabled using a software circuit breaker, which needs
- * to be reset to 0 to really shut down the system.
- *
- * @min 0
- * @max 5
- * @value 0 None
- * @value 1 Warning
- * @value 2 Hold mode
- * @value 3 Return mode
- * @value 4 Terminate
- * @value 5 Land mode
- * @group Geofence
- */
-PARAM_DEFINE_INT32(GF_ACTION, 2);
-
-/**
  * Geofence altitude mode
  *
  * Select which altitude (AMSL) source should be used for geofence calculations.

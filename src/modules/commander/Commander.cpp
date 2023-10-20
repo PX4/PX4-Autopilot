@@ -721,7 +721,7 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 			return TRANSITION_DENIED;
 		}
 
-		if ((_param_geofence_action.get() == geofence_result_s::GF_ACTION_RTL)
+		if ((_geofence_result.home_required)
 		    && !_status_flags.home_position_valid) {
 			mavlink_log_critical(&_mavlink_log_pub, "Arming denied: Geofence RTL requires valid home\t");
 			events::send(events::ID("commander_arm_denied_geofence_rtl"),
@@ -2166,7 +2166,7 @@ Commander::run()
 			_arm_requirements.esc_check = _param_escs_checks_required.get();
 			_arm_requirements.global_position = !_param_arm_without_gps.get();
 			_arm_requirements.mission = _param_arm_mission_required.get();
-			_arm_requirements.geofence = _param_geofence_action.get() > geofence_result_s::GF_ACTION_NONE;
+			_arm_requirements.geofence = _geofence_result.action_required;
 
 			_auto_disarm_killed.set_hysteresis_time_from(false, _param_com_kill_disarm.get() * 1_s);
 			_offboard_available.set_hysteresis_time_from(true, _param_com_of_loss_t.get() * 1_s);
@@ -2544,7 +2544,7 @@ Commander::run()
 		    && !in_low_battery_failsafe_delay) {
 
 			// check for geofence violation transition
-			if (_geofence_result.geofence_violated && !_geofence_violated_prev) {
+			if (_geofence_result.geofence_violated && _geofence_action_prev != _geofence_result.geofence_action) {
 
 				switch (_geofence_result.geofence_action) {
 				case (geofence_result_s::GF_ACTION_NONE) : {
@@ -2602,7 +2602,7 @@ Commander::run()
 				}
 			}
 
-			_geofence_violated_prev = _geofence_result.geofence_violated;
+			_geofence_action_prev = _geofence_result.geofence_action;
 
 			// reset if no longer in LOITER or if manually switched to LOITER
 			const bool in_loiter_mode = _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER;
@@ -2635,7 +2635,7 @@ Commander::run()
 			_geofence_rtl_on = false;
 			_geofence_land_on = false;
 			_geofence_warning_action_on = false;
-			_geofence_violated_prev = false;
+			_geofence_action_prev = geofence_result_s::GF_ACTION_NONE;
 		}
 
 		/* Check for mission flight termination */

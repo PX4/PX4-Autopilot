@@ -265,9 +265,6 @@ private:
 		(ParamInt<px4::params::CBRK_VELPOSERR>) _param_cbrk_velposerr,
 		(ParamInt<px4::params::CBRK_VTOLARMING>) _param_cbrk_vtolarming,
 
-		// Geofence
-		(ParamInt<px4::params::GF_ACTION>) _param_geofence_action,
-
 		// Mavlink
 		(ParamInt<px4::params::MAV_COMP_ID>) _param_mav_comp_id,
 		(ParamInt<px4::params::MAV_SYS_ID>) _param_mav_sys_id,
@@ -319,7 +316,7 @@ private:
 	bool		_geofence_rtl_on{false};
 	bool		_geofence_land_on{false};
 	bool		_geofence_warning_action_on{false};
-	bool		_geofence_violated_prev{false};
+	uint8_t		_geofence_action_prev{geofence_result_s::GF_ACTION_NONE};
 
 	bool		_rtl_time_actions_done{false};
 
