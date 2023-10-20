@@ -220,6 +220,12 @@ void AutopilotTester::wait_until_altitude(float rel_altitude_m, std::chrono::sec
 	REQUIRE(fut.wait_for(timeout) == std::future_status::ready);
 }
 
+void AutopilotTester::wait_until_fixedwing(std::chrono::seconds timeout)
+{
+	REQUIRE(poll_condition_with_timeout(
+	[this]() { return _telemetry->vtol_state() == Telemetry::VtolState::Fw; }, timeout));
+}
+
 void AutopilotTester::prepare_square_mission(MissionOptions mission_options)
 {
 	const auto ct = get_coordinate_transformation();
