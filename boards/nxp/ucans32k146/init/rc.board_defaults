@@ -12,3 +12,5 @@ if param compare -s CYPHAL_ENABLE 1
 then
     cyphal start
 fi
+
+rgbled_ncp5623c start -X -a 56
