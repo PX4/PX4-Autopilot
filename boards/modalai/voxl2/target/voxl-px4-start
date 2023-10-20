@@ -121,7 +121,7 @@ param touch SYS_AUTOCONFIG
 if param greater MODAL_IO_CONFIG 0
 then
 	qshell modal_io start
-elif param greater MODAL_PWM_CONFIG 0 || "$RC" == "M0065_SBUS"
+elif param greater MODAL_PWM_CONFIG 0 || [ "$RC" == "M0065_SBUS" ]
 then
     qshell modal_pwm start
 fi
@@ -137,7 +137,7 @@ elif [ "$RC" == "CRSF_MAV" ]; then
     /bin/echo "Starting TBS crossfire RC - MAV Mode"
     qshell mavlink_rc_in start -m -p 7 -b 115200
 elif [ "$RC" == "M0065_SBUS" ]; then
-    /bin/echo "using modal_pwm"
+    /bin/echo "Using modal_pwm"
     # /bin/echo "Starting DSP M0065 SBUS RC driver"
     # qshell dsp_sbus start
 elif [ "$RC" == "SPEKTRUM" ]; then

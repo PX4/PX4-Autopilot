@@ -94,6 +94,7 @@ int ModalPWM::load_params(modal_pwm_params_t *params, ch_assign_t *map)
 	
 	param_get(param_find("MODAL_PWM_CONFIG"),  &params->config);
 	param_get(param_find("MODAL_PWM_BAUD"),    &params->baud_rate);
+	param_get(param_find("RC_INPUT_PROTO"),    &params->param_rc_input_proto);
 
 	param_get(param_find("MODAL_PWM_FUNC1"),  &params->function_map[0]);
 	param_get(param_find("MODAL_PWM_FUNC2"),  &params->function_map[1]);
@@ -153,20 +154,21 @@ bool ModalPWM::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 					       _fb_idx,
 					       cmd.buf,
 					       sizeof(cmd.buf));
-
-	// if (_pwm_on){
+	/*
+	if (_pwm_on){
 	// Debug messages for PWM 400Hz values sent to M0065  
-	// 	uint16_t tics_1 = (900 +  (1200*((double)outputs[0]/800))) * 24;
-	// 	PX4_INFO("\tPWM CH1: %hu::%uus::%u tics", outputs[0], tics_1/24, tics_1);
-	// 	uint16_t tics_2 = (900 +  (1200*((double)outputs[1]/800))) * 24;
-	// 	PX4_INFO("\tPWM CH2: %u::%uus::%u tics", outputs[1], tics_2/24, tics_2);
-	// 	uint16_t tics_3 = (900 +  (1200*((double)outputs[2]/800))) * 24;
-	// 	PX4_INFO("\tPWM CH3: %u::%uus::%u tics", outputs[2], tics_3/24, tics_3);
-	// 	uint16_t tics_4 = (900 +  (1200*((double)outputs[3]/800))) * 24;
-	// 	PX4_INFO("\tPWM CH4: %u::%uus::%u tics", outputs[3], tics_4/24, tics_4);
-	// 	PX4_INFO("");
-	// }
-
+		uint16_t tics_1 = (900 +  (1200*((double)outputs[0]/800))) * 24;
+		PX4_INFO("\tPWM CH1: %hu::%uus::%u tics", outputs[0], tics_1/24, tics_1);
+		uint16_t tics_2 = (900 +  (1200*((double)outputs[1]/800))) * 24;
+		PX4_INFO("\tPWM CH2: %u::%uus::%u tics", outputs[1], tics_2/24, tics_2);
+		uint16_t tics_3 = (900 +  (1200*((double)outputs[2]/800))) * 24;
+		PX4_INFO("\tPWM CH3: %u::%uus::%u tics", outputs[2], tics_3/24, tics_3);
+		uint16_t tics_4 = (900 +  (1200*((double)outputs[3]/800))) * 24;
+		PX4_INFO("\tPWM CH4: %u::%uus::%u tics", outputs[3], tics_4/24, tics_4);
+		PX4_INFO("");
+	}
+	*/
+	
 	if (_uart_port->uart_write(cmd.buf, cmd.len) != cmd.len) {
 		PX4_ERR("Failed to send packet");
 		return false;
@@ -215,19 +217,19 @@ int ModalPWM::read_response(Command *out_cmd)
 void ModalPWM::fill_rc_in(uint16_t raw_rc_count_local,
 		    uint16_t raw_rc_values_local[input_rc_s::RC_INPUT_MAX_CHANNELS],
 		    hrt_abstime now, bool frame_drop, bool failsafe,
-		    unsigned frame_drops, int rssi = -1)
+		    unsigned frame_drops, int rssi, input_rc_s &input_rc)
 {
 	// fill rc_in struct for publishing
-	_rc_in.channel_count = raw_rc_count_local;
+	input_rc.channel_count = raw_rc_count_local;
 
-	if (_rc_in.channel_count > input_rc_s::RC_INPUT_MAX_CHANNELS) {
-		_rc_in.channel_count = input_rc_s::RC_INPUT_MAX_CHANNELS;
+	if (input_rc.channel_count > input_rc_s::RC_INPUT_MAX_CHANNELS) {
+		input_rc.channel_count = input_rc_s::RC_INPUT_MAX_CHANNELS;
 	}
 
 	unsigned valid_chans = 0;
 
-	for (unsigned i = 0; i < _rc_in.channel_count; i++) {
-		_rc_in.values[i] = raw_rc_values_local[i];
+	for (unsigned i = 0; i < input_rc.channel_count; i++) {
+		input_rc.values[i] = raw_rc_values_local[i];
 
 		if (raw_rc_values_local[i] != UINT16_MAX) {
 			valid_chans++;
@@ -237,41 +239,29 @@ void ModalPWM::fill_rc_in(uint16_t raw_rc_count_local,
 		_raw_rc_values[i] = UINT16_MAX;
 	}
 
-	_rc_in.timestamp = now;
-	_rc_in.timestamp_last_signal = _rc_in.timestamp;
-	_rc_in.rc_ppm_frame_length = 0;
+	input_rc.timestamp = now;
+	input_rc.timestamp_last_signal = input_rc.timestamp;
+	input_rc.rc_ppm_frame_length = 0;
 
 	/* fake rssi if no value was provided */
 	if (rssi == -1) {
-		if ((_param_rc_rssi_pwm_chan.get() > 0) && (_param_rc_rssi_pwm_chan.get() < _rc_in.channel_count)) {
-			const int32_t rssi_pwm_chan = _param_rc_rssi_pwm_chan.get();
-			const int32_t rssi_pwm_min = _param_rc_rssi_pwm_min.get();
-			const int32_t rssi_pwm_max = _param_rc_rssi_pwm_max.get();
-
-			// get RSSI from input channel
-			int rc_rssi = ((_rc_in.values[rssi_pwm_chan - 1] - rssi_pwm_min) * 100) / (rssi_pwm_max - rssi_pwm_min);
-			_rc_in.rssi = math::constrain(rc_rssi, 0, 100);
-
-		} else {
-			_rc_in.rssi = 255;
-		}
-
+		input_rc.rssi = 255;
 	} else {
-		_rc_in.rssi = rssi;
+		input_rc.rssi = rssi;
 	}
 
 	if (valid_chans == 0) {
-		_rc_in.rssi = 0;
+		input_rc.rssi = 0;
 	}
 
 	if (frame_drops){
 		_sbus_frame_drops++;
 	}
 
-	_rc_in.rc_failsafe = failsafe;
-	_rc_in.rc_lost = _rc_in.rc_failsafe;
-	_rc_in.rc_lost_frame_count = _sbus_frame_drops;
-	_rc_in.rc_total_frame_count = ++_sbus_total_frames;
+	input_rc.rc_failsafe = failsafe;
+	input_rc.rc_lost = input_rc.rc_failsafe;
+	input_rc.rc_lost_frame_count = _sbus_frame_drops;
+	input_rc.rc_total_frame_count = ++_sbus_total_frames;
 }
 
 int ModalPWM::receive_sbus()
@@ -289,12 +279,13 @@ int ModalPWM::receive_sbus()
 				break;
 			} 
 
+			input_rc_s input_rc;
 			uint16_t num_values;
 			bool sbus_failsafe;
 			bool sbus_frame_drop;
 			uint16_t max_channels = sizeof(_raw_rc_values) / sizeof(_raw_rc_values[0]);
 			hrt_abstime now = hrt_absolute_time();
-			bool rc_updated = sbus_parse(now, &_read_buf[3], SBUS_FRAME_SIZE, _raw_rc_values, &num_values,
+			bool rc_updated = sbus_parse(now, &_read_buf[SBUS_PAYLOAD], SBUS_FRAME_SIZE, _raw_rc_values, &num_values,
 						&sbus_failsafe, &sbus_frame_drop, &_sbus_frame_drops, max_channels);
 	
 			if (rc_updated) {
@@ -309,20 +300,21 @@ int ModalPWM::receive_sbus()
 					_raw_rc_values[15], _raw_rc_values[16], _raw_rc_values[17]
 					);
 				*/
-				_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4IO_SBUS;
-				fill_rc_in(num_values, _raw_rc_values, now, sbus_frame_drop, sbus_failsafe, _sbus_frame_drops);
-				if (!_rc_in.rc_lost && !_rc_in.rc_failsafe) {
-					_rc_last_valid = _rc_in.timestamp;
+				input_rc.input_source = input_rc_s::RC_INPUT_SOURCE_PX4IO_SBUS;
+				fill_rc_in(num_values, _raw_rc_values, now, sbus_frame_drop, sbus_failsafe, _sbus_frame_drops, -1, input_rc);
+				if (!input_rc.rc_lost && !input_rc.rc_failsafe) {
+					_rc_last_valid = input_rc.timestamp;
 				}
 
-				_rc_in.timestamp_last_signal =_rc_last_valid;
-				_rc_pub.publish(_rc_in);
+				input_rc.timestamp_last_signal =_rc_last_valid;
+				_rc_pub.publish(input_rc);
 
 				_bytes_received+=res;
 				_packets_received++;
 				read_succeeded = 1;
 				break;
 			} else {
+				read_retries--;
 				PX4_ERR("Failed to decode SBUS packet");
 				// PX4_ERR("[%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x]",
 				// 	_read_buf[0], _read_buf[1], _read_buf[2], _read_buf[3], _read_buf[4], _read_buf[5], 
@@ -331,7 +323,6 @@ int ModalPWM::receive_sbus()
 				// 	_read_buf[18], _read_buf[19], _read_buf[20], _read_buf[21], _read_buf[22], _read_buf[23], 
 				// 	_read_buf[24], _read_buf[25], _read_buf[26], _read_buf[27], _read_buf[28], _read_buf[29]
 				// 	);
-				read_retries--;
 			}
 
 			if (sbus_frame_drop) {
@@ -397,7 +388,7 @@ void ModalPWM::Run()
 		}
 	}
 
-	// Receive SBUS... maybe hide behind some param?
+	// Check for SBUS packets
 	receive_sbus();
 
 	_mixing_output.update(); //calls MixingOutput::limitAndUpdateOutputs which calls updateOutputs in this module
@@ -479,7 +470,7 @@ int ModalPWM::task_spawn(int argc, char *argv[])
 
 	_object.store(instance);
 	_task_id = task_id_is_work_queue;
-	instance->ScheduleNow();
+	instance->ScheduleOnInterval(_current_update_interval);
 	return 0;
 }
 
@@ -668,17 +659,15 @@ int ModalPWM::custom_command(int argc, char *argv[])
 
 int ModalPWM::print_status()
 {
+	PX4_INFO("Max update rate: %u Hz", 1000000/_current_update_interval);
 	PX4_INFO("PWM Rate: %i Hz", _current_update_rate);
 	PX4_INFO("Outputs on: %s", _pwm_on ? "yes" : "no");
 	PX4_INFO("RC Type: SBUS");
-	PX4_INFO("RC Connected: %s", _rc_in.rc_lost ? "no" : "yes");
+	PX4_INFO("RC Connected: %s", hrt_absolute_time() - _rc_last_valid > 500000 ? "no" : "yes");
 	PX4_INFO("RC Packets Received: %" PRIu16, _sbus_total_frames);
 	PX4_INFO("UART port: %s", _device);
 	PX4_INFO("UART open: %s", _uart_port->is_open() ? "yes" : "no");
 	PX4_INFO("Packets sent: %" PRIu32, _packets_sent);
-	PX4_INFO("Bytes Sent: %" PRIu32, _bytes_sent);
-	PX4_INFO("Packets Received: %" PRIu32, _packets_received);
-	PX4_INFO("Bytes Received: %" PRIu32, _bytes_received);
 	PX4_INFO("");
 	PX4_INFO("Params: MODAL_PWM_CONFIG: %" PRId32, _parameters.config);
 	PX4_INFO("Params: MODAL_PWM_BAUD: %" PRId32, _parameters.baud_rate);

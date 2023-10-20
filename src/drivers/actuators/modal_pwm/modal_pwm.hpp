@@ -106,7 +106,7 @@ public:
 	void fill_rc_in(uint16_t raw_rc_count_local,
 		    uint16_t raw_rc_values_local[input_rc_s::RC_INPUT_MAX_CHANNELS],
 		    hrt_abstime now, bool frame_drop, bool failsafe,
-		    unsigned frame_drops, int rssi);
+		    unsigned frame_drops, int rssi, input_rc_s &input_rc);
 private:
 	void Run() override;
 	bool stop_all_pwms();
@@ -128,6 +128,10 @@ private:
 
 	/* SBUS */
 	static constexpr uint16_t QC_SBUS_FRAME_SIZE = 30;
+	static constexpr uint16_t SBUS_PAYLOAD = 3;
+
+	/* Module update interval */
+	static constexpr unsigned	_current_update_interval{4000}; // 250 Hz
 
 	const char *_device = MODAL_PWM_DEFAULT_PORT;
 
@@ -137,6 +141,8 @@ private:
 		int32_t		pwm_min{MODAL_PWM_DEFAULT_PWM_MIN};
 		int32_t		pwm_max{MODAL_PWM_DEFAULT_PWM_FAILSAFE};
 		int32_t		pwm_failsafe{MODAL_PWM_DEFAULT_PWM_MAX};
+		int32_t 	param_rc_input_proto{0};
+		int32_t		param_rc_rssi_pwm_chan{0};
 		int32_t		function_map[MODAL_PWM_OUTPUT_CHANNELS] {0, 0, 0, 0};
 		int32_t		motor_map[MODAL_PWM_OUTPUT_CHANNELS] {1, 2, 3, 4};
 		int32_t		verbose_logging{0};
@@ -151,7 +157,6 @@ private:
 	unsigned		_current_update_rate{0};
 
 	/* RC input */
-	input_rc_s	_rc_in;
 	uint64_t _rc_last_valid;		// last valid timestamp
 	uint16_t _raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS] {UINT16_MAX};
 	unsigned _sbus_frame_drops{0};
@@ -186,14 +191,6 @@ private:
 	uint32_t		_bytes_received{0};
 	uint32_t		_packets_sent{0};
 	uint32_t		_packets_received{0};
-
-
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::RC_RSSI_PWM_CHAN>) _param_rc_rssi_pwm_chan,
-		(ParamInt<px4::params::RC_RSSI_PWM_MIN>) _param_rc_rssi_pwm_min,
-		(ParamInt<px4::params::RC_RSSI_PWM_MAX>) _param_rc_rssi_pwm_max,
-		(ParamInt<px4::params::RC_INPUT_PROTO>) _param_rc_input_proto
-	)
 
 	int	load_params(modal_pwm_params_t *params, ch_assign_t *map);
 	void update_params();
