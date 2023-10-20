@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015, 2023 PX4 Development Team. All rights reserved.
  *       Author: Ben Dyer <ben_dyer@mac.com>
  *               Pavel Kirienko <pavel.kirienko@zubax.com>
  *               David Sidrane <david_s5@nscdg.com>
@@ -170,6 +170,42 @@ typedef begin_packed_struct struct app_descriptor_t {
  ****************************************************************************/
 
 int bootloader_app_shared_read(bootloader_app_shared_t *shared, eRole_t role);
+
+/****************************************************************************
+ * Name: optional board_app_shared_read
+ *
+ * Description:
+ *   When using the SocketCAN drivers. The OS brings up the CAN interface
+ *   and will overwrite the data passed in the physical locations used
+ *   to transfer the shared data to/from an application (internal data)
+ *   Therfore the board's <arch>_board_initialize function must call
+ *   bootloader_app_shared_read and cache the results.
+ *
+ *   Based on the role requested, this function will conditionally populate
+ *   a bootloader_app_shared_t structure from cached results saved by
+ *   <arch>_board_initialize at boot.
+ *
+ *   The functions will only populate the structure and return a status
+ *   indicating success, if the internal data has the correct signature as
+ *   requested by the Role AND has a valid crc.
+ *
+ * Input Parameters:
+ *   shared - A pointer to a bootloader_app_shared_t return the data in if
+ *   the internal data is valid for the requested Role
+ *   role   - An eRole_t of App or BootLoader to validate the internal data
+ *            against. For a Bootloader this would be the value of App to
+ *            read the application passed data.
+ *
+ * Returned value:
+ *   OK     - Indicates that the internal data has been copied to callers
+ *            bootloader_app_shared_t structure.
+ *
+ *  -EBADR  - The Role or crc of the internal data was not valid. The copy
+ *            did not occur.
+ *
+ ****************************************************************************/
+
+int weak_function board_app_shared_read(bootloader_app_shared_t *shared, eRole_t role);
 
 /****************************************************************************
  * Name: bootloader_app_shared_write
