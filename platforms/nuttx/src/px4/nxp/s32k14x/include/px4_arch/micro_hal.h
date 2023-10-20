@@ -116,10 +116,14 @@ int s32k1xx_gpiosetevent(uint32_t pinset, bool risingedge, bool fallingedge, boo
 #define TIMER_HRT_CYCLES_PER_US (STM32_HCLK_FREQUENCY/1000000)
 #define TIMER_HRT_CYCLES_PER_MS (STM32_HCLK_FREQUENCY/1000)
 
-#define crc_HiLOC       S32K1XX_CAN0_RXIMR27
-#define crc_LoLOC       S32K1XX_CAN0_RXIMR28
-#define signature_LOC   S32K1XX_CAN0_RXIMR29
-#define bus_speed_LOC   S32K1XX_CAN0_RXIMR30
-#define node_id_LOC     S32K1XX_CAN0_RXIMR31
+#define crc_HiLOC       S32K1XX_CAN0_RXIMR(27)
+#define crc_LoLOC       S32K1XX_CAN0_RXIMR(28)
+#define signature_LOC   S32K1XX_CAN0_RXIMR(29)
+#define bus_speed_LOC   S32K1XX_CAN0_RXIMR(30)
+#define node_id_LOC     S32K1XX_CAN0_RXIMR(31)
+
+#define shared_unlock()  do { modreg32(CAN_MCR_FRZ|CAN_MCR_HALT, CAN_MCR_FRZ|CAN_MCR_HALT, S32K1XX_CAN0_MCR); up_udelay(1000);} while (0);
+#define shared_lock()    do { modreg32(0, CAN_MCR_FRZ|CAN_MCR_HALT,S32K1XX_CAN0_MCR ); } while (0);
+
 
 __END_DECLS
