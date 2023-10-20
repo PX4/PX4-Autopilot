@@ -48,6 +48,13 @@
 
 #include <lib/crc/crc.h>
 
+#if !defined(shared_lock)
+#  define shared_lock()
+#endif
+#if !defined(shared_unlock)
+#  define shared_unlock()
+#endif
+
 #define BOOTLOADER_COMMON_APP_SIGNATURE         0xB0A04150u
 #define BOOTLOADER_COMMON_BOOTLOADER_SIGNATURE  0xB0A0424Cu
 
@@ -56,20 +63,24 @@
 
 inline static void read_shared(bootloader_app_shared_t *pshared)
 {
+	shared_unlock();
 	pshared->signature = getreg32(signature_LOC);
 	pshared->bus_speed = getreg32(bus_speed_LOC);
 	pshared->node_id = getreg32(node_id_LOC);
 	pshared->crc.ul[CRC_L] = getreg32(crc_LoLOC);
 	pshared->crc.ul[CRC_H] = getreg32(crc_HiLOC);
+	shared_lock();
 }
 
 inline static void write_shared(bootloader_app_shared_t *pshared)
 {
+	shared_unlock();
 	putreg32(pshared->signature, signature_LOC);
 	putreg32(pshared->bus_speed, bus_speed_LOC);
 	putreg32(pshared->node_id, node_id_LOC);
 	putreg32(pshared->crc.ul[CRC_L], crc_LoLOC);
 	putreg32(pshared->crc.ul[CRC_H], crc_HiLOC);
+	shared_lock();
 }
 
 static uint64_t calulate_signature(bootloader_app_shared_t *pshared)
