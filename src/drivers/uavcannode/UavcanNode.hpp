@@ -152,7 +152,7 @@ private:
 
 	px4::atomic_bool	_task_should_exit{false};	///< flag to indicate to tear down the CAN driver
 
-	bool		_initialized{false};		///< number of actuators currently available
+	enum {Booted, Interfaced, Allocation, Allocated,  Done}		_init_state{Booted};		///< State of the boot.
 
 	static UavcanNode	*_instance;			///< singleton pointer
 
