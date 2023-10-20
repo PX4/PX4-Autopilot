@@ -743,8 +743,15 @@ extern "C" int uavcannode_start(int argc, char *argv[])
 	int32_t node_id = 0;
 
 	// Did the bootloader auto baud and get a node ID Allocated
+	int valid = -1;
 	bootloader_app_shared_t shared;
-	int valid = bootloader_app_shared_read(&shared, BootLoader);
+
+	if (board_app_shared_read) {
+		valid = board_app_shared_read(&shared, BootLoader);
+
+	} else {
+		valid = bootloader_app_shared_read(&shared, BootLoader);
+	}
 
 	if (valid == 0) {
 
