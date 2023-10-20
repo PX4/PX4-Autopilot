@@ -192,10 +192,9 @@ void VehicleAirData::Run()
 					// pressure corrected with offset (if available)
 					_calibration[uorb_index].SensorCorrectionsUpdate();
 					const float pressure_corrected = _calibration[uorb_index].Correct(report.pressure);
+					const float pressure_sealevel_pa = _param_sens_baro_qnh.get() * 100.f;
 
-					float data_array[3] {pressure_corrected, report.temperature, getAltitudeFromPressure(pressure_corrected,
-							     _param_sens_baro_qnh.get() * 100.f)
-							    };
+					float data_array[3] {pressure_corrected, report.temperature, getAltitudeFromPressure(pressure_corrected, pressure_sealevel_pa)};
 					_voter.put(uorb_index, report.timestamp, data_array, report.error_count, _priority[uorb_index]);
 
 					_timestamp_sample_sum[uorb_index] += report.timestamp_sample;
@@ -256,7 +255,8 @@ void VehicleAirData::Run()
 						const float pressure_pa = _data_sum[instance] / _data_sum_count[instance];
 						const float temperature = _temperature_sum[instance] / _data_sum_count[instance];
 
-						float altitude = getAltitudeFromPressure(pressure_pa, _param_sens_baro_qnh.get() * 100.f);
+						const float pressure_sealevel_pa = _param_sens_baro_qnh.get() * 100.f;
+						const float altitude = getAltitudeFromPressure(pressure_pa, pressure_sealevel_pa);
 
 						// calculate air density
 						const float air_density = getDensityFromPressureAndTemp(pressure_pa, temperature);
