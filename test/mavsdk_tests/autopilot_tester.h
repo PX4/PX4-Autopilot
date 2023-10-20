@@ -39,6 +39,7 @@
 #include <mavsdk/plugins/failure/failure.h>
 #include <mavsdk/plugins/info/info.h>
 #include <mavsdk/plugins/manual_control/manual_control.h>
+#include <mavsdk/plugins/mavlink_passthrough/mavlink_passthrough.h>
 #include <mavsdk/plugins/mission/mission.h>
 #include <mavsdk/plugins/mission_raw/mission_raw.h>
 #include <mavsdk/plugins/offboard/offboard.h>
@@ -48,6 +49,7 @@
 #include <atomic>
 #include <chrono>
 #include <ctime>
+#include <functional>
 #include <iostream>
 #include <memory>
 #include <optional>
@@ -143,6 +145,9 @@ public:
 	void stop_checking_altitude();
 	void check_current_altitude(float target_rel_altitude_m, float max_distance_m = 1.5f);
 	void execute_rtl_when_reaching_mission_sequence(int sequence_number);
+	void send_custom_mavlink_command(const MavlinkPassthrough::CommandInt &command);
+	void send_custom_mavlink_message(mavlink_message_t &message);
+	void add_mavlink_message_callback(uint16_t message_id, std::function< void(const mavlink_message_t &)> callback);
 
 	// Blocking call to get the drone's current position in NED frame
 	std::array<float, 3> get_current_position_ned();
@@ -156,8 +161,11 @@ protected:
 	mavsdk::Param *getParams() const { return _param.get();}
 	mavsdk::Telemetry *getTelemetry() const { return _telemetry.get();}
 	mavsdk::ManualControl *getManualControl() const { return _manual_control.get();}
+	MavlinkPassthrough *getMavlinkPassthrough() const { return _mavlink_passthrough.get();}
 	std::shared_ptr<System> get_system() { return _mavsdk.systems().at(0);}
-	Telemetry::GroundTruth getHome()
+	mavsdk::geometry::CoordinateTransformation get_coordinate_transformation();
+
+	const Telemetry::GroundTruth &getHome()
 	{
 		// Check if home was stored before it is accessed
 		CHECK(_home.absolute_altitude_m != NAN);
@@ -192,7 +200,6 @@ protected:
 	}
 
 private:
-	mavsdk::geometry::CoordinateTransformation get_coordinate_transformation();
 	mavsdk::Mission::MissionItem create_mission_item(
 		const mavsdk::geometry::CoordinateTransformation::LocalCoordinate &local_coordinate,
 		const MissionOptions &mission_options,
@@ -274,6 +281,7 @@ private:
 	std::unique_ptr<mavsdk::Failure> _failure{};
 	std::unique_ptr<mavsdk::Info> _info{};
 	std::unique_ptr<mavsdk::ManualControl> _manual_control{};
+	std::unique_ptr<MavlinkPassthrough> _mavlink_passthrough;
 	std::unique_ptr<mavsdk::Mission> _mission{};
 	std::unique_ptr<mavsdk::MissionRaw> _mission_raw{};
 	std::unique_ptr<mavsdk::Offboard> _offboard{};

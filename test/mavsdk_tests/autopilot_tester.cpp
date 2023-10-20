@@ -76,6 +76,7 @@ void AutopilotTester::connect(const std::string uri)
 	_offboard.reset(new Offboard(system));
 	_param.reset(new Param(system));
 	_telemetry.reset(new Telemetry(system));
+	_mavlink_passthrough.reset(new MavlinkPassthrough(system));
 }
 
 void AutopilotTester::wait_until_ready()
@@ -641,6 +642,22 @@ void AutopilotTester::execute_rtl_when_reaching_mission_sequence(int sequence_nu
 {
 	start_and_wait_for_mission_sequence_raw(sequence_number);
 	execute_rtl();
+}
+
+void AutopilotTester::send_custom_mavlink_command(const MavlinkPassthrough::CommandInt &command)
+{
+	_mavlink_passthrough->send_command_int(command);
+}
+
+void AutopilotTester::send_custom_mavlink_message(mavlink_message_t &message)
+{
+	_mavlink_passthrough->send_message(message);
+}
+
+void AutopilotTester::add_mavlink_message_callback(uint16_t message_id,
+		std::function< void(const mavlink_message_t &)> callback)
+{
+	_mavlink_passthrough->subscribe_message_async(message_id, std::move(callback));
 }
 
 std::array<float, 3> AutopilotTester::get_current_position_ned()
