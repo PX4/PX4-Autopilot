@@ -3,3 +3,19 @@ menuconfig DRIVERS_PCA9685_PWM_OUT
 	default n
 	---help---
 		Enable support for pca9685_pwm_out
+
+if DRIVERS_PCA9685_PWM_OUT
+	config PCA9685_USE_EXTERNAL_CRYSTAL
+	    bool "Use external crystal for clock reference"
+	    default n
+
+    config PCA9685_EXTERNAL_CRYSTAL_FREQ
+        int "External crystal frequency"
+        depends on PCA9685_USE_EXTERNAL_CRYSTAL
+        default 25000000
+
+    config PCA9685_INTERNAL_CRYSTAL_FREQ
+        int "Corrected frequency of internal oscillator"
+        depends on !PCA9685_USE_EXTERNAL_CRYSTAL
+        default 26075000
+endif
