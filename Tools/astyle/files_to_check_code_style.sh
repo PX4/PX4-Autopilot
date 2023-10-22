@@ -28,5 +28,5 @@ exec find boards msg src platforms test \
     -path src/modules/uxrce_dds_client/Micro-XRCE-DDS-Client -prune -o \
     -path src/lib/cdrstream/cyclonedds -prune -o \
     -path src/lib/cdrstream/rosidl -prune -o \
-    -path src/drivers/zenoh/zenoh-pico -prune -o \
+    -path src/modules/zenoh/zenoh-pico -prune -o \
     -type f \( -name "*.c" -o -name "*.h" -o -name "*.cpp" -o -name "*.hpp" \) | grep $PATTERN
