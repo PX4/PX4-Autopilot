@@ -42,6 +42,8 @@
 #include "PerformanceModel.h"
 #include <lib/atmosphere/atmosphere.h>
 
+using namespace atmosphere;
+
 // air density of standard athmosphere at 5000m above mean sea level [kg/m^3]
 static constexpr float kAirDensityStandardAtmos5000Amsl = 0.7363f;
 
