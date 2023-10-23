@@ -461,6 +461,7 @@ PARAM_DEFINE_INT32(MC_INJECT_CNT, 12);
  * Starting frequency
  *
  * @decimal 2
+ * @unit Hz
  * @group Multicopter Rate Control
  */
 PARAM_DEFINE_FLOAT(MC_INJECT_START, 3.0f);
@@ -469,6 +470,7 @@ PARAM_DEFINE_FLOAT(MC_INJECT_START, 3.0f);
  * Frequency increment
  *
  * @decimal 2
+ * @unit Hz
  * @group Multicopter Rate Control
  */
 PARAM_DEFINE_FLOAT(MC_INJECT_INC, 1.0f);
@@ -482,6 +484,25 @@ PARAM_DEFINE_FLOAT(MC_INJECT_INC, 1.0f);
  * @group Multicopter Rate Control
  */
 PARAM_DEFINE_FLOAT(MC_INJECT_AMP, 0.05f);
+
+/**
+ * Time in seconds for each sine injection
+ *
+ * @decimal 2
+ * @unit s
+ * @group Multicopter Rate Control
+ */
+PARAM_DEFINE_FLOAT(MC_INJECT_SINE_T, 5.0f);
+
+/**
+ * Time in seconds between each sine injection
+ *
+ * @decimal 2
+ * @unit s
+ * @group Multicopter Rate Control
+ */
+PARAM_DEFINE_FLOAT(MC_INJECT_REST_T, 1.0f);
+
 
 /**
  * Thrust curve in Acro Mode

@@ -183,6 +183,8 @@ private:
 		(ParamFloat<px4::params::MC_INJECT_START>) _param_mc_inject_start,
 		(ParamFloat<px4::params::MC_INJECT_INC>) _param_mc_inject_inc,
 		(ParamFloat<px4::params::MC_INJECT_AMP>) _param_mc_inject_amp,
+		(ParamFloat<px4::params::MC_INJECT_SINE_T>) _param_mc_inject_sine_t,
+		(ParamFloat<px4::params::MC_INJECT_REST_T>) _param_mc_inject_rest_t,
 
 		(ParamFloat<px4::params::MPC_MANTHR_MIN>)   _param_mpc_manthr_min,      /**< minimum throttle for stabilized and acro*/
 		(ParamFloat<px4::params::MPC_THR_MAX>)      _param_mpc_thr_max,         /**< maximum throttle for stabilized and acro*/
