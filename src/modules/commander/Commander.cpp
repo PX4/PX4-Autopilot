@@ -1760,6 +1760,7 @@ void Commander::executeActionRequest(const action_request_s &action_request)
 		if (arm_disarm_reason == arm_disarm_reason_t::rc_switch && !_armed.manual_lockdown) {
 			const char kill_switch_string[] = "Kill-switch engaged\t";
 			events::LogLevels log_levels{events::Log::Info};
+			set_tune(tune_control_s::TUNE_ID_BATTERY_WARNING_FAST);  // Edu added for BVLOS compliance
 
 			if (_vehicle_land_detected.landed) {
 				mavlink_log_info(&_mavlink_log_pub, kill_switch_string);
