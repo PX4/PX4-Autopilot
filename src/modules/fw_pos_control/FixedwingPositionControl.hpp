@@ -49,7 +49,7 @@
 
 #include "launchdetection/LaunchDetector.h"
 #include "runway_takeoff/RunwayTakeoff.h"
-#include "modules/fw_pos_control/performance_model/PerformanceModel.h"
+#include <lib/fw_performance_model/PerformanceModel.h>
 
 #include <float.h>
 
