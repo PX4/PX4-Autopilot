@@ -35,7 +35,10 @@
 
 #include "autopilot_tester.h"
 
+#include <vector>
+
 #include <mavsdk/mavsdk.h>
+#include <mavsdk/geometry.h>
 #include <mavsdk/plugins/action/action.h>
 
 
@@ -46,10 +49,25 @@ public:
 	~AutopilotTesterRtl() = default;
 
 	void set_rtl_type(int rtl_type);
+	void set_rtl_appr_force(int rtl_appr_force);
 	void set_takeoff_land_requirements(int req);
+	void add_home_to_rally_point();
+	void add_home_with_approaches_to_rally_point();
+	void add_local_rally_point(mavsdk::geometry::CoordinateTransformation::LocalCoordinate local_coordinate);
+	void add_local_rally_with_approaches_point(mavsdk::geometry::CoordinateTransformation::LocalCoordinate
+			local_coordinate);
 	void connect(const std::string uri);
+	void check_rally_point_within(float acceptance_radius_m);
+	void check_rtl_approaches(float acceptance_radius_m, std::chrono::seconds timeout);
+	/* NOTE mavsdk mission upload should be used when possible. Only use this when uploading a mission which is not yet suppported by mavsdk.
+	 * Used here to to test the new way of uploading approaches for rally points. */
+	void upload_custom_mission(std::chrono::seconds timeout);
 
 
 private:
+	void add_approaches_to_point(mavsdk::geometry::CoordinateTransformation::LocalCoordinate local_coordinate);
+
 	std::unique_ptr<mavsdk::Failure> _failure{};
+	std::vector<mavlink_mission_item_int_t> _custom_mission{};
+	std::vector<mavsdk::geometry::CoordinateTransformation::LocalCoordinate> _rally_points{};
 };
