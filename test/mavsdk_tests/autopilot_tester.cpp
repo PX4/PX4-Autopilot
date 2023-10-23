@@ -604,6 +604,22 @@ void AutopilotTester::check_tracks_mission_raw(float corridor_radius_m, bool rev
 	});
 }
 
+void AutopilotTester::check_mission_land_within(float acceptance_radius_m)
+{
+	auto mission_raw = _mission_raw->download_mission();
+	CHECK(mission_raw.first == MissionRaw::Result::Success);
+
+	// Get last mission item
+	MissionRaw::MissionItem land_mission_item = mission_raw.second.back();
+	bool is_landing_item = (land_mission_item.command == 85) || (land_mission_item.command == 21);
+	CHECK(is_landing_item);
+	Telemetry::GroundTruth land_coord{};
+	land_coord.latitude_deg = static_cast<double>(land_mission_item.x) / 1E7;
+	land_coord.longitude_deg = static_cast<double>(land_mission_item.y) / 1E7;
+
+	CHECK(ground_truth_horizontal_position_close_to(land_coord, acceptance_radius_m));
+}
+
 void AutopilotTester::check_tracks_mission(float corridor_radius_m)
 {
 	auto mission = _mission->download_mission();

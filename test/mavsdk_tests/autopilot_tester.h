@@ -141,6 +141,7 @@ public:
 	void check_mission_item_speed_above(int item_index, float min_speed_m_s);
 	void check_tracks_mission(float corridor_radius_m = 1.5f);
 	void check_tracks_mission_raw(float corridor_radius_m = 1.f, bool reverse = false);
+	void check_mission_land_within(float acceptance_radius_m);
 	void start_checking_altitude(const float max_deviation_m);
 	void stop_checking_altitude();
 	void check_current_altitude(float target_rel_altitude_m, float max_distance_m = 1.5f);
@@ -164,6 +165,7 @@ protected:
 	MavlinkPassthrough *getMavlinkPassthrough() const { return _mavlink_passthrough.get();}
 	std::shared_ptr<System> get_system() { return _mavsdk.systems().at(0);}
 	mavsdk::geometry::CoordinateTransformation get_coordinate_transformation();
+	bool ground_truth_horizontal_position_close_to(const Telemetry::GroundTruth &target_pos, float acceptance_radius_m);
 
 	const Telemetry::GroundTruth &getHome()
 	{
@@ -205,7 +207,6 @@ private:
 		const MissionOptions &mission_options,
 		const mavsdk::geometry::CoordinateTransformation &ct);
 
-	bool ground_truth_horizontal_position_close_to(const Telemetry::GroundTruth &target_pos, float acceptance_radius_m);
 	bool ground_truth_horizontal_position_far_from(const Telemetry::GroundTruth &target_pos, float min_distance_m);
 	bool estimated_position_close_to(const Offboard::PositionNedYaw &target_pos, float acceptance_radius_m);
 	bool estimated_horizontal_position_close_to(const Offboard::PositionNedYaw &target_pos, float acceptance_radius_m);
