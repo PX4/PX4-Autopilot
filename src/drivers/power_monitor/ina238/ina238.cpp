@@ -139,12 +139,12 @@ int INA238::probe()
 {
 	uint16_t value{0};
 
-	if (read(INA238_MANUFACTURER_ID, value) != PX4_OK || value != INA238_MFG_ID_TI) {
+	if (RegisterRead(Register::MANUFACTURER_ID, value) != PX4_OK || value != INA238_MFG_ID_TI) {
 		PX4_DEBUG("probe mfgid %d", value);
 		return -1;
 	}
 
-	if (read(INA238_DEVICE_ID, value) != PX4_OK || (
+	if (RegisterRead(Register::DEVICE_ID, value) != PX4_OK || (
 		    INA238_DEVICEID(value) != INA238_MFG_DIE
 	    )) {
 		PX4_DEBUG("probe die id %d", value);
@@ -173,7 +173,7 @@ int INA238::Reset()
 	}
 
 	// Start ADC continous mode here
-	ret = write(INA238_REG_ADCCONFIG, (uint16_t)INA238_ADCCONFIG);
+	ret = write((uint16_t)_register_cfg[1].reg, (uint16_t)_register_cfg[1].set_bits);
 
 	return ret;
 }
@@ -225,8 +225,8 @@ int INA238::collect()
 	int16_t bus_voltage{0};
 	int16_t current{0};
 
-	success = success && (read(INA238_REG_VSBUS, bus_voltage) == PX4_OK);
-	success = success && (read(INA238_REG_CURRENT, current) == PX4_OK);
+	success = (RegisterRead(Register::VS_BUS, (uint16_t &)bus_voltage) == PX4_OK);
+	success = success && (RegisterRead(Register::CURRENT, (uint16_t &)current) == PX4_OK);
 
 	if (!success || hrt_elapsed_time(&_last_config_check_timestamp) > 100_ms) {
 		// check configuration registers periodically or immediately following any failure
@@ -248,7 +248,7 @@ int INA238::collect()
 	}
 
 	_battery.setConnected(success);
-	_battery.updateVoltage(static_cast<float>(bus_voltage));
+	_battery.updateVoltage(static_cast<float>(bus_voltage * INA238_VSCALE));
 	_battery.updateCurrent(static_cast<float>(current * _current_lsb));
 	_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
 

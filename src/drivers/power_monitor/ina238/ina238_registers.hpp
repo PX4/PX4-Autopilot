@@ -13,6 +13,10 @@ enum class Register : uint8_t {
 	CONFIG = 0x00, // Configuration Register
 	ADCCONFIG = 0x01, // ADC Configuration Register
 	SHUNT_CAL = 0x02, // Shunt Calibration Register
+	VS_BUS = 0x05,
+	CURRENT = 0x07,
+	MANUFACTURER_ID = 0x3e,
+	DEVICE_ID = 0x3f
 };
 
 enum CONFIG_BIT : uint16_t {
