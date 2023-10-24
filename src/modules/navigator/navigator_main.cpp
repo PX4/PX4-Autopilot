@@ -717,6 +717,7 @@ void Navigator::run()
 			// If we are already in mission landing, do not switch.
 			if (_navigation_mode == &_mission && _mission.isLanding()) {
 				navigation_mode_new = &_mission;
+				break;
 
 			} else {
 				_pos_sp_triplet_published_invalid_once = false;
