@@ -2184,7 +2184,7 @@ void EKF2::PublishOpticalFlowVel(const hrt_abstime &timestamp)
 {
 	const hrt_abstime timestamp_sample = _ekf.aid_src_optical_flow().timestamp_sample;
 
-	if ((timestamp_sample != 0) && (timestamp_sample > _status_optical_flow_pub_last)) {
+	if ((timestamp_sample != 0) && (timestamp_sample > _optical_flow_vel_pub_last)) {
 
 		vehicle_optical_flow_vel_s flow_vel{};
 		flow_vel.timestamp_sample = _ekf.aid_src_optical_flow().timestamp_sample;
@@ -2205,6 +2205,8 @@ void EKF2::PublishOpticalFlowVel(const hrt_abstime &timestamp)
 		flow_vel.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 
 		_estimator_optical_flow_vel_pub.publish(flow_vel);
+
+		_optical_flow_vel_pub_last = timestamp_sample;
 	}
 }
 #endif // CONFIG_EKF2_OPTICAL_FLOW
