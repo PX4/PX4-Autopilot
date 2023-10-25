@@ -81,13 +81,16 @@ fi
 if ver hwtypecmp ARKV6X000001 ARKV6X001001 ARKV6X002001 ARKV6X003001 ARKV6X004001 ARKV6X005001 ARKV6X006001 ARKV6X007001
 then
 	# Internal SPI bus IIM42653 with SPIX measured frequency of 32.051kHz
-	iim42653 -R 3 -s -b 1 -C 32051 start
+	#iim42653 -R 3 -s -b 1 -C 32051 start
+	iim42653 -R 3 -s -b 1 start
 
 	# Internal SPI bus IIM42653 with SPIX measured frequency of 32.051kHz
-	iim42653 -R 9 -s -b 2 -C 32051 start
+	#iim42653 -R 9 -s -b 2 -C 32051 start
+	iim42653 -R 9 -s -b 2 start
 
 	# Internal SPI bus IIM42653 with SPIX measured frequency of 32.051kHz
-	iim42653 -R 6 -s -b 3 -C 32051 start
+	#iim42653 -R 6 -s -b 3 -C 32051 start
+	iim42653 -R 6 -s -b 3 start
 fi
 
 # Internal magnetometer on I2C
