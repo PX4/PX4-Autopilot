@@ -32,15 +32,13 @@
 ############################################################################
 
 
-add_subdirectory(../imxrt/adc adc)
+add_subdirectory(adc)
 add_subdirectory(../imxrt/board_critmon board_critmon)
 add_subdirectory(../imxrt/board_hw_info board_hw_info)
 add_subdirectory(../imxrt/board_reset board_reset)
 #add_subdirectory(../imxrt/dshot dshot)
 add_subdirectory(../imxrt/hrt hrt)
 add_subdirectory(../imxrt/led_pwm led_pwm)
-add_subdirectory(../imxrt/io_pins io_pins)
-add_subdirectory(../imxrt/tone_alarm tone_alarm)
+add_subdirectory(io_pins)
+#add_subdirectory(../imxrt/tone_alarm tone_alarm)
 add_subdirectory(../imxrt/version version)
-
-add_subdirectory(px4io_serial)
