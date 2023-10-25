@@ -283,7 +283,7 @@ uint32_t io_timer_channel_get_gpio_output(unsigned channel)
 	}
 
 	return timer_io_channels[channel].gpio_portpin | (GPIO_OUTPUT | GPIO_OUTPUT_ZERO | IOMUX_CMOS_OUTPUT | IOMUX_PULL_KEEP
-			| IOMUX_DRIVE_33OHM  | IOMUX_SPEED_MEDIUM | IOMUX_SLEW_FAST);
+			| IOMUX_SLEW_FAST);
 	return 0;
 }
 
