@@ -47,14 +47,29 @@ typedef struct {
 	int hi;
 } lh_t;
 
-const lh_t port_to_irq[9] = {
-	{_IMXRT_GPIO1_0_15_BASE, _IMXRT_GPIO1_16_31_BASE}, {_IMXRT_GPIO2_0_15_BASE, _IMXRT_GPIO2_16_31_BASE},
-	{_IMXRT_GPIO3_0_15_BASE, _IMXRT_GPIO3_16_31_BASE}, {_IMXRT_GPIO4_0_15_BASE, _IMXRT_GPIO4_16_31_BASE},
-	{_IMXRT_GPIO5_0_15_BASE, _IMXRT_GPIO5_16_31_BASE}, {_IMXRT_GPIO6_0_15_BASE, _IMXRT_GPIO6_16_31_BASE},
-	{_IMXRT_GPIO7_0_15_BASE, _IMXRT_GPIO7_16_31_BASE}, {_IMXRT_GPIO8_0_15_BASE, _IMXRT_GPIO8_16_31_BASE},
-	{_IMXRT_GPIO9_0_15_BASE, _IMXRT_GPIO9_16_31_BASE},
+
+const lh_t port_to_irq[13] = {
+	{_IMXRT_GPIO1_0_15_BASE, _IMXRT_GPIO1_16_31_BASE},
+	{_IMXRT_GPIO2_0_15_BASE, _IMXRT_GPIO2_16_31_BASE},
+	{_IMXRT_GPIO3_0_15_BASE, _IMXRT_GPIO3_16_31_BASE},
+	{_IMXRT_GPIO4_0_15_BASE, _IMXRT_GPIO4_16_31_BASE},
+	{_IMXRT_GPIO5_0_15_BASE, _IMXRT_GPIO5_16_31_BASE},
+	{_IMXRT_GPIO6_0_15_BASE, _IMXRT_GPIO6_16_31_BASE},
+	{0, 0}, // GPIO7 Not on CM7
+	{0, 0}, // GPIO8 Not on CM7
+	{0, 0}, // GPIO9 Not on CM7
+	{0, 0}, // GPIO10 Not on CM7
+	{0, 0}, // GPIO11 Not on CM7
+	{0, 0}, // GPIO12 Not on CM7
+	{_IMXRT_GPIO13_BASE, _IMXRT_GPIO13_BASE},
 };
 
+static bool imxrt_pin_irq_valid(gpio_pinset_t pinset)
+{
+	int port   = (pinset & GPIO_PORT_MASK) >> GPIO_PORT_SHIFT;
+	lh_t irqlh = port_to_irq[port];
+	return (irqlh.low != 0 && irqlh.hi != 0);
+}
 /****************************************************************************
  * Name: imxrt_pin_irqattach
  *
@@ -75,15 +90,21 @@ const lh_t port_to_irq[9] = {
 
 static int imxrt_pin_irqattach(gpio_pinset_t pinset, xcpt_t func, void *arg)
 {
+	int rv = -EINVAL;
 	volatile int port   = (pinset & GPIO_PORT_MASK) >> GPIO_PORT_SHIFT;
 	volatile int pin    = (pinset & GPIO_PIN_MASK) >> GPIO_PIN_SHIFT;
 	volatile int irq;
 	lh_t irqlh = port_to_irq[port];
-	irq = (pin < 16) ? irqlh.low : irqlh.hi;
-	irq += pin % 16;
-	irq_attach(irq, func, arg);
-	up_enable_irq(irq);
-	return 0;
+
+	if (irqlh.low != 0 && irqlh.hi != 0) {
+		rv = OK;
+		irq = (pin < 16) ? irqlh.low : irqlh.hi;
+		irq += pin % 16;
+		irq_attach(irq, func, arg);
+		up_enable_irq(irq);
+	}
+
+	return rv;
 }
 
 /****************************************************************************
@@ -110,27 +131,29 @@ int imxrt_gpiosetevent(uint32_t pinset, bool risingedge, bool fallingedge,
 {
 	int ret = -ENOSYS;
 
-	if (func == NULL) {
-		imxrt_gpioirq_disable(pinset);
-		pinset &= ~GPIO_INTCFG_MASK;
-		ret = imxrt_config_gpio(pinset);
+	if (imxrt_pin_irq_valid(pinset)) {
+		if (func == NULL) {
+			imxrt_gpioirq_disable(pinset);
+			pinset &= ~GPIO_INTCFG_MASK;
+			ret = imxrt_config_gpio(pinset);
 
-	} else {
+		} else {
 
-		pinset &= ~GPIO_INTCFG_MASK;
+			pinset &= ~GPIO_INTCFG_MASK;
 
-		if (risingedge & fallingedge) {
-			pinset |= GPIO_INTBOTH_EDGES;
+			if (risingedge & fallingedge) {
+				pinset |= GPIO_INTBOTH_EDGES;
 
-		} else if (risingedge) {
-			pinset |= GPIO_INT_RISINGEDGE;
+			} else if (risingedge) {
+				pinset |= GPIO_INT_RISINGEDGE;
 
-		} else if (fallingedge) {
-			pinset |= GPIO_INT_FALLINGEDGE;
+			} else if (fallingedge) {
+				pinset |= GPIO_INT_FALLINGEDGE;
+			}
+
+			imxrt_gpioirq_configure(pinset);
+			ret = imxrt_pin_irqattach(pinset, func, arg);
 		}
-
-		imxrt_gpioirq_configure(pinset);
-		ret = imxrt_pin_irqattach(pinset, func, arg);
 	}
 
 	return ret;

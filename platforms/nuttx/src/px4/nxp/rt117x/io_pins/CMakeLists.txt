@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2016, 2019 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015-2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,27 +31,14 @@
 #
 ############################################################################
 
-px4_add_library(drivers_board
-	autoleds.c
-	automount.c
-	can.c
-	i2c.cpp
-	init.c
-	led.c
-	sdhc.c
-	spi.cpp
-	timer_config.cpp
-	usb.c
-	manifest.c
-	imxrt_flexspi_nor_boot.c
-	imxrt_flexspi_nor_flash.c
-)
+add_compile_options(
+	-Wno-unused-function
+	) # TODO: remove once io_timer_handlerX are used
 
-target_link_libraries(drivers_board
-	PRIVATE
-		arch_board_hw_info
-		drivers__led # drv_led_start
-		nuttx_arch # sdio
-		nuttx_drivers # sdio
-		px4_layer
+px4_add_library(arch_io_pins
+	../../imxrt/io_pins/io_timer.c
+	../../imxrt/io_pins/pwm_servo.c
+	../../imxrt/io_pins/pwm_trigger.c
+	../../imxrt/io_pins/input_capture.c
+	imxrt_pinirq.c
 )
