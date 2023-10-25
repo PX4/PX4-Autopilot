@@ -377,6 +377,7 @@ private:
 
 	uORB::PublicationMulti<estimator_aid_source2d_s> _estimator_aid_src_optical_flow_pub{ORB_ID(estimator_aid_src_optical_flow)};
 	hrt_abstime _status_optical_flow_pub_last{0};
+	hrt_abstime _optical_flow_vel_pub_last{0};
 
 	perf_counter_t _msg_missed_optical_flow_perf{nullptr};
 #endif // CONFIG_EKF2_OPTICAL_FLOW
