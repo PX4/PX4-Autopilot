@@ -35,11 +35,11 @@
 #include <board_config.h>
 
 #if !defined(HW_REV_VER_ADC_BASE)
-#  define HW_REV_VER_ADC_BASE IMXRT_ADC1_BASE
+#  define HW_REV_VER_ADC_BASE IMXRT_LPADC1_BASE
 #endif
 
 #if !defined(SYSTEM_ADC_BASE)
-#  define SYSTEM_ADC_BASE IMXRT_ADC1_BASE
+#  define SYSTEM_ADC_BASE IMXRT_LPADC1_BASE
 #endif
 
 #include <px4_platform/adc.h>
