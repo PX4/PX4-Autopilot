@@ -322,14 +322,7 @@ void RtlDirect::set_rtl_item()
 
 			_mission_item.land_precision = _param_rtl_pld_md.get();
 
-			if (_mission_item.land_precision == 1) {
-				_navigator->get_precland()->set_mode(PrecLandMode::Opportunistic);
-				_navigator->get_precland()->on_activation();
-
-			} else if (_mission_item.land_precision == 2) {
-				_navigator->get_precland()->set_mode(PrecLandMode::Required);
-				_navigator->get_precland()->on_activation();
-			}
+			startPrecLand(_mission_item.land_precision);
 
 			_rtl_state = RTLState::IDLE;
 
