@@ -415,6 +415,7 @@ private:
 
 	// nonlinear path following guidance - lateral-directional position control
 	NPFG _npfg;
+	bool _need_report_npfg_uncertain_condition{false}; ///< boolean if reporting of uncertain npfg output condition is needed
 
 	PerformanceModel _performance_model;
 
@@ -467,6 +468,13 @@ private:
 				 float throttle_trim);
 	void publishLocalPositionSetpoint(const position_setpoint_s &current_waypoint);
 	float getLoadFactor();
+
+	/**
+	 * @brief Get the NPFG roll setpoint with mitigation strategy if npfg is not certain about its output
+	 *
+	 * @return roll setpoint
+	 */
+	float getCorrectedNpfgRollSetpoint();
 
 	/**
 	 * @brief Sets the landing abort status and publishes landing status.
