@@ -110,6 +110,11 @@ for s in msg_map['subscriptions']:
 
 merged_em_globals['subscriptions'] = msg_map['subscriptions']
 
+for sm in msg_map['subscriptions_multi']:
+    process_message_type(sm)
+
+merged_em_globals['subscriptions_multi'] = msg_map['subscriptions_multi']
+
 merged_em_globals['type_includes'] = sorted(set(all_type_includes))
 
 
