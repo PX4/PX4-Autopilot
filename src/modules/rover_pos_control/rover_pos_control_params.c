@@ -165,6 +165,32 @@ PARAM_DEFINE_FLOAT(GND_THR_MIN, 0.0f);
 PARAM_DEFINE_INT32(GND_SP_CTRL_MODE, 1);
 
 /**
+ * Control mode for speed
+ *
+ * This allows the user to choose between PID control or direct throttle control to work with
+ * rover_interface
+ * @min 0
+ * @max 1
+ * @value 0 PID control
+ * @value 1 Direct control
+ * @group Rover Position Control
+ */
+PARAM_DEFINE_INT32(GND_VEL_CTRL, 0);
+
+/**
+ * Control mode for angular velocity
+ *
+ * Whether the angular velocity will be done with XY vel command difference, or the angular
+ * velocity commands are given directly either in yawspeed or _trajectory_setpoint.velocity(1)
+ * @min 0
+ * @max 1
+ * @value 0 Difference in XY vel commands
+ * @value 1 Raw input from controller
+ * @group Rover Position Control
+ */
+PARAM_DEFINE_INT32(GND_ANG_VEL_CTRL, 0);
+
+/**
  * Speed proportional gain
  *
  * This is the proportional gain for the speed closed loop controller
@@ -259,6 +285,42 @@ PARAM_DEFINE_FLOAT(GND_SPEED_TRIM, 3.0f);
  * @group Rover Position Control
  */
 PARAM_DEFINE_FLOAT(GND_SPEED_MAX, 10.0f);
+
+/**
+ * Velocity control acceleration limit
+ *
+ * @unit m/s^2
+ * @min 0.01
+ * @max 100.0
+ * @decimal 2
+ * @increment 0.05
+ * @group Rover Position Control
+ */
+PARAM_DEFINE_FLOAT(GND_ACC_LIMIT, 1.0f);
+
+/**
+ * Velocity control deceleration limit
+ *
+ * @unit m/s^2
+ * @min 0.005
+ * @max 100.0
+ * @decimal 2
+ * @increment 0.05
+ * @group Rover Position Control
+ */
+PARAM_DEFINE_FLOAT(GND_DEC_LIMIT, 1.0f);
+
+/**
+ * Limit the given angular velocity
+ *
+ * @unit rad/s
+ * @min 0.0
+ * @max 3.14159
+ * @decimal 3
+ * @increment 0.01
+ * @group Rover Position Control
+ */
+PARAM_DEFINE_FLOAT(GND_MAX_ANG_VEL, 0.4f);
 
 /**
  * Maximum turn angle for Ackerman steering.

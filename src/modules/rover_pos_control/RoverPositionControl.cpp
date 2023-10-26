@@ -204,7 +204,10 @@ RoverPositionControl::control_position(const matrix::Vector2d &current_position,
 	bool setpoint = true;
 
 	if ((_control_mode.flag_control_auto_enabled ||
-	     _control_mode.flag_control_offboard_enabled) && pos_sp_triplet.current.valid) {
+	     _control_mode.flag_control_offboard_enabled) &&
+			 pos_sp_triplet.current.valid &&
+			 PX4_ISFINITE(pos_sp_triplet.current.lat) &&
+			 PX4_ISFINITE(pos_sp_triplet.current.lon)) {
 		/* AUTONOMOUS FLIGHT */
 
 		_control_mode_current = UGV_POSCTRL_MODE_AUTO;
@@ -307,6 +310,9 @@ RoverPositionControl::control_position(const matrix::Vector2d &current_position,
 		_prev_wp = curr_wp;
 
 	} else {
+		// Other position control mode is not supported. Stop the rover.
+		_yaw_control = 0.0f;
+		_throttle_control = 0.0f;
 		_control_mode_current = UGV_POSCTRL_MODE_OTHER;
 		setpoint = false;
 	}
@@ -320,20 +326,43 @@ RoverPositionControl::control_velocity(const matrix::Vector3f &current_velocity)
 	const Vector3f desired_velocity{_trajectory_setpoint.velocity};
 	float dt = 0.01; // Using non zero value to a avoid division by zero
 
+	if (_control_velocity_last_called > 0) {
+		dt = hrt_elapsed_time(&_control_velocity_last_called) * 1e-6f;
+	}
+
+	_control_velocity_last_called = hrt_absolute_time();
+
 	const float mission_throttle = _param_throttle_cruise.get();
 	const float desired_speed = desired_velocity.norm();
+	float desired_angular_vel = PX4_ISFINITE(_trajectory_setpoint.yawspeed) ?  _trajectory_setpoint.yawspeed : desired_velocity(1);
 
-	if (desired_speed > 0.01f) {
+	if (desired_speed > 0.01f || desired_angular_vel > 0.01f) {
 		const Dcmf R_to_body(Quatf(_vehicle_att.q).inversed());
 		const Vector3f vel = R_to_body * Vector3f(current_velocity(0), current_velocity(1), current_velocity(2));
 
 		const float x_vel = vel(0);
 		const float x_acc = _vehicle_acceleration_sub.get().xyz[0];
+		float control_throttle = 0.0f;
+		float speed_error = desired_speed - x_vel;
 
-		const float control_throttle = pid_calculate(&_speed_ctrl, desired_speed, x_vel, x_acc, dt);
-
-		//Constrain maximum throttle to mission throttle
-		_throttle_control = math::constrain(control_throttle, 0.0f, mission_throttle);
+		if (_param_speed_control_mode.get() == 0) {
+			// Use PID control
+			control_throttle = pid_calculate(&_speed_ctrl, desired_speed, x_vel, x_acc, dt);
+			_throttle_control = math::constrain(control_throttle, 0.0f, mission_throttle);
+		} else if (_param_speed_control_mode.get() == 1) {
+			if (_param_ang_vel_control_mode.get() == 1) {
+				speed_error = desired_velocity(0) - x_vel;
+			}
+			// Use acc limited direct control
+			float max_delta_speed = (speed_error > 0 ? _param_speed_acc_limit.get() : _param_speed_dec_limit.get()) * dt;
+			// Compute the velocity with delta speed and constrain it to GND_SPEED_TRIM
+			float command_velocity = math::constrain(x_vel + math::constrain(speed_error, -max_delta_speed, max_delta_speed),
+				-_param_gndspeed_trim.get(), _param_gndspeed_trim.get());
+			// Compute the desired velocity and divide it by max speed to get the throttle control
+			control_throttle = command_velocity / _param_gndspeed_max.get();
+			// Still multiplying it with scaler to have the support for simulation. Real hw has 1.0 scaler as default
+			_throttle_control = control_throttle;
+		}
 
 		Vector3f desired_body_velocity;
 
@@ -344,12 +373,15 @@ RoverPositionControl::control_velocity(const matrix::Vector3f &current_velocity)
 			// If the frame of the velocity setpoint is unknown, assume it is in local frame
 			desired_body_velocity = R_to_body * desired_velocity;
 		}
-
-		const float desired_theta = atan2f(desired_body_velocity(1), desired_body_velocity(0));
-		float control_effort = desired_theta / _param_max_turn_angle.get();
-		control_effort = math::constrain(control_effort, -1.0f, 1.0f);
-
-		_yaw_control = control_effort;
+		if (_param_ang_vel_control_mode.get() == 0) {
+			// Determine yaw from XY vector
+			const float desired_theta = atan2f(desired_body_velocity(1), desired_body_velocity(0));
+			_throttle_control = math::constrain(desired_theta / _param_max_turn_angle.get(), -1.0f, 1.0f);
+		} else if (_param_ang_vel_control_mode.get() == 1) {
+			// Use direct yaw input from velocity setpoint
+			// Limit it to max anguler velocity
+			_throttle_control = math::constrain(desired_angular_vel, -_param_max_angular_velocity.get(), _param_max_angular_velocity.get());
+		}
 
 	} else {
 
@@ -414,14 +446,16 @@ RoverPositionControl::Run()
 
 			// Convert Local setpoints to global setpoints
 			if (_control_mode.flag_control_offboard_enabled) {
-				_trajectory_setpoint_sub.update(&_trajectory_setpoint);
+				//_trajectory_setpoint_sub.update(&_trajectory_setpoint);
+				if (_trajectory_setpoint_sub.update(&_trajectory_setpoint) &&
+						matrix::Vector3f(_trajectory_setpoint.position).isAllFinite()) {
+					// local -> global
+					_global_local_proj_ref.reproject(
+						_trajectory_setpoint.position[0], _trajectory_setpoint.position[1],
+						_pos_sp_triplet.current.lat, _pos_sp_triplet.current.lon);
 
-				// local -> global
-				_global_local_proj_ref.reproject(
-					_trajectory_setpoint.position[0], _trajectory_setpoint.position[1],
-					_pos_sp_triplet.current.lat, _pos_sp_triplet.current.lon);
-
-				_pos_sp_triplet.current.valid = true;
+					_pos_sp_triplet.current.valid = true;
+				}
 			}
 
 			// update the reset counters in any case
