@@ -279,6 +279,24 @@ protected:
 	 *
 	 */
 	void publish_navigator_mission_item();
+
+	/**
+	 * @brief Do need move to item
+	 *
+	 * @return true if the item is horizontally further away than the mission item
+	 * @return false otherwise
+	 */
+	bool do_need_move_to_item();
+
+	/**
+	 * @brief Handle landing
+	 *
+	 * @param new_work_item_type new work item type state machine to be set
+	 * @param next_mission_items the next mission items after the current mission item
+	 * @param num_found_items number of found next mission items
+	 */
+	void handleLanding(WorkItemType &new_work_item_type, mission_item_s next_mission_items[],
+			   size_t &num_found_items);
 	/**
 	 * @brief I position setpoint equal
 	 *

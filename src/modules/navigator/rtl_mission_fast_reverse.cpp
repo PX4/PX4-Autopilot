@@ -54,6 +54,8 @@ RtlMissionFastReverse::RtlMissionFastReverse(Navigator *navigator) :
 
 void RtlMissionFastReverse::on_activation()
 {
+	_home_pos_sub.update();
+
 	_is_current_planned_mission_item_valid = setMissionToClosestItem(_global_pos_sub.get().lat, _global_pos_sub.get().lon,
 			_global_pos_sub.get().alt, _home_pos_sub.get().alt, _vehicle_status_sub.get()) == PX4_OK;
 
@@ -69,12 +71,6 @@ void RtlMissionFastReverse::on_active()
 {
 	_home_pos_sub.update();
 	MissionBase::on_active();
-}
-
-void RtlMissionFastReverse::on_inactive()
-{
-	_home_pos_sub.update();
-	MissionBase::on_inactive();
 }
 
 bool RtlMissionFastReverse::setNextMissionItem()
@@ -227,7 +223,7 @@ void RtlMissionFastReverse::handleLanding(WorkItemType &new_work_item_type)
 			_mission_item.yaw = NAN;
 
 			if ((_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) &&
-			    do_need_move_to_land()) {
+			    do_need_move_to_item()) {
 				new_work_item_type = WorkItemType::WORK_ITEM_TYPE_MOVE_TO_LAND;
 
 				_mission_item.altitude = _global_pos_sub.get().alt;
@@ -247,15 +243,6 @@ void RtlMissionFastReverse::handleLanding(WorkItemType &new_work_item_type)
 			}
 		}
 	}
-}
-
-bool RtlMissionFastReverse::do_need_move_to_land()
-{
-	float d_current = get_distance_to_next_waypoint(_mission_item.lat, _mission_item.lon,
-			  _global_pos_sub.get().lat, _global_pos_sub.get().lon);
-
-	return d_current > _navigator->get_acceptance_radius();
-
 }
 
 rtl_time_estimate_s RtlMissionFastReverse::calc_rtl_time_estimate()
