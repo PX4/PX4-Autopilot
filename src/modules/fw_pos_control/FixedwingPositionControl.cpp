@@ -53,11 +53,11 @@ FixedwingPositionControl::FixedwingPositionControl(bool vtol) :
 	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
 	_attitude_sp_pub(vtol ? ORB_ID(fw_virtual_attitude_setpoint) : ORB_ID(vehicle_attitude_setpoint)),
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
-#ifdef CONFIG_FIGURE_OF_EIGHT
-	_figure_eight(_npfg, _wind_vel, _eas2tas),
-#endif // CONFIG_FIGURE_OF_EIGHT
 	_launchDetector(this),
 	_runway_takeoff(this)
+#ifdef CONFIG_FIGURE_OF_EIGHT
+	, _figure_eight(_npfg, _wind_vel, _eas2tas)
+#endif // CONFIG_FIGURE_OF_EIGHT
 {
 	if (vtol) {
 		_param_handle_airspeed_trans = param_find("VT_ARSP_TRANS");
@@ -1376,6 +1376,21 @@ FixedwingPositionControl::controlAutoFigureEight(const float control_interval, c
 
 	// Yaw
 	_att_sp.yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
+}
+
+void FixedwingPositionControl::publishFigureEightStatus(const position_setpoint_s pos_sp)
+{
+	figure_eight_status_s figure_eight_status{};
+	figure_eight_status.timestamp = hrt_absolute_time();
+	figure_eight_status.major_radius = pos_sp.loiter_radius * (pos_sp.loiter_direction_counter_clockwise ? -1.f : 1.f);
+	figure_eight_status.minor_radius = pos_sp.loiter_minor_radius;
+	figure_eight_status.orientation = pos_sp.loiter_orientation;
+	figure_eight_status.frame = 5; //MAV_FRAME_GLOBAL_INT
+	figure_eight_status.x = static_cast<int32_t>(pos_sp.lat * 1e7);
+	figure_eight_status.y = static_cast<int32_t>(pos_sp.lon * 1e7);
+	figure_eight_status.z = pos_sp.alt;
+
+	_figure_eight_status_pub.publish(figure_eight_status);
 }
 #endif // CONFIG_FIGURE_OF_EIGHT
 
@@ -2925,23 +2940,6 @@ void FixedwingPositionControl::publishOrbitStatus(const position_setpoint_s pos_
 	orbit_status.yaw_behaviour = orbit_status_s::ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TANGENT_TO_CIRCLE;
 	_orbit_status_pub.publish(orbit_status);
 }
-
-#ifdef CONFIG_FIGURE_OF_EIGHT
-void FixedwingPositionControl::publishFigureEightStatus(const position_setpoint_s pos_sp)
-{
-	figure_eight_status_s figure_eight_status{};
-	figure_eight_status.timestamp = hrt_absolute_time();
-	figure_eight_status.major_radius = pos_sp.loiter_radius * (pos_sp.loiter_direction_counter_clockwise ? -1.f : 1.f);
-	figure_eight_status.minor_radius = pos_sp.loiter_minor_radius;
-	figure_eight_status.orientation = pos_sp.loiter_orientation;
-	figure_eight_status.frame = 5; //MAV_FRAME_GLOBAL_INT
-	figure_eight_status.x = static_cast<int32_t>(pos_sp.lat * 1e7);
-	figure_eight_status.y = static_cast<int32_t>(pos_sp.lon * 1e7);
-	figure_eight_status.z = pos_sp.alt;
-
-	_figure_eight_status_pub.publish(figure_eight_status);
-}
-#endif // CONFIG_FIGURE_OF_EIGHT
 
 void FixedwingPositionControl::navigateWaypoints(const Vector2f &start_waypoint, const Vector2f &end_waypoint,
 		const Vector2f &vehicle_pos, const Vector2f &ground_vel, const Vector2f &wind_vel)

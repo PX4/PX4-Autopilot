@@ -17,4 +17,4 @@ menuconfig FIGURE_OF_EIGHT
 	depends on MODULES_FW_POS_CONTROL
 	---help---
 		Enable support for the figure of eight loitering pattern in fixed wing.
-		NOTE: this needs the development mavlink dialect.
+		NOTE: Enable Mavlink development support to get feedback message.
