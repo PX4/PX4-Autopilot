@@ -45,7 +45,6 @@
  * @max 1
  */
 PARAM_DEFINE_INT32(MODAL_PWM_CONFIG, 0);
-//  * @value 2 - oneshot125
 
 /**
  * UART M0065 baud rate
@@ -56,3 +55,26 @@ PARAM_DEFINE_INT32(MODAL_PWM_CONFIG, 0);
  * @unit bit/s
  */
 PARAM_DEFINE_INT32(MODAL_PWM_BAUD, 921600);
+
+/**
+ * M0065 PWM Min
+ *
+ * Minimum duration (microseconds) for M0065 PWM
+ *
+ * @min 0
+ * @max 2000
+ * @group MODAL PWM
+ * @unit us
+ */
+PARAM_DEFINE_INT32(MODAL_PWM_MIN, 1000);
+
+/**
+ * M0065 PWM Max
+ *
+ * Maximum duration (microseconds) for M0065 PWM
+ * @min 0
+ * @max 2000
+ * @group MODAL PWM
+ * @unit us
+ */
+PARAM_DEFINE_INT32(MODAL_PWM_MAX, 2000);

@@ -5,6 +5,10 @@ actuator_output:
     - param: 'MODAL_PWM_CONFIG'
       label: 'Configure'
       function: 'enable'
+    - param: 'MODAL_PWM_MIN'
+      label: 'PWM min value'
+    - param: 'MODAL_PWM_MAX'
+      label: 'PWM max value'
   output_groups:
     - param_prefix: MODAL_PWM
       group_label: 'PWMs'

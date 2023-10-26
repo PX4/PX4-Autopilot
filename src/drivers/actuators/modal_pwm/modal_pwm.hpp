@@ -82,6 +82,10 @@ public:
 	/** @see OutputModuleInterface */
 	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
+
+	virtual int	init();
+
+	void update_pwm_config();
 			   
 	struct Command {
 		uint16_t	id                 = 0;
@@ -112,7 +116,8 @@ private:
 	bool stop_all_pwms();
 	
 	/* PWM Parameters */
-	static constexpr uint32_t MODAL_PWM_CONFIG = 0;	// Default to off
+	static constexpr uint32_t MODAL_PWM_CONFIG = 0;				// Default to off
+	static constexpr uint32_t MODAL_PWM_CONFIG_SIZE = 4;		// PWM_MIN, PWM_MAX, 4 bytes
 	static constexpr uint32_t MODAL_PWM_DEFAULT_BAUD = 921600;
 	static constexpr uint16_t MODAL_PWM_OUTPUT_CHANNELS = 4;
 	static constexpr uint16_t MODAL_PWM_OUTPUT_DISABLED = 0;
@@ -122,9 +127,14 @@ private:
 
 	static constexpr uint16_t DISARMED_VALUE = 0;
 
-	static constexpr uint16_t MODAL_PWM_DEFAULT_PWM_MIN = 0;
-	static constexpr uint16_t MODAL_PWM_DEFAULT_PWM_MAX = 800;
-	static constexpr uint16_t MODAL_PWM_DEFAULT_PWM_FAILSAFE = 0;
+	static constexpr uint16_t MODAL_PWM_MIXER_MIN = 0;
+	static constexpr uint16_t MODAL_PWM_MIXER_MAX = 800;
+	static constexpr uint16_t MODAL_PWM_MIXER_FAILSAFE = 0;
+	static constexpr uint16_t MODAL_PWM_MIXER_DISARMED = 0;
+
+	static constexpr int32_t MODAL_PWM_DEFAULT_MIN = 1000;
+	static constexpr int32_t MODAL_PWM_DEFAULT_MAX = 2000;
+	static constexpr int32_t MODAL_PWM_DEFAULT_FAILSAFE = 900;
 
 	/* SBUS */
 	static constexpr uint16_t QC_SBUS_FRAME_SIZE = 30;
@@ -138,13 +148,12 @@ private:
 	typedef struct {
 		int32_t		config{MODAL_PWM_CONFIG};
 		int32_t		baud_rate{MODAL_PWM_DEFAULT_BAUD};
-		int32_t		pwm_min{MODAL_PWM_DEFAULT_PWM_MIN};
-		int32_t		pwm_max{MODAL_PWM_DEFAULT_PWM_FAILSAFE};
-		int32_t		pwm_failsafe{MODAL_PWM_DEFAULT_PWM_MAX};
+		int32_t		pwm_min{MODAL_PWM_DEFAULT_MIN};
+		int32_t		pwm_max{MODAL_PWM_DEFAULT_MAX};
+		int32_t		pwm_failsafe{MODAL_PWM_DEFAULT_FAILSAFE};
 		int32_t 	param_rc_input_proto{0};
 		int32_t		param_rc_rssi_pwm_chan{0};
 		int32_t		function_map[MODAL_PWM_OUTPUT_CHANNELS] {0, 0, 0, 0};
-		int32_t		motor_map[MODAL_PWM_OUTPUT_CHANNELS] {1, 2, 3, 4};
 		int32_t		verbose_logging{0};
 	} modal_pwm_params_t;
 	modal_pwm_params_t	_parameters;
@@ -157,29 +166,22 @@ private:
 	unsigned		_current_update_rate{0};
 
 	/* RC input */
-	uint64_t _rc_last_valid;		// last valid timestamp
+	EscPacket _sbus_packet;
+	uint64_t _rc_last_valid;		
 	uint16_t _raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS] {UINT16_MAX};
 	unsigned _sbus_frame_drops{0};
 	uint16_t _sbus_total_frames{0};
 
 	uORB::PublicationMulti<input_rc_s> _rc_pub{ORB_ID(input_rc)};
 	uORB::Subscription 	_parameter_update_sub{ORB_ID(parameter_update)};
-	uORB::Subscription 	_actuator_test_sub{ORB_ID(actuator_test)};
 
 	bool		_pwm_on{false};
 	int32_t		_pwm_fullscale{0};
 	int16_t 	_pwm_values[MODAL_PWM_OUTPUT_CHANNELS] = {0, 0, 0, 0};
 	bool		_first_update_cycle{true};
 
-	typedef struct {
-		uint8_t		number;
-		int8_t		direction;
-	} ch_assign_t;
-	
-	ch_assign_t		_output_map[MODAL_PWM_OUTPUT_CHANNELS] {{1, 1}, {2, 1}, {3, 1}, {4, 1}};
-
 	perf_counter_t		_cycle_perf;
-	perf_counter_t		_interval_perf;
+	perf_counter_t		_output_update_perf;
 
 	uint16_t		_cmd_id{0};
 	Command 		_current_cmd;
@@ -192,8 +194,9 @@ private:
 	uint32_t		_packets_sent{0};
 	uint32_t		_packets_received{0};
 
-	int	load_params(modal_pwm_params_t *params, ch_assign_t *map);
-	void update_params();
+	int parse_response(uint8_t *buf, uint8_t len);
+	int	load_params(modal_pwm_params_t *params);
+	int update_params();
 	int	flush_uart_rx();
 	int read_response(Command *out_cmd);
 };
