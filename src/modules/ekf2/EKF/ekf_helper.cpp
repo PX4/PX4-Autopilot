@@ -74,8 +74,6 @@ void Ekf::resetHorizontalVelocityTo(const Vector2f &new_horz_vel, const Vector2f
 		P.uncorrelateCovarianceSetVariance<1>(State::vel.idx + 1, math::max(sq(0.01f), new_horz_vel_var(1)));
 	}
 
-	_output_predictor.resetHorizontalVelocityTo(_time_delayed_us, _state.vel.xy());
-
 	// record the state change
 	if (_state_reset_status.reset_count.velNE == _state_reset_count_prev.velNE) {
 		_state_reset_status.velNE_change = delta_horz_vel;
@@ -99,8 +97,6 @@ void Ekf::resetVerticalVelocityTo(float new_vert_vel, float new_vert_vel_var)
 	if (PX4_ISFINITE(new_vert_vel_var)) {
 		P.uncorrelateCovarianceSetVariance<1>(State::vel.idx + 2, math::max(sq(0.01f), new_vert_vel_var));
 	}
-
-	_output_predictor.resetVerticalVelocityTo(_time_delayed_us, _state.vel(2));
 
 	// record the state change
 	if (_state_reset_status.reset_count.velD == _state_reset_count_prev.velD) {
@@ -139,8 +135,6 @@ void Ekf::resetHorizontalPositionTo(const Vector2f &new_horz_pos, const Vector2f
 	if (PX4_ISFINITE(new_horz_pos_var(1))) {
 		P.uncorrelateCovarianceSetVariance<1>(State::pos.idx + 1, math::max(sq(0.01f), new_horz_pos_var(1)));
 	}
-
-	_output_predictor.resetHorizontalPositionTo(_time_delayed_us, _state.pos.xy());
 
 	// record the state change
 	if (_state_reset_status.reset_count.posNE == _state_reset_count_prev.posNE) {
@@ -184,10 +178,6 @@ void Ekf::resetVerticalPositionTo(const float new_vert_pos, float new_vert_pos_v
 	}
 
 	const float delta_z = new_vert_pos - old_vert_pos;
-
-	// apply the change in height / height rate to our newest height / height rate estimate
-	// which have already been taken out from the output buffer
-	_output_predictor.resetVerticalPositionTo(_time_delayed_us, _state.pos(2));
 
 	// record the state change
 	if (_state_reset_status.reset_count.posD == _state_reset_count_prev.posD) {
@@ -921,9 +911,6 @@ void Ekf::resetQuatStateYaw(float yaw, float yaw_variance)
 
 	// restore covariance
 	resetQuatCov(rot_var_ned_before_reset);
-
-	// add the reset amount to the output observer buffered data
-	_output_predictor.resetQuaternion(_time_delayed_us, _state.quat_nominal);
 
 #if defined(CONFIG_EKF2_EXTERNAL_VISION)
 	// update EV attitude error filter

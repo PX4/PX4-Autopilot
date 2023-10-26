@@ -217,6 +217,27 @@ bool Ekf::update()
 			runTerrainEstimator(imu_sample_delayed);
 #endif // CONFIG_EKF2_TERRAIN
 
+
+			if (_state_reset_status.reset_count.quat != _state_reset_count_prev.quat) {
+				_output_predictor.resetQuaternion();
+			}
+
+			if (_state_reset_status.reset_count.velNE != _state_reset_count_prev.velNE) {
+				_output_predictor.resetHorizontalVelocity();
+			}
+
+			if (_state_reset_status.reset_count.velD != _state_reset_count_prev.velD) {
+				_output_predictor.resetVerticalVelocity();
+			}
+
+			if (_state_reset_status.reset_count.posNE != _state_reset_count_prev.posNE) {
+				_output_predictor.resetHorizontalPosition();
+			}
+
+			if (_state_reset_status.reset_count.posD != _state_reset_count_prev.posD) {
+				_output_predictor.resetVerticalPosition();
+			}
+
 			updated = true;
 		}
 

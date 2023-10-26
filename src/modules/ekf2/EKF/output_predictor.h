@@ -69,13 +69,19 @@ public:
 				 const matrix::Vector3f &vel_state, const matrix::Vector3f &pos_state,
 				 const matrix::Vector3f &gyro_bias, const matrix::Vector3f &accel_bias);
 
-	void resetQuaternion(const uint64_t &time_delayed_us, const matrix::Quatf &new_quat);
+	void resetQuaternionTo(const uint64_t &time_delayed_us, const matrix::Quatf &new_quat);
 
 	void resetHorizontalVelocityTo(const uint64_t &time_delayed_us, const matrix::Vector2f &new_horz_vel);
 	void resetVerticalVelocityTo(const uint64_t &time_delayed_us, const float new_vert_vel);
 
 	void resetHorizontalPositionTo(const uint64_t &time_delayed_us, const matrix::Vector2f &new_horz_pos);
 	void resetVerticalPositionTo(const uint64_t &time_delayed_us, const float new_vert_pos);
+
+	void resetQuaternion() { _reset_quaternion = true; }
+	void resetHorizontalVelocity() { _reset_velocity_xy = true; }
+	void resetVerticalVelocity() { _reset_velocity_z = true; }
+	void resetHorizontalPosition() { _reset_position_xy = true; }
+	void resetVerticalPosition() { _reset_position_z = true; }
 
 	void print_status();
 
@@ -136,13 +142,6 @@ private:
 	*/
 	void applyCorrectionToVerticalOutputBuffer(float vert_vel_correction);
 
-	/*
-	* Calculate corrections to be applied to vel and pos output state history.
-	* The vel and pos state history are corrected individually so they track the EKF states at
-	* the fusion time horizon. This option provides the most accurate tracking of EKF states.
-	*/
-	void applyCorrectionToOutputBuffer(const matrix::Vector3f &vel_correction, const matrix::Vector3f &pos_correction);
-
 	// return the square of two floating point numbers - used in auto coded sections
 	static constexpr float sq(float var) { return var * var; }
 
@@ -183,7 +182,6 @@ private:
 	float _dt_update_states_avg{0.005f};  // average imu update period in s
 	float _dt_correct_states_avg{0.010f}; // average update rate of the ekf in s
 
-	uint64_t _time_last_update_states_us{0}; ///< last time the output states were updated (uSec)
 	uint64_t _time_last_correct_states_us{0}; ///< last time the output states were updated (uSec)
 
 	// Output Predictor
@@ -196,6 +194,12 @@ private:
 	matrix::Vector3f _delta_angle_corr{};	///< delta angle correction vector (rad)
 	matrix::Vector3f _vel_err_integ{};	///< integral of velocity tracking error (m)
 	matrix::Vector3f _pos_err_integ{};	///< integral of position tracking error (m.s)
+
+	bool _reset_quaternion{true};
+	bool _reset_velocity_xy{true};
+	bool _reset_velocity_z{true};
+	bool _reset_position_xy{true};
+	bool _reset_position_z{true};
 
 	matrix::Vector3f _output_tracking_error{}; ///< contains the magnitude of the angle, velocity and position track errors (rad, m/s, m)
 

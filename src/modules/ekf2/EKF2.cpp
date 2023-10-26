@@ -758,11 +758,18 @@ void EKF2::Run()
 			perf_set_elapsed(_ecl_ekf_update_full_perf, hrt_elapsed_time(&ekf_update_start));
 
 			if (_ekf.output_predictor().aligned()) {
-				// publish output predictor output
+				// publish output predictor
 				PublishLocalPosition(now);
 				PublishOdometry(now, imu_sample_new);
 				PublishGlobalPosition(now);
 			}
+
+			// update sensor calibration (in-run bias) before publishing sensor bias
+			UpdateAccelCalibration(now);
+			UpdateGyroCalibration(now);
+#if defined(CONFIG_EKF2_MAGNETOMETER)
+			UpdateMagCalibration(now);
+#endif // CONFIG_EKF2_MAGNETOMETER
 
 			// publish other state output used by the system not dependent on output predictor
 			PublishSensorBias(now);
@@ -773,13 +780,15 @@ void EKF2::Run()
 
 			// publish status/logging messages
 			PublishEventFlags(now);
+			PublishStatus(now);
+			PublishStatusFlags(now);
+
+			// verbose logging
+			PublishAidSourceStatus(now);
 			PublishInnovations(now);
 			PublishInnovationTestRatios(now);
 			PublishInnovationVariances(now);
 			PublishStates(now);
-			PublishStatus(now);
-			PublishStatusFlags(now);
-			PublishAidSourceStatus(now);
 
 #if defined(CONFIG_EKF2_BAROMETER)
 			PublishBaroBias(now);
@@ -802,12 +811,6 @@ void EKF2::Run()
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 			PublishOpticalFlowVel(now);
 #endif // CONFIG_EKF2_OPTICAL_FLOW
-
-			UpdateAccelCalibration(now);
-			UpdateGyroCalibration(now);
-#if defined(CONFIG_EKF2_MAGNETOMETER)
-			UpdateMagCalibration(now);
-#endif // CONFIG_EKF2_MAGNETOMETER
 
 		} else {
 			// ekf no update

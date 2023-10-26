@@ -39,6 +39,8 @@ using matrix::Quatf;
 using matrix::Vector2f;
 using matrix::Vector3f;
 
+//#define OUTPUT_PREDICTOR_DEBUG_VEROSE
+
 void OutputPredictor::print_status()
 {
 	printf("output predictor: IMU dt: %.4f, EKF dt: %.4f\n", (double)_dt_update_states_avg, (double)_dt_correct_states_avg);
@@ -57,7 +59,6 @@ void OutputPredictor::reset()
 	_accel_bias.zero();
 	_gyro_bias.zero();
 
-	_time_last_update_states_us = 0;
 	_time_last_correct_states_us = 0;
 
 	_output_new = {};
@@ -72,13 +73,24 @@ void OutputPredictor::reset()
 
 	_output_tracking_error.zero();
 
+	_reset_quaternion = true;
+	_reset_velocity_xy = true;
+	_reset_velocity_z = true;
+	_reset_position_xy = true;
+	_reset_position_z = true;
+
 	_output_filter_aligned = false;
 }
 
-void OutputPredictor::resetQuaternion(const uint64_t &time_delayed_us, const Quatf &new_quat)
+void OutputPredictor::resetQuaternionTo(const uint64_t &time_delayed_us, const Quatf &new_quat)
 {
 	// find the output observer state corresponding to the reset time
 	const outputSample &delayed_sample = findOutputSample(time_delayed_us);
+
+#if defined(OUTPUT_PREDICTOR_DEBUG_VEROSE)
+	const outputSample delayed_orig = delayed_sample;
+	const outputSample newest_orig = _output_new;
+#endif // OUTPUT_PREDICTOR_DEBUG_VEROSE
 
 	const Quatf quat_change = (new_quat * delayed_sample.quat_nominal.inversed()).normalized();
 
@@ -90,12 +102,41 @@ void OutputPredictor::resetQuaternion(const uint64_t &time_delayed_us, const Qua
 	// apply change to latest
 	_output_new.quat_nominal = (quat_change * _output_new.quat_nominal).normalized();
 	_R_to_earth_now = Dcmf(_output_new.quat_nominal);
+
+
+
+	_delta_angle_corr.zero();
+	_output_tracking_error(0) = 0.f;
+
+	_reset_quaternion = false;
+
+
+#if defined(OUTPUT_PREDICTOR_DEBUG_VEROSE)
+	printf("output predictor: reset q delayed (%.1f,%.1f,%.1f)->(%.1f,%.1f,%.1f)\n",
+	       (double)matrix::Eulerf(delayed_orig.quat_nominal).phi(), (double)matrix::Eulerf(delayed_orig.quat_nominal).theta(),
+	       (double)matrix::Eulerf(delayed_orig.quat_nominal).psi(),
+	       (double)matrix::Eulerf(delayed_sample.quat_nominal).phi(), (double)matrix::Eulerf(delayed_sample.quat_nominal).theta(),
+	       (double)matrix::Eulerf(delayed_sample.quat_nominal).psi()
+	      );
+
+	printf("output predictor: reset q newest (%.1f,%.1f,%.1f)->(%.1f,%.1f,%.1f)\n",
+	       (double)matrix::Eulerf(newest_orig.quat_nominal).phi(), (double)matrix::Eulerf(newest_orig.quat_nominal).theta(),
+	       (double)matrix::Eulerf(newest_orig.quat_nominal).psi(),
+	       (double)matrix::Eulerf(_output_new.quat_nominal).phi(), (double)matrix::Eulerf(_output_new.quat_nominal).theta(),
+	       (double)matrix::Eulerf(_output_new.quat_nominal).psi()
+	      );
+#endif // OUTPUT_PREDICTOR_DEBUG_VEROSE
 }
 
 void OutputPredictor::resetHorizontalVelocityTo(const uint64_t &time_delayed_us, const Vector2f &new_horz_vel)
 {
 	// find the output observer state corresponding to the reset time
 	const outputSample &delayed_sample = findOutputSample(time_delayed_us);
+
+#if defined(OUTPUT_PREDICTOR_DEBUG_VEROSE)
+	const outputSample delayed_orig = delayed_sample;
+	const outputSample newest_orig = _output_new;
+#endif // OUTPUT_PREDICTOR_DEBUG_VEROSE
 
 	const Vector2f delta_vxy = new_horz_vel - delayed_sample.vel.xy(); // horizontal velocity
 
@@ -106,12 +147,35 @@ void OutputPredictor::resetHorizontalVelocityTo(const uint64_t &time_delayed_us,
 
 	// apply change to latest velocity
 	_output_new.vel.xy() += delta_vxy;
+
+
+
+	_vel_err_integ(0) = 0.f;
+	_vel_err_integ(1) = 0.f;
+	_reset_velocity_xy = false;
+
+#if defined(OUTPUT_PREDICTOR_DEBUG_VEROSE)
+	printf("output predictor: reset v_xy delayed (%.1f,%.1f)->(%.1f,%.1f)\n",
+	       (double)delayed_orig.vel(0), (double)delayed_orig.vel(1),
+	       (double)delayed_sample.vel(0), (double)delayed_sample.vel(1)
+	      );
+
+	printf("output predictor: reset v_xy newest (%.1f,%.1f)->(%.1f,%.1f)\n",
+	       (double)newest_orig.vel(0), (double)newest_orig.vel(1),
+	       (double)_output_new.vel(0), (double)_output_new.vel(1)
+	      );
+#endif // OUTPUT_PREDICTOR_DEBUG_VEROSE
 }
 
 void OutputPredictor::resetVerticalVelocityTo(const uint64_t &time_delayed_us, const float new_vert_vel)
 {
 	// find the output observer state corresponding to the reset time
 	const outputSample &delayed_sample = findOutputSample(time_delayed_us);
+
+#if defined(OUTPUT_PREDICTOR_DEBUG_VEROSE)
+	const outputSample delayed_orig = delayed_sample;
+	const outputSample newest_orig = _output_new;
+#endif // OUTPUT_PREDICTOR_DEBUG_VEROSE
 
 	const float delta_vz = new_vert_vel - delayed_sample.vel(2); // vertical velocity
 	const float delta_vz_alt = new_vert_vel - delayed_sample.vert_vel_alt; // vertical velocity (alternative)
@@ -125,12 +189,27 @@ void OutputPredictor::resetVerticalVelocityTo(const uint64_t &time_delayed_us, c
 	// apply change to latest
 	_output_new.vel(2) += delta_vz;
 	_output_new.vert_vel_alt += delta_vz_alt;
+
+
+	_vel_err_integ(2) = 0.f;
+	_reset_velocity_z = false;
+
+#if defined(OUTPUT_PREDICTOR_DEBUG_VEROSE)
+	printf("output predictor: reset v_z delayed %.1f->%.1f\n", (double)delayed_orig.vel(2), (double)delayed_sample.vel(2));
+
+	printf("output predictor: reset v_z newest %.1f->%.1f\n", (double)newest_orig.vel(2), (double)_output_new.vel(2));
+#endif // OUTPUT_PREDICTOR_DEBUG_VEROSE
 }
 
 void OutputPredictor::resetHorizontalPositionTo(const uint64_t &time_delayed_us, const Vector2f &new_horz_pos)
 {
 	// find the output observer state corresponding to the reset time
 	const outputSample &delayed_sample = findOutputSample(time_delayed_us);
+
+#if defined(OUTPUT_PREDICTOR_DEBUG_VEROSE)
+	const outputSample delayed_orig = delayed_sample;
+	const outputSample newest_orig = _output_new;
+#endif // OUTPUT_PREDICTOR_DEBUG_VEROSE
 
 	const Vector2f delta_xy = new_horz_pos - delayed_sample.pos.xy(); // horizontal position
 
@@ -141,12 +220,39 @@ void OutputPredictor::resetHorizontalPositionTo(const uint64_t &time_delayed_us,
 
 	// apply change to latest
 	_output_new.pos.xy() += delta_xy;
+
+
+	_pos_err_integ(0) = 0.f;
+	_pos_err_integ(1) = 0.f;
+	_reset_position_xy = false;
+
+#if defined(OUTPUT_PREDICTOR_DEBUG_VEROSE)
+	printf("output predictor: reset xy delayed (%.1f,%.1f)->(%.1f,%.1f)\n",
+	       (double)delayed_orig.pos(0), (double)delayed_orig.pos(1),
+	       (double)delayed_sample.pos(0), (double)delayed_sample.pos(1)
+	      );
+
+	printf("output predictor: reset xy newest (%.1f,%.1f)->(%.1f,%.1f)\n",
+	       (double)newest_orig.pos(0), (double)newest_orig.pos(1),
+	       (double)_output_new.pos(0), (double)_output_new.pos(1)
+	      );
+#endif // OUTPUT_PREDICTOR_DEBUG_VEROSE
 }
 
 void OutputPredictor::resetVerticalPositionTo(const uint64_t &time_delayed_us, const float new_vert_pos)
 {
 	// find the output observer state corresponding to the reset time
 	const outputSample &delayed_sample = findOutputSample(time_delayed_us);
+
+#if defined(OUTPUT_PREDICTOR_DEBUG_VEROSE)
+	const outputSample delayed_orig = delayed_sample;
+	const outputSample newest_orig = _output_new;
+
+	if (time_delayed_us != delayed_sample.time_us) {
+		printf("output predictor: BAD RESET TIME!\n");
+	}
+
+#endif // OUTPUT_PREDICTOR_DEBUG_VEROSE
 
 	const float delta_z = new_vert_pos - delayed_sample.pos(2); // vertical position
 	const float delta_z_alt = new_vert_pos - delayed_sample.vert_vel_integ; // vertical position (alternative)
@@ -160,23 +266,36 @@ void OutputPredictor::resetVerticalPositionTo(const uint64_t &time_delayed_us, c
 	// apply change to latest
 	_output_new.pos(2) += delta_z;
 	_output_new.vert_vel_integ += delta_z_alt;
+
+
+	_pos_err_integ(2) = 0.f;
+	_reset_position_z = false;
+
+#if defined(OUTPUT_PREDICTOR_DEBUG_VEROSE)
+	printf("output predictor: reset z, delayed (%llu):%.1f->%.1f, newest (%llu):%.1f->%.1f\n",
+	       time_delayed_us, (double)delayed_orig.pos(2), (double)delayed_sample.pos(2),
+	       _output_new.time_us, (double)newest_orig.pos(2), (double)_output_new.pos(2)
+	      );
+
+	//printf("output predictor: %llu reset z newest %.1f->%.1f\n", _output_new.time_us, (double)newest_orig.pos(2), (double)_output_new.pos(2));
+#endif // OUTPUT_PREDICTOR_DEBUG_VEROSE
 }
 
 bool OutputPredictor::calculateOutputStates(const uint64_t time_us, const Vector3f &delta_angle,
 		const float delta_angle_dt, const Vector3f &delta_velocity, const float delta_velocity_dt)
 {
-	if (time_us <= _time_last_update_states_us) {
+	if (time_us <= _output_new.time_us) {
 		reset();
 		return false;
 	}
 
 	// Use full rate IMU data at the current time horizon
-	if (_time_last_update_states_us != 0) {
-		const float dt = math::constrain((time_us - _time_last_update_states_us) * 1e-6f, 0.0001f, 0.03f);
+	if (_output_new.time_us != 0) {
+		const float dt = math::constrain((time_us - _output_new.time_us) * 1e-6f, 0.0001f, 0.03f);
 		_dt_update_states_avg = 0.8f * _dt_update_states_avg + 0.2f * dt;
 	}
 
-	_time_last_update_states_us = time_us;
+	_output_new.time_us = time_us;
 
 	// correct delta angle and delta velocity for bias offsets
 	// Apply corrections to the delta angle required to track the quaternion states at the EKF fusion time horizon
@@ -185,8 +304,6 @@ bool OutputPredictor::calculateOutputStates(const uint64_t time_us, const Vector
 
 	const Vector3f delta_vel_bias_scaled = _accel_bias * delta_velocity_dt;
 	const Vector3f delta_velocity_corrected(delta_velocity - delta_vel_bias_scaled);
-
-	_output_new.time_us = time_us;
 
 	const Quatf dq(AxisAnglef{delta_angle_corrected});
 
@@ -276,52 +393,94 @@ bool OutputPredictor::correctOutputStates(const uint64_t &time_delayed_us,
 
 	if (!_output_filter_aligned) {
 		if (delayed_index_found) {
-			resetQuaternion(time_delayed_us, quat_state);
+			resetQuaternionTo(time_delayed_us, quat_state);
 			resetHorizontalVelocityTo(time_delayed_us, vel_state.xy());
 			resetVerticalVelocityTo(time_delayed_us, vel_state(2));
 			resetHorizontalPositionTo(time_delayed_us, pos_state.xy());
 			resetVerticalPositionTo(time_delayed_us, pos_state(2));
 
-			_delta_angle_corr.zero();
-			_vel_err_integ.zero();
-			_pos_err_integ.zero();
-			_output_tracking_error.zero();
-
 			_output_filter_aligned = true;
+
+#if defined(OUTPUT_PREDICTOR_DEBUG_VEROSE)
+			printf("output predictor: ALIGNED, IMU dt: %.4f, EKF dt: %.4f\n",
+			       (double)_dt_update_states_avg, (double)_dt_correct_states_avg);
+#endif // OUTPUT_PREDICTOR_DEBUG_VEROSE
 		}
 
 		return false;
 	}
 
-	// calculate the quaternion delta between the INS and EKF quaternions at the EKF fusion time horizon
-	const Quatf q_error((quat_state.inversed() * output_delayed.quat_nominal).normalized());
+	if (_reset_quaternion) {
+		resetQuaternionTo(time_delayed_us, quat_state);
 
-	// convert the quaternion delta to a delta angle
-	const float scalar = (q_error(0) >= 0.0f) ? -2.f : 2.f;
+		_output_tracking_error(0) = 0.f;
 
-	const Vector3f delta_ang_error{scalar * q_error(1), scalar * q_error(2), scalar * q_error(3)};
+	} else {
+		// calculate the quaternion delta between the INS and EKF quaternions at the EKF fusion time horizon
+		const Quatf q_error((quat_state.inversed() * output_delayed.quat_nominal).normalized());
 
-	// calculate a gain that provides tight tracking of the estimator attitude states and
-	// adjust for changes in time delay to maintain consistent damping ratio of ~0.7
-	const float time_delay = fmaxf((time_latest_us - time_delayed_us) * 1e-6f, _dt_update_states_avg);
-	const float att_gain = 0.5f * _dt_update_states_avg / time_delay;
+		// convert the quaternion delta to a delta angle
+		const float scalar = (q_error(0) >= 0.0f) ? -2.f : 2.f;
 
-	// calculate a corrrection to the delta angle
-	// that will cause the INS to track the EKF quaternions
-	_delta_angle_corr = delta_ang_error * att_gain;
-	_output_tracking_error(0) = delta_ang_error.norm();
+		const Vector3f delta_ang_error{scalar * q_error(1), scalar * q_error(2), scalar * q_error(3)};
 
-	/*
-	* Loop through the output filter state history and apply the corrections to the velocity and position states.
-	* This method is too expensive to use for the attitude states due to the quaternion operations required
-	* but because it eliminates the time delay in the 'correction loop' it allows higher tracking gains
-	* to be used and reduces tracking error relative to EKF states.
-	*/
+		// calculate a gain that provides tight tracking of the estimator attitude states and
+		// adjust for changes in time delay to maintain consistent damping ratio of ~0.7
+		const float time_delay = fmaxf((time_latest_us - time_delayed_us) * 1e-6f, _dt_update_states_avg);
+		const float att_gain = 0.5f * _dt_update_states_avg / time_delay;
 
-	// Complementary filter gains
-	const float vel_gain = _dt_correct_states_avg / math::constrain(_vel_tau, _dt_correct_states_avg, 10.f);
-	const float pos_gain = _dt_correct_states_avg / math::constrain(_pos_tau, _dt_correct_states_avg, 10.f);
+		// calculate a corrrection to the delta angle
+		// that will cause the INS to track the EKF quaternions
+		_delta_angle_corr = delta_ang_error * att_gain;
+		_output_tracking_error(0) = delta_ang_error.norm();
+	}
 
+
+	// velocity
+	if (_reset_velocity_xy) {
+		resetHorizontalVelocityTo(time_delayed_us, vel_state.xy());
+	}
+
+	if (_reset_velocity_z) {
+		resetVerticalVelocityTo(time_delayed_us, vel_state(2));
+	}
+
+	// calculate a velocity correction and apply it to the output state history
+	const Vector3f vel_err(vel_state - output_delayed.vel);
+	_vel_err_integ += vel_err;
+	const float vel_gain = _dt_correct_states_avg / math::constrain(_vel_tau, _dt_correct_states_avg, 10.f); // complementary filter gains
+	const Vector3f vel_correction = vel_err * vel_gain + _vel_err_integ * sq(vel_gain) * 0.1f;
+
+	for (uint8_t i = 0; i < _output_buffer.get_length(); i++) {
+		_output_buffer[i].vel += vel_correction;
+	}
+
+	_output_tracking_error(1) = vel_err.norm(); // logging
+
+
+	// position
+	if (_reset_position_xy) {
+		resetHorizontalPositionTo(time_delayed_us, pos_state.xy());
+	}
+
+	if (_reset_position_z) {
+		resetVerticalPositionTo(time_delayed_us, pos_state(2));
+	}
+
+	// calculate a position correction and apply it  to the output state history
+	const Vector3f pos_err(pos_state - output_delayed.pos);
+	_pos_err_integ += pos_err;
+	const float pos_gain = _dt_correct_states_avg / math::constrain(_pos_tau, _dt_correct_states_avg, 10.f); // complementary filter gains
+	const Vector3f pos_correction = pos_err * pos_gain + _pos_err_integ * sq(pos_gain) * 0.1f;
+
+	for (uint8_t i = 0; i < _output_buffer.get_length(); i++) {
+		_output_buffer[i].pos += pos_correction;
+	}
+
+	_output_tracking_error(2) = pos_err.norm(); // logging
+
+
+	// vertical position alternate
 	// calculate down velocity and position tracking errors
 	const float vert_vel_err = (vel_state(2) - output_delayed.vert_vel_alt);
 	const float vert_vel_integ_err = (pos_state(2) - output_delayed.vert_vel_integ);
@@ -332,22 +491,6 @@ bool OutputPredictor::correctOutputStates(const uint64_t &time_delayed_us,
 
 	applyCorrectionToVerticalOutputBuffer(vert_vel_correction);
 
-	// calculate velocity and position tracking errors
-	const Vector3f vel_err(vel_state - output_delayed.vel);
-	const Vector3f pos_err(pos_state - output_delayed.pos);
-
-	_output_tracking_error(1) = vel_err.norm();
-	_output_tracking_error(2) = pos_err.norm();
-
-	// calculate a velocity correction that will be applied to the output state history
-	_vel_err_integ += vel_err;
-	const Vector3f vel_correction = vel_err * vel_gain + _vel_err_integ * sq(vel_gain) * 0.1f;
-
-	// calculate a position correction that will be applied to the output state history
-	_pos_err_integ += pos_err;
-	const Vector3f pos_correction = pos_err * pos_gain + _pos_err_integ * sq(pos_gain) * 0.1f;
-
-	applyCorrectionToOutputBuffer(vel_correction, pos_correction);
 
 
 	// update output state to corrected values and
@@ -384,17 +527,5 @@ void OutputPredictor::applyCorrectionToVerticalOutputBuffer(float vert_vel_corre
 
 		// advance the index
 		index = (index + 1) % size;
-	}
-}
-
-void OutputPredictor::applyCorrectionToOutputBuffer(const Vector3f &vel_correction, const Vector3f &pos_correction)
-{
-	// loop through the output filter state history and apply the corrections to the velocity and position states
-	for (uint8_t index = 0; index < _output_buffer.get_length(); index++) {
-		// a constant velocity correction is applied
-		_output_buffer[index].vel += vel_correction;
-
-		// a constant position correction is applied
-		_output_buffer[index].pos += pos_correction;
 	}
 }
