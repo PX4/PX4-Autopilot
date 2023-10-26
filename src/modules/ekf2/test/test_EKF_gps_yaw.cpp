@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 ECL Development Team. All rights reserved.
+ *   Copyright (c) 2020-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -61,9 +61,8 @@ public:
 	// Setup the Ekf with synthetic measurements
 	void SetUp() override
 	{
-		// run briefly to init, then manually set in air and at rest (default for a real vehicle)
+		// Init, then manually set in air and at rest (default for a real vehicle)
 		_ekf->init(0);
-		_sensor_simulator.runSeconds(0.1);
 		_ekf->set_in_air_status(false);
 		_ekf->set_vehicle_at_rest(true);
 
@@ -304,9 +303,12 @@ TEST_F(EkfGpsHeadingTest, yawJumpInAir)
 	_sensor_simulator.runSeconds(7.5);
 
 	// THEN: after a few seconds, the fusion should stop and
-	// the estimator should fall back to mag fusion
+	// the estimator doesn't fall back to mag fusion because it has
+	// been declared inconsistent with the filter states
 	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeadingFusion());
-	EXPECT_TRUE(_ekf_wrapper.isIntendingMagHeadingFusion());
+	EXPECT_FALSE(_ekf_wrapper.isMagHeadingConsistent());
+	//TODO: should we force a reset to mag if the GNSS yaw fusion was forced to stop?
+	EXPECT_FALSE(_ekf_wrapper.isIntendingMagHeadingFusion());
 }
 
 TEST_F(EkfGpsHeadingTest, stopOnGround)
@@ -331,9 +333,9 @@ TEST_F(EkfGpsHeadingTest, stopOnGround)
 	_ekf_wrapper.setMagFuseTypeNone();
 
 	// WHEN: running without yaw aiding
-	const matrix::Vector4f quat_variance_before = _ekf_wrapper.getQuaternionVariance();
+	const matrix::Vector4f quat_variance_before = _ekf->getQuaternionVariance();
 	_sensor_simulator.runSeconds(20.0);
-	const matrix::Vector4f quat_variance_after = _ekf_wrapper.getQuaternionVariance();
+	const matrix::Vector4f quat_variance_after = _ekf->getQuaternionVariance();
 
 	// THEN: the yaw variance increases
 	EXPECT_GT(quat_variance_after(3), quat_variance_before(3));

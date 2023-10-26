@@ -76,7 +76,7 @@ void Subscription::unsubscribe()
 bool Subscription::ChangeInstance(uint8_t instance)
 {
 	if (instance != _instance) {
-		if (uORB::Manager::orb_device_node_exists(_orb_id, _instance)) {
+		if (uORB::Manager::orb_device_node_exists(_orb_id, instance)) {
 			// if desired new instance exists, unsubscribe from current
 			unsubscribe();
 			_instance = instance;

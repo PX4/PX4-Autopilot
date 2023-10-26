@@ -127,7 +127,6 @@ __EXPORT float calc_TAS(float total_pressure, float static_pressure, float tempe
 * @param static_pressure ambient pressure in millibar
 * @param temperature_celcius air / ambient temperature in Celsius
 */
-__EXPORT float get_air_density(float static_pressure, float temperature_celsius);
 
 /**
  * @brief Calculates calibrated airspeed from true airspeed and air density

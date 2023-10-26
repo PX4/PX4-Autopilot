@@ -102,16 +102,6 @@ void OutputPredictor::resetQuaternion(const uint64_t time_delayed_us, const Quat
 
 void OutputPredictor::resetHorizontalVelocityTo(const uint64_t time_delayed_us, const Vector2f &new_horz_vel)
 {
-	// TODO: review time_us
-
-	if (_output_buffer.get_oldest().time_us != time_delayed_us) {
-
-
-
-
-	}
-
-
 	const outputSample &output_delayed = _output_buffer.get_oldest();
 
 	// horizontal velocity
@@ -298,6 +288,11 @@ bool OutputPredictor::calculateOutputStates(const uint64_t time_us, const Vector
 		// rotate the relative velocity into earth frame
 		_vel_imu_rel_body_ned = _R_to_earth_now * vel_imu_rel_body;
 	}
+
+	// update auxiliary yaw estimate
+	const Vector3f unbiased_delta_angle = delta_angle - delta_angle_bias_scaled;
+	const float spin_del_ang_D = unbiased_delta_angle.dot(Vector3f(_R_to_earth_now.row(2)));
+	_unaided_yaw = matrix::wrap_pi(_unaided_yaw + spin_del_ang_D);
 
 	return true;
 }

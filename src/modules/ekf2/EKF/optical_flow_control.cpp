@@ -142,15 +142,25 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 	// New optical flow data is available and is ready to be fused when the midpoint of the sample falls behind the fusion time horizon
 	if (_flow_data_ready) {
 
-		// Inhibit flow use if motion is un-suitable or we have good quality GPS
-		// Apply hysteresis to prevent rapid mode switching
-		const float gps_err_norm_lim = _control_status.flags.opt_flow ? 0.7f : 1.0f;
-
 		// Check if we are in-air and require optical flow to control position drift
-		const bool is_flow_required = _control_status.flags.in_air
+		bool is_flow_required = _control_status.flags.in_air
 					      && (_control_status.flags.inertial_dead_reckoning // is doing inertial dead-reckoning so must constrain drift urgently
-						  || isOnlyActiveSourceOfHorizontalAiding(_control_status.flags.opt_flow)
-						  || (_control_status.flags.gps && (_gps_error_norm > gps_err_norm_lim))); // is using GPS, but GPS is bad
+						  || isOnlyActiveSourceOfHorizontalAiding(_control_status.flags.opt_flow));
+
+#if defined(CONFIG_EKF2_GNSS)
+		// check if using GPS, but GPS is bad
+		if (_control_status.flags.gps) {
+			if (_control_status.flags.in_air && !is_flow_required) {
+				// Inhibit flow use if motion is un-suitable or we have good quality GPS
+				// Apply hysteresis to prevent rapid mode switching
+				const float gps_err_norm_lim = _control_status.flags.opt_flow ? 0.7f : 1.0f;
+
+				if (_gps_error_norm > gps_err_norm_lim) {
+					is_flow_required = true;
+				}
+			}
+		}
+#endif // CONFIG_EKF2_GNSS
 
 		// inhibit use of optical flow if motion is unsuitable and we are not reliant on it for flight navigation
 		const bool preflight_motion_not_ok = !_control_status.flags.in_air
@@ -209,7 +219,7 @@ void Ekf::controlOpticalFlowFusion(const imuSample &imu_delayed)
 			if (_time_delayed_us > (_flow_sample_delayed.time_us - uint32_t(1e6f * _flow_sample_delayed.dt) / 2)) {
 				// Fuse optical flow LOS rate observations into the main filter only if height above ground has been updated recently
 				// but use a relaxed time criteria to enable it to coast through bad range finder data
-				if (isRecent(_time_last_hagl_fuse, (uint64_t)10e6)) {
+				if (isRecent(_aid_src_terrain_range_finder.time_last_fuse, (uint64_t)10e6)) {
 					fuseOptFlow();
 					_last_known_pos.xy() = _state.pos.xy();
 				}

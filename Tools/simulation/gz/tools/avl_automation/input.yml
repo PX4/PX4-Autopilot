@@ -1,0 +1,142 @@
+# Enter a name for your vehicle
+vehicle_name: plane_example_2
+
+# Enter the type of airframe you would like to use:
+frame_type: custom
+
+# First define some model-wide parameters for custom models:
+reference_area: 12
+wing_span: 15
+# Provide a reference point at which the forces and moments generated will act.
+reference_point:
+  X: 0
+  Y: 0
+  Z: 0
+
+#Provide information on each of the Control Surfaces
+num_ctrl_surfaces: 4
+control_surfaces:
+  - name: right_wing
+    type: aileron
+    nchord: 1
+    cspace: 1
+    nspan: 16
+    sspace: -2
+    angle: 4
+    translation:
+      X: 0
+      Y: 0
+      Z: 0
+    naca: 2412
+    sections:
+    - name: section_1
+      position:
+        X: -0.25
+        Y: 0
+        Z: 0
+      chord: 1
+      ainc: 0
+      nspan: 8
+      sspace: 1
+    - name: section_2
+      position:
+        X: -0.175
+        Y: 5
+        Z: 0.5
+      chord: 0.7
+      ainc: 0
+      nspan: 0
+      sspace: 0
+
+
+  - name: left_wing
+    type: aileron
+    nchord: 1
+    cspace: 1
+    nspan: 16
+    sspace: -2
+    angle: 4
+    translation:
+      X: 0
+      Y: 0
+      Z: 0
+    naca: 2412
+    sections:
+    - name: section_1
+      position:
+        X: -0.175
+        Y: -5
+        Z: 0.5
+      chord: 0.7
+      ainc: 0
+      nspan: 0
+      sspace: 0
+    - name: section_2
+      position:
+        X: -0.25
+        Y: 0
+        Z: 0
+      chord: 1
+      ainc: 0
+      nspan: 8
+      sspace: 1
+
+  - name: elevator
+    type: elevator
+    nchord: 1
+    cspace: 1
+    nspan: 7
+    sspace: -2
+    translation:
+      X: 6
+      Y: 0
+      Z: 0.5
+    sections:
+    - name: section_1
+      position:
+        X: -0.1
+        Y: 0
+        Z: 0
+      chord: 0.4
+      ainc: 0
+      nspan: 7
+      sspace: -1.25
+    - name: section_2
+      position:
+        X: -0.075
+        Y: 2
+        Z: 0
+      chord: 0.3
+      ainc: 0
+      nspan: 0
+      sspace: 0
+
+  - name: fin
+    type: rudder
+    nchord: 1
+    cspace: 1
+    nspan: 10
+    sspace: 1
+    translation:
+      X: 6
+      Y: 0
+      Z: 0.5
+    sections:
+    - name: section_1
+      position:
+        X: -0.1
+        Y: 0
+        Z: 0
+      chord: 0.4
+      ainc: 0
+      nspan: 7
+      sspace: -1.25
+    - name: section_2
+      position:
+        X: -0.075
+        Y: 0
+        Z: 1
+      chord: 0.3
+      ainc: 0
+      nspan: 0
+      sspace: 0

@@ -81,6 +81,8 @@ if(gazebo_FOUND)
 		iris_foggy_lidar
 		iris_irlock
 		iris_obs_avoid
+		iris_depth_camera
+		iris_downward_depth_camera
 		iris_opt_flow
 		iris_opt_flow_mockup
 		iris_rplidar

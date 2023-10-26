@@ -217,13 +217,11 @@ PARAM_DEFINE_INT32(SYS_HAS_MAG, 1);
 PARAM_DEFINE_INT32(SYS_HAS_BARO, 1);
 
 /**
- * Control the number of distance sensors on the vehicle
+ * Number of distance sensors to check being available
  *
- * If set to the number of distance sensors, the preflight check will check
- * for their presence and valid data publication. Disable with 0 if no distance
- * sensor present or to disable the preflight check.
+ * The preflight check will fail if fewer than this number of distance sensors with valid data is present.
  *
- * @reboot_required true
+ * Disable the check with 0.
  *
  * @group System
  * @min 0

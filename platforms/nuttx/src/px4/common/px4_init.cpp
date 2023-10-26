@@ -38,6 +38,7 @@
 #include <px4_platform_common/console_buffer.h>
 #include <px4_platform_common/defines.h>
 #include <drivers/drv_hrt.h>
+#include <lib/events/events.h>
 #include <lib/parameters/param.h>
 #include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
 #include <px4_platform/cpuload.h>
@@ -125,6 +126,7 @@ int px4_platform_init()
 
 #if !defined(CONFIG_BUILD_FLAT)
 	hrt_ioctl_init();
+	events_ioctl_init();
 #endif
 
 	/* configure CPU load estimation */

@@ -186,7 +186,13 @@ int MavlinkShell::shell_start_thread(int argc, char *argv[])
 #ifdef __PX4_NUTTX
 	dup2(1, 2); //redirect stderror to stdout
 
-	nsh_consolemain(0, NULL);
+	const int ret = nsh_consolemain(0, NULL);
+
+	if (ret) {
+		PX4_ERR("Mavlink shell failed: %d%s", ret, (ret == -ENOMEM) ? " (out of memory)" : "");
+		return ret;
+	}
+
 #endif /* __PX4_NUTTX */
 
 #ifdef __PX4_POSIX

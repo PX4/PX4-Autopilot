@@ -48,8 +48,19 @@ ActuatorEffectivenessTiltrotorVTOL::ActuatorEffectivenessTiltrotorVTOL(ModulePar
 	  _mc_rotors(this, ActuatorEffectivenessRotors::AxisConfiguration::Configurable, true),
 	  _control_surfaces(this), _tilts(this)
 {
+	_param_handles.com_spoolup_time = param_find("COM_SPOOLUP_TIME");
+
+	updateParams();
 	setFlightPhase(FlightPhase::HOVER_FLIGHT);
 }
+
+void ActuatorEffectivenessTiltrotorVTOL::updateParams()
+{
+	ModuleParams::updateParams();
+
+	param_get(_param_handles.com_spoolup_time, &_param_spoolup_time);
+}
+
 bool
 ActuatorEffectivenessTiltrotorVTOL::getEffectivenessMatrix(Configuration &configuration,
 		EffectivenessUpdateReason external_update)
@@ -137,11 +148,56 @@ void ActuatorEffectivenessTiltrotorVTOL::updateSetpoint(const matrix::Vector<flo
 				_last_collective_tilt_control = control_collective_tilt;
 			}
 
+			// During transition to FF, only allow update thrust axis up to 45° as with a high tilt angle the effectiveness
+			// of the thrust axis in z is apporaching 0, and by that is increasing the motor output to max.
+			// Transition to HF: disable thrust axis tilting, and assume motors are vertical. This is to avoid
+			// a thrust spike when the transition is initiated (as then the tilt is fully forward).
+			if (_flight_phase == FlightPhase::TRANSITION_HF_TO_FF) {
+				_last_collective_tilt_control = math::constrain(_last_collective_tilt_control, -1.f, 0.f);
+
+			} else if (_flight_phase == FlightPhase::TRANSITION_FF_TO_HF) {
+				_last_collective_tilt_control = -1.f;
+			}
+
+			bool yaw_saturated_positive = true;
+			bool yaw_saturated_negative = true;
+
 			for (int i = 0; i < _tilts.count(); ++i) {
 				if (_tilts.config(i).tilt_direction == ActuatorEffectivenessTilts::TiltDirection::TowardsFront) {
-					actuator_sp(i + _first_tilt_idx) += control_collective_tilt;
+
+					// as long as throttle spoolup is not completed, leave the tilts in the disarmed position (in hover)
+					if (throttleSpoolupFinished() || _flight_phase != FlightPhase::HOVER_FLIGHT) {
+						actuator_sp(i + _first_tilt_idx) += control_collective_tilt;
+
+					} else {
+						actuator_sp(i + _first_tilt_idx) = NAN; // NaN sets tilts to disarmed position
+					}
+				}
+
+				// custom yaw saturation logic: only declare yaw saturated if all tilts are at the negative or positive yawing limit
+				if (_tilts.getYawTorqueOfTilt(i) > FLT_EPSILON) {
+
+					if (yaw_saturated_positive && actuator_sp(i + _first_tilt_idx) < actuator_max(i + _first_tilt_idx) - FLT_EPSILON) {
+						yaw_saturated_positive = false;
+					}
+
+					if (yaw_saturated_negative && actuator_sp(i + _first_tilt_idx) > actuator_min(i + _first_tilt_idx) + FLT_EPSILON) {
+						yaw_saturated_negative = false;
+					}
+
+				} else if (_tilts.getYawTorqueOfTilt(i) < -FLT_EPSILON) {
+					if (yaw_saturated_negative && actuator_sp(i + _first_tilt_idx) < actuator_max(i + _first_tilt_idx) - FLT_EPSILON) {
+						yaw_saturated_negative = false;
+					}
+
+					if (yaw_saturated_positive && actuator_sp(i + _first_tilt_idx) > actuator_min(i + _first_tilt_idx) + FLT_EPSILON) {
+						yaw_saturated_positive = false;
+					}
 				}
 			}
+
+			_yaw_tilt_saturation_flags.tilt_yaw_neg = yaw_saturated_negative;
+			_yaw_tilt_saturation_flags.tilt_yaw_pos = yaw_saturated_positive;
 
 			// in FW directly use throttle sp
 			if (_flight_phase == FlightPhase::FORWARD_FLIGHT) {
@@ -153,21 +209,6 @@ void ActuatorEffectivenessTiltrotorVTOL::updateSetpoint(const matrix::Vector<flo
 
 		if (_flight_phase == FlightPhase::FORWARD_FLIGHT) {
 			stopMaskedMotorsWithZeroThrust(_motors & ~_untiltable_motors, actuator_sp);
-		}
-	}
-
-	// Set yaw saturation flag in case of yaw through tilt. As in this case the yaw actuation is decoupled from
-	// the other axes (for now neglecting the case of 0 collective thrust), we set the saturation flags
-	// directly if the (normalized) yaw torque setpoint is outside of range (-1, 1).
-	if (matrix_index == 0 && _tilts.hasYawControl()) {
-		_yaw_tilt_saturation_flags.tilt_yaw_neg = false;
-		_yaw_tilt_saturation_flags.tilt_yaw_pos = false;
-
-		if (control_sp(2) < -1.f) {
-			_yaw_tilt_saturation_flags.tilt_yaw_neg = true;
-
-		} else if (control_sp(2) > 1.f) {
-			_yaw_tilt_saturation_flags.tilt_yaw_pos = true;
 		}
 	}
 }
@@ -212,4 +253,16 @@ void ActuatorEffectivenessTiltrotorVTOL::getUnallocatedControl(int matrix_index,
 	} else {
 		status.unallocated_torque[2] = 0.f;
 	}
+}
+
+bool ActuatorEffectivenessTiltrotorVTOL::throttleSpoolupFinished()
+{
+	vehicle_status_s vehicle_status;
+
+	if (_vehicle_status_sub.update(&vehicle_status)) {
+		_armed = vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED;
+		_armed_time = vehicle_status.armed_time;
+	}
+
+	return _armed && hrt_elapsed_time(&_armed_time) > _param_spoolup_time * 1_s;
 }

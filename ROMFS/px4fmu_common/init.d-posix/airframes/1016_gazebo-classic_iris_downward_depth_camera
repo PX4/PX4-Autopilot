@@ -1,0 +1,8 @@
+#!/bin/sh
+#
+# @name 3DR Iris Quadrotor with a depth camera (downward-facing)
+#
+# @type Quadrotor Wide
+#
+
+. ${R}etc/init.d-posix/airframes/10015_gazebo-classic_iris

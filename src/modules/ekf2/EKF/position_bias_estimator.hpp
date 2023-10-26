@@ -35,7 +35,8 @@
  * @file position_bias_estimator.hpp
  */
 
-#pragma once
+#ifndef EKF_POSITION_BIAS_ESTIMATOR_HPP
+#define EKF_POSITION_BIAS_ESTIMATOR_HPP
 
 #include "bias_estimator.hpp"
 
@@ -111,3 +112,5 @@ private:
 
 	bool _is_sensor_fusion_active{false}; // TODO: replace by const ref and remove setter when migrating _control_status.flags from union to bool
 };
+
+#endif // !EKF_POSITION_BIAS_ESTIMATOR_HPP

@@ -70,9 +70,9 @@ __license__ = "BSD"
 __email__ = "thomasgubler@gmail.com"
 
 
-TEMPLATE_FILE = ['msg.h.em', 'msg.cpp.em']
+TEMPLATE_FILE = ['msg.h.em', 'msg.cpp.em', 'uorb_idl_header.h.em']
 TOPICS_LIST_TEMPLATE_FILE = ['uORBTopics.hpp.em', 'uORBTopics.cpp.em']
-OUTPUT_FILE_EXT = ['.h', '.cpp']
+OUTPUT_FILE_EXT = ['.h', '.cpp', '.h']
 INCL_DEFAULT = ['std_msgs:./msg/std_msgs']
 PACKAGE = 'px4'
 TOPICS_TOKEN = '# TOPICS '
@@ -150,6 +150,7 @@ def generate_output_from_file(format_idx, filename, outputdir, package, template
     em_globals = {
         "name_snake_case": full_type_name_snake,
         "file_name_in": filename,
+        "file_base_name": file_base_name,
         "search_path": search_path,
         "msg_context": msg_context,
         "spec": spec,
@@ -161,7 +162,10 @@ def generate_output_from_file(format_idx, filename, outputdir, package, template
         os.makedirs(outputdir)
 
     template_file = os.path.join(templatedir, TEMPLATE_FILE[format_idx])
-    output_file = os.path.join(outputdir, full_type_name_snake + OUTPUT_FILE_EXT[format_idx])
+    if format_idx == 2:
+        output_file = os.path.join(outputdir, file_base_name + OUTPUT_FILE_EXT[format_idx])
+    else:
+        output_file = os.path.join(outputdir, full_type_name_snake + OUTPUT_FILE_EXT[format_idx])
 
     return generate_by_template(output_file, template_file, em_globals)
 
@@ -217,6 +221,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Convert msg files to uorb headers/sources')
     parser.add_argument('--headers', help='Generate header files', action='store_true')
     parser.add_argument('--sources', help='Generate source files', action='store_true')
+    parser.add_argument('--uorb-idl-header', help='Generate uORB compatible idl header', action='store_true')
     parser.add_argument('-f', dest='file',
                         help="files to convert (use only without -d)",
                         nargs="+")
@@ -241,6 +246,11 @@ if __name__ == "__main__":
         generate_idx = 0
     elif args.sources:
         generate_idx = 1
+    elif args.uorb_idl_header:
+        for f in args.file:
+            print(f)
+            generate_output_from_file(2, f, args.outputdir, args.package, args.templatedir, INCL_DEFAULT)
+        exit(0)
     else:
         print('Error: either --headers or --sources must be specified')
         exit(-1)

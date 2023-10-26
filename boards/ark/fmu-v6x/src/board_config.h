@@ -211,23 +211,18 @@
 #define GPIO_HW_VER_SENSE      /* PH3 */  GPIO_ADC3_INP14
 #define HW_INFO_INIT_PREFIX    "ARKV6X"
 
-#define BOARD_NUM_SPI_CFG_HW_VERSIONS 2 // Rev 0 and Rev 3,4 Sensor sets
+#define BOARD_NUM_SPI_CFG_HW_VERSIONS 8 // Rev 0 and Rev 1
 //                 Base/FMUM
-#define ARKV6X00   HW_VER_REV(0x0,0x0) // ARKV6X,                 Rev 0
-#define ARKV6X01   HW_VER_REV(0x0,0x1) // ARKV6X,     BMI388 I2C2 Rev 1
-#define ARKV6X03   HW_VER_REV(0x0,0x3) // ARKV6X,     Sensor Set  Rev 3
-#define ARKV6X04   HW_VER_REV(0x0,0x4) // ARKV6X,     Sensor Set  Rev 4
-#define ARKV6X10   HW_VER_REV(0x1,0x0) // NO PX4IO,               Rev 0
-#define ARKV6X13   HW_VER_REV(0x1,0x3) // NO PX4IO,   Sensor Set  Rev 3
-#define ARKV6X14   HW_VER_REV(0x1,0x4) // NO PX4IO,   Sensor Set  Rev 4
-//#define ARKV6X40   HW_VER_REV(0x4,0x0) // ARKV6X,                    HB CM4 base Rev 0 // never shipped
-//#define ARKV6X41   HW_VER_REV(0x4,0x1) // ARKV6X,     BMI388 I2C2    HB CM4 base Rev 1 // never shipped
-#define ARKV6X43   HW_VER_REV(0x4,0x3) // ARKV6X,     Sensor Set     HB CM4 base Rev 3
-#define ARKV6X44   HW_VER_REV(0x4,0x4) // ARKV6X,     Sensor Set     HB CM4 base Rev 4
-#define ARKV6X50   HW_VER_REV(0x5,0x0) // ARKV6X, ARKV6X Rev 0 with HB Mini Rev 5
-//#define ARKV6X51   HW_VER_REV(0x5,0x1) // ARKV6X,     BMI388 I2C2    HB Mini Rev 1 // never shipped
-#define ARKV6X53   HW_VER_REV(0x5,0x3) // ARKV6X,     Sensor Set     HB Mini Rev 3
-#define ARKV6X54   HW_VER_REV(0x5,0x4) // ARKV6X,     Sensor Set     HB Mini Rev 4
+#define ARKV6X00   HW_VER_REV(0x0,0x0) // ARKV6X,     Sensor Set  Rev 0
+#define ARKV6X01   HW_VER_REV(0x0,0x1) // ARKV6X,     Sensor Set  Rev 1
+//#define ARKV6X03   HW_VER_REV(0x0,0x3) // ARKV6X,     Sensor Set  Rev 3
+//#define ARKV6X04   HW_VER_REV(0x0,0x4) // ARKV6X,     Sensor Set  Rev 4
+#define ARKV6X10   HW_VER_REV(0x1,0x0) // NO PX4IO,   Sensor Set  Rev 0
+#define ARKV6X11   HW_VER_REV(0x1,0x1) // NO PX4IO,   Sensor Set  Rev 1
+#define ARKV6X40   HW_VER_REV(0x4,0x0) // ARKV6X,     Sensor Set  Rev 0   HB CM4 base Rev 3
+#define ARKV6X41   HW_VER_REV(0x4,0x1) // ARKV6X,     Sensor Set  Rev 1   HB CM4 base Rev 4
+#define ARKV6X50   HW_VER_REV(0x5,0x0) // ARKV6X,     Sensor Set  Rev 0   HB Mini Rev 5
+#define ARKV6X51   HW_VER_REV(0x5,0x1) // ARKV6X,     Sensor Set  Rev 1   HB Mini Rev 1 // never shipped
 
 #define UAVCAN_NUM_IFACES_RUNTIME  1
 

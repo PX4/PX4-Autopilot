@@ -266,7 +266,8 @@ private:
 	float _body_velocity_x{0.f};
 
 	MapProjection _global_local_proj_ref{};
-	float _global_local_alt0{NAN};
+
+	float _reference_altitude{NAN}; // [m AMSL] altitude of the local projection reference point
 
 	bool _landed{true};
 
@@ -287,8 +288,7 @@ private:
 	bool _hdg_hold_enabled{false}; // heading hold enabled
 	bool _yaw_lock_engaged{false}; // yaw is locked for heading hold
 
-	position_setpoint_s _hdg_hold_prev_wp{}; // position where heading hold started
-	position_setpoint_s _hdg_hold_curr_wp{}; // position to which heading hold flies
+	position_setpoint_s _hdg_hold_position{}; // position where heading hold started
 
 	// [.] normalized setpoint for manual altitude control [-1,1]; -1,0,1 maps to min,zero,max height rate commands
 	float _manual_control_setpoint_for_height_rate{0.0f};
@@ -670,10 +670,11 @@ private:
 	 * @param calibrated_airspeed_setpoint Calibrated airspeed septoint (generally from the position setpoint) [m/s]
 	 * @param calibrated_min_airspeed Minimum calibrated airspeed [m/s]
 	 * @param ground_speed Vehicle ground velocity vector (NE) [m/s]
+	 * @param in_takeoff_situation Vehicle is currently in a takeoff situation
 	 * @return Adjusted calibrated airspeed setpoint [m/s]
 	 */
 	float adapt_airspeed_setpoint(const float control_interval, float calibrated_airspeed_setpoint,
-				      float calibrated_min_airspeed, const Vector2f &ground_speed);
+				      float calibrated_min_airspeed, const Vector2f &ground_speed, bool in_takeoff_situation = false);
 
 	void reset_takeoff_state();
 	void reset_landing_state();
@@ -733,15 +734,6 @@ private:
 	float constrainRollNearGround(const float roll_setpoint, const float altitude, const float terrain_altitude) const;
 
 	/**
-	 * @brief Calculates the unit takeoff bearing vector from the launch position to takeoff waypont.
-	 *
-	 * @param launch_position Vehicle launch position in local coordinates (NE) [m]
-	 * @param takeoff_waypoint Takeoff waypoint position in local coordinates (NE) [m]
-	 * @return Unit takeoff bearing vector
-	 */
-	Vector2f calculateTakeoffBearingVector(const Vector2f &launch_position, const Vector2f &takeoff_waypoint) const;
-
-	/**
 	 * @brief Calculates the touchdown position for landing with optional manual lateral adjustments.
 	 *
 	 * Manual inputs (from the remote) are used to command a rate at which the position moves and the integrated
@@ -789,20 +781,60 @@ private:
 
 	/*
 	 * Waypoint handling logic following closely to the ECL_L1_Pos_Controller
-	 * method of the same name. Takes two waypoints and determines the relevant
-	 * parameters for evaluating the NPFG guidance law, then updates control setpoints.
+	 * method of the same name. Takes two waypoints, steering the vehicle to track
+	 * the line segment between them.
 	 *
-	 * @param[in] waypoint_A Waypoint A (segment start) position in WGS84 coordinates
-	 *            (lat,lon) [deg]
-	 * @param[in] waypoint_B Waypoint B (segment end) position in WGS84 coordinates
-	 *            (lat,lon) [deg]
-	 * @param[in] vehicle_pos Vehicle position in WGS84 coordinates (lat,lon) [deg]
+	 * @param[in] start_waypoint Segment starting position in local coordinates. (N,E) [m]
+	 * @param[in] end_waypoint Segment end position in local coordinates. (N,E) [m]
+	 * @param[in] vehicle_pos Vehicle position in local coordinates. (N,E) [m]
 	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
 	 * @param[in] wind_vel Wind velocity vector [m/s]
 	 */
-	void navigateWaypoints(const matrix::Vector2f &waypoint_A, const matrix::Vector2f &waypoint_B,
+	void navigateWaypoints(const matrix::Vector2f &start_waypoint, const matrix::Vector2f &end_waypoint,
 			       const matrix::Vector2f &vehicle_pos, const matrix::Vector2f &ground_vel,
 			       const matrix::Vector2f &wind_vel);
+
+	/*
+	 * Takes one waypoint and steers the vehicle towards this.
+	 *
+	 * NOTE: this *will lead to "flowering" behavior if no higher level state machine or
+	 * switching condition changes the waypoint.
+	 *
+	 * @param[in] waypoint_pos Waypoint position in local coordinates. (N,E) [m]
+	 * @param[in] vehicle_pos Vehicle position in local coordinates. (N,E) [m]
+	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
+	 * @param[in] wind_vel Wind velocity vector [m/s]
+	 */
+	void navigateWaypoint(const matrix::Vector2f &waypoint_pos, const matrix::Vector2f &vehicle_pos,
+			      const matrix::Vector2f &ground_vel, const matrix::Vector2f &wind_vel);
+
+	/*
+	 * Line (infinite) following logic. Two points on the line are used to define the
+	 * line in 2D space (first to second point determines the direction). Determines the
+	 * relevant parameters for evaluating the NPFG guidance law, then updates control setpoints.
+	 *
+	 * @param[in] point_on_line_1 Arbitrary first position on line in local coordinates. (N,E) [m]
+	 * @param[in] point_on_line_2 Arbitrary second position on line in local coordinates. (N,E) [m]
+	 * @param[in] vehicle_pos Vehicle position in local coordinates. (N,E) [m]
+	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
+	 * @param[in] wind_vel Wind velocity vector [m/s]
+	 */
+	void navigateLine(const Vector2f &point_on_line_1, const Vector2f &point_on_line_2, const Vector2f &vehicle_pos,
+			  const Vector2f &ground_vel, const Vector2f &wind_vel);
+
+	/*
+	 * Line (infinite) following logic. One point on the line and a line bearing are used to define
+	 * the line in 2D space. Determines the relevant parameters for evaluating the NPFG guidance law,
+	 * then updates control setpoints.
+	 *
+	 * @param[in] point_on_line Arbitrary position on line in local coordinates. (N,E) [m]
+	 * @param[in] line_bearing Line bearing [rad] (from north)
+	 * @param[in] vehicle_pos Vehicle position in local coordinates. (N,E) [m]
+	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
+	 * @param[in] wind_vel Wind velocity vector [m/s]
+	 */
+	void navigateLine(const Vector2f &point_on_line, const float line_bearing, const Vector2f &vehicle_pos,
+			  const Vector2f &ground_vel, const Vector2f &wind_vel);
 
 	/*
 	 * Loitering (unlimited) logic. Takes loiter center, radius, and direction and
@@ -810,7 +842,7 @@ private:
 	 * then updates control setpoints.
 	 *
 	 * @param[in] loiter_center The position of the center of the loiter circle [m]
-	 * @param[in] vehicle_pos Vehicle position in WGS84 coordinates (lat,lon) [deg]
+	 * @param[in] vehicle_pos Vehicle position in local coordinates. (N,E) [m]
 	 * @param[in] radius Loiter radius [m]
 	 * @param[in] loiter_direction_counter_clockwise Specifies loiter direction
 	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
@@ -824,8 +856,10 @@ private:
 	 * Path following logic. Takes poisiton, path tangent, curvature and
 	 * then updates control setpoints to follow a path setpoint.
 	 *
-	 * @param[in] vehicle_pos vehicle_pos Vehicle position in WGS84 coordinates (lat,lon) [deg]
-	 * @param[in] position_setpoint closest point on a path in WGS84 coordinates (lat,lon) [deg]
+	 * TODO: deprecate this function with a proper API to NPFG.
+	 *
+	 * @param[in] vehicle_pos vehicle_pos Vehicle position in local coordinates. (N,E) [m]
+	 * @param[in] position_setpoint closest point on a path in local coordinates. (N,E) [m]
 	 * @param[in] tangent_setpoint unit tangent vector of the path [m]
 	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
 	 * @param[in] wind_vel Wind velocity vector [m/s]
@@ -839,9 +873,9 @@ private:
 	 * Navigate on a fixed bearing.
 	 *
 	 * This only holds a certain (ground relative) direction and does not perform
-	 * cross track correction. Helpful for semi-autonomous modes. Similar to navigateHeading.
+	 * cross track correction. Helpful for semi-autonomous modes.
 	 *
-	 * @param[in] vehicle_pos vehicle_pos Vehicle position in WGS84 coordinates (lat,lon) [deg]
+	 * @param[in] vehicle_pos vehicle_pos Vehicle position in local coordinates. (N,E) [m]
 	 * @param[in] bearing Bearing angle [rad]
 	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
 	 * @param[in] wind_vel Wind velocity vector [m/s]

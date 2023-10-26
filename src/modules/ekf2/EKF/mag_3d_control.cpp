@@ -63,6 +63,7 @@ void Ekf::controlMag3DFusion(const magSample &mag_sample, const bool common_star
 	_control_status.flags.mag_3D = (_params.mag_fusion_type == MagFuseType::AUTO)
 				       && _control_status.flags.mag
 				       && _control_status.flags.mag_aligned_in_flight
+				       && (_control_status.flags.mag_heading_consistent || !_control_status.flags.gps)
 				       && !_control_status.flags.mag_fault
 				       && isRecent(aid_src.time_last_fuse, 500'000)
 				       && getMagBiasVariance().longerThan(0.f) && !getMagBiasVariance().longerThan(sq(0.02f))
@@ -88,7 +89,6 @@ void Ekf::controlMag3DFusion(const magSample &mag_sample, const bool common_star
 
 	if (_control_status.flags.mag) {
 		aid_src.timestamp_sample = mag_sample.time_us;
-		aid_src.fusion_enabled = true;
 
 		if (continuing_conditions_passing && _control_status.flags.yaw_align) {
 
@@ -166,8 +166,8 @@ void Ekf::controlMag3DFusion(const magSample &mag_sample, const bool common_star
 			    || wmm_updated
 			    || !_mag_decl_cov_reset
 			    || !_state.mag_I.longerThan(0.f)
-			    || (P.slice<3, 3>(16, 16).diag().min() < sq(0.0001f)) // mag_I
-			    || (P.slice<3, 3>(19, 19).diag().min() < sq(0.0001f)) // mag_B
+			    || (getStateVariance<State::mag_I>().min() < sq(0.0001f))
+			    || (getStateVariance<State::mag_B>().min() < sq(0.0001f))
 			   ) {
 				ECL_INFO("starting %s fusion, resetting states", AID_SRC_NAME);
 
@@ -189,8 +189,6 @@ void Ekf::controlMag3DFusion(const magSample &mag_sample, const bool common_star
 			_nb_mag_3d_reset_available = 2;
 		}
 	}
-
-	aid_src.fusion_enabled = _control_status.flags.mag;
 }
 
 void Ekf::stopMagFusion()
@@ -216,3 +214,20 @@ void Ekf::stopMagFusion()
 	}
 }
 
+void Ekf::saveMagCovData()
+{
+	// save the NED axis covariance sub-matrix
+	_saved_mag_ef_covmat = getStateCovariance<State::mag_I>();
+
+	// save the XYZ body covariance sub-matrix
+	_saved_mag_bf_covmat = getStateCovariance<State::mag_B>();
+}
+
+void Ekf::loadMagCovData()
+{
+	// re-instate the NED axis covariance sub-matrix
+	resetStateCovariance<State::mag_I>(_saved_mag_ef_covmat);
+
+	// re-instate the XYZ body axis covariance sub-matrix
+	resetStateCovariance<State::mag_B>(_saved_mag_bf_covmat);
+}

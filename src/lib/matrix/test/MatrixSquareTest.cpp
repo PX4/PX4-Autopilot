@@ -47,6 +47,7 @@ TEST(MatrixSquareTest, Square)
 
 	EXPECT_EQ(A.diag(), diag_check);
 	EXPECT_FLOAT_EQ(A.trace(), 16);
+	EXPECT_FLOAT_EQ(A.trace<2>(1), 15);
 
 	float data_check[9] = {
 		1.01158503f,  0.02190432f,  0.03238144f,
@@ -116,6 +117,16 @@ TEST(MatrixSquareTest, Square)
 				 };
 	SquareMatrix<float, 4> E_check(data_E_check);
 	EXPECT_EQ(E, E_check);
+
+	SquareMatrix<float, 4> A_block(data_4x4);
+	A_block.uncorrelateCovarianceBlock<2>(1);
+	float data_A_block_check[16] = {1, 0, 0, 4,
+					0, 6, 7, 0,
+					0, 10, 11, 0,
+					13, 0, 0, 16
+				       };
+	SquareMatrix<float, 4> A_block_check(data_A_block_check);
+	EXPECT_EQ(A_block, A_block_check);
 
 	// test symmetric functions
 	SquareMatrix<float, 4> F(data_4x4);

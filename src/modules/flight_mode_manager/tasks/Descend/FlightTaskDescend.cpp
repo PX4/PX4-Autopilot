@@ -60,8 +60,7 @@ bool FlightTaskDescend::update()
 
 	// Nudging
 	if (_param_mpc_land_rc_help.get() && _sticks.checkAndUpdateStickInputs()) {
-		_stick_yaw.generateYawSetpoint(_yawspeed_setpoint, _yaw_setpoint, _sticks.getYawExpo(), _yaw,
-					       _is_yaw_good_for_control, _deltatime);
+		_stick_yaw.generateYawSetpoint(_yawspeed_setpoint, _yaw_setpoint, _sticks.getYawExpo(), _yaw, _deltatime);
 		_acceleration_setpoint.xy() = _stick_tilt_xy.generateAccelerationSetpoints(_sticks.getPitchRoll(), _deltatime, _yaw,
 					      _yaw_setpoint);
 

@@ -160,21 +160,14 @@ static const px4_hw_mft_item_t hw_mft_list_v0650[] = {
 
 static px4_hw_mft_list_entry_t mft_lists[] = {
 //  ver_rev
-	{ARKV6X00, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)},
-	{ARKV6X01, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // BMP388 moved to I2C2
-	{ARKV6X03, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // BMP388 moved to I2C2, Sensor Set 3
-	//{ARKV6X40, hw_mft_list_v0640, arraySize(hw_mft_list_v0640)}, //                       HB CM4 base           // never shipped
-	//{ARKV6X41, hw_mft_list_v0640, arraySize(hw_mft_list_v0640)}, // BMP388 moved to I2C2  HB CM4 base           // never shipped
-	{ARKV6X43, hw_mft_list_v0640, arraySize(hw_mft_list_v0640)}, // BMP388 moved to I2C2, HB CM4 base Sensor Set 3
-	{ARKV6X44, hw_mft_list_v0640, arraySize(hw_mft_list_v0640)}, // BMP388 moved to I2C2, HB CM4 base Sensor Set 4
-	{ARKV6X50, hw_mft_list_v0650, arraySize(hw_mft_list_v0650)}, // ARKV6X Rev 0 with HB Mini Rev 5
-	//{ARKV6X51, hw_mft_list_v0650, arraySize(hw_mft_list_v0650)}, // BMP388 moved to I2C2  HB Mini               // never shipped
-	{ARKV6X53, hw_mft_list_v0650, arraySize(hw_mft_list_v0650)}, // BMP388 moved to I2C2, HB Mini Sensor Set 3
-	{ARKV6X54, hw_mft_list_v0650, arraySize(hw_mft_list_v0650)}, // BMP388 moved to I2C2, HB Mini Sensor Set 4
-	{ARKV6X10, hw_mft_list_v0610, arraySize(hw_mft_list_v0610)}, // No PX4IO
-	{ARKV6X13, hw_mft_list_v0610, arraySize(hw_mft_list_v0610)}, // No PX4IO BMP388 moved to I2C2, Sensor Set 3
-	{ARKV6X04, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // BMP388 moved to I2C2, Sensor Set 4
-	{ARKV6X14, hw_mft_list_v0610, arraySize(hw_mft_list_v0610)}, // No PX4IO BMP388 moved to I2C2, Sensor Set 4
+	{ARKV6X00, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // ARKV6X,     Sensor Set  Rev 0
+	{ARKV6X01, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // ARKV6X,     Sensor Set  Rev 1
+	{ARKV6X10, hw_mft_list_v0610, arraySize(hw_mft_list_v0610)}, // NO PX4IO,   Sensor Set  Rev 0
+	{ARKV6X11, hw_mft_list_v0610, arraySize(hw_mft_list_v0610)}, // NO PX4IO,   Sensor Set  Rev 1
+	{ARKV6X40, hw_mft_list_v0640, arraySize(hw_mft_list_v0640)}, // ARKV6X,     Sensor Set  Rev 0   HB CM4 base Rev 3
+	{ARKV6X41, hw_mft_list_v0640, arraySize(hw_mft_list_v0640)}, // ARKV6X,     Sensor Set  Rev 1   HB CM4 base Rev 4
+	{ARKV6X50, hw_mft_list_v0650, arraySize(hw_mft_list_v0650)}, // ARKV6X,     Sensor Set  Rev 0   HB Mini Rev 5
+	{ARKV6X51, hw_mft_list_v0650, arraySize(hw_mft_list_v0650)}, // ARKV6X,     Sensor Set  Rev 1   HB Mini Rev 1 // never shipped
 };
 
 /************************************************************************************

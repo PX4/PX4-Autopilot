@@ -3,7 +3,7 @@
 # board specific defaults
 #------------------------------------------------------------------------------
 
-pwm_out mode_pwm1 start
+pwm_out start
 
 ifup can0
 

@@ -902,12 +902,51 @@ MissionBlock::mission_apply_limitation(mission_item_s &item)
 float
 MissionBlock::get_absolute_altitude_for_item(const mission_item_s &mission_item) const
 {
+	return get_absolute_altitude_for_item(mission_item, _navigator->get_home_position()->alt);
+}
+
+float
+MissionBlock::get_absolute_altitude_for_item(const mission_item_s &mission_item, float home_alt)
+{
 	if (mission_item.altitude_is_relative) {
-		return mission_item.altitude + _navigator->get_home_position()->alt;
+		return mission_item.altitude + home_alt;
 
 	} else {
 		return mission_item.altitude;
 	}
+}
+
+void
+MissionBlock::copy_position_if_valid(struct mission_item_s *const mission_item,
+				     const struct position_setpoint_s *const setpoint) const
+{
+	if (setpoint->valid && setpoint->type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
+		mission_item->lat = setpoint->lat;
+		mission_item->lon = setpoint->lon;
+		mission_item->altitude = setpoint->alt;
+
+	} else {
+		mission_item->lat = _navigator->get_global_position()->lat;
+		mission_item->lon = _navigator->get_global_position()->lon;
+		mission_item->altitude = _navigator->get_global_position()->alt;
+	}
+
+	mission_item->altitude_is_relative = false;
+}
+
+void
+MissionBlock::set_align_mission_item(struct mission_item_s *const mission_item,
+				     const struct mission_item_s *const mission_item_next) const
+{
+	mission_item->nav_cmd = NAV_CMD_WAYPOINT;
+	copy_position_if_valid(mission_item, &(_navigator->get_position_setpoint_triplet()->current));
+	mission_item->altitude_is_relative = false;
+	mission_item->autocontinue = true;
+	mission_item->time_inside = 0.0f;
+	mission_item->yaw = get_bearing_to_next_waypoint(
+				    _navigator->get_global_position()->lat, _navigator->get_global_position()->lon,
+				    mission_item_next->lat, mission_item_next->lon);
+	mission_item->force_heading = true;
 }
 
 void

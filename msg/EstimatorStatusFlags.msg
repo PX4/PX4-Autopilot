@@ -41,6 +41,7 @@ bool cs_fake_hgt                # 33 - true when fake height measurements are be
 bool cs_gravity_vector          # 34 - true when gravity vector measurements are being fused
 bool cs_mag                     # 35 - true if 3-axis magnetometer measurement fusion (mag states only) is intended
 bool cs_ev_yaw_fault            # 36 - true when the EV heading has been declared faulty and is no longer being used
+bool cs_mag_heading_consistent  # 37 - true when the heading obtained from mag data is declared consistent with the filter
 
 # fault status
 uint32 fault_status_changes   # number of filter fault status (fs) changes

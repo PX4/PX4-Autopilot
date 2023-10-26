@@ -41,6 +41,7 @@ WorkItemSingleShot::WorkItemSingleShot(const px4::wq_config_t &config, worker_me
 	: px4::WorkItem("<single_shot>", config), _argument(argument), _method(method)
 {
 	px4_sem_init(&_sem, 0, 0);
+	px4_sem_setprotocol(&_sem, SEM_PRIO_NONE);
 }
 
 WorkItemSingleShot::WorkItemSingleShot(const px4::WorkItem &work_item, worker_method method, void *argument)

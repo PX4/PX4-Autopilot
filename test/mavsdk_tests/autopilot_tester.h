@@ -138,9 +138,11 @@ public:
 	void request_ground_truth();
 	void check_mission_item_speed_above(int item_index, float min_speed_m_s);
 	void check_tracks_mission(float corridor_radius_m = 1.5f);
+	void check_tracks_mission_raw(float corridor_radius_m = 1.f, bool reverse = false);
 	void start_checking_altitude(const float max_deviation_m);
 	void stop_checking_altitude();
 	void check_current_altitude(float target_rel_altitude_m, float max_distance_m = 1.5f);
+	void execute_rtl_when_reaching_mission_sequence(int sequence_number);
 
 	// Blocking call to get the drone's current position in NED frame
 	std::array<float, 3> get_current_position_ned();
@@ -200,7 +202,8 @@ private:
 	bool ground_truth_horizontal_position_far_from(const Telemetry::GroundTruth &target_pos, float min_distance_m);
 	bool estimated_position_close_to(const Offboard::PositionNedYaw &target_pos, float acceptance_radius_m);
 	bool estimated_horizontal_position_close_to(const Offboard::PositionNedYaw &target_pos, float acceptance_radius_m);
-	void start_and_wait_for_first_mission_item();
+	void start_and_wait_for_mission_sequence(int sequence_number);
+	void start_and_wait_for_mission_sequence_raw(int sequence_number);
 	void wait_for_flight_mode(Telemetry::FlightMode flight_mode, std::chrono::seconds timeout);
 	void wait_for_landed_state(Telemetry::LandedState landed_state, std::chrono::seconds timeout);
 	void wait_for_mission_finished(std::chrono::seconds timeout);

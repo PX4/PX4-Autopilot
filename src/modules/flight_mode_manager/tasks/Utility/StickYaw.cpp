@@ -35,23 +35,80 @@
 
 #include <px4_platform_common/defines.h>
 
+using matrix::wrap_pi;
+
 StickYaw::StickYaw(ModuleParams *parent) :
 	ModuleParams(parent)
 {}
 
-void StickYaw::generateYawSetpoint(float &yawspeed_setpoint, float &yaw_setpoint, const float stick_yaw,
-				   const float yaw, const bool is_yaw_good_for_control, const float deltatime)
+void StickYaw::reset(const float yaw, const float unaided_yaw)
 {
+	if (PX4_ISFINITE(unaided_yaw)) {
+		_yaw_error_lpf.reset(wrap_pi(yaw - unaided_yaw));
+	}
+}
+
+void StickYaw::ekfResetHandler(const float delta_yaw)
+{
+	_yaw_error_lpf.reset(wrap_pi(_yaw_error_lpf.getState() + delta_yaw));
+	_yaw_error_ref = wrap_pi(_yaw_error_ref + delta_yaw);
+}
+
+void StickYaw::generateYawSetpoint(float &yawspeed_setpoint, float &yaw_setpoint, const float stick_yaw,
+				   const float yaw, const float deltatime, const float unaided_yaw)
+{
+	_yaw_error_lpf.setParameters(deltatime, _kYawErrorTimeConstant);
+	const float yaw_correction_prev = _yaw_correction;
+	const bool reset_setpoint = updateYawCorrection(yaw, unaided_yaw);
+
+	if (reset_setpoint) {
+		yaw_setpoint = NAN;
+	}
+
 	_yawspeed_filter.setParameters(deltatime, _param_mpc_man_y_tau.get());
 	yawspeed_setpoint = _yawspeed_filter.update(stick_yaw * math::radians(_param_mpc_man_y_max.get()));
-	yaw_setpoint = updateYawLock(yaw, yawspeed_setpoint, yaw_setpoint, is_yaw_good_for_control);
+	yaw_setpoint = updateYawLock(yaw, yawspeed_setpoint, yaw_setpoint, yaw_correction_prev);
+}
+
+bool StickYaw::updateYawCorrection(const float yaw, const float unaided_yaw)
+{
+	if (!PX4_ISFINITE(unaided_yaw)) {
+		_yaw_correction = 0.f;
+		return false;
+	}
+
+	// Detect the convergence phase of the yaw estimate by monitoring its relative
+	// distance from an unaided yaw source.
+	const float yaw_error = wrap_pi(yaw - unaided_yaw);
+
+	// Run it through a high-pass filter to detect transients
+	const float yaw_error_hpf = wrap_pi(yaw_error - _yaw_error_lpf.getState());
+	_yaw_error_lpf.update(yaw_error);
+
+	const bool was_converging = _yaw_estimate_converging;
+	_yaw_estimate_converging = fabsf(yaw_error_hpf) > _kYawErrorChangeThreshold;
+
+	bool reset_setpoint = false;
+
+	if (!_yaw_estimate_converging) {
+		_yaw_error_ref = yaw_error;
+
+		if (was_converging) {
+			// Force a reset of the locking mechanism
+			reset_setpoint = true;
+		}
+	}
+
+	_yaw_correction = wrap_pi(yaw_error - _yaw_error_ref);
+
+	return reset_setpoint;
 }
 
 float StickYaw::updateYawLock(const float yaw, const float yawspeed_setpoint, const float yaw_setpoint,
-			      const bool is_yaw_good_for_control)
+			      const float yaw_correction_prev) const
 {
 	// Yaw-lock depends on desired yawspeed input. If not locked, yaw_sp is set to NAN.
-	if ((fabsf(yawspeed_setpoint) > FLT_EPSILON) || !is_yaw_good_for_control) {
+	if (fabsf(yawspeed_setpoint) > FLT_EPSILON) {
 		// no fixed heading when rotating around yaw by stick
 		return NAN;
 
@@ -61,7 +118,7 @@ float StickYaw::updateYawLock(const float yaw, const float yawspeed_setpoint, co
 			return yaw;
 
 		} else {
-			return yaw_setpoint;
+			return wrap_pi(yaw_setpoint - yaw_correction_prev + _yaw_correction);
 		}
 	}
 }

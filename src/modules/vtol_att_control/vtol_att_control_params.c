@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -210,9 +210,9 @@ PARAM_DEFINE_FLOAT(VT_QC_ALT_LOSS, 0.0f);
 /**
  * Quad-chute transition altitude loss threshold
  *
- * Altitude loss threshold for quad-chute triggering during VTOL transition to fixed-wing flight.
+ * Altitude loss threshold for quad-chute triggering during VTOL transition to fixed-wing flight
+ * in altitude-controlled flight modes.
  * Active until 5s after completing transition to fixed-wing.
- * Only active if altitude estimate is valid and in altitude-controlled mode.
  * If the current altitude is more than this value below the altitude at the beginning of the
  * transition, it will instantly switch back to MC mode and execute behavior defined in COM_QC_ACT.
  *
@@ -369,8 +369,7 @@ PARAM_DEFINE_FLOAT(VT_PITCH_MIN, -5.0f);
  * Minimum pitch angle during hover landing.
  *
  * Overrides VT_PITCH_MIN when the vehicle is in LAND mode (hovering).
- * During landing it can be beneficial to allow lower minimum pitch angles as it can avoid the wings
- * generating too much lift and preventing the vehicle from sinking at the desired rate.
+ * During landing it can be beneficial to reduce the pitch angle to reduce the generated lift in head wind.
  *
  * @unit deg
  * @min -10.0

@@ -34,6 +34,10 @@
 # this includes the generated topics directory
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
+if(CONFIG_LIB_CDRSTREAM)
+	include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/lib/cdrstream/cyclonedds/src/core/ddsc/include)
+endif()
+
 set(SRCS)
 
 set(SRCS_COMMON

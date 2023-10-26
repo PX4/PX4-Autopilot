@@ -1,0 +1,11 @@
+    <control_surface>
+        <name></name>
+        <index></index>
+        <direction></direction>
+        <CD_ctrl></CD_ctrl>
+        <CY_ctrl></CY_ctrl>
+        <CL_ctrl></CL_ctrl>
+        <Cell_ctrl></Cell_ctrl>
+        <Cem_ctrl></Cem_ctrl>
+        <Cen_ctrl></Cen_ctrl>
+    </control_surface>

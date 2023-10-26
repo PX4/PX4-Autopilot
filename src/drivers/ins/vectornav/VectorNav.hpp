@@ -56,6 +56,7 @@ extern "C" {
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
+#include <lib/geo/geo.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/module.h>
@@ -65,6 +66,7 @@ extern "C" {
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
@@ -99,6 +101,9 @@ private:
 
 	static void binaryAsyncMessageReceived(void *userData, VnUartPacket *packet, size_t runningIndex);
 
+	// return the square of two floating point numbers
+	static constexpr float sq(float var) { return var * var; }
+
 	void sensorCallback(VnUartPacket *packet);
 
 	char _port[20] {};
@@ -108,7 +113,8 @@ private:
 	bool _connected{false};
 	bool _configured{false};
 
-	hrt_abstime _last_read{0};
+	px4::atomic<hrt_abstime> _time_configured_us{false};
+	px4::atomic<hrt_abstime> _time_last_valid_imu_us{false};
 
 	VnSensor _vs{};
 
@@ -122,15 +128,30 @@ private:
 	PX4Gyroscope     _px4_gyro{0};
 	PX4Magnetometer  _px4_mag{0};
 
+	MapProjection _pos_ref{};
+	float _gps_alt_ref{NAN};		///< WGS-84 height (m)
+
 	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
 	uORB::PublicationMulti<sensor_gps_s> _sensor_gps_pub{ORB_ID(sensor_gps)};
 
-	uORB::PublicationMulti<vehicle_attitude_s> _attitude_pub{ORB_ID(external_ins_attitude)};
-	uORB::PublicationMulti<vehicle_local_position_s> _local_position_pub{ORB_ID(external_ins_local_position)};
-	uORB::PublicationMulti<vehicle_global_position_s> _global_position_pub{ORB_ID(external_ins_global_position)};
+	uORB::Publication<sensor_selection_s> _sensor_selection_pub{ORB_ID(sensor_selection)};
+
+	uORB::PublicationMulti<vehicle_attitude_s> _attitude_pub;
+	uORB::PublicationMulti<vehicle_local_position_s> _local_position_pub;
+	uORB::PublicationMulti<vehicle_global_position_s> _global_position_pub;
 
 	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": com_err")};
 	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};
+
+	perf_counter_t _accel_pub_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": accel publish interval")};
+	perf_counter_t _gyro_pub_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": gyro publish interval")};
+	perf_counter_t _mag_pub_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": mag publish interval")};
+	perf_counter_t _gnss_pub_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": GNSS publish interval")};
+	perf_counter_t _baro_pub_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": baro publish interval")};
+
+	perf_counter_t _attitude_pub_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": attitude publish interval")};
+	perf_counter_t _local_position_pub_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": local position publish interval")};
+	perf_counter_t _global_position_pub_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": global position publish interval")};
 
 
 	// TODO: params for GNSS antenna offsets
@@ -154,4 +175,8 @@ private:
 	// VN_GNSS_ANTB_POS_X
 
 	// Uncertainty in the X-axis position measurement.
+
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::VN_MODE>) _param_vn_mode
+	)
 };

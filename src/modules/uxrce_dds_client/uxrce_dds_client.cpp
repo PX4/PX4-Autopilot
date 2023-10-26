@@ -235,58 +235,55 @@ void UxrceddsClient::run()
 
 		uint16_t domain_id = _param_xrce_dds_dom_id.get();
 
-		// const char *participant_name = "px4_micro_xrce_dds";
-		// uint16_t participant_req = uxr_buffer_create_participant_bin(&session, reliable_out, participant_id, domain_id,
-		// 			   participant_name, UXR_REPLACE);
-
-		char participant_xml[PARTICIPANT_XML_SIZE];
-		int ret = snprintf(participant_xml, PARTICIPANT_XML_SIZE, "%s<name>%s/px4_micro_xrce_dds</name>%s",
-				   _localhost_only ?
-				   "<dds>"
-				   "<profiles>"
-				   "<transport_descriptors>"
-				   "<transport_descriptor>"
-				   "<transport_id>udp_localhost</transport_id>"
-				   "<type>UDPv4</type>"
-				   "<interfaceWhiteList><address>127.0.0.1</address></interfaceWhiteList>"
-				   "</transport_descriptor>"
-				   "</transport_descriptors>"
-				   "</profiles>"
-				   "<participant>"
-				   "<rtps>"
-				   :
-				   "<dds>"
-				   "<participant>"
-				   "<rtps>",
-				   _client_namespace != nullptr ?
-				   _client_namespace
-				   :
-				   "",
-				   _localhost_only ?
-				   "<useBuiltinTransports>false</useBuiltinTransports>"
-				   "<userTransports><transport_id>udp_localhost</transport_id></userTransports>"
-				   "</rtps>"
-				   "</participant>"
-				   "</dds>"
-				   :
-				   "</rtps>"
-				   "</participant>"
-				   "</dds>"
-				  );
-
-		if (ret < 0 || ret >= PARTICIPANT_XML_SIZE) {
-			PX4_ERR("create entities failed: namespace too long");
-			return;
-		}
-
-
 		uint16_t participant_req{};
 
 		if (_custom_participant) {
+			// Create participant by reference (XML not required)
 			participant_req = uxr_buffer_create_participant_ref(&session, reliable_out, participant_id, domain_id,
 					  "px4_participant", UXR_REPLACE);
 
 		} else {
+			// Construct participant XML and create participant by XML
+			char participant_xml[PARTICIPANT_XML_SIZE];
+			int ret = snprintf(participant_xml, PARTICIPANT_XML_SIZE, "%s<name>%s/px4_micro_xrce_dds</name>%s",
+					   _localhost_only ?
+					   "<dds>"
+					   "<profiles>"
+					   "<transport_descriptors>"
+					   "<transport_descriptor>"
+					   "<transport_id>udp_localhost</transport_id>"
+					   "<type>UDPv4</type>"
+					   "<interfaceWhiteList><address>127.0.0.1</address></interfaceWhiteList>"
+					   "</transport_descriptor>"
+					   "</transport_descriptors>"
+					   "</profiles>"
+					   "<participant>"
+					   "<rtps>"
+					   :
+					   "<dds>"
+					   "<participant>"
+					   "<rtps>",
+					   _client_namespace != nullptr ?
+					   _client_namespace
+					   :
+					   "",
+					   _localhost_only ?
+					   "<useBuiltinTransports>false</useBuiltinTransports>"
+					   "<userTransports><transport_id>udp_localhost</transport_id></userTransports>"
+					   "</rtps>"
+					   "</participant>"
+					   "</dds>"
+					   :
+					   "</rtps>"
+					   "</participant>"
+					   "</dds>"
+					  );
+
+			if (ret < 0 || ret >= PARTICIPANT_XML_SIZE) {
+				PX4_ERR("create entities failed: namespace too long");
+				return;
+			}
+
 			participant_req = uxr_buffer_create_participant_xml(&session, reliable_out, participant_id, domain_id,
 					  participant_xml, UXR_REPLACE);
 		}
@@ -335,8 +332,30 @@ void UxrceddsClient::run()
 		bool had_ping_reply = false;
 		uint32_t last_num_payload_sent{};
 		uint32_t last_num_payload_received{};
+		int poll_error_counter = 0;
+
+		_subs->init();
 
 		while (!should_exit() && _connected) {
+
+			/* Wait for topic updates for max 1000 ms (1sec) */
+			int poll = px4_poll(&_subs->fds[0], (sizeof(_subs->fds) / sizeof(_subs->fds[0])), 1000);
+
+			/* Handle the poll results */
+			if (poll == 0) {
+				/* Timeout, no updates in selected uorbs */
+				continue;
+
+			} else if (poll < 0) {
+				/* Error */
+				if (poll_error_counter < 10 || poll_error_counter % 50 == 0) {
+					/* Prevent flooding */
+					PX4_ERR("ERROR while polling uorbs: %d", poll);
+				}
+
+				poll_error_counter++;
+				continue;
+			}
 
 			_subs->update(&session, reliable_out, best_effort_out, participant_id, _client_namespace);
 
@@ -388,7 +407,6 @@ void UxrceddsClient::run()
 				_connected = false;
 			}
 
-			px4_usleep(1000);
 		}
 
 		uxr_delete_session_retries(&session, _connected ? 1 : 0);
@@ -563,21 +581,22 @@ int UxrceddsClient::print_status()
 #if defined(UXRCE_DDS_CLIENT_UDP)
 
 	if (_transport_udp != nullptr) {
-		PX4_INFO("Using transport: udp");
-		PX4_INFO("Agent IP: %s", _agent_ip);
-		PX4_INFO("Agent port: %s", _port);
-
+		PX4_INFO("Using transport:     udp");
+		PX4_INFO("Agent IP:            %s", _agent_ip);
+		PX4_INFO("Agent port:          %s", _port);
+		PX4_INFO("Custom participant:  %s", _custom_participant ? "yes" : "no");
+		PX4_INFO("Localhost only:      %s", _localhost_only ? "yes" : "no");
 	}
 
 #endif
 
 	if (_transport_serial != nullptr) {
-		PX4_INFO("Using transport: serial");
+		PX4_INFO("Using transport:     serial");
 	}
 
 	if (_connected) {
-		PX4_INFO("Payload tx: %i B/s", _last_payload_tx_rate);
-		PX4_INFO("Payload rx: %i B/s", _last_payload_rx_rate);
+		PX4_INFO("Payload tx:          %i B/s", _last_payload_tx_rate);
+		PX4_INFO("Payload rx:          %i B/s", _last_payload_rx_rate);
 	}
 
 	return 0;
@@ -606,7 +625,7 @@ UxrceddsClient *UxrceddsClient::instantiate(int argc, char *argv[])
 
 	const char *client_namespace = nullptr;//"px4";
 
-	while ((ch = px4_getopt(argc, argv, "t:d:b:h:p:lcn:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "t:d:b:h:p:n:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 't':
 			if (!strcmp(myoptarg, "serial")) {
@@ -642,14 +661,6 @@ UxrceddsClient *UxrceddsClient::instantiate(int argc, char *argv[])
 
 		case 'p':
 			snprintf(port, PORT_MAX_LENGTH, "%s", myoptarg);
-			break;
-
-		case 'l':
-			localhost_only = true;
-			break;
-
-		case 'c':
-			custom_participant = true;
 			break;
 #endif // UXRCE_DDS_CLIENT_UDP
 
@@ -691,6 +702,19 @@ UxrceddsClient *UxrceddsClient::instantiate(int argc, char *argv[])
 			 static_cast<uint8_t>(((ip_i) >> 16) & 0xff),
 			 static_cast<uint8_t>(((ip_i) >> 8) & 0xff),
 			 static_cast<uint8_t>(ip_i & 0xff));
+	}
+
+	int32_t participant_config = 0;
+	param_get(param_find("UXRCE_DDS_PTCFG"), &participant_config);
+
+	switch (participant_config) {
+	case 1:
+		localhost_only = true;
+		break;
+
+	case 2:
+		custom_participant = true;
+		break;
 	}
 
 #endif // UXRCE_DDS_CLIENT_UDP
@@ -742,8 +766,6 @@ $ uxrce_dds_client start -t udp -h 127.0.0.1 -p 15555
 	PRINT_MODULE_USAGE_PARAM_INT('b', 0, 0, 3000000, "Baudrate (can also be p:<param_name>)", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('h', nullptr, "<IP>", "Agent IP. If not provided, defaults to UXRCE_DDS_AG_IP", true);
 	PRINT_MODULE_USAGE_PARAM_INT('p', -1, 0, 65535, "Agent listening port. If not provided, defaults to UXRCE_DDS_PRT", true);
-	PRINT_MODULE_USAGE_PARAM_FLAG('l', "Restrict to localhost (use in combination with ROS_LOCALHOST_ONLY=1)", true);
-	PRINT_MODULE_USAGE_PARAM_FLAG('c', "Use custom participant config (profile_name=\"px4_participant\")", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('n', nullptr, nullptr, "Client DDS namespace", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 

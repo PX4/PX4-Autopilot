@@ -33,9 +33,10 @@
 
 /**
  * @file pca9685/main.cpp
- * A cross-platform driver and wrapper for pca9685.
- * Designed to support all control-groups by binding to correct mixer files
- * @author SalimTerryLi <lhf2613@gmail.com>
+ *
+ * This file serves as the wrapper layer for PCA9685 driver, working with parameters
+ * and scheduling stuffs on PX4 side.
+ *
  */
 
 #include <px4_log.h>
@@ -45,10 +46,9 @@
 #include <lib/perf/perf_counter.h>
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/getopt.h>
+#include <px4_platform_common/sem.hpp>
 
 #include "PCA9685.h"
-
-#include <px4_platform_common/sem.hpp>
 
 #define PCA9685_DEFAULT_IICBUS  1
 #define PCA9685_DEFAULT_ADDRESS (0x40)
@@ -59,25 +59,24 @@ using namespace time_literals;
 class PCA9685Wrapper : public ModuleBase<PCA9685Wrapper>, public OutputModuleInterface
 {
 public:
-	PCA9685Wrapper(int schd_rate_limit = 400);
-	~PCA9685Wrapper() override ;
+	PCA9685Wrapper();
+	~PCA9685Wrapper() override;
+	PCA9685Wrapper(const PCA9685Wrapper &) = delete;
+	PCA9685Wrapper operator=(const PCA9685Wrapper &) = delete;
 
 	int init();
 
-	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
-	/** @see ModuleBase */
 	static int custom_command(int argc, char *argv[]);
-	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
 
 	bool updateOutputs(bool stop_motors, uint16_t *outputs, unsigned num_outputs,
 			   unsigned num_control_groups_updated) override;
 
-	PCA9685Wrapper(const PCA9685Wrapper &) = delete;
-	PCA9685Wrapper operator=(const PCA9685Wrapper &) = delete;
-
 	int print_status() override;
+
+protected:
+	void updateParams() override;
 
 private:
 	perf_counter_t	_cycle_perf;
@@ -86,40 +85,37 @@ private:
 		INIT,
 		WAIT_FOR_OSC,
 		RUNNING
-	};
-	STATE _state{STATE::INIT};
-	// used to compare and cancel unecessary scheduling changes caused by parameter update
-	int32_t _last_fetched_Freq = -1;
-	// If this value is above zero, then change freq and scheduling in running state.
-	float _targetFreq = -1.0f;
+	} state{STATE::INIT};
 
+	PCA9685 *pca9685 = nullptr;
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	MixingOutput _mixing_output {
+		"PCA9685",
+		PCA9685_PWM_CHANNEL_COUNT,
+		*this,
+		MixingOutput::SchedulingPolicy::Disabled,
+		true
+	};
+
+	float param_pwm_freq, previous_pwm_freq;
+	float param_schd_rate, previous_schd_rate;
+	uint32_t param_duty_mode;
 
 	void Run() override;
-
-protected:
-	int _schd_rate_limit = 400;
-
-	PCA9685 *pca9685 = nullptr; // driver handle.
-
-	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
-
-	MixingOutput _mixing_output{"PCA9685", PCA9685_PWM_CHANNEL_COUNT, *this, MixingOutput::SchedulingPolicy::Disabled, true};
 };
 
-PCA9685Wrapper::PCA9685Wrapper(int schd_rate_limit) :
+PCA9685Wrapper::PCA9685Wrapper() :
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default),
-	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
-	_schd_rate_limit(schd_rate_limit)
+	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
 }
 
 PCA9685Wrapper::~PCA9685Wrapper()
 {
-	if (pca9685 != nullptr) { // normally this should not be called.
-		PX4_DEBUG("Destruction of PCA9685Wrapper without pwmDevice unloaded!");
-		pca9685->Stop(); // force stop
+	if (pca9685 != nullptr) {
+		pca9685->setAllPWM(0);
+		pca9685->sleep();
 		delete pca9685;
-		pca9685 = nullptr;
 	}
 
 	perf_free(_cycle_perf);
@@ -129,18 +125,7 @@ int PCA9685Wrapper::init()
 {
 	int ret = pca9685->init();
 
-	if (ret != PX4_OK) {
-		return ret;
-	}
-
-	param_t param_h = param_find("PCA9685_RATE");
-
-	if (param_h != PARAM_INVALID) {
-		param_get(param_h, &_targetFreq);
-
-	} else {
-		PX4_DEBUG("PARAM_INVALID: PCA9685_RATE");
-	}
+	if (ret != PX4_OK) { return ret; }
 
 	this->ChangeWorkQueue(px4::device_bus_to_wq(pca9685->get_device_id()));
 
@@ -154,7 +139,26 @@ int PCA9685Wrapper::init()
 bool PCA9685Wrapper::updateOutputs(bool stop_motors, uint16_t *outputs, unsigned num_outputs,
 				   unsigned num_control_groups_updated)
 {
-	return pca9685->updatePWM(outputs, num_outputs) == 0 ? true : false;
+	if (state != STATE::RUNNING) { return false; }
+
+	uint16_t low_level_outputs[PCA9685_PWM_CHANNEL_COUNT] = {};
+	num_outputs = num_outputs > PCA9685_PWM_CHANNEL_COUNT ? PCA9685_PWM_CHANNEL_COUNT : num_outputs;
+
+	for (uint8_t i = 0; i < num_outputs; ++i) {
+		if (param_duty_mode & (1 << i)) {
+			low_level_outputs[i] = outputs[i];
+
+		} else {
+			low_level_outputs[i] = pca9685->calcRawFromPulse(outputs[i]);
+		}
+	}
+
+	if (pca9685->updateRAW(low_level_outputs, num_outputs) != PX4_OK) {
+		PX4_ERR("Failed to write PWM to PCA9685");
+		return false;
+	}
+
+	return true;
 }
 
 void PCA9685Wrapper::Run()
@@ -163,7 +167,8 @@ void PCA9685Wrapper::Run()
 		ScheduleClear();
 		_mixing_output.unregister();
 
-		pca9685->Stop();
+		pca9685->setAllPWM(0);
+		pca9685->sleep();
 		delete pca9685;
 		pca9685 = nullptr;
 
@@ -171,44 +176,27 @@ void PCA9685Wrapper::Run()
 		return;
 	}
 
-	perf_begin(_cycle_perf);
-
-	switch (_state) {
+	switch (state) {
 	case STATE::INIT:
-		pca9685->initReg();
+		updateParams();
+		pca9685->updateFreq(param_pwm_freq);
+		previous_pwm_freq = param_pwm_freq;
+		previous_schd_rate = param_schd_rate;
 
-		if (_targetFreq > 0.0f) {
-			if (pca9685->setFreq(_targetFreq) != PX4_OK) {
-				PX4_ERR("failed to set pwm frequency to %.2f, fall back to 50Hz", (double)_targetFreq);
-				pca9685->setFreq(50.0f);	// this should not fail
-			}
-
-			_targetFreq = -1.0f;
-
-		} else {
-			// should not happen
-			PX4_ERR("INIT failed: invalid initial frequency settings");
-		}
-
-		pca9685->startOscillator();
-		_state = STATE::WAIT_FOR_OSC;
+		pca9685->wake();
+		state = STATE::WAIT_FOR_OSC;
 		ScheduleDelayed(500);
 		break;
 
 	case STATE::WAIT_FOR_OSC: {
-			pca9685->triggerRestart();  // start actual outputting
-			_state = STATE::RUNNING;
-			float schedule_rate = pca9685->getFrequency();
-
-			if (_schd_rate_limit < pca9685->getFrequency()) {
-				schedule_rate = _schd_rate_limit;
-			}
-
-			ScheduleOnInterval(1000000 / schedule_rate, 1000000 / schedule_rate);
+			state = STATE::RUNNING;
+			ScheduleOnInterval(1000000 / param_schd_rate, 0);
 		}
 		break;
 
 	case STATE::RUNNING:
+		perf_begin(_cycle_perf);
+
 		_mixing_output.update();
 
 		// check for parameter updates
@@ -219,30 +207,36 @@ void PCA9685Wrapper::Run()
 
 			// update parameters from storage
 			updateParams();
+
+			// apply param updates
+			if ((float)fabs(previous_pwm_freq - param_pwm_freq) > 0.01f) {
+				previous_pwm_freq = param_pwm_freq;
+
+				ScheduleClear();
+
+				pca9685->sleep();
+				pca9685->updateFreq(param_pwm_freq);
+				pca9685->wake();
+
+				// update of PWM freq will always trigger scheduling change
+				previous_schd_rate = param_schd_rate;
+
+				state = STATE::WAIT_FOR_OSC;
+				ScheduleDelayed(500);
+
+			} else if ((float)fabs(previous_schd_rate - param_schd_rate) > 0.01f) {
+				// case when PWM freq not changed but scheduling rate does
+				previous_schd_rate = param_schd_rate;
+				ScheduleClear();
+				ScheduleOnInterval(1000000 / param_schd_rate, 1000000 / param_schd_rate);
+			}
 		}
 
 		_mixing_output.updateSubscriptions(false);
 
-		if (_targetFreq > 0.0f) { // check if frequency should be changed
-			ScheduleClear();
-			pca9685->disableAllOutput();
-			pca9685->stopOscillator();
-
-			if (pca9685->setFreq(_targetFreq) != PX4_OK) {
-				PX4_ERR("failed to set pwm frequency, fall back to 50Hz");
-				pca9685->setFreq(50.0f);	// this should not fail
-			}
-
-			_targetFreq = -1.0f;
-			pca9685->startOscillator();
-			_state = STATE::WAIT_FOR_OSC;
-			ScheduleDelayed(500);
-		}
-
+		perf_end(_cycle_perf);
 		break;
 	}
-
-	perf_end(_cycle_perf);
 }
 
 int PCA9685Wrapper::print_usage(const char *reason)
@@ -254,27 +248,24 @@ int PCA9685Wrapper::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-This module is responsible for generate pwm pulse with PCA9685 chip.
+This is a PCA9685 PWM output driver.
 
-It listens on the actuator_controls topics, does the mixing and writes the PWM outputs.
+It runs on I2C workqueue which is asynchronous with FC control loop,
+fetching the latest mixing result and write them to PCA9685 at its scheduling ticks.
 
-### Implementation
-This module depends on ModuleBase and OutputModuleInterface.
-IIC communication is based on CDev::I2C
+It can do full 12bits output as duty-cycle mode, while also able to output precious pulse width
+that can be accepted by most ESCs and servos.
 
 ### Examples
 It is typically started with:
-$ pca9685_pwm_out start -a 64 -b 1
+$ pca9685_pwm_out start -a 0x40 -b 1
 
-The number X can be acquired by executing
-`pca9685_pwm_out status` when this driver is running.
 )DESCR_STR");
 
     PRINT_MODULE_USAGE_NAME("pca9685_pwm_out", "driver");
     PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the task");
-    PRINT_MODULE_USAGE_PARAM_INT('a',64,0,255,"device address on this bus",true);
+    PRINT_MODULE_USAGE_PARAM_STRING('a',"0x40","<addr>","7-bits I2C address of PCA9685",true);
 	PRINT_MODULE_USAGE_PARAM_INT('b',1,0,255,"bus that pca9685 is connected to",true);
-	PRINT_MODULE_USAGE_PARAM_INT('r',400,50,400,"schedule rate limit",true);
     PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
     return 0;
@@ -282,39 +273,42 @@ The number X can be acquired by executing
 
 int PCA9685Wrapper::print_status() {
     int ret =  ModuleBase::print_status();
-    PX4_INFO("PCA9685 @I2C Bus %d, address 0x%.2x, true frequency %.5f",
+    PX4_INFO("PCA9685 @I2C Bus %d, address 0x%.2x, real frequency %.2f",
             pca9685->get_device_bus(),
             pca9685->get_device_address(),
-             (double)(pca9685->getFrequency()));
+             (double)(pca9685->getFreq()));
 
     return ret;
 }
 
-int PCA9685Wrapper::custom_command(int argc, char **argv) { // only for test use
+int PCA9685Wrapper::custom_command(int argc, char **argv) {
     return PX4_OK;
 }
 
 int PCA9685Wrapper::task_spawn(int argc, char **argv) {
-
 	int ch;
 	int address=PCA9685_DEFAULT_ADDRESS;
 	int iicbus=PCA9685_DEFAULT_IICBUS;
-	int schd_rate_limit=400;
 
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
-	while ((ch = px4_getopt(argc, argv, "a:b:r:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "a:b:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 			case 'a':
-				address = atoi(myoptarg);
+                errno = 0;
+				address = strtol(myoptarg, nullptr, 16);
+                if (errno != 0) {
+                    PX4_WARN("Invalid address");
+                    return PX4_ERROR;
+                }
 				break;
 
 			case 'b':
-				iicbus = atoi(myoptarg);
-				break;
-
-			case 'r':
-				schd_rate_limit = atoi(myoptarg);
+				iicbus = strtol(myoptarg, nullptr, 10);
+                if (errno != 0) {
+                    PX4_WARN("Invalid bus");
+                    return PX4_ERROR;
+                }
 				break;
 
 			case '?':
@@ -326,7 +320,7 @@ int PCA9685Wrapper::task_spawn(int argc, char **argv) {
 		}
 	}
 
-    auto *instance = new PCA9685Wrapper(schd_rate_limit);
+    auto *instance = new PCA9685Wrapper();
 
     if (instance) {
         _object.store(instance);
@@ -356,6 +350,31 @@ int PCA9685Wrapper::task_spawn(int argc, char **argv) {
     _task_id = -1;
 
     return PX4_ERROR;
+}
+
+void PCA9685Wrapper::updateParams() {
+    ModuleParams::updateParams();
+
+    param_t param = param_find("PCA9685_SCHD_HZ");
+    if (param != PARAM_INVALID) {
+        param_get(param, &param_schd_rate);
+    } else {
+        PX4_ERR("param PCA9685_SCHD_HZ not found");
+    }
+
+    param = param_find("PCA9685_PWM_FREQ");
+    if (param != PARAM_INVALID) {
+        param_get(param, &param_pwm_freq);
+    } else {
+        PX4_ERR("param PCA9685_PWM_FREQ not found");
+    }
+
+    param = param_find("PCA9685_DUTY_EN");
+    if (param != PARAM_INVALID) {
+        param_get(param, (int32_t*)&param_duty_mode);
+    } else {
+        PX4_ERR("param PCA9685_DUTY_EN not found");
+    }
 }
 
 extern "C" __EXPORT int pca9685_pwm_out_main(int argc, char *argv[]){

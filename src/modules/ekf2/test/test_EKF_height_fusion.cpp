@@ -198,13 +198,8 @@ TEST_F(EkfHeightFusionTest, gpsRef)
 	EXPECT_NEAR(_ekf->getBaroBiasEstimatorStatus().bias, baro_initial + baro_increment - gps_step, 0.2f);
 
 	// and the innovations are close to zero
-	float baro_innov = NAN;
-	_ekf->getBaroHgtInnov(baro_innov);
-	EXPECT_NEAR(baro_innov, 0.f, 0.2f);
-
-	float rng_innov = NAN;
-	_ekf->getRngHgtInnov(rng_innov);
-	EXPECT_NEAR(rng_innov, 0.f, 0.2f);
+	EXPECT_NEAR(_ekf->aid_src_baro_hgt().innovation, 0.f, 0.2f);
+	EXPECT_NEAR(_ekf->aid_src_rng_hgt().innovation, 0.f, 0.2f);
 }
 
 TEST_F(EkfHeightFusionTest, baroRefFailOver)

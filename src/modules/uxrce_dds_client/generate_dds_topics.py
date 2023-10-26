@@ -85,43 +85,28 @@ with open(args.yaml_file, 'r') as file:
 merged_em_globals = {}
 all_type_includes = []
 
-for p in msg_map['publications']:
+def process_message_type(msg_type):
     # eg TrajectoryWaypoint from px4_msgs::msg::TrajectoryWaypoint
-    simple_base_type = p['type'].split('::')[-1]
+    simple_base_type = msg_type['type'].split('::')[-1]
 
     # eg TrajectoryWaypoint -> trajectory_waypoint
     base_type_name_snake_case = re.sub(r'(?<!^)(?=[A-Z])', '_', simple_base_type).lower()
     all_type_includes.append(base_type_name_snake_case)
-
     # simple_base_type: eg vehicle_status
-    p['simple_base_type'] = base_type_name_snake_case
-
+    msg_type['simple_base_type'] = base_type_name_snake_case
     # dds_type: eg px4_msgs::msg::dds_::VehicleStatus_
-    p['dds_type'] = p['type'].replace("::msg::", "::msg::dds_::") + "_"
-
+    msg_type['dds_type'] = msg_type['type'].replace("::msg::", "::msg::dds_::") + "_"
     # topic_simple: eg vehicle_status
-    p['topic_simple'] = p['topic'].split('/')[-1]
+    msg_type['topic_simple'] = msg_type['topic'].split('/')[-1]
 
+
+for p in msg_map['publications']:
+    process_message_type(p)
 
 merged_em_globals['publications'] = msg_map['publications']
 
 for s in msg_map['subscriptions']:
-    # eg TrajectoryWaypoint from px4_msgs::msg::TrajectoryWaypoint
-    simple_base_type = s['type'].split('::')[-1]
-
-    # eg TrajectoryWaypoint -> trajectory_waypoint
-    base_type_name_snake_case = re.sub(r'(?<!^)(?=[A-Z])', '_', simple_base_type).lower()
-    all_type_includes.append(base_type_name_snake_case)
-
-    # simple_base_type: eg vehicle_status
-    s['simple_base_type'] = base_type_name_snake_case
-
-    # dds_type: eg px4_msgs::msg::dds_::VehicleStatus_
-    s['dds_type'] = s['type'].replace("::msg::", "::msg::dds_::") + "_"
-
-    # topic_simple: eg vehicle_status
-    s['topic_simple'] = s['topic'].split('/')[-1]
-
+    process_message_type(s)
 
 merged_em_globals['subscriptions'] = msg_map['subscriptions']
 

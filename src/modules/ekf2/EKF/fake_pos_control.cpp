@@ -52,7 +52,7 @@ void Ekf::controlFakePosFusion()
 		Vector2f obs_var;
 
 		if (_control_status.flags.in_air && _control_status.flags.tilt_align) {
-			obs_var(0) = obs_var(1) = sq(fmaxf(_params.pos_noaid_noise, _params.gps_pos_noise));
+			obs_var(0) = obs_var(1) = sq(fmaxf(_params.pos_noaid_noise, 1.f));
 
 		} else if (!_control_status.flags.in_air && _control_status.flags.vehicle_at_rest) {
 			// Accelerate tilt fine alignment by fusing more
@@ -76,10 +76,11 @@ void Ekf::controlFakePosFusion()
 			if (continuing_conditions_passing) {
 
 				// always protect against extreme values that could result in a NaN
-				aid_src.fusion_enabled = (aid_src.test_ratio[0] < sq(100.0f / innov_gate))
-							 && (aid_src.test_ratio[1] < sq(100.0f / innov_gate));
-
-				fuseHorizontalPosition(aid_src);
+				if ((aid_src.test_ratio[0] < sq(100.0f / innov_gate))
+				&& (aid_src.test_ratio[1] < sq(100.0f / innov_gate))
+				) {
+					fuseHorizontalPosition(aid_src);
+				}
 
 				const bool is_fusion_failing = isTimedOut(aid_src.time_last_fuse, (uint64_t)4e5);
 

@@ -126,16 +126,41 @@ public:
 		return res;
 	}
 
-	Type trace() const
+	template <size_t Width>
+	Type trace(size_t first) const
 	{
+		static_assert(Width <= M, "Width bigger than matrix");
+		assert(first + Width <= M);
+
 		Type res = 0;
 		const SquareMatrix<Type, M> &self = *this;
 
-		for (size_t i = 0; i < M; i++) {
+		for (size_t i = first; i < (first + Width); i++) {
 			res += self(i, i);
 		}
 
 		return res;
+	}
+
+	Type trace() const
+	{
+		const SquareMatrix<Type, M> &self = *this;
+		return self.trace<M>(0);
+	}
+
+	// keep the sub covariance matrix and zero all covariance elements related
+	// to the rest of the matrix
+	template <size_t Width>
+	void uncorrelateCovarianceBlock(size_t first)
+	{
+		static_assert(Width <= M, "Width bigger than matrix");
+		assert(first + Width <= M);
+
+		SquareMatrix<Type, M> &self = *this;
+		SquareMatrix<Type, Width> cov = self.slice<Width, Width>(first, first);
+		self.slice<M, Width>(0, first) = 0.f;
+		self.slice<Width, M>(first, 0) = 0.f;
+		self.slice<Width, Width>(first, first) = cov;
 	}
 
 	// zero all offdiagonal elements and keep corresponding diagonal elements

@@ -40,4 +40,6 @@ target_link_libraries(vehicle_air_data
 		data_validator
 		px4_work_queue
 		sensor_calibration
+	PUBLIC
+		atmosphere
 )

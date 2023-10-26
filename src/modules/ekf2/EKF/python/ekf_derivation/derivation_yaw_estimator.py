@@ -33,6 +33,9 @@ File: derivation_yaw_estimator.py
 Description:
 """
 
+import symforce
+symforce.set_epsilon_to_symbol()
+
 import symforce.symbolic as sf
 from derivation_utils import *
 

@@ -222,7 +222,7 @@ enum Rotation GetBoardRotation()
 	int32_t board_rot = -1;
 	param_get(param_find("SENS_BOARD_ROT"), &board_rot);
 
-	if (board_rot >= 0 && board_rot <= Rotation::ROTATION_MAX) {
+	if (board_rot >= 0 && board_rot < Rotation::ROTATION_MAX) {
 		return static_cast<enum Rotation>(board_rot);
 
 	} else {

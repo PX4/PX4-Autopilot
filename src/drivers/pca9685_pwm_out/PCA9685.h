@@ -34,10 +34,7 @@
 #pragma once
 #include <cstdint>
 #include <drivers/device/i2c.h>
-#include <drivers/drv_pwm_output.h>
-
-namespace drv_pca9685_pwm
-{
+#include <px4_boardconfig.h>
 
 #define PCA9685_REG_MODE1 0x00			// Mode  register  1
 #define PCA9685_REG_MODE2 0x01			// Mode  register  2
@@ -82,93 +79,98 @@ namespace drv_pca9685_pwm
 // PRE_SCALE register
 #define PCA9685_PRE_SCALE_MASK 0xFF
 
+// common sense
 #define PCA9685_PWM_CHANNEL_COUNT 16
-#define PCA9685_PWM_RES 4096        //Resolution 4096=12bit
-/* This should be 25000000 ideally,
- * but it seems most chips have its oscillator working at a higher frequency
- * Reference: https://github.com/adafruit/Adafruit-PWM-Servo-Driver-Library/blob/6664ce936210eea53259b814062009d9569a4213/Adafruit_PWMServoDriver.h#L66 */
-#define PCA9685_CLOCK_INT 26075000.0 //25MHz internal clock
-#ifndef PCA9685_CLOCK_EXT
-#define PCA9685_CLOCK_FREQ PCA9685_CLOCK_INT   // use int clk
-#else
-#define PCA9685_CLOCK_FREQ PCA9685_CLOCK_EXT   // use ext clk
-#endif
+#define PCA9685_PWM_RES 4096
 
-#define PCA9685_DEVICE_BASE_PATH	"/dev/pca9685"
-#define PWM_DEFAULT_FREQUENCY 50    // default pwm frequency
+namespace drv_pca9685_pwm
+{
 
 //! Main class that exports features for PCA9685 chip
 class PCA9685 : public device::I2C
 {
 public:
 	PCA9685(int bus, int addr);
+	~PCA9685() override = default;
 
-	int Stop();
+	int init() override;
 
 	/*
-	 * outputs formatted to us.
+	 * Write new PWM value to device
+	 *
+	 * *output: pulse width, us
 	 */
 	int updatePWM(const uint16_t *outputs, unsigned num_outputs);
 
-	int setFreq(float freq);
-
-	~PCA9685() override = default;
-
-	int initReg();
-
-	inline float getFrequency() {return _Freq;}
-
 	/*
-	 * disable all of the output
+	 * Set PWM frequency to new value.
+	 *
+	 * Only a few of precious frequency can be set, while others will be rounded to the nearest possible value.
+	 *
+	 * Only allowed when PCA9685 is put into sleep mode
+	 *
+	 * freq: Hz
 	 */
-	void disableAllOutput();
+	int updateFreq(float freq);
 
 	/*
-	* turn off oscillator
-	*/
-	void stopOscillator();
-
-	/*
-	 * turn on oscillator
+	 * Write new PWM value to device, in raw counter value
+	 *
+	 * *output: 0~4095
 	 */
-	void startOscillator();
+	int updateRAW(const uint16_t *outputs, unsigned num_outputs);
 
 	/*
-	 * turn on output
+	 * Get the real frequency
 	 */
-	void triggerRestart();
+	float inline getFreq() {return currentFreq;}
+
+	uint16_t inline calcRawFromPulse(uint16_t pulse_width)
+	{
+		return (uint16_t)roundl((pulse_width * currentFreq * PCA9685_PWM_RES / (float)1e6));
+	}
+
+	/*
+	 * Set PWM value on all channels at once
+	 */
+	int setAllPWM(uint16_t output);
+
+	/*
+	 * Put PCA9685 into sleep mode
+	 *
+	 * This will disable the clock reference inside PCA9685
+	 */
+	int sleep();
+
+	/*
+	 * Put PCA9685 out of sleep mode.
+	 *
+	 * Must wait 500 us for oscillator stabilization before outputting anything
+	 */
+	int wake();
+
+	/*
+	 * If PCA9685 is put into sleep without clearing all the outputs,
+	 * then the restart command will be available, and it can bring back PWM output without the
+	 * need of updatePWM() call.
+	 */
+	int doRestart();
 
 protected:
 	int probe() override;
 
-#ifdef PCA9685_CLOCL_EXT
-	static const uint8_t DEFAULT_MODE1_CFG = 0x70;  // Auto-Increment, Sleep, EXTCLK
-#else
-	static const uint8_t DEFAULT_MODE1_CFG = 0x30;  // Auto-Increment, Sleep
-#endif
-	static const uint8_t DEFAULT_MODE2_CFG = 0x04;  // totem pole
-
-	float _Freq = PWM_DEFAULT_FREQUENCY;
-
-	/**
-	 * set PWM value for a channel[0,15].
-	 * value should be range of 0-4095
-	 */
-	void setPWM(uint8_t channel, const uint16_t &value);
-
-	/**
-	 * set all PWMs in a single I2C transmission.
-	 * value should be range of 0-4095
-	 */
-	void setPWM(uint8_t channel_count, const uint16_t *value);
-
 	/*
 	 * set clock divider
 	 */
-	void setDivider(uint8_t value);
+	int setDivider(uint8_t value);
+
+	/*
+	 * Write PWM value to PCA9685
+	 */
+	int writePWM(uint8_t idx, const uint16_t *value, uint8_t num);
 
 private:
-
+	float currentFreq;
 };
 
 }

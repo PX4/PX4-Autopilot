@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -249,9 +249,8 @@ PARAM_DEFINE_FLOAT(FW_R_LIM, 50.0f);
 /**
  * Throttle limit max
  *
- * This is the maximum throttle % that can be used by the controller.
- * For overpowered aircraft, this should be reduced to a value that
- * provides sufficient thrust to climb at the maximum pitch angle PTCH_MAX.
+ * Maximum throttle limit in altitude controlled modes.
+ * Should be set accordingly to achieve FW_T_CLMB_MAX.
  *
  * @unit norm
  * @min 0.0
@@ -265,11 +264,9 @@ PARAM_DEFINE_FLOAT(FW_THR_MAX, 1.0f);
 /**
  * Throttle limit min
  *
- * This is the minimum throttle % that can be used by the controller.
- * For electric aircraft this will normally be set to zero, but can be set
- * to a small non-zero value if a folding prop is fitted to prevent the
- * prop from folding and unfolding repeatedly in-flight or to provide
- * some aerodynamic drag from a turning prop to improve the descent rate.
+ * Minimum throttle limit in altitude controlled modes.
+ * Usually set to 0 but can be increased to prevent the motor from stopping when
+ * descending, which can increase achievable descent rates.
  *
  * For aircraft with internal combustion engine this parameter should be set
  * for desired idle rpm.
@@ -382,10 +379,7 @@ PARAM_DEFINE_INT32(FW_LND_USETER, 1);
  *
  * When disabled, the landing configuration (flaps, landing airspeed, etc.) is only activated
  * on the final approach to landing. When enabled, it is already activated when entering the
- * final loiter-down (loiter-to-alt) waypoint before the landing approach. This shifts the (often large)
- * altitude and airspeed errors caused by the configuration change away from the ground such that
- * these are not so critical. It also gives the controller enough time to adapt to the new
- * configuration such that the landing approach starts with a cleaner initial state.
+ * final loiter-down (loiter-to-alt) waypoint before the landing approach.
  *
  * @boolean
  *
@@ -989,8 +983,6 @@ PARAM_DEFINE_INT32(FW_LND_ABORT, 3);
  * system more robust against disturbances (turbulence) in high wind.
  * Only applies to AUTO flight mode.
  *
- * airspeed_min_adjusted = FW_AIRSPD_MIN + FW_WIND_ARSP_SC * wind.length()
- *
  * @min 0
  * @decimal 2
  * @increment 0.01
@@ -999,10 +991,9 @@ PARAM_DEFINE_INT32(FW_LND_ABORT, 3);
 PARAM_DEFINE_FLOAT(FW_WIND_ARSP_SC, 0.f);
 
 /**
- * FW Launch detection
+ * Fixed-wing launch detection
  *
  * Enables automatic launch detection based on measured acceleration. Use for hand- or catapult-launched vehicles.
- * Only available for fixed-wing vehicles.
  * Not compatible with runway takeoff.
  *
  * @boolean

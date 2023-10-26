@@ -159,6 +159,16 @@ enum SIGNAL_PATH_RESET_BIT : uint8_t {
 	FIFO_FLUSH      = Bit1,
 };
 
+// INTF_CONFIG0
+enum INTF_CONFIG0_BIT : uint8_t {
+	FIFO_HOLD_LAST_DATA_EN  = Bit7,
+	FIFO_COUNT_REC          = Bit6,
+	FIFO_COUNT_ENDIAN       = Bit5,
+	SENSOR_DATA_ENDIAN      = Bit4,
+	UI_SIFS_CFG_DISABLE_I2C = Bit1 | Bit0,
+};
+
+// INTF_CONFIG1
 enum INTF_CONFIG1_BIT : uint8_t {
 	RTC_MODE = Bit2, // 0: No input RTC clock is required, 1: RTC clock input is required
 	CLKSEL = Bit0,

@@ -49,7 +49,9 @@
 #include "navigator_mode.h"
 #include "rtl.h"
 #include "takeoff.h"
+#if CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 #include "vtol_takeoff.h"
+#endif //CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 
 #include "navigation.h"
 
@@ -77,6 +79,7 @@
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_roi.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/mode_completed.h>
 #include <uORB/uORB.h>
@@ -142,7 +145,6 @@ public:
 	/**
 	 * Setters
 	 */
-	void set_can_loiter_at_sp(bool can_loiter) { _can_loiter_at_sp = can_loiter; }
 	void set_position_setpoint_triplet_updated() { _pos_sp_triplet_updated = true; }
 	void set_mission_result_updated() { _mission_result_updated = true; }
 
@@ -170,8 +172,6 @@ public:
 	bool home_global_position_valid() { return (_home_pos.valid_alt && _home_pos.valid_hpos); }
 
 	Geofence &get_geofence() { return _geofence; }
-
-	bool get_can_loiter_at_sp() { return _can_loiter_at_sp; }
 
 	float get_loiter_radius() { return _param_nav_loiter_rad.get(); }
 
@@ -249,31 +249,11 @@ public:
 
 	orb_advert_t *get_mavlink_log_pub() { return &_mavlink_log_pub; }
 
-	void increment_mission_instance_count() { _mission_result.instance_count++; }
-
 	int mission_instance_count() const { return _mission_result.instance_count; }
 
 	void set_mission_failure_heading_timeout();
 
-	bool is_planned_mission() const { return _navigation_mode == &_mission; }
-
-	bool on_mission_landing() { return (_mission.landing() && _navigation_mode == &_mission); }
-
-	bool start_mission_landing() { return _mission.land_start(); }
-
 	bool get_mission_start_land_available() { return _mission.get_land_start_available(); }
-
-	int  get_mission_landing_index() { return _mission.get_land_start_index(); }
-
-	double get_mission_landing_start_lat() { return _mission.get_landing_start_lat(); }
-	double get_mission_landing_start_lon() { return _mission.get_landing_start_lon(); }
-	float  get_mission_landing_start_alt() { return _mission.get_landing_start_alt(); }
-
-	double get_mission_landing_lat() { return _mission.get_landing_lat(); }
-	double get_mission_landing_lon() { return _mission.get_landing_lon(); }
-	float  get_mission_landing_alt() { return _mission.get_landing_alt(); }
-
-	float get_mission_landing_loiter_radius() { return _mission.get_landing_loiter_rad(); }
 
 	// RTL
 	bool in_rtl_state() const { return _vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL; }
@@ -285,7 +265,7 @@ public:
 	// Param access
 	int get_loiter_min_alt() const { return _param_min_ltr_alt.get(); }
 	int get_landing_abort_min_alt() const { return _param_mis_lnd_abrt_alt.get(); }
-	float get_takeoff_min_alt() const { return _param_mis_takeoff_alt.get(); }
+	float get_param_mis_takeoff_alt() const { return _param_mis_takeoff_alt.get(); }
 	int  get_takeoff_land_required() const { return _para_mis_takeoff_land_req.get(); }
 	float get_yaw_timeout() const { return _param_mis_yaw_tmt.get(); }
 	float get_yaw_threshold() const { return math::radians(_param_mis_yaw_err.get()); }
@@ -342,8 +322,6 @@ private:
 	vehicle_local_position_s			_local_pos{};		/**< local vehicle position */
 	vehicle_status_s				_vstatus{};		/**< vehicle status */
 
-	bool						_rtl_activated{false};
-
 	// Publications
 	geofence_result_s				_geofence_result{};
 	position_setpoint_triplet_s			_pos_sp_triplet{};	/**< triplet of position setpoints */
@@ -358,17 +336,16 @@ private:
 	hrt_abstime _last_geofence_check = 0;
 
 	bool		_geofence_violation_warning_sent{false};	/**< prevents spaming to mavlink */
-	bool		_can_loiter_at_sp{false};			/**< flags if current position SP can be used to loiter */
 	bool		_pos_sp_triplet_updated{false};			/**< flags if position SP triplet needs to be published */
 	bool 		_pos_sp_triplet_published_invalid_once{false};	/**< flags if position SP triplet has been published once to UORB */
 	bool		_mission_result_updated{false};			/**< flags if mission result has seen an update */
 
-	bool		_shouldEngageMissionForLanding{false};
-
 	Mission		_mission;			/**< class that handles the missions */
 	Loiter		_loiter;			/**< class that handles loiter */
 	Takeoff		_takeoff;			/**< class for handling takeoff commands */
+#if CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 	VtolTakeoff	_vtol_takeoff;			/**< class for handling VEHICLE_CMD_NAV_VTOL_TAKEOFF command */
+#endif //CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 	Land		_land;			/**< class for handling land commands */
 	PrecLand	_precland;			/**< class for handling precision land commands */
 	RTL 		_rtl;				/**< class that handles RTL */

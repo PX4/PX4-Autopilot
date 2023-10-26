@@ -31,6 +31,7 @@ param set-default PWM_MAIN_FUNC4 104
 
 # EKF2
 param set-default EKF2_GPS_CTRL 0
+param set-default EKF2_HGT_REF 0
 param set-default EKF2_EVP_NOISE 0.05
 param set-default EKF2_EVA_NOISE 0.05
 param set-default EKF2_OF_CTRL 1
@@ -38,6 +39,9 @@ param set-default EKF2_OF_CTRL 1
 # LPE: Flow-only mode
 param set-default LPE_FUSION 242
 param set-default LPE_FAKE_ORIGIN 1
+
+# Commander
+# param set-default COM_HOME_EN 0 # Disable setting of home position
 
 param set-default MPC_ALT_MODE 2
 

@@ -62,3 +62,13 @@
 	path = src/modules/uxrce_dds_client/Micro-XRCE-DDS-Client
 	url = https://github.com/PX4/Micro-XRCE-DDS-Client.git
 	branch = px4
+[submodule "src/lib/cdrstream/cyclonedds"]
+	path = src/lib/cdrstream/cyclonedds
+	url = https://github.com/px4/cyclonedds
+[submodule "src/lib/cdrstream/rosidl"]
+	path = src/lib/cdrstream/rosidl
+	url = https://github.com/px4/rosidl
+[submodule "src/modules/zenoh/zenoh-pico"]
+	path = src/modules/zenoh/zenoh-pico
+	url = https://github.com/px4/zenoh-pico
+	branch = pr-zubf-werror-fix

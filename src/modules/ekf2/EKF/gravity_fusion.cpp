@@ -12,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name ECL nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -40,7 +40,7 @@
  */
 
 #include "ekf.h"
-#include "python/ekf_derivation/generated/compute_gravity_innov_var_and_k_and_h.h"
+#include <ekf_derivation/generated/compute_gravity_innov_var_and_k_and_h.h>
 
 #include <mathlib/mathlib.h>
 
@@ -60,9 +60,9 @@ void Ekf::controlGravityFusion(const imuSample &imu)
 	// calculate kalman gains and innovation variances
 	Vector3f innovation; // innovation of the last gravity fusion observation (m/s**2)
 	Vector3f innovation_variance;
-	Vector24f Kx, Ky, Kz; // Kalman gain vectors
+	VectorState Kx, Ky, Kz; // Kalman gain vectors
 	sym::ComputeGravityInnovVarAndKAndH(
-		getStateAtFusionHorizonAsVector(), P, measurement, measurement_var, FLT_EPSILON,
+		_state.vector(), P, measurement, measurement_var, FLT_EPSILON,
 		&innovation, &innovation_variance, &Kx, &Ky, &Kz);
 
 	// fill estimator aid source status
@@ -80,9 +80,9 @@ void Ekf::controlGravityFusion(const imuSample &imu)
 	float innovation_gate = 1.f;
 	setEstimatorAidStatusTestRatio(_aid_src_gravity, innovation_gate);
 
-	_aid_src_gravity.fusion_enabled = _control_status.flags.gravity_vector;
+	const bool accel_clipping = imu.delta_vel_clipping[0] || imu.delta_vel_clipping[1] || imu.delta_vel_clipping[2];
 
-	if (_aid_src_gravity.fusion_enabled && !_aid_src_gravity.innovation_rejected) {
+	if (_control_status.flags.gravity_vector && !_aid_src_gravity.innovation_rejected && !accel_clipping) {
 		// perform fusion for each axis
 		_aid_src_gravity.fused = measurementUpdate(Kx, innovation_variance(0), innovation(0))
 					 && measurementUpdate(Ky, innovation_variance(1), innovation(1))

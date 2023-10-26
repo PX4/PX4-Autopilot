@@ -32,13 +32,13 @@
 ############################################################################
 
 # Find the gz_Transport library
-find_package(gz-transport
-	#REQUIRED COMPONENTS core
-	NAMES
-		#ignition-transport11 # IGN (Fortress and earlier) no longer supported
-		gz-transport12
-	#QUIET
-)
+# First look for GZ Harmonic libraries
+find_package(gz-transport NAMES gz-transport13)
+
+# If Harmonic not found, look for GZ Garden libraries
+if(NOT gz-transport_FOUND)
+	find_package(gz-transport NAMES gz-transport12)
+endif()
 
 if(gz-transport_FOUND)
 

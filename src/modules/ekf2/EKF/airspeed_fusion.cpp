@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 Estimation and Control Library (ECL). All rights reserved.
+ *   Copyright (c) 2015-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name ECL nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -44,8 +44,9 @@
 
 #include "ekf.h"
 
-#include "python/ekf_derivation/generated/compute_airspeed_h_and_k.h"
-#include "python/ekf_derivation/generated/compute_airspeed_innov_and_innov_var.h"
+#include <ekf_derivation/generated/compute_airspeed_h_and_k.h>
+#include <ekf_derivation/generated/compute_airspeed_innov_and_innov_var.h>
+#include <ekf_derivation/generated/compute_wind_init_and_cov_from_airspeed.h>
 
 #include <mathlib/mathlib.h>
 
@@ -61,6 +62,7 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 		_control_status.flags.wind = false;
 	}
 
+#if defined(CONFIG_EKF2_GNSS)
 	// clear yaw estimator airspeed (updated later with true airspeed if airspeed fusion is active)
 	if (_control_status.flags.fixed_wing) {
 		if (_control_status.flags.in_air && !_control_status.flags.vehicle_at_rest) {
@@ -72,6 +74,7 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 			_yawEstimator.setTrueAirspeed(0.f);
 		}
 	}
+#endif // CONFIG_EKF2_GNSS
 
 	if (_params.arsp_thr <= 0.f) {
 		stopAirspeedFusion();
@@ -98,7 +101,9 @@ void Ekf::controlAirDataFusion(const imuSample &imu_delayed)
 					fuseAirspeed(airspeed_sample, _aid_src_airspeed);
 				}
 
+#if defined(CONFIG_EKF2_GNSS)
 				_yawEstimator.setTrueAirspeed(airspeed_sample.true_airspeed);
+#endif // CONFIG_EKF2_GNSS
 
 				const bool is_fusion_failing = isTimedOut(_aid_src_airspeed.time_last_fuse, (uint64_t)10e6);
 
@@ -144,14 +149,12 @@ void Ekf::updateAirspeed(const airspeedSample &airspeed_sample, estimator_aid_so
 
 	float innov = 0.f;
 	float innov_var = 0.f;
-	sym::ComputeAirspeedInnovAndInnovVar(getStateAtFusionHorizonAsVector(), P, airspeed_sample.true_airspeed, R, FLT_EPSILON, &innov, &innov_var);
+	sym::ComputeAirspeedInnovAndInnovVar(_state.vector(), P, airspeed_sample.true_airspeed, R, FLT_EPSILON, &innov, &innov_var);
 
 	aid_src.observation = airspeed_sample.true_airspeed;
 	aid_src.observation_variance = R;
 	aid_src.innovation = innov;
 	aid_src.innovation_variance = innov_var;
-
-	aid_src.fusion_enabled = _control_status.flags.fuse_aspd;
 
 	aid_src.timestamp_sample = airspeed_sample.time_us;
 
@@ -194,15 +197,15 @@ void Ekf::fuseAirspeed(const airspeedSample &airspeed_sample, estimator_aid_sour
 
 	_fault_status.flags.bad_airspeed = false;
 
-	Vector24f H; // Observation jacobian
-	Vector24f K; // Kalman gain vector
+	VectorState H; // Observation jacobian
+	VectorState K; // Kalman gain vector
 
-	sym::ComputeAirspeedHAndK(getStateAtFusionHorizonAsVector(), P, innov_var, FLT_EPSILON, &H, &K);
+	sym::ComputeAirspeedHAndK(_state.vector(), P, innov_var, FLT_EPSILON, &H, &K);
 
 	if (update_wind_only) {
-		for (unsigned row = 0; row <= 21; row++) {
-			K(row) = 0.f;
-		}
+		const Vector2f K_wind = K.slice<State::wind_vel.dof, 1>(State::wind_vel.idx, 0);
+		K.setZero();
+		K.slice<State::wind_vel.dof, 1>(State::wind_vel.idx, 0) = K_wind;
 	}
 
 	const bool is_fused = measurementUpdate(K, aid_src.innovation_variance, aid_src.innovation);
@@ -220,53 +223,27 @@ void Ekf::stopAirspeedFusion()
 	if (_control_status.flags.fuse_aspd) {
 		ECL_INFO("stopping airspeed fusion");
 		resetEstimatorAidStatus(_aid_src_airspeed);
-		_yawEstimator.setTrueAirspeed(NAN);
 		_control_status.flags.fuse_aspd = false;
+
+#if defined(CONFIG_EKF2_GNSS)
+		_yawEstimator.setTrueAirspeed(NAN);
+#endif // CONFIG_EKF2_GNSS
 	}
 }
 
 void Ekf::resetWindUsingAirspeed(const airspeedSample &airspeed_sample)
 {
-	const float euler_yaw = getEulerYaw(_R_to_earth);
+	constexpr float sideslip_var = sq(math::radians(15.0f));
 
-	// estimate wind using zero sideslip assumption and airspeed measurement if airspeed available
-	_state.wind_vel(0) = _state.vel(0) - airspeed_sample.true_airspeed * cosf(euler_yaw);
-	_state.wind_vel(1) = _state.vel(1) - airspeed_sample.true_airspeed * sinf(euler_yaw);
+	const float euler_yaw = getEulerYaw(_R_to_earth);
+	const float airspeed_var = sq(math::constrain(_params.eas_noise, 0.5f, 5.0f) * math::constrain(airspeed_sample.eas2tas, 0.9f, 10.0f));
+
+	matrix::SquareMatrix<float, State::wind_vel.dof> P_wind;
+	sym::ComputeWindInitAndCovFromAirspeed(_state.vel, euler_yaw, airspeed_sample.true_airspeed, getVelocityVariance(), getYawVar(), sideslip_var, airspeed_var, &_state.wind_vel, &P_wind);
+
+	resetStateCovariance<State::wind_vel>(P_wind);
 
 	ECL_INFO("reset wind using airspeed to (%.3f, %.3f)", (double)_state.wind_vel(0), (double)_state.wind_vel(1));
 
-	resetWindCovarianceUsingAirspeed(airspeed_sample);
-
 	_aid_src_airspeed.time_last_fuse = _time_delayed_us;
-}
-
-void Ekf::resetWindCovarianceUsingAirspeed(const airspeedSample &airspeed_sample)
-{
-	// Derived using EKF/matlab/scripts/Inertial Nav EKF/wind_cov.py
-	// TODO: explicitly include the sideslip angle in the derivation
-	const float euler_yaw = getEulerYaw(_R_to_earth);
-	const float R_TAS = sq(math::constrain(_params.eas_noise, 0.5f, 5.0f) * math::constrain(airspeed_sample.eas2tas, 0.9f, 10.0f));
-	constexpr float initial_sideslip_uncertainty = math::radians(15.0f);
-	const float initial_wind_var_body_y = sq(airspeed_sample.true_airspeed * sinf(initial_sideslip_uncertainty));
-	constexpr float R_yaw = sq(math::radians(10.0f));
-
-	const float cos_yaw = cosf(euler_yaw);
-	const float sin_yaw = sinf(euler_yaw);
-
-	// rotate wind velocity into earth frame aligned with vehicle yaw
-	const float Wx = _state.wind_vel(0) * cos_yaw + _state.wind_vel(1) * sin_yaw;
-	const float Wy = -_state.wind_vel(0) * sin_yaw + _state.wind_vel(1) * cos_yaw;
-
-	// it is safer to remove all existing correlations to other states at this time
-	P.uncorrelateCovarianceSetVariance<2>(22, 0.0f);
-
-	P(22, 22) = R_TAS * sq(cos_yaw) + R_yaw * sq(-Wx * sin_yaw - Wy * cos_yaw) + initial_wind_var_body_y * sq(sin_yaw);
-	P(22, 23) = R_TAS * sin_yaw * cos_yaw + R_yaw * (-Wx * sin_yaw - Wy * cos_yaw) * (Wx * cos_yaw - Wy * sin_yaw) -
-		    initial_wind_var_body_y * sin_yaw * cos_yaw;
-	P(23, 22) = P(22, 23);
-	P(23, 23) = R_TAS * sq(sin_yaw) + R_yaw * sq(Wx * cos_yaw - Wy * sin_yaw) + initial_wind_var_body_y * sq(cos_yaw);
-
-	// Now add the variance due to uncertainty in vehicle velocity that was used to calculate the initial wind speed
-	P(22, 22) += P(4, 4);
-	P(23, 23) += P(5, 5);
 }

@@ -94,6 +94,9 @@ else
 	# Internal magnetometer on I2c
 	bmm150 -I -R 6 start
 
+	# Auto start power monitors
+	pm_selector_auterion start
+
 fi
 
 # External compass on GPS1/I2C1 (the 3rd external bus): standard Holybro Pixhawk 4 or CUAV V5 GPS/compass puck (with lights, safety button, and buzzer)

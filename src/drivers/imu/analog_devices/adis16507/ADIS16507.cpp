@@ -283,6 +283,7 @@ void ADIS16507::RunImpl()
 				if (buffer.checksum != checksum) {
 					//PX4_DEBUG("adis_report.checksum: %X vs calculated: %X", buffer.checksum, checksum);
 					perf_count(_bad_transfer_perf);
+					perf_count(_perf_crc_bad);
 				}
 
 				if (buffer.DIAG_STAT != DIAG_STAT_BIT::Data_path_overrun) {

@@ -1,0 +1,73 @@
+menuconfig MODULES_ZENOH
+	bool "Zenoh"
+	default n
+	select LIB_CDRSTREAM
+	---help---
+		Enable support for Zenoh
+
+if MODULES_ZENOH
+    config ZENOH_CONFIG_PATH
+        string "Config path"
+        default "/fs/microsd/zenoh"
+        help
+            Path to store network, publishers and subscribers configuration
+
+    config ZENOH_SERIAL
+        bool "Zenoh serial transport"
+        default n
+        help
+            Enables transport over serial (Not yet supported on NuttX/Linux)
+
+    config ZENOH_DEBUG
+        int "Zenoh debug level"
+        default 0
+        help
+            Set Zenoh debug level
+            0: NONE
+            1: ERROR
+            2: INFO + ERROR
+            3: DEBUG + INFO + ERROR
+
+    # Choose exactly one item
+    choice ZENOH_PUBSUB_SELECTION
+            prompt "Publishers/Subscribers selection"
+            default ZENOH_PUBSUB_ALL
+
+    config ZENOH_PUBSUB_MINIMAL
+            bool "Minimal"
+            select ZENOH_PUBSUB_COLLISION_CONSTRAINTS
+            select ZENOH_PUBSUB_FAILSAFE_FLAGS
+            select ZENOH_PUBSUB_POSITION_SETPOINT_TRIPLET
+            select ZENOH_PUBSUB_SENSOR_COMBINED
+            select ZENOH_PUBSUB_TIMESYNC_STATUS
+            select ZENOH_PUBSUB_VEHICLE_ATTITUDE
+            select ZENOH_PUBSUB_VEHICLE_CONTROL_MODE
+            select ZENOH_PUBSUB_VEHICLE_GLOBAL_POSITION
+            select ZENOH_PUBSUB_SENSOR_GPS
+            select ZENOH_PUBSUB_VEHICLE_LOCAL_POSITION
+            select ZENOH_PUBSUB_VEHICLE_ODOMETRY
+            select ZENOH_PUBSUB_VEHICLE_STATUS
+            select ZENOH_PUBSUB_TRAJECTORY_WAYPOINT
+            select ZENOH_PUBSUB_OFFBOARD_CONTROL_MODE
+            select ZENOH_PUBSUB_ONBOARD_COMPUTER_STATUS
+            select ZENOH_PUBSUB_OBSTACLE_DISTANCE
+            select ZENOH_PUBSUB_SENSOR_OPTICAL_FLOW
+            select ZENOH_PUBSUB_TELEMETRY_STATUS
+            select ZENOH_PUBSUB_TRAJECTORY_SETPOINT
+            select ZENOH_PUBSUB_VEHICLE_ATTITUDE_SETPOINT
+            select ZENOH_PUBSUB_VEHICLE_ODOMETRY
+            select ZENOH_PUBSUB_VEHICLE_RATES_SETPOINT
+            select ZENOH_PUBSUB_VEHICLE_COMMAND
+            select ZENOH_PUBSUB_VEHICLE_TRAJECTORY_BEZIER
+            select ZENOH_PUBSUB_VEHICLE_TRAJECTORY_WAYPOINT
+
+    config ZENOH_PUBSUB_ALL
+            bool "All"
+
+    config ZENOH_PUBSUB_CUSTOM
+            bool "Custom"
+    endchoice
+
+endif
+
+rsource "Kconfig.topics"

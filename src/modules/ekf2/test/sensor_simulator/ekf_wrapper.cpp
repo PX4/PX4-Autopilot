@@ -205,6 +205,11 @@ bool EkfWrapper::isIntendingMag3DFusion() const
 	return _ekf->control_status_flags().mag_3D;
 }
 
+bool EkfWrapper::isMagHeadingConsistent() const
+{
+	return _ekf->control_status_flags().mag_heading_consistent;
+}
+
 void EkfWrapper::setMagFuseTypeNone()
 {
 	_ekf_params->mag_fusion_type = MagFuseType::NONE;
@@ -273,11 +278,6 @@ float EkfWrapper::getYawAngle() const
 {
 	const Eulerf euler(_ekf->getQuaternion());
 	return euler(2);
-}
-
-matrix::Vector4f EkfWrapper::getQuaternionVariance() const
-{
-	return matrix::Vector4f(_ekf->orientation_covariances().diag());
 }
 
 int EkfWrapper::getQuaternionResetCounter() const

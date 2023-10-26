@@ -36,7 +36,7 @@
 #include "test_helper/comparison_helper.h"
 
 #include "../EKF/python/ekf_derivation/generated/quat_var_to_rot_var.h"
-#include "../EKF/python/ekf_derivation/generated/yaw_var_to_lower_triangular_quat_cov.h"
+#include "../EKF/python/ekf_derivation/generated/rot_var_ned_to_lower_triangular_quat_cov.h"
 #include "../EKF/python/ekf_derivation/generated/compute_yaw_321_innov_var_and_h.h"
 #include "../EKF/python/ekf_derivation/generated/compute_yaw_312_innov_var_and_h.h"
 
@@ -137,9 +137,17 @@ TEST(AttitudeVariance, matlabVsSymforceZeroTilt)
 void increaseYawVar(const Vector24f &state_vector, SquareMatrix24f &P, const float yaw_var)
 {
 	SquareMatrix<float, 4> q_cov;
-	sym::YawVarToLowerTriangularQuatCov(state_vector, yaw_var, &q_cov);
+	sym::RotVarNedToLowerTriangularQuatCov(state_vector, Vector3f(0.f, 0.f, yaw_var), &q_cov);
 	q_cov.copyLowerToUpperTriangle();
 	P.slice<4, 4>(0, 0) += q_cov;
+}
+
+void setTiltVar(const Vector24f &state_vector, SquareMatrix24f &P, const float tilt_var)
+{
+	SquareMatrix<float, 4> q_cov;
+	sym::RotVarNedToLowerTriangularQuatCov(state_vector, Vector3f(tilt_var, tilt_var, 0.f), &q_cov);
+	q_cov.copyLowerToUpperTriangle();
+	P.slice<4, 4>(0, 0) = q_cov;
 }
 
 float getYawVar(const Vector24f &state_vector, const SquareMatrix24f &P)
@@ -209,4 +217,56 @@ TEST(AttitudeVariance, increaseYawWithTilt)
 
 	const float var_2 = getYawVar(state_vector, P);
 	EXPECT_NEAR(var_2, yaw_var_1 + yaw_var_2, 1e-6f);
+}
+
+TEST(AttitudeVariance, setRotVarNoTilt)
+{
+	Quatf q;
+	SquareMatrix24f P;
+	Vector24f state_vector{};
+	state_vector(0) = q(0);
+	state_vector(1) = q(1);
+	state_vector(2) = q(2);
+	state_vector(3) = q(3);
+
+	const float tilt_var = radians(1.2f);
+	setTiltVar(state_vector, P, tilt_var);
+
+	Vector3f rot_var;
+	sym::QuatVarToRotVar(state_vector, P, FLT_EPSILON, &rot_var);
+
+	EXPECT_NEAR(rot_var(0), tilt_var, 1e-6f);
+	EXPECT_NEAR(rot_var(1), tilt_var, 1e-6f);
+	EXPECT_EQ(rot_var(2), 0.f);
+
+	// Compare against known values (special case)
+	EXPECT_EQ(P(0, 0), 0.f);
+	EXPECT_EQ(P(1, 1), 0.25f * tilt_var);
+	EXPECT_EQ(P(2, 2), 0.25f * tilt_var);
+	EXPECT_EQ(P(3, 3), 0.25f * 0.f); // no yaw var
+}
+
+TEST(AttitudeVariance, setRotVarPitch90)
+{
+	Quatf q(Eulerf(0.f, M_PI_F, 0.f));
+	SquareMatrix24f P;
+	Vector24f state_vector{};
+	state_vector(0) = q(0);
+	state_vector(1) = q(1);
+	state_vector(2) = q(2);
+	state_vector(3) = q(3);
+
+	const float tilt_var = radians(1.2f);
+	setTiltVar(state_vector, P, tilt_var);
+
+	Vector3f rot_var;
+	sym::QuatVarToRotVar(state_vector, P, FLT_EPSILON, &rot_var);
+
+	// TODO: FIXME, due to the nonlinearity of the quaternion parameters,
+	// setting the variance and getting it back is approximate.
+	// The correct way would be to keep the uncertainty as a 3D vector in the tangent plane
+	// instead of converting it to the parameter space
+	// EXPECT_NEAR(rot_var(0), tilt_var, 1e-6f);
+	// EXPECT_NEAR(rot_var(1), tilt_var, 1e-6f);
+	// EXPECT_EQ(rot_var(2), 0.f);
 }

@@ -181,6 +181,8 @@ private:
 	UavcanNodeParamManager _param_manager;
 	uavcan::ParamServer _param_server;
 
+	uavcan::DynamicNodeIDClient _dyn_node_id_client;
+
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")};
 	perf_counter_t _interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": cycle interval")};
 

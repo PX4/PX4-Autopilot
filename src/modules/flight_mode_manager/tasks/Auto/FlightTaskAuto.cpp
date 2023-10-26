@@ -221,8 +221,7 @@ void FlightTaskAuto::rcHelpModifyYaw(float &yaw_sp)
 {
 	// Only set a yawrate setpoint if weather vane is not active or the yaw stick is out of its dead-zone
 	if (!_weathervane.isActive() || fabsf(_sticks.getYawExpo()) > FLT_EPSILON) {
-		_stick_yaw.generateYawSetpoint(_yawspeed_setpoint, yaw_sp, _sticks.getYawExpo(), _yaw, _is_yaw_good_for_control,
-					       _deltatime);
+		_stick_yaw.generateYawSetpoint(_yawspeed_setpoint, yaw_sp, _sticks.getYawExpo(), _yaw, _deltatime);
 
 		// Hack to make sure the MPC_YAW_MODE 4 alignment doesn't stop the vehicle from descending when there's yaw input
 		_yaw_sp_aligned = true;

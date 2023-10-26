@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 Estimation and Control Library (ECL). All rights reserved.
+ *   Copyright (c) 2019-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name ECL nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -50,6 +50,7 @@ void Ekf::controlMagFusion()
 	// check mag state observability
 	checkYawAngleObservability();
 	checkMagBiasObservability();
+	checkMagHeadingConsistency();
 
 	if (_mag_bias_observable || _yaw_angle_observable) {
 		_time_last_mov_3d_mag_suitable = _time_delayed_us;
@@ -122,17 +123,17 @@ void Ekf::controlMagFusion()
 
 bool Ekf::checkHaglYawResetReq() const
 {
+#if defined(CONFIG_EKF2_TERRAIN)
 	// We need to reset the yaw angle after climbing away from the ground to enable
 	// recovery from ground level magnetic interference.
 	if (_control_status.flags.in_air && _control_status.flags.yaw_align && !_control_status.flags.mag_aligned_in_flight) {
 		// Check if height has increased sufficiently to be away from ground magnetic anomalies
 		// and request a yaw reset if not already requested.
-#if defined(CONFIG_EKF2_RANGE_FINDER)
 		static constexpr float mag_anomalies_max_hagl = 1.5f;
 		const bool above_mag_anomalies = (getTerrainVPos() - _state.pos(2)) > mag_anomalies_max_hagl;
 		return above_mag_anomalies;
-#endif // CONFIG_EKF2_RANGE_FINDER
 	}
+#endif // CONFIG_EKF2_TERRAIN
 
 	return false;
 }
@@ -154,7 +155,9 @@ void Ekf::resetMagStates(const Vector3f &mag, bool reset_heading)
 						* Vector3f(_mag_strength_gps, 0, 0);
 
 		// mag_B: reset
+#if defined(CONFIG_EKF2_GNSS)
 		if (isYawEmergencyEstimateAvailable()) {
+
 			const Dcmf R_to_earth = updateYawInRotMat(_yawEstimator.getYaw(), _R_to_earth);
 			const Dcmf R_to_body = R_to_earth.transpose();
 
@@ -164,6 +167,9 @@ void Ekf::resetMagStates(const Vector3f &mag, bool reset_heading)
 			ECL_INFO("resetMagStates using yaw estimator");
 
 		} else if (!reset_heading && _control_status.flags.yaw_align) {
+#else
+		if (!reset_heading && _control_status.flags.yaw_align) {
+#endif
 			// mag_B: reset using WMM
 			const Dcmf R_to_body = quatToInverseRotMat(_state.quat_nominal);
 			_state.mag_B = mag - (R_to_body * mag_earth_pred);
@@ -255,6 +261,19 @@ void Ekf::checkMagBiasObservability()
 
 	_yaw_delta_ef = 0.0f;
 	_time_yaw_started = _time_delayed_us;
+}
+
+void Ekf::checkMagHeadingConsistency()
+{
+	if (fabsf(_mag_heading_innov_lpf.getState()) < _params.mag_heading_noise) {
+		if (_yaw_angle_observable) {
+			// yaw angle must be observable to consider consistency
+			_control_status.flags.mag_heading_consistent = true;
+		}
+
+	} else {
+		_control_status.flags.mag_heading_consistent = false;
+	}
 }
 
 bool Ekf::checkMagField(const Vector3f &mag_sample)
@@ -357,6 +376,9 @@ void Ekf::resetMagHeading(const Vector3f &mag)
 	_mag_heading_last_declination = declination;
 
 	_time_last_heading_fuse = _time_delayed_us;
+
+	_mag_heading_innov_lpf.reset(0.f);
+	_control_status.flags.mag_heading_consistent = true;
 }
 
 float Ekf::getMagDeclination()

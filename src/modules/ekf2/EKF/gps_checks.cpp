@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 Estimation and Control Library (ECL). All rights reserved.
+ *   Copyright (c) 2015-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name ECL nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -41,7 +41,10 @@
 
 #include "ekf.h"
 
-#include <lib/world_magnetic_model/geo_mag_declination.h>
+#if defined(CONFIG_EKF2_MAGNETOMETER)
+# include <lib/world_magnetic_model/geo_mag_declination.h>
+#endif // CONFIG_EKF2_MAGNETOMETER
+
 #include <mathlib/mathlib.h>
 
 // GPS pre-flight check bit locations
@@ -85,14 +88,14 @@ bool Ekf::collect_gps(const gpsMessage &gps)
 		_NED_origin_initialised = true;
 
 		// save the horizontal and vertical position uncertainty of the origin
-		_gps_origin_eph = gps.eph;
-		_gps_origin_epv = gps.epv;
+		_gpos_origin_eph = gps.eph;
+		_gpos_origin_epv = gps.epv;
 
 		_information_events.flags.gps_checks_passed = true;
 		ECL_INFO("GPS checks passed");
 	}
 
-	if (isTimedOut(_wmm_gps_time_last_checked, 1e6)) {
+	if ((isTimedOut(_wmm_gps_time_last_checked, 1e6)) || (_wmm_gps_time_last_set == 0)) {
 		// a rough 2D fix is sufficient to lookup declination
 		const bool gps_rough_2d_fix = (gps.fix_type >= 2) && (gps.eph < 1000);
 
@@ -100,6 +103,8 @@ bool Ekf::collect_gps(const gpsMessage &gps)
 
 			// If we have good GPS data set the origin's WGS-84 position to the last gps fix
 			const double lat = gps.lat * 1.0e-7;
+
+#if defined(CONFIG_EKF2_MAGNETOMETER)
 			const double lon = gps.lon * 1.0e-7;
 
 			// set the magnetic field data returned by the geo library using the current GPS position
@@ -113,9 +118,9 @@ bool Ekf::collect_gps(const gpsMessage &gps)
 				const bool mag_inclination_changed = (fabsf(mag_inclination_gps - _mag_inclination_gps) > math::radians(1.f));
 
 				if ((_wmm_gps_time_last_set == 0)
-				    || !PX4_ISFINITE(mag_declination_gps)
-				    || !PX4_ISFINITE(mag_inclination_gps)
-				    || !PX4_ISFINITE(mag_strength_gps)
+				    || !PX4_ISFINITE(_mag_declination_gps)
+				    || !PX4_ISFINITE(_mag_inclination_gps)
+				    || !PX4_ISFINITE(_mag_strength_gps)
 				    || mag_declination_changed
 				    || mag_inclination_changed
 				   ) {
@@ -126,6 +131,7 @@ bool Ekf::collect_gps(const gpsMessage &gps)
 					_wmm_gps_time_last_set = _time_delayed_us;
 				}
 			}
+#endif // CONFIG_EKF2_MAGNETOMETER
 
 			_earth_rate_NED = calcEarthRateNED((float)math::radians(lat));
 		}
@@ -264,4 +270,14 @@ bool Ekf::gps_is_good(const gpsMessage &gps)
 
 	// continuous period without fail of x seconds required to return a healthy status
 	return isTimedOut(_last_gps_fail_us, (uint64_t)_min_gps_health_time_us);
+}
+
+void Ekf::resetGpsDriftCheckFilters()
+{
+	_gps_velNE_filt.setZero();
+	_gps_pos_deriv_filt.setZero();
+
+	_gps_horizontal_position_drift_rate_m_s = NAN;
+	_gps_vertical_position_drift_rate_m_s = NAN;
+	_gps_filtered_horizontal_velocity_m_s = NAN;
 }

@@ -268,7 +268,7 @@ void AutopilotTester::execute_mission_and_lose_gps()
 {
 	CHECK(_param->set_param_int("SYS_FAILURE_EN", 1) == Param::Result::Success);
 
-	start_and_wait_for_first_mission_item();
+	start_and_wait_for_mission_sequence(1);
 
 	CHECK(_failure->inject(Failure::FailureUnit::SensorGps, Failure::FailureType::Off, 0) == Failure::Result::Success);
 
@@ -280,7 +280,7 @@ void AutopilotTester::execute_mission_and_lose_mag()
 {
 	CHECK(_param->set_param_int("SYS_FAILURE_EN", 1) == Param::Result::Success);
 
-	start_and_wait_for_first_mission_item();
+	start_and_wait_for_mission_sequence(1);
 
 	CHECK(_failure->inject(Failure::FailureUnit::SensorMag, Failure::FailureType::Off, 0) == Failure::Result::Success);
 
@@ -296,7 +296,7 @@ void AutopilotTester::execute_mission_and_lose_baro()
 {
 	CHECK(_param->set_param_int("SYS_FAILURE_EN", 1) == Param::Result::Success);
 
-	start_and_wait_for_first_mission_item();
+	start_and_wait_for_mission_sequence(1);
 
 	CHECK(_failure->inject(Failure::FailureUnit::SensorBaro, Failure::FailureType::Off, 0) == Failure::Result::Success);
 
@@ -312,7 +312,7 @@ void AutopilotTester::execute_mission_and_get_baro_stuck()
 {
 	CHECK(_param->set_param_int("SYS_FAILURE_EN", 1) == Param::Result::Success);
 
-	start_and_wait_for_first_mission_item();
+	start_and_wait_for_mission_sequence(1);
 
 	CHECK(_failure->inject(Failure::FailureUnit::SensorBaro, Failure::FailureType::Stuck, 0) == Failure::Result::Success);
 
@@ -328,7 +328,7 @@ void AutopilotTester::execute_mission_and_get_mag_stuck()
 {
 	CHECK(_param->set_param_int("SYS_FAILURE_EN", 1) == Param::Result::Success);
 
-	start_and_wait_for_first_mission_item();
+	start_and_wait_for_mission_sequence(1);
 
 	CHECK(_failure->inject(Failure::FailureUnit::SensorMag, Failure::FailureType::Stuck, 0) == Failure::Result::Success);
 
@@ -560,6 +560,49 @@ void AutopilotTester::stop_checking_altitude()
 	_telemetry->subscribe_position(nullptr);
 }
 
+void AutopilotTester::check_tracks_mission_raw(float corridor_radius_m, bool reverse)
+{
+	auto mission_raw = _mission_raw->download_mission();
+	CHECK(mission_raw.first == MissionRaw::Result::Success);
+
+	auto mission_items = mission_raw.second;
+	auto ct = get_coordinate_transformation();
+
+	_telemetry->set_rate_position_velocity_ned(5);
+	_telemetry->subscribe_position_velocity_ned([ct, mission_items, corridor_radius_m, reverse,
+	    this](Telemetry::PositionVelocityNed position_velocity_ned) {
+		auto progress = _mission_raw->mission_progress();
+
+
+		std::function<std::array<float, 3>(std::vector<mavsdk::MissionRaw::MissionItem>, unsigned, mavsdk::geometry::CoordinateTransformation)>
+		get_waypoint_for_sequence = [](std::vector<mavsdk::MissionRaw::MissionItem> mission_items, int sequence, auto ct) {
+			for (auto waypoint : mission_items) {
+
+				if (waypoint.seq == (uint32_t)sequence) {
+					return get_local_mission_item_from_raw_item<float>(waypoint, ct);
+				}
+			}
+
+			return  std::array<float, 3>({0.0f, 0.0f, 0.0f});
+		};
+
+		if (progress.current > 0 && progress.current < progress.total) {
+			// Get shortest distance of current position to 3D line between previous and next waypoint
+
+			std::array<float, 3> current { position_velocity_ned.position.north_m,
+						       position_velocity_ned.position.east_m,
+						       position_velocity_ned.position.down_m };
+			std::array<float, 3> wp_prev = get_waypoint_for_sequence(mission_items,
+						       reverse ? progress.current + 1 : progress.current - 1, ct);
+			std::array<float, 3> wp_next = get_waypoint_for_sequence(mission_items, progress.current, ct);
+
+			float distance_to_trajectory = point_to_line_distance(current, wp_prev, wp_next);
+
+			CHECK(distance_to_trajectory < corridor_radius_m);
+		}
+	});
+}
+
 void AutopilotTester::check_tracks_mission(float corridor_radius_m)
 {
 	auto mission = _mission->download_mission();
@@ -592,6 +635,12 @@ void AutopilotTester::check_tracks_mission(float corridor_radius_m)
 void AutopilotTester::check_current_altitude(float target_rel_altitude_m, float max_distance_m)
 {
 	CHECK(std::abs(_telemetry->position().relative_altitude_m - target_rel_altitude_m) <= max_distance_m);
+}
+
+void AutopilotTester::execute_rtl_when_reaching_mission_sequence(int sequence_number)
+{
+	start_and_wait_for_mission_sequence_raw(sequence_number);
+	execute_rtl();
 }
 
 std::array<float, 3> AutopilotTester::get_current_position_ned()
@@ -701,21 +750,40 @@ bool AutopilotTester::ground_truth_horizontal_position_far_from(const Telemetry:
 	return pass;
 }
 
-void AutopilotTester::start_and_wait_for_first_mission_item()
+void AutopilotTester::start_and_wait_for_mission_sequence(int sequence_number)
 {
 	auto prom = std::promise<void> {};
 	auto fut = prom.get_future();
 
-	_mission->subscribe_mission_progress([&prom, this](Mission::MissionProgress progress) {
+	_mission->subscribe_mission_progress([&prom, this, sequence_number](Mission::MissionProgress progress) {
 		std::cout << time_str() << "Progress: " << progress.current << "/" << progress.total << std::endl;
 
-		if (progress.current >= 1) {
+		if (progress.current >= sequence_number) {
 			_mission->subscribe_mission_progress(nullptr);
 			prom.set_value();
 		}
 	});
 
 	REQUIRE(_mission->start_mission() == Mission::Result::Success);
+
+	REQUIRE(fut.wait_for(std::chrono::seconds(60)) == std::future_status::ready);
+}
+
+void AutopilotTester::start_and_wait_for_mission_sequence_raw(int sequence_number)
+{
+	auto prom = std::promise<void> {};
+	auto fut = prom.get_future();
+
+	_mission_raw->subscribe_mission_progress([&prom, this, sequence_number](MissionRaw::MissionProgress progress) {
+		std::cout << time_str() << "Progress: " << progress.current << "/" << progress.total << std::endl;
+
+		if (progress.current >= sequence_number) {
+			_mission_raw->subscribe_mission_progress(nullptr);
+			prom.set_value();
+		}
+	});
+
+	REQUIRE(_mission_raw->start_mission() == MissionRaw::Result::Success);
 
 	REQUIRE(fut.wait_for(std::chrono::seconds(60)) == std::future_status::ready);
 }

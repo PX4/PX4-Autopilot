@@ -180,7 +180,11 @@ void FwAutotuneAttitudeControl::Run()
 		Vector3f kid = pid_design::computePidGmvc(num_design, den, _sample_interval_avg, 0.2f, 0.f, 0.4f);
 		_kiff(0) = kid(0);
 		_kiff(1) = kid(1);
-		_attitude_p = 8.f / (M_PI_F * (_kiff(2) + _kiff(0))); // Maximum control power at an attitude error of pi/8
+
+		// To compute the attitude gain, use the following empirical rule:
+		// "An error of 60 degrees should produce the maximum control output"
+		// or K_att * (K_rate + K_ff) * rad(60) = 1
+		_attitude_p = math::constrain(1.f / (math::radians(60.f) * (_kiff(0) + _kiff(2))), 1.f, 5.f);
 
 		const Vector<float, 5> &coeff_var = _sys_id.getVariances();
 		const Vector3f rate_sp = _sys_id.areFiltersInitialized()
@@ -638,19 +642,21 @@ const Vector3f FwAutotuneAttitudeControl::getIdentificationSignal()
 	if (_state == state::roll || _state == state::test) {
 		// Scale the signal such that the attitude controller is
 		// able to cancel it completely at an attitude error of pi/8
-		signal_scaled = signal * M_PI_F / (8.f * _param_fw_r_tc.get());
+		signal_scaled = math::min(signal * M_PI_F / (8.f * _param_fw_r_tc.get()), math::radians(_param_fw_r_rmax.get()));
 		rate_sp(0) = signal_scaled - _signal_filter.getState();
 	}
 
 	if (_state ==  state::pitch || _state == state::test) {
-		signal_scaled = signal * M_PI_F / (8.f * _param_fw_p_tc.get());
+		const float pitch_rate_max_deg = math::min(_param_fw_p_rmax_pos.get(), _param_fw_p_rmax_neg.get());
+		signal_scaled = math::min(signal * M_PI_F / (8.f * _param_fw_p_tc.get()), math::radians(pitch_rate_max_deg));
 		rate_sp(1) = signal_scaled - _signal_filter.getState();
 
 	}
 
 	if (_state ==  state::yaw) {
 		// Do not send a signal that produces more than a full deflection of the rudder
-		signal_scaled = math::min(signal, 1.f / (_param_fw_yr_ff.get() + _param_fw_yr_p.get()));
+		signal_scaled = math::min(signal, 1.f / (_param_fw_yr_ff.get() + _param_fw_yr_p.get()),
+					  math::radians(_param_fw_y_rmax.get()));
 		rate_sp(2) = signal_scaled - _signal_filter.getState();
 	}
 
