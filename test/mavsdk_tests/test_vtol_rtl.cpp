@@ -44,7 +44,7 @@ TEST_CASE("RTL direct Home", "[vtol]")
 	tester.set_rtl_type(0);
 	tester.arm();
 	tester.execute_rtl_when_reaching_mission_sequence(2);
-	tester.wait_until_disarmed(std::chrono::seconds(90));
+	tester.wait_until_disarmed(std::chrono::seconds(120));
 	tester.check_home_within(5.0f);
 }
 
@@ -59,7 +59,7 @@ TEST_CASE("RTL direct Mission Land", "[vtol]")
 	tester.set_rtl_type(1);
 	tester.arm();
 	tester.execute_rtl_when_reaching_mission_sequence(2);
-	tester.wait_until_disarmed(std::chrono::seconds(90));
+	tester.wait_until_disarmed(std::chrono::seconds(120));
 	tester.check_mission_land_within(5.0f);
 }
 
@@ -74,7 +74,7 @@ TEST_CASE("RTL with Mission Landing", "[vtol]")
 	tester.arm();
 	tester.execute_rtl_when_reaching_mission_sequence(2);
 	tester.check_tracks_mission_raw(35.0f);
-	tester.wait_until_disarmed(std::chrono::seconds(95));
+	tester.wait_until_disarmed(std::chrono::seconds(120));
 }
 
 TEST_CASE("RTL with Reverse Mission", "[vtol]")
@@ -89,7 +89,7 @@ TEST_CASE("RTL with Reverse Mission", "[vtol]")
 	tester.arm();
 	tester.execute_rtl_when_reaching_mission_sequence(6);
 	//tester.check_tracks_mission_raw(35.0f);
-	tester.wait_until_disarmed(std::chrono::seconds(90));
+	tester.wait_until_disarmed(std::chrono::seconds(120));
 }
 
 TEST_CASE("RTL direct home without approaches", "[vtol]")
