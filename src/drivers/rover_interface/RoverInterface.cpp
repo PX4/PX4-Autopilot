@@ -6,14 +6,12 @@ RoverInterface *RoverInterface::_instance;
 // CAN interface | default is can0
 const char *const RoverInterface::CAN_IFACE = "can0";
 
-RoverInterface::RoverInterface(uint8_t rover_type, uint32_t bitrate, float manual_throttle_max,
-			       float mission_throttle_max)
+RoverInterface::RoverInterface(uint8_t rover_type, uint32_t bitrate, float vehicle_speed_max)
 	: ModuleParams(nullptr),
 	  ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rover_interface),
 	  _rover_type(rover_type),
 	  _bitrate(bitrate),
-	  _manual_throttle_max(manual_throttle_max),
-	  _mission_throttle_max(mission_throttle_max)
+		_vehicle_speed_max(vehicle_speed_max)
 {
 	pthread_mutex_init(&_node_mutex, nullptr);
 }
@@ -45,14 +43,14 @@ RoverInterface::~RoverInterface()
 }
 
 
-int RoverInterface::start(uint8_t rover_type, uint32_t bitrate, float manual_throttle_max, float mission_throttle_max)
+int RoverInterface::start(uint8_t rover_type, uint32_t bitrate, float vehicle_speed_max)
 {
 	if (_instance != nullptr) {
 		PX4_ERR("Already started");
 		return -1;
 	}
 
-	_instance = new RoverInterface(rover_type, bitrate, manual_throttle_max, mission_throttle_max);
+	_instance = new RoverInterface(rover_type, bitrate, vehicle_speed_max);
 
 	if (_instance == nullptr) {
 		PX4_ERR("Failed to allocate RoverInterface object");
@@ -155,6 +153,20 @@ void RoverInterface::Init()
 }
 
 
+void RoverInterface::parameters_update(bool force)
+{
+	// check for parameter updates
+	if (_parameter_update_sub.updated() || force) {
+		// clear update
+		parameter_update_s pupdate;
+		_parameter_update_sub.copy(&pupdate);
+
+		// update parameters from storage
+		updateParams();
+	}
+}
+
+
 void RoverInterface::Run()
 {
 	pthread_mutex_lock(&_node_mutex);
@@ -192,6 +204,8 @@ void RoverInterface::Run()
 	perf_begin(_cycle_perf);
 	perf_count(_interval_perf);
 
+	// Update parameters
+	parameters_update();
 
 	// Check for actuator armed command to rover
 	ActuatorArmedUpdate();
@@ -244,7 +258,7 @@ void RoverInterface::VehicleTorqueAndThrustUpdate()
 	}
 
 	if (do_update) {
-		auto throttle = (_is_manual_mode ? _manual_throttle_max : _mission_throttle_max) * _throttle_control;
+		auto throttle = (_is_manual_mode ? _param_man_speed_scale.get() : _vehicle_speed_max) * _throttle_control;
 		auto steering = _yaw_control;
 		_scout->SetMotionCommand(throttle, steering);
 	}
@@ -400,21 +414,16 @@ extern "C" __EXPORT int rover_interface_main(int argc, char *argv[])
 		int32_t can_bitrate = 0;
 		param_get(param_find("RI_CAN_BITRATE"), &can_bitrate);
 
-		// Manual control mode max throttle (1m/s to 3m/s)
-		float manual_throttle_max = 1.0;
-		param_get(param_find("RI_MAN_THR_MAX"), &manual_throttle_max);
-
-		// Mission control mode max throttle (1m/s to 3m/s)
-		float mission_throttle_max = 1.0;
-		param_get(param_find("RI_MIS_THR_MAX"), &mission_throttle_max);
+		// Vehicle speed max | depending on rover type
+		float vehicle_speed_max = 0.0f;
+		param_get(param_find("GND_SPEED_MAX"), &vehicle_speed_max);
 
 		// Start
 		PX4_INFO("Start Rover Interface to rover type %d at CAN iface %s with bitrate %d bit/s",
 			 rover_type, RoverInterface::CAN_IFACE, can_bitrate);
 		return RoverInterface::start(static_cast<uint8_t>(rover_type),
 					     can_bitrate,
-					     manual_throttle_max,
-					     mission_throttle_max
+					     vehicle_speed_max
 					    );
 	}
 
