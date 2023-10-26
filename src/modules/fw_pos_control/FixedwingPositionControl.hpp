@@ -94,13 +94,11 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/wind.h>
 #include <uORB/topics/orbit_status.h>
-#ifdef CONFIG_FIGURE_OF_EIGHT
-#include <uORB/topics/figure_eight_status.h>
-#endif // CONFIG_FIGURE_OF_EIGHT
 #include <uORB/uORB.h>
 
 #ifdef CONFIG_FIGURE_OF_EIGHT
 #include "figure_eight/FigureEight.hpp"
+#include <uORB/topics/figure_eight_status.h>
 #endif // CONFIG_FIGURE_OF_EIGHT
 
 using namespace launchdetection;
@@ -220,9 +218,6 @@ private:
 	uORB::Publication<tecs_status_s> _tecs_status_pub{ORB_ID(tecs_status)};
 	uORB::Publication<launch_detection_status_s> _launch_detection_status_pub{ORB_ID(launch_detection_status)};
 	uORB::PublicationMulti<orbit_status_s> _orbit_status_pub{ORB_ID(orbit_status)};
-#ifdef CONFIG_FIGURE_OF_EIGHT
-	uORB::Publication<figure_eight_status_s> _figure_eight_status_pub {ORB_ID(figure_eight_status)};
-#endif // CONFIG_FIGURE_OF_EIGHT
 	uORB::Publication<landing_gear_s> _landing_gear_pub {ORB_ID(landing_gear)};
 	uORB::Publication<normalized_unsigned_setpoint_s> _flaps_setpoint_pub{ORB_ID(flaps_setpoint)};
 	uORB::Publication<normalized_unsigned_setpoint_s> _spoilers_setpoint_pub{ORB_ID(spoilers_setpoint)};
@@ -280,11 +275,6 @@ private:
 	float _reference_altitude{NAN}; // [m AMSL] altitude of the local projection reference point
 
 	bool _landed{true};
-
-#ifdef CONFIG_FIGURE_OF_EIGHT
-	/* Loitering */
-	FigureEight _figure_eight;
-#endif // CONFIG_FIGURE_OF_EIGHT
 
 	// indicates whether the plane was in the air in the previous interation
 	bool _was_in_air{false};
@@ -444,6 +434,25 @@ private:
 	float _min_current_sp_distance_xy{FLT_MAX};
 	float _target_bearing{0.0f}; // [rad]
 
+#ifdef CONFIG_FIGURE_OF_EIGHT
+	/* Loitering */
+	FigureEight _figure_eight;
+	uORB::Publication<figure_eight_status_s> _figure_eight_status_pub {ORB_ID(figure_eight_status)};
+	/**
+	 * Vehicle control for the autonomous figure 8 mode.
+	 *
+	 * @param control_interval Time since last position control call [s]
+	 * @param curr_pos the current 2D absolute position of the vehicle in [deg].
+	 * @param ground_speed the 2D ground speed of the vehicle in [m/s].
+	 * @param pos_sp_prev the previous position setpoint.
+	 * @param pos_sp_curr the current position setpoint.
+	 */
+	void controlAutoFigureEight(const float control_interval, const Vector2d &curr_pos, const Vector2f &ground_speed,
+				    const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
+
+	void publishFigureEightStatus(const position_setpoint_s pos_sp);
+#endif // CONFIG_FIGURE_OF_EIGHT
+
 	// Update our local parameter cache.
 	int parameters_update();
 
@@ -599,19 +608,6 @@ private:
 	void control_auto_loiter(const float control_interval, const Vector2d &curr_pos, const Vector2f &ground_speed,
 				 const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next);
 
-#ifdef CONFIG_FIGURE_OF_EIGHT
-	/**
-	 * Vehicle control for the autonomous figure 8 mode.
-	 *
-	 * @param control_interval Time since last position control call [s]
-	 * @param curr_pos the current 2D absolute position of the vehicle in [deg].
-	 * @param ground_speed the 2D ground speed of the vehicle in [m/s].
-	 * @param pos_sp_prev the previous position setpoint.
-	 * @param pos_sp_curr the current position setpoint.
-	 */
-	void controlAutoFigureEight(const float control_interval, const Vector2d &curr_pos, const Vector2f &ground_speed,
-				    const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
-#endif // CONFIG_FIGURE_OF_EIGHT
 
 	/**
 	 * @brief Controls a desired airspeed, bearing, and height rate.
@@ -729,9 +725,6 @@ private:
 				    float airspeed_sp);
 
 	void publishOrbitStatus(const position_setpoint_s pos_sp);
-#ifdef CONFIG_FIGURE_OF_EIGHT
-	void publishFigureEightStatus(const position_setpoint_s pos_sp);
-#endif // CONFIG_FIGURE_OF_EIGHT
 
 	SlewRate<float> _airspeed_slew_rate_controller;
 
