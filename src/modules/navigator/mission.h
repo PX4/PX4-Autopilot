@@ -74,11 +74,6 @@ private:
 	bool setNextMissionItem() override;
 
 	/**
-	 * Returns true if we need to move to waypoint location before starting descent
-	 */
-	bool do_need_move_to_land();
-
-	/**
 	 * Returns true if we need to move to waypoint location after vtol takeoff
 	 */
 	bool do_need_move_to_takeoff();
@@ -96,8 +91,6 @@ private:
 	void setActiveMissionItems() override;
 
 	void handleTakeoff(WorkItemType &new_work_item_type, mission_item_s next_mission_items[], size_t &num_found_items);
-
-	void handleLanding(WorkItemType &new_work_item_type, mission_item_s next_mission_items[], size_t &num_found_items);
 
 	void handleVtolTransition(WorkItemType &new_work_item_type, mission_item_s next_mission_items[],
 				  size_t &num_found_items);

@@ -57,7 +57,6 @@ public:
 
 	void on_activation() override;
 	void on_active() override;
-	void on_inactive() override;
 
 	rtl_time_estimate_s calc_rtl_time_estimate() override;
 
@@ -65,7 +64,6 @@ private:
 	bool setNextMissionItem() override;
 	void setActiveMissionItems() override;
 	void handleLanding(WorkItemType &new_work_item_type);
-	bool do_need_move_to_land();
 
 	uORB::SubscriptionData<home_position_s> _home_pos_sub{ORB_ID(home_position)};		/**< home position subscription */
 };
