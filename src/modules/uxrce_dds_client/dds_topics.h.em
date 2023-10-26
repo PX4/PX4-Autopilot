@@ -23,6 +23,7 @@ import os
 
 #include <mathlib/mathlib.h>
 #include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/uORB.h>
 @[for include in type_includes]@
 #include <uORB/ucdr/@(include).h>
@@ -127,6 +128,10 @@ struct RcvTopicsPubs {
 	uORB::Publication<@(sub['simple_base_type'])_s> @(sub['topic_simple'])_pub{ORB_ID(@(sub['topic_simple']))};
 @[    end for]@
 
+@[    for sub in subscriptions_multi]@
+	uORB::PublicationMulti<@(sub['simple_base_type'])_s> @(sub['topic_simple'])_pub{ORB_ID(@(sub['topic_simple']))};
+@[    end for]@
+
 	uint32_t num_payload_received{};
 
 	bool init(uxrSession *session, uxrStreamId reliable_out_stream_id, uxrStreamId reliable_in_stream_id, uxrStreamId best_effort_in_stream_id, uxrObjectId participant_id, const char *client_namespace);
@@ -140,7 +145,7 @@ static void on_topic_update(uxrSession *session, uxrObjectId object_id, uint16_t
 	pubs->num_payload_received += length;
 
 	switch (object_id.id) {
-@[    for idx, sub in enumerate(subscriptions)]@
+@[    for idx, sub in enumerate(subscriptions + subscriptions_multi)]@
 	case @(idx)+ (65535U / 32U) + 1: {
 			@(sub['simple_base_type'])_s data;
 
