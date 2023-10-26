@@ -59,24 +59,11 @@ PARAM_DEFINE_INT32(RI_CAN_BITRATE, 500000);
 
 
 /**
- * Rover interface manual control throttle max.
+ * Rover interface manual control speed scale.
  *
- * @unit m/s
+ * @unit %m/s
  * @min 1.0
  * @max 3.0
- * @reboot_required true
  * @group Rover Interface
  */
-PARAM_DEFINE_FLOAT(RI_MAN_THR_MAX, 1.0);
-
-
-/**
- * Rover interface mission control throttle max.
- *
- * @unit m/s
- * @min 1.0
- * @max 3.0
- * @reboot_required true
- * @group Rover Interface
- */
-PARAM_DEFINE_FLOAT(RI_MIS_THR_MAX, 1.0);
+PARAM_DEFINE_FLOAT(RI_MAN_SPD_SC, 1.0);
