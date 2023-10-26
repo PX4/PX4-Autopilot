@@ -9,7 +9,7 @@
 ekf2 start &
 
 # Start MicroDDS Client
-# microdds_client start -h 192.168.0.1
+uxrce_dds_client start -t udp -h 192.168.0.1 -n spacebot2
 
 # Start Space Robot Thruster Controller
 sr_thruster_controller start
