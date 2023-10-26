@@ -56,6 +56,9 @@ publications:
   - topic: /fmu/out/my_message
     type: px4_msgs::msg::MyMessage
 
+  - topic: /fmu/out/rc_channels
+    type: px4_msgs::msg::RcChannels
+
 subscriptions:
 
   - topic: /fmu/in/offboard_control_mode
