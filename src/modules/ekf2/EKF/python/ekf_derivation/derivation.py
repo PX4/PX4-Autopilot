@@ -130,41 +130,38 @@ def predict_covariance(
         wind_vel = sf.V2.symbolic("wind_vel")
     )
 
-    state_t = Values(
-        quat_nominal = state["quat_nominal"] * sf.Rot3(sf.Quaternion(xyz=0.5*state_error["theta"], w = 1)),
-        vel = state["vel"] + state_error["vel"],
-        pos = state["pos"] + state_error["pos"],
-        gyro_bias = state["gyro_bias"] + state_error["gyro_bias"],
-        accel_bias = state["accel_bias"] + state_error["accel_bias"],
-        mag_I = state["mag_I"] + state_error["mag_I"],
-        mag_B = state["mag_B"] + state_error["mag_B"],
-        wind_vel = state["wind_vel"] + state_error["wind_vel"]
-    )
+    if args.disable_mag:
+        del state_error["mag_I"]
+        del state_error["mag_B"]
+
+    if args.disable_wind:
+        del state_error["wind_vel"]
+
+    # True state kinematics
+    state_t = Values()
+
+    for key in state.keys():
+        if key == "quat_nominal":
+            # Create true quaternion using small angle approximation of the error rotation
+            state_t["quat_nominal"] = state["quat_nominal"] * sf.Rot3(sf.Quaternion(xyz=(0.5 * state_error["theta"]), w=1))
+        else:
+            state_t[key] = state[key] + state_error[key]
 
     noise = Values(
         d_vel = sf.V3.symbolic("a_n"),
         d_ang = sf.V3.symbolic("w_n"),
-        # accel_bias = sf.V3.symbolic("a_w"),
-        # gyro_bias = sf.V3.symbolic("w_w")
     )
 
-    # True state kinematics
     input_t = Values(
         d_vel =  d_vel - state_t["accel_bias"] * d_vel_dt - noise["d_vel"],
         d_ang = d_ang - state_t["gyro_bias"] * d_ang_dt - noise["d_ang"]
     )
 
     R_t = state_t["quat_nominal"]
-    state_t_pred = Values(
-        quat_nominal = state_t["quat_nominal"] * sf.Rot3(sf.Quaternion(xyz=(0.5 * input_t["d_ang"]), w=1)),
-        vel = state_t["vel"] + R_t * input_t["d_vel"] + sf.V3(0, 0, g) * d_vel_dt,
-        pos = state_t["pos"] + state_t["vel"] * d_vel_dt,
-        gyro_bias = state_t["gyro_bias"], #TODO: add noise
-        accel_bias = state_t["accel_bias"], #TOOD: add noise
-        mag_I = state_t["mag_I"],
-        mag_B = state_t["mag_B"],
-        wind_vel = state_t["wind_vel"]
-    )
+    state_t_pred = state_t.copy()
+    state_t_pred["quat_nominal"] = state_t["quat_nominal"] * sf.Rot3(sf.Quaternion(xyz=(0.5 * input_t["d_ang"]), w=1))
+    state_t_pred["vel"] = state_t["vel"] + R_t * input_t["d_vel"] + sf.V3(0, 0, g) * d_vel_dt
+    state_t_pred["pos"] = state_t["pos"] + state_t["vel"] * d_vel_dt
 
     # Nominal state kinematics
     input = Values(
@@ -173,50 +170,26 @@ def predict_covariance(
     )
 
     R = state["quat_nominal"]
-    state_pred = Values(
-        quat_nominal = state["quat_nominal"] * sf.Rot3(sf.Quaternion(xyz=(0.5 * input["d_ang"]), w=1)),
-        vel = state["vel"] + R * input["d_vel"] + sf.V3(0, 0, g) * d_vel_dt,
-        pos = state["pos"] + state["vel"] * d_vel_dt,
-        gyro_bias = state["gyro_bias"],
-        accel_bias = state["accel_bias"],
-        mag_I = state["mag_I"],
-        mag_B = state["mag_B"],
-        wind_vel = state["wind_vel"]
-    )
+    state_pred = state.copy()
+    state_pred["quat_nominal"] = state["quat_nominal"] * sf.Rot3(sf.Quaternion(xyz=(0.5 * input["d_ang"]), w=1))
+    state_pred["vel"] = state["vel"] + R * input["d_vel"] + sf.V3(0, 0, g) * d_vel_dt
+    state_pred["pos"] = state["pos"] + state["vel"] * d_vel_dt
 
-    delta_q = sf.Quaternion.from_storage(state_pred["quat_nominal"].to_storage()).conj() * sf.Quaternion.from_storage(state_t_pred["quat_nominal"].to_storage())
-    state_error_pred = Values(
-        theta = 2 * sf.V3(delta_q.x, delta_q.y, delta_q.z),
-        vel = state_t_pred["vel"] - state_pred["vel"],
-        pos = state_t_pred["pos"] - state_pred["pos"],
-        gyro_bias = state_t_pred["gyro_bias"] - state_pred["gyro_bias"],
-        accel_bias = state_t_pred["accel_bias"] - state_pred["accel_bias"],
-        mag_I = state_t_pred["mag_I"] - state_pred["mag_I"],
-        mag_B = state_t_pred["mag_B"] - state_pred["mag_B"],
-        wind_vel = state_t_pred["wind_vel"] - state_pred["wind_vel"]
-    )
+    # Error state kinematics
+    state_error_pred = Values()
+    for key in state_error.keys():
+        if key == "theta":
+            delta_q = sf.Quaternion.from_storage(state_pred["quat_nominal"].to_storage()).conj() * sf.Quaternion.from_storage(state_t_pred["quat_nominal"].to_storage())
+            state_error_pred["theta"] = 2 * sf.V3(delta_q.x, delta_q.y, delta_q.z) # Use small angle approximation to obtain a simpler jacobian
+        else:
+            state_error_pred[key] = state_t_pred[key] - state_pred[key]
 
-    zero_state_error = {
-        state_error["theta"]: sf.V3(),\
-        state_error["vel"]: sf.V3(),\
-        state_error["pos"]: sf.V3(),\
-        state_error["gyro_bias"]: sf.V3(),\
-        state_error["accel_bias"]: sf.V3(),\
-        state_error["mag_I"]: sf.V3(),\
-        state_error["mag_B"]: sf.V3(),\
-        state_error["wind_vel"]: sf.V2(),\
-    } # simplify products of error states
-
-    zero_noise = {
-        noise["d_vel"]: sf.V3(),\
-        noise["d_ang"]: sf.V3(),\
-        # noise["accel_bias"]: sf.V3(),\
-        # noise["gyro_bias"]: sf.V3()
-    }
+    zero_state_error = {state_error[key]: state_error[key].zero() for key in state_error.keys()}
+    zero_noise = {noise[key]: noise[key].zero() for key in noise.keys()}
 
     # State propagation jacobian
     A = VTangent(state_error_pred.to_storage()).jacobian(state_error).subs(zero_state_error).subs(zero_noise)
-    G = VTangent(state_error_pred.to_storage()).jacobian(noise).subs(zero_state_error)
+    G = VTangent(state_error_pred.to_storage()).jacobian(noise).subs(zero_state_error).subs(zero_noise)
 
     # Covariance propagation
     var_u = sf.Matrix.diag([d_vel_var[0], d_vel_var[1], d_vel_var[2], d_ang_var, d_ang_var, d_ang_var])
