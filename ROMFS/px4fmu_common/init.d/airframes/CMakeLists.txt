@@ -125,6 +125,7 @@ px4_add_romfs_files(
 	50003_aion_robotics_r1_rover
 	50005_ssrc_scout_mini_rover
 	50006_ssrc_bunker_rover
+	50007_ssrc_bunker_mini_rover
 
 	# [60000, 61000] (Unmanned) Underwater Robots
 	60000_uuv_generic

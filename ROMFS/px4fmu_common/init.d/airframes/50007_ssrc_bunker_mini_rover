@@ -2,7 +2,7 @@
 #
 # @name SSRC BUNKER UGV
 #
-# @url https://global.agilex.ai/chassis/4
+# @url https://global.agilex.ai/chassis/5
 #
 # @type Rover
 # @class Rover
@@ -14,7 +14,7 @@
 . ${R}etc/init.d/rc.rover_defaults
 
 # Rover interface
-param set-default RI_ROVER_TYPE 5
+param set-default RI_ROVER_TYPE 6
 param set-default RI_MAN_SPD_SC 1.0
 
 # Battery setting
@@ -45,7 +45,7 @@ param set-default GND_THR_MAX 1
 # This corresponds to a turn angle of pi radians.
 # If a special case is made for differential-drive, this will need to change.
 param set-default GND_MAX_ANG 3.142
-param set-default GND_WHEEL_BASE 0.778
+param set-default GND_WHEEL_BASE 0.584
 
 # TODO: Set to -1.0, to allow reversing. This will require many changes in the codebase
 # to support negative throttle.
