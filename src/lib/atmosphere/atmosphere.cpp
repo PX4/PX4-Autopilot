@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,64 +32,50 @@
  ****************************************************************************/
 
 /**
- * @file Subscription.cpp
+ * @file atmosphere.cpp
  *
  */
 
-#include "Subscription.hpp"
-#include <px4_platform_common/defines.h>
-
-namespace uORB
+#include <geo/geo.h>
+#include "atmosphere.h"
+namespace atmosphere
 {
 
-bool Subscription::subscribe()
+static constexpr float kTempRefKelvin = 15.f - CONSTANTS_ABSOLUTE_NULL_CELSIUS; // temperature at base height in Kelvin
+static constexpr float kTempGradient = -6.5f / 1000.f; // temperature gradient in degrees per meter
+static constexpr float kPressRefSeaLevelPa = 101325.f; // pressure at sea level in Pa
+
+float getDensityFromPressureAndTemp(const float pressure_pa, const float temperature_celsius)
 {
-	// check if already subscribed
-	if (_node != nullptr) {
-		return true;
-	}
-
-	if (_orb_id != ORB_ID::INVALID && uORB::Manager::get_instance()) {
-		unsigned initial_generation;
-		void *node = uORB::Manager::orb_add_internal_subscriber(_orb_id, _instance, &initial_generation);
-
-		if (node) {
-			_node = node;
-			_last_generation = initial_generation;
-			return true;
-		}
-	}
-
-	return false;
+	return (pressure_pa / (CONSTANTS_AIR_GAS_CONST * (temperature_celsius - CONSTANTS_ABSOLUTE_NULL_CELSIUS)));
 }
-
-void Subscription::unsubscribe()
+float getPressureFromAltitude(const float altitude_m)
 {
-	if (_node != nullptr) {
-		uORB::Manager::orb_remove_internal_subscriber(_node);
-	}
 
-	_node = nullptr;
-	_last_generation = 0;
+	return kPressRefSeaLevelPa * powf((altitude_m * kTempGradient + kTempRefKelvin) / kTempRefKelvin,
+					  -CONSTANTS_ONE_G / (kTempGradient * CONSTANTS_AIR_GAS_CONST));
 }
-
-bool Subscription::ChangeInstance(uint8_t instance)
+float getAltitudeFromPressure(float pressure_pa, float pressure_sealevel_pa)
 {
-	if (instance != _instance) {
-		if (uORB::Manager::orb_device_node_exists(_orb_id, instance)) {
-			// if desired new instance exists, unsubscribe from current
-			unsubscribe();
-			_instance = instance;
-			subscribe();
-			return true;
-		}
+	// calculate altitude using the hypsometric equation
 
-	} else {
-		// already on desired index
-		return true;
-	}
+	const float pressure_ratio = pressure_pa / pressure_sealevel_pa;
 
-	return false;
+	/*
+	 * Solve:
+	 *
+	 *     /        -(aR / g)     \
+	 *    | (p / p1)          . T1 | - T1
+	 *     \                      /
+	 * h = -------------------------------  + h1
+	 *                   a
+	 */
+	return (((powf(pressure_ratio, (-(kTempGradient * CONSTANTS_AIR_GAS_CONST) / CONSTANTS_ONE_G))) * kTempRefKelvin) -
+		kTempRefKelvin) / kTempGradient;
+
 }
-
-} // namespace uORB
+float getStandardTemperatureAtAltitude(float altitude_m)
+{
+	return 15.0f + kTempGradient * altitude_m;
+}
+}

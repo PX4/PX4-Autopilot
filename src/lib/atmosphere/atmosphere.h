@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,64 +32,49 @@
  ****************************************************************************/
 
 /**
- * @file Subscription.cpp
+ * @file atmosphere.h
  *
  */
 
-#include "Subscription.hpp"
-#include <px4_platform_common/defines.h>
+#ifndef PX4_SRC_LIB_ATMOSPHERE_ATMOSPHERE_H_
+#define PX4_SRC_LIB_ATMOSPHERE_ATMOSPHERE_H_
 
-namespace uORB
+namespace atmosphere
 {
 
-bool Subscription::subscribe()
-{
-	// check if already subscribed
-	if (_node != nullptr) {
-		return true;
-	}
+// NOTE: We are currently only modelling the first layer of the US Standard Atmosphere 1976.
+// This means that the functions are only valid up to an altitude of 11km.
 
-	if (_orb_id != ORB_ID::INVALID && uORB::Manager::get_instance()) {
-		unsigned initial_generation;
-		void *node = uORB::Manager::orb_add_internal_subscriber(_orb_id, _instance, &initial_generation);
+/**
+* Calculate air density given air pressure and temperature.
+*
+* @param pressure_pa ambient pressure in Pa
+* @param temperature_celsius ambient temperature in degrees Celsius
+*/
+float getDensityFromPressureAndTemp(const float pressure_pa, const float temperature_celsius);
 
-		if (node) {
-			_node = node;
-			_last_generation = initial_generation;
-			return true;
-		}
-	}
+/**
+* Calculate standard airpressure given altitude.
+*
+* @param altitude_m altitude above MSL in meters in the standard atmosphere
+*/
+float getPressureFromAltitude(const float altitude_m);
 
-	return false;
+/**
+* Calculate altitude from air pressure and temperature.
+*
+* @param pressure_pa ambient pressure in Pa
+* @param pressure_sealevel_pa sea level pressure in Pa
+*/
+float getAltitudeFromPressure(float pressure_pa, float pressure_sealevel_pa);
+
+/**
+* Get standard temperature at altitude.
+*
+* @param altitude_m Altitude msl in meters
+* @return Standard temperature in degrees Celsius
+*/
+float getStandardTemperatureAtAltitude(float altitude_m);
 }
 
-void Subscription::unsubscribe()
-{
-	if (_node != nullptr) {
-		uORB::Manager::orb_remove_internal_subscriber(_node);
-	}
-
-	_node = nullptr;
-	_last_generation = 0;
-}
-
-bool Subscription::ChangeInstance(uint8_t instance)
-{
-	if (instance != _instance) {
-		if (uORB::Manager::orb_device_node_exists(_orb_id, instance)) {
-			// if desired new instance exists, unsubscribe from current
-			unsubscribe();
-			_instance = instance;
-			subscribe();
-			return true;
-		}
-
-	} else {
-		// already on desired index
-		return true;
-	}
-
-	return false;
-}
-
-} // namespace uORB
+#endif //PX4_SRC_LIB_ATMOSPHERE_ATMOSPHERE_H_

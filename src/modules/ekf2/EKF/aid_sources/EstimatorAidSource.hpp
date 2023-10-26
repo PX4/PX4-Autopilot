@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,65 +31,34 @@
  *
  ****************************************************************************/
 
-/**
- * @file Subscription.cpp
- *
- */
+#ifndef EKF_ESTIMATOR_AID_SOURCE_HPP
+#define EKF_ESTIMATOR_AID_SOURCE_HPP
 
-#include "Subscription.hpp"
-#include <px4_platform_common/defines.h>
+#include <cstdint>
 
-namespace uORB
+#include <lib/matrix/matrix/math.hpp>
+
+// forward declarations
+class Ekf;
+
+namespace estimator
 {
+struct imuSample;
+};
 
-bool Subscription::subscribe()
+class EstimatorAidSource
 {
-	// check if already subscribed
-	if (_node != nullptr) {
-		return true;
-	}
+public:
+	EstimatorAidSource() = default;
+	virtual ~EstimatorAidSource() = default;
 
-	if (_orb_id != ORB_ID::INVALID && uORB::Manager::get_instance()) {
-		unsigned initial_generation;
-		void *node = uORB::Manager::orb_add_internal_subscriber(_orb_id, _instance, &initial_generation);
+	virtual bool update(Ekf &ekf, const estimator::imuSample &imu_delayed) = 0;
 
-		if (node) {
-			_node = node;
-			_last_generation = initial_generation;
-			return true;
-		}
-	}
+	virtual void reset() = 0;
 
-	return false;
-}
+private:
 
-void Subscription::unsubscribe()
-{
-	if (_node != nullptr) {
-		uORB::Manager::orb_remove_internal_subscriber(_node);
-	}
 
-	_node = nullptr;
-	_last_generation = 0;
-}
+};
 
-bool Subscription::ChangeInstance(uint8_t instance)
-{
-	if (instance != _instance) {
-		if (uORB::Manager::orb_device_node_exists(_orb_id, instance)) {
-			// if desired new instance exists, unsubscribe from current
-			unsubscribe();
-			_instance = instance;
-			subscribe();
-			return true;
-		}
-
-	} else {
-		// already on desired index
-		return true;
-	}
-
-	return false;
-}
-
-} // namespace uORB
+#endif // !EKF_ESTIMATOR_AID_SOURCE_HPP

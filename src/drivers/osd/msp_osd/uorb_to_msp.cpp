@@ -365,7 +365,6 @@ msp_raw_gps_t construct_RAW_GPS(const sensor_gps_s &vehicle_gps_position,
 }
 
 msp_comp_gps_t construct_COMP_GPS(const home_position_s &home_position,
-				  const estimator_status_s &estimator_status,
 				  const vehicle_global_position_s &vehicle_global_position,
 				  const bool heartbeat)
 {
@@ -375,7 +374,8 @@ msp_comp_gps_t construct_COMP_GPS(const home_position_s &home_position,
 	// Calculate distance and direction to home
 	if (home_position.valid_hpos
 	    && home_position.valid_lpos
-	    && estimator_status.solution_status_flags & (1 << 4)) {
+	    && (hrt_elapsed_time(&vehicle_global_position.timestamp) < 1_s)) {
+
 		float bearing_to_home = math::degrees(get_bearing_to_next_waypoint(vehicle_global_position.lat,
 						      vehicle_global_position.lon,
 						      home_position.lat, home_position.lon));
@@ -425,7 +425,6 @@ msp_attitude_t construct_ATTITUDE(const vehicle_attitude_s &vehicle_attitude)
 }
 
 msp_altitude_t construct_ALTITUDE(const sensor_gps_s &vehicle_gps_position,
-				  const estimator_status_s &estimator_status,
 				  const vehicle_local_position_s &vehicle_local_position)
 {
 	// initialize result
@@ -438,7 +437,7 @@ msp_altitude_t construct_ALTITUDE(const sensor_gps_s &vehicle_gps_position,
 		altitude.estimatedActualPosition = 0;
 	}
 
-	if (estimator_status.solution_status_flags & (1 << 5)) {
+	if (vehicle_local_position.v_z_valid) {
 		altitude.estimatedActualVelocity = -vehicle_local_position.vz * 100; //m/s to cm/s
 
 	} else {

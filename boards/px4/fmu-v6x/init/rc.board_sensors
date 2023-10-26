@@ -81,32 +81,32 @@ else
 			fi
 		fi
 	fi
-fi
 
-# Internal SPI bus ICM42688p
-if ver hwtypecmp V6X009010 V6X010010
-then
-	icm42688p -R 12 -s start
-else
-	if ver hwtypecmp V6X000010
-	then
-		icm42688p -R 14 -s start
-	else
-		icm42688p -R 6 -s start
-	fi
-fi
-
-if ver hwtypecmp V6X000003 V6X001003 V6X003003 V6X000004 V6X001004 V6X004003 V6X004004 V6X005003 V6X005004
-then
-	# Internal SPI bus ICM-42670-P (hard-mounted)
-	icm42670p -R 10 -s start
-else
+	# Internal SPI bus ICM42688p
 	if ver hwtypecmp V6X009010 V6X010010
 	then
-		icm20602 -R 6 -s start
+		icm42688p -R 12 -s start
 	else
-		# Internal SPI bus ICM-20649 (hard-mounted)
-		icm20649 -R 14 -s start
+		if ver hwtypecmp V6X000010
+		then
+			icm42688p -R 14 -s start
+		else
+			icm42688p -R 6 -s start
+		fi
+	fi
+
+	if ver hwtypecmp V6X000003 V6X001003 V6X003003 V6X000004 V6X001004 V6X004003 V6X004004 V6X005003 V6X005004
+	then
+		# Internal SPI bus ICM-42670-P (hard-mounted)
+		icm42670p -R 10 -s start
+	else
+		if ver hwtypecmp V6X009010 V6X010010
+		then
+			icm20602 -R 6 -s start
+		else
+			# Internal SPI bus ICM-20649 (hard-mounted)
+			icm20649 -R 14 -s start
+		fi
 	fi
 fi
 

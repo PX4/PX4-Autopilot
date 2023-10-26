@@ -130,8 +130,9 @@ list(APPEND EKF_SRCS
 	EKF/vel_pos_fusion.cpp
 	EKF/yaw_fusion.cpp
 	EKF/zero_innovation_heading_update.cpp
-	EKF/zero_gyro_update.cpp
-	EKF/zero_velocity_update.cpp
+
+	EKF/aid_sources/ZeroGyroUpdate.cpp
+	EKF/aid_sources/ZeroVelocityUpdate.cpp
 )
 
 if(CONFIG_EKF2_AIRSPEED)
@@ -220,6 +221,7 @@ px4_add_module(
 		#-O0
 	INCLUDES
 		EKF
+		EKF/aid_sources
 		${EKF_GENERATED_DERIVATION_INCLUDE_PATH}
 	PRIORITY
 		"SCHED_PRIORITY_MAX - 18" # max priority below high priority WQ threads

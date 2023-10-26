@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,65 +31,50 @@
  *
  ****************************************************************************/
 
-/**
- * @file Subscription.cpp
- *
- */
+#include "ZeroVelocityUpdate.hpp"
 
-#include "Subscription.hpp"
-#include <px4_platform_common/defines.h>
+#include "../ekf.h"
 
-namespace uORB
+ZeroVelocityUpdate::ZeroVelocityUpdate()
 {
+	reset();
+}
 
-bool Subscription::subscribe()
+void ZeroVelocityUpdate::reset()
 {
-	// check if already subscribed
-	if (_node != nullptr) {
-		return true;
-	}
+	_time_last_zero_velocity_fuse = 0;
+}
 
-	if (_orb_id != ORB_ID::INVALID && uORB::Manager::get_instance()) {
-		unsigned initial_generation;
-		void *node = uORB::Manager::orb_add_internal_subscriber(_orb_id, _instance, &initial_generation);
+bool ZeroVelocityUpdate::update(Ekf &ekf, const estimator::imuSample &imu_delayed)
+{
+	// Fuse zero velocity at a limited rate (every 200 milliseconds)
+	const bool zero_velocity_update_data_ready = (_time_last_zero_velocity_fuse + 200'000 < imu_delayed.time_us);
 
-		if (node) {
-			_node = node;
-			_last_generation = initial_generation;
+	if (zero_velocity_update_data_ready) {
+		const bool continuing_conditions_passing = ekf.control_status_flags().vehicle_at_rest
+				&& ekf.control_status_prev_flags().vehicle_at_rest
+				&& (!ekf.isVerticalVelocityAidingActive()
+				    || !ekf.control_status_flags().tilt_align); // otherwise the filter is "too rigid" to follow a position drift
+
+		if (continuing_conditions_passing) {
+			Vector3f vel_obs{0.f, 0.f, 0.f};
+			Vector3f innovation = ekf.state().vel - vel_obs;
+
+			// Set a low variance initially for faster leveling and higher
+			// later to let the states follow the measurements
+
+			const float obs_var = ekf.control_status_flags().tilt_align ? sq(0.2f) : sq(0.001f);
+			Vector3f innov_var = ekf.getVelocityVariance() + obs_var;
+
+			for (unsigned i = 0; i < 3; i++) {
+				ekf.fuseVelPosHeight(innovation(i), innov_var(i), State::vel.idx + i);
+			}
+
+			_time_last_zero_velocity_fuse = imu_delayed.time_us;
+
 			return true;
 		}
 	}
 
 	return false;
 }
-
-void Subscription::unsubscribe()
-{
-	if (_node != nullptr) {
-		uORB::Manager::orb_remove_internal_subscriber(_node);
-	}
-
-	_node = nullptr;
-	_last_generation = 0;
-}
-
-bool Subscription::ChangeInstance(uint8_t instance)
-{
-	if (instance != _instance) {
-		if (uORB::Manager::orb_device_node_exists(_orb_id, instance)) {
-			// if desired new instance exists, unsubscribe from current
-			unsubscribe();
-			_instance = instance;
-			subscribe();
-			return true;
-		}
-
-	} else {
-		// already on desired index
-		return true;
-	}
-
-	return false;
-}
-
-} // namespace uORB

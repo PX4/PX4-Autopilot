@@ -59,6 +59,9 @@
 #include <uORB/topics/estimator_aid_source2d.h>
 #include <uORB/topics/estimator_aid_source3d.h>
 
+#include "aid_sources/ZeroGyroUpdate.hpp"
+#include "aid_sources/ZeroVelocityUpdate.hpp"
+
 enum class Likelihood { LOW, MEDIUM, HIGH };
 
 class Ekf final : public EstimatorInterface
@@ -82,6 +85,8 @@ public:
 	bool update();
 
 	static uint8_t getNumberOfStates() { return State::size; }
+
+	const StateSample &state() const { return _state; }
 
 #if defined(CONFIG_EKF2_BAROMETER)
 	const auto &aid_src_baro_hgt() const { return _aid_src_baro_hgt; }
@@ -245,6 +250,7 @@ public:
 
 	// get the full covariance matrix
 	const matrix::SquareMatrix<float, State::size> &covariances() const { return P; }
+	float stateCovariance(unsigned r, unsigned c) const { return P(r, c); }
 
 	// get the diagonal elements of the covariance matrix
 	matrix::Vector<float, State::size> covariances_diagonal() const { return P.diag(); }
@@ -317,10 +323,14 @@ public:
 #endif
 	}
 
+	// fuse single velocity and position measurement
+	bool fuseVelPosHeight(const float innov, const float innov_var, const int state_index);
+
 	// gyro bias
 	const Vector3f &getGyroBias() const { return _state.gyro_bias; } // get the gyroscope bias in rad/s
 	Vector3f getGyroBiasVariance() const { return getStateVariance<State::gyro_bias>(); } // get the gyroscope bias variance in rad/s
 	float getGyroBiasLimit() const { return _params.gyro_bias_lim; }
+	float getGyroNoise() const { return _params.gyro_noise; }
 
 	// accel bias
 	const Vector3f &getAccelBias() const { return _state.accel_bias; } // get the accelerometer bias in m/s**2
@@ -466,6 +476,37 @@ public:
 	const auto &aid_src_aux_vel() const { return _aid_src_aux_vel; }
 #endif // CONFIG_EKF2_AUXVEL
 
+
+	bool measurementUpdate(VectorState &K, float innovation_variance, float innovation)
+	{
+		clearInhibitedStateKalmanGains(K);
+
+		const VectorState KS = K * innovation_variance;
+		SquareMatrixState KHP;
+
+		for (unsigned row = 0; row < State::size; row++) {
+			for (unsigned col = 0; col < State::size; col++) {
+				// Instad of literally computing KHP, use an equvalent
+				// equation involving less mathematical operations
+				KHP(row, col) = KS(row) * K(col);
+			}
+		}
+
+		const bool is_healthy = checkAndFixCovarianceUpdate(KHP);
+
+		if (is_healthy) {
+			// apply the covariance corrections
+			P -= KHP;
+
+			fixCovarianceErrors(true);
+
+			// apply the state corrections
+			fuse(K, innovation);
+		}
+
+		return is_healthy;
+	}
+
 private:
 
 	// set the internal states and status to their default value
@@ -514,7 +555,6 @@ private:
 	uint64_t _time_last_hor_vel_fuse{0};	///< time the last fusion of horizontal velocity measurements was performed (uSec)
 	uint64_t _time_last_ver_vel_fuse{0};	///< time the last fusion of verticalvelocity measurements was performed (uSec)
 	uint64_t _time_last_heading_fuse{0};
-	uint64_t _time_last_zero_velocity_fuse{0}; ///< last time of zero velocity update (uSec)
 
 	Vector3f _last_known_pos{};		///< last known local position vector (m)
 
@@ -523,10 +563,6 @@ private:
 	Vector3f _earth_rate_NED{};	///< earth rotation vector (NED) in rad/s
 
 	Dcmf _R_to_earth{};	///< transformation matrix from body frame to earth frame from last EKF prediction
-
-	// zero gyro update
-	Vector3f _zgup_delta_ang{};
-	float _zgup_delta_ang_dt{0.f};
 
 	Vector2f _accel_lpf_NE{};			///< Low pass filtered horizontal earth frame acceleration (m/sec**2)
 	float _height_rate_lpf{0.0f};
@@ -774,9 +810,6 @@ private:
 	void fuseDrag(const dragSample &drag_sample);
 #endif // CONFIG_EKF2_DRAG_FUSION
 
-	// fuse single velocity and position measurement
-	bool fuseVelPosHeight(const float innov, const float innov_var, const int state_index);
-
 	void resetVelocityTo(const Vector3f &vel, const Vector3f &new_vel_var);
 
 	void resetHorizontalVelocityTo(const Vector2f &new_horz_vel, const Vector2f &new_horz_vel_var);
@@ -914,36 +947,6 @@ private:
 #endif // CONFIG_EKF2_WIND
 	}
 
-	bool measurementUpdate(VectorState &K, float innovation_variance, float innovation)
-	{
-		clearInhibitedStateKalmanGains(K);
-
-		const VectorState KS = K * innovation_variance;
-		SquareMatrixState KHP;
-
-		for (unsigned row = 0; row < State::size; row++) {
-			for (unsigned col = 0; col < State::size; col++) {
-				// Instad of literally computing KHP, use an equvalent
-				// equation involving less mathematical operations
-				KHP(row, col) = KS(row) * K(col);
-			}
-		}
-
-		const bool is_healthy = checkAndFixCovarianceUpdate(KHP);
-
-		if (is_healthy) {
-			// apply the covariance corrections
-			P -= KHP;
-
-			fixCovarianceErrors(true);
-
-			// apply the state corrections
-			fuse(K, innovation);
-		}
-
-		return is_healthy;
-	}
-
 	// if the covariance correction will result in a negative variance, then
 	// the covariance matrix is unhealthy and must be corrected
 	bool checkAndFixCovarianceUpdate(const SquareMatrixState &KHP);
@@ -1069,10 +1072,6 @@ private:
 	void resetFakeHgtFusion();
 	void resetHeightToLastKnown();
 	void stopFakeHgtFusion();
-
-	void controlZeroVelocityUpdate();
-	void controlZeroGyroUpdate(const imuSample &imu_delayed);
-	void fuseDeltaAngBias(float innov, float innov_var, int obs_index);
 
 	void controlZeroInnovationHeadingUpdate();
 
@@ -1239,6 +1238,9 @@ private:
 		// if any of the innovations are rejected, then the overall innovation is rejected
 		status.innovation_rejected = innovation_rejected;
 	}
+
+	ZeroGyroUpdate _zero_gyro_update{};
+	ZeroVelocityUpdate _zero_velocity_update{};
 };
 
 #endif // !EKF_EKF_H

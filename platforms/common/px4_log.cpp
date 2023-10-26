@@ -136,7 +136,7 @@ __EXPORT void px4_log_modulename(int level, const char *module_name, const char 
 #if defined(PX4_LOG_COLORIZED_OUTPUT)
 
 		if (use_color) {
-			// alway reset color
+			// always reset color
 			const ssize_t sz = math::min(pos, max_length - (ssize_t)strlen(PX4_ANSI_COLOR_RESET) - (ssize_t)1);
 			pos += snprintf(buf + sz, math::max(max_length - sz, (ssize_t)0), "%s\n", PX4_ANSI_COLOR_RESET);
 

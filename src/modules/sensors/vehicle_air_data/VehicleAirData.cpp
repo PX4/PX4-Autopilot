@@ -36,11 +36,14 @@
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/events.h>
 #include <lib/geo/geo.h>
+#include <lib/atmosphere/atmosphere.h>
+
 
 namespace sensors
 {
 
 using namespace matrix;
+using namespace atmosphere;
 
 static constexpr uint32_t SENSOR_TIMEOUT{300_ms};
 
@@ -189,8 +192,9 @@ void VehicleAirData::Run()
 					// pressure corrected with offset (if available)
 					_calibration[uorb_index].SensorCorrectionsUpdate();
 					const float pressure_corrected = _calibration[uorb_index].Correct(report.pressure);
+					const float pressure_sealevel_pa = _param_sens_baro_qnh.get() * 100.f;
 
-					float data_array[3] {pressure_corrected, report.temperature, PressureToAltitude(pressure_corrected)};
+					float data_array[3] {pressure_corrected, report.temperature, getAltitudeFromPressure(pressure_corrected, pressure_sealevel_pa)};
 					_voter.put(uorb_index, report.timestamp, data_array, report.error_count, _priority[uorb_index]);
 
 					_timestamp_sample_sum[uorb_index] += report.timestamp_sample;
@@ -251,11 +255,11 @@ void VehicleAirData::Run()
 						const float pressure_pa = _data_sum[instance] / _data_sum_count[instance];
 						const float temperature = _temperature_sum[instance] / _data_sum_count[instance];
 
-						float altitude = PressureToAltitude(pressure_pa, temperature);
+						const float pressure_sealevel_pa = _param_sens_baro_qnh.get() * 100.f;
+						const float altitude = getAltitudeFromPressure(pressure_pa, pressure_sealevel_pa);
 
 						// calculate air density
-						float air_density = pressure_pa / (CONSTANTS_AIR_GAS_CONST * (_air_temperature_celsius -
-										   CONSTANTS_ABSOLUTE_NULL_CELSIUS));
+						const float air_density = getDensityFromPressureAndTemp(pressure_pa, temperature);
 
 						// populate vehicle_air_data with and publish
 						vehicle_air_data_s out{};
@@ -293,32 +297,6 @@ void VehicleAirData::Run()
 	ScheduleDelayed(50_ms);
 
 	perf_end(_cycle_perf);
-}
-
-float VehicleAirData::PressureToAltitude(float pressure_pa, float temperature) const
-{
-	// calculate altitude using the hypsometric equation
-	static constexpr float T1 = 15.f - CONSTANTS_ABSOLUTE_NULL_CELSIUS; // temperature at base height in Kelvin
-	static constexpr float a = -6.5f / 1000.f; // temperature gradient in degrees per metre
-
-	// current pressure at MSL in kPa (QNH in hPa)
-	const float p1 = _param_sens_baro_qnh.get() * 0.1f;
-
-	// measured pressure in kPa
-	const float p = pressure_pa * 0.001f;
-
-	/*
-	 * Solve:
-	 *
-	 *     /        -(aR / g)     \
-	 *    | (p / p1)          . T1 | - T1
-	 *     \                      /
-	 * h = -------------------------------  + h1
-	 *                   a
-	 */
-	float altitude = (((powf((p / p1), (-(a * CONSTANTS_AIR_GAS_CONST) / CONSTANTS_ONE_G))) * T1) - T1) / a;
-
-	return altitude;
 }
 
 void VehicleAirData::CheckFailover(const hrt_abstime &time_now_us)

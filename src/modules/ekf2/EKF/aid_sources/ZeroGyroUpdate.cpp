@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,65 +31,65 @@
  *
  ****************************************************************************/
 
-/**
- * @file Subscription.cpp
- *
- */
+#include "ZeroGyroUpdate.hpp"
 
-#include "Subscription.hpp"
-#include <px4_platform_common/defines.h>
+#include "../ekf.h"
 
-namespace uORB
+ZeroGyroUpdate::ZeroGyroUpdate()
 {
+	reset();
+}
 
-bool Subscription::subscribe()
+void ZeroGyroUpdate::reset()
 {
-	// check if already subscribed
-	if (_node != nullptr) {
-		return true;
-	}
+	_zgup_delta_ang.setZero();
+	_zgup_delta_ang_dt = 0.f;
+}
 
-	if (_orb_id != ORB_ID::INVALID && uORB::Manager::get_instance()) {
-		unsigned initial_generation;
-		void *node = uORB::Manager::orb_add_internal_subscriber(_orb_id, _instance, &initial_generation);
+bool ZeroGyroUpdate::update(Ekf &ekf, const estimator::imuSample &imu_delayed)
+{
+	// When at rest, fuse the gyro data as a direct observation of the gyro bias
+	if (ekf.control_status_flags().vehicle_at_rest) {
+		// Downsample gyro data to run the fusion at a lower rate
+		_zgup_delta_ang += imu_delayed.delta_ang;
+		_zgup_delta_ang_dt += imu_delayed.delta_ang_dt;
 
-		if (node) {
-			_node = node;
-			_last_generation = initial_generation;
+		static constexpr float zgup_dt = 0.2f;
+		const bool zero_gyro_update_data_ready = _zgup_delta_ang_dt >= zgup_dt;
+
+		if (zero_gyro_update_data_ready) {
+
+			Vector3f gyro_bias = _zgup_delta_ang / _zgup_delta_ang_dt;
+			Vector3f innovation = ekf.state().gyro_bias - gyro_bias;
+
+			const float obs_var = sq(math::constrain(ekf.getGyroNoise(), 0.f, 1.f));
+
+			const Vector3f innov_var = ekf.getGyroBiasVariance() + obs_var;
+
+			for (int i = 0; i < 3; i++) {
+				Ekf::VectorState K;  // Kalman gain vector for any single observation - sequential fusion is used.
+				const unsigned state_index = State::gyro_bias.idx + i;
+
+				// calculate kalman gain K = PHS, where S = 1/innovation variance
+				for (int row = 0; row < State::size; row++) {
+					K(row) = ekf.stateCovariance(row, state_index) / innov_var(i);
+				}
+
+				ekf.measurementUpdate(K, innov_var(i), innovation(i));
+			}
+
+			// Reset the integrators
+			_zgup_delta_ang.setZero();
+			_zgup_delta_ang_dt = 0.f;
+
 			return true;
 		}
+
+	} else if (ekf.control_status_prev_flags().vehicle_at_rest) {
+		// Reset the integrators
+		_zgup_delta_ang.setZero();
+		_zgup_delta_ang_dt = 0.f;
 	}
 
 	return false;
 }
-
-void Subscription::unsubscribe()
-{
-	if (_node != nullptr) {
-		uORB::Manager::orb_remove_internal_subscriber(_node);
-	}
-
-	_node = nullptr;
-	_last_generation = 0;
-}
-
-bool Subscription::ChangeInstance(uint8_t instance)
-{
-	if (instance != _instance) {
-		if (uORB::Manager::orb_device_node_exists(_orb_id, instance)) {
-			// if desired new instance exists, unsubscribe from current
-			unsubscribe();
-			_instance = instance;
-			subscribe();
-			return true;
-		}
-
-	} else {
-		// already on desired index
-		return true;
-	}
-
-	return false;
-}
-
-} // namespace uORB
