@@ -63,6 +63,8 @@
 #include <matrix/math.hpp>
 #include <lib/mathlib/mathlib.h>
 
+#include <uORB/topics/vehicle_local_position.h>
+
 /*
  * NPFG
  * Lateral-directional nonlinear path following guidance logic with excess wind handling
@@ -71,6 +73,17 @@ class NPFG
 {
 
 public:
+	/**
+	 * @brief Can run
+	 *
+	 * Evaluation if all the necessary information are available such that npfg can produce meaningful results.
+	 *
+	 * @param[in] local_pos is the current vehicle local position uorb message
+	 * @param[in] is_wind_valid flag if the wind estimation is valid
+	 * @return estimate of certainty of the correct functionality of the npfg roll setpoint in [0, 1]. Can be used to define proper mitigation actions.
+	 */
+
+	float canRun(const vehicle_local_position_s &local_pos, bool is_wind_valid) const;
 	/*
 	 * Computes the lateral acceleration and airspeed references necessary to track
 	 * a path in wind (including excess wind conditions).
@@ -270,6 +283,10 @@ public:
 	float getRollSetpoint() { return roll_setpoint_; }
 
 private:
+	static constexpr float HORIZONTAL_EVH_FACTOR_COURSE_VALID{3.f}; ///< Factor of velocity standard deviation above which course calculation is considered good enough
+	static constexpr float HORIZONTAL_EVH_FACTOR_COURSE_INVALID{2.f}; ///< Factor of velocity standard deviation below which course calculation is considered unsafe
+	static constexpr float COS_HEADING_TRACK_ANGLE_NOT_PUSHED_BACK{0.09f}; ///< Cos of Heading to track angle below which it is assumed that the vehicle is not pushed back by the wind ~cos(85°)
+	static constexpr float COS_HEADING_TRACK_ANGLE_PUSHED_BACK{0.f}; ///< Cos of Heading to track angle above which it is assumed that the vehicle is pushed back by the wind
 
 	static constexpr float NPFG_EPSILON = 1.0e-6; // small number *bigger than machine epsilon
 	static constexpr float MIN_RADIUS = 0.5f; // minimum effective radius (avoid singularities) [m]
