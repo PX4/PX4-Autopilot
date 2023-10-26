@@ -11,6 +11,8 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/Publication.hpp>
+#include <uORB/topics/parameter_update.h>
+
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_torque_setpoint.h>
 #include <uORB/topics/actuator_armed.h>
@@ -28,7 +30,7 @@ class RoverInterface : public ModuleParams, public px4::ScheduledWorkItem
 	 * Base interval, has to be compliant with the rate of the actuator_controls
 	 * topic subscription and CAN bus update rate
 	 */
-	static constexpr uint64_t ScheduleIntervalMs{100_us};
+	static constexpr uint64_t ScheduleIntervalMs{10_ms};
 
 	static constexpr uint64_t RoverStatusPublishIntervalMs{1000_ms};
 
@@ -39,10 +41,10 @@ class RoverInterface : public ModuleParams, public px4::ScheduledWorkItem
 public:
 	static const char *const CAN_IFACE;
 
-	RoverInterface(uint8_t rover_type, uint32_t bitrate, float manual_throttle_max, float mission_throttle_max);
+	RoverInterface(uint8_t rover_type, uint32_t bitrate, float vehicle_speed_max);
 	~RoverInterface() override;
 
-	static int start(uint8_t rover_type, uint32_t bitrate, float manual_throttle_max, float mission_throttle_max);
+	static int start(uint8_t rover_type, uint32_t bitrate, float vehicle_speed_max);
 
 	void print_status();
 
@@ -79,9 +81,7 @@ private:
 
 	uint32_t _bitrate;
 
-	float _manual_throttle_max;
-
-	float _mission_throttle_max;
+	float _vehicle_speed_max;
 
 	float _throttle_control;
 
@@ -94,6 +94,7 @@ private:
 	scoutsdk::ScoutRobot *_scout{nullptr};
 
 	// Subscription
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::SubscriptionInterval _vehicle_thrust_setpoint_sub{ORB_ID(vehicle_thrust_setpoint), ControlSubIntervalMs};
 	uORB::SubscriptionInterval _vehicle_torque_setpoint_sub{ORB_ID(vehicle_torque_setpoint), ControlSubIntervalMs};
 	uORB::Subscription _actuator_armed_sub{ORB_ID(actuator_armed)};
@@ -108,4 +109,13 @@ private:
 	// Performance counters
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")};
 	perf_counter_t _interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": cycle interval")};
+
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::RI_MAN_SPD_SC>) _param_man_speed_scale
+	)
+
+	/**
+	 * Update our local parameter cache.
+	 */
+	void parameters_update(bool force = false);
 };
