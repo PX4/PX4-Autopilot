@@ -7,10 +7,22 @@ on:
     branches: [ main ]
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
+    inputs:
+      jfrog-upload:
+        description: 'upload to Artifactory'
+        required: false
+        default: true
+        type: boolean
 
 permissions:
   contents: read
   packages: write
+
+env:
+  saluki_pi_fpga_version: "sha-6dc384d"
+  saluki_v2_fpga_version: "sha-6dc384d"
+  saluki_v3_fpga_version: "sha-6dc384d"
+  bootloader_v2_version: "master"
 
 jobs:
   fc_matrix:
@@ -62,7 +74,6 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - px4fwupdater
-    if: true
     steps:
       - name: Checkout px4-firmware
         uses: actions/checkout@v3
@@ -98,6 +109,11 @@ jobs:
           file: px4-firmware/Tools/px_uploader.Dockerfile
           tags: ${{ steps.containermeta.outputs.tags }}
           labels: ${{ steps.containermeta.outputs.labels }}
+          build-args: |
+            "saluki_pi_fpga_version=${{ env.saluki_pi_fpga_version }}"
+            "saluki_v2_fpga_version=${{ env.saluki_v2_fpga_version }}"
+            "saluki_v3_fpga_version=${{ env.saluki_v3_fpga_version }}"
+            "bootloader_v2_version=${{ env.bootloader_v2_version }}"
 
   upload-px4fwupdater-uae:
     name: upload px4fwupdater to UAE docker registry
@@ -131,6 +147,13 @@ jobs:
           registry: artifactory.ssrcdevops.tii.ae
           username: ${{ secrets.UAE_RT_USER }}
           password: ${{ secrets.UAE_RT_APIKEY }}
+      # have to login to ghcr as well to download fpga and BL
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Firmware flasher - Build and push
         uses: docker/build-push-action@v3
         with:
@@ -139,14 +162,19 @@ jobs:
           file: px4-firmware/Tools/px_uploader.Dockerfile
           tags: ${{ steps.containermeta.outputs.tags }}
           labels: ${{ steps.containermeta.outputs.labels }}
+          build-args: |
+            "saluki_pi_fpga_version=${{ env.saluki_pi_fpga_version }}"
+            "saluki_v2_fpga_version=${{ env.saluki_v2_fpga_version }}"
+            "saluki_v3_fpga_version=${{ env.saluki_v3_fpga_version }}"
+            "bootloader_v2_version=${{ env.bootloader_v2_version }}"
 
   artifactory:
     name: upload builds to artifactory
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.jfrog-upload == true }}
     runs-on: ubuntu-latest
     needs:
       - px4fwupdater
       - fc_matrix
-    if: true
     steps:
       - name: Download pixhawk artifacts
         uses: actions/download-artifact@v3
@@ -174,7 +202,7 @@ jobs:
           |--------|------|"
           artifactory_base_url="https://ssrc.jfrog.io/artifactory/"
 
-          for pkg in $(find bin -type f); do
+          for pkg in $(find bin -type f|sort); do
 
             file_name=$(basename $pkg)
             ext="${file_name##*.}"
@@ -217,11 +245,11 @@ jobs:
 
   artifactory-uae:
     name: upload builds to UAE artifactory
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.jfrog-upload == true }}
     runs-on: ubuntu-latest
     needs:
       - px4fwupdater
       - fc_matrix
-    if: true
     steps:
       - name: Download pixhawk artifacts
         uses: actions/download-artifact@v3
@@ -249,7 +277,7 @@ jobs:
           |--------|------|"
           artifactory_base_url="https://artifactory.ssrcdevops.tii.ae/artifactory/"
 
-          for pkg in $(find bin -type f); do
+          for pkg in $(find bin -type f|sort); do
 
             file_name=$(basename $pkg)
             ext="${file_name##*.}"
