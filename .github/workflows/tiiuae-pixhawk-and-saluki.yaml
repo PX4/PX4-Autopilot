@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        product: [pixhawk, saluki-v2_default, saluki-v2_bootloader, saluki-v2_amp, saluki-v2_protected, saluki-v2_kernel, saluki-pi_default, saluki-pi_bootloader, saluki-pi_amp, saluki-pi_protected, saluki-v3_default, saluki-v3_amp]
+        product: [pixhawk, saluki-v2_default, saluki-v2_amp, saluki-v2_protected, saluki-v2_kernel, saluki-pi_default, saluki-pi_amp, saluki-pi_protected, saluki-v3_default, saluki-v3_amp]
 
     uses: ./.github/workflows/tiiuae-pixhawk-and-saluki-builder.yaml
     with:
