@@ -166,6 +166,7 @@ qshell mc_autotune_attitude_control start
 qshell land_detector start multicopter
 qshell manual_control start
 qshell control_allocator start
+qshell load_mon start
 
 # Only start the rc_update module if an actual RC driver
 # is publishing input_rc topics. Otherwise for external RC
