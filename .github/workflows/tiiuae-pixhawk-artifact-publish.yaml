@@ -241,17 +241,11 @@ jobs:
                         "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/saluki/$saluki_amp_pkg_name" \
                         "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/saluki/latest/ssrc_saluki-v1_amp.bin"
             jfrog rt cp --flat \
-                        "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/saluki/$saluki_bl_pkg_name" \
-                        "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/saluki/latest/ssrc_saluki-v1_bootloader.elf"
-            jfrog rt cp --flat \
                         "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/saluki/$saluki_v2_pkg_name" \
                         "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/saluki/latest/ssrc_saluki-v2_default.px4"
             jfrog rt cp --flat \
                         "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/saluki/$saluki_v2_amp_pkg_name" \
                         "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/saluki/latest/ssrc_saluki-v2_amp.bin"
-            jfrog rt cp --flat \
-                        "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/saluki/$saluki_v2_bl_pkg_name" \
-                        "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/saluki/latest/ssrc_saluki-v2_bootloader.elf"
           fi
       - name: Upload px4-fwupdater build to Artifactory
         env:
