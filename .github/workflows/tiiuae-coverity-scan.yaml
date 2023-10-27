@@ -30,7 +30,7 @@ jobs:
         run:
           cat cov-analyze-result.txt >> $GITHUB_STEP_SUMMARY
       - name: Upload coverity scan results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v3.1.3
         with:
           name: coverity-html-report-${{ github.event.repository.name }}
           path: coverity-output

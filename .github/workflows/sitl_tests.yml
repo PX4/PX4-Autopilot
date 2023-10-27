@@ -40,7 +40,7 @@ jobs:
         string(TIMESTAMP current_date "%Y-%m-%d-%H;%M;%S" UTC)
         message("::set-output name=timestamp::${current_date}")
     - name: ccache cache files
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ~/.ccache
         key: sitl_tests-${{matrix.config.build_type}}-ccache-${{steps.ccache_cache_timestamp.outputs.timestamp}}
@@ -104,14 +104,14 @@ jobs:
       run: gdb build/px4_sitl_default/bin/px4 px4.core -ex "thread apply all bt" -ex "quit"
     - name: Upload px4 coredump
       if: failure()
-      uses: actions/upload-artifact@v2-preview
+      uses: actions/upload-artifact@v3.1.3
       with:
         name: coredump
         path: px4.core
 
     - name: Upload px4 binary
       if: failure()
-      uses: actions/upload-artifact@v2-preview
+      uses: actions/upload-artifact@v3.1.3
       with:
         name: binary
         path: build/px4_sitl_default/bin/px4
@@ -128,7 +128,7 @@ jobs:
           lcov --directory build/px4_sitl_default --base-directory build/px4_sitl_default --gcov-tool gcov --capture -o coverage/lcov.info
     - name: Upload coverage information to Codecov
       if: contains(matrix.config.build_type, 'Coverage')
-      uses: codecov/codecov-action@v1
+      uses: codecov/codecov-action@v3
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         flags: mavsdk

@@ -84,7 +84,7 @@ jobs:
         string(TIMESTAMP current_date "%Y-%m-%d-%H;%M;%S" UTC)
         message("::set-output name=timestamp::${current_date}")
     - name: ccache cache files
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ~/.ccache
         key: ${{matrix.config}}-ccache-${{steps.ccache_cache_timestamp.outputs.timestamp}}
@@ -121,7 +121,7 @@ jobs:
       run: ccache -s
 
     - name: Upload px4 package
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3.1.3
       with:
         name: px4_package_${{matrix.config}}
         path: |

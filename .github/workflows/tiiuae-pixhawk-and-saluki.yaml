@@ -63,7 +63,7 @@ jobs:
           ./build.sh ../bin/ px4fwupdater
           ls ../bin
       - name: Upload px4fwupdater to tmp storage
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v3.1.3
         with:
           name: pixhawk
           path: bin/
