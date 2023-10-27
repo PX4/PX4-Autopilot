@@ -1,0 +1,11 @@
+--- mavlink_interface.cpp	2023-10-27 10:49:17.666624981 -0500
++++ mavlink_interface_patch.cpp	2023-10-27 10:50:17.041608745 -0500
+@@ -743,7 +743,7 @@
+ 
+     if (msg_received != Framing::incomplete) {
+       if (hil_mode_) {
+-        forward_mavlink_message(&message);
++        //forward_mavlink_message(&message);
+       }
+       handle_message(&message);
+     }

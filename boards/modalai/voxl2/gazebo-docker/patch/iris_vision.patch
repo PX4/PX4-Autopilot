@@ -1,0 +1,11 @@
+--- iris_vision.sdf	2023-10-27 10:54:37.706796699 -0500
++++ iris_vision_patch.sdf	2023-10-27 10:55:00.895975514 -0500
+@@ -9,7 +9,7 @@
+     </plugin>
+ 
+     <include>
+-      <uri>model://iris</uri>
++      <uri>model://iris_hitl</uri>
+     </include>
+ 
+   </model>

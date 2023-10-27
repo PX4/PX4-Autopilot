@@ -1,0 +1,11 @@
+--- iris_hitl.sdf	2023-10-27 10:48:29.280200421 -0500
++++ iris_hitl_patch.sdf	2023-10-27 10:51:52.702433429 -0500
+@@ -492,7 +492,7 @@
+       <mavlink_tcp_port>4560</mavlink_tcp_port>
+       <mavlink_udp_port>14560</mavlink_udp_port>
+       <serialEnabled>1</serialEnabled>
+-      <serialDevice>/dev/ttyACM0</serialDevice>
++      <serialDevice>/dev/ttyUSB0</serialDevice>
+       <baudRate>921600</baudRate>
+       <qgc_addr>INADDR_ANY</qgc_addr>
+       <qgc_udp_port>14550</qgc_udp_port>
