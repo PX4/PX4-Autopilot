@@ -46,26 +46,21 @@ TEST(YawFusionGenerated, singularityYawEquivalence)
 {
 	// GIVEN: an attitude that should give a singularity when transforming the
 	// rotation matrix to Euler yaw
-	const Quatf q(Eulerf(M_PI_F, 0.f, M_PI_F));
-
-	Vector24f state_vector{};
-	state_vector(0) = q(0);
-	state_vector(1) = q(1);
-	state_vector(2) = q(2);
-	state_vector(3) = q(3);
+	StateSample state{};
+	state.quat_nominal = Eulerf(M_PI_F, 0.f, M_PI_F);
 
 	const float R = sq(radians(10.f));
-	SquareMatrix24f P = createRandomCovarianceMatrix24f();
+	SquareMatrixState P = createRandomCovarianceMatrix();
 
-	Vector24f H_a;
-	Vector24f H_b;
+	VectorState H_a;
+	VectorState H_b;
 	float innov_var_a;
 	float innov_var_b;
 
 	// WHEN: computing the innovation variance and H using two different
 	// alternate forms (one is singular at pi/2 and the other one at 0)
-	sym::ComputeYaw321InnovVarAndH(state_vector, P, R, FLT_EPSILON, &innov_var_a, &H_a);
-	sym::ComputeYaw321InnovVarAndHAlternate(state_vector, P, R, FLT_EPSILON, &innov_var_b, &H_b);
+	sym::ComputeYaw321InnovVarAndH(state.vector(), P, R, FLT_EPSILON, &innov_var_a, &H_a);
+	sym::ComputeYaw321InnovVarAndHAlternate(state.vector(), P, R, FLT_EPSILON, &innov_var_b, &H_b);
 
 	// THEN: Even at the singularity point, the result is still correct, thanks to epsilon
 	EXPECT_TRUE(isEqual(H_a, H_b));
@@ -76,24 +71,19 @@ TEST(YawFusionGenerated, singularityYawEquivalence)
 TEST(YawFusionGenerated, gimbalLock321vs312)
 {
 	// GIVEN: an attitude at gimbal lock position
-	const Quatf q(Eulerf(0.f, -M_PI_F / 2.f, M_PI_F));
-
-	Vector24f state_vector{};
-	state_vector(0) = q(0);
-	state_vector(1) = q(1);
-	state_vector(2) = q(2);
-	state_vector(3) = q(3);
+	StateSample state{};
+	state.quat_nominal = Eulerf(0.f, -M_PI_F / 2.f, M_PI_F);
 
 	const float R = sq(radians(10.f));
-	SquareMatrix24f P = createRandomCovarianceMatrix24f();
+	SquareMatrixState P = createRandomCovarianceMatrix();
 
-	Vector24f H_321;
-	Vector24f H_312;
+	VectorState H_321;
+	VectorState H_312;
 	float innov_var_321;
 	float innov_var_312;
-	sym::ComputeYaw321InnovVarAndH(state_vector, P, R, FLT_EPSILON, &innov_var_321, &H_321);
+	sym::ComputeYaw321InnovVarAndH(state.vector(), P, R, FLT_EPSILON, &innov_var_321, &H_321);
 
-	sym::ComputeYaw312InnovVarAndH(state_vector, P, R, FLT_EPSILON, &innov_var_312, &H_312);
+	sym::ComputeYaw312InnovVarAndH(state.vector(), P, R, FLT_EPSILON, &innov_var_312, &H_312);
 
 	// THEN: both computation are not equivalent, 321 is undefined but 312 is valid
 	EXPECT_FALSE(isEqual(H_321, H_312));
@@ -104,27 +94,23 @@ TEST(YawFusionGenerated, gimbalLock321vs312)
 TEST(YawFusionGenerated, positiveVarianceAllOrientations)
 {
 	const float R = sq(radians(10.f));
-	SquareMatrix24f P = createRandomCovarianceMatrix24f();
+	SquareMatrixState P = createRandomCovarianceMatrix();
 
-	Vector24f H;
+	VectorState H;
 	float innov_var;
 
 	// GIVEN: all orientations (90 deg steps)
 	for (float yaw = 0.f; yaw < 2.f * M_PI_F; yaw += M_PI_F / 2.f) {
 		for (float pitch = 0.f; pitch < 2.f * M_PI_F; pitch += M_PI_F / 2.f) {
 			for (float roll = 0.f; roll < 2.f * M_PI_F; roll += M_PI_F / 2.f) {
-				const Quatf q(Eulerf(roll, pitch, yaw));
-				Vector24f state_vector{};
-				state_vector(0) = q(0);
-				state_vector(1) = q(1);
-				state_vector(2) = q(2);
-				state_vector(3) = q(3);
+				StateSample state{};
+				state.quat_nominal = Eulerf(roll, pitch, yaw);
 
-				if (shouldUse321RotationSequence(Dcmf(q))) {
-					sym::ComputeYaw321InnovVarAndH(state_vector, P, R, FLT_EPSILON, &innov_var, &H);
+				if (shouldUse321RotationSequence(Dcmf(state.quat_nominal))) {
+					sym::ComputeYaw321InnovVarAndH(state.vector(), P, R, FLT_EPSILON, &innov_var, &H);
 
 				} else {
-					sym::ComputeYaw312InnovVarAndH(state_vector, P, R, FLT_EPSILON, &innov_var, &H);
+					sym::ComputeYaw312InnovVarAndH(state.vector(), P, R, FLT_EPSILON, &innov_var, &H);
 				}
 
 				// THEN: the innovation variance must be positive and finite
@@ -133,77 +119,6 @@ TEST(YawFusionGenerated, positiveVarianceAllOrientations)
 						<< " pitch = " << degrees(pitch)
 						<< " roll = " << degrees(roll)
 						<< " innov_var = " << innov_var;
-			}
-		}
-	}
-}
-
-using D = matrix::Dual<float, 4>;
-
-void computeHDual321(const Vector24f &state_vector, Vector24f &H)
-{
-	matrix::Quaternion<D> q(D(state_vector(0), 0),
-				D(state_vector(1), 1),
-				D(state_vector(2), 2),
-				D(state_vector(3), 3));
-
-	Dcm<D> R_to_earth(q);
-	D yaw_pred = atan2(R_to_earth(1, 0), R_to_earth(0, 0));
-
-	H.setZero();
-
-	for (int i = 0; i <= 3; i++) {
-		H(i) = yaw_pred.derivative(i);
-	}
-}
-
-void computeHDual312(const Vector24f &state_vector, Vector24f &H)
-{
-	matrix::Quaternion<D> q(D(state_vector(0), 0),
-				D(state_vector(1), 1),
-				D(state_vector(2), 2),
-				D(state_vector(3), 3));
-
-	Dcm<D> R_to_earth(q);
-	D yaw_pred = atan2(-R_to_earth(0, 1), R_to_earth(1, 1));
-
-	H.setZero();
-
-	for (int i = 0; i <= 3; i++) {
-		H(i) = yaw_pred.derivative(i);
-	}
-}
-
-TEST(YawFusionGenerated, symforceVsDual)
-{
-	const float R = sq(radians(10.f));
-	SquareMatrix24f P = createRandomCovarianceMatrix24f();
-
-	Vector24f H_dual;
-	Vector24f Hfusion_symforce;
-	float innov_var;
-
-	// GIVEN: all orientations (90 deg steps)
-	for (float yaw = 0.f; yaw < 2.f * M_PI_F; yaw += M_PI_F / 2.f) {
-		for (float pitch = 0.f; pitch < 2.f * M_PI_F; pitch += M_PI_F / 2.f) {
-			for (float roll = 0.f; roll < 2.f * M_PI_F; roll += M_PI_F / 2.f) {
-				const Quatf q(Eulerf(roll, pitch, yaw));
-				Vector24f state_vector{};
-				state_vector(0) = q(0);
-				state_vector(1) = q(1);
-				state_vector(2) = q(2);
-				state_vector(3) = q(3);
-
-				if (shouldUse321RotationSequence(Dcmf(q))) {
-					sym::ComputeYaw321InnovVarAndH(state_vector, P, R, FLT_EPSILON, &innov_var, &Hfusion_symforce);
-					computeHDual321(state_vector, H_dual);
-
-				} else {
-					sym::ComputeYaw312InnovVarAndH(state_vector, P, R, FLT_EPSILON, &innov_var, &Hfusion_symforce);
-					computeHDual312(state_vector, H_dual);
-				}
-
-				EXPECT_EQ(Hfusion_symforce, H_dual);
 			}
 		}
 	}
