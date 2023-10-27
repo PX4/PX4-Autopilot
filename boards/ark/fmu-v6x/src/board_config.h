@@ -247,7 +247,6 @@
 /* PWM
  */
 #define DIRECT_PWM_OUTPUT_CHANNELS   8
-#define BOARD_PWM_FREQ	             1024000
 
 #define GPIO_FMU_CH1                    /* PI0  */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTI|GPIO_PIN0)
 #define GPIO_FMU_CH2                    /* PH12 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTH|GPIO_PIN12)
