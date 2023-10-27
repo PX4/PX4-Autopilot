@@ -1,6 +1,6 @@
 ############################################################################
 #
-# Copyright (c) 2017 - 2022 PX4 Development Team. All rights reserved.
+# Copyright (c) 2017-2023 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -39,7 +39,7 @@
 #
 # * Common functions should be included in px_base.cmake.
 #
-# * OS/ board specific fucntions should be include in
+# * OS/ board specific fucntions should be included in
 #	px_impl_${PX4_PLATFORM}.cmake
 #
 # Formatting
@@ -99,10 +99,22 @@
 #
 #=============================================================================
 
-cmake_minimum_required(VERSION 3.9 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.12 FATAL_ERROR)
+
+project(px4 CXX C ASM)
+set(package-contact "px4users@googlegroups.com")
+
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(PX4_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}" CACHE FILEPATH "PX4 source directory" FORCE)
 set(PX4_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}" CACHE FILEPATH "PX4 binary directory" FORCE)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PX4_BINARY_DIR})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${PX4_BINARY_DIR})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${PX4_BINARY_DIR})
 
 list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/cmake)
 include(px4_parse_function_args)
@@ -162,13 +174,13 @@ set(config_module_list)
 set(config_kernel_list)
 
 # Find Python
-find_package(PythonInterp 3)
+find_package(Python3 COMPONENTS Interpreter Development)
 # We have a custom error message to tell users how to install python3.
-if(NOT PYTHONINTERP_FOUND)
-	message(FATAL_ERROR "Python 3 not found. Please install Python 3:\n"
-		"    Ubuntu: sudo apt install python3 python3-dev python3-pip\n"
-		"    macOS: brew install python")
+if(NOT Python3_FOUND)
+	message(FATAL_ERROR "Python 3 not found.\nPlease install toolchain using scripts in \"Tools/setup\" folder.\n")
 endif()
+# Compatibility with PYTHON_EXECUTABLE variable
+set(PYTHON_EXECUTABLE ${Python3_EXECUTABLE})
 
 option(PYTHON_COVERAGE "Python code coverage" OFF)
 if(PYTHON_COVERAGE)
@@ -214,9 +226,8 @@ if(EXISTS "${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/cmake/init.cmake")
 endif()
 
 #=============================================================================
-# project definition
+# build type
 #
-project(px4 CXX C ASM)
 
 # CMake build type (Debug Release RelWithDebInfo MinSizeRel Coverage)
 if(NOT CMAKE_BUILD_TYPE)
@@ -253,18 +264,6 @@ if(LTO)
     message(AUTHOR_WARNING "LTO enabled: LTO is highly experimental and should not be used in production")
     set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 endif()
-
-set(package-contact "px4users@googlegroups.com")
-
-set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_C_STANDARD_REQUIRED ON)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PX4_BINARY_DIR})
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${PX4_BINARY_DIR})
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${PX4_BINARY_DIR})
 
 #=============================================================================
 
