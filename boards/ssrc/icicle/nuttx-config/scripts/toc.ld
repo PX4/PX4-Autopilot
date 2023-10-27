@@ -20,7 +20,8 @@
 
 MEMORY
 {
-  progmem (r) : ORIGIN = 0xACA00000, LENGTH = 6M - 64
+  /* -64 <- Leave room for the signature */
+  progmem (r) : ORIGIN = 0xA0000000, LENGTH = 128M - 64
 }
 
 OUTPUT_ARCH("riscv")
