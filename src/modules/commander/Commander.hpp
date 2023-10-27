@@ -34,13 +34,14 @@
 #pragma once
 
 /*   Helper classes  */
-#include "failure_detector/FailureDetector.hpp"
 #include "failsafe/failsafe.h"
-#include "Safety.hpp"
-#include "worker_thread.hpp"
+#include "failure_detector/FailureDetector.hpp"
 #include "HealthAndArmingChecks/HealthAndArmingChecks.hpp"
 #include "HomePosition.hpp"
+#include "MulticopterThrowLaunch/MulticopterThrowLaunch.hpp"
+#include "Safety.hpp"
 #include "UserModeIntention.hpp"
+#include "worker_thread.hpp"
 
 #include <lib/controllib/blocks.hpp>
 #include <lib/hysteresis/hysteresis.h>
@@ -80,7 +81,6 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
-#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 
 using math::constrain;
@@ -205,14 +205,6 @@ private:
 		OFFBOARD_MODE_BIT = (1 << 1),
 	};
 
-	enum class ThrowLaunchState {
-		DISABLED = 0,
-		IDLE = 1,
-		ARMED = 2,
-		UNSAFE = 3,
-		FLYING = 4
-	};
-
 	/* Decouple update interval and hysteresis counters, all depends on intervals */
 	static constexpr uint64_t COMMANDER_MONITORING_INTERVAL{10_ms};
 
@@ -222,6 +214,7 @@ private:
 	FailsafeBase		&_failsafe{_failsafe_instance};
 	FailureDetector		_failure_detector{this};
 	HealthAndArmingChecks	_health_and_arming_checks{this, _vehicle_status};
+	MulticopterThrowLaunch  _multicopter_throw_launch{this};
 	Safety			_safety{};
 	UserModeIntention	_user_mode_intention{this, _vehicle_status, _health_and_arming_checks};
 	WorkerThread 		_worker_thread{};
@@ -273,9 +266,7 @@ private:
 	bool _arm_tune_played{false};
 	bool _have_taken_off_since_arming{false};
 	bool _status_changed{true};
-	ThrowLaunchState _throw_launch_state{ThrowLaunchState::DISABLED};
 
-	vehicle_local_position_s	_vehicle_local_position{};
 	vehicle_land_detected_s	_vehicle_land_detected{};
 
 	// commander publications
@@ -291,7 +282,6 @@ private:
 	uORB::Subscription					_system_power_sub{ORB_ID(system_power)};
 	uORB::Subscription					_vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription					_vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
-	uORB::Subscription					_vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription					_vtol_vehicle_status_sub{ORB_ID(vtol_vehicle_status)};
 
 	uORB::SubscriptionInterval				_parameter_update_sub{ORB_ID(parameter_update), 1_s};
@@ -343,8 +333,6 @@ private:
 		(ParamInt<px4::params::COM_RC_OVERRIDE>)    _param_com_rc_override,
 		(ParamInt<px4::params::COM_FLIGHT_UUID>)    _param_flight_uuid,
 		(ParamInt<px4::params::COM_TAKEOFF_ACT>)    _param_takeoff_finished_action,
-		(ParamFloat<px4::params::COM_CPU_MAX>)      _param_com_cpu_max,
-		(ParamBool<px4::params::COM_THROW_EN>)      _param_com_throw_en,
-		(ParamFloat<px4::params::COM_THROW_SPEED>)  _param_com_throw_min_speed
+		(ParamFloat<px4::params::COM_CPU_MAX>)      _param_com_cpu_max
 	)
 };

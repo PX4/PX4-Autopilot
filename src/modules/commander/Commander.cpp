@@ -1694,7 +1694,7 @@ void Commander::run()
 
 		safetyButtonUpdate();
 
-		throwLaunchUpdate();
+		_multicopter_throw_launch.update(isArmed());
 
 		vtolStatusUpdate();
 
@@ -1776,7 +1776,7 @@ void Commander::run()
 		_actuator_armed.ready_to_arm = _vehicle_status.pre_flight_checks_pass || isArmed();
 		_actuator_armed.lockdown = ((_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_TERMINATION)
 					    || (_vehicle_status.hil_state == vehicle_status_s::HIL_STATE_ON)
-					    || isThrowLaunchInProgress());
+					    || _multicopter_throw_launch.isThrowLaunchInProgress());
 		// _actuator_armed.manual_lockdown // action_request_s::ACTION_KILL
 		_actuator_armed.force_failsafe = (_vehicle_status.nav_state == _vehicle_status.NAVIGATION_STATE_TERMINATION);
 		// _actuator_armed.in_esc_calibration_mode // VEHICLE_CMD_PREFLIGHT_CALIBRATION
@@ -2030,61 +2030,6 @@ void Commander::safetyButtonUpdate()
 	}
 }
 
-bool Commander::isThrowLaunchInProgress() const
-{
-	return !(_throw_launch_state == ThrowLaunchState::DISABLED || _throw_launch_state == ThrowLaunchState::FLYING);
-}
-
-void Commander::throwLaunchUpdate()
-{
-	if (_param_com_throw_en.get()) {
-		if (_vehicle_local_position_sub.updated()) {
-			_vehicle_local_position_sub.copy(&_vehicle_local_position);
-		}
-
-		if (!isArmed() && _throw_launch_state != ThrowLaunchState::IDLE) {
-			mavlink_log_info(&_mavlink_log_pub, "The vehicle is DISARMED with throw launch enabled. Do NOT throw it.\t");
-			_throw_launch_state = ThrowLaunchState::IDLE;
-		}
-
-		switch (_throw_launch_state) {
-		case ThrowLaunchState::IDLE:
-			if (isArmed()) {
-				mavlink_log_info(&_mavlink_log_pub, "The vehicle is ARMED with throw launch enabled. Throw the vehicle now.\t");
-				_throw_launch_state = ThrowLaunchState::ARMED;
-			}
-
-			break;
-
-		case ThrowLaunchState::ARMED:
-			if (matrix::Vector3f(
-				    _vehicle_local_position.vx, _vehicle_local_position.vy, _vehicle_local_position.vz
-			    ).longerThan(_param_com_throw_min_speed.get())) {
-				PX4_INFO("Minimum throw speed exceeded; the motors will start when the vehicle starts falling down.");
-				_throw_launch_state = ThrowLaunchState::UNSAFE;
-			}
-
-			break;
-
-		case ThrowLaunchState::UNSAFE:
-			if (_vehicle_local_position.vz > 0) {
-				PX4_INFO("Throw successful, starting motors.");
-				_throw_launch_state = ThrowLaunchState::FLYING;
-			}
-
-			break;
-
-		default:
-
-			break;
-		}
-
-	} else if (_throw_launch_state != ThrowLaunchState::DISABLED) {
-		// make sure everything is reset when the throw launch is disabled
-		_throw_launch_state = ThrowLaunchState::DISABLED;
-	}
-}
-
 void Commander::vtolStatusUpdate()
 {
 	// Make sure that this is only adjusted if vehicle really is of type vtol
@@ -2143,7 +2088,7 @@ void Commander::updateTunes()
 	} else if (_vehicle_status.failsafe && isArmed()) {
 		tune_failsafe(true);
 
-	} else if (_throw_launch_state == ThrowLaunchState::ARMED) {
+	} else if (_multicopter_throw_launch.isReadyToThrow()) {
 		set_tune(tune_control_s::TUNE_ID_ARMING_WARNING);
 
 	} else {
@@ -2202,7 +2147,7 @@ void Commander::handleAutoDisarm()
 				_auto_disarm_landed.set_state_and_update(true, hrt_absolute_time());
 			}
 
-			if (_auto_disarm_landed.get_state() && !isThrowLaunchInProgress()) {
+			if (_auto_disarm_landed.get_state() && !_multicopter_throw_launch.isThrowLaunchInProgress()) {
 				if (_have_taken_off_since_arming) {
 					disarm(arm_disarm_reason_t::auto_disarm_land);
 
@@ -2222,7 +2167,7 @@ void Commander::handleAutoDisarm()
 		}
 
 		//don't disarm if throw launch is in progress
-		auto_disarm &= !isThrowLaunchInProgress();
+		auto_disarm &= !_multicopter_throw_launch.isThrowLaunchInProgress();
 
 		_auto_disarm_killed.set_state_and_update(auto_disarm, hrt_absolute_time());
 
@@ -2362,7 +2307,7 @@ void Commander::control_status_leds(bool changed, const uint8_t battery_warning)
 			led_mode = led_control_s::MODE_BLINK_FAST;
 			led_color = led_control_s::COLOR_PURPLE;
 
-		} else if (_throw_launch_state == ThrowLaunchState::ARMED) {
+		} else if (_multicopter_throw_launch.isReadyToThrow()) {
 			led_mode = led_control_s::MODE_BLINK_FAST;
 			led_color = led_control_s::COLOR_YELLOW;
 
