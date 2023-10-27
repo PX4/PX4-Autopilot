@@ -74,9 +74,16 @@
 
 MEMORY
 {
-    envm (rx)     : ORIGIN = 0x20220100, LENGTH = 128K - 256  /* 256 reserved for hss headers */
-    l2lim  (rwx)  : ORIGIN = 0x08000000, LENGTH = 1024k
-    l2zerodevice (rwx) : ORIGIN = 0x0A000000, LENGTH = 512k
+    envm (rx)           : ORIGIN = 0x20220100, LENGTH = 110K - 256 /* 256 reserved for hss headers */
+    envm_sbi (rx)       : ORIGIN = 0x2023B800, LENGTH = 18K
+    l2lim  (rwx)        : ORIGIN = 0x08000000, LENGTH = 128k
+    l2lim_sec (rw)      : ORIGIN = 0x08020000, LENGTH = 32k
+    l2lim_info(rw)      : ORIGIN = 0x08028000, LENGTH = 4k
+    l2lim_free (!rwx)   : ORIGIN = 0x08029000, LENGTH = 348k
+    l2lim_rsvd (!rwx)   : ORIGIN = 0x08080000, LENGTH = 512K /* Cache ways for L2 ZeroDevice */
+    l2_cache (!rwx)     : ORIGIN = 0x08100000, LENGTH = 1024K
+    l2zerodevice (!rwx) : ORIGIN = 0x0A000000, LENGTH = 24k
+    opensbi (rwx)       : ORIGIN = 0x0A006000, LENGTH = 488k
 }
 
 OUTPUT_ARCH("riscv")
@@ -87,6 +94,9 @@ EXTERN(__start)
 
 SECTIONS
 {
+    PROVIDE(__l2lim_start = ORIGIN(l2lim));
+    PROVIDE(__l2lim_end   = ORIGIN(l2lim) + LENGTH(l2lim) + LENGTH(l2lim_sec) + LENGTH(l2lim_rsvd));
+
     .l2_scratchpad : ALIGN(0x10)
     {
         __l2_scratchpad_load = LOADADDR(.l2_scratchpad);
@@ -100,6 +110,41 @@ SECTIONS
     } > l2zerodevice
 
     PROVIDE(__mpfs_nuttx_start = ORIGIN(l2lim));
+
+    /* Stabs debugging sections. */
+
+    .stab 0 : { *(.stab) }
+    .stabstr 0 : { *(.stabstr) }
+    .stab.excl 0 : { *(.stab.excl) }
+    .stab.exclstr 0 : { *(.stab.exclstr) }
+    .stab.index 0 : { *(.stab.index) }
+    .stab.indexstr 0 : { *(.stab.indexstr) }
+    .comment 0 : { *(.comment) }
+    .debug_abbrev 0 : { *(.debug_abbrev) }
+    .debug_info 0 : { *(.debug_info) }
+    .debug_line 0 : { *(.debug_line) }
+    .debug_pubnames 0 : { *(.debug_pubnames) }
+    .debug_aranges 0 : { *(.debug_aranges) }
+    .debug_loc 0 : { *(.debug_loc) }
+    .debug_ranges 0 : { *(.debug_ranges) }
+    .debug_str 0 : { *(.debug_str) }
+    .debug_frame 0 : { *(.debug_frame) }
+
+    .text.sbi : ALIGN(4) {
+        _ssbi_zerodev = ABSOLUTE(.);
+        _sbi_zerodev_loadaddr = LOADADDR(.text.sbi);
+        sbi*(.text* .rodata*)
+        riscv_atomic*          /* In purpose everything */
+        riscv_locks*(.text.* .rodata*)
+        riscv_asm*(.text.*)
+        mpfs_opensbi_trap*     /* In purpose everything */
+        mpfs_opensbi*(.text.* .rodata*)
+        mpfs_ihc_sbi*(.text.* .rodata*)
+        aclint_mtimer*(.text.* .rodata*)
+        aclint_mswi*(.text.* .rodata*)
+        plic.*(.text.* .rodata*)
+        _esbi_zerodev = ABSOLUTE(.);
+    } > opensbi AT > envm_sbi
 
     .text : {
         _stext = ABSOLUTE(.);
@@ -151,18 +196,6 @@ SECTIONS
 
     PROVIDE(__mpfs_nuttx_end = .);
 
-    /* Stabs debugging sections. */
-
-    .stab 0 : { *(.stab) }
-    .stabstr 0 : { *(.stabstr) }
-    .stab.excl 0 : { *(.stab.excl) }
-    .stab.exclstr 0 : { *(.stab.exclstr) }
-    .stab.index 0 : { *(.stab.index) }
-    .stab.indexstr 0 : { *(.stab.indexstr) }
-    .comment 0 : { *(.comment) }
-    .debug_abbrev 0 : { *(.debug_abbrev) }
-    .debug_info 0 : { *(.debug_info) }
-    .debug_line 0 : { *(.debug_line) }
-    .debug_pubnames 0 : { *(.debug_pubnames) }
-    .debug_aranges 0 : { *(.debug_aranges) }
+    .secmem (NOLOAD) : ALIGN(4) {
+    } > l2lim_sec
 }

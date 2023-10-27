@@ -195,12 +195,15 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	board_spidev_initialize();
 	board_spibus_initialize();
 
+#if defined(CONFIG_FAT_DMAMEMORY) && defined(CONFIG_GRAN)
 	/* configure the DMA allocator */
-	/*
-	if (board_dma_alloc_init() < 0) {
+
+	if (mpfs_dma_alloc_init() < 0) {
 		syslog(LOG_ERR, "[boot] DMA alloc FAILED\n");
 	}
-	*/
+
+#endif
+
 #if defined(SERIAL_HAVE_RXDMA)
 	/* set up the serial DMA polling */
 	static struct hrt_call serial_dma_call;

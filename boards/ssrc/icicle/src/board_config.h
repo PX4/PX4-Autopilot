@@ -143,6 +143,7 @@ __BEGIN_DECLS
 extern void board_peripheral_reset(int ms);
 extern int mpfs_board_emmcsd_init(void);
 extern int mpfs_board_register_partition(unsigned partition);
+extern int mpfs_board_ihc_init(void);
 extern int mpfs_board_spinor_init(struct spi_dev_s *spinor);
 extern int mpfs_pwm_setup(void);
 extern void board_spidev_initialize(void);
@@ -153,7 +154,18 @@ extern int board_domains_init(void);
 extern void mpfs_usbinitialize(void);
 #endif
 
+#ifdef CONFIG_NET_RPMSG_DRV
+extern int net_rpmsg_drv_init(const char *cpuname, const char *devname, enum net_lltype_e lltype);
+#endif
+
+#if defined(CONFIG_FAT_DMAMEMORY) && defined(CONFIG_GRAN)
+int mpfs_dma_alloc_init(void);
+#endif
+
 #include <px4_platform_common/board_common.h>
+
+const char *board_bl_version_string(void);
+#define PX4_BL_VERSION board_bl_version_string()
 
 #endif /* __ASSEMBLY__ */
 

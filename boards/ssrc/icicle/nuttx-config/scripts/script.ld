@@ -20,8 +20,10 @@
 
 MEMORY
 {
-  progmem (rx) : ORIGIN = 0xACA00000, LENGTH = 6M  /* w/ cache */
-  sram   (rwx) : ORIGIN = 0xAD000000, LENGTH = 4M  /* w/ cache */
+  l2lim_sec (rw)  : ORIGIN = 0x08020000, LENGTH = 32k
+  l2lim_info (r)  : ORIGIN = 0x08028000, LENGTH = 4k
+  progmem (rx)    : ORIGIN = 0xA0000000, LENGTH = 6M  /* w/ cache */
+  sram   (rwx)    : ORIGIN = 0xA0600000, LENGTH = 4M  /* w/ cache */
 }
 
 OUTPUT_ARCH("riscv")
@@ -107,6 +109,12 @@ SECTIONS
         . = ALIGN(32);
         _ebss = ABSOLUTE(.);
     } > sram
+
+    .secmem (NOLOAD) : ALIGN(4) {
+    } > l2lim_sec
+
+    .deviceinfo (NOLOAD) : ALIGN(4) {
+    } > l2lim_info
 
     /* Stabs debugging sections. */
 

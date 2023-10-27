@@ -48,6 +48,7 @@
 #include <debug.h>
 #include "riscv_internal.h"
 
+extern int mpfs_dma_alloc_init(void);
 extern int sercon_main(int c, char **argv);
 __EXPORT void board_on_reset(int status) {}
 
@@ -129,6 +130,15 @@ __EXPORT void mpfs_boardinitialize(void)
 
 void board_late_initialize(void)
 {
+
+#if defined(CONFIG_FAT_DMAMEMORY) && defined(CONFIG_GRAN)
+	/* configure the DMA allocator */
+
+	if (mpfs_dma_alloc_init() < 0) {
+		syslog(LOG_ERR, "[boot] DMA alloc FAILED\n");
+	}
+
+#endif
 }
 
 int board_app_initialize(uintptr_t arg)

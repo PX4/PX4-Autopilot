@@ -41,6 +41,7 @@ if("${PX4_BOARD_LABEL}" STREQUAL "bootloader")
 	target_link_libraries(drivers_board
 		PRIVATE
 			nuttx_arch
+			nuttx_apps
 			nuttx_drivers
 			bootloader
 	)
@@ -70,32 +71,31 @@ else()
 		spi_drv.cpp
 	)
 	add_dependencies(drivers_board nuttx_context)
+
+	target_link_libraries(drivers_board
+		PRIVATE
+			drivers__led # drv_led_start
+			nuttx_arch
+			nuttx_drivers
+	)
+
 	if (CONFIG_OPENAMP)
-		target_link_libraries(drivers_board
-			PRIVATE
-				drivers__led # drv_led_start
-				nuttx_arch
-				nuttx_drivers
-				nuttx_openamp)
-	else()
-		target_link_libraries(drivers_board
-			PRIVATE
-				drivers__led # drv_led_start
-				nuttx_arch
-				nuttx_drivers)
+		target_link_libraries(drivers_board PRIVATE nuttx_openamp)
 	endif()
 
 	if (NOT DEFINED CONFIG_BUILD_FLAT)
-		target_link_libraries(drivers_board PRIVATE px4_kernel_layer)
+		target_link_libraries(drivers_board PRIVATE px4_kernel_layer board_bus_info)
 		target_compile_options(drivers_board PRIVATE -D__KERNEL__)
 	else()
 		target_link_libraries(drivers_board PRIVATE px4_layer board_bus_info)
 	endif()
 
-	add_library(drivers_userspace
-		init_entrypt.c
-		mpfs_userspace.c
-	)
-	add_dependencies(drivers_userspace nuttx_context)
+	if (CONFIG_BUILD_PROTECTED)
+		add_library(drivers_userspace
+			init_entrypt.c
+			mpfs_userspace.c
+		)
+		add_dependencies(drivers_userspace nuttx_context)
+	endif()
 
 endif()

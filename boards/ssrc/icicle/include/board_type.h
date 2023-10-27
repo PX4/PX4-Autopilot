@@ -13,4 +13,5 @@
 #define TOC_VERIFICATION_KEY 0
 #define BOOT_VERIFICATION_KEY 0
 
+#define ARB_COUNT 0
 #endif
