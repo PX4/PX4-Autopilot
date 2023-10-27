@@ -44,7 +44,7 @@ RUN DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt install -y \
 	fastddsgen
 
 # Checkout the px4 version and build it
-RUN git clone -b rebase_sitl_fixes https://github.com/tiiuae/px4-firmware
+RUN git clone https://github.com/tiiuae/px4-firmware
 RUN python3 -m pip install -r px4-firmware/Tools/setup/requirements.txt
 COPY build_px4_sitl_gzsim.sh ./build.sh
 RUN ./build.sh

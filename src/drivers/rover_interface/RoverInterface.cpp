@@ -11,7 +11,7 @@ RoverInterface::RoverInterface(uint8_t rover_type, uint32_t bitrate, float vehic
 	  ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rover_interface),
 	  _rover_type(rover_type),
 	  _bitrate(bitrate),
-		_vehicle_speed_max(vehicle_speed_max)
+	  _vehicle_speed_max(vehicle_speed_max)
 {
 	pthread_mutex_init(&_node_mutex, nullptr);
 }
