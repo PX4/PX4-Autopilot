@@ -185,6 +185,7 @@ MissionBase::on_inactivation()
 
 	if (_navigator->get_precland()->is_activated()) {
 		_navigator->get_precland()->on_inactivation();
+		_publish_prec_land_status(false);
 	}
 
 	/* reset so current mission item gets restarted if mission was paused */
@@ -359,9 +360,11 @@ MissionBase::on_active()
 
 	if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_PRECISION_LAND) {
 		_navigator->get_precland()->on_active();
+		_publish_prec_land_status(true);
 
 	} else if (_navigator->get_precland()->is_activated()) {
 		_navigator->get_precland()->on_inactivation();
+		_publish_prec_land_status(false);
 	}
 
 	updateAltToAvoidTerrainCollisionAndRepublishTriplet(_mission_item);
@@ -1468,3 +1471,20 @@ void MissionBase::updateMissionAltAfterHomeChanged()
 		_home_update_counter = _navigator->get_home_position()->update_count;
 	}
 }
+
+#if !defined(CONSTRAINED_FLASH)
+void MissionBase::_publish_prec_land_status(const bool prec_land_ongoing)
+{
+	prec_land_status_s prec_land_status{};
+
+	if (prec_land_ongoing) {
+		prec_land_status.state = prec_land_status_s::PREC_LAND_STATE_ONGOING;
+
+	} else {
+		prec_land_status.state = prec_land_status_s::PREC_LAND_STATE_STOPPED;
+	}
+
+	prec_land_status.nav_state = (int)_navigator->get_precland()->get_prec_land_nav_state();
+	_prec_land_status_pub.publish(prec_land_status);
+}
+#endif

@@ -131,17 +131,6 @@ Mission::set_current_mission_index(uint16_t index)
 
 bool Mission::setNextMissionItem()
 {
-
-#if !defined(CONSTRAINED_FLASH)
-	if (_navigator->get_precland()->is_activated()) {
-		_navigator->get_precland()->on_inactivation();
-
-#if !defined(CONSTRAINED_FLASH)
-		_publish_prec_land_status(false);
-#endif
-
-	}
-#endif
 	return (goToNextItem(true) == PX4_OK);
 }
 
@@ -497,20 +486,3 @@ Mission::save_mission_state()
 		}
 	}
 }
-
-#if !defined(CONSTRAINED_FLASH)
-void Mission::_publish_prec_land_status(const bool prec_land_ongoing)
-{
-	prec_land_status_s prec_land_status{};
-
-	if (prec_land_ongoing) {
-		prec_land_status.state = prec_land_status_s::PREC_LAND_STATE_ONGOING;
-
-	} else {
-		prec_land_status.state = prec_land_status_s::PREC_LAND_STATE_STOPPED;
-	}
-
-	prec_land_status.nav_state = (int)_navigator->get_precland()->get_prec_land_nav_state();
-	_prec_land_status_pub.publish(prec_land_status);
-}
-#endif

@@ -49,6 +49,9 @@
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/navigator_mission_item.h>
 #include <uORB/topics/parameter_update.h>
+#if !defined(CONSTRAINED_FLASH)
+#include <uORB/topics/prec_land_status.h>
+#endif
 #include <uORB/topics/rtl_time_estimate.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
@@ -183,4 +186,8 @@ private:
 	uORB::SubscriptionData<vehicle_status_s> _vehicle_status_sub{ORB_ID(vehicle_status)};	/**< vehicle status subscription */
 	uORB::SubscriptionData<wind_s>		_wind_sub{ORB_ID(wind)};
 	uORB::Publication<navigator_mission_item_s> _navigator_mission_item_pub{ORB_ID::navigator_mission_item}; /**< Navigator mission item publication*/
+#if !defined(CONSTRAINED_FLASH)
+	uORB::Publication<prec_land_status_s> _prec_land_status_pub{ORB_ID(prec_land_status)};
+	void _publish_prec_land_status(const bool prec_land_ongoing);
+#endif
 };
