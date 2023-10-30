@@ -63,10 +63,6 @@
 #include <uORB/topics/rtl_time_estimate.h>
 #include <uORB/topics/telemetry_status.h>
 
-#if !defined(CONSTRAINED_FLASH)
-#include <uORB/topics/prec_land_status.h>
-#endif
-
 class Navigator;
 
 class RTL : public NavigatorMode, public ModuleParams
@@ -261,7 +257,6 @@ private:
 
 	uORB::Publication<rtl_time_estimate_s> _rtl_time_estimate_pub{ORB_ID(rtl_time_estimate)};
 	uORB::Publication<rtl_status_s> _rtl_status_pub{ORB_ID(rtl_status)};
-	uORB::Publication<prec_land_status_s> _prec_land_status_pub{ORB_ID(prec_land_status)};
 #if !defined(CONSTRAINED_FLASH)
 	uORB::Publication<prec_land_status_s> _prec_land_status_pub {ORB_ID(prec_land_status)};
 	void _publish_prec_land_status(const bool prec_land_ongoing);
