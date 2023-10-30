@@ -185,7 +185,9 @@ MissionBase::on_inactivation()
 
 	if (_navigator->get_precland()->is_activated()) {
 		_navigator->get_precland()->on_inactivation();
+#if !defined(CONSTRAINED_FLASH)
 		_publish_prec_land_status(false);
+#endif
 	}
 
 	/* reset so current mission item gets restarted if mission was paused */
@@ -360,11 +362,15 @@ MissionBase::on_active()
 
 	if (_work_item_type == WorkItemType::WORK_ITEM_TYPE_PRECISION_LAND) {
 		_navigator->get_precland()->on_active();
+#if !defined(CONSTRAINED_FLASH)
 		_publish_prec_land_status(true);
+#endif
 
 	} else if (_navigator->get_precland()->is_activated()) {
 		_navigator->get_precland()->on_inactivation();
+#if !defined(CONSTRAINED_FLASH)
 		_publish_prec_land_status(false);
+#endif
 	}
 
 	updateAltToAvoidTerrainCollisionAndRepublishTriplet(_mission_item);
