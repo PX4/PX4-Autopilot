@@ -121,7 +121,7 @@ PARAM_DEFINE_FLOAT(WEIGHT_GROSS, -1.0f);
 /**
  * Maximum climb rate
  *
- * This is the maximum climb rate that the aircraft can achieve with
+ * This is the maximum climb rate (true airspeed) that the aircraft can achieve with
  * the throttle set to THR_MAX and the airspeed set to the
  * trim value. For electric aircraft make sure this number can be
  * achieved towards the end of flight when the battery voltage has reduced.
@@ -138,7 +138,7 @@ PARAM_DEFINE_FLOAT(FW_T_CLMB_MAX, 5.0f);
 /**
  * Minimum descent rate
  *
- * This is the sink rate of the aircraft with the throttle
+ * This is the sink rate (true airspeed) of the aircraft with the throttle
  * set to THR_MIN and flown at the same airspeed as used
  * to measure FW_T_CLMB_MAX.
  *
