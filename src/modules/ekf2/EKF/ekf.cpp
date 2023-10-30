@@ -42,6 +42,7 @@
 #include "ekf.h"
 
 #include <mathlib/mathlib.h>
+#include <ekf_derivation/generated/predict_vel_pos_closed_form.h>
 
 bool Ekf::init(uint64_t timestamp)
 {
@@ -244,37 +245,33 @@ void Ekf::predictState(const imuSample &imu_delayed)
 	// subtract component of angular rate due to earth rotation
 	corrected_delta_ang -= _R_to_earth.transpose() * _earth_rate_NED * imu_delayed.delta_ang_dt;
 
-	const Quatf dq(AxisAnglef{corrected_delta_ang});
+	const Vector3f delta_vel_bias_scaled = getAccelBias() * imu_delayed.delta_vel_dt;
+	const Vector3f corrected_delta_vel = imu_delayed.delta_vel - delta_vel_bias_scaled;
 
-	// rotate the previous quaternion by the delta quaternion using a quaternion multiplication
+	const Vector3f vel_last = _state.vel;
+
+	// The closed-form propagation uses the attitude at the beginning of the integration interval,
+	// so it must run before the quaternion is updated
+	Vector3f delta_pos;
+	sym::PredictVelPosClosedForm(_state.vector(), corrected_delta_vel, imu_delayed.delta_vel_dt,
+				     corrected_delta_ang, imu_delayed.delta_ang_dt, _gravity, FLT_EPSILON, &_state.vel, &delta_pos);
+
+	const Vector3f coriolis_acceleration = -2.f * _earth_rate_NED.cross(vel_last);
+	const Vector3f transport_rate = -_gpos.computeAngularRateNavFrame(vel_last).cross(vel_last);
+	const Vector3f delta_vel_earth_rate = (coriolis_acceleration + transport_rate) * imu_delayed.delta_vel_dt;
+
+	_state.vel += delta_vel_earth_rate;
+	_gpos += delta_pos + delta_vel_earth_rate * (0.5f * imu_delayed.delta_vel_dt);
+	_state.pos(2) = -_gpos.altitude();
+
+	_state.vel = matrix::constrain(_state.vel, -_params.ekf2_vel_lim, _params.ekf2_vel_lim);
+
+	const Quatf dq(AxisAnglef{corrected_delta_ang});
 	_state.quat_nominal = (_state.quat_nominal * dq).normalized();
 	_R_to_earth = Dcmf(_state.quat_nominal);
 
-	// Calculate an earth frame delta velocity
-	const Vector3f delta_vel_bias_scaled = getAccelBias() * imu_delayed.delta_vel_dt;
-	const Vector3f corrected_delta_vel = imu_delayed.delta_vel - delta_vel_bias_scaled;
-	const Vector3f corrected_delta_vel_ef = _R_to_earth * corrected_delta_vel;
-
-	// save the previous value of velocity so we can use trapzoidal integration
-	const Vector3f vel_last = _state.vel;
-
-	// calculate the increment in velocity using the current orientation
-	_state.vel += corrected_delta_vel_ef;
-
-	// compensate for acceleration due to gravity, Coriolis and transport rate
-	const Vector3f gravity_acceleration(0.f, 0.f, _gravity);
-	const Vector3f coriolis_acceleration = -2.f * _earth_rate_NED.cross(vel_last);
-	const Vector3f transport_rate = -_gpos.computeAngularRateNavFrame(vel_last).cross(vel_last);
-	_state.vel += (gravity_acceleration + coriolis_acceleration + transport_rate) * imu_delayed.delta_vel_dt;
-
-	// predict position states via trapezoidal integration of velocity
-	_gpos += (vel_last + _state.vel) * imu_delayed.delta_vel_dt * 0.5f;
-	_state.pos(2) = -_gpos.altitude();
-
-	// constrain states
-	_state.vel = matrix::constrain(_state.vel, -_params.ekf2_vel_lim, _params.ekf2_vel_lim);
-
 	// calculate a filtered horizontal acceleration this are used for manoeuvre detection elsewhere
+	const Vector3f corrected_delta_vel_ef = _R_to_earth * corrected_delta_vel;
 	_accel_horiz_lpf.update(corrected_delta_vel_ef.xy() / imu_delayed.delta_vel_dt,
 				static_cast<uint64_t>(imu_delayed.delta_vel_dt * 1e6f));
 }

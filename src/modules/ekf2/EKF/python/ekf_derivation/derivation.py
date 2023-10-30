@@ -248,6 +248,62 @@ def jacobian_chain_rule(expr: sf.Scalar , state: State):
     H = dh_dx * dx_derror
     return H
 
+def predict_vel_pos_closed_form(
+    state: VState,
+    d_vel: sf.V3,
+    d_vel_dt: sf.Scalar,
+    d_ang: sf.V3,
+    d_ang_dt: sf.Scalar,
+    g: sf.Scalar,
+    epsilon: sf.Scalar
+) -> (sf.V3, sf.V3):
+
+    # Closed-form integration of accelerometer and gyro measurements based on
+    # Goppert, James, et al. "A Closed-form Solution for the Strapdown Inertial Navigation Initial Value Problem." arXiv preprint arXiv:2310.04886 (2023).
+
+    state = vstate_to_state(state)
+    gyro = d_ang / d_ang_dt
+    accel = d_vel / d_vel_dt
+    dt = d_vel_dt
+    R_0 = state["quat_nominal"].to_rotation_matrix()
+
+    # The position column is left at zero so that the second output is a position increment:
+    # the navigation frame position lives in a geodetic type outside of the filter state
+    P_0 = sf.M32.block_matrix([[state["vel"], sf.V3()]])
+    R_r_prime = sf.M33.eye()
+
+    A_M = sf.M32([
+        [0, 0],
+        [0, 0],
+        [g, 0]
+    ])
+    A_N = sf.M32.block_matrix([[accel, sf.V3()]])
+    B = sf.M22([
+        [0, 1],
+        [0, 0]
+    ])
+
+    def P(omega, A, B) -> sf.M32:
+        theta = sf.sqrt(gyro.dot(gyro) * dt**2 + epsilon)
+        C1 = (1 - theta**2 / 2 - sf.cos(theta)) / theta**2
+        C2 = (theta - sf.sin(theta)) / theta**3
+        C3 = (theta**2 / 2 - theta**4 / 24 + sf.cos(theta) - 1) / theta**4
+        P = A + (A * B) / 2
+        P += omega * A * (C1 * sf.M22.eye() + C2 * B)
+        P += omega * omega * A * (C2 * sf.M22.eye() + C3 * B)
+        return P
+
+    P_M = P(sf.M33(), A_M * dt, -B * dt)
+    P_N = P(sf.M33.skew_symmetric(gyro * dt), A_N * dt, B * dt)
+
+    P_new = R_r_prime * R_0 * P_N + (R_r_prime * P_0 + P_M) * (sf.M22.eye() + B * dt)
+
+    # The attitude propagation can be computed as follows, but since the result is simple,
+    # it is directly implemented in the code.
+    # R_new = R_r_prime * R_0 * sf.Rot3.from_tangent(d_ang).to_rotation_matrix()
+
+    return (P_new.col(0), P_new.col(1))
+
 def compute_airspeed_innov_and_innov_var(
         state: VState,
         P: MTangent,
@@ -770,5 +826,6 @@ generate_px4_function(compute_body_vel_innov_var_h, output_names=["innov_var", "
 generate_px4_function(compute_body_vel_y_innov_var, output_names=["innov_var"])
 generate_px4_function(compute_body_vel_z_innov_var, output_names=["innov_var"])
 generate_px4_function(compute_range_beacon_innov_var_and_h, output_names=["innov_var", "H"])
+generate_px4_function(predict_vel_pos_closed_form, output_names=["vel_new", "delta_pos"])
 
 generate_px4_state(State, tangent_idx)
