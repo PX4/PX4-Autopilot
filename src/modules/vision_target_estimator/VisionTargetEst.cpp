@@ -263,6 +263,7 @@ void VisionTargetEst::Run()
 	}
 
 #if !defined(CONSTRAINED_FLASH)
+
 	if (_vte_task_mask & VisionTargetEstTask::VTE_FOR_PREC_LAND) {
 		prec_land_status_s prec_land_status;
 
@@ -270,6 +271,7 @@ void VisionTargetEst::Run()
 			_is_in_prec_land = prec_land_status.state == prec_land_status_s::PREC_LAND_STATE_ONGOING;
 		}
 	}
+
 #endif
 
 	// Check if estimator must be started
