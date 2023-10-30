@@ -187,7 +187,7 @@ private:
 	uORB::SubscriptionData<wind_s>		_wind_sub{ORB_ID(wind)};
 	uORB::Publication<navigator_mission_item_s> _navigator_mission_item_pub{ORB_ID::navigator_mission_item}; /**< Navigator mission item publication*/
 #if !defined(CONSTRAINED_FLASH)
-	uORB::Publication<prec_land_status_s> _prec_land_status_pub{ORB_ID(prec_land_status)};
+	uORB::Publication<prec_land_status_s> _prec_land_status_pub {ORB_ID(prec_land_status)};
 	void _publish_prec_land_status(const bool prec_land_ongoing);
 #endif
 };
