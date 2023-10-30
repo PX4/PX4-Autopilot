@@ -24,8 +24,8 @@
 	branch = master
 [submodule "platforms/nuttx/NuttX/apps"]
 	path = platforms/nuttx/NuttX/apps
-	url = https://github.com/PX4/NuttX-apps.git
-	branch = px4_firmware_nuttx-10.3.0+
+	url = https://github.com/tiiuae/nuttx-apps.git
+	branch = master
 [submodule "Tools/flightgear_bridge"]
 	path = Tools/simulation/flightgear/flightgear_bridge
 	url = https://github.com/PX4/PX4-FlightGear-Bridge.git
