@@ -205,6 +205,63 @@ def predict_covariance(
 
     return P_new
 
+def predict_vel_pos_closed_form(
+    state: VState,
+    d_vel: sf.V3,
+    d_vel_dt: sf.Scalar,
+    d_ang: sf.V3,
+    d_ang_dt: sf.Scalar,
+    g: sf.Scalar,
+    epsilon: sf.Scalar
+) -> (sf.V3, sf.V3):
+
+    # Closed-form integration of accelerometer and gyro measurements based on
+    # Goppert, James, et al. "A Closed-form Solution for the Strapdown Inertial Navigation Initial Value Problem." arXiv preprint arXiv:2310.04886 (2023).
+
+    # TODO: check which dt to use
+    state = vstate_to_state(state)
+    gyro = d_ang / d_ang_dt
+    accel = d_vel / d_vel_dt
+    dt = d_vel_dt
+    R_0 = state["quat_nominal"].to_rotation_matrix()
+    P_0 = sf.M32.block_matrix([[state["vel"], state["pos"]]])
+    R_l_prime = sf.Rot3.from_tangent(d_ang).to_rotation_matrix()
+    R_r_prime = sf.M33.eye()
+
+    A_M = sf.M32([
+        [0, 0],
+        [0, 0],
+        [g, 0]
+    ])
+    A_N = sf.M32.block_matrix([[accel, sf.V3()]])
+    B = sf.M22([
+        [0, 1],
+        [0, 0]
+    ])
+
+    def P(omega, A, B) -> sf.M32:
+        theta = (gyro.dot(gyro))**0.5
+        C1 = (1 - theta**2 / 2 - sf.cos(theta)) / sf.Max(theta**2, epsilon)
+        C2 = (theta - sf.sin(theta)) / sf.Max(theta**3, epsilon)
+        C3 = (theta**2 / 2 - theta**4 / 24 + sf.cos(theta) - 1) / sf.Max(theta**4, epsilon)
+        P = A + (A * B) / 2
+        P += omega * A * (C1 * sf.M22.eye() + C2 * B)
+        P += omega * omega * A * (C2 * sf.M22.eye() + C3 * B)
+        return P
+
+    P_M = P(sf.M33(), A_M * dt, -B * dt)
+    P_N = P(sf.M33.skew_symmetric(gyro * dt), A_N * dt, B * dt)
+
+    P_new = R_r_prime * R_0 * P_N + (R_r_prime * P_0 + P_M) * (sf.M22.eye() + B * dt)
+
+    # The attitude propagation can be computed as follows, but since the result is simple,
+    # it is directly implemented in the code.
+    # R_new = R_r_prime * R_0 * R_l_prime
+    # q_xyzw = sf.Rot3.from_rotation_matrix(R_new).to_storage()
+    # q_wxyz = sf.V4(q_xyzw[3], q_xyzw[0], q_xyzw[1], q_xyzw[2])
+
+    return (P_new.col(0), P_new.col(1))
+
 def compute_airspeed_innov_and_innov_var(
         state: VState,
         P: MTangent,
@@ -652,5 +709,6 @@ generate_px4_function(compute_flow_xy_innov_var_and_hx, output_names=["innov_var
 generate_px4_function(compute_flow_y_innov_var_and_h, output_names=["innov_var", "H"])
 generate_px4_function(compute_gnss_yaw_pred_innov_var_and_h, output_names=["meas_pred", "innov_var", "H"])
 generate_px4_function(compute_gravity_innov_var_and_k_and_h, output_names=["innov", "innov_var", "Kx", "Ky", "Kz"])
+generate_px4_function(predict_vel_pos_closed_form, output_names=["v_new", "p_new"])
 
 generate_px4_state(State, tangent_idx)
