@@ -124,7 +124,7 @@ private:
 	uORB::Subscription _vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
 #if !defined(CONSTRAINED_FLASH)
-	uORB::Subscription _prec_land_status_sub{ORB_ID(prec_land_status)};
+	uORB::Subscription _prec_land_status_sub {ORB_ID(prec_land_status)};
 #endif
 
 	uORB::Publication<vehicle_acceleration_s> _vte_acc_input_pub{ORB_ID(vte_acc_input)};
