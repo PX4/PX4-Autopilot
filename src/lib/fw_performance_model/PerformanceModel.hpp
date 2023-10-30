@@ -51,15 +51,15 @@ public:
 	void updateParameters();
 
 	/**
-	 * Get the maximum climb rate expected for current air density and weight.
+	 * Get the maximum climb rate (true airspeed) expected for current air density and weight.
 	 * @param air_density in kg/m^3
 	 * @return maximum climb rate in m/s
 	 */
 	float getMaximumClimbRate(float air_density) const;
 
 	/**
-	 * Get the minimum sink rate expected for current air density and weight.
-	 * @param air_density
+	 * Get the minimum sink rate (true airspeed) expected for current air density and weight.
+	 * @param air_density in kg/m^3
 	 * @return minimum sink rate in m/s
 	 */
 	float getMinimumSinkRate(float air_density) const;
@@ -71,12 +71,12 @@ public:
 	float getWeightRatio() const;
 
 	/**
-	 * Get the trim throttle for the current airspeed setpoint as well as air densty and weight.
-	 * @param throttle_min minimum throttle
-	 * @param throttle_max maximum throttle
+	 * Get the trim throttle for the current airspeed setpoint as well as air density and weight.
+	 * @param throttle_min minimum throttle in range [0,1]
+	 * @param throttle_max maximum throttle in range [0,1]
 	 * @param airspeed_sp calibrated airspeed setpoint in m/s
-	 * @param air_density air density
-	 * @return trim throttle
+	 * @param air_density air density in kg/m^3
+	 * @return trim throttle in range [0,1]
 	 */
 	float getTrimThrottle(float throttle_min, float throttle_max, float airspeed_sp, float air_density) const;
 
@@ -149,6 +149,8 @@ private:
 	 * @return throttle scale factor for weight
 	 */
 	float getWeightThrottleScale() const;
+
+	static float sanitiseAirDensity(float air_density);
 };
 
 #endif //PX4_SRC_MODULES_FW_POS_CONTROL_PERFORMANCEMODEL_H_

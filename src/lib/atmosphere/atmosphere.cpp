@@ -41,19 +41,16 @@
 namespace atmosphere
 {
 
-static constexpr float kTempRefKelvin = 15.f - CONSTANTS_ABSOLUTE_NULL_CELSIUS; // temperature at base height in Kelvin
-static constexpr float kTempGradient = -6.5f / 1000.f; // temperature gradient in degrees per meter
-static constexpr float kPressRefSeaLevelPa = 101325.f; // pressure at sea level in kPa
 
 float getDensityFromPressureAndTemp(const float pressure_pa, const float temperature_celsius)
 {
-	return (pressure_pa / (CONSTANTS_AIR_GAS_CONST * (temperature_celsius - CONSTANTS_ABSOLUTE_NULL_CELSIUS)));
+	return (pressure_pa / (kAirGasConstant * (temperature_celsius - kAbsoluteNullCelcius)));
 }
 float getPressureFromAltitude(const float altitude_m)
 {
 
 	return kPressRefSeaLevelPa * powf((altitude_m * kTempGradient + kTempRefKelvin) / kTempRefKelvin,
-					  -CONSTANTS_ONE_G / (kTempGradient * CONSTANTS_AIR_GAS_CONST));
+					  -CONSTANTS_ONE_G / (kTempGradient * kAirGasConstant));
 }
 float getAltitudeFromPressure(float pressure_pa, float pressure_sealevel_pa)
 {
@@ -70,7 +67,7 @@ float getAltitudeFromPressure(float pressure_pa, float pressure_sealevel_pa)
 	 * h = -------------------------------  + h1
 	 *                   a
 	 */
-	return (((powf(pressure_ratio, (-(kTempGradient * CONSTANTS_AIR_GAS_CONST) / CONSTANTS_ONE_G))) * kTempRefKelvin) -
+	return (((powf(pressure_ratio, (-(kTempGradient * kAirGasConstant) / CONSTANTS_ONE_G))) * kTempRefKelvin) -
 		kTempRefKelvin) / kTempGradient;
 
 }

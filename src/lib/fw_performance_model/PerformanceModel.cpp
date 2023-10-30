@@ -39,16 +39,11 @@
 
 #include <geo/geo.h>
 #include <px4_platform_common/events.h>
-#include "PerformanceModel.h"
+#include "PerformanceModel.hpp"
 #include <lib/atmosphere/atmosphere.h>
 
 using namespace atmosphere;
 
-// air density of standard athmosphere at 5000m above mean sea level [kg/m^3]
-static constexpr float kAirDensityStandardAtmos5000Amsl = 0.7363f;
-
-// air density of standard athmosphere at 1000m above mean sea level [kg/m^3]
-static constexpr float kAirDensityStandardAtmos1000Amsl = 1.112f;
 
 // [.] minimum ratio between the actual vehicle weight and the vehicle nominal weight (weight at which the performance limits are derived)
 static constexpr float kMinWeightRatio = 0.5f;
@@ -56,8 +51,8 @@ static constexpr float kMinWeightRatio = 0.5f;
 // [.] maximum ratio between the actual vehicle weight and the vehicle nominal weight (weight at which the performance limits are derived)
 static constexpr float kMaxWeightRatio = 2.0f;
 
-// climbrate defining the service ceiling, used to compensate max climbrate based on air density
-static constexpr float kClimbrateMin = 0.5f; // [m/s]
+// [m/s] climbrate defining the service ceiling, used to compensate max climbrate based on air density
+static constexpr float kClimbRateAtServiceCeiling = 0.5f;
 
 PerformanceModel::PerformanceModel(): ModuleParams(nullptr)
 {
@@ -76,18 +71,20 @@ float PerformanceModel::getWeightRatio() const
 }
 float PerformanceModel::getMaximumClimbRate(float air_density) const
 {
+	air_density = sanitiseAirDensity(air_density);
 	float climbrate_max = _param_fw_t_clmb_max.get();
 
 	const float service_ceiling = _param_service_ceiling.get();
 
 	if (service_ceiling > 0.0f) {
-		const float pressure = getPressureFromAltitude(service_ceiling);
-		const float density = getDensityFromPressureAndTemp(pressure, getStandardTemperatureAtAltitude(service_ceiling));
-		const float density_gradient = math::max((_param_fw_t_clmb_max.get() - kClimbrateMin) /
-					       (CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C -
-						density), 0.0f);
-		const float delta_rho = air_density - CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C;
-		climbrate_max = math::constrain(_param_fw_t_clmb_max.get() + density_gradient * delta_rho, kClimbrateMin,
+		const float ceiling_pressure = getPressureFromAltitude(service_ceiling);
+		const float ceiling_density = getDensityFromPressureAndTemp(ceiling_pressure,
+					      getStandardTemperatureAtAltitude(service_ceiling));
+		const float climbrate_gradient = math::max((_param_fw_t_clmb_max.get() - kClimbRateAtServiceCeiling) /
+						 (kAirDensitySeaLevelStandardAtmos -
+						  ceiling_density), 0.0f);
+		const float delta_rho = air_density - kAirDensitySeaLevelStandardAtmos;
+		climbrate_max = math::constrain(_param_fw_t_clmb_max.get() + climbrate_gradient * delta_rho, kClimbRateAtServiceCeiling,
 						_param_fw_t_clmb_max.get());
 	}
 
@@ -107,14 +104,13 @@ float PerformanceModel::getWeightThrottleScale() const
 
 float PerformanceModel::getAirDensityThrottleScale(float air_density) const
 {
+	air_density = sanitiseAirDensity(air_density);
 	float air_density_throttle_scale = 1.0f;
 
-	if (PX4_ISFINITE(air_density)) {
-		// scale throttle as a function of sqrt(rho0/rho)
-		const float eas2tas = sqrtf(CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C / air_density);
-		const float eas2tas_at_5000m_amsl = sqrtf(CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C / kAirDensityStandardAtmos5000Amsl);
-		air_density_throttle_scale = math::constrain(eas2tas, 1.f, eas2tas_at_5000m_amsl);
-	}
+	// scale throttle as a function of sqrt(rho0/rho)
+	const float eas2tas = sqrtf(kAirDensitySeaLevelStandardAtmos / air_density);
+	const float eas2tas_at_11km_amsl = sqrtf(kAirDensitySeaLevelStandardAtmos / kAirDensityStandardAtmos11000Amsl);
+	air_density_throttle_scale = math::constrain(eas2tas, 1.f, eas2tas_at_11km_amsl);
 
 	return air_density_throttle_scale;
 }
@@ -143,7 +139,8 @@ float PerformanceModel::getTrimThrottleForAirspeed(float airspeed_sp) const
 }
 float PerformanceModel::getMinimumSinkRate(float air_density) const
 {
-	return _param_fw_t_sink_min.get() * sqrtf(getWeightRatio() * CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C / air_density);
+	air_density = sanitiseAirDensity(air_density);
+	return _param_fw_t_sink_min.get() * sqrtf(getWeightRatio() * kAirDensitySeaLevelStandardAtmos / air_density);
 }
 float PerformanceModel::getCalibratedTrimAirspeed() const
 {
@@ -152,11 +149,14 @@ float PerformanceModel::getCalibratedTrimAirspeed() const
 }
 float PerformanceModel::getMinimumCalibratedAirspeed(float load_factor) const
 {
+
+	load_factor = math::max(load_factor, FLT_EPSILON);
 	return _param_fw_airspd_min.get() * sqrtf(getWeightRatio() * load_factor);
 }
 
 float PerformanceModel::getCalibratedStallAirspeed(float load_factor) const
 {
+	load_factor = math::max(load_factor, FLT_EPSILON);
 	return _param_fw_airspd_stall.get() * sqrtf(getWeightRatio() * load_factor);
 }
 
@@ -226,4 +226,13 @@ bool PerformanceModel::runSanityChecks() const
 void PerformanceModel::	updateParameters()
 {
 	updateParams();
+}
+
+float PerformanceModel::sanitiseAirDensity(float air_density)
+{
+	if (!PX4_ISFINITE(air_density)) {
+		air_density = kAirDensitySeaLevelStandardAtmos;
+	}
+
+	return math::max(air_density, kAirDensityStandardAtmos11000Amsl);
 }
