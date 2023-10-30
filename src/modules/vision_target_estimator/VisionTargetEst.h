@@ -61,7 +61,9 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
+#if !defined(CONSTRAINED_FLASH)
 #include <uORB/topics/prec_land_status.h>
+#endif
 
 #include <parameters/param.h>
 #include <px4_platform_common/module_params.h>
@@ -121,7 +123,9 @@ private:
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
+#if !defined(CONSTRAINED_FLASH)
 	uORB::Subscription _prec_land_status_sub{ORB_ID(prec_land_status)};
+#endif
 
 	uORB::Publication<vehicle_acceleration_s> _vte_acc_input_pub{ORB_ID(vte_acc_input)};
 
