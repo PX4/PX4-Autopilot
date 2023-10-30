@@ -51,6 +51,7 @@ add_dependencies(zenohpico git_zenoh-pico px4_platform)
 target_compile_options(zenohpico PUBLIC -Wno-cast-align
 			-Wno-narrowing
 			-Wno-stringop-overflow
+			-Wno-stringop-truncation
 			-Wno-unused-result
 			-DZ_BATCH_SIZE_RX=512
 			-DZ_BATCH_SIZE_TX=512
