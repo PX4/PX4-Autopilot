@@ -71,7 +71,7 @@
 # include "sensor_range_finder.hpp"
 #endif // CONFIG_EKF2_RANGE_FINDER
 
-#include <lib/geo/geo.h>
+#include <lib/atmosphere/atmosphere.h>
 #include <matrix/math.hpp>
 #include <mathlib/mathlib.h>
 #include <mathlib/math/filter/AlphaFilter.hpp>
@@ -374,7 +374,7 @@ protected:
 	float _flow_max_distance{10.f};	///< maximum distance that the optical flow sensor can operate at (m)
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
-	float _air_density{CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C};		// air density (kg/m**3)
+	float _air_density{atmosphere::kAirDensitySeaLevelStandardAtmos};		// air density (kg/m**3)
 
 	bool _imu_updated{false};      // true if the ekf should update (completed downsampling process)
 	bool _initialised{false};      // true if the ekf interface instance (data buffering) is initialized

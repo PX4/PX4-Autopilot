@@ -49,12 +49,13 @@
 
 #include "launchdetection/LaunchDetector.h"
 #include "runway_takeoff/RunwayTakeoff.h"
-#include <lib/fw_performance_model/PerformanceModel.h>
+#include <lib/fw_performance_model/PerformanceModel.hpp>
 
 #include <float.h>
 
 #include <drivers/drv_hrt.h>
 #include <lib/geo/geo.h>
+#include <lib/atmosphere/atmosphere.h>
 #include <lib/npfg/npfg.hpp>
 #include <lib/tecs/TECS.hpp>
 #include <lib/mathlib/mathlib.h>
@@ -367,7 +368,7 @@ private:
 	float _airspeed{0.0f};
 	float _eas2tas{1.0f};
 	bool _airspeed_valid{false};
-	float _air_density{CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C};
+	float _air_density{atmosphere::kAirDensitySeaLevelStandardAtmos};
 
 	// [us] last time airspeed was received. used to detect timeouts.
 	hrt_abstime _time_airspeed_last_valid{0};

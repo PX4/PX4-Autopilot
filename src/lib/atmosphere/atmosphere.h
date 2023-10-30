@@ -51,8 +51,8 @@ static constexpr float kAirDensitySeaLevelStandardAtmos = 1.225f;				// kg/m^3
 static constexpr float kAirDensityStandardAtmos11000Amsl = 0.3639;
 
 static constexpr float kAirGasConstant = 287.1f;					// J/(kg * K)
-static constexpr float kAbsoluteNullCelcius = -273.15f;				// °C
-static constexpr float kTempRefKelvin = 15.f - kAbsoluteNullCelcius; // temperature at base height in Kelvin
+static constexpr float kAbsoluteNullCelsius = -273.15f;				// °C
+static constexpr float kTempRefKelvin = 15.f - kAbsoluteNullCelsius; // temperature at base height in Kelvin
 static constexpr float kTempGradient = -6.5f / 1000.f; // temperature gradient in degrees per meter
 static constexpr float kPressRefSeaLevelPa = 101325.f; // pressure at sea level in Pa
 

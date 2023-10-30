@@ -39,6 +39,7 @@
 #include "EKF/ekf.h"
 #include "sensor_simulator/sensor_simulator.h"
 #include "sensor_simulator/ekf_wrapper.h"
+#include <lib/atmosphere/atmosphere.h>
 
 class EkfDragFusionTest : public ::testing::Test
 {
@@ -179,7 +180,7 @@ TEST_F(EkfDragFusionTest, testForwardBluffBodyDrag)
 
 	Vector2f predicted_accel(CONSTANTS_ONE_G * sinf(pitch), 0.0f);
 	const float airspeed = sqrtf((2.0f * bcoef_x * predicted_accel.length()) /
-				     CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C);
+				     atmosphere::kAirDensitySeaLevelStandardAtmos);
 	Vector2f wind_speed(-airspeed, 0.0f);
 
 	// The magnitude of error perpendicular to wind is equivalent to the error in the direction of wind
@@ -219,7 +220,7 @@ TEST_F(EkfDragFusionTest, testLateralBluffBodyDrag)
 
 	Vector2f predicted_accel(0.0f, - CONSTANTS_ONE_G * sinf(roll));
 	const float airspeed = sqrtf((2.0f * bcoef_y * predicted_accel.length()) /
-				     CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C);
+				     atmosphere::kAirDensitySeaLevelStandardAtmos);
 	Vector2f wind_speed(0.0f, -airspeed);
 
 	// The magnitude of error perpendicular to wind is equivalent to the error in the of wind
@@ -259,7 +260,7 @@ TEST_F(EkfDragFusionTest, testDiagonalBluffBodyDrag)
 
 	Vector2f predicted_accel = quat_sim.rotateVectorInverse(Vector3f(0.f, 0.f, -CONSTANTS_ONE_G)).xy();
 	const float airspeed = sqrtf((2.0f * bcoef_y * predicted_accel.norm()) /
-				     CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C);
+				     atmosphere::kAirDensitySeaLevelStandardAtmos);
 	Vector2f wind_speed(airspeed * predicted_accel / predicted_accel.norm());
 
 	// The magnitude of error perpendicular to wind is equivalent to the error in the of wind

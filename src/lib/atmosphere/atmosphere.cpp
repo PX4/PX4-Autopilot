@@ -44,7 +44,7 @@ namespace atmosphere
 
 float getDensityFromPressureAndTemp(const float pressure_pa, const float temperature_celsius)
 {
-	return (pressure_pa / (kAirGasConstant * (temperature_celsius - kAbsoluteNullCelcius)));
+	return (pressure_pa / (kAirGasConstant * (temperature_celsius - kAbsoluteNullCelsius)));
 }
 float getPressureFromAltitude(const float altitude_m)
 {
