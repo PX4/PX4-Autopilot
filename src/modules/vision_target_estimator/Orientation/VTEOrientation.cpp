@@ -222,7 +222,6 @@ bool VTEOrientation::fuse_orientation(const targetObsOrientation &target_orienta
 			 (double)(dt_sync_us / SEC2USEC), (double)(measurement_valid_TIMEOUT_US / SEC2USEC));
 
 		// No measurement update, set to false
-		target_innov.fusion_enabled = false;
 		target_innov.fused = false;
 
 	} else if (target_orientation_obs.updated_theta) {
@@ -240,7 +239,6 @@ bool VTEOrientation::fuse_orientation(const targetObsOrientation &target_orienta
 		meas_fused = _target_estimator_orientation->update();
 
 		// Fill the target innovation field
-		target_innov.fusion_enabled = true;
 		target_innov.innovation_rejected = !meas_fused;
 		target_innov.fused = meas_fused;
 
@@ -254,7 +252,6 @@ bool VTEOrientation::fuse_orientation(const targetObsOrientation &target_orienta
 
 	} else {
 		// No yaw measurement
-		target_innov.fusion_enabled = false;
 		target_innov.fused = false;
 	}
 
