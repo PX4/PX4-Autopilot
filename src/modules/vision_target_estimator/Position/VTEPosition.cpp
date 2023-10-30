@@ -833,7 +833,6 @@ bool VTEPosition::fuse_meas(const Vector3f &vehicle_acc_ned, const targetObsPos 
 			 (double)(dt_sync_us / 1000), (double)(measurement_valid_TIMEOUT_US / 1000));
 
 		// No measurement update, set to false
-		target_innov.fusion_enabled = false;
 		target_innov.fused = false;
 
 	} else {
@@ -857,7 +856,6 @@ bool VTEPosition::fuse_meas(const Vector3f &vehicle_acc_ned, const targetObsPos 
 				  target_pos_obs.updated_xyz(1), target_pos_obs.updated_xyz(2));
 
 			// Set innovations to zero
-			target_innov.fusion_enabled = false;
 			target_innov.fused = false;
 
 		} else {
@@ -900,7 +898,6 @@ bool VTEPosition::fuse_meas(const Vector3f &vehicle_acc_ned, const targetObsPos 
 				  meas_xyz_fused(2));
 		}
 
-		target_innov.fusion_enabled = true;
 		target_innov.fused = all_directions_fused;
 		target_innov.innovation_rejected = !all_directions_fused;
 	}
