@@ -55,6 +55,7 @@
 
 static constexpr float CONSTANTS_ONE_G = 9.80665f;						// m/s^2
 static constexpr double CONSTANTS_RADIUS_OF_EARTH = 6371000;					// meters (m)
+static constexpr float  CONSTANTS_RADIUS_OF_EARTH_F = CONSTANTS_RADIUS_OF_EARTH;		// meters (m)
 static constexpr float CONSTANTS_EARTH_SPIN_RATE = 7.2921150e-5f;				// radians/second (rad/s)
 
 
