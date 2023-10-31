@@ -810,7 +810,7 @@ private:
 	void fuseDrag(const dragSample &drag_sample);
 #endif // CONFIG_EKF2_DRAG_FUSION
 
-	void resetVelocityTo(const Vector3f &vel, const Vector3f &new_vel_var);
+	void resetVelocityTo(const Vector3f &vel, const Vector3f &new_vel_var = Vector3f(NAN, NAN, NAN));
 
 	void resetHorizontalVelocityTo(const Vector2f &new_horz_vel, const Vector2f &new_horz_vel_var);
 	void resetHorizontalVelocityTo(const Vector2f &new_horz_vel, float vel_var) { resetHorizontalVelocityTo(new_horz_vel, Vector2f(vel_var, vel_var)); }
