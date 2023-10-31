@@ -72,6 +72,7 @@ px4_add_module(
 		MulticopterThrowLaunch
 		sensor_calibration
 		world_magnetic_model
+        atmosphere
 	)
 
 px4_add_unit_gtest(SRC mag_calibration_test.cpp LINKLIBS modules__commander)
