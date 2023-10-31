@@ -44,5 +44,6 @@ WORKDIR /root/PX4-Autopilot/Tools/simulation/gazebo-classic/sitl_gazebo-classic/
 RUN patch < iris_vision.patch
 RUN rm -rf iris_vision.patch
 
+WORKDIR /root/PX4-Autopilot
 RUN ./Tools/setup/ubuntu.sh
 RUN DONT_RUN=1 make px4_sitl_default gazebo
