@@ -1,5 +1,5 @@
 <sdf version='1.9'>
-  <world name='windy_default'>
+  <world name='windy'>
     <physics type="ode">
       <max_step_size>0.004</max_step_size>
       <real_time_factor>1.0</real_time_factor>
