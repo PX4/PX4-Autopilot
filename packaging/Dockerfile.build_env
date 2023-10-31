@@ -16,3 +16,5 @@ USER builder
 
 VOLUME /px4-firmware/sources
 WORKDIR /px4-firmware/sources
+
+RUN git config --global --add safe.directory /px4-firmware/sources
