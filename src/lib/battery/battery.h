@@ -142,7 +142,6 @@ protected:
 
 	const int _index;
 
-	bool _first_parameter_update{true};
 	void updateParams() override;
 
 private:

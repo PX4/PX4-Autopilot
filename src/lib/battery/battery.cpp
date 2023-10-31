@@ -317,6 +317,7 @@ float Battery::computeRemainingTime(float current_a)
 
 void Battery::updateParams()
 {
+	ModuleParams::updateParams();
 	param_get(_param_handles.v_empty, &_params.v_empty);
 	param_get(_param_handles.v_charged, &_params.v_charged);
 	param_get(_param_handles.n_cells, &_params.n_cells);
@@ -328,8 +329,4 @@ void Battery::updateParams()
 	param_get(_param_handles.crit_thr, &_params.crit_thr);
 	param_get(_param_handles.emergen_thr, &_params.emergen_thr);
 	param_get(_param_handles.bat_avrg_current, &_params.bat_avrg_current);
-
-	ModuleParams::updateParams();
-
-	_first_parameter_update = false;
 }
