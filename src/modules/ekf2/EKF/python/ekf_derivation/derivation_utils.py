@@ -104,7 +104,7 @@ def build_state_struct(state, T="float"):
             raise NotImplementedError
 
     for key, val in state.items():
-        out += f"\t{TypeFromLength(len(val))} {key}{{}};\n"
+        out += f"\t{TypeFromLength(val.storage_dim())} {key}{{}};\n"
 
     state_size = state.storage_dim()
     out += f"\n\tmatrix::Vector<{T}, {state_size}> Data() const {{\n" \

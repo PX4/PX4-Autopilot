@@ -153,6 +153,11 @@ public:
 	{
 		(*this).transpose().print();
 	}
+
+	static size_t size()
+	{
+		return M;
+	}
 };
 
 template<typename OStream, typename Type, size_t M>

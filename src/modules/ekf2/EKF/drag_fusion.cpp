@@ -84,7 +84,7 @@ void Ekf::fuseDrag(const dragSample &drag_sample)
 				      _state.vel(2));
 	const Vector3f rel_wind_body = _state.quat_nominal.rotateVectorInverse(rel_wind_earth);
 	const float rel_wind_speed = rel_wind_body.norm();
-	const VectorState state_vector_prev = _state.vector();
+	const auto state_vector_prev = _state.vector();
 
 	Vector2f bcoef_inv{0.f, 0.f};
 
