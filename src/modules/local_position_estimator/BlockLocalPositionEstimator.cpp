@@ -750,7 +750,6 @@ void BlockLocalPositionEstimator::publishEstimatorStatus()
 
 	// replacing the hor wind cov with terrain altitude covariance
 	_pub_est_states.get().covariances[22] = m_P(X_tz, X_tz);
-	_pub_est_states.get().covariances[23] = NAN;
 
 	_pub_est_states.get().n_states = n_x;
 	_pub_est_states.get().timestamp = hrt_absolute_time();

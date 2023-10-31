@@ -43,7 +43,6 @@
 
 #include "ekf.h"
 #include <ekf_derivation/generated/predict_covariance.h>
-#include <ekf_derivation/generated/rot_var_ned_to_lower_triangular_quat_cov.h>
 
 #include <math.h>
 #include <mathlib/mathlib.h>
@@ -368,10 +367,8 @@ void Ekf::resetQuatCov(const float yaw_noise)
 
 void Ekf::resetQuatCov(const Vector3f &rot_var_ned)
 {
-	matrix::SquareMatrix<float, State::quat_nominal.dof> q_cov;
-	sym::RotVarNedToLowerTriangularQuatCov(_state.vector(), rot_var_ned, &q_cov);
-	q_cov.copyLowerToUpperTriangle();
-	resetStateCovariance<State::quat_nominal>(q_cov);
+	matrix::SquareMatrix<float, State::quat_nominal.dof> q_cov_ned = diag(rot_var_ned);
+	resetStateCovariance<State::quat_nominal>(_R_to_earth.T() * q_cov_ned * _R_to_earth);
 }
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)

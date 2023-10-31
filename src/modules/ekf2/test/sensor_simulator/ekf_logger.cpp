@@ -52,17 +52,17 @@ void EkfLogger::writeState()
 		_file << time;
 
 		if (_state_logging_enabled) {
-			matrix::Vector<float, 24> state = _ekf->getStateAtFusionHorizonAsVector();
+			auto state = _ekf->state().vector();
 
-			for (int i = 0; i < 24; i++) {
+			for (unsigned i = 0; i < state.size(); i++) {
 				_file << "," << std::setprecision(2) << state(i);
 			}
 		}
 
 		if (_variance_logging_enabled) {
-			matrix::Vector<float, 24> variance = _ekf->covariances_diagonal();
+			matrix::Vector<float, State::size> variance = _ekf->covariances_diagonal();
 
-			for (int i = 0; i < 24; i++) {
+			for (unsigned i = 0; i < State::size; i++) {
 				_file << "," << variance(i);
 			}
 		}

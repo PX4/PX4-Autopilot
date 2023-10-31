@@ -1862,7 +1862,7 @@ void EKF2::PublishOdometry(const hrt_abstime &timestamp, const imuSample &imu_sa
 	_ekf.getPositionVariance().copyTo(odom.position_variance);
 
 	// orientation covariance
-	_ekf.calcRotVecVariances().copyTo(odom.orientation_variance);
+	_ekf.getQuaternionVariance().copyTo(odom.orientation_variance);
 
 	odom.reset_counter = _ekf.get_quat_reset_count()
 			     + _ekf.get_velNE_reset_count() + _ekf.get_velD_reset_count()
@@ -1949,8 +1949,9 @@ void EKF2::PublishStates(const hrt_abstime &timestamp)
 	// publish estimator states
 	estimator_states_s states;
 	states.timestamp_sample = _ekf.time_delayed_us();
-	states.n_states = Ekf::getNumberOfStates();
-	_ekf.getStateAtFusionHorizonAsVector().copyTo(states.states);
+	const auto state_vector = _ekf.state().vector();
+	state_vector.copyTo(states.states);
+	states.n_states = state_vector.size();
 	_ekf.covariances_diagonal().copyTo(states.covariances);
 	states.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 	_estimator_states_pub.publish(states);

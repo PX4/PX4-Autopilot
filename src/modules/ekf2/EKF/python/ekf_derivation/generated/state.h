@@ -41,15 +41,15 @@ static_assert(sizeof(matrix::Vector<float, 24>) == sizeof(StateSample), "state v
 
 struct IdxDof { unsigned idx; unsigned dof; };
 namespace State {
-	static constexpr IdxDof quat_nominal{0, 4};
-	static constexpr IdxDof vel{4, 3};
-	static constexpr IdxDof pos{7, 3};
-	static constexpr IdxDof gyro_bias{10, 3};
-	static constexpr IdxDof accel_bias{13, 3};
-	static constexpr IdxDof mag_I{16, 3};
-	static constexpr IdxDof mag_B{19, 3};
-	static constexpr IdxDof wind_vel{22, 2};
-	static constexpr uint8_t size{24};
+	static constexpr IdxDof quat_nominal{0, 3};
+	static constexpr IdxDof vel{3, 3};
+	static constexpr IdxDof pos{6, 3};
+	static constexpr IdxDof gyro_bias{9, 3};
+	static constexpr IdxDof accel_bias{12, 3};
+	static constexpr IdxDof mag_I{15, 3};
+	static constexpr IdxDof mag_B{18, 3};
+	static constexpr IdxDof wind_vel{21, 2};
+	static constexpr uint8_t size{23};
 };
 }
 #endif // !EKF_STATE_H

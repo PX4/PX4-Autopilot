@@ -40,8 +40,6 @@
  */
 
 #include "ekf.h"
-#include <ekf_derivation/generated/quat_var_to_rot_var.h>
-#include <ekf_derivation/generated/rot_var_ned_to_lower_triangular_quat_cov.h>
 
 #include <mathlib/mathlib.h>
 #include <lib/world_magnetic_model/geo_mag_declination.h>
@@ -758,7 +756,8 @@ void Ekf::get_ekf_soln_status(uint16_t *status) const
 
 void Ekf::fuse(const VectorState &K, float innovation)
 {
-	_state.quat_nominal -= K.slice<State::quat_nominal.dof, 1>(State::quat_nominal.idx, 0) * innovation;
+	Quatf delta_quat(matrix::AxisAnglef(K.slice<State::quat_nominal.dof, 1>(State::quat_nominal.idx, 0) * (-1.f * innovation)));
+	_state.quat_nominal *= delta_quat;
 	_state.quat_nominal.normalize();
 	_R_to_earth = Dcmf(_state.quat_nominal);
 
@@ -851,21 +850,11 @@ void Ekf::updateVerticalDeadReckoningStatus()
 	}
 }
 
-// calculate the variances for the rotation vector equivalent
-Vector3f Ekf::calcRotVecVariances() const
-{
-	Vector3f rot_var;
-	sym::QuatVarToRotVar(_state.vector(), P, FLT_EPSILON, &rot_var);
-	return rot_var;
-}
-
 float Ekf::getYawVar() const
 {
-	VectorState H_YAW;
-	float yaw_var = 0.f;
-	computeYawInnovVarAndH(0.f, yaw_var, H_YAW);
-
-	return yaw_var;
+	const matrix::SquareMatrix3f rot_cov = diag(getQuaternionVariance());
+	const auto rot_var_ned = matrix::SquareMatrix<float, State::quat_nominal.dof>(_R_to_earth * rot_cov * _R_to_earth.T()).diag();
+	return rot_var_ned(2);
 }
 
 #if defined(CONFIG_EKF2_BAROMETER)
@@ -899,7 +888,7 @@ void Ekf::resetQuatStateYaw(float yaw, float yaw_variance)
 	const Quatf quat_before_reset = _state.quat_nominal;
 
 	// save a copy of covariance in NED frame to restore it after the quat reset
-	const matrix::SquareMatrix3f rot_cov = diag(calcRotVecVariances());
+	const matrix::SquareMatrix3f rot_cov = diag(getQuaternionVariance());
 	Vector3f rot_var_ned_before_reset = matrix::SquareMatrix3f(_R_to_earth * rot_cov * _R_to_earth.T()).diag();
 
 	// update the yaw angle variance

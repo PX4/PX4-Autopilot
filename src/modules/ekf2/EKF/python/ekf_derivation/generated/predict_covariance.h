@@ -17,7 +17,7 @@ namespace sym {
  *
  * Args:
  *     state: Matrix24_1
- *     P: Matrix24_24
+ *     P: Matrix23_23
  *     d_vel: Matrix31
  *     d_vel_dt: Scalar
  *     d_vel_var: Matrix31
@@ -26,298 +26,335 @@ namespace sym {
  *     d_ang_var: Scalar
  *
  * Outputs:
- *     res: Matrix24_24
+ *     res: Matrix23_23
  */
 template <typename Scalar>
-matrix::Matrix<Scalar, 24, 24> PredictCovariance(const matrix::Matrix<Scalar, 24, 1>& state,
-                                                const matrix::Matrix<Scalar, 24, 24>& P,
+matrix::Matrix<Scalar, 23, 23> PredictCovariance(const matrix::Matrix<Scalar, 24, 1>& state,
+                                                const matrix::Matrix<Scalar, 23, 23>& P,
                                                 const matrix::Matrix<Scalar, 3, 1>& d_vel,
                                                 const Scalar d_vel_dt,
                                                 const matrix::Matrix<Scalar, 3, 1>& d_vel_var,
                                                 const matrix::Matrix<Scalar, 3, 1>& d_ang,
                                                 const Scalar d_ang_dt, const Scalar d_ang_var) {
-  // Total ops: 2882
+  // Total ops: 2445
 
   // Input arrays
 
-  // Intermediate terms (173)
-  const Scalar _tmp0 = Scalar(0.5) * d_ang(1, 0);
-  const Scalar _tmp1 = Scalar(0.5) * d_ang_dt;
-  const Scalar _tmp2 = _tmp1 * state(11, 0);
-  const Scalar _tmp3 = -_tmp0 + _tmp2;
-  const Scalar _tmp4 = Scalar(0.5) * d_ang(2, 0);
-  const Scalar _tmp5 = _tmp1 * state(12, 0);
-  const Scalar _tmp6 = -_tmp4 + _tmp5;
-  const Scalar _tmp7 = Scalar(0.5) * d_ang(0, 0);
-  const Scalar _tmp8 = _tmp1 * state(10, 0);
-  const Scalar _tmp9 = -_tmp7 + _tmp8;
-  const Scalar _tmp10 = _tmp1 * state(1, 0);
-  const Scalar _tmp11 = _tmp1 * state(3, 0);
-  const Scalar _tmp12 = _tmp1 * state(2, 0);
-  const Scalar _tmp13 = P(0, 10) + P(1, 10) * _tmp9 + P(10, 10) * _tmp10 + P(11, 10) * _tmp12 +
-                        P(12, 10) * _tmp11 + P(2, 10) * _tmp3 + P(3, 10) * _tmp6;
-  const Scalar _tmp14 = P(0, 11) + P(1, 11) * _tmp9 + P(10, 11) * _tmp10 + P(11, 11) * _tmp12 +
-                        P(12, 11) * _tmp11 + P(2, 11) * _tmp3 + P(3, 11) * _tmp6;
-  const Scalar _tmp15 = P(0, 12) + P(1, 12) * _tmp9 + P(10, 12) * _tmp10 + P(11, 12) * _tmp12 +
-                        P(12, 12) * _tmp11 + P(2, 12) * _tmp3 + P(3, 12) * _tmp6;
-  const Scalar _tmp16 = P(0, 2) + P(1, 2) * _tmp9 + P(10, 2) * _tmp10 + P(11, 2) * _tmp12 +
-                        P(12, 2) * _tmp11 + P(2, 2) * _tmp3 + P(3, 2) * _tmp6;
-  const Scalar _tmp17 = P(0, 3) + P(1, 3) * _tmp9 + P(10, 3) * _tmp10 + P(11, 3) * _tmp12 +
-                        P(12, 3) * _tmp11 + P(2, 3) * _tmp3 + P(3, 3) * _tmp6;
-  const Scalar _tmp18 = P(11, 1) * _tmp1;
-  const Scalar _tmp19 = P(0, 1) + P(1, 1) * _tmp9 + P(10, 1) * _tmp10 + P(12, 1) * _tmp11 +
-                        P(2, 1) * _tmp3 + P(3, 1) * _tmp6 + _tmp18 * state(2, 0);
-  const Scalar _tmp20 = std::pow(state(2, 0), Scalar(2));
-  const Scalar _tmp21 = Scalar(0.25) * d_ang_var;
-  const Scalar _tmp22 = _tmp20 * _tmp21;
-  const Scalar _tmp23 = P(0, 0) + P(1, 0) * _tmp9 + P(10, 0) * _tmp10 + P(11, 0) * _tmp12 +
-                        P(12, 0) * _tmp11 + P(2, 0) * _tmp3 + P(3, 0) * _tmp6;
-  const Scalar _tmp24 = std::pow(state(3, 0), Scalar(2));
-  const Scalar _tmp25 = _tmp21 * _tmp24;
-  const Scalar _tmp26 = std::pow(state(1, 0), Scalar(2));
-  const Scalar _tmp27 = _tmp21 * _tmp26;
-  const Scalar _tmp28 = _tmp25 + _tmp27;
-  const Scalar _tmp29 = _tmp1 * state(0, 0);
-  const Scalar _tmp30 = _tmp21 * state(1, 0);
-  const Scalar _tmp31 = _tmp7 - _tmp8;
-  const Scalar _tmp32 = _tmp4 - _tmp5;
-  const Scalar _tmp33 = P(0, 12) * _tmp31 + P(1, 12) - P(10, 12) * _tmp29 + P(11, 12) * _tmp11 -
-                        P(12, 12) * _tmp12 + P(2, 12) * _tmp32 + P(3, 12) * _tmp3;
-  const Scalar _tmp34 = P(0, 10) * _tmp31 + P(1, 10) - P(10, 10) * _tmp29 + P(11, 10) * _tmp11 -
-                        P(12, 10) * _tmp12 + P(2, 10) * _tmp32 + P(3, 10) * _tmp3;
-  const Scalar _tmp35 = P(0, 11) * _tmp31 + P(1, 11) - P(10, 11) * _tmp29 + P(11, 11) * _tmp11 -
-                        P(12, 11) * _tmp12 + P(2, 11) * _tmp32 + P(3, 11) * _tmp3;
-  const Scalar _tmp36 = P(0, 2) * _tmp31 + P(1, 2) - P(10, 2) * _tmp29 + P(11, 2) * _tmp11 -
-                        P(12, 2) * _tmp12 + P(2, 2) * _tmp32 + P(3, 2) * _tmp3;
-  const Scalar _tmp37 = P(0, 3) * _tmp31 + P(1, 3) - P(10, 3) * _tmp29 + P(11, 3) * _tmp11 -
-                        P(12, 3) * _tmp12 + P(2, 3) * _tmp32 + P(3, 3) * _tmp3;
-  const Scalar _tmp38 = P(0, 0) * _tmp31 + P(1, 0) - P(10, 0) * _tmp29 + P(11, 0) * _tmp11 -
-                        P(12, 0) * _tmp12 + P(2, 0) * _tmp32 + P(3, 0) * _tmp3;
-  const Scalar _tmp39 = P(0, 1) * _tmp31 + P(1, 1) - P(10, 1) * _tmp29 - P(12, 1) * _tmp12 +
-                        P(2, 1) * _tmp32 + P(3, 1) * _tmp3 + _tmp18 * state(3, 0);
-  const Scalar _tmp40 = _tmp21 * std::pow(state(0, 0), Scalar(2));
-  const Scalar _tmp41 = _tmp22 + _tmp40;
-  const Scalar _tmp42 = _tmp21 * state(0, 0);
-  const Scalar _tmp43 = _tmp0 - _tmp2;
-  const Scalar _tmp44 = P(0, 0) * _tmp43 + P(1, 0) * _tmp6 - P(10, 0) * _tmp11 - P(11, 0) * _tmp29 +
-                        P(12, 0) * _tmp10 + P(2, 0) + P(3, 0) * _tmp31;
-  const Scalar _tmp45 = P(0, 1) * _tmp43 + P(1, 1) * _tmp6 - P(10, 1) * _tmp11 + P(12, 1) * _tmp10 +
-                        P(2, 1) + P(3, 1) * _tmp31 - _tmp18 * state(0, 0);
-  const Scalar _tmp46 = P(0, 3) * _tmp43 + P(1, 3) * _tmp6 - P(10, 3) * _tmp11 - P(11, 3) * _tmp29 +
-                        P(12, 3) * _tmp10 + P(2, 3) + P(3, 3) * _tmp31;
-  const Scalar _tmp47 = P(0, 11) * _tmp43 + P(1, 11) * _tmp6 - P(10, 11) * _tmp11 -
-                        P(11, 11) * _tmp29 + P(12, 11) * _tmp10 + P(2, 11) + P(3, 11) * _tmp31;
-  const Scalar _tmp48 = P(0, 10) * _tmp43 + P(1, 10) * _tmp6 - P(10, 10) * _tmp11 -
-                        P(11, 10) * _tmp29 + P(12, 10) * _tmp10 + P(2, 10) + P(3, 10) * _tmp31;
-  const Scalar _tmp49 = P(0, 12) * _tmp43 + P(1, 12) * _tmp6 - P(10, 12) * _tmp11 -
-                        P(11, 12) * _tmp29 + P(12, 12) * _tmp10 + P(2, 12) + P(3, 12) * _tmp31;
-  const Scalar _tmp50 = P(0, 2) * _tmp43 + P(1, 2) * _tmp6 - P(10, 2) * _tmp11 - P(11, 2) * _tmp29 +
-                        P(12, 2) * _tmp10 + P(2, 2) + P(3, 2) * _tmp31;
-  const Scalar _tmp51 = P(0, 2) * _tmp32 + P(1, 2) * _tmp43 + P(10, 2) * _tmp12 -
-                        P(11, 2) * _tmp10 - P(12, 2) * _tmp29 + P(2, 2) * _tmp9 + P(3, 2);
-  const Scalar _tmp52 = P(0, 1) * _tmp32 + P(1, 1) * _tmp43 + P(10, 1) * _tmp12 -
-                        P(11, 1) * _tmp10 - P(12, 1) * _tmp29 + P(2, 1) * _tmp9 + P(3, 1);
-  const Scalar _tmp53 = P(0, 0) * _tmp32 + P(1, 0) * _tmp43 + P(10, 0) * _tmp12 -
-                        P(11, 0) * _tmp10 - P(12, 0) * _tmp29 + P(2, 0) * _tmp9 + P(3, 0);
-  const Scalar _tmp54 = P(0, 11) * _tmp32 + P(1, 11) * _tmp43 + P(10, 11) * _tmp12 -
-                        P(11, 11) * _tmp10 - P(12, 11) * _tmp29 + P(2, 11) * _tmp9 + P(3, 11);
-  const Scalar _tmp55 = P(0, 12) * _tmp32 + P(1, 12) * _tmp43 + P(10, 12) * _tmp12 -
-                        P(11, 12) * _tmp10 - P(12, 12) * _tmp29 + P(2, 12) * _tmp9 + P(3, 12);
-  const Scalar _tmp56 = P(0, 10) * _tmp32 + P(1, 10) * _tmp43 + P(10, 10) * _tmp12 -
-                        P(11, 10) * _tmp10 - P(12, 10) * _tmp29 + P(2, 10) * _tmp9 + P(3, 10);
-  const Scalar _tmp57 = P(0, 3) * _tmp32 + P(1, 3) * _tmp43 + P(10, 3) * _tmp12 -
-                        P(11, 3) * _tmp10 - P(12, 3) * _tmp29 + P(2, 3) * _tmp9 + P(3, 3);
-  const Scalar _tmp58 = d_vel(2, 0) - d_vel_dt * state(15, 0);
-  const Scalar _tmp59 = 2 * state(2, 0);
-  const Scalar _tmp60 = _tmp58 * _tmp59;
-  const Scalar _tmp61 = d_vel(1, 0) - d_vel_dt * state(14, 0);
-  const Scalar _tmp62 = 2 * _tmp61;
-  const Scalar _tmp63 = _tmp62 * state(3, 0);
-  const Scalar _tmp64 = _tmp60 - _tmp63;
-  const Scalar _tmp65 = P(0, 13) + P(1, 13) * _tmp9 + P(10, 13) * _tmp10 + P(11, 13) * _tmp12 +
-                        P(12, 13) * _tmp11 + P(2, 13) * _tmp3 + P(3, 13) * _tmp6;
-  const Scalar _tmp66 = -2 * _tmp20;
-  const Scalar _tmp67 = 1 - 2 * _tmp24;
-  const Scalar _tmp68 = _tmp66 + _tmp67;
-  const Scalar _tmp69 = _tmp68 * d_vel_dt;
-  const Scalar _tmp70 = P(0, 15) + P(1, 15) * _tmp9 + P(10, 15) * _tmp10 + P(11, 15) * _tmp12 +
-                        P(12, 15) * _tmp11 + P(2, 15) * _tmp3 + P(3, 15) * _tmp6;
-  const Scalar _tmp71 = _tmp59 * state(0, 0);
-  const Scalar _tmp72 = 2 * state(1, 0);
-  const Scalar _tmp73 = _tmp72 * state(3, 0);
-  const Scalar _tmp74 = _tmp71 + _tmp73;
-  const Scalar _tmp75 = _tmp74 * d_vel_dt;
-  const Scalar _tmp76 = P(0, 14) + P(1, 14) * _tmp9 + P(10, 14) * _tmp10 + P(11, 14) * _tmp12 +
-                        P(12, 14) * _tmp11 + P(2, 14) * _tmp3 + P(3, 14) * _tmp6;
-  const Scalar _tmp77 = 2 * state(0, 0);
-  const Scalar _tmp78 = _tmp77 * state(3, 0);
-  const Scalar _tmp79 = _tmp59 * state(1, 0);
-  const Scalar _tmp80 = -_tmp78 + _tmp79;
-  const Scalar _tmp81 = _tmp80 * d_vel_dt;
-  const Scalar _tmp82 = 2 * _tmp58;
-  const Scalar _tmp83 = _tmp82 * state(3, 0);
-  const Scalar _tmp84 = _tmp59 * _tmp61;
-  const Scalar _tmp85 = _tmp83 + _tmp84;
-  const Scalar _tmp86 = d_vel(0, 0) - d_vel_dt * state(13, 0);
-  const Scalar _tmp87 = 4 * _tmp86;
-  const Scalar _tmp88 = _tmp82 * state(0, 0);
-  const Scalar _tmp89 = _tmp62 * state(1, 0);
-  const Scalar _tmp90 = -_tmp87 * state(2, 0) + _tmp88 + _tmp89;
-  const Scalar _tmp91 = _tmp82 * state(1, 0);
-  const Scalar _tmp92 = _tmp62 * state(0, 0);
-  const Scalar _tmp93 = -_tmp87 * state(3, 0) + _tmp91 - _tmp92;
-  const Scalar _tmp94 = P(11, 4) * _tmp1;
-  const Scalar _tmp95 = P(0, 4) + P(1, 4) * _tmp9 + P(10, 4) * _tmp10 + P(12, 4) * _tmp11 +
-                        P(2, 4) * _tmp3 + P(3, 4) * _tmp6 + _tmp94 * state(2, 0);
-  const Scalar _tmp96 = P(0, 13) * _tmp31 + P(1, 13) - P(10, 13) * _tmp29 + P(11, 13) * _tmp11 -
-                        P(12, 13) * _tmp12 + P(2, 13) * _tmp32 + P(3, 13) * _tmp3;
-  const Scalar _tmp97 = P(0, 14) * _tmp31 + P(1, 14) - P(10, 14) * _tmp29 + P(11, 14) * _tmp11 -
-                        P(12, 14) * _tmp12 + P(2, 14) * _tmp32 + P(3, 14) * _tmp3;
-  const Scalar _tmp98 = P(0, 15) * _tmp31 + P(1, 15) - P(10, 15) * _tmp29 + P(11, 15) * _tmp11 -
-                        P(12, 15) * _tmp12 + P(2, 15) * _tmp32 + P(3, 15) * _tmp3;
-  const Scalar _tmp99 = P(0, 4) * _tmp31 + P(1, 4) - P(10, 4) * _tmp29 - P(12, 4) * _tmp12 +
-                        P(2, 4) * _tmp32 + P(3, 4) * _tmp3 + _tmp94 * state(3, 0);
-  const Scalar _tmp100 = P(0, 13) * _tmp43 + P(1, 13) * _tmp6 - P(10, 13) * _tmp11 -
-                         P(11, 13) * _tmp29 + P(12, 13) * _tmp10 + P(2, 13) + P(3, 13) * _tmp31;
-  const Scalar _tmp101 = P(0, 14) * _tmp43 + P(1, 14) * _tmp6 - P(10, 14) * _tmp11 -
-                         P(11, 14) * _tmp29 + P(12, 14) * _tmp10 + P(2, 14) + P(3, 14) * _tmp31;
-  const Scalar _tmp102 = P(0, 15) * _tmp43 + P(1, 15) * _tmp6 - P(10, 15) * _tmp11 -
-                         P(11, 15) * _tmp29 + P(12, 15) * _tmp10 + P(2, 15) + P(3, 15) * _tmp31;
-  const Scalar _tmp103 = P(0, 4) * _tmp43 + P(1, 4) * _tmp6 - P(10, 4) * _tmp11 +
-                         P(12, 4) * _tmp10 + P(2, 4) + P(3, 4) * _tmp31 - _tmp94 * state(0, 0);
-  const Scalar _tmp104 = P(0, 13) * _tmp32 + P(1, 13) * _tmp43 + P(10, 13) * _tmp12 -
-                         P(11, 13) * _tmp10 - P(12, 13) * _tmp29 + P(2, 13) * _tmp9 + P(3, 13);
-  const Scalar _tmp105 = P(0, 14) * _tmp32 + P(1, 14) * _tmp43 + P(10, 14) * _tmp12 -
-                         P(11, 14) * _tmp10 - P(12, 14) * _tmp29 + P(2, 14) * _tmp9 + P(3, 14);
-  const Scalar _tmp106 = P(0, 15) * _tmp32 + P(1, 15) * _tmp43 + P(10, 15) * _tmp12 -
-                         P(11, 15) * _tmp10 - P(12, 15) * _tmp29 + P(2, 15) * _tmp9 + P(3, 15);
-  const Scalar _tmp107 = P(0, 4) * _tmp32 + P(1, 4) * _tmp43 + P(10, 4) * _tmp12 -
-                         P(12, 4) * _tmp29 + P(2, 4) * _tmp9 + P(3, 4) - _tmp94 * state(1, 0);
-  const Scalar _tmp108 = P(0, 13) * _tmp64 + P(1, 13) * _tmp85 - P(13, 13) * _tmp69 -
-                         P(14, 13) * _tmp81 - P(15, 13) * _tmp75 + P(2, 13) * _tmp90 +
-                         P(3, 13) * _tmp93 + P(4, 13);
-  const Scalar _tmp109 = P(0, 14) * _tmp64 + P(1, 14) * _tmp85 - P(13, 14) * _tmp69 -
-                         P(14, 14) * _tmp81 - P(15, 14) * _tmp75 + P(2, 14) * _tmp90 +
-                         P(3, 14) * _tmp93 + P(4, 14);
-  const Scalar _tmp110 = P(0, 15) * _tmp64 + P(1, 15) * _tmp85 - P(13, 15) * _tmp69 -
-                         P(14, 15) * _tmp81 - P(15, 15) * _tmp75 + P(2, 15) * _tmp90 +
-                         P(3, 15) * _tmp93 + P(4, 15);
-  const Scalar _tmp111 = P(0, 1) * _tmp64 + P(1, 1) * _tmp85 - P(13, 1) * _tmp69 -
-                         P(14, 1) * _tmp81 - P(15, 1) * _tmp75 + P(2, 1) * _tmp90 +
-                         P(3, 1) * _tmp93 + P(4, 1);
-  const Scalar _tmp112 = P(0, 0) * _tmp64 + P(1, 0) * _tmp85 - P(13, 0) * _tmp69 -
-                         P(14, 0) * _tmp81 - P(15, 0) * _tmp75 + P(2, 0) * _tmp90 +
-                         P(3, 0) * _tmp93 + P(4, 0);
-  const Scalar _tmp113 = P(0, 3) * _tmp64 + P(1, 3) * _tmp85 - P(13, 3) * _tmp69 -
-                         P(14, 3) * _tmp81 - P(15, 3) * _tmp75 + P(2, 3) * _tmp90 +
-                         P(3, 3) * _tmp93 + P(4, 3);
-  const Scalar _tmp114 = P(0, 2) * _tmp64 + P(1, 2) * _tmp85 - P(13, 2) * _tmp69 -
-                         P(14, 2) * _tmp81 - P(15, 2) * _tmp75 + P(2, 2) * _tmp90 +
-                         P(3, 2) * _tmp93 + P(4, 2);
-  const Scalar _tmp115 = P(0, 4) * _tmp64 + P(1, 4) * _tmp85 - P(13, 4) * _tmp69 -
-                         P(14, 4) * _tmp81 - P(15, 4) * _tmp75 + P(2, 4) * _tmp90 +
-                         P(3, 4) * _tmp93 + P(4, 4);
-  const Scalar _tmp116 = _tmp59 * state(3, 0);
-  const Scalar _tmp117 = _tmp72 * state(0, 0);
-  const Scalar _tmp118 = _tmp116 - _tmp117;
-  const Scalar _tmp119 = _tmp118 * d_vel_dt;
-  const Scalar _tmp120 = -2 * _tmp26;
-  const Scalar _tmp121 = _tmp120 + _tmp67;
-  const Scalar _tmp122 = _tmp121 * d_vel_dt;
-  const Scalar _tmp123 = _tmp78 + _tmp79;
-  const Scalar _tmp124 = _tmp123 * d_vel_dt;
-  const Scalar _tmp125 = _tmp59 * _tmp86;
-  const Scalar _tmp126 = 4 * _tmp61;
-  const Scalar _tmp127 = _tmp125 - _tmp126 * state(1, 0) - _tmp88;
-  const Scalar _tmp128 = _tmp77 * _tmp86;
-  const Scalar _tmp129 = -_tmp126 * state(3, 0) + _tmp128 + _tmp60;
-  const Scalar _tmp130 = 2 * _tmp86 * state(3, 0);
-  const Scalar _tmp131 = _tmp130 - _tmp91;
-  const Scalar _tmp132 = _tmp72 * _tmp86;
-  const Scalar _tmp133 = _tmp132 + _tmp83;
-  const Scalar _tmp134 = P(0, 5) + P(1, 5) * _tmp9 + P(10, 5) * _tmp10 + P(11, 5) * _tmp12 +
-                         P(12, 5) * _tmp11 + P(2, 5) * _tmp3 + P(3, 5) * _tmp6;
-  const Scalar _tmp135 = P(0, 5) * _tmp31 + P(1, 5) - P(10, 5) * _tmp29 + P(11, 5) * _tmp11 -
-                         P(12, 5) * _tmp12 + P(2, 5) * _tmp32 + P(3, 5) * _tmp3;
-  const Scalar _tmp136 = P(0, 5) * _tmp43 + P(1, 5) * _tmp6 - P(10, 5) * _tmp11 -
-                         P(11, 5) * _tmp29 + P(12, 5) * _tmp10 + P(2, 5) + P(3, 5) * _tmp31;
-  const Scalar _tmp137 = P(0, 5) * _tmp32 + P(1, 5) * _tmp43 + P(10, 5) * _tmp12 -
-                         P(11, 5) * _tmp10 - P(12, 5) * _tmp29 + P(2, 5) * _tmp9 + P(3, 5);
-  const Scalar _tmp138 = _tmp123 * d_vel_var(0, 0);
-  const Scalar _tmp139 = _tmp80 * d_vel_var(1, 0);
-  const Scalar _tmp140 = P(0, 5) * _tmp64 + P(1, 5) * _tmp85 - P(13, 5) * _tmp69 -
-                         P(14, 5) * _tmp81 - P(15, 5) * _tmp75 + P(2, 5) * _tmp90 +
-                         P(3, 5) * _tmp93 + P(4, 5);
-  const Scalar _tmp141 = P(0, 13) * _tmp131 + P(1, 13) * _tmp127 - P(13, 13) * _tmp124 -
-                         P(14, 13) * _tmp122 - P(15, 13) * _tmp119 + P(2, 13) * _tmp133 +
-                         P(3, 13) * _tmp129 + P(5, 13);
-  const Scalar _tmp142 = P(0, 14) * _tmp131 + P(1, 14) * _tmp127 - P(13, 14) * _tmp124 -
-                         P(14, 14) * _tmp122 - P(15, 14) * _tmp119 + P(2, 14) * _tmp133 +
-                         P(3, 14) * _tmp129 + P(5, 14);
-  const Scalar _tmp143 = P(0, 15) * _tmp131 + P(1, 15) * _tmp127 - P(13, 15) * _tmp124 -
-                         P(14, 15) * _tmp122 - P(15, 15) * _tmp119 + P(2, 15) * _tmp133 +
-                         P(3, 15) * _tmp129 + P(5, 15);
-  const Scalar _tmp144 = P(0, 2) * _tmp131 + P(1, 2) * _tmp127 - P(13, 2) * _tmp124 -
-                         P(14, 2) * _tmp122 - P(15, 2) * _tmp119 + P(2, 2) * _tmp133 +
-                         P(3, 2) * _tmp129 + P(5, 2);
-  const Scalar _tmp145 = P(0, 0) * _tmp131 + P(1, 0) * _tmp127 - P(13, 0) * _tmp124 -
-                         P(14, 0) * _tmp122 - P(15, 0) * _tmp119 + P(2, 0) * _tmp133 +
-                         P(3, 0) * _tmp129 + P(5, 0);
-  const Scalar _tmp146 = P(0, 3) * _tmp131 + P(1, 3) * _tmp127 - P(13, 3) * _tmp124 -
-                         P(14, 3) * _tmp122 - P(15, 3) * _tmp119 + P(2, 3) * _tmp133 +
-                         P(3, 3) * _tmp129 + P(5, 3);
-  const Scalar _tmp147 = P(0, 1) * _tmp131 + P(1, 1) * _tmp127 - P(13, 1) * _tmp124 -
-                         P(14, 1) * _tmp122 - P(15, 1) * _tmp119 + P(2, 1) * _tmp133 +
-                         P(3, 1) * _tmp129 + P(5, 1);
-  const Scalar _tmp148 = P(0, 5) * _tmp131 + P(1, 5) * _tmp127 - P(13, 5) * _tmp124 -
-                         P(14, 5) * _tmp122 - P(15, 5) * _tmp119 + P(2, 5) * _tmp133 +
-                         P(3, 5) * _tmp129 + P(5, 5);
-  const Scalar _tmp149 = _tmp116 + _tmp117;
-  const Scalar _tmp150 = _tmp149 * d_vel_dt;
-  const Scalar _tmp151 = _tmp120 + _tmp66 + 1;
-  const Scalar _tmp152 = _tmp151 * d_vel_dt;
-  const Scalar _tmp153 = -_tmp71 + _tmp73;
-  const Scalar _tmp154 = _tmp153 * d_vel_dt;
-  const Scalar _tmp155 = 4 * _tmp58;
-  const Scalar _tmp156 = _tmp130 - _tmp155 * state(1, 0) + _tmp92;
-  const Scalar _tmp157 = -_tmp128 - _tmp155 * state(2, 0) + _tmp63;
-  const Scalar _tmp158 = -_tmp125 + _tmp89;
-  const Scalar _tmp159 = _tmp132 + _tmp84;
-  const Scalar _tmp160 = P(11, 6) * _tmp1;
-  const Scalar _tmp161 = P(0, 6) + P(1, 6) * _tmp9 + P(10, 6) * _tmp10 + P(12, 6) * _tmp11 +
-                         P(2, 6) * _tmp3 + P(3, 6) * _tmp6 + _tmp160 * state(2, 0);
-  const Scalar _tmp162 = P(0, 6) * _tmp31 + P(1, 6) - P(10, 6) * _tmp29 - P(12, 6) * _tmp12 +
-                         P(2, 6) * _tmp32 + P(3, 6) * _tmp3 + _tmp160 * state(3, 0);
-  const Scalar _tmp163 = P(0, 6) * _tmp43 + P(1, 6) * _tmp6 - P(10, 6) * _tmp11 +
-                         P(12, 6) * _tmp10 + P(2, 6) + P(3, 6) * _tmp31 - _tmp160 * state(0, 0);
-  const Scalar _tmp164 = P(0, 6) * _tmp32 + P(1, 6) * _tmp43 + P(10, 6) * _tmp12 -
-                         P(11, 6) * _tmp10 - P(12, 6) * _tmp29 + P(2, 6) * _tmp9 + P(3, 6);
-  const Scalar _tmp165 = _tmp151 * d_vel_var(2, 0);
-  const Scalar _tmp166 = P(0, 6) * _tmp64 + P(1, 6) * _tmp85 - P(13, 6) * _tmp69 -
-                         P(14, 6) * _tmp81 - P(15, 6) * _tmp75 + P(2, 6) * _tmp90 +
-                         P(3, 6) * _tmp93 + P(4, 6);
-  const Scalar _tmp167 = P(0, 6) * _tmp131 + P(1, 6) * _tmp127 - P(13, 6) * _tmp124 -
-                         P(14, 6) * _tmp122 - P(15, 6) * _tmp119 + P(2, 6) * _tmp133 +
-                         P(3, 6) * _tmp129 + P(5, 6);
-  const Scalar _tmp168 = P(0, 13) * _tmp158 + P(1, 13) * _tmp156 - P(13, 13) * _tmp154 -
-                         P(14, 13) * _tmp150 - P(15, 13) * _tmp152 + P(2, 13) * _tmp157 +
-                         P(3, 13) * _tmp159 + P(6, 13);
-  const Scalar _tmp169 = P(0, 14) * _tmp158 + P(1, 14) * _tmp156 - P(13, 14) * _tmp154 -
-                         P(14, 14) * _tmp150 - P(15, 14) * _tmp152 + P(2, 14) * _tmp157 +
-                         P(3, 14) * _tmp159 + P(6, 14);
-  const Scalar _tmp170 = P(0, 15) * _tmp158 + P(1, 15) * _tmp156 - P(13, 15) * _tmp154 -
-                         P(14, 15) * _tmp150 - P(15, 15) * _tmp152 + P(2, 15) * _tmp157 +
-                         P(3, 15) * _tmp159 + P(6, 15);
-  const Scalar _tmp171 = P(0, 6) * _tmp158 + P(1, 6) * _tmp156 - P(13, 6) * _tmp154 -
-                         P(14, 6) * _tmp150 - P(15, 6) * _tmp152 + P(2, 6) * _tmp157 +
-                         P(3, 6) * _tmp159 + P(6, 6);
-  const Scalar _tmp172 = P(11, 8) * _tmp1;
+  // Intermediate terms (247)
+  const Scalar _tmp0 = d_ang(1, 0) - d_ang_dt * state(11, 0);
+  const Scalar _tmp1 = Scalar(0.5) * state(2, 0);
+  const Scalar _tmp2 = d_ang(0, 0) - d_ang_dt * state(10, 0);
+  const Scalar _tmp3 = Scalar(0.5) * state(1, 0);
+  const Scalar _tmp4 = d_ang(2, 0) - d_ang_dt * state(12, 0);
+  const Scalar _tmp5 = Scalar(0.5) * state(3, 0);
+  const Scalar _tmp6 = -_tmp0 * _tmp1 - _tmp2 * _tmp3 - _tmp4 * _tmp5 + state(0, 0);
+  const Scalar _tmp7 = Scalar(1.0) * _tmp6;
+  const Scalar _tmp8 = _tmp7 * state(0, 0);
+  const Scalar _tmp9 = Scalar(0.5) * state(0, 0);
+  const Scalar _tmp10 = _tmp0 * _tmp3 - _tmp1 * _tmp2 + _tmp4 * _tmp9 + state(3, 0);
+  const Scalar _tmp11 = Scalar(1.0) * _tmp10;
+  const Scalar _tmp12 = _tmp11 * state(3, 0);
+  const Scalar _tmp13 = _tmp0 * _tmp9 + _tmp2 * _tmp5 - _tmp3 * _tmp4 + state(2, 0);
+  const Scalar _tmp14 = Scalar(1.0) * state(2, 0);
+  const Scalar _tmp15 = _tmp13 * _tmp14;
+  const Scalar _tmp16 = -_tmp0 * _tmp5 + _tmp1 * _tmp4 + _tmp2 * _tmp9 + state(1, 0);
+  const Scalar _tmp17 = Scalar(1.0) * _tmp16;
+  const Scalar _tmp18 = _tmp17 * state(1, 0);
+  const Scalar _tmp19 =
+      -_tmp12 * d_ang_dt - _tmp15 * d_ang_dt - _tmp18 * d_ang_dt - _tmp8 * d_ang_dt;
+  const Scalar _tmp20 = -_tmp5;
+  const Scalar _tmp21 = Scalar(0.25) * _tmp4;
+  const Scalar _tmp22 = _tmp21 * state(0, 0);
+  const Scalar _tmp23 = Scalar(0.25) * _tmp0;
+  const Scalar _tmp24 = _tmp23 * state(1, 0);
+  const Scalar _tmp25 = Scalar(0.25) * _tmp2;
+  const Scalar _tmp26 = -_tmp25 * state(2, 0);
+  const Scalar _tmp27 = -_tmp24 + _tmp26;
+  const Scalar _tmp28 = _tmp20 + _tmp22 + _tmp27;
+  const Scalar _tmp29 = 2 * _tmp6;
+  const Scalar _tmp30 = _tmp25 * state(0, 0);
+  const Scalar _tmp31 = -_tmp30;
+  const Scalar _tmp32 = -_tmp23 * state(3, 0);
+  const Scalar _tmp33 = _tmp21 * state(2, 0);
+  const Scalar _tmp34 = _tmp32 - _tmp33;
+  const Scalar _tmp35 = _tmp3 + _tmp31 + _tmp34;
+  const Scalar _tmp36 = 2 * _tmp13;
+  const Scalar _tmp37 = _tmp23 * state(2, 0);
+  const Scalar _tmp38 = _tmp25 * state(1, 0);
+  const Scalar _tmp39 = _tmp21 * state(3, 0);
+  const Scalar _tmp40 = -_tmp37 + _tmp38 + _tmp39 + _tmp9;
+  const Scalar _tmp41 = 2 * _tmp10;
+  const Scalar _tmp42 = _tmp23 * state(0, 0);
+  const Scalar _tmp43 = -_tmp42;
+  const Scalar _tmp44 = _tmp25 * state(3, 0);
+  const Scalar _tmp45 = -_tmp21 * state(1, 0);
+  const Scalar _tmp46 = -_tmp1 + _tmp45;
+  const Scalar _tmp47 = _tmp43 + _tmp44 + _tmp46;
+  const Scalar _tmp48 = 2 * _tmp16;
+  const Scalar _tmp49 = _tmp28 * _tmp29 - _tmp35 * _tmp36 + _tmp40 * _tmp41 - _tmp47 * _tmp48;
+  const Scalar _tmp50 = -_tmp44;
+  const Scalar _tmp51 = _tmp1 + _tmp43 + _tmp45 + _tmp50;
+  const Scalar _tmp52 = _tmp37 + _tmp9;
+  const Scalar _tmp53 = _tmp38 - _tmp39 + _tmp52;
+  const Scalar _tmp54 = -_tmp3;
+  const Scalar _tmp55 = _tmp30 + _tmp34 + _tmp54;
+  const Scalar _tmp56 = -_tmp22;
+  const Scalar _tmp57 = _tmp20 + _tmp24 + _tmp26 + _tmp56;
+  const Scalar _tmp58 = _tmp29 * _tmp51 - _tmp36 * _tmp53 + _tmp41 * _tmp55 - _tmp48 * _tmp57;
+  const Scalar _tmp59 = -_tmp38 + _tmp39 + _tmp52;
+  const Scalar _tmp60 = _tmp42 + _tmp46 + _tmp50;
+  const Scalar _tmp61 = _tmp27 + _tmp5 + _tmp56;
+  const Scalar _tmp62 = _tmp31 + _tmp32 + _tmp33 + _tmp54;
+  const Scalar _tmp63 = _tmp29 * _tmp59 - _tmp36 * _tmp60 + _tmp41 * _tmp61 - _tmp48 * _tmp62;
+  const Scalar _tmp64 = _tmp14 * _tmp6;
+  const Scalar _tmp65 = _tmp64 * d_ang_dt;
+  const Scalar _tmp66 = _tmp11 * state(1, 0);
+  const Scalar _tmp67 = _tmp66 * d_ang_dt;
+  const Scalar _tmp68 = Scalar(1.0) * _tmp13;
+  const Scalar _tmp69 = _tmp68 * state(0, 0);
+  const Scalar _tmp70 = _tmp69 * d_ang_dt;
+  const Scalar _tmp71 = _tmp17 * state(3, 0);
+  const Scalar _tmp72 = _tmp71 * d_ang_dt;
+  const Scalar _tmp73 = -_tmp65 + _tmp67 + _tmp70 - _tmp72;
+  const Scalar _tmp74 = _tmp7 * state(3, 0);
+  const Scalar _tmp75 = _tmp74 * d_ang_dt;
+  const Scalar _tmp76 = _tmp14 * _tmp16;
+  const Scalar _tmp77 = _tmp76 * d_ang_dt;
+  const Scalar _tmp78 = _tmp11 * state(0, 0);
+  const Scalar _tmp79 = _tmp78 * d_ang_dt;
+  const Scalar _tmp80 = _tmp68 * state(1, 0);
+  const Scalar _tmp81 = _tmp80 * d_ang_dt;
+  const Scalar _tmp82 = _tmp75 - _tmp77 - _tmp79 + _tmp81;
+  const Scalar _tmp83 = P(0, 9) * _tmp63 + P(1, 9) * _tmp49 + P(10, 9) * _tmp82 +
+                        P(11, 9) * _tmp73 + P(2, 9) * _tmp58 + P(9, 9) * _tmp19;
+  const Scalar _tmp84 = -_tmp64 + _tmp66 + _tmp69 - _tmp71;
+  const Scalar _tmp85 = _tmp74 - _tmp76 - _tmp78 + _tmp80;
+  const Scalar _tmp86 = -_tmp12 - _tmp15 - _tmp18 - _tmp8;
+  const Scalar _tmp87 = std::pow(_tmp86, Scalar(2)) * d_ang_var;
+  const Scalar _tmp88 = P(0, 0) * _tmp63 + P(1, 0) * _tmp49 + P(10, 0) * _tmp82 +
+                        P(11, 0) * _tmp73 + P(2, 0) * _tmp58 + P(9, 0) * _tmp19;
+  const Scalar _tmp89 = P(0, 1) * _tmp63 + P(1, 1) * _tmp49 + P(10, 1) * _tmp82 +
+                        P(11, 1) * _tmp73 + P(2, 1) * _tmp58 + P(9, 1) * _tmp19;
+  const Scalar _tmp90 = P(0, 2) * _tmp63 + P(1, 2) * _tmp49 + P(10, 2) * _tmp82 +
+                        P(11, 2) * _tmp73 + P(2, 2) * _tmp58 + P(9, 2) * _tmp19;
+  const Scalar _tmp91 = P(0, 11) * _tmp63 + P(1, 11) * _tmp49 + P(10, 11) * _tmp82 +
+                        P(11, 11) * _tmp73 + P(2, 11) * _tmp58 + P(9, 11) * _tmp19;
+  const Scalar _tmp92 = P(0, 10) * _tmp63 + P(1, 10) * _tmp49 + P(10, 10) * _tmp82 +
+                        P(11, 10) * _tmp73 + P(2, 10) * _tmp58 + P(9, 10) * _tmp19;
+  const Scalar _tmp93 = _tmp17 * state(0, 0);
+  const Scalar _tmp94 = _tmp10 * _tmp14;
+  const Scalar _tmp95 = _tmp68 * state(3, 0);
+  const Scalar _tmp96 = _tmp7 * state(1, 0);
+  const Scalar _tmp97 = -_tmp93 + _tmp94 - _tmp95 + _tmp96;
+  const Scalar _tmp98 = _tmp97 * d_ang_var;
+  const Scalar _tmp99 = _tmp86 * d_ang_var;
+  const Scalar _tmp100 = -_tmp74 + _tmp76 + _tmp78 - _tmp80;
+  const Scalar _tmp101 = -_tmp75 + _tmp77 + _tmp79 - _tmp81;
+  const Scalar _tmp102 = -_tmp28 * _tmp41 + _tmp29 * _tmp40 + _tmp35 * _tmp48 - _tmp36 * _tmp47;
+  const Scalar _tmp103 = _tmp29 * _tmp55 - _tmp36 * _tmp57 - _tmp41 * _tmp51 + _tmp48 * _tmp53;
+  const Scalar _tmp104 = 2 * _tmp62;
+  const Scalar _tmp105 = -_tmp104 * _tmp13 + _tmp29 * _tmp61 - _tmp41 * _tmp59 + _tmp48 * _tmp60;
+  const Scalar _tmp106 = _tmp96 * d_ang_dt;
+  const Scalar _tmp107 = _tmp95 * d_ang_dt;
+  const Scalar _tmp108 = _tmp94 * d_ang_dt;
+  const Scalar _tmp109 = _tmp93 * d_ang_dt;
+  const Scalar _tmp110 = _tmp106 - _tmp107 + _tmp108 - _tmp109;
+  const Scalar _tmp111 = P(0, 9) * _tmp105 + P(1, 9) * _tmp102 + P(10, 9) * _tmp19 +
+                         P(11, 9) * _tmp110 + P(2, 9) * _tmp103 + P(9, 9) * _tmp101;
+  const Scalar _tmp112 = P(0, 2) * _tmp105 + P(1, 2) * _tmp102 + P(10, 2) * _tmp19 +
+                         P(11, 2) * _tmp110 + P(2, 2) * _tmp103 + P(9, 2) * _tmp101;
+  const Scalar _tmp113 = P(0, 1) * _tmp105 + P(1, 1) * _tmp102 + P(10, 1) * _tmp19 +
+                         P(11, 1) * _tmp110 + P(2, 1) * _tmp103 + P(9, 1) * _tmp101;
+  const Scalar _tmp114 = P(0, 0) * _tmp105 + P(1, 0) * _tmp102 + P(10, 0) * _tmp19 +
+                         P(11, 0) * _tmp110 + P(2, 0) * _tmp103 + P(9, 0) * _tmp101;
+  const Scalar _tmp115 = P(0, 10) * _tmp105 + P(1, 10) * _tmp102 + P(10, 10) * _tmp19 +
+                         P(11, 10) * _tmp110 + P(2, 10) * _tmp103 + P(9, 10) * _tmp101;
+  const Scalar _tmp116 = P(0, 11) * _tmp105 + P(1, 11) * _tmp102 + P(10, 11) * _tmp19 +
+                         P(11, 11) * _tmp110 + P(2, 11) * _tmp103 + P(9, 11) * _tmp101;
+  const Scalar _tmp117 = _tmp93 - _tmp94 + _tmp95 - _tmp96;
+  const Scalar _tmp118 = _tmp117 * d_ang_var;
+  const Scalar _tmp119 = _tmp64 - _tmp66 - _tmp69 + _tmp71;
+  const Scalar _tmp120 = _tmp119 * d_ang_var;
+  const Scalar _tmp121 = _tmp65 - _tmp67 - _tmp70 + _tmp72;
+  const Scalar _tmp122 = _tmp29 * _tmp53 + _tmp36 * _tmp51 - _tmp41 * _tmp57 - _tmp48 * _tmp55;
+  const Scalar _tmp123 = _tmp28 * _tmp36 + _tmp29 * _tmp35 - _tmp40 * _tmp48 - _tmp41 * _tmp47;
+  const Scalar _tmp124 = -_tmp10 * _tmp104 + _tmp29 * _tmp60 + _tmp36 * _tmp59 - _tmp48 * _tmp61;
+  const Scalar _tmp125 = -_tmp106 + _tmp107 - _tmp108 + _tmp109;
+  const Scalar _tmp126 = P(0, 2) * _tmp124 + P(1, 2) * _tmp123 + P(10, 2) * _tmp125 +
+                         P(11, 2) * _tmp19 + P(2, 2) * _tmp122 + P(9, 2) * _tmp121;
+  const Scalar _tmp127 = P(0, 9) * _tmp124 + P(1, 9) * _tmp123 + P(10, 9) * _tmp125 +
+                         P(11, 9) * _tmp19 + P(2, 9) * _tmp122 + P(9, 9) * _tmp121;
+  const Scalar _tmp128 = P(0, 11) * _tmp124 + P(1, 11) * _tmp123 + P(10, 11) * _tmp125 +
+                         P(11, 11) * _tmp19 + P(2, 11) * _tmp122 + P(9, 11) * _tmp121;
+  const Scalar _tmp129 = P(0, 10) * _tmp124 + P(1, 10) * _tmp123 + P(10, 10) * _tmp125 +
+                         P(11, 10) * _tmp19 + P(2, 10) * _tmp122 + P(9, 10) * _tmp121;
+  const Scalar _tmp130 = P(0, 0) * _tmp124 + P(1, 0) * _tmp123 + P(10, 0) * _tmp125 +
+                         P(11, 0) * _tmp19 + P(2, 0) * _tmp122 + P(9, 0) * _tmp121;
+  const Scalar _tmp131 = P(0, 1) * _tmp124 + P(1, 1) * _tmp123 + P(10, 1) * _tmp125 +
+                         P(11, 1) * _tmp19 + P(2, 1) * _tmp122 + P(9, 1) * _tmp121;
+  const Scalar _tmp132 = P(0, 13) * _tmp63 + P(1, 13) * _tmp49 + P(10, 13) * _tmp82 +
+                         P(11, 13) * _tmp73 + P(2, 13) * _tmp58 + P(9, 13) * _tmp19;
+  const Scalar _tmp133 = 2 * state(0, 0);
+  const Scalar _tmp134 = _tmp133 * state(3, 0);
+  const Scalar _tmp135 = 2 * state(2, 0);
+  const Scalar _tmp136 = _tmp135 * state(1, 0);
+  const Scalar _tmp137 = -_tmp134 + _tmp136;
+  const Scalar _tmp138 = _tmp137 * d_vel_dt;
+  const Scalar _tmp139 = P(0, 14) * _tmp63 + P(1, 14) * _tmp49 + P(10, 14) * _tmp82 +
+                         P(11, 14) * _tmp73 + P(2, 14) * _tmp58 + P(9, 14) * _tmp19;
+  const Scalar _tmp140 = _tmp135 * state(0, 0);
+  const Scalar _tmp141 = state(1, 0) * state(3, 0);
+  const Scalar _tmp142 = 2 * _tmp141;
+  const Scalar _tmp143 = _tmp140 + _tmp142;
+  const Scalar _tmp144 = _tmp143 * d_vel_dt;
+  const Scalar _tmp145 = Scalar(2.0) * state(0, 0);
+  const Scalar _tmp146 = _tmp145 * state(2, 0);
+  const Scalar _tmp147 = Scalar(2.0) * _tmp141;
+  const Scalar _tmp148 = d_vel(1, 0) - d_vel_dt * state(14, 0);
+  const Scalar _tmp149 = d_vel(2, 0) - d_vel_dt * state(15, 0);
+  const Scalar _tmp150 = _tmp145 * state(3, 0);
+  const Scalar _tmp151 = Scalar(2.0) * state(2, 0);
+  const Scalar _tmp152 = _tmp151 * state(1, 0);
+  const Scalar _tmp153 = -_tmp152;
+  const Scalar _tmp154 = _tmp148 * (_tmp146 + _tmp147) + _tmp149 * (_tmp150 + _tmp153);
+  const Scalar _tmp155 = Scalar(1.0) * std::pow(state(0, 0), Scalar(2));
+  const Scalar _tmp156 = std::pow(state(2, 0), Scalar(2));
+  const Scalar _tmp157 = Scalar(1.0) * _tmp156;
+  const Scalar _tmp158 = -_tmp157;
+  const Scalar _tmp159 = _tmp155 + _tmp158;
+  const Scalar _tmp160 = std::pow(state(1, 0), Scalar(2));
+  const Scalar _tmp161 = Scalar(1.0) * _tmp160;
+  const Scalar _tmp162 = std::pow(state(3, 0), Scalar(2));
+  const Scalar _tmp163 = Scalar(1.0) * _tmp162;
+  const Scalar _tmp164 = -_tmp163;
+  const Scalar _tmp165 = _tmp161 + _tmp164;
+  const Scalar _tmp166 = -_tmp146;
+  const Scalar _tmp167 = -_tmp147;
+  const Scalar _tmp168 = d_vel(0, 0) - d_vel_dt * state(13, 0);
+  const Scalar _tmp169 = _tmp149 * (_tmp159 + _tmp165) + _tmp168 * (_tmp166 + _tmp167);
+  const Scalar _tmp170 = -_tmp150;
+  const Scalar _tmp171 = -_tmp161;
+  const Scalar _tmp172 = _tmp163 + _tmp171;
+  const Scalar _tmp173 = -_tmp155;
+  const Scalar _tmp174 = _tmp157 + _tmp173;
+  const Scalar _tmp175 = _tmp148 * (_tmp172 + _tmp174) + _tmp168 * (_tmp152 + _tmp170);
+  const Scalar _tmp176 = P(0, 12) * _tmp63 + P(1, 12) * _tmp49 + P(10, 12) * _tmp82 +
+                         P(11, 12) * _tmp73 + P(2, 12) * _tmp58 + P(9, 12) * _tmp19;
+  const Scalar _tmp177 = -2 * _tmp162;
+  const Scalar _tmp178 = 1 - 2 * _tmp156;
+  const Scalar _tmp179 = _tmp177 + _tmp178;
+  const Scalar _tmp180 = _tmp179 * d_vel_dt;
+  const Scalar _tmp181 = P(0, 3) * _tmp63 + P(1, 3) * _tmp49 + P(10, 3) * _tmp82 +
+                         P(11, 3) * _tmp73 + P(2, 3) * _tmp58 + P(9, 3) * _tmp19;
+  const Scalar _tmp182 = P(0, 12) * _tmp105 + P(1, 12) * _tmp102 + P(10, 12) * _tmp19 +
+                         P(11, 12) * _tmp110 + P(2, 12) * _tmp103 + P(9, 12) * _tmp101;
+  const Scalar _tmp183 = P(0, 14) * _tmp105 + P(1, 14) * _tmp102 + P(10, 14) * _tmp19 +
+                         P(11, 14) * _tmp110 + P(2, 14) * _tmp103 + P(9, 14) * _tmp101;
+  const Scalar _tmp184 = P(0, 13) * _tmp105 + P(1, 13) * _tmp102 + P(10, 13) * _tmp19 +
+                         P(11, 13) * _tmp110 + P(2, 13) * _tmp103 + P(9, 13) * _tmp101;
+  const Scalar _tmp185 = P(0, 3) * _tmp105 + P(1, 3) * _tmp102 + P(10, 3) * _tmp19 +
+                         P(11, 3) * _tmp110 + P(2, 3) * _tmp103 + P(9, 3) * _tmp101;
+  const Scalar _tmp186 = P(0, 14) * _tmp124 + P(1, 14) * _tmp123 + P(10, 14) * _tmp125 +
+                         P(11, 14) * _tmp19 + P(2, 14) * _tmp122 + P(9, 14) * _tmp121;
+  const Scalar _tmp187 = P(0, 13) * _tmp124 + P(1, 13) * _tmp123 + P(10, 13) * _tmp125 +
+                         P(11, 13) * _tmp19 + P(2, 13) * _tmp122 + P(9, 13) * _tmp121;
+  const Scalar _tmp188 = P(0, 12) * _tmp124 + P(1, 12) * _tmp123 + P(10, 12) * _tmp125 +
+                         P(11, 12) * _tmp19 + P(2, 12) * _tmp122 + P(9, 12) * _tmp121;
+  const Scalar _tmp189 = P(0, 3) * _tmp124 + P(1, 3) * _tmp123 + P(10, 3) * _tmp125 +
+                         P(11, 3) * _tmp19 + P(2, 3) * _tmp122 + P(9, 3) * _tmp121;
+  const Scalar _tmp190 = P(0, 2) * _tmp154 + P(1, 2) * _tmp169 - P(12, 2) * _tmp180 -
+                         P(13, 2) * _tmp138 - P(14, 2) * _tmp144 + P(2, 2) * _tmp175 + P(3, 2);
+  const Scalar _tmp191 = P(0, 1) * _tmp154 + P(1, 1) * _tmp169 - P(12, 1) * _tmp180 -
+                         P(13, 1) * _tmp138 - P(14, 1) * _tmp144 + P(2, 1) * _tmp175 + P(3, 1);
+  const Scalar _tmp192 = P(0, 0) * _tmp154 + P(1, 0) * _tmp169 - P(12, 0) * _tmp180 -
+                         P(13, 0) * _tmp138 - P(14, 0) * _tmp144 + P(2, 0) * _tmp175 + P(3, 0);
+  const Scalar _tmp193 = P(0, 12) * _tmp154 + P(1, 12) * _tmp169 - P(12, 12) * _tmp180 -
+                         P(13, 12) * _tmp138 - P(14, 12) * _tmp144 + P(2, 12) * _tmp175 + P(3, 12);
+  const Scalar _tmp194 = P(0, 13) * _tmp154 + P(1, 13) * _tmp169 - P(12, 13) * _tmp180 -
+                         P(13, 13) * _tmp138 - P(14, 13) * _tmp144 + P(2, 13) * _tmp175 + P(3, 13);
+  const Scalar _tmp195 = _tmp194 * d_vel_dt;
+  const Scalar _tmp196 = P(0, 14) * _tmp154 + P(1, 14) * _tmp169 - P(12, 14) * _tmp180 -
+                         P(13, 14) * _tmp138 - P(14, 14) * _tmp144 + P(2, 14) * _tmp175 + P(3, 14);
+  const Scalar _tmp197 = P(0, 3) * _tmp154 + P(1, 3) * _tmp169 - P(12, 3) * _tmp180 -
+                         P(13, 3) * _tmp138 - P(14, 3) * _tmp144 + P(2, 3) * _tmp175 + P(3, 3);
+  const Scalar _tmp198 = _tmp135 * state(3, 0);
+  const Scalar _tmp199 = _tmp133 * state(1, 0);
+  const Scalar _tmp200 = _tmp198 - _tmp199;
+  const Scalar _tmp201 = _tmp200 * d_vel_dt;
+  const Scalar _tmp202 = _tmp151 * state(3, 0);
+  const Scalar _tmp203 = _tmp145 * state(1, 0);
+  const Scalar _tmp204 = -_tmp203;
+  const Scalar _tmp205 =
+      _tmp148 * (_tmp202 + _tmp204) + _tmp149 * (_tmp158 + _tmp161 + _tmp163 + _tmp173);
+  const Scalar _tmp206 = _tmp134 + _tmp136;
+  const Scalar _tmp207 = _tmp206 * d_vel_dt;
+  const Scalar _tmp208 =
+      _tmp148 * (_tmp153 + _tmp170) + _tmp168 * (_tmp155 + _tmp157 + _tmp164 + _tmp171);
+  const Scalar _tmp209 = -_tmp202;
+  const Scalar _tmp210 = _tmp149 * (_tmp150 + _tmp152) + _tmp168 * (_tmp203 + _tmp209);
+  const Scalar _tmp211 = -2 * _tmp160;
+  const Scalar _tmp212 = _tmp177 + _tmp211 + 1;
+  const Scalar _tmp213 = _tmp212 * d_vel_dt;
+  const Scalar _tmp214 = P(0, 4) * _tmp63 + P(1, 4) * _tmp49 + P(10, 4) * _tmp82 +
+                         P(11, 4) * _tmp73 + P(2, 4) * _tmp58 + P(9, 4) * _tmp19;
+  const Scalar _tmp215 = P(0, 4) * _tmp105 + P(1, 4) * _tmp102 + P(10, 4) * _tmp19 +
+                         P(11, 4) * _tmp110 + P(2, 4) * _tmp103 + P(9, 4) * _tmp101;
+  const Scalar _tmp216 = P(0, 4) * _tmp124 + P(1, 4) * _tmp123 + P(10, 4) * _tmp125 +
+                         P(11, 4) * _tmp19 + P(2, 4) * _tmp122 + P(9, 4) * _tmp121;
+  const Scalar _tmp217 = _tmp212 * d_vel_var(1, 0);
+  const Scalar _tmp218 = _tmp193 * d_vel_dt;
+  const Scalar _tmp219 = P(0, 4) * _tmp154 + P(1, 4) * _tmp169 - P(12, 4) * _tmp180 -
+                         P(13, 4) * _tmp138 - P(14, 4) * _tmp144 + P(2, 4) * _tmp175 + P(3, 4);
+  const Scalar _tmp220 = P(0, 1) * _tmp205 + P(1, 1) * _tmp210 - P(12, 1) * _tmp207 -
+                         P(13, 1) * _tmp213 - P(14, 1) * _tmp201 + P(2, 1) * _tmp208 + P(4, 1);
+  const Scalar _tmp221 = P(0, 12) * _tmp205 + P(1, 12) * _tmp210 - P(12, 12) * _tmp207 -
+                         P(13, 12) * _tmp213 - P(14, 12) * _tmp201 + P(2, 12) * _tmp208 + P(4, 12);
+  const Scalar _tmp222 = P(0, 13) * _tmp205 + P(1, 13) * _tmp210 - P(12, 13) * _tmp207 -
+                         P(13, 13) * _tmp213 - P(14, 13) * _tmp201 + P(2, 13) * _tmp208 + P(4, 13);
+  const Scalar _tmp223 = P(0, 2) * _tmp205 + P(1, 2) * _tmp210 - P(12, 2) * _tmp207 -
+                         P(13, 2) * _tmp213 - P(14, 2) * _tmp201 + P(2, 2) * _tmp208 + P(4, 2);
+  const Scalar _tmp224 = P(0, 14) * _tmp205 + P(1, 14) * _tmp210 - P(12, 14) * _tmp207 -
+                         P(13, 14) * _tmp213 - P(14, 14) * _tmp201 + P(2, 14) * _tmp208 + P(4, 14);
+  const Scalar _tmp225 = P(0, 0) * _tmp205 + P(1, 0) * _tmp210 - P(12, 0) * _tmp207 -
+                         P(13, 0) * _tmp213 - P(14, 0) * _tmp201 + P(2, 0) * _tmp208 + P(4, 0);
+  const Scalar _tmp226 = P(0, 4) * _tmp205 + P(1, 4) * _tmp210 - P(12, 4) * _tmp207 -
+                         P(13, 4) * _tmp213 - P(14, 4) * _tmp201 + P(2, 4) * _tmp208 + P(4, 4);
+  const Scalar _tmp227 = _tmp198 + _tmp199;
+  const Scalar _tmp228 = _tmp227 * d_vel_dt;
+  const Scalar _tmp229 = -_tmp140 + _tmp142;
+  const Scalar _tmp230 = _tmp229 * d_vel_dt;
+  const Scalar _tmp231 = _tmp148 * (_tmp146 + _tmp167) + _tmp168 * (_tmp202 + _tmp203);
+  const Scalar _tmp232 = _tmp149 * (_tmp147 + _tmp166) + _tmp168 * (_tmp165 + _tmp174);
+  const Scalar _tmp233 = _tmp148 * (_tmp159 + _tmp172) + _tmp149 * (_tmp204 + _tmp209);
+  const Scalar _tmp234 = _tmp178 + _tmp211;
+  const Scalar _tmp235 = _tmp234 * d_vel_dt;
+  const Scalar _tmp236 = P(0, 5) * _tmp63 + P(1, 5) * _tmp49 + P(10, 5) * _tmp82 +
+                         P(11, 5) * _tmp73 + P(2, 5) * _tmp58 + P(9, 5) * _tmp19;
+  const Scalar _tmp237 = P(0, 5) * _tmp105 + P(1, 5) * _tmp102 + P(10, 5) * _tmp19 +
+                         P(11, 5) * _tmp110 + P(2, 5) * _tmp103 + P(9, 5) * _tmp101;
+  const Scalar _tmp238 = P(0, 5) * _tmp124 + P(1, 5) * _tmp123 + P(10, 5) * _tmp125 +
+                         P(11, 5) * _tmp19 + P(2, 5) * _tmp122 + P(9, 5) * _tmp121;
+  const Scalar _tmp239 = _tmp229 * d_vel_var(0, 0);
+  const Scalar _tmp240 = _tmp234 * d_vel_var(2, 0);
+  const Scalar _tmp241 = P(0, 5) * _tmp154 + P(1, 5) * _tmp169 - P(12, 5) * _tmp180 -
+                         P(13, 5) * _tmp138 - P(14, 5) * _tmp144 + P(2, 5) * _tmp175 + P(3, 5);
+  const Scalar _tmp242 = P(0, 5) * _tmp205 + P(1, 5) * _tmp210 - P(12, 5) * _tmp207 -
+                         P(13, 5) * _tmp213 - P(14, 5) * _tmp201 + P(2, 5) * _tmp208 + P(4, 5);
+  const Scalar _tmp243 = P(0, 14) * _tmp233 + P(1, 14) * _tmp232 - P(12, 14) * _tmp230 -
+                         P(13, 14) * _tmp228 - P(14, 14) * _tmp235 + P(2, 14) * _tmp231 + P(5, 14);
+  const Scalar _tmp244 = P(0, 12) * _tmp233 + P(1, 12) * _tmp232 - P(12, 12) * _tmp230 -
+                         P(13, 12) * _tmp228 - P(14, 12) * _tmp235 + P(2, 12) * _tmp231 + P(5, 12);
+  const Scalar _tmp245 = P(0, 13) * _tmp233 + P(1, 13) * _tmp232 - P(12, 13) * _tmp230 -
+                         P(13, 13) * _tmp228 - P(14, 13) * _tmp235 + P(2, 13) * _tmp231 + P(5, 13);
+  const Scalar _tmp246 = P(0, 5) * _tmp233 + P(1, 5) * _tmp232 - P(12, 5) * _tmp230 -
+                         P(13, 5) * _tmp228 - P(14, 5) * _tmp235 + P(2, 5) * _tmp231 + P(5, 5);
 
   // Output terms (1)
-  matrix::Matrix<Scalar, 24, 24> _res;
+  matrix::Matrix<Scalar, 23, 23> _res;
 
-  _res(0, 0) = _tmp10 * _tmp13 + _tmp11 * _tmp15 + _tmp12 * _tmp14 + _tmp16 * _tmp3 +
-               _tmp17 * _tmp6 + _tmp19 * _tmp9 + _tmp22 + _tmp23 + _tmp28;
+  _res(0, 0) = _tmp19 * _tmp83 + _tmp49 * _tmp89 + _tmp58 * _tmp90 + _tmp63 * _tmp88 +
+               _tmp73 * _tmp91 + _tmp82 * _tmp92 + std::pow(_tmp84, Scalar(2)) * d_ang_var +
+               std::pow(_tmp85, Scalar(2)) * d_ang_var + _tmp87;
   _res(1, 0) = 0;
   _res(2, 0) = 0;
   _res(3, 0) = 0;
@@ -340,11 +377,12 @@ matrix::Matrix<Scalar, 24, 24> PredictCovariance(const matrix::Matrix<Scalar, 24
   _res(20, 0) = 0;
   _res(21, 0) = 0;
   _res(22, 0) = 0;
-  _res(23, 0) = 0;
-  _res(0, 1) = _tmp11 * _tmp14 - _tmp12 * _tmp15 - _tmp13 * _tmp29 + _tmp16 * _tmp32 +
-               _tmp17 * _tmp3 + _tmp19 + _tmp23 * _tmp31 - _tmp30 * state(0, 0);
-  _res(1, 1) = _tmp11 * _tmp35 - _tmp12 * _tmp33 + _tmp25 - _tmp29 * _tmp34 + _tmp3 * _tmp37 +
-               _tmp31 * _tmp38 + _tmp32 * _tmp36 + _tmp39 + _tmp41;
+  _res(0, 1) = _tmp100 * _tmp99 + _tmp101 * _tmp83 + _tmp102 * _tmp89 + _tmp103 * _tmp90 +
+               _tmp105 * _tmp88 + _tmp110 * _tmp91 + _tmp19 * _tmp92 + _tmp84 * _tmp98 +
+               _tmp85 * _tmp99;
+  _res(1, 1) = std::pow(_tmp100, Scalar(2)) * d_ang_var + _tmp101 * _tmp111 + _tmp102 * _tmp113 +
+               _tmp103 * _tmp112 + _tmp105 * _tmp114 + _tmp110 * _tmp116 + _tmp115 * _tmp19 +
+               _tmp87 + std::pow(_tmp97, Scalar(2)) * d_ang_var;
   _res(2, 1) = 0;
   _res(3, 1) = 0;
   _res(4, 1) = 0;
@@ -366,13 +404,15 @@ matrix::Matrix<Scalar, 24, 24> PredictCovariance(const matrix::Matrix<Scalar, 24
   _res(20, 1) = 0;
   _res(21, 1) = 0;
   _res(22, 1) = 0;
-  _res(23, 1) = 0;
-  _res(0, 2) = _tmp10 * _tmp15 - _tmp11 * _tmp13 - _tmp14 * _tmp29 + _tmp16 + _tmp17 * _tmp31 +
-               _tmp19 * _tmp6 + _tmp23 * _tmp43 - _tmp42 * state(2, 0);
-  _res(1, 2) = _tmp10 * _tmp33 - _tmp11 * _tmp34 - _tmp29 * _tmp35 - _tmp30 * state(2, 0) +
-               _tmp31 * _tmp37 + _tmp36 + _tmp38 * _tmp43 + _tmp39 * _tmp6;
-  _res(2, 2) = _tmp10 * _tmp49 - _tmp11 * _tmp48 + _tmp28 - _tmp29 * _tmp47 + _tmp31 * _tmp46 +
-               _tmp40 + _tmp43 * _tmp44 + _tmp45 * _tmp6 + _tmp50;
+  _res(0, 2) = _tmp118 * _tmp85 + _tmp120 * _tmp86 + _tmp121 * _tmp83 + _tmp122 * _tmp90 +
+               _tmp123 * _tmp89 + _tmp124 * _tmp88 + _tmp125 * _tmp92 + _tmp19 * _tmp91 +
+               _tmp84 * _tmp99;
+  _res(1, 2) = _tmp100 * _tmp120 + _tmp111 * _tmp121 + _tmp112 * _tmp122 + _tmp113 * _tmp123 +
+               _tmp114 * _tmp124 + _tmp115 * _tmp125 + _tmp116 * _tmp19 + _tmp118 * _tmp86 +
+               _tmp86 * _tmp98;
+  _res(2, 2) = std::pow(_tmp117, Scalar(2)) * d_ang_var + std::pow(_tmp119, Scalar(2)) * d_ang_var +
+               _tmp121 * _tmp127 + _tmp122 * _tmp126 + _tmp123 * _tmp131 + _tmp124 * _tmp130 +
+               _tmp125 * _tmp129 + _tmp128 * _tmp19 + _tmp87;
   _res(3, 2) = 0;
   _res(4, 2) = 0;
   _res(5, 2) = 0;
@@ -393,15 +433,16 @@ matrix::Matrix<Scalar, 24, 24> PredictCovariance(const matrix::Matrix<Scalar, 24
   _res(20, 2) = 0;
   _res(21, 2) = 0;
   _res(22, 2) = 0;
-  _res(23, 2) = 0;
-  _res(0, 3) = -_tmp10 * _tmp14 + _tmp12 * _tmp13 - _tmp15 * _tmp29 + _tmp16 * _tmp9 + _tmp17 +
-               _tmp19 * _tmp43 + _tmp23 * _tmp32 - _tmp42 * state(3, 0);
-  _res(1, 3) = -_tmp10 * _tmp35 + _tmp12 * _tmp34 - _tmp29 * _tmp33 - _tmp30 * state(3, 0) +
-               _tmp32 * _tmp38 + _tmp36 * _tmp9 + _tmp37 + _tmp39 * _tmp43;
-  _res(2, 3) = -_tmp10 * _tmp47 + _tmp12 * _tmp48 - _tmp21 * state(2, 0) * state(3, 0) -
-               _tmp29 * _tmp49 + _tmp32 * _tmp44 + _tmp43 * _tmp45 + _tmp46 + _tmp50 * _tmp9;
-  _res(3, 3) = -_tmp10 * _tmp54 + _tmp12 * _tmp56 + _tmp27 - _tmp29 * _tmp55 + _tmp32 * _tmp53 +
-               _tmp41 + _tmp43 * _tmp52 + _tmp51 * _tmp9 + _tmp57;
+  _res(0, 3) = -_tmp132 * _tmp138 - _tmp139 * _tmp144 + _tmp154 * _tmp88 + _tmp169 * _tmp89 +
+               _tmp175 * _tmp90 - _tmp176 * _tmp180 + _tmp181;
+  _res(1, 3) = _tmp112 * _tmp175 + _tmp113 * _tmp169 + _tmp114 * _tmp154 - _tmp138 * _tmp184 -
+               _tmp144 * _tmp183 - _tmp180 * _tmp182 + _tmp185;
+  _res(2, 3) = _tmp126 * _tmp175 + _tmp130 * _tmp154 + _tmp131 * _tmp169 - _tmp138 * _tmp187 -
+               _tmp144 * _tmp186 - _tmp180 * _tmp188 + _tmp189;
+  _res(3, 3) = std::pow(_tmp137, Scalar(2)) * d_vel_var(1, 0) - _tmp137 * _tmp195 +
+               std::pow(_tmp143, Scalar(2)) * d_vel_var(2, 0) - _tmp144 * _tmp196 +
+               _tmp154 * _tmp192 + _tmp169 * _tmp191 + _tmp175 * _tmp190 +
+               std::pow(_tmp179, Scalar(2)) * d_vel_var(0, 0) - _tmp180 * _tmp193 + _tmp197;
   _res(4, 3) = 0;
   _res(5, 3) = 0;
   _res(6, 3) = 0;
@@ -421,20 +462,20 @@ matrix::Matrix<Scalar, 24, 24> PredictCovariance(const matrix::Matrix<Scalar, 24
   _res(20, 3) = 0;
   _res(21, 3) = 0;
   _res(22, 3) = 0;
-  _res(23, 3) = 0;
-  _res(0, 4) = _tmp16 * _tmp90 + _tmp17 * _tmp93 + _tmp19 * _tmp85 + _tmp23 * _tmp64 -
-               _tmp65 * _tmp69 - _tmp70 * _tmp75 - _tmp76 * _tmp81 + _tmp95;
-  _res(1, 4) = _tmp36 * _tmp90 + _tmp37 * _tmp93 + _tmp38 * _tmp64 + _tmp39 * _tmp85 -
-               _tmp69 * _tmp96 - _tmp75 * _tmp98 - _tmp81 * _tmp97 + _tmp99;
-  _res(2, 4) = -_tmp100 * _tmp69 - _tmp101 * _tmp81 - _tmp102 * _tmp75 + _tmp103 + _tmp44 * _tmp64 +
-               _tmp45 * _tmp85 + _tmp46 * _tmp93 + _tmp50 * _tmp90;
-  _res(3, 4) = -_tmp104 * _tmp69 - _tmp105 * _tmp81 - _tmp106 * _tmp75 + _tmp107 + _tmp51 * _tmp90 +
-               _tmp52 * _tmp85 + _tmp53 * _tmp64 + _tmp57 * _tmp93;
-  _res(4, 4) = -_tmp108 * _tmp69 - _tmp109 * _tmp81 - _tmp110 * _tmp75 + _tmp111 * _tmp85 +
-               _tmp112 * _tmp64 + _tmp113 * _tmp93 + _tmp114 * _tmp90 + _tmp115 +
-               std::pow(_tmp68, Scalar(2)) * d_vel_var(0, 0) +
-               std::pow(_tmp74, Scalar(2)) * d_vel_var(2, 0) +
-               std::pow(_tmp80, Scalar(2)) * d_vel_var(1, 0);
+  _res(0, 4) = -_tmp132 * _tmp213 - _tmp139 * _tmp201 - _tmp176 * _tmp207 + _tmp205 * _tmp88 +
+               _tmp208 * _tmp90 + _tmp210 * _tmp89 + _tmp214;
+  _res(1, 4) = _tmp112 * _tmp208 + _tmp113 * _tmp210 + _tmp114 * _tmp205 - _tmp182 * _tmp207 -
+               _tmp183 * _tmp201 - _tmp184 * _tmp213 + _tmp215;
+  _res(2, 4) = _tmp126 * _tmp208 + _tmp130 * _tmp205 + _tmp131 * _tmp210 - _tmp186 * _tmp201 -
+               _tmp187 * _tmp213 - _tmp188 * _tmp207 + _tmp216;
+  _res(3, 4) = _tmp137 * _tmp217 + _tmp143 * _tmp200 * d_vel_var(2, 0) +
+               _tmp179 * _tmp206 * d_vel_var(0, 0) + _tmp190 * _tmp208 + _tmp191 * _tmp210 +
+               _tmp192 * _tmp205 - _tmp194 * _tmp213 - _tmp196 * _tmp201 - _tmp206 * _tmp218 +
+               _tmp219;
+  _res(4, 4) = std::pow(_tmp200, Scalar(2)) * d_vel_var(2, 0) - _tmp201 * _tmp224 +
+               _tmp205 * _tmp225 + std::pow(_tmp206, Scalar(2)) * d_vel_var(0, 0) -
+               _tmp207 * _tmp221 + _tmp208 * _tmp223 + _tmp210 * _tmp220 +
+               std::pow(_tmp212, Scalar(2)) * d_vel_var(1, 0) - _tmp213 * _tmp222 + _tmp226;
   _res(5, 4) = 0;
   _res(6, 4) = 0;
   _res(7, 4) = 0;
@@ -453,23 +494,27 @@ matrix::Matrix<Scalar, 24, 24> PredictCovariance(const matrix::Matrix<Scalar, 24
   _res(20, 4) = 0;
   _res(21, 4) = 0;
   _res(22, 4) = 0;
-  _res(23, 4) = 0;
-  _res(0, 5) = -_tmp119 * _tmp70 - _tmp122 * _tmp76 - _tmp124 * _tmp65 + _tmp127 * _tmp19 +
-               _tmp129 * _tmp17 + _tmp131 * _tmp23 + _tmp133 * _tmp16 + _tmp134;
-  _res(1, 5) = -_tmp119 * _tmp98 - _tmp122 * _tmp97 - _tmp124 * _tmp96 + _tmp127 * _tmp39 +
-               _tmp129 * _tmp37 + _tmp131 * _tmp38 + _tmp133 * _tmp36 + _tmp135;
-  _res(2, 5) = -_tmp100 * _tmp124 - _tmp101 * _tmp122 - _tmp102 * _tmp119 + _tmp127 * _tmp45 +
-               _tmp129 * _tmp46 + _tmp131 * _tmp44 + _tmp133 * _tmp50 + _tmp136;
-  _res(3, 5) = -_tmp104 * _tmp124 - _tmp105 * _tmp122 - _tmp106 * _tmp119 + _tmp127 * _tmp52 +
-               _tmp129 * _tmp57 + _tmp131 * _tmp53 + _tmp133 * _tmp51 + _tmp137;
-  _res(4, 5) = -_tmp108 * _tmp124 - _tmp109 * _tmp122 - _tmp110 * _tmp119 + _tmp111 * _tmp127 +
-               _tmp112 * _tmp131 + _tmp113 * _tmp129 + _tmp114 * _tmp133 +
-               _tmp118 * _tmp74 * d_vel_var(2, 0) + _tmp121 * _tmp139 + _tmp138 * _tmp68 + _tmp140;
-  _res(5, 5) = std::pow(_tmp118, Scalar(2)) * d_vel_var(2, 0) - _tmp119 * _tmp143 +
-               std::pow(_tmp121, Scalar(2)) * d_vel_var(1, 0) - _tmp122 * _tmp142 +
-               std::pow(_tmp123, Scalar(2)) * d_vel_var(0, 0) - _tmp124 * _tmp141 +
-               _tmp127 * _tmp147 + _tmp129 * _tmp146 + _tmp131 * _tmp145 + _tmp133 * _tmp144 +
-               _tmp148;
+  _res(0, 5) = -_tmp132 * _tmp228 - _tmp139 * _tmp235 - _tmp176 * _tmp230 + _tmp231 * _tmp90 +
+               _tmp232 * _tmp89 + _tmp233 * _tmp88 + _tmp236;
+  _res(1, 5) = _tmp112 * _tmp231 + _tmp113 * _tmp232 + _tmp114 * _tmp233 - _tmp182 * _tmp230 -
+               _tmp183 * _tmp235 - _tmp184 * _tmp228 + _tmp237;
+  _res(2, 5) = _tmp126 * _tmp231 + _tmp130 * _tmp233 + _tmp131 * _tmp232 - _tmp186 * _tmp235 -
+               _tmp187 * _tmp228 - _tmp188 * _tmp230 + _tmp238;
+  _res(3, 5) = _tmp137 * _tmp227 * d_vel_var(1, 0) + _tmp143 * _tmp240 + _tmp179 * _tmp239 +
+               _tmp190 * _tmp231 + _tmp191 * _tmp232 + _tmp192 * _tmp233 - _tmp195 * _tmp227 -
+               _tmp196 * _tmp235 - _tmp218 * _tmp229 + _tmp241;
+  _res(4, 5) = _tmp200 * _tmp240 + _tmp206 * _tmp239 + _tmp217 * _tmp227 + _tmp220 * _tmp232 -
+               _tmp221 * _tmp230 - _tmp222 * _tmp228 + _tmp223 * _tmp231 - _tmp224 * _tmp235 +
+               _tmp225 * _tmp233 + _tmp242;
+  _res(5, 5) = std::pow(_tmp227, Scalar(2)) * d_vel_var(1, 0) - _tmp228 * _tmp245 +
+               std::pow(_tmp229, Scalar(2)) * d_vel_var(0, 0) - _tmp230 * _tmp244 +
+               _tmp231 * (P(0, 2) * _tmp233 + P(1, 2) * _tmp232 - P(12, 2) * _tmp230 -
+                          P(13, 2) * _tmp228 - P(14, 2) * _tmp235 + P(2, 2) * _tmp231 + P(5, 2)) +
+               _tmp232 * (P(0, 1) * _tmp233 + P(1, 1) * _tmp232 - P(12, 1) * _tmp230 -
+                          P(13, 1) * _tmp228 - P(14, 1) * _tmp235 + P(2, 1) * _tmp231 + P(5, 1)) +
+               _tmp233 * (P(0, 0) * _tmp233 + P(1, 0) * _tmp232 - P(12, 0) * _tmp230 -
+                          P(13, 0) * _tmp228 - P(14, 0) * _tmp235 + P(2, 0) * _tmp231 + P(5, 0)) +
+               std::pow(_tmp234, Scalar(2)) * d_vel_var(2, 0) - _tmp235 * _tmp243 + _tmp246;
   _res(6, 5) = 0;
   _res(7, 5) = 0;
   _res(8, 5) = 0;
@@ -487,34 +532,23 @@ matrix::Matrix<Scalar, 24, 24> PredictCovariance(const matrix::Matrix<Scalar, 24
   _res(20, 5) = 0;
   _res(21, 5) = 0;
   _res(22, 5) = 0;
-  _res(23, 5) = 0;
-  _res(0, 6) = -_tmp150 * _tmp76 - _tmp152 * _tmp70 - _tmp154 * _tmp65 + _tmp156 * _tmp19 +
-               _tmp157 * _tmp16 + _tmp158 * _tmp23 + _tmp159 * _tmp17 + _tmp161;
-  _res(1, 6) = -_tmp150 * _tmp97 - _tmp152 * _tmp98 - _tmp154 * _tmp96 + _tmp156 * _tmp39 +
-               _tmp157 * _tmp36 + _tmp158 * _tmp38 + _tmp159 * _tmp37 + _tmp162;
-  _res(2, 6) = -_tmp100 * _tmp154 - _tmp101 * _tmp150 - _tmp102 * _tmp152 + _tmp156 * _tmp45 +
-               _tmp157 * _tmp50 + _tmp158 * _tmp44 + _tmp159 * _tmp46 + _tmp163;
-  _res(3, 6) = -_tmp104 * _tmp154 - _tmp105 * _tmp150 - _tmp106 * _tmp152 + _tmp156 * _tmp52 +
-               _tmp157 * _tmp51 + _tmp158 * _tmp53 + _tmp159 * _tmp57 + _tmp164;
-  _res(4, 6) = -_tmp108 * _tmp154 - _tmp109 * _tmp150 - _tmp110 * _tmp152 + _tmp111 * _tmp156 +
-               _tmp112 * _tmp158 + _tmp113 * _tmp159 + _tmp114 * _tmp157 + _tmp139 * _tmp149 +
-               _tmp153 * _tmp68 * d_vel_var(0, 0) + _tmp165 * _tmp74 + _tmp166;
-  _res(5, 6) = _tmp118 * _tmp165 + _tmp121 * _tmp149 * d_vel_var(1, 0) + _tmp138 * _tmp153 -
-               _tmp141 * _tmp154 - _tmp142 * _tmp150 - _tmp143 * _tmp152 + _tmp144 * _tmp157 +
-               _tmp145 * _tmp158 + _tmp146 * _tmp159 + _tmp147 * _tmp156 + _tmp167;
-  _res(6, 6) =
-      std::pow(_tmp149, Scalar(2)) * d_vel_var(1, 0) - _tmp150 * _tmp169 +
-      std::pow(_tmp151, Scalar(2)) * d_vel_var(2, 0) - _tmp152 * _tmp170 +
-      std::pow(_tmp153, Scalar(2)) * d_vel_var(0, 0) - _tmp154 * _tmp168 +
-      _tmp156 * (P(0, 1) * _tmp158 + P(1, 1) * _tmp156 - P(13, 1) * _tmp154 - P(14, 1) * _tmp150 -
-                 P(15, 1) * _tmp152 + P(2, 1) * _tmp157 + P(3, 1) * _tmp159 + P(6, 1)) +
-      _tmp157 * (P(0, 2) * _tmp158 + P(1, 2) * _tmp156 - P(13, 2) * _tmp154 - P(14, 2) * _tmp150 -
-                 P(15, 2) * _tmp152 + P(2, 2) * _tmp157 + P(3, 2) * _tmp159 + P(6, 2)) +
-      _tmp158 * (P(0, 0) * _tmp158 + P(1, 0) * _tmp156 - P(13, 0) * _tmp154 - P(14, 0) * _tmp150 -
-                 P(15, 0) * _tmp152 + P(2, 0) * _tmp157 + P(3, 0) * _tmp159 + P(6, 0)) +
-      _tmp159 * (P(0, 3) * _tmp158 + P(1, 3) * _tmp156 - P(13, 3) * _tmp154 - P(14, 3) * _tmp150 -
-                 P(15, 3) * _tmp152 + P(2, 3) * _tmp157 + P(3, 3) * _tmp159 + P(6, 3)) +
-      _tmp171;
+  _res(0, 6) = P(0, 6) * _tmp63 + P(1, 6) * _tmp49 + P(10, 6) * _tmp82 + P(11, 6) * _tmp73 +
+               P(2, 6) * _tmp58 + P(9, 6) * _tmp19 + _tmp181 * d_vel_dt;
+  _res(1, 6) = P(0, 6) * _tmp105 + P(1, 6) * _tmp102 + P(10, 6) * _tmp19 + P(11, 6) * _tmp110 +
+               P(2, 6) * _tmp103 + P(9, 6) * _tmp101 + _tmp185 * d_vel_dt;
+  _res(2, 6) = P(0, 6) * _tmp124 + P(1, 6) * _tmp123 + P(10, 6) * _tmp125 + P(11, 6) * _tmp19 +
+               P(2, 6) * _tmp122 + P(9, 6) * _tmp121 + _tmp189 * d_vel_dt;
+  _res(3, 6) = P(0, 6) * _tmp154 + P(1, 6) * _tmp169 - P(12, 6) * _tmp180 - P(13, 6) * _tmp138 -
+               P(14, 6) * _tmp144 + P(2, 6) * _tmp175 + P(3, 6) + _tmp197 * d_vel_dt;
+  _res(4, 6) = P(0, 6) * _tmp205 + P(1, 6) * _tmp210 - P(12, 6) * _tmp207 - P(13, 6) * _tmp213 -
+               P(14, 6) * _tmp201 + P(2, 6) * _tmp208 + P(4, 6) +
+               d_vel_dt * (P(0, 3) * _tmp205 + P(1, 3) * _tmp210 - P(12, 3) * _tmp207 -
+                           P(13, 3) * _tmp213 - P(14, 3) * _tmp201 + P(2, 3) * _tmp208 + P(4, 3));
+  _res(5, 6) = P(0, 6) * _tmp233 + P(1, 6) * _tmp232 - P(12, 6) * _tmp230 - P(13, 6) * _tmp228 -
+               P(14, 6) * _tmp235 + P(2, 6) * _tmp231 + P(5, 6) +
+               d_vel_dt * (P(0, 3) * _tmp233 + P(1, 3) * _tmp232 - P(12, 3) * _tmp230 -
+                           P(13, 3) * _tmp228 - P(14, 3) * _tmp235 + P(2, 3) * _tmp231 + P(5, 3));
+  _res(6, 6) = P(3, 6) * d_vel_dt + P(6, 6) + d_vel_dt * (P(3, 3) * d_vel_dt + P(6, 3));
   _res(7, 6) = 0;
   _res(8, 6) = 0;
   _res(9, 6) = 0;
@@ -531,28 +565,21 @@ matrix::Matrix<Scalar, 24, 24> PredictCovariance(const matrix::Matrix<Scalar, 24
   _res(20, 6) = 0;
   _res(21, 6) = 0;
   _res(22, 6) = 0;
-  _res(23, 6) = 0;
-  _res(0, 7) = P(0, 7) + P(1, 7) * _tmp9 + P(10, 7) * _tmp10 + P(11, 7) * _tmp12 +
-               P(12, 7) * _tmp11 + P(2, 7) * _tmp3 + P(3, 7) * _tmp6 + _tmp95 * d_vel_dt;
-  _res(1, 7) = P(0, 7) * _tmp31 + P(1, 7) - P(10, 7) * _tmp29 + P(11, 7) * _tmp11 -
-               P(12, 7) * _tmp12 + P(2, 7) * _tmp32 + P(3, 7) * _tmp3 + _tmp99 * d_vel_dt;
-  _res(2, 7) = P(0, 7) * _tmp43 + P(1, 7) * _tmp6 - P(10, 7) * _tmp11 - P(11, 7) * _tmp29 +
-               P(12, 7) * _tmp10 + P(2, 7) + P(3, 7) * _tmp31 + _tmp103 * d_vel_dt;
-  _res(3, 7) = P(0, 7) * _tmp32 + P(1, 7) * _tmp43 + P(10, 7) * _tmp12 - P(11, 7) * _tmp10 -
-               P(12, 7) * _tmp29 + P(2, 7) * _tmp9 + P(3, 7) + _tmp107 * d_vel_dt;
-  _res(4, 7) = P(0, 7) * _tmp64 + P(1, 7) * _tmp85 - P(13, 7) * _tmp69 - P(14, 7) * _tmp81 -
-               P(15, 7) * _tmp75 + P(2, 7) * _tmp90 + P(3, 7) * _tmp93 + P(4, 7) +
-               _tmp115 * d_vel_dt;
-  _res(5, 7) =
-      P(0, 7) * _tmp131 + P(1, 7) * _tmp127 - P(13, 7) * _tmp124 - P(14, 7) * _tmp122 -
-      P(15, 7) * _tmp119 + P(2, 7) * _tmp133 + P(3, 7) * _tmp129 + P(5, 7) +
-      d_vel_dt * (P(0, 4) * _tmp131 + P(1, 4) * _tmp127 - P(13, 4) * _tmp124 - P(14, 4) * _tmp122 -
-                  P(15, 4) * _tmp119 + P(2, 4) * _tmp133 + P(3, 4) * _tmp129 + P(5, 4));
-  _res(6, 7) =
-      P(0, 7) * _tmp158 + P(1, 7) * _tmp156 - P(13, 7) * _tmp154 - P(14, 7) * _tmp150 -
-      P(15, 7) * _tmp152 + P(2, 7) * _tmp157 + P(3, 7) * _tmp159 + P(6, 7) +
-      d_vel_dt * (P(0, 4) * _tmp158 + P(1, 4) * _tmp156 - P(13, 4) * _tmp154 - P(14, 4) * _tmp150 -
-                  P(15, 4) * _tmp152 + P(2, 4) * _tmp157 + P(3, 4) * _tmp159 + P(6, 4));
+  _res(0, 7) = P(0, 7) * _tmp63 + P(1, 7) * _tmp49 + P(10, 7) * _tmp82 + P(11, 7) * _tmp73 +
+               P(2, 7) * _tmp58 + P(9, 7) * _tmp19 + _tmp214 * d_vel_dt;
+  _res(1, 7) = P(0, 7) * _tmp105 + P(1, 7) * _tmp102 + P(10, 7) * _tmp19 + P(11, 7) * _tmp110 +
+               P(2, 7) * _tmp103 + P(9, 7) * _tmp101 + _tmp215 * d_vel_dt;
+  _res(2, 7) = P(0, 7) * _tmp124 + P(1, 7) * _tmp123 + P(10, 7) * _tmp125 + P(11, 7) * _tmp19 +
+               P(2, 7) * _tmp122 + P(9, 7) * _tmp121 + _tmp216 * d_vel_dt;
+  _res(3, 7) = P(0, 7) * _tmp154 + P(1, 7) * _tmp169 - P(12, 7) * _tmp180 - P(13, 7) * _tmp138 -
+               P(14, 7) * _tmp144 + P(2, 7) * _tmp175 + P(3, 7) + _tmp219 * d_vel_dt;
+  _res(4, 7) = P(0, 7) * _tmp205 + P(1, 7) * _tmp210 - P(12, 7) * _tmp207 - P(13, 7) * _tmp213 -
+               P(14, 7) * _tmp201 + P(2, 7) * _tmp208 + P(4, 7) + _tmp226 * d_vel_dt;
+  _res(5, 7) = P(0, 7) * _tmp233 + P(1, 7) * _tmp232 - P(12, 7) * _tmp230 - P(13, 7) * _tmp228 -
+               P(14, 7) * _tmp235 + P(2, 7) * _tmp231 + P(5, 7) +
+               d_vel_dt * (P(0, 4) * _tmp233 + P(1, 4) * _tmp232 - P(12, 4) * _tmp230 -
+                           P(13, 4) * _tmp228 - P(14, 4) * _tmp235 + P(2, 4) * _tmp231 + P(5, 4));
+  _res(6, 7) = P(3, 7) * d_vel_dt + P(6, 7) + d_vel_dt * (P(3, 4) * d_vel_dt + P(6, 4));
   _res(7, 7) = P(4, 7) * d_vel_dt + P(7, 7) + d_vel_dt * (P(4, 4) * d_vel_dt + P(7, 4));
   _res(8, 7) = 0;
   _res(9, 7) = 0;
@@ -569,26 +596,19 @@ matrix::Matrix<Scalar, 24, 24> PredictCovariance(const matrix::Matrix<Scalar, 24
   _res(20, 7) = 0;
   _res(21, 7) = 0;
   _res(22, 7) = 0;
-  _res(23, 7) = 0;
-  _res(0, 8) = P(0, 8) + P(1, 8) * _tmp9 + P(10, 8) * _tmp10 + P(12, 8) * _tmp11 + P(2, 8) * _tmp3 +
-               P(3, 8) * _tmp6 + _tmp134 * d_vel_dt + _tmp172 * state(2, 0);
-  _res(1, 8) = P(0, 8) * _tmp31 + P(1, 8) - P(10, 8) * _tmp29 - P(12, 8) * _tmp12 +
-               P(2, 8) * _tmp32 + P(3, 8) * _tmp3 + _tmp135 * d_vel_dt + _tmp172 * state(3, 0);
-  _res(2, 8) = P(0, 8) * _tmp43 + P(1, 8) * _tmp6 - P(10, 8) * _tmp11 + P(12, 8) * _tmp10 +
-               P(2, 8) + P(3, 8) * _tmp31 + _tmp136 * d_vel_dt - _tmp172 * state(0, 0);
-  _res(3, 8) = P(0, 8) * _tmp32 + P(1, 8) * _tmp43 + P(10, 8) * _tmp12 - P(12, 8) * _tmp29 +
-               P(2, 8) * _tmp9 + P(3, 8) + _tmp137 * d_vel_dt - _tmp172 * state(1, 0);
-  _res(4, 8) = P(0, 8) * _tmp64 + P(1, 8) * _tmp85 - P(13, 8) * _tmp69 - P(14, 8) * _tmp81 -
-               P(15, 8) * _tmp75 + P(2, 8) * _tmp90 + P(3, 8) * _tmp93 + P(4, 8) +
-               _tmp140 * d_vel_dt;
-  _res(5, 8) = P(0, 8) * _tmp131 + P(1, 8) * _tmp127 - P(13, 8) * _tmp124 - P(14, 8) * _tmp122 -
-               P(15, 8) * _tmp119 + P(2, 8) * _tmp133 + P(3, 8) * _tmp129 + P(5, 8) +
-               _tmp148 * d_vel_dt;
-  _res(6, 8) =
-      P(0, 8) * _tmp158 + P(1, 8) * _tmp156 - P(13, 8) * _tmp154 - P(14, 8) * _tmp150 -
-      P(15, 8) * _tmp152 + P(2, 8) * _tmp157 + P(3, 8) * _tmp159 + P(6, 8) +
-      d_vel_dt * (P(0, 5) * _tmp158 + P(1, 5) * _tmp156 - P(13, 5) * _tmp154 - P(14, 5) * _tmp150 -
-                  P(15, 5) * _tmp152 + P(2, 5) * _tmp157 + P(3, 5) * _tmp159 + P(6, 5));
+  _res(0, 8) = P(0, 8) * _tmp63 + P(1, 8) * _tmp49 + P(10, 8) * _tmp82 + P(11, 8) * _tmp73 +
+               P(2, 8) * _tmp58 + P(9, 8) * _tmp19 + _tmp236 * d_vel_dt;
+  _res(1, 8) = P(0, 8) * _tmp105 + P(1, 8) * _tmp102 + P(10, 8) * _tmp19 + P(11, 8) * _tmp110 +
+               P(2, 8) * _tmp103 + P(9, 8) * _tmp101 + _tmp237 * d_vel_dt;
+  _res(2, 8) = P(0, 8) * _tmp124 + P(1, 8) * _tmp123 + P(10, 8) * _tmp125 + P(11, 8) * _tmp19 +
+               P(2, 8) * _tmp122 + P(9, 8) * _tmp121 + _tmp238 * d_vel_dt;
+  _res(3, 8) = P(0, 8) * _tmp154 + P(1, 8) * _tmp169 - P(12, 8) * _tmp180 - P(13, 8) * _tmp138 -
+               P(14, 8) * _tmp144 + P(2, 8) * _tmp175 + P(3, 8) + _tmp241 * d_vel_dt;
+  _res(4, 8) = P(0, 8) * _tmp205 + P(1, 8) * _tmp210 - P(12, 8) * _tmp207 - P(13, 8) * _tmp213 -
+               P(14, 8) * _tmp201 + P(2, 8) * _tmp208 + P(4, 8) + _tmp242 * d_vel_dt;
+  _res(5, 8) = P(0, 8) * _tmp233 + P(1, 8) * _tmp232 - P(12, 8) * _tmp230 - P(13, 8) * _tmp228 -
+               P(14, 8) * _tmp235 + P(2, 8) * _tmp231 + P(5, 8) + _tmp246 * d_vel_dt;
+  _res(6, 8) = P(3, 8) * d_vel_dt + P(6, 8) + d_vel_dt * (P(3, 5) * d_vel_dt + P(6, 5));
   _res(7, 8) = P(4, 8) * d_vel_dt + P(7, 8) + d_vel_dt * (P(4, 5) * d_vel_dt + P(7, 5));
   _res(8, 8) = P(5, 8) * d_vel_dt + P(8, 8) + d_vel_dt * (P(5, 5) * d_vel_dt + P(8, 5));
   _res(9, 8) = 0;
@@ -605,27 +625,19 @@ matrix::Matrix<Scalar, 24, 24> PredictCovariance(const matrix::Matrix<Scalar, 24
   _res(20, 8) = 0;
   _res(21, 8) = 0;
   _res(22, 8) = 0;
-  _res(23, 8) = 0;
-  _res(0, 9) = P(0, 9) + P(1, 9) * _tmp9 + P(10, 9) * _tmp10 + P(11, 9) * _tmp12 +
-               P(12, 9) * _tmp11 + P(2, 9) * _tmp3 + P(3, 9) * _tmp6 + _tmp161 * d_vel_dt;
-  _res(1, 9) = P(0, 9) * _tmp31 + P(1, 9) - P(10, 9) * _tmp29 + P(11, 9) * _tmp11 -
-               P(12, 9) * _tmp12 + P(2, 9) * _tmp32 + P(3, 9) * _tmp3 + _tmp162 * d_vel_dt;
-  _res(2, 9) = P(0, 9) * _tmp43 + P(1, 9) * _tmp6 - P(10, 9) * _tmp11 - P(11, 9) * _tmp29 +
-               P(12, 9) * _tmp10 + P(2, 9) + P(3, 9) * _tmp31 + _tmp163 * d_vel_dt;
-  _res(3, 9) = P(0, 9) * _tmp32 + P(1, 9) * _tmp43 + P(10, 9) * _tmp12 - P(11, 9) * _tmp10 -
-               P(12, 9) * _tmp29 + P(2, 9) * _tmp9 + P(3, 9) + _tmp164 * d_vel_dt;
-  _res(4, 9) = P(0, 9) * _tmp64 + P(1, 9) * _tmp85 - P(13, 9) * _tmp69 - P(14, 9) * _tmp81 -
-               P(15, 9) * _tmp75 + P(2, 9) * _tmp90 + P(3, 9) * _tmp93 + P(4, 9) +
-               _tmp166 * d_vel_dt;
-  _res(5, 9) = P(0, 9) * _tmp131 + P(1, 9) * _tmp127 - P(13, 9) * _tmp124 - P(14, 9) * _tmp122 -
-               P(15, 9) * _tmp119 + P(2, 9) * _tmp133 + P(3, 9) * _tmp129 + P(5, 9) +
-               _tmp167 * d_vel_dt;
-  _res(6, 9) = P(0, 9) * _tmp158 + P(1, 9) * _tmp156 - P(13, 9) * _tmp154 - P(14, 9) * _tmp150 -
-               P(15, 9) * _tmp152 + P(2, 9) * _tmp157 + P(3, 9) * _tmp159 + P(6, 9) +
-               _tmp171 * d_vel_dt;
-  _res(7, 9) = P(4, 9) * d_vel_dt + P(7, 9) + d_vel_dt * (P(4, 6) * d_vel_dt + P(7, 6));
-  _res(8, 9) = P(5, 9) * d_vel_dt + P(8, 9) + d_vel_dt * (P(5, 6) * d_vel_dt + P(8, 6));
-  _res(9, 9) = P(6, 9) * d_vel_dt + P(9, 9) + d_vel_dt * (P(6, 6) * d_vel_dt + P(9, 6));
+  _res(0, 9) = _tmp83;
+  _res(1, 9) = _tmp111;
+  _res(2, 9) = _tmp127;
+  _res(3, 9) = P(0, 9) * _tmp154 + P(1, 9) * _tmp169 - P(12, 9) * _tmp180 - P(13, 9) * _tmp138 -
+               P(14, 9) * _tmp144 + P(2, 9) * _tmp175 + P(3, 9);
+  _res(4, 9) = P(0, 9) * _tmp205 + P(1, 9) * _tmp210 - P(12, 9) * _tmp207 - P(13, 9) * _tmp213 -
+               P(14, 9) * _tmp201 + P(2, 9) * _tmp208 + P(4, 9);
+  _res(5, 9) = P(0, 9) * _tmp233 + P(1, 9) * _tmp232 - P(12, 9) * _tmp230 - P(13, 9) * _tmp228 -
+               P(14, 9) * _tmp235 + P(2, 9) * _tmp231 + P(5, 9);
+  _res(6, 9) = P(3, 9) * d_vel_dt + P(6, 9);
+  _res(7, 9) = P(4, 9) * d_vel_dt + P(7, 9);
+  _res(8, 9) = P(5, 9) * d_vel_dt + P(8, 9);
+  _res(9, 9) = P(9, 9);
   _res(10, 9) = 0;
   _res(11, 9) = 0;
   _res(12, 9) = 0;
@@ -639,22 +651,19 @@ matrix::Matrix<Scalar, 24, 24> PredictCovariance(const matrix::Matrix<Scalar, 24
   _res(20, 9) = 0;
   _res(21, 9) = 0;
   _res(22, 9) = 0;
-  _res(23, 9) = 0;
-  _res(0, 10) = _tmp13;
-  _res(1, 10) = _tmp34;
-  _res(2, 10) = _tmp48;
-  _res(3, 10) = _tmp56;
-  _res(4, 10) = P(0, 10) * _tmp64 + P(1, 10) * _tmp85 - P(13, 10) * _tmp69 - P(14, 10) * _tmp81 -
-                P(15, 10) * _tmp75 + P(2, 10) * _tmp90 + P(3, 10) * _tmp93 + P(4, 10);
-  _res(5, 10) = P(0, 10) * _tmp131 + P(1, 10) * _tmp127 - P(13, 10) * _tmp124 -
-                P(14, 10) * _tmp122 - P(15, 10) * _tmp119 + P(2, 10) * _tmp133 +
-                P(3, 10) * _tmp129 + P(5, 10);
-  _res(6, 10) = P(0, 10) * _tmp158 + P(1, 10) * _tmp156 - P(13, 10) * _tmp154 -
-                P(14, 10) * _tmp150 - P(15, 10) * _tmp152 + P(2, 10) * _tmp157 +
-                P(3, 10) * _tmp159 + P(6, 10);
+  _res(0, 10) = _tmp92;
+  _res(1, 10) = _tmp115;
+  _res(2, 10) = _tmp129;
+  _res(3, 10) = P(0, 10) * _tmp154 + P(1, 10) * _tmp169 - P(12, 10) * _tmp180 -
+                P(13, 10) * _tmp138 - P(14, 10) * _tmp144 + P(2, 10) * _tmp175 + P(3, 10);
+  _res(4, 10) = P(0, 10) * _tmp205 + P(1, 10) * _tmp210 - P(12, 10) * _tmp207 -
+                P(13, 10) * _tmp213 - P(14, 10) * _tmp201 + P(2, 10) * _tmp208 + P(4, 10);
+  _res(5, 10) = P(0, 10) * _tmp233 + P(1, 10) * _tmp232 - P(12, 10) * _tmp230 -
+                P(13, 10) * _tmp228 - P(14, 10) * _tmp235 + P(2, 10) * _tmp231 + P(5, 10);
+  _res(6, 10) = P(3, 10) * d_vel_dt + P(6, 10);
   _res(7, 10) = P(4, 10) * d_vel_dt + P(7, 10);
   _res(8, 10) = P(5, 10) * d_vel_dt + P(8, 10);
-  _res(9, 10) = P(6, 10) * d_vel_dt + P(9, 10);
+  _res(9, 10) = P(9, 10);
   _res(10, 10) = P(10, 10);
   _res(11, 10) = 0;
   _res(12, 10) = 0;
@@ -668,22 +677,19 @@ matrix::Matrix<Scalar, 24, 24> PredictCovariance(const matrix::Matrix<Scalar, 24
   _res(20, 10) = 0;
   _res(21, 10) = 0;
   _res(22, 10) = 0;
-  _res(23, 10) = 0;
-  _res(0, 11) = _tmp14;
-  _res(1, 11) = _tmp35;
-  _res(2, 11) = _tmp47;
-  _res(3, 11) = _tmp54;
-  _res(4, 11) = P(0, 11) * _tmp64 + P(1, 11) * _tmp85 - P(13, 11) * _tmp69 - P(14, 11) * _tmp81 -
-                P(15, 11) * _tmp75 + P(2, 11) * _tmp90 + P(3, 11) * _tmp93 + P(4, 11);
-  _res(5, 11) = P(0, 11) * _tmp131 + P(1, 11) * _tmp127 - P(13, 11) * _tmp124 -
-                P(14, 11) * _tmp122 - P(15, 11) * _tmp119 + P(2, 11) * _tmp133 +
-                P(3, 11) * _tmp129 + P(5, 11);
-  _res(6, 11) = P(0, 11) * _tmp158 + P(1, 11) * _tmp156 - P(13, 11) * _tmp154 -
-                P(14, 11) * _tmp150 - P(15, 11) * _tmp152 + P(2, 11) * _tmp157 +
-                P(3, 11) * _tmp159 + P(6, 11);
+  _res(0, 11) = _tmp91;
+  _res(1, 11) = _tmp116;
+  _res(2, 11) = _tmp128;
+  _res(3, 11) = P(0, 11) * _tmp154 + P(1, 11) * _tmp169 - P(12, 11) * _tmp180 -
+                P(13, 11) * _tmp138 - P(14, 11) * _tmp144 + P(2, 11) * _tmp175 + P(3, 11);
+  _res(4, 11) = P(0, 11) * _tmp205 + P(1, 11) * _tmp210 - P(12, 11) * _tmp207 -
+                P(13, 11) * _tmp213 - P(14, 11) * _tmp201 + P(2, 11) * _tmp208 + P(4, 11);
+  _res(5, 11) = P(0, 11) * _tmp233 + P(1, 11) * _tmp232 - P(12, 11) * _tmp230 -
+                P(13, 11) * _tmp228 - P(14, 11) * _tmp235 + P(2, 11) * _tmp231 + P(5, 11);
+  _res(6, 11) = P(3, 11) * d_vel_dt + P(6, 11);
   _res(7, 11) = P(4, 11) * d_vel_dt + P(7, 11);
   _res(8, 11) = P(5, 11) * d_vel_dt + P(8, 11);
-  _res(9, 11) = P(6, 11) * d_vel_dt + P(9, 11);
+  _res(9, 11) = P(9, 11);
   _res(10, 11) = P(10, 11);
   _res(11, 11) = P(11, 11);
   _res(12, 11) = 0;
@@ -697,22 +703,16 @@ matrix::Matrix<Scalar, 24, 24> PredictCovariance(const matrix::Matrix<Scalar, 24
   _res(20, 11) = 0;
   _res(21, 11) = 0;
   _res(22, 11) = 0;
-  _res(23, 11) = 0;
-  _res(0, 12) = _tmp15;
-  _res(1, 12) = _tmp33;
-  _res(2, 12) = _tmp49;
-  _res(3, 12) = _tmp55;
-  _res(4, 12) = P(0, 12) * _tmp64 + P(1, 12) * _tmp85 - P(13, 12) * _tmp69 - P(14, 12) * _tmp81 -
-                P(15, 12) * _tmp75 + P(2, 12) * _tmp90 + P(3, 12) * _tmp93 + P(4, 12);
-  _res(5, 12) = P(0, 12) * _tmp131 + P(1, 12) * _tmp127 - P(13, 12) * _tmp124 -
-                P(14, 12) * _tmp122 - P(15, 12) * _tmp119 + P(2, 12) * _tmp133 +
-                P(3, 12) * _tmp129 + P(5, 12);
-  _res(6, 12) = P(0, 12) * _tmp158 + P(1, 12) * _tmp156 - P(13, 12) * _tmp154 -
-                P(14, 12) * _tmp150 - P(15, 12) * _tmp152 + P(2, 12) * _tmp157 +
-                P(3, 12) * _tmp159 + P(6, 12);
+  _res(0, 12) = _tmp176;
+  _res(1, 12) = _tmp182;
+  _res(2, 12) = _tmp188;
+  _res(3, 12) = _tmp193;
+  _res(4, 12) = _tmp221;
+  _res(5, 12) = _tmp244;
+  _res(6, 12) = P(3, 12) * d_vel_dt + P(6, 12);
   _res(7, 12) = P(4, 12) * d_vel_dt + P(7, 12);
   _res(8, 12) = P(5, 12) * d_vel_dt + P(8, 12);
-  _res(9, 12) = P(6, 12) * d_vel_dt + P(9, 12);
+  _res(9, 12) = P(9, 12);
   _res(10, 12) = P(10, 12);
   _res(11, 12) = P(11, 12);
   _res(12, 12) = P(12, 12);
@@ -726,17 +726,16 @@ matrix::Matrix<Scalar, 24, 24> PredictCovariance(const matrix::Matrix<Scalar, 24
   _res(20, 12) = 0;
   _res(21, 12) = 0;
   _res(22, 12) = 0;
-  _res(23, 12) = 0;
-  _res(0, 13) = _tmp65;
-  _res(1, 13) = _tmp96;
-  _res(2, 13) = _tmp100;
-  _res(3, 13) = _tmp104;
-  _res(4, 13) = _tmp108;
-  _res(5, 13) = _tmp141;
-  _res(6, 13) = _tmp168;
+  _res(0, 13) = _tmp132;
+  _res(1, 13) = _tmp184;
+  _res(2, 13) = _tmp187;
+  _res(3, 13) = _tmp194;
+  _res(4, 13) = _tmp222;
+  _res(5, 13) = _tmp245;
+  _res(6, 13) = P(3, 13) * d_vel_dt + P(6, 13);
   _res(7, 13) = P(4, 13) * d_vel_dt + P(7, 13);
   _res(8, 13) = P(5, 13) * d_vel_dt + P(8, 13);
-  _res(9, 13) = P(6, 13) * d_vel_dt + P(9, 13);
+  _res(9, 13) = P(9, 13);
   _res(10, 13) = P(10, 13);
   _res(11, 13) = P(11, 13);
   _res(12, 13) = P(12, 13);
@@ -750,17 +749,16 @@ matrix::Matrix<Scalar, 24, 24> PredictCovariance(const matrix::Matrix<Scalar, 24
   _res(20, 13) = 0;
   _res(21, 13) = 0;
   _res(22, 13) = 0;
-  _res(23, 13) = 0;
-  _res(0, 14) = _tmp76;
-  _res(1, 14) = _tmp97;
-  _res(2, 14) = _tmp101;
-  _res(3, 14) = _tmp105;
-  _res(4, 14) = _tmp109;
-  _res(5, 14) = _tmp142;
-  _res(6, 14) = _tmp169;
+  _res(0, 14) = _tmp139;
+  _res(1, 14) = _tmp183;
+  _res(2, 14) = _tmp186;
+  _res(3, 14) = _tmp196;
+  _res(4, 14) = _tmp224;
+  _res(5, 14) = _tmp243;
+  _res(6, 14) = P(3, 14) * d_vel_dt + P(6, 14);
   _res(7, 14) = P(4, 14) * d_vel_dt + P(7, 14);
   _res(8, 14) = P(5, 14) * d_vel_dt + P(8, 14);
-  _res(9, 14) = P(6, 14) * d_vel_dt + P(9, 14);
+  _res(9, 14) = P(9, 14);
   _res(10, 14) = P(10, 14);
   _res(11, 14) = P(11, 14);
   _res(12, 14) = P(12, 14);
@@ -774,17 +772,22 @@ matrix::Matrix<Scalar, 24, 24> PredictCovariance(const matrix::Matrix<Scalar, 24
   _res(20, 14) = 0;
   _res(21, 14) = 0;
   _res(22, 14) = 0;
-  _res(23, 14) = 0;
-  _res(0, 15) = _tmp70;
-  _res(1, 15) = _tmp98;
-  _res(2, 15) = _tmp102;
-  _res(3, 15) = _tmp106;
-  _res(4, 15) = _tmp110;
-  _res(5, 15) = _tmp143;
-  _res(6, 15) = _tmp170;
+  _res(0, 15) = P(0, 15) * _tmp63 + P(1, 15) * _tmp49 + P(10, 15) * _tmp82 + P(11, 15) * _tmp73 +
+                P(2, 15) * _tmp58 + P(9, 15) * _tmp19;
+  _res(1, 15) = P(0, 15) * _tmp105 + P(1, 15) * _tmp102 + P(10, 15) * _tmp19 + P(11, 15) * _tmp110 +
+                P(2, 15) * _tmp103 + P(9, 15) * _tmp101;
+  _res(2, 15) = P(0, 15) * _tmp124 + P(1, 15) * _tmp123 + P(10, 15) * _tmp125 + P(11, 15) * _tmp19 +
+                P(2, 15) * _tmp122 + P(9, 15) * _tmp121;
+  _res(3, 15) = P(0, 15) * _tmp154 + P(1, 15) * _tmp169 - P(12, 15) * _tmp180 -
+                P(13, 15) * _tmp138 - P(14, 15) * _tmp144 + P(2, 15) * _tmp175 + P(3, 15);
+  _res(4, 15) = P(0, 15) * _tmp205 + P(1, 15) * _tmp210 - P(12, 15) * _tmp207 -
+                P(13, 15) * _tmp213 - P(14, 15) * _tmp201 + P(2, 15) * _tmp208 + P(4, 15);
+  _res(5, 15) = P(0, 15) * _tmp233 + P(1, 15) * _tmp232 - P(12, 15) * _tmp230 -
+                P(13, 15) * _tmp228 - P(14, 15) * _tmp235 + P(2, 15) * _tmp231 + P(5, 15);
+  _res(6, 15) = P(3, 15) * d_vel_dt + P(6, 15);
   _res(7, 15) = P(4, 15) * d_vel_dt + P(7, 15);
   _res(8, 15) = P(5, 15) * d_vel_dt + P(8, 15);
-  _res(9, 15) = P(6, 15) * d_vel_dt + P(9, 15);
+  _res(9, 15) = P(9, 15);
   _res(10, 15) = P(10, 15);
   _res(11, 15) = P(11, 15);
   _res(12, 15) = P(12, 15);
@@ -798,26 +801,22 @@ matrix::Matrix<Scalar, 24, 24> PredictCovariance(const matrix::Matrix<Scalar, 24
   _res(20, 15) = 0;
   _res(21, 15) = 0;
   _res(22, 15) = 0;
-  _res(23, 15) = 0;
-  _res(0, 16) = P(0, 16) + P(1, 16) * _tmp9 + P(10, 16) * _tmp10 + P(11, 16) * _tmp12 +
-                P(12, 16) * _tmp11 + P(2, 16) * _tmp3 + P(3, 16) * _tmp6;
-  _res(1, 16) = P(0, 16) * _tmp31 + P(1, 16) - P(10, 16) * _tmp29 + P(11, 16) * _tmp11 -
-                P(12, 16) * _tmp12 + P(2, 16) * _tmp32 + P(3, 16) * _tmp3;
-  _res(2, 16) = P(0, 16) * _tmp43 + P(1, 16) * _tmp6 - P(10, 16) * _tmp11 - P(11, 16) * _tmp29 +
-                P(12, 16) * _tmp10 + P(2, 16) + P(3, 16) * _tmp31;
-  _res(3, 16) = P(0, 16) * _tmp32 + P(1, 16) * _tmp43 + P(10, 16) * _tmp12 - P(11, 16) * _tmp10 -
-                P(12, 16) * _tmp29 + P(2, 16) * _tmp9 + P(3, 16);
-  _res(4, 16) = P(0, 16) * _tmp64 + P(1, 16) * _tmp85 - P(13, 16) * _tmp69 - P(14, 16) * _tmp81 -
-                P(15, 16) * _tmp75 + P(2, 16) * _tmp90 + P(3, 16) * _tmp93 + P(4, 16);
-  _res(5, 16) = P(0, 16) * _tmp131 + P(1, 16) * _tmp127 - P(13, 16) * _tmp124 -
-                P(14, 16) * _tmp122 - P(15, 16) * _tmp119 + P(2, 16) * _tmp133 +
-                P(3, 16) * _tmp129 + P(5, 16);
-  _res(6, 16) = P(0, 16) * _tmp158 + P(1, 16) * _tmp156 - P(13, 16) * _tmp154 -
-                P(14, 16) * _tmp150 - P(15, 16) * _tmp152 + P(2, 16) * _tmp157 +
-                P(3, 16) * _tmp159 + P(6, 16);
+  _res(0, 16) = P(0, 16) * _tmp63 + P(1, 16) * _tmp49 + P(10, 16) * _tmp82 + P(11, 16) * _tmp73 +
+                P(2, 16) * _tmp58 + P(9, 16) * _tmp19;
+  _res(1, 16) = P(0, 16) * _tmp105 + P(1, 16) * _tmp102 + P(10, 16) * _tmp19 + P(11, 16) * _tmp110 +
+                P(2, 16) * _tmp103 + P(9, 16) * _tmp101;
+  _res(2, 16) = P(0, 16) * _tmp124 + P(1, 16) * _tmp123 + P(10, 16) * _tmp125 + P(11, 16) * _tmp19 +
+                P(2, 16) * _tmp122 + P(9, 16) * _tmp121;
+  _res(3, 16) = P(0, 16) * _tmp154 + P(1, 16) * _tmp169 - P(12, 16) * _tmp180 -
+                P(13, 16) * _tmp138 - P(14, 16) * _tmp144 + P(2, 16) * _tmp175 + P(3, 16);
+  _res(4, 16) = P(0, 16) * _tmp205 + P(1, 16) * _tmp210 - P(12, 16) * _tmp207 -
+                P(13, 16) * _tmp213 - P(14, 16) * _tmp201 + P(2, 16) * _tmp208 + P(4, 16);
+  _res(5, 16) = P(0, 16) * _tmp233 + P(1, 16) * _tmp232 - P(12, 16) * _tmp230 -
+                P(13, 16) * _tmp228 - P(14, 16) * _tmp235 + P(2, 16) * _tmp231 + P(5, 16);
+  _res(6, 16) = P(3, 16) * d_vel_dt + P(6, 16);
   _res(7, 16) = P(4, 16) * d_vel_dt + P(7, 16);
   _res(8, 16) = P(5, 16) * d_vel_dt + P(8, 16);
-  _res(9, 16) = P(6, 16) * d_vel_dt + P(9, 16);
+  _res(9, 16) = P(9, 16);
   _res(10, 16) = P(10, 16);
   _res(11, 16) = P(11, 16);
   _res(12, 16) = P(12, 16);
@@ -831,26 +830,22 @@ matrix::Matrix<Scalar, 24, 24> PredictCovariance(const matrix::Matrix<Scalar, 24
   _res(20, 16) = 0;
   _res(21, 16) = 0;
   _res(22, 16) = 0;
-  _res(23, 16) = 0;
-  _res(0, 17) = P(0, 17) + P(1, 17) * _tmp9 + P(10, 17) * _tmp10 + P(11, 17) * _tmp12 +
-                P(12, 17) * _tmp11 + P(2, 17) * _tmp3 + P(3, 17) * _tmp6;
-  _res(1, 17) = P(0, 17) * _tmp31 + P(1, 17) - P(10, 17) * _tmp29 + P(11, 17) * _tmp11 -
-                P(12, 17) * _tmp12 + P(2, 17) * _tmp32 + P(3, 17) * _tmp3;
-  _res(2, 17) = P(0, 17) * _tmp43 + P(1, 17) * _tmp6 - P(10, 17) * _tmp11 - P(11, 17) * _tmp29 +
-                P(12, 17) * _tmp10 + P(2, 17) + P(3, 17) * _tmp31;
-  _res(3, 17) = P(0, 17) * _tmp32 + P(1, 17) * _tmp43 + P(10, 17) * _tmp12 - P(11, 17) * _tmp10 -
-                P(12, 17) * _tmp29 + P(2, 17) * _tmp9 + P(3, 17);
-  _res(4, 17) = P(0, 17) * _tmp64 + P(1, 17) * _tmp85 - P(13, 17) * _tmp69 - P(14, 17) * _tmp81 -
-                P(15, 17) * _tmp75 + P(2, 17) * _tmp90 + P(3, 17) * _tmp93 + P(4, 17);
-  _res(5, 17) = P(0, 17) * _tmp131 + P(1, 17) * _tmp127 - P(13, 17) * _tmp124 -
-                P(14, 17) * _tmp122 - P(15, 17) * _tmp119 + P(2, 17) * _tmp133 +
-                P(3, 17) * _tmp129 + P(5, 17);
-  _res(6, 17) = P(0, 17) * _tmp158 + P(1, 17) * _tmp156 - P(13, 17) * _tmp154 -
-                P(14, 17) * _tmp150 - P(15, 17) * _tmp152 + P(2, 17) * _tmp157 +
-                P(3, 17) * _tmp159 + P(6, 17);
+  _res(0, 17) = P(0, 17) * _tmp63 + P(1, 17) * _tmp49 + P(10, 17) * _tmp82 + P(11, 17) * _tmp73 +
+                P(2, 17) * _tmp58 + P(9, 17) * _tmp19;
+  _res(1, 17) = P(0, 17) * _tmp105 + P(1, 17) * _tmp102 + P(10, 17) * _tmp19 + P(11, 17) * _tmp110 +
+                P(2, 17) * _tmp103 + P(9, 17) * _tmp101;
+  _res(2, 17) = P(0, 17) * _tmp124 + P(1, 17) * _tmp123 + P(10, 17) * _tmp125 + P(11, 17) * _tmp19 +
+                P(2, 17) * _tmp122 + P(9, 17) * _tmp121;
+  _res(3, 17) = P(0, 17) * _tmp154 + P(1, 17) * _tmp169 - P(12, 17) * _tmp180 -
+                P(13, 17) * _tmp138 - P(14, 17) * _tmp144 + P(2, 17) * _tmp175 + P(3, 17);
+  _res(4, 17) = P(0, 17) * _tmp205 + P(1, 17) * _tmp210 - P(12, 17) * _tmp207 -
+                P(13, 17) * _tmp213 - P(14, 17) * _tmp201 + P(2, 17) * _tmp208 + P(4, 17);
+  _res(5, 17) = P(0, 17) * _tmp233 + P(1, 17) * _tmp232 - P(12, 17) * _tmp230 -
+                P(13, 17) * _tmp228 - P(14, 17) * _tmp235 + P(2, 17) * _tmp231 + P(5, 17);
+  _res(6, 17) = P(3, 17) * d_vel_dt + P(6, 17);
   _res(7, 17) = P(4, 17) * d_vel_dt + P(7, 17);
   _res(8, 17) = P(5, 17) * d_vel_dt + P(8, 17);
-  _res(9, 17) = P(6, 17) * d_vel_dt + P(9, 17);
+  _res(9, 17) = P(9, 17);
   _res(10, 17) = P(10, 17);
   _res(11, 17) = P(11, 17);
   _res(12, 17) = P(12, 17);
@@ -864,26 +859,22 @@ matrix::Matrix<Scalar, 24, 24> PredictCovariance(const matrix::Matrix<Scalar, 24
   _res(20, 17) = 0;
   _res(21, 17) = 0;
   _res(22, 17) = 0;
-  _res(23, 17) = 0;
-  _res(0, 18) = P(0, 18) + P(1, 18) * _tmp9 + P(10, 18) * _tmp10 + P(11, 18) * _tmp12 +
-                P(12, 18) * _tmp11 + P(2, 18) * _tmp3 + P(3, 18) * _tmp6;
-  _res(1, 18) = P(0, 18) * _tmp31 + P(1, 18) - P(10, 18) * _tmp29 + P(11, 18) * _tmp11 -
-                P(12, 18) * _tmp12 + P(2, 18) * _tmp32 + P(3, 18) * _tmp3;
-  _res(2, 18) = P(0, 18) * _tmp43 + P(1, 18) * _tmp6 - P(10, 18) * _tmp11 - P(11, 18) * _tmp29 +
-                P(12, 18) * _tmp10 + P(2, 18) + P(3, 18) * _tmp31;
-  _res(3, 18) = P(0, 18) * _tmp32 + P(1, 18) * _tmp43 + P(10, 18) * _tmp12 - P(11, 18) * _tmp10 -
-                P(12, 18) * _tmp29 + P(2, 18) * _tmp9 + P(3, 18);
-  _res(4, 18) = P(0, 18) * _tmp64 + P(1, 18) * _tmp85 - P(13, 18) * _tmp69 - P(14, 18) * _tmp81 -
-                P(15, 18) * _tmp75 + P(2, 18) * _tmp90 + P(3, 18) * _tmp93 + P(4, 18);
-  _res(5, 18) = P(0, 18) * _tmp131 + P(1, 18) * _tmp127 - P(13, 18) * _tmp124 -
-                P(14, 18) * _tmp122 - P(15, 18) * _tmp119 + P(2, 18) * _tmp133 +
-                P(3, 18) * _tmp129 + P(5, 18);
-  _res(6, 18) = P(0, 18) * _tmp158 + P(1, 18) * _tmp156 - P(13, 18) * _tmp154 -
-                P(14, 18) * _tmp150 - P(15, 18) * _tmp152 + P(2, 18) * _tmp157 +
-                P(3, 18) * _tmp159 + P(6, 18);
+  _res(0, 18) = P(0, 18) * _tmp63 + P(1, 18) * _tmp49 + P(10, 18) * _tmp82 + P(11, 18) * _tmp73 +
+                P(2, 18) * _tmp58 + P(9, 18) * _tmp19;
+  _res(1, 18) = P(0, 18) * _tmp105 + P(1, 18) * _tmp102 + P(10, 18) * _tmp19 + P(11, 18) * _tmp110 +
+                P(2, 18) * _tmp103 + P(9, 18) * _tmp101;
+  _res(2, 18) = P(0, 18) * _tmp124 + P(1, 18) * _tmp123 + P(10, 18) * _tmp125 + P(11, 18) * _tmp19 +
+                P(2, 18) * _tmp122 + P(9, 18) * _tmp121;
+  _res(3, 18) = P(0, 18) * _tmp154 + P(1, 18) * _tmp169 - P(12, 18) * _tmp180 -
+                P(13, 18) * _tmp138 - P(14, 18) * _tmp144 + P(2, 18) * _tmp175 + P(3, 18);
+  _res(4, 18) = P(0, 18) * _tmp205 + P(1, 18) * _tmp210 - P(12, 18) * _tmp207 -
+                P(13, 18) * _tmp213 - P(14, 18) * _tmp201 + P(2, 18) * _tmp208 + P(4, 18);
+  _res(5, 18) = P(0, 18) * _tmp233 + P(1, 18) * _tmp232 - P(12, 18) * _tmp230 -
+                P(13, 18) * _tmp228 - P(14, 18) * _tmp235 + P(2, 18) * _tmp231 + P(5, 18);
+  _res(6, 18) = P(3, 18) * d_vel_dt + P(6, 18);
   _res(7, 18) = P(4, 18) * d_vel_dt + P(7, 18);
   _res(8, 18) = P(5, 18) * d_vel_dt + P(8, 18);
-  _res(9, 18) = P(6, 18) * d_vel_dt + P(9, 18);
+  _res(9, 18) = P(9, 18);
   _res(10, 18) = P(10, 18);
   _res(11, 18) = P(11, 18);
   _res(12, 18) = P(12, 18);
@@ -897,26 +888,22 @@ matrix::Matrix<Scalar, 24, 24> PredictCovariance(const matrix::Matrix<Scalar, 24
   _res(20, 18) = 0;
   _res(21, 18) = 0;
   _res(22, 18) = 0;
-  _res(23, 18) = 0;
-  _res(0, 19) = P(0, 19) + P(1, 19) * _tmp9 + P(10, 19) * _tmp10 + P(11, 19) * _tmp12 +
-                P(12, 19) * _tmp11 + P(2, 19) * _tmp3 + P(3, 19) * _tmp6;
-  _res(1, 19) = P(0, 19) * _tmp31 + P(1, 19) - P(10, 19) * _tmp29 + P(11, 19) * _tmp11 -
-                P(12, 19) * _tmp12 + P(2, 19) * _tmp32 + P(3, 19) * _tmp3;
-  _res(2, 19) = P(0, 19) * _tmp43 + P(1, 19) * _tmp6 - P(10, 19) * _tmp11 - P(11, 19) * _tmp29 +
-                P(12, 19) * _tmp10 + P(2, 19) + P(3, 19) * _tmp31;
-  _res(3, 19) = P(0, 19) * _tmp32 + P(1, 19) * _tmp43 + P(10, 19) * _tmp12 - P(11, 19) * _tmp10 -
-                P(12, 19) * _tmp29 + P(2, 19) * _tmp9 + P(3, 19);
-  _res(4, 19) = P(0, 19) * _tmp64 + P(1, 19) * _tmp85 - P(13, 19) * _tmp69 - P(14, 19) * _tmp81 -
-                P(15, 19) * _tmp75 + P(2, 19) * _tmp90 + P(3, 19) * _tmp93 + P(4, 19);
-  _res(5, 19) = P(0, 19) * _tmp131 + P(1, 19) * _tmp127 - P(13, 19) * _tmp124 -
-                P(14, 19) * _tmp122 - P(15, 19) * _tmp119 + P(2, 19) * _tmp133 +
-                P(3, 19) * _tmp129 + P(5, 19);
-  _res(6, 19) = P(0, 19) * _tmp158 + P(1, 19) * _tmp156 - P(13, 19) * _tmp154 -
-                P(14, 19) * _tmp150 - P(15, 19) * _tmp152 + P(2, 19) * _tmp157 +
-                P(3, 19) * _tmp159 + P(6, 19);
+  _res(0, 19) = P(0, 19) * _tmp63 + P(1, 19) * _tmp49 + P(10, 19) * _tmp82 + P(11, 19) * _tmp73 +
+                P(2, 19) * _tmp58 + P(9, 19) * _tmp19;
+  _res(1, 19) = P(0, 19) * _tmp105 + P(1, 19) * _tmp102 + P(10, 19) * _tmp19 + P(11, 19) * _tmp110 +
+                P(2, 19) * _tmp103 + P(9, 19) * _tmp101;
+  _res(2, 19) = P(0, 19) * _tmp124 + P(1, 19) * _tmp123 + P(10, 19) * _tmp125 + P(11, 19) * _tmp19 +
+                P(2, 19) * _tmp122 + P(9, 19) * _tmp121;
+  _res(3, 19) = P(0, 19) * _tmp154 + P(1, 19) * _tmp169 - P(12, 19) * _tmp180 -
+                P(13, 19) * _tmp138 - P(14, 19) * _tmp144 + P(2, 19) * _tmp175 + P(3, 19);
+  _res(4, 19) = P(0, 19) * _tmp205 + P(1, 19) * _tmp210 - P(12, 19) * _tmp207 -
+                P(13, 19) * _tmp213 - P(14, 19) * _tmp201 + P(2, 19) * _tmp208 + P(4, 19);
+  _res(5, 19) = P(0, 19) * _tmp233 + P(1, 19) * _tmp232 - P(12, 19) * _tmp230 -
+                P(13, 19) * _tmp228 - P(14, 19) * _tmp235 + P(2, 19) * _tmp231 + P(5, 19);
+  _res(6, 19) = P(3, 19) * d_vel_dt + P(6, 19);
   _res(7, 19) = P(4, 19) * d_vel_dt + P(7, 19);
   _res(8, 19) = P(5, 19) * d_vel_dt + P(8, 19);
-  _res(9, 19) = P(6, 19) * d_vel_dt + P(9, 19);
+  _res(9, 19) = P(9, 19);
   _res(10, 19) = P(10, 19);
   _res(11, 19) = P(11, 19);
   _res(12, 19) = P(12, 19);
@@ -930,26 +917,22 @@ matrix::Matrix<Scalar, 24, 24> PredictCovariance(const matrix::Matrix<Scalar, 24
   _res(20, 19) = 0;
   _res(21, 19) = 0;
   _res(22, 19) = 0;
-  _res(23, 19) = 0;
-  _res(0, 20) = P(0, 20) + P(1, 20) * _tmp9 + P(10, 20) * _tmp10 + P(11, 20) * _tmp12 +
-                P(12, 20) * _tmp11 + P(2, 20) * _tmp3 + P(3, 20) * _tmp6;
-  _res(1, 20) = P(0, 20) * _tmp31 + P(1, 20) - P(10, 20) * _tmp29 + P(11, 20) * _tmp11 -
-                P(12, 20) * _tmp12 + P(2, 20) * _tmp32 + P(3, 20) * _tmp3;
-  _res(2, 20) = P(0, 20) * _tmp43 + P(1, 20) * _tmp6 - P(10, 20) * _tmp11 - P(11, 20) * _tmp29 +
-                P(12, 20) * _tmp10 + P(2, 20) + P(3, 20) * _tmp31;
-  _res(3, 20) = P(0, 20) * _tmp32 + P(1, 20) * _tmp43 + P(10, 20) * _tmp12 - P(11, 20) * _tmp10 -
-                P(12, 20) * _tmp29 + P(2, 20) * _tmp9 + P(3, 20);
-  _res(4, 20) = P(0, 20) * _tmp64 + P(1, 20) * _tmp85 - P(13, 20) * _tmp69 - P(14, 20) * _tmp81 -
-                P(15, 20) * _tmp75 + P(2, 20) * _tmp90 + P(3, 20) * _tmp93 + P(4, 20);
-  _res(5, 20) = P(0, 20) * _tmp131 + P(1, 20) * _tmp127 - P(13, 20) * _tmp124 -
-                P(14, 20) * _tmp122 - P(15, 20) * _tmp119 + P(2, 20) * _tmp133 +
-                P(3, 20) * _tmp129 + P(5, 20);
-  _res(6, 20) = P(0, 20) * _tmp158 + P(1, 20) * _tmp156 - P(13, 20) * _tmp154 -
-                P(14, 20) * _tmp150 - P(15, 20) * _tmp152 + P(2, 20) * _tmp157 +
-                P(3, 20) * _tmp159 + P(6, 20);
+  _res(0, 20) = P(0, 20) * _tmp63 + P(1, 20) * _tmp49 + P(10, 20) * _tmp82 + P(11, 20) * _tmp73 +
+                P(2, 20) * _tmp58 + P(9, 20) * _tmp19;
+  _res(1, 20) = P(0, 20) * _tmp105 + P(1, 20) * _tmp102 + P(10, 20) * _tmp19 + P(11, 20) * _tmp110 +
+                P(2, 20) * _tmp103 + P(9, 20) * _tmp101;
+  _res(2, 20) = P(0, 20) * _tmp124 + P(1, 20) * _tmp123 + P(10, 20) * _tmp125 + P(11, 20) * _tmp19 +
+                P(2, 20) * _tmp122 + P(9, 20) * _tmp121;
+  _res(3, 20) = P(0, 20) * _tmp154 + P(1, 20) * _tmp169 - P(12, 20) * _tmp180 -
+                P(13, 20) * _tmp138 - P(14, 20) * _tmp144 + P(2, 20) * _tmp175 + P(3, 20);
+  _res(4, 20) = P(0, 20) * _tmp205 + P(1, 20) * _tmp210 - P(12, 20) * _tmp207 -
+                P(13, 20) * _tmp213 - P(14, 20) * _tmp201 + P(2, 20) * _tmp208 + P(4, 20);
+  _res(5, 20) = P(0, 20) * _tmp233 + P(1, 20) * _tmp232 - P(12, 20) * _tmp230 -
+                P(13, 20) * _tmp228 - P(14, 20) * _tmp235 + P(2, 20) * _tmp231 + P(5, 20);
+  _res(6, 20) = P(3, 20) * d_vel_dt + P(6, 20);
   _res(7, 20) = P(4, 20) * d_vel_dt + P(7, 20);
   _res(8, 20) = P(5, 20) * d_vel_dt + P(8, 20);
-  _res(9, 20) = P(6, 20) * d_vel_dt + P(9, 20);
+  _res(9, 20) = P(9, 20);
   _res(10, 20) = P(10, 20);
   _res(11, 20) = P(11, 20);
   _res(12, 20) = P(12, 20);
@@ -963,26 +946,22 @@ matrix::Matrix<Scalar, 24, 24> PredictCovariance(const matrix::Matrix<Scalar, 24
   _res(20, 20) = P(20, 20);
   _res(21, 20) = 0;
   _res(22, 20) = 0;
-  _res(23, 20) = 0;
-  _res(0, 21) = P(0, 21) + P(1, 21) * _tmp9 + P(10, 21) * _tmp10 + P(11, 21) * _tmp12 +
-                P(12, 21) * _tmp11 + P(2, 21) * _tmp3 + P(3, 21) * _tmp6;
-  _res(1, 21) = P(0, 21) * _tmp31 + P(1, 21) - P(10, 21) * _tmp29 + P(11, 21) * _tmp11 -
-                P(12, 21) * _tmp12 + P(2, 21) * _tmp32 + P(3, 21) * _tmp3;
-  _res(2, 21) = P(0, 21) * _tmp43 + P(1, 21) * _tmp6 - P(10, 21) * _tmp11 - P(11, 21) * _tmp29 +
-                P(12, 21) * _tmp10 + P(2, 21) + P(3, 21) * _tmp31;
-  _res(3, 21) = P(0, 21) * _tmp32 + P(1, 21) * _tmp43 + P(10, 21) * _tmp12 - P(11, 21) * _tmp10 -
-                P(12, 21) * _tmp29 + P(2, 21) * _tmp9 + P(3, 21);
-  _res(4, 21) = P(0, 21) * _tmp64 + P(1, 21) * _tmp85 - P(13, 21) * _tmp69 - P(14, 21) * _tmp81 -
-                P(15, 21) * _tmp75 + P(2, 21) * _tmp90 + P(3, 21) * _tmp93 + P(4, 21);
-  _res(5, 21) = P(0, 21) * _tmp131 + P(1, 21) * _tmp127 - P(13, 21) * _tmp124 -
-                P(14, 21) * _tmp122 - P(15, 21) * _tmp119 + P(2, 21) * _tmp133 +
-                P(3, 21) * _tmp129 + P(5, 21);
-  _res(6, 21) = P(0, 21) * _tmp158 + P(1, 21) * _tmp156 - P(13, 21) * _tmp154 -
-                P(14, 21) * _tmp150 - P(15, 21) * _tmp152 + P(2, 21) * _tmp157 +
-                P(3, 21) * _tmp159 + P(6, 21);
+  _res(0, 21) = P(0, 21) * _tmp63 + P(1, 21) * _tmp49 + P(10, 21) * _tmp82 + P(11, 21) * _tmp73 +
+                P(2, 21) * _tmp58 + P(9, 21) * _tmp19;
+  _res(1, 21) = P(0, 21) * _tmp105 + P(1, 21) * _tmp102 + P(10, 21) * _tmp19 + P(11, 21) * _tmp110 +
+                P(2, 21) * _tmp103 + P(9, 21) * _tmp101;
+  _res(2, 21) = P(0, 21) * _tmp124 + P(1, 21) * _tmp123 + P(10, 21) * _tmp125 + P(11, 21) * _tmp19 +
+                P(2, 21) * _tmp122 + P(9, 21) * _tmp121;
+  _res(3, 21) = P(0, 21) * _tmp154 + P(1, 21) * _tmp169 - P(12, 21) * _tmp180 -
+                P(13, 21) * _tmp138 - P(14, 21) * _tmp144 + P(2, 21) * _tmp175 + P(3, 21);
+  _res(4, 21) = P(0, 21) * _tmp205 + P(1, 21) * _tmp210 - P(12, 21) * _tmp207 -
+                P(13, 21) * _tmp213 - P(14, 21) * _tmp201 + P(2, 21) * _tmp208 + P(4, 21);
+  _res(5, 21) = P(0, 21) * _tmp233 + P(1, 21) * _tmp232 - P(12, 21) * _tmp230 -
+                P(13, 21) * _tmp228 - P(14, 21) * _tmp235 + P(2, 21) * _tmp231 + P(5, 21);
+  _res(6, 21) = P(3, 21) * d_vel_dt + P(6, 21);
   _res(7, 21) = P(4, 21) * d_vel_dt + P(7, 21);
   _res(8, 21) = P(5, 21) * d_vel_dt + P(8, 21);
-  _res(9, 21) = P(6, 21) * d_vel_dt + P(9, 21);
+  _res(9, 21) = P(9, 21);
   _res(10, 21) = P(10, 21);
   _res(11, 21) = P(11, 21);
   _res(12, 21) = P(12, 21);
@@ -996,26 +975,22 @@ matrix::Matrix<Scalar, 24, 24> PredictCovariance(const matrix::Matrix<Scalar, 24
   _res(20, 21) = P(20, 21);
   _res(21, 21) = P(21, 21);
   _res(22, 21) = 0;
-  _res(23, 21) = 0;
-  _res(0, 22) = P(0, 22) + P(1, 22) * _tmp9 + P(10, 22) * _tmp10 + P(11, 22) * _tmp12 +
-                P(12, 22) * _tmp11 + P(2, 22) * _tmp3 + P(3, 22) * _tmp6;
-  _res(1, 22) = P(0, 22) * _tmp31 + P(1, 22) - P(10, 22) * _tmp29 + P(11, 22) * _tmp11 -
-                P(12, 22) * _tmp12 + P(2, 22) * _tmp32 + P(3, 22) * _tmp3;
-  _res(2, 22) = P(0, 22) * _tmp43 + P(1, 22) * _tmp6 - P(10, 22) * _tmp11 - P(11, 22) * _tmp29 +
-                P(12, 22) * _tmp10 + P(2, 22) + P(3, 22) * _tmp31;
-  _res(3, 22) = P(0, 22) * _tmp32 + P(1, 22) * _tmp43 + P(10, 22) * _tmp12 - P(11, 22) * _tmp10 -
-                P(12, 22) * _tmp29 + P(2, 22) * _tmp9 + P(3, 22);
-  _res(4, 22) = P(0, 22) * _tmp64 + P(1, 22) * _tmp85 - P(13, 22) * _tmp69 - P(14, 22) * _tmp81 -
-                P(15, 22) * _tmp75 + P(2, 22) * _tmp90 + P(3, 22) * _tmp93 + P(4, 22);
-  _res(5, 22) = P(0, 22) * _tmp131 + P(1, 22) * _tmp127 - P(13, 22) * _tmp124 -
-                P(14, 22) * _tmp122 - P(15, 22) * _tmp119 + P(2, 22) * _tmp133 +
-                P(3, 22) * _tmp129 + P(5, 22);
-  _res(6, 22) = P(0, 22) * _tmp158 + P(1, 22) * _tmp156 - P(13, 22) * _tmp154 -
-                P(14, 22) * _tmp150 - P(15, 22) * _tmp152 + P(2, 22) * _tmp157 +
-                P(3, 22) * _tmp159 + P(6, 22);
+  _res(0, 22) = P(0, 22) * _tmp63 + P(1, 22) * _tmp49 + P(10, 22) * _tmp82 + P(11, 22) * _tmp73 +
+                P(2, 22) * _tmp58 + P(9, 22) * _tmp19;
+  _res(1, 22) = P(0, 22) * _tmp105 + P(1, 22) * _tmp102 + P(10, 22) * _tmp19 + P(11, 22) * _tmp110 +
+                P(2, 22) * _tmp103 + P(9, 22) * _tmp101;
+  _res(2, 22) = P(0, 22) * _tmp124 + P(1, 22) * _tmp123 + P(10, 22) * _tmp125 + P(11, 22) * _tmp19 +
+                P(2, 22) * _tmp122 + P(9, 22) * _tmp121;
+  _res(3, 22) = P(0, 22) * _tmp154 + P(1, 22) * _tmp169 - P(12, 22) * _tmp180 -
+                P(13, 22) * _tmp138 - P(14, 22) * _tmp144 + P(2, 22) * _tmp175 + P(3, 22);
+  _res(4, 22) = P(0, 22) * _tmp205 + P(1, 22) * _tmp210 - P(12, 22) * _tmp207 -
+                P(13, 22) * _tmp213 - P(14, 22) * _tmp201 + P(2, 22) * _tmp208 + P(4, 22);
+  _res(5, 22) = P(0, 22) * _tmp233 + P(1, 22) * _tmp232 - P(12, 22) * _tmp230 -
+                P(13, 22) * _tmp228 - P(14, 22) * _tmp235 + P(2, 22) * _tmp231 + P(5, 22);
+  _res(6, 22) = P(3, 22) * d_vel_dt + P(6, 22);
   _res(7, 22) = P(4, 22) * d_vel_dt + P(7, 22);
   _res(8, 22) = P(5, 22) * d_vel_dt + P(8, 22);
-  _res(9, 22) = P(6, 22) * d_vel_dt + P(9, 22);
+  _res(9, 22) = P(9, 22);
   _res(10, 22) = P(10, 22);
   _res(11, 22) = P(11, 22);
   _res(12, 22) = P(12, 22);
@@ -1029,40 +1004,6 @@ matrix::Matrix<Scalar, 24, 24> PredictCovariance(const matrix::Matrix<Scalar, 24
   _res(20, 22) = P(20, 22);
   _res(21, 22) = P(21, 22);
   _res(22, 22) = P(22, 22);
-  _res(23, 22) = 0;
-  _res(0, 23) = P(0, 23) + P(1, 23) * _tmp9 + P(10, 23) * _tmp10 + P(11, 23) * _tmp12 +
-                P(12, 23) * _tmp11 + P(2, 23) * _tmp3 + P(3, 23) * _tmp6;
-  _res(1, 23) = P(0, 23) * _tmp31 + P(1, 23) - P(10, 23) * _tmp29 + P(11, 23) * _tmp11 -
-                P(12, 23) * _tmp12 + P(2, 23) * _tmp32 + P(3, 23) * _tmp3;
-  _res(2, 23) = P(0, 23) * _tmp43 + P(1, 23) * _tmp6 - P(10, 23) * _tmp11 - P(11, 23) * _tmp29 +
-                P(12, 23) * _tmp10 + P(2, 23) + P(3, 23) * _tmp31;
-  _res(3, 23) = P(0, 23) * _tmp32 + P(1, 23) * _tmp43 + P(10, 23) * _tmp12 - P(11, 23) * _tmp10 -
-                P(12, 23) * _tmp29 + P(2, 23) * _tmp9 + P(3, 23);
-  _res(4, 23) = P(0, 23) * _tmp64 + P(1, 23) * _tmp85 - P(13, 23) * _tmp69 - P(14, 23) * _tmp81 -
-                P(15, 23) * _tmp75 + P(2, 23) * _tmp90 + P(3, 23) * _tmp93 + P(4, 23);
-  _res(5, 23) = P(0, 23) * _tmp131 + P(1, 23) * _tmp127 - P(13, 23) * _tmp124 -
-                P(14, 23) * _tmp122 - P(15, 23) * _tmp119 + P(2, 23) * _tmp133 +
-                P(3, 23) * _tmp129 + P(5, 23);
-  _res(6, 23) = P(0, 23) * _tmp158 + P(1, 23) * _tmp156 - P(13, 23) * _tmp154 -
-                P(14, 23) * _tmp150 - P(15, 23) * _tmp152 + P(2, 23) * _tmp157 +
-                P(3, 23) * _tmp159 + P(6, 23);
-  _res(7, 23) = P(4, 23) * d_vel_dt + P(7, 23);
-  _res(8, 23) = P(5, 23) * d_vel_dt + P(8, 23);
-  _res(9, 23) = P(6, 23) * d_vel_dt + P(9, 23);
-  _res(10, 23) = P(10, 23);
-  _res(11, 23) = P(11, 23);
-  _res(12, 23) = P(12, 23);
-  _res(13, 23) = P(13, 23);
-  _res(14, 23) = P(14, 23);
-  _res(15, 23) = P(15, 23);
-  _res(16, 23) = P(16, 23);
-  _res(17, 23) = P(17, 23);
-  _res(18, 23) = P(18, 23);
-  _res(19, 23) = P(19, 23);
-  _res(20, 23) = P(20, 23);
-  _res(21, 23) = P(21, 23);
-  _res(22, 23) = P(22, 23);
-  _res(23, 23) = P(23, 23);
 
   return _res;
 }  // NOLINT(readability/fn_size)

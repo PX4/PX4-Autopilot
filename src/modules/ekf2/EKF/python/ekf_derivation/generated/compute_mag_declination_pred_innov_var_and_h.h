@@ -17,21 +17,21 @@ namespace sym {
  *
  * Args:
  *     state: Matrix24_1
- *     P: Matrix24_24
+ *     P: Matrix23_23
  *     R: Scalar
  *     epsilon: Scalar
  *
  * Outputs:
  *     pred: Scalar
  *     innov_var: Scalar
- *     H: Matrix24_1
+ *     H: Matrix23_1
  */
 template <typename Scalar>
 void ComputeMagDeclinationPredInnovVarAndH(const matrix::Matrix<Scalar, 24, 1>& state,
-                                           const matrix::Matrix<Scalar, 24, 24>& P, const Scalar R,
+                                           const matrix::Matrix<Scalar, 23, 23>& P, const Scalar R,
                                            const Scalar epsilon, Scalar* const pred = nullptr,
                                            Scalar* const innov_var = nullptr,
-                                           matrix::Matrix<Scalar, 24, 1>* const H = nullptr) {
+                                           matrix::Matrix<Scalar, 23, 1>* const H = nullptr) {
   // Total ops: 22
 
   // Input arrays
@@ -54,17 +54,17 @@ void ComputeMagDeclinationPredInnovVarAndH(const matrix::Matrix<Scalar, 24, 1>& 
   if (innov_var != nullptr) {
     Scalar& _innov_var = (*innov_var);
 
-    _innov_var = R - _tmp2 * (-P(16, 16) * _tmp2 + P(17, 16) * _tmp3) +
-                 _tmp3 * (-P(16, 17) * _tmp2 + P(17, 17) * _tmp3);
+    _innov_var = R - _tmp2 * (-P(15, 15) * _tmp2 + P(16, 15) * _tmp3) +
+                 _tmp3 * (-P(15, 16) * _tmp2 + P(16, 16) * _tmp3);
   }
 
   if (H != nullptr) {
-    matrix::Matrix<Scalar, 24, 1>& _h = (*H);
+    matrix::Matrix<Scalar, 23, 1>& _h = (*H);
 
     _h.setZero();
 
-    _h(16, 0) = -_tmp2;
-    _h(17, 0) = _tmp3;
+    _h(15, 0) = -_tmp2;
+    _h(16, 0) = _tmp3;
   }
 }  // NOLINT(readability/fn_size)
 
