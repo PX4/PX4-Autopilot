@@ -43,7 +43,7 @@
         <geometry>
           <mesh>
             <scale>0.001 0.001 0.001</scale>
-            <uri>model://standard_vtol/meshes/x8_wing.dae</uri>
+            <uri>https://fuel.gazebosim.org/1.0/frede791/models/Standard%20VTOL/tip/files/meshes/x8_wing.dae</uri>
           </mesh>
         </geometry>
         <material>
@@ -183,7 +183,7 @@
         <geometry>
           <mesh>
             <scale>1 1 1</scale>
-            <uri>model://standard_vtol/meshes/iris_prop_ccw.dae</uri>
+            <uri>https://fuel.gazebosim.org/1.0/frede791/models/Standard%20VTOL/tip/files/meshes/iris_prop_ccw.dae</uri>
           </mesh>
         </geometry>
         <material>
@@ -246,7 +246,7 @@
         <geometry>
           <mesh>
             <scale>1 1 1</scale>
-            <uri>model://standard_vtol/meshes/iris_prop_ccw.dae</uri>
+            <uri>https://fuel.gazebosim.org/1.0/frede791/models/Standard%20VTOL/tip/files/meshes/iris_prop_ccw.dae</uri>
           </mesh>
         </geometry>
         <material>
@@ -309,7 +309,7 @@
         <geometry>
           <mesh>
             <scale>1 1 1</scale>
-            <uri>model://standard_vtol/meshes/iris_prop_ccw.dae</uri>
+            <uri>https://fuel.gazebosim.org/1.0/frede791/models/Standard%20VTOL/tip/files/meshes/iris_prop_ccw.dae</uri>
           </mesh>
         </geometry>
         <material>
@@ -372,7 +372,7 @@
         <geometry>
           <mesh>
             <scale>1 1 1</scale>
-            <uri>model://standard_vtol/meshes/iris_prop_ccw.dae</uri>
+            <uri>https://fuel.gazebosim.org/1.0/frede791/models/Standard%20VTOL/tip/files/meshes/iris_prop_ccw.dae</uri>
           </mesh>
         </geometry>
         <material>
@@ -436,7 +436,7 @@
         <geometry>
           <mesh>
             <scale>0.8 0.8 0.8</scale>
-            <uri>model://standard_vtol/meshes/iris_prop_ccw.dae</uri>
+            <uri>https://fuel.gazebosim.org/1.0/frede791/models/Standard%20VTOL/tip/files/meshes/iris_prop_ccw.dae</uri>
           </mesh>
         </geometry>
         <material>
@@ -483,7 +483,7 @@
         <geometry>
           <mesh>
             <scale>0.001 0.001 0.001</scale>
-            <uri>model://standard_vtol/meshes/x8_elevon_left.dae</uri>
+            <uri>https://fuel.gazebosim.org/1.0/frede791/models/Standard%20VTOL/tip/files/meshes/x8_elevon_left.dae</uri>
           </mesh>
         </geometry>
         <material>
@@ -510,7 +510,7 @@
         <geometry>
           <mesh>
             <scale>0.001 0.001 0.001</scale>
-            <uri>model://standard_vtol/meshes/x8_elevon_right.dae</uri>
+            <uri>https://fuel.gazebosim.org/1.0/frede791/models/Standard%20VTOL/tip/files/meshes/x8_elevon_right.dae</uri>
           </mesh>
         </geometry>
         <material>
