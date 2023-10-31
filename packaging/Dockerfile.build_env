@@ -4,7 +4,7 @@ FROM ghcr.io/tiiuae/px4-firmware-builder-base:latest
 ARG UID=1000
 ARG GID=1000
 
-RUN groupadd -g $GID builder && \
+RUN groupadd -o -g $GID builder && \
     useradd -m -u $UID -g $GID -g builder builder && \
     usermod -aG sudo builder && \
     echo 'builder ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
