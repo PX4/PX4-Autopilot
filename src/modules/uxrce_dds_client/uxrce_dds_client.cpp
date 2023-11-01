@@ -124,7 +124,7 @@ UxrceddsClient::UxrceddsClient(Transport transport, const char *device, int baud
 			if (fd < 0) {
 				PX4_ERR("open %s failed (%i)", device, errno);
 				// sleep before trying again
-				usleep(1'000'000);
+				px4_usleep(1_s);
 
 			} else {
 				break;
@@ -404,19 +404,43 @@ void UxrceddsClient::run()
 
 		uxr_set_request_callback(&session, on_request, this);
 
-		// Synchronize with the Agent
-		bool synchronized = false;
-
-		while (_synchronize_timestamps && !synchronized) {
-			synchronized = uxr_sync_session(&session, 1000);
-
-			if (synchronized) {
+		// Spin until sync with the Agent
+		while (_synchronize_timestamps) {
+			if (uxr_sync_session(&session, 1000)) {
 				PX4_INFO("synchronized with time offset %-5" PRId64 "us", session.time_offset / 1000);
-				//sleep(1);
 
-			} else {
-				usleep(10000);
+				int64_t agent_utc = hrt_absolute_time() + (session.time_offset / 1000); // ns to us
+
+				// Check if clock is set
+				struct timespec ts = {};
+				px4_clock_gettime(CLOCK_REALTIME, &ts);
+				time_t current_utc = ts.tv_sec + (ts.tv_nsec / 1000000000);
+
+				if (current_utc > agent_utc) {
+					// Assume agents time is wrong if it's in the past
+					PX4_INFO("agents UTC time is %f seconds in the past, not setting clock",
+						 double((current_utc - agent_utc) / 1000000));
+					break;
+				}
+
+				ts.tv_sec = agent_utc / 1_s;
+				ts.tv_nsec = (agent_utc % 1_s) * 1000;
+
+				if (px4_clock_settime(CLOCK_REALTIME, &ts)) {
+					PX4_ERR("failed setting system clock");
+
+				} else {
+					char buf[40];
+					struct tm date_time;
+					localtime_r(&ts.tv_sec, &date_time);
+					strftime(buf, sizeof(buf), "%a %Y-%m-%d %H:%M:%S %Z", &date_time);
+					PX4_INFO("successfully set system clock: %s", buf);
+				}
+
+				break;
 			}
+
+			px4_usleep(10_ms);
 		}
 
 		hrt_abstime last_sync_session = 0;
