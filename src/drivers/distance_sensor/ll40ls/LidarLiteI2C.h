@@ -73,7 +73,7 @@ static constexpr uint8_t LL40LS_UNIT_ID_LOW           = 0x17;
 static constexpr uint8_t LL40LS_SIG_COUNT_VAL_REG     = 0x02; /* Maximum acquisition count register */
 static constexpr uint8_t LL40LS_SIG_COUNT_VAL_MAX     = 0xFF; /* Maximum acquisition count max value */
 
-static constexpr int LL40LS_SIGNAL_STRENGTH_MIN_V3HP  = 70;  /* Min signal strength for V3HP */
+static constexpr int LL40LS_SIGNAL_STRENGTH_MIN_V3HP  = 0;  /* Min signal strength for V3HP */
 static constexpr int LL40LS_SIGNAL_STRENGTH_MAX_V3HP  = 255; /* Max signal strength for V3HP */
 
 static constexpr int LL40LS_SIGNAL_STRENGTH_LOW       = 24;  /* Minimum signal strength for a valid measurement */
