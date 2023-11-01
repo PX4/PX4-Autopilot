@@ -131,7 +131,7 @@ int GZBridge::init()
 		bool gz_called = false;
 		// Check if STANDALONE has been set.
 		char *standalone_val = std::getenv("STANDALONE");
-		if ((standalone_val != nullptr) && (std::strcmp(standalone_val,"t") == 0)) {
+		if ((standalone_val != nullptr) && (std::strcmp(standalone_val, "t") == 0)) {
 			// Check if Gazebo has been called and if not attempt to reconnect.
 			while (gz_called == false) {
 				if (_node.Request(create_service, req, 1000, rep, result)) {
