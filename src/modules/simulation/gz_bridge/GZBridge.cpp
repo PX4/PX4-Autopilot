@@ -84,6 +84,7 @@ int GZBridge::init()
 			fileContent = std::string((std::istreambuf_iterator<char>(file)), (std::istreambuf_iterator<char>()));
 			file.close();
 		}
+
 		req.set_sdf(fileContent);
 
 		req.set_name(_model_name); // New name for the entity, overrides the name on the SDF.
@@ -131,17 +132,20 @@ int GZBridge::init()
 		bool gz_called = false;
 		// Check if STANDALONE has been set.
 		char *standalone_val = std::getenv("STANDALONE");
-		if ((standalone_val != nullptr) && (std::strcmp(standalone_val, "t") == 0)) {
+
+		if ((standalone_val != nullptr) && (std::strcmp(standalone_val, "1") == 0)) {
 			// Check if Gazebo has been called and if not attempt to reconnect.
 			while (gz_called == false) {
 				if (_node.Request(create_service, req, 1000, rep, result)) {
 					if (!rep.data() || !result) {
 						PX4_ERR("EntityFactory service call failed");
 						return PX4_ERROR;
+
 					} else {
 						gz_called = true;
 					}
 				}
+
 				// If Gazebo has not been called, wait 2 seconds and try again.
 				else {
 					PX4_WARN("Service call timed out as Gazebo has not been detected.");

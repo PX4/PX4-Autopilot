@@ -61,7 +61,7 @@ elif [ "$PX4_SIMULATOR" = "gz" ] || [ "$(param show -q SIM_GZ_EN)" -eq "1" ]; th
 	fi
 
 	# Only start up Gazebo if STANDALONE set to false
-	if [ "$STANDALONE" != 't' ]; then
+	if [ "$STANDALONE" != '1' ]; then
 
 		# "gz sim" only avaiilable in Garden and later
 		GZ_SIM_VERSIONS=$(gz sim --versions 2>&1)
