@@ -91,6 +91,7 @@ Battery::Battery(int index, ModuleParams *parent, const int sample_interval_us, 
 	_param_handles.source = param_find(param_name);
 
 	_param_handles.low_thr = param_find("BAT_LOW_THR");
+	_param_handles.crit_v = param_find("BAT_CRIT_V");
 	_param_handles.crit_thr = param_find("BAT_CRIT_THR");
 	_param_handles.emergen_thr = param_find("BAT_EMERGEN_THR");
 
@@ -232,9 +233,9 @@ void Battery::estimateStateOfCharge(const float voltage_v, const float current_a
 			_state_of_charge = 0.f;
 		}
 
-		// Voltage Monitor warning - Coulomb counting won't catch cell failures so we add a warning if cell voltage drops to a critical level (3.4V).
+		// Voltage Monitor warning - Coulomb counting won't catch cell failures so we add a warning if cell voltage drops to a critical level
 		// Note - doing this on actual cell voltage (not current-corrected OC voltage) as that's the critical parameter for pack safety
-		if (_armed && cell_voltage < float(3.45) && (hrt_absolute_time() - _sees_warning_last > 10'000'000)
+		if (_armed && cell_voltage < _params.crit_v && (hrt_absolute_time() - _sees_warning_last > 10'000'000)
 		    && _params.capacity > 0) {
 			mavlink_log_critical(&_mavlink_log_pub, "Warning, Critical cell voltage %.2fV. Land Immediately!",
 					     double(cell_voltage));
@@ -388,6 +389,7 @@ void Battery::updateParams()
 	param_get(_param_handles.r_internal, &_params.r_internal);
 	param_get(_param_handles.source, &_params.source);
 	param_get(_param_handles.low_thr, &_params.low_thr);
+	param_get(_param_handles.crit_v, &_params.crit_v);
 	param_get(_param_handles.crit_thr, &_params.crit_thr);
 	param_get(_param_handles.emergen_thr, &_params.emergen_thr);
 	param_get(_param_handles.bat_avrg_current, &_params.bat_avrg_current);

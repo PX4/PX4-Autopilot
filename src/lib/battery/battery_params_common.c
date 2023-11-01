@@ -55,6 +55,21 @@
 PARAM_DEFINE_FLOAT(BAT_LOW_THR, 0.15f);
 
 /**
+ * Critical voltage threshold
+ *
+ * Sets the voltage threshold when the battery will be reported as critically low.
+ * This triggers a pilot warning only.
+ *
+ * @group Battery Calibration
+ * @unit V
+ * @min 0.05
+ * @max 4.00
+ * @decimal 3
+ * @increment 0.01
+ */
+PARAM_DEFINE_FLOAT(BAT_CRIT_V, 3.500f);
+
+/**
  * Critical threshold
  *
  * Sets the threshold when the battery will be reported as critically low.

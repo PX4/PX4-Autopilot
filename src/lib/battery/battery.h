@@ -119,6 +119,7 @@ protected:
 		param_t v_load_drop;
 		param_t r_internal;
 		param_t low_thr;
+		param_t crit_v;
 		param_t crit_thr;
 		param_t emergen_thr;
 		param_t source;
@@ -133,6 +134,7 @@ protected:
 		float v_load_drop;
 		float r_internal;
 		float low_thr;
+		float crit_v;
 		float crit_thr;
 		float emergen_thr;
 		int32_t source;
@@ -199,20 +201,23 @@ private:
 			float _soc{0.f};
 		};
 		/// size of lookup table - NB MUST be correct or risk of seg_fault / bad lookup
-		const int _lookup_size = 11;
+		const int _lookup_size = 13;
 		/// lookup table - NB MUST be monontonic descending
-		const Lookup _lookup[11] {
-			{4.17, 100.0},
-			{4.09, 89.5},
-			{3.99, 79.1},
-			{3.93, 68.6},
-			{3.87, 58.2},
-			{3.82, 47.7},
-			{3.79, 37.3},
-			{3.77, 26.8},
-			{3.73, 16.4},
-			{3.69, 5.9},
-			{3.50, 0.0}
+		const Lookup _lookup[13] {
+			// Tattu 25Ah High Voltage packs; nominal 4.35V max
+			{4.315f, 100.00f}, //
+			{4.221f, 91.53f}, //
+			{4.132f, 83.08f}, //
+			{4.053f, 74.65f}, //
+			{3.976f, 66.22f}, //
+			{3.898f, 57.76f}, //
+			{3.846f, 49.22f}, //
+			{3.809f, 40.75f}, //
+			{3.780f, 32.23f}, //
+			{3.752f, 23.78f}, //
+			{3.719f, 15.22f}, //
+			{3.683f, 6.55f}, //
+			{3.426f, 0.f}
 		};
 	} _soc_lookup;
 };
