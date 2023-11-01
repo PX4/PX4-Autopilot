@@ -87,4 +87,6 @@ private:
 
 	ManualVelocitySmoothingXY _smoothing_xy; ///< Smoothing in x and y directions
 	ManualVelocitySmoothingZ _smoothing_z; ///< Smoothing in z direction
+
+	bool _terrain_hold_previous{false}; /**< true when vehicle was controlling height above a static ground position in the previous iteration */
 };

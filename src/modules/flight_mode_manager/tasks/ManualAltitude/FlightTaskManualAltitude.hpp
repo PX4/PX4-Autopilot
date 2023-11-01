@@ -75,6 +75,7 @@ protected:
 	StickYaw _stick_yaw{this};
 
 	bool _sticks_data_required = true; ///< let inherited task-class define if it depends on stick data
+	bool _terrain_hold{false}; /**< true when vehicle is controlling height above a static ground position */
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
 					(ParamFloat<px4::params::MPC_HOLD_MAX_Z>) _param_mpc_hold_max_z,
@@ -121,8 +122,6 @@ private:
 	void setGearAccordingToSwitch();
 
 	uint8_t _reset_counter = 0; /**< counter for estimator resets in z-direction */
-	bool _terrain_follow{false}; /**< true when the vehicle is following the terrain height */
-	bool _terrain_hold{false}; /**< true when vehicle is controlling height above a static ground position */
 
 	float _min_distance_to_ground{(float)(-INFINITY)}; /**< min distance to ground constraint */
 	float _max_distance_to_ground{(float)INFINITY};  /**< max distance to ground constraint */
