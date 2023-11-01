@@ -32,22 +32,24 @@
  ****************************************************************************/
 
 #include <px4_platform_common/module.h>
-#include <px4_platform_common/module_params.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/log.h>
-#include <px4_platform_common/posix.h>
 
-#include <uORB/SubscriptionInterval.hpp>
-#include <uORB/topics/parameter_update.h>
-#include <uORB/topics/sensor_combined.h>
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/topics/manual_control_setpoint.h>
+
+#include "bind_socket.hpp"
+#include "deserialise_msg.hpp"
+#include <stdexcept>
 
 
-using namespace time_literals;
+constexpr in_port_t default_port = 51324;
 
-class ManualControlInUDP : public ModuleBase<ManualControlInUDP>, public ModuleParams
+
+class ManualControlInUDP : public ModuleBase<ManualControlInUDP>//, public ModuleParams
 {
 public:
-	ManualControlInUDP(int example_param, bool example_flag);
+	ManualControlInUDP(in_port_t port);
 
 	virtual ~ManualControlInUDP() = default;
 
@@ -70,22 +72,13 @@ public:
 	int print_status() override;
 
 private:
+	uORB::PublicationMulti<manual_control_setpoint_s> _pub_manual_control_input{ORB_ID(manual_control_input)};
 
-	/**
-	 * Check for parameter changes and update them if needed.
-	 * @param parameter_update_sub uorb subscription to parameter_update
-	 * @param force for a parameter update
-	 */
-	void parameters_update(bool force = false);
+	int socketfd;
 
+	std::array<uint8_t, MSG_MAX_SIZE> msg;
 
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SYS_AUTOSTART>) _param_sys_autostart,   /**< example parameter */
-		(ParamInt<px4::params::SYS_AUTOCONFIG>) _param_sys_autoconfig  /**< another parameter */
-	)
-
-	// Subscriptions
-	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	manual_control_setpoint_s ms;
 
 };
 
@@ -99,19 +92,6 @@ int ManualControlInUDP::print_status()
 
 int ManualControlInUDP::custom_command(int argc, char *argv[])
 {
-	/*
-	if (!is_running()) {
-		print_usage("not running");
-		return 1;
-	}
-
-	// additional custom commands can be handled like this:
-	if (!strcmp(argv[0], "do-something")) {
-		get_instance()->do_something();
-		return 0;
-	}
-	 */
-
 	return print_usage("unknown command");
 }
 
@@ -135,104 +115,62 @@ int ManualControlInUDP::task_spawn(int argc, char *argv[])
 
 ManualControlInUDP *ManualControlInUDP::instantiate(int argc, char *argv[])
 {
-	int example_param = 0;
-	bool example_flag = false;
-	bool error_flag = false;
+	in_port_t port = default_port;
 
 	int myoptind = 1;
 	int ch;
 	const char *myoptarg = nullptr;
 
 	// parse CLI arguments
-	while ((ch = px4_getopt(argc, argv, "p:f", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "p", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'p':
-			example_param = (int)strtol(myoptarg, nullptr, 10);
-			break;
-
-		case 'f':
-			example_flag = true;
-			break;
-
-		case '?':
-			error_flag = true;
+			port = (in_port_t)strtol(myoptarg, nullptr, 10);
 			break;
 
 		default:
 			PX4_WARN("unrecognized flag");
-			error_flag = true;
 			break;
 		}
 	}
 
-	if (error_flag) {
-		return nullptr;
-	}
+	ManualControlInUDP *instance = nullptr;
 
-	ManualControlInUDP *instance = new ManualControlInUDP(example_param, example_flag);
+	try {
+		instance = new ManualControlInUDP(port);
 
-	if (instance == nullptr) {
-		PX4_ERR("alloc failed");
+	} catch (const std::runtime_error &e) {
+		PX4_ERR("%s", e.what());
 	}
 
 	return instance;
 }
 
-ManualControlInUDP::ManualControlInUDP(int example_param, bool example_flag)
-	: ModuleParams(nullptr)
+ManualControlInUDP::ManualControlInUDP(in_port_t port)
 {
+	socketfd = bind_socket(port);
+
+	if (socketfd < 0) {
+		throw std::runtime_error("failed to bind socket");
+	}
+
+	PX4_INFO("listening on UDP port %d", port);
 }
 
 void ManualControlInUDP::run()
 {
-	// Example: run the loop synchronized to the sensor_combined topic publication
-	int sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
-
-	px4_pollfd_struct_t fds[1];
-	fds[0].fd = sensor_combined_sub;
-	fds[0].events = POLLIN;
-
-	// initialize parameters
-	parameters_update(true);
-
 	while (!should_exit()) {
+		msg.fill(0);
+		const ssize_t msg_size = recv(socketfd, msg.data(), msg.size(), 0);
 
-		// wait for up to 1000ms for data
-		int pret = px4_poll(fds, (sizeof(fds) / sizeof(fds[0])), 1000);
-
-		if (pret == 0) {
-			// Timeout: let the loop run anyway, don't do `continue` here
-
-		} else if (pret < 0) {
-			// this is undesirable but not much we can do
-			PX4_ERR("poll error %d, %d", pret, errno);
-			px4_usleep(50000);
+		if (msg_size == -1) {
+			PX4_WARN("Failed to read from socket: %s", strerror(errno));
 			continue;
-
-		} else if (fds[0].revents & POLLIN) {
-
-			struct sensor_combined_s sensor_combined;
-			orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor_combined);
-			// TODO: do something with the data...
-
 		}
 
-		parameters_update();
-	}
-
-	orb_unsubscribe(sensor_combined_sub);
-}
-
-void ManualControlInUDP::parameters_update(bool force)
-{
-	// check for parameter updates
-	if (_parameter_update_sub.updated() || force) {
-		// clear update
-		parameter_update_s update;
-		_parameter_update_sub.copy(&update);
-
-		// update parameters from storage
-		updateParams();
+		if (deserialise_msg(msg, (size_t)msg_size, ms)) {
+			_pub_manual_control_input.publish(ms);
+		}
 	}
 }
 
@@ -242,26 +180,8 @@ int ManualControlInUDP::print_usage(const char *reason)
 		PX4_WARN("%s\n", reason);
 	}
 
-	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Section that describes the provided module functionality.
-
-This is a template for a module running as a task in the background with start/stop/status functionality.
-
-### Implementation
-Section describing the high-level implementation of this module.
-
-### Examples
-CLI usage example:
-$ module start -f -p 42
-
-)DESCR_STR");
-
-	PRINT_MODULE_USAGE_NAME("module", "template");
 	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Optional example flag", true);
-	PRINT_MODULE_USAGE_PARAM_INT('p', 0, 0, 1000, "Optional example parameter", true);
+	PRINT_MODULE_USAGE_PARAM_INT('p', default_port, 0, 65535, "UDP port", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;

@@ -36,4 +36,6 @@ px4_add_module(
 	MAIN mc_in_udp
 	SRCS
 		mc_in_udp.cpp
+		bind_socket.cpp
+		deserialise_msg.cpp
 	)
