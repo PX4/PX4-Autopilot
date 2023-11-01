@@ -60,6 +60,9 @@
 #if defined(CONFIG_UAVCAN_SENSOR_GNSS)
 #include "gnss.hpp"
 #endif
+#if defined(CONFIG_UAVCAN_SENSOR_GNSS_RELATIVE)
+#include "gnss_relative.hpp"
+#endif
 #if defined(CONFIG_UAVCAN_SENSOR_HYGROMETER)
 #include "hygrometer.hpp"
 #endif
@@ -143,6 +146,17 @@ void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge
 
 	if (uavcan_sub_gps != 0) {
 		list.add(new UavcanGnssBridge(node));
+	}
+
+#endif
+
+	// GPS relative
+#if defined(CONFIG_UAVCAN_SENSOR_GNSS_RELATIVE)
+	int32_t uavcan_sub_gps_rel = 1;
+	param_get(param_find("UAVCAN_SUB_GPS_R"), &uavcan_sub_gps_rel);
+
+	if (uavcan_sub_gps_rel != 0) {
+		list.add(new UavcanGnssRelativeBridge(node));
 	}
 
 #endif
