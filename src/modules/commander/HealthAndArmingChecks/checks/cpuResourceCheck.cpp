@@ -41,6 +41,8 @@ void CpuResourceChecks::checkAndReport(const Context &context, Report &reporter)
 		return;
 	}
 
+	static hrt_abstime high_cpu_load_start_time_us_ = 0;
+
 	cpuload_s cpuload;
 
 	if (!_cpuload_sub.copy(&cpuload) || hrt_elapsed_time(&cpuload.timestamp) > 2_s) {
@@ -59,26 +61,37 @@ void CpuResourceChecks::checkAndReport(const Context &context, Report &reporter)
 			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: No CPU load information");
 		}
 
+		high_cpu_load_start_time_us_ = hrt_absolute_time(); // reset
+
 	} else {
 		const float cpuload_percent = cpuload.load * 100.f;
 
 		if (cpuload_percent > _param_com_cpu_max.get()) {
 
-			/* EVENT
-			 * @description
-			 * The CPU load can be reduced for example by disabling unused modules (e.g. mavlink instances) or reducing the gyro update
-			 * rate via <param>IMU_GYRO_RATEMAX</param>.
-			 *
-			 * <profile name="dev">
-			 * The threshold can be adjusted via <param>COM_CPU_MAX</param> parameter.
-			 * </profile>
-			 */
-			reporter.healthFailure<float>(NavModes::All, health_component_t::system, events::ID("check_cpuload_too_high"),
-						      events::Log::Error, "CPU load too high: {1:.1}%", cpuload_percent);
+			// trigger the failure if the CPU load is above the threshold for 2 seconds
+			if (high_cpu_load_start_time_us_ == 0) {
+				high_cpu_load_start_time_us_ = hrt_absolute_time();
 
-			if (reporter.mavlink_log_pub()) {
-				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: CPU load too high: %3.1f%%", (double)cpuload_percent);
+			} else if (hrt_elapsed_time(&high_cpu_load_start_time_us_) > 2_s) {
+				/* EVENT
+				* @description
+				* The CPU load can be reduced for example by disabling unused modules (e.g. mavlink instances) or reducing the gyro update
+				* rate via <param>IMU_GYRO_RATEMAX</param>.
+				*
+				* <profile name="dev">
+				* The threshold can be adjusted via <param>COM_CPU_MAX</param> parameter.
+				* </profile>
+				*/
+				reporter.healthFailure<float>(NavModes::All, health_component_t::system, events::ID("check_cpuload_too_high"),
+							      events::Log::Error, "CPU load too high: {1:.1}%", cpuload_percent);
+
+				if (reporter.mavlink_log_pub()) {
+					mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: CPU load too high: %3.1f%%", (double)cpuload_percent);
+				}
 			}
+
+		} else {
+			high_cpu_load_start_time_us_ = 0; // reset
 		}
 	}
 }
