@@ -418,7 +418,7 @@ void UxrceddsClient::run()
 
 				if (current_utc > agent_utc) {
 					// Assume agents time is wrong if it's in the past
-					PX4_INFO("agents UTC time is %f seconds in the past, not setting clock",
+					PX4_DEBUG("agents UTC time is %f seconds in the past, not setting clock",
 						 double((current_utc - agent_utc) / 1000000));
 					break;
 				}
