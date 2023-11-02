@@ -76,7 +76,7 @@ param set-default CA_SV_CS1_TRQ_R 0.5
 param set-default CA_SV_CS2_TYPE 3
 param set-default CA_SV_CS2_TRQ_P 1.0
 
-param set-default FW_L1_PERIOD 12
+# param set-default FW_L1_PERIOD 12
 param set-default FW_PR_FF 0.2
 param set-default FW_PR_P 0.9
 param set-default FW_PSP_OFF 2
@@ -102,6 +102,7 @@ param set-default MPC_XY_VEL_I_ACC 4
 param set-default MPC_XY_VEL_D_ACC 0.1
 
 param set-default NAV_ACC_RAD 5
+param set-default NAV_DLL_ACT 2
 
 param set-default VT_FWD_THRUST_EN 4
 param set-default VT_F_TRANS_THR 0.75
