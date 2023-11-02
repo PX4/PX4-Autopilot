@@ -247,7 +247,7 @@ bool VTEOrientation::fuse_orientation(const targetObsOrientation &target_orienta
 		target_innov.timestamp_sample = target_orientation_obs.timestamp;
 		target_innov.timestamp = hrt_absolute_time();
 
-		// log test ratio defined as _innov / _innov_cov * _innov. If test_ratio > 3.84, no fusion
+		// log test ratio defined as _innov / _innov_cov * _innov. If test_ratio > _nis_threshold, no fusion
 		target_innov.test_ratio = _target_estimator_orientation->getTestRatio();
 
 	} else {

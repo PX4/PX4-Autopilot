@@ -135,7 +135,7 @@ PARAM_DEFINE_INT32(VTE_MODE, 0);
 /**
  * Vision Target Timeout
  *
- * Time after which the target is considered lost without any new measurements.
+ * Time after which the target is considered lost without any new position measurements. Velocity measurements are not considered.
  *
  * @unit s
  * @min 0.0
@@ -192,7 +192,7 @@ PARAM_DEFINE_FLOAT(VTE_BIAS_UNC, 0.05f);
 /**
  * Bias limit
  *
- * Maximal bias between drone's GNSS and the target's GNSS.
+ * Not handled yet. Maximal bias between drone's GNSS and the target's GNSS.
  *
  * @unit m^2
  * @min 0.01
