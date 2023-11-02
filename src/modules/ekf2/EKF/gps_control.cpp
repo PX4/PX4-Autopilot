@@ -248,6 +248,7 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 					// reset position
 					_information_events.flags.reset_pos_to_gps = true;
 					resetHorizontalPositionTo(position, pos_obs_var);
+					_gpos_origin_eph = 0.f; // The uncertainty of the global origin is now contained in the local position uncertainty
 					_aid_src_gnss_pos.time_last_fuse = _time_delayed_us;
 				}
 
