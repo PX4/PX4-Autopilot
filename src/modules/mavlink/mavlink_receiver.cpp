@@ -1724,7 +1724,7 @@ MavlinkReceiver::handle_message_battery_status(mavlink_message_t *msg)
 
 	battery_status.voltage_v = voltage_sum;
 	battery_status.voltage_filtered_v  = voltage_sum;
-	battery_status.current_a = battery_status.current_filtered_a = (float)(battery_mavlink.current_battery) / 100.0f;
+	battery_status.current_a = (float)(battery_mavlink.current_battery) / 100.0f;
 	battery_status.current_filtered_a = battery_status.current_a;
 	battery_status.remaining = (float)battery_mavlink.battery_remaining / 100.0f;
 	battery_status.discharged_mah = (float)battery_mavlink.current_consumed;
