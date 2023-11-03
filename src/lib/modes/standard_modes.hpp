@@ -93,5 +93,36 @@ static inline uint8_t getNavStateFromStandardMode(StandardMode mode)
 	return vehicle_status_s::NAVIGATION_STATE_MAX;
 }
 
+/**
+ * @return returns true for advanced modes
+ */
+static inline bool isAdvanced(uint8_t nav_state)
+{
+	switch (nav_state) {
+	case vehicle_status_s::NAVIGATION_STATE_ALTCTL: return false;
+
+	case vehicle_status_s::NAVIGATION_STATE_POSCTL: return false;
+
+	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL1: return false;
+
+	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL2: return false;
+
+	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL3: return false;
+
+	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL4: return false;
+
+	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL5: return false;
+
+	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL6: return false;
+
+	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL7: return false;
+
+	case vehicle_status_s::NAVIGATION_STATE_EXTERNAL8: return false;
+
+	}
+
+	return true;
+}
+
 
 } // namespace mode_util
