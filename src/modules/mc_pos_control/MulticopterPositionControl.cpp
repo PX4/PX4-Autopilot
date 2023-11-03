@@ -466,10 +466,11 @@ void MulticopterPositionControl::Run()
 				_vehicle_constraints.speed_down = _param_mpc_z_vel_max_dn.get();
 			}
 
+			bool skip_takeoff = _param_com_throw_en.get();
 			// handle smooth takeoff
 			_takeoff.updateTakeoffState(_vehicle_control_mode.flag_armed, _vehicle_land_detected.landed,
 						    _vehicle_constraints.want_takeoff,
-						    _vehicle_constraints.speed_up, false, vehicle_local_position.timestamp_sample);
+						    _vehicle_constraints.speed_up, skip_takeoff, vehicle_local_position.timestamp_sample);
 
 			const bool not_taken_off             = (_takeoff.getTakeoffState() < TakeoffState::rampup);
 			const bool flying                    = (_takeoff.getTakeoffState() >= TakeoffState::flight);

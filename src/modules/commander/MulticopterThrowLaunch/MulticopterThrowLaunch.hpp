@@ -56,9 +56,10 @@ public:
 	/**
 	 * @return false if feature disabled or already flying
 	 */
-	bool isThrowLaunchInProgress() const {
+	bool isThrowLaunchInProgress() const
+	{
 		return _throw_launch_state != ThrowLaunchState::DISABLED
-			&& _throw_launch_state != ThrowLaunchState::FLYING;
+		       && _throw_launch_state != ThrowLaunchState::FLYING;
 	}
 
 	bool isReadyToThrow() const { return _throw_launch_state == ThrowLaunchState::ARMED; }

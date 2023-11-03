@@ -53,15 +53,15 @@ TEST(TakeoffTest, RegularTakeoffRamp)
 	takeoff.updateTakeoffState(false, true, false, 1.f, false, 0);
 	EXPECT_EQ(takeoff.getTakeoffState(), TakeoffState::disarmed);
 
-	// armed, landed, don't want takeoff
-	takeoff.updateTakeoffState(true, true, false, 1.f, false, 500_ms);
+	// armed, not landed anymore, don't want takeoff
+	takeoff.updateTakeoffState(true, false, false, 1.f, false, 500_ms);
 	EXPECT_EQ(takeoff.getTakeoffState(), TakeoffState::spoolup);
 
-	// armed, landed, don't want takeoff yet, spoolup time passed
-	takeoff.updateTakeoffState(true, true, false, 1.f, false, 2_s);
+	// armed, not landed, don't want takeoff yet, spoolup time passed
+	takeoff.updateTakeoffState(true, false, false, 1.f, false, 2_s);
 	EXPECT_EQ(takeoff.getTakeoffState(), TakeoffState::ready_for_takeoff);
 
-	// armed, not landed anymore, want takeoff
+	// armed, not landed, want takeoff
 	takeoff.updateTakeoffState(true, false, true, 1.f, false, 3_s);
 	EXPECT_EQ(takeoff.getTakeoffState(), TakeoffState::rampup);
 
