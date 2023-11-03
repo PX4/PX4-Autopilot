@@ -147,7 +147,10 @@ private:
 		param_t tilt_index;
 	};
 	ParamHandles _param_handles[NUM_ROTORS_MAX];
-	param_t _count_handle;
 
 	Geometry _geometry{};
+
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::CA_ROTOR_COUNT>) _param_ca_rotor_count
+	)
 };
