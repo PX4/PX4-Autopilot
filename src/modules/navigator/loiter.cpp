@@ -94,7 +94,21 @@ Loiter::set_loiter_position()
 		_mission_item.nav_cmd = NAV_CMD_IDLE;
 
 	} else {
-		if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+		// Check if we already loiter on a circle and are on the loiter pattern.
+		bool on_loiter{false};
+
+		if (pos_sp_triplet->current.valid && pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER
+		    && pos_sp_triplet->current.loiter_pattern == position_setpoint_s::LOITER_TYPE_ORBIT) {
+			const float d_current = get_distance_to_next_waypoint(pos_sp_triplet->current.lat, pos_sp_triplet->current.lon,
+						_navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
+			on_loiter = d_current <= (_navigator->get_acceptance_radius() + pos_sp_triplet->current.loiter_radius);
+
+		}
+
+		if (on_loiter) {
+			setLoiterItemFromCurrentPositionSetpoint(&_mission_item);
+
+		} else if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 			setLoiterItemFromCurrentPositionWithBreaking(&_mission_item);
 
 		} else {
