@@ -43,6 +43,7 @@ void MulticopterThrowLaunch::update(const bool armed)
 	if (_param_com_throw_en.get()) {
 		if (_vehicle_local_position_sub.updated()) {
 			vehicle_local_position_s vehicle_local_position{};
+
 			if (_vehicle_local_position_sub.copy(&vehicle_local_position)) {
 				_last_velocity = matrix::Vector3f(vehicle_local_position.vx, vehicle_local_position.vy, vehicle_local_position.vz);
 			}
