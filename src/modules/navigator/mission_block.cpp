@@ -747,7 +747,8 @@ MissionBlock::setLoiterItemFromCurrentPositionSetpoint(struct mission_item_s *it
 	item->lat = pos_sp_triplet->current.lat;
 	item->lon = pos_sp_triplet->current.lon;
 	item->altitude = pos_sp_triplet->current.alt;
-	item->loiter_radius = pos_sp_triplet->current.loiter_radius;
+	item->loiter_radius = pos_sp_triplet->current.loiter_direction_counter_clockwise ?
+			      -pos_sp_triplet->current.loiter_radius : pos_sp_triplet->current.loiter_radius;
 }
 
 void
