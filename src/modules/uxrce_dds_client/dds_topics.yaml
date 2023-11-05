@@ -79,9 +79,6 @@ subscriptions:
   - topic: /fmu/in/vehicle_visual_odometry
     type: px4_msgs::msg::VehicleOdometry
 
-  - topic: /fmu/in/vehicle_command
-    type: px4_msgs::msg::VehicleCommand
-
   - topic: /fmu/in/vehicle_trajectory_bezier
     type: px4_msgs::msg::VehicleTrajectoryBezier
 

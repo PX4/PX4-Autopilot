@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,6 +36,9 @@
 #include <px4_platform_common/posix.h>
 
 #include "uxrce_dds_client.h"
+
+// services
+#include "vehicle_command_srv.h"
 
 #include <uxr/client/client.h>
 #include <uxr/client/util/ping.h>
@@ -73,8 +76,6 @@ void on_time(uxrSession *session, int64_t current_time, int64_t received_timesta
 		Timesync *timesync = static_cast<Timesync *>(args);
 		timesync->update(current_time / 1000, transmit_timestamp, originate_timestamp);
 
-		//fprintf(stderr, "time_offset: %ld, timesync: %ld, diff: %ld\n", session->time_offset/1000, timesync->offset(), session->time_offset/1000 + timesync->offset());
-
 		session->time_offset = -timesync->offset() * 1000; // us -> ns
 	}
 }
@@ -83,6 +84,27 @@ void on_time_no_sync(uxrSession *session, int64_t current_time, int64_t received
 		     int64_t originate_timestamp, void *args)
 {
 	session->time_offset = 0;
+}
+
+
+void on_request(
+	uxrSession *session,
+	uxrObjectId object_id,
+	uint16_t request_id,
+	SampleIdentity *sample_id,
+	ucdrBuffer *ub,
+	uint16_t length,
+	void *args)
+{
+	(void) request_id;
+	(void) length;
+	(void) args;
+
+	const int64_t time_offset_us = session->time_offset / 1000; // ns -> us
+
+	UxrceddsClient *client = (UxrceddsClient *)args;
+
+	client->process_requests(object_id, sample_id, ub, time_offset_us);
 }
 
 UxrceddsClient::UxrceddsClient(Transport transport, const char *device, int baudrate, const char *agent_ip,
@@ -152,6 +174,8 @@ UxrceddsClient::~UxrceddsClient()
 {
 	delete _subs;
 	delete _pubs;
+
+	delete_repliers();
 
 	if (_transport_serial) {
 		uxr_close_serial_transport(_transport_serial);
@@ -225,10 +249,8 @@ void UxrceddsClient::run()
 		uxrStreamId reliable_in = uxr_create_input_reliable_stream(&session, input_reliable_stream_buffer,
 					  sizeof(input_reliable_stream_buffer),
 					  STREAM_HISTORY);
-		(void)reliable_in;
 
 		uxrStreamId best_effort_in = uxr_create_input_best_effort_stream(&session);
-		(void)best_effort_in;
 
 		// Create entities
 		uxrObjectId participant_id = uxr_object_id(0x01, UXR_PARTICIPANT_ID);
@@ -300,6 +322,15 @@ void UxrceddsClient::run()
 			return;
 		}
 
+		// create VehicleCommand replier
+		if (num_of_repliers < MAX_NUM_REPLIERS) {
+			if (add_replier(new VehicleCommandSrv(&session, reliable_out, reliable_in, participant_id, _client_namespace,
+							      num_of_repliers))) {
+				PX4_ERR("replier init failed");
+				return;
+			}
+		}
+
 		_connected = true;
 
 		// Set time-callback.
@@ -309,6 +340,8 @@ void UxrceddsClient::run()
 		} else {
 			uxr_set_time_callback(&session, on_time_no_sync, nullptr);
 		}
+
+		uxr_set_request_callback(&session, on_request, this);
 
 		// Synchronize with the Agent
 		bool synchronized = false;
@@ -359,6 +392,9 @@ void UxrceddsClient::run()
 
 			_subs->update(&session, reliable_out, best_effort_out, participant_id, _client_namespace);
 
+			// check if there are available replies
+			process_replies();
+
 			uxr_run_session_timeout(&session, 0);
 
 			// time sync session
@@ -408,6 +444,8 @@ void UxrceddsClient::run()
 			}
 
 		}
+
+		delete_repliers();
 
 		uxr_delete_session_retries(&session, _connected ? 1 : 0);
 		_last_payload_tx_rate = 0;
@@ -551,6 +589,46 @@ int UxrceddsClient::setBaudrate(int fd, unsigned baud)
 	}
 
 	return 0;
+}
+
+bool UxrceddsClient::add_replier(SrvBase *replier)
+{
+	if (num_of_repliers < MAX_NUM_REPLIERS) {
+		repliers_[num_of_repliers] = replier;
+
+		num_of_repliers++;
+	}
+
+	return false;
+}
+
+void UxrceddsClient::process_requests(uxrObjectId object_id, SampleIdentity *sample_id, ucdrBuffer *ub,
+				      const int64_t time_offset_us)
+{
+	for (uint8_t i = 0; i < num_of_repliers; i++) {
+		if (object_id.id == repliers_[i]->replier_id_.id
+		    && object_id.type == repliers_[i]->replier_id_.type) {
+			repliers_[i]->process_request(ub, time_offset_us);
+			memcpy(&(repliers_[i]->sample_id_), sample_id, sizeof(repliers_[i]->sample_id_));
+			break;
+		}
+	}
+}
+
+void UxrceddsClient::process_replies()
+{
+	for (uint8_t i = 0; i < num_of_repliers; i++) {
+		repliers_[i]->process_reply();
+	}
+}
+
+void UxrceddsClient::delete_repliers()
+{
+	for (uint8_t i = 0; i < num_of_repliers; i++) {
+		delete (repliers_[i]);
+	}
+
+	num_of_repliers = 0;
 }
 
 int UxrceddsClient::custom_command(int argc, char *argv[])
