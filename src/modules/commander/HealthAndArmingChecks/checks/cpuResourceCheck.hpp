@@ -35,13 +35,15 @@
 
 #include "../Common.hpp"
 
+#include <lib/hysteresis/hysteresis.h>
+
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/cpuload.h>
 
 class CpuResourceChecks : public HealthAndArmingCheckBase
 {
 public:
-	CpuResourceChecks() = default;
+	CpuResourceChecks();
 	~CpuResourceChecks() = default;
 
 	void checkAndReport(const Context &context, Report &reporter) override;
@@ -49,7 +51,7 @@ public:
 private:
 	uORB::Subscription _cpuload_sub{ORB_ID(cpuload)};
 
-	hrt_abstime high_cpu_load_start_time_us_{0};
+	systemlib::Hysteresis _high_cpu_load_hysteresis{false};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
 					(ParamFloat<px4::params::COM_CPU_MAX>) _param_com_cpu_max

@@ -35,6 +35,12 @@
 
 using namespace time_literals;
 
+CpuResourceChecks::CpuResourceChecks()
+{
+	_high_cpu_load_hysteresis.set_hysteresis_time_from(false, 2_s);
+	_high_cpu_load_hysteresis.set_hysteresis_time_from(true, 2_s);
+}
+
 void CpuResourceChecks::checkAndReport(const Context &context, Report &reporter)
 {
 	if (_param_com_cpu_max.get() < FLT_EPSILON) {
@@ -59,37 +65,28 @@ void CpuResourceChecks::checkAndReport(const Context &context, Report &reporter)
 			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: No CPU load information");
 		}
 
-		high_cpu_load_start_time_us_ = hrt_absolute_time(); // reset
-
 	} else {
 		const float cpuload_percent = cpuload.load * 100.f;
+		const bool high_cpu_load = cpuload_percent > _param_com_cpu_max.get();
+		_high_cpu_load_hysteresis.set_state_and_update(high_cpu_load, hrt_absolute_time());
 
-		if (cpuload_percent > _param_com_cpu_max.get()) {
+		// fail check if CPU load is above the threshold for 2 seconds
+		if (_high_cpu_load_hysteresis.get_state()) {
+			/* EVENT
+			 * @description
+			 * The CPU load can be reduced for example by disabling unused modules (e.g. mavlink instances) or reducing the gyro update
+			 * rate via <param>IMU_GYRO_RATEMAX</param>.
+			 *
+			 * <profile name="dev">
+			 * The threshold can be adjusted via <param>COM_CPU_MAX</param> parameter.
+			 * </profile>
+			 */
+			reporter.healthFailure<float>(NavModes::All, health_component_t::system, events::ID("check_cpuload_too_high"),
+						      events::Log::Error, "CPU load too high: {1:.1}%", cpuload_percent);
 
-			// trigger the failure if the CPU load is above the threshold for 2 seconds
-			if (high_cpu_load_start_time_us_ == 0) {
-				high_cpu_load_start_time_us_ = hrt_absolute_time();
-
-			} else if (hrt_elapsed_time(&high_cpu_load_start_time_us_) > 2_s) {
-				/* EVENT
-				* @description
-				* The CPU load can be reduced for example by disabling unused modules (e.g. mavlink instances) or reducing the gyro update
-				* rate via <param>IMU_GYRO_RATEMAX</param>.
-				*
-				* <profile name="dev">
-				* The threshold can be adjusted via <param>COM_CPU_MAX</param> parameter.
-				* </profile>
-				*/
-				reporter.healthFailure<float>(NavModes::All, health_component_t::system, events::ID("check_cpuload_too_high"),
-							      events::Log::Error, "CPU load too high: {1:.1}%", cpuload_percent);
-
-				if (reporter.mavlink_log_pub()) {
-					mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: CPU load too high: %3.1f%%", (double)cpuload_percent);
-				}
+			if (reporter.mavlink_log_pub()) {
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: CPU load too high: %3.1f%%", (double)cpuload_percent);
 			}
-
-		} else {
-			high_cpu_load_start_time_us_ = 0; // reset
 		}
 	}
 }
