@@ -55,6 +55,7 @@ static void print_usage()
 #ifdef BOARD_HAS_ISP_BOOTLOADER
 	PRINT_MODULE_USAGE_PARAM_FLAG('i', "Reboot into ISP (1st stage bootloader)", true);
 #endif
+	PRINT_MODULE_USAGE_PARAM_FLAG('c', "Bootloader continue boot", true);
 
 	PRINT_MODULE_USAGE_ARG("lock|unlock", "Take/release the shutdown lock (for testing)", true);
 }
@@ -67,7 +68,7 @@ extern "C" __EXPORT int reboot_main(int argc, char *argv[])
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
 
-	while ((ch = px4_getopt(argc, argv, "bi", &myoptind, &myoptarg)) != -1) {
+	while ((ch = px4_getopt(argc, argv, "bic", &myoptind, &myoptarg)) != -1) {
 		switch (ch) {
 		case 'b':
 			request = REBOOT_TO_BOOTLOADER;
@@ -79,6 +80,10 @@ extern "C" __EXPORT int reboot_main(int argc, char *argv[])
 			request = REBOOT_TO_ISP;
 			break;
 #endif
+
+		case 'c':
+			request = REBOOT_TO_BOOTLOADER_CONTINUE;
+			break;
 
 		default:
 			print_usage();
