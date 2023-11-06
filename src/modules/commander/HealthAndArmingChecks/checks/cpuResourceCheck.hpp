@@ -49,6 +49,8 @@ public:
 private:
 	uORB::Subscription _cpuload_sub{ORB_ID(cpuload)};
 
+	hrt_abstime high_cpu_load_start_time_us_{0};
+
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
 					(ParamFloat<px4::params::COM_CPU_MAX>) _param_com_cpu_max
 				       )
