@@ -484,6 +484,7 @@ void MulticopterPositionControl::Run()
 				_setpoint.acceleration[2] = NAN;
 			}
 
+
 			if (not_taken_off || flying_but_ground_contact) {
 				// we are not flying yet and need to avoid any corrections
 				_setpoint = PositionControl::empty_trajectory_setpoint;
@@ -559,6 +560,12 @@ void MulticopterPositionControl::Run()
 			_control.getAttitudeSetpoint(attitude_setpoint);
 			attitude_setpoint.timestamp = hrt_absolute_time();
 			_vehicle_attitude_setpoint_pub.publish(attitude_setpoint);
+
+			// publish velocity controller status
+			mc_vel_ctrl_status_s mc_vel_ctrl_status{};
+			_control.getVelControlStatus(mc_vel_ctrl_status);
+			mc_vel_ctrl_status.timestamp = hrt_absolute_time();
+			_vel_controller_status_pub.publish(mc_vel_ctrl_status);
 
 		} else {
 			// an update is necessary here because otherwise the takeoff state doesn't get skipped with non-altitude-controlled modes

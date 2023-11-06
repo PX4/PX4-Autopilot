@@ -203,6 +203,46 @@ bool FailureDetector::update(const vehicle_status_s &vehicle_status, const vehic
 		updateImbalancedPropStatus();
 	}
 
+	if (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+
+		vehicle_local_position_s vehicle_local_position;
+
+
+		if (!got_home_position) {
+			home_position_s home_position;
+
+			if (_sub_home_position.update(&home_position)) {
+				home_z = home_position.z;
+				got_home_position = true;
+			}
+		}
+
+		if (_sub_vehicle_local_position.update(&vehicle_local_position) && !escaped_z_threshold && got_home_position) {
+
+			escaped_z_threshold = (-_param_fd_escape_z.get() > (vehicle_local_position.z - home_z));
+
+			if (escaped_z_threshold) {
+				PX4_INFO("Lift Off Detected!");
+			}
+		}
+
+		position_setpoint_triplet_s pos_sp_triplet;
+
+		if (_sub_pos_sp_triplet.update(&pos_sp_triplet)) {
+			in_takeoff = pos_sp_triplet.current.valid && pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
+		}
+
+		bool detect_flip = !escaped_z_threshold && in_takeoff;
+
+		if (_param_flip_en.get() &&
+		    detect_flip) {
+
+			updateFlipStatus();
+
+		}
+
+	}
+
 	return _status.value != status_prev.value;
 }
 
@@ -251,6 +291,26 @@ void FailureDetector::updateAttitudeStatus(const vehicle_status_s &vehicle_statu
 		// Update status
 		_status.flags.roll = _roll_failure_hysteresis.get_state();
 		_status.flags.pitch = _pitch_failure_hysteresis.get_state();
+	}
+}
+
+void FailureDetector::updateFlipStatus()
+{
+
+	rate_ctrl_status_s rate_ctrl_status;
+	//mc_vel_ctrl_status_s mc_vel_ctrl_status;
+	//_sub_mc_vel_ctrl_status.update(&mc_vel_ctrl_status);
+
+	if (_sub_rate_ctrl_status.update(&rate_ctrl_status) && !escaped_z_threshold) {
+
+		bool pr_speed_integ_saturating = (abs(rate_ctrl_status.pitchspeed_integ) >= _param_fd_fail_pri.get()
+						  or abs(rate_ctrl_status.rollspeed_integ) >= _param_fd_fail_pri.get());
+
+		if (pr_speed_integ_saturating && !_status.flags.flip) {
+			_status.flags.flip = true;
+			PX4_INFO("Flip Detected!");
+		}
+
 	}
 }
 

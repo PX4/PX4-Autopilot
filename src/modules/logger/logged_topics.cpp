@@ -85,6 +85,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("magnetometer_bias_estimate", 200);
 	add_topic("manual_control_setpoint", 200);
 	add_topic("manual_control_switches");
+	add_topic("mc_vel_ctrl_status");
 	add_topic("mission_result");
 	add_topic("navigator_mission_item");
 	add_topic("npfg_status", 100);
@@ -121,8 +122,8 @@ void LoggedTopics::add_default_topics()
 	add_topic("vehicle_global_position", 200);
 	add_topic("vehicle_gps_position", 500);
 	add_topic("vehicle_land_detected");
-	add_topic("vehicle_local_position", 100);
-	add_topic("vehicle_local_position_setpoint", 100);
+	add_topic("vehicle_local_position");
+	add_topic("vehicle_local_position_setpoint");
 	add_topic("vehicle_magnetometer", 200);
 	add_topic("vehicle_rates_setpoint", 20);
 	add_topic("vehicle_roi", 1000);

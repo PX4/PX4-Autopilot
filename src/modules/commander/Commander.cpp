@@ -1811,6 +1811,7 @@ void Commander::run()
 			fd_status.fd_arm_escs = _failure_detector.getStatusFlags().arm_escs;
 			fd_status.fd_battery = _failure_detector.getStatusFlags().battery;
 			fd_status.fd_imbalanced_prop = _failure_detector.getStatusFlags().imbalanced_prop;
+			fd_status.fd_flip =  _failure_detector.getStatusFlags().flip;
 			fd_status.fd_motor = _failure_detector.getStatusFlags().motor;
 			fd_status.imbalanced_prop_metric = _failure_detector.getImbalancedPropMetric();
 			fd_status.motor_failure_mask = _failure_detector.getMotorFailures();

@@ -65,6 +65,7 @@ uint16 FAILURE_ARM_ESC = 16          # (1 << 4)
 uint16 FAILURE_BATTERY = 32          # (1 << 5)
 uint16 FAILURE_IMBALANCED_PROP = 64  # (1 << 6)
 uint16 FAILURE_MOTOR = 128           # (1 << 7)
+uint16 FAILURE_FLIP = 128            # (1 << 8)
 
 uint8 hil_state
 uint8 HIL_STATE_OFF = 0

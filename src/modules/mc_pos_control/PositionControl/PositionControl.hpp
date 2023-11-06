@@ -44,6 +44,7 @@
 #include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/mc_vel_ctrl_status.h>
 
 struct PositionControlStates {
 	matrix::Vector3f position;
@@ -183,6 +184,8 @@ public:
 	 * All setpoints are set to NAN (uncontrolled). Timestampt zero.
 	 */
 	static const trajectory_setpoint_s empty_trajectory_setpoint;
+
+	void getVelControlStatus(mc_vel_ctrl_status_s &mc_vel_ctrl_status);
 
 private:
 	// The range limits of the hover thrust configuration/estimate
