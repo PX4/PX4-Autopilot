@@ -41,8 +41,6 @@ void CpuResourceChecks::checkAndReport(const Context &context, Report &reporter)
 		return;
 	}
 
-	static hrt_abstime high_cpu_load_start_time_us_ = 0;
-
 	cpuload_s cpuload;
 
 	if (!_cpuload_sub.copy(&cpuload) || hrt_elapsed_time(&cpuload.timestamp) > 2_s) {
