@@ -447,7 +447,15 @@ void Failsafe::checkStateAndMode(const hrt_abstime &time_us, const State &state,
 	// Battery
 	CHECK_FAILSAFE(status_flags, battery_low_remaining_time,
 		       ActionOptions(Action::RTL).causedBy(Cause::BatteryLow).clearOn(ClearCondition::OnModeChangeOrDisarm));
-	CHECK_FAILSAFE(status_flags, battery_unhealthy, Action::Warn);
+
+	if ((_armed_time != 0)
+	    && (time_us < _armed_time + static_cast<hrt_abstime>(_param_com_spoolup_time.get() * 1_s))
+	   ) {
+		CHECK_FAILSAFE(status_flags, battery_unhealthy, ActionOptions(Action::Disarm).cannotBeDeferred());
+
+	} else {
+		CHECK_FAILSAFE(status_flags, battery_unhealthy, Action::Warn);
+	}
 
 	switch (status_flags.battery_warning) {
 	case battery_status_s::BATTERY_WARNING_LOW:
