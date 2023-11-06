@@ -1052,14 +1052,10 @@ PARAM_DEFINE_FLOAT(COM_WIND_WARN, -1.f);
 PARAM_DEFINE_INT32(COM_FLT_TIME_MAX, -1);
 
 /**
- * Wind speed RTL threshold
+ * High wind speed failsafe threshold
  *
- * Wind speed threshold above which an automatic return to launch is triggered.
- * It is not possible to resume the mission or switch to any auto mode other than
- * RTL or Land if this threshold is exceeded. Taking over in any manual
- * mode is still possible.
- *
- * Set to -1 to disable.
+ * Wind speed threshold above which an automatic failsafe action is triggered.
+ * Failsafe action can be specified with COM_WIND_MAX_ACT.
  *
  * @min -1
  * @decimal 1
@@ -1068,6 +1064,27 @@ PARAM_DEFINE_INT32(COM_FLT_TIME_MAX, -1);
  * @unit m/s
  */
 PARAM_DEFINE_FLOAT(COM_WIND_MAX, -1.f);
+
+/**
+ * High wind failsafe mode
+ *
+ * Action the system takes when a wind speed above the specified threshold is detected.
+ * See COM_WIND_MAX to set the failsafe threshold.
+ * If enabled, it is not possible to resume the mission or switch to any auto mode other than
+ * RTL or Land if this threshold is exceeded. Taking over in any manual
+ * mode is still possible.
+ *
+ * @group Commander
+ *
+ * @value 0 None
+ * @value 1 Warning
+ * @value 2 Hold
+ * @value 3 Return
+ * @value 4 Terminate
+ * @value 5 Land
+ * @increment 1
+ */
+PARAM_DEFINE_INT32(COM_WIND_MAX_ACT, 0);
 
 /**
  * EPH threshold for RTL
