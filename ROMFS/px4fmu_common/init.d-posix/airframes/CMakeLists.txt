@@ -79,6 +79,7 @@ px4_add_romfs_files(
 	4004_gz_standard_vtol
 	4005_gz_x500_vision
 	4006_gz_px4vision
+	4008_gz_advanced_plane
 
 	6011_gazebo-classic_typhoon_h480
 	6011_gazebo-classic_typhoon_h480.post
