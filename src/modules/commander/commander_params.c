@@ -234,6 +234,17 @@ PARAM_DEFINE_FLOAT(COM_DISARM_PRFLT, 10.0f);
 PARAM_DEFINE_INT32(COM_ARM_WO_GPS, 1);
 
 /**
+ * Allow arming with bad EKF innovation.
+ *
+ * The default only allows arming if EKF innovations are reasonable.
+ *
+ * @group Commander
+ * @value 0 Require reasonable innovations to arm.
+ * @value 1 Allow arming with any innovation.
+ */
+PARAM_DEFINE_INT32(COM_ARM_BAD_INOV, 0);
+
+/**
  * Arm switch is a momentary button
  *
  * 0: Arming/disarming triggers on switch transition.
@@ -490,10 +501,12 @@ PARAM_DEFINE_INT32(COM_FLTMODE5, -1);
 PARAM_DEFINE_INT32(COM_FLTMODE6, -1);
 
 /**
- * Maximum EKF position innovation test ratio that will allow arming
+ * Maximum EKF height innovation test ratio that will allow arming.
+ *
+ * A value of 0 disables the check.
  *
  * @group Commander
- * @min 0.1
+ * @min 0.0
  * @max 1.0
  * @decimal 2
  * @increment 0.05
@@ -503,8 +516,10 @@ PARAM_DEFINE_FLOAT(COM_ARM_EKF_POS, 0.5f);
 /**
  * Maximum EKF velocity innovation test ratio that will allow arming
  *
+ * A value of 0.0 disables the check.
+ *
  * @group Commander
- * @min 0.1
+ * @min 0.0
  * @max 1.0
  * @decimal 2
  * @increment 0.05
@@ -512,10 +527,12 @@ PARAM_DEFINE_FLOAT(COM_ARM_EKF_POS, 0.5f);
 PARAM_DEFINE_FLOAT(COM_ARM_EKF_VEL, 0.5f);
 
 /**
- * Maximum EKF height innovation test ratio that will allow arming
+ * Maximum EKF height innovation test ratio that will allow arming.
+ *
+ * A value of 0.0 disables the check.
  *
  * @group Commander
- * @min 0.1
+ * @min 0.0
  * @max 1.0
  * @decimal 2
  * @increment 0.05
@@ -525,13 +542,28 @@ PARAM_DEFINE_FLOAT(COM_ARM_EKF_HGT, 1.0f);
 /**
  * Maximum EKF yaw innovation test ratio that will allow arming
  *
+ * A value of 0.0 disables the check.
+ *
  * @group Commander
- * @min 0.1
+ * @min 0.0
  * @max 1.0
  * @decimal 2
  * @increment 0.05
  */
 PARAM_DEFINE_FLOAT(COM_ARM_EKF_YAW, 0.5f);
+
+/**
+ * Maximum allowed uncertainty in EFK sensor bias estimates for arming.
+ *
+ * A value of 0.0 disables the test.
+ *
+ * @group Commander
+ * @min 0.0
+ * @max 10.0
+ * @decimal 2
+ * @increment 0.05
+ */
+PARAM_DEFINE_FLOAT(COM_ARM_EKF_BIAS, 3.0f);
 
 /**
  * Maximum accelerometer inconsistency between IMU units that will allow arming
