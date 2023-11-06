@@ -1,5 +1,5 @@
 uint64 timestamp					# time since system start (microseconds)
-uint8 CONNECTED_ESC_MAX = 8				# The number of ESCs supported. Current (Q2/2013) we support 8 ESCs
+uint8 CONNECTED_ESC_MAX = 16				# The number of ESCs supported.
 
 uint8 ESC_CONNECTION_TYPE_PPM = 0			# Traditional PPM ESC
 uint8 ESC_CONNECTION_TYPE_SERIAL = 1			# Serial Bus connected ESC
@@ -25,4 +25,4 @@ uint8 esc_online_flags					# Bitmask indicating which ESC is online/offline
 
 uint8 esc_armed_flags					# Bitmask indicating which ESC is armed. For ESC's where the arming state is not known (returned by the ESC), the arming bits should always be set.
 
-EscReport[8] esc
+EscReport[16] esc

@@ -9,10 +9,10 @@ functions:
 
     Motor:
       start: 101
-      count: 12
+      count: 16
     Servo:
       start: 201
-      count: 8
+      count: 15
     Offboard_Actuator_Set:
       start: 301
       count: 6
