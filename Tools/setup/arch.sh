@@ -67,7 +67,7 @@ sudo pacman -Sy --noconfirm --needed \
 
 # Python dependencies
 echo "Installing PX4 Python3 dependencies"
-pip install --user -r ${DIR}/requirements.txt
+pip install --break-system-packages -r ${DIR}/${REQUIREMENTS_FILE}
 
 # NuttX toolchain (arm-none-eabi-gcc)
 if [[ $INSTALL_NUTTX == "true" ]]; then
@@ -95,8 +95,7 @@ if [[ $INSTALL_SIM == "true" ]]; then
 
 	# java (jmavsim)
 	sudo pacman -S --noconfirm --needed \
-		ant \
-		jdk-openjdk \
+		ant
 		;
 
 	# Gazebo setup
