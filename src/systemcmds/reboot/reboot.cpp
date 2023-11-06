@@ -51,6 +51,7 @@ static void print_usage()
 
 	PRINT_MODULE_USAGE_NAME_SIMPLE("reboot", "command");
 	PRINT_MODULE_USAGE_PARAM_FLAG('b', "Reboot into bootloader", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('c', "Bootloader continue boot", true);
 
 	PRINT_MODULE_USAGE_ARG("lock|unlock", "Take/release the shutdown lock (for testing)", true);
 }
@@ -59,14 +60,19 @@ extern "C" __EXPORT int reboot_main(int argc, char *argv[])
 {
 	int ch;
 	bool to_bootloader = false;
+	bool bl_continue_boot = false;
 
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
 
-	while ((ch = px4_getopt(argc, argv, "b", &myoptind, &myoptarg)) != -1) {
+	while ((ch = px4_getopt(argc, argv, "bc", &myoptind, &myoptarg)) != -1) {
 		switch (ch) {
 		case 'b':
 			to_bootloader = true;
+			break;
+
+		case 'c':
+			bl_continue_boot = true;
 			break;
 
 		default:
@@ -98,7 +104,7 @@ extern "C" __EXPORT int reboot_main(int argc, char *argv[])
 		return ret;
 	}
 
-	int ret = px4_reboot_request(to_bootloader);
+	int ret = px4_reboot_request(to_bootloader, 0, bl_continue_boot);
 
 	if (ret < 0) {
 		PX4_ERR("reboot failed (%i)", ret);
