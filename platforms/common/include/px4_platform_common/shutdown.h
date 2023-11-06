@@ -83,7 +83,7 @@ __EXPORT int px4_unregister_shutdown_hook(shutdown_hook_t hook);
  * @return 0 on success, <0 on error
  */
 #if defined(CONFIG_BOARDCTL_RESET)
-__EXPORT int px4_reboot_request(bool to_bootloader = false, uint32_t delay_us = 0);
+__EXPORT int px4_reboot_request(bool to_bootloader = false, uint32_t delay_us = 0, bool continue_boot = false);
 #endif // CONFIG_BOARDCTL_RESET
 
 
