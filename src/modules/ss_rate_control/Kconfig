@@ -1,0 +1,12 @@
+menuconfig MODULES_SS_RATE_CONTROL
+	bool "ss_rate_control"
+	default n
+	---help---
+		Enable support for ss_rate_control
+
+menuconfig USER_SS_RATE_CONTROL
+	bool "ss_rate_control running as userspace module"
+	default n
+	depends on BOARD_PROTECTED && MODULES_SS_RATE_CONTROL
+	---help---
+		Put ss_rate_control in userspace memory
