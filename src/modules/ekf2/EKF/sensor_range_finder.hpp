@@ -60,6 +60,7 @@ public:
 	bool isDataHealthy() const override { return _is_sample_ready && _is_sample_valid; }
 	bool isDataReady() const { return _is_sample_ready; }
 	bool isRegularlySendingData() const override { return _is_regularly_sending_data; }
+	bool isStuckDetectorEnabled() const { return _stuck_threshold > 0.f; }
 
 	void setSample(const rangeSample &sample)
 	{
@@ -131,7 +132,7 @@ private:
 	 * Stuck check
 	 */
 	bool _is_stuck{};
-	float _stuck_threshold{0.1f};	///< minimum variation in range finder reading required to declare a range finder 'unstuck' when readings recommence after being out of range (m)
+	float _stuck_threshold{0.1f};	///< minimum variation in range finder reading required to declare a range finder 'unstuck' when readings recommence after being out of range (m), set to zero to disable
 	float _stuck_min_val{};		///< minimum value for new rng measurement when being stuck
 	float _stuck_max_val{};		///< maximum value for new rng measurement when being stuck
 
