@@ -49,6 +49,7 @@
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/log.h>
 #include <arpa/inet.h>
+#include <netutils/netlib.h>
 #include <px4_platform_common/shutdown.h>
 
 constexpr char DEFAULT_NETMAN_CONFIG[] = "/fs/microsd/net.cfg";
@@ -392,6 +393,24 @@ errout:
 	return rv;
 }
 
+int get_mac_address()
+{
+	uint8_t mac[6];
+	int rv = OK;
+
+	rv = netlib_getmacaddr("eth0", mac);
+
+	if (rv < 0) {
+		PX4_INFO("Failed to get MAC address: %d\n", rv);
+		return rv;
+	}
+
+	PX4_INFO("MAC address: %02x:%02x:%02x:%02x:%02x:%02x\n",
+	       mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+
+	return rv;
+}
+
 static void usage(const char *reason)
 {
 	if (reason != nullptr) {
@@ -435,6 +454,7 @@ static void usage(const char *reason)
 	PRINT_MODULE_USAGE_COMMAND_DESCR("show", "Display the current persistent network settings to the console.");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("update", "Check SD card for net.cfg and update network persistent network settings.");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("save", "Save the current network parameters to the SD card.");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("get_mac", "Get the MAC address of eth0.");
 	PRINT_MODULE_USAGE_PARAM_STRING('i', "eth0", nullptr, "Set the interface name", true);
 }
 
@@ -479,6 +499,10 @@ int netman_main(int argc, char *argv[])
 
 	} else if (strcmp("show", argv[myoptind]) == 0) {
 		rv = save(nullptr, netdev);
+
+	} else if (strcmp("get_mac", argv[myoptind]) == 0) {
+		rv = get_mac_address();
+
 	}
 
 	return rv;
