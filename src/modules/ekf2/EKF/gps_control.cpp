@@ -71,8 +71,12 @@ void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 		}
 	}
 
-	// run EKF-GSF yaw estimator once per imu_delayed update after all main EKF data samples available
-	_yawEstimator.update(imu_delayed, _control_status.flags.in_air, getGyroBias());
+	if (!gyro_bias_inhibited()) {
+		_yawEstimator.setGyroBias(getGyroBias());
+	}
+
+	// run EKF-GSF yaw estimator once per imu_delayed update
+	_yawEstimator.update(imu_delayed, _control_status.flags.in_air && !_control_status.flags.vehicle_at_rest);
 
 	// Check for new GPS data that has fallen behind the fusion time horizon
 	if (_gps_data_ready) {
@@ -424,6 +428,8 @@ void Ekf::stopGpsFusion()
 #if defined(CONFIG_EKF2_GNSS_YAW)
 	stopGpsYawFusion();
 #endif // CONFIG_EKF2_GNSS_YAW
+
+	_yawEstimator.reset();
 }
 
 bool Ekf::isYawEmergencyEstimateAvailable() const
