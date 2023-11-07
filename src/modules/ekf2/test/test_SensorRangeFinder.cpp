@@ -240,8 +240,16 @@ TEST_F(SensorRangeFinderTest, rangeStuck)
 
 	// THEN: the data should be marked as unhealthy
 	// because the sensor is "stuck"
-	EXPECT_FALSE(_range_finder.isDataHealthy());
-	EXPECT_FALSE(_range_finder.isHealthy());
+	if (_range_finder.isStuckDetectorEnabled()) {
+		EXPECT_FALSE(_range_finder.isDataHealthy());
+		EXPECT_FALSE(_range_finder.isHealthy());
+
+	} else {
+		// If stuck detector is disabled then the
+		// data should instantly be marked as healthy
+		EXPECT_TRUE(_range_finder.isDataHealthy());
+		EXPECT_TRUE(_range_finder.isHealthy());
+	}
 
 	// BUT WHEN: we continue to send samples but with changing distance
 	for (int i = 0; i < 2; i++) {

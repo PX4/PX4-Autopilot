@@ -114,6 +114,12 @@ inline bool SensorRangeFinder::isDataInRange() const
 
 void SensorRangeFinder::updateStuckCheck()
 {
+	if(!isStuckDetectorEnabled()){
+		// Stuck detector disabled
+		_is_stuck = false;
+		return;
+	}
+
 	// Check for "stuck" range finder measurements when range was not valid for certain period
 	// This handles a failure mode observed with some lidar sensors
 	if (((_sample.time_us - _time_last_valid_us) > (uint64_t)10e6)) {
