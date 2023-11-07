@@ -506,7 +506,7 @@ FixedwingPositionControl::tecs_status_publish(float alt_sp, float equivalent_air
 	tecs_status.throttle_sp = _tecs.get_throttle_setpoint();
 	tecs_status.pitch_sp_rad = _tecs.get_pitch_setpoint();
 	tecs_status.throttle_trim = throttle_trim;
-	tecs_status.underspeed_mode_enabled = _tecs.underspeed_detected();
+	tecs_status.underspeed_ratio = _tecs.get_underspeed_ratio();
 
 	tecs_status.timestamp = hrt_absolute_time();
 
