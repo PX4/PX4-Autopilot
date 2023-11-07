@@ -134,21 +134,20 @@ const Vector3f PositionSmoothing::_getCrossingPoint(const Vector3f &position, co
 	}
 
 	// Get the crossing point using L1-style guidance
-	auto l1_point = _getL1Point(position, waypoints);
-	return {l1_point(0), l1_point(1), target(2)};
+	return _getL1Point(position, waypoints);
 }
 
-const Vector2f PositionSmoothing::_getL1Point(const Vector3f &position, const Vector3f(&waypoints)[3]) const
+const Vector3f PositionSmoothing::_getL1Point(const Vector3f &position, const Vector3f(&waypoints)[3]) const
 {
-	const Vector2f pos_traj(_trajectory[0].getCurrentPosition(),
-				_trajectory[1].getCurrentPosition());
-	const Vector2f u_prev_to_target = Vector2f(waypoints[1] - waypoints[0]).unit_or_zero();
-	const Vector2f prev_to_pos(pos_traj - Vector2f(waypoints[0]));
-	const Vector2f prev_to_closest(u_prev_to_target * (prev_to_pos * u_prev_to_target));
-	const Vector2f closest_pt = Vector2f(waypoints[0]) + prev_to_closest;
+	const Vector3f pos_traj(_trajectory[0].getCurrentPosition(), _trajectory[1].getCurrentPosition(),
+				_trajectory[2].getCurrentPosition());
+	const Vector3f u_prev_to_target = (waypoints[1] - waypoints[0]).unit_or_zero();
+	const Vector3f prev_to_pos(pos_traj - waypoints[0]);
+	const Vector3f prev_to_closest(u_prev_to_target * (prev_to_pos * u_prev_to_target));
+	const Vector3f closest_pt = waypoints[0] + prev_to_closest;
 
 	// Compute along-track error using L1 distance and cross-track error
-	const float crosstrack_error = Vector2f(closest_pt - pos_traj).length();
+	const float crosstrack_error = (closest_pt - pos_traj).length();
 
 	const float l1 = math::max(_target_acceptance_radius, 5.f);
 	float alongtrack_error = 0.f;
@@ -159,9 +158,7 @@ const Vector2f PositionSmoothing::_getL1Point(const Vector3f &position, const Ve
 	}
 
 	// Position of the point on the line where L1 intersect the line between the two waypoints
-	const Vector2f l1_point = closest_pt + alongtrack_error * u_prev_to_target;
-
-	return l1_point;
+	return closest_pt + alongtrack_error * u_prev_to_target;
 }
 
 const Vector3f PositionSmoothing::_generateVelocitySetpoint(const Vector3f &position, const Vector3f(&waypoints)[3],
