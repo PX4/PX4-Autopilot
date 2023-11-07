@@ -1,0 +1,24 @@
+#!/bin/sh
+#
+# Icicle specific board sensors init
+#------------------------------------------------------------------------------
+
+#board_adc start
+
+# Internal I2C bus
+bmp388 -I -a 0x76 -f 400 start
+bmp388 -I -a 0x77 -f 400 start
+bmm150 -I -a 0x10 -f 400 -R 14 start
+#bmm150 -I -a 0x11 -f 400 -R 14 start
+ads1115 -I start
+
+# External I2C
+ll40ls -X -f 400 start
+
+# Internal SPI bus
+icm42688p -s -f 10000 -R 10 start
+icm20649 -s -f 7000 -R 6 start
+
+# External compass with lights, safety button, and buzzer
+ist8310 -X -a 0x0e -b 2 -f 400 -R 10 start
+rgbled_ncp5623c -X -b 2 -f 400 start
