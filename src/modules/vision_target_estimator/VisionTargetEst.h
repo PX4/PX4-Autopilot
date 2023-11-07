@@ -102,10 +102,12 @@ private:
 	void Run() override;
 	void updateParams() override;
 
-	bool must_start_estimators();
-	bool must_stop_estimators();
-	void start_estimators();
-	void reset_estimators();
+	bool should_task_start();
+	bool is_current_task_done();
+	bool start_position_estimator();
+	void stop_position_estimator();
+	bool start_orientation_estimator();
+	void stop_orientation_estimator();
 	bool get_input(matrix::Vector3f &acc_ned, matrix::Vector3f &gps_pos_offset, matrix::Vector3f &gps_vel_offset,
 		       bool gps_vel_offset_updated = false);
 
@@ -137,16 +139,19 @@ private:
 	int _vte_current_task{0};
 	int _vte_task_mask{0};
 
-	bool _estimators_started{false};
+	bool _position_estimator_running{false};
+	bool _orientation_estimator_running{false};
 	bool _is_in_prec_land{false}; // Start target estimator during precision landing
-	uint64_t _vte_stop_time{0};
+	uint64_t _vte_position_stop_time{0};
+	uint64_t _vte_orientation_stop_time{0};
+	bool _vte_task_running{false};
 
-	bool _vte_orientation_valid{false};
+	bool _vte_orientation_enabled{false};
 	VTEOrientation *_vte_orientation {nullptr};
 	hrt_abstime _last_update_yaw{0};
 
 	VTEPosition *_vte_position {nullptr};
-	bool _vte_position_valid{false};
+	bool _vte_position_enabled{false};
 	hrt_abstime _last_update_pos{0};
 
 	struct localPose {
