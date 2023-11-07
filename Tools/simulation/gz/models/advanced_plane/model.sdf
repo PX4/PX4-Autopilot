@@ -40,7 +40,7 @@
         <geometry>
           <mesh>
             <scale>0.1 0.1 0.1</scale>
-            <uri>https://fuel.gazebosim.org/1.0/frede791/models/Advanced%20Plane/tip/files/meshes/body.dae</uri>
+            <uri>https://fuel.gazebosim.org/1.0/PX4/models/Advanced%20Plane/tip/files/meshes/body.dae</uri>
           </mesh>
         </geometry>
         <material>
@@ -104,7 +104,7 @@
         <geometry>
           <mesh>
             <scale>1 1 1</scale>
-            <uri>https://fuel.gazebosim.org/1.0/frede791/models/Advanced%20Plane/tip/files/meshes/iris_prop_ccw.dae</uri>
+            <uri>https://fuel.gazebosim.org/1.0/PX4/models/Advanced%20Plane/tip/files/meshes/iris_prop_ccw.dae</uri>
           </mesh>
         </geometry>
         <material>
@@ -151,7 +151,7 @@
         <geometry>
           <mesh>
             <scale>0.1 0.1 0.1</scale>
-            <uri>https://fuel.gazebosim.org/1.0/frede791/models/Advanced%20Plane/tip/files/meshes/left_aileron.dae</uri>
+            <uri>https://fuel.gazebosim.org/1.0/PX4/models/Advanced%20Plane/tip/files/meshes/left_aileron.dae</uri>
           </mesh>
         </geometry>
         <material>
@@ -178,7 +178,7 @@
         <geometry>
           <mesh>
             <scale>0.1 0.1 0.1</scale>
-            <uri>https://fuel.gazebosim.org/1.0/frede791/models/Advanced%20Plane/tip/files/meshes/right_aileron.dae</uri>
+            <uri>https://fuel.gazebosim.org/1.0/PX4/models/Advanced%20Plane/tip/files/meshes/right_aileron.dae</uri>
           </mesh>
         </geometry>
         <material>
@@ -205,7 +205,7 @@
         <geometry>
           <mesh>
             <scale>0.1 0.1 0.1</scale>
-            <uri>https://fuel.gazebosim.org/1.0/frede791/models/Advanced%20Plane/tip/files/meshes/left_flap.dae</uri>
+            <uri>https://fuel.gazebosim.org/1.0/PX4/models/Advanced%20Plane/tip/files/meshes/left_flap.dae</uri>
           </mesh>
         </geometry>
         <material>
@@ -232,7 +232,7 @@
         <geometry>
           <mesh>
             <scale>0.1 0.1 0.1</scale>
-            <uri>https://fuel.gazebosim.org/1.0/frede791/models/Advanced%20Plane/tip/files/meshes/right_flap.dae</uri>
+            <uri>https://fuel.gazebosim.org/1.0/PX4/models/Advanced%20Plane/tip/files/meshes/right_flap.dae</uri>
           </mesh>
         </geometry>
         <material>
@@ -259,7 +259,7 @@
         <geometry>
           <mesh>
             <scale>0.1 0.1 0.1</scale>
-            <uri>https://fuel.gazebosim.org/1.0/frede791/models/Advanced%20Plane/tip/files/meshes/elevators.dae</uri>
+            <uri>https://fuel.gazebosim.org/1.0/PX4/models/Advanced%20Plane/tip/files/meshes/elevators.dae</uri>
           </mesh>
         </geometry>
         <material>
@@ -286,7 +286,7 @@
         <geometry>
           <mesh>
             <scale>0.1 0.1 0.1</scale>
-            <uri>https://fuel.gazebosim.org/1.0/frede791/models/Advanced%20Plane/tip/files/meshes/rudder.dae</uri>
+            <uri>https://fuel.gazebosim.org/1.0/PX4/models/Advanced%20Plane/tip/files/meshes/rudder.dae</uri>
           </mesh>
         </geometry>
         <material>
