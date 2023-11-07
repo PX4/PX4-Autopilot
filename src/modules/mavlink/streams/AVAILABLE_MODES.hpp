@@ -89,7 +89,7 @@ private:
 		available_modes.standard_mode = (uint8_t)mode_util::getStandardModeFromNavState(nav_state);
 
 		if (mode_util::isAdvanced(nav_state)) {
-			available_modes.properties = MAV_MODE_PROPERTY_ADVANCED;
+			available_modes.properties |= MAV_MODE_PROPERTY_ADVANCED;
 		}
 
 		if (available_modes.standard_mode == MAV_STANDARD_MODE_NON_STANDARD) {
