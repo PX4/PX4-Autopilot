@@ -72,6 +72,9 @@ VisionTargetEst::VisionTargetEst() :
 
 VisionTargetEst::~VisionTargetEst()
 {
+	delete _vte_position;
+	delete _vte_orientation;
+
 	perf_free(_cycle_perf_pos);
 	perf_free(_cycle_perf_yaw);
 	perf_free(_cycle_perf);
@@ -112,9 +115,14 @@ bool VisionTargetEst::init()
 
 	delete _vte_position;
 	delete _vte_orientation;
+	_vte_position = nullptr;
+	_vte_orientation = nullptr;
 
-	_vte_position_valid = false;
-	_vte_orientation_valid = false;
+	_orientation_estimator_running = false;
+	_position_estimator_running = false;
+
+	_vte_position_enabled = false;
+	_vte_orientation_enabled = false;
 
 	// Structure allows for different tasks using the VTE in the future.
 	_vte_task_mask = _param_vte_task_mask.get();
@@ -131,16 +139,16 @@ bool VisionTargetEst::init()
 	if (_param_vte_pos_en.get()) {
 		PX4_INFO("VTE position estimator enabled.");
 		_vte_position = new VTEPosition;
-		_vte_position_valid = (_vte_position != nullptr && _vte_position->init());
+		_vte_position_enabled = (_vte_position != nullptr && _vte_position->init());
 	}
 
 	if (_param_vte_yaw_en.get()) {
 		PX4_INFO("VTE yaw estimator enabled.");
 		_vte_orientation = new VTEOrientation;
-		_vte_orientation_valid = (_vte_orientation != nullptr && _vte_orientation->init());
+		_vte_orientation_enabled = (_vte_orientation != nullptr && _vte_orientation->init());
 	}
 
-	return _vte_position_valid || _vte_orientation_valid;
+	return _vte_position_enabled || _vte_orientation_enabled;
 }
 
 void VisionTargetEst::updateParams()
@@ -169,87 +177,92 @@ void VisionTargetEst::reset_acc_downsample()
 	_last_acc_reset = hrt_absolute_time();
 }
 
-void VisionTargetEst::start_estimators()
+bool VisionTargetEst::start_orientation_estimator()
 {
+	if ((hrt_absolute_time() - _vte_orientation_stop_time) < estimator_restart_time_US) {
+		return false;
+	}
 
-	PX4_INFO("Starting Vision Target Estimator (VTE).");
+	PX4_INFO("Starting Orientation Vision Target Estimator.");
+	return true;
+}
 
-	if (_vte_position_valid) {
-
-		if (_vte_task_mask & VisionTargetEstTask::VTE_FOR_PREC_LAND) {
-
-			bool next_sp_is_land = false;
-			bool current_sp_is_land = false;
-
-			position_setpoint_triplet_s pos_sp_triplet;
-
-			if (_pos_sp_triplet_sub.update(&pos_sp_triplet)) {
-				next_sp_is_land = (pos_sp_triplet.next.type == position_setpoint_s::SETPOINT_TYPE_LAND);
-				current_sp_is_land = (pos_sp_triplet.next.type == position_setpoint_s::SETPOINT_TYPE_LAND);
-			}
-
-			if (next_sp_is_land) {
-				PX4_INFO("VTE for precision landing, next sp is land.");
-				_vte_position->set_mission_position(pos_sp_triplet.next.lat, pos_sp_triplet.next.lon,
-								    pos_sp_triplet.next.alt);
-
-			} else if (current_sp_is_land) {
-				PX4_INFO("VTE for precision landing, current sp is land.");
-				_vte_position->set_mission_position(pos_sp_triplet.current.lat, pos_sp_triplet.current.lon,
-								    pos_sp_triplet.current.alt);
-
-			} else {
-				PX4_WARN("VTE for precision landing, land position cannot be used.");
-				_vte_position->set_mission_position(0.0, 0.0, NAN);
-			}
-		}
+bool VisionTargetEst::start_position_estimator()
+{
+	// Don't start estimator if it was stopped recently
+	if ((hrt_absolute_time() - _vte_position_stop_time) < estimator_restart_time_US) {
+		return false;
 	}
 
 	reset_acc_downsample();
-	_estimators_started = true;
+
+	PX4_INFO("Starting Position Vision Target Estimator.");
+
+	if (_vte_current_task & VisionTargetEstTask::VTE_FOR_PREC_LAND) {
+
+		bool next_sp_is_land = false;
+		bool current_sp_is_land = false;
+
+		position_setpoint_triplet_s pos_sp_triplet;
+
+		if (_pos_sp_triplet_sub.update(&pos_sp_triplet)) {
+			next_sp_is_land = (pos_sp_triplet.next.type == position_setpoint_s::SETPOINT_TYPE_LAND);
+			current_sp_is_land = (pos_sp_triplet.next.type == position_setpoint_s::SETPOINT_TYPE_LAND);
+		}
+
+		if (next_sp_is_land) {
+			PX4_INFO("VTE for precision landing, next sp is land.");
+			_vte_position->set_mission_position(pos_sp_triplet.next.lat, pos_sp_triplet.next.lon,
+							    pos_sp_triplet.next.alt);
+
+		} else if (current_sp_is_land) {
+			PX4_INFO("VTE for precision landing, current sp is land.");
+			_vte_position->set_mission_position(pos_sp_triplet.current.lat, pos_sp_triplet.current.lon,
+							    pos_sp_triplet.current.alt);
+
+		} else {
+			PX4_WARN("VTE for precision landing, land position cannot be used.");
+			_vte_position->set_mission_position(0.0, 0.0, NAN);
+		}
+	}
+
+	return true;
 }
 
-bool VisionTargetEst::must_start_estimators()
+bool VisionTargetEst::should_task_start()
 {
-	// If we enter this function, the estimator is not running. Current task must be 0.
-	_vte_current_task = 0;
-
 	// Start target estimator for precision landing
-	if (_vte_task_mask & VisionTargetEstTask::VTE_FOR_PREC_LAND) {
-		if (_is_in_prec_land && (hrt_absolute_time() - _vte_stop_time) > estimator_restart_time_US) {
-			_vte_current_task += VisionTargetEstTask::VTE_FOR_PREC_LAND;
-			return true;
-		}
+	if (_vte_task_mask & VisionTargetEstTask::VTE_FOR_PREC_LAND && _is_in_prec_land) {
+		_vte_current_task = VisionTargetEstTask::VTE_FOR_PREC_LAND;
+		PX4_INFO("VTE, precision landing task requested.");
+		return true;
 	}
 
 	return false;
 }
 
-bool VisionTargetEst::must_stop_estimators()
+bool VisionTargetEst::is_current_task_done()
 {
 
-	// Stop computations if the position estimator timedout
-	if (_vte_position->has_timed_out()) {
-		PX4_INFO("TIMEOUT, target estimator stopped.");
-		return true;
-	}
-
-	// Allow to keep the estimator running while on the ground if not used for precision landing. E.g. for precision takeoff.
+	// Prec-land
 	if (_vte_current_task & VisionTargetEstTask::VTE_FOR_PREC_LAND) {
 		vehicle_land_detected_s vehicle_land_detected;
 
 		// Stop computations once the drone has landed
 		if (_vehicle_land_detected_sub.update(&vehicle_land_detected) && vehicle_land_detected.landed) {
-			PX4_INFO("Land detected, target estimator stopped.");
+			PX4_INFO("Land detected, precision landing task completed.");
+			_is_in_prec_land = false;
 			return true;
 		}
 
 		// Stop computations once precision landing is over
 		if (!_is_in_prec_land) {
-			PX4_INFO("Precision operation finished, target estimator stopped.");
+			PX4_INFO("Precision landing task completed.");
 			return true;
 		}
 	}
+
+	// The structure allows to add additional tasks here E.g. precision delivery, follow me, precision takeoff.
 
 	return false;
 }
@@ -274,31 +287,85 @@ void VisionTargetEst::Run()
 
 #endif
 
-	// Check if estimator must be started
-	if (!_estimators_started) {
+	// Only check for new task once the previous one is done
+	if (!_vte_task_running) {
+		_vte_task_running = should_task_start();
+	}
 
-		if (must_start_estimators()) {
-			reset_estimators(); // Force a reset before starting
-			start_estimators(); // Will set _estimators_started to true
+	if (!_vte_task_running) {
+		return;
+	}
+
+	// Task is running, check if an estimator must be started or re-started
+	if ((!_position_estimator_running && _vte_position_enabled)) {
+
+		_position_estimator_running = start_position_estimator();
+	}
+
+	if ((!_orientation_estimator_running && _vte_orientation_enabled)) {
+
+		_orientation_estimator_running = start_orientation_estimator();
+	}
+
+	// Early return if no estimator is running or activated
+	if ((!_vte_orientation_enabled || !_orientation_estimator_running) && (!_vte_position_enabled
+			|| !_position_estimator_running)) {
+
+		if (is_current_task_done()) {
+			_vte_task_running = false;
+			_vte_current_task = 0;
 		}
 
 		return;
 	}
 
-	perf_begin(_cycle_perf);
+	// Stop estimators once task is completed
+	if (is_current_task_done()) {
 
-	if (must_stop_estimators()) {
-		_vte_stop_time = hrt_absolute_time();
-		reset_estimators();
+		if (_vte_position_enabled && _position_estimator_running) {
+			stop_position_estimator();
+		}
+
+		if (_vte_orientation_enabled && _orientation_estimator_running) {
+			stop_orientation_estimator();
+		}
+
+		_vte_task_running = false;
+		_vte_current_task = 0;
+
 		return;
 	}
+
+	// Stop computations if the position estimator timedout
+	if (_position_estimator_running && _vte_position->has_timed_out()) {
+		stop_position_estimator();
+		PX4_INFO("Estimator TIMEOUT, position VTE stopped.");
+
+		// Early return if no other estimator is running
+		if (!_orientation_estimator_running) {
+			return;
+		}
+	}
+
+	// Stop computations if the position estimator timedout
+	if (_orientation_estimator_running && _vte_orientation->has_timed_out()) {
+		stop_orientation_estimator();
+		PX4_INFO("Estimator TIMEOUT, orientation VTE stopped.");
+
+		// Early return if no other estimator is running
+		if (!_position_estimator_running) {
+			return;
+		}
+	}
+
+	perf_begin(_cycle_perf);
 
 	localPose local_pose;
 
 	const bool local_pose_updated = get_local_pose(local_pose);
 
 	/* Update position filter at vte_pos_UPDATE_RATE_HZ */
-	if (_vte_position_valid) {
+	if (_vte_position_enabled) {
 
 		matrix::Vector3f gps_pos_offset_ned;
 		matrix::Vector3f vel_offset;
@@ -357,7 +424,7 @@ void VisionTargetEst::Run()
 	}
 
 	/* Update orientation filter at vte_yaw_UPDATE_RATE_HZ */
-	if (_vte_orientation_valid && ((hrt_absolute_time() - _last_update_yaw) > (1_s / vte_yaw_UPDATE_RATE_HZ))) {
+	if (_vte_orientation_enabled && ((hrt_absolute_time() - _last_update_yaw) > (1_s / vte_yaw_UPDATE_RATE_HZ))) {
 		perf_begin(_cycle_perf_yaw);
 
 		if (local_pose_updated) {
@@ -373,20 +440,30 @@ void VisionTargetEst::Run()
 
 }
 
-void VisionTargetEst::reset_estimators()
+void VisionTargetEst::stop_position_estimator()
 {
-	if (_vte_orientation_valid) {
-		_vte_orientation->resetFilter();
-	}
 
-	if (_vte_position_valid) {
+	PX4_INFO("Stopping Position Vision Target Estimator.");
+
+	if (_vte_position_enabled) {
 		_vte_position->resetFilter();
 	}
 
-	_vte_current_task = 0;
-	_is_in_prec_land = false;
-	_estimators_started = false;
+	_position_estimator_running = false;
+	_vte_position_stop_time = hrt_absolute_time();
+}
 
+void VisionTargetEst::stop_orientation_estimator()
+{
+
+	PX4_INFO("Stopping Orientation Vision Target Estimator.");
+
+	if (_vte_orientation_enabled) {
+		_vte_orientation->resetFilter();
+	}
+
+	_orientation_estimator_running = false;
+	_vte_orientation_stop_time = hrt_absolute_time();
 }
 
 bool VisionTargetEst::get_gps_velocity_offset(matrix::Vector3f &vel_offset_body)

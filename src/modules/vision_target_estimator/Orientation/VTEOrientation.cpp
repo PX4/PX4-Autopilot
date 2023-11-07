@@ -78,6 +78,7 @@ bool VTEOrientation::init()
 void VTEOrientation::resetFilter()
 {
 	_estimator_initialized = false;
+	_has_timed_out = false;
 }
 
 void VTEOrientation::update()
@@ -89,7 +90,7 @@ void VTEOrientation::update()
 
 		if (hrt_absolute_time() - _last_update > _vte_TIMEOUT_US) {
 			PX4_WARN("VTE orientation estimator timeout");
-			resetFilter();
+			_has_timed_out = true;
 
 		} else {
 			predictionStep();
