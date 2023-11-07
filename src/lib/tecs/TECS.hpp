@@ -646,7 +646,7 @@ public:
 	float get_throttle_setpoint() {return _control.getThrottleSetpoint();}
 
 	uint64_t timestamp() { return _update_timestamp; }
-	bool underspeed_detected() { return _control.getRatioUndersped() > 0.f; }
+	float get_underspeed_ratio() { return _control.getRatioUndersped(); }
 
 private:
 	TECSControl 			_control;			///< Control submodule.
