@@ -57,7 +57,7 @@ static const px4_mtd_entry_t fmum_fram = {
 
 static const px4_mtd_entry_t base_eeprom = {
 	.device = &i2c3,
-	.npart = 2,
+	.npart = 3,
 	.partd = {
 		{
 			.type = MTD_MFT_VER,
@@ -69,6 +69,11 @@ static const px4_mtd_entry_t base_eeprom = {
 			.path = "/fs/mtd_net",
 			.nblocks = 8 // 256 = 32 * 8
 
+		},
+		{
+			.type = MTD_BASE_UUID,
+			.path = "/fs/mtd_base_uuid",
+			.nblocks = 8 // 256 = 32 * 8
 		}
 	},
 };
