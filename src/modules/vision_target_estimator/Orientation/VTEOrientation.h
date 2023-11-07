@@ -89,6 +89,8 @@ public:
 
 	void set_range_sensor(const float dist, const bool valid);
 
+	bool has_timed_out() {return _has_timed_out;};
+
 protected:
 
 	/*
@@ -114,6 +116,8 @@ protected:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 private:
+
+	bool _has_timed_out{false};
 
 	enum class TargetMode {
 		Stationary = 0,
