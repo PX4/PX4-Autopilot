@@ -38,7 +38,7 @@
 #include <uORB/topics/vehicle_command.h>
 
 /**
- * Functions: Offboard_Actuator_Set1 ... Offboard_Actuator_Set6
+ * Functions: Peripheral_via_Actuator_Set1 ... Peripheral_via_Actuator_Set6
  */
 class FunctionActuatorSet : public FunctionProviderBase
 {
@@ -72,7 +72,7 @@ public:
 		}
 	}
 
-	float value(OutputFunction func) override { return _data[(int)func - (int)OutputFunction::Offboard_Actuator_Set1]; }
+	float value(OutputFunction func) override { return _data[(int)func - (int)OutputFunction::Peripheral_via_Actuator_Set1]; }
 
 private:
 	static constexpr int max_num_actuators = 6;
