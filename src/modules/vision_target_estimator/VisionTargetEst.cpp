@@ -267,13 +267,10 @@ bool VisionTargetEst::is_current_task_done()
 	return false;
 }
 
-void VisionTargetEst::Run()
+void VisionTargetEst::update_task_topics()
 {
-	if (should_exit()) {
-		_vehicle_attitude_sub.unregisterCallback();
-		exit_and_cleanup();
-		return;
-	}
+
+	// The structure allows to add additional tasks status here E.g. precision delivery, follow me, precision takeoff.
 
 #if !defined(CONSTRAINED_FLASH)
 
@@ -286,6 +283,18 @@ void VisionTargetEst::Run()
 	}
 
 #endif
+
+}
+
+void VisionTargetEst::Run()
+{
+	if (should_exit()) {
+		_vehicle_attitude_sub.unregisterCallback();
+		exit_and_cleanup();
+		return;
+	}
+
+	update_task_topics();
 
 	// Only check for new task once the previous one is done
 	if (!_vte_task_running) {
@@ -358,6 +367,7 @@ void VisionTargetEst::Run()
 		}
 	}
 
+	// Early return checks passed, start filter computations.
 	perf_begin(_cycle_perf);
 
 	localPose local_pose;

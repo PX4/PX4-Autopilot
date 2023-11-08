@@ -102,6 +102,7 @@ private:
 	void Run() override;
 	void updateParams() override;
 
+	void update_task_topics();
 	bool should_task_start();
 	bool is_current_task_done();
 	bool start_position_estimator();
