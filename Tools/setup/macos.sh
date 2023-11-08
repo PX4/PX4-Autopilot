@@ -47,8 +47,6 @@ fi
 
 # Python dependencies
 echo "Installing PX4 Python3 dependencies"
-# We need to have future to install pymavlink later.
-python3 -m pip install future
 python3 -m pip install --user -r ${DIR}/requirements.txt
 
 # Optional, but recommended additional simulation tools:
