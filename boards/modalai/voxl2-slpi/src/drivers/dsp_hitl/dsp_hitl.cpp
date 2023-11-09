@@ -315,6 +315,8 @@ void task_main(int argc, char *argv[])
 	int _vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	PX4_INFO("Got %d from orb_subscribe", _vehicle_status_sub);
 
+	_is_running = true;
+
 	while (!_task_should_exit){
 
 		uint8_t rx_buf[1024];
@@ -375,6 +377,8 @@ void task_main(int argc, char *argv[])
 
 		if (elapsed_time < 5000) usleep(5000 - elapsed_time);
 	}
+
+	_is_running = false;
 }
 
 void send_esc_telemetry_dsp(mavlink_hil_actuator_controls_t hil_act_control)
