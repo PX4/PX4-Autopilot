@@ -473,7 +473,7 @@ Mission::save_mission_state()
 	if (success) {
 		/* data read successfully, check dataman ID and items count */
 		if (mission_state.dataman_id == _mission.dataman_id && mission_state.count == _mission.count
-		    && mission_state.mission_update_counter && _mission.mission_update_counter) {
+		    && mission_state.mission_update_counter == _mission.mission_update_counter) {
 			/* navigator may modify only sequence, write modified state only if it changed */
 			if (mission_state.current_seq != _mission.current_seq) {
 				mission_state = _mission;
