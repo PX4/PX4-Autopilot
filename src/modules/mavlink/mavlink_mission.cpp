@@ -161,8 +161,6 @@ MavlinkMissionManager::update_active_mission(dm_item_t dataman_id, uint16_t coun
 	_current_seq = seq;
 	_my_dataman_id = _dataman_id;
 
-	_offboard_mission_pub.publish(mission);
-
 	if (write_to_dataman) {
 		bool success = _dataman_client.writeSync(DM_KEY_MISSION_STATE, 0, reinterpret_cast<uint8_t *>(&mission),
 				sizeof(mission_s));
@@ -171,6 +169,8 @@ MavlinkMissionManager::update_active_mission(dm_item_t dataman_id, uint16_t coun
 			PX4_ERR("Can't update mission state in Dataman");
 		}
 	}
+
+	_offboard_mission_pub.publish(mission);
 }
 
 int
