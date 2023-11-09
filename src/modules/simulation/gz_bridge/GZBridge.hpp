@@ -49,21 +49,25 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/sensor_accel.h>
+#include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/sensor_gyro.h>
+#include <uORB/topics/obstacle_distance.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/vehicle_odometry.h>
 
 #include <gz/math.hh>
 #include <gz/msgs.hh>
 #include <gz/transport.hh>
 
+
 #include <gz/msgs/imu.pb.h>
 #include <gz/msgs/fluid_pressure.pb.h>
 #include <gz/msgs/odometry_with_covariance.pb.h>
+#include <gz/msgs/pointcloud_packed.pb.h>
+#include <gz/msgs/float_v.pb.h>
 
 using namespace time_literals;
 
@@ -102,6 +106,7 @@ private:
 	void imuCallback(const gz::msgs::IMU &imu);
 	void poseInfoCallback(const gz::msgs::Pose_V &pose);
 	void odometryCallback(const gz::msgs::OdometryWithCovariance &odometry);
+	void pointCloudCallback(const gz::msgs::PointCloudPacked &pointcloud);
 
 	/**
 	*
@@ -116,6 +121,10 @@ private:
 	// Subscriptions
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
+	gz::transport::Node::Publisher _pointcloudSumPub;
+	gz::transport::Node::Publisher _pointcloudDownsamplePub;
+
+	uORB::Publication<obstacle_distance_s>        _obstacle_distance_pub{ORB_ID(obstacle_distance)};
 	//uORB::Publication<differential_pressure_s>    _differential_pressure_pub{ORB_ID(differential_pressure)};
 	uORB::Publication<vehicle_angular_velocity_s> _angular_velocity_ground_truth_pub{ORB_ID(vehicle_angular_velocity_groundtruth)};
 	uORB::Publication<vehicle_attitude_s>         _attitude_ground_truth_pub{ORB_ID(vehicle_attitude_groundtruth)};

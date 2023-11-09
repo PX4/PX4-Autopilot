@@ -128,6 +128,20 @@ int GZBridge::init()
 		}
 	}
 
+	// point cloud
+	std::string point_cloud_topic = "/depth_camera/points";
+
+	PX4_INFO("subscribing to point cloud topic");
+	if (!_node.Subscribe(point_cloud_topic, &GZBridge::pointCloudCallback, this)) {
+		PX4_ERR("failed to subscribe to %s", point_cloud_topic.c_str());
+		return PX4_ERROR;
+	}
+
+	// For visualizing downsampled pointcloud only
+	std::string world_name = "/world/" + _world_name;
+	_pointcloudDownsamplePub = _node.Advertise<gz::msgs::PointCloudPacked>(world_name + "/pointcloud");
+	_pointcloudSumPub = _node.Advertise<gz::msgs::Float_V>(world_name + "/pointcloudsum");
+
 	// clock
 	std::string clock_topic = "/world/" + _world_name + "/clock";
 
@@ -586,6 +600,108 @@ void GZBridge::poseInfoCallback(const gz::msgs::Pose_V &pose)
 	}
 
 	pthread_mutex_unlock(&_node_mutex);
+}
+
+void GZBridge::pointCloudCallback(const gz::msgs::PointCloudPacked &pointcloud)
+{
+	// gz::msgs::PointCloudPacked --> [ X Y Z R G B ] --> 6 float32 == 24 bytes per element
+	size_t downsample_step = 8;
+
+	size_t width = pointcloud.width() / downsample_step;
+	size_t height = pointcloud.height() / downsample_step;
+
+	gz::msgs::PointCloudPacked ds_pointcloud(pointcloud);
+	ds_pointcloud.set_width(width);
+	ds_pointcloud.set_height(height);
+	ds_pointcloud.mutable_data()->resize(width * height * ds_pointcloud.point_step());
+	ds_pointcloud.set_row_step(width * ds_pointcloud.point_step());
+
+	gz::msgs::Float_V sum_msg;
+	gz::msgs::PointCloudPackedConstIterator<float> xIter(pointcloud, "x");
+	gz::msgs::PointCloudPackedConstIterator<float> yIter(pointcloud, "y");
+	gz::msgs::PointCloudPackedConstIterator<float> zIter(pointcloud, "z");
+	gz::msgs::PointCloudPackedIterator<float> new_xIter(ds_pointcloud, "x");
+	gz::msgs::PointCloudPackedIterator<float> new_yIter(ds_pointcloud, "y");
+	gz::msgs::PointCloudPackedIterator<float> new_zIter(ds_pointcloud, "z");
+
+	size_t row_downsample_step = pointcloud.width() * (downsample_step - 1); // This adds a 15 row offset -- every 16th row is used
+	size_t row_count = 0;
+	size_t column_count = 0;
+
+	// NOTE: kind of a hack. We use the middle row of the downsampled pointcloud for the distances[] array
+	// A better solution would be to downsample multiple rows using an algorithm:
+	// https://github.com/ucanbizon/downsampling-point-cloud
+	uint16_t middle_row_distances[80];
+
+	for (size_t i = 0; i < 80; i++) {
+		middle_row_distances[i] = UINT16_MAX;
+	}
+
+	while (row_count < height) {
+
+		float x = *new_xIter = *xIter;
+		float y = *new_yIter = *yIter;
+		float z = *new_zIter = *zIter;
+		sum_msg.add_data(x + y + z);
+
+		// Extract the middle row
+		if (row_count == height / 2) {
+			// Calculate the distance
+			if (isnan(x) || isnan(y) || isinf(x) || isinf(y)) {
+				middle_row_distances[column_count] = UINT16_MAX;
+			} else {
+				middle_row_distances[column_count] = uint16_t(sqrtf(x*x + y*y) * 100.0f); // cm
+			}
+		}
+
+		column_count++;
+
+		++new_xIter; ++new_yIter; ++new_zIter;
+
+		if (column_count == width) {
+			column_count = 0;
+			row_count++;
+			// Bumped up to new downsampled row
+			xIter += row_downsample_step;
+			yIter += row_downsample_step;
+			zIter += row_downsample_step;
+			continue;
+		}
+
+		xIter += downsample_step;
+		yIter += downsample_step;
+		zIter += downsample_step;
+	}
+
+	// For visualization only
+	_pointcloudDownsamplePub.Publish(ds_pointcloud);
+	_pointcloudSumPub.Publish(sum_msg);
+
+	// Publish to uORB
+	obstacle_distance_s obs {};
+	obs.timestamp = hrt_absolute_time();
+	obs.frame = obstacle_distance_s::MAV_FRAME_BODY_FRD;
+	obs.sensor_type = obstacle_distance_s::MAV_DISTANCE_SENSOR_LASER;
+	obs.min_distance = 20; // cm clip near
+	obs.max_distance = 1910; // cm clip far
+	obs.angle_offset = -35; // 5 degrees per bin * 14 bins = 70 degrees which is close enough
+	obs.increment = 5; // NOTE: limitation of PX4 CollisionPrevention
+
+	for (size_t i = 0; i < 72; i++) {
+		obs.distances[i] = UINT16_MAX; // initialize to unknown
+	}
+
+	// We take every 5th sample from the middle row, skipping the first and last 5
+	for (size_t i = 0; i < 14; i++) {
+		uint16_t distance_cm =  middle_row_distances[5 * i + 5];
+		if (distance_cm > obs.max_distance) {
+			obs.distances[i] = obs.max_distance + 1;
+		} else {
+			obs.distances[i] = distance_cm;
+		}
+	}
+
+	_obstacle_distance_pub.publish(obs);
 }
 
 void GZBridge::odometryCallback(const gz::msgs::OdometryWithCovariance &odometry)
