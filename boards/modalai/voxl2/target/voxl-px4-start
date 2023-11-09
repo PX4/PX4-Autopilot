@@ -133,6 +133,9 @@ elif [ "$RC" == "SPEKTRUM" ]; then
 	else
         qshell spektrum_rc start
 	fi
+elif [ "$RC" == "GHST" ]; then
+    /bin/echo "Starting GHST RC driver"
+    qshell ghst_rc start -d 7
 fi
 
 if [ "$DISTANCE_SENSOR" == "LIGHTWARE_SF000" ]; then

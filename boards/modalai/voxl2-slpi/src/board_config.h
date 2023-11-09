@@ -63,3 +63,8 @@
  *  Default port for the ESC
  */
 #define MODAL_IO_DEFAULT_PORT 	"2"
+
+/*
+ *  Default port for the GHST RC
+ */
+#define GHST_RC_DEFAULT_PORT 	"7"
