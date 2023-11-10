@@ -257,6 +257,7 @@ int ModalPWM::parse_response(uint8_t *buf, uint8_t len)
 
 			if (packet_type == ESC_PACKET_TYPE_RC_DATA_RAW && packet_size == QC_SBUS_FRAME_SIZE) 
 			{
+				qc_esc_packet_reset(&_sbus_packet);
 				return 0;
 			}
 
@@ -270,10 +271,12 @@ int ModalPWM::parse_response(uint8_t *buf, uint8_t len)
 				if(_pwm_on) PX4_WARN("BAD SBUS packet length");
 				break;
 			}
+			qc_esc_packet_reset(&_sbus_packet);
 			return ret;
 		}
 	}
 
+	qc_esc_packet_reset(&_sbus_packet);
 	return 0;
 }
 
@@ -369,8 +372,8 @@ int ModalPWM::receive_sbus()
 
 			input_rc_s input_rc;
 			uint16_t num_values;
-			bool sbus_failsafe;
-			bool sbus_frame_drop;
+			bool sbus_failsafe = false;
+			bool sbus_frame_drop = false;
 			uint16_t max_channels = sizeof(_raw_rc_values) / sizeof(_raw_rc_values[0]);
 			hrt_abstime now = hrt_absolute_time();
 			bool rc_updated = sbus_parse(now, &_read_buf[SBUS_PAYLOAD], SBUS_FRAME_SIZE, _raw_rc_values, &num_values,
@@ -403,19 +406,21 @@ int ModalPWM::receive_sbus()
 				break;
 			} else {
 				read_retries--;
+				/* 
 				if (_pwm_on){
-					// PX4_ERR("Failed to decode SBUS packet");
+					PX4_ERR("Failed to decode SBUS packet");
 					if (sbus_frame_drop) {
 						PX4_WARN("SBUS frame dropped");
 					}
-					// PX4_ERR("[%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x]",
-					// 	_read_buf[0], _read_buf[1], _read_buf[2], _read_buf[3], _read_buf[4], _read_buf[5], 
-					// 	_read_buf[6], _read_buf[7], _read_buf[8], _read_buf[9], _read_buf[10], _read_buf[11], 
-					// 	_read_buf[12], _read_buf[13], _read_buf[14], _read_buf[15], _read_buf[16], _read_buf[17], 
-					// 	_read_buf[18], _read_buf[19], _read_buf[20], _read_buf[21], _read_buf[22], _read_buf[23], 
-					// 	_read_buf[24], _read_buf[25], _read_buf[26], _read_buf[27], _read_buf[28], _read_buf[29]
-					// 	);
+					PX4_ERR("[%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x]",
+						_read_buf[0], _read_buf[1], _read_buf[2], _read_buf[3], _read_buf[4], _read_buf[5], 
+						_read_buf[6], _read_buf[7], _read_buf[8], _read_buf[9], _read_buf[10], _read_buf[11], 
+						_read_buf[12], _read_buf[13], _read_buf[14], _read_buf[15], _read_buf[16], _read_buf[17], 
+						_read_buf[18], _read_buf[19], _read_buf[20], _read_buf[21], _read_buf[22], _read_buf[23], 
+						_read_buf[24], _read_buf[25], _read_buf[26], _read_buf[27], _read_buf[28], _read_buf[29]
+						);
 				}
+				*/
 			}
 		}
 		read_retries--;

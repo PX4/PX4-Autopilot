@@ -34,6 +34,8 @@
 px4_add_module(
 	MODULE drivers__actuators__modal_pwm
 	MAIN modal_pwm
+	INCLUDES 
+	${PX4_SOURCE_DIR}/src/drivers/actuators/modal_io
 	SRCS
 		modal_pwm.cpp
 		modal_pwm.hpp
