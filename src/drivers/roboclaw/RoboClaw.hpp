@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2013-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -53,25 +53,45 @@
 #include <pthread.h>
 #include <unistd.h>
 
+#include <uORB/Subscription.hpp>
+
 #include <uORB/PublicationMulti.hpp>
-#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/wheel_encoders.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/vehicle_thrust_setpoint.h>
-#include <uORB/topics/vehicle_torque_setpoint.h>
-#include <uORB/Subscription.hpp>
+#include <uORB/topics/vehicle_status.h>
+
+#include <uORB/topics/differential_drive_control.h>
+
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+
+#include <lib/mixer_module/mixer_module.hpp>
 
 
 /**
  * This is a driver for the RoboClaw motor controller
  */
-class RoboClaw
+class RoboClaw : public ModuleBase<RoboClaw>, public OutputModuleInterface
 {
 public:
+	/**
+	 * constructor
+	 * @param deviceName the name of the
+	 * 	serial port e.g. "/dev/ttyS2"
+	 * @param address the adddress  of the motor
+	 * 	(selectable on roboclaw)
+	 * @param baudRateParam Name of the parameter that holds the baud rate of this serial port
+	 */
+	RoboClaw(const char *deviceName, const char *baudRateParam);
 
-	void taskMain();
-	static bool taskShouldExit;
+	/**
+	 * deconstructor
+	 */
+	virtual ~RoboClaw();
 
 	/** control channels */
 	enum e_channel {
@@ -96,76 +116,67 @@ public:
 		ReadTimeout
 	};
 
-	/**
-	 * constructor
-	 * @param deviceName the name of the
-	 * 	serial port e.g. "/dev/ttyS2"
-	 * @param address the adddress  of the motor
-	 * 	(selectable on roboclaw)
-	 * @param baudRateParam Name of the parameter that holds the baud rate of this serial port
-	 */
-	RoboClaw(const char *deviceName, const char *baudRateParam);
+	/** @see ModuleBase */
+	static int task_spawn(int argc, char *argv[]);
 
-	/**
-	 * deconstructor
-	 */
-	virtual ~RoboClaw();
+	/** @see ModuleBase */
+	static int custom_command(int argc, char *argv[]);
 
-	void initialize();
+	/** @see ModuleBase */
+	static int print_usage(const char *reason = nullptr);
 
-	/**
-	 * @return position of a motor, rev
-	 */
-	float getMotorPosition(e_motor motor);
+	/** @see ModuleBase::print_status() */
+	int print_status() override;
 
-	/**
-	 * @return speed of a motor, rev/sec
-	 */
-	float getMotorSpeed(e_motor motor);
+	void Run() override;
+
+	int init();
+
+	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+			unsigned num_outputs, unsigned num_control_groups_updated) override;
 
 	/**
 	 * set the speed of a motor, rev/sec
 	 */
-	int setMotorSpeed(e_motor motor, float value);
+	void setMotorSpeed(e_motor motor, float value);
 
 	/**
 	 * set the duty cycle of a motor
 	 */
-	int setMotorDutyCycle(e_motor motor, float value);
+	void setMotorDutyCycle(e_motor motor, float value);
 
 	/**
 	 * Drive both motors. +1 = full forward, -1 = full backward
 	 */
-	int drive(float value);
+	void drive(float value);
 
 	/**
 	 * Turn. +1 = full right, -1 = full left
 	 */
-	int turn(float value);
+	void turn(float value);
 
 	/**
 	 * reset the encoders
 	 * @return status
 	 */
-	int resetEncoders();
+	void resetEncoders();
 
 	/**
 	 * read data from serial
 	 */
 	int readEncoder();
 
-	/**
-	 * print status
-	 */
-	void printStatus();
-
-
 private:
+	static constexpr int MAX_ACTUATORS = 2;
+
+	MixingOutput _mixing_output{"ROBOCLAW", MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, false};
 
 	char _storedDeviceName[256]; // Adjust size as necessary
-    	char _storedBaudRateParam[256]; // Adjust size as necessary
+	char _storedBaudRateParam[256]; // Adjust size as necessary
 
 	int _timeout_counter = 0;
+
+	bool _successfully_connected{false};
 
 	// commands
 	// We just list the commands we want from the manual here.
@@ -200,99 +211,39 @@ private:
 		CMD_READ_STATUS = 90
 	};
 
+	int _uart_fd{0};
+	fd_set _uart_fd_set;
+	struct timeval _uart_fd_timeout;
 
-	struct {
-		speed_t serial_baud_rate;
-		int32_t counts_per_rev;
-		int32_t encoder_read_period_ms;
-		int32_t actuator_write_period_ms;
-		int32_t address;
-	} _parameters{};
+	uORB::SubscriptionData<actuator_armed_s> _actuator_armed_sub{ORB_ID(actuator_armed)};
+	uORB::Subscription _differential_drive_control_sub{ORB_ID(differential_drive_control)};
+	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 
-	struct {
-		param_t serial_baud_rate;
-		param_t counts_per_rev;
-		param_t encoder_read_period_ms;
-		param_t actuator_write_period_ms;
-		param_t address;
-	} _param_handles{};
+	differential_drive_control_s 		_diff_drive_control{};
 
-	int _uart;
-	fd_set _uart_set;
-	struct timeval _uart_timeout;
+	matrix::Vector2f _motor_control{0.0f, 0.0f};
 
-	/** actuator controls subscription */
-	int _actuatorsSub{-1};
-	actuator_controls_s _actuatorControls;
-
-	int _armedSub{-1};
-	actuator_armed_s _actuatorArmed;
-
-	int _paramSub{-1};
-	parameter_update_s _paramUpdate;
-
-	uORB::Subscription _vehicle_thrust_setpoint_sub{ORB_ID(vehicle_thrust_setpoint)};
-	uORB::Subscription _vehicle_torque_setpoint_sub{ORB_ID(vehicle_torque_setpoint)};
-
-	vehicle_thrust_setpoint_s		vehicle_thrust_setpoint{};
-	vehicle_torque_setpoint_s		vehicle_torque_setpoint{};
-
-
-
-	uORB::PublicationMulti<wheel_encoders_s> _wheelEncodersAdv[2] { ORB_ID(wheel_encoders), ORB_ID(wheel_encoders)};
-	wheel_encoders_s _wheelEncoderMsg[2];
-
-	uint32_t _lastEncoderCount[2] {0, 0};
-	int64_t _encoderCounts[2] {0, 0};
-	int32_t _motorSpeeds[2] {0, 0};
+	uORB::Publication<wheel_encoders_s> _wheel_encoders_pub {ORB_ID(wheel_encoders)};
 
 	void _parameters_update();
-	void vehicle_control_poll();
 
 	static uint16_t _calcCRC(const uint8_t *buf, size_t n, uint16_t init = 0);
-	int _sendUnsigned7Bit(e_command command, float data);
-	int _sendSigned16Bit(e_command command, float data);
-	int _sendNothing(e_command);
+	void _sendUnsigned7Bit(e_command command, float data);
+	void _sendSigned16Bit(e_command command, float data);
+
+	int32_t reverseInt32(uint8_t *buffer);
+
+	bool _initialized{false};
+
+	RoboClawError writeCommand(e_command cmd);
+	RoboClawError writeCommandWithPayload(e_command cmd, uint8_t *wbuff, size_t bytes_to_write);
+
+	void sendTransaction(e_command cmd, uint8_t *write_buffer, size_t bytes_to_write);
+	int receiveTransaction(e_command cmd, uint8_t *read_buffer, size_t bytes_to_read);
 
 
-	/**
-	 * print status
-	 */
-	RoboClawError writeToDevice(e_command cmd, uint8_t *wbuff, size_t wbytes, bool send_checksum, uint8_t *buf);
-
-	/**
-	 * print status
-	 */
-	RoboClawError readFromDevice(uint8_t *rbuff, size_t rbytes, bool recv_checksum, uint8_t *buf);
-
-	/**
-	 * print status
-	 */
-	void printError(RoboClawError err_code);
-
-
-	/**
-	 * Perform a round-trip write and read.
-	 *
-	 * NOTE: This function is not thread-safe.
-	 *
-	 * @param cmd Command to send to the Roboclaw
-	 * @param wbuff Write buffer. Must not contain command, address, or checksum. For most commands, this will be
-	 *   one or two bytes. Can be null iff wbytes == 0.
-	 * @param wbytes Number of bytes to write. Can be 0.
-	 * @param rbuff Read buffer. Will be filled with the entire response, including a checksum if the Roboclaw sends
-	 *   a checksum for this command.
-	 * @param rbytes Maximum number of bytes to read.
-	 * @param send_checksum If true, then the checksum will be calculated and sent to the Roboclaw.
-	 *   This is an option because some Roboclaw commands expect no checksum.
-	 * @param recv_checksum If true, then this function will calculate the checksum of the returned data and compare
-	 *   it to the checksum received. If they are not equal, OR if fewer than 2 bytes were received, then an
-	 *   error is returned.
-	 *   If false, then this function will expect to read exactly one byte, 0xFF, and will return an error otherwise.
-	 * @return If successful, then the number of bytes read from the Roboclaw is returned. If there is a timeout
-	 *   reading from the Roboclaw, then 0 is returned. If there is an IO error, then a negative value is returned.
-	 */
-	int _transaction(e_command cmd, uint8_t *wbuff, size_t wbytes,
-			 uint8_t *rbuff, size_t rbytes, bool send_checksum = true, bool recv_checksum = false);
-
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::RBCLW_ADDRESS>) _param_rbclw_address,
+		(ParamInt<px4::params::RBCLW_COUNTS_REV>) _param_rbclw_counts_rev
+	)
 };
