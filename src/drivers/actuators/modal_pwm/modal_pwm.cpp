@@ -144,11 +144,11 @@ int ModalPWM::load_params(modal_pwm_params_t *params)
 void ModalPWM::update_pwm_config()
 {
 	Command cmd;
-	uint8_t data[MODAL_PWM_CONFIG_SIZE] = {static_cast<uint8_t>((_parameters.pwm_min & 0xFF00)>>8), static_cast<uint8_t>(_parameters.pwm_min & 0xFF),
+	uint8_t data[MODAL_PWM_BOARD_CONFIG_SIZE] = {static_cast<uint8_t>((_parameters.pwm_min & 0xFF00)>>8), static_cast<uint8_t>(_parameters.pwm_min & 0xFF),
 										   static_cast<uint8_t>((_parameters.pwm_max & 0xFF00)>>8), static_cast<uint8_t>(_parameters.pwm_max & 0xFF)};
 	cmd.len = qc_esc_create_packet(ESC_PACKET_TYPE_CONFIG_BOARD_REQUEST,
 						data,
-						MODAL_PWM_CONFIG_SIZE,	// 4 bytes, pwm min and pwm max 
+						MODAL_PWM_BOARD_CONFIG_SIZE,	// 4 bytes, pwm min and pwm max 
 						cmd.buf,
 						sizeof(cmd.buf));
 
@@ -163,6 +163,12 @@ void ModalPWM::update_pwm_config()
 bool ModalPWM::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated)
 {
+
+	/* Stop Mixer while ESCs are being calibrated */
+	if (_pwm_cal_on) {
+		return 0;
+	}
+	
 	//in Run() we call _mixing_output.update(), which calls MixingOutput::limitAndUpdateOutputs which calls _interface.updateOutputs (this function)
 	//So, if Run() is blocked by a custom command, this function will not be called until Run is running again
 	int16_t _rate_req[MODAL_PWM_OUTPUT_CHANNELS] = {0, 0, 0, 0};
@@ -356,7 +362,7 @@ int ModalPWM::receive_sbus()
 		if (res) {
 			/* Check if we got a valid packet...*/
 			if (parse_response(_read_buf, (uint8_t)QC_SBUS_FRAME_SIZE)){
-				if(_pwm_on) PX4_ERR("Error parsing QC SBUS packet");
+				// if(_pwm_on) PX4_ERR("Error parsing QC SBUS packet");
 				read_retries--;
 				break;
 			}
@@ -398,7 +404,7 @@ int ModalPWM::receive_sbus()
 			} else {
 				read_retries--;
 				if (_pwm_on){
-					PX4_ERR("Failed to decode SBUS packet");
+					// PX4_ERR("Failed to decode SBUS packet");
 					if (sbus_frame_drop) {
 						PX4_WARN("SBUS frame dropped");
 					}
@@ -581,6 +587,94 @@ int ModalPWM::send_cmd_thread_safe(Command *cmd)
 	return 0;
 }
 
+int ModalPWM::calibrate_escs(){
+
+	/* Disable outputs so Mixer isn't being a PITA while we calibrate*/
+	_pwm_cal_on = true;
+
+	Command cmd;
+	int32_t fb_idx = -1;
+	uint8_t data[MODAL_PWM_ESC_CAL_SIZE]{0};
+	cmd.len = qc_esc_create_packet(ESC_PACKET_TYPE_TUNE_CONFIG,
+						data,
+						MODAL_PWM_ESC_CAL_SIZE,	
+						cmd.buf,
+						sizeof(cmd.buf));
+
+	if (_uart_port->uart_write(cmd.buf, cmd.len) != cmd.len) {
+		PX4_ERR("ESC Calibration failed: Failed to send PWM OFF packet");
+		_pwm_cal_on = false;
+		return -1;
+	}
+
+	/* Give user 10 seconds to plug in PWM cable for ESCs */
+	PX4_INFO("Disconnected and reconnect your ESCs! (Calibration will start in ~10 seconds)");
+	hrt_abstime start_cal = hrt_absolute_time();
+	while (hrt_elapsed_time(&start_cal) < 10000000){
+		continue;
+	}
+
+	/* PWM MAX 3 seconds */
+	PX4_INFO("Writing PWM MAX for 3 seconds!");
+	int16_t max_pwm[4]{MODAL_PWM_MIXER_MAX,MODAL_PWM_MIXER_MAX,MODAL_PWM_MIXER_MAX,MODAL_PWM_MIXER_MAX};
+	int16_t led_cmd[4]{0,0,0,0};
+	cmd.len = qc_esc_create_pwm_packet4_fb(max_pwm[0],
+					       max_pwm[1],
+					       max_pwm[2],
+					       max_pwm[3],
+					       led_cmd[0],
+					       led_cmd[1],
+					       led_cmd[2],
+					       led_cmd[3],
+					       fb_idx,
+					       cmd.buf,
+					       sizeof(cmd.buf));
+	
+	if (_uart_port->uart_write(cmd.buf, cmd.len) != cmd.len) {
+		PX4_ERR("ESC Calibration failed: Failed to send PWM MAX packet");
+		_pwm_cal_on = false;
+		return -1;
+	} else {
+		cmd.clear();
+	}
+
+	hrt_abstime start_pwm_max = hrt_absolute_time();
+	while (hrt_elapsed_time(&start_pwm_max) < 3000000){
+		continue;
+	}
+
+	/* PWM MIN 4 seconds */
+	PX4_INFO("Writing PWM MIN for 4 seconds!");
+	int16_t min_pwm[4]{MODAL_PWM_MIXER_MIN, MODAL_PWM_MIXER_MIN, MODAL_PWM_MIXER_MIN, MODAL_PWM_MIXER_MIN};
+	cmd.len = qc_esc_create_pwm_packet4_fb(min_pwm[0],
+					       min_pwm[1],
+					       min_pwm[2],
+					       min_pwm[3],
+					       led_cmd[0],
+					       led_cmd[1],
+					       led_cmd[2],
+					       led_cmd[3],
+					       fb_idx,
+					       cmd.buf,
+					       sizeof(cmd.buf));
+	
+	if (_uart_port->uart_write(cmd.buf, cmd.len) != cmd.len) {
+		PX4_ERR("ESC Calibration failed: Failed to send PWM MIN packet");
+		_pwm_cal_on = false;
+		return -1;
+	}
+
+	hrt_abstime start_pwm_min = hrt_absolute_time();
+	while (hrt_elapsed_time(&start_pwm_min) < 4000000){
+		continue;
+	}
+
+	PX4_INFO("ESC Calibration successful!");
+
+	_pwm_cal_on = false;
+	return 0;
+}
+
 int ModalPWM::custom_command(int argc, char *argv[])
 {
 	int myoptind = 0;
@@ -594,11 +688,12 @@ int ModalPWM::custom_command(int argc, char *argv[])
 	uint32_t repeat_count    = 100;
 	uint32_t repeat_delay_us = 10000;
 
-	if (argc < 3) {
-		return print_usage("unknown command");
-	}
-
 	const char *verb = argv[argc - 1];
+	if ((strcmp(verb,"pwm")) == 0 && argc < 3){
+		return print_usage("pwm command: missing args");
+	} else if (argc < 1) {
+		return print_usage("unknown command: missing args");
+	}
 	PX4_INFO("Executing the following command: %s", verb);
 
 	/* start the FMU if not running */
@@ -619,7 +714,10 @@ int ModalPWM::custom_command(int argc, char *argv[])
 	if (!is_running()) {
 		PX4_INFO("Not running");
 		return -1;
+	}
 
+	if (!strcmp(verb,"calibrate_escs")){
+		return get_instance()->calibrate_escs();
 	}
 
 	while ((ch = px4_getopt(argc, argv, "c:n:t:r:", &myoptind, &myoptarg)) != EOF) {
@@ -657,7 +755,7 @@ int ModalPWM::custom_command(int argc, char *argv[])
 			break;
 
 		default:
-			print_usage("Unknown command");
+			print_usage("Unknown command, parsing flags");
 			return 0;
 		}
 	}
@@ -764,6 +862,7 @@ px4io driver is used for main ones.
 	PRINT_MODULE_USAGE_NAME("modal_pwm", "driver");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the task");
 
+	PRINT_MODULE_USAGE_COMMAND_DESCR("calibrate_escs", "Calibrate ESCs min/max range");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("pwm", "Open-Loop PWM test control request");
 	PRINT_MODULE_USAGE_PARAM_INT('c', 0, 0, 3, "PWM OUTPUT Channel, 0-3", false);
 	PRINT_MODULE_USAGE_PARAM_INT('r', 0, 0, 800, "Duty Cycle value, 0 to 800", false);

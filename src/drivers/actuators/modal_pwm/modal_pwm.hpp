@@ -117,7 +117,8 @@ private:
 	
 	/* PWM Parameters */
 	static constexpr uint32_t MODAL_PWM_CONFIG = 0;				// Default to off
-	static constexpr uint32_t MODAL_PWM_CONFIG_SIZE = 4;		// PWM_MIN, PWM_MAX, 4 bytes
+	static constexpr uint32_t MODAL_PWM_BOARD_CONFIG_SIZE = 4;	// PWM_MIN, PWM_MAX, 4 bytes
+	static constexpr uint32_t MODAL_PWM_ESC_CAL_SIZE = 1;		
 	static constexpr uint32_t MODAL_PWM_DEFAULT_BAUD = 921600;
 	static constexpr uint16_t MODAL_PWM_OUTPUT_CHANNELS = 4;
 	static constexpr uint16_t MODAL_PWM_OUTPUT_DISABLED = 0;
@@ -176,6 +177,7 @@ private:
 	uORB::Subscription 	_parameter_update_sub{ORB_ID(parameter_update)};
 
 	bool		_pwm_on{false};
+	bool		_pwm_cal_on{false};
 	int32_t		_pwm_fullscale{0};
 	int16_t 	_pwm_values[MODAL_PWM_OUTPUT_CHANNELS] = {0, 0, 0, 0};
 	bool		_first_update_cycle{true};
@@ -199,4 +201,5 @@ private:
 	int update_params();
 	int	flush_uart_rx();
 	int read_response(Command *out_cmd);
+	int calibrate_escs();
 };
