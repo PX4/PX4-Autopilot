@@ -134,7 +134,6 @@ FixedwingPositionControl::parameters_update()
 	_tecs.set_speed_weight(_param_fw_t_spdweight.get());
 	_tecs.set_equivalent_airspeed_trim(_performance_model.getCalibratedTrimAirspeed());
 	_tecs.set_equivalent_airspeed_min(_performance_model.getMinimumCalibratedAirspeed());
-	_tecs.set_equivalent_airspeed_max(_performance_model.getMaximumCalibratedAirspeed());
 	_tecs.set_throttle_damp(_param_fw_t_thr_damp.get());
 	_tecs.set_integrator_gain_throttle(_param_fw_t_I_gain_thr.get());
 	_tecs.set_integrator_gain_pitch(_param_fw_t_I_gain_pit.get());
@@ -1250,7 +1249,7 @@ FixedwingPositionControl::controlAutoFigureEight(const float control_interval, c
 {
 	// airspeed settings
 	float target_airspeed = adapt_airspeed_setpoint(control_interval, pos_sp_curr.cruising_speed,
-				_param_fw_airspd_min.get(), ground_speed);
+				_performance_model.getMinimumCalibratedAirspeed(), ground_speed);
 
 	// Lateral Control
 
