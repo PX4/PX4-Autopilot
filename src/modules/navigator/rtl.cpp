@@ -313,7 +313,9 @@ void RTL::setRtlTypeAndDestination()
 
 			land_approaches_s rtl_land_approaches{readVtolLandApproaches(rtl_position)};
 
-			if (rtl_land_approaches.isAnyApproachValid()) {
+			if (_vehicle_status_sub.get().is_vtol
+			    && (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING)
+			    && rtl_land_approaches.isAnyApproachValid()) {
 				landing_loiter = chooseBestLandingApproach(rtl_land_approaches);
 			}
 
@@ -338,13 +340,16 @@ void RTL::findRtlDestination(DestinationType &destination_type, DestinationPosit
 	const bool vtol_in_rw_mode = _vehicle_status_sub.get().is_vtol
 				     && (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 
+	const bool vtol_in_fw_mode = _vehicle_status_sub.get().is_vtol
+				     && (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING);
+
 	// get distance to home position
 	float home_dist{get_distance_to_next_waypoint(_global_pos_sub.get().lat, _global_pos_sub.get().lon, rtl_position.lat, rtl_position.lon)};
 	float min_dist;
 
-	if (((_param_rtl_type.get() == 1) && !vtol_in_rw_mode) || ((_param_rtl_approach_force.get() == 1)
+	if (((_param_rtl_type.get() == 1) && !vtol_in_rw_mode) || (vtol_in_fw_mode && (_param_rtl_approach_force.get() == 1)
 			&& !hasVtolLandApproach(rtl_position))) {
-		// Set minimum distance to maximum value when RTL_TYPE is set to 1 and we are not in RW mode or we forces approach landing and it is not defined for home.
+		// Set minimum distance to maximum value when RTL_TYPE is set to 1 and we are not in RW mode or we forces approach landing for vtol in fw and it is not defined for home.
 		min_dist = FLT_MAX;
 
 	} else {
@@ -406,7 +411,7 @@ void RTL::findRtlDestination(DestinationType &destination_type, DestinationPosit
 				DestinationPosition safepoint_position;
 				setSafepointAsDestination(safepoint_position, mission_safe_point);
 
-				if (((dist + MIN_DIST_THRESHOLD) < min_dist) && ((_param_rtl_approach_force.get() == 0)
+				if (((dist + MIN_DIST_THRESHOLD) < min_dist) && (!vtol_in_fw_mode || (_param_rtl_approach_force.get() == 0)
 						|| hasVtolLandApproach(safepoint_position))) {
 					min_dist = dist;
 					rtl_position = safepoint_position;
