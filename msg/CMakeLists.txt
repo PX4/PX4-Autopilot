@@ -177,6 +177,8 @@ set(msg_files
 	SensorsStatusImu.msg
 	SensorUwb.msg
 	SystemPower.msg
+	SystemVersion.msg
+	SystemVersionString.msg
 	TakeoffStatus.msg
 	TaskStackInfo.msg
 	TecsStatus.msg
