@@ -75,3 +75,4 @@
 [submodule "src/lib/heatshrink/heatshrink"]
 	path = src/lib/heatshrink/heatshrink
 	url = https://github.com/PX4/heatshrink.git
+	branch = px4
