@@ -59,7 +59,11 @@ typedef struct __attribute__((__packed__))
 
 	char bl_version[32];
 
+	/* FPGA version info */
+
+	uint32_t fpga_version;
+
 	/* Reserved for future use */
 
-	uint8_t reserved[428];
+	uint8_t reserved[424];
 } devinfo_t;
