@@ -46,16 +46,22 @@
 #include <lib/systemlib/px4_macros.h>
 #include <mpfs_dsn.h>
 
+#include <uORB/uORB.h>
+#include <uORB/topics/system_version.h>
+#include <uORB/topics/system_version_string.h>
+
+#include <src/lib/version/build_git_version.h>
+
 #ifndef arraySize
 #define arraySize(a) (sizeof((a))/sizeof(((a)[0])))
 #endif
 
-#define HW_INFO_FPGA_PREFIX          " FPGA: "
+#define HW_INFO_FPGA_PREFIX          "FPGA: "
 #define HW_INFO_FPGA_SUFFIX          "%u.%u"
 #define HW_INFO_FPGA_VER_DIGITS      3
 #define HW_INFO_FPGA_REV_DIGITS      5
 
-#define HW_INFO_SIZE (int) arraySize(HW_INFO_INIT_PREFIX) + HW_INFO_VER_DIGITS + HW_INFO_REV_DIGITS + sizeof(HW_INFO_FPGA_PREFIX) + HW_INFO_FPGA_VER_DIGITS + HW_INFO_FPGA_REV_DIGITS
+#define HW_INFO_SIZE (int) arraySize(HW_INFO_INIT_PREFIX) + HW_INFO_VER_DIGITS + HW_INFO_REV_DIGITS + sizeof(HW_INFO_FPGA_PREFIX) + HW_INFO_FPGA_VER_DIGITS + HW_INFO_FPGA_REV_DIGITS + 1
 #define FPGA_VER_REGISTER          0x42000000
 #define MPFS_SYS_SERVICE_CR        0x37020050
 #define MPFS_SYS_SERVICE_SR        0x37020054
@@ -77,7 +83,7 @@ static mfguid_t device_serial_number = { 0 };
 
 devinfo_t device_boot_info __attribute__((section(".deviceinfo")));
 
-static void determine_hw(void);
+static void determine_hw(uint32_t fpga_version);
 
 static const uint16_t soc_arch_id = PX4_SOC_ARCH_ID_MPFS;
 
@@ -169,6 +175,77 @@ int board_get_px4_guid_formated(char *format_buffer, int size)
 	return offset;
 }
 
+/* Parse git tag string to a 64-bit hex as follows:
+
+ * 0xvvmmrrpphhhhhhhd , where
+ * v = major version
+ * m = minor version
+ * r = revision
+ * p = patch version
+ * h = git hash
+ * d = dirty (0 if clean)
+ */
+
+static uint64_t parse_tag_to_version(const char *ver_str)
+{
+	uint64_t out = 0;
+	unsigned len = strlen(ver_str);
+	unsigned g_count = 0;
+	unsigned dot_count = 0;
+	unsigned dash_count = 0;
+	uint64_t ver = 0;
+	unsigned i;
+	char c;
+
+	for (i = 0; i < len; i++) {
+		c = ver_str[i];
+
+		if (g_count == 0 &&
+		    c >= '0' && c <= '9') {
+			ver = ver * 10 + c - '0';
+		}
+
+		/* Bits 63-32 are version numbers, 8 bits each (major minor revision patch) */
+
+		if (c == '.' || (dash_count == 0 && c == '-')) {
+			dot_count++;
+			out |= ((ver & 0xff) << (64 - 8 * dot_count));
+			ver = 0;
+		}
+
+		if (c == '-') {
+			dash_count++;
+		}
+
+		/* Bits 31-4 are the 7 digits of git hash */
+
+		if (g_count > 0 && g_count < 8) {
+			if (c >= '0' && c <= '9') {
+				out |= (uint64_t)(c - '0') << (32 - 4 * g_count++);
+
+			} else if (c >= 'a' && c <= 'f') {
+				out |= (uint64_t)(c - 'a' + 10) << (32 - 4 * g_count++);
+
+			} else {
+				g_count = 8;
+			}
+		}
+
+		if (c == 'g') {
+			g_count++;
+		}
+
+		/* If d(i)rty, set bits 3-0 */
+
+		if (g_count > 7 && c == 'i') {
+			out |= 0xf;
+			break;
+		}
+	}
+
+	return out;
+}
+
 /************************************************************************************
   * Name: board_determine_hw_info
  *
@@ -187,20 +264,57 @@ int board_get_px4_guid_formated(char *format_buffer, int size)
  ************************************************************************************/
 int board_determine_hw_info(void)
 {
-	determine_hw();
+	struct system_version_string_s ver_str;
+	struct system_version_s ver;
+	orb_advert_t ver_str_pub = orb_advertise(ORB_ID(system_version_string), NULL);
+	orb_advert_t ver_pub = orb_advertise(ORB_ID(system_version), NULL);
 
-	snprintf(hw_info, sizeof(hw_info), HW_INFO_INIT_PREFIX HW_INFO_SUFFIX HW_INFO_FPGA_PREFIX HW_INFO_FPGA_SUFFIX,
+	uint32_t fpga_version = getreg32(FPGA_VER_REGISTER); // todo: replace eventually with device_boot_info
+
+	memset(&ver_str, 0, sizeof(ver_str));
+	memset(&ver, 0, sizeof(ver));
+
+	determine_hw(fpga_version);
+
+	snprintf(hw_info, sizeof(hw_info), HW_INFO_INIT_PREFIX HW_INFO_SUFFIX " " HW_INFO_FPGA_PREFIX HW_INFO_FPGA_SUFFIX,
 		 hw_version, hw_revision, fpga_version_major, fpga_version_minor);
+
+	/* HW version */
+
+	snprintf(ver_str.hw_version, sizeof(ver_str.hw_version), HW_INFO_INIT_PREFIX HW_INFO_SUFFIX, hw_version, hw_revision);
+	ver.hw_version = fpga_version;
+
+	/* PX4 version */
+
+	strncpy(ver_str.sw_version, PX4_GIT_TAG_STR, sizeof(ver_str.sw_version));
+	ver.sw_version = parse_tag_to_version(PX4_GIT_TAG_STR);
+
+	/* NuttX version */
+
+	snprintf(ver_str.os_version, sizeof(ver_str.os_version), NUTTX_GIT_TAG_STR "-g" NUTTX_GIT_VERSION_STR);
+	ver.os_version = parse_tag_to_version(ver_str.os_version);
+
+	/* Bootloader version */
+
+	strncpy(ver_str.bl_version, device_boot_info.bl_version, sizeof(ver_str.bl_version));
+	ver.bl_version = parse_tag_to_version(device_boot_info.bl_version);
+
+	/* FPGA version */
+
+	snprintf(ver_str.component_version1, sizeof(ver_str.component_version1),
+		 HW_INFO_FPGA_PREFIX HW_INFO_FPGA_SUFFIX " (0x%x)", fpga_version_major, fpga_version_minor, getreg32(FPGA_VER_REGISTER));
+	ver.component_version1 = fpga_version;
+
+	orb_publish(ORB_ID(system_version_string), &ver_str_pub, &ver_str);
+	orb_publish(ORB_ID(system_version), &ver_pub, &ver);
 
 	return OK;
 }
 
-void determine_hw(void)
+static void determine_hw(uint32_t fpga_version_reg)
 {
 	/* read device serial number */
 	mpfs_read_dsn(device_serial_number, sizeof(device_serial_number));
-
-	uint32_t fpga_version_reg = getreg32(FPGA_VER_REGISTER);
 	fpga_version_major = (fpga_version_reg >> 8) & 0xff;
 	fpga_version_minor = (fpga_version_reg >> 16) & 0xffff;
 	hw_version = fpga_version_reg & 0x3f;
