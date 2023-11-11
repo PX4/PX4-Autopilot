@@ -689,17 +689,20 @@ MissionBase::checkMissionRestart()
 void
 MissionBase::check_mission_valid()
 {
-	if (_navigator->get_mission_result()->mission_update_counter != _mission.mission_update_counter) {
-		MissionFeasibilityChecker missionFeasibilityChecker(_navigator, _dataman_client);
+	if ((_navigator->get_mission_result()->mission_update_counter != _mission.mission_update_counter)
+	    || (_navigator->get_mission_result()->geofence_update_counter != _mission.geofence_update_counter)
+	    || (_navigator->get_mission_result()->home_position_counter != _navigator->get_home_position()->update_count)) {
 
-		bool is_mission_valid =
-			missionFeasibilityChecker.checkMissionFeasible(_mission);
-
-		_navigator->get_mission_result()->valid = is_mission_valid;
 		_navigator->get_mission_result()->mission_update_counter = _mission.mission_update_counter;
+		_navigator->get_mission_result()->geofence_update_counter = _mission.geofence_update_counter;
+		_navigator->get_mission_result()->home_position_counter = _navigator->get_home_position()->update_count;
+
+		MissionFeasibilityChecker missionFeasibilityChecker(_navigator, _dataman_client);
+		_navigator->get_mission_result()->valid = missionFeasibilityChecker.checkMissionFeasible(_mission);
 		_navigator->get_mission_result()->seq_total = _mission.count;
 		_navigator->get_mission_result()->seq_reached = -1;
 		_navigator->get_mission_result()->failure = false;
+
 		set_mission_result();
 	}
 }
