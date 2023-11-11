@@ -142,7 +142,6 @@ void MissionBase::onMissionUpdate(bool has_mission_items_changed)
 		// only warn if the check failed on merit
 		if ((!_navigator->get_mission_result()->valid) && _mission.count > 0U) {
 			PX4_WARN("mission check failed");
-			resetMission();
 		}
 	}
 
