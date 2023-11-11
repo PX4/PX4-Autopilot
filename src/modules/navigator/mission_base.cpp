@@ -690,14 +690,14 @@ MissionBase::checkMissionRestart()
 void
 MissionBase::check_mission_valid()
 {
-	if (_navigator->get_mission_result()->instance_count != _mission.mission_update_counter) {
+	if (_navigator->get_mission_result()->mission_update_counter != _mission.mission_update_counter) {
 		MissionFeasibilityChecker missionFeasibilityChecker(_navigator, _dataman_client);
 
 		bool is_mission_valid =
 			missionFeasibilityChecker.checkMissionFeasible(_mission);
 
 		_navigator->get_mission_result()->valid = is_mission_valid;
-		_navigator->get_mission_result()->instance_count = _mission.mission_update_counter;
+		_navigator->get_mission_result()->mission_update_counter = _mission.mission_update_counter;
 		_navigator->get_mission_result()->seq_total = _mission.count;
 		_navigator->get_mission_result()->seq_reached = -1;
 		_navigator->get_mission_result()->failure = false;

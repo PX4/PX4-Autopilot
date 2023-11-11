@@ -1935,19 +1935,19 @@ void Commander::checkForMissionUpdate()
 	if (_mission_result_sub.updated()) {
 		const mission_result_s &mission_result = _mission_result_sub.get();
 
-		const auto prev_mission_instance_count = mission_result.instance_count;
+		const auto prev_mission_mission_update_counter = mission_result.mission_update_counter;
 		_mission_result_sub.update();
 
 		// if mission_result is valid for the current mission
 		const bool mission_result_ok = (mission_result.timestamp > _boot_timestamp)
-					       && (mission_result.instance_count > 0);
+					       && (mission_result.mission_update_counter > 0);
 
 		bool auto_mission_available = mission_result_ok && mission_result.valid;
 
 		if (mission_result_ok) {
 			/* Only evaluate mission state if home is set */
 			if (!_failsafe_flags.home_position_invalid &&
-			    (prev_mission_instance_count != mission_result.instance_count)) {
+			    (prev_mission_mission_update_counter != mission_result.mission_update_counter)) {
 
 				if (!auto_mission_available) {
 					/* the mission is invalid */
