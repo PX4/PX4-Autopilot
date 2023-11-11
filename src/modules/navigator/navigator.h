@@ -249,7 +249,7 @@ public:
 
 	orb_advert_t *get_mavlink_log_pub() { return &_mavlink_log_pub; }
 
-	int mission_instance_count() const { return _mission_result.instance_count; }
+	int mission_instance_count() const { return _mission_result.mission_update_counter; }
 
 	void set_mission_failure_heading_timeout();
 
