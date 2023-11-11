@@ -39,8 +39,8 @@
 ModalPWM::ModalPWM() :
 	OutputModuleInterface(MODULE_NAME, px4::serial_port_to_wq(MODAL_PWM_DEFAULT_PORT)),
 	_mixing_output{"MODAL_PWM", MODAL_PWM_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false},
-	_cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")},
-	_output_update_perf(perf_alloc(PC_INTERVAL, MODULE_NAME": interval"))
+	_cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": module cycle")},
+	_output_update_perf(perf_alloc(PC_INTERVAL, MODULE_NAME": output update interval"))
 {
 	_mixing_output.setMaxNumOutputs(MODAL_PWM_OUTPUT_CHANNELS);
 	_uart_port = new ModalIoSerial();
@@ -72,8 +72,8 @@ int ModalPWM::init()
 		return ret;
 	}
 
-	// ScheduleOnInterval(_current_update_interval); 
-	ScheduleNow();
+	ScheduleOnInterval(_current_update_interval); 
+	// ScheduleNow();
 	return ret;
 }
 
@@ -153,7 +153,7 @@ void ModalPWM::update_pwm_config()
 						sizeof(cmd.buf));
 
 	if (_uart_port->uart_write(cmd.buf, cmd.len) != cmd.len) {
-		PX4_ERR("Failed to send packet");
+		PX4_ERR("Failed to send config packet");
 	} else {
 		_bytes_sent+=cmd.len;
 		_packets_sent++;
@@ -257,7 +257,6 @@ int ModalPWM::parse_response(uint8_t *buf, uint8_t len)
 
 			if (packet_type == ESC_PACKET_TYPE_RC_DATA_RAW && packet_size == QC_SBUS_FRAME_SIZE) 
 			{
-				qc_esc_packet_reset(&_sbus_packet);
 				return 0;
 			}
 
@@ -270,13 +269,23 @@ int ModalPWM::parse_response(uint8_t *buf, uint8_t len)
 			case ESC_ERROR_BAD_LENGTH:
 				if(_pwm_on) PX4_WARN("BAD SBUS packet length");
 				break;
+
+			case ESC_ERROR_BAD_HEADER:
+				if(_pwm_on) PX4_WARN("BAD SBUS packet header");
+				break;
+
+			case ESC_NO_PACKET:
+				// if(_pwm_on) PX4_WARN("NO SBUS packet");
+				break;
+
+			default:
+				if(_pwm_on) PX4_WARN("Unkown error: %i", ret);
+				break;
 			}
-			qc_esc_packet_reset(&_sbus_packet);
 			return ret;
 		}
 	}
 
-	qc_esc_packet_reset(&_sbus_packet);
 	return 0;
 }
 
@@ -358,17 +367,53 @@ void ModalPWM::fill_rc_in(uint16_t raw_rc_count_local,
 int ModalPWM::receive_sbus()
 {
 	int res = 0;
+	int header = -1;
 	int read_retries = 3;
 	int read_succeeded = 0;
+	qc_esc_packet_init(&_sbus_packet);
 	while (read_retries) {
-    	res = _uart_port->uart_read(_read_buf, QC_SBUS_FRAME_SIZE);
+		memset(&_read_buf, 0x00, READ_BUF_SIZE);
+    	res = _uart_port->uart_read(_read_buf, READ_BUF_SIZE);
 		if (res) {
+			/* Get index of packer header */
+			for (int index = 0; index < READ_BUF_SIZE; ++index){
+				if (_read_buf[index] == ESC_PACKET_HEADER){
+					header = index;
+					break;
+				}
+			}
+
+			/* Try again in a bit if packet not present yet... */
+			if (header == -1){
+				PX4_ERR("Failed to find header, trying again... retries left: %i", read_retries);
+				read_retries--;
+				continue;
+			}
+
 			/* Check if we got a valid packet...*/
-			if (parse_response(_read_buf, (uint8_t)QC_SBUS_FRAME_SIZE)){
-				// if(_pwm_on) PX4_ERR("Error parsing QC SBUS packet");
+			if (parse_response(&_read_buf[header], (uint8_t)QC_SBUS_FRAME_SIZE)){
+				// if(_pwm_on) {
+				// 	PX4_ERR("Error parsing QC SBUS packet");
+				// 	PX4_INFO_RAW("[%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x]\n",
+				// 		_read_buf[header+0], _read_buf[header+1], _read_buf[header+2], _read_buf[header+3], _read_buf[header+4], _read_buf[header+5], 
+				// 		_read_buf[header+6], _read_buf[header+7], _read_buf[header+8], _read_buf[header+9], _read_buf[header+10], _read_buf[header+11], 
+				// 		_read_buf[header+12], _read_buf[header+13], _read_buf[header+14], _read_buf[header+15], _read_buf[header+16], _read_buf[header+17], 
+				// 		_read_buf[header+18], _read_buf[header+19], _read_buf[header+20], _read_buf[header+21], _read_buf[header+22], _read_buf[header+23], 
+				// 		_read_buf[header+24], _read_buf[header+25], _read_buf[header+26], _read_buf[header+27], _read_buf[header+28], _read_buf[header+29]
+				// 		);
+				// }
 				read_retries--;
 				break;
-			}
+			} 
+			// else {
+					// PX4_INFO_RAW("[%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x]\n",
+						// _read_buf[header+0], _read_buf[header+1], _read_buf[header+2], _read_buf[header+3], _read_buf[header+4], _read_buf[header+5], 
+						// _read_buf[header+6], _read_buf[header+7], _read_buf[header+8], _read_buf[header+9], _read_buf[header+10], _read_buf[header+11], 
+						// _read_buf[header+12], _read_buf[header+13], _read_buf[header+14], _read_buf[header+15], _read_buf[header+16], _read_buf[header+17], 
+						// _read_buf[header+18], _read_buf[header+19], _read_buf[header+20], _read_buf[header+21], _read_buf[header+22], _read_buf[header+23], 
+						// _read_buf[header+24], _read_buf[header+25], _read_buf[header+26], _read_buf[header+27], _read_buf[header+28], _read_buf[header+29]
+						// );
+			// }
 
 			input_rc_s input_rc;
 			uint16_t num_values;
@@ -376,21 +421,31 @@ int ModalPWM::receive_sbus()
 			bool sbus_frame_drop = false;
 			uint16_t max_channels = sizeof(_raw_rc_values) / sizeof(_raw_rc_values[0]);
 			hrt_abstime now = hrt_absolute_time();
-			bool rc_updated = sbus_parse(now, &_read_buf[SBUS_PAYLOAD], SBUS_FRAME_SIZE, _raw_rc_values, &num_values,
+			bool rc_updated = sbus_parse(now, &_read_buf[header+SBUS_PAYLOAD], SBUS_FRAME_SIZE, _raw_rc_values, &num_values,
 						&sbus_failsafe, &sbus_frame_drop, &_sbus_frame_drops, max_channels);
 	
 			if (rc_updated) {
-				/*
-				PX4_INFO("decoded packet");
-				PX4_INFO("[%0x %0x %0x %0x %0x %0x %0x %0x %0x %0x %0x %0x %0x %0x %0x %0x %0x %0x]",
-					_raw_rc_values[0], _raw_rc_values[1], _raw_rc_values[2], 
-					_raw_rc_values[3], _raw_rc_values[4], _raw_rc_values[5], 
-					_raw_rc_values[6], _raw_rc_values[7], _raw_rc_values[8],
-					_raw_rc_values[9], _raw_rc_values[10], _raw_rc_values[11], 
-					_raw_rc_values[12], _raw_rc_values[13], _raw_rc_values[14], 
-					_raw_rc_values[15], _raw_rc_values[16], _raw_rc_values[17]
-					);
-				*/
+				// /*
+				// if (_pwm_on){
+				// PX4_INFO("decoded packet, header pos: %i", header);
+				// PX4_INFO("[%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x]",
+				// 	_read_buf[header+0], _read_buf[header+1], _read_buf[header+2], _read_buf[header+3], _read_buf[header+4], _read_buf[header+5], 
+				// 	_read_buf[header+6], _read_buf[header+7], _read_buf[header+8], _read_buf[header+9], _read_buf[header+10], _read_buf[header+11], 
+				// 	_read_buf[header+12], _read_buf[header+13], _read_buf[header+14], _read_buf[header+15], _read_buf[header+16], _read_buf[header+17], 
+				// 	_read_buf[header+18], _read_buf[header+19], _read_buf[header+20], _read_buf[header+21], _read_buf[header+22], _read_buf[header+23], 
+				// 	_read_buf[header+24], _read_buf[header+25], _read_buf[header+26], _read_buf[header+27], _read_buf[header+28], _read_buf[header+29]
+				// 	);
+				// PX4_INFO("[%0x %0x %0x %0x %0x %0x %0x %0x %0x %0x %0x %0x %0x %0x %0x %0x %0x %0x]",
+				// 	_raw_rc_values[0], _raw_rc_values[1], _raw_rc_values[2], 
+				// 	_raw_rc_values[3], _raw_rc_values[4], _raw_rc_values[5], 
+				// 	_raw_rc_values[6], _raw_rc_values[7], _raw_rc_values[8],
+				// 	_raw_rc_values[9], _raw_rc_values[10], _raw_rc_values[11], 
+				// 	_raw_rc_values[12], _raw_rc_values[13], _raw_rc_values[14], 
+				// 	_raw_rc_values[15], _raw_rc_values[16], _raw_rc_values[17]
+				// 	);
+				// */
+				// }
+				
 				input_rc.input_source = input_rc_s::RC_INPUT_SOURCE_PX4IO_SBUS;
 				fill_rc_in(num_values, _raw_rc_values, now, sbus_frame_drop, sbus_failsafe, _sbus_frame_drops, -1, input_rc);
 				if (!input_rc.rc_lost && !input_rc.rc_failsafe) {
@@ -405,19 +460,18 @@ int ModalPWM::receive_sbus()
 				read_succeeded = 1;
 				break;
 			} else {
-				read_retries--;
 				/* 
 				if (_pwm_on){
-					PX4_ERR("Failed to decode SBUS packet");
+					PX4_ERR("Failed to decode SBUS packet, header pos: %i", header);
 					if (sbus_frame_drop) {
 						PX4_WARN("SBUS frame dropped");
 					}
-					PX4_ERR("[%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x,%0x]",
-						_read_buf[0], _read_buf[1], _read_buf[2], _read_buf[3], _read_buf[4], _read_buf[5], 
-						_read_buf[6], _read_buf[7], _read_buf[8], _read_buf[9], _read_buf[10], _read_buf[11], 
-						_read_buf[12], _read_buf[13], _read_buf[14], _read_buf[15], _read_buf[16], _read_buf[17], 
-						_read_buf[18], _read_buf[19], _read_buf[20], _read_buf[21], _read_buf[22], _read_buf[23], 
-						_read_buf[24], _read_buf[25], _read_buf[26], _read_buf[27], _read_buf[28], _read_buf[29]
+					PX4_ERR("[%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x]",
+						_read_buf[header+0], _read_buf[header+1], _read_buf[header+2], _read_buf[header+3], _read_buf[header+4], _read_buf[header+5], 
+						_read_buf[header+6], _read_buf[header+7], _read_buf[header+8], _read_buf[header+9], _read_buf[header+10], _read_buf[header+11], 
+						_read_buf[header+12], _read_buf[header+13], _read_buf[header+14], _read_buf[header+15], _read_buf[header+16], _read_buf[header+17], 
+						_read_buf[header+18], _read_buf[header+19], _read_buf[header+20], _read_buf[header+21], _read_buf[header+22], _read_buf[header+23], 
+						_read_buf[header+24], _read_buf[header+25], _read_buf[header+26], _read_buf[header+27], _read_buf[header+28], _read_buf[header+29]
 						);
 				}
 				*/
@@ -808,7 +862,7 @@ int ModalPWM::custom_command(int argc, char *argv[])
 			PX4_INFO("Sending UART M0065 power command %i", rate);
 
 			if (get_instance()->_uart_port->uart_write(cmd.buf, cmd.len) != cmd.len) {
-				PX4_ERR("Failed to send packet");
+				PX4_ERR("Failed to send packet: stop PWMs");
 				return -1;
 			} else {
 				get_instance()->_bytes_sent+=cmd.len;
