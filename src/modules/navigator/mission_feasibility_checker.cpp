@@ -97,7 +97,7 @@ MissionFeasibilityChecker::checkMissionFeasible(const mission_s &mission)
 
 	failed |= _feasibility_checker.someCheckFailed();
 
-	failed |= !checkGeofence(mission, _navigator->get_home_position()->alt, home_valid);
+	failed |= !checkMissionAgainstGeofence(mission, _navigator->get_home_position()->alt, home_valid);
 
 	_navigator->get_mission_result()->warning = failed;
 
@@ -105,7 +105,7 @@ MissionFeasibilityChecker::checkMissionFeasible(const mission_s &mission)
 }
 
 bool
-MissionFeasibilityChecker::checkGeofence(const mission_s &mission, float home_alt, bool home_valid)
+MissionFeasibilityChecker::checkMissionAgainstGeofence(const mission_s &mission, float home_alt, bool home_valid)
 {
 	if (_navigator->get_geofence().isHomeRequired() && !home_valid) {
 		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence requires valid home position\t");
