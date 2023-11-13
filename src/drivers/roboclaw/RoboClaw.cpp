@@ -78,9 +78,7 @@
 using namespace time_literals;
 
 RoboClaw::RoboClaw(const char *deviceName, const char *baudRateParam) :
-	// ModuleParams(nullptr),
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default)
-	// ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
 {
 	strncpy(_storedDeviceName, deviceName, sizeof(_storedDeviceName) - 1);
 	_storedDeviceName[sizeof(_storedDeviceName) - 1] = '\0'; // Ensure null-termination
@@ -251,9 +249,9 @@ void RoboClaw::Run()
 
 	// check for parameter updates
 	if (_parameter_update_sub.updated()) {
-		// clear update
-		parameter_update_s pupdate;
-		_parameter_update_sub.copy(&pupdate);
+		// Read from topic to clear updated flag
+		parameter_update_s parameter_update;
+		_parameter_update_sub.copy(&parameter_update);
 
 		updateParams();
 	}
@@ -530,11 +528,35 @@ RoboClaw::RoboClawError RoboClaw::writeCommandWithPayload(e_command cmd, uint8_t
 
 int RoboClaw::custom_command(int argc, char *argv[])
 {
-	return 0;
+	return print_usage("unknown command");
 }
 
 int RoboClaw::print_usage(const char *reason)
 {
+	if (reason) {
+		PX4_WARN("%s\n", reason);
+	}
+
+	PRINT_MODULE_DESCRIPTION(R"DESCR_STR(
+### Description
+
+This driver communicates over UART with the [Roboclaw motor driver](https://www.basicmicro.com/motor-controller).
+It performs two tasks:
+
+ - Control the motors based on the OutputModuleInterface.
+ - Read the wheel encoders and publish the raw data in the `wheel_encoders` uORB topic
+
+In order to use this driver, the Roboclaw should be put into Packet Serial mode (see the linked documentation), and
+your flight controller's UART port should be connected to the Roboclaw as shown in the documentation.
+The driver needs to be enabled using the parameter `RBCLW_SER_CFG`, the baudrate needs to be set correctly and
+the address `RBCLW_ADDRESS` needs to match the ESC configuration.
+
+The command to start this driver is: `$ roboclaw start <UART device> <baud rate>`
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("roboclaw", "driver");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 	return 0;
 }
 
