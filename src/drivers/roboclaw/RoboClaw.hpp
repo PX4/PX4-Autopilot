@@ -36,41 +36,23 @@
  *
  * RoboClaw Motor Driver
  *
- * references:
- * http://downloads.orionrobotics.com/downloads/datasheets/motor_controller_robo_claw_R0401.pdf
- *
+ * Product page: https://www.basicmicro.com/motor-controller
+ * Manual: https://downloads.basicmicro.com/docs/roboclaw_user_manual.pdf
  */
 
 #pragma once
 
-#include <poll.h>
-#include <stdio.h>
-#include <termios.h>
-#include <lib/parameters/param.h>
-#include <drivers/device/i2c.h>
-#include <sys/select.h>
-#include <sys/time.h>
-#include <pthread.h>
-#include <unistd.h>
-
-#include <uORB/Subscription.hpp>
-
-#include <uORB/PublicationMulti.hpp>
-#include <uORB/topics/wheel_encoders.h>
-#include <uORB/topics/actuator_armed.h>
-#include <uORB/topics/parameter_update.h>
-#include <uORB/topics/vehicle_status.h>
-
-#include <uORB/topics/differential_drive_control.h>
-
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/defines.h>
+#include <lib/mixer_module/mixer_module.hpp>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <sys/select.h>
 
-#include <lib/mixer_module/mixer_module.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/parameter_update.h>
 
+#include <uORB/Publication.hpp>
+#include <uORB/topics/wheel_encoders.h>
 
 /**
  * This is a driver for the RoboClaw motor controller
@@ -216,10 +198,7 @@ private:
 	struct timeval _uart_fd_timeout;
 
 	uORB::SubscriptionData<actuator_armed_s> _actuator_armed_sub{ORB_ID(actuator_armed)};
-	uORB::Subscription _differential_drive_control_sub{ORB_ID(differential_drive_control)};
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
-
-	differential_drive_control_s 		_diff_drive_control{};
 
 	matrix::Vector2f _motor_control{0.0f, 0.0f};
 

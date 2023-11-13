@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015-2023 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,18 +31,11 @@
 #
 ############################################################################
 
-set(PARAM_PREFIX ROBOCLAW)
-
-if(CONFIG_BOARD_IO)
-	set(PARAM_PREFIX ROBOCLAW)
-endif()
-
 px4_add_module(
 	MODULE drivers__roboclaw
 	MAIN roboclaw
 	COMPILE_FLAGS
 	SRCS
-		roboclaw_main.cpp
 		RoboClaw.cpp
 	MODULE_CONFIG
 		module.yaml

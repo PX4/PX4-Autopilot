@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,40 +32,6 @@
  ****************************************************************************/
 
 /**
- * @file roboclaw_params.c
- *
- * Parameters defined by the Roboclaw driver.
- *
- * The Roboclaw will need to be configured to match these parameters. For information about configuring the
- * Roboclaw, see http://downloads.ionmc.com/docs/roboclaw_user_manual.pdf
- *
- * @author Timothy Scott <timothy@auterion.com>
- */
-
-
-/**
- * Uart write period
- *
- * How long to wait, in Milliseconds, between writing actuator controls over Uart to the Roboclaw
- * @unit ms
- * @min 1
- * @max 1000
- * @group Roboclaw driver
- */
-PARAM_DEFINE_INT32(RBCLW_WRITE_PER, 10);
-
-/**
- * Encoder read period
- *
- * How long to wait, in Milliseconds, between reading wheel encoder values over Uart from the Roboclaw
- * @unit ms
- * @min 1
- * @max 1000
- * @group Roboclaw driver
- */
-PARAM_DEFINE_INT32(RBCLW_READ_PER, 10);
-
-/**
  * Encoder counts per revolution
  *
  * Number of encoder counts for one revolution. The roboclaw treats analog encoders (potentiometers) as having 2047
@@ -93,22 +59,3 @@ PARAM_DEFINE_INT32(RBCLW_COUNTS_REV, 1200);
  * @group Roboclaw driver
  */
 PARAM_DEFINE_INT32(RBCLW_ADDRESS, 128);
-
-/**
- * Roboclaw serial baud rate
- *
- * Baud rate of the serial communication with the Roboclaw. The Roboclaw must be configured to match this rate.
- * @min 2400
- * @max 460800
- * @value 2400 2400 baud
- * @value 9600 9600 baud
- * @value 19200 19200 baud
- * @value 38400 38400 baud
- * @value 57600 57600 baud
- * @value 115200 115200 baud
- * @value 230400 230400 baud
- * @value 460800 460800 baud
- * @group Roboclaw driver
- * @reboot_required true
- */
-PARAM_DEFINE_INT32(RBCLW_BAUD, 57600);
