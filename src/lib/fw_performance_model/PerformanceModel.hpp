@@ -131,9 +131,9 @@ private:
 		(ParamFloat<px4::params::FW_THR_ASPD_MAX>) _param_fw_thr_aspd_max)
 
 	/**
-	 * Get the trim throttle for the current airspeed setpoint.
-	 * @param airspeed_sp in m/s
-	 * @return trim throttle
+	 * Get the sea level trim throttle for a given calibrated airspeed setpoint.
+	 * @param airspeed_sp [m/s] calibrated
+	 * @return trim throttle [0, 1] at sea level 
 	 */
 	float getTrimThrottleForAirspeed(float airspeed_sp) const;
 
