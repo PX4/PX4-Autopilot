@@ -411,6 +411,19 @@ parameters:
             instance_start: 0
             default: 0
 
+
+        CA_SV_TL${i}_TRIM:
+            description:
+                short: Tilt Servo ${i} trim
+                long: Can be used to add an offset to the servo control.
+            type: float
+            decimal: 2
+            min: -1.0
+            max: 1.0
+            num_instances: *max_num_tilts
+            instance_start: 0
+            default: 0.0
+
         # helicopter
         CA_SP0_COUNT:
             description:
@@ -1015,6 +1028,8 @@ mixer:
                             label: 'Tilt Direction'
                           - name: 'CA_SV_TL${i}_CT'
                             label: 'Use for Control'
+                          - name: 'CA_SV_TL${i}_TRIM'
+                            label: 'Trim'
 
             9: # Custom
                 actuators:
