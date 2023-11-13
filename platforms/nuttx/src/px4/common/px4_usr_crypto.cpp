@@ -77,6 +77,16 @@ void PX4Crypto::close()
 	boardctl(CRYPTOIOCCLOSE, reinterpret_cast<unsigned long>(&_crypto_handle));
 }
 
+bool PX4Crypto::signature_check(uint8_t  key_index,
+				const uint8_t *signature,
+				const uint8_t *message,
+				size_t message_size)
+{
+	cryptoiocsignaturecheck_t data = {&_crypto_handle,  key_index, signature, message, message_size, false};
+	boardctl(CRYPTOIOCSIGNATURECHECK, reinterpret_cast<unsigned long>(&data));
+	return data.ret;
+}
+
 bool PX4Crypto::encrypt_data(uint8_t  key_index,
 			     const uint8_t *message,
 			     size_t message_size,
@@ -90,26 +100,47 @@ bool PX4Crypto::encrypt_data(uint8_t  key_index,
 	return data.ret;
 }
 
-bool  PX4Crypto::generate_key(uint8_t idx,
-			      bool persistent)
+bool PX4Crypto::decrypt_data(uint8_t key_index,
+			     const uint8_t *cipher,
+			     size_t cipher_size,
+			     const uint8_t *mac,
+			     size_t mac_size,
+			     uint8_t *message,
+			     size_t *message_size)
+{
+	cryptoiocdecryptdata_t data = {&_crypto_handle, key_index, cipher, cipher_size, mac, mac_size, message, message_size, false};
+	boardctl(CRYPTOIOCDECRYPTDATA, reinterpret_cast<unsigned long>(&data));
+	return data.ret;
+}
+
+bool PX4Crypto::generate_key(uint8_t idx,
+			     bool persistent)
 {
 	cryptoiocgenkey_t data = {&_crypto_handle, idx, persistent, false};
 	boardctl(CRYPTOIOCGENKEY, reinterpret_cast<unsigned long>(&data));
 	return data.ret;
 }
 
-bool  PX4Crypto::get_nonce(uint8_t *nonce,
-			   size_t *nonce_len)
+bool PX4Crypto::renew_nonce(const uint8_t *nonce,
+			    size_t nonce_size)
+{
+	cryptoiocrenewnonce_t data = {&_crypto_handle, nonce, nonce_size, false};
+	boardctl(CRYPTOIOCRENEWNONCE, reinterpret_cast<unsigned long>(&data));
+	return data.ret;
+}
+
+bool PX4Crypto::get_nonce(uint8_t *nonce,
+			  size_t *nonce_len)
 {
 	cryptoiocgetnonce_t data = {&_crypto_handle, nonce, nonce_len, false};
 	boardctl(CRYPTOIOCGETNONCE, reinterpret_cast<unsigned long>(&data));
 	return data.ret;
 }
 
-bool  PX4Crypto::get_encrypted_key(uint8_t key_idx,
-				   uint8_t *key,
-				   size_t *key_len,
-				   uint8_t encryption_key_idx)
+bool PX4Crypto::get_encrypted_key(uint8_t key_idx,
+				  uint8_t *key,
+				  size_t *key_len,
+				  uint8_t encryption_key_idx)
 {
 	cryptoiocgetkey_t data = {&_crypto_handle, key_idx, key, key_len, encryption_key_idx, false};
 	boardctl(CRYPTOIOCGETKEY, reinterpret_cast<unsigned long>(&data));
@@ -122,5 +153,8 @@ size_t PX4Crypto::get_min_blocksize(uint8_t key_idx)
 	boardctl(CRYPTOIOCGETBLOCKSZ, reinterpret_cast<unsigned long>(&data));
 	return data.ret;
 }
+
+
+
 
 #endif

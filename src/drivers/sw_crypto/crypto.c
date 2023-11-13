@@ -460,3 +460,24 @@ size_t crypto_get_min_blocksize(crypto_session_handle_t handle, uint8_t key_idx)
 
 	return ret;
 }
+
+bool crypto_renew_nonce(crypto_session_handle_t handle,
+			const uint8_t *nonce,
+			size_t nonce_size)
+{
+	/* unimplemented */
+	return false;
+}
+
+bool crypto_decrypt_data(crypto_session_handle_t handle,
+			 uint8_t key_index,
+			 const uint8_t *cipher,
+			 size_t cipher_size,
+			 const uint8_t *mac,
+			 size_t mac_size,
+			 uint8_t *message,
+			 size_t *message_size)
+{
+	/* unimplemented */
+	return false;
+}
