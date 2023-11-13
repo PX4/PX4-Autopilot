@@ -94,7 +94,8 @@ RoboClaw::~RoboClaw()
 	close(_uart_fd);
 }
 
-int RoboClaw::init() {
+int RoboClaw::init()
+{
 	_uart_fd_timeout = { .tv_sec = 0, .tv_usec = TIMEOUT_US };
 
 	int32_t baud_rate_parameter_value{0};
@@ -156,12 +157,15 @@ int RoboClaw::init() {
 
 	// Set baud rate
 	ret = cfsetispeed(&uart_config, baud_rate_posix);
+
 	if (ret < 0) { err(1, "failed to set input speed"); }
 
 	ret = cfsetospeed(&uart_config, baud_rate_posix);
+
 	if (ret < 0) { err(1, "failed to set output speed"); }
 
 	ret = tcsetattr(_uart_fd, TCSANOW, &uart_config);
+
 	if (ret < 0) { err(1, "failed to set attr"); }
 
 	FD_ZERO(&_uart_fd_set);
@@ -174,6 +178,7 @@ int RoboClaw::init() {
 	if (err_code <= 0) {
 		PX4_ERR("Shutting down Roboclaw driver.");
 		return PX4_ERROR;
+
 	} else {
 		PX4_INFO("Successfully connected");
 		/* Schedule a cycle to start things. */
@@ -210,19 +215,21 @@ int RoboClaw::task_spawn(int argc, char *argv[])
 }
 
 bool RoboClaw::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
-			unsigned num_outputs, unsigned num_control_groups_updated)
+			     unsigned num_outputs, unsigned num_control_groups_updated)
 {
-	float left_motor_output = -((float)outputs[1] - 128.0f)/127.f;
-	float right_motor_output = ((float)outputs[0] - 128.0f)/127.f;
+	float left_motor_output = -((float)outputs[1] - 128.0f) / 127.f;
+	float right_motor_output = ((float)outputs[0] - 128.0f) / 127.f;
 
-	if(stop_motors){
+	if (stop_motors) {
 		setMotorSpeed(MOTOR_1, 0.f);
 		setMotorSpeed(MOTOR_2, 0.f);
+
 	} else {
 		// PX4_ERR("Left and Right motor speed %f %f", (double)left_motor_output, (double)right_motor_output);
 		setMotorSpeed(MOTOR_1, left_motor_output);
 		setMotorSpeed(MOTOR_2, right_motor_output);
 	}
+
 	return true;
 }
 
@@ -237,12 +244,12 @@ void RoboClaw::Run()
 
 	_mixing_output.update();
 
-	if(!_initialized){
+	if (!_initialized) {
 		init();
 		_initialized = true;
 	}
 
-		// check for parameter updates
+	// check for parameter updates
 	if (_parameter_update_sub.updated()) {
 		// clear update
 		parameter_update_s pupdate;
