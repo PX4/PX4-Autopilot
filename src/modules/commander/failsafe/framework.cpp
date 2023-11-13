@@ -418,6 +418,36 @@ void FailsafeBase::getSelectedAction(const State &state, const failsafe_flags_s 
 	returned_state.updated_user_intended_mode = state.user_intended_mode;
 	returned_state.cause = Cause::Generic;
 
+	// If the geofence is breached, the state of NAVIGATION_STATE_AUTO_MISSION or NAVIGATION_STATE_MANUAL will not be allowed
+	// And the returned_state.updated_user_intended_mode will be adjusted to the mode specified by the GFActParam parameter
+	if(status_flags.primary_geofence_breached &&
+		(state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION ||
+		state.user_intended_mode == vehicle_status_s::NAVIGATION_STATE_MANUAL)){
+			switch(geofence_violation_action(_param_gf_action.get())){
+				case geofence_violation_action::None:
+				case geofence_violation_action::Warning:
+				case geofence_violation_action::Hold_mode:
+					returned_state.updated_user_intended_mode = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
+					break;
+
+				case geofence_violation_action::Return_mode:
+					returned_state.updated_user_intended_mode = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
+					break;
+
+				case geofence_violation_action::Terminate:
+					returned_state.updated_user_intended_mode = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
+					break;
+
+				case geofence_violation_action::Land_mode:
+					returned_state.updated_user_intended_mode = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
+					break;
+
+				default:
+					returned_state.updated_user_intended_mode = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
+					break;
+			}
+	}
+
 	if (_selected_action == Action::Terminate) { // Terminate never clears
 		returned_state.action = Action::Terminate;
 		return;

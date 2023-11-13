@@ -87,6 +87,15 @@ public:
 		Count
 	};
 
+	enum class geofence_violation_action : int32_t {  // Added for geofence breached bug
+		None = 0,
+		Warning = 1,
+		Hold_mode = 2,
+		Return_mode = 3,
+		Terminate = 4,
+		Land_mode = 5,
+	};
+
 	static const char *actionStr(Action action)
 	{
 		switch (action) {
