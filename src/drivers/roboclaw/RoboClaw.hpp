@@ -133,7 +133,7 @@ public:
 	int init();
 
 	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
-			unsigned num_outputs, unsigned num_control_groups_updated) override;
+			   unsigned num_outputs, unsigned num_control_groups_updated) override;
 
 	/**
 	 * set the speed of a motor, rev/sec
