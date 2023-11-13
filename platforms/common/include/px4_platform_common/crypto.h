@@ -211,6 +211,27 @@ public:
 			  uint8_t *mac,
 			  size_t *mac_size);
 
+	/*
+	 * Decrypt data. This always supports decryption in place
+	 *
+	 * De-crypts the given cipher using the given nonce and key index.
+	 * handle: session handle, returned by oepn
+	 * key_index: index to the key used for decryption
+	 * cipher: the ciphertext to be decrypted
+	 * mac: pointer to the buffer for authentication code
+	 * mac_size: size of the authentication code buffer
+	 * message: output buffer given by the client
+	 * message_size: in: size of "message" buffer, out: actual result size
+	 * returns
+	 */
+	bool decrypt_data(uint8_t key_index,
+			  const uint8_t *cipher,
+			  size_t cipher_size,
+			  const uint8_t *mac,
+			  size_t mac_size,
+			  uint8_t *message,
+			  size_t *message_size);
+
 	size_t get_min_blocksize(uint8_t key_idx);
 
 	static int crypto_ioctl(unsigned int cmd, unsigned long arg);

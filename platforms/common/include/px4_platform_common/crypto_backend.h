@@ -144,6 +144,19 @@ bool crypto_get_encrypted_key(crypto_session_handle_t handle,
 			      uint8_t encryption_key_idx);
 
 /*
+ * Re-create or set nonce.
+ *
+ * A nonce or intialization vector value for the selected algortithm is
+ * automatically generated when the crypto session is opened. If needed, the
+ * nonce can be set by this function.
+ * If this is called with NULL pointer, a new nonce is automatically random
+ * generated
+ */
+bool crypto_renew_nonce(crypto_session_handle_t handle,
+			const uint8_t *nonce,
+			size_t nonce_size);
+
+/*
  * Get the generated nonce value
  *
  * handle: an open crypto context; the returned nonce is the one associsated
@@ -191,6 +204,28 @@ bool crypto_encrypt_data(crypto_session_handle_t handle,
  */
 
 size_t crypto_get_min_blocksize(crypto_session_handle_t handle, uint8_t key_idx);
+
+/*
+ * Decrypt data. This always supports decryption in place
+ *
+ * De-crypts the given cipher using the given nonce and key index.
+ * handle: session handle, returned by oepn
+ * key_index: index to the key used for decryption
+ * cipher: the ciphertext to be decrypted
+ * nonce: the nonce used for decryption. If NULL, using the previously set nonce
+ * nonce_size: size of the given nonce value (note. caller is responsible of giving a suitable nonce for the algorithm)
+ * message: output buffer given by the client
+ * message_size: in: size of "message" buffer, out: actual result size
+ * returns
+ */
+bool crypto_decrypt_data(crypto_session_handle_t handle,
+			 uint8_t key_index,
+			 const uint8_t *cipher,
+			 size_t cipher_size,
+			 const uint8_t *mac,
+			 size_t mac_size,
+			 uint8_t *message,
+			 size_t *message_size);
 
 /* Crypto IOCTLs, to access backend from user space */
 
@@ -249,6 +284,37 @@ typedef struct cryptoiocgetblocksz {
 	uint8_t key_idx;
 	size_t ret;
 } cryptoiocgetblocksz_t;
+
+#define CRYPTOIOCRENEWNONCE _CRYPTOIOC(8)
+typedef struct cryptoiocrenewnonce {
+	crypto_session_handle_t *handle;
+	const uint8_t *nonce;
+	size_t nonce_size;
+	size_t ret;
+} cryptoiocrenewnonce_t;
+
+#define CRYPTOIOCSIGNATURECHECK _CRYPTOIOC(9)
+typedef struct cryptoiocsignaturecheck {
+	crypto_session_handle_t *handle;
+	uint8_t  key_index;
+	const uint8_t  *signature;
+	const uint8_t *message;
+	size_t message_size;
+	size_t ret;
+} cryptoiocsignaturecheck_t;
+
+#define CRYPTOIOCDECRYPTDATA _CRYPTOIOC(10)
+typedef struct cryptoiocdecryptdata {
+	crypto_session_handle_t *handle;
+	uint8_t key_index;
+	const uint8_t *cipher;
+	size_t cipher_size;
+	const uint8_t *mac;
+	size_t mac_size;
+	uint8_t *message;
+	size_t *message_size;
+	size_t ret;
+} cryptoiocdecryptdata_t;
 
 #if defined(__cplusplus)
 } // extern "C"
