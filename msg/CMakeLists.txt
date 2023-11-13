@@ -234,8 +234,8 @@ set(msg_files
 	VehicleTrajectoryBezier.msg
 	VehicleTrajectoryWaypoint.msg
 	VtolVehicleStatus.msg
-	Wind.msg
 	WheelEncoders.msg
+	Wind.msg
 	YawEstimatorStatus.msg
 )
 list(SORT msg_files)
