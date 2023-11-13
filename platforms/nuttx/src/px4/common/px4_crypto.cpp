@@ -117,6 +117,14 @@ void PX4Crypto::close()
 	unlock();
 }
 
+bool PX4Crypto::signature_check(uint8_t  key_index,
+				const uint8_t *signature,
+				const uint8_t *message,
+				size_t message_size)
+{
+	return crypto_signature_check(_crypto_handle, key_index, signature, message, message_size);
+}
+
 bool PX4Crypto::encrypt_data(uint8_t  key_index,
 			     const uint8_t *message,
 			     size_t message_size,
@@ -128,24 +136,40 @@ bool PX4Crypto::encrypt_data(uint8_t  key_index,
 	return crypto_encrypt_data(_crypto_handle, key_index, message, message_size, cipher, cipher_size, mac, mac_size);
 }
 
-bool  PX4Crypto::generate_key(uint8_t idx,
-			      bool persistent)
+bool PX4Crypto::decrypt_data(uint8_t key_index,
+			     const uint8_t *cipher,
+			     size_t cipher_size,
+			     const uint8_t *mac,
+			     size_t mac_size,
+			     uint8_t *message,
+			     size_t *message_size)
+{
+	return crypto_decrypt_data(_crypto_handle, key_index, cipher, cipher_size, mac, mac_size, message,
+				   message_size);
+}
+
+bool PX4Crypto::generate_key(uint8_t idx,
+			     bool persistent)
 {
 	return crypto_generate_key(_crypto_handle, idx, persistent);
 }
 
+bool PX4Crypto::renew_nonce(const uint8_t *nonce,
+			    size_t nonce_size)
+{
+	return crypto_renew_nonce(_crypto_handle, nonce, nonce_size);
+}
 
-bool  PX4Crypto::get_nonce(uint8_t *nonce,
-			   size_t *nonce_len)
+bool PX4Crypto::get_nonce(uint8_t *nonce,
+			  size_t *nonce_len)
 {
 	return crypto_get_nonce(_crypto_handle, nonce, nonce_len);
 }
 
-
-bool  PX4Crypto::get_encrypted_key(uint8_t key_idx,
-				   uint8_t *key,
-				   size_t *key_len,
-				   uint8_t encryption_key_idx)
+bool PX4Crypto::get_encrypted_key(uint8_t key_idx,
+				  uint8_t *key,
+				  size_t *key_len,
+				  uint8_t encryption_key_idx)
 {
 	return crypto_get_encrypted_key(_crypto_handle, key_idx, key, key_len, encryption_key_idx);
 }
@@ -185,6 +209,12 @@ int PX4Crypto::crypto_ioctl(unsigned int cmd, unsigned long arg)
 		}
 		break;
 
+	case CRYPTOIOCRENEWNONCE: {
+			cryptoiocrenewnonce_t *data = (cryptoiocrenewnonce_t *)arg;
+			data->ret = crypto_renew_nonce(*(data->handle), data->nonce, data->nonce_size);
+		}
+		break;
+
 	case CRYPTOIOCGETNONCE: {
 			cryptoiocgetnonce_t *data = (cryptoiocgetnonce_t *)arg;
 			data->ret = crypto_get_nonce(*(data->handle), data->nonce, data->nonce_len);
@@ -199,9 +229,23 @@ int PX4Crypto::crypto_ioctl(unsigned int cmd, unsigned long arg)
 		}
 		break;
 
+	case CRYPTOIOCSIGNATURECHECK: {
+			cryptoiocsignaturecheck_t *data = (cryptoiocsignaturecheck_t *)arg;
+			data->ret = crypto_signature_check(*(data->handle), data->key_index, data->signature, data->message,
+							   data->message_size);
+		}
+		break;
+
 	case CRYPTOIOCGETBLOCKSZ: {
 			cryptoiocgetblocksz_t *data = (cryptoiocgetblocksz_t *)arg;
 			data->ret = crypto_get_min_blocksize(*(data->handle), data->key_idx);
+		}
+		break;
+
+	case CRYPTOIOCDECRYPTDATA: {
+			cryptoiocdecryptdata_t *data = (cryptoiocdecryptdata_t *)arg;
+			data->ret = crypto_decrypt_data(*(data->handle), data->key_index, data->cipher, data->cipher_size,
+							data->mac, data->mac_size, data->message, data->message_size);
 		}
 		break;
 
