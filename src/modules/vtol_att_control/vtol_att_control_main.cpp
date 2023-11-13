@@ -212,6 +212,13 @@ void VtolAttitudeControl::vehicle_cmd_poll()
 				uORB::Publication<vehicle_command_ack_s> command_ack_pub{ORB_ID(vehicle_command_ack)};
 				command_ack_pub.publish(command_ack);
 			}
+
+		} else if (_vtol_vehicle_status.vtol_transition_failsafe &&
+			   (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_SET_MODE ||
+			    vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_REPOSITION)) {
+			/* Reset _transition_command if the vehicle failed to do transition and external command arrive.
+			   This will result in the exiting failsafe mode. */
+			_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
 		}
 	}
 }
