@@ -287,6 +287,7 @@ private:
 	orb_advert_t _mavlink_log_pub{nullptr};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(ModuleParams,
+					(ParamInt<px4::params::GF_ACTION>)  	_param_gf_action,
 					(ParamFloat<px4::params::COM_FAIL_ACT_T>) 	_param_com_fail_act_t
 				       );
 
