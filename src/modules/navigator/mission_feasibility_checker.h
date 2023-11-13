@@ -57,7 +57,7 @@ private:
 	DatamanClient &_dataman_client;
 	FeasibilityChecker _feasibility_checker;
 
-	bool checkGeofence(const mission_s &mission, float home_alt, bool home_valid);
+	bool checkMissionAgainstGeofence(const mission_s &mission, float home_alt, bool home_valid);
 
 public:
 	MissionFeasibilityChecker(Navigator *navigator, DatamanClient &dataman_client) :
