@@ -146,11 +146,7 @@ void ModalPWM::update_pwm_config()
 	Command cmd;
 	uint8_t data[MODAL_PWM_BOARD_CONFIG_SIZE] = {static_cast<uint8_t>((_parameters.pwm_min & 0xFF00)>>8), static_cast<uint8_t>(_parameters.pwm_min & 0xFF),
 										   static_cast<uint8_t>((_parameters.pwm_max & 0xFF00)>>8), static_cast<uint8_t>(_parameters.pwm_max & 0xFF)};
-	cmd.len = qc_esc_create_packet(ESC_PACKET_TYPE_CONFIG_BOARD_REQUEST,
-						data,
-						MODAL_PWM_BOARD_CONFIG_SIZE,	// 4 bytes, pwm min and pwm max 
-						cmd.buf,
-						sizeof(cmd.buf));
+	cmd.len = qc_esc_create_packet(ESC_PACKET_TYPE_CONFIG_BOARD_REQUEST, data, MODAL_PWM_BOARD_CONFIG_SIZE,	cmd.buf, sizeof(cmd.buf));
 
 	if (_uart_port->uart_write(cmd.buf, cmd.len) != cmd.len) {
 		PX4_ERR("Failed to send config packet");
@@ -198,26 +194,15 @@ bool ModalPWM::updateOutputs(bool stop_motors, uint16_t outputs[input_rc_s::RC_I
 	}
 
 	Command cmd;
-	cmd.len = qc_esc_create_pwm_packet4_fb(_rate_req[0],
-					       _rate_req[1],
-					       _rate_req[2],
-					       _rate_req[3],
-					       _led_req[0],
-					       _led_req[1],
-					       _led_req[2],
-					       _led_req[3],
-					       _fb_idx,
-					       cmd.buf,
-					       sizeof(cmd.buf));
+	cmd.len = qc_esc_create_pwm_packet4_fb(_rate_req[0], _rate_req[1], _rate_req[2], _rate_req[3],
+					       				   _led_req[0], _led_req[1], _led_req[2], _led_req[3],
+					       				   _fb_idx, cmd.buf, sizeof(cmd.buf));
 	if (_pwm_on && _debug){
 		PX4_INFO("Mixer outputs");
 		PX4_INFO("[%u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u]",
-					outputs[0], outputs[1], outputs[2], 
-					outputs[3], outputs[4], outputs[5], 
-					outputs[6], outputs[7], outputs[8],
-					outputs[9], outputs[10], outputs[11], 
-					outputs[12], outputs[13], outputs[14], 
-					outputs[15], outputs[16], outputs[17]
+					outputs[0], outputs[1], outputs[2], outputs[3], outputs[4], outputs[5], 
+					outputs[6], outputs[7], outputs[8], outputs[9], outputs[10], outputs[11], 
+					outputs[12], outputs[13], outputs[14], outputs[15], outputs[16], outputs[17]
 					);
 
 		// Debug messages for PWM 400Hz values sent to M0065  
@@ -399,7 +384,7 @@ int ModalPWM::receive_sbus()
 			/* Check if we got a valid packet...*/
 			if (parse_response(&_read_buf[header], (uint8_t)QC_SBUS_FRAME_SIZE)){
 				if(_pwm_on && _debug) {
-					PX4_ERR("Error parsing QC SBUS packet");
+					PX4_ERR("Error parsing QC RAW SBUS packet");
 					PX4_INFO_RAW("[%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x]\n",
 						_read_buf[header+0], _read_buf[header+1], _read_buf[header+2], _read_buf[header+3], _read_buf[header+4], _read_buf[header+5], 
 						_read_buf[header+6], _read_buf[header+7], _read_buf[header+8], _read_buf[header+9], _read_buf[header+10], _read_buf[header+11], 
@@ -599,17 +584,9 @@ bool ModalPWM::stop_all_pwms()
 	uint8_t _fb_idx = 0;
 
 	Command cmd;
-	cmd.len = qc_esc_create_pwm_packet4_fb(_rate_req[0],
-					       _rate_req[1],
-					       _rate_req[2],
-					       _rate_req[3],
-					       _led_req[0],
-					       _led_req[1],
-					       _led_req[2],
-					       _led_req[3],
-					       _fb_idx,
-					       cmd.buf,
-					       sizeof(cmd.buf));
+	cmd.len = qc_esc_create_pwm_packet4_fb(_rate_req[0], _rate_req[1], _rate_req[2], _rate_req[3],
+										   _led_req[0], _led_req[1], _led_req[2], _led_req[3],
+									       _fb_idx, cmd.buf, sizeof(cmd.buf));
 
 	if (_uart_port->uart_write(cmd.buf, cmd.len) != cmd.len) {
 		PX4_ERR("Failed to send packet");
@@ -643,11 +620,7 @@ int ModalPWM::calibrate_escs(){
 	Command cmd;
 	int32_t fb_idx = -1;
 	uint8_t data[MODAL_PWM_ESC_CAL_SIZE]{0};
-	cmd.len = qc_esc_create_packet(ESC_PACKET_TYPE_TUNE_CONFIG,
-						data,
-						MODAL_PWM_ESC_CAL_SIZE,	
-						cmd.buf,
-						sizeof(cmd.buf));
+	cmd.len = qc_esc_create_packet(ESC_PACKET_TYPE_TUNE_CONFIG, data, MODAL_PWM_ESC_CAL_SIZE, cmd.buf, sizeof(cmd.buf));
 
 	if (_uart_port->uart_write(cmd.buf, cmd.len) != cmd.len) {
 		PX4_ERR("ESC Calibration failed: Failed to send PWM OFF packet");
@@ -666,17 +639,9 @@ int ModalPWM::calibrate_escs(){
 	PX4_INFO("Writing PWM MAX for 3 seconds!");
 	int16_t max_pwm[4]{MODAL_PWM_MIXER_MAX,MODAL_PWM_MIXER_MAX,MODAL_PWM_MIXER_MAX,MODAL_PWM_MIXER_MAX};
 	int16_t led_cmd[4]{0,0,0,0};
-	cmd.len = qc_esc_create_pwm_packet4_fb(max_pwm[0],
-					       max_pwm[1],
-					       max_pwm[2],
-					       max_pwm[3],
-					       led_cmd[0],
-					       led_cmd[1],
-					       led_cmd[2],
-					       led_cmd[3],
-					       fb_idx,
-					       cmd.buf,
-					       sizeof(cmd.buf));
+	cmd.len = qc_esc_create_pwm_packet4_fb(max_pwm[0], max_pwm[1], max_pwm[2], max_pwm[3],
+					       				   led_cmd[0], led_cmd[1], led_cmd[2], led_cmd[3],
+					       				   fb_idx, cmd.buf, sizeof(cmd.buf));
 	
 	if (_uart_port->uart_write(cmd.buf, cmd.len) != cmd.len) {
 		PX4_ERR("ESC Calibration failed: Failed to send PWM MAX packet");
@@ -694,17 +659,9 @@ int ModalPWM::calibrate_escs(){
 	/* PWM MIN 4 seconds */
 	PX4_INFO("Writing PWM MIN for 4 seconds!");
 	int16_t min_pwm[4]{MODAL_PWM_MIXER_MIN, MODAL_PWM_MIXER_MIN, MODAL_PWM_MIXER_MIN, MODAL_PWM_MIXER_MIN};
-	cmd.len = qc_esc_create_pwm_packet4_fb(min_pwm[0],
-					       min_pwm[1],
-					       min_pwm[2],
-					       min_pwm[3],
-					       led_cmd[0],
-					       led_cmd[1],
-					       led_cmd[2],
-					       led_cmd[3],
-					       fb_idx,
-					       cmd.buf,
-					       sizeof(cmd.buf));
+	cmd.len = qc_esc_create_pwm_packet4_fb(min_pwm[0], min_pwm[1], min_pwm[2], min_pwm[3],
+										   led_cmd[0], led_cmd[1], led_cmd[2], led_cmd[3],
+					 				       fb_idx, cmd.buf, sizeof(cmd.buf));
 	
 	if (_uart_port->uart_write(cmd.buf, cmd.len) != cmd.len) {
 		PX4_ERR("ESC Calibration failed: Failed to send PWM MIN packet");

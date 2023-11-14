@@ -145,8 +145,6 @@ private:
 	/* Module update interval */
 	static constexpr unsigned	_current_update_interval{4000}; // 250 Hz
 
-	const char *_device = MODAL_PWM_DEFAULT_PORT;
-
 	typedef struct {
 		int32_t		config{MODAL_PWM_CONFIG};
 		int32_t		baud_rate{MODAL_PWM_DEFAULT_BAUD};
@@ -161,6 +159,7 @@ private:
 	modal_pwm_params_t	_parameters;
 
 	/* QUP7, VOXL2 J19, /dev/slpi-uart-7*/
+	const char 			*_device{MODAL_PWM_DEFAULT_PORT};
 	ModalIoSerial 		*_uart_port;
 	
 	/* Mixer output */
@@ -169,11 +168,11 @@ private:
 
 	/* RC input */
 	EscPacket _sbus_packet;
-	bool _new_packet{false};		
 	uint64_t _rc_last_valid;		
 	uint16_t _raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS] {UINT16_MAX};
 	unsigned _sbus_frame_drops{0};
 	uint16_t _sbus_total_frames{0};
+	bool	 _new_packet{false};		
 
 	uORB::PublicationMulti<input_rc_s> _rc_pub{ORB_ID(input_rc)};
 	uORB::Subscription 	_parameter_update_sub{ORB_ID(parameter_update)};
