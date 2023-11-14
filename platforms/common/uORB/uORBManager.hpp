@@ -659,7 +659,7 @@ private: //class methods
 			{
 				px4_sem_init(&_sem, 1, 0);
 				px4_sem_init(&_lock, 1, 1);
-#if __PX4_NUTTX
+#if defined(__PX4_NUTTX)
 				sem_setprotocol(&_sem, SEM_PRIO_NONE);
 				sem_setprotocol(&_lock, SEM_PRIO_NONE);
 #endif
