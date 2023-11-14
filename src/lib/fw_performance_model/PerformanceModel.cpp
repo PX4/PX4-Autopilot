@@ -93,13 +93,9 @@ float PerformanceModel::getMaximumClimbRate(float air_density) const
 float PerformanceModel::getTrimThrottle(float throttle_min, float throttle_max, float airspeed_sp,
 					float air_density) const
 {
-	const float throttle_trim = getTrimThrottleForAirspeed(airspeed_sp) * getAirDensityThrottleScale(
-					    air_density) * getWeightThrottleScale();
+	const float throttle_trim = getTrimThrottleForCalibratedAirspeed(airspeed_sp) * getAirDensityThrottleScale(
+					    air_density);
 	return math::constrain(throttle_trim, throttle_min, throttle_max);
-}
-float PerformanceModel::getWeightThrottleScale() const
-{
-	return sqrtf(getWeightRatio());
 }
 
 float PerformanceModel::getAirDensityThrottleScale(float air_density) const
@@ -114,7 +110,7 @@ float PerformanceModel::getAirDensityThrottleScale(float air_density) const
 
 	return air_density_throttle_scale;
 }
-float PerformanceModel::getTrimThrottleForAirspeed(float airspeed_sp) const
+float PerformanceModel::getTrimThrottleForCalibratedAirspeed(float calibrated_airspeed_sp) const
 {
 	float throttle_trim =
 		_param_fw_thr_trim.get(); // throttle required for level flight at trim airspeed, at sea level (standard atmosphere)
@@ -126,13 +122,14 @@ float PerformanceModel::getTrimThrottleForAirspeed(float airspeed_sp) const
 	const float slope_above_trim = (_param_fw_thr_aspd_max.get() - _param_fw_thr_trim.get()) /
 				       (_param_fw_airspd_max.get() - _param_fw_airspd_trim.get());
 
-	if (PX4_ISFINITE(airspeed_sp) && PX4_ISFINITE(slope_below_trim) && _param_fw_thr_aspd_min.get() > FLT_EPSILON
-	    && airspeed_sp < _param_fw_airspd_trim.get()) {
-		throttle_trim = _param_fw_thr_trim.get() - slope_below_trim * (_param_fw_airspd_trim.get() - airspeed_sp);
+	if (PX4_ISFINITE(calibrated_airspeed_sp) && PX4_ISFINITE(slope_below_trim) && _param_fw_thr_aspd_min.get() > FLT_EPSILON
+	    && calibrated_airspeed_sp < _param_fw_airspd_trim.get()) {
+		throttle_trim = _param_fw_thr_trim.get() - slope_below_trim * (_param_fw_airspd_trim.get() - calibrated_airspeed_sp);
 
-	} else if (PX4_ISFINITE(airspeed_sp) && PX4_ISFINITE(slope_above_trim) && _param_fw_thr_aspd_max.get() > FLT_EPSILON
-		   && airspeed_sp > _param_fw_airspd_trim.get()) {
-		throttle_trim = _param_fw_thr_trim.get() + slope_above_trim * (airspeed_sp - _param_fw_airspd_trim.get());
+	} else if (PX4_ISFINITE(calibrated_airspeed_sp) && PX4_ISFINITE(slope_above_trim)
+		   && _param_fw_thr_aspd_max.get() > FLT_EPSILON
+		   && calibrated_airspeed_sp > _param_fw_airspd_trim.get()) {
+		throttle_trim = _param_fw_thr_trim.get() + slope_above_trim * (calibrated_airspeed_sp - _param_fw_airspd_trim.get());
 	}
 
 	return throttle_trim;

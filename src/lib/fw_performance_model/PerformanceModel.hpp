@@ -139,17 +139,11 @@ private:
 
 	/**
 	 * Get the sea level trim throttle for a given calibrated airspeed setpoint.
-	 * @param airspeed_sp [m/s] calibrated
-	 * @return trim throttle [0, 1] at sea level 
+	 * @param calibrated_airspeed_sp [m/s] calibrated
+	 * @return trim throttle [0, 1] at sea level
 	 */
-	float getTrimThrottleForAirspeed(float airspeed_sp) const;
+	float getTrimThrottleForCalibratedAirspeed(float calibrated_airspeed_sp) const;
 
-
-	/**
-	 * Get the throttle scale factor for the current weight.
-	 * @return throttle scale factor for weight
-	 */
-	float getWeightThrottleScale() const;
 
 	static float sanitiseAirDensity(float air_density);
 };
