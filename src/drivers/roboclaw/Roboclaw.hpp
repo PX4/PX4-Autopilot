@@ -34,7 +34,7 @@
 /**
  * @file RoboClas.hpp
  *
- * RoboClaw Motor Driver
+ * Roboclaw Motor Driver
  *
  * Product page: https://www.basicmicro.com/motor-controller
  * Manual: https://downloads.basicmicro.com/docs/roboclaw_user_manual.pdf
@@ -55,9 +55,9 @@
 #include <uORB/topics/wheel_encoders.h>
 
 /**
- * This is a driver for the RoboClaw motor controller
+ * This is a driver for the Roboclaw motor controller
  */
-class RoboClaw : public ModuleBase<RoboClaw>, public OutputModuleInterface
+class Roboclaw : public ModuleBase<Roboclaw>, public OutputModuleInterface
 {
 public:
 	/**
@@ -68,12 +68,12 @@ public:
 	 * 	(selectable on roboclaw)
 	 * @param baudRateParam Name of the parameter that holds the baud rate of this serial port
 	 */
-	RoboClaw(const char *deviceName, const char *baudRateParam);
+	Roboclaw(const char *deviceName, const char *baudRateParam);
 
 	/**
 	 * deconstructor
 	 */
-	virtual ~RoboClaw();
+	virtual ~Roboclaw();
 
 	/** control channels */
 	enum e_channel {

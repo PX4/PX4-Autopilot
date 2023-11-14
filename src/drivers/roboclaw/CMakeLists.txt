@@ -36,7 +36,7 @@ px4_add_module(
 	MAIN roboclaw
 	COMPILE_FLAGS
 	SRCS
-		RoboClaw.cpp
+		Roboclaw.cpp
 	MODULE_CONFIG
 		module.yaml
 	)

@@ -32,9 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file RoboClaw.cpp
+ * @file Roboclaw.cpp
  *
- * RoboClaw Motor Driver
+ * Roboclaw Motor Driver
  *
  * references:
  * http://downloads.orionrobotics.com/downloads/datasheets/motor_controller_robo_claw_R0401.pdf
@@ -42,7 +42,7 @@
  */
 
 
-#include "RoboClaw.hpp"
+#include "Roboclaw.hpp"
 #include <poll.h>
 #include <stdio.h>
 #include <math.h>
@@ -58,7 +58,7 @@
 #include <math.h>
 #include <mathlib/mathlib.h>
 
-// The RoboClaw has a serial communication timeout of 10ms.
+// The Roboclaw has a serial communication timeout of 10ms.
 // Add a little extra to account for timing inaccuracy
 #define TIMEOUT_US 10500
 
@@ -77,7 +77,7 @@
 
 using namespace time_literals;
 
-RoboClaw::RoboClaw(const char *deviceName, const char *baudRateParam) :
+Roboclaw::Roboclaw(const char *deviceName, const char *baudRateParam) :
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default)
 {
 	strncpy(_storedDeviceName, deviceName, sizeof(_storedDeviceName) - 1);
@@ -87,12 +87,12 @@ RoboClaw::RoboClaw(const char *deviceName, const char *baudRateParam) :
 	_storedBaudRateParam[sizeof(_storedBaudRateParam) - 1] = '\0'; // Ensure null-termination
 }
 
-RoboClaw::~RoboClaw()
+Roboclaw::~Roboclaw()
 {
 	close(_uart_fd);
 }
 
-int RoboClaw::init()
+int Roboclaw::init()
 {
 	_uart_fd_timeout = { .tv_sec = 0, .tv_usec = TIMEOUT_US };
 
@@ -185,12 +185,12 @@ int RoboClaw::init()
 	}
 }
 
-int RoboClaw::task_spawn(int argc, char *argv[])
+int Roboclaw::task_spawn(int argc, char *argv[])
 {
 	const char *deviceName = argv[1];
 	const char *baud_rate_parameter_value = argv[2];
 
-	RoboClaw *instance = new RoboClaw(deviceName, baud_rate_parameter_value);
+	Roboclaw *instance = new Roboclaw(deviceName, baud_rate_parameter_value);
 
 	if (instance) {
 		_object.store(instance);
@@ -212,7 +212,7 @@ int RoboClaw::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-bool RoboClaw::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+bool Roboclaw::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			     unsigned num_outputs, unsigned num_control_groups_updated)
 {
 	float left_motor_output = -((float)outputs[1] - 128.0f) / 127.f;
@@ -231,7 +231,7 @@ bool RoboClaw::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 	return true;
 }
 
-void RoboClaw::Run()
+void Roboclaw::Run()
 {
 	if (should_exit()) {
 		ScheduleClear();
@@ -266,7 +266,7 @@ void RoboClaw::Run()
 
 }
 
-int RoboClaw::readEncoder()
+int Roboclaw::readEncoder()
 {
 	uint8_t buffer_positon[ENCODER_MESSAGE_SIZE];
 	uint8_t buffer_speed_right[ENCODER_SPEED_MESSAGE_SIZE];
@@ -300,7 +300,7 @@ int RoboClaw::readEncoder()
 	return 1;
 }
 
-int32_t RoboClaw::reverseInt32(uint8_t *buffer)
+int32_t Roboclaw::reverseInt32(uint8_t *buffer)
 {
 	return (buffer[0] << 24)
 	       | (buffer[1] << 16)
@@ -308,7 +308,7 @@ int32_t RoboClaw::reverseInt32(uint8_t *buffer)
 	       | buffer[3];
 }
 
-void RoboClaw::setMotorSpeed(e_motor motor, float value)
+void Roboclaw::setMotorSpeed(e_motor motor, float value)
 {
 	e_command command;
 
@@ -336,7 +336,7 @@ void RoboClaw::setMotorSpeed(e_motor motor, float value)
 	_sendUnsigned7Bit(command, value);
 }
 
-void RoboClaw::setMotorDutyCycle(e_motor motor, float value)
+void Roboclaw::setMotorDutyCycle(e_motor motor, float value)
 {
 	e_command command;
 
@@ -354,24 +354,24 @@ void RoboClaw::setMotorDutyCycle(e_motor motor, float value)
 	return _sendSigned16Bit(command, value);
 }
 
-void RoboClaw::drive(float value)
+void Roboclaw::drive(float value)
 {
 	e_command command = value >= 0 ? CMD_DRIVE_FWD_MIX : CMD_DRIVE_REV_MIX;
 	_sendUnsigned7Bit(command, value);
 }
 
-void RoboClaw::turn(float value)
+void Roboclaw::turn(float value)
 {
 	e_command command = value >= 0 ? CMD_TURN_LEFT : CMD_TURN_RIGHT;
 	_sendUnsigned7Bit(command, value);
 }
 
-void RoboClaw::resetEncoders()
+void Roboclaw::resetEncoders()
 {
 	sendTransaction(CMD_RESET_ENCODERS, nullptr, 0);
 }
 
-void RoboClaw::_sendUnsigned7Bit(e_command command, float data)
+void Roboclaw::_sendUnsigned7Bit(e_command command, float data)
 {
 	data = fabs(data);
 
@@ -383,7 +383,7 @@ void RoboClaw::_sendUnsigned7Bit(e_command command, float data)
 	sendTransaction(command, &byte, 1);
 }
 
-void RoboClaw::_sendSigned16Bit(e_command command, float data)
+void Roboclaw::_sendSigned16Bit(e_command command, float data)
 {
 	int16_t duty = math::constrain(data, -1.f, 1.f) * INT16_MAX;
 	uint8_t buff[2];
@@ -392,7 +392,7 @@ void RoboClaw::_sendSigned16Bit(e_command command, float data)
 	sendTransaction(command, (uint8_t *) &buff, 2);
 }
 
-uint16_t RoboClaw::_calcCRC(const uint8_t *buf, size_t n, uint16_t init)
+uint16_t Roboclaw::_calcCRC(const uint8_t *buf, size_t n, uint16_t init)
 {
 	uint16_t crc = init;
 
@@ -412,7 +412,7 @@ uint16_t RoboClaw::_calcCRC(const uint8_t *buf, size_t n, uint16_t init)
 	return crc;
 }
 
-int RoboClaw::receiveTransaction(e_command cmd, uint8_t *read_buffer, size_t bytes_to_read)
+int Roboclaw::receiveTransaction(e_command cmd, uint8_t *read_buffer, size_t bytes_to_read)
 {
 	if (writeCommand(cmd) != RoboClawError::Success) {
 		return -1;
@@ -459,7 +459,7 @@ int RoboClaw::receiveTransaction(e_command cmd, uint8_t *read_buffer, size_t byt
 	return total_bytes_read;
 }
 
-void RoboClaw::sendTransaction(e_command cmd, uint8_t *write_buffer, size_t bytes_to_write)
+void Roboclaw::sendTransaction(e_command cmd, uint8_t *write_buffer, size_t bytes_to_write)
 {
 	writeCommandWithPayload(cmd, write_buffer, bytes_to_write);
 	int select_status = select(_uart_fd + 1, &_uart_fd_set, nullptr, nullptr, &_uart_fd_timeout);
@@ -478,7 +478,7 @@ void RoboClaw::sendTransaction(e_command cmd, uint8_t *write_buffer, size_t byte
 	}
 }
 
-RoboClaw::RoboClawError RoboClaw::writeCommand(e_command cmd)
+Roboclaw::RoboClawError Roboclaw::writeCommand(e_command cmd)
 {
 	uint8_t buffer[2];
 
@@ -495,7 +495,7 @@ RoboClaw::RoboClawError RoboClaw::writeCommand(e_command cmd)
 	return RoboClawError::Success;
 }
 
-RoboClaw::RoboClawError RoboClaw::writeCommandWithPayload(e_command cmd, uint8_t *wbuff, size_t bytes_to_write)
+Roboclaw::RoboClawError Roboclaw::writeCommandWithPayload(e_command cmd, uint8_t *wbuff, size_t bytes_to_write)
 {
 	size_t packet_size = 2 + bytes_to_write + 2;
 	uint8_t buffer[packet_size];
@@ -526,12 +526,12 @@ RoboClaw::RoboClawError RoboClaw::writeCommandWithPayload(e_command cmd, uint8_t
 	return RoboClawError::Success;
 }
 
-int RoboClaw::custom_command(int argc, char *argv[])
+int Roboclaw::custom_command(int argc, char *argv[])
 {
 	return print_usage("unknown command");
 }
 
-int RoboClaw::print_usage(const char *reason)
+int Roboclaw::print_usage(const char *reason)
 {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
@@ -560,7 +560,7 @@ The command to start this driver is: `$ roboclaw start <UART device> <baud rate>
 	return 0;
 }
 
-int RoboClaw::print_status()
+int Roboclaw::print_status()
 {
 	PX4_ERR("Running, Initialized: %f", (double)_initialized);
 	return 0;
@@ -568,5 +568,5 @@ int RoboClaw::print_status()
 
 extern "C" __EXPORT int roboclaw_main(int argc, char *argv[])
 {
-	return RoboClaw::main(argc, argv);
+	return Roboclaw::main(argc, argv);
 }
