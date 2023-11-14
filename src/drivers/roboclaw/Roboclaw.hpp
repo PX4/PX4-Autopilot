@@ -32,9 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file RoboClas.hpp
+ * @file Roboclaw.hpp
  *
- * Roboclaw Motor Driver
+ * Roboclaw motor control driver
  *
  * Product page: https://www.basicmicro.com/motor-controller
  * Manual: https://downloads.basicmicro.com/docs/roboclaw_user_manual.pdf
@@ -54,172 +54,85 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/wheel_encoders.h>
 
-/**
- * This is a driver for the Roboclaw motor controller
- */
 class Roboclaw : public ModuleBase<Roboclaw>, public OutputModuleInterface
 {
 public:
 	/**
-	 * constructor
-	 * @param deviceName the name of the
-	 * 	serial port e.g. "/dev/ttyS2"
-	 * @param address the adddress  of the motor
-	 * 	(selectable on roboclaw)
-	 * @param baudRateParam Name of the parameter that holds the baud rate of this serial port
+	 * @param device_name Name of the serial port e.g. "/dev/ttyS2"
+	 * @param bad_rate_parameter Name of the parameter that holds the baud rate of this serial port
 	 */
-	Roboclaw(const char *deviceName, const char *baudRateParam);
-
-	/**
-	 * deconstructor
-	 */
+	Roboclaw(const char *device_name, const char *bad_rate_parameter);
 	virtual ~Roboclaw();
 
-	/** control channels */
-	enum e_channel {
-		CH_VOLTAGE_LEFT = 0,
-		CH_VOLTAGE_RIGHT
+	enum class Motor {
+		Left = 0,
+		Right = 1
 	};
 
-	/**  motors */
-	enum e_motor {
-		MOTOR_1 = 0,
-		MOTOR_2
-	};
-
-	/** error handeling*/
-	enum class RoboClawError {
-		Success,
-		WriteError,
-		ReadError,
-		ChecksumError,
-		ChecksumMismatch,
-		UnexpectedError,
-		ReadTimeout
-	};
-
-	/** @see ModuleBase */
-	static int task_spawn(int argc, char *argv[]);
-
-	/** @see ModuleBase */
-	static int custom_command(int argc, char *argv[]);
-
-	/** @see ModuleBase */
-	static int print_usage(const char *reason = nullptr);
-
-	/** @see ModuleBase::print_status() */
-	int print_status() override;
+	static int task_spawn(int argc, char *argv[]); ///< @see ModuleBase
+	static int custom_command(int argc, char *argv[]); ///< @see ModuleBase
+	static int print_usage(const char *reason = nullptr); ///< @see ModuleBase
+	int print_status() override; ///< @see ModuleBase
 
 	void Run() override;
 
-	int init();
-
+	/** @see OutputModuleInterface */
 	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
 
-	/**
-	 * set the speed of a motor, rev/sec
-	 */
-	void setMotorSpeed(e_motor motor, float value);
-
-	/**
-	 * set the duty cycle of a motor
-	 */
-	void setMotorDutyCycle(e_motor motor, float value);
-
-	/**
-	 * Drive both motors. +1 = full forward, -1 = full backward
-	 */
-	void drive(float value);
-
-	/**
-	 * Turn. +1 = full right, -1 = full left
-	 */
-	void turn(float value);
-
-	/**
-	 * reset the encoders
-	 * @return status
-	 */
+	void setMotorSpeed(Motor motor, float value); ///< rev/sec
+	void setMotorDutyCycle(Motor motor, float value);
+	int readEncoder();
 	void resetEncoders();
 
-	/**
-	 * read data from serial
-	 */
-	int readEncoder();
-
 private:
-	static constexpr int MAX_ACTUATORS = 2;
+	enum class Command : uint8_t {
+		ReadStatus = 90,
 
-	MixingOutput _mixing_output{"ROBOCLAW", MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, false};
+		DriveForwardMotor1 = 0,
+		DriveBackwardsMotor1 = 1,
+		DriveForwardMotor2 = 4,
+		DriveBackwardsMotor2 = 5,
+		DutyCycleMotor1 = 32,
+		DutyCycleMotor2 = 33,
 
-	char _storedDeviceName[256]; // Adjust size as necessary
-	char _storedBaudRateParam[256]; // Adjust size as necessary
-
-	int _timeout_counter = 0;
-
-	bool _successfully_connected{false};
-
-	// commands
-	// We just list the commands we want from the manual here.
-	enum e_command {
-
-		// simple
-		CMD_DRIVE_FWD_1 = 0,
-		CMD_DRIVE_REV_1 = 1,
-		CMD_DRIVE_FWD_2 = 4,
-		CMD_DRIVE_REV_2 = 5,
-
-		CMD_DRIVE_FWD_MIX = 8,
-		CMD_DRIVE_REV_MIX = 9,
-		CMD_TURN_RIGHT = 10,
-		CMD_TURN_LEFT = 11,
-
-		// encoder commands
-		CMD_READ_ENCODER_1 = 16,
-		CMD_READ_ENCODER_2 = 17,
-		CMD_READ_SPEED_1 = 18,
-		CMD_READ_SPEED_2 = 19,
-		CMD_RESET_ENCODERS = 20,
-		CMD_READ_BOTH_ENCODERS = 78,
-		CMD_READ_BOTH_SPEEDS = 79,
-
-		// advanced motor control
-		CMD_READ_SPEED_HIRES_1 = 30,
-		CMD_READ_SPEED_HIRES_2 = 31,
-		CMD_SIGNED_DUTYCYCLE_1 = 32,
-		CMD_SIGNED_DUTYCYCLE_2 = 33,
-
-		CMD_READ_STATUS = 90
+		ReadSpeedMotor1 = 18,
+		ReadSpeedMotor2 = 19,
+		ResetEncoders = 20,
+		ReadEncoderCounters = 78,
 	};
 
-	int _uart_fd{0};
-	fd_set _uart_fd_set;
-	struct timeval _uart_fd_timeout;
+	static constexpr int MAX_ACTUATORS = 2;
+	MixingOutput _mixing_output{"ROBOCLAW", MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, false};
 
 	uORB::SubscriptionData<actuator_armed_s> _actuator_armed_sub{ORB_ID(actuator_armed)};
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
+	uORB::Publication<wheel_encoders_s> _wheel_encoders_pub{ORB_ID(wheel_encoders)};
 
-	matrix::Vector2f _motor_control{0.0f, 0.0f};
+	char _stored_device_name[256]; // Adjust size as necessary
+	char _stored_baud_rate_parameter[256]; // Adjust size as necessary
 
-	uORB::Publication<wheel_encoders_s> _wheel_encoders_pub {ORB_ID(wheel_encoders)};
+	void sendUnsigned7Bit(Command command, float data);
+	void sendSigned16Bit(Command command, float data);
 
-	void _parameters_update();
+	// Roboclaw protocol
+	int sendTransaction(Command cmd, uint8_t *write_buffer, size_t bytes_to_write);
+	int writeCommandWithPayload(Command cmd, uint8_t *wbuff, size_t bytes_to_write);
+	int readAcknowledgement();
+
+	int receiveTransaction(Command cmd, uint8_t *read_buffer, size_t bytes_to_read);
+	int writeCommand(Command cmd);
+	int readResponse(Command command, uint8_t *read_buffer, size_t bytes_to_read);
 
 	static uint16_t _calcCRC(const uint8_t *buf, size_t n, uint16_t init = 0);
-	void _sendUnsigned7Bit(e_command command, float data);
-	void _sendSigned16Bit(e_command command, float data);
+	int32_t swapBytesInt32(uint8_t *buffer);
 
-	int32_t reverseInt32(uint8_t *buffer);
-
-	bool _initialized{false};
-
-	RoboClawError writeCommand(e_command cmd);
-	RoboClawError writeCommandWithPayload(e_command cmd, uint8_t *wbuff, size_t bytes_to_write);
-
-	void sendTransaction(e_command cmd, uint8_t *write_buffer, size_t bytes_to_write);
-	int receiveTransaction(e_command cmd, uint8_t *read_buffer, size_t bytes_to_read);
-
+	// UART handling
+	int initializeUART();
+	bool _uart_initialized{false};
+	int _uart_fd{0};
+	fd_set _uart_fd_set;
+	struct timeval _uart_fd_timeout;
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::RBCLW_ADDRESS>) _param_rbclw_address,
