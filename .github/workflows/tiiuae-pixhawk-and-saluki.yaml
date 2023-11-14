@@ -186,15 +186,17 @@ jobs:
           JF_ENV_1: ${{ secrets.ARTIFACTORY_CLOUD_TOKEN }}
       - name: Upload px4-firmware build to Artifactory
         env:
-          ARTIFACTORY_GEN_REPO: ssrc-gen-public-local
+          ARTIFACTORY_GEN_REPO: ssrc-gen-private-local
           BUILD_NAME_PX4: px4-firmware
           CI: true
         run: |
           set -exu
 
           pr_or_empty=""
+          latest_link=""
           if [ ${{ github.event_name }} == 'pull_request' ]; then
-            pr_or_empty="pr/"
+            latest_link="pr/"
+            pr_or_empty="pr/${{ github.head_ref || github.ref_name }}/"
           fi
 
           newline=$'\n'
@@ -219,6 +221,7 @@ jobs:
             fi
 
             artifactory_path=$ARTIFACTORY_GEN_REPO/builds/px4-firmware/${target_path}/${pr_or_empty}
+            artifactory_latest_path=$ARTIFACTORY_GEN_REPO/builds/px4-firmware/${target_path}/${latest_link}latest/${pkg_name}.${ext}
 
             jfrog rt u --target-props COMMIT="$GITHUB_SHA" \
               --build-name "$BUILD_NAME_PX4" \
@@ -226,12 +229,13 @@ jobs:
               "$pkg" \
               "${artifactory_path}$file_name"
 
+            # link to latest
             jfrog rt cp --flat \
               "${artifactory_path}$file_name" \
-              "${artifactory_path}latest/${pkg_name}.${ext}"
+              "${artifactory_latest_path}"
 
-              # append every file to artifactory_links
-              artifactory_links+="${newline}| ${pkg_name} | ${artifactory_base_url}${artifactory_path}${file_name} |"
+            # append every file to artifactory_links
+            artifactory_links+="${newline}| ${pkg_name} | ${artifactory_base_url}${artifactory_path}${file_name} |"
           done
 
           jfrog rt build-publish "$BUILD_NAME_PX4" "$GITHUB_SHA"
@@ -268,8 +272,10 @@ jobs:
           set -exu
 
           pr_or_empty=""
+          latest_link=""
           if [ ${{ github.event_name }} == 'pull_request' ]; then
-            pr_or_empty="pr/"
+            latest_link="pr/"
+            pr_or_empty="pr/${{ github.head_ref || github.ref_name }}/"
           fi
 
           newline=$'\n'
@@ -294,6 +300,7 @@ jobs:
             fi
 
             artifactory_path=$ARTIFACTORY_GEN_REPO/builds/px4-firmware/${target_path}/${pr_or_empty}
+            artifactory_latest_path=$ARTIFACTORY_GEN_REPO/builds/px4-firmware/${target_path}/${latest_link}latest/${pkg_name}.${ext}
 
             jfrog rt u --target-props COMMIT="$GITHUB_SHA" \
               --build-name "$BUILD_NAME_PX4" \
@@ -301,9 +308,10 @@ jobs:
               "$pkg" \
               "${artifactory_path}$file_name"
 
+            # link to latest
             jfrog rt cp --flat \
               "${artifactory_path}$file_name" \
-              "${artifactory_path}latest/${pkg_name}.${ext}"
+              "${artifactory_latest_path}"
 
             # append every file to artifactory_links
             artifactory_links+="${newline}| ${pkg_name} | ${artifactory_base_url}${artifactory_path}${file_name} |"

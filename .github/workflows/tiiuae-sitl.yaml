@@ -78,7 +78,7 @@ jobs:
 
       - name: Upload to Artifactory (px4-sitl)
         env:
-          ARTIFACTORY_GEN_REPO: ssrc-gen-public-local
+          ARTIFACTORY_GEN_REPO: ssrc-gen-private-local
           BUILD_NAME: px4-sitl
           CI: true
         if: github.event_name == 'push'
