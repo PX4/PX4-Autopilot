@@ -42,6 +42,7 @@
 #include "ekf.h"
 
 #include <mathlib/mathlib.h>
+#include <ekf_derivation/generated/predict_vel_pos_closed_form.h>
 
 bool Ekf::init(uint64_t timestamp)
 {
@@ -289,28 +290,17 @@ void Ekf::predictState(const imuSample &imu_delayed)
 	// subtract component of angular rate due to earth rotation
 	corrected_delta_ang -= _R_to_earth.transpose() * _earth_rate_NED * imu_delayed.delta_ang_dt;
 
+	// Calculate an earth frame delta velocity
+	const Vector3f delta_vel_bias_scaled = getAccelBias() * imu_delayed.delta_vel_dt;
+	const Vector3f corrected_delta_vel = imu_delayed.delta_vel - delta_vel_bias_scaled;
+
+	sym::PredictVelPosClosedForm(_state.vector(), corrected_delta_vel, imu_delayed.delta_vel_dt, corrected_delta_ang, imu_delayed.delta_ang_dt, CONSTANTS_ONE_G, FLT_EPSILON, &_state.vel, &_state.pos);
+
 	const Quatf dq(AxisAnglef{corrected_delta_ang});
 
 	// rotate the previous quaternion by the delta quaternion using a quaternion multiplication
 	_state.quat_nominal = (_state.quat_nominal * dq).normalized();
 	_R_to_earth = Dcmf(_state.quat_nominal);
-
-	// Calculate an earth frame delta velocity
-	const Vector3f delta_vel_bias_scaled = getAccelBias() * imu_delayed.delta_vel_dt;
-	const Vector3f corrected_delta_vel = imu_delayed.delta_vel - delta_vel_bias_scaled;
-	const Vector3f corrected_delta_vel_ef = _R_to_earth * corrected_delta_vel;
-
-	// save the previous value of velocity so we can use trapzoidal integration
-	const Vector3f vel_last = _state.vel;
-
-	// calculate the increment in velocity using the current orientation
-	_state.vel += corrected_delta_vel_ef;
-
-	// compensate for acceleration due to gravity
-	_state.vel(2) += CONSTANTS_ONE_G * imu_delayed.delta_vel_dt;
-
-	// predict position states via trapezoidal integration of velocity
-	_state.pos += (vel_last + _state.vel) * imu_delayed.delta_vel_dt * 0.5f;
 
 	constrainStates();
 
@@ -326,6 +316,7 @@ void Ekf::predictState(const imuSample &imu_delayed)
 	// calculate a filtered horizontal acceleration with a 1 sec time constant
 	// this are used for manoeuvre detection elsewhere
 	const float alpha = 1.0f - imu_delayed.delta_vel_dt;
+	const Vector3f corrected_delta_vel_ef = _R_to_earth * corrected_delta_vel;
 	_accel_lpf_NE = _accel_lpf_NE * alpha + corrected_delta_vel_ef.xy();
 
 	// calculate a yaw change about the earth frame vertical
