@@ -262,6 +262,7 @@ private:
 	VtolType	*_vtol_type{nullptr};	// base class for different vtol types
 
 	bool		_initialized{false};
+	bool		_quadchute_requested{false};
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
