@@ -34,7 +34,7 @@
 /**
  * Trim throttle
  *
- * This is the throttle setting required to achieve FW_AIRSPD_TRIM during level flight.
+ * Required throttle (at sea level, standard atmosphere) for level flight at FW_AIRSPD_TRIM
  *
  * @unit norm
  * @min 0.0
@@ -48,7 +48,7 @@ PARAM_DEFINE_FLOAT(FW_THR_TRIM, 0.6f);
 /**
  * Throttle at min airspeed
  *
- * Required throttle for level flight at minimum airspeed FW_AIRSPD_MIN (sea level, standard atmosphere)
+ * Required throttle (at sea level, standard atmosphere) for level flight at minimum airspeed FW_AIRSPD_MIN
  *
  * Set to 0 to disable mapping of airspeed to trim throttle below FW_AIRSPD_TRIM.
  *
@@ -63,7 +63,7 @@ PARAM_DEFINE_FLOAT(FW_THR_ASPD_MIN, 0.f);
 /**
  * Throttle at max airspeed
  *
- * Required throttle for level flight at maximum airspeed FW_AIRSPD_MAX (sea level, standard atmosphere)
+ * Required throttle (at sea level, standard atmosphere) for level flight at maximum airspeed FW_AIRSPD_MAX
  *
  * Set to 0 to disable mapping of airspeed to trim throttle.
  *
