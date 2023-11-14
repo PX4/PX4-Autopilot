@@ -155,3 +155,13 @@ PARAM_DEFINE_INT32(MAV_HB_FORW_EN, 1);
  * @max 250
  */
 PARAM_DEFINE_INT32(MAV_RADIO_TOUT, 5);
+
+/**
+ * Clear rally points with approaches on startup
+ *
+ * If set to true, all rally points with associated approaches are cleared on startup.
+ *
+ * @boolean
+ * @group Return To Land
+ */
+PARAM_DEFINE_INT32(RP_APPR_CLEAR, 0);

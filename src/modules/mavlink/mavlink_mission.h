@@ -46,6 +46,7 @@
 #pragma once
 
 #include <dataman_client/DatamanClient.hpp>
+#include <px4_platform_common/module_params.h>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/mission_result.h>
@@ -74,7 +75,7 @@ static constexpr uint64_t MAVLINK_MISSION_RETRY_TIMEOUT_DEFAULT = 250000; ///< P
 
 class Mavlink;
 
-class MavlinkMissionManager
+class MavlinkMissionManager : public ModuleParams
 {
 public:
 	explicit MavlinkMissionManager(Mavlink *mavlink);
@@ -267,4 +268,10 @@ private:
 	 */
 	void copy_params_from_mavlink_to_mission_item(struct mission_item_s *mission_item,
 			const mavlink_mission_item_t *mavlink_mission_item, int8_t start_idx = 1, int8_t end_idx = 7);
+
+	void clear_rally_points_with_approaches();
+
+	DEFINE_PARAMETERS(
+		(ParamBool<px4::params::RP_APPR_CLEAR>)   _param_rally_approach_clear
+	)
 };

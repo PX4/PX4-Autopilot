@@ -73,8 +73,11 @@ uint16_t MavlinkMissionManager::_safepoint_update_counter = 0;
 		 (_msg.target_component == MAV_COMP_ID_ALL)))
 
 MavlinkMissionManager::MavlinkMissionManager(Mavlink *mavlink) :
+	ModuleParams(nullptr),
 	_mavlink(mavlink)
 {
+	updateParams();
+
 	if (!_dataman_init) {
 		_dataman_init = true;
 
@@ -85,7 +88,10 @@ MavlinkMissionManager::MavlinkMissionManager(Mavlink *mavlink) :
 		if (success) {
 			init_offboard_mission(mission_state);
 			load_geofence_stats();
-			load_safepoint_stats();
+
+			if (load_safepoint_stats()) {
+				clear_rally_points_with_approaches();
+			}
 
 		} else {
 			PX4_WARN("offboard mission init failed");
@@ -1777,5 +1783,61 @@ void MavlinkMissionManager::check_active_mission()
 			send_mission_count(_transfer_partner_sysid, _transfer_partner_compid, _count[MAV_MISSION_TYPE_MISSION],
 					   MAV_MISSION_TYPE_MISSION);
 		}
+	}
+}
+
+void MavlinkMissionManager::clear_rally_points_with_approaches()
+{
+	if (_param_rally_approach_clear.get()) {
+
+		size_t new_rally_points_count{0U};
+		mission_item_s last_rally_point{};
+		bool last_item_was_rally_point{false};
+
+		// Go through all rally points and clear all rally points with approaches
+		for (size_t current_seq{1U}; current_seq <= _count[MAV_MISSION_TYPE_RALLY]; ++current_seq) {
+			mission_item_s current_mission_item{};
+
+			const bool success_read = _dataman_client.readSync(DM_KEY_SAFE_POINTS, current_seq,
+						  reinterpret_cast<uint8_t *>(&current_mission_item),
+						  sizeof(mission_item_s));
+
+			if (success_read && current_mission_item.nav_cmd == NAV_CMD_RALLY_POINT) {
+				if (last_item_was_rally_point) {
+					// Last rally point did not have approaches. Save again.
+					const bool success_write = _dataman_client.writeSync(DM_KEY_SAFE_POINTS, new_rally_points_count + 1U,
+								   reinterpret_cast<uint8_t *>(&last_rally_point),
+								   sizeof(mission_item_s));
+
+					if (success_write) {
+						new_rally_points_count++;
+
+					} else {
+						PX4_ERR("Lost valid rally point while clearing approaches.");
+					}
+				}
+
+				last_item_was_rally_point = true;
+				last_rally_point = current_mission_item;
+
+			} else {
+				last_item_was_rally_point = false;
+			}
+		}
+
+		if (last_item_was_rally_point) {
+			const bool success_write = _dataman_client.writeSync(DM_KEY_SAFE_POINTS, new_rally_points_count + 1U,
+						   reinterpret_cast<uint8_t *>(&last_rally_point),
+						   sizeof(mission_item_s));
+
+			if (success_write) {
+				new_rally_points_count++;
+
+			} else {
+				PX4_ERR("Lost valid rally point while clearing approaches.");
+			}
+		}
+
+		update_safepoint_count(new_rally_points_count);
 	}
 }
