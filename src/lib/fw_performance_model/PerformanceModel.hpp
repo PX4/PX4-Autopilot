@@ -81,6 +81,13 @@ public:
 	float getTrimThrottle(float throttle_min, float throttle_max, float airspeed_sp, float air_density) const;
 
 	/**
+	 * Get the throttle scale factor for the current air density.
+	 * @param air_density in kg/m^3
+	 * @return throttle scale factor for air density
+	 */
+	float getAirDensityThrottleScale(float air_density) const;
+
+	/**
 	 * Get the trim airspeed compensated for weight.
 	 * @return calibrated trim airspeed in m/s
 	 */
@@ -137,12 +144,6 @@ private:
 	 */
 	float getTrimThrottleForAirspeed(float airspeed_sp) const;
 
-	/**
-	 * Get the throttle scale factor for the current air density.
-	 * @param air_density in kg/m^3
-	 * @return throttle scale factor for air density
-	 */
-	float getAirDensityThrottleScale(float air_density) const;
 
 	/**
 	 * Get the throttle scale factor for the current weight.
