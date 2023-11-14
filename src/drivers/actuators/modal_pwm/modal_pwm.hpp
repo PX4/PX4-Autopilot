@@ -80,7 +80,7 @@ public:
 	int print_status() override;
 
 	/** @see OutputModuleInterface */
-	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+	bool updateOutputs(bool stop_motors, uint16_t outputs[input_rc_s::RC_INPUT_MAX_CHANNELS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
 
 	virtual int	init();
@@ -136,6 +136,7 @@ private:
 	static constexpr int32_t MODAL_PWM_DEFAULT_MIN = 1000;
 	static constexpr int32_t MODAL_PWM_DEFAULT_MAX = 2000;
 	static constexpr int32_t MODAL_PWM_DEFAULT_FAILSAFE = 900;
+	static constexpr int32_t MODAL_PWM_TICS = 24;	// 24 tics per us on M0065
 
 	/* SBUS */
 	static constexpr uint16_t QC_SBUS_FRAME_SIZE = 30;
@@ -168,6 +169,7 @@ private:
 
 	/* RC input */
 	EscPacket _sbus_packet;
+	bool _new_packet{false};		
 	uint64_t _rc_last_valid;		
 	uint16_t _raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS] {UINT16_MAX};
 	unsigned _sbus_frame_drops{0};
@@ -185,6 +187,7 @@ private:
 	perf_counter_t		_cycle_perf;
 	perf_counter_t		_output_update_perf;
 
+	bool 			_debug{false};
 	uint16_t		_cmd_id{0};
 	Command 		_current_cmd;
 	px4::atomic<Command *>	_pending_cmd{nullptr};

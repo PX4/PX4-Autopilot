@@ -160,7 +160,7 @@ void ModalPWM::update_pwm_config()
 	}
 }
 
-bool ModalPWM::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+bool ModalPWM::updateOutputs(bool stop_motors, uint16_t outputs[input_rc_s::RC_INPUT_MAX_CHANNELS],
 			   unsigned num_outputs, unsigned num_control_groups_updated)
 {
 
@@ -209,20 +209,28 @@ bool ModalPWM::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 					       _fb_idx,
 					       cmd.buf,
 					       sizeof(cmd.buf));
-	/*
-	if (_pwm_on){
-	// Debug messages for PWM 400Hz values sent to M0065  
-		uint16_t tics_1 = (_parameters.pwm_min +  (_pwm_fullscale * ((double)outputs[0]/MODAL_PWM_MIXER_MAX))) * 24;
+	if (_pwm_on && _debug){
+		PX4_INFO("Mixer outputs");
+		PX4_INFO("[%u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u]",
+					outputs[0], outputs[1], outputs[2], 
+					outputs[3], outputs[4], outputs[5], 
+					outputs[6], outputs[7], outputs[8],
+					outputs[9], outputs[10], outputs[11], 
+					outputs[12], outputs[13], outputs[14], 
+					outputs[15], outputs[16], outputs[17]
+					);
+
+		// Debug messages for PWM 400Hz values sent to M0065  
+		uint16_t tics_1 = (_parameters.pwm_min +  (_pwm_fullscale * ((double)outputs[0]/MODAL_PWM_MIXER_MAX))) * MODAL_PWM_TICS;
 		PX4_INFO("\tPWM CH1: %hu::%uus::%u tics", outputs[0], tics_1/24, tics_1);
-		uint16_t tics_2 = (_parameters.pwm_min +  (_pwm_fullscale *((double)outputs[1]/MODAL_PWM_MIXER_MAX))) * 24;
+		uint16_t tics_2 = (_parameters.pwm_min +  (_pwm_fullscale *((double)outputs[1]/MODAL_PWM_MIXER_MAX))) * MODAL_PWM_TICS;
 		PX4_INFO("\tPWM CH2: %u::%uus::%u tics", outputs[1], tics_2/24, tics_2);
-		uint16_t tics_3 = (_parameters.pwm_min +  (_pwm_fullscale *((double)outputs[2]/MODAL_PWM_MIXER_MAX))) * 24;
+		uint16_t tics_3 = (_parameters.pwm_min +  (_pwm_fullscale *((double)outputs[2]/MODAL_PWM_MIXER_MAX))) * MODAL_PWM_TICS;
 		PX4_INFO("\tPWM CH3: %u::%uus::%u tics", outputs[2], tics_3/24, tics_3);
-		uint16_t tics_4 = (_parameters.pwm_min +  (_pwm_fullscale *((double)outputs[3]/MODAL_PWM_MIXER_MAX))) * 24;
+		uint16_t tics_4 = (_parameters.pwm_min +  (_pwm_fullscale *((double)outputs[3]/MODAL_PWM_MIXER_MAX))) * MODAL_PWM_TICS;
 		PX4_INFO("\tPWM CH4: %u::%uus::%u tics", outputs[3], tics_4/24, tics_4);
 		PX4_INFO("");
 	}
-	*/
 	
 	if (_uart_port->uart_write(cmd.buf, cmd.len) != cmd.len) {
 		PX4_ERR("Failed to send packet");
@@ -250,8 +258,6 @@ int ModalPWM::parse_response(uint8_t *buf, uint8_t len)
 		int16_t ret = qc_esc_packet_process_char(buf[i], &_sbus_packet);
 
 		if (ret > 0) {
-			//PX4_INFO("got packet of length %i",ret);
-			// _rx_packet_count++;
 			uint8_t packet_type = qc_esc_packet_get_type(&_sbus_packet);
 			uint8_t packet_size = qc_esc_packet_get_size(&_sbus_packet);
 
@@ -263,15 +269,15 @@ int ModalPWM::parse_response(uint8_t *buf, uint8_t len)
 		} else { //parser error
 			switch (ret) {
 			case ESC_ERROR_BAD_CHECKSUM:
-				if(_pwm_on) PX4_WARN("BAD SBUS packet checksum");
+				if(_pwm_on && _debug) PX4_WARN("BAD SBUS packet checksum");
 				break;
 
 			case ESC_ERROR_BAD_LENGTH:
-				if(_pwm_on) PX4_WARN("BAD SBUS packet length");
+				if(_pwm_on && _debug) PX4_WARN("BAD SBUS packet length");
 				break;
 
 			case ESC_ERROR_BAD_HEADER:
-				if(_pwm_on) PX4_WARN("BAD SBUS packet header");
+				if(_pwm_on && _debug) PX4_WARN("BAD SBUS packet header");
 				break;
 
 			case ESC_NO_PACKET:
@@ -279,7 +285,7 @@ int ModalPWM::parse_response(uint8_t *buf, uint8_t len)
 				break;
 
 			default:
-				if(_pwm_on) PX4_WARN("Unkown error: %i", ret);
+				if(_pwm_on && _debug) PX4_WARN("Unkown error: %i", ret);
 				break;
 			}
 			return ret;
@@ -383,37 +389,28 @@ int ModalPWM::receive_sbus()
 				}
 			}
 
-			/* Try again in a bit if packet not present yet... */
+			/* Try again in a bit if packet header not present yet... */
 			if (header == -1){
-				PX4_ERR("Failed to find header, trying again... retries left: %i", read_retries);
+				PX4_ERR("Failed to find SBUS packet header, trying again... retries left: %i", read_retries);
 				read_retries--;
 				continue;
 			}
 
 			/* Check if we got a valid packet...*/
 			if (parse_response(&_read_buf[header], (uint8_t)QC_SBUS_FRAME_SIZE)){
-				// if(_pwm_on) {
-				// 	PX4_ERR("Error parsing QC SBUS packet");
-				// 	PX4_INFO_RAW("[%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x]\n",
-				// 		_read_buf[header+0], _read_buf[header+1], _read_buf[header+2], _read_buf[header+3], _read_buf[header+4], _read_buf[header+5], 
-				// 		_read_buf[header+6], _read_buf[header+7], _read_buf[header+8], _read_buf[header+9], _read_buf[header+10], _read_buf[header+11], 
-				// 		_read_buf[header+12], _read_buf[header+13], _read_buf[header+14], _read_buf[header+15], _read_buf[header+16], _read_buf[header+17], 
-				// 		_read_buf[header+18], _read_buf[header+19], _read_buf[header+20], _read_buf[header+21], _read_buf[header+22], _read_buf[header+23], 
-				// 		_read_buf[header+24], _read_buf[header+25], _read_buf[header+26], _read_buf[header+27], _read_buf[header+28], _read_buf[header+29]
-				// 		);
-				// }
+				if(_pwm_on && _debug) {
+					PX4_ERR("Error parsing QC SBUS packet");
+					PX4_INFO_RAW("[%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x]\n",
+						_read_buf[header+0], _read_buf[header+1], _read_buf[header+2], _read_buf[header+3], _read_buf[header+4], _read_buf[header+5], 
+						_read_buf[header+6], _read_buf[header+7], _read_buf[header+8], _read_buf[header+9], _read_buf[header+10], _read_buf[header+11], 
+						_read_buf[header+12], _read_buf[header+13], _read_buf[header+14], _read_buf[header+15], _read_buf[header+16], _read_buf[header+17], 
+						_read_buf[header+18], _read_buf[header+19], _read_buf[header+20], _read_buf[header+21], _read_buf[header+22], _read_buf[header+23], 
+						_read_buf[header+24], _read_buf[header+25], _read_buf[header+26], _read_buf[header+27], _read_buf[header+28], _read_buf[header+29]
+						);
+				}
 				read_retries--;
 				break;
 			} 
-			// else {
-					// PX4_INFO_RAW("[%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x]\n",
-						// _read_buf[header+0], _read_buf[header+1], _read_buf[header+2], _read_buf[header+3], _read_buf[header+4], _read_buf[header+5], 
-						// _read_buf[header+6], _read_buf[header+7], _read_buf[header+8], _read_buf[header+9], _read_buf[header+10], _read_buf[header+11], 
-						// _read_buf[header+12], _read_buf[header+13], _read_buf[header+14], _read_buf[header+15], _read_buf[header+16], _read_buf[header+17], 
-						// _read_buf[header+18], _read_buf[header+19], _read_buf[header+20], _read_buf[header+21], _read_buf[header+22], _read_buf[header+23], 
-						// _read_buf[header+24], _read_buf[header+25], _read_buf[header+26], _read_buf[header+27], _read_buf[header+28], _read_buf[header+29]
-						// );
-			// }
 
 			input_rc_s input_rc;
 			uint16_t num_values;
@@ -425,27 +422,18 @@ int ModalPWM::receive_sbus()
 						&sbus_failsafe, &sbus_frame_drop, &_sbus_frame_drops, max_channels);
 	
 			if (rc_updated) {
-				// /*
-				// if (_pwm_on){
-				// PX4_INFO("decoded packet, header pos: %i", header);
-				// PX4_INFO("[%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x]",
-				// 	_read_buf[header+0], _read_buf[header+1], _read_buf[header+2], _read_buf[header+3], _read_buf[header+4], _read_buf[header+5], 
-				// 	_read_buf[header+6], _read_buf[header+7], _read_buf[header+8], _read_buf[header+9], _read_buf[header+10], _read_buf[header+11], 
-				// 	_read_buf[header+12], _read_buf[header+13], _read_buf[header+14], _read_buf[header+15], _read_buf[header+16], _read_buf[header+17], 
-				// 	_read_buf[header+18], _read_buf[header+19], _read_buf[header+20], _read_buf[header+21], _read_buf[header+22], _read_buf[header+23], 
-				// 	_read_buf[header+24], _read_buf[header+25], _read_buf[header+26], _read_buf[header+27], _read_buf[header+28], _read_buf[header+29]
-				// 	);
-				// PX4_INFO("[%0x %0x %0x %0x %0x %0x %0x %0x %0x %0x %0x %0x %0x %0x %0x %0x %0x %0x]",
-				// 	_raw_rc_values[0], _raw_rc_values[1], _raw_rc_values[2], 
-				// 	_raw_rc_values[3], _raw_rc_values[4], _raw_rc_values[5], 
-				// 	_raw_rc_values[6], _raw_rc_values[7], _raw_rc_values[8],
-				// 	_raw_rc_values[9], _raw_rc_values[10], _raw_rc_values[11], 
-				// 	_raw_rc_values[12], _raw_rc_values[13], _raw_rc_values[14], 
-				// 	_raw_rc_values[15], _raw_rc_values[16], _raw_rc_values[17]
-				// 	);
-				// */
-				// }
-				
+				if (_pwm_on && _debug){
+					PX4_INFO("Decoded packet, header pos: %i", header);
+					PX4_INFO("[%u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u]",
+						_raw_rc_values[0], _raw_rc_values[1], _raw_rc_values[2], 
+						_raw_rc_values[3], _raw_rc_values[4], _raw_rc_values[5], 
+						_raw_rc_values[6], _raw_rc_values[7], _raw_rc_values[8],
+						_raw_rc_values[9], _raw_rc_values[10], _raw_rc_values[11], 
+						_raw_rc_values[12], _raw_rc_values[13], _raw_rc_values[14], 
+						_raw_rc_values[15], _raw_rc_values[16], _raw_rc_values[17]
+						);
+				}
+
 				input_rc.input_source = input_rc_s::RC_INPUT_SOURCE_PX4IO_SBUS;
 				fill_rc_in(num_values, _raw_rc_values, now, sbus_frame_drop, sbus_failsafe, _sbus_frame_drops, -1, input_rc);
 				if (!input_rc.rc_lost && !input_rc.rc_failsafe) {
@@ -459,31 +447,29 @@ int ModalPWM::receive_sbus()
 				_packets_received++;
 				read_succeeded = 1;
 				break;
-			} else {
-				/* 
-				if (_pwm_on){
-					PX4_ERR("Failed to decode SBUS packet, header pos: %i", header);
-					if (sbus_frame_drop) {
-						PX4_WARN("SBUS frame dropped");
-					}
-					PX4_ERR("[%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x]",
-						_read_buf[header+0], _read_buf[header+1], _read_buf[header+2], _read_buf[header+3], _read_buf[header+4], _read_buf[header+5], 
-						_read_buf[header+6], _read_buf[header+7], _read_buf[header+8], _read_buf[header+9], _read_buf[header+10], _read_buf[header+11], 
-						_read_buf[header+12], _read_buf[header+13], _read_buf[header+14], _read_buf[header+15], _read_buf[header+16], _read_buf[header+17], 
-						_read_buf[header+18], _read_buf[header+19], _read_buf[header+20], _read_buf[header+21], _read_buf[header+22], _read_buf[header+23], 
-						_read_buf[header+24], _read_buf[header+25], _read_buf[header+26], _read_buf[header+27], _read_buf[header+28], _read_buf[header+29]
-						);
+			} else if (_pwm_on && _debug) {
+				PX4_ERR("Failed to decode SBUS packet, header pos: %i", header);
+				if (sbus_frame_drop) {
+					PX4_WARN("SBUS frame dropped");
 				}
-				*/
+				PX4_ERR("[%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x]",
+					_read_buf[header+0], _read_buf[header+1], _read_buf[header+2], _read_buf[header+3], _read_buf[header+4], _read_buf[header+5], 
+					_read_buf[header+6], _read_buf[header+7], _read_buf[header+8], _read_buf[header+9], _read_buf[header+10], _read_buf[header+11], 
+					_read_buf[header+12], _read_buf[header+13], _read_buf[header+14], _read_buf[header+15], _read_buf[header+16], _read_buf[header+17], 
+					_read_buf[header+18], _read_buf[header+19], _read_buf[header+20], _read_buf[header+21], _read_buf[header+22], _read_buf[header+23], 
+					_read_buf[header+24], _read_buf[header+25], _read_buf[header+26], _read_buf[header+27], _read_buf[header+28], _read_buf[header+29]
+					);
 			}
 		}
 		read_retries--;
 	}
 
 	if ( ! read_succeeded) {
+		_new_packet = false;
 		return -EIO;
 	}
 
+	_new_packet = true;
 	return 0;
 }
 
@@ -516,10 +502,13 @@ void ModalPWM::Run()
 		}
 	}
 
-	// Check for SBUS packets
+	/* Check for SBUS packets */
 	receive_sbus();
 
-	_mixing_output.update(); //calls MixingOutput::limitAndUpdateOutputs which calls updateOutputs in this module
+	if (_new_packet){
+		_mixing_output.update(); //calls MixingOutput::limitAndUpdateOutputs which calls updateOutputs in this module
+		_new_packet = false;
+	}
 
 	/* update PWM status if armed or if disarmed PWM values are set */
 	_pwm_on = _mixing_output.armed().armed;
@@ -648,7 +637,7 @@ int ModalPWM::send_cmd_thread_safe(Command *cmd)
 
 int ModalPWM::calibrate_escs(){
 
-	/* Disable outputs so Mixer isn't being a PITA while we calibrate*/
+	/* Disable outputs so Mixer isn't being a PITA while we calibrate */
 	_pwm_cal_on = true;
 
 	Command cmd;
@@ -728,7 +717,7 @@ int ModalPWM::calibrate_escs(){
 		continue;
 	}
 
-	PX4_INFO("ESC Calibration successful!");
+	PX4_INFO("ESC Calibration complete");
 
 	_pwm_cal_on = false;
 	return 0;
@@ -779,8 +768,12 @@ int ModalPWM::custom_command(int argc, char *argv[])
 		return get_instance()->calibrate_escs();
 	}
 
-	while ((ch = px4_getopt(argc, argv, "c:n:t:r:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "dc:n:t:r:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
+		case 'd':
+			get_instance()->_debug = true;
+			break;
+
 		case 'c':
 			output_channel = atoi(myoptarg);
 			if (output_channel > MODAL_PWM_OUTPUT_CHANNELS - 1){
