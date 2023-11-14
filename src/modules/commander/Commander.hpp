@@ -34,13 +34,14 @@
 #pragma once
 
 /*   Helper classes  */
-#include "failsafe/failsafe.h"
 #include "failure_detector/FailureDetector.hpp"
+#include "failsafe/failsafe.h"
+#include "Safety.hpp"
+#include "worker_thread.hpp"
 #include "HealthAndArmingChecks/HealthAndArmingChecks.hpp"
 #include "HomePosition.hpp"
 #include "ModeManagement.hpp"
 #include "UserModeIntention.hpp"
-#include "worker_thread.hpp"
 
 #include <lib/controllib/blocks.hpp>
 #include <lib/hysteresis/hysteresis.h>
@@ -80,6 +81,7 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 
 using math::constrain;
@@ -174,10 +176,6 @@ private:
 
 	void safetyButtonUpdate();
 
-	bool isThrowLaunchInProgress() const;
-
-	void throwLaunchUpdate();
-
 	void vtolStatusUpdate();
 
 	void updateTunes();
@@ -218,7 +216,6 @@ private:
 	FailsafeBase		&_failsafe{_failsafe_instance};
 	FailureDetector		_failure_detector{this};
 	HealthAndArmingChecks	_health_and_arming_checks{this, _vehicle_status};
-	MulticopterThrowLaunch  _multicopter_throw_launch{this};
 	Safety			_safety{};
 	WorkerThread 		_worker_thread{};
 	ModeManagement  	_mode_management{
