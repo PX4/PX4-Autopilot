@@ -42,6 +42,8 @@
 
 #include <iostream>
 #include <string>
+#include <cstdlib>
+#include <fstream>
 
 GZBridge::GZBridge(const char *world, const char *name, const char *model,
 		   const char *pose_str) :
@@ -72,7 +74,18 @@ int GZBridge::init()
 
 		// service call to create model
 		gz::msgs::EntityFactory req{};
-		req.set_sdf_filename(_model_sim + "/model.sdf");
+		std::string filename = "../../../Tools/simulation/gz/models/" + _model_sim + "/model.sdf";
+
+		std::ifstream file(filename);
+		std::string fileContent;
+
+		if (file.is_open()) {
+			// Read the file content into a string
+			fileContent = std::string((std::istreambuf_iterator<char>(file)), (std::istreambuf_iterator<char>()));
+			file.close();
+		}
+
+		req.set_sdf(fileContent);
 
 		req.set_name(_model_name); // New name for the entity, overrides the name on the SDF.
 
@@ -116,15 +129,44 @@ int GZBridge::init()
 		bool result;
 		std::string create_service = "/world/" + _world_name + "/create";
 
-		if (_node.Request(create_service, req, 1000, rep, result)) {
-			if (!rep.data() || !result) {
-				PX4_ERR("EntityFactory service call failed");
+		bool gz_called = false;
+		// Check if STANDALONE has been set.
+		char *standalone_val = std::getenv("STANDALONE");
+
+		if ((standalone_val != nullptr) && (std::strcmp(standalone_val, "1") == 0)) {
+			// Check if Gazebo has been called and if not attempt to reconnect.
+			while (gz_called == false) {
+				if (_node.Request(create_service, req, 1000, rep, result)) {
+					if (!rep.data() || !result) {
+						PX4_ERR("EntityFactory service call failed");
+						return PX4_ERROR;
+
+					} else {
+						gz_called = true;
+					}
+				}
+
+				// If Gazebo has not been called, wait 2 seconds and try again.
+				else {
+					PX4_WARN("Service call timed out as Gazebo has not been detected.");
+					system_usleep(2000000);
+				}
+			}
+		}
+
+
+		// If STANDALONE has not been set, do not retry to reconnect.
+		else {
+			if (_node.Request(create_service, req, 1000, rep, result)) {
+				if (!rep.data() || !result) {
+					PX4_ERR("EntityFactory service call failed");
+					return PX4_ERROR;
+				}
+
+			} else {
+				PX4_ERR("Service call timed out");
 				return PX4_ERROR;
 			}
-
-		} else {
-			PX4_ERR("Service call timed out");
-			return PX4_ERROR;
 		}
 	}
 

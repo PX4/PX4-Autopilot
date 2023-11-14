@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015-2023 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,11 +31,12 @@
 #
 ############################################################################
 
+add_subdirectory(Arming)
+add_subdirectory(failsafe)
 add_subdirectory(failure_detector)
 add_subdirectory(HealthAndArmingChecks)
-add_subdirectory(failsafe)
-add_subdirectory(Arming)
 add_subdirectory(ModeUtil)
+add_subdirectory(MulticopterThrowLaunch)
 
 px4_add_module(
 	MODULE modules__commander
@@ -59,20 +60,22 @@ px4_add_module(
 		mag_calibration.cpp
 		rc_calibration.cpp
 		Safety.cpp
+		UserModeIntention.cpp
 		worker_thread.cpp
 	MODULE_CONFIG
 		module.yaml
 	DEPENDS
+		ArmAuthorization
 		circuit_breaker
+		failsafe
 		failure_detector
 		geo
 		health_and_arming_checks
 		hysteresis
-		ArmAuthorization
+		mode_util
+		MulticopterThrowLaunch
 		sensor_calibration
 		world_magnetic_model
-		mode_util
-		failsafe
 	)
 
 px4_add_unit_gtest(SRC mag_calibration_test.cpp LINKLIBS modules__commander)
