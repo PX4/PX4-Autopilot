@@ -90,7 +90,6 @@ private:
 	void start_flight_task();
 	void handleCommand();
 	void generateTrajectorySetpoint(const float dt, const vehicle_local_position_s &vehicle_local_position);
-	void limitAltitude(trajectory_setpoint_s &setpoint, const vehicle_local_position_s &vehicle_local_position);
 
 	/**
 	 * Switch to a specific task (for normal usage)
@@ -143,7 +142,6 @@ private:
 	uORB::Subscription _takeoff_status_sub{ORB_ID(takeoff_status)};
 	uORB::Subscription _vehicle_attitude_setpoint_sub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
-	uORB::SubscriptionData<home_position_s> _home_position_sub{ORB_ID(home_position)};
 	uORB::SubscriptionData<vehicle_control_mode_s> _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::SubscriptionData<vehicle_land_detected_s> _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::SubscriptionCallbackWorkItem _vehicle_local_position_sub{this, ORB_ID(vehicle_local_position)};
@@ -155,7 +153,6 @@ private:
 	uORB::Publication<vehicle_constraints_s> _vehicle_constraints_pub{ORB_ID(vehicle_constraints)};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::LNDMC_ALT_MAX>) _param_lndmc_alt_max,
 		(ParamInt<px4::params::MPC_POS_MODE>) _param_mpc_pos_mode
 	);
 };

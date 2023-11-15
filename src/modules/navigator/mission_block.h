@@ -205,11 +205,6 @@ protected:
 	 */
 	void set_vtol_transition_item(struct mission_item_s *item, const uint8_t new_mode);
 
-	/**
-	 * General function used to adjust the mission item based on vehicle specific limitations
-	 */
-	void mission_apply_limitation(mission_item_s &item);
-
 	void setLoiterToAltMissionItem(mission_item_s &item, const DestinationPosition &dest, float loiter_radius,
 				       HeadingMode heading_mode) const;
 

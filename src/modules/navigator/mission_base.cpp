@@ -285,7 +285,6 @@ MissionBase::on_active()
 			}
 		}
 
-		mission_apply_limitation(_mission_item);
 		mission_item_to_position_setpoint(_mission_item, &_navigator->get_position_setpoint_triplet()->current);
 
 		reset_mission_item_reached();
@@ -490,7 +489,6 @@ void MissionBase::setEndOfMissionItems()
 
 	/* update position setpoint triplet  */
 	pos_sp_triplet->previous.valid = false;
-	mission_apply_limitation(_mission_item);
 	mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 	pos_sp_triplet->next.valid = false;
 
@@ -808,7 +806,6 @@ MissionBase::do_abort_landing()
 	_mission_item.autocontinue = false;
 	_mission_item.origin = ORIGIN_ONBOARD;
 
-	mission_apply_limitation(_mission_item);
 	mission_item_to_position_setpoint(_mission_item, &_navigator->get_position_setpoint_triplet()->current);
 
 	// XXX: this is a hack to invalidate the "next" position setpoint for the fixed-wing position controller during
