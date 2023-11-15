@@ -1220,14 +1220,12 @@ void MavlinkReceiver::handle_message_set_velocity_limits(mavlink_message_t *msg)
 	mavlink_set_velocity_limits_t mavlink_set_velocity_limits;
 	mavlink_msg_set_velocity_limits_decode(msg, &mavlink_set_velocity_limits);
 
-	if (true) {
-		velocity_limits_s velocity_limits{};
-		velocity_limits.horizontal_velocity = mavlink_set_velocity_limits.horizontal_speed_limit;
-		velocity_limits.vertical_velocity = mavlink_set_velocity_limits.vertical_speed_limit;
-		velocity_limits.yaw_rate = mavlink_set_velocity_limits.yaw_rate_limit;
-		velocity_limits.timestamp = hrt_absolute_time();
-		_velocity_limits_pub.publish(velocity_limits);
-	}
+	velocity_limits_s velocity_limits{};
+	velocity_limits.horizontal_velocity = mavlink_set_velocity_limits.horizontal_speed_limit;
+	velocity_limits.vertical_velocity = mavlink_set_velocity_limits.vertical_speed_limit;
+	velocity_limits.yaw_rate = mavlink_set_velocity_limits.yaw_rate_limit;
+	velocity_limits.timestamp = hrt_absolute_time();
+	_velocity_limits_pub.publish(velocity_limits);
 }
 
 void
