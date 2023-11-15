@@ -1556,6 +1556,10 @@ int PX4IO::custom_command(int argc, char *argv[])
 {
 	const char *verb = argv[0];
 
+	if (!strcmp(verb, "supported")) {
+		return 0;
+	}
+
 	if (!strcmp(verb, "checkcrc")) {
 		if (is_running()) {
 			PX4_ERR("io must be stopped");
