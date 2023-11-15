@@ -40,8 +40,9 @@
 #define I2C_BUS_MAX_BUS_ITEMS PX4_NUMBER_I2C_BUSES
 
 struct px4_i2c_bus_t {
-	int bus{-1}; ///< physical bus number (1, ...) (-1 means this is unused)
-	bool is_external; ///< static external configuration. Use px4_i2c_bus_external() to check if a bus is really external
+	uint32_t max_speed_hz{100'000}; ///< max speed in Hz
+	int8_t bus{-1}; ///< physical bus number (1, ...) (-1 means this is unused)
+	bool is_external{true}; ///< static external configuration. Use px4_i2c_bus_external() to check if a bus is really external
 };
 
 __EXPORT extern const px4_i2c_bus_t px4_i2c_buses[I2C_BUS_MAX_BUS_ITEMS]; ///< board-specific I2C bus configuration
@@ -57,6 +58,11 @@ __EXPORT bool px4_i2c_bus_external(int bus);
  * This can be overridden by a board to add run-time checks.
  */
 __EXPORT bool px4_i2c_device_external(const uint32_t device_id);
+
+/**
+ * Return board defined max speed per bus in Hz. 0 if unknown or invalid bus.
+ */
+__EXPORT int px4_i2c_bus_max_speed(int bus);
 
 /**
  * @class I2CBusIterator

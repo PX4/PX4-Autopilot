@@ -51,27 +51,6 @@
  * Definitions
  ************************************************************************************/
 
-/* I2C PX4 clock configuration
- *
- * A board may override BOARD_I2C_BUS_CLOCK_INIT simply by defining the #defines.
- */
-
-#if defined(BOARD_I2C_BUS_CLOCK_INIT)
-#  define PX4_I2C_BUS_CLOCK_INIT BOARD_I2C_BUS_CLOCK_INIT
-#else
-#  if (PX4_NUMBER_I2C_BUSES) == 1
-#    define PX4_I2C_BUS_CLOCK_INIT {100000}
-#  elif (PX4_NUMBER_I2C_BUSES) == 2
-#    define PX4_I2C_BUS_CLOCK_INIT {100000, 100000}
-#  elif (PX4_NUMBER_I2C_BUSES) == 3
-#    define PX4_I2C_BUS_CLOCK_INIT {100000, 100000, 100000}
-#  elif (PX4_NUMBER_I2C_BUSES) == 4
-#    define PX4_I2C_BUS_CLOCK_INIT {100000, 100000, 100000, 100000}
-#  else
-#    error PX4_NUMBER_I2C_BUSES not supported
-#  endif
-#endif
-
 #ifdef BOARD_SPI_BUS_MAX_BUS_ITEMS
 #define SPI_BUS_MAX_BUS_ITEMS BOARD_SPI_BUS_MAX_BUS_ITEMS
 #else

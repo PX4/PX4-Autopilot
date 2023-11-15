@@ -67,8 +67,6 @@ public:
 
 	virtual int	init() override;
 
-	static int	set_bus_clock(unsigned bus, unsigned clock_hz);
-
 protected:
 	/**
 	 * The number of times a read or write operation will be retried on
@@ -111,9 +109,7 @@ protected:
 	bool	external() const override { return px4_i2c_device_external(_device_id.devid); }
 
 private:
-	static unsigned	int	_bus_clocks[PX4_NUMBER_I2C_BUSES];
-
-	const uint32_t		_frequency;
+	uint32_t		_frequency{100'000};
 	i2c_master_s		*_dev{nullptr};
 
 };

@@ -41,7 +41,7 @@
 bool px4_i2c_bus_external(int bus)
 {
 	for (int i = 0; i < I2C_BUS_MAX_BUS_ITEMS; ++i) {
-		if (px4_i2c_buses[i].bus == bus) {
+		if ((px4_i2c_buses[i].bus != -1) && (px4_i2c_buses[i].bus == bus)) {
 			return px4_i2c_buses[i].is_external;
 		}
 	}
@@ -59,6 +59,17 @@ bool px4_i2c_device_external(const uint32_t device_id)
 	return px4_i2c_bus_external(dev_id.devid_s.bus);
 }
 #endif // BOARD_OVERRIDE_I2C_DEVICE_EXTERNAL
+
+int px4_i2c_bus_max_speed(int bus)
+{
+	for (int i = 0; i < I2C_BUS_MAX_BUS_ITEMS; ++i) {
+		if ((px4_i2c_buses[i].bus != -1) && (px4_i2c_buses[i].bus == bus)) {
+			return px4_i2c_buses[i].max_speed_hz;
+		}
+	}
+
+	return 0;
+}
 
 bool I2CBusIterator::next()
 {
