@@ -274,36 +274,38 @@ else
 		. $FCONFIG
 	fi
 
-	# Check if PX4IO present and update firmware if needed.
-	if [ -f $IOFW ]
+	if px4io supported
 	then
-		if ! px4io checkcrc ${IOFW}
+	# Check if PX4IO present and update firmware if needed.
+		if [ -f $IOFW ]
 		then
-			# tune Program PX4IO
-			tune_control play -t 16 # tune 16 = PROG_PX4IO
-
-			if px4io update ${IOFW}
+			if ! px4io checkcrc ${IOFW}
 			then
-				usleep 10000
-				tune_control stop
-				if px4io checkcrc ${IOFW}
+				# tune Program PX4IO
+				tune_control play -t 16 # tune 16 = PROG_PX4IO
+
+				if px4io update ${IOFW}
 				then
-					tune_control play -t 17 # tune 17 = PROG_PX4IO_OK
+					usleep 10000
+					tune_control stop
+					if px4io checkcrc ${IOFW}
+					then
+						tune_control play -t 17 # tune 17 = PROG_PX4IO_OK
+					else
+						tune_control play -t 18 # tune 18 = PROG_PX4IO_ERR
+					fi
 				else
-					tune_control play -t 18 # tune 18 = PROG_PX4IO_ERR
+					tune_control stop
 				fi
-			else
-				tune_control stop
+			fi
+
+			if ! px4io start
+			then
+				echo "PX4IO start failed"
+				set STARTUP_TUNE 2 # tune 2 = ERROR_TUNE
 			fi
 		fi
-
-		if ! px4io start
-		then
-			echo "PX4IO start failed"
-			set STARTUP_TUNE 2 # tune 2 = ERROR_TUNE
-		fi
 	fi
-
 
 	#
 	# RC update (map raw RC input to calibrate manual control)
