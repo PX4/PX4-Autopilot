@@ -65,8 +65,8 @@ public:
 	virtual ~Roboclaw();
 
 	enum class Motor {
-		Left = 0,
-		Right = 1
+		Right = 0,
+		Left = 1
 	};
 
 	static int task_spawn(int argc, char *argv[]); ///< @see ModuleBase

@@ -157,8 +157,8 @@ int Roboclaw::initializeUART()
 bool Roboclaw::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			     unsigned num_outputs, unsigned num_control_groups_updated)
 {
-	float left_motor_output = -((float)outputs[1] - 128.0f) / 127.f;
 	float right_motor_output = ((float)outputs[0] - 128.0f) / 127.f;
+	float left_motor_output = -((float)outputs[1] - 128.0f) / 127.f;
 
 	if (stop_motors) {
 		setMotorSpeed(Motor::Left, 0.f);
@@ -234,10 +234,10 @@ int Roboclaw::readEncoder()
 	int32_t position_right = swapBytesInt32(&buffer_positon[0]);
 
 	wheel_encoders_s wheel_encoders{};
-	wheel_encoders.wheel_speed[0] = static_cast<float>(speed_left) / _param_rbclw_counts_rev.get() * M_TWOPI_F;
-	wheel_encoders.wheel_speed[1] = static_cast<float>(speed_right) / _param_rbclw_counts_rev.get() * M_TWOPI_F;
-	wheel_encoders.wheel_angle[0] = static_cast<float>(position_left) / _param_rbclw_counts_rev.get() * M_TWOPI_F;
-	wheel_encoders.wheel_angle[1] = static_cast<float>(position_right) / _param_rbclw_counts_rev.get() * M_TWOPI_F;
+	wheel_encoders.wheel_speed[0] = static_cast<float>(speed_right) / _param_rbclw_counts_rev.get() * M_TWOPI_F;
+	wheel_encoders.wheel_speed[1] = static_cast<float>(speed_left) / _param_rbclw_counts_rev.get() * M_TWOPI_F;
+	wheel_encoders.wheel_angle[0] = static_cast<float>(position_right) / _param_rbclw_counts_rev.get() * M_TWOPI_F;
+	wheel_encoders.wheel_angle[1] = static_cast<float>(position_left) / _param_rbclw_counts_rev.get() * M_TWOPI_F;
 	wheel_encoders.timestamp = hrt_absolute_time();
 	_wheel_encoders_pub.publish(wheel_encoders);
 
