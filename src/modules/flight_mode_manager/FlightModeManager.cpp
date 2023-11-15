@@ -103,7 +103,6 @@ void FlightModeManager::Run()
 		const float dt = math::constrain(((time_stamp_now - _time_stamp_last_loop) / 1e6f), 0.0002f, 0.1f);
 		_time_stamp_last_loop = time_stamp_now;
 
-		_home_position_sub.update();
 		_vehicle_control_mode_sub.update();
 		_vehicle_land_detected_sub.update();
 		_vehicle_status_sub.update();
@@ -330,9 +329,6 @@ void FlightModeManager::generateTrajectorySetpoint(const float dt,
 		constraints = _current_task.task->getConstraints();
 	}
 
-	// limit altitude according to land detector
-	limitAltitude(setpoint, vehicle_local_position);
-
 	if (_takeoff_status_sub.updated()) {
 		takeoff_status_s takeoff_status;
 
@@ -364,25 +360,6 @@ void FlightModeManager::generateTrajectorySetpoint(const float dt,
 	}
 
 	_old_landing_gear_position = landing_gear.landing_gear;
-}
-
-void FlightModeManager::limitAltitude(trajectory_setpoint_s &setpoint,
-				      const vehicle_local_position_s &vehicle_local_position)
-{
-	if (_param_lndmc_alt_max.get() < 0.0f || !_home_position_sub.get().valid_alt
-	    || !vehicle_local_position.z_valid || !vehicle_local_position.v_z_valid) {
-		// there is no altitude limitation present or the required information not available
-		return;
-	}
-
-	// maximum altitude == minimal z-value (NED)
-	const float min_z = _home_position_sub.get().z + (-_param_lndmc_alt_max.get());
-
-	if (vehicle_local_position.z < min_z) {
-		// above maximum altitude, only allow downwards flight == positive vz-setpoints (NED)
-		setpoint.position[2] = min_z;
-		setpoint.velocity[2] = math::max(setpoint.velocity[2], 0.f);
-	}
 }
 
 FlightTaskError FlightModeManager::switchTask(FlightTaskIndex new_task_index)

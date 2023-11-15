@@ -74,7 +74,6 @@ VtolTakeoff::on_active()
 				_mission_item.yaw = wrap_pi(get_bearing_to_next_waypoint(_mission_item.lat,
 							    _mission_item.lon, _loiter_location(0), _loiter_location(1)));
 				_mission_item.force_heading = true;
-				mission_apply_limitation(_mission_item);
 				mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 				pos_sp_triplet->current.disable_weather_vane = true;
 				pos_sp_triplet->current.cruising_speed = -1.f;
@@ -180,7 +179,6 @@ VtolTakeoff::set_takeoff_position()
 
 	// convert mission item to current setpoint
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-	mission_apply_limitation(_mission_item);
 	mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 
 	pos_sp_triplet->previous.valid = false;

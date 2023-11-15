@@ -877,29 +877,6 @@ MissionBlock::set_vtol_transition_item(struct mission_item_s *item, const uint8_
 	item->autocontinue = true;
 }
 
-void
-MissionBlock::mission_apply_limitation(mission_item_s &item)
-{
-	// Limit altitude
-	const float maximum_altitude = _navigator->get_lndmc_alt_max();
-
-	/* do nothing if altitude max is negative */
-	if (maximum_altitude > 0.0f) {
-
-		/* absolute altitude */
-		float altitude_abs = item.altitude_is_relative
-				     ? item.altitude + _navigator->get_home_position()->alt
-				     : item.altitude;
-
-		/* limit altitude to maximum allowed altitude */
-		if ((maximum_altitude + _navigator->get_home_position()->alt) < altitude_abs) {
-			item.altitude = item.altitude_is_relative ?
-					maximum_altitude :
-					maximum_altitude + _navigator->get_home_position()->alt;
-		}
-	}
-}
-
 float
 MissionBlock::get_absolute_altitude_for_item(const mission_item_s &mission_item) const
 {
