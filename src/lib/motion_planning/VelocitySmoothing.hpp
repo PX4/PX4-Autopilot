@@ -33,6 +33,9 @@
 
 #pragma once
 
+#include <px4_defines.h>
+#include <mathlib/math/Limits.hpp>
+
 struct Trajectory {
 	float j; //< jerk
 	float a; //< acceleration
@@ -91,20 +94,46 @@ public:
 	 * Getters and setters
 	 */
 	float getMaxJerk() const { return _max_jerk; }
-	void setMaxJerk(float max_jerk) { _max_jerk = max_jerk; }
+	void setMaxJerk(float max_jerk) { _max_jerk = PX4_ISFINITE(max_jerk) ? math::max(max_jerk, kMinJerk) : kMinJerk; }
 
 	float getMaxAccel() const { return _max_accel; }
-	void setMaxAccel(float max_accel) { _max_accel = max_accel; }
+	void setMaxAccel(float max_accel) { _max_accel = PX4_ISFINITE(max_accel) ? math::max(max_accel, kMinAccel) : kMinAccel; }
 
 	float getMaxVel() const { return _max_vel; }
-	void setMaxVel(float max_vel) { _max_vel = max_vel; }
+	void setMaxVel(float max_vel) { _max_vel = PX4_ISFINITE(max_vel) ? math::max(max_vel, 0.f) : 0.f; }
 
 	float getCurrentJerk() const { return _state.j; }
-	void setCurrentAcceleration(const float accel) { _state.a = _state_init.a = accel; }
+	void setCurrentAcceleration(const float accel)
+	{
+		if (PX4_ISFINITE(accel)) {
+			_state.a = accel;
+			_state_init.a = accel;
+
+		} else {
+			_state.a = 0.;
+			_state_init.a = 0.;
+		}
+	}
 	float getCurrentAcceleration() const { return _state.a; }
-	void setCurrentVelocity(const float vel) { _state.v = _state_init.v = vel; }
+	void setCurrentVelocity(const float vel)
+	{
+		if (PX4_ISFINITE(vel)) {
+			_state.v = vel;
+			_state_init.v = vel;
+
+		} else {
+			_state.v = 0.f;
+			_state_init.v = 0.f;
+		}
+	}
 	float getCurrentVelocity() const { return _state.v; }
-	void setCurrentPosition(const float pos) { _state.x = _state_init.x = pos; }
+	void setCurrentPosition(const float pos)
+	{
+		if (PX4_ISFINITE(pos)) {
+			_state.x = pos;
+			_state_init.x = pos;
+		}
+	}
 	float getCurrentPosition() const { return _state.x; }
 
 	float getVelSp() const { return _vel_sp; }
@@ -122,6 +151,12 @@ public:
 	 * @param n_traj the number of trajectories to be synchronized
 	 */
 	static void timeSynchronization(VelocitySmoothing *traj, int n_traj);
+
+	// [m/s^2] minimum value of the smoother's maximum acceleration
+	static constexpr float kMinAccel{0.1f};
+
+	// [m/s^3] minimum value of the smoother's maximum jerk
+	static constexpr float kMinJerk{0.1f};
 
 private:
 
