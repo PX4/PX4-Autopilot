@@ -105,6 +105,7 @@ pipeline {
             ./emsdk activate latest;
             cd ..;
             . ./_emscripten_sdk/emsdk_env.sh;
+            git fetch --all --tags;
             make failsafe_web;
             cd build/px4_sitl_default_failsafe_web;
             mkdir -p failsafe_sim;
