@@ -961,10 +961,10 @@ mixer:
                 actuators:
                   - actuator_type: 'motor'
                     instances:
-                      - name: 'Left Motor'
-                        position: [ 0, -1., 0 ]
                       - name: 'Right Motor'
                         position: [ 0, 1., 0 ]
+                      - name: 'Left Motor'
+                        position: [ 0, -1., 0 ]
 
             7: # Motors (6DOF)
                 actuators:
