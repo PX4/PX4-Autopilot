@@ -604,36 +604,6 @@ PARAM_DEFINE_FLOAT(EKF2_GPS_V_GATE, 5.0f);
 PARAM_DEFINE_FLOAT(EKF2_TAS_GATE, 5.0f);
 
 /**
- * Will be removed after v1.14 release
- *
- * Set bits in the following positions to enable:
- * 0 : Deprecated, use EKF2_GPS_CTRL instead
- * 1 : Deprecated. use EKF2_OF_CTRL instead
- * 2 : Deprecated, use EKF2_IMU_CTRL instead
- * 3 : Deprecated, use EKF2_EV_CTRL instead
- * 4 : Deprecated, use EKF2_EV_CTRL instead
- * 5 : Deprecated. use EKF2_DRAG_CTRL instead
- * 6 : Deprecated, use EKF2_EV_CTRL instead
- * 7 : Deprecated, use EKF2_GPS_CTRL instead
- * 8 : Deprecated, use EKF2_EV_CTRL instead
- *
- * @group EKF2
- * @min 0
- * @max 511
- * @bit 0 unused
- * @bit 1 unused
- * @bit 2 unused
- * @bit 3 unused
- * @bit 4 unused
- * @bit 5 unused
- * @bit 6 unused
- * @bit 7 unused
- * @bit 8 unused
- * @reboot_required true
- */
-PARAM_DEFINE_INT32(EKF2_AID_MASK, 0);
-
-/**
  * Determines the reference source of height data used by the EKF.
  *
  * When multiple height sources are enabled at the same time, the height estimate will

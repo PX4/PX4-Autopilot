@@ -821,19 +821,6 @@ void EKF2::VerifyParams()
 {
 #if defined(CONFIG_EKF2_GNSS)
 
-	if ((_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_USE_GPS)
-	    || (_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_USE_GPS_YAW)) {
-		_param_ekf2_aid_mask.set(_param_ekf2_aid_mask.get() & ~(SensorFusionMask::DEPRECATED_USE_GPS |
-					 SensorFusionMask::DEPRECATED_USE_GPS_YAW));
-		_param_ekf2_aid_mask.commit();
-		mavlink_log_critical(&_mavlink_log_pub, "Use EKF2_GPS_CTRL instead\n");
-		/* EVENT
-		 * @description <param>EKF2_AID_MASK</param> is set to {1:.0}.
-		 */
-		events::send<float>(events::ID("ekf2_aid_mask_gps"), events::Log::Warning,
-				    "Use EKF2_GPS_CTRL instead", _param_ekf2_aid_mask.get());
-	}
-
 	if ((_param_ekf2_gps_ctrl.get() & GnssCtrl::VPOS) && !(_param_ekf2_gps_ctrl.get() & GnssCtrl::HPOS)) {
 		_param_ekf2_gps_ctrl.set(_param_ekf2_gps_ctrl.get() & ~GnssCtrl::VPOS);
 		_param_ekf2_gps_ctrl.commit();
@@ -906,109 +893,7 @@ void EKF2::VerifyParams()
 				    "EV vertical position enabled by EKF2_HGT_REF", _param_ekf2_ev_ctrl.get());
 	}
 
-	// EV EKF2_AID_MASK -> EKF2_EV_CTRL
-	if ((_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_USE_EXT_VIS_VEL)
-	    || (_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_USE_EXT_VIS_POS)
-	    || (_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_USE_EXT_VIS_YAW)
-	   ) {
-
-		// EKF2_EV_CTRL set VEL bit
-		if ((_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_USE_EXT_VIS_VEL)) {
-			_param_ekf2_ev_ctrl.set(_param_ekf2_ev_ctrl.get() | static_cast<int32_t>(EvCtrl::VEL));
-		}
-
-		// EKF2_EV_CTRL set HPOS/VPOS bits
-		if ((_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_USE_EXT_VIS_POS)) {
-			_param_ekf2_ev_ctrl.set(_param_ekf2_ev_ctrl.get()
-						| static_cast<int32_t>(EvCtrl::HPOS) | static_cast<int32_t>(EvCtrl::VPOS));
-		}
-
-		// EKF2_EV_CTRL set YAW bit
-		if ((_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_USE_EXT_VIS_YAW)) {
-			_param_ekf2_ev_ctrl.set(_param_ekf2_ev_ctrl.get() | static_cast<int32_t>(EvCtrl::YAW));
-		}
-
-		_param_ekf2_aid_mask.set(_param_ekf2_aid_mask.get() & ~(SensorFusionMask::DEPRECATED_USE_EXT_VIS_VEL));
-		_param_ekf2_aid_mask.set(_param_ekf2_aid_mask.get() & ~(SensorFusionMask::DEPRECATED_USE_EXT_VIS_POS));
-		_param_ekf2_aid_mask.set(_param_ekf2_aid_mask.get() & ~(SensorFusionMask::DEPRECATED_USE_EXT_VIS_YAW));
-
-		_param_ekf2_ev_ctrl.commit();
-		_param_ekf2_aid_mask.commit();
-
-		mavlink_log_critical(&_mavlink_log_pub, "EKF2 EV use EKF2_EV_CTRL instead of EKF2_AID_MASK\n");
-		/* EVENT
-		 * @description <param>EKF2_AID_MASK</param> is set to {1:.0}.
-		 */
-		events::send<float>(events::ID("ekf2_aid_mask_ev"), events::Log::Warning,
-				    "Use EKF2_EV_CTRL instead", _param_ekf2_aid_mask.get());
-	}
-
 #endif // CONFIG_EKF2_EXTERNAL_VISION
-
-	// IMU EKF2_AID_MASK -> EKF2_IMU_CTRL (2023-01-31)
-	if (_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_INHIBIT_ACC_BIAS) {
-
-		// EKF2_IMU_CTRL set disable accel bias bit
-		_param_ekf2_imu_ctrl.set(_param_ekf2_imu_ctrl.get() & ~(static_cast<int32_t>(ImuCtrl::AccelBias)));
-
-		// EKF2_AID_MASK clear inhibit accel bias bit
-		_param_ekf2_aid_mask.set(_param_ekf2_aid_mask.get() & ~(SensorFusionMask::DEPRECATED_INHIBIT_ACC_BIAS));
-
-		_param_ekf2_imu_ctrl.commit();
-		_param_ekf2_aid_mask.commit();
-
-		mavlink_log_critical(&_mavlink_log_pub, "EKF2 IMU accel bias inhibit use EKF2_IMU_CTRL instead of EKF2_AID_MASK\n");
-		/* EVENT
-		 * @description <param>EKF2_AID_MASK</param> is set to {1:.0}.
-		 */
-		events::send<float>(events::ID("ekf2_aid_mask_imu"), events::Log::Warning,
-				    "Use EKF2_IMU_CTRL instead", _param_ekf2_aid_mask.get());
-	}
-
-#if defined(CONFIG_EKF2_DRAG_FUSION)
-
-	if (_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_USE_DRAG) {
-		// EKF2_DRAG_CTRL enable drag fusion
-		_param_ekf2_drag_ctrl.set(1);
-
-		// EKF2_AID_MASK clear deprecated bits
-		_param_ekf2_aid_mask.set(_param_ekf2_aid_mask.get() & ~(SensorFusionMask::DEPRECATED_USE_DRAG));
-
-		_param_ekf2_drag_ctrl.commit();
-		_param_ekf2_aid_mask.commit();
-
-		mavlink_log_critical(&_mavlink_log_pub, "EKF2 drag fusion use EKF2_DRAG_CTRL instead of EKF2_AID_MASK\n");
-		/* EVENT
-		 * @description <param>EKF2_AID_MASK</param> is set to {1:.0}.
-		 */
-		events::send<float>(events::ID("ekf2_aid_mask_drag"), events::Log::Warning,
-				    "Use EKF2_DRAG_CTRL instead", _param_ekf2_aid_mask.get());
-	}
-
-#endif // CONFIG_EKF2_DRAG_FUSION
-
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-
-	// IMU EKF2_AID_MASK -> EKF2_OF_CTRL (2023-04-26)
-	if (_param_ekf2_aid_mask.get() & SensorFusionMask::DEPRECATED_USE_OPT_FLOW) {
-		// EKF2_OF_CTRL enable flow fusion
-		_param_ekf2_of_ctrl.set(1);
-
-		// EKF2_AID_MASK clear deprecated bit
-		_param_ekf2_aid_mask.set(_param_ekf2_aid_mask.get() & ~(SensorFusionMask::DEPRECATED_USE_OPT_FLOW));
-
-		_param_ekf2_of_ctrl.commit();
-		_param_ekf2_aid_mask.commit();
-
-		mavlink_log_critical(&_mavlink_log_pub, "EKF2 optical flow use EKF2_OF_CTRL instead of EKF2_AID_MASK\n");
-		/* EVENT
-		 * @description <param>EKF2_AID_MASK</param> is set to {1:.0}.
-		 */
-		events::send<float>(events::ID("ekf2_aid_mask_opt_flow"), events::Log::Warning,
-				    "Use EKF2_OF_CTRL instead", _param_ekf2_aid_mask.get());
-	}
-
-#endif // CONFIG_EKF2_OPTICAL_FLOW
 
 #if defined(CONFIG_EKF2_MAGNETOMETER)
 
@@ -1020,7 +905,7 @@ void EKF2::VerifyParams()
 
 		mavlink_log_critical(&_mavlink_log_pub, "EKF2_MAG_TYPE invalid, resetting to default");
 		/* EVENT
-		 * @description <param>EKF2_AID_MASK</param> is set to {1:.0}.
+		 * @description <param>EKF2_MAG_TYPE</param> is set to {1:.0}.
 		 */
 		events::send<float>(events::ID("ekf2_mag_type_invalid"), events::Log::Warning,
 				    "EKF2_MAG_TYPE invalid, resetting to default", _param_ekf2_mag_type.get());
