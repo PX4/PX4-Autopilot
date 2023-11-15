@@ -119,7 +119,6 @@ Loiter::set_loiter_position()
 
 	// convert mission item to current setpoint
 	pos_sp_triplet->previous.valid = false;
-	mission_apply_limitation(_mission_item);
 	mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 	pos_sp_triplet->next.valid = false;
 
