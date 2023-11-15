@@ -12,9 +12,9 @@
 
 /**
  * Standard deviation of velicity state in shear model
- * 
+ *
  * This is the std dev of the wind velocity in each direction
- * 
+ *
  * @unit m
  * @min 0.0
  * @max 10
@@ -26,9 +26,9 @@ PARAM_DEFINE_FLOAT(DS_SIGMA_Q_V, 0.3f);
 
 /**
  * Standard deviation of vertical shear position
- * 
+ *
  * This is the std dev of the shear vertical position
- * 
+ *
  * @unit m
  * @min 0.0
  * @max 10
@@ -40,9 +40,9 @@ PARAM_DEFINE_FLOAT(DS_SIGMA_Q_H, 0.3f);
 
 /**
  * Standard deviation of velicity state in shear model
- * 
+ *
  * This is the std dev of the shear strenght param
- * 
+ *
  * @unit m
  * @min 0.0
  * @max 10
@@ -54,9 +54,9 @@ PARAM_DEFINE_FLOAT(DS_SIGMA_Q_A, 0.01f);
 
 /**
  * Standard deviation of velicity measurement (wind)
- * 
+ *
  * This is the std dev of the wind pseudomeasurement passed to the EKF
- * 
+ *
  * @unit m
  * @min 0.0
  * @max 10
@@ -68,9 +68,9 @@ PARAM_DEFINE_FLOAT(DS_SIGMA_R_V, 3.f);
 
 /**
  * Initial guess  of the vertical shear position
- * 
+ *
  * This is the filter initial value of the shear vertical position
- * 
+ *
  * @unit m
  * @min -200
  * @max 200
