@@ -230,11 +230,10 @@ private:
 		(ParamInt<px4::params::DS_SWITCH_CLOOP>) _param_switch_cloop,
 		// manual switch if we are in SITL mode
 		(ParamInt<px4::params::DS_SWITCH_SITL>) _param_switch_sitl,
-		(ParamInt<px4::params::DS_SWITCH_SITL>) _param_shear_estimated_v_max,
-		(ParamInt<px4::params::DS_WINDEST_HEIGHT>) _param_shear_estimated_alpha,
-		(ParamInt<px4::params::DS_WINDEST_HDG>) _param_shear_estimated_h_ref,
-		(ParamInt<px4::params::DS_WINDEST_ALPHA>) _param_shear_estimated_heading,
-		(ParamInt<px4::params::DS_WINDEST_VMAX>) _param_shear_estimated_aspd
+		(ParamFloat<px4::params::DS_WINDEST_VMAX>) _param_shear_estimated_v_max,
+		(ParamFloat<px4::params::DS_WINDEST_HGHT>) _param_shear_estimated_alpha,
+		(ParamFloat<px4::params::DS_WINDEST_HDG>) _param_shear_estimated_h_ref,
+		(ParamFloat<px4::params::DS_WINDEST_ALPHA>) _param_shear_estimated_heading
 
 	)
 

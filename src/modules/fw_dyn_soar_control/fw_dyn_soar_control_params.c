@@ -661,19 +661,19 @@ PARAM_DEFINE_INT32(DS_SWITCH_SITL, 0);
  *
  * @unit
  * @min 0
- * @max 1
+ * @max 2000
  * @decimal 2
- * @increment 0.01
+ * @increment 0.1
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_WINDEST_HEIGHT, 0);
+PARAM_DEFINE_FLOAT(DS_WINDEST_HGHT, 0);
 
 /**
  * float in [0,1] corresponding to the engine thrust
  *
  * @unit
- * @min 0
- * @max 1
+ * @min -90
+ * @max 90
  * @decimal 2
  * @increment 0.01
  * @group FW DYN SOAR Control
