@@ -158,15 +158,15 @@ bool Roboclaw::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			     unsigned num_outputs, unsigned num_control_groups_updated)
 {
 	float right_motor_output = ((float)outputs[0] - 128.0f) / 127.f;
-	float left_motor_output = -((float)outputs[1] - 128.0f) / 127.f;
+	float left_motor_output = ((float)outputs[1] - 128.0f) / 127.f;
 
 	if (stop_motors) {
-		setMotorSpeed(Motor::Left, 0.f);
 		setMotorSpeed(Motor::Right, 0.f);
+		setMotorSpeed(Motor::Left, 0.f);
 
 	} else {
-		setMotorSpeed(Motor::Left, left_motor_output);
 		setMotorSpeed(Motor::Right, right_motor_output);
+		setMotorSpeed(Motor::Left, left_motor_output);
 	}
 
 	return true;
@@ -214,12 +214,12 @@ int Roboclaw::readEncoder()
 	uint8_t buffer_speed_right[ENCODER_SPEED_MESSAGE_SIZE];
 	uint8_t buffer_speed_left[ENCODER_SPEED_MESSAGE_SIZE];
 
-	if (receiveTransaction(Command::ReadSpeedMotor2, buffer_speed_left,
+	if (receiveTransaction(Command::ReadSpeedMotor1, buffer_speed_right,
 			       ENCODER_SPEED_MESSAGE_SIZE) < ENCODER_SPEED_MESSAGE_SIZE) {
 		return ERROR;
 	}
 
-	if (receiveTransaction(Command::ReadSpeedMotor1, buffer_speed_right,
+	if (receiveTransaction(Command::ReadSpeedMotor2, buffer_speed_left,
 			       ENCODER_SPEED_MESSAGE_SIZE) < ENCODER_SPEED_MESSAGE_SIZE) {
 		return ERROR;
 	}
@@ -228,10 +228,10 @@ int Roboclaw::readEncoder()
 		return ERROR;
 	}
 
-	int32_t speed_left = swapBytesInt32(&buffer_speed_left[0]);
 	int32_t speed_right = swapBytesInt32(&buffer_speed_right[0]);
-	int32_t position_left = swapBytesInt32(&buffer_positon[4]);
+	int32_t speed_left = swapBytesInt32(&buffer_speed_left[0]);
 	int32_t position_right = swapBytesInt32(&buffer_positon[0]);
+	int32_t position_left = swapBytesInt32(&buffer_positon[4]);
 
 	wheel_encoders_s wheel_encoders{};
 	wheel_encoders.wheel_speed[0] = static_cast<float>(speed_right) / _param_rbclw_counts_rev.get() * M_TWOPI_F;
@@ -249,7 +249,7 @@ void Roboclaw::setMotorSpeed(Motor motor, float value)
 	Command command;
 
 	// send command
-	if (motor == Motor::Left) {
+	if (motor == Motor::Right) {
 		if (value > 0) {
 			command = Command::DriveForwardMotor1;
 
@@ -257,7 +257,7 @@ void Roboclaw::setMotorSpeed(Motor motor, float value)
 			command = Command::DriveBackwardsMotor1;
 		}
 
-	} else if (motor == Motor::Right) {
+	} else if (motor == Motor::Left) {
 		if (value > 0) {
 			command = Command::DriveForwardMotor2;
 
@@ -277,10 +277,10 @@ void Roboclaw::setMotorDutyCycle(Motor motor, float value)
 	Command command;
 
 	// send command
-	if (motor == Motor::Left) {
+	if (motor == Motor::Right) {
 		command = Command::DutyCycleMotor1;
 
-	} else if (motor == Motor::Right) {
+	} else if (motor == Motor::Left) {
 		command = Command::DutyCycleMotor2;
 
 	} else {
