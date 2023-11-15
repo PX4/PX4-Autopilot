@@ -39,6 +39,7 @@
 
 #include "PositionControl/PositionControl.hpp"
 #include "Takeoff/Takeoff.hpp"
+#include "GotoControl/GotoControl.hpp"
 
 #include <drivers/drv_hrt.h>
 #include <lib/controllib/blocks.hpp>
@@ -57,6 +58,7 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/hover_thrust_estimate.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/goto_setpoint.h>
 #include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_constraints.h>
@@ -95,12 +97,14 @@ private:
 	uORB::PublicationData<takeoff_status_s>              _takeoff_status_pub{ORB_ID(takeoff_status)};
 	uORB::Publication<vehicle_attitude_setpoint_s>	     _vehicle_attitude_setpoint_pub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Publication<vehicle_local_position_setpoint_s> _local_pos_sp_pub{ORB_ID(vehicle_local_position_setpoint)};	/**< vehicle local position setpoint publication */
+	uORB::Publication<trajectory_setpoint_s> _trajectory_setpoint_pub{ORB_ID(trajectory_setpoint)};
 
 	uORB::SubscriptionCallbackWorkItem _local_pos_sub{this, ORB_ID(vehicle_local_position)};	/**< vehicle local position */
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::Subscription _hover_thrust_estimate_sub{ORB_ID(hover_thrust_estimate)};
+	uORB::Subscription _goto_setpoint_sub{ORB_ID(goto_setpoint)};
 	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
 	uORB::Subscription _vehicle_constraints_sub{ORB_ID(vehicle_constraints)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
@@ -109,6 +113,7 @@ private:
 	hrt_abstime _time_stamp_last_loop{0};		/**< time stamp of last loop iteration */
 	hrt_abstime _time_position_control_enabled{0};
 
+	goto_setpoint_s _goto_setpoint{};
 	trajectory_setpoint_s _setpoint{PositionControl::empty_trajectory_setpoint};
 	vehicle_control_mode_s _vehicle_control_mode{};
 
@@ -126,6 +131,13 @@ private:
 		.maybe_landed = true,
 		.landed = true,
 	};
+
+	enum SetpointInterface {
+		kTrajectory = 0,
+		kGoto
+	} _last_active_setpoint_interface{kTrajectory};
+
+	GotoControl _goto_control;
 
 	DEFINE_PARAMETERS(
 		// Position Control
@@ -176,7 +188,11 @@ private:
 		(ParamFloat<px4::params::MPC_MAN_Y_TAU>)    _param_mpc_man_y_tau,
 
 		(ParamFloat<px4::params::MPC_XY_VEL_ALL>)   _param_mpc_xy_vel_all,
-		(ParamFloat<px4::params::MPC_Z_VEL_ALL>)    _param_mpc_z_vel_all
+		(ParamFloat<px4::params::MPC_Z_VEL_ALL>)    _param_mpc_z_vel_all,
+
+		(ParamFloat<px4::params::MPC_YAWRAUTO_MAX>) _param_mpc_yawrauto_max,
+		(ParamFloat<px4::params::MPC_YAWAAUTO_MAX>) _param_mpc_yawaauto_max,
+		(ParamFloat<px4::params::MPC_XY_ERR_MAX>) _param_mpc_xy_err_max
 	);
 
 	control::BlockDerivative _vel_x_deriv; /**< velocity derivative in x */
@@ -225,4 +241,13 @@ private:
 	 * This should only happen briefly when transitioning and never during mode operation or by design.
 	 */
 	trajectory_setpoint_s generateFailsafeSetpoint(const hrt_abstime &now, const PositionControlStates &states, bool warn);
+
+	/**
+	 * @brief adjust existing (or older) setpoint with any EKF reset deltas and update the local counters
+	 *
+	 * @param[in] vehicle_local_position struct containing EKF reset deltas and counters
+	 * @param[out] setpoint trajectory setpoint struct to be adjusted
+	 */
+	void adjustSetpointForEKFResets(const vehicle_local_position_s &vehicle_local_position,
+					trajectory_setpoint_s &setpoint);
 };

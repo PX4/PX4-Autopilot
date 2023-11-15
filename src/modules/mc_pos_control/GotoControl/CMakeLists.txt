@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015-2020 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2023 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,22 +31,9 @@
 #
 ############################################################################
 
-add_subdirectory(GotoControl)
-add_subdirectory(PositionControl)
-add_subdirectory(Takeoff)
-
-px4_add_module(
-	MODULE modules__mc_pos_control
-	MAIN mc_pos_control
-	COMPILE_FLAGS
-	SRCS
-		MulticopterPositionControl.cpp
-		MulticopterPositionControl.hpp
-	DEPENDS
-		GotoControl
-		PositionControl
-		Takeoff
-		controllib
-		geo
-		SlewRate
-	)
+px4_add_library(GotoControl
+	GotoControl.cpp
+	GotoControl.hpp
+)
+target_include_directories(GotoControl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(GotoControl PUBLIC PositionControl)
