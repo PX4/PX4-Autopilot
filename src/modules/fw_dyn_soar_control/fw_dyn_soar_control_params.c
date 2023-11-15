@@ -647,7 +647,7 @@ PARAM_DEFINE_INT32(DS_SWITCH_CLOOP, 0);
 
 /**
  * integer in {0,1} defining if we are running the controller in SITL. 0=hardware, 1=sitl
- * @unit 
+ * @unit
  * @min 0
  * @max 1
  * @decimal 1
@@ -655,3 +655,51 @@ PARAM_DEFINE_INT32(DS_SWITCH_CLOOP, 0);
  * @group FW DYN SOAR Control
  */
 PARAM_DEFINE_INT32(DS_SWITCH_SITL, 0);
+
+/**
+ * float in [0,1] corresponding to the engine thrust
+ *
+ * @unit
+ * @min 0
+ * @max 1
+ * @decimal 2
+ * @increment 0.01
+ * @group FW DYN SOAR Control
+ */
+PARAM_DEFINE_FLOAT(DS_WINDEST_HEIGHT, 0);
+
+/**
+ * float in [0,1] corresponding to the engine thrust
+ *
+ * @unit
+ * @min 0
+ * @max 1
+ * @decimal 2
+ * @increment 0.01
+ * @group FW DYN SOAR Control
+ */
+PARAM_DEFINE_FLOAT(DS_WINDEST_HDG, 0);
+
+/**
+ * float in [0,1] corresponding to the engine thrust
+ *
+ * @unit
+ * @min 0
+ * @max 1
+ * @decimal 2
+ * @increment 0.01
+ * @group FW DYN SOAR Control
+ */
+PARAM_DEFINE_FLOAT(DS_WINDEST_ALPHA, 0);
+
+/**
+ * float in [0,1] corresponding to the engine thrust
+ *
+ * @unit
+ * @min 0
+ * @max 1
+ * @decimal 2
+ * @increment 0.01
+ * @group FW DYN SOAR Control
+ */
+PARAM_DEFINE_FLOAT(DS_WINDEST_VMAX, 0);

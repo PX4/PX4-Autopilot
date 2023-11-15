@@ -229,7 +229,12 @@ private:
 		// manual switch if manual feedthrough is used, REMOVE!!!
 		(ParamInt<px4::params::DS_SWITCH_CLOOP>) _param_switch_cloop,
 		// manual switch if we are in SITL mode
-		(ParamInt<px4::params::DS_SWITCH_SITL>) _param_switch_sitl
+		(ParamInt<px4::params::DS_SWITCH_SITL>) _param_switch_sitl,
+		(ParamInt<px4::params::DS_SWITCH_SITL>) _shear_estimated_v_max,
+		(ParamInt<px4::params::DS_WINDEST_HEIGHT>) _shear_estimated_alpha,
+		(ParamInt<px4::params::DS_WINDEST_HDG>) _shear_estimated_h_ref,
+		(ParamInt<px4::params::DS_WINDEST_ALPHA>) _shear_estimated_heading,
+		(ParamInt<px4::params::DS_WINDEST_VMAX>) _shear_estimated_aspd
 
 	)
 
