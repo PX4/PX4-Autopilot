@@ -48,6 +48,8 @@ using matrix::Vector2d;
 using matrix::Vector3f;
 using matrix::wrap_pi;
 
+static constexpr float MAX_ALT_REF_RATE_FOR_LEVEL_FLIGHT{0.1f};
+
 FixedwingPositionControl::FixedwingPositionControl(bool vtol) :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
@@ -2403,6 +2405,9 @@ FixedwingPositionControl::Run()
 		_flaps_setpoint = 0.f;
 		_spoilers_setpoint = 0.f;
 
+		// reset flight phase estimate
+		_flight_phase_estimation_pub.get().flight_phase = flight_phase_estimation_s::FLIGHT_PHASE_UNKNOWN;
+
 		// by default we don't want yaw to be contoller directly with rudder
 		_att_sp.fw_control_yaw_wheel = false;
 
@@ -2512,6 +2517,10 @@ FixedwingPositionControl::Run()
 			_roll_slew_rate.setForcedValue(_roll);
 		}
 
+		// Publish estimate of level flight
+		_flight_phase_estimation_pub.get().timestamp = hrt_absolute_time();
+		_flight_phase_estimation_pub.update();
+
 		// if there's any change in landing gear setpoint publish it
 		if (_new_landing_gear_position != old_landing_gear_position
 		    && _new_landing_gear_position != landing_gear_s::GEAR_KEEP) {
@@ -2615,6 +2624,32 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 		     hgt_rate_sp);
 
 	tecs_status_publish(alt_sp, airspeed_sp, airspeed_rate_estimate, throttle_trim_compensated);
+
+	if (_tecs_is_running && !_vehicle_status.in_transition_mode
+	    && (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING)) {
+		// Check level flight: the height rate setpoint is not set or set to 0 and we are close to the target altitude and target altitude is not moving
+		if ((!PX4_ISFINITE(hgt_rate_sp) || fabsf(hgt_rate_sp) < MAX_ALT_REF_RATE_FOR_LEVEL_FLIGHT) &&
+		    fabsf(_current_altitude - alt_sp) < _param_nav_fw_alt_rad.get() &&
+		    fabsf((alt_sp - _last_tecs_alt_sp) / control_interval) < MAX_ALT_REF_RATE_FOR_LEVEL_FLIGHT) {
+			_flight_phase_estimation_pub.get().flight_phase = flight_phase_estimation_s::FLIGHT_PHASE_LEVEL;
+
+		} else if ((alt_sp - _current_altitude) >= _param_nav_fw_alt_rad.get() ||
+			   (PX4_ISFINITE(hgt_rate_sp) && hgt_rate_sp >= MAX_ALT_REF_RATE_FOR_LEVEL_FLIGHT) ||
+			   (((alt_sp - _last_tecs_alt_sp) / control_interval) >= MAX_ALT_REF_RATE_FOR_LEVEL_FLIGHT)) {
+			_flight_phase_estimation_pub.get().flight_phase = flight_phase_estimation_s::FLIGHT_PHASE_CLIMB;
+
+		} else if ((_current_altitude - alt_sp) >= _param_nav_fw_alt_rad.get() ||
+			   (PX4_ISFINITE(hgt_rate_sp) && hgt_rate_sp <= -MAX_ALT_REF_RATE_FOR_LEVEL_FLIGHT) ||
+			   (((_last_tecs_alt_sp - alt_sp) / control_interval) >= MAX_ALT_REF_RATE_FOR_LEVEL_FLIGHT)) {
+			_flight_phase_estimation_pub.get().flight_phase = flight_phase_estimation_s::FLIGHT_PHASE_DESCEND;
+
+		} else {
+			//We can't infer the flight phase , do nothing, estimation is reset at each step
+		}
+	}
+
+	_last_tecs_alt_sp = alt_sp;
+
 }
 
 float
