@@ -75,14 +75,14 @@ CameraFeedback::Run()
 	while (_trigger_sub.update(&trig)) {
 
 		// update geotagging subscriptions
-		vehicle_global_position_s gpos{};
-		_gpos_sub.copy(&gpos);
+		sensor_gps_s sensor_gps{};
+		_gpos_sub.copy(&sensor_gps);
 
 		vehicle_attitude_s att{};
 		_att_sub.copy(&att);
 
 		if (trig.timestamp == 0 ||
-		    gpos.timestamp == 0 ||
+		    sensor_gps.timestamp == 0 ||
 		    att.timestamp == 0) {
 
 			// reject until we have valid data
@@ -104,16 +104,16 @@ CameraFeedback::Run()
 		capture.seq = trig.seq;
 
 		// Fill position data
-		capture.lat = gpos.lat;
-		capture.lon = gpos.lon;
-		capture.alt = gpos.alt;
+		capture.lat = sensor_gps.latitude_deg;
+		capture.lon = sensor_gps.longitude_deg;
+		capture.alt = sensor_gps.altitude_msl_m;
 
-		if (gpos.terrain_alt_valid) {
-			capture.ground_distance = gpos.alt - gpos.terrain_alt;
+		// if (gpos.terrain_alt_valid) {
+		// capture.ground_distance = gpos.alt - gpos.terrain_alt;
 
-		} else {
-			capture.ground_distance = -1.0f;
-		}
+		// } else {
+		capture.ground_distance = -1.0f;
+		// }
 
 		// Fill attitude data
 		gimbal_device_attitude_status_s gimbal{};
