@@ -98,8 +98,36 @@ static const px4_hw_mft_item_t hw_mft_list_V00[] = {
 	},
 };
 
+static const px4_hw_mft_item_t hw_mft_list_V30[] = {
+	{
+		//  PX4_MFT_PX4IO
+		.present     = 0,
+		.mandatory   = 0,
+		.connection  = px4_hw_con_unknown,
+	},
+	{
+		// PX4_MFT_USB
+		.present     = 1,
+		.mandatory   = 1,
+		.connection  = px4_hw_con_onboard,
+	},
+	{
+		// PX4_MFT_CAN2
+		.present     = 1,
+		.mandatory   = 1,
+		.connection  = px4_hw_con_onboard,
+	},
+	{
+		// PX4_MFT_CAN3
+		.present     = 1,
+		.mandatory   = 1,
+		.connection  = px4_hw_con_onboard,
+	},
+};
+
 static px4_hw_mft_list_entry_t mft_lists[] = {
-	{V6XRT_00, hw_mft_list_V00, arraySize(hw_mft_list_V00)},
+	{V6XRT00, hw_mft_list_V00, arraySize(hw_mft_list_V00)},
+	{V6XRT30, hw_mft_list_V30, arraySize(hw_mft_list_V30)},
 };
 
 /************************************************************************************
@@ -122,7 +150,7 @@ __EXPORT px4_hw_mft_item board_query_manifest(px4_hw_mft_item_id_t id)
 	static px4_hw_mft_list_entry boards_manifest = px4_hw_mft_list_uninitialized;
 
 	if (boards_manifest == px4_hw_mft_list_uninitialized) {
-		uint32_t ver_rev = board_get_hw_version() << 8;
+		uint32_t ver_rev = board_get_hw_version() << 16;
 		ver_rev |= board_get_hw_revision();
 
 		for (unsigned i = 0; i < arraySize(mft_lists); i++) {
@@ -133,7 +161,7 @@ __EXPORT px4_hw_mft_item board_query_manifest(px4_hw_mft_item_id_t id)
 		}
 
 		if (boards_manifest == px4_hw_mft_list_uninitialized) {
-			PX4_ERR("Board %4" PRIx32 " is not supported!", ver_rev);
+			syslog(LOG_ERR, "[boot] Board %08" PRIx32 " is not supported!\n", ver_rev);
 		}
 	}
 

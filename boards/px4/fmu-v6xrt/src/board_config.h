@@ -296,7 +296,11 @@
 #define GPIO_HW_REV_SENSE     /* GPIO_AD_22 GPIO9 Pin 21 */  ADC_GPIO(4, 21)
 #define GPIO_HW_VER_SENSE     /* GPIO_AD_23 GPIO9 Pin 22 */  ADC_GPIO(5, 22)
 #define HW_INFO_INIT_PREFIX   "V6XRT"
-#define V6XRT_00             HW_VER_REV(0x0,0x0) // First Release
+
+#define BOARD_NUM_SPI_CFG_HW_VERSIONS 2 // Rev 0 on HB Base and T1 Pase
+//                                  Base/FMUM
+#define V6XRT00             HW_VER_REV(0x0,0x0) // First Release
+#define V6XRT30             HW_VER_REV(0x3,0x0) // T1 Base w/o PX4IO
 
 #define BOARD_I2C_LATEINIT 1 /* See Note about SE550 Eanable */
 
