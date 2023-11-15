@@ -355,6 +355,35 @@ void VectorNav::sensorCallback(VnUartPacket *packet)
 			_global_position_pub.publish(global_position);
 			perf_count(_global_position_pub_interval_perf);
 		}
+
+		// publish estimator_status (VN_MODE 1 only)
+		if (_param_vn_mode.get() == 1) {
+
+			estimator_status_s estimator_status{};
+			estimator_status.timestamp_sample = time_now_us;
+
+			float test_ratio = 0.f;
+
+			if (mode_aligning) {
+				test_ratio = 0.99f;
+
+			} else if (mode_tracking) {
+				// very good
+				test_ratio = 0.1f;
+			}
+
+			estimator_status.mag_test_ratio = test_ratio;
+			estimator_status.vel_test_ratio = test_ratio;
+			estimator_status.pos_test_ratio = test_ratio;
+			estimator_status.hgt_test_ratio = test_ratio;
+
+			estimator_status.accel_device_id = _px4_accel.get_device_id();
+			estimator_status.gyro_device_id = _px4_gyro.get_device_id();
+
+			estimator_status.timestamp = hrt_absolute_time();
+			_estimator_status_pub.publish(estimator_status);
+
+		}
 	}
 
 	// binary output 3
