@@ -75,6 +75,7 @@ const struct {
 	{"uart_baudchange",	test_uart_baudchange,	OPT_NOJIGTEST},
 	{"uart_break",		test_uart_break,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"uart_console",	test_uart_console,	OPT_NOJIGTEST | OPT_NOALLTEST},
+	{"crypto",		test_crypto,		0},
 #endif /* __PX4_NUTTX */
 
 	{"atomic_bitset",	test_atomic_bitset,	0},
