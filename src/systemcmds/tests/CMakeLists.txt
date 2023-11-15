@@ -71,6 +71,7 @@ if(${PX4_PLATFORM} STREQUAL "nuttx")
 		test_mount.cpp
 		test_time.c
 		test_uart_break.c
+		test_crypto.cpp
 		)
 endif()
 
