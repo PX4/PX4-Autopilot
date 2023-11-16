@@ -32,13 +32,16 @@
 ############################################################################
 
 px4_add_module(
-	MODULE drivers__actuators__modal_pwm
-	MAIN modal_pwm
+	MODULE drivers__voxl2_io
+	MAIN voxl2_io
 	INCLUDES 
 	${PX4_SOURCE_DIR}/src/drivers/actuators/modal_io
 	SRCS
-		modal_pwm.cpp
-		modal_pwm.hpp
+		voxl2_io_packet.c
+		voxl2_io_packet.h
+		voxl2_io_packet_types.h
+		voxl2_io.cpp
+		voxl2_io.hpp
 	DEPENDS
 		px4_work_queue
 		mixer_module

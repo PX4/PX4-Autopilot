@@ -72,7 +72,7 @@
 /*
  * Default port for M0065
 */
-#define MODAL_PWM_DEFAULT_PORT 	"7"
+#define VOXL2_IO_DEFAULT_PORT 	"2"
 
 
 /*

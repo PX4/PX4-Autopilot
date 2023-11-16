@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 ModalAI, Inc. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,24 +32,35 @@
  ****************************************************************************/
 
 /**
- * @file board_config.h
+ * UART M0065 baud rate
  *
- * VOXL2 internal definitions
+ * Default rate is 921600, which is used for communicating with M0065.
+ *
+ * @group VOXL2 IO
+ * @unit bit/s
  */
+PARAM_DEFINE_INT32(VOXL2_IO_BAUD, 921600);
 
-#pragma once
+/**
+ * M0065 PWM Min
+ *
+ * Minimum duration (microseconds) for M0065 PWM
+ *
+ * @min 0
+ * @max 2000
+ * @group VOXL2 IO
+ * @unit us
+ */
+PARAM_DEFINE_INT32(VOXL2_IO_MIN, 1000);
 
-#define BOARD_HAS_NO_RESET
-#define BOARD_HAS_NO_BOOTLOADER
+/**
+ * M0065 PWM Max
+ *
+ * Maximum duration (microseconds) for M0065 PWM
+ * @min 0
+ * @max 2000
+ * @group VOXL2 IO
+ * @unit us
+ */
+PARAM_DEFINE_INT32(VOXL2_IO_MAX, 2000);
 
-// Define this as empty since there are no I2C buses
-#define BOARD_I2C_BUS_CLOCK_INIT
-
-#include <system_config.h>
-#include <px4_platform_common/board_common.h>
-
-#define BOARD_OVERRIDE_UUID "MODALAIVOXL20000" // must be of length 16
-#define PX4_SOC_ARCH_ID PX4_SOC_ARCH_ID_VOXL2
-
-#define MODAL_IO_DEFAULT_PORT 	"2"
-#define VOXL2_IO_DEFAULT_PORT 	"2"

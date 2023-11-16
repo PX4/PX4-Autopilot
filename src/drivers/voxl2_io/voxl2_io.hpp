@@ -56,16 +56,16 @@
 
 #include "modal_io_serial.hpp"
 
-#include "qc_esc_packet.h"
-#include "qc_esc_packet_types.h"
+#include "voxl2_io_packet.h"
+#include "voxl2_io_packet_types.h"
 
 using namespace time_literals;
 
-class ModalPWM final : public ModuleBase<ModalPWM>, public OutputModuleInterface
+class Voxl2IO final : public ModuleBase<Voxl2IO>, public OutputModuleInterface
 {
 public:
-	ModalPWM();
-	~ModalPWM() override;
+	Voxl2IO();
+	~Voxl2IO() override;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -116,27 +116,27 @@ private:
 	bool stop_all_pwms();
 	
 	/* PWM Parameters */
-	static constexpr uint32_t MODAL_PWM_CONFIG = 0;				// Default to off
-	static constexpr uint32_t MODAL_PWM_BOARD_CONFIG_SIZE = 4;	// PWM_MIN, PWM_MAX, 4 bytes
-	static constexpr uint32_t MODAL_PWM_ESC_CAL_SIZE = 1;		
-	static constexpr uint32_t MODAL_PWM_DEFAULT_BAUD = 921600;
-	static constexpr uint16_t MODAL_PWM_OUTPUT_CHANNELS = 4;
-	static constexpr uint16_t MODAL_PWM_OUTPUT_DISABLED = 0;
+	static constexpr uint32_t VOXL2_IO_CONFIG = 0;				// Default to off
+	static constexpr uint32_t VOXL2_IO_BOARD_CONFIG_SIZE = 4;	// PWM_MIN, PWM_MAX, 4 bytes
+	static constexpr uint32_t VOXL2_IO_ESC_CAL_SIZE = 1;		
+	static constexpr uint32_t VOXL2_IO_DEFAULT_BAUD = 921600;
+	static constexpr uint16_t VOXL2_IO_OUTPUT_CHANNELS = 4;
+	static constexpr uint16_t VOXL2_IO_OUTPUT_DISABLED = 0;
 
-	static constexpr uint32_t MODAL_PWM_WRITE_WAIT_US = 200;
-	static constexpr uint32_t MODAL_PWM_DISCONNECT_TIMEOUT_US = 500000;
+	static constexpr uint32_t VOXL2_IO_WRITE_WAIT_US = 200;
+	static constexpr uint32_t VOXL2_IO_DISCONNECT_TIMEOUT_US = 500000;
 
 	static constexpr uint16_t DISARMED_VALUE = 0;
 
-	static constexpr uint16_t MODAL_PWM_MIXER_MIN = 0;
-	static constexpr uint16_t MODAL_PWM_MIXER_MAX = 800;
-	static constexpr uint16_t MODAL_PWM_MIXER_FAILSAFE = 0;
-	static constexpr uint16_t MODAL_PWM_MIXER_DISARMED = 0;
+	static constexpr uint16_t VOXL2_IO_MIXER_MIN = 0;
+	static constexpr uint16_t VOXL2_IO_MIXER_MAX = 800;
+	static constexpr uint16_t VOXL2_IO_MIXER_FAILSAFE = 0;
+	static constexpr uint16_t VOXL2_IO_MIXER_DISARMED = 0;
 
-	static constexpr int32_t MODAL_PWM_DEFAULT_MIN = 1000;
-	static constexpr int32_t MODAL_PWM_DEFAULT_MAX = 2000;
-	static constexpr int32_t MODAL_PWM_DEFAULT_FAILSAFE = 900;
-	static constexpr int32_t MODAL_PWM_TICS = 24;	// 24 tics per us on M0065
+	static constexpr int32_t VOXL2_IO_DEFAULT_MIN = 1000;
+	static constexpr int32_t VOXL2_IO_DEFAULT_MAX = 2000;
+	static constexpr int32_t VOXL2_IO_DEFAULT_FAILSAFE = 900;
+	static constexpr int32_t VOXL2_IO_TICS = 24;	// 24 tics per us on M0065 timer clks
 
 	/* SBUS */
 	static constexpr uint16_t QC_SBUS_FRAME_SIZE = 30;
@@ -146,17 +146,17 @@ private:
 	static constexpr unsigned	_current_update_interval{4000}; // 250 Hz
 
 	typedef struct {
-		int32_t		config{MODAL_PWM_CONFIG};
-		int32_t		baud_rate{MODAL_PWM_DEFAULT_BAUD};
-		int32_t		pwm_min{MODAL_PWM_DEFAULT_MIN};
-		int32_t		pwm_max{MODAL_PWM_DEFAULT_MAX};
-		int32_t		pwm_failsafe{MODAL_PWM_DEFAULT_FAILSAFE};
+		int32_t		config{VOXL2_IO_CONFIG};
+		int32_t		baud_rate{VOXL2_IO_DEFAULT_BAUD};
+		int32_t		pwm_min{VOXL2_IO_DEFAULT_MIN};
+		int32_t		pwm_max{VOXL2_IO_DEFAULT_MAX};
+		int32_t		pwm_failsafe{VOXL2_IO_DEFAULT_FAILSAFE};
 		int32_t 	param_rc_input_proto{0};
 		int32_t		param_rc_rssi_pwm_chan{0};
-		int32_t		function_map[MODAL_PWM_OUTPUT_CHANNELS] {0, 0, 0, 0};
+		int32_t		function_map[VOXL2_IO_OUTPUT_CHANNELS] {0, 0, 0, 0};
 		int32_t		verbose_logging{0};
-	} modal_pwm_params_t;
-	modal_pwm_params_t	_parameters;
+	} voxl2_io_params_t;
+	voxl2_io_params_t	_parameters;
 
 	typedef enum {
 		PWM_MODE_START = 0,
@@ -164,24 +164,23 @@ private:
 		PWM_MODE_END
 	} PWM_MODE;
 
-	typedef enum {
+	enum RC_MODE {
 		DISABLED = 0,
 		SBUS,
-		SPEKTRUM
-	} RC_MODE;
-	RC_MODE	 _rc_mode{RC_MODE::DISABLED};		
+		SPEKTRUM,
+		EXTERNAL,
+		SCAN
+	} _rc_mode{RC_MODE::SCAN};
 
 	/* QUP7, VOXL2 J19, /dev/slpi-uart-7*/
-	int32_t				port;
-	char 				_device[10]{0};
+	char 				_device[10]{VOXL2_IO_DEFAULT_PORT};
 	ModalIoSerial 		*_uart_port;
 	
 	/* Mixer output */
 	MixingOutput 	_mixing_output;
-	unsigned		_current_update_rate{0};
 
 	/* RC input */
-	EscPacket _sbus_packet;
+	VOXL2_IOPacket _sbus_packet;
 	uint64_t _rc_last_valid;		
 	uint16_t _raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS] {UINT16_MAX};
 	unsigned _sbus_frame_drops{0};
@@ -195,10 +194,9 @@ private:
 	uORB::Subscription 	_parameter_update_sub{ORB_ID(parameter_update)};
 
 	bool		_pwm_on{false};
-	bool		_pwm_cal_on{false};
 	int32_t		_pwm_fullscale{0};
-	int16_t 	_pwm_values[MODAL_PWM_OUTPUT_CHANNELS] = {0, 0, 0, 0};
-	bool		_first_update_cycle{true};
+	int16_t 	_pwm_values[VOXL2_IO_OUTPUT_CHANNELS] = {0, 0, 0, 0};
+	bool		_outputs_disabled{false};
 
 	perf_counter_t		_cycle_perf;
 	perf_counter_t		_output_update_perf;
@@ -216,7 +214,7 @@ private:
 	uint32_t		_packets_received{0};
 
 	int parse_response(uint8_t *buf, uint8_t len);
-	int	load_params(modal_pwm_params_t *params);
+	int	load_params(voxl2_io_params_t *params);
 	int update_params();
 	int	flush_uart_rx();
 	int calibrate_escs();

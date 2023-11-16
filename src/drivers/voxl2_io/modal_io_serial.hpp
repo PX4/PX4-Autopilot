@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022 ModalAI, Inc. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,25 +31,39 @@
  *
  ****************************************************************************/
 
-/**
- * @file board_config.h
- *
- * VOXL2 internal definitions
- */
-
 #pragma once
 
-#define BOARD_HAS_NO_RESET
-#define BOARD_HAS_NO_BOOTLOADER
+#include <px4_log.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <termios.h>
 
-// Define this as empty since there are no I2C buses
-#define BOARD_I2C_BUS_CLOCK_INIT
+#ifdef __PX4_QURT
+#include <drivers/device/qurt/uart.h>
+#define FAR
+#endif
 
-#include <system_config.h>
-#include <px4_platform_common/board_common.h>
+class ModalIoSerial
+{
+public:
+	ModalIoSerial();
+	virtual ~ModalIoSerial();
 
-#define BOARD_OVERRIDE_UUID "MODALAIVOXL20000" // must be of length 16
-#define PX4_SOC_ARCH_ID PX4_SOC_ARCH_ID_VOXL2
+	int		uart_open(const char *dev, speed_t speed);
+	int		uart_set_baud(speed_t speed);
+	int		uart_close();
+	int		uart_write(FAR void *buf, size_t len);
+	int		uart_read(FAR void *buf, size_t len);
+	bool		is_open() { return _uart_fd >= 0; };
+	int		uart_get_baud() {return _speed; }
 
-#define MODAL_IO_DEFAULT_PORT 	"2"
-#define VOXL2_IO_DEFAULT_PORT 	"2"
+private:
+	int			_uart_fd = -1;
+
+#if ! defined(__PX4_QURT)
+	struct termios		_orig_cfg;
+	struct termios		_cfg;
+#endif
+
+	int   _speed = -1;
+};

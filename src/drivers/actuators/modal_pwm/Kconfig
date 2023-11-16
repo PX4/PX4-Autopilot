@@ -1,5 +1,0 @@
-menuconfig DRIVERS_ACTUATORS_MODAL_PWM
-	bool "modal_pwm"
-	default n
-	---help---
-		Enable support for modal_pwm

@@ -31,23 +31,23 @@
  *
  ****************************************************************************/
 
-#include "modal_pwm.hpp"
+#include "voxl2_io.hpp"
 
 #include <px4_platform_common/sem.hpp>
 
 
-ModalPWM::ModalPWM() :
-	OutputModuleInterface(MODULE_NAME, px4::serial_port_to_wq(MODAL_PWM_DEFAULT_PORT)),
-	_mixing_output{"MODAL_PWM", MODAL_PWM_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false},
+Voxl2IO::Voxl2IO() :
+	OutputModuleInterface(MODULE_NAME, px4::serial_port_to_wq(VOXL2_IO_DEFAULT_PORT)),
+	_mixing_output{"VOXL2_IO", VOXL2_IO_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false},
 	_cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": module cycle")},
 	_output_update_perf(perf_alloc(PC_INTERVAL, MODULE_NAME": output update interval"))
 {
-	_mixing_output.setMaxNumOutputs(MODAL_PWM_OUTPUT_CHANNELS);
+	_mixing_output.setMaxNumOutputs(VOXL2_IO_OUTPUT_CHANNELS);
 	_uart_port = new ModalIoSerial();
-	qc_esc_packet_init(&_sbus_packet);
+	voxl2_io_packet_init(&_sbus_packet);
 }
 
-ModalPWM::~ModalPWM()
+Voxl2IO::~Voxl2IO()
 {
 	/* make sure servos are off */
 	stop_all_pwms();
@@ -62,7 +62,7 @@ ModalPWM::~ModalPWM()
 }
 
 
-int ModalPWM::init()
+int Voxl2IO::init()
 {
 
 	/* Getting initial parameter values */
@@ -77,7 +77,7 @@ int ModalPWM::init()
 	return ret;
 }
 
-int ModalPWM::update_params()
+int Voxl2IO::update_params()
 {
 	int ret = PX4_ERROR;
 
@@ -85,73 +85,44 @@ int ModalPWM::update_params()
 	ret = load_params(&_parameters);
 
 	if (ret == PX4_OK) {
-		_mixing_output.setAllDisarmedValues(MODAL_PWM_MIXER_DISARMED);
-		_mixing_output.setAllFailsafeValues(MODAL_PWM_MIXER_FAILSAFE);
-		_mixing_output.setAllMinValues(MODAL_PWM_MIXER_MIN);
-		_mixing_output.setAllMaxValues(MODAL_PWM_MIXER_MAX);
+		_mixing_output.setAllDisarmedValues(VOXL2_IO_MIXER_DISARMED);
+		_mixing_output.setAllFailsafeValues(VOXL2_IO_MIXER_FAILSAFE);
+		_mixing_output.setAllMinValues(VOXL2_IO_MIXER_MIN);
+		_mixing_output.setAllMaxValues(VOXL2_IO_MIXER_MAX);
 		_pwm_fullscale = _parameters.pwm_max - _parameters.pwm_min;
 	}
 
 	return ret;
 }
 	
-int ModalPWM::load_params(modal_pwm_params_t *params)
+int Voxl2IO::load_params(voxl2_io_params_t *params)
 {
 	int ret = PX4_OK;
 	int32_t max = params->pwm_max;
 	int32_t min = params->pwm_min;
 
 	// initialize out
-	for (int i = 0; i < MODAL_PWM_OUTPUT_CHANNELS; i++) {
+	for (int i = 0; i < VOXL2_IO_OUTPUT_CHANNELS; i++) {
 		params->function_map[i] = (int)OutputFunction::Disabled;
 	}
 	
 	/* UART config, PWM mode, and RC protocol*/
-	param_get(param_find("MODAL_PWM_CONFIG"),  &params->config);
-	param_get(param_find("MODAL_PWM_BAUD"),    &params->baud_rate);
+	param_get(param_find("VOXL2_IO_BAUD"),    &params->baud_rate);
 	param_get(param_find("RC_INPUT_PROTO"),    &params->param_rc_input_proto);
 
 	/* PWM min, max, and failsafe values*/
-	param_get(param_find("MODAL_PWM_MIN"),  &params->pwm_min);
-	param_get(param_find("MODAL_PWM_MAX"),  &params->pwm_max);
+	param_get(param_find("VOXL2_IO_MIN"),  &params->pwm_min);
+	param_get(param_find("VOXL2_IO_MAX"),  &params->pwm_max);
 
 	/* PWM output functions */
-	param_get(param_find("MODAL_PWM_FUNC1"),  &params->function_map[0]);
-	param_get(param_find("MODAL_PWM_FUNC2"),  &params->function_map[1]);
-	param_get(param_find("MODAL_PWM_FUNC3"),  &params->function_map[2]);
-	param_get(param_find("MODAL_PWM_FUNC4"),  &params->function_map[3]);
+	param_get(param_find("VOXL2_IO_FUNC1"),  &params->function_map[0]);
+	param_get(param_find("VOXL2_IO_FUNC2"),  &params->function_map[1]);
+	param_get(param_find("VOXL2_IO_FUNC3"),  &params->function_map[2]);
+	param_get(param_find("VOXL2_IO_FUNC4"),  &params->function_map[3]);
 	
-	/* M0065 RC Mode */
-	param_get(param_find("MODAL_PWM_RC"), (int32_t*)&_rc_mode);
-	
-	/* M0065 UART Port */
-	param_get(param_find("MODAL_PWM_PORT"), &port);
-
-	/* Open new UART port if changed */
-	if (_uart_port->is_open() && atoi(_device) != (int)port){
-		PX4_INFO("M0065 UART port updated, reinitializing UART port now...");
-		_uart_port->uart_close();
-		snprintf(_device, 2, "%d", (int)port);
-		if (_uart_port->uart_open((const char*)_device, _parameters.baud_rate) == PX4_OK) {			
-			/* Send PWM config to M0065... pwm_min and pwm_max */
-			PX4_INFO("Opened UART connection to M0065 device on port %s", _device);
-			update_pwm_config();
-		} else {
-			PX4_ERR("Failed opening device");
-			ret = PX4_ERROR;
-		}
-	} else {
-		snprintf(_device, 2, "%d", (int)port);
-	}
-
-	/* PWM rate */
-	if( params->config == PWM_MODE::PWM_MODE_400){
-		_current_update_rate = 400;
-	}
-
 	/* Validate PWM min and max values */
 	if (params->pwm_min > params->pwm_max){
-		PX4_ERR("Invalid parameter MODAL_PWM_MIN.  Please verify parameters.");
+		PX4_ERR("Invalid parameter VOXL2_IO_MIN.  Please verify parameters.");
 		params->pwm_min = 0;
 		ret = PX4_ERROR;
 	}
@@ -164,12 +135,12 @@ int ModalPWM::load_params(modal_pwm_params_t *params)
 	return ret;
 }
 
-void ModalPWM::update_pwm_config()
+void Voxl2IO::update_pwm_config()
 {
 	Command cmd;
-	uint8_t data[MODAL_PWM_BOARD_CONFIG_SIZE] = {static_cast<uint8_t>((_parameters.pwm_min & 0xFF00)>>8), static_cast<uint8_t>(_parameters.pwm_min & 0xFF),
+	uint8_t data[VOXL2_IO_BOARD_CONFIG_SIZE] = {static_cast<uint8_t>((_parameters.pwm_min & 0xFF00)>>8), static_cast<uint8_t>(_parameters.pwm_min & 0xFF),
 										   static_cast<uint8_t>((_parameters.pwm_max & 0xFF00)>>8), static_cast<uint8_t>(_parameters.pwm_max & 0xFF)};
-	cmd.len = qc_esc_create_packet(ESC_PACKET_TYPE_CONFIG_BOARD_REQUEST, data, MODAL_PWM_BOARD_CONFIG_SIZE,	cmd.buf, sizeof(cmd.buf));
+	cmd.len = voxl2_io_create_packet(VOXL2_IO_PACKET_TYPE_CONFIG_BOARD_REQUEST, data, VOXL2_IO_BOARD_CONFIG_SIZE,	cmd.buf, sizeof(cmd.buf));
 
 	if (_uart_port->uart_write(cmd.buf, cmd.len) != cmd.len) {
 		PX4_ERR("Failed to send config packet");
@@ -179,26 +150,26 @@ void ModalPWM::update_pwm_config()
 	}
 }
 
-bool ModalPWM::updateOutputs(bool stop_motors, uint16_t outputs[input_rc_s::RC_INPUT_MAX_CHANNELS],
+bool Voxl2IO::updateOutputs(bool stop_motors, uint16_t outputs[input_rc_s::RC_INPUT_MAX_CHANNELS],
 			   unsigned num_outputs, unsigned num_control_groups_updated)
 {
 	/* Stop Mixer while ESCs are being calibrated */
-	if (_pwm_cal_on) {
+	if (_outputs_disabled) {
 		return 0;
 	}
 	
 	//in Run() we call _mixing_output.update(), which calls MixingOutput::limitAndUpdateOutputs which calls _interface.updateOutputs (this function)
 	//So, if Run() is blocked by a custom command, this function will not be called until Run is running again
-	int16_t _rate_req[MODAL_PWM_OUTPUT_CHANNELS] = {0, 0, 0, 0};
-	uint8_t _led_req[MODAL_PWM_OUTPUT_CHANNELS] = {0, 0, 0, 0};
+	int16_t _rate_req[VOXL2_IO_OUTPUT_CHANNELS] = {0, 0, 0, 0};
+	uint8_t _led_req[VOXL2_IO_OUTPUT_CHANNELS] = {0, 0, 0, 0};
 	int32_t _fb_idx = -1;
 
-	if (num_outputs != MODAL_PWM_OUTPUT_CHANNELS) {
-		PX4_ERR("Num outputs != MODAL_PWM_OUTPUT_CHANNELS!");
+	if (num_outputs != VOXL2_IO_OUTPUT_CHANNELS) {
+		PX4_ERR("Num outputs != VOXL2_IO_OUTPUT_CHANNELS!");
 		return false;
 	}
 
-	for (int i = 0; i < MODAL_PWM_OUTPUT_CHANNELS; i++) {
+	for (int i = 0; i < VOXL2_IO_OUTPUT_CHANNELS; i++) {
 		// do not run any signal on disabled channels
 		if (!_mixing_output.isFunctionSet(i)) {
 			outputs[i] = 0;
@@ -216,7 +187,7 @@ bool ModalPWM::updateOutputs(bool stop_motors, uint16_t outputs[input_rc_s::RC_I
 	}
 
 	Command cmd;
-	cmd.len = qc_esc_create_pwm_packet4_fb(_rate_req[0], _rate_req[1], _rate_req[2], _rate_req[3],
+	cmd.len = voxl2_io_create_pwm_packet4_fb(_rate_req[0], _rate_req[1], _rate_req[2], _rate_req[3],
 					       				   _led_req[0], _led_req[1], _led_req[2], _led_req[3],
 					       				   _fb_idx, cmd.buf, sizeof(cmd.buf));
 	if (_pwm_on && _debug){
@@ -228,13 +199,13 @@ bool ModalPWM::updateOutputs(bool stop_motors, uint16_t outputs[input_rc_s::RC_I
 					);
 
 		// Debug messages for PWM 400Hz values sent to M0065  
-		uint16_t tics_1 = (_parameters.pwm_min +  (_pwm_fullscale * ((double)outputs[0]/MODAL_PWM_MIXER_MAX))) * MODAL_PWM_TICS;
+		uint16_t tics_1 = (_parameters.pwm_min +  (_pwm_fullscale * ((double)outputs[0]/VOXL2_IO_MIXER_MAX))) * VOXL2_IO_TICS;
 		PX4_INFO("\tPWM CH1: %hu::%uus::%u tics", outputs[0], tics_1/24, tics_1);
-		uint16_t tics_2 = (_parameters.pwm_min +  (_pwm_fullscale *((double)outputs[1]/MODAL_PWM_MIXER_MAX))) * MODAL_PWM_TICS;
+		uint16_t tics_2 = (_parameters.pwm_min +  (_pwm_fullscale *((double)outputs[1]/VOXL2_IO_MIXER_MAX))) * VOXL2_IO_TICS;
 		PX4_INFO("\tPWM CH2: %u::%uus::%u tics", outputs[1], tics_2/24, tics_2);
-		uint16_t tics_3 = (_parameters.pwm_min +  (_pwm_fullscale *((double)outputs[2]/MODAL_PWM_MIXER_MAX))) * MODAL_PWM_TICS;
+		uint16_t tics_3 = (_parameters.pwm_min +  (_pwm_fullscale *((double)outputs[2]/VOXL2_IO_MIXER_MAX))) * VOXL2_IO_TICS;
 		PX4_INFO("\tPWM CH3: %u::%uus::%u tics", outputs[2], tics_3/24, tics_3);
-		uint16_t tics_4 = (_parameters.pwm_min +  (_pwm_fullscale *((double)outputs[3]/MODAL_PWM_MIXER_MAX))) * MODAL_PWM_TICS;
+		uint16_t tics_4 = (_parameters.pwm_min +  (_pwm_fullscale *((double)outputs[3]/VOXL2_IO_MIXER_MAX))) * VOXL2_IO_TICS;
 		PX4_INFO("\tPWM CH4: %u::%uus::%u tics", outputs[3], tics_4/24, tics_4);
 		PX4_INFO("");
 	}
@@ -252,23 +223,28 @@ bool ModalPWM::updateOutputs(bool stop_motors, uint16_t outputs[input_rc_s::RC_I
 	return true;
 }
 
-int ModalPWM::flush_uart_rx()
+int Voxl2IO::flush_uart_rx()
 {
 	while (_uart_port->uart_read(_read_buf, sizeof(_read_buf)) > 0) {}
 
 	return 0;
 }
 
-int ModalPWM::parse_response(uint8_t *buf, uint8_t len)
+static bool valid_port(int port){
+	if (port == 2 || port == 6 || port == 7) return true;
+	return false;
+}
+
+int Voxl2IO::parse_response(uint8_t *buf, uint8_t len)
 {
 	for (int i = 0; i < len; i++) {
-		int16_t ret = qc_esc_packet_process_char(buf[i], &_sbus_packet);
+		int16_t ret = voxl2_io_packet_process_char(buf[i], &_sbus_packet);
 
 		if (ret > 0) {
-			uint8_t packet_type = qc_esc_packet_get_type(&_sbus_packet);
-			uint8_t packet_size = qc_esc_packet_get_size(&_sbus_packet);
+			uint8_t packet_type = voxl2_io_packet_get_type(&_sbus_packet);
+			uint8_t packet_size = voxl2_io_packet_get_size(&_sbus_packet);
 
-			if (packet_type == ESC_PACKET_TYPE_RC_DATA_RAW && packet_size == QC_SBUS_FRAME_SIZE) 
+			if (packet_type == VOXL2_IO_PACKET_TYPE_RC_DATA_RAW && packet_size == QC_SBUS_FRAME_SIZE) 
 			{
 				return 0;
 			} else {
@@ -277,19 +253,19 @@ int ModalPWM::parse_response(uint8_t *buf, uint8_t len)
 
 		} else { //parser error
 			switch (ret) {
-			case ESC_ERROR_BAD_CHECKSUM:
+			case VOXL2_IO_ERROR_BAD_CHECKSUM:
 				if(_pwm_on && _debug) PX4_WARN("BAD SBUS packet checksum");
 				break;
 
-			case ESC_ERROR_BAD_LENGTH:
+			case VOXL2_IO_ERROR_BAD_LENGTH:
 				if(_pwm_on && _debug) PX4_WARN("BAD SBUS packet length");
 				break;
 
-			case ESC_ERROR_BAD_HEADER:
+			case VOXL2_IO_ERROR_BAD_HEADER:
 				if(_pwm_on && _debug) PX4_WARN("BAD SBUS packet header");
 				break;
 
-			case ESC_NO_PACKET:
+			case VOXL2_IO_NO_PACKET:
 				// if(_pwm_on) PX4_WARN("NO SBUS packet");
 				break;
 
@@ -304,7 +280,7 @@ int ModalPWM::parse_response(uint8_t *buf, uint8_t len)
 	return 0;
 }
 
-void ModalPWM::fill_rc_in(uint16_t raw_rc_count_local,
+void Voxl2IO::fill_rc_in(uint16_t raw_rc_count_local,
 		    uint16_t raw_rc_values_local[input_rc_s::RC_INPUT_MAX_CHANNELS],
 		    hrt_abstime now, bool frame_drop, bool failsafe,
 		    unsigned frame_drops, int rssi, input_rc_s &input_rc)
@@ -354,20 +330,20 @@ void ModalPWM::fill_rc_in(uint16_t raw_rc_count_local,
 	input_rc.rc_total_frame_count = ++_sbus_total_frames;
 }
 
-int ModalPWM::receive_sbus()
+int Voxl2IO::receive_sbus()
 {
 	int res = 0;
 	int header = -1;
 	int read_retries = 3;
 	int read_succeeded = 0;
-	qc_esc_packet_init(&_sbus_packet);
+	voxl2_io_packet_init(&_sbus_packet);
 	while (read_retries) {
 		memset(&_read_buf, 0x00, READ_BUF_SIZE);
 		res = _uart_port->uart_read(_read_buf, READ_BUF_SIZE);
 		if (res) {
 			/* Get index of packer header */
 			for (int index = 0; index < READ_BUF_SIZE; ++index){
-				if (_read_buf[index] == ESC_PACKET_HEADER){
+				if (_read_buf[index] == VOXL2_IO_PACKET_HEADER){
 					header = index;
 					break;
 				}
@@ -458,7 +434,7 @@ int ModalPWM::receive_sbus()
 }
 
 
-void ModalPWM::Run()
+void Voxl2IO::Run()
 {
 	if (should_exit()) {
 		ScheduleClear();
@@ -468,9 +444,6 @@ void ModalPWM::Run()
 		return;
 	}
 
-	if (_first_update_cycle){
-		PX4_INFO("Begin Modal_PWM for M0065 device");
-	}
 	perf_begin(_cycle_perf);
 
 	/* Open serial port in this thread */
@@ -485,19 +458,18 @@ void ModalPWM::Run()
 		}
 	}
 
-	/* Handle RC */
-	if (_rc_mode == RC_MODE::SBUS){
-		if (_first_update_cycle) PX4_INFO("Using M0065 SBUS RC.");
+	/* Scan for RC mode	*/
+	if (_rc_mode == RC_MODE::SCAN){
+		if (receive_sbus() == PX4_OK){
+			PX4_INFO("Found M0065 SBUS RC.");
+			_rc_mode = RC_MODE::SBUS;
+		}	// Add more cases here for other protocols in the future..
+	} else if (_rc_mode == RC_MODE::SBUS){ 
 		receive_sbus();
-	} else if (_rc_mode == RC_MODE::SPEKTRUM) {
-		if (_first_update_cycle) PX4_INFO("M0065 Spektrum RC not supported yet.");
-		//receive_spektrum();
-	} else {
-		if (_first_update_cycle) PX4_INFO("M0065 RC disabled."); // RC disabled
-	}
+	} 
 
 	/* Only update outputs if we have new values from RC */
-	if (_new_packet || _rc_mode == RC_MODE::DISABLED){
+	if (_new_packet || _rc_mode == RC_MODE::EXTERNAL){
 		_mixing_output.update(); //calls MixingOutput::limitAndUpdateOutputs which calls updateOutputs in this module
 		_new_packet = false;
 	}
@@ -557,18 +529,55 @@ void ModalPWM::Run()
 
 	/* check at end of cycle (updateSubscriptions() can potentially change to a different WorkQueue thread) */
 	_mixing_output.updateSubscriptions(true);
-	_first_update_cycle = false;
 	perf_end(_cycle_perf);
 }
 
-int ModalPWM::task_spawn(int argc, char *argv[])
+int Voxl2IO::task_spawn(int argc, char *argv[])
 {
-	ModalPWM *instance = new ModalPWM();
+	Voxl2IO *instance = new Voxl2IO();
 
 	if (instance) {
+		int myoptind = 0;
+		int ch;
+		const char *myoptarg = nullptr;
+		
 		_object.store(instance);
 		_task_id = task_id_is_work_queue;
-		
+		argv++;
+		while ((ch = px4_getopt(argc-1, argv, "vdep:", &myoptind, &myoptarg)) != EOF) {
+			switch (ch) {
+			case 'v':
+				PX4_INFO("Verbose mode enabled");
+				get_instance()->_debug = true;
+				break;
+
+			case 'd':
+				PX4_INFO("M0065 PWM outputs disabled");
+				get_instance()->_outputs_disabled = true;
+				break;
+
+			case 'e':
+				PX4_INFO("M0065 using external RC");
+				get_instance()->_rc_mode = RC_MODE::EXTERNAL;
+				break;
+
+			case 'p':
+				if (valid_port(atoi(myoptarg))){
+					snprintf(get_instance()->_device, 2, "%s", myoptarg);
+				} else {
+					PX4_ERR("Bad UART port number: %s (must be 2, 6, or 7).", myoptarg);
+					_object.store(nullptr);
+					_task_id = -1;
+					return PX4_ERROR;
+				}
+				break;
+
+			default:
+				print_usage("Unknown command, parsing flags");
+				break;
+			}
+		}
+
 		if (instance->init() == PX4_OK) {
 			return PX4_OK;
 		}
@@ -584,14 +593,14 @@ int ModalPWM::task_spawn(int argc, char *argv[])
 }
 
 
-bool ModalPWM::stop_all_pwms()
+bool Voxl2IO::stop_all_pwms()
 {
-	int16_t _rate_req[MODAL_PWM_OUTPUT_CHANNELS] = {0, 0, 0, 0};
-	int16_t _led_req[MODAL_PWM_OUTPUT_CHANNELS] = {0, 0, 0, 0};
+	int16_t _rate_req[VOXL2_IO_OUTPUT_CHANNELS] = {0, 0, 0, 0};
+	int16_t _led_req[VOXL2_IO_OUTPUT_CHANNELS] = {0, 0, 0, 0};
 	uint8_t _fb_idx = 0;
 
 	Command cmd;
-	cmd.len = qc_esc_create_pwm_packet4_fb(_rate_req[0], _rate_req[1], _rate_req[2], _rate_req[3],
+	cmd.len = voxl2_io_create_pwm_packet4_fb(_rate_req[0], _rate_req[1], _rate_req[2], _rate_req[3],
 										   _led_req[0], _led_req[1], _led_req[2], _led_req[3],
 									       _fb_idx, cmd.buf, sizeof(cmd.buf));
 
@@ -606,7 +615,7 @@ bool ModalPWM::stop_all_pwms()
 	return true;
 }
 
-int ModalPWM::send_cmd_thread_safe(Command *cmd)
+int Voxl2IO::send_cmd_thread_safe(Command *cmd)
 {
 	cmd->id = _cmd_id++;
 	_pending_cmd.store(cmd);
@@ -619,19 +628,19 @@ int ModalPWM::send_cmd_thread_safe(Command *cmd)
 	return 0;
 }
 
-int ModalPWM::calibrate_escs(){
+int Voxl2IO::calibrate_escs(){
 
 	/* Disable outputs so Mixer isn't being a PITA while we calibrate */
-	_pwm_cal_on = true;
+	_outputs_disabled = true;
 
 	Command cmd;
 	int32_t fb_idx = -1;
-	uint8_t data[MODAL_PWM_ESC_CAL_SIZE]{0};
-	cmd.len = qc_esc_create_packet(ESC_PACKET_TYPE_TUNE_CONFIG, data, MODAL_PWM_ESC_CAL_SIZE, cmd.buf, sizeof(cmd.buf));
+	uint8_t data[VOXL2_IO_ESC_CAL_SIZE]{0};
+	cmd.len = voxl2_io_create_packet(VOXL2_IO_PACKET_TYPE_TUNE_CONFIG, data, VOXL2_IO_ESC_CAL_SIZE, cmd.buf, sizeof(cmd.buf));
 
 	if (_uart_port->uart_write(cmd.buf, cmd.len) != cmd.len) {
 		PX4_ERR("ESC Calibration failed: Failed to send PWM OFF packet");
-		_pwm_cal_on = false;
+		_outputs_disabled = false;
 		return -1;
 	}
 
@@ -644,15 +653,16 @@ int ModalPWM::calibrate_escs(){
 
 	/* PWM MAX 3 seconds */
 	PX4_INFO("Writing PWM MAX for 3 seconds!");
-	int16_t max_pwm[4]{MODAL_PWM_MIXER_MAX,MODAL_PWM_MIXER_MAX,MODAL_PWM_MIXER_MAX,MODAL_PWM_MIXER_MAX};
+	int16_t max_pwm[4]{VOXL2_IO_MIXER_MAX, VOXL2_IO_MIXER_MAX, VOXL2_IO_MIXER_MAX, VOXL2_IO_MIXER_MAX};
+	if (_debug) PX4_INFO("%i %i %i %i", max_pwm[0], max_pwm[1], max_pwm[2], max_pwm[3]);
 	int16_t led_cmd[4]{0,0,0,0};
-	cmd.len = qc_esc_create_pwm_packet4_fb(max_pwm[0], max_pwm[1], max_pwm[2], max_pwm[3],
+	cmd.len = voxl2_io_create_pwm_packet4_fb(max_pwm[0], max_pwm[1], max_pwm[2], max_pwm[3],
 					       				   led_cmd[0], led_cmd[1], led_cmd[2], led_cmd[3],
 					       				   fb_idx, cmd.buf, sizeof(cmd.buf));
 	
 	if (_uart_port->uart_write(cmd.buf, cmd.len) != cmd.len) {
 		PX4_ERR("ESC Calibration failed: Failed to send PWM MAX packet");
-		_pwm_cal_on = false;
+		_outputs_disabled = false;
 		return -1;
 	} else {
 		cmd.clear();
@@ -665,14 +675,15 @@ int ModalPWM::calibrate_escs(){
 
 	/* PWM MIN 4 seconds */
 	PX4_INFO("Writing PWM MIN for 4 seconds!");
-	int16_t min_pwm[4]{MODAL_PWM_MIXER_MIN, MODAL_PWM_MIXER_MIN, MODAL_PWM_MIXER_MIN, MODAL_PWM_MIXER_MIN};
-	cmd.len = qc_esc_create_pwm_packet4_fb(min_pwm[0], min_pwm[1], min_pwm[2], min_pwm[3],
+	int16_t min_pwm[4]{VOXL2_IO_MIXER_MIN, VOXL2_IO_MIXER_MIN, VOXL2_IO_MIXER_MIN, VOXL2_IO_MIXER_MIN};
+	if (_debug) PX4_INFO("%i %i %i %i", min_pwm[0], min_pwm[1], min_pwm[2], min_pwm[3]);
+	cmd.len = voxl2_io_create_pwm_packet4_fb(min_pwm[0], min_pwm[1], min_pwm[2], min_pwm[3],
 										   led_cmd[0], led_cmd[1], led_cmd[2], led_cmd[3],
 					 				       fb_idx, cmd.buf, sizeof(cmd.buf));
 	
 	if (_uart_port->uart_write(cmd.buf, cmd.len) != cmd.len) {
 		PX4_ERR("ESC Calibration failed: Failed to send PWM MIN packet");
-		_pwm_cal_on = false;
+		_outputs_disabled = false;
 		return -1;
 	}
 
@@ -683,11 +694,11 @@ int ModalPWM::calibrate_escs(){
 
 	PX4_INFO("ESC Calibration complete");
 
-	_pwm_cal_on = false;
+	_outputs_disabled = false;
 	return 0;
 }
 
-int ModalPWM::custom_command(int argc, char *argv[])
+int Voxl2IO::custom_command(int argc, char *argv[])
 {
 	int myoptind = 0;
 	int ch;
@@ -711,7 +722,7 @@ int ModalPWM::custom_command(int argc, char *argv[])
 	/* start the FMU if not running */
 	if (!strcmp(verb, "start")) {
 		if (!is_running()) {
-			return ModalPWM::task_spawn(argc, argv);
+			return Voxl2IO::task_spawn(argc, argv);
 		}
 	}
 
@@ -729,20 +740,20 @@ int ModalPWM::custom_command(int argc, char *argv[])
 	}
 
 	if (!strcmp(verb,"calibrate_escs")){
+		if (get_instance()->_outputs_disabled){
+			PX4_WARN("Can't calibrate ESCs while outputs are disabled.");
+			return -1;
+		}
 		return get_instance()->calibrate_escs();
 	}
 
-	while ((ch = px4_getopt(argc, argv, "dc:n:t:r:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "c:n:t:r:p:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
-		case 'd':
-			get_instance()->_debug = true;
-			break;
-
 		case 'c':
 			output_channel = atoi(myoptarg);
-			if (output_channel > MODAL_PWM_OUTPUT_CHANNELS - 1){
+			if (output_channel > VOXL2_IO_OUTPUT_CHANNELS - 1){
 				char reason[50];
-				sprintf(reason, "Bad channel value: %d. Must be 0-%d.", output_channel, MODAL_PWM_OUTPUT_CHANNELS-1);
+				sprintf(reason, "Bad channel value: %d. Must be 0-%d.", output_channel, VOXL2_IO_OUTPUT_CHANNELS-1);
 				print_usage(reason);
 				return 0;
 			}
@@ -770,6 +781,15 @@ int ModalPWM::custom_command(int argc, char *argv[])
 			rate = atoi(myoptarg);
 			break;
 
+		case 'p':
+			if (valid_port(atoi(myoptarg))){
+				snprintf(get_instance()->_device, 2, "%s", myoptarg);
+			} else {
+				PX4_ERR("Bad UART port number: %s (must be 2, 6, or 7).", myoptarg);
+				return 0;
+			}
+			break;
+
 		default:
 			print_usage("Unknown command, parsing flags");
 			return 0;
@@ -781,9 +801,9 @@ int ModalPWM::custom_command(int argc, char *argv[])
 		PX4_INFO("Repeat count: %i", repeat_count);
 		PX4_INFO("Repeat delay (us): %i", repeat_delay_us);
 		PX4_INFO("Rate: %i", rate);
-		if (output_channel < MODAL_PWM_OUTPUT_CHANNELS) {
+		if (output_channel < VOXL2_IO_OUTPUT_CHANNELS) {
 			PX4_INFO("Request PWM for Output Channel: %i - PWM: %i", output_channel, rate);
-			int16_t rate_req[MODAL_PWM_OUTPUT_CHANNELS] = {0, 0, 0, 0};
+			int16_t rate_req[VOXL2_IO_OUTPUT_CHANNELS] = {0, 0, 0, 0};
 			uint8_t id_fb = 0;
 
 			if (output_channel == 0xFF) {  //WARNING: this condition is not possible due to check 'if (esc_id < MODAL_IO_OUTPUT_CHANNELS)'.
@@ -797,17 +817,9 @@ int ModalPWM::custom_command(int argc, char *argv[])
 				id_fb = output_channel;
 			}
 
-			cmd.len = qc_esc_create_pwm_packet4_fb(rate_req[0],
-							       rate_req[1],
-							       rate_req[2],
-							       rate_req[3],
-							       0,
-							       0,
-							       0,
-							       0,
-							       id_fb,  /* ESC ID .. need to fix for correct ID.. but what about multiple ESCs in bit mask.. */
-							       cmd.buf,
-							       sizeof(cmd.buf));
+			cmd.len = voxl2_io_create_pwm_packet4_fb(rate_req[0], rate_req[1], rate_req[2], rate_req[3],
+							       				   0, 0, 0, 0,
+							       				   id_fb, cmd.buf, sizeof(cmd.buf));
 
 			cmd.response        = false;
 			cmd.repeats         = repeat_count;
@@ -834,24 +846,24 @@ int ModalPWM::custom_command(int argc, char *argv[])
 	return print_usage("unknown custom command");
 }
 
-int ModalPWM::print_status()
+int Voxl2IO::print_status()
 {
 	PX4_INFO("Max update rate: %u Hz", 1000000/_current_update_interval);
-	PX4_INFO("PWM Rate: %i Hz", _current_update_rate);
+	PX4_INFO("PWM Rate: 400 Hz");	// Only support 400 Hz for now
 	PX4_INFO("Outputs on: %s", _pwm_on ? "yes" : "no");
-	PX4_INFO("RC Type: SBUS");
+	PX4_INFO("RC Type: SBUS");		// Only support SBUS through M0065 for now 
 	PX4_INFO("RC Connected: %s", hrt_absolute_time() - _rc_last_valid > 500000 ? "no" : "yes");
 	PX4_INFO("RC Packets Received: %" PRIu16, _sbus_total_frames);
 	PX4_INFO("UART port: %s", _device);
 	PX4_INFO("UART open: %s", _uart_port->is_open() ? "yes" : "no");
 	PX4_INFO("Packets sent: %" PRIu32, _packets_sent);
 	PX4_INFO("");
-	PX4_INFO("Params: MODAL_PWM_CONFIG: %" PRId32, _parameters.config);
-	PX4_INFO("Params: MODAL_PWM_BAUD: %" PRId32, _parameters.baud_rate);
-	PX4_INFO("Params: MODAL_PWM_FUNC1: %" PRId32, _parameters.function_map[0]);
-	PX4_INFO("Params: MODAL_PWM_FUNC2: %" PRId32, _parameters.function_map[1]);
-	PX4_INFO("Params: MODAL_PWM_FUNC3: %" PRId32, _parameters.function_map[2]);
-	PX4_INFO("Params: MODAL_PWM_FUNC4: %" PRId32, _parameters.function_map[3]);
+	// PX4_INFO("Params: VOXL2_IO_CONFIG: %" PRId32, _parameters.config);
+	PX4_INFO("Params: VOXL2_IO_BAUD: %" PRId32, _parameters.baud_rate);
+	PX4_INFO("Params: VOXL2_IO_FUNC1: %" PRId32, _parameters.function_map[0]);
+	PX4_INFO("Params: VOXL2_IO_FUNC2: %" PRId32, _parameters.function_map[1]);
+	PX4_INFO("Params: VOXL2_IO_FUNC3: %" PRId32, _parameters.function_map[2]);
+	PX4_INFO("Params: VOXL2_IO_FUNC4: %" PRId32, _parameters.function_map[3]);
 
 	perf_print_counter(_cycle_perf);
 	perf_print_counter(_output_update_perf);
@@ -860,7 +872,7 @@ int ModalPWM::print_status()
 	return 0;
 }
 
-int ModalPWM::print_usage(const char *reason)
+int Voxl2IO::print_usage(const char *reason)
 {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
@@ -875,9 +887,13 @@ px4io driver is used for main ones.
 
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_NAME("modal_pwm", "driver");
+	PRINT_MODULE_USAGE_NAME("voxl2_io", "driver");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the task");
-
+	PRINT_MODULE_USAGE_PARAM_FLAG('v', "Verbose messages", false);
+	PRINT_MODULE_USAGE_PARAM_FLAG('d', "Disable PWM", false);
+	PRINT_MODULE_USAGE_PARAM_FLAG('e', "Disable RC", false);
+	PRINT_MODULE_USAGE_PARAM_INT('p', 2, 2, 7, "UART port", false);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("calibrate_escs", "Calibrate ESCs min/max range");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("calibrate_escs", "Calibrate ESCs min/max range");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("pwm", "Open-Loop PWM test control request");
 	PRINT_MODULE_USAGE_PARAM_INT('c', 0, 0, 3, "PWM OUTPUT Channel, 0-3", false);
@@ -889,9 +905,9 @@ px4io driver is used for main ones.
 	return 0;
 }
 
-extern "C" __EXPORT int modal_pwm_main(int argc, char *argv[]);
+extern "C" __EXPORT int voxl2_io_main(int argc, char *argv[]);
 
-int modal_pwm_main(int argc, char *argv[])
+int voxl2_io_main(int argc, char *argv[])
 {
-	return ModalPWM::main(argc, argv);
+	return Voxl2IO::main(argc, argv);
 }

@@ -1,6 +1,5 @@
 /****************************************************************************
- *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ * Copyright (c) 2017 The Linux Foundation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,10 +11,12 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name PX4 nor the names of its contributors may be
+ * 3. Neither the name The Linux Foundation nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
+ * NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE GRANTED BY
+ * THIS LICENSE.
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
@@ -28,75 +29,37 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
+ * In addition Supplemental Terms apply.  See the SUPPLEMENTAL file.
  *
  ****************************************************************************/
 
-/**
- * UART M0065 configuration
- *
- * Enable PWM on M0065.
- *
- * @reboot_required true
- *
- * @group MODAL PWM
- * @value 0 - Disabled
- * @value 1 - PWM 400Hz 
- * @min 0
- * @max 1
+/*
+ * This file contains function prototypes for crc16 computations using polynomial 0x8005
  */
-PARAM_DEFINE_INT32(MODAL_PWM_CONFIG, 0);
 
-/**
- * UART M0065 baud rate
- *
- * Default rate is 921600, which is used for communicating with M0065.
- *
- * @group MODAL PWM
- * @unit bit/s
- */
-PARAM_DEFINE_INT32(MODAL_PWM_BAUD, 921600);
+#ifndef CRC16_H_
+#define CRC16_H_
 
-/**
- * M0065 PWM Min
- *
- * Minimum duration (microseconds) for M0065 PWM
- *
- * @min 0
- * @max 2000
- * @group MODAL PWM
- * @unit us
- */
-PARAM_DEFINE_INT32(MODAL_PWM_MIN, 1000);
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
-/**
- * M0065 PWM Max
- *
- * Maximum duration (microseconds) for M0065 PWM
- * @min 0
- * @max 2000
- * @group MODAL PWM
- * @unit us
- */
-PARAM_DEFINE_INT32(MODAL_PWM_MAX, 2000);
+#include <stdint.h>
 
-/**
- * M0065 UART port
- *
- * UART port for M0065 
- * @value 2 - SLPI_UART_2
- * @value 6 - SLPI_UART_6
- * @value 7 - SLPI_UART_7
- * @group MODAL PWM
- */
-PARAM_DEFINE_INT32(MODAL_PWM_PORT, 7);
+// Returns the seed of crc output, which should be used when computing crc16 of a byte sequence
+uint16_t crc16_init(void);
 
-/**
- * M0065 RC
- *
- * M0065 RC input
- * @value 0 - None
- * @value 1 - SBUS
- * @value 2 - Spektrum
- * @group MODAL PWM
- */
-PARAM_DEFINE_INT32(MODAL_PWM_RC, 1);
+// Process one byte by providing crc16 from previous step and new byte to consume.
+// Output is the new crc16 value
+uint16_t crc16_byte(uint16_t prev_crc, const uint8_t new_byte);
+
+// Process an array of bytes by providing crc16 from previous step (or seed), array of bytes and its length
+// Output is the new crc16 value
+uint16_t crc16(uint16_t prev_crc, uint8_t const *input_buffer, uint16_t input_length);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif //CRC16_H_
