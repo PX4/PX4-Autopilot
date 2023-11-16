@@ -1469,8 +1469,8 @@ bool Navigator::geofence_allows_position(const vehicle_global_position_s &pos)
 	if ((_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_NONE) &&
 	    (_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_WARN)) {
 
-		if (PX4_ISFINITE(pos.lat) && PX4_ISFINITE(pos.lon)) {
-			return _geofence.check(pos, _gps_pos);
+		if (PX4_ISFINITE(pos.lat) && PX4_ISFINITE(pos.lon) && PX4_ISFINITE(pos.alt)) {
+			return _geofence.checkPointAgainstAllGeofences(pos.lat, pos.lon, pos.alt);
 		}
 	}
 
