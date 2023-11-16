@@ -189,7 +189,6 @@ private:
 	MapProjection _projection_reference{}; ///< class to convert (lon, lat) to local [m]
 
 
-	int _outside_counter{0};
 	uint16_t _update_counter{0}; ///< dataman update counter: if it does not match, polygon data was updated
 	bool _fence_updated{true};  ///< flag indicating if fence are updated to dataman cache
 	bool _initiate_fence_updated{true}; ///< flag indicating if fence updated is needed
@@ -231,7 +230,6 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::GF_ACTION>)         _param_gf_action,
 		(ParamInt<px4::params::GF_SOURCE>)         _param_gf_source,
-		(ParamInt<px4::params::GF_COUNT>)          _param_gf_count,
 		(ParamFloat<px4::params::GF_MAX_HOR_DIST>) _param_gf_max_hor_dist,
 		(ParamFloat<px4::params::GF_MAX_VER_DIST>) _param_gf_max_ver_dist,
 		(ParamBool<px4::params::GF_PREDICT>)       _param_gf_predict

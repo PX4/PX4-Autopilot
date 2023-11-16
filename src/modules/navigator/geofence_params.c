@@ -76,17 +76,7 @@ PARAM_DEFINE_INT32(GF_ACTION, 2);
  */
 PARAM_DEFINE_INT32(GF_SOURCE, 0);
 
-/**
- * Geofence counter limit
- *
- * Set how many subsequent position measurements outside of the fence are needed before geofence violation is triggered
- *
- * @min -1
- * @max 10
- * @increment 1
- * @group Geofence
- */
-PARAM_DEFINE_INT32(GF_COUNT, -1);
+
 
 /**
  * Max horizontal distance in meters.
