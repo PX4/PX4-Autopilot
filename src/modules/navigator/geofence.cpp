@@ -244,38 +244,12 @@ void Geofence::_updateFence()
 	}
 }
 
-bool Geofence::checkAll(const struct vehicle_global_position_s &global_position)
+
+bool Geofence::checkPointAgainstAllGeofences(double lat, double lon, float altitude)
 {
-	return checkAll(global_position.lat, global_position.lon, global_position.alt);
-}
-
-bool Geofence::checkAll(double lat, double lon, float altitude)
-{
-	bool inside_fence = isCloserThanMaxDistToHome(lat, lon, altitude);
-
-	inside_fence = inside_fence && isBelowMaxAltitude(altitude);
-
-	// to be inside the geofence both fences have to report being inside
-	// as they both report being inside when not enabled
-	inside_fence = inside_fence && isInsidePolygonOrCircle(lat, lon, altitude);
-
+	const bool inside_fence = isCloserThanMaxDistToHome(lat, lon, altitude) && isBelowMaxAltitude(altitude)
+				  && isInsidePolygonOrCircle(lat, lon, altitude);
 	return inside_fence;
-}
-}
-
-bool Geofence::check(const vehicle_global_position_s &global_position, const sensor_gps_s &gps_position)
-{
-	if (getSource() == Geofence::GF_SOURCE_GLOBALPOS) {
-		return checkAll(global_position);
-
-	} else {
-		return checkAll(gps_position.latitude_deg, gps_position.longitude_deg, gps_position.altitude_msl_m);
-	}
-}
-
-bool Geofence::check(const struct mission_item_s &mission_item)
-{
-	return checkAll(mission_item.lat, mission_item.lon, mission_item.altitude);
 }
 
 bool Geofence::isCloserThanMaxDistToHome(double lat, double lon, float altitude)
