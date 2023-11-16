@@ -498,11 +498,7 @@ uORB::Manager::callback_thread(int argc, char *argv[])
 			break;
 		}
 
-		if (!sub->registered()) {
-			continue;
-		}
-
-		sub->call();
+		sub->do_call();
 	}
 
 	Manager::freeThreadLock(per_process_lock);
