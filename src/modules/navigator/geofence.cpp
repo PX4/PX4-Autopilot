@@ -51,8 +51,6 @@
 
 #include "navigator.h"
 
-#define GEOFENCE_RANGE_WARNING_LIMIT 5000000
-
 Geofence::Geofence(Navigator *navigator) :
 	ModuleParams(navigator),
 	_navigator(navigator)
@@ -256,31 +254,15 @@ bool Geofence::isCloserThanMaxDistToHome(double lat, double lon, float altitude)
 {
 	bool inside_fence = true;
 
-	if (isHomeRequired() && _navigator->home_global_position_valid()) {
-
-		const float max_horizontal_distance = _param_gf_max_hor_dist.get();
-
-		const double home_lat = _navigator->get_home_position()->lat;
-		const double home_lon = _navigator->get_home_position()->lon;
-		const float home_alt = _navigator->get_home_position()->alt;
+	if (_param_gf_max_hor_dist.get() > FLT_EPSILON && _navigator->home_global_position_valid()) {
 
 		float dist_xy = -1.0f;
 		float dist_z = -1.0f;
 
-		get_distance_to_point_global_wgs84(lat, lon, altitude, home_lat, home_lon, home_alt, &dist_xy, &dist_z);
+		get_distance_to_point_global_wgs84(lat, lon, altitude, _navigator->get_home_position()->lat,
+						   _navigator->get_home_position()->lon, _navigator->get_home_position()->alt, &dist_xy, &dist_z);
 
-		if (max_horizontal_distance > FLT_EPSILON && (dist_xy > max_horizontal_distance)) {
-			if (hrt_elapsed_time(&_last_horizontal_range_warning) > GEOFENCE_RANGE_WARNING_LIMIT) {
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Maximum distance from home reached (%.5f)\t",
-						     (double)max_horizontal_distance);
-				events::send<float>(events::ID("navigator_geofence_max_dist_from_home"), {events::Log::Critical, events::LogInternal::Warning},
-						    "Geofence: maximum distance from home reached ({1:.0m})",
-						    max_horizontal_distance);
-				_last_horizontal_range_warning = hrt_absolute_time();
-			}
-
-			inside_fence = false;
-		}
+		inside_fence = dist_xy < _param_gf_max_hor_dist.get();
 	}
 
 	return inside_fence;
@@ -290,25 +272,10 @@ bool Geofence::isBelowMaxAltitude(float altitude)
 {
 	bool inside_fence = true;
 
-	if (isHomeRequired() && _navigator->home_alt_valid()) {
+	if (_param_gf_max_ver_dist.get() > FLT_EPSILON && _navigator->home_alt_valid()) {
 
-		const float max_vertical_distance = _param_gf_max_ver_dist.get();
-		const float home_alt = _navigator->get_home_position()->alt;
-
-		float dist_z = altitude - home_alt;
-
-		if (max_vertical_distance > FLT_EPSILON && (dist_z > max_vertical_distance)) {
-			if (hrt_elapsed_time(&_last_vertical_range_warning) > GEOFENCE_RANGE_WARNING_LIMIT) {
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Maximum altitude above home reached (%.5f)\t",
-						     (double)max_vertical_distance);
-				events::send<float>(events::ID("navigator_geofence_max_alt_from_home"), {events::Log::Critical, events::LogInternal::Warning},
-						    "Geofence: maximum altitude above home reached ({1:.0m_v})",
-						    max_vertical_distance);
-				_last_vertical_range_warning = hrt_absolute_time();
-			}
-
-			inside_fence = false;
-		}
+		const float dist_z = altitude - _navigator->get_home_position()->alt;
+		inside_fence = dist_z < _param_gf_max_ver_dist.get();
 	}
 
 	return inside_fence;

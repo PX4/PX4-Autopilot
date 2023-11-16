@@ -733,24 +733,6 @@
                             "description": "Reduce throttle!"
                         }
                     }
-                },
-                "geofence_violation_reason_t": {
-                    "type": "uint8_t",
-                    "description": "Reason for geofence violation",
-                    "entries": {
-                        "0": {
-                            "name": "dist_to_home_exceeded",
-                            "description": "maximum distance to home exceeded"
-                        },
-                        "1": {
-                            "name": "max_altitude_exceeded",
-                            "description": "maximum altitude exceeded"
-                        },
-                        "2": {
-                            "name": "fence_violation",
-                            "description": "approaching or outside geofence"
-                        }
-                    }
                 }
             },
             "navigation_mode_groups": {
