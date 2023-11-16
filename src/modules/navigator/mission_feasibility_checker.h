@@ -47,7 +47,6 @@
 #include <px4_platform_common/module_params.h>
 #include "MissionFeasibility/FeasibilityChecker.hpp"
 
-class Geofence;
 class Navigator;
 
 class MissionFeasibilityChecker: public ModuleParams
