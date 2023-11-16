@@ -148,7 +148,6 @@ void Navigator::params_update()
 
 void Navigator::run()
 {
-	bool have_geofence_position_data = false;
 
 	/* Try to load the geofence:
 	 * if /fs/microsd/etc/geofence.txt load from this file */
@@ -216,19 +215,11 @@ void Navigator::run()
 		/* gps updated */
 		if (_gps_pos_sub.updated()) {
 			_gps_pos_sub.copy(&_gps_pos);
-
-			if (_geofence.getSource() == Geofence::GF_SOURCE_GPS) {
-				have_geofence_position_data = true;
-			}
 		}
 
 		/* global position updated */
 		if (_global_pos_sub.updated()) {
 			_global_pos_sub.copy(&_global_pos);
-
-			if (_geofence.getSource() == Geofence::GF_SOURCE_GLOBALPOS) {
-				have_geofence_position_data = true;
-			}
 		}
 
 		/* check for parameter updates */
@@ -270,8 +261,6 @@ void Navigator::run()
 				// only update the reposition setpoint if armed, as it otherwise won't get executed until the vehicle switches to loiter,
 				// which can lead to dangerous and unexpected behaviors (see loiter.cpp, there is an if(armed) in there too)
 
-				bool reposition_valid = true;
-
 				vehicle_global_position_s position_setpoint{};
 
 				if (PX4_ISFINITE(cmd.param5) && PX4_ISFINITE(cmd.param6)) {
@@ -285,11 +274,7 @@ void Navigator::run()
 
 				position_setpoint.alt = PX4_ISFINITE(cmd.param7) ? cmd.param7 : get_global_position()->alt;
 
-				if (have_geofence_position_data) {
-					reposition_valid = geofence_allows_position(position_setpoint);
-				}
-
-				if (reposition_valid) {
+				if (geofence_allows_position(position_setpoint)) {
 					position_setpoint_triplet_s *rep = get_reposition_triplet();
 					position_setpoint_triplet_s *curr = get_position_setpoint_triplet();
 
@@ -433,18 +418,12 @@ void Navigator::run()
 
 				// only supports MAV_FRAME_GLOBAL and MAV_FRAMEs with absolute altitude amsl
 
-				bool change_altitude_valid = true;
-
 				vehicle_global_position_s position_setpoint{};
 				position_setpoint.lat = get_global_position()->lat;
 				position_setpoint.lon = get_global_position()->lon;
 				position_setpoint.alt = PX4_ISFINITE(cmd.param1) ? cmd.param1 : get_global_position()->alt;
 
-				if (have_geofence_position_data) {
-					change_altitude_valid = geofence_allows_position(position_setpoint);
-				}
-
-				if (change_altitude_valid) {
+				if (geofence_allows_position(position_setpoint)) {
 					position_setpoint_triplet_s *rep = get_reposition_triplet();
 					position_setpoint_triplet_s *curr = get_position_setpoint_triplet();
 
@@ -514,18 +493,12 @@ void Navigator::run()
 
 				// for multicopters the orbit command is directly executed by the orbit flighttask
 
-				bool orbit_location_valid = true;
-
 				vehicle_global_position_s position_setpoint{};
 				position_setpoint.lat = PX4_ISFINITE(cmd.param5) ? cmd.param5 : get_global_position()->lat;
 				position_setpoint.lon = PX4_ISFINITE(cmd.param6) ? cmd.param6 : get_global_position()->lon;
 				position_setpoint.alt = PX4_ISFINITE(cmd.param7) ? cmd.param7 : get_global_position()->alt;
 
-				if (have_geofence_position_data) {
-					orbit_location_valid = geofence_allows_position(position_setpoint);
-				}
-
-				if (orbit_location_valid) {
+				if (geofence_allows_position(position_setpoint)) {
 					position_setpoint_triplet_s *rep = get_reposition_triplet();
 					rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
 					rep->current.loiter_radius = get_loiter_radius();
@@ -565,18 +538,12 @@ void Navigator::run()
 #ifdef CONFIG_FIGURE_OF_EIGHT
 				// Only valid for fixed wing mode
 
-				bool orbit_location_valid = true;
-
 				vehicle_global_position_s position_setpoint{};
 				position_setpoint.lat = PX4_ISFINITE(cmd.param5) ? cmd.param5 : get_global_position()->lat;
 				position_setpoint.lon = PX4_ISFINITE(cmd.param6) ? cmd.param6 : get_global_position()->lon;
 				position_setpoint.alt = PX4_ISFINITE(cmd.param7) ? cmd.param7 : get_global_position()->alt;
 
-				if (have_geofence_position_data) {
-					orbit_location_valid = geofence_allows_position(position_setpoint);
-				}
-
-				if (orbit_location_valid) {
+				if (geofence_allows_position(position_setpoint)) {
 					position_setpoint_triplet_s *rep = get_reposition_triplet();
 					rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
 					rep->current.loiter_minor_radius = fabsf(get_loiter_radius());
@@ -780,7 +747,7 @@ void Navigator::run()
 		check_traffic();
 
 		/* Check geofence violation */
-		geofence_breach_check(have_geofence_position_data);
+		geofence_breach_check();
 
 		/* Do stuff according to navigation state set by commander */
 		NavigatorMode *navigation_mode_new{nullptr};
@@ -935,7 +902,7 @@ void Navigator::run()
 	}
 }
 
-void Navigator::geofence_breach_check(bool &have_geofence_position_data)
+void Navigator::geofence_breach_check()
 {
 	// reset the _time_loitering_after_gf_breach time if no longer in LOITER (and 100ms after it was triggered)
 	if (_vstatus.nav_state != vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER
@@ -943,8 +910,7 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 		_time_loitering_after_gf_breach = 0;
 	}
 
-	if (have_geofence_position_data &&
-	    (_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_NONE) &&
+	if ((_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_NONE) &&
 	    (hrt_elapsed_time(&_last_geofence_check) > GEOFENCE_CHECK_INTERVAL_US)) {
 
 		const position_controller_status_s &pos_ctrl_status = _position_controller_status_sub.get();
@@ -986,6 +952,11 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 			position_valid = _global_pos.timestamp > 0;
 		}
 
+		if (!position_valid) {
+			// we don't have a valid position yet, so we can't check for geofence violations
+			return;
+		}
+
 		_gf_breach_avoidance.setHorizontalTestPointDistance(test_point_distance);
 		_gf_breach_avoidance.setVerticalTestPointDistance(vertical_test_point_distance);
 		_gf_breach_avoidance.setTestPointBearing(test_point_bearing);
@@ -1024,7 +995,6 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 		}
 
 		_last_geofence_check = hrt_absolute_time();
-		have_geofence_position_data = false;
 
 		_geofence_result.timestamp = hrt_absolute_time();
 		_geofence_result.geofence_action = _geofence.getGeofenceAction();
