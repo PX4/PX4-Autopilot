@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -52,7 +52,6 @@
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/sensor_gps.h>
-#include <uORB/topics/vehicle_air_data.h>
 
 #define GEOFENCE_FILENAME PX4_STORAGEDIR"/etc/geofence.txt"
 
@@ -65,12 +64,6 @@ public:
 	Geofence(const Geofence &) = delete;
 	Geofence &operator=(const Geofence &) = delete;
 	virtual ~Geofence();
-
-	/* Altitude mode, corresponding to the param GF_ALTMODE */
-	enum {
-		GF_ALT_MODE_WGS84 = 0,
-		GF_ALT_MODE_AMSL = 1
-	};
 
 	/* Source, corresponding to the param GF_SOURCE */
 	enum {
@@ -195,7 +188,6 @@ private:
 
 	MapProjection _projection_reference{}; ///< class to convert (lon, lat) to local [m]
 
-	uORB::SubscriptionData<vehicle_air_data_s> _sub_airdata;
 
 	int _outside_counter{0};
 	uint16_t _update_counter{0}; ///< dataman update counter: if it does not match, polygon data was updated
@@ -222,7 +214,6 @@ private:
 
 
 	bool checkAll(const vehicle_global_position_s &global_position);
-	bool checkAll(const vehicle_global_position_s &global_position, float baro_altitude_amsl);
 
 	/**
 	 * Check if a single point is within a polygon
@@ -239,7 +230,6 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::GF_ACTION>)         _param_gf_action,
-		(ParamInt<px4::params::GF_ALTMODE>)        _param_gf_altmode,
 		(ParamInt<px4::params::GF_SOURCE>)         _param_gf_source,
 		(ParamInt<px4::params::GF_COUNT>)          _param_gf_count,
 		(ParamFloat<px4::params::GF_MAX_HOR_DIST>) _param_gf_max_hor_dist,
