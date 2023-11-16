@@ -33,7 +33,6 @@
  *
  ****************************************************************************/
 
-#include "crc16.h"
 #include "voxl2_io_packet.h"
 #include "voxl2_io_packet_types.h"
 
@@ -165,8 +164,8 @@ int32_t voxl2_io_create_packet(uint8_t type, uint8_t *data, uint16_t size, uint8
 
 	memcpy(&(out[3]), data, size);
 
-	uint16_t crc = crc16_init();
-	crc = crc16(crc, &(out[1]), packet_size - 3);
+	uint16_t crc = voxl2_io_crc16_init();
+	crc = voxl2_io_crc16(crc, &(out[1]), packet_size - 3);
 
 	memcpy(&(out[packet_size - 2]), &crc, sizeof(uint16_t));
 

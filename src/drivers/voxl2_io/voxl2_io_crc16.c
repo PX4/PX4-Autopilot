@@ -34,10 +34,10 @@
  ****************************************************************************/
 
 #include <stdint.h>
-#include "crc16.h"
+#include "voxl2_io_crc16.h"
 
 // Look-up table for fast CRC16 computations
-const uint16_t crc16_table[256] = {
+const uint16_t voxl2_io_crc16_table[256] = {
 	0x0000, 0xc0c1, 0xc181, 0x0140, 0xc301, 0x03c0, 0x0280, 0xc241,
 	0xc601, 0x06c0, 0x0780, 0xc741, 0x0500, 0xc5c1, 0xc481, 0x0440,
 	0xcc01, 0x0cc0, 0x0d80, 0xcd41, 0x0f00, 0xcfc1, 0xce81, 0x0e40,
@@ -72,23 +72,23 @@ const uint16_t crc16_table[256] = {
 	0x8201, 0x42c0, 0x4380, 0x8341, 0x4100, 0x81c1, 0x8081, 0x4040,
 };
 
-uint16_t crc16_init()
+uint16_t voxl2_io_crc16_init()
 {
 	return 0xFFFF;
 }
 
-uint16_t crc16_byte(uint16_t prev_crc, const uint8_t new_byte)
+uint16_t voxl2_io_crc16_byte(uint16_t prev_crc, const uint8_t new_byte)
 {
 	uint8_t lut = (prev_crc ^ new_byte) & 0xFF;
-	return (prev_crc >> 8) ^ crc16_table[lut];
+	return (prev_crc >> 8) ^ voxl2_io_crc16_table[lut];
 }
 
-uint16_t crc16(uint16_t prev_crc, uint8_t const *input_buffer, uint16_t input_length)
+uint16_t voxl2_io_crc16(uint16_t prev_crc, uint8_t const *input_buffer, uint16_t input_length)
 {
 	uint16_t crc = prev_crc;
 
 	while (input_length--) {
-		crc = crc16_byte(crc, *input_buffer++);
+		crc = voxl2_io_crc16_byte(crc, *input_buffer++);
 	}
 
 	return crc;

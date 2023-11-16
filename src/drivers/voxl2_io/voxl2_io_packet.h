@@ -45,7 +45,7 @@ extern "C" {
 #endif
 
 #include <stdint.h>
-#include "crc16.h"
+#include "voxl2_io_crc16.h"
 
 // Define byte values that correspond to setting red, greed, and blue LEDs
 #define VOXL2_IO_LED_RED_ON   1
@@ -250,17 +250,17 @@ static inline uint16_t  voxl2_io_packet_checksum_get(VOXL2_IOPacket *packet)    
 // Calculate the checksum of a data array. Used for packet generation / processing
 static inline uint16_t  voxl2_io_packet_checksum(uint8_t *buf, uint16_t size)
 {
-	uint16_t crc = crc16_init();
-	return crc16(crc, buf, size);
+	uint16_t crc = voxl2_io_crc16_init();
+	return voxl2_io_crc16(crc, buf, size);
 }
 
 // Reset the checksum of the incoming packet. Used internally for packet reception
-static inline void voxl2_io_packet_checksum_reset(VOXL2_IOPacket *packet)       { packet->crc = crc16_init();                    }
+static inline void voxl2_io_packet_checksum_reset(VOXL2_IOPacket *packet)       { packet->crc = voxl2_io_crc16_init();                    }
 
 // Process one character for checksum calculation while receiving a packet (used internally for packet reception)
 static inline void voxl2_io_packet_checksum_process_char(VOXL2_IOPacket *packet, uint8_t c)
 {
-	packet->crc = crc16_byte(packet->crc, c);
+	packet->crc = voxl2_io_crc16_byte(packet->crc, c);
 }
 
 

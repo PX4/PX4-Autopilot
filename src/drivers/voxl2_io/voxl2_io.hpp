@@ -54,7 +54,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/input_rc.h>
 
-#include "modal_io_serial.hpp"
+#include "voxl2_io_serial.hpp"
 
 #include "voxl2_io_packet.h"
 #include "voxl2_io_packet_types.h"
@@ -174,7 +174,7 @@ private:
 
 	/* QUP7, VOXL2 J19, /dev/slpi-uart-7*/
 	char 				_device[10]{VOXL2_IO_DEFAULT_PORT};
-	ModalIoSerial 		*_uart_port;
+	Voxl2IoSerial 		*_uart_port;
 	
 	/* Mixer output */
 	MixingOutput 	_mixing_output;

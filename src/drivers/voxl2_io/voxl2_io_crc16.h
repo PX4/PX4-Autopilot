@@ -1,6 +1,5 @@
 /****************************************************************************
- *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ * Copyright (c) 2017 The Linux Foundation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,10 +11,12 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name PX4 nor the names of its contributors may be
+ * 3. Neither the name The Linux Foundation nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
+ * NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE GRANTED BY
+ * THIS LICENSE.
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
@@ -28,42 +29,37 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
+ * In addition Supplemental Terms apply.  See the SUPPLEMENTAL file.
  *
  ****************************************************************************/
 
-#pragma once
+/*
+ * This file contains function prototypes for crc16 computations using polynomial 0x8005
+ */
 
-#include <px4_log.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <termios.h>
+#ifndef CRC16_H_
+#define CRC16_H_
 
-#ifdef __PX4_QURT
-#include <drivers/device/qurt/uart.h>
-#define FAR
-#endif
-
-class ModalIoSerial
+#ifdef __cplusplus
+extern "C"
 {
-public:
-	ModalIoSerial();
-	virtual ~ModalIoSerial();
-
-	int		uart_open(const char *dev, speed_t speed);
-	int		uart_set_baud(speed_t speed);
-	int		uart_close();
-	int		uart_write(FAR void *buf, size_t len);
-	int		uart_read(FAR void *buf, size_t len);
-	bool		is_open() { return _uart_fd >= 0; };
-	int		uart_get_baud() {return _speed; }
-
-private:
-	int			_uart_fd = -1;
-
-#if ! defined(__PX4_QURT)
-	struct termios		_orig_cfg;
-	struct termios		_cfg;
 #endif
 
-	int   _speed = -1;
-};
+#include <stdint.h>
+
+// Returns the seed of crc output, which should be used when computing crc16 of a byte sequence
+uint16_t voxl2_io_crc16_init(void);
+
+// Process one byte by providing crc16 from previous step and new byte to consume.
+// Output is the new crc16 value
+uint16_t voxl2_io_crc16_byte(uint16_t prev_crc, const uint8_t new_byte);
+
+// Process an array of bytes by providing crc16 from previous step (or seed), array of bytes and its length
+// Output is the new crc16 value
+uint16_t voxl2_io_crc16(uint16_t prev_crc, uint8_t const *input_buffer, uint16_t input_length);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif //CRC16_H_

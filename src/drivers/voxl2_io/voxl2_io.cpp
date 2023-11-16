@@ -43,7 +43,7 @@ Voxl2IO::Voxl2IO() :
 	_output_update_perf(perf_alloc(PC_INTERVAL, MODULE_NAME": output update interval"))
 {
 	_mixing_output.setMaxNumOutputs(VOXL2_IO_OUTPUT_CHANNELS);
-	_uart_port = new ModalIoSerial();
+	_uart_port = new Voxl2IoSerial();
 	voxl2_io_packet_init(&_sbus_packet);
 }
 

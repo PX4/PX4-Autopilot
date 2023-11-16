@@ -32,20 +32,20 @@
  ****************************************************************************/
 
 #include "string.h"
-#include "modal_io_serial.hpp"
+#include "voxl2_io_serial.hpp"
 
-ModalIoSerial::ModalIoSerial()
+Voxl2IoSerial::Voxl2IoSerial()
 {
 }
 
-ModalIoSerial::~ModalIoSerial()
+Voxl2IoSerial::~Voxl2IoSerial()
 {
 	if (_uart_fd >= 0) {
 		uart_close();
 	}
 }
 
-int ModalIoSerial::uart_open(const char *dev, speed_t speed)
+int Voxl2IoSerial::uart_open(const char *dev, speed_t speed)
 {
 	if (_uart_fd >= 0) {
 		PX4_ERR("Port in use: %s (%i)", dev, errno);
@@ -110,7 +110,7 @@ int ModalIoSerial::uart_open(const char *dev, speed_t speed)
 	return 0;
 }
 
-int ModalIoSerial::uart_set_baud(speed_t speed)
+int Voxl2IoSerial::uart_set_baud(speed_t speed)
 {
 #ifndef __PX4_QURT
 
@@ -134,7 +134,7 @@ int ModalIoSerial::uart_set_baud(speed_t speed)
 	return -1;
 }
 
-int ModalIoSerial::uart_close()
+int Voxl2IoSerial::uart_close()
 {
 #ifndef __PX4_QURT
 
@@ -158,7 +158,7 @@ int ModalIoSerial::uart_close()
 	return 0;
 }
 
-int ModalIoSerial::uart_write(FAR void *buf, size_t len)
+int Voxl2IoSerial::uart_write(FAR void *buf, size_t len)
 {
 	if (_uart_fd < 0 || buf == NULL) {
 		PX4_ERR("invalid state for writing or buffer");
@@ -172,7 +172,7 @@ int ModalIoSerial::uart_write(FAR void *buf, size_t len)
 #endif
 }
 
-int ModalIoSerial::uart_read(FAR void *buf, size_t len)
+int Voxl2IoSerial::uart_read(FAR void *buf, size_t len)
 {
 	if (_uart_fd < 0 || buf == NULL) {
 		PX4_ERR("invalid state for reading or buffer");
