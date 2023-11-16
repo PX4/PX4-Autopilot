@@ -62,7 +62,7 @@
 /*
  *  Default port for the ESC
  */
-#define MODAL_IO_DEFAULT_PORT 	"2"
+#define VOXL_ESC_DEFAULT_PORT 	"2"
 
 /*
  *  Default port for the GHST RC

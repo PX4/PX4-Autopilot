@@ -109,7 +109,7 @@ qshell rgbled_ncp5623c start -X -b 1 -f 400 -a 56
 param touch SYS_AUTOCONFIG
 
 # ESC driver
-qshell modal_io start
+qshell voxl_esc start
 
 # RC driver
 if [ "$RC" == "FAKE_RC_INPUT" ]; then

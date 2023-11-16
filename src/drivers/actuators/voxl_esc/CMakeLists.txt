@@ -32,16 +32,16 @@
 ############################################################################
 
 px4_add_module(
-	MODULE drivers__actuators__modal_io
-	MAIN modal_io
+	MODULE drivers__actuators__voxl_esc
+	MAIN voxl_esc
 	SRCS
 		crc16.c
 		crc16.h
 
-		modal_io_serial.cpp
-		modal_io_serial.hpp
-		modal_io.cpp
-		modal_io.hpp
+		voxl_esc_serial.cpp
+		voxl_esc_serial.hpp
+		voxl_esc.cpp
+		voxl_esc.hpp
 		qc_esc_packet_types.h
 		qc_esc_packet.c
 		qc_esc_packet.h

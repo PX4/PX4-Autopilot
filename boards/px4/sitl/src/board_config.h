@@ -52,7 +52,7 @@
 #define BOARD_ARMED_LED        LED_BLUE
 #define BOARD_ARMED_STATE_LED  LED_GREEN
 
-#define MODAL_IO_DEFAULT_PORT 	"2"
+#define VOXL_ESC_DEFAULT_PORT 	"2"
 
 #include <system_config.h>
 #include <px4_platform_common/board_common.h>
