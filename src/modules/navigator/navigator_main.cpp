@@ -961,58 +961,58 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 			}
 		}
 
+		double current_latitude = _global_pos.lat;
+		double current_longitude = _global_pos.lon;
+		float current_altitude = _global_pos.alt;
+		bool position_valid = _global_pos.timestamp > 0;
+
+		if (_geofence.getSource() == Geofence::GF_SOURCE_GPS) {
+			current_latitude = _gps_pos.latitude_deg;
+			current_longitude = _gps_pos.longitude_deg;
+			current_altitude = _gps_pos.altitude_msl_m;
+			position_valid = _global_pos.timestamp > 0;
+		}
+
 		_gf_breach_avoidance.setHorizontalTestPointDistance(test_point_distance);
 		_gf_breach_avoidance.setVerticalTestPointDistance(vertical_test_point_distance);
 		_gf_breach_avoidance.setTestPointBearing(test_point_bearing);
-		_gf_breach_avoidance.setCurrentPosition(_global_pos.lat, _global_pos.lon, _global_pos.alt);
+		_gf_breach_avoidance.setCurrentPosition(current_latitude, current_longitude, current_altitude);
 		_gf_breach_avoidance.setMaxHorDistHome(_geofence.getMaxHorDistanceHome());
 
 		if (home_global_position_valid()) {
 			_gf_breach_avoidance.setHomePosition(_home_pos.lat, _home_pos.lon, _home_pos.alt);
 		}
 
+		double test_point_latitude = current_latitude;
+		double test_point_longitude = current_longitude;
+		float test_point_altitude = current_altitude;
+
 		if (_geofence.getPredict()) {
-			fence_violation_test_point = _gf_breach_avoidance.getFenceViolationTestPoint();
+			matrix::Vector2<double>fence_violation_test_point = _gf_breach_avoidance.getFenceViolationTestPoint();
+			test_point_latitude = fence_violation_test_point(0);
+			test_point_longitude = fence_violation_test_point(1);
+			test_point_altitude = current_altitude + vertical_test_point_distance;
+		}
 
 		} else {
 			fence_violation_test_point = matrix::Vector2d(_global_pos.lat, _global_pos.lon);
 			vertical_test_point_distance = 0;
 		}
 
-		gf_violation_type.flags.dist_to_home_exceeded = !_geofence.isCloserThanMaxDistToHome(fence_violation_test_point(0),
-				fence_violation_test_point(1),
-				_global_pos.alt);
-
-		gf_violation_type.flags.max_altitude_exceeded = !_geofence.isBelowMaxAltitude(_global_pos.alt +
-				vertical_test_point_distance);
-
-		gf_violation_type.flags.fence_violation = !_geofence.isInsidePolygonOrCircle(fence_violation_test_point(0),
-				fence_violation_test_point(1),
-				_global_pos.alt);
+		_geofence_result.geofence_max_dist_triggered = !_geofence.isCloserThanMaxDistToHome(test_point_latitude,
+				test_point_longitude, test_point_altitude);
+		_geofence_result.geofence_max_alt_triggered = !_geofence.isBelowMaxAltitude(test_point_altitude);
+		_geofence_result.geofence_custom_fence_triggered = !_geofence.isInsidePolygonOrCircle(test_point_latitude,
+				test_point_longitude, test_point_altitude);
 
 		_last_geofence_check = hrt_absolute_time();
 		have_geofence_position_data = false;
 
 		_geofence_result.timestamp = hrt_absolute_time();
-		_geofence_result.primary_geofence_action = _geofence.getGeofenceAction();
+		_geofence_result.geofence_action = _geofence.getGeofenceAction();
 
-
-		if (gf_violation_type.value) {
-			/* inform other apps via the mission result */
-			_geofence_result.primary_geofence_breached = true;
-
-			using geofence_violation_reason_t = events::px4::enums::geofence_violation_reason_t;
-
-			if (gf_violation_type.flags.fence_violation) {
-				_geofence_result.geofence_violation_reason = (uint8_t)geofence_violation_reason_t::fence_violation;
-
-			} else if (gf_violation_type.flags.max_altitude_exceeded) {
-				_geofence_result.geofence_violation_reason = (uint8_t)geofence_violation_reason_t::max_altitude_exceeded;
-
-			} else if (gf_violation_type.flags.dist_to_home_exceeded) {
-				_geofence_result.geofence_violation_reason = (uint8_t)geofence_violation_reason_t::dist_to_home_exceeded;
-
-			}
+		if (_geofence_result.geofence_max_dist_triggered || _geofence_result.geofence_max_alt_triggered ||
+		    _geofence_result.geofence_custom_fence_triggered) {
 
 			/* Issue a warning about the geofence violation once and only if we are armed */
 			if (!_geofence_violation_warning_sent && _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
@@ -1060,8 +1060,6 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 			}
 
 		} else {
-			/* inform other apps via the mission result */
-			_geofence_result.primary_geofence_breached = false;
 
 			/* Reset the _geofence_violation_warning_sent field */
 			_geofence_violation_warning_sent = false;

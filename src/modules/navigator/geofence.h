@@ -81,8 +81,29 @@ public:
 	 */
 	void updateFence();
 
+
+	/**
+	 * Check if a 3D point passes the Geofence test.
+	 * Checks max distance, max altitude, inside polygon or circle.
+	 * In addition to checkPolygons(), this takes all additional parameters into account.
+	 *
+	 * @return false for a geofence violation
+	 */
+	bool checkPointAgainstAllGeofences(double lat, double lon, float altitude);
+
+	/**
+	 * @brief check if the horizontal distance to Home is greater than the maximum allowed distance
+	 *
+	 * @return true if the horizontal distance to Home is smaller than the maximum allowed distance
+	 */
 	bool isCloserThanMaxDistToHome(double lat, double lon, float altitude);
 
+
+	/**
+	 * @brief check if the altitude above Home is greater than the maximum allowed altitude
+	 *
+	 * @return true if the altitude above Home is smaller than the maximum allowed altitude
+	 */
 	bool isBelowMaxAltitude(float altitude);
 
 	virtual bool isInsidePolygonOrCircle(double lat, double lon, float altitude);
@@ -118,7 +139,6 @@ public:
 	int getGeofenceAction() { return _param_gf_action.get(); }
 
 	float getMaxHorDistanceHome() { return _param_gf_max_hor_dist.get(); }
-	float getMaxVerDistanceHome() { return _param_gf_max_ver_dist.get(); }
 	bool getPredict() { return _param_gf_predict.get(); }
 
 	bool isHomeRequired();
@@ -155,9 +175,6 @@ private:
 	DatamanState _error_state{DatamanState::UpdateRequestWait};
 	DatamanCache _dataman_cache{"geofence_dm_cache_miss", 4};
 	DatamanClient	&_dataman_client = _dataman_cache.client();
-
-	hrt_abstime _last_horizontal_range_warning{0};
-	hrt_abstime _last_vertical_range_warning{0};
 
 	float _altitude_min{0.0f};
 	float _altitude_max{0.0f};

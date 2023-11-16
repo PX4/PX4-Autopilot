@@ -76,12 +76,11 @@ PARAM_DEFINE_INT32(GF_ACTION, 2);
  */
 PARAM_DEFINE_INT32(GF_SOURCE, 0);
 
-
-
 /**
- * Max horizontal distance in meters.
+ * Max horizontal distance from Home
  *
- * Maximum horizontal distance in meters the vehicle can be from home before triggering a geofence action. Disabled if 0.
+ * Maximum horizontal distance in meters the vehicle can be from Home before triggering a geofence action.
+ * Disabled if 0.
  *
  * @unit m
  * @min 0
@@ -89,12 +88,13 @@ PARAM_DEFINE_INT32(GF_SOURCE, 0);
  * @increment 1
  * @group Geofence
  */
-PARAM_DEFINE_FLOAT(GF_MAX_HOR_DIST, 0);
+PARAM_DEFINE_FLOAT(GF_MAX_HOR_DIST, 0.0f);
 
 /**
- * Max vertical distance in meters.
+ * Max vertical distance from Home
  *
- * Maximum vertical distance in meters the vehicle can be from home before triggering a geofence action. Disabled if 0.
+ * Maximum vertical distance in meters the vehicle can be from Home before triggering a geofence action.
+ * Disabled if 0.
  *
  * @unit m
  * @min 0
@@ -102,7 +102,7 @@ PARAM_DEFINE_FLOAT(GF_MAX_HOR_DIST, 0);
  * @increment 1
  * @group Geofence
  */
-PARAM_DEFINE_FLOAT(GF_MAX_VER_DIST, 0);
+PARAM_DEFINE_FLOAT(GF_MAX_VER_DIST, 0.0f);
 
 /**
  * [EXPERIMENTAL] Use Pre-emptive geofence triggering
