@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013,2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -55,8 +55,7 @@
 
 Geofence::Geofence(Navigator *navigator) :
 	ModuleParams(navigator),
-	_navigator(navigator),
-	_sub_airdata(ORB_ID(vehicle_air_data))
+	_navigator(navigator)
 {
 	if (_navigator != nullptr) {
 		updateFence();
@@ -250,11 +249,6 @@ bool Geofence::checkAll(const struct vehicle_global_position_s &global_position)
 	return checkAll(global_position.lat, global_position.lon, global_position.alt);
 }
 
-bool Geofence::checkAll(const struct vehicle_global_position_s &global_position, const float alt)
-{
-	return checkAll(global_position.lat, global_position.lon, alt);
-}
-
 bool Geofence::checkAll(double lat, double lon, float altitude)
 {
 	bool inside_fence = isCloserThanMaxDistToHome(lat, lon, altitude);
@@ -283,25 +277,11 @@ bool Geofence::checkAll(double lat, double lon, float altitude)
 
 bool Geofence::check(const vehicle_global_position_s &global_position, const sensor_gps_s &gps_position)
 {
-	if (_param_gf_altmode.get() == Geofence::GF_ALT_MODE_WGS84) {
-		if (getSource() == Geofence::GF_SOURCE_GLOBALPOS) {
-			return checkAll(global_position);
-
-		} else {
-			return checkAll(gps_position.latitude_deg, gps_position.longitude_deg, gps_position.altitude_msl_m);
-		}
+	if (getSource() == Geofence::GF_SOURCE_GLOBALPOS) {
+		return checkAll(global_position);
 
 	} else {
-		// get baro altitude
-		_sub_airdata.update();
-		const float baro_altitude_amsl = _sub_airdata.get().baro_alt_meter;
-
-		if (getSource() == Geofence::GF_SOURCE_GLOBALPOS) {
-			return checkAll(global_position, baro_altitude_amsl);
-
-		} else {
-			return checkAll(gps_position.latitude_deg, gps_position.longitude_deg, baro_altitude_amsl);
-		}
+		return checkAll(gps_position.latitude_deg, gps_position.longitude_deg, gps_position.altitude_msl_m);
 	}
 }
 
