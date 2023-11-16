@@ -81,28 +81,6 @@ public:
 	 */
 	void updateFence();
 
-	/**
-	 * Return whether the system obeys the geofence.
-	 *
-	 * @return true: system is obeying fence, false: system is violating fence
-	 */
-	bool check(const vehicle_global_position_s &global_position, const sensor_gps_s &gps_position);
-
-	/**
-	 * Return whether a mission item obeys the geofence.
-	 *
-	 * @return true: system is obeying fence, false: system is violating fence
-	 */
-	bool check(const struct mission_item_s &mission_item);
-
-	/**
-	 * Check if a point passes the Geofence test.
-	 * In addition to checkPolygons(), this takes all additional parameters into account.
-	 *
-	 * @return false for a geofence violation
-	 */
-	bool checkAll(double lat, double lon, float altitude);
-
 	bool isCloserThanMaxDistToHome(double lat, double lon, float altitude);
 
 	bool isBelowMaxAltitude(float altitude);
@@ -209,10 +187,6 @@ private:
 	 * @return result of the check above (false for a geofence violation)
 	 */
 	bool checkPolygons(double lat, double lon, float altitude);
-
-
-
-	bool checkAll(const vehicle_global_position_s &global_position);
 
 	/**
 	 * Check if a single point is within a polygon
