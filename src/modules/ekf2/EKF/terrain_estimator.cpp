@@ -239,7 +239,7 @@ void Ekf::updateHaglRng(estimator_aid_source1d_s &aid_src) const
 
 	aid_src.timestamp_sample = _time_delayed_us; // TODO
 
-	aid_src.observation = pred_hagl;
+	aid_src.observation = meas_hagl;
 	aid_src.observation_variance = obs_variance;
 
 	aid_src.innovation = hagl_innov;
