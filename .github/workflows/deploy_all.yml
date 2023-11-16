@@ -1,6 +1,11 @@
 name: Deploy metadata for all targets
 
 on:
+  push:
+    branches:
+    - 'main'
+    - 'release/*'
+    - 'pr-metadata-test'
   pull_request:
     branches:
     - '*'
