@@ -81,9 +81,11 @@ bool PX4Crypto::encrypt_data(uint8_t  key_index,
 			     const uint8_t *message,
 			     size_t message_size,
 			     uint8_t *cipher,
-			     size_t *cipher_size)
+			     size_t *cipher_size,
+			     uint8_t *mac,
+			     size_t *mac_size)
 {
-	cryptoiocencrypt_t data = {&_crypto_handle, key_index, message, message_size, cipher, cipher_size, false};
+	cryptoiocencrypt_t data = {&_crypto_handle, key_index, message, message_size, cipher, cipher_size, mac, mac_size, false};
 	boardctl(CRYPTOIOCENCRYPT, reinterpret_cast<unsigned long>(&data));
 	return data.ret;
 }

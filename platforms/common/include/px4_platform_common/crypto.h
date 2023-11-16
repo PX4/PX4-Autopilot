@@ -197,6 +197,9 @@ public:
 	 * cipher: pointer to a buffer for encrypted data
 	 * cipher_size: size of the buffer reserved for cipher and actual cipher length
 	 *   after the encryption
+	 * mac: pointer to the buffer for authentication code
+	 * mac_size: pointer to the size of the authentication code buffer
+	 *   the size is updated to match the actual size after encryption
 	 * returns true on success, false on failure
 	 */
 
@@ -204,7 +207,9 @@ public:
 			  const uint8_t *message,
 			  size_t message_size,
 			  uint8_t *cipher,
-			  size_t *cipher_size);
+			  size_t *cipher_size,
+			  uint8_t *mac,
+			  size_t *mac_size);
 
 	size_t get_min_blocksize(uint8_t key_idx);
 
