@@ -45,14 +45,6 @@
 
 void Ekf::initHagl()
 {
-#if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	stopHaglFlowFusion();
-#endif // CONFIG_EKF2_OPTICAL_FLOW
-
-#if defined(CONFIG_EKF2_RANGE_FINDER)
-	stopHaglRngFusion();
-#endif // CONFIG_EKF2_RANGE_FINDER
-
 	// assume a ground clearance
 	_terrain_vpos = _state.pos(2) + _params.rng_gnd_clearance;
 
@@ -74,6 +66,12 @@ void Ekf::runTerrainEstimator(const imuSample &imu_delayed)
 	if (!_control_status.flags.in_air) {
 		_last_on_ground_posD = _state.pos(2);
 		_control_status.flags.rng_fault = false;
+
+	} else if (!_control_status_prev.flags.in_air) {
+		// Let the estimator run freely before arming for bench testing purposes, but reset on takeoff
+		// because when using optical flow measurements, it is safer to start with a small distance to ground
+		// as an overestimated distance leads to an overestimated velocity, causing a dangerous behavior.
+		initHagl();
 	}
 
 	predictHagl(imu_delayed);
@@ -125,9 +123,8 @@ void Ekf::controlHaglRngFusion()
 
 	if (_range_sensor.isDataHealthy()) {
 
-		const bool continuing_conditions_passing = _control_status.flags.in_air
+		const bool continuing_conditions_passing = _rng_consistency_check.isKinematicallyConsistent();
 				//&& !_control_status.flags.rng_hgt // TODO: should not be fused when using range height
-				&& _rng_consistency_check.isKinematicallyConsistent();
 
 		const bool starting_conditions_passing = continuing_conditions_passing
 				&& _range_sensor.isRegularlySendingData()
