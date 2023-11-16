@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -75,7 +75,6 @@ void GeofenceBreachAvoidance::setHomePosition(double lat, double lon, float alt)
 {
 	_home_lat_lon(0) = lat;
 	_home_lat_lon(1) = lon;
-	_home_alt_amsl = alt;
 }
 
 matrix::Vector2<double> GeofenceBreachAvoidance::waypointFromBearingAndDistance(matrix::Vector2<double>
