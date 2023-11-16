@@ -78,3 +78,25 @@ PARAM_DEFINE_INT32(MODAL_PWM_MIN, 1000);
  * @unit us
  */
 PARAM_DEFINE_INT32(MODAL_PWM_MAX, 2000);
+
+/**
+ * M0065 UART port
+ *
+ * UART port for M0065 
+ * @value 2 - SLPI_UART_2
+ * @value 6 - SLPI_UART_6
+ * @value 7 - SLPI_UART_7
+ * @group MODAL PWM
+ */
+PARAM_DEFINE_INT32(MODAL_PWM_PORT, 7);
+
+/**
+ * M0065 RC
+ *
+ * M0065 RC input
+ * @value 0 - None
+ * @value 1 - SBUS
+ * @value 2 - Spektrum
+ * @group MODAL PWM
+ */
+PARAM_DEFINE_INT32(MODAL_PWM_RC, 1);

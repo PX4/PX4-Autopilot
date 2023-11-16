@@ -121,8 +121,31 @@ int ModalPWM::load_params(modal_pwm_params_t *params)
 	param_get(param_find("MODAL_PWM_FUNC3"),  &params->function_map[2]);
 	param_get(param_find("MODAL_PWM_FUNC4"),  &params->function_map[3]);
 	
+	/* M0065 RC Mode */
+	param_get(param_find("MODAL_PWM_RC"), (int32_t*)&_rc_mode);
+	
+	/* M0065 UART Port */
+	param_get(param_find("MODAL_PWM_PORT"), &port);
+
+	/* Open new UART port if changed */
+	if (_uart_port->is_open() && atoi(_device) != (int)port){
+		PX4_INFO("M0065 UART port updated, reinitializing UART port now...");
+		_uart_port->uart_close();
+		snprintf(_device, 2, "%d", (int)port);
+		if (_uart_port->uart_open((const char*)_device, _parameters.baud_rate) == PX4_OK) {			
+			/* Send PWM config to M0065... pwm_min and pwm_max */
+			PX4_INFO("Opened UART connection to M0065 device on port %s", _device);
+			update_pwm_config();
+		} else {
+			PX4_ERR("Failed opening device");
+			ret = PX4_ERROR;
+		}
+	} else {
+		snprintf(_device, 2, "%d", (int)port);
+	}
+
 	/* PWM rate */
-	if( params->config == 1){
+	if( params->config == PWM_MODE::PWM_MODE_400){
 		_current_update_rate = 400;
 	}
 
@@ -159,7 +182,6 @@ void ModalPWM::update_pwm_config()
 bool ModalPWM::updateOutputs(bool stop_motors, uint16_t outputs[input_rc_s::RC_INPUT_MAX_CHANNELS],
 			   unsigned num_outputs, unsigned num_control_groups_updated)
 {
-
 	/* Stop Mixer while ESCs are being calibrated */
 	if (_pwm_cal_on) {
 		return 0;
@@ -177,8 +199,8 @@ bool ModalPWM::updateOutputs(bool stop_motors, uint16_t outputs[input_rc_s::RC_I
 	}
 
 	for (int i = 0; i < MODAL_PWM_OUTPUT_CHANNELS; i++) {
+		// do not run any signal on disabled channels
 		if (!_mixing_output.isFunctionSet(i)) {
-			// do not run any signal on disabled channels
 			outputs[i] = 0;
 		}
 
@@ -249,6 +271,8 @@ int ModalPWM::parse_response(uint8_t *buf, uint8_t len)
 			if (packet_type == ESC_PACKET_TYPE_RC_DATA_RAW && packet_size == QC_SBUS_FRAME_SIZE) 
 			{
 				return 0;
+			} else {
+				return -1;
 			}
 
 		} else { //parser error
@@ -276,31 +300,6 @@ int ModalPWM::parse_response(uint8_t *buf, uint8_t len)
 			return ret;
 		}
 	}
-
-	return 0;
-}
-
-int ModalPWM::read_response(Command *out_cmd)
-{
-	px4_usleep(_current_cmd.resp_delay_us);
-
-	int res = _uart_port->uart_read(_read_buf, sizeof(_read_buf));
-
-	if (res > 0) {
-		_bytes_received+=res;
-		_packets_received++;
-		//PX4_INFO("read %i bytes",res);
-		// if (parse_response(_read_buf, res, out_cmd->print_feedback) < 0) {
-			//PX4_ERR("Error parsing response");
-			// return -1;
-		// }
-
-	} else {
-		//PX4_ERR("Read error: %i", res);
-		return -1;
-	}
-
-	//_current_cmd.response = false;
 
 	return 0;
 }
@@ -364,7 +363,7 @@ int ModalPWM::receive_sbus()
 	qc_esc_packet_init(&_sbus_packet);
 	while (read_retries) {
 		memset(&_read_buf, 0x00, READ_BUF_SIZE);
-    	res = _uart_port->uart_read(_read_buf, READ_BUF_SIZE);
+		res = _uart_port->uart_read(_read_buf, READ_BUF_SIZE);
 		if (res) {
 			/* Get index of packer header */
 			for (int index = 0; index < READ_BUF_SIZE; ++index){
@@ -376,7 +375,7 @@ int ModalPWM::receive_sbus()
 
 			/* Try again in a bit if packet header not present yet... */
 			if (header == -1){
-				PX4_ERR("Failed to find SBUS packet header, trying again... retries left: %i", read_retries);
+				if (_debug) PX4_ERR("Failed to find SBUS packet header, trying again... retries left: %i", read_retries);
 				read_retries--;
 				continue;
 			}
@@ -471,15 +470,14 @@ void ModalPWM::Run()
 
 	if (_first_update_cycle){
 		PX4_INFO("Begin Modal_PWM for M0065 device");
-		_first_update_cycle = false;
 	}
 	perf_begin(_cycle_perf);
 
 	/* Open serial port in this thread */
 	if (!_uart_port->is_open()) {
-		if (_uart_port->uart_open(_device, _parameters.baud_rate) == PX4_OK) {			
+		if (_uart_port->uart_open((const char*)_device, _parameters.baud_rate) == PX4_OK) {			
 			/* Send PWM config to M0065... pwm_min and pwm_max */
-			PX4_INFO("Opened UART connection to M0065 device");
+			PX4_INFO("Opened UART connection to M0065 device on port %s", _device);
 			update_pwm_config();
 		} else {
 			PX4_ERR("Failed opening device");
@@ -487,10 +485,19 @@ void ModalPWM::Run()
 		}
 	}
 
-	/* Check for SBUS packets */
-	receive_sbus();
+	/* Handle RC */
+	if (_rc_mode == RC_MODE::SBUS){
+		if (_first_update_cycle) PX4_INFO("Using M0065 SBUS RC.");
+		receive_sbus();
+	} else if (_rc_mode == RC_MODE::SPEKTRUM) {
+		if (_first_update_cycle) PX4_INFO("M0065 Spektrum RC not supported yet.");
+		//receive_spektrum();
+	} else {
+		if (_first_update_cycle) PX4_INFO("M0065 RC disabled."); // RC disabled
+	}
 
-	if (_new_packet){
+	/* Only update outputs if we have new values from RC */
+	if (_new_packet || _rc_mode == RC_MODE::DISABLED){
 		_mixing_output.update(); //calls MixingOutput::limitAndUpdateOutputs which calls updateOutputs in this module
 		_new_packet = false;
 	}
@@ -550,7 +557,7 @@ void ModalPWM::Run()
 
 	/* check at end of cycle (updateSubscriptions() can potentially change to a different WorkQueue thread) */
 	_mixing_output.updateSubscriptions(true);
-
+	_first_update_cycle = false;
 	perf_end(_cycle_perf);
 }
 

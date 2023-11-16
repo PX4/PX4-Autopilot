@@ -158,8 +158,22 @@ private:
 	} modal_pwm_params_t;
 	modal_pwm_params_t	_parameters;
 
+	typedef enum {
+		PWM_MODE_START = 0,
+		PWM_MODE_400,
+		PWM_MODE_END
+	} PWM_MODE;
+
+	typedef enum {
+		DISABLED = 0,
+		SBUS,
+		SPEKTRUM
+	} RC_MODE;
+	RC_MODE	 _rc_mode{RC_MODE::DISABLED};		
+
 	/* QUP7, VOXL2 J19, /dev/slpi-uart-7*/
-	const char 			*_device{MODAL_PWM_DEFAULT_PORT};
+	int32_t				port;
+	char 				_device[10]{0};
 	ModalIoSerial 		*_uart_port;
 	
 	/* Mixer output */
@@ -174,7 +188,10 @@ private:
 	uint16_t _sbus_total_frames{0};
 	bool	 _new_packet{false};		
 
+	/* Publications */
 	uORB::PublicationMulti<input_rc_s> _rc_pub{ORB_ID(input_rc)};
+
+	/* Subscriptions */
 	uORB::Subscription 	_parameter_update_sub{ORB_ID(parameter_update)};
 
 	bool		_pwm_on{false};
@@ -202,6 +219,5 @@ private:
 	int	load_params(modal_pwm_params_t *params);
 	int update_params();
 	int	flush_uart_rx();
-	int read_response(Command *out_cmd);
 	int calibrate_escs();
 };

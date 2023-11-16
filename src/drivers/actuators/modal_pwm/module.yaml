@@ -9,6 +9,10 @@ actuator_output:
       label: 'PWM min value'
     - param: 'MODAL_PWM_MAX'
       label: 'PWM max value'
+    - param: 'MODAL_PWM_PORT'
+      label: 'M0065 UART port'
+    - param: 'MODAL_PWM_RC'
+      label: 'M0065 RC Protocol'
   output_groups:
     - param_prefix: MODAL_PWM
       group_label: 'PWMs'
