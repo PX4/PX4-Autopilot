@@ -176,7 +176,9 @@ bool crypto_encrypt_data(crypto_session_handle_t handle,
 			 const uint8_t *message,
 			 size_t message_size,
 			 uint8_t *cipher,
-			 size_t *cipher_size);
+			 size_t *cipher_size,
+			 uint8_t *mac,
+			 size_t *mac_size);
 
 /*
  * Returns a minimum data block size on which the crypto operations can be
@@ -189,7 +191,6 @@ bool crypto_encrypt_data(crypto_session_handle_t handle,
  */
 
 size_t crypto_get_min_blocksize(crypto_session_handle_t handle, uint8_t key_idx);
-
 
 /* Crypto IOCTLs, to access backend from user space */
 
@@ -211,6 +212,8 @@ typedef struct cryptoiocencrypt {
 	size_t message_size;
 	uint8_t *cipher;
 	size_t *cipher_size;
+	uint8_t *mac;
+	size_t *mac_size;
 	bool ret;
 } cryptoiocencrypt_t;
 

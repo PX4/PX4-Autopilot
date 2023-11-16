@@ -121,9 +121,11 @@ bool PX4Crypto::encrypt_data(uint8_t  key_index,
 			     const uint8_t *message,
 			     size_t message_size,
 			     uint8_t *cipher,
-			     size_t *cipher_size)
+			     size_t *cipher_size,
+			     uint8_t *mac,
+			     size_t *mac_size)
 {
-	return crypto_encrypt_data(_crypto_handle, key_index, message, message_size, cipher, cipher_size);
+	return crypto_encrypt_data(_crypto_handle, key_index, message, message_size, cipher, cipher_size, mac, mac_size);
 }
 
 bool  PX4Crypto::generate_key(uint8_t idx,
@@ -173,7 +175,7 @@ int PX4Crypto::crypto_ioctl(unsigned int cmd, unsigned long arg)
 	case CRYPTOIOCENCRYPT: {
 			cryptoiocencrypt_t *data = (cryptoiocencrypt_t *)arg;
 			data->ret = crypto_encrypt_data(*(data->handle), data->key_index, data->message, data->message_size, data->cipher,
-							data->cipher_size);
+							data->cipher_size, data->mac, data->mac_size);
 		}
 		break;
 

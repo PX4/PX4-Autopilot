@@ -256,7 +256,9 @@ bool crypto_encrypt_data(crypto_session_handle_t handle,
 			 const uint8_t *message,
 			 size_t message_size,
 			 uint8_t *cipher,
-			 size_t *cipher_size)
+			 size_t *cipher_size,
+			 uint8_t *mac,
+			 size_t *mac_size)
 {
 
 	bool ret = false;
@@ -386,12 +388,15 @@ bool crypto_get_encrypted_key(crypto_session_handle_t handle,
 
 	// Encrypt it
 	if (key != NULL) {
+		size_t mac_size = 0;
 		ret = crypto_encrypt_data(handle,
 					  encryption_key_idx,
 					  plain_key,
 					  key_sz,
 					  key,
-					  max_len);
+					  max_len,
+					  NULL,
+					  &mac_size);
 
 	} else {
 		switch (handle.algorithm) {

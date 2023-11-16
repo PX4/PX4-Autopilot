@@ -225,6 +225,8 @@ private:
 	px4_crypto_algorithm_t _algorithm;
 	uint8_t _key_idx;
 	uint8_t _exchange_key_idx;
+	uint8_t _mac[16];
+	size_t _mac_size;
 #endif
 
 };
