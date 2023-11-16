@@ -24,7 +24,7 @@ jobs:
 
     - name: parameter & events metadata
       run: |
-        make ${{matrix.target}} ver_gen events_json actuators_json
+        make px4_fmu-v5_default ver_gen events_json actuators_json
         ./src/lib/version/get_git_tag_or_branch_version.sh build/px4_fmu-v5_default >> $GITHUB_ENV
         cd build/px4_fmu-v5_default
         mkdir _metadata || true
