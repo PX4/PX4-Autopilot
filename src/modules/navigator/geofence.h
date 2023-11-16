@@ -193,17 +193,6 @@ private:
 	 */
 	void _updateFence();
 
-	/**
-	 * Check if a point passes the Geofence test.
-	 * This takes all polygons and minimum & maximum altitude into account
-	 *
-	 * The check passes if: (inside(polygon_inclusion_1) || inside(polygon_inclusion_2) || ... ) &&
-	 *                       !inside(polygon_exclusion_1) && !inside(polygon_exclusion_2) && ...
-	 *                       && (altitude within [min, max])
-	 *                  or: no polygon configured
-	 * @return result of the check above (false for a geofence violation)
-	 */
-	bool checkPolygons(double lat, double lon, float altitude);
 
 	/**
 	 * Check if a single point is within a polygon
@@ -217,6 +206,25 @@ private:
 	 * @return true if within polygon the circle
 	 */
 	bool insideCircle(const PolygonInfo &polygon, double lat, double lon, float altitude);
+
+	/**
+	 * Check if a single point is within a polygon or circle
+	 * @return true if within polygon or circle
+	 */
+
+	bool checkPointAgainstPolygonCircle(const PolygonInfo &polygon, double lat, double lon, float altitude);
+
+	/**
+	 * Check polygon or circle geofence fullfills the requirements relative to Home.
+	 * @return true if checks pass
+	 */
+	bool checkHomeRequirementsForGeofence(const PolygonInfo &polygon);
+
+	/**
+	 * Check polygon or circle geofence fullfills the requirements relative to the current vehicle position.
+	 * @return true if checks pass
+	 */
+	bool checkCurrentPositionRequirementsForGeofence(const PolygonInfo &polygon);
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::GF_ACTION>)         _param_gf_action,
