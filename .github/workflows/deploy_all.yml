@@ -25,13 +25,19 @@ jobs:
     - name: parameter & events metadata
       run: |
         make px4_fmu-v5_default ver_gen events_json actuators_json
+        echo "Version tag detected: "
+        echo $(./src/lib/version/get_git_tag_or_branch_version.sh build/px4_fmu-v5_default)
+
         ./src/lib/version/get_git_tag_or_branch_version.sh build/px4_fmu-v5_default >> $GITHUB_ENV
         cd build/px4_fmu-v5_default
+
         mkdir _metadata || true
+
         cp parameters.* events/*.xz actuators.json* _metadata
+
+        echo "Github ENV:"
         echo $GITHUB_ENV
-        echo "Low and behold\n"
-        echo $(./src/lib/version/get_git_tag_or_branch_version.sh build/px4_fmu-v5_default)
+        echo ${{env}}
 
     - uses: jakejarvis/s3-sync-action@master
       with:
