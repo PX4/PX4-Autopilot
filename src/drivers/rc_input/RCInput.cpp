@@ -296,6 +296,25 @@ void RCInput::rc_io_invert(bool invert)
 	}
 }
 
+void  RCInput::swap_rx_tx()
+{
+#if defined(RC_SERIAL_SWAP_USING_SINGLEWIRE)
+	int rv = -ENOTTY;
+#  if defined(TIOCSSWAP)
+	rv = ioctl(_rcs_fd, TIOCSSWAP, SER_SWAP_ENABLED);
+#  endif // TIOCSSWAP
+#  ifdef TIOCSSINGLEWIRE
+
+	if (rv != OK) {
+		ioctl(_rcs_fd, TIOCSSINGLEWIRE, SER_SINGLEWIRE_ENABLED);
+	}
+
+#  else
+	UNUSED(rv);
+#  endif // TIOCSSINGLEWIRE
+#endif // RC_SERIAL_SWAP_USING_SINGLEWIRE
+}
+
 void RCInput::Run()
 {
 	if (should_exit()) {
@@ -488,6 +507,7 @@ void RCInput::Run()
 				_rc_scan_begin = cycle_timestamp;
 				// Configure serial port for DSM
 				dsm_config(_rcs_fd);
+				swap_rx_tx();
 
 				// flush serial buffer and any existing buffered data
 				tcflush(_rcs_fd, TCIOFLUSH);
@@ -525,6 +545,7 @@ void RCInput::Run()
 				_rc_scan_begin = cycle_timestamp;
 				// Configure serial port for DSM
 				dsm_config(_rcs_fd);
+				swap_rx_tx();
 
 				// flush serial buffer and any existing buffered data
 				tcflush(_rcs_fd, TCIOFLUSH);
@@ -576,6 +597,7 @@ void RCInput::Run()
 				_rc_scan_begin = cycle_timestamp;
 				// Configure serial port for DSM
 				dsm_config(_rcs_fd);
+				swap_rx_tx();
 
 				// flush serial buffer and any existing buffered data
 				tcflush(_rcs_fd, TCIOFLUSH);
@@ -654,6 +676,7 @@ void RCInput::Run()
 				_rc_scan_begin = cycle_timestamp;
 				// Configure serial port for CRSF
 				crsf_config(_rcs_fd);
+				swap_rx_tx();
 
 				// flush serial buffer and any existing buffered data
 				tcflush(_rcs_fd, TCIOFLUSH);
@@ -702,6 +725,7 @@ void RCInput::Run()
 				_rc_scan_begin = cycle_timestamp;
 				// Configure serial port for GHST
 				ghst_config(_rcs_fd);
+				swap_rx_tx();
 
 				// flush serial buffer and any existing buffered data
 				tcflush(_rcs_fd, TCIOFLUSH);

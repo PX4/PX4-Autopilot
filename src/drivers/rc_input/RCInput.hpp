@@ -126,6 +126,7 @@ private:
 	void set_rc_scan_state(RC_SCAN _rc_scan_state);
 
 	void rc_io_invert(bool invert);
+	void swap_rx_tx(void);
 
 	hrt_abstime _rc_scan_begin{0};
 
