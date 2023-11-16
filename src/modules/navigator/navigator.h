@@ -260,7 +260,7 @@ public:
 
 	bool abort_landing();
 
-	void geofence_breach_check(bool &have_geofence_position_data);
+	void geofence_breach_check();
 
 	// Param access
 	int get_loiter_min_alt() const { return _param_min_ltr_alt.get(); }
