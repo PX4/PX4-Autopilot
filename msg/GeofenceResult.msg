@@ -10,5 +10,3 @@ uint8 geofence_violation_reason         # one of geofence_violation_reason_t::*
 
 bool primary_geofence_breached          # true if the primary geofence is breached
 uint8 primary_geofence_action           # action to take when the primary geofence is breached
-
-bool home_required                      # true if the geofence requires a valid home position
