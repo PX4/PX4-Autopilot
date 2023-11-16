@@ -19,14 +19,17 @@ jobs:
       with:
         token: ${{secrets.ACCESS_TOKEN}}
 
+    - name: Check Git branch
+      run: |
+        echo "Git branch:"
+        echo $(git branch)
+
     - name: make target
       run: make px4_fmu-v5_default
 
     - name: parameter & events metadata
       run: |
         make px4_fmu-v5_default ver_gen
-        echo "Git branch:"
-        echo $(git branch)
 
         echo "Version tag detected: "
         echo $(./src/lib/version/get_git_tag_or_branch_version.sh build/px4_fmu-v5_default)
