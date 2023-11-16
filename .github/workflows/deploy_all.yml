@@ -24,7 +24,7 @@ jobs:
 
     - name: parameter & events metadata
       run: |
-        make px4_fmu-v5_default ver_gen events_json actuators_json
+        make px4_fmu-v5_default ver_gen
         echo "Version tag detected: "
         echo $(./src/lib/version/get_git_tag_or_branch_version.sh build/px4_fmu-v5_default)
 
