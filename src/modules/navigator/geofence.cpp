@@ -229,7 +229,17 @@ void Geofence::_updateFence()
 					current_seq += mission_fence_point.vertex_count;
 				}
 
-				++_num_polygons;
+				// check if requiremetns for Home location are met
+				const bool home_check_okay = checkHomeRequirementsForGeofence(polygon);
+
+				// check if current position is inside the fence and vehicle is armed
+				const bool current_position_check_okay = checkCurrentPositionRequirementsForGeofence(polygon);
+
+				// discard the polygon if at least one check fails by not incrementing the counter in that case
+				if (home_check_okay && current_position_check_okay) {
+					++_num_polygons;
+
+				}
 			}
 
 			break;
@@ -240,6 +250,45 @@ void Geofence::_updateFence()
 			break;
 		}
 	}
+}
+
+bool Geofence::checkHomeRequirementsForGeofence(const PolygonInfo &polygon)
+{
+	bool checks_pass = true;
+
+	if (_navigator->home_global_position_valid()) {
+		checks_pass = checkPointAgainstPolygonCircle(polygon, _navigator->get_home_position()->lat,
+				_navigator->get_home_position()->lon,
+				_navigator->get_home_position()->alt);
+	}
+
+
+	if (!checks_pass) {
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence invalid, doesn't contain Home position\t");
+		events::send(events::ID("navigator_geofence_invalid_against_home"), {events::Log::Critical, events::LogInternal::Warning},
+			     "Geofence invalid, doesn't contain Home position");
+	}
+
+	return checks_pass;
+}
+
+bool Geofence::checkCurrentPositionRequirementsForGeofence(const PolygonInfo &polygon)
+{
+	bool checks_pass = true;
+
+	// do not allow upload of geofence if vehicle is flying and current geofence would be immediately violated
+	if (getGeofenceAction() != geofence_result_s::GF_ACTION_NONE && !_navigator->get_land_detected()->landed) {
+		checks_pass = checkPointAgainstPolygonCircle(polygon, _navigator->get_global_position()->lat,
+				_navigator->get_global_position()->lon, _navigator->get_global_position()->alt);
+	}
+
+	if (!checks_pass) {
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence invalid, doesn't contain current vehicle position\t");
+		events::send(events::ID("navigator_geofence_invalid_against_cur_pos"), {events::Log::Critical, events::LogInternal::Warning},
+			     "Geofence invalid, doesn't contain current vehicle position");
+	}
+
+	return checks_pass;
 }
 
 
@@ -296,46 +345,33 @@ bool Geofence::isInsidePolygonOrCircle(double lat, double lon, float altitude)
 	}
 
 	/* Horizontal check: iterate all polygons & circles */
-	bool outside_exclusion = true;
-	bool inside_inclusion = false;
-	bool had_inclusion_areas = false;
+	bool checksPass = true;
 
 	for (int polygon_index = 0; polygon_index < _num_polygons; ++polygon_index) {
-		if (_polygons[polygon_index].fence_type == NAV_CMD_FENCE_CIRCLE_INCLUSION) {
-			bool inside = insideCircle(_polygons[polygon_index], lat, lon, altitude);
-
-			if (inside) {
-				inside_inclusion = true;
-			}
-
-			had_inclusion_areas = true;
-
-		} else if (_polygons[polygon_index].fence_type == NAV_CMD_FENCE_CIRCLE_EXCLUSION) {
-			bool inside = insideCircle(_polygons[polygon_index], lat, lon, altitude);
-
-			if (inside) {
-				outside_exclusion = false;
-			}
-
-		} else { // it's a polygon
-			bool inside = insidePolygon(_polygons[polygon_index], lat, lon, altitude);
-
-			if (_polygons[polygon_index].fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION) {
-				if (inside) {
-					inside_inclusion = true;
-				}
-
-				had_inclusion_areas = true;
-
-			} else { // exclusion
-				if (inside) {
-					outside_exclusion = false;
-				}
-			}
-		}
+		checksPass &= checkPointAgainstPolygonCircle(_polygons[polygon_index], lat, lon, altitude);
 	}
 
-	return (!had_inclusion_areas || inside_inclusion) && outside_exclusion;
+	return checksPass;
+}
+
+bool Geofence::checkPointAgainstPolygonCircle(const PolygonInfo &polygon, double lat, double lon, float altitude)
+{
+	bool checksPass = true;
+
+	if (polygon.fence_type == NAV_CMD_FENCE_CIRCLE_INCLUSION) {
+		checksPass &= insideCircle(polygon, lat, lon, altitude);
+
+	} else if (polygon.fence_type == NAV_CMD_FENCE_CIRCLE_EXCLUSION) {
+		checksPass &= !insideCircle(polygon, lat, lon, altitude);
+
+	} else if (polygon.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_INCLUSION) {
+		checksPass &= insidePolygon(polygon, lat, lon, altitude);
+
+	} else if (polygon.fence_type == NAV_CMD_FENCE_POLYGON_VERTEX_EXCLUSION) {
+		checksPass &= !insidePolygon(polygon, lat, lon, altitude);
+	}
+
+	return checksPass;
 }
 
 bool Geofence::insidePolygon(const PolygonInfo &polygon, double lat, double lon, float altitude)
