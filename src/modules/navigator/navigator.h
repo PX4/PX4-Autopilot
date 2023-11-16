@@ -334,7 +334,8 @@ private:
 	GeofenceBreachAvoidance _gf_breach_avoidance;
 	hrt_abstime _last_geofence_check = 0;
 
-	bool		_geofence_violation_warning_sent{false};	/**< prevents spaming to mavlink */
+	bool		_geofence_reposition_sent{false};		/**< flag if reposition command has been sent for current geofence breach*/
+	hrt_abstime	_time_loitering_after_gf_breach{0};		/**< timestamp of when loitering after a geofence breach was started */
 	bool		_pos_sp_triplet_updated{false};			/**< flags if position SP triplet needs to be published */
 	bool 		_pos_sp_triplet_published_invalid_once{false};	/**< flags if position SP triplet has been published once to UORB */
 	bool		_mission_result_updated{false};			/**< flags if mission result has seen an update */
