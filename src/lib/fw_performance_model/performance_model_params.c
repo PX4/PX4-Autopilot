@@ -89,7 +89,7 @@ PARAM_DEFINE_FLOAT(FW_THR_ASPD_MAX, 0.f);
  * @increment 1.0
  * @group FW Performance
  */
-PARAM_DEFINE_FLOAT(FW_S_CEILING, -1.0f);
+PARAM_DEFINE_FLOAT(FW_SERVICE_CEIL, -1.0f);
 
 /**
  * Vehicle base weight.

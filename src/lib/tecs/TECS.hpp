@@ -198,10 +198,10 @@ public:
 		float max_climb_rate;			///< Climb rate produced by max allowed throttle [m/s].
 		float vert_accel_limit;			///< Magnitude of the maximum vertical acceleration allowed [m/s²].
 		float equivalent_airspeed_trim;		///< Equivalent cruise airspeed for airspeed less mode [m/s].
-		float tas_min;				///< True airpeed demand lower limit [m/s].
+		float tas_min;				///< True airspeed demand lower limit [m/s].
 		float pitch_max;			///< Maximum pitch angle allowed in [rad].
 		float pitch_min;			///< Minimal pitch angle allowed in [rad].
-		float throttle_trim;			///< Normalized throttle required to fly level (compensated for weight and air density).
+		float throttle_trim;		///< Normalized throttle required to fly level at calibrated airspeed setpoint [0,1]
 		float throttle_max;			///< Normalized throttle upper limit.
 		float throttle_min;			///< Normalized throttle lower limit.
 
