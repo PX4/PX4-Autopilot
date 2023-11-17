@@ -64,13 +64,40 @@ Voxl2IO::~Voxl2IO()
 
 int Voxl2IO::init()
 {
+	int ret = PX4_OK;
+	/* Open serial port in this thread */
+	if (!_uart_port->is_open()) {
+		if (_uart_port->uart_open((const char*)_device, _parameters.baud_rate) == PX4_OK) {			
+			/* Send PWM config to M0065... pwm_min and pwm_max */
+			PX4_INFO("Opened UART connection to M0065 device on port %s", _device);
+		} else {
+			PX4_ERR("Failed opening device");
+			return PX4_ERROR;
+		}
+	}
+
+	/* Verify connectivity and protocol version number */
+	if (get_version_info() < 0) {
+		PX4_ERR("Failed to detect voxl2_io protocol version.");
+		return PX4_ERROR;
+	} else {
+		if (_version_info.sw_version == VOXL2_IO_SW_PROTOCOL_VERSION && _version_info.hw_version == VOXL2_IO_HW_PROTOCOL_VERSION){
+			PX4_INFO("Detected M0065 protocol version. SW: %u HW: %u", _version_info.sw_version, _version_info.hw_version);
+		} else {
+			PX4_ERR("Detected incorrect M0065 protocol version. SW: %u HW: %u", _version_info.sw_version, _version_info.hw_version);
+			return PX4_ERROR;
+		}
+	}
 
 	/* Getting initial parameter values */
-	int ret = update_params();
+	ret = update_params();
 
 	if (ret != OK) {
 		return ret;
 	}
+
+	/* Send PWM MIN/MAX to M0065 */
+	update_pwm_config();
 
 	ScheduleOnInterval(_current_update_interval); 
 	// ScheduleNow();
@@ -148,6 +175,105 @@ void Voxl2IO::update_pwm_config()
 		_bytes_sent+=cmd.len;
 		_packets_sent++;
 	}
+}
+
+int Voxl2IO::get_version_info()
+{
+	int res = 0 ;
+	int header = -1 ;
+	int info_packet = -1;
+	int read_retries = 3;
+	int read_succeeded = 0;
+	Command cmd;	
+
+	/* Request protocol version info from M0065 */
+	cmd.len = voxl2_io_create_version_request_packet(0, cmd.buf, VOXL2_IO_VERSION_INFO_SIZE);
+	if (_uart_port->uart_write(cmd.buf, cmd.len) != cmd.len) {
+		PX4_ERR("Failed to send version info packet");
+	} else {
+		_bytes_sent+=cmd.len;
+		_packets_sent++;
+	}
+
+	/* Read response */
+	px4_usleep(10000);
+	memset(&_read_buf, 0x00, READ_BUF_SIZE);
+	res = _uart_port->uart_read(_read_buf, READ_BUF_SIZE);
+	while(read_retries){
+		if (res) {
+			/* Get index of packer header */
+			for (int index = 0; index < READ_BUF_SIZE; ++index){
+				if (_read_buf[index] == VOXL2_IO_PACKET_TYPE_VERSION_RESPONSE){
+					info_packet = index;
+					break;
+				}
+				if (_read_buf[index] == VOXL2_IO_PACKET_HEADER){
+					header = index;
+				}
+			}
+
+			/* Try again in a bit if packet header not present yet... */
+			if (header == -1 || info_packet == -1){
+				if (_debug && header == -1) PX4_ERR("Failed to find voxl2_io packet header, trying again... retries left: %i", read_retries);
+				if (_debug && info_packet == -1) PX4_ERR("Failed to find version info packet header, trying again... retries left: %i", read_retries);
+				read_retries--;
+				flush_uart_rx();
+				if (_uart_port->uart_write(cmd.buf, cmd.len) != cmd.len) {
+					PX4_ERR("Failed to send version info packet");
+				} else {
+					_bytes_sent+=cmd.len;
+					_packets_sent++;
+					px4_usleep(2000);
+				}
+				continue;
+			}
+
+			/* Check if we got a valid packet...*/
+			if (parse_response(&_read_buf[header], (uint8_t)VOXL2_IO_VERSION_INFO_SIZE)){
+				if(_debug) {
+					PX4_ERR("Error parsing version info packet");
+					PX4_INFO_RAW("[%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x]\n",
+						_read_buf[header+0], _read_buf[header+1], _read_buf[header+2], _read_buf[header+3], _read_buf[header+4], _read_buf[header+5], 
+						_read_buf[header+6], _read_buf[header+7], _read_buf[header+8], _read_buf[header+9], _read_buf[header+10], _read_buf[header+11], 
+						_read_buf[header+12], _read_buf[header+13], _read_buf[header+14], _read_buf[header+15], _read_buf[header+16], _read_buf[header+17], 
+						_read_buf[header+18], _read_buf[header+19], _read_buf[header+20], _read_buf[header+21], _read_buf[header+22], _read_buf[header+23], 
+						_read_buf[header+24], _read_buf[header+25], _read_buf[header+26], _read_buf[header+27], _read_buf[header+28], _read_buf[header+29]
+						);
+				}
+				read_retries--;
+				flush_uart_rx();
+			
+				if (_uart_port->uart_write(cmd.buf, cmd.len) != cmd.len) {
+					PX4_ERR("Failed to send version info packet");
+				} else {
+					_bytes_sent+=cmd.len;
+					_packets_sent++;
+					px4_usleep(2000);
+				}
+				break;
+
+			}  else {
+				memcpy(&_version_info, &_read_buf[header], sizeof(VOXL2_IO_VERSION_INFO));
+				read_succeeded = 1;
+				break;
+			}
+		} else {
+			read_retries--;
+			if (_uart_port->uart_write(cmd.buf, cmd.len) != cmd.len) {
+				PX4_ERR("Failed to send version info packet");
+			} else {
+				_bytes_sent+=cmd.len;
+				_packets_sent++;
+				px4_usleep(2000);
+			}
+		}
+	}
+
+	if (! read_succeeded){
+		return -EIO;
+	}
+
+	return 0;
 }
 
 bool Voxl2IO::updateOutputs(bool stop_motors, uint16_t outputs[input_rc_s::RC_INPUT_MAX_CHANNELS],
@@ -244,33 +370,36 @@ int Voxl2IO::parse_response(uint8_t *buf, uint8_t len)
 			uint8_t packet_type = voxl2_io_packet_get_type(&_sbus_packet);
 			uint8_t packet_size = voxl2_io_packet_get_size(&_sbus_packet);
 
-			if (packet_type == VOXL2_IO_PACKET_TYPE_RC_DATA_RAW && packet_size == QC_SBUS_FRAME_SIZE) 
+			if (packet_type == VOXL2_IO_PACKET_TYPE_RC_DATA_RAW && packet_size == VOXL2_IO_SBUS_FRAME_SIZE) 
 			{
 				return 0;
-			} else {
+			} else if (packet_type == VOXL2_IO_PACKET_TYPE_VERSION_RESPONSE && packet_size == sizeof(VOXL2_IO_VERSION_INFO)) {
+				return 0;
+			}
+			 else {
 				return -1;
 			}
 
 		} else { //parser error
 			switch (ret) {
 			case VOXL2_IO_ERROR_BAD_CHECKSUM:
-				if(_pwm_on && _debug) PX4_WARN("BAD SBUS packet checksum");
-				break;
+				if(_pwm_on && _debug) PX4_WARN("BAD packet checksum");
+				break; 
 
 			case VOXL2_IO_ERROR_BAD_LENGTH:
-				if(_pwm_on && _debug) PX4_WARN("BAD SBUS packet length");
+				if(_pwm_on && _debug) PX4_WARN("BAD packet length");
 				break;
 
 			case VOXL2_IO_ERROR_BAD_HEADER:
-				if(_pwm_on && _debug) PX4_WARN("BAD SBUS packet header");
+				if(_pwm_on && _debug) PX4_WARN("BAD packet header");
 				break;
 
 			case VOXL2_IO_NO_PACKET:
-				// if(_pwm_on) PX4_WARN("NO SBUS packet");
+				// if(_pwm_on) PX4_WARN("NO packet");
 				break;
 
 			default:
-				if(_pwm_on && _debug) PX4_WARN("Unkown error: %i", ret);
+				if(_pwm_on && _debug) PX4_WARN("Unknown error: %i", ret);
 				break;
 			}
 			return ret;
@@ -357,7 +486,7 @@ int Voxl2IO::receive_sbus()
 			}
 
 			/* Check if we got a valid packet...*/
-			if (parse_response(&_read_buf[header], (uint8_t)QC_SBUS_FRAME_SIZE)){
+			if (parse_response(&_read_buf[header], (uint8_t)VOXL2_IO_SBUS_FRAME_SIZE)){
 				if(_pwm_on && _debug) {
 					PX4_ERR("Error parsing QC RAW SBUS packet");
 					PX4_INFO_RAW("[%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x]\n",
@@ -446,19 +575,7 @@ void Voxl2IO::Run()
 
 	perf_begin(_cycle_perf);
 
-	/* Open serial port in this thread */
-	if (!_uart_port->is_open()) {
-		if (_uart_port->uart_open((const char*)_device, _parameters.baud_rate) == PX4_OK) {			
-			/* Send PWM config to M0065... pwm_min and pwm_max */
-			PX4_INFO("Opened UART connection to M0065 device on port %s", _device);
-			update_pwm_config();
-		} else {
-			PX4_ERR("Failed opening device");
-			return;
-		}
-	}
-
-	/* Scan for RC mode	*/
+	/* Handle RC */
 	if (_rc_mode == RC_MODE::SCAN){
 		if (receive_sbus() == PX4_OK){
 			PX4_INFO("Found M0065 SBUS RC.");
@@ -851,6 +968,7 @@ int Voxl2IO::print_status()
 	PX4_INFO("Max update rate: %u Hz", 1000000/_current_update_interval);
 	PX4_INFO("PWM Rate: 400 Hz");	// Only support 400 Hz for now
 	PX4_INFO("Outputs on: %s", _pwm_on ? "yes" : "no");
+	PX4_INFO("FW version: v%u.%u", _version_info.sw_version, _version_info.hw_version);
 	PX4_INFO("RC Type: SBUS");		// Only support SBUS through M0065 for now 
 	PX4_INFO("RC Connected: %s", hrt_absolute_time() - _rc_last_valid > 500000 ? "no" : "yes");
 	PX4_INFO("RC Packets Received: %" PRIu16, _sbus_total_frames);
@@ -858,7 +976,6 @@ int Voxl2IO::print_status()
 	PX4_INFO("UART open: %s", _uart_port->is_open() ? "yes" : "no");
 	PX4_INFO("Packets sent: %" PRIu32, _packets_sent);
 	PX4_INFO("");
-	// PX4_INFO("Params: VOXL2_IO_CONFIG: %" PRId32, _parameters.config);
 	PX4_INFO("Params: VOXL2_IO_BAUD: %" PRId32, _parameters.baud_rate);
 	PX4_INFO("Params: VOXL2_IO_FUNC1: %" PRId32, _parameters.function_map[0]);
 	PX4_INFO("Params: VOXL2_IO_FUNC2: %" PRId32, _parameters.function_map[1]);

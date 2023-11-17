@@ -86,6 +86,7 @@ public:
 	virtual int	init();
 
 	void update_pwm_config();
+	int get_version_info();
 			   
 	struct Command {
 		uint16_t	id                 = 0;
@@ -139,8 +140,14 @@ private:
 	static constexpr int32_t VOXL2_IO_TICS = 24;	// 24 tics per us on M0065 timer clks
 
 	/* SBUS */
-	static constexpr uint16_t QC_SBUS_FRAME_SIZE = 30;
+	static constexpr uint16_t VOXL2_IO_SBUS_FRAME_SIZE = 30;
 	static constexpr uint16_t SBUS_PAYLOAD = 3;
+
+	/* M0065 version info */
+	static constexpr uint16_t VOXL2_IO_VERSION_INFO_SIZE = 6;
+	static constexpr uint16_t VOXL2_IO_SW_PROTOCOL_VERSION = 1;
+	static constexpr uint16_t VOXL2_IO_HW_PROTOCOL_VERSION = 35;
+	VOXL2_IO_VERSION_INFO _version_info;
 
 	/* Module update interval */
 	static constexpr unsigned	_current_update_interval{4000}; // 250 Hz
