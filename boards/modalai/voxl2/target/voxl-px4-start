@@ -6,6 +6,7 @@
 echo -e "\n*************************"
 echo "GPS: $GPS"
 echo "RC: $RC"
+echo "ESC: $ESC"
 echo "POWER MANAGER: $POWER_MANAGER"
 echo "DISTANCE SENSOR: $DISTANCE_SENSOR"
 echo "OSD: $OSD"
