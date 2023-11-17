@@ -114,31 +114,57 @@ void FigureEight::initializePattern(const matrix::Vector2f &curr_pos_local, cons
 		calculatePositionToCenterNormalizedRotated(rel_pos_to_center, curr_pos_local, parameters);
 		Vector2f ground_speed_rotated = Dcm2f(-calculateRotationAngle(parameters)) * ground_speed;
 
-		if (rel_pos_to_center(0) > NORMALIZED_MAJOR_RADIUS) { // Far away north
-			_current_segment = FigureEightSegment::SEGMENT_CIRCLE_NORTH;
+		Vector2f rel_pos_to_north_circle{rel_pos_to_center - pattern_points.normalized_north_circle_offset};
+		Vector2f rel_pos_to_south_circle{rel_pos_to_center - pattern_points.normalized_south_circle_offset};
+		const bool north_is_closer = rel_pos_to_north_circle.norm() < rel_pos_to_south_circle.norm();
 
-		} else if (rel_pos_to_center(0) < -NORMALIZED_MAJOR_RADIUS) { // Far away south
-			_current_segment = FigureEightSegment::SEGMENT_CIRCLE_SOUTH;
+		// Get the normalized switch distance.
+		float switch_distance_normalized = _npfg.switchDistance(FLT_MAX) * NORMALIZED_MAJOR_RADIUS / parameters.loiter_radius;
 
-		} else if (ground_speed_rotated.dot(Vector2f{1.0f, 0.0f}) > 0.0f) { // Flying northbound
-			if (rel_pos_to_center(0) > pattern_points.normalized_north_circle_offset(0)) { // already at north circle
+		//Far away from current figure of eight. Fly towards closer circle
+
+		if (rel_pos_to_center.norm() > NORMALIZED_MAJOR_RADIUS + switch_distance_normalized) {
+			if (north_is_closer) {
 				_current_segment = FigureEightSegment::SEGMENT_CIRCLE_NORTH;
 
 			} else {
-				_current_segment = FigureEightSegment::SEGMENT_SOUTHEAST_NORTHWEST;
+				_current_segment = FigureEightSegment::SEGMENT_CIRCLE_SOUTH;
 			}
 
+			_pos_passed_circle_center_along_major_axis = true;
+
 		} else {
-			if (rel_pos_to_center(0) < pattern_points.normalized_south_circle_offset(0)) { // already at south circle
-				_current_segment = FigureEightSegment::SEGMENT_CIRCLE_SOUTH;
+			if (north_is_closer) {
+				const bool is_circling_counter_clockwise{rel_pos_to_north_circle.cross(ground_speed_rotated) < 0.f};
+
+				if ((ground_speed_rotated(0) > 0.f) && (is_circling_counter_clockwise == NORTH_CIRCLE_IS_COUNTER_CLOCKWISE)) {
+					// Flying north and right rotation
+					_current_segment = FigureEightSegment::SEGMENT_CIRCLE_NORTH;
+					_pos_passed_circle_center_along_major_axis = true;
+
+				} else {
+					// Flying to the entry of the south circle
+					_current_segment = FigureEightSegment::SEGMENT_POINT_SOUTHWEST;
+					_pos_passed_circle_center_along_major_axis = false;
+				}
 
 			} else {
-				_current_segment = FigureEightSegment::SEGMENT_NORTHEAST_SOUTHWEST;
+				const bool is_circling_counter_clockwise{rel_pos_to_south_circle.cross(ground_speed_rotated) < 0.f};
+
+				if ((ground_speed_rotated(0) < 0.f) && (is_circling_counter_clockwise == SOUTH_CIRCLE_IS_COUNTER_CLOCKWISE)) {
+					// Flying south and right rotation
+					_current_segment = FigureEightSegment::SEGMENT_CIRCLE_SOUTH;
+					_pos_passed_circle_center_along_major_axis = true;
+
+				} else {
+					// Flying to the entry of the north circle
+					_current_segment = FigureEightSegment::SEGMENT_POINT_NORTHWEST;
+					_pos_passed_circle_center_along_major_axis = false;
+				}
 			}
 		}
 
 		_active_parameters = parameters;
-		_pos_passed_circle_center_along_major_axis = false;
 	}
 }
 
@@ -181,16 +207,18 @@ void FigureEight::updateSegment(const matrix::Vector2f &curr_pos_local, const Fi
 			Vector2f vector_to_exit_normalized = pattern_points.normalized_north_exit_offset - rel_pos_to_center;
 
 			/* Exit condition: Switch distance away from north-east point of north circle and at least once was above the circle center. Failsafe action, if poor tracking,
-			-                       switch to next if the vehicle is on the east side and below the  north exit point. */
+			-                       switch to next if the vehicle is on the east side and below the north exit point. */
 			if (_pos_passed_circle_center_along_major_axis &&
 			    ((vector_to_exit_normalized.norm() < switch_distance_normalized) ||
 			     ((rel_pos_to_center(0) < pattern_points.normalized_north_exit_offset(0)) &&
-			      (rel_pos_to_center(1) > FLT_EPSILON)))) {
+			      (rel_pos_to_center(1) > FLT_EPSILON) &&
+			      (rel_pos_to_center.norm() < NORMALIZED_MAJOR_RADIUS)))) {
 				_current_segment = FigureEightSegment::SEGMENT_NORTHEAST_SOUTHWEST;
 			}
 		}
 		break;
 
+	case FigureEightSegment::SEGMENT_POINT_SOUTHWEST: // fall through
 	case FigureEightSegment::SEGMENT_NORTHEAST_SOUTHWEST: {
 			_pos_passed_circle_center_along_major_axis = false;
 			Vector2f vector_to_exit_normalized = pattern_points.normalized_south_entry_offset - rel_pos_to_center;
@@ -217,13 +245,15 @@ void FigureEight::updateSegment(const matrix::Vector2f &curr_pos_local, const Fi
 			if (_pos_passed_circle_center_along_major_axis &&
 			    ((vector_to_exit_normalized.norm() < switch_distance_normalized) ||
 			     ((rel_pos_to_center(0) > pattern_points.normalized_south_exit_offset(0)) &&
-			      (rel_pos_to_center(1) > FLT_EPSILON)))) {
+			      (rel_pos_to_center(1) > FLT_EPSILON) &&
+			      (rel_pos_to_center.norm() < NORMALIZED_MAJOR_RADIUS)))) {
 				_current_segment = FigureEightSegment::SEGMENT_SOUTHEAST_NORTHWEST;
 			}
 
 		}
 		break;
 
+	case FigureEightSegment::SEGMENT_POINT_NORTHWEST: // Fall through
 	case FigureEightSegment::SEGMENT_SOUTHEAST_NORTHWEST: {
 			_pos_passed_circle_center_along_major_axis = false;
 			Vector2f vector_to_exit_normalized = pattern_points.normalized_north_entry_offset - rel_pos_to_center;
@@ -248,6 +278,9 @@ void FigureEight::applyControl(const matrix::Vector2f &curr_pos_local, const mat
 			       const FigureEightPatternParameters &parameters, float target_airspeed,
 			       const FigureEightPatternPoints &pattern_points)
 {
+	Vector2f center_to_pos_local;
+	calculatePositionToCenterNormalizedRotated(center_to_pos_local, curr_pos_local, parameters);
+
 	switch (_current_segment) {
 	case FigureEightSegment::SEGMENT_CIRCLE_NORTH: {
 			applyCircle(NORTH_CIRCLE_IS_COUNTER_CLOCKWISE, pattern_points.normalized_north_circle_offset, curr_pos_local,
@@ -271,6 +304,20 @@ void FigureEight::applyControl(const matrix::Vector2f &curr_pos_local, const mat
 	case FigureEightSegment::SEGMENT_SOUTHEAST_NORTHWEST: {
 			// follow path from south-east to north-west
 			applyLine(pattern_points.normalized_south_exit_offset, pattern_points.normalized_north_entry_offset, curr_pos_local,
+				  ground_speed, parameters, target_airspeed);
+		}
+		break;
+
+	case FigureEightSegment::SEGMENT_POINT_SOUTHWEST: {
+			// Follow path from current position to south-west
+			applyLine(center_to_pos_local, pattern_points.normalized_south_entry_offset, curr_pos_local,
+				  ground_speed, parameters, target_airspeed);
+		}
+		break;
+
+	case FigureEightSegment::SEGMENT_POINT_NORTHWEST: {
+			// Follow path from current position to north-west
+			applyLine(center_to_pos_local, pattern_points.normalized_north_entry_offset, curr_pos_local,
 				  ground_speed, parameters, target_airspeed);
 		}
 		break;
