@@ -1262,8 +1262,6 @@ FixedwingPositionControl::controlAutoFigureEight(const float control_interval, c
 	params.loiter_orientation = pos_sp_curr.loiter_orientation;
 	params.loiter_radius = pos_sp_curr.loiter_radius;
 
-	_figure_eight.initializePattern(curr_pos_local, ground_speed, params);
-
 	// Apply control
 	_figure_eight.updateSetpoint(curr_pos_local, ground_speed, params, target_airspeed);
 	_att_sp.roll_body = _figure_eight.getRollSetpoint();
