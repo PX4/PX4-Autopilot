@@ -37,8 +37,6 @@
 
 #include "FigureEight.hpp"
 
-#include <cmath>
-
 #include "lib/geo/geo.h"
 #include <lib/matrix/matrix/math.hpp>
 
@@ -60,23 +58,61 @@ FigureEight::FigureEight(NPFG &npfg, matrix::Vector2f &wind_vel, float &eas2tas)
 
 }
 
-void FigureEight::initializePattern(const matrix::Vector2f &curr_pos_local, const matrix::Vector2f &ground_speed,
-				    const FigureEightPatternParameters &parameters)
+void FigureEight::resetPattern()
 {
-	// Initialize the currently active segment, if it hasn't been active yet, or the sp has been changed.
-	if ((_current_segment == FigureEightSegment::SEGMENT_UNDEFINED) ||
-	    ((fabsf(_active_parameters.center_pos_local(0) - parameters.center_pos_local(0)) > FLT_EPSILON) ||
-	     (fabsf(_active_parameters.center_pos_local(1) - parameters.center_pos_local(1)) > FLT_EPSILON) ||
-	     (fabsf(_active_parameters.loiter_radius - parameters.loiter_radius) > FLT_EPSILON) ||
-	     (fabsf(_active_parameters.loiter_minor_radius - parameters.loiter_minor_radius) > FLT_EPSILON) ||
-	     (fabsf(_active_parameters.loiter_orientation - parameters.loiter_orientation) > FLT_EPSILON) ||
-	     (_active_parameters.loiter_direction_counter_clockwise != parameters.loiter_direction_counter_clockwise))) {
+	// Set the current segment invalid
+	_current_segment = FigureEightSegment::SEGMENT_UNDEFINED;
+	_pos_passed_circle_center_along_major_axis = false;
+}
+
+void FigureEight::updateSetpoint(const matrix::Vector2f &curr_pos_local, const matrix::Vector2f &ground_speed,
+				 const FigureEightPatternParameters &parameters, float target_airspeed)
+{
+	// Sanitize inputs
+	FigureEightPatternParameters valid_parameters{sanitizeParameters(parameters)};
+
+	// Calculate the figure eight pattern points.
+	FigureEightPatternPoints pattern_points;
+	calculateFigureEightPoints(pattern_points, valid_parameters);
+
+	// Do the figure of eight initialization if needed.
+	initializePattern(curr_pos_local, ground_speed, valid_parameters, pattern_points);
+
+	// Check if we need to switch to next segment
+	updateSegment(curr_pos_local, valid_parameters,  pattern_points);
+
+	// Apply control logic based on segment
+	applyControl(curr_pos_local, ground_speed, valid_parameters, target_airspeed, pattern_points);
+}
+
+FigureEight::FigureEightPatternParameters FigureEight::sanitizeParameters(const FigureEightPatternParameters
+		&parameters)
+{
+	FigureEightPatternParameters valid_parameters{parameters};
+
+	if (!PX4_ISFINITE(parameters.loiter_minor_radius)) {
+		valid_parameters.loiter_minor_radius = fabsf(_param_nav_loiter_rad.get());
+	}
+
+	if (!PX4_ISFINITE(parameters.loiter_radius)) {
+		valid_parameters.loiter_radius = DEFAULT_MAJOR_TO_MINOR_AXIS_RATIO * valid_parameters.loiter_minor_radius;
+		valid_parameters.loiter_direction_counter_clockwise = _param_nav_loiter_rad.get() < 0;
+	}
+
+	valid_parameters.loiter_radius = math::max(valid_parameters.loiter_radius,
+					 MINIMAL_FEASIBLE_MAJOR_TO_MINOR_AXIS_RATIO * valid_parameters.loiter_minor_radius);
+
+	return valid_parameters;
+}
+
+void FigureEight::initializePattern(const matrix::Vector2f &curr_pos_local, const matrix::Vector2f &ground_speed,
+				    const FigureEightPatternParameters &parameters, FigureEightPatternPoints pattern_points)
+{
+	// Initialize the currently active segment, if it hasn't been active yet, or the pattern has been changed.
+	if ((_current_segment == FigureEightSegment::SEGMENT_UNDEFINED) || (_active_parameters != parameters)) {
 		Vector2f rel_pos_to_center;
 		calculatePositionToCenterNormalizedRotated(rel_pos_to_center, curr_pos_local, parameters);
 		Vector2f ground_speed_rotated = Dcm2f(-calculateRotationAngle(parameters)) * ground_speed;
-
-		FigureEightPatternPoints pattern_points;
-		calculateFigureEightPoints(pattern_points, parameters);
 
 		if (rel_pos_to_center(0) > NORMALIZED_MAJOR_RADIUS) { // Far away north
 			_current_segment = FigureEightSegment::SEGMENT_CIRCLE_NORTH;
@@ -104,42 +140,6 @@ void FigureEight::initializePattern(const matrix::Vector2f &curr_pos_local, cons
 		_active_parameters = parameters;
 		_pos_passed_circle_center_along_major_axis = false;
 	}
-}
-
-void FigureEight::resetPattern()
-{
-	// Set the current segment invalid
-	_current_segment = FigureEightSegment::SEGMENT_UNDEFINED;
-	_pos_passed_circle_center_along_major_axis = false;
-}
-
-void FigureEight::updateSetpoint(const matrix::Vector2f &curr_pos_local, const matrix::Vector2f &ground_speed,
-				 const FigureEightPatternParameters &parameters, float target_airspeed)
-{
-	// Sanitize inputs
-	FigureEightPatternParameters valid_parameters{parameters};
-
-	if (!PX4_ISFINITE(parameters.loiter_minor_radius)) {
-		valid_parameters.loiter_minor_radius = fabsf(_param_nav_loiter_rad.get());
-	}
-
-	if (!PX4_ISFINITE(parameters.loiter_radius)) {
-		valid_parameters.loiter_radius = DEFAULT_MAJOR_TO_MINOR_AXIS_RATIO * valid_parameters.loiter_minor_radius;
-		valid_parameters.loiter_direction_counter_clockwise = _param_nav_loiter_rad.get() < 0;
-	}
-
-	valid_parameters.loiter_radius = math::max(valid_parameters.loiter_radius,
-					 MINIMAL_FEASIBLE_MAJOR_TO_MINOR_AXIS_RATIO * valid_parameters.loiter_minor_radius);
-
-	// Calculate the figure eight pattern points.
-	FigureEightPatternPoints pattern_points;
-	calculateFigureEightPoints(pattern_points, valid_parameters);
-
-	// Check if we need to switch to next segment
-	updateSegment(curr_pos_local, valid_parameters,  pattern_points);
-
-	// Apply control logic based on segment
-	applyControl(curr_pos_local, ground_speed, valid_parameters, target_airspeed, pattern_points);
 }
 
 void FigureEight::calculateFigureEightPoints(FigureEightPatternPoints &pattern_points,
