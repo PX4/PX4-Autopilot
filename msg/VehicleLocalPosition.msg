@@ -15,11 +15,10 @@ float32 y				# East position in NED earth-fixed frame, (metres)
 float32 z				# Down position (negative altitude) in NED earth-fixed frame, (metres)
 
 # Position reset delta
-float32[2] delta_xy
-uint8 xy_reset_counter
-
-float32 delta_z
-uint8 z_reset_counter
+float32[2] delta_xy			# Amount of lateral shift of position estimate in latest reset (in x and y) [m]
+uint8 xy_reset_counter			# Index of latest lateral position estimate reset
+float32 delta_z				# Amount of vertical shift of position estimate in latest reset [m]
+uint8 z_reset_counter			# Index of latest vertical position estimate reset
 
 # Velocity in NED frame
 float32 vx 				# North velocity in NED earth-fixed frame, (metres/sec)
@@ -28,11 +27,11 @@ float32 vz				# Down velocity in NED earth-fixed frame, (metres/sec)
 float32 z_deriv				# Down position time derivative in NED earth-fixed frame, (metres/sec)
 
 # Velocity reset delta
-float32[2] delta_vxy
-uint8 vxy_reset_counter
+float32[2] delta_vxy			# Amount of lateral shift of velocity estimate in latest reset (in x and y) [m/s]
+uint8 vxy_reset_counter			# Index of latest vertical velocity estimate reset
+float32 delta_vz			# Amount of vertical shift of velocity estimate in latest reset [m/s]
+uint8 vz_reset_counter			# Index of latest vertical velocity estimate reset
 
-float32 delta_vz
-uint8 vz_reset_counter
 # Acceleration in NED frame
 float32 ax        # North velocity derivative in NED earth-fixed frame, (metres/sec^2)
 float32 ay        # East velocity derivative in NED earth-fixed frame, (metres/sec^2)
