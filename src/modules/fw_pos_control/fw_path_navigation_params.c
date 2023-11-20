@@ -634,6 +634,15 @@ PARAM_DEFINE_FLOAT(FW_T_PTCH_DAMP, 0.1f);
 PARAM_DEFINE_FLOAT(FW_T_ALT_TC, 5.0f);
 
 /**
+ * Minimum altitude error needed to descend with max airspeed. A negative value disables fast descend.
+ *
+ * @min -1.0
+ * @decimal 0
+ * @group FW TECS
+ */
+PARAM_DEFINE_FLOAT(FW_T_F_ALT_ERR, -1.0f);
+
+/**
  * Height rate feed forward
  *
  * @min 0.0
