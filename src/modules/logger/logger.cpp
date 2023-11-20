@@ -190,7 +190,7 @@ int Logger::print_status()
 	PX4_INFO("Number of subscriptions: %i (%i bytes)", _num_subscriptions,
 		 (int)(_num_subscriptions * sizeof(LoggerSubscription)));
 
-	bool is_logging = false;
+	is_logging = false;
 
 	if (_writer.is_started(LogType::Full, LogWriter::BackendFile)) {
 		PX4_INFO("Full File Logging Running:");
@@ -427,6 +427,9 @@ void Logger::update_params()
 	}
 }
 
+bool Logger::check_logging(){
+	return _writer.is_started(LogType::Full, LogWriter::BackendFile);
+}
 bool Logger::request_stop_static()
 {
 	if (is_running()) {
@@ -694,6 +697,17 @@ void Logger::run()
 	while (!should_exit()) {
 		// Start/stop logging (depending on logging mode, by default when arming/disarming)
 		const bool logging_started = start_stop_logging();
+
+		if(check_logging()){
+			is_logging = true;
+		} else
+		{
+			is_logging = false;
+		}
+
+		if(!is_logging){
+			get_instance()->set_arm_override(true);
+		}
 
 		if (logging_started) {
 #ifdef DBGPRINT
