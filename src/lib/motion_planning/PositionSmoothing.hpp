@@ -328,7 +328,7 @@ public:
 	 */
 	inline void setMaxAllowedHorizontalError(float error)
 	{
-		_max_allowed_horizontal_error = (PX4_ISFINITE(error)) ? math::max(error, kMinHorizontalError) : kDefaultHorizontalError;
+		_max_allowed_horizontal_error = error;
 	}
 
 	/**
@@ -410,14 +410,8 @@ public:
 
 
 private:
-	// [m] minimum max horizontal vehicle position error from trajectory allowing time integration along trajectory
-	static constexpr float kMinHorizontalError{0.1f};
-
-	// [m] default max horizontal vehicle position error from trajectory allowing time integration along trajectory
-	static constexpr float kDefaultHorizontalError{2.f};
-
 	/* params, only modified from external */
-	float _max_allowed_horizontal_error{kDefaultHorizontalError};
+	float _max_allowed_horizontal_error{0.f};
 	float _vertical_acceptance_radius{0.f};
 	float _cruise_speed{0.f};
 	float _horizontal_trajectory_gain{0.f};

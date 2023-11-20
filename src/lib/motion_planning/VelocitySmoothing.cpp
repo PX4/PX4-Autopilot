@@ -57,10 +57,6 @@ void VelocitySmoothing::reset(float accel, float vel, float pos)
 
 float VelocitySmoothing::saturateT1ForAccel(float a0, float j_max, float T1, float a_max) const
 {
-	if (math::abs_t(j_max) < FLT_EPSILON) {
-		return 0.f;
-	}
-
 	/* Check maximum acceleration, saturate and recompute T1 if needed */
 	float accel_T1 = a0 + j_max * T1;
 	float T1_new = T1;
@@ -77,10 +73,6 @@ float VelocitySmoothing::saturateT1ForAccel(float a0, float j_max, float T1, flo
 
 float VelocitySmoothing::computeT1(float a0, float v3, float j_max, float a_max) const
 {
-	if (math::abs_t(j_max) < FLT_EPSILON) {
-		return 0.f;
-	}
-
 	float delta = 2.f * a0 * a0 + 4.f * j_max * v3;
 
 	if (delta < 0.f) {
@@ -89,7 +81,6 @@ float VelocitySmoothing::computeT1(float a0, float v3, float j_max, float a_max)
 	}
 
 	float sqrt_delta = sqrtf(delta);
-
 	float T1_plus = (-a0 + 0.5f * sqrt_delta) / j_max;
 	float T1_minus = (-a0 - 0.5f * sqrt_delta) / j_max;
 
@@ -112,10 +103,6 @@ float VelocitySmoothing::computeT1(float a0, float v3, float j_max, float a_max)
 
 float VelocitySmoothing::computeT1(float T123, float a0, float v3, float j_max, float a_max) const
 {
-	if (math::abs_t(j_max) < FLT_EPSILON) {
-		return 0.f;
-	}
-
 	float a = -j_max;
 	float b = j_max * T123 - a0;
 	float delta = T123 * T123 * j_max * j_max + 2.f * T123 * a0 * j_max - a0 * a0 - 4.f * j_max * v3;
@@ -169,10 +156,6 @@ float VelocitySmoothing::computeT2(float T123, float T1, float T3) const
 
 float VelocitySmoothing::computeT3(float T1, float a0, float j_max) const
 {
-	if (math::abs_t(j_max) < FLT_EPSILON) {
-		return 0.f;
-	}
-
 	float T3 = a0 / j_max + T1;
 	return math::max(T3, 0.f);
 }
