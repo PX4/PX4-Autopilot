@@ -70,7 +70,7 @@ private:
 	void exit_and_cleanup() override;
 
 	// Sensor Configuration
-	static constexpr float FIFO_SAMPLE_DT{1e6f / 8000.f};     // 8000 Hz accel & gyro ODR configured
+	static constexpr float FIFO_SAMPLE_DT{1e6f / 6400.f};     // 6400 Hz accel & gyro ODR configured
 	static constexpr float GYRO_RATE{1e6f / FIFO_SAMPLE_DT};
 	static constexpr float ACCEL_RATE{1e6f / FIFO_SAMPLE_DT};
 
