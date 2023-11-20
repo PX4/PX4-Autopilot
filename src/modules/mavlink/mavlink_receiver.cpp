@@ -323,9 +323,12 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_gimbal_device_attitude_status(msg);
 		break;
 
+#if defined(MAVLINK_MSG_ID_SET_VELOCITY_LIMITS) // For now only defined if development.xml is used
+
 	case MAVLINK_MSG_ID_SET_VELOCITY_LIMITS:
 		handle_message_set_velocity_limits(msg);
 		break;
+#endif
 
 	default:
 		break;
@@ -1215,6 +1218,7 @@ MavlinkReceiver::handle_message_set_gps_global_origin(mavlink_message_t *msg)
 	handle_request_message_command(MAVLINK_MSG_ID_GPS_GLOBAL_ORIGIN);
 }
 
+#if defined(MAVLINK_MSG_ID_SET_VELOCITY_LIMITS) // For now only defined if development.xml is used
 void MavlinkReceiver::handle_message_set_velocity_limits(mavlink_message_t *msg)
 {
 	mavlink_set_velocity_limits_t mavlink_set_velocity_limits;
@@ -1227,6 +1231,7 @@ void MavlinkReceiver::handle_message_set_velocity_limits(mavlink_message_t *msg)
 	velocity_limits.timestamp = hrt_absolute_time();
 	_velocity_limits_pub.publish(velocity_limits);
 }
+#endif // MAVLINK_MSG_ID_SET_VELOCITY_LIMITS
 
 void
 MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
