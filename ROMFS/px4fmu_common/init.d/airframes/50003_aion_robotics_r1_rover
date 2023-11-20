@@ -56,10 +56,7 @@ param set-default CA_AIRFRAME 6
 param set-default CA_R_REV 3
 
 
-param set-default RBCLW_ADDRESS 130
-param set-default RBCLW_SER_CFG 202
+param set-default RBCLW_ADDRESS 128
 param set-default ROBOCLAW_FUNC1 101
 param set-default ROBOCLAW_FUNC2 102
 param set-default ROBOCLAW_REV 1
-param set-default SENS_EN_INA226 0
-param set-default SER_GPS2_BAUD 57600
