@@ -330,6 +330,8 @@ protected:
 
 	float _local_position_z_start_of_transition{0.f}; // altitude at start of transition
 
+	int _altitude_reset_counter{0};
+
 	DEFINE_PARAMETERS_CUSTOM_PARENT(ModuleParams,
 					(ParamBool<px4::params::VT_ELEV_MC_LOCK>) _param_vt_elev_mc_lock,
 					(ParamFloat<px4::params::VT_FW_MIN_ALT>) _param_vt_fw_min_alt,
