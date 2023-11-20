@@ -1383,7 +1383,7 @@ PARAM_DEFINE_FLOAT(EKF2_PCOEF_Z, 0.0f);
 /**
  * Accelerometer bias learning limit.
  *
- * The ekf delta velocity bias states will be limited to within a range equivalent to +- of this value.
+ * The ekf accel bias states will be limited to within a range equivalent to +- of this value.
  *
  * @group EKF2
  * @min 0.0
@@ -1396,8 +1396,8 @@ PARAM_DEFINE_FLOAT(EKF2_ABL_LIM, 0.4f);
 /**
  * Maximum IMU accel magnitude that allows IMU bias learning.
  *
- * If the magnitude of the IMU accelerometer vector exceeds this value, the EKF delta velocity state estimation will be inhibited.
- * This reduces the adverse effect of high manoeuvre accelerations and IMU nonlinerity and scale factor errors on the delta velocity bias estimates.
+ * If the magnitude of the IMU accelerometer vector exceeds this value, the EKF accel bias state estimation will be inhibited.
+ * This reduces the adverse effect of high manoeuvre accelerations and IMU nonlinerity and scale factor errors on the accel bias estimates.
  *
  * @group EKF2
  * @min 20.0
@@ -1410,8 +1410,8 @@ PARAM_DEFINE_FLOAT(EKF2_ABL_ACCLIM, 25.0f);
 /**
  * Maximum IMU gyro angular rate magnitude that allows IMU bias learning.
  *
- * If the magnitude of the IMU angular rate vector exceeds this value, the EKF delta velocity state estimation will be inhibited.
- * This reduces the adverse effect of rapid rotation rates and associated errors on the delta velocity bias estimates.
+ * If the magnitude of the IMU angular rate vector exceeds this value, the EKF accel bias state estimation will be inhibited.
+ * This reduces the adverse effect of rapid rotation rates and associated errors on the accel bias estimates.
  *
  * @group EKF2
  * @min 2.0
@@ -1422,7 +1422,7 @@ PARAM_DEFINE_FLOAT(EKF2_ABL_ACCLIM, 25.0f);
 PARAM_DEFINE_FLOAT(EKF2_ABL_GYRLIM, 3.0f);
 
 /**
- * Time constant used by acceleration and angular rate magnitude checks used to inhibit delta velocity bias learning.
+ * Time constant used by acceleration and angular rate magnitude checks used to inhibit accel bias learning.
  *
  * The vector magnitude of angular rate and acceleration used to check if learning should be inhibited has a peak hold filter applied to it with an exponential decay.
  * This parameter controls the time constant of the decay.
@@ -1438,7 +1438,7 @@ PARAM_DEFINE_FLOAT(EKF2_ABL_TAU, 0.5f);
 /**
  * Gyro bias learning limit.
  *
- * The ekf delta angle bias states will be limited to within a range equivalent to +- of this value.
+ * The ekf gyro bias states will be limited to within a range equivalent to +- of this value.
  *
  * @group EKF2
  * @min 0.0
