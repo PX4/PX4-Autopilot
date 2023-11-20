@@ -17,3 +17,5 @@ bool valid_hpos		# true when the latitude and longitude have been set
 bool valid_lpos		# true when the local position (xyz) has been set
 
 bool manual_home	# true when home position was set manually
+
+uint32 update_count 	# update counter of the home position
