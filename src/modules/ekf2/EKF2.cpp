@@ -2002,15 +2002,13 @@ void EKF2::PublishOpticalFlowVel(const hrt_abstime &timestamp)
 		_ekf.getFlowVelBody().copyTo(flow_vel.vel_body);
 		_ekf.getFlowVelNE().copyTo(flow_vel.vel_ne);
 
-		_ekf.getFlowUncompensated().copyTo(flow_vel.flow_uncompensated_integral);
-		_ekf.getFlowCompensated().copyTo(flow_vel.flow_compensated_integral);
+		_ekf.getFlowUncompensated().copyTo(flow_vel.flow_rate_uncompensated);
+		_ekf.getFlowCompensated().copyTo(flow_vel.flow_rate_compensated);
 
 		_ekf.getFlowGyro().copyTo(flow_vel.gyro_rate);
-		_ekf.getFlowGyroIntegral().copyTo(flow_vel.gyro_rate_integral);
 
 		_ekf.getFlowGyroBias().copyTo(flow_vel.gyro_bias);
 		_ekf.getRefBodyRate().copyTo(flow_vel.ref_gyro);
-		_ekf.getMeasuredBodyRate().copyTo(flow_vel.meas_gyro);
 
 		flow_vel.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 
@@ -2361,17 +2359,30 @@ bool EKF2::UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps)
 			perf_count(_msg_missed_optical_flow_perf);
 		}
 
-		flowSample flow {
-			.time_us = optical_flow.timestamp_sample,
+		const float dt = 1e-6f * (float)optical_flow.integration_timespan_us;
+		Vector2f flow_rate;
+		Vector3f gyro_rate;
+
+		if (dt > FLT_EPSILON) {
 			// NOTE: the EKF uses the reverse sign convention to the flow sensor. EKF assumes positive LOS rate
 			// is produced by a RH rotation of the image about the sensor axis.
-			.flow_xy_rad = Vector2f{-optical_flow.pixel_flow[0], -optical_flow.pixel_flow[1]},
-			.gyro_xyz = Vector3f{-optical_flow.delta_angle[0], -optical_flow.delta_angle[1], -optical_flow.delta_angle[2]},
-			.dt = 1e-6f * (float)optical_flow.integration_timespan_us,
-			.quality = optical_flow.quality,
+			flow_rate = Vector2f(-optical_flow.pixel_flow[0], -optical_flow.pixel_flow[1]) / dt;
+			gyro_rate = Vector3f(-optical_flow.delta_angle[0], -optical_flow.delta_angle[1], -optical_flow.delta_angle[2]) / dt;
+
+		} else if (optical_flow.quality == 0) {
+			// handle special case of SITL and PX4Flow where dt is forced to zero when the quaity is 0
+			flow_rate.zero();
+			gyro_rate.zero();
+		}
+
+		flowSample flow {
+			.time_us = optical_flow.timestamp_sample - optical_flow.integration_timespan_us / 2, // correct timestamp to midpoint of integration interval as the data is converted to rates
+			.flow_rate = flow_rate,
+			.gyro_rate = gyro_rate,
+			.quality = optical_flow.quality
 		};
 
-		if (Vector2f(optical_flow.pixel_flow).isAllFinite() && flow.dt < 1) {
+		if (Vector2f(optical_flow.pixel_flow).isAllFinite() && optical_flow.integration_timespan_us < 1e6) {
 
 			// Save sensor limits reported by the optical flow sensor
 			_ekf.set_optical_flow_limits(optical_flow.max_flow_rate, optical_flow.min_ground_distance,

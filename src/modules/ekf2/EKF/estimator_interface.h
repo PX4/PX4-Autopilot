@@ -120,7 +120,7 @@ public:
 #endif // CONFIG_EKF2_RANGE_FINDER
 
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
-	// if optical flow sensor gyro delta angles are not available, set gyro_xyz vector fields to NaN and the EKF will use its internal delta angle data instead
+	// if optical flow sensor gyro delta angles are not available, set gyro_rate vector fields to NaN and the EKF will use its internal gyro data instead
 	void setOpticalFlowData(const flowSample &flow);
 
 	// set sensor limitations reported by the optical flow sensor
