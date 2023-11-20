@@ -269,6 +269,7 @@ void VehicleAirData::Run()
 						out.baro_temp_celcius = temperature;
 						out.baro_pressure_pa = pressure_pa;
 						out.rho = air_density;
+						out.eas2tas = sqrtf(kAirDensitySeaLevelStandardAtmos / math::max(air_density, FLT_EPSILON));
 						out.calibration_count = _calibration[instance].calibration_count();
 						out.timestamp = hrt_absolute_time();
 
