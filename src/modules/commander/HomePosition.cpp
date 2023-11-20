@@ -129,6 +129,7 @@ bool HomePosition::setHomePosition(bool force)
 	if (updated) {
 		home.timestamp = hrt_absolute_time();
 		home.manual_home = false;
+		home.update_count = _home_position_pub.get().update_count + 1U;
 		updated = _home_position_pub.update(home);
 	}
 
@@ -193,6 +194,7 @@ void HomePosition::setInAirHomePosition()
 
 			setHomePosValid();
 			home.timestamp = hrt_absolute_time();
+			home.update_count++;
 			_home_position_pub.update();
 
 		} else if (!_failsafe_flags.local_position_invalid && _gps_position_for_home_valid) {
@@ -211,6 +213,7 @@ void HomePosition::setInAirHomePosition()
 
 			setHomePosValid();
 			home.timestamp = hrt_absolute_time();
+			home.update_count++;
 			_home_position_pub.update();
 		}
 
@@ -230,6 +233,7 @@ void HomePosition::setInAirHomePosition()
 			fillLocalHomePos(home, home_x, home_y, home_z, NAN);
 
 			home.timestamp = hrt_absolute_time();
+			home.update_count++;
 			_home_position_pub.update();
 		}
 
@@ -268,6 +272,7 @@ bool HomePosition::setManually(double lat, double lon, float alt, float yaw)
 	home.yaw = yaw;
 
 	home.timestamp = hrt_absolute_time();
+	home.update_count++;
 	_home_position_pub.update();
 	setHomePosValid();
 	return true;
