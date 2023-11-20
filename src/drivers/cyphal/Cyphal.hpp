@@ -117,10 +117,10 @@ class CyphalNode : public ModuleParams, public px4::ScheduledWorkItem
 
 public:
 
-	CyphalNode(uint32_t node_id, size_t capacity, size_t mtu_bytes);
+	CyphalNode(uint32_t node_id, size_t capacity, size_t mtu_bytes, const char* can_iface);
 	~CyphalNode() override;
 
-	static int start(uint32_t node_id, uint32_t bitrate);
+	static int start(uint32_t node_id, uint32_t bitrate, const char* can_iface);
 
 	void print_info();
 
@@ -147,6 +147,9 @@ private:
 
 	pthread_mutex_t _node_mutex;
 
+  // CAN interface to start Cyphal on
+  const char *_can_iface_name;
+	
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")};
@@ -156,7 +159,7 @@ private:
 	uint8_t _uavcan_node_heartbeat_buffer[uavcan_node_Heartbeat_1_0_EXTENT_BYTES_];
 	hrt_abstime _uavcan_node_heartbeat_last{0};
 	CanardTransferID _uavcan_node_heartbeat_transfer_id{0};
-
+	
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::CYPHAL_ENABLE>) _param_uavcan_v1_enable,
 		(ParamInt<px4::params::CYPHAL_ID>) _param_uavcan_v1_id,
