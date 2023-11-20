@@ -192,6 +192,7 @@ TEST_F(EkfGpsTest, gpsHgtToBaroFallback)
 	_sensor_simulator._flow.setData(_sensor_simulator._flow.dataAtRest());
 	_ekf_wrapper.enableFlowFusion();
 	_sensor_simulator.startFlow();
+	_sensor_simulator.startRangeFinder();
 
 	_ekf_wrapper.enableGpsHeightFusion();
 

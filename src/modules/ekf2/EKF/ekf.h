@@ -132,14 +132,12 @@ public:
 	const Vector2f &getFlowVelBody() const { return _flow_vel_body; }
 	const Vector2f &getFlowVelNE() const { return _flow_vel_ne; }
 
-	const Vector2f &getFlowCompensated() const { return _flow_compensated_XY_rad; }
-	const Vector2f &getFlowUncompensated() const { return _flow_sample_delayed.flow_xy_rad; }
+	const Vector2f &getFlowCompensated() const { return _flow_rate_compensated; }
+	const Vector2f &getFlowUncompensated() const { return _flow_sample_delayed.flow_rate; }
 
-	const Vector3f getFlowGyro() const { return _flow_sample_delayed.gyro_xyz * (1.f / _flow_sample_delayed.dt); }
-	const Vector3f &getFlowGyroIntegral() const { return _flow_sample_delayed.gyro_xyz; }
+	const Vector3f getFlowGyro() const { return _flow_sample_delayed.gyro_rate; }
 	const Vector3f &getFlowGyroBias() const { return _flow_gyro_bias; }
 	const Vector3f &getRefBodyRate() const { return _ref_body_rate; }
-	const Vector3f &getMeasuredBodyRate() const { return _measured_body_rate; }
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
 	float getHeadingInnov() const
@@ -600,14 +598,9 @@ private:
 	Vector3f _flow_gyro_bias{};	///< bias errors in optical flow sensor rate gyro outputs (rad/sec)
 	Vector2f _flow_vel_body{};	///< velocity from corrected flow measurement (body frame)(m/s)
 	Vector2f _flow_vel_ne{};		///< velocity from corrected flow measurement (local frame) (m/s)
-	Vector3f _imu_del_ang_of{};	///< bias corrected delta angle measurements accumulated across the same time frame as the optical flow rates (rad)
 	Vector3f _ref_body_rate{};
-	Vector3f _measured_body_rate{};
 
-	float _delta_time_of{0.0f};	///< time in sec that _imu_del_ang_of was accumulated over (sec)
-	uint64_t _time_bad_motion_us{0};	///< last system time that on-ground motion exceeded limits (uSec)
-	uint64_t _time_good_motion_us{0};	///< last system time that on-ground motion was within limits (uSec)
-	Vector2f _flow_compensated_XY_rad{};	///< measured delta angle of the image about the X and Y body axes after removal of body rotation (rad), RH rotation is positive
+	Vector2f _flow_rate_compensated{}; ///< measured angular rate of the image about the X and Y body axes after removal of body rotation (rad/s), RH rotation is positive
 
 	bool _flow_data_ready{false};	///< true when the leading edge of the optical flow integration period has fallen behind the fusion time horizon
 #endif // CONFIG_EKF2_OPTICAL_FLOW
@@ -879,6 +872,8 @@ private:
 #if defined(CONFIG_EKF2_OPTICAL_FLOW)
 	// control fusion of optical flow observations
 	void controlOpticalFlowFusion(const imuSample &imu_delayed);
+	void startFlowFusion();
+	void resetFlowFusion();
 	void stopFlowFusion();
 
 	void updateOnGroundMotionForOpticalFlowChecks();
@@ -888,8 +883,7 @@ private:
 	float calcOptFlowMeasVar(const flowSample &flow_sample);
 
 	// calculate optical flow body angular rate compensation
-	// returns false if bias corrected body rate data is unavailable
-	bool calcOptFlowBodyRateComp();
+	void calcOptFlowBodyRateComp(const imuSample &imu_delayed);
 
 	// fuse optical flow line of sight rate measurements
 	void updateOptFlow(estimator_aid_source2d_s &aid_src);
