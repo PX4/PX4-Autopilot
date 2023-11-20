@@ -98,9 +98,9 @@ public:
 
 		// Configure optical flow simulator data
 		flowSample flow_sample = _sensor_simulator._flow.dataAtRest();
-		flow_sample.flow_xy_rad =
-			Vector2f(simulated_velocity(1) * flow_sample.dt / flow_height,
-				 -simulated_velocity(0) * flow_sample.dt / flow_height);
+		flow_sample.flow_rate =
+			Vector2f(simulated_velocity(1) / flow_height,
+				 -simulated_velocity(0) / flow_height);
 		_sensor_simulator._flow.setData(flow_sample);
 		const float max_flow_rate = 5.f;
 		const float min_ground_distance = 0.f;

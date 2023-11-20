@@ -58,6 +58,14 @@ void Ekf::initHagl()
 
 	// use the ground clearance value as our uncertainty
 	_terrain_var = sq(_params.rng_gnd_clearance);
+
+#if defined(CONFIG_EKF2_RANGE_FINDER)
+	_aid_src_terrain_range_finder.time_last_fuse = _time_delayed_us;
+#endif // CONFIG_EKF2_RANGE_FINDER
+
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
+	_aid_src_terrain_optical_flow.time_last_fuse = _time_delayed_us;
+#endif // CONFIG_EKF2_OPTICAL_FLOW
 }
 
 void Ekf::runTerrainEstimator(const imuSample &imu_delayed)
@@ -419,17 +427,33 @@ void Ekf::controlHaglFakeFusion()
 	    && !_hagl_sensor_status.flags.range_finder
 	    && !_hagl_sensor_status.flags.flow) {
 
-		initHagl();
+		bool recent_terrain_aiding = false;
+
+#if defined(CONFIG_EKF2_RANGE_FINDER)
+		recent_terrain_aiding |= isRecent(_aid_src_terrain_range_finder.time_last_fuse, (uint64_t)1e6);
+#endif // CONFIG_EKF2_RANGE_FINDER
+
+#if defined(CONFIG_EKF2_OPTICAL_FLOW)
+		recent_terrain_aiding |= isRecent(_aid_src_terrain_optical_flow.time_last_fuse, (uint64_t)1e6);
+#endif // CONFIG_EKF2_OPTICAL_FLOW
+
+		if (_control_status.flags.vehicle_at_rest || !recent_terrain_aiding) {
+			initHagl();
+		}
 	}
 }
 
 bool Ekf::isTerrainEstimateValid() const
 {
+	bool valid = false;
+
 #if defined(CONFIG_EKF2_RANGE_FINDER)
 
 	// we have been fusing range finder measurements in the last 5 seconds
-	if (_hagl_sensor_status.flags.range_finder && isRecent(_aid_src_terrain_range_finder.time_last_fuse, (uint64_t)5e6)) {
-		return true;
+	if (isRecent(_aid_src_terrain_range_finder.time_last_fuse, (uint64_t)5e6)) {
+		if (_hagl_sensor_status.flags.range_finder || !_control_status.flags.in_air) {
+			valid = true;
+		}
 	}
 
 #endif // CONFIG_EKF2_RANGE_FINDER
@@ -439,12 +463,12 @@ bool Ekf::isTerrainEstimateValid() const
 	// we have been fusing optical flow measurements for terrain estimation within the last 5 seconds
 	// this can only be the case if the main filter does not fuse optical flow
 	if (_hagl_sensor_status.flags.flow && isRecent(_aid_src_terrain_optical_flow.time_last_fuse, (uint64_t)5e6)) {
-		return true;
+		valid = true;
 	}
 
 #endif // CONFIG_EKF2_OPTICAL_FLOW
 
-	return false;
+	return valid;
 }
 
 void Ekf::terrainHandleVerticalPositionReset(const float delta_z) {
