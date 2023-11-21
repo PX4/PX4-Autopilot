@@ -156,3 +156,17 @@ PARAM_DEFINE_FLOAT(MIS_YAW_TMT, -1.0f);
  * @group Mission
  */
 PARAM_DEFINE_FLOAT(MIS_YAW_ERR, 12.0f);
+
+/**
+ * Allow waypoints below home altitude.
+ *
+ * If enabled, mission validation will ignore that waypoints are placed below home altitide.
+ * If disabled, a warning will be sent if waypoint altitude is below home.
+ *
+* @value 0 Disable
+* @value 1 Enable
+* @min 0
+* @max 1
+* @group Mission
+*/
+PARAM_DEFINE_INT32(MIS_WP_BLW_HOME, 1);
