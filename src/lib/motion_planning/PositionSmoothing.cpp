@@ -35,8 +35,6 @@
 #include "TrajectoryConstraints.hpp"
 #include <mathlib/mathlib.h>
 #include <matrix/matrix/math.hpp>
-#include <matrix/matrix/helper_functions.hpp>
-
 
 void PositionSmoothing::_generateSetpoints(
 	const Vector3f &position,
