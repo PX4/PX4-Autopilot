@@ -445,6 +445,8 @@ private:
 		(ParamInt<px4::params::NAV_TRAFF_AVOID>)    _param_nav_traff_avoid,	/**< avoiding other aircraft is enabled */
 		(ParamFloat<px4::params::NAV_TRAFF_A_RADU>) _param_nav_traff_a_radu,	/**< avoidance Distance Unmanned*/
 		(ParamFloat<px4::params::NAV_TRAFF_A_RADM>) _param_nav_traff_a_radm,	/**< avoidance Distance Manned*/
+		(ParamInt<px4::params::NAV_TRAFF_IGNADR>) _param_nav_traff_ignadr,  /**< ignore icao address for avoidance*/
+		(ParamInt<px4::params::NAV_TRAFF_IGNCNT>) _param_nav_traff_igncdr,  /**< number of sequential icoa addresses to ignore*/
 
 		// non-navigator parameters
 		// Mission (MIS_*)

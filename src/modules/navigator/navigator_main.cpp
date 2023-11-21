@@ -1201,6 +1201,14 @@ void Navigator::check_traffic()
 	float horizontal_separation = NAVTrafficAvoidManned;
 	float vertical_separation = NAVTrafficAvoidManned;
 
+	uint32_t ignore_icao_start = 0x1000000;  // Default above valid range
+	uint32_t ignore_icao_end = static_cast<uint32_t>(_param_nav_traff_igncdr.get());
+
+	if (ignore_icao_end > 0) {
+		ignore_icao_start = static_cast<uint32_t>(_param_nav_traff_ignadr.get());
+		ignore_icao_end += ignore_icao_start;
+	}
+
 	while (changed) {
 
 		//vehicle_status_s vs{};
@@ -1212,6 +1220,12 @@ void Navigator::check_traffic()
 					  transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY | transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE;
 
 		if ((tr.flags & required_flags) != required_flags) {
+			changed = _traffic_sub.updated();
+			continue;
+		}
+
+		// Check if the icao address is within the range we will ignore
+		if (tr.icao_address > ignore_icao_start && tr.icao_address < ignore_icao_end) {
 			changed = _traffic_sub.updated();
 			continue;
 		}
