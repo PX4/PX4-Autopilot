@@ -270,6 +270,12 @@ public:
 	 */
 	void resetTransitionStates();
 
+	/**
+	 * @brief Handle EKF position resets.
+	 *
+	 */
+	void handleEkfResets();
+
 protected:
 	VtolAttitudeControl *_attc;
 	mode _common_vtol_mode;

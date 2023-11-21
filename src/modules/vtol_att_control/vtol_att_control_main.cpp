@@ -373,6 +373,8 @@ VtolAttitudeControl::Run()
 			_air_density = air_data.rho;
 		}
 
+		_vtol_type->handleEkfResets();
+
 		// check if mc and fw sp were updated
 		const bool mc_att_sp_updated = _mc_virtual_att_sp_sub.update(&_mc_virtual_att_sp);
 		const bool fw_att_sp_updated = _fw_virtual_att_sp_sub.update(&_fw_virtual_att_sp);
