@@ -198,6 +198,12 @@ FixedwingPositionINDIControl::parameters_update()
 		_shear_heading = _param_shear_heading.get() / 180.f * M_PI_F + M_PI_2_F;
 		_shear_h_ref = _param_shear_height.get();
 		_select_loiter_trajectory();
+
+	} else {
+		_shear_v_max = _param_shear_estimated_v_max.get();
+		_shear_alpha = _param_shear_estimated_alpha.get();
+		_shear_h_ref = _param_shear_estimated_h_ref.get();
+		_shear_heading = _param_shear_estimated_heading.get();
 	}
 
 
@@ -434,9 +440,13 @@ FixedwingPositionINDIControl::soaring_estimator_shear_poll()
 			// the initial speed of the target trajectory can safely be updated during soaring :)
 			_shear_aspd = _soaring_estimator_shear.aspd;
 			_param_shear_estimated_v_max.set(_shear_v_max);
+			_param_shear_estimated_v_max.commit()
 			_param_shear_estimated_alpha.set(_shear_alpha);
+			_param_shear_estimated_alpha.commit()
 			_param_shear_estimated_h_ref.set(_shear_h_ref);
+			_param_shear_estimated_h_ref.commit()
 			_param_shear_estimated_heading.set(_shear_heading);
+			_param_shear_estimated_heading.commit()
 		}
 
 	}
