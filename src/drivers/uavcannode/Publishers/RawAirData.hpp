@@ -39,6 +39,7 @@
 
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/differential_pressure.h>
+#include <lib/atmosphere/atmosphere.h>
 
 namespace uavcannode
 {
@@ -78,8 +79,8 @@ public:
 			// raw_air_data.static_pressure =
 			raw_air_data.differential_pressure = diff_press.differential_pressure_pa;
 			// raw_air_data.static_pressure_sensor_temperature =
-			raw_air_data.differential_pressure_sensor_temperature = diff_press.temperature - CONSTANTS_ABSOLUTE_NULL_CELSIUS;
-			raw_air_data.static_air_temperature = diff_press.temperature - CONSTANTS_ABSOLUTE_NULL_CELSIUS;
+			raw_air_data.differential_pressure_sensor_temperature = diff_press.temperature - atmosphere::kAbsoluteNullCelsius;
+			raw_air_data.static_air_temperature = diff_press.temperature - atmosphere::kAbsoluteNullCelsius;
 			// raw_air_data.pitot_temperature
 			// raw_air_data.covariance
 			uavcan::Publisher<uavcan::equipment::air_data::RawAirData>::broadcast(raw_air_data);

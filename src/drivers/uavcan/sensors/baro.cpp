@@ -41,7 +41,7 @@
 
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/sensor_baro.h>
-#include <lib/geo/geo.h> // For CONSTANTS_*
+#include <lib/atmosphere/atmosphere.h>
 
 const char *const UavcanBarometerBridge::NAME = "baro";
 
@@ -78,10 +78,10 @@ void UavcanBarometerBridge::air_temperature_sub_cb(const
 
 	} else if (msg.static_temperature < 0) {
 		// handle previous incorrect temperature conversion to Kelvin where 273 was subtracted instead of added (https://github.com/PX4/PX4-Autopilot/pull/19061)
-		float temperature_c = msg.static_temperature - CONSTANTS_ABSOLUTE_NULL_CELSIUS;
+		float temperature_c = msg.static_temperature - atmosphere::kAbsoluteNullCelsius;
 
 		if (temperature_c > -40.f && temperature_c < 120.f) {
-			_last_temperature_kelvin = temperature_c - CONSTANTS_ABSOLUTE_NULL_CELSIUS;
+			_last_temperature_kelvin = temperature_c - atmosphere::kAbsoluteNullCelsius;
 		}
 	}
 }
@@ -119,7 +119,7 @@ void UavcanBarometerBridge::air_pressure_sub_cb(const
 	sensor_baro.pressure = msg.static_pressure;
 
 	if (PX4_ISFINITE(_last_temperature_kelvin) && (_last_temperature_kelvin >= 0.f)) {
-		sensor_baro.temperature = _last_temperature_kelvin + CONSTANTS_ABSOLUTE_NULL_CELSIUS;
+		sensor_baro.temperature = _last_temperature_kelvin + atmosphere::kAbsoluteNullCelsius;
 
 	} else {
 		sensor_baro.temperature = NAN;

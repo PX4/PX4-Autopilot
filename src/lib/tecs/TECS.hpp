@@ -198,11 +198,10 @@ public:
 		float max_climb_rate;			///< Climb rate produced by max allowed throttle [m/s].
 		float vert_accel_limit;			///< Magnitude of the maximum vertical acceleration allowed [m/s²].
 		float equivalent_airspeed_trim;		///< Equivalent cruise airspeed for airspeed less mode [m/s].
-		float tas_min;				///< True airpeed demand lower limit [m/s].
+		float tas_min;				///< True airspeed demand lower limit [m/s].
 		float pitch_max;			///< Maximum pitch angle allowed in [rad].
 		float pitch_min;			///< Minimal pitch angle allowed in [rad].
-		float throttle_trim;			///< Normalized throttle required to fly level at trim airspeed and sea level
-		float throttle_trim_adjusted;		///< Trim throttle adjusted for airspeed, load factor and air density
+		float throttle_trim;		///< Normalized throttle required to fly level at calibrated airspeed setpoint [0,1]
 		float throttle_max;			///< Normalized throttle upper limit.
 		float throttle_min;			///< Normalized throttle lower limit.
 
@@ -577,7 +576,7 @@ public:
 	 */
 	void update(float pitch, float altitude, float hgt_setpoint, float EAS_setpoint, float equivalent_airspeed,
 		    float eas_to_tas, float throttle_min, float throttle_setpoint_max,
-		    float throttle_trim, float throttle_trim_adjusted, float pitch_limit_min, float pitch_limit_max, float target_climbrate,
+		    float throttle_trim, float pitch_limit_min, float pitch_limit_max, float target_climbrate,
 		    float target_sinkrate, float speed_deriv_forward, float hgt_rate, float hgt_rate_sp = NAN);
 
 	/**
@@ -690,7 +689,6 @@ private:
 		.pitch_max = 5.0f,
 		.pitch_min = -5.0f,
 		.throttle_trim = 0.0f,
-		.throttle_trim_adjusted = 0.f,
 		.throttle_max = 1.0f,
 		.throttle_min = 0.1f,
 		.altitude_error_gain = 0.2f,

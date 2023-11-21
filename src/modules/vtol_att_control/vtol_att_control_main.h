@@ -50,7 +50,7 @@
 #pragma once
 
 #include <drivers/drv_hrt.h>
-#include <lib/geo/geo.h>
+#include <lib/atmosphere/atmosphere.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
 #include <matrix/math.hpp>
@@ -209,7 +209,7 @@ private:
 	vtol_vehicle_status_s 			_vtol_vehicle_status{};
 	float _home_position_z{NAN};
 
-	float _air_density{CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C};	// [kg/m^3]
+	float _air_density{atmosphere::kAirDensitySeaLevelStandardAtmos};	// [kg/m^3]
 
 	hrt_abstime _last_run_timestamp{0};
 

@@ -592,11 +592,11 @@ float TECSControl::_calcThrottleControlOutput(const STERateLimit &limit, const C
 
 	if (ste_rate.setpoint >= FLT_EPSILON) {
 		// throttle is between trim and maximum
-		throttle_predicted = param.throttle_trim_adjusted + ste_rate.setpoint * throttle_above_trim_per_ste_rate;
+		throttle_predicted = param.throttle_trim + ste_rate.setpoint * throttle_above_trim_per_ste_rate;
 
 	} else {
 		// throttle is between trim and minimum
-		throttle_predicted = param.throttle_trim_adjusted - ste_rate.setpoint * throttle_below_trim_per_ste_rate;
+		throttle_predicted = param.throttle_trim - ste_rate.setpoint * throttle_below_trim_per_ste_rate;
 
 	}
 
@@ -661,7 +661,7 @@ void TECS::initialize(const float altitude, const float altitude_rate, const flo
 
 void TECS::update(float pitch, float altitude, float hgt_setpoint, float EAS_setpoint, float equivalent_airspeed,
 		  float eas_to_tas, float throttle_min, float throttle_setpoint_max,
-		  float throttle_trim, float throttle_trim_adjusted, float pitch_limit_min, float pitch_limit_max, float target_climbrate,
+		  float throttle_trim, float pitch_limit_min, float pitch_limit_max, float target_climbrate,
 		  float target_sinkrate, const float speed_deriv_forward, float hgt_rate, float hgt_rate_sp)
 {
 
@@ -678,7 +678,6 @@ void TECS::update(float pitch, float altitude, float hgt_setpoint, float EAS_set
 	_control_param.pitch_max = pitch_limit_max;
 	_control_param.pitch_min = pitch_limit_min;
 	_control_param.throttle_trim = throttle_trim;
-	_control_param.throttle_trim_adjusted = throttle_trim_adjusted;
 	_control_param.throttle_max = throttle_setpoint_max;
 	_control_param.throttle_min = throttle_min;
 
