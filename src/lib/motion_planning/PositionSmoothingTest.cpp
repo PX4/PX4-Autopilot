@@ -2,6 +2,26 @@
 
 #include <motion_planning/PositionSmoothing.hpp>
 
+TEST(PositionSmoothingBasicTest, AllZeroCase)
+{
+	PositionSmoothing position_smoothing;
+	PositionSmoothing::PositionSmoothingSetpoints out;
+
+	position_smoothing.generateSetpoints(
+		Vector3f(),
+	{Vector3f(), Vector3f(), Vector3f()},
+	Vector3f(),
+	0.f,
+	false,
+	out
+	);
+
+	EXPECT_EQ(out.jerk, Vector3f());
+	EXPECT_EQ(out.acceleration, Vector3f());
+	EXPECT_EQ(out.velocity, Vector3f());
+	EXPECT_EQ(out.position, Vector3f());
+	EXPECT_EQ(out.unsmoothed_velocity, Vector3f());
+}
 
 static constexpr float MAX_JERK = 4.f;
 static constexpr float MAX_ACCELERATION = 3.f;
