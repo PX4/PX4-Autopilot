@@ -30,7 +30,7 @@ then
 
 	if [ $HAVE_PM3 = yes ]
 	then
-		ina226 -X -b 3 -t 2 -k start
+		ina226 -X -b 3 -t 3 -k start
 	fi
 fi
 
@@ -46,7 +46,7 @@ then
 
 	if [ $HAVE_PM3 = yes ]
 	then
-		ina228 -X -b 3 -t 2 -k start
+		ina228 -X -b 3 -t 3 -k start
 	fi
 fi
 
@@ -62,7 +62,7 @@ then
 
 	if [ $HAVE_PM3 = yes ]
 	then
-		ina238 -X -b 3 -t 2 -k start
+		ina238 -X -b 3 -t 3 -k start
 	fi
 fi
 
